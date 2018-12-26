@@ -1605,8 +1605,8 @@ static void asFunc_Error( const asstring_t *str ) {
 	G_Error( "%s", str && str->buffer ? str->buffer : "" );
 }
 
-static void asFunc_G_Sound( edict_t *owner, int channel, int soundindex, float attenuation ) {
-	G_Sound( owner, channel, soundindex, attenuation );
+static void asFunc_G_Sound( edict_t *owner, int channel, uint64_t hash, float attenuation ) {
+	G_Sound( owner, channel, StringHash( hash ), attenuation );
 }
 
 static int asFunc_DirToByte( asvec3_t *vec ) {
@@ -1763,23 +1763,8 @@ static int asFunc_ModelIndex( asstring_t *str ) {
 	return asFunc_ModelIndexExt( str, false );
 }
 
-static int asFunc_SoundIndexExt( asstring_t *str, bool pure ) {
-	int index;
-
-	if( !str || !str->buffer ) {
-		return 0;
-	}
-
-	index = trap_SoundIndex( str->buffer );
-	if( index && pure ) {
-		G_PureSound( str->buffer );
-	}
-
-	return index;
-}
-
-static int asFunc_SoundIndex( asstring_t *str ) {
-	return asFunc_SoundIndexExt( str, false );
+static uint64_t asFunc_SoundHash( asstring_t *str ) {
+	return Hash64( str->buffer, str->len );
 }
 
 static void asFunc_RegisterCommand( asstring_t *str ) {
@@ -1905,19 +1890,19 @@ static CScriptArrayInterface *asFunc_G_FindByClassname( asstring_t *str ) {
 	return arr;
 }
 
-static void asFunc_PositionedSound( asvec3_t *origin, int channel, int soundindex, float attenuation ) {
+static void asFunc_PositionedSound( asvec3_t *origin, int channel, uint64_t hash, float attenuation ) {
 	if( !origin ) {
 		return;
 	}
 
-	G_PositionedSound( origin->v, channel, soundindex, attenuation );
+	G_PositionedSound( origin->v, channel, StringHash( hash ), attenuation );
 }
 
-static void asFunc_G_GlobalSound( int channel, int soundindex ) {
-	G_GlobalSound( channel, soundindex );
+static void asFunc_G_GlobalSound( int channel, uint64_t hash ) {
+	G_GlobalSound( channel, StringHash( hash ) );
 }
 
-static void asFunc_G_LocalSound( gclient_t *target, int channel, int soundindex ) {
+static void asFunc_G_LocalSound( gclient_t *target, int channel, uint64_t hash ) {
 	edict_t *ent = NULL;
 
 	if( !target ) {
@@ -1935,11 +1920,11 @@ static void asFunc_G_LocalSound( gclient_t *target, int channel, int soundindex 
 	}
 
 	if( ent ) {
-		G_LocalSound( ent, channel, soundindex );
+		G_LocalSound( ent, channel, StringHash( hash ) );
 	}
 }
 
-static void asFunc_G_AnnouncerSound( gclient_t *target, int soundindex, int team, bool queued, gclient_t *ignore ) {
+static void asFunc_G_AnnouncerSound( gclient_t *target, StringHash hash, int team, bool queued, gclient_t *ignore ) {
 	edict_t *ent = NULL, *passent = NULL;
 	int playerNum;
 
@@ -1962,7 +1947,7 @@ static void asFunc_G_AnnouncerSound( gclient_t *target, int soundindex, int team
 	}
 
 
-	G_AnnouncerSound( ent, soundindex, team, queued, passent );
+	G_AnnouncerSound( ent, StringHash( hash ), team, queued, passent );
 }
 
 static asstring_t *asFunc_G_SpawnTempValue( asstring_t *key ) {
@@ -2050,11 +2035,11 @@ static const gs_asglobfuncs_t asGameGlobFuncs[] =
 	{ "void G_CenterPrintFormatMsg( Entity @, const String &in, const String &in, const String &in"
 	  ", const String &in, const String &in, const String &in, const String &in, const String &in )", asFUNCTION( asFunc_CenterPrintFormatMsg7 ), NULL },
 	{ "void G_Error( const String &in )", asFUNCTION( asFunc_Error ), NULL },
-	{ "void G_Sound( Entity @, int channel, int soundindex, float attenuation )", asFUNCTION( asFunc_G_Sound ), NULL },
-	{ "void G_PositionedSound( const Vec3 &in, int channel, int soundindex, float attenuation )", asFUNCTION( asFunc_PositionedSound ), NULL },
-	{ "void G_GlobalSound( int channel, int soundindex )", asFUNCTION( asFunc_G_GlobalSound ), NULL },
-	{ "void G_LocalSound( Client @, int channel, int soundIndex )", asFUNCTION( asFunc_G_LocalSound ), NULL },
-	{ "void G_AnnouncerSound( Client @, int soundIndex, int team, bool queued, Client @ )", asFUNCTION( asFunc_G_AnnouncerSound ), NULL },
+	{ "void G_Sound( Entity @, int channel, uint64 hash, float attenuation )", asFUNCTION( asFunc_G_Sound ), NULL },
+	{ "void G_PositionedSound( const Vec3 &in, int channel, uint64 hash, float attenuation )", asFUNCTION( asFunc_PositionedSound ), NULL },
+	{ "void G_GlobalSound( int channel, uint64 hash )", asFUNCTION( asFunc_G_GlobalSound ), NULL },
+	{ "void G_LocalSound( Client @, int channel, uint64 hash )", asFUNCTION( asFunc_G_LocalSound ), NULL },
+	{ "void G_AnnouncerSound( Client @, uint64 hash, int team, bool queued, Client @ )", asFUNCTION( asFunc_G_AnnouncerSound ), NULL },
 	{ "int G_DirToByte( const Vec3 &in origin )", asFUNCTION( asFunc_DirToByte ), NULL },
 	{ "int G_PointContents( const Vec3 &in origin )", asFUNCTION( asFunc_PointContents ), NULL },
 	{ "bool G_InPVS( const Vec3 &in origin1, const Vec3 &in origin2 )", asFUNCTION( asFunc_InPVS ), NULL },
@@ -2074,9 +2059,8 @@ static const gs_asglobfuncs_t asGameGlobFuncs[] =
 	{ "int G_ImageIndex( const String &in )", asFUNCTION( asFunc_ImageIndex ), NULL },
 	{ "int G_SkinIndex( const String &in )", asFUNCTION( asFunc_SkinIndex ), NULL },
 	{ "int G_ModelIndex( const String &in )", asFUNCTION( asFunc_ModelIndex ), NULL },
-	{ "int G_SoundIndex( const String &in )", asFUNCTION( asFunc_SoundIndex ), NULL },
+	{ "uint64 G_SoundHash( const String &in )", asFUNCTION( asFunc_SoundHash ), NULL },
 	{ "int G_ModelIndex( const String &in, bool pure )", asFUNCTION( asFunc_ModelIndexExt ), NULL },
-	{ "int G_SoundIndex( const String &in, bool pure )", asFUNCTION( asFunc_SoundIndexExt ), NULL },
 	{ "void G_RegisterCommand( const String &in )", asFUNCTION( asFunc_RegisterCommand ), NULL },
 	{ "void G_RegisterCallvote( const String &in, const String &in, const String &in, const String &in )", asFUNCTION( asFunc_RegisterCallvote ), NULL },
 	{ "const String @G_ConfigString( int index )", asFUNCTION( asFunc_GetConfigString ), NULL },

@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
+#include "qalgo/hash.h"
+
 struct orientation_s;
 struct bonepose_s;
 struct shader_s;
@@ -179,16 +181,13 @@ typedef struct {
 	bool ( *CM_InPVS )( const vec3_t p1, const vec3_t p2 );
 
 	// sound system
-	struct sfx_s *( *S_RegisterSound )( const char *name );
 	void ( *S_Update )( const vec3_t origin, const vec3_t velocity, const mat3_t axis );
 	void ( *S_UpdateEntity )( int entNum, vec3_t origin, vec3_t velocity );
-	void ( *S_StartFixedSound )( struct sfx_s *sfx, const vec3_t origin, int entchannel, float volume, float attenuation );
-	void ( *S_StartEntitySound )( struct sfx_s *sfx, int entnum, int entchannel, float volume, float attenuation );
-	void ( *S_StartGlobalSound )( struct sfx_s *sfx, int entchannel, float volume );
-	void ( *S_StartLocalSound )( struct sfx_s *sfx, int channel, float volume );
-	void ( *S_ImmediateSound )( struct sfx_s *sfx, int entnum, float volume, float attenuation );
-	void ( *S_StartBackgroundTrack )( struct sfx_s *sfx );
-	void ( *S_StopBackgroundTrack )( void );
+	void ( *S_StartFixedSound )( StringHash name, const vec3_t origin, int entchannel, float volume, float attenuation );
+	void ( *S_StartEntitySound )( StringHash name, int entnum, int entchannel, float volume, float attenuation );
+	void ( *S_StartGlobalSound )( StringHash name, int entchannel, float volume );
+	void ( *S_StartLocalSound )( StringHash name, int channel, float volume );
+	void ( *S_ImmediateSound )( StringHash name, int entnum, float volume, float attenuation );
 
 	// fonts
 	struct qfontface_s *( *SCR_RegisterFont )( const char *family, int style, unsigned int size );

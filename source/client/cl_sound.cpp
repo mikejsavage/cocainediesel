@@ -48,43 +48,38 @@ void CL_SoundModule_SetWindowFocus( bool focused ) {
 	S_SetWindowFocus( focused );
 }
 
-struct sfx_s * CL_SoundModule_RegisterSound( const char * filename ) {
-	return S_RegisterSound( filename );
+void CL_SoundModule_StartFixedSound( StringHash name, const vec3_t origin, int channel, float volume, float attenuation ) {
+	S_StartFixedSound( name, origin, channel, volume, attenuation );
 }
 
-void CL_SoundModule_StartFixedSound( struct sfx_s *sfx, const vec3_t origin, int channel, float volume,
-									 float attenuation ) {
-	S_StartFixedSound( sfx, origin, channel, volume, attenuation );
+void CL_SoundModule_StartEntitySound( StringHash name, int entnum, int channel, float volume, float attenuation ) {
+	S_StartEntitySound( name, entnum, channel, volume, attenuation );
 }
 
-void CL_SoundModule_StartEntitySound( struct sfx_s *sfx, int entnum, int channel, float volume, float attenuation ) {
-	S_StartEntitySound( sfx, entnum, channel, volume, attenuation );
+void CL_SoundModule_StartGlobalSound( StringHash name, int channel, float volume ) {
+	S_StartGlobalSound( name, channel, volume );
 }
 
-void CL_SoundModule_StartGlobalSound( struct sfx_s *sfx, int channel, float volume ) {
-	S_StartGlobalSound( sfx, channel, volume );
+void CL_SoundModule_StartLocalSound( StringHash name, int channel, float volume ) {
+	S_StartLocalSound( name, channel, volume );
 }
 
-void CL_SoundModule_StartLocalSound( struct sfx_s *sfx, int channel, float volume ) {
-	S_StartLocalSound( sfx, channel, volume );
-}
-
-void CL_SoundModule_ImmediateSound( struct sfx_s *sfx, int entnum, float volume, float attenuation ) {
-	S_ImmediateSound( sfx, entnum, volume, attenuation );
+void CL_SoundModule_ImmediateSound( StringHash name, int entnum, float volume, float attenuation ) {
+	S_ImmediateSound( name, entnum, volume, attenuation );
 }
 
 void CL_SoundModule_StartMenuMusic() {
 	S_StartMenuMusic();
 }
 
-void CL_SoundModule_StopBackgroundTrack( void ) {
+void CL_SoundModule_StopBackgroundTrack() {
 	S_StopBackgroundTrack();
 }
 
-void CL_SoundModule_BeginAviDemo( void ) {
+void CL_SoundModule_BeginAviDemo() {
 	S_BeginAviDemo();
 }
 
-void CL_SoundModule_StopAviDemo( void ) {
+void CL_SoundModule_StopAviDemo() {
 	S_StopAviDemo();
 }

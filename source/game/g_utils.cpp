@@ -803,7 +803,7 @@ edict_t *G_Spawn( void ) {
 /*
 * G_AddEvent
 */
-void G_AddEvent( edict_t *ent, int event, int parm, bool highPriority ) {
+void G_AddEvent( edict_t *ent, int event, uint64_t parm, bool highPriority ) {
 	if( !ent || ent == world || !ent->r.inuse ) {
 		return;
 	}
@@ -821,8 +821,12 @@ void G_AddEvent( edict_t *ent, int event, int parm, bool highPriority ) {
 
 	}
 	ent->s.events[eventNum] = event;
-	ent->s.eventParms[eventNum] = parm & 0xFF;
+	ent->s.eventParms[eventNum] = parm;
 	ent->eventPriority[eventNum] = highPriority;
+}
+
+void G_AddEvent( edict_t *ent, int event, StringHash hash, bool highPriority ) {
+	G_AddEvent( ent, event, hash.hash, highPriority );
 }
 
 /*
@@ -1327,7 +1331,7 @@ void G_SetPlayerHelpMessage( edict_t *ent, unsigned index, bool force ) {
 /*
 * _G_SpawnSound
 */
-static edict_t *_G_SpawnSound( int channel, int soundindex, float attenuation ) {
+static edict_t *_G_SpawnSound( int channel, StringHash name, float attenuation ) {
 	edict_t *ent;
 
 	if( attenuation <= 0.0f ) {
@@ -1340,7 +1344,7 @@ static edict_t *_G_SpawnSound( int channel, int soundindex, float attenuation ) 
 	ent->s.type = ET_SOUNDEVENT;
 	ent->s.attenuation = attenuation;
 	ent->s.channel = channel;
-	ent->s.sound = soundindex;
+	ent->s.sound = name;
 
 	return ent;
 }
@@ -1348,12 +1352,8 @@ static edict_t *_G_SpawnSound( int channel, int soundindex, float attenuation ) 
 /*
 * G_Sound
 */
-edict_t *G_Sound( edict_t *owner, int channel, int soundindex, float attenuation ) {
+edict_t *G_Sound( edict_t *owner, int channel, StringHash name, float attenuation ) {
 	edict_t *ent;
-
-	if( !soundindex ) {
-		return NULL;
-	}
 
 	if( owner == NULL || owner == world ) {
 		attenuation = ATTN_NONE;
@@ -1361,7 +1361,7 @@ edict_t *G_Sound( edict_t *owner, int channel, int soundindex, float attenuation
 		return NULL; // event entities can't be owner of sound entities
 
 	}
-	ent = _G_SpawnSound( channel, soundindex, attenuation );
+	ent = _G_SpawnSound( channel, name, attenuation );
 	if( attenuation != ATTN_NONE ) {
 		assert( owner );
 		ent->s.ownerNum = owner->s.number;
@@ -1383,18 +1383,14 @@ edict_t *G_Sound( edict_t *owner, int channel, int soundindex, float attenuation
 /*
 * G_PositionedSound
 */
-edict_t *G_PositionedSound( vec3_t origin, int channel, int soundindex, float attenuation ) {
+edict_t *G_PositionedSound( vec3_t origin, int channel, StringHash name, float attenuation ) {
 	edict_t *ent;
-
-	if( !soundindex ) {
-		return NULL;
-	}
 
 	if( origin == NULL ) {
 		attenuation = ATTN_NONE;
 	}
 
-	ent = _G_SpawnSound( channel, soundindex, attenuation );
+	ent = _G_SpawnSound( channel, name, attenuation );
 	if( attenuation != ATTN_NONE ) {
 		assert( origin );
 		ent->s.channel |= CHAN_FIXED;
@@ -1410,24 +1406,21 @@ edict_t *G_PositionedSound( vec3_t origin, int channel, int soundindex, float at
 /*
 * G_GlobalSound
 */
-void G_GlobalSound( int channel, int soundindex ) {
-	G_PositionedSound( NULL, channel, soundindex, ATTN_NONE );
+void G_GlobalSound( int channel, StringHash name ) {
+	G_PositionedSound( NULL, channel, name, ATTN_NONE );
 }
 
 /*
 * G_LocalSound
 */
-void G_LocalSound( edict_t *owner, int channel, int soundindex ) {
+void G_LocalSound( edict_t *owner, int channel, StringHash name ) {
 	edict_t *ent;
 
-	if( !soundindex ) {
-		return;
-	}
 	if( ISEVENTENTITY( &owner->s ) ) {
 		return; // event entities can't be owner of sound entities
 	}
 
-	ent = _G_SpawnSound( channel, soundindex, ATTN_NONE );
+	ent = _G_SpawnSound( channel, name, ATTN_NONE );
 	ent->s.ownerNum = ENTNUM( owner );
 	ent->r.svflags |= SVF_ONLYOWNER | SVF_BROADCAST;
 
@@ -1798,7 +1791,7 @@ void G_ReleaseClientPSEvent( gclient_t *client ) {
 * G_AddPlayerStateEvent
 * This event is only sent to this client inside its player_state_t.
 */
-void G_AddPlayerStateEvent( gclient_t *client, int event, int parm ) {
+void G_AddPlayerStateEvent( gclient_t *client, int event, uint64_t parm ) {
 	int eventdata;
 	if( client ) {
 		if( !event || event > PSEV_MAX_EVENTS || parm > 0xFF ) {
@@ -1860,10 +1853,7 @@ edict_t *G_PlayerForText( const char *text ) {
 	}
 }
 
-/*
-* G_AnnouncerSound - sends inmediatly. queue client side (excepting at player's ps events queue)
-*/
-void G_AnnouncerSound( edict_t *targ, int soundindex, int team, bool queued, edict_t *ignore ) {
+void G_AnnouncerSound( edict_t *targ, StringHash name, int team, bool queued, edict_t *ignore ) {
 	int psev = queued ? PSEV_ANNOUNCER_QUEUED : PSEV_ANNOUNCER;
 	int playerTeam;
 
@@ -1904,7 +1894,7 @@ void G_AnnouncerSound( edict_t *targ, int soundindex, int team, bool queued, edi
 				}
 			}
 
-			G_AddPlayerStateEvent( ent->r.client, psev, soundindex );
+			G_AddPlayerStateEvent( ent->r.client, psev, name );
 		}
 	}
 }

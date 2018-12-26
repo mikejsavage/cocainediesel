@@ -20,6 +20,7 @@
 // client.h -- primary header for client
 
 #include "qcommon/qcommon.h"
+#include "qalgo/hash.h"
 #include "renderer/r_public.h"
 #include "cgame/cg_public.h"
 #include "ftlib/ftlib_public.h"
@@ -372,12 +373,11 @@ void CL_SoundModule_StopAllSounds( bool stopMusic );
 void CL_SoundModule_Update( const vec3_t origin, const vec3_t velocity, const mat3_t axis );
 void CL_SoundModule_UpdateEntity( int entNum, vec3_t origin, vec3_t velocity );
 void CL_SoundModule_SetWindowFocus( bool focused );
-struct sfx_s *CL_SoundModule_RegisterSound( const char * filename );
-void CL_SoundModule_StartFixedSound( struct sfx_s *sfx, const vec3_t origin, int channel, float volume, float attenuation );
-void CL_SoundModule_StartEntitySound( struct sfx_s *sfx, int entnum, int channel, float volume, float attenuation );
-void CL_SoundModule_StartGlobalSound( struct sfx_s *sfx, int channel, float volume );
-void CL_SoundModule_StartLocalSound( struct sfx_s *sfx, int channel, float volume );
-void CL_SoundModule_ImmediateSound( struct sfx_s *sfx, int entnum, float volume, float attenuation );
+void CL_SoundModule_StartFixedSound( StringHash name, const vec3_t origin, int channel, float volume, float attenuation );
+void CL_SoundModule_StartEntitySound( StringHash name, int entnum, int channel, float volume, float attenuation );
+void CL_SoundModule_StartGlobalSound( StringHash name, int channel, float volume );
+void CL_SoundModule_StartLocalSound( StringHash name, int channel, float volume );
+void CL_SoundModule_ImmediateSound( StringHash name, int entnum, float volume, float attenuation );
 void CL_SoundModule_StartMenuMusic();
 void CL_SoundModule_StopBackgroundTrack();
 void CL_SoundModule_BeginAviDemo();

@@ -62,21 +62,6 @@ void CG_RegisterMediaSounds( void ) {
 
 	sfx_headnode = NULL;
 
-	for( i = 0; i < 2; i++ )
-		cgs.media.sfxRic[i] = CG_RegisterMediaSfx( va( "sounds/weapons/ric%i", i + 1 ) );
-
-	// weapon
-	for( i = 0; i < 4; i++ )
-		cgs.media.sfxWeaponHit[i] = CG_RegisterMediaSfx( va( S_WEAPON_HITS, i ) );
-	cgs.media.sfxWeaponKill = CG_RegisterMediaSfx( S_WEAPON_KILL );
-	cgs.media.sfxWeaponHitTeam = CG_RegisterMediaSfx( S_WEAPON_HIT_TEAM );
-	cgs.media.sfxWeaponUp = CG_RegisterMediaSfx( S_WEAPON_SWITCH );
-	cgs.media.sfxWeaponUpNoAmmo = CG_RegisterMediaSfx( S_WEAPON_NOAMMO );
-
-	cgs.media.sfxItemRespawn = CG_RegisterMediaSfx( S_ITEM_RESPAWN );
-	cgs.media.sfxTeleportIn = CG_RegisterMediaSfx( S_TELEPORT );
-	cgs.media.sfxTeleportOut = CG_RegisterMediaSfx( S_TELEPORT );
-
 	//	cgs.media.sfxJumpPad = CG_RegisterMediaSfx ( S_JUMPPAD );
 
 	// Gunblade sounds (weak is blade):
@@ -86,9 +71,6 @@ void CG_RegisterMediaSounds( void ) {
 	cgs.media.sfxGunbladeStrongShot = CG_RegisterMediaSfx( S_WEAPON_GUNBLADE_S_SHOT );
 	for( i = 0; i < 3; i++ ) cgs.media.sfxGunbladeStrongHit[i] = CG_RegisterMediaSfx( va( S_WEAPON_GUNBLADE_S_HIT_1_to_2, i + 1 ) );
 
-	// Riotgun sounds :
-	cgs.media.sfxRiotgunHit = CG_RegisterMediaSfx( S_WEAPON_RIOTGUN_HIT );
-
 	// Grenade launcher sounds :
 	for( i = 0; i < 2; i++ )
 		cgs.media.sfxGrenadeBounce[i] = CG_RegisterMediaSfx( va( S_WEAPON_GRENADE_BOUNCE_1_to_2, i + 1 ) );
@@ -97,47 +79,12 @@ void CG_RegisterMediaSounds( void ) {
 	// Rocket launcher sounds :
 	cgs.media.sfxRocketLauncherHit = CG_RegisterMediaSfx( S_WEAPON_ROCKET_HIT );
 
-	// Plasmagun sounds :
-	cgs.media.sfxPlasmaHit = CG_RegisterMediaSfx( S_WEAPON_PLASMAGUN_HIT );
-
 	// Lasergun sounds
 	cgs.media.sfxLasergunHum = CG_RegisterMediaSfx( S_WEAPON_LASERGUN_HUM );
 	cgs.media.sfxLasergunQuadHum = CG_RegisterMediaSfx( S_WEAPON_LASERGUN_QUAD_HUM );
 	cgs.media.sfxLasergunStop = CG_RegisterMediaSfx( S_WEAPON_LASERGUN_STOP );
-	cgs.media.sfxLasergunHit[0] = CG_RegisterMediaSfx( S_WEAPON_LASERGUN_HIT_0 );
-	cgs.media.sfxLasergunHit[1] = CG_RegisterMediaSfx( S_WEAPON_LASERGUN_HIT_1 );
-	cgs.media.sfxLasergunHit[2] = CG_RegisterMediaSfx( S_WEAPON_LASERGUN_HIT_2 );
 
 	cgs.media.sfxElectroboltHit = CG_RegisterMediaSfx( S_WEAPON_ELECTROBOLT_HIT );
-
-	cgs.media.sfxQuadFireSound = CG_RegisterMediaSfx( S_QUAD_FIRE );
-
-	// VSAY sounds
-	cgs.media.sfxVSaySounds[VSAY_GENERIC] = CG_RegisterMediaSfx( S_VSAY_GOODGAME );
-	cgs.media.sfxVSaySounds[VSAY_AFFIRMATIVE] = CG_RegisterMediaSfx( S_VSAY_AFFIRMATIVE );
-	cgs.media.sfxVSaySounds[VSAY_NEGATIVE] = CG_RegisterMediaSfx( S_VSAY_NEGATIVE );
-	cgs.media.sfxVSaySounds[VSAY_YES] = CG_RegisterMediaSfx( S_VSAY_YES );
-	cgs.media.sfxVSaySounds[VSAY_NO] = CG_RegisterMediaSfx( S_VSAY_NO );
-	cgs.media.sfxVSaySounds[VSAY_ONDEFENSE] = CG_RegisterMediaSfx( S_VSAY_ONDEFENSE );
-	cgs.media.sfxVSaySounds[VSAY_ONOFFENSE] = CG_RegisterMediaSfx( S_VSAY_ONOFFENSE );
-	cgs.media.sfxVSaySounds[VSAY_OOPS] = CG_RegisterMediaSfx( S_VSAY_OOPS );
-	cgs.media.sfxVSaySounds[VSAY_SORRY] = CG_RegisterMediaSfx( S_VSAY_SORRY );
-	cgs.media.sfxVSaySounds[VSAY_THANKS] = CG_RegisterMediaSfx( S_VSAY_THANKS );
-	cgs.media.sfxVSaySounds[VSAY_NOPROBLEM] = CG_RegisterMediaSfx( S_VSAY_NOPROBLEM );
-	cgs.media.sfxVSaySounds[VSAY_YEEHAA] = CG_RegisterMediaSfx( S_VSAY_YEEHAA );
-	cgs.media.sfxVSaySounds[VSAY_GOODGAME] = CG_RegisterMediaSfx( S_VSAY_GOODGAME );
-	cgs.media.sfxVSaySounds[VSAY_DEFEND] = CG_RegisterMediaSfx( S_VSAY_DEFEND );
-	cgs.media.sfxVSaySounds[VSAY_ATTACK] = CG_RegisterMediaSfx( S_VSAY_ATTACK );
-	cgs.media.sfxVSaySounds[VSAY_NEEDBACKUP] = CG_RegisterMediaSfx( S_VSAY_NEEDBACKUP );
-	cgs.media.sfxVSaySounds[VSAY_BOOO] = CG_RegisterMediaSfx( S_VSAY_BOOO );
-	cgs.media.sfxVSaySounds[VSAY_NEEDDEFENSE] = CG_RegisterMediaSfx( S_VSAY_NEEDDEFENSE );
-	cgs.media.sfxVSaySounds[VSAY_NEEDOFFENSE] = CG_RegisterMediaSfx( S_VSAY_NEEDOFFENSE );
-	cgs.media.sfxVSaySounds[VSAY_NEEDHELP] = CG_RegisterMediaSfx( S_VSAY_NEEDHELP );
-	cgs.media.sfxVSaySounds[VSAY_ROGER] = CG_RegisterMediaSfx( S_VSAY_ROGER );
-	cgs.media.sfxVSaySounds[VSAY_AREASECURED] = CG_RegisterMediaSfx( S_VSAY_AREASECURED );
-	cgs.media.sfxVSaySounds[VSAY_BOOMSTICK] = CG_RegisterMediaSfx( S_VSAY_BOOMSTICK );
-	cgs.media.sfxVSaySounds[VSAY_OK] = CG_RegisterMediaSfx( S_VSAY_OK );
-	cgs.media.sfxVSaySounds[VSAY_SHUTUP] = CG_RegisterMediaSfx( S_VSAY_SHUTUP );
 }
 
 //======================================================================

@@ -54,7 +54,7 @@ void DoRespawn( edict_t *ent ) {
 	// powerups announce their presence with a global sound
 	if( ent->item && ( ent->item->type & IT_POWERUP ) ) {
 		if( ent->item->tag == POWERUP_QUAD ) {
-			G_GlobalSound( CHAN_AUTO, trap_SoundIndex( S_ITEM_QUAD_RESPAWN ) );
+			G_GlobalSound( CHAN_AUTO, S_ITEM_QUAD_RESPAWN );
 		}
 	}
 }
@@ -244,9 +244,9 @@ static bool Pickup_Health( edict_t *other, const gsitem_t *item, int flags ) {
 void Touch_ItemSound( edict_t *other, const gsitem_t *item ) {
 	if( item->pickup_sound ) {
 		if( item->type & IT_POWERUP ) {
-			G_Sound( other, CHAN_ITEM, trap_SoundIndex( item->pickup_sound ), ATTN_NORM );
+			G_Sound( other, CHAN_ITEM, item->pickup_sound, ATTN_NORM );
 		} else {
-			G_Sound( other, CHAN_AUTO, trap_SoundIndex( item->pickup_sound ), ATTN_NORM );
+			G_Sound( other, CHAN_AUTO, item->pickup_sound, ATTN_NORM );
 		}
 	}
 }
@@ -622,9 +622,6 @@ void PrecacheItem( const gsitem_t *it ) {
 		return;
 	}
 
-	if( it->pickup_sound ) {
-		trap_SoundIndex( it->pickup_sound );
-	}
 	for( i = 0; i < MAX_ITEM_MODELS; i++ ) {
 		if( it->world_model[i] ) {
 			trap_ModelIndex( it->world_model[i] );
@@ -675,8 +672,6 @@ void PrecacheItem( const gsitem_t *it ) {
 
 			if( i == 0 ) {
 				trap_ModelIndex( data );
-			} else if( i == 1 ) {
-				trap_SoundIndex( data );
 			} else {
 				trap_ImageIndex( data );
 			}

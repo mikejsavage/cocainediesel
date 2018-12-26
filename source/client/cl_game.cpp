@@ -271,7 +271,6 @@ void CL_GameModule_Init( void ) {
 	import.CM_InlineModelBounds = CL_GameModule_CM_InlineModelBounds;
 	import.CM_InPVS = CL_GameModule_CM_InPVS;
 
-	import.S_RegisterSound = CL_SoundModule_RegisterSound;
 	import.S_StartFixedSound = CL_SoundModule_StartFixedSound;
 	import.S_StartEntitySound = CL_SoundModule_StartEntitySound;
 	import.S_StartGlobalSound = CL_SoundModule_StartGlobalSound;

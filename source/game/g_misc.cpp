@@ -685,11 +685,7 @@ void SP_misc_particles( edict_t *ent ) {
 	ent->r.svflags |= SVF_BROADCAST;
 	ent->r.solid = SOLID_NOT;
 	ent->s.type = ET_PARTICLES;
-
-	if( st.noise ) {
-		ent->s.sound = trap_SoundIndex( st.noise );
-		G_PureSound( st.noise );
-	}
+	ent->s.sound = st.noise;
 
 	if( st.gameteam >= TEAM_ALPHA && st.gameteam < GS_MAX_TEAMS ) {
 		ent->s.team = st.gameteam;

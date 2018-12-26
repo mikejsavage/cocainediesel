@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 #include "q_arch.h"
+#include "qalgo/hash.h"
 
 //
 // button bits
@@ -291,7 +292,7 @@ typedef struct entity_state_s {
 	// events only go out for a single frame, they
 	// are automatically cleared each frame
 	int events[2];
-	int eventParms[2];
+	uint64_t eventParms[2];
 
 	int counterNum;                 // ET_GENERIC
 	int skinnum;                    // for ET_PLAYER
@@ -318,7 +319,7 @@ typedef struct entity_state_s {
 	int weapon;                         // WEAP_ for players
 	bool teleported;
 
-	int sound;                          // for looping sounds, to guarantee shutoff
+	StringHash sound; // for looping sounds, to guarantee shutoff
 
 	int light;							// constant light glow
 

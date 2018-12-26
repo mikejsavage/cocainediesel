@@ -17,9 +17,10 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "../qcommon/qcommon.h"
+#include "qcommon/qcommon.h"
+#include "qcommon/fs.h"
 
-#include "../qcommon/sys_fs.h"
+#include "qcommon/sys_fs.h"
 
 #define __USE_BSD
 
@@ -309,4 +310,52 @@ bool Sys_FS_RemoveDirectory( const char *path ) {
 */
 int Sys_FS_FileNo( FILE *fp ) {
 	return fileno( fp );
+}
+
+struct UnixListDirHandle {
+	DIR * dir;
+};
+
+static UnixListDirHandle ListDirToUnix( ListDirHandle scan ) {
+	UnixListDirHandle h;
+	memcpy( &h, &scan, sizeof( h ) );
+	return h;
+}
+
+static ListDirHandle UnixToListDir( UnixListDirHandle h ) {
+	ListDirHandle scan;
+	memcpy( &scan, &h, sizeof( h ) );
+	return scan;
+}
+
+ListDirHandle FS_BeginListDir( const char * path ) {
+	UnixListDirHandle h;
+	h.dir = opendir( path );
+	return UnixToListDir( h );
+}
+
+bool FS_ListDirNext( ListDirHandle scan, const char ** path, bool * dir ) {
+	UnixListDirHandle h = ListDirToUnix( scan );
+	if( h.dir == NULL )
+		return false;
+
+	dirent64 * dirent;
+	while( ( dirent = readdir64( h.dir ) ) != NULL ) {
+		if( strcmp( dirent->d_name, "." ) == 0 || strcmp( dirent->d_name, ".." ) == 0 )
+			continue;
+
+		*path = dirent->d_name;
+		// kinda a hack, remove this once I have the unified repo sorted out
+		*dir = dirent->d_type == DT_DIR || dirent->d_type == DT_LNK;
+
+		return true;
+	}
+
+	return false;
+}
+
+void FS_EndListDir( ListDirHandle scan ) {
+	UnixListDirHandle h = ListDirToUnix( scan );
+	if( h.dir != NULL )
+		closedir( h.dir );
 }

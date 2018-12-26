@@ -543,6 +543,7 @@ char *_G_CopyString( const char *in, const char *filename, int fileline );
 void G_ProjectSource( vec3_t point, vec3_t distance, vec3_t forward, vec3_t right, vec3_t result );
 
 void G_AddEvent( edict_t *ent, int event, int parm, bool highPriority );
+void G_AddEvent( edict_t *ent, int event, StringHash hash, bool highPriority );
 edict_t *G_SpawnEvent( int event, int parm, vec3_t origin );
 void G_MorphEntityIntoEvent( edict_t *ent, int event, int parm );
 
@@ -574,10 +575,10 @@ void G_Obituary( edict_t *victim, edict_t *attacker, int mod );
 unsigned G_RegisterHelpMessage( const char *str );
 void G_SetPlayerHelpMessage( edict_t *ent, unsigned index, bool force = false );
 
-edict_t *G_Sound( edict_t *owner, int channel, int soundindex, float attenuation );
-edict_t *G_PositionedSound( vec3_t origin, int channel, int soundindex, float attenuation );
-void G_GlobalSound( int channel, int soundindex );
-void G_LocalSound( edict_t *owner, int channel, int soundindex );
+edict_t *G_Sound( edict_t *owner, int channel, StringHash name, float attenuation );
+edict_t *G_PositionedSound( vec3_t origin, int channel, StringHash name, float attenuation );
+void G_GlobalSound( int channel, StringHash name );
+void G_LocalSound( edict_t *owner, int channel, StringHash name );
 
 float vectoyaw( vec3_t vec );
 
@@ -916,9 +917,9 @@ typedef struct {
 	vec3_t end_origin;
 	vec3_t end_angles;
 
-	int sound_start;
-	int sound_middle;
-	int sound_end;
+	StringHash sound_start;
+	StringHash sound_middle;
+	StringHash sound_end;
 
 	vec3_t movedir;  // direction defined in the bsp
 

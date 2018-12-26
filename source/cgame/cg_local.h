@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/gs_public.h"
 #include "ref.h"
 
+#include "qalgo/hash.h"
+
 #include "cg_public.h"
 #include "cg_syscalls.h"
 
@@ -133,71 +135,10 @@ typedef struct cgs_media_handle_s {
 #define STAT_MINUS              10  // num frame for '-' stats digit
 
 typedef struct {
-	// sounds
-	cgs_media_handle_t *sfxChat;
-
-	// timers
-	cgs_media_handle_t *sfxTimerBipBip;
-	cgs_media_handle_t *sfxTimerPloink;
-
-	cgs_media_handle_t *sfxRic[2];
-
-	cgs_media_handle_t *sfxWeaponUp;
-	cgs_media_handle_t *sfxWeaponUpNoAmmo;
-
-	//--------------------------------------
-
-	cgs_media_handle_t *sfxWeaponHit[4];
-	cgs_media_handle_t *sfxWeaponKill;
-	cgs_media_handle_t *sfxWeaponHitTeam;
-
-	cgs_media_handle_t *sfxItemRespawn;
-	cgs_media_handle_t *sfxTeleportIn;
-	cgs_media_handle_t *sfxTeleportOut;
-	cgs_media_handle_t *sfxShellHit;
-
-	// Gunblade sounds :
-	cgs_media_handle_t *sfxGunbladeWeakShot[3];
-	cgs_media_handle_t *sfxGunbladeStrongShot;
-	cgs_media_handle_t *sfxBladeFleshHit[3];
-	cgs_media_handle_t *sfxBladeWallHit[2];
-	cgs_media_handle_t *sfxGunbladeStrongHit[3];
-
-	// Riotgun sounds :
-	cgs_media_handle_t *sfxRiotgunHit;
-
-	// Grenade launcher sounds :
-	cgs_media_handle_t *sfxGrenadeBounce[2];
-	cgs_media_handle_t *sfxGrenadeExplosion;
-
-	// Rocket launcher sounds :
-	cgs_media_handle_t *sfxRocketLauncherHit;
-
-	// Plasmagun sounds
-	cgs_media_handle_t *sfxPlasmaHit;
-
-	// Lasergun sounds
-	cgs_media_handle_t *sfxLasergunHum;
-	cgs_media_handle_t *sfxLasergunQuadHum;
-	cgs_media_handle_t *sfxLasergunStop;
-	cgs_media_handle_t *sfxLasergunHit[3];
-
-	cgs_media_handle_t *sfxElectroboltHit;
-
-	cgs_media_handle_t *sfxQuadFireSound;
-
-	// VSAY sounds
-	cgs_media_handle_t *sfxVSaySounds[VSAY_TOTAL];
-
-	//no wsw
-
-	// models
-	//	cgs_media_handle_t		*modTeleportEffect;
 	cgs_media_handle_t *modDash;
 
 	cgs_media_handle_t *modGib;
 
-	//wsw weapon sfx
 	cgs_media_handle_t *modRocketExplosion;
 	cgs_media_handle_t *modPlasmaExplosion;
 
@@ -209,8 +150,6 @@ typedef struct {
 
 	cgs_media_handle_t *modLasergunWallExplo;
 
-	//no wsw
-
 	cgs_media_handle_t *shaderParticle;
 	cgs_media_handle_t *shaderRocketExplosion;
 	cgs_media_handle_t *shaderRocketExplosionRing;
@@ -219,7 +158,6 @@ typedef struct {
 	cgs_media_handle_t *shaderBulletExplosion;
 	cgs_media_handle_t *shaderRaceGhostEffect;
 	cgs_media_handle_t *shaderWaterBubble;
-	//	cgs_media_handle_t		*shaderTeleportEffect;
 	cgs_media_handle_t *shaderSmokePuff;
 
 	cgs_media_handle_t *shaderSmokePuff1;
@@ -245,28 +183,21 @@ typedef struct {
 	cgs_media_handle_t *shaderDownArrow;
 	cgs_media_handle_t *shaderTeleportShellGfx;
 
-	//wsw
-	//----------------------------------------------
-
 	cgs_media_handle_t *shaderAdditiveParticleShine;
 
-	//wsw weapon sfx
 	cgs_media_handle_t *shaderPlasmaMark;
 	cgs_media_handle_t *shaderEBBeam;
 	cgs_media_handle_t *shaderLGBeam;
 	cgs_media_handle_t *shaderEBImpact;
 
-	//wsw
 	cgs_media_handle_t *shaderPlayerShadow;
 	cgs_media_handle_t *shaderFlagFlare;
 
-	// hud icons
 	cgs_media_handle_t *shaderWeaponIcon[WEAP_TOTAL];
 	cgs_media_handle_t *shaderGunbladeBlastIcon;
 
 	cgs_media_handle_t *shaderKeyIcon[KEYICON_TOTAL];
 
-	// VSAY icons
 	cgs_media_handle_t *shaderVSayIcon[VSAY_TOTAL];
 } cgs_media_t;
 
@@ -462,7 +393,7 @@ typedef struct {
 	struct skinfile_s *teamCustomSkin[2]; // user defined
 	int teamColor[2];
 
-	struct sfx_s *soundPrecache[MAX_SOUNDS];
+	StringHash soundPrecache[MAX_SOUNDS];
 	struct shader_s *imagePrecache[MAX_IMAGES];
 	struct skinfile_s *skinPrecache[MAX_SKINFILES];
 

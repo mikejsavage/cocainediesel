@@ -23,29 +23,29 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 void G_AssignMoverSounds( edict_t *ent, const char *start, const char *move, const char *stop ) {
 	if( st.noise && Q_stricmp( st.noise, "default" ) ) {
 		if( Q_stricmp( st.noise, "silent" ) ) {
-			ent->moveinfo.sound_middle = trap_SoundIndex( st.noise );
+			ent->moveinfo.sound_middle = st.noise;
 			G_PureSound( st.noise );
 		}
 	} else if( move ) {
-		ent->moveinfo.sound_middle = trap_SoundIndex( move );
+		ent->moveinfo.sound_middle = move;
 	}
 
 	if( st.noise_start && Q_stricmp( st.noise_start, "default" ) ) {
 		if( Q_stricmp( st.noise_start, "silent" ) ) {
-			ent->moveinfo.sound_start = trap_SoundIndex( st.noise_start );
+			ent->moveinfo.sound_start = st.noise_start;
 			G_PureSound( st.noise_start );
 		}
 	} else if( start ) {
-		ent->moveinfo.sound_start = trap_SoundIndex( start );
+		ent->moveinfo.sound_start = start;
 	}
 
 	if( st.noise_stop && Q_stricmp( st.noise_stop, "default" ) ) {
 		if( Q_stricmp( st.noise_stop, "silent" ) ) {
-			ent->moveinfo.sound_end = trap_SoundIndex( st.noise_stop );
+			ent->moveinfo.sound_end = st.noise_stop;
 			G_PureSound( st.noise_stop );
 		}
 	} else if( stop ) {
-		ent->moveinfo.sound_end = trap_SoundIndex( stop );
+		ent->moveinfo.sound_end = stop;
 	}
 }
 
@@ -249,9 +249,7 @@ static void plat_go_down( edict_t *ent );
 
 static void plat_hit_top( edict_t *ent ) {
 	if( !( ent->flags & FL_TEAMSLAVE ) ) {
-		if( ent->moveinfo.sound_end ) {
-			G_AddEvent( ent, EV_PLAT_HIT_TOP, ent->moveinfo.sound_end, true );
-		}
+		G_AddEvent( ent, EV_PLAT_HIT_TOP, ent->moveinfo.sound_end, true );
 		ent->s.sound = 0;
 	}
 	ent->moveinfo.state = STATE_TOP;
@@ -262,9 +260,7 @@ static void plat_hit_top( edict_t *ent ) {
 
 static void plat_hit_bottom( edict_t *ent ) {
 	if( !( ent->flags & FL_TEAMSLAVE ) ) {
-		if( ent->moveinfo.sound_end ) {
-			G_AddEvent( ent, EV_PLAT_HIT_BOTTOM, ent->moveinfo.sound_end, true );
-		}
+		G_AddEvent( ent, EV_PLAT_HIT_BOTTOM, ent->moveinfo.sound_end, true );
 		ent->s.sound = 0;
 	}
 	ent->moveinfo.state = STATE_BOTTOM;
@@ -272,9 +268,7 @@ static void plat_hit_bottom( edict_t *ent ) {
 
 void plat_go_down( edict_t *ent ) {
 	if( !( ent->flags & FL_TEAMSLAVE ) ) {
-		if( ent->moveinfo.sound_start ) {
-			G_AddEvent( ent, EV_PLAT_START_MOVING, ent->moveinfo.sound_start, true );
-		}
+		G_AddEvent( ent, EV_PLAT_START_MOVING, ent->moveinfo.sound_start, true );
 		ent->s.sound = ent->moveinfo.sound_middle;
 	}
 
@@ -284,9 +278,7 @@ void plat_go_down( edict_t *ent ) {
 
 static void plat_go_up( edict_t *ent ) {
 	if( !( ent->flags & FL_TEAMSLAVE ) ) {
-		if( ent->moveinfo.sound_start ) {
-			G_AddEvent( ent, EV_PLAT_START_MOVING, ent->moveinfo.sound_start, true );
-		}
+		G_AddEvent( ent, EV_PLAT_START_MOVING, ent->moveinfo.sound_start, true );
 		ent->s.sound = ent->moveinfo.sound_middle;
 	}
 	ent->moveinfo.state = STATE_UP;
@@ -540,9 +532,7 @@ static void door_go_down( edict_t *self );
 
 static void door_hit_top( edict_t *self ) {
 	if( !( self->flags & FL_TEAMSLAVE ) ) {
-		if( self->moveinfo.sound_end ) {
-			G_AddEvent( self, EV_DOOR_HIT_TOP, self->moveinfo.sound_end, true );
-		}
+		G_AddEvent( self, EV_DOOR_HIT_TOP, self->moveinfo.sound_end, true );
 		self->s.sound = 0;
 	}
 	self->moveinfo.state = STATE_TOP;
@@ -557,9 +547,7 @@ static void door_hit_top( edict_t *self ) {
 
 static void door_hit_bottom( edict_t *self ) {
 	if( !( self->flags & FL_TEAMSLAVE ) ) {
-		if( self->moveinfo.sound_end ) {
-			G_AddEvent( self, EV_DOOR_HIT_BOTTOM, self->moveinfo.sound_end, true );
-		}
+		G_AddEvent( self, EV_DOOR_HIT_BOTTOM, self->moveinfo.sound_end, true );
 		self->s.sound = 0;
 	}
 	self->moveinfo.state = STATE_BOTTOM;
@@ -568,9 +556,7 @@ static void door_hit_bottom( edict_t *self ) {
 
 void door_go_down( edict_t *self ) {
 	if( !( self->flags & FL_TEAMSLAVE ) ) {
-		if( self->moveinfo.sound_start ) {
-			G_AddEvent( self, EV_DOOR_START_MOVING, self->moveinfo.sound_start, true );
-		}
+		G_AddEvent( self, EV_DOOR_START_MOVING, self->moveinfo.sound_start, true );
 		self->s.sound = self->moveinfo.sound_middle;
 	}
 	if( self->max_health ) {
@@ -600,9 +586,7 @@ static void door_go_up( edict_t *self, edict_t *activator ) {
 	}
 
 	if( !( self->flags & FL_TEAMSLAVE ) ) {
-		if( self->moveinfo.sound_start ) {
-			G_AddEvent( self, EV_DOOR_START_MOVING, self->moveinfo.sound_start, true );
-		}
+		G_AddEvent( self, EV_DOOR_START_MOVING, self->moveinfo.sound_start, true );
 		self->s.sound = self->moveinfo.sound_middle;
 	}
 
@@ -790,7 +774,7 @@ static void door_touch( edict_t *self, edict_t *other, cplane_t *plane, int surf
 	self->timeStamp = level.time;
 
 	G_CenterPrintMsg( other, "%s", self->message );
-	G_Sound( other, CHAN_AUTO, trap_SoundIndex( S_WORLD_MESSAGE ), ATTN_NORM );
+	G_Sound( other, CHAN_AUTO, S_WORLD_MESSAGE, ATTN_NORM );
 }
 
 void SP_func_door( edict_t *ent ) {
@@ -856,7 +840,6 @@ void SP_func_door( edict_t *ent ) {
 		ent->takedamage = DAMAGE_YES;
 		ent->die = door_killed;
 	} else if( ent->targetname && ent->message ) {
-		trap_SoundIndex( S_WORLD_MESSAGE ); // precache
 		ent->touch = door_touch;
 	}
 
@@ -979,7 +962,6 @@ void SP_func_door_rotating( edict_t *ent ) {
 	}
 
 	if( ent->targetname && ent->message ) {
-		trap_SoundIndex( S_WORLD_MESSAGE ); // precache
 		ent->touch = door_touch;
 	}
 
@@ -1356,7 +1338,7 @@ static void button_fire( edict_t *self ) {
 	}
 
 	self->moveinfo.state = STATE_UP;
-	if( self->moveinfo.sound_start && !( self->flags & FL_TEAMSLAVE ) ) {
+	if( !( self->flags & FL_TEAMSLAVE ) ) {
 		G_AddEvent( self, EV_BUTTON_FIRE, self->moveinfo.sound_start, true );
 	}
 	Move_Calc( self, self->moveinfo.end_origin, button_wait );
@@ -1395,11 +1377,11 @@ void SP_func_button( edict_t *ent ) {
 
 	if( st.noise && Q_stricmp( st.noise, "default" ) ) {
 		if( Q_stricmp( st.noise, "silent" ) != 0 ) {
-			ent->moveinfo.sound_start = trap_SoundIndex( st.noise );
+			ent->moveinfo.sound_start = st.noise;
 			G_PureSound( st.noise );
 		}
 	} else {
-		ent->moveinfo.sound_start = trap_SoundIndex( S_BUTTON_START );
+		ent->moveinfo.sound_start = S_BUTTON_START;
 	}
 
 	if( !ent->speed ) {
@@ -1524,9 +1506,7 @@ static void train_wait( edict_t *self ) {
 		}
 
 		if( !( self->flags & FL_TEAMSLAVE ) ) {
-			if( self->moveinfo.sound_end ) {
-				G_AddEvent( self, EV_TRAIN_STOP, self->moveinfo.sound_end, true );
-			}
+			G_AddEvent( self, EV_TRAIN_STOP, self->moveinfo.sound_end, true );
 			self->s.sound = 0;
 		}
 	} else {
@@ -1579,9 +1559,7 @@ again:
 	self->target_ent = ent;
 
 	if( !( self->flags & FL_TEAMSLAVE ) ) {
-		if( self->moveinfo.sound_start ) {
-			G_AddEvent( self, EV_TRAIN_START, self->moveinfo.sound_start, true );
-		}
+		G_AddEvent( self, EV_TRAIN_START, self->moveinfo.sound_start, true );
 		self->s.sound = self->moveinfo.sound_middle;
 	}
 

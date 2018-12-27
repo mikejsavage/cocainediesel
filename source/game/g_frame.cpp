@@ -71,12 +71,22 @@ static void G_Timeout_Update( unsigned int msec ) {
 			int seconds_left = (int)( ( level.timeout.endtime - level.timeout.time ) / 1000.0 + 0.5 );
 
 			if( seconds_left == ( TIMEIN_TIME * 2 ) / 1000 ) {
-				G_AnnouncerSound( NULL, trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_READY_1_to_2, ( rand() & 1 ) + 1 ) ),
-								  GS_MAX_TEAMS, false, NULL );
+				constexpr StringHash sounds[] = {
+					"sounds/announcer/countdown/ready01.ogg",
+					"sounds/announcer/countdown/ready02.ogg",
+				};
+				G_AnnouncerSound( NULL, sounds[rand() % 2], GS_MAX_TEAMS, false, NULL );
 				countdown_set = ( rand() & 1 ) + 1;
 			} else if( seconds_left >= 1 && seconds_left <= 3 ) {
-				G_AnnouncerSound( NULL, trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, seconds_left,
-															 countdown_set ) ), GS_MAX_TEAMS, false, NULL );
+				constexpr StringHash sounds[] = {
+					"sounds/announcer/countdown/1_01.ogg",
+					"sounds/announcer/countdown/2_01.ogg",
+					"sounds/announcer/countdown/3_01.ogg",
+					"sounds/announcer/countdown/1_02.ogg",
+					"sounds/announcer/countdown/2_02.ogg",
+					"sounds/announcer/countdown/3_02.ogg",
+				};
+				G_AnnouncerSound( NULL, sounds[seconds_left + countdown_set * 3], GS_MAX_TEAMS, false, NULL );
 			}
 
 			if( seconds_left > 1 ) {
@@ -502,7 +512,7 @@ void G_SnapFrame( void ) {
 		if( GS_MatchPaused() ) {
 			// when in timeout, we don't send entity sounds
 			entity_sound_backup[ENTNUM( ent )] = ent->s.sound;
-			ent->s.sound = 0;
+			// ent->s.sound = 0;
 		}
 	}
 }

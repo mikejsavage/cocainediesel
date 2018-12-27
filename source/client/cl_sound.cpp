@@ -48,23 +48,23 @@ void CL_SoundModule_SetWindowFocus( bool focused ) {
 	S_SetWindowFocus( focused );
 }
 
-void CL_SoundModule_StartFixedSound( StringHash name, const vec3_t origin, int channel, float volume, float attenuation ) {
+void CL_SoundModule_StartFixedSound( StringHash sound, const vec3_t origin, int channel, float volume, float attenuation ) {
 	S_StartFixedSound( name, origin, channel, volume, attenuation );
 }
 
-void CL_SoundModule_StartEntitySound( StringHash name, int entnum, int channel, float volume, float attenuation ) {
+void CL_SoundModule_StartEntitySound( StringHash sound, int entnum, int channel, float volume, float attenuation ) {
 	S_StartEntitySound( name, entnum, channel, volume, attenuation );
 }
 
-void CL_SoundModule_StartGlobalSound( StringHash name, int channel, float volume ) {
+void CL_SoundModule_StartGlobalSound( StringHash sound, int channel, float volume ) {
 	S_StartGlobalSound( name, channel, volume );
 }
 
-void CL_SoundModule_StartLocalSound( StringHash name, int channel, float volume ) {
+void CL_SoundModule_StartLocalSound( StringHash sound, int channel, float volume ) {
 	S_StartLocalSound( name, channel, volume );
 }
 
-void CL_SoundModule_ImmediateSound( StringHash name, int entnum, float volume, float attenuation ) {
+void CL_SoundModule_ImmediateSound( StringHash sound, int entnum, float volume, float attenuation ) {
 	S_ImmediateSound( name, entnum, volume, attenuation );
 }
 

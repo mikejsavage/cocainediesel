@@ -875,7 +875,11 @@ static void Cmd_Timeout_f( edict_t *ent ) {
 	G_PrintMsg( NULL, "%s%s called a timeout\n", ent->r.client->netname, S_COLOR_WHITE );
 
 	if( !GS_MatchPaused() ) {
-		G_AnnouncerSound( NULL, trap_SoundIndex( va( S_ANNOUNCER_TIMEOUT_TIMEOUT_1_to_2, ( rand() & 1 ) + 1 ) ), GS_MAX_TEAMS, true, NULL );
+		constexpr StringHash sounds[] = {
+			"sounds/announcer/timeout/timeout01.ogg",
+			"sounds/announcer/timeout/timeout02.ogg",
+		};
+		G_AnnouncerSound( NULL, sounds[rand() % 2], GS_MAX_TEAMS, true, NULL );
 	}
 
 	level.timeout.used[num]++;
@@ -921,7 +925,11 @@ static void Cmd_Timein_f( edict_t *ent ) {
 
 	level.timeout.endtime = level.timeout.time + TIMEIN_TIME + FRAMETIME;
 
-	G_AnnouncerSound( NULL, trap_SoundIndex( va( S_ANNOUNCER_TIMEOUT_TIMEIN_1_to_2, ( rand() & 1 ) + 1 ) ), GS_MAX_TEAMS, true, NULL );
+	constexpr StringHash sounds[] = {
+		"sounds/announcer/timeout/timein01.ogg",
+		"sounds/announcer/timeout/timein02.ogg",
+	};
+	G_AnnouncerSound( NULL, sounds[rand() % 2], GS_MAX_TEAMS, true, NULL );
 
 	G_PrintMsg( NULL, "%s%s called a timein\n", ent->r.client->netname, S_COLOR_WHITE );
 }

@@ -915,7 +915,7 @@ void G_Match_FreeBodyQueue( void ) {
 			ent->s.skinnum = 0;
 			ent->s.frame = 0;
 			ent->s.modelindex = 0;
-			ent->s.sound = 0;
+			ent->s.sound = EMPTY_HASH;
 			ent->s.effects = 0;
 
 			ent->takedamage = DAMAGE_NO;

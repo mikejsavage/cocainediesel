@@ -502,7 +502,7 @@ void CG_ClearAnnouncerEvents( void ) {
 /*
 * CG_AddAnnouncerEvent
 */
-void CG_AddAnnouncerEvent( StringHash name, bool queued ) {
+void CG_AddAnnouncerEvent( StringHash sound, bool queued ) {
 	if( !sound ) {
 		return;
 	}

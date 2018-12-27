@@ -373,7 +373,7 @@ void SP_info_player_intermission( edict_t *ent );
 //
 // g_func.c
 //
-void G_AssignMoverSounds( edict_t *ent, const char *start, const char *move, const char *stop );
+void G_AssignMoverSounds( edict_t *ent, StringHash start, StringHash move, StringHash stop );
 bool G_EntIsADoor( edict_t *ent );
 
 void SP_func_plat( edict_t *ent );
@@ -575,10 +575,10 @@ void G_Obituary( edict_t *victim, edict_t *attacker, int mod );
 unsigned G_RegisterHelpMessage( const char *str );
 void G_SetPlayerHelpMessage( edict_t *ent, unsigned index, bool force = false );
 
-edict_t *G_Sound( edict_t *owner, int channel, StringHash name, float attenuation );
-edict_t *G_PositionedSound( vec3_t origin, int channel, StringHash name, float attenuation );
-void G_GlobalSound( int channel, StringHash name );
-void G_LocalSound( edict_t *owner, int channel, StringHash name );
+edict_t *G_Sound( edict_t *owner, int channel, StringHash sound, float attenuation );
+edict_t *G_PositionedSound( vec3_t origin, int channel, StringHash sound, float attenuation );
+void G_GlobalSound( int channel, StringHash sound );
+void G_LocalSound( edict_t *owner, int channel, StringHash sound );
 
 float vectoyaw( vec3_t vec );
 
@@ -605,7 +605,7 @@ void G_AddPlayerStateEvent( gclient_t *client, int event, int parm );
 void G_ClearPlayerStateEvents( gclient_t *client );
 
 // announcer events
-void G_AnnouncerSound( edict_t *targ, int soundindex, int team, bool queued, edict_t *ignore );
+void G_AnnouncerSound( edict_t *targ, StringHash sound, int team, bool queued, edict_t *ignore );
 edict_t *G_PlayerForText( const char *text );
 
 void G_LoadFiredefsFromDisk( void );

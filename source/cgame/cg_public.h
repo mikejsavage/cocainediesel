@@ -183,11 +183,11 @@ typedef struct {
 	// sound system
 	void ( *S_Update )( const vec3_t origin, const vec3_t velocity, const mat3_t axis );
 	void ( *S_UpdateEntity )( int entNum, vec3_t origin, vec3_t velocity );
-	void ( *S_StartFixedSound )( StringHash name, const vec3_t origin, int entchannel, float volume, float attenuation );
-	void ( *S_StartEntitySound )( StringHash name, int entnum, int entchannel, float volume, float attenuation );
-	void ( *S_StartGlobalSound )( StringHash name, int entchannel, float volume );
-	void ( *S_StartLocalSound )( StringHash name, int channel, float volume );
-	void ( *S_ImmediateSound )( StringHash name, int entnum, float volume, float attenuation );
+	void ( *S_StartFixedSound )( StringHash sound, const vec3_t origin, int entchannel, float volume, float attenuation );
+	void ( *S_StartEntitySound )( StringHash sound, int entnum, int entchannel, float volume, float attenuation );
+	void ( *S_StartGlobalSound )( StringHash sound, int entchannel, float volume );
+	void ( *S_StartLocalSound )( StringHash sound, int channel, float volume );
+	void ( *S_ImmediateSound )( StringHash sound, int entnum, float volume, float attenuation );
 
 	// fonts
 	struct qfontface_s *( *SCR_RegisterFont )( const char *family, int style, unsigned int size );

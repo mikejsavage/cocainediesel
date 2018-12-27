@@ -31,12 +31,26 @@ struct StringHash {
 	template< size_t N >
 	constexpr StringHash( const char ( &s )[ N ] ) :
 		hash( Hash64_CT( s, N - 1, basis ) ) { }
+
+	explicit StringHash( const char * s ) : hash( Hash64( s, strlen( s ) ) ) { }
+	explicit StringHash( uint64_t h ) : hash( h ) { }
 #else
 	template< size_t N >
 	constexpr StringHash( const char ( &s )[ N ] ) :
 		str( s ), hash( Hash64_CT( s, N - 1, basis ) ) { }
+
+	explicit StringHash( const char * s ) : str( NULL ), hash( Hash64( s, strlen( s ) ) ) { }
+	explicit StringHash( uint64_t h ) : str( NULL ), hash( h ) { }
 #endif
 
-	StringHash( const char * s ) : hash( Hash64( s, strlen( s ) ) ) { }
-	explicit StringHash( uint64_t h ) : hash( h ) { }
 };
+
+bool operator==( StringHash a, StringHash b ) {
+	return a.hash == b.hash;
+}
+
+bool operator!=( StringHash a, StringHash b ) {
+	return !( a == b );
+}
+
+constexpr StringHash EMPTY_HASH = "";

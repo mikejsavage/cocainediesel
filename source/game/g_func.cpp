@@ -20,31 +20,34 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "g_local.h"
 
-void G_AssignMoverSounds( edict_t *ent, const char *start, const char *move, const char *stop ) {
+void G_AssignMoverSounds( edict_t *ent, StringHash start, StringHash move, StringHash stop ) {
 	if( st.noise && Q_stricmp( st.noise, "default" ) ) {
 		if( Q_stricmp( st.noise, "silent" ) ) {
-			ent->moveinfo.sound_middle = st.noise;
+			ent->moveinfo.sound_middle = StringHash( st.noise );
 			G_PureSound( st.noise );
 		}
-	} else if( move ) {
+	}
+	else {
 		ent->moveinfo.sound_middle = move;
 	}
 
 	if( st.noise_start && Q_stricmp( st.noise_start, "default" ) ) {
 		if( Q_stricmp( st.noise_start, "silent" ) ) {
-			ent->moveinfo.sound_start = st.noise_start;
+			ent->moveinfo.sound_start = StringHash( st.noise_start );
 			G_PureSound( st.noise_start );
 		}
-	} else if( start ) {
+	}
+	else {
 		ent->moveinfo.sound_start = start;
 	}
 
 	if( st.noise_stop && Q_stricmp( st.noise_stop, "default" ) ) {
 		if( Q_stricmp( st.noise_stop, "silent" ) ) {
-			ent->moveinfo.sound_end = st.noise_stop;
+			ent->moveinfo.sound_end = StringHash( st.noise_stop );
 			G_PureSound( st.noise_stop );
 		}
-	} else if( stop ) {
+	}
+	else {
 		ent->moveinfo.sound_end = stop;
 	}
 }
@@ -250,7 +253,7 @@ static void plat_go_down( edict_t *ent );
 static void plat_hit_top( edict_t *ent ) {
 	if( !( ent->flags & FL_TEAMSLAVE ) ) {
 		G_AddEvent( ent, EV_PLAT_HIT_TOP, ent->moveinfo.sound_end, true );
-		ent->s.sound = 0;
+		// ent->s.sound = 0;
 	}
 	ent->moveinfo.state = STATE_TOP;
 
@@ -261,7 +264,7 @@ static void plat_hit_top( edict_t *ent ) {
 static void plat_hit_bottom( edict_t *ent ) {
 	if( !( ent->flags & FL_TEAMSLAVE ) ) {
 		G_AddEvent( ent, EV_PLAT_HIT_BOTTOM, ent->moveinfo.sound_end, true );
-		ent->s.sound = 0;
+		// ent->s.sound = 0;
 	}
 	ent->moveinfo.state = STATE_BOTTOM;
 }
@@ -453,7 +456,7 @@ void SP_func_plat( edict_t *ent ) {
 
 	GClip_LinkEntity( ent );
 
-	G_AssignMoverSounds( ent, S_PLAT_START, S_PLAT_MOVE, S_PLAT_STOP );
+	G_AssignMoverSounds( ent, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
 }
 
 
@@ -533,7 +536,7 @@ static void door_go_down( edict_t *self );
 static void door_hit_top( edict_t *self ) {
 	if( !( self->flags & FL_TEAMSLAVE ) ) {
 		G_AddEvent( self, EV_DOOR_HIT_TOP, self->moveinfo.sound_end, true );
-		self->s.sound = 0;
+		// self->s.sound = 0;
 	}
 	self->moveinfo.state = STATE_TOP;
 	if( self->spawnflags & DOOR_TOGGLE ) {
@@ -548,7 +551,7 @@ static void door_hit_top( edict_t *self ) {
 static void door_hit_bottom( edict_t *self ) {
 	if( !( self->flags & FL_TEAMSLAVE ) ) {
 		G_AddEvent( self, EV_DOOR_HIT_BOTTOM, self->moveinfo.sound_end, true );
-		self->s.sound = 0;
+		// self->s.sound = 0;
 	}
 	self->moveinfo.state = STATE_BOTTOM;
 	door_use_areaportals( self, false );
@@ -783,7 +786,7 @@ void SP_func_door( edict_t *ent ) {
 	G_InitMover( ent );
 	G_SetMovedir( ent->s.angles, ent->moveinfo.movedir );
 
-	G_AssignMoverSounds( ent, S_DOOR_START, S_DOOR_MOVE, S_DOOR_STOP );
+	G_AssignMoverSounds( ent, S_DOOR_START, EMPTY_HASH, S_DOOR_STOP );
 
 	ent->moveinfo.blocked = door_blocked;
 	ent->use = door_use;
@@ -945,7 +948,7 @@ void SP_func_door_rotating( edict_t *ent ) {
 		ent->dmg = 2;
 	}
 
-	G_AssignMoverSounds( ent, S_DOOR_ROTATING_START, S_DOOR_ROTATING_MOVE, S_DOOR_ROTATING_STOP );
+	G_AssignMoverSounds( ent, S_DOOR_ROTATING_START, EMPTY_HASH, S_DOOR_ROTATING_STOP );
 
 	// if it starts open, switch the positions
 	if( ent->spawnflags & DOOR_START_OPEN ) {
@@ -1264,7 +1267,7 @@ void SP_func_rotating( edict_t *ent ) {
 		ent->moveinfo.blocked = rotating_blocked;
 	}
 
-	G_AssignMoverSounds( ent, S_FUNC_ROTATING_START, S_FUNC_ROTATING_MOVE, S_FUNC_ROTATING_STOP );
+	G_AssignMoverSounds( ent, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
 
 	if( !( ent->spawnflags & 1 ) ) {
 		G_CallUse( ent, NULL, NULL );
@@ -1377,7 +1380,7 @@ void SP_func_button( edict_t *ent ) {
 
 	if( st.noise && Q_stricmp( st.noise, "default" ) ) {
 		if( Q_stricmp( st.noise, "silent" ) != 0 ) {
-			ent->moveinfo.sound_start = st.noise;
+			ent->moveinfo.sound_start = StringHash( st.noise );
 			G_PureSound( st.noise );
 		}
 	} else {
@@ -1507,7 +1510,7 @@ static void train_wait( edict_t *self ) {
 
 		if( !( self->flags & FL_TEAMSLAVE ) ) {
 			G_AddEvent( self, EV_TRAIN_STOP, self->moveinfo.sound_end, true );
-			self->s.sound = 0;
+			// self->s.sound = 0;
 		}
 	} else {
 		train_next( self );
@@ -1652,7 +1655,7 @@ void SP_func_train( edict_t *self ) {
 		}
 	}
 
-	G_AssignMoverSounds( self, NULL, NULL, NULL );
+	G_AssignMoverSounds( self, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
 
 	if( !self->speed ) {
 		self->speed = 100;
@@ -1841,7 +1844,7 @@ void SP_func_conveyor( edict_t *self ) {
 
 	GClip_LinkEntity( self );
 
-	G_AssignMoverSounds( self, NULL, NULL, NULL );
+	G_AssignMoverSounds( self, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
 }
 
 //QUAKED func_killbox (1 0 0) ?
@@ -1954,7 +1957,7 @@ void SP_func_bobbing( edict_t *ent ) {
 	ent->moveinfo.blocked = func_bobbing_blocked;
 	ent->use = func_bobbing_use;
 
-	G_AssignMoverSounds( ent, NULL, NULL, NULL );
+	G_AssignMoverSounds( ent, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
 
 	GClip_LinkEntity( ent );
 }
@@ -2052,7 +2055,7 @@ void SP_func_pendulum( edict_t *ent ) {
 	ent->moveinfo.blocked = func_pendulum_blocked;
 	ent->use = func_pendulum_use;
 
-	G_AssignMoverSounds( ent, NULL, NULL, NULL );
+	G_AssignMoverSounds( ent, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
 
 	GClip_LinkEntity( ent );
 }

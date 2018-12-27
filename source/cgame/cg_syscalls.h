@@ -356,23 +356,23 @@ static inline void trap_S_UpdateEntity( int entNum, vec3_t origin, vec3_t veloci
 	return CGAME_IMPORT.S_UpdateEntity( entNum, origin, velocity );
 }
 
-static inline void trap_S_StartFixedSound( StringHash name, const vec3_t origin, int channel, float volume, float attenuation ) {
+static inline void trap_S_StartFixedSound( StringHash sound, const vec3_t origin, int channel, float volume, float attenuation ) {
 	CGAME_IMPORT.S_StartFixedSound( name, origin, channel, volume, attenuation );
 }
 
-static inline void trap_S_StartEntitySound( StringHash name, int entnum, int channel, float volume, float attenuation ) {
+static inline void trap_S_StartEntitySound( StringHash sound, int entnum, int channel, float volume, float attenuation ) {
 	CGAME_IMPORT.S_StartEntitySound( name, entnum, channel, volume, attenuation );
 }
 
-static inline void trap_S_StartGlobalSound( StringHash name, int channel, float volume ) {
+static inline void trap_S_StartGlobalSound( StringHash sound, int channel, float volume ) {
 	CGAME_IMPORT.S_StartGlobalSound( name, channel, volume );
 }
 
-static inline void trap_S_StartLocalSound( StringHash name, int channel, float volume ) {
+static inline void trap_S_StartLocalSound( StringHash sound, int channel, float volume ) {
 	CGAME_IMPORT.S_StartLocalSound( name, channel, volume );
 }
 
-static inline void trap_S_ImmediateSound( StringHash name, int entnum, float volume, float attenuation ) {
+static inline void trap_S_ImmediateSound( StringHash sound, int entnum, float volume, float attenuation ) {
 	CGAME_IMPORT.S_ImmediateSound( name, entnum, volume, attenuation );
 }
 

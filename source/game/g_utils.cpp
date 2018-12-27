@@ -1331,7 +1331,7 @@ void G_SetPlayerHelpMessage( edict_t *ent, unsigned index, bool force ) {
 /*
 * _G_SpawnSound
 */
-static edict_t *_G_SpawnSound( int channel, StringHash name, float attenuation ) {
+static edict_t *_G_SpawnSound( int channel, StringHash sound, float attenuation ) {
 	edict_t *ent;
 
 	if( attenuation <= 0.0f ) {
@@ -1352,7 +1352,7 @@ static edict_t *_G_SpawnSound( int channel, StringHash name, float attenuation )
 /*
 * G_Sound
 */
-edict_t *G_Sound( edict_t *owner, int channel, StringHash name, float attenuation ) {
+edict_t *G_Sound( edict_t *owner, int channel, StringHash sound, float attenuation ) {
 	edict_t *ent;
 
 	if( owner == NULL || owner == world ) {
@@ -1383,7 +1383,7 @@ edict_t *G_Sound( edict_t *owner, int channel, StringHash name, float attenuatio
 /*
 * G_PositionedSound
 */
-edict_t *G_PositionedSound( vec3_t origin, int channel, StringHash name, float attenuation ) {
+edict_t *G_PositionedSound( vec3_t origin, int channel, StringHash sound, float attenuation ) {
 	edict_t *ent;
 
 	if( origin == NULL ) {
@@ -1406,14 +1406,14 @@ edict_t *G_PositionedSound( vec3_t origin, int channel, StringHash name, float a
 /*
 * G_GlobalSound
 */
-void G_GlobalSound( int channel, StringHash name ) {
+void G_GlobalSound( int channel, StringHash sound ) {
 	G_PositionedSound( NULL, channel, name, ATTN_NONE );
 }
 
 /*
 * G_LocalSound
 */
-void G_LocalSound( edict_t *owner, int channel, StringHash name ) {
+void G_LocalSound( edict_t *owner, int channel, StringHash sound ) {
 	edict_t *ent;
 
 	if( ISEVENTENTITY( &owner->s ) ) {
@@ -1853,7 +1853,7 @@ edict_t *G_PlayerForText( const char *text ) {
 	}
 }
 
-void G_AnnouncerSound( edict_t *targ, StringHash name, int team, bool queued, edict_t *ignore ) {
+void G_AnnouncerSound( edict_t *targ, StringHash sound, int team, bool queued, edict_t *ignore ) {
 	int psev = queued ? PSEV_ANNOUNCER_QUEUED : PSEV_ANNOUNCER;
 	int playerTeam;
 

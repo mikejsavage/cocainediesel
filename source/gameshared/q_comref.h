@@ -416,7 +416,8 @@ typedef struct {
 
 	vec3_t viewangles;          // for fixed views
 
-	int event[2], eventParm[2];
+	int event[2];
+	uint64_t eventParm[2];
 	unsigned int POVnum;        // entity number of the player in POV
 	unsigned int playerNum;     // client number
 	float viewheight;

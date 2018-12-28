@@ -1331,18 +1331,13 @@ void CG_UpdateParticlesEnt( centity_t *cent ) {
 //==================================================
 
 void CG_SoundEntityNewState( centity_t *cent ) {
-	int channel, soundindex, owner;
-	float attenuation;
-	bool fixed;
-
-	soundindex = cent->current.sound;
-	owner = cent->current.ownerNum;
-	channel = cent->current.channel & ~CHAN_FIXED;
-	fixed = ( cent->current.channel & CHAN_FIXED ) ? true : false;
-	attenuation = cent->current.attenuation;
+	int owner = cent->current.ownerNum;
+	int channel = cent->current.channel & ~CHAN_FIXED;
+	bool fixed = ( cent->current.channel & CHAN_FIXED ) ? true : false;
+	float attenuation = cent->current.attenuation;
 
 	if( attenuation == ATTN_NONE ) {
-		trap_S_StartGlobalSound( cgs.soundPrecache[soundindex], channel & ~CHAN_FIXED, 1.0f );
+		trap_S_StartGlobalSound( cent->current.sound, channel & ~CHAN_FIXED, 1.0f );
 		return;
 	}
 
@@ -1372,11 +1367,11 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	// }
 
 	if( fixed ) {
-		trap_S_StartFixedSound( cgs.soundPrecache[soundindex], cent->current.origin, channel, 1.0f, attenuation );
+		trap_S_StartFixedSound( cent->current.sound, cent->current.origin, channel, 1.0f, attenuation );
 	} else if( ISVIEWERENTITY( owner ) ) {
-		trap_S_StartGlobalSound( cgs.soundPrecache[soundindex], channel, 1.0f );
+		trap_S_StartGlobalSound( cent->current.sound, channel, 1.0f );
 	} else {
-		trap_S_StartEntitySound( cgs.soundPrecache[soundindex], owner, channel, 1.0f, attenuation );
+		trap_S_StartEntitySound( cent->current.sound, owner, channel, 1.0f, attenuation );
 	}
 }
 
@@ -1385,11 +1380,11 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 //==========================================================================
 
 void CG_EntityLoopSound( entity_state_t *state, float attenuation ) {
-	if( !state->sound ) {
+	if( state->sound == EMPTY_HASH ) {
 		return;
 	}
 
-	trap_S_ImmediateSound( cgs.soundPrecache[state->sound], state->number, cg_volume_effects->value, ISVIEWERENTITY( state->number ) ? ATTN_NONE : ATTN_IDLE );
+	trap_S_ImmediateSound( state->sound, state->number, cg_volume_effects->value, ISVIEWERENTITY( state->number ) ? ATTN_NONE : ATTN_IDLE );
 }
 
 /*

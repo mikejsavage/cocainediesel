@@ -354,47 +354,6 @@ static void CG_RegisterModels( void ) {
 }
 
 /*
-* CG_RegisterSounds
-*/
-static void CG_RegisterSounds( void ) {
-	int i;
-	const char *name;
-
-	if( cgs.precacheSoundsStart == MAX_SOUNDS ) {
-		return;
-	}
-
-	if( !cgs.precacheSoundsStart ) {
-		CG_LoadingString( "sounds" );
-
-		cgs.precacheSoundsStart = 1;
-	}
-
-	for( i = cgs.precacheSoundsStart; i < MAX_SOUNDS; i++ ) {
-		name = cgs.configStrings[CS_SOUNDS + i];
-		if( !name[0] ) {
-			cgs.precacheSoundsStart = MAX_SOUNDS;
-			break;
-		}
-
-		cgs.precacheSoundsStart = i;
-
-		if( name[0] != '*' ) {
-			if( !CG_LoadingItemName( name ) ) {
-				return;
-			}
-			cgs.soundPrecache[i] = trap_S_RegisterSound( name );
-		}
-	}
-
-	if( cgs.precacheSoundsStart != MAX_SOUNDS ) {
-		return;
-	}
-
-	CG_RegisterMediaSounds();
-}
-
-/*
 * CG_RegisterShaders
 */
 static void CG_RegisterShaders( void ) {
@@ -697,11 +656,6 @@ void CG_Precache( void ) {
 
 	CG_RegisterModels();
 	if( cgs.precacheModelsStart < MAX_MODELS ) {
-		return;
-	}
-
-	CG_RegisterSounds();
-	if( cgs.precacheSoundsStart < MAX_SOUNDS ) {
 		return;
 	}
 

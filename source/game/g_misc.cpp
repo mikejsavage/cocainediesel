@@ -79,7 +79,7 @@ void ThrowClientHead( edict_t *self, int damage ) {
 	self->takedamage = DAMAGE_NO;
 	self->r.solid = SOLID_NOT;
 	self->s.type = ET_GIB;
-	self->s.sound = 0;
+	self->s.sound = EMPTY_HASH;
 	self->s.effects = 0;
 	self->flags |= FL_NO_KNOCKBACK;
 
@@ -685,7 +685,7 @@ void SP_misc_particles( edict_t *ent ) {
 	ent->r.svflags |= SVF_BROADCAST;
 	ent->r.solid = SOLID_NOT;
 	ent->s.type = ET_PARTICLES;
-	ent->s.sound = st.noise;
+	ent->s.sound = StringHash( st.noise );
 
 	if( st.gameteam >= TEAM_ALPHA && st.gameteam < GS_MAX_TEAMS ) {
 		ent->s.team = st.gameteam;

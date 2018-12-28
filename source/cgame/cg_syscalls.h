@@ -357,23 +357,23 @@ static inline void trap_S_UpdateEntity( int entNum, vec3_t origin, vec3_t veloci
 }
 
 static inline void trap_S_StartFixedSound( StringHash sound, const vec3_t origin, int channel, float volume, float attenuation ) {
-	CGAME_IMPORT.S_StartFixedSound( name, origin, channel, volume, attenuation );
+	CGAME_IMPORT.S_StartFixedSound( sound, origin, channel, volume, attenuation );
 }
 
 static inline void trap_S_StartEntitySound( StringHash sound, int entnum, int channel, float volume, float attenuation ) {
-	CGAME_IMPORT.S_StartEntitySound( name, entnum, channel, volume, attenuation );
+	CGAME_IMPORT.S_StartEntitySound( sound, entnum, channel, volume, attenuation );
 }
 
 static inline void trap_S_StartGlobalSound( StringHash sound, int channel, float volume ) {
-	CGAME_IMPORT.S_StartGlobalSound( name, channel, volume );
+	CGAME_IMPORT.S_StartGlobalSound( sound, channel, volume );
 }
 
 static inline void trap_S_StartLocalSound( StringHash sound, int channel, float volume ) {
-	CGAME_IMPORT.S_StartLocalSound( name, channel, volume );
+	CGAME_IMPORT.S_StartLocalSound( sound, channel, volume );
 }
 
 static inline void trap_S_ImmediateSound( StringHash sound, int entnum, float volume, float attenuation ) {
-	CGAME_IMPORT.S_ImmediateSound( name, entnum, volume, attenuation );
+	CGAME_IMPORT.S_ImmediateSound( sound, entnum, volume, attenuation );
 }
 
 static inline struct qfontface_s *trap_SCR_RegisterFont( const char *family, int style, unsigned int size ) {

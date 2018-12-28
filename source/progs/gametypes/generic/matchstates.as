@@ -87,8 +87,8 @@ void GENERIC_SetUpCountdown( bool respawnItems = true )
 
 	// Countdowns should be made entirely client side, because we now can
 
-	int soundIndex = G_SoundIndex( "sounds/announcer/countdown/get_ready_to_fight0" + random_uniform( 1, 3 ) );
-	G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, false, null );
+	uint64 sound = G_SoundHash( "sounds/announcer/countdown/get_ready_to_fight0" + random_uniform( 1, 3 ) );
+	G_AnnouncerSound( null, sound, GS_MAX_TEAMS, false, null );
 }
 
 void GENERIC_SetUpMatch()
@@ -126,8 +126,8 @@ void GENERIC_SetUpMatch()
 	G_RemoveDeadBodies();
 
 	// Countdowns should be made entirely client side, because we now can
-	int soundindex = G_SoundIndex( "sounds/announcer/countdown/fight0" + random_uniform( 1, 3 ) );
-	G_AnnouncerSound( null, soundindex, GS_MAX_TEAMS, false, null );
+	uint64 sound = G_SoundHash( "sounds/announcer/countdown/fight0" + random_uniform( 1, 3 ) );
+	G_AnnouncerSound( null, sound, GS_MAX_TEAMS, false, null );
 	G_CenterPrintMsg( null, "FIGHT!" );
 
 	// now we can enable shooting
@@ -167,8 +167,8 @@ void GENERIC_SetUpEndMatch()
 			team2.name + S_COLOR_WHITE + " - " + match.getScore() + "\n" );
 	}
 
-	int soundIndex = G_SoundIndex( "sounds/announcer/postmatch/game_over0" + random_uniform( 1, 3 ) );
-	G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, true, null );
+	uint64 sound = G_SoundHash( "sounds/announcer/postmatch/game_over0" + random_uniform( 1, 3 ) );
+	G_AnnouncerSound( null, sound, GS_MAX_TEAMS, true, null );
 }
 
 ///*****************************************************************

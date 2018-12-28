@@ -192,8 +192,8 @@ static bool CG_vWeap_ParseAnimationScript( weaponinfo_t *weaponinfo, const char 
 
 				token = COM_ParseExt( &ptr, false );
 				if( Q_stricmp( token, "NULL" ) ) {
-					weaponinfo->sound_fire[weaponinfo->num_fire_sounds] = trap_S_RegisterSound( token );
-					if( weaponinfo->sound_fire[weaponinfo->num_fire_sounds] != NULL ) {
+					weaponinfo->sound_fire[weaponinfo->num_fire_sounds] = StringHash( token );
+					if( weaponinfo->sound_fire[weaponinfo->num_fire_sounds] != EMPTY_HASH ) {
 						weaponinfo->num_fire_sounds++;
 					}
 				}
@@ -213,8 +213,8 @@ static bool CG_vWeap_ParseAnimationScript( weaponinfo_t *weaponinfo, const char 
 
 				token = COM_ParseExt( &ptr, false );
 				if( Q_stricmp( token, "NULL" ) ) {
-					weaponinfo->sound_strongfire[weaponinfo->num_strongfire_sounds] = trap_S_RegisterSound( token );
-					if( weaponinfo->sound_strongfire[weaponinfo->num_strongfire_sounds] != NULL ) {
+					weaponinfo->sound_strongfire[weaponinfo->num_strongfire_sounds] = StringHash( token );
+					if( weaponinfo->sound_strongfire[weaponinfo->num_strongfire_sounds] != EMPTY_HASH ) {
 						weaponinfo->num_strongfire_sounds++;
 					}
 				}

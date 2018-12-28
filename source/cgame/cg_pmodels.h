@@ -90,10 +90,10 @@ typedef struct weaponinfo_s {
 
 	// sfx
 	int num_fire_sounds;
-	struct sfx_s *sound_fire[WEAPONINFO_MAX_FIRE_SOUNDS];
+	StringHash sound_fire[WEAPONINFO_MAX_FIRE_SOUNDS];
 	int num_strongfire_sounds;
-	struct sfx_s *sound_strongfire[WEAPONINFO_MAX_FIRE_SOUNDS];
-	struct sfx_s *sound_reload;
+	StringHash sound_strongfire[WEAPONINFO_MAX_FIRE_SOUNDS];
+	StringHash sound_reload;
 
 	// ammo counter display
 	float acDigitWidth, acDigitHeight;

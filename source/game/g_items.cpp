@@ -242,7 +242,7 @@ static bool Pickup_Health( edict_t *other, const gsitem_t *item, int flags ) {
 //======================================================================
 
 void Touch_ItemSound( edict_t *other, const gsitem_t *item ) {
-	if( item->pickup_sound ) {
+	if( item->pickup_sound != EMPTY_HASH ) {
 		if( item->type & IT_POWERUP ) {
 			G_Sound( other, CHAN_ITEM, item->pickup_sound, ATTN_NORM );
 		} else {

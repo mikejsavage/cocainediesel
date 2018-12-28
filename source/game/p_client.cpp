@@ -140,7 +140,7 @@ static void body_think( edict_t *self ) {
 	// disallow interaction with the world.
 	self->takedamage = DAMAGE_NO;
 	self->r.solid = SOLID_NOT;
-	self->s.sound = 0;
+	self->s.sound = EMPTY_HASH;
 	self->flags |= FL_NO_KNOCKBACK;
 	self->s.type = ET_GENERIC;
 	self->r.svflags &= ~SVF_CORPSE;
@@ -290,7 +290,7 @@ void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage
 
 	ent->s.angles[0] = 0;
 	ent->s.angles[2] = 0;
-	ent->s.sound = 0;
+	ent->s.sound = EMPTY_HASH;
 
 	ent->r.solid = SOLID_NOT;
 
@@ -438,7 +438,7 @@ void G_GhostClient( edict_t *ent ) {
 	ent->s.modelindex = ent->s.modelindex2 = ent->s.skinnum = 0;
 	ent->s.effects = 0;
 	ent->s.weapon = 0;
-	ent->s.sound = 0;
+	ent->s.sound = EMPTY_HASH;
 	ent->s.light = 0;
 	ent->viewheight = 0;
 	ent->takedamage = DAMAGE_NO;
@@ -1206,7 +1206,7 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 /*
 * G_PredictedEvent
 */
-void G_PredictedEvent( int entNum, int ev, int parm ) {
+void G_PredictedEvent( int entNum, int ev, uint64_t parm ) {
 	edict_t *ent;
 	vec3_t upDir = { 0, 0, 1 };
 

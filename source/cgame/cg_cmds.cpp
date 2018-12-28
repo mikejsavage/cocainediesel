@@ -122,9 +122,6 @@ void CG_ConfigString( int i, const char *s ) {
 			cgs.modelDraw[i - CS_MODELS] = CG_RegisterModel( cgs.configStrings[i] );
 		}
 	} else if( i >= CS_SOUNDS && i < CS_SOUNDS + MAX_SOUNDS ) {
-		if( cgs.configStrings[i][0] != '*' ) {
-			cgs.soundPrecache[i - CS_SOUNDS] = StringHash( cgs.configStrings[i] );
-		}
 	} else if( i >= CS_IMAGES && i < CS_IMAGES + MAX_IMAGES ) {
 		if( strstr( cgs.configStrings[i], "correction/" ) ) { // HACK HACK HACK -- for color correction LUTs
 			cgs.imagePrecache[i - CS_IMAGES] = trap_R_RegisterLinearPic( cgs.configStrings[i] );

@@ -88,38 +88,6 @@ bool CG_ChaseStep( int step ) {
 * CG_AddLocalSounds
 */
 static void CG_AddLocalSounds( void ) {
-	static unsigned lastSecond = 0;
-
-	// add local announces
-	if( GS_Countdown() ) {
-		if( GS_MatchDuration() ) {
-			int64_t duration, curtime;
-			unsigned remainingSeconds;
-			float seconds;
-
-			curtime = GS_MatchPaused() ? cg.frame.serverTime : cg.time;
-			duration = GS_MatchDuration();
-
-			if( duration + GS_MatchStartTime() < curtime ) {
-				duration = curtime - GS_MatchStartTime(); // avoid negative results
-
-			}
-			seconds = (float)( GS_MatchStartTime() + duration - curtime ) * 0.001f;
-			remainingSeconds = (unsigned int)seconds;
-
-			if( remainingSeconds != lastSecond ) {
-				if( 1 + remainingSeconds < 4 ) {
-					struct sfx_s *sound = trap_S_RegisterSound( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, 1 + remainingSeconds, 1 ) );
-					CG_AddAnnouncerEvent( sound, false );
-				}
-
-				lastSecond = remainingSeconds;
-			}
-		}
-	} else {
-		lastSecond = 0;
-	}
-
 	// add sounds from announcer
 	CG_ReleaseAnnouncerEvents();
 }

@@ -244,7 +244,7 @@ typedef struct cgs_skeleton_s {
 
 typedef struct cg_sexedSfx_s {
 	char *name;
-	struct sfx_s *sfx;
+	StringHash sound;
 	struct cg_sexedSfx_s *next;
 } cg_sexedSfx_t;
 
@@ -393,7 +393,6 @@ typedef struct {
 	struct skinfile_s *teamCustomSkin[2]; // user defined
 	int teamColor[2];
 
-	StringHash soundPrecache[MAX_SOUNDS];
 	struct shader_s *imagePrecache[MAX_IMAGES];
 	struct skinfile_s *skinPrecache[MAX_SKINFILES];
 
@@ -574,7 +573,6 @@ void CG_RegisterFonts( void );
 
 struct model_s *CG_RegisterModel( const char *name );
 
-struct sfx_s *CG_MediaSfx( cgs_media_handle_t *mediasfx );
 struct model_s *CG_MediaModel( cgs_media_handle_t *mediamodel );
 struct shader_s *CG_MediaShader( cgs_media_handle_t *mediashader );
 
@@ -585,16 +583,14 @@ extern cvar_t *cg_hand;
 
 void CG_ResetClientInfos( void );
 void CG_LoadClientInfo( int client );
-void CG_UpdateSexedSoundsRegistration( pmodelinfo_t *pmodelinfo );
 void CG_SexedSound( int entnum, int entchannel, const char *name, float volume, float attn );
-struct sfx_s *CG_RegisterSexedSound( int entnum, const char *name );
 
 //
 // cg_predict.c
 //
 extern cvar_t *cg_showMiss;
 
-void CG_PredictedEvent( int entNum, int ev, int parm );
+void CG_PredictedEvent( int entNum, int ev, uint64_t parm );
 void CG_Predict_ChangeWeapon( int new_weapon );
 void CG_PredictMovement( void );
 void CG_CheckPredictionError( void );
@@ -925,8 +921,8 @@ extern cvar_t *cg_damage_indicator;
 extern cvar_t *cg_damage_indicator_time;
 
 void CG_FireEvents( bool early );
-void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted );
-void CG_AddAnnouncerEvent( struct sfx_s *sound, bool queued );
+void CG_EntityEvent( entity_state_t *ent, int ev, uint64_t parm, bool predicted );
+void CG_AddAnnouncerEvent( StringHash sound, bool queued );
 void CG_ReleaseAnnouncerEvents( void );
 void CG_ClearAnnouncerEvents( void );
 

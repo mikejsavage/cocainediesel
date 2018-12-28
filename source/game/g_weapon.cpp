@@ -93,7 +93,7 @@ static edict_t *W_Fire_LinearProjectile( edict_t *self, vec3_t start, vec3_t ang
 	projectile->nextThink = level.time + timeout;
 	projectile->think = G_FreeEdict;
 	projectile->classname = NULL; // should be replaced after calling this func.
-	projectile->s.sound = 0;
+	projectile->s.sound = EMPTY_HASH;
 	projectile->timeStamp = level.time;
 	projectile->timeDelta = timeDelta;
 
@@ -152,7 +152,7 @@ static edict_t *W_Fire_TossProjectile( edict_t *self, vec3_t start, vec3_t angle
 	projectile->nextThink = level.time + timeout;
 	projectile->think = G_FreeEdict;
 	projectile->classname = NULL; // should be replaced after calling this func.
-	projectile->s.sound = 0;
+	projectile->s.sound = EMPTY_HASH;
 	projectile->timeStamp = level.time;
 	projectile->timeDelta = timeDelta;
 	projectile->s.team = self->s.team;
@@ -683,7 +683,7 @@ void W_Fire_Electrobolt_FullInstant( edict_t *self, vec3_t start, vec3_t angles,
 */
 void G_HideLaser( edict_t *ent ) {
 	ent->s.modelindex = 0;
-	ent->s.sound = 0;
+	ent->s.sound = EMPTY_HASH;
 	ent->r.svflags = SVF_NOCLIENT;
 
 	// give it 100 msecs before freeing itself, so we can relink it if we start firing again

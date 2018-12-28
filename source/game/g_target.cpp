@@ -515,7 +515,7 @@ static void target_give_use( edict_t *self, edict_t *other, edict_t *activator )
 	const gsitem_t *item;
 	int i, numsounds;
 	float attenuation;
-	const char *pickup_sound;
+	StringHash pickup_sound;
 	int prev_pickup = -1;
 	gclient_t *aclient = activator && activator->r.client ? activator->r.client : NULL;
 	const gsitem_t *sounds[MAX_GIVE_SOUNDS];
@@ -558,9 +558,9 @@ static void target_give_use( edict_t *self, edict_t *other, edict_t *activator )
 			prev_pickup = item->tag;
 
 			// see if we don't know this pickup sound yet
-			if( pickup_sound ) {
+			if( pickup_sound != EMPTY_HASH ) {
 				for( i = 0; i < numsounds; i++ ) {
-					if( !Q_stricmp( sounds[i]->pickup_sound, pickup_sound ) ) {
+					if( sounds[i]->pickup_sound == pickup_sound ) {
 						break;
 					}
 				}

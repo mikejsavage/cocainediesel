@@ -20,148 +20,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "cg_local.h"
 
-static const char *cg_defaultSexedSounds[] =
-{
-	"*death", //"*death2", "*death3", "*death4",
-	"*fall_0", "*fall_1", "*fall_2",
-	"*falldeath",
-	"*gasp", "*drown",
-	"*jump_1", "*jump_2",
-	"*pain25", "*pain50", "*pain75", "*pain100",
-	"*wj_1", "*wj_2",
-	"*dash_1", "*dash_2",
-	"*taunt",
-	NULL
-};
-
-
-/*
-* CG_RegisterPmodelSexedSound
-*/
-static struct sfx_s *CG_RegisterPmodelSexedSound( pmodelinfo_t *pmodelinfo, const char *name ) {
-	char *p, *s, model[MAX_QPATH];
-	cg_sexedSfx_t *sexedSfx;
-	char oname[MAX_QPATH];
-	char sexedFilename[MAX_QPATH];
-
-	if( !pmodelinfo ) {
-		return NULL;
-	}
-
-	model[0] = '\0';
-
-	Q_strncpyz( oname, name, sizeof( oname ) );
-	COM_StripExtension( oname );
-	for( sexedSfx = pmodelinfo->sexedSfx; sexedSfx; sexedSfx = sexedSfx->next ) {
-		if( !Q_stricmp( sexedSfx->name, oname ) ) {
-			return sexedSfx->sfx;
-		}
-	}
-
-	// find out what's the model name
-	s = pmodelinfo->name;
-	if( s[0] ) {
-		p = strchr( s, '/' );
-		if( p ) {
-			s = p + 1;
-			p = strchr( s, '/' );
-			if( p ) {
-				Q_strncpyz( model, p + 1, sizeof( model ) );
-				p = strchr( model, '/' );
-				if( p ) {
-					*p = 0;
-				}
-			}
-		}
-	}
-
-	// if we can't figure it out, they're DEFAULT_PLAYERMODEL
-	if( !model[0] ) {
-		Q_strncpyz( model, DEFAULT_PLAYERMODEL, sizeof( model ) );
-	}
-
-	sexedSfx = ( cg_sexedSfx_t * )CG_Malloc( sizeof( cg_sexedSfx_t ) );
-	sexedSfx->name = CG_CopyString( oname );
-	sexedSfx->next = pmodelinfo->sexedSfx;
-	pmodelinfo->sexedSfx = sexedSfx;
-
-	// see if we already know of the model specific sound
-	Q_snprintfz( sexedFilename, sizeof( sexedFilename ), "sounds/players/%s/%s", model, oname + 1 );
-
-	if( ( !COM_FileExtension( sexedFilename ) &&
-		  trap_FS_FirstExtension( sexedFilename, SOUND_EXTENSIONS, NUM_SOUND_EXTENSIONS ) ) ||
-		trap_FS_FOpenFile( sexedFilename, NULL, FS_READ ) != -1 ) {
-		sexedSfx->sfx = trap_S_RegisterSound( sexedFilename );
-	} else {   // no, revert to default player sounds folders
-		if( pmodelinfo->sex == GENDER_FEMALE ) {
-			Q_snprintfz( sexedFilename, sizeof( sexedFilename ), "sounds/players/%s/%s", "female", oname + 1 );
-			sexedSfx->sfx = trap_S_RegisterSound( sexedFilename );
-		} else {
-			Q_snprintfz( sexedFilename, sizeof( sexedFilename ), "sounds/players/%s/%s", "male", oname + 1 );
-			sexedSfx->sfx = trap_S_RegisterSound( sexedFilename );
-		}
-	}
-
-	return sexedSfx->sfx;
-}
-
-/*
-* CG_UpdateSexedSoundsRegistration
-*/
-void CG_UpdateSexedSoundsRegistration( pmodelinfo_t *pmodelinfo ) {
-	cg_sexedSfx_t *sexedSfx, *next;
-	const char *name;
-	int i;
-
-	if( !pmodelinfo ) {
-		return;
-	}
-
-	// free loaded sounds
-	for( sexedSfx = pmodelinfo->sexedSfx; sexedSfx; sexedSfx = next ) {
-		next = sexedSfx->next;
-		CG_Free( sexedSfx );
-	}
-	pmodelinfo->sexedSfx = NULL;
-
-	// load default sounds
-	for( i = 0;; i++ ) {
-		name = cg_defaultSexedSounds[i];
-		if( !name ) {
-			break;
-		}
-		CG_RegisterPmodelSexedSound( pmodelinfo, name );
-	}
-
-	// load sounds server told us
-	for( i = 1; i < MAX_SOUNDS; i++ ) {
-		name = cgs.configStrings[CS_SOUNDS + i];
-		if( !name[0] ) {
-			break;
-		}
-		if( name[0] == '*' ) {
-			CG_RegisterPmodelSexedSound( pmodelinfo, name );
-		}
-	}
-}
-
-/*
-* CG_RegisterSexedSound
-*/
-struct sfx_s *CG_RegisterSexedSound( int entnum, const char *name ) {
-	if( entnum < 0 || entnum >= MAX_EDICTS ) {
-		return NULL;
-	}
-	return CG_RegisterPmodelSexedSound( cg_entPModels[entnum].pmodelinfo, name );
-}
-
 /*
 * CG_SexedSound
 */
 void CG_SexedSound( int entnum, int entchannel, const char *name, float volume, float attn ) {
+	/* TODO TODO
+	// Q_snprintfz( sexedFilename, sizeof( sexedFilename ), "sounds/players/%s/%s", model, oname + 1 );
 	bool fixed;
 
-	fixed = entchannel & CHAN_FIXED ? true : false;
+	bool fixed = entchannel & CHAN_FIXED ? true : false;
 	entchannel &= ~CHAN_FIXED;
 
 	if( fixed ) {
@@ -171,6 +38,7 @@ void CG_SexedSound( int entnum, int entchannel, const char *name, float volume, 
 	} else {
 		trap_S_StartEntitySound( CG_RegisterSexedSound( entnum, name ), entnum, entchannel, volume, attn );
 	}
+	*/
 }
 
 /*

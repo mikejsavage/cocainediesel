@@ -10,9 +10,6 @@
 #define STB_VORBIS_HEADER_ONLY
 #include "stb/stb_vorbis.h"
 
-<<<<<<< HEAD
-typedef struct sfx_s {
-=======
 static cvar_t * s_volume;
 static cvar_t * s_musicvolume;
 
@@ -20,7 +17,6 @@ static ALCdevice * alDevice;
 static ALCcontext * alContext;
 
 struct SoundAsset {
->>>>>>> WIP asset system
 	int length_ms;
 	ALuint buffer;
 };
@@ -47,19 +43,9 @@ struct EntitySound {
 	PlayingSound * ps;
 };
 
-static ALCdevice * al_device;
-static ALCcontext * al_context;
-
-// so we don't crash when some other application is running in exclusive playback mode (WASAPI/JACK/etc)
-static bool initialized;
-
-static cvar_t * s_volume;
-static cvar_t * s_musicvolume;
-static cvar_t * s_muteinbackground;
-
-static sfx_s sound_assets[ 4096 ];
+static SoundAsset sound_assets[ 4096 ];
 static size_t num_sound_assets;
-static sfx_s * menu_music_asset;
+static SoundAsset * menu_music_asset;
 
 static Hashtable< 8192 > sound_assets_hashtable;
 
@@ -193,16 +179,11 @@ bool S_Init() {
 	return S_InitAL();
 }
 
-<<<<<<< HEAD
-	menu_music_asset = S_Register( "sounds/music/menu_1", true );
-	initialized = true;
-=======
 void S_LoadSoundAssets() {
 	for( const char * name : Assets_Names() ) {
 		const char * ext = COM_FileExtension( name );
 		if( ext == NULL || strcmp( ext, ".ogg" ) != 0 )
 			continue;
->>>>>>> WIP asset system
 
 		bool stereo = strcmp( name, "sounds/music/menu_1.ogg" ) == 0;
 		S_Register( name, stereo );
@@ -226,25 +207,8 @@ void S_Shutdown() {
 
 	S_ALAssert();
 
-<<<<<<< HEAD
-	alcDestroyContext( al_context );
-	alcCloseDevice( al_device );
-
-	Cmd_RemoveCommand( "soundlist" );
-}
-
-SoundAsset * S_RegisterSound( const char * filename ) {
-	if( !initialized )
-		return NULL;
-	return S_Register( filename, false );
-}
-
-int64_t S_SoundLengthMilliseconds( const SoundAsset * sfx ) {
-	return sfx->length_ms;
-=======
 	alcDestroyContext( alContext );
 	alcCloseDevice( alDevice );
->>>>>>> WIP asset system
 }
 
 static void swap( PlayingSound * a, PlayingSound * b ) {
@@ -349,9 +313,12 @@ static PlayingSound * S_FindEmptyPlayingSound( int ent_num, int channel ) {
 	return &playing_sounds[ num_playing_sounds - 1 ];
 }
 
-static bool S_StartSound( SoundAsset * sfx, const vec3_t origin, int ent_num, int channel, float volume, float attenuation, SoundType type ) {
-	if( !initialized || sfx == NULL )
+static bool S_StartSound( StringHash sound, const vec3_t origin, int ent_num, int channel, float volume, float attenuation, SoundType type ) {
+	uint64_t idx;
+	if( !sound_assets_hashtable.get( sound.hash, &idx ) )
 		return false;
+	
+	const SoundAsset * asset = &sound_assets[ idx ];
 
 	PlayingSound * ps = S_FindEmptyPlayingSound( ent_num, channel );
 	if( ps == NULL ) {
@@ -359,7 +326,7 @@ static bool S_StartSound( SoundAsset * sfx, const vec3_t origin, int ent_num, in
 		return false;
 	}
 
-	alSourcei( ps->source, AL_BUFFER, sfx->buffer );
+	alSourcei( ps->source, AL_BUFFER, asset->buffer );
 	alSourcef( ps->source, AL_GAIN, volume * s_volume->value );
 	alSourcef( ps->source, AL_REFERENCE_DISTANCE, S_DEFAULT_ATTENUATION_REFDISTANCE );
 	alSourcef( ps->source, AL_MAX_DISTANCE, S_DEFAULT_ATTENUATION_MAXDISTANCE );
@@ -407,26 +374,26 @@ static bool S_StartSound( SoundAsset * sfx, const vec3_t origin, int ent_num, in
 	return true;
 }
 
-void S_StartFixedSound( SoundAsset * sfx, const vec3_t origin, int channel, float volume, float attenuation ) {
-	S_StartSound( sfx, origin, 0, channel, volume, attenuation, SoundType_Fixed );
+void S_StartFixedSound( StringHash sound, const vec3_t origin, int channel, float volume, float attenuation ) {
+	S_StartSound( sound, origin, 0, channel, volume, attenuation, SoundType_Fixed );
 }
 
-void S_StartEntitySound( SoundAsset * sfx, int ent_num, int channel, float volume, float attenuation ) {
-	S_StartSound( sfx, NULL, ent_num, channel, volume, attenuation, SoundType_Attached );
+void S_StartEntitySound( StringHash sound, int ent_num, int channel, float volume, float attenuation ) {
+	S_StartSound( sound, NULL, ent_num, channel, volume, attenuation, SoundType_Attached );
 }
 
-void S_StartGlobalSound( SoundAsset * sfx, int channel, float volume ) {
-	S_StartSound( sfx, NULL, 0, channel, volume, 0, SoundType_Global );
+void S_StartGlobalSound( StringHash sound, int channel, float volume ) {
+	S_StartSound( sound, NULL, 0, channel, volume, 0, SoundType_Global );
 }
 
-void S_StartLocalSound( SoundAsset * sfx, int channel, float volume ) {
-	S_StartSound( sfx, NULL, -1, channel, volume, 0, SoundType_Global );
+void S_StartLocalSound( StringHash sound, int channel, float volume ) {
+	S_StartSound( sound, NULL, -1, channel, volume, 0, SoundType_Global );
 }
 
-void S_ImmediateSound( SoundAsset * sfx, int ent_num, float volume, float attenuation ) {
+void S_ImmediateSound( StringHash sound, int ent_num, float volume, float attenuation ) {
 	// TODO: replace old immediate sound if sfx changed
 	if( entities[ ent_num ].ps == NULL ) {
-		bool started = S_StartSound( sfx, NULL, ent_num, -1, volume, attenuation, SoundType_AttachedImmediate );
+		bool started = S_StartSound( sound, NULL, ent_num, -1, volume, attenuation, SoundType_AttachedImmediate );
 		if( !started )
 			return;
 	}

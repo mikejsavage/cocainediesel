@@ -194,6 +194,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define S_PICKUP_QUAD       "sounds/items/quad_pickup"       // pickup Quad damage
 
+#define S_ITEM_RESPAWN      "sounds/items/item_spawn"        // item respawn
 #define S_ITEM_QUAD_RESPAWN "sounds/items/quad_spawn"        // Quad respawn
 
 // misc sounds
@@ -204,6 +205,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //#define S_LAND					"sounds/misc/land"
 #define S_HIT_WATER     "sounds/misc/hit_water"
 
+#define S_TELEPORT      "sounds/world/tele_in"
 #define S_JUMPPAD       "sounds/world/jumppad"
 #define S_LAUNCHPAD     "sounds/world/launchpad"
 
@@ -233,6 +235,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define S_FUNC_ROTATING_STOP    NULL
 
 #define S_BUTTON_START      "sounds/movers/button"
+
+//#define S_QUAD_USE				"sounds/items/quad_use"
+#define S_QUAD_FIRE     "sounds/items/quad_fire"
 
 // world sounds
 #define S_WORLD_WATER_IN            "sounds/world/water_in"
@@ -267,12 +272,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // PLAYERS FALL MISSING
 
+// combat and weapons
+#define S_WEAPON_HITS               "sounds/misc/hit_%i"
+#define S_WEAPON_KILL               "sounds/misc/kill"
+#define S_WEAPON_HIT_TEAM           "sounds/misc/hit_team"
+#define S_WEAPON_SWITCH             "sounds/weapons/weapon_switch"
+#define S_WEAPON_NOAMMO             "sounds/weapons/weapon_noammo"
+
 // weapon sounds
 #define S_WEAPON_GUNBLADE_W_SHOT_1_to_3     "sounds/weapons/blade_strike%i"
 #define S_WEAPON_GUNBLADE_W_HIT_FLESH_1_to_3    "sounds/weapons/blade_hitflsh%i"
 #define S_WEAPON_GUNBLADE_W_HIT_WALL_1_to_2 "sounds/weapons/blade_hitwall%i"
 #define S_WEAPON_GUNBLADE_S_SHOT        "sounds/weapons/bladegun_strong_fire"
 #define S_WEAPON_GUNBLADE_S_HIT_1_to_2      "sounds/weapons/bladegun_strong_hit_%i"
+
+#define S_WEAPON_RIOTGUN_HIT            "sounds/weapons/riotgun_strong_hit"
 
 #define S_WEAPON_GRENADE_BOUNCE_1_to_2  "sounds/weapons/gren_strong_bounce%i"
 #define S_WEAPON_GRENADE_HIT            "sounds/weapons/gren_strong_explosion1"
@@ -281,10 +295,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define S_WEAPON_ROCKET_HIT             "sounds/weapons/rocket_strong_explosion"
 
 #define S_WEAPON_PLASMAGUN_FLY          "sounds/weapons/plasmagun_strong_fly"
+#define S_WEAPON_PLASMAGUN_HIT          "sounds/weapons/plasmagun_strong_explosion"
 
 #define S_WEAPON_LASERGUN_HUM           "sounds/weapons/laser_strong_hum"
 #define S_WEAPON_LASERGUN_QUAD_HUM      "sounds/weapons/laser_strong_quad_hum"
 #define S_WEAPON_LASERGUN_STOP          "sounds/weapons/laser_strong_stop"
+#define S_WEAPON_LASERGUN_HIT_0         "sounds/weapons/laser_hit0"
+#define S_WEAPON_LASERGUN_HIT_1         "sounds/weapons/laser_hit1"
+#define S_WEAPON_LASERGUN_HIT_2         "sounds/weapons/laser_hit2"
 
 #define S_WEAPON_ELECTROBOLT_HIT        "sounds/weapons/electrobolt_hit"
 

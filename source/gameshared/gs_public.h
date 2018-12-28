@@ -38,7 +38,7 @@ typedef struct {
 	void ( *Trace )( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask, int timeDelta );
 	entity_state_t *( *GetEntityState )( int entNum, int deltaTime );
 	int ( *PointContents )( const vec3_t point, int timeDelta );
-	void ( *PredictedEvent )( int entNum, int ev, int parm );
+	void ( *PredictedEvent )( int entNum, int ev, uint64_t parm );
 	void ( *PMoveTouchTriggers )( pmove_t *pm, vec3_t previous_origin );
 	const char *( *GetConfigString )( int index );
 	struct angelwrap_api_s *( *GetAngelExport )( void );
@@ -416,7 +416,7 @@ typedef struct gitem_s {
 	const char *world_model[MAX_ITEM_MODELS];
 	const char *icon;
 	const char *simpleitem;       // Kurim : we use different images for representing simpleitems
-	const char *pickup_sound;
+	StringHash pickup_sound;
 	int effects;
 
 

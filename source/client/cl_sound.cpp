@@ -49,23 +49,23 @@ void CL_SoundModule_SetWindowFocus( bool focused ) {
 }
 
 void CL_SoundModule_StartFixedSound( StringHash sound, const vec3_t origin, int channel, float volume, float attenuation ) {
-	S_StartFixedSound( name, origin, channel, volume, attenuation );
+	S_StartFixedSound( sound, origin, channel, volume, attenuation );
 }
 
 void CL_SoundModule_StartEntitySound( StringHash sound, int entnum, int channel, float volume, float attenuation ) {
-	S_StartEntitySound( name, entnum, channel, volume, attenuation );
+	S_StartEntitySound( sound, entnum, channel, volume, attenuation );
 }
 
 void CL_SoundModule_StartGlobalSound( StringHash sound, int channel, float volume ) {
-	S_StartGlobalSound( name, channel, volume );
+	S_StartGlobalSound( sound, channel, volume );
 }
 
 void CL_SoundModule_StartLocalSound( StringHash sound, int channel, float volume ) {
-	S_StartLocalSound( name, channel, volume );
+	S_StartLocalSound( sound, channel, volume );
 }
 
 void CL_SoundModule_ImmediateSound( StringHash sound, int entnum, float volume, float attenuation ) {
-	S_ImmediateSound( name, entnum, volume, attenuation );
+	S_ImmediateSound( sound, entnum, volume, attenuation );
 }
 
 void CL_SoundModule_StartMenuMusic() {

@@ -581,35 +581,6 @@ void G_UseTargets( edict_t *ent, edict_t *activator ) {
 		return;
 	}
 
-
-	//
-	// print the message
-	//
-	if( ent->message ) {
-		G_CenterPrintMsg( activator, "%s", ent->message );
-
-		if( ent->noise_index ) {
-			G_Sound( activator, CHAN_AUTO, ent->noise_index, ATTN_NORM );
-		} else {
-			G_Sound( activator, CHAN_AUTO, trap_SoundIndex( S_WORLD_MESSAGE ), ATTN_NORM );
-		}
-	}
-
-	//
-	// set the help message
-	//
-	if( ent->helpmessage && ent->mapmessage_index <= MAX_HELPMESSAGES ) {
-		G_SetPlayerHelpMessage( activator, ent->mapmessage_index );
-
-		if( !ent->message ) {
-			if( ent->noise_index ) {
-				G_Sound( activator, CHAN_AUTO, ent->noise_index, ATTN_NORM );
-			} else {
-				G_Sound( activator, CHAN_AUTO, trap_SoundIndex( S_WORLD_MESSAGE ), ATTN_NORM );
-			}
-		}
-	}
-
 	//
 	// kill killtargets
 	//
@@ -832,7 +803,7 @@ void G_AddEvent( edict_t *ent, int event, StringHash hash, bool highPriority ) {
 /*
 * G_SpawnEvent
 */
-edict_t *G_SpawnEvent( int event, int parm, vec3_t origin ) {
+edict_t *G_SpawnEvent( int event, uint64_t parm, vec3_t origin ) {
 	edict_t *ent;
 
 	ent = G_Spawn();
@@ -852,7 +823,7 @@ edict_t *G_SpawnEvent( int event, int parm, vec3_t origin ) {
 /*
 * G_MorphEntityIntoEvent
 */
-void G_MorphEntityIntoEvent( edict_t *ent, int event, int parm ) {
+void G_MorphEntityIntoEvent( edict_t *ent, int event, uint64_t parm ) {
 	ent->s.type = ET_EVENT;
 	ent->r.solid = SOLID_NOT;
 	ent->r.svflags &= ~SVF_PROJECTILE; // FIXME: Medar: should be remove all or remove this one elsewhere?
@@ -1344,7 +1315,7 @@ static edict_t *_G_SpawnSound( int channel, StringHash sound, float attenuation 
 	ent->s.type = ET_SOUNDEVENT;
 	ent->s.attenuation = attenuation;
 	ent->s.channel = channel;
-	ent->s.sound = name;
+	ent->s.sound = sound;
 
 	return ent;
 }
@@ -1361,7 +1332,7 @@ edict_t *G_Sound( edict_t *owner, int channel, StringHash sound, float attenuati
 		return NULL; // event entities can't be owner of sound entities
 
 	}
-	ent = _G_SpawnSound( channel, name, attenuation );
+	ent = _G_SpawnSound( channel, sound, attenuation );
 	if( attenuation != ATTN_NONE ) {
 		assert( owner );
 		ent->s.ownerNum = owner->s.number;
@@ -1390,7 +1361,7 @@ edict_t *G_PositionedSound( vec3_t origin, int channel, StringHash sound, float 
 		attenuation = ATTN_NONE;
 	}
 
-	ent = _G_SpawnSound( channel, name, attenuation );
+	ent = _G_SpawnSound( channel, sound, attenuation );
 	if( attenuation != ATTN_NONE ) {
 		assert( origin );
 		ent->s.channel |= CHAN_FIXED;
@@ -1407,7 +1378,7 @@ edict_t *G_PositionedSound( vec3_t origin, int channel, StringHash sound, float 
 * G_GlobalSound
 */
 void G_GlobalSound( int channel, StringHash sound ) {
-	G_PositionedSound( NULL, channel, name, ATTN_NONE );
+	G_PositionedSound( NULL, channel, sound, ATTN_NONE );
 }
 
 /*
@@ -1420,7 +1391,7 @@ void G_LocalSound( edict_t *owner, int channel, StringHash sound ) {
 		return; // event entities can't be owner of sound entities
 	}
 
-	ent = _G_SpawnSound( channel, name, ATTN_NONE );
+	ent = _G_SpawnSound( channel, sound, ATTN_NONE );
 	ent->s.ownerNum = ENTNUM( owner );
 	ent->r.svflags |= SVF_ONLYOWNER | SVF_BROADCAST;
 
@@ -1866,7 +1837,7 @@ void G_AnnouncerSound( edict_t *targ, StringHash sound, int team, bool queued, e
 			return;
 		}
 
-		G_AddPlayerStateEvent( targ->r.client, psev, soundindex );
+		G_AddPlayerStateEvent( targ->r.client, psev, sound.hash );
 	} else {   // add it to all players
 		edict_t *ent;
 
@@ -1894,7 +1865,7 @@ void G_AnnouncerSound( edict_t *targ, StringHash sound, int team, bool queued, e
 				}
 			}
 
-			G_AddPlayerStateEvent( ent->r.client, psev, name );
+			G_AddPlayerStateEvent( ent->r.client, psev, sound.hash );
 		}
 	}
 }

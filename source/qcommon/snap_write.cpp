@@ -570,13 +570,13 @@ static bool SNAP_SnapCullEntity( cmodel_state_t *cms, edict_t *ent, edict_t *cle
 		snd_cull_only = true;
 	}
 	// if not a sound entity but the entity is only a sound
-	else if( !ent->s.modelindex && !ent->s.events[0] && !ent->s.light && !ent->s.effects && ent->s.sound ) {
+	else if( !ent->s.modelindex && !ent->s.events[0] && !ent->s.light && !ent->s.effects && ent->s.sound != EMPTY_HASH ) {
 		snd_cull_only = true;
 	}
 
 	// PVS culling alone may not be used on pure sounds, entities with
 	// events and regular entities emitting sounds
-	if( snd_cull_only || ent->s.events[0] || ent->s.sound ) {
+	if( snd_cull_only || ent->s.events[0] || ent->s.sound != EMPTY_HASH ) {
 		snd_culled = SNAP_SnapCullSoundEntity( cms, ent, vieworg, ent->s.attenuation );
 	}
 

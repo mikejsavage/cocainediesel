@@ -98,7 +98,7 @@ static void SV_CreateBaseline( void ) {
 		if( !svent->r.inuse ) {
 			continue;
 		}
-		if( !svent->s.modelindex && !svent->s.sound && !svent->s.effects ) {
+		if( !svent->s.modelindex && svent->s.sound == EMPTY_HASH && !svent->s.effects ) {
 			continue;
 		}
 

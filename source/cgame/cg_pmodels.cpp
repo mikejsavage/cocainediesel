@@ -422,8 +422,6 @@ static bool CG_LoadPlayerModel( pmodelinfo_t *pmodelinfo, const char *filename )
 
 	pmodelinfo->name = CG_CopyString( filename );
 
-	// load sexed sounds for this model
-	CG_UpdateSexedSoundsRegistration( pmodelinfo );
 	return true;
 }
 

@@ -542,10 +542,10 @@ char *_G_CopyString( const char *in, const char *filename, int fileline );
 
 void G_ProjectSource( vec3_t point, vec3_t distance, vec3_t forward, vec3_t right, vec3_t result );
 
-void G_AddEvent( edict_t *ent, int event, int parm, bool highPriority );
+void G_AddEvent( edict_t *ent, int event, uint64_t parm, bool highPriority );
 void G_AddEvent( edict_t *ent, int event, StringHash hash, bool highPriority );
-edict_t *G_SpawnEvent( int event, int parm, vec3_t origin );
-void G_MorphEntityIntoEvent( edict_t *ent, int event, int parm );
+edict_t *G_SpawnEvent( int event, uint64_t parm, vec3_t origin );
+void G_MorphEntityIntoEvent( edict_t *ent, int event, uint64_t parm );
 
 void G_CallThink( edict_t *ent );
 void G_CallTouch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags );
@@ -601,7 +601,7 @@ void G_CheckGround( edict_t *ent );
 void G_CategorizePosition( edict_t *ent );
 bool G_CheckBottom( edict_t *ent );
 void G_ReleaseClientPSEvent( gclient_t *client );
-void G_AddPlayerStateEvent( gclient_t *client, int event, int parm );
+void G_AddPlayerStateEvent( gclient_t *client, int event, uint64_t parm );
 void G_ClearPlayerStateEvents( gclient_t *client );
 
 // announcer events
@@ -764,7 +764,7 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient );
 void ClientDisconnect( edict_t *ent, const char *reason );
 void ClientBegin( edict_t *ent );
 void ClientCommand( edict_t *ent );
-void G_PredictedEvent( int entNum, int ev, int parm );
+void G_PredictedEvent( int entNum, int ev, uint64_t parm );
 void G_TeleportPlayer( edict_t *player, edict_t *dest );
 bool G_PlayerCanTeleport( edict_t *player );
 
@@ -1222,7 +1222,7 @@ struct edict_s {
 	int groundentity_linkcount;
 	edict_t *teamchain;
 	edict_t *teammaster;
-	int noise_index;
+	StringHash sound;
 	float attenuation;
 
 	// timing variables

@@ -32,7 +32,7 @@ static bool ucmdReady = false;
 /*
 * CG_PredictedEvent - shared code can fire events during prediction
 */
-void CG_PredictedEvent( int entNum, int ev, int parm ) {
+void CG_PredictedEvent( int entNum, int ev, uint64_t parm ) {
 	if( ev >= PREDICTABLE_EVENTS_MAX ) {
 		return;
 	}

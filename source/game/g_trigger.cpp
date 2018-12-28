@@ -126,7 +126,7 @@ void SP_trigger_multiple( edict_t *ent ) {
 	G_PureModel( ent->model );
 
 	if( st.noise ) {
-		ent->noise_index = trap_SoundIndex( st.noise );
+		ent->sound = StringHash( st.noise );
 		G_PureSound( st.noise );
 	}
 
@@ -257,7 +257,7 @@ void SP_trigger_counter( edict_t *self ) {
 		self->count = 2;
 	}
 
-	G_AssignMoverSounds( self, NULL, NULL, NULL );
+	G_AssignMoverSounds( self, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
 
 	self->use = trigger_counter_use;
 }
@@ -326,7 +326,7 @@ static void G_JumpPadSound( edict_t *ent ) {
 		return;
 	}
 
-	if( !ent->moveinfo.sound_start ) {
+	if( ent->moveinfo.sound_start == EMPTY_HASH ) {
 		return;
 	}
 
@@ -427,11 +427,11 @@ void SP_trigger_push( edict_t *self ) {
 
 	if( st.noise && Q_stricmp( st.noise, "default" ) ) {
 		if( Q_stricmp( st.noise, "silent" ) ) {
-			self->moveinfo.sound_start = trap_SoundIndex( st.noise );
+			self->moveinfo.sound_start = StringHash( st.noise );
 			G_PureSound( st.noise );
 		}
 	} else {
-		self->moveinfo.sound_start = trap_SoundIndex( S_JUMPPAD );
+		self->moveinfo.sound_start = "sounds/world/jumppad.ogg";
 	}
 
 	// gameteam field from editor
@@ -559,17 +559,17 @@ static void hurt_touch( edict_t *self, edict_t *other, cplane_t *plane, int surf
 		}
 
 		// play the death sound
-		if( self->noise_index ) {
-			G_Sound( other, CHAN_AUTO | CHAN_FIXED, self->noise_index, ATTN_NORM );
+		if( self->sound != EMPTY_HASH ) {
+			G_Sound( other, CHAN_AUTO | CHAN_FIXED, self->sound, ATTN_NORM );
 			other->pain_debounce_time = level.time + diedelay + 25;
 		}
 
 		if( diedelay ) {
 			return;
 		}
-	} else if( !( self->spawnflags & 4 ) && self->noise_index ) {
+	} else if( !( self->spawnflags & 4 ) && self->sound != EMPTY_HASH ) {
 		if( (int)( level.time * 0.001 ) & 1 ) {
-			G_Sound( other, CHAN_AUTO | CHAN_FIXED, self->noise_index, ATTN_NORM );
+			G_Sound( other, CHAN_AUTO | CHAN_FIXED, self->sound, ATTN_NORM );
 		}
 	}
 
@@ -584,12 +584,12 @@ void SP_trigger_hurt( edict_t *self ) {
 	}
 
 	if( self->spawnflags & 4 ) { // SILENT
-		self->noise_index = 0;
+		self->sound = EMPTY_HASH;
 	} else if( st.noise ) {
-		self->noise_index = trap_SoundIndex( st.noise );
+		self->sound = StringHash( st.noise );
 		G_PureSound( st.noise );
 	} else {
-		self->noise_index = 0;
+		self->sound = EMPTY_HASH;
 	}
 
 	// gameteam field from editor
@@ -712,7 +712,7 @@ static void old_teleporter_touch( edict_t *self, edict_t *other, cplane_t *plane
 	}
 
 	// play custom sound if any (played from the teleporter entrance)
-	if( self->noise_index ) {
+	if( self->sound != EMPTY_HASH ) {
 		vec3_t org;
 
 		if( self->s.modelindex ) {
@@ -723,7 +723,7 @@ static void old_teleporter_touch( edict_t *self, edict_t *other, cplane_t *plane
 			VectorCopy( self->s.origin, org );
 		}
 
-		G_PositionedSound( org, CHAN_AUTO, self->noise_index, ATTN_NORM );
+		G_PositionedSound( org, CHAN_AUTO, self->sound, ATTN_NORM );
 	}
 
 	G_TeleportPlayer( other, dest );
@@ -739,7 +739,7 @@ void SP_trigger_teleport( edict_t *ent ) {
 	}
 
 	if( st.noise ) {
-		ent->noise_index = trap_SoundIndex( st.noise );
+		ent->sound = StringHash( st.noise );
 		G_PureSound( st.noise );
 	}
 

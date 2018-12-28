@@ -45,11 +45,11 @@ struct StringHash {
 
 };
 
-bool operator==( StringHash a, StringHash b ) {
+inline bool operator==( StringHash a, StringHash b ) {
 	return a.hash == b.hash;
 }
 
-bool operator!=( StringHash a, StringHash b ) {
+inline bool operator!=( StringHash a, StringHash b ) {
 	return !( a == b );
 }
 

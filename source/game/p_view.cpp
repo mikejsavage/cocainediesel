@@ -239,11 +239,11 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 	//
 	if( !old_waterlevel && waterlevel ) {
 		if( ent->watertype & CONTENTS_LAVA ) {
-			G_Sound( ent, CHAN_AUTO, trap_SoundIndex( S_WORLD_LAVA_IN ), ATTN_NORM );
+			G_Sound( ent, CHAN_AUTO, S_WORLD_LAVA_IN, ATTN_NORM );
 		} else if( ent->watertype & CONTENTS_SLIME ) {
-			G_Sound( ent, CHAN_AUTO, trap_SoundIndex( S_WORLD_SLIME_IN ), ATTN_NORM );
+			G_Sound( ent, CHAN_AUTO, S_WORLD_SLIME_IN, ATTN_NORM );
 		} else if( ent->watertype & CONTENTS_WATER ) {
-			G_Sound( ent, CHAN_AUTO, trap_SoundIndex( S_WORLD_WATER_IN ), ATTN_NORM );
+			G_Sound( ent, CHAN_AUTO, S_WORLD_WATER_IN, ATTN_NORM );
 		}
 
 		ent->flags |= FL_INWATER;
@@ -254,11 +254,11 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 	//
 	if( old_waterlevel && !waterlevel ) {
 		if( old_watertype & CONTENTS_LAVA ) {
-			G_Sound( ent, CHAN_AUTO, trap_SoundIndex( S_WORLD_LAVA_OUT ), ATTN_NORM );
+			G_Sound( ent, CHAN_AUTO, S_WORLD_LAVA_OUT, ATTN_NORM );
 		} else if( old_watertype & CONTENTS_SLIME ) {
-			G_Sound( ent, CHAN_AUTO, trap_SoundIndex( S_WORLD_SLIME_OUT ), ATTN_NORM );
+			G_Sound( ent, CHAN_AUTO, S_WORLD_SLIME_OUT, ATTN_NORM );
 		} else if( old_watertype & CONTENTS_WATER ) {
-			G_Sound( ent, CHAN_AUTO, trap_SoundIndex( S_WORLD_WATER_OUT ), ATTN_NORM );
+			G_Sound( ent, CHAN_AUTO, S_WORLD_WATER_OUT, ATTN_NORM );
 		}
 
 		ent->flags &= ~FL_INWATER;
@@ -365,14 +365,14 @@ static void G_SetClientEffects( edict_t *ent ) {
 static void G_SetClientSound( edict_t *ent ) {
 	if( ent->waterlevel == 3 ) {
 		if( ent->watertype & CONTENTS_LAVA ) {
-			ent->s.sound = trap_SoundIndex( S_WORLD_UNDERLAVA );
+			ent->s.sound = S_WORLD_UNDERLAVA;
 		} else if( ent->watertype & CONTENTS_SLIME ) {
-			ent->s.sound = trap_SoundIndex( S_WORLD_UNDERSLIME );
+			ent->s.sound = S_WORLD_UNDERSLIME;
 		} else if( ent->watertype & CONTENTS_WATER ) {
-			ent->s.sound = trap_SoundIndex( S_WORLD_UNDERWATER );
+			ent->s.sound = S_WORLD_UNDERWATER;
 		}
 	} else {
-		ent->s.sound = 0;
+		ent->s.sound = EMPTY_HASH;
 	}
 }
 

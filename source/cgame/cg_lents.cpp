@@ -552,9 +552,9 @@ void CG_BladeImpact( const vec3_t pos, const vec3_t dir ) {
 	VecToAngles( local_dir, angles );
 
 	constexpr StringHash flesh_sounds[] = {
-		"sounds/weapons/blade_hitflsh0.ogg",
-		"sounds/weapons/blade_hitflsh1.ogg",
-		"sounds/weapons/blade_hitflsh2.ogg",
+		"sounds/weapons/blade_hitflsh0",
+		"sounds/weapons/blade_hitflsh1",
+		"sounds/weapons/blade_hitflsh2",
 	};
 
 	constexpr StringHash wall_sounds[] = {

@@ -45,7 +45,6 @@ struct EntitySound {
 
 static SoundAsset sound_assets[ 4096 ];
 static size_t num_sound_assets;
-static SoundAsset * menu_music_asset;
 
 static Hashtable< 8192 > sound_assets_hashtable;
 
@@ -157,6 +156,7 @@ static void S_Register( const char * filename, bool allow_stereo ) {
 
 	free( data );
 
+	sound_assets_hashtable.add( Hash64( filename, strlen( filename ) - strlen( ".ogg" ) ), num_sound_assets ); 
 	num_sound_assets++;
 
 	return;
@@ -313,12 +313,19 @@ static PlayingSound * S_FindEmptyPlayingSound( int ent_num, int channel ) {
 	return &playing_sounds[ num_playing_sounds - 1 ];
 }
 
-static bool S_StartSound( StringHash sound, const vec3_t origin, int ent_num, int channel, float volume, float attenuation, SoundType type ) {
+static const SoundAsset * S_HashToAsset( StringHash sound ) {
 	uint64_t idx;
 	if( !sound_assets_hashtable.get( sound.hash, &idx ) )
+		return NULL;
+	return &sound_assets[ idx ];
+}
+
+static bool S_StartSound( StringHash sound, const vec3_t origin, int ent_num, int channel, float volume, float attenuation, SoundType type ) {
+	const SoundAsset * asset = S_HashToAsset( sound );
+	if( asset == NULL ) {
+		printf( "Can't find sound %s %lu\n", sound.str, sound.hash );
 		return false;
-	
-	const SoundAsset * asset = &sound_assets[ idx ];
+	}
 
 	PlayingSound * ps = S_FindEmptyPlayingSound( ent_num, channel );
 	if( ps == NULL ) {
@@ -414,7 +421,8 @@ void S_StopAllSounds( bool stop_music ) {
 }
 
 void S_StartMenuMusic() {
-	if( !initialized || menu_music_asset == NULL )
+	const SoundAsset * asset = S_HashToAsset( "sounds/music/menu_1.ogg" );
+	if( !initialized || asset == NULL )
 		return;
 
 	alSourcefv( music_source, AL_POSITION, vec3_origin );
@@ -422,7 +430,7 @@ void S_StartMenuMusic() {
 	alSourcef( music_source, AL_GAIN, s_musicvolume->value );
 	alSourcei( music_source, AL_SOURCE_RELATIVE, AL_FALSE );
 	alSourcei( music_source, AL_LOOPING, AL_TRUE );
-	alSourcei( music_source, AL_BUFFER, menu_music_asset->buffer );
+	alSourcei( music_source, AL_BUFFER, asset->buffer );
 
 	alSourcePlay( music_source );
 

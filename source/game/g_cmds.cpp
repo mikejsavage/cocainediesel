@@ -876,8 +876,8 @@ static void Cmd_Timeout_f( edict_t *ent ) {
 
 	if( !GS_MatchPaused() ) {
 		constexpr StringHash sounds[] = {
-			"sounds/announcer/timeout/timeout01.ogg",
-			"sounds/announcer/timeout/timeout02.ogg",
+			"sounds/announcer/timeout/timeout01",
+			"sounds/announcer/timeout/timeout02",
 		};
 		G_AnnouncerSound( NULL, sounds[rand() % 2], GS_MAX_TEAMS, true, NULL );
 	}
@@ -926,8 +926,8 @@ static void Cmd_Timein_f( edict_t *ent ) {
 	level.timeout.endtime = level.timeout.time + TIMEIN_TIME + FRAMETIME;
 
 	constexpr StringHash sounds[] = {
-		"sounds/announcer/timeout/timein01.ogg",
-		"sounds/announcer/timeout/timein02.ogg",
+		"sounds/announcer/timeout/timein01",
+		"sounds/announcer/timeout/timein02",
 	};
 	G_AnnouncerSound( NULL, sounds[rand() % 2], GS_MAX_TEAMS, true, NULL );
 

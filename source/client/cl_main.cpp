@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client.h"
 #include "qcommon/asyncstream.h"
 #include "qcommon/version.h"
+#include "qcommon/assets.h"
 #include "qalgo/hash.h"
 #include "ftlib/ftlib_public.h"
 #include "renderer/r_frontend.h"
@@ -2324,6 +2325,9 @@ void CL_Init( void ) {
 
 	}
 	cl_initialized = true;
+
+	Assets_Init();
+	Assets_LoadFromFS();
 
 	// all archived variables will now be loaded
 

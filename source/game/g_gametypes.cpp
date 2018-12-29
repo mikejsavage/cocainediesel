@@ -558,10 +558,10 @@ static void G_Match_ReadyAnnouncement( void ) {
 					e->r.client->teamstate.readyUpWarningNext = game.realtime + G_ANNOUNCER_READYUP_DELAY;
 					e->r.client->teamstate.readyUpWarningCount++;
 					if( e->r.client->teamstate.readyUpWarningCount > 3 ) {
-						G_AnnouncerSound( e, "sounds/announcer/readyupalready.ogg", GS_MAX_TEAMS, true, NULL );
+						G_AnnouncerSound( e, "sounds/announcer/readyupalready", GS_MAX_TEAMS, true, NULL );
 						e->r.client->teamstate.readyUpWarningCount = 0;
 					} else {
-						G_AnnouncerSound( e, "sounds/announcer/pleasereadyup.ogg", GS_MAX_TEAMS, true, NULL );
+						G_AnnouncerSound( e, "sounds/announcer/pleasereadyup", GS_MAX_TEAMS, true, NULL );
 					}
 				}
 			}

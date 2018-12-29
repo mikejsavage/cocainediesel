@@ -39,6 +39,7 @@ void FS_Shutdown() {
 #endif
 
 const char * FS_RootPath() {
+	rootpath = "."; // TODO
 	return rootpath;
 }
 

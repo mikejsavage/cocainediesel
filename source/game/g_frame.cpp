@@ -72,19 +72,19 @@ static void G_Timeout_Update( unsigned int msec ) {
 
 			if( seconds_left == ( TIMEIN_TIME * 2 ) / 1000 ) {
 				constexpr StringHash sounds[] = {
-					"sounds/announcer/countdown/ready01.ogg",
-					"sounds/announcer/countdown/ready02.ogg",
+					"sounds/announcer/countdown/ready01",
+					"sounds/announcer/countdown/ready02",
 				};
 				G_AnnouncerSound( NULL, sounds[rand() % 2], GS_MAX_TEAMS, false, NULL );
 				countdown_set = ( rand() & 1 ) + 1;
 			} else if( seconds_left >= 1 && seconds_left <= 3 ) {
 				constexpr StringHash sounds[] = {
-					"sounds/announcer/countdown/1_01.ogg",
-					"sounds/announcer/countdown/2_01.ogg",
-					"sounds/announcer/countdown/3_01.ogg",
-					"sounds/announcer/countdown/1_02.ogg",
-					"sounds/announcer/countdown/2_02.ogg",
-					"sounds/announcer/countdown/3_02.ogg",
+					"sounds/announcer/countdown/1_01",
+					"sounds/announcer/countdown/2_01",
+					"sounds/announcer/countdown/3_01",
+					"sounds/announcer/countdown/1_02",
+					"sounds/announcer/countdown/2_02",
+					"sounds/announcer/countdown/3_02",
 				};
 				G_AnnouncerSound( NULL, sounds[seconds_left + countdown_set * 3], GS_MAX_TEAMS, false, NULL );
 			}

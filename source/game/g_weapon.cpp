@@ -254,7 +254,7 @@ edict_t *W_Fire_GunbladeBlast( edict_t *self, vec3_t start, vec3_t angles, float
 	blast->touch = W_Touch_GunbladeBlast;
 	blast->classname = "gunblade_blast";
 
-	blast->s.sound = "sounds/weapons/plasmagun_strong_fly.ogg";
+	blast->s.sound = "sounds/weapons/plasmagun_strong_fly";
 	blast->s.attenuation = ATTN_STATIC;
 
 	return blast;
@@ -461,7 +461,7 @@ edict_t *W_Fire_Rocket( edict_t *self, vec3_t start, vec3_t angles, int speed, f
 
 	rocket->s.type = ET_ROCKET; //rocket trail sfx
 	rocket->s.modelindex = trap_ModelIndex( PATH_ROCKET_MODEL );
-	rocket->s.sound = "sounds/weapons/rocket_fly_strong.ogg";
+	rocket->s.sound = "sounds/weapons/rocket_fly_strong";
 	rocket->s.attenuation = ATTN_STATIC;
 	rocket->touch = W_Touch_Rocket;
 	rocket->think = G_FreeEdict;
@@ -787,7 +787,7 @@ edict_t *W_Fire_Lasergun( edict_t *self, vec3_t start, vec3_t angles, float dama
 	if( newLaser ) {
 		// the quad start sound is added from the server
 		if( self->r.client && self->r.client->ps.inventory[POWERUP_QUAD] > 0 ) {
-			G_Sound( self, CHAN_AUTO, "sounds/items/quad_fire.ogg", ATTN_NORM );
+			G_Sound( self, CHAN_AUTO, "sounds/items/quad_fire", ATTN_NORM );
 		}
 	}
 

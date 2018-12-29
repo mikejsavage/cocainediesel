@@ -431,7 +431,7 @@ void SP_trigger_push( edict_t *self ) {
 			G_PureSound( st.noise );
 		}
 	} else {
-		self->moveinfo.sound_start = "sounds/world/jumppad.ogg";
+		self->moveinfo.sound_start = "sounds/world/jumppad";
 	}
 
 	// gameteam field from editor

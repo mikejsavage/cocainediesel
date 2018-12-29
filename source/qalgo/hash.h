@@ -33,14 +33,16 @@ struct StringHash {
 		hash( Hash64_CT( s, N - 1, basis ) ) { }
 
 	explicit StringHash( const char * s ) : hash( Hash64( s, strlen( s ) ) ) { }
-	explicit StringHash( uint64_t h ) : hash( h ) { }
+
+	constexpr explicit StringHash( uint64_t h ) : hash( h ) { }
 #else
 	template< size_t N >
 	constexpr StringHash( const char ( &s )[ N ] ) :
 		str( s ), hash( Hash64_CT( s, N - 1, basis ) ) { }
 
 	explicit StringHash( const char * s ) : str( NULL ), hash( Hash64( s, strlen( s ) ) ) { }
-	explicit StringHash( uint64_t h ) : str( NULL ), hash( h ) { }
+
+	constexpr explicit StringHash( uint64_t h ) : str( NULL ), hash( h ) { }
 #endif
 
 };
@@ -53,4 +55,5 @@ inline bool operator!=( StringHash a, StringHash b ) {
 	return !( a == b );
 }
 
-constexpr StringHash EMPTY_HASH = "";
+// define this as hash = 0 so memset( 0 ) can be used to reset StringHashes
+constexpr StringHash EMPTY_HASH = StringHash( UINT64_C( 0 ) );

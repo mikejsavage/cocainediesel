@@ -904,7 +904,7 @@ void MSG_ReadDeltaStruct( msg_t *msg, const void *from, void *to, size_t size, c
 
 static const msg_field_t ent_state_fields[] = {
 	{ ESOFS( events[0] ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( eventParms[0] ), 32, 1, WIRE_BASE128 },
+	{ ESOFS( eventParms[0] ), 64, 1, WIRE_FIXED_INT64 },
 
 	{ ESOFS( origin[0] ), 0, 1, WIRE_FLOAT },
 	{ ESOFS( origin[1] ), 0, 1, WIRE_FLOAT },
@@ -931,7 +931,7 @@ static const msg_field_t ent_state_fields[] = {
 	{ ESOFS( bodyOwner ), 32, 1, WIRE_UBASE128 },
 	{ ESOFS( channel ), 32, 1, WIRE_FIXED_INT8 },
 	{ ESOFS( events[1] ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( eventParms[1] ), 32, 1, WIRE_BASE128 },
+	{ ESOFS( eventParms[1] ), 64, 1, WIRE_FIXED_INT64 },
 	{ ESOFS( weapon ), 32, 1, WIRE_UBASE128 },
 	{ ESOFS( firemode ), 32, 1, WIRE_FIXED_INT8 },
 	{ ESOFS( damage ), 32, 1, WIRE_UBASE128 },

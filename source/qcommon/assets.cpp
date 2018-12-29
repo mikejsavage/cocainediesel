@@ -57,6 +57,7 @@ static void Assets_LoadFromFSImpl( const char * path, size_t skip ) {
 	const char * name;
 	bool dir;
 	while( FS_ListDirNext( scan, &name, &dir ) ) {
+		// skip ., .., .git, etc
 		if( name[ 0 ] == '.' )
 			continue;
 

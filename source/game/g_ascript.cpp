@@ -1175,7 +1175,7 @@ static void objectGameEntity_SetupModelExt( asstring_t *modelstr, asstring_t *sk
 		Q_snprintfz( model, sizeof( model ), "$%s", path );
 		Q_snprintfz( skin, sizeof( skin ), "models/players/%s/%s", s, skinstr && skinstr->buffer[0] ? skinstr->buffer : DEFAULT_PLAYERSKIN );
 
-		self->s.modelindex = trap_ModelIndex( model );
+		self->s.model = model;
 		self->s.skinnum = trap_SkinIndex( skin );
 		return;
 	}
@@ -1373,8 +1373,8 @@ static const gs_asProperty_t gedict_Properties[] =
 	{ ASLIB_PROPERTY_DECL( Entity @, enemy ), ASLIB_FOFFSET( edict_t, enemy ) },
 	{ ASLIB_PROPERTY_DECL( Entity @, activator ), ASLIB_FOFFSET( edict_t, activator ) },
 	{ ASLIB_PROPERTY_DECL( int, type ), ASLIB_FOFFSET( edict_t, s.type ) },
-	{ ASLIB_PROPERTY_DECL( int, modelindex ), ASLIB_FOFFSET( edict_t, s.modelindex ) },
-	{ ASLIB_PROPERTY_DECL( int, modelindex2 ), ASLIB_FOFFSET( edict_t, s.modelindex2 ) },
+	{ ASLIB_PROPERTY_DECL( uint64, model ), ASLIB_FOFFSET( edict_t, s.model ) },
+	{ ASLIB_PROPERTY_DECL( uint64, model2 ), ASLIB_FOFFSET( edict_t, s.model2 ) },
 	{ ASLIB_PROPERTY_DECL( int, frame ), ASLIB_FOFFSET( edict_t, s.frame ) },
 	{ ASLIB_PROPERTY_DECL( int, ownerNum ), ASLIB_FOFFSET( edict_t, s.ownerNum ) },
 	{ ASLIB_PROPERTY_DECL( int, counterNum ), ASLIB_FOFFSET( edict_t, s.counterNum ) },
@@ -1422,7 +1422,7 @@ static const gs_asProperty_t gedict_Properties[] =
 
 	// specific for ET_PARTICLES
 	{ ASLIB_PROPERTY_DECL( int, particlesSpeed ), ASLIB_FOFFSET( edict_t, particlesInfo.speed ) },
-	{ ASLIB_PROPERTY_DECL( int, particlesShaderIndex ), ASLIB_FOFFSET( edict_t, particlesInfo.shaderIndex ) },
+	{ ASLIB_PROPERTY_DECL( int, particlesShader ), ASLIB_FOFFSET( edict_t, particlesInfo.shader ) },
 	{ ASLIB_PROPERTY_DECL( int, particlesSpread ), ASLIB_FOFFSET( edict_t, particlesInfo.spread ) },
 	{ ASLIB_PROPERTY_DECL( int, particlesSize ), ASLIB_FOFFSET( edict_t, particlesInfo.size ) },
 	{ ASLIB_PROPERTY_DECL( int, particlesTime ), ASLIB_FOFFSET( edict_t, particlesInfo.time ) },
@@ -1728,14 +1728,6 @@ static asstring_t *asFunc_ML_GetMapByNum( int num ) {
 	return data;
 }
 
-static int asFunc_ImageIndex( asstring_t *str ) {
-	if( !str || !str->buffer ) {
-		return 0;
-	}
-
-	return trap_ImageIndex( str->buffer );
-}
-
 static int asFunc_SkinIndex( asstring_t *str ) {
 	if( !str || !str->buffer ) {
 		return 0;
@@ -1763,7 +1755,7 @@ static int asFunc_ModelIndex( asstring_t *str ) {
 	return asFunc_ModelIndexExt( str, false );
 }
 
-static uint64_t asFunc_SoundHash( asstring_t *str ) {
+static uint64_t asFunc_AssetHash( asstring_t *str ) {
 	return Hash64( str->buffer, str->len );
 }
 
@@ -2056,10 +2048,9 @@ static const gs_asglobfuncs_t asGameGlobFuncs[] =
 	{ "void __G_CallPain( Entity @ent, Entity @other, float kick, float damage )", asFUNCTION( G_CallPain ), &asEntityCallPainFuncPtr },
 	{ "void __G_CallDie( Entity @ent, Entity @inflicter, Entity @attacker )", asFUNCTION( G_CallDie ), &asEntityCallDieFuncPtr },
 
-	{ "int G_ImageIndex( const String &in )", asFUNCTION( asFunc_ImageIndex ), NULL },
 	{ "int G_SkinIndex( const String &in )", asFUNCTION( asFunc_SkinIndex ), NULL },
 	{ "int G_ModelIndex( const String &in )", asFUNCTION( asFunc_ModelIndex ), NULL },
-	{ "uint64 G_SoundHash( const String &in )", asFUNCTION( asFunc_SoundHash ), NULL },
+	{ "uint64 G_AssetHash( const String &in )", asFUNCTION( asFunc_AssetHash ), NULL },
 	{ "int G_ModelIndex( const String &in, bool pure )", asFUNCTION( asFunc_ModelIndexExt ), NULL },
 	{ "void G_RegisterCommand( const String &in )", asFUNCTION( asFunc_RegisterCommand ), NULL },
 	{ "void G_RegisterCallvote( const String &in, const String &in, const String &in, const String &in )", asFUNCTION( asFunc_RegisterCallvote ), NULL },

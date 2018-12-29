@@ -24,7 +24,6 @@ void G_AssignMoverSounds( edict_t *ent, StringHash start, StringHash move, Strin
 	if( st.noise && Q_stricmp( st.noise, "default" ) ) {
 		if( Q_stricmp( st.noise, "silent" ) ) {
 			ent->moveinfo.sound_middle = StringHash( st.noise );
-			G_PureSound( st.noise );
 		}
 	}
 	else {
@@ -34,7 +33,6 @@ void G_AssignMoverSounds( edict_t *ent, StringHash start, StringHash move, Strin
 	if( st.noise_start && Q_stricmp( st.noise_start, "default" ) ) {
 		if( Q_stricmp( st.noise_start, "silent" ) ) {
 			ent->moveinfo.sound_start = StringHash( st.noise_start );
-			G_PureSound( st.noise_start );
 		}
 	}
 	else {
@@ -44,7 +42,6 @@ void G_AssignMoverSounds( edict_t *ent, StringHash start, StringHash move, Strin
 	if( st.noise_stop && Q_stricmp( st.noise_stop, "default" ) ) {
 		if( Q_stricmp( st.noise_stop, "silent" ) ) {
 			ent->moveinfo.sound_end = StringHash( st.noise_stop );
-			G_PureSound( st.noise_stop );
 		}
 	}
 	else {
@@ -1381,7 +1378,6 @@ void SP_func_button( edict_t *ent ) {
 	if( st.noise && Q_stricmp( st.noise, "default" ) ) {
 		if( Q_stricmp( st.noise, "silent" ) != 0 ) {
 			ent->moveinfo.sound_start = StringHash( st.noise );
-			G_PureSound( st.noise );
 		}
 	} else {
 		ent->moveinfo.sound_start = S_BUTTON_START;

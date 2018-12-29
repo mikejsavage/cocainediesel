@@ -192,10 +192,10 @@ void roundWonBy( int winner ) {
 
 	G_CenterPrintMsg( null, S_COLOR_CYAN + ( winner == attackingTeam ? "OFFENSE WINS!" : "DEFENSE WINS!" ) );
 
-	uint64 sound = G_SoundHash( "sounds/announcer/bomb/score_team0" + random_uniform( 1, 3 ) );
+	uint64 sound = G_AssetHash( "sounds/announcer/bomb/score_team0" + random_uniform( 1, 3 ) );
 	G_AnnouncerSound( null, sound, winner, true, null );
 
-	sound = G_SoundHash( "sounds/announcer/bomb/score_enemy0" + random_uniform( 1, 3 ) );
+	sound = G_AssetHash( "sounds/announcer/bomb/score_enemy0" + random_uniform( 1, 3 ) );
 	G_AnnouncerSound( null, sound, loser, true, null );
 
 	Team @teamWinner = @G_GetTeam( winner );
@@ -351,12 +351,12 @@ void roundThink() {
 			roundCountDown = remainingSeconds;
 
 			if( roundCountDown == COUNTDOWN_MAX ) {
-				uint64 sound = G_SoundHash( "sounds/announcer/countdown/ready0" + random_uniform( 1, 3 ) );
+				uint64 sound = G_AssetHash( "sounds/announcer/countdown/ready0" + random_uniform( 1, 3 ) );
 				G_AnnouncerSound( null, sound, GS_MAX_TEAMS, false, null );
 			}
 			else {
 				if( roundCountDown < 4 ) {
-					uint64 sound = G_SoundHash( "sounds/announcer/countdown/" + roundCountDown + "_0" + random_uniform( 1, 3 ) );
+					uint64 sound = G_AssetHash( "sounds/announcer/countdown/" + roundCountDown + "_0" + random_uniform( 1, 3 ) );
 					G_AnnouncerSound( null, sound, GS_MAX_TEAMS, false, null );
 				}
 			}

@@ -88,13 +88,10 @@ typedef struct {
 	// they connect, and changes are sent to all connected clients.
 	void ( *ConfigString )( int num, const char *string );
 	const char *( *GetConfigString )( int num );
-	void ( *PureSound )( const char *name );
 	void ( *PureModel )( const char *name );
 
 	// the *index functions create configstrings and some internal server state
 	int ( *ModelIndex )( const char *name );
-	int ( *SoundIndex )( const char *name );
-	int ( *ImageIndex )( const char *name );
 	int ( *SkinIndex )( const char *name );
 
 	int64_t ( *Milliseconds )( void );

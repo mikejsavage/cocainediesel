@@ -83,11 +83,11 @@ void mediaInit() {
 
 	imgBombDecal = G_ImageIndex( "gfx/indicators/radar_decal" );
 
-	sndBeep = G_SoundHash( "sounds/bomb/bombtimer" );
-	sndPlantStart = G_SoundHash( "sounds/misc/timer_bip_bip" );
-	sndGoodGame = G_SoundHash( "sounds/vsay/goodgame" );
-	sndBombTaken = G_SoundHash( "sounds/announcer/bomb/offense/taken" );
-	sndBongo = G_SoundHash( "sounds/announcer/bomb/bongo" );
+	sndBeep = G_AssetHash( "sounds/bomb/bombtimer" );
+	sndPlantStart = G_AssetHash( "sounds/misc/timer_bip_bip" );
+	sndGoodGame = G_AssetHash( "sounds/vsay/goodgame" );
+	sndBombTaken = G_AssetHash( "sounds/announcer/bomb/offense/taken" );
+	sndBongo = G_AssetHash( "sounds/announcer/bomb/bongo" );
 
 	weaponIcons[ WEAP_GUNBLADE ] = G_ImageIndex( "gfx/hud/icons/weapon/gunblade_blast" );
 	weaponIcons[ WEAP_MACHINEGUN ] = G_ImageIndex( "gfx/hud/icons/weapon/machinegun" );
@@ -98,13 +98,13 @@ void mediaInit() {
 	weaponIcons[ WEAP_LASERGUN ] = G_ImageIndex( "gfx/hud/icons/weapon/laser" );
 	weaponIcons[ WEAP_ELECTROBOLT ] = G_ImageIndex( "gfx/hud/icons/weapon/electro" );
 
-	sndAnnouncementsOff[ Announcement_Started ] = G_SoundHash( "sounds/announcer/bomb/offense/start" );
-	sndAnnouncementsOff[ Announcement_Armed ] = G_SoundHash( "sounds/announcer/bomb/offense/planted" );
-	sndAnnouncementsOff[ Announcement_Defused ] = G_SoundHash( "sounds/announcer/bomb/offense/defused" );
-	sndAnnouncementsOff[ Announcement_Hurry ] = G_SoundHash( "sounds/misc/timer_bip_bip" );
+	sndAnnouncementsOff[ Announcement_Started ] = G_AssetHash( "sounds/announcer/bomb/offense/start" );
+	sndAnnouncementsOff[ Announcement_Armed ] = G_AssetHash( "sounds/announcer/bomb/offense/planted" );
+	sndAnnouncementsOff[ Announcement_Defused ] = G_AssetHash( "sounds/announcer/bomb/offense/defused" );
+	sndAnnouncementsOff[ Announcement_Hurry ] = G_AssetHash( "sounds/misc/timer_bip_bip" );
 
-	sndAnnouncementsDef[ Announcement_Started ] = G_SoundHash( "sounds/announcer/bomb/defense/start" );
-	sndAnnouncementsDef[ Announcement_Armed ] = G_SoundHash( "sounds/announcer/bomb/defense/planted" );
-	sndAnnouncementsDef[ Announcement_Defused ] = G_SoundHash( "sounds/announcer/bomb/defense/defused" );
-	sndAnnouncementsDef[ Announcement_Hurry ] = G_SoundHash( "sounds/misc/timer_bip_bip" );
+	sndAnnouncementsDef[ Announcement_Started ] = G_AssetHash( "sounds/announcer/bomb/defense/start" );
+	sndAnnouncementsDef[ Announcement_Armed ] = G_AssetHash( "sounds/announcer/bomb/defense/planted" );
+	sndAnnouncementsDef[ Announcement_Defused ] = G_AssetHash( "sounds/announcer/bomb/defense/defused" );
+	sndAnnouncementsDef[ Announcement_Hurry ] = G_AssetHash( "sounds/misc/timer_bip_bip" );
 }

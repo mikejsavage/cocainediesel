@@ -277,8 +277,8 @@ typedef struct entity_state_s {
 	vec3_t angles;
 	vec3_t origin2;                 // ET_BEAM, ET_EVENT specific
 
-	unsigned int modelindex;
-	unsigned int modelindex2;
+	StringHash model;
+	StringHash model2;
 
 	int bodyOwner;                  // ET_PLAYER specific, for dead bodies
 	int channel;                    // ET_SOUNDEVENT

@@ -50,26 +50,6 @@ static inline const char *trap_GetConfigString( int num ) {
 	return GAME_IMPORT.GetConfigString( num );
 }
 
-static inline void trap_PureSound( const char *name ) {
-	GAME_IMPORT.PureSound( name );
-}
-
-static inline void trap_PureModel( const char *name ) {
-	GAME_IMPORT.PureModel( name );
-}
-
-static inline int trap_ModelIndex( const char *name ) {
-	return GAME_IMPORT.ModelIndex( name );
-}
-
-static inline int trap_SoundIndex( const char *name ) {
-	return GAME_IMPORT.SoundIndex( name );
-}
-
-static inline int trap_ImageIndex( const char *name ) {
-	return GAME_IMPORT.ImageIndex( name );
-}
-
 static inline int trap_SkinIndex( const char *name ) {
 	return GAME_IMPORT.SkinIndex( name );
 }

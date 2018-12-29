@@ -634,28 +634,6 @@ void G_SetMovedir( vec3_t angles, vec3_t movedir ) {
 	VectorClear( angles );
 }
 
-
-float vectoyaw( vec3_t vec ) {
-	float yaw;
-
-	if( vec[PITCH] == 0 ) {
-		yaw = 0;
-		if( vec[YAW] > 0 ) {
-			yaw = 90;
-		} else if( vec[YAW] < 0 ) {
-			yaw = -90;
-		}
-	} else {
-		yaw = RAD2DEG( atan2( vec[YAW], vec[PITCH] ) );
-		if( yaw < 0 ) {
-			yaw += 360;
-		}
-	}
-
-	return yaw;
-}
-
-
 char *_G_CopyString( const char *in, const char *filename, int fileline ) {
 	char *out;
 
@@ -1867,22 +1845,6 @@ void G_AnnouncerSound( edict_t *targ, StringHash sound, int team, bool queued, e
 
 			G_AddPlayerStateEvent( ent->r.client, psev, sound.hash );
 		}
-	}
-}
-
-/*
-* G_PureSound
-*/
-void G_PureSound( const char *sound ) {
-	assert( sound && sound[0] && strlen( sound ) < MAX_CONFIGSTRING_CHARS );
-
-	if( sound[0] == '*' ) {
-		// sexed sounds
-		// jal : this isn't correct. Sexed sounds don't have the full path because
-		// the path depends on the model, so how can they be pure anyway?
-		trap_PureSound( sound + 1 );
-	} else {
-		trap_PureSound( sound );
 	}
 }
 

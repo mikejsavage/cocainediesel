@@ -702,9 +702,9 @@ void SP_misc_particles( edict_t *ent ) {
 	}
 
 	if( st.shaderName ) {
-		ent->particlesInfo.shaderIndex = trap_ImageIndex( st.shaderName );
+		ent->particlesInfo.shader = StringHash( st.shaderName ).hash;
 	} else {
-		ent->particlesInfo.shaderIndex = trap_ImageIndex( "particle" );
+		ent->particlesInfo.shader = StringHash( "particle" ).hash;
 	}
 
 	if( st.size ) {

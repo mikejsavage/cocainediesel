@@ -127,7 +127,6 @@ void SP_trigger_multiple( edict_t *ent ) {
 
 	if( st.noise ) {
 		ent->sound = StringHash( st.noise );
-		G_PureSound( st.noise );
 	}
 
 	// gameteam field from editor
@@ -428,7 +427,6 @@ void SP_trigger_push( edict_t *self ) {
 	if( st.noise && Q_stricmp( st.noise, "default" ) ) {
 		if( Q_stricmp( st.noise, "silent" ) ) {
 			self->moveinfo.sound_start = StringHash( st.noise );
-			G_PureSound( st.noise );
 		}
 	} else {
 		self->moveinfo.sound_start = "sounds/world/jumppad";
@@ -587,7 +585,6 @@ void SP_trigger_hurt( edict_t *self ) {
 		self->sound = EMPTY_HASH;
 	} else if( st.noise ) {
 		self->sound = StringHash( st.noise );
-		G_PureSound( st.noise );
 	} else {
 		self->sound = EMPTY_HASH;
 	}
@@ -740,7 +737,6 @@ void SP_trigger_teleport( edict_t *ent ) {
 
 	if( st.noise ) {
 		ent->sound = StringHash( st.noise );
-		G_PureSound( st.noise );
 	}
 
 	// gameteam field from editor

@@ -628,10 +628,6 @@ void PrecacheItem( const gsitem_t *it ) {
 		}
 	}
 
-	if( it->icon ) {
-		trap_ImageIndex( it->icon );
-	}
-
 	// parse everything for its ammo
 	if( it->ammo_tag ) {
 		ammo = GS_FindItemByTag( it->ammo_tag );
@@ -672,8 +668,6 @@ void PrecacheItem( const gsitem_t *it ) {
 
 			if( i == 0 ) {
 				trap_ModelIndex( data );
-			} else {
-				trap_ImageIndex( data );
 			}
 		}
 	}

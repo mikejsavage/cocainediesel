@@ -314,12 +314,6 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 	//
 	if( waterlevel && ( ent->watertype & ( CONTENTS_LAVA | CONTENTS_SLIME ) ) ) {
 		if( ent->watertype & CONTENTS_LAVA ) {
-			// wsw: Medar: We don't have the sounds yet and this seems to overwrite the normal pain sounds
-			//if( !G_IsDead(ent) && ent->pain_debounce_time <= level.time )
-			//{
-			//	G_Sound( ent, CHAN_BODY, trap_SoundIndex(va(S_PLAYER_BURN_1_to_2, (rand()&1)+1)), 1, ATTN_NORM );
-			//	ent->pain_debounce_time = level.time + 1000;
-			//}
 			G_Damage( ent, world, world, vec3_origin, vec3_origin, ent->s.origin,
 					  ( 30 * waterlevel ) * game.snapFrameTime / 1000.0f, 0, 0, MOD_LAVA );
 		}

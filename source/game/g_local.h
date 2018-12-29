@@ -580,15 +580,12 @@ edict_t *G_PositionedSound( vec3_t origin, int channel, StringHash sound, float 
 void G_GlobalSound( int channel, StringHash sound );
 void G_LocalSound( edict_t *owner, int channel, StringHash sound );
 
-float vectoyaw( vec3_t vec );
-
-void G_PureSound( const char *sound );
 void G_PureModel( const char *model );
 
 extern game_locals_t game;
 
-#define G_ISGHOSTING( x ) ( ( ( x )->s.modelindex == 0 ) && ( ( x )->r.solid == SOLID_NOT ) )
-#define ISBRUSHMODEL( x ) ( ( ( x > 0 ) && ( (int)x < trap_CM_NumInlineModels() ) ) ? true : false )
+#define G_ISGHOSTING( x ) ( ( x )->s.model == EMPTY_HASH && ( x )->r.solid == SOLID_NOT )
+#define ISBRUSHMODEL( x ) ( ( x ) > 0 && int( x ) < trap_CM_NumInlineModels() )
 
 void G_TeleportEffect( edict_t *ent, bool in );
 void G_RespawnEffect( edict_t *ent );
@@ -1107,7 +1104,7 @@ typedef struct snap_edict_s {
 
 typedef struct {
 	int speed;
-	int shaderIndex;
+	uint64_t shader;
 	int spread;
 	int size;
 	int time;

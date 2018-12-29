@@ -189,9 +189,6 @@ MAP LOADING
 /*
 * CM_LoadMap
 * Loads in the map and all submodels
-*
-*  for spawning a server with no map at all, call like this:
-*  CM_LoadMap( "", false, &checksum );	// no real map
 */
 cmodel_t *CM_LoadMap( cmodel_state_t *cms, const char *name, bool clientload, unsigned *checksum ) {
 	int length;
@@ -216,13 +213,6 @@ cmodel_t *CM_LoadMap( cmodel_state_t *cms, const char *name, bool clientload, un
 	}
 
 	CM_Clear( cms );
-
-	if( !name || !name[0] ) {
-		cms->numleafs = 1;
-		cms->numcmodels = 2;
-		*checksum = 0;
-		return cms->map_cmodels;    // cinematic servers won't have anything at all
-	}
 
 	//
 	// load the file

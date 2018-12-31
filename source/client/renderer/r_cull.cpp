@@ -547,7 +547,7 @@ bool R_VisCullBox( const vec3_t mins, const vec3_t maxs ) {
 		}
 
 		// go down both sides
-		if( stackdepth < sizeof( localstack ) / sizeof( mnode_t * ) ) {
+		if( stackdepth < ARRAY_COUNT( localstack ) ) {
 			localstack[stackdepth++] = node->children[0];
 		}
 		node = node->children[1];
@@ -598,7 +598,7 @@ bool R_VisCullSphere( const vec3_t origin, float radius ) {
 		}
 
 		// go down both sides
-		if( stackdepth < sizeof( localstack ) / sizeof( mnode_t * ) ) {
+		if( stackdepth < ARRAY_COUNT( localstack ) ) {
 			localstack[stackdepth++] = node->children[0];
 		}
 		node = node->children[1];

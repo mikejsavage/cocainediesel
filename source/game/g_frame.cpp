@@ -418,7 +418,7 @@ void G_ClearSnap( void ) {
 
 		// events only last for a single message
 		ent->s.events[0] = ent->s.events[1] = 0;
-		ent->s.eventParms[0] = ent->s.eventParms[1] = 0;
+		ent->s.eventParms[0] = ent->s.eventParms[1] = EMPTY_HASH;
 		ent->numEvents = 0;
 		ent->eventPriority[0] = ent->eventPriority[1] = false;
 		ent->s.teleported = false; // remove teleported bit.

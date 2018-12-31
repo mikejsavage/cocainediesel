@@ -1102,7 +1102,7 @@ typedef struct snap_edict_s {
 
 typedef struct {
 	int speed;
-	uint64_t shader;
+	StringHash shader;
 	int spread;
 	int size;
 	int time;

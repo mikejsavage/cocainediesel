@@ -236,7 +236,7 @@ static void W_Touch_GunbladeBlast( edict_t *ent, edict_t *other, cplane_t *plane
 	if( !other->takedamage || ISBRUSHMODEL( other->s.modelindex ) ) {
 		edict_t * event = G_SpawnEvent( EV_GUNBLADEBLAST_IMPACT, DirToByte( plane ? plane->normal : NULL ), ent->s.origin );
 		event->s.weapon = min( ent->projectileInfo.radius / 8, 127 );
-		event->s.skinnum = min( ent->projectileInfo.maxKnockback / 8, 255 );
+		event->s.skin = StringHash( min( ent->projectileInfo.maxKnockback / 8, 255 ) );
 	}
 
 	G_FreeEdict( ent );

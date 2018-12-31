@@ -243,20 +243,22 @@ typedef enum {
 // primitive encoding types for network messages
 
 typedef enum {
-	WIRE_BOOL,					// a of value of 'true' is represented by a single bit in the header
+	WIRE_BOOL, // a of value of 'true' is represented by a single bit in the header
 
-	WIRE_FIXED_INT8,				// 8-bit integer
-	WIRE_FIXED_INT16,			// 16-bit integer
-	WIRE_FIXED_INT32,			// 32-bit integer
-	WIRE_FIXED_INT64,			// 64-bit integer
+	WIRE_FIXED_INT8, // 8-bit integer
+	WIRE_FIXED_INT16, // 16-bit integer
+	WIRE_FIXED_INT32, // 32-bit integer
+	WIRE_FIXED_INT64, // 64-bit integer
 
-	WIRE_FLOAT,					// 32-bit floating point value
-	WIRE_HALF_FLOAT,				// 16-bit floating point value
+	WIRE_FLOAT, // 32-bit floating point value
+	WIRE_HALF_FLOAT, // 16-bit floating point value
 
-	WIRE_ANGLE,					// 32-bit float angle value, normalized to [0..360], transmitted at half-precision
+	WIRE_ANGLE, // 32-bit float angle value, normalized to [0..360], transmitted at half-precision
 
-	WIRE_BASE128,				// base-128 encoded unsigned integer
-	WIRE_UBASE128				// base-128 encoded signed integer
+	WIRE_BASE128, // base-128 encoded unsigned integer
+	WIRE_UBASE128, // base-128 encoded signed integer
+
+	WIRE_STRINGHASH, // StringHash
 } wireType_t;
 
 //==============================================
@@ -292,10 +294,10 @@ typedef struct entity_state_s {
 	// events only go out for a single frame, they
 	// are automatically cleared each frame
 	int events[2];
-	uint64_t eventParms[2];
+	StringHash eventParms[2];
 
 	int counterNum;                 // ET_GENERIC
-	uint64_t skin;                  // for ET_PLAYER
+	StringHash skin;                  // for ET_PLAYER
 	int itemNum;                    // for ET_ITEM
 	int firemode;                   // for weapon events
 	int damage;                     // EV_BLOOD

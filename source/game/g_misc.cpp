@@ -702,9 +702,9 @@ void SP_misc_particles( edict_t *ent ) {
 	}
 
 	if( st.shaderName ) {
-		ent->particlesInfo.shader = StringHash( st.shaderName ).hash;
+		ent->particlesInfo.shader = StringHash( st.shaderName );
 	} else {
-		ent->particlesInfo.shader = StringHash( "particle" ).hash;
+		ent->particlesInfo.shader = StringHash( "particle" );
 	}
 
 	if( st.size ) {

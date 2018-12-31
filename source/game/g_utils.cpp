@@ -770,7 +770,7 @@ void G_AddEvent( edict_t *ent, int event, uint64_t parm, bool highPriority ) {
 
 	}
 	ent->s.events[eventNum] = event;
-	ent->s.eventParms[eventNum] = parm;
+	ent->s.eventParms[eventNum] = StringHash( parm );
 	ent->eventPriority[eventNum] = highPriority;
 }
 

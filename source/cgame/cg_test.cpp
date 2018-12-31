@@ -28,7 +28,7 @@ cvar_t *cg_testEntities;
 cvar_t *cg_testLights;
 
 void CG_DrawTestLine( const vec3_t start, const vec3_t end ) {
-	CG_QuickPolyBeam( start, end, 6, CG_MediaShader( cgs.media.shaderLaser ) );
+	CG_QuickPolyBeam( start, end, 6, "gfx/misc/laser" );
 }
 
 void CG_DrawTestBox( const vec3_t origin, const vec3_t mins, const vec3_t maxs, const vec3_t angles ) {
@@ -57,7 +57,7 @@ void CG_DrawTestBox( const vec3_t origin, const vec3_t mins, const vec3_t maxs, 
 	VectorAdd( origin, start, start );
 	VectorAdd( origin, end, end );
 
-	CG_QuickPolyBeam( start, end, linewidth, NULL );
+	CG_QuickPolyBeam( start, end, linewidth, EMPTY_HASH );
 
 	start[0] = mins[0];
 	start[1] = maxs[1];
@@ -76,7 +76,7 @@ void CG_DrawTestBox( const vec3_t origin, const vec3_t mins, const vec3_t maxs, 
 	VectorAdd( origin, start, start );
 	VectorAdd( origin, end, end );
 
-	CG_QuickPolyBeam( start, end, linewidth, NULL );
+	CG_QuickPolyBeam( start, end, linewidth, EMPTY_HASH );
 
 	start[0] = maxs[0];
 	start[1] = mins[1];
@@ -95,7 +95,7 @@ void CG_DrawTestBox( const vec3_t origin, const vec3_t mins, const vec3_t maxs, 
 	VectorAdd( origin, start, start );
 	VectorAdd( origin, end, end );
 
-	CG_QuickPolyBeam( start, end, linewidth, NULL );
+	CG_QuickPolyBeam( start, end, linewidth, EMPTY_HASH );
 
 	start[0] = maxs[0];
 	start[1] = maxs[1];
@@ -114,7 +114,7 @@ void CG_DrawTestBox( const vec3_t origin, const vec3_t mins, const vec3_t maxs, 
 	VectorAdd( origin, start, start );
 	VectorAdd( origin, end, end );
 
-	CG_QuickPolyBeam( start, end, linewidth, NULL );
+	CG_QuickPolyBeam( start, end, linewidth, EMPTY_HASH );
 
 	//x projection
 	start[0] = mins[0];
@@ -134,7 +134,7 @@ void CG_DrawTestBox( const vec3_t origin, const vec3_t mins, const vec3_t maxs, 
 	VectorAdd( origin, start, start );
 	VectorAdd( origin, end, end );
 
-	CG_QuickPolyBeam( start, end, linewidth, NULL );
+	CG_QuickPolyBeam( start, end, linewidth, EMPTY_HASH );
 
 	start[0] = mins[0];
 	start[1] = maxs[1];
@@ -153,7 +153,7 @@ void CG_DrawTestBox( const vec3_t origin, const vec3_t mins, const vec3_t maxs, 
 	VectorAdd( origin, start, start );
 	VectorAdd( origin, end, end );
 
-	CG_QuickPolyBeam( start, end, linewidth, NULL );
+	CG_QuickPolyBeam( start, end, linewidth, EMPTY_HASH );
 
 	start[0] = mins[0];
 	start[1] = maxs[1];
@@ -172,7 +172,7 @@ void CG_DrawTestBox( const vec3_t origin, const vec3_t mins, const vec3_t maxs, 
 	VectorAdd( origin, start, start );
 	VectorAdd( origin, end, end );
 
-	CG_QuickPolyBeam( start, end, linewidth, NULL );
+	CG_QuickPolyBeam( start, end, linewidth, EMPTY_HASH );
 
 	start[0] = mins[0];
 	start[1] = mins[1];
@@ -191,7 +191,7 @@ void CG_DrawTestBox( const vec3_t origin, const vec3_t mins, const vec3_t maxs, 
 	VectorAdd( origin, start, start );
 	VectorAdd( origin, end, end );
 
-	CG_QuickPolyBeam( start, end, linewidth, NULL );
+	CG_QuickPolyBeam( start, end, linewidth, EMPTY_HASH );
 
 	//z projection
 	start[0] = mins[0];
@@ -211,7 +211,7 @@ void CG_DrawTestBox( const vec3_t origin, const vec3_t mins, const vec3_t maxs, 
 	VectorAdd( origin, start, start );
 	VectorAdd( origin, end, end );
 
-	CG_QuickPolyBeam( start, end, linewidth, NULL );
+	CG_QuickPolyBeam( start, end, linewidth, EMPTY_HASH );
 
 	start[0] = maxs[0];
 	start[1] = mins[1];
@@ -230,7 +230,7 @@ void CG_DrawTestBox( const vec3_t origin, const vec3_t mins, const vec3_t maxs, 
 	VectorAdd( origin, start, start );
 	VectorAdd( origin, end, end );
 
-	CG_QuickPolyBeam( start, end, linewidth, NULL );
+	CG_QuickPolyBeam( start, end, linewidth, EMPTY_HASH );
 
 	start[0] = maxs[0];
 	start[1] = mins[1];
@@ -249,7 +249,7 @@ void CG_DrawTestBox( const vec3_t origin, const vec3_t mins, const vec3_t maxs, 
 	VectorAdd( origin, start, start );
 	VectorAdd( origin, end, end );
 
-	CG_QuickPolyBeam( start, end, linewidth, NULL );
+	CG_QuickPolyBeam( start, end, linewidth, EMPTY_HASH );
 
 	start[0] = mins[0];
 	start[1] = mins[1];
@@ -268,7 +268,7 @@ void CG_DrawTestBox( const vec3_t origin, const vec3_t mins, const vec3_t maxs, 
 	VectorAdd( origin, start, start );
 	VectorAdd( origin, end, end );
 
-	CG_QuickPolyBeam( start, end, linewidth, NULL );
+	CG_QuickPolyBeam( start, end, linewidth, EMPTY_HASH );
 }
 
 /*
@@ -300,11 +300,7 @@ static void CG_TestEntities( void ) {
 
 		// skelmod splitmodels
 		ent.model = cgs.basePModelInfo->model;
-		if( cgs.baseSkin ) {
-			ent.customSkin = cgs.baseSkin;
-		} else {
-			ent.customSkin = NULL;
-		}
+		ent.customSkin = cgs.baseSkin;
 
 		CG_AddEntityToScene( &ent ); // skelmod
 	}

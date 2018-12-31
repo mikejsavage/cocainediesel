@@ -414,7 +414,7 @@ typedef struct gitem_s {
 
 	//media
 	const char *world_model[MAX_ITEM_MODELS];
-	const char *icon;
+	StringHash icon;
 	const char *simpleitem;       // Kurim : we use different images for representing simpleitems
 	StringHash pickup_sound;
 	int effects;

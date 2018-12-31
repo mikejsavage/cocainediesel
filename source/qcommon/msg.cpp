@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // msg.c -- Message IO functions
 #include "qcommon.h"
-#include "../qalgo/half_float.h"
+#include "qalgo/half_float.h"
 
 /*
 ==============================================================================
@@ -70,46 +70,42 @@ void MSG_CopyData( msg_t *buf, const void *data, size_t length ) {
 	memcpy( MSG_GetSpace( buf, length ), data, length );
 }
 
-void MSG_WriteInt8( msg_t *msg, int c ) {
-	uint8_t *buf = ( uint8_t* )MSG_GetSpace( msg, 1 );
-	buf[0] = ( char )c;
+template< typename T >
+static void MSG_WriteInt( msg_t *msg, T x ) {
+	uint8_t * buf = ( uint8_t * ) MSG_GetSpace( msg, sizeof( x ) );
+	memcpy( buf, &x, sizeof( x ) );
 }
 
-void MSG_WriteUint8( msg_t *msg, int c ) {
-	uint8_t *buf = ( uint8_t* )MSG_GetSpace( msg, 1 );
-	buf[0] = ( uint8_t )( c & 0xff );
+void MSG_WriteInt8( msg_t *msg, int8_t c ) {
+	MSG_WriteInt( msg, c );
 }
 
-void MSG_WriteInt16( msg_t *msg, int c ) {
-	uint8_t *buf = ( uint8_t* )MSG_GetSpace( msg, 2 );
-	buf[0] = ( uint8_t )( c & 0xff );
-	buf[1] = ( uint8_t )( ( c >> 8 ) & 0xff );
+void MSG_WriteUint8( msg_t *msg, uint8_t c ) {
+	MSG_WriteInt( msg, c );
 }
 
-void MSG_WriteUint16( msg_t *msg, unsigned c ) {
-	uint8_t *buf = ( uint8_t* )MSG_GetSpace( msg, 2 );
-	buf[0] = ( uint8_t )( c & 0xff );
-	buf[1] = ( uint8_t )( ( c >> 8 ) & 0xff );
+void MSG_WriteInt16( msg_t *msg, int16_t c ) {
+	MSG_WriteInt( msg, c );
 }
 
-void MSG_WriteInt32( msg_t *msg, int c ) {
-	uint8_t *buf = ( uint8_t* )MSG_GetSpace( msg, 4 );
-	buf[0] = ( uint8_t )( c & 0xff );
-	buf[1] = ( uint8_t )( ( c >> 8 ) & 0xff );
-	buf[2] = ( uint8_t )( ( c >> 16 ) & 0xff );
-	buf[3] = ( uint8_t )( c >> 24 );
+void MSG_WriteUint16( msg_t *msg, uint16_t c ) {
+	MSG_WriteInt( msg, c );
+}
+
+void MSG_WriteInt32( msg_t *msg, int32_t c ) {
+	MSG_WriteInt( msg, c );
+}
+
+void MSG_WriteUint32( msg_t *msg, uint32_t c ) {
+	MSG_WriteInt( msg, c );
 }
 
 void MSG_WriteInt64( msg_t *msg, int64_t c ) {
-	uint8_t *buf = ( uint8_t* )MSG_GetSpace( msg, 8 );
-	buf[0] = ( uint8_t )( c & 0xffL );
-	buf[1] = ( uint8_t )( ( c >> 8L ) & 0xffL );
-	buf[2] = ( uint8_t )( ( c >> 16L ) & 0xffL );
-	buf[3] = ( uint8_t )( ( c >> 24L ) & 0xffL );
-	buf[4] = ( uint8_t )( ( c >> 32L ) & 0xffL );
-	buf[5] = ( uint8_t )( ( c >> 40L ) & 0xffL );
-	buf[6] = ( uint8_t )( ( c >> 48L ) & 0xffL );
-	buf[7] = ( uint8_t )( c >> 56L );
+	MSG_WriteInt( msg, c );
+}
+
+void MSG_WriteUint64( msg_t *msg, uint64_t c ) {
+	MSG_WriteInt( msg, c );
 }
 
 void MSG_WriteUintBase128( msg_t *msg, uint64_t c ) {
@@ -173,66 +169,48 @@ void MSG_BeginReading( msg_t *msg ) {
 	msg->readcount = 0;
 }
 
-int MSG_ReadInt8( msg_t *msg ) {
-	int i = (signed char)msg->data[msg->readcount++];
+template< typename T >
+static T MSG_ReadInt( msg_t *msg, T fail ) {
+	msg->readcount += sizeof( T );
 	if( msg->readcount > msg->cursize ) {
-		i = -1;
+		return fail;
 	}
-	return i;
+
+	T res;
+	memcpy( &res, &msg->data[ msg->readcount - sizeof( T ) ], sizeof( res ) );
+	return res;
 }
 
+int8_t MSG_ReadInt8( msg_t *msg ) {
+	return MSG_ReadInt< int8_t >( msg, -1 );
+}
 
-int MSG_ReadUint8( msg_t *msg ) {
-	msg->readcount++;
-	if( msg->readcount > msg->cursize ) {
-		return 0;
-	}
-
-	return ( unsigned char )( msg->data[msg->readcount - 1] );
+uint8_t MSG_ReadUint8( msg_t *msg ) {
+	return MSG_ReadInt< uint8_t >( msg, 0 );
 }
 
 int16_t MSG_ReadInt16( msg_t *msg ) {
-	msg->readcount += 2;
-	if( msg->readcount > msg->cursize ) {
-		return -1;
-	}
-	return ( int16_t )( msg->data[msg->readcount - 2] | ( msg->data[msg->readcount - 1] << 8 ) );
+	return MSG_ReadInt< int16_t >( msg, -1 );
 }
 
 uint16_t MSG_ReadUint16( msg_t *msg ) {
-	msg->readcount += 2;
-	if( msg->readcount > msg->cursize ) {
-		return 0;
-	}
-	return ( uint16_t )( msg->data[msg->readcount - 2] | ( msg->data[msg->readcount - 1] << 8 ) );
+	return MSG_ReadInt< uint16_t >( msg, 0 );
 }
 
-int MSG_ReadInt32( msg_t *msg ) {
-	msg->readcount += 4;
-	if( msg->readcount > msg->cursize ) {
-		return -1;
-	}
+int32_t MSG_ReadInt32( msg_t *msg ) {
+	return MSG_ReadInt< int32_t >( msg, -1 );
+}
 
-	return msg->data[msg->readcount - 4]
-		   | ( msg->data[msg->readcount - 3] << 8 )
-		   | ( msg->data[msg->readcount - 2] << 16 )
-		   | ( msg->data[msg->readcount - 1] << 24 );
+uint32_t MSG_ReadUint32( msg_t *msg ) {
+	return MSG_ReadInt< uint32_t >( msg, 0 );
 }
 
 int64_t MSG_ReadInt64( msg_t *msg ) {
-	msg->readcount += 8;
-	if( msg->readcount > msg->cursize ) {
-		return -1;
-	}
+	return MSG_ReadInt< int64_t >( msg, -1 );
+}
 
-	return ( int64_t )msg->data[msg->readcount - 8]
-		| ( ( int64_t )msg->data[msg->readcount - 7] << 8L )
-		| ( ( int64_t )msg->data[msg->readcount - 6] << 16L )
-		| ( ( int64_t )msg->data[msg->readcount - 5] << 24L )
-		| ( ( int64_t )msg->data[msg->readcount - 4] << 32L )
-		| ( ( int64_t )msg->data[msg->readcount - 3] << 40L )
-		| ( ( int64_t )msg->data[msg->readcount - 2] << 48L )
-		| ( ( int64_t )msg->data[msg->readcount - 1] << 56L );
+uint64_t MSG_ReadUint64( msg_t *msg ) {
+	return MSG_ReadInt< uint64_t >( msg, 0 );
 }
 
 uint64_t MSG_ReadUintBase128( msg_t *msg ) {
@@ -443,6 +421,9 @@ static void MSG_WriteField( msg_t *msg, const uint8_t *to, const msg_field_t *fi
 			break;
 		}
 		break;
+	case WIRE_STRINGHASH:
+		MSG_WriteUint64( msg, ((StringHash *)( to + field->offset ))->hash );
+		break;
 	default:
 		Com_Error( ERR_FATAL, "MSG_WriteField: unknown encoding type %i", field->encoding );
 		break;
@@ -515,6 +496,9 @@ static void MSG_ReadField( msg_t *msg, uint8_t *to, const msg_field_t *field ) {
 			Com_Error( ERR_FATAL, "MSG_WriteField: unknown base128 field bits value %i", field->bits );
 			break;
 		}
+		break;
+	case WIRE_STRINGHASH:
+		*((StringHash *)( to + field->offset )) = StringHash( MSG_ReadUint64( msg ) );
 		break;
 	default:
 		Com_Error( ERR_FATAL, "MSG_WriteField: unknown encoding type %i", field->encoding );
@@ -904,7 +888,7 @@ void MSG_ReadDeltaStruct( msg_t *msg, const void *from, void *to, size_t size, c
 
 static const msg_field_t ent_state_fields[] = {
 	{ ESOFS( events[0] ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( eventParms[0] ), 64, 1, WIRE_FIXED_INT64 },
+	{ ESOFS( eventParms[0] ), 0, 1, WIRE_STRINGHASH },
 
 	{ ESOFS( origin[0] ), 0, 1, WIRE_FLOAT },
 	{ ESOFS( origin[1] ), 0, 1, WIRE_FLOAT },
@@ -920,18 +904,18 @@ static const msg_field_t ent_state_fields[] = {
 	{ ESOFS( frame ), 32, 1, WIRE_UBASE128 },
 	{ ESOFS( modelindex ), 32, 1, WIRE_FIXED_INT8 },
 	{ ESOFS( svflags ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( skin ), 64, 1, WIRE_FIXED_INT64 },
+	{ ESOFS( skin ), 0, 1, WIRE_STRINGHASH },
 	{ ESOFS( effects ), 32, 1, WIRE_UBASE128 },
 	{ ESOFS( ownerNum ), 32, 1, WIRE_BASE128 },
 	{ ESOFS( targetNum ), 32, 1, WIRE_BASE128 },
-	{ ESOFS( sound ), 32, 1, WIRE_FIXED_INT8 },
+	{ ESOFS( sound ), 0, 1, WIRE_STRINGHASH },
 	{ ESOFS( modelindex2 ), 32, 1, WIRE_FIXED_INT8 },
 	{ ESOFS( attenuation ), 0, 1, WIRE_HALF_FLOAT },
 	{ ESOFS( counterNum ), 32, 1, WIRE_BASE128 },
 	{ ESOFS( bodyOwner ), 32, 1, WIRE_UBASE128 },
 	{ ESOFS( channel ), 32, 1, WIRE_FIXED_INT8 },
 	{ ESOFS( events[1] ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( eventParms[1] ), 64, 1, WIRE_FIXED_INT64 },
+	{ ESOFS( eventParms[1] ), 0, 1, WIRE_STRINGHASH },
 	{ ESOFS( weapon ), 32, 1, WIRE_UBASE128 },
 	{ ESOFS( firemode ), 32, 1, WIRE_FIXED_INT8 },
 	{ ESOFS( damage ), 32, 1, WIRE_UBASE128 },

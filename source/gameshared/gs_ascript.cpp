@@ -653,10 +653,6 @@ static asstring_t *objectGItem_getModel2Name( gsitem_t *self ) {
 	return module_angelExport->asStringFactoryBuffer( self->world_model[1], self->world_model[1] ? strlen( self->world_model[1] ) : 0 );
 }
 
-static asstring_t *objectGItem_getIconName( gsitem_t *self ) {
-	return module_angelExport->asStringFactoryBuffer( self->icon, self->icon ? strlen( self->icon ) : 0 );
-}
-
 static asstring_t *objectGItem_getSimpleItemName( gsitem_t *self ) {
 	return module_angelExport->asStringFactoryBuffer( self->simpleitem, self->simpleitem ? strlen( self->simpleitem ) : 0 );
 }
@@ -694,7 +690,6 @@ static const gs_asMethod_t asitem_Methods[] =
 	{ ASLIB_FUNCTION_DECL( const String @, get_shortName, ( ) const ), asFUNCTION( objectGItem_getShortName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_model, ( ) const ), asFUNCTION( objectGItem_getModelName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_model2, ( ) const ), asFUNCTION( objectGItem_getModel2Name ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( const String @, get_icon, ( ) const ), asFUNCTION( objectGItem_getIconName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_simpleIcon, ( ) const ), asFUNCTION( objectGItem_getSimpleItemName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_colorToken, ( ) const ), asFUNCTION( objectGItem_getColorToken ), asCALL_CDECL_OBJLAST },
 

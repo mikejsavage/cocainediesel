@@ -723,7 +723,7 @@ static void CG_AddWeaponBarrelOnTag( entity_t *weapon, weaponinfo_t *weaponInfo,
 * CG_AddPolyOnTag
 */
 static void CG_AddPolyOnTag( const entity_t *weapon, const orientation_t *tag, float width, float height, 
-	float x_offset, float s1, float t1, float s2, float t2, const vec4_t color, float alpha, struct shader_s *shader ) {
+	float x_offset, float s1, float t1, float s2, float t2, const vec4_t color, float alpha, StringHash shader ) {
 	int i;
 	vec4_t origin;
 	mat3_t mat, tmat;
@@ -802,8 +802,7 @@ static void CG_AddPolyOnTag( const entity_t *weapon, const orientation_t *tag, f
 /*
 * CG_AddItemIconOnTag
 */
-static void CG_AddItemIconOnTag( entity_t *weapon, const weaponinfo_t *weaponInfo, 
-	const gsitem_t *item, const char *tag_name ) {
+static void CG_AddItemIconOnTag( entity_t *weapon, const weaponinfo_t *weaponInfo, const gsitem_t *item, const char *tag_name ) {
 	float size;
 	orientation_t tag_icon;
 
@@ -816,8 +815,7 @@ static void CG_AddItemIconOnTag( entity_t *weapon, const weaponinfo_t *weaponInf
 		return;
 	}
 
-	CG_AddPolyOnTag( weapon, &tag_icon, size, size, 0, 0.0, 0.0, 1.0, 1.0, 
-		colorWhite, weaponInfo->acIconAlpha, trap_R_RegisterPic( item->icon ) );
+	CG_AddPolyOnTag( weapon, &tag_icon, size, size, 0, 0.0, 0.0, 1.0, 1.0, colorWhite, weaponInfo->acIconAlpha, item->icon );
 }
 
 /*

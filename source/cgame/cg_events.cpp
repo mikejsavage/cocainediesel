@@ -1158,16 +1158,15 @@ void CG_EntityEvent( entity_state_t *ent, int ev, uint64_t parm, bool predicted 
 		case EV_GUNBLADEBLAST_IMPACT:
 			ByteToDir( parm, dir );
 			CG_GunBladeBlastImpact( ent->origin, dir, (float)ent->weapon * 8 );
-			if( ent->skinnum > 64 ) {
+			if( ent->skin.hash > 64 ) {
 				trap_S_StartFixedSound( "sounds/weapons/bladegun_strong_hit_3", ent->origin, CHAN_AUTO, cg_volume_effects->value, ATTN_DISTANT );
-			} else if( ent->skinnum > 34 ) {
+			} else if( ent->skin.hash > 34 ) {
 				trap_S_StartFixedSound( "sounds/weapons/bladegun_strong_hit_2", ent->origin, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 			} else {
 				trap_S_StartFixedSound( "sounds/weapons/bladegun_strong_hit_1", ent->origin, CHAN_AUTO, cg_volume_effects->value, ATTN_IDLE );
 			}
 
-			//ent->skinnum is knockback value
-			CG_StartKickAnglesEffect( ent->origin, ent->skinnum * 8, ent->weapon * 8, 200 );
+			CG_StartKickAnglesEffect( ent->origin, ent->skin.hash * 8, ent->weapon * 8, 200 );
 			break;
 
 		case EV_BLOOD:
@@ -1226,7 +1225,7 @@ static void CG_FireEntityEvents( bool early ) {
 
 		for( j = 0; j < 2; j++ ) {
 			if( early == ISEARLYEVENT( state->events[j] ) ) {
-				CG_EntityEvent( state, state->events[j], state->eventParms[j], false );
+				CG_EntityEvent( state, state->events[j], state->eventParms[j].hash, false );
 			}
 		}
 	}

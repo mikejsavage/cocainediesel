@@ -242,7 +242,7 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 		body->s.type = ET_CORPSE;
 		body->s.modelindex = ent->s.modelindex;
 		body->s.bodyOwner = ent->s.number; // bodyOwner is the same as modelindex2
-		body->s.skinnum = ent->s.skinnum;
+		body->s.skin = ent->s.skin;
 		body->s.teleported = true;
 
 		// launch the death animation on the body
@@ -406,7 +406,7 @@ static void G_Client_AssignTeamSkin( edict_t *ent, char *userinfo ) {
 	if( !ent->deadflag ) {
 		ent->s.modelindex = trap_ModelIndex( model );
 	}
-	ent->s.skinnum = trap_SkinIndex( skin );
+	ent->s.skin = StringHash( skin );
 }
 
 /*
@@ -435,7 +435,8 @@ void G_GhostClient( edict_t *ent ) {
 	ent->r.client->resp.old_waterlevel = 0;
 	ent->r.client->resp.old_watertype = 0;
 
-	ent->s.modelindex = ent->s.modelindex2 = ent->s.skinnum = 0;
+	ent->s.modelindex = ent->s.modelindex2 = 0;
+	ent->s.skin = EMPTY_HASH;
 	ent->s.effects = 0;
 	ent->s.weapon = 0;
 	ent->s.sound = EMPTY_HASH;

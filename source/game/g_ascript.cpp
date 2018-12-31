@@ -1176,7 +1176,7 @@ static void objectGameEntity_SetupModelExt( asstring_t *modelstr, asstring_t *sk
 		Q_snprintfz( skin, sizeof( skin ), "models/players/%s/%s", s, skinstr && skinstr->buffer[0] ? skinstr->buffer : DEFAULT_PLAYERSKIN );
 
 		self->s.modelindex = trap_ModelIndex( model );
-		self->s.skin = Hash64( skin, strlen( skin ) );
+		self->s.skin = StringHash( skin );
 		return;
 	}
 

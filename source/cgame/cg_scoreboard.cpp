@@ -684,7 +684,6 @@ static int SCR_DrawPlayerTab( const char **ptrptr, int team, int x, int y, int p
 	const char *token, *layout;
 	int height, width, xoffset, yoffset;
 	vec4_t teamcolor = { 0.0f, 0.0f, 0.0f, 1.0f }, color;
-	int iconnum;
 	StringHash icon;
 	bool highlight = false, trans = false;
 

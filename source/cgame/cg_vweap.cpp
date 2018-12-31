@@ -238,8 +238,8 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	viewweapon->ent.model = weaponInfo->model[WEAPMODEL_HAND];
 	viewweapon->ent.renderfx = RF_MINLIGHT | RF_WEAPONMODEL | RF_FORCENOLOD | RF_NOSHADOW;
 	viewweapon->ent.scale = 1.0f;
-	viewweapon->ent.customShader = NULL;
-	viewweapon->ent.customSkin = NULL;
+	viewweapon->ent.customShader = EMPTY_HASH;
+	viewweapon->ent.customSkin = EMPTY_HASH;
 	viewweapon->ent.rtype = RT_MODEL;
 	viewweapon->ent.boneposes = viewweapon->ent.oldboneposes = NULL;
 	Vector4Set( viewweapon->ent.shaderRGBA, 255, 255, 255, 255 );

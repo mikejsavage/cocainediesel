@@ -101,7 +101,7 @@ void CG_PModelForCentity( centity_t *cent, pmodelinfo_t **pmodelinfo, StringHash
 
 	// use the player defined one if not forcing
 	*pmodelinfo = cgs.pModelsIndex[cent->current.modelindex];
-	*skin = cgs.skinPrecache[cent->current.skinnum];
+	*skin = cent->current.skin;
 
 	if( GS_CanForceModels() && ownerNum < unsigned( gs.maxclients + 1 ) ) {
 		if( cgs.teamModelInfo[ int( ally ) ] != NULL ) {

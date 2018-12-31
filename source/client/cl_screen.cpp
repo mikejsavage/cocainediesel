@@ -251,16 +251,9 @@ size_t SCR_DrawStringWidth( int x, int y, int align, const char *str, size_t max
 //===============================================================================
 
 /*
-* SCR_RegisterPic
-*/
-struct shader_s *SCR_RegisterPic( const char *name ) {
-	return re.RegisterPic( name );
-}
-
-/*
 * SCR_DrawStretchPic
 */
-void SCR_DrawStretchPic( int x, int y, int w, int h, float s1, float t1, float s2, float t2, const float *color, const struct shader_s *shader ) {
+void SCR_DrawStretchPic( int x, int y, int w, int h, float s1, float t1, float s2, float t2, const float *color, StringHash shader ) {
 	re.DrawStretchPic( x, y, w, h, s1, t1, s2, t2, color, shader );
 }
 
@@ -270,7 +263,8 @@ void SCR_DrawStretchPic( int x, int y, int w, int h, float s1, float t1, float s
 * Fills a box of pixels with a single color
 */
 void SCR_DrawFillRect( int x, int y, int w, int h, const vec4_t color ) {
-	re.DrawStretchPic( x, y, w, h, 0, 0, 1, 1, color, cls.whiteShader );
+	constexpr StringHash white = "$whiteimage";
+	re.DrawStretchPic( x, y, w, h, 0, 0, 1, 1, color, white );
 }
 
 /*
@@ -297,7 +291,8 @@ void SCR_DrawClampFillRect( int x, int y, int w, int h, int xmin, int ymin, int 
 		return;
 	}
 
-	re.DrawStretchPic( x, y, w, h, 0, 0, 1, 1, color, cls.whiteShader );
+	constexpr StringHash white = "$whiteimage";
+	re.DrawStretchPic( x, y, w, h, 0, 0, 1, 1, color, white );
 }
 
 /*
@@ -516,9 +511,6 @@ void SCR_EndLoadingPlaque( void ) {
 * SCR_RegisterConsoleMedia
 */
 void SCR_RegisterConsoleMedia() {
-	cls.whiteShader = re.RegisterPic( "$whiteimage" );
-	cls.consoleShader = re.RegisterPic( "gfx/ui/console" );
-
 	SCR_InitFonts();
 }
 

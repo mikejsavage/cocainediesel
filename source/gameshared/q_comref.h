@@ -277,8 +277,8 @@ typedef struct entity_state_s {
 	vec3_t angles;
 	vec3_t origin2;                 // ET_BEAM, ET_EVENT specific
 
-	StringHash model;
-	StringHash model2;
+	unsigned int modelindex;
+	unsigned int modelindex2;
 
 	int bodyOwner;                  // ET_PLAYER specific, for dead bodies
 	int channel;                    // ET_SOUNDEVENT
@@ -295,7 +295,7 @@ typedef struct entity_state_s {
 	uint64_t eventParms[2];
 
 	int counterNum;                 // ET_GENERIC
-	int skinnum;                    // for ET_PLAYER
+	uint64_t skin;                  // for ET_PLAYER
 	int itemNum;                    // for ET_ITEM
 	int firemode;                   // for weapon events
 	int damage;                     // EV_BLOOD

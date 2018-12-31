@@ -463,20 +463,12 @@ void CG_RegisterBasePModel( void ) {
 	cgs.basePModelInfo = CG_RegisterPlayerModel( filename );
 
 	Q_snprintfz( filename, sizeof( filename ), "%s/%s/%s", "models/players", DEFAULT_PLAYERMODEL, DEFAULT_PLAYERSKIN );
-	cgs.baseSkin = trap_R_RegisterSkinFile( filename );
-	if( !cgs.baseSkin ) {
-		CG_Error( "'Default Player Model'(%s): Skin (%s) failed to load", DEFAULT_PLAYERMODEL, filename );
-	}
+	cgs.baseSkin = StringHash( filename );
 
 	if( !cgs.basePModelInfo ) {
 		CG_Error( "'Default Player Model'(%s): failed to load", DEFAULT_PLAYERMODEL );
 	}
 }
-
-//======================================================================
-//							tools
-//======================================================================
-
 
 /*
 * CG_GrabTag
@@ -599,14 +591,14 @@ static void CG_AddRaceGhostShell( entity_t *ent ) {
 	clamp( alpha, 0, 1.0 );
 
 	shell = *ent;
-	shell.customSkin = NULL;
+	shell.customSkin = EMPTY_HASH;
 
 	if( shell.renderfx & RF_WEAPONMODEL ) {
 		return;
 	}
 
-	shell.customShader = CG_MediaShader( cgs.media.shaderRaceGhostEffect );
-	shell.renderfx |= ( RF_FULLBRIGHT | RF_NOSHADOW );
+	shell.customShader = "gfx/raceghost";
+	shell.renderfx |= RF_FULLBRIGHT | RF_NOSHADOW;
 	shell.outlineHeight = 0;
 
 	shell.color[0] *= alpha;
@@ -716,58 +708,80 @@ void CG_AddColoredOutLineEffect( entity_t *ent, int effects, uint8_t r, uint8_t 
 * CG_PModel_AddHeadIcon
 */
 static void CG_AddIconAbovePlayer( centity_t *cent ) {
+	if( cent->ent.renderfx & RF_VIEWERMODEL ) {
+		return;
+	}
+
+	if( cent->localEffects[LOCALEFFECT_VSAY_HEADICON_TIMEOUT] < cg.time ) {
+		return;
+	}
+
+	constexpr StringHash icons[] = {
+		PATH_VSAY_GENERIC_ICON,
+		PATH_VSAY_AFFIRMATIVE_ICON,
+		PATH_VSAY_NEGATIVE_ICON,
+		PATH_VSAY_YES_ICON,
+		PATH_VSAY_NO_ICON,
+		PATH_VSAY_ONDEFENSE_ICON,
+		PATH_VSAY_ONOFFENSE_ICON,
+		PATH_VSAY_OOPS_ICON,
+		PATH_VSAY_SORRY_ICON,
+		PATH_VSAY_THANKS_ICON,
+		PATH_VSAY_NOPROBLEM_ICON,
+		PATH_VSAY_YEEHAA_ICON,
+		PATH_VSAY_GOODGAME_ICON,
+		PATH_VSAY_DEFEND_ICON,
+		PATH_VSAY_ATTACK_ICON,
+		PATH_VSAY_NEEDBACKUP_ICON,
+		PATH_VSAY_BOOO_ICON,
+		PATH_VSAY_NEEDDEFENSE_ICON,
+		PATH_VSAY_NEEDOFFENSE_ICON,
+		PATH_VSAY_NEEDHELP_ICON,
+		PATH_VSAY_ROGER_ICON,
+		PATH_VSAY_AREASECURED_ICON,
+		PATH_VSAY_BOOMSTICK_ICON,
+		PATH_VSAY_OK_ICON,
+		PATH_VSAY_SHUTUP_ICON,
+	};
+
+	StringHash iconShader = EMPTY_HASH;
+	if( cent->localEffects[LOCALEFFECT_VSAY_HEADICON] < VSAY_TOTAL ) {
+		iconShader = icons[cent->localEffects[LOCALEFFECT_VSAY_HEADICON]];
+	} else {
+		iconShader = icons[VSAY_GENERIC];
+	}
+
+	float radius = 12;
+	float upoffset = 0;
+
 	entity_t icon;
-	bool showIcon = false;
-	struct shader_s *iconShader = NULL;
-	float radius = 6, upoffset = 8;
+	memset( &icon, 0, sizeof( entity_t ) );
+	Vector4Set( icon.shaderRGBA, 255, 255, 255, 255 );
+	icon.renderfx = RF_NOSHADOW;
+	icon.scale = 1.0f;
+
+	Matrix3_Identity( icon.axis );
+
 	orientation_t tag_head;
-
-	if( cent->localEffects[LOCALEFFECT_VSAY_HEADICON_TIMEOUT] > cg.time ) {
-		if( cent->localEffects[LOCALEFFECT_VSAY_HEADICON] < VSAY_TOTAL ) {
-			iconShader = CG_MediaShader( cgs.media.shaderVSayIcon[cent->localEffects[LOCALEFFECT_VSAY_HEADICON]] );
-		} else {
-			iconShader = CG_MediaShader( cgs.media.shaderVSayIcon[VSAY_GENERIC] );
-		}
-
-		radius = 12;
-		upoffset = 0;
+	if( CG_GrabTag( &tag_head, &cent->ent, "tag_head" ) ) {
+		icon.origin[0] = tag_head.origin[0];
+		icon.origin[1] = tag_head.origin[1];
+		icon.origin[2] = tag_head.origin[2] + icon.radius + upoffset;
+		VectorCopy( icon.origin, icon.origin2 );
+		CG_PlaceModelOnTag( &icon, &cent->ent, &tag_head );
+	} else {
+		icon.origin[0] = cent->ent.origin[0];
+		icon.origin[1] = cent->ent.origin[1];
+		icon.origin[2] = cent->ent.origin[2] + playerbox_stand_maxs[2] + icon.radius + upoffset;
+		VectorCopy( icon.origin, icon.origin2 );
 	}
 
-	if( iconShader != NULL ) {
-		showIcon = true;
-	}
+	icon.rtype = RT_SPRITE;
+	icon.customShader = iconShader;
+	icon.radius = radius;
+	icon.model = NULL;
 
-	// add the current active icon
-	if( showIcon ) {
-		memset( &icon, 0, sizeof( entity_t ) );
-		Vector4Set( icon.shaderRGBA, 255, 255, 255, 255 );
-		icon.renderfx = RF_NOSHADOW;
-		icon.scale = 1.0f;
-
-		Matrix3_Identity( icon.axis );
-
-		if( CG_GrabTag( &tag_head, &cent->ent, "tag_head" ) ) {
-			icon.origin[0] = tag_head.origin[0];
-			icon.origin[1] = tag_head.origin[1];
-			icon.origin[2] = tag_head.origin[2] + icon.radius + upoffset;
-			VectorCopy( icon.origin, icon.origin2 );
-			CG_PlaceModelOnTag( &icon, &cent->ent, &tag_head );
-		} else {
-			icon.origin[0] = cent->ent.origin[0];
-			icon.origin[1] = cent->ent.origin[1];
-			icon.origin[2] = cent->ent.origin[2] + playerbox_stand_maxs[2] + icon.radius + upoffset;
-			VectorCopy( icon.origin, icon.origin2 );
-		}
-
-		if( iconShader ) {
-			icon.rtype = RT_SPRITE;
-			icon.customShader = iconShader;
-			icon.radius = radius;
-			icon.model = NULL;
-
-			trap_R_AddEntityToScene( &icon );
-		}
-	}
+	trap_R_AddEntityToScene( &icon );
 }
 
 
@@ -909,7 +923,7 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	}
 
 	// fallback
-	if( !pmodel->pmodelinfo || !pmodel->skin ) {
+	if( !pmodel->pmodelinfo || pmodel->skin == EMPTY_HASH ) {
 		pmodel->pmodelinfo = cgs.basePModelInfo;
 		pmodel->skin = cgs.baseSkin;
 	}
@@ -1127,7 +1141,7 @@ void CG_AddPModel( centity_t *cent ) {
 	cent->ent.scale = 1.0f;
 	cent->ent.rtype = RT_MODEL;
 	cent->ent.model = pmodel->pmodelinfo->model;
-	cent->ent.customShader = NULL;
+	cent->ent.customShader = EMPTY_HASH;
 	cent->ent.customSkin = pmodel->skin;
 	cent->ent.renderfx |= RF_NOSHADOW;
 

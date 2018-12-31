@@ -1175,8 +1175,8 @@ static void objectGameEntity_SetupModelExt( asstring_t *modelstr, asstring_t *sk
 		Q_snprintfz( model, sizeof( model ), "$%s", path );
 		Q_snprintfz( skin, sizeof( skin ), "models/players/%s/%s", s, skinstr && skinstr->buffer[0] ? skinstr->buffer : DEFAULT_PLAYERSKIN );
 
-		self->s.model = model;
-		self->s.skinnum = trap_SkinIndex( skin );
+		self->s.modelindex = trap_ModelIndex( model );
+		self->s.skin = Hash64( skin, strlen( skin ) );
 		return;
 	}
 
@@ -1373,12 +1373,12 @@ static const gs_asProperty_t gedict_Properties[] =
 	{ ASLIB_PROPERTY_DECL( Entity @, enemy ), ASLIB_FOFFSET( edict_t, enemy ) },
 	{ ASLIB_PROPERTY_DECL( Entity @, activator ), ASLIB_FOFFSET( edict_t, activator ) },
 	{ ASLIB_PROPERTY_DECL( int, type ), ASLIB_FOFFSET( edict_t, s.type ) },
-	{ ASLIB_PROPERTY_DECL( uint64, model ), ASLIB_FOFFSET( edict_t, s.model ) },
-	{ ASLIB_PROPERTY_DECL( uint64, model2 ), ASLIB_FOFFSET( edict_t, s.model2 ) },
+	{ ASLIB_PROPERTY_DECL( int, modelindex ), ASLIB_FOFFSET( edict_t, s.modelindex ) },
+	{ ASLIB_PROPERTY_DECL( int, modelindex2 ), ASLIB_FOFFSET( edict_t, s.modelindex2 ) },
 	{ ASLIB_PROPERTY_DECL( int, frame ), ASLIB_FOFFSET( edict_t, s.frame ) },
 	{ ASLIB_PROPERTY_DECL( int, ownerNum ), ASLIB_FOFFSET( edict_t, s.ownerNum ) },
 	{ ASLIB_PROPERTY_DECL( int, counterNum ), ASLIB_FOFFSET( edict_t, s.counterNum ) },
-	{ ASLIB_PROPERTY_DECL( int, skinNum ), ASLIB_FOFFSET( edict_t, s.skinnum ) },
+	{ ASLIB_PROPERTY_DECL( uint64, skin ), ASLIB_FOFFSET( edict_t, s.skin ) },
 	{ ASLIB_PROPERTY_DECL( int, colorRGBA ), ASLIB_FOFFSET( edict_t, s.colorRGBA ) },
 	{ ASLIB_PROPERTY_DECL( int, weapon ), ASLIB_FOFFSET( edict_t, s.weapon ) },
 	{ ASLIB_PROPERTY_DECL( bool, teleported ), ASLIB_FOFFSET( edict_t, s.teleported ) },
@@ -1728,31 +1728,8 @@ static asstring_t *asFunc_ML_GetMapByNum( int num ) {
 	return data;
 }
 
-static int asFunc_SkinIndex( asstring_t *str ) {
-	if( !str || !str->buffer ) {
-		return 0;
-	}
-
-	return trap_SkinIndex( str->buffer );
-}
-
-static int asFunc_ModelIndexExt( asstring_t *str, bool pure ) {
-	int index;
-
-	if( !str || !str->buffer ) {
-		return 0;
-	}
-
-	index = trap_ModelIndex( str->buffer );
-	if( index && pure ) {
-		G_PureModel( str->buffer );
-	}
-
-	return index;
-}
-
 static int asFunc_ModelIndex( asstring_t *str ) {
-	return asFunc_ModelIndexExt( str, false );
+	return trap_ModelIndex( str->buffer );
 }
 
 static uint64_t asFunc_AssetHash( asstring_t *str ) {
@@ -2048,10 +2025,8 @@ static const gs_asglobfuncs_t asGameGlobFuncs[] =
 	{ "void __G_CallPain( Entity @ent, Entity @other, float kick, float damage )", asFUNCTION( G_CallPain ), &asEntityCallPainFuncPtr },
 	{ "void __G_CallDie( Entity @ent, Entity @inflicter, Entity @attacker )", asFUNCTION( G_CallDie ), &asEntityCallDieFuncPtr },
 
-	{ "int G_SkinIndex( const String &in )", asFUNCTION( asFunc_SkinIndex ), NULL },
 	{ "int G_ModelIndex( const String &in )", asFUNCTION( asFunc_ModelIndex ), NULL },
 	{ "uint64 G_AssetHash( const String &in )", asFUNCTION( asFunc_AssetHash ), NULL },
-	{ "int G_ModelIndex( const String &in, bool pure )", asFUNCTION( asFunc_ModelIndexExt ), NULL },
 	{ "void G_RegisterCommand( const String &in )", asFUNCTION( asFunc_RegisterCommand ), NULL },
 	{ "void G_RegisterCallvote( const String &in, const String &in, const String &in, const String &in )", asFUNCTION( asFunc_RegisterCallvote ), NULL },
 	{ "const String @G_ConfigString( int index )", asFUNCTION( asFunc_GetConfigString ), NULL },

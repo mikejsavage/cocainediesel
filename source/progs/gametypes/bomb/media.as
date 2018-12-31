@@ -18,10 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 // ICONS
-int iconCarrier;
-int iconReady;
-
-int[] weaponIcons( WEAP_TOTAL );
+uint64 iconCarrier;
+uint64 iconReady;
 
 // MODELS
 int modelBombModel;
@@ -30,7 +28,7 @@ int modelBombBackpack;
 int modelIndicator;
 
 // SPRITES ETC
-int imgBombDecal;
+uint64 imgBombDecal;
 
 // SOUNDS
 uint64 sndBeep;
@@ -74,29 +72,20 @@ void announceDef( Announcement announcement ) {
 }
 
 void mediaInit() {
-	iconCarrier = G_ImageIndex( "gfx/hud/icons/vsay/onoffense" ); // TODO: less crappy icon
-	iconReady = G_ImageIndex( "gfx/hud/icons/vsay/yes" );
+	iconCarrier = G_AssetHash( "gfx/hud/icons/vsay/onoffense" ); // TODO: less crappy icon
+	iconReady = G_AssetHash( "gfx/hud/icons/vsay/yes" );
 
 	modelBombModel = G_ModelIndex( "models/objects/misc/bomb_centered.md3" );
 	modelBombModelActive = G_ModelIndex( "models/objects/misc/bomb_centered_active.md3" );
 	modelBombBackpack = G_ModelIndex( "models/objects/misc/bomb.md3" );
 
-	imgBombDecal = G_ImageIndex( "gfx/indicators/radar_decal" );
+	imgBombDecal = G_AssetHash( "gfx/indicators/radar_decal" );
 
 	sndBeep = G_AssetHash( "sounds/bomb/bombtimer" );
 	sndPlantStart = G_AssetHash( "sounds/misc/timer_bip_bip" );
 	sndGoodGame = G_AssetHash( "sounds/vsay/goodgame" );
 	sndBombTaken = G_AssetHash( "sounds/announcer/bomb/offense/taken" );
 	sndBongo = G_AssetHash( "sounds/announcer/bomb/bongo" );
-
-	weaponIcons[ WEAP_GUNBLADE ] = G_ImageIndex( "gfx/hud/icons/weapon/gunblade_blast" );
-	weaponIcons[ WEAP_MACHINEGUN ] = G_ImageIndex( "gfx/hud/icons/weapon/machinegun" );
-	weaponIcons[ WEAP_RIOTGUN ] = G_ImageIndex( "gfx/hud/icons/weapon/riot" );
-	weaponIcons[ WEAP_GRENADELAUNCHER ] = G_ImageIndex( "gfx/hud/icons/weapon/grenade" );
-	weaponIcons[ WEAP_ROCKETLAUNCHER ] = G_ImageIndex( "gfx/hud/icons/weapon/rocket" );
-	weaponIcons[ WEAP_PLASMAGUN ] = G_ImageIndex( "gfx/hud/icons/weapon/plasma" );
-	weaponIcons[ WEAP_LASERGUN ] = G_ImageIndex( "gfx/hud/icons/weapon/laser" );
-	weaponIcons[ WEAP_ELECTROBOLT ] = G_ImageIndex( "gfx/hud/icons/weapon/electro" );
 
 	sndAnnouncementsOff[ Announcement_Started ] = G_AssetHash( "sounds/announcer/bomb/offense/start" );
 	sndAnnouncementsOff[ Announcement_Armed ] = G_AssetHash( "sounds/announcer/bomb/offense/planted" );

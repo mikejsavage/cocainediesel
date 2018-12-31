@@ -793,7 +793,6 @@ typedef enum {
 
 	EV_FIRE_SHOTGUN,
 	EV_PNODE,
-	EV_GREEN_LASER,
 
 	// func movers
 	EV_PLAT_HIT_TOP,

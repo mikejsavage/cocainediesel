@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "server.h"
 
-#include "../qcommon/sys_library.h"
+#include "qcommon/sys_library.h"
 
 server_constant_t svc;              // constant server info (trully persistant since sv_init)
 server_static_t svs;                // persistant server info
@@ -67,18 +67,6 @@ static int SV_FindIndex( const char *name, int start, int max, bool create ) {
 
 int SV_ModelIndex( const char *name ) {
 	return SV_FindIndex( name, CS_MODELS, MAX_MODELS, true );
-}
-
-int SV_SoundIndex( const char *name ) {
-	return SV_FindIndex( name, CS_SOUNDS, MAX_SOUNDS, true );
-}
-
-int SV_ImageIndex( const char *name ) {
-	return SV_FindIndex( name, CS_IMAGES, MAX_IMAGES, true );
-}
-
-int SV_SkinIndex( const char *name ) {
-	return SV_FindIndex( name, CS_SKINFILES, MAX_SKINFILES, true );
 }
 
 /*

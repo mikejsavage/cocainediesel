@@ -848,7 +848,8 @@ void Con_DrawConsole( void ) {
 	}
 
 	// draw the background
-	re.DrawStretchPic( 0, 0, viddef.width, lines, 0, 0, 1, 1, colorWhite, cls.consoleShader );
+	constexpr StringHash shader = "gfx/ui/console";
+	re.DrawStretchPic( 0, 0, viddef.width, lines, 0, 0, 1, 1, colorWhite, shader );
 	scaled = 2 * pixelRatio;
 	SCR_DrawFillRect( 0, lines - scaled, viddef.width, scaled, colorMdGrey );
 

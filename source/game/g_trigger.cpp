@@ -123,7 +123,6 @@ static void trigger_enable( edict_t *self, edict_t *other, edict_t *activator ) 
 
 void SP_trigger_multiple( edict_t *ent ) {
 	GClip_SetBrushModel( ent, ent->model );
-	G_PureModel( ent->model );
 
 	if( st.noise ) {
 		ent->sound = StringHash( st.noise );

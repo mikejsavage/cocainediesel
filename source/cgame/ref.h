@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #pragma once
 
+#include "qalgo/hash.h"
+
 // FIXME: move these to r_local.h?
 #define MAX_DLIGHTS             32
 #define MAX_ENTITIES            2048
@@ -75,7 +77,7 @@ typedef struct poly_s {
 	byte_vec4_t *colors;
 	int numelems;
 	unsigned short *elems;
-	struct shader_s *shader;
+	StringHash shader;
 	int renderfx;
 } poly_t;
 
@@ -114,8 +116,8 @@ typedef struct entity_s {
 	/*
 	** texturing
 	*/
-	struct skinfile_s *customSkin;      // registered .skin file
-	struct shader_s *customShader;      // NULL for inline skin
+	StringHash customSkin;      // registered .skin file
+	StringHash customShader;    // NULL for inline skin
 
 	/*
 	** misc

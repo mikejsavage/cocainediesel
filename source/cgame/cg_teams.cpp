@@ -54,14 +54,14 @@ void CG_SetSceneTeamColors( void ) {
 /*
 * CG_RegisterForceModel
 */
-static void CG_RegisterForceModel( cvar_t *modelCvar, cvar_t *modelForceCvar, pmodelinfo_t **model, struct skinfile_s **skin ) {
+static void CG_RegisterForceModel( cvar_t *modelCvar, cvar_t *modelForceCvar, pmodelinfo_t **model, StringHash *skin ) {
 	if( !modelCvar->modified && !modelForceCvar->modified )
 		return;
 	modelCvar->modified = false;
 	modelForceCvar->modified = false;
 
 	*model = NULL;
-	*skin = NULL;
+	*skin = EMPTY_HASH;
 
 	if( modelForceCvar->integer ) {
 		const char * name = modelCvar->string;
@@ -71,9 +71,9 @@ static void CG_RegisterForceModel( cvar_t *modelCvar, cvar_t *modelForceCvar, pm
 			new_model = CG_RegisterPlayerModel( va( "models/players/%s", name ) );
 		}
 
-		skinfile_s * new_skin = trap_R_RegisterSkinFile( va( "models/players/%s/default", name ) );
+		StringHash new_skin = StringHash( va( "models/players/%s/default", name ) );
 
-		if( new_model != NULL && new_skin != NULL ) {
+		if( new_model != NULL ) {
 			*model = new_model;
 			*skin = new_skin;
 		}
@@ -89,7 +89,7 @@ static void CG_CheckUpdateTeamModelRegistration( bool ally ) {
 /*
 * CG_PModelForCentity
 */
-void CG_PModelForCentity( centity_t *cent, pmodelinfo_t **pmodelinfo, struct skinfile_s **skin ) {
+void CG_PModelForCentity( centity_t *cent, pmodelinfo_t **pmodelinfo, StringHash *skin ) {
 	centity_t * owner = cent;
 	if( cent->current.type == ET_CORPSE && cent->current.bodyOwner )
 		owner = &cg_entities[cent->current.bodyOwner];

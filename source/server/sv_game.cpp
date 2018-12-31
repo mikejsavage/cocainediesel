@@ -268,35 +268,6 @@ static const char *PF_GetConfigString( int index ) {
 }
 
 /*
-* PF_PureSound
-*/
-static void PF_PureSound( const char *name ) {
-	const char *extension;
-	char tempname[MAX_CONFIGSTRING_CHARS];
-
-	if( sv.state != ss_loading ) {
-		return;
-	}
-
-	if( !name || !name[0] || strlen( name ) >= MAX_CONFIGSTRING_CHARS ) {
-		return;
-	}
-
-	Q_strncpyz( tempname, name, sizeof( tempname ) );
-
-	if( !COM_FileExtension( tempname ) ) {
-		extension = FS_FirstExtension( tempname, SOUND_EXTENSIONS, NUM_SOUND_EXTENSIONS );
-		if( !extension ) {
-			return;
-		}
-
-		COM_ReplaceExtension( tempname, extension, sizeof( tempname ) );
-	}
-
-	SV_AddPureFile( tempname );
-}
-
-/*
 * SV_AddPureShader
 *
 * FIXME: For now we don't parse shaders, but simply assume that it uses the same name .tga or .jpg
@@ -339,26 +310,6 @@ static void SV_AddPureBSP( void ) {
 	SV_AddPureFile( sv.configstrings[CS_WORLDMODEL] );
 	for( i = 0; ( shader = CM_ShaderrefName( svs.cms, i ) ); i++ )
 		SV_AddPureShader( shader );
-}
-
-/*
-* PF_PureModel
-*/
-static void PF_PureModel( const char *name ) {
-	if( sv.state != ss_loading ) {
-		return;
-	}
-	if( !name || !name[0] || strlen( name ) >= MAX_CONFIGSTRING_CHARS ) {
-		return;
-	}
-
-	if( name[0] == '*' ) {  // inline model
-		if( !strcmp( name, "*0" ) ) {
-			SV_AddPureBSP(); // world
-		}
-	} else {
-		SV_AddPureFile( name );
-	}
 }
 
 /*
@@ -466,14 +417,9 @@ void SV_InitGameProgs( void ) {
 	import.Milliseconds = Sys_Milliseconds;
 
 	import.ModelIndex = SV_ModelIndex;
-	import.SoundIndex = SV_SoundIndex;
-	import.ImageIndex = SV_ImageIndex;
-	import.SkinIndex = SV_SkinIndex;
 
 	import.ConfigString = PF_ConfigString;
 	import.GetConfigString = PF_GetConfigString;
-	import.PureSound = PF_PureSound;
-	import.PureModel = PF_PureModel;
 
 	import.FS_FOpenFile = FS_FOpenFile;
 	import.FS_Read = FS_Read;

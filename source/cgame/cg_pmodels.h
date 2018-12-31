@@ -125,17 +125,17 @@ typedef struct pmodelinfo_s {
 } pmodelinfo_t;
 
 typedef struct {
-	//static data
+	// static data
 	pmodelinfo_t *pmodelinfo;
-	struct skinfile_s *skin;
+	StringHash skin;
 
-	//dynamic
+	// dynamic
 	gs_pmodel_animationstate_t animState;
 
 	vec3_t angles[PMODEL_PARTS];                // for rotations
 	vec3_t oldangles[PMODEL_PARTS];             // for rotations
 
-	//effects
+	// effects
 	orientation_t projectionSource;     // for projectiles
 	// weapon. Not sure about keeping it here
 	int64_t flash_time;

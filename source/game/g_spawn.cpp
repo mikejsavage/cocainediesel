@@ -538,7 +538,31 @@ static void G_FindTeams( void ) {
 }
 
 void G_PrecacheMedia( void ) {
+	//
+	// MODELS
+	//
+
+	// THIS ORDER MUST MATCH THE DEFINES IN gs_public.h
+	// you can add more, max 255
+
+	trap_ModelIndex( "#gunblade/gunblade.md3" );      // WEAP_GUNBLADE
+	trap_ModelIndex( "#machinegun/machinegun.md3" );    // WEAP_MACHINEGUN
+	trap_ModelIndex( "#riotgun/riotgun.md3" );        // WEAP_RIOTGUN
+	trap_ModelIndex( "#glauncher/glauncher.md3" );    // WEAP_GRENADELAUNCHER
+	trap_ModelIndex( "#rl.md3" );    // WEAP_ROCKETLAUNCHER
+	trap_ModelIndex( "#plasmagun/plasmagun.md3" );    // WEAP_PLASMAGUN
+	trap_ModelIndex( "#lg.md3" );      // WEAP_LASERGUN
+	trap_ModelIndex( "#electrobolt/electrobolt.md3" ); // WEAP_ELECTROBOLT
+
+	//-------------------
+
+	// precache our basic player models, they are just a very few
+	trap_ModelIndex( "$models/players/bigvic" );
+
 	trap_SkinIndex( "models/players/bigvic/default" );
+
+	// FIXME: Temporarily use normal gib until the head is fixed
+	trap_ModelIndex( "models/objects/gibs/gib.md3" );
 }
 
 /*
@@ -818,7 +842,6 @@ static void SP_worldspawn( edict_t *ent ) {
 	VectorClear( ent->s.origin );
 	VectorClear( ent->s.angles );
 	GClip_SetBrushModel( ent, "*0" ); // sets mins / maxs and modelindex 1
-	G_PureModel( "*0" );
 
 	if( st.nextmap ) {
 		Q_strncpyz( level.nextmap, st.nextmap, sizeof( level.nextmap ) );

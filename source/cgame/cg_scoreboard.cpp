@@ -39,7 +39,7 @@ typedef struct {
 /*
 * CG_DrawAlignPic
 */
-static void CG_DrawAlignPic( int x, int y, int width, int height, int align, const vec4_t color, struct shader_s *shader ) {
+static void CG_DrawAlignPic( int x, int y, int width, int height, int align, const vec4_t color, StringHash shader ) {
 	x = CG_HorizontalAlignForWidth( x, align, width );
 	y = CG_VerticalAlignForHeight( y, align, height );
 
@@ -630,7 +630,7 @@ static int SCR_DrawTeamTab( const char **ptrptr, int *curteam, int x, int y, int
 
 typedef struct
 {
-	struct shader_s *image;
+	StringHash image;
 	int x, y;
 	float alpha;
 } scr_playericon_t;
@@ -639,23 +639,12 @@ static scr_playericon_t scr_playericons[128];
 static unsigned scr_numplayericons;
 
 /*
-* SCR_ComparePlayerIcons
-*/
-static int SCR_ComparePlayerIcons( const scr_playericon_t *first, const scr_playericon_t *second ) {
-	return ( ( void * )( first->image ) > ( void * )( second->image ) ) -
-		   ( ( void * )( first->image ) < ( void * )( second->image ) );
-}
-
-/*
 * SCR_DrawPlayerIcons
 */
 static void SCR_DrawPlayerIcons( struct qfontface_s *font ) {
 	if( !scr_numplayericons ) {
 		return;
 	}
-
-	qsort( scr_playericons, scr_numplayericons, sizeof( scr_playericons[0] ),
-		   ( int ( * )( const void *, const void * ) )SCR_ComparePlayerIcons );
 
 	int height = trap_SCR_FontHeight( font );
 	vec4_t color;
@@ -673,11 +662,7 @@ static void SCR_DrawPlayerIcons( struct qfontface_s *font ) {
 /*
 * SCR_AddPlayerIcon
 */
-static void SCR_AddPlayerIcon( struct shader_s *image, int x, int y, float alpha, struct qfontface_s *font ) {
-	if( !image ) {
-		return;
-	}
-
+static void SCR_AddPlayerIcon( StringHash image, int x, int y, float alpha, struct qfontface_s *font ) {
 	scr_playericon_t &icon = scr_playericons[scr_numplayericons++];
 
 	icon.image = image;
@@ -685,7 +670,7 @@ static void SCR_AddPlayerIcon( struct shader_s *image, int x, int y, float alpha
 	icon.y = y;
 	icon.alpha = alpha;
 
-	if( scr_numplayericons >= ( sizeof( scr_playericons ) / sizeof( scr_playericons[0] ) ) ) {
+	if( scr_numplayericons >= ARRAY_COUNT( scr_playericons ) ) {
 		SCR_DrawPlayerIcons( font );
 	}
 }
@@ -700,7 +685,7 @@ static int SCR_DrawPlayerTab( const char **ptrptr, int team, int x, int y, int p
 	int height, width, xoffset, yoffset;
 	vec4_t teamcolor = { 0.0f, 0.0f, 0.0f, 1.0f }, color;
 	int iconnum;
-	struct shader_s *icon;
+	StringHash icon;
 	bool highlight = false, trans = false;
 
 	if( GS_TeamBasedGametype() ) {
@@ -740,7 +725,7 @@ static int SCR_DrawPlayerTab( const char **ptrptr, int team, int x, int y, int p
 		}
 
 		Vector4Copy( colorWhite, color ); // reset to white after each column
-		icon = NULL;
+		icon = EMPTY_HASH;
 		string[0] = 0;
 
 		// interpret the data based on the type defined in the layout
@@ -797,10 +782,7 @@ static int SCR_DrawPlayerTab( const char **ptrptr, int team, int x, int y, int p
 				break;
 
 			case 'p': // is a picture. It uses height for width to get a square
-				iconnum = atoi( token );
-				if( ( iconnum > 0 ) && ( iconnum < MAX_IMAGES ) ) {
-					icon = cgs.imagePrecache[iconnum];
-				}
+				icon = StringHash( strtoull( token, NULL, 10 ) );
 				break;
 
 			case 't': // is a race time. Convert time into MM:SS:mm
@@ -822,7 +804,7 @@ static int SCR_DrawPlayerTab( const char **ptrptr, int team, int x, int y, int p
 
 			case 'r': // is a ready state tick that is hidden when not in warmup
 				if( atoi( token ) ) {
-					icon = CG_MediaShader( cgs.media.shaderVSayIcon[VSAY_YES] );
+					icon = PATH_VSAY_YES_ICON;
 				}
 				break;
 		}
@@ -848,7 +830,7 @@ static int SCR_DrawPlayerTab( const char **ptrptr, int team, int x, int y, int p
 		if( !pass ) {
 			trap_R_DrawStretchPic( x + xoffset, y + yoffset, width, height, 0, 0, 1, 1, teamcolor, cgs.shaderWhite );
 
-			if( icon ) {
+			if( icon != EMPTY_HASH ) {
 				SCR_AddPlayerIcon( icon, x + xoffset, y + yoffset, color[3], font );
 			}
 		}

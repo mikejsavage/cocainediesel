@@ -107,11 +107,8 @@ typedef struct {
 	struct shader_s *( *RegisterPic )( const char *name );
 	struct shader_s *( *RegisterRawPic )( const char *name, int width, int height, uint8_t * data, int samples );
 	struct shader_s *( *RegisterRawAlphaMask )( const char *name, int width, int height, uint8_t * data );
-	struct shader_s *( *RegisterLevelshot )( const char *name, struct shader_s *defaultShader, bool *matchesDefault );
 	struct shader_s *( *RegisterSkin )( const char *name );
 	struct skinfile_s *( *RegisterSkinFile )( const char *name );
-	struct shader_s *( *RegisterVideo )( const char *name );
-	struct shader_s *( *RegisterLinearPic )( const char *name );
 
 	void ( *ReplaceRawSubPic )( struct shader_s *shader, int x, int y, int width, int height, uint8_t *data );
 
@@ -127,9 +124,9 @@ typedef struct {
 	void ( *BlurScreen )( void );
 
 	void ( *DrawStretchPic )( int x, int y, int w, int h, float s1, float t1, float s2, float t2,
-							  const float *color, const struct shader_s *shader );
+							  const float *color, StringHash shader );
 	void ( *DrawRotatedStretchPic )( int x, int y, int w, int h, float s1, float t1, float s2, float t2,
-									 float angle, const vec4_t color, const struct shader_s *shader );
+									 float angle, const vec4_t color, StringHash shader );
 
 	void ( *Scissor )( int x, int y, int w, int h );
 	void ( *ResetScissor )( void );
@@ -145,7 +142,7 @@ typedef struct {
 	int ( *GetClippedFragments )( const vec3_t origin, float radius, vec3_t axis[3], int maxfverts, vec4_t *fverts,
 								  int maxfragments, fragment_t *fragments );
 
-	struct shader_s * ( *GetShaderForOrigin )( const vec3_t origin );
+	StringHash ( *GetShaderForOrigin )( const vec3_t origin );
 
 	void ( *TransformVectorToScreen )( const refdef_t *rd, const vec3_t in, vec2_t out );
 	bool ( *TransformVectorToScreenClamped )( const refdef_t *rd, const vec3_t target, int border, vec2_t out );

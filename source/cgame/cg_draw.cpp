@@ -63,7 +63,7 @@ int CG_HorizontalMovementForAlign( int align ) {
 /*
 * CG_DrawHUDRect
 */
-void CG_DrawHUDRect( int x, int y, int align, int w, int h, int val, int maxval, vec4_t color, struct shader_s *shader ) {
+void CG_DrawHUDRect( int x, int y, int align, int w, int h, int val, int maxval, vec4_t color, StringHash shader ) {
 	float frac;
 	vec2_t tc[2];
 
@@ -71,7 +71,7 @@ void CG_DrawHUDRect( int x, int y, int align, int w, int h, int val, int maxval,
 		return;
 	}
 
-	if( !shader ) {
+	if( shader == EMPTY_HASH ) {
 		shader = cgs.shaderWhite;
 	}
 
@@ -118,13 +118,13 @@ void CG_DrawHUDRect( int x, int y, int align, int w, int h, int val, int maxval,
 /*
 * CG_DrawPicBar
 */
-void CG_DrawPicBar( int x, int y, int width, int height, int align, float percent, struct shader_s *shader, const vec4_t backColor, const vec4_t color ) {
+void CG_DrawPicBar( int x, int y, int width, int height, int align, float percent, StringHash shader, const vec4_t backColor, const vec4_t color ) {
 	float widthFrac, heightFrac;
 
 	x = CG_HorizontalAlignForWidth( x, align, width );
 	y = CG_VerticalAlignForHeight( y, align, height );
 
-	if( !shader ) {
+	if( shader == EMPTY_HASH ) {
 		shader = cgs.shaderWhite;
 	}
 

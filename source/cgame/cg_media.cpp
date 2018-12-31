@@ -95,42 +95,7 @@ void CG_RegisterMediaModels( void ) {
 	cgs.media.modGib = CG_RegisterMediaModel( "models/objects/gibs/gib.md3" );
 }
 
-//======================================================================
-
-cgs_media_handle_t *shader_headnode;
-
-/*
-* CG_RegisterMediaShader
-*/
-static cgs_media_handle_t *CG_RegisterMediaShader( const char *name ) {
-	cgs_media_handle_t *mediashader;
-
-	for( mediashader = shader_headnode; mediashader; mediashader = mediashader->next ) {
-		if( !Q_stricmp( mediashader->name, name ) ) {
-			return mediashader;
-		}
-	}
-
-	mediashader = ( cgs_media_handle_t * )CG_Malloc( sizeof( cgs_media_handle_t ) );
-	mediashader->name = CG_CopyString( name );
-	mediashader->next = shader_headnode;
-	shader_headnode = mediashader;
-
-	mediashader->data = ( void * )trap_R_RegisterPic( mediashader->name );
-
-	return mediashader;
-}
-
-/*
-* CG_MediaShader
-*/
-struct shader_s *CG_MediaShader( cgs_media_handle_t *mediashader ) {
-	if( !mediashader->data ) {
-		mediashader->data = ( void * )trap_R_RegisterPic( mediashader->name );
-	}
-	return ( struct shader_s * )mediashader->data;
-}
-
+#if 0
 /*
 * CG_RegisterMediaShaders
 */
@@ -234,7 +199,7 @@ void CG_RegisterMediaShaders( void ) {
 	cgs.media.shaderVSayIcon[VSAY_OK] = CG_RegisterMediaShader( PATH_VSAY_OK_ICON );
 	cgs.media.shaderVSayIcon[VSAY_SHUTUP] = CG_RegisterMediaShader( PATH_VSAY_SHUTUP_ICON );
 }
-
+#endif
 /*
 * CG_RegisterFonts
 */

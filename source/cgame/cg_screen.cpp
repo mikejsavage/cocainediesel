@@ -212,7 +212,7 @@ void CG_DrawNet( int x, int y, int w, int h, int align, vec4_t color ) {
 	}
 	x = CG_HorizontalAlignForWidth( x, align, w );
 	y = CG_VerticalAlignForHeight( y, align, h );
-	trap_R_DrawStretchPic( x, y, w, h, 0, 0, 1, 1, color, CG_MediaShader( cgs.media.shaderNet ) );
+	trap_R_DrawStretchPic( x, y, w, h, 0, 0, 1, 1, color, "gfx/hud/net" );
 }
 
 /*
@@ -301,7 +301,18 @@ void CG_DrawKeyState( int x, int y, int w, int h, int align, const char *key ) {
 		color[3] = 0.5f;
 	}
 
-	trap_R_DrawStretchPic( x, y, w, h, 0, 0, 1, 1, color, CG_MediaShader( cgs.media.shaderKeyIcon[i] ) );
+	constexpr StringHash icons[] = {
+		PATH_KEYICON_FORWARD,
+		PATH_KEYICON_BACKWARD,
+		PATH_KEYICON_LEFT,
+		PATH_KEYICON_RIGHT,
+		PATH_KEYICON_FIRE,
+		PATH_KEYICON_JUMP,
+		PATH_KEYICON_CROUCH,
+		PATH_KEYICON_SPECIAL,
+	};
+
+	trap_R_DrawStretchPic( x, y, w, h, 0, 0, 1, 1, color, icons[i] );
 }
 
 /*
@@ -528,16 +539,16 @@ void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color ) {
 			y += barseparator;
 
 			// draw the background box
-			CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight + 2 * barseparator, 100, 100, tmpcolor, NULL );
+			CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight + 2 * barseparator, 100, 100, tmpcolor, EMPTY_HASH );
 
 			y += barseparator;
 
 			if( pointed_health <= 33 ) {
-				CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight, pointed_health, 100, alphared, NULL );
+				CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight, pointed_health, 100, alphared, EMPTY_HASH );
 			} else if( pointed_health <= 66 ) {
-				CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight, pointed_health, 100, alphayellow, NULL );
+				CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight, pointed_health, 100, alphayellow, EMPTY_HASH );
 			} else {
-				CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight, pointed_health, 100, alphagreen, NULL );
+				CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight, pointed_health, 100, alphagreen, EMPTY_HASH );
 			}
 		}
 	}
@@ -551,7 +562,6 @@ void CG_DrawTeamMates( void ) {
 	vec3_t dir, drawOrigin;
 	vec2_t coords;
 	vec4_t color;
-	int i;
 	int pic_size = 18 * cgs.vidHeight / 600;
 
 	// don't draw when scoreboard is up
@@ -562,9 +572,8 @@ void CG_DrawTeamMates( void ) {
 		return;
 	}
 
-	for( i = 0; i < gs.maxclients; i++ ) {
+	for( int i = 0; i < gs.maxclients; i++ ) {
 		trace_t trace;
-		cgs_media_handle_t *media;
 
 		if( !cgs.clientInfo[i].name[0] || ISVIEWERENTITY( i + 1 ) ) {
 			continue;
@@ -615,17 +624,14 @@ void CG_DrawTeamMates( void ) {
 
 		CG_TeamColor( cg.predictedPlayerState.stats[STAT_TEAM], color );
 
+		StringHash icon;
 		if( cent->current.effects & EF_CARRIER ) {
-			media = cgs.media.shaderTeamCarrierIndicator;
+			icon = "gfx/indicators/teamcarrier_indicator";
 		} else {
-			media = cgs.media.shaderTeamMateIndicator;
+			icon = "gfx/indicators/teammate_indicator";
 		}
 
-		if( cent->localEffects[LOCALEFFECT_VSAY_HEADICON_TIMEOUT] > cg.time && cent->localEffects[LOCALEFFECT_VSAY_HEADICON] < VSAY_TOTAL ) {
-			media = cgs.media.shaderVSayIcon[cent->localEffects[LOCALEFFECT_VSAY_HEADICON]];
-		}
-
-		trap_R_DrawStretchPic( coords[0], coords[1], pic_size, pic_size, 0, 0, 1, 1, color, CG_MediaShader( media ) );
+		trap_R_DrawStretchPic( coords[0], coords[1], pic_size, pic_size, 0, 0, 1, 1, color, icon );
 	}
 }
 
@@ -800,11 +806,11 @@ void CG_DrawBombHUD() {
 		vec2_t coords;
 		bool clamped = trap_R_TransformVectorToScreenClamped( &cg.view.refdef, bomb.origin, cgs.fontSystemMediumSize * 2, coords );
 
-		cgs_media_handle_t * icon = cgs.media.shaderBombIcon;
+		StringHash icon = "gfx/bomb/carriericon";
 		int icon_size = cgs.fontSystemMediumSize;
 
 		if( !clamped ) {
-			icon = cgs.media.shaderTeamMateIndicator;
+			icon = "gfx/indicators/teammate_indicator";
 			icon_size = cgs.fontSystemMediumSize / 2;
 
 			if( show_labels ) {
@@ -818,7 +824,7 @@ void CG_DrawBombHUD() {
 		}
 
 		icon_size = ( icon_size * cgs.vidHeight ) / 600;
-		trap_R_DrawStretchPic( coords[0] - icon_size / 2, coords[1] - icon_size / 2, icon_size, icon_size, 0, 0, 1, 1, colorWhite, CG_MediaShader( icon ) );
+		trap_R_DrawStretchPic( coords[0] - icon_size / 2, coords[1] - icon_size / 2, icon_size, icon_size, 0, 0, 1, 1, colorWhite, icon );
 	}
 }
 
@@ -903,10 +909,10 @@ void CG_DrawLoading( void ) {
 	const vec4_t color = { 22.0f / 255.0f, 20.0f / 255.0f, 28.0f / 255.0f, 1.0f };
 	trap_R_DrawStretchPic( 0, 0, cgs.vidWidth, cgs.vidHeight, 0.0f, 0.0f, 1.0f, 1.0f, color, cgs.shaderWhite );
 	trap_R_DrawStretchPic( cgs.vidWidth / 2 - ( int )( 375 * scale ), cgs.vidHeight / 2 - ( int )( 128 * scale ),
-						   750 * scale, 256 * scale, 0.0f, 0.0f, 1.0f, 1.0f, colorWhite, trap_R_RegisterPic( UI_SHADER_LOADINGLOGO ) );
+						   750 * scale, 256 * scale, 0.0f, 0.0f, 1.0f, 1.0f, colorWhite, UI_SHADER_LOADINGLOGO );
 
 	if( cgs.precacheCount && cgs.precacheTotal ) {
-		struct shader_s *shader = trap_R_RegisterPic( UI_SHADER_LOADINGBAR );
+		constexpr StringHash shader = UI_SHADER_LOADINGBAR;
 		int width = 700 * scale;
 		int height = 32 * scale;
 		float percent = ( ( float )cgs.precacheCount / ( float )cgs.precacheTotal );

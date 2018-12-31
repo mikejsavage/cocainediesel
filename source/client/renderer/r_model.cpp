@@ -39,7 +39,6 @@ static uint8_t mod_novis[MAX_MAP_LEAFS / 8];
 #define MAX_MOD_KNOWN   512 * MOD_MAX_LODS
 static model_t mod_known[MAX_MOD_KNOWN];
 static int mod_numknown;
-static int modfilelen;
 static bool mod_isworldmodel;
 model_t *r_prevworldmodel;
 static mapconfig_t *mod_mapConfigs;
@@ -133,7 +132,7 @@ static void Mod_SpherePVS_r( mnode_t *node, const vec3_t origin, float radius, c
 */
 uint8_t *Mod_SpherePVS( const vec3_t origin, float radius, mbrushmodel_t *bmodel, uint8_t *fatpvs ) {
 	const dvis_t *vis;
-	
+
 	vis = bmodel->pvs;
 	if( !vis ) {
 		return mod_novis;
@@ -379,7 +378,7 @@ static int R_SortSurfacesCmp( const void *ps1, const void *ps2 ) {
 	const msurface_t *s1 = *( const msurface_t ** ) ps1;
 	const msurface_t *s2 = *( const msurface_t ** ) ps2;
 	int cmp;
-	
+
 	cmp = R_SurfaceCmp( s1, s2 );
 	if( cmp == 0 ) {
 		return s1 - s2;
@@ -583,7 +582,7 @@ static int Mod_CreateSubmodelBufferObjects( model_t *mod, size_t *vbo_total_size
 
 		for( j = 0; j < drawSurf->numWorldSurfaces; j++ ) {
 			unsigned si = drawSurf->worldSurfaces[j];
-			
+
 			surf = loadbmodel->surfaces + si;
 			mesh = &surf->mesh;
 
@@ -868,7 +867,7 @@ model_t *Mod_ForHandle( unsigned int elem ) {
 model_t *Mod_ForName( const char *name, bool crash ) {
 	int i;
 	model_t *mod, *lod;
-	unsigned *buf;
+	void *buf;
 	char shortname[MAX_QPATH], lodname[MAX_QPATH];
 	const char *extension;
 	const modelFormatDescr_t *descr;
@@ -904,8 +903,10 @@ model_t *Mod_ForName( const char *name, bool crash ) {
 	//
 	// load the file
 	//
-	modfilelen = R_LoadFile( name, (void **)&buf );
-	if( !buf && crash ) {
+
+	size_t len;
+	buf = Assets_Data( name, &len );
+	if( buf == NULL && crash ) {
 		ri.Com_Error( ERR_DROP, "Mod_NumForName: %s not found", name );
 	}
 
@@ -937,7 +938,6 @@ model_t *Mod_ForName( const char *name, bool crash ) {
 	}
 
 	descr->loader( mod, NULL, buf, bspFormat );
-	R_FreeFile( buf );
 
 	if( mod->type == mod_bad ) {
 		return NULL;

@@ -79,7 +79,7 @@ static void _LaserImpact( trace_t *trace, vec3_t dir ) {
 		if( laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] + TRAILTIME < cg.time ) {
 			laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] = cg.time;
 
-			CG_HighVelImpactPuffParticles( trace->endpos, trace->plane.normal, 8, 0.5f, color[ 0 ], color[ 1 ], color[ 2 ], color[ 3 ], NULL );
+			CG_HighVelImpactPuffParticles( trace->endpos, trace->plane.normal, 8, 0.5f, color[ 0 ], color[ 1 ], color[ 2 ], color[ 3 ] );
 
 			constexpr StringHash sounds[] = {
 				"sounds/weapons/laser_hit0",
@@ -366,7 +366,7 @@ static void CG_BulletImpact( trace_t *tr ) {
 	}
 
 	// spawn decal
-	CG_SpawnDecal( tr->endpos, tr->plane.normal, random() * 360, 8, 1, 1, 1, 1, 8, 1, false, CG_MediaShader( cgs.media.shaderBulletMark ) );
+	CG_SpawnDecal( tr->endpos, tr->plane.normal, random() * 360, 8, 1, 1, 1, 1, 8, 1, false, "gfx/decals/d_bullet_hit" );
 }
 
 static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int weapon, int seed, int owner ) {
@@ -402,7 +402,7 @@ static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int weapon, int 
 				( trace.ent > 0 && cg_entities[trace.ent].current.type == ET_CORPSE ) ) {
 				// flesh impact sound
 			} else {
-				CG_ImpactPuffParticles( trace.endpos, trace.plane.normal, 1, 0.7, 1, 0.7, 0.0, 1.0, NULL );
+				CG_ImpactPuffParticles( trace.endpos, trace.plane.normal, 1, 0.7, 1, 0.7, 0.0, 1.0 );
 				constexpr StringHash sounds[] = {
 					"sounds/weapons/ric0",
 					"sounds/weapons/ric1",
@@ -1011,10 +1011,6 @@ void CG_EntityEvent( entity_state_t *ent, int ev, uint64_t parm, bool predicted 
 
 		case EV_EXPLOSION2:
 			CG_GenericExplosion( ent->origin, vec3_origin, parm * 16 );
-			break;
-
-		case EV_GREEN_LASER:
-			CG_GreenLaser( ent->origin, ent->origin2 );
 			break;
 
 		case EV_PNODE:

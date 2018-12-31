@@ -2,8 +2,7 @@
 
 #include "qcommon/qcommon.h"
 
-struct shader_s;
-typedef void ( *fdrawchar_t )( int x, int y, int w, int h, float s1, float t1, float s2, float t2, const vec4_t color, const struct shader_s *shader );
+typedef void ( *fdrawchar_t )( int x, int y, int w, int h, float s1, float t1, float s2, float t2, const vec4_t color, StringHash shader );
 
 bool FTLIB_Init();
 void FTLIB_Shutdown();

@@ -753,7 +753,7 @@ void G_Match_FreeBodyQueue( void ) {
 			ent->r.svflags = SVF_NOCLIENT;
 
 			ent->s.type = ET_GENERIC;
-			ent->s.skinnum = 0;
+			ent->s.skin = EMPTY_HASH.hash;
 			ent->s.frame = 0;
 			ent->s.modelindex = 0;
 			ent->s.sound = EMPTY_HASH;

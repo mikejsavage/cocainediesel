@@ -843,7 +843,7 @@ static void CG_DrawObituaries( int x, int y, int align, struct qfontface_s *font
 	unsigned line_height;
 	int xoffset, yoffset;
 	obituary_t *obr;
-	struct shader_s *pic;
+	StringHash pic;
 	vec4_t teamcolor;
 
 	if( !( cg_showObituaries->integer & CG_OBITUARY_HUD ) ) {
@@ -904,37 +904,37 @@ static void CG_DrawObituaries( int x, int y, int align, struct qfontface_s *font
 
 		switch( obr->mod ) {
 			case MOD_GUNBLADE_W:
-				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_GUNBLADE - 1] );
+				pic = PATH_GUNBLADE_ICON;
 				break;
 			case MOD_GUNBLADE_S:
-				pic = CG_MediaShader( cgs.media.shaderGunbladeBlastIcon );
+				pic = PATH_GUNBLADE_BLAST_ICON;
 				break;
 			case MOD_MACHINEGUN:
-				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_MACHINEGUN - 1] );
+				pic = PATH_MACHINEGUN_ICON;
 				break;
 			case MOD_RIOTGUN:
-				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_RIOTGUN - 1] );
+				pic = PATH_RIOTGUN_ICON;
 				break;
 			case MOD_GRENADE:
 			case MOD_GRENADE_SPLASH:
-				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_GRENADELAUNCHER - 1] );
+				pic = PATH_GRENADELAUNCHER_ICON;
 				break;
 			case MOD_ROCKET:
 			case MOD_ROCKET_SPLASH:
-				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_ROCKETLAUNCHER - 1] );
+				pic = PATH_ROCKETLAUNCHER_ICON;
 				break;
 			case MOD_PLASMA:
 			case MOD_PLASMA_SPLASH:
-				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_PLASMAGUN - 1] );
+				pic = PATH_PLASMAGUN_ICON;
 				break;
 			case MOD_ELECTROBOLT:
-				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_ELECTROBOLT - 1] );
+				pic = PATH_ELECTROBOLT_ICON;
 				break;
 			case MOD_LASERGUN:
-				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_LASERGUN - 1] );
+				pic = PATH_LASERGUN_ICON;
 				break;
 			default:
-				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_GUNBLADE - 1] ); // FIXME
+				pic = PATH_GUNBLADE_ICON;
 				break;
 		}
 
@@ -1260,17 +1260,28 @@ static bool CG_IsWeaponSelected( int weapon ) {
 	return ( weapon == cg.predictedPlayerState.stats[STAT_PENDING_WEAPON] );
 }
 
-static struct shader_s *CG_GetWeaponIcon( int weapon ) {
+static struct StringHash CG_GetWeaponIcon( int weapon ) {
 	int currentWeapon = cg.predictedPlayerState.stats[STAT_WEAPON];
 	int weaponState = cg.predictedPlayerState.weaponState;
 
 	if( weapon == WEAP_GUNBLADE && cg.predictedPlayerState.inventory[AMMO_GUNBLADE] ) {
 		if( currentWeapon != WEAP_GUNBLADE || ( weaponState != WEAPON_STATE_REFIRESTRONG && weaponState != WEAPON_STATE_REFIRE ) ) {
-			return CG_MediaShader( cgs.media.shaderGunbladeBlastIcon );
+			return PATH_GUNBLADE_BLAST_ICON;
 		}
 	}
 
-	return CG_MediaShader( cgs.media.shaderWeaponIcon[weapon - WEAP_GUNBLADE] );
+	constexpr StringHash icons[] = {
+		PATH_GUNBLADE_ICON,
+		PATH_MACHINEGUN_ICON,
+		PATH_RIOTGUN_ICON,
+		PATH_GRENADELAUNCHER_ICON,
+		PATH_ROCKETLAUNCHER_ICON,
+		PATH_PLASMAGUN_ICON,
+		PATH_LASERGUN_ICON,
+		PATH_ELECTROBOLT_ICON,
+	};
+
+	return icons[weapon - WEAP_GUNBLADE];
 }
 
 constexpr float SELECTED_WEAPON_Y_OFFSET = 0.0125;
@@ -1432,24 +1443,8 @@ static bool CG_LFuncDrawPicVar( struct cg_layoutnode_s *commandnode, struct cg_l
 	Q_snprintfz( filenm, sizeof( filenm ), filefmt, filenr );
 	x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
 	y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
-	trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, trap_R_RegisterPic( filenm ) );
+	trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, StringHash( filenm ) );
 	return true;
-}
-
-static bool CG_LFuncDrawPicByIndex( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int value = (int)CG_GetNumericArg( &argumentnode );
-	int x, y;
-
-	if( value >= 0 && value < MAX_IMAGES ) {
-		if( cgs.configStrings[CS_IMAGES + value][0] ) {
-			x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
-			y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
-			trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, trap_R_RegisterPic( cgs.configStrings[CS_IMAGES + value] ) );
-			return true;
-		}
-	}
-
-	return false;
 }
 
 static bool CG_LFuncDrawPicByItemIndex( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
@@ -1463,7 +1458,7 @@ static bool CG_LFuncDrawPicByItemIndex( struct cg_layoutnode_s *commandnode, str
 	}
 	x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
 	y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
-	trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, trap_R_RegisterPic( item->icon ) );
+	trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, StringHash( item->icon ) );
 	return true;
 }
 
@@ -1472,40 +1467,32 @@ static bool CG_LFuncDrawPicByName( struct cg_layoutnode_s *commandnode, struct c
 
 	x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
 	y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
-	trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, trap_R_RegisterPic( CG_GetStringArg( &argumentnode ) ) );
+	trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, StringHash( CG_GetStringArg( &argumentnode ) ) );
 	return true;
 }
 
 static bool CG_LFuncDrawSubPicByName( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int x, y;
-	struct shader_s *shader;
-	float s1, t1, s2, t2;
+	int x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
+	int y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
 
-	x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
-	y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
+	StringHash shader = StringHash( CG_GetStringArg( &argumentnode ) );
 
-	shader = trap_R_RegisterPic( CG_GetStringArg( &argumentnode ) );
-
-	s1 = CG_GetNumericArg( &argumentnode );
-	t1 = CG_GetNumericArg( &argumentnode );
-	s2 = CG_GetNumericArg( &argumentnode );
-	t2 = CG_GetNumericArg( &argumentnode );
+	float s1 = CG_GetNumericArg( &argumentnode );
+	float t1 = CG_GetNumericArg( &argumentnode );
+	float s2 = CG_GetNumericArg( &argumentnode );
+	float t2 = CG_GetNumericArg( &argumentnode );
 
 	trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, s1, t1, s2, t2, layout_cursor_color, shader );
 	return true;
 }
 
 static bool CG_LFuncDrawRotatedPicByName( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int x, y;
-	struct shader_s *shader;
-	float angle;
+	int x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
+	int y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
 
-	x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
-	y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
+	StringHash shader = StringHash( CG_GetStringArg( &argumentnode ) );
 
-	shader = trap_R_RegisterPic( CG_GetStringArg( &argumentnode ) );
-
-	angle = CG_GetNumericArg( &argumentnode );
+	float angle = CG_GetNumericArg( &argumentnode );
 
 	trap_R_DrawRotatedStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, angle, layout_cursor_color, shader );
 	return true;
@@ -1945,7 +1932,7 @@ static bool CG_LFuncDrawBar( struct cg_layoutnode_s *commandnode, struct cg_layo
 	int maxvalue = (int)CG_GetNumericArg( &argumentnode );
 	CG_DrawHUDRect( layout_cursor_x, layout_cursor_y, layout_cursor_align,
 					layout_cursor_width, layout_cursor_height, value, maxvalue,
-					layout_cursor_color, NULL );
+					layout_cursor_color, EMPTY_HASH );
 	return true;
 }
 
@@ -1955,7 +1942,7 @@ static bool CG_LFuncDrawPicBar( struct cg_layoutnode_s *commandnode, struct cg_l
 
 	CG_DrawHUDRect( layout_cursor_x, layout_cursor_y, layout_cursor_align,
 					layout_cursor_width, layout_cursor_height, value, maxvalue,
-					layout_cursor_color, trap_R_RegisterPic( CG_GetStringArg( &argumentnode ) ) );
+					layout_cursor_color, StringHash( CG_GetStringArg( &argumentnode ) ) );
 	return true;
 }
 
@@ -2019,12 +2006,9 @@ static bool CG_LFuncDrawNet( struct cg_layoutnode_s *commandnode, struct cg_layo
 }
 
 static bool CG_LFuncDrawChat( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int padding_x, padding_y;
-	struct shader_s *shader;
-
-	padding_x = (int)( CG_GetNumericArg( &argumentnode ) ) * cgs.vidWidth / 800;
-	padding_y = (int)( CG_GetNumericArg( &argumentnode ) ) * cgs.vidHeight / 600;
-	shader = trap_R_RegisterPic( CG_GetStringArg( &argumentnode ) );
+	int padding_x = (int)( CG_GetNumericArg( &argumentnode ) ) * cgs.vidWidth / 800;
+	int padding_y = (int)( CG_GetNumericArg( &argumentnode ) ) * cgs.vidHeight / 600;
+	StringHash shader = StringHash( CG_GetStringArg( &argumentnode ) );
 
 	CG_DrawChat( &cg.chat, layout_cursor_x, layout_cursor_y, layout_cursor_font_name, CG_GetLayoutCursorFont(), layout_cursor_font_size,
 				 layout_cursor_width, layout_cursor_height, padding_x, padding_y, layout_cursor_color, shader );
@@ -2361,14 +2345,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		3,
 		"Draws the game chat messages",
 		false
-	},
-
-	{
-		"drawPicByIndex",
-		CG_LFuncDrawPicByIndex,
-		1,
-		"Draws a pic with argument as imageIndex",
-		true
 	},
 
 	{
@@ -3263,21 +3239,6 @@ static char *CG_LoadHUDFile( char *path ) {
 						rec_fn[rec_lvl] = NULL;
 						rec_lvl--;
 					}
-				}
-			}
-		} else if( !Q_stricmp( "precache", token ) ) {
-			// Handle graphics precaching
-			if( rec_ptr[rec_lvl] == NULL ) {
-				CG_Printf( "HUD: ERROR: EOF instead of file argument for preload\n" );
-			} else {
-				token = COM_ParseExt2( ( const char ** )&rec_ptr[rec_lvl], false, false );
-				if( ( token ) && ( token[0] != '\0' ) ) {
-					if( developer->integer ) {
-						CG_Printf( "HUD: INFO: Precaching image '%s'\n", token );
-					}
-					trap_R_RegisterPic( token );
-				} else {
-					CG_Printf( "HUD: ERROR: Missing argument for preload\n" );
 				}
 			}
 		} else if( ( len = strlen( token ) ) > 0 ) {

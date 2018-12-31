@@ -23,9 +23,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_DECAL_VERTS     64
 #define MAX_DECAL_FRAGMENTS 64
 
-typedef struct cdecal_s
+struct cdecal_t
 {
-	struct cdecal_s *prev, *next;
+	struct cdecal_t *prev, *next;
 
 	int64_t die;                   // remove after this time
 	int64_t fadetime;
@@ -33,10 +33,10 @@ typedef struct cdecal_s
 	bool fadealpha;
 
 	float color[4];
-	struct shader_s *shader;
+	StringHash shader;
 
 	poly_t *poly;
-} cdecal_t;
+};
 
 static cdecal_t cg_decals[MAX_DECALS];
 static cdecal_t cg_decals_headnode, *cg_free_decals;
@@ -117,7 +117,7 @@ static void CG_FreeDecal( cdecal_t *dl ) {
 * CG_SpawnDecal
 */
 int CG_SpawnDecal( const vec3_t origin, const vec3_t dir, float orient, float radius,
-				   float r, float g, float b, float a, float die, float fadetime, bool fadealpha, struct shader_s *shader ) {
+				   float r, float g, float b, float a, float die, float fadetime, bool fadealpha, StringHash shader ) {
 	int i, j;
 	cdecal_t *dl;
 	poly_t *poly;

@@ -322,7 +322,7 @@ static const SoundAsset * S_HashToAsset( StringHash sound ) {
 
 static bool S_StartSound( StringHash sound, const vec3_t origin, int ent_num, int channel, float volume, float attenuation, SoundType type ) {
 	const SoundAsset * asset = S_HashToAsset( sound );
-	if( asset == NULL ) {
+	if( asset == NULL && sound.str != NULL ) {
 		printf( "Can't find sound %s %lu\n", sound.str, sound.hash );
 		return false;
 	}

@@ -354,86 +354,6 @@ static void CG_RegisterModels( void ) {
 }
 
 /*
-* CG_RegisterShaders
-*/
-static void CG_RegisterShaders( void ) {
-	int i;
-	const char *name;
-
-	if( cgs.precacheShadersStart == MAX_IMAGES ) {
-		return;
-	}
-
-	if( !cgs.precacheShadersStart ) {
-		CG_LoadingString( "shaders" );
-
-		cgs.precacheShadersStart = 1;
-	}
-
-	for( i = cgs.precacheShadersStart; i < MAX_IMAGES; i++ ) {
-		name = cgs.configStrings[CS_IMAGES + i];
-		if( !name[0] ) {
-			cgs.precacheShadersStart = MAX_IMAGES;
-			break;
-		}
-
-		cgs.precacheShadersStart = i;
-
-		if( !CG_LoadingItemName( name ) ) {
-			return;
-		}
-
-		if( strstr( name, "correction/" ) ) { // HACK HACK HACK -- for color correction LUTs
-			cgs.imagePrecache[i] = trap_R_RegisterLinearPic( name );
-		} else {
-			cgs.imagePrecache[i] = trap_R_RegisterPic( name );
-		}
-	}
-
-	if( cgs.precacheShadersStart != MAX_IMAGES ) {
-		return;
-	}
-
-	CG_RegisterMediaShaders();
-}
-
-/*
-* CG_RegisterSkinfiles
-*/
-static void CG_RegisterSkinFiles( void ) {
-	int i;
-	const char *name;
-
-	if( cgs.precacheSkinsStart == MAX_SKINFILES ) {
-		return;
-	}
-
-	if( !cgs.precacheSkinsStart ) {
-		CG_LoadingString( "skins" );
-
-		cgs.precacheSkinsStart = 1;
-	}
-
-	for( i = cgs.precacheSkinsStart; i < MAX_SKINFILES; i++ ) {
-		name = cgs.configStrings[CS_SKINFILES + i];
-		if( !name[0] ) {
-			cgs.precacheSkinsStart = MAX_SKINFILES;
-			break;
-		}
-
-		cgs.precacheSkinsStart = i;
-
-		if( !CG_LoadingItemName( name ) ) {
-			return;
-		}
-
-		cgs.skinPrecache[i] = trap_R_RegisterSkinFile( name );
-	}
-
-	cgs.precacheSkinsStart = MAX_SKINFILES;
-}
-
-/*
 * CG_RegisterClients
 */
 static void CG_RegisterClients( void ) {
@@ -659,16 +579,6 @@ void CG_Precache( void ) {
 		return;
 	}
 
-	CG_RegisterShaders();
-	if( cgs.precacheShadersStart < MAX_IMAGES ) {
-		return;
-	}
-
-	CG_RegisterSkinFiles();
-	if( cgs.precacheSkinsStart < MAX_SKINFILES ) {
-		return;
-	}
-
 	CG_RegisterClients();
 	if( cgs.precacheClientsStart < MAX_CLIENTS ) {
 		return;
@@ -829,7 +739,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	// register fonts here so loading screen works
 	CG_RegisterFonts();
-	cgs.shaderWhite = trap_R_RegisterPic( "$whiteimage" );
 
 	CG_RegisterCGameCommands();
 

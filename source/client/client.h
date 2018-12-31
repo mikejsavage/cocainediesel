@@ -20,7 +20,6 @@
 // client.h -- primary header for client
 
 #include "qcommon/qcommon.h"
-#include "qalgo/hash.h"
 #include "renderer/r_public.h"
 #include "cgame/cg_public.h"
 #include "ftlib/ftlib_public.h"
@@ -227,10 +226,6 @@ typedef struct {
 
 	// demo recording info must be here, so it isn't cleared on level change
 	cl_demo_t demo;
-
-	// these shaders have nothing to do with media
-	shader_t *whiteShader;
-	shader_t *consoleShader;
 
 	// system font
 	qfontface_t *consoleFont;

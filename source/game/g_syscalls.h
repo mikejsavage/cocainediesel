@@ -50,6 +50,9 @@ static inline const char *trap_GetConfigString( int num ) {
 	return GAME_IMPORT.GetConfigString( num );
 }
 
+static inline int trap_ModelIndex( const char *name ) {
+	return GAME_IMPORT.ModelIndex( name );
+}
 static inline int trap_SkinIndex( const char *name ) {
 	return GAME_IMPORT.SkinIndex( name );
 }

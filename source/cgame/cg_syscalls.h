@@ -197,7 +197,7 @@ static inline int trap_R_GetClippedFragments( const vec3_t origin, float radius,
 											   maxfverts, fverts, maxfragments, fragments );
 }
 
-static inline struct shader_s *trap_R_GetShaderForOrigin( const vec3_t origin ) {
+static inline StringHash trap_R_GetShaderForOrigin( const vec3_t origin ) {
 	return CGAME_IMPORT.R_GetShaderForOrigin( origin );
 }
 
@@ -245,37 +245,6 @@ static inline void trap_R_ModelFrameBounds( const struct model_s *mod, int frame
 	CGAME_IMPORT.R_ModelFrameBounds( mod, frame, mins, maxs );
 }
 
-static inline struct shader_s *trap_R_RegisterPic( const char *name ) {
-	return CGAME_IMPORT.R_RegisterPic( name );
-}
-
-static inline struct shader_s *trap_R_RegisterRawPic( const char *name, int width, int height, uint8_t *data, int samples ) {
-	return CGAME_IMPORT.R_RegisterRawPic( name, width, height, data, samples );
-}
-
-static inline struct shader_s *trap_R_RegisterLevelshot( const char *name, struct shader_s *defaultPic, bool *matchesDefault ) {
-	bool matchesDefault_;
-	struct shader_s *s = CGAME_IMPORT.R_RegisterLevelshot( name, defaultPic, &matchesDefault_ );
-	*matchesDefault = matchesDefault_ == true ? true : false;
-	return s;
-}
-
-static inline struct shader_s *trap_R_RegisterSkin( const char *name ) {
-	return CGAME_IMPORT.R_RegisterSkin( name );
-}
-
-static inline struct skinfile_s *trap_R_RegisterSkinFile( const char *name ) {
-	return CGAME_IMPORT.R_RegisterSkinFile( name );
-}
-
-static inline struct shader_s *trap_R_RegisterVideo( const char *name ) {
-	return CGAME_IMPORT.R_RegisterVideo( name );
-}
-
-static inline struct shader_s *trap_R_RegisterLinearPic( const char *name ) {
-	return CGAME_IMPORT.R_RegisterLinearPic( name );
-}
-
 static inline bool trap_R_LerpTag( orientation_t *orient, const struct model_s *mod, int oldframe, int frame, float lerpfrac, const char *name ) {
 	return CGAME_IMPORT.R_LerpTag( orient, mod, oldframe, frame, lerpfrac, name ) == true;
 }
@@ -284,11 +253,11 @@ static inline void trap_R_SetCustomColor( int num, int r, int g, int b ) {
 	CGAME_IMPORT.R_SetCustomColor( num, r, g, b );
 }
 
-static inline void trap_R_DrawStretchPic( int x, int y, int w, int h, float s1, float t1, float s2, float t2, const vec4_t color, struct shader_s *shader ) {
+static inline void trap_R_DrawStretchPic( int x, int y, int w, int h, float s1, float t1, float s2, float t2, const vec4_t color, StringHash shader ) {
 	CGAME_IMPORT.R_DrawStretchPic( x, y, w, h, s1, t1, s2, t2, color, shader );
 }
 
-static inline void trap_R_DrawRotatedStretchPic( int x, int y, int w, int h, float s1, float t1, float s2, float t2, float angle, const vec4_t color, const struct shader_s *shader ) {
+static inline void trap_R_DrawRotatedStretchPic( int x, int y, int w, int h, float s1, float t1, float s2, float t2, float angle, const vec4_t color, StringHash shader ) {
 	CGAME_IMPORT.R_DrawRotatedStretchPic( x, y, w, h, s1, t1, s2, t2, angle, color, shader );
 }
 

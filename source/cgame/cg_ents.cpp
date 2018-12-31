@@ -556,15 +556,15 @@ static void CG_AddLinkedModel( centity_t *cent ) {
 	ent.shaderTime = cent->ent.shaderTime;
 	Vector4Copy( cent->ent.shaderRGBA, ent.shaderRGBA );
 	ent.model = model;
-	ent.customShader = NULL;
-	ent.customSkin = NULL;
+	ent.customShader = EMPTY_HASH;
+	ent.customSkin = EMPTY_HASH;
 	VectorCopy( cent->ent.origin, ent.origin );
 	VectorCopy( cent->ent.origin, ent.origin2 );
 	VectorCopy( cent->ent.lightingOrigin, ent.lightingOrigin );
 	Matrix3_Copy( cent->ent.axis, ent.axis );
 
 	if( cent->item && ( cent->effects & EF_AMMOBOX ) ) { // ammobox icon hack
-		ent.customShader = trap_R_RegisterPic( cent->item->icon );
+		ent.customShader = StringHash( cent->item->icon );
 	}
 
 	CG_AddColoredOutLineEffect( &ent, cent->effects,
@@ -965,7 +965,7 @@ static void CG_UpdateSpriteEnt( centity_t *cent ) {
 	// set up the model
 	cent->ent.rtype = RT_SPRITE;
 	cent->ent.model = NULL;
-	cent->ent.customShader = cgs.imagePrecache[ cent->current.modelindex ];
+	cent->ent.customShader = StringHash( cent->current.eventParms[0] );
 	cent->ent.radius = cent->prev.frame;
 	VectorCopy( cent->prev.origin, cent->ent.origin );
 	VectorCopy( cent->prev.origin, cent->ent.origin2 );
@@ -1023,7 +1023,7 @@ static void CG_UpdateDecalEnt( centity_t *cent ) {
 
 	// set up the null model, may be potentially needed for linked model
 	cent->ent.model = NULL;
-	cent->ent.customShader = cgs.imagePrecache[ cent->current.modelindex ];
+	cent->ent.customShader = StringHash( cent->current.eventParms[0] );
 	cent->ent.radius = cent->prev.frame;
 	cent->ent.rotation = cent->prev.modelindex2 / 255.0 * 360;
 	VectorCopy( cent->prev.origin, cent->ent.origin );
@@ -1064,8 +1064,7 @@ static void CG_UpdateItemEnt( centity_t *cent ) {
 			cent->effects &= ~EF_ROTATE_AND_BOB;
 		}
 
-		cent->ent.customShader = NULL;
-		cent->ent.customShader = trap_R_RegisterPic( cent->item->simpleitem );
+		cent->ent.customShader = StringHash( cent->item->simpleitem );
 	} else {
 		cent->ent.rtype = RT_MODEL;
 		cent->ent.frame = cent->current.frame;
@@ -1144,7 +1143,7 @@ static void CG_AddItemEnt( centity_t *cent ) {
 * CG_AddBeamEnt
 */
 static void CG_AddBeamEnt( centity_t *cent ) {
-	CG_QuickPolyBeam( cent->current.origin, cent->current.origin2, cent->current.frame * 0.5f, CG_MediaShader( cgs.media.shaderLaser ) ); // wsw : jalfixme: missing the color (comes inside cent->current.colorRGBA)
+	CG_QuickPolyBeam( cent->current.origin, cent->current.origin2, cent->current.frame * 0.5f, "gfx/misc/laser" );
 }
 
 //==========================================================================
@@ -1321,7 +1320,7 @@ void CG_UpdateParticlesEnt( centity_t *cent ) {
 
 	// set up the data in the old position
 	cent->ent.model = NULL;
-	cent->ent.customShader = cgs.imagePrecache[ cent->current.modelindex ];
+	cent->ent.customShader = StringHash( cent->current.eventParms[0] );
 	VectorCopy( cent->prev.origin, cent->ent.origin );
 	VectorCopy( cent->prev.origin2, cent->ent.origin2 );
 }

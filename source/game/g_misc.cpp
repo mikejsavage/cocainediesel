@@ -68,7 +68,7 @@ void ThrowClientHead( edict_t *self, int damage ) {
 
 	self->s.modelindex = 1;
 	self->s.modelindex2 = 0;
-	self->s.skinnum = 0;
+	self->s.skin = EMPTY_HASH;
 
 	self->s.origin[2] += 32;
 	self->s.frame = 0;

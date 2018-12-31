@@ -55,7 +55,6 @@ enum {
 	LOCALEFFECT_ROCKETFIRE_LAST_DROP,
 	LOCALEFFECT_GRENADETRAIL_LAST_DROP,
 	LOCALEFFECT_BLOODTRAIL_LAST_DROP,
-	LOCALEFFECT_FLAGTRAIL_LAST_DROP,
 	LOCALEFFECT_LASERBEAM,
 	LOCALEFFECT_LASERBEAM_SMOKE_TRAIL,
 	LOCALEFFECT_EV_WEAPONBEAM,
@@ -149,6 +148,7 @@ typedef struct {
 	cgs_media_handle_t *modElectroBoltWallHit;
 
 	cgs_media_handle_t *modLasergunWallExplo;
+<<<<<<< HEAD
 
 	cgs_media_handle_t *shaderParticle;
 	cgs_media_handle_t *shaderRocketExplosion;
@@ -199,6 +199,8 @@ typedef struct {
 	cgs_media_handle_t *shaderKeyIcon[KEYICON_TOTAL];
 
 	cgs_media_handle_t *shaderVSayIcon[VSAY_TOTAL];
+=======
+>>>>>>> WIP
 } cgs_media_t;
 
 typedef struct bonenode_s {
@@ -253,7 +255,7 @@ typedef struct {
 	char cleanname[MAX_QPATH];
 	int hand;
 	byte_vec4_t color;
-	struct shader_s *icon;
+	StringHash icon;
 } cg_clientInfo_t;
 
 #define MAX_ANGLES_KICKS 3
@@ -310,7 +312,7 @@ typedef struct {
 	unsigned int playerNum;
 
 	// shaders
-	struct shader_s *shaderWhite;
+	StringHash shaderWhite;
 
 	// AngelScript
 	struct angelwrap_api_s *asExport;
@@ -386,15 +388,12 @@ typedef struct {
 
 	struct pmodelinfo_s *pModelsIndex[MAX_MODELS];
 	struct pmodelinfo_s *basePModelInfo; //fall back replacements
-	struct skinfile_s *baseSkin;
+	StringHash baseSkin;
 
 	// force models
 	struct pmodelinfo_s *teamModelInfo[2];
-	struct skinfile_s *teamCustomSkin[2]; // user defined
+	StringHash teamCustomSkin[2]; // user defined
 	int teamColor[2];
-
-	struct shader_s *imagePrecache[MAX_IMAGES];
-	struct skinfile_s *skinPrecache[MAX_SKINFILES];
 
 	int precacheModelsStart;
 	int precacheSoundsStart;
@@ -560,21 +559,24 @@ int CG_HorizontalAlignForWidth( const int x, int align, int width );
 int CG_VerticalAlignForHeight( const int y, int align, int height );
 int CG_HorizontalMovementForAlign( int align );
 
+<<<<<<< HEAD
 void CG_DrawHUDRect( int x, int y, int align, int w, int h, int val, int maxval, vec4_t color, struct shader_s *shader );
 void CG_DrawPicBar( int x, int y, int width, int height, int align, float percent, struct shader_s *shader, const vec4_t backColor, const vec4_t color );
+=======
+void CG_DrawHUDModel( int x, int y, int align, int w, int h, struct model_s *model, StringHash shader, float yawspeed );
+void CG_DrawHUDRect( int x, int y, int align, int w, int h, int val, int maxval, vec4_t color, StringHash shader );
+void CG_DrawPicBar( int x, int y, int width, int height, int align, float percent, StringHash shader, const vec4_t backColor, const vec4_t color );
+>>>>>>> WIP
 
 //
 // cg_media.c
 //
-void CG_RegisterMediaSounds( void );
 void CG_RegisterMediaModels( void );
-void CG_RegisterMediaShaders( void );
 void CG_RegisterFonts( void );
 
 struct model_s *CG_RegisterModel( const char *name );
 
 struct model_s *CG_MediaModel( cgs_media_handle_t *mediamodel );
-struct shader_s *CG_MediaShader( cgs_media_handle_t *mediashader );
 
 //
 // cg_players.c
@@ -776,7 +778,7 @@ void CG_SC_AutoRecordAction( const char *action );
 void CG_RegisterTeamColor( int team );
 void CG_RegisterForceModels( void );
 void CG_SetSceneTeamColors( void );
-void CG_PModelForCentity( centity_t *cent, pmodelinfo_t **pmodelinfo, struct skinfile_s **skin );
+void CG_PModelForCentity( centity_t *cent, pmodelinfo_t **pmodelinfo, StringHash *skin );
 void CG_TeamColor( int team, vec4_t color );
 void CG_TeamColorForEntity( int entNum, byte_vec4_t color );
 
@@ -822,12 +824,9 @@ void CG_FreeLocalEntities( void );
 
 void CG_BulletExplosion( const vec3_t origin, const vec_t *dir, const trace_t *trace );
 void CG_BubbleTrail( const vec3_t start, const vec3_t end, int dist );
-void CG_Explosion1( const vec3_t pos );
-void CG_Explosion2( const vec3_t pos );
 void CG_ProjectileTrail( centity_t *cent );
 void CG_NewBloodTrail( centity_t *cent );
 void CG_BloodDamageEffect( const vec3_t origin, const vec3_t dir, int damage, int team );
-void CG_FlagTrail( const vec3_t origin, const vec3_t start, const vec3_t end, float r, float g, float b );
 void CG_GreenLaser( const vec3_t start, const vec3_t end );
 void CG_SmallPileOfGibs( const vec3_t origin, int damage, const vec3_t initialVelocity, int team );
 void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, int team, float radius );
@@ -843,7 +842,7 @@ void CG_PModel_SpawnTeleportEffect( centity_t *cent );
 void CG_SpawnSprite( const vec3_t origin, const vec3_t velocity, const vec3_t accel,
 					 float radius, int time, int bounce, bool expandEffect, bool shrinkEffect,
 					 float r, float g, float b, float a,
-					 float light, float lr, float lg, float lb, struct shader_s *shader );
+					 float light, float lr, float lg, float lb, StringHash shader );
 void CG_LaserGunImpact( const vec3_t pos, float radius, const vec3_t laser_dir, const vec4_t color );
 
 void CG_Dash( const entity_state_t *state );
@@ -859,7 +858,7 @@ extern cvar_t *cg_addDecals;
 
 void CG_ClearDecals( void );
 int CG_SpawnDecal( const vec3_t origin, const vec3_t dir, float orient, float radius,
-				   float r, float g, float b, float a, float die, float fadetime, bool fadealpha, struct shader_s *shader );
+				   float r, float g, float b, float a, float die, float fadetime, bool fadealpha, StringHash shader );
 void CG_AddDecals( void );
 
 //
@@ -868,7 +867,7 @@ void CG_AddDecals( void );
 void CG_ClearPolys( void );
 void CG_AddPolys( void );
 void CG_KillPolyBeamsByTag( int key );
-void CG_QuickPolyBeam( const vec3_t start, const vec3_t end, int width, struct shader_s *shader );
+void CG_QuickPolyBeam( const vec3_t start, const vec3_t end, int width, StringHash shader );
 void CG_LGPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color, int tag );
 void CG_EBPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color );
 void CG_PLink( const vec3_t start, const vec3_t end, const vec4_t color, int flags );
@@ -885,7 +884,7 @@ void CG_AddPlayerShadows( void );
 
 void CG_ClearFragmentedDecals( void );
 void CG_AddFragmentedDecal( vec3_t origin, vec3_t dir, float orient, float radius,
-							float r, float g, float b, float a, struct shader_s *shader );
+							float r, float g, float b, float a, StringHash shader );
 
 void CG_AddParticles( void );
 void CG_ParticleEffect( const vec3_t org, const vec3_t dir, float r, float g, float b, int count );
@@ -894,8 +893,8 @@ void CG_ParticleExplosionEffect( const vec3_t org, const vec3_t dir, float r, fl
 void CG_BlasterTrail( const vec3_t start, const vec3_t end );
 void CG_FlyEffect( centity_t *ent, const vec3_t origin );
 void CG_EBIonsTrail( const vec3_t start, const vec3_t end, const vec4_t color );
-void CG_ImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, struct shader_s *shader );
-void CG_HighVelImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, struct shader_s *shader );
+void CG_ImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a );
+void CG_HighVelImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a );
 
 //
 // cg_test.c - debug only
@@ -937,7 +936,7 @@ void CG_LaserBeamEffect( centity_t *cent );
 void CG_InitChat( cg_gamechat_t *chat );
 void CG_StackChatString( cg_gamechat_t *chat, const char *str );
 void CG_DrawChat( cg_gamechat_t *chat, int x, int y, char *fontName, struct qfontface_s *font, int fontSize,
-				  int width, int height, int padding_x, int padding_y, vec4_t backColor, struct shader_s *backShader );
+				  int width, int height, int padding_x, int padding_y, vec4_t backColor, StringHash backShader );
 
 //
 // cg_ascript.cpp

@@ -998,10 +998,10 @@ bool GClip_EntityContact( const vec3_t mins, const vec3_t maxs, edict_t *ent ) {
 		trap_CM_TransformedBoxTrace( &tr, vec3_origin, vec3_origin, mins, maxs, model,
 									 MASK_ALL, ent->s.origin, ent->s.angles );
 
-		return tr.startsolid || tr.allsolid ? true : false;
+		return tr.startsolid || tr.allsolid;
 	}
 
-	return ( BoundsOverlap( mins, maxs, ent->r.absmin, ent->r.absmax ) ) == true;
+	return BoundsOverlap( mins, maxs, ent->r.absmin, ent->r.absmax );
 }
 
 

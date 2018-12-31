@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // cl_null.c -- this file can stub out the entire client system
 // for pure dedicated servers
 
-#include "../qcommon/qcommon.h"
+#include "qcommon/qcommon.h"
 
 bool con_initialized;
 
@@ -110,11 +110,7 @@ size_t SCR_StrlenForWidth( const char *str, struct qfontface_s *font, size_t max
 	return 0;
 }
 
-struct shader_s *SCR_RegisterPic( const char *name ) {
-	return NULL;
-}
-
-void SCR_DrawStretchPic( int x, int y, int w, int h, float s1, float t1, float s2, float t2, const float *color, const struct shader_s *shader ) {
+void SCR_DrawStretchPic( int x, int y, int w, int h, float s1, float t1, float s2, float t2, const float *color, StringHash shader ) {
 }
 
 unsigned int SCR_GetScreenWidth( void ) {

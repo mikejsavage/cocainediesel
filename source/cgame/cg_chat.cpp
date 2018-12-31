@@ -48,7 +48,7 @@ void CG_StackChatString( cg_gamechat_t *chat, const char *str ) {
 ** CG_DrawChat
 */
 void CG_DrawChat( cg_gamechat_t *chat, int x, int y, char *fontName, struct qfontface_s *font, int fontSize,
-				  int width, int height, int padding_x, int padding_y, vec4_t backColor, struct shader_s *backShader ) {
+				  int width, int height, int padding_x, int padding_y, vec4_t backColor, StringHash backShader ) {
 	int i, j;
 	int s, e, w;
 	int utf_len;

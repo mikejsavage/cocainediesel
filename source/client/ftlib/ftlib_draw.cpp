@@ -101,7 +101,7 @@ size_t FTLIB_StringWidth( const char *str, qfontface_t *font, size_t maxlen, int
 					glyph = FTLIB_GetGlyph( font, num );
 				}
 
-				if( !glyph->shader ) {
+				if( glyph->shader == EMPTY_HASH ) {
 					renderString( font, olds );
 				}
 
@@ -170,7 +170,7 @@ size_t FTLIB_StrlenForWidth( const char *str, qfontface_t *font, size_t maxwidth
 				glyph = FTLIB_GetGlyph( font, num );
 			}
 
-			if( !glyph->shader ) {
+			if( glyph->shader == EMPTY_HASH ) {
 				renderString( font, olds );
 			}
 
@@ -276,7 +276,7 @@ void FTLIB_DrawRawChar( int x, int y, wchar_t num, qfontface_t *font, const vec4
 		glyph = FTLIB_GetGlyph( font, num );
 	}
 
-	if( !glyph->shader ) {
+	if( glyph->shader == EMPTY_HASH ) {
 		font->f->renderString( font, Q_WCharToUtf8Char( num ) );
 	}
 
@@ -317,7 +317,7 @@ void FTLIB_DrawClampChar( int x, int y, wchar_t num, int xmin, int ymin, int xma
 		glyph = FTLIB_GetGlyph( font, num );
 	}
 
-	if( !glyph->shader ) {
+	if( glyph->shader == EMPTY_HASH ) {
 		font->f->renderString( font, Q_WCharToUtf8Char( num ) );
 	}
 
@@ -412,7 +412,7 @@ void FTLIB_DrawClampString( int x, int y, const char *str, int xmin, int ymin, i
 				glyph = FTLIB_GetGlyph( font, num );
 			}
 
-			if( !glyph->shader ) {
+			if( glyph->shader == EMPTY_HASH ) {
 				renderString( font, olds );
 			}
 
@@ -485,7 +485,7 @@ size_t FTLIB_DrawRawString( int x, int y, const char *str, size_t maxwidth, int 
 				glyph = FTLIB_GetGlyph( font, num );
 			}
 
-			if( !glyph->shader ) {
+			if( glyph->shader == EMPTY_HASH ) {
 				renderString( font, olds );
 			}
 
@@ -604,7 +604,7 @@ int FTLIB_DrawMultilineString( int x, int y, const char *str, int halign, int ma
 					glyph = FTLIB_GetGlyph( font, num );
 				}
 
-				if( !glyph->shader ) {
+				if( glyph->shader == EMPTY_HASH ) {
 					renderString( font, oldstr );
 				}
 

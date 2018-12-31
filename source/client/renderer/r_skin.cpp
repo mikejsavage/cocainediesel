@@ -63,12 +63,12 @@ static void SkinFile_FreeSkinFile( skinfile_t *skinfile ) {
 /*
 * R_FindShaderForSkinFile
 */
-shader_t *R_FindShaderForSkinFile( const skinfile_t *skinfile, const char *meshname ) {
+StringHash R_FindShaderForSkinFile( StringHash skinfile, const char *meshname ) {
 	int i;
 	mesh_shader_pair_t *pair;
 
 	if( !skinfile || !skinfile->numpairs ) {
-		return NULL;
+		return EMPTY_HASH;
 	}
 
 	for( i = 0, pair = skinfile->pairs; i < skinfile->numpairs; i++, pair++ ) {
@@ -77,7 +77,7 @@ shader_t *R_FindShaderForSkinFile( const skinfile_t *skinfile, const char *meshn
 		}
 	}
 
-	return NULL;
+	return EMPTY_HASH;
 }
 
 /*

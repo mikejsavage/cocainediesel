@@ -484,9 +484,9 @@ bool R_ScissorForCorners( const refinst_t *rnp, vec3_t corner[8], int *scissor )
 bool R_ScissorForBBox( const refinst_t *rnp, vec3_t mins, vec3_t maxs, int *scissor );
 
 void R_DrawStretchPic( int x, int y, int w, int h, float s1, float t1, float s2, float t2,
-							  const vec4_t color, const shader_t *shader );
+							  const vec4_t color, StringHash shader );
 void R_DrawRotatedStretchPic( int x, int y, int w, int h, float s1, float t1, float s2, float t2,
-									 float angle, const vec4_t color, const shader_t *shader );
+									 float angle, const vec4_t color, StringHash shader );
 void R_DrawStretchQuick( int x, int y, int w, int h, float s1, float t1, float s2, float t2,
 								const vec4_t color, int program_type, image_t *image, int blendMask );
 

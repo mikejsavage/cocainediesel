@@ -199,7 +199,7 @@ static int QFT_GetKerning( qfontface_t *qfont, qglyph_t *g1_, qglyph_t *g2_ ) {
 /*
 * QFT_UploadRenderedGlyphs
 */
-static void QFT_UploadRenderedGlyphs( uint8_t *pic, struct shader_s *shader, int x, int y, int src_width, int width, int height ) {
+static void QFT_UploadRenderedGlyphs( uint8_t *pic, StringHash shader, int x, int y, int src_width, int width, int height ) {
 	int i;
 	const uint8_t *src = pic;
 	uint8_t *dest = pic;
@@ -230,7 +230,7 @@ static void QFT_RenderString( qfontface_t *qfont, const char *str ) {
 	int srcStride = 0;
 	unsigned int bitmapWidth, bitmapHeight;
 	unsigned int tempWidth = 0, tempLineHeight = 0;
-	struct shader_s *shader = qfont->shaders[qfont->numShaders - 1];
+	StringHash shader = qfont->shaders[qfont->numShaders - 1];
 	int shaderNum;
 	int x, y;
 	uint8_t *src, *dest;
@@ -248,14 +248,11 @@ static void QFT_RenderString( qfontface_t *qfont, const char *str ) {
 		}
 
 		qftglyph = ( qftglyph_t * )FTLIB_GetGlyph( qfont, num );
-		if( !qftglyph || qftglyph->qglyph.shader ) {
+		if( !qftglyph || qftglyph->qglyph.shader != EMPTY_HASH ) {
 			continue;
 		}
 
 		qglyph = &( qftglyph->qglyph );
-		if( qglyph->shader ) {
-			continue;
-		}
 
 		// from now, it is assumed that the current glyph's shader will be valid after this function
 		// so if continue is used, any shader, even an empty one, should be assigned to the glyph
@@ -318,9 +315,8 @@ static void QFT_RenderString( qfontface_t *qfont, const char *str ) {
 					qttf->imageCurX = 0;
 					qttf->imageCurY = 0;
 					shaderNum = ( qfont->numShaders )++;
-					shader = re.RegisterRawAlphaMask( FTLIB_FontShaderName( qfont, shaderNum ),
-														  qfont->shaderWidth, qfont->shaderHeight, NULL );
-					qfont->shaders = ( shader_s ** ) Mem_Realloc( qfont->shaders, qfont->numShaders * sizeof( struct shader_s * ) );
+					shader = re.RegisterRawAlphaMask( FTLIB_FontShaderName( qfont, shaderNum ), qfont->shaderWidth, qfont->shaderHeight, NULL );
+					qfont->shaders = ( StringHash * ) Mem_Realloc( qfont->shaders, qfont->numShaders * sizeof( StringHash ) );
 					qfont->shaders[shaderNum] = shader;
 				}
 				qttf->imageCurLineHeight = bitmapHeight;
@@ -477,7 +473,7 @@ static qfontface_t *QFT_LoadFace( qfontfamily_t *family, unsigned int size ) {
 	}
 
 	qfont->numShaders = 1;
-	qfont->shaders = ( shader_s ** ) Mem_Alloc( ftlibPool, sizeof( struct shader_s * ) );
+	qfont->shaders = ( StringHash * ) Mem_Alloc( ftlibPool, sizeof( StringHash ) );
 	qfont->shaders[0] = re.RegisterRawAlphaMask( FTLIB_FontShaderName( qfont, 0 ),
 													 qfont->shaderWidth, qfont->shaderHeight, NULL );
 	qfont->hasKerning = hasKerning;
@@ -799,9 +795,7 @@ qfontface_t *FTLIB_RegisterFont( const char *family, const char *fallback, int s
 * FTLIB_TouchFont
 */
 void FTLIB_TouchFont( qfontface_t *qfont ) {
-	unsigned int i;
-
-	for( i = 0; i < qfont->numShaders; i++ ) {
+	for( unsigned int i = 0; i < qfont->numShaders; i++ ) {
 		re.RegisterPic( FTLIB_FontShaderName( qfont, i ) );
 	}
 }

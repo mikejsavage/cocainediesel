@@ -196,7 +196,7 @@ typedef struct {
 
 typedef struct {
 	char name[MD3_MAX_PATH];
-	shader_t        *shader;
+	StringHash shader;
 } maliasskin_t;
 
 typedef struct maliasmesh_s {

@@ -29,7 +29,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ftlib_public.h"
 
 extern struct mempool_s *ftlibPool;
-typedef struct shader_s shader_t;
 
 #define FTLIB_REPLACEMENT_GLYPH         '?'
 
@@ -50,7 +49,7 @@ typedef struct {
 	unsigned short width, height;
 	unsigned short x_advance;
 	short x_offset, y_offset;
-	struct shader_s *shader;
+	StringHash shader;
 	float s1, t1, s2, t2;
 } qglyph_t;
 
@@ -88,7 +87,7 @@ typedef struct qfontface_s {
 
 	// a font may not fit into single image
 	unsigned int numShaders;
-	shader_t **shaders;
+	StringHash *shaders;
 	unsigned int shaderWidth;
 	unsigned int shaderHeight;
 

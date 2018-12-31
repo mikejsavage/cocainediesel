@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // r_alias.c: Quake III Arena .md3 model format support
 
 #include "r_local.h"
-#include "../../qcommon/qfiles.h"
+#include "qcommon/qfiles.h"
 
 #define MD3SURF_DISTANCE(s, d) ((s)->flags & SHADER_AUTOSPRITE ? d : 0)
 
@@ -714,9 +714,9 @@ bool R_AddAliasModelToDrawList( const entity_t *e, int lod ) {
 		int numSkins = 1;
 		maliasskin_t *skins = &fakeskin;
 
-		if( e->customSkin ) {
+		if( e->customSkin != EMPTY_HASH ) {
 			fakeskin.shader = R_FindShaderForSkinFile( e->customSkin, mesh->name );
-		} else if( e->customShader ) {
+		} else if( e->customShader != EMPTY_HASH ) {
 			fakeskin.shader = e->customShader;
 		} else if( mesh->numskins ) {
 			skins = mesh->skins;

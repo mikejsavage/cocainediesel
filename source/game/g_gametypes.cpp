@@ -118,26 +118,6 @@ bool G_Match_Tied( void ) {
 * G_Match_CheckExtendPlayTime
 */
 bool G_Match_CheckExtendPlayTime( void ) {
-	// check for extended time/sudden death
-	if( GS_MatchState() != MATCH_STATE_PLAYTIME ) {
-		return false;
-	}
-
-	if( GS_TeamBasedGametype() && !level.forceExit ) {
-		if( G_Match_Tied() ) {
-			GS_GamestatSetFlag( GAMESTAT_FLAG_MATCHEXTENDED, true );
-			gs.gameState.stats[GAMESTAT_MATCHSTATE] = MATCH_STATE_PLAYTIME;
-			gs.gameState.stats[GAMESTAT_MATCHSTART] = game.serverTime;
-
-			G_AnnouncerSound( NULL, trap_SoundIndex( va( S_ANNOUNCER_OVERTIME_SUDDENDEATH_1_to_2, ( rand() & 1 ) + 1 ) ), GS_MAX_TEAMS, true, NULL );
-			G_PrintMsg( NULL, "Match tied. Sudden death!\n" );
-			G_CenterPrintMsg( NULL, "SUDDEN DEATH" );
-			gs.gameState.stats[GAMESTAT_MATCHDURATION] = 0;
-
-			return true;
-		}
-	}
-
 	return false;
 }
 

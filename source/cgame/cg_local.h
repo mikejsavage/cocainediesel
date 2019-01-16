@@ -148,59 +148,6 @@ typedef struct {
 	cgs_media_handle_t *modElectroBoltWallHit;
 
 	cgs_media_handle_t *modLasergunWallExplo;
-<<<<<<< HEAD
-
-	cgs_media_handle_t *shaderParticle;
-	cgs_media_handle_t *shaderRocketExplosion;
-	cgs_media_handle_t *shaderRocketExplosionRing;
-	cgs_media_handle_t *shaderGrenadeExplosion;
-	cgs_media_handle_t *shaderGrenadeExplosionRing;
-	cgs_media_handle_t *shaderBulletExplosion;
-	cgs_media_handle_t *shaderRaceGhostEffect;
-	cgs_media_handle_t *shaderWaterBubble;
-	cgs_media_handle_t *shaderSmokePuff;
-
-	cgs_media_handle_t *shaderSmokePuff1;
-	cgs_media_handle_t *shaderSmokePuff2;
-	cgs_media_handle_t *shaderSmokePuff3;
-
-	cgs_media_handle_t *shaderRocketFireTrailPuff;
-	cgs_media_handle_t *shaderGrenadeTrailSmokePuff;
-	cgs_media_handle_t *shaderRocketTrailSmokePuff;
-	cgs_media_handle_t *shaderBloodTrailPuff;
-	cgs_media_handle_t *shaderBloodTrailLiquidPuff;
-	cgs_media_handle_t *shaderBloodImpactPuff;
-	cgs_media_handle_t *shaderTeamMateIndicator;
-	cgs_media_handle_t *shaderTeamCarrierIndicator;
-	cgs_media_handle_t *shaderBombIcon;
-	cgs_media_handle_t *shaderTeleporterSmokePuff;
-	cgs_media_handle_t *shaderBladeMark;
-	cgs_media_handle_t *shaderBulletMark;
-	cgs_media_handle_t *shaderExplosionMark;
-	cgs_media_handle_t *shaderEnergyMark;
-	cgs_media_handle_t *shaderLaser;
-	cgs_media_handle_t *shaderNet;
-	cgs_media_handle_t *shaderDownArrow;
-	cgs_media_handle_t *shaderTeleportShellGfx;
-
-	cgs_media_handle_t *shaderAdditiveParticleShine;
-
-	cgs_media_handle_t *shaderPlasmaMark;
-	cgs_media_handle_t *shaderEBBeam;
-	cgs_media_handle_t *shaderLGBeam;
-	cgs_media_handle_t *shaderEBImpact;
-
-	cgs_media_handle_t *shaderPlayerShadow;
-	cgs_media_handle_t *shaderFlagFlare;
-
-	cgs_media_handle_t *shaderWeaponIcon[WEAP_TOTAL];
-	cgs_media_handle_t *shaderGunbladeBlastIcon;
-
-	cgs_media_handle_t *shaderKeyIcon[KEYICON_TOTAL];
-
-	cgs_media_handle_t *shaderVSayIcon[VSAY_TOTAL];
-=======
->>>>>>> WIP
 } cgs_media_t;
 
 typedef struct bonenode_s {
@@ -559,14 +506,8 @@ int CG_HorizontalAlignForWidth( const int x, int align, int width );
 int CG_VerticalAlignForHeight( const int y, int align, int height );
 int CG_HorizontalMovementForAlign( int align );
 
-<<<<<<< HEAD
-void CG_DrawHUDRect( int x, int y, int align, int w, int h, int val, int maxval, vec4_t color, struct shader_s *shader );
-void CG_DrawPicBar( int x, int y, int width, int height, int align, float percent, struct shader_s *shader, const vec4_t backColor, const vec4_t color );
-=======
-void CG_DrawHUDModel( int x, int y, int align, int w, int h, struct model_s *model, StringHash shader, float yawspeed );
 void CG_DrawHUDRect( int x, int y, int align, int w, int h, int val, int maxval, vec4_t color, StringHash shader );
 void CG_DrawPicBar( int x, int y, int width, int height, int align, float percent, StringHash shader, const vec4_t backColor, const vec4_t color );
->>>>>>> WIP
 
 //
 // cg_media.c

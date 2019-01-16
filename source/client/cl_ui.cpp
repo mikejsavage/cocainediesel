@@ -884,7 +884,7 @@ static void RenderUI() {
 					poly.colors = colors;
 					poly.numelems = pcmd->ElemCount;
 					poly.elems = indices + idx_buffer_offset;
-					poly.shader = ( shader_s * ) pcmd->TextureId;
+					poly.shader = StringHash( uint64_t( uintptr_t( pcmd->TextureId ) ) );
 					R_DrawDynamicPoly( &poly );
 				}
 			}

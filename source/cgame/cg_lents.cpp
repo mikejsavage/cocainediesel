@@ -636,15 +636,8 @@ void CG_GunBladeBlastImpact( const vec3_t pos, const vec3_t dir, float radius ) 
 
 static void CG_ProjectileFireTrail( centity_t *cent ) {
 	vec3_t vec;
-<<<<<<< HEAD
-	int trailTime;
-	float radius = 8;
-	float alpha = clamp( cg_projectileFireTrailAlpha->value, 0.0f, 1.0f );
-	struct shader_s *shader;
-=======
 	float radius = 8;
 	float alpha = cg_projectileFireTrailAlpha->value;
->>>>>>> WIP
 
 	if( !cg_projectileFireTrail->integer ) {
 		return;
@@ -668,16 +661,10 @@ static void CG_ProjectileFireTrail( centity_t *cent ) {
 	if( cent->localEffects[LOCALEFFECT_ROCKETFIRE_LAST_DROP] + trailTime < cg.time ) {
 		cent->localEffects[LOCALEFFECT_ROCKETFIRE_LAST_DROP] = cg.time;
 
-<<<<<<< HEAD
 		vec4_t color;
 		CG_TeamColor( cent->current.team, color );
-		le = CG_AllocSprite( LE_INVERSESCALE_ALPHA_FADE, cent->trailOrigin, radius, 4,
+		lentity_t * le = CG_AllocSprite( LE_INVERSESCALE_ALPHA_FADE, cent->trailOrigin, radius, 4,
 							 color[ 0 ], color[ 1 ], color[ 2 ], alpha,
-=======
-		clamp( alpha, 0.0f, 1.0f );
-		lentity_t *le = CG_AllocSprite( LE_INVERSESCALE_ALPHA_FADE, cent->trailOrigin, radius, 4,
-							 1.0f, 1.0f, 1.0f, alpha,
->>>>>>> WIP
 							 0, 0, 0, 0,
 							 "gfx/misc/strong_rocket_fire" );
 		VectorSet( le->velocity, -vec[0] * 10 + crandom() * 5, -vec[1] * 10 + crandom() * 5, -vec[2] * 10 + crandom() * 5 );
@@ -692,10 +679,6 @@ void CG_ProjectileTrail( centity_t *cent ) {
 	vec3_t vec;
 	float radius = 6.5f;
 	float alpha = 0.35f;
-<<<<<<< HEAD
-	struct shader_s *shader = CG_MediaShader( cgs.media.shaderSmokePuff );
-=======
->>>>>>> WIP
 	CG_ProjectileFireTrail( cent ); // add fire trail
 
 	if( !cg_projectileTrail->integer ) {
@@ -705,11 +688,7 @@ void CG_ProjectileTrail( centity_t *cent ) {
 	// didn't move
 	VectorSubtract( cent->ent.origin, cent->trailOrigin, vec );
 	float len = VectorNormalize( vec );
-<<<<<<< HEAD
-	if( !len ) {
-=======
 	if( len == 0 ) {
->>>>>>> WIP
 		return;
 	}
 
@@ -724,22 +703,6 @@ void CG_ProjectileTrail( centity_t *cent ) {
 	if( cent->localEffects[LOCALEFFECT_ROCKETTRAIL_LAST_DROP] + trailTime >= cg.time )
 		return;
 
-<<<<<<< HEAD
-		int contents = ( CG_PointContents( cent->trailOrigin ) & CG_PointContents( cent->ent.origin ) );
-		if( contents & MASK_WATER ) {
-			shader = CG_MediaShader( cgs.media.shaderWaterBubble );
-			radius = 3 + crandom();
-			alpha = 1.0f;
-		}
-
-		clamp( alpha, 0.0f, 1.0f );
-		lentity_t *le = CG_AllocSprite( LE_PUFF_SHRINK, cent->trailOrigin, radius, 20,
-							 1.0f, 1.0f, 1.0f, alpha,
-							 0, 0, 0, 0,
-							 shader );
-		VectorSet( le->velocity, -vec[0] * 5 + crandom() * 5, -vec[1] * 5 + crandom() * 5, -vec[2] * 5 + crandom() * 5 + 3 );
-		le->ent.rotation = rand() % 360;
-=======
 	cent->localEffects[LOCALEFFECT_ROCKETTRAIL_LAST_DROP] = cg.time;
 
 	StringHash shader = "gfx/misc/smokepuff";
@@ -748,7 +711,6 @@ void CG_ProjectileTrail( centity_t *cent ) {
 		shader = "gfx/misc/waterBubble";
 		radius = 3 + crandom();
 		alpha = 1.0f;
->>>>>>> WIP
 	}
 
 	clamp( alpha, 0.0f, 1.0f );
@@ -827,11 +789,7 @@ void CG_BloodDamageEffect( const vec3_t origin, const vec3_t dir, int damage, in
 		return;
 	}
 
-<<<<<<< HEAD
 	int count = int( damage * 0.25f );
-=======
-	int count = (int)( damage * 0.25f );
->>>>>>> WIP
 	clamp( count, 1, 10 );
 
 	StringHash shader = "gfx/misc/bloodimpact_puff";

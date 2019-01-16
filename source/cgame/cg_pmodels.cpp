@@ -708,10 +708,6 @@ void CG_AddColoredOutLineEffect( entity_t *ent, int effects, uint8_t r, uint8_t 
 * CG_PModel_AddHeadIcon
 */
 static void CG_AddIconAbovePlayer( centity_t *cent ) {
-	if( cent->ent.renderfx & RF_VIEWERMODEL ) {
-		return;
-	}
-
 	if( cent->localEffects[LOCALEFFECT_VSAY_HEADICON_TIMEOUT] < cg.time ) {
 		return;
 	}

@@ -254,11 +254,10 @@ void GT_updateScore( Client @client ) {
 	cPlayer @player = @playerFromClient( @client );
 	Stats @stats = @client.stats;
 
-	// 2 * teamDamage because totalDamage includes it
 	client.stats.setScore( int(
-			( stats.frags - stats.teamFrags ) * 0.5
-			+ ( stats.totalDamageGiven - 2 * stats.totalTeamDamageGiven ) * 0.01
-			+ player.defuses * POINTS_DEFUSE )
+			  ( stats.frags * 0.5 )
+			+ ( stats.totalDamageGiven * 0.01 )
+			+ ( player.defuses * POINTS_DEFUSE ))
 	);
 }
 

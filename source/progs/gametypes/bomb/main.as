@@ -54,7 +54,9 @@ const uint BOMB_EXPLOSION_EFFECT_RADIUS = 256;
 
 const uint BOMB_DEAD_CAMERA_DIST = 256;
 
-const uint POINTS_DEFUSE = 0;
+const uint POINTS_ARM = 1;
+const uint POINTS_DEFUSE = 1;
+const uint POINTS_NINJA = 1;
 
 const int INITIAL_ATTACKERS = TEAM_ALPHA;
 const int INITIAL_DEFENDERS = TEAM_BETA;
@@ -256,8 +258,10 @@ void GT_updateScore( Client @client ) {
 
 	client.stats.setScore( int(
 			  ( stats.frags * 0.5 )
-			+ ( stats.totalDamageGiven * 0.01 )
-			+ ( player.defuses * POINTS_DEFUSE ))
+			+ ( stats.totalDamageGiven * 0.01  )
+			+ ( player.arms    * POINTS_ARM    )
+			+ ( player.defuses * POINTS_DEFUSE )
+			+ ( player.ninja   * POINTS_NINJA  ))
 	);
 }
 

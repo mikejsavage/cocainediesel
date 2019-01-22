@@ -244,6 +244,10 @@ void bombPlanted() {
 
 	announce( Announcement_Armed );
 
+	Client @client = @bombCarrier.client;
+	playerFromClient( @client ).arms++;
+	GT_updateScore( @client );
+
 	G_CenterPrintFormatMsg( null, "Bomb planted at %s!", bombSite.letter );
 
 	@bombCarrier = null;
@@ -264,10 +268,15 @@ void bombDefused() {
 
 	Client @client = @defuser.client;
 	cPlayer @player = @playerFromClient( @client );
-	player.defuses++;
-	GT_updateScore( @client );
 
 	client.addAward( "Bomb defused!" );
+	player.defuses++;
+	if ( playersAliveOnTeam(otherTeam( client.team )) > 0 ) {
+		client.addAward( "Ninja defuse!" );
+		player.ninja++;
+	}
+
+	GT_updateScore( @client );
 	G_PrintMsg( null, client.name + " defused the bomb!\n" );
 
 	roundWonBy( defendingTeam );

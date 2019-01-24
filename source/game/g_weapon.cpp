@@ -311,20 +311,20 @@ static void G_Fire_SunflowerPattern( edict_t *self, vec3_t start, vec3_t dir, in
 		GS_TraceBullet( &trace, start, dir, right, up, r, u, range, ENTNUM( self ), timeDelta );
 		if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
 			G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, damage, kick, dflags, MOD_RIOTGUN );
-			if ( trace.ent <= MAX_CLIENTS ) {
+			if( trace.ent <= MAX_CLIENTS ) {
 				hits[trace.ent]++;
 			}
 		}
 	}
 
 	for( int i = 1; i <= MAX_CLIENTS; i++ ) {
-		if ( hits[i] == 0 )
+		if( hits[i] == 0 )
 			continue;
 		edict_t * target = &game.edicts[i];
-		edict_t * ev_damage = G_SpawnEvent( EV_DAMAGE, 0, target->s.origin );
-		ev_damage->r.svflags |= SVF_ONLYOWNER;
-		ev_damage->s.ownerNum = ENTNUM(self);
-		ev_damage->s.damage = HEALTH_TO_INT( hits[i] * damage );
+		edict_t * damage = G_SpawnEvent( EV_DAMAGE, 0, target->s.origin );
+		damage->r.svflags |= SVF_ONLYOWNER;
+		damage->s.ownerNum = ENTNUM( self );
+		damage->s.damage = HEALTH_TO_INT( hits[i] * damage );
 	}
 }
 

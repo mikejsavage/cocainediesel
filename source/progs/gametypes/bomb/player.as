@@ -56,7 +56,6 @@ class cPlayer {
 
 	uint arms;
 	uint defuses;
-	uint ninja;
 
 	bool dueToSpawn; // used for respawning during countdown
 
@@ -69,9 +68,8 @@ class cPlayer {
 
 		this.lastLoadoutChangeTime = -1;
 
-		this.arms    = 0;
+		this.arms = 0;
 		this.defuses = 0;
-		this.ninja   = 0;
 
 		this.dueToSpawn = false;
 

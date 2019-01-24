@@ -301,6 +301,10 @@ static void G_Fire_SunflowerPattern( edict_t *self, vec3_t start, vec3_t dir, in
 	vec3_t right, up;
 	ViewVectors( dir, right, up );
 
+	char hit[MAX_CLIENTS];
+	vec3_t pos[MAX_CLIENTS];
+	edict_t *targ[MAX_CLIENTS];
+
 	for( int i = 0; i < count; i++ ) {
 		float fi = i * 2.4f; //magic value creating Fibonacci numbers
 		float r = cosf( fi ) * hspread * sqrtf( fi );
@@ -310,7 +314,27 @@ static void G_Fire_SunflowerPattern( edict_t *self, vec3_t start, vec3_t dir, in
 		GS_TraceBullet( &trace, start, dir, right, up, r, u, range, ENTNUM( self ), timeDelta );
 		if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
 			G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, damage, kick, dflags, MOD_RIOTGUN );
+			for( int j = 0; j < MAX_CLIENTS; j++ ) {
+				if ( targ[j] == NULL ) {
+					targ[j] = &game.edicts[trace.ent];
+					pos[j] = trace.endpos;
+					hit[j]++;
+					break;
+				} else if ( targ[j] == &game.edicts[trace.ent] ) {
+					hit[j]++;
+					break;
+				}
+			}
 		}
+	}
+
+	for( int i = 0; i < MAX_CLIENTS; i++ ) {
+		if ( hit[i] )
+			return;
+		edict_t * ev_damage = G_SpawnEvent( EV_DAMAGE, 0, pos[i] );
+		ev_damage->r.svflags |= SVF_ONLYOWNER;
+		ev_damage->s.ownerNum = ENTNUM( targ[i] );
+		ev_damage->s.damage = HEALTH_TO_INT( hit[i]*damage );
 	}
 }
 

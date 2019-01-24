@@ -63,7 +63,7 @@ const int SITE_EXPLOSION_POINTS   = 30;
 
 const int SITE_EXPLOSION_MAX_DELAY = 1500; // XXX THIS MUST BE BIGGER THAN BOMB_SPRITE_RESIZE_TIME OR EVERYTHING DIES FIXME?
 
-const float SITE_EXPLOSION_MAX_DIST    = 512.0f;
+const float SITE_EXPLOSION_MAX_DIST = 512.0f;
 
 // jit cries if i use const
 Vec3 BOMB_MINS( -16, -16, -8 );
@@ -71,7 +71,7 @@ Vec3 BOMB_MAXS(  16,  16, 48 ); // same size as player i guess
 
 // cvars
 Cvar cvarRoundTime( "g_bomb_roundtime", "60", CVAR_ARCHIVE );
-Cvar cvarExplodeTime( "g_bomb_bombtimer", "45", CVAR_ARCHIVE );
+Cvar cvarExplodeTime( "g_bomb_bombtimer", "40", CVAR_ARCHIVE );
 Cvar cvarArmTime( "g_bomb_armtime", "1", CVAR_ARCHIVE );
 Cvar cvarDefuseTime( "g_bomb_defusetime", "5", CVAR_ARCHIVE );
 Cvar cvarEnableCarriers( "g_bomb_carriers", "1", CVAR_ARCHIVE );

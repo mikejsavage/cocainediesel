@@ -136,6 +136,7 @@ void bombSetCarrier( Entity @ent, bool no_sound ) {
 void bombDrop( BombDrop drop_reason ) {
 	Vec3 start = bombCarrier.origin;
 	Vec3 end, velocity;
+	setTeamProgress( attackingTeam, 0, BombProgress_Nothing ); //clear plant bar if the guy dies when planting
 
 	switch( drop_reason ) {
 		case BombDrop_Normal:

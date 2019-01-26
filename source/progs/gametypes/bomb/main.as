@@ -54,8 +54,6 @@ const uint BOMB_EXPLOSION_EFFECT_RADIUS = 256;
 
 const uint BOMB_DEAD_CAMERA_DIST = 256;
 
-const uint POINTS_DEFUSE = 0;
-
 const int INITIAL_ATTACKERS = TEAM_ALPHA;
 const int INITIAL_DEFENDERS = TEAM_BETA;
 
@@ -254,11 +252,7 @@ void GT_updateScore( Client @client ) {
 	cPlayer @player = @playerFromClient( @client );
 	Stats @stats = @client.stats;
 
-	client.stats.setScore( int(
-			  ( stats.frags * 0.5 )
-			+ ( stats.totalDamageGiven * 0.01 )
-			+ ( player.defuses * POINTS_DEFUSE ))
-	);
+	client.stats.setScore( int( stats.frags * 0.5 + stats.totalDamageGiven * 0.01 ) );
 }
 
 // Some game actions trigger score events. These are events not related to killing

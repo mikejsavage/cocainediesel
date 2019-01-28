@@ -111,7 +111,7 @@ static void CG_AddLocalSounds( void ) {
 				if( 1 + remainingSeconds < 4 ) {
 					struct sfx_s *sound = trap_S_RegisterSound( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, 1 + remainingSeconds, 1 ) );
 					CG_AddAnnouncerEvent( sound, false );
-					CG_CenterPrint( va("%i", remainingSeconds + 1) );
+					CG_CenterPrint( va( "%i", remainingSeconds + 1 ) );
 				}
 
 				lastSecond = remainingSeconds;

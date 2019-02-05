@@ -528,6 +528,7 @@ static const char * obituaries[] = {
 	"DUMPSTERED",
 	"DUNKED",
 	"EDUCATED",
+	"EGGED",
 	"ELABORATED ON",
 	"EMANCIPATED",
 	"EMBRACED",

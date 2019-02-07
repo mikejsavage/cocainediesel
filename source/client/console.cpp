@@ -175,14 +175,14 @@ void Con_Print( const char * str ) {
 	QMutex_Unlock( console.mutex );
 }
 
-static void TabCompletion( char * buf );
+static void TabCompletion( char * buf, int buf_size );
 
 static int InputCallback( ImGuiInputTextCallbackData * data ) {
 	if( data->EventChar == 0 ) {
 		bool dirty = false;
 
 		if( data->EventKey == ImGuiKey_Tab ) {
-			TabCompletion( data->Buf );
+			TabCompletion( data->Buf, data->BufSize );
 			dirty = true;
 		}
 		else if( data->EventKey == ImGuiKey_UpArrow || data->EventKey == ImGuiKey_DownArrow ) {
@@ -371,7 +371,7 @@ static size_t CommonPrefixLength( const char * a, const char * b ) {
 	return len;
 }
 
-static void TabCompletion( char * buf ) {
+static void TabCompletion( char * buf, int buf_size ) {
 	char * input = buf;
 	if( *input == '\\' || *input == '/' )
 		input++;
@@ -437,7 +437,8 @@ static void TabCompletion( char * buf ) {
 		}
 	}
 
-	if( c + v + a + ca != 1 ) {
+	int total_candidates = c + v + a + ca;
+	if( total_candidates > 1 ) {
 		if( c != 0 ) {
 			Com_Printf( S_COLOR_RED "%i possible command%s%s\n", c, ( c > 1 ) ? "s: " : ":", S_COLOR_WHITE );
 			Con_DisplayList( completion_lists[0] );
@@ -457,8 +458,10 @@ static void TabCompletion( char * buf ) {
 	}
 
 	if( completion != NULL ) {
-		size_t to_copy = min( common_prefix_len + 1, sizeof( console.input ) - ( input - console.input ) );
+		size_t to_copy = min( common_prefix_len + 1, buf_size - ( input - console.input ) );
 		Q_strncpyz( input, completion, to_copy );
+		if( total_candidates == 1 )
+			Q_strncatz( buf, " ", buf_size );
 	}
 
 	for( size_t i = 0; i < ARRAY_COUNT( completion_lists ); i++ ) {

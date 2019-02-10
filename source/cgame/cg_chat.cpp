@@ -42,6 +42,7 @@ void CG_StackChatString( cg_gamechat_t *chat, const char *str ) {
 #define GAMECHAT_WAIT_IN_TIME       0
 #define GAMECHAT_FADE_IN_TIME       100
 #define GAMECHAT_WAIT_OUT_TIME      4000
+#define GAMECHAT_HIGHLIGHT_TIME     4000
 #define GAMECHAT_FADE_OUT_TIME      ( GAMECHAT_NOTIFY_TIME - GAMECHAT_WAIT_OUT_TIME )
 
 /*
@@ -252,4 +253,37 @@ parse_string:
 	trap_SCR_DrawChat( x + padding_x, y + height - padding_y - font_height, width - padding_x, font );
 
 	chat->lastActive = chat_active;
+}
+
+void CG_FlashChatHighlight( const unsigned int fromIndex, const char *text )
+{
+	// dont highlight ourselves
+	if ( fromIndex == cgs.playerNum ) {
+		return;
+	}
+
+	// if we've been highlighted recently, dont let people spam it.. 
+	bool eligible = !cg.chat.lastHighlightTime || cg.chat.lastHighlightTime + GAMECHAT_HIGHLIGHT_TIME < cg.realTime;
+
+	// dont bother doing text match if we've been pinged recently
+	if ( !eligible ) {
+		return;
+	}
+
+	// do a case insensitive check for the local player name
+	char nameLower[MAX_STRING_CHARS];
+	Q_strncpyz( nameLower, cgs.clientInfo[cgs.playerNum].name, MAX_STRING_CHARS );
+	Q_strlwr( nameLower );
+
+	char msgLower[MAX_CHAT_BYTES];
+	Q_strncpyz( msgLower, text, MAX_CHAT_BYTES );
+	Q_strlwr( msgLower );
+
+	// TODO: text match fuzzy ? Levenshtien distance or something might be good here. or at least tokenizing and looking for word
+	// this is probably shitty for some nicks
+	bool hadNick = strstr( msgLower, nameLower ) != NULL;
+	if ( hadNick ) {
+		trap_VID_FlashWindow();
+		cg.chat.lastHighlightTime = cg.realTime;
+	}
 }

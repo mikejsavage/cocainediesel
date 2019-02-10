@@ -483,6 +483,7 @@ typedef struct {
 	int64_t lastActiveChangeTime;
 	float activeFrac;
 	cg_gamemessage_t messages[GAMECHAT_STACK_SIZE];
+	int64_t lastHighlightTime;
 } cg_gamechat_t;
 
 typedef struct {
@@ -1053,3 +1054,8 @@ bool CG_KeyEvent( int key, bool down );
  * @param keysSize output string buffer size
  */
 void CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize );
+
+/**
+ * Checks a chat message for local player nick and flashes window on a match
+ */
+void CG_FlashChatHighlight( const unsigned int from, const char *text );

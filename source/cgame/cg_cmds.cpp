@@ -57,6 +57,12 @@ static void CG_SC_ChatPrint( void ) {
 	} else {
 		CG_LocalPrint( "%s" S_COLOR_GREEN ": %s\n", name, text );
 	}
+
+	// check highlight of player nick here instead of local print because its used for things like stats
+	// dont highlight for server messages
+	if ( name ) {
+		CG_FlashChatHighlight( who - 1, text );
+	}
 }
 
 /*

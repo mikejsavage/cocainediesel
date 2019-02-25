@@ -187,7 +187,6 @@ void SV_MasterHeartbeat( void ) {
 */
 static char *SV_LongInfoString( bool fullStatus ) {
 	char tempstr[1024] = { 0 };
-	const char *gametype;
 	static char status[MAX_MSGLEN - 16];
 	int i, bots, count;
 	client_t *cl;
@@ -195,13 +194,6 @@ static char *SV_LongInfoString( bool fullStatus ) {
 	size_t tempstrLength;
 
 	Q_strncpyz( status, Cvar_Serverinfo(), sizeof( status ) );
-
-	// convert "g_gametype" to "gametype"
-	gametype = Info_ValueForKey( status, "g_gametype" );
-	if( gametype ) {
-		Info_RemoveKey( status, "g_gametype" );
-		Info_SetValueForKey( status, "gametype", gametype );
-	}
 
 	statusLength = strlen( status );
 
@@ -276,7 +268,7 @@ static char *SV_ShortInfoString( void ) {
 	maxcount = sv_maxclients->integer - bots;
 
 	//format:
-	//" \377\377\377\377info\\n\\server_name\\m\\map name\\u\\clients/maxclients\\g\\gametype\\s\\skill\\EOT "
+	//" \377\377\377\377info\\n\\server_name\\m\\map name\\u\\clients/maxclients\\EOT "
 
 	Q_strncpyz( hostname, sv_hostname->string, sizeof( hostname ) );
 	Q_snprintfz( string, sizeof( string ),
@@ -288,11 +280,6 @@ static char *SV_ShortInfoString( void ) {
 				 );
 
 	len = strlen( string );
-	Q_snprintfz( entry, sizeof( entry ), "g\\\\%6s\\\\", Cvar_String( "g_gametype" ) );
-	if( MAX_SVCINFOSTRING_LEN - len > strlen( entry ) ) {
-		Q_strncatz( string, entry, sizeof( string ) );
-		len = strlen( string );
-	}
 
 	if( Q_stricmp( FS_GameDirectory(), FS_BaseGameDirectory() ) ) {
 		Q_snprintfz( entry, sizeof( entry ), "mo\\\\%8s\\\\", FS_GameDirectory() );
@@ -313,14 +300,6 @@ static char *SV_ShortInfoString( void ) {
 
 	if( bots ) {
 		Q_snprintfz( entry, sizeof( entry ), "b\\\\%2i\\\\", bots > 99 ? 99 : bots );
-		if( MAX_SVCINFOSTRING_LEN - len > strlen( entry ) ) {
-			Q_strncatz( string, entry, sizeof( string ) );
-			len = strlen( string );
-		}
-	}
-
-	if( Cvar_Value( "g_race_gametype" ) ) {
-		Q_snprintfz( entry, sizeof( entry ), "r\\\\1\\\\" );
 		if( MAX_SVCINFOSTRING_LEN - len > strlen( entry ) ) {
 			Q_strncatz( string, entry, sizeof( string ) );
 			len = strlen( string );

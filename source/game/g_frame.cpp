@@ -166,12 +166,6 @@ static void G_UpdateServerInfo( void ) {
 		}
 		password->modified = false;
 	}
-
-	if( GS_RaceGametype() ) {
-		trap_Cvar_ForceSet( "g_race_gametype", "1" );
-	} else {
-		trap_Cvar_ForceSet( "g_race_gametype", "0" );
-	}
 }
 
 /*

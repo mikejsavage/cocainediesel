@@ -59,7 +59,6 @@ static void G_Gametype_GENERIC_Init( void ) {
 cvar_t *g_warmup_timelimit;
 cvar_t *g_match_extendedtime;
 cvar_t *g_scorelimit;
-cvar_t *g_gametype;
 
 //==========================================================
 //					Matches
@@ -1219,12 +1218,6 @@ static bool IsGladiatorMap() {
 * G_Gametype_Init
 */
 void G_Gametype_Init( void ) {
-	bool changed = false;
-
-	if( !g_gametype ) { // first time initialized
-		changed = true;
-	}
-
 	// get the match cvars too
 	g_warmup_timelimit = trap_Cvar_Get( "g_warmup_timelimit", "5", CVAR_ARCHIVE );
 	g_match_extendedtime = trap_Cvar_Get( "g_match_extendedtime", "2", CVAR_ARCHIVE );
@@ -1233,41 +1226,28 @@ void G_Gametype_Init( void ) {
 	g_scorelimit = trap_Cvar_Get( "g_scorelimit", "10", CVAR_ARCHIVE );
 
 	const char * gt = IsGladiatorMap() ? "gladiator" : "bomb";
-	g_gametype = trap_Cvar_Get( "g_gametype", gt, CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_LATCH | CVAR_READONLY );
-	trap_Cvar_Set( "g_gametype", gt );
-
-	if( g_gametype->latched_string ) {
-		trap_Cvar_ForceSet( "g_gametype", g_gametype->latched_string );
-		changed = true;
-	}
 
 	G_Printf( "-------------------------------------\n" );
-	G_Printf( "Initalizing '%s' gametype\n", g_gametype->string );
+	G_Printf( "Initalizing '%s' gametype\n", gt );
 
-	if( changed ) {
-		const char *configs_path = "configs/server/gametypes/";
+	const char *configs_path = "configs/server/gametypes/";
 
-		G_InitChallengersQueue();
+	G_InitChallengersQueue();
 
-		// print a hint for admins so they know there's a chance to execute a
-		// config here, but don't show it as an error, because it isn't
-		G_Printf( "loading %s%s.cfg\n", configs_path, g_gametype->string );
-		trap_Cmd_ExecuteText( EXEC_NOW, va( "exec %s%s.cfg silent\n", configs_path, g_gametype->string ) );
-		trap_Cbuf_Execute();
-
-		// on a listen server, override gametype-specific settings in config
-		trap_Cmd_ExecuteText( EXEC_NOW, "vstr ui_startservercmd\n" );
-		trap_Cbuf_Execute();
-	}
+	// print a hint for admins so they know there's a chance to execute a
+	// config here, but don't show it as an error, because it isn't
+	G_Printf( "loading %s%s.cfg\n", configs_path, gt );
+	trap_Cmd_ExecuteText( EXEC_NOW, va( "exec %s%s.cfg silent\n", configs_path, gt ) );
+	trap_Cbuf_Execute();
 
 	G_CheckCvars();
 
 	G_Gametype_SetDefaults();
 
 	// Init the current gametype
-	if( !GT_asLoadScript( g_gametype->string ) ) {
+	if( !GT_asLoadScript( gt ) ) {
 		G_Gametype_GENERIC_Init();
 	}
 
-	trap_ConfigString( CS_GAMETYPENAME, g_gametype->string );
+	trap_ConfigString( CS_GAMETYPENAME, gt );
 }

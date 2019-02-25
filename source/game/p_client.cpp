@@ -595,9 +595,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	GClip_LinkEntity( self );
 
 	// let the gametypes perform their changes
-	if( game.asEngine != NULL ) {
-		GT_asCallPlayerRespawn( self, old_team, self->s.team );
-	}
+	GT_asCallPlayerRespawn( self, old_team, self->s.team );
 
 	if( self->r.svflags & SVF_FAKECLIENT ) {
 		AI_Respawn( self );

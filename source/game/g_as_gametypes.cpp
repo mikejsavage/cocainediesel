@@ -265,17 +265,15 @@ void GT_asCallScoreboardMessage( unsigned int maxlen ) {
 edict_t *GT_asCallSelectSpawnPoint( edict_t *ent ) {
 	int error;
 	asIScriptContext *ctx;
-	edict_t *spot;
 
 	if( !level.gametype.selectSpawnPointFunc ) {
-		return SelectDeathmatchSpawnPoint( ent ); // should have a hardcoded backup
-
+		return NULL;
 	}
 	ctx = game.asExport->asAcquireContext( GAME_AS_ENGINE() );
 
 	error = ctx->Prepare( static_cast<asIScriptFunction *>( level.gametype.selectSpawnPointFunc ) );
 	if( error < 0 ) {
-		return SelectDeathmatchSpawnPoint( ent );
+		return NULL;
 	}
 
 	// Now we need to pass the parameters to the script function.
@@ -286,12 +284,7 @@ edict_t *GT_asCallSelectSpawnPoint( edict_t *ent ) {
 		GT_asShutdownScript();
 	}
 
-	spot = ( edict_t * )ctx->GetReturnObject();
-	if( !spot ) {
-		spot = SelectDeathmatchSpawnPoint( ent );
-	}
-
-	return spot;
+	return ( edict_t * )ctx->GetReturnObject();
 }
 
 //"bool GT_Command( Client @client, String &cmdString, String &argsString, int argc )"

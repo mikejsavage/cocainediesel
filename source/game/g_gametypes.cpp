@@ -22,36 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 g_teamlist_t teamlist[GS_MAX_TEAMS];
 
-static void G_Gametype_GENERIC_Init( void ) {
-	level.gametype.spawnableItemsMask = ( IT_WEAPON | IT_AMMO | IT_POWERUP | IT_HEALTH );
-	level.gametype.respawnableItemsMask = ( IT_WEAPON | IT_AMMO | IT_POWERUP | IT_HEALTH );
-	level.gametype.dropableItemsMask = ( IT_WEAPON | IT_AMMO | IT_POWERUP | IT_HEALTH );
-	level.gametype.pickableItemsMask = ( level.gametype.spawnableItemsMask | level.gametype.dropableItemsMask );
-
-	level.gametype.isTeamBased = false;
-	level.gametype.isRace = false;
-	level.gametype.hasChallengersQueue = false;
-	level.gametype.hasChallengersRoulette = false;
-	level.gametype.maxPlayersPerTeam = 0;
-
-	level.gametype.ammo_respawn = 20;
-	level.gametype.weapon_respawn = 5;
-	level.gametype.health_respawn = 25;
-	level.gametype.powerup_respawn = 90;
-	level.gametype.megahealth_respawn = 20;
-	level.gametype.ultrahealth_respawn = 60;
-
-	level.gametype.countdownEnabled = false;
-	level.gametype.matchAbortDisabled = false;
-	level.gametype.canForceModels = true;
-	level.gametype.spawnpointRadius = 256;
-
-	level.gametype.numBots = 0;
-
-	trap_ConfigString( CS_SCB_PLAYERTAB_LAYOUT, "%n 164 %i 64 %l 48 %p 18 %p 18" );
-	trap_ConfigString( CS_SCB_PLAYERTAB_TITLES, "Name Score Ping C R" );
-}
-
 //==========================================================
 //					Matches
 //==========================================================
@@ -321,11 +291,9 @@ static void G_Match_CheckStateAbort( void ) {
 void G_Match_LaunchState( int matchState ) {
 	static bool advance_queue = false;
 
-	if( game.asEngine != NULL ) {
-		// give the gametype a chance to refuse the state change, or to set up things for it
-		if( !GT_asCallMatchStateFinished( matchState ) ) {
-			return;
-		}
+	// give the gametype a chance to refuse the state change, or to set up things for it
+	if( !GT_asCallMatchStateFinished( matchState ) ) {
+		return;
 	}
 
 	GS_GamestatSetFlag( GAMESTAT_FLAG_MATCHEXTENDED, false );
@@ -404,10 +372,7 @@ void G_Match_LaunchState( int matchState ) {
 	}
 
 	// give the gametype the chance to setup for the new state
-
-	if( game.asEngine != NULL ) {
-		GT_asCallMatchStateStarted();
-	}
+	GT_asCallMatchStateStarted();
 }
 
 /*
@@ -1115,9 +1080,7 @@ void G_Gametype_ScoreEvent( gclient_t *client, const char *score_event, const ch
 		return;
 	}
 
-	if( game.asEngine != NULL ) {
-		GT_asCallScoreEvent( client, score_event, args );
-	}
+	GT_asCallScoreEvent( client, score_event, args );
 }
 
 /*
@@ -1130,10 +1093,7 @@ void G_RunGametype( void ) {
 
 	G_UpdateScoreBoardMessages();
 
-	//check gametype specific rules
-	if( game.asEngine != NULL ) {
-		GT_asCallThinkRules();
-	}
+	GT_asCallThinkRules();
 
 	if( G_EachNewSecond() ) {
 		G_CheckNumBots();
@@ -1244,9 +1204,8 @@ void G_Gametype_Init( void ) {
 
 	G_Gametype_SetDefaults();
 
-	// Init the current gametype
 	if( !GT_asLoadScript( gt ) ) {
-		G_Gametype_GENERIC_Init();
+		G_Error( "Failed to load %s", gt );
 	}
 
 	trap_ConfigString( CS_GAMETYPENAME, gt );

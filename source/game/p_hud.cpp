@@ -47,9 +47,7 @@ void G_UpdateScoreBoardMessages( void ) {
 	// fixme : mess of copying
 	maxlen = MAX_STRING_CHARS - ( strlen( "scb \"\"" + 4 ) );
 
-	if( game.asEngine != NULL ) {
-		GT_asCallScoreboardMessage( maxlen );
-	}
+	GT_asCallScoreboardMessage( maxlen );
 
 	G_ScoreboardMessage_AddSpectators();
 

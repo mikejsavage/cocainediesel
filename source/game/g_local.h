@@ -100,6 +100,7 @@ typedef enum {
 // it should be initialized at dll load time, and read/written to
 // the server.ssv file for savegames
 //
+class asIScriptEngine;
 typedef struct {
 	edict_t *edicts;        // [maxentities]
 	gclient_t *clients;     // [maxclients]
@@ -116,7 +117,7 @@ typedef struct {
 
 	// AngelScript engine object
 	struct angelwrap_api_s *asExport;
-	void *asEngine;
+	asIScriptEngine *asEngine;
 
 	unsigned int frametime;         // in milliseconds
 	int snapFrameTime;              // in milliseconds
@@ -333,7 +334,6 @@ void G_SpawnQueue_AddClient( edict_t *ent );
 void G_SpawnQueue_RemoveClient( edict_t *ent );
 void G_SpawnQueue_Think( void );
 
-edict_t *SelectDeathmatchSpawnPoint( edict_t *ent );
 void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, vec3_t origin, vec3_t angles );
 edict_t *G_SelectIntermissionSpawnPoint( void );
 float PlayersRangeFromSpot( edict_t *spot, int ignore_team );

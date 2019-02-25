@@ -87,73 +87,6 @@ static edict_t *G_FindPostMatchCamera( void ) {
 }
 
 /*
-* SelectRandomDeathmatchSpawnPoint
-*
-* go to a random point, but NOT the two points closest
-* to other players
-*/
-static edict_t *SelectRandomDeathmatchSpawnPoint( edict_t *ent ) {
-	edict_t *spot, *spot1, *spot2;
-	int count = 0;
-	int selection, ignore_team = 0;
-	float range, range1, range2;
-
-	spot = NULL;
-	range1 = range2 = 99999;
-	spot1 = spot2 = NULL;
-
-	if( ent && GS_TeamBasedGametype() ) {
-		ignore_team = ent->s.team;
-	}
-
-	while( ( spot = G_Find( spot, FOFS( classname ), "info_player_deathmatch" ) ) != NULL ) {
-		count++;
-		range = PlayersRangeFromSpot( spot, ignore_team );
-		if( range < range1 ) {
-			if( range1 < range2 ) {
-				range2 = range1;
-				spot2 = spot1;
-			}
-			range1 = range;
-			spot1 = spot;
-		} else if( range < range2 ) {
-			range2 = range;
-			spot2 = spot;
-		}
-	}
-
-	if( !count ) {
-		return NULL;
-	}
-
-	if( count <= 2 ) {
-		spot1 = spot2 = NULL;
-	} else {
-		if( spot1 ) {
-			count--;
-		}
-		if( spot2 && spot2 != spot1 ) {
-			count--;
-		}
-	}
-
-	selection = rand() % count;
-	spot = NULL;
-	do {
-		spot = G_Find( spot, FOFS( classname ), "info_player_deathmatch" );
-		if( spot == spot1 || spot == spot2 ) {
-			selection++;
-		}
-	} while( selection-- );
-
-	return spot;
-}
-
-edict_t *SelectDeathmatchSpawnPoint( edict_t *ent ) {
-	return SelectRandomDeathmatchSpawnPoint( ent );
-}
-
-/*
 * G_OffsetSpawnPoint - use a grid of player boxes to offset the spawn point
 */
 bool G_OffsetSpawnPoint( vec3_t origin, const vec3_t box_mins, const vec3_t box_maxs, float radius, bool checkground ) {
@@ -285,13 +218,7 @@ void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, vec3_t origin, vec3_t
 	if( GS_MatchState() >= MATCH_STATE_POSTMATCH ) {
 		spot = G_FindPostMatchCamera();
 	} else {
-		if( game.asEngine != NULL ) {
-			spot = GT_asCallSelectSpawnPoint( ent );
-		}
-
-		if( !spot ) {
-			spot = SelectDeathmatchSpawnPoint( ent );
-		}
+		spot = GT_asCallSelectSpawnPoint( ent );
 	}
 
 	// find a single player start spot

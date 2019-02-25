@@ -27,8 +27,6 @@ int aliveIcon;
 int[] endMatchSounds;
 const String[] WEAPON_NAMES = {"none", "^7GB", "^9MG", "^8RG", "^4GL", "^1RL", "^2PG", "^3LG", "^5EB"};
 
-Cvar gt_debug = Cvar("gt_debug", "0", 0);
-
 class cDARound
 {
 	int state;
@@ -170,7 +168,6 @@ class cDARound
 
 	void addLoser( Client@ client )
 	{
-		G_DPrint("adding loser\n");
 		this.removeChallenger( client );
 		this.roundLosers.push_back(client);
 	}
@@ -580,16 +577,8 @@ class cDARound
 
 		if ( this.state == DA_ROUNDSTATE_PREROUND )
 		{
-			G_DPrint("PREROUND ");
-
 			target.client.stats.addScore( -1 );
 			G_LocalSound( target.client, CHAN_AUTO, G_SoundIndex( "sounds/gladiator/ouch" ) );
-		}
-
-		if ( this.state == DA_ROUNDSTATE_ROUND || this.state == DA_ROUNDSTATE_ROUNDFINISHED )
-		{
-			G_DPrint("INROUND ");
-			//return;
 		}
 
 		if ( @attacker == null || @attacker.client == null )
@@ -626,12 +615,6 @@ void target_connectroom(Entity@ self)
 ///*****************************************************************
 /// LOCAL FUNCTIONS
 ///*****************************************************************
-
-void G_DPrint( String& msg )
-{
-	if ( gt_debug.boolean )
-		G_Print(msg);
-}
 
 void DA_SetUpWarmup()
 {
@@ -847,8 +830,6 @@ void GT_ScoreEvent( Client @client, const String &score_event, const String &arg
 		int arg2 = args.getToken( 1 ).toInt();
 		int mod  = args.getToken( 3 ).toInt();
 
-		if ( arg1 == arg2 )
-			G_DPrint( "VOID ");
 		// target, attacker, inflictor
 		daRound.playerKilled( G_GetEntity( arg1 ), attacker, G_GetEntity( arg2 ), mod );
 	}
@@ -966,13 +947,10 @@ void GT_SpawnGametype()
 	if ( gladiator_rooms.size() > 0 )
 		return;
 
-	G_DPrint("Rooms debug: \n");
 	Entity@[] rooms = G_FindByClassname( "target_connectroom" );
-	G_DPrint("found "+rooms.size()+" rooms\n");
 	for ( uint i = 0; i < rooms.size(); i++ )
 	{
 		Entity@ ent = rooms[i];
-		G_DPrint("Room #"+(i+1)+" "+ent.targetname+":\n");
 		uint k = 0;
 		do {
 			Entity@[] spawnents = ent.findTargets();
@@ -981,18 +959,15 @@ void GT_SpawnGametype()
 			for ( uint j = 0; j < spawnents.size(); j++ )
 			{
 				@ent = @spawnents[j];
-				G_DPrint("spawn #"+(k+1)+" "+ent.targetname+" @ "+vec3ToString(ent.origin)+"\n");
 			}
 			k++;
 		} while ( true );
 		if ( k < 4 )
 		{
-			G_DPrint("WARN: invalid room\n");
 		} else {
 			gladiator_rooms.push_back(rooms[i]);
 		}
 	}
-	G_DPrint("Verification complete, "+gladiator_rooms.size()+" valid rooms found.\n");
 }
 
 // Important: This function is called before any entity is spawned, and

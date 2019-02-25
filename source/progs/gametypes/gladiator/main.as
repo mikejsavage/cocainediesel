@@ -295,23 +295,6 @@ class cDARound
 			if ( this.roundWinner.stats.score == scoreLimit.integer )
 			{
 				this.roundAnnouncementPrint( S_COLOR_WHITE + this.roundWinner.name + S_COLOR_WHITE + " is a true gladiator!" );
-				GT_Stats_GetPlayer( this.roundWinner ).stats.add("matchwins", 1);
-				G_DPrint("MATCHWIN " + this.roundWinner.name + "\n");
-
-
-				Entity @ent;
-				Team @team;
-
-				@team = @G_GetTeam( TEAM_PLAYERS );
-
-				for ( int j = 0; @team.ent( j ) != null; j++ )
-				{
-					@ent = @team.ent( j );
-					if ( @ent.client == @this.roundWinner )
-						continue;
-
-					GT_Stats_GetPlayer( ent.client ).stats.add("matchlosses", 1);
-				}
 			}
 		}
 
@@ -424,7 +407,6 @@ class cDARound
 						if ( this.isChallenger(ent.client) )
 						{
 							ent.client.respawn( false );
-							GT_Stats_GetPlayer( ent.client ).stats.add("rounds", 1);
 						}
 					}
 
@@ -473,33 +455,12 @@ class cDARound
 					if ( this.roundChallengers.size() > 0 )
 						@winner = @this.roundChallengers[0];
 
-					// watch for one of the players removing from the game
-					/*if ( @this.roundWinner == null || @this.roundChallenger == null )
-					  {
-					  if ( @this.roundWinner != null )
-					  @winner = @this.roundWinner;
-					  else if ( @this.roundChallenger != null )
-					  @winner = @this.roundChallenger;
-					  }
-					  else if ( !this.roundWinner.getEnt().isGhosting() && this.roundChallenger.getEnt().isGhosting() )
-					  {
-					  @winner = @this.roundWinner;
-					  @loser = @this.roundChallenger;
-					  }
-					  else if ( this.roundWinner.getEnt().isGhosting() && !this.roundChallenger.getEnt().isGhosting() )
-					  {
-					  @winner = @this.roundChallenger;
-					  @loser = @this.roundWinner;
-					  }*/
-
 					// if we didn't find a winner, it was a draw round
 					if ( @winner == null )
 					{
 						int soundIndex;
 						this.roundAnnouncementPrint( S_COLOR_WHITE + "Wow your terrible" );
 
-						//this.challengersQueueAddPlayer( this.roundWinner );
-						//this.challengersQueueAddPlayer( this.roundChallenger );
 						soundIndex = G_SoundIndex( "sounds/gladiator/wowyourterrible" );
 						G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, false, null );
 					}
@@ -511,26 +472,15 @@ class cDARound
 						G_AnnouncerSound( winner, soundIndex, GS_MAX_TEAMS, true, loser );
 
 						winner.stats.addScore( 1 );
-						GT_Stats_GetPlayer( winner ).stats.add("round_wins", 1);
-						G_DPrint( "ROUNDWIN " + winner.name + "\n" );
-						//soundIndex = G_SoundIndex( "sounds/gladiator/urrekt" );
-						//G_AnnouncerSound( loser, soundIndex, GS_MAX_TEAMS, true, null );
-						//this.challengersQueueAddPlayer( loser );
-						//this.roundAnnouncementPrint( S_COLOR_WHITE + loser.name + S_COLOR_WHITE + " wasn't man enough.." );
 					}
 
 					this.roundLosers.reverse();
 					for ( uint i = 0; i < this.roundLosers.size(); i++ )
 					{
 						this.challengersQueueAddPlayer( this.roundLosers[i] );
-						if ( @winner == null )
-						{
-							GT_Stats_GetPlayer( this.roundLosers[i] ).stats.add("round_draws", 1);
-						}
 					}
 
 					@this.roundWinner = @winner;
-					//@this.roundChallenger = null;
 				}
 				break;
 
@@ -617,20 +567,14 @@ class cDARound
 		if ( @target == null || @target.client == null )
 			return;
 
-		Stats_Player@ target_player = @GT_Stats_GetPlayer( target.client );
-
 		if ( this.isInRound() )
 		{
-			target_player.stats.add("deaths", 1);
-			target_player.stats.add("deathmod_"+String(mod), 1);
-			target_player.stats.add("roundpos_"+this.roundChallengers.length(), 1);
 			this.addLoser( target.client );
 
 			Vec3 vel = target.velocity;
 			if ( vel.z < -1600 && target.health < 666 )
 			{
 				G_GlobalSound( CHAN_AUTO, G_SoundIndex( "sounds/gladiator/smackdown" ) );
-				target_player.stats.add("smackdowns", 1);
 			}
 		}
 
@@ -640,7 +584,6 @@ class cDARound
 
 			target.client.stats.addScore( -1 );
 			G_LocalSound( target.client, CHAN_AUTO, G_SoundIndex( "sounds/gladiator/ouch" ) );
-			target_player.stats.add("preround_deaths", 1);
 		}
 
 		if ( this.state == DA_ROUNDSTATE_ROUND || this.state == DA_ROUNDSTATE_ROUNDFINISHED )
@@ -651,9 +594,6 @@ class cDARound
 
 		if ( @attacker == null || @attacker.client == null )
 			return;
-
-		Stats_Player@ attacker_player = @GT_Stats_GetPlayer( attacker.client );
-		attacker_player.stats.add("kills", 1);
 
 		for ( int i = 0; i < maxClients; i++ )
 		{
@@ -747,12 +687,6 @@ bool GT_Command( Client @client, const String &cmdString, const String &argsStri
 	{
 		GENERIC_CheatVarResponse( client, cmdString, argsString, argc );
 		return true;
-	}
-
-	if ( cmdString == "!stats" )
-	{
-		Stats_Player@ player = @GT_Stats_GetPlayer( client );
-		G_PrintMsg( client.getEnt(), player.stats.toString() );
 	}
 
 	return false;
@@ -902,10 +836,7 @@ String @GT_ScoreboardMessage( uint maxlen )
 // Warning: client can be null
 void GT_ScoreEvent( Client @client, const String &score_event, const String &args )
 {
-	if ( score_event == "dmg" )
-	{
-	}
-	else if ( score_event == "kill" )
+	if ( score_event == "kill" )
 	{
 		Entity @attacker = null;
 
@@ -920,35 +851,6 @@ void GT_ScoreEvent( Client @client, const String &score_event, const String &arg
 			G_DPrint( "VOID ");
 		// target, attacker, inflictor
 		daRound.playerKilled( G_GetEntity( arg1 ), attacker, G_GetEntity( arg2 ), mod );
-	}
-	else if ( score_event == "award" )
-	{
-		if ( daRound.isInRound() )
-		{
-			Stats_Player@ player = @GT_Stats_GetPlayer( client );
-			String cleanAward = "award_" + args.removeColorTokens().tolower();
-			player.stats.add(cleanAward, 1);
-			player.stats.add("awards", 1);
-		}
-	}
-	else if ( score_event == "enterGame" )
-	{
-		if ( @client != null )
-		{
-			GT_Stats_GetPlayer( client ).load();
-		}
-	}
-	else if ( score_event == "userinfochanged" )
-	{
-		if ( @client != null )
-		{
-			Stats_Player@ player = @GT_Stats_GetPlayer( client );
-			if ( @player.stats == null )
-				player.load();
-
-			if ( client.name != player.stats["name"] )
-				player.load();
-		}
 	}
 }
 
@@ -1061,8 +963,6 @@ void GT_Shutdown()
 // playing, but nothing has yet started.
 void GT_SpawnGametype()
 {
-	GT_Stats_Init();
-
 	if ( gladiator_rooms.size() > 0 )
 		return;
 
@@ -1135,7 +1035,6 @@ void GT_InitGametype()
 
 	// add commands
 	G_RegisterCommand( "gametype" );
-	G_RegisterCommand( "!stats" );
 
 	// register gladiator media pure
 	G_SoundIndex( "sounds/gladiator/fight", true );

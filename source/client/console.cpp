@@ -130,6 +130,7 @@ static const char * FindNextColorToken( const char * str, char * token ) {
 			*token = p[ 1 ];
 			return p;
 		}
+		p++;
 	}
 	return NULL;
 }

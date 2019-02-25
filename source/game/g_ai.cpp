@@ -21,7 +21,7 @@ static struct {
 
 static void CreateUserInfo( char * buffer, size_t bufferSize ) {
 	// Try to avoid bad distribution, otherwise some bots are selected too often. Weights are prime numbers
-	int characterIndex = ( (int)( 3 * random() + 11 * random() +  97 * random() + 997 * random() ) ) % ARRAY_COUNT( botCharacters );
+	int characterIndex = rand() % ARRAY_COUNT( botCharacters );
 
 	memset( buffer, 0, bufferSize );
 

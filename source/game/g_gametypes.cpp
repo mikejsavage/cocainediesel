@@ -1239,7 +1239,7 @@ void G_Gametype_Init( void ) {
 	trap_Cvar_Set( "g_gametype", gt );
 
 	if( g_gametype->latched_string ) {
-		trap_Cvar_ForceSet( "g_gametype", va( "%s", g_gametype->latched_string ) );
+		trap_Cvar_ForceSet( "g_gametype", g_gametype->latched_string );
 		changed = true;
 	}
 

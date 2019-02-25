@@ -29,7 +29,6 @@ class Stats_Player
 		{
 			cleanName = cleanName.replace(invalid_chars.substr(i,1), "");
 		}
-		G_Print("clear "+cleanName+"\n");
 		// TODO: find better solution for this
 		// random trailing character because files ending in "." don't work
 		@this.stats = @StatsFile("players/"+cleanName+"_");

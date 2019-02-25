@@ -22,7 +22,6 @@ const int DA_ROUNDSTATE_PREROUND = 1;
 const int DA_ROUNDSTATE_ROUND = 2;
 const int DA_ROUNDSTATE_ROUNDFINISHED = 3;
 const int DA_ROUNDSTATE_POSTROUND = 4;
-int randNum;
 int deadIcon;
 int aliveIcon;
 int[] endMatchSounds;
@@ -334,7 +333,6 @@ class cDARound
 
 			if ( client.state() >= CS_SPAWNED ) {
 				client.respawn( true ); // ghost them all
-				GENERIC_SetPostmatchQuickMenu( @client );
 			}
 		}
 
@@ -353,23 +351,18 @@ class cDARound
 				team2.name + S_COLOR_WHITE + " - " + match.getScore() + "\n" );
 		}
 
-		int soundIndex = endMatchSounds[uint(brandom(0,endMatchSounds.size()-0.001))];
+		int soundIndex = endMatchSounds[random_uniform(0,endMatchSounds.size())];
 		G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, true, null );
 	}
 
 	void newRound()
 	{
-		StopModifiers();
-
-		randNum = int(brandom(0,7.999)); //randomize weapon
 		G_RemoveDeadBodies();
 		G_RemoveAllProjectiles();
 		G_ResetLevel();
 
 		this.newRoundState( DA_ROUNDSTATE_PREROUND );
 		this.numRounds++;
-		//int currentWeapon = randNum + 1;
-		//this.roundAnnouncementPrint( S_COLOR_WHITE + "This round's weapon: " + S_COLOR_WHITE + WEAPON_NAMES[currentWeapon]);
 	}
 
 	void newRoundState( int newState )
@@ -437,7 +430,6 @@ class cDARound
 
 
 					DoSpinner();
-					LoadRandomModifier();
 
 					// generate vs string
 					String vs_string = S_COLOR_WHITE + this.roundChallengers[0].name;
@@ -459,7 +451,6 @@ class cDARound
 					int soundIndex = G_SoundIndex( "sounds/gladiator/fight" );
 					G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, false, null );
 					G_CenterPrintMsg( null, 'FIGHT!');
-					InitModifiers();
 				}
 				break;
 
@@ -616,8 +607,6 @@ class cDARound
 				}
 			}
 
-			ThinkModifiers();
-
 			if ( count < 2 )
 				this.newRoundState( this.state + 1 );
 		}
@@ -666,8 +655,6 @@ class cDARound
 		Stats_Player@ attacker_player = @GT_Stats_GetPlayer( attacker.client );
 		attacker_player.stats.add("kills", 1);
 
-		target.client.printMessage( "You were fragged by " + attacker.client.name + " (health: " + rint( attacker.health ) + ", armor: " + rint( attacker.client.armor ) + ")\n" );
-
 		for ( int i = 0; i < maxClients; i++ )
 		{
 			Client @client = @G_GetClient( i );
@@ -676,12 +663,7 @@ class cDARound
 
 			if ( @client == @this.roundWinner || @client == @this.roundChallenger )
 				continue;
-
-			client.printMessage( target.client.name + " was fragged by " + attacker.client.name + " (health: " + int( attacker.health ) + ", armor: " + int( attacker.client.armor ) + ")\n" );
 		}
-
-		// check for generic awards for the frag
-		award_playerKilled( @target, @attacker, @inflictor );
 	}
 
 	bool isInRound()
@@ -761,113 +743,19 @@ void DA_SetUpCountdown()
 
 bool GT_Command( Client @client, const String &cmdString, const String &argsString, int argc )
 {
-	if ( cmdString == "gametype" )
-	{
-		String response = "";
-		Cvar fs_game( "fs_game", "", 0 );
-		String manifest = gametype.manifest;
-
-		response += "\n";
-		response += "Gametype " + gametype.name + " : " + gametype.title + "\n";
-		response += "----------------\n";
-		response += "Version: " + gametype.version + "\n";
-		response += "Author: " + gametype.author + "\n";
-		response += "Mod: " + fs_game.string + (!manifest.empty() ? " (manifest: " + manifest + ")" : "") + "\n";
-		response += "----------------\n";
-
-		G_PrintMsg( client.getEnt(), response );
-		return true;
-	}
-	else if( cmdString == "cvarinfo" )
+	if( cmdString == "cvarinfo" )
 	{
 		GENERIC_CheatVarResponse( client, cmdString, argsString, argc );
 		return true;
 	}
-	else if ( cmdString == "callvotevalidate" )
-	{
-		String votename = argsString.getToken( 0 );
-		if ( votename == "mods")
-		{
-			String voteArg = argsString.getToken( 1 );
-			if ( voteArg.len() < 1 )
-			{
-				client.printMessage( "Callvote " + votename + " requires at least one argument\n" );
-				return false;
-			}
 
-			if ( ModStringToMode(voteArg) == uint(gt_mod_mode.integer) )
-			{
-				client.printMessage( "Modifiers already set at "+voteArg+"\n" );
-				return false;
-			}
-
-			if ( isValidMode(voteArg) )
-			{
-				return true;
-			}
-			else
-			{
-				client.printMessage( voteArg + " Is not a valid modifier\n");
-				return false;
-			}
-		}
-	}
-	else if ( cmdString == "callvotepassed" )
-	{
-		String votename = argsString.getToken( 0 );
-		if ( votename == "mods")
-		{
-			gt_mod_mode.set(ModStringToMode(argsString.getToken( 1 )));
-		}
-	}
-	else if ( cmdString == "!stats" )
+	if ( cmdString == "!stats" )
 	{
 		Stats_Player@ player = @GT_Stats_GetPlayer( client );
 		G_PrintMsg( client.getEnt(), player.stats.toString() );
 	}
 
 	return false;
-}
-
-// When this function is called the weights of items have been reset to their default values,
-// this means, the weights *are set*, and what this function does is scaling them depending
-// on the current bot status.
-// Player, and non-item entities don't have any weight set. So they will be ignored by the bot
-// unless a weight is assigned here.
-bool GT_UpdateBotStatus( Entity @ent )
-{
-	Entity @goal;
-	Bot @bot;
-
-	@bot = @ent.client.getBot();
-	if ( @bot == null )
-		return false;
-
-	float offensiveStatus = GENERIC_OffensiveStatus( ent );
-
-	// loop all the goal entities
-	for ( int i = AI::GetNextGoal( AI::GetRootGoal() ); i != AI::GetRootGoal(); i = AI::GetNextGoal( i ) )
-	{
-		@goal = @AI::GetGoalEntity( i );
-
-		// by now, always full-ignore not solid entities
-		if ( goal.solid == SOLID_NOT )
-		{
-			bot.setGoalWeight( i, 0 );
-			continue;
-		}
-
-		if ( @goal.client != null )
-		{
-			bot.setGoalWeight( i, GENERIC_PlayerWeight( ent, goal ) * 2.5 * offensiveStatus );
-			continue;
-		}
-
-		// ignore it
-		bot.setGoalWeight( i, 0 );
-	}
-
-	return true; // handled by the script
 }
 
 // select a spawning point for a player
@@ -893,7 +781,7 @@ Entity @GT_SelectSpawnPoint( Entity @self )
 		selected_spawn = true;
 
 		//get random room
-		@room = @gladiator_rooms[uint(brandom(0,gladiator_rooms.size()-0.001))];
+		@room = @gladiator_rooms[random_uniform(0, gladiator_rooms.size())];
 
 		//get first spawnpoint from room
 		spawnents = room.findTargets();
@@ -1081,19 +969,11 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team )
 
 	if ( match.getState() == MATCH_STATE_PLAYTIME )
 	{
-		//ent.client.inventorySetCount( WEAP_GUNBLADE, 1 );
 		ent.client.inventorySetCount( POWERUP_QUAD, 100);
-		ent.client.armor = 666;
 		ent.client.getEnt().health = 666;
-		/*ent.client.inventoryGiveItem( WEAP_GUNBLADE );
-		  ent.client.inventoryGiveItem( WEAP_NONE + 1 + randNum );
-		  ent.client.inventorySetCount( AMMO_GUNBLADE + randNum, 66 );*/
 	} else {
 		for ( int i = WEAP_GUNBLADE ; i < WEAP_TOTAL; i++ )
 		{
-			if ( i == WEAP_INSTAGUN || i == WEAP_MACHINEGUN ) // dont add instagun...
-				continue;
-
 			ent.client.inventoryGiveItem( i );
 
 			@item = @G_GetItem( i );
@@ -1222,42 +1102,7 @@ void GT_SpawnGametype()
 
 void GT_InitGametype()
 {
-	gametype.title = "Gladiator";
-	gametype.version = "0.6";
-	gametype.author = "Rick James";
-
 	daRound.init();
-
-	// if the gametype doesn't have a config file, create it
-	if ( !G_FileExists( "configs/server/gametypes/" + gametype.name + ".cfg" ) )
-	{
-		String config;
-
-		// the config file doesn't exist or it's empty, create it
-		config = "// '" + gametype.title + "' gametype configuration file\n"
-			+ "// This config will be executed each time the gametype is started\n"
-			+ "\n\n// map rotation\n"
-			+ "set g_maplist \"gladiator01\" // list of maps in automatic rotation\n"
-			+ "set g_maprotation \"0\"   // 0 = same map, 1 = in order, 2 = random\n"
-			+ "\n// game settings\n"
-			+ "set g_scorelimit \"0\"\n"
-			+ "set g_timelimit \"0\"\n"
-			+ "set g_warmup_timelimit \"1\"\n"
-			+ "set g_match_extendedtime \"0\"\n"
-			+ "set g_allow_falldamage \"0\"\n"
-			+ "set g_allow_selfdamage \"0\"\n"
-			+ "set g_allow_teamdamage \"0\"\n"
-			+ "set g_allow_stun \"0\"\n"
-			+ "set g_teams_maxplayers \"0\"\n"
-			+ "set g_teams_allow_uneven \"0\"\n"
-			+ "set g_countdown_time \"5\"\n"
-			+ "set g_maxtimeouts \"3\" // -1 = unlimited\n"
-			+ "\necho \"" + gametype.name + ".cfg executed\"\n";
-
-		G_WriteFile( "configs/server/gametypes/" + gametype.name + ".cfg", config );
-		G_Print( "Created default config file for '" + gametype.name + "'\n" );
-		G_CmdExecute( "exec configs/server/gametypes/" + gametype.name + ".cfg silent" );
-	}
 
 	gametype.spawnableItemsMask = ( IT_POWERUP );
 	gametype.respawnableItemsMask = (IT_POWERUP );
@@ -1269,14 +1114,6 @@ void GT_InitGametype()
 	gametype.hasChallengersQueue = false;
 	gametype.maxPlayersPerTeam = 0;
 
-	gametype.ammoRespawn = 0;
-	gametype.armorRespawn = 0;
-	gametype.weaponRespawn = 0;
-	gametype.healthRespawn = 0;
-	gametype.powerupRespawn = 15;
-	gametype.megahealthRespawn = 0;
-	gametype.ultrahealthRespawn = 0;
-
 	gametype.readyAnnouncementEnabled = false;
 	gametype.scoreAnnouncementEnabled = false;
 	gametype.countdownEnabled = false;
@@ -1284,16 +1121,9 @@ void GT_InitGametype()
 	gametype.shootingDisabled = false;
 	gametype.infiniteAmmo = true;
 	gametype.canForceModels = true;
-	gametype.canShowMinimap = false;
-	gametype.teamOnlyMinimap = false;
 	gametype.removeInactivePlayers = true;
 
-	gametype.mmCompatible = true;
-
 	gametype.spawnpointRadius = 0;
-
-	if ( gametype.isInstagib )
-		gametype.spawnpointRadius *= 2;
 
 	// set spawnsystem type to instant while players join
 	for ( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ )
@@ -1306,9 +1136,6 @@ void GT_InitGametype()
 	// add commands
 	G_RegisterCommand( "gametype" );
 	G_RegisterCommand( "!stats" );
-
-	// add callvotes
-	G_RegisterCallvote( "mods", "<none|base|silly|verysilly>", "string", "Sets the type of possible modifiers" );
 
 	// register gladiator media pure
 	G_SoundIndex( "sounds/gladiator/fight", true );
@@ -1346,6 +1173,4 @@ void GT_InitGametype()
 
 	deadIcon = G_ImageIndex( "gfx/gladiator_icons/dead" );
 	aliveIcon = G_ImageIndex( "gfx/gladiator_icons/alive" );
-
-	LoadAllModifiers();
 }

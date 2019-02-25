@@ -5,6 +5,4 @@ generic/matchstates.as;
 
 gladiator/main.as;
 gladiator/spinner.as;
-gladiator/modifiers.as;
-gladiator/base_modifiers.as;
-gladiator/silly_modifiers.as;
+gladiator/stats.as;

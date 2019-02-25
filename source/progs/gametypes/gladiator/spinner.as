@@ -7,7 +7,7 @@ void DoSpinner()
 	spinner.wait = 1;
 	spinner.linkEntity();
 	// skip mg
-	randWeap = int(brandom( WEAP_GUNBLADE, WEAP_ELECTROBOLT ));
+	randWeap = random_uniform( WEAP_GUNBLADE, WEAP_ELECTROBOLT );
 	if ( randWeap >= WEAP_MACHINEGUN )
 		randWeap++;
 }
@@ -41,9 +41,6 @@ void spinner_start(Entity@ self)
 		@ent = @team.ent( j );
 		for ( int i = WEAP_GUNBLADE ; i < WEAP_TOTAL; i++ )
 		{
-			if ( i == WEAP_INSTAGUN || i == WEAP_MACHINEGUN ) // dont add instagun and machinegun
-				continue;
-
 			ent.client.inventoryGiveItem( i );
 
 			@item = @G_GetItem( i );

@@ -25,7 +25,6 @@ const int DA_ROUNDSTATE_POSTROUND = 4;
 int deadIcon;
 int aliveIcon;
 int[] endMatchSounds;
-const String[] WEAPON_NAMES = {"none", "^7GB", "^9MG", "^8RG", "^4GL", "^1RL", "^2PG", "^3LG", "^5EB"};
 
 class cDARound
 {

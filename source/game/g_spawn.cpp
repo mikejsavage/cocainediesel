@@ -807,7 +807,6 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 	G_PrecacheItems(); // set configstrings for items (gametype must be initialized)
 	G_PrecacheMedia();
 	G_PrecacheGameCommands(); // adding commands after this point won't update them to the client
-	AI_InitLevel();
 
 	// start spawning entities
 	G_SpawnEntities();

@@ -311,8 +311,6 @@ void G_Shutdown( void ) {
 
 	SV_WriteIPList();
 
-	AI_Shutdown();
-
 	G_RemoveCommands();
 
 	G_FreeCallvotes();
@@ -463,8 +461,6 @@ void G_ExitLevel( void ) {
 	if( !level.hardReset && !Q_stricmp( nextmapname, level.mapname ) && G_RespawnLevel() ) {
 		loadmap = false;
 	}
-
-	AI_RemoveBots();
 
 	if( loadmap ) {
 		char command[256];

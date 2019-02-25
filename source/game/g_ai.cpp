@@ -19,11 +19,9 @@ static struct {
 	{ "Slice*>", "padpork" },
 };
 
-static constexpr int BOT_CHARACTERS_COUNT = sizeof( botCharacters ) / sizeof( botCharacters[0] );
-
 static void CreateUserInfo( char * buffer, size_t bufferSize ) {
 	// Try to avoid bad distribution, otherwise some bots are selected too often. Weights are prime numbers
-	int characterIndex = ( (int)( 3 * random() + 11 * random() +  97 * random() + 997 * random() ) ) % BOT_CHARACTERS_COUNT;
+	int characterIndex = ( (int)( 3 * random() + 11 * random() +  97 * random() + 997 * random() ) ) % ARRAY_COUNT( botCharacters );
 
 	memset( buffer, 0, bufferSize );
 
@@ -47,12 +45,6 @@ static edict_t * ConnectFakeClient() {
 	}
 	return game.edicts + entNum;
 }
-
-void AI_InitLevel() { }
-void AI_Shutdown() { }
-void AI_RemoveBots() { }
-
-void AI_CommonFrame() { }
 
 void AI_Respawn( edict_t * ent ) {
 	VectorClear( ent->r.client->ps.pmove.delta_angles );
@@ -96,9 +88,6 @@ void AI_RemoveBot( const char * name ) {
 		}
 	}
 	G_Printf( "BOT: %s not found\n", name );
-}
-
-void AI_TouchedEntity( edict_t * self, edict_t * ent ) {
 }
 
 static void AI_SpecThink( edict_t * self ) {

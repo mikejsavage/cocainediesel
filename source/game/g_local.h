@@ -345,25 +345,18 @@ void SP_post_match_camera( edict_t *ent );
 // g_func.c
 //
 void G_AssignMoverSounds( edict_t *ent, const char *start, const char *move, const char *stop );
-bool G_EntIsADoor( edict_t *ent );
 
 void SP_func_plat( edict_t *ent );
 void SP_func_rotating( edict_t *ent );
 void SP_func_button( edict_t *ent );
 void SP_func_door( edict_t *ent );
 void SP_func_door_rotating( edict_t *ent );
-void SP_func_door_secret( edict_t *self );
-void SP_func_water( edict_t *self );
 void SP_func_train( edict_t *ent );
 void SP_func_timer( edict_t *self );
-void SP_func_conveyor( edict_t *self );
 void SP_func_wall( edict_t *self );
 void SP_func_object( edict_t *self );
 void SP_func_explosive( edict_t *self );
-void SP_func_killbox( edict_t *ent );
 void SP_func_static( edict_t *ent );
-void SP_func_bobbing( edict_t *ent );
-void SP_func_pendulum( edict_t *ent );
 
 //
 // g_ascript.c

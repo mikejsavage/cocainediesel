@@ -57,7 +57,6 @@ static void G_Gametype_GENERIC_Init( void ) {
 //==========================================================
 
 cvar_t *g_warmup_timelimit;
-cvar_t *g_postmatch_timelimit;
 cvar_t *g_match_extendedtime;
 cvar_t *g_scorelimit;
 cvar_t *g_gametype;
@@ -378,7 +377,7 @@ void G_Match_LaunchState( int matchState ) {
 		case MATCH_STATE_POSTMATCH:
 		{
 			gs.gameState.stats[GAMESTAT_MATCHSTATE] = MATCH_STATE_POSTMATCH;
-			gs.gameState.stats[GAMESTAT_MATCHDURATION] = (int64_t)fabs( g_postmatch_timelimit->value * 1000 ); // postmatch time in seconds
+			gs.gameState.stats[GAMESTAT_MATCHDURATION] = 4000; // postmatch time in seconds
 			gs.gameState.stats[GAMESTAT_MATCHSTART] = game.serverTime;
 
 			G_Timeout_Reset();
@@ -1228,7 +1227,6 @@ void G_Gametype_Init( void ) {
 
 	// get the match cvars too
 	g_warmup_timelimit = trap_Cvar_Get( "g_warmup_timelimit", "5", CVAR_ARCHIVE );
-	g_postmatch_timelimit = trap_Cvar_Get( "g_postmatch_timelimit", "4", CVAR_ARCHIVE );
 	g_match_extendedtime = trap_Cvar_Get( "g_match_extendedtime", "2", CVAR_ARCHIVE );
 
 	// game settings

@@ -727,9 +727,7 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 	G_asGarbageCollect( true );
 
 	GT_asCallShutdown();
-	G_asCallMapExit();
 
-	G_asShutdownMapScript();
 	GT_asShutdownScript();
 
 	G_FreeCallvotes();
@@ -799,11 +797,8 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 	G_SpawnQueue_Init();
 	G_Teams_Init();
 
-	// load map script
-	G_asLoadMapScript( level.mapname );
 	G_Gametype_Init();
 
-	// ch : this would be the location to "transfer ratings"
 	G_PrecacheItems(); // set configstrings for items (gametype must be initialized)
 	G_PrecacheMedia();
 	G_PrecacheGameCommands(); // adding commands after this point won't update them to the client
@@ -811,15 +806,7 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 	// start spawning entities
 	G_SpawnEntities();
 
-	//
-	// initialize game subsystems which require entities initialized
-	//
-
-	// call gametype specific
 	GT_asCallSpawn();
-
-	// call map specific
-	G_asCallMapInit();
 
 	// always start in warmup match state and let the thinking code
 	// revert it to wait state if empty ( so gametype based item masks are setup )
@@ -840,11 +827,7 @@ void G_ResetLevel( void ) {
 
 	G_SpawnEntities();
 
-	// call gametype specific
 	GT_asCallSpawn();
-
-	// call map specific
-	G_asCallMapInit();
 }
 
 bool G_RespawnLevel( void ) {

@@ -145,7 +145,6 @@ typedef struct {
 
 //
 // this structure is cleared as each map is entered
-// it is read/written to the level.sav file for savegames
 //
 typedef struct {
 	int64_t framenum;
@@ -191,9 +190,6 @@ typedef struct {
 	edict_t *current_entity;    // entity running from G_RunFrame
 	edict_t *spawning_entity;   // entity being spawned from G_InitLevel
 	int body_que;               // dead bodies
-
-	int numCheckpoints;
-	int numLocations;
 
 	timeout_t timeout;
 	float gravity;
@@ -406,14 +402,6 @@ void G_asResetEntityBehaviors( edict_t *ent );
 void G_asClearEntityBehaviors( edict_t *ent );
 void G_asReleaseEntityBehaviors( edict_t *ent );
 
-bool G_asLoadMapScript( const char *mapname );
-void G_asShutdownMapScript( void );
-void G_asCallMapInit( void );
-void G_asCallMapPreThink( void );
-void G_asCallMapPostThink( void );
-void G_asCallMapExit( void );
-const char *G_asCallMapGametype( void );
-
 bool G_asCallMapEntitySpawnScript( const char *classname, edict_t *ent );
 
 void G_asInitGameModuleEngine( void );
@@ -421,7 +409,7 @@ void G_asShutdownGameModuleEngine( void );
 void G_asGarbageCollect( bool force );
 void G_asDumpAPI_f( void );
 
-#define world   ( (edict_t *)game.edicts )
+#define world game.edicts
 
 // item spawnflags
 #define ITEM_TRIGGER_SPAWN  0x00000001

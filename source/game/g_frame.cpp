@@ -619,11 +619,9 @@ void G_RunFrame( unsigned int msec, int64_t serverTime ) {
 	G_SpawnQueue_Think();
 
 	// run the world
-	G_asCallMapPreThink();
 	G_RunClients();
 	G_RunEntities();
 	G_RunGametype();
-	G_asCallMapPostThink();
 	GClip_BackUpCollisionFrame();
 
 	G_LevelGarbageCollect();

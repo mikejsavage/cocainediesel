@@ -21,13 +21,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "cg_local.h"
 
-static int CG_IsAlly( int team ) {
+static bool CG_IsAlly( int team ) {
 	if( team == TEAM_ALLY || team == TEAM_ENEMY )
 		return team == TEAM_ALLY;
 
 	int myteam = cg.predictedPlayerState.stats[STAT_TEAM];
 	if( myteam == TEAM_SPECTATOR )
 		return team == TEAM_ALPHA;
+	if( myteam == TEAM_PLAYERS )
+		return false;
 	return team == myteam;
 }
 

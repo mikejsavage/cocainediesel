@@ -133,8 +133,6 @@ typedef struct {
 	void ( *Scissor )( int x, int y, int w, int h );
 	void ( *ResetScissor )( void );
 
-	void ( *SetCustomColor )( int num, int r, int g, int b );
-
 	bool ( *LerpTag )( orientation_t *orient, const struct model_s *mod, int oldframe, int frame, float lerpfrac, const char *name );
 
 	int ( *SkeletalGetNumBones )( const struct model_s *mod, int *numFrames );

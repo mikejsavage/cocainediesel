@@ -828,7 +828,6 @@ void CG_SC_AutoRecordAction( const char *action );
 // cg_teams.c
 //
 void CG_RegisterForceModels();
-void CG_SetSceneTeamColors();
 void CG_PModelForCentity( centity_t *cent, pmodelinfo_t **pmodelinfo, struct skinfile_s **skin );
 void CG_TeamColor( int team, vec4_t color );
 void CG_TeamColorForEntity( int entNum, byte_vec4_t color );

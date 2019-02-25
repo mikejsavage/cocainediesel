@@ -500,9 +500,6 @@ static void R_InitVolatileAssets( void ) {
         glGenVertexArrays( 1, &vao );
         glBindVertexArray( vao );
 
-	// init volatile data
-	R_InitCustomColors();
-
 	rsh.envShader = R_LoadShader( "$environment", SHADER_TYPE_OPAQUE_ENV, true, NULL );
 	rsh.whiteShader = R_LoadShader( "$whiteimage", SHADER_TYPE_2D, true, NULL );
 
@@ -525,9 +522,6 @@ static void R_InitVolatileAssets( void ) {
 * R_DestroyVolatileAssets
 */
 static void R_DestroyVolatileAssets( void ) {
-	// kill volatile data
-	R_ShutdownCustomColors();
-
 	glBindVertexArray( 0 );
 	glDeleteVertexArrays( 1, &vao );
 }

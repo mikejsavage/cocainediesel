@@ -44,7 +44,6 @@ typedef struct {
 
 	// these fields serve as the frontend cache which can also queried by the public API
 	int scissor[4];
-	byte_vec4_t customColors[NUM_CUSTOMCOLORS];
 } ref_frontend_t;
 
 // public API
@@ -70,7 +69,6 @@ void RF_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows,
 						float s1, float t1, float s2, float t2, uint8_t *data );
 void RF_SetScissor( int x, int y, int w, int h );
 void RF_ResetScissor( void );
-void RF_SetCustomColor( int num, int r, int g, int b );
 void RF_ResizeFramebuffers();
 void RF_ScreenShot( const char *path, const char *name, const char *fmtstring, bool silent );
 bool RF_RenderingEnabled( void );

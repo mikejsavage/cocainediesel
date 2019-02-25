@@ -963,8 +963,6 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 
 	CG_AddLocalSounds();
 
-	CG_SetSceneTeamColors(); // update the team colors in the renderer
-
 	CG_SetupRefDef( &cg.view, rd );
 
 	trap_R_RenderScene( rd );

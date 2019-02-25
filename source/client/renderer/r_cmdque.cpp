@@ -506,7 +506,6 @@ enum {
 	REF_PIPE_CMD_BEGIN_REGISTRATION,
 	REF_PIPE_CMD_END_REGISTRATION,
 
-	REF_PIPE_CMD_SET_CUSTOM_COLOR,
 	REF_PIPE_CMD_SET_WALL_FLOOR_COLORS,
 
 	REF_PIPE_CMD_SET_TEXTURE_FILTER,
@@ -536,12 +535,6 @@ typedef struct {
 typedef struct {
 	int id;
 } refReliableCmdBeginEndRegistration_t;
-
-typedef struct {
-	int id;
-	int num;
-	int r, g, b;
-} refReliableCmdSetCustomColor_t;
 
 typedef struct {
 	int id;
@@ -614,14 +607,6 @@ static unsigned R_HandleEndRegistrationReliableCmd( const void *pcmd ) {
 	return sizeof( *cmd );
 }
 
-static unsigned R_HandleSetCustomColorReliableCmd( const void *pcmd ) {
-	const refReliableCmdSetCustomColor_t *cmd = ( const refReliableCmdSetCustomColor_t * ) pcmd;
-
-	R_SetCustomColor( cmd->num, cmd->r, cmd->g, cmd->b );
-
-	return sizeof( *cmd );
-}
-
 static unsigned R_HandleSetWallFloorColorsReliableCmd( const void *pcmd ) {
 	const refReliableCmdSetWallFloorColors_t *cmd = ( const refReliableCmdSetWallFloorColors_t * ) pcmd;
 
@@ -655,7 +640,6 @@ static refPipeCmdHandler_t refPipeCmdHandlers[NUM_REF_PIPE_CMDS] =
 	R_HandleScreenShotReliableCmd,
 	R_HandleBeginRegistrationReliableCmd,
 	R_HandleEndRegistrationReliableCmd,
-	R_HandleSetCustomColorReliableCmd,
 	R_HandleSetWallFloorColorsReliableCmd,
 	R_HandleSetTextureFilterReliableCmd,
 	R_HandleSetGammaReliableCmd,
@@ -726,18 +710,6 @@ static void RF_IssueEndRegistrationReliableCmd( ref_cmdpipe_t *cmdpipe ) {
 	RF_IssueAbstractReliableCmd( cmdpipe, &cmd, sizeof( cmd ) );
 }
 
-static void RF_IssueSetCustomColorReliableCmd( ref_cmdpipe_t *cmdpipe, int num, int r, int g, int b ) {
-	refReliableCmdSetCustomColor_t cmd;
-
-	cmd.id = REF_PIPE_CMD_SET_CUSTOM_COLOR;
-	cmd.num = num;
-	cmd.r = r;
-	cmd.g = g;
-	cmd.b = b;
-
-	RF_IssueAbstractReliableCmd( cmdpipe, &cmd, sizeof( cmd ) );
-}
-
 static void RF_IssueSetWallFloorColorsReliableCmd( ref_cmdpipe_t *cmdpipe, const vec3_t wallColor, const vec3_t floorColor ) {
 	refReliableCmdSetWallFloorColors_t cmd;
 
@@ -778,7 +750,6 @@ ref_cmdpipe_t *RF_CreateCmdPipe() {
 	cmdpipe->AviShot = &RF_IssueAviShotReliableCmd;
 	cmdpipe->BeginRegistration = &RF_IssueBeginRegistrationReliableCmd;
 	cmdpipe->EndRegistration = &RF_IssueEndRegistrationReliableCmd;
-	cmdpipe->SetCustomColor = &RF_IssueSetCustomColorReliableCmd;
 	cmdpipe->SetWallFloorColors = &RF_IssueSetWallFloorColorsReliableCmd;
 	cmdpipe->SetTextureFilter = &RF_IssueSetTextureFilterReliableCmd;
 	cmdpipe->SetGamma = &RF_IssueSetGammaReliableCmd;

@@ -34,8 +34,6 @@ typedef vec_t instancePoint_t[8]; // quaternion for rotation + xyz pos + uniform
 
 #include "r_math.h"
 
-#define NUM_CUSTOMCOLORS        16
-
 #define SUBDIVISIONS_MIN        3
 #define SUBDIVISIONS_MAX        16
 #define SUBDIVISIONS_DEFAULT    5
@@ -195,8 +193,6 @@ typedef struct {
 
 	shader_t *envShader;
 	shader_t *whiteShader;
-
-	byte_vec4_t customColors[NUM_CUSTOMCOLORS];
 } r_shared_t;
 
 typedef struct {
@@ -475,11 +471,6 @@ void R_DrawRotatedStretchPic( int x, int y, int w, int h, float s1, float t1, fl
 									 float angle, const vec4_t color, const shader_t *shader );
 void R_DrawStretchQuick( int x, int y, int w, int h, float s1, float t1, float s2, float t2,
 								const vec4_t color, int program_type, image_t *image, int blendMask );
-
-void R_InitCustomColors( void );
-void R_SetCustomColor( int num, int r, int g, int b );
-int R_GetCustomColor( int num );
-void R_ShutdownCustomColors( void );
 
 void R_ClearRefInstStack( void );
 refinst_t  *R_PushRefInst( void );

@@ -107,47 +107,6 @@ void R_TransformForEntity( const entity_t *e ) {
 /*
 =============================================================
 
-CUSTOM COLORS
-
-=============================================================
-*/
-
-/*
-* R_InitCustomColors
-*/
-void R_InitCustomColors( void ) {
-	memset( rsh.customColors, 255, sizeof( rsh.customColors ) );
-}
-
-/*
-* R_SetCustomColor
-*/
-void R_SetCustomColor( int num, int r, int g, int b ) {
-	if( num < 0 || num >= NUM_CUSTOMCOLORS ) {
-		return;
-	}
-	Vector4Set( rsh.customColors[num], (uint8_t)r, (uint8_t)g, (uint8_t)b, 255 );
-}
-/*
-* R_GetCustomColor
-*/
-int R_GetCustomColor( int num ) {
-	if( num < 0 || num >= NUM_CUSTOMCOLORS ) {
-		return COLOR_RGBA( 255, 255, 255, 255 );
-	}
-	return *(int *)rsh.customColors[num];
-}
-
-/*
-* R_ShutdownCustomColors
-*/
-void R_ShutdownCustomColors( void ) {
-	memset( rsh.customColors, 255, sizeof( rsh.customColors ) );
-}
-
-/*
-=============================================================
-
 SPRITE MODELS
 
 =============================================================

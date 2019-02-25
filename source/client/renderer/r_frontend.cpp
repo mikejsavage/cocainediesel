@@ -53,8 +53,6 @@ rserr_t RF_Init() {
 	rrf.frame = RF_CreateCmdBuf();
 	rrf.frame->Clear( rrf.frame );
 
-	memset( rrf.customColors, 255, sizeof( rrf.customColors ) );
-
 	rrf.adapter.owner = (void *)&rrf;
 	if( RF_AdapterInit( &rrf.adapter ) != true ) {
 		return rserr_unknown;
@@ -177,17 +175,6 @@ void RF_SetScissor( int x, int y, int w, int h ) {
 void RF_ResetScissor( void ) {
 	rrf.frame->ResetScissor( rrf.frame );
 	Vector4Set( rrf.scissor, 0, 0, glConfig.width, glConfig.height );
-}
-
-void RF_SetCustomColor( int num, int r, int g, int b ) {
-	byte_vec4_t rgba;
-
-	Vector4Set( rgba, r, g, b, 255 );
-
-	if( *(int *)rgba != *(int *)rrf.customColors[num] ) {
-		rrf.adapter.cmdPipe->SetCustomColor( rrf.adapter.cmdPipe, num, r, g, b );
-		*(int *)rrf.customColors[num] = *(int *)rgba;
-	}
 }
 
 void RF_ResizeFramebuffers() {

@@ -272,10 +272,6 @@ static inline bool trap_R_LerpTag( orientation_t *orient, const struct model_s *
 	return CGAME_IMPORT.R_LerpTag( orient, mod, oldframe, frame, lerpfrac, name ) == true;
 }
 
-static inline void trap_R_SetCustomColor( int num, int r, int g, int b ) {
-	CGAME_IMPORT.R_SetCustomColor( num, r, g, b );
-}
-
 static inline void trap_R_DrawStretchPic( int x, int y, int w, int h, float s1, float t1, float s2, float t2, const vec4_t color, struct shader_s *shader ) {
 	CGAME_IMPORT.R_DrawStretchPic( x, y, w, h, s1, t1, s2, t2, color, shader );
 }

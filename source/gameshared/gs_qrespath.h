@@ -98,7 +98,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PATH_HEALTH_50_SIMPLEITEM       "gfx/simpleitems/health/50"
 #define PATH_HEALTH_100_SIMPLEITEM      "gfx/simpleitems/health/100"
 #define PATH_HEALTH_ULTRA_SIMPLEITEM        "gfx/simpleitems/health/100ultra"
-#define PATH_QUAD_SIMPLEITEM            "gfx/simpleitems/powerup/quad"
 
 #define PATH_KEYICON_FORWARD            "gfx/hud/keys/key_forward"
 #define PATH_KEYICON_BACKWARD           "gfx/hud/keys/key_back"
@@ -149,10 +148,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PATH_FLAG_BASE_MODEL        "models/objects/flag/flag_base.md3"
 #define PATH_FLAG_MODEL         "models/objects/flag/flag.md3"
 
-// powerups
-#define PATH_QUAD_MODEL         "models/powerups/instant/quad.md3"
-#define PATH_QUAD_LIGHT_MODEL       "models/powerups/instant/quad_light.md3"
-
 // misc
 
 // weapon projectiles
@@ -192,10 +187,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define S_PICKUP_HEALTH_LARGE   "sounds/items/health_50"         // pickup health +50
 #define S_PICKUP_HEALTH_MEGA    "sounds/items/megahealth"        // pickup megahealth
 
-#define S_PICKUP_QUAD       "sounds/items/quad_pickup"       // pickup Quad damage
-
 #define S_ITEM_RESPAWN      "sounds/items/item_spawn"        // item respawn
-#define S_ITEM_QUAD_RESPAWN "sounds/items/quad_spawn"        // Quad respawn
 
 // misc sounds
 #define S_TIMER_BIP_BIP     "sounds/misc/timer_bip_bip"
@@ -235,9 +227,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define S_FUNC_ROTATING_STOP    NULL
 
 #define S_BUTTON_START      "sounds/movers/button"
-
-//#define S_QUAD_USE				"sounds/items/quad_use"
-#define S_QUAD_FIRE     "sounds/items/quad_fire"
 
 // world sounds
 #define S_WORLD_WATER_IN            "sounds/world/water_in"
@@ -298,7 +287,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define S_WEAPON_PLASMAGUN_HIT          "sounds/weapons/plasmagun_strong_explosion"
 
 #define S_WEAPON_LASERGUN_HUM           "sounds/weapons/laser_strong_hum"
-#define S_WEAPON_LASERGUN_QUAD_HUM      "sounds/weapons/laser_strong_quad_hum"
 #define S_WEAPON_LASERGUN_STOP          "sounds/weapons/laser_strong_stop"
 #define S_WEAPON_LASERGUN_HIT_0         "sounds/weapons/laser_hit0"
 #define S_WEAPON_LASERGUN_HIT_1         "sounds/weapons/laser_hit1"

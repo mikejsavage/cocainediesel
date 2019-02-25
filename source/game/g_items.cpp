@@ -50,13 +50,6 @@ void DoRespawn( edict_t *ent ) {
 
 	// send an effect
 	G_AddEvent( ent, EV_ITEM_RESPAWN, ent->item ? ent->item->tag : 0, true );
-
-	// powerups announce their presence with a global sound
-	if( ent->item && ( ent->item->type & IT_POWERUP ) ) {
-		if( ent->item->tag == POWERUP_QUAD ) {
-			G_GlobalSound( CHAN_AUTO, trap_SoundIndex( S_ITEM_QUAD_RESPAWN ) );
-		}
-	}
 }
 
 void SetRespawn( edict_t *ent, int delay ) {

@@ -102,15 +102,12 @@ void CG_RegisterMediaSounds( void ) {
 
 	// Lasergun sounds
 	cgs.media.sfxLasergunHum = CG_RegisterMediaSfx( S_WEAPON_LASERGUN_HUM );
-	cgs.media.sfxLasergunQuadHum = CG_RegisterMediaSfx( S_WEAPON_LASERGUN_QUAD_HUM );
 	cgs.media.sfxLasergunStop = CG_RegisterMediaSfx( S_WEAPON_LASERGUN_STOP );
 	cgs.media.sfxLasergunHit[0] = CG_RegisterMediaSfx( S_WEAPON_LASERGUN_HIT_0 );
 	cgs.media.sfxLasergunHit[1] = CG_RegisterMediaSfx( S_WEAPON_LASERGUN_HIT_1 );
 	cgs.media.sfxLasergunHit[2] = CG_RegisterMediaSfx( S_WEAPON_LASERGUN_HIT_2 );
 
 	cgs.media.sfxElectroboltHit = CG_RegisterMediaSfx( S_WEAPON_ELECTROBOLT_HIT );
-
-	cgs.media.sfxQuadFireSound = CG_RegisterMediaSfx( S_QUAD_FIRE );
 
 	// VSAY sounds
 	cgs.media.sfxVSaySounds[VSAY_GENERIC] = CG_RegisterMediaSfx( S_VSAY_GOODGAME );

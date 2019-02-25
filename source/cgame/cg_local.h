@@ -172,13 +172,10 @@ typedef struct {
 
 	// Lasergun sounds
 	cgs_media_handle_t *sfxLasergunHum;
-	cgs_media_handle_t *sfxLasergunQuadHum;
 	cgs_media_handle_t *sfxLasergunStop;
 	cgs_media_handle_t *sfxLasergunHit[3];
 
 	cgs_media_handle_t *sfxElectroboltHit;
-
-	cgs_media_handle_t *sfxQuadFireSound;
 
 	// VSAY sounds
 	cgs_media_handle_t *sfxVSaySounds[VSAY_TOTAL];

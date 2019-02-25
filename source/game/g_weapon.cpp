@@ -757,12 +757,11 @@ static void _LaserImpact( trace_t *trace, vec3_t dir ) {
 	}
 }
 
-static edict_t *_FindOrSpawnLaser( edict_t *owner, int entType, bool *newLaser ) {
+static edict_t *_FindOrSpawnLaser( edict_t *owner, int entType ) {
 	int i, ownerNum;
 	edict_t *e, *laser;
 
 	// first of all, see if we already have a beam entity for this laser
-	*newLaser = false;
 	laser = NULL;
 	ownerNum = ENTNUM( owner );
 	for( i = gs.maxclients + 1; i < game.maxentities; i++ ) {
@@ -780,7 +779,6 @@ static edict_t *_FindOrSpawnLaser( edict_t *owner, int entType, bool *newLaser )
 	// if no ent was found we have to create one
 	if( !laser || laser->s.type != entType || !laser->s.modelindex ) {
 		if( !laser ) {
-			*newLaser = true;
 			laser = G_Spawn();
 		}
 
@@ -800,17 +798,10 @@ static edict_t *_FindOrSpawnLaser( edict_t *owner, int entType, bool *newLaser )
 */
 edict_t *W_Fire_Lasergun( edict_t *self, vec3_t start, vec3_t angles, float damage, int knockback, int range, int timeDelta ) {
 	edict_t *laser;
-	bool newLaser;
 	trace_t tr;
 	vec3_t dir;
 
-	laser = _FindOrSpawnLaser( self, ET_LASERBEAM, &newLaser );
-	if( newLaser ) {
-		// the quad start sound is added from the server
-		if( self->r.client && self->r.client->ps.inventory[POWERUP_QUAD] > 0 ) {
-			G_Sound( self, CHAN_AUTO, trap_SoundIndex( S_QUAD_FIRE ), ATTN_NORM );
-		}
-	}
+	laser = _FindOrSpawnLaser( self, ET_LASERBEAM );
 
 	laser_damage = damage;
 	laser_knockback = knockback;

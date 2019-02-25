@@ -146,11 +146,7 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 
 	range = GS_GetWeaponDef( WEAP_LASERGUN )->firedef.timeout;
 
-	if( cent->current.effects & EF_QUAD ) {
-		sound = CG_MediaSfx( cgs.media.sfxLasergunQuadHum );
-	} else {
-		sound = CG_MediaSfx( cgs.media.sfxLasergunHum );
-	}
+	sound = CG_MediaSfx( cgs.media.sfxLasergunHum );
 
 	// trace the beam: for tracing we use the real beam origin
 	GS_TraceLaserBeam( &trace, laserOrigin, laserAngles, range, cent->current.number, 0, _LaserImpact );
@@ -235,15 +231,6 @@ static void CG_FireWeaponEvent( int entNum, int weapon, int fireMode ) {
 			// fixed position is better for location, but the channels are used from worldspawn
 			// and openal runs out of channels quick on cheap cards. Relative sound uses per-entity channels.
 			trap_S_StartEntitySound( sound, entNum, CHAN_MUZZLEFLASH, cg_volume_effects->value, attenuation );
-		}
-
-		if( ( cg_entities[entNum].current.effects & EF_QUAD ) && ( weapon != WEAP_LASERGUN ) ) {
-			struct sfx_s *quadSfx = CG_MediaSfx( cgs.media.sfxQuadFireSound );
-			if( ISVIEWERENTITY( entNum ) ) {
-				trap_S_StartGlobalSound( quadSfx, CHAN_AUTO, cg_volume_effects->value );
-			} else {
-				trap_S_StartEntitySound( quadSfx, entNum, CHAN_AUTO, cg_volume_effects->value, attenuation );
-			}
 		}
 	}
 

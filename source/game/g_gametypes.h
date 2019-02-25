@@ -26,23 +26,6 @@ extern cvar_t *g_gametype; // only for use in function that deal with changing g
 
 #define G_CHALLENGERS_MIN_JOINTEAM_MAPTIME  9000 // must wait 10 seconds before joining
 #define GAMETYPE_PROJECT_EXTENSION          ".gt"
-#define CHAR_GAMETYPE_SEPARATOR             ';'
-
-#define MAX_RACE_CHECKPOINTS    32
-
-typedef struct {
-	int mm_attacker;    // session-id
-	int mm_victim;      // session-id
-	int weapon;         // weapon used
-	int64_t time;		// server timestamp
-} loggedFrag_t;
-
-typedef struct {
-	int owner;			// session-id
-	int64_t timestamp;	// milliseconds
-	int numSectors;
-	int64_t *times;		// unsigned int * numSectors+1, where last is final time
-} raceRun_t;
 
 typedef struct {
 	int score;
@@ -130,9 +113,6 @@ typedef struct {
 } g_teamlist_t;
 
 extern g_teamlist_t teamlist[GS_MAX_TEAMS];
-
-//clock
-extern char clockstring[16];
 
 //
 //	matches management

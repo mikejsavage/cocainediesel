@@ -1193,6 +1193,29 @@ void G_Gametype_SetDefaults( void ) {
 	level.gametype.numBots = 0;
 }
 
+// this is pretty dirty, parse the first entity and grab the gametype key
+// do no validation, G_SpawnEntities will catch it
+static bool IsGladiatorMap() {
+	const char * entities = level.mapString;
+	COM_Parse( &entities ); // {
+
+	while( true ) {
+		char key[ MAX_TOKEN_CHARS ];
+		COM_Parse_r( key, sizeof( key ), &entities );
+
+		char value[ MAX_TOKEN_CHARS ];
+		COM_Parse_r( value, sizeof( value ), &entities );
+
+		if( entities == NULL || strcmp( key, "}" ) == 0 )
+			break;
+
+		if( strcmp( key, "gametype" ) == 0 )
+			return strcmp( value, "gladiator" ) == 0;
+	}
+
+	return false;
+}
+
 /*
 * G_Gametype_Init
 */
@@ -1203,8 +1226,6 @@ void G_Gametype_Init( void ) {
 		changed = true;
 	}
 
-	g_gametype = trap_Cvar_Get( "g_gametype", "bomb", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_LATCH | CVAR_READONLY );
-
 	// get the match cvars too
 	g_warmup_timelimit = trap_Cvar_Get( "g_warmup_timelimit", "5", CVAR_ARCHIVE );
 	g_postmatch_timelimit = trap_Cvar_Get( "g_postmatch_timelimit", "4", CVAR_ARCHIVE );
@@ -1212,6 +1233,15 @@ void G_Gametype_Init( void ) {
 
 	// game settings
 	g_scorelimit = trap_Cvar_Get( "g_scorelimit", "10", CVAR_ARCHIVE );
+
+	const char * gt = IsGladiatorMap() ? "gladiator" : "bomb";
+	g_gametype = trap_Cvar_Get( "g_gametype", gt, CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_LATCH | CVAR_READONLY );
+	trap_Cvar_Set( "g_gametype", gt );
+
+	if( g_gametype->latched_string ) {
+		trap_Cvar_ForceSet( "g_gametype", va( "%s", g_gametype->latched_string ) );
+		changed = true;
+	}
 
 	G_Printf( "-------------------------------------\n" );
 	G_Printf( "Initalizing '%s' gametype\n", g_gametype->string );

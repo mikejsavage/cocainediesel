@@ -20,7 +20,24 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "g_local.h"
 
-const field_t fields[] = {
+enum EntityFieldType {
+	F_INT,
+	F_FLOAT,
+	F_LSTRING,      // string on disk, pointer in memory, TAG_LEVEL
+	F_VECTOR,
+	F_ANGLE,
+};
+
+struct EntityField {
+	const char *name;
+	size_t ofs;
+	EntityFieldType type;
+	int flags;
+};
+
+#define FFL_SPAWNTEMP       1
+
+static const EntityField fields[] = {
 	{ "classname", FOFS( classname ), F_LSTRING },
 	{ "origin", FOFS( s.origin ), F_VECTOR },
 	{ "model", FOFS( model ), F_LSTRING },
@@ -44,7 +61,7 @@ const field_t fields[] = {
 	{ "dmg", FOFS( dmg ), F_INT },
 	{ "angles", FOFS( s.angles ), F_VECTOR },
 	{ "mangle", FOFS( s.angles ), F_VECTOR },
-	{ "angle", FOFS( s.angles ), F_ANGLEHACK },
+	{ "angle", FOFS( s.angles ), F_ANGLE },
 	{ "mass", FOFS( mass ), F_INT },
 	{ "attenuation", FOFS( attenuation ), F_FLOAT },
 	{ "map", FOFS( map ), F_LSTRING },
@@ -77,9 +94,8 @@ const field_t fields[] = {
 	{ "shaderName", STOFS( shaderName ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "size", STOFS( size ), F_INT, FFL_SPAWNTEMP },
 
-	{ NULL, 0, F_INT, 0 }
+	{ }
 };
-
 
 typedef struct
 {
@@ -329,7 +345,7 @@ static char *ED_NewString( const char *string ) {
 * in an edict
 */
 static void ED_ParseField( char *key, char *value, edict_t *ent ) {
-	const field_t *f;
+	const EntityField *f;
 	uint8_t *b;
 	float v;
 	vec3_t vec;
@@ -359,16 +375,12 @@ static void ED_ParseField( char *key, char *value, edict_t *ent ) {
 				case F_FLOAT:
 					*(float *)( b + f->ofs ) = atof( value );
 					break;
-				case F_ANGLEHACK:
+				case F_ANGLE:
 					v = atof( value );
 					( (float *)( b + f->ofs ) )[0] = 0;
 					( (float *)( b + f->ofs ) )[1] = v;
 					( (float *)( b + f->ofs ) )[2] = 0;
 					break;
-				case F_IGNORE:
-					break;
-				default:
-					break; // FIXME: Should this be error?
 			}
 			return;
 		}

@@ -173,15 +173,6 @@ typedef struct {
 	// gametype definition and execution
 	gametype_descriptor_t gametype;
 
-	// map scripts
-	struct {
-		void *initFunc;
-		void *preThinkFunc;
-		void *postThinkFunc;
-		void *exitFunc;
-		void *gametypeFunc;
-	} mapscript;
-
 	bool teamlock;
 	bool ready[MAX_CLIENTS];
 	bool forceStart;    // force starting the game, when warmup timelimit is up
@@ -421,29 +412,6 @@ void G_asDumpAPI_f( void );
 #define ITEM_TARGETS_USED   0x00040000
 #define ITEM_IGNORE_MAX     0x00080000
 #define ITEM_TIMED          0x00100000
-//
-// fields are needed for spawning from the entity string
-//
-#define FFL_SPAWNTEMP       1
-
-typedef enum {
-	F_INT,
-	F_FLOAT,
-	F_LSTRING,      // string on disk, pointer in memory, TAG_LEVEL
-	F_VECTOR,
-	F_ANGLEHACK,
-	F_IGNORE
-} fieldtype_t;
-
-typedef struct {
-	const char *name;
-	size_t ofs;
-	fieldtype_t type;
-	int flags;
-} field_t;
-
-extern const field_t fields[];
-
 
 //
 // g_cmds.c

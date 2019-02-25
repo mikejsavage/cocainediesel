@@ -298,8 +298,6 @@ void G_Init( unsigned int seed, unsigned int framemsec, int protocol, const char
 * G_Shutdown
 */
 void G_Shutdown( void ) {
-	int i;
-
 	G_Printf( "==== G_Shutdown ====\n" );
 
 	GT_asCallShutdown();
@@ -315,7 +313,7 @@ void G_Shutdown( void ) {
 
 	G_LevelFreePool();
 
-	for( i = 0; i < game.numentities; i++ ) {
+	for( int i = 0; i < game.numentities; i++ ) {
 		if( game.edicts[i].r.inuse ) {
 			G_FreeEdict( &game.edicts[i] );
 		}
@@ -481,7 +479,6 @@ void G_ExitLevel( void ) {
 			ent->health = ent->max_health;
 		}
 
-		// some things are only cleared when there's a new map load
 		if( loadmap ) {
 			ent->r.client->connecting = true; // set all connected players as "reconnecting"
 			ent->s.team = TEAM_SPECTATOR;

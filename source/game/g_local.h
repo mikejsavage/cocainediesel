@@ -153,10 +153,8 @@ typedef struct {
 	int64_t spawnedTimeStamp; // time when map was restarted
 	int64_t finalMatchDuration;
 
-	char level_name[MAX_CONFIGSTRING_CHARS];    // the descriptive name (Outer Base, etc)
-	char mapname[MAX_CONFIGSTRING_CHARS];       // the server name (q3dm0, etc)
-	char nextmap[MAX_CONFIGSTRING_CHARS];       // go here when match is finished
-	char forcemap[MAX_CONFIGSTRING_CHARS];      // go here
+	char mapname[MAX_CONFIGSTRING_CHARS];
+	char callvote_map[MAX_CONFIGSTRING_CHARS];
 	char autorecord_name[128];
 
 	// backup entities string
@@ -208,7 +206,6 @@ typedef struct {
 typedef struct {
 	// world vars
 	float fov;
-	const char *nextmap;
 
 	int lip;
 	int distance;
@@ -238,19 +235,14 @@ typedef struct {
 	int size;
 } spawn_temp_t;
 
-
 extern game_locals_t game;
 extern level_locals_t level;
 extern spawn_temp_t st;
 
 extern int meansOfDeath;
 
-
 #define FOFS( x ) offsetof( edict_t,x )
 #define STOFS( x ) offsetof( spawn_temp_t,x )
-#define LLOFS( x ) offsetof( level_locals_t,x )
-#define CLOFS( x ) offsetof( gclient_t,x )
-#define AWOFS( x ) offsetof( award_info_t,x )
 
 extern cvar_t *password;
 extern cvar_t *g_operator_password;
@@ -758,15 +750,11 @@ void player_think( edict_t *self );
 void target_laser_start( edict_t *self );
 
 void SP_target_temp_entity( edict_t *ent );
-void SP_target_speaker( edict_t *ent );
 void SP_target_explosion( edict_t *ent );
-void SP_target_crosslevel_trigger( edict_t *ent );
-void SP_target_crosslevel_target( edict_t *ent );
 void SP_target_laser( edict_t *self );
 void SP_target_position( edict_t *self );
 void SP_target_print( edict_t *self );
 void SP_target_give( edict_t *self );
-void SP_target_changelevel( edict_t *ent );
 void SP_target_relay( edict_t *self );
 void SP_target_delay( edict_t *ent );
 void SP_target_teleporter( edict_t *self );
@@ -837,8 +825,6 @@ void    G_Shutdown( void );
 void    G_ExitLevel( void );
 game_state_t *G_GetGameState( void );
 void    G_Timeout_Reset( void );
-
-bool G_AllowDownload( edict_t *ent, const char *requestname, const char *uploadname );
 
 //
 // g_frame.c

@@ -278,7 +278,7 @@ valid_map:
 }
 
 static void G_VoteMapPassed( callvotedata_t *vote ) {
-	Q_strncpyz( level.forcemap, Q_strlwr( vote->argv[0] ), sizeof( level.forcemap ) );
+	Q_strncpyz( level.callvote_map, Q_strlwr( vote->argv[0] ), sizeof( level.callvote_map ) );
 	G_EndMatch();
 }
 
@@ -342,7 +342,7 @@ static http_response_code_t G_VoteMapWebRequest( http_query_method_t method, con
 */
 
 static void G_VoteNextMapPassed( callvotedata_t *vote ) {
-	level.forcemap[0] = 0;
+	level.callvote_map[0] = 0;
 	G_EndMatch();
 }
 

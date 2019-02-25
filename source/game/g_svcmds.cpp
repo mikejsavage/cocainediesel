@@ -64,13 +64,11 @@ static void Cmd_Match_f( void ) {
 	if( !Q_stricmp( cmd, "restart" ) ) {
 		level.exitNow = false;
 		level.hardReset = false;
-		Q_strncpyz( level.forcemap, level.mapname, sizeof( level.mapname ) );
+		Q_strncpyz( level.callvote_map, level.mapname, sizeof( level.mapname ) );
 		G_EndMatch();
 	} else if( !Q_stricmp( cmd, "advance" ) ) {
 		level.exitNow = false;
 		level.hardReset = true;
-
-		//		level.forcemap[0] = 0;
 		G_EndMatch();
 	} else if( !Q_stricmp( cmd, "status" ) ) {
 		trap_Cmd_ExecuteText( EXEC_APPEND, "status" );

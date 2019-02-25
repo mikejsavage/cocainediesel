@@ -81,8 +81,6 @@ static char **map_rotation_p = NULL;
 static int map_rotation_current = -1;
 static int map_rotation_count = 0;
 
-static const char *G_SelectNextMapName( void );
-
 //===================================================================
 
 /*
@@ -275,9 +273,6 @@ void G_Init( unsigned int seed, unsigned int framemsec, int protocol, const char
 	g_asGC_stats = trap_Cvar_Get( "g_asGC_stats", "0", CVAR_ARCHIVE );
 	g_asGC_interval = trap_Cvar_Get( "g_asGC_interval", "10", CVAR_ARCHIVE );
 
-	// nextmap
-	trap_Cvar_ForceSet( "nextmap", "match \"advance\"" );
-
 	// initialize all entities for this game
 	g_maxentities = trap_Cvar_Get( "sv_maxentities", "1024", CVAR_LATCH );
 	game.maxentities = g_maxentities->integer;
@@ -316,8 +311,6 @@ void G_Shutdown( void ) {
 
 	SV_WriteIPList();
 
-	trap_Cvar_ForceSet( "nextmap", va( "map \"%s\"", G_SelectNextMapName() ) );
-
 	AI_Shutdown();
 
 	G_RemoveCommands();
@@ -337,30 +330,6 @@ void G_Shutdown( void ) {
 }
 
 //======================================================================
-
-/*
-* G_AllowDownload
-*/
-bool G_AllowDownload( edict_t *ent, const char *requestname, const char *uploadname ) {
-	return false;
-}
-
-//======================================================================
-
-/*
-* CreateTargetChangeLevel
-*
-* Returns the created target changelevel
-*/
-static edict_t *CreateTargetChangeLevel( const char *map ) {
-	edict_t *ent;
-
-	ent = G_Spawn();
-	ent->classname = "target_changelevel";
-	Q_strncpyz( level.nextmap, map, sizeof( level.nextmap ) );
-	ent->map = level.nextmap;
-	return ent;
-}
 
 /*
 * G_UpdateMapRotation
@@ -467,65 +436,28 @@ static const char *G_MapRotationNormal( void ) {
 	return map_rotation_p[map_rotation_current];
 }
 
-/*
-* G_ChooseNextMap
-*/
-static edict_t *G_ChooseNextMap( void ) {
-	edict_t *ent = NULL;
-	const char *next;
-
-	if( *level.forcemap ) {
-		return CreateTargetChangeLevel( level.forcemap );
-	}
+static const char *G_NextMap( void ) {
+	if( strlen( level.callvote_map ) > 0 )
+		return level.callvote_map;
 
 	if( !( *g_maplist->string ) || g_maplist->string[0] == '\0' || g_maprotation->integer == 0 ) {
 		// same map again
-		return CreateTargetChangeLevel( level.mapname );
-	} else if( g_maprotation->integer == 1 ) {
-		next = G_MapRotationNormal();
-
-		// not in the list, we go for the first one
-		ent = CreateTargetChangeLevel( next ? next : level.mapname );
-		return ent;
+		return level.mapname;
 	}
 
-	if( level.nextmap[0] ) { // go to a specific map
-		return CreateTargetChangeLevel( level.nextmap );
-	}
-
-	// search for a changelevel
-	ent = G_Find( NULL, FOFS( classname ), "target_changelevel" );
-	if( !ent ) {
-		// the map designer didn't include a changelevel,
-		// so create a fake ent that goes back to the same level
-		return CreateTargetChangeLevel( level.mapname );
-	}
-	return ent;
-}
-
-/*
-* G_SelectNextMapName
-*/
-static const char *G_SelectNextMapName( void ) {
-	edict_t *changelevel;
-
-	changelevel = G_ChooseNextMap();
-	return changelevel->map;
+	const char *next = G_MapRotationNormal();
+	return next ? next : level.mapname;
 }
 
 /*
 * G_ExitLevel
 */
 void G_ExitLevel( void ) {
-	int i;
-	edict_t *ent;
-	char command[256];
-	const char *nextmapname;
 	bool loadmap = true;
 
 	level.exitNow = false;
 
-	nextmapname = G_SelectNextMapName();
+	const char *nextmapname = G_NextMap();
 
 	// if it's the same map see if we can restart without loading
 	if( !level.hardReset && !Q_stricmp( nextmapname, level.mapname ) && G_RespawnLevel() ) {
@@ -535,6 +467,7 @@ void G_ExitLevel( void ) {
 	AI_RemoveBots();
 
 	if( loadmap ) {
+		char command[256];
 		Q_snprintfz( command, sizeof( command ), "gamemap \"%s\"\n", nextmapname );
 		trap_Cmd_ExecuteText( EXEC_APPEND, command );
 	}
@@ -542,8 +475,8 @@ void G_ExitLevel( void ) {
 	G_SnapClients();
 
 	// clear some things before going to next level
-	for( i = 0; i < gs.maxclients; i++ ) {
-		ent = game.edicts + 1 + i;
+	for( int i = 0; i < gs.maxclients; i++ ) {
+		edict_t *ent = game.edicts + 1 + i;
 		if( !ent->r.inuse ) {
 			continue;
 		}

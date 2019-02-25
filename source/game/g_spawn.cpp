@@ -64,7 +64,6 @@ const field_t fields[] = {
 	{ "item", STOFS( item ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "gravity", STOFS( gravity ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "fov", STOFS( fov ), F_FLOAT, FFL_SPAWNTEMP },
-	{ "nextmap", STOFS( nextmap ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "notsingle", STOFS( notsingle ), F_INT, FFL_SPAWNTEMP },
 	{ "notteam", STOFS( notteam ), F_INT, FFL_SPAWNTEMP },
 	{ "notfree", STOFS( notfree ), F_INT, FFL_SPAWNTEMP },
@@ -125,14 +124,11 @@ spawn_t spawns[] = {
 	{ "trigger_gravity", SP_trigger_gravity },
 
 	{ "target_explosion", SP_target_explosion },
-	{ "target_crosslevel_trigger", SP_target_crosslevel_trigger },
-	{ "target_crosslevel_target", SP_target_crosslevel_target },
 	{ "target_laser", SP_target_laser },
 	{ "target_position", SP_target_position },
 	{ "target_print", SP_target_print },
 	{ "target_give", SP_target_give },
 	{ "target_push", SP_info_notnull },
-	{ "target_changelevel", SP_target_changelevel },
 	{ "target_relay", SP_target_relay },
 	{ "target_delay", SP_target_delay },
 	{ "target_teleporter", SP_target_teleporter },
@@ -877,18 +873,6 @@ static void SP_worldspawn( edict_t *ent ) {
 	VectorClear( ent->s.angles );
 	GClip_SetBrushModel( ent, "*0" ); // sets mins / maxs and modelindex 1
 	G_PureModel( "*0" );
-
-	if( st.nextmap ) {
-		Q_strncpyz( level.nextmap, st.nextmap, sizeof( level.nextmap ) );
-	}
-
-	if( ent->message && ent->message[0] ) {
-		trap_ConfigString( CS_MESSAGE, ent->message );
-		Q_strncpyz( level.level_name, ent->message, sizeof( level.level_name ) );
-	} else {
-		trap_ConfigString( CS_MESSAGE, level.mapname );
-		Q_strncpyz( level.level_name, level.mapname, sizeof( level.level_name ) );
-	}
 
 	if( st.gravity ) {
 		level.gravity = atof( st.gravity );

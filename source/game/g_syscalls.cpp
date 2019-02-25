@@ -54,8 +54,6 @@ extern "C" QF_DLL_EXPORT game_export_t * GetGameAPI( game_import_t * import )
 
 	globals.GetGameState = G_GetGameState;
 
-	globals.AllowDownload = G_AllowDownload;
-
 	globals.WebRequest = G_WebRequest;
 
 	return &globals;

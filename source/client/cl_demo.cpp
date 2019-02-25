@@ -75,7 +75,6 @@ void CL_Stop_f( void ) {
 	CL_SetDemoMetaKeyValue( "duration", va( "%u", (int)ceil( (double)cls.demo.duration / 1000.0 ) ) );
 	CL_SetDemoMetaKeyValue( "mapname", cl.configstrings[CS_MAPNAME] );
 	CL_SetDemoMetaKeyValue( "gametype", cl.configstrings[CS_GAMETYPENAME] );
-	CL_SetDemoMetaKeyValue( "levelname", cl.configstrings[CS_MESSAGE] );
 	CL_SetDemoMetaKeyValue( "matchname", cl.configstrings[CS_MATCHNAME] );
 	CL_SetDemoMetaKeyValue( "matchscore", cl.configstrings[CS_MATCHSCORE] );
 

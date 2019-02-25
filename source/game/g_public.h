@@ -210,8 +210,6 @@ typedef struct {
 
 	game_state_t *( *GetGameState )( void );
 
-	bool ( *AllowDownload )( edict_t *ent, const char *requestname, const char *uploadname );
-
 	// Web requests to local HTTP server
 	http_response_code_t ( *WebRequest )( http_query_method_t method, const char *resource,
 										  const char *query_string, char **content, size_t *content_length );

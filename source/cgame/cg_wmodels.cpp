@@ -413,10 +413,9 @@ static void CG_ComputeWeaponInfoTags( weaponinfo_t *weaponinfo ) {
 * CG_WeaponModelUpdateRegistration
 */
 static bool CG_WeaponModelUpdateRegistration( weaponinfo_t *weaponinfo, char *filename ) {
-	int p;
 	char scratch[MAX_QPATH];
 
-	for( p = 0; p < VWEAP_MAXPARTS; p++ ) {
+	for( int p = 0; p < VWEAP_MAXPARTS; p++ ) {
 		// iqm
 		if( !weaponinfo->model[p] ) {
 			Q_snprintfz( scratch, sizeof( scratch ), "models/weapons/%s%s.iqm", filename, wmPartSufix[p] );
@@ -430,21 +429,20 @@ static bool CG_WeaponModelUpdateRegistration( weaponinfo_t *weaponinfo, char *fi
 		}
 
 		weaponinfo->skel[p] = NULL;
-		if( ( p == WEAPMODEL_HAND ) && ( weaponinfo->model[p] ) ) {
-			weaponinfo->skel[p] = CG_SkeletonForModel( weaponinfo->model[p] );
-		}
-	}
-
-	if( !weaponinfo->model[WEAPMODEL_BARREL] ) {
-		weaponinfo->model[WEAPMODEL_BARREL2] = NULL;
 	}
 
 	// load failed
 	if( !weaponinfo->model[WEAPMODEL_HAND] ) {
 		weaponinfo->name[0] = 0;
-		for( p = 0; p < VWEAP_MAXPARTS; p++ )
+		for( int p = 0; p < VWEAP_MAXPARTS; p++ )
 			weaponinfo->model[p] = NULL;
 		return false;
+	}
+
+	weaponinfo->skel[WEAPMODEL_HAND] = CG_SkeletonForModel( weaponinfo->model[WEAPMODEL_HAND] );
+
+	if( !weaponinfo->model[WEAPMODEL_BARREL] ) {
+		weaponinfo->model[WEAPMODEL_BARREL2] = NULL;
 	}
 
 	// load animation script for the hand model

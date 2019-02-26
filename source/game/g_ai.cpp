@@ -26,11 +26,7 @@ static void CreateUserInfo( char * buffer, size_t bufferSize ) {
 	memset( buffer, 0, bufferSize );
 
 	Info_SetValueForKey( buffer, "name", botCharacters[characterIndex].name );
-	Info_SetValueForKey( buffer, "model", botCharacters[characterIndex].model );
-	Info_SetValueForKey( buffer, "skin", "default" );
 	Info_SetValueForKey( buffer, "hand", va( "%i", (int)( random() * 2.5 ) ) );
-	const char *color = va( "%i %i %i", (uint8_t)( random() * 255 ), (uint8_t)( random() * 255 ), (uint8_t)( random() * 255 ) );
-	Info_SetValueForKey( buffer, "color", color );
 }
 
 static edict_t * ConnectFakeClient() {

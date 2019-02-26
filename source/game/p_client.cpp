@@ -929,8 +929,6 @@ static void G_UpdatePlayerInfoString( int playerNum ) {
 
 	Info_SetValueForKey( playerString, "name", client->netname );
 	Info_SetValueForKey( playerString, "hand", va( "%i", client->hand ) );
-	Info_SetValueForKey( playerString, "color",
-						 va( "%i %i %i", client->color[0], client->color[1], client->color[2] ) );
 
 	playerString[MAX_CONFIGSTRING_CHARS - 1] = 0;
 	trap_ConfigString( CS_PLAYERINFOS + playerNum, playerString );
@@ -948,7 +946,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	char oldname[MAX_INFO_VALUE];
 	gclient_t *cl;
 
-	int rgbcolor, i;
+	int i;
 
 	assert( ent && ent->r.client );
 	assert( userinfo && Info_Validate( userinfo ) );
@@ -978,21 +976,6 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	}
 
 	Q_strncpyz( cl->socket, s, sizeof( cl->socket ) );
-
-	// color
-	s = Info_ValueForKey( userinfo, "color" );
-	if( s ) {
-		rgbcolor = COM_ReadColorRGBString( s );
-	} else {
-		rgbcolor = -1;
-	}
-
-	if( rgbcolor != -1 ) {
-		rgbcolor = COM_ValidatePlayerColor( rgbcolor );
-		Vector4Set( cl->color, COLOR_R( rgbcolor ), COLOR_G( rgbcolor ), COLOR_B( rgbcolor ), 255 );
-	} else {
-		Vector4Set( cl->color, 255, 255, 255, 255 );
-	}
 
 	// set name, it's validated and possibly changed first
 	Q_strncpyz( oldname, cl->netname, sizeof( oldname ) );
@@ -1028,16 +1011,6 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 			cl->handicap = i;
 		}
 	}
-
-#ifdef UCMDTIMENUDGE
-	s = Info_ValueForKey( userinfo, "cl_ucmdTimeNudge" );
-	if( !s ) {
-		cl->ucmdTimeNudge = 0;
-	} else {
-		cl->ucmdTimeNudge = atoi( s );
-		clamp( cl->ucmdTimeNudge, -MAX_UCMD_TIMENUDGE, MAX_UCMD_TIMENUDGE );
-	}
-#endif
 
 	if( !G_ISGHOSTING( ent ) && trap_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
 		G_Client_AssignTeamSkin( ent, userinfo );
@@ -1333,10 +1306,6 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 
 		client->timeDeltas[client->timeDeltasHead & G_MAX_TIME_DELTAS_MASK] = timeDelta;
 		client->timeDeltasHead++;
-
-#ifdef UCMDTIMENUDGE
-		client->timeDelta += client->pers.ucmdTimeNudge;
-#endif
 	}
 
 	clamp( client->timeDelta, -g_antilag_maxtimedelta->integer, 0 );

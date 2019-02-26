@@ -312,7 +312,6 @@ typedef struct {
 	char name[MAX_QPATH];
 	char cleanname[MAX_QPATH];
 	int hand;
-	byte_vec4_t color;
 	struct shader_s *icon;
 } cg_clientInfo_t;
 

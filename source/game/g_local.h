@@ -969,7 +969,6 @@ struct gclient_s {
 	bool connecting;
 	bool multiview;
 
-	byte_vec4_t color;
 	int team;
 	int hand;
 	unsigned mmflags;

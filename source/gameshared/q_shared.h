@@ -32,15 +32,11 @@ constexpr size_t ARRAY_COUNT( const T ( &arr )[ N ] ) {
 #define STATIC_ASSERT( p ) static_assert( p, #p )
 
 short ShortSwap( short l );
-int LongSwap( int l );
-float FloatSwap( float f );
 
 // little endian
 #define BigShort( l ) ShortSwap( l )
 #define LittleShort( l ) ( l )
-#define BigLong( l ) LongSwap( l )
 #define LittleLong( l ) ( l )
-#define BigFloat( l ) FloatSwap( l )
 #define LittleFloat( l ) ( l )
 
 //==============================================
@@ -106,7 +102,6 @@ char *COM_ParseExt2( const char **data_p, bool nl, bool sq );
 int COM_Compress( char *data_p );
 const char *COM_RemoveJunkChars( const char *in );
 int COM_ReadColorRGBString( const char *in );
-int COM_ValidatePlayerColor( int rgbcolor );
 bool COM_ValidateConfigstring( const char *string );
 
 char *COM_ListNameForPosition( const char *namesList, int position, const char separator );
@@ -188,7 +183,6 @@ int Q_snprintfz( char *dest, size_t size, _Printf_format_string_ const char *for
 
 char *Q_strupr( char *s );
 char *Q_strlwr( char *s );
-const char *Q_strlocate( const char *s, const char *substr, int skip );
 size_t Q_strcount( const char *s, const char *substr );
 const char *Q_strrstr( const char *s, const char *substr );
 bool Q_isdigit( const char *str );
@@ -207,8 +201,6 @@ void Q_urlencode_unsafechars( const char *src, char *dst, size_t dst_size );
  */
 size_t Q_urldecode( const char *src, char *dst, size_t dst_size );
 
-void *Q_memset32( void *dest, int c, size_t dwords );
-
 // color string functions ("^1text" etc)
 #define GRABCHAR_END    0
 #define GRABCHAR_CHAR   1
@@ -223,7 +215,6 @@ int Q_ColorStrLastColor( int previous, const char *s, int maxlen );
 size_t Q_WCharUtf8Length( wchar_t wc );
 size_t Q_WCharToUtf8( wchar_t wc, char *dest, size_t bufsize );
 char *Q_WCharToUtf8Char( wchar_t wc );
-size_t Q_WCharToUtf8String( const wchar_t *ws, char *dest, size_t bufsize );
 wchar_t Q_GrabWCharFromUtf8String( const char **pstr );
 int Q_GrabWCharFromColorString( const char **pstr, wchar_t *wc, int *colorindex );
 #define UTF8SYNC_LEFT 0
@@ -293,27 +284,6 @@ extern const size_t NUM_SOUND_EXTENSIONS;
 
 extern const char *IMAGE_EXTENSIONS[];
 extern const size_t NUM_IMAGE_EXTENSIONS;
-
-//============================================
-// memory utilities
-//============================================
-
-typedef struct block_allocator_s block_allocator_t;
-typedef struct linear_allocator_s linear_allocator_t;
-
-typedef void *( *alloc_function_t )( size_t, const char*, int );
-typedef void ( *free_function_t )( void *ptr, const char*, int );
-
-// Block Allocator
-block_allocator_t * BlockAllocator( size_t elemSize, size_t blockSize, alloc_function_t alloc_function, free_function_t free_function );
-void BlockAllocator_Free( block_allocator_t *ba );
-void *BA_Alloc( block_allocator_t *ba );
-
-linear_allocator_t * LinearAllocator( size_t elemSize, size_t preAllocate, alloc_function_t alloc_function, free_function_t free_function );
-void LinearAllocator_Free( linear_allocator_t *la );
-void *LA_Alloc( linear_allocator_t *la );
-void *LA_Pointer( linear_allocator_t *la, size_t index );
-size_t LA_Size( linear_allocator_t *la );
 
 //==============================================================
 //

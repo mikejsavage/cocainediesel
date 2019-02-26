@@ -195,10 +195,6 @@ constexpr const char * MASTER_SERVERS[] = { "dpmaster.deathmask.net", "ghdigital
 #define DEFAULT_PLAYERMODEL                 "bigvic"
 #define DEFAULT_PLAYERSKIN                  "default"
 
-#ifdef UCMDTIMENUDGE
-# define MAX_UCMD_TIMENUDGE 50
-#endif
-
 // entity_state_t is the information conveyed from the server
 // in an update message about entities that the client will
 // need to render in some way

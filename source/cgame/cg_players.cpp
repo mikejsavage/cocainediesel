@@ -178,7 +178,6 @@ void CG_SexedSound( int entnum, int entchannel, const char *name, float volume, 
 */
 static void CG_ParseClientInfo( cg_clientInfo_t *ci, const char *info ) {
 	char *s;
-	int rgbcolor;
 
 	assert( ci );
 	assert( info );
@@ -195,15 +194,6 @@ static void CG_ParseClientInfo( cg_clientInfo_t *ci, const char *info ) {
 
 	s = Info_ValueForKey( info, "hand" );
 	ci->hand = s && s[0] ? atoi( s ) : 2;
-
-	// color
-	s = Info_ValueForKey( info, "color" );
-	rgbcolor = s && s[0] ? COM_ReadColorRGBString( s ) : -1;
-	if( rgbcolor != -1 ) {
-		Vector4Set( ci->color, COLOR_R( rgbcolor ), COLOR_G( rgbcolor ), COLOR_B( rgbcolor ), 255 );
-	} else {
-		Vector4Set( ci->color, 255, 255, 255, 255 );
-	}
 }
 
 /*

@@ -22,15 +22,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "addon/addon_math.h"
 #include "addon/addon_scriptarray.h"
 #include "addon/addon_string.h"
-#include "addon/addon_dictionary.h"
 #include "addon/addon_time.h"
-#include "addon/addon_any.h"
 #include "addon/addon_vec3.h"
 #include "addon/addon_vec4.h"
 #include "addon/addon_cvar.h"
 #include "addon/addon_stringutils.h"
 
 #include <list>
+#include <map>
 
 static void *qasAlloc( size_t size ) {
 	return Mem_Alloc( angelwrappool, size );
@@ -114,9 +113,7 @@ asIScriptEngine *qasCreateEngine( bool *asMaxPortability ) {
 	PreRegisterMathAddon( engine );
 	PreRegisterScriptArray( engine, true );
 	PreRegisterStringAddon( engine );
-	PreRegisterScriptDictionary( engine );
 	PreRegisterTimeAddon( engine );
-	PreRegisterScriptAny( engine );
 	PreRegisterVec3Addon( engine );
 	PreRegisterVec4Addon( engine );
 	PreRegisterCvarAddon( engine );
@@ -125,9 +122,7 @@ asIScriptEngine *qasCreateEngine( bool *asMaxPortability ) {
 	RegisterMathAddon( engine );
 	RegisterScriptArray( engine, true );
 	RegisterStringAddon( engine );
-	RegisterScriptDictionary( engine );
 	RegisterTimeAddon( engine );
-	RegisterScriptAny( engine );
 	RegisterVec3Addon( engine );
 	RegisterVec4Addon( engine );
 	RegisterCvarAddon( engine );
@@ -680,28 +675,4 @@ void qasStringRelease( asstring_t *str ) {
 
 asstring_t *qasStringAssignString( asstring_t *self, const char *string, unsigned int strlen ) {
 	return objectString_AssignString( self, string, strlen );
-}
-
-/*************************************
-* Dictionary
-**************************************/
-
-CScriptDictionaryInterface *qasCreateDictionaryCpp( asIScriptEngine *engine ) {
-	return QAS_NEW( CScriptDictionary )( engine );
-}
-
-void qasReleaseDictionaryCpp( CScriptDictionaryInterface *dict ) {
-	dict->Release();
-}
-
-/*************************************
-* Any
-**************************************/
-
-CScriptAnyInterface *qasCreateAnyCpp( asIScriptEngine *engine ) {
-	return QAS_NEW( CScriptAny )( engine );
-}
-
-void qasReleaseAnyCpp( CScriptAnyInterface *any ) {
-	any->Release();
 }

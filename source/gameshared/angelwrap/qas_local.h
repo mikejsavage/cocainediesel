@@ -69,13 +69,5 @@ asstring_t *qasStringFactoryBuffer( const char *buffer, unsigned int length );
 void qasStringRelease( asstring_t *str );
 asstring_t *qasStringAssignString( asstring_t *self, const char *string, unsigned int strlen );
 
-// dictionary tools
-CScriptDictionaryInterface *qasCreateDictionaryCpp( asIScriptEngine *engine );
-void qasReleaseDictionaryCpp( CScriptDictionaryInterface *dict );
-
-// any tools
-CScriptAnyInterface *qasCreateAnyCpp( asIScriptEngine *engine );
-void qasReleaseAnyCpp( CScriptAnyInterface *any );
-
 // projects / bundles
 asIScriptModule *qasLoadScriptProject( asIScriptEngine *engine, const char *moduleName, const char *rootDir, const char *dir, const char *filename, const char *ext );

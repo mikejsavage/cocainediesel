@@ -48,12 +48,6 @@ static void QAS_InitAngelExport() {
 	angelExport.asCreateArrayCpp = qasCreateArrayCpp;
 	angelExport.asReleaseArrayCpp = qasReleaseArrayCpp;
 
-	angelExport.asCreateDictionaryCpp = qasCreateDictionaryCpp;
-	angelExport.asReleaseDictionaryCpp = qasReleaseDictionaryCpp;
-
-	angelExport.asCreateAnyCpp = qasCreateAnyCpp;
-	angelExport.asReleaseAnyCpp = qasReleaseAnyCpp;
-
 	angelExport.asLoadScriptProject = qasLoadScriptProject;
 }
 

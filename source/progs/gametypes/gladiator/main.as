@@ -878,7 +878,7 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team )
 // Thinking function. Called each frame
 void GT_ThinkRules()
 {
-	if ( match.scoreLimitHit() || match.timeLimitHit() || match.suddenDeathFinished() )
+	if ( match.scoreLimitHit() || match.timeLimitHit() )
 		match.launchState( match.getState() + 1 );
 
 	if ( match.getState() >= MATCH_STATE_POSTMATCH )
@@ -991,7 +991,7 @@ void GT_InitGametype()
 	gametype.readyAnnouncementEnabled = false;
 	gametype.scoreAnnouncementEnabled = false;
 	gametype.countdownEnabled = false;
-	gametype.mathAbortDisabled = false;
+	gametype.matchAbortDisabled = false;
 	gametype.shootingDisabled = false;
 	gametype.infiniteAmmo = true;
 	gametype.canForceModels = true;

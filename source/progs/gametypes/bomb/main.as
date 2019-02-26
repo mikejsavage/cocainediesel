@@ -358,7 +358,7 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
 // Thinking function. Called each frame
 void GT_ThinkRules() {
 	// XXX: old bomb would let the current round finish before doing this
-	if( match.timeLimitHit() || match.suddenDeathFinished() ) {
+	if( match.timeLimitHit() ) {
 		match.launchState( match.getState() + 1 );
 	}
 
@@ -524,17 +524,10 @@ void GT_InitGametype() {
 	gametype.hasChallengersQueue = false;
 	gametype.maxPlayersPerTeam = 0;
 
-	gametype.ammoRespawn = 20;
-	gametype.weaponRespawn = 15;
-	gametype.healthRespawn = 25;
-	gametype.powerupRespawn = 90;
-	gametype.megahealthRespawn = 20;
-	gametype.ultrahealthRespawn = 60;
-
 	gametype.readyAnnouncementEnabled = false;
 	gametype.scoreAnnouncementEnabled = true;
 	gametype.countdownEnabled = false;
-	gametype.mathAbortDisabled = false;
+	gametype.matchAbortDisabled = false;
 	gametype.shootingDisabled = false;
 	gametype.infiniteAmmo = false;
 	gametype.canForceModels = true;

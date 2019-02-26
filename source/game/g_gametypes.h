@@ -80,8 +80,6 @@ typedef struct {
 	int weapon_respawn;
 	int health_respawn;
 	int powerup_respawn;
-	int megahealth_respawn;
-	int ultrahealth_respawn;
 
 	// few default settings
 	bool readyAnnouncementEnabled;
@@ -93,7 +91,6 @@ typedef struct {
 	bool canForceModels;
 	bool customDeadBodyCam;
 	bool removeInactivePlayers;
-	bool disableObituaries;
 
 	int spawnpointRadius;
 
@@ -116,8 +113,6 @@ extern g_teamlist_t teamlist[GS_MAX_TEAMS];
 //
 //	matches management
 //
-bool G_Match_Tied( void );
-bool G_Match_CheckExtendPlayTime( void );
 void G_Match_RemoveProjectiles( edict_t *owner );
 void G_Match_CleanUpPlayerStats( edict_t *ent );
 void G_Match_FreeBodyQueue( void );
@@ -136,5 +131,4 @@ void G_Match_Autorecord_AltStart( void );
 void G_Match_Autorecord_Stop( void );
 void G_Match_Autorecord_Cancel( void );
 bool G_Match_ScorelimitHit( void );
-bool G_Match_SuddenDeathFinished( void );
 bool G_Match_TimelimitHit( void );

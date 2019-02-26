@@ -58,13 +58,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define PATH_AMMOPACK_ICON      "gfx/hud/icons/ammo/pack"
 
-// misc
-#define PATH_HEALTH_5_ICON      "gfx/hud/icons/health/5"
-#define PATH_HEALTH_25_ICON     "gfx/hud/icons/health/25"
-#define PATH_HEALTH_50_ICON     "gfx/hud/icons/health/50"
-#define PATH_HEALTH_100_ICON        "gfx/hud/icons/health/100"
-#define PATH_HEALTH_ULTRA_ICON      "gfx/hud/icons/health/100ultra"
-
 // powerups
 #define PATH_QUAD_ICON          "gfx/hud/icons/powerup/quad"
 
@@ -93,11 +86,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PATH_LASERGUN_SIMPLEITEM        "gfx/simpleitems/weapon/laser"
 #define PATH_ELECTROBOLT_SIMPLEITEM     "gfx/simpleitems/weapon/electro"
 #define PATH_AMMOPACK_SIMPLEITEM        "gfx/simpleitems/ammo/pack"
-#define PATH_HEALTH_5_SIMPLEITEM        "gfx/simpleitems/health/5"
-#define PATH_HEALTH_25_SIMPLEITEM       "gfx/simpleitems/health/25"
-#define PATH_HEALTH_50_SIMPLEITEM       "gfx/simpleitems/health/50"
-#define PATH_HEALTH_100_SIMPLEITEM      "gfx/simpleitems/health/100"
-#define PATH_HEALTH_ULTRA_SIMPLEITEM        "gfx/simpleitems/health/100ultra"
 
 #define PATH_KEYICON_FORWARD            "gfx/hud/keys/key_forward"
 #define PATH_KEYICON_BACKWARD           "gfx/hud/keys/key_back"
@@ -132,24 +120,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PATH_ELECTROBOLT_MODEL      "models/weapons/electrobolt/electrobolt.iqm"
 #define PATH_LASERGUN_MODEL     "models/weapons/lg.md3"
 
-// ammoboxes
-#define PATH_AMMO_BOX_MODEL     "models/items/ammo/ammobox/ammobox.iqm"
-#define PATH_AMMO_BOX_MODEL2        "models/items/ammo/ammobox/ammobox_icon.iqm"
-#define PATH_AMMO_PACK_MODEL        "models/items/ammo/pack/pack.md3"
-
-// health
-#define PATH_SMALL_HEALTH_MODEL     "models/items/health/small/small_health.md3"
-#define PATH_MEDIUM_HEALTH_MODEL    "models/items/health/medium/medium_health.md3"
-#define PATH_LARGE_HEALTH_MODEL     "models/items/health/large/large_health.md3"
-#define PATH_MEGA_HEALTH_MODEL      "models/items/health/mega/mega_health.md3"
-#define PATH_ULTRA_HEALTH_MODEL     "models/items/health/ultra/ultra_health.md3"
-
-// flags
-#define PATH_FLAG_BASE_MODEL        "models/objects/flag/flag_base.md3"
-#define PATH_FLAG_MODEL         "models/objects/flag/flag.md3"
-
-// misc
-
 // weapon projectiles
 #define PATH_GUNBLADEBLAST_MODEL "models/objects/projectile/gb.md3"
 #define PATH_PLASMA_MODEL        "models/objects/projectile/pg.md3"
@@ -179,19 +149,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // pickup
 #define S_PICKUP_WEAPON     "sounds/items/weapon_pickup"
-#define S_PICKUP_AMMO       "sounds/items/ammo_pickup"
-
-
-#define S_PICKUP_HEALTH_SMALL   "sounds/items/health_5"          // pickup health +5
-#define S_PICKUP_HEALTH_MEDIUM  "sounds/items/health_25"         // pickup health +25
-#define S_PICKUP_HEALTH_LARGE   "sounds/items/health_50"         // pickup health +50
-#define S_PICKUP_HEALTH_MEGA    "sounds/items/megahealth"        // pickup megahealth
 
 #define S_ITEM_RESPAWN      "sounds/items/item_spawn"        // item respawn
 
 // misc sounds
 #define S_TIMER_BIP_BIP     "sounds/misc/timer_bip_bip"
-#define S_TIMER_PLOINK      "sounds/misc/timer_ploink"
 
 //wsw: pb disable unreferenced sounds
 //#define S_LAND					"sounds/misc/land"
@@ -310,11 +272,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define S_ANNOUNCER_TIMEOUT_TIMEOUT_1_to_2      "sounds/announcer/timeout/timeout%02i"
 #define S_ANNOUNCER_TIMEOUT_TIMEIN_1_to_2       "sounds/announcer/timeout/timein%02i"
 
-// overtime
-#define S_ANNOUNCER_OVERTIME_GOING_TO_OVERTIME      "sounds/announcer/overtime/going_to_overtime"
-#define S_ANNOUNCER_OVERTIME_OVERTIME           "sounds/announcer/overtime/overtime"
-#define S_ANNOUNCER_OVERTIME_SUDDENDEATH_1_to_2     "sounds/announcer/overtime/suddendeath%02i"
-
 // score
 #define S_ANNOUNCER_SCORE_TAKEN_LEAD_1_to_2     "sounds/announcer/score/taken_lead%02i"
 #define S_ANNOUNCER_SCORE_TEAM_TAKEN_LEAD_1_to_2    "sounds/announcer/score/taken_lead%02i"
@@ -324,34 +281,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define S_ANNOUNCER_SCORE_TEAM_TIED_LEAD_1_to_2     "sounds/announcer/score/team_tied_lead%02i"
 #define S_ANNOUNCER_SCORE_TEAM_1_to_4_TAKEN_LEAD_1_to_2 "sounds/announcer/score/team%i_leads%02i"
 
-// ctf
-#define S_ANNOUNCER_CTF_RECOVERY_1_to_2         "sounds/announcer/ctf/recovery%02i"
-#define S_ANNOUNCER_CTF_RECOVERY_TEAM           "sounds/announcer/ctf/recovery_team"
-#define S_ANNOUNCER_CTF_RECOVERY_ENEMY          "sounds/announcer/ctf/recovery_enemy"
-#define S_ANNOUNCER_CTF_FLAG_TAKEN              "sounds/announcer/ctf/flag_taken"
-#define S_ANNOUNCER_CTF_FLAG_TAKEN_TEAM_1_to_2  "sounds/announcer/ctf/flag_taken_team%02i"
-#define S_ANNOUNCER_CTF_FLAG_TAKEN_ENEMY_1_to_2 "sounds/announcer/ctf/flag_taken_enemy_%02i"
-#define S_ANNOUNCER_CTF_SCORE_1_to_2            "sounds/announcer/ctf/score%02i"
-#define S_ANNOUNCER_CTF_SCORE_TEAM_1_to_2       "sounds/announcer/ctf/score_team%02i"
-#define S_ANNOUNCER_CTF_SCORE_ENEMY_1_to_2      "sounds/announcer/ctf/score_enemy%02i"
-
-//music
-#define S_PLAYLIST_MENU                         "sounds/music/menu.m3u"
-#define S_PLAYLIST_MATCH                        "sounds/music/match.m3u"
-#define S_PLAYLIST_POSTMATCH                    "sounds/music/postmatch.m3u"
-
-//===============================
 // UI
-//===============================
-#define S_UI_MENU_IN_SOUND          "sounds/menu/ok"
-#define S_UI_MENU_MOVE_SOUND        "sounds/menu/mouseover"
-#define S_UI_MENU_OUT_SOUND         "sounds/menu/back"
-
-#define UI_SHADER_VIDEOBACK         "gfx/ui/background"
-#define UI_SHADER_FXBACK            "gfx/ui/menubackfx"
-#define UI_SHADER_BIGLOGO           "gfx/ui/logo512"
-#define UI_SHADER_CURSOR            "gfx/ui/cursor"
-
 #define UI_SHADER_LOADINGLOGO       "ui/baseui/gfx/logo"
 #define UI_SHADER_LOADINGBAR        "gfx/ui/loadingbar"
 

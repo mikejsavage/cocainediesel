@@ -253,121 +253,6 @@ gsitem_t itemdefs[] =
 	{ "", AMMO_BOLTS },
 
 	//------------------------
-	// HEALTH ITEMS
-	//------------------------
-
-	//QUAKED item_health_small (.3 .3 1) (-16 -16 -16) (16 16 16)
-	{
-		"item_health_small",
-		HEALTH_SMALL,
-		IT_HEALTH,
-		ITFLAG_PICKABLE,
-
-		{ PATH_SMALL_HEALTH_MODEL, 0 },
-		PATH_HEALTH_5_ICON,
-		PATH_HEALTH_5_SIMPLEITEM,
-		S_PICKUP_HEALTH_SMALL,
-		EF_ROTATE_AND_BOB,
-
-		"5 Health", "5H", S_COLOR_GREEN,
-		5,
-		0,
-		AMMO_NONE,
-		AMMO_NONE,
-		NULL,
-		NULL, NULL, NULL
-	},
-
-	//QUAKED item_health_medium (.3 .3 1) (-16 -16 -16) (16 16 16)
-	{
-		"item_health_medium",
-		HEALTH_MEDIUM,
-		IT_HEALTH,
-		ITFLAG_PICKABLE,
-
-		{ PATH_MEDIUM_HEALTH_MODEL, 0 },
-		PATH_HEALTH_25_ICON,
-		PATH_HEALTH_25_SIMPLEITEM,
-		S_PICKUP_HEALTH_MEDIUM,
-		EF_ROTATE_AND_BOB,
-
-		"25 Health", "25H", S_COLOR_YELLOW,
-		25,
-		100,
-		AMMO_NONE,
-		AMMO_NONE,
-		NULL,
-		NULL, NULL, NULL
-	},
-
-	//QUAKED item_health_large (.3 .3 1) (-16 -16 -16) (16 16 16)
-	{
-		"item_health_large",
-		HEALTH_LARGE,
-		IT_HEALTH,
-		ITFLAG_PICKABLE,
-
-		{ PATH_LARGE_HEALTH_MODEL, 0 },
-		PATH_HEALTH_50_ICON,
-		PATH_HEALTH_50_SIMPLEITEM,
-		S_PICKUP_HEALTH_LARGE,
-		EF_ROTATE_AND_BOB,
-
-		"50 Health", "50H", S_COLOR_ORANGE,
-		50,
-		100,
-		AMMO_NONE,
-		AMMO_NONE,
-		NULL,
-		NULL, NULL, NULL
-	},
-
-	//QUAKED item_health_mega (.3 .3 1) (-16 -16 -16) (16 16 16)
-	{
-		"item_health_mega",
-		HEALTH_MEGA,
-		IT_HEALTH,
-		ITFLAG_PICKABLE,
-
-		{ PATH_MEGA_HEALTH_MODEL, 0 },
-		PATH_HEALTH_100_ICON,
-		PATH_HEALTH_100_SIMPLEITEM,
-		S_PICKUP_HEALTH_MEGA,
-		EF_ROTATE_AND_BOB,
-
-		"Mega Health", "MH", S_COLOR_MAGENTA,
-		100,
-		200,
-		AMMO_NONE,
-		AMMO_NONE,
-		NULL,
-		NULL, NULL, NULL
-	},
-
-	//QUAKED item_health_ultra (.3 .3 1) (-16 -16 -16) (16 16 16)
-	{
-		"item_health_ultra",
-		HEALTH_ULTRA,
-		IT_HEALTH,
-		ITFLAG_PICKABLE,
-
-		{ PATH_ULTRA_HEALTH_MODEL, 0 },
-		PATH_HEALTH_ULTRA_ICON,
-		PATH_HEALTH_ULTRA_SIMPLEITEM,
-		S_PICKUP_HEALTH_MEGA,
-		EF_ROTATE_AND_BOB,
-
-		"Ultra Health", "UH", S_COLOR_CYAN,
-		100,
-		200,
-		AMMO_NONE,
-		AMMO_NONE,
-		NULL,
-		NULL, NULL, NULL
-	},
-
-
-	//------------------------
 	// POWERUP ITEMS
 	//------------------------
 	//QUAKED item_quad (.3 .3 1) (-16 -16 -16) (16 16 16)
@@ -545,10 +430,6 @@ const gsitem_t *GS_Cmd_UseItem( player_state_t *playerState, const char *string,
 	}
 
 	if( item->type & IT_AMMO ) {
-		return item;
-	}
-
-	if( item->type & IT_HEALTH ) {
 		return item;
 	}
 

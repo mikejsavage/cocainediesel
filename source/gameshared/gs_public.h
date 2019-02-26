@@ -109,16 +109,14 @@ enum {
 
 #define GAMESTAT_FLAG_PAUSED ( 1 << 0LL )
 #define GAMESTAT_FLAG_WAITING ( 1 << 1LL )
-#define GAMESTAT_FLAG_MATCHEXTENDED ( 1 << 3LL )
-#define GAMESTAT_FLAG_HASCHALLENGERS ( 1 << 4LL )
-#define GAMESTAT_FLAG_INHIBITSHOOTING ( 1 << 5LL )
-#define GAMESTAT_FLAG_ISTEAMBASED ( 1 << 6LL )
-#define GAMESTAT_FLAG_ISRACE ( 1 << 7LL )
-#define GAMESTAT_FLAG_COUNTDOWN ( 1 << 8LL )
-#define GAMESTAT_FLAG_SELFDAMAGE ( 1 << 9LL )
-#define GAMESTAT_FLAG_INFINITEAMMO ( 1 << 10LL )
-#define GAMESTAT_FLAG_CANFORCEMODELS ( 1 << 11LL )
-#define GAMESTAT_FLAG_CANDROPWEAPON ( 1 << 12LL )
+#define GAMESTAT_FLAG_HASCHALLENGERS ( 1 << 2LL )
+#define GAMESTAT_FLAG_INHIBITSHOOTING ( 1 << 3LL )
+#define GAMESTAT_FLAG_ISTEAMBASED ( 1 << 4LL )
+#define GAMESTAT_FLAG_ISRACE ( 1 << 5LL )
+#define GAMESTAT_FLAG_COUNTDOWN ( 1 << 6LL )
+#define GAMESTAT_FLAG_SELFDAMAGE ( 1 << 7LL )
+#define GAMESTAT_FLAG_INFINITEAMMO ( 1 << 8LL )
+#define GAMESTAT_FLAG_CANFORCEMODELS ( 1 << 9LL )
 
 typedef struct {
 	int module;
@@ -136,12 +134,10 @@ extern gs_state_t gs;
 #define GS_RaceGametype() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_ISRACE ) ? true : false )
 #define GS_MatchPaused() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_PAUSED ) ? true : false )
 #define GS_MatchWaiting() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_WAITING ) ? true : false )
-#define GS_MatchExtended() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_MATCHEXTENDED ) ? true : false )
 #define GS_SelfDamage() true
 #define GS_Countdown() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_COUNTDOWN ) ? true : false )
 #define GS_InfiniteAmmo() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_INFINITEAMMO ) ? true : false )
 #define GS_CanForceModels() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_CANFORCEMODELS ) ? true : false )
-#define GS_CanDropWeapon() ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_CANDROPWEAPON ? true : false )
 
 #define GS_MatchState() ( gs.gameState.stats[GAMESTAT_MATCHSTATE] )
 #define GS_MaxPlayersInTeam() ( gs.gameState.stats[GAMESTAT_MAXPLAYERSINTEAM] )
@@ -365,19 +361,8 @@ typedef enum {
 } ammo_tag_t;
 
 typedef enum {
-	HEALTH_NONE = 0,
-	HEALTH_SMALL = AMMO_TOTAL,
-	HEALTH_MEDIUM,
-	HEALTH_LARGE,
-	HEALTH_MEGA,
-	HEALTH_ULTRA,
-
-	HEALTH_TOTAL
-} health_tag_t;
-
-typedef enum {
 	POWERUP_NONE = 0,
-	POWERUP_QUAD = HEALTH_TOTAL,
+	POWERUP_QUAD = AMMO_TOTAL,
 
 	POWERUP_TOTAL,
 	ITEMS_TOTAL = POWERUP_TOTAL,
@@ -398,7 +383,6 @@ typedef enum {
 	IT_WEAPON = 1,
 	IT_AMMO = 2,
 	IT_POWERUP = 4,
-	IT_HEALTH = 64,
 } itemtype_t;
 
 typedef struct gitem_s {

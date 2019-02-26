@@ -39,15 +39,10 @@ void player_think( edict_t *self ) {
 * ClientObituary
 */
 static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker ) {
-	int mod;
 	char message[64];
 	char message2[64];
 
-	if( level.gametype.disableObituaries ) {
-		return;
-	}
-
-	mod = meansOfDeath;
+	int mod = meansOfDeath;
 
 	GS_Obituary( self, G_PlayerGender( self ), attacker, mod, message, message2 );
 
@@ -698,9 +693,7 @@ void ClientBegin( edict_t *ent ) {
 	G_ClientRespawn( ent, true ); // respawn as ghost
 	ent->movetype = MOVETYPE_NOCLIP; // allow freefly
 
-	if( !level.gametype.disableObituaries || !( ent->r.svflags & SVF_FAKECLIENT ) ) {
-		G_PrintMsg( NULL, "%s" S_COLOR_WHITE " entered the game\n", client->netname );
-	}
+	G_PrintMsg( NULL, "%s" S_COLOR_WHITE " entered the game\n", client->netname );
 
 	client->level.respawnCount = 0; // clear respawncount
 	client->connecting = false;
@@ -1128,12 +1121,10 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 		return;
 	}
 
-	if( !level.gametype.disableObituaries || !( ent->r.svflags & SVF_FAKECLIENT ) ) {
-		if( !reason ) {
-			G_PrintMsg( NULL, "%s" S_COLOR_WHITE " disconnected\n", ent->r.client->netname );
-		} else {
-			G_PrintMsg( NULL, "%s" S_COLOR_WHITE " disconnected (%s" S_COLOR_WHITE ")\n", ent->r.client->netname, reason );
-		}
+	if( !reason ) {
+		G_PrintMsg( NULL, "%s" S_COLOR_WHITE " disconnected\n", ent->r.client->netname );
+	} else {
+		G_PrintMsg( NULL, "%s" S_COLOR_WHITE " disconnected (%s" S_COLOR_WHITE ")\n", ent->r.client->netname, reason );
 	}
 
 	// send effect

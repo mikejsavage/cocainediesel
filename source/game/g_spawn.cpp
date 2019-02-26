@@ -575,12 +575,6 @@ void G_PrecacheMedia( void ) {
 	trap_SoundIndex( va( S_ANNOUNCER_TIMEOUT_TIMEIN_1_to_2, 1 ) );
 	trap_SoundIndex( va( S_ANNOUNCER_TIMEOUT_TIMEIN_1_to_2, 2 ) );
 
-	// overtime
-	trap_SoundIndex( S_ANNOUNCER_OVERTIME_GOING_TO_OVERTIME );
-	trap_SoundIndex( S_ANNOUNCER_OVERTIME_OVERTIME );
-	trap_SoundIndex( va( S_ANNOUNCER_OVERTIME_SUDDENDEATH_1_to_2, 1 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_OVERTIME_SUDDENDEATH_1_to_2, 2 ) );
-
 	// score
 	trap_SoundIndex( va( S_ANNOUNCER_SCORE_TAKEN_LEAD_1_to_2, 1 ) );
 	trap_SoundIndex( va( S_ANNOUNCER_SCORE_TAKEN_LEAD_1_to_2, 2 ) );
@@ -598,11 +592,6 @@ void G_PrecacheMedia( void ) {
 		trap_SoundIndex( va( S_ANNOUNCER_SCORE_TEAM_TIED_LEAD_1_to_2, 2 ) );
 		trap_SoundIndex( va( S_ANNOUNCER_SCORE_TEAM_TIED_LEAD_1_to_2, 1 ) );
 		trap_SoundIndex( va( S_ANNOUNCER_SCORE_TEAM_TIED_LEAD_1_to_2, 2 ) );
-
-		//trap_SoundIndex( va( S_ANNOUNCER_SCORE_TEAM_1_to_4_TAKEN_LEAD_1_to_2, 3, 1 ) );
-		//trap_SoundIndex( va( S_ANNOUNCER_SCORE_TEAM_1_to_4_TAKEN_LEAD_1_to_2, 3, 2 ) );
-		//trap_SoundIndex( va( S_ANNOUNCER_SCORE_TEAM_1_to_4_TAKEN_LEAD_1_to_2, 4, 1 ) );
-		//trap_SoundIndex( va( S_ANNOUNCER_SCORE_TEAM_1_to_4_TAKEN_LEAD_1_to_2, 4, 2 ) );
 	}
 }
 

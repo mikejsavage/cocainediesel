@@ -318,7 +318,7 @@ void roundNewState( uint state ) {
 			break;
 
 		case RoundState_Post:
-			if( scoreLimitHit() && !match.checkExtendPlayTime() ) {
+			if( scoreLimitHit() ) {
 				match.launchState( match.getState() + 1 );
 
 				return;

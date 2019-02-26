@@ -19,8 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "g_local.h"
 
-static void MegaHealth_think( edict_t *self );
-
 //======================================================================
 
 void DoRespawn( edict_t *ent ) {
@@ -71,14 +69,6 @@ void SetRespawn( edict_t *ent, int delay ) {
 		ent->r.svflags |= SVF_NOCLIENT;
 	}
 
-	// megahealth is different
-	if( ( ent->spawnflags & ITEM_TIMED ) && ent->r.owner ) {
-		if( ent->item->type == IT_HEALTH ) {
-			ent->think = MegaHealth_think;
-			ent->nextThink = level.time + 1;
-		}
-	}
-
 	GClip_LinkEntity( ent );
 }
 
@@ -112,11 +102,6 @@ void G_Items_RespawnByType( unsigned int typeMask, int item_tag, float delay ) {
 		msecs = (int)( delay * 1000 );
 		if( msecs >= 0 ) {
 			clamp_low( msecs, 1 );
-		}
-
-		// megahealth is different
-		if( ( ent->spawnflags & ITEM_TIMED ) && ent->r.owner ) {
-			ent->r.owner = NULL;
 		}
 
 		SetRespawn( ent, msecs );
@@ -179,61 +164,6 @@ bool Add_Ammo( gclient_t *client, const gsitem_t *item, int count, bool add_it )
 
 //======================================================================
 
-static void MegaHealth_think( edict_t *self ) {
-	self->nextThink = level.time + 1;
-
-	if( self->r.owner ) {
-		if( self->r.owner->r.inuse && self->r.owner->s.team != TEAM_SPECTATOR &&
-			HEALTH_TO_INT( self->r.owner->health ) > self->r.owner->max_health ) {
-			return;
-		}
-
-		// disable the link to the owner
-		self->r.owner = NULL;
-	}
-
-	// player is back under max health so we can set respawn time for next MH
-	if( !( self->spawnflags & DROPPED_ITEM ) && G_Gametype_CanRespawnItem( self->item ) ) {
-		SetRespawn( self, G_Gametype_RespawnTimeForItem( self->item ) );
-	} else {
-		G_FreeEdict( self );
-	}
-}
-
-static bool Pickup_Health( edict_t *other, const gsitem_t *item, int flags ) {
-	if( !( flags & ITEM_IGNORE_MAX ) ) {
-		if( HEALTH_TO_INT( other->health ) >= other->max_health ) {
-			return false;
-		}
-	}
-
-	// start from at least 0.5, so the player sees his health increase the correct amount
-	if( other->health < 0.5 ) {
-		other->health = 0.5;
-	}
-
-	other->health += item->quantity;
-
-	if( other->r.client ) {
-		other->r.client->level.stats.health_taken += item->quantity;
-		teamlist[other->s.team].stats.health_taken += item->quantity;
-	}
-
-	if( !( flags & ITEM_IGNORE_MAX ) ) {
-		if( other->health > other->max_health ) {
-			other->health = other->max_health;
-		}
-	} else {
-		if( other->health > 200 ) {
-			other->health = 200;
-		}
-	}
-
-	return true;
-}
-
-//======================================================================
-
 void Touch_ItemSound( edict_t *other, const gsitem_t *item ) {
 	if( item->pickup_sound ) {
 		if( item->type & IT_POWERUP ) {
@@ -276,10 +206,6 @@ void Touch_Item( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) 
 
 	if( !taken ) {
 		return;
-	}
-
-	if( ent->spawnflags & ITEM_TIMED ) {
-		ent->r.owner = other;
 	}
 
 	// flash the screen
@@ -416,8 +342,6 @@ bool G_PickupItem( edict_t *other, const gsitem_t *it, int flags, int count, con
 
 	if( it->type & IT_WEAPON ) {
 		taken = Pickup_Weapon( other, it, flags, count );
-	} else if( it->type & IT_HEALTH ) {
-		taken = Pickup_Health( other, it, flags );
 	} else if( it->type & IT_POWERUP ) {
 		taken = Pickup_Powerup( other, it, flags, count );
 	}
@@ -531,14 +455,6 @@ static void Finish_SpawningItem( edict_t *ent ) {
 		VectorSet( dest, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2] - 4096 );
 		G_Trace( &tr, ent->s.origin, ent->r.mins, ent->r.maxs, dest, ent, MASK_SOLID );
 		VectorCopy( tr.endpos, ent->s.origin );
-	}
-
-	if( item->type & IT_HEALTH ) {
-		if( item->tag == HEALTH_SMALL || item->tag == HEALTH_ULTRA ) {
-			ent->spawnflags |= ITEM_IGNORE_MAX;
-		} else if( item->tag == HEALTH_MEGA ) {
-			ent->spawnflags |= ITEM_IGNORE_MAX | ITEM_TIMED;
-		}
 	}
 
 	if( ent->team ) {

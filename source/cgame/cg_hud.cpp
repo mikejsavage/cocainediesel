@@ -87,13 +87,6 @@ static const constant_numeric_t cg_numeric_constants[] = {
 	{ "NOGUN", 0 },
 	{ "GUN", 1 },
 
-	// player movement types
-	{ "PMOVE_TYPE_NORMAL", PM_NORMAL },
-	{ "PMOVE_TYPE_SPECTATOR", PM_SPECTATOR },
-	{ "PMOVE_TYPE_GIB", PM_GIB },
-	{ "PMOVE_TYPE_FREEZE", PM_FREEZE },
-	{ "PMOVE_TYPE_CHASECAM", PM_CHASECAM },
-
 	// config strings
 	{ "TEAM_SPECTATOR_NAME", CS_TEAM_SPECTATOR_NAME },
 	{ "TEAM_PLAYERS_NAME", CS_TEAM_PLAYERS_NAME },
@@ -185,22 +178,6 @@ static int CG_GetMatchDuration( const void *parameter ) {
 	return GS_MatchDuration();
 }
 
-static int CG_GetOvertime( const void *parameter ) {
-	return GS_MatchExtended();
-}
-
-static int CG_GetTeamBased( const void *parameter ) {
-	return GS_TeamBasedGametype();
-}
-
-static int CG_InvidualGameType( const void *parameter ) {
-	return GS_InvidualGameType();
-}
-
-static int CG_RaceGameType( const void *parameter ) {
-	return GS_RaceGametype();
-}
-
 static int CG_Paused( const void *parameter ) {
 	return GS_MatchPaused();
 }
@@ -281,11 +258,6 @@ static int CG_GetWeaponCount( const void *parameter ) {
 		}
 	}
 	return n;
-}
-
-static int CG_GetPmoveType( const void *parameter ) {
-	// the real pmove type of the client, which is chasecam or spectator when playing a demo
-	return cg.frame.playerState.pmove.pm_type;
 }
 
 static int CG_IsDemoPlaying( const void *parameter ) {
@@ -379,19 +351,12 @@ static const reference_numeric_t cg_numeric_references[] =
 	{ "FPS", CG_GetFPS, NULL },
 	{ "MATCH_STATE", CG_GetMatchState, NULL },
 	{ "MATCH_DURATION", CG_GetMatchDuration, NULL },
-	{ "OVERTIME", CG_GetOvertime, NULL },
-	{ "MATCH_POINT", CG_GetOvertime, NULL },
-	{ "TEAMBASED", CG_GetTeamBased, NULL },
-	{ "INDIVIDUAL", CG_InvidualGameType, NULL },
-	{ "RACE", CG_RaceGameType, NULL },
 	{ "PAUSED", CG_Paused, NULL },
 	{ "ZOOM", CG_GetZoom, NULL },
 	{ "VIDWIDTH", CG_GetVidWidth, NULL },
 	{ "VIDHEIGHT", CG_GetVidHeight, NULL },
 	{ "SCOREBOARD", CG_GetScoreboardShown, NULL },
-	{ "PMOVE_TYPE", CG_GetPmoveType, NULL },
 	{ "DEMOPLAYING", CG_IsDemoPlaying, NULL },
-	{ "INSTANTRESPAWN", CG_GetLayoutStatFlag, (void *)STAT_LAYOUT_INSTANTRESPAWN },
 
 	{ "POWERUP_QUAD_TIME", CG_GetPowerupTime, (void *)POWERUP_QUAD },
 

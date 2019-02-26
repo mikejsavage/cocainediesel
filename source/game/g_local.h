@@ -404,7 +404,6 @@ void G_asDumpAPI_f( void );
 #define DROPPED_PLAYER_ITEM 0x00020000
 #define ITEM_TARGETS_USED   0x00040000
 #define ITEM_IGNORE_MAX     0x00080000
-#define ITEM_TIMED          0x00100000
 
 //
 // g_cmds.c

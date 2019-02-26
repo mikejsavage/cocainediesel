@@ -132,7 +132,6 @@ typedef struct {
 
 	// timers
 	cgs_media_handle_t *sfxTimerBipBip;
-	cgs_media_handle_t *sfxTimerPloink;
 
 	cgs_media_handle_t *sfxRic[2];
 

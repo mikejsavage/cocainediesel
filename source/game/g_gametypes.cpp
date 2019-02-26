@@ -42,68 +42,6 @@ game_state_t *G_GetGameState( void ) {
 }
 
 /*
-* G_Match_Tied
-*/
-bool G_Match_Tied( void ) {
-	int team, total, numteams;
-
-	total = 0; numteams = 0;
-	for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-		if( !teamlist[team].numplayers ) {
-			continue;
-		}
-
-		numteams++;
-		total += teamlist[team].stats.score;
-	}
-
-	if( numteams < 2 ) {
-		return false;
-	} else {
-
-		// total / numteams = averaged score
-		for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-			if( !teamlist[team].numplayers ) {
-				continue;
-			}
-
-			if( teamlist[team].stats.score != total / numteams ) {
-				return false;
-			}
-		}
-	}
-
-	return true;
-}
-
-/*
-* G_Match_CheckExtendPlayTime
-*/
-bool G_Match_CheckExtendPlayTime( void ) {
-	// check for extended time/sudden death
-	if( GS_MatchState() != MATCH_STATE_PLAYTIME ) {
-		return false;
-	}
-
-	if( GS_TeamBasedGametype() && !level.forceExit ) {
-		if( G_Match_Tied() ) {
-			GS_GamestatSetFlag( GAMESTAT_FLAG_MATCHEXTENDED, true );
-			gs.gameState.stats[GAMESTAT_MATCHSTATE] = MATCH_STATE_PLAYTIME;
-			gs.gameState.stats[GAMESTAT_MATCHSTART] = game.serverTime;
-
-			G_AnnouncerSound( NULL, trap_SoundIndex( va( S_ANNOUNCER_OVERTIME_SUDDENDEATH_1_to_2, ( rand() & 1 ) + 1 ) ), GS_MAX_TEAMS, true, NULL );
-			G_PrintMsg( NULL, "Match tied. Sudden death!\n" );
-			G_CenterPrintMsg( NULL, "SUDDEN DEATH" );
-			gs.gameState.stats[GAMESTAT_MATCHDURATION] = 0;
-
-			return true;
-		}
-	}
-
-	return false;
-}
-
-/*
 * G_Match_SetAutorecordState
 */
 static void G_Match_SetAutorecordState( const char *state ) {
@@ -296,7 +234,6 @@ void G_Match_LaunchState( int matchState ) {
 		return;
 	}
 
-	GS_GamestatSetFlag( GAMESTAT_FLAG_MATCHEXTENDED, false );
 	GS_GamestatSetFlag( GAMESTAT_FLAG_WAITING, false );
 
 	if( matchState == MATCH_STATE_POSTMATCH ) {
@@ -408,21 +345,6 @@ bool G_Match_ScorelimitHit( void ) {
 	}
 
 	return false;
-}
-
-/*
-* G_Match_SuddenDeathFinished
-*/
-bool G_Match_SuddenDeathFinished( void ) {
-	if( GS_MatchState() != MATCH_STATE_PLAYTIME ) {
-		return false;
-	}
-
-	if( !GS_MatchExtended() || GS_MatchDuration() ) {
-		return false;
-	}
-
-	return G_Match_Tied() ? false : true;
 }
 
 /*
@@ -882,18 +804,6 @@ int G_Gametype_RespawnTimeForItem( const gsitem_t *item ) {
 		return level.gametype.weapon_respawn * 1000;
 	}
 
-	if( item->tag == HEALTH_MEGA ) {
-		return level.gametype.megahealth_respawn * 1000;
-	}
-
-	if( item->tag == HEALTH_ULTRA ) {
-		return level.gametype.ultrahealth_respawn * 1000;
-	}
-
-	if( item->type & IT_HEALTH ) {
-		return level.gametype.health_respawn * 1000;
-	}
-
 	if( item->type & IT_POWERUP ) {
 		return level.gametype.powerup_respawn * 1000;
 	}
@@ -1117,7 +1027,7 @@ void G_RunGametype( void ) {
 * G_Gametype_SetDefaults
 */
 void G_Gametype_SetDefaults( void ) {
-	level.gametype.spawnableItemsMask = ( IT_WEAPON | IT_AMMO | IT_POWERUP | IT_HEALTH );
+	level.gametype.spawnableItemsMask = IT_WEAPON | IT_AMMO | IT_POWERUP;
 	level.gametype.respawnableItemsMask = level.gametype.spawnableItemsMask;
 	level.gametype.dropableItemsMask = level.gametype.spawnableItemsMask;
 	level.gametype.pickableItemsMask = level.gametype.spawnableItemsMask;
@@ -1132,8 +1042,6 @@ void G_Gametype_SetDefaults( void ) {
 	level.gametype.weapon_respawn = 5;
 	level.gametype.health_respawn = 15;
 	level.gametype.powerup_respawn = 90;
-	level.gametype.megahealth_respawn = 20;
-	level.gametype.ultrahealth_respawn = 40;
 
 	level.gametype.readyAnnouncementEnabled = false;
 	level.gametype.scoreAnnouncementEnabled = false;
@@ -1144,7 +1052,6 @@ void G_Gametype_SetDefaults( void ) {
 	level.gametype.canForceModels = true;
 	level.gametype.customDeadBodyCam = false;
 	level.gametype.removeInactivePlayers = true;
-	level.gametype.disableObituaries = false;
 
 	level.gametype.spawnpointRadius = 64;
 

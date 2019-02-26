@@ -110,28 +110,8 @@ static bool objectMatch_timeLimitHit( match_t *self ) {
 	return G_Match_TimelimitHit();
 }
 
-static bool objectMatch_isTied( match_t *self ) {
-	return G_Match_Tied();
-}
-
-static bool objectMatch_checkExtendPlayTime( match_t *self ) {
-	return G_Match_CheckExtendPlayTime();
-}
-
-static bool objectMatch_suddenDeathFinished( match_t *self ) {
-	return G_Match_SuddenDeathFinished();
-}
-
 static bool objectMatch_isPaused( match_t *self ) {
 	return GS_MatchPaused();
-}
-
-static bool objectMatch_isWaiting( match_t *self ) {
-	return GS_MatchWaiting();
-}
-
-static bool objectMatch_isExtended( match_t *self ) {
-	return GS_MatchExtended();
 }
 
 static unsigned int objectMatch_duration( match_t *self ) {
@@ -199,13 +179,7 @@ static const gs_asMethod_t match_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, stopAutorecord, ( ) const ), asFUNCTION( objectMatch_stopAutorecord ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, scoreLimitHit, ( ) const ), asFUNCTION( objectMatch_scoreLimitHit ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, timeLimitHit, ( ) const ), asFUNCTION( objectMatch_timeLimitHit ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( bool, isTied, ( ) const ), asFUNCTION( objectMatch_isTied ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( bool, checkExtendPlayTime, ( ) const ), asFUNCTION( objectMatch_checkExtendPlayTime ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( bool, suddenDeathFinished, ( ) const ), asFUNCTION( objectMatch_suddenDeathFinished ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, isPaused, ( ) const ), asFUNCTION( objectMatch_isPaused ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( bool, isWaiting, ( ) const ), asFUNCTION( objectMatch_isWaiting ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( bool, isExtended, ( ) const ), asFUNCTION( objectMatch_isExtended ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( uint, duration, ( ) const ), asFUNCTION( objectMatch_duration ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( int64, startTime, ( ) const ), asFUNCTION( objectMatch_startTime ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( int64, endTime, ( ) const ), asFUNCTION( objectMatch_endTime ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( int, getState, ( ) const ), asFUNCTION( objectMatch_getState ), asCALL_CDECL_OBJLAST },
@@ -286,12 +260,9 @@ static const gs_asProperty_t gametypedescr_Properties[] =
 	{ ASLIB_PROPERTY_DECL( int, weaponRespawn ), ASLIB_FOFFSET( gametype_descriptor_t, weapon_respawn ) },
 	{ ASLIB_PROPERTY_DECL( int, healthRespawn ), ASLIB_FOFFSET( gametype_descriptor_t, health_respawn ) },
 	{ ASLIB_PROPERTY_DECL( int, powerupRespawn ), ASLIB_FOFFSET( gametype_descriptor_t, powerup_respawn ) },
-	{ ASLIB_PROPERTY_DECL( int, megahealthRespawn ), ASLIB_FOFFSET( gametype_descriptor_t, megahealth_respawn ) },
-	{ ASLIB_PROPERTY_DECL( int, ultrahealthRespawn ), ASLIB_FOFFSET( gametype_descriptor_t, ultrahealth_respawn ) },
 	{ ASLIB_PROPERTY_DECL( bool, readyAnnouncementEnabled ), ASLIB_FOFFSET( gametype_descriptor_t, readyAnnouncementEnabled ) },
 	{ ASLIB_PROPERTY_DECL( bool, scoreAnnouncementEnabled ), ASLIB_FOFFSET( gametype_descriptor_t, scoreAnnouncementEnabled ) },
 	{ ASLIB_PROPERTY_DECL( bool, countdownEnabled ), ASLIB_FOFFSET( gametype_descriptor_t, countdownEnabled ) },
-	{ ASLIB_PROPERTY_DECL( bool, mathAbortDisabled ), ASLIB_FOFFSET( gametype_descriptor_t, matchAbortDisabled ) },
 	{ ASLIB_PROPERTY_DECL( bool, matchAbortDisabled ), ASLIB_FOFFSET( gametype_descriptor_t, matchAbortDisabled ) },
 	{ ASLIB_PROPERTY_DECL( bool, shootingDisabled ), ASLIB_FOFFSET( gametype_descriptor_t, shootingDisabled ) },
 	{ ASLIB_PROPERTY_DECL( bool, infiniteAmmo ), ASLIB_FOFFSET( gametype_descriptor_t, infiniteAmmo ) },
@@ -300,7 +271,6 @@ static const gs_asProperty_t gametypedescr_Properties[] =
 	{ ASLIB_PROPERTY_DECL( bool, customDeadBodyCam ), ASLIB_FOFFSET( gametype_descriptor_t, customDeadBodyCam ) },
 	{ ASLIB_PROPERTY_DECL( bool, removeInactivePlayers ), ASLIB_FOFFSET( gametype_descriptor_t, removeInactivePlayers ) },
 	{ ASLIB_PROPERTY_DECL( uint, numBots ), ASLIB_FOFFSET( gametype_descriptor_t, numBots ) },
-	{ ASLIB_PROPERTY_DECL( bool, disableObituaries ), ASLIB_FOFFSET( gametype_descriptor_t, disableObituaries ) },
 
 	ASLIB_PROPERTY_NULL
 };

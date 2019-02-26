@@ -120,13 +120,6 @@ static void G_UpdateServerInfo( void ) {
 		}
 
 		extra[0] = 0;
-		if( GS_MatchExtended() ) {
-			if( timelimit ) {
-				Q_strncatz( extra, " overtime", sizeof( extra ) );
-			} else {
-				Q_strncatz( extra, " suddendeath", sizeof( extra ) );
-			}
-		}
 		if( GS_MatchPaused() ) {
 			Q_strncatz( extra, " (in timeout)", sizeof( extra ) );
 		}
@@ -210,8 +203,6 @@ void G_CheckCvars( void ) {
 	GS_GamestatSetFlag( GAMESTAT_FLAG_INHIBITSHOOTING, level.gametype.shootingDisabled );
 	GS_GamestatSetFlag( GAMESTAT_FLAG_INFINITEAMMO, level.gametype.infiniteAmmo );
 	GS_GamestatSetFlag( GAMESTAT_FLAG_CANFORCEMODELS, level.gametype.canForceModels );
-
-	GS_GamestatSetFlag( GAMESTAT_FLAG_CANDROPWEAPON, ( level.gametype.dropableItemsMask & IT_WEAPON ) != 0 );
 
 	gs.gameState.stats[GAMESTAT_MAXPLAYERSINTEAM] = level.gametype.maxPlayersPerTeam;
 	clamp( gs.gameState.stats[GAMESTAT_MAXPLAYERSINTEAM], 0, 255 );

@@ -789,7 +789,7 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 	if( cent->item ) {
 		const gsitem_t *item = cent->item;
 
-		if( item->type & ( IT_HEALTH | IT_POWERUP ) ) {
+		if( item->type & IT_POWERUP ) {
 			cent->ent.renderfx |= RF_NOSHADOW;
 		}
 
@@ -1104,12 +1104,6 @@ static void CG_AddItemEnt( centity_t *cent ) {
 		// weapons are special
 		if( cent->item && cent->item->type & IT_WEAPON ) {
 			cent->ent.scale *= 1.40f;
-		}
-
-		if( cent->item ) {
-			if( cent->item->tag == HEALTH_SMALL ) {
-				cent->ent.scale *= 0.85f;
-			}
 		}
 
 		CG_AddGenericEnt( cent );

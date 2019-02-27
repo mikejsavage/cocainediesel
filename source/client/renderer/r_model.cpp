@@ -925,7 +925,6 @@ model_t *Mod_ForName( const char *name, bool crash ) {
 		if( !buf || strncmp( (const char *)buf, descr->header, descr->headerLen ) ) {
 			break;
 		}
-		printf( "loading lod %s\n", lodname );
 
 		lod = mod->lods[i] = Mod_FindSlot( lodname );
 		if( lod->name && !strcmp( lod->name, lodname ) ) {

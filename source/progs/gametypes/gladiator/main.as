@@ -996,6 +996,7 @@ void GT_InitGametype()
 	gametype.infiniteAmmo = true;
 	gametype.canForceModels = true;
 	gametype.removeInactivePlayers = true;
+	gametype.selfDamage = false;
 
 	gametype.spawnpointRadius = 0;
 

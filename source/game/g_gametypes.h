@@ -91,6 +91,7 @@ typedef struct {
 	bool canForceModels;
 	bool customDeadBodyCam;
 	bool removeInactivePlayers;
+	bool selfDamage;
 
 	int spawnpointRadius;
 

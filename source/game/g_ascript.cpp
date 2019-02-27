@@ -218,10 +218,6 @@ static void objectGametypeDescriptor_SetTeamSpawnsystem( int team, int spawnsyst
 	G_SpawnQueue_SetTeamSpawnsystem( team, spawnsystem, wave_time, wave_maxcount, spectate_team );
 }
 
-static bool objectGametypeDescriptor_hasSelfDamage( gametype_descriptor_t *self ) {
-	return GS_SelfDamage();
-}
-
 static bool objectGametypeDescriptor_isInvidualGameType( gametype_descriptor_t *self ) {
 	return GS_InvidualGameType();
 }
@@ -239,7 +235,6 @@ static const gs_asBehavior_t gametypedescr_ObjectBehaviors[] =
 static const gs_asMethod_t gametypedescr_Methods[] =
 {
 	{ ASLIB_FUNCTION_DECL( void, setTeamSpawnsystem, ( int team, int spawnsystem, int wave_time, int wave_maxcount, bool deadcam ) ), asFUNCTION( objectGametypeDescriptor_SetTeamSpawnsystem ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( bool, get_hasSelfDamage, ( ) const ), asFUNCTION( objectGametypeDescriptor_hasSelfDamage ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, get_isInvidualGameType, ( ) const ), asFUNCTION( objectGametypeDescriptor_isInvidualGameType ), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL
@@ -270,6 +265,7 @@ static const gs_asProperty_t gametypedescr_Properties[] =
 	{ ASLIB_PROPERTY_DECL( int, spawnpointRadius ), ASLIB_FOFFSET( gametype_descriptor_t, spawnpointRadius ) },
 	{ ASLIB_PROPERTY_DECL( bool, customDeadBodyCam ), ASLIB_FOFFSET( gametype_descriptor_t, customDeadBodyCam ) },
 	{ ASLIB_PROPERTY_DECL( bool, removeInactivePlayers ), ASLIB_FOFFSET( gametype_descriptor_t, removeInactivePlayers ) },
+	{ ASLIB_PROPERTY_DECL( bool, selfDamage ), ASLIB_FOFFSET( gametype_descriptor_t, selfDamage ) },
 	{ ASLIB_PROPERTY_DECL( uint, numBots ), ASLIB_FOFFSET( gametype_descriptor_t, numBots ) },
 
 	ASLIB_PROPERTY_NULL

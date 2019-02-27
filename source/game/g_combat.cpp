@@ -320,7 +320,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 			take = save = 0;
 		}
 		else if( attacker == targ ) {
-			if( GS_SelfDamage() ) {
+			if( level.gametype.selfDamage ) {
 				switch( mod ) {
 				case MOD_PLASMA_SPLASH:
 					take = damage * GS_GetWeaponDef( WEAP_PLASMAGUN )->firedef.selfdamage;

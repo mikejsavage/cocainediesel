@@ -1052,6 +1052,7 @@ void G_Gametype_SetDefaults( void ) {
 	level.gametype.canForceModels = true;
 	level.gametype.customDeadBodyCam = false;
 	level.gametype.removeInactivePlayers = true;
+	level.gametype.selfDamage = true;
 
 	level.gametype.spawnpointRadius = 64;
 

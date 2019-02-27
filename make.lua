@@ -68,6 +68,7 @@ do
 			"openal",
 			"sdl",
 			"zlib",
+			"zstd",
 			platform_libs
 		},
 
@@ -122,6 +123,7 @@ do
 			"angelscript",
 			"curl",
 			"zlib",
+			"zstd",
 			platform_libs
 		},
 

@@ -334,9 +334,10 @@ bool R_AliasModelLerpTag( orientation_t *orient, const maliasmodel_t *aliasmodel
 	float lerpfrac, const char *name );
 void R_AliasModelFrameBounds( const model_t *mod, int frame, vec3_t mins, vec3_t maxs );
 
-void Mod_LoadAliasMD3Model( model_t *mod, const model_t *parent, void *buffer, bspFormatDesc_t *unused );
-void Mod_LoadSkeletalModel( model_t *mod, const model_t *parent, void *buffer, bspFormatDesc_t *unused );
-void Mod_LoadQ3BrushModel( model_t *mod, const model_t *parent, void *buffer, bspFormatDesc_t *format );
+void Mod_LoadAliasMD3Model( model_t *mod, const model_t *parent, void *buffer, int buffer_size, const bspFormatDesc_t *unused );
+void Mod_LoadSkeletalModel( model_t *mod, const model_t *parent, void *buffer, int buffer_size, const bspFormatDesc_t *unused );
+void Mod_LoadQ3BrushModel( model_t *mod, const model_t *parent, void *buffer, int buffer_size, const bspFormatDesc_t *format );
+void Mod_LoadCompressedBSP( model_t *mod, const model_t *parent, void *buffer, int buffer_size, const bspFormatDesc_t *format );
 
 //
 // r_cmds.c

@@ -126,6 +126,7 @@ typedef struct {
 #define IDBSPHEADER     "IBSP"
 #define RBSPHEADER      "RBSP"
 #define QFBSPHEADER     "FBSP"
+constexpr uint32_t COMPRESSED_BSP_MAGIC = 0xFD2FB528;
 
 #define Q3BSPVERSION        46
 #define RTCWBSPVERSION      47

@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cm_local.h"
 #include "patch.h"
 
+#include "zstd/zstd.h"
+
 #define MAX_FACET_PLANES 32
 
 /*
@@ -872,7 +874,7 @@ static void CMod_LoadEntityString( cmodel_state_t *cms, lump_t *l ) {
 /*
 * CM_LoadQ3BrushModel
 */
-void CM_LoadQ3BrushModel( cmodel_state_t *cms, void *parent, void *buf, bspFormatDesc_t *format ) {
+void CM_LoadQ3BrushModel( cmodel_state_t *cms, void *parent, void *buf, int bufsize, const bspFormatDesc_t *format ) {
 	dheader_t header;
 
 	cms->cmap_bspFormat = format;
@@ -906,9 +908,28 @@ void CM_LoadQ3BrushModel( cmodel_state_t *cms, void *parent, void *buf, bspForma
 	CMod_LoadVisibility( cms, &header.lumps[LUMP_VISIBILITY] );
 	CMod_LoadEntityString( cms, &header.lumps[LUMP_ENTITIES] );
 
-	FS_FreeFile( buf );
-
 	if( cms->numvertexes ) {
 		Mem_Free( cms->map_verts );
 	}
+}
+
+void CM_LoadCompressedBSP( cmodel_state_t *cms, void *parent, void *compressed, int compressed_size, const bspFormatDesc_t *format ) {
+	unsigned long long const decompressed_size = ZSTD_getDecompressedSize( compressed, compressed_size );
+	if( decompressed_size == ZSTD_CONTENTSIZE_ERROR || decompressed_size == ZSTD_CONTENTSIZE_UNKNOWN ) {
+		Com_Error( ERR_DROP, "Corrupt BSP" );
+	}
+
+	void * decompressed = Mem_Alloc( cms->mempool, decompressed_size );
+	const size_t r = ZSTD_decompress( decompressed, decompressed_size, compressed, compressed_size );
+
+	if( r != decompressed_size ) {
+		Com_Error( ERR_DROP, "Failed to decompress BSP: %s", ZSTD_getErrorName( r ) );
+	}
+
+	int version;
+	memcpy( &version, ( const char * ) decompressed + 4, sizeof( version ) );
+	const bspFormatDesc_t *bsp_format = Q_FindBSPFormat( q3BSPFormats, ( const char * ) decompressed, version ); 
+	CM_LoadQ3BrushModel( cms, parent, decompressed, decompressed_size, bsp_format );
+
+	Mem_Free( decompressed );
 }

@@ -36,8 +36,6 @@ static uint8_t mod_novis[MAX_MAP_LEAFS / 8];
 #define MAX_MOD_KNOWN   512 * MOD_MAX_LODS
 static model_t mod_known[MAX_MOD_KNOWN];
 static int mod_numknown;
-static int modfilelen;
-static bool mod_isworldmodel;
 model_t *r_prevworldmodel;
 
 static mempool_t *mod_mempool;
@@ -51,6 +49,7 @@ static const modelFormatDescr_t mod_supportedformats[] =
 	{ IQM_MAGIC, sizeof( IQM_MAGIC ), NULL, MOD_MAX_LODS, ( const modelLoader_t )Mod_LoadSkeletalModel },
 
 	// Q3-alike .bsp models
+	{ ( const char * ) &COMPRESSED_BSP_MAGIC, sizeof( COMPRESSED_BSP_MAGIC ), NULL, 0, ( const modelLoader_t )Mod_LoadCompressedBSP },
 	{ "*", 4, q3BSPFormats, 0, ( const modelLoader_t )Mod_LoadQ3BrushModel },
 
 	// trailing NULL
@@ -693,7 +692,6 @@ void Mod_Modellist_f( void ) {
 void R_InitModels( void ) {
 	mod_mempool = R_AllocPool( r_mempool, "Models" );
 	memset( mod_novis, 0xff, sizeof( mod_novis ) );
-	mod_isworldmodel = false;
 	r_prevworldmodel = NULL;
 }
 
@@ -872,7 +870,7 @@ model_t *Mod_ForName( const char *name, bool crash ) {
 	//
 	// load the file
 	//
-	modfilelen = R_LoadFile( name, (void **)&buf );
+	int bufsize = R_LoadFile( name, (void **)&buf );
 	if( !buf && crash ) {
 		ri.Com_Error( ERR_DROP, "Mod_NumForName: %s not found", name );
 	}
@@ -899,7 +897,7 @@ model_t *Mod_ForName( const char *name, bool crash ) {
 		return NULL;
 	}
 
-	descr->loader( mod, NULL, buf, bspFormat );
+	descr->loader( mod, NULL, buf, bufsize, bspFormat );
 	R_FreeFile( buf );
 
 	if( mod->type == mod_bad ) {
@@ -927,6 +925,7 @@ model_t *Mod_ForName( const char *name, bool crash ) {
 		if( !buf || strncmp( (const char *)buf, descr->header, descr->headerLen ) ) {
 			break;
 		}
+		printf( "loading lod %s\n", lodname );
 
 		lod = mod->lods[i] = Mod_FindSlot( lodname );
 		if( lod->name && !strcmp( lod->name, lodname ) ) {
@@ -941,7 +940,7 @@ model_t *Mod_ForName( const char *name, bool crash ) {
 
 		mod_numknown++;
 
-		descr->loader( lod, mod, buf, bspFormat );
+		descr->loader( lod, mod, buf, bufsize, bspFormat );
 		R_FreeFile( buf );
 
 		mod->numlods++;
@@ -990,11 +989,7 @@ void R_RegisterWorldModel( const char *model ) {
 	rsh.worldBrushModel = NULL;
 	rsh.worldModelSequence++;
 
-	mod_isworldmodel = true;
-
 	rsh.worldModel = Mod_ForName( model, true );
-
-	mod_isworldmodel = false;
 
 	if( !rsh.worldModel ) {
 		return;

@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // r_alias.c: Quake III Arena .md3 model format support
 
 #include "r_local.h"
-#include "../../qcommon/qfiles.h"
+#include "qcommon/qfiles.h"
 
 #define MD3SURF_DISTANCE(s, d) ((s)->flags & SHADER_AUTOSPRITE ? d : 0)
 
@@ -136,7 +136,7 @@ MD3 MODELS
 /*
 * Mod_LoadAliasMD3Model
 */
-void Mod_LoadAliasMD3Model( model_t *mod, const model_t *parent, void *buffer, bspFormatDesc_t *unused ) {
+void Mod_LoadAliasMD3Model( model_t *mod, const model_t *parent, void *buffer, int buffer_size, const bspFormatDesc_t *unused ) {
 	int version, i, j, l;
 	int bufsize, numverts;
 	uint8_t *buf;

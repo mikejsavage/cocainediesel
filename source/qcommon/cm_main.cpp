@@ -30,11 +30,13 @@ static mempool_t *cmap_mempool;
 static cvar_t *cm_noAreas;
 cvar_t *cm_noCurves;
 
-void CM_LoadQ3BrushModel( cmodel_state_t *cms, void *parent, void *buffer, bspFormatDesc_t *format );
+void CM_LoadQ3BrushModel( cmodel_state_t *cms, void *parent, void *buffer, int buffer_size, const bspFormatDesc_t *format );
+void CM_LoadCompressedBSP( cmodel_state_t *cms, void *parent, void *compressed, int compressed_size, const bspFormatDesc_t *format );
 
 static const modelFormatDescr_t cm_supportedformats[] =
 {
 	// Q3-alike .bsp models
+	{ ( const char * ) &COMPRESSED_BSP_MAGIC, sizeof( COMPRESSED_BSP_MAGIC ), NULL, 0, ( const modelLoader_t )CM_LoadCompressedBSP },
 	{ "*", 4, q3BSPFormats, 0, ( const modelLoader_t )CM_LoadQ3BrushModel },
 
 	// trailing NULL
@@ -191,9 +193,7 @@ MAP LOADING
 * Loads in the map and all submodels
 */
 cmodel_t *CM_LoadMap( cmodel_state_t *cms, const char *name, bool clientload, unsigned *checksum ) {
-	int length;
 	unsigned *buf;
-	char *header;
 	const modelFormatDescr_t *descr;
 	bspFormatDesc_t *bspFormat = NULL;
 
@@ -217,7 +217,7 @@ cmodel_t *CM_LoadMap( cmodel_state_t *cms, const char *name, bool clientload, un
 	//
 	// load the file
 	//
-	length = FS_LoadFile( name, ( void ** )&buf, NULL, 0 );
+	int length = FS_LoadFile( name, ( void ** )&buf, NULL, 0 );
 	if( !buf ) {
 		Com_Error( ERR_DROP, "Couldn't load %s", name );
 	}
@@ -231,18 +231,8 @@ cmodel_t *CM_LoadMap( cmodel_state_t *cms, const char *name, bool clientload, un
 		Com_Error( ERR_DROP, "CM_LoadMap: unknown fileid for %s", name );
 	}
 
-	if( !bspFormat ) {
-		Com_Error( ERR_DROP, "CM_LoadMap: %s: unknown bsp format", name );
-	}
-
-	// copy header into temp variable to be saveed in a cvar
-	header = ( char * ) Mem_TempMalloc( descr->headerLen + 1 );
-	memcpy( header, buf, descr->headerLen );
-	header[descr->headerLen] = '\0';
-
-	Mem_TempFree( header );
-
-	descr->loader( cms, NULL, buf, bspFormat );
+	descr->loader( cms, NULL, buf, length, bspFormat );
+	FS_FreeFile( buf );
 
 	if( cms->numareas ) {
 		cms->map_areas = ( carea_t * ) Mem_Alloc( cms->mempool, cms->numareas * sizeof( *cms->map_areas ) );

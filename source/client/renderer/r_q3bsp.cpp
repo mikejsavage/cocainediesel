@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "r_local.h"
 
+#include "zstd/zstd.h"
+
 typedef struct {
 	vec3_t mins, maxs;
 	int flatness[2];
@@ -952,7 +954,7 @@ static void Mod_Finish() {
 /*
 * Mod_LoadQ3BrushModel
 */
-void Mod_LoadQ3BrushModel( model_t *mod, const model_t *parent, void *buffer, bspFormatDesc_t *format ) {
+void Mod_LoadQ3BrushModel( model_t *mod, const model_t *parent, void *buffer, int buffer_size, const bspFormatDesc_t *format ) {
 	dheader_t *header;
 
 	mod->type = mod_brush;
@@ -990,4 +992,25 @@ void Mod_LoadQ3BrushModel( model_t *mod, const model_t *parent, void *buffer, bs
 	Mod_LoadNodes( &header->lumps[LUMP_NODES] );
 
 	Mod_Finish();
+}
+
+void Mod_LoadCompressedBSP( model_t *mod, const model_t *parent, void *compressed, int compressed_size, const bspFormatDesc_t *format ) {
+	unsigned long long const decompressed_size = ZSTD_getDecompressedSize( compressed, compressed_size );
+	if( decompressed_size == ZSTD_CONTENTSIZE_ERROR || decompressed_size == ZSTD_CONTENTSIZE_UNKNOWN ) {
+		ri.Com_Error( ERR_DROP, "Corrupt BSP" );
+	}
+
+	void * decompressed = R_Malloc( decompressed_size );
+	const size_t r = ZSTD_decompress( decompressed, decompressed_size, compressed, compressed_size );
+
+	if( r != decompressed_size ) {
+		ri.Com_Error( ERR_DROP, "Failed to decompress BSP: %s", ZSTD_getErrorName( r ) );
+	}
+
+	int version;
+	memcpy( &version, ( const char * ) decompressed + 4, sizeof( version ) );
+	const bspFormatDesc_t *bsp_format = Q_FindBSPFormat( q3BSPFormats, ( const char * ) decompressed, version ); 
+	Mod_LoadQ3BrushModel( mod, parent, decompressed, decompressed_size, bsp_format );
+
+	R_Free( decompressed );
 }

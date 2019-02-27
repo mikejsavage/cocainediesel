@@ -956,8 +956,6 @@ int GS_ThinkPlayerWeapon( player_state_t *playerState, int buttons, int msecs, i
 trace_t *GS_TraceBullet( trace_t *trace, vec3_t start, vec3_t dir, vec3_t right, vec3_t up, float r, float u, int range, int ignore, int timeDelta );
 void GS_TraceLaserBeam( trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( trace_t *tr, vec3_t dir ) );
 
-#define CURVELASERBEAM_SUBDIVISIONS 40
-
 //===============================================================
 // gs_weapondefs.c
 

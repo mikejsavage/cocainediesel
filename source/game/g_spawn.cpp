@@ -127,7 +127,6 @@ spawn_t spawns[] = {
 	{ "trigger_always", SP_trigger_always },
 	{ "trigger_once", SP_trigger_once },
 	{ "trigger_multiple", SP_trigger_multiple },
-	{ "trigger_relay", SP_trigger_relay },
 	{ "trigger_push", SP_trigger_push },
 	{ "trigger_hurt", SP_trigger_hurt },
 	{ "trigger_elevator", SP_trigger_elevator },
@@ -137,18 +136,12 @@ spawn_t spawns[] = {
 	{ "target_laser", SP_target_laser },
 	{ "target_position", SP_target_position },
 	{ "target_print", SP_target_print },
-	{ "target_give", SP_target_give },
-	{ "target_push", SP_info_notnull },
-	{ "target_relay", SP_target_relay },
 	{ "target_delay", SP_target_delay },
 	{ "target_teleporter", SP_target_teleporter },
 	{ "target_kill", SP_target_kill },
 
 	{ "worldspawn", SP_worldspawn },
 
-	{ "info_null", SP_info_null },
-	{ "func_group", SP_info_null },
-	{ "info_notnull", SP_info_notnull },
 	{ "path_corner", SP_path_corner },
 
 	{ "trigger_teleport", SP_trigger_teleport },

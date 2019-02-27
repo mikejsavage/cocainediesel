@@ -337,53 +337,6 @@ void SP_target_print( edict_t *self ) {
 }
 
 
-// JALFIXME: We have trigger_relay (and I already commented it should be a target), Q3 has
-// this target_relay. IMO we should do the move into target_relay too.
-
-//=============================================================================
-//
-//QUAKED target_relay (0 .7 .7) (-8 -8 -8) (8 8 8) RED_ONLY BLUE_ONLY RANDOM
-//This can only be activated by other triggers which will cause it in turn to activate its own targets.
-//-------- KEYS --------
-//targetname : activating trigger points to this.
-//target : this points to entities to activate when this entity is triggered.
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//notsingle : when set to 1, entity will not spawn in Single Player mode (bot play mode).
-//-------- SPAWNFLAGS --------
-//RED_ONLY : only alpha team players can activate the target.
-//BLUE_ONLY : only beta team players can activate the target.
-//RANDOM : one one of the targeted entities will be triggered at random.
-
-//=============================================================================
-
-static void target_relay_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	if( ( self->spawnflags & 1 ) != 0 && activator->r.client
-		&& activator->s.team != TEAM_ALPHA ) {
-		return;
-	}
-
-	if( ( self->spawnflags & 2 ) != 0 && activator->r.client
-		&& activator->s.team != TEAM_BETA ) {
-		return;
-	}
-
-	if( ( self->spawnflags & 4 ) != 0 ) {
-		edict_t *target;
-		target = G_PickTarget( self->targetname );
-		if( target != NULL ) {
-			G_CallUse( target, self, activator );
-		}
-		return;
-	}
-
-	G_UseTargets( self, activator );
-}
-
-void SP_target_relay( edict_t *self ) {
-	self->use = target_relay_use;
-}
-
 //==========================================================
 
 static void target_delay_think( edict_t *ent ) {
@@ -410,82 +363,6 @@ void SP_target_delay( edict_t *ent ) {
 
 	ent->delay = 0;
 	ent->use = target_delay_use;
-}
-
-#define MAX_GIVE_SOUNDS 8
-
-//target_give wait classname weapon_xxx
-static void target_give_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	edict_t *give;
-	const gsitem_t *item;
-	int i, numsounds;
-	float attenuation;
-	const char *pickup_sound;
-	int prev_pickup = -1;
-	gclient_t *aclient = activator && activator->r.client ? activator->r.client : NULL;
-	const gsitem_t *sounds[MAX_GIVE_SOUNDS];
-
-	give = NULL;
-	numsounds = 0;
-
-	// more than one item can be given
-	while( ( give = G_Find( give, FOFS( targetname ), self->target ) ) != NULL ) {
-		// sanity
-		item = give->item;
-		if( !item ) {
-			continue;
-		}
-
-		if( !( item->flags & ITFLAG_PICKABLE ) ) {
-			continue;
-		}
-
-		if( aclient ) {
-			prev_pickup = aclient->ps.stats[STAT_PICKUP_ITEM];
-		}
-		pickup_sound = item->pickup_sound;
-
-		// disable pickup sound, we'll play it later
-		attenuation = give->attenuation;
-		give->attenuation = 0;
-
-		Touch_Item( give, activator, NULL, 0 );
-
-		if( give->r.inuse ) {
-			give->nextThink = 0;
-			give->think = 0;
-			give->attenuation = attenuation;
-			GClip_UnlinkEntity( give );
-		}
-
-		// a hacky way to check for successful item pickup
-		if( aclient && aclient->ps.stats[STAT_PICKUP_ITEM] == item->tag && prev_pickup != item->tag ) {
-			prev_pickup = item->tag;
-
-			// see if we don't know this pickup sound yet
-			if( pickup_sound ) {
-				for( i = 0; i < numsounds; i++ ) {
-					if( !Q_stricmp( sounds[i]->pickup_sound, pickup_sound ) ) {
-						break;
-					}
-				}
-
-				if( i == numsounds && numsounds < MAX_GIVE_SOUNDS ) {
-					sounds[numsounds++] = item;
-				}
-			}
-		}
-	}
-
-	// play unique pickup sounds
-	for( i = 0; i < numsounds; i++ ) {
-		Touch_ItemSound( activator, sounds[i] );
-	}
-}
-
-void SP_target_give( edict_t *self ) {
-	self->r.svflags |= SVF_NOCLIENT;
-	self->use = target_give_use;
 }
 
 

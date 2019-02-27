@@ -198,32 +198,6 @@ void SP_path_corner( edict_t *self ) {
 	GClip_LinkEntity( self );
 }
 
-//QUAKED info_null (0 .5 0) (-8 -8 -8) (8 8 8)
-//Used as a positional target for light entities to create a spotlight effect. removed during gameplay.
-//-------- KEYS --------
-//targetname : must match the target key of entity that uses this for pointing.
-//-------- NOTES --------
-//A target_position can be used instead of this but was kept in for legacy purposes.
-void SP_info_null( edict_t *self ) {
-	G_FreeEdict( self );
-}
-
-
-//QUAKED info_notnull (0 .5 0) (-8 -8 -8) (8 8 8)
-//Used as a positional target for entities that can use directional pointing. Kept during gameplay.
-//-------- KEYS --------
-//targetname : must match the target key of entity that uses this for pointing.
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jaltodo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- NOTES --------
-//A target_position can be used instead of this but was kept in for legacy purposes.
-void SP_info_notnull( edict_t *self ) {
-	VectorCopy( self->s.origin, self->r.absmin );
-	VectorCopy( self->s.origin, self->r.absmax );
-}
-
 #define START_OFF   64
 
 //========================================================
@@ -231,9 +205,6 @@ void SP_info_notnull( edict_t *self ) {
 //	FUNC_*
 //
 //========================================================
-
-//QUAKED func_group (0 0 0) ?
-//Used to group brushes together just for editor convenience.
 
 //===========================================================
 

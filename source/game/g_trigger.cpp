@@ -180,25 +180,6 @@ void SP_trigger_once( edict_t *ent ) {
 	SP_trigger_multiple( ent );
 }
 
-//QUAKED trigger_relay (.5 .5 .5) ? (-8 -8 -8) (8 8 8)
-//This fixed size trigger cannot be touched, it can only be fired by other events.
-//-------- KEYS --------
-//target : this points to the entity to activate.
-//targetname : activating trigger points to this.
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jaltodo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- NOTES --------
-//Trigger_relay is a tool for use in entities meccanos. It's of no use by itself, and can only be used as an intermediary between events. Wait key will be ignored.
-static void trigger_relay_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	G_UseTargets( self, activator );
-}
-
-void SP_trigger_relay( edict_t *self ) {
-	self->use = trigger_relay_use;
-}
-
 //==============================================================================
 //
 //trigger_always

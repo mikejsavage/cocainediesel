@@ -49,7 +49,7 @@ static const modelFormatDescr_t mod_supportedformats[] =
 	{ IQM_MAGIC, sizeof( IQM_MAGIC ), NULL, MOD_MAX_LODS, ( const modelLoader_t )Mod_LoadSkeletalModel },
 
 	// Q3-alike .bsp models
-	{ ( const char * ) &COMPRESSED_BSP_MAGIC, sizeof( COMPRESSED_BSP_MAGIC ), NULL, 0, ( const modelLoader_t )Mod_LoadCompressedBSP },
+	{ ( const char * ) COMPRESSED_BSP_MAGIC, sizeof( COMPRESSED_BSP_MAGIC ), NULL, 0, ( const modelLoader_t )Mod_LoadCompressedBSP },
 	{ "*", 4, q3BSPFormats, 0, ( const modelLoader_t )Mod_LoadQ3BrushModel },
 
 	// trailing NULL

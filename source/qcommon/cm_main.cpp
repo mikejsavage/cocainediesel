@@ -36,7 +36,7 @@ void CM_LoadCompressedBSP( cmodel_state_t *cms, void *parent, void *compressed, 
 static const modelFormatDescr_t cm_supportedformats[] =
 {
 	// Q3-alike .bsp models
-	{ ( const char * ) &COMPRESSED_BSP_MAGIC, sizeof( COMPRESSED_BSP_MAGIC ), NULL, 0, ( const modelLoader_t )CM_LoadCompressedBSP },
+	{ ( const char * ) COMPRESSED_BSP_MAGIC, sizeof( COMPRESSED_BSP_MAGIC ), NULL, 0, ( const modelLoader_t )CM_LoadCompressedBSP },
 	{ "*", 4, q3BSPFormats, 0, ( const modelLoader_t )CM_LoadQ3BrushModel },
 
 	// trailing NULL

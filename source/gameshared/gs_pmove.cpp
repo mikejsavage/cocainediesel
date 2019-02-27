@@ -32,7 +32,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define PM_DASHJUMP_TIMEDELAY 1000 // delay in milliseconds
 #define PM_WALLJUMP_TIMEDELAY   1300
-#define PM_WALLJUMP_FAILED_TIMEDELAY    700
 #define PM_SPECIAL_CROUCH_INHIBIT 400
 #define PM_AIRCONTROL_BOUNCE_DELAY 200
 #define PM_OVERBOUNCE       1.01f

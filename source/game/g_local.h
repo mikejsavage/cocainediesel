@@ -877,8 +877,6 @@ typedef struct {
 	unsigned int eventsCurrent;
 	unsigned int eventsHead;
 
-	int64_t next_drown_time;
-	int drowningDamage;
 	int old_waterlevel;
 	int old_watertype;
 
@@ -1089,7 +1087,6 @@ struct edict_s {
 	const char *message;
 
 	int mass;
-	int64_t air_finished;
 	float gravity;              // per entity gravity multiplier (1.0 is normal) // use for lowgrav artifact, flares
 
 	edict_t *goalentity;

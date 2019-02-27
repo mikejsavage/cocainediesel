@@ -418,7 +418,6 @@ void G_GhostClient( edict_t *ent ) {
 	memset( &ent->r.client->resp.snap, 0, sizeof( ent->r.client->resp.snap ) );
 	memset( &ent->r.client->resp.chase, 0, sizeof( ent->r.client->resp.chase ) );
 	memset( &ent->r.client->resp.awardInfo, 0, sizeof( ent->r.client->resp.awardInfo ) );
-	ent->r.client->resp.next_drown_time = 0;
 	ent->r.client->resp.old_waterlevel = 0;
 	ent->r.client->resp.old_watertype = 0;
 
@@ -499,7 +498,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->viewheight = playerbox_stand_viewheight;
 	self->r.inuse = true;
 	self->mass = PLAYER_MASS;
-	self->air_finished = level.time + ( 12 * 1000 );
 	self->r.clipmask = MASK_PLAYERSOLID;
 	self->waterlevel = 0;
 	self->watertype = 0;

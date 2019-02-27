@@ -216,7 +216,6 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 	int watertype, old_watertype;
 
 	if( ent->movetype == MOVETYPE_NOCLIP ) {
-		ent->air_finished = level.time + ( 12 * 1000 ); // don't need air
 		return;
 	}
 
@@ -258,61 +257,10 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 	}
 
 	//
-	// check for head just coming out of water
-	//
-	if( old_waterlevel == 3 && waterlevel != 3 ) {
-		if( ent->air_finished < level.time ) { // gasp for air
-			                                   // wsw : jal : todo : better variations of gasp sounds
-			G_AddEvent( ent, EV_SEXEDSOUND, 1, true );
-		} else if( ent->air_finished < level.time + 11000 ) {   // just break surface
-			                                                    // wsw : jal : todo : better variations of gasp sounds
-			G_AddEvent( ent, EV_SEXEDSOUND, 2, true );
-		}
-	}
-
-	//
-	// check for drowning
-	//
-	if( waterlevel == 3 ) {
-		// if out of air, start drowning
-		if( ent->air_finished < level.time ) { // drown!
-			if( ent->r.client->resp.next_drown_time < level.time && !G_IsDead( ent ) ) {
-				ent->r.client->resp.next_drown_time = level.time + 1000;
-
-				// take more damage the longer underwater
-				ent->r.client->resp.drowningDamage += 2;
-				if( ent->r.client->resp.drowningDamage > 15 ) {
-					ent->r.client->resp.drowningDamage = 15;
-				}
-
-				// wsw : jal : todo : better variations of gasp sounds
-				// play a gurp sound instead of a normal pain sound
-				if( HEALTH_TO_INT( ent->health ) - ent->r.client->resp.drowningDamage <= 0 ) {
-					G_AddEvent( ent, EV_SEXEDSOUND, 2, true );
-				} else {
-					G_AddEvent( ent, EV_SEXEDSOUND, 1, true );
-				}
-				ent->pain_debounce_time = level.time;
-
-				G_Damage( ent, world, world, vec3_origin, vec3_origin, ent->s.origin, ent->r.client->resp.drowningDamage, 0, 0, MOD_WATER );
-			}
-		}
-	} else {
-		ent->air_finished = level.time + 12000;
-		ent->r.client->resp.drowningDamage = 2;
-	}
-
-	//
 	// check for sizzle damage
 	//
 	if( waterlevel && ( ent->watertype & ( CONTENTS_LAVA | CONTENTS_SLIME ) ) ) {
 		if( ent->watertype & CONTENTS_LAVA ) {
-			// wsw: Medar: We don't have the sounds yet and this seems to overwrite the normal pain sounds
-			//if( !G_IsDead(ent) && ent->pain_debounce_time <= level.time )
-			//{
-			//	G_Sound( ent, CHAN_BODY, trap_SoundIndex(va(S_PLAYER_BURN_1_to_2, (rand()&1)+1)), 1, ATTN_NORM );
-			//	ent->pain_debounce_time = level.time + 1000;
-			//}
 			G_Damage( ent, world, world, vec3_origin, vec3_origin, ent->s.origin,
 					  ( 30 * waterlevel ) * game.snapFrameTime / 1000.0f, 0, 0, MOD_LAVA );
 		}

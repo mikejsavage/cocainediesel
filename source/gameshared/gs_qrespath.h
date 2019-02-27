@@ -217,8 +217,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define S_PLAYER_PAINS          "*pain%i"                    // player pain (percent)
 #define S_PLAYER_DEATH          "*death"
 
-#define S_PLAYER_DROWN          "*drown"                 // player drown
-#define S_PLAYER_GASP           "*gasp"                      // player gasp
 #define S_PLAYER_BURN_1_to_2        "*burn%i"                    // player dash
 
 // PLAYERS FALL MISSING

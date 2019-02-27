@@ -947,14 +947,6 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 			CG_PModel_AddAnimation( ent->number, 0, TORSO_WEAPON_SWITCHOUT, 0, EVENT_CHANNEL );
 			break;
 
-		case EV_SEXEDSOUND:
-			if( parm == 2 ) {
-				CG_SexedSound( ent->number, CHAN_AUTO, S_PLAYER_GASP, cg_volume_players->value, ent->attenuation );
-			} else if( parm == 1 ) {
-				CG_SexedSound( ent->number, CHAN_AUTO, S_PLAYER_DROWN, cg_volume_players->value, ent->attenuation );
-			}
-			break;
-
 		case EV_PAIN:
 			CG_Event_Pain( ent, parm );
 			break;

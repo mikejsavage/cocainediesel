@@ -25,7 +25,6 @@ static const char *cg_defaultSexedSounds[] =
 	"*death", //"*death2", "*death3", "*death4",
 	"*fall_0", "*fall_1", "*fall_2",
 	"*falldeath",
-	"*gasp", "*drown",
 	"*jump_1", "*jump_2",
 	"*pain25", "*pain50", "*pain75", "*pain100",
 	"*wj_1", "*wj_2",

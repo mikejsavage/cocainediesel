@@ -372,16 +372,3 @@ typedef struct {
 	int rowsize;
 	unsigned char data[1];
 } dvis_t;
-
-typedef struct {
-	unsigned char ambient[3];
-	unsigned char diffuse[3];
-	unsigned char direction[2];
-} dgridlight_t;
-
-typedef struct {
-	unsigned char ambient[MAX_LIGHTMAPS][3];
-	unsigned char diffuse[MAX_LIGHTMAPS][3];
-	unsigned char styles[MAX_LIGHTMAPS];
-	unsigned char direction[2];
-} rdgridlight_t;

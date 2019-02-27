@@ -701,7 +701,6 @@ void SP_target_position( edict_t *self );
 void SP_target_print( edict_t *self );
 void SP_target_delay( edict_t *ent );
 void SP_target_teleporter( edict_t *self );
-void SP_target_kill( edict_t *self );
 
 //
 // g_svcmds.c

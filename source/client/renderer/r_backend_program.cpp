@@ -268,11 +268,6 @@ void RB_GetShaderpassColor( const shaderpass_t *pass, byte_vec4_t rgba_, float *
 			rgba[1] = 255 - rb.entityColor[1];
 			rgba[2] = 255 - rb.entityColor[2];
 			break;
-		case RGB_GEN_ENVIRONMENT:
-			rgba[0] = mapConfig.environmentColor[0];
-			rgba[1] = mapConfig.environmentColor[1];
-			rgba[2] = mapConfig.environmentColor[2];
-			break;
 		default:
 			break;
 	}

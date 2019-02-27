@@ -152,10 +152,6 @@ typedef struct mbrushmodel_s {
 
 	/*unsigned*/ int numareas;
 
-	vec3_t gridSize;
-	vec3_t gridMins;
-	int gridBounds[4];
-
 	unsigned int numDrawSurfaces;
 	drawSurfaceBSP_t *drawSurfaces;
 

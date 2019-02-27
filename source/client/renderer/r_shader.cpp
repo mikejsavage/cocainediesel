@@ -2050,27 +2050,6 @@ create_default:
 					pass->images[0] = Shader_FindImage( s, longname, IT_SPECIAL | IT_SRGB );
 				}
 				break;
-			case SHADER_TYPE_OPAQUE_ENV:
-				// pad to 4 floats
-				data = R_Malloc( ALIGN( sizeof( shaderpass_t ), 16 ) + 4 * sizeof( float ) + shortname_length + 1 );
-
-				s->vattribs = VATTRIB_POSITION_BIT;
-				s->sort = SHADER_SORT_OPAQUE;
-				s->flags = SHADER_CULL_FRONT | SHADER_DEPTHWRITE;
-				s->numpasses = 1;
-				s->passes = ( shaderpass_t * )( data );
-				s->passes[0].rgbgen.args = ( float * )( (uint8_t *)data + ALIGN( sizeof( shaderpass_t ), 16 ) );
-				s->name = ( char * )( s->passes[0].rgbgen.args + 4 );
-				strcpy( s->name, shortname );
-
-				pass = &s->passes[0];
-				pass->flags = GLSTATE_DEPTHWRITE;
-				pass->rgbgen.type = RGB_GEN_ENVIRONMENT;
-				VectorClear( pass->rgbgen.args );
-				pass->alphagen.type = ALPHA_GEN_IDENTITY;
-				pass->tcgen = TC_GEN_NONE;
-				pass->images[0] = rsh.whiteTexture;
-				break;
 			default:
 				break;
 		}

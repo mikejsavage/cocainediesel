@@ -500,7 +500,6 @@ static void R_InitVolatileAssets( void ) {
         glGenVertexArrays( 1, &vao );
         glBindVertexArray( vao );
 
-	rsh.envShader = R_LoadShader( "$environment", SHADER_TYPE_OPAQUE_ENV, true, NULL );
 	rsh.whiteShader = R_LoadShader( "$whiteimage", SHADER_TYPE_2D, true, NULL );
 
 	if( !rsh.nullVBO ) {

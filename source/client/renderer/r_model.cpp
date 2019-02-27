@@ -31,9 +31,6 @@ typedef struct {
 	msurface_t *surf;
 } msortedSurface_t;
 
-static void R_InitMapConfig( const char *model );
-static void R_FinishMapConfig( const model_t *mod );
-
 static uint8_t mod_novis[MAX_MAP_LEAFS / 8];
 
 #define MAX_MOD_KNOWN   512 * MOD_MAX_LODS
@@ -42,7 +39,6 @@ static int mod_numknown;
 static int modfilelen;
 static bool mod_isworldmodel;
 model_t *r_prevworldmodel;
-static mapconfig_t *mod_mapConfigs;
 
 static mempool_t *mod_mempool;
 
@@ -699,7 +695,6 @@ void R_InitModels( void ) {
 	memset( mod_novis, 0xff, sizeof( mod_novis ) );
 	mod_isworldmodel = false;
 	r_prevworldmodel = NULL;
-	mod_mapConfigs = ( mapconfig_t * ) R_MallocExt( mod_mempool, sizeof( *mod_mapConfigs ) * MAX_MOD_KNOWN, 0, 1 );
 }
 
 /*
@@ -904,21 +899,11 @@ model_t *Mod_ForName( const char *name, bool crash ) {
 		return NULL;
 	}
 
-	if( mod_isworldmodel ) {
-		// we only init map config when loading the map from disk
-		R_InitMapConfig( name );
-	}
-
 	descr->loader( mod, NULL, buf, bspFormat );
 	R_FreeFile( buf );
 
 	if( mod->type == mod_bad ) {
 		return NULL;
-	}
-
-	if( mod_isworldmodel ) {
-		// we only init map config when loading the map from disk
-		R_FinishMapConfig( mod );
 	}
 
 	// do some common things
@@ -995,30 +980,6 @@ static void R_TouchModel( model_t *mod ) {
 //=============================================================================
 
 /*
-* R_InitMapConfig
-*
-* Clears map config before loading the map from disk. NOT called when the map
-* is reloaded from model cache.
-*/
-static void R_InitMapConfig( const char *model ) {
-	memset( &mapConfig, 0, sizeof( mapConfig ) );
-}
-
-/*
-* R_FinishMapConfig
-*
-* Called after loading the map from disk.
-*/
-static void R_FinishMapConfig( const model_t *mod ) {
-	// ambient lighting
-	ColorNormalize( mapConfig.ambient,  mapConfig.ambient );
-
-	mod_mapConfigs[mod - mod_known] = mapConfig;
-}
-
-//=============================================================================
-
-/*
 * R_RegisterWorldModel
 *
 * Specifies the model that will be used as the world
@@ -1038,9 +999,6 @@ void R_RegisterWorldModel( const char *model ) {
 	if( !rsh.worldModel ) {
 		return;
 	}
-
-	// FIXME: this is ugly...
-	mapConfig = mod_mapConfigs[rsh.worldModel - mod_known];
 
 	R_TouchModel( rsh.worldModel );
 	rsh.worldBrushModel = ( mbrushmodel_t * )rsh.worldModel->extradata;

@@ -908,154 +908,18 @@ static void Mod_LoadVisibility( const lump_t *l ) {
 }
 
 /*
-* Mod_LoadEntities
-*/
-static void Mod_LoadEntities( const lump_t *l, vec3_t gridSize, vec3_t ambient, vec3_t outline ) {
-	int n;
-	char *data;
-	bool isworld;
-	float gridsizef[3] = { 0, 0, 0 }, colorf[3] = { 0, 0, 0 }, originf[3], ambientf = 0;
-	char key[MAX_KEY], value[MAX_VALUE], *token;
-	float celcolorf[3] = { 0, 0, 0 };
-
-	assert( gridSize );
-	assert( ambient );
-	assert( outline );
-
-	VectorClear( gridSize );
-	VectorClear( ambient );
-	VectorClear( outline );
-
-	data = (char *)mod_base + l->fileofs;
-	if( !data[0] ) {
-		return;
-	}
-
-	loadbmodel->entityStringLen = l->filelen;
-	loadbmodel->entityString = ( char * )Mod_Malloc( loadmodel, l->filelen + 1 );
-	memcpy( loadbmodel->entityString, data, l->filelen );
-	loadbmodel->entityString[l->filelen] = '\0';
-
-	for(; ( token = COM_Parse( &data ) ) && token[0] == '{'; ) {
-		isworld = false;
-		VectorClear( colorf );
-
-		while( 1 ) {
-			token = COM_Parse( &data );
-			if( !token[0] ) {
-				break; // error
-			}
-			if( token[0] == '}' ) {
-				break; // end of entity
-
-			}
-			Q_strncpyz( key, token, sizeof( key ) );
-			Q_trim( key );
-
-			token = COM_Parse( &data );
-			if( !token[0] ) {
-				break; // error
-
-			}
-			Q_strncpyz( value, token, sizeof( value ) );
-
-			// now that we have the key pair worked out...
-			if( !strcmp( key, "classname" ) ) {
-				if( !strcmp( value, "worldspawn" ) ) {
-					isworld = true;
-				}
-			} else if( !strcmp( key, "gridsize" ) ) {
-				int gridsizei[3] = { 0, 0, 0 };
-				sscanf( value, "%4i %4i %4i", &gridsizei[0], &gridsizei[1], &gridsizei[2] );
-				VectorCopy( gridsizei, gridsizef );
-			} else if( !strcmp( key, "_ambient" ) || ( !strcmp( key, "ambient" ) && ambientf == 0.0f ) ) {
-				n = sscanf( value, "%8f", &ambientf );
-				if( n != 1 ) {
-					int ia = 0;
-					sscanf( value, "%3i", &ia );
-					ambientf = ia;
-				}
-			} else if( !strcmp( key, "_color" ) ) {
-				n = sscanf( value, "%8f %8f %8f", &colorf[0], &colorf[1], &colorf[2] );
-				if( n != 3 ) {
-					int colori[3] = { 0, 0, 0 };
-					sscanf( value, "%3i %3i %3i", &colori[0], &colori[1], &colori[2] );
-					VectorCopy( colori, colorf );
-				}
-			} else if( !strcmp( key, "color" ) ) {
-				n = sscanf( value, "%8f %8f %8f", &colorf[0], &colorf[1], &colorf[2] );
-				if( n != 3 ) {
-					int colori[3] = { 0, 0, 0 };
-					sscanf( value, "%3i %3i %3i", &colori[0], &colori[1], &colori[2] );
-					VectorCopy( colori, colorf );
-				}
-			} else if( !strcmp( key, "origin" ) ) {
-				n = sscanf( value, "%8f %8f %8f", &originf[0], &originf[1], &originf[2] );
-			} else if( !strcmp( key, "_outlinecolor" ) ) {
-				n = sscanf( value, "%8f %8f %8f", &celcolorf[0], &celcolorf[1], &celcolorf[2] );
-				if( n != 3 ) {
-					int celcolori[3] = { 0, 0, 0 };
-					sscanf( value, "%3i %3i %3i", &celcolori[0], &celcolori[1], &celcolori[2] );
-					VectorCopy( celcolori, celcolorf );
-				}
-			}
-		}
-
-		if( isworld ) {
-			VectorCopy( gridsizef, gridSize );
-
-			if( VectorCompare( colorf, vec3_origin ) ) {
-				VectorSet( colorf, 1.0, 1.0, 1.0 );
-			}
-			VectorScale( colorf, ambientf, ambient );
-
-			if( max( celcolorf[0], max( celcolorf[1], celcolorf[2] ) ) > 1.0f ) {
-				VectorScale( celcolorf, 1.0f / 255.0f, celcolorf );   // [0..1] RGB -> [0..255] RGB
-			}
-			VectorCopy( celcolorf, outline );
-		}
-	}
-}
-
-/*
 * Mod_Finish
 */
-static void Mod_Finish( vec3_t gridSize, vec3_t ambient, vec3_t outline ) {
-	unsigned int i, j;
+static void Mod_Finish() {
 	msurface_t *surf;
 	rdface_t *in;
 
-	// remembe the BSP format just in case
+	// remember the BSP format just in case
 	loadbmodel->format = mod_bspFormat;
-
-	// set up lightgrid
-	if( gridSize[0] < 1 || gridSize[1] < 1 || gridSize[2] < 1 ) {
-		VectorSet( loadbmodel->gridSize, 64, 64, 128 );
-	} else {
-		VectorCopy( gridSize, loadbmodel->gridSize );
-	}
-
-	for( j = 0; j < 3; j++ ) {
-		vec3_t maxs;
-
-		loadbmodel->gridMins[j] = loadbmodel->gridSize[j] * ceil( ( loadbmodel->submodels[0].mins[j] + 1 ) / loadbmodel->gridSize[j] );
-		maxs[j] = loadbmodel->gridSize[j] * floor( ( loadbmodel->submodels[0].maxs[j] - 1 ) / loadbmodel->gridSize[j] );
-		loadbmodel->gridBounds[j] = ( maxs[j] - loadbmodel->gridMins[j] ) / loadbmodel->gridSize[j];
-		loadbmodel->gridBounds[j] = max( loadbmodel->gridBounds[j], 0 ) + 1;
-	}
-	loadbmodel->gridBounds[3] = loadbmodel->gridBounds[1] * loadbmodel->gridBounds[0];
-
-	// ambient lighting
-	VectorScale( ambient, 1.0f / 255.0f, mapConfig.ambient );
-
-	// outline color
-	for( i = 0; i < 3; i++ )
-		mapConfig.outlineColor[i] = (uint8_t)( bound( 0, outline[i] * 255.0f, 255 ) );
-	mapConfig.outlineColor[3] = 255;
 
 	in = loadmodel_dsurfaces;
 	surf = loadbmodel->surfaces;
-	for( i = 0; i < loadbmodel->numsurfaces; i++, in++, surf++ ) {
+	for( unsigned int i = 0; i < loadbmodel->numsurfaces; i++, in++, surf++ ) {
 		Mod_CreateMeshForSurface( in, surf, loadmodel_patchgrouprefs[i] );
 	}
 
@@ -1090,7 +954,6 @@ static void Mod_Finish( vec3_t gridSize, vec3_t ambient, vec3_t outline ) {
 */
 void Mod_LoadQ3BrushModel( model_t *mod, const model_t *parent, void *buffer, bspFormatDesc_t *format ) {
 	dheader_t *header;
-	vec3_t gridSize, ambient, outline;
 
 	mod->type = mod_brush;
 	mod->registrationSequence = rsh.registrationSequence;
@@ -1112,7 +975,6 @@ void Mod_LoadQ3BrushModel( model_t *mod, const model_t *parent, void *buffer, bs
 	// load into heap
 	Mod_LoadSubmodels( &header->lumps[LUMP_MODELS] );
 	Mod_LoadVisibility( &header->lumps[LUMP_VISIBILITY] );
-	Mod_LoadEntities( &header->lumps[LUMP_ENTITIES], gridSize, ambient, outline );
 	Mod_LoadShaderrefs( &header->lumps[LUMP_SHADERREFS] );
 	Mod_PreloadFaces( &header->lumps[LUMP_FACES] );
 	Mod_LoadPlanes( &header->lumps[LUMP_PLANES] );
@@ -1127,5 +989,5 @@ void Mod_LoadQ3BrushModel( model_t *mod, const model_t *parent, void *buffer, bs
 	Mod_LoadLeafs( &header->lumps[LUMP_LEAFS], &header->lumps[LUMP_LEAFFACES] );
 	Mod_LoadNodes( &header->lumps[LUMP_NODES] );
 
-	Mod_Finish( gridSize, ambient, outline );
+	Mod_Finish();
 }

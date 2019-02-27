@@ -191,7 +191,6 @@ typedef struct {
 
 	refScreenTexSet_t st, stf, st2D;
 
-	shader_t *envShader;
 	shader_t *whiteShader;
 } r_shared_t;
 
@@ -653,11 +652,4 @@ void R_DrawSky( const refdef_t * rd );
 
 //====================================================================
 
-typedef struct {
-	float ambient[3];
-	byte_vec4_t outlineColor;
-	byte_vec4_t environmentColor;
-} mapconfig_t;
-
-extern mapconfig_t mapConfig;
 extern refinst_t rn;

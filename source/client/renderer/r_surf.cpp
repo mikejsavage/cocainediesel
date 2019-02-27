@@ -512,7 +512,7 @@ void R_DrawWorldNode( void ) {
 	} else {
 		rsc.worldent->outlineHeight = 0;
 	}
-	Vector4Copy( mapConfig.outlineColor, rsc.worldent->outlineColor );
+	Vector4Copy( colorBlack, rsc.worldent->outlineColor );
 
 	// BEGIN t_world_node
 	if( speeds ) {

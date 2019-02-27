@@ -374,10 +374,12 @@ int GS_ThinkPlayerWeapon( player_state_t *playerState, int buttons, int msecs, i
 			gs.api.PredictedEvent( playerState->POVnum, EV_FIREWEAPON, parm );
 		}
 
-		// waste ammo
 		if( !GS_InfiniteAmmo() && playerState->stats[STAT_WEAPON] != WEAP_GUNBLADE ) {
 			if( firedef->ammo_id != AMMO_NONE && firedef->usage_count ) {
 				playerState->inventory[firedef->ammo_id] -= firedef->usage_count;
+				if( playerState->inventory[firedef->ammo_id] == 0 ) {
+					gs.api.PredictedEvent( playerState->POVnum, EV_NOAMMOCLICK, 0 );
+				}
 			}
 		}
 	}

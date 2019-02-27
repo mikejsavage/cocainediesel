@@ -74,14 +74,14 @@ Vec3 getMiddle( Entity @ent ) {
 }
 
 void bombModelCreate() {
-	@bombModel = @G_SpawnEntity( "dynamite" );
+	@bombModel = @G_SpawnEntity( "bomb" );
 	bombModel.type = ET_GENERIC;
 	bombModel.setSize( BOMB_MINS, BOMB_MAXS );
 	bombModel.solid = SOLID_TRIGGER;
 	bombModel.light = BOMB_LIGHT_INACTIVE;
 	bombModel.modelindex = modelBombModel;
-	@bombModel.touch = dynamite_touch;
-	@bombModel.stop = dynamite_stop;
+	@bombModel.touch = bomb_touch;
+	@bombModel.stop = bomb_stop;
 }
 
 void bombInit() {
@@ -534,7 +534,7 @@ void bombLookAt( Entity @ent ) {
 
 // ent stuff
 
-void dynamite_touch( Entity @ent, Entity @other, const Vec3 planeNormal, int surfFlags ) {
+void bomb_touch( Entity @ent, Entity @other, const Vec3 planeNormal, int surfFlags ) {
 	if( match.getState() != MATCH_STATE_PLAYTIME ) {
 		return;
 	}
@@ -564,7 +564,7 @@ void dynamite_touch( Entity @ent, Entity @other, const Vec3 planeNormal, int sur
 	bombSetCarrier( @other, false );
 }
 
-void dynamite_stop( Entity @ent ) {
+void bomb_stop( Entity @ent ) {
 	if( bombState == BombState_Dropped ) {
 		bombModel.effects = EF_ROTATE_AND_BOB;
 

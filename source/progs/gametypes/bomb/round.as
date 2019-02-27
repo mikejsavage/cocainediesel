@@ -394,7 +394,7 @@ void roundThink() {
 
 	if( roundState == RoundState_Round ) {
 		// monitor the bomb's health
-		if( @bombModel == null || bombModel.classname != "dynamite" ) {
+		if( @bombModel == null || bombModel.classname != "bomb" ) {
 			bombModelCreate();
 
 			roundWonBy( defendingTeam );

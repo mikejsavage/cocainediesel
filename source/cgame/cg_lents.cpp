@@ -430,12 +430,7 @@ void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, int team, float rad
 	VecToAngles( dir, angles );
 
 	vec4_t color;
-	if( team == TEAM_ALPHA || team == TEAM_BETA ) {
-		CG_TeamColor( team, color );
-	}
-	else {
-		Vector4Set( color, 1, 1, 1, 1 );
-	}
+	CG_TeamColor( team, color );
 
 	le = CG_AllocModel( LE_ALPHA_FADE, pos, angles, 4,
 						color[0], color[1], color[2], color[3],

@@ -1,0 +1,29 @@
+if %DOWNLOAD_IN_PROGRESS
+	setAlign #LEFT, #BOTTOM
+	setCursor #WIDTH / 2, #HEIGHT * 0.75
+	moveCursor -80 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+	setSize 160 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 28
+
+	setColor 1 0.5 0 0.5
+	drawPicBar 100, 100, "gfx/2d/progressbar"
+
+	setColor 1 0.5 0 1
+	drawPicBar %DOWNLOAD_PERCENT, 100, "gfx/2d/progressbar"
+
+	setColor 1 1 1 1
+	setFontSize %VIDHEIGHT / 50
+	moveCursor 4 * 1.333 * %VIDHEIGHT / %VIDWIDTH, -14
+
+	setAlign 1 2
+	drawString "Download progress:"
+
+	moveCursor 156 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+
+	setAlign #LEFT, #MIDDLE
+	moveCursor -11 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+	drawString "\%"
+
+	setAlign #RIGHT, #MIDDLE
+	moveCursor -1 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+	drawStringNum %DOWNLOAD_PERCENT
+endif

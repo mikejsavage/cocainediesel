@@ -1,0 +1,127 @@
+setCursor #WIDTH / 2, 0
+setAlign #CENTER, #TOP
+setColor 0, 0, 0, 0.5
+
+if %MATCH_STATE < #MATCH_STATE_PLAYTIME
+	// background
+	setSize 120 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 32
+	if %TEAM != #TEAM_SPECTATOR
+		setSize 120 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 48
+	endif
+	drawPicByName $whiteimage
+
+	moveCursor 0, 15
+	setAlign #CENTER, #MIDDLE
+	setFontSize %VIDHEIGHT / 64
+	setFontStyle bold
+	setColor 1, 1, 1, 1
+	drawString "WARMUP"
+
+	if %TEAM != #TEAM_SPECTATOR
+		moveCursor 0, 17
+		setFontSize %VIDHEIGHT / 64
+		setFontStyle bold
+
+		if %READY || %MATCH_STATE == #MATCH_STATE_COUNTDOWN
+			setColor 0.32, 0.99, 0.37, 1
+			drawString "READY"
+		endif
+
+		ifnot %READY || %MATCH_STATE == #MATCH_STATE_COUNTDOWN
+			setColor 1, 0.23, 0.26, 1
+			drawString "NOT READY"
+		endif
+	endif
+
+	setFontStyle normal
+endif
+
+if %MATCH_STATE == #MATCH_STATE_PLAYTIME
+	// background
+	setSize 120 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 32
+	if %ROUND_TYPE != #RoundType_Normal
+		setSize 120 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 48
+	endif
+	drawPicByName $whiteimage
+
+	// clock
+	setColor 1, 1, 1, 1
+	setFontSize %VIDHEIGHT / 32
+	moveCursor 0, 3
+	drawClock
+
+	// scores
+	setFontStyle bold
+
+	if %TEAM_ALPHA_SCORE != #NOTSET
+		moveCursor -40 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+
+		setColorToTeamColor #TEAM_ALPHA
+		drawStringNum %TEAM_ALPHA_SCORE
+
+		moveCursor 40 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+	endif
+
+	if %TEAM_BETA_SCORE != #NOTSET
+		moveCursor 40 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+
+		setColorToTeamColor #TEAM_BETA
+		drawStringNum %TEAM_BETA_SCORE
+
+		moveCursor -40 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+	endif
+
+	// match point/overtime
+	if %ROUND_TYPE != #RoundType_Normal
+		moveCursor 0, 26
+		setFontSize %VIDHEIGHT / 64
+		setFontStyle bold
+		setColor 1, 1, 1, 1
+		if %ROUND_TYPE == #RoundType_MatchPoint
+			drawString "MATCH POINT"
+		endif
+		if %ROUND_TYPE == #RoundType_Overtime
+			drawString "OVERTIME"
+		endif
+		if %ROUND_TYPE == #RoundType_OvertimeMatchPoint
+			drawString "OT MATCH POINT"
+		endif
+	endif
+
+	// alive players
+	setCursor #WIDTH / 2, 7
+	setFontSize %VIDHEIGHT / 32
+	setFontStyle normal
+
+	setSpecialFontFamily "Silhouette"
+
+	if %ALPHA_PLAYERS_TOTAL
+		setAlign #RIGHT, #TOP
+		moveCursor -70 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+
+		moveCursor 1, 1
+		setColor 0.2, 0.2, 0.2, 1
+		drawStringRepeatConfigString "?" %ALPHA_PLAYERS_TOTAL
+		moveCursor -1 -1
+
+		setColorToTeamColor #TEAM_ALPHA
+		drawStringRepeatConfigString "?" %ALPHA_PLAYERS_ALIVE
+
+		moveCursor 70 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+	endif
+
+	if %BETA_PLAYERS_TOTAL
+		setAlign #LEFT, #TOP
+		moveCursor 70 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+
+		moveCursor 1, 1
+		setColor 0.2, 0.2, 0.2, 1
+		drawStringRepeatConfigString "?" %BETA_PLAYERS_TOTAL
+		moveCursor -1 -1
+
+		setColorToTeamColor #TEAM_BETA
+		drawStringRepeatConfigString "?" %BETA_PLAYERS_ALIVE
+	endif
+
+	setFontFamily con_fontSystem
+endif

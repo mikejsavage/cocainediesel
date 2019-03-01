@@ -1,0 +1,13 @@
+if %CHASING != #NOTSET
+	setAlign 1 3
+	setCursor 8 * 1.333 * %VIDHEIGHT / %VIDWIDTH, #HEIGHT - 78
+	setColor 1 1 1 1
+	setSize 24 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 24
+	drawPicByName "gfx/hud/cam"
+
+	moveCursor 32 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 2
+	setFontSize %VIDHEIGHT / 25
+
+	setColor 1 1 1 1
+	drawPlayerName %CHASING
+endif

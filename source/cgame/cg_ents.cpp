@@ -1348,8 +1348,8 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 }
 
 void CG_LerpSpikes( centity_t *cent ) {
-	constexpr float retracted = -40;
-	constexpr float primed = -32;
+	constexpr float retracted = -48;
+	constexpr float primed = -36;
 	constexpr float extended = 0;
 
 	float position = retracted;

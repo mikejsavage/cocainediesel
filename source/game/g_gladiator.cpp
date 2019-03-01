@@ -19,13 +19,13 @@ static void SpikesTrigger( edict_t * self ) {
 	self->nextThink = level.time + 1000;
 }
 
-void SP_spikes( edict_t * self ) {
-	self->r.svflags &= ~SVF_NOCLIENT | SVF_PROJECTILE;
-	self->r.solid = SOLID_TRIGGER;
+void SP_spikes( edict_t * spikes ) {
+	spikes->r.svflags &= ~SVF_NOCLIENT | SVF_PROJECTILE;
+	spikes->r.solid = SOLID_TRIGGER;
 
 	vec3_t forward, right, up;
-	AngleVectors( self->s.angles, forward, right, up );
-	self->s.angles[ PITCH ] += 90;
+	AngleVectors( spikes->s.angles, forward, right, up );
+	spikes->s.angles[ PITCH ] += 90;
 	
 	vec3_t mins, maxs;
 	VectorSet( mins, 0, 0, 0 );
@@ -37,15 +37,22 @@ void SP_spikes( edict_t * self ) {
 	VectorMA( maxs, 64, right, maxs );
 
 	for( int i = 0; i < 3; i++ ) {
-		self->r.mins[ i ] = min( mins[ i ], maxs[ i ] );
-		self->r.maxs[ i ] = max( mins[ i ], maxs[ i ] );
+		spikes->r.mins[ i ] = min( mins[ i ], maxs[ i ] );
+		spikes->r.maxs[ i ] = max( mins[ i ], maxs[ i ] );
 	}
 
-	self->s.modelindex = trap_ModelIndex( "models/objects/spikes_static.md3" );
-	self->s.type = ET_SPIKES;
+	spikes->s.modelindex = trap_ModelIndex( "models/objects/spikes/spikes.md3" );
+	spikes->s.type = ET_SPIKES;
 
-	self->touch = SpikesTouched;
-	self->think = SpikesTrigger;
+	spikes->touch = SpikesTouched;
+	spikes->think = SpikesTrigger;
 
-	GClip_LinkEntity( self );
+	GClip_LinkEntity( spikes );
+
+	edict_t * base = G_Spawn();
+	base->r.svflags &= ~SVF_NOCLIENT;
+	VectorCopy( spikes->s.origin, base->s.origin );
+	VectorCopy( spikes->s.angles, base->s.angles );
+	base->s.modelindex = trap_ModelIndex( "models/objects/spikes/base.md3" );
+	GClip_LinkEntity( base );
 }

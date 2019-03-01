@@ -1255,8 +1255,8 @@ bool KillBox( edict_t *ent ) {
 
 		if( tr.ent == ENTNUM( world ) ) {
 			return telefragged; // found the world (but a player could be in there too). suicide?
-
 		}
+
 		// nail it
 		G_Damage( &game.edicts[tr.ent], ent, ent, vec3_origin, vec3_origin, ent->s.origin, 100000, 0, 0, MOD_TELEFRAG );
 		telefragged = true;

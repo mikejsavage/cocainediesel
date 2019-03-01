@@ -850,6 +850,8 @@ enum {
 
 	ET_HUD,
 
+	ET_SPIKES,
+
 	// eventual entities: types below this will get event treatment
 	ET_EVENT = EVENT_ENTITIES_START,
 	ET_SOUNDEVENT,

@@ -670,16 +670,7 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 		Matrix3_Copy( axis_identity, cent->ent.axis );
 	}
 
-	if( cent->renderfx & RF_FRAMELERP ) {
-		// step origin discretely, because the frames
-		// do the animation properly
-		vec3_t delta, move;
-
-		// FIXME: does this still work?
-		VectorSubtract( cent->current.origin2, cent->current.origin, move );
-		Matrix3_TransformVector( cent->ent.axis, move, delta );
-		VectorMA( cent->current.origin, cent->ent.backlerp, delta, cent->ent.origin );
-	} else if( ISVIEWERENTITY( cent->current.number ) || cg.view.POVent == cent->current.number ) {
+	if( ISVIEWERENTITY( cent->current.number ) || cg.view.POVent == cent->current.number ) {
 		VectorCopy( cg.predictedPlayerState.pmove.origin, cent->ent.origin );
 		VectorCopy( cent->ent.origin, cent->ent.origin2 );
 	} else {
@@ -713,19 +704,6 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 			}
 
 			VectorLerp( xorigin1, 0.5f, xorigin2, origin );
-
-
-			/*
-			// Interpolation between 2 extrapolated positions
-			if( !cent->canExtrapolatePrev )
-			    VectorMA( cent->current.origin, cg.xerpTime, cent->velocity, xorigin2 );
-			else
-			{
-			    float frac = cg.lerpfrac;
-			    clamp( frac, 0.0f, 1.0f );
-			    VectorLerp( cent->prevExtrapolatedOrigin, frac, cent->extrapolatedOrigin, xorigin2 );
-			}
-			*/
 
 			if( cent->microSmooth == 2 ) {
 				vec3_t oldsmoothorigin;
@@ -1369,6 +1347,44 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	}
 }
 
+void CG_LerpSpikes( centity_t *cent ) {
+	constexpr float retracted = -40;
+	constexpr float primed = -32;
+	constexpr float extended = 0;
+
+	float position = retracted;
+
+	if( cent->current.linearMovementTimeStamp != 0 ) {
+		int64_t delta = lerp( cg.oldFrame.serverTime, cg.lerpfrac, cg.frame.serverTime ) - cent->current.linearMovementTimeStamp;
+		if( delta > 0 ) {
+			// 0-100: jump to primed
+			// 1000-1050: fully extend
+			// 1500-2000: retract
+			if( delta < 1000 ) {
+				float t = min( 1.0f, unlerp( int64_t( 0 ), delta, int64_t( 100 ) ) );
+				position = lerp( retracted, t, primed );
+			}
+			else if( delta < 1050 ) {
+				float t = min( 1.0f, unlerp( int64_t( 1000 ), delta, int64_t( 1050 ) ) );
+				position = lerp( primed, t, extended );
+			}
+			else {
+				float t = max( 0.0f, unlerp( int64_t( 1500 ), delta, int64_t( 2000 ) ) );
+				position = lerp( extended, t, retracted );
+			}
+		}
+	}
+
+	vec3_t up;
+	AngleVectors( cent->current.angles, NULL, NULL, up );
+
+	cent->ent.backlerp = 1.0f - cg.lerpfrac;
+	AnglesToAxis( cent->current.angles, cent->ent.axis );
+	VectorMA( cent->current.origin, position, up, cent->ent.origin );
+	VectorCopy( cent->ent.origin, cent->ent.origin2 );
+	VectorCopy( cent->ent.origin, cent->ent.lightingOrigin );
+}
+
 //==========================================================================
 //		PACKET ENTITIES
 //==========================================================================
@@ -1514,6 +1530,10 @@ void CG_AddEntities( void ) {
 				CG_AddBombHudEntity( cent );
 				break;
 
+			case ET_SPIKES:
+				CG_AddGenericEnt( cent );
+				break;
+
 			default:
 				CG_Error( "CG_AddEntities: unknown entity type" );
 				break;
@@ -1595,6 +1615,10 @@ void CG_LerpEntities( void ) {
 				break;
 
 			case ET_HUD:
+				break;
+
+			case ET_SPIKES:
+				CG_LerpSpikes( cent );
 				break;
 
 			default:
@@ -1686,6 +1710,10 @@ void CG_UpdateEntities( void ) {
 				break;
 
 			case ET_HUD:
+				break;
+
+			case ET_SPIKES:
+				CG_UpdateGenericEnt( cent );
 				break;
 
 			default:

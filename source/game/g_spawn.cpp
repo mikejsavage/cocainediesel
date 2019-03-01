@@ -151,6 +151,8 @@ spawn_t spawns[] = {
 
 	{ "model", SP_model },
 
+	{ "spikes", SP_spikes },
+
 	{ NULL, NULL }
 };
 

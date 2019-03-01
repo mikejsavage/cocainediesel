@@ -142,6 +142,18 @@ inline float Q_RSqrt( float x ) {
 	return _mm_cvtss_f32( _mm_rsqrt_ss( _mm_set_ss( x ) ) );
 }
 
+template< typename T >
+T lerp( T a, float t, T b ) {
+        assert( t >= 0.0f && t <= 1.0f );
+        return a * ( 1.0f - t ) + b * t;
+}
+
+template< typename T >
+float unlerp( T lo, T x, T hi ) {
+        return float( x - lo ) / float( hi - lo );
+}
+
+
 int Q_log2( int val );
 
 #define SQRTFAST( x ) ( ( x ) * Q_RSqrt( x ) ) // jal : //The expression a * rsqrt(b) is intended as a higher performance alternative to a / sqrt(b). The two expressions are comparably accurate, but do not compute exactly the same value in every case. For example, a * rsqrt(a*a + b*b) can be just slightly greater than 1, in rare cases.

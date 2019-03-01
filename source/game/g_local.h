@@ -359,6 +359,11 @@ void SP_func_explosive( edict_t *self );
 void SP_func_static( edict_t *ent );
 
 //
+// g_gladiator
+//
+void SP_spikes( edict_t *ent );
+
+//
 // g_ascript.c
 //
 bool GT_asLoadScript( const char *gametypeName );

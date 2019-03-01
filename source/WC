@@ -1,10 +1,8 @@
 #! /bin/sh
 
-sub=.
+sub=". ../base"
 if [ "$#" -ge 1 ]; then
 	sub=$1
 fi
-find $sub \( -name "*.lua" -or -name "*.cpp" -or -name "*.h" -or -name "*.glsl" -or -name "*.as" \) \
-	! -path "*/CMakeFiles/*" \
-	| xargs wc -l
+find $sub \( -name "*.lua" -or -name "*.cpp" -or -name "*.h" -or -name "*.glsl" -or -name "*.as" \) | xargs wc -l
 

@@ -464,6 +464,10 @@ static void Shader_NoMipMaps( shader_t *shader, shaderpass_t *pass, const char *
 	r_shaderMinMipSize = 1;
 }
 
+static void Shader_NoDrawFlat( shader_t *shader, shaderpass_t *pass, const char **ptr ) {
+	shader->flags |= SHADER_NODRAWFLAT;
+}
+
 static void Shader_NoFiltering( shader_t *shader, shaderpass_t *pass, const char **ptr ) {
 	r_shaderNoFiltering = true;
 	shader->flags |= SHADER_NO_TEX_FILTERING;
@@ -725,6 +729,7 @@ static const shaderkey_t shaderkeys[] =
 {
 	{ "cull", Shader_Cull },
 	{ "nomipmaps", Shader_NoMipMaps },
+	{ "nodrawflat", Shader_NoDrawFlat },
 	{ "nofiltering", Shader_NoFiltering },
 	{ "smallestmipmapsize", Shader_SmallestMipMapSize },
 	{ "polygonoffset", Shader_PolygonOffset },

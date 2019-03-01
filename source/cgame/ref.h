@@ -28,15 +28,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // entity_state_t->renderfx flags
 #define RF_MINLIGHT             0x1       // always have some light (viewmodel)
 #define RF_FULLBRIGHT           0x2       // always draw full intensity
-#define RF_NOSHADOW             0x8
+#define RF_NOSHADOW             0x4
 
-#define RF_WEAPONMODEL          0x20     // only draw through eyes and depth hack
-#define RF_FORCENOLOD           0x80
-#define RF_NOPORTALENTS         0x100
-#define RF_ALPHAHACK            0x200   // force alpha blending on opaque passes, read alpha from entity
-#define RF_GREYSCALE            0x400
-#define RF_NODEPTHTEST          0x800
-#define RF_NOCOLORWRITE         0x1000
+#define RF_WEAPONMODEL          0x8     // only draw through eyes and depth hack
+#define RF_NOPORTALENTS         0x10
+#define RF_ALPHAHACK            0x20   // force alpha blending on opaque passes, read alpha from entity
+#define RF_GREYSCALE            0x40
+#define RF_NODEPTHTEST          0x80
+#define RF_NOCOLORWRITE         0x100
 
 // refdef flags
 #define RDF_UNDERWATER          0x1     // warp the screen as apropriate

@@ -30,17 +30,16 @@ static mempool_t *cmap_mempool;
 static cvar_t *cm_noAreas;
 cvar_t *cm_noCurves;
 
-void CM_LoadQ3BrushModel( cmodel_state_t *cms, void *parent, void *buffer, int buffer_size, const bspFormatDesc_t *format );
-void CM_LoadCompressedBSP( cmodel_state_t *cms, void *parent, void *compressed, int compressed_size, const bspFormatDesc_t *format );
+void CM_LoadQ3BrushModel( cmodel_state_t *cms, void *buffer, int buffer_size, const bspFormatDesc_t *format );
+void CM_LoadCompressedBSP( cmodel_state_t *cms, void *compressed, int compressed_size, const bspFormatDesc_t *format );
 
 static const modelFormatDescr_t cm_supportedformats[] =
 {
 	// Q3-alike .bsp models
-	{ ( const char * ) COMPRESSED_BSP_MAGIC, sizeof( COMPRESSED_BSP_MAGIC ), NULL, 0, ( const modelLoader_t )CM_LoadCompressedBSP },
-	{ "*", 4, q3BSPFormats, 0, ( const modelLoader_t )CM_LoadQ3BrushModel },
+	{ ( const char * ) COMPRESSED_BSP_MAGIC, sizeof( COMPRESSED_BSP_MAGIC ), NULL, ( const modelLoader_t )CM_LoadCompressedBSP },
+	{ "*", 4, q3BSPFormats, ( const modelLoader_t )CM_LoadQ3BrushModel },
 
-	// trailing NULL
-	{ NULL, 0, NULL, 0, NULL }
+	{ }
 };
 
 static void CM_AllocateCheckCounts( cmodel_state_t *cms );
@@ -231,7 +230,7 @@ cmodel_t *CM_LoadMap( cmodel_state_t *cms, const char *name, bool clientload, un
 		Com_Error( ERR_DROP, "CM_LoadMap: unknown fileid for %s", name );
 	}
 
-	descr->loader( cms, NULL, buf, length, bspFormat );
+	descr->loader( cms, buf, length, bspFormat );
 	FS_FreeFile( buf );
 
 	if( cms->numareas ) {

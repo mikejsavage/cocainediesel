@@ -874,7 +874,7 @@ static void CMod_LoadEntityString( cmodel_state_t *cms, lump_t *l ) {
 /*
 * CM_LoadQ3BrushModel
 */
-void CM_LoadQ3BrushModel( cmodel_state_t *cms, void *parent, void *buf, int bufsize, const bspFormatDesc_t *format ) {
+void CM_LoadQ3BrushModel( cmodel_state_t *cms, void *buf, int bufsize, const bspFormatDesc_t *format ) {
 	dheader_t header;
 
 	cms->cmap_bspFormat = format;
@@ -913,7 +913,7 @@ void CM_LoadQ3BrushModel( cmodel_state_t *cms, void *parent, void *buf, int bufs
 	}
 }
 
-void CM_LoadCompressedBSP( cmodel_state_t *cms, void *parent, void *compressed, int compressed_size, const bspFormatDesc_t *format ) {
+void CM_LoadCompressedBSP( cmodel_state_t *cms, void *compressed, int compressed_size, const bspFormatDesc_t *format ) {
 	unsigned long long const decompressed_size = ZSTD_getDecompressedSize( compressed, compressed_size );
 	if( decompressed_size == ZSTD_CONTENTSIZE_ERROR || decompressed_size == ZSTD_CONTENTSIZE_UNKNOWN ) {
 		Com_Error( ERR_DROP, "Corrupt BSP" );
@@ -929,7 +929,7 @@ void CM_LoadCompressedBSP( cmodel_state_t *cms, void *parent, void *compressed, 
 	int version;
 	memcpy( &version, ( const char * ) decompressed + 4, sizeof( version ) );
 	const bspFormatDesc_t *bsp_format = Q_FindBSPFormat( q3BSPFormats, ( const char * ) decompressed, version ); 
-	CM_LoadQ3BrushModel( cms, parent, decompressed, decompressed_size, bsp_format );
+	CM_LoadQ3BrushModel( cms, decompressed, decompressed_size, bsp_format );
 
 	Mem_Free( decompressed );
 }

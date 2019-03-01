@@ -136,7 +136,7 @@ MD3 MODELS
 /*
 * Mod_LoadAliasMD3Model
 */
-void Mod_LoadAliasMD3Model( model_t *mod, const model_t *parent, void *buffer, int buffer_size, const bspFormatDesc_t *unused ) {
+void Mod_LoadAliasMD3Model( model_t *mod, void *buffer, int buffer_size, const bspFormatDesc_t *unused ) {
 	int version, i, j, l;
 	int bufsize, numverts;
 	uint8_t *buf;
@@ -275,8 +275,6 @@ void Mod_LoadAliasMD3Model( model_t *mod, const model_t *parent, void *buffer, i
 		}
 
 		Q_strncpyz( poutmesh->name, inmesh.name, MD3_MAX_PATH );
-
-		Mod_StripLODSuffix( poutmesh->name );
 
 		poutmesh->numtris = LittleLong( inmesh.num_tris );
 		poutmesh->numskins = LittleLong( inmesh.num_skins );
@@ -685,9 +683,7 @@ void R_CacheAliasModelEntity( const entity_t *e ) {
 *
 * Returns true if the entity is added to draw list
 */
-bool R_AddAliasModelToDrawList( const entity_t *e, int lod ) {
-	int i, j;
-	const model_t *mod = lod < e->model->numlods ? e->model->lods[lod] : e->model;
+bool R_AddAliasModelToDrawList( const entity_t *e ) {
 	const maliasmodel_t *aliasmodel;
 	const maliasmesh_t *mesh;
 	float distance;
@@ -697,7 +693,7 @@ bool R_AddAliasModelToDrawList( const entity_t *e, int lod ) {
 	if( cache->mod_type != mod_alias ) {
 		return false;
 	}
-	if( !( aliasmodel = ( ( const maliasmodel_t * )mod->extradata ) ) || !aliasmodel->nummeshes ) {
+	if( !( aliasmodel = ( ( const maliasmodel_t * )e->model->extradata ) ) || !aliasmodel->nummeshes ) {
 		return false;
 	}
 
@@ -710,6 +706,7 @@ bool R_AddAliasModelToDrawList( const entity_t *e, int lod ) {
 	fakeskin.name[0] = 0;
 	fakeskin.shader = NULL;
 
+	int i;
 	for( i = 0, mesh = aliasmodel->meshes; i < aliasmodel->nummeshes; i++, mesh++ ) {
 		int numSkins = 1;
 		maliasskin_t *skins = &fakeskin;
@@ -725,7 +722,7 @@ bool R_AddAliasModelToDrawList( const entity_t *e, int lod ) {
 			continue;
 		}
 
-		for( j = 0; j < numSkins; j++ ) {
+		for( int j = 0; j < numSkins; j++ ) {
 			int drawOrder;
 			const shader_t *shader = skins[j].shader;
 		

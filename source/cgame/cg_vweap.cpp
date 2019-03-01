@@ -236,7 +236,7 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 
 	weaponInfo = CG_GetWeaponInfo( viewweapon->weapon );
 	viewweapon->ent.model = weaponInfo->model[WEAPMODEL_HAND];
-	viewweapon->ent.renderfx = RF_MINLIGHT | RF_WEAPONMODEL | RF_FORCENOLOD | RF_NOSHADOW;
+	viewweapon->ent.renderfx = RF_MINLIGHT | RF_WEAPONMODEL | RF_NOSHADOW;
 	viewweapon->ent.scale = 1.0f;
 	viewweapon->ent.customShader = NULL;
 	viewweapon->ent.customSkin = NULL;

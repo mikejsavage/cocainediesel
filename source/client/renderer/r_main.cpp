@@ -740,10 +740,10 @@ static void R_DrawEntities( void ) {
 		case RT_MODEL:
 			switch( cache->mod_type ) {
 			case mod_alias:
-				R_AddAliasModelToDrawList( e, 0 );
+				R_AddAliasModelToDrawList( e );
 				break;
 			case mod_skeletal:
-				R_AddSkeletalModelToDrawList( e, 0 );
+				R_AddSkeletalModelToDrawList( e );
 				break;
 			case mod_brush:
 				R_AddBrushModelToDrawList( e );

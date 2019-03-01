@@ -332,10 +332,8 @@ typedef struct mskmodel_s {
 typedef enum { mod_bad = -1, mod_free, mod_brush, mod_alias, mod_skeletal, mod_sprite } modtype_t;
 typedef void ( *mod_touch_t )( struct model_s *model );
 
-#define MOD_MAX_LODS    4
-
 typedef struct model_s {
-	char            *name;
+	char *name;
 	int registrationSequence;
 	mod_touch_t touch;          // touching a model updates registration sequence, images and VBO's
 
@@ -350,13 +348,9 @@ typedef struct model_s {
 	//
 	// memory representation pointer
 	//
-	void            *extradata;
+	void *extradata;
 
-	int lodnum;                 // LOD index, 0 for parent model, 1..MOD_MAX_LODS for LOD models
-	int numlods;
-	struct model_s  *lods[MOD_MAX_LODS];
-
-	mempool_t       *mempool;
+	mempool_t *mempool;
 } model_t;
 
 //============================================================================
@@ -386,7 +380,5 @@ model_t     *Mod_ForHandle( unsigned int elem );
 #define     Mod_Malloc( mod, size ) Mem_AllocExt( ( mod )->mempool, size, 1 )
 #define     Mod_Realloc( data, size ) Mem_Realloc( data, size )
 #define     Mod_MemFree( data ) Mem_Free( data )
-
-void        Mod_StripLODSuffix( char *name );
 
 void        Mod_Modellist_f( void );

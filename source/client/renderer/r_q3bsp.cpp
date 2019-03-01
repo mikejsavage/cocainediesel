@@ -954,7 +954,7 @@ static void Mod_Finish() {
 /*
 * Mod_LoadQ3BrushModel
 */
-void Mod_LoadQ3BrushModel( model_t *mod, const model_t *parent, void *buffer, int buffer_size, const bspFormatDesc_t *format ) {
+void Mod_LoadQ3BrushModel( model_t *mod, void *buffer, int buffer_size, const bspFormatDesc_t *format ) {
 	dheader_t *header;
 
 	mod->type = mod_brush;
@@ -994,7 +994,7 @@ void Mod_LoadQ3BrushModel( model_t *mod, const model_t *parent, void *buffer, in
 	Mod_Finish();
 }
 
-void Mod_LoadCompressedBSP( model_t *mod, const model_t *parent, void *compressed, int compressed_size, const bspFormatDesc_t *format ) {
+void Mod_LoadCompressedBSP( model_t *mod, void *compressed, int compressed_size, const bspFormatDesc_t *format ) {
 	unsigned long long const decompressed_size = ZSTD_getDecompressedSize( compressed, compressed_size );
 	if( decompressed_size == ZSTD_CONTENTSIZE_ERROR || decompressed_size == ZSTD_CONTENTSIZE_UNKNOWN ) {
 		ri.Com_Error( ERR_DROP, "Corrupt BSP" );
@@ -1010,7 +1010,7 @@ void Mod_LoadCompressedBSP( model_t *mod, const model_t *parent, void *compresse
 	int version;
 	memcpy( &version, ( const char * ) decompressed + 4, sizeof( version ) );
 	const bspFormatDesc_t *bsp_format = Q_FindBSPFormat( q3BSPFormats, ( const char * ) decompressed, version ); 
-	Mod_LoadQ3BrushModel( mod, parent, decompressed, decompressed_size, bsp_format );
+	Mod_LoadQ3BrushModel( mod, decompressed, decompressed_size, bsp_format );
 
 	R_Free( decompressed );
 }

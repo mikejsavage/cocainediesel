@@ -142,13 +142,11 @@ void R_AddEntityToScene( const entity_t *ent ) {
 
 		if( de->rtype == RT_MODEL ) {
 			if( de->model && de->model->type == mod_brush ) {
-				de->flags |= RF_FORCENOLOD;
 				rsc.bmodelEntities[rsc.numBmodelEntities++] = eNum;
 			}
 		} else if( de->rtype == RT_SPRITE ) {
 			// simplifies further checks
 			de->model = NULL;
-			de->flags |= RF_FORCENOLOD;
 			if( !de->customShader || de->radius <= 0 || de->scale <= 0 ) {
 				return;
 			}

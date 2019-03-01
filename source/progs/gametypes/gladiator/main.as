@@ -301,7 +301,6 @@ class cDARound
 	{
 		Client @client;
 
-		gametype.shootingDisabled = true;
 		gametype.readyAnnouncementEnabled = false;
 		gametype.scoreAnnouncementEnabled = false;
 		gametype.countdownEnabled = false;
@@ -628,7 +627,6 @@ void DA_SetUpWarmup()
 
 void DA_SetUpCountdown()
 {
-	gametype.shootingDisabled = true;
 	gametype.readyAnnouncementEnabled = false;
 	gametype.scoreAnnouncementEnabled = false;
 	gametype.countdownEnabled = false;

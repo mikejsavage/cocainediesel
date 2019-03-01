@@ -628,6 +628,8 @@ void SP_misc_model( edict_t *ent );
 void SP_misc_particles( edict_t *ent );
 void SP_misc_video_speaker( edict_t *ent );
 
+void SP_model( edict_t *ent );
+
 //
 // g_weapon.c
 //

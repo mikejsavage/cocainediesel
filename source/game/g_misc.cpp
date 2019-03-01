@@ -706,3 +706,9 @@ void SP_misc_particles( edict_t *ent ) {
 
 	GClip_LinkEntity( ent );
 }
+
+void SP_model( edict_t *ent ) {
+	ent->r.svflags &= ~SVF_NOCLIENT;
+	ent->s.modelindex = trap_ModelIndex( ent->model );
+	GClip_LinkEntity( ent );
+}

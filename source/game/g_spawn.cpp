@@ -149,6 +149,8 @@ spawn_t spawns[] = {
 	{ "misc_model", SP_misc_model },
 	{ "misc_particles", SP_misc_particles },
 
+	{ "model", SP_model },
+
 	{ NULL, NULL }
 };
 

@@ -1,11 +1,11 @@
-discard
+textures/editor/discard
 {
 	qer_editorimage textures/editor/discard.png
 	surfaceparm nodraw
 	surfaceparm nomarks
 }
 
-fullclip
+textures/editor/fullclip
 {
 	qer_trans 0.40
 	qer_editorimage textures/editor/fullclip.png
@@ -14,7 +14,7 @@ fullclip
 	surfaceparm nomarks
 }
 
-ladder
+textures/editor/ladder
 {
 	qer_trans 0.40
 	qer_editorimage textures/common/ladder.tga
@@ -27,7 +27,7 @@ ladder
 	surfaceparm ladder
 }
 
-no_walljump
+textures/editor/no_walljump
 {
 	qer_trans 0.40
 	qer_editorimage textures/editor/no_walljump.png
@@ -40,7 +40,7 @@ no_walljump
 	surfaceparm nowalljump
 }
 
-playerclip
+textures/editor/playerclip
 {
 	qer_trans 0.40
 	qer_editorimage textures/editor/playerclip.png
@@ -52,7 +52,7 @@ playerclip
 	surfaceparm playerclip
 }
 
-trigger
+textures/editor/trigger
 {
 	qer_trans 0.40
 	qer_editorimage textures/editor/trigger.png

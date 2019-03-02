@@ -403,7 +403,7 @@ Place a model to be loaded at runtime
 -------- KEYS --------
 model : Path to model*/
 
-/*QUAKED spikes (1 0 0) (-64 -64 0) (64 64 48) ALWAYS_ON
+/*QUAKED spikes (1 0 0) (-64 -64 0) (64 64 48) ALWAYS_EXTENDED
 A spike trap
 -------- KEYS --------
 angles : Angles*/

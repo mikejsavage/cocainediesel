@@ -1,27 +1,32 @@
 #include "g_local.h"
 
-static void SpikesTouched( edict_t * self, edict_t * other, cplane_t * plane, int surfFlags ) {
-	if( self->s.linearMovementTimeStamp == 0 ) {
-		self->nextThink = level.time + 1000;
-		self->s.linearMovementTimeStamp = max( 1, game.serverTime );
-	}
-}
-
-static void SpikesTrigger( edict_t * self );
 static void SpikesRearm( edict_t * self ) {
 	self->s.linearMovementTimeStamp = 0;
-	self->think = SpikesTrigger;
 }
 
-static void SpikesTrigger( edict_t * self ) {
+static void SpikesDeploy( edict_t * self ) {
 	KillBox( self );
 	self->think = SpikesRearm;
 	self->nextThink = level.time + 1000;
 }
 
+static void SpikesTouched( edict_t * self, edict_t * other, cplane_t * plane, int surfFlags ) {
+	if( self->s.frame == 1 ) {
+		G_Damage( other, self, self, vec3_origin, vec3_origin, other->s.origin, 10000, 0, 0, MOD_TRIGGER_HURT );
+		return;
+	}
+
+	if( self->s.linearMovementTimeStamp == 0 ) {
+		self->nextThink = level.time + 1000;
+		self->think = SpikesDeploy;
+		self->s.linearMovementTimeStamp = max( 1, game.serverTime );
+	}
+}
+
 void SP_spikes( edict_t * spikes ) {
 	spikes->r.svflags &= ~SVF_NOCLIENT | SVF_PROJECTILE;
 	spikes->r.solid = SOLID_TRIGGER;
+	spikes->s.frame = spikes->spawnflags & 1;
 
 	spikes->s.angles[ PITCH ] += 90;
 	vec3_t forward, right, up;
@@ -45,7 +50,6 @@ void SP_spikes( edict_t * spikes ) {
 	spikes->s.type = ET_SPIKES;
 
 	spikes->touch = SpikesTouched;
-	spikes->think = SpikesTrigger;
 
 	GClip_LinkEntity( spikes );
 

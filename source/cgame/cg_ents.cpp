@@ -910,13 +910,11 @@ static void CG_AddSpriteEnt( centity_t *cent ) {
 * CG_LerpSpriteEnt
 */
 static void CG_LerpSpriteEnt( centity_t *cent ) {
-	int i;
+	for( int i = 0; i < 3; i++ )
+		cent->ent.origin[i] = Lerp( cent->prev.origin[i], cg.lerpfrac, cent->current.origin[i] );
+	VectorCopy( cent->ent.origin, cent->ent.origin2 );
 
-	// interpolate origin
-	for( i = 0; i < 3; i++ )
-		cent->ent.origin[i] = cent->ent.origin2[i] = cent->prev.origin[i] + cg.lerpfrac * ( cent->current.origin[i] - cent->prev.origin[i] );
-
-	cent->ent.radius = cent->prev.frame + cg.lerpfrac * ( cent->current.frame - cent->prev.frame );
+	cent->ent.radius = Lerp( cent->prev.frame, cg.lerpfrac, cent->current.frame );
 }
 
 /*
@@ -1348,7 +1346,10 @@ void CG_LerpSpikes( centity_t *cent ) {
 
 	float position = retracted;
 
-	if( cent->current.linearMovementTimeStamp != 0 ) {
+	if( cent->current.frame == 1 ) {
+		position = extended;
+	}
+	else if( cent->current.linearMovementTimeStamp != 0 ) {
 		int64_t delta = Lerp( cg.oldFrame.serverTime, cg.lerpfrac, cg.frame.serverTime ) - cent->current.linearMovementTimeStamp;
 		if( delta > 0 ) {
 			// 0-100: jump to primed

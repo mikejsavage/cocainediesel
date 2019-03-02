@@ -1355,22 +1355,22 @@ void CG_LerpSpikes( centity_t *cent ) {
 	float position = retracted;
 
 	if( cent->current.linearMovementTimeStamp != 0 ) {
-		int64_t delta = lerp( cg.oldFrame.serverTime, cg.lerpfrac, cg.frame.serverTime ) - cent->current.linearMovementTimeStamp;
+		int64_t delta = Lerp( cg.oldFrame.serverTime, cg.lerpfrac, cg.frame.serverTime ) - cent->current.linearMovementTimeStamp;
 		if( delta > 0 ) {
 			// 0-100: jump to primed
 			// 1000-1050: fully extend
 			// 1500-2000: retract
 			if( delta < 1000 ) {
-				float t = min( 1.0f, unlerp( int64_t( 0 ), delta, int64_t( 100 ) ) );
-				position = lerp( retracted, t, primed );
+				float t = min( 1.0f, Unlerp( int64_t( 0 ), delta, int64_t( 100 ) ) );
+				position = Lerp( retracted, t, primed );
 			}
 			else if( delta < 1050 ) {
-				float t = min( 1.0f, unlerp( int64_t( 1000 ), delta, int64_t( 1050 ) ) );
-				position = lerp( primed, t, extended );
+				float t = min( 1.0f, Unlerp( int64_t( 1000 ), delta, int64_t( 1050 ) ) );
+				position = Lerp( primed, t, extended );
 			}
 			else {
-				float t = max( 0.0f, unlerp( int64_t( 1500 ), delta, int64_t( 2000 ) ) );
-				position = lerp( extended, t, retracted );
+				float t = max( 0.0f, Unlerp( int64_t( 1500 ), delta, int64_t( 2000 ) ) );
+				position = Lerp( extended, t, retracted );
 			}
 		}
 	}

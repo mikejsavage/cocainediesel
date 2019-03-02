@@ -23,16 +23,16 @@ void SP_spikes( edict_t * spikes ) {
 	spikes->r.svflags &= ~SVF_NOCLIENT | SVF_PROJECTILE;
 	spikes->r.solid = SOLID_TRIGGER;
 
+	spikes->s.angles[ PITCH ] += 90;
 	vec3_t forward, right, up;
 	AngleVectors( spikes->s.angles, forward, right, up );
-	spikes->s.angles[ PITCH ] += 90;
 	
 	vec3_t mins, maxs;
 	VectorSet( mins, 0, 0, 0 );
 	VectorSet( maxs, 0, 0, 0 );
 	VectorMA( mins, -64, forward, mins );
 	VectorMA( mins, -64, right, mins );
-	VectorMA( mins, -64, up, mins );
+	VectorMA( mins, 48, up, mins );
 	VectorMA( maxs, 64, forward, maxs );
 	VectorMA( maxs, 64, right, maxs );
 

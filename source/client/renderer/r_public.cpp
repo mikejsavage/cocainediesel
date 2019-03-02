@@ -59,10 +59,6 @@ extern "C" QF_DLL_EXPORT ref_export_t *GetRefAPI( ref_import_t *import ) {
 	globals.GetSpeedsMessage = RF_GetSpeedsMessage;
 	globals.GetAverageFrametime = RF_GetAverageFrametime;
 
-	globals.BeginAviDemo = RF_BeginAviDemo;
-	globals.WriteAviFrame = RF_WriteAviFrame;
-	globals.StopAviDemo = RF_StopAviDemo;
-
 	globals.RegisterWorldModel = RF_RegisterWorldModel;
 	globals.RegisterModel = R_RegisterModel;
 	globals.RegisterPic = R_RegisterPic;

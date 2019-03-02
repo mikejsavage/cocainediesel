@@ -20,6 +20,3 @@ void S_StopAllSounds( bool stopMusic );
 
 void S_StartMenuMusic();
 void S_StopBackgroundTrack();
-
-void S_BeginAviDemo();
-void S_StopAviDemo();

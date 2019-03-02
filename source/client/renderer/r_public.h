@@ -150,10 +150,6 @@ typedef struct {
 	const char *( *GetSpeedsMessage )( char *out, size_t size );
 	int ( *GetAverageFrametime )( void );
 
-	void ( *BeginAviDemo )( void );
-	void ( *WriteAviFrame )( int frame );
-	void ( *StopAviDemo )( void );
-
 	void ( *AppActivate )( bool active, bool minimize );
 } ref_export_t;
 

@@ -80,11 +80,3 @@ void CL_SoundModule_StartMenuMusic() {
 void CL_SoundModule_StopBackgroundTrack( void ) {
 	S_StopBackgroundTrack();
 }
-
-void CL_SoundModule_BeginAviDemo( void ) {
-	S_BeginAviDemo();
-}
-
-void CL_SoundModule_StopAviDemo( void ) {
-	S_StopAviDemo();
-}

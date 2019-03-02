@@ -690,10 +690,6 @@ static void RF_IssueScreenShotReliableCmd( ref_cmdpipe_t *cmdpipe, const char *p
 	RF_IssueEnvScreenShotReliableCmd( cmdpipe, REF_PIPE_CMD_SCREEN_SHOT, path, name, fmtstring, 0, 0, glConfig.width, glConfig.height, 0, silent );
 }
 
-static void RF_IssueAviShotReliableCmd( ref_cmdpipe_t *cmdpipe, const char *path, const char *name, int x, int y, int w, int h ) {
-	RF_IssueEnvScreenShotReliableCmd( cmdpipe, REF_PIPE_CMD_SCREEN_SHOT, path, name, "", x, y, w, h, 0, true );
-}
-
 static void RF_IssueBeginRegistrationReliableCmd( ref_cmdpipe_t *cmdpipe ) {
 	refReliableCmdBeginEndRegistration_t cmd = { REF_PIPE_CMD_BEGIN_REGISTRATION };
 
@@ -747,7 +743,6 @@ ref_cmdpipe_t *RF_CreateCmdPipe() {
 	cmdpipe->Shutdown = &RF_IssueShutdownReliableCmd;
 	cmdpipe->ResizeFramebuffers = &RF_IssueResizeFramebuffersCmd;
 	cmdpipe->ScreenShot = &RF_IssueScreenShotReliableCmd;
-	cmdpipe->AviShot = &RF_IssueAviShotReliableCmd;
 	cmdpipe->BeginRegistration = &RF_IssueBeginRegistrationReliableCmd;
 	cmdpipe->EndRegistration = &RF_IssueEndRegistrationReliableCmd;
 	cmdpipe->SetWallFloorColors = &RF_IssueSetWallFloorColorsReliableCmd;

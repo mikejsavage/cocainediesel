@@ -455,11 +455,3 @@ void S_StopBackgroundTrack() {
 		alSourceStop( music_source );
 	music_playing = false;
 }
-
-void S_BeginAviDemo() {
-	// TODO
-}
-
-void S_StopAviDemo() {
-	// TODO
-}

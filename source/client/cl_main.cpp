@@ -37,10 +37,6 @@ cvar_t *cl_shownet;
 cvar_t *cl_extrapolationTime;
 cvar_t *cl_extrapolate;
 
-cvar_t *cl_demoavi_video;
-cvar_t *cl_demoavi_audio;
-cvar_t *cl_demoavi_fps;
-
 //
 // userinfo
 //
@@ -1693,10 +1689,6 @@ static void CL_InitLocal( void ) {
 
 	cl_shownet =        Cvar_Get( "cl_shownet", "0", 0 );
 	cl_timeout =        Cvar_Get( "cl_timeout", "120", 0 );
-	cl_demoavi_video =  Cvar_Get( "cl_demoavi_video", "1", CVAR_ARCHIVE );
-	cl_demoavi_audio =  Cvar_Get( "cl_demoavi_audio", "0", CVAR_ARCHIVE );
-	cl_demoavi_fps =    Cvar_Get( "cl_demoavi_fps", "30.3", CVAR_ARCHIVE );
-	cl_demoavi_fps->modified = true;
 
 	rcon_client_password =  Cvar_Get( "rcon_password", "", 0 );
 	rcon_address =      Cvar_Get( "rcon_address", "", 0 );
@@ -1744,7 +1736,6 @@ static void CL_InitLocal( void ) {
 	Cmd_AddCommand( "writeconfig", CL_WriteConfig_f );
 	Cmd_AddCommand( "showip", CL_ShowIP_f ); // jal : wsw : print our ip
 	Cmd_AddCommand( "demo", CL_PlayDemo_f );
-	Cmd_AddCommand( "demoavi", CL_PlayDemoToAvi_f );
 	Cmd_AddCommand( "next", CL_SetNext_f );
 	Cmd_AddCommand( "pingserver", CL_PingServer_f );
 	Cmd_AddCommand( "demopause", CL_PauseDemo_f );
@@ -1754,7 +1745,6 @@ static void CL_InitLocal( void ) {
 	Cmd_AddCommand( "downloadcancel", CL_DownloadCancel_f );
 
 	Cmd_SetCompletionFunc( "demo", CL_DemoComplete );
-	Cmd_SetCompletionFunc( "demoavi", CL_DemoComplete );
 }
 
 /*
@@ -1779,7 +1769,6 @@ static void CL_ShutdownLocal( void ) {
 	Cmd_RemoveCommand( "writeconfig" );
 	Cmd_RemoveCommand( "showip" );
 	Cmd_RemoveCommand( "demo" );
-	Cmd_RemoveCommand( "demoavi" );
 	Cmd_RemoveCommand( "next" );
 	Cmd_RemoveCommand( "pingserver" );
 	Cmd_RemoveCommand( "demopause" );
@@ -2083,32 +2072,6 @@ void CL_Frame( int realMsec, int gameMsec ) {
 		cls.demo.play_ignore_next_frametime = false;
 	}
 
-	if( cl_demoavi_fps->modified ) {
-		float newvalue = 1000.0f / (int)( 1000.0f / cl_demoavi_fps->value );
-		if( fabs( newvalue - cl_demoavi_fps->value ) > 0.001 ) {
-			Com_Printf( "cl_demoavi_fps value has been adjusted to %.4f\n", newvalue );
-		}
-
-		Cvar_SetValue( "cl_demoavi_fps", newvalue );
-		cl_demoavi_fps->modified = false;
-	}
-
-	// demoavi
-	if( ( cls.demo.avi || cls.demo.pending_avi ) && cls.state == CA_ACTIVE ) {
-		if( cls.demo.pending_avi && !cls.demo.avi ) {
-			cls.demo.pending_avi = false;
-			CL_BeginDemoAviDump();
-		}
-
-		// fixed time for next frame
-		if( cls.demo.avi_video ) {
-			gameMsec = ( 1000.0 / (double)cl_demoavi_fps->integer ) * Cvar_Value( "timescale" );
-			if( gameMsec < 1 ) {
-				gameMsec = 1;
-			}
-		}
-	}
-
 	if( cls.demo.playing ) {
 		if( cls.demo.paused ) {
 			gameMsec = 0;
@@ -2127,7 +2090,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	CL_UserInputFrame( realMsec );
 	CL_NetFrame( realMsec, gameMsec );
 
-	if( cl_maxfps->integer > 0 && !cls.demo.playing && !( cls.demo.avi_video && cls.state == CA_ACTIVE ) ) {
+	if( cl_maxfps->integer > 0 && !cls.demo.playing ) {
 		const int absMinFps = 24;
 
 		// do not allow setting cl_maxfps to very low values to prevent cheating
@@ -2177,13 +2140,6 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	SCR_UpdateScreen();
 	if( host_speeds->integer ) {
 		time_after_ref = Sys_Milliseconds();
-	}
-
-	if( CL_WriteAvi() ) {
-		int frame = ++cls.demo.avi_frame;
-		if( cls.demo.avi_video ) {
-			re.WriteAviFrame( frame );
-		}
 	}
 
 	// update audio

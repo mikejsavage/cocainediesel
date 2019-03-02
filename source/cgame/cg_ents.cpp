@@ -501,7 +501,6 @@ static void CG_EntAddBobEffect( centity_t *cent ) {
 
 	cent->ent.origin2[2] += bob;
 	cent->ent.origin[2] += bob;
-	cent->ent.lightingOrigin[2] += bob;
 }
 
 /*
@@ -556,7 +555,6 @@ static void CG_AddLinkedModel( centity_t *cent ) {
 	ent.customSkin = NULL;
 	VectorCopy( cent->ent.origin, ent.origin );
 	VectorCopy( cent->ent.origin, ent.origin2 );
-	VectorCopy( cent->ent.lightingOrigin, ent.lightingOrigin );
 	Matrix3_Copy( cent->ent.axis, ent.axis );
 
 	if( cent->item && ( cent->effects & EF_AMMOBOX ) ) { // ammobox icon hack
@@ -642,7 +640,7 @@ void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
 	cent->ent.backlerp = 1.0f;
 
 	for( i = 0; i < 3; i++ )
-		cent->ent.origin[i] = cent->ent.origin2[i] = cent->ent.lightingOrigin[i] = cent->current.origin[i];
+		cent->ent.origin[i] = cent->ent.origin2[i] = cent->current.origin[i];
 
 	AnglesToAxis( cent->current.angles, cent->ent.axis );
 }
@@ -731,8 +729,6 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 															 ( cent->current.origin[i] - cent->prev.origin[i] );
 		}
 	}
-
-	VectorCopy( cent->ent.origin, cent->ent.lightingOrigin );
 }
 
 /*
@@ -844,7 +840,6 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 static void CG_AddPlayerEnt( centity_t *cent ) {
 	if( ISVIEWERENTITY( cent->current.number ) ) {
 		cg.effects = cent->effects;
-		VectorCopy( cent->ent.lightingOrigin, cg.lightingOrigin );
 		if( !cg.view.thirdperson && cent->current.modelindex ) {
 			if( !( cent->renderfx & RF_NOSHADOW ) ) {
 				CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
@@ -919,7 +914,7 @@ static void CG_LerpSpriteEnt( centity_t *cent ) {
 
 	// interpolate origin
 	for( i = 0; i < 3; i++ )
-		cent->ent.origin[i] = cent->ent.origin2[i] = cent->ent.lightingOrigin[i] = cent->prev.origin[i] + cg.lerpfrac * ( cent->current.origin[i] - cent->prev.origin[i] );
+		cent->ent.origin[i] = cent->ent.origin2[i] = cent->prev.origin[i] + cg.lerpfrac * ( cent->current.origin[i] - cent->prev.origin[i] );
 
 	cent->ent.radius = cent->prev.frame + cg.lerpfrac * ( cent->current.frame - cent->prev.frame );
 }
@@ -943,7 +938,6 @@ static void CG_UpdateSpriteEnt( centity_t *cent ) {
 	cent->ent.radius = cent->prev.frame;
 	VectorCopy( cent->prev.origin, cent->ent.origin );
 	VectorCopy( cent->prev.origin, cent->ent.origin2 );
-	VectorCopy( cent->prev.origin, cent->ent.lightingOrigin );
 	Matrix3_Identity( cent->ent.axis );
 }
 
@@ -1382,7 +1376,6 @@ void CG_LerpSpikes( centity_t *cent ) {
 	AnglesToAxis( cent->current.angles, cent->ent.axis );
 	VectorMA( cent->current.origin, position, up, cent->ent.origin );
 	VectorCopy( cent->ent.origin, cent->ent.origin2 );
-	VectorCopy( cent->ent.origin, cent->ent.lightingOrigin );
 }
 
 //==========================================================================

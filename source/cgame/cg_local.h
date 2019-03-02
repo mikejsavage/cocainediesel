@@ -530,8 +530,6 @@ typedef struct {
 
 	int effects;
 
-	vec3_t lightingOrigin;
-
 	bool showScoreboard;            // demos and multipov
 	bool specStateChanged;
 

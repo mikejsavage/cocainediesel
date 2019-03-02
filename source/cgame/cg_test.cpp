@@ -277,21 +277,17 @@ void CG_DrawTestBox( const vec3_t origin, const vec3_t mins, const vec3_t maxs, 
 * If cg_testEntities is set, create 32 player models
 */
 static void CG_TestEntities( void ) {
-	int i, j;
-	float f, r;
 	entity_t ent;
-
 	memset( &ent, 0, sizeof( ent ) );
 
 	trap_R_ClearScene();
 
-	for( i = 0; i < 100; i++ ) {
-		r = 64 * ( ( i % 4 ) - 1.5 );
-		f = 64 * ( i / 4 ) + 128;
+	for( int i = 0; i < 100; i++ ) {
+		float r = 64 * ( ( i % 4 ) - 1.5 );
+		float f = 64 * ( i / 4 ) + 128;
 
-		for( j = 0; j < 3; j++ )
-			ent.origin[j] = ent.lightingOrigin[j] = cg.view.origin[j] +
-													cg.view.axis[AXIS_FORWARD + j] * f + cg.view.axis[AXIS_RIGHT + j] * r;
+		for( int j = 0; j < 3; j++ )
+			ent.origin[j] = cg.view.origin[j] + cg.view.axis[AXIS_FORWARD + j] * f + cg.view.axis[AXIS_RIGHT + j] * r;
 
 		Matrix3_Copy( cg.autorotateAxis, ent.axis );
 

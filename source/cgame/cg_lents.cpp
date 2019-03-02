@@ -1382,7 +1382,6 @@ void CG_AddLocalEntities( void ) {
 			VectorMA( ent->origin, time, le->velocity, ent->origin );
 		}
 
-		VectorCopy( ent->origin, ent->lightingOrigin );
 		VectorMA( le->velocity, time, le->accel, le->velocity );
 
 		CG_AddEntityToScene( ent );

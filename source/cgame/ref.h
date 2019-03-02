@@ -97,7 +97,6 @@ typedef struct entity_s {
 	*/
 	mat3_t axis;
 	vec3_t origin, origin2;
-	vec3_t lightingOrigin;
 	int frame;
 	bonepose_t *boneposes;              // pretransformed boneposes for current frame
 

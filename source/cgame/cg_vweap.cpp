@@ -327,7 +327,6 @@ void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
 
 	// update the other origins
 	VectorCopy( viewweapon->ent.origin, viewweapon->ent.origin2 );
-	VectorCopy( cg_entities[viewweapon->POVnum].ent.lightingOrigin, viewweapon->ent.lightingOrigin );
 
 	CG_AddColoredOutLineEffect( &viewweapon->ent, cg.effects, 0, 0, 0, viewweapon->ent.shaderRGBA[3] );
 	CG_AddEntityToScene( &viewweapon->ent );

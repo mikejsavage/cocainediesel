@@ -504,13 +504,11 @@ bool CG_GrabTag( orientation_t *tag, entity_t *ent, const char *tagname ) {
 * CG_PlaceRotatedModelOnTag
 */
 void CG_PlaceRotatedModelOnTag( entity_t *ent, entity_t *dest, orientation_t *tag ) {
-	int i;
 	mat3_t tmpAxis;
 
 	VectorCopy( dest->origin, ent->origin );
-	VectorCopy( dest->lightingOrigin, ent->lightingOrigin );
 
-	for( i = 0; i < 3; i++ )
+	for( int i = 0; i < 3; i++ )
 		VectorMA( ent->origin, tag->origin[i] * ent->scale, &dest->axis[i * 3], ent->origin );
 
 	VectorCopy( ent->origin, ent->origin2 );
@@ -522,12 +520,9 @@ void CG_PlaceRotatedModelOnTag( entity_t *ent, entity_t *dest, orientation_t *ta
 * CG_PlaceModelOnTag
 */
 void CG_PlaceModelOnTag( entity_t *ent, entity_t *dest, orientation_t *tag ) {
-	int i;
-
 	VectorCopy( dest->origin, ent->origin );
-	VectorCopy( dest->lightingOrigin, ent->lightingOrigin );
 
-	for( i = 0; i < 3; i++ )
+	for( int i = 0; i < 3; i++ )
 		VectorMA( ent->origin, tag->origin[i] * ent->scale, &dest->axis[i * 3], ent->origin );
 
 	VectorCopy( ent->origin, ent->origin2 );
@@ -544,12 +539,11 @@ void CG_MoveToTag( vec3_t move_origin,
 				   const mat3_t space_axis,
 				   const vec3_t tag_origin,
 				   const mat3_t tag_axis ) {
-	int i;
 	mat3_t tmpAxis;
 
 	VectorCopy( space_origin, move_origin );
 
-	for( i = 0; i < 3; i++ )
+	for( int i = 0; i < 3; i++ )
 		VectorMA( move_origin, tag_origin[i], &space_axis[i * 3], move_origin );
 
 	Matrix3_Multiply( move_axis, tag_axis, tmpAxis );
@@ -1055,13 +1049,7 @@ void CG_AddPModel( centity_t *cent ) {
 
 		VectorCopy( org, cent->ent.origin );
 		VectorCopy( org, cent->ent.origin2 );
-		VectorCopy( org, cent->ent.lightingOrigin );
-		VectorCopy( org, cg.lightingOrigin );
 	}
-
-	// since origin is displaced in player models set lighting origin to the center of the bbox
-	for( i = 0; i < 3; i++ )
-		cent->ent.lightingOrigin[i] = cent->ent.origin[i] + ( 0.5f * ( playerbox_stand_mins[i] + playerbox_stand_maxs[i] ) );
 
 	animState = &pmodel->animState;
 

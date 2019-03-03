@@ -262,7 +262,7 @@ void target_laser_start( edict_t *self ) {
 void SP_target_laser( edict_t *self ) {
 	// let everything else get spawned before we start firing
 	self->think = target_laser_start;
-	self->nextThink = level.time + 1000;
+	self->nextThink = level.time + 1;
 	self->count = MOD_TARGET_LASER;
 }
 

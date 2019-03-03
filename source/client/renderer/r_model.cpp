@@ -91,53 +91,6 @@ uint8_t *Mod_ClusterPVS( int cluster, mbrushmodel_t *bmodel ) {
 	return ( (uint8_t *)vis->data + cluster * vis->rowsize );
 }
 
-/*
-* Mod_SpherePVS_r
-*/
-static void Mod_SpherePVS_r( mnode_t *node, const vec3_t origin, float radius, const dvis_t *vis, uint8_t *fatpvs ) {
-	int i;
-	const mleaf_t *leaf;
-	const uint8_t *row;
-
-	while( node->plane != NULL ) {
-		float d = PlaneDiff( origin, node->plane );
-
-		if( d > radius - ON_EPSILON ) {
-			node = node->children[0];
-		} else if( d < -radius + ON_EPSILON ) {
-			node = node->children[1];
-		}  else {
-			Mod_SpherePVS_r( node->children[0], origin, radius, vis, fatpvs );
-			node = node->children[1];
-		}
-	}
-
-	leaf = ( const mleaf_t * )node;
-	if( leaf->cluster < 0 ) {
-		return;
-	}
-
-	row = (uint8_t *)vis->data + leaf->cluster * vis->rowsize;
-	for( i = 0; i < vis->rowsize; i++ )
-		fatpvs[i] |= row[i];
-}
-
-/*
-* Mod_SpherePVS
-*/
-uint8_t *Mod_SpherePVS( const vec3_t origin, float radius, mbrushmodel_t *bmodel, uint8_t *fatpvs ) {
-	const dvis_t *vis;
-	
-	vis = bmodel->pvs;
-	if( !vis ) {
-		return mod_novis;
-	}
-
-	memset( fatpvs, 0, vis->rowsize );
-	Mod_SpherePVS_r( bmodel->nodes, origin, radius, vis, fatpvs );
-	return fatpvs;
-}
-
 //===============================================================================
 
 /*

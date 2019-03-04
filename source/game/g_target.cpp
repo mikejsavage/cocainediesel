@@ -19,11 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "g_local.h"
 
-//QUAKED target_explosion (1 0 0) (-8 -8 -8) (8 8 8)
-//Spawns an explosion temporary entity when used.
-//
-//"delay"		wait this long before going off
-//"dmg"		how much radius damage should be done, defaults to 0
 static void target_explosion_explode( edict_t *self ) {
 	float save;
 	int radius;
@@ -78,23 +73,6 @@ void SP_target_explosion( edict_t *self ) {
 
 //==========================================================
 
-//QUAKED target_laser (0 .5 0) (-8 -8 -8) (8 8 8) START_ON RED GREEN BLUE YELLOW ORANGE FAT
-//When triggered, fires a laser.  You can either set a target or a direction.
-//-------- KEYS --------
-//angles: alternate "pitch, yaw, roll" angles method of aiming laser (default 0 0 0).
-//target : point this to a target_position entity to set the laser's aiming direction.
-//targetname : the activating trigger points to this.
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jal: todo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//START_ON : when set, the laser will start on in the game.
-//RED :
-//GREEN : BLUE :
-//YELLOW :
-//ORANGE :
-//FAT :
 static void target_laser_think( edict_t *self ) {
 	edict_t *ignore;
 	vec3_t start;
@@ -266,34 +244,9 @@ void SP_target_laser( edict_t *self ) {
 	self->count = MOD_TARGET_LASER;
 }
 
-//QUAKED target_position (0 .5 0) (-8 -8 -8) (8 8 8)
-//Aiming target for entities like light and trigger_push (jump pads) in particular.
-//-------- KEYS --------
-//targetname : the entity that requires an aiming direction points to this.
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jal: todo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- NOTES --------
-//To make a jump pad, place this entity at the highest point of the jump and target it with a trigger_push entity.
-
 void SP_target_position( edict_t *self ) {
 	self->r.svflags |= SVF_NOCLIENT;
 }
-
-//QUAKED target_print (0 .5 0) (-8 -8 -8) (8 8 8) SAMETEAM OTHERTEAM PRIVATE
-//This will print a message on the center of the screen when triggered. By default, all the clients will see the message.
-//-------- KEYS --------
-//message : text string to print on screen.
-//targetname : the activating trigger points to this.
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jal: todo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//SAMETEAM : &1 only players in activator's team will see the message.
-//OTHERTEAM : &2 only players in other than activator's team will see the message.
-//PRIVATE : &4 only the player that activates the target will see the message.
 
 static void SP_target_print_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	if( activator->r.client && ( self->spawnflags & 4 ) ) {
@@ -349,9 +302,6 @@ static void target_delay_use( edict_t *ent, edict_t *other, edict_t *activator )
 	ent->activator = activator;
 }
 
-//QUAKED target_delay (1 0 0) (-8 -8 -8) (8 8 8)
-//"wait" seconds to pause before firing targets.
-//"random" delay variance, total delay = delay +/- random seconds
 void SP_target_delay( edict_t *ent ) {
 	// check the "delay" key for backwards compatibility with Q3 maps
 	if( ent->delay ) {
@@ -367,18 +317,6 @@ void SP_target_delay( edict_t *ent ) {
 
 
 //==========================================================
-
-//QUAKED target_teleporter (1 0 0) (-8 -8 -8) (8 8 8)
-//The activator will be teleported away.
-//-------- KEYS --------
-//target : point this to a misc_teleporter_dest entity to set the teleport destination.
-//targetname : activating trigger points to this.
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jal: todo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//SPECTATOR : &1 only teleport players moving in spectator mode
 
 static void target_teleporter_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	edict_t *dest;

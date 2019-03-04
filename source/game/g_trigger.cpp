@@ -95,26 +95,6 @@ static void Touch_Multi( edict_t *self, edict_t *other, cplane_t *plane, int sur
 	multi_trigger( self );
 }
 
-
-//QUAKED trigger_multiple (.5 .5 .5) ? MONSTER NOT_PLAYER TRIGGERED
-//Variable size repeatable trigger. It will fire the entities it targets when touched by player. Can be made to operate like a trigger_once entity by setting the "wait" key to -1. It can also be activated by another trigger that targets it.
-//-------- KEYS --------
-//target : this points to the entity to activate.
-//targetname : activating trigger points to this.
-//noise : play this noise when triggered
-//message : centerprint this text string when triggered
-//wait : time in seconds until trigger becomes re-triggerable after it's been touched (default 0.2, -1 = trigger once).
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jaltodo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//MONSTER : &1 monsters won't activate this trigger unless this flag is set
-//NOT_PLAYER : &2 players can't trigger this one (for those triggered by other triggers)
-//TRIGGERED : &4 spawns as triggered and must wait for the "wait" key to pass to be re-triggered
-//-------- NOTES --------
-//message is untested
-
 static void trigger_enable( edict_t *self, edict_t *other, edict_t *activator ) {
 	self->r.solid = SOLID_TRIGGER;
 	self->use = Use_Multi;
@@ -156,25 +136,6 @@ void SP_trigger_multiple( edict_t *ent ) {
 	GClip_LinkEntity( ent );
 }
 
-
-//QUAKED trigger_once (.5 .5 .5) ? MONSTER NOT_PLAYER TRIGGERED
-//Triggers once, then removes itself. You must set the key "target" to the name of another object in the level that has a matching "targetname".
-//-------- KEYS --------
-//target : this points to the entity to activate.
-//targetname : activating trigger points to this.
-//noise : play this noise when triggered
-//message : centerprint this text string when triggered
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jaltodo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//MONSTER : &1 monsters won't activate this trigger unless this flag is set
-//NOT_PLAYER : &2 players can't trigger this one (for those triggered by other triggers)
-//TRIGGERED : &4 spawns as triggered and must wait for the "wait" key to pass to be re-triggered
-//-------- NOTES --------
-//Wait key will be ignored. message is untested
-
 void SP_trigger_once( edict_t *ent ) {
 	ent->wait = -1;
 	SP_trigger_multiple( ent );
@@ -185,16 +146,6 @@ void SP_trigger_once( edict_t *ent ) {
 //trigger_always
 //
 //==============================================================================
-
-
-//QUAKED trigger_always (.5 .5 .5) (-8 -8 -8) (8 8 8)
-//Automatic trigger. It will fire the entities it targets as soon as it spawns in the game.
-//-------- KEYS --------
-//target : fire entities with this targetname.
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jaltodo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
 
 static void trigger_always_think( edict_t *ent ) {
 	G_UseTargets( ent, ent );
@@ -211,29 +162,11 @@ void SP_trigger_always( edict_t *ent ) {
 	ent->nextThink = level.time + 1000 * ent->delay;
 }
 
-
 //==============================================================================
 //
 //trigger_push
 //
 //==============================================================================
-
-
-//QUAKED trigger_push (.5 .5 .5) ? PUSH_ONCE
-//This is used to create jump pads and launch ramps. It MUST point to a target_position or info_notnull entity to work.
-//-------- KEYS --------
-//target : this points to the target_position to which the player will jump.
-//noise : override default noise ("silent" doesn't make any noise)
-//wait : time before it can be triggered again.
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jaltodo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//PUSH_ONCE : &1 only push when touched the first time
-//-------- NOTES --------
-//To make a jump pad or launch ramp, place the target_position/info_notnull entity at the highest point of the jump and target it with this entity.
-
 
 static void G_JumpPadSound( edict_t *ent ) {
 	vec3_t org;
@@ -369,27 +302,6 @@ void SP_trigger_push( edict_t *self ) {
 //trigger_hurt
 //
 //==============================================================================
-
-//QUAKED trigger_hurt (.5 .5 .5) ? START_OFF TOGGLE SILENT NO_PROTECTION SLOW KILL FALL
-//Any player that touches this will be hurt by "dmg" points of damage
-//-------- KEYS --------
-//dmg : number of points of damage inflicted to player per "wait" time lapse (default 5 - integer values only).
-//wait : wait time before hurting again (in seconds. Default 0.1)
-//noise : sound to be played when inflicting damage
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jaltodo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//START_OFF : needs to be triggered (toggle) for damage
-//TOGGLE : toogle
-//SILENT : supresses the sizzling sound while player is being hurt.
-//NO_PROTECTION : player will be hurt regardless of protection (see Notes).
-//SLOW : changes the damage rate to once per second.
-//KILL : player will die instantly.
-//FALL : player will die the next time he touches the ground.
-//-------- NOTES --------
-//The invulnerability power-up (item_enviro) does not protect the player from damage caused by this entity regardless of whether the NO_PROTECTION spawnflag is set or not. Triggering a trigger_hurt will have no effect if the START_OFF spawnflag is not set. A trigger_hurt always starts on in the game.
 
 static void hurt_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	if( self->r.solid == SOLID_NOT ) {
@@ -537,16 +449,6 @@ void SP_trigger_hurt( edict_t *self ) {
 //
 //==============================================================================
 
-//QUAKED trigger_gravity (.5 .5 .5) ?
-//Any player that touches this will change his gravity fraction. 1.0 is standard gravity
-//-------- KEYS --------
-//gravity : fraction of gravity to use. (Default 1.0)
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jaltodo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- NOTES --------
-//Changes the touching entites gravity to the value of "gravity".  1.0 is standard gravity for the level.
 static void trigger_gravity_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
 	if( self->s.team && self->s.team != other->s.team ) {
 		return;
@@ -575,23 +477,6 @@ void SP_trigger_gravity( edict_t *self ) {
 	self->gravity = atof( st.gravity );
 	self->touch = trigger_gravity_touch;
 }
-
-
-//QUAKED trigger_teleport (.5 .5 .5) ? SPECTATOR
-//Players touching this will be teleported. Target it to a misc_teleporter_dest.
-//-------- KEYS --------
-//target : this points to the entity to activate.
-//targetname : activating trigger points to this.
-//noise : play this noise when triggered
-//wait : time in seconds until trigger becomes re-triggerable after it's been touched (default 0.2, -1 = trigger once).
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jaltodo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//SPECTATOR : &1 only teleport players moving in spectator mode
-//-------- NOTES --------
-//Target it to a misc_teleporter_dest.
 
 static void TeleporterTouch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
 	edict_t *dest;

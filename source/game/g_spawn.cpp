@@ -71,9 +71,7 @@ static const EntityField fields[] = {
 	{ "lip", STOFS( lip ), F_INT, FFL_SPAWNTEMP },
 	{ "distance", STOFS( distance ), F_INT, FFL_SPAWNTEMP },
 	{ "radius", STOFS( radius ), F_FLOAT, FFL_SPAWNTEMP },
-	{ "roll", STOFS( roll ), F_FLOAT, FFL_SPAWNTEMP },
 	{ "height", STOFS( height ), F_INT, FFL_SPAWNTEMP },
-	{ "phase", STOFS( phase ), F_FLOAT, FFL_SPAWNTEMP },
 	{ "noise", STOFS( noise ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "noise_start", STOFS( noise_start ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "noise_stop", STOFS( noise_stop ), F_LSTRING, FFL_SPAWNTEMP },
@@ -81,11 +79,6 @@ static const EntityField fields[] = {
 	{ "item", STOFS( item ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "gravity", STOFS( gravity ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "fov", STOFS( fov ), F_FLOAT, FFL_SPAWNTEMP },
-	{ "notsingle", STOFS( notsingle ), F_INT, FFL_SPAWNTEMP },
-	{ "notteam", STOFS( notteam ), F_INT, FFL_SPAWNTEMP },
-	{ "notfree", STOFS( notfree ), F_INT, FFL_SPAWNTEMP },
-	{ "notduel", STOFS( notduel ), F_INT, FFL_SPAWNTEMP },
-	{ "noents", STOFS( noents ), F_INT, FFL_SPAWNTEMP },
 	{ "gameteam", STOFS( gameteam ), F_INT, FFL_SPAWNTEMP },
 	{ "weight", STOFS( weight ), F_INT, FFL_SPAWNTEMP },
 	{ "scale", STOFS( scale ), F_FLOAT, FFL_SPAWNTEMP },
@@ -175,16 +168,6 @@ static bool G_CanSpawnEntity( edict_t *ent ) {
 
 	if( ent == world ) {
 		return true;
-	}
-
-	if( !GS_TeamBasedGametype() && st.notfree ) {
-		return false;
-	}
-	if( ( GS_TeamBasedGametype() && ( GS_MaxPlayersInTeam() == 1 ) ) && ( st.notduel || st.notfree ) ) {
-		return false;
-	}
-	if( ( GS_TeamBasedGametype() && ( GS_MaxPlayersInTeam() != 1 ) ) && st.notteam ) {
-		return false;
 	}
 
 	if( ( item = G_ItemForEntity( ent ) ) != NULL ) {
@@ -826,18 +809,6 @@ bool G_RespawnLevel( void ) {
 	return true;
 }
 
-//===================================================================
-
-//QUAKED worldspawn (0 0 0) ?
-//
-//Only used for the world.
-//"sky"	environment map name
-//"skyaxis"	vector axis for rotating sky
-//"skyrotate"	speed of rotation in degrees/second
-//"sounds"	music cd track number
-//"gravity"	800 is default gravity
-//"message"	text to print at user logon
-//========================
 static void SP_worldspawn( edict_t *ent ) {
 	ent->movetype = MOVETYPE_PUSH;
 	ent->r.solid = SOLID_YES;

@@ -21,14 +21,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "g_local.h"
 #include "qalgo/rng.h"
 
-//QUAKED info_player_start (1 0 0) (-16 -16 -24) (16 16 32)
-//The normal starting point for a level.
 void SP_info_player_start( edict_t *self ) {
 	G_DropSpawnpointToFloor( self );
 }
 
-//QUAKED info_player_deathmatch (1 0 1) (-16 -16 -24) (16 16 32)
-//potential spawning position for deathmatch games
 void SP_info_player_deathmatch( edict_t *self ) {
 	G_DropSpawnpointToFloor( self );
 }

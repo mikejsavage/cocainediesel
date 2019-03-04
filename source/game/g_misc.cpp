@@ -123,24 +123,6 @@ void BecomeExplosion1( edict_t *self ) {
 	self->r.svflags &= ~SVF_NOCLIENT;
 }
 
-
-//QUAKED path_corner (.5 .3 0) (-8 -8 -8) (8 8 8) TELEPORT
-//Path corner entity that func_trains can be made to follow.
-//-------- KEYS --------
-//target : point to next path_corner in the path.
-//targetname : the train following the path or the previous path_corner in the path points to this.
-//pathtarget: gets used when an entity that has this path_corner targeted touches it
-//speed : speed of func_train while moving to the next path corner. This will override the speed value of the train.
-//wait : number of seconds func_train will pause on path corner before moving to next path corner (default 0 - see Notes).
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jaltodo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//TELEPORT : &1 instant move to next target
-//-------- NOTES --------
-//Setting the wait key to -1 will not make the train stop on the path corner, it will simply default to 0.
-
 static void path_corner_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
 	vec3_t v;
 	edict_t *next;
@@ -206,24 +188,6 @@ void SP_path_corner( edict_t *self ) {
 //
 //========================================================
 
-//===========================================================
-
-//QUAKED func_wall (0 .5 .8) ? TRIGGER_SPAWN TOGGLE START_ON - -
-//This is just a solid wall if not inhibited. Can be used for conditional walls.
-//-------- KEYS --------
-//target : activate entities with this targetname when used
-//targetname : use this name to target me
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jaltodo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//TRIGGER_SPAWN : &1 the wall will not be present until triggered it will then blink in to existance; it will kill anything that was in its way
-//TOGGLE : &2 only valid for TRIGGER_SPAWN walls this allows the wall to be turned on and off
-//START_ON : &4 only valid for TRIGGER_SPAWN walls the wall will initially be present
-//-------- NOTES --------
-//Untested entity
-
 static void func_wall_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	if( self->r.solid == SOLID_NOT ) {
 		self->r.solid = SOLID_YES;
@@ -279,21 +243,6 @@ void SP_func_wall( edict_t *self ) {
 
 //===========================================================
 
-//QUAKED func_static (0 .5 .8) ?
-//Static non-solid bspmodel. Can be used for conditional walls and models.
-//-------- KEYS --------
-//model2 : path/name of model to include (eg: models/mapobjects/bitch/fembotbig.md3).
-//origin : alternate method of setting XYZ origin of .md3 model included with entity (See Notes).
-//light : constantLight radius of .md3 model included with entity. Has no effect on the entity's brushes (default 0).
-//color : constantLight color of .md3 model included with entity. Has no effect on the entity's brushes (default 1 1 1).
-//targetname : NOT SUPPORTED BY RENDERER - if set, a func_button or trigger can make entity disappear from the game (See Notes).
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jaltodo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- NOTES --------
-//When using the model2 key, the origin point of the model will correspond to the origin point defined by either the origin brush or the origin coordinate value. If a model is included with a targeted func_static, the brush(es) of the entity will be removed from the game but the .md3 model won't: it will automatically be moved to the (0 0 0) world origin so you should NOT include an .md3 model to a targeted func_static.
-
 void SP_func_static( edict_t *ent ) {
 	G_InitMover( ent );
 	ent->movetype = MOVETYPE_NONE;
@@ -302,23 +251,6 @@ void SP_func_static( edict_t *ent ) {
 }
 
 //===========================================================
-
-//QUAKED func_object (0 .5 .8) ? TRIGGER_SPAWN - -
-//This is solid bmodel that will fall if its support it removed.
-//-------- KEYS --------
-//origin : alternate method of setting XYZ origin of .md3 model included with entity (See Notes).
-//light : constantLight radius of .md3 model included with entity. Has no effect on the entity's brushes (default 0).
-//color : constantLight color of .md3 model included with entity. Has no effect on the entity's brushes (default 1 1 1).
-//target : fire targets with this name at being used.
-//targetname : name to be targeted with.
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jaltodo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//TRIGGER_SPAWN : &1 spawn this entity when target is fired
-//-------- NOTES --------
-//model2 is not supported in func_objects, only map brushes can be safely used as model
 
 static void func_object_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
 	// only squash thing we fall on top of
@@ -381,28 +313,6 @@ void SP_func_object( edict_t *self ) {
 }
 
 //===========================================================
-
-//QUAKED func_explosive (0 .5 .8) ? TRIGGER_SPAWN - -
-//Any brush that you want to explode or break apart.  If you want an
-//explosion, set dmg and it will do a radius explosion of that amount
-//at the center of the bursh. If targeted it will not be shootable.
-//-------- KEYS --------
-//health : defaults to 100.
-//mass : defaults to 75.  This determines how much debris is emitted when it explodes.  You get one large chunk per 100 of mass (up to 8) and one small chunk per 25 of mass (up to 16).  So 800 gives the most.
-//model2 : a md3 model.
-//origin : alternate method of setting XYZ origin of .md3 model included with entity (See Notes).
-//light : constantLight radius of .md3 model included with entity. Has no effect on the entity's brushes (default 0).
-//color : constantLight color of .md3 model included with entity. Has no effect on the entity's brushes (default 1 1 1).
-//target : fire targets with this name at being used.
-//targetname : name to be targeted with.
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jaltodo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//TRIGGER_SPAWN : &1 spawn this entity when target is fired
-//-------- NOTES --------
-//Untested: model2 models might not collide perfectly if used with a brush origin
 
 static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point ) {
 	vec3_t origin, bakorigin;
@@ -569,31 +479,13 @@ void SP_func_explosive( edict_t *self ) {
 //
 //========================================================
 
-//QUAKED misc_teleporter_dest (1 .5 .25) (-32 -32 -24) (32 32 -16)
-//Teleport destination location point for trigger_teleporter entities.
-//-------- KEYS --------
-//angle : direction in which player will look when teleported.
-//targetname : make the trigger_teleporter point to this.
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jaltodo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
 void SP_misc_teleporter_dest( edict_t *ent ) {
 	//ent->s.origin[2] += 16;
 }
 
-//=====================================================
-
-//QUAKED misc_model (1 .5 .25) (-16 -16 -16) (16 16 16)
-//Generic placeholder for inserting .md3 models in game. Requires compilation of map geometry to be added to level.
-//-------- KEYS --------
-//angle: direction in which model will be oriented.
-//model : path/name of model to use (eg: models/mapobjects/teleporter/teleporter.md3).
 void SP_misc_model( edict_t *ent ) {
 	G_FreeEdict( ent );
 }
-
-//=====================================================
 
 void SP_misc_particles_finish( edict_t *ent ) {
 	// if it has a target, look towards it
@@ -618,10 +510,6 @@ void SP_misc_particles_use( edict_t *self, edict_t *other, edict_t *activator ) 
 
 }
 
-//QUAKED misc_particles (.6 .7 .7) (-8 -8 -8) (8 8 8) SPHERICAL SOLID GRAVITY LIGHT EXPAND_EFFECT SHRINK_EFFECT START_OFF
-//-------- KEYS --------
-//angles: direction in which particles will be thrown.
-//shader : particleShader
 void SP_misc_particles( edict_t *ent ) {
 	ent->r.svflags &= ~SVF_NOCLIENT;
 	ent->r.svflags |= SVF_BROADCAST;

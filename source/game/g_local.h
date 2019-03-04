@@ -198,9 +198,7 @@ typedef struct {
 	int lip;
 	int distance;
 	int height;
-	float roll;
 	float radius;
-	float phase;
 	const char *noise;
 	const char *noise_start;
 	const char *noise_stop;
@@ -208,12 +206,6 @@ typedef struct {
 	const char *item;
 	const char *gravity;
 	const char *debris1, *debris2;
-
-	int notsingle;
-	int notteam;
-	int notfree;
-	int notduel;
-	int noents;
 
 	int gameteam;
 
@@ -838,8 +830,6 @@ typedef struct {
 	float distance;    // used by binary movers
 
 	float wait;
-
-	float phase;
 
 	// state data
 	int state;

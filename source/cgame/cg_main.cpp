@@ -294,7 +294,7 @@ static void CG_RegisterModels( void ) {
 		CG_LoadingString( "models" );
 
 		cgs.numWeaponModels = 1;
-		Q_strncpyz( cgs.weaponModels[0], "generic/generic.md3", sizeof( cgs.weaponModels[0] ) );
+		Q_strncpyz( cgs.weaponModels[0], "", sizeof( cgs.weaponModels[0] ) );
 
 		cgs.precacheModelsStart = 1;
 	}

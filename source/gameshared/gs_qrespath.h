@@ -108,17 +108,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
 // weapons
-#define PATH_GUNBLADE_MODEL     "models/weapons/gunblade/gunblade.iqm"
-#define PATH_MACHINEGUN_MODEL       "models/weapons/machinegun/machinegun.iqm"
-#define PATH_MACHINEGUN_BARREL_MODEL        "models/weapons/machinegun/machinegun_barrel.iqm"
-#define PATH_RIOTGUN_MODEL      "models/weapons/riotgun/riotgun.iqm"
-#define PATH_GRENADELAUNCHER_MODEL  "models/weapons/glauncher/glauncher.iqm"
-#define PATH_GRENADELAUNCHER_BARREL_MODEL   "models/weapons/glauncher/glauncher_barrel.iqm"
+#define PATH_GUNBLADE_MODEL         "models/weapons/gunblade/gunblade.md3"
+#define PATH_MACHINEGUN_MODEL       "models/weapons/machinegun/machinegun.md3"
+#define PATH_RIOTGUN_MODEL          "models/weapons/riotgun/riotgun.md3"
+#define PATH_GRENADELAUNCHER_MODEL  "models/weapons/glauncher/glauncher.md3"
 #define PATH_ROCKETLAUNCHER_MODEL   "models/weapons/rl.md3"
-#define PATH_PLASMAGUN_MODEL        "models/weapons/plasmagun/plasmagun.iqm"
-#define PATH_PLASMAGUN_BARREL_MODEL   "models/weapons/plasmagun/plasmagun_barrel.iqm"
-#define PATH_ELECTROBOLT_MODEL      "models/weapons/electrobolt/electrobolt.iqm"
-#define PATH_LASERGUN_MODEL     "models/weapons/lg.md3"
+#define PATH_PLASMAGUN_MODEL        "models/weapons/plasmagun/plasmagun.md3"
+#define PATH_ELECTROBOLT_MODEL      "models/weapons/electrobolt/electrobolt.md3"
+#define PATH_LASERGUN_MODEL         "models/weapons/lg.md3"
 
 // weapon projectiles
 #define PATH_GUNBLADEBLAST_MODEL "models/objects/projectile/gb.md3"
@@ -127,18 +124,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PATH_GRENADE_MODEL       "models/objects/projectile/gl.glb"
 #define PATH_ROCKET_MODEL        "models/objects/projectile/rl.glb"
 
-#define PATH_BULLET_EXPLOSION_MODEL     "models/weapon_hits/bullet/hit_bullet.md3"
+#define PATH_BULLET_EXPLOSION_MODEL         "models/weapon_hits/bullet/hit_bullet.md3"
 #define PATH_GRENADE_EXPLOSION_MODEL        "models/weapon_hits/glauncher/hit_glauncher.md3"
-#define PATH_PLASMA_EXPLOSION_MODEL     "models/weapon_hits/plasmagun/hit_plasmagun.md3"
-#define PATH_ROCKET_EXPLOSION_MODEL     "models/weapon_hits/rlauncher/hit_rlauncher.md3"
+#define PATH_PLASMA_EXPLOSION_MODEL         "models/weapon_hits/plasmagun/hit_plasmagun.md3"
+#define PATH_ROCKET_EXPLOSION_MODEL         "models/weapon_hits/rlauncher/hit_rlauncher.md3"
 #define PATH_GUNBLADEBLAST_IMPACT_MODEL     "models/weapon_hits/gunblade/hit_blast.md3"
 #define PATH_GUNBLADEBLAST_EXPLOSION_MODEL  "models/weapon_hits/gunblade/hit_blastexp.md3"
 #define PATH_ELECTROBLAST_IMPACT_MODEL      "models/weapon_hits/electrobolt/hit_electrobolt.md3"
-#define PATH_LASERGUN_IMPACT_MODEL      "models/weapon_hits/lasergun/hit_blastexp.md3"
+#define PATH_LASERGUN_IMPACT_MODEL          "models/weapon_hits/lasergun/hit_blastexp.md3"
 
-#define GRENADE_EXPLOSION_MODEL_RADIUS      30.0
-#define PLASMA_EXPLOSION_MODEL_RADIUS       10.0
-#define ROCKET_EXPLOSION_MODEL_RADIUS       10.0
+#define PLASMA_EXPLOSION_MODEL_RADIUS           10.0
 #define GUNBLADEBLAST_EXPLOSION_MODEL_RADIUS    10.0
 
 //

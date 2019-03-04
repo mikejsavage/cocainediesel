@@ -122,10 +122,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // weapon projectiles
 #define PATH_GUNBLADEBLAST_MODEL "models/objects/projectile/gb.md3"
-#define PATH_PLASMA_MODEL        "models/objects/projectile/pg.md3"
-#define PATH_BULLET_MODEL        "models/objects/projectile/mg.md3"
-#define PATH_GRENADE_MODEL       "models/objects/projectile/gl.md3"
-#define PATH_ROCKET_MODEL        "models/objects/projectile/rl.md3"
+#define PATH_PLASMA_MODEL        "models/objects/projectile/pg.glb"
+#define PATH_BULLET_MODEL        "models/objects/projectile/mg.glb"
+#define PATH_GRENADE_MODEL       "models/objects/projectile/gl.glb"
+#define PATH_ROCKET_MODEL        "models/objects/projectile/rl.glb"
 
 #define PATH_BULLET_EXPLOSION_MODEL     "models/weapon_hits/bullet/hit_bullet.md3"
 #define PATH_GRENADE_EXPLOSION_MODEL        "models/weapon_hits/glauncher/hit_glauncher.md3"

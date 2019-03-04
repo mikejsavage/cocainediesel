@@ -1,12 +1,12 @@
 models/objects/projectile/glauncher/grenade
 {
 	{
-		map models/objects/projectile/glauncher/grenade.tga
+		map $whiteimage
 		rgbgen entity
 	}
 	// pulse
 	{
-		map models/objects/projectile/glauncher/grenade.tga
+		map $whiteimage
 		rgbGen wave sin 0 0.5 1 3
 		blendFunc add
 	}

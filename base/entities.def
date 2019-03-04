@@ -9,6 +9,13 @@ Camera for intermission screen between matches. Can be aimed by setting the "ang
 angles : View angles, pitch/yaw/roll
 target : Point at a target entity to make the camera look at it*/
 
+/*QUAKED info_player_deathmatch (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
+Gladiator spawn point
+-------- KEYS --------
+target : this can point at a target_give entity for respawn freebies.
+-------- SPAWNFLAGS --------
+SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.*/
+
 /*QUAKED team_CTF_alphaplayer (1 .2 0) (-16 -16 -24) (16 16 40) SUSPENDED
 Initial Alpha team spawning position for CTF games. This is where players spawn when they join the Alpha team.
 -------- KEYS --------

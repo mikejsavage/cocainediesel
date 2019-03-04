@@ -1,6 +1,7 @@
 require( "ggbuild.gen_ninja" )
 require( "ggbuild.git_version" )
 
+require( "libs.cgltf" )
 require( "libs.glad" )
 require( "libs.imgui" )
 require( "libs.stb" )
@@ -54,6 +55,7 @@ do
 		},
 
 		libs = {
+			"cgltf",
 			"glad",
 			"imgui",
 			"stb_image",

@@ -144,7 +144,6 @@ inline float Q_RSqrt( float x ) {
 
 template< typename T >
 T Lerp( T a, float t, T b ) {
-        assert( t >= 0.0f && t <= 1.0f );
         return a * ( 1.0f - t ) + b * t;
 }
 

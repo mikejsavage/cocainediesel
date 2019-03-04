@@ -258,7 +258,7 @@ mesh_vbo_t *R_InitNullModelVBO( void ) {
 /*
 * R_DrawNullSurf
 */
-void R_DrawNullSurf( const entity_t *e, const shader_t *shader, drawSurfaceType_t *drawSurf ) {
+void R_DrawNullSurf( const entity_t *e, const shader_t *shader, const drawSurfaceType_t *drawSurf ) {
 	assert( rsh.nullVBO != NULL );
 	if( !rsh.nullVBO ) {
 		return;
@@ -741,6 +741,9 @@ static void R_DrawEntities( void ) {
 			switch( cache->mod_type ) {
 			case mod_alias:
 				R_AddAliasModelToDrawList( e );
+				break;
+			case ModelType_GLTF:
+				R_AddGLTFModelToDrawList( e );
 				break;
 			case mod_skeletal:
 				R_AddSkeletalModelToDrawList( e );

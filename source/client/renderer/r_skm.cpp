@@ -1051,7 +1051,7 @@ static void R_CacheBoneTransformsJob( unsigned first, unsigned items, const joba
 /*
 * R_DrawSkeletalSurf
 */
-void R_DrawSkeletalSurf( const entity_t *e, const shader_t *shader, drawSurfaceSkeletal_t *drawSurf ) {
+void R_DrawSkeletalSurf( const entity_t *e, const shader_t *shader, const drawSurfaceSkeletal_t *drawSurf ) {
 	const model_t *mod = drawSurf->model;
 	const mskmodel_t *skmodel = ( const mskmodel_t * )mod->extradata;
 	const mskmesh_t *skmesh = drawSurf->mesh;

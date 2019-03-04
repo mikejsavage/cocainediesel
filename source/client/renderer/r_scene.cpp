@@ -104,6 +104,9 @@ static void R_CacheSceneEntity( entity_t *e ) {
 		case mod_alias:
 			R_CacheAliasModelEntity( e );
 			break;
+		case ModelType_GLTF:
+			R_CacheGLTFModelEntity( e );
+			break;
 		case mod_skeletal:
 			R_CacheSkeletalModelEntity( e );
 			break;

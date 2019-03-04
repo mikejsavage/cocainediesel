@@ -43,14 +43,17 @@ static mempool_t *mod_mempool;
 static const modelFormatDescr_t mod_supportedformats[] =
 {
 	// Quake III Arena .md3 models
-	{ IDMD3HEADER, 4, NULL, ( const modelLoader_t )Mod_LoadAliasMD3Model },
+	{ IDMD3HEADER, 4, NULL, modelLoader_t( Mod_LoadAliasMD3Model ) },
+
+	// GLTF binaries
+	{ "glTF", 4, NULL, modelLoader_t( Mod_LoadGLTFModel ) },
 
 	// Skeletal models
-	{ IQM_MAGIC, sizeof( IQM_MAGIC ), NULL, ( const modelLoader_t )Mod_LoadSkeletalModel },
+	{ IQM_MAGIC, sizeof( IQM_MAGIC ), NULL, modelLoader_t( Mod_LoadSkeletalModel ) },
 
 	// Q3-alike .bsp models
-	{ ( const char * ) COMPRESSED_BSP_MAGIC, sizeof( COMPRESSED_BSP_MAGIC ), NULL, ( const modelLoader_t )Mod_LoadCompressedBSP },
-	{ "*", 4, q3BSPFormats, ( const modelLoader_t )Mod_LoadQ3BrushModel },
+	{ ( const char * ) COMPRESSED_BSP_MAGIC, sizeof( COMPRESSED_BSP_MAGIC ), NULL, modelLoader_t( Mod_LoadCompressedBSP ) },
+	{ "*", 4, q3BSPFormats, modelLoader_t( Mod_LoadQ3BrushModel ) },
 
 	{ }
 };

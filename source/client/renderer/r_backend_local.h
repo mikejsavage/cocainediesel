@@ -114,7 +114,7 @@ typedef struct r_backend_s {
 	mat3_t cameraAxis;
 
 	const entity_t *currentEntity;
-	modtype_t currentModelType;
+	ModelType currentModelType;
 	const mesh_vbo_t *currentMeshVBO;
 	rbBonesData_t bonesData;
 

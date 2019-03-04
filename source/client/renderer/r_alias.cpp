@@ -509,7 +509,7 @@ bool R_AliasModelLerpTag( orientation_t *orient, const maliasmodel_t *aliasmodel
 *
 * Interpolates between two frames and origins
 */
-void R_DrawAliasSurf( const entity_t *e, const shader_t *shader, drawSurfaceAlias_t *drawSurf ) {
+void R_DrawAliasSurf( const entity_t *e, const shader_t *shader, const drawSurfaceAlias_t *drawSurf ) {
 	int i;
 	int framenum = e->frame, oldframenum = e->oldframe;
 	float backv[3], frontv[3];

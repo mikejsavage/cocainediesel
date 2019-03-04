@@ -44,7 +44,7 @@ typedef struct mesh_s {
 typedef struct {
 	unsigned int distKey;
 	uint64_t sortKey;
-	drawSurfaceType_t *drawSurf;
+	const drawSurfaceType_t *drawSurf;
 } sortedDrawSurf_t;
 
 typedef struct {
@@ -74,10 +74,10 @@ typedef struct {
 	volatile unsigned char *worldDrawSurfVis;
 } drawList_t;
 
-typedef void *(*drawSurf_cb)( const entity_t *, const struct shader_s *, void * );
+typedef void *(*drawSurf_cb)( const entity_t *, const struct shader_s *, const void * );
 
 typedef void (*flushBatchDrawSurf_cb)( void );
-typedef void (*batchDrawSurf_cb)( const entity_t *, const struct shader_s *, void *, bool );
+typedef void (*batchDrawSurf_cb)( const entity_t *, const struct shader_s *, const void *, bool );
 
 typedef void (*walkDrawSurf_cb_cb)( void *, const entity_t *, const struct shader_s *, void *, void *p );
-typedef void (*walkDrawSurf_cb)( const entity_t *, const struct shader_s *, void *, walkDrawSurf_cb_cb, void * );
+typedef void (*walkDrawSurf_cb)( const entity_t *, const struct shader_s *, const void *, walkDrawSurf_cb_cb, void * );

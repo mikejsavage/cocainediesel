@@ -329,7 +329,7 @@ void R_LatLongToNorm4( const uint8_t latlong[2], vec4_t out );
 //
 void R_CacheAliasModelEntity( const entity_t *e );
 bool R_AddAliasModelToDrawList( const entity_t *e );
-void R_DrawAliasSurf( const entity_t *e, const shader_t *shader, drawSurfaceAlias_t *drawSurf );
+void R_DrawAliasSurf( const entity_t *e, const shader_t *shader, const drawSurfaceAlias_t *drawSurf );
 bool R_AliasModelLerpTag( orientation_t *orient, const maliasmodel_t *aliasmodel, int framenum, int oldframenum,
 	float lerpfrac, const char *name );
 void R_AliasModelFrameBounds( const model_t *mod, int frame, vec3_t mins, vec3_t maxs );
@@ -392,6 +392,16 @@ void RFB_FreeUnusedObjects( void );
 void RFB_Shutdown( void );
 
 //
+// r_gltf
+//
+
+struct GLTFMesh;
+void Mod_LoadGLTFModel( model_t * mod, void * buffer, int buffer_size, const bspFormatDesc_t * bsp_format );
+void R_CacheGLTFModelEntity( const entity_t * e );
+void R_AddGLTFModelToDrawList( const entity_t * e );
+void R_DrawGLTFMesh( const entity_t * e, const shader_t * shader, const GLTFMesh * mesh );
+
+//
 // r_main.c
 //
 extern mempool_t *r_mempool;
@@ -451,7 +461,7 @@ float R_DefaultFarClip( void );
 void R_BatchSpriteSurf( const entity_t *e, const shader_t *shader, drawSurfaceType_t *drawSurf, bool mergable );
 
 struct mesh_vbo_s *R_InitNullModelVBO( void );
-void R_DrawNullSurf( const entity_t *e, const shader_t *shader, drawSurfaceType_t *drawSurf );
+void R_DrawNullSurf( const entity_t *e, const shader_t *shader, const drawSurfaceType_t *drawSurf );
 
 void R_CacheSpriteEntity( const entity_t *e );
 
@@ -497,7 +507,7 @@ void R_FrameCache_FreeToMark_( void *mark, const char *filename, int fileline );
 //
 void R_InitDrawList( drawList_t *list );
 void R_ClearDrawList( drawList_t *list );
-void *R_AddSurfToDrawList( drawList_t *list, const entity_t *e, const shader_t *shader, float dist, unsigned int order, void *drawSurf );
+void *R_AddSurfToDrawList( drawList_t *list, const entity_t *e, const shader_t *shader, float dist, unsigned int order, const void *drawSurf );
 void R_ReserveDrawListWorldSurfaces( drawList_t *list );
 
 void R_InitDrawLists( void );
@@ -575,7 +585,7 @@ shader_t    *R_FindShaderForSkinFile( const struct skinfile_s *skinfile, const c
 //
 void R_CacheSkeletalModelEntity( const entity_t *e );
 bool R_AddSkeletalModelToDrawList( const entity_t *e );
-void R_DrawSkeletalSurf( const entity_t *e, const shader_t *shader, drawSurfaceSkeletal_t *drawSurf );
+void R_DrawSkeletalSurf( const entity_t *e, const shader_t *shader, const drawSurfaceSkeletal_t *drawSurf );
 void R_SkeletalModelFrameBounds( const model_t *mod, int frame, vec3_t mins, vec3_t maxs );
 int R_SkeletalGetBoneInfo( const model_t *mod, int bonenum, char *name, size_t name_size, int *flags );
 void R_SkeletalGetBonePose( const model_t *mod, int bonenum, int frame, bonepose_t *bonepose );

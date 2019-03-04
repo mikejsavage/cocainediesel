@@ -25,6 +25,7 @@ typedef enum {
 	ST_NONE,
 	ST_BSP,
 	ST_ALIAS,
+	ST_GLTF,
 	ST_SKELETAL,
 	ST_SPRITE,
 	ST_POLY,
@@ -65,13 +66,6 @@ typedef struct {
 typedef struct {
 	drawSurfaceType_t type;
 
-	float skyMins[2][6];
-	float skyMaxs[2][6];
-} drawSurfaceSky_t;
-
-typedef struct {
-	drawSurfaceType_t type;
-
 	struct maliasmesh_s *mesh;
 
 	struct model_s *model;
@@ -84,6 +78,11 @@ typedef struct {
 
 	struct model_s *model;
 } drawSurfaceSkeletal_t;
+
+typedef struct {
+	drawSurfaceType_t type;
+	struct model_s *model;
+} drawSurfaceGLTF_t;
 
 typedef struct {
 	drawSurfaceType_t type;

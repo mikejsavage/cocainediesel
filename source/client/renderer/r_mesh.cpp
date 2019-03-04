@@ -178,7 +178,7 @@ static void R_UnpackSortKey( uint64_t sortKey, unsigned int *shaderNum, unsigned
 * Calculate sortkey and store info used for batching and sorting.
 * All 3D-geometry passes this function.
 */
-void *R_AddSurfToDrawList( drawList_t *list, const entity_t *e, const shader_t *shader, float dist, unsigned int order, void *drawSurf ) {
+void *R_AddSurfToDrawList( drawList_t *list, const entity_t *e, const shader_t *shader, float dist, unsigned int order, const void *drawSurf ) {
 	int distKey;
 	sortedDrawSurf_t *sds;
 
@@ -201,7 +201,7 @@ void *R_AddSurfToDrawList( drawList_t *list, const entity_t *e, const shader_t *
 	}
 
 	sds = &list->drawSurfs[list->numDrawSurfs++];
-	sds->drawSurf = ( drawSurfaceType_t * )drawSurf;
+	sds->drawSurf = ( const drawSurfaceType_t * )drawSurf;
 	sds->sortKey = R_PackSortKey( shader->id, R_ENT2NUM( e ) );
 	sds->distKey = distKey;
 
@@ -258,6 +258,8 @@ static const drawSurf_cb r_drawSurfCb[ST_MAX_TYPES] =
 	NULL,
 	/* ST_ALIAS */
 	( drawSurf_cb ) & R_DrawAliasSurf,
+	/* ST_GLTF */
+	( drawSurf_cb ) & R_DrawGLTFMesh,
 	/* ST_SKELETAL */
 	( drawSurf_cb ) & R_DrawSkeletalSurf,
 	/* ST_SPRITE */
@@ -275,6 +277,8 @@ static const batchDrawSurf_cb r_batchDrawSurfCb[ST_MAX_TYPES] =
 	/* ST_BSP */
 	( batchDrawSurf_cb ) & R_BatchBSPSurf,
 	/* ST_ALIAS */
+	NULL,
+	/* ST_GLTF */
 	NULL,
 	/* ST_SKELETAL */
 	NULL,
@@ -294,6 +298,8 @@ static const walkDrawSurf_cb r_walkSurfCb[ST_MAX_TYPES] =
 	( walkDrawSurf_cb ) & R_WalkBSPSurf,
 	/* ST_ALIAS */
 	NULL,
+	/* ST_GLTF */
+	NULL,
 	/* ST_SKELETAL */
 	NULL,
 	/* ST_SPRITE */
@@ -311,6 +317,8 @@ static const flushBatchDrawSurf_cb r_flushBatchSurfCb[ST_MAX_TYPES] =
 	/* ST_BSP */
 	( flushBatchDrawSurf_cb ) & R_FlushBSPSurfBatch,
 	/* ST_ALIAS */
+	NULL,
+	/* ST_GLTF */
 	NULL,
 	/* ST_SKELETAL */
 	NULL,

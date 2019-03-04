@@ -329,7 +329,15 @@ typedef struct mskmodel_s {
 // Whole model
 //
 
-typedef enum { mod_bad = -1, mod_free, mod_brush, mod_alias, mod_skeletal, mod_sprite } modtype_t;
+enum ModelType {
+	mod_bad = -1,
+	mod_free,
+	mod_brush,
+	mod_alias,
+	mod_skeletal,
+	ModelType_GLTF,
+};
+
 typedef void ( *mod_touch_t )( struct model_s *model );
 
 typedef struct model_s {
@@ -337,7 +345,7 @@ typedef struct model_s {
 	int registrationSequence;
 	mod_touch_t touch;          // touching a model updates registration sequence, images and VBO's
 
-	modtype_t type;
+	ModelType type;
 
 	//
 	// volume occupied by the model graphics

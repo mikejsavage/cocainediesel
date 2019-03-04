@@ -61,7 +61,7 @@ void Mod_LoadGLTFModel( model_t * mod, void * buffer, int buffer_size, const bsp
 		ri.Com_Error( ERR_DROP, "%s is invalid GLTF", mod->name );
 	}
 
-	if( data->meshes_count != 1 || data->nodes_count != 1 || data->scenes_count != 1 || data->animations_count > 0 ) {
+	if( data->scenes_count != 1 || data->animations_count > 0 ) {
 		cgltf_free( data );
 		ri.Com_Error( ERR_DROP, "Trivial models only please" );
 	}
@@ -75,8 +75,6 @@ void Mod_LoadGLTFModel( model_t * mod, void * buffer, int buffer_size, const bsp
 	mod->radius = 0;
 	ClearBounds( mod->mins, mod->maxs );
 
-	const cgltf_node * node = data->scenes[ 0 ].nodes[ 0 ];
-
 	const mat4_t y_up_to_z_up = {
 		1, 0, 0, 0,
 		0, 0, 1, 0,
@@ -84,21 +82,28 @@ void Mod_LoadGLTFModel( model_t * mod, void * buffer, int buffer_size, const bsp
 		0, 0, 0, 1,
 	};
 
-	mat4_t transform;
-	{
-		mat4_t lolqfusion;
-		cgltf_node_transform_local( node, lolqfusion );
-		Matrix4_Multiply( y_up_to_z_up, lolqfusion, transform );
-	}
+	gltf->num_meshes = data->scene->nodes_count;
 
-	gltf->num_meshes = node->mesh->primitives_count;
+	for( size_t i = 0; i < data->scene->nodes_count; i++ ) {
+		const cgltf_node * node = data->scene->nodes[ i ];
+		if( node->mesh->primitives_count != 1 ) {
+			Mod_MemFree( gltf );
+			cgltf_free( data );
+			ri.Com_Error( ERR_DROP, "Trivial models only please" );
+		}
 
-	for( size_t i = 0; i < node->mesh->primitives_count; i++ ) {
-		const cgltf_primitive & prim = node->mesh->primitives[ i ];
-
+		const cgltf_primitive & prim = node->mesh->primitives[ 0 ];
 		if( prim.indices->component_type != cgltf_component_type_r_16u ) {
+			Mod_MemFree( gltf );
 			cgltf_free( data );
 			ri.Com_Error( ERR_DROP, "16bit indices please" );
+		}
+
+		mat4_t transform;
+		{
+			mat4_t lolqfusion;
+			cgltf_node_transform_local( node, lolqfusion );
+			Matrix4_Multiply( y_up_to_z_up, lolqfusion, transform );
 		}
 
 		vec4_t * positions = NULL;
@@ -168,6 +173,8 @@ void Mod_LoadGLTFModel( model_t * mod, void * buffer, int buffer_size, const bsp
 	}
 
 	mod->radius = RadiusFromBounds( mod->mins, mod->maxs );
+
+	cgltf_free( data );
 }
 
 void R_AddGLTFModelToDrawList( const entity_t * e ) {

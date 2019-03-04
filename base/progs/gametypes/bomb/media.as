@@ -74,14 +74,14 @@ void announceDef( Announcement announcement ) {
 }
 
 void mediaInit() {
-	iconCarrier  = G_ImageIndex( "gfx/hud/icons/vsay/onoffense" ); // TODO: less crappy icon
-	iconReady    = G_ImageIndex( "gfx/hud/icons/vsay/yes" );
+	iconCarrier = G_ImageIndex( "gfx/hud/icons/vsay/onoffense" ); // TODO: less crappy icon
+	iconReady = G_ImageIndex( "gfx/hud/icons/vsay/yes" );
 
-	modelBombModel    = G_ModelIndex( "models/objects/misc/bomb_centered.md3", true );
-	modelBombModelActive    = G_ModelIndex( "models/objects/misc/bomb_centered_active.md3", true );
-	modelBombBackpack = G_ModelIndex( "models/objects/misc/bomb.md3", true );
+	modelBombModel = G_ModelIndex( "models/objects/misc/bomb_centered.glb", true );
+	modelBombModelActive = G_ModelIndex( "models/objects/misc/bomb_centered_active.glb", true );
+	modelBombBackpack = G_ModelIndex( "models/objects/misc/bomb.glb", true );
 
-	imgBombDecal   = G_ImageIndex( "gfx/indicators/radar_decal" );
+	imgBombDecal = G_ImageIndex( "gfx/indicators/radar_decal" );
 
 	sndBeep = G_SoundIndex( "sounds/bomb/bombtimer", false );
 	sndPlantStart = G_SoundIndex( "sounds/misc/timer_bip_bip", false );

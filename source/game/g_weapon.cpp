@@ -680,9 +680,10 @@ void W_Fire_Electrobolt_FullInstant( edict_t *self, vec3_t start, vec3_t angles,
 
 			// spawn a impact event on each damaged ent
 			event = G_SpawnEvent( EV_BOLT_EXPLOSION, DirToByte( tr.plane.normal ), tr.endpos );
+			event->s.team = self->s.team;
 
 			// if we hit a teammate stop the trace
-			if (GS_IsTeamDamage(&hit->s, &self->s)) {
+			if( GS_IsTeamDamage( &hit->s, &self->s ) ) {
 				break;
 			}
 		}

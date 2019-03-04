@@ -1074,7 +1074,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 
 		case EV_BOLT_EXPLOSION:
 			ByteToDir( parm, dir );
-			CG_EBImpact( ent->origin, dir, 0, TEAM_SPECTATOR );
+			CG_EBImpact( ent->origin, dir, 0, ent->team );
 			break;
 
 		case EV_GRENADE_EXPLOSION:

@@ -143,8 +143,8 @@ void CG_ScreenInit( void ) {
 	cg_crosshair_color->modified = true;
 	cg_crosshair_damage_color->modified = true;
 
-	cg_clientHUD =      trap_Cvar_Get( "cg_clientHUD", "", CVAR_ARCHIVE );
-	cg_specHUD =        trap_Cvar_Get( "cg_specHUD", "", CVAR_ARCHIVE );
+	cg_clientHUD =      trap_Cvar_Get( "cg_clientHUD", "default", CVAR_ARCHIVE );
+	cg_specHUD =        trap_Cvar_Get( "cg_specHUD", "default", CVAR_ARCHIVE );
 	cg_showSpeed =      trap_Cvar_Get( "cg_showSpeed", "0", CVAR_ARCHIVE );
 	cg_showPointedPlayer =  trap_Cvar_Get( "cg_showPointedPlayer", "1", CVAR_ARCHIVE );
 	cg_showViewBlends = trap_Cvar_Get( "cg_showViewBlends", "1", CVAR_ARCHIVE );

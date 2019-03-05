@@ -251,20 +251,6 @@ static void KeyBindButton( const char * label, const char * command ) {
 	ImGui::PopID();
 }
 
-static void PushDisabled( bool disabled ) {
-	if( disabled ) {
-		ImGui::PushItemFlag( ImGuiItemFlags_Disabled, true );
-		ImGui::PushStyleVar( ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f );
-	}
-}
-
-static void PopDisabled( bool disabled ) {
-	if( disabled ) {
-		ImGui::PopItemFlag();
-		ImGui::PopStyleVar();
-	}
-}
-
 static bool SelectableColor( const char * label, RGB8 rgb, bool selected ) {
 	bool clicked = ImGui::Selectable( "", selected, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_PressedOnRelease );
 
@@ -402,6 +388,15 @@ static void SettingsKeys() {
 	ImGui::EndChild();
 }
 
+static const char * FullscreenModeToString( FullScreenMode mode ) {
+	switch( mode ) {
+		case FullScreenMode_Windowed: return "Windowed";
+		case FullScreenMode_FullscreenBorderless: return "Borderless";
+		case FullScreenMode_Fullscreen: return "Fullscreen";
+	}
+	return NULL;
+}
+
 static void SettingsVideo() {
 	static WindowMode mode;
 
@@ -412,46 +407,53 @@ static void SettingsVideo() {
 
 	ImGui::Text( "Changing resolution is buggy and you should restart the game after doing it" );
 
-	SettingLabel( "Borderless fullscreen" );
-	bool borderless = mode.fullscreen == FullScreenMode_FullscreenBorderless;
-	ImGui::Checkbox( "##borderless", &borderless );
-
-	PushDisabled( borderless );
-
-	SettingLabel( "Fullscreen" );
-	bool fullscreen = mode.fullscreen != FullScreenMode_Windowed;
-	ImGui::Checkbox( "##vid_fullscreen", &fullscreen );
-
-	mode.fullscreen = FullScreenMode_Windowed;
-	if( fullscreen )
-		mode.fullscreen = borderless ? FullScreenMode_FullscreenBorderless : FullScreenMode_Fullscreen;
-
-	SettingLabel( "Video mode" );
+	SettingLabel( "Window mode" );
 	ImGui::PushItemWidth( 200 );
-
-	if( fullscreen && mode.video_mode.frequency == 0 ) {
-		mode.video_mode = VID_GetVideoMode( 0 );
-	}
-
-	String< 128 > preview;
-	if( fullscreen )
-		preview.append( "{}", mode.video_mode );
-
-	if( ImGui::BeginCombo( "##mode", preview ) ) {
-		for( int i = 0; i < VID_GetNumVideoModes(); i++ ) {
-			VideoMode video_mode = VID_GetVideoMode( i );
-
-			String< 128 > buf( "{}", video_mode );
-			bool is_selected = mode.video_mode.width == video_mode.width && mode.video_mode.height == video_mode.height && mode.video_mode.frequency == video_mode.frequency;
-			if( ImGui::Selectable( buf, is_selected ) ) {
-				mode.video_mode = video_mode;
-			}
+	if( ImGui::BeginCombo( "##fullscreen", FullscreenModeToString( mode.fullscreen ) ) ) {
+		if( ImGui::Selectable( FullscreenModeToString( FullScreenMode_Windowed ), mode.fullscreen == FullScreenMode_Windowed ) ) {
+			mode.fullscreen = FullScreenMode_Windowed;
+		}
+		if( ImGui::Selectable( FullscreenModeToString( FullScreenMode_FullscreenBorderless ), mode.fullscreen == FullScreenMode_FullscreenBorderless ) ) {
+			mode.fullscreen = FullScreenMode_FullscreenBorderless;
+		}
+		if( ImGui::Selectable( FullscreenModeToString( FullScreenMode_Fullscreen ), mode.fullscreen == FullScreenMode_Fullscreen ) ) {
+			mode.fullscreen = FullScreenMode_Fullscreen;
 		}
 		ImGui::EndCombo();
 	}
-	ImGui::PopItemWidth();
 
-	PopDisabled( borderless );
+	if( mode.fullscreen == FullScreenMode_Windowed ) {
+		mode.video_mode.frequency = 0;
+	}
+	else if( mode.fullscreen == FullScreenMode_FullscreenBorderless ) {
+		mode.video_mode.width = 0;
+		mode.video_mode.height = 0;
+		mode.video_mode.frequency = 0;
+	}
+	else if( mode.fullscreen == FullScreenMode_Fullscreen ) {
+		SettingLabel( "Resolution" );
+		ImGui::PushItemWidth( 200 );
+
+		if( mode.video_mode.frequency == 0 ) {
+			mode.video_mode = VID_GetVideoMode( 0 );
+		}
+
+		String< 128 > preview( "{}", mode.video_mode );
+
+		if( ImGui::BeginCombo( "##resolution", preview ) ) {
+			for( int i = 0; i < VID_GetNumVideoModes(); i++ ) {
+				VideoMode video_mode = VID_GetVideoMode( i );
+
+				String< 128 > buf( "{}", video_mode );
+				bool is_selected = mode.video_mode.width == video_mode.width && mode.video_mode.height == video_mode.height && mode.video_mode.frequency == video_mode.frequency;
+				if( ImGui::Selectable( buf, is_selected ) ) {
+					mode.video_mode = video_mode;
+				}
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::PopItemWidth();
+	}
 
 	if( ImGui::Button( "Apply mode changes" ) ) {
 		String< 128 > buf( "{}", mode );

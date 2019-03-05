@@ -131,28 +131,42 @@ static bool VID_LoadRefresh() {
 static bool ParseWindowMode( const char * str, WindowMode * mode ) {
 	*mode = { };
 
-	char fb[ 2 ];
-	int comps = sscanf( str, "%dx%d %1[FB] %d %dHz",
-		&mode->video_mode.width, &mode->video_mode.height,
-		fb, &mode->monitor,
-		&mode->video_mode.frequency );
-	if( comps == 5 ) {
-		mode->fullscreen = fb[ 0 ] == 'F' ? FullScreenMode_Fullscreen : FullScreenMode_FullscreenBorderless;
-		return true;
+	// windowed shorthand
+	{
+		int comps = sscanf( str, "%dx%d", &mode->video_mode.width, &mode->video_mode.height );
+		if( comps == 2 ) {
+			mode->fullscreen = FullScreenMode_Windowed;
+			mode->x = -1;
+			mode->y = -1;
+			return true;
+		}
 	}
 
-	comps = sscanf( str, "%dx%d %dx%d", &mode->video_mode.width, &mode->video_mode.height, &mode->x, &mode->y );
-	if( comps == 4 ) {
-		mode->fullscreen = FullScreenMode_Windowed;
-		return true;
+	// windowed
+	{
+		int comps = sscanf( str, "W %dx%d %dx%d", &mode->video_mode.width, &mode->video_mode.height, &mode->x, &mode->y );
+		if( comps == 4 ) {
+			mode->fullscreen = FullScreenMode_Windowed;
+			return true;
+		}
 	}
 
-	comps = sscanf( str, "%dx%d", &mode->video_mode.width, &mode->video_mode.height );
-	if( comps == 2 ) {
-		mode->fullscreen = FullScreenMode_Windowed;
-		mode->x = -1;
-		mode->y = -1;
-		return true;
+	// borderless
+	{
+		int comps = sscanf( str, "B %d", &mode->monitor );
+		if( comps == 1 ) {
+			mode->fullscreen = FullScreenMode_FullscreenBorderless;
+			return true;
+		}
+	}
+
+	// fullscreen
+	{
+		int comps = sscanf( str, "F %d %dx%d %dHz", &mode->monitor, &mode->video_mode.width, &mode->video_mode.height, &mode->video_mode.frequency );
+		if( comps == 4 ) {
+			mode->fullscreen = FullScreenMode_Fullscreen;
+			return true;
+		}
 	}
 
 	return false;

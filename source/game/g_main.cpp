@@ -273,7 +273,7 @@ void G_Init( unsigned int seed, unsigned int framemsec, int protocol, const char
 	g_asGC_interval = trap_Cvar_Get( "g_asGC_interval", "10", CVAR_ARCHIVE );
 
 	// initialize all entities for this game
-	g_maxentities = trap_Cvar_Get( "sv_maxentities", "1024", CVAR_LATCH );
+	g_maxentities = trap_Cvar_Get( "sv_maxentities", "4096", CVAR_LATCH );
 	game.maxentities = g_maxentities->integer;
 	game.edicts = ( edict_t * )G_Malloc( game.maxentities * sizeof( game.edicts[0] ) );
 

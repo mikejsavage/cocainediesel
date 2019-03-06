@@ -671,38 +671,17 @@ static float CG_OutlineScaleForDist( entity_t *e, float maxdist, float scale ) {
 * CG_AddColoredOutLineEffect
 */
 void CG_AddColoredOutLineEffect( entity_t *ent, int effects, uint8_t r, uint8_t g, uint8_t b, uint8_t a ) {
-	float scale;
-	uint8_t *RGBA;
-
-	if( effects & EF_QUAD ) {
-		if( ( effects & EF_EXPIRING_QUAD ) && ( ( cg.time / 100 ) & 4 ) ) {
-			effects &= ~EF_QUAD;
-		}
-	}
-
-	if( effects & ( EF_QUAD | EF_GODMODE ) ) {
-		float pulse;
-		scale = CG_OutlineScaleForDist( ent, 4096, 3.5f );
-		pulse = fabs( sin( cg.time * 0.005f ) );
-		scale += 1.25f * scale * pulse * pulse;
-	} else if( !cg_outlineModels->integer || !( effects & EF_OUTLINE ) ) {
-		scale = 0;
-	} else {
-		scale = CG_OutlineScaleForDist( ent, 4096, 1.0f );
-	}
-
-	if( !scale ) {
+	if( !cg_outlineModels->integer || !( effects & EF_OUTLINE ) ) {
 		ent->outlineHeight = 0;
 		return;
 	}
 
-	ent->outlineHeight = scale;
-	RGBA = ent->outlineRGBA;
+	ent->outlineHeight = CG_OutlineScaleForDist( ent, 4096, 1.0f );
 
 	if( effects & EF_GODMODE ) {
-		Vector4Set( RGBA, 255, 255, 255, a );
+		Vector4Set( ent->outlineColor, 255, 255, 255, a );
 	} else {
-		Vector4Set( RGBA, ( uint8_t )r, ( uint8_t )g, ( uint8_t )b, ( uint8_t )a );
+		Vector4Set( ent->outlineColor, r, g, b, a );
 	}
 }
 

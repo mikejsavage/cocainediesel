@@ -448,6 +448,7 @@ static const char * obituaries[] = {
 	"BONKED",
 	"BOUGHT",
 	"BROKE UP WITH",
+	"BROWN BAGGED",
 	"BURIED",
 	"BUTTERED",
 	"CANCELED",
@@ -535,6 +536,7 @@ static const char * obituaries[] = {
 	"LYNCHED",
 	"MASSACRED",
 	"MAULED",
+	"MIXED",
 	"MURDERED",
 	"MUTILATED",
 	"NEUTRALIZED",
@@ -623,10 +625,14 @@ static const char * prefixes[] = {
 	"",
 	"",
 	"",
+	"",
+	"",
 	"SHIT",
 	"ASS",
 	"PILE",
 	"PLANTER",
+	"ROFL",
+	"OMEGA",
 };
 
 static const char * RandomObituary() {

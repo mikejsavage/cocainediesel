@@ -589,17 +589,9 @@ static void RB_RenderMeshGLSL_Material( const shaderpass_t *pass, r_glslfeat_t p
 			return;
 		}
 
-		// brush models
 		if( DRAWFLAT() ) {
 			programFeatures |= GLSL_SHADER_COMMON_DRAWFLAT | GLSL_SHADER_MATERIAL_BASETEX_ALPHA_ONLY;
 		}
-	} else if( rb.currentModelType == mod_bad ) {
-		// polys
-	} else {
-		// regular models
-	#ifdef HALFLAMBERTLIGHTING
-		programFeatures |= GLSL_SHADER_MATERIAL_HALFLAMBERT;
-	#endif
 	}
 
 	Matrix4_Identity( texMatrix );

@@ -53,8 +53,9 @@ enum {
 	SHADER_NO_TEX_FILTERING         = 1 << 6,
 	SHADER_ALLDETAIL                = 1 << 7,
 	SHADER_NODRAWFLAT               = 1 << 8,
-	SHADER_SOFT_PARTICLE            = 1 << 9,
-	SHADER_FORCE_OUTLINE_WORLD      = 1 << 10,
+	SHADER_FOG                      = 1 << 9,
+	SHADER_SOFT_PARTICLE            = 1 << 10,
+	SHADER_FORCE_OUTLINE_WORLD      = 1 << 11,
 };
 
 // sorting
@@ -68,10 +69,8 @@ enum {
 	SHADER_SORT_UNDERWATER,
 	SHADER_SORT_ADDITIVE,
 	SHADER_SORT_NEAREST,
-	SHADER_SORT_WEAPON, // optional phase: depth write but no color write
-	SHADER_SORT_WEAPON2,
 
-	SHADER_SORT_MAX = SHADER_SORT_WEAPON2
+	SHADER_SORT_MAX = SHADER_SORT_NEAREST,
 };
 
 // shaderpass flags

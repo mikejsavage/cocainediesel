@@ -459,6 +459,10 @@ static void Shader_Cull( shader_t *shader, shaderpass_t *pass, const char **ptr 
 	}
 }
 
+static void Shader_Fog( shader_t *shader, shaderpass_t *pass, const char **ptr ) {
+	shader->flags |= SHADER_FOG;
+}
+
 static void Shader_NoMipMaps( shader_t *shader, shaderpass_t *pass, const char **ptr ) {
 	r_shaderNoMipMaps = true;
 	r_shaderMinMipSize = 1;
@@ -728,6 +732,7 @@ static void Shader_ForceWorldOutlines( shader_t *shader, shaderpass_t *pass, con
 static const shaderkey_t shaderkeys[] =
 {
 	{ "cull", Shader_Cull },
+	{ "fog", Shader_Fog },
 	{ "nomipmaps", Shader_NoMipMaps },
 	{ "nodrawflat", Shader_NoDrawFlat },
 	{ "nofiltering", Shader_NoFiltering },

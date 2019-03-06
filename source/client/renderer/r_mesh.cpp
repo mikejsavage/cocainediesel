@@ -126,34 +126,11 @@ void R_ReserveDrawListWorldSurfaces( drawList_t *list ) {
 * R_PackDistKey
 */
 static int R_PackDistKey( int renderFx, const shader_t *shader, float dist, unsigned order ) {
-	int shaderSort;
-
-	shaderSort = shader->sort;
-
-	if( renderFx & RF_WEAPONMODEL ) {
-		bool depthWrite = Shader_DepthWrite( shader );
-
-		if( renderFx & RF_NOCOLORWRITE ) {
-			// depth-pass for alpha-blended weapon:
-			// write to depth but do not write to color
-			if( !depthWrite ) {
-				return 0;
-			}
-			// reorder the mesh to be drawn after everything else
-			// but before the blend-pass for the weapon
-			shaderSort = SHADER_SORT_WEAPON;
-		} else if( renderFx & RF_ALPHAHACK ) {
-			// blend-pass for the weapon:
-			// meshes that do not write to depth, are rendered as additives,
-			// meshes that were previously added as SHADER_SORT_WEAPON (see above)
-			// are now added to the very end of the list
-			shaderSort = depthWrite ? SHADER_SORT_WEAPON2 : SHADER_SORT_ADDITIVE;
-		}
-	} else if( renderFx & RF_ALPHAHACK ) {
+	int shaderSort = shader->sort;
+	if( renderFx & RF_ALPHAHACK ) {
 		// force shader sort to additive
 		shaderSort = SHADER_SORT_ADDITIVE;
 	}
-
 	return ( shaderSort << 26 ) | ( max( 0x400 - (int)dist, 0 ) << 15 ) | ( order & 0x7FFF );
 }
 
@@ -396,11 +373,7 @@ static void _R_DrawSurfaces( drawList_t *list, bool *depthCopied, int mode, int 
 		depthWrite = Shader_DepthWrite( shader );
 		batchMergable = true;
 
-		if( ( mode == RB_MODE_DEPTH ) && !depthWrite ) {
-			continue;
-		}
-
-		batchDrawSurf = ( r_batchDrawSurfCb[drawSurfType] ? true : false );
+		batchDrawSurf = r_batchDrawSurfCb[drawSurfType] != NULL;
 
 		// see if we need to reset mesh properties in the backend
 		if( !prevBatchDrawSurf || !batchDrawSurf || shaderNum != prevShaderNum ||

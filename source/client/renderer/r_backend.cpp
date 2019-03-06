@@ -384,14 +384,6 @@ void RB_SetState( int state ) {
 		}
 	}
 
-	if( diff & ( GLSTATE_NO_COLORWRITE | GLSTATE_ALPHAWRITE ) ) {
-		if( state & GLSTATE_NO_COLORWRITE ) {
-			glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
-		} else {
-			glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, ( state & GLSTATE_ALPHAWRITE ) ? GL_TRUE : GL_FALSE );
-		}
-	}
-
 	if( diff & ( GLSTATE_DEPTHFUNC_EQ | GLSTATE_DEPTHFUNC_GT ) ) {
 		if( state & GLSTATE_DEPTHFUNC_EQ ) {
 			glDepthFunc( GL_EQUAL );

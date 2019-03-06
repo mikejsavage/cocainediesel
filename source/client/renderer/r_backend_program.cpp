@@ -564,7 +564,7 @@ static void RB_RenderMeshGLSL_Material( const shaderpass_t *pass, r_glslfeat_t p
 		glossmap = NULL;
 	}
 
-	if( rb.noColorWrite || rb.currentModelType == mod_brush ) {
+	if( rb.currentModelType == mod_brush ) {
 		// render as plain Q3A shader, which is less computation-intensive
 		// TODO: write a depth only shader
 		RB_RenderMeshGLSL_Q3AShader( pass, programFeatures );
@@ -574,12 +574,6 @@ static void RB_RenderMeshGLSL_Material( const shaderpass_t *pass, r_glslfeat_t p
 	state = RB_GetShaderpassState( pass->flags );
 	if( rb.mode == RB_MODE_POST_LIGHT ) {
 		state = ( state & ~GLSTATE_DEPTHWRITE ) | GLSTATE_SRCBLEND_SRC_ALPHA | GLSTATE_DSTBLEND_ONE;
-	}
-
-	if( rb.mode == RB_MODE_DEPTH ) {
-		if( !(state & GLSTATE_DEPTHWRITE) ) {
-			return;
-		}
 	}
 
 	glossIntensity = rb.currentShader->glossIntensity ? rb.currentShader->glossIntensity : r_lighting_glossintensity->value;
@@ -806,7 +800,7 @@ static void RB_RenderMeshGLSL_Q3AShader( const shaderpass_t *pass, r_glslfeat_t 
 	Vector4Set( lightDiffuse, 1, 1, 1, 1 );
 
 	image = RB_ShaderpassTex( pass );
-	if( rb.triangleOutlines || rb.noColorWrite || rb.mode == RB_MODE_DECALS ) {
+	if( rb.triangleOutlines || rb.mode == RB_MODE_DECALS ) {
 		applyLighting = false;
 	} else {
 		applyLighting = isWorldVertexLight;
@@ -842,12 +836,6 @@ static void RB_RenderMeshGLSL_Q3AShader( const shaderpass_t *pass, r_glslfeat_t 
 			state &= ~GLSTATE_BLEND_MASK;
 		}
 		state |= GLSTATE_DEPTHWRITE;
-	}
-
-	if( rb.mode == RB_MODE_DEPTH ) {
-		if( !( state & GLSTATE_DEPTHWRITE ) ) {
-			return;
-		}
 	}
 
 	RB_SetState( RB_GetShaderpassState( state ) );
@@ -1050,7 +1038,6 @@ void RB_BindShader( const entity_t *e, const shader_t *shader ) {
 		rb.alphaHack = false;
 		rb.greyscale = false;
 		rb.noDepthTest = false;
-		rb.noColorWrite = false;
 		rb.depthEqual = false;
 	} else {
 		Vector4Copy( rb.currentEntity->shaderRGBA, rb.entityColor );
@@ -1064,13 +1051,9 @@ void RB_BindShader( const entity_t *e, const shader_t *shader ) {
 		rb.hackedAlpha = e->shaderRGBA[3] / 255.0;
 		rb.greyscale = e->renderfx & RF_GREYSCALE ? true : false;
 		rb.noDepthTest = e->renderfx & RF_NODEPTHTEST && e->rtype == RT_SPRITE ? true : false;
-		rb.noColorWrite = e->renderfx & RF_NOCOLORWRITE ? true : false;
 		rb.depthEqual = rb.alphaHack && !( e->renderfx & RF_WEAPONMODEL );
 	}
 
-	if( rb.mode == RB_MODE_DEPTH ) {
-		rb.noColorWrite = true;
-	}
 	if( rb.mode == RB_MODE_DIFFUSE ) {
 		rb.depthEqual = true;
 	}
@@ -1257,9 +1240,6 @@ static int RB_GetShaderpassState( int state ) {
 			// force alpha blending
 			state = ( state & ~GLSTATE_DEPTHWRITE ) | GLSTATE_SRCBLEND_SRC_ALPHA | GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA;
 		}
-		if( rb.noColorWrite ) {
-			state |= GLSTATE_NO_COLORWRITE;
-		}
 		if( rb.depthEqual && ( state & GLSTATE_DEPTHWRITE ) ) {
 			state |= GLSTATE_DEPTHFUNC_EQ;
 		}
@@ -1345,9 +1325,6 @@ void RB_DrawShadedElements( void ) {
 	bool addGLSLOutline = false;
 	shaderpass_t *pass;
 
-	if( ( rb.mode == RB_MODE_DEPTH ) && !( rb.currentShader->flags & SHADER_DEPTHWRITE ) ) {
-		return;
-	}
 	if( RB_CleanSinglePass() ) {
 		return;
 	}
@@ -1373,15 +1350,10 @@ void RB_DrawShadedElements( void ) {
 		RB_RenderPass( pass );
 	}
 
-	if( rb.mode == RB_MODE_DEPTH || rb.mode == RB_MODE_TRIANGLE_OUTLINES || rb.mode == RB_MODE_DIFFUSE ) {
-		goto end;
-	}
-
 	// outlines
 	if( addGLSLOutline ) {
 		RB_RenderPass( &r_GLSLpasses[BUILTIN_GLSLPASS_OUTLINE] );
 	}
 
-end:
 	rb.dirtyUniformState = rb.donePassesTotal != 1;
 }

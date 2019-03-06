@@ -627,12 +627,14 @@ static const char * prefixes[] = {
 	"",
 	"",
 	"",
+	"",
 	"SHIT",
 	"ASS",
 	"PILE",
 	"PLANTER",
 	"ROFL",
 	"OMEGA",
+	"DUMP",
 };
 
 static const char * RandomObituary() {

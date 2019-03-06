@@ -526,6 +526,7 @@ static const char * obituaries[] = {
 	"INVADED",
 	"JACKED",
 	"JAMMED",
+	"LAGGED",
 	"LANDED ON",
 	"LANDFILLED",
 	"LARDED",

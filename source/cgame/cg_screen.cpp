@@ -918,13 +918,6 @@ void CG_DrawLoading( void ) {
 }
 
 /*
-* CG_LoadingString
-*/
-void CG_LoadingString( const char *str ) {
-	Q_strncpyz( cgs.loadingstring, str, sizeof( cgs.loadingstring ) );
-}
-
-/*
 * CG_LoadingItemName
 *
 * Allow at least one item per frame to be precached.

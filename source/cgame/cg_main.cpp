@@ -287,11 +287,8 @@ static void CG_RegisterModels( void ) {
 			if( !CG_LoadingItemName( name ) ) {
 				return;
 			}
-			CG_LoadingString( name );
 			trap_R_RegisterWorldModel( name );
 		}
-
-		CG_LoadingString( "models" );
 
 		cgs.numWeaponModels = 1;
 		Q_strncpyz( cgs.weaponModels[0], "", sizeof( cgs.weaponModels[0] ) );
@@ -365,8 +362,6 @@ static void CG_RegisterSounds( void ) {
 	}
 
 	if( !cgs.precacheSoundsStart ) {
-		CG_LoadingString( "sounds" );
-
 		cgs.precacheSoundsStart = 1;
 	}
 
@@ -406,8 +401,6 @@ static void CG_RegisterShaders( void ) {
 	}
 
 	if( !cgs.precacheShadersStart ) {
-		CG_LoadingString( "shaders" );
-
 		cgs.precacheShadersStart = 1;
 	}
 
@@ -450,8 +443,6 @@ static void CG_RegisterSkinFiles( void ) {
 	}
 
 	if( !cgs.precacheSkinsStart ) {
-		CG_LoadingString( "skins" );
-
 		cgs.precacheSkinsStart = 1;
 	}
 
@@ -483,10 +474,6 @@ static void CG_RegisterClients( void ) {
 
 	if( cgs.precacheClientsStart == MAX_CLIENTS ) {
 		return;
-	}
-
-	if( !cgs.precacheClientsStart ) {
-		CG_LoadingString( "clients" );
 	}
 
 	for( i = cgs.precacheClientsStart; i < MAX_CLIENTS; i++ ) {
@@ -872,8 +859,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	CG_ValidateItemList();
 
 	CG_LoadStatusBar();
-
-	CG_LoadingString( "" );
 
 	CG_ClearDecals();
 	CG_ClearPolys();

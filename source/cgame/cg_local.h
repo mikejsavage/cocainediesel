@@ -461,7 +461,6 @@ typedef struct {
 	int precacheClientsStart;
 
 	char checkname[MAX_QPATH];
-	char loadingstring[MAX_QPATH];
 	int precacheCount, precacheTotal, precacheStart;
 	int64_t precacheStartMsec;
 } cg_static_t;
@@ -671,7 +670,6 @@ void CG_CenterPrint( const char *str );
 void CG_EscapeKey( void );
 void CG_LoadStatusBar( void );
 
-void CG_LoadingString( const char *str );
 bool CG_LoadingItemName( const char *str );
 
 void CG_DrawCrosshair();

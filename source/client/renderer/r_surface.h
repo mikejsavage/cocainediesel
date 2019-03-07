@@ -59,8 +59,6 @@ typedef struct {
 	instancePoint_t *instances;
 
 	struct shader_s *shader;
-
-	void *listSurf;                 // only valid if visFrame == rf.frameCount
 } drawSurfaceBSP_t;
 
 typedef struct {

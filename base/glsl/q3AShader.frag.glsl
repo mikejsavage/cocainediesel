@@ -66,8 +66,8 @@ void main(void)
 #endif
 
 #ifdef APPLY_DRAWFLAT
-	color.rgb = apply_fog( color.rgb, length( v_Position - u_ViewOrigin ) );
-	color.rgb += dither();
+	color.rgb = Fog( color.rgb, length( v_Position - u_ViewOrigin ) );
+	color.rgb += Dither();
 #endif
 
 	qf_FragColor = vec4(sRGBColor(color));

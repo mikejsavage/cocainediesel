@@ -155,8 +155,7 @@ typedef struct mbrushmodel_s {
 	unsigned int numDrawSurfaces;
 	drawSurfaceBSP_t *drawSurfaces;
 
-	unsigned entityStringLen;
-	char *entityString;
+	float fogStrength;
 } mbrushmodel_t;
 
 /*

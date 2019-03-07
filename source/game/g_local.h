@@ -1097,8 +1097,6 @@ struct edict_s {
 	int gib_health;
 	int deadflag;
 
-	const char *map;			// target_changelevel
-
 	int viewheight;				// height above origin where eyesight is determined
 	int takedamage;
 	

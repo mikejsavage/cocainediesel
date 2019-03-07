@@ -1034,20 +1034,6 @@ static asstring_t *objectGameEntity_getClassname( edict_t *self ) {
 	return game.asExport->asStringFactoryBuffer( self->classname, self->classname ? strlen( self->classname ) : 0 );
 }
 
-/*
-static asstring_t *objectGameEntity_getSpawnKey( asstring_t *key, edict_t *self )
-{
-const char *val;
-
-if( !key )
-return game.asExport->asStringFactoryBuffer( NULL, 0 );
-
-val = G_GetEntitySpawnKey( key->buffer, self );
-
-return game.asExport->asStringFactoryBuffer( val, strlen( val ) );
-}
-*/
-
 static asstring_t *objectGameEntity_getTargetname( edict_t *self ) {
 	return game.asExport->asStringFactoryBuffer( self->targetname, self->targetname ? strlen( self->targetname ) : 0 );
 }
@@ -1064,20 +1050,12 @@ static void objectGameEntity_setTarget( asstring_t *target, edict_t *self ) {
 	self->target = G_RegisterLevelString( target->buffer );
 }
 
-static asstring_t *objectGameEntity_getMap( edict_t *self ) {
-	return game.asExport->asStringFactoryBuffer( self->map, self->map ? strlen( self->map ) : 0 );
-}
-
 static asstring_t *objectGameEntity_getSoundName( edict_t *self ) {
 	return game.asExport->asStringFactoryBuffer( self->sounds, self->sounds ? strlen( self->sounds ) : 0 );
 }
 
 static void objectGameEntity_setClassname( asstring_t *classname, edict_t *self ) {
 	self->classname = G_RegisterLevelString( classname->buffer );
-}
-
-static void objectGameEntity_setMap( asstring_t *map, edict_t *self ) {
-	self->map = G_RegisterLevelString( map->buffer );
 }
 
 static void objectGameEntity_GhostClient( edict_t *self ) {
@@ -1275,11 +1253,9 @@ static const gs_asMethod_t gedict_Methods[] =
 	//{ ASLIB_FUNCTION_DECL(const String @, getSpawnKey, ( String &in )), asFUNCTION(objectGameEntity_getSpawnKey), NULL, asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_targetname, ( ) const ), asFUNCTION( objectGameEntity_getTargetname ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_target, ( ) const ), asFUNCTION( objectGameEntity_getTarget ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( const String @, get_map, ( ) const ), asFUNCTION( objectGameEntity_getMap ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, set_target, ( const String &in ) ), asFUNCTION( objectGameEntity_setTarget ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, set_targetname, ( const String &in ) ), asFUNCTION( objectGameEntity_setTargetname ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, set_classname, ( const String &in ) ), asFUNCTION( objectGameEntity_setClassname ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, set_map, ( const String &in ) ), asFUNCTION( objectGameEntity_setMap ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, ghost, ( ) ), asFUNCTION( objectGameEntity_GhostClient ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, spawnqueueAdd, ( ) ), asFUNCTION( G_SpawnQueue_AddClient ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, teleportEffect, ( bool ) ), asFUNCTION( objectGameEntity_TeleportEffect ), asCALL_CDECL_OBJLAST },

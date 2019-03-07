@@ -102,6 +102,8 @@ typedef struct glsl_program_s {
 		int hdrGamma;
 		int hdrExposure;
 
+		int FogStrength;
+
 		// builtin uniforms
 		struct {
 			int ShaderTime;
@@ -1638,6 +1640,14 @@ void RP_UpdateViewUniforms( int elem,
 	}
 }
 
+void RP_UpdateMapUniforms( int elem, float fog ) {
+	glsl_program_t *program = r_glslprograms + elem - 1;
+
+	if( program->loc.FogStrength >= 0 ) {
+		glUniform1f( program->loc.FogStrength, fog );
+	}
+}
+
 /*
 * RP_UpdateBlendMixUniform
 *
@@ -1872,6 +1882,8 @@ static void RP_GetUniformLocations( glsl_program_t *program ) {
 
 	program->loc.hdrGamma = glGetUniformLocation( program->object, "u_HDRGamma" );
 	program->loc.hdrExposure = glGetUniformLocation( program->object, "u_HDRExposure" );
+
+	program->loc.FogStrength = glGetUniformLocation( program->object, "u_FogStrength" );
 
 	if( locBaseTexture >= 0 ) {
 		glUniform1i( locBaseTexture, 0 );

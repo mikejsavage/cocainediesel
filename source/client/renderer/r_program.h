@@ -125,6 +125,8 @@ void RP_UpdateViewUniforms( int elem,
 							int viewport[4],
 							float zNear, float zFar );
 
+void RP_UpdateMapUniforms( int elem, float fog );
+
 void RP_UpdateBlendMixUniform( int elem, vec2_t blendMask );
 
 void RP_UpdateSoftParticlesUniforms( int elem, float scale );

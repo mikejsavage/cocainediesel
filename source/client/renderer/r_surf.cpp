@@ -163,9 +163,9 @@ static bool R_AddWorldDrawSurfaceToDrawList( const entity_t *e, unsigned ds ) {
 	drawOrder = R_PackShaderOrder( shader );
 
 	drawSurf->visFrame = rf.frameCount;
-	drawSurf->listSurf = R_AddSurfToDrawList( rn.meshlist, e, shader, WORLDSURF_DIST, drawOrder, drawSurf );
+	void *listSurf = R_AddSurfToDrawList( rn.meshlist, e, shader, WORLDSURF_DIST, drawOrder, drawSurf );
 
-	if( !drawSurf->listSurf ) {
+	if( !listSurf ) {
 		return false;
 	}
 

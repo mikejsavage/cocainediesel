@@ -515,6 +515,10 @@ static void RB_UpdateCommonUniforms( int program, const shaderpass_t *pass, mat4
 	RP_UpdateBlendMixUniform( program, blendMix );
 
 	RP_UpdateSoftParticlesUniforms( program, r_soft_particles_scale->value );
+
+	if( rsh.worldBrushModel != NULL ) {
+		RP_UpdateMapUniforms( program, rsh.worldBrushModel->fogStrength );
+	}
 }
 
 /*

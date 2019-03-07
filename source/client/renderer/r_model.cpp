@@ -277,10 +277,6 @@ static void Mod_SetupSubmodels( model_t *mod ) {
 	}
 }
 
-#define VBO_Printf ri.Com_DPrintf
-
-static mbrushmodel_t *loadbmodel_; // FIXME
-
 /*
 * R_SurfaceCmp
 */
@@ -357,7 +353,6 @@ static int Mod_CreateSubmodelBufferObjects( model_t *mod, size_t *vbo_total_size
 	mbrushmodel_t *loadbmodel;
 
 	loadbmodel = ( ( mbrushmodel_t * )mod->extradata );
-	loadbmodel_ = loadbmodel; // FIXME
 
 	worldSurfaces = ( unsigned * )Mod_Malloc( mod, loadbmodel->numsurfaces * sizeof( *worldSurfaces ) );
 	sortedSurfaces = ( msurface_t ** )Mod_Malloc( mod, loadbmodel->numsurfaces * sizeof( *sortedSurfaces ) );
@@ -556,8 +551,6 @@ static int Mod_CreateSubmodelBufferObjects( model_t *mod, size_t *vbo_total_size
 * Mod_CreateVertexBufferObjects
 */
 void Mod_CreateVertexBufferObjects( model_t *mod ) {
-	unsigned int total_vbos = 0;
-	size_t total_size = 0;
 	mbrushmodel_t *loadbmodel = ( ( mbrushmodel_t * )mod->extradata );
 
 	// free all VBO's allocated for previous world map so
@@ -571,11 +564,8 @@ void Mod_CreateVertexBufferObjects( model_t *mod ) {
 	loadbmodel->numDrawSurfaces = 0;
 	loadbmodel->drawSurfaces = ( drawSurfaceBSP_t * ) Mod_Malloc( mod, sizeof( *loadbmodel->drawSurfaces ) * loadbmodel->numsurfaces );
 
-	total_vbos = Mod_CreateSubmodelBufferObjects( mod, &total_size );
-
-	if( total_vbos ) {
-		VBO_Printf( "Created %i VBOs, totalling %.1f MiB of memory\n", total_vbos, ( total_size + 1048574 ) / 1048576.0f );
-	}
+	size_t total_size = 0;
+	Mod_CreateSubmodelBufferObjects( mod, &total_size );
 }
 
 /*

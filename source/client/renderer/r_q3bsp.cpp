@@ -295,6 +295,7 @@ static void Mod_LoadSubmodels( const lump_t *l ) {
 	loadbmodel->submodels = out;
 	loadbmodel->numsubmodels = count;
 	loadbmodel->inlines = mod_inline;
+	loadbmodel->fogStrength = 0.000015;
 
 	for( i = 0; i < count; i++, in++, out++ ) {
 		vec3_t origin, mins, maxs;
@@ -909,6 +910,31 @@ static void Mod_LoadVisibility( const lump_t *l ) {
 	out->rowsize = LittleLong( in->rowsize );
 }
 
+static void Mod_LoadEntities( const lump_t *l ) {
+	char * entities = ( char * ) Mod_Malloc( loadmodel, l->filelen + 1 );
+	memcpy( entities, ( char * ) mod_base + l->fileofs, l->filelen );
+	entities[ l->filelen ] = '\0';
+
+	const char * p = entities;
+	COM_Parse( &p ); // {
+
+	while( true ) {
+		char key[ MAX_TOKEN_CHARS ];
+		COM_Parse_r( key, sizeof( key ), &p );
+
+		char value[ MAX_TOKEN_CHARS ];
+		COM_Parse_r( value, sizeof( value ), &p );
+
+		if( p == NULL || strcmp( key, "}" ) == 0 )
+			break;
+
+		if( strcmp( key, "fog_strength" ) == 0 )
+			loadbmodel->fogStrength = atof( value );
+	}
+
+	Mod_MemFree( entities );
+}
+
 /*
 * Mod_Finish
 */
@@ -977,6 +1003,7 @@ void Mod_LoadQ3BrushModel( model_t *mod, void *buffer, int buffer_size, const bs
 	// load into heap
 	Mod_LoadSubmodels( &header->lumps[LUMP_MODELS] );
 	Mod_LoadVisibility( &header->lumps[LUMP_VISIBILITY] );
+	Mod_LoadEntities( &header->lumps[LUMP_ENTITIES] );
 	Mod_LoadShaderrefs( &header->lumps[LUMP_SHADERREFS] );
 	Mod_PreloadFaces( &header->lumps[LUMP_FACES] );
 	Mod_LoadPlanes( &header->lumps[LUMP_PLANES] );

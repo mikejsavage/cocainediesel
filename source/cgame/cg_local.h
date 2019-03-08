@@ -188,7 +188,6 @@ typedef struct {
 	cgs_media_handle_t *modGib;
 
 	//wsw weapon sfx
-	cgs_media_handle_t *modRocketExplosion;
 	cgs_media_handle_t *modPlasmaExplosion;
 
 	cgs_media_handle_t *modBulletExplode;

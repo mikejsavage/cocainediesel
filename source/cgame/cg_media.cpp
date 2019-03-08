@@ -199,7 +199,6 @@ struct model_s *CG_MediaModel( cgs_media_handle_t *mediamodel ) {
 void CG_RegisterMediaModels( void ) {
 	model_headnode = NULL;
 
-	cgs.media.modRocketExplosion = CG_RegisterMediaModel( PATH_ROCKET_EXPLOSION_MODEL );
 	cgs.media.modPlasmaExplosion = CG_RegisterMediaModel( PATH_PLASMA_EXPLOSION_MODEL );
 
 	cgs.media.modDash = CG_RegisterMediaModel( "models/effects/dash_burst.md3" );

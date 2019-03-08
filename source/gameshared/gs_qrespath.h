@@ -96,9 +96,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PATH_KEYICON_CROUCH             "gfx/hud/keys/act_crouch"
 #define PATH_KEYICON_SPECIAL            "gfx/hud/keys/act_special"
 
-// weapon firing
-#define PATH_SMOKE_PUFF         "smokePuff"
-
 #define PATH_UNKNOWN_MAP_PIC             "levelshots/unknownmap"
 
 //
@@ -124,14 +121,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PATH_GRENADE_MODEL       "models/objects/projectile/gl.glb"
 #define PATH_ROCKET_MODEL        "models/objects/projectile/rl.glb"
 
-#define PATH_BULLET_EXPLOSION_MODEL         "models/weapon_hits/bullet/hit_bullet.md3"
-#define PATH_GRENADE_EXPLOSION_MODEL        "models/weapon_hits/glauncher/hit_glauncher.md3"
-#define PATH_PLASMA_EXPLOSION_MODEL         "models/weapon_hits/plasmagun/hit_plasmagun.md3"
-#define PATH_ROCKET_EXPLOSION_MODEL         "models/weapon_hits/rlauncher/hit_rlauncher.md3"
-#define PATH_GUNBLADEBLAST_IMPACT_MODEL     "models/weapon_hits/gunblade/hit_blast.md3"
-#define PATH_GUNBLADEBLAST_EXPLOSION_MODEL  "models/weapon_hits/gunblade/hit_blastexp.md3"
-#define PATH_ELECTROBLAST_IMPACT_MODEL      "models/weapon_hits/electrobolt/hit_electrobolt.md3"
-#define PATH_LASERGUN_IMPACT_MODEL          "models/weapon_hits/lasergun/hit_blastexp.md3"
+#define PATH_BULLET_EXPLOSION_MODEL         "models/weapon_hits/bullet/hit_bullet.glb"
+#define PATH_PLASMA_EXPLOSION_MODEL         "models/weapon_hits/plasmagun/hit_plasmagun.glb"
+#define PATH_GUNBLADEBLAST_IMPACT_MODEL     "models/weapon_hits/gunblade/hit_blast.glb"
+#define PATH_GUNBLADEBLAST_EXPLOSION_MODEL  "models/weapon_hits/gunblade/hit_blastexp.glb"
+#define PATH_ELECTROBLAST_IMPACT_MODEL      "models/weapon_hits/electrobolt/hit_electrobolt.glb"
+#define PATH_LASERGUN_IMPACT_MODEL          "models/weapon_hits/lasergun/hit_blastexp.glb"
 
 #define PLASMA_EXPLOSION_MODEL_RADIUS           10.0
 #define GUNBLADEBLAST_EXPLOSION_MODEL_RADIUS    10.0

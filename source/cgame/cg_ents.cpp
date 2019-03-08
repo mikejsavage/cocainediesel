@@ -184,7 +184,7 @@ static void CG_NewPacketEntityState( entity_state_t *state ) {
 
 		// some data changes will force no lerping
 		if( state->modelindex != cent->current.modelindex
-			|| state->teleported 
+			|| state->teleported
 			|| state->linearMovement != cent->current.linearMovement ) {
 			cent->serverFrame = -99;
 		}
@@ -1104,7 +1104,14 @@ static void CG_AddItemEnt( centity_t *cent ) {
 * CG_AddBeamEnt
 */
 static void CG_AddBeamEnt( centity_t *cent ) {
-	CG_QuickPolyBeam( cent->current.origin, cent->current.origin2, cent->current.frame * 0.5f, CG_MediaShader( cgs.media.shaderLaser ) ); // wsw : jalfixme: missing the color (comes inside cent->current.colorRGBA)
+	struct shader_s *shader = CG_MediaShader( cgs.media.shaderLaser );
+	vec4_t color;
+	Vector4Set( color,
+		COLOR_R( cent->current.colorRGBA ) * ( 1.0 / 255.0 ),
+		COLOR_G( cent->current.colorRGBA ) * ( 1.0 / 255.0 ),
+		COLOR_B( cent->current.colorRGBA ) * ( 1.0 / 255.0 ),
+		COLOR_A( cent->current.colorRGBA ) * ( 1.0 / 255.0 ) );
+	CG_SpawnPolyBeam( cent->current.origin, cent->current.origin2, NULL, cent->current.frame, 1, 0, shader, 64, 0 );
 }
 
 //==========================================================================

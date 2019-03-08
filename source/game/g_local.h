@@ -213,6 +213,8 @@ typedef struct {
 	float scale;
 	const char *shaderName;
 	int size;
+
+	int rgba;
 } spawn_temp_t;
 
 extern game_locals_t game;

@@ -26,6 +26,7 @@ enum EntityFieldType {
 	F_LSTRING,      // string on disk, pointer in memory, TAG_LEVEL
 	F_VECTOR,
 	F_ANGLE,
+	F_RGBA,
 };
 
 struct EntityField {
@@ -85,6 +86,7 @@ static const EntityField fields[] = {
 	{ "debris2", STOFS( debris2 ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "shaderName", STOFS( shaderName ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "size", STOFS( size ), F_INT, FFL_SPAWNTEMP },
+	{ "rgba", STOFS( rgba ), F_RGBA, FFL_SPAWNTEMP },
 
 	{ }
 };
@@ -319,8 +321,6 @@ static char *ED_NewString( const char *string ) {
 static void ED_ParseField( char *key, char *value, edict_t *ent ) {
 	const EntityField *f;
 	uint8_t *b;
-	float v;
-	vec3_t vec;
 
 	for( f = fields; f->name; f++ ) {
 		if( !Q_stricmp( f->name, key ) ) {
@@ -335,12 +335,6 @@ static void ED_ParseField( char *key, char *value, edict_t *ent ) {
 				case F_LSTRING:
 					*(char **)( b + f->ofs ) = ED_NewString( value );
 					break;
-				case F_VECTOR:
-					sscanf( value, "%f %f %f", &vec[0], &vec[1], &vec[2] );
-					( (float *)( b + f->ofs ) )[0] = vec[0];
-					( (float *)( b + f->ofs ) )[1] = vec[1];
-					( (float *)( b + f->ofs ) )[2] = vec[2];
-					break;
 				case F_INT:
 					*(int *)( b + f->ofs ) = atoi( value );
 					break;
@@ -348,11 +342,22 @@ static void ED_ParseField( char *key, char *value, edict_t *ent ) {
 					*(float *)( b + f->ofs ) = atof( value );
 					break;
 				case F_ANGLE:
-					v = atof( value );
 					( (float *)( b + f->ofs ) )[0] = 0;
-					( (float *)( b + f->ofs ) )[1] = v;
+					( (float *)( b + f->ofs ) )[1] = atof( value );
 					( (float *)( b + f->ofs ) )[2] = 0;
 					break;
+
+				case F_VECTOR: {
+					vec3_t vec;
+					sscanf( value, "%f %f %f", &vec[0], &vec[1], &vec[2] );
+					( (float *)( b + f->ofs ) )[0] = vec[0];
+					( (float *)( b + f->ofs ) )[1] = vec[1];
+					( (float *)( b + f->ofs ) )[2] = vec[2];
+				} break;
+
+				case F_RGBA: {
+					*( int * ) ( b + f->ofs ) = COM_ReadColorRGBAString( value );
+				} break;
 			}
 			return;
 		}

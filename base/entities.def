@@ -414,3 +414,14 @@ model : Path to model*/
 A spike trap
 -------- KEYS --------
 angles : Angles*/
+
+/*QUAKED target_laser (0 .5 0) (-8 -8 -8) (8 8 8) START_ON
+When triggered, fires a laser. You can either set a target or a direction.
+-------- KEYS --------
+angles: alternate "pitch, yaw, roll" angles method of aiming laser (default 0 0 0).
+target: point this to a target_position entity to set the laser's aiming direction.
+targetname: the activating trigger points to this.
+size: beam diameter, default 8
+rgba: colour. default 220 0 0 76
+-------- SPAWNFLAGS --------
+START_ON : when set, the laser will start on in the game.*/

@@ -793,7 +793,6 @@ void CG_Event_Jump( entity_state_t *state, int parm ) {
 void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 	vec3_t dir;
 	bool viewer = ISVIEWERENTITY( ent->number );
-	vec4_t color;
 	int weapon = 0, fireMode = 0, count = 0;
 
 	if( viewer && ( ev < PREDICTABLE_EVENTS_MAX ) && ( predicted != cg.view.playerPrediction ) ) {
@@ -963,18 +962,6 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 			CG_GenericExplosion( ent->origin, vec3_origin, parm * 16 );
 			break;
 
-		case EV_GREEN_LASER:
-			CG_GreenLaser( ent->origin, ent->origin2 );
-			break;
-
-		case EV_PNODE:
-			color[0] = COLOR_R( ent->colorRGBA ) * ( 1.0 / 255.0 );
-			color[1] = COLOR_G( ent->colorRGBA ) * ( 1.0 / 255.0 );
-			color[2] = COLOR_B( ent->colorRGBA ) * ( 1.0 / 255.0 );
-			color[3] = COLOR_A( ent->colorRGBA ) * ( 1.0 / 255.0 );
-			CG_PLink( ent->origin, ent->origin2, color, parm );
-			break;
-
 		case EV_SPARKS:
 			ByteToDir( parm, dir );
 			if( ent->damage > 0 ) {
@@ -987,14 +974,6 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 			CG_ParticleEffect( ent->origin, dir, 1.0f, 0.67f, 0.0f, count );
 			break;
 
-		case EV_BULLET_SPARKS:
-			ByteToDir( parm, dir );
-			CG_BulletExplosion( ent->origin, dir, NULL );
-			CG_ParticleEffect( ent->origin, dir, 1.0f, 0.67f, 0.0f, 6 );
-			trap_S_StartFixedSound( CG_MediaSfx( cgs.media.sfxRic[rand() % 2] ), ent->origin, CHAN_AUTO,
-									cg_volume_effects->value, ATTN_STATIC );
-			break;
-
 		case EV_LASER_SPARKS:
 			ByteToDir( parm, dir );
 			CG_ParticleEffect2( ent->origin, dir,
@@ -1002,14 +981,6 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 								COLOR_G( ent->colorRGBA ) * ( 1.0 / 255.0 ),
 								COLOR_B( ent->colorRGBA ) * ( 1.0 / 255.0 ),
 								ent->counterNum );
-			break;
-
-		case EV_GESTURE:
-			CG_SexedSound( ent->number, CHAN_BODY, "*taunt", cg_volume_players->value, ent->attenuation );
-			break;
-
-		case EV_DROP:
-			CG_PModel_AddAnimation( ent->number, 0, TORSO_DROP, 0, EVENT_CHANNEL );
 			break;
 
 		case EV_SPOG:

@@ -868,7 +868,6 @@ void CG_BubbleTrail( const vec3_t start, const vec3_t end, int dist );
 void CG_ProjectileTrail( centity_t *cent );
 void CG_NewBloodTrail( centity_t *cent );
 void CG_BloodDamageEffect( const vec3_t origin, const vec3_t dir, int damage, int team );
-void CG_GreenLaser( const vec3_t start, const vec3_t end );
 void CG_SmallPileOfGibs( const vec3_t origin, int damage, const vec3_t initialVelocity, int team );
 void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, int team, float radius );
 void CG_GrenadeExplosionMode( const vec3_t pos, const vec3_t dir, float radius, int team );
@@ -908,10 +907,11 @@ void CG_AddDecals( void );
 void CG_ClearPolys( void );
 void CG_AddPolys( void );
 void CG_KillPolyBeamsByTag( int key );
+void CG_SpawnPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color,
+	int width, int64_t dietime, int64_t fadetime, struct shader_s *shader, int shaderlength, int tag );
 void CG_QuickPolyBeam( const vec3_t start, const vec3_t end, int width, struct shader_s *shader );
 void CG_LGPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color, int tag );
 void CG_EBPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color );
-void CG_PLink( const vec3_t start, const vec3_t end, const vec4_t color, int flags );
 
 //
 // cg_effects.c

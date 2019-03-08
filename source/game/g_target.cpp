@@ -187,28 +187,10 @@ void target_laser_start( edict_t *self ) {
 	self->movetype = MOVETYPE_NONE;
 	self->r.solid = SOLID_NOT;
 	self->s.type = ET_BEAM;
-	self->s.modelindex = 1;     // must be non-zero
+	self->s.modelindex = 1; // must be non-zero
 	self->r.svflags = 0;
-
-	// set the beam diameter
-	if( self->spawnflags & 64 ) {
-		self->s.frame = 16;
-	} else {
-		self->s.frame = 4;
-	}
-
-	// set the color
-	if( self->spawnflags & 2 ) {
-		self->s.colorRGBA = COLOR_RGBA( 220, 0, 0, 76 );
-	} else if( self->spawnflags & 4 ) {
-		self->s.colorRGBA = COLOR_RGBA( 0, 220, 0, 76 );
-	} else if( self->spawnflags & 8 ) {
-		self->s.colorRGBA = COLOR_RGBA( 0, 0, 220, 76 );
-	} else if( self->spawnflags & 16 ) {
-		self->s.colorRGBA = COLOR_RGBA( 220, 220, 0, 76 );
-	} else if( self->spawnflags & 32 ) {
-		self->s.colorRGBA = COLOR_RGBA( 255, 255, 0, 76 );
-	}
+	self->s.frame = st.size > 0 ? st.size : 8;
+	self->s.colorRGBA = st.rgba != 0 ? st.rgba : COLOR_RGBA( 220, 0, 0, 76 );
 
 	if( !self->enemy ) {
 		if( self->target ) {

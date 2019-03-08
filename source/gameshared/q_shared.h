@@ -102,6 +102,7 @@ char *COM_ParseExt2( const char **data_p, bool nl, bool sq );
 int COM_Compress( char *data_p );
 const char *COM_RemoveJunkChars( const char *in );
 int COM_ReadColorRGBString( const char *in );
+int COM_ReadColorRGBAString( const char *in );
 bool COM_ValidateConfigstring( const char *string );
 
 char *COM_ListNameForPosition( const char *namesList, int position, const char separator );

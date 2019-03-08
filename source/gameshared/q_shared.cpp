@@ -822,13 +822,29 @@ const char *COM_RemoveJunkChars( const char *in ) {
 * COM_ReadColorRGBString
 */
 int COM_ReadColorRGBString( const char *in ) {
-	int playerColor[3];
-	if( in && in[0] ) {
-		if( sscanf( in, "%3i %3i %3i", &playerColor[0], &playerColor[1], &playerColor[2] ) == 3 ) {
-			return COLOR_RGB( playerColor[0], playerColor[1], playerColor[2] );
-		}
-	}
-	return -1;
+	if( in == NULL )
+		return 0;
+
+	int rgb[3];
+	if( sscanf( in, "%3i %3i %3i", &rgb[0], &rgb[1], &rgb[2] ) != 3 )
+		return 0;
+
+	for( int i = 0; i < 3; i++ )
+		rgb[i] = bound( rgb[i], 0, 255 );
+	return COLOR_RGB( rgb[0], rgb[1], rgb[2] );
+}
+
+int COM_ReadColorRGBAString( const char *in ) {
+	if( in == NULL )
+		return 0;
+
+	int rgba[4];
+	if( sscanf( in, "%3i %3i %3i %3i", &rgba[0], &rgba[1], &rgba[2], &rgba[3] ) != 4 )
+		return 0;
+
+	for( int i = 0; i < 4; i++ )
+		rgba[i] = bound( rgba[i], 0, 255 );
+	return COLOR_RGBA( rgba[0], rgba[1], rgba[2], rgba[3] );
 }
 
 /*

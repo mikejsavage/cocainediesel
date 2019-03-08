@@ -927,13 +927,6 @@ void CG_GenericExplosion( const vec3_t pos, const vec3_t dir, float radius ) {
 	trap_S_StartFixedSound( CG_MediaSfx( cgs.media.sfxRocketLauncherHit ), pos, CHAN_AUTO, cg_volume_effects->value, ATTN_DISTANT );
 }
 
-/*
-* CG_GreenLaser
-*/
-void CG_GreenLaser( const vec3_t start, const vec3_t end ) {
-	CG_AllocLaser( start, end, 2.0f, 2.0f, 0.0f, 0.85f, 0.0f, 0.3f, CG_MediaShader( cgs.media.shaderLaser ) );
-}
-
 void CG_SpawnTracer( const vec3_t origin, const vec3_t dir, const vec3_t dir_per1, const vec3_t dir_per2 ) {
 	lentity_t *tracer;
 	vec3_t dir_temp;

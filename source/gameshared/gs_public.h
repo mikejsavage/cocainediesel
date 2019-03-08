@@ -735,8 +735,6 @@ typedef enum {
 	EV_PLAYER_TELEPORT_IN,
 	EV_PLAYER_TELEPORT_OUT,
 
-	EV_GESTURE,
-	EV_DROP,
 	EV_SPOG,
 
 	EV_BLOOD,
@@ -749,26 +747,14 @@ typedef enum {
 	EV_PLASMA_EXPLOSION,
 	EV_BOLT_EXPLOSION,
 
-	// 3 spots reserved for new weapons sfx, so
-	// the events below don't change their numbers easily
-	EV_FREE2,
-	EV_FREE3,
-	EV_FREE4,
-
 	EV_EXPLOSION1,
 	EV_EXPLOSION2,
 
-	EV_BLASTER,
 	EV_SPARKS,
-	EV_BULLET_SPARKS,
 
 	EV_VSAY,
 
 	EV_LASER_SPARKS,
-
-	EV_FIRE_SHOTGUN,
-	EV_PNODE,
-	EV_GREEN_LASER,
 
 	// func movers
 	EV_PLAT_HIT_TOP,

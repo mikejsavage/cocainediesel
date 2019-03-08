@@ -885,7 +885,6 @@ void CG_SpawnSprite( const vec3_t origin, const vec3_t velocity, const vec3_t ac
 void CG_LaserGunImpact( const vec3_t pos, float radius, const vec3_t laser_dir, const vec4_t color );
 
 void CG_Dash( const entity_state_t *state );
-void CG_SpawnTracer( const vec3_t origin, const vec3_t dir, const vec3_t dir_per1, const vec3_t dir_per2 );
 void CG_Explosion_Puff_2( const vec3_t pos, const vec3_t vel, int radius );
 void CG_DustCircle( const vec3_t pos, const vec3_t dir, float radius, int count );
 void CG_ExplosionsDust( const vec3_t pos, const vec3_t dir, float radius );

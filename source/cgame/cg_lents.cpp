@@ -37,7 +37,6 @@ typedef enum
 	LE_INVERSESCALE_ALPHA_FADE,
 	LE_LASER,
 
-	LE_EXPLOSION_TRACER,
 	LE_DASH_SCALE,
 	LE_PUFF_SCALE,
 	LE_PUFF_SHRINK
@@ -927,23 +926,6 @@ void CG_GenericExplosion( const vec3_t pos, const vec3_t dir, float radius ) {
 	trap_S_StartFixedSound( CG_MediaSfx( cgs.media.sfxRocketLauncherHit ), pos, CHAN_AUTO, cg_volume_effects->value, ATTN_DISTANT );
 }
 
-void CG_SpawnTracer( const vec3_t origin, const vec3_t dir, const vec3_t dir_per1, const vec3_t dir_per2 ) {
-	lentity_t *tracer;
-	vec3_t dir_temp;
-
-	VectorMA( dir, crandom() * 2, dir_per1, dir_temp );
-	VectorMA( dir_temp, crandom() * 2, dir_per2, dir_temp );
-
-	VectorScale( dir_temp, VectorNormalize( dir_temp ), dir_temp );
-	VectorScale( dir_temp, random() * 400 + 420, dir_temp );
-
-	tracer = CG_AllocSprite( LE_EXPLOSION_TRACER, origin, 30, 7, 1, 1, 1, 1, 0, 0, 0, 0, CG_MediaShader( cgs.media.shaderSmokePuff3 ) );
-	VectorCopy( dir_temp, tracer->velocity );
-	VectorSet( tracer->accel, -0.2f, -0.2f, -9.8f * 170 );
-	tracer->bounce = 50;
-	tracer->ent.rotation = cg.time;
-}
-
 void CG_Dash( const entity_state_t *state ) {
 	lentity_t *le;
 	vec3_t pos, dvect, angle = { 0, 0, 0 };
@@ -1244,15 +1226,6 @@ void CG_AddLocalEntities( void ) {
 			}
 		}
 
-		if( le->type == LE_EXPLOSION_TRACER ) {
-			if( cg.time - ent->rotation > 10.0f ) {
-				ent->rotation = cg.time;
-				if( ent->radius - 16 * frac > 4 ) {
-					CG_Explosion_Puff( ent->origin, ent->radius - 16 * frac, le->frames - f );
-				}
-			}
-		}
-
 		switch( le->type ) {
 			case LE_NO_FADE:
 				break;
@@ -1358,11 +1331,6 @@ void CG_AddLocalEntities( void ) {
 						VectorClear( le->velocity );
 						VectorClear( le->accel );
 						VectorClear( le->avelocity );
-						if( le->type == LE_EXPLOSION_TRACER ) {
-							// blx
-							le->type = LE_FREE;
-							CG_FreeLocalEntity( le );
-						}
 					}
 				}
 

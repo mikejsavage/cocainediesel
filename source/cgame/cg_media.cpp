@@ -201,7 +201,7 @@ void CG_RegisterMediaModels( void ) {
 
 	cgs.media.modPlasmaExplosion = CG_RegisterMediaModel( PATH_PLASMA_EXPLOSION_MODEL );
 
-	cgs.media.modDash = CG_RegisterMediaModel( "models/effects/dash_burst.md3" );
+	cgs.media.modDash = CG_RegisterMediaModel( "models/effects/dash_burst.glb" );
 
 	cgs.media.modBulletExplode = CG_RegisterMediaModel( PATH_BULLET_EXPLOSION_MODEL );
 	cgs.media.modBladeWallHit = CG_RegisterMediaModel( PATH_GUNBLADEBLAST_IMPACT_MODEL );

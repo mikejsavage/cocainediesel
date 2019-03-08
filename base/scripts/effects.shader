@@ -1,17 +1,17 @@
-gfx/dash/dash_burst_1
+gfx/dash/dash_burst_mid
 {
 	cull disable
 	{
-		map gfx/dash/dash_burst_1.tga
+		map gfx/dash/dash_burst_mid.tga
 		blendfunc blend
 	}
 }
 
-gfx/dash/dash_burst_2
+gfx/dash/dash_burst_side
 {
 	cull disable
 	{
-		map gfx/dash/dash_burst_2.tga
+		map gfx/dash/dash_burst_side.tga
 		blendfunc blend
 	}
 

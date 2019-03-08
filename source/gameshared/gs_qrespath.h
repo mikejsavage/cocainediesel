@@ -115,7 +115,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PATH_LASERGUN_MODEL         "models/weapons/lg.md3"
 
 // weapon projectiles
-#define PATH_GUNBLADEBLAST_MODEL "models/objects/projectile/gb.md3"
+#define PATH_GUNBLADEBLAST_MODEL "models/objects/projectile/gb.glb"
 #define PATH_PLASMA_MODEL        "models/objects/projectile/pg.glb"
 #define PATH_BULLET_MODEL        "models/objects/projectile/mg.glb"
 #define PATH_GRENADE_MODEL       "models/objects/projectile/gl.glb"

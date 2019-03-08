@@ -226,9 +226,7 @@ void SP_target_laser( edict_t *self ) {
 	self->count = MOD_TARGET_LASER;
 }
 
-void SP_target_position( edict_t *self ) {
-	self->r.svflags |= SVF_NOCLIENT;
-}
+void SP_target_position( edict_t *self ) { }
 
 static void SP_target_print_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	if( activator->r.client && ( self->spawnflags & 4 ) ) {

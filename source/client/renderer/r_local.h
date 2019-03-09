@@ -205,6 +205,7 @@ typedef struct {
 	entity_t entities[MAX_REF_ENTITIES];
 	entSceneCache_t entSceneCache[MAX_REF_ENTITIES];
 	entity_t *worldent;
+	entity_t *skyent;
 	entity_t *polyent;
 	entity_t *polyweapent;
 
@@ -658,8 +659,10 @@ void R_ShutdownVBO( void );
 // r_sky.c
 //
 
+struct SkyDrawSurf;
 void R_InitSky();
-void R_DrawSky( const refdef_t * rd );
+void R_AddSkyToDrawList( const refdef_t * rd );
+void R_DrawSkyMesh( const entity_t * e, const shader_t * shader, const SkyDrawSurf * draw_surf );
 
 //====================================================================
 

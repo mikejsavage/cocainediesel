@@ -27,6 +27,7 @@ typedef enum {
 	ST_ALIAS,
 	ST_GLTF,
 	ST_SKELETAL,
+	ST_SKY,
 	ST_SPRITE,
 	ST_POLY,
 	ST_NULLMODEL,

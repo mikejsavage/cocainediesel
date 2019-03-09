@@ -234,17 +234,19 @@ static const drawSurf_cb r_drawSurfCb[ST_MAX_TYPES] =
 	/* ST_BSP */
 	NULL,
 	/* ST_ALIAS */
-	( drawSurf_cb ) & R_DrawAliasSurf,
+	drawSurf_cb( R_DrawAliasSurf ),
 	/* ST_GLTF */
-	( drawSurf_cb ) & R_DrawGLTFMesh,
+	drawSurf_cb( R_DrawGLTFMesh ),
 	/* ST_SKELETAL */
-	( drawSurf_cb ) & R_DrawSkeletalSurf,
+	drawSurf_cb( R_DrawSkeletalSurf ),
+	/* ST_SKY */
+	drawSurf_cb( R_DrawSkyMesh ),
 	/* ST_SPRITE */
 	NULL,
 	/* ST_POLY */
 	NULL,
 	/* ST_NULLMODEL */
-	( drawSurf_cb ) & R_DrawNullSurf,
+	drawSurf_cb( R_DrawNullSurf ),
 };
 
 static const batchDrawSurf_cb r_batchDrawSurfCb[ST_MAX_TYPES] =
@@ -252,17 +254,19 @@ static const batchDrawSurf_cb r_batchDrawSurfCb[ST_MAX_TYPES] =
 	/* ST_NONE */
 	NULL,
 	/* ST_BSP */
-	( batchDrawSurf_cb ) & R_BatchBSPSurf,
+	batchDrawSurf_cb( R_BatchBSPSurf ),
 	/* ST_ALIAS */
 	NULL,
 	/* ST_GLTF */
 	NULL,
 	/* ST_SKELETAL */
 	NULL,
+	/* ST_SKY */
+	NULL,
 	/* ST_SPRITE */
-	( batchDrawSurf_cb ) & R_BatchSpriteSurf,
+	batchDrawSurf_cb( R_BatchSpriteSurf ),
 	/* ST_POLY */
-	( batchDrawSurf_cb ) & R_BatchPolySurf,
+	batchDrawSurf_cb( R_BatchPolySurf ),
 	/* ST_NULLMODEL */
 	NULL,
 };
@@ -272,12 +276,14 @@ static const walkDrawSurf_cb r_walkSurfCb[ST_MAX_TYPES] =
 	/* ST_NONE */
 	NULL,
 	/* ST_BSP */
-	( walkDrawSurf_cb ) & R_WalkBSPSurf,
+	walkDrawSurf_cb( R_WalkBSPSurf ),
 	/* ST_ALIAS */
 	NULL,
 	/* ST_GLTF */
 	NULL,
 	/* ST_SKELETAL */
+	NULL,
+	/* ST_SKY */
 	NULL,
 	/* ST_SPRITE */
 	NULL,
@@ -292,17 +298,19 @@ static const flushBatchDrawSurf_cb r_flushBatchSurfCb[ST_MAX_TYPES] =
 	/* ST_NONE */
 	NULL,
 	/* ST_BSP */
-	( flushBatchDrawSurf_cb ) & R_FlushBSPSurfBatch,
+	flushBatchDrawSurf_cb( R_FlushBSPSurfBatch ),
 	/* ST_ALIAS */
 	NULL,
 	/* ST_GLTF */
 	NULL,
 	/* ST_SKELETAL */
 	NULL,
+	/* ST_SKY */
+	NULL,
 	/* ST_SPRITE */
-	( flushBatchDrawSurf_cb ) & RB_FlushDynamicMeshes,
+	flushBatchDrawSurf_cb( RB_FlushDynamicMeshes ),
 	/* ST_POLY */
-	( flushBatchDrawSurf_cb ) & RB_FlushDynamicMeshes,
+	flushBatchDrawSurf_cb( RB_FlushDynamicMeshes ),
 	/* ST_NULLMODEL */
 	NULL,
 };

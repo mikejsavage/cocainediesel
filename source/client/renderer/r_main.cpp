@@ -812,6 +812,7 @@ void R_RenderView( const refdef_t *fd ) {
 	// R_DrawEntities can make adjustments as well
 
 	R_DrawWorldNode();
+	R_AddSkyToDrawList( fd );
 
 	if( !( rn.refdef.rdflags & RDF_NOWORLDMODEL ) ) {
 		rn.hdrExposure = r_hdr_exposure->value;
@@ -852,7 +853,6 @@ void R_RenderView( const refdef_t *fd ) {
 	}
 
 	R_DrawSurfaces( rn.meshlist );
-	R_DrawSky( fd );
 
 	if( r_speeds->integer ) {
 		rf.stats.t_draw_meshes += ( ri.Sys_Milliseconds() - msec );

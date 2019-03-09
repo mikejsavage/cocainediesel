@@ -88,6 +88,9 @@ void CG_PModelForCentity( centity_t *cent, pmodelinfo_t **pmodelinfo, struct ski
 }
 
 static RGB8 CG_TeamColorRGB8( int team ) {
+	if( team == TEAM_PLAYERS )
+		return RGB8( 255, 255, 255 );
+
 	cvar_t * cvar = CG_IsAlly( team ) ? cg_allyColor : cg_enemyColor;
 
 	if( cvar->integer >= int( ARRAY_COUNT( TEAM_COLORS ) ) )

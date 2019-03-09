@@ -728,7 +728,7 @@ String @GT_ScoreboardMessage( uint maxlen )
 	@team = @G_GetTeam( TEAM_PLAYERS );
 
 	// &t = team tab, team tag, team score (doesn't apply), team ping (doesn't apply)
-	entry = "&t " + int( TEAM_PLAYERS ) + " " + team.stats.score + " 0 ";
+	entry = "&t " + int( TEAM_PLAYERS ) + " " + team.stats.score + " ";
 	if ( scoreboardMessage.len() + entry.len() < maxlen )
 		scoreboardMessage += entry;
 

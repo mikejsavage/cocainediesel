@@ -259,8 +259,6 @@ static void CG_FireWeaponEvent( int entNum, int weapon, int fireMode ) {
 		case WEAP_GUNBLADE:
 			if( fireMode == FIRE_MODE_WEAK ) {
 				CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_BLADE, 0, EVENT_CHANNEL );
-			} else {
-				CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_PISTOL, 0, EVENT_CHANNEL );
 			}
 			break;
 

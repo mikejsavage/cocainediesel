@@ -26,7 +26,7 @@ void Sys_Error( const char *format, ... ) {
 
 	// SDL_ShowSimpleMessageBox( SDL_MESSAGEBOX_ERROR, APPLICATION, msg, NULL );
 
-	exit( 1 );
+	abort();
 }
 
 void Sys_Init() {

@@ -49,7 +49,8 @@ struct AllocationTracker {
 
 	void untrack( void * ptr ) {
 		QMutex_Lock( mutex );
-		allocations.erase( ptr );
+		if( allocations.erase( ptr ) == 0 )
+			Sys_Error( "Stray free" );
 		QMutex_Unlock( mutex );
 	};
 };

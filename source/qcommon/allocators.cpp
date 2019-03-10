@@ -6,7 +6,7 @@
 struct AllocationTracker {
 	NONCOPYABLE( AllocationTracker );
 	void track( void * ptr, const char * func, const char * file, int line ) { }
-	void untrack( void * ptr ) { };
+	void untrack( void * ptr, const char * func, const char * file, int line ) { };
 };
 
 #else
@@ -47,10 +47,10 @@ struct AllocationTracker {
 		QMutex_Unlock( mutex );
 	}
 
-	void untrack( void * ptr ) {
+	void untrack( void * ptr, const char * func, const char * file, int line ) {
 		QMutex_Lock( mutex );
 		if( allocations.erase( ptr ) == 0 )
-			Sys_Error( "Stray free" );
+			Sys_Error( "Stray free in '%s' (%s:%d)", func, file, line );
 		QMutex_Unlock( mutex );
 	};
 };
@@ -67,7 +67,7 @@ void * Allocator::allocate( size_t size, size_t alignment, const char * func, co
 void * Allocator::reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
 	void * new_p = try_reallocate( ptr, current_size, new_size, alignment, func, file, line );
 	if( new_p == NULL )
-		Sys_Error( "Reallocation failed" );
+		Sys_Error( "Reallocation failed in '%s' (%s:%d)", func, file, line );
 	return new_p;
 }
 
@@ -97,16 +97,18 @@ struct SystemAllocator final : public Allocator {
 
 	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
 		assert( alignment <= 16 );
+		tracker.untrack( ptr, func, file, line );
 		void * new_ptr = realloc( ptr, new_size );
-		if( new_ptr == NULL )
+		if( new_ptr == NULL ) {
+			tracker.track( ptr, func, file, line );
 			return NULL;
-		tracker.untrack( ptr );
+		}
 		tracker.track( new_ptr, func, file, line );
 		return new_ptr;
 	}
 
-	void deallocate( void * ptr ) {
+	void deallocate( void * ptr, const char * func, const char * file, int line ) {
 		free( ptr );
-		tracker.untrack( ptr );
+		tracker.untrack( ptr, func, file, line );
 	}
 };

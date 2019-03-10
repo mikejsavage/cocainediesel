@@ -399,18 +399,6 @@ gfx/misc/playerspawnmarker
 	}
 }
 
-gfx/misc/toxicbubble
-{
-	cull none
-	softParticle
-
-	{
-		clampmap gfx/misc/toxicbubble.tga
-		blendfunc blend
-		rgbgen const ( 0 255 70 )
-	}
-}
-
 gfx/misc/teleportshell
 {
 	cull front

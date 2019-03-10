@@ -36,7 +36,7 @@ local configs = {
 		toolchain = "gcc",
 		cxx = "g++",
 
-		cxxflags = "-c -x c++ -fdiagnostics-color",
+		cxxflags = "-c -fdiagnostics-color",
 		pie_cxxflags = "-fPIC",
 		ldflags = "",
 	},

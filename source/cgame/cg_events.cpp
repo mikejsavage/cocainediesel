@@ -236,18 +236,9 @@ static void CG_FireWeaponEvent( int entNum, int weapon, int fireMode ) {
 
 	// flash and barrel effects
 
-	if( weapon == WEAP_GUNBLADE ) { // gunblade is special
-		if( fireMode == FIRE_MODE_STRONG ) {
-			// light flash
-			if( cg_weaponFlashes->integer && weaponInfo->flashTime ) {
-				cg_entPModels[entNum].flash_time = cg.time + weaponInfo->flashTime;
-			}
-		} else {
-			// start barrel rotation or offsetting
-			if( weaponInfo->barrelTime ) {
-				cg_entPModels[entNum].barrel_time = cg.time + weaponInfo->barrelTime;
-			}
-		}
+	if( weapon == WEAP_GUNBLADE && weaponInfo->barrelTime ) {
+		// start barrel rotation or offsetting
+		cg_entPModels[entNum].barrel_time = cg.time + weaponInfo->barrelTime;
 	} else {
 		// light flash
 		if( cg_weaponFlashes->integer && weaponInfo->flashTime ) {

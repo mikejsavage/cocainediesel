@@ -64,8 +64,8 @@ void * Allocator::allocate( size_t size, size_t alignment, const char * func, co
 	return p;
 }
 
-void * Allocator::reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment ) {
-	void * new_p = try_reallocate( ptr, current_size, new_size, alignment );
+void * Allocator::reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
+	void * new_p = try_reallocate( ptr, current_size, new_size, alignment, func, file, line );
 	if( new_p == NULL )
 		Sys_Error( "Reallocation failed" );
 	return new_p;
@@ -95,9 +95,14 @@ struct SystemAllocator final : public Allocator {
 		return ptr;
 	}
 
-	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment ) {
+	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
 		assert( alignment <= 16 );
-		return realloc( ptr, new_size );
+		void * new_ptr = realloc( ptr, new_size );
+		if( new_ptr == NULL )
+			return NULL;
+		tracker.untrack( ptr );
+		tracker.track( new_ptr, func, file, line );
+		return new_ptr;
 	}
 
 	void deallocate( void * ptr ) {

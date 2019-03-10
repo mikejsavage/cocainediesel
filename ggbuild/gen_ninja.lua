@@ -48,6 +48,8 @@ local configs = {
 		bin_suffix = "-asan",
 		cxxflags = "-O0 -ggdb3 -fno-omit-frame-pointer -fsanitize=address",
 		ldflags = "-fsanitize=address",
+
+		prebuilt_lib_dir = "linux-debug",
 	},
 	[ "linux-release" ] = {
 		cxxflags = "-O2 -DNDEBUG",
@@ -106,6 +108,8 @@ local obj_suffix = rightmost( "obj_suffix" )
 local pie_obj_suffix = rightmost( "pie_obj_suffix" )
 local lib_prefix = rightmost( "lib_prefix" )
 local lib_suffix = rightmost( "lib_suffix" )
+local prebuilt_lib_dir = rightmost( "prebuilt_lib_dir" )
+prebuilt_lib_dir = prebuilt_lib_dir == "" and OS_config or prebuilt_lib_dir
 local dll_prefix = rightmost( "dll_prefix" )
 local dll_suffix = rightmost( "dll_suffix" )
 local cxxflags = concat( "cxxflags" )
@@ -154,7 +158,7 @@ local function joinpb( names, suffix, prefix )
 	prefix = prefix or ""
 	local flat = flatten( names )
 	for i = 1, #flat do
-		flat[ i ] = "libs/" .. flat[ i ] .. "/" .. OS_config .. "/" .. prefix .. flat[ i ] .. suffix
+		flat[ i ] = "libs/" .. flat[ i ] .. "/" .. prebuilt_lib_dir .. "/" .. prefix .. flat[ i ] .. suffix
 	end
 	return table.concat( flat, " " )
 end
@@ -425,23 +429,23 @@ local function write_ninja_script()
 
 		local full_name = bin_prefix .. bin_name .. bin_suffix
 		printf( "build %s: bin %s %s %s",
-		full_name,
-		join( srcs, obj_suffix ),
-		join( cfg.libs, lib_suffix, lib_prefix ),
-		joinpb( cfg.prebuilt_libs, lib_suffix, lib_prefix )
-	)
+			full_name,
+			join( srcs, obj_suffix ),
+			join( cfg.libs, lib_suffix, lib_prefix ),
+			joinpb( cfg.prebuilt_libs, lib_suffix, lib_prefix )
+		)
 
-	local ldflags_key = toolchain .. "_ldflags"
-	local extra_ldflags_key = toolchain .. "_extra_ldflags"
-	if cfg[ ldflags_key ] then
-		printf( "    ldflags = %s", cfg[ ldflags_key ] )
-	end
-	if cfg[ extra_ldflags_key ] then
-		printf( "    extra_ldflags = %s", cfg[ extra_ldflags_key ] )
-	end
+		local ldflags_key = toolchain .. "_ldflags"
+		local extra_ldflags_key = toolchain .. "_extra_ldflags"
+		if cfg[ ldflags_key ] then
+			printf( "    ldflags = %s", cfg[ ldflags_key ] )
+		end
+		if cfg[ extra_ldflags_key ] then
+			printf( "    extra_ldflags = %s", cfg[ extra_ldflags_key ] )
+		end
 
-	printf( "default %s", full_name )
-end
+		printf( "default %s", full_name )
+	end
 end
 
 automatically_print_output_at_exit = setmetatable( { }, { __gc = write_ninja_script } )

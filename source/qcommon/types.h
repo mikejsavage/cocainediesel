@@ -18,9 +18,9 @@ typedef uint64_t u64;
 struct Allocator {
 	virtual ~Allocator() { }
 	virtual void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) = 0;
-	virtual void * try_reallocate( void * ptr, size_t current_size, size_t new_size ) = 0;
+	virtual void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment ) = 0;
 	void * allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
-	void * reallocate( void * ptr, size_t current_size, size_t new_size );
+	void * reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment );
 	virtual void deallocate( void * ptr ) = 0;
 };
 

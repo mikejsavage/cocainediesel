@@ -17,13 +17,16 @@ typedef uint64_t u64;
 // allocator interface
 struct Allocator {
 	virtual ~Allocator() { }
-	virtual void * allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) = 0;
-	virtual void * reallocate( void * ptr, size_t current_size, size_t new_size ) = 0;
+	virtual void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) = 0;
+	virtual void * try_reallocate( void * ptr, size_t current_size, size_t new_size ) = 0;
+	void * allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
+	void * reallocate( void * ptr, size_t current_size, size_t new_size );
 	virtual void deallocate( void * ptr ) = 0;
 };
 
 // span
-struct Span< T > {
+template< typename T >
+struct Span {
 	constexpr Span() : ptr( NULL ), n( 0 ) { }
 	constexpr Span( T * ptr, size_t n ) : ptr( ptr ), n( n ) { }
 
@@ -66,7 +69,7 @@ struct Vec4 {
 	Vec3 xyz() const { return Vec3( x, y, z ); }
 };
 
-struct Mat2 const char * func, {
+struct Mat2 {
 	Vec2 col0, col1;
 
 	Mat2() { }
@@ -76,7 +79,7 @@ struct Mat2 const char * func, {
         Vec2 row0() const { return Vec2( col0.x, col1.x ); }
         Vec2 row1() const { return Vec2( col0.y, col1.y ); }
 
-	constexpr Mat2 I = Mat2( 1, 0, 0, 1 );
+	static constexpr Mat2 I() { return Mat2( 1, 0, 0, 1 ); }
 };
 
 struct Mat3 {
@@ -94,11 +97,13 @@ struct Mat3 {
         Vec3 row1() const { return Vec3( col0.y, col1.y, col2.y ); }
         Vec3 row2() const { return Vec3( col0.z, col1.z, col2.z ); }
 
-	constexpr Mat3 I = Mat3(
-		1, 0, 0,
-		0, 1, 0,
-		0, 0, 1
-	);
+	static constexpr Mat3 I() {
+		return Mat3(
+			1, 0, 0,
+			0, 1, 0,
+			0, 0, 1
+		);
+	}
 };
 
 struct alignas( 16 ) Mat4 {
@@ -106,7 +111,7 @@ struct alignas( 16 ) Mat4 {
 
 	Mat4() { }
         constexpr Mat4( Vec4 c0, Vec4 c1, Vec4 c2, Vec4 c3 ) : col0( c0 ), col1( c1 ), col2( c2 ), col3( c3 ) { }
-	constexpr m4(
+	constexpr Mat4(
                 float e00, float e01, float e02, float e03,
                 float e10, float e11, float e12, float e13,
                 float e20, float e21, float e22, float e23,
@@ -118,27 +123,29 @@ struct alignas( 16 ) Mat4 {
         Vec4 row2() const { return Vec4( col0.z, col1.z, col2.z, col3.z ); }
         Vec4 row3() const { return Vec4( col0.w, col1.w, col2.w, col3.w ); }
 
-	constexpr Mat4 I = Mat4(
-		1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, 0,
-		0, 0, 0, 1
-	);
+	static constexpr Mat4 I() {
+		return Mat4(
+			1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, 1, 0,
+			0, 0, 0, 1
+		);
+	}
 };
 
 // colors
-struct RGB8 {
-        u8 r, g, b;
-
-	RGB8() { }
-        constexpr RGB8( u8 r_, u8 g_, u8 b_ ) : r( r_ ), g( g_ ), b( b_ ) { }
-};
-
-struct RGBA8 {
-        u8 r, g, b, a;
-
-	RGBA8() { }
-        constexpr RGB8( u8 r_, u8 g_, u8 b_, u8 a_ ) : r( r_ ), g( g_ ), b( b_ ), a( a_ ) { }
-};
+// struct RGB8 {
+//         u8 r, g, b;
+//
+// 	RGB8() { }
+//         constexpr RGB8( u8 r_, u8 g_, u8 b_ ) : r( r_ ), g( g_ ), b( b_ ) { }
+// };
+//
+// struct RGBA8 {
+//         u8 r, g, b, a;
+//
+// 	RGBA8() { }
+//         constexpr RGB8( u8 r_, u8 g_, u8 b_, u8 a_ ) : r( r_ ), g( g_ ), b( b_ ), a( a_ ) { }
+// };
 
 // TODO: asset types?

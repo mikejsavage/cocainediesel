@@ -30,6 +30,7 @@ constexpr size_t ARRAY_COUNT( const T ( &arr )[ N ] ) {
 }
 
 #define STATIC_ASSERT( p ) static_assert( p, #p )
+#define NONCOPYABLE( T ) T( const T & ) = delete; void operator=( const T & ) = delete
 
 short ShortSwap( short l );
 

@@ -77,6 +77,17 @@ struct SystemAllocator final : public Allocator {
 	AllocationTracker tracker;
 
 	void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
+		/*
+		 * https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/malloc?view=vs-2015
+		 * https://www.gnu.org/software/libc/manual/html_node/Aligned-Memory-Blocks.html
+		 *
+		 * "In Visual C++, the fundamental alignment is the alignment that's required for a
+		 * double, or 8 bytes. In code that targets 64-bit platforms, it's 16 bytes."
+		 *
+		 * "The address of a block returned by malloc or realloc in GNU systems is always a
+		 * multiple of eight (or sixteen on 64-bit systems)."
+		 */
+
 		assert( alignment <= 16 );
 		void * p = malloc( size );
 		tracker.track( p, func, file, line );

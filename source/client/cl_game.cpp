@@ -158,7 +158,7 @@ void CL_GameModule_Init( void ) {
 	cgame_import_t import;
 
 	// stop all playing sounds
-	CL_SoundModule_StopAllSounds( true );
+	S_StopAllSounds( true );
 
 	CL_GameModule_Shutdown();
 
@@ -249,14 +249,14 @@ void CL_GameModule_Init( void ) {
 	import.CM_InlineModelBounds = CL_GameModule_CM_InlineModelBounds;
 	import.CM_InPVS = CL_GameModule_CM_InPVS;
 
-	import.S_RegisterSound = CL_SoundModule_RegisterSound;
-	import.S_StartFixedSound = CL_SoundModule_StartFixedSound;
-	import.S_StartEntitySound = CL_SoundModule_StartEntitySound;
-	import.S_StartGlobalSound = CL_SoundModule_StartGlobalSound;
-	import.S_StartLocalSound = CL_SoundModule_StartLocalSound;
-	import.S_Update = CL_SoundModule_Update;
-	import.S_ImmediateSound = CL_SoundModule_ImmediateSound;
-	import.S_UpdateEntity = CL_SoundModule_UpdateEntity;
+	import.S_RegisterSound = S_RegisterSound;
+	import.S_StartFixedSound = S_StartFixedSound;
+	import.S_StartEntitySound = S_StartEntitySound;
+	import.S_StartGlobalSound = S_StartGlobalSound;
+	import.S_StartLocalSound = S_StartLocalSound;
+	import.S_Update = S_Update;
+	import.S_ImmediateSound = S_ImmediateSound;
+	import.S_UpdateEntity = S_UpdateEntity;
 
 	import.SCR_RegisterFont = SCR_RegisterFont;
 	import.SCR_RegisterSpecialFont = SCR_RegisterSpecialFont;

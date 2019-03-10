@@ -1053,7 +1053,7 @@ void UI_CharEvent( bool mainContext, wchar_t key ) {
 void UI_ShowMainMenu() {
 	uistate = UIState_MainMenu;
 	mainmenu_state = MainMenuState_ServerBrowser;
-	CL_SoundModule_StartMenuMusic();
+	S_StartMenuMusic();
 	RefreshServerBrowser();
 }
 

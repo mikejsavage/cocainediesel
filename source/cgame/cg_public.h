@@ -178,7 +178,7 @@ typedef struct {
 	// sound system
 	struct sfx_s *( *S_RegisterSound )( const char *name );
 	void ( *S_Update )( const vec3_t origin, const vec3_t velocity, const mat3_t axis );
-	void ( *S_UpdateEntity )( int entNum, vec3_t origin, vec3_t velocity );
+	void ( *S_UpdateEntity )( int entNum, const vec3_t origin, const vec3_t velocity );
 	void ( *S_StartFixedSound )( struct sfx_s *sfx, const vec3_t origin, int entchannel, float volume, float attenuation );
 	void ( *S_StartEntitySound )( struct sfx_s *sfx, int entnum, int entchannel, float volume, float attenuation );
 	void ( *S_StartGlobalSound )( struct sfx_s *sfx, int entchannel, float volume );

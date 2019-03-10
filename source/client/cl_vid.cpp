@@ -243,7 +243,9 @@ void VID_Init() {
 		Sys_Error( "VID_Init() failed with code %i", err );
 	}
 
-	CL_SoundModule_Init();
+	if( !S_Init() ) {
+		Com_Printf( S_COLOR_RED "Couldn't initialise audio engine\n" );
+	}
 
 	RF_BeginRegistration();
 

@@ -344,7 +344,7 @@ static inline void trap_S_Update( const vec3_t origin, const vec3_t velocity, co
 	CGAME_IMPORT.S_Update( origin, velocity, axis );
 }
 
-static inline void trap_S_UpdateEntity( int entNum, vec3_t origin, vec3_t velocity ) {
+static inline void trap_S_UpdateEntity( int entNum, const vec3_t origin, const vec3_t velocity ) {
 	return CGAME_IMPORT.S_UpdateEntity( entNum, origin, velocity );
 }
 

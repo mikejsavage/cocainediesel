@@ -822,7 +822,7 @@ void CL_ServerReconnect_f( void ) {
 	cls.rejected = false;
 
 	CL_GameModule_Shutdown();
-	CL_SoundModule_StopAllSounds( true );
+	S_StopAllSounds( true );
 
 	Com_Printf( "Reconnecting...\n" );
 
@@ -1441,7 +1441,7 @@ void CL_Precache_f( void ) {
 			CL_GameModule_Init();
 		} else {
 			CL_GameModule_Reset();
-			CL_SoundModule_StopAllSounds( false );
+			S_StopAllSounds( false );
 		}
 
 		cls.demo.play_ignore_next_frametime = true;
@@ -1534,7 +1534,7 @@ void CL_SetClientState( connstate_t state ) {
 			cls.cgameActive = false;
 			Con_Close();
 			UI_HideMenu();
-			CL_SoundModule_StopBackgroundTrack();
+			S_StopBackgroundTrack();
 			CL_SetKeyDest( key_game );
 			//SCR_UpdateScreen();
 			break;
@@ -1584,7 +1584,7 @@ void CL_InitMedia( void ) {
 
 	cls.mediaInitialized = true;
 
-	CL_SoundModule_StopAllSounds( true );
+	S_StopAllSounds( true );
 
 	// register console font and background
 	SCR_RegisterConsoleMedia();
@@ -1606,7 +1606,7 @@ void CL_ShutdownMedia( void ) {
 
 	cls.mediaInitialized = false;
 
-	CL_SoundModule_StopAllSounds( true );
+	S_StopAllSounds( true );
 
 	// shutdown cgame
 	CL_GameModule_Shutdown();
@@ -1625,7 +1625,7 @@ void CL_RestartMedia( void ) {
 		cls.mediaInitialized = false;
 	}
 
-	CL_SoundModule_StopAllSounds( true );
+	S_StopAllSounds( true );
 
 	// random seed to be shared among game modules so pseudo-random stuff is in sync
 	if( cls.state != CA_CONNECTED ) {
@@ -2144,7 +2144,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	// update audio
 	if( cls.state != CA_ACTIVE && !cls.disable_screen ) {
-		CL_SoundModule_Update( vec3_origin, vec3_origin, axis_identity );
+		S_Update( vec3_origin, vec3_origin, axis_identity );
 	}
 
 	allRealMsec = 0;
@@ -2301,7 +2301,7 @@ void CL_Shutdown( void ) {
 		return;
 	}
 
-	CL_SoundModule_StopAllSounds( true );
+	S_StopAllSounds( true );
 
 	ML_Shutdown();
 	CL_ShutDownServerList();
@@ -2319,7 +2319,7 @@ void CL_Shutdown( void ) {
 
 	UI_Shutdown();
 	CL_GameModule_Shutdown();
-	CL_SoundModule_Shutdown();
+	S_Shutdown();
 	CL_ShutdownInput();
 	VID_Shutdown();
 

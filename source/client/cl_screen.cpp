@@ -425,7 +425,7 @@ void SCR_DrawChat( int x, int y, int width, struct qfontface_s *font ) {
 * SCR_BeginLoadingPlaque
 */
 void SCR_BeginLoadingPlaque( void ) {
-	CL_SoundModule_StopAllSounds( true );
+	S_StopAllSounds( true );
 
 	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 

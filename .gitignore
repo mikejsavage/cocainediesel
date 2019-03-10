@@ -6,6 +6,9 @@
 /client
 /server
 
+/demos
+/screenshots
+
 *.exe
 *.exp
 *.ilk

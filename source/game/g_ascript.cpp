@@ -23,15 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //=======================================================================
 
-static const gs_asEnumVal_t asSpawnSystemEnumVals[] =
-{
-	ASLIB_ENUM_VAL( SPAWNSYSTEM_INSTANT ),
-	ASLIB_ENUM_VAL( SPAWNSYSTEM_WAVES ),
-	ASLIB_ENUM_VAL( SPAWNSYSTEM_HOLD ),
-
-	ASLIB_ENUM_VAL_NULL
-};
-
 static const gs_asEnumVal_t asMovetypeEnumVals[] =
 {
 	ASLIB_ENUM_VAL( MOVETYPE_NONE ),
@@ -66,9 +57,7 @@ static const gs_asEnumVal_t asMiscelaneaEnumVals[] =
 
 static const gs_asEnum_t asGameEnums[] =
 {
-	{ "spawnsystem_e", asSpawnSystemEnumVals },
 	{ "movetype_e", asMovetypeEnumVals },
-
 	{ "takedamage_e", asDamageEnumVals },
 	{ "miscelanea_e", asMiscelaneaEnumVals },
 
@@ -214,10 +203,6 @@ static const gs_asClassDescriptor_t asMatchClassDescriptor =
 
 // CLASS: GametypeDesc
 
-static void objectGametypeDescriptor_SetTeamSpawnsystem( int team, int spawnsystem, int wave_time, int wave_maxcount, bool spectate_team, gametype_descriptor_t *self ) {
-	G_SpawnQueue_SetTeamSpawnsystem( team, spawnsystem, wave_time, wave_maxcount, spectate_team );
-}
-
 static bool objectGametypeDescriptor_isInvidualGameType( gametype_descriptor_t *self ) {
 	return GS_InvidualGameType();
 }
@@ -234,7 +219,6 @@ static const gs_asBehavior_t gametypedescr_ObjectBehaviors[] =
 
 static const gs_asMethod_t gametypedescr_Methods[] =
 {
-	{ ASLIB_FUNCTION_DECL( void, setTeamSpawnsystem, ( int team, int spawnsystem, int wave_time, int wave_maxcount, bool deadcam ) ), asFUNCTION( objectGametypeDescriptor_SetTeamSpawnsystem ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, get_isInvidualGameType, ( ) const ), asFUNCTION( objectGametypeDescriptor_isInvidualGameType ), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL
@@ -266,6 +250,7 @@ static const gs_asProperty_t gametypedescr_Properties[] =
 	{ ASLIB_PROPERTY_DECL( bool, customDeadBodyCam ), ASLIB_FOFFSET( gametype_descriptor_t, customDeadBodyCam ) },
 	{ ASLIB_PROPERTY_DECL( bool, removeInactivePlayers ), ASLIB_FOFFSET( gametype_descriptor_t, removeInactivePlayers ) },
 	{ ASLIB_PROPERTY_DECL( bool, selfDamage ), ASLIB_FOFFSET( gametype_descriptor_t, selfDamage ) },
+	{ ASLIB_PROPERTY_DECL( bool, instantRespawn ), ASLIB_FOFFSET( gametype_descriptor_t, instantRespawn ) },
 	{ ASLIB_PROPERTY_DECL( uint, numBots ), ASLIB_FOFFSET( gametype_descriptor_t, numBots ) },
 
 	ASLIB_PROPERTY_NULL
@@ -1257,7 +1242,6 @@ static const gs_asMethod_t gedict_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, set_targetname, ( const String &in ) ), asFUNCTION( objectGameEntity_setTargetname ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, set_classname, ( const String &in ) ), asFUNCTION( objectGameEntity_setClassname ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, ghost, ( ) ), asFUNCTION( objectGameEntity_GhostClient ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, spawnqueueAdd, ( ) ), asFUNCTION( G_SpawnQueue_AddClient ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, teleportEffect, ( bool ) ), asFUNCTION( objectGameEntity_TeleportEffect ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, respawnEffect, ( ) ), asFUNCTION( G_RespawnEffect ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, setupModel, ( const String &in ) ), asFUNCTION( objectGameEntity_SetupModel ), asCALL_CDECL_OBJLAST },

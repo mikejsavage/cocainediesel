@@ -92,6 +92,7 @@ typedef struct {
 	bool customDeadBodyCam;
 	bool removeInactivePlayers;
 	bool selfDamage;
+	bool instantRespawn;
 
 	int spawnpointRadius;
 

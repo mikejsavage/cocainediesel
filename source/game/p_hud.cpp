@@ -324,7 +324,7 @@ void G_SetClientStats( edict_t *ent ) {
 	if( GS_MatchState() <= MATCH_STATE_WARMUP && level.ready[PLAYERNUM( ent )] ) {
 		client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_READY;
 	}
-	if( G_SpawnQueue_GetSystem( ent->s.team ) == SPAWNSYSTEM_INSTANT ) {
+	if( level.gametype.instantRespawn ) {
 		client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_INSTANTRESPAWN;
 	}
 
@@ -377,9 +377,6 @@ void G_SetClientStats( edict_t *ent ) {
 			i++;
 		}
 	}
-
-	// spawn system
-	client->ps.stats[STAT_NEXT_RESPAWN] = ceil( G_SpawnQueue_NextRespawnTime( client->team ) * 0.001f );
 
 	// pointed player
 	client->ps.stats[STAT_POINTED_TEAMPLAYER] = 0;

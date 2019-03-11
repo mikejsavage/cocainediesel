@@ -601,8 +601,6 @@ void G_RunFrame( unsigned int msec, int64_t serverTime ) {
 	level.framenum++;
 	level.time += msec;
 
-	G_SpawnQueue_Think();
-
 	// run the world
 	G_RunClients();
 	G_RunEntities();

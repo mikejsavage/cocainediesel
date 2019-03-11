@@ -173,8 +173,14 @@ void G_Teams_SetTeam( edict_t *ent, int team ) {
 
 	ent->r.client->team = team;
 
-	G_ClientRespawn( ent, true ); // make ghost using G_ClientRespawn so team is updated at ghosting
-	G_SpawnQueue_AddClient( ent );
+	if( team == TEAM_SPECTATOR || !level.gametype.instantRespawn ) {
+		G_ClientRespawn( ent, true );
+		if( team != TEAM_SPECTATOR )
+			G_ChasePlayer( ent, NULL, GS_TeamBasedGametype(), 0 );
+	}
+	else {
+		G_ClientRespawn( ent, false );
+	}
 
 	level.ready[PLAYERNUM( ent )] = false;
 

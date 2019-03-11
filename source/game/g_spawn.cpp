@@ -772,7 +772,6 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 
 	G_InitGameCommands();
 	G_CallVotes_Init();
-	G_SpawnQueue_Init();
 	G_Teams_Init();
 
 	G_Gametype_Init();

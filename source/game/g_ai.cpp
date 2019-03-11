@@ -52,26 +52,28 @@ void AI_SpawnBot( const char * teamName ) {
 		return;
 	}
 
-	if( edict_t * ent = ConnectFakeClient() ) {
-		// init this bot
-		ent->think = NULL;
-		ent->nextThink = level.time + 1;
-		ent->classname = "bot";
-		ent->die = player_die;
+	edict_t * ent = ConnectFakeClient();
+	if( ent == NULL )
+		return;
 
-		AI_Respawn( ent );
+	// init this bot
+	ent->think = NULL;
+	ent->nextThink = level.time + 1;
+	ent->classname = "bot";
+	ent->die = player_die;
 
-		int team = GS_TeamFromName( teamName );
-		if( team != -1 && team > TEAM_PLAYERS ) {
-			// Join specified team immediately
-			G_Teams_JoinTeam( ent, team );
-		} else {
-			// stay as spectator, give random time for joining
-			ent->nextThink = level.time + 500 + (unsigned)( random() * 2000 );
-		}
+	AI_Respawn( ent );
 
-		game.numBots++;
+	int team = GS_TeamFromName( teamName );
+	if( team != -1 && team > TEAM_PLAYERS ) {
+		// Join specified team immediately
+		G_Teams_JoinTeam( ent, team );
+	} else {
+		// stay as spectator, give random time for joining
+		ent->nextThink = level.time + 500 + (unsigned)( random() * 2000 );
 	}
+
+	game.numBots++;
 }
 
 void AI_RemoveBot( const char * name ) {

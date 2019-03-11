@@ -179,7 +179,6 @@ typedef struct {
 
 	vec3_t wallColor, floorColor;
 
-	image_t *rawTexture;                // cinematic texture (RGB)
 	image_t *noTexture;                 // use for bad textures
 	image_t *whiteTexture;
 	image_t *whiteCubemapTexture;

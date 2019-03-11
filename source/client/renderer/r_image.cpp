@@ -1457,13 +1457,6 @@ void R_InitViewportTexture( image_t **texture, const char *name, int id,
 }
 
 /*
-* R_InitStretchRawImages
-*/
-static void R_InitStretchRawImages( void ) {
-	rsh.rawTexture = R_CreateImage( "*** raw ***", 0, 0, 1, IT_SPECIAL | IT_SRGB, 1, IMAGE_TAG_BUILTIN, 3 );
-}
-
-/*
 * R_InitScreenImagePair
 */
 static void R_InitScreenImagePair( const char *name, image_t **color, image_t **depth, int orFlags ) {
@@ -1628,7 +1621,6 @@ static void R_InitBuiltinImages( void ) {
 * R_ReleaseBuiltinImages
 */
 static void R_ReleaseBuiltinImages( void ) {
-	rsh.rawTexture = NULL;
 	rsh.noTexture = NULL;
 	rsh.whiteTexture = NULL;
 	rsh.blackTexture = NULL;
@@ -1674,7 +1666,6 @@ void R_InitImages( void ) {
 		r_images[i].next = &r_images[i + 1];
 	}
 
-	R_InitStretchRawImages();
 	R_InitBuiltinImages();
 }
 

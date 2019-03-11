@@ -162,12 +162,6 @@ void RegisterCvarAddon( asIScriptEngine *engine ) {
 	r = engine->RegisterObjectMethod( "Cvar", "void set( float value )", asFUNCTION( objectCVar_setF ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
 	r = engine->RegisterObjectMethod( "Cvar", "void set( int value )", asFUNCTION( objectCVar_setI ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
 	r = engine->RegisterObjectMethod( "Cvar", "void set( double value )", asFUNCTION( objectCVar_setD ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
-#ifdef CVAR_FORCESET
-	r = engine->RegisterObjectMethod( "Cvar", "void forceSet( const String &in )", asFUNCTION( objectCVar_forceSetS ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
-	r = engine->RegisterObjectMethod( "Cvar", "void forceSet( float value )", asFUNCTION( objectCVar_forceSetF ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
-	r = engine->RegisterObjectMethod( "Cvar", "void forceSet( int value )", asFUNCTION( objectCVar_forceSetI ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
-	r = engine->RegisterObjectMethod( "Cvar", "void forceSet( double value )", asFUNCTION( objectCVar_forceSetD ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
-#endif
 	r = engine->RegisterObjectMethod( "Cvar", "void set_modified( bool modified )", asFUNCTION( objectCVar_setModified ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
 
 	r = engine->RegisterObjectMethod( "Cvar", "bool get_modified() const", asFUNCTION( objectCVar_getModified ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );

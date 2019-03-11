@@ -1405,8 +1405,6 @@ void R_FreeFile_( void *buffer, const char *filename, int fileline ) {
 
 //===================================================================
 
-//#define FRAMECACHE_DEBUG
-
 typedef struct r_framecachemark_s {
 	uint8_t *ptr;
 	struct r_framecache_s *cache;
@@ -1486,10 +1484,6 @@ void R_FrameCache_Clear( void ) {
 	}
 
 	R_FrameCache_ResetBlock( r_frameCacheHead );
-
-#ifdef FRAMECACHE_DEBUG
-	Com_Printf( "R_FrameCache_Clear\n" );
-#endif
 }
 
 /*
@@ -1503,10 +1497,6 @@ void *R_FrameCache_Alloc_( size_t size, const char *filename, int fileline ) {
 	if( !size ) {
 		return NULL;
 	}
-
-#ifdef FRAMECACHE_DEBUG
-	Com_Printf( "R_FrameCache_Alloc_: %s:%d\n", filename, fileline );
-#endif
 
 	size = ((size + 15) & ~15);
 
@@ -1550,9 +1540,6 @@ void *R_FrameCache_SetMark_( const char *filename, int fileline ) {
 	r_framecache_t *cache = r_frameCacheHead;
 	r_framecachemark_t *cmark = &cache->mark;
 	cmark->ptr = cache->dataRover;
-#ifdef FRAMECACHE_DEBUG
-	Com_Printf( "R_FrameCache_SetMark_: %s:%d\n", filename, fileline );
-#endif
 	return (void *)cmark;
 }
 
@@ -1562,8 +1549,5 @@ void *R_FrameCache_SetMark_( const char *filename, int fileline ) {
 void R_FrameCache_FreeToMark_( void *mark, const char *filename, int fileline ) {
 	r_framecachemark_t *cmark = ( r_framecachemark_t * ) mark;
 	r_framecache_t *cache = cmark->cache;
-#ifdef FRAMECACHE_DEBUG
-	Com_Printf( "R_FrameCache_FreeToMark_: %s:%d\n", filename, fileline );
-#endif
 	cache->dataRover = cmark->ptr;
 }

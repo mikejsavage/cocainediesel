@@ -149,21 +149,6 @@ void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, const vec3
 		VectorCopy( vec3_origin, dir );
 	} else {
 		VectorNormalize2( basedir, dir );
-
-		//#define ACCENT_SCALE 2.0f
-#ifdef ACCENT_SCALE
-
-		// accent the vertical or horizontal aspect of the direction
-		if( VectorLengthFast( tv( dir[0], dir[1], 0 ) ) > dir[2] ) {
-			dir[0] *= ACCENT_SCALE;
-			dir[1] *= ACCENT_SCALE;
-		} else {
-			dir[2] *= ACCENT_SCALE;
-		}
-
-		VectorNormalizeFast( dir );
-#endif
-#undef ACCENT_SCALE
 	}
 
 	frac = (float)damage / ( damage + client->resp.snap.damageTaken );

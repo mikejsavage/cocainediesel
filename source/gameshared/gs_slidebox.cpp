@@ -25,12 +25,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "q_collision.h"
 #include "gs_public.h"
 
-//#define CHECK_TRAPPED
 #define GS_SLIDEMOVE_CLAMPING
 
 #define STOP_EPSILON    0.1
-
-//#define IsGroundPlane( normal, gravityDir ) ( DotProduct( normal, gravityDir ) < -0.45f )
 
 //==================================================
 // SNAP AND CLIP ORIGIN AND VELOCITY
@@ -270,21 +267,8 @@ int GS_SlideMove( move_t *move ) {
 		GS_ClipVelocityToClippingPlanes( move );
 		blockedmask = GS_SlideMoveClipMove( move /*, stepping*/ );
 
-#ifdef CHECK_TRAPPED
-		{
-			trace_t trace;
-			gs.api.Trace( &trace, move->origin, move->mins, move->maxs, move->origin, move->passent, move->contentmask, 0 );
-			if( trace.startsolid ) {
-				blockedmask |= SLIDEMOVEFLAG_TRAPPED;
-			}
-		}
-#endif
-
 		// can't continue
 		if( blockedmask & SLIDEMOVEFLAG_TRAPPED ) {
-#ifdef CHECK_TRAPPED
-			gs.api.Printf( "GS_SlideMove SLIDEMOVEFLAG_TRAPPED\n" );
-#endif
 			move->remainingTime = 0.0f;
 			VectorCopy( lastValidOrigin, move->origin );
 			return blockedmask;

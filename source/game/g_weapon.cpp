@@ -531,7 +531,7 @@ void W_Plasma_Backtrace( edict_t *ent, const vec3_t start ) {
 	VectorCopy( start, ent->s.origin );
 
 	do {
-		G_Trace4D( &tr, ent->s.origin, mins, maxs, oldorigin, ent, ( CONTENTS_BODY | CONTENTS_CORPSE ), ent->timeDelta );
+		G_Trace4D( &tr, ent->s.origin, mins, maxs, oldorigin, ent, CONTENTS_BODY, ent->timeDelta );
 
 		VectorCopy( tr.endpos, ent->s.origin );
 

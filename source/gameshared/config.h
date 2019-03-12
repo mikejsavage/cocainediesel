@@ -3,7 +3,3 @@
 
 #define TCP_SUPPORT
 #define HTTP_SUPPORT
-
-#ifndef PUBLIC_BUILD
-//#define WEAPONDEFS_FROM_DISK
-#endif

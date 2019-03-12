@@ -283,8 +283,6 @@ void G_Init( unsigned int seed, unsigned int framemsec, int protocol, const char
 	// server console commands
 	G_AddServerCommands();
 
-	G_LoadFiredefsFromDisk();
-
 	// init AS engine
 	G_asInitGameModuleEngine();
 }

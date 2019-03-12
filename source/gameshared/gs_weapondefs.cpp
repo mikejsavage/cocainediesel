@@ -110,39 +110,7 @@ gs_weapon_definition_t gs_weaponDefs[] =
 	{
 		"Gunblade",
 		WEAP_GUNBLADE,
-		{
-			FIRE_MODE_STRONG,
-			AMMO_GUNBLADE,
-			1,                              // ammo usage per shot
-			1,                              // projectiles fired each shot
-
-			//timings (in msecs)
-			WEAPONUP_FRAMETIME,             // weapon up frametime
-			WEAPONDOWN_FRAMETIME,           // weapon down frametime
-			600,                            // reload frametime
-			0,                              // cooldown frametime
-			5000,                           // projectile timeout
-			false,                          // smooth refire
-
-			//damages
-			35,                             // damage
-			1.0,                            // selfdamage ratio
-			90,                             // knockback
-			80,                             // splash radius
-			8,                              // splash minimum damage
-			10,                             // splash minimum knockback
-
-			//projectile def
-			3000,                           // speed
-			0,                              // spread
-			0,                              // v_spread
-
-			//ammo
-			0,                              // weapon pickup amount
-			0,                              // pickup amount
-			1,                              // max amount
-			0                               // low ammo threshold
-		},
+		{ },
 
 		{
 			FIRE_MODE_WEAK,

@@ -39,41 +39,6 @@ gs_weapon_definition_t gs_weaponDefs[] =
 		"no weapon",
 		WEAP_NONE,
 		{
-			FIRE_MODE_STRONG,               // fire mode
-			AMMO_NONE,                      // ammo tag
-			0,                              // ammo usage per shot
-			0,                              // projectiles fired each shot
-
-			//timings (in msecs)
-			WEAPONUP_FRAMETIME,             // weapon up frametime
-			WEAPONDOWN_FRAMETIME,           // weapon down frametime
-			0,                              // reload frametime
-			0,                              // cooldown frametime
-			0,                              // projectile timeout
-			false,                          // smooth refire
-
-			//damages
-			0,                              // damage
-			0,                              // selfdamage ratio
-			0,                              // knockback
-			0,                              // splash radius
-			0,                              // splash minimum damage
-			0,                              // splash minimum knockback
-
-			//projectile def
-			0,                              // speed
-			0,                              // spread
-			0,                              // v_spread
-
-			//ammo
-			0,                              // weapon pickup amount
-			0,                              // pickup amount
-			0,                              // max amount
-			0                               // low ammo threshold
-		},
-
-		{
-			FIRE_MODE_WEAK,                 // fire mode
 			AMMO_NONE,                      // ammo tag
 			0,                              // ammo usage per shot
 			0,                              // projectiles fired each shot
@@ -110,10 +75,7 @@ gs_weapon_definition_t gs_weaponDefs[] =
 	{
 		"Gunblade",
 		WEAP_GUNBLADE,
-		{ },
-
 		{
-			FIRE_MODE_WEAK,
 			AMMO_NONE,
 			0,                              // ammo usage per shot
 			0,                              // projectiles fired each shot
@@ -151,7 +113,6 @@ gs_weapon_definition_t gs_weaponDefs[] =
 		"Machinegun",
 		WEAP_MACHINEGUN,
 		{
-			FIRE_MODE_STRONG,
 			AMMO_BULLETS,
 			1,                              // ammo usage per shot
 			1,                              // projectiles fired each shot
@@ -183,15 +144,12 @@ gs_weapon_definition_t gs_weaponDefs[] =
 			100,                            // max amount
 			20                              // low ammo threshold
 		},
-
-		{ },
 	},
 
 	{
 		"Riotgun",
 		WEAP_RIOTGUN,
 		{
-			FIRE_MODE_STRONG,
 			AMMO_SHELLS,
 			1,                              // ammo usage per shot
 			20,                             // projectiles fired each shot
@@ -223,15 +181,12 @@ gs_weapon_definition_t gs_weaponDefs[] =
 			20,                             // max amount
 			3                               // low ammo threshold
 		},
-
-		{ },
 	},
 
 	{
 		"Grenade Launcher",
 		WEAP_GRENADELAUNCHER,
 		{
-			FIRE_MODE_STRONG,
 			AMMO_GRENADES,
 			1,                              // ammo usage per shot
 			1,                              // projectiles fired each shot
@@ -263,15 +218,12 @@ gs_weapon_definition_t gs_weaponDefs[] =
 			20,                             // max amount
 			3                               // low ammo threshold
 		},
-
-		{ },
 	},
 
 	{
 		"Rocket Launcher",
 		WEAP_ROCKETLAUNCHER,
 		{
-			FIRE_MODE_STRONG,
 			AMMO_ROCKETS,
 			1,                              // ammo usage per shot
 			1,                              // projectiles fired each shot
@@ -303,15 +255,12 @@ gs_weapon_definition_t gs_weaponDefs[] =
 			20,                             // max amount
 			3                               // low ammo threshold
 		},
-
-		{ },
 	},
 
 	{
 		"Plasmagun",
 		WEAP_PLASMAGUN,
 		{
-			FIRE_MODE_STRONG,
 			AMMO_PLASMA,
 			1,                              // ammo usage per shot
 			1,                              // projectiles fired each shot
@@ -343,15 +292,12 @@ gs_weapon_definition_t gs_weaponDefs[] =
 			150,                            // max amount
 			20                              // low ammo threshold
 		},
-
-		{ },
 	},
 
 	{
 		"Lasergun",
 		WEAP_LASERGUN,
 		{
-			FIRE_MODE_STRONG,
 			AMMO_LASERS,
 			1,                              // ammo usage per shot
 			1,                              // projectiles fired each shot
@@ -383,15 +329,12 @@ gs_weapon_definition_t gs_weaponDefs[] =
 			150,                            // max amount
 			20                              // low ammo threshold
 		},
-
-		{ },
 	},
 
 	{
 		"Electrobolt",
 		WEAP_ELECTROBOLT,
 		{
-			FIRE_MODE_STRONG,
 			AMMO_BOLTS,
 			1,                              // ammo usage per shot
 			1,                              // projectiles fired each shot
@@ -423,8 +366,6 @@ gs_weapon_definition_t gs_weaponDefs[] =
 			10,                             // max amount
 			3                               // low ammo threshold
 		},
-
-		{ },
 	},
 };
 

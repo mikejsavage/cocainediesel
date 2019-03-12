@@ -608,14 +608,12 @@ void CG_ValidateItemDef( int tag, char *name ) {
 */
 void CG_OverrideWeapondef( int index, const char *cstring ) {
 	int weapon, i;
-	int firemode = FIRE_MODE_WEAK;
 	gs_weapon_definition_t *weapondef;
 	firedef_t *firedef;
 
 	weapon = index;
 	if( index >= ( MAX_WEAPONDEFS / 2 ) ) {
 		weapon -= ( MAX_WEAPONDEFS / 2 );
-		firemode = FIRE_MODE_STRONG;
 	}
 
 	weapondef = GS_GetWeaponDef( weapon );
@@ -623,7 +621,7 @@ void CG_OverrideWeapondef( int index, const char *cstring ) {
 		CG_Error( "CG_OverrideWeapondef: Invalid weapon index\n" );
 	}
 
-	firedef = ( firemode == FIRE_MODE_STRONG ) ? &weapondef->firedef : &weapondef->firedef_weak;
+	firedef = &weapondef->firedef;
 
 	i = sscanf( cstring, "%7i %7i %7u %7u %7u %7u %7u %7i %7i %7i",
 				&firedef->usage_count,

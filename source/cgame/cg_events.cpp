@@ -201,7 +201,7 @@ void CG_Event_LaserBeam( int entNum, int weapon ) {
 /*
 * CG_FireWeaponEvent
 */
-static void CG_FireWeaponEvent( int entNum, int weapon, int fireMode ) {
+static void CG_FireWeaponEvent( int entNum, int weapon ) {
 	float attenuation;
 	struct sfx_s *sound = NULL;
 	weaponinfo_t *weaponInfo;
@@ -257,9 +257,7 @@ static void CG_FireWeaponEvent( int entNum, int weapon, int fireMode ) {
 			break;
 
 		case WEAP_GUNBLADE:
-			if( fireMode == FIRE_MODE_WEAK ) {
-				CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_BLADE, 0, EVENT_CHANNEL );
-			}
+			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_BLADE, 0, EVENT_CHANNEL );
 			break;
 
 		case WEAP_LASERGUN:
@@ -284,7 +282,7 @@ static void CG_FireWeaponEvent( int entNum, int weapon, int fireMode ) {
 
 	// add animation to the view weapon model
 	if( ISVIEWERENTITY( entNum ) && !cg.view.thirdperson ) {
-		CG_ViewWeapon_StartAnimationEvent( fireMode == FIRE_MODE_STRONG ? WEAPANIM_ATTACK_STRONG : WEAPANIM_ATTACK_WEAK );
+		CG_ViewWeapon_StartAnimationEvent( weapon == WEAP_GUNBLADE ? WEAPANIM_ATTACK_WEAK : WEAPANIM_ATTACK_STRONG );
 	}
 }
 
@@ -779,7 +777,7 @@ void CG_Event_Jump( entity_state_t *state, int parm ) {
 void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 	vec3_t dir;
 	bool viewer = ISVIEWERENTITY( ent->number );
-	int weapon = 0, fireMode = 0, count = 0;
+	int weapon = 0, count = 0;
 
 	if( viewer && ( ev < PREDICTABLE_EVENTS_MAX ) && ( predicted != cg.view.playerPrediction ) ) {
 		return;
@@ -795,7 +793,6 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 		case EV_WEAPONACTIVATE:
 			CG_PModel_AddAnimation( ent->number, 0, TORSO_WEAPON_SWITCHIN, 0, EVENT_CHANNEL );
 			weapon = ( parm >> 1 ) & 0x3f;
-			fireMode = ( parm & 0x1 ) ? FIRE_MODE_STRONG : FIRE_MODE_WEAK;
 			if( predicted ) {
 				cg_entities[ent->number].current.weapon = weapon;
 				CG_ViewWeapon_RefreshAnimation( &cg.weapon );
@@ -832,13 +829,12 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 
 		case EV_FIREWEAPON:
 			weapon = ( parm >> 1 ) & 0x3f;
-			fireMode = ( parm & 0x1 ) ? FIRE_MODE_STRONG : FIRE_MODE_WEAK;
 
 			if( predicted ) {
 				cg_entities[ent->number].current.weapon = weapon;
 			}
 
-			CG_FireWeaponEvent( ent->number, weapon, fireMode );
+			CG_FireWeaponEvent( ent->number, weapon );
 
 			// riotgun bullets and electrobolt beams are predicted when the weapon is fired
 			if( predicted ) {

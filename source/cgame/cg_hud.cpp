@@ -1165,7 +1165,7 @@ static struct shader_s *CG_GetWeaponIcon( int weapon ) {
 	int weaponState = cg.predictedPlayerState.weaponState;
 
 	if( weapon == WEAP_GUNBLADE && cg.predictedPlayerState.inventory[AMMO_GUNBLADE] ) {
-		if( currentWeapon != WEAP_GUNBLADE || ( weaponState != WEAPON_STATE_REFIRESTRONG && weaponState != WEAPON_STATE_REFIRE ) ) {
+		if( currentWeapon != WEAP_GUNBLADE || weaponState != WEAPON_STATE_REFIRE ) {
 			return CG_MediaShader( cgs.media.shaderGunbladeBlastIcon );
 		}
 	}

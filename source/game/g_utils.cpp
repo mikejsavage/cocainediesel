@@ -1754,11 +1754,7 @@ void G_PrecacheWeapondef( int weapon, firedef_t *firedef ) {
 				 firedef->v_spread
 				 );
 
-	if( firedef->fire_mode == FIRE_MODE_WEAK ) {
-		trap_ConfigString( CS_WEAPONDEFS + weapon, cstring );
-	} else {
-		trap_ConfigString( CS_WEAPONDEFS + ( MAX_WEAPONDEFS / 2 ) + weapon, cstring );
-	}
+	trap_ConfigString( CS_WEAPONDEFS + weapon, cstring );
 }
 
 #ifdef WEAPONDEFS_FROM_DISK
@@ -1872,8 +1868,7 @@ static bool G_LoadFiredefFromFile( int weapon, firedef_t *firedef ) {
 		return false;
 	}
 
-	Q_snprintfz( filename, sizeof( filename ), "weapondefs/%s %s.def", GS_FindItemByTag( weapon )->shortname,
-				 ( firedef->fire_mode == FIRE_MODE_STRONG ) ? "strong" : "weak" );
+	Q_snprintfz( filename, sizeof( filename ), "weapondefs/%s .def", GS_FindItemByTag( weapon )->shortname );
 
 	Q_strlwr( filename );
 
@@ -1924,7 +1919,6 @@ void G_LoadFiredefsFromDisk( void ) {
 			continue;
 		}
 
-		G_LoadFiredefFromFile( i, &weapondef->firedef_weak );
 		G_LoadFiredefFromFile( i, &weapondef->firedef );
 	}
 #endif

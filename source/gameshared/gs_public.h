@@ -547,6 +547,7 @@ enum {
 	STAT_SCORE,
 	STAT_TEAM,
 	STAT_REALTEAM,
+	STAT_NEXT_RESPAWN,
 
 	STAT_POINTED_PLAYER,
 	STAT_POINTED_TEAMPLAYER,
@@ -662,9 +663,6 @@ enum {
 
 //fire modes as event parm
 enum {
-	FIRE_MODE_WEAK,
-	FIRE_MODE_STRONG,
-
 	FIRE_MODES_COUNT
 };
 
@@ -884,12 +882,10 @@ enum {
 	WEAPON_STATE_FIRING,
 	WEAPON_STATE_NOAMMOCLICK,
 	WEAPON_STATE_REFIRE,        // projectile loading
-	WEAPON_STATE_REFIRESTRONG
 };
 
 typedef struct firedef_s {
 	//ammo def
-	int fire_mode;
 	int ammo_id;
 	int usage_count;
 	int projectile_count;
@@ -927,7 +923,6 @@ typedef struct {
 	int weapon_id;
 
 	firedef_t firedef;
-	firedef_t firedef_weak;
 } gs_weapon_definition_t;
 
 void GS_InitModule( int module, int maxClients, gs_module_api_t *api );

@@ -464,7 +464,7 @@ void G_FireWeapon( edict_t *ent, int parm ) {
 	int ucmdSeed;
 
 	weapondef = GS_GetWeaponDef( ( parm >> 1 ) & 0x3f );
-	firedef = ( parm & 0x1 ) ? &weapondef->firedef : &weapondef->firedef_weak;
+	firedef = &weapondef->firedef;
 
 	// find this shot projection source
 	if( ent->r.client ) {
@@ -490,11 +490,7 @@ void G_FireWeapon( edict_t *ent, int parm ) {
 			break;
 
 		case WEAP_GUNBLADE:
-			if( firedef->fire_mode == FIRE_MODE_STRONG ) {
-				projectile = G_Fire_Gunblade_Blast( origin, angles, firedef, ent, ucmdSeed );
-			} else {
-				projectile = G_Fire_Gunblade_Knife( origin, angles, firedef, ent );
-			}
+			projectile = G_Fire_Gunblade_Knife( origin, angles, firedef, ent );
 			break;
 
 		case WEAP_MACHINEGUN:

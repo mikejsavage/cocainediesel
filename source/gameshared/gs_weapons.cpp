@@ -137,19 +137,6 @@ static bool GS_CheckBladeAutoAttack( player_state_t *playerState, int timeDelta 
 //
 //============================================================
 
-const char *gs_weaponStateNames[] =
-{
-	"WEAPON_STATE_READY",
-	"WEAPON_STATE_ACTIVATING",
-	"WEAPON_STATE_DROPPING",
-	"WEAPON_STATE_POWERING",
-	"WEAPON_STATE_COOLDOWN",
-	"WEAPON_STATE_FIRING",
-	"WEAPON_STATE_RELOADING",       // clip loading
-	"WEAPON_STATE_NOAMMOCLICK",
-	"WEAPON_STATE_REFIRE",      // projectile loading
-};
-
 #define NOAMMOCLICK_PENALTY 100
 #define NOAMMOCLICK_AUTOSWITCH 50
 

@@ -97,7 +97,6 @@ enum {
 	GS_MODULE_CGAME,
 };
 
-
 enum {
 	GAMESTAT_FLAGS,
 	GAMESTAT_MATCHSTATE,
@@ -660,7 +659,6 @@ enum {
 	PAIN_TOTAL
 };
 
-
 // vsay tokens list
 enum {
 	VSAY_GENERIC,
@@ -865,8 +863,6 @@ enum {
 
 //===============================================================
 // gs_weapons.c
-
-extern const char *gs_weaponStateNames[];
 
 enum {
 	WEAPON_STATE_READY,

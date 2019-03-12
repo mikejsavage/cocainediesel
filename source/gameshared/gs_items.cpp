@@ -70,7 +70,7 @@ gsitem_t itemdefs[] =
 		AMMO_GUNBLADE,              // strong ammo tag
 		AMMO_NONE,                  // weak ammo tag
 		NULL,                       // miscelanea info pointer
-		PATH_GUNBLADEBLAST_MODEL, NULL, NULL
+		NULL, NULL, NULL
 	},
 
 	//QUAKED weapon_machinegun

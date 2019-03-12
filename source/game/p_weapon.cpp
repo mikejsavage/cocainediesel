@@ -215,34 +215,6 @@ static edict_t *G_Fire_Gunblade_Knife( vec3_t origin, vec3_t angles, firedef_t *
 	return NULL;
 }
 
-/*
-* G_Fire_Gunblade_Blast
-*/
-static edict_t *G_Fire_Gunblade_Blast( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner, int seed ) {
-	int speed, knockback, minDamage, minKnockback, radius;
-	float damage;
-	int timeDelta;
-
-	timeDelta = 0;
-	if( owner && owner->r.client ) {
-		timeDelta = owner->r.client->timeDelta;
-	}
-
-	speed = firedef->speed;
-	damage = firedef->damage;
-	knockback = firedef->knockback;
-	minDamage = firedef->mindamage;
-	minKnockback = firedef->minknockback;
-	radius = firedef->splash_radius;
-
-	if( is_quad ) {
-		damage *= QUAD_DAMAGE_SCALE;
-		knockback *= QUAD_KNOCKBACK_SCALE;
-	}
-
-	return W_Fire_GunbladeBlast( owner, origin, angles, damage, minKnockback, knockback, minDamage,
-		radius, speed, firedef->timeout, timeDelta );
-}
 
 /*
 * G_Fire_Rocket

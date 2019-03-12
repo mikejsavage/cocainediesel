@@ -612,8 +612,7 @@ static constexpr const char *gs_keyicon_names[] = {
 #define MOD_UNKNOWN 0
 
 typedef enum {
-	MOD_GUNBLADE_W = 36,
-	MOD_GUNBLADE_S,
+	MOD_GUNBLADE = 36,
 	MOD_MACHINEGUN,
 	MOD_RIOTGUN,
 	MOD_GRENADE,
@@ -730,7 +729,6 @@ typedef enum {
 	EV_BLOOD,
 
 	EV_BLADE_IMPACT,
-	EV_GUNBLADEBLAST_IMPACT,
 	EV_GRENADE_BOUNCE,
 	EV_GRENADE_EXPLOSION,
 	EV_ROCKET_EXPLOSION,

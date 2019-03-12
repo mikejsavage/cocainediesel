@@ -80,11 +80,9 @@ void CG_RegisterMediaSounds( void ) {
 	//	cgs.media.sfxJumpPad = CG_RegisterMediaSfx ( S_JUMPPAD );
 
 	// Gunblade sounds (weak is blade):
-	for( i = 0; i < 3; i++ ) cgs.media.sfxGunbladeWeakShot[i] = CG_RegisterMediaSfx( va( S_WEAPON_GUNBLADE_W_SHOT_1_to_3, i + 1 ) );
-	for( i = 0; i < 3; i++ ) cgs.media.sfxBladeFleshHit[i] = CG_RegisterMediaSfx( va( S_WEAPON_GUNBLADE_W_HIT_FLESH_1_to_3, i + 1 ) );
-	for( i = 0; i < 2; i++ ) cgs.media.sfxBladeWallHit[i] = CG_RegisterMediaSfx( va( S_WEAPON_GUNBLADE_W_HIT_WALL_1_to_2, i + 1 ) );
-	cgs.media.sfxGunbladeStrongShot = CG_RegisterMediaSfx( S_WEAPON_GUNBLADE_S_SHOT );
-	for( i = 0; i < 3; i++ ) cgs.media.sfxGunbladeStrongHit[i] = CG_RegisterMediaSfx( va( S_WEAPON_GUNBLADE_S_HIT_1_to_2, i + 1 ) );
+	for( i = 0; i < 3; i++ ) cgs.media.sfxGunbladeShot[i] = CG_RegisterMediaSfx( va( S_WEAPON_GUNBLADE_SHOT_1_to_3, i + 1 ) );
+	for( i = 0; i < 3; i++ ) cgs.media.sfxBladeFleshHit[i] = CG_RegisterMediaSfx( va( S_WEAPON_GUNBLADE_HIT_FLESH_1_to_3, i + 1 ) );
+	for( i = 0; i < 2; i++ ) cgs.media.sfxBladeWallHit[i] = CG_RegisterMediaSfx( va( S_WEAPON_GUNBLADE_HIT_WALL_1_to_2, i + 1 ) );
 
 	// Riotgun sounds :
 	cgs.media.sfxRiotgunHit = CG_RegisterMediaSfx( S_WEAPON_RIOTGUN_HIT );
@@ -204,8 +202,6 @@ void CG_RegisterMediaModels( void ) {
 	cgs.media.modDash = CG_RegisterMediaModel( "models/effects/dash_burst.glb" );
 
 	cgs.media.modBulletExplode = CG_RegisterMediaModel( PATH_BULLET_EXPLOSION_MODEL );
-	cgs.media.modBladeWallHit = CG_RegisterMediaModel( PATH_GUNBLADEBLAST_IMPACT_MODEL );
-	cgs.media.modBladeWallExplo = CG_RegisterMediaModel( PATH_GUNBLADEBLAST_EXPLOSION_MODEL );
 	cgs.media.modElectroBoltWallHit = CG_RegisterMediaModel( PATH_ELECTROBLAST_IMPACT_MODEL );
 	cgs.media.modLasergunWallExplo = CG_RegisterMediaModel( PATH_LASERGUN_IMPACT_MODEL );
 
@@ -312,8 +308,6 @@ void CG_RegisterMediaShaders( void ) {
 	cgs.media.shaderWeaponIcon[WEAP_PLASMAGUN - 1] = CG_RegisterMediaShader( PATH_PLASMAGUN_ICON );
 	cgs.media.shaderWeaponIcon[WEAP_LASERGUN - 1] = CG_RegisterMediaShader( PATH_LASERGUN_ICON );
 	cgs.media.shaderWeaponIcon[WEAP_ELECTROBOLT - 1] = CG_RegisterMediaShader( PATH_ELECTROBOLT_ICON );
-
-	cgs.media.shaderGunbladeBlastIcon = CG_RegisterMediaShader( PATH_GUNBLADE_BLAST_ICON );
 
 	// Kurim : keyicons
 	cgs.media.shaderKeyIcon[KEYICON_FORWARD] = CG_RegisterMediaShader( PATH_KEYICON_FORWARD );

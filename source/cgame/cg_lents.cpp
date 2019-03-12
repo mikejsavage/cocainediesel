@@ -606,38 +606,6 @@ void CG_LaserGunImpact( const vec3_t pos, float radius, const vec3_t laser_dir, 
 	trap_R_AddEntityToScene( &ent );
 }
 
-/*
-* CG_GunBladeBlastImpact
-*/
-void CG_GunBladeBlastImpact( const vec3_t pos, const vec3_t dir, float radius ) {
-	lentity_t *le;
-	lentity_t *le_explo;
-	vec3_t angles;
-	float model_radius = GUNBLADEBLAST_EXPLOSION_MODEL_RADIUS;
-
-	VecToAngles( dir, angles );
-
-	le = CG_AllocModel( LE_ALPHA_FADE, pos, angles, 2, //3 frames
-						1, 1, 1, 1, //full white no inducted alpha
-						0, 0, 0, 0, //dlight
-						CG_MediaModel( cgs.media.modBladeWallHit ),
-
-	                    //"models/weapon_hits/gunblade/hit_blast.md3"
-						NULL );
-	le->ent.rotation = rand() % 360;
-	le->ent.scale = 1.0f; // this is the small bullet impact
-
-
-	le_explo = CG_AllocModel( LE_ALPHA_FADE, pos, angles, 2 + ( radius / 16.1f ),
-							  1, 1, 1, 1, //full white no inducted alpha
-							  0, 0, 0, 0, //dlight
-							  CG_MediaModel( cgs.media.modBladeWallExplo ),
-							  NULL );
-	le_explo->ent.rotation = rand() % 360;
-	le_explo->ent.scale = radius / model_radius;
-
-	CG_SpawnDecal( pos, dir, random() * 360, 3 + ( radius * 0.5f ), 1, 1, 1, 1, 10, 1, false, CG_MediaShader( cgs.media.shaderExplosionMark ) );
-}
 
 /*
 * CG_ProjectileTrail

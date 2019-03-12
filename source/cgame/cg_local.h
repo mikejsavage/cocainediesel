@@ -150,11 +150,9 @@ typedef struct {
 	cgs_media_handle_t *sfxShellHit;
 
 	// Gunblade sounds :
-	cgs_media_handle_t *sfxGunbladeWeakShot[3];
-	cgs_media_handle_t *sfxGunbladeStrongShot;
+	cgs_media_handle_t *sfxGunbladeShot[3];
 	cgs_media_handle_t *sfxBladeFleshHit[3];
 	cgs_media_handle_t *sfxBladeWallHit[2];
-	cgs_media_handle_t *sfxGunbladeStrongHit[3];
 
 	// Riotgun sounds :
 	cgs_media_handle_t *sfxRiotgunHit;
@@ -251,7 +249,6 @@ typedef struct {
 
 	// hud icons
 	cgs_media_handle_t *shaderWeaponIcon[WEAP_TOTAL];
-	cgs_media_handle_t *shaderGunbladeBlastIcon;
 
 	cgs_media_handle_t *shaderKeyIcon[KEYICON_TOTAL];
 
@@ -876,7 +873,6 @@ void CG_EBBeam( const vec3_t start, const vec3_t end, int team );
 void CG_EBImpact( const vec3_t pos, const vec3_t dir, int surfFlags, int team );
 void CG_ImpactSmokePuff( const vec3_t origin, const vec3_t dir, float radius, float alpha, int time, int speed );
 void CG_BladeImpact( const vec3_t pos, const vec3_t dir );
-void CG_GunBladeBlastImpact( const vec3_t pos, const vec3_t dir, float radius );
 void CG_PModel_SpawnTeleportEffect( centity_t *cent );
 void CG_SpawnSprite( const vec3_t origin, const vec3_t velocity, const vec3_t accel,
 					 float radius, int time, int bounce, bool expandEffect, bool shrinkEffect,

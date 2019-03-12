@@ -330,8 +330,7 @@ static const gs_asEnumVal_t asSVFlagEnumVals[] =
 
 static const gs_asEnumVal_t asMeaningsOfDeathEnumVals[] =
 {
-	ASLIB_ENUM_VAL( MOD_GUNBLADE_W ),
-	ASLIB_ENUM_VAL( MOD_GUNBLADE_S ),
+	ASLIB_ENUM_VAL( MOD_GUNBLADE ),
 	ASLIB_ENUM_VAL( MOD_MACHINEGUN ),
 	ASLIB_ENUM_VAL( MOD_RIOTGUN ),
 	ASLIB_ENUM_VAL( MOD_GRENADE ),

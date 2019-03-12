@@ -37,7 +37,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // weapon
 #define PATH_GUNBLADE_ICON      "gfx/hud/icons/weapon/gunblade"
-#define PATH_GUNBLADE_BLAST_ICON        "gfx/hud/icons/weapon/gunblade_blast"
 #define PATH_MACHINEGUN_ICON    "gfx/hud/icons/weapon/machinegun"
 #define PATH_RIOTGUN_ICON       "gfx/hud/icons/weapon/riot"
 #define PATH_GRENADELAUNCHER_ICON   "gfx/hud/icons/weapon/grenade"
@@ -115,7 +114,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PATH_LASERGUN_MODEL         "models/weapons/lg.md3"
 
 // weapon projectiles
-#define PATH_GUNBLADEBLAST_MODEL "models/objects/projectile/gb.glb"
 #define PATH_PLASMA_MODEL        "models/objects/projectile/pg.glb"
 #define PATH_BULLET_MODEL        "models/objects/projectile/mg.glb"
 #define PATH_GRENADE_MODEL       "models/objects/projectile/gl.glb"
@@ -123,13 +121,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define PATH_BULLET_EXPLOSION_MODEL         "models/weapon_hits/bullet/hit_bullet.glb"
 #define PATH_PLASMA_EXPLOSION_MODEL         "models/weapon_hits/plasmagun/hit_plasmagun.glb"
-#define PATH_GUNBLADEBLAST_IMPACT_MODEL     "models/weapon_hits/gunblade/hit_blast.glb"
-#define PATH_GUNBLADEBLAST_EXPLOSION_MODEL  "models/weapon_hits/gunblade/hit_blastexp.glb"
 #define PATH_ELECTROBLAST_IMPACT_MODEL      "models/weapon_hits/electrobolt/hit_electrobolt.glb"
 #define PATH_LASERGUN_IMPACT_MODEL          "models/weapon_hits/lasergun/hit_blastexp.glb"
 
 #define PLASMA_EXPLOSION_MODEL_RADIUS           10.0
-#define GUNBLADEBLAST_EXPLOSION_MODEL_RADIUS    10.0
 
 //
 //
@@ -219,11 +214,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define S_WEAPON_NOAMMO             "sounds/weapons/weapon_noammo"
 
 // weapon sounds
-#define S_WEAPON_GUNBLADE_W_SHOT_1_to_3     "sounds/weapons/blade_strike%i"
-#define S_WEAPON_GUNBLADE_W_HIT_FLESH_1_to_3    "sounds/weapons/blade_hitflsh%i"
-#define S_WEAPON_GUNBLADE_W_HIT_WALL_1_to_2 "sounds/weapons/blade_hitwall%i"
-#define S_WEAPON_GUNBLADE_S_SHOT        "sounds/weapons/bladegun_strong_fire"
-#define S_WEAPON_GUNBLADE_S_HIT_1_to_2      "sounds/weapons/bladegun_strong_hit_%i"
+#define S_WEAPON_GUNBLADE_SHOT_1_to_3     "sounds/weapons/blade_strike%i"
+#define S_WEAPON_GUNBLADE_HIT_FLESH_1_to_3    "sounds/weapons/blade_hitflsh%i"
+#define S_WEAPON_GUNBLADE_HIT_WALL_1_to_2 "sounds/weapons/blade_hitwall%i"
 
 #define S_WEAPON_RIOTGUN_HIT            "sounds/weapons/riotgun_strong_hit"
 

@@ -1867,10 +1867,6 @@ static void asFunc_FireBullet( asvec3_t *origin, asvec3_t *angles, int range, in
 	W_Fire_Bullet( owner, origin->v, angles->v, rand() & 255, range, spread, spread, damage, knockback, 0 );
 }
 
-static edict_t *asFunc_FireBlast( asvec3_t *origin, asvec3_t *angles, int speed, int radius, int damage, int knockback, edict_t *owner ) {
-	return W_Fire_GunbladeBlast( owner, origin->v, angles->v, damage, 1, knockback, 1, radius, speed, 5000, 0 );
-}
-
 static const gs_asglobfuncs_t asGameGlobFuncs[] =
 {
 	{ "Entity @G_SpawnEntity( const String &in )", asFUNCTION( asFunc_G_Spawn ), NULL },
@@ -1935,7 +1931,6 @@ static const gs_asglobfuncs_t asGameGlobFuncs[] =
 	{ "Entity @G_FireGrenade( const Vec3 &in origin, const Vec3 &in angles, int speed, int radius, int damage, int knockback, Entity @owner )", asFUNCTION( asFunc_FireGrenade ), NULL },
 	{ "void G_FireRiotgun( const Vec3 &in origin, const Vec3 &in angles, int range, int spread, int count, int damage, int knockback, Entity @owner )", asFUNCTION( asFunc_FireRiotgun ), NULL },
 	{ "void G_FireBullet( const Vec3 &in origin, const Vec3 &in angles, int range, int spread, int damage, int knockback, Entity @owner )", asFUNCTION( asFunc_FireBullet ), NULL },
-	{ "Entity @G_FireBlast( const Vec3 &in origin, const Vec3 &in angles, int speed, int radius, int damage, int knockback, Entity @owner )", asFUNCTION( asFunc_FireBlast ), NULL },
 
 	{ "bool ML_FilenameExists( String & )", asFUNCTION( asFunc_ML_FilenameExists ), NULL },
 	{ "const String @ML_GetMapByNum( int num )", asFUNCTION( asFunc_ML_GetMapByNum ), NULL },

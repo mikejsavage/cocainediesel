@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 *
 */
 int G_ModToAmmo( int mod ) {
-	if( mod == MOD_GUNBLADE_W || mod == MOD_GUNBLADE_S ) {
+	if( mod == MOD_GUNBLADE ) {
 		return AMMO_GUNBLADE;
 	} else if( mod == MOD_MACHINEGUN ) {
 		return AMMO_BULLETS;

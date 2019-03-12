@@ -209,13 +209,9 @@ void GS_Obituary( void *victim, int gender, void *attacker, int mod, char *messa
 			strcpy( message, "tried to invade" );
 			strcpy( message2, "'s personal space" );
 			break;
-		case MOD_GUNBLADE_W:
+		case MOD_GUNBLADE:
 			strcpy( message, "was impaled by" );
 			strcpy( message2, "'s gunblade" );
-			break;
-		case MOD_GUNBLADE_S:
-			strcpy( message, "could not hide from" );
-			strcpy( message2, "'s almighty gunblade" );
 			break;
 		case MOD_MACHINEGUN:
 			strcpy( message, "was penetrated by" );

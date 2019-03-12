@@ -803,11 +803,8 @@ static void CG_DrawObituaries( int x, int y, int align, struct qfontface_s *font
 		}
 
 		switch( obr->mod ) {
-			case MOD_GUNBLADE_W:
+			case MOD_GUNBLADE:
 				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_GUNBLADE - 1] );
-				break;
-			case MOD_GUNBLADE_S:
-				pic = CG_MediaShader( cgs.media.shaderGunbladeBlastIcon );
 				break;
 			case MOD_MACHINEGUN:
 				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_MACHINEGUN - 1] );
@@ -1163,12 +1160,6 @@ static bool CG_IsWeaponSelected( int weapon ) {
 static struct shader_s *CG_GetWeaponIcon( int weapon ) {
 	int currentWeapon = cg.predictedPlayerState.stats[STAT_WEAPON];
 	int weaponState = cg.predictedPlayerState.weaponState;
-
-	if( weapon == WEAP_GUNBLADE && cg.predictedPlayerState.inventory[AMMO_GUNBLADE] ) {
-		if( currentWeapon != WEAP_GUNBLADE || weaponState != WEAPON_STATE_REFIRE ) {
-			return CG_MediaShader( cgs.media.shaderGunbladeBlastIcon );
-		}
-	}
 
 	return CG_MediaShader( cgs.media.shaderWeaponIcon[weapon - WEAP_GUNBLADE] );
 }

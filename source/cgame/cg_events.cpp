@@ -1013,24 +1013,6 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 			CG_BladeImpact( ent->origin, ent->origin2 );
 			break;
 
-		case EV_GUNBLADEBLAST_IMPACT:
-			ByteToDir( parm, dir );
-			CG_GunBladeBlastImpact( ent->origin, dir, (float)ent->weapon * 8 );
-			if( ent->skinnum > 64 ) {
-				trap_S_StartFixedSound( CG_MediaSfx( cgs.media.sfxGunbladeStrongHit[2] ), ent->origin, CHAN_AUTO,
-										cg_volume_effects->value, ATTN_DISTANT );
-			} else if( ent->skinnum > 34 ) {
-				trap_S_StartFixedSound( CG_MediaSfx( cgs.media.sfxGunbladeStrongHit[1] ), ent->origin, CHAN_AUTO,
-										cg_volume_effects->value, ATTN_NORM );
-			} else {
-				trap_S_StartFixedSound( CG_MediaSfx( cgs.media.sfxGunbladeStrongHit[0] ), ent->origin, CHAN_AUTO,
-										cg_volume_effects->value, ATTN_IDLE );
-			}
-
-			//ent->skinnum is knockback value
-			CG_StartKickAnglesEffect( ent->origin, ent->skinnum * 8, ent->weapon * 8, 200 );
-			break;
-
 		case EV_BLOOD:
 			if( cg_showBloodTrail->integer == 2 && ISVIEWERENTITY( ent->ownerNum ) ) {
 				break;

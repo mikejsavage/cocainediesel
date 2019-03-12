@@ -207,58 +207,10 @@ void W_Fire_Blade( edict_t *self, int range, vec3_t start, vec3_t angles, float 
 	}
 
 	// it was a player
-	G_Damage( other, self, self, dir, dir, other->s.origin, damage, knockback, dmgflags, MOD_GUNBLADE_W );
+	G_Damage( other, self, self, dir, dir, other->s.origin, damage, knockback, dmgflags, MOD_GUNBLADE );
 }
 
-/*
-* W_Touch_GunbladeBlast
-*/
-static void W_Touch_GunbladeBlast( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) {
-	if( surfFlags & SURF_NOIMPACT ) {
-		G_FreeEdict( ent );
-		return;
-	}
 
-	int hitType = G_Projectile_HitStyle( ent, other );
-	if( hitType == PROJECTILE_TOUCH_NOT ) {
-		return;
-	}
-
-	if( other->takedamage ) {
-		vec3_t push_dir;
-		G_SplashFrac4D( ENTNUM( other ), ent->s.origin, ent->projectileInfo.radius, push_dir, NULL, ent->timeDelta );
-		G_Damage( other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, MOD_GUNBLADE_S );
-	}
-
-	G_RadiusDamage( ent, ent->r.owner, plane, other, MOD_GUNBLADE_S );
-
-	// add explosion event
-	if( !other->takedamage || ISBRUSHMODEL( other->s.modelindex ) ) {
-		edict_t * event = G_SpawnEvent( EV_GUNBLADEBLAST_IMPACT, DirToByte( plane ? plane->normal : NULL ), ent->s.origin );
-		event->s.weapon = min( ent->projectileInfo.radius / 8, 127 );
-		event->s.skinnum = min( ent->projectileInfo.maxKnockback / 8, 255 );
-	}
-
-	G_FreeEdict( ent );
-}
-
-/*
-* W_Fire_GunbladeBlast
-*/
-edict_t *W_Fire_GunbladeBlast( edict_t *self, vec3_t start, vec3_t angles, float damage, int minKnockback, int maxKnockback, int minDamage, int radius, int speed, int timeout, int timeDelta ) {
-	edict_t *blast;
-
-	blast = W_Fire_LinearProjectile( self, start, angles, speed, damage, minKnockback, maxKnockback, minDamage, radius, timeout, timeDelta );
-	blast->s.modelindex = trap_ModelIndex( PATH_GUNBLADEBLAST_MODEL );
-	blast->s.type = ET_BLASTER;
-	blast->touch = W_Touch_GunbladeBlast;
-	blast->classname = "gunblade_blast";
-
-	blast->s.sound = trap_SoundIndex( S_WEAPON_PLASMAGUN_FLY );
-	blast->s.attenuation = ATTN_STATIC;
-
-	return blast;
-}
 /*
 * W_Bullet_Touch
 */

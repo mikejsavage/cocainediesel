@@ -136,7 +136,6 @@ typedef struct {
 #define BYTE2ANGLE( x )     ( ( x ) * ( 360.0 / 256 ) )
 
 #define MAX_GAMECOMMANDS    256     // command names for command completion
-#define MAX_LOCATIONS       256
 #define MAX_WEAPONDEFS      MAX_ITEMS
 
 //

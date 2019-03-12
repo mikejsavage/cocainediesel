@@ -933,7 +933,6 @@ static const msg_field_t ent_state_fields[] = {
 	{ ESOFS( events[1] ), 32, 1, WIRE_UBASE128 },
 	{ ESOFS( eventParms[1] ), 32, 1, WIRE_BASE128 },
 	{ ESOFS( weapon ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( firemode ), 32, 1, WIRE_FIXED_INT8 },
 	{ ESOFS( damage ), 32, 1, WIRE_UBASE128 },
 	{ ESOFS( range ), 32, 1, WIRE_UBASE128 },
 	{ ESOFS( team ), 32, 1, WIRE_FIXED_INT8 },

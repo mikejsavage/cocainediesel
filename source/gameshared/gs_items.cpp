@@ -414,10 +414,6 @@ const gsitem_t *GS_Cmd_UseItem( player_state_t *playerState, const char *string,
 
 			if( weapondef ) {
 				// do we have any of these ammos ?
-				if( playerState->inventory[item->weakammo_tag] >= weapondef->firedef_weak.usage_count ) {
-					return item;
-				}
-
 				if( playerState->inventory[item->ammo_tag] >= weapondef->firedef.usage_count ) {
 					return item;
 				}

@@ -614,7 +614,6 @@ void G_PrecacheItems( void ) {
 
 		if( item->type & IT_WEAPON && GS_GetWeaponDef( item->tag ) ) {
 			G_PrecacheWeapondef( i, &GS_GetWeaponDef( item->tag )->firedef );
-			G_PrecacheWeapondef( i, &GS_GetWeaponDef( item->tag )->firedef_weak );
 		}
 	}
 

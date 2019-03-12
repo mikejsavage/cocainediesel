@@ -342,41 +342,6 @@ static void CG_BulletImpact( trace_t *tr ) {
 	}
 }
 
-static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int weapon, int seed, int owner ) {
-	trace_t trace, *water_trace;
-	const gs_weapon_definition_t *weapondef = GS_GetWeaponDef( weapon );
-	const firedef_t *firedef = &weapondef->firedef;
-	int range = firedef->timeout;
-
-	vec3_t right, up;
-	ViewVectors( dir, right, up );
-
-	water_trace = GS_TraceBullet( &trace, origin, dir, right, up, 0, 0, range, owner, 0 );
-	if( water_trace ) {
-		if( !VectorCompare( water_trace->endpos, origin ) ) {
-			CG_LeadWaterSplash( water_trace );
-		}
-	}
-
-	if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
-		CG_BulletImpact( &trace );
-
-		if( !water_trace ) {
-			if( trace.surfFlags & SURF_FLESH ||
-				( trace.ent > 0 && cg_entities[trace.ent].current.type == ET_PLAYER ) ||
-				( trace.ent > 0 && cg_entities[trace.ent].current.type == ET_CORPSE ) ) {
-				// flesh impact sound
-			} else {
-				CG_ImpactPuffParticles( trace.endpos, trace.plane.normal, 1, 0.7, 1, 0.7, 0.0, 1.0, NULL );
-				trap_S_StartFixedSound( CG_MediaSfx( cgs.media.sfxRic[ rand() % 2 ] ), trace.endpos, CHAN_AUTO, cg_volume_effects->value, ATTN_STATIC );
-			}
-		}
-	}
-
-	if( water_trace ) {
-		CG_LeadBubbleTrail( &trace, water_trace->endpos );
-	}
-}
 
 /*
 * CG_Fire_SunflowerPattern
@@ -854,8 +819,6 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 
 					if( weapon == WEAP_RIOTGUN ) {
 						CG_Event_FireRiotgun( origin, dir, weapon, cg.predictedPlayerState.POVnum );
-					} else {
-						CG_Event_FireMachinegun( origin, dir, weapon, seed, cg.predictedPlayerState.POVnum );
 					}
 				} else if( weapon == WEAP_LASERGUN ) {
 					CG_Event_LaserBeam( ent->number, weapon );
@@ -877,14 +840,6 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 				return;
 			}
 			CG_Event_FireRiotgun( ent->origin, ent->origin2, ent->weapon, ent->ownerNum );
-			break;
-
-		case EV_FIRE_BULLET:
-			// check the owner for predicted case
-			if( ISVIEWERENTITY( ent->ownerNum ) && ( ev < PREDICTABLE_EVENTS_MAX ) && ( predicted != cg.view.playerPrediction ) ) {
-				return;
-			}
-			CG_Event_FireMachinegun( ent->origin, ent->origin2, ent->weapon, parm, ent->ownerNum );
 			break;
 
 		case EV_NOAMMOCLICK:

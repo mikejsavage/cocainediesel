@@ -547,7 +547,6 @@ enum {
 	STAT_SCORE,
 	STAT_TEAM,
 	STAT_REALTEAM,
-	STAT_NEXT_RESPAWN,
 
 	STAT_POINTED_PLAYER,
 	STAT_POINTED_TEAMPLAYER,
@@ -661,10 +660,6 @@ enum {
 	PAIN_TOTAL
 };
 
-//fire modes as event parm
-enum {
-	FIRE_MODES_COUNT
-};
 
 // vsay tokens list
 enum {

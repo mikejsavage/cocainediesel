@@ -173,27 +173,6 @@ models/objects/projectile/plasmagun/plnew
 	}
 }
 
-models/objects/projectile/gunblade/proj_gunblade
-{
-	//deformVertexes autosprite
-	cull none
-	{
-		map models/objects/projectile/gunblade/proj_gunblade.tga
-		blendFunc add
-		tcmod rotate 90
-	}
-}
-
-models/objects/projectile/gunblade/proj_gunblade_ring
-{
-	//deformVertexes autosprite
-	cull none
-	{
-		map models/objects/projectile/gunblade/proj_gunblade_ring.tga
-		blendFunc add
-	}
-}
-
 models/objects/projectile/glauncher/grenadegradstrong
 {
 	cull disable

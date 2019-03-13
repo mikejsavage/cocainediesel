@@ -222,16 +222,6 @@ models/weapon_hits/bullet/hit_bullet
 	template weapon_Hit_Template bullet hit_bullet
 }
 
-models/weapon_hits/gunblade/hit_blast
-{
-	template weapon_Hit_Template gunblade hit_blast
-}
-
-models/weapon_hits/gunblade/hit_blastexp
-{
-	template weapon_Hit_Template gunblade hit_blastexp
-}
-
 models/weapon_hits/lasergun/hit_blastexp
 {
 	cull none

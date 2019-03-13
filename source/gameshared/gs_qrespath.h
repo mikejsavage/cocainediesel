@@ -123,6 +123,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PATH_PLASMA_EXPLOSION_MODEL         "models/weapon_hits/plasmagun/hit_plasmagun.glb"
 #define PATH_ELECTROBLAST_IMPACT_MODEL      "models/weapon_hits/electrobolt/hit_electrobolt.glb"
 #define PATH_LASERGUN_IMPACT_MODEL          "models/weapon_hits/lasergun/hit_blastexp.glb"
+#define PATH_GUNBLADEBLAST_IMPACT_MODEL     "models/weapon_hits/gunblade/hit_blast.glb"
 
 #define PLASMA_EXPLOSION_MODEL_RADIUS           10.0
 

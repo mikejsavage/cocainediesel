@@ -82,10 +82,6 @@ gfx/hud/icons/weapon/gunblade
 {
 	template weaponIcon_HUD_Template weapon/gunblade
 }
-gfx/hud/icons/weapon/gunblade_blast
-{
-	template weaponIcon_HUD_Template weapon/gunblade_blast
-}
 gfx/hud/icons/weapon/laser
 {
 	template weaponIcon_HUD_Template weapon/laser

@@ -21,8 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 int iconCarrier;
 int iconReady;
 
-int[] weaponIcons( WEAP_TOTAL );
-
 // MODELS
 int modelBombModel;
 int modelBombModelActive;
@@ -88,15 +86,6 @@ void mediaInit() {
 	sndGoodGame = G_SoundIndex( "sounds/vsay/goodgame", false );
 	sndBombTaken = G_SoundIndex( "sounds/announcer/bomb/offense/taken", false );
 	sndBongo = G_SoundIndex( "sounds/announcer/bomb/bongo", false );
-
-	weaponIcons[ WEAP_GUNBLADE ] = G_ImageIndex( "gfx/hud/icons/weapon/gunblade" );
-	weaponIcons[ WEAP_MACHINEGUN ] = G_ImageIndex( "gfx/hud/icons/weapon/machinegun" );
-	weaponIcons[ WEAP_RIOTGUN ] = G_ImageIndex( "gfx/hud/icons/weapon/riot" );
-	weaponIcons[ WEAP_GRENADELAUNCHER ] = G_ImageIndex( "gfx/hud/icons/weapon/grenade" );
-	weaponIcons[ WEAP_ROCKETLAUNCHER ] = G_ImageIndex( "gfx/hud/icons/weapon/rocket" );
-	weaponIcons[ WEAP_PLASMAGUN ] = G_ImageIndex( "gfx/hud/icons/weapon/plasma" );
-	weaponIcons[ WEAP_LASERGUN ] = G_ImageIndex( "gfx/hud/icons/weapon/laser" );
-	weaponIcons[ WEAP_ELECTROBOLT ] = G_ImageIndex( "gfx/hud/icons/weapon/electro" );
 
 	sndAnnouncementsOff[ Announcement_Started ] = G_SoundIndex( "sounds/announcer/bomb/offense/start", false );
 	sndAnnouncementsOff[ Announcement_Armed ] = G_SoundIndex( "sounds/announcer/bomb/offense/planted", false );

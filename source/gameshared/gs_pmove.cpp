@@ -78,8 +78,8 @@ pml_t pml;
 #define DEFAULT_LADDERSPEED 250.0f
 
 const float pm_friction = 8; //  ( initially 6 )
-const float pm_waterfriction = 1;
-const float pm_wateraccelerate = 10; // user intended acceleration when swimming ( initially 6 )
+const float pm_wateraccelerate = 8; // user intended acceleration when swimming ( initially 6 )
+const float pm_waterdashaccel = 50; // acceleration when dashing in water
 
 const float pm_accelerate = 12; // user intended acceleration when on ground or fly movement ( initially 10 )
 const float pm_decelerate = 12; // user intended deceleration when on ground
@@ -444,18 +444,12 @@ static void PM_Friction( void ) {
 	drop = 0;
 
 	// apply ground friction
-	if( ( ( ( ( pm->groundentity != -1 ) && !( pml.groundsurfFlags & SURF_SLICK ) ) )
-		  && ( pm->waterlevel < 2 ) ) || pml.ladder ) {
+	if( ( ( ( pm->groundentity != -1 ) && !( pml.groundsurfFlags & SURF_SLICK ) ) ) || pml.ladder ) {
 		if( pm->playerState->pmove.stats[PM_STAT_KNOCKBACK] <= 0 ) {
 			friction = pm_friction;
 			control = speed < pm_decelerate ? pm_decelerate : speed;
 			drop += control * friction * pml.frametime;
 		}
-	}
-
-	// apply water friction
-	if( ( pm->waterlevel >= 2 ) && !pml.ladder ) {
-		drop += speed * pm_waterfriction * pm->waterlevel * pml.frametime;
 	}
 
 	// scale the velocity
@@ -880,11 +874,6 @@ static void PM_CheckJump( void ) {
 		return;
 	}
 
-	if( pm->waterlevel >= 2 ) { // swimming, not jumping
-		pm->groundentity = -1;
-		return;
-	}
-
 	if( pm->groundentity == -1 ) {
 		return;
 	}
@@ -923,6 +912,7 @@ static void PM_CheckJump( void ) {
 static void PM_CheckDash( void ) {
 	float actual_velocity;
 	float upspeed;
+	bool water = ( pm->waterlevel >= 2 );
 	vec3_t dashdir;
 
 	if( !( pm->cmd.buttons & BUTTON_SPECIAL ) ) {
@@ -941,7 +931,7 @@ static void PM_CheckDash( void ) {
 		return;
 	}
 
-	if( ( pm->cmd.buttons & BUTTON_SPECIAL ) && pm->groundentity != -1
+	if( ( pm->cmd.buttons & BUTTON_SPECIAL ) && ( pm->groundentity != -1 || water )
 		&& ( pm->playerState->pmove.stats[PM_STAT_FEATURES] & PMFEAT_DASH ) ) {
 		if( pm->playerState->pmove.pm_flags & PMF_SPECIAL_HELD ) {
 			return;
@@ -959,7 +949,9 @@ static void PM_CheckDash( void ) {
 			GS_ClipVelocity( pml.velocity, pml.groundplane.normal, pml.velocity, PM_OVERBOUNCE );
 		}
 
-		if( pml.velocity[2] <= 0.0f ) {
+		if( water ) {
+			upspeed = 0;
+		} else if( pml.velocity[2] <= 0.0f ) {
 			upspeed = pm_dashupspeed;
 		} else {
 			upspeed = pm_dashupspeed + pml.velocity[2];
@@ -980,7 +972,7 @@ static void PM_CheckDash( void ) {
 		if( actual_velocity <= pml.dashPlayerSpeed ) {
 			VectorScale( dashdir, pml.dashPlayerSpeed, dashdir );
 		} else {
-			VectorScale( dashdir, actual_velocity, dashdir );
+			VectorScale( dashdir, actual_velocity + ( water ? pm_waterdashaccel : 0 ) , dashdir );
 		}
 
 		VectorCopy( dashdir, pml.velocity );

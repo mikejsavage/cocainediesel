@@ -1158,9 +1158,6 @@ static bool CG_IsWeaponSelected( int weapon ) {
 }
 
 static struct shader_s *CG_GetWeaponIcon( int weapon ) {
-	int currentWeapon = cg.predictedPlayerState.stats[STAT_WEAPON];
-	int weaponState = cg.predictedPlayerState.weaponState;
-
 	return CG_MediaShader( cgs.media.shaderWeaponIcon[weapon - WEAP_GUNBLADE] );
 }
 

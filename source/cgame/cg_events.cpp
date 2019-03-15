@@ -811,8 +811,6 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 					AngleVectors( cg.predictedPlayerState.viewangles, dir, NULL, NULL );
 					CG_Event_WeaponBeam( origin, dir, cg.predictedPlayerState.POVnum, weapon );
 				} else if( weapon == WEAP_RIOTGUN || weapon == WEAP_MACHINEGUN ) {
-					int seed = cg.predictedEventTimes[EV_FIREWEAPON] & 255;
-
 					VectorCopy( cg.predictedPlayerState.pmove.origin, origin );
 					origin[2] += cg.predictedPlayerState.viewheight;
 					AngleVectors( cg.predictedPlayerState.viewangles, dir, NULL, NULL );

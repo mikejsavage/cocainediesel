@@ -79,7 +79,7 @@ pml_t pml;
 
 const float pm_friction = 8; //  ( initially 6 )
 const float pm_wateraccelerate = 8; // user intended acceleration when swimming ( initially 6 )
-const float pm_waterdashaccel = 50; // acceleration when dashing in water
+const float pm_waterdashaccel = 100; // acceleration when dashing in water
 
 const float pm_accelerate = 12; // user intended acceleration when on ground or fly movement ( initially 10 )
 const float pm_decelerate = 12; // user intended deceleration when on ground
@@ -565,9 +565,8 @@ static void PM_WaterMove( void ) {
 	for( i = 0; i < 3; i++ )
 		wishvel[i] = pml.forward[i] * pml.forwardPush + pml.right[i] * pml.sidePush;
 
-	if( !pml.forwardPush && !pml.sidePush && !pml.upPush ) {
-		wishvel[2] -= 60; // drift towards bottom
-	} else {
+
+	if( pml.upPush ) {
 		wishvel[2] += pml.upPush;
 	}
 
@@ -911,7 +910,7 @@ static void PM_CheckJump( void ) {
 */
 static void PM_CheckDash( void ) {
 	float actual_velocity;
-	float upspeed;
+	float upspeed = 0;
 	bool water = ( pm->waterlevel >= 2 );
 	vec3_t dashdir;
 
@@ -945,18 +944,13 @@ static void PM_CheckDash( void ) {
 		pm->groundentity = -1;
 
 		// clip against the ground when jumping if moving that direction
-		if( pml.groundplane.normal[2] > 0 && pml.velocity[2] < 0 && DotProduct2D( pml.groundplane.normal, pml.velocity ) > 0 ) {
+		if( pml.groundplane.normal[2] > 0 && pml.velocity[2] < 0 && DotProduct2D( pml.groundplane.normal, pml.velocity ) > 0 && !water ) {
 			GS_ClipVelocity( pml.velocity, pml.groundplane.normal, pml.velocity, PM_OVERBOUNCE );
 		}
 
-		if( water ) {
-			upspeed = 0;
-		} else if( pml.velocity[2] <= 0.0f ) {
+		if( !water ) {
 			upspeed = pm_dashupspeed;
-		} else {
-			upspeed = pm_dashupspeed + pml.velocity[2];
 		}
-
 		// ch : we should do explicit forwardPush here, and ignore sidePush ?
 		VectorMA( vec3_origin, pml.forwardPush, pml.flatforward, dashdir );
 		VectorMA( dashdir, pml.sidePush, pml.right, dashdir );
@@ -967,8 +961,8 @@ static void PM_CheckDash( void ) {
 		}
 
 		VectorNormalizeFast( dashdir );
-
 		actual_velocity = VectorNormalize2D( pml.velocity );
+
 		if( actual_velocity <= pml.dashPlayerSpeed ) {
 			VectorScale( dashdir, pml.dashPlayerSpeed, dashdir );
 		} else {
@@ -976,7 +970,9 @@ static void PM_CheckDash( void ) {
 		}
 
 		VectorCopy( dashdir, pml.velocity );
-		pml.velocity[2] = upspeed;
+
+		if( !water )
+			pml.velocity[2] = upspeed;
 
 		pm->playerState->pmove.stats[PM_STAT_DASHTIME] = PM_DASHJUMP_TIMEDELAY;
 

@@ -123,10 +123,10 @@ static void target_laser_think( edict_t *self ) {
 			if( game.edicts[tr.ent].r.client && self->activator->r.client ) {
 				if( !GS_TeamBasedGametype() ||
 					game.edicts[tr.ent].s.team != self->activator->s.team ) {
-					G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, self->dmg, 0, 0, self->count );
+					G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 20, 0, 0, self->count );
 				}
 			} else {
-				G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, self->dmg, 0, 0, self->count );
+				G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 20, 0, 0, self->count );
 			}
 		}
 

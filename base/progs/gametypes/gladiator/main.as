@@ -835,8 +835,7 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team )
 
 	if ( match.getState() == MATCH_STATE_PLAYTIME )
 	{
-		ent.client.inventorySetCount( POWERUP_QUAD, 100);
-		ent.client.getEnt().health = 666 * 2;
+		ent.client.getEnt().health = 333;
 	} else {
 		for ( int i = WEAP_GUNBLADE ; i < WEAP_TOTAL; i++ )
 		{

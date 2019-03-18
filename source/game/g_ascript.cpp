@@ -1674,7 +1674,7 @@ static void asFunc_SetConfigString( int index, asstring_t *str ) {
 	}
 
 	// write protect some configstrings
-	if( index <= CS_POWERUPEFFECTS
+	if( index <= SERVER_PROTECTED_CONFIGSTRINGS
 		|| index == CS_AUTORECORDSTATE
 		|| index == CS_MAXCLIENTS
 		|| index == CS_WORLDMODEL

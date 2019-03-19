@@ -765,7 +765,6 @@ const char *G_GetEntitySpawnKey( const char *key, edict_t *self );
 // g_awards.c
 //
 void G_PlayerAward( edict_t *ent, const char *awardMsg );
-void G_AwardPlayerKilled( edict_t *self, edict_t *inflictor, edict_t *attacker, int mod );
 void G_AwardRaceRecord( edict_t *self );
 
 //============================================================================
@@ -818,11 +817,6 @@ typedef struct {
 	vec3_t destangles;
 } moveinfo_t;
 
-typedef struct {
-	int multifrag_timer;
-	int multifrag_count;
-} award_info_t;
-
 #define MAX_CLIENT_EVENTS   16
 #define MAX_CLIENT_EVENTS_MASK ( MAX_CLIENT_EVENTS - 1 )
 
@@ -840,7 +834,6 @@ typedef struct {
 typedef struct {
 	client_snapreset_t snap;
 	chasecam_t chase;
-	award_info_t awardInfo;
 
 	int64_t timeStamp; // last time it was reset
 

@@ -46,64 +46,6 @@ void G_PlayerAward( edict_t *ent, const char *awardMsg ) {
 	}
 }
 
-void G_AwardPlayerKilled( edict_t *self, edict_t *inflictor, edict_t *attacker, int mod ) {
-	if( self->r.svflags & SVF_CORPSE ) {
-		return;
-	}
-
-	if( !attacker->r.client ) {
-		return;
-	}
-
-	if( !self->r.client ) {
-		return;
-	}
-
-	if( attacker == self ) {
-		return;
-	}
-
-	if( attacker->s.team == self->s.team && attacker->s.team > TEAM_PLAYERS ) {
-		return;
-	}
-
-	// Multikill
-	constexpr int MULTIKILL_INTERVAL = 3000;
-	if( game.serverTime - attacker->r.client->resp.awardInfo.multifrag_timer < MULTIKILL_INTERVAL ) {
-		attacker->r.client->resp.awardInfo.multifrag_count++;
-	} else {
-		attacker->r.client->resp.awardInfo.multifrag_count = 1;
-	}
-
-	attacker->r.client->resp.awardInfo.multifrag_timer = game.serverTime;
-
-	if( attacker->r.client->resp.awardInfo.multifrag_count > 1 ) {
-		char s[MAX_CONFIGSTRING_CHARS];
-
-		s[0] = 0;
-
-		switch( attacker->r.client->resp.awardInfo.multifrag_count ) {
-			case 0:
-			case 1:
-				break;
-			case 2:
-				Q_strncpyz( s, S_COLOR_GREEN "Double Frag!", sizeof( s ) );
-				break;
-			case 3:
-				Q_strncpyz( s, S_COLOR_GREEN "Triple Frag!", sizeof( s ) );
-				break;
-			case 4:
-				Q_strncpyz( s, S_COLOR_GREEN "Quadruple Frag!", sizeof( s ) );
-				break;
-			default:
-				Q_snprintfz( s, sizeof( s ), S_COLOR_GREEN "Extermination! %i in a row!", attacker->r.client->resp.awardInfo.multifrag_count );
-				break;
-		}
-
-		G_PlayerAward( attacker, s );
-	}
-}
-
 void G_AwardRaceRecord( edict_t *self ) {
 	G_PlayerAward( self, S_COLOR_CYAN "New Record!" );
 }

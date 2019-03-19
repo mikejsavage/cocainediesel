@@ -421,7 +421,7 @@ edict_t *G_DropItem( struct edict_s *ent, const gsitem_t *item );
 //
 #define G_LEVELPOOL_BASE_SIZE   45 * 1024 * 1024
 
-bool KillBox( edict_t *ent );
+bool KillBox( edict_t *ent, int mod );
 float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker );
 edict_t *G_Find( edict_t *from, size_t fieldofs, const char *match );
 edict_t *G_PickTarget( const char *targetname );

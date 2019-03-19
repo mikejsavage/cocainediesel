@@ -1243,7 +1243,7 @@ void G_LocalSound( edict_t *owner, int channel, int soundindex ) {
 * Kills all entities that would touch the proposed new positioning
 * of ent.  Ent should be unlinked before calling this!
 */
-bool KillBox( edict_t *ent ) {
+bool KillBox( edict_t *ent, int mod ) {
 	trace_t tr;
 	bool telefragged = false;
 
@@ -1258,7 +1258,7 @@ bool KillBox( edict_t *ent ) {
 		}
 
 		// nail it
-		G_Damage( &game.edicts[tr.ent], ent, ent, vec3_origin, vec3_origin, ent->s.origin, 100000, 0, 0, MOD_TELEFRAG );
+		G_Damage( &game.edicts[tr.ent], ent, ent, vec3_origin, vec3_origin, ent->s.origin, 100000, 0, 0, mod );
 		telefragged = true;
 
 		// if we didn't kill it, fail

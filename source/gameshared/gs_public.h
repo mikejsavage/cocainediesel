@@ -633,14 +633,10 @@ typedef enum {
 	MOD_SUICIDE,
 	MOD_EXPLOSIVE,
 
-	// probably not used
-	MOD_BARREL,
-	MOD_BOMB,
-	MOD_EXIT, // except this one : player leaves
-	MOD_SPLASH,
-	MOD_TARGET_LASER,
 	MOD_TRIGGER_HURT,
-	MOD_HIT,
+
+	MOD_LASER,
+	MOD_SPIKES,
 } mod_damage_t;
 
 //===============================================================

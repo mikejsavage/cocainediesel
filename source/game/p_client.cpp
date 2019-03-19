@@ -20,20 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "g_local.h"
 
 /*
-* player_pain
-*/
-void player_pain( edict_t *self, edict_t *other, float kick, int damage ) {
-	// player pain is handled at the end of the frame in P_DamageFeedback
-}
-
-/*
-* player_think
-*/
-void player_think( edict_t *self ) {
-	// player entities do not think
-}
-
-/*
 * ClientObituary
 */
 static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker ) {
@@ -209,7 +195,6 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 					   mod == MOD_TRIGGER_HURT || mod == MOD_TELEFRAG || mod == MOD_EXPLOSIVE ||
 					(( mod == MOD_ROCKET_SPLASH || mod == MOD_GRENADE_SPLASH ) && damage >= 40 );
 
-
 	if( is_gibbable ) {
 		ThrowSmallPileOfGibs( body, damage );
 
@@ -228,22 +213,20 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 		body->s.teleported = true;
 
 		// launch the death animation on the body
-		{
-			static int i;
-			i = ( i + 1 ) % 3;
-			G_AddEvent( body, EV_DIE, i, true );
-			switch( i ) {
-				default:
-				case 0:
-					body->s.frame = ( ( BOTH_DEAD1 & 0x3F ) | ( BOTH_DEAD1 & 0x3F ) << 6 | ( 0 & 0xF ) << 12 );
-					break;
-				case 1:
-					body->s.frame = ( ( BOTH_DEAD2 & 0x3F ) | ( BOTH_DEAD2 & 0x3F ) << 6 | ( 0 & 0xF ) << 12 );
-					break;
-				case 2:
-					body->s.frame = ( ( BOTH_DEAD3 & 0x3F ) | ( BOTH_DEAD3 & 0x3F ) << 6 | ( 0 & 0xF ) << 12 );
-					break;
-			}
+		static int i;
+		i = ( i + 1 ) % 3;
+		G_AddEvent( body, EV_DIE, i, true );
+		switch( i ) {
+			default:
+			case 0:
+				body->s.frame = ( ( BOTH_DEAD1 & 0x3F ) | ( BOTH_DEAD1 & 0x3F ) << 6 | ( 0 & 0xF ) << 12 );
+				break;
+			case 1:
+				body->s.frame = ( ( BOTH_DEAD2 & 0x3F ) | ( BOTH_DEAD2 & 0x3F ) << 6 | ( 0 & 0xF ) << 12 );
+				break;
+			case 2:
+				body->s.frame = ( ( BOTH_DEAD3 & 0x3F ) | ( BOTH_DEAD3 & 0x3F ) << 6 | ( 0 & 0xF ) << 12 );
+				break;
 		}
 
 		// bit of a hack, if we're not in warmup, leave the body with no think. think self destructs
@@ -488,8 +471,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->s.type = ET_PLAYER;
 	self->groundentity = NULL;
 	self->takedamage = DAMAGE_AIM;
-	self->think = player_think;
-	self->pain = player_pain;
 	self->die = player_die;
 	self->viewheight = playerbox_stand_viewheight;
 	self->r.inuse = true;
@@ -556,7 +537,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 
 	// don't put spectators in the game
 	if( !ghost ) {
-		if( KillBox( self ) ) {
+		if( KillBox( self, MOD_TELEFRAG ) ) {
 		}
 	}
 
@@ -660,7 +641,7 @@ void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
 	GClip_UnlinkEntity( player );
 
 	// kill anything at the destination
-	KillBox( player );
+	KillBox( player, MOD_TELEFRAG );
 
 	GClip_LinkEntity( player );
 

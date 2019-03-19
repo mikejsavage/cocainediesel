@@ -185,17 +185,14 @@ void GS_Obituary( void *victim, int gender, void *attacker, int mod, char *messa
 			case MOD_LAVA:
 				strcpy( message, "sacrificed to the lava god" ); // wsw : pb : some killed messages
 				break;
-			case MOD_EXPLOSIVE:
-			case MOD_BARREL:
-				strcpy( message, "blew up" );
-				break;
-			case MOD_EXIT:
-				strcpy( message, "found a way out" );
-				break;
-			case MOD_BOMB:
-			case MOD_SPLASH:
 			case MOD_TRIGGER_HURT:
 				strcpy( message, "was in the wrong place" );
+				break;
+			case MOD_LASER:
+				strcpy( message, "was cut in half" );
+				break;
+			case MOD_SPIKES:
+				strcpy( message, "was impaled by spikes" );
 				break;
 			default:
 				strcpy( message, "died" );

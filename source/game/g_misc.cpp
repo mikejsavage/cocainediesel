@@ -192,7 +192,7 @@ static void func_wall_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	if( self->r.solid == SOLID_NOT ) {
 		self->r.solid = SOLID_YES;
 		self->r.svflags &= ~SVF_NOCLIENT;
-		KillBox( self );
+		KillBox( self, MOD_CRUSH );
 	} else {
 		self->r.solid = SOLID_NOT;
 		self->r.svflags |= SVF_NOCLIENT;
@@ -276,7 +276,7 @@ static void func_object_use( edict_t *self, edict_t *other, edict_t *activator )
 	self->r.solid = SOLID_YES;
 	self->r.svflags &= ~SVF_NOCLIENT;
 	self->use = NULL;
-	KillBox( self );
+	KillBox( self, MOD_CRUSH );
 	func_object_release( self );
 }
 
@@ -427,7 +427,7 @@ static void func_explosive_spawn( edict_t *self, edict_t *other, edict_t *activa
 	self->r.solid = SOLID_YES;
 	self->r.svflags &= ~SVF_NOCLIENT;
 	self->use = NULL;
-	KillBox( self );
+	KillBox( self, MOD_CRUSH );
 	GClip_LinkEntity( self );
 }
 

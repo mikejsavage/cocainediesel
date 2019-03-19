@@ -5,7 +5,7 @@ static void SpikesRearm( edict_t * self ) {
 }
 
 static void SpikesDeploy( edict_t * self ) {
-	KillBox( self );
+	KillBox( self, MOD_SPIKES );
 	self->think = SpikesRearm;
 	self->nextThink = level.time + 1000;
 }
@@ -15,7 +15,7 @@ static void SpikesTouched( edict_t * self, edict_t * other, cplane_t * plane, in
 		return;
 
 	if( self->s.frame == 1 ) {
-		G_Damage( other, self, self, vec3_origin, vec3_origin, other->s.origin, 10000, 0, 0, MOD_TRIGGER_HURT );
+		G_Damage( other, self, self, vec3_origin, vec3_origin, other->s.origin, 10000, 0, 0, MOD_SPIKES );
 		return;
 	}
 

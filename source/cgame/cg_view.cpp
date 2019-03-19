@@ -839,9 +839,6 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 			}
 
 			clamp_low( cg.xerpTime, -( cgs.extrapolationTime * 0.001f ) );
-
-			//clamp( cg.xerpTime, -( cgs.extrapolationTime * 0.001f ), ( cgs.extrapolationTime * 0.001f ) );
-			//clamp( cg.oldXerpTime, 0, ( ( snapTime + cgs.extrapolationTime ) * 0.001f ) );
 		} else {
 			cg.xerpTime = 0.0f;
 			cg.xerpSmoothFrac = 0.0f;

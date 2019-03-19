@@ -191,6 +191,8 @@ void target_laser_start( edict_t *self ) {
 	self->r.svflags = 0;
 	self->s.frame = st.size > 0 ? st.size : 8;
 	self->s.colorRGBA = st.rgba != 0 ? st.rgba : COLOR_RGBA( 220, 0, 0, 76 );
+	self->s.sound = trap_SoundIndex( "sounds/gladiator/laser_hum" );
+	self->s.attenuation = ATTN_IDLE;
 
 	if( !self->enemy ) {
 		if( self->target ) {

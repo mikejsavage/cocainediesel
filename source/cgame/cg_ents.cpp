@@ -737,10 +737,6 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 	if( cent->item ) {
 		const gsitem_t *item = cent->item;
 
-		if( item->type & IT_POWERUP ) {
-			cent->ent.renderfx |= RF_NOSHADOW;
-		}
-
 		if( cent->effects & EF_AMMOBOX ) {
 			cent->ent.scale *= 0.90f;
 

@@ -24,8 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void SV_Physics_LinearProjectile( edict_t *ent );
 
-static bool is_quad;
-
 #define PLASMAHACK // ffs : hack for the plasmagun
 
 #ifdef PLASMAHACK
@@ -205,11 +203,6 @@ static edict_t *G_Fire_Gunblade_Knife( vec3_t origin, vec3_t angles, firedef_t *
 	damage = firedef->damage;
 	knockback = firedef->knockback;
 
-	if( is_quad ) {
-		damage *= QUAD_DAMAGE_SCALE;
-		knockback *= QUAD_KNOCKBACK_SCALE;
-	}
-
 	W_Fire_Blade( owner, range, origin, angles, damage, knockback, timeDelta );
 
 	return NULL;
@@ -238,11 +231,6 @@ static edict_t *G_Fire_Rocket( vec3_t origin, vec3_t angles, firedef_t *firedef,
 	minKnockback = firedef->minknockback;
 	radius = firedef->splash_radius;
 
-	if( is_quad ) {
-		damage *= QUAD_DAMAGE_SCALE;
-		knockback *= QUAD_KNOCKBACK_SCALE;
-	}
-
 	return W_Fire_Rocket( owner, origin, angles, speed, damage, minKnockback, knockback, minDamage,
 		radius, firedef->timeout, timeDelta );
 }
@@ -264,11 +252,6 @@ static edict_t *G_Fire_Machinegun( vec3_t origin, vec3_t angles, firedef_t *fire
 	range = firedef->timeout;
 	damage = firedef->damage;
 	knockback = firedef->knockback;
-
-	if( is_quad ) {
-		damage *= QUAD_DAMAGE_SCALE;
-		knockback *= QUAD_KNOCKBACK_SCALE;
-	}
 
 	W_Fire_Bullet( owner, origin, angles, seed, range, firedef->spread, firedef->v_spread,
 		damage, knockback, timeDelta );
@@ -293,11 +276,6 @@ static edict_t *G_Fire_Riotgun( vec3_t origin, vec3_t angles, firedef_t *firedef
 	range = firedef->timeout;
 	damage = firedef->damage;
 	knockback = firedef->knockback;
-
-	if( is_quad ) {
-		damage *= QUAD_DAMAGE_SCALE;
-		knockback *= QUAD_KNOCKBACK_SCALE;
-	}
 
 	W_Fire_Riotgun( owner, origin, angles, range, firedef->spread, firedef->v_spread,
 		firedef->projectile_count, damage, knockback, timeDelta );
@@ -327,12 +305,6 @@ static edict_t *G_Fire_Grenade( vec3_t origin, vec3_t angles, firedef_t *firedef
 	minKnockback = firedef->minknockback;
 	radius = firedef->splash_radius;
 
-	if( is_quad ) {
-		damage *= QUAD_DAMAGE_SCALE;
-		minDamage *= QUAD_DAMAGE_SCALE;
-		knockback *= QUAD_KNOCKBACK_SCALE;
-	}
-
 	return W_Fire_Grenade( owner, origin, angles, speed, damage, minKnockback, knockback,
 		minDamage, radius, firedef->timeout, timeDelta, true );
 }
@@ -359,11 +331,6 @@ static edict_t *G_Fire_Plasma( vec3_t origin, vec3_t angles, firedef_t *firedef,
 	minKnockback = firedef->minknockback;
 	radius = firedef->splash_radius;
 
-	if( is_quad ) {
-		damage *= QUAD_DAMAGE_SCALE;
-		knockback *= QUAD_KNOCKBACK_SCALE;
-	}
-
 	return W_Fire_Plasma( owner, origin, angles, damage, minKnockback, knockback, minDamage, radius,
 		speed, firedef->timeout, timeDelta );
 }
@@ -384,11 +351,6 @@ static edict_t *G_Fire_Lasergun( vec3_t origin, vec3_t angles, firedef_t *firede
 	range = firedef->timeout;
 	damage = firedef->damage;
 	knockback = firedef->knockback;
-
-	if( is_quad ) {
-		damage *= QUAD_DAMAGE_SCALE;
-		knockback *= QUAD_KNOCKBACK_SCALE;
-	}
 
 	// no need to continue if strong mode
 	return W_Fire_Lasergun( owner, origin, angles, damage, knockback, range, timeDelta );
@@ -414,11 +376,6 @@ static edict_t *G_Fire_Bolt( vec3_t origin, vec3_t angles, firedef_t *firedef, e
 	maxknockback = firedef->knockback;
 	minknockback = firedef->minknockback;
 
-	if( is_quad ) {
-		mindamage *= QUAD_DAMAGE_SCALE;
-		maxdamage *= QUAD_DAMAGE_SCALE;
-		maxknockback *= QUAD_KNOCKBACK_SCALE;
-	}
 	W_Fire_Electrobolt_FullInstant( owner, origin, angles, maxdamage, mindamage,
 		maxknockback, minknockback, ELECTROBOLT_RANGE, minDamageRange, timeDelta );
 	return NULL;
@@ -442,11 +399,9 @@ void G_FireWeapon( edict_t *ent, int parm ) {
 	if( ent->r.client ) {
 		viewoffset[2] += ent->r.client->ps.viewheight;
 		VectorCopy( ent->r.client->ps.viewangles, angles );
-		is_quad = ( ent->r.client->ps.inventory[POWERUP_QUAD] > 0 ) ? true : false;
 		ucmdSeed = ent->r.client->ucmd.serverTimeStamp & 255;
 	} else {
 		VectorCopy( ent->s.angles, angles );
-		is_quad = false;
 		ucmdSeed = rand() & 255;
 	}
 

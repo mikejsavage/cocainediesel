@@ -804,10 +804,6 @@ int G_Gametype_RespawnTimeForItem( const gsitem_t *item ) {
 		return level.gametype.weapon_respawn * 1000;
 	}
 
-	if( item->type & IT_POWERUP ) {
-		return level.gametype.powerup_respawn * 1000;
-	}
-
 	return item->quantity * 1000;
 }
 
@@ -877,45 +873,6 @@ static void G_CheckNumBots( void ) {
 		for( ent = game.edicts + 1; PLAYERNUM( ent ) < gs.maxclients && game.numBots < desiredNumBots; ent++ ) {
 			if( !ent->r.inuse && trap_GetClientState( PLAYERNUM( ent ) ) == CS_FREE ) {
 				AI_SpawnBot( NULL );
-			}
-		}
-	}
-}
-
-/*
-* G_TickOutPowerUps
-*/
-static void G_TickOutPowerUps( void ) {
-	edict_t *ent;
-	const gsitem_t *item;
-	int i;
-
-	for( ent = game.edicts + 1; PLAYERNUM( ent ) < gs.maxclients; ent++ ) {
-		if( ent->r.inuse && trap_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
-			for( i = POWERUP_QUAD; i < POWERUP_TOTAL; i++ ) {
-				item = GS_FindItemByTag( i );
-				if( item && item->quantity && ent->r.client->ps.inventory[item->tag] > 0 ) {
-					ent->r.client->ps.inventory[item->tag]--;
-				}
-			}
-		}
-	}
-
-	// also tick out dropped powerups
-	for( ent = game.edicts + gs.maxclients + BODY_QUEUE_SIZE; ENTNUM( ent ) < game.numentities; ent++ ) {
-		if( !ent->r.inuse || !ent->item ) {
-			continue;
-		}
-
-		if( !( ent->item->type & IT_POWERUP ) ) {
-			continue;
-		}
-
-		if( ent->spawnflags & DROPPED_ITEM ) {
-			ent->count--;
-			if( ent->count <= 0 ) {
-				G_FreeEdict( ent );
-				continue;
 			}
 		}
 	}
@@ -1007,7 +964,6 @@ void G_RunGametype( void ) {
 
 	if( G_EachNewSecond() ) {
 		G_CheckNumBots();
-		G_TickOutPowerUps();
 	}
 
 	if( G_EachNewMinute() ) {
@@ -1027,7 +983,7 @@ void G_RunGametype( void ) {
 * G_Gametype_SetDefaults
 */
 void G_Gametype_SetDefaults( void ) {
-	level.gametype.spawnableItemsMask = IT_WEAPON | IT_AMMO | IT_POWERUP;
+	level.gametype.spawnableItemsMask = IT_WEAPON | IT_AMMO;
 	level.gametype.respawnableItemsMask = level.gametype.spawnableItemsMask;
 	level.gametype.dropableItemsMask = level.gametype.spawnableItemsMask;
 	level.gametype.pickableItemsMask = level.gametype.spawnableItemsMask;
@@ -1041,7 +997,6 @@ void G_Gametype_SetDefaults( void ) {
 	level.gametype.ammo_respawn = 20;
 	level.gametype.weapon_respawn = 5;
 	level.gametype.health_respawn = 15;
-	level.gametype.powerup_respawn = 90;
 
 	level.gametype.readyAnnouncementEnabled = false;
 	level.gametype.scoreAnnouncementEnabled = false;

@@ -27,8 +27,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "q_collision.h"
 #include "gs_public.h"
 
-#define QUAD_TIME   30
-
 /*
 *
 * ITEM DEFS
@@ -252,31 +250,6 @@ gsitem_t itemdefs[] =
 	{ "", AMMO_LASERS },
 	{ "", AMMO_BOLTS },
 
-	//------------------------
-	// POWERUP ITEMS
-	//------------------------
-	//QUAKED item_quad (.3 .3 1) (-16 -16 -16) (16 16 16)
-	{
-		"item_quad",
-		POWERUP_QUAD,
-		IT_POWERUP,
-		ITFLAG_PICKABLE | ITFLAG_DROPABLE,
-
-		{ NULL, NULL },
-		NULL,
-		NULL,
-		NULL,
-		EF_OUTLINE | EF_ROTATE_AND_BOB,
-
-		"Quad Damage", "QUAD", NULL,
-		QUAD_TIME,
-		0,
-		AMMO_NONE,
-		AMMO_NONE,
-		NULL,
-		NULL, NULL, NULL
-	},
-
 	// end of list marker
 	{ },
 };
@@ -426,10 +399,6 @@ const gsitem_t *GS_Cmd_UseItem( player_state_t *playerState, const char *string,
 	}
 
 	if( item->type & IT_AMMO ) {
-		return item;
-	}
-
-	if( item->type & IT_POWERUP ) {
 		return item;
 	}
 

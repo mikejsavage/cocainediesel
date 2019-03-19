@@ -79,7 +79,6 @@ typedef struct {
 	int ammo_respawn;
 	int weapon_respawn;
 	int health_respawn;
-	int powerup_respawn;
 
 	// few default settings
 	bool readyAnnouncementEnabled;

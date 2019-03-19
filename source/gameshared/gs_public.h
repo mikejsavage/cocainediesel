@@ -355,16 +355,9 @@ typedef enum {
 	AMMO_LASERS,
 	AMMO_BOLTS,
 
-	AMMO_TOTAL
+	AMMO_TOTAL,
+	ITEMS_TOTAL = AMMO_TOTAL,
 } ammo_tag_t;
-
-typedef enum {
-	POWERUP_NONE = 0,
-	POWERUP_QUAD = AMMO_TOTAL,
-
-	POWERUP_TOTAL,
-	ITEMS_TOTAL = POWERUP_TOTAL,
-} powerup_tag_t;
 
 #define GS_MAX_ITEM_TAGS ITEMS_TOTAL
 
@@ -380,7 +373,6 @@ typedef enum {
 typedef enum {
 	IT_WEAPON = 1,
 	IT_AMMO = 2,
-	IT_POWERUP = 4,
 } itemtype_t;
 
 typedef struct gitem_s {
@@ -836,14 +828,12 @@ enum {
 // An entity that has effects will be sent to the client
 // even if it has a zero index model.
 #define EF_ROTATE_AND_BOB           ( 1 << 0 )
-#define EF_QUAD                     ( 1 << 1 )
-#define EF_EXPIRING_QUAD            ( 1 << 2 )
-#define EF_CARRIER                  ( 1 << 3 )
-#define EF_BUSYICON                 ( 1 << 4 )
-#define EF_TAKEDAMAGE               ( 1 << 5 )
-#define EF_TEAMCOLOR_TRANSITION     ( 1 << 6 )
-#define EF_GODMODE                  ( 1 << 7 )
-#define EF_GHOST                    ( 1 << 8 )
+#define EF_CARRIER                  ( 1 << 1 )
+#define EF_BUSYICON                 ( 1 << 2 )
+#define EF_TAKEDAMAGE               ( 1 << 3 )
+#define EF_TEAMCOLOR_TRANSITION     ( 1 << 4 )
+#define EF_GODMODE                  ( 1 << 5 )
+#define EF_GHOST                    ( 1 << 6 )
 
 // oh, this is so nasty... (reuse effect bits for different entity types)
 #define EF_NOPORTALENTS             EF_CARRIER

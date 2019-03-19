@@ -165,11 +165,6 @@ static int CG_GetFPS( const void *parameter ) {
 	return fps;
 }
 
-static int CG_GetPowerupTime( const void *parameter ) {
-	int powerup = (intptr_t)parameter;
-	return cg.predictedPlayerState.inventory[powerup];
-}
-
 static int CG_GetMatchState( const void *parameter ) {
 	return GS_MatchState();
 }
@@ -356,8 +351,6 @@ static const reference_numeric_t cg_numeric_references[] =
 	{ "VIDHEIGHT", CG_GetVidHeight, NULL },
 	{ "SCOREBOARD", CG_GetScoreboardShown, NULL },
 	{ "DEMOPLAYING", CG_IsDemoPlaying, NULL },
-
-	{ "POWERUP_QUAD_TIME", CG_GetPowerupTime, (void *)POWERUP_QUAD },
 
 	{ "DAMAGE_INDICATOR_TOP", CG_GetDamageIndicatorDirValue, (void *)0 },
 	{ "DAMAGE_INDICATOR_RIGHT", CG_GetDamageIndicatorDirValue, (void *)1 },

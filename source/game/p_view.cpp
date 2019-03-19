@@ -267,13 +267,6 @@ static void G_SetClientEffects( edict_t *ent ) {
 		return;
 	}
 
-	if( client->ps.inventory[POWERUP_QUAD] > 0 ) {
-		ent->s.effects |= EF_QUAD;
-		if( client->ps.inventory[POWERUP_QUAD] < 6 ) {
-			ent->s.effects |= EF_EXPIRING_QUAD;
-		}
-	}
-
 	// show cheaters!!!
 	if( ent->flags & FL_GODMODE ) {
 		ent->s.effects |= EF_GODMODE;

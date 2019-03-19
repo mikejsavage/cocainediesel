@@ -37,10 +37,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // FIXME: Medar: Remove the spectator test and just make sure they always have health
 #define G_IsDead( ent )       ( ( !( ent )->r.client || ( ent )->s.team != TEAM_SPECTATOR ) && HEALTH_TO_INT( ( ent )->health ) <= 0 )
 
-// Quad scale for damage and knockback
-#define QUAD_DAMAGE_SCALE 4
-#define QUAD_KNOCKBACK_SCALE 3
-
 #define CLIENT_RESPAWN_FREEZE_DELAY 300
 
 // edict->flags

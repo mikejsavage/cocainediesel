@@ -110,30 +110,6 @@ void G_Items_RespawnByType( unsigned int typeMask, int item_tag, float delay ) {
 
 //======================================================================
 
-static bool Pickup_Powerup( edict_t *other, const gsitem_t *item, int flags, int count ) {
-	if( !item || !item->tag ) {
-		return false;
-	}
-
-	if( item->quantity ) {
-		int timeout;
-
-		if( flags & DROPPED_ITEM ) {
-			timeout = count + 1;
-		} else {
-			timeout = item->quantity + 1;
-		}
-
-		other->r.client->ps.inventory[item->tag] += timeout;
-	} else {
-		other->r.client->ps.inventory[item->tag]++;
-	}
-
-	return true;
-}
-
-//======================================================================
-
 bool Add_Ammo( gclient_t *client, const gsitem_t *item, int count, bool add_it ) {
 	int max;
 
@@ -166,11 +142,7 @@ bool Add_Ammo( gclient_t *client, const gsitem_t *item, int count, bool add_it )
 
 void Touch_ItemSound( edict_t *other, const gsitem_t *item ) {
 	if( item->pickup_sound ) {
-		if( item->type & IT_POWERUP ) {
-			G_Sound( other, CHAN_ITEM, trap_SoundIndex( item->pickup_sound ), ATTN_NORM );
-		} else {
-			G_Sound( other, CHAN_AUTO, trap_SoundIndex( item->pickup_sound ), ATTN_NORM );
-		}
+		G_Sound( other, CHAN_AUTO, trap_SoundIndex( item->pickup_sound ), ATTN_NORM );
 	}
 }
 
@@ -291,26 +263,11 @@ edict_t *Drop_Item( edict_t *ent, const gsitem_t *item ) {
 
 		dropped->spawnflags |= DROPPED_PLAYER_ITEM;
 
-		// power-ups are special
-		if( ( item->type & IT_POWERUP ) && item->quantity ) {
-			if( ent->r.client->ps.inventory[item->tag] ) {
-				dropped->count = ent->r.client->ps.inventory[item->tag];
-				ent->r.client->ps.inventory[item->tag] = 0;
-			} else {
-				dropped->count = item->quantity;
-			}
-		}
-
 		ent->r.client->teamstate.last_drop_item = item;
 		VectorCopy( dropped->s.origin, ent->r.client->teamstate.last_drop_location );
 	} else {
 		AngleVectors( ent->s.angles, forward, right, NULL );
 		VectorCopy( ent->s.origin, dropped->s.origin );
-
-		// power-ups are special
-		if( ( item->type & IT_POWERUP ) && item->quantity ) {
-			dropped->count = item->quantity;
-		}
 	}
 
 	VectorScale( forward, 100, dropped->velocity );
@@ -342,8 +299,6 @@ bool G_PickupItem( edict_t *other, const gsitem_t *it, int flags, int count, con
 
 	if( it->type & IT_WEAPON ) {
 		taken = Pickup_Weapon( other, it, flags, count );
-	} else if( it->type & IT_POWERUP ) {
-		taken = Pickup_Powerup( other, it, flags, count );
 	}
 
 	if( taken && other->r.client ) {

@@ -62,14 +62,14 @@ static bool G_Chase_IsValidTarget( edict_t *ent, edict_t *target, bool teamonly 
 */
 static int G_Chase_FindFollowPOV( edict_t *ent ) {
 	int i, j;
-	int quad, scorelead;
+	int scorelead;
 	int maxteam;
 	int flags[GS_MAX_TEAMS];
 	int newctfpov;
 	int score_best;
 	int newpov = -1;
 	edict_t *target;
-	static int ctfpov = -1, poweruppov = -1;
+	static int ctfpov = -1;
 	static int64_t flagswitchTime = 0;
 #define CARRIERSWITCHDELAY 8000
 
@@ -96,7 +96,7 @@ static int G_Chase_FindFollowPOV( edict_t *ent ) {
 
 	// find what players have what
 	score_best = INT_MIN;
-	quad = scorelead = -1;
+	scorelead = -1;
 	memset( flags, -1, sizeof( flags ) );
 	newctfpov = -1;
 	maxteam = 0;
@@ -109,9 +109,6 @@ static int G_Chase_FindFollowPOV( edict_t *ent ) {
 			if( ctfpov == ENTNUM( target ) ) {
 				ctfpov = -1;
 			}
-			if( poweruppov == ENTNUM( target ) ) {
-				poweruppov = -1;
-			}
 			continue;
 		}
 		if( target->s.team <= 0 || target->s.team >= (int)( sizeof( flags ) / sizeof( flags[0] ) ) ) {
@@ -119,10 +116,6 @@ static int G_Chase_FindFollowPOV( edict_t *ent ) {
 		}
 		if( ent->r.client->resp.chase.teamonly && ent->s.team != target->s.team ) {
 			continue;
-		}
-
-		if( target->s.effects & EF_QUAD ) {
-			quad = ENTNUM( target );
 		}
 
 		if( target->s.team && ( target->s.effects & EF_CARRIER ) ) {
@@ -186,15 +179,9 @@ static int G_Chase_FindFollowPOV( edict_t *ent ) {
 		flagswitchTime = 0;
 	}
 
-	if( quad != -1 ) {
-		poweruppov = quad;
-	}
-
 	// so, we got all, select what we prefer to show
 	if( ctfpov != -1 && ( ent->r.client->resp.chase.followmode & 4 ) ) {
 		newpov = ctfpov;
-	} else if( poweruppov != -1 && ( ent->r.client->resp.chase.followmode & 2 ) ) {
-		newpov = poweruppov;
 	} else if( scorelead != -1 && ( ent->r.client->resp.chase.followmode & 1 ) ) {
 		newpov = scorelead;
 	}
@@ -511,7 +498,6 @@ void Cmd_ChaseCam_f( edict_t *ent ) {
 	}
 
 	// & 1 = scorelead
-	// & 2 = powerups
 	// & 4 = objectives
 	// & 8 = fragger
 
@@ -525,9 +511,6 @@ void Cmd_ChaseCam_f( edict_t *ent ) {
 	} else if( !Q_stricmp( arg1, "carriers" ) ) {
 		G_PrintMsg( ent, "Chasecam mode is 'carriers'. It will switch to flag or powerup carriers when any of these items is picked up.\n" );
 		G_ChasePlayer( ent, NULL, false, 6 );
-	} else if( !Q_stricmp( arg1, "powerups" ) ) {
-		G_PrintMsg( ent, "Chasecam mode is 'powerups'. It will switch to powerup carriers when any of these items is picked up.\n" );
-		G_ChasePlayer( ent, NULL, false, 2 );
 	} else if( !Q_stricmp( arg1, "objectives" ) ) {
 		G_PrintMsg( ent, "Chasecam mode is 'objectives'. It will switch to objectives carriers when any of these items is picked up.\n" );
 		G_ChasePlayer( ent, NULL, false, 4 );
@@ -542,7 +525,6 @@ void Cmd_ChaseCam_f( edict_t *ent ) {
 		G_PrintMsg( ent, "- 'auto': Chase the score leader unless there's an objective carrier or a powerup carrier.\n" );
 		G_PrintMsg( ent, "- 'carriers': User has pov control unless there's an objective carrier or a powerup carrier.\n" );
 		G_PrintMsg( ent, "- 'objectives': User has pov control unless there's an objective carrier.\n" );
-		G_PrintMsg( ent, "- 'powerups': User has pov control unless there's a flag carrier.\n" );
 		G_PrintMsg( ent, "- 'score': Always follow the score leader. User has no pov control.\n" );
 		G_PrintMsg( ent, "- 'none': Disable chasecam.\n" );
 		return;

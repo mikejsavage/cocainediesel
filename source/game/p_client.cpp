@@ -398,7 +398,6 @@ void G_GhostClient( edict_t *ent ) {
 	memset( &ent->snap, 0, sizeof( ent->snap ) );
 	memset( &ent->r.client->resp.snap, 0, sizeof( ent->r.client->resp.snap ) );
 	memset( &ent->r.client->resp.chase, 0, sizeof( ent->r.client->resp.chase ) );
-	memset( &ent->r.client->resp.awardInfo, 0, sizeof( ent->r.client->resp.awardInfo ) );
 	ent->r.client->resp.old_waterlevel = 0;
 	ent->r.client->resp.old_watertype = 0;
 

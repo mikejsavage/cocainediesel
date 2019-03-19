@@ -160,7 +160,6 @@ void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage,
 		} else {
 			attacker->r.client->level.stats.frags++;
 			teamlist[attacker->s.team].stats.frags++;
-			G_AwardPlayerKilled( targ, inflictor, attacker, mod );
 		}
 	}
 

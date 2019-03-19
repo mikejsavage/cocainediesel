@@ -45,27 +45,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PATH_ELECTROBOLT_ICON       "gfx/hud/icons/weapon/electro"
 #define PATH_LASERGUN_ICON      "gfx/hud/icons/weapon/laser"
 
-// ammo
-#define PATH_GUNBLADE_AMMO_ICON     "gfx/hud/icons/ammo/gunbladeammo"
-#define PATH_MACHINEGUN_AMMO_ICON   "gfx/hud/icons/ammo/bulletsammo"
-#define PATH_RIOTGUN_AMMO_ICON      "gfx/hud/icons/ammo/riotammo"
-#define PATH_GRENADELAUNCHER_AMMO_ICON  "gfx/hud/icons/ammo/grenadeammo"
-#define PATH_ROCKETLAUNCHER_AMMO_ICON   "gfx/hud/icons/ammo/rocketammo"
-#define PATH_PLASMAGUN_AMMO_ICON    "gfx/hud/icons/ammo/plasmaammo"
-#define PATH_ELECTROBOLT_AMMO_ICON  "gfx/hud/icons/ammo/electroammo"
-#define PATH_LASERGUN_AMMO_ICON     "gfx/hud/icons/ammo/laserammo"
-
-#define PATH_AMMOPACK_ICON      "gfx/hud/icons/ammo/pack"
-
-// powerups
-#define PATH_QUAD_ICON          "gfx/hud/icons/powerup/quad"
-
-// flags
-#define PATH_ALPHAFLAG_ICON     "gfx/hud/icons/flags/iconflag_alpha"
-#define PATH_BETAFLAG_ICON      "gfx/hud/icons/flags/iconflag_beta"
-
-#define PATH_FLAG_FLARE_SHADER      "gfx/misc/ctf_flare"
-
 // decals
 #define PATH_BULLET_MARK        "gfx/decals/d_bullet_hit"
 #define PATH_EXPLOSION_MARK     "gfx/decals/d_explode_hit"

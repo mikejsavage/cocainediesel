@@ -260,7 +260,6 @@ void CG_RegisterMediaShaders( void ) {
 	cgs.media.shaderParticle = CG_RegisterMediaShader( "particle" );
 
 	cgs.media.shaderNet = CG_RegisterMediaShader( "gfx/hud/net" );
-	cgs.media.shaderDownArrow = CG_RegisterMediaShader( "gfx/2d/arrow_down" );
 
 	cgs.media.shaderPlayerShadow = CG_RegisterMediaShader( "gfx/decals/shadow" );
 
@@ -299,9 +298,6 @@ void CG_RegisterMediaShaders( void ) {
 	cgs.media.shaderGrenadeExplosionRing = CG_RegisterMediaShader( PATH_ROCKET_EXPLOSION_RING_SPRITE );
 
 	cgs.media.shaderLaser = CG_RegisterMediaShader( "gfx/misc/laser" );
-
-	// ctf
-	cgs.media.shaderFlagFlare = CG_RegisterMediaShader( PATH_FLAG_FLARE_SHADER );
 
 	cgs.media.shaderRaceGhostEffect = CG_RegisterMediaShader( "gfx/raceghost" );
 

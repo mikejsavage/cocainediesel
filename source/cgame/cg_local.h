@@ -212,7 +212,6 @@ typedef struct {
 	cgs_media_handle_t *shaderEnergyMark;
 	cgs_media_handle_t *shaderLaser;
 	cgs_media_handle_t *shaderNet;
-	cgs_media_handle_t *shaderDownArrow;
 	cgs_media_handle_t *shaderTeleportShellGfx;
 
 	cgs_media_handle_t *shaderAdditiveParticleShine;
@@ -223,7 +222,6 @@ typedef struct {
 	cgs_media_handle_t *shaderEBImpact;
 
 	cgs_media_handle_t *shaderPlayerShadow;
-	cgs_media_handle_t *shaderFlagFlare;
 
 	cgs_media_handle_t *shaderWeaponIcon[WEAP_TOTAL];
 	cgs_media_handle_t *shaderKeyIcon[KEYICON_TOTAL];
@@ -630,7 +628,6 @@ extern cvar_t *cg_showFPS;
 extern cvar_t *cg_showAwards;
 
 void CG_ScreenInit( void );
-void CG_ScreenShutdown( void );
 void CG_Draw2D( void );
 void CG_DrawHUD( void );
 void CG_CalcVrect( void );
@@ -670,7 +667,6 @@ void CG_ResetBombHUD();
 //
 void CG_SC_ResetObituaries( void );
 void CG_SC_Obituary( void );
-void Cmd_CG_PrintHudHelp_f( void );
 void CG_ExecuteLayoutProgram( struct cg_layoutnode_s *rootnode );
 void CG_ClearAwards( void );
 

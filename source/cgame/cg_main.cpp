@@ -886,7 +886,6 @@ void CG_ResizeWindow( int width, int height ) {
 void CG_Shutdown( void ) {
 	CG_FreeLocalEntities();
 	CG_DemocamShutdown();
-	CG_ScreenShutdown();
 	CG_UnregisterCGameCommands();
 	CG_PModelsShutdown();
 	CG_FreeTemporaryBoneposesCache();

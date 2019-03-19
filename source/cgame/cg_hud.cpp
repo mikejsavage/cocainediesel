@@ -2302,51 +2302,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 	}
 };
 
-void Cmd_CG_PrintHudHelp_f( void ) {
-	const cg_layoutcommand_t *cmd;
-	cg_layoutoperators_t *op;
-	int i;
-	const gsitem_t *item;
-	char *name, *p;
-
-	CG_Printf( "- %sHUD scripts commands\n-------------------------------------%s\n", S_COLOR_YELLOW, S_COLOR_WHITE );
-	for( cmd = cg_LayoutCommands; cmd->name; cmd++ ) {
-		CG_Printf( "- cmd: %s%s%s expected arguments: %s%i%s\n- desc: %s%s%s\n",
-				   S_COLOR_YELLOW, cmd->name, S_COLOR_WHITE,
-				   S_COLOR_YELLOW, cmd->numparms, S_COLOR_WHITE,
-				   S_COLOR_BLUE, cmd->help, S_COLOR_WHITE );
-	}
-	CG_Printf( "\n" );
-
-	CG_Printf( "- %sHUD scripts operators\n------------------------------------%s\n", S_COLOR_YELLOW, S_COLOR_WHITE );
-	CG_Printf( "- " );
-	for( op = cg_LayoutOperators; op->name; op++ ) {
-		CG_Printf( "%s%s%s, ", S_COLOR_YELLOW, op->name, S_COLOR_WHITE );
-	}
-	CG_Printf( "\n\n" );
-
-	CG_Printf( "- %sHUD scripts CONSTANT names\n-------------------------------%s\n", S_COLOR_YELLOW, S_COLOR_WHITE );
-	for( item = &itemdefs[1]; item->classname; item++ ) {
-		name = Q_strupr( CG_CopyString( item->name ) );
-		p = name;
-		while( ( p = strchr( p, ' ' ) ) ) {
-			*p = '_';
-		}
-
-		CG_Printf( "%sITEM_%s%s, ", S_COLOR_YELLOW, name, S_COLOR_WHITE );
-	}
-	for( i = 0; cg_numeric_constants[i].name != NULL; i++ ) {
-		CG_Printf( "%s%s%s, ", S_COLOR_YELLOW, cg_numeric_constants[i].name, S_COLOR_WHITE );
-	}
-	CG_Printf( "\n\n" );
-
-	CG_Printf( "- %sHUD scripts REFERENCE names\n------------------------------%s\n", S_COLOR_YELLOW, S_COLOR_WHITE );
-	for( i = 0; cg_numeric_references[i].name != NULL; i++ ) {
-		CG_Printf( "%s%s%s, ", S_COLOR_YELLOW, cg_numeric_references[i].name, S_COLOR_WHITE );
-	}
-	CG_Printf( "\n" );
-}
-
 
 //=============================================================================
 

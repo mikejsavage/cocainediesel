@@ -159,18 +159,6 @@ void CG_ScreenInit( void ) {
 
 	cg_scoreboardWidthScale = trap_Cvar_Get( "cg_scoreboardWidthScale", "1.0", CVAR_ARCHIVE );
 	cg_scoreboardStats =    trap_Cvar_Get( "cg_scoreboardStats", "1", CVAR_ARCHIVE );
-
-	//
-	// register our commands
-	//
-	trap_Cmd_AddCommand( "help_hud", Cmd_CG_PrintHudHelp_f );
-}
-
-/*
-* CG_ScreenShutdown
-*/
-void CG_ScreenShutdown( void ) {
-	trap_Cmd_RemoveCommand( "help_hud" );
 }
 
 /*

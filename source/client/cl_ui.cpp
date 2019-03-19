@@ -718,10 +718,38 @@ static void MainMenu() {
 
 	ImGui::EndChild();
 
-	const char * buf = APP_VERSION u8" \u00A9 AHA CHEERS";
-	ImVec2 size = ImGui::CalcTextSize( buf );
-	ImGui::SetCursorPosX( ImGui::GetWindowWidth() - size.x - window_padding.x - 1 - sinf( cls.monotonicTime / 29.0f ) );
-	ImGui::Text( "%s", buf );
+	{
+		ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0, 0 ) );
+		ImGui::PushStyleColor( ImGuiCol_Button, IM_COL32( 0, 0, 0, 0 ) );
+		ImGui::PushStyleColor( ImGuiCol_ButtonHovered, IM_COL32( 0, 0, 0, 0 ) );
+		ImGui::PushStyleColor( ImGuiCol_ButtonActive, IM_COL32( 0, 0, 0, 0 ) );
+
+		const char * buf = APP_VERSION u8" \u00A9 AHA CHEERS";
+		ImVec2 size = ImGui::CalcTextSize( buf );
+		ImGui::SetCursorPosX( ImGui::GetWindowWidth() - size.x - window_padding.x - 1 - sinf( cls.monotonicTime / 29.0f ) );
+
+		if( ImGui::Button( buf ) ) {
+			ImGui::OpenPopup( "Credits" );
+		}
+
+		ImGui::PopStyleColor( 3 );
+		ImGui::PopStyleVar();
+
+		ImGuiWindowFlags flags = ( ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar ) | ImGuiWindowFlags_NoMove;
+		if( ImGui::BeginPopupModal( "Credits", NULL, flags ) ) {
+			ImGui::Text( "goochie - art & programming" );
+			ImGui::Text( "MikeJS - programming" );
+			ImGui::Text( "Obani - music & fx & programming" );
+			ImGui::Text( "Dexter - programming" );
+			ImGui::Text( "Special thanks to MSC" );
+			ImGui::Text( "Special thanks to the Warsow team except for slk and MWAGA" );
+
+			if( ImGui::Button( "Close" ) )
+				ImGui::CloseCurrentPopup();
+
+			ImGui::EndPopup();
+		}
+	}
 
 	ImGui::End();
 }

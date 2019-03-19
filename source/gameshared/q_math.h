@@ -152,6 +152,21 @@ float Unlerp( T lo, T x, T hi ) {
         return float( x - lo ) / float( hi - lo );
 }
 
+template< typename T >
+T Min2( const T & a, const T & b ) {
+	return a < b ? a : b;
+}
+
+template< typename T >
+T Max2( const T & a, const T & b ) {
+	return a > b ? a : b;
+}
+
+template< typename T >
+T Clamp( const T & lo, const T & x, const T & hi ) {
+	return Max2( lo, Min2( x, hi ) );
+}
+
 int Q_log2( int val );
 
 #define SQRTFAST( x ) ( ( x ) * Q_RSqrt( x ) ) // jal : //The expression a * rsqrt(b) is intended as a higher performance alternative to a / sqrt(b). The two expressions are comparably accurate, but do not compute exactly the same value in every case. For example, a * rsqrt(a*a + b*b) can be just slightly greater than 1, in rare cases.

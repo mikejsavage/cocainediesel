@@ -1078,6 +1078,16 @@ static void CG_AddItemEnt( centity_t *cent ) {
 //==========================================================================
 
 /*
+* CG_LerpBeam
+*/
+static void CG_LerpLaser( centity_t *cent ) {
+	for( int i = 0; i < 3; i++ ) {
+		cent->ent.origin[i] = Lerp( cent->prev.origin[i], cg.lerpfrac, cent->current.origin[i] );
+		cent->ent.origin2[i] = Lerp( cent->prev.origin2[i], cg.lerpfrac, cent->current.origin2[i] );
+	}
+}
+
+/*
 * CG_AddBeamEnt
 */
 static void CG_AddBeamEnt( centity_t *cent ) {
@@ -1088,7 +1098,7 @@ static void CG_AddBeamEnt( centity_t *cent ) {
 		COLOR_G( cent->current.colorRGBA ) * ( 1.0 / 255.0 ),
 		COLOR_B( cent->current.colorRGBA ) * ( 1.0 / 255.0 ),
 		COLOR_A( cent->current.colorRGBA ) * ( 1.0 / 255.0 ) );
-	CG_SpawnPolyBeam( cent->current.origin, cent->current.origin2, NULL, cent->current.frame, 1, 0, shader, 64, 0 );
+	CG_SpawnPolyBeam( cent->ent.origin, cent->ent.origin2, NULL, cent->current.frame, 1, 0, shader, 64, 0 );
 }
 
 //==========================================================================
@@ -1340,15 +1350,15 @@ void CG_LerpSpikes( centity_t *cent ) {
 			// 1000-1050: fully extend
 			// 1500-2000: retract
 			if( delta < 1000 ) {
-				float t = min( 1.0f, Unlerp( int64_t( 0 ), delta, int64_t( 100 ) ) );
+				float t = Min2( 1.0f, Unlerp( int64_t( 0 ), delta, int64_t( 100 ) ) );
 				position = Lerp( retracted, t, primed );
 			}
 			else if( delta < 1050 ) {
-				float t = min( 1.0f, Unlerp( int64_t( 1000 ), delta, int64_t( 1050 ) ) );
+				float t = Min2( 1.0f, Unlerp( int64_t( 1000 ), delta, int64_t( 1050 ) ) );
 				position = Lerp( primed, t, extended );
 			}
 			else {
-				float t = max( 0.0f, Unlerp( int64_t( 1500 ), delta, int64_t( 2000 ) ) );
+				float t = Max2( 0.0f, Unlerp( int64_t( 1500 ), delta, int64_t( 2000 ) ) );
 				position = Lerp( extended, t, retracted );
 			}
 		}
@@ -1575,7 +1585,7 @@ void CG_LerpEntities( void ) {
 				break;
 
 			case ET_BEAM:
-				// beams aren't interpolated
+				CG_LerpLaser( cent );
 				break;
 
 			case ET_LASERBEAM:

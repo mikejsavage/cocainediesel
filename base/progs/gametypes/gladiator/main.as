@@ -203,18 +203,6 @@ class cDARound
 			{
 				if ( this.roundChallengers.size() <= 1 )
 					this.newRoundState( DA_ROUNDSTATE_ROUNDFINISHED );
-
-				/*if ( @client == @this.roundWinner )
-				  {
-				  @this.roundWinner = null;
-				  this.newRoundState( DA_ROUNDSTATE_ROUNDFINISHED );
-				  }
-
-				  if ( @client == @this.roundChallenger )
-				  {
-				  @this.roundChallenger = null;
-				  this.newRoundState( DA_ROUNDSTATE_ROUNDFINISHED );
-				  }*/
 			}
 		}
 		else if ( new_team == TEAM_PLAYERS )
@@ -413,6 +401,23 @@ class cDARound
 					}
 
 					this.roundAnnouncementPrint( vs_string );
+
+					// check for match point
+					int limit = Cvar( "g_scorelimit", "10", 0 ).integer;
+
+					RoundType type = RoundType_Normal;
+					for( int i = 0; @team.ent( i ) != null; i++ ) {
+						Client @client = @team.ent( i ).client;
+						if( client.stats.score == limit - 1 ) {
+							type = RoundType_MatchPoint;
+							break;
+						}
+					}
+
+					for( int i = 0; @team.ent( i ) != null; i++ ) {
+						Client @client = @team.ent( i ).client;
+						client.setHUDStat( STAT_ROUND_TYPE, int( type ) );
+					}
 				}
 				break;
 

@@ -743,6 +743,7 @@ static void MainMenu() {
 			ImGui::Text( "Dexter - programming" );
 			ImGui::Text( "Special thanks to MSC" );
 			ImGui::Text( "Special thanks to the Warsow team except for slk and MWAGA" );
+			ImGui::Spacing();
 
 			if( ImGui::Button( "Close" ) )
 				ImGui::CloseCurrentPopup();

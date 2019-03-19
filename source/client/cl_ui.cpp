@@ -753,14 +753,18 @@ static void GameMenu() {
 		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
 
 		if( is_spectating ) {
-			ImGui::Columns( 2, NULL, false );
-			ImGui::SetColumnWidth( 0, half );
-			ImGui::SetColumnWidth( 1, half );
+			if( GS_TeamBasedGametype() ) {
+				ImGui::Columns( 2, NULL, false );
+				ImGui::SetColumnWidth( 0, half );
+				ImGui::SetColumnWidth( 1, half );
 
-			GameMenuButton( "Join Cocaine", "join cocaine", &should_close, 0 );
-			ImGui::NextColumn();
-			GameMenuButton( "Join Diesel", "join diesel", &should_close, 1 );
-			ImGui::NextColumn();
+				GameMenuButton( "Join Cocaine", "join cocaine", &should_close, 0 );
+				ImGui::NextColumn();
+				GameMenuButton( "Join Diesel", "join diesel", &should_close, 1 );
+				ImGui::NextColumn();
+			} else {
+				GameMenuButton( "Join Game", "join", &should_close );
+			}
 			ImGui::Columns( 1 );
 		}
 		else {
@@ -770,8 +774,8 @@ static void GameMenu() {
 				GameMenuButton( "Ready", "ready", &should_close );
 			if( can_unready )
 				GameMenuButton( "Unready", "unready", &should_close );
-
-			GameMenuButton( "Change loadout", "gametypemenu", &should_close );
+			if( GS_TeamBasedGametype() )
+				GameMenuButton( "Change loadout", "gametypemenu", &should_close );
 		}
 
 		if( ImGui::Button( "Settings", ImVec2( -1, 0 ) ) ) {

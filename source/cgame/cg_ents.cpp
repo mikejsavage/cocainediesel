@@ -229,9 +229,6 @@ static void CG_NewPacketEntityState( entity_state_t *state ) {
 		if( ISBRUSHMODEL( cent->current.modelindex ) ) { // disable extrapolation on movers
 			cent->canExtrapolate = false;
 		}
-
-		//if( cent->canExtrapolate )
-		//	VectorMA( cent->current.origin, 0.001f * cgs.extrapolationTime, cent->velocity, cent->extrapolatedOrigin );
 	}
 }
 
@@ -1074,12 +1071,9 @@ static void CG_AddItemEnt( centity_t *cent ) {
 }
 
 //==========================================================================
-//		ET_BEAM
+// ET_LASER
 //==========================================================================
 
-/*
-* CG_LerpBeam
-*/
 static void CG_LerpLaser( centity_t *cent ) {
 	for( int i = 0; i < 3; i++ ) {
 		cent->ent.origin[i] = Lerp( cent->prev.origin[i], cg.lerpfrac, cent->current.origin[i] );
@@ -1087,10 +1081,7 @@ static void CG_LerpLaser( centity_t *cent ) {
 	}
 }
 
-/*
-* CG_AddBeamEnt
-*/
-static void CG_AddBeamEnt( centity_t *cent ) {
+static void CG_AddLaserEnt( centity_t *cent ) {
 	struct shader_s *shader = CG_MediaShader( cgs.media.shaderLaser );
 	vec4_t color;
 	Vector4Set( color,
@@ -1333,7 +1324,11 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	}
 }
 
-void CG_LerpSpikes( centity_t *cent ) {
+//==================================================
+// ET_SPIKES
+//==================================================
+
+static void CG_LerpSpikes( centity_t *cent ) {
 	constexpr float retracted = -48;
 	constexpr float primed = -36;
 	constexpr float extended = 0;
@@ -1371,6 +1366,29 @@ void CG_LerpSpikes( centity_t *cent ) {
 	AnglesToAxis( cent->current.angles, cent->ent.axis );
 	VectorMA( cent->current.origin, position, up, cent->ent.origin );
 	VectorCopy( cent->ent.origin, cent->ent.origin2 );
+}
+
+static void CG_UpdateSpikes( centity_t *cent ) {
+	CG_UpdateGenericEnt( cent );
+
+	if( cent->current.linearMovementTimeStamp == 0 )
+		return;
+
+	int64_t old_delta = cg.oldFrame.serverTime - cent->current.linearMovementTimeStamp;
+	int64_t delta = cg.frame.serverTime - cent->current.linearMovementTimeStamp;
+
+	if( old_delta < 0 && delta >= 0 ) {
+		trap_S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesArm ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+	}
+	else if( old_delta < 1000 && delta >= 1000 ) {
+		trap_S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesDeploy ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+	}
+	else if( old_delta < 1050 && delta >= 1050 ) {
+		trap_S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesGlint ), cent->current.number, CHAN_AUTO, cg_volume_effects->value * 0.05f, ATTN_NORM );
+	}
+	else if( old_delta < 1500 && delta >= 1500 ) {
+		trap_S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesRetract ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+	}
 }
 
 //==========================================================================
@@ -1485,11 +1503,6 @@ void CG_AddEntities( void ) {
 				canLight = true;
 				break;
 
-			case ET_BEAM:
-				CG_AddBeamEnt( cent );
-				CG_EntityLoopSound( state, ATTN_STATIC );
-				break;
-
 			case ET_LASERBEAM:
 				break;
 
@@ -1516,6 +1529,11 @@ void CG_AddEntities( void ) {
 
 			case ET_HUD:
 				CG_AddBombHudEntity( cent );
+				break;
+
+			case ET_LASER:
+				CG_AddLaserEnt( cent );
+				CG_EntityLoopSound( state, ATTN_STATIC );
 				break;
 
 			case ET_SPIKES:
@@ -1584,10 +1602,6 @@ void CG_LerpEntities( void ) {
 				CG_LerpDecalEnt( cent );
 				break;
 
-			case ET_BEAM:
-				CG_LerpLaser( cent );
-				break;
-
 			case ET_LASERBEAM:
 				CG_LerpLaserbeamEnt( cent );
 				break;
@@ -1603,6 +1617,10 @@ void CG_LerpEntities( void ) {
 				break;
 
 			case ET_HUD:
+				break;
+
+			case ET_LASER:
+				CG_LerpLaser( cent );
 				break;
 
 			case ET_SPIKES:
@@ -1675,9 +1693,6 @@ void CG_UpdateEntities( void ) {
 				CG_UpdatePlayerModelEnt( cent );
 				break;
 
-			case ET_BEAM:
-				break;
-
 			case ET_LASERBEAM:
 				CG_UpdateLaserbeamEnt( cent );
 				break;
@@ -1700,8 +1715,11 @@ void CG_UpdateEntities( void ) {
 			case ET_HUD:
 				break;
 
+			case ET_LASER:
+				break;
+
 			case ET_SPIKES:
-				CG_UpdateGenericEnt( cent );
+				CG_UpdateSpikes( cent );
 				break;
 
 			default:

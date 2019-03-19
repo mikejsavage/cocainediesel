@@ -803,7 +803,6 @@ enum {
 	ET_GENERIC,
 	ET_PLAYER,
 	ET_CORPSE,
-	ET_BEAM,
 	ET_PUSH_TRIGGER,
 
 	ET_GIB,         // leave a trail
@@ -824,6 +823,7 @@ enum {
 
 	ET_HUD,
 
+	ET_LASER,
 	ET_SPIKES,
 
 	// eventual entities: types below this will get event treatment

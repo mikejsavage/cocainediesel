@@ -107,6 +107,11 @@ void CG_RegisterMediaSounds( void ) {
 
 	cgs.media.sfxElectroboltHit = CG_RegisterMediaSfx( S_WEAPON_ELECTROBOLT_HIT );
 
+	cgs.media.sfxSpikesArm = CG_RegisterMediaSfx( "sounds/spikes/arm" );
+	cgs.media.sfxSpikesDeploy = CG_RegisterMediaSfx( "sounds/spikes/deploy" );
+	cgs.media.sfxSpikesGlint = CG_RegisterMediaSfx( "sounds/spikes/glint" );
+	cgs.media.sfxSpikesRetract = CG_RegisterMediaSfx( "sounds/spikes/retract" );
+
 	// VSAY sounds
 	cgs.media.sfxVSaySounds[VSAY_GENERIC] = CG_RegisterMediaSfx( S_VSAY_GOODGAME );
 	cgs.media.sfxVSaySounds[VSAY_AFFIRMATIVE] = CG_RegisterMediaSfx( S_VSAY_AFFIRMATIVE );

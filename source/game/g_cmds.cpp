@@ -718,35 +718,6 @@ static const g_vsays_t g_vsays[] = {
 	{ NULL, 0 }
 };
 
-void G_BOTvsay_f( edict_t *ent, const char *msg, bool team ) {
-	edict_t *event = NULL;
-	const g_vsays_t *vsay;
-
-	if( !( ent->r.svflags & SVF_FAKECLIENT ) ) {
-		return;
-	}
-
-	if( ent->r.client && ( ent->r.client->muted & 2 ) ) {
-		return;
-	}
-
-	for( vsay = g_vsays; vsay->name; vsay++ ) {
-		if( !Q_stricmp( msg, vsay->name ) ) {
-			event = G_SpawnEvent( EV_VSAY, vsay->id, NULL );
-			break;
-		}
-	}
-
-	if( event ) {
-		event->r.svflags |= SVF_BROADCAST; // force sending even when not in PVS
-		event->s.ownerNum = ent->s.number;
-		if( team ) {
-			event->s.team = ent->s.team;
-			event->r.svflags |= SVF_ONLYTEAM; // send only to clients with the same ->s.team value
-		}
-	}
-}
-
 /*
 * G_vsay_f
 */

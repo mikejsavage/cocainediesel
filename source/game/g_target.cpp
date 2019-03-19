@@ -186,7 +186,7 @@ void target_laser_start( edict_t *self ) {
 
 	self->movetype = MOVETYPE_NONE;
 	self->r.solid = SOLID_NOT;
-	self->s.type = ET_BEAM;
+	self->s.type = ET_LASER;
 	self->s.modelindex = 1; // must be non-zero
 	self->r.svflags = 0;
 	self->s.frame = st.size > 0 ? st.size : 8;

@@ -815,18 +815,13 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 	}
 
 	{
-		int snapTime = ( cg.frame.serverTime - cg.oldFrame.serverTime );
-
-		if( !snapTime ) {
-			snapTime = cgs.snapFrameTime;
-		}
-
 		// moved this from CG_Init here
 		cgs.extrapolationTime = extrapolationTime;
 
 		if( cg.oldFrame.serverTime == cg.frame.serverTime ) {
 			cg.lerpfrac = 1.0f;
 		} else {
+			int snapTime = cg.frame.serverTime - cg.oldFrame.serverTime;
 			cg.lerpfrac = ( (double)( cg.time - cgs.extrapolationTime ) - (double)cg.oldFrame.serverTime ) / (double)snapTime;
 		}
 

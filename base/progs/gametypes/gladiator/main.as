@@ -961,10 +961,10 @@ void GT_InitGametype()
 {
 	daRound.init();
 
-	gametype.spawnableItemsMask = ( IT_POWERUP );
-	gametype.respawnableItemsMask = (IT_POWERUP );
+	gametype.spawnableItemsMask = 0;
+	gametype.respawnableItemsMask = 0;
 	gametype.dropableItemsMask = 0;
-	gametype.pickableItemsMask = ( IT_POWERUP );
+	gametype.pickableItemsMask = 0;
 
 	gametype.isTeamBased = false;
 	gametype.isRace = false;

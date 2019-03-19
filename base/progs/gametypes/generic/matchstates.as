@@ -118,8 +118,6 @@ void GENERIC_SetUpMatch()
 		}
 	}
 
-	// set items to be spawned with a delay
-	G_Items_RespawnByType( IT_POWERUP, 0, random_uniform( 20, 40 ) );
 	G_RemoveDeadBodies();
 
 	// Countdowns should be made entirely client side, because we now can

@@ -148,7 +148,7 @@ int GS_SelectBestWeapon( player_state_t *playerState ) {
 	gs_weapon_definition_t *weapondef;
 
 	//find with strong ammos
-	for( weap = WEAP_TOTAL - 1; weap > WEAP_GUNBLADE; weap-- ) {
+	for( weap = WEAP_TOTAL - 1; weap >= WEAP_GUNBLADE; weap-- ) {
 		if( !playerState->inventory[weap] ) {
 			continue;
 		}

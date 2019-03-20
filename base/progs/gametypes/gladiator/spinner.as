@@ -6,10 +6,7 @@ void DoSpinner()
 	spinner.nextThink = levelTime + 1;
 	spinner.wait = 1;
 	spinner.linkEntity();
-	// skip mg
 	randWeap = random_uniform( WEAP_GUNBLADE, WEAP_ELECTROBOLT );
-	if ( randWeap >= WEAP_MACHINEGUN )
-		randWeap++;
 }
 
 int randWeap = -1;
@@ -54,7 +51,7 @@ void spinner_start(Entity@ self)
 	}
 
 	@self.think = spinner_think;
-	self.nextThink = levelTime + 0;
+	self.nextThink = levelTime;
 
 }
 
@@ -91,10 +88,8 @@ void spinner_think(Entity@ self)
 
 		curr = client.pendingWeapon;
 		curr++;
-		if ( curr == WEAP_MACHINEGUN )
-			curr++;
 		if ( curr > WEAP_ELECTROBOLT )
-			curr = 1;
+			curr = WEAP_GUNBLADE;
 		client.selectWeapon(curr);
 
 		if ( doneSpinning )

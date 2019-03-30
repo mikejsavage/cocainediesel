@@ -22,6 +22,9 @@ const int DA_ROUNDSTATE_PREROUND = 1;
 const int DA_ROUNDSTATE_ROUND = 2;
 const int DA_ROUNDSTATE_ROUNDFINISHED = 3;
 const int DA_ROUNDSTATE_POSTROUND = 4;
+
+const int MAX_HEALTH = 333;
+
 int deadIcon;
 int aliveIcon;
 int[] endMatchSounds;
@@ -569,7 +572,7 @@ class cDARound
 			this.addLoser( target.client );
 
 			Vec3 vel = target.velocity;
-			if ( vel.z < -1600 && target.health < 666 )
+			if ( vel.z < -1600 && target.health < MAX_HEALTH )
 			{
 				G_GlobalSound( CHAN_AUTO, G_SoundIndex( "sounds/gladiator/smackdown" ) );
 			}
@@ -840,7 +843,7 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team )
 
 	if ( match.getState() == MATCH_STATE_PLAYTIME )
 	{
-		ent.client.getEnt().health = 333;
+		ent.client.getEnt().health = MAX_HEALTH;
 	} else {
 		for ( int i = WEAP_GUNBLADE ; i < WEAP_TOTAL; i++ )
 		{

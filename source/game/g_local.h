@@ -254,6 +254,8 @@ extern cvar_t *g_maxtimeouts;
 
 extern cvar_t *g_self_knockback;
 extern cvar_t *g_knockback_scale;
+extern cvar_t *g_respawn_delay_min;
+extern cvar_t *g_respawn_delay_max;
 extern cvar_t *g_deadbody_followkiller;
 extern cvar_t *g_antilag_timenudge;
 extern cvar_t *g_antilag_maxtimedelta;
@@ -304,6 +306,24 @@ int G_Gametype_DroppedItemTimeout( const gsitem_t *item );
 //
 // g_spawnpoints.c
 //
+enum {
+	SPAWNSYSTEM_INSTANT,
+	SPAWNSYSTEM_WAVES,
+	SPAWNSYSTEM_HOLD,
+
+	SPAWNSYSTEM_TOTAL
+};
+
+void G_SpawnQueue_Init( void );
+void G_SpawnQueue_SetTeamSpawnsystem( int team, int spawnsystem, int wave_time, int wave_maxcount, bool spectate_team );
+int G_SpawnQueue_NextRespawnTime( int team );
+void G_SpawnQueue_ResetTeamQueue( int team );
+int G_SpawnQueue_GetSystem( int team );
+void G_SpawnQueue_ReleaseTeamQueue( int team );
+void G_SpawnQueue_AddClient( edict_t *ent );
+void G_SpawnQueue_RemoveClient( edict_t *ent );
+void G_SpawnQueue_Think( void );
+
 void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, vec3_t origin, vec3_t angles );
 edict_t *G_SelectIntermissionSpawnPoint( void );
 float PlayersRangeFromSpot( edict_t *spot, int ignore_team );

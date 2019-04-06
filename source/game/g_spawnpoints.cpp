@@ -254,3 +254,284 @@ void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, vec3_t origin, vec3_t
 		G_OffsetSpawnPoint( origin, playerbox_stand_mins, playerbox_stand_maxs, level.gametype.spawnpointRadius, ( spot->spawnflags & 1 ) == 0 );
 	}
 }
+
+//==================================================
+// CLIENTS SPAWN QUEUE
+//==================================================
+
+#define REINFORCEMENT_WAVE_DELAY        15  // seconds
+#define REINFORCEMENT_WAVE_MAXCOUNT     16
+
+typedef struct
+{
+	int list[MAX_CLIENTS];
+	int head;
+	int start;
+	int system;
+	int wave_time;
+	int wave_maxcount;
+	bool spectate_team;
+	int64_t nextWaveTime;
+} g_teamspawnqueue_t;
+
+g_teamspawnqueue_t g_spawnQueues[GS_MAX_TEAMS];
+
+/*
+* G_SpawnQueue_SetTeamSpawnsystem
+*/
+void G_SpawnQueue_SetTeamSpawnsystem( int team, int spawnsystem, int wave_time, int wave_maxcount, bool spectate_team ) {
+	g_teamspawnqueue_t *queue;
+
+	if( team < TEAM_SPECTATOR || team >= GS_MAX_TEAMS ) {
+		return;
+	}
+
+	queue = &g_spawnQueues[team];
+	if( wave_time && wave_time != queue->wave_time ) {
+		queue->nextWaveTime = level.time + brandom( 0, wave_time * 1000 );
+	}
+
+	queue->system = spawnsystem;
+	queue->wave_time = wave_time;
+	queue->wave_maxcount = wave_maxcount;
+	if( spawnsystem != SPAWNSYSTEM_INSTANT ) {
+		queue->spectate_team = spectate_team;
+	} else {
+		queue->spectate_team = false;
+	}
+}
+
+/*
+* G_SpawnQueue_Init
+*/
+void G_SpawnQueue_Init( void ) {
+	int spawnsystem, team;
+	cvar_t *g_spawnsystem;
+	cvar_t *g_spawnsystem_wave_time;
+	cvar_t *g_spawnsystem_wave_maxcount;
+
+	g_spawnsystem = trap_Cvar_Get( "g_spawnsystem", va( "%i", SPAWNSYSTEM_INSTANT ), CVAR_DEVELOPER );
+	g_spawnsystem_wave_time = trap_Cvar_Get( "g_spawnsystem_wave_time", va( "%i", REINFORCEMENT_WAVE_DELAY ), CVAR_ARCHIVE );
+	g_spawnsystem_wave_maxcount = trap_Cvar_Get( "g_spawnsystem_wave_maxcount", va( "%i", REINFORCEMENT_WAVE_MAXCOUNT ), CVAR_ARCHIVE );
+
+	memset( g_spawnQueues, 0, sizeof( g_spawnQueues ) );
+	for( team = TEAM_SPECTATOR; team < GS_MAX_TEAMS; team++ )
+		memset( &g_spawnQueues[team].list, -1, sizeof( g_spawnQueues[team].list ) );
+
+	spawnsystem = g_spawnsystem->integer;
+	clamp( spawnsystem, SPAWNSYSTEM_INSTANT, SPAWNSYSTEM_HOLD );
+	if( spawnsystem != g_spawnsystem->integer ) {
+		trap_Cvar_ForceSet( "g_spawnsystem", va( "%i", spawnsystem ) );
+	}
+
+	for( team = TEAM_SPECTATOR; team < GS_MAX_TEAMS; team++ ) {
+		if( team == TEAM_SPECTATOR ) {
+			G_SpawnQueue_SetTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
+		} else {
+			G_SpawnQueue_SetTeamSpawnsystem( team, spawnsystem, g_spawnsystem_wave_time->integer, g_spawnsystem_wave_maxcount->integer, true );
+		}
+	}
+}
+
+/*
+* G_RespawnTime
+*/
+int G_SpawnQueue_NextRespawnTime( int team ) {
+	int time;
+
+	if( g_spawnQueues[team].system != SPAWNSYSTEM_WAVES ) {
+		return 0;
+	}
+
+	if( g_spawnQueues[team].nextWaveTime < level.time ) {
+		return 0;
+	}
+
+	time = (int)( g_spawnQueues[team].nextWaveTime - level.time );
+	return ( time > 0 ) ? time : 0;
+}
+
+/*
+* G_SpawnQueue_RemoveClient - Check all queues for this client and remove it
+*/
+void G_SpawnQueue_RemoveClient( edict_t *ent ) {
+	g_teamspawnqueue_t *queue;
+	int i, team;
+
+	if( !ent->r.client ) {
+		return;
+	}
+
+	for( team = TEAM_SPECTATOR; team < GS_MAX_TEAMS; team++ ) {
+		queue = &g_spawnQueues[team];
+		for( i = queue->start; i < queue->head; i++ ) {
+			if( queue->list[i % MAX_CLIENTS] == ENTNUM( ent ) ) {
+				queue->list[i % MAX_CLIENTS] = -1;
+			}
+		}
+	}
+}
+
+/*
+* G_SpawnQueue_RemoveAllClients
+*/
+void G_SpawnQueue_ResetTeamQueue( int team ) {
+	g_teamspawnqueue_t *queue;
+
+	if( team < TEAM_SPECTATOR || team >= GS_MAX_TEAMS ) {
+		return;
+	}
+
+	queue = &g_spawnQueues[team];
+	memset( &queue->list, -1, sizeof( queue->list ) );
+	queue->head = queue->start = 0;
+	queue->nextWaveTime = 0;
+}
+
+/*
+* G_SpawnQueue_GetSystem
+*/
+int G_SpawnQueue_GetSystem( int team ) {
+	if( team < TEAM_SPECTATOR || team >= GS_MAX_TEAMS ) {
+		return SPAWNSYSTEM_INSTANT;
+	}
+
+	return g_spawnQueues[team].system;
+}
+
+/*
+* G_SpawnQueue_ReleaseTeamQueue
+*/
+void G_SpawnQueue_ReleaseTeamQueue( int team ) {
+	g_teamspawnqueue_t *queue;
+	edict_t *ent;
+	int count;
+
+	if( team < TEAM_SPECTATOR || team >= GS_MAX_TEAMS ) {
+		return;
+	}
+
+	queue = &g_spawnQueues[team];
+
+	if( queue->start >= queue->head ) {
+		return;
+	}
+
+	bool ghost = team == TEAM_SPECTATOR;
+
+	// try to spawn them
+	for( count = 0; ( queue->start < queue->head ) && ( count < gs.maxclients ); queue->start++, count++ ) {
+		if( queue->list[queue->start % MAX_CLIENTS] <= 0 || queue->list[queue->start % MAX_CLIENTS] > gs.maxclients ) {
+			continue;
+		}
+
+		ent = &game.edicts[queue->list[queue->start % MAX_CLIENTS]];
+
+		G_ClientRespawn( ent, ghost );
+
+		// when spawning inside spectator team bring up the chase camera
+		if( team == TEAM_SPECTATOR && !ent->r.client->resp.chase.active ) {
+			G_ChasePlayer( ent, NULL, false, 0 );
+		}
+	}
+}
+
+/*
+* G_SpawnQueue_AddClient
+*/
+void G_SpawnQueue_AddClient( edict_t *ent ) {
+	g_teamspawnqueue_t *queue;
+	int i;
+
+	if( !ent || !ent->r.client ) {
+		return;
+	}
+
+	if( ENTNUM( ent ) <= 0 || ENTNUM( ent ) > gs.maxclients ) {
+		return;
+	}
+
+	if( ent->r.client->team < TEAM_SPECTATOR || ent->r.client->team >= GS_MAX_TEAMS ) {
+		return;
+	}
+
+	queue = &g_spawnQueues[ent->r.client->team];
+
+	for( i = queue->start; i < queue->head; i++ ) {
+		if( queue->list[i % MAX_CLIENTS] == ENTNUM( ent ) ) {
+			return;
+		}
+	}
+
+	G_SpawnQueue_RemoveClient( ent );
+	queue->list[queue->head % MAX_CLIENTS] = ENTNUM( ent );
+	queue->head++;
+
+	if( queue->spectate_team ) {
+		G_ChasePlayer( ent, NULL, true, 0 );
+	}
+}
+
+/*
+* G_SpawnQueue_Think
+*/
+void G_SpawnQueue_Think( void ) {
+	int team, maxCount, count, spawnSystem;
+	g_teamspawnqueue_t *queue;
+	edict_t *ent;
+
+	for( team = TEAM_SPECTATOR; team < GS_MAX_TEAMS; team++ ) {
+		queue = &g_spawnQueues[team];
+
+		// if the system is limited, set limits
+		maxCount = MAX_CLIENTS;
+
+		spawnSystem = queue->system;
+		clamp( spawnSystem, SPAWNSYSTEM_INSTANT, SPAWNSYSTEM_HOLD );
+
+		switch( spawnSystem ) {
+			case SPAWNSYSTEM_INSTANT:
+			default:
+				break;
+
+			case SPAWNSYSTEM_WAVES:
+				if( queue->nextWaveTime > level.time ) {
+					maxCount = 0;
+				} else {
+					maxCount = ( queue->wave_maxcount < 1 ) ? gs.maxclients : queue->wave_maxcount; // max count per reinforcement wave
+					queue->nextWaveTime = level.time + ( queue->wave_time * 1000 );
+				}
+				break;
+
+			case SPAWNSYSTEM_HOLD:
+				maxCount = 0; // players wait to be spawned elsewhere
+				break;
+		}
+
+		if( maxCount <= 0 ) {
+			continue;
+		}
+
+		if( queue->start >= queue->head ) {
+			continue;
+		}
+
+		bool ghost = team == TEAM_SPECTATOR;
+
+		// try to spawn them
+		for( count = 0; ( queue->start < queue->head ) && ( count < maxCount ); queue->start++, count++ ) {
+			if( queue->list[queue->start % MAX_CLIENTS] <= 0 || queue->list[queue->start % MAX_CLIENTS] > gs.maxclients ) {
+				continue;
+			}
+
+			ent = &game.edicts[queue->list[queue->start % MAX_CLIENTS]];
+
+			G_ClientRespawn( ent, ghost );
+
+			// when spawning inside spectator team bring up the chase camera
+			if( team == TEAM_SPECTATOR && !ent->r.client->resp.chase.active ) {
+				G_ChasePlayer( ent, NULL, false, 0 );
+			}
+		}
+	}
+}

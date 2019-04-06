@@ -171,9 +171,8 @@ void newGame() {
 	roundCount = 0;
 	setTeams();
 
-	gametype.instantRespawn = false;
-
 	for( int t = TEAM_PLAYERS; t < GS_MAX_TEAMS; t++ ) {
+		gametype.setTeamSpawnsystem( t, SPAWNSYSTEM_HOLD, 0, 0, true );
 
 		Team @team = @G_GetTeam( t );
 

@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "g_local.h"
 
+#define PLAYER_MASS 200
+
 /*
 * ClientObituary
 */
@@ -429,6 +431,8 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	gclient_t *client;
 	int old_team;
 
+	G_SpawnQueue_RemoveClient( self );
+
 	self->r.svflags &= ~SVF_NOCLIENT;
 
 	//if invalid be spectator
@@ -473,7 +477,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->die = player_die;
 	self->viewheight = playerbox_stand_viewheight;
 	self->r.inuse = true;
-	self->mass = 200;
+	self->mass = PLAYER_MASS;
 	self->r.clipmask = MASK_PLAYERSOLID;
 	self->waterlevel = 0;
 	self->watertype = 0;
@@ -1355,7 +1359,11 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 
 	ent->s.weapon = GS_ThinkPlayerWeapon( &client->ps, ucmd->buttons, ucmd->msec, client->timeDelta );
 
-	if( G_IsDead( ent ) || client->ps.pmove.stats[PM_STAT_NOUSERCONTROL] <= 0 ) {
+	if( G_IsDead( ent ) ) {
+		if( ent->deathTimeStamp + g_respawn_delay_min->integer <= level.time ) {
+			client->resp.snap.buttons |= ucmd->buttons;
+		}
+	} else if( client->ps.pmove.stats[PM_STAT_NOUSERCONTROL] <= 0 ) {
 		client->resp.snap.buttons |= ucmd->buttons;
 	}
 
@@ -1400,27 +1408,35 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 	}
 
 	if( trap_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
-		if( level.gametype.instantRespawn ) {
-			constexpr int min_delay = 600;
-			constexpr int max_delay = 3000;
+		// if the spawnsystem doesn't require to click
+		if( G_SpawnQueue_GetSystem( ent->s.team ) != SPAWNSYSTEM_INSTANT ) {
+			int minDelay = g_respawn_delay_min->integer;
 
-			bool clicked = ( ent->r.client->resp.snap.buttons & BUTTON_ATTACK ) && level.time > ent->deathTimeStamp + min_delay;
-			bool timeout = level.time > ent->deathTimeStamp + max_delay;
+			// waves system must wait for at least 500 msecs (to see the death, but very short for selfkilling tactics).
+			if( G_SpawnQueue_GetSystem( ent->s.team ) == SPAWNSYSTEM_WAVES ) {
+				minDelay = ( g_respawn_delay_min->integer < 500 ) ? 500 : g_respawn_delay_min->integer;
+			}
 
-			if( clicked || timeout ) {
-				G_ClientRespawn( ent, false );
+			// hold system must wait for at least 1000 msecs (to see the death properly)
+			if( G_SpawnQueue_GetSystem( ent->s.team ) == SPAWNSYSTEM_HOLD ) {
+				minDelay = ( g_respawn_delay_min->integer < 1300 ) ? 1300 : g_respawn_delay_min->integer;
+			}
 
-				// when spawning inside spectator team bring up the chase camera
-				// if( team == TEAM_SPECTATOR && !ent->r.client->resp.chase.active ) {
-				// 	G_ChasePlayer( ent, NULL, false, 0 );
-				// }
+			if( level.time >= ent->deathTimeStamp + minDelay ) {
+				G_SpawnQueue_AddClient( ent );
 			}
 		}
-		else {
-			constexpr int delay = 1300;
-			if( level.time > ent->deathTimeStamp + delay ) {
-				G_ChasePlayer( ent, NULL, GS_TeamBasedGametype(), 0 );
+		// clicked
+		else if( ent->r.client->resp.snap.buttons & BUTTON_ATTACK ) {
+			if( level.time > ent->deathTimeStamp + g_respawn_delay_min->integer ) {
+				G_SpawnQueue_AddClient( ent );
 			}
+		}
+		// didn't click, but too much time passed
+		else if( g_respawn_delay_max->integer && ( level.time > ent->deathTimeStamp + g_respawn_delay_max->integer ) ) {
+			G_SpawnQueue_AddClient( ent );
 		}
 	}
 }
+
+#undef PLAYER_MASS

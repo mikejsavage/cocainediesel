@@ -244,7 +244,10 @@ class cDARound
 		gametype.readyAnnouncementEnabled = false;
 		gametype.scoreAnnouncementEnabled = false;
 		gametype.countdownEnabled = false;
-		gametype.instantRespawn = false;
+
+		// set spawnsystem type to not respawn the players when they die
+		for ( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ )
+			gametype.setTeamSpawnsystem( team, SPAWNSYSTEM_HOLD, 0, 0, true );
 
 		// clear scores
 
@@ -619,6 +622,17 @@ void target_connectroom(Entity@ self)
 /// LOCAL FUNCTIONS
 ///*****************************************************************
 
+void DA_SetUpWarmup()
+{
+	GENERIC_SetUpWarmup();
+
+	// set spawnsystem type to instant while players join
+	for ( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ )
+		gametype.setTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
+
+	gametype.readyAnnouncementEnabled = true;
+}
+
 void DA_SetUpCountdown()
 {
 	gametype.readyAnnouncementEnabled = false;
@@ -905,7 +919,7 @@ void GT_MatchStateStarted()
 	switch ( match.getState() )
 	{
 		case MATCH_STATE_WARMUP:
-			GENERIC_SetUpWarmup();
+			DA_SetUpWarmup();
 			break;
 
 		case MATCH_STATE_COUNTDOWN:
@@ -990,6 +1004,10 @@ void GT_InitGametype()
 	gametype.selfDamage = false;
 
 	gametype.spawnpointRadius = 0;
+
+	// set spawnsystem type to instant while players join
+	for ( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ )
+		gametype.setTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
 
 	// define the scoreboard layout
 	G_ConfigString( CS_SCB_PLAYERTAB_LAYOUT, "%p l1 %n 112 %s 52 %i 52 %l 48 %r l1" );

@@ -26,7 +26,6 @@ void GENERIC_SetUpWarmup()
 	gametype.readyAnnouncementEnabled = true;
 	gametype.scoreAnnouncementEnabled = false;
 	gametype.countdownEnabled = false;
-	gametype.instantRespawn = true;
 
 	if ( gametype.isTeamBased )
 	{

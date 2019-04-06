@@ -343,7 +343,11 @@ void CG_DrawClock( int x, int y, int align, struct qfontface_s *font, vec4_t col
 	// fixme?: this could have its own HUD drawing, I guess.
 
 	if( GS_RaceGametype() ) {
-		Q_snprintfz( string, sizeof( string ), "%i:%02i.%i", minutes, ( int )seconds, ( int )( seconds * 10.0 ) % 10 );
+		Q_snprintfz( string, sizeof( string ), "%i:%02i.%i",
+					 minutes, ( int )seconds, ( int )( seconds * 10.0 ) % 10 );
+	} else if( cg.predictedPlayerState.stats[STAT_NEXT_RESPAWN] ) {
+		int respawn = cg.predictedPlayerState.stats[STAT_NEXT_RESPAWN];
+		Q_snprintfz( string, sizeof( string ), "%i:%02i R:%02i", minutes, (int)seconds, respawn );
 	} else {
 		Q_snprintfz( string, sizeof( string ), "%i:%02i", minutes, (int)seconds );
 	}

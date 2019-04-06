@@ -464,6 +464,10 @@ void GT_MatchStateStarted() {
 			attackingTeam = INITIAL_ATTACKERS;
 			defendingTeam = INITIAL_DEFENDERS;
 
+			for( int t = TEAM_PLAYERS; t < GS_MAX_TEAMS; t++ ) {
+				gametype.setTeamSpawnsystem( t, SPAWNSYSTEM_INSTANT, 0, 0, false );
+			}
+
 			break;
 
 		case MATCH_STATE_COUNTDOWN:
@@ -530,6 +534,11 @@ void GT_InitGametype() {
 	gametype.removeInactivePlayers = true;
 
 	gametype.spawnpointRadius = 256;
+
+	// set spawnsystem type to instant while players join
+	for( int t = TEAM_PLAYERS; t < GS_MAX_TEAMS; t++ ) {
+		gametype.setTeamSpawnsystem( t, SPAWNSYSTEM_INSTANT, 0, 0, false );
+	}
 
 	// define the scoreboard layout
 	G_ConfigString( CS_SCB_PLAYERTAB_LAYOUT, "%n 112 %s 52 %i 42 %i 42 %l 36 %p l1" );

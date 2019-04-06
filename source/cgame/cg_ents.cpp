@@ -1374,7 +1374,7 @@ static void CG_UpdateSpikes( centity_t *cent ) {
 	int64_t delta = cg.frame.serverTime - cent->current.linearMovementTimeStamp;
 
 	if( old_delta < 0 && delta >= 0 ) {
-		trap_S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesArm ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+		// trap_S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesArm ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 	}
 	else if( old_delta < 1000 && delta >= 1000 ) {
 		trap_S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesDeploy ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );

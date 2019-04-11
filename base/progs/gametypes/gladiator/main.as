@@ -23,6 +23,10 @@ const int DA_ROUNDSTATE_ROUND = 2;
 const int DA_ROUNDSTATE_ROUNDFINISHED = 3;
 const int DA_ROUNDSTATE_POSTROUND = 4;
 
+const int CountdownSeconds = 4;
+const int CountdownNumSwitches = 20;
+const float CountdownInitialSwitchDelay = 0.1;
+
 const int MAX_HEALTH = 333;
 
 int deadIcon;
@@ -356,7 +360,7 @@ class cDARound
 
 			case DA_ROUNDSTATE_PREROUND:
 				{
-					this.roundStateEndTime = levelTime + 4000;
+					this.roundStateEndTime = levelTime + CountdownSeconds * 1000;
 					this.countDown = 4;
 
 					// respawn everyone and disable shooting

@@ -348,7 +348,7 @@ static void W_Touch_Grenade( edict_t *ent, edict_t *other, cplane_t *plane, int 
 
 	if( other->takedamage ) {
 		vec3_t push_dir;
-		G_SplashFrac4D( ENTNUM( other ), ent->s.origin, ent->projectileInfo.radius, push_dir, NULL, ent->timeDelta );
+		G_SplashFrac4D( other, ent->s.origin, ent->projectileInfo.radius, push_dir, NULL, ent->timeDelta, false );
 		G_Damage( other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, MOD_GRENADE );
 	}
 
@@ -402,7 +402,7 @@ static void W_Touch_Rocket( edict_t *ent, edict_t *other, cplane_t *plane, int s
 
 	if( other->takedamage ) {
 		vec3_t push_dir;
-		G_SplashFrac4D( ENTNUM( other ), ent->s.origin, ent->projectileInfo.radius, push_dir, NULL, ent->timeDelta );
+		G_SplashFrac4D( other, ent->s.origin, ent->projectileInfo.radius, push_dir, NULL, ent->timeDelta, false );
 		G_Damage( other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, MOD_ROCKET );
 	}
 
@@ -454,7 +454,7 @@ static void W_Touch_Plasma( edict_t *ent, edict_t *other, cplane_t *plane, int s
 
 	if( other->takedamage ) {
 		vec3_t push_dir;
-		G_SplashFrac4D( ENTNUM( other ), ent->s.origin, ent->projectileInfo.radius, push_dir, NULL, ent->timeDelta );
+		G_SplashFrac4D( other, ent->s.origin, ent->projectileInfo.radius, push_dir, NULL, ent->timeDelta, false );
 		G_Damage( other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, DAMAGE_KNOCKBACK_SOFT, MOD_PLASMA );
 	}
 

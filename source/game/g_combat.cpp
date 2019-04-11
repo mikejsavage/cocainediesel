@@ -443,36 +443,22 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 /*
 * G_SplashFrac
 */
-void G_SplashFrac( const vec3_t origin, const vec3_t mins, const vec3_t maxs, const vec3_t point, float maxradius, vec3_t pushdir, float *frac ) {
-	vec3_t boxcenter = { 0, 0, 0 };
-	vec3_t hitpoint;
-	float distance;
-	int i;
-	float innerradius;
-	float refdistance;
+void G_SplashFrac( const entity_state_t *s, const entity_shared_t *r, const vec3_t point, float maxradius, vec3_t pushdir, float *frac, bool selfdamage ) {
+	const vec3_t & origin = s->origin;
+	const vec3_t & mins = r->mins;
+	const vec3_t & maxs = r->maxs;
 
-	if( maxradius <= 0 ) {
-		if( frac ) {
-			*frac = 0;
-		}
-		if( pushdir ) {
-			VectorClear( pushdir );
-		}
-		return;
-	}
-
-	VectorCopy( point, hitpoint );
-
-	innerradius = ( maxs[0] + maxs[1] - mins[0] - mins[1] ) * 0.25;
+	float innerradius = ( maxs[0] + maxs[1] - mins[0] - mins[1] ) * 0.25;
 
 	// Find the distance to the closest point in the capsule contained in the player bbox
 	// modify the origin so the inner sphere acts as a capsule
-	VectorCopy( origin, boxcenter );
-	boxcenter[2] = hitpoint[2];
-	clamp( boxcenter[2], ( origin[2] + mins[2] ) + innerradius, ( origin[2] + maxs[2] ) - innerradius );
+	vec3_t closest_point;
+	VectorCopy( origin, closest_point );
+	closest_point[2] = point[2];
+	clamp( closest_point[2], ( origin[2] + mins[2] ) + innerradius, ( origin[2] + maxs[2] ) - innerradius );
 
 	// find push intensity
-	distance = Distance( boxcenter, hitpoint );
+	float distance = Distance( closest_point, point );
 
 	if( distance >= maxradius ) {
 		if( frac ) {
@@ -484,7 +470,7 @@ void G_SplashFrac( const vec3_t origin, const vec3_t mins, const vec3_t maxs, co
 		return;
 	}
 
-	refdistance = innerradius;
+	float refdistance = innerradius;
 
 	maxradius -= refdistance;
 	distance = max( distance - refdistance, 0 );
@@ -499,11 +485,20 @@ void G_SplashFrac( const vec3_t origin, const vec3_t mins, const vec3_t maxs, co
 
 	// find push direction
 	if( pushdir ) {
-		// find real center of the box again
-		for( i = 0; i < 3; i++ )
-			boxcenter[i] = origin[i] + ( 0.5f * ( maxs[i] + mins[i] ) );
+		vec3_t center_of_mass;
 
-		VectorSubtract( boxcenter, hitpoint, pushdir );
+		if( selfdamage ) {
+			center_of_mass[0] = origin[0];
+			center_of_mass[1] = origin[1];
+			center_of_mass[2] = origin[2] + r->client->ps.viewheight;
+		}
+		else {
+			// find real center of the box again
+			for( int i = 0; i < 3; i++ )
+				center_of_mass[i] = origin[i] + 0.5f * ( maxs[i] + mins[i] );
+		}
+
+		VectorSubtract( center_of_mass, point, pushdir );
 		VectorNormalize( pushdir );
 	}
 }
@@ -547,7 +542,7 @@ void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edi
 			timeDelta = inflictor->timeDelta;
 		}
 
-		G_SplashFrac4D( ENTNUM( ent ), inflictor->s.origin, radius, pushDir, &frac, timeDelta );
+		G_SplashFrac4D( ent, inflictor->s.origin, radius, pushDir, &frac, timeDelta, attacker == inflictor );
 
 		damage = max( 0, mindamage + ( ( maxdamage - mindamage ) * frac ) );
 		knockback = max( 0, minknockback + ( ( maxknockback - minknockback ) * frac ) );

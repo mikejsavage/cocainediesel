@@ -261,8 +261,6 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 * G_SetClientEffects
 */
 static void G_SetClientEffects( edict_t *ent ) {
-	gclient_t *client = ent->r.client;
-
 	if( G_IsDead( ent ) || GS_MatchState() >= MATCH_STATE_POSTMATCH ) {
 		return;
 	}

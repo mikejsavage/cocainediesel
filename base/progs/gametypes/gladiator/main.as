@@ -356,8 +356,8 @@ class cDARound
 
 			case DA_ROUNDSTATE_PREROUND:
 				{
-					this.roundStateEndTime = levelTime + 7000;
-					this.countDown = 5;
+					this.roundStateEndTime = levelTime + 4000;
+					this.countDown = 4;
 
 					// respawn everyone and disable shooting
 					gametype.shootingDisabled = true;
@@ -513,8 +513,6 @@ class cDARound
 
 			if ( this.countDown > 0 )
 			{
-				// we can't use the authomatic countdown announces because their are based on the
-				// matchstate timelimit, and prerounds don't use it. So, fire the announces "by hand".
 				int remainingSeconds = int( ( this.roundStateEndTime - levelTime ) * 0.001f ) + 1;
 				if ( remainingSeconds < 0 )
 					remainingSeconds = 0;
@@ -523,12 +521,7 @@ class cDARound
 				{
 					this.countDown = remainingSeconds;
 
-					if ( this.countDown == 4 )
-					{
-						int soundIndex = G_SoundIndex( "sounds/gladiator/ready" );
-						G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, false, null );
-					}
-					else if ( this.countDown <= 3 )
+					if ( this.countDown <= 3 )
 					{
 						int soundIndex = G_SoundIndex( "sounds/gladiator/countdown_" + this.countDown );
 						G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, false, null );

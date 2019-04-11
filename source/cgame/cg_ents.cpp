@@ -531,10 +531,6 @@ static void CG_AddLinkedModel( centity_t *cent ) {
 	VectorCopy( cent->ent.origin, ent.origin2 );
 	Matrix3_Copy( cent->ent.axis, ent.axis );
 
-	if( cent->item && ( cent->effects & EF_AMMOBOX ) ) { // ammobox icon hack
-		ent.customShader = trap_R_RegisterPic( cent->item->icon );
-	}
-
 	CG_AddColoredOutLineEffect( &ent, cent->effects,
 		cent->outlineColor[0], cent->outlineColor[1], cent->outlineColor[2], cent->outlineColor[3] );
 
@@ -736,21 +732,6 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 
 	if( cent->item ) {
 		const gsitem_t *item = cent->item;
-
-		if( cent->effects & EF_AMMOBOX ) {
-			cent->ent.scale *= 0.90f;
-
-			// find out the ammo box color
-			if( cent->item->color && strlen( cent->item->color ) > 1 ) {
-				vec4_t scolor;
-				Vector4Copy( color_table[ColorIndex( cent->item->color[1] )], scolor );
-				cent->ent.shaderRGBA[0] = ( uint8_t )( 255 * scolor[0] );
-				cent->ent.shaderRGBA[1] = ( uint8_t )( 255 * scolor[1] );
-				cent->ent.shaderRGBA[2] = ( uint8_t )( 255 * scolor[2] );
-			} else {   // set white
-				VectorSet( cent->ent.shaderRGBA, 255, 255, 255 );
-			}
-		}
 
 		if( cent->effects & EF_GHOST ) {
 			cent->ent.renderfx |= RF_ALPHAHACK | RF_GREYSCALE;

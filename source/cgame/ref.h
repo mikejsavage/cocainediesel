@@ -31,10 +31,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define RF_NOSHADOW             0x4
 
 #define RF_WEAPONMODEL          0x8     // only draw through eyes and depth hack
-#define RF_NOPORTALENTS         0x10
-#define RF_ALPHAHACK            0x20   // force alpha blending on opaque passes, read alpha from entity
-#define RF_GREYSCALE            0x40
-#define RF_NODEPTHTEST          0x80
+#define RF_ALPHAHACK            0x10   // force alpha blending on opaque passes, read alpha from entity
+#define RF_GREYSCALE            0x20
+#define RF_NODEPTHTEST          0x40
 
 // refdef flags
 #define RDF_UNDERWATER          0x1     // warp the screen as apropriate

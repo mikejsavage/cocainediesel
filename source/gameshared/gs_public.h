@@ -835,16 +835,9 @@ enum {
 #define EF_TEAMCOLOR_TRANSITION     ( 1 << 4 )
 #define EF_GODMODE                  ( 1 << 5 )
 #define EF_GHOST                    ( 1 << 6 )
-
-// oh, this is so nasty... (reuse effect bits for different entity types)
-#define EF_NOPORTALENTS             EF_CARRIER
-#define EF_PLAYER_HIDENAME          EF_TEAMCOLOR_TRANSITION
-
-// these ones can be only set from client side
-#define EF_AMMOBOX                  ( 1 << 9 )
-#define EF_RACEGHOST                ( 1 << 10 )
-#define EF_OUTLINE                  ( 1 << 11 )
-#define EF_GHOSTITEM                ( 1 << 12 )
+#define EF_PLAYER_HIDENAME          ( 1 << 7 )
+#define EF_RACEGHOST                ( 1 << 8 )
+#define EF_OUTLINE                  ( 1 << 9 )
 
 //===============================================================
 // gs_weapons.c

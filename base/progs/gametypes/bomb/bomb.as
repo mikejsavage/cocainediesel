@@ -525,7 +525,7 @@ void bombLookAt( Entity @ent ) {
 	Vec3 viewDir = center - origin;
 	Vec3 angles = viewDir.toAngles();
 
-	ent.moveType = MOVETYPE_STOP;
+	ent.moveType = MOVETYPE_NONE;
 	ent.origin = origin;
 	ent.angles = angles;
 

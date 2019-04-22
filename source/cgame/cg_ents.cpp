@@ -503,22 +503,16 @@ static void CG_EntAddTeamColorTransitionEffect( centity_t *cent ) {
 * CG_AddLinkedModel
 */
 static void CG_AddLinkedModel( centity_t *cent ) {
-	bool barrel;
-	entity_t ent;
-	orientation_t tag;
-	struct model_s *model;
-
 	// linear projectiles can never have a linked model. Modelindex2 is used for a different purpose
 	if( cent->current.linearMovement ) {
 		return;
 	}
 
-	model = cgs.modelDraw[cent->current.modelindex2];
-	if( !model ) {
+	struct model_s * model = cgs.modelDraw[cent->current.modelindex2];
+	if( model == NULL )
 		return;
-	}
 
-	memset( &ent, 0, sizeof( entity_t ) );
+	entity_t ent = { };
 	ent.rtype = RT_MODEL;
 	ent.scale = cent->ent.scale;
 	ent.renderfx = cent->ent.renderfx;
@@ -531,25 +525,17 @@ static void CG_AddLinkedModel( centity_t *cent ) {
 	VectorCopy( cent->ent.origin, ent.origin2 );
 	Matrix3_Copy( cent->ent.axis, ent.axis );
 
-	CG_AddColoredOutLineEffect( &ent, cent->effects,
-		cent->outlineColor[0], cent->outlineColor[1], cent->outlineColor[2], cent->outlineColor[3] );
+	CG_AddColoredOutLineEffect( &ent, cent->effects, cent->outlineColor[0], cent->outlineColor[1], cent->outlineColor[2], cent->outlineColor[3] );
 
-	barrel = false;
-	if( cent->item && ( cent->item->type & IT_WEAPON ) ) {
-		if( CG_GrabTag( &tag, &cent->ent, "tag_barrel" ) ) {
-			barrel = true;
-			CG_PlaceModelOnTag( &ent, &cent->ent, &tag );
-		}
-	} else {
-		if( CG_GrabTag( &tag, &cent->ent, "tag_linked" ) ) {
-			CG_PlaceModelOnTag( &ent, &cent->ent, &tag );
-		}
-	}
+	orientation_t tag;
+	const char * tag_name = "tag_linked";
 
-	CG_AddEntityToScene( &ent );
-	CG_AddShellEffects( &ent, cent->effects );
+	if( cent->current.effects & EF_HAT )
+		tag_name = "tag_head";
+	if( cent->item && ( cent->item->type & IT_WEAPON ) )
+		tag_name = "tag_barrel";
 
-	if( barrel && CG_GrabTag( &tag, &cent->ent, "tag_barrel2" ) ) {
+	if( CG_GrabTag( &tag, &cent->ent, tag_name ) ) {
 		CG_PlaceModelOnTag( &ent, &cent->ent, &tag );
 		CG_AddEntityToScene( &ent );
 		CG_AddShellEffects( &ent, cent->effects );

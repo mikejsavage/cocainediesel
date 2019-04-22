@@ -391,9 +391,6 @@ void G_ClearSnap( void ) {
 		ent->numEvents = 0;
 		ent->eventPriority[0] = ent->eventPriority[1] = false;
 		ent->s.teleported = false; // remove teleported bit.
-
-		// remove effect bits that are (most likely) added from gametypes
-		ent->s.effects = ( ent->s.effects & ( EF_TAKEDAMAGE | EF_CARRIER | EF_ROTATE_AND_BOB | EF_GHOST ) );
 	}
 
 	// recover some info, let players respawn and finally clear the snap structures

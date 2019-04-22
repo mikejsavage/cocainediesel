@@ -838,6 +838,7 @@ enum {
 #define EF_PLAYER_HIDENAME          ( 1 << 7 )
 #define EF_RACEGHOST                ( 1 << 8 )
 #define EF_OUTLINE                  ( 1 << 9 )
+#define EF_HAT                      ( 1 << 10 )
 
 //===============================================================
 // gs_weapons.c

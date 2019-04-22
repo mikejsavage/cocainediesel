@@ -1066,5 +1066,5 @@ void GT_InitGametype()
 
 	deadIcon = G_ImageIndex( "gfx/gladiator_icons/dead" );
 	aliveIcon = G_ImageIndex( "gfx/gladiator_icons/alive" );
-	crownModel = G_ModelIndex( "models/objects/misc/bomb.glb", true );
+	crownModel = G_ModelIndex( "models/objects/crown.glb", true );
 }

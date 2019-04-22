@@ -550,4 +550,3 @@ models/objects/debris/debris6
 {
 	template models/objects/debris/debris_template 6
 }
-

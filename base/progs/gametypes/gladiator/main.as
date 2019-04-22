@@ -33,6 +33,12 @@ int deadIcon;
 int aliveIcon;
 int[] endMatchSounds;
 
+int crownModel;
+
+int max( int a, int b ) {
+	return a > b ? a : b;
+}
+
 class cDARound
 {
 	int state;
@@ -380,26 +386,36 @@ class cDARound
 						this.roundChallengers.push_back( @this.challengersQueueGetNextPlayer() );
 					}
 
+					// find topscore
+					int topscore = 0;
+					for ( int j = 0; @team.ent( j ) != null; j++ ) {
+						Client @client = @team.ent( j ).client;
+						topscore = max( client.stats.score, topscore );
+					}
+
 					// respawn all clients inside the playing teams
 					for ( int j = 0; @team.ent( j ) != null; j++ )
 					{
 						@ent = @team.ent( j );
-						ent.client.respawn( true );
-						ent.client.chaseCam( null, false );
-						ent.client.chaseActive = true;
-					}
-
-					selected_spawn = false;
-
-					for ( int j = 0; @team.ent( j ) != null; j++ )
-					{
-						@ent = @team.ent( j );
-						if ( this.isChallenger(ent.client) )
-						{
+						if( this.isChallenger( ent.client ) ) {
 							ent.client.respawn( false );
+							if( ent.client.stats.score == topscore ) {
+								ent.modelindex2 = crownModel;
+								ent.effects |= EF_HAT;
+							}
+							else {
+								ent.modelindex2 = 0;
+								ent.effects &= ~EF_HAT;
+							}
+						}
+						else {
+							ent.client.respawn( true );
+							ent.client.chaseCam( null, false );
+							ent.client.chaseActive = true;
 						}
 					}
 
+					selected_spawn = false;
 
 					DoSpinner();
 
@@ -1050,4 +1066,5 @@ void GT_InitGametype()
 
 	deadIcon = G_ImageIndex( "gfx/gladiator_icons/dead" );
 	aliveIcon = G_ImageIndex( "gfx/gladiator_icons/alive" );
+	crownModel = G_ModelIndex( "models/objects/misc/bomb.glb", true );
 }

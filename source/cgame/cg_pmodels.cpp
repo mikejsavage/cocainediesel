@@ -685,64 +685,6 @@ void CG_AddColoredOutLineEffect( entity_t *ent, int effects, uint8_t r, uint8_t 
 	}
 }
 
-/*
-* CG_PModel_AddHeadIcon
-*/
-static void CG_AddIconAbovePlayer( centity_t *cent ) {
-	entity_t icon;
-	bool showIcon = false;
-	struct shader_s *iconShader = NULL;
-	float radius = 6, upoffset = 8;
-	orientation_t tag_head;
-
-	if( cent->localEffects[LOCALEFFECT_VSAY_HEADICON_TIMEOUT] > cg.time ) {
-		if( cent->localEffects[LOCALEFFECT_VSAY_HEADICON] < VSAY_TOTAL ) {
-			iconShader = CG_MediaShader( cgs.media.shaderVSayIcon[cent->localEffects[LOCALEFFECT_VSAY_HEADICON]] );
-		} else {
-			iconShader = CG_MediaShader( cgs.media.shaderVSayIcon[VSAY_GENERIC] );
-		}
-
-		radius = 12;
-		upoffset = 0;
-	}
-
-	if( iconShader != NULL ) {
-		showIcon = true;
-	}
-
-	// add the current active icon
-	if( showIcon ) {
-		memset( &icon, 0, sizeof( entity_t ) );
-		Vector4Set( icon.shaderRGBA, 255, 255, 255, 255 );
-		icon.renderfx = RF_NOSHADOW;
-		icon.scale = 1.0f;
-
-		Matrix3_Identity( icon.axis );
-
-		if( CG_GrabTag( &tag_head, &cent->ent, "tag_head" ) ) {
-			icon.origin[0] = tag_head.origin[0];
-			icon.origin[1] = tag_head.origin[1];
-			icon.origin[2] = tag_head.origin[2] + icon.radius + upoffset;
-			VectorCopy( icon.origin, icon.origin2 );
-			CG_PlaceModelOnTag( &icon, &cent->ent, &tag_head );
-		} else {
-			icon.origin[0] = cent->ent.origin[0];
-			icon.origin[1] = cent->ent.origin[1];
-			icon.origin[2] = cent->ent.origin[2] + playerbox_stand_maxs[2] + icon.radius + upoffset;
-			VectorCopy( icon.origin, icon.origin2 );
-		}
-
-		if( iconShader ) {
-			icon.rtype = RT_SPRITE;
-			icon.customShader = iconShader;
-			icon.radius = radius;
-			icon.model = NULL;
-
-			trap_R_AddEntityToScene( &icon );
-		}
-	}
-}
-
 
 //======================================================================
 //							animations
@@ -763,7 +705,6 @@ void CG_PModel_AddAnimation( int entNum, int loweranim, int upperanim, int heada
 
 
 void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
-#define MIN_LEANING_SPEED 10
 	mat3_t axis;
 	vec3_t hvelocity;
 	float speed, front, side, aside, scale;
@@ -819,8 +760,6 @@ void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
 		for( i = 0; i < 3; i++ )
 			pmodel->angles[i][j] = AngleNormalize180( pmodel->angles[i][j] + leanAngles[i][j] );
 	}
-
-#undef MIN_LEANING_SPEED
 }
 
 /*
@@ -1112,8 +1051,6 @@ void CG_AddPModel( centity_t *cent ) {
 	}
 
 	CG_AddShellEffects( &cent->ent, cent->effects );
-
-	CG_AddIconAbovePlayer( cent );
 
 	// add teleporter sfx if needed
 	CG_PModel_SpawnTeleportEffect( cent );

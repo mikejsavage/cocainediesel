@@ -488,13 +488,11 @@ static void CG_StartVoiceTokenEffect( int entNum, int vsay ) {
 
 	// ignore repeated/flooded events
 	// TODO: this should really look at how long the vsay is...
-	if( cent->localEffects[LOCALEFFECT_VSAY_HEADICON_TIMEOUT] + 2000 > cg.time ) {
+	if( cent->localEffects[LOCALEFFECT_VSAY_TIMEOUT] > cg.time ) {
 		return;
 	}
 
-	// set the icon effect
-	cent->localEffects[LOCALEFFECT_VSAY_HEADICON] = vsay;
-	cent->localEffects[LOCALEFFECT_VSAY_HEADICON_TIMEOUT] = cg.time + HEADICON_TIMEOUT;
+	cent->localEffects[LOCALEFFECT_VSAY_TIMEOUT] = cg.time + VSAY_TIMEOUT;
 
 	// play the sound
 	cgs_media_handle_t *sound = cgs.media.sfxVSaySounds[vsay];

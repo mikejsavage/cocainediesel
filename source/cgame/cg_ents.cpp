@@ -731,8 +731,6 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 	cent->ent.renderfx = cent->renderfx;
 
 	if( cent->item ) {
-		const gsitem_t *item = cent->item;
-
 		if( cent->effects & EF_GHOST ) {
 			cent->ent.renderfx |= RF_ALPHAHACK | RF_GREYSCALE;
 			cent->ent.shaderRGBA[3] = 100;

@@ -873,8 +873,9 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team )
 	// auto-select best weapon in the inventory
 	ent.client.selectWeapon( -1 );
 
-	// add a teleportation effect
-	ent.respawnEffect();
+	if( match.getState() == MATCH_STATE_WARMUP ) {
+		ent.respawnEffect();
+	}
 }
 
 // Thinking function. Called each frame

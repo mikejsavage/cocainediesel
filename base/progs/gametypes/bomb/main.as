@@ -352,7 +352,10 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
 	player.giveInventory();
 
 	ent.svflags |= SVF_FORCETEAM;
-	ent.respawnEffect();
+
+	if( match.getState() == MATCH_STATE_WARMUP ) {
+		ent.respawnEffect();
+	}
 }
 
 // Thinking function. Called each frame
@@ -557,6 +560,4 @@ void GT_InitGametype() {
 	mediaInit();
 
 	G_CmdExecute( "exec configs/server/gametypes/bomb.cfg silent" ); // TODO XXX FIXME
-
-	G_Print( "Gametype initialized\n" );
 }

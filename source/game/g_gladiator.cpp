@@ -5,9 +5,16 @@ static void SpikesRearm( edict_t * self ) {
 }
 
 static void SpikesDeploy( edict_t * self ) {
-	KillBox( self, MOD_SPIKES );
-	self->think = SpikesRearm;
-	self->nextThink = level.time + 1000;
+	int64_t deployed_for = game.serverTime - self->s.linearMovementTimeStamp;
+
+	if( deployed_for < 1500 ) {
+		KillBox( self, MOD_SPIKES );
+		self->nextThink = level.time + 1;
+	}
+	else {
+		self->think = SpikesRearm;
+		self->nextThink = level.time + 500;
+	}
 }
 
 static void SpikesTouched( edict_t * self, edict_t * other, cplane_t * plane, int surfFlags ) {

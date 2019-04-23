@@ -1421,7 +1421,7 @@ static void PM_BeginMove( void ) {
 	pm->groundentity = -1;
 	pm->watertype = 0;
 	pm->waterlevel = 0;
-	pm->step = false;
+	pm->step = 0;
 
 	// clear all pmove local vars
 	memset( &pml, 0, sizeof( pml ) );

@@ -22,10 +22,6 @@ void main(void)
 
 	qf_FrontColor = vec4(outColor);
 
-#if defined(APPLY_CUBEMAP_VERTEX)
-
-#elif !defined(APPLY_CUBEMAP) && !defined(APPLY_SURROUNDMAP)
-
 #if defined(APPLY_TC_GEN_ENV)
 		vec3 Projection;
 
@@ -42,11 +38,9 @@ void main(void)
 		v_TexCoord = TextureMatrix2x3Mul(u_TextureMatrix, TexCoord);
 #endif // defined(APPLY_TC_GEN)
 
-#endif // !defined(APPLY_CUBEMAP) && !defined(APPLY_SURROUNDMAP)
-
 	v_Position = Position.xyz;
 
-#if defined(APPLY_CUBEMAP) || defined(APPLY_DRAWFLAT)
+#if defined(APPLY_DRAWFLAT)
 	v_Normal = Normal;
 #endif
 

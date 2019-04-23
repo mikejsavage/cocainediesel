@@ -91,10 +91,7 @@ enum {
 // q3a shader features
 #define GLSL_SHADER_Q3_TC_GEN_ENV               GLSL_BIT( 32 )
 #define GLSL_SHADER_Q3_TC_GEN_VECTOR            GLSL_BIT( 33 )
-#define GLSL_SHADER_Q3_TC_GEN_REFLECTION        ( GLSL_SHADER_Q3_TC_GEN_ENV | GLSL_SHADER_Q3_TC_GEN_VECTOR )
-#define GLSL_SHADER_Q3_TC_GEN_PROJECTION        GLSL_BIT( 34 )
-#define GLSL_SHADER_Q3_TC_GEN_SURROUND          GLSL_BIT( 35 )
-#define GLSL_SHADER_Q3_ALPHA_MASK               GLSL_BIT( 36 )
+#define GLSL_SHADER_Q3_ALPHA_MASK               GLSL_BIT( 34 )
 
 // outlines
 #define GLSL_SHADER_OUTLINE_OUTLINES_CUTOFF     GLSL_BIT( 32 )

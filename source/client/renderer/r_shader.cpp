@@ -181,201 +181,6 @@ static void Shader_SkipBlock( const char **ptr ) {
 	}
 }
 
-#define MAX_CONDITIONS      8
-typedef enum { COP_LS, COP_LE, COP_EQ, COP_GR, COP_GE, COP_NE } conOp_t;
-typedef enum { COP2_AND, COP2_OR } conOp2_t;
-typedef struct { int operand; conOp_t op; bool negative; int val; conOp2_t logic; } shaderCon_t;
-
-static const char *conOpStrings[] = { "<", "<=", "==", ">", ">=", "!=", NULL };
-static const char *conOpStrings2[] = { "&&", "||", NULL };
-
-static bool Shader_ParseConditions( const char **ptr, shader_t *shader ) {
-	int i;
-	int numConditions;
-	shaderCon_t conditions[MAX_CONDITIONS];
-	bool result = false, val = false, skip, expectingOperator;
-//	static const int falseCondition = 0;
-
-	numConditions = 0;
-	memset( conditions, 0, sizeof( conditions ) );
-
-	skip = false;
-	expectingOperator = false;
-	while( 1 ) {
-		const char *tok = Shader_ParseString( ptr );
-		if( !tok[0] ) {
-			if( expectingOperator ) {
-				numConditions++;
-			}
-			break;
-		}
-		if( skip ) {
-			continue;
-		}
-
-		for( i = 0; conOpStrings[i]; i++ ) {
-			if( !strcmp( tok, conOpStrings[i] ) ) {
-				break;
-			}
-		}
-
-		if( conOpStrings[i] ) {
-			if( !expectingOperator ) {
-				Com_Printf( S_COLOR_YELLOW "WARNING: Bad syntax in condition (shader %s)\n", shader->name );
-				skip = true;
-			} else {
-				conditions[numConditions].op = conOp_t( i );
-				expectingOperator = false;
-			}
-			continue;
-		}
-
-		for( i = 0; conOpStrings2[i]; i++ ) {
-			if( !strcmp( tok, conOpStrings2[i] ) ) {
-				break;
-			}
-		}
-
-		if( conOpStrings2[i] ) {
-			if( !expectingOperator ) {
-				Com_Printf( S_COLOR_YELLOW "WARNING: Bad syntax in condition (shader %s)\n", shader->name );
-				skip = true;
-			} else {
-				conditions[numConditions++].logic = conOp2_t( i );
-				if( numConditions == MAX_CONDITIONS ) {
-					skip = true;
-				} else {
-					expectingOperator = false;
-				}
-			}
-			continue;
-		}
-
-		if( expectingOperator ) {
-			Com_Printf( S_COLOR_YELLOW "WARNING: Bad syntax in condition (shader %s)\n", shader->name );
-			skip = true;
-			continue;
-		}
-
-		if( !strcmp( tok, "!" ) ) {
-			conditions[numConditions].negative = !conditions[numConditions].negative;
-			continue;
-		}
-
-		if( !conditions[numConditions].operand ) {
-			if( !Q_stricmp( tok, "maxTextureSize" ) ) {
-				conditions[numConditions].operand = ( int  )glConfig.maxTextureSize;
-			} else if( !Q_stricmp( tok, "maxTextureCubemapSize" ) ) {
-				conditions[numConditions].operand = ( int )glConfig.maxTextureCubemapSize;
-			} else if( !Q_stricmp( tok, "maxTextureUnits" ) ) {
-				conditions[numConditions].operand = ( int )glConfig.maxTextureUnits;
-			} else {
-//				Com_Printf( S_COLOR_YELLOW "WARNING: Unknown expression '%s' in shader %s\n", tok, shader->name );
-//				skip = true;
-//				conditions[numConditions].operand = ( int )falseCondition;
-				conditions[numConditions].operand = atoi( tok );
-			}
-
-			conditions[numConditions].operand++;
-			if( conditions[numConditions].operand < 0 ) {
-				conditions[numConditions].operand = 0;
-			}
-
-			if( !skip ) {
-				conditions[numConditions].op = COP_NE;
-				expectingOperator = true;
-			}
-			continue;
-		}
-
-		if( !strcmp( tok, "false" ) ) {
-			conditions[numConditions].val = 0;
-		} else if( !strcmp( tok, "true" ) ) {
-			conditions[numConditions].val = 1;
-		} else {
-			conditions[numConditions].val = atoi( tok );
-		}
-		expectingOperator = true;
-	}
-
-	if( skip ) {
-		return false;
-	}
-
-	if( !conditions[0].operand ) {
-		Com_Printf( S_COLOR_YELLOW "WARNING: Empty 'if' statement in shader %s\n", shader->name );
-		return false;
-	}
-
-
-	for( i = 0; i < numConditions; i++ ) {
-		conditions[i].operand--;
-
-		switch( conditions[i].op ) {
-			case COP_LS:
-				val = ( conditions[i].operand < conditions[i].val );
-				break;
-			case COP_LE:
-				val = ( conditions[i].operand <= conditions[i].val );
-				break;
-			case COP_EQ:
-				val = ( conditions[i].operand == conditions[i].val );
-				break;
-			case COP_GR:
-				val = ( conditions[i].operand > conditions[i].val );
-				break;
-			case COP_GE:
-				val = ( conditions[i].operand >= conditions[i].val );
-				break;
-			case COP_NE:
-				val = ( conditions[i].operand != conditions[i].val );
-				break;
-			default:
-				break;
-		}
-
-		if( conditions[i].negative ) {
-			val = !val;
-		}
-		if( i ) {
-			switch( conditions[i - 1].logic ) {
-				case COP2_AND:
-					result = result && val;
-					break;
-				case COP2_OR:
-					result = result || val;
-					break;
-			}
-		} else {
-			result = val;
-		}
-	}
-
-	return result;
-}
-
-static bool Shader_SkipConditionBlock( const char **ptr ) {
-	const char *tok;
-	int condition_count;
-
-	for( condition_count = 1; condition_count > 0; ) {
-		tok = COM_ParseExt( ptr, true );
-		if( !tok[0] ) {
-			return false;
-		}
-		if( !Q_stricmp( tok, "if" ) ) {
-			condition_count++;
-		} else if( !Q_stricmp( tok, "endif" ) ) {
-			condition_count--;
-		}
-// Vic: commented out for now
-//		else if( !Q_stricmp( tok, "else" ) && (condition_count == 1) )
-//			return true;
-	}
-
-	return true;
-}
-
 //===========================================================================
 
 static void Shader_ParseFunc( const char **ptr, shaderfunc_t *func ) {
@@ -574,17 +379,6 @@ static void Shader_EntityMergable( shader_t *shader, shaderpass_t *pass, const c
 	shader->flags |= SHADER_ENTITY_MERGABLE;
 }
 
-static void Shader_If( shader_t *shader, shaderpass_t *pass, const char **ptr ) {
-	if( !Shader_ParseConditions( ptr, shader ) ) {
-		if( !Shader_SkipConditionBlock( ptr ) ) {
-			Com_Printf( S_COLOR_YELLOW "WARNING: Mismatched if/endif pair in shader %s\n", shader->name );
-		}
-	}
-}
-
-static void Shader_Endif( shader_t *shader, shaderpass_t *pass, const char **ptr ) {
-}
-
 static void Shader_GlossIntensity( shader_t *shader, shaderpass_t *pass, const char **ptr ) {
 	shader->glossIntensity = Shader_ParseFloat( ptr );
 	if( shader->glossIntensity <= 0 ) {
@@ -741,8 +535,6 @@ static const shaderkey_t shaderkeys[] =
 	{ "sort", Shader_Sort },
 	{ "deformvertexes", Shader_DeformVertexes },
 	{ "entitymergable", Shader_EntityMergable },
-	{ "if", Shader_If },
-	{ "endif", Shader_Endif },
 	{ "glossexponent", Shader_GlossExponent },
 	{ "glossintensity", Shader_GlossIntensity },
 	{ "template", Shader_Template },
@@ -810,21 +602,6 @@ static void Shaderpass_AnimMapExt( shader_t *shader, shaderpass_t *pass, int add
 	}
 }
 
-static void Shaderpass_CubeMapExt( shader_t *shader, shaderpass_t *pass, int addFlags, int tcgen, const char **ptr ) {
-	const char *token = Shader_ParseString( ptr );
-	int flags = Shader_SetImageFlags( shader ) | addFlags | IT_SRGB;
-	pass->anim_fps = 0;
-
-	pass->images[0] = R_FindImage( token, NULL, flags | IT_CUBEMAP, r_shaderMinMipSize, shader->imagetags );
-	if( pass->images[0] ) {
-		pass->tcgen = tcgen;
-	} else {
-		ri.Com_DPrintf( S_COLOR_YELLOW "Shader %s has a stage with no image: %s\n", shader->name, token );
-		pass->images[0] = rsh.noTexture;
-		pass->tcgen = TC_GEN_BASE;
-	}
-}
-
 static void Shaderpass_Map( shader_t *shader, shaderpass_t *pass, const char **ptr ) {
 	Shaderpass_MapExt( shader, pass, 0, ptr );
 }
@@ -843,14 +620,6 @@ static void Shaderpass_AlphaMaskClampMap( shader_t *shader, shaderpass_t *pass, 
 
 static void Shaderpass_AnimClampMap( shader_t *shader, shaderpass_t *pass, const char **ptr ) {
 	Shaderpass_AnimMapExt( shader, pass, IT_CLAMP, ptr );
-}
-
-static void Shaderpass_CubeMap( shader_t *shader, shaderpass_t *pass, const char **ptr ) {
-	Shaderpass_CubeMapExt( shader, pass, IT_CLAMP, TC_GEN_REFLECTION, ptr );
-}
-
-static void Shaderpass_SurroundMap( shader_t *shader, shaderpass_t *pass, const char **ptr ) {
-	Shaderpass_CubeMapExt( shader, pass, IT_CLAMP, TC_GEN_SURROUND, ptr );
 }
 
 static void Shaderpass_Material( shader_t *shader, shaderpass_t *pass, const char **ptr ) {
@@ -1164,10 +933,6 @@ static void Shaderpass_TcGen( shader_t *shader, shaderpass_t *pass, const char *
 		pass->tcgen = TC_GEN_VECTOR;
 		Shader_ParseVector( ptr, &pass->tcgenVec[0], 4 );
 		Shader_ParseVector( ptr, &pass->tcgenVec[4], 4 );
-	} else if( !strcmp( token, "reflection" ) ) {
-		pass->tcgen = TC_GEN_REFLECTION;
-	} else if( !strcmp( token, "surround" ) ) {
-		pass->tcgen = TC_GEN_SURROUND;
 	}
 }
 
@@ -1192,8 +957,6 @@ static const shaderkey_t shaderpasskeys[] =
 	{ "tcmod", Shaderpass_TcMod },
 	{ "map", Shaderpass_Map },
 	{ "animmap", Shaderpass_AnimMap },
-	{ "cubemap", Shaderpass_CubeMap },
-	{ "surroundmap", Shaderpass_SurroundMap },
 	{ "clampmap", Shaderpass_ClampMap },
 	{ "animclampmap", Shaderpass_AnimClampMap },
 	{ "alphamaskclampmap", Shaderpass_AlphaMaskClampMap },
@@ -1731,9 +1494,6 @@ static void Shader_SetVertexAttribs( shader_t *s ) {
 			case TC_GEN_ENVIRONMENT:
 				s->vattribs |= VATTRIB_NORMAL_BIT;
 				break;
-			case TC_GEN_REFLECTION:
-				s->vattribs |= VATTRIB_NORMAL_BIT;
-				break;
 			default:
 				s->vattribs |= VATTRIB_TEXCOORDS_BIT;
 				break;
@@ -2261,7 +2021,7 @@ shader_t *R_RegisterPic( const char *name ) {
 *
 * Registers default alpha mask shader with base image provided as raw alpha values.
 */
-shader_t *R_RegisterAlphaMask( const char *name, int width, int height, uint8_t *data ) {
+shader_t *R_RegisterAlphaMask( const char *name, int width, int height, const uint8_t *data ) {
 	shader_t *s;
 	shaderType_e type = SHADER_TYPE_2D_RAW;
 
@@ -2273,11 +2033,11 @@ shader_t *R_RegisterAlphaMask( const char *name, int width, int height, uint8_t 
 		image = s->passes[0].images[0];
 		if( !image || image == rsh.noTexture ) {
 			// try to load new image
-			image = R_LoadImage( name, &data, width, height, IT_ALPHAMASK | IT_SPECIAL, 1, IMAGE_TAG_GENERIC, 1 );
+			image = R_LoadImage( name, data, width, height, IT_ALPHAMASK | IT_SPECIAL, 1, IMAGE_TAG_GENERIC, 1 );
 			s->passes[0].images[0] = image;
 		} else {
 			// replace current texture data
-			R_ReplaceImage( image, &data, width, height, image->flags, 1, image->samples );
+			R_ReplaceImage( image, data, width, height, image->flags, 1, image->samples );
 		}
 	}
 	return s;
@@ -2348,5 +2108,5 @@ void R_ReplaceRawSubPic( shader_t *shader, int x, int y, int width, int height, 
 		return;
 	}
 
-	R_ReplaceSubImage( baseImage, x, y, &data, width, height );
+	R_ReplaceSubImage( baseImage, x, y, data, width, height );
 }

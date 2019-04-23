@@ -192,16 +192,6 @@ static void R_FinalizeGLExtensions( void ) {
 	ri.Cvar_Get( "gl_max_texture_size", "0", CVAR_READONLY );
 	ri.Cvar_ForceSet( "gl_max_texture_size", va_r( tmp, sizeof( tmp ), "%i", glConfig.maxTextureSize ) );
 
-	/* GL_ARB_texture_cube_map */
-	glConfig.maxTextureCubemapSize = 0;
-	glGetIntegerv( GL_MAX_CUBE_MAP_TEXTURE_SIZE, &glConfig.maxTextureCubemapSize );
-	glConfig.maxTextureCubemapSize = 1 << Q_log2( glConfig.maxTextureCubemapSize );
-
-	/* GL_ARB_multitexture */
-	glConfig.maxTextureUnits = 1;
-	glGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS, &glConfig.maxTextureUnits );
-	clamp( glConfig.maxTextureUnits, 1, MAX_TEXTURE_UNITS );
-
 	/* GL_EXT_framebuffer_object */
 	glConfig.maxRenderbufferSize = 0;
 	glGetIntegerv( GL_MAX_RENDERBUFFER_SIZE, &glConfig.maxRenderbufferSize );
@@ -215,12 +205,6 @@ static void R_FinalizeGLExtensions( void ) {
 	if( glConfig.ext.texture_filter_anisotropic ) {
 		glGetIntegerv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glConfig.maxTextureFilterAnisotropic );
 	}
-
-	/* GL_EXT_texture3D and GL_EXT_texture_array */
-	glConfig.maxTexture3DSize = 0;
-	glConfig.maxTextureLayers = 0;
-	glGetIntegerv( GL_MAX_3D_TEXTURE_SIZE, &glConfig.maxTexture3DSize );
-	glGetIntegerv( GL_MAX_ARRAY_TEXTURE_LAYERS, &glConfig.maxTextureLayers );
 
 	glConfig.maxVertexUniformComponents = glConfig.maxFragmentUniformComponents = 0;
 
@@ -315,10 +299,6 @@ static void R_GfxInfo_f( void ) {
 	Com_Printf( "GL_VERSION: %s\n", glConfig.versionString );
 
 	Com_Printf( "GL_MAX_TEXTURE_SIZE: %i\n", glConfig.maxTextureSize );
-	Com_Printf( "GL_MAX_TEXTURE_IMAGE_UNITS: %i\n", glConfig.maxTextureUnits );
-	Com_Printf( "GL_MAX_CUBE_MAP_TEXTURE_SIZE: %i\n", glConfig.maxTextureCubemapSize );
-	Com_Printf( "GL_MAX_3D_TEXTURE_SIZE: %i\n", glConfig.maxTexture3DSize );
-	Com_Printf( "GL_MAX_ARRAY_TEXTURE_LAYERS: %i\n", glConfig.maxTextureLayers );
 	if( glConfig.ext.texture_filter_anisotropic ) {
 		Com_Printf( "GL_MAX_TEXTURE_MAX_ANISOTROPY: %i\n", glConfig.maxTextureFilterAnisotropic );
 	}

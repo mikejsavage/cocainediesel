@@ -614,11 +614,8 @@ static const glsl_feature_t glsl_features_q3a[] =
 	{ GLSL_SHADER_COMMON_SRGB2LINEAR, "#define APPLY_SRGB2LINEAR\n", "_srgb" },
 	{ GLSL_SHADER_COMMON_LINEAR2SRB, "#define APPLY_LINEAR2SRGB\n", "_linear" },
 
-	{ GLSL_SHADER_Q3_TC_GEN_PROJECTION, "#define APPLY_TC_GEN_PROJECTION\n", "_tc_proj" },
-	{ GLSL_SHADER_Q3_TC_GEN_REFLECTION, "#define APPLY_TC_GEN_REFLECTION\n", "_tc_refl" },
 	{ GLSL_SHADER_Q3_TC_GEN_ENV, "#define APPLY_TC_GEN_ENV\n", "_tc_env" },
 	{ GLSL_SHADER_Q3_TC_GEN_VECTOR, "#define APPLY_TC_GEN_VECTOR\n", "_tc_vec" },
-	{ GLSL_SHADER_Q3_TC_GEN_SURROUND, "#define APPLY_TC_GEN_SURROUND\n", "_tc_surr" },
 
 	{ GLSL_SHADER_Q3_ALPHA_MASK, "#define APPLY_ALPHA_MASK\n", "_alpha_mask" },
 
@@ -667,7 +664,6 @@ static const glsl_feature_t * const glsl_programtypes_features[] =
 	"# define qf_BrightColor gl_FragData[1]\n" \
 	"#endif\n" \
 	"#define qf_texture texture2D\n" \
-        "#define qf_textureCube textureCube\n" \
         "#define qf_textureArray texture2DArray\n" \
 	"\n"
 
@@ -687,7 +683,6 @@ static const glsl_feature_t * const glsl_programtypes_features[] =
         "# define qf_flat_varying flat in\n" \
         "#endif\n" \
         "#define qf_texture texture\n" \
-        "#define qf_textureCube texture\n" \
         "#define qf_textureArray texture\n" \
         "\n"
 

@@ -122,10 +122,6 @@ typedef struct {
 	unsigned short originalGammaRamp[3 * GAMMARAMP_STRIDE];
 
 	int maxTextureSize;
-	int maxTextureUnits;
-	int maxTextureCubemapSize;
-	int maxTexture3DSize;
-	int maxTextureLayers;
 	int maxTextureFilterAnisotropic;
 	int maxRenderbufferSize;
 	int maxVertexUniformComponents;

@@ -750,15 +750,6 @@ r_glslfeat_t RB_TcGenToProgramFeatures( int tcgen, vec_t *tcgenVec, mat4_t texMa
 			Vector4Copy( &tcgenVec[4], &genVectors[4] );
 			programFeatures |= GLSL_SHADER_Q3_TC_GEN_VECTOR;
 			break;
-		case TC_GEN_PROJECTION:
-			programFeatures |= GLSL_SHADER_Q3_TC_GEN_PROJECTION;
-			break;
-		case TC_GEN_REFLECTION:
-			programFeatures |= GLSL_SHADER_Q3_TC_GEN_REFLECTION;
-			break;
-		case TC_GEN_SURROUND:
-			programFeatures |= GLSL_SHADER_Q3_TC_GEN_SURROUND;
-			break;
 		default:
 			break;
 	}

@@ -6,11 +6,7 @@
 
 #include "include/varying_q3a.glsl"
 
-#if defined(APPLY_CUBEMAP) || defined(APPLY_CUBEMAP_VERTEX) || defined(APPLY_SURROUNDMAP)
-uniform samplerCube u_BaseTexture;
-#else
 uniform sampler2D u_BaseTexture;
-#endif
 
 #ifdef APPLY_DRAWFLAT
 uniform vec3 u_WallColor;
@@ -31,15 +27,7 @@ void main(void)
 #endif
 	vec4 diffuse;
 
-#if defined(APPLY_CUBEMAP)
-	diffuse = vec4(qf_textureCube(u_BaseTexture, reflect(v_Position - u_EntityDist, normalize(v_Normal))));
-#elif defined(APPLY_CUBEMAP_VERTEX)
-	diffuse = vec4(qf_textureCube(u_BaseTexture, v_TexCoord));
-#elif defined(APPLY_SURROUNDMAP)
-	diffuse = vec4(qf_textureCube(u_BaseTexture, v_Position - u_EntityDist));
-#else
 	diffuse = vec4(qf_texture(u_BaseTexture, v_TexCoord));
-#endif
 
 #ifdef APPLY_DRAWFLAT
 	float n = float(step(DRAWFLAT_NORMAL_STEP, abs(v_Normal.z)));

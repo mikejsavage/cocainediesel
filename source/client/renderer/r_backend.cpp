@@ -186,7 +186,7 @@ void RB_BindImage( int tmu, const image_t *tex ) {
 		tex = rsh.noTexture;
 	} else if( !tex->loaded ) {
 		// not yet loaded from disk
-		tex = tex->flags & IT_CUBEMAP ? rsh.whiteCubemapTexture : rsh.whiteTexture;
+		tex = rsh.whiteTexture;
 	}
 
 	if( rb.gl.flushTextures ) {

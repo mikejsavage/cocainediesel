@@ -24,21 +24,14 @@ enum {
 	IT_NONE,
 	IT_CLAMP             = 1 << 0,
 	IT_NOMIPMAP          = 1 << 1,
-	IT_CUBEMAP           = 1 << 2,
-	IT_FLIPX             = 1 << 3,
-	IT_FLIPY             = 1 << 4,
-	IT_FLIPDIAGONAL      = 1 << 5,     // when used alone, equals to rotating 90 CW and flipping X; with FLIPX|Y, 90 CCW and flipping X
-	IT_DEPTH             = 1 << 6,
-	IT_NORMALMAP         = 1 << 7,
-	IT_FRAMEBUFFER       = 1 << 8,
-	IT_DEPTHRB           = 1 << 9,    // framebuffer has a depth renderbuffer
-	IT_NOFILTERING       = 1 << 10,
-	IT_ALPHAMASK         = 1 << 11,    // image only contains an alpha mask
-	IT_NO_DATA_SYNC      = 1 << 12,    // owned by the drawing thread, do not sync in the frontend thread
-	IT_FLOAT             = 1 << 13,
-	IT_SRGB              = 1 << 14,
-	IT_LEFTHALF          = 1 << 15,
-	IT_RIGHTHALF         = 1 << 16,
+	IT_DEPTH             = 1 << 2,
+	IT_NORMALMAP         = 1 << 3,
+	IT_FRAMEBUFFER       = 1 << 4,
+	IT_DEPTHRB           = 1 << 5,    // framebuffer has a depth renderbuffer
+	IT_NOFILTERING       = 1 << 6,
+	IT_ALPHAMASK         = 1 << 7,    // image only contains an alpha mask
+	IT_FLOAT             = 1 << 8,
+	IT_SRGB              = 1 << 9,
 };
 
 /**
@@ -99,7 +92,7 @@ void R_ScreenShot( const char *filename, int x, int y, int width, int height,
 
 void R_AnisotropicFilter( int value );
 
-image_t *R_LoadImage( const char *name, uint8_t **pic, int width, int height, int flags, int minmipsize, int tags, int samples );
+image_t *R_LoadImage( const char *name, const uint8_t *pic, int width, int height, int flags, int minmipsize, int tags, int samples );
 image_t *R_FindImage( const char *name, const char *suffix, int flags, int minmipsize, int tags );
-void R_ReplaceImage( image_t *image, uint8_t **pic, int width, int height, int flags, int minmipsize, int samples );
-void R_ReplaceSubImage( image_t *image, int x, int y, uint8_t **pic, int width, int height );
+void R_ReplaceImage( image_t *image, const uint8_t *pic, int width, int height, int flags, int minmipsize, int samples );
+void R_ReplaceSubImage( image_t *image, int x, int y, const uint8_t *pic, int width, int height );

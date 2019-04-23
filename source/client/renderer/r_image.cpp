@@ -27,10 +27,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_GLIMAGES        8192
 #define IMAGES_HASH_SIZE    64
 
-typedef struct {
-	int side;
-} loaderCbInfo_t;
-
 static image_t r_images[MAX_GLIMAGES];
 static image_t r_images_hash_headnode[IMAGES_HASH_SIZE], *r_free_images;
 static qmutex_t *r_imagesLock;
@@ -82,12 +78,7 @@ static void R_FreeTextureNum( image_t *tex ) {
 int R_TextureTarget( int flags, int *uploadTarget ) {
 	int target, target2;
 
-	if( flags & IT_CUBEMAP ) {
-		target = GL_TEXTURE_CUBE_MAP;
-		target2 = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
-	} else {
-		target = target2 = GL_TEXTURE_2D;
-	}
+	target = target2 = GL_TEXTURE_2D;
 
 	if( uploadTarget ) {
 		*uploadTarget = target2;
@@ -185,9 +176,6 @@ void R_PrintImageList( const char *mask, bool ( *filter )( const char *mask, con
 		if( !( image->flags & ( IT_DEPTH | IT_NOFILTERING | IT_NOMIPMAP ) ) ) {
 			add = (unsigned)floor( add / 0.75 );
 		}
-		if( image->flags & IT_CUBEMAP ) {
-			add *= 6;
-		}
 		texels += add;
 
 		bpp = image->samples;
@@ -225,11 +213,9 @@ TEMPORARY IMAGE BUFFERS
 */
 
 enum {
-	TEXTURE_LOADING_BUF0,TEXTURE_LOADING_BUF1,TEXTURE_LOADING_BUF2,TEXTURE_LOADING_BUF3,TEXTURE_LOADING_BUF4,TEXTURE_LOADING_BUF5,
-	TEXTURE_RESAMPLING_BUF0,TEXTURE_RESAMPLING_BUF1,TEXTURE_RESAMPLING_BUF2,TEXTURE_RESAMPLING_BUF3,TEXTURE_RESAMPLING_BUF4,TEXTURE_RESAMPLING_BUF5,
+	TEXTURE_LOADING_BUF,
+	TEXTURE_RESAMPLING_BUF,
 	TEXTURE_LINE_BUF,
-	TEXTURE_CUT_BUF,
-	TEXTURE_FLIPPING_BUF0,TEXTURE_FLIPPING_BUF1,TEXTURE_FLIPPING_BUF2,TEXTURE_FLIPPING_BUF3,TEXTURE_FLIPPING_BUF4,TEXTURE_FLIPPING_BUF5,
 
 	NUM_IMAGE_BUFFERS
 };
@@ -245,8 +231,7 @@ static size_t r_imageBufSize[NUM_IMAGE_BUFFERS];
 /*
 * R_PrepareImageBuffer
 */
-static uint8_t *_R_PrepareImageBuffer( int buffer, size_t size,
-									   const char *filename, int fileline ) {
+static uint8_t *_R_PrepareImageBuffer( int buffer, size_t size, const char *filename, int fileline ) {
 	if( r_imageBufSize[buffer] < size ) {
 		r_imageBufSize[buffer] = size;
 		if( r_imageBuffers[buffer] ) {
@@ -277,15 +262,14 @@ void R_FreeImageBuffers( void ) {
 * R_AllocImageBufferCb
 */
 static uint8_t *_R_AllocImageBufferCb( void *ptr, size_t size, const char *filename, int linenum ) {
-	loaderCbInfo_t *cbinfo = ( loaderCbInfo_t * ) ptr;
-	return _R_PrepareImageBuffer( cbinfo->side, size, filename, linenum );
+	return _R_PrepareImageBuffer( TEXTURE_LOADING_BUF, size, filename, linenum );
 }
 
 /*
 * R_ReadImageFromDisk
 */
 static int R_ReadImageFromDisk( char *pathname, size_t pathname_size,
-								uint8_t **pic, int *width, int *height, int *flags, int side ) {
+								uint8_t **pic, int *width, int *height, int *flags ) {
 	const char *extension;
 	int samples;
 
@@ -295,11 +279,9 @@ static int R_ReadImageFromDisk( char *pathname, size_t pathname_size,
 
 	extension = ri.FS_FirstExtension( pathname, IMAGE_EXTENSIONS, NUM_IMAGE_EXTENSIONS );
 	if( extension ) {
-		loaderCbInfo_t cbinfo = { side };
-
 		COM_ReplaceExtension( pathname, extension, pathname_size );
 
-		r_imginfo_t imginfo = IMG_LoadImage( pathname, _R_AllocImageBufferCb, (void *)&cbinfo );
+		r_imginfo_t imginfo = IMG_LoadImage( pathname );
 
 		*pic = imginfo.pixels;
 		*width = imginfo.width;
@@ -320,8 +302,6 @@ static int R_ScaledImageSize( int width, int height, int *scaledWidth, int *scal
 
 	if( flags & ( IT_FRAMEBUFFER | IT_DEPTH ) ) {
 		maxSize = glConfig.maxRenderbufferSize;
-	} else if( flags & IT_CUBEMAP ) {
-		maxSize = glConfig.maxTextureCubemapSize;
 	} else {
 		maxSize = glConfig.maxTextureSize;
 	}
@@ -647,13 +627,12 @@ static void R_SetupTexParameters( int flags, int upload_width, int upload_height
 /*
 * R_Upload32
 */
-static void R_Upload32( uint8_t **data,
+static void R_Upload32( const uint8_t *data,
 						int x, int y, int width, int height,
 						int flags, int minmipsize, int *upload_width, int *upload_height, int samples,
 						bool subImage, bool noScale ) {
-	int i, comp, format, type;
+	int comp, format, type;
 	int target;
-	int numTextures;
 	uint8_t *scaled = NULL;
 	int scaledWidth, scaledHeight;
 
@@ -662,33 +641,6 @@ static void R_Upload32( uint8_t **data,
 	R_ScaledImageSize( width, height, &scaledWidth, &scaledHeight, flags, 1, minmipsize, subImage && noScale );
 
 	R_TextureTarget( flags, &target );
-
-	// don't ever bother with > maxSize textures
-	if( flags & IT_CUBEMAP ) {
-		numTextures = 6;
-	} else {
-		if( flags & ( IT_LEFTHALF | IT_RIGHTHALF ) ) {
-			// assume width represents half of the original image width
-			uint8_t *temp = R_PrepareImageBuffer( TEXTURE_CUT_BUF, width * height * samples );
-			if( flags & IT_LEFTHALF ) {
-				R_CutImage( *data, width * 2, height, temp, 0, 0, width, height, samples );
-			} else {
-				R_CutImage( *data, width * 2, height, temp, width, 0, width, height, samples );
-			}
-			data = &r_imageBuffers[TEXTURE_CUT_BUF];
-		}
-
-		if( flags & ( IT_FLIPX | IT_FLIPY | IT_FLIPDIAGONAL ) ) {
-			uint8_t *temp = R_PrepareImageBuffer( TEXTURE_FLIPPING_BUF0, width * height * samples );
-			R_FlipTexture( data[0], temp, width, height, samples,
-						   ( flags & IT_FLIPX ) ? true : false,
-						   ( flags & IT_FLIPY ) ? true : false,
-						   ( flags & IT_FLIPDIAGONAL ) ? true : false );
-			data = &r_imageBuffers[TEXTURE_FLIPPING_BUF0];
-		}
-
-		numTextures = 1;
-	}
 
 	if( upload_width ) {
 		*upload_width = scaledWidth;
@@ -705,57 +657,53 @@ static void R_Upload32( uint8_t **data,
 
 	if( scaledWidth == width && scaledHeight == height && ( flags & IT_NOMIPMAP ) ) {
 		if( subImage ) {
-			for( i = 0; i < numTextures; i++, target++ )
-				glTexSubImage2D( target, 0, x, y, scaledWidth, scaledHeight, format, type, data[i] );
+			glTexSubImage2D( target, 0, x, y, scaledWidth, scaledHeight, format, type, data );
 		} else {
-			for( i = 0; i < numTextures; i++, target++ )
-				glTexImage2D( target, 0, comp, scaledWidth, scaledHeight, 0, format, type, data[i] );
+			glTexImage2D( target, 0, comp, scaledWidth, scaledHeight, 0, format, type, data );
 		}
 	} else {
-		for( i = 0; i < numTextures; i++, target++ ) {
-			uint8_t *mip;
+		uint8_t *mip;
 
-			if( !scaled ) {
-				scaled = R_PrepareImageBuffer( TEXTURE_RESAMPLING_BUF0, scaledWidth * scaledHeight * samples );
-			}
+		if( !scaled ) {
+			scaled = R_PrepareImageBuffer( TEXTURE_RESAMPLING_BUF, scaledWidth * scaledHeight * samples );
+		}
 
-			// resample the texture
-			mip = scaled;
-			if( data[i] ) {
-				R_ResampleTexture( data[i], width, height, (uint8_t *)mip, scaledWidth, scaledHeight, samples, 1 );
-			} else {
-				mip = NULL;
-			}
+		// resample the texture
+		mip = scaled;
+		if( data ) {
+			R_ResampleTexture( data, width, height, (uint8_t *)mip, scaledWidth, scaledHeight, samples, 1 );
+		} else {
+			mip = NULL;
+		}
 
-			if( subImage ) {
-				glTexSubImage2D( target, 0, x, y, scaledWidth, scaledHeight, format, type, mip );
-			} else {
-				glTexImage2D( target, 0, comp, scaledWidth, scaledHeight, 0, format, type, mip );
-			}
+		if( subImage ) {
+			glTexSubImage2D( target, 0, x, y, scaledWidth, scaledHeight, format, type, mip );
+		} else {
+			glTexImage2D( target, 0, comp, scaledWidth, scaledHeight, 0, format, type, mip );
+		}
 
-			// mipmaps generation
-			if( !( flags & IT_NOMIPMAP ) && mip ) {
-				int miplevel = 0;
-				int w = scaledWidth;
-				int h = scaledHeight;
-				while( w > minmipsize || h > minmipsize ) {
-					R_MipMap( mip, w, h, samples, 1 );
+		// mipmaps generation
+		if( !( flags & IT_NOMIPMAP ) && mip ) {
+			int miplevel = 0;
+			int w = scaledWidth;
+			int h = scaledHeight;
+			while( w > minmipsize || h > minmipsize ) {
+				R_MipMap( mip, w, h, samples, 1 );
 
-					w >>= 1;
-					h >>= 1;
-					if( w < 1 ) {
-						w = 1;
-					}
-					if( h < 1 ) {
-						h = 1;
-					}
-					miplevel++;
+				w >>= 1;
+				h >>= 1;
+				if( w < 1 ) {
+					w = 1;
+				}
+				if( h < 1 ) {
+					h = 1;
+				}
+				miplevel++;
 
-					if( subImage ) {
-						glTexSubImage2D( target, miplevel, x, y, w, h, format, type, mip );
-					} else {
-						glTexImage2D( target, miplevel, comp, w, h, 0, format, type, mip );
-					}
+				if( subImage ) {
+					glTexSubImage2D( target, miplevel, x, y, w, h, format, type, mip );
+				} else {
+					glTexImage2D( target, miplevel, comp, w, h, 0, format, type, mip );
 				}
 			}
 		}
@@ -779,113 +727,25 @@ static bool R_LoadImageFromDisk( image_t *image ) {
 
 	memcpy( pathname, image->name, len + 1 );
 
-	if( flags & IT_CUBEMAP ) {
-		int i, j, k;
-		uint8_t *pic[6];
-		struct cubemapSufAndFlip {
-			const char *suf; int flags;
-		} cubemapSides[2][6] = {
-			{
-				{ "px", 0 },
-				{ "nx", 0 },
-				{ "py", 0 },
-				{ "ny", 0 },
-				{ "pz", 0 },
-				{ "nz", 0 }
-			},
-			{
-				{ "rt", IT_FLIPX | IT_FLIPDIAGONAL }, 
-				{ "lf", IT_FLIPY | IT_FLIPDIAGONAL },
-				{ "ft", IT_FLIPX | IT_FLIPY },
-				{ "bk", 0 },
-				{ "up", IT_FLIPX | IT_FLIPDIAGONAL },
-				{ "dn", IT_FLIPX | IT_FLIPDIAGONAL }
-			}
-		};
-		int lastSize = 0;
+	uint8_t *pic = NULL;
 
-		for( k = 0; k < 2; k++ ) {
-			pathname[len] = '_';
+	Q_strncatz( pathname, ".tga", pathsize );
+	samples = R_ReadImageFromDisk( pathname, pathsize, &pic, &width, &height, &flags );
 
-			for( i = 0; i < 2; i++ ) {
-				for( j = 0; j < 6; j++ ) {
-					int cbflags = cubemapSides[i][j].flags;
+	if( pic ) {
+		image->width = width;
+		image->height = height;
+		image->samples = samples;
 
-					pathname[len + k + 0] = cubemapSides[i][j].suf[0];
-					pathname[len + k + 1] = cubemapSides[i][j].suf[1];
-					pathname[len + k + 2] = 0;
+		R_BindImage( image );
 
-					Q_strncatz( pathname, ".tga", pathsize );
-					samples = R_ReadImageFromDisk( pathname, pathsize,
-												   &( pic[j] ), &width, &height, &flags, j );
-					if( pic[j] ) {
-						if( width != height ) {
-							ri.Com_DPrintf( S_COLOR_YELLOW "Not square cubemap image %s\n", pathname );
-							break;
-						}
-						if( !j ) {
-							lastSize = width;
-						} else if( lastSize != width ) {
-							ri.Com_DPrintf( S_COLOR_YELLOW "Different cubemap image size: %s\n", pathname );
-							break;
-						}
-						if( cbflags & ( IT_FLIPX | IT_FLIPY | IT_FLIPDIAGONAL ) ) {
-							uint8_t *temp = R_PrepareImageBuffer( TEXTURE_FLIPPING_BUF0 + j, width * height * samples );
-							R_FlipTexture( pic[j], temp, width, height, samples,
-										   ( cbflags & IT_FLIPX ) ? true : false,
-										   ( cbflags & IT_FLIPY ) ? true : false,
-										   ( cbflags & IT_FLIPDIAGONAL ) ? true : false );
-							pic[j] = temp;
-						}
-						continue;
-					}
-					break;
-				}
-				if( j == 6 ) {
-					break;
-				}
-			}
-			if( i != 2 ) {
-				break;
-			}
-		}
+		R_Upload32( pic, 0, 0, width, height, flags, image->minmipsize, &image->upload_width,
+					&image->upload_height, samples, false, false );
 
-		if( k != 2 ) {
-			image->width = width;
-			image->height = height;
-			image->samples = samples;
-
-			R_BindImage( image );
-
-			R_Upload32( pic, 0, 0, width, height, flags, image->minmipsize, &image->upload_width,
-				&image->upload_height, samples, false, false );
-
-			Q_strncpyz( image->extension, &pathname[len + k + 2], sizeof( image->extension ) );
-			loaded = true;
-		} else {
-			ri.Com_DPrintf( S_COLOR_YELLOW "Missing image: %s\n", image->name );
-		}
+		Q_strncpyz( image->extension, &pathname[len], sizeof( image->extension ) );
+		loaded = true;
 	} else {
-		uint8_t *pic = NULL;
-
-		Q_strncatz( pathname, ".tga", pathsize );
-		samples = R_ReadImageFromDisk( pathname, pathsize, &pic, &width, &height, &flags, 0 );
-
-		if( pic ) {
-			image->width = width;
-			image->height = height;
-			image->samples = samples;
-
-			R_BindImage( image );
-
-			R_Upload32( &pic, 0, 0, width, height, flags, image->minmipsize, &image->upload_width,
-						&image->upload_height, samples, false, false );
-
-			Q_strncpyz( image->extension, &pathname[len], sizeof( image->extension ) );
-			loaded = true;
-		} else {
-			ri.Com_DPrintf( S_COLOR_YELLOW "Missing image: %s\n", image->name );
-		}
+		ri.Com_DPrintf( S_COLOR_YELLOW "Missing image: %s\n", image->name );
 	}
 
 	if( loaded ) {
@@ -980,15 +840,11 @@ static image_t *R_CreateImage( const char *name, int width, int height, int laye
 /*
 * R_LoadImage
 */
-image_t *R_LoadImage( const char *name, uint8_t **pic, int width, int height, int flags, int minmipsize, int tags, int samples ) {
+image_t *R_LoadImage( const char *name, const uint8_t *pic, int width, int height, int flags, int minmipsize, int tags, int samples ) {
 	image_t *image;
 
 	if( !glConfig.sSRGB ) {
 		flags &= ~IT_SRGB;
-	}
-
-	if( !( flags & IT_CUBEMAP ) && ( flags & ( IT_LEFTHALF | IT_RIGHTHALF ) ) ) {
-		width /= 2;
 	}
 
 	image = R_CreateImage( name, width, height, 1, flags, minmipsize, tags, samples );
@@ -1023,7 +879,7 @@ static void R_FreeImage( image_t *image ) {
 *
 * FIXME: not thread-safe!
 */
-void R_ReplaceImage( image_t *image, uint8_t **pic, int width, int height, int flags, int minmipsize, int samples ) {
+void R_ReplaceImage( image_t *image, const uint8_t *pic, int width, int height, int flags, int minmipsize, int samples ) {
 	assert( image );
 	assert( image->texnum );
 
@@ -1041,9 +897,7 @@ void R_ReplaceImage( image_t *image, uint8_t **pic, int width, int height, int f
 					&( image->upload_width ), &( image->upload_height ), samples, true, false );
 	}
 
-	if( !( image->flags & IT_NO_DATA_SYNC ) ) {
-		R_DeferDataSync();
-	}
+	R_DeferDataSync();
 
 	image->flags = flags;
 	image->width = width;
@@ -1057,7 +911,7 @@ void R_ReplaceImage( image_t *image, uint8_t **pic, int width, int height, int f
 /*
 * R_ReplaceSubImage
 */
-void R_ReplaceSubImage( image_t *image, int x, int y, uint8_t **pic, int width, int height ) {
+void R_ReplaceSubImage( image_t *image, int x, int y, const uint8_t *pic, int width, int height ) {
 	assert( image );
 	assert( image->texnum );
 
@@ -1066,9 +920,7 @@ void R_ReplaceSubImage( image_t *image, int x, int y, uint8_t **pic, int width, 
 	R_Upload32( pic, x, y, width, height, image->flags, image->minmipsize,
 				NULL, NULL, image->samples, true, true );
 
-	if( !( image->flags & IT_NO_DATA_SYNC ) ) {
-		R_DeferDataSync();
-	}
+	R_DeferDataSync();
 
 	image->registrationSequence = rsh.registrationSequence;
 }
@@ -1256,7 +1108,7 @@ static void R_InitNoTexture( int *w, int *h, int *flags, int *samples ) {
 	*samples = 3;
 
 	// ch : check samples
-	data = R_PrepareImageBuffer( TEXTURE_LOADING_BUF0, 8 * 8 * 3 );
+	data = R_PrepareImageBuffer( TEXTURE_LOADING_BUF, 8 * 8 * 3 );
 	for( x = 0; x < 8; x++ ) {
 		for( y = 0; y < 8; y++ ) {
 			data[( y * 8 + x ) * 3 + 0] = dottexture[x & 3][y & 3] * 127;
@@ -1283,7 +1135,7 @@ static uint8_t *R_InitSolidColorTexture( int *w, int *h, int *flags, int *sample
 	}
 
 	// ch : check samples
-	data = R_PrepareImageBuffer( TEXTURE_LOADING_BUF0, 1 * 1 * 3 );
+	data = R_PrepareImageBuffer( TEXTURE_LOADING_BUF, 1 * 1 * 3 );
 	data[0] = data[1] = data[2] = color;
 	return data;
 }
@@ -1304,7 +1156,7 @@ static void R_InitParticleTexture( int *w, int *h, int *flags, int *samples ) {
 	*flags = IT_NOMIPMAP | IT_SRGB;
 	*samples = 4;
 
-	data = R_PrepareImageBuffer( TEXTURE_LOADING_BUF0, 16 * 16 * 4 );
+	data = R_PrepareImageBuffer( TEXTURE_LOADING_BUF, 16 * 16 * 4 );
 	for( x = 0; x < 16; x++ ) {
 		dx2 = x - 8;
 		dx2 = dx2 * dx2;
@@ -1323,23 +1175,6 @@ static void R_InitParticleTexture( int *w, int *h, int *flags, int *samples ) {
 */
 static void R_InitWhiteTexture( int *w, int *h, int *flags, int *samples ) {
 	R_InitSolidColorTexture( w, h, flags, samples, 255, true );
-}
-
-/*
-* R_InitWhiteCubemapTexture
-*/
-static void R_InitWhiteCubemapTexture( int *w, int *h, int *flags, int *samples ) {
-	int i;
-
-	*w = *h = 1;
-	*flags = IT_CUBEMAP | IT_SRGB;
-	*samples = 3;
-
-	for( i = 0; i < 6; i++ ) {
-		uint8_t *data;
-		data = R_PrepareImageBuffer( TEXTURE_LOADING_BUF0 + i, 1 * 1 * 3 );
-		data[0] = data[1] = data[2] = 255;
-	}
 }
 
 /*
@@ -1383,7 +1218,7 @@ static void R_InitBlueNoiseTexture( int * w, int * h, int * flags, int * samples
 		ri.Com_Error( ERR_FATAL, "stbi_load_from_memory: out of memory (alloc at %s:%i)", __FILE__, __LINE__ );
 	}
 
-	uint8_t * ibuf = R_PrepareImageBuffer( TEXTURE_LOADING_BUF0, *w * *h );
+	uint8_t * ibuf = R_PrepareImageBuffer( TEXTURE_LOADING_BUF, *w * *h );
 	memcpy( ibuf, data, *w * *h );
 
 	stbi_image_free( data );
@@ -1421,13 +1256,11 @@ void R_InitViewportTexture( image_t **texture, const char *name, int id,
 
 	// create a new texture or update the old one
 	if( !( *texture ) || ( *texture )->width != width || ( *texture )->height != height ) {
-		uint8_t *data = NULL;
-
 		if( !*texture ) {
 			char uploadName[128];
 
 			Q_snprintfz( uploadName, sizeof( uploadName ), "***%s_%i***", name, id );
-			t = *texture = R_LoadImage( uploadName, &data, width, height, flags, 1, tags, samples );
+			t = *texture = R_LoadImage( uploadName, NULL, width, height, flags, 1, tags, samples );
 		} else {
 			t = *texture;
 			t->width = width;
@@ -1435,8 +1268,7 @@ void R_InitViewportTexture( image_t **texture, const char *name, int id,
 
 			R_BindImage( t );
 
-			R_Upload32( &data, 0, 0, width, height, flags, 1,
-						&t->upload_width, &t->upload_height, t->samples, false, false );
+			R_Upload32( NULL, 0, 0, width, height, flags, 1, &t->upload_width, &t->upload_height, t->samples, false, false );
 		}
 
 		// update FBO, if attached
@@ -1598,7 +1430,6 @@ static void R_InitBuiltinImages( void ) {
 	{
 		{ "***r_notexture***", &rsh.noTexture, &R_InitNoTexture },
 		{ "***r_whitetexture***", &rsh.whiteTexture, &R_InitWhiteTexture },
-		{ "***r_whitecubemaptexture***", &rsh.whiteCubemapTexture, &R_InitWhiteCubemapTexture },
 		{ "***r_blacktexture***", &rsh.blackTexture, &R_InitBlackTexture },
 		{ "***r_greytexture***", &rsh.greyTexture, &R_InitGreyTexture },
 		{ "***r_blankbumptexture***", &rsh.blankBumpTexture, &R_InitBlankBumpTexture },
@@ -1611,7 +1442,7 @@ static void R_InitBuiltinImages( void ) {
 	for( i = 0; i < num_builtin_textures; i++ ) {
 		textures[i].init( &w, &h, &flags, &samples );
 
-		image = R_LoadImage( textures[i].name, r_imageBuffers, w, h, flags, 1, IMAGE_TAG_BUILTIN, samples );
+		image = R_LoadImage( textures[i].name, r_imageBuffers[ TEXTURE_LOADING_BUF ], w, h, flags, 1, IMAGE_TAG_BUILTIN, samples );
 
 		*textures[i].image = image;
 	}
@@ -1625,7 +1456,6 @@ static void R_ReleaseBuiltinImages( void ) {
 	rsh.whiteTexture = NULL;
 	rsh.blackTexture = NULL;
 	rsh.greyTexture = NULL;
-	rsh.whiteCubemapTexture = NULL;
 	rsh.blankBumpTexture = NULL;
 	rsh.particleTexture = NULL;
 	rsh.blueNoiseTexture = NULL;

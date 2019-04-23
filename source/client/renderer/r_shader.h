@@ -133,10 +133,6 @@ enum {
 	TC_GEN_BASE,
 	TC_GEN_ENVIRONMENT,
 	TC_GEN_VECTOR,
-	TC_GEN_REFLECTION,
-	TC_GEN_SVECTORS,
-	TC_GEN_PROJECTION,
-	TC_GEN_SURROUND
 };
 
 // tcmod functions
@@ -254,7 +250,7 @@ shader_t    *R_LoadShader( const char *name, shaderType_e type, bool forceDefaul
 
 shader_t    *R_RegisterShader( const char *name, shaderType_e type );
 shader_t    *R_RegisterPic( const char *name );
-shader_t    *R_RegisterAlphaMask( const char *name, int width, int height, uint8_t *data );
+shader_t    *R_RegisterAlphaMask( const char *name, int width, int height, const uint8_t *data );
 shader_t    *R_RegisterLevelshot( const char *name, shader_t *defaultShader, bool *matchesDefault );
 shader_t    *R_RegisterSkin( const char *name );
 shader_t    *R_RegisterLinearPic( const char *name );

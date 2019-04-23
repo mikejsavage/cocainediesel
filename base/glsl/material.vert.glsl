@@ -31,7 +31,7 @@ void main()
 	v_EyeVector = EyeVectorWorld * v_StrMatrix;
 #endif
 
-	v_Position = Position.xyz;
+	v_Position = ( u_ObjectMatrix * Position ).xyz;
 
 	gl_Position = u_ModelViewProjectionMatrix * Position;
 }

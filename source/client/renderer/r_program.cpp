@@ -52,6 +52,7 @@ typedef struct glsl_program_s {
 	int binaryCachePos;
 
 	struct loc_s {
+		int ObjectMatrix;
 		int ModelViewMatrix;
 		int ModelViewProjectionMatrix;
 
@@ -542,6 +543,7 @@ static const glsl_feature_t glsl_features_material[] =
 	{ GLSL_SHADER_COMMON_ALPHA_GEN_VERTEX, "#define APPLY_ALPHA_VERTEX\n", "_av" },
 
 	{ GLSL_SHADER_COMMON_DRAWFLAT, "#define APPLY_DRAWFLAT\n", "_flat" },
+	{ GLSL_SHADER_COMMON_FOG, "#define APPLY_FOG\n", "_fog" },
 
 	{ GLSL_SHADER_COMMON_AUTOSPRITE, "#define APPLY_AUTOSPRITE\n", "" },
 	{ GLSL_SHADER_COMMON_AUTOSPRITE2, "#define APPLY_AUTOSPRITE2\n", "" },
@@ -598,6 +600,7 @@ static const glsl_feature_t glsl_features_q3a[] =
 	{ GLSL_SHADER_COMMON_ALPHA_GEN_VERTEX, "#define APPLY_ALPHA_VERTEX\n", "_av" },
 
 	{ GLSL_SHADER_COMMON_DRAWFLAT, "#define APPLY_DRAWFLAT\n", "_flat" },
+	{ GLSL_SHADER_COMMON_FOG, "#define APPLY_FOG\n", "_fog" },
 
 	{ GLSL_SHADER_COMMON_AUTOSPRITE, "#define APPLY_AUTOSPRITE\n", "" },
 	{ GLSL_SHADER_COMMON_AUTOSPRITE2, "#define APPLY_AUTOSPRITE2\n", "" },
@@ -1599,12 +1602,17 @@ void RP_UpdateShaderUniforms( int elem,
 * RP_UpdateViewUniforms
 */
 void RP_UpdateViewUniforms( int elem,
-							const mat4_t modelviewMatrix, const mat4_t modelviewProjectionMatrix,
-							const vec3_t viewOrigin, const mat3_t viewAxis,
-							int viewport[4],
-							float zNear, float zFar ) {
+	const mat4_t objectMatrix,
+	const mat4_t modelviewMatrix, const mat4_t modelviewProjectionMatrix,
+	const vec3_t viewOrigin, const mat3_t viewAxis,
+	int viewport[4],
+	float zNear, float zFar
+) {
 	glsl_program_t *program = r_glslprograms + elem - 1;
 
+	if( program->loc.ObjectMatrix >= 0 ) {
+		glUniformMatrix4fv( program->loc.ObjectMatrix, 1, GL_FALSE, objectMatrix );
+	}
 	if( program->loc.ModelViewMatrix >= 0 ) {
 		glUniformMatrix4fv( program->loc.ModelViewMatrix, 1, GL_FALSE, modelviewMatrix );
 	}
@@ -1813,6 +1821,7 @@ void RP_UpdateKawaseUniforms( int elem, int TexWidth, int TexHeight, int iterati
 static void RP_GetUniformLocations( glsl_program_t *program ) {
 	memset( &program->loc, -1, sizeof( program->loc ) );
 
+	program->loc.ObjectMatrix = glGetUniformLocation( program->object, "u_ObjectMatrix" );
 	program->loc.ModelViewMatrix = glGetUniformLocation( program->object, "u_ModelViewMatrix" );
 	program->loc.ModelViewProjectionMatrix = glGetUniformLocation( program->object, "u_ModelViewProjectionMatrix" );
 

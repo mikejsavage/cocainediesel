@@ -53,7 +53,7 @@ void main(void)
 	QF_ALPHATEST(color.a);
 #endif
 
-#ifdef APPLY_DRAWFLAT
+#ifdef APPLY_FOG
 	color.rgb = Fog( color.rgb, length( v_Position - u_ViewOrigin ) );
 	color.rgb += Dither();
 #endif

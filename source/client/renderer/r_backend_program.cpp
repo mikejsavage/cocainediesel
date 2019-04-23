@@ -486,11 +486,12 @@ static void RB_UpdateCommonUniforms( int program, const shaderpass_t *pass, mat4
 	}
 
 	RP_UpdateViewUniforms( program,
-						   rb.modelviewMatrix, rb.modelviewProjectionMatrix,
-						   rb.cameraOrigin, rb.cameraAxis,
-						   rb.gl.viewport,
-						   rb.zNear, rb.zFar
-						   );
+		rb.objectMatrix,
+		rb.modelviewMatrix, rb.modelviewProjectionMatrix,
+		rb.cameraOrigin, rb.cameraAxis,
+		rb.gl.viewport,
+		rb.zNear, rb.zFar
+	);
 
 	if( RB_IsAlphaBlending( rb.gl.state & GLSTATE_SRCBLEND_MASK, rb.gl.state & GLSTATE_DSTBLEND_MASK ) ) {
 		blendMix[1] = 1;
@@ -505,12 +506,12 @@ static void RB_UpdateCommonUniforms( int program, const shaderpass_t *pass, mat4
 	}
 
 	RP_UpdateShaderUniforms( program,
-							 rb.currentShaderTime,
-							 entOrigin, entDist, rb.entityColor,
-							 constColor,
-							 pass->rgbgen.func.type != SHADER_FUNC_NONE ? pass->rgbgen.func.args : pass->rgbgen.args,
-							 pass->alphagen.func.type != SHADER_FUNC_NONE ? pass->alphagen.func.args : pass->alphagen.args,
-							 texMatrix, colorMod );
+		rb.currentShaderTime,
+		entOrigin, entDist, rb.entityColor,
+		constColor,
+		pass->rgbgen.func.type != SHADER_FUNC_NONE ? pass->rgbgen.func.args : pass->rgbgen.args,
+		pass->alphagen.func.type != SHADER_FUNC_NONE ? pass->alphagen.func.args : pass->alphagen.args,
+		texMatrix, colorMod );
 
 	RP_UpdateBlendMixUniform( program, blendMix );
 
@@ -594,7 +595,7 @@ static void RB_RenderMeshGLSL_Material( const shaderpass_t *pass, r_glslfeat_t p
 		}
 
 		if( DRAWFLAT() ) {
-			programFeatures |= GLSL_SHADER_COMMON_DRAWFLAT | GLSL_SHADER_MATERIAL_BASETEX_ALPHA_ONLY;
+			programFeatures |= GLSL_SHADER_COMMON_DRAWFLAT | GLSL_SHADER_COMMON_FOG | GLSL_SHADER_MATERIAL_BASETEX_ALPHA_ONLY;
 		}
 	}
 
@@ -802,7 +803,7 @@ static void RB_RenderMeshGLSL_Q3AShader( const shaderpass_t *pass, r_glslfeat_t 
 
 	if( applyLighting ) {
 		if( DRAWFLAT() ) {
-			programFeatures |= GLSL_SHADER_COMMON_DRAWFLAT;
+			programFeatures |= GLSL_SHADER_COMMON_DRAWFLAT | GLSL_SHADER_COMMON_FOG;
 		}
 	}
 
@@ -944,6 +945,10 @@ void RB_RenderMeshGLSLProgrammed( const shaderpass_t *pass, int programType ) {
 	features |= RB_InstancedArraysProgramFeatures();
 	features |= RB_AlphatestProgramFeatures( pass );
 	features |= RB_sRGBProgramFeatures( pass );
+
+	if( rb.currentShader->flags & SHADER_FOG ) {
+		features |= GLSL_SHADER_COMMON_FOG;
+	}
 
 	if( ( rb.currentShader->flags & SHADER_SOFT_PARTICLE )
 		&& rb.st.screenDepthTexCopy

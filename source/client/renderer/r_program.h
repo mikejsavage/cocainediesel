@@ -107,20 +107,21 @@ void RP_StorePrecacheList( void );
 void RP_ProgramList_f( void );
 
 int RP_RegisterProgram( int type, const char *name, const char *deformsKey,
-						const deformv_t *deforms, int numDeforms, r_glslfeat_t features );
+	const deformv_t *deforms, int numDeforms, r_glslfeat_t features );
 int RP_GetProgramObject( int elem );
 
 void RP_UpdateShaderUniforms( int elem,
-							  float shaderTime,
-							  const vec3_t entOrigin, const vec3_t entDist, const uint8_t *entityColor,
-							  const uint8_t *constColor, const float *rgbGenFuncArgs, const float *alphaGenFuncArgs,
-							  const mat4_t texMatrix, float colorMod );
+	float shaderTime,
+	const vec3_t entOrigin, const vec3_t entDist, const uint8_t *entityColor,
+	const uint8_t *constColor, const float *rgbGenFuncArgs, const float *alphaGenFuncArgs,
+	const mat4_t texMatrix, float colorMod );
 
 void RP_UpdateViewUniforms( int elem,
-							const mat4_t modelviewMatrix, const mat4_t modelviewProjectionMatrix,
-							const vec3_t viewOrigin, const mat3_t viewAxis,
-							int viewport[4],
-							float zNear, float zFar );
+	const mat4_t objectMatrix,
+	const mat4_t modelviewMatrix, const mat4_t modelviewProjectionMatrix,
+	const vec3_t viewOrigin, const mat3_t viewAxis,
+	int viewport[4],
+	float zNear, float zFar );
 
 void RP_UpdateMapUniforms( int elem, float fog );
 

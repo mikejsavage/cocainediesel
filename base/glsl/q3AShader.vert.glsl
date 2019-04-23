@@ -38,7 +38,7 @@ void main(void)
 		v_TexCoord = TextureMatrix2x3Mul(u_TextureMatrix, TexCoord);
 #endif // defined(APPLY_TC_GEN)
 
-	v_Position = Position.xyz;
+	v_Position = ( u_ObjectMatrix * Position ).xyz;
 
 #if defined(APPLY_DRAWFLAT)
 	v_Normal = Normal;

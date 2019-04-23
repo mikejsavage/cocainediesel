@@ -1,3 +1,4 @@
+uniform mat4 u_ObjectMatrix;
 uniform mat4 u_ModelViewMatrix;
 uniform mat4 u_ModelViewProjectionMatrix;
 

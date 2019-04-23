@@ -117,7 +117,7 @@ void main()
 	color.rgb = Greyscale(color.rgb);
 #endif
 
-#ifdef APPLY_DRAWFLAT
+#ifdef APPLY_FOG
 	color.rgb = Fog( color.rgb, length( v_Position - u_ViewOrigin ) );
 	color.rgb += Dither();
 #endif

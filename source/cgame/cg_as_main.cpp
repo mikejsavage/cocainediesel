@@ -35,9 +35,6 @@ static cg_asApiFuncPtr_t cg_asCGameAPI[] = {
 	{ "Vec3 CGame::Input::GetAngularMovement()", &cgs.asInput.getAngularMovement, true },
 	{ "Vec3 CGame::Input::GetMovement()", &cgs.asInput.getMovement, true },
 
-	{ "void CGame::Camera::SetupCamera( CGame::Camera::Camera @cam )", &cgs.asCamera.setupCamera, true },
-	{ "void CGame::Camera::SetupRefdef( const CGame::Camera::Camera @cam, CGame::Camera::Refdef @rd )", &cgs.asCamera.setupRefdef, true },
-
 	{ nullptr, nullptr, false },
 };
 
@@ -69,23 +66,13 @@ static void CG_asInitializeCGameEngineSyntax( asIScriptEngine *asEngine ) {
 	// register shared stuff
 	GS_asInitializeEngine( asEngine );
 
-	// register global enums
-	GS_asRegisterEnums( asEngine, asCGameCameraEnums, "CGame" );
-
 	// register global funcdefs
 	GS_asRegisterFuncdefs( asEngine, asCGameCmdFuncdefs, "CGame::Cmd" );
-
-	// first register all class names so methods using custom classes work
-	GS_asRegisterObjectClassNames( asEngine, asCGameCameraClassesDescriptors, "CGame::Camera" );
-
-	// register classes
-	GS_asRegisterObjectClasses( asEngine, asCGameCameraClassesDescriptors, "CGame::Camera" );
 
 	// register global functions
 	GS_asRegisterGlobalFunctions( asEngine, asCGameGlobalFuncs, "CGame" );
 	GS_asRegisterGlobalFunctions( asEngine, asCGameCmdGlobalFuncs, "CGame::Cmd" );
 	GS_asRegisterGlobalFunctions( asEngine, asCGameInputGlobalFuncs, "CGame::Input" );
-	GS_asRegisterGlobalFunctions( asEngine, asCGameCameraGlobalFuncs, "CGame::Camera" );
 
 	// register global properties
 }

@@ -24,12 +24,9 @@ namespace Input {
 
 int64 curTime;
 int frameTime;
-float pixelRatio;
 
 void Init()
 {
-	pixelRatio = CGame::Camera::GetViewport().screenPixelRatio;
-
 	CGame::Input::Keys::Init();
 }
 

@@ -59,14 +59,6 @@ bool CG_asExecutionErrorReport( int error );
 bool CG_asCallScriptFunc( void *ptr, std::function<void(asIScriptContext *)> setArgs,
 	std::function<void(asIScriptContext *)> getResult );
 
-//
-// cg_as_camera.cpp
-//
-
-extern const gs_asEnum_t asCGameCameraEnums[];
-extern const gs_asClassDescriptor_t * const asCGameCameraClassesDescriptors[];
-extern const gs_asglobfuncs_t asCGameCameraGlobalFuncs[];
-
 
 //
 // cg_as_input.cpp

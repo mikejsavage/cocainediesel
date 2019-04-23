@@ -680,8 +680,6 @@ static void CG_SetupRefDef( cg_viewdef_t *view, refdef_t *rd ) {
 		rd->fov_x *= v;
 		rd->fov_y *= v;
 	}
-
-	CG_asSetupRefdef( view, rd );
 }
 
 /*
@@ -778,8 +776,6 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 	}
 
 	view->fov_x = CalcHorizontalFov( view->fov_y, scr_vrect.width, scr_vrect.height );
-
-	CG_asSetupCamera( view );
 
 	Matrix3_FromAngles( view->angles, view->axis );
 

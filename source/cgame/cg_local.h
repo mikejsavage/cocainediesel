@@ -358,12 +358,6 @@ typedef struct {
 		void *getMovement;
 	} asInput;
 
-	// AS camera subsystem API
-	struct {
-		void *setupCamera;
-		void *setupRefdef;
-	} asCamera;
-
 	// fonts
 	int fontSystemTinySize;
 	int fontSystemSmallSize;
@@ -958,9 +952,6 @@ void CG_asInputMouseMove( int mx, int my );
 unsigned CG_asGetButtonBits( void );
 void CG_asGetAngularMovement( vec3_t viewAngles );
 void CG_asGetMovement( vec3_t movement );
-
-void CG_asSetupCamera( cg_viewdef_t *view );
-void CG_asSetupRefdef( cg_viewdef_t *view, refdef_t *rd );
 
 //
 // cg_input.cpp

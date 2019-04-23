@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 char scoreboardString[MAX_STRING_CHARS];
 const unsigned int scoreboardInterval = 1000;
-static const char *G_PlayerStatsMessage( edict_t *ent );
 
 //======================================================================
 //
@@ -74,7 +73,6 @@ update:
 
 			client->level.scoreboard_time = game.realtime + scoreboardInterval - ( game.realtime % scoreboardInterval );
 			trap_GameCmd( ent, command );
-			trap_GameCmd( ent, G_PlayerStatsMessage( ent ) );
 		}
 	}
 
@@ -171,72 +169,6 @@ void G_ScoreboardMessage_AddSpectators( void ) {
 			ADD_SCOREBOARD_ENTRY( scoreboardString, len, entry );
 		}
 	}
-}
-
-/*
-* G_PlayerStatsMessage
-* generic one to add the stats of the current player into the scoreboard message at cgame
-*/
-static const char *G_PlayerStatsMessage( edict_t *ent ) {
-	const gsitem_t *it;
-	int i;
-	int weakhit, weakshot;
-	int hit, shot;
-	edict_t *target;
-	gclient_t *client;
-	static char entry[MAX_TOKEN_CHARS];
-
-	// when chasing generate from target
-	target = ent;
-	client = ent->r.client;
-
-	if( client->resp.chase.active && game.edicts[client->resp.chase.target].r.client ) {
-		target = &game.edicts[client->resp.chase.target];
-		client = target->r.client;
-	}
-
-	// message header
-	entry[0] = '\0';
-	Q_snprintfz( entry, sizeof( entry ), "plstats 0 \"" );
-	Q_strncatz( entry, va( " %d", PLAYERNUM( target ) ), sizeof( entry ) );
-
-	// weapon loop
-	for( i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
-		it = GS_FindItemByTag( i );
-		assert( it );
-
-		weakhit = hit = 0;
-		weakshot = shot = 0;
-
-		if( it->weakammo_tag != AMMO_NONE ) {
-			weakhit = client->level.stats.accuracy_hits[it->weakammo_tag - AMMO_GUNBLADE];
-			weakshot = client->level.stats.accuracy_shots[it->weakammo_tag - AMMO_GUNBLADE];
-		}
-
-		if( it->ammo_tag != AMMO_NONE ) {
-			hit = client->level.stats.accuracy_hits[it->ammo_tag - AMMO_GUNBLADE];
-			shot = client->level.stats.accuracy_shots[it->ammo_tag - AMMO_GUNBLADE];
-		}
-
-		// both in one
-		Q_strncatz( entry, va( " %d", weakshot + shot ), sizeof( entry ) );
-		if( weakshot + shot > 0 ) {
-			Q_strncatz( entry, va( " %d", weakhit + hit ), sizeof( entry ) );
-
-			if( i == WEAP_LASERGUN || i == WEAP_ELECTROBOLT ) {
-				// strong
-				Q_strncatz( entry, va( " %d", shot ), sizeof( entry ) );
-				if( shot != ( weakshot + shot ) ) {
-					Q_strncatz( entry, va( " %d", hit ), sizeof( entry ) );
-				}
-			}
-		}
-	}
-
-	// add enclosing quote
-	Q_strncatz( entry, "\"", sizeof( entry ) );
-
-	return entry;
 }
 
 //=======================================================================

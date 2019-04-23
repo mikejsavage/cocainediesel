@@ -238,22 +238,8 @@ static void CG_SC_DumpPlayerStats( const char *filename, const char *stats ) {
 * CG_SC_PlayerStats
 */
 static void CG_SC_PlayerStats( void ) {
-	const char *s;
-	int print;
-
-	print = atoi( trap_Cmd_Argv( 1 ) );
-	s = trap_Cmd_Argv( 2 );
-
-	if( !print ) { // scoreboard message update
-		SCR_UpdatePlayerStatsMessage( s );
-		return;
-	}
-
+	const char * s = trap_Cmd_Argv( 1 );
 	CG_SC_PrintPlayerStats( s, CG_Printf, CG_LocalPrint );
-
-	if( print == 2 ) {
-		CG_SC_AutoRecordAction( "stats" );
-	}
 }
 
 /*
@@ -351,11 +337,6 @@ void CG_SC_AutoRecordAction( const char *action ) {
 		if( autorecording ) {
 			trap_Cmd_ExecuteText( EXEC_NOW, "stop cancel silent" );
 			autorecording = false;
-		}
-	} else if( !Q_stricmp( action, "stats" ) ) {
-		if( cg_autoaction_stats->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
-			const char *filename = va( "stats/%s.txt", name );
-			CG_SC_DumpPlayerStats( filename, trap_Cmd_Argv( 2 ) );
 		}
 	} else if( developer->integer ) {
 		CG_Printf( "CG_SC_AutoRecordAction: Unknown action: %s\n", action );

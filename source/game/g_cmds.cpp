@@ -988,7 +988,7 @@ static void Cmd_ShowStats_f( edict_t *ent ) {
 		return;
 	}
 
-	trap_GameCmd( ent, va( "plstats 1 \"%s\"", G_StatsMessage( target ) ) );
+	trap_GameCmd( ent, va( "plstats \"%s\"", G_StatsMessage( target ) ) );
 }
 
 //===========================================================

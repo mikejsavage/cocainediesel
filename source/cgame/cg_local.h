@@ -676,7 +676,6 @@ void CG_ScoresOn_f( void );
 void CG_ScoresOff_f( void );
 bool CG_ExecuteScoreboardTemplateLayout( char *s );
 void SCR_UpdateScoreboardMessage( const char *string );
-void SCR_UpdatePlayerStatsMessage( const char *string );
 bool CG_IsScoreboardShown( void );
 
 //
@@ -691,7 +690,6 @@ extern cvar_t *cg_damageNumbers;
 extern cvar_t *cg_volume_hitsound;    // hit sound volume
 extern cvar_t *cg_autoaction_demo;
 extern cvar_t *cg_autoaction_screenshot;
-extern cvar_t *cg_autoaction_stats;
 extern cvar_t *cg_autoaction_spectator;
 extern cvar_t *cg_simpleItems; // simple items
 extern cvar_t *cg_simpleItemsSize; // simple items

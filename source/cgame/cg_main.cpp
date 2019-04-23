@@ -78,7 +78,6 @@ cvar_t *cg_cartoonEffects;
 cvar_t *cg_volume_hitsound;
 cvar_t *cg_autoaction_demo;
 cvar_t *cg_autoaction_screenshot;
-cvar_t *cg_autoaction_stats;
 cvar_t *cg_autoaction_spectator;
 cvar_t *cg_simpleItems;
 cvar_t *cg_simpleItemsSize;
@@ -545,7 +544,6 @@ static void CG_RegisterVariables( void ) {
 	cg_damageNumbers = trap_Cvar_Get( "cg_damageNumbers", "1", CVAR_ARCHIVE );
 	cg_autoaction_demo =    trap_Cvar_Get( "cg_autoaction_demo", "0", CVAR_ARCHIVE );
 	cg_autoaction_screenshot =  trap_Cvar_Get( "cg_autoaction_screenshot", "0", CVAR_ARCHIVE );
-	cg_autoaction_stats =   trap_Cvar_Get( "cg_autoaction_stats", "0", CVAR_ARCHIVE );
 	cg_autoaction_spectator = trap_Cvar_Get( "cg_autoaction_spectator", "0", CVAR_ARCHIVE );
 	cg_simpleItems =    trap_Cvar_Get( "cg_simpleItems", "0", CVAR_ARCHIVE );
 	cg_simpleItemsSize =    trap_Cvar_Get( "cg_simpleItemsSize", "16", CVAR_ARCHIVE );

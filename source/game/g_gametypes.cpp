@@ -135,7 +135,7 @@ void G_Match_Autorecord_Stats( void ) {
 		if( !ent->r.inuse || ent->s.team == TEAM_SPECTATOR || ( ent->r.svflags & SVF_FAKECLIENT ) ) {
 			continue;
 		}
-		trap_GameCmd( ent, va( "plstats 2 \"%s\"", G_StatsMessage( ent ) ) );
+		trap_GameCmd( ent, va( "plstats \"%s\"", G_StatsMessage( ent ) ) );
 	}
 }
 

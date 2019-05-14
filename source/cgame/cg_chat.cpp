@@ -255,20 +255,17 @@ parse_string:
 	chat->lastActive = chat_active;
 }
 
-void CG_FlashChatHighlight( const unsigned int fromIndex, const char *text )
-{
+void CG_FlashChatHighlight( const unsigned int fromIndex, const char *text ) {
 	// dont highlight ourselves
-	if ( fromIndex == cgs.playerNum ) {
+	if( fromIndex == cgs.playerNum )
 		return;
-	}
 
 	// if we've been highlighted recently, dont let people spam it.. 
 	bool eligible = !cg.chat.lastHighlightTime || cg.chat.lastHighlightTime + GAMECHAT_HIGHLIGHT_TIME < cg.realTime;
 
 	// dont bother doing text match if we've been pinged recently
-	if ( !eligible ) {
+	if( !eligible )
 		return;
-	}
 
 	// do a case insensitive check for the local player name. remove all crap too
 	char nameLower[MAX_STRING_CHARS];
@@ -285,7 +282,7 @@ void CG_FlashChatHighlight( const unsigned int fromIndex, const char *text )
 	// TODO: text match fuzzy ? Levenshtien distance or something might be good here. or at least tokenizing and looking for word
 	// this is probably shitty for some nicks
 	bool hadNick = strstr( msgUncolored, plainName ) != NULL;
-	if ( hadNick ) {
+	if( hadNick ) {
 		trap_VID_FlashWindow();
 		cg.chat.lastHighlightTime = cg.realTime;
 	}

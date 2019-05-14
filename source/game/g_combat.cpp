@@ -542,7 +542,8 @@ void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edi
 			timeDelta = inflictor->timeDelta;
 		}
 
-		G_SplashFrac4D( ent, inflictor->s.origin, radius, pushDir, &frac, timeDelta, attacker == inflictor );
+		bool is_selfdamage = inflictor->r.client != NULL && attacker == inflictor;
+		G_SplashFrac4D( ent, inflictor->s.origin, radius, pushDir, &frac, timeDelta, is_selfdamage );
 
 		damage = max( 0, mindamage + ( ( maxdamage - mindamage ) * frac ) );
 		knockback = max( 0, minknockback + ( ( maxknockback - minknockback ) * frac ) );

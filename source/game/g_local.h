@@ -1073,15 +1073,12 @@ struct edict_s {
 	int mass;
 	float gravity;              // per entity gravity multiplier (1.0 is normal) // use for lowgrav artifact, flares
 
-	edict_t *goalentity;
 	edict_t *movetarget;
-	float yaw_speed;
 
 	int64_t pain_debounce_time;
 
 	float health;
 	int max_health;
-	int gib_health;
 	int deadflag;
 
 	int viewheight;				// height above origin where eyesight is determined
@@ -1123,13 +1120,6 @@ struct edict_s {
 	moveinfo_t moveinfo;        // func movers movement
 
 	snap_edict_t snap; // information that is cleared each frame snap
-
-	//JALFIXME
-	bool is_swim;
-	bool is_step;
-	bool is_ladder;
-	bool was_swim;
-	bool was_step;
 
 	edict_t *trigger_entity;
 	int64_t trigger_timeout;

@@ -158,9 +158,9 @@ static void path_corner_touch( edict_t *self, edict_t *other, cplane_t *plane, i
 		other->s.teleported = true;
 	}
 
-	other->goalentity = other->movetarget = next;
+	other->movetarget = next;
 
-	VectorSubtract( other->goalentity->s.origin, other->s.origin, v );
+	VectorSubtract( other->movetarget->s.origin, other->s.origin, v );
 }
 
 void SP_path_corner( edict_t *self ) {

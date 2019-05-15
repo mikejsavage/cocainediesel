@@ -92,44 +92,6 @@ void GS_TraceLaserBeam( trace_t *trace, vec3_t origin, vec3_t angles, float rang
 	}
 }
 
-static bool GS_CheckBladeAutoAttack( player_state_t *playerState, int timeDelta ) {
-	vec3_t origin, dir, end;
-	trace_t trace;
-	entity_state_t *targ, *player;
-	gs_weapon_definition_t *weapondef = GS_GetWeaponDef( WEAP_GUNBLADE );
-
-	if( playerState->POVnum <= 0 || (int)playerState->POVnum > gs.maxclients ) {
-		return false;
-	}
-
-	if( !( playerState->pmove.stats[PM_STAT_FEATURES] & PMFEAT_GUNBLADEAUTOATTACK ) ) {
-		return false;
-	}
-
-	VectorCopy( playerState->pmove.origin, origin );
-	origin[2] += playerState->viewheight;
-	AngleVectors( playerState->viewangles, dir, NULL, NULL );
-	VectorMA( origin, weapondef->firedef.timeout, dir, end );
-
-	// check for a player to touch
-	gs.api.Trace( &trace, origin, vec3_origin, vec3_origin, end, playerState->POVnum, CONTENTS_BODY, timeDelta );
-	if( trace.ent <= 0 || trace.ent > gs.maxclients ) {
-		return false;
-	}
-
-	player = gs.api.GetEntityState( playerState->POVnum, 0 );
-	targ = gs.api.GetEntityState( trace.ent, 0 );
-	if( !( targ->effects & EF_TAKEDAMAGE ) || targ->type != ET_PLAYER ) {
-		return false;
-	}
-
-	if( GS_TeamBasedGametype() && ( targ->team == player->team ) ) {
-		return false;
-	}
-
-	return true;
-}
-
 
 //============================================================
 //
@@ -303,14 +265,6 @@ int GS_ThinkPlayerWeapon( player_state_t *playerState, int buttons, int msecs, i
 					gs.api.PredictedEvent( playerState->POVnum, EV_NOAMMOCLICK, 0 );
 					goto done;
 				}
-			}
-			// gunblade auto attack is special
-			else if( playerState->stats[STAT_WEAPON] == WEAP_GUNBLADE &&
-					 playerState->pmove.stats[PM_STAT_NOUSERCONTROL] <= 0 &&
-					 playerState->pmove.stats[PM_STAT_NOAUTOATTACK] <= 0 &&
-					 GS_CheckBladeAutoAttack( playerState, timeDelta ) ) {
-				firedef = &GS_GetWeaponDef( WEAP_GUNBLADE )->firedef;
-				playerState->weaponState = WEAPON_STATE_FIRING;
 			}
 		}
 	}

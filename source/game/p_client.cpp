@@ -551,7 +551,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	client->ps.pmove.pm_flags = PMF_TIME_TELEPORT;
 	client->ps.pmove.pm_time = 14;
 	client->ps.pmove.stats[PM_STAT_NOUSERCONTROL] = CLIENT_RESPAWN_FREEZE_DELAY;
-	client->ps.pmove.stats[PM_STAT_NOAUTOATTACK] = 1000;
 
 	// set race stats to invisible
 	client->ps.stats[STAT_TIME_SELF] = STAT_NOTSET;

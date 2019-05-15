@@ -35,7 +35,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PM_SPECIAL_CROUCH_INHIBIT 400
 #define PM_AIRCONTROL_BOUNCE_DELAY 200
 #define PM_OVERBOUNCE       1.01f
-#define PM_FORWARD_ACCEL_TIMEDELAY 0 // delay before the forward acceleration kicks in
 
 //===============================================================
 
@@ -1542,44 +1541,14 @@ void Pmove( pmove_t *pmove ) {
 			}
 		}
 
-		if( pm->playerState->pmove.stats[PM_STAT_NOUSERCONTROL] > 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_NOUSERCONTROL] -= pm->cmd.msec;
-		} else if( pm->playerState->pmove.stats[PM_STAT_NOUSERCONTROL] < 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_NOUSERCONTROL] = 0;
-		}
+		pmove_state_t & pmove = pm->playerState->pmove;
 
-		if( pm->playerState->pmove.stats[PM_STAT_KNOCKBACK] > 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_KNOCKBACK] -= pm->cmd.msec;
-		} else if( pm->playerState->pmove.stats[PM_STAT_KNOCKBACK] < 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_KNOCKBACK] = 0;
-		}
-
+		pmove.stats[PM_STAT_NOUSERCONTROL] = Max2( 0, pmove.stats[PM_STAT_NOUSERCONTROL] - pm->cmd.msec );
+		pmove.stats[PM_STAT_KNOCKBACK] = Max2( 0, pmove.stats[PM_STAT_KNOCKBACK] - pm->cmd.msec );
+		pmove.stats[PM_STAT_DASHTIME] = Max2( 0, pmove.stats[PM_STAT_DASHTIME] - pm->cmd.msec );
+		pmove.stats[PM_STAT_WJTIME] = Max2( 0, pmove.stats[PM_STAT_WJTIME] - pm->cmd.msec );
 		// PM_STAT_CROUCHTIME is handled at PM_AdjustBBox
 		// PM_STAT_ZOOMTIME is handled at PM_CheckZoom
-
-		if( pm->playerState->pmove.stats[PM_STAT_DASHTIME] > 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_DASHTIME] -= pm->cmd.msec;
-		} else if( pm->playerState->pmove.stats[PM_STAT_DASHTIME] < 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_DASHTIME] = 0;
-		}
-
-		if( pm->playerState->pmove.stats[PM_STAT_WJTIME] > 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_WJTIME] -= pm->cmd.msec;
-		} else if( pm->playerState->pmove.stats[PM_STAT_WJTIME] < 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_WJTIME] = 0;
-		}
-
-		if( pm->playerState->pmove.stats[PM_STAT_NOAUTOATTACK] > 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_NOAUTOATTACK] -= pm->cmd.msec;
-		} else if( pm->playerState->pmove.stats[PM_STAT_NOAUTOATTACK] < 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_NOAUTOATTACK] = 0;
-		}
-
-		if( pm->playerState->pmove.stats[PM_STAT_FWDTIME] > 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_FWDTIME] -= pm->cmd.msec;
-		} else if( pm->playerState->pmove.stats[PM_STAT_FWDTIME] < 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_FWDTIME] = 0;
-		}
 	}
 
 	pml.forwardPush = pm->cmd.forwardmove * SPEEDKEY / 127.0f;
@@ -1591,12 +1560,6 @@ void Pmove( pmove_t *pmove ) {
 		pml.sidePush = 0;
 		pml.upPush = 0;
 		pm->cmd.buttons = 0;
-	}
-
-	// in order the forward accelt to kick in, one has to keep +fwd pressed
-	// for some time without strafing
-	if( pml.forwardPush <= 0 || pml.sidePush ) {
-		pm->playerState->pmove.stats[PM_STAT_FWDTIME] = PM_FORWARD_ACCEL_TIMEDELAY;
 	}
 
 	if( pm->playerState->pmove.pm_type != PM_NORMAL ) { // includes dead, freeze, chasecam...

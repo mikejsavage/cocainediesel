@@ -25,8 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "q_collision.h"
 #include "gs_public.h"
 
-#define GS_SLIDEMOVE_CLAMPING
-
 #define STOP_EPSILON    0.1
 
 //==================================================
@@ -37,33 +35,25 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 * GS_ClipVelocity
 */
 void GS_ClipVelocity( vec3_t in, vec3_t normal, vec3_t out, float overbounce ) {
-	float backoff;
-	float change;
-	int i;
-
-	backoff = DotProduct( in, normal );
-
+	float backoff = DotProduct( in, normal );
 	if( backoff <= 0 ) {
 		backoff *= overbounce;
 	} else {
 		backoff /= overbounce;
 	}
 
-	for( i = 0; i < 3; i++ ) {
-		change = normal[i] * backoff;
+	for( int i = 0; i < 3; i++ ) {
+		float change = normal[i] * backoff;
 		out[i] = in[i] - change;
 	}
-#ifdef GS_SLIDEMOVE_CLAMPING
-	{
-		float oldspeed, newspeed;
-		oldspeed = VectorLength( in );
-		newspeed = VectorLength( out );
-		if( newspeed > oldspeed ) {
-			VectorNormalize( out );
-			VectorScale( out, oldspeed, out );
-		}
+
+	float oldspeed, newspeed;
+	oldspeed = VectorLength( in );
+	newspeed = VectorLength( out );
+	if( newspeed > oldspeed ) {
+		VectorNormalize( out );
+		VectorScale( out, oldspeed, out );
 	}
-#endif
 }
 
 //==================================================

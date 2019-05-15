@@ -540,8 +540,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 
 	// don't put spectators in the game
 	if( !ghost ) {
-		if( KillBox( self, MOD_TELEFRAG ) ) {
-		}
+		KillBox( self, MOD_TELEFRAG );
 	}
 
 	self->s.attenuation = ATTN_NORM;

@@ -138,7 +138,6 @@ static bool GS_CheckBladeAutoAttack( player_state_t *playerState, int timeDelta 
 //============================================================
 
 #define NOAMMOCLICK_PENALTY 100
-#define NOAMMOCLICK_AUTOSWITCH 50
 
 /*
 * GS_SelectBestWeapon

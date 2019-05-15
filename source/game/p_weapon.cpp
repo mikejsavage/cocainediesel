@@ -189,23 +189,16 @@ static void G_ProjectileDistancePrestep( edict_t *projectile, float distance ) {
 /*
 * G_Fire_Gunblade_Knife
 */
-static edict_t *G_Fire_Gunblade_Knife( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner ) {
-	int range, knockback;
-	float damage;
-	int timeDelta;
-
-	timeDelta = 0;
+static void G_Fire_Gunblade_Knife( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner ) {
+	int timeDelta = 0;
 	if( owner && owner->r.client ) {
 		timeDelta = owner->r.client->timeDelta;
 	}
 
-	range = firedef->timeout;
-	damage = firedef->damage;
-	knockback = firedef->knockback;
-
+	int range = firedef->timeout;
+	float damage = firedef->damage;
+	int knockback = firedef->knockback;
 	W_Fire_Blade( owner, range, origin, angles, damage, knockback, timeDelta );
-
-	return NULL;
 }
 
 
@@ -213,23 +206,17 @@ static edict_t *G_Fire_Gunblade_Knife( vec3_t origin, vec3_t angles, firedef_t *
 * G_Fire_Rocket
 */
 static edict_t *G_Fire_Rocket( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner, int seed ) {
-	int speed, knockback, minDamage, minKnockback, radius;
-	float damage;
-	int timeDelta;
-
-	// FIXME2: Rockets go slower underwater, do this at the actual rocket firing function
-
-	timeDelta = 0;
+	int timeDelta = 0;
 	if( owner && owner->r.client ) {
 		timeDelta = owner->r.client->timeDelta;
 	}
 
-	speed = firedef->speed;
-	damage = firedef->damage;
-	knockback = firedef->knockback;
-	minDamage = firedef->mindamage;
-	minKnockback = firedef->minknockback;
-	radius = firedef->splash_radius;
+	int speed = firedef->speed;
+	float damage = firedef->damage;
+	int knockback = firedef->knockback;
+	int minDamage = firedef->mindamage;
+	int minKnockback = firedef->minknockback;
+	int radius = firedef->splash_radius;
 
 	return W_Fire_Rocket( owner, origin, angles, speed, damage, minKnockback, knockback, minDamage,
 		radius, firedef->timeout, timeDelta );
@@ -239,72 +226,48 @@ static edict_t *G_Fire_Rocket( vec3_t origin, vec3_t angles, firedef_t *firedef,
 * G_Fire_Machinegun
 */
 static edict_t *G_Fire_Machinegun( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner, int seed ) {
-	int range, knockback;
-	float damage;
-	int timeDelta;
-
+	int timeDelta = 0;
 	if( owner && owner->r.client ) {
 		timeDelta = owner->r.client->timeDelta;
-	} else {
-		timeDelta = 0;
 	}
 
-	range = firedef->timeout;
-	damage = firedef->damage;
-	knockback = firedef->knockback;
-
-	W_Fire_Bullet( owner, origin, angles, seed, range, firedef->spread, firedef->v_spread,
-		damage, knockback, timeDelta );
-
-	return NULL;
+	int range = firedef->timeout;
+	float damage = firedef->damage;
+	int knockback = firedef->knockback;
+	return W_Fire_Bullet( owner, origin, angles, seed, range, firedef->spread, firedef->v_spread, damage, knockback, timeDelta );
 }
 
 /*
 * G_Fire_Riotgun
 */
-static edict_t *G_Fire_Riotgun( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner ) {
-	int range, knockback;
-	float damage;
-	int timeDelta;
-
+static void G_Fire_Riotgun( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner ) {
+	int timeDelta = 0;
 	if( owner && owner->r.client ) {
 		timeDelta = owner->r.client->timeDelta;
-	} else {
-		timeDelta = 0;
 	}
 
-	range = firedef->timeout;
-	damage = firedef->damage;
-	knockback = firedef->knockback;
-
+	int range = firedef->timeout;
+	float damage = firedef->damage;
+	int knockback = firedef->knockback;
 	W_Fire_Riotgun( owner, origin, angles, range, firedef->spread, firedef->v_spread,
 		firedef->projectile_count, damage, knockback, timeDelta );
-
-	return NULL;
 }
 
 /*
 * G_Fire_Grenade
 */
 static edict_t *G_Fire_Grenade( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner, int seed ) {
-	int speed, minKnockback, knockback, minDamage, radius;
-	float damage;
-	int timeDelta;
-
-	// FIXME2: projectiles go slower underwater, do this at the actual firing function
-
-	timeDelta = 0;
+	int timeDelta = 0;
 	if( owner && owner->r.client ) {
 		timeDelta = owner->r.client->timeDelta;
 	}
 
-	speed = firedef->speed;
-	damage = firedef->damage;
-	knockback = firedef->knockback;
-	minDamage = firedef->mindamage;
-	minKnockback = firedef->minknockback;
-	radius = firedef->splash_radius;
-
+	int speed = firedef->speed;
+	float damage = firedef->damage;
+	int knockback = firedef->knockback;
+	int minDamage = firedef->mindamage;
+	int minKnockback = firedef->minknockback;
+	int radius = firedef->splash_radius;
 	return W_Fire_Grenade( owner, origin, angles, speed, damage, minKnockback, knockback,
 		minDamage, radius, firedef->timeout, timeDelta, true );
 }
@@ -313,24 +276,17 @@ static edict_t *G_Fire_Grenade( vec3_t origin, vec3_t angles, firedef_t *firedef
 * G_Fire_Plasma
 */
 static edict_t *G_Fire_Plasma( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner, int seed ) {
-	int speed, knockback, minDamage, minKnockback, radius;
-	float damage;
-	int timeDelta;
-
-	// FIXME2: projectiles go slower underwater, do this at the actual firing function
-
-	timeDelta = 0;
+	int timeDelta = 0;
 	if( owner && owner->r.client ) {
 		timeDelta = owner->r.client->timeDelta;
 	}
 
-	speed = firedef->speed;
-	damage = firedef->damage;
-	knockback = firedef->knockback;
-	minDamage = firedef->mindamage;
-	minKnockback = firedef->minknockback;
-	radius = firedef->splash_radius;
-
+	int speed = firedef->speed;
+	float damage = firedef->damage;
+	int knockback = firedef->knockback;
+	int minDamage = firedef->mindamage;
+	int minKnockback = firedef->minknockback;
+	int radius = firedef->splash_radius;
 	return W_Fire_Plasma( owner, origin, angles, damage, minKnockback, knockback, minDamage, radius,
 		speed, firedef->timeout, timeDelta );
 }
@@ -339,46 +295,33 @@ static edict_t *G_Fire_Plasma( vec3_t origin, vec3_t angles, firedef_t *firedef,
 * G_Fire_Lasergun
 */
 static edict_t *G_Fire_Lasergun( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner, int seed ) {
-	int range, knockback;
-	float damage;
-	int timeDelta;
-
-	timeDelta = 0;
+	int timeDelta = 0;
 	if( owner && owner->r.client ) {
 		timeDelta = owner->r.client->timeDelta;
 	}
 
-	range = firedef->timeout;
-	damage = firedef->damage;
-	knockback = firedef->knockback;
-
-	// no need to continue if strong mode
+	int range = firedef->timeout;
+	float damage = firedef->damage;
+	int knockback = firedef->knockback;
 	return W_Fire_Lasergun( owner, origin, angles, damage, knockback, range, timeDelta );
 }
-
 
 /*
 * G_Fire_Bolt
 */
-static edict_t *G_Fire_Bolt( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner, int seed ) {
-	int minDamageRange;
-	float maxdamage, mindamage, maxknockback, minknockback;
-	int timeDelta;
-
-	timeDelta = 0;
+static void G_Fire_Bolt( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner, int seed ) {
+	int timeDelta = 0;
 	if( owner && owner->r.client ) {
 		timeDelta = owner->r.client->timeDelta;
 	}
 
-	minDamageRange = firedef->timeout;
-	maxdamage = firedef->damage;
-	mindamage = firedef->mindamage;
-	maxknockback = firedef->knockback;
-	minknockback = firedef->minknockback;
-
+	int minDamageRange = firedef->timeout;
+	float maxdamage = firedef->damage;
+	int mindamage = firedef->mindamage;
+	int maxknockback = firedef->knockback;
+	int minknockback = firedef->minknockback;
 	W_Fire_Electrobolt_FullInstant( owner, origin, angles, maxdamage, mindamage,
 		maxknockback, minknockback, ELECTROBOLT_RANGE, minDamageRange, timeDelta );
-	return NULL;
 }
 
 /*
@@ -387,7 +330,6 @@ static edict_t *G_Fire_Bolt( vec3_t origin, vec3_t angles, firedef_t *firedef, e
 void G_FireWeapon( edict_t *ent, int parm ) {
 	gs_weapon_definition_t *weapondef;
 	firedef_t *firedef;
-	edict_t *projectile;
 	vec3_t origin, angles;
 	vec3_t viewoffset = { 0, 0, 0 };
 	int ucmdSeed;
@@ -409,7 +351,7 @@ void G_FireWeapon( edict_t *ent, int parm ) {
 
 	// shoot
 
-	projectile = NULL;
+	edict_t *projectile = NULL;
 
 	switch( weapondef->weapon_id ) {
 		default:
@@ -417,7 +359,7 @@ void G_FireWeapon( edict_t *ent, int parm ) {
 			break;
 
 		case WEAP_GUNBLADE:
-			projectile = G_Fire_Gunblade_Knife( origin, angles, firedef, ent );
+			G_Fire_Gunblade_Knife( origin, angles, firedef, ent );
 			break;
 
 		case WEAP_MACHINEGUN:
@@ -425,7 +367,7 @@ void G_FireWeapon( edict_t *ent, int parm ) {
 			break;
 
 		case WEAP_RIOTGUN:
-			projectile = G_Fire_Riotgun( origin, angles, firedef, ent );
+			G_Fire_Riotgun( origin, angles, firedef, ent );
 			break;
 
 		case WEAP_GRENADELAUNCHER:
@@ -435,6 +377,7 @@ void G_FireWeapon( edict_t *ent, int parm ) {
 		case WEAP_ROCKETLAUNCHER:
 			projectile = G_Fire_Rocket( origin, angles, firedef, ent, ucmdSeed );
 			break;
+
 		case WEAP_PLASMAGUN:
 			projectile = G_Fire_Plasma( origin, angles, firedef, ent, ucmdSeed );
 			break;
@@ -444,7 +387,7 @@ void G_FireWeapon( edict_t *ent, int parm ) {
 			break;
 
 		case WEAP_ELECTROBOLT:
-			projectile = G_Fire_Bolt( origin, angles, firedef, ent, ucmdSeed );
+			G_Fire_Bolt( origin, angles, firedef, ent, ucmdSeed );
 			break;
 	}
 

@@ -206,12 +206,8 @@ static void G_BlendFrameDamage( edict_t *ent, float damage, float *old_damage, c
 * G_KnockBackPush
 */
 static void G_KnockBackPush( edict_t *targ, edict_t *attacker, const vec3_t basedir, int knockback, int dflags ) {
-	float mass = 75.0f;
-	float push;
-	vec3_t dir;
-
 	if( targ->flags & FL_NO_KNOCKBACK ) {
-		knockback = 0;
+		return;
 	}
 
 	knockback *= g_knockback_scale->value;
@@ -220,24 +216,22 @@ static void G_KnockBackPush( edict_t *targ, edict_t *attacker, const vec3_t base
 		return;
 	}
 
-	if( ( targ->movetype == MOVETYPE_NONE ) ||
-		( targ->movetype == MOVETYPE_PUSH ) ||
-		( targ->movetype == MOVETYPE_STOP ) ||
-		( targ->movetype == MOVETYPE_BOUNCE ) ) {
+	if( targ->movetype == MOVETYPE_NONE ||
+		targ->movetype == MOVETYPE_PUSH ||
+		targ->movetype == MOVETYPE_STOP ||
+		targ->movetype == MOVETYPE_BOUNCE ) {
 		return;
 	}
 
-	if( targ->mass > 75 ) {
-		mass = targ->mass;
-	}
-
-	push = 1000.0f * ( (float)knockback / mass );
+	int mass = Max2( targ->mass, 75 );
+	float push = 1000.0f * float( knockback ) / float( mass );
 	if( push < MIN_KNOCKBACK_SPEED ) {
 		return;
 	}
 
+	vec3_t dir;
 	VectorNormalize2( basedir, dir );
-	const float VERTICAL_KNOCKBACK_SCALE = 1.25f;
+	constexpr float VERTICAL_KNOCKBACK_SCALE = 1.25f;
 	dir[ 2 ] *= VERTICAL_KNOCKBACK_SCALE;
 
 	if( targ->r.client && targ != attacker && !( dflags & DAMAGE_KNOCKBACK_SOFT ) ) {
@@ -292,9 +286,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 	bool statDmg = ( attacker != targ ) && ( mod != MOD_TELEFRAG );
 
 	// push
-	if( !( dflags & DAMAGE_NO_KNOCKBACK ) ) {
-		G_KnockBackPush( targ, attacker, pushdir, knockback, dflags );
-	}
+	G_KnockBackPush( targ, attacker, pushdir, knockback, dflags );
 
 	// apply handicap on the damage given
 	if( statDmg && attacker->r.client ) {

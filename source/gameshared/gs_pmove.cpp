@@ -686,11 +686,8 @@ static void PM_Move( void ) {
 			accel = pm_airaccelerate;
 		}
 
-		// ch : remove knockback test here
-		if( ( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING )
-		    /* || ( pm->playerState->pmove.stats[PM_STAT_KNOCKBACK] > 0 ) */ ) {
+		if( ( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING ) ) {
 			accel = 0; // no stopmove while walljumping
-
 		}
 		if( ( smove > 0 || smove < 0 ) && !fmove && ( pm->playerState->pmove.stats[PM_STAT_KNOCKBACK] <= 0 ) ) {
 			if( wishspeed > pm_wishspeed ) {

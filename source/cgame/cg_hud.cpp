@@ -619,13 +619,6 @@ static const char * obituaries[] = {
 };
 
 static const char * prefixes[] = {
-	"",
-	"",
-	"",
-	"",
-	"",
-	"",
-	"",
 	"SHIT",
 	"ASS",
 	"PILE",
@@ -633,14 +626,18 @@ static const char * prefixes[] = {
 	"ROFL",
 	"OMEGA",
 	"DUMP",
+	"SUPER",
+	"TURBO",
 };
 
 static const char * RandomObituary() {
-	return obituaries[ rand() % ( sizeof( obituaries ) / sizeof( obituaries[ 0 ] ) ) ];
+	return obituaries[ rand() % ARRAY_COUNT( obituaries ) ];
 }
 
 static const char * RandomPrefix() {
-	return prefixes[ rand() % ( sizeof( prefixes ) / sizeof( prefixes[ 0 ] ) ) ];
+	if( rand() % 2 == 0 )
+		return "";
+	return prefixes[ rand() % ARRAY_COUNT( prefixes ) ];
 }
 
 /*

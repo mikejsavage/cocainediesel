@@ -225,7 +225,7 @@ static edict_t *G_Fire_Rocket( vec3_t origin, vec3_t angles, firedef_t *firedef,
 /*
 * G_Fire_Machinegun
 */
-static edict_t *G_Fire_Machinegun( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner, int seed ) {
+static void G_Fire_Machinegun( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner, int seed ) {
 	int timeDelta = 0;
 	if( owner && owner->r.client ) {
 		timeDelta = owner->r.client->timeDelta;
@@ -234,7 +234,7 @@ static edict_t *G_Fire_Machinegun( vec3_t origin, vec3_t angles, firedef_t *fire
 	int range = firedef->timeout;
 	float damage = firedef->damage;
 	int knockback = firedef->knockback;
-	return W_Fire_Bullet( owner, origin, angles, seed, range, firedef->spread, firedef->v_spread, damage, knockback, timeDelta );
+	W_Fire_MG( owner, origin, angles, seed, range, firedef->spread, firedef->v_spread, damage, knockback, timeDelta );
 }
 
 /*
@@ -363,7 +363,7 @@ void G_FireWeapon( edict_t *ent, int parm ) {
 			break;
 
 		case WEAP_MACHINEGUN:
-			projectile = G_Fire_Machinegun( origin, angles, firedef, ent, ucmdSeed );
+			G_Fire_Machinegun( origin, angles, firedef, ent, ucmdSeed );
 			break;
 
 		case WEAP_RIOTGUN:

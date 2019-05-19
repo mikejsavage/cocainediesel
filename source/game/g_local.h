@@ -630,7 +630,7 @@ bool fire_hit( edict_t *self, vec3_t aim, int damage, int kick );
 void G_HideLaser( edict_t *ent );
 
 void W_Fire_Blade( edict_t *self, int range, vec3_t start, vec3_t angles, float damage, int knockback, int timeDelta );
-edict_t *W_Fire_Bullet( edict_t *self, vec3_t start, vec3_t angles, int seed, int range, int hspread, int vspread, float damage, int knockback, int timeDelta );
+void W_Fire_MG( edict_t *self, vec3_t start, vec3_t angles, int seed, int range, int hspread, int vspread, float damage, int knockback, int timeDelta );
 void W_Fire_Riotgun( edict_t *self, vec3_t start, vec3_t angles, int range, int hspread, int vspread, int count, float damage, int knockback, int timeDelta );
 edict_t *W_Fire_Grenade( edict_t *self, vec3_t start, vec3_t angles, int speed, float damage, int minKnockback, int maxKnockback, int minDamage, float radius, int timeout, int timeDelta, bool aim_up );
 edict_t *W_Fire_Rocket( edict_t *self, vec3_t start, vec3_t angles, int speed, float damage, int minKnockback, int maxKnockback, int minDamage, int radius, int timeout, int timeDelta );

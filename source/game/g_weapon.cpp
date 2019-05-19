@@ -219,43 +219,29 @@ void W_Fire_Blade( edict_t *self, int range, vec3_t start, vec3_t angles, float 
 	G_Damage( other, self, self, dir, dir, other->s.origin, damage, knockback, dmgflags, MOD_GUNBLADE );
 }
 
-
 /*
-* W_Bullet_Touch
+* W_Fire_MG
 */
-static void W_Bullet_Touch( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) {
-	int hitType = G_Projectile_HitStyle( ent, other );
-	if( hitType == PROJECTILE_TOUCH_NOT ) {
-		return;
-	}
-
-	if( other->takedamage ) {
-		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, MOD_GRENADE );
-	}
-
-	G_FreeEdict( ent );
-}
-
-/*
-* W_Fire_Bullet
-*/
-edict_t *W_Fire_Bullet( edict_t *self, vec3_t start, vec3_t angles, int seed, int range, int hspread, int vspread,
+void W_Fire_MG( edict_t *self, vec3_t start, vec3_t angles, int seed, int range, int hspread, int vspread,
 					float damage, int knockback, int timeDelta ) {
-	edict_t *bullet = W_Fire_TossProjectile( self, start, angles, 3000, damage, 0, 0, 0, 0, 9000, timeDelta );
+	vec3_t dir;
+	AngleVectors( angles, dir, NULL, NULL );
 
-	bullet->s.type = ET_PLASMA;
-	bullet->movetype = MOVETYPE_TOSS;
-	bullet->touch = W_Bullet_Touch;
-	bullet->use = NULL;
-	bullet->think = NULL;
-	bullet->classname = "bullet";
-	bullet->enemy = NULL;
+	// send the event
+	edict_t *event = G_SpawnEvent( EV_FIRE_MG, seed, start );
+	event->s.ownerNum = ENTNUM( self );
+	VectorScale( dir, 4096, event->s.origin2 ); // DirToByte is too inaccurate
+	event->s.weapon = WEAP_MACHINEGUN;
 
-	bullet->s.modelindex = trap_ModelIndex( PATH_BULLET_MODEL );
+	vec3_t right, up;
+	ViewVectors( dir, right, up );
 
-	GClip_LinkEntity( bullet );
-
-	return bullet;
+	trace_t trace;
+	GS_TraceBullet( &trace, start, dir, right, up, 0, 0, range, ENTNUM( self ), timeDelta );
+	if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
+		int dmgflags = DAMAGE_KNOCKBACK_SOFT;
+		G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, damage, knockback, dmgflags, MOD_MACHINEGUN );
+	}
 }
 
 // Sunflower spiral with Fibonacci numbers

@@ -1879,7 +1879,7 @@ static void asFunc_FireRiotgun( asvec3_t *origin, asvec3_t *angles, int range, i
 }
 
 static void asFunc_FireBullet( asvec3_t *origin, asvec3_t *angles, int range, int spread, int damage, int knockback, edict_t *owner ) {
-	W_Fire_Bullet( owner, origin->v, angles->v, rand() & 255, range, spread, spread, damage, knockback, 0 );
+	W_Fire_MG( owner, origin->v, angles->v, rand() & 255, range, spread, spread, damage, knockback, 0 );
 }
 
 static const gs_asglobfuncs_t asGameGlobFuncs[] =

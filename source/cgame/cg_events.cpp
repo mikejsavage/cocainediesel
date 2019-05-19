@@ -174,24 +174,14 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 	laserOwner = NULL;
 }
 
-void CG_Event_LaserBeam( int entNum, int weapon ) {
-	centity_t *cent = &cg_entities[entNum];
-	unsigned int timeout;
-	vec3_t dir;
-
+static void CG_Event_LaserBeam( const vec3_t origin, const vec3_t dir, int entNum, int weapon ) {
 	// lasergun's smooth refire
-	timeout = GS_GetWeaponDef( WEAP_LASERGUN )->firedef.reload_time + 10;
-
-	// find destiny point
-	VectorCopy( cg.predictedPlayerState.pmove.origin, cent->laserOrigin );
-	cent->laserOrigin[2] += cg.predictedPlayerState.viewheight;
-	AngleVectors( cg.predictedPlayerState.viewangles, dir, NULL, NULL );
-	VectorMA( cent->laserOrigin, GS_GetWeaponDef( WEAP_LASERGUN )->firedef.timeout, dir, cent->laserPoint );
-
 	// it appears that 64ms is that maximum allowed time interval between prediction events on localhost
-	if( timeout < 65 ) {
-		timeout = 65;
-	}
+	unsigned int timeout = Max2( GS_GetWeaponDef( WEAP_LASERGUN )->firedef.reload_time + 10, 65u );
+
+	centity_t *cent = &cg_entities[entNum];
+	VectorCopy( origin, cent->laserOrigin );
+	VectorMA( cent->laserOrigin, GS_GetWeaponDef( WEAP_LASERGUN )->firedef.timeout, dir, cent->laserPoint );
 
 	VectorCopy( cent->laserOrigin, cent->laserOriginOld );
 	VectorCopy( cent->laserPoint, cent->laserPointOld );
@@ -342,6 +332,39 @@ static void CG_BulletImpact( trace_t *tr ) {
 	}
 }
 
+static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int weapon, int owner ) {
+	trace_t trace, *water_trace;
+	const gs_weapon_definition_t *weapondef = GS_GetWeaponDef( weapon );
+	const firedef_t *firedef = &weapondef->firedef;
+	int range = firedef->timeout;
+
+	vec3_t right, up;
+	ViewVectors( dir, right, up );
+
+	water_trace = GS_TraceBullet( &trace, origin, dir, right, up, 0, 0, range, owner, 0 );
+	if( water_trace ) {
+		if( !VectorCompare( water_trace->endpos, origin ) ) {
+			CG_LeadWaterSplash( water_trace );
+		}
+	}
+
+	if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
+		CG_BulletImpact( &trace );
+
+		if( !water_trace ) {
+			if( trace.surfFlags & SURF_FLESH || ( trace.ent > 0 && cg_entities[trace.ent].current.type == ET_PLAYER ) ) {
+				// flesh impact sound
+			} else {
+				CG_ImpactPuffParticles( trace.endpos, trace.plane.normal, 1, 0.7, 1, 0.7, 0.0, 1.0, NULL );
+				trap_S_StartFixedSound( CG_MediaSfx( cgs.media.sfxRic[ rand() % 2 ] ), trace.endpos, CHAN_AUTO, cg_volume_effects->value, ATTN_STATIC );
+			}
+		}
+	}
+
+	if( water_trace ) {
+		CG_LeadBubbleTrail( &trace, water_trace->endpos );
+	}
+}
 
 /*
 * CG_Fire_SunflowerPattern
@@ -785,7 +808,12 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 				CG_ViewWeapon_RefreshAnimation( &cg.weapon );
 
 				if( weapon == WEAP_LASERGUN ) {
-					CG_Event_LaserBeam( ent->number, weapon );
+					vec3_t origin;
+					VectorCopy( cg.predictedPlayerState.pmove.origin, origin );
+					origin[2] += cg.predictedPlayerState.viewheight;
+					AngleVectors( cg.predictedPlayerState.viewangles, dir, NULL, NULL );
+
+					CG_Event_LaserBeam( origin, dir, ent->number, weapon );
 				}
 			}
 			break;
@@ -799,25 +827,23 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 
 			CG_FireWeaponEvent( ent->number, weapon );
 
-			// riotgun bullets and electrobolt beams are predicted when the weapon is fired
 			if( predicted ) {
 				vec3_t origin;
+				VectorCopy( cg.predictedPlayerState.pmove.origin, origin );
+				origin[2] += cg.predictedPlayerState.viewheight;
+				AngleVectors( cg.predictedPlayerState.viewangles, dir, NULL, NULL );
 
 				if( weapon == WEAP_ELECTROBOLT ) {
-					VectorCopy( cg.predictedPlayerState.pmove.origin, origin );
-					origin[2] += cg.predictedPlayerState.viewheight;
-					AngleVectors( cg.predictedPlayerState.viewangles, dir, NULL, NULL );
 					CG_Event_WeaponBeam( origin, dir, cg.predictedPlayerState.POVnum, weapon );
-				} else if( weapon == WEAP_RIOTGUN || weapon == WEAP_MACHINEGUN ) {
-					VectorCopy( cg.predictedPlayerState.pmove.origin, origin );
-					origin[2] += cg.predictedPlayerState.viewheight;
-					AngleVectors( cg.predictedPlayerState.viewangles, dir, NULL, NULL );
-
-					if( weapon == WEAP_RIOTGUN ) {
-						CG_Event_FireRiotgun( origin, dir, weapon, cg.predictedPlayerState.POVnum );
-					}
-				} else if( weapon == WEAP_LASERGUN ) {
-					CG_Event_LaserBeam( ent->number, weapon );
+				}
+				else if( weapon == WEAP_RIOTGUN ) {
+					CG_Event_FireRiotgun( origin, dir, weapon, cg.predictedPlayerState.POVnum );
+				}
+				else if( weapon == WEAP_LASERGUN ) {
+					CG_Event_LaserBeam( origin, dir, ent->number, weapon );
+				}
+				else if( weapon == WEAP_MACHINEGUN ) {
+					CG_Event_FireMachinegun( origin, dir, weapon, cg.predictedPlayerState.POVnum );
 				}
 			}
 			break;

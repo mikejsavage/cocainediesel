@@ -1437,7 +1437,7 @@ static void R_InitBuiltinImages( void ) {
 		{ "***r_bluenoisetexture***", &rsh.blueNoiseTexture, &R_InitBlueNoiseTexture },
 		{ NULL, NULL, NULL }
 	};
-	size_t i, num_builtin_textures = sizeof( textures ) / sizeof( textures[0] ) - 1;
+	size_t i, num_builtin_textures = ARRAY_COUNT( textures ) - 1;
 
 	for( i = 0; i < num_builtin_textures; i++ ) {
 		textures[i].init( &w, &h, &flags, &samples );

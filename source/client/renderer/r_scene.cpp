@@ -225,10 +225,10 @@ static image_t *R_BlurTextureToScrFbo( const refdef_t *fd, image_t *image, image
 
 	if( true ) {
 		kernel = kernel63x63;
-		numPasses = sizeof( kernel63x63 ) / sizeof( kernel63x63[0] );
+		numPasses = ARRAY_COUNT( kernel63x63 );
 	} else {
 		kernel = kernel35x35;
-		numPasses = sizeof( kernel35x35 ) / sizeof( kernel35x35[0] );
+		numPasses = ARRAY_COUNT( kernel35x35 );
 	}
 
 	images[0] = image;

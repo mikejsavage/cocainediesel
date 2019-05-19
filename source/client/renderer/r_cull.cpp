@@ -406,7 +406,7 @@ bool R_CullBoxCustomPlanes( const cplane_t *p, unsigned nump, const vec3_t mins,
 * Returns true if the bounding box is completely outside the frustum
 */
 bool R_CullBox( const vec3_t mins, const vec3_t maxs, const unsigned int clipFlags ) {
-	return R_CullBoxCustomPlanes( rn.frustum, sizeof( rn.frustum ) / sizeof( rn.frustum[0] ), mins, maxs, clipFlags );
+	return R_CullBoxCustomPlanes( rn.frustum, ARRAY_COUNT( rn.frustum ), mins, maxs, clipFlags );
 }
 
 /*
@@ -441,7 +441,7 @@ bool R_CullSphereCustomPlanes( const cplane_t *p, unsigned nump, const vec3_t ce
 * Returns true if the sphere is completely outside the frustum
 */
 bool R_CullSphere( const vec3_t centre, const float radius, const unsigned int clipFlags ) {
-	return R_CullSphereCustomPlanes( rn.frustum, sizeof( rn.frustum ) / sizeof( rn.frustum[0] ), centre, radius, clipFlags );
+	return R_CullSphereCustomPlanes( rn.frustum, ARRAY_COUNT( rn.frustum ), centre, radius, clipFlags );
 }
 
 /*
@@ -488,7 +488,7 @@ bool R_VisCullBox( const vec3_t mins, const vec3_t maxs ) {
 		}
 
 		// go down both sides
-		if( stackdepth < sizeof( localstack ) / sizeof( mnode_t * ) ) {
+		if( stackdepth < ARRAY_COUNT( localstack ) ) {
 			localstack[stackdepth++] = node->children[0];
 		}
 		node = node->children[1];

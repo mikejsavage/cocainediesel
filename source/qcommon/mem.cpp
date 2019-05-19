@@ -257,7 +257,6 @@ void _Mem_Free( void *data, int musthave, int canthave, const char *filename, in
 	mempool_t *pool;
 
 	if( data == NULL ) {
-		//_Mem_Error( "Mem_Free: data == NULL (called at %s:%i)", filename, fileline );
 		return;
 	}
 

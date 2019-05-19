@@ -113,7 +113,7 @@ const char *Sys_FS_FindFirst( const char *path, unsigned musthave, unsigned cant
 	Q_strncpyz( findbase, path, ( strlen( path ) + 1 ) );
 	COM_StripFilename( findbase );
 
-	_Sys_Utf8FileNameToWide( path, wpath, sizeof( wpath ) / sizeof( wpath[0] ) );
+	_Sys_Utf8FileNameToWide( path, wpath, ARRAY_COUNT( wpath ) );
 
 	findhandle = _wfindfirst( wpath, &findinfo );
 

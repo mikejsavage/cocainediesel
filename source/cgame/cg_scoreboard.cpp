@@ -543,7 +543,7 @@ static void SCR_AddPlayerIcon( struct shader_s *image, int x, int y, float alpha
 	icon.y = y;
 	icon.alpha = alpha;
 
-	if( scr_numplayericons >= ( sizeof( scr_playericons ) / sizeof( scr_playericons[0] ) ) ) {
+	if( scr_numplayericons >= ARRAY_COUNT( scr_playericons ) ) {
 		SCR_DrawPlayerIcons( font );
 	}
 }

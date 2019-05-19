@@ -111,8 +111,7 @@ static const struct {
 * R_RegisterGLExtensions
 */
 static bool R_RegisterGLExtensions( void ) {
-	// for( size_t i = 0; i < ARRAY_COUNT( exts ); i++ ) { TODO
-	for( size_t i = 0; i < sizeof( exts ) / sizeof( exts[ 0 ] ); i++ ) {
+	for( size_t i = 0; i < ARRAY_COUNT( exts ); i++ ) {
 		*exts[ i ].enabled = *exts[ i ].glad != 0;
 	}
 
@@ -124,7 +123,7 @@ static bool R_RegisterGLExtensions( void ) {
 * R_PrintGLExtensionsInfo
 */
 static void R_PrintGLExtensionsInfo( void ) {
-	for( size_t i = 0; i < sizeof( exts ) / sizeof( exts[ 0 ] ); i++ ) {
+	for( size_t i = 0; i < ARRAY_COUNT( exts ); i++ ) {
 		Com_Printf( "%s: %s\n", exts[ i ].name, *exts[ i ].glad == 0 ? "disabled" : "enabled" );
 	}
 }

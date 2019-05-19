@@ -338,7 +338,7 @@ void CG_AddFragmentedDecal( vec3_t origin, vec3_t dir, float orient, float radiu
 		if( fr->numverts <= 0 ) {
 			continue;
 		}
-		if( cg_numDecalVerts + (unsigned)fr->numverts > sizeof( t_verts ) / sizeof( t_verts[0] ) ) {
+		if( cg_numDecalVerts + (unsigned)fr->numverts > ARRAY_COUNT( t_verts ) ) {
 			return;
 		}
 

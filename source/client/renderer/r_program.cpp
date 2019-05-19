@@ -868,7 +868,7 @@ static const char *R_GLSLBuildDeformv( const deformv_t *deformv, int numDeforms 
 	static const char * const funcs[] = {
 		NULL, "WAVE_SIN", "WAVE_TRIANGLE", "WAVE_SQUARE", "WAVE_SAWTOOTH", "WAVE_INVERSESAWTOOTH", NULL
 	};
-	static const int numSupportedFuncs = sizeof( funcs ) / sizeof( funcs[0] ) - 1;
+	static const int numSupportedFuncs = ARRAY_COUNT( funcs ) - 1;
 
 	if( !numDeforms ) {
 		return NULL;
@@ -1367,9 +1367,9 @@ static int RP_RegisterProgramBinary( int type, const char *name, const char *def
 	memset( &parser, 0, sizeof( parser ) );
 	parser.topFile = fileName;
 	parser.buffers = &shaderBuffers[0];
-	parser.maxBuffers = sizeof( shaderBuffers ) / sizeof( shaderBuffers[0] );
+	parser.maxBuffers = ARRAY_COUNT( shaderBuffers );
 	parser.strings = &shaderStrings[num_init_strings];
-	parser.maxStrings = sizeof( shaderStrings ) / sizeof( shaderStrings[0] ) - num_init_strings;
+	parser.maxStrings = ARRAY_COUNT( shaderStrings ) - num_init_strings;
 
 	// compile
 	//

@@ -379,13 +379,13 @@ static bool SV_RunGameFrame( int msec ) {
 		int sleeptime = min( WORLDFRAMETIME - ( accTime + 1 ), sv.nextSnapTime - ( svs.gametime + 1 ) );
 
 		if( sleeptime > 0 ) {
-			socket_t *sockets [] = { &svs.socket_udp, &svs.socket_udp6 };
-			socket_t *opened_sockets [sizeof( sockets ) / sizeof( sockets[0] ) + 1 ];
+			socket_t *sockets[] = { &svs.socket_udp, &svs.socket_udp6 };
+			socket_t *opened_sockets[ARRAY_COUNT( sockets ) + 1];
 			size_t sock_ind, open_ind;
 
 			// Pass only the opened sockets to the sleep function
 			open_ind = 0;
-			for( sock_ind = 0; sock_ind < sizeof( sockets ) / sizeof( sockets[0] ); sock_ind++ ) {
+			for( sock_ind = 0; sock_ind < ARRAY_COUNT( sockets ); sock_ind++ ) {
 				socket_t *sock = sockets[sock_ind];
 				if( sock->open ) {
 					opened_sockets[open_ind] = sock;

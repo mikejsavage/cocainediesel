@@ -982,7 +982,7 @@ void MSG_WriteDeltaEntity( msg_t *msg, const entity_state_t *from, const entity_
 	unsigned byteMask;
 	uint8_t fieldMask[32] = { 0 };
 	const msg_field_t *fields = ent_state_fields;
-	int numFields = sizeof( ent_state_fields ) / sizeof( ent_state_fields[0] );
+	int numFields = ARRAY_COUNT( ent_state_fields );
 
 	assert( numFields < 256 );
 	if( numFields > 256 ) {
@@ -1048,7 +1048,7 @@ int MSG_ReadEntityNumber( msg_t *msg, bool *remove, unsigned *byteMask ) {
 void MSG_ReadDeltaEntity( msg_t *msg, const entity_state_t *from, entity_state_t *to, int number, unsigned byteMask ) {
 	uint8_t fieldMask[32] = { 0 };
 	const msg_field_t *fields = ent_state_fields;
-	int numFields = sizeof( ent_state_fields ) / sizeof( ent_state_fields[0] );
+	int numFields = ARRAY_COUNT( ent_state_fields );
 
 	// set everything to the state we are delta'ing from
 	*to = *from;
@@ -1081,10 +1081,9 @@ static const msg_field_t usercmd_fields[] = {
 * MSG_WriteDeltaUsercmd
 */
 void MSG_WriteDeltaUsercmd( msg_t *msg, const usercmd_t *from, usercmd_t *cmd ) {
-	int numFields = sizeof( usercmd_fields ) / sizeof( usercmd_fields[0] );
 	const msg_field_t *fields = usercmd_fields;
 
-	MSG_WriteDeltaStruct( msg, from, cmd, fields, numFields );
+	MSG_WriteDeltaStruct( msg, from, cmd, fields, ARRAY_COUNT( usercmd_fields ) );
 
 	MSG_WriteIntBase128( msg, cmd->serverTimeStamp );
 }
@@ -1093,10 +1092,9 @@ void MSG_WriteDeltaUsercmd( msg_t *msg, const usercmd_t *from, usercmd_t *cmd ) 
 * MSG_ReadDeltaUsercmd
 */
 void MSG_ReadDeltaUsercmd( msg_t *msg, const usercmd_t *from, usercmd_t *move ) {
-	int numFields = sizeof( usercmd_fields ) / sizeof( usercmd_fields[0] );
 	const msg_field_t *fields = usercmd_fields;
 
-	MSG_ReadDeltaStruct( msg, from, move, sizeof( usercmd_t ), fields, numFields );
+	MSG_ReadDeltaStruct( msg, from, move, sizeof( usercmd_t ), fields, ARRAY_COUNT( usercmd_fields ) );
 
 	move->serverTimeStamp = MSG_ReadIntBase128( msg );
 }
@@ -1159,23 +1157,19 @@ static const msg_field_t player_state_msg_fields[] = {
 * MSG_WriteDeltaPlayerstate
 */
 void MSG_WriteDeltaPlayerState( msg_t *msg, const player_state_t *ops, const player_state_t *ps ) {
-	int numFields = sizeof( player_state_msg_fields ) / sizeof( player_state_msg_fields[0] );
-	const msg_field_t *fields = player_state_msg_fields;
 	static player_state_t dummy;
 
 	if( !ops ) {
 		ops = &dummy;
 	}
 
-	MSG_WriteDeltaStruct( msg, ops, ps, fields, numFields );
+	MSG_WriteDeltaStruct( msg, ops, ps, player_state_msg_fields, ARRAY_COUNT( player_state_msg_fields ) );
 }
 
 /*
 * MSG_ReadDeltaPlayerstate
 */
 void MSG_ReadDeltaPlayerState( msg_t *msg, const player_state_t *ops, player_state_t *ps ) {
-	int numFields = sizeof( player_state_msg_fields ) / sizeof( player_state_msg_fields[0] );
-	const msg_field_t *fields = player_state_msg_fields;
 	static player_state_t dummy;
 
 	if( !ops ) {
@@ -1183,7 +1177,7 @@ void MSG_ReadDeltaPlayerState( msg_t *msg, const player_state_t *ops, player_sta
 	}
 	memcpy( ps, ops, sizeof( player_state_t ) );
 
-	MSG_ReadDeltaStruct( msg, ops, ps, sizeof( player_state_t ), fields, numFields );
+	MSG_ReadDeltaStruct( msg, ops, ps, sizeof( player_state_t ), player_state_msg_fields, ARRAY_COUNT( player_state_msg_fields ) );
 }
 
 //==================================================
@@ -1200,28 +1194,24 @@ static const msg_field_t game_state_msg_fields[] = {
 * MSG_WriteDeltaGameState
 */
 void MSG_WriteDeltaGameState( msg_t *msg, const game_state_t *from, const game_state_t *to ) {
-	int numFields = sizeof( game_state_msg_fields ) / sizeof( game_state_msg_fields[0] );
-	const msg_field_t *fields = game_state_msg_fields;
 	static game_state_t dummy;
 
 	if( !from ) {
 		from = &dummy;
 	}
 
-	MSG_WriteDeltaStruct( msg, from, to, fields, numFields );
+	MSG_WriteDeltaStruct( msg, from, to, game_state_msg_fields, ARRAY_COUNT( game_state_msg_fields ) );
 }
 
 /*
 * MSG_ReadDeltaGameState
 */
 void MSG_ReadDeltaGameState( msg_t *msg, const game_state_t *from, game_state_t *to ) {
-	int numFields = sizeof( game_state_msg_fields ) / sizeof( game_state_msg_fields[0] );
-	const msg_field_t *fields = game_state_msg_fields;
 	static game_state_t dummy;
 
 	if( !from ) {
 		from = &dummy;
 	}
 
-	MSG_ReadDeltaStruct( msg, from, to, sizeof( game_state_t ), fields, numFields );
+	MSG_ReadDeltaStruct( msg, from, to, sizeof( game_state_t ), game_state_msg_fields, ARRAY_COUNT( game_state_msg_fields ) );
 }

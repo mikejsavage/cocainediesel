@@ -342,7 +342,7 @@ static void R_CullVisLeaves( unsigned firstLeaf, unsigned numLeaves, unsigned cl
 		// track leaves, which are entirely inside the frustum
 		clipped = 0;
 		testFlags = clipFlags;
-		for( j = sizeof( rn.frustum ) / sizeof( rn.frustum[0] ), bit = 1, clipplane = rn.frustum; j > 0; j--, bit <<= 1, clipplane++ ) {
+		for( j = ARRAY_COUNT( rn.frustum ), bit = 1, clipplane = rn.frustum; j > 0; j--, bit <<= 1, clipplane++ ) {
 			if( testFlags & bit ) {
 				clipped = BoxOnPlaneSide( leaf->mins, leaf->maxs, clipplane );
 				if( clipped == 2 ) {

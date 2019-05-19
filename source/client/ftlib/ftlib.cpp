@@ -841,14 +841,10 @@ void FTLIB_FreeFonts( bool verbose ) {
 				qfamily->f->unloadFace( qface );
 			}
 
-			if( qface->shaders ) {
-				Mem_Free( qface->shaders );
-			}
+			Mem_Free( qface->shaders );
 
-			for( i = 0; i < ( sizeof( qface->glyphs ) / sizeof( qface->glyphs[0] ) ); i++ ) {
-				if( qface->glyphs[i] ) {
-					Mem_Free( qface->glyphs[i] );
-				}
+			for( i = 0; i < ARRAY_COUNT( qface->glyphs ); i++ ) {
+				Mem_Free( qface->glyphs[i] );
 			}
 
 			Mem_Free( qface );
@@ -857,10 +853,8 @@ void FTLIB_FreeFonts( bool verbose ) {
 		if( qfamily->f->unloadFamily ) {
 			qfamily->f->unloadFamily( qfamily );
 		}
-		if( qfamily->name ) {
-			Mem_Free( qfamily->name );
-		}
 
+		Mem_Free( qfamily->name );
 		Mem_Free( qfamily );
 	}
 

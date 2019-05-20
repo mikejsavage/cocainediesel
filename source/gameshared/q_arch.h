@@ -31,17 +31,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
-#ifndef _MSC_VER
-#include <strings.h>
-#endif
 #include <stdlib.h>
 #include <time.h>
 #include <stdint.h>
 #include <stddef.h>
-
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS 1
-#endif
 #include <inttypes.h>
 
 //==============================================
@@ -87,7 +80,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define HAVE_STRTOK_S
 
-#define LIB_DIRECTORY "libs"
 #define LIB_PREFIX ""
 #define LIB_SUFFIX ".dll"
 
@@ -114,62 +106,17 @@ typedef uintptr_t socket_handle_t;
 
 //==============================================
 
-#if defined ( __linux__ ) || defined ( __FreeBSD__ )
+#if defined ( __linux__ )
 
-#define HAVE_INLINE
-
-#ifndef HAVE_STRCASECMP // SDL_config.h seems to define this too...
-#define HAVE_STRCASECMP
-#endif
-
-#define LIB_DIRECTORY "libs"
 #define LIB_PREFIX "lib"
 #define LIB_SUFFIX ".so"
 
-#if defined ( __FreeBSD__ )
-#define BUILDSTRING "FreeBSD"
-#define OSNAME "FreeBSD"
-#else
 #define BUILDSTRING "Linux"
 #define OSNAME "Linux"
-#endif
 
 #include <alloca.h>
 
 // wsw : aiwa : 64bit integers and integer-pointer types
-typedef int ioctl_param_t;
-
-typedef int socket_handle_t;
-
-#define SOCKET_ERROR ( -1 )
-#define INVALID_SOCKET ( -1 )
-
-#endif
-
-//==============================================
-
-#if defined ( __APPLE__ ) && defined ( __MACH__ )
-
-#ifndef __MACOSX__
-#define __MACOSX__
-#endif
-
-#define HAVE_INLINE
-
-#ifndef HAVE_STRCASECMP // SDL_config.h seems to define this too...
-#define HAVE_STRCASECMP
-#endif
-
-#define LIB_DIRECTORY "libs"
-#define LIB_PREFIX "lib"
-#define LIB_SUFFIX ".dylib"
-
-//Mac OSX has universal binaries, no need for cpu dependency
-#define BUILDSTRING "MacOSX"
-#define OSNAME "MacOSX"
-
-#include <alloca.h>
-
 typedef int ioctl_param_t;
 
 typedef int socket_handle_t;
@@ -202,13 +149,11 @@ typedef int socket_handle_t;
 #endif
 #endif
 
-#ifdef HAVE_STRCASECMP
 #ifndef Q_stricmp
 #define Q_stricmp( s1, s2 ) strcasecmp( ( s1 ), ( s2 ) )
 #endif
 #ifndef Q_strnicmp
 #define Q_strnicmp( s1, s2, n ) strncasecmp( ( s1 ), ( s2 ), ( n ) )
-#endif
 #endif
 
 #ifdef HAVE_STRTOK_S
@@ -221,10 +166,6 @@ typedef int socket_handle_t;
 #ifndef alloca
 #define alloca _alloca
 #endif
-#endif
-
-#ifndef BUILDSTRING
-#define BUILDSTRING "NON-WIN32"
 #endif
 
 #ifdef HAVE___STRTOI64
@@ -248,7 +189,7 @@ typedef int socket_handle_t;
 #endif
 
 // Generic helper definitions for shared library support
-#if defined _WIN32 || defined __CYGWIN__
+#ifdef _MSC_VER
 #define QF_DLL_EXPORT __declspec( dllexport )
 #else
 #define QF_DLL_EXPORT __attribute__ ( ( visibility( "default" ) ) )

@@ -25,9 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MAX_LOCAL_ENTITIES  512
 
-static vec3_t debris_maxs = { 4, 4, 8 };
-static vec3_t debris_mins = { -4, -4, 0 };
-
 enum LocalEntityType {
 	LE_FREE,
 	LE_NO_FADE,
@@ -1276,8 +1273,8 @@ void CG_AddLocalEntities( void ) {
 
 					//see if we have ground
 					VectorCopy( ent->origin, ground_origin );
-					ground_origin[2] += ( debris_mins[2] - 4 );
-					CG_Trace( &traceground, ent->origin, debris_mins, debris_maxs, ground_origin, 0, MASK_SOLID );
+					ground_origin[2] += ( bounds.mins[2] - 4 );
+					CG_Trace( &traceground, ent->origin, bounds.mins, bounds.maxs, ground_origin, 0, MASK_SOLID );
 					if( traceground.fraction != 1.0 ) {
 						le->bounce = 0;
 						VectorClear( le->velocity );

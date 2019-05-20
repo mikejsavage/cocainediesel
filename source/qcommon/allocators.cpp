@@ -6,7 +6,7 @@
 struct AllocationTracker {
 	NONCOPYABLE( AllocationTracker );
 	void track( void * ptr, const char * func, const char * file, int line ) { }
-	void untrack( void * ptr, const char * func, const char * file, int line ) { };
+	void untrack( void * ptr, const char * func, const char * file, int line ) { }
 };
 
 #else
@@ -48,6 +48,8 @@ struct AllocationTracker {
 	}
 
 	void untrack( void * ptr, const char * func, const char * file, int line ) {
+		if( ptr == NULL )
+			return;
 		QMutex_Lock( mutex );
 		if( allocations.erase( ptr ) == 0 )
 			Sys_Error( "Stray free in '%s' (%s:%d)", func, file, line );

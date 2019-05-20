@@ -42,6 +42,8 @@ struct AllocationTracker {
 	}
 
 	void track( void * ptr, const char * func, const char * file, int line ) {
+		if( ptr == NULL )
+			return;
 		QMutex_Lock( mutex );
 		allocations[ ptr ] = { func, file, line };
 		QMutex_Unlock( mutex );

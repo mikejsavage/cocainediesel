@@ -112,3 +112,48 @@ struct SystemAllocator final : public Allocator {
 		tracker.untrack( ptr, func, file, line );
 	}
 };
+
+struct ArenaAllocator final : public Allocator {
+	ArenaAllocator( void * mem, size_t size ) {
+		memory = ( u8 * ) mem;
+		top = memory + size;
+		cursor = memory;
+	}
+
+	void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
+		assert( ( alignment & ( alignment - 1 ) ) == 0 );
+		u8 * aligned = ( u8 * ) ( size_t( cursor + alignment - 1 ) & ~( alignment - 1 ) );
+		if( aligned + size > top )
+			return NULL;
+		cursor = aligned + size;
+		return aligned;
+	}
+
+	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
+		if( ptr == cursor - current_size && size_t( ptr ) % alignment == 0 ) {
+			assert( size_t( ptr ) % alignment == 0 );
+			u8 * new_cursor = cursor - current_size + new_size;
+			if( new_cursor > top )
+				return NULL;
+			cursor = new_cursor;
+			return ptr;
+		}
+
+		void * mem = allocate( new_size, alignment, func, file, line );
+		if( mem == NULL )
+			return NULL;
+		memcpy( mem, ptr, current_size );
+		return mem;
+	}
+
+	void deallocate( void * ptr, const char * func, const char * file, int line ) { }
+
+	void clear() {
+		cursor = memory;
+	}
+
+private:
+	u8 * memory;
+	u8 * top;
+	u8 * cursor;
+};

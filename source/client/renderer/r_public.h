@@ -153,3 +153,4 @@ typedef ref_export_t *(*GetRefAPI_t)( const ref_import_t *imports );
 extern "C" QF_DLL_EXPORT ref_export_t *GetRefAPI( ref_import_t *import );
 
 void R_DrawDynamicPoly( const poly_t * poly );
+MinMax3 R_ModelBounds( const model_s *mod );

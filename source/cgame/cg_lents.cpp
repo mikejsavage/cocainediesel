@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // cg_lents.c -- client side temporary entities
 
 #include "cg_local.h"
+#include "client/renderer/r_public.h"
 
 #define MAX_LOCAL_ENTITIES  512
 
@@ -1232,7 +1233,14 @@ void CG_AddLocalEntities( void ) {
 
 			VectorMA( ent->origin, time, le->velocity, next_origin );
 
-			CG_Trace( &trace, ent->origin, debris_mins, debris_maxs, next_origin, 0, MASK_SOLID );
+			assert( le->ent.model );
+			MinMax3 bounds = R_ModelBounds( le->ent.model );
+			for( int i = 0; i < 3; i++ ) {
+				bounds.mins[ i ] *= le->ent.scale;
+				bounds.maxs[ i ] *= le->ent.scale;
+			}
+
+			CG_Trace( &trace, ent->origin, bounds.mins, bounds.maxs, next_origin, 0, MASK_SOLID );
 
 			// remove the particle when going out of the map
 			if( ( trace.contents & CONTENTS_NODROP ) || ( trace.surfFlags & SURF_SKY ) ) {

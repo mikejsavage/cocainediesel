@@ -66,6 +66,10 @@ struct RGB8 {
 	constexpr RGB8( uint8_t r_, uint8_t g_, uint8_t b_ ) : r( r_ ), g( g_ ), b( b_ ) { }
 };
 
+struct MinMax3 {
+	vec3_t mins, maxs;
+};
+
 // 0-2 are axial planes
 #define PLANE_X     0
 #define PLANE_Y     1

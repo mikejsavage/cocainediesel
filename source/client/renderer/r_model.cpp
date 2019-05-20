@@ -887,6 +887,13 @@ struct model_s *R_RegisterModel( const char *name ) {
 	return mod;
 }
 
+MinMax3 R_ModelBounds( const model_s * model ) {
+	MinMax3 res;
+	VectorCopy( model->mins, res.mins );
+	VectorCopy( model->maxs, res.maxs );
+	return res;
+}
+
 static vec4_t *r_modelTransformBuf;
 static size_t r_modelTransformBufSize;
 

@@ -27,8 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static vec3_t debris_maxs = { 4, 4, 8 };
 static vec3_t debris_mins = { -4, -4, 0 };
 
-typedef enum
-{
+enum LocalEntityType {
 	LE_FREE,
 	LE_NO_FADE,
 	LE_RGB_FADE,
@@ -36,17 +35,15 @@ typedef enum
 	LE_SCALE_ALPHA_FADE,
 	LE_INVERSESCALE_ALPHA_FADE,
 	LE_LASER,
-
 	LE_DASH_SCALE,
 	LE_PUFF_SCALE,
-	LE_PUFF_SHRINK
-} letype_t;
+	LE_PUFF_SHRINK,
+};
 
-typedef struct lentity_s
-{
-	struct lentity_s *prev, *next;
+struct LocalEntity {
+	struct LocalEntity *prev, *next;
 
-	letype_t type;
+	LocalEntityType type;
 
 	entity_t ent;
 	vec4_t color;
@@ -67,32 +64,30 @@ typedef struct lentity_s
 
 	cgs_skeleton_t *skel;
 	bonepose_t *static_boneposes;
-} lentity_t;
+};
 
-lentity_t cg_localents[MAX_LOCAL_ENTITIES];
-lentity_t cg_localents_headnode, *cg_free_lents;
+LocalEntity cg_localents[MAX_LOCAL_ENTITIES];
+LocalEntity cg_localents_headnode, *cg_free_lents;
 
 /*
 * CG_ClearLocalEntities
 */
 void CG_ClearLocalEntities( void ) {
-	int i;
-
 	memset( cg_localents, 0, sizeof( cg_localents ) );
 
 	// link local entities
 	cg_free_lents = cg_localents;
 	cg_localents_headnode.prev = &cg_localents_headnode;
 	cg_localents_headnode.next = &cg_localents_headnode;
-	for( i = 0; i < MAX_LOCAL_ENTITIES - 1; i++ )
+	for( int i = 0; i < MAX_LOCAL_ENTITIES - 1; i++ )
 		cg_localents[i].next = &cg_localents[i + 1];
 }
 
 /*
 * CG_AllocLocalEntity
 */
-static lentity_t *CG_AllocLocalEntity( letype_t type, float r, float g, float b, float a ) {
-	lentity_t *le;
+static LocalEntity *CG_AllocLocalEntity( LocalEntityType type, float r, float g, float b, float a ) {
+	LocalEntity *le;
 
 	if( cg_free_lents ) { // take a free decal if possible
 		le = cg_free_lents;
@@ -152,7 +147,7 @@ static lentity_t *CG_AllocLocalEntity( letype_t type, float r, float g, float b,
 /*
 * CG_FreeLocalEntity
 */
-static void CG_FreeLocalEntity( lentity_t *le ) {
+static void CG_FreeLocalEntity( LocalEntity *le ) {
 	if( le->static_boneposes ) {
 		CG_Free( le->static_boneposes );
 		le->static_boneposes = NULL;
@@ -170,9 +165,9 @@ static void CG_FreeLocalEntity( lentity_t *le ) {
 /*
 * CG_AllocModel
 */
-static lentity_t *CG_AllocModel( letype_t type, const vec3_t origin, const vec3_t angles, int frames,
+static LocalEntity *CG_AllocModel( LocalEntityType type, const vec3_t origin, const vec3_t angles, int frames,
 								 float r, float g, float b, float a, float light, float lr, float lg, float lb, struct model_s *model, struct shader_s *shader ) {
-	lentity_t *le;
+	LocalEntity *le;
 
 	le = CG_AllocLocalEntity( type, r, g, b, a );
 	le->frames = frames;
@@ -198,9 +193,9 @@ static lentity_t *CG_AllocModel( letype_t type, const vec3_t origin, const vec3_
 /*
 * CG_AllocSprite
 */
-static lentity_t *CG_AllocSprite( letype_t type, const vec3_t origin, float radius, int frames,
+static LocalEntity *CG_AllocSprite( LocalEntityType type, const vec3_t origin, float radius, int frames,
 								  float r, float g, float b, float a, float light, float lr, float lg, float lb, struct shader_s *shader ) {
-	lentity_t *le;
+	LocalEntity *le;
 
 	le = CG_AllocLocalEntity( type, r, g, b, a );
 	le->frames = frames;
@@ -227,9 +222,9 @@ void CG_SpawnSprite( const vec3_t origin, const vec3_t velocity, const vec3_t ac
 					 float r, float g, float b, float a,
 					 float light, float lr, float lg, float lb,
 					 struct shader_s *shader ) {
-	lentity_t *le;
+	LocalEntity *le;
 	int numFrames;
-	letype_t type = LE_ALPHA_FADE;
+	LocalEntityType type = LE_ALPHA_FADE;
 
 	if( !radius || !shader || !origin ) {
 		return;
@@ -276,7 +271,7 @@ void CG_EBBeam( const vec3_t start, const vec3_t end, int team ) {
 */
 void CG_ImpactSmokePuff( const vec3_t origin, const vec3_t dir, float radius, float alpha, int time, int speed ) {
 #define SMOKEPUFF_MAXVIEWDIST 700
-	lentity_t *le;
+	LocalEntity *le;
 	struct shader_s *shader = CG_MediaShader( cgs.media.shaderSmokePuff );
 	vec3_t local_origin, local_dir;
 
@@ -308,7 +303,7 @@ void CG_ImpactSmokePuff( const vec3_t origin, const vec3_t dir, float radius, fl
 * CG_BulletExplosion
 */
 void CG_BulletExplosion( const vec3_t pos, const vec_t *dir, const trace_t *trace ) {
-	lentity_t *le;
+	LocalEntity *le;
 	vec3_t angles;
 	vec3_t local_dir, end;
 	trace_t local_trace;
@@ -376,7 +371,7 @@ void CG_BubbleTrail( const vec3_t start, const vec3_t end, int dist ) {
 	int i;
 	float len;
 	vec3_t move, vec;
-	lentity_t *le;
+	LocalEntity *le;
 	struct shader_s *shader;
 
 	VectorCopy( start, move );
@@ -403,7 +398,7 @@ void CG_BubbleTrail( const vec3_t start, const vec3_t end, int dist ) {
 * CG_PlasmaExplosion
 */
 void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, int team, float radius ) {
-	lentity_t *le;
+	LocalEntity *le;
 	vec3_t angles;
 	float model_radius = PLASMA_EXPLOSION_MODEL_RADIUS;
 
@@ -430,7 +425,7 @@ void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, int team, float rad
 }
 
 void CG_EBImpact( const vec3_t pos, const vec3_t dir, int surfFlags, int team ) {
-	lentity_t *le;
+	LocalEntity *le;
 	vec3_t angles;
 
 	vec4_t color;
@@ -463,7 +458,7 @@ void CG_EBImpact( const vec3_t pos, const vec3_t dir, int surfFlags, int team ) 
 * CG_RocketExplosionMode
 */
 void CG_RocketExplosionMode( const vec3_t pos, const vec3_t dir, float radius, int team ) {
-	lentity_t *le;
+	LocalEntity *le;
 	vec3_t angles, vec;
 	float expvelocity = 8.0f;
 
@@ -512,7 +507,7 @@ void CG_RocketExplosionMode( const vec3_t pos, const vec3_t dir, float radius, i
 * CG_BladeImpact
 */
 void CG_BladeImpact( const vec3_t pos, const vec3_t dir ) {
-	lentity_t *le;
+	LocalEntity *le;
 	vec3_t angles;
 	vec3_t end;
 	vec3_t local_pos, local_dir;
@@ -620,7 +615,7 @@ void CG_ProjectileTrail( centity_t *cent ) {
 
 		vec4_t color;
 		CG_TeamColor( cent->current.team, color );
-		lentity_t * le = CG_AllocSprite( LE_INVERSESCALE_ALPHA_FADE, cent->trailOrigin, radius, 4,
+		LocalEntity * le = CG_AllocSprite( LE_INVERSESCALE_ALPHA_FADE, cent->trailOrigin, radius, 4,
 							 color[ 0 ], color[ 1 ], color[ 2 ], alpha,
 							 0, 0, 0, 0,
 							 shader );
@@ -633,7 +628,7 @@ void CG_ProjectileTrail( centity_t *cent ) {
 * CG_NewBloodTrail
 */
 void CG_NewBloodTrail( centity_t *cent ) {
-	lentity_t *le;
+	LocalEntity *le;
 	float len;
 	vec3_t vec;
 	int contents;
@@ -720,7 +715,7 @@ void CG_BloodDamageEffect( const vec3_t origin, const vec3_t dir, int damage, in
 	CG_TeamColor( team, color );
 
 	for( int i = 0; i < count; i++ ) {
-		lentity_t *le = CG_AllocSprite( LE_PUFF_SHRINK, origin, radius + crandom(), time,
+		LocalEntity *le = CG_AllocSprite( LE_PUFF_SHRINK, origin, radius + crandom(), time,
 			color[ 0 ], color[ 1 ], color[ 2 ], alpha,
 			0, 0, 0, 0, shader );
 
@@ -741,7 +736,7 @@ void CG_BloodDamageEffect( const vec3_t origin, const vec3_t dir, int damage, in
 void CG_PModel_SpawnTeleportEffect( centity_t *cent ) {
 	int j;
 	cgs_skeleton_t *skel;
-	lentity_t *le;
+	LocalEntity *le;
 	vec3_t teleportOrigin;
 	vec3_t rgb;
 
@@ -793,7 +788,7 @@ void CG_PModel_SpawnTeleportEffect( centity_t *cent ) {
 * CG_GrenadeExplosionMode
 */
 void CG_GrenadeExplosionMode( const vec3_t pos, const vec3_t dir, float radius, int team ) {
-	lentity_t *le;
+	LocalEntity *le;
 	vec3_t angles;
 	vec3_t decaldir;
 	vec3_t origin, vec;
@@ -845,7 +840,7 @@ void CG_GrenadeExplosionMode( const vec3_t pos, const vec3_t dir, float radius, 
 * CG_GenericExplosion
 */
 void CG_GenericExplosion( const vec3_t pos, const vec3_t dir, float radius ) {
-	lentity_t *le;
+	LocalEntity *le;
 	vec3_t angles;
 	vec3_t decaldir;
 	vec3_t origin, vec;
@@ -876,7 +871,7 @@ void CG_GenericExplosion( const vec3_t pos, const vec3_t dir, float radius ) {
 }
 
 void CG_Dash( const entity_state_t *state ) {
-	lentity_t *le;
+	LocalEntity *le;
 	vec3_t pos, dvect, angle = { 0, 0, 0 };
 
 	if( !( cg_cartoonEffects->integer & 4 ) ) {
@@ -914,7 +909,7 @@ void CG_Dash( const entity_state_t *state ) {
 }
 
 void CG_Explosion_Puff( const vec3_t pos, float radius, int frame ) {
-	lentity_t *le;
+	LocalEntity *le;
 	struct shader_s *shader = CG_MediaShader( cgs.media.shaderSmokePuff1 );
 	vec3_t local_pos;
 
@@ -944,7 +939,7 @@ void CG_Explosion_Puff( const vec3_t pos, float radius, int frame ) {
 
 void CG_Explosion_Puff_2( const vec3_t pos, const vec3_t vel, int radius ) {
 
-	lentity_t *le;
+	LocalEntity *le;
 	struct shader_s *shader = CG_MediaShader( cgs.media.shaderSmokePuff3 );
 	/*
 	switch( (int)floor( crandom()*3.0f ) )
@@ -1004,7 +999,7 @@ void CG_DustCircle( const vec3_t pos, const vec3_t dir, float radius, int count 
 
 void CG_ExplosionsDust( const vec3_t pos, const vec3_t dir, float radius ) {
 	const int count = 32; /* Number of sprites used to create the circle */
-	lentity_t *le;
+	LocalEntity *le;
 	struct shader_s *shader = CG_MediaShader( cgs.media.shaderSmokePuff3 );
 
 	vec3_t dir_per1;
@@ -1043,7 +1038,7 @@ void CG_ExplosionsDust( const vec3_t pos, const vec3_t dir, float radius ) {
 }
 
 void CG_SmallPileOfGibs( const vec3_t origin, int damage, const vec3_t initialVelocity, int team ) {
-	lentity_t *le;
+	LocalEntity *le;
 	vec3_t angles, velocity;
 
 	int time = 25;
@@ -1090,7 +1085,7 @@ void CG_SmallPileOfGibs( const vec3_t origin, int damage, const vec3_t initialVe
 void CG_AddLocalEntities( void ) {
 #define FADEINFRAMES 2
 	int f;
-	lentity_t *le, *next, *hnode;
+	LocalEntity *le, *next, *hnode;
 	entity_t *ent;
 	float scale, frac, fade, time, scaleIn, fadeIn;
 	float backlerp;
@@ -1302,7 +1297,7 @@ void CG_AddLocalEntities( void ) {
 * CG_FreeLocalEntities
 */
 void CG_FreeLocalEntities( void ) {
-	lentity_t *le, *next, *hnode;
+	LocalEntity *le, *next, *hnode;
 
 	hnode = &cg_localents_headnode;
 	for( le = hnode->next; le != hnode; le = next ) {

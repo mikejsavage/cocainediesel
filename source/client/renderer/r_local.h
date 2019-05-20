@@ -332,7 +332,6 @@ bool R_AddAliasModelToDrawList( const entity_t *e );
 void R_DrawAliasSurf( const entity_t *e, const shader_t *shader, const drawSurfaceAlias_t *drawSurf );
 bool R_AliasModelLerpTag( orientation_t *orient, const maliasmodel_t *aliasmodel, int framenum, int oldframenum,
 	float lerpfrac, const char *name );
-void R_AliasModelFrameBounds( const model_t *mod, int frame, vec3_t mins, vec3_t maxs );
 
 void Mod_LoadAliasMD3Model( model_t *mod, void *buffer, int buffer_size, const bspFormatDesc_t *unused );
 void Mod_LoadSkeletalModel( model_t *mod, void *buffer, int buffer_size, const bspFormatDesc_t *unused );
@@ -586,7 +585,6 @@ shader_t    *R_FindShaderForSkinFile( const struct skinfile_s *skinfile, const c
 void R_CacheSkeletalModelEntity( const entity_t *e );
 bool R_AddSkeletalModelToDrawList( const entity_t *e );
 void R_DrawSkeletalSurf( const entity_t *e, const shader_t *shader, const drawSurfaceSkeletal_t *drawSurf );
-void R_SkeletalModelFrameBounds( const model_t *mod, int frame, vec3_t mins, vec3_t maxs );
 int R_SkeletalGetBoneInfo( const model_t *mod, int bonenum, char *name, size_t name_size, int *flags );
 void R_SkeletalGetBonePose( const model_t *mod, int bonenum, int frame, bonepose_t *bonepose );
 int R_SkeletalGetNumBones( const model_t *mod, int *numFrames );

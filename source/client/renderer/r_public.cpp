@@ -63,7 +63,6 @@ extern "C" QF_DLL_EXPORT ref_export_t *GetRefAPI( ref_import_t *import ) {
 	globals.RegisterModel = R_RegisterModel;
 	globals.RegisterPic = R_RegisterPic;
 	globals.RegisterAlphaMask = R_RegisterAlphaMask;
-	globals.RegisterLevelshot = R_RegisterLevelshot;
 	globals.RegisterSkin = R_RegisterSkin;
 	globals.RegisterSkinFile = R_RegisterSkinFile;
 	globals.RegisterLinearPic = R_RegisterLinearPic;
@@ -73,9 +72,6 @@ extern "C" QF_DLL_EXPORT ref_export_t *GetRefAPI( ref_import_t *import ) {
 	globals.SkeletalGetNumBones = R_SkeletalGetNumBones;
 
 	globals.GetClippedFragments = R_GetClippedFragments;
-
-	globals.ModelBounds = R_ModelBounds;
-	globals.ModelFrameBounds = R_ModelFrameBounds;
 
 	return &globals;
 }

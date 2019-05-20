@@ -99,17 +99,12 @@ typedef struct {
 
 	void ( *Shutdown )( bool verbose );
 
-	void ( *ModelBounds )( const struct model_s *model, vec3_t mins, vec3_t maxs );
-	void ( *ModelFrameBounds )( const struct model_s *model, int frame, vec3_t mins, vec3_t maxs );
-
 	void ( *RegisterWorldModel )( const char *model );
 	struct model_s *( *RegisterModel )( const char *name );
 	struct shader_s *( *RegisterPic )( const char *name );
 	struct shader_s *( *RegisterAlphaMask )( const char *name, int width, int height, const uint8_t * data );
-	struct shader_s *( *RegisterLevelshot )( const char *name, struct shader_s *defaultShader, bool *matchesDefault );
 	struct shader_s *( *RegisterSkin )( const char *name );
 	struct skinfile_s *( *RegisterSkinFile )( const char *name );
-	struct shader_s *( *RegisterVideo )( const char *name );
 	struct shader_s *( *RegisterLinearPic )( const char *name );
 
 	void ( *ReplaceRawSubPic )( struct shader_s *shader, int x, int y, int width, int height, uint8_t *data );

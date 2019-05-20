@@ -887,37 +887,6 @@ struct model_s *R_RegisterModel( const char *name ) {
 	return mod;
 }
 
-/*
-* R_ModelBounds
-*/
-void R_ModelBounds( const model_t *model, vec3_t mins, vec3_t maxs ) {
-	if( model ) {
-		VectorCopy( model->mins, mins );
-		VectorCopy( model->maxs, maxs );
-	} else if( rsh.worldModel ) {
-		VectorCopy( rsh.worldModel->mins, mins );
-		VectorCopy( rsh.worldModel->maxs, maxs );
-	}
-}
-
-/*
-* R_ModelFrameBounds
-*/
-void R_ModelFrameBounds( const struct model_s *model, int frame, vec3_t mins, vec3_t maxs ) {
-	if( model ) {
-		switch( model->type ) {
-			case mod_alias:
-				R_AliasModelFrameBounds( model, frame, mins, maxs );
-				break;
-			case mod_skeletal:
-				R_SkeletalModelFrameBounds( model, frame, mins, maxs );
-				break;
-			default:
-				break;
-		}
-	}
-}
-
 static vec4_t *r_modelTransformBuf;
 static size_t r_modelTransformBufSize;
 

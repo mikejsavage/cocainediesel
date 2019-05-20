@@ -145,14 +145,10 @@ typedef struct {
 	const char *( *R_GetSpeedsMessage )( char *out, size_t size );
 	int ( *R_GetAverageFrametime )( void );
 	void ( *R_RegisterWorldModel )( const char *name );
-	void ( *R_ModelBounds )( const struct model_s *mod, vec3_t mins, vec3_t maxs );
-	void ( *R_ModelFrameBounds )( const struct model_s *mod, int frame, vec3_t mins, vec3_t maxs );
 	struct model_s *( *R_RegisterModel )( const char *name );
 	struct shader_s *( *R_RegisterPic )( const char *name );
-	struct shader_s *( *R_RegisterLevelshot )( const char *name, struct shader_s *defaultPic, bool *matchesDefault );
 	struct shader_s *( *R_RegisterSkin )( const char *name );
 	struct skinfile_s *( *R_RegisterSkinFile )( const char *name );
-	struct shader_s *( *R_RegisterVideo )( const char *name );
 	struct shader_s *( *R_RegisterLinearPic )( const char *name );
 	bool ( *R_LerpTag )( struct orientation_s *orient, const struct model_s *mod, int oldframe, int frame, float lerpfrac, const char *name );
 	void ( *R_DrawStretchPic )( int x, int y, int w, int h, float s1, float t1, float s2, float t2, const vec4_t color, const struct shader_s *shader );

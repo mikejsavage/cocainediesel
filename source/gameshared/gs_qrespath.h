@@ -74,8 +74,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PATH_KEYICON_CROUCH             "gfx/hud/keys/act_crouch"
 #define PATH_KEYICON_SPECIAL            "gfx/hud/keys/act_special"
 
-#define PATH_UNKNOWN_MAP_PIC             "levelshots/unknownmap"
-
 //
 //
 // MODELS

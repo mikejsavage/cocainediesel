@@ -1132,31 +1132,6 @@ bool R_SkeletalModelLerpTag( orientation_t *orient, const mskmodel_t *skmodel, i
 }
 
 /*
-* R_SkeletalModelFrameBounds
-*/
-void R_SkeletalModelFrameBounds( const model_t *mod, int frame, vec3_t mins, vec3_t maxs ) {
-	mskframe_t *pframe;
-	mskmodel_t *skmodel = ( mskmodel_t * )mod->extradata;
-
-	if( !skmodel->nummeshes ) {
-		ClearBounds( mins, maxs );
-		return;
-	}
-
-	if( ( frame >= (int)skmodel->numframes ) || ( frame < 0 ) ) {
-#ifndef PUBLIC_BUILD
-		ri.Com_DPrintf( "R_SkeletalModelFrameBounds %s: no such frame %d\n", mod->name, frame );
-#endif
-		ClearBounds( mins, maxs );
-		return;
-	}
-
-	pframe = skmodel->frames + frame;
-	VectorCopy( pframe->mins, mins );
-	VectorCopy( pframe->maxs, maxs );
-}
-
-/*
 * R_AddSkeletalModelCacheJob
 */
 static void R_AddSkeletalModelCacheJob( const entity_t *e, const model_t *mod ) {

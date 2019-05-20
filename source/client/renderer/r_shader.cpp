@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // r_shader.c
 
 #include "r_local.h"
-#include "../../qalgo/hash.h"
+#include "qalgo/hash.h"
 
 #define SHADERS_HASH_SIZE   128
 #define SHADERCACHE_HASH_SIZE   128
@@ -1884,7 +1884,7 @@ bool R_ShaderNoDlight( const shader_t *shader ) {
 	if( Shader_DepthRead( shader ) || !Shader_DepthWrite( shader ) ) {
 		return true;
 	}
-	if( ( shader->sort < SHADER_SORT_OPAQUE ) || ( shader->sort > SHADER_SORT_BANNER ) ) {
+	if( shader->sort < SHADER_SORT_OPAQUE || shader->sort > SHADER_SORT_BANNER ) {
 		return true;
 	}
 	return false;
@@ -2041,24 +2041,6 @@ shader_t *R_RegisterAlphaMask( const char *name, int width, int height, const ui
 		}
 	}
 	return s;
-}
-
-/*
-* R_RegisterLevelshot
-*/
-shader_t *R_RegisterLevelshot( const char *name, shader_t *defaultShader, bool *matchesDefault ) {
-	shader_t *shader;
-
-	r_defaultImage = defaultShader ? defaultShader->passes[0].images[0] : NULL;
-	shader = R_LoadShader( name, SHADER_TYPE_2D, true, NULL );
-
-	if( matchesDefault ) {
-		*matchesDefault = shader->passes[0].images[0] == r_defaultImage;
-	}
-
-	r_defaultImage = NULL;
-
-	return shader;
 }
 
 /*

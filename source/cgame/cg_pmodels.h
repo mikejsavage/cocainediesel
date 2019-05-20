@@ -48,11 +48,9 @@ enum {
 
 enum {
 	WEAPMODEL_WEAPON,
-	WEAPMODEL_EXPANSION,
 	WEAPMODEL_FLASH,
 	WEAPMODEL_HAND,
 	WEAPMODEL_BARREL,
-	WEAPMODEL_BARREL2,
 
 	VWEAP_MAXPARTS
 };
@@ -86,22 +84,11 @@ typedef struct weaponinfo_s {
 
 	// barrel
 	int64_t barrelTime;
-	float barrelSpeed[VWEAP_MAXPARTS];
+	float barrelSpeed;
 
 	// sfx
 	int num_fire_sounds;
 	struct sfx_s *sound_fire[WEAPONINFO_MAX_FIRE_SOUNDS];
-	int num_strongfire_sounds;
-	struct sfx_s *sound_strongfire[WEAPONINFO_MAX_FIRE_SOUNDS];
-	struct sfx_s *sound_reload;
-
-	// ammo counter display
-	float acDigitWidth, acDigitHeight;
-	struct qfontface_s *acFont;
-	int acFontWidth;
-	float acDigitAlpha;
-	float acIconSize;
-	float acIconAlpha;
 } weaponinfo_t;
 
 #define SKM_MAX_BONES 256

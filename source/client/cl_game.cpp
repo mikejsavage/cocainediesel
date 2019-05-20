@@ -221,11 +221,8 @@ void CL_GameModule_Init( void ) {
 	import.R_GetSpeedsMessage = re.GetSpeedsMessage;
 	import.R_GetAverageFrametime = re.GetAverageFrametime;
 	import.R_RegisterWorldModel = re.RegisterWorldModel;
-	import.R_ModelBounds = re.ModelBounds;
-	import.R_ModelFrameBounds = re.ModelFrameBounds;
 	import.R_RegisterModel = re.RegisterModel;
 	import.R_RegisterPic = re.RegisterPic;
-	import.R_RegisterLevelshot = re.RegisterLevelshot;
 	import.R_RegisterSkin = re.RegisterSkin;
 	import.R_RegisterSkinFile = re.RegisterSkinFile;
 	import.R_RegisterLinearPic = re.RegisterLinearPic;

@@ -632,31 +632,6 @@ void R_DrawAliasSurf( const entity_t *e, const shader_t *shader, const drawSurfa
 }
 
 /*
-* R_AliasModelFrameBounds
-*/
-void R_AliasModelFrameBounds( const model_t *mod, int frame, vec3_t mins, vec3_t maxs ) {
-	const maliasframe_t *pframe;
-	const maliasmodel_t *aliasmodel = ( const maliasmodel_t * )mod->extradata;
-
-	if( !aliasmodel->nummeshes ) {
-		ClearBounds( mins, maxs );
-		return;
-	}
-
-	if( ( frame >= (int)aliasmodel->numframes ) || ( frame < 0 ) ) {
-#ifndef PUBLIC_BUILD
-		ri.Com_DPrintf( "R_SkeletalModelFrameBounds %s: no such frame %d\n", mod->name, frame );
-#endif
-		ClearBounds( mins, maxs );
-		return;
-	}
-
-	pframe = aliasmodel->frames + frame;
-	VectorCopy( pframe->mins, mins );
-	VectorCopy( pframe->maxs, maxs );
-}
-
-/*
 * R_CacheAliasModelEntity
 */
 void R_CacheAliasModelEntity( const entity_t *e ) {

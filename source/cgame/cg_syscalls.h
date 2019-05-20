@@ -233,23 +233,8 @@ static inline struct model_s *trap_R_RegisterModel( const char *name ) {
 	return CGAME_IMPORT.R_RegisterModel( name );
 }
 
-static inline void trap_R_ModelBounds( const struct model_s *mod, vec3_t mins, vec3_t maxs ) {
-	CGAME_IMPORT.R_ModelBounds( mod, mins, maxs );
-}
-
-static inline void trap_R_ModelFrameBounds( const struct model_s *mod, int frame, vec3_t mins, vec3_t maxs ) {
-	CGAME_IMPORT.R_ModelFrameBounds( mod, frame, mins, maxs );
-}
-
 static inline struct shader_s *trap_R_RegisterPic( const char *name ) {
 	return CGAME_IMPORT.R_RegisterPic( name );
-}
-
-static inline struct shader_s *trap_R_RegisterLevelshot( const char *name, struct shader_s *defaultPic, bool *matchesDefault ) {
-	bool matchesDefault_;
-	struct shader_s *s = CGAME_IMPORT.R_RegisterLevelshot( name, defaultPic, &matchesDefault_ );
-	*matchesDefault = matchesDefault_ == true ? true : false;
-	return s;
 }
 
 static inline struct shader_s *trap_R_RegisterSkin( const char *name ) {
@@ -258,10 +243,6 @@ static inline struct shader_s *trap_R_RegisterSkin( const char *name ) {
 
 static inline struct skinfile_s *trap_R_RegisterSkinFile( const char *name ) {
 	return CGAME_IMPORT.R_RegisterSkinFile( name );
-}
-
-static inline struct shader_s *trap_R_RegisterVideo( const char *name ) {
-	return CGAME_IMPORT.R_RegisterVideo( name );
 }
 
 static inline struct shader_s *trap_R_RegisterLinearPic( const char *name ) {

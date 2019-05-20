@@ -259,13 +259,6 @@ void R_FreeImageBuffers( void ) {
 }
 
 /*
-* R_AllocImageBufferCb
-*/
-static uint8_t *_R_AllocImageBufferCb( void *ptr, size_t size, const char *filename, int linenum ) {
-	return _R_PrepareImageBuffer( TEXTURE_LOADING_BUF, size, filename, linenum );
-}
-
-/*
 * R_ReadImageFromDisk
 */
 static int R_ReadImageFromDisk( char *pathname, size_t pathname_size,
@@ -357,30 +350,6 @@ static void R_FlipTexture( const uint8_t *in, uint8_t *out, int width, int heigh
 			for( x = 0, p = line + col_ofs; x < width; x++, p += col_inc, out += samples )
 				for( i = 0; i < samples; i++ )
 					out[i] = p[i];
-	}
-}
-
-/*
-* R_CutImage
-*/
-static void R_CutImage( const uint8_t *in, int inwidth, int height, uint8_t *out, int x, int y, int outwidth, int outheight, int samples ) {
-	int i;
-	uint8_t *iout;
-
-	if( x + outwidth > inwidth ) {
-		outwidth = inwidth - x;
-	}
-	if( y + outheight > height ) {
-		outheight = height - y;
-	}
-
-	x *= samples;
-	inwidth *= samples;
-	outwidth *= samples;
-
-	for( i = 0, iout = (uint8_t *)out; i < outheight; i++, iout += outwidth ) {
-		const uint8_t *iin = (uint8_t *)in + ( y + i ) * inwidth + x;
-		memcpy( iout, iin, outwidth );
 	}
 }
 

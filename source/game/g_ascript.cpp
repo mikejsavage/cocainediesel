@@ -114,10 +114,6 @@ static bool objectMatch_isPaused( match_t *self ) {
 	return GS_MatchPaused();
 }
 
-static unsigned int objectMatch_duration( match_t *self ) {
-	return GS_MatchDuration();
-}
-
 static int64_t objectMatch_startTime( match_t *self ) {
 	return GS_MatchStartTime();
 }

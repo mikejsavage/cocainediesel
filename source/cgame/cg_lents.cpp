@@ -222,25 +222,6 @@ static lentity_t *CG_AllocSprite( letype_t type, const vec3_t origin, float radi
 	return le;
 }
 
-/*
-* CG_AllocLaser
-*/
-static lentity_t *CG_AllocLaser( const vec3_t start, const vec3_t end, float radius, int frames,
-								 float r, float g, float b, float a, struct shader_s *shader ) {
-	lentity_t *le;
-
-	le = CG_AllocLocalEntity( LE_LASER, 1, 1, 1, 1 );
-	le->frames = frames;
-
-	le->ent.radius = radius;
-	le->ent.customShader = shader;
-	Vector4Set( le->ent.shaderRGBA, r * 255, g * 255, b * 255, a * 255 );
-	VectorCopy( start, le->ent.origin );
-	VectorCopy( end, le->ent.origin2 );
-
-	return le;
-}
-
 void CG_SpawnSprite( const vec3_t origin, const vec3_t velocity, const vec3_t accel,
 					 float radius, int time, int bounce, bool expandEffect, bool shrinkEffect,
 					 float r, float g, float b, float a,

@@ -217,24 +217,6 @@ void CG_SC_PrintStatsToFile( const char *format, ... ) {
 }
 
 /*
-* CG_SC_DumpPlayerStats
-*/
-static void CG_SC_DumpPlayerStats( const char *filename, const char *stats ) {
-	if( cgs.demoPlaying ) {
-		return;
-	}
-
-	if( trap_FS_FOpenFile( filename, &cg_statsFileHandle, FS_APPEND ) == -1 ) {
-		CG_Printf( "Couldn't write autorecorded stats, error opening file %s\n", filename );
-		return;
-	}
-
-	CG_SC_PrintPlayerStats( stats, CG_SC_PrintStatsToFile, NULL );
-
-	trap_FS_FCloseFile( cg_statsFileHandle );
-}
-
-/*
 * CG_SC_PlayerStats
 */
 static void CG_SC_PlayerStats( void ) {

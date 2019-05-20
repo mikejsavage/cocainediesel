@@ -12,7 +12,7 @@ msvc_obj_cxxflags( ".*", "/W4 /wd4100 /wd4146 /wd4189 /wd4201 /wd4307 /wd4324 /w
 msvc_obj_cxxflags( ".*", "/fp:fast /GR-" )
 gcc_obj_cxxflags( ".*", "-std=c++11 -static-libstdc++ -msse3 -ffast-math -fno-rtti -fno-strict-aliasing -fno-strict-overflow -fvisibility=hidden" )
 gcc_obj_cxxflags( ".*", "-Wall -Wextra -Wcast-align -Wvla -Wformat-security" ) -- -Wconversion
-gcc_obj_cxxflags( ".*", "-Wno-unused-parameter -Wno-unused-function -Wno-missing-field-initializers -Wno-implicit-fallthrough" )
+gcc_obj_cxxflags( ".*", "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-implicit-fallthrough" )
 
 obj_cxxflags( ".*", "-D_LIBCPP_TYPE_TRAITS" )
 

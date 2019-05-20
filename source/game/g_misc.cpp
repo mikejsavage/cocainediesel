@@ -18,26 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-// g_misc.c
-
 #include "g_local.h"
 
-
-//=====================================================
-
-static void VelocityForDamage( int damage, vec3_t v ) {
-	v[0] = 10.0 * crandom();
-	v[1] = 10.0 * crandom();
-	v[2] = 20.0 + 10.0 * random();
-
-	VectorNormalizeFast( v );
-
-	if( damage < 50 ) {
-		VectorScale( v, 0.7, v );
-	} else {
-		VectorScale( v, 1.2, v );
-	}
-}
 
 void ThrowSmallPileOfGibs( edict_t *self, int damage ) {
 	vec3_t origin;

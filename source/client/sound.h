@@ -4,7 +4,6 @@ bool S_Init();
 void S_Shutdown();
 
 struct sfx_s * S_RegisterSound( const char * filename );
-int64_t S_SoundLengthMilliseconds( const struct sfx_s * sfx );
 
 void S_Update( const vec3_t origin, const vec3_t velocity, const mat3_t axis );
 void S_UpdateEntity( int ent_num, const vec3_t origin, const vec3_t velocity );

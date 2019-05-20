@@ -10,7 +10,6 @@
 #include "stb/stb_vorbis.h"
 
 typedef struct sfx_s {
-	int length_ms;
 	char filename[ MAX_QPATH ];
 	ALuint buffer;
 } SoundAsset;
@@ -162,8 +161,6 @@ static SoundAsset * S_Register( const char * filename, bool allow_stereo ) {
 		return NULL;
 	}
 
-	sfx->length_ms = ( ( int64_t ) num_samples * 1000 ) / sample_rate;
-
 	ALenum format = channels == 1 ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
 	alGenBuffers( 1, &sfx->buffer );
 	alBufferData( sfx->buffer, format, data, num_samples * channels * sizeof( int16_t ), sample_rate );
@@ -229,10 +226,6 @@ SoundAsset * S_RegisterSound( const char * filename ) {
 	if( !initialized )
 		return NULL;
 	return S_Register( filename, false );
-}
-
-int64_t S_SoundLengthMilliseconds( const SoundAsset * sfx ) {
-	return sfx->length_ms;
 }
 
 static void swap( PlayingSound * a, PlayingSound * b ) {

@@ -41,33 +41,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #ifdef _WIN32
 
-#ifdef _MSC_VER
-
-// unknown pragmas are SUPPOSED to be ignored, but....
-#pragma warning( disable : 4244 )       // MIPS
-#pragma warning( disable : 4136 )       // X86
-#pragma warning( disable : 4051 )       // ALPHA
-#pragma warning( disable : 4514 )       // unreferenced inline function has been removed
-#pragma warning( disable : 4152 )       // nonstandard extension, function/data pointer conversion in expression
-#pragma warning( disable : 4201 )       // nonstandard extension used : nameless struct/union
-#pragma warning( disable : 4054 )       // 'type cast' : from function pointer to data pointer
-#pragma warning( disable : 4127 )       // conditional expression is constant
-#pragma warning( disable : 4100 )       // unreferenced formal parameter
-#pragma warning( disable : 4706 )       // assignment within conditional expression
-#pragma warning( disable : 4702 )       // unreachable code
-#pragma warning( disable : 4306 )       // conversion from 'int' to 'void *' of greater size
-#pragma warning( disable : 4305 )       // truncation from 'void *' to 'int'
-#pragma warning( disable : 4055 )       // 'type cast' : from data pointer 'void *' to function pointer
-#pragma warning( disable : 4204 )       // nonstandard extension used : non-constant aggregate initializer
-
-#if defined _M_AMD64
-#pragma warning( disable : 4267 )       // conversion from 'size_t' to whatever, possible loss of data
-#endif
-
-#pragma warning( disable : 4838 )       // conversion from 'double' to whatever requires a narrowing conversion
-#pragma warning( disable : 4324 )       // structure was padded due to alignment specifier
-#endif
-
 #if defined( _MSC_VER ) && defined( _I64_MAX )
 # define HAVE___STRTOI64
 #endif

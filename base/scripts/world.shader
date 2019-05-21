@@ -10,6 +10,7 @@ textures/world/lava
 	q3map_surfacelight 200
 	tesssize 64
 	qer_editorimage textures/world/sh/lava2.tga
+	fog
 
 	deformVertexes wave 100 sin 3 2 .1 0.1
 

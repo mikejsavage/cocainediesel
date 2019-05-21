@@ -7,6 +7,7 @@ textures/cocaine/s_lazery_blue
 	surfaceparm nomarks
 	surfaceparm nonsolid
 	surfaceparm trans
+	fog
 	{
 		map textures/cocaine/lazery_blue.tga
 		blendfunc GL_ONE GL_ONE
@@ -25,6 +26,7 @@ textures/cocaine/s_lazery_red
 	surfaceparm nomarks
 	surfaceparm nonsolid
 	surfaceparm trans
+	fog
 	{
 		map textures/cocaine/lazery_red.tga
 		blendfunc GL_ONE GL_ONE
@@ -43,6 +45,7 @@ textures/cocaine/s_lazery_green
 	surfaceparm nomarks
 	surfaceparm nonsolid
 	surfaceparm trans
+	fog
 	{
 		map textures/cocaine/lazery_green.tga
 		blendfunc GL_ONE GL_ONE
@@ -61,6 +64,7 @@ textures/cocaine/s_lazery_orange
 	surfaceparm nomarks
 	surfaceparm nonsolid
 	surfaceparm trans
+	fog
 	{
 		map textures/cocaine/lazery_orange.tga
 		blendfunc GL_ONE GL_ONE
@@ -79,6 +83,7 @@ textures/cocaine/s_lazery_white
 	surfaceparm nomarks
 	surfaceparm nonsolid
 	surfaceparm trans
+	fog
 	{
 		map textures/cocaine/lazery_white.tga
 		blendfunc GL_ONE GL_ONE
@@ -97,6 +102,7 @@ textures/cocaine/s_lazery_kush
 	surfaceparm nomarks
 	surfaceparm nonsolid
 	surfaceparm trans
+	fog
 	{
 		map textures/cocaine/lazery_kush.tga
 		blendfunc GL_ONE GL_ONE

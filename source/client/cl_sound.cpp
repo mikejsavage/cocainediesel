@@ -265,14 +265,15 @@ void S_Update( const vec3_t origin, const vec3_t velocity, const mat3_t axis ) {
 			if( ps->type == SoundType_AttachedImmediate )
 				entities[ ps->ent_num ].immediate_ps = NULL;
 
-			// remove-swap it from the playing sounds array
+			// remove-swap it from playing_sounds
 			num_playing_sounds--;
-			swap( ps, &playing_sounds[ num_playing_sounds ] );
+			if( ps != &playing_sounds[ num_playing_sounds ] ) {
+				swap( ps, &playing_sounds[ num_playing_sounds ] );
 
-			// fix up the entity.immediate_ps pointer for the sound that got swapped in
-			// unless ps was the last element of playing_sounds (and got swapped with itself)
-			if( ps != &playing_sounds[ num_playing_sounds ] && ps->type == SoundType_AttachedImmediate )
-				entities[ ps->ent_num ].immediate_ps = ps;
+				// fix up the immediate_ps pointer for the sound that got swapped in
+				if( ps->type == SoundType_AttachedImmediate )
+					entities[ ps->ent_num ].immediate_ps = ps;
+			}
 
 			i--;
 			continue;

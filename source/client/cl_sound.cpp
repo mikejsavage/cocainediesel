@@ -136,7 +136,7 @@ static SoundAsset * S_Register( const char * filename, bool allow_stereo ) {
 
 	// TODO: maybe we need to dedupe this.
 	Q_strncpyz( sfx->filename, filename, sizeof( sfx->filename ) - 1 );
-	Q_strncatz( sfx->filename, ".ogg", sizeof( sfx->filename ) -1 );
+	Q_strncatz( sfx->filename, ".ogg", sizeof( sfx->filename ) - 1 );
 
 	uint8_t * compressed_data;
 	int compressed_len = FS_LoadFile( sfx->filename, ( void ** ) &compressed_data, NULL, 0 );
@@ -312,14 +312,19 @@ void S_SetWindowFocus( bool focused ) {
 }
 
 static PlayingSound * S_FindEmptyPlayingSound( int ent_num, int channel ) {
-	for( size_t i = 0; i < num_playing_sounds; i++ ) {
-		PlayingSound * ps = &playing_sounds[ i ];
-		if( channel && ps->ent_num == ent_num && ps->channel == channel ) {
-			ALint state;
-			alGetSourcei( ps->source, AL_SOURCE_STATE, &state );
-			if( state != AL_INITIAL )
-				alSourceStop( ps->source );
-			return ps;
+	if( channel != 0 ) {
+		for( size_t i = 0; i < num_playing_sounds; i++ ) {
+			PlayingSound * ps = &playing_sounds[ i ];
+			if( ps->ent_num == ent_num && ps->channel == channel ) {
+				ALint state;
+				alGetSourcei( ps->source, AL_SOURCE_STATE, &state );
+				if( state != AL_INITIAL ) {
+					alSourceStop( ps->source );
+					if( ps->type == SoundType_AttachedImmediate && ps->ent_num >= 0 )
+						entities[ ps->ent_num ].ps = NULL;
+				}
+				return ps;
+			}
 		}
 	}
 
@@ -406,8 +411,8 @@ void S_StartLocalSound( SoundAsset * sfx, int channel, float volume ) {
 
 void S_ImmediateSound( SoundAsset * sfx, int ent_num, float volume, float attenuation ) {
 	// TODO: replace old immediate sound if sfx changed
-	if( entities[ ent_num ].ps == NULL || entities[ ent_num ].ps->type != SoundType_AttachedImmediate ) {
-		bool started = S_StartSound( sfx, NULL, ent_num, -1, volume, attenuation, SoundType_AttachedImmediate );
+	if( entities[ ent_num ].ps == NULL ) {
+		bool started = S_StartSound( sfx, NULL, ent_num, CHAN_AUTO, volume, attenuation, SoundType_AttachedImmediate );
 		if( !started )
 			return;
 	}
@@ -425,6 +430,8 @@ void S_StopAllSounds( bool stop_music ) {
 
 	if( stop_music )
 		S_StopBackgroundTrack();
+
+	memset( entities, 0, sizeof( entities ) );
 }
 
 void S_StartMenuMusic() {

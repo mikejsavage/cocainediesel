@@ -412,7 +412,7 @@ void S_StartLocalSound( SoundAsset * sfx, int channel, float volume ) {
 void S_ImmediateSound( SoundAsset * sfx, int ent_num, float volume, float attenuation ) {
 	// TODO: replace old immediate sound if sfx changed
 	if( entities[ ent_num ].ps == NULL ) {
-		bool started = S_StartSound( sfx, NULL, ent_num, CHAN_AUTO, volume, attenuation, SoundType_AttachedImmediate );
+		bool started = S_StartSound( sfx, NULL, ent_num, 0, volume, attenuation, SoundType_AttachedImmediate );
 		if( !started )
 			return;
 	}

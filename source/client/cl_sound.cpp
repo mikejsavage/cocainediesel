@@ -33,7 +33,7 @@ struct PlayingSound {
 struct EntitySound {
 	vec3_t origin;
 	vec3_t velocity;
-	PlayingSound * ps;
+	PlayingSound * immediate_ps;
 };
 
 static ALCdevice * al_device;
@@ -262,16 +262,17 @@ void S_Update( const vec3_t origin, const vec3_t velocity, const mat3_t axis ) {
 		if( not_touched || state == AL_STOPPED ) {
 			// stop the current sound
 			alSourceStop( ps->source );
-			if( ps->type == SoundType_AttachedImmediate && ps->ent_num >= 0 )
-				entities[ ps->ent_num ].ps = NULL;
+			if( ps->type == SoundType_AttachedImmediate )
+				entities[ ps->ent_num ].immediate_ps = NULL;
 
 			// remove-swap it from the playing sounds array
 			num_playing_sounds--;
 			swap( ps, &playing_sounds[ num_playing_sounds ] );
 
-			// fix up the ent->ps pointer for the sound that got swapped in
-			if( ps->type == SoundType_AttachedImmediate && ps->ent_num >= 0 )
-				entities[ ps->ent_num ].ps = ps;
+			// fix up the entity.immediate_ps pointer for the sound that got swapped in
+			// unless ps was the last element of playing_sounds (and got swapped with itself)
+			if( ps != &playing_sounds[ num_playing_sounds ] && ps->type == SoundType_AttachedImmediate )
+				entities[ ps->ent_num ].immediate_ps = ps;
 
 			i--;
 			continue;
@@ -320,8 +321,8 @@ static PlayingSound * S_FindEmptyPlayingSound( int ent_num, int channel ) {
 				alGetSourcei( ps->source, AL_SOURCE_STATE, &state );
 				if( state != AL_INITIAL ) {
 					alSourceStop( ps->source );
-					if( ps->type == SoundType_AttachedImmediate && ps->ent_num >= 0 )
-						entities[ ps->ent_num ].ps = NULL;
+					if( ps->type == SoundType_AttachedImmediate )
+						entities[ ps->ent_num ].immediate_ps = NULL;
 				}
 				return ps;
 			}
@@ -378,7 +379,7 @@ static bool S_StartSound( SoundAsset * sfx, const vec3_t origin, int ent_num, in
 			break;
 
 		case SoundType_AttachedImmediate:
-			entities[ ent_num ].ps = ps;
+			entities[ ent_num ].immediate_ps = ps;
 			alSourcefv( ps->source, AL_POSITION, entities[ ent_num ].origin );
 			alSourcefv( ps->source, AL_VELOCITY, entities[ ent_num ].velocity );
 			alSourcei( ps->source, AL_LOOPING, AL_TRUE );
@@ -411,12 +412,12 @@ void S_StartLocalSound( SoundAsset * sfx, int channel, float volume ) {
 
 void S_ImmediateSound( SoundAsset * sfx, int ent_num, float volume, float attenuation ) {
 	// TODO: replace old immediate sound if sfx changed
-	if( entities[ ent_num ].ps == NULL ) {
+	if( entities[ ent_num ].immediate_ps == NULL ) {
 		bool started = S_StartSound( sfx, NULL, ent_num, 0, volume, attenuation, SoundType_AttachedImmediate );
 		if( !started )
 			return;
 	}
-	entities[ ent_num ].ps->touched_since_last_update = true;
+	entities[ ent_num ].immediate_ps->touched_since_last_update = true;
 }
 
 void S_StopAllSounds( bool stop_music ) {

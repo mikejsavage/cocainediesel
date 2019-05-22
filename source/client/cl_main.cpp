@@ -495,10 +495,6 @@ keydest_t CL_GetKeyDest( void ) {
 * CL_SetKeyDest
 */
 void CL_SetKeyDest( keydest_t key_dest ) {
-	if( key_dest < key_game || key_dest > key_delegate ) {
-		Com_Error( ERR_DROP, "CL_SetKeyDest: invalid key_dest" );
-	}
-
 	if( cls.key_dest != key_dest ) {
 		CL_ClearInputState();
 		cls.key_dest = key_dest;
@@ -510,9 +506,6 @@ void CL_SetKeyDest( keydest_t key_dest ) {
 * CL_SetOldKeyDest
 */
 void CL_SetOldKeyDest( keydest_t key_dest ) {
-	if( key_dest < key_game || key_dest > key_delegate ) {
-		Com_Error( ERR_DROP, "CL_SetKeyDest: invalid key_dest" );
-	}
 	cls.old_key_dest = key_dest;
 }
 

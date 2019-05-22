@@ -368,7 +368,6 @@ typedef enum {
 	key_console,
 	key_message,
 	key_menu,
-	key_delegate
 } keydest_t;
 
 typedef enum {

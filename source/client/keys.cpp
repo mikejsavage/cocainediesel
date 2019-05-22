@@ -129,9 +129,6 @@ static const keyname_t keynames[] =
 	{ NULL, 0 }
 };
 
-static void Key_DelegateCallKeyDel( int key );
-static void Key_DelegateCallCharDel( wchar_t key );
-
 /*
 * Key_StringToKeynum
 *
@@ -359,9 +356,6 @@ void Key_CharEvent( int key, wchar_t charkey ) {
 			break;
 		case key_game:
 			break;
-		case key_delegate:
-			Key_DelegateCallCharDel( charkey );
-			break;
 		default:
 			Com_Error( ERR_FATAL, "Bad cls.key_dest" );
 	}
@@ -373,7 +367,7 @@ void Key_CharEvent( int key, wchar_t charkey ) {
 * Called by the system between frames for both key up and key down events
 * Should NOT be called during an interrupt!
 */
-void Key_Event( int key, bool down, int64_t time ) {
+void Key_Event( int key, bool down ) {
 	char cmd[1024];
 	bool handled = false;
 
@@ -437,9 +431,6 @@ void Key_Event( int key, bool down, int64_t time ) {
 			case key_console:
 				Con_ToggleConsole();
 				break;
-			case key_delegate:
-				Key_DelegateCallKeyDel( key );
-				break;
 			default:
 				Com_Error( ERR_FATAL, "Bad cls.key_dest" );
 		}
@@ -461,15 +452,15 @@ void Key_Event( int key, bool down, int64_t time ) {
 
 		if( kb && !suppress ) {
 			if( in_debug && in_debug->integer ) {
-				Com_Printf( "key:%i down:%i time:%" PRIi64 " %s\n", key, down, time, kb );
+				Com_Printf( "key:%i down:%i %s\n", key, down, kb );
 			}
 
-			if( kb[0] == '+' ) { // button commands add keynum and time as a parm
+			if( kb[0] == '+' ) { // button commands add keynum as a parm
 				if( down ) {
-					Q_snprintfz( cmd, sizeof( cmd ), "%s %i %" PRIi64 "\n", kb, key, time );
+					Q_snprintfz( cmd, sizeof( cmd ), "%s %i\n", kb, key );
 					Cbuf_AddText( cmd );
 				} else if( keydown[key] ) {
-					Q_snprintfz( cmd, sizeof( cmd ), "-%s %i %" PRIi64 "\n", kb + 1, key, time );
+					Q_snprintfz( cmd, sizeof( cmd ), "-%s %i\n", kb + 1, key );
 					Cbuf_AddText( cmd );
 				}
 			} else if( down ) {
@@ -497,9 +488,6 @@ void Key_Event( int key, bool down, int64_t time ) {
 			break;
 		case key_game:
 			break;
-		case key_delegate:
-			Key_DelegateCallKeyDel( key );
-			break;
 		default:
 			Com_Error( ERR_FATAL, "Bad cls.key_dest" );
 	}
@@ -511,7 +499,7 @@ void Key_Event( int key, bool down, int64_t time ) {
 void Key_ClearStates( void ) {
 	for( int i = 0; i < 256; i++ ) {
 		if( keydown[i] || key_repeats[i] ) {
-			Key_Event( i, false, 0 );
+			Key_Event( i, false );
 		}
 		keydown[i] = 0;
 		key_repeats[i] = 0;
@@ -534,54 +522,4 @@ bool Key_IsDown( int keynum ) {
 		return false;
 	}
 	return keydown[keynum];
-}
-
-typedef struct {
-	key_delegate_f key_del;
-	key_char_delegate_f char_del;
-} key_delegates_t;
-
-static key_delegates_t key_delegate_stack[32];
-static size_t key_delegate_stack_index = 0;
-
-/*
-* Key_DelegatePush
-*/
-keydest_t Key_DelegatePush( key_delegate_f key_del, key_char_delegate_f char_del ) {
-	assert( key_delegate_stack_index < ARRAY_COUNT( key_delegate_stack ) );
-	key_delegate_stack[key_delegate_stack_index].key_del = key_del;
-	key_delegate_stack[key_delegate_stack_index].char_del = char_del;
-	++key_delegate_stack_index;
-	if( key_delegate_stack_index == 1 ) {
-		CL_SetOldKeyDest( cls.key_dest );
-		CL_SetKeyDest( key_delegate );
-		return cls.old_key_dest;
-	} else {
-		return key_delegate;
-	}
-}
-
-/*
-* Key_DelegatePop
-*/
-void Key_DelegatePop( keydest_t next_dest ) {
-	assert( key_delegate_stack_index > 0 );
-	--key_delegate_stack_index;
-	CL_SetKeyDest( next_dest );
-}
-
-/*
-* Key_DelegateCallKeyDel
-*/
-static void Key_DelegateCallKeyDel( int key ) {
-	assert( key_delegate_stack_index > 0 );
-	key_delegate_stack[key_delegate_stack_index - 1].key_del( key, keydown );
-}
-
-/*
-* Key_DelegateCallCharDel
-*/
-static void Key_DelegateCallCharDel( wchar_t key ) {
-	assert( key_delegate_stack_index > 0 );
-	key_delegate_stack[key_delegate_stack_index - 1].char_del( key );
 }

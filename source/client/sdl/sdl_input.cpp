@@ -50,34 +50,34 @@ static void mouse_button_event( SDL_MouseButtonEvent *event, bool state ) {
 		// The engine only supports up to 8 buttons plus the mousewheel.
 		switch( button ) {
 			case SDL_BUTTON_LEFT:
-				Key_Event( K_MOUSE1, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE1, state );
 				break;
 			case SDL_BUTTON_MIDDLE:
-				Key_Event( K_MOUSE3, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE3, state );
 				break;
 			case SDL_BUTTON_RIGHT:
-				Key_Event( K_MOUSE2, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE2, state );
 				break;
 			case SDL_BUTTON_X1:
-				Key_Event( K_MOUSE4, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE4, state );
 				break;
 			case SDL_BUTTON_X2:
-				Key_Event( K_MOUSE5, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE5, state );
 				break;
 			case 6:
-				Key_Event( K_MOUSE6, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE6, state );
 				break;
 			case 7:
-				Key_Event( K_MOUSE7, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE7, state );
 				break;
 			case 8:
-				Key_Event( K_MOUSE4, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE4, state );
 				break;
 			case 9:
-				Key_Event( K_MOUSE5, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE5, state );
 				break;
 			case 10:
-				Key_Event( K_MOUSE8, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE8, state );
 				break;
 		}
 	} else {
@@ -87,10 +87,8 @@ static void mouse_button_event( SDL_MouseButtonEvent *event, bool state ) {
 
 static void mouse_wheel_event( SDL_MouseWheelEvent *event ) {
 	int key = event->y > 0 ? K_MWHEELUP : K_MWHEELDOWN;
-	int64_t sys_msg_time = Sys_Milliseconds();
-
-	Key_Event( key, true, sys_msg_time );
-	Key_Event( key, false, sys_msg_time );
+	Key_Event( key, true );
+	Key_Event( key, false );
 }
 
 static wchar_t TranslateSDLScancode( SDL_Scancode scancode ) {
@@ -238,7 +236,7 @@ static void key_event( const SDL_KeyboardEvent *event, bool state ) {
 	wchar_t charkey = TranslateSDLScancode( event->keysym.scancode );
 
 	if( charkey >= 0 && charkey <= 255 ) {
-		Key_Event( charkey, state, Sys_Milliseconds() );
+		Key_Event( charkey, state );
 	}
 }
 

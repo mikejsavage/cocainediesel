@@ -49,8 +49,6 @@ state bit 2 is edge triggered on the down to up transition
 class Kbutton
 {
 	int[] down(2);    // key nums holding it down
-	int64 downtime;   // msec timestamp
-	uint msec;        // msec down this frame
 	int state;
 };
 
@@ -132,13 +130,6 @@ void KeyDown( Kbutton @b ) {
 		return; // still down
 	}
 
-	// save timestamp
-	@c = CGame::Cmd::Argv( 2 );
-	b.downtime = c.toInt();
-	if( b.downtime == 0 ) {
-		b.downtime = curTime - 100;
-	}
-
 	b.state |= 1 + 2; // down + impulse down
 }
 
@@ -146,8 +137,6 @@ void KeyDown( Kbutton @b ) {
 * KeyUp
 */
 void KeyUp( Kbutton @b ) {
-	int uptime;
-
 	const auto @c = CGame::Cmd::Argv( 1 );
 	if( c.empty() ) {
 		// typed manually at the console, assume for unsticking, so clear all
@@ -171,15 +160,6 @@ void KeyUp( Kbutton @b ) {
 
 	if( ( b.state & 1 ) == 0 ) {
 		return; // still up (this should not happen)
-	}
-
-	// save timestamp
-	@c = CGame::Cmd::Argv( 2 );
-	uptime = c.toInt();
-	if( uptime != 0 ) {
-		b.msec += uptime - b.downtime;
-	} else {
-		b.msec += 10;
 	}
 
 	b.state &= ~1; // now up
@@ -213,46 +193,17 @@ void ZoomUp( void ) { KeyUp( in_zoom ); }
 */
 float KeyState( Kbutton @key ) {
 	key.state &= 1; // clear impulses
-
-	int msec = key.msec;
-	key.msec = 0;
-
-	if( key.state != 0 ) {
-		// still down
-		msec += curTime - key.downtime;
-		key.downtime = curTime;
-	}
-
-	if( frameTime == 0 ) {
-		return 0;
-	}
-
-	float val = float(msec) / float(frameTime);
-	if( val <= 0.0 ) {
-		return 0.0;
-	}
-	if( val >= 1.0 ) {
-		return 1.0;
-	}
-	return val;
+	return ( key.state & 1 ) != 0 ? 1.0 : 0.0;
 }
 
 /*
 * GetMovement
 */
 Vec3 GetMovement() {
-	float down;
 	Vec3 movement;
-
-	movement[0] += KeyState( in_right );
-	movement[0] -= KeyState( in_left );
-
-	movement[1] += KeyState( in_forward );
-	movement[1] -= KeyState( in_back );
-
-	movement[2] += KeyState( in_jump );
-	movement[2] -= KeyState( in_crouch );
-	
+	movement.x = KeyState( in_right ) - KeyState( in_left );
+	movement.y = KeyState( in_forward ) - KeyState( in_back );
+	movement.z = KeyState( in_jump ) - KeyState( in_crouch );
 	return movement;
 }
 

@@ -21,9 +21,11 @@
  *       http://www.rng-random.org
  */
 
+#include <string.h>
 #include <assert.h>
 
 #include "rng.h"
+#include "gameshared/q_shared.h"
 
 RNG new_rng() {
 	RNG rng;
@@ -80,24 +82,41 @@ int random_uniform( RNG * rng, int lo, int hi ) {
 }
 
 float random_float01( RNG * rng ) {
-        return float( random_u32( rng ) ) / ( float( UINT32_MAX ) + 1 );
+	uint32_t r = random_u32( rng );
+	return bit_cast< float >( UINT32_C( 0x3F800000 ) | ( r >> 9 ) ) - 1.0f;
 }
 
 float random_float11( RNG * rng ) {
-	return random_float01( rng ) * 2.0f - 1.0f;
+	union {
+		uint32_t u;
+		float f;
+	} x;
+	uint32_t r = random_u32( rng );
+	uint32_t sign = ( r & 1 ) << 31;
+	x.u = UINT32_C( 0x3F800000 ) | ( r >> 9 );
+	x.f -= 1.0f;
+	x.u |= sign;
+	return x.f;
 }
 
 double random_double01( RNG * rng ) {
-        uint64_t r64 = ( uint64_t( random_u32( rng ) ) << 32 ) | random_u32( rng );
-        uint64_t r53 = r64 & ( ( uint64_t( 1 ) << 53 ) - 1 );
-
-        return double( r53 ) / double( ( uint64_t( 1 ) << 53 ) + 1 );
+	uint64_t r = random_u64( rng );
+	return bit_cast< double >( UINT64_C( 0x3FF0000000000000 ) | ( r >> 12 ) ) - 1.0;
 }
 
 double random_double11( RNG * rng ) {
-	return random_double01( rng ) * 2.0f - 1.0f;
+	union {
+		uint64_t u;
+		double d;
+	} x;
+	uint64_t r = random_u64( rng );
+	uint64_t sign = ( r & 1 ) << 63;
+	x.u = UINT64_C( 0x3FF0000000000000 ) | ( r >> 12 );
+	x.d -= 1.0;
+	x.u |= sign;
+	return x.d;
 }
 
 bool random_p( RNG * rng, float p ) {
-	return random_u32( rng ) < uint32_t( p * UINT32_MAX );
+	return random_float01( rng ) < p;
 }

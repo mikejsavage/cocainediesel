@@ -1,5 +1,6 @@
 version: "{build}"
 clone_depth: 1
+image: Visual Studio 2019
 
 build_script:
 - cmd: call "C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1\\Bin\\SetEnv.cmd" /x64

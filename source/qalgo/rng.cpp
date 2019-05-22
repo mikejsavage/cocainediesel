@@ -51,7 +51,7 @@ uint32_t random_u32( RNG * rng ) {
 }
 
 uint64_t random_u64( RNG * rng ) {
-	uint64_t hi = uint64_t( random_u32( rng ) ) << uint64_t( 31 );
+	uint64_t hi = uint64_t( random_u32( rng ) ) << uint64_t( 32 );
 	return hi | random_u32( rng );
 }
 

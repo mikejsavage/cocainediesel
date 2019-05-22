@@ -3,8 +3,7 @@ clone_depth: 1
 image: Visual Studio 2019
 
 build_script:
-- cmd: call "C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1\\Bin\\SetEnv.cmd" /x64
-- cmd: call "C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat" x86_amd64
+- cmd: call "C:\\Program Files (x86)\\Microsoft Visual Studio 16.0\\VC\\vcvarsall.bat" x86_amd64
 - cmd: ggbuild\lua.exe make.lua release > build.ninja
 - cmd: ggbuild\ninja.exe -v -k 0
 - cmd: ggbuild\ducible.exe release\client.exe

@@ -16,11 +16,10 @@ local configs = {
 	},
 
 	[ "windows-debug" ] = {
-		cxxflags = "/Od /MDd /Z7 /Zo",
-		ldflags = "/Od /MDd /Z7 /Zo",
+		cxxflags = "/Od /MTd /Z7 /Zo",
 	},
 	[ "windows-release" ] = {
-		cxxflags = "/O2 /MD /DNDEBUG",
+		cxxflags = "/O2 /MT /DNDEBUG",
 		bin_prefix = "release/",
 		dll_prefix = "release/base/",
 	},

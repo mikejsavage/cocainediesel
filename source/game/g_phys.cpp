@@ -39,27 +39,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 
-/*
-* SV_TestEntityPosition
-*
-*/
-static edict_t *SV_TestEntityPosition( edict_t *ent ) {
+static bool EntityOverlapsAnything( edict_t *ent ) {
+	int mask = ent->r.clipmask ? ent->r.clipmask : MASK_SOLID;
 	trace_t trace;
-	int mask;
-
-
-	if( ent->r.clipmask ) {
-		mask = ent->r.clipmask;
-	} else {
-		mask = MASK_SOLID;
-	}
-
 	G_Trace4D( &trace, ent->s.origin, ent->r.mins, ent->r.maxs, ent->s.origin, ent, mask, ent->timeDelta );
-	if( trace.startsolid ) {
-		return game.edicts;
-	}
-
-	return NULL;
+	return trace.startsolid;
 }
 
 /*
@@ -201,7 +185,7 @@ edict_t *obstacle;
 */
 static bool SV_Push( edict_t *pusher, vec3_t move, vec3_t amove ) {
 	int i, e;
-	edict_t *check, *block;
+	edict_t *check;
 	vec3_t mins, maxs;
 	pushed_t *p;
 	mat3_t axis;
@@ -247,7 +231,6 @@ static bool SV_Push( edict_t *pusher, vec3_t move, vec3_t amove ) {
 
 		if( !check->areagrid[0].prev ) {
 			continue; // not linked in anywhere
-
 		}
 
 		// if the entity is standing on the pusher, it will definitely be moved
@@ -263,7 +246,7 @@ static bool SV_Push( edict_t *pusher, vec3_t move, vec3_t amove ) {
 			}
 
 			// see if the ent's bbox is inside the pusher's final position
-			if( !SV_TestEntityPosition( check ) ) {
+			if( !EntityOverlapsAnything( check ) ) {
 				continue;
 			}
 		}
@@ -296,7 +279,7 @@ static bool SV_Push( edict_t *pusher, vec3_t move, vec3_t amove ) {
 				}
 			}
 
-			block = SV_TestEntityPosition( check );
+			bool block = EntityOverlapsAnything( check );
 			if( !block ) {
 				// pushed ok
 				GClip_LinkEntity( check );
@@ -309,7 +292,7 @@ static bool SV_Push( edict_t *pusher, vec3_t move, vec3_t amove ) {
 				// this is only relevant for riding entities, not pushed
 				VectorSubtract( check->s.origin, move, check->s.origin );
 				VectorSubtract( check->s.origin, move2, check->s.origin );
-				block = SV_TestEntityPosition( check );
+				block = EntityOverlapsAnything( check );
 				if( !block ) {
 					pushed_p--;
 					continue;

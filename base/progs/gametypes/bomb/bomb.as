@@ -280,13 +280,15 @@ void bombExplode() {
 	// do this first else the attackers can score 2 points when the explosion kills everyone
 	roundWonBy( attackingTeam );
 
+	hide( @bombDecal );
+	hide( @bombHud );
+
 	bombSite.explode();
 
 	bombState = BombState_Exploding;
 	@defuser = null;
 
 	G_Sound( @bombModel, 0, sndGoodGame, ATTN_DISTANT );
-
 }
 
 void resetBomb() {

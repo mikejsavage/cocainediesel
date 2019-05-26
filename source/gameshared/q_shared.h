@@ -370,15 +370,6 @@ typedef enum {
 	key_menu,
 } keydest_t;
 
-typedef enum {
-	rserr_ok,
-	rserr_invalid_fullscreen,
-	rserr_invalid_mode,
-	rserr_invalid_driver,
-	rserr_restart_required,
-	rserr_unknown
-} rserr_t;
-
 // font style flags
 typedef enum {
 	QFONT_STYLE_NONE            = 0,
@@ -386,9 +377,3 @@ typedef enum {
 	QFONT_STYLE_BOLD            = ( 1 << 1 ),
 	QFONT_STYLE_MASK            = ( 1 << 2 ) - 1
 } qfontstyle_t;
-
-// font drawing flags
-typedef enum {
-	TEXTDRAWFLAG_NO_COLORS  = 1 << 0,   // draw color codes instead of applying them
-	TEXTDRAWFLAG_KERNING    = 1 << 1
-} textdrawflag_t;

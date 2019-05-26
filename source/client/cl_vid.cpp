@@ -61,7 +61,7 @@ int VID_GetWindowHeight() {
 	return viddef.height;
 }
 
-static bool VID_LoadRefresh() {
+static void VID_LoadRefresh() {
 	static ref_import_t import;
 
 	import.Com_Error = &Com_Error;
@@ -123,9 +123,6 @@ static bool VID_LoadRefresh() {
 	// load succeeded
 	ref_export_t * rep = GetRefAPI( &import );
 	re = *rep;
-
-	Com_Printf( "\n" );
-	return true;
 }
 
 static bool ParseWindowMode( const char * str, WindowMode * mode ) {
@@ -234,13 +231,10 @@ void VID_Init() {
 
 	CL_Profiler_InitGL();
 
-	if( !VID_LoadRefresh() ) {
-		Sys_Error( "Failed to load renderer" );
-	}
+	VID_LoadRefresh();
 
-	rserr_t err = R_Init( true );
-	if( err != rserr_ok ) {
-		Sys_Error( "VID_Init() failed with code %i", err );
+	if( !R_Init() ) {
+		Sys_Error( "R_Init() failed" );
 	}
 
 	if( !S_Init() ) {

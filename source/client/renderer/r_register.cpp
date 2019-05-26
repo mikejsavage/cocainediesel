@@ -69,8 +69,6 @@ cvar_t *r_floorcolor;
 
 cvar_t *r_usenotexture;
 
-static bool r_verbose;
-
 static void R_FinalizeGLExtensions( void );
 static void R_GfxInfo_f( void );
 
@@ -359,11 +357,9 @@ static unsigned R_GLVersionHash( const char *vendorString, const char *rendererS
 /*
 * R_Init
 */
-static rserr_t R_PostInit( void );
-rserr_t R_Init( bool verbose ) {
+void RF_Init();
+bool R_Init() {
 	r_mempool = R_AllocPool( NULL, "Rendering Frontend" );
-
-	r_verbose = verbose;
 
 	R_Register();
 
@@ -373,17 +369,6 @@ rserr_t R_Init( bool verbose ) {
 	memset( &glConfig, 0, sizeof( glConfig ) );
 	glConfig.width = w;
 	glConfig.height = h;
-
-	return R_PostInit();
-}
-
-/*
-* R_PostInit
-*/
-rserr_t RF_Init();
-static rserr_t R_PostInit( void ) {
-	int i;
-	GLenum glerr;
 
 	glConfig.hwGamma = VID_GetGammaRamp( GAMMARAMP_STRIDE, &glConfig.gammaRampSize, glConfig.originalGammaRamp );
 	if( glConfig.hwGamma ) {
@@ -418,7 +403,7 @@ static rserr_t R_PostInit( void ) {
 
 	rsh.worldModelSequence = 1;
 
-	for( i = 0; i < 256; i++ )
+	for( int i = 0; i < 256; i++ )
 		rsh.sinTableByte[i] = sin( (float)i / 255.0 * M_TWOPI );
 
 	rf.frameTime.average = 1;
@@ -430,7 +415,7 @@ static rserr_t R_PostInit( void ) {
 	R_InitDrawLists();
 
 	if( !R_RegisterGLExtensions() ) {
-		return rserr_unknown;
+		return false;
 	}
 
 	R_FillStartupBackgroundColor( COLOR_R( APP_STARTUP_COLOR ) / 255.0f,
@@ -438,9 +423,7 @@ static rserr_t R_PostInit( void ) {
 
 	R_AnisotropicFilter( r_texturefilter->integer );
 
-	if( r_verbose ) {
-		R_GfxInfo_f();
-	}
+	R_GfxInfo_f();
 
 	// load and compile GLSL programs
 	RP_Init();
@@ -463,12 +446,13 @@ static rserr_t R_PostInit( void ) {
 
 	RF_Init();
 
-	glerr = glGetError();
+	GLenum glerr = glGetError();
 	if( glerr != GL_NO_ERROR ) {
 		Com_Printf( "glGetError() = 0x%x\n", glerr );
+		return false;
 	}
 
-	return rserr_ok;
+	return true;
 }
 
 /*

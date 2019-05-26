@@ -95,7 +95,7 @@ typedef struct {
 } ref_import_t;
 
 typedef struct {
-	rserr_t ( *Init )( bool verbose );
+	bool ( *Init )( bool verbose );
 
 	void ( *Shutdown )( bool verbose );
 

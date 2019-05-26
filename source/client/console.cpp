@@ -616,9 +616,9 @@ void Con_DrawChat( int x, int y, int width, struct qfontface_s *font ) {
 	width -= 48 * viddef.height / 600;
 
 	say = Con_ChatPrompt();
-	SCR_DrawString( x, y, ALIGN_LEFT_TOP, say, font, colorWhite, 0 );
-	spacewidth = SCR_strWidth( " ", font, 0, 0 );
-	promptwidth = SCR_strWidth( say, font, 0, 0 ) + spacewidth;
+	SCR_DrawString( x, y, ALIGN_LEFT_TOP, say, font, colorWhite );
+	spacewidth = SCR_strWidth( " ", font, 0 );
+	promptwidth = SCR_strWidth( say, font, 0 ) + spacewidth;
 	x += promptwidth;
 	width -= promptwidth;
 
@@ -626,7 +626,7 @@ void Con_DrawChat( int x, int y, int width, struct qfontface_s *font ) {
 	width -= underlineThickness;
 
 	s = chat_buffer;
-	swidth = SCR_strWidth( s, font, 0, 0 );
+	swidth = SCR_strWidth( s, font, 0 );
 
 	totalwidth = swidth;
 
@@ -634,7 +634,7 @@ void Con_DrawChat( int x, int y, int width, struct qfontface_s *font ) {
 		if( chat_linepos == chat_bufferlen ) {
 			prewidth += swidth;
 		} else {
-			prewidth += SCR_strWidth( s, font, chat_linepos, 0 );
+			prewidth += SCR_strWidth( s, font, chat_linepos );
 		}
 	}
 
@@ -654,8 +654,7 @@ void Con_DrawChat( int x, int y, int width, struct qfontface_s *font ) {
 	}
 
 	if( chat_linepos == chat_bufferlen ) {
-		SCR_DrawClampString( x - chat_prestep, y, s, x, y,
-							 x + width, y + fontHeight, font, colorWhite, 0 );
+		SCR_DrawClampString( x - chat_prestep, y, s, x, y, x + width, y + fontHeight, font, colorWhite );
 	}
 	oldchar = s[chat_linepos];
 	s[chat_linepos] = '\0';

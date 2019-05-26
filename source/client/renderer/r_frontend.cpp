@@ -38,27 +38,14 @@ static void RF_AdapterShutdown( ref_frontendAdapter_t *adapter ) {
 	memset( adapter, 0, sizeof( *adapter ) );
 }
 
-/*
-* RF_AdapterInit
-*/
-static bool RF_AdapterInit( ref_frontendAdapter_t *adapter ) {
-	adapter->cmdPipe = RF_CreateCmdPipe();
-	adapter->cmdPipe->Init( adapter->cmdPipe );
-
-	return true;
-}
-
-rserr_t RF_Init() {
+void RF_Init() {
 	rrf.frameNum = rrf.lastFrameNum = 0;
 	rrf.frame = RF_CreateCmdBuf();
 	rrf.frame->Clear( rrf.frame );
 
 	rrf.adapter.owner = (void *)&rrf;
-	if( RF_AdapterInit( &rrf.adapter ) != true ) {
-		return rserr_unknown;
-	}
-
-	return rserr_ok;
+	rrf.adapter.cmdPipe = RF_CreateCmdPipe();
+	rrf.adapter.cmdPipe->Init( rrf.adapter.cmdPipe );
 }
 
 void RF_AppActivate( bool active, bool minimize ) {

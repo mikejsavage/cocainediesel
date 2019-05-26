@@ -79,12 +79,10 @@ typedef struct {
 	int microSmooth;
 	vec3_t microSmoothOrigin;
 	vec3_t microSmoothOrigin2;
-	//vec3_t prevExtrapolatedOrigin;
-	//vec3_t extrapolatedOrigin;
 
 	const gsitem_t *item;
 
-	//effects
+	// effects
 	vec3_t trailOrigin;         // for particle trails
 
 	// local effects from events timers
@@ -478,7 +476,6 @@ typedef struct {
 	player_state_t predictFromPlayerState;
 
 	int lastWeapon;
-	unsigned int lastCrossWeapons; // bitfield containing the last weapons selected from the cross
 
 	mat3_t autorotateAxis;
 

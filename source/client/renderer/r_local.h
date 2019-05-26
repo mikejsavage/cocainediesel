@@ -534,7 +534,7 @@ int R_GetClippedFragments( const vec3_t origin, float radius, vec3_t axis[3], in
 //
 // r_register.c
 //
-rserr_t R_Init( bool verbose );
+bool R_Init();
 void R_BindGlobalVAO();
 void R_BeginRegistration( void );
 void R_EndRegistration( void );

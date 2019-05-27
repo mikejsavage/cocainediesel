@@ -30,29 +30,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static cgs_skeleton_t *skel_headnode;
 
-//#define SKEL_PRINTBONETREE
-#ifdef SKEL_PRINTBONETREE
-static void CG_PrintBoneTree( cgs_skeleton_t *skel, bonenode_t *node, int level ) {
-	int i;
-
-	if( node->bonenum != -1 ) {
-		for( i = 0; i < level; i++ ) {
-			CG_Printf( "  " );
-		}
-		CG_Printf( "%i %s\n", skel->bones[node->bonenum].parent, skel->bones[node->bonenum].name );
-	}
-
-	level++;
-
-	// find children of this bone
-	for( i = 0; i < node->numbonechildren; i++ ) {
-		if( node->bonechildren[i] ) {
-			CG_PrintBoneTree( skel, node->bonechildren[i], level );
-		}
-	}
-}
-#endif
-
 /*
 * CG_CreateBonesTreeNode
 * Find out the original tree
@@ -142,9 +119,6 @@ cgs_skeleton_t *CG_SkeletonForModel( struct model_s *model ) {
 
 	// create a bones tree that can be run from parent to children
 	skel->bonetree = CG_CreateBonesTreeNode( skel, -1 );
-#ifdef SKEL_PRINTBONETREE
-	CG_PrintBoneTree( skel, skel->bonetree, 1 );
-#endif
 
 	return skel;
 }

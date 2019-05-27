@@ -743,7 +743,7 @@ void CG_AddBombHudEntity( centity_t * cent ) {
 	}
 	else {
 		if( cent->current.svflags & SVF_ONLYTEAM ) {
-			bomb.state = cent->current.frame == BombDown_Dropped ? BombState_Dropped : BombState_Placed;
+			bomb.state = cent->current.radius == BombDown_Dropped ? BombState_Dropped : BombState_Placed;
 		}
 		else {
 			bomb.state = BombState_Armed;

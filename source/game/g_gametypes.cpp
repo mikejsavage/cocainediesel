@@ -709,7 +709,6 @@ void G_Match_FreeBodyQueue( void ) {
 
 			ent->s.type = ET_GENERIC;
 			ent->s.skinnum = 0;
-			ent->s.frame = 0;
 			ent->s.modelindex = 0;
 			ent->s.sound = 0;
 			ent->s.effects = 0;

@@ -294,17 +294,6 @@ static void G_SetClientSound( edict_t *ent ) {
 }
 
 /*
-* G_SetClientFrame
-*/
-void G_SetClientFrame( edict_t *ent ) {
-	if( ent->s.type != ET_PLAYER ) {
-		return;
-	}
-
-	ent->s.frame = 0;
-}
-
-/*
 * G_ClientEndSnapFrame
 *
 * Called for each player at the end of the server frame
@@ -334,7 +323,6 @@ void G_ClientEndSnapFrame( edict_t *ent ) {
 		G_SetClientStats( ent );
 		G_SetClientEffects( ent );
 		G_SetClientSound( ent );
-		G_SetClientFrame( ent );
 
 		client->ps.plrkeys = client->resp.snap.plrkeys;
 	}

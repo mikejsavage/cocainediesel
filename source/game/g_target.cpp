@@ -189,7 +189,7 @@ void target_laser_start( edict_t *self ) {
 	self->s.type = ET_LASER;
 	self->s.modelindex = 1; // must be non-zero
 	self->r.svflags = 0;
-	self->s.frame = st.size > 0 ? st.size : 8;
+	self->s.radius = st.size > 0 ? st.size : 8;
 	self->s.colorRGBA = st.rgba != 0 ? st.rgba : COLOR_RGBA( 220, 0, 0, 76 );
 	self->s.sound = trap_SoundIndex( "sounds/gladiator/laser_hum" );
 	self->s.attenuation = ATTN_IDLE;

@@ -269,7 +269,6 @@ typedef struct entity_state_s {
 	int bodyOwner;                  // ET_PLAYER specific, for dead bodies
 	int channel;                    // ET_SOUNDEVENT
 
-	int frame;
 	int ownerNum;                   // ET_EVENT specific
 
 	unsigned int effects;
@@ -286,7 +285,7 @@ typedef struct entity_state_s {
 	int damage;                     // EV_BLOOD
 	int targetNum;                  // ET_EVENT specific
 	int colorRGBA;                  // ET_BEAM, ET_EVENT specific
-	int range;                      // ET_LASERBEAM specific
+	int radius;                     // ET_SPRITE/ET_DECAL radius, ET_GLADIATOR always extended, ET_HUD type, ...
 
 	bool linearMovement;
 	vec3_t linearMovementVelocity;      // this is transmitted instead of origin when linearProjectile is true

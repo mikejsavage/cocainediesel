@@ -104,7 +104,6 @@ typedef struct {
 
 	// used for client side animation of player models
 	bool pendingAnimationsUpdate;
-	int lastAnims;
 	int lastVelocitiesFrames[4];
 	float lastVelocities[4][4];
 	bool jumpedLeft;

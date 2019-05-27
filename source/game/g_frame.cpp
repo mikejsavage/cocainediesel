@@ -258,7 +258,7 @@ static void G_SnapEntities( void ) {
 		}
 
 		if( ent->s.type == ET_PARTICLES ) { // particles use a special configuration
-			ent->s.frame = ent->particlesInfo.speed;
+			ent->s.radius = ent->particlesInfo.speed;
 			ent->s.modelindex = ent->particlesInfo.shaderIndex;
 			ent->s.modelindex2 = ent->particlesInfo.spread;
 			ent->s.counterNum = ent->particlesInfo.time;

@@ -175,7 +175,6 @@ static void CG_NewPacketEntityState( entity_state_t *state ) {
 
 			// Init the animation when new into PVS
 			if( cg.frame.valid && ( state->type == ET_PLAYER || state->type == ET_CORPSE ) ) {
-				cent->lastAnims = 0;
 				memset( cent->lastVelocities, 0, sizeof( cent->lastVelocities ) );
 				memset( cent->lastVelocitiesFrames, 0, sizeof( cent->lastVelocitiesFrames ) );
 				CG_PModel_ClearEventAnimations( state->number );
@@ -570,10 +569,6 @@ static void CG_UpdateGenericEnt( centity_t *cent ) {
 		Vector4Set( cent->outlineColor, 0, 0, 0, 255 );
 	}
 
-	// set frame
-	cent->ent.frame = cent->current.frame;
-	cent->ent.oldframe = cent->prev.frame;
-
 	// set up the model
 	cent->ent.rtype = RT_MODEL;
 
@@ -849,7 +844,7 @@ static void CG_LerpSpriteEnt( centity_t *cent ) {
 		cent->ent.origin[i] = Lerp( cent->prev.origin[i], cg.lerpfrac, cent->current.origin[i] );
 	VectorCopy( cent->ent.origin, cent->ent.origin2 );
 
-	cent->ent.radius = Lerp( cent->prev.frame, cg.lerpfrac, cent->current.frame );
+	cent->ent.radius = Lerp( cent->prev.radius, cg.lerpfrac, cent->current.radius );
 }
 
 /*
@@ -868,7 +863,7 @@ static void CG_UpdateSpriteEnt( centity_t *cent ) {
 	cent->ent.rtype = RT_SPRITE;
 	cent->ent.model = NULL;
 	cent->ent.customShader = cgs.imagePrecache[ cent->current.modelindex ];
-	cent->ent.radius = cent->prev.frame;
+	cent->ent.radius = cent->prev.radius;
 	VectorCopy( cent->prev.origin, cent->ent.origin );
 	VectorCopy( cent->prev.origin, cent->ent.origin2 );
 	Matrix3_Identity( cent->ent.axis );
@@ -908,7 +903,7 @@ static void CG_LerpDecalEnt( centity_t *cent ) {
 	for( i = 0; i < 3; i++ )
 		cent->ent.origin[i] = cent->prev.origin[i] + cg.lerpfrac * ( cent->current.origin[i] - cent->prev.origin[i] );
 
-	cent->ent.radius = cent->prev.frame + cg.lerpfrac * ( cent->current.frame - cent->prev.frame );
+	cent->ent.radius = Lerp( cent->prev.radius, cg.lerpfrac, cent->current.radius );
 
 	a1 = cent->prev.modelindex2 / 255.0 * 360;
 	a2 = cent->current.modelindex2 / 255.0 * 360;
@@ -925,7 +920,7 @@ static void CG_UpdateDecalEnt( centity_t *cent ) {
 	// set up the null model, may be potentially needed for linked model
 	cent->ent.model = NULL;
 	cent->ent.customShader = cgs.imagePrecache[ cent->current.modelindex ];
-	cent->ent.radius = cent->prev.frame;
+	cent->ent.radius = cent->prev.radius;
 	cent->ent.rotation = cent->prev.modelindex2 / 255.0 * 360;
 	VectorCopy( cent->prev.origin, cent->ent.origin );
 	VectorCopy( cent->prev.origin2, cent->ent.origin2 );
@@ -954,7 +949,6 @@ static void CG_UpdateItemEnt( centity_t *cent ) {
 		cent->ent.model = NULL;
 		cent->skel = NULL;
 		cent->ent.renderfx = RF_NOSHADOW | RF_FULLBRIGHT;
-		cent->ent.frame = cent->ent.oldframe = 0;
 
 		cent->ent.radius = cg_simpleItemsSize->value <= 32 ? cg_simpleItemsSize->value : 32;
 		if( cent->ent.radius < 1.0f ) {
@@ -969,8 +963,6 @@ static void CG_UpdateItemEnt( centity_t *cent ) {
 		cent->ent.customShader = trap_R_RegisterPic( cent->item->simpleitem );
 	} else {
 		cent->ent.rtype = RT_MODEL;
-		cent->ent.frame = cent->current.frame;
-		cent->ent.oldframe = cent->prev.frame;
 
 		if( cent->effects & EF_OUTLINE ) {
 			Vector4Set( cent->outlineColor, 0, 0, 0, 255 ); // black
@@ -1050,7 +1042,7 @@ static void CG_AddLaserEnt( centity_t *cent ) {
 		COLOR_G( cent->current.colorRGBA ) * ( 1.0 / 255.0 ),
 		COLOR_B( cent->current.colorRGBA ) * ( 1.0 / 255.0 ),
 		COLOR_A( cent->current.colorRGBA ) * ( 1.0 / 255.0 ) );
-	CG_SpawnPolyBeam( cent->ent.origin, cent->ent.origin2, NULL, cent->current.frame, 1, 0, shader, 64, 0 );
+	CG_SpawnPolyBeam( cent->ent.origin, cent->ent.origin2, NULL, cent->current.radius, 1, 0, shader, 64, 0 );
 }
 
 //==========================================================================
@@ -1150,7 +1142,7 @@ static void CG_AddParticlesEnt( centity_t *cent ) {
 
 	cent->localEffects[LOCALEFFECT_ROCKETTRAIL_LAST_DROP] = cg.time;
 
-	speed = cent->current.frame;
+	speed = cent->current.radius;
 
 	if( ( cent->current.effects >> 8 ) & 1 ) { // SPHERICAL DROP
 		angles[0] = brandom( 0, 360 );
@@ -1296,7 +1288,7 @@ static void CG_LerpSpikes( centity_t *cent ) {
 
 	float position = retracted;
 
-	if( cent->current.frame == 1 ) {
+	if( cent->current.radius == 1 ) {
 		position = extended;
 	}
 	else if( cent->current.linearMovementTimeStamp != 0 ) {

@@ -21,7 +21,7 @@ static void SpikesTouched( edict_t * self, edict_t * other, cplane_t * plane, in
 	if( other->s.type != ET_PLAYER )
 		return;
 
-	if( self->s.frame == 1 ) {
+	if( self->s.radius == 1 ) {
 		G_Damage( other, self, self, vec3_origin, vec3_origin, other->s.origin, 10000, 0, 0, MOD_SPIKES );
 		return;
 	}
@@ -36,7 +36,7 @@ static void SpikesTouched( edict_t * self, edict_t * other, cplane_t * plane, in
 void SP_spikes( edict_t * spikes ) {
 	spikes->r.svflags &= ~SVF_NOCLIENT | SVF_PROJECTILE;
 	spikes->r.solid = SOLID_TRIGGER;
-	spikes->s.frame = spikes->spawnflags & 1;
+	spikes->s.radius = spikes->spawnflags & 1;
 
 	spikes->s.angles[ PITCH ] += 90;
 	vec3_t forward, right, up;

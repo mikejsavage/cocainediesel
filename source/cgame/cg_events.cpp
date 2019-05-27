@@ -599,41 +599,27 @@ void CG_Event_Fall( entity_state_t *state, int parm ) {
 /*
 * CG_Event_Pain
 */
-void CG_Event_Pain( entity_state_t *state, int parm ) {
+static void CG_Event_Pain( entity_state_t *state, int parm ) {
 	CG_SexedSound( state->number, CHAN_PAIN, va( S_PLAYER_PAINS, 25 * ( parm + 1 ) ), cg_volume_players->value, state->attenuation );
-
-	switch( (int)brandom( 0, 3 ) ) {
-		case 0:
-			CG_PModel_AddAnimation( state->number, 0, TORSO_PAIN1, 0, EVENT_CHANNEL );
-			break;
-		case 1:
-			CG_PModel_AddAnimation( state->number, 0, TORSO_PAIN2, 0, EVENT_CHANNEL );
-			break;
-		case 2:
-		default:
-			CG_PModel_AddAnimation( state->number, 0, TORSO_PAIN3, 0, EVENT_CHANNEL );
-			break;
-	}
+	constexpr int animations[] = { TORSO_PAIN1, TORSO_PAIN2, TORSO_PAIN3 };
+	int animation = animations[ rand() % ARRAY_COUNT( animations ) ];
+	CG_PModel_AddAnimation( state->number, 0, animation, 0, EVENT_CHANNEL );
 }
 
 /*
 * CG_Event_Die
 */
-void CG_Event_Die( entity_state_t *state, int parm ) {
-	CG_SexedSound( state->number, CHAN_PAIN, S_PLAYER_DEATH, cg_volume_players->value, state->attenuation );
+static void CG_Event_Die( entity_state_t *state, int parm ) {
+	constexpr struct { int dead, dying; } animations[] = {
+		{ BOTH_DEAD1, BOTH_DEATH1 },
+		{ BOTH_DEAD2, BOTH_DEATH2 },
+		{ BOTH_DEAD3, BOTH_DEATH3 },
+	};
+	parm %= ARRAY_COUNT( animations );
 
-	switch( parm ) {
-		case 0:
-		default:
-			CG_PModel_AddAnimation( state->number, BOTH_DEATH1, BOTH_DEATH1, ANIM_NONE, EVENT_CHANNEL );
-			break;
-		case 1:
-			CG_PModel_AddAnimation( state->number, BOTH_DEATH2, BOTH_DEATH2, ANIM_NONE, EVENT_CHANNEL );
-			break;
-		case 2:
-			CG_PModel_AddAnimation( state->number, BOTH_DEATH3, BOTH_DEATH3, ANIM_NONE, EVENT_CHANNEL );
-			break;
-	}
+	CG_SexedSound( state->number, CHAN_PAIN, S_PLAYER_DEATH, cg_volume_players->value, state->attenuation );
+	CG_PModel_AddAnimation( state->number, animations[ parm ].dead, animations[ parm ].dead, ANIM_NONE, BASE_CHANNEL );
+	CG_PModel_AddAnimation( state->number, animations[ parm ].dying, animations[ parm ].dying, ANIM_NONE, EVENT_CHANNEL );
 }
 
 /*
@@ -641,29 +627,21 @@ void CG_Event_Die( entity_state_t *state, int parm ) {
 */
 void CG_Event_Dash( entity_state_t *state, int parm ) {
 	switch( parm ) {
-		default:
-			break;
 		case 0: // dash front
 			CG_PModel_AddAnimation( state->number, LEGS_DASH, 0, 0, EVENT_CHANNEL );
-			CG_SexedSound( state->number, CHAN_BODY, va( S_PLAYER_DASH_1_to_2, ( rand() & 1 ) + 1 ),
-						   cg_volume_players->value, state->attenuation );
 			break;
 		case 1: // dash left
 			CG_PModel_AddAnimation( state->number, LEGS_DASH_LEFT, 0, 0, EVENT_CHANNEL );
-			CG_SexedSound( state->number, CHAN_BODY, va( S_PLAYER_DASH_1_to_2, ( rand() & 1 ) + 1 ),
-						   cg_volume_players->value, state->attenuation );
 			break;
 		case 2: // dash right
 			CG_PModel_AddAnimation( state->number, LEGS_DASH_RIGHT, 0, 0, EVENT_CHANNEL );
-			CG_SexedSound( state->number, CHAN_BODY, va( S_PLAYER_DASH_1_to_2, ( rand() & 1 ) + 1 ),
-						   cg_volume_players->value, state->attenuation );
 			break;
 		case 3: // dash back
 			CG_PModel_AddAnimation( state->number, LEGS_DASH_BACK, 0, 0, EVENT_CHANNEL );
-			CG_SexedSound( state->number, CHAN_BODY, va( S_PLAYER_DASH_1_to_2, ( rand() & 1 ) + 1 ),
-						   cg_volume_players->value, state->attenuation );
 			break;
 	}
+
+	CG_SexedSound( state->number, CHAN_BODY, va( S_PLAYER_DASH_1_to_2, ( rand() & 1 ) + 1 ), cg_volume_players->value, state->attenuation );
 
 	CG_Dash( state ); // Dash smoke effect
 

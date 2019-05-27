@@ -72,7 +72,6 @@ void ThrowDebris( edict_t *self, int modelindex, float speed, vec3_t origin ) {
 	chunk->avelocity[2] = random() * 600;
 	chunk->think = G_FreeEdict;
 	chunk->nextThink = level.time + 5000 + random() * 5000;
-	chunk->s.frame = 0;
 	chunk->flags = 0;
 	chunk->classname = "debris";
 	chunk->takedamage = DAMAGE_YES;

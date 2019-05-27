@@ -917,7 +917,6 @@ static const msg_field_t ent_state_fields[] = {
 
 	{ ESOFS( type ), 32, 1, WIRE_UBASE128 },
 	{ ESOFS( solid ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( frame ), 32, 1, WIRE_UBASE128 },
 	{ ESOFS( modelindex ), 32, 1, WIRE_FIXED_INT8 },
 	{ ESOFS( svflags ), 32, 1, WIRE_UBASE128 },
 	{ ESOFS( skinnum ), 32, 1, WIRE_BASE128 },
@@ -934,7 +933,7 @@ static const msg_field_t ent_state_fields[] = {
 	{ ESOFS( eventParms[1] ), 32, 1, WIRE_BASE128 },
 	{ ESOFS( weapon ), 32, 1, WIRE_UBASE128 },
 	{ ESOFS( damage ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( range ), 32, 1, WIRE_UBASE128 },
+	{ ESOFS( radius ), 32, 1, WIRE_UBASE128 },
 	{ ESOFS( team ), 32, 1, WIRE_FIXED_INT8 },
 
 	{ ESOFS( origin2[0] ), 0, 1, WIRE_FLOAT },

@@ -457,50 +457,6 @@ bool GS_IsTeamDamage( entity_state_t *targ, entity_state_t *attacker );
 
 //===============================================================
 
-//gs_players.c
-
-enum {
-	BASE_CHANNEL,
-	EVENT_CHANNEL,
-	PLAYERANIM_CHANNELS
-};
-
-typedef struct {
-	int newanim[PMODEL_PARTS];
-} gs_animationbuffer_t;
-
-typedef struct {
-	int anim;
-	int frame;
-	int64_t startTimestamp;
-	float lerpFrac;
-} gs_animstate_t;
-
-typedef struct {
-	// animations in the mixer
-	gs_animstate_t curAnims[PMODEL_PARTS][PLAYERANIM_CHANNELS];
-	gs_animationbuffer_t buffer[PLAYERANIM_CHANNELS];
-
-	// results
-	int frame[PMODEL_PARTS];
-	int oldframe[PMODEL_PARTS];
-	float lerpFrac[PMODEL_PARTS];
-} gs_pmodel_animationstate_t;
-
-typedef struct {
-	int firstframe[PMODEL_TOTAL_ANIMATIONS];
-	int lastframe[PMODEL_TOTAL_ANIMATIONS];
-	int loopingframes[PMODEL_TOTAL_ANIMATIONS];
-	float frametime[PMODEL_TOTAL_ANIMATIONS];
-} gs_pmodel_animationset_t;
-
-int GS_UpdateBaseAnims( entity_state_t *state, vec3_t velocity );
-void GS_PModel_AnimToFrame( int64_t curTime, gs_pmodel_animationset_t *animSet, gs_pmodel_animationstate_t *anim );
-void GS_PlayerModel_ClearEventAnimations( gs_pmodel_animationset_t *animSet, gs_pmodel_animationstate_t *animState );
-void GS_PlayerModel_AddAnimation( gs_pmodel_animationstate_t *animState, int loweranim, int upperanim, int headanim, int channel );
-
-//===============================================================
-
 // gs_misc.c
 void GS_Obituary( void *victim, int gender, void *attacker, int mod, char *message, char *message2 );
 void GS_TouchPushTrigger( player_state_t *playerState, entity_state_t *pusher );

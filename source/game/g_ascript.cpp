@@ -1280,7 +1280,7 @@ static const gs_asProperty_t gedict_Properties[] =
 	{ ASLIB_PROPERTY_DECL( int, type ), ASLIB_FOFFSET( edict_t, s.type ) },
 	{ ASLIB_PROPERTY_DECL( int, modelindex ), ASLIB_FOFFSET( edict_t, s.modelindex ) },
 	{ ASLIB_PROPERTY_DECL( int, modelindex2 ), ASLIB_FOFFSET( edict_t, s.modelindex2 ) },
-	{ ASLIB_PROPERTY_DECL( int, frame ), ASLIB_FOFFSET( edict_t, s.frame ) },
+	{ ASLIB_PROPERTY_DECL( int, radius ), ASLIB_FOFFSET( edict_t, s.radius ) },
 	{ ASLIB_PROPERTY_DECL( int, ownerNum ), ASLIB_FOFFSET( edict_t, s.ownerNum ) },
 	{ ASLIB_PROPERTY_DECL( int, counterNum ), ASLIB_FOFFSET( edict_t, s.counterNum ) },
 	{ ASLIB_PROPERTY_DECL( int, skinNum ), ASLIB_FOFFSET( edict_t, s.skinnum ) },

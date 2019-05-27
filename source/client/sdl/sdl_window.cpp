@@ -155,7 +155,7 @@ static bool InitGL() {
 		return false;
 	}
 
-#if !PUBLIC_BUILD
+#if !PUBLIC_BUILD && 0
 	if( GLAD_GL_KHR_debug != 0 ) {
 		GLint context_flags;
 		glGetIntegerv( GL_CONTEXT_FLAGS, &context_flags );

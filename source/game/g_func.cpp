@@ -1075,8 +1075,6 @@ static void button_return( edict_t *self ) {
 
 	Move_Calc( self, self->moveinfo.start_origin, button_done );
 
-	self->s.frame = 0;
-
 	if( self->health ) {
 		self->deadflag = DEAD_NO;
 		self->takedamage = DAMAGE_YES;
@@ -1087,7 +1085,6 @@ static void button_wait( edict_t *self ) {
 	self->moveinfo.state = STATE_TOP;
 
 	G_UseTargets( self, self->activator );
-	self->s.frame = 1;
 	if( self->moveinfo.wait >= 0 ) {
 		self->nextThink = level.time + ( self->moveinfo.wait * 1000 );
 		self->think = button_return;

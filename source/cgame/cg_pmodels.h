@@ -93,36 +93,71 @@ typedef struct weaponinfo_s {
 
 #define SKM_MAX_BONES 256
 
+enum {
+	BASE_CHANNEL,
+	EVENT_CHANNEL,
+	PLAYERANIM_CHANNELS
+};
+
+typedef struct {
+	int anim;
+	int frame;
+	int64_t startTimestamp;
+	float lerpFrac;
+} animstate_t;
+
+struct PlayerModelAnimationSet {
+	int animations[PMODEL_PARTS];
+};
+
+typedef struct {
+	// animations in the mixer
+	animstate_t curAnims[PMODEL_PARTS][PLAYERANIM_CHANNELS];
+	PlayerModelAnimationSet pending[PLAYERANIM_CHANNELS];
+
+	// results
+	int frame[PMODEL_PARTS];
+	int oldframe[PMODEL_PARTS];
+	float lerpFrac[PMODEL_PARTS];
+} pmodel_animationstate_t;
+
+typedef struct {
+	int firstframe[PMODEL_TOTAL_ANIMATIONS];
+	int lastframe[PMODEL_TOTAL_ANIMATIONS];
+	int loopingframes[PMODEL_TOTAL_ANIMATIONS];
+	float frametime[PMODEL_TOTAL_ANIMATIONS];
+} pmodel_animationset_t;
+
 //pmodelinfo_t is the playermodel structure as originally readed
 //Consider it static 'read-only', cause it is shared by different players
 typedef struct pmodelinfo_s {
 	char *name;
 	int sex;
 
-	struct  model_s *model;
+	struct model_s *model;
 	struct cg_sexedSfx_s *sexedSfx;
 
 	int numRotators[PMODEL_PARTS];
 	int rotator[PMODEL_PARTS][16];
 	int rootanims[PMODEL_PARTS];
 
-	gs_pmodel_animationset_t animSet; // animation script
+	pmodel_animationset_t animSet; // animation script
 
 	struct pmodelinfo_s *next;
 } pmodelinfo_t;
 
 typedef struct {
-	//static data
+	// static data
 	pmodelinfo_t *pmodelinfo;
 	struct skinfile_s *skin;
 
-	//dynamic
-	gs_pmodel_animationstate_t animState;
+	// dynamic
+	pmodel_animationstate_t animState;
 
 	vec3_t angles[PMODEL_PARTS];                // for rotations
 	vec3_t oldangles[PMODEL_PARTS];             // for rotations
 
-	//effects
+	// effects
 	orientation_t projectionSource;     // for projectiles
 	// weapon. Not sure about keeping it here
 	int64_t flash_time;

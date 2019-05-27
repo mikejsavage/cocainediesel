@@ -214,12 +214,12 @@ void bombStartPlanting( cBombSite @site ) {
 
 	bombDecal.origin = trace.endPos;
 	bombDecal.svflags |= SVF_ONLYTEAM;
-	bombDecal.frame = 0;
+	bombDecal.radius = 0;
 	show( @bombDecal );
 
 	bombHud.origin = trace.endPos + Vec3( 0, 0, BOMB_HUD_OFFSET );
 	bombHud.svflags |= SVF_ONLYTEAM;
-	bombHud.frame = BombDown_Planting;
+	bombHud.radius = BombDown_Planting;
 	show( @bombHud );
 
 	// make carrier look normal
@@ -320,7 +320,7 @@ void bombThink() {
 			}
 
 			float decal_radius_frac = min( 1.0f, float( levelTime - bombActionTime ) / float( BOMB_SPRITE_RESIZE_TIME ) );
-			bombDecal.frame = int( BOMB_ARM_DEFUSE_RADIUS * decal_radius_frac );
+			bombDecal.radius = int( BOMB_ARM_DEFUSE_RADIUS * decal_radius_frac );
 			bombDecal.effects |= EF_TEAMCOLOR_TRANSITION;
 			bombDecal.counterNum = int( frac * 255.0f );
 			if( frac != 0 )
@@ -573,7 +573,7 @@ void bomb_stop( Entity @ent ) {
 		bombHud.origin = bombModel.origin + Vec3( 0, 0, BOMB_HUD_OFFSET );
 		bombHud.team = attackingTeam;
 		bombHud.svflags |= SVF_ONLYTEAM;
-		bombHud.frame = BombDown_Dropped;
+		bombHud.radius = BombDown_Dropped;
 		show( @bombHud );
 	}
 }

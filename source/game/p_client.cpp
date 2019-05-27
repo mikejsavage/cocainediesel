@@ -193,17 +193,16 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 	body->think = body_think; // body self destruction countdown
 
 	int mod = meansOfDeath;
-	bool is_gibbable = mod == MOD_ELECTROBOLT || mod == MOD_ROCKET || mod == MOD_GRENADE ||
-					   mod == MOD_TRIGGER_HURT || mod == MOD_TELEFRAG || mod == MOD_EXPLOSIVE ||
-					(( mod == MOD_ROCKET_SPLASH || mod == MOD_GRENADE_SPLASH ) && damage >= 40 );
+	bool gib = mod == MOD_ELECTROBOLT || mod == MOD_ROCKET || mod == MOD_GRENADE ||
+		mod == MOD_TRIGGER_HURT || mod == MOD_TELEFRAG || mod == MOD_EXPLOSIVE ||
+		( ( mod == MOD_ROCKET_SPLASH || mod == MOD_GRENADE_SPLASH ) && damage >= 40 );
 
-	if( is_gibbable ) {
+	if( gib ) {
 		ThrowSmallPileOfGibs( body, damage );
 
 		// reset gib impulse
 		VectorClear( body->velocity );
 
-		body->s.frame = 0;
 		body->nextThink = level.time + 3000 + random() * 3000;
 		body->deadflag = DEAD_DEAD;
 	} else if( ent->s.type == ET_PLAYER ) {
@@ -214,22 +213,7 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 		body->s.skinnum = ent->s.skinnum;
 		body->s.teleported = true;
 
-		// launch the death animation on the body
-		static int i;
-		i = ( i + 1 ) % 3;
-		G_AddEvent( body, EV_DIE, i, true );
-		switch( i ) {
-			default:
-			case 0:
-				body->s.frame = ( ( BOTH_DEAD1 & 0x3F ) | ( BOTH_DEAD1 & 0x3F ) << 6 | ( 0 & 0xF ) << 12 );
-				break;
-			case 1:
-				body->s.frame = ( ( BOTH_DEAD2 & 0x3F ) | ( BOTH_DEAD2 & 0x3F ) << 6 | ( 0 & 0xF ) << 12 );
-				break;
-			case 2:
-				body->s.frame = ( ( BOTH_DEAD3 & 0x3F ) | ( BOTH_DEAD3 & 0x3F ) << 6 | ( 0 & 0xF ) << 12 );
-				break;
-		}
+		G_AddEvent( body, EV_DIE, rand(), true );
 
 		// bit of a hack, if we're not in warmup, leave the body with no think. think self destructs
 		// after a timeout, but if we leave, next bomb round will call G_ResetLevel() cleaning up
@@ -241,7 +225,6 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 	} else {   // wasn't a player, just copy it's model
 		VectorClear( body->velocity );
 		body->s.modelindex = ent->s.modelindex;
-		body->s.frame = ent->s.frame;
 		body->nextThink = level.time + 5000 + random() * 10000;
 	}
 

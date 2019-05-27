@@ -56,11 +56,9 @@ void CG_PModelsShutdown() {
 * CG_ResetPModels
 */
 void CG_ResetPModels( void ) {
-	int i;
-
-	for( i = 0; i < MAX_EDICTS; i++ ) {
+	for( int i = 0; i < MAX_EDICTS; i++ ) {
 		cg_entPModels[i].flash_time = cg_entPModels[i].barrel_time = 0;
-		memset( &cg_entPModels[i].animState, 0, sizeof( gs_pmodel_animationstate_t ) );
+		memset( &cg_entPModels[i].animState, 0, sizeof( pmodel_animationstate_t ) );
 	}
 	memset( &cg.weapon, 0, sizeof( cg.weapon ) );
 }
@@ -690,12 +688,246 @@ void CG_AddColoredOutLineEffect( entity_t *ent, int effects, uint8_t r, uint8_t 
 //							animations
 //======================================================================
 
+// movement flags for animation control
+#define ANIMMOVE_FRONT      ( 1 << 0 )  // Player is pressing fordward
+#define ANIMMOVE_BACK       ( 1 << 1 )  // Player is pressing backpedal
+#define ANIMMOVE_LEFT       ( 1 << 2 )  // Player is pressing sideleft
+#define ANIMMOVE_RIGHT      ( 1 << 3 )  // Player is pressing sideright
+#define ANIMMOVE_WALK       ( 1 << 4 )  // Player is pressing the walk key
+#define ANIMMOVE_RUN        ( 1 << 5 )  // Player is running
+#define ANIMMOVE_DUCK       ( 1 << 6 )  // Player is crouching
+#define ANIMMOVE_SWIM       ( 1 << 7 )  // Player is swimming
+#define ANIMMOVE_AIR        ( 1 << 8 )  // Player is at air, but not jumping
+#define ANIMMOVE_DEAD       ( 1 << 9 )  // Player is a corpse
+
+static int CG_MoveFlagsToUpperAnimation( uint32_t moveflags, int carried_weapon ) {
+	if( moveflags & ANIMMOVE_DEAD )
+		return ANIM_NONE;
+	if( moveflags & ANIMMOVE_SWIM )
+		return TORSO_SWIM;
+
+	switch( carried_weapon ) {
+		case WEAP_NONE:
+			return TORSO_HOLD_BLADE; // fixme: a special animation should exist
+		case WEAP_GUNBLADE:
+			return TORSO_HOLD_BLADE;
+		case WEAP_LASERGUN:
+			return TORSO_HOLD_PISTOL;
+		case WEAP_RIOTGUN:
+		case WEAP_PLASMAGUN:
+			return TORSO_HOLD_LIGHTWEAPON;
+		case WEAP_ROCKETLAUNCHER:
+		case WEAP_GRENADELAUNCHER:
+			return TORSO_HOLD_HEAVYWEAPON;
+		case WEAP_ELECTROBOLT:
+			return TORSO_HOLD_AIMWEAPON;
+	}
+
+	return TORSO_HOLD_LIGHTWEAPON;
+}
+
+static int CG_MoveFlagsToLowerAnimation( uint32_t moveflags ) {
+	if( moveflags & ANIMMOVE_DEAD )
+		return ANIM_NONE;
+
+	if( moveflags & ANIMMOVE_SWIM )
+		return ( moveflags & ANIMMOVE_FRONT ) ? LEGS_SWIM_FORWARD : LEGS_SWIM_NEUTRAL;
+
+	if( moveflags & ANIMMOVE_DUCK ) {
+		if( moveflags & ( ANIMMOVE_WALK | ANIMMOVE_RUN ) )
+			return LEGS_CROUCH_WALK;
+		return LEGS_CROUCH_IDLE;
+	}
+
+	if( moveflags & ANIMMOVE_AIR )
+		return LEGS_JUMP_NEUTRAL;
+
+	if( moveflags & ANIMMOVE_RUN ) {
+		// front/backward has priority over side movements
+		if( moveflags & ANIMMOVE_FRONT )
+			return LEGS_RUN_FORWARD;
+		if( moveflags & ANIMMOVE_BACK )
+			return LEGS_RUN_BACK;
+		if( moveflags & ANIMMOVE_RIGHT )
+			return LEGS_RUN_RIGHT;
+		if( moveflags & ANIMMOVE_LEFT )
+			return LEGS_RUN_LEFT;
+		return LEGS_WALK_FORWARD;
+	}
+
+	if( moveflags & ANIMMOVE_WALK ) {
+		// front/backward has priority over side movements
+		if( moveflags & ANIMMOVE_FRONT )
+			return LEGS_WALK_FORWARD;
+		if( moveflags & ANIMMOVE_BACK )
+			return LEGS_WALK_BACK;
+		if( moveflags & ANIMMOVE_RIGHT )
+			return LEGS_WALK_RIGHT;
+		if( moveflags & ANIMMOVE_LEFT )
+			return LEGS_WALK_LEFT;
+		return LEGS_WALK_FORWARD;
+	}
+
+	return LEGS_STAND_IDLE;
+}
+
+static PlayerModelAnimationSet CG_GetBaseAnims( entity_state_t *state, const vec3_t velocity ) {
+	constexpr float MOVEDIREPSILON = 0.3f;
+	constexpr float WALKEPSILON = 5.0f;
+	constexpr float RUNEPSILON = 220.0f;
+
+	uint32_t moveflags = 0;
+	vec3_t movedir;
+	vec3_t hvel;
+	mat3_t viewaxis;
+	float xyspeedcheck;
+	int waterlevel;
+	vec3_t mins, maxs;
+	vec3_t point;
+	trace_t trace;
+
+	if( state->type == ET_CORPSE ) {
+		PlayerModelAnimationSet a;
+		a.animations[ LOWER ] = ANIM_NONE;
+		a.animations[ UPPER ] = ANIM_NONE;
+		a.animations[ HEAD ] = ANIM_NONE;
+		return a;
+	}
+
+	GS_BBoxForEntityState( state, mins, maxs );
+
+	// determine if player is at ground, for walking or falling
+	// this is not like having groundEntity, we are more generous with
+	// the tracing size here to include small steps
+	point[0] = state->origin[0];
+	point[1] = state->origin[1];
+	point[2] = state->origin[2] - ( 1.6 * STEPSIZE );
+	gs.api.Trace( &trace, state->origin, mins, maxs, point, state->number, MASK_PLAYERSOLID, 0 );
+	if( trace.ent == -1 || ( trace.fraction < 1.0f && !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
+		moveflags |= ANIMMOVE_AIR;
+	}
+
+	// crouching : fixme? : it assumes the entity is using the player box sizes
+	if( VectorCompare( maxs, playerbox_crouch_maxs ) ) {
+		moveflags |= ANIMMOVE_DUCK;
+	}
+
+	// find out the water level
+	waterlevel = GS_WaterLevel( state, mins, maxs );
+	if( waterlevel >= 2 || ( waterlevel && ( moveflags & ANIMMOVE_AIR ) ) ) {
+		moveflags |= ANIMMOVE_SWIM;
+	}
+
+	//find out what are the base movements the model is doing
+
+	hvel[0] = velocity[0];
+	hvel[1] = velocity[1];
+	hvel[2] = 0;
+	xyspeedcheck = VectorNormalize2( hvel, movedir );
+	if( xyspeedcheck > WALKEPSILON ) {
+		Matrix3_FromAngles( tv( 0, state->angles[YAW], 0 ), viewaxis );
+
+		// if it's moving to where is looking, it's moving forward
+		if( DotProduct( movedir, &viewaxis[AXIS_RIGHT] ) > MOVEDIREPSILON ) {
+			moveflags |= ANIMMOVE_RIGHT;
+		} else if( -DotProduct( movedir, &viewaxis[AXIS_RIGHT] ) > MOVEDIREPSILON ) {
+			moveflags |= ANIMMOVE_LEFT;
+		}
+		if( DotProduct( movedir, &viewaxis[AXIS_FORWARD] ) > MOVEDIREPSILON ) {
+			moveflags |= ANIMMOVE_FRONT;
+		} else if( -DotProduct( movedir, &viewaxis[AXIS_FORWARD] ) > MOVEDIREPSILON ) {
+			moveflags |= ANIMMOVE_BACK;
+		}
+
+		if( xyspeedcheck > RUNEPSILON ) {
+			moveflags |= ANIMMOVE_RUN;
+		} else if( xyspeedcheck > WALKEPSILON ) {
+			moveflags |= ANIMMOVE_WALK;
+		}
+	}
+
+	PlayerModelAnimationSet a;
+	a.animations[ LOWER ] = CG_MoveFlagsToLowerAnimation( moveflags );
+	a.animations[ UPPER ] = CG_MoveFlagsToUpperAnimation( moveflags, state->weapon );
+	a.animations[ HEAD ] = ANIM_NONE;
+	return a;
+}
+
+/*
+*CG_PModel_AnimToFrame
+*
+* BASE_CHANEL plays continuous animations forced to loop.
+* if the same animation is received twice it will *not* restart
+* but continue looping.
+*
+* EVENT_CHANNEL overrides base channel and plays until
+* the animation is finished. Then it returns to base channel.
+* If an animation is received twice, it will be restarted.
+* If an event channel animation has a loop setting, it will
+* continue playing it until a new event chanel animation
+* is fired.
+*/
+static void CG_PModel_AnimToFrame( int64_t curTime, pmodel_animationset_t *animSet, pmodel_animationstate_t *anim ) {
+	for( int i = LOWER; i < PMODEL_PARTS; i++ ) {
+		for( int channel = BASE_CHANNEL; channel < PLAYERANIM_CHANNELS; channel++ ) {
+			animstate_t *currAnim = &anim->curAnims[i][channel];
+
+			// see if there are new animations to be played
+			if( anim->pending[channel].animations[i] != ANIM_NONE ) {
+				if( channel == EVENT_CHANNEL || ( channel == BASE_CHANNEL && anim->pending[channel].animations[i] != currAnim->anim ) ) {
+					currAnim->anim = anim->pending[channel].animations[i];
+					currAnim->startTimestamp = curTime;
+				}
+
+				anim->pending[channel].animations[i] = ANIM_NONE;
+			}
+
+			if( currAnim->anim ) {
+				bool forceLoop = channel == BASE_CHANNEL;
+
+				currAnim->lerpFrac = GS_FrameForTime( &currAnim->frame, curTime, currAnim->startTimestamp,
+					animSet->frametime[currAnim->anim], animSet->firstframe[currAnim->anim], animSet->lastframe[currAnim->anim],
+					animSet->loopingframes[currAnim->anim], forceLoop );
+
+				// the animation was completed
+				if( currAnim->frame < 0 ) {
+					assert( channel != BASE_CHANNEL );
+					currAnim->anim = ANIM_NONE;
+				}
+			}
+		}
+	}
+
+	// we set all animations up, but now select which ones are going to be shown
+	for( int i = LOWER; i < PMODEL_PARTS; i++ ) {
+		int lastframe = anim->frame[i];
+		int channel = ( anim->curAnims[i][EVENT_CHANNEL].anim != ANIM_NONE ) ? EVENT_CHANNEL : BASE_CHANNEL;
+		anim->frame[i] = anim->curAnims[i][channel].frame;
+		anim->lerpFrac[i] = anim->curAnims[i][channel].lerpFrac;
+		if( !lastframe || !anim->oldframe[i] ) {
+			anim->oldframe[i] = anim->frame[i];
+		} else if( anim->frame[i] != lastframe ) {
+			anim->oldframe[i] = lastframe;
+		}
+	}
+}
+
 void CG_PModel_ClearEventAnimations( int entNum ) {
-	GS_PlayerModel_ClearEventAnimations( &cg_entPModels[entNum].pmodelinfo->animSet, &cg_entPModels[entNum].animState );
+	pmodel_animationstate_t & animState = cg_entPModels[ entNum ].animState;
+	for( int i = LOWER; i < PMODEL_PARTS; i++ ) {
+		animState.curAnims[ i ][ EVENT_CHANNEL ].anim = ANIM_NONE;
+		animState.pending[ EVENT_CHANNEL ].animations[ i ] = ANIM_NONE;
+	}
 }
 
 void CG_PModel_AddAnimation( int entNum, int loweranim, int upperanim, int headanim, int channel ) {
-	GS_PlayerModel_AddAnimation( &cg_entPModels[entNum].animState, loweranim, upperanim, headanim, channel );
+	PlayerModelAnimationSet & pending = cg_entPModels[entNum].animState.pending[ channel ];
+	if( loweranim != ANIM_NONE )
+		pending.animations[ LOWER ] = loweranim;
+	if( upperanim != ANIM_NONE )
+		pending.animations[ UPPER ] = upperanim;
+	if( headanim != ANIM_NONE )
+		pending.animations[ HEAD ] = headanim;
 }
 
 
@@ -767,25 +999,9 @@ void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
 * It's better to delay this set up until the other entities are linked, so they
 * can be detected as groundentities by the animation checks
 */
-void CG_UpdatePModelAnimations( centity_t *cent ) {
-	int newanim[PMODEL_PARTS];
-	int frame;
-
-	cent->pendingAnimationsUpdate = false;
-
-	if( cent->current.frame ) { // animation was provided by the server
-		frame = cent->current.frame;
-	} else {
-		frame = GS_UpdateBaseAnims( &cent->current, cent->animVelocity );
-	}
-
-	// filter unchanged animations
-	newanim[LOWER] = ( frame & 0x3F ) * ( ( frame & 0x3F ) != ( cent->lastAnims & 0x3F ) );
-	newanim[UPPER] = ( frame >> 6 & 0x3F ) * ( ( frame >> 6 & 0x3F ) != ( cent->lastAnims >> 6 & 0x3F ) );
-	newanim[HEAD] = ( frame >> 12 & 0xF ) * ( ( frame >> 12 & 0xF ) != ( cent->lastAnims >> 12 & 0xF ) );
-	cent->lastAnims = frame;
-
-	CG_PModel_AddAnimation( cent->current.number, newanim[LOWER], newanim[UPPER], newanim[HEAD], BASE_CHANNEL );
+static void CG_UpdatePModelAnimations( centity_t *cent ) {
+	PlayerModelAnimationSet a = CG_GetBaseAnims( &cent->current, cent->animVelocity );
+	CG_PModel_AddAnimation( cent->current.number, a.animations[LOWER], a.animations[UPPER], a.animations[HEAD], BASE_CHANNEL );
 }
 
 /*
@@ -793,7 +1009,6 @@ void CG_UpdatePModelAnimations( centity_t *cent ) {
 * Called each new serverframe
 */
 void CG_UpdatePlayerModelEnt( centity_t *cent ) {
-	int i;
 	pmodel_t *pmodel;
 
 	// start from clean
@@ -838,7 +1053,7 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	}
 
 	// update parts rotation angles
-	for( i = LOWER; i < PMODEL_PARTS; i++ )
+	for( int i = LOWER; i < PMODEL_PARTS; i++ )
 		VectorCopy( pmodel->angles[i], pmodel->oldangles[i] );
 
 	if( cent->current.type == ET_CORPSE ) {
@@ -863,7 +1078,7 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 		count = 0;
 		VectorClear( cent->animVelocity );
 		cent->yawVelocity = 0;
-		for( i = cg.frame.serverFrame; ( i >= 0 ) && ( count < 3 ) && ( i == cent->lastVelocitiesFrames[i & 3] ); i-- ) {
+		for( int i = cg.frame.serverFrame; ( i >= 0 ) && ( count < 3 ) && ( i == cent->lastVelocitiesFrames[i & 3] ); i-- ) {
 			count++;
 			cent->animVelocity[0] += cent->lastVelocities[i & 3][0];
 			cent->animVelocity[1] += cent->lastVelocities[i & 3][1];
@@ -915,7 +1130,7 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 
 	// Spawning (teleported bit) forces nobacklerp and the interruption of EVENT_CHANNEL animations
 	if( cent->current.teleported ) {
-		for( i = LOWER; i < PMODEL_PARTS; i++ )
+		for( int i = LOWER; i < PMODEL_PARTS; i++ )
 			VectorCopy( pmodel->angles[i], pmodel->oldangles[i] );
 	}
 
@@ -933,10 +1148,11 @@ void CG_AddPModel( centity_t *cent ) {
 	vec3_t tmpangles;
 	orientation_t tag_weapon;
 	int rootanim;
-	gs_pmodel_animationstate_t *animState;
+	pmodel_animationstate_t *animState;
 
 	if( cent->pendingAnimationsUpdate ) {
 		CG_UpdatePModelAnimations( cent );
+		cent->pendingAnimationsUpdate = false;
 	}
 
 	pmodel = &cg_entPModels[cent->current.number];
@@ -970,7 +1186,7 @@ void CG_AddPModel( centity_t *cent ) {
 	animState = &pmodel->animState;
 
 	// transform animation values into frames, and set up old-current poses pair
-	GS_PModel_AnimToFrame( cg.time, &pmodel->pmodelinfo->animSet, animState );
+	CG_PModel_AnimToFrame( cg.time, &pmodel->pmodelinfo->animSet, animState );
 
 	// register temp boneposes for this skeleton
 	if( !cent->skel ) {
@@ -1025,7 +1241,7 @@ void CG_AddPModel( centity_t *cent ) {
 	CG_TransformBoneposes( cent->skel, cent->ent.boneposes, cent->ent.boneposes );
 
 	// Vic: Hack in frame numbers to aid frustum culling
-	cent->ent.backlerp = 1.0 - cg.lerpfrac;
+	cent->ent.backlerp = 1.0f - cg.lerpfrac;
 	cent->ent.frame = pmodel->animState.frame[LOWER];
 	cent->ent.oldframe = pmodel->animState.oldframe[LOWER];
 

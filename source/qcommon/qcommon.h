@@ -523,8 +523,6 @@ typedef struct {
 	size_t unsentLength;
 	uint8_t unsentBuffer[MAX_MSGLEN];
 	bool unsentIsCompressed;
-
-	bool fatal_error;
 } netchan_t;
 
 extern netadr_t net_from;

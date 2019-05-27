@@ -28,8 +28,6 @@ static bool keydown[256];
 
 static bool key_initialized = false;
 
-static cvar_t *in_debug;
-
 struct keyname_t {
 	const char *name;
 	int keynum;
@@ -321,8 +319,6 @@ void Key_Init( void ) {
 	Cmd_AddCommand( "unbindall", Key_Unbindall );
 	Cmd_AddCommand( "bindlist", Key_Bindlist_f );
 
-	in_debug = Cvar_Get( "in_debug", "0", 0 );
-
 	key_initialized = true;
 }
 
@@ -451,10 +447,6 @@ void Key_Event( int key, bool down ) {
 		}
 
 		if( kb && !suppress ) {
-			if( in_debug && in_debug->integer ) {
-				Com_Printf( "key:%i down:%i %s\n", key, down, kb );
-			}
-
 			if( kb[0] == '+' ) { // button commands add keynum as a parm
 				if( down ) {
 					Q_snprintfz( cmd, sizeof( cmd ), "%s %i\n", kb, key );

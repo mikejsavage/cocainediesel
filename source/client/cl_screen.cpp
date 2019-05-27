@@ -38,8 +38,6 @@ static bool scr_initialized;    // ready to draw
 
 static int scr_draw_loading;
 
-static cvar_t *scr_consize;
-static cvar_t *scr_conspeed;
 static cvar_t *scr_netgraph;
 static cvar_t *scr_timegraph;
 static cvar_t *scr_debuggraph;
@@ -379,8 +377,6 @@ static void SCR_DrawDebugGraph( void ) {
 * SCR_InitScreen
 */
 void SCR_InitScreen( void ) {
-	scr_consize = Cvar_Get( "scr_consize", "0.4", CVAR_ARCHIVE );
-	scr_conspeed = Cvar_Get( "scr_conspeed", "3", CVAR_ARCHIVE );
 	scr_netgraph = Cvar_Get( "netgraph", "0", 0 );
 	scr_timegraph = Cvar_Get( "timegraph", "0", 0 );
 	scr_debuggraph = Cvar_Get( "debuggraph", "0", 0 );

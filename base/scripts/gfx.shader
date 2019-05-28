@@ -24,30 +24,6 @@ particle
 	}
 }
 
-additiveParticle
-{
-	deformvertexes autoparticle
-	cull none
-	entityMergable		// allow all the sprites to be merged together
-	{
-		map $particleimage
-		blendfunc add
-		rgbgen vertex
-		alphagen vertex
-	}
-}
-
-additiveParticleShine
-{
-	deformvertexes autoparticle
-	cull none
-	entityMergable		// allow all the sprites to be merged together
-	{
-		clampmap gfx/misc/particle_light_32.tga
-		blendfunc add
-	}
-}
-
 flareShader
 {
 	cull none

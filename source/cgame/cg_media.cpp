@@ -282,8 +282,6 @@ void CG_RegisterMediaShaders( void ) {
 	cgs.media.shaderBombIcon = CG_RegisterMediaShader( "gfx/bomb/carriericon" );
 	cgs.media.shaderTeleportShellGfx = CG_RegisterMediaShader( "gfx/misc/teleportshell" );
 
-	cgs.media.shaderAdditiveParticleShine = CG_RegisterMediaShader( "additiveParticleShine" );
-
 	cgs.media.shaderBladeMark = CG_RegisterMediaShader( "gfx/decals/d_blade_hit" );
 	cgs.media.shaderBulletMark = CG_RegisterMediaShader( "gfx/decals/d_bullet_hit" );
 	cgs.media.shaderExplosionMark = CG_RegisterMediaShader( "gfx/decals/d_explode_hit" );

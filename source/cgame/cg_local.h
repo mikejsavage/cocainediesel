@@ -209,8 +209,6 @@ typedef struct {
 	cgs_media_handle_t *shaderNet;
 	cgs_media_handle_t *shaderTeleportShellGfx;
 
-	cgs_media_handle_t *shaderAdditiveParticleShine;
-
 	cgs_media_handle_t *shaderPlasmaMark;
 	cgs_media_handle_t *shaderEBBeam;
 	cgs_media_handle_t *shaderLGBeam;

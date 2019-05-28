@@ -116,8 +116,6 @@ public:
 };
 
 typedef struct angelwrap_api_s {
-	int angelwrap_api_version;
-
 	// C++ interfaces
 
 	// engine

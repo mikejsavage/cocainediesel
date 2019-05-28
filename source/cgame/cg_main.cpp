@@ -98,13 +98,6 @@ cvar_t *cg_enemyModel;
 cvar_t *cg_enemyForceModel;
 
 /*
-* CG_API
-*/
-int CG_API( void ) {
-	return CGAME_API_VERSION;
-}
-
-/*
 * CG_Error
 */
 void CG_Error( const char *format, ... ) {

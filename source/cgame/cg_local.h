@@ -726,7 +726,6 @@ extern cvar_t *cg_enemyForceModel;
 #define CG_Malloc( size ) _Mem_AllocExt( cg_mempool, size, 16, 1, 0, 0, __FILE__, __LINE__ );
 #define CG_Free( data ) Mem_Free( data )
 
-int CG_API( void );
 void CG_Init( const char *serverName, unsigned int playerNum,
 			  int vidWidth, int vidHeight, float pixelRatio,
 			  bool demoplaying, const char *demoName, bool pure, unsigned snapFrameTime,

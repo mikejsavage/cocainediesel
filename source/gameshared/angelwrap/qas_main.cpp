@@ -31,8 +31,6 @@ struct angelwrap_api_s *QAS_GetAngelExport() {
 static void QAS_InitAngelExport() {
 	memset( &angelExport, 0, sizeof( angelExport ) );
 
-	angelExport.angelwrap_api_version = ANGELWRAP_API_VERSION;
-
 	angelExport.asCreateEngine = qasCreateEngine;
 	angelExport.asReleaseEngine = qasReleaseEngine;
 	angelExport.asWriteEngineDocsToFile = qasWriteEngineDocsToFile;

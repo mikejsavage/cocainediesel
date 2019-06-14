@@ -190,15 +190,6 @@ void W_Fire_Blade( edict_t *self, int range, vec3_t start, vec3_t angles, float 
 		mask = MASK_SOLID;
 	}
 
-	// air dash
-	if( self->groundentity == NULL ) {
-		constexpr float speed = 320.0f;
-		vec3_t dir;
-		AngleVectors( self->s.angles, dir, NULL, NULL );
-		VectorScale( dir, speed, self->velocity );
-		self->r.client->ps.pmove.stats[PM_STAT_WJTIME] = 0;
-	}
-
 	G_Trace4D( &trace, start, NULL, NULL, end, self, mask, timeDelta );
 	if( trace.ent == -1 ) { //didn't touch anything
 		return;

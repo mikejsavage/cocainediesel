@@ -107,13 +107,13 @@ static cg_democam_t *CG_Democam_FindCurrent( int64_t time ) {
 * CG_Democam_FindNext
 */
 static cg_democam_t *CG_Democam_FindNext( int64_t time ) {
-	int64_t lower_time = 0;
+	int64_t lower_time = INT64_MAX;
 	cg_democam_t *cam, *ncam;
 
 	cam = cg_cams_headnode;
 	ncam = NULL;
 	while( cam != NULL ) {
-		if( ncam == NULL || ( cam->timeStamp > time && cam->timeStamp < lower_time ) ) {
+		if( cam->timeStamp > time && cam->timeStamp < lower_time ) {
 			lower_time = cam->timeStamp;
 			ncam = cam;
 		}
@@ -1074,7 +1074,6 @@ static int CG_Democam_CalcView( void ) {
 
 				// set velocity
 				VectorSubtract( cam_origin, v, cam_velocity );
-				VectorScale( cam_velocity, 1.0f / (float)cg.frameTime, cam_velocity );
 				break;
 
 			case DEMOCAM_PATH_SPLINE:
@@ -1146,7 +1145,6 @@ static int CG_Democam_CalcView( void ) {
 
 				// set velocity
 				VectorSubtract( cam_origin, v, cam_velocity );
-				VectorScale( cam_velocity, 1.0f / (float)cg.frameTime, cam_velocity );
 				break;
 
 			case DEMOCAM_ORBITAL:
@@ -1198,7 +1196,6 @@ static int CG_Democam_CalcView( void ) {
 
 				// set velocity
 				VectorSubtract( cam_origin, v, cam_velocity );
-				VectorScale( cam_velocity, 1.0f / ( cg.frameTime * 1000.0f ), cam_velocity );
 				break;
 
 			default:

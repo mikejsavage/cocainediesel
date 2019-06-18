@@ -373,8 +373,6 @@ typedef struct {
 
 	bool demoPlaying;
 	bool pure;
-	int gameProtocol;
-	char demoExtension[MAX_QPATH];
 	unsigned snapFrameTime;
 	unsigned extrapolationTime;
 
@@ -729,7 +727,7 @@ extern cvar_t *cg_enemyForceModel;
 void CG_Init( const char *serverName, unsigned int playerNum,
 			  int vidWidth, int vidHeight, float pixelRatio,
 			  bool demoplaying, const char *demoName, bool pure, unsigned snapFrameTime,
-			  int protocol, const char *demoExtension, int sharedSeed, bool gameStart );
+			  int sharedSeed, bool gameStart );
 void CG_ResizeWindow( int width, int height );
 void CG_Shutdown( void );
 void CG_ValidateItemDef( int tag, char *name );

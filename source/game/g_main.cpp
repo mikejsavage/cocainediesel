@@ -183,7 +183,7 @@ static void G_InitGameShared( void ) {
 * This will be called when the dll is first loaded, which
 * only happens when a new game is started or a save game is loaded.
 */
-void G_Init( unsigned int seed, unsigned int framemsec, int protocol, const char *demoExtension ) {
+void G_Init( unsigned int seed, unsigned int framemsec ) {
 	cvar_t *g_maxentities;
 
 	G_Printf( "==== G_Init ====\n" );
@@ -196,9 +196,6 @@ void G_Init( unsigned int seed, unsigned int framemsec, int protocol, const char
 
 	game.snapFrameTime = framemsec;
 	game.frametime = game.snapFrameTime;
-	game.protocol = protocol;
-	Q_strncpyz( game.demoExtension, demoExtension, sizeof( game.demoExtension ) );
-	game.levelSpawnCount = 0;
 
 	g_maxvelocity = trap_Cvar_Get( "g_maxvelocity", "16000", 0 );
 	if( g_maxvelocity->value < 20 ) {

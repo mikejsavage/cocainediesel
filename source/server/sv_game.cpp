@@ -542,5 +542,5 @@ void SV_InitGameProgs( void ) {
 
 	SV_SetServerConfigStrings();
 
-	ge->Init( time( NULL ), svc.snapFrameTime, APP_PROTOCOL_VERSION, APP_DEMO_EXTENSION_STR );
+	ge->Init( time( NULL ), svc.snapFrameTime );
 }

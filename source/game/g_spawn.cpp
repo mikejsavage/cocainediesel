@@ -608,7 +608,6 @@ static void G_SpawnEntities( void ) {
 	const gsitem_t *item;
 	char *entities;
 
-	game.levelSpawnCount++;
 	level.spawnedTimeStamp = game.realtime;
 	level.canSpawnEntities = true;
 

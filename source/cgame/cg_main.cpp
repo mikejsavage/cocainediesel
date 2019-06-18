@@ -778,8 +778,7 @@ void CG_Reset( void ) {
 void CG_Init( const char *serverName, unsigned int playerNum,
 			  int vidWidth, int vidHeight, float pixelRatio,
 			  bool demoplaying, const char *demoName, bool pure,
-			  unsigned snapFrameTime, int protocol, const char *demoExtension,
-			  int sharedSeed, bool gameStart ) {
+			  unsigned snapFrameTime, int sharedSeed, bool gameStart ) {
 	cg_mempool = _Mem_AllocPool( NULL, "CGame", MEMPOOL_CLIENTGAME, __FILE__, __LINE__ );
 
 	CG_InitGameShared();
@@ -808,13 +807,10 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	// demo
 	cgs.demoPlaying = demoplaying;
 	cgs.demoName = demoName;
-	Q_strncpyz( cgs.demoExtension, demoExtension, sizeof( cgs.demoExtension ) );
 
 	// whether to only allow pure files
 	cgs.pure = pure;
 
-	// game protocol number
-	cgs.gameProtocol = protocol;
 	cgs.snapFrameTime = snapFrameTime;
 
 	cgs.hasGametypeMenu = false; // this will update as soon as we receive configstrings

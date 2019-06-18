@@ -213,7 +213,7 @@ typedef struct {
 	void ( *Init )( const char *serverName, unsigned int playerNum,
 					int vidWidth, int vidHeight, float pixelRatio,
 					bool demoplaying, const char *demoName, bool pure, unsigned int snapFrameTime,
-					int protocol, const char *demoExtension, int sharedSeed, bool gameStart );
+					int sharedSeed, bool gameStart );
 
 	void ( *ResizeWindow )( int width, int height );
 

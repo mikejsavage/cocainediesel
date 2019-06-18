@@ -373,7 +373,7 @@ static void CG_SC_DemoGet( void ) {
 	filename = trap_Cmd_Argv( 1 );
 	extension = COM_FileExtension( filename );
 	if( !COM_ValidateRelativeFilename( filename ) ||
-		!extension || Q_stricmp( extension, cgs.demoExtension ) ) {
+		!extension || Q_stricmp( extension, APP_DEMO_EXTENSION_STR ) ) {
 		CG_Printf( "Warning: demoget: Invalid filename, ignored\n" );
 		return;
 	}

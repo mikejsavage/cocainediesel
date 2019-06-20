@@ -1,9 +1,10 @@
 #pragma once
 
-// ints and size_t
+#include <assert.h>
 #include <stdint.h>
 #include <stddef.h>
 
+// ints
 typedef int8_t s8;
 typedef int16_t s16;
 typedef int32_t s32;
@@ -27,13 +28,51 @@ struct Allocator {
 // span
 template< typename T >
 struct Span {
+	T * ptr;
+	size_t n;
+
 	constexpr Span() : ptr( NULL ), n( 0 ) { }
 	constexpr Span( T * ptr, size_t n ) : ptr( ptr ), n( n ) { }
 
-	// TODO: member functions
+	size_t num_bytes() const { return sizeof( T ) * n; }
 
-	T * ptr;
-	size_t n;
+	T & operator[]( size_t i ) {
+		assert( i < n );
+		return ptr[ i ];
+	}
+
+	const T & operator[]( size_t i ) const {
+		assert( i < n );
+		return ptr[ i ];
+	}
+
+	Span< T > operator+( size_t i ) const {
+		assert( i <= n );
+		return Span< T >( ptr + i, n - i );
+	}
+
+        T * begin() { return ptr; }
+        T * end() { return ptr + n; }
+        const T * begin() const { return ptr; }
+        const T * end() const { return ptr + n; }
+
+	Span< T > slice( size_t start, size_t one_past_end ) {
+		assert( start <= one_past_end );
+		assert( one_past_end <= n );
+		return Span< T >( ptr + start, one_past_end - start );
+	}
+
+	const Span< T > slice( size_t start, size_t one_past_end ) const {
+		assert( start <= one_past_end );
+		assert( one_past_end <= n );
+		return Span< T >( ptr + start, one_past_end - start );
+	}
+
+	template< typename S >
+	Span< S > cast() {
+		assert( num_bytes() % sizeof( S ) == 0 );
+		return Span< S >( ( S * ) ptr, num_bytes() / sizeof( S ) );
+	}
 };
 
 // linear algebra
@@ -43,6 +82,8 @@ struct Vec2 {
 	Vec2() { }
 	explicit constexpr Vec2( float xy ) : x( xy ), y( xy ) { }
 	constexpr Vec2( float x_, float y_ ) : x( x_ ), y( y_ ) { }
+
+	float * ptr() { return &x; }
 };
 
 struct Vec3 {
@@ -54,6 +95,8 @@ struct Vec3 {
 	constexpr Vec3( float x_, float y_, float z_ ) : x( x_ ), y( y_ ), z( z_ ) { }
 
 	Vec2 xy() const { return Vec2( x, y ); }
+
+	float * ptr() { return &x; }
 };
 
 struct Vec4 {
@@ -67,6 +110,8 @@ struct Vec4 {
 
 	Vec2 xy() const { return Vec2( x, y ); }
 	Vec3 xyz() const { return Vec3( x, y, z ); }
+
+	float * ptr() { return &x; }
 };
 
 struct Mat2 {
@@ -79,7 +124,9 @@ struct Mat2 {
 	Vec2 row0() const { return Vec2( col0.x, col1.x ); }
 	Vec2 row1() const { return Vec2( col0.y, col1.y ); }
 
-	static constexpr Mat2 I() { return Mat2( 1, 0, 0, 1 ); }
+	float * ptr() { return col0.ptr(); }
+
+	static constexpr Mat2 Identity() { return Mat2( 1, 0, 0, 1 ); }
 };
 
 struct Mat3 {
@@ -97,7 +144,9 @@ struct Mat3 {
 	Vec3 row1() const { return Vec3( col0.y, col1.y, col2.y ); }
 	Vec3 row2() const { return Vec3( col0.z, col1.z, col2.z ); }
 
-	static constexpr Mat3 I() {
+	float * ptr() { return col0.ptr(); }
+
+	static constexpr Mat3 Identity() {
 		return Mat3(
 			1, 0, 0,
 			0, 1, 0,
@@ -123,13 +172,28 @@ struct alignas( 16 ) Mat4 {
 	Vec4 row2() const { return Vec4( col0.z, col1.z, col2.z, col3.z ); }
 	Vec4 row3() const { return Vec4( col0.w, col1.w, col2.w, col3.w ); }
 
-	static constexpr Mat4 I() {
+	float * ptr() { return col0.ptr(); }
+
+	static constexpr Mat4 Identity() {
 		return Mat4(
 			1, 0, 0, 0,
 			0, 1, 0, 0,
 			0, 0, 1, 0,
 			0, 0, 0, 1
 		);
+	}
+};
+
+struct Quaternion {
+	float x, y, z, w;
+
+	Quaternion() { }
+	constexpr Quaternion( float x_, float y_, float z_, float w_ ) : x( x_ ), y( y_ ), z( z_ ), w( w_ ) { }
+
+	float * ptr() { return &x; }
+
+	static constexpr Quaternion Identity() {
+		return Quaternion( 0, 0, 0, 1 );
 	}
 };
 

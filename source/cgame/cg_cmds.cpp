@@ -635,13 +635,6 @@ static void CG_Viewpos_f( void ) {
 	CG_Printf( "\"angles\" \"%i %i %i\"\n", (int)cg.view.angles[0], (int)cg.view.angles[1], (int)cg.view.angles[2] );
 }
 
-/*
-* CG_CenterViewCmd_f
-*/
-static void CG_CenterViewCmd_f( void ) {
-	CG_CenterView( -SHORT2ANGLE( cg.predictedPlayerState.pmove.delta_angles[PITCH] ) );
-}
-
 // ======================================================================
 
 /*
@@ -750,7 +743,6 @@ static const cgcmd_t cgcmds[] =
 	{ "weaplast", CG_Cmd_LastWeapon_f, true },
 	{ "weapon", CG_Cmd_Weapon_f, false },
 	{ "viewpos", CG_Viewpos_f, true },
-	{ "centerview", CG_CenterViewCmd_f, false },
 	{ "players", NULL, false },
 	{ "spectators", NULL, false },
 

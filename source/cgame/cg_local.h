@@ -955,7 +955,6 @@ float CG_GetSensitivityScale( float sens, float zoomSens );
 unsigned int CG_GetButtonBits( void );
 void CG_AddViewAngles( vec3_t viewAngles );
 void CG_AddMovement( vec3_t movement );
-void CG_CenterView( float pitch );
 
 /*
 * Returns angular movement vector (in euler angles) obtained from the input.

@@ -25,9 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cg_local.h"
 #include "client/keys.h"
 
-static bool cg_inputCenterView;
-static float cg_inputCenterViewPitch;
-
 /*
 ===============================================================================
 
@@ -78,14 +75,6 @@ COMMON
 */
 
 /*
-* CG_CenterView
-*/
-void CG_CenterView( float pitch ) {
-	cg_inputCenterView = true;
-	cg_inputCenterViewPitch = pitch;
-}
-
-/*
 * CG_InputInit
 */
 void CG_InitInput( void ) {
@@ -120,11 +109,6 @@ void CG_AddViewAngles( vec3_t viewAngles ) {
 	vec3_t am;
 	CG_GetAngularMovement( am );
 	VectorAdd( viewAngles, am, viewAngles );
-
-	if( cg_inputCenterView ) {
-		viewAngles[PITCH] = cg_inputCenterViewPitch;
-		cg_inputCenterView = false;
-	}
 }
 
 /*

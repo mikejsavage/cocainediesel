@@ -2056,8 +2056,6 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	cls.frame_arena = cls.frame_arena == &cls.frame_arenas[ 0 ] ? &cls.frame_arenas[ 1 ] : &cls.frame_arenas[ 0 ];
 	cls.frame_arena->clear();
 
-	// printf( "%p\n", ALLOC( cls.frame_arena, 1, 1 ) );
-
 	static int allRealMsec = 0, allGameMsec = 0, extraMsec = 0;
 	static float roundingMsec = 0.0f;
 	int minMsec;

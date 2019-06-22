@@ -1,5 +1,12 @@
-#include "qcommon/types.h"
+#include "qcommon/base.h"
 #include "qcommon/qcommon.h"
+
+#if COMPIER_GCCORCLANG
+#include <sanitizer/asan_interface.h>
+#else
+#define ASAN_POISON_MEMORY_REGION( mem, size )
+#define ASAN_UNPOISON_MEMORY_REGION( mem, size )
+#endif
 
 #if RELEASE_BUILD
 
@@ -120,6 +127,7 @@ struct SystemAllocator final : public Allocator {
 ArenaAllocator::ArenaAllocator() { }
 
 ArenaAllocator::ArenaAllocator( void * mem, size_t size ) {
+	ASAN_POISON_MEMORY_REGION( mem, size );
 	memory = ( u8 * ) mem;
 	top = memory + size;
 	cursor = memory;
@@ -130,6 +138,7 @@ void * ArenaAllocator::try_allocate( size_t size, size_t alignment, const char *
 	u8 * aligned = ( u8 * ) ( size_t( cursor + alignment - 1 ) & ~( alignment - 1 ) );
 	if( aligned + size > top )
 		return NULL;
+	ASAN_UNPOISON_MEMORY_REGION( aligned, size );
 	cursor = aligned + size;
 	return aligned;
 }
@@ -140,6 +149,12 @@ void * ArenaAllocator::try_reallocate( void * ptr, size_t current_size, size_t n
 		u8 * new_cursor = cursor - current_size + new_size;
 		if( new_cursor > top )
 			return NULL;
+
+		ASAN_UNPOISON_MEMORY_REGION( ptr, new_size );
+		if( new_cursor < cursor ) {
+			ASAN_POISON_MEMORY_REGION( new_cursor, cursor - new_cursor );
+		}
+
 		cursor = new_cursor;
 		return ptr;
 	}
@@ -154,6 +169,7 @@ void * ArenaAllocator::try_reallocate( void * ptr, size_t current_size, size_t n
 void ArenaAllocator::deallocate( void * ptr, const char * func, const char * file, int line ) { }
 
 void ArenaAllocator::clear() {
+	ASAN_POISON_MEMORY_REGION( memory, top - memory );
 	cursor = memory;
 }
 

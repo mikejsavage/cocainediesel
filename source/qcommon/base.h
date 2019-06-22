@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "qcommon/types.h"
+#include "qcommon/platform.h"
 #include "qcommon/ggformat.h"
 #include "qcommon/linear_algebra.h"
 

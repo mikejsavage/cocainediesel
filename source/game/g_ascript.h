@@ -25,62 +25,62 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "angelscript/angelscript.h"
 
-typedef struct gs_asEnumVal_s {
+typedef struct asEnumVal_s {
 	const char * name;
 	int value;
-} gs_asEnumVal_t;
+} asEnumVal_t;
 
-typedef struct gs_asEnum_s {
+typedef struct asEnum_s {
 	const char * name;
-	const gs_asEnumVal_t * values;
-} gs_asEnum_t;
+	const asEnumVal_t * values;
+} asEnum_t;
 
 typedef struct asFuncdef_s {
 	const char * declaration;
-} gs_asFuncdef_t;
+} asFuncdef_t;
 
-typedef struct gs_asBehavior_s {
+typedef struct asBehavior_s {
 	asEBehaviours behavior;
 	const char * declaration;
 	asSFuncPtr funcPointer;
 	asECallConvTypes callConv;
-} gs_asBehavior_t;
+} asBehavior_t;
 
-typedef struct gs_asMethod_s {
+typedef struct asMethod_s {
 	const char * declaration;
 	asSFuncPtr funcPointer;
 	asECallConvTypes callConv;
-} gs_asMethod_t;
+} asMethod_t;
 
-typedef struct gs_asProperty_s {
+typedef struct asProperty_s {
 	const char * declaration;
 	unsigned int offset;
-} gs_asProperty_t;
+} asProperty_t;
 
-typedef struct gs_asClassDescriptor_s {
+typedef struct asClassDescriptor_s {
 	const char * name;
 	asDWORD typeFlags;
 	size_t size;
-	const gs_asFuncdef_t * funcdefs;
-	const gs_asBehavior_t * objBehaviors;
-	const gs_asMethod_t * objMethods;
-	const gs_asProperty_t * objProperties;
+	const asFuncdef_t * funcdefs;
+	const asBehavior_t * objBehaviors;
+	const asMethod_t * objMethods;
+	const asProperty_t * objProperties;
 	const void * stringFactory;
 	const void * stringFactory_asGeneric;
-} gs_asClassDescriptor_t;
+} asClassDescriptor_t;
 
-typedef struct gs_asglobfuncs_s {
+typedef struct asglobfuncs_s {
 	const char *declaration;
 	asSFuncPtr pointer;
 	void **asFuncPtr;
-} gs_asglobfuncs_t;
+} asglobfuncs_t;
 
-typedef struct gs_asglobproperties_s {
+typedef struct asglobproperties_s {
 	const char *declaration;
 	void *pointer;
-} gs_asglobproperties_t;
+} asglobproperties_t;
 
-void gs_asemptyfunc( void );
+void asemptyfunc( void );
 
 #define ASLIB_LOCAL_CLASS_DESCR( x )
 
@@ -97,6 +97,6 @@ void gs_asemptyfunc( void );
 
 #define ASLIB_FUNCTION_NULL                     NULL
 #define ASLIB_FUNCDEF_NULL                      { ASLIB_FUNCTION_NULL }
-#define ASLIB_BEHAVIOR_NULL                     { asBEHAVE_CONSTRUCT, ASLIB_FUNCTION_NULL, asFUNCTION( gs_asemptyfunc ), asCALL_CDECL }
-#define ASLIB_METHOD_NULL                       { ASLIB_FUNCTION_NULL, asFUNCTION( gs_asemptyfunc ), asCALL_CDECL }
+#define ASLIB_BEHAVIOR_NULL                     { asBEHAVE_CONSTRUCT, ASLIB_FUNCTION_NULL, asFUNCTION( asemptyfunc ), asCALL_CDECL }
+#define ASLIB_METHOD_NULL                       { ASLIB_FUNCTION_NULL, asFUNCTION( asemptyfunc ), asCALL_CDECL }
 #define ASLIB_PROPERTY_NULL                     { NULL, 0 }

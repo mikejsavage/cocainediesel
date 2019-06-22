@@ -62,7 +62,6 @@ static void KeyDown( Button * b ) {
 	}
 
 	if( k == b->keys[ 0 ] || k == b->keys[ 1 ] ) {
-		asm( "int $3" );
 		return;
 	}
 

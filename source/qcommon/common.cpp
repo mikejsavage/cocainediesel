@@ -352,17 +352,6 @@ void Com_SetDemoPlaying( bool state ) {
 	demo_playing = state;
 }
 
-unsigned int Com_DaysSince1900( void ) {
-	time_t long_time;
-	struct tm *newtime;
-
-	// get date from system
-	time( &long_time );
-	newtime = localtime( &long_time );
-
-	return ( newtime->tm_year * 365 ) + newtime->tm_yday;
-}
-
 //============================================================================
 
 /*

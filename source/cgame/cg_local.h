@@ -216,9 +216,10 @@ typedef struct {
 
 	cgs_media_handle_t *shaderPlayerShadow;
 
+	cgs_media_handle_t *shaderTick;
+
 	cgs_media_handle_t *shaderWeaponIcon[WEAP_TOTAL];
 	cgs_media_handle_t *shaderKeyIcon[KEYICON_TOTAL];
-	cgs_media_handle_t *shaderVSayIcon[VSAY_TOTAL];
 } cgs_media_t;
 
 typedef struct bonenode_s {

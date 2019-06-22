@@ -319,32 +319,7 @@ void CG_RegisterMediaShaders( void ) {
 	cgs.media.shaderKeyIcon[KEYICON_CROUCH] = CG_RegisterMediaShader( PATH_KEYICON_CROUCH );
 	cgs.media.shaderKeyIcon[KEYICON_SPECIAL] = CG_RegisterMediaShader( PATH_KEYICON_SPECIAL );
 
-	// VSAY icons
-	cgs.media.shaderVSayIcon[VSAY_GENERIC] = CG_RegisterMediaShader( PATH_VSAY_GENERIC_ICON );
-	cgs.media.shaderVSayIcon[VSAY_AFFIRMATIVE] = CG_RegisterMediaShader( PATH_VSAY_AFFIRMATIVE_ICON );
-	cgs.media.shaderVSayIcon[VSAY_NEGATIVE] = CG_RegisterMediaShader( PATH_VSAY_NEGATIVE_ICON );
-	cgs.media.shaderVSayIcon[VSAY_YES] = CG_RegisterMediaShader( PATH_VSAY_YES_ICON );
-	cgs.media.shaderVSayIcon[VSAY_NO] = CG_RegisterMediaShader( PATH_VSAY_NO_ICON );
-	cgs.media.shaderVSayIcon[VSAY_ONDEFENSE] = CG_RegisterMediaShader( PATH_VSAY_ONDEFENSE_ICON );
-	cgs.media.shaderVSayIcon[VSAY_ONOFFENSE] = CG_RegisterMediaShader( PATH_VSAY_ONOFFENSE_ICON );
-	cgs.media.shaderVSayIcon[VSAY_OOPS] = CG_RegisterMediaShader( PATH_VSAY_OOPS_ICON );
-	cgs.media.shaderVSayIcon[VSAY_SORRY] = CG_RegisterMediaShader( PATH_VSAY_SORRY_ICON );
-	cgs.media.shaderVSayIcon[VSAY_THANKS] = CG_RegisterMediaShader( PATH_VSAY_THANKS_ICON );
-	cgs.media.shaderVSayIcon[VSAY_NOPROBLEM] = CG_RegisterMediaShader( PATH_VSAY_NOPROBLEM_ICON );
-	cgs.media.shaderVSayIcon[VSAY_YEEHAA] = CG_RegisterMediaShader( PATH_VSAY_YEEHAA_ICON );
-	cgs.media.shaderVSayIcon[VSAY_GOODGAME] = CG_RegisterMediaShader( PATH_VSAY_GOODGAME_ICON );
-	cgs.media.shaderVSayIcon[VSAY_DEFEND] = CG_RegisterMediaShader( PATH_VSAY_DEFEND_ICON );
-	cgs.media.shaderVSayIcon[VSAY_ATTACK] = CG_RegisterMediaShader( PATH_VSAY_ATTACK_ICON );
-	cgs.media.shaderVSayIcon[VSAY_NEEDBACKUP] = CG_RegisterMediaShader( PATH_VSAY_NEEDBACKUP_ICON );
-	cgs.media.shaderVSayIcon[VSAY_BOOO] = CG_RegisterMediaShader( PATH_VSAY_BOOO_ICON );
-	cgs.media.shaderVSayIcon[VSAY_NEEDDEFENSE] = CG_RegisterMediaShader( PATH_VSAY_NEEDDEFENSE_ICON );
-	cgs.media.shaderVSayIcon[VSAY_NEEDOFFENSE] = CG_RegisterMediaShader( PATH_VSAY_NEEDOFFENSE_ICON );
-	cgs.media.shaderVSayIcon[VSAY_NEEDHELP] = CG_RegisterMediaShader( PATH_VSAY_NEEDHELP_ICON );
-	cgs.media.shaderVSayIcon[VSAY_ROGER] = CG_RegisterMediaShader( PATH_VSAY_ROGER_ICON );
-	cgs.media.shaderVSayIcon[VSAY_AREASECURED] = CG_RegisterMediaShader( PATH_VSAY_AREASECURED_ICON );
-	cgs.media.shaderVSayIcon[VSAY_BOOMSTICK] = CG_RegisterMediaShader( PATH_VSAY_BOOMSTICK_ICON );
-	cgs.media.shaderVSayIcon[VSAY_OK] = CG_RegisterMediaShader( PATH_VSAY_OK_ICON );
-	cgs.media.shaderVSayIcon[VSAY_SHUTUP] = CG_RegisterMediaShader( PATH_VSAY_SHUTUP_ICON );
+	cgs.media.shaderTick = CG_RegisterMediaShader( PATH_VSAY_YES_ICON );
 }
 
 /*

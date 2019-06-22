@@ -3,7 +3,8 @@ clone_depth: 1
 image: Ubuntu
 
 build_script:
-- sh: gcc -v
+- sh: sudo update-alternatives --set g++ /usr/bin/g++-9
+- sh: g++ -v
 - sh: ggbuild/lua.linux make.lua release > build.ninja
 - sh: ggbuild/ninja.linux -v -k 0
 

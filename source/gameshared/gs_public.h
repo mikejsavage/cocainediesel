@@ -33,8 +33,6 @@ typedef struct {
 	void ( *Error )( _Printf_format_string_ const char *format, ... );
 #endif
 
-	void *( *Malloc )( size_t size );
-	void ( *Free )( void *data );
 	void ( *Trace )( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask, int timeDelta );
 	entity_state_t *( *GetEntityState )( int entNum, int deltaTime );
 	int ( *PointContents )( const vec3_t point, int timeDelta );

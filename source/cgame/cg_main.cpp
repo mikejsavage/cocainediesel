@@ -142,24 +142,6 @@ void CG_LocalPrint( const char *format, ... ) {
 }
 
 /*
-* CG_GS_Malloc
-*
-* Used only for gameshared linking
-*/
-static void *CG_GS_Malloc( size_t size ) {
-	return CG_Malloc( size );
-}
-
-/*
-* CG_GS_Free
-*
-* Used only for gameshared linking
-*/
-static void CG_GS_Free( void *data ) {
-	CG_Free( data );
-}
-
-/*
 * CG_GS_Trace
 */
 static void CG_GS_Trace( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask, int timeDelta ) {
@@ -225,8 +207,6 @@ static void CG_InitGameShared( void ) {
 	api.PredictedEvent = CG_PredictedEvent;
 	api.Error = CG_Error;
 	api.Printf = CG_Printf;
-	api.Malloc = CG_GS_Malloc;
-	api.Free = CG_GS_Free;
 	api.Trace = CG_GS_Trace;
 	api.GetEntityState = CG_GS_GetEntityState;
 	api.PointContents = CG_GS_PointContents;

@@ -123,20 +123,6 @@ void G_Printf( const char *format, ... ) {
 }
 
 /*
-* G_GS_Malloc - Used only for gameshared linking
-*/
-static void *G_GS_Malloc( size_t size ) {
-	return G_Malloc( size );
-}
-
-/*
-* G_GS_Free - Used only for gameshared linking
-*/
-static void G_GS_Free( void *data ) {
-	G_Free( data );
-}
-
-/*
 * G_GS_Trace - Used only for gameshared linking
 */
 static void G_GS_Trace( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask, int timeDelta ) {
@@ -165,8 +151,6 @@ static void G_InitGameShared( void ) {
 	api.PredictedEvent = G_PredictedEvent;
 	api.Error = G_Error;
 	api.Printf = G_Printf;
-	api.Malloc = G_GS_Malloc;
-	api.Free = G_GS_Free;
 	api.Trace = G_GS_Trace;
 	api.GetEntityState = G_GetEntityStateForDeltaTime;
 	api.PointContents = G_PointContents4D;

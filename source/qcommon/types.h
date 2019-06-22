@@ -15,7 +15,10 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
-// allocator interface
+/*
+ * allocators
+ */
+
 struct Allocator {
 	virtual ~Allocator() { }
 	virtual void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) = 0;
@@ -25,7 +28,27 @@ struct Allocator {
 	virtual void deallocate( void * ptr, const char * func, const char * file, int line ) = 0;
 };
 
-// span
+struct ArenaAllocator final : public Allocator {
+	ArenaAllocator();
+	ArenaAllocator( void * mem, size_t size );
+
+	void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
+	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
+	void deallocate( void * ptr, const char * func, const char * file, int line );
+
+	void clear();
+	void * get_memory();
+
+private:
+	u8 * memory;
+	u8 * top;
+	u8 * cursor;
+};
+
+/*
+ * span
+ */
+
 template< typename T >
 struct Span {
 	T * ptr;
@@ -75,7 +98,10 @@ struct Span {
 	}
 };
 
-// linear algebra
+/*
+ * linear_algebra
+ */
+
 struct Vec2 {
 	float x, y;
 

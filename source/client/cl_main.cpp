@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // cl_main.c  -- client main loop
 
+#include "qcommon/base.h"
 #include "client.h"
 #include "qcommon/asyncstream.h"
 #include "qcommon/version.h"
@@ -2052,6 +2053,11 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 void CL_Frame( int realMsec, int gameMsec ) {
 	MICROPROFILE_SCOPEI( "Main", "CL_Frame", 0xffffffff );
 
+	cls.frame_arena = cls.frame_arena == &cls.frame_arenas[ 0 ] ? &cls.frame_arenas[ 1 ] : &cls.frame_arenas[ 0 ];
+	cls.frame_arena->clear();
+
+	// printf( "%p\n", ALLOC( cls.frame_arena, 1, 1 ) );
+
 	static int allRealMsec = 0, allGameMsec = 0, extraMsec = 0;
 	static float roundingMsec = 0.0f;
 	int minMsec;
@@ -2236,6 +2242,13 @@ void CL_AsyncStreamRequest( const char *url, const char **headers, int timeout, 
 * CL_Init
 */
 void CL_Init( void ) {
+	ggprint( "cl_init\n" );
+	constexpr size_t frame_arena_size = 1024 * 1024;
+	void * frame_arena_memory = ALLOC( sys_allocator, frame_arena_size * 2, 16 );
+	cls.frame_arenas[ 0 ] = ArenaAllocator( frame_arena_memory, frame_arena_size );
+	cls.frame_arenas[ 1 ] = ArenaAllocator( ( u8 * ) frame_arena_memory + frame_arena_size, frame_arena_size );
+	cls.frame_arena = &cls.frame_arenas[ 0 ];
+
 	cls.monotonicTime = 0;
 
 	netadr_t address;
@@ -2330,4 +2343,6 @@ void CL_Shutdown( void ) {
 
 	cls.state = CA_UNINITIALIZED;
 	cl_initialized = false;
+
+	FREE( sys_allocator, cls.frame_arenas[ 0 ].get_memory() );
 }

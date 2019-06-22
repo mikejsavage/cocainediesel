@@ -412,13 +412,13 @@ static bool being_debugged() {
 
                 // detach
                 ptrace( PTRACE_DETACH, parent_pid, NULL, NULL );
-                exit( 0 );
+                _exit( 0 );
         }
 
         int status;
         waitpid( child_pid, &status, 0 );
         if( !WIFEXITED( status ) ) {
-                err( 1, "WIFEXITED" );
+		_exit( 1 );
         }
 
         return WEXITSTATUS( status ) == 1;

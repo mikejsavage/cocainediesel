@@ -403,7 +403,7 @@ static bool being_debugged() {
                                 printf( "! or\n" );
                                 printf( "! sysctl kernel.yama.ptrace_scope=0\n" );
                         }
-                        exit( 1 );
+			_exit( 1 );
                 }
 
                 // ptrace automatically stops the process so wait for SIGSTOP and send PTRACE_CONT

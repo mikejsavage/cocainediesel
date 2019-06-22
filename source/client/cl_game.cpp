@@ -20,7 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client.h"
 #include "qcommon/version.h"
-#include "gameshared/angelwrap/qas_public.h"
 
 static cgame_export_t *cge;
 
@@ -271,8 +270,6 @@ void CL_GameModule_Init( void ) {
 	import.SCR_StrlenForWidth = SCR_StrlenForWidth;
 	import.SCR_DrawChat = Con_DrawChat;
 
-	import.asGetAngelExport = QAS_GetAngelExport;
-
 	cge = GetCGameAPI( &import );
 
 	start = Sys_Milliseconds();
@@ -421,14 +418,4 @@ void CL_GameModule_MouseMove( int dx, int dy ) {
 	if( cge ) {
 		cge->MouseMove( dx, dy );
 	}
-}
-
-/*
-* CL_GameModule_KeyEvent
-*/
-bool CL_GameModule_KeyEvent( int key, bool down ) {
-	if( cge ) {
-		return cge->KeyEvent( key, down );
-	}
-	return false;
 }

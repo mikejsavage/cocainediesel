@@ -22,8 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define AS_USE_STLNAMES 1
 
-#include "qcommon/qcommon.h"
-#include "gameshared/q_angeliface.h"
+#include "game/g_local.h"
+#include "game/q_angeliface.h"
 #include "qas_public.h"
 
 // few fixes regarding Quake and std compatibility
@@ -44,13 +44,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define QAS_SECTIONS_SEPARATOR ';'
 #define QAS_FILE_EXTENSION     ".as"
 
-extern struct mempool_s *angelwrappool;
+#define QAS_NEW( x )        new( G_Malloc( sizeof( x ) ) )( x )
+#define QAS_DELETE( ptr,x ) {void *tmp = ptr; ( ptr )->~x(); G_Free( tmp );}
 
-#define QAS_NEW( x )        new( Mem_Alloc( angelwrappool, sizeof( x ) ) )( x )
-#define QAS_DELETE( ptr,x ) {void *tmp = ptr; ( ptr )->~x(); Mem_Free( tmp );}
-
-#define QAS_NEWARRAY( x,cnt )  (x*)Mem_Alloc( angelwrappool, sizeof( x ) * cnt )
-#define QAS_DELETEARRAY( ptr ) Mem_Free( ptr )
+#define QAS_NEWARRAY( x,cnt )  (x*)G_Malloc( sizeof( x ) * cnt )
+#define QAS_DELETEARRAY( ptr ) G_Free( ptr )
 
 /******* C++ objects *******/
 asIScriptEngine *qasCreateEngine( bool *asMaxPortability );

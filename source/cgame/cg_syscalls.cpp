@@ -57,7 +57,5 @@ extern "C" QF_DLL_EXPORT cgame_export_t * GetCGameAPI( cgame_import_t * import )
 	globals.AddViewAngles = CG_AddViewAngles;
 	globals.AddMovement = CG_AddMovement;
 
-	globals.KeyEvent = CG_KeyEvent;
-
 	return &globals;
 }

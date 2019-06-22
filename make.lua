@@ -48,7 +48,7 @@ do
 		srcs = {
 			"source/cgame/*.cpp",
 			"source/client/**.cpp",
-			"source/gameshared/**.cpp",
+			"source/gameshared/*.cpp",
 			"source/qalgo/*.cpp",
 			"source/qcommon/*.cpp",
 			"source/server/sv_*.cpp",
@@ -65,7 +65,6 @@ do
 		},
 
 		prebuilt_libs = {
-			"angelscript",
 			"curl",
 			"freetype",
 			"openal",
@@ -115,7 +114,6 @@ do
 
 	bin( "server", {
 		srcs = {
-			"source/gameshared/angelwrap/**.cpp",
 			"source/gameshared/q_*.cpp",
 			"source/qalgo/*.cpp",
 			"source/qcommon/*.cpp",
@@ -124,7 +122,6 @@ do
 		},
 
 		prebuilt_libs = {
-			"angelscript",
 			"curl",
 			"zlib",
 			"zstd",
@@ -137,12 +134,16 @@ do
 end
 
 dll( "game", {
-	"source/game/*.cpp",
-	"source/gameshared/*.cpp",
-	"source/qalgo/hash.cpp",
-	"source/qalgo/rng.cpp",
+	srcs = {
+		"source/game/**.cpp",
+		"source/gameshared/*.cpp",
+		"source/qalgo/hash.cpp",
+		"source/qalgo/rng.cpp",
+	},
+
+	prebuilt_libs = { "angelscript" },
 } )
 
-obj_cxxflags( "source/gameshared/angelwrap/.+", "-I third-party/angelscript/sdk/angelscript/include" )
+obj_cxxflags( "source/game/angelwrap/.+", "-I third-party/angelscript/sdk/angelscript/include" )
 obj_cxxflags( "source/.+_as_.+", "-I third-party/angelscript/sdk/angelscript/include" )
 obj_cxxflags( "source/.+_ascript.cpp", "-I third-party/angelscript/sdk/angelscript/include" )

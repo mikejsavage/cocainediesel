@@ -234,6 +234,7 @@ function bin( bin_name, cfg )
 	assert( type( cfg ) == "table", "cfg should be a table" )
 	assert( type( cfg.srcs ) == "table", "cfg.srcs should be a table" )
 	assert( not cfg.libs or type( cfg.libs ) == "table", "cfg.libs should be a table or nil" )
+	assert( not cfg.prebuilt_libs or type( cfg.prebuilt_libs ) == "table", "cfg.prebuilt_libs should be a table or nil" )
 	assert( not bins[ bin_name ] )
 
 	bins[ bin_name ] = cfg
@@ -250,16 +251,19 @@ function lib( lib_name, srcs )
 	add_srcs( globbed )
 end
 
-function dll( dll_name, srcs )
-	assert( type( srcs ) == "table", "srcs should be a table" )
+function dll( dll_name, cfg )
+	assert( type( cfg ) == "table", "cfg should be a table" )
+	assert( type( cfg.srcs ) == "table", "cfg.srcs should be a table" )
+	assert( not cfg.prebuilt_libs or type( cfg.prebuilt_libs ) == "table", "cfg.prebuilt_libs should be a table or nil" )
 	assert( not dlls[ dll_name ] )
 
-	local globbed = glob( srcs )
-	dlls[ dll_name ] = globbed
+	dlls[ dll_name ] = cfg
+	cfg.srcs = glob( cfg.srcs )
+
 	if toolchain == "msvc" then
-		add_srcs( globbed )
+		add_srcs( cfg.srcs )
 	else
-		add_pie_srcs( globbed )
+		add_pie_srcs( cfg.srcs )
 	end
 end
 
@@ -410,9 +414,13 @@ local function write_ninja_script()
 		printf( "build %s/%s%s%s: lib %s", dir, lib_prefix, lib_name, lib_suffix, join( srcs, obj_suffix ) )
 	end
 
-	for dll_name, srcs in pairs( dlls ) do
+	for dll_name, cfg in pairs( dlls ) do
 		local full_name = dll_prefix .. dll_name .. dll_suffix
-		printf( "build %s: dll %s", full_name, join( srcs, pie_obj_suffix ) )
+		printf( "build %s: dll %s %s",
+			full_name,
+			join( cfg.srcs, pie_obj_suffix ),
+			joinpb( cfg.prebuilt_libs, lib_suffix, lib_prefix )
+		)
 		printf( "default %s", full_name )
 	end
 

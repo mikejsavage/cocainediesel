@@ -18,8 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "gameshared/q_angeliface.h"
-#include "gameshared/gs_ascript.h"
+#include "game/q_angeliface.h"
+#include "game/g_ascript.h"
 
 #include "angelscript/angelscript.h"
 

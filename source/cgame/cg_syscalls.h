@@ -408,7 +408,3 @@ static inline void trap_SCR_DrawChat( int x, int y, int width, struct qfontface_
 inline cg_fdrawchar_t trap_SCR_SetDrawCharIntercept( cg_fdrawchar_t intercept ) {
 	return CGAME_IMPORT.SCR_SetDrawCharIntercept( intercept );
 }
-
-static inline struct angelwrap_api_s *trap_asGetAngelExport( void ) {
-	return CGAME_IMPORT.asGetAngelExport();
-}

@@ -440,13 +440,8 @@ void Key_Event( int key, bool down ) {
 		|| ( cls.key_dest == key_game && cls.state == CA_ACTIVE )
 		|| ( cls.key_dest == key_message && ( key >= K_F1 && key <= K_F15 ) ) ) {
 		const char *kb = keybindings[key];
-		bool suppress = false;
 
-		if( cls.key_dest == key_game ) {
-			suppress = CL_GameModule_KeyEvent( key, down );
-		}
-
-		if( kb && !suppress ) {
+		if( kb ) {
 			if( kb[0] == '+' ) { // button commands add keynum as a parm
 				if( down ) {
 					Q_snprintfz( cmd, sizeof( cmd ), "%s %i\n", kb, key );

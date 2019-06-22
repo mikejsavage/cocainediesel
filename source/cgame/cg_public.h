@@ -197,9 +197,6 @@ typedef struct {
 	size_t ( *SCR_StrlenForWidth )( const char *str, struct qfontface_s *font, size_t maxwidth );
 	cg_fdrawchar_t ( *SCR_SetDrawCharIntercept )( cg_fdrawchar_t intercept );
 	void ( *SCR_DrawChat )( int x, int y, int width, struct qfontface_s *font );
-
-	// angelscript api
-	struct angelwrap_api_s *( *asGetAngelExport )( void );
 } cgame_import_t;
 
 //
@@ -277,13 +274,4 @@ typedef struct {
 	 * @param movement movement vector to modify
 	 */
 	void ( *AddMovement )( vec3_t movement );
-
-	/**
-	* Passes the key press/up event to clientside game module.
-	* Returns true if the action bound to the key should not be sent to the interpreter.
-	*
-	* @param key  key id
-	* @param down true, if it's a button down event
-	*/
-	bool ( *KeyEvent )( int key, bool down );
 } cgame_export_t;

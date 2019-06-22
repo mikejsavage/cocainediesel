@@ -212,7 +212,6 @@ static void CG_InitGameShared( void ) {
 	api.PointContents = CG_GS_PointContents;
 	api.PMoveTouchTriggers = CG_Predict_TouchTriggers;
 	api.GetConfigString = CG_GS_GetConfigString;
-	api.GetAngelExport = NULL;
 
 	GS_InitModule( GS_MODULE_CGAME, maxclients, &api );
 }
@@ -795,10 +794,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	cgs.hasGametypeMenu = false; // this will update as soon as we receive configstrings
 
-	CG_asInitScriptEngine();
-
-	CG_asLoadGameScript();
-
 	CG_InitInput();
 
 	CG_RegisterVariables();
@@ -857,8 +852,6 @@ void CG_Shutdown( void ) {
 	CG_PModelsShutdown();
 	CG_FreeTemporaryBoneposesCache();
 	CG_ShutdownInput();
-	CG_asUnloadGameScript();
-	CG_asShutdownScriptEngine();
 
 	Mem_FreePool( &cg_mempool );
 }

@@ -39,7 +39,6 @@ typedef struct {
 	void ( *PredictedEvent )( int entNum, int ev, int parm );
 	void ( *PMoveTouchTriggers )( pmove_t *pm, vec3_t previous_origin );
 	const char *( *GetConfigString )( int index );
-	struct angelwrap_api_s *( *GetAngelExport )( void );
 } gs_module_api_t;
 
 //===============================================================
@@ -783,15 +782,14 @@ enum {
 // even if it has a zero index model.
 #define EF_ROTATE_AND_BOB           ( 1 << 0 )
 #define EF_CARRIER                  ( 1 << 1 )
-#define EF_BUSYICON                 ( 1 << 2 )
-#define EF_TAKEDAMAGE               ( 1 << 3 )
-#define EF_TEAMCOLOR_TRANSITION     ( 1 << 4 )
-#define EF_GODMODE                  ( 1 << 5 )
-#define EF_GHOST                    ( 1 << 6 )
-#define EF_PLAYER_HIDENAME          ( 1 << 7 )
-#define EF_RACEGHOST                ( 1 << 8 )
-#define EF_OUTLINE                  ( 1 << 9 )
-#define EF_HAT                      ( 1 << 10 )
+#define EF_TAKEDAMAGE               ( 1 << 2 )
+#define EF_TEAMCOLOR_TRANSITION     ( 1 << 3 )
+#define EF_GODMODE                  ( 1 << 4 )
+#define EF_GHOST                    ( 1 << 5 )
+#define EF_PLAYER_HIDENAME          ( 1 << 6 )
+#define EF_RACEGHOST                ( 1 << 7 )
+#define EF_OUTLINE                  ( 1 << 8 )
+#define EF_HAT                      ( 1 << 9 )
 
 //===============================================================
 // gs_weapons.c

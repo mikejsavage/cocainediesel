@@ -156,7 +156,6 @@ static void G_InitGameShared( void ) {
 	api.PointContents = G_PointContents4D;
 	api.PMoveTouchTriggers = G_PMoveTouchTriggers;
 	api.GetConfigString = trap_GetConfigString;
-	api.GetAngelExport = trap_asGetAngelExport;
 
 	GS_InitModule( GS_MODULE_GAME, maxclients, &api );
 }

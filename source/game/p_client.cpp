@@ -1261,8 +1261,8 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	clamp( client->timeDelta, -g_antilag_maxtimedelta->integer, 0 );
 
 	// update activity if he touched any controls
-	if( ucmd->forwardmove != 0 || ucmd->sidemove != 0 || ucmd->upmove != 0 || ( ucmd->buttons & ~BUTTON_BUSYICON ) != 0
-		|| client->ucmd.angles[PITCH] != ucmd->angles[PITCH] || client->ucmd.angles[YAW] != ucmd->angles[YAW] ) {
+	if( ucmd->forwardmove != 0 || ucmd->sidemove != 0 || ucmd->upmove != 0 ||
+		client->ucmd.angles[PITCH] != ucmd->angles[PITCH] || client->ucmd.angles[YAW] != ucmd->angles[YAW] ) {
 		G_Client_UpdateActivity( client );
 	}
 

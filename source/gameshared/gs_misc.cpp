@@ -28,8 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // TEMP MOVE ME
 gs_state_t gs;
 
-void GS_asInitializeExport( void );
-
 /*
 * GS_TouchPushTrigger
 */
@@ -267,6 +265,4 @@ void GS_InitModule( int module, int maxClients, gs_module_api_t *api ) {
 	gs.module = module;
 	gs.maxclients = maxClients;
 	gs.api = *api;
-
-	GS_asInitializeExport();
 }

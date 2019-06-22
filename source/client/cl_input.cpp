@@ -139,11 +139,7 @@ static void CL_SetUcmdMovement( usercmd_t *ucmd ) {
 static void CL_SetUcmdButtons( usercmd_t *ucmd ) {
 	if( cls.key_dest == key_game ) {
 		ucmd->buttons |= CL_GameModule_GetButtonBits();
-		return;
 	}
-
-	// add chat/console/ui icon as a button
-	ucmd->buttons |=  BUTTON_BUSYICON;
 }
 
 /*

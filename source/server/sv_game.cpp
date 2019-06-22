@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "server.h"
 #include "qcommon/version.h"
-#include "gameshared/angelwrap/qas_public.h"
 
 game_export_t *ge;
 
@@ -518,8 +517,6 @@ void SV_InitGameProgs( void ) {
 	import.ExecuteClientThinks = SV_ExecuteClientThinks;
 
 	import.LocateEntities = SV_LocateEntities;
-
-	import.asGetAngelExport = QAS_GetAngelExport;
 
 	import.is_dedicated_server = is_dedicated_server;
 

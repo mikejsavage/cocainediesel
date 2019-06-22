@@ -20,17 +20,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qas_local.h"
 
-struct mempool_s *angelwrappool;
-
 static angelwrap_api_t angelExport;
 
 struct angelwrap_api_s *QAS_GetAngelExport() {
-	return &angelExport;
-}
-
-static void QAS_InitAngelExport() {
-	memset( &angelExport, 0, sizeof( angelExport ) );
-
 	angelExport.asCreateEngine = qasCreateEngine;
 	angelExport.asReleaseEngine = qasReleaseEngine;
 	angelExport.asWriteEngineDocsToFile = qasWriteEngineDocsToFile;
@@ -47,15 +39,6 @@ static void QAS_InitAngelExport() {
 	angelExport.asReleaseArrayCpp = qasReleaseArrayCpp;
 
 	angelExport.asLoadScriptProject = qasLoadScriptProject;
-}
 
-void QAS_Init() {
-	angelwrappool = Mem_AllocPool( NULL, "Angelwrap script module" );
-	Com_Printf( "Initializing Angel Script\n" );
-
-	QAS_InitAngelExport();
-}
-
-void QAS_Shutdown() {
-	Mem_FreePool( &angelwrappool );
+	return &angelExport;
 }

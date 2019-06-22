@@ -12,6 +12,10 @@ inline Vec2 operator+( Vec2 lhs, Vec2 rhs ) {
 	return Vec2( lhs.x + rhs.x, lhs.y + rhs.y );
 }
 
+inline void operator+=( Vec2 & lhs, Vec2 rhs ) {
+	lhs = lhs + rhs;
+}
+
 inline Vec2 operator-( Vec2 lhs, Vec2 rhs ) {
 	return Vec2( lhs.x - rhs.x, lhs.y - rhs.y );
 }

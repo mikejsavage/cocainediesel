@@ -20,8 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include "gs_public.h"
-#include "gameshared/q_angeliface.h"
+#include "gameshared/gs_public.h"
+#include "game/q_angeliface.h"
 
 #include "angelscript/angelscript.h"
 
@@ -100,11 +100,3 @@ void gs_asemptyfunc( void );
 #define ASLIB_BEHAVIOR_NULL                     { asBEHAVE_CONSTRUCT, ASLIB_FUNCTION_NULL, asFUNCTION( gs_asemptyfunc ), asCALL_CDECL }
 #define ASLIB_METHOD_NULL                       { ASLIB_FUNCTION_NULL, asFUNCTION( gs_asemptyfunc ), asCALL_CDECL }
 #define ASLIB_PROPERTY_NULL                     { NULL, 0 }
-
-void GS_asInitializeEngine( asIScriptEngine *asEngine );
-void GS_asRegisterEnums( asIScriptEngine *asEngine, const gs_asEnum_t *asEnums, const char *nameSpace );
-void GS_asRegisterFuncdefs( asIScriptEngine *asEngine, const gs_asFuncdef_t *asFuncdefs, const char *nameSpace );
-void GS_asRegisterObjectClassNames( asIScriptEngine *asEngine, const gs_asClassDescriptor_t *const *asClassesDescriptors, const char *nameSpace );
-void GS_asRegisterObjectClasses( asIScriptEngine *asEngine, const gs_asClassDescriptor_t *const *asClassesDescriptors, const char *nameSpace );
-void GS_asRegisterGlobalFunctions( asIScriptEngine *asEngine, const gs_asglobfuncs_t *funcs, const char *nameSpace );
-void GS_asRegisterGlobalProperties( asIScriptEngine *asEngine, const gs_asglobproperties_t *props, const char *nameSpace );

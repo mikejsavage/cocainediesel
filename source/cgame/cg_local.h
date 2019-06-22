@@ -331,28 +331,6 @@ typedef struct {
 	// shaders
 	struct shader_s *shaderWhite;
 
-	// AngelScript
-	struct angelwrap_api_s *asExport;
-
-	void *asEngine;
-	// AS input subsystem API
-	struct {
-		void *load;
-	} asMain;
-
-	// AS input subsystem API
-	struct {
-		void *init;
-		void *shutdown;
-		void *frame;
-		void *clearState;
-		void *keyEvent;
-		void *mouseMove;
-		void *getButtonBits;
-		void *getAngularMovement;
-		void *getMovement;
-	} asInput;
-
 	// fonts
 	int fontSystemTinySize;
 	int fontSystemSmallSize;
@@ -925,24 +903,6 @@ void CG_DrawChat( cg_gamechat_t *chat, int x, int y, char *fontName, struct qfon
 				  int width, int height, int padding_x, int padding_y, vec4_t backColor, struct shader_s *backShader );
 
 //
-// cg_ascript.cpp
-//
-void CG_asInitScriptEngine( void );
-void CG_asShutdownScriptEngine( void );
-bool CG_asLoadGameScript( void );
-void CG_asUnloadGameScript( void );
-
-void CG_asInputInit( void );
-void CG_asInputShutdown( void );
-void CG_asInputFrame( int frameTime );
-void CG_asInputClearState( void );
-bool CG_asInputKeyEvent( int key, bool down );
-void CG_asInputMouseMove( int mx, int my );
-unsigned CG_asGetButtonBits( void );
-void CG_asGetAngularMovement( vec3_t viewAngles );
-void CG_asGetMovement( vec3_t movement );
-
-//
 // cg_input.cpp
 //
 
@@ -961,21 +921,6 @@ void CG_AddMovement( vec3_t movement );
 * Doesn't take flipping into account.
 */
 void CG_GetAngularMovement( vec3_t movement );
-
-/*
-* Returns spatial movement vector obtained from the input.
-* Doesn't take flipping into account.
-*/
-void CG_GetMovement( vec3_t movement );
-
-/**
-* Passes the key press/up event to clientside game module.
-* Returns true if the action bound to the key should not be sent to the interpreter.
-*
-* @param key  key id
-* @param down true, if it's a button down event
-*/
-bool CG_KeyEvent( int key, bool down );
 
 /**
  * Gets up to two bound keys for a command.

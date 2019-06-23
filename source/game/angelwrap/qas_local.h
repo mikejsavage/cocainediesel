@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define AS_USE_STLNAMES 1
 
 #include "game/g_local.h"
-#include "game/q_angeliface.h"
+#include "game/g_angeliface.h"
 #include "qas_public.h"
 
 // few fixes regarding Quake and std compatibility

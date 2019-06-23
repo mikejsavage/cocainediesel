@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 #include "gameshared/gs_public.h"
-#include "game/q_angeliface.h"
+#include "game/g_angeliface.h"
 
 #include "angelscript/angelscript.h"
 

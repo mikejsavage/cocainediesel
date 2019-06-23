@@ -1308,12 +1308,12 @@ static const asClassDescriptor_t asGameClientDescriptor =
 //=======================================================================
 
 // CLASS: Entity
-static void *asEntityCallThinkFuncPtr = NULL;
-static void *asEntityCallTouchFuncPtr = NULL;
-static void *asEntityCallUseFuncPtr = NULL;
-static void *asEntityCallStopFuncPtr = NULL;
-static void *asEntityCallPainFuncPtr = NULL;
-static void *asEntityCallDieFuncPtr = NULL;
+static asIScriptFunction *asEntityCallThinkFuncPtr = NULL;
+static asIScriptFunction *asEntityCallTouchFuncPtr = NULL;
+static asIScriptFunction *asEntityCallUseFuncPtr = NULL;
+static asIScriptFunction *asEntityCallStopFuncPtr = NULL;
+static asIScriptFunction *asEntityCallPainFuncPtr = NULL;
+static asIScriptFunction *asEntityCallDieFuncPtr = NULL;
 
 static asvec3_t objectGameEntity_GetVelocity( edict_t *obj ) {
 	asvec3_t velocity;
@@ -2006,9 +2006,7 @@ static edict_t *asFunc_G_Spawn( asstring_t *classname ) {
 	}
 
 	ent->scriptSpawned = true;
-	ent->asScriptModule = static_cast<void *>(
-		GAME_AS_ENGINE()->GetModule( game.asExport->asGetActiveContext()->GetFunction( 0 )->GetModuleName() )
-		);
+	ent->asScriptModule = game.asEngine->GetModule( game.asExport->asGetActiveContext()->GetFunction( 0 )->GetModuleName() );
 
 	G_asClearEntityBehaviors( ent );
 
@@ -2596,7 +2594,7 @@ bool G_asCallMapEntitySpawnScript( const char *classname, edict_t *ent ) {
 	char fdeclstr[MAX_STRING_CHARS];
 	int error;
 	asIScriptContext *asContext;
-	asIScriptEngine *asEngine = GAME_AS_ENGINE();
+	asIScriptEngine *asEngine = game.asEngine;
 	asIScriptModule *asSpawnModule;
 	asIScriptFunction *asSpawnFunc;
 
@@ -2620,8 +2618,8 @@ bool G_asCallMapEntitySpawnScript( const char *classname, edict_t *ent ) {
 
 	// this is in case we might want to call G_asReleaseEntityBehaviors
 	// in the spawn function (an object may release itself, ugh)
-	ent->asSpawnFunc = static_cast<void *>( asSpawnFunc );
-	ent->asScriptModule = static_cast<void *>( asSpawnModule );
+	ent->asSpawnFunc = asSpawnFunc;
+	ent->asScriptModule = asSpawnModule;
 	ent->scriptSpawned = true;
 	G_asClearEntityBehaviors( ent );
 
@@ -2681,22 +2679,22 @@ void G_asClearEntityBehaviors( edict_t *ent ) {
 void G_asReleaseEntityBehaviors( edict_t *ent ) {
 	if( ent->scriptSpawned && game.asExport ) {
 		if( ent->asThinkFunc ) {
-			static_cast<asIScriptFunction*>( ent->asThinkFunc )->Release();
+			ent->asThinkFunc->Release();
 		}
 		if( ent->asTouchFunc ) {
-			static_cast<asIScriptFunction*>( ent->asTouchFunc )->Release();
+			ent->asTouchFunc->Release();
 		}
 		if( ent->asUseFunc ) {
-			static_cast<asIScriptFunction*>( ent->asUseFunc )->Release();
+			ent->asUseFunc->Release();
 		}
 		if( ent->asStopFunc ) {
-			static_cast<asIScriptFunction*>( ent->asStopFunc )->Release();
+			ent->asStopFunc->Release();
 		}
 		if( ent->asPainFunc ) {
-			static_cast<asIScriptFunction*>( ent->asPainFunc )->Release();
+			ent->asPainFunc->Release();
 		}
 		if( ent->asDieFunc ) {
-			static_cast<asIScriptFunction*>( ent->asDieFunc )->Release();
+			ent->asDieFunc->Release();
 		}
 	}
 
@@ -2712,9 +2710,9 @@ void G_asCallMapEntityThink( edict_t *ent ) {
 		return;
 	}
 
-	ctx = game.asExport->asAcquireContext( GAME_AS_ENGINE() );
+	ctx = game.asExport->asAcquireContext( game.asEngine );
 
-	error = ctx->Prepare( static_cast<asIScriptFunction *>( ent->asThinkFunc ) );
+	error = ctx->Prepare( ent->asThinkFunc );
 	if( error < 0 ) {
 		return;
 	}
@@ -2738,9 +2736,9 @@ void G_asCallMapEntityTouch( edict_t *ent, edict_t *other, cplane_t *plane, int 
 		return;
 	}
 
-	ctx = game.asExport->asAcquireContext( GAME_AS_ENGINE() );
+	ctx = game.asExport->asAcquireContext( game.asEngine );
 
-	error = ctx->Prepare( static_cast<asIScriptFunction *>( ent->asTouchFunc ) );
+	error = ctx->Prepare( ent->asTouchFunc );
 	if( error < 0 ) {
 		return;
 	}
@@ -2772,9 +2770,9 @@ void G_asCallMapEntityUse( edict_t *ent, edict_t *other, edict_t *activator ) {
 		return;
 	}
 
-	ctx = game.asExport->asAcquireContext( GAME_AS_ENGINE() );
+	ctx = game.asExport->asAcquireContext( game.asEngine );
 
-	error = ctx->Prepare( static_cast<asIScriptFunction *>( ent->asUseFunc ) );
+	error = ctx->Prepare( ent->asUseFunc );
 	if( error < 0 ) {
 		return;
 	}
@@ -2799,9 +2797,9 @@ void G_asCallMapEntityPain( edict_t *ent, edict_t *other, float kick, float dama
 		return;
 	}
 
-	ctx = game.asExport->asAcquireContext( GAME_AS_ENGINE() );
+	ctx = game.asExport->asAcquireContext( game.asEngine );
 
-	error = ctx->Prepare( static_cast<asIScriptFunction *>( ent->asPainFunc ) );
+	error = ctx->Prepare( ent->asPainFunc );
 	if( error < 0 ) {
 		return;
 	}
@@ -2827,9 +2825,9 @@ void G_asCallMapEntityDie( edict_t *ent, edict_t *inflicter, edict_t *attacker, 
 		return;
 	}
 
-	ctx = game.asExport->asAcquireContext( GAME_AS_ENGINE() );
+	ctx = game.asExport->asAcquireContext( game.asEngine );
 
-	error = ctx->Prepare( static_cast<asIScriptFunction *>( ent->asDieFunc ) );
+	error = ctx->Prepare( ent->asDieFunc );
 	if( error < 0 ) {
 		return;
 	}
@@ -2854,9 +2852,9 @@ void G_asCallMapEntityStop( edict_t *ent ) {
 		return;
 	}
 
-	ctx = game.asExport->asAcquireContext( GAME_AS_ENGINE() );
+	ctx = game.asExport->asAcquireContext( game.asEngine );
 
-	error = ctx->Prepare( static_cast<asIScriptFunction *>( ent->asStopFunc ) );
+	error = ctx->Prepare( ent->asStopFunc );
 	if( error < 0 ) {
 		return;
 	}
@@ -2886,7 +2884,7 @@ bool G_ExecutionErrorReport( int error ) {
 * G_LoadGameScript
 */
 asIScriptModule *G_LoadGameScript( const char *moduleName, const char *dir, const char *filename, const char *ext ) {
-	return game.asExport->asLoadScriptProject( GAME_AS_ENGINE(), moduleName, GAME_SCRIPTS_DIRECTORY, dir, filename, ext );
+	return game.asExport->asLoadScriptProject( game.asEngine, moduleName, GAME_SCRIPTS_DIRECTORY, dir, filename, ext );
 }
 
 /*
@@ -3160,7 +3158,7 @@ void G_asShutdownGameModuleEngine( void ) {
 		return;
 	}
 
-	game.asExport->asReleaseEngine( static_cast<asIScriptEngine *>( game.asEngine ) );
+	game.asExport->asReleaseEngine( game.asEngine );
 	G_ResetGameModuleScriptData();
 }
 
@@ -3178,7 +3176,7 @@ void G_asGarbageCollect( bool force ) {
 		return;
 	}
 
-	asEngine = GAME_AS_ENGINE();
+	asEngine = game.asEngine;
 	if( !asEngine ) {
 		return;
 	}

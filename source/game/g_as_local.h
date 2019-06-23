@@ -23,19 +23,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "angelscript/angelscript.h"
 
-#define G_AsMalloc                              G_LevelMalloc
-#define G_AsFree                                G_LevelFree
-
 #define GAME_SCRIPTS_DIRECTORY              "progs"
 
 #define GAMETYPE_SCRIPTS_MODULE_NAME        "gametype"
 #define GAMETYPE_SCRIPTS_DIRECTORY          "gametypes"
 
 #define MAP_SCRIPTS_MODULE_NAME             "map"
-#define MAP_SCRIPTS_DIRECTORY               "maps"
-#define MAP_SCRIPTS_PROJECT_EXTENSION       ".mp"
-
-#define GAME_AS_ENGINE()                    ( static_cast<asIScriptEngine *>( game.asEngine ) )
 
 asIScriptModule *G_LoadGameScript( const char *moduleName, const char *dir, const char *filename, const char *ext );
 bool G_ExecutionErrorReport( int error );

@@ -32,6 +32,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "g_gametypes.h"
 #include "g_ai.h"
 
+#include "angelscript/angelscript.h"
+
 //==================================================================
 
 // FIXME: Medar: Remove the spectator test and just make sure they always have health
@@ -95,7 +97,6 @@ typedef enum {
 // it should be initialized at dll load time, and read/written to
 // the server.ssv file for savegames
 //
-class asIScriptEngine;
 typedef struct {
 	edict_t *edicts;        // [maxentities]
 	gclient_t *clients;     // [maxclients]
@@ -1121,8 +1122,8 @@ struct edict_s {
 	bool linked;
 
 	bool scriptSpawned;
-	void *asScriptModule;
-	void *asSpawnFunc, *asThinkFunc, *asUseFunc, *asTouchFunc, *asPainFunc, *asDieFunc, *asStopFunc;
+	asIScriptModule *asScriptModule;
+	asIScriptFunction *asSpawnFunc, *asThinkFunc, *asUseFunc, *asTouchFunc, *asPainFunc, *asDieFunc, *asStopFunc;
 };
 
 static inline int ENTNUM( const edict_t *x ) { return x - game.edicts; }

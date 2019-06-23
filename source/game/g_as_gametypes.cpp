@@ -56,7 +56,7 @@ void GT_asShutdownScript( void ) {
 
 	GT_ResetScriptData();
 
-	GAME_AS_ENGINE()->DiscardModule( GAMETYPE_SCRIPTS_MODULE_NAME );
+	game.asEngine->DiscardModule( GAMETYPE_SCRIPTS_MODULE_NAME );
 }
 
 //"void GT_SpawnGametype()"
@@ -68,7 +68,7 @@ void GT_asCallSpawn( void ) {
 		return;
 	}
 
-	ctx = game.asExport->asAcquireContext( GAME_AS_ENGINE() );
+	ctx = game.asExport->asAcquireContext( game.asEngine );
 
 	error = ctx->Prepare( static_cast<asIScriptFunction *>( level.gametype.spawnFunc ) );
 	if( error < 0 ) {
@@ -90,7 +90,7 @@ void GT_asCallMatchStateStarted( void ) {
 		return;
 	}
 
-	ctx = game.asExport->asAcquireContext( GAME_AS_ENGINE() );
+	ctx = game.asExport->asAcquireContext( game.asEngine );
 
 	error = ctx->Prepare( static_cast<asIScriptFunction *>( level.gametype.matchStateStartedFunc ) );
 	if( error < 0 ) {
@@ -113,7 +113,7 @@ bool GT_asCallMatchStateFinished( int incomingMatchState ) {
 		return true;
 	}
 
-	ctx = game.asExport->asAcquireContext( GAME_AS_ENGINE() );
+	ctx = game.asExport->asAcquireContext( game.asEngine );
 
 	error = ctx->Prepare( static_cast<asIScriptFunction *>( level.gametype.matchStateFinishedFunc ) );
 	if( error < 0 ) {
@@ -143,7 +143,7 @@ void GT_asCallThinkRules( void ) {
 		return;
 	}
 
-	ctx = game.asExport->asAcquireContext( GAME_AS_ENGINE() );
+	ctx = game.asExport->asAcquireContext( game.asEngine );
 
 	error = ctx->Prepare( static_cast<asIScriptFunction *>( level.gametype.thinkRulesFunc ) );
 	if( error < 0 ) {
@@ -165,7 +165,7 @@ void GT_asCallPlayerRespawn( edict_t *ent, int old_team, int new_team ) {
 		return;
 	}
 
-	ctx = game.asExport->asAcquireContext( GAME_AS_ENGINE() );
+	ctx = game.asExport->asAcquireContext( game.asEngine );
 
 	error = ctx->Prepare( static_cast<asIScriptFunction *>( level.gametype.playerRespawnFunc ) );
 	if( error < 0 ) {
@@ -201,7 +201,7 @@ void GT_asCallScoreEvent( gclient_t *client, const char *score_event, const char
 		args = "";
 	}
 
-	ctx = game.asExport->asAcquireContext( GAME_AS_ENGINE() );
+	ctx = game.asExport->asAcquireContext( game.asEngine );
 
 	error = ctx->Prepare( static_cast<asIScriptFunction *>( level.gametype.scoreEventFunc ) );
 	if( error < 0 ) {
@@ -238,7 +238,7 @@ void GT_asCallScoreboardMessage( unsigned int maxlen ) {
 		return;
 	}
 
-	ctx = game.asExport->asAcquireContext( GAME_AS_ENGINE() );
+	ctx = game.asExport->asAcquireContext( game.asEngine );
 
 	error = ctx->Prepare( static_cast<asIScriptFunction *>( level.gametype.scoreboardMessageFunc ) );
 	if( error < 0 ) {
@@ -269,7 +269,7 @@ edict_t *GT_asCallSelectSpawnPoint( edict_t *ent ) {
 	if( !level.gametype.selectSpawnPointFunc ) {
 		return NULL;
 	}
-	ctx = game.asExport->asAcquireContext( GAME_AS_ENGINE() );
+	ctx = game.asExport->asAcquireContext( game.asEngine );
 
 	error = ctx->Prepare( static_cast<asIScriptFunction *>( level.gametype.selectSpawnPointFunc ) );
 	if( error < 0 ) {
@@ -303,7 +303,7 @@ bool GT_asCallGameCommand( gclient_t *client, const char *cmd, const char *args,
 		return false;
 	}
 
-	ctx = game.asExport->asAcquireContext( GAME_AS_ENGINE() );
+	ctx = game.asExport->asAcquireContext( game.asEngine );
 
 	error = ctx->Prepare( static_cast<asIScriptFunction *>( level.gametype.clientCommandFunc ) );
 	if( error < 0 ) {
@@ -340,7 +340,7 @@ void GT_asCallShutdown( void ) {
 		return;
 	}
 
-	ctx = game.asExport->asAcquireContext( GAME_AS_ENGINE() );
+	ctx = game.asExport->asAcquireContext( game.asEngine );
 
 	error = ctx->Prepare( static_cast<asIScriptFunction *>( level.gametype.shutdownFunc ) );
 	if( error < 0 ) {
@@ -475,7 +475,7 @@ static bool G_asInitializeGametypeScript( asIScriptModule *asModule ) {
 	// execute the GT_InitGametype function
 	//
 
-	ctx = game.asExport->asAcquireContext( GAME_AS_ENGINE() );
+	ctx = game.asExport->asAcquireContext( game.asEngine );
 
 	error = ctx->Prepare( static_cast<asIScriptFunction *>( level.gametype.initFunc ) );
 	if( error < 0 ) {

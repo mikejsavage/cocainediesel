@@ -72,7 +72,7 @@ typedef struct asClassDescriptor_s {
 typedef struct asglobfuncs_s {
 	const char *declaration;
 	asSFuncPtr pointer;
-	void **asFuncPtr;
+	asIScriptFunction **asFuncPtr;
 } asglobfuncs_t;
 
 typedef struct asglobproperties_s {

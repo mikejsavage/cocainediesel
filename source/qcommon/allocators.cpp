@@ -8,6 +8,24 @@
 #define ASAN_UNPOISON_MEMORY_REGION( mem, size )
 #endif
 
+void * Allocator::allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
+	void * p = try_allocate( size, alignment, func, file, line );
+	if( p == NULL )
+		Sys_Error( "Allocation failed in '%s' (%s:%d)", func, file, line );
+	return p;
+}
+
+void * Allocator::reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
+	void * new_p = try_reallocate( ptr, current_size, new_size, alignment, func, file, line );
+	if( new_p == NULL )
+		Sys_Error( "Reallocation failed in '%s' (%s:%d)", func, file, line );
+	return new_p;
+}
+
+/*
+ * SystemAllocator
+ */
+
 #if RELEASE_BUILD
 
 struct AllocationTracker {
@@ -68,20 +86,6 @@ struct AllocationTracker {
 
 #endif
 
-void * Allocator::allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
-	void * p = try_allocate( size, alignment, func, file, line );
-	if( p == NULL )
-		Sys_Error( "Allocation failed in '%s' (%s:%d)", func, file, line );
-	return p;
-}
-
-void * Allocator::reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
-	void * new_p = try_reallocate( ptr, current_size, new_size, alignment, func, file, line );
-	if( new_p == NULL )
-		Sys_Error( "Reallocation failed in '%s' (%s:%d)", func, file, line );
-	return new_p;
-}
-
 struct SystemAllocator final : public Allocator {
 	SystemAllocator() { }
 	NONCOPYABLE( SystemAllocator );
@@ -123,6 +127,24 @@ struct SystemAllocator final : public Allocator {
 		tracker.untrack( ptr, func, file, line );
 	}
 };
+
+/*
+ * ArenaAllocator
+ */
+
+TempAllocator::~TempAllocator() {
+	arena->cursor = old_cursor;
+}
+
+void * TempAllocator::try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
+	return arena->try_allocate( size, alignment, func, file, line );
+}
+
+void * TempAllocator::try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
+	return arena->try_reallocate( ptr, current_size, new_size, alignment, func, file, line );
+}
+
+void TempAllocator::deallocate( void * ptr, const char * func, const char * file, int line ) { }
 
 ArenaAllocator::ArenaAllocator() { }
 
@@ -167,6 +189,13 @@ void * ArenaAllocator::try_reallocate( void * ptr, size_t current_size, size_t n
 }
 
 void ArenaAllocator::deallocate( void * ptr, const char * func, const char * file, int line ) { }
+
+TempAllocator ArenaAllocator::temp() {
+	TempAllocator t;
+	t.arena = this;
+	t.old_cursor = cursor;
+	return t;
+}
 
 void ArenaAllocator::clear() {
 	ASAN_POISON_MEMORY_REGION( memory, top - memory );

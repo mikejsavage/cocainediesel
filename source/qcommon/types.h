@@ -4,7 +4,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
-// ints
+/*
+ * ints
+ */
+
 typedef int8_t s8;
 typedef int16_t s16;
 typedef int32_t s32;
@@ -28,6 +31,21 @@ struct Allocator {
 	virtual void deallocate( void * ptr, const char * func, const char * file, int line ) = 0;
 };
 
+struct ArenaAllocator;
+struct TempAllocator final : public Allocator {
+	~TempAllocator();
+
+	void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
+	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
+	void deallocate( void * ptr, const char * func, const char * file, int line );
+
+private:
+	ArenaAllocator * arena;
+	u8 * old_cursor;
+
+	friend struct ArenaAllocator;
+};
+
 struct ArenaAllocator final : public Allocator {
 	ArenaAllocator();
 	ArenaAllocator( void * mem, size_t size );
@@ -36,6 +54,8 @@ struct ArenaAllocator final : public Allocator {
 	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
 	void deallocate( void * ptr, const char * func, const char * file, int line );
 
+	TempAllocator temp();
+
 	void clear();
 	void * get_memory();
 
@@ -43,6 +63,8 @@ private:
 	u8 * memory;
 	u8 * top;
 	u8 * cursor;
+
+	friend struct TempAllocator;
 };
 
 /*

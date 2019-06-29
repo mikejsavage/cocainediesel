@@ -205,7 +205,8 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 
 		body->nextThink = level.time + 3000 + random() * 3000;
 		body->deadflag = DEAD_DEAD;
-	} else if( ent->s.type == ET_PLAYER ) {
+	}
+	if( ent->s.type == ET_PLAYER ) {
 		// copy the model
 		body->s.type = ET_CORPSE;
 		body->s.modelindex = ent->s.modelindex;

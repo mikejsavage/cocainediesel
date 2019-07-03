@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #pragma once
 
-#include "qcommon/qcommon.h"
+#include "qcommon/types.h"
 #include "r_mesh.h"
 #include "r_shader.h"
 #include "r_surface.h"
@@ -386,3 +386,11 @@ model_t     *Mod_ForHandle( unsigned int elem );
 #define     Mod_MemFree( data ) Mem_Free( data )
 
 void        Mod_Modellist_f( void );
+
+struct MatrixPalettes {
+	Span< Mat4 > joint_poses;
+	Span< Mat4 > skinning_matrices;
+};
+
+Span< TRS > R_SampleAnimation( ArenaAllocator * a, const model_t * model, float t );
+MatrixPalettes R_ComputeMatrixPalettes( ArenaAllocator * a, const model_t * model, Span< TRS > local_poses );

@@ -35,7 +35,7 @@ constexpr size_t ARRAY_COUNT( const T ( &arr )[ N ] ) {
 template< typename To, typename From >
 inline To checked_cast( const From & from ) {
 	To result = To( from );
-	ASSERT( From( result ) == from );
+	assert( From( result ) == from );
 	return result;
 }
 

@@ -372,3 +372,69 @@ void R_CacheGLTFModelEntity( const entity_t * e ) {
 	cache->rotated = true;
 	cache->radius = mod->radius * e->scale;
 }
+
+static void FindSampleAndLerpFrac( const float * times, u32 n, float t, u32 * sample, float * lerp_frac ) {
+	t = Clamp( times[ 0 ], t, times[ n - 1 ] );
+
+	*sample = 0;
+	for( u32 i = 1; i < n; i++ ) {
+		if( times[ i ] >= t ) {
+			*sample = i - 1;
+			break;
+		}
+	}
+
+	*lerp_frac = ( t - times[ *sample ] ) / ( times[ *sample + 1 ] - times[ *sample ] );
+}
+
+Span< TRS > R_SampleAnimation( ArenaAllocator * a, const model_t * model, float t ) {
+	assert( model->type == ModelType_GLTF );
+	const GLTFModel * gltf = ( GLTFModel * ) model->extradata;
+
+	Span< TRS > local_poses = ALLOC_SPAN( TRS, a, gltf->num_joints );
+
+	for( u8 i = 0; i < gltf->num_joints; i++ ) {
+		const GLTFModel::Joint & joint = gltf->joints[ i ];
+
+		u32 rotation_sample, translation_sample, scale_sample;
+		float rotation_lerp_frac, translation_lerp_frac, scale_lerp_frac;
+
+		FindSampleAndLerpFrac( joint.rotations.times, joint.rotations.num_samples, t, &rotation_sample, &rotation_lerp_frac );
+		FindSampleAndLerpFrac( joint.translations.times, joint.translations.num_samples, t, &translation_sample, &translation_lerp_frac );
+		FindSampleAndLerpFrac( joint.scales.times, joint.scales.num_samples, t, &scale_sample, &scale_lerp_frac );
+
+		local_poses[ i ].rotation = NLerp( joint.rotations.samples[ rotation_sample ], rotation_lerp_frac, joint.rotations.samples[ ( rotation_sample + 1 ) % joint.rotations.num_samples ] );
+		local_poses[ i ].translation = Lerp( joint.translations.samples[ translation_sample ], translation_lerp_frac, joint.translations.samples[ ( translation_sample + 1 ) % joint.translations. num_samples ] );
+		local_poses[ i ].scale = Lerp( joint.scales.samples[ scale_sample ], scale_lerp_frac, joint.scales.samples[ ( scale_sample + 1 ) % joint.scales.num_samples ] );
+	}
+
+	return local_poses;
+}
+
+MatrixPalettes R_ComputeMatrixPalettes( ArenaAllocator * a, const model_t * model, Span< TRS > local_poses ) {
+	assert( model->type == ModelType_GLTF );
+	const GLTFModel * gltf = ( GLTFModel * ) model->extradata;
+	assert( local_poses.n == gltf->num_joints );
+
+	MatrixPalettes palettes;
+	palettes.joint_poses = ALLOC_SPAN( Mat4, a, gltf->num_joints );
+	palettes.skinning_matrices = ALLOC_SPAN( Mat4, a, gltf->num_joints );
+
+	u8 joint_idx = gltf->root_joint;
+	for( u32 i = 0; i < gltf->num_joints; i++ ) {
+		u8 parent = gltf->joints[ joint_idx ].parent;
+		if( parent != U8_MAX ) {
+			palettes.joint_poses[ joint_idx ] = palettes.joint_poses[ parent ] * TRSToMat4( local_poses[ joint_idx ] );
+		}
+		else {
+			palettes.joint_poses[ joint_idx ] = TRSToMat4( local_poses[ joint_idx ] );
+		}
+		joint_idx = gltf->joints[ joint_idx ].next;
+	}
+
+	for( u32 i = 0; i < gltf->num_joints; i++ ) {
+		palettes.skinning_matrices[ i ] = palettes.joint_poses[ i ] * gltf->joints[ i ].joint_to_bind;
+	}
+
+	return palettes;
+}

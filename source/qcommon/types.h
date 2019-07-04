@@ -79,6 +79,9 @@ struct Span {
 	constexpr Span() : ptr( NULL ), n( 0 ) { }
 	constexpr Span( T * ptr, size_t n ) : ptr( ptr ), n( n ) { }
 
+	// allow implicit conversion to Span< const T >
+	operator Span< const T >() { return Span< const T >( ptr, n ); }
+
 	size_t num_bytes() const { return sizeof( T ) * n; }
 
 	T & operator[]( size_t i ) {

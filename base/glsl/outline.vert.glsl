@@ -2,6 +2,7 @@
 #include "include/uniforms.glsl"
 #include "include/attributes.glsl"
 #include "include/rgbgen.glsl"
+#include "include/common.vert.glsl"
 
 uniform float u_OutlineHeight;
 

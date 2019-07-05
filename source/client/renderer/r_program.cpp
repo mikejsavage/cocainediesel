@@ -89,6 +89,7 @@ typedef struct glsl_program_s {
 		int AttrBonesIndices;
 		int AttrBonesWeights;
 		int DualQuats;
+		int SkinningMatrices;
 
 		int InstancePoints;
 
@@ -533,6 +534,8 @@ static const glsl_feature_t glsl_features_material[] =
 	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS2, "#define QF_NUM_BONE_INFLUENCES 2\n", "_bones2" },
 	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS1, "#define QF_NUM_BONE_INFLUENCES 1\n", "_bones1" },
 
+	{ GLSL_SHADER_COMMON_SKINNED, "#define SKINNED 1\n", "_skinned" },
+
 	{ GLSL_SHADER_COMMON_RGB_DISTANCERAMP, "#define APPLY_RGB_DISTANCERAMP\n", "_rgb_dr" },
 	{ GLSL_SHADER_COMMON_RGB_GEN_VERTEX, "#define APPLY_RGB_VERTEX\n", "_cv" },
 
@@ -592,6 +595,8 @@ static const glsl_feature_t glsl_features_q3a[] =
 	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS3, "#define QF_NUM_BONE_INFLUENCES 3\n", "_bones3" },
 	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS2, "#define QF_NUM_BONE_INFLUENCES 2\n", "_bones2" },
 	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS1, "#define QF_NUM_BONE_INFLUENCES 1\n", "_bones1" },
+
+	{ GLSL_SHADER_COMMON_SKINNED, "#define SKINNED 1\n", "_skinned" },
 
 	{ GLSL_SHADER_COMMON_RGB_DISTANCERAMP, "#define APPLY_RGB_DISTANCERAMP\n", "_rgb_dr" },
 	{ GLSL_SHADER_COMMON_RGB_GEN_VERTEX, "#define APPLY_RGB_VERTEX\n", "_cv" },
@@ -688,165 +693,6 @@ static const glsl_feature_t * const glsl_programtypes_features[] =
         "#define qf_texture texture\n" \
         "#define qf_textureArray texture\n" \
         "\n"
-
-#define QF_GLSL_PI "" \
-	"#ifndef M_PI\n" \
-	"#define M_PI 3.14159265358979323846\n" \
-	"#endif\n" \
-	"#ifndef M_TWOPI\n" \
-	"#define M_TWOPI 6.28318530717958647692\n" \
-	"#endif\n"
-
-#define QF_BUILTIN_GLSL_CONSTANTS \
-	QF_GLSL_PI \
-	"\n" \
-	"#ifndef MAX_UNIFORM_INSTANCES\n" \
-	"#define MAX_UNIFORM_INSTANCES " STR_TOSTR( MAX_GLSL_UNIFORM_INSTANCES ) "\n" \
-	"#endif\n" \
-
-#define QF_BUILTIN_GLSL_UNIFORMS \
-	"uniform vec3 u_QF_ViewOrigin;\n" \
-	"uniform mat3 u_QF_ViewAxis;\n" \
-	"uniform vec3 u_QF_EntityOrigin;\n" \
-	"uniform float u_QF_ShaderTime;\n"
-
-#define QF_BUILTIN_GLSL_QUAT_TRANSFORM_OVERLOAD \
-	"#ifdef QF_DUAL_QUAT_TRANSFORM_TANGENT\n" \
-	"void QF_VertexDualQuatsTransform_Tangent(inout vec4 Position, inout vec3 Normal, inout vec3 Tangent)\n" \
-	"#else\n" \
-	"void QF_VertexDualQuatsTransform(inout vec4 Position, inout vec3 Normal)\n" \
-	"#endif\n" \
-	"{\n" \
-	"	ivec4 Indices = ivec4(a_BonesIndices * 2.0);\n" \
-	"	vec4 DQReal = u_DualQuats[Indices.x];\n" \
-	"	vec4 DQDual = u_DualQuats[Indices.x + 1];\n" \
-	"#if QF_NUM_BONE_INFLUENCES >= 2\n" \
-	"	DQReal *= a_BonesWeights.x;\n" \
-	"	DQDual *= a_BonesWeights.x;\n" \
-	"	vec4 DQReal1 = u_DualQuats[Indices.y];\n" \
-	"	vec4 DQDual1 = u_DualQuats[Indices.y + 1];\n" \
-	"	float Scale = mix(-1.0, 1.0, step(0.0, dot(DQReal1, DQReal))) * a_BonesWeights.y;\n" \
-	"	DQReal += DQReal1 * Scale;\n" \
-	"	DQDual += DQDual1 * Scale;\n" \
-	"#if QF_NUM_BONE_INFLUENCES >= 3\n" \
-	"	DQReal1 = u_DualQuats[Indices.z];\n" \
-	"	DQDual1 = u_DualQuats[Indices.z + 1];\n" \
-	"	Scale = mix(-1.0, 1.0, step(0.0, dot(DQReal1, DQReal))) * a_BonesWeights.z;\n" \
-	"	DQReal += DQReal1 * Scale;\n" \
-	"	DQDual += DQDual1 * Scale;\n" \
-	"#if QF_NUM_BONE_INFLUENCES >= 4\n" \
-	"	DQReal1 = u_DualQuats[Indices.w];\n" \
-	"	DQDual1 = u_DualQuats[Indices.w + 1];\n" \
-	"	Scale = mix(-1.0, 1.0, step(0.0, dot(DQReal1, DQReal))) * a_BonesWeights.w;\n" \
-	"	DQReal += DQReal1 * Scale;\n" \
-	"	DQDual += DQDual1 * Scale;\n" \
-	"#endif // QF_NUM_BONE_INFLUENCES >= 4\n" \
-	"#endif // QF_NUM_BONE_INFLUENCES >= 3\n" \
-	"	float Len = 1.0 / length(DQReal);\n" \
-	"	DQReal *= Len;\n" \
-	"	DQDual *= Len;\n" \
-	"#endif // QF_NUM_BONE_INFLUENCES >= 2\n" \
-	"	Position.xyz += (cross(DQReal.xyz, cross(DQReal.xyz, Position.xyz) + Position.xyz * DQReal.w + DQDual.xyz) +\n" \
-	"		DQDual.xyz*DQReal.w - DQReal.xyz*DQDual.w) * 2.0;\n" \
-	"	Normal += cross(DQReal.xyz, cross(DQReal.xyz, Normal) + Normal * DQReal.w) * 2.0;\n" \
-	"#ifdef QF_DUAL_QUAT_TRANSFORM_TANGENT\n" \
-	"	Tangent += cross(DQReal.xyz, cross(DQReal.xyz, Tangent) + Tangent * DQReal.w) * 2.0;\n" \
-	"#endif\n" \
-	"}\n" \
-	"\n"
-
-#define QF_BUILTIN_GLSL_QUAT_TRANSFORM \
-	"qf_attribute vec4 a_BonesIndices, a_BonesWeights;\n" \
-	"uniform vec4 u_DualQuats[MAX_UNIFORM_BONES*2];\n" \
-	"\n" \
-	QF_BUILTIN_GLSL_QUAT_TRANSFORM_OVERLOAD \
-	"#define QF_DUAL_QUAT_TRANSFORM_TANGENT\n" \
-	QF_BUILTIN_GLSL_QUAT_TRANSFORM_OVERLOAD \
-	"#undef QF_DUAL_QUAT_TRANSFORM_TANGENT\n"
-
-#define QF_BUILTIN_GLSL_INSTANCED_TRANSFORMS \
-	"#if defined(APPLY_INSTANCED_ATTRIB_TRANSFORMS)\n" \
-	"qf_attribute vec4 a_InstanceQuat, a_InstancePosAndScale;\n" \
-	"#elif defined(GL_ARB_draw_instanced) || (defined(GL_ES) && (__VERSION__ >= 300))\n" \
-	"uniform vec4 u_InstancePoints[MAX_UNIFORM_INSTANCES*2];\n" \
-	"#define a_InstanceQuat u_InstancePoints[gl_InstanceID*2]\n" \
-	"#define a_InstancePosAndScale u_InstancePoints[gl_InstanceID*2+1]\n" \
-	"#else\n" \
-	"uniform vec4 u_InstancePoints[2];\n" \
-	"#define a_InstanceQuat u_InstancePoints[0]\n" \
-	"#define a_InstancePosAndScale u_InstancePoints[1]\n" \
-	"#endif // APPLY_INSTANCED_ATTRIB_TRANSFORMS\n" \
-	"\n" \
-	"void QF_InstancedTransform(inout vec4 Position, inout vec3 Normal)\n" \
-	"{\n" \
-	"	Position.xyz = (cross(a_InstanceQuat.xyz,\n" \
-	"		cross(a_InstanceQuat.xyz, Position.xyz) + Position.xyz*a_InstanceQuat.w)*2.0 +\n" \
-	"		Position.xyz) * a_InstancePosAndScale.w + a_InstancePosAndScale.xyz;\n" \
-	"	Normal = cross(a_InstanceQuat.xyz, cross(a_InstanceQuat.xyz, Normal) + Normal*a_InstanceQuat.w)*2.0 + Normal;\n" \
-	"}\n" \
-	"\n"
-
-// We have to use these #ifdefs here because #defining prototypes
-// of these functions to nothing results in a crash on Intel GPUs.
-#define QF_BUILTIN_GLSL_TRANSFORM_VERTS \
-	"void QF_TransformVerts(inout vec4 Position, inout vec3 Normal, inout vec2 TexCoord)\n" \
-	"{\n" \
-	"#	ifdef QF_NUM_BONE_INFLUENCES\n" \
-	"		QF_VertexDualQuatsTransform(Position, Normal);\n" \
-	"#	endif\n" \
-	"#	ifdef QF_APPLY_DEFORMVERTS\n" \
-	"		QF_DeformVerts(Position, Normal, TexCoord);\n" \
-	"#	endif\n" \
-	"#	ifdef APPLY_INSTANCED_TRANSFORMS\n" \
-	"		QF_InstancedTransform(Position, Normal);\n" \
-	"#	endif\n" \
-	"}\n" \
-	"\n" \
-	"void QF_TransformVerts_Tangent(inout vec4 Position, inout vec3 Normal, inout vec3 Tangent, inout vec2 TexCoord)\n" \
-	"{\n" \
-	"#	ifdef QF_NUM_BONE_INFLUENCES\n" \
-	"		QF_VertexDualQuatsTransform_Tangent(Position, Normal, Tangent);\n" \
-	"#	endif\n" \
-	"#	ifdef QF_APPLY_DEFORMVERTS\n" \
-	"		QF_DeformVerts(Position, Normal, TexCoord);\n" \
-	"#	endif\n" \
-	"#	ifdef APPLY_INSTANCED_TRANSFORMS\n" \
-	"		QF_InstancedTransform(Position, Normal);\n" \
-	"#	endif\n" \
-	"}\n" \
-	"\n"
-
-#define QF_GLSL_WAVEFUNCS \
-	"#ifndef WAVE_SIN\n" \
-	"float QF_WaveFunc_Sin(float x)\n" \
-	"{\n" \
-	"return sin(fract(x) * M_TWOPI);\n" \
-	"}\n" \
-	"float QF_WaveFunc_Triangle(float x)\n" \
-	"{\n" \
-	"x = fract(x);\n" \
-	"return step(x, 0.25) * x * 4.0 + (2.0 - 4.0 * step(0.25, x) * step(x, 0.75) * x) + ((step(0.75, x) * x - 0.75) * 4.0 - 1.0);\n" \
-	"}\n" \
-	"float QF_WaveFunc_Square(float x)\n" \
-	"{\n" \
-	"return step(fract(x), 0.5) * 2.0 - 1.0;\n" \
-	"}\n" \
-	"float QF_WaveFunc_Sawtooth(float x)\n" \
-	"{\n" \
-	"return fract(x);\n" \
-	"}\n" \
-	"float QF_WaveFunc_InverseSawtooth(float x)\n" \
-	"{\n" \
-	"return 1.0 - fract(x);\n" \
-	"}\n" \
-	"\n" \
-	"#define WAVE_SIN(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Sin((phase)+(time)*(freq))))\n" \
-	"#define WAVE_TRIANGLE(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Triangle((phase)+(time)*(freq))))\n" \
-	"#define WAVE_SQUARE(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Square((phase)+(time)*(freq))))\n" \
-	"#define WAVE_SAWTOOTH(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Sawtooth((phase)+(time)*(freq))))\n" \
-	"#define WAVE_INVERSESAWTOOTH(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_InverseSawtooth((phase)+(time)*(freq))))\n" \
-	"#endif\n" \
-	"\n"
 
 #define QF_GLSL_MATH \
 	"#define QF_LatLong2Norm(ll) vec3(cos((ll).y) * sin((ll).x), sin((ll).y) * sin((ll).x), cos((ll).x))\n" \
@@ -1218,7 +1064,7 @@ static int RP_RegisterProgramBinary( int type, const char *name, const char *def
 	unsigned int i;
 	int hash;
 	int error = 0;
-	int shaderTypeIdx, wavefuncsIdx, deformvIdx, dualQuatsIdx, instancedIdx, vTransformsIdx;
+	int shaderTypeIdx, deformvIdx;
 	int body_start, num_init_strings;
 	glsl_program_t *program;
 	char fullName[1024];
@@ -1226,7 +1072,6 @@ static int RP_RegisterProgramBinary( int type, const char *name, const char *def
 	const char **header;
 	char *shaderBuffers[100];
 	const char *shaderStrings[MAX_DEFINES_FEATURES + 100];
-	char maxBones[100];
 	const char *deformv;
 	glslParser_t parser;
 
@@ -1323,12 +1168,8 @@ static int RP_RegisterProgramBinary( int type, const char *name, const char *def
 		shaderStrings[i++] = QF_BUILTIN_GLSL_MACROS_GLSL130;
 	else
 		shaderStrings[i++] = QF_BUILTIN_GLSL_MACROS_GLSL120;
-	shaderStrings[i++] = QF_BUILTIN_GLSL_CONSTANTS;
-	Q_snprintfz( maxBones, sizeof( maxBones ), "#define MAX_UNIFORM_BONES %i\n", MAX_GLSL_UNIFORM_BONES );
-	shaderStrings[i++] = maxBones;
-	shaderStrings[i++] = QF_BUILTIN_GLSL_UNIFORMS;
-	wavefuncsIdx = i;
-	shaderStrings[i++] = QF_GLSL_WAVEFUNCS;
+	shaderStrings[i++] = "#define MAX_UNIFORM_INSTANCES " STR_TOSTR( MAX_GLSL_UNIFORM_INSTANCES ) "\n";
+	shaderStrings[i++] = "#define MAX_UNIFORM_BONES " STR_TOSTR( MAX_GLSL_UNIFORM_BONES ) "\n";
 	shaderStrings[i++] = QF_GLSL_MATH;
 
 	if( header ) {
@@ -1344,23 +1185,6 @@ static int RP_RegisterProgramBinary( int type, const char *name, const char *def
 		deformv = "\n";
 	}
 	shaderStrings[i++] = deformv;
-
-	dualQuatsIdx = i;
-	if( features & GLSL_SHADER_COMMON_BONE_TRANSFORMS ) {
-		shaderStrings[i++] = QF_BUILTIN_GLSL_QUAT_TRANSFORM;
-	} else {
-		shaderStrings[i++] = "\n";
-	}
-
-	instancedIdx = i;
-	if( features & ( GLSL_SHADER_COMMON_INSTANCED_TRANSFORMS | GLSL_SHADER_COMMON_INSTANCED_ATTRIB_TRANSFORMS ) ) {
-		shaderStrings[i++] = QF_BUILTIN_GLSL_INSTANCED_TRANSFORMS;
-	} else {
-		shaderStrings[i++] = "\n";
-	}
-
-	vTransformsIdx = i;
-	shaderStrings[i++] = QF_BUILTIN_GLSL_TRANSFORM_VERTS;
 
 	// setup the parser
 	num_init_strings = i;
@@ -1394,11 +1218,7 @@ static int RP_RegisterProgramBinary( int type, const char *name, const char *def
 
 	// fragment shader
 	shaderStrings[shaderTypeIdx] = "#define FRAGMENT_SHADER\n";
-	shaderStrings[wavefuncsIdx] = "\n";
 	shaderStrings[deformvIdx] = "\n";
-	shaderStrings[dualQuatsIdx] = "\n";
-	shaderStrings[instancedIdx] = "\n";
-	shaderStrings[vTransformsIdx] = "\n";
 	Q_snprintfz( fileName, sizeof( fileName ), "glsl/%s.frag.glsl", name );
 	parser.error = false;
 	parser.numBuffers = 0;
@@ -1749,13 +1569,20 @@ void RP_UpdateTexGenUniforms( int elem, const mat4_t vectorMatrix ) {
 *
 * Set uniform values for animation dual quaternions
 */
-void RP_UpdateBonesUniforms( int elem, unsigned int numBones, dualquat_t *animDualQuat ) {
+void RP_UpdateBonesUniforms( int elem, unsigned int numBones, const dualquat_t *animDualQuat ) {
 	glsl_program_t *program = r_glslprograms + elem - 1;
 
 	if( program->loc.DualQuats < 0 ) {
 		return;
 	}
 	glUniform4fv( program->loc.DualQuats, numBones * 2, &animDualQuat[0][0] );
+}
+
+void RP_UpdateSkinningUniforms( int elem, Span< const Mat4 > skinning_matrices ) {
+	const glsl_program_t * program = r_glslprograms + elem - 1;
+	if( program->loc.SkinningMatrices < 0 )
+		return;
+	glUniformMatrix4fv( program->loc.SkinningMatrices, skinning_matrices.n, GL_FALSE, ( const float * ) skinning_matrices.ptr );
 }
 
 /*
@@ -1878,6 +1705,7 @@ static void RP_GetUniformLocations( glsl_program_t *program ) {
 	program->loc.SoftParticlesScale = glGetUniformLocation( program->object, "u_SoftParticlesScale" );
 
 	program->loc.DualQuats = glGetUniformLocation( program->object, "u_DualQuats" );
+	program->loc.SkinningMatrices = glGetUniformLocation( program->object, "u_SkinningMatrices" );
 
 	program->loc.InstancePoints = glGetUniformLocation( program->object, "u_InstancePoints" );
 
@@ -1933,7 +1761,8 @@ static void RP_BindAttrbibutesLocations( glsl_program_t *program ) {
 	glBindAttribLocation( program->object, VATTRIB_BONESINDICES, "a_BonesIndices" );
 	glBindAttribLocation( program->object, VATTRIB_BONESWEIGHTS, "a_BonesWeights" );
 
-	glBindAttribLocation( program->object, VATTRIB_SURFINDEX, "a_SurfaceIndex" );
+	glBindAttribLocation( program->object, VATTRIB_JOINTSINDICES, "a_JointIndices" );
+	glBindAttribLocation( program->object, VATTRIB_JOINTSWEIGHTS, "a_JointWeights" );
 
 	glBindAttribLocation( program->object, VATTRIB_INSTANCE_QUAT, "a_InstanceQuat" );
 	glBindAttribLocation( program->object, VATTRIB_INSTANCE_XYZS, "a_InstancePosAndScale" );

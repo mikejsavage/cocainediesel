@@ -81,6 +81,11 @@ typedef enum {
 	NUM_RTYPES
 } refEntityType_t;
 
+struct MatrixPalettes {
+	Span< Mat4 > joint_poses;
+	Span< Mat4 > skinning_matrices;
+};
+
 typedef struct entity_s {
 	refEntityType_t rtype;
 	union {
@@ -97,6 +102,8 @@ typedef struct entity_s {
 	vec3_t origin, origin2;
 	int frame;
 	bonepose_t *boneposes;              // pretransformed boneposes for current frame
+
+	MatrixPalettes pose;
 
 	/*
 	** previous data for lerping

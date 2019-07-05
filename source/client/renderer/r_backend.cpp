@@ -625,7 +625,7 @@ void RB_RegisterStreamVBOs( void ) {
 	int i;
 	rbDynamicStream_t *stream;
 	vattribmask_t vattribs[RB_VBO_NUM_STREAMS] = {
-		VATTRIBS_MASK &~VATTRIB_INSTANCES_BITS,
+		VATTRIBS_MASK & ~VATTRIB_INSTANCES_BITS,
 		COMPACT_STREAM_VATTRIBS
 	};
 
@@ -885,7 +885,7 @@ static void RB_EnableVertexAttribs( void ) {
 	if( vattribs & VATTRIB_COLOR0_BIT ) {
 		RB_EnableVertexAttrib( VATTRIB_COLOR0, true );
 		glVertexAttribPointer( VATTRIB_COLOR0, 4, GL_UNSIGNED_BYTE,
-								   GL_TRUE, vbo->vertexSize, (const GLvoid * )vbo->colorsOffset );
+								   GL_TRUE, vbo->vertexSize, ( const GLvoid * )vbo->colorsOffset );
 	} else {
 		RB_EnableVertexAttrib( VATTRIB_COLOR0, false );
 	}
@@ -912,13 +912,24 @@ static void RB_EnableVertexAttribs( void ) {
 	if( ( vattribs & VATTRIB_BONES_BITS ) == VATTRIB_BONES_BITS ) {
 		// submit indices
 		RB_EnableVertexAttrib( VATTRIB_BONESINDICES, true );
-		glVertexAttribPointer( VATTRIB_BONESINDICES, 4, GL_UNSIGNED_BYTE,
-								   GL_FALSE, vbo->vertexSize, ( const GLvoid * )vbo->bonesIndicesOffset );
+		glVertexAttribPointer( VATTRIB_BONESINDICES, 4, GL_UNSIGNED_BYTE, GL_FALSE, vbo->vertexSize, ( const GLvoid * )vbo->bonesIndicesOffset );
 
 		// submit weights
 		RB_EnableVertexAttrib( VATTRIB_BONESWEIGHTS, true );
-		glVertexAttribPointer( VATTRIB_BONESWEIGHTS, 4, GL_UNSIGNED_BYTE,
-								   GL_TRUE, vbo->vertexSize, ( const GLvoid * )vbo->bonesWeightsOffset );
+		glVertexAttribPointer( VATTRIB_BONESWEIGHTS, 4, GL_UNSIGNED_BYTE, GL_TRUE, vbo->vertexSize, ( const GLvoid * )vbo->bonesWeightsOffset );
+	} else {
+		RB_EnableVertexAttrib( VATTRIB_BONESINDICES, false );
+		RB_EnableVertexAttrib( VATTRIB_BONESWEIGHTS, false );
+	}
+
+	if( ( vattribs & VATTRIB_JOINTS_BITS ) == VATTRIB_JOINTS_BITS ) {
+		RB_EnableVertexAttrib( VATTRIB_JOINTSINDICES, true );
+		glVertexAttribIPointer( VATTRIB_JOINTSINDICES, 4, GL_UNSIGNED_BYTE, vbo->vertexSize, ( const GLvoid * )vbo->bonesIndicesOffset );
+		RB_EnableVertexAttrib( VATTRIB_JOINTSWEIGHTS, true );
+		glVertexAttribPointer( VATTRIB_JOINTSWEIGHTS, 4, GL_UNSIGNED_BYTE, GL_TRUE, vbo->vertexSize, ( const GLvoid * )vbo->bonesWeightsOffset );
+	} else {
+		RB_EnableVertexAttrib( VATTRIB_JOINTSINDICES, false );
+		RB_EnableVertexAttrib( VATTRIB_JOINTSWEIGHTS, false );
 	}
 
 	if( ( vattribs & VATTRIB_INSTANCES_BITS ) == VATTRIB_INSTANCES_BITS ) {

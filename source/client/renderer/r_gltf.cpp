@@ -196,8 +196,8 @@ static void LoadNode( model_t * mod, GLTFModel * gltf, const cgltf_node * node, 
 		}
 
 		if( attr.type == cgltf_attribute_type_joints ) {
-			attributes |= VATTRIB_BONESINDICES_BIT;
-			joints = ( u8 * ) Mod_Malloc( mod, attr.data->count * sizeof( u8 ) );
+			attributes |= VATTRIB_JOINTSINDICES_BIT;
+			joints = ( u8 * ) Mod_Malloc( mod, attr.data->count * 4 * sizeof( u8 ) );
 			Span< u16 > joints_u16 = AccessorToSpan( attr.data ).cast< u16 >();
 			for( size_t k = 0; k < joints_u16.n; k++ ) {
 				joints[ k ] = joints_u16[ k ];
@@ -205,11 +205,11 @@ static void LoadNode( model_t * mod, GLTFModel * gltf, const cgltf_node * node, 
 		}
 
 		if( attr.type == cgltf_attribute_type_weights ) {
-			attributes |= VATTRIB_BONESWEIGHTS_BIT;
-			weights = ( u8 * ) Mod_Malloc( mod, attr.data->count * sizeof( u8 ) );
+			attributes |= VATTRIB_JOINTSWEIGHTS_BIT;
+			weights = ( u8 * ) Mod_Malloc( mod, attr.data->count * 4 * sizeof( u8 ) );
 			Span< float > weights_float = AccessorToSpan( attr.data ).cast< float >();
 			for( size_t k = 0; k < weights_float.n; k++ ) {
-				joints[ k ] = weights_float[ k ] * 255;
+				weights[ k ] = weights_float[ k ] * 255;
 			}
 		}
 	}
@@ -362,6 +362,8 @@ void R_AddGLTFModelToDrawList( const entity_t * e ) {
 
 void R_DrawGLTFMesh( const entity_t * e, const shader_t * shader, const GLTFMesh * mesh ) {
 	RB_BindVBO( mesh->vbo->index, GL_TRIANGLES );
+	// TODO: do this once per model rather than per mesh
+	RB_SetSkinningMatrices( e->pose.skinning_matrices );
 	RB_DrawElements( 0, mesh->num_verts, 0, mesh->num_elems );
 }
 
@@ -370,7 +372,12 @@ void R_CacheGLTFModelEntity( const entity_t * e ) {
 	entSceneCache_t * cache = R_ENTCACHE( e );
 	const model_t * mod = e->model;
 	cache->rotated = true;
-	cache->radius = mod->radius * e->scale;
+	if( e->pose.skinning_matrices.ptr != NULL ) {
+		cache->radius = 9999999999;
+	}
+	else {
+		cache->radius = mod->radius * e->scale;
+	}
 }
 
 static void FindSampleAndLerpFrac( const float * times, u32 n, float t, u32 * sample, float * lerp_frac ) {
@@ -391,7 +398,7 @@ Span< TRS > R_SampleAnimation( ArenaAllocator * a, const model_t * model, float 
 	assert( model->type == ModelType_GLTF );
 	const GLTFModel * gltf = ( GLTFModel * ) model->extradata;
 
-	Span< TRS > local_poses = ALLOC_SPAN( TRS, a, gltf->num_joints );
+	Span< TRS > local_poses = ALLOC_SPAN( a, TRS, gltf->num_joints );
 
 	for( u8 i = 0; i < gltf->num_joints; i++ ) {
 		const GLTFModel::Joint & joint = gltf->joints[ i ];
@@ -417,8 +424,8 @@ MatrixPalettes R_ComputeMatrixPalettes( ArenaAllocator * a, const model_t * mode
 	assert( local_poses.n == gltf->num_joints );
 
 	MatrixPalettes palettes;
-	palettes.joint_poses = ALLOC_SPAN( Mat4, a, gltf->num_joints );
-	palettes.skinning_matrices = ALLOC_SPAN( Mat4, a, gltf->num_joints );
+	palettes.joint_poses = ALLOC_SPAN( a, Mat4, gltf->num_joints );
+	palettes.skinning_matrices = ALLOC_SPAN( a, Mat4, gltf->num_joints );
 
 	u8 joint_idx = gltf->root_joint;
 	for( u32 i = 0; i < gltf->num_joints; i++ ) {

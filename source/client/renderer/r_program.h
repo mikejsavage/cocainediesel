@@ -79,6 +79,8 @@ enum {
 
 #define GLSL_SHADER_COMMON_LINEAR2SRB           GLSL_BIT( 19 )
 
+#define GLSL_SHADER_COMMON_SKINNED              GLSL_BIT( 20 )
+
 // material program type features
 #define GLSL_SHADER_MATERIAL_SPECULAR           GLSL_BIT( 32 )
 #define GLSL_SHADER_MATERIAL_DIRECTIONAL_LIGHT  GLSL_BIT( 33 )
@@ -140,7 +142,8 @@ void RP_UpdateDiffuseLightUniforms( int elem,
 
 void RP_UpdateTexGenUniforms( int elem, const mat4_t vectorMatrix );
 
-void RP_UpdateBonesUniforms( int elem, unsigned int numBones, dualquat_t *animDualQuat );
+void RP_UpdateBonesUniforms( int elem, unsigned int numBones, const dualquat_t *animDualQuat );
+void RP_UpdateSkinningUniforms( int elem, Span< const Mat4 > skinning_matrices );
 
 void RP_UpdateInstancesUniforms( int elem, unsigned int numInstances, instancePoint_t *instances );
 

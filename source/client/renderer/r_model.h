@@ -386,11 +386,3 @@ model_t     *Mod_ForHandle( unsigned int elem );
 #define     Mod_MemFree( data ) Mem_Free( data )
 
 void        Mod_Modellist_f( void );
-
-struct MatrixPalettes {
-	Span< Mat4 > joint_poses;
-	Span< Mat4 > skinning_matrices;
-};
-
-Span< TRS > R_SampleAnimation( ArenaAllocator * a, const model_t * model, float t );
-MatrixPalettes R_ComputeMatrixPalettes( ArenaAllocator * a, const model_t * model, Span< TRS > local_poses );

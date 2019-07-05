@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // cg_local.h -- local definitions for client game module
 
+#include "qcommon/types.h"
 #include "qcommon/qcommon.h"
 #include "gameshared/gs_public.h"
 #include "ref.h"

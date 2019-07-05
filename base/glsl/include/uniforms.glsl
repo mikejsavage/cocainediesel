@@ -25,3 +25,8 @@ uniform vec4 u_TextureMatrix[2];
 uniform float u_NearClip;
 
 uniform vec4 u_TextureParams;
+
+uniform vec3 u_QF_ViewOrigin;
+uniform mat3 u_QF_ViewAxis;
+uniform vec3 u_QF_EntityOrigin;
+uniform float u_QF_ShaderTime;

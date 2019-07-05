@@ -379,6 +379,9 @@ static int RB_RGBAlphaGenToProgramFeatures( const colorgen_t *rgbgen, const colo
 */
 static r_glslfeat_t RB_BonesTransformsToProgramFeatures( void ) {
 	// check whether the current model is actually sketetal
+	if( rb.currentModelType == ModelType_GLTF ) {
+		return rb.bonesData.skinning_matrices.ptr != NULL ? GLSL_SHADER_COMMON_SKINNED : 0;
+	}
 	if( rb.currentModelType != mod_skeletal ) {
 		return 0;
 	}
@@ -677,6 +680,9 @@ static void RB_RenderMeshGLSL_Material( const shaderpass_t *pass, r_glslfeat_t p
 		RP_UpdateDiffuseLightUniforms( program, lightDir, ambient, diffuse );
 
 		// submit animation data
+		if( programFeatures & GLSL_SHADER_COMMON_SKINNED ) {
+			RP_UpdateSkinningUniforms( program, rb.bonesData.skinning_matrices );
+		}
 		if( programFeatures & GLSL_SHADER_COMMON_BONE_TRANSFORMS ) {
 			RP_UpdateBonesUniforms( program, rb.bonesData.numBones, rb.bonesData.dualQuats );
 		}
@@ -992,6 +998,9 @@ static void RB_UpdateVertexAttribs( void ) {
 	if( rb.bonesData.numBones ) {
 		vattribs |= VATTRIB_BONES_BITS;
 	}
+	if( rb.bonesData.skinning_matrices.ptr != NULL ) {
+		vattribs |= VATTRIB_JOINTS_BITS;
+	}
 	if( rb.currentEntity && rb.currentEntity->outlineHeight ) {
 		vattribs |= VATTRIB_NORMAL_BIT;
 	}
@@ -1072,6 +1081,12 @@ void RB_SetBonesData( int numBones, dualquat_t *dualQuats, int maxWeights ) {
 
 	rb.dirtyUniformState = true;
 
+	RB_UpdateVertexAttribs();
+}
+
+void RB_SetSkinningMatrices( Span< Mat4 > skinning_matrices ) {
+	rb.bonesData.skinning_matrices = skinning_matrices;
+	rb.dirtyUniformState = true;
 	RB_UpdateVertexAttribs();
 }
 

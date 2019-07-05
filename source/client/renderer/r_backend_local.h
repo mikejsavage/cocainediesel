@@ -32,9 +32,13 @@ typedef struct r_backend_stats_s {
 } rbStats_t;
 
 typedef struct {
+	// iqm
 	unsigned int numBones;
 	dualquat_t dualQuats[MAX_GLSL_UNIFORM_BONES];
 	unsigned int maxWeights;
+
+	// gltf
+	Span< const Mat4 > skinning_matrices;
 } rbBonesData_t;
 
 typedef struct {

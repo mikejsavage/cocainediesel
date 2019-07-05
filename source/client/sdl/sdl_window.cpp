@@ -97,6 +97,10 @@ static void gl_debug_output_callback(
                 return;
         }
 
+	if( type == GL_DEBUG_TYPE_PERFORMANCE ) {
+		return;
+	}
+
 	Com_Printf( "GL [%s - %s]: %s", type_string( type ), severity_string( severity ), message );
 	size_t len = strlen( message );
 	if( len == 0 || message[ len - 1 ] != '\n' )
@@ -155,7 +159,7 @@ static bool InitGL() {
 		return false;
 	}
 
-#if !PUBLIC_BUILD && 0
+#if !PUBLIC_BUILD
 	if( GLAD_GL_KHR_debug != 0 ) {
 		GLint context_flags;
 		glGetIntegerv( GL_CONTEXT_FLAGS, &context_flags );

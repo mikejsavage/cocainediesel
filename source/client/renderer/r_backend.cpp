@@ -766,8 +766,7 @@ void RB_AddDynamicMesh( const entity_t *entity, const shader_t *shader, const st
 	}
 
 	destVertOffset = stream->drawElements.firstVert + stream->drawElements.numVerts;
-	R_FillVBOVertexDataBuffer( stream->vbo, vattribs, mesh,
-							   stream->vertexData + destVertOffset * stream->vbo->vertexSize, 0 );
+	R_FillVBOVertexDataBuffer( stream->vbo, vattribs, mesh, stream->vertexData + destVertOffset * stream->vbo->vertexSize );
 
 	destElems = dynamicStreamElems[-streamId - 1] + stream->drawElements.firstElem + stream->drawElements.numElems;
 	if( trifan ) {
@@ -920,12 +919,6 @@ static void RB_EnableVertexAttribs( void ) {
 		RB_EnableVertexAttrib( VATTRIB_BONESWEIGHTS, true );
 		glVertexAttribPointer( VATTRIB_BONESWEIGHTS, 4, GL_UNSIGNED_BYTE,
 								   GL_TRUE, vbo->vertexSize, ( const GLvoid * )vbo->bonesWeightsOffset );
-	} else if( vattribs & VATTRIB_SURFINDEX_BIT ) {
-		RB_EnableVertexAttrib( VATTRIB_SURFINDEX, true );
-		glVertexAttribPointer( VATTRIB_SURFINDEX, 1, FLOAT_VATTRIB_GL_TYPE( VATTRIB_SURFINDEX_BIT, hfa ),
-			GL_FALSE, vbo->vertexSize, ( const GLvoid * )vbo->siOffset );
-	} else {
-		RB_EnableVertexAttrib( VATTRIB_SURFINDEX, false );
 	}
 
 	if( ( vattribs & VATTRIB_INSTANCES_BITS ) == VATTRIB_INSTANCES_BITS ) {

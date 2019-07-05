@@ -27,7 +27,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 typedef struct {
 	unsigned number;
 	int cluster;
-	unsigned drawSurfIndex;
 	msurface_t *surf;
 } msortedSurface_t;
 
@@ -366,7 +365,7 @@ static int Mod_CreateSubmodelBufferObjects( model_t *mod, size_t *vbo_total_size
 
 	// merge faces if they have the same shader
 
-	floatVattribs = VATTRIB_POSITION_BIT|VATTRIB_SURFINDEX_BIT;
+	floatVattribs = VATTRIB_POSITION_BIT;
 
 	num_vbos = 0;
 	*vbo_total_size = 0;
@@ -396,7 +395,7 @@ static int Mod_CreateSubmodelBufferObjects( model_t *mod, size_t *vbo_total_size
 			}
 
 			// create vertex buffer object for this face then upload data
-			vattribs = shader->vattribs | VATTRIB_NORMAL_BIT | VATTRIB_SURFINDEX_BIT;
+			vattribs = shader->vattribs | VATTRIB_NORMAL_BIT;
 			if( surf->numInstances ) {
 				vattribs |= VATTRIB_INSTANCES_BITS;
 			}
@@ -535,7 +534,7 @@ static int Mod_CreateSubmodelBufferObjects( model_t *mod, size_t *vbo_total_size
 			vertsOffset = drawSurf->firstVboVert + surf->firstDrawSurfVert;
 			elemsOffset = drawSurf->firstVboElem + surf->firstDrawSurfElem;
 
-			R_UploadVBOVertexData( vbo, vertsOffset, vbo->vertexAttribs, mesh, j );
+			R_UploadVBOVertexData( vbo, vertsOffset, vbo->vertexAttribs, mesh );
 			R_UploadVBOElemData( vbo, vertsOffset, elemsOffset, mesh );
 			R_UploadVBOInstancesData( vbo, 0, surf->numInstances, surf->instances );
 		}

@@ -249,7 +249,7 @@ mesh_vbo_t *R_InitNullModelVBO( void ) {
 	mesh.numElems = 6;
 	mesh.elems = elems;
 
-	R_UploadVBOVertexData( vbo, 0, vattribs, &mesh, 0 );
+	R_UploadVBOVertexData( vbo, 0, vattribs, &mesh );
 	R_UploadVBOElemData( vbo, 0, 0, &mesh );
 
 	return vbo;
@@ -538,7 +538,7 @@ mesh_vbo_t *R_InitPostProcessingVBO( void ) {
 	mesh.numElems = 6;
 	mesh.elems = elems;
 
-	R_UploadVBOVertexData( vbo, 0, vattribs, &mesh, 0 );
+	R_UploadVBOVertexData( vbo, 0, vattribs, &mesh );
 	R_UploadVBOElemData( vbo, 0, 0, &mesh );
 
 	return vbo;

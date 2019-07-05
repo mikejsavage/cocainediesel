@@ -39,7 +39,7 @@ void R_InitSky() {
 	mesh.elems = cube_indices;
 
 	sky_vbo = R_CreateMeshVBO( NULL, ARRAY_COUNT( cube_verts ), ARRAY_COUNT( cube_indices ), 0, VATTRIB_POSITION_BIT, VBO_TAG_NONE, 0 );
-	R_UploadVBOVertexData( sky_vbo, 0, VATTRIB_POSITION_BIT, &mesh, 0 );
+	R_UploadVBOVertexData( sky_vbo, 0, VATTRIB_POSITION_BIT, &mesh );
 	R_UploadVBOElemData( sky_vbo, 0, 0, &mesh );
 
 	sky_shader = R_RegisterPic( "sky" );

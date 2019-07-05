@@ -230,7 +230,7 @@ static void LoadNode( model_t * mod, GLTFModel * gltf, const cgltf_node * node, 
 	gltf->num_meshes++;
 
 	gltf_mesh.vbo = R_CreateMeshVBO( NULL, mesh.numVerts, mesh.numElems, 0, attributes, VBO_TAG_NONE, 0 );
-	R_UploadVBOVertexData( gltf_mesh.vbo, 0, attributes, &mesh, 0 );
+	R_UploadVBOVertexData( gltf_mesh.vbo, 0, attributes, &mesh );
 	R_UploadVBOElemData( gltf_mesh.vbo, 0, 0, &mesh );
 
 	Mod_MemFree( positions );

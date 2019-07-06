@@ -137,6 +137,8 @@ MD3 MODELS
 * Mod_LoadAliasMD3Model
 */
 void Mod_LoadAliasMD3Model( model_t *mod, void *buffer, int buffer_size, const bspFormatDesc_t *unused ) {
+	MICROPROFILE_SCOPEI( "Assets", "Mod_LoadAliasMD3Model", 0xffffffff );
+
 	int version, i, j, l;
 	int bufsize, numverts;
 	uint8_t *buf;

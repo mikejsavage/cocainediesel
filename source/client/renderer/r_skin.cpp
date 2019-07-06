@@ -168,6 +168,8 @@ static skinfile_t *R_SkinFileForName( const char *name ) {
 * R_RegisterSkinFile
 */
 skinfile_t *R_RegisterSkinFile( const char *name ) {
+	MICROPROFILE_SCOPEI( "Assets", "R_RegisterSkinFile", 0xffffffff );
+
 	skinfile_t *skinfile;
 
 	skinfile = R_SkinFileForName( name );

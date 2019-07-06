@@ -1924,6 +1924,8 @@ void R_TouchShadersByName( const char *name ) {
 * R_LoadShader
 */
 shader_t *R_LoadShader( const char *name, shaderType_e type, bool forceDefault, const char *text ) {
+	MICROPROFILE_SCOPEI( "Assets", "R_LoadShader", 0xffffffff );
+
 	unsigned int key, nameLength;
 	char *shortname;
 	shader_t *s;

@@ -131,6 +131,8 @@ static bool S_InitAL() {
 }
 
 static SoundAsset * S_Register( const char * filename, bool allow_stereo ) {
+	MICROPROFILE_SCOPEI( "Assets", "S_Register", 0xffffffff );
+
 	assert( num_sound_assets < ARRAY_COUNT( sound_assets ) );
 	SoundAsset * sfx = &sound_assets[ num_sound_assets ];
 

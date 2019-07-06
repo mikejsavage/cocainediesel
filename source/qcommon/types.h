@@ -81,6 +81,7 @@ struct Span {
 
 	// allow implicit conversion to Span< const T >
 	operator Span< const T >() { return Span< const T >( ptr, n ); }
+	operator Span< const T >() const { return Span< const T >( ptr, n ); }
 
 	size_t num_bytes() const { return sizeof( T ) * n; }
 

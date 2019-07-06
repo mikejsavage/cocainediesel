@@ -1065,7 +1065,7 @@ void RB_BindShader( const entity_t *e, const shader_t *shader ) {
 /*
 * RB_SetAnimData
 */
-void RB_SetBonesData( int numBones, dualquat_t *dualQuats, int maxWeights ) {
+void RB_SetBonesData( int numBones, const dualquat_t *dualQuats, int maxWeights ) {
 	assert( rb.currentShader != NULL );
 
 	if( numBones > MAX_GLSL_UNIFORM_BONES ) {
@@ -1084,7 +1084,7 @@ void RB_SetBonesData( int numBones, dualquat_t *dualQuats, int maxWeights ) {
 	RB_UpdateVertexAttribs();
 }
 
-void RB_SetSkinningMatrices( Span< Mat4 > skinning_matrices ) {
+void RB_SetSkinningMatrices( Span< const Mat4 > skinning_matrices ) {
 	rb.bonesData.skinning_matrices = skinning_matrices;
 	rb.dirtyUniformState = true;
 	RB_UpdateVertexAttribs();

@@ -305,6 +305,8 @@ static void LoadAnimation( GLTFModel * gltf, const cgltf_animation * animation )
 }
 
 void Mod_LoadGLTFModel( model_t * mod, void * buffer, int buffer_size, const bspFormatDesc_t * bsp_format ) {
+	MICROPROFILE_SCOPEI( "Renderer", "Mod_LoadGLTFModel", 0xffffffff );
+
 	cgltf_options options = { };
 	options.type = cgltf_file_type_glb;
 

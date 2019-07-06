@@ -730,6 +730,9 @@ static void RB_RenderMeshGLSL_Outline( const shaderpass_t *pass, r_glslfeat_t pr
 	RP_UpdateOutlineUniforms( program, rb.currentEntity->outlineHeight * r_outlines_scale->value );
 
 	// submit animation data
+	if( programFeatures & GLSL_SHADER_COMMON_SKINNED ) {
+		RP_UpdateSkinningUniforms( program, rb.bonesData.skinning_matrices );
+	}
 	if( programFeatures & GLSL_SHADER_COMMON_BONE_TRANSFORMS ) {
 		RP_UpdateBonesUniforms( program, rb.bonesData.numBones, rb.bonesData.dualQuats );
 	}
@@ -855,6 +858,9 @@ static void RB_RenderMeshGLSL_Q3AShader( const shaderpass_t *pass, r_glslfeat_t 
 		}
 
 		// submit animation data
+		if( programFeatures & GLSL_SHADER_COMMON_SKINNED ) {
+			RP_UpdateSkinningUniforms( program, rb.bonesData.skinning_matrices );
+		}
 		if( programFeatures & GLSL_SHADER_COMMON_BONE_TRANSFORMS ) {
 			RP_UpdateBonesUniforms( program, rb.bonesData.numBones, rb.bonesData.dualQuats );
 		}

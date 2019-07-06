@@ -57,3 +57,12 @@ void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, 
 
 #define ALLOC_MANY( a, T, n ) ( ( T * ) AllocManyHelper( a, checked_cast< size_t >( n ), sizeof( T ), alignof( T ), __PRETTY_FUNCTION__, __FILE__, __LINE__ ) )
 #define ALLOC_SPAN( a, T, n ) Span< T >( ALLOC_MANY( a, T, n ), n )
+
+/*
+ * breaks
+ */
+
+extern bool break1;
+extern bool break2;
+extern bool break3;
+extern bool break4;

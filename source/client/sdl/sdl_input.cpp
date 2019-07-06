@@ -14,6 +14,11 @@ static int rx = 0, ry = 0;
 
 static bool running_in_debugger = false;
 
+bool break1 = false;
+bool break2 = false;
+bool break3 = false;
+bool break4 = false;
+
 #if defined( __APPLE__ )
 void IN_SetMouseScalingEnabled( bool isRestore );
 #else
@@ -483,4 +488,10 @@ void IN_Frame() {
 	}
 
 	IN_HandleEvents();
+
+	const u8 * keys = SDL_GetKeyboardState( NULL );
+	break1 = keys[ SDL_SCANCODE_F1 ];
+	break2 = keys[ SDL_SCANCODE_F2 ];
+	break3 = keys[ SDL_SCANCODE_F3 ];
+	break4 = keys[ SDL_SCANCODE_F4 ];
 }

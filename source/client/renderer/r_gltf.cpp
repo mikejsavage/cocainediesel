@@ -372,12 +372,11 @@ void R_CacheGLTFModelEntity( const entity_t * e ) {
 	entSceneCache_t * cache = R_ENTCACHE( e );
 	const model_t * mod = e->model;
 	cache->rotated = true;
-	if( e->pose.skinning_matrices.ptr != NULL ) {
-		cache->radius = 9999999999;
-	}
-	else {
-		cache->radius = mod->radius * e->scale;
-	}
+	cache->radius = mod->radius * e->scale;
+
+	// hack but doing this properly is difficult
+	if( e->pose.skinning_matrices.ptr != NULL )
+		cache->radius *= 2;
 }
 
 static void FindSampleAndLerpFrac( const float * times, u32 n, float t, u32 * sample, float * lerp_frac ) {

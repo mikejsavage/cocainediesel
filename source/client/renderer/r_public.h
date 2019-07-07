@@ -158,4 +158,4 @@ MinMax3 R_ModelBounds( const model_s *mod );
 Span< TRS > R_SampleAnimation( ArenaAllocator * a, const model_s * model, float t );
 MatrixPalettes R_ComputeMatrixPalettes( ArenaAllocator * a, const model_s * model, Span< TRS > local_poses );
 bool R_FindJointByName( const model_s * model, const char * name, u8 * joint_idx );
-void R_MergeLowerUpperPoses( Span< Mat4 > lower, Span< const Mat4 > upper, const model_s * model, u8 upper_root_joint );
+void R_MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const model_s * model, u8 upper_root_joint );

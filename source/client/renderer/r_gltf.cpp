@@ -496,7 +496,7 @@ bool R_FindJointByName( const model_t * model, const char * name, u8 * joint_idx
 	return false;
 }
 
-static void MergePosesRecursive( Span< Mat4 > lower, Span< const Mat4 > upper, const GLTFModel * gltf, u8 i ) {
+static void MergePosesRecursive( Span< TRS > lower, Span< const TRS > upper, const GLTFModel * gltf, u8 i ) {
 	lower[ i ] = upper[ i ];
 
 	const GLTFModel::Joint & joint = gltf->joints[ i ];
@@ -506,7 +506,7 @@ static void MergePosesRecursive( Span< Mat4 > lower, Span< const Mat4 > upper, c
 		MergePosesRecursive( lower, upper, gltf, joint.first_child );
 }
 
-void R_MergeLowerUpperPoses( Span< Mat4 > lower, Span< const Mat4 > upper, const model_t * model, u8 upper_root_joint ) {
+void R_MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const model_t * model, u8 upper_root_joint ) {
 	assert( model->type == ModelType_GLTF );
 	const GLTFModel * gltf = ( const GLTFModel * ) model->extradata;
 

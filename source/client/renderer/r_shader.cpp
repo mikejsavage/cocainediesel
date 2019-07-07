@@ -1126,7 +1126,7 @@ static unsigned int Shader_GetCache( const char *name, shadercache_t **cache ) {
 
 	*cache = NULL;
 
-	key = Hash32( name, strlen( name ) ) % SHADERCACHE_HASH_SIZE;
+	key = Hash32( name ) % SHADERCACHE_HASH_SIZE;
 	for( c = shadercache_hash[key]; c; c = c->hash_next ) {
 		if( !Q_stricmp( c->name, name ) ) {
 			*cache = c;

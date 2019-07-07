@@ -1,9 +1,10 @@
 #include "qcommon/base.h"
+#include "qalgo/hash.h"
 #include "r_local.h"
 
 #include "cgltf/cgltf.h"
 
-// TODO: lots of memory leaks in error paths.
+// TODO: lots of memory leaks in error paths. fix with new asset system
 
 struct GLTFMesh {
 	// redundant but qf needs these
@@ -26,44 +27,49 @@ struct GLTFModel {
 		u32 num_samples;
 	};
 
-        struct Joint {
-                Mat4 joint_to_bind;
-                u8 parent;
-                u8 next;
+	struct Joint {
+		Mat4 joint_to_bind;
+		u8 parent;
+		u8 next;
 
-                AnimationChannel< Quaternion > rotations;
-                AnimationChannel< Vec3 > translations;
-                AnimationChannel< float > scales;
-        };
+		// TODO: remove this with additive animations
+		u32 name;
+		u8 first_child;
+		u8 sibling;
 
-        // struct AnimationClip {
-        //         float start_time;
-        //         float duration;
-        //         bool loop;
-        // };
+		AnimationChannel< Quaternion > rotations;
+		AnimationChannel< Vec3 > translations;
+		AnimationChannel< float > scales;
+	};
 
-        Joint * joints;
-        u8 num_joints;
-        u8 root_joint;
+	// struct AnimationClip {
+	//         float start_time;
+	//         float duration;
+	//         bool loop;
+	// };
 
-        // AnimationClip * clips;
-        // u32 num_clips;
+	Joint * joints;
+	u8 num_joints;
+	u8 root_joint;
+
+	// AnimationClip * clips;
+	// u32 num_clips;
 };
 
 // like cgltf_load_buffers, but doesn't try to load URIs
 static bool LoadBinaryBuffers( cgltf_data * data ) {
-        if( data->buffers_count && data->buffers[0].data == NULL && data->buffers[0].uri == NULL && data->bin ) {
-                if( data->bin_size < data->buffers[0].size )
-                        return false;
-                data->buffers[0].data = const_cast< void * >( data->bin );
-        }
+	if( data->buffers_count && data->buffers[0].data == NULL && data->buffers[0].uri == NULL && data->bin ) {
+		if( data->bin_size < data->buffers[0].size )
+			return false;
+		data->buffers[0].data = const_cast< void * >( data->bin );
+	}
 
-        for( cgltf_size i = 0; i < data->buffers_count; i++ ) {
-                if( data->buffers[i].data == NULL )
-                        return false;
-        }
+	for( cgltf_size i = 0; i < data->buffers_count; i++ ) {
+		if( data->buffers[i].data == NULL )
+			return false;
+	}
 
-        return true;
+	return true;
 }
 
 static void TouchGLTFModel( model_t * mod ) {
@@ -77,22 +83,46 @@ static void TouchGLTFModel( model_t * mod ) {
 }
 
 static Span< const u8 > AccessorToSpan( const cgltf_accessor * accessor ) {
-        cgltf_size offset = accessor->offset + accessor->buffer_view->offset;
-        return Span< const u8 >( ( const u8 * ) accessor->buffer_view->buffer->data + offset, accessor->count * accessor->stride );
+	cgltf_size offset = accessor->offset + accessor->buffer_view->offset;
+	return Span< const u8 >( ( const u8 * ) accessor->buffer_view->buffer->data + offset, accessor->count * accessor->stride );
+}
+
+static u8 GetJointIdx( const cgltf_node * node ) {
+	return u8( uintptr_t( node->camera ) - 1 );
+}
+
+static void SetJointIdx( cgltf_node * node, u8 joint_idx ) {
+	node->camera = ( cgltf_camera * ) uintptr_t( joint_idx + 1 );
 }
 
 static void LoadJoint( GLTFModel * gltf, const cgltf_skin * skin, cgltf_node * node, u8 ** prev ) {
-	u8 joint_idx = u8( uintptr_t( node->camera ) - 1 );
+	u8 joint_idx = GetJointIdx( node );
 	**prev = joint_idx;
 	*prev = &gltf->joints[ joint_idx ].next;
 
-	gltf->joints[ joint_idx ].parent = u8( uintptr_t( node->parent->camera ) - 1 );
+	GLTFModel::Joint & joint = gltf->joints[ joint_idx ];
+	joint.parent = node->parent != NULL ? GetJointIdx( node->parent ) : U8_MAX;
+	joint.name = Hash32( node->name );
 
-	cgltf_bool ok = cgltf_accessor_read_float( skin->inverse_bind_matrices, joint_idx, gltf->joints[ joint_idx ].joint_to_bind.ptr(), 16 );
+	cgltf_bool ok = cgltf_accessor_read_float( skin->inverse_bind_matrices, joint_idx, joint.joint_to_bind.ptr(), 16 );
 	assert( ok != 0 );
 
 	for( size_t i = 0; i < node->children_count; i++ ) {
 		LoadJoint( gltf, skin, node->children[ i ], prev );
+	}
+
+	// TODO: remove with additive animations
+	if( node->children_count == 0 ) {
+		joint.first_child = U8_MAX;
+	}
+	else {
+		joint.first_child = GetJointIdx( node->children[ 0 ] );
+
+		for( size_t i = 0; i < node->children_count - 1; i++ ) {
+			gltf->joints[ GetJointIdx( node->children[ i ] ) ].sibling = GetJointIdx( node->children[ i + 1 ] );
+		}
+
+		gltf->joints[ GetJointIdx( node->children[ node->children_count - 1 ] ) ].sibling = U8_MAX;
 	}
 }
 
@@ -101,13 +131,16 @@ static void LoadSkin( GLTFModel * gltf, const cgltf_skin * skin ) {
 	gltf->num_joints = skin->joints_count;
 
 	for( size_t i = 0; i < skin->joints_count; i++ ) {
-		skin->joints[ i ]->camera = ( cgltf_camera * ) ( i + 1 );
+		SetJointIdx( skin->joints[ i ], i );
 	}
 
 	u8 * prev_ptr = &gltf->root_joint;
 	for( size_t i = 0; i < skin->joints_count; i++ ) {
-		if( skin->joints[ i ]->parent == NULL || skin->joints[ i ]->parent->camera == NULL ) {
+		if( skin->joints[ i ]->parent == NULL || GetJointIdx( skin->joints[ i ]->parent ) == U8_MAX ) {
 			LoadJoint( gltf, skin, skin->joints[ i ], &prev_ptr );
+
+			// TODO: remove with additive animations
+			gltf->joints[ i ].sibling = U8_MAX;
 		}
 	}
 }
@@ -290,7 +323,7 @@ static void LoadAnimation( GLTFModel * gltf, const cgltf_animation * animation )
 		const cgltf_animation_channel * chan = &animation->channels[ i ];
 
 		assert( chan->target_node->camera != NULL );
-		u8 joint_idx = u8( uintptr_t( chan->target_node->camera ) - 1 );
+		u8 joint_idx = GetJointIdx( chan->target_node );
 
 		if( chan->target_path == cgltf_animation_path_type_translation ) {
 			LoadChannel( chan, &gltf->joints[ joint_idx ].translations );
@@ -331,6 +364,7 @@ void Mod_LoadGLTFModel( model_t * mod, void * buffer, int buffer_size, const bsp
 	}
 
 	GLTFModel * gltf = ( GLTFModel * ) Mod_Malloc( mod, sizeof( GLTFModel ) );
+	*gltf = { };
 
 	mod->type = ModelType_GLTF;
 	mod->extradata = gltf;
@@ -397,7 +431,7 @@ static void FindSampleAndLerpFrac( const float * times, u32 n, float t, u32 * sa
 
 Span< TRS > R_SampleAnimation( ArenaAllocator * a, const model_t * model, float t ) {
 	assert( model->type == ModelType_GLTF );
-	const GLTFModel * gltf = ( GLTFModel * ) model->extradata;
+	const GLTFModel * gltf = ( const GLTFModel * ) model->extradata;
 
 	Span< TRS > local_poses = ALLOC_SPAN( a, TRS, gltf->num_joints );
 
@@ -421,7 +455,7 @@ Span< TRS > R_SampleAnimation( ArenaAllocator * a, const model_t * model, float 
 
 MatrixPalettes R_ComputeMatrixPalettes( ArenaAllocator * a, const model_t * model, Span< TRS > local_poses ) {
 	assert( model->type == ModelType_GLTF );
-	const GLTFModel * gltf = ( GLTFModel * ) model->extradata;
+	const GLTFModel * gltf = ( const GLTFModel * ) model->extradata;
 	assert( local_poses.n == gltf->num_joints );
 
 	MatrixPalettes palettes;
@@ -445,4 +479,40 @@ MatrixPalettes R_ComputeMatrixPalettes( ArenaAllocator * a, const model_t * mode
 	}
 
 	return palettes;
+}
+
+bool R_FindJointByName( const model_t * model, const char * name, u8 * joint_idx ) {
+	assert( model->type == ModelType_GLTF );
+	const GLTFModel * gltf = ( const GLTFModel * ) model->extradata;
+
+	u32 hash = Hash32( name );
+	for( u8 i = 0; i < gltf->num_joints; i++ ) {
+		if( gltf->joints[ i ].name == hash ) {
+			*joint_idx = i;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+static void MergePosesRecursive( Span< Mat4 > lower, Span< const Mat4 > upper, const GLTFModel * gltf, u8 i ) {
+	lower[ i ] = upper[ i ];
+
+	const GLTFModel::Joint & joint = gltf->joints[ i ];
+	if( joint.sibling != U8_MAX )
+		MergePosesRecursive( lower, upper, gltf, joint.sibling );
+	if( joint.first_child != U8_MAX )
+		MergePosesRecursive( lower, upper, gltf, joint.first_child );
+}
+
+void R_MergeLowerUpperPoses( Span< Mat4 > lower, Span< const Mat4 > upper, const model_t * model, u8 upper_root_joint ) {
+	assert( model->type == ModelType_GLTF );
+	const GLTFModel * gltf = ( const GLTFModel * ) model->extradata;
+
+	lower[ upper_root_joint ] = upper[ upper_root_joint ];
+
+	const GLTFModel::Joint & joint = gltf->joints[ upper_root_joint ];
+	if( joint.first_child != U8_MAX )
+		MergePosesRecursive( lower, upper, gltf, joint.first_child );
 }

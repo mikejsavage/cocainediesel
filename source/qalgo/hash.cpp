@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "hash.h"
 
 uint32_t Hash32( const void * data, size_t n, uint32_t hash ) {
@@ -18,4 +20,12 @@ uint64_t Hash64( const void * data, size_t n, uint64_t hash ) {
 		hash = ( hash ^ cdata[ i ] ) * prime;
 	}
 	return hash;
+}
+
+uint32_t Hash32( const char * str ) {
+	return Hash32( str, strlen( str ) );
+}
+
+uint64_t Hash64( const char * str ) {
+	return Hash64( str, strlen( str ) );
 }

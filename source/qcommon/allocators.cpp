@@ -166,6 +166,9 @@ void * ArenaAllocator::try_allocate( size_t size, size_t alignment, const char *
 }
 
 void * ArenaAllocator::try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
+	if( ptr == NULL )
+		return try_allocate( new_size, alignment, func, file, line );
+
 	if( ptr == cursor - current_size && size_t( ptr ) % alignment == 0 ) {
 		assert( size_t( ptr ) % alignment == 0 );
 		u8 * new_cursor = cursor - current_size + new_size;

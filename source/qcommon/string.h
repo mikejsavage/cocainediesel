@@ -1,9 +1,7 @@
 #pragma once
 
-#include <stddef.h>
-#include <string.h>
-
-#include "gameshared/q_shared.h"
+#include "qcommon/base.h"
+#include "qcommon/array.h"
 #include "ggformat.h"
 
 template< size_t N >
@@ -100,7 +98,64 @@ private:
 	char buf[ N ];
 };
 
+class DynamicString {
+public:
+	DynamicString( Allocator * a ) : buf( a ) { }
+
+	template< typename... Rest >
+	DynamicString( Allocator * a, const char * fmt, const Rest & ... rest ) : buf( a ) {
+		format( fmt, rest... );
+	}
+
+	template< typename T >
+	void operator+=( const T & x ) {
+		append( "{}", x );
+	}
+
+	void append( const char * str ) {
+		append( str, strlen( str ) );
+	}
+
+	void append( const void * data, size_t n ) {
+		size_t old_len = length();
+		buf.extend( old_len == 0 ? n + 1 : n );
+		memmove( &buf[ old_len ], data, n );
+	}
+
+	template< typename... Rest >
+	void format( const char * fmt, const Rest & ... rest ) {
+		size_t len = ggformat( NULL, 0, fmt, rest... );
+		buf.resize( len + 1 );
+		ggformat( &buf[ 0 ], len + 1, fmt, rest... );
+	}
+
+	template< typename... Rest >
+	void append( const char * fmt, const Rest & ... rest ) {
+		size_t len = ggformat( NULL, 0, fmt, rest... );
+		size_t old_len = length();
+		buf.resize( old_len + len + 1 );
+		ggformat( &buf[ old_len ], len + 1, fmt, rest... );
+	}
+
+	const char * c_str() const {
+		if( buf.size() == 0 )
+			return "";
+		return buf.ptr();
+	}
+
+	size_t length() const {
+		return buf.size() == 0 ? 0 : buf.size() - 1;
+	}
+
+private:
+	DynamicArray< char > buf;
+};
+
 template< size_t N >
 void format( FormatBuffer * fb, const String< N > & buf, const FormatOpts & opts ) {
 	format( fb, buf.c_str(), opts );
+}
+
+inline void format( FormatBuffer * fb, const DynamicString & str, const FormatOpts & opts ) {
+	format( fb, str.c_str(), opts );
 }

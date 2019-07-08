@@ -96,7 +96,15 @@ void R_TransformForEntity( const entity_t *e ) {
 		return;
 	}
 
-	Matrix4_ObjectMatrix( e->origin, e->axis, e->scale, rn.objectMatrix );
+	if( e->model != NULL ) {
+		mat4_t t;
+		Matrix4_ObjectMatrix( e->origin, e->axis, e->scale, t );
+		Matrix4_MultiplyFast( t, e->model->transform, rn.objectMatrix );
+	}
+	else {
+		Matrix4_ObjectMatrix( e->origin, e->axis, e->scale, rn.objectMatrix );
+	}
+
 	Matrix4_MultiplyFast( rn.cameraMatrix, rn.objectMatrix, rn.modelviewMatrix );
 
 	RB_LoadObjectMatrix( rn.objectMatrix );

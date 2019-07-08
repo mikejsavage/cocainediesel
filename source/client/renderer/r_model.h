@@ -346,6 +346,8 @@ typedef struct model_s {
 
 	ModelType type;
 
+	mat4_t transform;
+
 	//
 	// volume occupied by the model graphics
 	//

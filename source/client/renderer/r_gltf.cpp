@@ -168,18 +168,7 @@ static void LoadNode( model_t * mod, GLTFModel * gltf, const cgltf_node * node, 
 	}
 
 	mat4_t transform;
-	{
-		constexpr mat4_t y_up_to_z_up = {
-			1, 0, 0, 0,
-			0, 0, 1, 0,
-			0, 1, 0, 0,
-			0, 0, 0, 1,
-		};
-
-		mat4_t lolqfusion;
-		cgltf_node_transform_local( node, lolqfusion );
-		Matrix4_Multiply( y_up_to_z_up, lolqfusion, transform );
-	}
+	cgltf_node_transform_local( node, transform );
 
 	vec4_t * positions = NULL;
 	vec4_t * normals = NULL;
@@ -371,6 +360,15 @@ void Mod_LoadGLTFModel( model_t * mod, void * buffer, int buffer_size, const bsp
 	mod->registrationSequence = rsh.registrationSequence;
 	mod->touch = &TouchGLTFModel;
 	mod->radius = 0;
+
+	constexpr mat4_t y_up_to_z_up = {
+		1, 0, 0, 0,
+		0, 0, 1, 0,
+		0, 1, 0, 0,
+		0, 0, 0, 1,
+	};
+	Matrix4_Copy( y_up_to_z_up, mod->transform );
+
 	ClearBounds( mod->mins, mod->maxs );
 
 	bool animated = data->animations_count > 0;

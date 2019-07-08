@@ -43,7 +43,6 @@ void R_InitSky() {
 	R_UploadVBOElemData( sky_vbo, 0, 0, &mesh );
 
 	sky_shader = R_RegisterPic( "sky" );
-
 }
 
 void R_AddSkyToDrawList( const refdef_t * rd ) {

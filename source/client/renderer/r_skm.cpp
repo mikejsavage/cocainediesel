@@ -760,6 +760,7 @@ void Mod_LoadSkeletalModel( model_t *mod, void *buffer, int buffer_size, const b
 	mod->type = mod_skeletal;
 	mod->registrationSequence = rsh.registrationSequence;
 	mod->touch = &Mod_TouchSkeletalModel;
+	Matrix4_Identity( mod->transform );
 
 	R_Free( baseposes );
 	return;

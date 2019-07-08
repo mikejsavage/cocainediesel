@@ -173,6 +173,7 @@ void Mod_LoadAliasMD3Model( model_t *mod, void *buffer, int buffer_size, const b
 	mod->radius = 0;
 	mod->registrationSequence = rsh.registrationSequence;
 	mod->touch = &Mod_TouchAliasModel;
+	Matrix4_Identity( mod->transform );
 
 	ClearBounds( mod->mins, mod->maxs );
 

@@ -451,6 +451,32 @@ Span< TRS > R_SampleAnimation( ArenaAllocator * a, const model_t * model, float 
 	return local_poses;
 }
 
+static Mat4 TRSToMat4( const TRS & trs ) {
+        Quaternion q = trs.rotation;
+        Vec3 t = trs.translation;
+        float s = trs.scale;
+
+        // return t * q * s;
+        return Mat4(
+                ( 1.0f - 2 * q.y * q.y - 2.0f * q.z * q.z ) * s,
+                ( 2.0f * q.x * q.y - 2.0f * q.z * q.w ) * s,
+                ( 2.0f * q.x * q.z + 2.0f * q.y * q.w ) * s,
+                t.x,
+
+                ( 2.0f * q.x * q.y + 2.0f * q.z * q.w ) * s,
+                ( 1.0f - 2.0f * q.x * q.x - 2.0f * q.z * q.z ) * s,
+                ( 2.0f * q.y * q.z - 2.0f * q.x * q.w ) * s,
+                t.y,
+
+                ( 2.0f * q.x * q.z - 2.0f * q.y * q.w ) * s,
+                ( 2.0f * q.y * q.z + 2.0f * q.x * q.w ) * s,
+                ( 1.0f - 2.0f * q.x * q.x - 2.0f * q.y * q.y ) * s,
+                t.z,
+
+                0.0f, 0.0f, 0.0f, 1.0f
+        );
+}
+
 MatrixPalettes R_ComputeMatrixPalettes( ArenaAllocator * a, const model_t * model, Span< TRS > local_poses ) {
 	assert( model->type == ModelType_GLTF );
 	const GLTFModel * gltf = ( const GLTFModel * ) model->extradata;

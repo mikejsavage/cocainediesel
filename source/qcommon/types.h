@@ -249,12 +249,6 @@ struct Quaternion {
 	}
 };
 
-struct TRS {
-	Quaternion rotation;
-	Vec3 translation;
-	float scale;
-};
-
 // colors
 // struct RGB8 {
 //         u8 r, g, b;

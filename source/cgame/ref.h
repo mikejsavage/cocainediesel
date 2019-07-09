@@ -81,6 +81,12 @@ typedef enum {
 	NUM_RTYPES
 } refEntityType_t;
 
+struct TRS {
+	Quaternion rotation;
+	Vec3 translation;
+	float scale;
+};
+
 struct MatrixPalettes {
 	Span< Mat4 > joint_poses;
 	Span< Mat4 > skinning_matrices;

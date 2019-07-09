@@ -352,12 +352,12 @@ inline Quaternion operator+( Quaternion lhs, Quaternion rhs ) {
 	);
 }
 
-inline Quaternion operator-( Quaternion lhs, Quaternion rhs ) {
+inline Quaternion operator*( Quaternion lhs, Quaternion rhs ) {
 	return Quaternion(
-		lhs.x - rhs.x,
-		lhs.y - rhs.y,
-		lhs.z - rhs.z,
-		lhs.w - rhs.w
+		lhs.w * rhs.x + lhs.x * rhs.w + lhs.y * rhs.z - lhs.z * rhs.y,
+		lhs.w * rhs.y + lhs.y * rhs.w + lhs.z * rhs.x - lhs.x * rhs.z,
+		lhs.w * rhs.z + lhs.z * rhs.w + lhs.x * rhs.y - lhs.y * rhs.x,
+		lhs.w * rhs.w - lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z
 	);
 }
 
@@ -377,14 +377,6 @@ inline Quaternion operator*( float scale, Quaternion q ) {
 inline Quaternion operator/( Quaternion q, float scale ) {
 	float inv_scale = 1.0f / scale;
 	return q * inv_scale;
-}
-
-inline void operator/=( Quaternion & q, float scale ) {
-	q = q / scale;
-}
-
-inline Quaternion operator-( Quaternion q ) {
-	return Quaternion( -q.x, -q.y, -q.z, -q.w );
 }
 
 inline float Dot( Quaternion lhs, Quaternion rhs ) {

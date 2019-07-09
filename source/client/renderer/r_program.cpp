@@ -1061,6 +1061,8 @@ static int R_Features2HashKey( r_glslfeat_t features ) {
 static int RP_RegisterProgramBinary( int type, const char *name, const char *deformsKey,
 									 const deformv_t *deforms, int numDeforms, r_glslfeat_t features,
 									 int binaryFormat, unsigned binaryLength, void *binary ) {
+	MICROPROFILE_SCOPEI( "Assets", "RP_RegisterProgramBinary", 0xffffffff );
+
 	unsigned int i;
 	int hash;
 	int error = 0;

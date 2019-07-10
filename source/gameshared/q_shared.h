@@ -296,11 +296,11 @@ float Q_GainForAttenuation( int model, float maxdistance, float refdistance, flo
 
 //=============================================
 
-extern const char *SOUND_EXTENSIONS[];
-extern const size_t NUM_SOUND_EXTENSIONS;
+constexpr const char *SOUND_EXTENSIONS[] = { ".ogg" };
+constexpr size_t NUM_SOUND_EXTENSIONS = ARRAY_COUNT( SOUND_EXTENSIONS );
 
-extern const char *IMAGE_EXTENSIONS[];
-extern const size_t NUM_IMAGE_EXTENSIONS;
+constexpr const char *IMAGE_EXTENSIONS[] = { ".tga", ".jpg", ".png" };
+constexpr size_t NUM_IMAGE_EXTENSIONS = ARRAY_COUNT( IMAGE_EXTENSIONS );
 
 //==============================================================
 //

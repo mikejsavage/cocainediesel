@@ -668,7 +668,7 @@ static void FS_CloseFileHandle( filehandle_t *fh ) {
 * If found returns the extension otherwise NULL
 * extensions parameter is string with extensions separated by spaces
 */
-const char *FS_FirstExtension( const char *filename, const char *extensions[], int num_extensions ) {
+const char *FS_FirstExtension( const char *filename, const char * const * extensions, int num_extensions ) {
 	char **filenames;           // slots for testable filenames
 	size_t filename_size;       // size of one slot
 	int i;

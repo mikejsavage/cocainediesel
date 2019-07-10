@@ -484,7 +484,6 @@ void SV_InitGameProgs( void ) {
 	import.FS_FCloseFile = FS_FCloseFile;
 	import.FS_RemoveFile = FS_RemoveFile;
 	import.FS_GetFileList = FS_GetFileList;
-	import.FS_FirstExtension = FS_FirstExtension;
 	import.FS_MoveFile = FS_MoveFile;
 	import.FS_RemoveDirectory = FS_RemoveDirectory;
 

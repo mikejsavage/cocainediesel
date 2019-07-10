@@ -194,7 +194,6 @@ void CL_GameModule_Init( void ) {
 	import.FS_FCloseFile = FS_FCloseFile;
 	import.FS_RemoveFile = FS_RemoveFile;
 	import.FS_GetFileList = FS_GetFileList;
-	import.FS_FirstExtension = FS_FirstExtension;
 	import.FS_IsPureFile = FS_IsPureFile;
 	import.FS_MoveFile = FS_MoveFile;
 	import.FS_RemoveDirectory = FS_RemoveDirectory;

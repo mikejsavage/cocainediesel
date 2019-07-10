@@ -637,7 +637,7 @@ bool    FS_CheckPakExtension( const char *filename );
 bool    FS_PakFileExists( const char *packfilename );
 
 // // only for game files
-const char *FS_FirstExtension( const char *filename, const char *extensions[], int num_extensions );
+const char *FS_FirstExtension( const char *filename, const char * const * extensions, int num_extensions );
 const char *FS_PakNameForFile( const char *filename );
 bool    FS_IsPureFile( const char *pakname );
 const char *FS_BaseNameForFile( const char *filename );

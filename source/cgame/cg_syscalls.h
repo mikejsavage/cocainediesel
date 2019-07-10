@@ -143,10 +143,6 @@ static inline int trap_FS_GetFileList( const char *dir, const char *extension, c
 	return CGAME_IMPORT.FS_GetFileList( dir, extension, buf, bufsize, start, end );
 }
 
-static inline const char *trap_FS_FirstExtension( const char *filename, const char *extensions[], int num_extensions ) {
-	return CGAME_IMPORT.FS_FirstExtension( filename, extensions, num_extensions );
-}
-
 static inline bool trap_FS_IsPureFile( const char *filename ) {
 	return CGAME_IMPORT.FS_IsPureFile( filename ) == true;
 }

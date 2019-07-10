@@ -229,10 +229,6 @@ static inline int trap_FS_GetFileList( const char *dir, const char *extension, c
 	return GAME_IMPORT.FS_GetFileList( dir, extension, buf, bufsize, start, end );
 }
 
-static inline const char *trap_FS_FirstExtension( const char *filename, const char *extensions[], int num_extensions ) {
-	return GAME_IMPORT.FS_FirstExtension( filename, extensions, num_extensions );
-}
-
 static inline bool trap_FS_MoveFile( const char *src, const char *dst ) {
 	return GAME_IMPORT.FS_MoveFile( src, dst ) == true;
 }

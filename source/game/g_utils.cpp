@@ -967,14 +967,6 @@ void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage,
 
 
 /*
-* G_PlayerGender
-* server doesn't know the model gender, so all are neutrals in console prints.
-*/
-int G_PlayerGender( edict_t *player ) {
-	return GENDER_NEUTRAL;
-}
-
-/*
 * G_PrintMsg
 *
 * NULL sends to all the message to all clients

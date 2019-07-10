@@ -84,22 +84,8 @@ static struct sfx_s *CG_RegisterPmodelSexedSound( pmodelinfo_t *pmodelinfo, cons
 	sexedSfx->next = pmodelinfo->sexedSfx;
 	pmodelinfo->sexedSfx = sexedSfx;
 
-	// see if we already know of the model specific sound
 	Q_snprintfz( sexedFilename, sizeof( sexedFilename ), "sounds/players/%s/%s", model, oname + 1 );
-
-	if( ( !COM_FileExtension( sexedFilename ) &&
-		  trap_FS_FirstExtension( sexedFilename, SOUND_EXTENSIONS, NUM_SOUND_EXTENSIONS ) ) ||
-		trap_FS_FOpenFile( sexedFilename, NULL, FS_READ ) != -1 ) {
-		sexedSfx->sfx = trap_S_RegisterSound( sexedFilename );
-	} else {   // no, revert to default player sounds folders
-		if( pmodelinfo->sex == GENDER_FEMALE ) {
-			Q_snprintfz( sexedFilename, sizeof( sexedFilename ), "sounds/players/%s/%s", "female", oname + 1 );
-			sexedSfx->sfx = trap_S_RegisterSound( sexedFilename );
-		} else {
-			Q_snprintfz( sexedFilename, sizeof( sexedFilename ), "sounds/players/%s/%s", "male", oname + 1 );
-			sexedSfx->sfx = trap_S_RegisterSound( sexedFilename );
-		}
-	}
+	sexedSfx->sfx = trap_S_RegisterSound( sexedFilename );
 
 	return sexedSfx->sfx;
 }

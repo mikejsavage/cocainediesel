@@ -132,7 +132,6 @@ typedef struct {
 //Consider it static 'read-only', cause it is shared by different players
 typedef struct pmodelinfo_s {
 	char *name;
-	int sex;
 
 	struct model_s *model;
 	struct cg_sexedSfx_s *sexedSfx;

@@ -310,13 +310,6 @@ enum {
 	PMODEL_TOTAL_ANIMATIONS,
 };
 
-// gender stuff
-enum {
-	GENDER_MALE,
-	GENDER_FEMALE,
-	GENDER_NEUTRAL
-};
-
 //===============================================================
 
 #define HEALTH_TO_INT( x )    ( ( x ) < 1.0f ? (int)ceil( ( x ) ) : (int)floor( ( x ) + 0.5f ) )
@@ -455,7 +448,7 @@ bool GS_IsTeamDamage( entity_state_t *targ, entity_state_t *attacker );
 //===============================================================
 
 // gs_misc.c
-void GS_Obituary( void *victim, int gender, void *attacker, int mod, char *message, char *message2 );
+void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *message2 );
 void GS_TouchPushTrigger( player_state_t *playerState, entity_state_t *pusher );
 int GS_WaterLevel( entity_state_t *state, vec3_t mins, vec3_t maxs );
 void GS_BBoxForEntityState( entity_state_t *state, vec3_t mins, vec3_t maxs );

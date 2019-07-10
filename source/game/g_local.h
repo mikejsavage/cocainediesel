@@ -474,8 +474,6 @@ void G_CallStop( edict_t *self );
 void G_CallPain( edict_t *ent, edict_t *attacker, float kick, float damage );
 void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point );
 
-int G_PlayerGender( edict_t *player );
-
 #ifndef _MSC_VER
 void G_PrintMsg( edict_t *ent, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
 void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, ... ) __attribute__( ( format( printf, 4, 5 ) ) );

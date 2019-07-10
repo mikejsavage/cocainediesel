@@ -167,7 +167,6 @@ static bool CG_ParseAnimationScript( pmodelinfo_t *pmodelinfo, char *filename ) 
 	int length;
 
 	memset( rootanims, -1, sizeof( rootanims ) );
-	pmodelinfo->sex = GENDER_MALE;
 	rounder = 0;
 	counter = 1; //reseve 0 for 'no animation'
 
@@ -200,48 +199,8 @@ static bool CG_ParseAnimationScript( pmodelinfo_t *pmodelinfo, char *filename ) 
 		}
 
 		if( *token < '0' || *token > '9' ) {
-
-			// gender
-			if( !Q_stricmp( token, "sex" ) ) {
-				if( debug ) {
-					CG_Printf( "Script: %s:", token );
-				}
-
-				token = COM_ParseExt( &ptr, false );
-				if( !token[0] ) { //Error (fixme)
-					break;
-				}
-
-				if( token[0] == 'm' || token[0] == 'M' ) {
-					pmodelinfo->sex = GENDER_MALE;
-					if( debug ) {
-						CG_Printf( " %s -Gender set to MALE\n", token );
-					}
-				} else if( token[0] == 'f' || token[0] == 'F' ) {
-					pmodelinfo->sex = GENDER_FEMALE;
-					if( debug ) {
-						CG_Printf( " %s -Gender set to FEMALE\n", token );
-					}
-				} else if( token[0] == 'n' || token[0] == 'N' ) {
-					pmodelinfo->sex = GENDER_NEUTRAL;
-					if( debug ) {
-						CG_Printf( " %s -Gender set to NEUTRAL\n", token );
-					}
-				} else {
-					if( debug ) {
-						if( token[0] ) {
-							CG_Printf( " WARNING: unrecognized token: %s\n", token );
-						} else {
-							CG_Printf( " WARNING: no value after cmd sex: %s\n", token );
-						}
-					}
-					break; //Error
-				}
-
-
-			}
 			// Rotation bone
-			else if( !Q_stricmp( token, "rotationbone" ) ) {
+			if( !Q_stricmp( token, "rotationbone" ) ) {
 				token = COM_ParseExt( &ptr, false );
 				if( !token[0] ) {
 					break;             //Error (fixme)

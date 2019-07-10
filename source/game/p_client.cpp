@@ -30,7 +30,7 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 
 	int mod = meansOfDeath;
 
-	GS_Obituary( self, G_PlayerGender( self ), attacker, mod, message, message2 );
+	GS_Obituary( self, attacker, mod, message, message2 );
 
 	// duplicate message at server console for logging
 	if( attacker && attacker->r.client ) {

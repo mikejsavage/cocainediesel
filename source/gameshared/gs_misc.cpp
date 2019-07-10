@@ -159,7 +159,7 @@ float GS_FrameForTime( int *frame, int64_t curTime, int64_t startTimeStamp, floa
 *
 * Can be called by either the server or the client
 */
-void GS_Obituary( void *victim, int gender, void *attacker, int mod, char *message, char *message2 ) {
+void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *message2 ) {
 	message[0] = 0;
 	message2[0] = 0;
 

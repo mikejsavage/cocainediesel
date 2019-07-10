@@ -568,6 +568,8 @@ static const glsl_feature_t glsl_features_material[] =
 
 static const glsl_feature_t glsl_features_outline[] =
 {
+	{ GLSL_SHADER_COMMON_SKINNED, "#define SKINNED 1\n", "_skinned" },
+
 	{ GLSL_SHADER_COMMON_INSTANCED_TRANSFORMS, "#define APPLY_INSTANCED_TRANSFORMS\n", "_instanced" },
 	{ GLSL_SHADER_COMMON_INSTANCED_ATTRIB_TRANSFORMS, "#define APPLY_INSTANCED_TRANSFORMS\n#define APPLY_INSTANCED_ATTRIB_TRANSFORMS\n", "_instanced_va" },
 

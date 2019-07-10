@@ -37,13 +37,13 @@ static const char *cg_defaultSexedSounds[] =
 /*
 * CG_RegisterPmodelSexedSound
 */
-static struct sfx_s *CG_RegisterPmodelSexedSound( PlayerModelMetadata *pmodelinfo, const char *name ) {
+static struct sfx_s *CG_RegisterPmodelSexedSound( PlayerModelMetadata *metadata, const char *name ) {
 	char *p, *s, model[MAX_QPATH];
 	cg_sexedSfx_t *sexedSfx;
 	char oname[MAX_QPATH];
 	char sexedFilename[MAX_QPATH];
 
-	if( !pmodelinfo ) {
+	if( !metadata ) {
 		return NULL;
 	}
 
@@ -51,14 +51,14 @@ static struct sfx_s *CG_RegisterPmodelSexedSound( PlayerModelMetadata *pmodelinf
 
 	Q_strncpyz( oname, name, sizeof( oname ) );
 	COM_StripExtension( oname );
-	for( sexedSfx = pmodelinfo->sexedSfx; sexedSfx; sexedSfx = sexedSfx->next ) {
+	for( sexedSfx = metadata->sexedSfx; sexedSfx; sexedSfx = sexedSfx->next ) {
 		if( !Q_stricmp( sexedSfx->name, oname ) ) {
 			return sexedSfx->sfx;
 		}
 	}
 
 	// find out what's the model name
-	s = pmodelinfo->name;
+	s = metadata->name;
 	if( s[0] ) {
 		p = strchr( s, '/' );
 		if( p ) {
@@ -81,8 +81,8 @@ static struct sfx_s *CG_RegisterPmodelSexedSound( PlayerModelMetadata *pmodelinf
 
 	sexedSfx = ( cg_sexedSfx_t * )CG_Malloc( sizeof( cg_sexedSfx_t ) );
 	sexedSfx->name = CG_CopyString( oname );
-	sexedSfx->next = pmodelinfo->sexedSfx;
-	pmodelinfo->sexedSfx = sexedSfx;
+	sexedSfx->next = metadata->sexedSfx;
+	metadata->sexedSfx = sexedSfx;
 
 	Q_snprintfz( sexedFilename, sizeof( sexedFilename ), "sounds/players/%s/%s", model, oname + 1 );
 	sexedSfx->sfx = trap_S_RegisterSound( sexedFilename );
@@ -93,21 +93,21 @@ static struct sfx_s *CG_RegisterPmodelSexedSound( PlayerModelMetadata *pmodelinf
 /*
 * CG_UpdateSexedSoundsRegistration
 */
-void CG_UpdateSexedSoundsRegistration( PlayerModelMetadata *pmodelinfo ) {
+void CG_UpdateSexedSoundsRegistration( PlayerModelMetadata *metadata ) {
 	cg_sexedSfx_t *sexedSfx, *next;
 	const char *name;
 	int i;
 
-	if( !pmodelinfo ) {
+	if( !metadata ) {
 		return;
 	}
 
 	// free loaded sounds
-	for( sexedSfx = pmodelinfo->sexedSfx; sexedSfx; sexedSfx = next ) {
+	for( sexedSfx = metadata->sexedSfx; sexedSfx; sexedSfx = next ) {
 		next = sexedSfx->next;
 		CG_Free( sexedSfx );
 	}
-	pmodelinfo->sexedSfx = NULL;
+	metadata->sexedSfx = NULL;
 
 	// load default sounds
 	for( i = 0;; i++ ) {
@@ -115,7 +115,7 @@ void CG_UpdateSexedSoundsRegistration( PlayerModelMetadata *pmodelinfo ) {
 		if( !name ) {
 			break;
 		}
-		CG_RegisterPmodelSexedSound( pmodelinfo, name );
+		CG_RegisterPmodelSexedSound( metadata, name );
 	}
 
 	// load sounds server told us
@@ -125,7 +125,7 @@ void CG_UpdateSexedSoundsRegistration( PlayerModelMetadata *pmodelinfo ) {
 			break;
 		}
 		if( name[0] == '*' ) {
-			CG_RegisterPmodelSexedSound( pmodelinfo, name );
+			CG_RegisterPmodelSexedSound( metadata, name );
 		}
 	}
 }
@@ -137,7 +137,7 @@ struct sfx_s *CG_RegisterSexedSound( int entnum, const char *name ) {
 	if( entnum < 0 || entnum >= MAX_EDICTS ) {
 		return NULL;
 	}
-	return CG_RegisterPmodelSexedSound( cg_entPModels[entnum].pmodelinfo, name );
+	return CG_RegisterPmodelSexedSound( cg_entPModels[entnum].metadata, name );
 }
 
 /*

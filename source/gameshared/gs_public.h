@@ -452,7 +452,6 @@ void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *me
 void GS_TouchPushTrigger( player_state_t *playerState, entity_state_t *pusher );
 int GS_WaterLevel( entity_state_t *state, vec3_t mins, vec3_t maxs );
 void GS_BBoxForEntityState( entity_state_t *state, vec3_t mins, vec3_t maxs );
-float GS_FrameForTime( int *frame, int64_t curTime, int64_t startTimeStamp, float frametime, int firstframe, int lastframe, int loopingframes, bool forceLoop );
 
 //===============================================================
 

@@ -29,7 +29,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // - Adding the Player model using Skeletal animation blending
 // by Jalisk0
 
+#include "client/client.h"
 #include "cg_local.h"
+#include "client/renderer/r_public.h"
 
 pmodel_t cg_entPModels[MAX_EDICTS];
 PlayerModelMetadata *cg_PModelInfos;
@@ -64,62 +66,6 @@ void CG_ResetPModels( void ) {
 }
 
 /*
-* CG_FindBoneNum
-*/
-static int CG_FindBoneNum( cgs_skeleton_t *skel, char *bonename ) {
-	int j;
-
-	if( !skel || !bonename ) {
-		return -1;
-	}
-
-	for( j = 0; j < skel->numBones; j++ ) {
-		if( !Q_stricmp( skel->bones[j].name, bonename ) ) {
-			return j;
-		}
-	}
-
-	return -1;
-}
-
-/*
-* CG_ParseTag
-*/
-static void CG_ParseTag( struct model_s *model, int bonenum, char *name, float forward, float right, float up, float pitch, float yaw, float roll ) {
-	cg_tagmask_t *tagmask;
-	cgs_skeleton_t *skel;
-
-	if( !name || !name[0] ) {
-		return;
-	}
-
-	skel = CG_SkeletonForModel( model );
-	if( !skel || skel->numBones <= bonenum ) {
-		return;
-	}
-
-	//fixme: check the name isn't already in use, or it isn't the same as a bone name
-
-	//now store it
-	tagmask = ( cg_tagmask_t * )CG_Malloc( sizeof( cg_tagmask_t ) );
-	Q_snprintfz( tagmask->tagname, sizeof( tagmask->tagname ), "%s", name );
-	Q_snprintfz( tagmask->bonename, sizeof( tagmask->bonename ), "%s", skel->bones[bonenum].name );
-	tagmask->bonenum = bonenum;
-	tagmask->offset[FORWARD] = forward;
-	tagmask->offset[RIGHT] = right;
-	tagmask->offset[UP] = up;
-	tagmask->rotate[PITCH] = pitch;
-	tagmask->rotate[YAW] = yaw;
-	tagmask->rotate[ROLL] = roll;
-	tagmask->next = skel->tagmasks;
-	skel->tagmasks = tagmask;
-
-	if( cg_debugPlayerModels->integer ) {
-		CG_Printf( "Added Tag: %s -> %s\n", tagmask->tagname, tagmask->bonename );
-	}
-}
-
-/*
 * CG_ParseAnimationScript
 *
 * Reads the animation config file.
@@ -130,34 +76,18 @@ static void CG_ParseTag( struct model_s *model, int bonenum, char *name, float f
 * 3 = fps
 *
 * Note: The animations count begins at 1, not 0. I preserve zero for "no animation change"
-* ---------------
-* keyword:
-* alljumps: Uses 3 different jump animations (bunnyhoping)
 */
-static bool CG_ParseAnimationScript( PlayerModelMetadata *pmodelinfo, char *filename ) {
-	uint8_t *buf;
-	char *ptr, *token;
-	int rounder, counter, i;
-	bool debug = true;
-	int anim_data[4][PMODEL_TOTAL_ANIMATIONS];
+static bool CG_ParseAnimationScript( PlayerModelMetadata *metadata, char *filename ) {
+	int num_clips = 1;
+
 	int filenum;
-	int length;
-
-	rounder = 0;
-	counter = 1; //reseve 0 for 'no animation'
-
-	if( !cg_debugPlayerModels->integer ) {
-		debug = false;
-	}
-
-	// load the file
-	length = trap_FS_FOpenFile( filename, &filenum, FS_READ );
+	int length = trap_FS_FOpenFile( filename, &filenum, FS_READ );
 	if( length == -1 ) {
 		CG_Printf( "Couldn't find animation script: %s\n", filename );
 		return false;
 	}
 
-	buf = ( uint8_t * )CG_Malloc( length + 1 );
+	uint8_t * buf = ( uint8_t * )CG_Malloc( length + 1 );
 	length = trap_FS_Read( buf, length, filenum );
 	trap_FS_FCloseFile( filenum );
 	if( !length ) {
@@ -166,112 +96,90 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata *pmodelinfo, char *file
 		return false;
 	}
 
-	// proceed
-	ptr = ( char * )buf;
+	const char * ptr = ( const char * ) buf;
 	while( ptr ) {
-		token = COM_ParseExt( &ptr, true );
-		if( !token[0] ) {
+		const char * cmd = COM_ParseExt( &ptr, true );
+		if( strcmp( cmd, "" ) == 0 )
 			break;
+
+		if( Q_stricmp( cmd, "upper_rotator_joints" ) == 0 ) {
+			const char * joint_name = COM_ParseExt( &ptr, false );
+			R_FindJointByName( metadata->model, joint_name, &metadata->upper_rotator_joints[ 0 ] );
+
+			joint_name = COM_ParseExt( &ptr, false );
+			R_FindJointByName( metadata->model, joint_name, &metadata->upper_rotator_joints[ 1 ] );
 		}
+		else if( Q_stricmp( cmd, "head_rotator_joint" ) == 0 ) {
+			const char * joint_name  = COM_ParseExt( &ptr, false );
+			R_FindJointByName( metadata->model, joint_name, &metadata->head_rotator_joint );
+		}
+		else if( Q_stricmp( cmd, "upper_root_joint" ) == 0 ) {
+			const char * joint_name  = COM_ParseExt( &ptr, false );
+			R_FindJointByName( metadata->model, joint_name, &metadata->upper_root_joint );
+		}
+		else if( Q_stricmp( cmd, "tag" ) == 0 ) {
+			const char * joint_name = COM_ParseExt( &ptr, false );
+			u8 joint_idx;
+			if( R_FindJointByName( metadata->model, joint_name, &joint_idx ) ) {
+				const char * tag_name = COM_ParseExt( &ptr, false );
+				PlayerModelMetadata::Tag * tag = &metadata->tag_backpack;
+				if( strcmp( tag_name, "tag_head" ) == 0 )
+					tag = &metadata->tag_head;
+				else if( strcmp( tag_name, "tag_weapon" ) == 0 )
+					tag = &metadata->tag_weapon;
 
-		if( *token < '0' || *token > '9' ) {
-			if( !Q_stricmp( token, "upper_rotator_joints" ) ) {
-				token = COM_ParseExt( &ptr, false );
-				pmodelinfo->upper_rotator_joints[ 0 ] = CG_FindBoneNum( CG_SkeletonForModel( pmodelinfo->model ), token );
+				float forward = atof( COM_ParseExt( &ptr, false ) );
+				float right = atof( COM_ParseExt( &ptr, false ) );
+				float up = atof( COM_ParseExt( &ptr, false ) );
+				float pitch = atof( COM_ParseExt( &ptr, false ) );
+				float yaw = atof( COM_ParseExt( &ptr, false ) );
+				float roll = atof( COM_ParseExt( &ptr, false ) );
 
-				token = COM_ParseExt( &ptr, false );
-				pmodelinfo->upper_rotator_joints[ 1 ] = CG_FindBoneNum( CG_SkeletonForModel( pmodelinfo->model ), token );
+				tag->joint_idx = joint_idx;
+				tag->translation = Vec3( forward, right, up );
+				tag->rotation = Vec3( pitch, yaw, roll );
 			}
-			else if( !Q_stricmp( token, "head_rotator_joint" ) ) {
-				token = COM_ParseExt( &ptr, false );
-				pmodelinfo->head_rotator_joint = CG_FindBoneNum( CG_SkeletonForModel( pmodelinfo->model ), token );
+			else {
+				CG_Printf( "%s: Unknown joint name: %s\n", filename, joint_name );
+				for( int i = 0; i < 7; i++ )
+					COM_ParseExt( &ptr, false );
 			}
-			else if( !Q_stricmp( token, "upper_root_joint" ) ) {
-				token = COM_ParseExt( &ptr, false );
-				pmodelinfo->upper_root_joint = CG_FindBoneNum( CG_SkeletonForModel( pmodelinfo->model ), token );
-			}
-			// Tag bone (format is: tag "bone name" "tag name")
-			else if( !Q_stricmp( token, "tag" ) ) {
-				token = COM_ParseExt( &ptr, false );
-				int bonenum = CG_FindBoneNum( CG_SkeletonForModel( pmodelinfo->model ), token );
-				if( bonenum != -1 ) {
-					token = COM_ParseExt( &ptr, false );
-					if( !token[0] ) {
-						CG_Printf( "Script: ERROR: missing maskname in tag for bone %i\n", bonenum );
-						break; //Error
-					}
-					char maskname[MAX_QPATH];
-					Q_strncpyz( maskname, token, sizeof( maskname ) );
-					float forward = atof( COM_ParseExt( &ptr, false ) );
-					float right = atof( COM_ParseExt( &ptr, false ) );
-					float up = atof( COM_ParseExt( &ptr, false ) );
-					float pitch = atof( COM_ParseExt( &ptr, false ) );
-					float yaw = atof( COM_ParseExt( &ptr, false ) );
-					float roll = atof( COM_ParseExt( &ptr, false ) );
-					CG_ParseTag( pmodelinfo->model, bonenum, maskname, forward, right, up, pitch, yaw, roll );
-				} else if( debug ) {
-					CG_Printf( "Script: WARNING: Unknown bone name: %s\n", token );
-				}
-
-			} else if( token[0] && debug ) {
-				CG_Printf( "Script: WARNING: unrecognized token: %s\n", token );
+		}
+		else if( Q_stricmp( cmd, "clip" ) == 0 ) {
+			if( num_clips == PMODEL_TOTAL_ANIMATIONS ) {
+				CG_Printf( "%s: Too many animations\n", filename );
+				break;
 			}
 
-		} else {
-			// frame & animation values
-			i = (int)atoi( token );
-			if( debug ) {
-				CG_Printf( "%i - ", i );
-			}
-			anim_data[rounder][counter] = i;
-			rounder++;
-			if( rounder > 3 ) {
-				rounder = 0;
-				if( debug ) {
-					CG_Printf( " anim: %i\n", counter );
-				}
-				counter++;
-				if( counter == PMODEL_TOTAL_ANIMATIONS ) {
-					break;
-				}
-			}
+			int start_frame = atoi( COM_ParseExt( &ptr, false ) );
+			int end_frame = atoi( COM_ParseExt( &ptr, false ) );
+			int loop_frames = atoi( COM_ParseExt( &ptr, false ) );
+			int fps = atoi( COM_ParseExt( &ptr, false ) );
+			fps = 30;
+
+			PlayerModelMetadata::AnimationClip clip;
+			clip.start_time = float( start_frame + 1 ) / float( fps );
+			clip.duration = float( end_frame - start_frame ) / float( fps );
+			clip.loop_from = clip.duration - float( loop_frames ) / float( fps );
+
+			metadata->clips[ num_clips ] = clip;
+			num_clips++;
+		}
+		else {
+			CG_Printf( "%s: unrecognized cmd: %s\n", filename, cmd );
 		}
 	}
 
 	CG_Free( buf );
 
-	//it must contain at least as many animations as a Q3 script to be valid
-	if( counter < PMODEL_TOTAL_ANIMATIONS ) {
-		CG_Printf( "PModel Error: Not enough animations(%i) at animations script: %s\n", counter, filename );
+	if( num_clips < PMODEL_TOTAL_ANIMATIONS ) {
+		CG_Printf( "%s: Not enough animations (%i)\n", filename, num_clips );
 		return false;
 	}
 
-	// animation ANIM_NONE (0) is always at frame 0, and it's never
-	// received from the game, but just used on the client when none
-	// animation was ever set for a model (head).
-
-	anim_data[0][ANIM_NONE] = 0;
-	anim_data[1][ANIM_NONE] = 0;
-	anim_data[2][ANIM_NONE] = 1;
-	anim_data[3][ANIM_NONE] = 15;
-
-	// reorganize to make my life easier
-	for( i = 0; i < counter; i++ ) {
-		pmodelinfo->animSet.firstframe[i] = anim_data[0][i];
-		pmodelinfo->animSet.lastframe[i] = anim_data[1][i];
-		pmodelinfo->animSet.loopingframes[i] = anim_data[2][i];
-		pmodelinfo->animSet.frametime[i] = 1000.0f / (float) max( anim_data[3][i], 10 );
-	}
-
-	// validate frames inside skeleton range
-	{
-		cgs_skeleton_t *skel;
-		skel = CG_SkeletonForModel( pmodelinfo->model );
-		for( i = 0; i < counter; ++i ) {
-			clamp( pmodelinfo->animSet.firstframe[i], 0, skel->numFrames - 1 );
-			clamp( pmodelinfo->animSet.lastframe[i], 0, skel->numFrames - 1 );
-		}
-	}
+	metadata->clips[ ANIM_NONE ].start_time = 0;
+	metadata->clips[ ANIM_NONE ].duration = 0;
+	metadata->clips[ ANIM_NONE ].loop_from = 0;
 
 	return true;
 }
@@ -279,41 +187,38 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata *pmodelinfo, char *file
 /*
 * CG_LoadPlayerModel
 */
-static bool CG_LoadPlayerModel( PlayerModelMetadata *pmodelinfo, const char *filename ) {
+static bool CG_LoadPlayerModel( PlayerModelMetadata *metadata, const char *filename ) {
+	MICROPROFILE_SCOPEI( "Assets", "CG_LoadPlayerModel", 0xffffffff );
+
 	bool loaded_model = false;
 	char anim_filename[MAX_QPATH];
 	char scratch[MAX_QPATH];
 
-	Q_snprintfz( scratch, sizeof( scratch ), "%s/tris.iqm", filename );
+	Q_snprintfz( scratch, sizeof( scratch ), "%s.glb", filename );
 	if( cgs.pure && !trap_FS_IsPureFile( scratch ) ) {
 		return false;
 	}
 
-	pmodelinfo->model = CG_RegisterModel( scratch );
-	if( !trap_R_SkeletalGetNumBones( pmodelinfo->model, NULL ) ) {
-		// pmodels only accept skeletal models
-		pmodelinfo->model = NULL;
-		return false;
-	}
+	metadata->model = CG_RegisterModel( scratch );
 
 	// load animations script
-	if( pmodelinfo->model ) {
+	if( metadata->model ) {
 		Q_snprintfz( anim_filename, sizeof( anim_filename ), "%s/animation.cfg", filename );
 		if( !cgs.pure || trap_FS_IsPureFile( anim_filename ) ) {
-			loaded_model = CG_ParseAnimationScript( pmodelinfo, anim_filename );
+			loaded_model = CG_ParseAnimationScript( metadata, anim_filename );
 		}
 	}
 
 	// clean up if failed
 	if( !loaded_model ) {
-		pmodelinfo->model = NULL;
+		metadata->model = NULL;
 		return false;
 	}
 
-	pmodelinfo->name = CG_CopyString( filename );
+	metadata->name = CG_CopyString( filename );
 
 	// load sexed sounds for this model
-	CG_UpdateSexedSoundsRegistration( pmodelinfo );
+	CG_UpdateSexedSoundsRegistration( metadata );
 	return true;
 }
 
@@ -323,24 +228,24 @@ static bool CG_LoadPlayerModel( PlayerModelMetadata *pmodelinfo, const char *fil
 * models contained in the pmodel and it's animation data
 */
 PlayerModelMetadata *CG_RegisterPlayerModel( const char *filename ) {
-	PlayerModelMetadata *pmodelinfo;
+	PlayerModelMetadata *metadata;
 
-	for( pmodelinfo = cg_PModelInfos; pmodelinfo; pmodelinfo = pmodelinfo->next ) {
-		if( !Q_stricmp( pmodelinfo->name, filename ) ) {
-			return pmodelinfo;
+	for( metadata = cg_PModelInfos; metadata; metadata = metadata->next ) {
+		if( !Q_stricmp( metadata->name, filename ) ) {
+			return metadata;
 		}
 	}
 
-	pmodelinfo = ( PlayerModelMetadata * )CG_Malloc( sizeof( PlayerModelMetadata ) );
-	if( !CG_LoadPlayerModel( pmodelinfo, filename ) ) {
-		CG_Free( pmodelinfo );
+	metadata = ( PlayerModelMetadata * )CG_Malloc( sizeof( PlayerModelMetadata ) );
+	if( !CG_LoadPlayerModel( metadata, filename ) ) {
+		CG_Free( metadata );
 		return NULL;
 	}
 
-	pmodelinfo->next = cg_PModelInfos;
-	cg_PModelInfos = pmodelinfo;
+	metadata->next = cg_PModelInfos;
+	cg_PModelInfos = metadata;
 
-	return pmodelinfo;
+	return metadata;
 }
 
 /*
@@ -350,11 +255,11 @@ PlayerModelMetadata *CG_RegisterPlayerModel( const char *filename ) {
 void CG_RegisterBasePModel( void ) {
 	char filename[MAX_QPATH];
 
-	// pmodelinfo
-	Q_snprintfz( filename, sizeof( filename ), "%s/%s", "models/players", DEFAULT_PLAYERMODEL );
+	// metadata
+	Q_snprintfz( filename, sizeof( filename ), "models/players/%s", DEFAULT_PLAYERMODEL );
 	cgs.basePModelInfo = CG_RegisterPlayerModel( filename );
 
-	Q_snprintfz( filename, sizeof( filename ), "%s/%s/%s", "models/players", DEFAULT_PLAYERMODEL, DEFAULT_PLAYERSKIN );
+	Q_snprintfz( filename, sizeof( filename ), "models/players/%s/%s", DEFAULT_PLAYERMODEL, DEFAULT_PLAYERSKIN );
 	cgs.baseSkin = trap_R_RegisterSkinFile( filename );
 	if( !cgs.baseSkin ) {
 		CG_Error( "'Default Player Model'(%s): Skin (%s) failed to load", DEFAULT_PLAYERMODEL, filename );
@@ -680,9 +585,9 @@ static PlayerModelAnimationSet CG_GetBaseAnims( entity_state_t *state, const vec
 
 	if( state->type == ET_CORPSE ) {
 		PlayerModelAnimationSet a;
-		a.animations[ LOWER ] = ANIM_NONE;
-		a.animations[ UPPER ] = ANIM_NONE;
-		a.animations[ HEAD ] = ANIM_NONE;
+		a.parts[ LOWER ] = ANIM_NONE;
+		a.parts[ UPPER ] = ANIM_NONE;
+		a.parts[ HEAD ] = ANIM_NONE;
 		return a;
 	}
 
@@ -739,10 +644,37 @@ static PlayerModelAnimationSet CG_GetBaseAnims( entity_state_t *state, const vec
 	}
 
 	PlayerModelAnimationSet a;
-	a.animations[ LOWER ] = CG_MoveFlagsToLowerAnimation( moveflags );
-	a.animations[ UPPER ] = CG_MoveFlagsToUpperAnimation( moveflags, state->weapon );
-	a.animations[ HEAD ] = ANIM_NONE;
+	a.parts[ LOWER ] = CG_MoveFlagsToLowerAnimation( moveflags );
+	a.parts[ UPPER ] = CG_MoveFlagsToUpperAnimation( moveflags, state->weapon );
+	a.parts[ HEAD ] = ANIM_NONE;
 	return a;
+}
+
+static float PositiveMod( float x, float y ) {
+        float res = fmodf( x, y );
+        if( res < 0 )
+                res += y;
+        return res;
+}
+
+static float GetAnimationTime( const PlayerModelMetadata * metadata, int64_t curTime, animstate_t state, bool loop ) {
+	if( state.anim == ANIM_NONE )
+		return -1.0f;
+
+	PlayerModelMetadata::AnimationClip clip = metadata->clips[ state.anim ];
+
+	float t = Max2( 0.0f, ( curTime - state.startTimestamp ) / 1000.0f );
+	if( loop ) {
+		if( t > clip.loop_from ) {
+			float loop_t = PositiveMod( t - clip.loop_from, clip.duration - clip.loop_from );
+			t = clip.loop_from + loop_t;
+		}
+	}
+	else if( t >= clip.duration ) {
+		return -1.0f;
+	}
+
+	return clip.start_time + t;
 }
 
 /*
@@ -759,67 +691,51 @@ static PlayerModelAnimationSet CG_GetBaseAnims( entity_state_t *state, const vec
 * continue playing it until a new event chanel animation
 * is fired.
 */
-static void CG_PModel_AnimToFrame( int64_t curTime, pmodel_animationset_t *animSet, pmodel_animationstate_t *anim ) {
+static void CG_GetAnimationTimes( pmodel_t * pmodel, int64_t curTime, float * lower_time, float * upper_time ) {
+	float times[ PMODEL_PARTS ];
+
 	for( int i = LOWER; i < PMODEL_PARTS; i++ ) {
 		for( int channel = BASE_CHANNEL; channel < PLAYERANIM_CHANNELS; channel++ ) {
-			animstate_t *currAnim = &anim->curAnims[i][channel];
+			animstate_t *currAnim = &pmodel->animState.curAnims[i][channel];
 
 			// see if there are new animations to be played
-			if( anim->pending[channel].animations[i] != ANIM_NONE ) {
-				if( channel == EVENT_CHANNEL || ( channel == BASE_CHANNEL && anim->pending[channel].animations[i] != currAnim->anim ) ) {
-					currAnim->anim = anim->pending[channel].animations[i];
+			if( pmodel->animState.pending[channel].parts[i] != ANIM_NONE ) {
+				if( channel == EVENT_CHANNEL || ( channel == BASE_CHANNEL && pmodel->animState.pending[channel].parts[i] != currAnim->anim ) ) {
+					currAnim->anim = pmodel->animState.pending[channel].parts[i];
 					currAnim->startTimestamp = curTime;
 				}
 
-				anim->pending[channel].animations[i] = ANIM_NONE;
+				pmodel->animState.pending[channel].parts[i] = ANIM_NONE;
 			}
+		}
 
-			if( currAnim->anim ) {
-				bool forceLoop = channel == BASE_CHANNEL;
-
-				currAnim->lerpFrac = GS_FrameForTime( &currAnim->frame, curTime, currAnim->startTimestamp,
-					animSet->frametime[currAnim->anim], animSet->firstframe[currAnim->anim], animSet->lastframe[currAnim->anim],
-					animSet->loopingframes[currAnim->anim], forceLoop );
-
-				// the animation was completed
-				if( currAnim->frame < 0 ) {
-					assert( channel != BASE_CHANNEL );
-					currAnim->anim = ANIM_NONE;
-				}
-			}
+		times[ i ] = GetAnimationTime( pmodel->metadata, curTime, pmodel->animState.curAnims[ i ][ EVENT_CHANNEL ], false );
+		if( times[ i ] == -1.0f ) {
+			pmodel->animState.curAnims[ i ][ EVENT_CHANNEL ].anim = ANIM_NONE;
+			times[ i ] = GetAnimationTime( pmodel->metadata, curTime, pmodel->animState.curAnims[ i ][ BASE_CHANNEL ], true );
 		}
 	}
 
-	// we set all animations up, but now select which ones are going to be shown
-	for( int i = LOWER; i < PMODEL_PARTS; i++ ) {
-		int lastframe = anim->frame[i];
-		int channel = ( anim->curAnims[i][EVENT_CHANNEL].anim != ANIM_NONE ) ? EVENT_CHANNEL : BASE_CHANNEL;
-		anim->frame[i] = anim->curAnims[i][channel].frame;
-		anim->lerpFrac[i] = anim->curAnims[i][channel].lerpFrac;
-		if( !lastframe || !anim->oldframe[i] ) {
-			anim->oldframe[i] = anim->frame[i];
-		} else if( anim->frame[i] != lastframe ) {
-			anim->oldframe[i] = lastframe;
-		}
-	}
+	*lower_time = times[ LOWER ];
+	*upper_time = times[ UPPER ];
 }
 
 void CG_PModel_ClearEventAnimations( int entNum ) {
 	pmodel_animationstate_t & animState = cg_entPModels[ entNum ].animState;
 	for( int i = LOWER; i < PMODEL_PARTS; i++ ) {
 		animState.curAnims[ i ][ EVENT_CHANNEL ].anim = ANIM_NONE;
-		animState.pending[ EVENT_CHANNEL ].animations[ i ] = ANIM_NONE;
+		animState.pending[ EVENT_CHANNEL ].parts[ i ] = ANIM_NONE;
 	}
 }
 
 void CG_PModel_AddAnimation( int entNum, int loweranim, int upperanim, int headanim, int channel ) {
 	PlayerModelAnimationSet & pending = cg_entPModels[entNum].animState.pending[ channel ];
 	if( loweranim != ANIM_NONE )
-		pending.animations[ LOWER ] = loweranim;
+		pending.parts[ LOWER ] = loweranim;
 	if( upperanim != ANIM_NONE )
-		pending.animations[ UPPER ] = upperanim;
+		pending.parts[ UPPER ] = upperanim;
 	if( headanim != ANIM_NONE )
-		pending.animations[ HEAD ] = headanim;
+		pending.parts[ HEAD ] = headanim;
 }
 
 
@@ -893,7 +809,7 @@ void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
 */
 static void CG_UpdatePModelAnimations( centity_t *cent ) {
 	PlayerModelAnimationSet a = CG_GetBaseAnims( &cent->current, cent->animVelocity );
-	CG_PModel_AddAnimation( cent->current.number, a.animations[LOWER], a.animations[UPPER], a.animations[HEAD], BASE_CHANNEL );
+	CG_PModel_AddAnimation( cent->current.number, a.parts[LOWER], a.parts[UPPER], a.parts[HEAD], BASE_CHANNEL );
 }
 
 /*
@@ -910,7 +826,7 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	cent->ent.renderfx = cent->renderfx;
 
 	pmodel = &cg_entPModels[cent->current.number];
-	CG_PModelForCentity( cent, &pmodel->pmodelinfo, &pmodel->skin );
+	CG_PModelForCentity( cent, &pmodel->metadata, &pmodel->skin );
 
 	CG_TeamColorForEntity( cent->current.number, cent->ent.shaderRGBA );
 
@@ -928,15 +844,9 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	}
 
 	// fallback
-	if( !pmodel->pmodelinfo || !pmodel->skin ) {
-		pmodel->pmodelinfo = cgs.basePModelInfo;
+	if( !pmodel->metadata || !pmodel->skin ) {
+		pmodel->metadata = cgs.basePModelInfo;
 		pmodel->skin = cgs.baseSkin;
-	}
-
-	// make sure al poses have their memory space
-	cent->skel = CG_SkeletonForModel( pmodel->pmodelinfo->model );
-	if( !cent->skel ) {
-		CG_Error( "CG_PlayerModelEntityNewState: ET_PLAYER without a skeleton\n" );
 	}
 
 	// Spawning (teleported bit) forces nobacklerp and the interruption of EVENT_CHANNEL animations
@@ -1026,10 +936,8 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 			VectorCopy( pmodel->angles[i], pmodel->oldangles[i] );
 	}
 
-	cent->pendingAnimationsUpdate = true;
+	CG_UpdatePModelAnimations( cent );
 }
-
-static bonepose_t blendpose[SKM_MAX_BONES];
 
 /*
 * CG_AddPModel
@@ -1038,14 +946,9 @@ void CG_AddPModel( centity_t *cent ) {
 	pmodel_t *pmodel;
 	vec3_t tmpangles;
 	orientation_t tag_weapon;
-	pmodel_animationstate_t *animState;
-
-	if( cent->pendingAnimationsUpdate ) {
-		CG_UpdatePModelAnimations( cent );
-		cent->pendingAnimationsUpdate = false;
-	}
 
 	pmodel = &cg_entPModels[cent->current.number];
+	const PlayerModelMetadata * meta = pmodel->metadata;
 
 	// if viewer model, and casting shadows, offset the entity to predicted player position
 	// for view and shadow accuracy
@@ -1073,27 +976,11 @@ void CG_AddPModel( centity_t *cent ) {
 		VectorCopy( org, cent->ent.origin2 );
 	}
 
-	animState = &pmodel->animState;
-
-	// transform animation values into frames, and set up old-current poses pair
-	CG_PModel_AnimToFrame( cg.time, &pmodel->pmodelinfo->animSet, animState );
-
-	// register temp boneposes for this skeleton
-	if( !cent->skel ) {
-		CG_Error( "CG_PlayerModelEntityAddToScene: ET_PLAYER without a skeleton\n" );
-	}
-	cent->ent.boneposes = CG_RegisterTemporaryExternalBoneposes( cent->skel );
-	cent->ent.oldboneposes = cent->ent.boneposes;
-
-	// fill base pose with lower animation already interpolated
-	CG_LerpSkeletonPoses( cent->skel, animState->frame[LOWER], animState->oldframe[LOWER], cent->ent.boneposes, animState->lerpFrac[LOWER] );
-
-	// create an interpolated pose of the animation to be blent
-	CG_LerpSkeletonPoses( cent->skel, animState->frame[UPPER], animState->oldframe[UPPER], blendpose, animState->lerpFrac[UPPER] );
-
-	// blend it into base pose
-	int rootanim = pmodel->pmodelinfo->upper_root_joint;
-	CG_RecurseBlendSkeletalBone( blendpose, cent->ent.boneposes, CG_BoneNodeFromNum( cent->skel, rootanim ), 1.0f );
+	float lower_time, upper_time;
+	CG_GetAnimationTimes( pmodel, cg.time, &lower_time, &upper_time );
+	Span< TRS > lower = R_SampleAnimation( cls.frame_arena, meta->model, lower_time );
+	Span< TRS > upper = R_SampleAnimation( cls.frame_arena, meta->model, upper_time );
+	R_MergeLowerUpperPoses( lower, upper, meta->model, meta->upper_root_joint );
 
 	// add skeleton effects (pose is unmounted yet)
 	if( cent->current.type != ET_CORPSE ) {
@@ -1116,31 +1003,24 @@ void CG_AddPModel( centity_t *cent ) {
 			tmpangles[i] = LerpAngle( pmodel->oldangles[UPPER][i], pmodel->angles[UPPER][i], cg.lerpfrac ) / 2.0f;
 		}
 
-		CG_RotateBonePose( tmpangles, &cent->ent.boneposes[pmodel->pmodelinfo->upper_rotator_joints[0]] );
-		CG_RotateBonePose( tmpangles, &cent->ent.boneposes[pmodel->pmodelinfo->upper_rotator_joints[1]] );
+		// lower[ meta->upper_rotator_joints[ 0 ] ].rotation *= Quaternion( tmpangles );
+		// lower[ meta->upper_rotator_joints[ 1 ] ].rotation *= Quaternion( tmpangles );
 
 		for( int i = 0; i < 3; i++ ) {
 			tmpangles[i] = LerpAngle( pmodel->oldangles[HEAD][i], pmodel->angles[HEAD][i], cg.lerpfrac );
 		}
 
-		CG_RotateBonePose( tmpangles, &cent->ent.boneposes[pmodel->pmodelinfo->head_rotator_joint] );
+		// lower[ meta->head_rotator_joint ].rotation *= Quaternion( tmpangles );
 	}
-
-	// finish (mount) pose. Now it's the final skeleton just as it's drawn.
-	CG_TransformBoneposes( cent->skel, cent->ent.boneposes, cent->ent.boneposes );
-
-	// Vic: Hack in frame numbers to aid frustum culling
-	cent->ent.backlerp = 1.0f - cg.lerpfrac;
-	cent->ent.frame = pmodel->animState.frame[LOWER];
-	cent->ent.oldframe = pmodel->animState.oldframe[LOWER];
 
 	// Add playermodel ent
 	cent->ent.scale = 1.0f;
 	cent->ent.rtype = RT_MODEL;
-	cent->ent.model = pmodel->pmodelinfo->model;
+	cent->ent.model = meta->model;
 	cent->ent.customShader = NULL;
 	cent->ent.customSkin = pmodel->skin;
 	cent->ent.renderfx |= RF_NOSHADOW;
+	cent->ent.pose = R_ComputeMatrixPalettes( cls.frame_arena, meta->model, lower );
 
 	if( !( cent->renderfx & RF_NOSHADOW ) ) {
 		CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );

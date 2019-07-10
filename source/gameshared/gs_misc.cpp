@@ -99,59 +99,6 @@ void GS_BBoxForEntityState( entity_state_t *state, vec3_t mins, vec3_t maxs ) {
 	}
 }
 
-/*
-* GS_FrameForTime
-* Returns the frame and interpolation fraction for current time in an animation started at a given time.
-* When the animation is finished it will return frame -1. Takes looping into account. Looping animations
-* are never finished.
-*/
-float GS_FrameForTime( int *frame, int64_t curTime, int64_t startTimeStamp, float frametime, int firstframe, int lastframe, int loopingframes, bool forceLoop ) {
-	int64_t runningtime, framecount;
-	int curframe;
-	float framefrac;
-
-	if( curTime <= startTimeStamp ) {
-		*frame = firstframe;
-		return 0.0f;
-	}
-
-	if( firstframe == lastframe ) {
-		*frame = firstframe;
-		return 1.0f;
-	}
-
-	runningtime = curTime - startTimeStamp;
-	framefrac = ( (double)runningtime / (double)frametime );
-	framecount = (unsigned int)framefrac;
-	framefrac -= framecount;
-
-	curframe = firstframe + framecount;
-	if( curframe > lastframe ) {
-		if( forceLoop && !loopingframes ) {
-			loopingframes = lastframe - firstframe;
-		}
-
-		if( loopingframes ) {
-			unsigned int numloops;
-			unsigned int startcount;
-
-			startcount = ( lastframe - firstframe ) - loopingframes;
-
-			numloops = ( framecount - startcount ) / loopingframes;
-			curframe -= loopingframes * numloops;
-			if( loopingframes == 1 ) {
-				framefrac = 1.0f;
-			}
-		} else {
-			curframe = -1;
-		}
-	}
-
-	*frame = curframe;
-
-	return framefrac;
-}
-
 //============================================================================
 
 /*

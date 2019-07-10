@@ -107,45 +107,49 @@ typedef struct {
 } animstate_t;
 
 struct PlayerModelAnimationSet {
-	int animations[PMODEL_PARTS];
+	int parts[PMODEL_PARTS];
 };
 
 typedef struct {
 	// animations in the mixer
 	animstate_t curAnims[PMODEL_PARTS][PLAYERANIM_CHANNELS];
 	PlayerModelAnimationSet pending[PLAYERANIM_CHANNELS];
-
-	// results
-	int frame[PMODEL_PARTS];
-	int oldframe[PMODEL_PARTS];
-	float lerpFrac[PMODEL_PARTS];
 } pmodel_animationstate_t;
 
-typedef struct {
-	int firstframe[PMODEL_TOTAL_ANIMATIONS];
-	int lastframe[PMODEL_TOTAL_ANIMATIONS];
-	int loopingframes[PMODEL_TOTAL_ANIMATIONS];
-	float frametime[PMODEL_TOTAL_ANIMATIONS];
-} pmodel_animationset_t;
-
 struct PlayerModelMetadata {
-	char *name;
+	struct Tag {
+		u8 joint_idx;
+		Vec3 translation;
+		Vec3 rotation;
+	};
 
-	struct model_s *model;
-	struct cg_sexedSfx_s *sexedSfx;
+	struct AnimationClip {
+		float start_time;
+		float duration;
+		float loop_from; // we only loop the last part of the animation
+	};
 
-	int upper_rotator_joints[ 2 ];
-	int head_rotator_joint;
-	int upper_root_joint;
+	char * name;
 
-	pmodel_animationset_t animSet; // animation script
+	struct model_s * model;
+	struct cg_sexedSfx_s * sexedSfx;
+
+	u8 upper_rotator_joints[ 2 ];
+	u8 head_rotator_joint;
+	u8 upper_root_joint;
+
+	Tag tag_backpack;
+	Tag tag_head;
+	Tag tag_weapon;
+
+	AnimationClip clips[ PMODEL_TOTAL_ANIMATIONS ];
 
 	PlayerModelMetadata *next;
 };
 
 typedef struct {
 	// static data
-	PlayerModelMetadata *pmodelinfo;
+	PlayerModelMetadata * metadata;
 	struct skinfile_s *skin;
 
 	// dynamic

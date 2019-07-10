@@ -100,7 +100,6 @@ typedef struct {
 	byte_vec4_t outlineColor;
 
 	// used for client side animation of player models
-	bool pendingAnimationsUpdate;
 	int lastVelocitiesFrames[4];
 	float lastVelocities[4][4];
 	bool jumpedLeft;

@@ -118,6 +118,60 @@ static int CG_ViewWeapon_baseanimFromWeaponState( int weaponState ) {
 }
 
 /*
+* CG_FrameForTime
+* Returns the frame and interpolation fraction for current time in an animation started at a given time.
+* When the animation is finished it will return frame -1. Takes looping into account. Looping animations
+* are never finished.
+*/
+static float CG_FrameForTime( int *frame, int64_t curTime, int64_t startTimeStamp, float frametime, int firstframe, int lastframe, int loopingframes, bool forceLoop ) {
+	int64_t runningtime, framecount;
+	int curframe;
+	float framefrac;
+
+	if( curTime <= startTimeStamp ) {
+		*frame = firstframe;
+		return 0.0f;
+	}
+
+	if( firstframe == lastframe ) {
+		*frame = firstframe;
+		return 1.0f;
+	}
+
+	runningtime = curTime - startTimeStamp;
+	framefrac = ( (double)runningtime / (double)frametime );
+	framecount = (unsigned int)framefrac;
+	framefrac -= framecount;
+
+	curframe = firstframe + framecount;
+	if( curframe > lastframe ) {
+		if( forceLoop && !loopingframes ) {
+			loopingframes = lastframe - firstframe;
+		}
+
+		if( loopingframes ) {
+			unsigned int numloops;
+			unsigned int startcount;
+
+			startcount = ( lastframe - firstframe ) - loopingframes;
+
+			numloops = ( framecount - startcount ) / loopingframes;
+			curframe -= loopingframes * numloops;
+			if( loopingframes == 1 ) {
+				framefrac = 1.0f;
+			}
+		} else {
+			curframe = -1;
+		}
+	}
+
+	*frame = curframe;
+
+	return framefrac;
+}
+
+
+/*
 * CG_ViewWeapon_RefreshAnimation
 */
 void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
@@ -171,7 +225,7 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 			viewweapon->eventAnimStartTime = cg.time;
 		}
 
-		framefrac = GS_FrameForTime( &curframe, cg.time, viewweapon->eventAnimStartTime, weaponInfo->frametime[viewweapon->eventAnim],
+		framefrac = CG_FrameForTime( &curframe, cg.time, viewweapon->eventAnimStartTime, weaponInfo->frametime[viewweapon->eventAnim],
 									 weaponInfo->firstframe[viewweapon->eventAnim], weaponInfo->lastframe[viewweapon->eventAnim],
 									 weaponInfo->loopingframes[viewweapon->eventAnim], false );
 
@@ -185,7 +239,7 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 	}
 
 	// find new frame for the current animation
-	framefrac = GS_FrameForTime( &curframe, cg.time, viewweapon->baseAnimStartTime, weaponInfo->frametime[viewweapon->baseAnim],
+	framefrac = CG_FrameForTime( &curframe, cg.time, viewweapon->baseAnimStartTime, weaponInfo->frametime[viewweapon->baseAnim],
 								 weaponInfo->firstframe[viewweapon->baseAnim], weaponInfo->lastframe[viewweapon->baseAnim],
 								 weaponInfo->loopingframes[viewweapon->baseAnim], true );
 

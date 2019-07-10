@@ -36,8 +36,6 @@ end of unit intermissions
 #include "qalgo/rng.h"
 #include "client/ui.h"
 
-vrect_t scr_vrect;
-
 cvar_t *cg_centerTime;
 cvar_t *cg_showFPS;
 cvar_t *cg_showPointedPlayer;
@@ -112,19 +110,6 @@ static void CG_DrawCenterString( void ) {
 	}
 
 	trap_SCR_DrawMultilineString( cgs.vidWidth / 2, y, helpmessage, ALIGN_CENTER_TOP, cgs.vidWidth, 0, font, colorWhite );
-}
-
-//=============================================================================
-
-/*
-* CG_CalcVrect
-*
-* Sets scr_vrect, the coordinates of the rendered window
-*/
-void CG_CalcVrect( void ) {
-	scr_vrect.width = cgs.vidWidth;
-	scr_vrect.height = cgs.vidHeight;
-	scr_vrect.x = scr_vrect.y = 0;
 }
 
 //============================================================================

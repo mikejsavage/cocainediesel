@@ -645,15 +645,15 @@ static void CG_SetupRefDef( cg_viewdef_t *view, refdef_t *rd ) {
 	memset( rd, 0, sizeof( *rd ) );
 
 	// view rectangle size
-	rd->x = scr_vrect.x;
-	rd->y = scr_vrect.y;
-	rd->width = scr_vrect.width;
-	rd->height = scr_vrect.height;
+	rd->x = 0;
+	rd->y = 0;
+	rd->width = cgs.vidWidth;
+	rd->height = cgs.vidHeight;
 
-	rd->scissor_x = scr_vrect.x;
-	rd->scissor_y = scr_vrect.y;
-	rd->scissor_width = scr_vrect.width;
-	rd->scissor_height = scr_vrect.height;
+	rd->scissor_x = 0;
+	rd->scissor_y = 0;
+	rd->scissor_width = cgs.vidWidth;
+	rd->scissor_height = cgs.vidHeight;
 
 	rd->fov_x = view->fov_x;
 	rd->fov_y = view->fov_y;
@@ -775,7 +775,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 		view->fov_y = WidescreenFov( CG_DemoCam_GetOrientation( view->origin, view->angles, view->velocity ) );
 	}
 
-	view->fov_x = CalcHorizontalFov( view->fov_y, scr_vrect.width, scr_vrect.height );
+	view->fov_x = CalcHorizontalFov( view->fov_y, cgs.vidWidth, cgs.vidHeight );
 
 	Matrix3_FromAngles( view->angles, view->axis );
 
@@ -884,8 +884,6 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 	}
 
 	CG_FlashGameWindow(); // notify player of important game events
-
-	CG_CalcVrect(); // find sizes of the 3d drawing screen
 
 	CG_UpdateChaseCam();
 

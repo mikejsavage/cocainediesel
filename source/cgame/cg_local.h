@@ -54,10 +54,6 @@ enum {
 };
 
 typedef struct {
-	int x, y, width, height;
-} vrect_t;
-
-typedef struct {
 	entity_state_t current;
 	entity_state_t prev;        // will always be valid, but might just be a copy of current
 
@@ -584,8 +580,6 @@ void CG_Predict_TouchTriggers( pmove_t *pm, vec3_t previous_origin );
 //
 // cg_screen.c
 //
-extern vrect_t scr_vrect;
-
 extern cvar_t *cg_scoreboardStats;
 extern cvar_t *cg_scoreboardWidthScale;
 extern cvar_t *cg_showFPS;
@@ -594,7 +588,6 @@ extern cvar_t *cg_showAwards;
 void CG_ScreenInit( void );
 void CG_Draw2D( void );
 void CG_DrawHUD( void );
-void CG_CalcVrect( void );
 void CG_DrawLoading( void );
 void CG_CenterPrint( const char *str );
 

@@ -299,7 +299,7 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	if( cg_gun_fov->integer && !cg.predictedPlayerState.pmove.stats[PM_STAT_ZOOMTIME] ) {
 		float fracWeapFOV;
 		float gun_fov_y = WidescreenFov( bound( 20, cg_gun_fov->value, 160 ) );
-		float gun_fov_x = CalcHorizontalFov( gun_fov_y, scr_vrect.width, scr_vrect.height );
+		float gun_fov_x = CalcHorizontalFov( gun_fov_y, cgs.vidWidth, cgs.vidHeight );
 
 		fracWeapFOV = tan( DEG2RAD( gun_fov_x ) * 0.5f ) / cg.view.fracDistFOV;
 

@@ -13,7 +13,7 @@ void QF_VertexSkinnedTransform( inout vec4 position, inout vec3 normal ) {
 		a_JointWeights.w * u_SkinningMatrices[ a_JointIndices.w ];
 
 	position = skin * position;
-	normal = normalize( ( skin * vec4( normal, 0.0 ) ).xyz );
+	normal = normalize( mat3( skin ) * normal );
 }
 
 void QF_VertexSkinnedTransform_Tangent( inout vec4 position, inout vec3 normal, inout vec3 tangent ) {
@@ -24,8 +24,8 @@ void QF_VertexSkinnedTransform_Tangent( inout vec4 position, inout vec3 normal, 
 		a_JointWeights.w * u_SkinningMatrices[ a_JointIndices.w ];
 
 	position = skin * position;
-	normal = normalize( ( skin * vec4( normal, 0.0 ) ).xyz );
-	tangent = normalize( ( skin * vec4( tangent, 0.0 ) ).xyz );
+	normal = normalize( mat3( skin ) * normal );
+	tangent = normalize( mat3( skin ) * tangent );
 }
 
 #endif

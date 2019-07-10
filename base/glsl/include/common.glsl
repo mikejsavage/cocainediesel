@@ -42,6 +42,10 @@ float LinearizeDepth(float ndc, float nearclip)
 	return nearclip / (1.0 - ndc);
 }
 
+vec3 NormalToRGB( vec3 normal ) {
+	return ( normal + 1.0 ) * 0.5;
+}
+
 #ifdef APPLY_SRGB2LINEAR
 # define LinearColor(c) LinearFromsRGB(c)
 #else

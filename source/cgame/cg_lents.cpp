@@ -60,8 +60,7 @@ struct LocalEntity {
 
 	int frames;
 
-	cgs_skeleton_t *skel;
-	bonepose_t *static_boneposes;
+	MatrixPalettes pose_memory;
 };
 
 LocalEntity cg_localents[MAX_LOCAL_ENTITIES];
@@ -146,9 +145,11 @@ static LocalEntity *CG_AllocLocalEntity( LocalEntityType type, float r, float g,
 * CG_FreeLocalEntity
 */
 static void CG_FreeLocalEntity( LocalEntity *le ) {
-	if( le->static_boneposes ) {
-		CG_Free( le->static_boneposes );
-		le->static_boneposes = NULL;
+	if( le->pose_memory.joint_poses.ptr ) {
+		CG_Free( le->pose_memory.joint_poses.ptr );
+		CG_Free( le->pose_memory.skinning_matrices.ptr );
+		le->pose_memory.joint_poses = Span< Mat4 >();
+		le->pose_memory.skinning_matrices = Span< Mat4 >();
 	}
 
 	// remove from linked active list
@@ -732,23 +733,16 @@ void CG_BloodDamageEffect( const vec3_t origin, const vec3_t dir, int damage, in
 * CG_PModel_SpawnTeleportEffect
 */
 void CG_PModel_SpawnTeleportEffect( centity_t *cent ) {
-	int j;
-	cgs_skeleton_t *skel;
 	LocalEntity *le;
 	vec3_t teleportOrigin;
 	vec3_t rgb;
 
-	skel = CG_SkeletonForModel( cent->ent.model );
-	if( !skel || !cent->ent.boneposes ) {
-		return;
-	}
-
-	for( j = LOCALEFFECT_EV_PLAYER_TELEPORT_IN; j <= LOCALEFFECT_EV_PLAYER_TELEPORT_OUT; j++ ) {
-		if( cent->localEffects[j] ) {
-			cent->localEffects[j] = 0;
+	for( int i = LOCALEFFECT_EV_PLAYER_TELEPORT_IN; i <= LOCALEFFECT_EV_PLAYER_TELEPORT_OUT; i++ ) {
+		if( cent->localEffects[i] ) {
+			cent->localEffects[i] = 0;
 
 			VectorSet( rgb, 0.5, 0.5, 0.5 );
-			if( j == LOCALEFFECT_EV_PLAYER_TELEPORT_OUT ) {
+			if( i == LOCALEFFECT_EV_PLAYER_TELEPORT_OUT ) {
 				VectorCopy( cent->teleportedFrom, teleportOrigin );
 			} else {
 				VectorCopy( cent->teleportedTo, teleportOrigin );
@@ -765,18 +759,18 @@ void CG_PModel_SpawnTeleportEffect( centity_t *cent ) {
 								rgb[0], rgb[1], rgb[2], 1, 0, 0, 0, 0, cent->ent.model,
 								CG_MediaShader( cgs.media.shaderTeleportShellGfx ) );
 
-			if( cent->skel ) {
-				// use static bone pose, no animation
-				le->skel = cent->skel;
-				le->static_boneposes = ( bonepose_t * )CG_Malloc( sizeof( bonepose_t ) * le->skel->numBones );
-				memcpy( le->static_boneposes, cent->ent.boneposes, sizeof( bonepose_t ) * le->skel->numBones );
-				le->ent.boneposes = le->static_boneposes;
-				le->ent.oldboneposes = le->ent.boneposes;
-			}
+			Mat4 * joint_poses = ( Mat4 * ) CG_Malloc( sizeof( Mat4 ) * cent->ent.pose.joint_poses.n );
+			Mat4 * skinning_matrices = ( Mat4 * ) CG_Malloc( sizeof( Mat4 ) * cent->ent.pose.skinning_matrices.n );
+			memcpy( joint_poses, cent->ent.pose.joint_poses.ptr, cent->ent.pose.joint_poses.num_bytes() );
+			memcpy( skinning_matrices, cent->ent.pose.skinning_matrices.ptr, cent->ent.pose.skinning_matrices.num_bytes() );
 
-			le->ent.frame = cent->ent.frame;
-			le->ent.oldframe = cent->ent.oldframe;
-			le->ent.backlerp = 1.0f;
+			MatrixPalettes pose;
+			pose.joint_poses = Span< Mat4 >( joint_poses, cent->ent.pose.joint_poses.n );
+			pose.skinning_matrices = Span< Mat4 >( skinning_matrices, cent->ent.pose.skinning_matrices.n );
+
+			le->pose_memory = pose;
+			le->ent.pose = pose;
+
 			Matrix3_Copy( cent->ent.axis, le->ent.axis );
 		}
 	}

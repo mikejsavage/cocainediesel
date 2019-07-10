@@ -52,8 +52,8 @@ void R_AddSkyToDrawList( const refdef_t * rd ) {
 	R_AddSurfToDrawList( rn.meshlist, rsc.skyent, sky_shader, 0, 0, &draw_surf );
 }
 
-void R_DrawSkyMesh( const entity_t * e, const shader_t * shader, const SkyDrawSurf * draw_surf ) {
-	RB_LoadProjectionMatrix( draw_surf->proj );
+void R_DrawSkyMesh( const entity_t * e, const shader_t * shader, const SkyDrawSurf * surf ) {
+	RB_LoadProjectionMatrix( surf->proj );
 
 	mat4_t model_to_world;
 	Matrix4_ObjectMatrix( rn.viewOrigin, rn.viewAxis, 1.0f, model_to_world );

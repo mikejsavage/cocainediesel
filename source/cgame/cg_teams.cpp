@@ -33,7 +33,7 @@ static bool CG_IsAlly( int team ) {
 	return team == myteam;
 }
 
-static void CG_RegisterForceModel( cvar_t *modelCvar, cvar_t *modelForceCvar, pmodelinfo_t **model, struct skinfile_s **skin ) {
+static void CG_RegisterForceModel( cvar_t *modelCvar, cvar_t *modelForceCvar, PlayerModelMetadata **model, struct skinfile_s **skin ) {
 	if( !modelCvar->modified && !modelForceCvar->modified )
 		return;
 	modelCvar->modified = false;
@@ -44,7 +44,7 @@ static void CG_RegisterForceModel( cvar_t *modelCvar, cvar_t *modelForceCvar, pm
 
 	if( modelForceCvar->integer ) {
 		const char * name = modelCvar->string;
-		pmodelinfo_t * new_model = CG_RegisterPlayerModel( va( "models/players/%s", name ) );
+		PlayerModelMetadata * new_model = CG_RegisterPlayerModel( va( "models/players/%s", name ) );
 		if( new_model == NULL ) {
 			name = modelCvar->dvalue;
 			new_model = CG_RegisterPlayerModel( va( "models/players/%s", name ) );
@@ -65,7 +65,7 @@ static void CG_CheckUpdateTeamModelRegistration( bool ally ) {
 	CG_RegisterForceModel( modelCvar, modelForceCvar, &cgs.teamModelInfo[ int( ally ) ], &cgs.teamCustomSkin[ int( ally ) ] );
 }
 
-void CG_PModelForCentity( centity_t *cent, pmodelinfo_t **pmodelinfo, struct skinfile_s **skin ) {
+void CG_PModelForCentity( centity_t *cent, PlayerModelMetadata **pmodelinfo, struct skinfile_s **skin ) {
 	centity_t * owner = cent;
 	if( cent->current.type == ET_CORPSE && cent->current.bodyOwner )
 		owner = &cg_entities[cent->current.bodyOwner];

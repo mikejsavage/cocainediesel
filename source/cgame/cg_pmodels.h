@@ -128,26 +128,24 @@ typedef struct {
 	float frametime[PMODEL_TOTAL_ANIMATIONS];
 } pmodel_animationset_t;
 
-//pmodelinfo_t is the playermodel structure as originally readed
-//Consider it static 'read-only', cause it is shared by different players
-typedef struct pmodelinfo_s {
+struct PlayerModelMetadata {
 	char *name;
 
 	struct model_s *model;
 	struct cg_sexedSfx_s *sexedSfx;
 
-	int numRotators[PMODEL_PARTS];
-	int rotator[PMODEL_PARTS][16];
-	int rootanims[PMODEL_PARTS];
+	int upper_rotator_joints[ 2 ];
+	int head_rotator_joint;
+	int upper_root_joint;
 
 	pmodel_animationset_t animSet; // animation script
 
-	struct pmodelinfo_s *next;
-} pmodelinfo_t;
+	PlayerModelMetadata *next;
+};
 
 typedef struct {
 	// static data
-	pmodelinfo_t *pmodelinfo;
+	PlayerModelMetadata *pmodelinfo;
 	struct skinfile_s *skin;
 
 	// dynamic
@@ -186,7 +184,7 @@ void CG_PModelsInit( void );
 void CG_PModelsShutdown( void );
 void CG_ResetPModels( void );
 void CG_RegisterBasePModel( void );
-struct pmodelinfo_s *CG_RegisterPlayerModel( const char *filename );
+PlayerModelMetadata *CG_RegisterPlayerModel( const char *filename );
 void CG_AddPModel( centity_t *cent );
 bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result );
 void CG_UpdatePlayerModelEnt( centity_t *cent );

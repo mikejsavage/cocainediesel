@@ -375,12 +375,12 @@ typedef struct {
 
 	struct model_s *modelDraw[MAX_MODELS];
 
-	struct pmodelinfo_s *pModelsIndex[MAX_MODELS];
-	struct pmodelinfo_s *basePModelInfo; //fall back replacements
+	PlayerModelMetadata *pModelsIndex[MAX_MODELS];
+	PlayerModelMetadata *basePModelInfo; //fall back replacements
 	struct skinfile_s *baseSkin;
 
 	// force models
-	struct pmodelinfo_s *teamModelInfo[2];
+	PlayerModelMetadata *teamModelInfo[2];
 	struct skinfile_s *teamCustomSkin[2]; // user defined
 
 	struct sfx_s *soundPrecache[MAX_SOUNDS];
@@ -563,7 +563,7 @@ extern cvar_t *cg_hand;
 
 void CG_ResetClientInfos( void );
 void CG_LoadClientInfo( int client );
-void CG_UpdateSexedSoundsRegistration( pmodelinfo_t *pmodelinfo );
+void CG_UpdateSexedSoundsRegistration( PlayerModelMetadata *pmodelinfo );
 void CG_SexedSound( int entnum, int entchannel, const char *name, float volume, float attn );
 struct sfx_s *CG_RegisterSexedSound( int entnum, const char *name );
 
@@ -746,7 +746,7 @@ void CG_SC_AutoRecordAction( const char *action );
 // cg_teams.c
 //
 void CG_RegisterForceModels();
-void CG_PModelForCentity( centity_t *cent, pmodelinfo_t **pmodelinfo, struct skinfile_s **skin );
+void CG_PModelForCentity( centity_t *cent, PlayerModelMetadata **pmodelinfo, struct skinfile_s **skin );
 void CG_TeamColor( int team, vec4_t color );
 void CG_TeamColorForEntity( int entNum, byte_vec4_t color );
 

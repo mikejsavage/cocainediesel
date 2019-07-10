@@ -37,7 +37,7 @@ static const char *cg_defaultSexedSounds[] =
 /*
 * CG_RegisterPmodelSexedSound
 */
-static struct sfx_s *CG_RegisterPmodelSexedSound( pmodelinfo_t *pmodelinfo, const char *name ) {
+static struct sfx_s *CG_RegisterPmodelSexedSound( PlayerModelMetadata *pmodelinfo, const char *name ) {
 	char *p, *s, model[MAX_QPATH];
 	cg_sexedSfx_t *sexedSfx;
 	char oname[MAX_QPATH];
@@ -93,7 +93,7 @@ static struct sfx_s *CG_RegisterPmodelSexedSound( pmodelinfo_t *pmodelinfo, cons
 /*
 * CG_UpdateSexedSoundsRegistration
 */
-void CG_UpdateSexedSoundsRegistration( pmodelinfo_t *pmodelinfo ) {
+void CG_UpdateSexedSoundsRegistration( PlayerModelMetadata *pmodelinfo ) {
 	cg_sexedSfx_t *sexedSfx, *next;
 	const char *name;
 	int i;

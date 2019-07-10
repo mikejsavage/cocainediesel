@@ -547,7 +547,7 @@ void R_DrawAliasSurf( const entity_t *e, const shader_t *shader, const drawSurfa
 
 		RB_DrawElements( 0, aliasmesh->numverts, 0, aliasmesh->numtris * 3 );
 	} else {
-		mesh_t dynamicMesh;
+		mesh_t dynamicMesh = { };
 		vec4_t *inVertsArray;
 		vec4_t *inNormalsArray;
 		vec4_t *inSVectorsArray;
@@ -556,8 +556,6 @@ void R_DrawAliasSurf( const entity_t *e, const shader_t *shader, const drawSurfa
 		calcVerts = ( framenum || oldframenum ) ? true : false;
 		calcNormals = ( ( ( vattribs & VATTRIB_NORMAL_BIT ) != 0 ) && calcVerts ) ? true : false;
 		calcSTVectors = ( ( ( vattribs & VATTRIB_SVECTOR_BIT ) != 0 ) && calcNormals ) ? true : false;
-
-		memset( &dynamicMesh, 0, sizeof( dynamicMesh ) );
 
 		dynamicMesh.elems = aliasmesh->elems;
 		dynamicMesh.numElems = aliasmesh->numtris * 3;

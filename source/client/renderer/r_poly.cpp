@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 * R_BatchPolySurf
 */
 void R_BatchPolySurf( const entity_t *e, const shader_t *shader, drawSurfacePoly_t *poly, bool mergable ) {
-	mesh_t mesh;
+	mesh_t mesh = { };
 
 	mesh.elems = poly->elems;
 	mesh.numElems = poly->numElems;
@@ -35,7 +35,6 @@ void R_BatchPolySurf( const entity_t *e, const shader_t *shader, drawSurfacePoly
 	mesh.normalsArray = poly->normalsArray;
 	mesh.stArray = poly->stArray;
 	mesh.colorsArray = poly->colorsArray;
-	mesh.sVectorsArray = NULL;
 
 	RB_AddDynamicMesh( e, shader, &mesh, GL_TRIANGLES );
 }

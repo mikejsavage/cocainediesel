@@ -132,7 +132,7 @@ void R_BatchSpriteSurf( const entity_t *e, const shader_t *shader, drawSurfaceTy
 	vec4_t normals[4] = { {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0} };
 	byte_vec4_t colors[4];
 	vec2_t texcoords[4] = { {0, 1}, {0, 0}, {1,0}, {1,1} };
-	mesh_t mesh;
+	mesh_t mesh = { };
 	float radius = e->radius * e->scale;
 	float rotation = e->rotation;
 
@@ -164,7 +164,6 @@ void R_BatchSpriteSurf( const entity_t *e, const shader_t *shader, drawSurfaceTy
 	mesh.normalsArray = normals;
 	mesh.stArray = texcoords;
 	mesh.colorsArray = colors;
-	mesh.sVectorsArray = NULL;
 
 	RB_AddDynamicMesh( e, shader, &mesh, GL_TRIANGLES );
 }

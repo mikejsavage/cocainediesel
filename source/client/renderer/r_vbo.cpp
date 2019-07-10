@@ -158,7 +158,7 @@ mesh_vbo_t *R_CreateMeshVBO( void *owner, int numVerts, int numElems, int numIns
 		halfFloatVattribs &= ~( VATTRIB_AUTOSPRITE_BIT );
 	}
 
-	halfFloatVattribs &= ~VATTRIB_COLORS_BITS;
+	halfFloatVattribs &= ~VATTRIB_COLOR0_BIT;
 	halfFloatVattribs &= ~VATTRIB_BONES_BITS;
 	halfFloatVattribs &= ~VATTRIB_JOINTS_BITS;
 

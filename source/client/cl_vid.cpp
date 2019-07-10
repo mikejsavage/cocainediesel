@@ -105,9 +105,6 @@ static void VID_LoadRefresh() {
 	import.FS_RemoveDirectory = &FS_RemoveDirectory;
 	import.FS_WriteDirectory = &FS_WriteDirectory;
 
-	import.Thread_Create = QThread_Create;
-	import.Thread_Join = QThread_Join;
-	import.Thread_Yield = QThread_Yield;
 	import.Mutex_Create = QMutex_Create;
 	import.Mutex_Destroy = QMutex_Destroy;
 	import.Mutex_Lock = QMutex_Lock;

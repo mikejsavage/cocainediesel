@@ -25,9 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/patch.h"
 
 typedef struct mempool_s mempool_t;
-typedef struct qthread_s qthread_t;
-typedef struct qmutex_s qmutex_t;
-typedef struct qbufPipe_s qbufPipe_t;
 
 typedef unsigned short elem_t;
 
@@ -76,7 +73,6 @@ typedef vec_t instancePoint_t[8]; // quaternion for rotation + xyz pos + uniform
 #include "r_model.h"
 #include "r_trace.h"
 #include "r_program.h"
-#include "r_jobs.h"
 
 extern const elem_t r_boxedges[24];
 

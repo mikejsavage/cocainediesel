@@ -77,9 +77,6 @@ typedef struct {
 	const char * ( *FS_WriteDirectory )( void );
 
 	// multithreading
-	struct qthread_s *( *Thread_Create )( void *( *routine )( void* ), void *param );
-	void ( *Thread_Join )( struct qthread_s *thread );
-	void ( *Thread_Yield )( void );
 	struct qmutex_s *( *Mutex_Create )( void );
 	void ( *Mutex_Destroy )( struct qmutex_s **mutex );
 	void ( *Mutex_Lock )( struct qmutex_s *mutex );

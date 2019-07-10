@@ -842,8 +842,6 @@ void R_RenderView( const refdef_t *fd ) {
 		rf.stats.t_add_entities += ( ri.Sys_Milliseconds() - msec );
 	}
 
-	RJ_FinishJobs();
-
 	R_SortDrawList( rn.meshlist );
 
 	R_BindRefInstFBO();

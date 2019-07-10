@@ -410,8 +410,6 @@ bool R_Init() {
 	rf.speedsMsgLock = ri.Mutex_Create();
 	rf.debugSurfaceLock = ri.Mutex_Create();
 
-	RJ_Init();
-
 	R_InitDrawLists();
 
 	if( !R_RegisterGLExtensions() ) {
@@ -570,8 +568,6 @@ void R_Shutdown( bool verbose ) {
 
 	ri.Mutex_Destroy( &rf.speedsMsgLock );
 	ri.Mutex_Destroy( &rf.debugSurfaceLock );
-
-	RJ_Shutdown();
 
 	R_FrameCache_Free();
 

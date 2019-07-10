@@ -752,9 +752,6 @@ static void R_DrawEntities( void ) {
 			case ModelType_GLTF:
 				R_AddGLTFModelToDrawList( e );
 				break;
-			case mod_skeletal:
-				R_AddSkeletalModelToDrawList( e );
-				break;
 			case mod_brush:
 				R_AddBrushModelToDrawList( e );
 				rf.stats.c_ents_bmodels++;

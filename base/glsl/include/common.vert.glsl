@@ -1,59 +1,9 @@
-#ifdef QF_NUM_BONE_INFLUENCES
-
-qf_attribute vec4 a_BonesIndices, a_BonesWeights;
-uniform vec4 u_DualQuats[MAX_UNIFORM_BONES*2];
-
-void QF_VertexDualQuatsTransform(inout vec4 Position, inout vec3 Normal) {
-	ivec4 Indices = ivec4(a_BonesIndices * 2.0);
-	vec4 DQReal = u_DualQuats[Indices.x];
-	vec4 DQDual = u_DualQuats[Indices.x + 1];
-#if QF_NUM_BONE_INFLUENCES >= 2
-	DQReal *= a_BonesWeights.x;
-	DQDual *= a_BonesWeights.x;
-	vec4 DQReal1 = u_DualQuats[Indices.y];
-	vec4 DQDual1 = u_DualQuats[Indices.y + 1];
-	float Scale = mix(-1.0, 1.0, step(0.0, dot(DQReal1, DQReal))) * a_BonesWeights.y;
-	DQReal += DQReal1 * Scale;
-	DQDual += DQDual1 * Scale;
-#if QF_NUM_BONE_INFLUENCES >= 3
-	DQReal1 = u_DualQuats[Indices.z];
-	DQDual1 = u_DualQuats[Indices.z + 1];
-	Scale = mix(-1.0, 1.0, step(0.0, dot(DQReal1, DQReal))) * a_BonesWeights.z;
-	DQReal += DQReal1 * Scale;
-	DQDual += DQDual1 * Scale;
-#if QF_NUM_BONE_INFLUENCES >= 4
-	DQReal1 = u_DualQuats[Indices.w];
-	DQDual1 = u_DualQuats[Indices.w + 1];
-	Scale = mix(-1.0, 1.0, step(0.0, dot(DQReal1, DQReal))) * a_BonesWeights.w;
-	DQReal += DQReal1 * Scale;
-	DQDual += DQDual1 * Scale;
-#endif // QF_NUM_BONE_INFLUENCES >= 4
-#endif // QF_NUM_BONE_INFLUENCES >= 3
-	float Len = 1.0 / length(DQReal);
-	DQReal *= Len;
-	DQDual *= Len;
-#endif // QF_NUM_BONE_INFLUENCES >= 2
-	Position.xyz += (cross(DQReal.xyz, cross(DQReal.xyz, Position.xyz) + Position.xyz * DQReal.w + DQDual.xyz) +
-		DQDual.xyz*DQReal.w - DQReal.xyz*DQDual.w) * 2.0;
-	Normal += cross(DQReal.xyz, cross(DQReal.xyz, Normal) + Normal * DQReal.w) * 2.0;
-}
-
-void QF_VertexDualQuatsTransform_Tangent(inout vec4 Position, inout vec3 Normal, inout vec3 Tangent) {
-	QF_VertexDualQuatsTransform(Position, Normal);
-
-	ivec4 Indices = ivec4(a_BonesIndices * 2.0);
-	vec4 DQReal = u_DualQuats[Indices.x];
-	Tangent += cross(DQReal.xyz, cross(DQReal.xyz, Tangent) + Tangent * DQReal.w) * 2.0;
-}
-
-#endif
-
 #ifdef SKINNED
 
 qf_attribute uvec4 a_JointIndices;
 qf_attribute vec4 a_JointWeights;
 
-uniform mat4 u_SkinningMatrices[ MAX_UNIFORM_BONES ];
+uniform mat4 u_SkinningMatrices[ MAX_UNIFORM_JOINTS ];
 
 void QF_VertexSkinnedTransform( inout vec4 position, inout vec3 normal ) {
 	mat4 skin =
@@ -135,9 +85,6 @@ void QF_InstancedTransform(inout vec4 Position, inout vec3 Normal) {
 #endif
 
 void QF_TransformVerts(inout vec4 Position, inout vec3 Normal, inout vec2 TexCoord) {
-#ifdef QF_NUM_BONE_INFLUENCES
-	QF_VertexDualQuatsTransform(Position, Normal);
-#endif
 #ifdef SKINNED
 	QF_VertexSkinnedTransform(Position, Normal);
 #endif
@@ -150,9 +97,6 @@ void QF_TransformVerts(inout vec4 Position, inout vec3 Normal, inout vec2 TexCoo
 }
 
 void QF_TransformVerts_Tangent(inout vec4 Position, inout vec3 Normal, inout vec3 Tangent, inout vec2 TexCoord) {
-#ifdef QF_NUM_BONE_INFLUENCES
-	QF_VertexDualQuatsTransform_Tangent(Position, Normal, Tangent);
-#endif
 #ifdef SKINNED
 	QF_VertexSkinnedTransform_Tangent(Position, Normal, Tangent);
 #endif

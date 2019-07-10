@@ -86,9 +86,6 @@ typedef struct glsl_program_s {
 
 		int VectorTexMatrix;
 
-		int AttrBonesIndices;
-		int AttrBonesWeights;
-		int DualQuats;
 		int SkinningMatrices;
 
 		int InstancePoints;
@@ -154,7 +151,9 @@ void RP_Init( void ) {
 	RP_RegisterProgram( GLSL_PROGRAM_TYPE_COLOR_CORRECTION, DEFAULT_GLSL_COLORCORRECTION_PROGRAM, NULL, NULL, 0, 0 );
 	RP_RegisterProgram( GLSL_PROGRAM_TYPE_KAWASE_BLUR, DEFAULT_GLSL_KAWASE_BLUR_PROGRAM, NULL, NULL, 0, 0 );
 
-	RP_RegisterProgram( GLSL_PROGRAM_TYPE_MATERIAL, DEFAULT_GLSL_MATERIAL_PROGRAM, NULL, NULL, 0, GLSL_SHADER_COMMON_BONE_TRANSFORMS1 );
+	RP_RegisterProgram( GLSL_PROGRAM_TYPE_MATERIAL, DEFAULT_GLSL_Q3A_SHADER_PROGRAM, NULL, NULL, 0, GLSL_SHADER_COMMON_SKINNED );
+	RP_RegisterProgram( GLSL_PROGRAM_TYPE_MATERIAL, DEFAULT_GLSL_MATERIAL_PROGRAM, NULL, NULL, 0, GLSL_SHADER_COMMON_SKINNED );
+	RP_RegisterProgram( GLSL_PROGRAM_TYPE_MATERIAL, DEFAULT_GLSL_OUTLINE_PROGRAM, NULL, NULL, 0, GLSL_SHADER_COMMON_SKINNED );
 
 	r_glslprograms_initialized = true;
 }
@@ -529,11 +528,6 @@ static const glsl_feature_t glsl_features_material[] =
 {
 	{ GLSL_SHADER_COMMON_GREYSCALE, "#define APPLY_GREYSCALE\n", "_grey" },
 
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS4, "#define QF_NUM_BONE_INFLUENCES 4\n", "_bones4" },
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS3, "#define QF_NUM_BONE_INFLUENCES 3\n", "_bones3" },
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS2, "#define QF_NUM_BONE_INFLUENCES 2\n", "_bones2" },
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS1, "#define QF_NUM_BONE_INFLUENCES 1\n", "_bones1" },
-
 	{ GLSL_SHADER_COMMON_SKINNED, "#define SKINNED 1\n", "_skinned" },
 
 	{ GLSL_SHADER_COMMON_RGB_DISTANCERAMP, "#define APPLY_RGB_DISTANCERAMP\n", "_rgb_dr" },
@@ -574,11 +568,6 @@ static const glsl_feature_t glsl_features_material[] =
 
 static const glsl_feature_t glsl_features_outline[] =
 {
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS4, "#define QF_NUM_BONE_INFLUENCES 4\n", "_bones4" },
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS3, "#define QF_NUM_BONE_INFLUENCES 3\n", "_bones3" },
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS2, "#define QF_NUM_BONE_INFLUENCES 2\n", "_bones2" },
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS1, "#define QF_NUM_BONE_INFLUENCES 1\n", "_bones1" },
-
 	{ GLSL_SHADER_COMMON_INSTANCED_TRANSFORMS, "#define APPLY_INSTANCED_TRANSFORMS\n", "_instanced" },
 	{ GLSL_SHADER_COMMON_INSTANCED_ATTRIB_TRANSFORMS, "#define APPLY_INSTANCED_TRANSFORMS\n#define APPLY_INSTANCED_ATTRIB_TRANSFORMS\n", "_instanced_va" },
 
@@ -590,11 +579,6 @@ static const glsl_feature_t glsl_features_outline[] =
 static const glsl_feature_t glsl_features_q3a[] =
 {
 	{ GLSL_SHADER_COMMON_GREYSCALE, "#define APPLY_GREYSCALE\n", "_grey" },
-
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS4, "#define QF_NUM_BONE_INFLUENCES 4\n", "_bones4" },
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS3, "#define QF_NUM_BONE_INFLUENCES 3\n", "_bones3" },
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS2, "#define QF_NUM_BONE_INFLUENCES 2\n", "_bones2" },
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS1, "#define QF_NUM_BONE_INFLUENCES 1\n", "_bones1" },
 
 	{ GLSL_SHADER_COMMON_SKINNED, "#define SKINNED 1\n", "_skinned" },
 
@@ -1171,7 +1155,7 @@ static int RP_RegisterProgramBinary( int type, const char *name, const char *def
 	else
 		shaderStrings[i++] = QF_BUILTIN_GLSL_MACROS_GLSL120;
 	shaderStrings[i++] = "#define MAX_UNIFORM_INSTANCES " STR_TOSTR( MAX_GLSL_UNIFORM_INSTANCES ) "\n";
-	shaderStrings[i++] = "#define MAX_UNIFORM_BONES " STR_TOSTR( MAX_GLSL_UNIFORM_BONES ) "\n";
+	shaderStrings[i++] = "#define MAX_UNIFORM_JOINTS " STR_TOSTR( MAX_GLSL_UNIFORM_JOINTS ) "\n";
 	shaderStrings[i++] = QF_GLSL_MATH;
 
 	if( header ) {
@@ -1566,20 +1550,6 @@ void RP_UpdateTexGenUniforms( int elem, const mat4_t vectorMatrix ) {
 	}
 }
 
-/*
-* RP_UpdateBonesUniforms
-*
-* Set uniform values for animation dual quaternions
-*/
-void RP_UpdateBonesUniforms( int elem, unsigned int numBones, const dualquat_t *animDualQuat ) {
-	glsl_program_t *program = r_glslprograms + elem - 1;
-
-	if( program->loc.DualQuats < 0 ) {
-		return;
-	}
-	glUniform4fv( program->loc.DualQuats, numBones * 2, &animDualQuat[0][0] );
-}
-
 void RP_UpdateSkinningUniforms( int elem, Span< const Mat4 > skinning_matrices ) {
 	const glsl_program_t * program = r_glslprograms + elem - 1;
 	if( program->loc.SkinningMatrices < 0 )
@@ -1706,7 +1676,6 @@ static void RP_GetUniformLocations( glsl_program_t *program ) {
 
 	program->loc.SoftParticlesScale = glGetUniformLocation( program->object, "u_SoftParticlesScale" );
 
-	program->loc.DualQuats = glGetUniformLocation( program->object, "u_DualQuats" );
 	program->loc.SkinningMatrices = glGetUniformLocation( program->object, "u_SkinningMatrices" );
 
 	program->loc.InstancePoints = glGetUniformLocation( program->object, "u_InstancePoints" );
@@ -1759,9 +1728,6 @@ static void RP_BindAttrbibutesLocations( glsl_program_t *program ) {
 
 	glBindAttribLocation( program->object, VATTRIB_SPRITEPOINT, "a_SpritePoint" );
 	glBindAttribLocation( program->object, VATTRIB_SVECTOR, "a_SpriteRightUpAxis" );
-
-	glBindAttribLocation( program->object, VATTRIB_BONESINDICES, "a_BonesIndices" );
-	glBindAttribLocation( program->object, VATTRIB_BONESWEIGHTS, "a_BonesWeights" );
 
 	glBindAttribLocation( program->object, VATTRIB_JOINTSINDICES, "a_JointIndices" );
 	glBindAttribLocation( program->object, VATTRIB_JOINTSWEIGHTS, "a_JointWeights" );

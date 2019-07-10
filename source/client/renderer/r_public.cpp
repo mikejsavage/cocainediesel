@@ -67,10 +67,6 @@ extern "C" QF_DLL_EXPORT ref_export_t *GetRefAPI( ref_import_t *import ) {
 	globals.RegisterSkinFile = R_RegisterSkinFile;
 	globals.RegisterLinearPic = R_RegisterLinearPic;
 
-	globals.SkeletalGetBoneInfo = R_SkeletalGetBoneInfo;
-	globals.SkeletalGetBonePose = R_SkeletalGetBonePose;
-	globals.SkeletalGetNumBones = R_SkeletalGetNumBones;
-
 	globals.GetClippedFragments = R_GetClippedFragments;
 
 	return &globals;

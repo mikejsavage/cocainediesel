@@ -395,12 +395,6 @@ void CG_ResetColorBlend( void ) {
 * CG_AddEntityToScene
 */
 void CG_AddEntityToScene( entity_t *ent ) {
-	if( ent->model && ( !ent->boneposes || !ent->oldboneposes ) ) {
-		if( trap_R_SkeletalGetNumBones( ent->model, NULL ) ) {
-			CG_SetBoneposesForTemporaryEntity( ent );
-		}
-	}
-
 	trap_R_AddEntityToScene( ent );
 }
 
@@ -929,8 +923,6 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 	trap_S_Update( cg.view.origin, cg.view.velocity, cg.view.axis );
 
 	CG_Draw2D();
-
-	CG_ResetTemporaryBoneposesCache(); // clear for next frame
 
 	cg.viewFrameCount++;
 }

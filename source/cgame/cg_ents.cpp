@@ -576,8 +576,6 @@ static void CG_UpdateGenericEnt( centity_t *cent ) {
 	if( modelindex > 0 && modelindex < MAX_MODELS ) {
 		cent->ent.model = cgs.modelDraw[modelindex];
 	}
-
-	cent->skel = CG_SkeletonForModel( cent->ent.model );
 }
 
 /*
@@ -740,13 +738,6 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 		if( cent->current.solid != SOLID_BMODEL ) {
 			cent->ent.renderfx |= RF_NOSHADOW;
 		}
-	}
-
-	if( cent->skel ) {
-		// get space in cache, interpolate, transform, link
-		cent->ent.boneposes = cent->ent.oldboneposes = CG_RegisterTemporaryExternalBoneposes( cent->skel );
-		CG_LerpSkeletonPoses( cent->skel, cent->ent.frame, cent->ent.oldframe, cent->ent.boneposes, 1.0 - cent->ent.backlerp );
-		CG_TransformBoneposes( cent->skel, cent->ent.boneposes, cent->ent.boneposes );
 	}
 
 	if( !cent->current.modelindex ) {
@@ -947,7 +938,6 @@ static void CG_UpdateItemEnt( centity_t *cent ) {
 	if( cg_simpleItems->integer && cent->item->simpleitem ) {
 		cent->ent.rtype = RT_SPRITE;
 		cent->ent.model = NULL;
-		cent->skel = NULL;
 		cent->ent.renderfx = RF_NOSHADOW | RF_FULLBRIGHT;
 
 		cent->ent.radius = cg_simpleItemsSize->value <= 32 ? cg_simpleItemsSize->value : 32;
@@ -970,7 +960,6 @@ static void CG_UpdateItemEnt( centity_t *cent ) {
 
 		// set up the model
 		cent->ent.model = cgs.modelDraw[cent->current.modelindex];
-		cent->skel = CG_SkeletonForModel( cent->ent.model );
 	}
 }
 

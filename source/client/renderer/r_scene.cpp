@@ -43,8 +43,6 @@ void R_ClearScene( void ) {
 
 	R_FrameCache_Clear();
 
-	R_ClearSkeletalCache();
-
 	R_ClearDebugBounds();
 
 	rsc.numLocalEntities = 0;
@@ -108,9 +106,6 @@ static void R_CacheSceneEntity( entity_t *e ) {
 			break;
 		case ModelType_GLTF:
 			R_CacheGLTFModelEntity( e );
-			break;
-		case mod_skeletal:
-			R_CacheSkeletalModelEntity( e );
 			break;
 		case mod_brush:
 			R_CacheBrushModelEntity( e );

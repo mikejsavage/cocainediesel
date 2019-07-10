@@ -284,7 +284,6 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	vec3_t gunAngles;
 	vec3_t gunOffset;
 	float handOffset;
-	cgs_skeleton_t *skel;
 
 	CG_ViewWeapon_RefreshAnimation( viewweapon );
 
@@ -295,19 +294,10 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	viewweapon->ent.customShader = NULL;
 	viewweapon->ent.customSkin = NULL;
 	viewweapon->ent.rtype = RT_MODEL;
-	viewweapon->ent.boneposes = viewweapon->ent.oldboneposes = NULL;
 	Vector4Set( viewweapon->ent.shaderRGBA, 255, 255, 255, 255 );
 
 	// calculate the entity position
 	VectorCopy( cg.view.origin, viewweapon->ent.origin );
-
-	skel = weaponInfo->skel[WEAPMODEL_HAND];
-	if( skel ) {
-		// get space in cache, interpolate, transform, link
-		viewweapon->ent.boneposes = viewweapon->ent.oldboneposes = CG_RegisterTemporaryExternalBoneposes( skel );
-		CG_LerpSkeletonPoses( skel, viewweapon->ent.frame, viewweapon->ent.oldframe, viewweapon->ent.boneposes, 1.0 - viewweapon->ent.backlerp );
-		CG_TransformBoneposes( skel, viewweapon->ent.boneposes, viewweapon->ent.boneposes );
-	}
 
 	// weapon config offsets
 	VectorAdd( weaponInfo->handpositionAngles, cg.predictedPlayerState.viewangles, gunAngles );

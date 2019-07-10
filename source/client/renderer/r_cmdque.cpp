@@ -84,9 +84,6 @@ typedef struct {
 	int id;
 	unsigned length;
 	entity_t entity;
-	int numBoneposes;
-	bonepose_t      *boneposes;
-	bonepose_t      *oldboneposes;
 } refCmdAddEntityToScene_t;
 
 typedef struct {
@@ -271,19 +268,9 @@ static void RF_IssueAddEntityToSceneCmd( ref_cmdbuf_t *cmdbuf, const entity_t *e
 	refCmdAddEntityToScene_t cmd;
 	size_t cmd_len = sizeof( cmd );
 	uint8_t *pcmd;
-	size_t bones_len = 0;
 
 	cmd.id = REF_CMD_ADD_ENTITY_TO_SCENE;
 	cmd.entity = *ent;
-	cmd.numBoneposes = R_SkeletalGetNumBones( ent->model, NULL );
-
-	bones_len = cmd.numBoneposes * sizeof( bonepose_t );
-	if( cmd.numBoneposes && ent->boneposes ) {
-		cmd_len += bones_len;
-	}
-	if( cmd.numBoneposes && ent->oldboneposes ) {
-		cmd_len += bones_len;
-	}
 	cmd.length = cmd_len;
 
 	if( cmdbuf->len + cmd_len > cmdbuf->buf_size ) {
@@ -292,18 +279,6 @@ static void RF_IssueAddEntityToSceneCmd( ref_cmdbuf_t *cmdbuf, const entity_t *e
 
 	pcmd = cmdbuf->buf + cmdbuf->len;
 	pcmd += sizeof( cmd );
-
-	if( cmd.numBoneposes && ent->boneposes ) {
-		cmd.entity.boneposes = (bonepose_t *)pcmd;
-		memcpy( pcmd, ent->boneposes, bones_len );
-		pcmd += bones_len;
-	}
-
-	if( cmd.numBoneposes && ent->oldboneposes ) {
-		cmd.entity.oldboneposes = (bonepose_t *)pcmd;
-		memcpy( pcmd, ent->oldboneposes, bones_len );
-		pcmd += bones_len;
-	}
 
 	RF_IssueAbstractCmd( cmdbuf, &cmd, sizeof( cmd ), cmd_len );
 }

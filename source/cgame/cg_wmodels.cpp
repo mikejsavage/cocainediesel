@@ -310,7 +310,6 @@ static void CG_ComputeWeaponInfoTags( weaponinfo_t *weaponinfo ) {
 	ent.rtype = RT_MODEL;
 	ent.scale = 1.0f;
 	ent.model = weaponinfo->model[WEAPMODEL_WEAPON];
-	CG_SetBoneposesForTemporaryEntity( &ent ); // assigns and builds the skeleton so we can use grabtag
 
 	have_barrel = false;
 	if( weaponinfo->model[WEAPMODEL_BARREL] && CG_GrabTag( &tag_barrel, &ent, "tag_barrel" ) ) {
@@ -327,7 +326,6 @@ static void CG_ComputeWeaponInfoTags( weaponinfo_t *weaponinfo ) {
 		ent_barrel.rtype = RT_MODEL;
 		ent_barrel.scale = 1.0f;
 		ent_barrel.model = weaponinfo->model[WEAPMODEL_BARREL];
-		CG_SetBoneposesForTemporaryEntity( &ent_barrel );
 
 		if( CG_GrabTag( &tag, &ent_barrel, "tag_flash" ) ) {
 			VectorCopy( vec3_origin, weaponinfo->tag_projectionsource.origin );
@@ -349,19 +347,10 @@ static bool CG_WeaponModelUpdateRegistration( weaponinfo_t *weaponinfo, char *fi
 	char scratch[MAX_QPATH];
 
 	for( int p = 0; p < VWEAP_MAXPARTS; p++ ) {
-		// iqm
-		if( !weaponinfo->model[p] ) {
-			Q_snprintfz( scratch, sizeof( scratch ), "models/weapons/%s%s.iqm", filename, wmPartSufix[p] );
-			weaponinfo->model[p] = CG_RegisterModel( scratch );
-		}
-
-		// md3
 		if( !weaponinfo->model[p] ) {
 			Q_snprintfz( scratch, sizeof( scratch ), "models/weapons/%s%s.md3", filename, wmPartSufix[p] );
 			weaponinfo->model[p] = CG_RegisterModel( scratch );
 		}
-
-		weaponinfo->skel[p] = NULL;
 	}
 
 	// load failed
@@ -371,8 +360,6 @@ static bool CG_WeaponModelUpdateRegistration( weaponinfo_t *weaponinfo, char *fi
 			weaponinfo->model[p] = NULL;
 		return false;
 	}
-
-	weaponinfo->skel[WEAPMODEL_HAND] = CG_SkeletonForModel( weaponinfo->model[WEAPMODEL_HAND] );
 
 	// load animation script for the hand model
 	Q_snprintfz( scratch, sizeof( scratch ), "models/weapons/%s.cfg", filename );

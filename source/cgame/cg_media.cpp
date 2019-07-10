@@ -152,11 +152,6 @@ struct model_s *CG_RegisterModel( const char *name ) {
 
 	model = trap_R_RegisterModel( name );
 
-	// precache bones
-	if( trap_R_SkeletalGetNumBones( model, NULL ) ) {
-		CG_SkeletonForModel( model );
-	}
-
 	return model;
 }
 

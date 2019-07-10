@@ -159,7 +159,6 @@ mesh_vbo_t *R_CreateMeshVBO( void *owner, int numVerts, int numElems, int numIns
 	}
 
 	halfFloatVattribs &= ~VATTRIB_COLOR0_BIT;
-	halfFloatVattribs &= ~VATTRIB_BONES_BITS;
 	halfFloatVattribs &= ~VATTRIB_JOINTS_BITS;
 
 	// TODO: convert quaternion component of instance_t to half-float
@@ -197,26 +196,14 @@ mesh_vbo_t *R_CreateMeshVBO( void *owner, int numVerts, int numElems, int numIns
 		vertexSize += sizeof( int );
 	}
 
-	// bones data for skeletal animation
-	if( ( vattribs & VATTRIB_BONES_BITS ) == VATTRIB_BONES_BITS ) {
-		assert( SKM_MAX_WEIGHTS == 4 );
-
-		assert( !( vertexSize & 3 ) );
-		vbo->bonesIndicesOffset = vertexSize;
-		vertexSize += sizeof( int );
-
-		assert( !( vertexSize & 3 ) );
-		vbo->bonesWeightsOffset = vertexSize;
-		vertexSize += sizeof( int );
-	}
-
+	// joints
 	if( ( vattribs & VATTRIB_JOINTS_BITS ) == VATTRIB_JOINTS_BITS ) {
 		assert( !( vertexSize & 3 ) );
-		vbo->bonesIndicesOffset = vertexSize;
+		vbo->jointsIndicesOffset = vertexSize;
 		vertexSize += 4 * sizeof( u8 );
 
 		assert( !( vertexSize & 3 ) );
-		vbo->bonesWeightsOffset = vertexSize;
+		vbo->jointsWeightsOffset = vertexSize;
 		vertexSize += 4 * sizeof( u8 );
 	}
 
@@ -648,44 +635,23 @@ vattribmask_t R_FillVBOVertexDataBuffer( mesh_vbo_t *vbo, vattribmask_t vattribs
 		}
 	}
 
-	if( ( vattribs & VATTRIB_BONES_BITS ) == VATTRIB_BONES_BITS ) {
-		if( vbo->bonesIndicesOffset ) {
-			if( !mesh->blendIndices ) {
-				errMask |= VATTRIB_BONESINDICES_BIT;
-			} else {
-				R_FillVertexBuffer( int, int,
-									(int *)&mesh->blendIndices[0],
-									1, vertSize, numVerts, data + vbo->bonesIndicesOffset );
-			}
-		}
-		if( vbo->bonesWeightsOffset ) {
-			if( !mesh->blendWeights ) {
-				errMask |= VATTRIB_BONESWEIGHTS_BIT;
-			} else {
-				R_FillVertexBuffer( int, int,
-									(int *)&mesh->blendWeights[0],
-									1, vertSize, numVerts, data + vbo->bonesWeightsOffset );
-			}
-		}
-	}
-
 	if( ( vattribs & VATTRIB_JOINTS_BITS ) == VATTRIB_JOINTS_BITS ) {
-		if( vbo->bonesIndicesOffset ) {
+		if( vbo->jointsIndicesOffset ) {
 			if( !mesh->blendIndices ) {
 				errMask |= VATTRIB_JOINTSINDICES_BIT;
 			} else {
 				R_FillVertexBuffer( int, int,
-									(int *)&mesh->blendIndices[0],
-									1, vertSize, numVerts, data + vbo->bonesIndicesOffset );
+					(int *)&mesh->blendIndices[0],
+					1, vertSize, numVerts, data + vbo->jointsIndicesOffset );
 			}
 		}
-		if( vbo->bonesWeightsOffset ) {
+		if( vbo->jointsWeightsOffset ) {
 			if( !mesh->blendWeights ) {
 				errMask |= VATTRIB_JOINTSWEIGHTS_BIT;
 			} else {
 				R_FillVertexBuffer( int, int,
-									(int *)&mesh->blendWeights[0],
-									1, vertSize, numVerts, data + vbo->bonesWeightsOffset );
+					(int *)&mesh->blendWeights[0],
+					1, vertSize, numVerts, data + vbo->jointsWeightsOffset );
 			}
 		}
 	}

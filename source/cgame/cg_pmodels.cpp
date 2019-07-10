@@ -277,19 +277,10 @@ void CG_RegisterBasePModel( void ) {
 
 /*
 * CG_GrabTag
-* In the case of skeletal models, boneposes must
-* be transformed prior to calling this function
 */
 bool CG_GrabTag( orientation_t *tag, entity_t *ent, const char *tagname ) {
-	cgs_skeleton_t *skel;
-
 	if( !ent->model ) {
 		return false;
-	}
-
-	skel = CG_SkeletonForModel( ent->model );
-	if( skel && ent->boneposes ) {
-		return CG_SkeletalPoseGetAttachment( tag, skel, ent->boneposes, tagname );
 	}
 
 	return trap_R_LerpTag( tag, ent->model, ent->frame, ent->oldframe, ent->backlerp, tagname );
@@ -997,7 +988,7 @@ void CG_AddPModel( centity_t *cent ) {
 
 		AnglesToAxis( tmpangles, cent->ent.axis );
 
-		// apply UPPER and HEAD angles to rotator bones
+		// apply UPPER and HEAD angles to rotator joints
 		// also add rotations from velocity leaning
 		for( int i = 0; i < 3; i++ ) {
 			tmpangles[i] = LerpAngle( pmodel->oldangles[UPPER][i], pmodel->angles[UPPER][i], cg.lerpfrac ) / 2.0f;

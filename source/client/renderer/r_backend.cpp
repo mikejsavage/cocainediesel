@@ -908,25 +908,12 @@ static void RB_EnableVertexAttribs( void ) {
 		RB_EnableVertexAttrib( VATTRIB_SPRITEPOINT, false );
 	}
 
-	// bones (skeletal models)
-	if( ( vattribs & VATTRIB_BONES_BITS ) == VATTRIB_BONES_BITS ) {
-		// submit indices
-		RB_EnableVertexAttrib( VATTRIB_BONESINDICES, true );
-		glVertexAttribPointer( VATTRIB_BONESINDICES, 4, GL_UNSIGNED_BYTE, GL_FALSE, vbo->vertexSize, ( const GLvoid * )vbo->bonesIndicesOffset );
-
-		// submit weights
-		RB_EnableVertexAttrib( VATTRIB_BONESWEIGHTS, true );
-		glVertexAttribPointer( VATTRIB_BONESWEIGHTS, 4, GL_UNSIGNED_BYTE, GL_TRUE, vbo->vertexSize, ( const GLvoid * )vbo->bonesWeightsOffset );
-	} else {
-		RB_EnableVertexAttrib( VATTRIB_BONESINDICES, false );
-		RB_EnableVertexAttrib( VATTRIB_BONESWEIGHTS, false );
-	}
-
+	// joints
 	if( ( vattribs & VATTRIB_JOINTS_BITS ) == VATTRIB_JOINTS_BITS ) {
 		RB_EnableVertexAttrib( VATTRIB_JOINTSINDICES, true );
-		glVertexAttribIPointer( VATTRIB_JOINTSINDICES, 4, GL_UNSIGNED_BYTE, vbo->vertexSize, ( const GLvoid * )vbo->bonesIndicesOffset );
+		glVertexAttribIPointer( VATTRIB_JOINTSINDICES, 4, GL_UNSIGNED_BYTE, vbo->vertexSize, ( const GLvoid * )vbo->jointsIndicesOffset );
 		RB_EnableVertexAttrib( VATTRIB_JOINTSWEIGHTS, true );
-		glVertexAttribPointer( VATTRIB_JOINTSWEIGHTS, 4, GL_UNSIGNED_BYTE, GL_TRUE, vbo->vertexSize, ( const GLvoid * )vbo->bonesWeightsOffset );
+		glVertexAttribPointer( VATTRIB_JOINTSWEIGHTS, 4, GL_UNSIGNED_BYTE, GL_TRUE, vbo->vertexSize, ( const GLvoid * )vbo->jointsWeightsOffset );
 	} else {
 		RB_EnableVertexAttrib( VATTRIB_JOINTSINDICES, false );
 		RB_EnableVertexAttrib( VATTRIB_JOINTSWEIGHTS, false );

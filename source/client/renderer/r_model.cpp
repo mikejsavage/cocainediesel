@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // r_model.c -- model loading and caching
 
 #include "r_local.h"
-#include "iqm.h"
 
 typedef struct {
 	unsigned number;
@@ -46,9 +45,6 @@ static const modelFormatDescr_t mod_supportedformats[] =
 
 	// GLTF binaries
 	{ "glTF", 4, NULL, modelLoader_t( Mod_LoadGLTFModel ) },
-
-	// Skeletal models
-	{ IQM_MAGIC, sizeof( IQM_MAGIC ), NULL, modelLoader_t( Mod_LoadSkeletalModel ) },
 
 	// Q3-alike .bsp models
 	{ ( const char * ) COMPRESSED_BSP_MAGIC, sizeof( COMPRESSED_BSP_MAGIC ), NULL, modelLoader_t( Mod_LoadCompressedBSP ) },

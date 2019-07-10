@@ -57,8 +57,6 @@ typedef vec_t quat_t[4];
 
 typedef vec_t mat3_t[9];
 
-typedef vec_t dualquat_t[8];
-
 typedef uint8_t byte_vec4_t[4];
 
 struct RGB8 {
@@ -332,20 +330,6 @@ void Quat_Vectors( const quat_t q, vec3_t f, vec3_t r, vec3_t u );
 void Quat_ToMatrix3( const quat_t q, mat3_t m );
 void Quat_FromMatrix3( const mat3_t m, quat_t q );
 void Quat_TransformVector( const quat_t q, const vec3_t v, vec3_t out );
-
-void DualQuat_Identity( dualquat_t dq );
-void DualQuat_Copy( const dualquat_t in, dualquat_t out );
-void DualQuat_FromAnglesAndVector( const vec3_t angles, const vec3_t v, dualquat_t out );
-void DualQuat_FromMatrix3AndVector( const mat3_t m, const vec3_t v, dualquat_t out );
-void DualQuat_FromQuatAndVector( const quat_t q, const vec3_t v, dualquat_t out );
-void DualQuat_FromQuat3AndVector( const vec3_t q, const vec3_t v, dualquat_t out );
-void DualQuat_GetVector( const dualquat_t dq, vec3_t v );
-void DualQuat_ToQuatAndVector( const dualquat_t dq, quat_t q, vec3_t v );
-void DualQuat_ToMatrix3AndVector( const dualquat_t dq, mat3_t m, vec3_t v );
-void DualQuat_Invert( dualquat_t dq );
-vec_t DualQuat_Normalize( dualquat_t dq );
-void DualQuat_Multiply( const dualquat_t dq1, const dualquat_t dq2, dualquat_t out );
-void DualQuat_Lerp( const dualquat_t dq1, const dualquat_t dq2, vec_t t, dualquat_t out );
 
 // ============================================================================
 

@@ -66,7 +66,6 @@ typedef struct {
 	unsigned int type;
 	unsigned int renderfx;
 	unsigned int effects;
-	struct cgs_skeleton_s *skel;
 
 	vec3_t velocity;
 
@@ -217,47 +216,6 @@ typedef struct {
 	cgs_media_handle_t *shaderWeaponIcon[WEAP_TOTAL];
 	cgs_media_handle_t *shaderKeyIcon[KEYICON_TOTAL];
 } cgs_media_t;
-
-typedef struct bonenode_s {
-	int bonenum;
-	int numbonechildren;
-	struct bonenode_s **bonechildren;
-} bonenode_t;
-
-typedef struct cg_tagmask_s {
-	char tagname[64];
-	char bonename[64];
-	int bonenum;
-	struct cg_tagmask_s *next;
-	vec3_t offset;
-	vec3_t rotate;
-} cg_tagmask_t;
-
-typedef struct {
-	char name[MAX_QPATH];
-	int flags;
-	int parent;
-	struct bonenode_s *node;
-} cgs_bone_t;
-
-typedef struct cgs_skeleton_s {
-	struct model_s *model;
-
-	int numBones;
-	cgs_bone_t *bones;
-
-	int numFrames;
-	bonepose_t **bonePoses;
-
-	struct cgs_skeleton_s *next;
-
-	// store the tagmasks as part of the skeleton (they are only used by player models, tho)
-	struct cg_tagmask_s *tagmasks;
-
-	struct bonenode_s *bonetree;
-} cgs_skeleton_t;
-
-#include "cg_boneposes.h"
 
 typedef struct cg_sexedSfx_s {
 	char *name;
@@ -765,6 +723,7 @@ extern cvar_t *cg_thirdPersonRange;
 void CG_ResetKickAngles( void );
 void CG_ResetColorBlend( void );
 
+void CG_AddEntityToScene( entity_t *ent );
 void CG_StartKickAnglesEffect( vec3_t source, float knockback, float radius, int time );
 void CG_StartFallKickEffect( int bounceTime );
 void CG_ViewSmoothPredictedSteps( vec3_t vieworg );

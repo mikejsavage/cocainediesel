@@ -230,100 +230,6 @@ typedef struct maliasmodel_s {
 	int numtris;             // sum of numtris for all meshes
 } maliasmodel_t;
 
-/*
-==============================================================================
-
-SKELETAL MODELS
-
-==============================================================================
-*/
-
-//
-// in memory representation
-//
-#define SKM_MAX_WEIGHTS     4
-
-//
-// in memory representation
-//
-typedef struct {
-	char            *name;
-	shader_t        *shader;
-} mskskin_t;
-
-typedef struct {
-	uint8_t indices[SKM_MAX_WEIGHTS];
-	uint8_t weights[SKM_MAX_WEIGHTS];
-} mskblend_t;
-
-typedef struct mskmesh_s {
-	char            *name;
-
-	uint8_t         *blendIndices;
-	uint8_t         *blendWeights;
-
-	unsigned int numverts;
-	vec4_t          *xyzArray;
-	vec4_t          *normalsArray;
-	vec2_t          *stArray;
-	vec4_t          *sVectorsArray;
-
-	unsigned int    *vertexBlends;  // [0..numbones-1] reference directly to bones
-	                                // [numbones..numbones+numblendweights-1] reference to model blendweights
-
-	unsigned int maxWeights;        // the maximum number of bones, affecting a single vertex in the mesh
-
-	unsigned int numtris;
-	elem_t          *elems;
-
-	mskskin_t skin;
-
-	struct mesh_vbo_s *vbo;
-} mskmesh_t;
-
-typedef struct {
-	char            *name;
-	signed int parent;
-	unsigned int flags;
-} mskbone_t;
-
-typedef struct {
-	vec3_t mins, maxs;
-	float radius;
-	bonepose_t      *boneposes;
-} mskframe_t;
-
-typedef struct mskmodel_s {
-	unsigned int numbones;
-	mskbone_t       *bones;
-
-	unsigned int nummeshes;
-	mskmesh_t       *meshes;
-	drawSurfaceSkeletal_t *drawSurfs;
-
-	unsigned int numtris;
-	elem_t          *elems;
-
-	unsigned int numverts;
-	vec4_t          *xyzArray;
-	vec4_t          *normalsArray;
-	vec2_t          *stArray;
-	vec4_t          *sVectorsArray;
-	uint8_t         *blendIndices;
-	uint8_t         *blendWeights;
-
-	unsigned int numblends;
-	mskblend_t      *blends;
-	unsigned int    *vertexBlends;  // [0..numbones-1] reference directly to bones
-	                                // [numbones..numbones+numblendweights-1] reference to blendweights
-
-	unsigned int numframes;
-	mskframe_t      *frames;
-	bonepose_t      *invbaseposes;
-} mskmodel_t;
-
-//===================================================================
-
 //
 // Whole model
 //
@@ -333,7 +239,6 @@ enum ModelType {
 	mod_free,
 	mod_brush,
 	mod_alias,
-	mod_skeletal,
 	ModelType_GLTF,
 };
 

@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 struct orientation_s;
-struct bonepose_s;
 struct shader_s;
 struct fragment_s;
 struct entity_s;
@@ -152,9 +151,6 @@ typedef struct {
 	void ( *R_DrawRotatedStretchPic )( int x, int y, int w, int h, float s1, float t1, float s2, float t2, float angle, const vec4_t color, const struct shader_s *shader );
 	void ( *R_TransformVectorToScreen )( const struct refdef_s *rd, const vec3_t in, vec2_t out );
 	bool ( *R_TransformVectorToScreenClamped )( const struct refdef_s *rd, const vec3_t in, int border, vec2_t out );
-	int ( *R_SkeletalGetNumBones )( const struct model_s *mod, int *numFrames );
-	int ( *R_SkeletalGetBoneInfo )( const struct model_s *mod, int bone, char *name, size_t name_size, int *flags );
-	void ( *R_SkeletalGetBonePose )( const struct model_s *mod, int bone, int frame, struct bonepose_s *bonepose );
 
 	void ( *VID_FlashWindow )();
 

@@ -335,7 +335,6 @@ bool R_AliasModelLerpTag( orientation_t *orient, const maliasmodel_t *aliasmodel
 	float lerpfrac, const char *name );
 
 void Mod_LoadAliasMD3Model( model_t *mod, void *buffer, int buffer_size, const bspFormatDesc_t *unused );
-void Mod_LoadSkeletalModel( model_t *mod, void *buffer, int buffer_size, const bspFormatDesc_t *unused );
 void Mod_LoadQ3BrushModel( model_t *mod, void *buffer, int buffer_size, const bspFormatDesc_t *format );
 void Mod_LoadCompressedBSP( model_t *mod, void *buffer, int buffer_size, const bspFormatDesc_t *format );
 
@@ -581,18 +580,6 @@ struct skinfile_s *R_RegisterSkinFile( const char *name );
 shader_t    *R_FindShaderForSkinFile( const struct skinfile_s *skinfile, const char *meshname );
 
 //
-// r_skm.c
-//
-void R_CacheSkeletalModelEntity( const entity_t *e );
-bool R_AddSkeletalModelToDrawList( const entity_t *e );
-void R_DrawSkeletalSurf( const entity_t *e, const shader_t *shader, const drawSurfaceSkeletal_t *drawSurf );
-int R_SkeletalGetBoneInfo( const model_t *mod, int bonenum, char *name, size_t name_size, int *flags );
-void R_SkeletalGetBonePose( const model_t *mod, int bonenum, int frame, bonepose_t *bonepose );
-int R_SkeletalGetNumBones( const model_t *mod, int *numFrames );
-bool R_SkeletalModelLerpTag( orientation_t *orient, const mskmodel_t *skmodel, int oldframenum, int framenum, float lerpfrac, const char *name );
-void R_ClearSkeletalCache( void );
-
-//
 // r_vbo.c
 //
 
@@ -627,8 +614,8 @@ typedef struct mesh_vbo_s {
 	size_t stOffset;
 	size_t siOffset;
 	size_t colorsOffset;
-	size_t bonesIndicesOffset;
-	size_t bonesWeightsOffset;
+	size_t jointsIndicesOffset;
+	size_t jointsWeightsOffset;
 	size_t spritePointsOffset;              // autosprite or autosprite2 centre + radius
 	size_t instancesOffset;
 

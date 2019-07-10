@@ -63,7 +63,6 @@ typedef struct weaponinfo_s {
 	bool inuse;
 
 	struct model_s *model[VWEAP_MAXPARTS]; // one weapon consists of several models
-	struct cgs_skeleton_s *skel[VWEAP_MAXPARTS];
 
 	int firstframe[VWEAP_MAXANIMS];         // animation script
 	int lastframe[VWEAP_MAXANIMS];
@@ -90,8 +89,6 @@ typedef struct weaponinfo_s {
 	int num_fire_sounds;
 	struct sfx_s *sound_fire[WEAPONINFO_MAX_FIRE_SOUNDS];
 } weaponinfo_t;
-
-#define SKM_MAX_BONES 256
 
 enum {
 	BASE_CHANNEL,

@@ -265,18 +265,6 @@ static inline bool trap_R_TransformVectorToScreenClamped( const refdef_t *rd, co
 	return CGAME_IMPORT.R_TransformVectorToScreenClamped( rd, target, border, out );
 }
 
-static inline int trap_R_SkeletalGetNumBones( const struct model_s *mod, int *numFrames ) {
-	return CGAME_IMPORT.R_SkeletalGetNumBones( mod, numFrames );
-}
-
-static inline int trap_R_SkeletalGetBoneInfo( const struct model_s *mod, int bone, char *name, size_t name_size, int *flags ) {
-	return CGAME_IMPORT.R_SkeletalGetBoneInfo( mod, bone, name, name_size, flags );
-}
-
-static inline void trap_R_SkeletalGetBonePose( const struct model_s *mod, int bone, int frame, bonepose_t *bonepose ) {
-	CGAME_IMPORT.R_SkeletalGetBonePose( mod, bone, frame, bonepose );
-}
-
 static inline void trap_VID_FlashWindow() {
 	CGAME_IMPORT.VID_FlashWindow();
 }

@@ -797,7 +797,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	CG_InitInput();
 
 	CG_RegisterVariables();
-	CG_InitTemporaryBoneposesCache();
 	CG_PModelsInit();
 	CG_WModelsInit();
 
@@ -850,7 +849,6 @@ void CG_Shutdown( void ) {
 	CG_DemocamShutdown();
 	CG_UnregisterCGameCommands();
 	CG_PModelsShutdown();
-	CG_FreeTemporaryBoneposesCache();
 	CG_ShutdownInput();
 
 	Mem_FreePool( &cg_mempool );

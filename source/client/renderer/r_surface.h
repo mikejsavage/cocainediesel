@@ -26,7 +26,6 @@ typedef enum {
 	ST_BSP,
 	ST_ALIAS,
 	ST_GLTF,
-	ST_SKELETAL,
 	ST_SKY,
 	ST_SPRITE,
 	ST_POLY,
@@ -69,14 +68,6 @@ typedef struct {
 
 	struct model_s *model;
 } drawSurfaceAlias_t;
-
-typedef struct {
-	drawSurfaceType_t type;
-
-	struct mskmesh_s *mesh;
-
-	struct model_s *model;
-} drawSurfaceSkeletal_t;
 
 typedef struct {
 	drawSurfaceType_t type;

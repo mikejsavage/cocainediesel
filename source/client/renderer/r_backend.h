@@ -87,7 +87,6 @@ void RB_FlushTextureCache( void );
 
 // shader
 void RB_BindShader( const entity_t *e, const struct shader_s *shader );
-void RB_SetBonesData( int numBones, const dualquat_t *dualQuats, int maxWeights );
 void RB_SetSkinningMatrices( Span< const Mat4 > skinning_matrices );
 void RB_SetMode( int mode );
 void RB_SetSurfFlags( int flags );

@@ -237,8 +237,6 @@ static const drawSurf_cb r_drawSurfCb[ST_MAX_TYPES] =
 	drawSurf_cb( R_DrawAliasSurf ),
 	/* ST_GLTF */
 	drawSurf_cb( R_DrawGLTFMesh ),
-	/* ST_SKELETAL */
-	drawSurf_cb( R_DrawSkeletalSurf ),
 	/* ST_SKY */
 	drawSurf_cb( R_DrawSkyMesh ),
 	/* ST_SPRITE */
@@ -258,8 +256,6 @@ static const batchDrawSurf_cb r_batchDrawSurfCb[ST_MAX_TYPES] =
 	/* ST_ALIAS */
 	NULL,
 	/* ST_GLTF */
-	NULL,
-	/* ST_SKELETAL */
 	NULL,
 	/* ST_SKY */
 	NULL,
@@ -281,8 +277,6 @@ static const walkDrawSurf_cb r_walkSurfCb[ST_MAX_TYPES] =
 	NULL,
 	/* ST_GLTF */
 	NULL,
-	/* ST_SKELETAL */
-	NULL,
 	/* ST_SKY */
 	NULL,
 	/* ST_SPRITE */
@@ -302,8 +296,6 @@ static const flushBatchDrawSurf_cb r_flushBatchSurfCb[ST_MAX_TYPES] =
 	/* ST_ALIAS */
 	NULL,
 	/* ST_GLTF */
-	NULL,
-	/* ST_SKELETAL */
 	NULL,
 	/* ST_SKY */
 	NULL,

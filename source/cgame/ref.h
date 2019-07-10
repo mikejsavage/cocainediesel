@@ -44,17 +44,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define RDF_USEORTHO            0x20    // use orthographic projection
 #define RDF_BLURRED             0x40
 
-// skm flags
-#define SKM_ATTACHMENT_BONE     1
-
 typedef struct orientation_s {
 	mat3_t axis;
 	vec3_t origin;
 } orientation_t;
-
-typedef struct bonepose_s {
-	dualquat_t dualquat;
-} bonepose_t;
 
 typedef struct fragment_s {
 	int firstvert;
@@ -107,7 +100,6 @@ typedef struct entity_s {
 	mat3_t axis;
 	vec3_t origin, origin2;
 	int frame;
-	bonepose_t *boneposes;              // pretransformed boneposes for current frame
 
 	MatrixPalettes pose;
 
@@ -115,7 +107,6 @@ typedef struct entity_s {
 	** previous data for lerping
 	*/
 	int oldframe;
-	bonepose_t *oldboneposes;           // pretransformed boneposes for old frame
 	float backlerp;                     // 0.0 = current, 1.0 = old
 
 	/*

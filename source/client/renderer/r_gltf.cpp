@@ -126,7 +126,7 @@ static void LoadJoint( GLTFModel * gltf, const cgltf_skin * skin, cgltf_node * n
 	}
 }
 
-static void LoadSkin( GLTFModel * gltf, const cgltf_skin * skin ) {
+static void LoadSkin( GLTFModel * gltf, const cgltf_skin * skin, mat4_t transform ) {
 	gltf->joints = ( GLTFModel::Joint * ) malloc( sizeof( GLTFModel::Joint ) * skin->joints_count );
 	gltf->num_joints = skin->joints_count;
 
@@ -151,13 +151,22 @@ static void LoadSkin( GLTFModel * gltf, const cgltf_skin * skin ) {
 	u8 * prev_ptr = &gltf->root_joint;
 	LoadJoint( gltf, skin, root, &prev_ptr );
 
+	if( root->parent != NULL ) {
+		mat4_t root_transform;
+		cgltf_node_transform_local( root->parent, root_transform );
+
+		mat4_t t;
+		Matrix4_Copy( transform, t );
+		Matrix4_Multiply( t, root_transform, transform );
+	}
+
 	// TODO: remove with additive animations
 	gltf->joints[ GetJointIdx( root ) ].sibling = U8_MAX;
 }
 
-static void LoadNode( model_t * mod, GLTFModel * gltf, const cgltf_node * node, bool animated ) {
+static void LoadNode( model_t * mod, GLTFModel * gltf, const cgltf_node * node, bool animated, mat4_t transform ) {
 	for( size_t i = 0; i < node->children_count; i++ ) {
-		LoadNode( mod, gltf, node->children[ i ], animated );
+		LoadNode( mod, gltf, node->children[ i ], animated, transform );
 	}
 
 	if( node->mesh == NULL ) {
@@ -165,7 +174,7 @@ static void LoadNode( model_t * mod, GLTFModel * gltf, const cgltf_node * node, 
 	}
 
 	if( node->skin != NULL ) {
-		LoadSkin( gltf, node->skin );
+		LoadSkin( gltf, node->skin, transform );
 	}
 
 	if( node->mesh->primitives_count != 1 ) {
@@ -176,9 +185,6 @@ static void LoadNode( model_t * mod, GLTFModel * gltf, const cgltf_node * node, 
 	if( prim.indices->component_type != cgltf_component_type_r_16u ) {
 		ri.Com_Error( ERR_DROP, "16bit indices please" );
 	}
-
-	mat4_t transform;
-	cgltf_node_transform_local( node, transform );
 
 	vec4_t * positions = NULL;
 	vec4_t * normals = NULL;
@@ -383,7 +389,7 @@ void Mod_LoadGLTFModel( model_t * mod, void * buffer, int buffer_size, const bsp
 
 	bool animated = data->animations_count > 0;
 	for( size_t i = 0; i < data->scene->nodes_count; i++ ) {
-		LoadNode( mod, gltf, data->scene->nodes[ i ], animated );
+		LoadNode( mod, gltf, data->scene->nodes[ i ], animated, mod->transform );
 	}
 
 	if( animated ) {

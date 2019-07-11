@@ -130,19 +130,29 @@ static void LoadSkin( GLTFModel * gltf, const cgltf_skin * skin ) {
 	gltf->joints = ( GLTFModel::Joint * ) malloc( sizeof( GLTFModel::Joint ) * skin->joints_count );
 	gltf->num_joints = skin->joints_count;
 
+	if( skin->joints_count == 0 )
+		return;
+
 	for( size_t i = 0; i < skin->joints_count; i++ ) {
 		SetJointIdx( skin->joints[ i ], i );
 	}
 
-	u8 * prev_ptr = &gltf->root_joint;
+	cgltf_node * root = NULL;
 	for( size_t i = 0; i < skin->joints_count; i++ ) {
-		if( skin->joints[ i ]->parent == NULL || GetJointIdx( skin->joints[ i ]->parent ) == U8_MAX ) {
-			LoadJoint( gltf, skin, skin->joints[ i ], &prev_ptr );
-
-			// TODO: remove with additive animations
-			gltf->joints[ i ].sibling = U8_MAX;
+		cgltf_node * joint = skin->joints[ i ];
+		if( joint->parent == NULL || GetJointIdx( joint->parent ) == U8_MAX ) {
+			if( root != NULL ) {
+				ri.Com_Error( ERR_DROP, "Model skin has multiple roots" );
+			}
+			root = joint;
 		}
 	}
+
+	u8 * prev_ptr = &gltf->root_joint;
+	LoadJoint( gltf, skin, root, &prev_ptr );
+
+	// TODO: remove with additive animations
+	gltf->joints[ GetJointIdx( root ) ].sibling = U8_MAX;
 }
 
 static void LoadNode( model_t * mod, GLTFModel * gltf, const cgltf_node * node, bool animated ) {
@@ -487,15 +497,11 @@ MatrixPalettes R_ComputeMatrixPalettes( ArenaAllocator * a, const model_t * mode
 	palettes.skinning_matrices = ALLOC_SPAN( a, Mat4, gltf->num_joints );
 
 	u8 joint_idx = gltf->root_joint;
-	for( u32 i = 0; i < gltf->num_joints; i++ ) {
-		u8 parent = gltf->joints[ joint_idx ].parent;
-		if( parent != U8_MAX ) {
-			palettes.joint_poses[ joint_idx ] = palettes.joint_poses[ parent ] * TRSToMat4( local_poses[ joint_idx ] );
-		}
-		else {
-			palettes.joint_poses[ joint_idx ] = TRSToMat4( local_poses[ joint_idx ] );
-		}
+	palettes.joint_poses[ joint_idx ] = TRSToMat4( local_poses[ joint_idx ] );
+	for( u32 i = 0; i < gltf->num_joints - 1; i++ ) {
 		joint_idx = gltf->joints[ joint_idx ].next;
+		u8 parent = gltf->joints[ joint_idx ].parent;
+		palettes.joint_poses[ joint_idx ] = palettes.joint_poses[ parent ] * TRSToMat4( local_poses[ joint_idx ] );
 	}
 
 	for( u32 i = 0; i < gltf->num_joints; i++ ) {

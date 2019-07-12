@@ -218,7 +218,7 @@ typedef struct {
 } cgs_media_t;
 
 typedef struct cg_sexedSfx_s {
-	char *name;
+	const char *name;
 	struct sfx_s *sfx;
 	struct cg_sexedSfx_s *next;
 } cg_sexedSfx_t;

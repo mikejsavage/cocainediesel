@@ -523,11 +523,6 @@ void G_PrecacheMedia( void ) {
 	trap_SoundIndex( S_WORLD_LAVA_OUT );
 	trap_SoundIndex( S_WORLD_UNDERLAVA );
 
-	trap_SoundIndex( va( S_PLAYER_BURN_1_to_2, 1 ) );
-	trap_SoundIndex( va( S_PLAYER_BURN_1_to_2, 2 ) );
-
-	//wsw: pb disable unreferenced sounds
-	//trap_SoundIndex (S_LAND);				// landing thud
 	trap_SoundIndex( S_HIT_WATER );
 
 	trap_SoundIndex( S_WEAPON_NOAMMO );

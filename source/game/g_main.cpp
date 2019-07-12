@@ -192,9 +192,6 @@ void G_Init( unsigned int seed, unsigned int framemsec ) {
 	sv_cheats = trap_Cvar_Get( "sv_cheats", "0", CVAR_SERVERINFO | CVAR_LATCH );
 	sv_mm_enable = trap_Cvar_Get( "sv_mm_enable", "0", CVAR_ARCHIVE | CVAR_NOSET | CVAR_SERVERINFO );
 
-	// hack in CVAR_SERVERINFO flag
-	trap_Cvar_Get( "gamename", trap_Cvar_String( "gamename" ), CVAR_SERVERINFO );
-
 	password = trap_Cvar_Get( "password", "", CVAR_USERINFO );
 	password->modified = true; // force an update of g_needpass in G_UpdateServerInfo
 	g_operator_password = trap_Cvar_Get( "g_operator_password", "", CVAR_ARCHIVE );

@@ -27,7 +27,6 @@ static constexpr const char * cg_defaultSexedSounds[] = {
 	"*pain25", "*pain50", "*pain75", "*pain100",
 	"*wj_1", "*wj_2",
 	"*dash_1", "*dash_2",
-	NULL
 };
 
 /*
@@ -62,7 +61,7 @@ static struct sfx_s *CG_RegisterPmodelSexedSound( PlayerModelMetadata *metadata,
 	metadata->sexedSfx = sexedSfx;
 
 	char sexedFilename[MAX_QPATH];
-	Q_snprintfz( sexedFilename, sizeof( sexedFilename ), "sounds/players/%s/%s", model_name, name );
+	Q_snprintfz( sexedFilename, sizeof( sexedFilename ), "sounds/players/%s/%s", model_name, name + 1 );
 	sexedSfx->sfx = trap_S_RegisterSound( sexedFilename );
 
 	return sexedSfx->sfx;

@@ -642,7 +642,7 @@ void Mod_CreateMeshForSurface( const rdface_t *in, msurface_t *out, int patchGro
 					origin = origins + j;
 					instance = out->instances + j;
 
-					angles[YAW] = anglemod( j );
+					angles[YAW] = j;
 					AnglesToAxis( angles, rot );
 					Quat_FromMatrix3( rot, *instance );
 

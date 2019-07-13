@@ -514,7 +514,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 
 	// set angles
 	self->s.angles[PITCH] = 0;
-	self->s.angles[YAW] = anglemod( spawn_angles[YAW] );
+	self->s.angles[YAW] = AngleNormalize360( spawn_angles[YAW] );
 	self->s.angles[ROLL] = 0;
 	VectorCopy( self->s.angles, client->ps.viewangles );
 

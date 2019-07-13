@@ -326,41 +326,12 @@ float LerpAngle( float a2, float a1, const float frac ) {
 }
 
 /*
-* AngleSubtract
-*
-* Always returns a value from -180 to 180
-*/
-float AngleSubtract( float a1, float a2 ) {
-	float a;
-
-	a = a1 - a2;
-	while( a > 180 ) {
-		a -= 360;
-	}
-	while( a < -180 ) {
-		a += 360;
-	}
-	return a;
-}
-
-/*
-* AnglesSubtract
-*
-* Always returns a value from -180 to 180
-*/
-void AnglesSubtract( vec3_t v1, vec3_t v2, vec3_t v3 ) {
-	v3[0] = AngleSubtract( v1[0], v2[0] );
-	v3[1] = AngleSubtract( v1[1], v2[1] );
-	v3[2] = AngleSubtract( v1[2], v2[2] );
-}
-
-/*
 * AngleNormalize360
 *
 * returns angle normalized to the range [0 <= angle < 360]
 */
 float AngleNormalize360( float angle ) {
-	return ( 360.0 / 65536 ) * ( (int)( angle * ( 65536 / 360.0 ) ) & 65535 );
+	return angle - 360.0f * floorf( angle / 360.0f );
 }
 
 /*
@@ -383,14 +354,6 @@ float AngleNormalize180( float angle ) {
 */
 float AngleDelta( float angle1, float angle2 ) {
 	return AngleNormalize180( angle1 - angle2 );
-}
-
-/*
-* anglemod
-*/
-float anglemod( float a ) {
-	a = ( 360.0 / 65536 ) * ( (int)( a * ( 65536 / 360.0 ) ) & 65535 );
-	return a;
 }
 
 /*

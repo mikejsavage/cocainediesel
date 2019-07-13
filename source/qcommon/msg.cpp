@@ -403,7 +403,7 @@ static void MSG_WriteField( msg_t *msg, const uint8_t *to, const msg_field_t *fi
 		MSG_WriteHalfFloat( msg, (*((float *)( to + field->offset ))) );
 		break;
 	case WIRE_ANGLE:
-		MSG_WriteHalfFloat( msg, anglemod( (*((float *)( to + field->offset ))) ) );
+		MSG_WriteHalfFloat( msg, AngleNormalize360( (*((float *)( to + field->offset ))) ) );
 		break;
 	case WIRE_BASE128:
 		switch( field->bits ) {

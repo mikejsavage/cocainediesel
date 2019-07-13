@@ -417,16 +417,13 @@ void R_DrawRotatedStretchPic( int x, int y, int w, int h, float s1, float t1, fl
 	*(int *)pic_colors[3] = bcolor;
 
 	// rotated image
-	angle = anglemod( angle );
+	angle = AngleNormalize360( angle );
 	if( angle ) {
-		int j;
-		float sint, cost;
-
 		angle = DEG2RAD( angle );
-		sint = sin( angle );
-		cost = cos( angle );
+		float sint = sinf( angle );
+		float cost = cosf( angle );
 
-		for( j = 0; j < 4; j++ ) {
+		for( int j = 0; j < 4; j++ ) {
 			t1 = pic_st[j][0];
 			t2 = pic_st[j][1];
 			pic_st[j][0] = cost * ( t1 - 0.5f ) - sint * ( t2 - 0.5f ) + 0.5f;

@@ -571,7 +571,7 @@ static void CG_AddWeaponBarrelOnTag( entity_t *weapon, weaponinfo_t *weaponInfo,
 		float intensity;
 
 		intensity =  (float)( barrel_time - cg.time ) / (float)weaponInfo->barrelTime;
-		rotangles[2] = anglemod( 360.0f * weaponInfo->barrelSpeed * intensity * intensity );
+		rotangles[2] = 360.0f * weaponInfo->barrelSpeed * intensity * intensity;
 	}
 
 	AnglesToAxis( rotangles, barrel.axis );

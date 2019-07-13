@@ -151,15 +151,6 @@ static void LoadSkin( GLTFModel * gltf, const cgltf_skin * skin, mat4_t transfor
 	u8 * prev_ptr = &gltf->root_joint;
 	LoadJoint( gltf, skin, root, &prev_ptr );
 
-	if( root->parent != NULL ) {
-		mat4_t root_transform;
-		cgltf_node_transform_local( root->parent, root_transform );
-
-		mat4_t t;
-		Matrix4_Copy( transform, t );
-		Matrix4_Multiply( t, root_transform, transform );
-	}
-
 	// TODO: remove with additive animations
 	gltf->joints[ GetJointIdx( root ) ].sibling = U8_MAX;
 }
@@ -379,7 +370,7 @@ void Mod_LoadGLTFModel( model_t * mod, void * buffer, int buffer_size, const bsp
 
 	constexpr mat4_t y_up_to_z_up = {
 		1, 0, 0, 0,
-		0, 0, 1, 0,
+		0, 0, -1, 0,
 		0, 1, 0, 0,
 		0, 0, 0, 1,
 	};
@@ -414,7 +405,9 @@ void R_DrawGLTFMesh( const entity_t * e, const shader_t * shader, const GLTFMesh
 	RB_BindVBO( mesh->vbo->index, GL_TRIANGLES );
 	// TODO: do this once per model rather than per mesh
 	RB_SetSkinningMatrices( e->pose.skinning_matrices );
+	RB_FlipFrontFace();
 	RB_DrawElements( 0, mesh->num_verts, 0, mesh->num_elems );
+	RB_FlipFrontFace();
 }
 
 void R_CacheGLTFModelEntity( const entity_t * e ) {
@@ -504,13 +497,13 @@ MatrixPalettes R_ComputeMatrixPalettes( ArenaAllocator * a, const model_t * mode
 
 	u8 joint_idx = gltf->root_joint;
 	palettes.joint_poses[ joint_idx ] = TRSToMat4( local_poses[ joint_idx ] );
-	for( u32 i = 0; i < gltf->num_joints - 1; i++ ) {
+	for( u8 i = 0; i < gltf->num_joints - 1; i++ ) {
 		joint_idx = gltf->joints[ joint_idx ].next;
 		u8 parent = gltf->joints[ joint_idx ].parent;
 		palettes.joint_poses[ joint_idx ] = palettes.joint_poses[ parent ] * TRSToMat4( local_poses[ joint_idx ] );
 	}
 
-	for( u32 i = 0; i < gltf->num_joints; i++ ) {
+	for( u8 i = 0; i < gltf->num_joints; i++ ) {
 		palettes.skinning_matrices[ i ] = palettes.joint_poses[ i ] * gltf->joints[ i ].joint_to_bind;
 	}
 

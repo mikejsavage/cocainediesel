@@ -315,7 +315,7 @@ static void CG_ComputeWeaponInfoTags( weaponinfo_t *weaponinfo ) {
 	if( weaponinfo->model[WEAPMODEL_BARREL] && CG_GrabTag( &tag_barrel, &ent, "tag_barrel" ) ) {
 		have_barrel = true;
 	}
-	
+
 	// try getting the tag_flash from the weapon model
 	if( !CG_GrabTag( &weaponinfo->tag_projectionsource, &ent, "tag_flash" ) && have_barrel ) {
 		// if it didn't work, try getting it from the barrel model
@@ -499,7 +499,7 @@ struct weaponinfo_s *CG_GetWeaponInfo( int weapon ) {
 /*
 * CG_AddWeaponFlashOnTag
 */
-static void CG_AddWeaponFlashOnTag( entity_t *weapon, weaponinfo_t *weaponInfo,
+static void CG_AddWeaponFlashOnTag( entity_t *weapon, const weaponinfo_t *weaponInfo,
 	const char *tag_flash, int effects, int64_t flash_time ) {
 	uint8_t c;
 	orientation_t tag;
@@ -533,7 +533,7 @@ static void CG_AddWeaponFlashOnTag( entity_t *weapon, weaponinfo_t *weaponInfo,
 	flash.oldframe = 0;
 
 	CG_PlaceModelOnTag( &flash, weapon, &tag );
-	
+
 	if( !( effects & EF_RACEGHOST ) ) {
 		CG_AddEntityToScene( &flash );
 	}
@@ -545,7 +545,7 @@ static void CG_AddWeaponFlashOnTag( entity_t *weapon, weaponinfo_t *weaponInfo,
 /*
 * CG_AddWeaponBarrelOnTag
 */
-static void CG_AddWeaponBarrelOnTag( entity_t *weapon, weaponinfo_t *weaponInfo,
+static void CG_AddWeaponBarrelOnTag( entity_t *weapon, const weaponinfo_t *weaponInfo,
 	const char *tag_barrel, int effects, int64_t barrel_time ) {
 	orientation_t tag;
 	vec3_t rotangles = { 0, 0, 0 };
@@ -592,28 +592,14 @@ static void CG_AddWeaponBarrelOnTag( entity_t *weapon, weaponinfo_t *weaponInfo,
 *
 * Add weapon model(s) positioned at the tag
 */
-void CG_AddWeaponOnTag( entity_t *ent, orientation_t *tag, int weaponid, int effects, 
+void CG_AddWeaponOnTag( entity_t *ent, const orientation_t *tag, int weaponid, int effects,
 	orientation_t *projectionSource, int64_t flash_time, int64_t barrel_time ) {
-	entity_t weapon;
-	weaponinfo_t *weaponInfo;
-	gsitem_t *weaponItem;
-
-	// don't try without base model or tag
-	if( !ent->model || !tag ) {
-		return;
-	}
-
-	weaponInfo = CG_GetWeaponInfo( weaponid );
+	const weaponinfo_t * weaponInfo = CG_GetWeaponInfo( weaponid );
 	if( !weaponInfo ) {
 		return;
 	}
 
-	weaponItem = GS_FindItemByTag( weaponid );
-	if( !weaponItem ) {
-		return;
-	}
-
-	memset( &weapon, 0, sizeof( weapon ) );
+	entity_t weapon = { };
 	Vector4Set( weapon.shaderRGBA, 255, 255, 255, ent->shaderRGBA[3] );
 	weapon.scale = ent->scale;
 	weapon.renderfx = ent->renderfx;

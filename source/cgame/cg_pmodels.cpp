@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client/client.h"
 #include "cg_local.h"
-#include "client/renderer/r_public.h"
+#include "client/renderer/r_local.h"
 
 pmodel_t cg_entPModels[MAX_EDICTS];
 PlayerModelMetadata *cg_PModelInfos;
@@ -63,6 +63,34 @@ void CG_ResetPModels( void ) {
 		memset( &cg_entPModels[i].animState, 0, sizeof( pmodel_animationstate_t ) );
 	}
 	memset( &cg.weapon, 0, sizeof( cg.weapon ) );
+}
+
+static Mat4 EulerAnglesToMat4( float pitch, float yaw, float roll ) {
+	mat3_t axis;
+	AnglesToAxis( tv( pitch, yaw, roll ), axis );
+
+	Mat4 m = Mat4::Identity();
+
+	m.col0.x = axis[ 0 ];
+	m.col0.y = axis[ 1 ];
+	m.col0.z = axis[ 2 ];
+	m.col1.x = axis[ 3 ];
+	m.col1.y = axis[ 4 ];
+	m.col1.z = axis[ 5 ];
+	m.col2.x = axis[ 6 ];
+	m.col2.y = axis[ 7 ];
+	m.col2.z = axis[ 8 ];
+
+	return m;
+}
+
+static Mat4 Mat4_Translation( float x, float y, float z ) {
+	return Mat4(
+		1, 0, 0, x,
+		0, 1, 0, y,
+		0, 0, 1, z,
+		0, 0, 0, 1
+	);
 }
 
 /*
@@ -136,8 +164,7 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata *metadata, char *filena
 				float roll = atof( COM_ParseExt( &ptr, false ) );
 
 				tag->joint_idx = joint_idx;
-				tag->translation = Vec3( forward, right, up );
-				tag->rotation = Vec3( pitch, yaw, roll );
+				tag->transform = Mat4_Translation( forward, right, up ) * EulerAnglesToMat4( pitch, yaw, roll );
 			}
 			else {
 				CG_Printf( "%s: Unknown joint name: %s\n", filename, joint_name );
@@ -305,7 +332,7 @@ void CG_PlaceRotatedModelOnTag( entity_t *ent, entity_t *dest, orientation_t *ta
 /*
 * CG_PlaceModelOnTag
 */
-void CG_PlaceModelOnTag( entity_t *ent, entity_t *dest, orientation_t *tag ) {
+void CG_PlaceModelOnTag( entity_t *ent, entity_t *dest, const orientation_t *tag ) {
 	VectorCopy( dest->origin, ent->origin );
 
 	for( int i = 0; i < 3; i++ )
@@ -930,15 +957,35 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	CG_UpdatePModelAnimations( cent );
 }
 
-/*
-* CG_AddPModel
-*/
-void CG_AddPModel( centity_t *cent ) {
-	pmodel_t *pmodel;
-	vec3_t tmpangles;
-	orientation_t tag_weapon;
+static Mat4 QFToMat4( const mat4_t qf ) {
+	Mat4 m;
+	memcpy( m.ptr(), qf, sizeof( m ) );
+	return m;
+}
 
-	pmodel = &cg_entPModels[cent->current.number];
+static orientation_t TransformTag( const model_t * model, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
+	Mat4 transform = QFToMat4( model->transform ) * pose.joint_poses[ tag.joint_idx ] * tag.transform;
+	orientation_t o;
+
+	o.axis[ 0 ] = transform.col0.x;
+	o.axis[ 1 ] = transform.col0.y;
+	o.axis[ 2 ] = transform.col0.z;
+	o.axis[ 3 ] = transform.col1.x;
+	o.axis[ 4 ] = transform.col1.y;
+	o.axis[ 5 ] = transform.col1.z;
+	o.axis[ 6 ] = transform.col2.x;
+	o.axis[ 7 ] = transform.col2.y;
+	o.axis[ 8 ] = transform.col2.z;
+
+	o.origin[ 0 ] = transform.col3.x;
+	o.origin[ 1 ] = transform.col3.y;
+	o.origin[ 2 ] = transform.col3.z;
+
+	return o;
+}
+
+void CG_AddPModel( centity_t *cent ) {
+	pmodel_t * pmodel = &cg_entPModels[cent->current.number];
 	const PlayerModelMetadata * meta = pmodel->metadata;
 
 	// if viewer model, and casting shadows, offset the entity to predicted player position
@@ -955,6 +1002,7 @@ void CG_AddPModel( centity_t *cent ) {
 
 			CG_ViewSmoothPredictedSteps( org );
 
+			vec3_t tmpangles;
 			tmpangles[YAW] = cg.predictedPlayerState.viewangles[YAW];
 			tmpangles[PITCH] = 0;
 			tmpangles[ROLL] = 0;
@@ -1022,18 +1070,15 @@ void CG_AddPModel( centity_t *cent ) {
 		CG_AddEntityToScene( &cent->ent );
 	}
 
-	if( !cent->ent.model ) {
-		return;
-	}
-
 	CG_AddShellEffects( &cent->ent, cent->effects );
 
 	// add teleporter sfx if needed
 	CG_PModel_SpawnTeleportEffect( cent );
 
 	// add weapon model
-	if( cent->current.weapon && CG_GrabTag( &tag_weapon, &cent->ent, "tag_weapon" ) ) {
-		CG_AddWeaponOnTag( &cent->ent, &tag_weapon, cent->current.weapon, cent->effects, 
+	if( cent->current.weapon ) {
+		orientation_t tag_weapon = TransformTag( meta->model, cent->ent.pose, meta->tag_weapon );
+		CG_AddWeaponOnTag( &cent->ent, &tag_weapon, cent->current.weapon, cent->effects,
 			&pmodel->projectionSource, pmodel->flash_time, pmodel->barrel_time );
 	}
 }

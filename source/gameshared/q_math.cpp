@@ -160,18 +160,15 @@ void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, 
 }
 
 void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up ) {
-	float angle;
-	float sr, sp, sy, cr, cp, cy, t;
-
-	angle = DEG2RAD( angles[YAW] );
-	sy = sinf( angle );
-	cy = cosf( angle );
-	angle = DEG2RAD( angles[PITCH] );
-	sp = sinf( angle );
-	cp = cosf( angle );
-	angle = DEG2RAD( angles[ROLL] );
-	sr = sinf( angle );
-	cr = cosf( angle );
+	float yaw = DEG2RAD( angles[YAW] );
+	float sy = sinf( yaw );
+	float cy = cosf( yaw );
+	float pitch = DEG2RAD( angles[PITCH] );
+	float sp = sinf( pitch );
+	float cp = cosf( pitch );
+	float roll = DEG2RAD( angles[ROLL] );
+	float sr = sinf( roll );
+	float cr = cosf( roll );
 
 	if( forward ) {
 		forward[0] = cp * cy;
@@ -179,13 +176,13 @@ void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up 
 		forward[2] = -sp;
 	}
 	if( right ) {
-		t = sr * sp;
+		float t = sr * sp;
 		right[0] = ( -1 * t * cy + -1 * cr * -sy );
 		right[1] = ( -1 * t * sy + -1 * cr * cy );
 		right[2] = -1 * sr * cp;
 	}
 	if( up ) {
-		t = cr * sp;
+		float t = cr * sp;
 		up[0] = ( t * cy + -sr * -sy );
 		up[1] = ( t * sy + -sr * cy );
 		up[2] = cr * cp;
@@ -325,7 +322,7 @@ float LerpAngle( float a2, float a1, const float frac ) {
 	if( a1 - a2 < -180 ) {
 		a1 += 360;
 	}
-	return a2 + frac * ( a1 - a2 );
+	return Lerp( a2, frac, a1 );
 }
 
 /*
@@ -868,81 +865,6 @@ void Matrix3_FromAngles( const vec3_t angles, mat3_t m ) {
 	AngleVectors( angles, &m[AXIS_FORWARD], &m[AXIS_RIGHT], &m[AXIS_UP] );
 }
 
-void Matrix3_ToAngles( const mat3_t m, vec3_t angles ) {
-	vec_t c;
-	vec_t pitch, yaw, roll;
-
-	pitch = -asin( m[2] );
-	c = cos( pitch );
-	if( fabs( c ) > 5 * 10e-6 ) {     // Gimball lock?
-		// no
-		c = 1.0f / c;
-		pitch = RAD2DEG( pitch );
-		yaw = RAD2DEG( atan2( m[1] * c, m[0] * c ) );
-		roll = RAD2DEG( atan2( -m[5] * c, m[8] * c ) );
-	} else {
-		// yes
-		pitch = m[2] > 0 ? -90 : 90;
-		yaw = RAD2DEG( atan2( m[3], -m[4] ) );
-		roll = 180;
-	}
-
-	angles[PITCH] = pitch;
-	angles[YAW] = yaw;
-	angles[ROLL] = roll;
-}
-
-void Matrix3_Rotate( const mat3_t in, vec_t angle, vec_t x, vec_t y, vec_t z, mat3_t out ) {
-	mat3_t t, b;
-	vec_t c = cos( DEG2RAD( angle ) );
-	vec_t s = sin( DEG2RAD( angle ) );
-	vec_t mc = 1 - c, t1, t2;
-
-	t[0] = ( x * x * mc ) + c;
-	t[4] = ( y * y * mc ) + c;
-	t[8] = ( z * z * mc ) + c;
-
-	t1 = y * x * mc;
-	t2 = z * s;
-	t[1] = t1 + t2;
-	t[3] = t1 - t2;
-
-	t1 = x * z * mc;
-	t2 = y * s;
-	t[2] = t1 - t2;
-	t[6] = t1 + t2;
-
-	t1 = y * z * mc;
-	t2 = x * s;
-	t[5] = t1 + t2;
-	t[7] = t1 - t2;
-
-	Matrix3_Copy( in, b );
-	Matrix3_Multiply( b, t, out );
-}
-
-void Matrix3_FromPoints( const vec3_t v1, const vec3_t v2, const vec3_t v3, mat3_t m ) {
-	float d;
-
-	m[6] = ( v1[1] - v2[1] ) * ( v3[2] - v2[2] ) - ( v1[2] - v2[2] ) * ( v3[1] - v2[1] );
-	m[7] = ( v1[2] - v2[2] ) * ( v3[0] - v2[0] ) - ( v1[0] - v2[0] ) * ( v3[2] - v2[2] );
-	m[8] = ( v1[0] - v2[0] ) * ( v3[1] - v2[1] ) - ( v1[1] - v2[1] ) * ( v3[0] - v2[0] );
-	VectorNormalizeFast( &m[6] );
-
-	// this rotate and negate guarantees a vector not colinear with the original
-	VectorSet( &m[3], m[8], -m[6], m[7] );
-	d = -DotProduct( &m[3], &m[6] );
-	VectorMA( &m[3], d, &m[6], &m[3] );
-	VectorNormalizeFast( &m[3] );
-	CrossProduct( &m[3], &m[6], &m[0] );
-}
-
-void Matrix3_Normalize( mat3_t m ) {
-	VectorNormalize( &m[0] );
-	VectorNormalize( &m[3] );
-	VectorNormalize( &m[6] );
-}
-
 //============================================================================
 
 void Quat_Identity( quat_t q ) {
@@ -959,29 +881,11 @@ void Quat_Copy( const quat_t q1, quat_t q2 ) {
 	q2[3] = q1[3];
 }
 
-void Quat_Quat3( const vec3_t in, quat_t out ) {
-	out[0] = in[0];
-	out[1] = in[1];
-	out[2] = in[2];
-	out[3] = -sqrt( max( 1 - in[0] * in[0] - in[1] * in[1] - in[2] * in[2], 0.0f ) );
-}
-
 bool Quat_Compare( const quat_t q1, const quat_t q2 ) {
 	if( q1[0] != q2[0] || q1[1] != q2[1] || q1[2] != q2[2] || q1[3] != q2[3] ) {
 		return false;
 	}
 	return true;
-}
-
-void Quat_Conjugate( const quat_t q1, quat_t q2 ) {
-	q2[0] = -q1[0];
-	q2[1] = -q1[1];
-	q2[2] = -q1[2];
-	q2[3] = q1[3];
-}
-
-vec_t Quat_DotProduct( const quat_t q1, const quat_t q2 ) {
-	return ( q1[0] * q2[0] + q1[1] * q2[1] + q1[2] * q2[2] + q1[3] * q2[3] );
 }
 
 vec_t Quat_Normalize( quat_t q ) {
@@ -997,12 +901,6 @@ vec_t Quat_Normalize( quat_t q ) {
 	}
 
 	return length;
-}
-
-vec_t Quat_Inverse( const quat_t q1, quat_t q2 ) {
-	Quat_Conjugate( q1, q2 );
-
-	return Quat_Normalize( q2 );
 }
 
 void Quat_FromMatrix3( const mat3_t m, quat_t q ) {
@@ -1116,15 +1014,6 @@ void Quat_Vectors( const quat_t q, vec3_t f, vec3_t r, vec3_t u ) {
 
 void Quat_ToMatrix3( const quat_t q, mat3_t m ) {
 	Quat_Vectors( q, &m[0], &m[3], &m[6] );
-}
-
-void Quat_TransformVector( const quat_t q, const vec3_t v, vec3_t out ) {
-	vec3_t t;
-
-	CrossProduct( &q[0], v, t ); // 6 muls, 3 subs
-	VectorScale( t, 2, t );      // 3 muls
-	CrossProduct( &q[0], t, out );// 6 muls, 3 subs
-	VectorMA( out, q[3], t, out );// 3 muls, 3 adds
 }
 
 //============================================================================

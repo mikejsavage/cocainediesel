@@ -188,13 +188,13 @@ int Q_log2( int val );
 #define VectorMA( a, b, c, d )       ( ( d )[0] = ( a )[0] + ( b ) * ( c )[0], ( d )[1] = ( a )[1] + ( b ) * ( c )[1], ( d )[2] = ( a )[2] + ( b ) * ( c )[2] )
 #define VectorCompare( v1, v2 )    ( ( v1 )[0] == ( v2 )[0] && ( v1 )[1] == ( v2 )[1] && ( v1 )[2] == ( v2 )[2] )
 #define VectorLengthSquared( v )    ( DotProduct( ( v ), ( v ) ) )
-#define VectorLength( v )     ( sqrt( VectorLengthSquared( v ) ) )
+#define VectorLength( v )     ( sqrtf( VectorLengthSquared( v ) ) )
 #define VectorInverse( v )    ( ( v )[0] = -( v )[0], ( v )[1] = -( v )[1], ( v )[2] = -( v )[2] )
 #define VectorLerp( a, c, b, v )     ( ( v )[0] = ( a )[0] + ( c ) * ( ( b )[0] - ( a )[0] ), ( v )[1] = ( a )[1] + ( c ) * ( ( b )[1] - ( a )[1] ), ( v )[2] = ( a )[2] + ( c ) * ( ( b )[2] - ( a )[2] ) )
 #define VectorScale( in, scale, out ) ( ( out )[0] = ( in )[0] * ( scale ), ( out )[1] = ( in )[1] * ( scale ), ( out )[2] = ( in )[2] * ( scale ) )
 
 #define DistanceSquared( v1, v2 ) ( ( ( v1 )[0] - ( v2 )[0] ) * ( ( v1 )[0] - ( v2 )[0] ) + ( ( v1 )[1] - ( v2 )[1] ) * ( ( v1 )[1] - ( v2 )[1] ) + ( ( v1 )[2] - ( v2 )[2] ) * ( ( v1 )[2] - ( v2 )[2] ) )
-#define Distance( v1, v2 ) ( sqrt( DistanceSquared( v1, v2 ) ) )
+#define Distance( v1, v2 ) ( sqrtf( DistanceSquared( v1, v2 ) ) )
 
 #define VectorLengthFast( v )     ( SQRTFAST( DotProduct( ( v ), ( v ) ) ) )  // jal :  //The expression a * rsqrt(b) is intended as a higher performance alternative to a / sqrt(b). The two expressions are comparably accurate, but do not compute exactly the same value in every case. For example, a * rsqrt(a*a + b*b) can be just slightly greater than 1, in rare cases.
 #define DistanceFast( v1, v2 )     ( SQRTFAST( DistanceSquared( v1, v2 ) ) )  // jal :  //The expression a * rsqrt(b) is intended as a higher performance alternative to a / sqrt(b). The two expressions are comparably accurate, but do not compute exactly the same value in every case. For example, a * rsqrt(a*a + b*b) can be just slightly greater than 1, in rare cases.
@@ -206,14 +206,6 @@ int Q_log2( int val );
 #define Vector4Clear( a )     ( ( a )[0] = ( a )[1] = ( a )[2] = ( a )[3] = 0 )
 #define Vector4Copy( a, b )    ( ( b )[0] = ( a )[0], ( b )[1] = ( a )[1], ( b )[2] = ( a )[2], ( b )[3] = ( a )[3] )
 #define Vector4Scale( in, scale, out )      ( ( out )[0] = ( in )[0] * scale, ( out )[1] = ( in )[1] * scale, ( out )[2] = ( in )[2] * scale, ( out )[3] = ( in )[3] * scale )
-#define Vector4Add( a, b, c )       ( ( c )[0] = ( ( ( ( a )[0] ) + ( ( b )[0] ) ) ), ( c )[1] = ( ( ( ( a )[1] ) + ( ( b )[1] ) ) ), ( c )[2] = ( ( ( ( a )[2] ) + ( ( b )[2] ) ) ), ( c )[3] = ( ( ( ( a )[3] ) + ( ( b )[3] ) ) ) )
-#define Vector4Subtract( a, b, c )       ( ( c )[0] = ( ( ( ( a )[0] ) - ( ( b )[0] ) ) ), ( c )[1] = ( ( ( ( a )[1] ) - ( ( b )[1] ) ) ), ( c )[2] = ( ( ( ( a )[2] ) - ( ( b )[2] ) ) ), ( c )[3] = ( ( ( ( a )[3] ) - ( ( b )[3] ) ) ) )
-#define Vector4Negate( a, b )      ( ( b )[0] = -( a )[0], ( b )[1] = -( a )[1], ( b )[2] = -( a )[2], ( b )[3] = -( a )[3] )
-#define Vector4Inverse( v )         ( ( v )[0] = -( v )[0], ( v )[1] = -( v )[1], ( v )[2] = -( v )[2], ( v )[3] = -( v )[3] )
-#define DotProduct4( x, y )    ( ( x )[0] * ( y )[0] + ( x )[1] * ( y )[1] + ( x )[2] * ( y )[2] + ( x )[3] * ( y )[3] )
-#define Vector4Compare( v1, v2 )    ( ( v1 )[0] == ( v2 )[0] && ( v1 )[1] == ( v2 )[1] && ( v1 )[2] == ( v2 )[2] && ( v1 )[3] == ( v2 )[3] )
-#define Vector4LengthSquared( v )    ( DotProduct4( ( v ), ( v ) ) )
-#define Vector4Length( v )     ( sqrt( Vector4LengthSquared( v ) ) )
 
 vec_t VectorNormalize( vec3_t v );       // returns vector length
 vec_t VectorNormalize2( const vec3_t v, vec3_t out );
@@ -230,7 +222,6 @@ bool BoundsOverlapSphere( const vec3_t mins, const vec3_t maxs, const vec3_t cen
 void BoundsFromRadius( const vec3_t centre, vec_t radius, vec3_t mins, vec3_t maxs );
 void BoundsCentre( const vec3_t mins, const vec3_t maxs, vec3_t centre );
 float LocalBounds( const vec3_t inmins, const vec3_t inmaxs, vec3_t mins, vec3_t maxs, vec3_t centre );
-#define BoundsVolume(mins,maxs) (((maxs)[0]-(mins)[0]) * ((maxs)[1]-(mins)[1]) * ((maxs)[2]-(mins)[2]))
 void BoundsCorners( const vec3_t mins, const vec3_t maxs, vec3_t corners[8] );
 
 // LordHavoc's triangle utility functions follow
@@ -265,13 +256,10 @@ void BuildBoxPoints( vec3_t p[8], const vec3_t org, const vec3_t mins, const vec
 
 vec_t ColorNormalize( const vec_t *in, vec_t *out );
 
-#define ColorGrayscale( c ) ( 0.299 * ( c )[0] + 0.587 * ( c )[1] + 0.114 * ( c )[2] )
-
 float WidescreenFov( float fov );
 float CalcVerticalFov( float fov_x, float width, float height );
 float CalcHorizontalFov( float fov_y, float width, float height );
 
-#define Q_sign( x ) ( ( x ) < 0 ? -1 : ( ( x ) > 0 ? 1 : 0 ) )
 #define Q_rint( x ) ( ( x ) < 0 ? ( (int)( ( x ) - 0.5f ) ) : ( (int)( ( x ) + 0.5f ) ) )
 
 int SignbitsForPlane( const cplane_t *out );
@@ -311,25 +299,16 @@ void Matrix3_Multiply( const mat3_t m1, const mat3_t m2, mat3_t out );
 void Matrix3_TransformVector( const mat3_t m, const vec3_t v, vec3_t out );
 void Matrix3_Transpose( const mat3_t in, mat3_t out );
 void Matrix3_FromAngles( const vec3_t angles, mat3_t m );
-void Matrix3_ToAngles( const mat3_t m, vec3_t angles );
-void Matrix3_Rotate( const mat3_t in, vec_t angle, vec_t x, vec_t y, vec_t z, mat3_t out );
-void Matrix3_FromPoints( const vec3_t v1, const vec3_t v2, const vec3_t v3, mat3_t m );
-void Matrix3_Normalize( mat3_t m );
 
 void Quat_Identity( quat_t q );
 void Quat_Copy( const quat_t q1, quat_t q2 );
-void Quat_Quat3( const vec3_t in, quat_t out );
 bool Quat_Compare( const quat_t q1, const quat_t q2 );
-void Quat_Conjugate( const quat_t q1, quat_t q2 );
-vec_t Quat_DotProduct( const quat_t q1, const quat_t q2 );
 vec_t Quat_Normalize( quat_t q );
-vec_t Quat_Inverse( const quat_t q1, quat_t q2 );
 void Quat_Multiply( const quat_t q1, const quat_t q2, quat_t out );
 void Quat_Lerp( const quat_t q1, const quat_t q2, vec_t t, quat_t out );
 void Quat_Vectors( const quat_t q, vec3_t f, vec3_t r, vec3_t u );
 void Quat_ToMatrix3( const quat_t q, mat3_t m );
 void Quat_FromMatrix3( const mat3_t m, quat_t q );
-void Quat_TransformVector( const quat_t q, const vec3_t v, vec3_t out );
 
 // ============================================================================
 

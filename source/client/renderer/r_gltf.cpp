@@ -151,6 +151,15 @@ static void LoadSkin( GLTFModel * gltf, const cgltf_skin * skin, mat4_t transfor
 	u8 * prev_ptr = &gltf->root_joint;
 	LoadJoint( gltf, skin, root, &prev_ptr );
 
+	if( root->parent != NULL ) {
+		mat4_t root_transform;
+		cgltf_node_transform_local( root->parent, root_transform );
+
+		mat4_t t;
+		Matrix4_Copy( transform, t );
+		Matrix4_Multiply( t, root_transform, transform );
+	}
+
 	// TODO: remove with additive animations
 	gltf->joints[ GetJointIdx( root ) ].sibling = U8_MAX;
 }
@@ -177,6 +186,11 @@ static void LoadNode( model_t * mod, GLTFModel * gltf, const cgltf_node * node, 
 		ri.Com_Error( ERR_DROP, "16bit indices please" );
 	}
 
+	mat4_t node_transform;
+	if( !animated ) {
+		cgltf_node_transform_local( node, node_transform );
+	}
+
 	vec4_t * positions = NULL;
 	vec4_t * normals = NULL;
 	vec2_t * uvs = NULL;
@@ -197,7 +211,7 @@ static void LoadNode( model_t * mod, GLTFModel * gltf, const cgltf_node * node, 
 				lolqfusion[ 3 ] = 1.0f;
 
 				if( !animated ) {
-					Matrix4_Multiply_Vector( transform, lolqfusion, positions[ k ] );
+					Matrix4_Multiply_Vector( node_transform, lolqfusion, positions[ k ] );
 				}
 				else {
 					Vector4Copy( lolqfusion, positions[ k ] );
@@ -370,8 +384,8 @@ void Mod_LoadGLTFModel( model_t * mod, void * buffer, int buffer_size, const bsp
 
 	constexpr mat4_t y_up_to_z_up = {
 		1, 0, 0, 0,
-		0, 0, -1, 0,
-		0, 1, 0, 0,
+		0, 0, 1, 0,
+		0, -1, 0, 0,
 		0, 0, 0, 1,
 	};
 	Matrix4_Copy( y_up_to_z_up, mod->transform );

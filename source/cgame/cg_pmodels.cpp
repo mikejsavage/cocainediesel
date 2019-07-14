@@ -957,6 +957,22 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	CG_UpdatePModelAnimations( cent );
 }
 
+static Quaternion EulerAnglesToQuaternion( EulerDegrees3 angles ) {
+	float cp = cosf( DEG2RAD( angles.pitch ) * 0.5f );
+	float sp = sinf( DEG2RAD( angles.pitch ) * 0.5f );
+	float cy = cosf( DEG2RAD( angles.yaw ) * 0.5f );
+	float sy = sinf( DEG2RAD( angles.yaw ) * 0.5f );
+	float cr = cosf( DEG2RAD( angles.roll ) * 0.5f );
+	float sr = sinf( DEG2RAD( angles.roll ) * 0.5f );
+
+	return Quaternion(
+		cp * cy * sr - sp * sy * cr,
+		sp * cy * cr + cp * sy * sr,
+		cp * sy * cr - sp * cy * sr,
+		cp * cy * cr + sp * sy * sr
+	);
+}
+
 static Mat4 QFToMat4( const mat4_t qf ) {
 	Mat4 m;
 	memcpy( m.ptr(), qf, sizeof( m ) );
@@ -1023,33 +1039,43 @@ void CG_AddPModel( centity_t *cent ) {
 
 	// add skeleton effects (pose is unmounted yet)
 	if( cent->current.type != ET_CORPSE ) {
+		vec3_t tmpangles;
 		// if it's our client use the predicted angles
 		if( cg.view.playerPrediction && ISVIEWERENTITY( cent->current.number ) && ( (unsigned)cg.view.POVent == cgs.playerNum + 1 ) ) {
 			tmpangles[YAW] = cg.predictedPlayerState.viewangles[YAW];
 			tmpangles[PITCH] = 0;
 			tmpangles[ROLL] = 0;
-		} else {
+		}
+		else {
 			// apply interpolated LOWER angles to entity
-			for( int i = 0; i < 3; i++ )
+			for( int i = 0; i < 3; i++ ) {
 				tmpangles[i] = LerpAngle( pmodel->oldangles[LOWER][i], pmodel->angles[LOWER][i], cg.lerpfrac );
+			}
 		}
 
 		AnglesToAxis( tmpangles, cent->ent.axis );
 
 		// apply UPPER and HEAD angles to rotator joints
 		// also add rotations from velocity leaning
-		for( int i = 0; i < 3; i++ ) {
-			tmpangles[i] = LerpAngle( pmodel->oldangles[UPPER][i], pmodel->angles[UPPER][i], cg.lerpfrac ) / 2.0f;
+		{
+			EulerDegrees3 angles;
+			angles.pitch = LerpAngle( pmodel->oldangles[ UPPER ][ PITCH ], cg.lerpfrac, pmodel->angles[ UPPER ][ PITCH ] ) / 2.0f;
+			angles.yaw = LerpAngle( pmodel->oldangles[ UPPER ][ YAW ], cg.lerpfrac, pmodel->angles[ UPPER ][ YAW ] ) / 2.0f;
+			angles.roll = LerpAngle( pmodel->oldangles[ UPPER ][ ROLL ], cg.lerpfrac, pmodel->angles[ UPPER ][ ROLL ] ) / 2.0f;
+
+			Quaternion q = EulerAnglesToQuaternion( angles );
+			// lower[ meta->upper_rotator_joints[ 0 ] ].rotation *= q;
+			// lower[ meta->upper_rotator_joints[ 1 ] ].rotation *= q;
 		}
 
-		// lower[ meta->upper_rotator_joints[ 0 ] ].rotation *= Quaternion( tmpangles );
-		// lower[ meta->upper_rotator_joints[ 1 ] ].rotation *= Quaternion( tmpangles );
+		{
+			EulerDegrees3 angles;
+			angles.pitch = LerpAngle( pmodel->oldangles[ HEAD ][ PITCH ], cg.lerpfrac, pmodel->angles[ HEAD ][ PITCH ] );
+			angles.yaw = LerpAngle( pmodel->oldangles[ HEAD ][ YAW ], cg.lerpfrac, pmodel->angles[ HEAD ][ YAW ] );
+			angles.roll = LerpAngle( pmodel->oldangles[ HEAD ][ ROLL ], cg.lerpfrac, pmodel->angles[ HEAD ][ ROLL ] );
 
-		for( int i = 0; i < 3; i++ ) {
-			tmpangles[i] = LerpAngle( pmodel->oldangles[HEAD][i], pmodel->angles[HEAD][i], cg.lerpfrac );
+			// lower[ meta->head_rotator_joint ].rotation *= EulerAnglesToQuaternion( angles );
 		}
-
-		// lower[ meta->head_rotator_joint ].rotation *= Quaternion( tmpangles );
 	}
 
 	// Add playermodel ent

@@ -335,6 +335,10 @@ inline Quaternion operator*( Quaternion lhs, Quaternion rhs ) {
 	);
 }
 
+inline void operator*=( Quaternion & lhs, Quaternion rhs ) {
+	lhs = lhs * rhs;
+}
+
 inline Quaternion operator*( Quaternion q, float scale ) {
 	return Quaternion(
 		q.x * scale,

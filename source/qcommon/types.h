@@ -236,6 +236,10 @@ struct alignas( 16 ) Mat4 {
 	}
 };
 
+struct EulerDegrees3 {
+	float pitch, yaw, roll;
+};
+
 struct Quaternion {
 	float x, y, z, w;
 

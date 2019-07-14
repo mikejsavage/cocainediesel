@@ -1,48 +1,55 @@
 /*QUAKED worldspawn (0 0 0) ?
 Not really an, used to hold map settings.
 -------- KEYS --------
-gametype : Set to gladiator to make this a gladiator map*/
+gametype : Set to gladiator to make this a gladiator map
+*/
 
 /*QUAKED info_player_intermission (1 0 1) (-16 -16 -16) (16 16 16)
 Camera for intermission screen between matches. Can be aimed by setting the "angles" key or targeting an pointing to an aiming entity. Use only one per level.
 -------- KEYS --------
 angles : View angles, pitch/yaw/roll
-target : Point at a target entity to make the camera look at it*/
+target : Point at a target entity to make the camera look at it
+*/
 
 /*QUAKED info_player_deathmatch (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
 Gladiator spawn point
 -------- KEYS --------
 target : this can point at a target_give entity for respawn freebies.
 -------- SPAWNFLAGS --------
-SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.*/
+SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.
+*/
 
 /*QUAKED team_CTF_alphaplayer (1 .2 0) (-16 -16 -24) (16 16 40) SUSPENDED
 Initial Alpha team spawning position for CTF games. This is where players spawn when they join the Alpha team.
 -------- KEYS --------
 target : this can point at a target_give entity for respawn freebies.
 -------- SPAWNFLAGS --------
-SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.*/
+SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.
+*/
 
 /*QUAKED team_CTF_alphaspawn (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
 Alpha team respawning position for CTF games. This is where Alpha team players respawn after they get fragged.
 -------- KEYS --------
 target : this can point at a target_give entity for respawn freebies.
 -------- SPAWNFLAGS --------
-SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.*/
+SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.
+*/
 
 /*QUAKED team_CTF_betaplayer (1 .2 0) (-16 -16 -24) (16 16 40) SUSPENDED
 Initial Beta team spawning position for CTF games. This is where players spawn when they join the Beta team.
 -------- KEYS --------
 target : this can point at a target_give entity for respawn freebies.
 -------- SPAWNFLAGS --------
-SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.*/
+SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.
+*/
 
 /*QUAKED team_CTF_betaspawn (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
 Beta team respawning position for CTF games. This is where Beta team players respawn after they get fragged.
 -------- KEYS --------
 target : this can point at a target_give entity for respawn freebies.
 -------- SPAWNFLAGS --------
-SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.*/
+SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.
+*/
 
 /*QUAKED func_group (0 .5 .8) ?
 This is not an entity as such, it never reachs the game. It is strictly an editor utility to group world brushes and patches together for convenience (selecting, moving, copying, etc). You cannot group entities with this.
@@ -52,7 +59,8 @@ layers : this integer value is the number unique root shaders that will be use o
 shader : this is the path to the metashader used to assign textures to the terrain entity.
 terrain : this is an on/off flag. When set to 1, the entity becomes a terrain entity.
 -------- NOTES --------
-The TAB key can be used to flip through the component pieces of a selected func_group entity, isolating individual components. To make a func_group into a terrain entity, refer to the Terrain Construction documentation.*/
+The TAB key can be used to flip through the component pieces of a selected func_group entity, isolating individual components. To make a func_group into a terrain entity, refer to the Terrain Construction documentation.
+*/
 
 /*QUAKED func_button (0 .5 .8) ?
 When a button is touched by a player, it moves in the direction set by the "angle" key, triggers all its targets, stays pressed by an amount of time set by the "wait" key, then returns to it's original position where it can be operated again.
@@ -69,7 +77,8 @@ color : constantLight color of .md3 model included with entity. Has no effect on
 model2 : path/name of model to include (eg: models/mapobjects/pipe/pipe02.md3).
 origin : alternate method of setting XYZ origin of .md3 model included with entity (See Notes).
 -------- NOTES --------
-Setting the origin key is simply an alternate method to using an origin brush. When using the model2 key, the origin point of the model will correspond to the origin point defined by either the origin brush or the origin coordinate value.*/
+Setting the origin key is simply an alternate method to using an origin brush. When using the model2 key, the origin point of the model will correspond to the origin point defined by either the origin brush or the origin coordinate value.
+*/
 
 /*QUAKED func_door (0 .5 .8) ? START_OPEN - CRUSHER NOMONSTER - TOGGLE -
 Normal sliding door entity. By default, the door will activate when player walks close to it or when damage is inflicted to it.
@@ -146,7 +155,8 @@ Y_AXIS : &8 entity will rotate along the Y axis.
 TOUCH_PAIN : &16 dunno what it does (jal)
 STOP : &32 it will stop moving instead when blocked, instead of pushing or crushing them.
 -------- NOTES --------
-You need to have an origin brush as part of this entity. The center of that brush will be the point through which the rotation axis passes. Setting the origin key is simply an alternate method to using an origin brush. It will rotate along the Z axis by default. You can check either the X_AXIS or Y_AXIS box to change that. When using the model2 key, the origin point of the model will correspond to the origin point defined by either the origin brush or the origin coordinate value.*/
+You need to have an origin brush as part of this entity. The center of that brush will be the point through which the rotation axis passes. Setting the origin key is simply an alternate method to using an origin brush. It will rotate along the Z axis by default. You can check either the X_AXIS or Y_AXIS box to change that. When using the model2 key, the origin point of the model will correspond to the origin point defined by either the origin brush or the origin coordinate value.
+*/
 
 /*QUAKED func_train (0 .5 .8) ? START_ON TOGGLE BLOCK_STOPS
 Trains are moving platforms that players can ride. The targets origin specifies the min point of the train at each corner. The train spawns at the first target it is pointing at. If the train is the target of a button or trigger, it will not begin moving until activated.
@@ -167,7 +177,8 @@ START_ON : &1
 TOGGLE : &2
 BLOCK_STOPS : &4
 -------- NOTES --------
-Setting the origin key is simply an alternate method to using an origin brush. When using the model2 key, the origin point of the model will correspond to the origin point defined by either the origin brush or the origin coordinate value.*/
+Setting the origin key is simply an alternate method to using an origin brush. When using the model2 key, the origin point of the model will correspond to the origin point defined by either the origin brush or the origin coordinate value.
+*/
 
 /*QUAKED func_wall (0 .5 .8) ? TRIGGER_SPAWN TOGGLE START_ON - -
 This is just a solid wall if not inhibited. Can be used for conditional walls.
@@ -179,7 +190,8 @@ TRIGGER_SPAWN : &1 the wall will not be present until triggered it will then bli
 TOGGLE : &2 only valid for TRIGGER_SPAWN walls this allows the wall to be turned on and off
 START_ON : &4 only valid for TRIGGER_SPAWN walls the wall will initially be present
 -------- NOTES --------
-Untested in Warsow*/
+Untested in Warsow
+*/
 
 /*QUAKED func_static (0 .5 .8) ?
 Static non-solid bspmodel. Can be used for conditional walls and models.
@@ -190,7 +202,8 @@ light : constantLight radius of .md3 model included with entity. Has no effect o
 color : constantLight color of .md3 model included with entity. Has no effect on the entity's brushes (default 1 1 1).
 targetname : NOT SUPPORTED BY RENDERER - if set, a func_button or trigger can make entity disappear from the game (See Notes).
 -------- NOTES --------
-When using the model2 key, the origin point of the model will correspond to the origin point defined by either the origin brush or the origin coordinate value. If a model is included with a targeted func_static, the brush(es) of the entity will be removed from the game but the .md3 model won't: it will automatically be moved to the (0 0 0) world origin so you should NOT include an .md3 model to a targeted func_static.*/
+When using the model2 key, the origin point of the model will correspond to the origin point defined by either the origin brush or the origin coordinate value. If a model is included with a targeted func_static, the brush(es) of the entity will be removed from the game but the .md3 model won't: it will automatically be moved to the (0 0 0) world origin so you should NOT include an .md3 model to a targeted func_static.
+*/
 
 /*QUAKED func_object (0 .5 .8) ? TRIGGER_SPAWN - -
 This is solid bmodel that will fall if its support it removed.
@@ -203,7 +216,8 @@ targetname : name to be targeted with.
 -------- SPAWNFLAGS --------
 TRIGGER_SPAWN : &1 spawn this entity when target is fired
 -------- NOTES --------
-model2 is not supported in func_objects, only map brushes can be safely used as model*/
+model2 is not supported in func_objects, only map brushes can be safely used as model
+*/
 
 /*QUAKED func_explosive (0 .5 .8) ? TRIGGER_SPAWN - -
 Any brush that you want to explode or break apart.  If you want an
@@ -221,7 +235,8 @@ targetname : name to be targeted with.
 -------- SPAWNFLAGS --------
 TRIGGER_SPAWN : &1 spawn this entity when target is fired
 -------- NOTES --------
-Untested: model2 models might not collide perfectly if used with a brush origin*/
+Untested: model2 models might not collide perfectly if used with a brush origin
+*/
 
 /*QUAKED path_corner (.5 .3 0) (-8 -8 -8) (8 8 8) TELEPORT
 Path corner entity that func_trains can be made to follow.
@@ -234,7 +249,8 @@ wait : number of seconds func_train will pause on path corner before moving to n
 -------- SPAWNFLAGS --------
 TELEPORT : &1 instant move to next target
 -------- NOTES --------
-Setting the wait key to -1 will not make the train stop on the path corner, it will simply default to 0.*/
+Setting the wait key to -1 will not make the train stop on the path corner, it will simply default to 0.
+*/
 
 /*QUAKED trigger_always (.5 .5 .5) (-8 -8 -8) (8 8 8)
 Automatic trigger. It will fire the entities it targets as soon as it spawns in the game.
@@ -267,7 +283,8 @@ MONSTER : &1 monsters won't activate this trigger unless this flag is set
 NOT_PLAYER : &2 players can't trigger this one (for those triggered by other triggers)
 TRIGGERED : &4 spawns as triggered and must wait for the "wait" key to pass to be re-triggered
 -------- NOTES --------
-message is untested*/
+message is untested
+*/
 
 /*QUAKED trigger_once (.5 .5 .5) ? MONSTER NOT_PLAYER TRIGGERED
 Triggers once, then removes itself. You must set the key "target" to the name of another object in the level that has a matching "targetname".
@@ -281,7 +298,8 @@ MONSTER : &1 monsters won't activate this trigger unless this flag is set
 NOT_PLAYER : &2 players can't trigger this one (for those triggered by other triggers)
 TRIGGERED : &4 spawns as triggered and must wait for the "wait" key to pass to be re-triggered
 -------- NOTES --------
-Wait key will be ignored. message is untested*/
+Wait key will be ignored. message is untested
+*/
 
 /*QUAKED trigger_hurt (.5 .5 .5) ? START_OFF TOGGLE SILENT NO_PROTECTION SLOW KILL FALL
 Any player that touches this will be hurt by "dmg" points of damage
@@ -307,7 +325,8 @@ target : this points to the entity to activate.
 targetname : activating trigger points to this.
 -------- SPAWNFLAGS --------
 -------- NOTES --------
-Target it to a misc_capture_area_indicator.*/
+Target it to a misc_capture_area_indicator.
+*/
 
 /*QUAKED trigger_teleport (.5 .5 .5) ? SPECTATOR
 Players touching this will be teleported. Target it to a misc_teleporter_dest.
@@ -319,7 +338,8 @@ wait : time in seconds until trigger becomes re-triggerable after it's been touc
 -------- SPAWNFLAGS --------
 SPECTATOR : &1 only teleport players moving in spectator mode
 -------- NOTES --------
-Target it to a misc_teleporter_dest.*/
+Target it to a misc_teleporter_dest.
+*/
 
 /*QUAKED misc_teleporter_dest (1 .5 .25) (-32 -32 -24) (32 32 -16)
 Teleport destination location point for trigger_teleporter entities.
@@ -327,7 +347,8 @@ Teleport destination location point for trigger_teleporter entities.
 angle : direction in which player will look when teleported.
 targetname : make the trigger_teleporter point to this.
 -------- NOTES --------
-Does the same thing as info_teleport_destination*/
+Does the same thing as info_teleport_destination
+*/
 
 /*QUAKED misc_model (1 .5 .25) (-16 -16 -16) (16 16 16) NOSHADOWS SOLID FORCEMETA EXTRUDE_NORMALS EXTRUDE_TERRAIN COLOR_TO_ALPHA NOSMOOTH
 Generic placeholder for inserting models in the world. Requires compilation of map geometry to be added to level.
@@ -378,14 +399,16 @@ SHRINK_EFFECT : The particle shrinks during its lifetime
 Delays
 -------- KEYS --------
 wait : seconds to pause before firing targets.
-random : delay variance, total delay = delay +/- random seconds*/
+random : delay variance, total delay = delay +/- random seconds
+*/
 
 /*QUAKED target_position (0 .5 0) (-8 -8 -8) (8 8 8)
 Aiming target for entities like light, misc_portal_camera and trigger_push (jump pads) in particular.
 -------- KEYS --------
 targetname : the entity that requires an aiming direction points to this.
 -------- NOTES --------
-To make a jump pad, place this entity at the highest point of the jump and target it with a trigger_push entity.*/
+To make a jump pad, place this entity at the highest point of the jump and target it with a trigger_push entity.
+*/
 
 /*QUAKED target_speaker (0 .7 .7) (-8 -8 -8) (8 8 8) LOOPED_ON LOOPED_OFF RELIABLE GLOBAL ACTIVATOR
 Normal sounds play each time the target is used.  The reliable flag can be set for crucial voiceovers. Looped sounds are always atten 3 / vol 1, and the use function toggles it on/off. Multiple identical looping sounds will just increase volume without any speed cost.
@@ -403,17 +426,20 @@ RELIABLE : &4
 GLOBAL : &8 Overrides attenuation setting. Sound will play full volume throughout the level as if it had attenuation -1
 ACTIVATOR : &16 sound will play only for the player that activated the target.
 -------- NOTES --------
-The path portion value of the "noise" key can be replaced by the implicit folder character "*" for triggered sounds that belong to a particular player model. For example, if you want to create a "bottomless pit" in which the player screams and dies when he falls into, you would place a trigger_multiple over the floor of the pit and target a target_speaker with it. Then, you would set the "noise" key to "*falling1.wav". The * character means the current player model's sound folder. So if your current player model is Visor, * = sound/player/visor, if your current player model is Sarge, * = sound/player/sarge, etc. This cool feature provides an excellent way to create "player-specific" triggered sounds in your levels.*/
+The path portion value of the "noise" key can be replaced by the implicit folder character "*" for triggered sounds that belong to a particular player model. For example, if you want to create a "bottomless pit" in which the player screams and dies when he falls into, you would place a trigger_multiple over the floor of the pit and target a target_speaker with it. Then, you would set the "noise" key to "*falling1.wav". The * character means the current player model's sound folder. So if your current player model is Visor, * = sound/player/visor, if your current player model is Sarge, * = sound/player/sarge, etc. This cool feature provides an excellent way to create "player-specific" triggered sounds in your levels.
+*/
 
 /*QUAKED model (1 0 0) (-8 -8 -8) (8 8 8)
 Place a model to be loaded at runtime
 -------- KEYS --------
-model : Path to model*/
+model : Path to model
+*/
 
 /*QUAKED spikes (1 0 0) (-64 -64 0) (64 64 48) ALWAYS_EXTENDED
 A spike trap
 -------- KEYS --------
-angles : Angles*/
+angles : Angles
+*/
 
 /*QUAKED target_laser (0 .5 0) (-8 -8 -8) (8 8 8) START_ON
 When triggered, fires a laser. You can either set a target or a direction.
@@ -424,4 +450,5 @@ targetname: the activating trigger points to this.
 size: beam diameter, default 8
 rgba: colour. default 220 0 0 76
 -------- SPAWNFLAGS --------
-START_ON : when set, the laser will start on in the game.*/
+START_ON : when set, the laser will start on in the game.
+*/

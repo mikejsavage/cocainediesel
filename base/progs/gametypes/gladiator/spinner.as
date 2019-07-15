@@ -6,7 +6,7 @@ float currentDelay;
 const float CountdownSwitchScale = float( pow( double( CountdownSeconds ) / double( CountdownInitialSwitchDelay ), 1.0 / CountdownNumSwitches ) );
 
 void DoSpinner() {
-	randWeap = random_uniform( WEAP_GUNBLADE, WEAP_ELECTROBOLT );
+	randWeap = random_uniform( WEAP_GUNBLADE + 1, WEAP_ELECTROBOLT );
 	spinnerStartTime = levelTime;
 	switchesSoFar = 0;
 	currentDelay = CountdownInitialSwitchDelay;
@@ -35,7 +35,7 @@ void spinner_think( Entity@ self ) {
 		Client @client = @ent.client;
 		int curr = client.pendingWeapon + 1;
 		if( curr > WEAP_ELECTROBOLT )
-			curr = WEAP_GUNBLADE;
+			curr = WEAP_GUNBLADE + 1;
 
 		if( last ) {
 			for( int i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {

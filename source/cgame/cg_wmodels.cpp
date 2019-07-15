@@ -518,7 +518,7 @@ static void CG_AddWeaponFlashOnTag( entity_t *weapon, const weaponinfo_t *weapon
 static void CG_AddWeaponBarrelOnTag( entity_t *weapon, const weaponinfo_t *weaponInfo,
 	const char *tag_barrel, int effects, int64_t barrel_time ) {
 	orientation_t tag;
-	vec3_t rotangles = { 0, 0, 0 };
+	vec3_t rotangles = { 90, 0, 0 }; // hack to fix gb blade orientation
 	entity_t barrel;
 
 	if( !weaponInfo->model[WEAPMODEL_BARREL] ) {

@@ -410,8 +410,9 @@ void R_AddGLTFModelToDrawList( const entity_t * e ) {
 	const GLTFModel * gltf = ( const GLTFModel * ) e->model->extradata;
 	for( u32 i = 0; i < gltf->num_meshes; i++ ) {
 		const GLTFMesh & mesh = gltf->meshes[ i ];
-		int sort_key = R_PackShaderOrder( mesh.shader );
-		R_AddSurfToDrawList( rn.meshlist, e, mesh.shader, 0, sort_key, &mesh );
+		const shader_t * shader = e->customShader != NULL ? e->customShader : mesh.shader;
+		int sort_key = R_PackShaderOrder( shader );
+		R_AddSurfToDrawList( rn.meshlist, e, shader, 0, sort_key, &mesh );
 	}
 }
 

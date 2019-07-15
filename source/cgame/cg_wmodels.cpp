@@ -315,29 +315,6 @@ static void CG_ComputeWeaponInfoTags( weaponinfo_t *weaponinfo ) {
 	if( weaponinfo->model[WEAPMODEL_BARREL] && CG_GrabTag( &tag_barrel, &ent, "tag_barrel" ) ) {
 		have_barrel = true;
 	}
-
-	// try getting the tag_flash from the weapon model
-	if( !CG_GrabTag( &weaponinfo->tag_projectionsource, &ent, "tag_flash" ) && have_barrel ) {
-		// if it didn't work, try getting it from the barrel model
-		// assign the model to an entity_t, so we can build boneposes
-		entity_t ent_barrel;
-
-		memset( &ent_barrel, 0, sizeof( ent_barrel ) );
-		ent_barrel.rtype = RT_MODEL;
-		ent_barrel.scale = 1.0f;
-		ent_barrel.model = weaponinfo->model[WEAPMODEL_BARREL];
-
-		if( CG_GrabTag( &tag, &ent_barrel, "tag_flash" ) ) {
-			VectorCopy( vec3_origin, weaponinfo->tag_projectionsource.origin );
-			Matrix3_Identity( weaponinfo->tag_projectionsource.axis );
-			CG_MoveToTag( weaponinfo->tag_projectionsource.origin,
-						  weaponinfo->tag_projectionsource.axis,
-						  tag_barrel.origin,
-						  tag_barrel.axis,
-						  tag.origin,
-						  tag.axis );
-		}
-	}
 }
 
 /*

@@ -967,8 +967,8 @@ static Quaternion EulerAnglesToQuaternion( EulerDegrees3 angles ) {
 
 	return Quaternion(
 		cp * cy * sr - sp * sy * cr,
-		sp * cy * cr + cp * sy * sr,
-		cp * sy * cr - sp * cy * sr,
+		cp * sy * cr + sp * cy * sr,
+		sp * cy * cr - cp * sy * sr,
 		cp * cy * cr + sp * sy * sr
 	);
 }
@@ -1064,8 +1064,8 @@ void CG_AddPModel( centity_t *cent ) {
 			angles.roll = LerpAngle( pmodel->oldangles[ UPPER ][ ROLL ], pmodel->angles[ UPPER ][ ROLL ], cg.lerpfrac ) / 2.0f;
 
 			Quaternion q = EulerAnglesToQuaternion( angles );
-			// lower[ meta->upper_rotator_joints[ 0 ] ].rotation *= q;
-			// lower[ meta->upper_rotator_joints[ 1 ] ].rotation *= q;
+			lower[ meta->upper_rotator_joints[ 0 ] ].rotation *= q;
+			lower[ meta->upper_rotator_joints[ 1 ] ].rotation *= q;
 		}
 
 		{
@@ -1074,7 +1074,7 @@ void CG_AddPModel( centity_t *cent ) {
 			angles.yaw = LerpAngle( pmodel->oldangles[ HEAD ][ YAW ], pmodel->angles[ HEAD ][ YAW ], cg.lerpfrac );
 			angles.roll = LerpAngle( pmodel->oldangles[ HEAD ][ ROLL ], pmodel->angles[ HEAD ][ ROLL ], cg.lerpfrac );
 
-			// lower[ meta->head_rotator_joint ].rotation *= EulerAnglesToQuaternion( angles );
+			lower[ meta->head_rotator_joint ].rotation *= EulerAnglesToQuaternion( angles );
 		}
 	}
 

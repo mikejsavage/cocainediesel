@@ -1107,4 +1107,13 @@ void CG_AddPModel( centity_t *cent ) {
 		CG_AddWeaponOnTag( &cent->ent, &tag_weapon, cent->current.weapon, cent->effects,
 			&pmodel->projectionSource, pmodel->flash_time, pmodel->barrel_time );
 	}
+
+	// add backpack/hat
+	if( cent->current.modelindex2 ) {
+		PlayerModelMetadata::Tag tag = meta->tag_backpack;
+		if( cent->current.effects & EF_HAT )
+			tag = meta->tag_head;
+		orientation_t o = TransformTag( meta->model, cent->ent.pose, tag );
+		CG_AddLinkedModel( cent, &o );
+	}
 }

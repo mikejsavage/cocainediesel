@@ -501,12 +501,7 @@ static void CG_EntAddTeamColorTransitionEffect( centity_t *cent ) {
 /*
 * CG_AddLinkedModel
 */
-static void CG_AddLinkedModel( centity_t *cent ) {
-	// linear projectiles can never have a linked model. Modelindex2 is used for a different purpose
-	if( cent->current.linearMovement ) {
-		return;
-	}
-
+void CG_AddLinkedModel( centity_t * cent, const orientation_t * tag ) {
 	struct model_s * model = cgs.modelDraw[cent->current.modelindex2];
 	if( model == NULL )
 		return;
@@ -526,19 +521,9 @@ static void CG_AddLinkedModel( centity_t *cent ) {
 
 	CG_AddColoredOutLineEffect( &ent, cent->effects, cent->outlineColor[0], cent->outlineColor[1], cent->outlineColor[2], cent->outlineColor[3] );
 
-	orientation_t tag;
-	const char * tag_name = "tag_linked";
-
-	if( cent->current.effects & EF_HAT )
-		tag_name = "tag_head";
-	if( cent->item && ( cent->item->type & IT_WEAPON ) )
-		tag_name = "tag_barrel";
-
-	if( CG_GrabTag( &tag, &cent->ent, tag_name ) ) {
-		CG_PlaceModelOnTag( &ent, &cent->ent, &tag );
-		CG_AddEntityToScene( &ent );
-		CG_AddShellEffects( &ent, cent->effects );
-	}
+	CG_PlaceModelOnTag( &ent, &cent->ent, tag );
+	CG_AddEntityToScene( &ent );
+	CG_AddShellEffects( &ent, cent->effects );
 }
 
 /*
@@ -745,10 +730,6 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 	}
 
 	CG_AddEntityToScene( &cent->ent );
-
-	if( cent->current.modelindex2 ) {
-		CG_AddLinkedModel( cent );
-	}
 }
 
 //==========================================================================
@@ -784,10 +765,6 @@ static void CG_AddPlayerEnt( centity_t *cent ) {
 	if( cent->current.type == ET_CORPSE ) {
 		return;
 	}
-
-	if( cent->current.modelindex2 ) {
-		CG_AddLinkedModel( cent );
-	}
 }
 
 //==========================================================================
@@ -821,10 +798,6 @@ static void CG_AddSpriteEnt( centity_t *cent ) {
 
 	// add to refresh list
 	CG_AddEntityToScene( &cent->ent );
-
-	if( cent->current.modelindex2 ) {
-		CG_AddLinkedModel( cent );
-	}
 }
 
 /*

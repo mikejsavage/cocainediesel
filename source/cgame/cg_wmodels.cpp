@@ -294,10 +294,6 @@ static void CG_CreateHandDefaultAnimations( weaponinfo_t *weaponinfo ) {
 * moving the weapon too much
 */
 static void CG_ComputeWeaponInfoTags( weaponinfo_t *weaponinfo ) {
-	orientation_t tag, tag_barrel;
-	entity_t ent;
-	bool have_barrel;
-
 	VectorSet( weaponinfo->tag_projectionsource.origin, 16, 0, 8 );
 	Matrix3_Identity( weaponinfo->tag_projectionsource.axis );
 
@@ -305,16 +301,13 @@ static void CG_ComputeWeaponInfoTags( weaponinfo_t *weaponinfo ) {
 		return;
 	}
 
-	// assign the model to an entity_t, so we can build boneposes
-	memset( &ent, 0, sizeof( ent ) );
+	// try getting the tag_flash from the weapon model
+	entity_t ent = { };
 	ent.rtype = RT_MODEL;
 	ent.scale = 1.0f;
 	ent.model = weaponinfo->model[WEAPMODEL_WEAPON];
 
-	have_barrel = false;
-	if( weaponinfo->model[WEAPMODEL_BARREL] && CG_GrabTag( &tag_barrel, &ent, "tag_barrel" ) ) {
-		have_barrel = true;
-	}
+	CG_GrabTag( &weaponinfo->tag_projectionsource, &ent, "tag_flash" );
 }
 
 /*

@@ -263,6 +263,7 @@ static void Mod_SetupSubmodels( model_t *mod ) {
 		VectorCopy( bm->maxs, starmod->maxs );
 		VectorCopy( bm->mins, starmod->mins );
 		starmod->radius = bm->radius;
+		Matrix4_Identity( starmod->transform );
 
 		if( i == 0 ) {
 			*mod = *starmod;

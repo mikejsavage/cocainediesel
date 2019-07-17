@@ -127,11 +127,12 @@ static void LoadJoint( GLTFModel * gltf, const cgltf_skin * skin, cgltf_node * n
 }
 
 static void LoadSkin( GLTFModel * gltf, const cgltf_skin * skin, mat4_t transform ) {
-	gltf->joints = ( GLTFModel::Joint * ) malloc( sizeof( GLTFModel::Joint ) * skin->joints_count );
 	gltf->num_joints = skin->joints_count;
-
 	if( skin->joints_count == 0 )
 		return;
+
+	gltf->joints = ( GLTFModel::Joint * ) malloc( sizeof( GLTFModel::Joint ) * skin->joints_count );
+	memset( gltf->joints, 0, sizeof( GLTFModel::Joint ) * skin->joints_count );
 
 	for( size_t i = 0; i < skin->joints_count; i++ ) {
 		SetJointIdx( skin->joints[ i ], i );
@@ -437,19 +438,31 @@ void R_CacheGLTFModelEntity( const entity_t * e ) {
 		cache->radius *= 2;
 }
 
-static void FindSampleAndLerpFrac( const float * times, u32 n, float t, u32 * sample, float * lerp_frac ) {
-	t = Clamp( times[ 0 ], t, times[ n - 1 ] );
+template< typename T, typename F >
+static T SampleAnimationChannel( const GLTFModel::AnimationChannel< T > & channel, float t, T def, F lerp ) {
+	if( channel.samples == NULL )
+		return def;
+	if( channel.num_samples == 1 )
+		return channel.samples[ 0 ];
 
-	*sample = 0;
-	for( u32 i = 1; i < n; i++ ) {
-		if( times[ i ] >= t ) {
-			*sample = i - 1;
+	t = Clamp( channel.times[ 0 ], t, channel.times[ channel.num_samples - 1 ] );
+
+	u32 sample = 0;
+	for( u32 i = 1; i < channel.num_samples; i++ ) {
+		if( channel.times[ i ] >= t ) {
+			sample = i - 1;
 			break;
 		}
 	}
 
-	*lerp_frac = ( t - times[ *sample ] ) / ( times[ *sample + 1 ] - times[ *sample ] );
+	float lerp_frac = ( t - channel.times[ sample ] ) / ( channel.times[ sample + 1 ] - channel.times[ sample ] );
+
+	return lerp( channel.samples[ sample ], lerp_frac, channel.samples[ sample + 1 ] );
 }
+
+// can't use overloaded function as a template parameter
+static Vec3 LerpVec3( Vec3 a, float t, Vec3 b ) { return Lerp( a, t, b ); }
+static float LerpFloat( float a, float t, float b ) { return Lerp( a, t, b ); }
 
 Span< TRS > R_SampleAnimation( ArenaAllocator * a, const model_t * model, float t ) {
 	assert( model->type == ModelType_GLTF );
@@ -459,17 +472,9 @@ Span< TRS > R_SampleAnimation( ArenaAllocator * a, const model_t * model, float 
 
 	for( u8 i = 0; i < gltf->num_joints; i++ ) {
 		const GLTFModel::Joint & joint = gltf->joints[ i ];
-
-		u32 rotation_sample, translation_sample, scale_sample;
-		float rotation_lerp_frac, translation_lerp_frac, scale_lerp_frac;
-
-		FindSampleAndLerpFrac( joint.rotations.times, joint.rotations.num_samples, t, &rotation_sample, &rotation_lerp_frac );
-		FindSampleAndLerpFrac( joint.translations.times, joint.translations.num_samples, t, &translation_sample, &translation_lerp_frac );
-		FindSampleAndLerpFrac( joint.scales.times, joint.scales.num_samples, t, &scale_sample, &scale_lerp_frac );
-
-		local_poses[ i ].rotation = NLerp( joint.rotations.samples[ rotation_sample ], rotation_lerp_frac, joint.rotations.samples[ ( rotation_sample + 1 ) % joint.rotations.num_samples ] );
-		local_poses[ i ].translation = Lerp( joint.translations.samples[ translation_sample ], translation_lerp_frac, joint.translations.samples[ ( translation_sample + 1 ) % joint.translations. num_samples ] );
-		local_poses[ i ].scale = Lerp( joint.scales.samples[ scale_sample ], scale_lerp_frac, joint.scales.samples[ ( scale_sample + 1 ) % joint.scales.num_samples ] );
+		local_poses[ i ].rotation = SampleAnimationChannel( joint.rotations, t, Quaternion::Identity(), NLerp );
+		local_poses[ i ].translation = SampleAnimationChannel( joint.translations, t, Vec3( 0 ), LerpVec3 );
+		local_poses[ i ].scale = SampleAnimationChannel( joint.scales, t, 1.0f, LerpFloat );
 	}
 
 	return local_poses;

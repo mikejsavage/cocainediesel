@@ -165,17 +165,13 @@ static void LoadSkin( GLTFModel * gltf, const cgltf_skin * skin, mat4_t transfor
 	gltf->joints[ GetJointIdx( root ) ].sibling = U8_MAX;
 }
 
-static void LoadNode( model_t * mod, GLTFModel * gltf, const cgltf_node * node, bool animated, mat4_t transform ) {
+static void LoadNode( model_t * mod, GLTFModel * gltf, const cgltf_node * node, bool animated ) {
 	for( size_t i = 0; i < node->children_count; i++ ) {
-		LoadNode( mod, gltf, node->children[ i ], animated, transform );
+		LoadNode( mod, gltf, node->children[ i ], animated );
 	}
 
 	if( node->mesh == NULL ) {
 		return;
-	}
-
-	if( node->skin != NULL ) {
-		LoadSkin( gltf, node->skin, transform );
 	}
 
 	if( node->mesh->primitives_count != 1 ) {
@@ -348,6 +344,42 @@ static void LoadAnimation( GLTFModel * gltf, const cgltf_animation * animation )
 	}
 }
 
+template< typename T, size_t N >
+static void CreateSingleSampleChannel( GLTFModel::AnimationChannel< T > * out_channel, const float ( &sample )[ N ] ) {
+        constexpr size_t lanes = sizeof( T ) / sizeof( float );
+        STATIC_ASSERT( lanes == N );
+
+        float * memory = ( float * ) malloc( ( N + 1 ) * sizeof( float ) );
+        out_channel->times = memory;
+        out_channel->samples = ( T * ) ( memory + 1 );
+        out_channel->num_samples = 1;
+
+        out_channel->times[ 0 ] = 0.0f;
+        memcpy( &out_channel->samples[ 0 ], sample, N * sizeof( float ) );
+}
+
+static void FixupMissingAnimationChannels( GLTFModel * gltf, const cgltf_skin * skin ) {
+        for( u8 i = 0; i < gltf->num_joints; i++ ) {
+                const cgltf_node * node = skin->joints[ i ];
+                GLTFModel::Joint & joint = gltf->joints[ i ];
+
+                if( joint.rotations.samples == NULL && node->has_rotation ) {
+                        CreateSingleSampleChannel( &joint.rotations, node->rotation );
+                }
+
+                if( joint.translations.samples == NULL && node->has_translation ) {
+                        CreateSingleSampleChannel( &joint.translations, node->translation );
+                }
+
+                if( joint.scales.samples == NULL && node->has_scale ) {
+                        assert( fabsf( node->scale[ 0 ] / node->scale[ 1 ] - 1.0f ) < 0.001f );
+                        assert( fabsf( node->scale[ 0 ] / node->scale[ 2 ] - 1.0f ) < 0.001f );
+                        float scale[ 1 ] = { node->scale[ 0 ] };
+                        CreateSingleSampleChannel( &joint.scales, scale );
+                }
+        }
+}
+
 void Mod_LoadGLTFModel( model_t * mod, void * buffer, int buffer_size, const bspFormatDesc_t * bsp_format ) {
 	MICROPROFILE_SCOPEI( "Assets", "Mod_LoadGLTFModel", 0xffffffff );
 
@@ -369,9 +401,14 @@ void Mod_LoadGLTFModel( model_t * mod, void * buffer, int buffer_size, const bsp
 		ri.Com_Error( ERR_DROP, "%s is invalid GLTF", mod->name );
 	}
 
-	if( data->scenes_count != 1 || data->animations_count > 1 ) {
+	if( data->scenes_count != 1 || data->animations_count > 1 || data->skins_count > 1 ) {
 		cgltf_free( data );
 		ri.Com_Error( ERR_DROP, "Trivial models only please" );
+	}
+
+	if( data->animations_count != data->skins_count ) {
+		cgltf_free( data );
+		ri.Com_Error( ERR_DROP, "Animation/skin count must match" );
 	}
 
 	GLTFModel * gltf = ( GLTFModel * ) Mod_Malloc( mod, sizeof( GLTFModel ) );
@@ -395,11 +432,13 @@ void Mod_LoadGLTFModel( model_t * mod, void * buffer, int buffer_size, const bsp
 
 	bool animated = data->animations_count > 0;
 	for( size_t i = 0; i < data->scene->nodes_count; i++ ) {
-		LoadNode( mod, gltf, data->scene->nodes[ i ], animated, mod->transform );
+		LoadNode( mod, gltf, data->scene->nodes[ i ], animated );
 	}
 
 	if( animated ) {
+		LoadSkin( gltf, &data->skins[ 0 ], mod->transform );
 		LoadAnimation( gltf, &data->animations[ 0 ] );
+		FixupMissingAnimationChannels( gltf, &data->skins[ 0 ] );
 	}
 
 	mod->radius = RadiusFromBounds( mod->mins, mod->maxs );

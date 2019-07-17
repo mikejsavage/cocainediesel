@@ -333,8 +333,8 @@ static void LoadAnimation( GLTFModel * gltf, const cgltf_animation * animation )
 	for( size_t i = 0; i < animation->channels_count; i++ ) {
 		const cgltf_animation_channel * chan = &animation->channels[ i ];
 
-		assert( chan->target_node->camera != NULL );
 		u8 joint_idx = GetJointIdx( chan->target_node );
+		assert( joint_idx != U8_MAX );
 
 		if( chan->target_path == cgltf_animation_path_type_translation ) {
 			LoadChannel( chan, &gltf->joints[ joint_idx ].translations );

@@ -184,7 +184,7 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata *metadata, char *filena
 			int fps = atoi( COM_ParseExt( &ptr, false ) );
 
 			PlayerModelMetadata::AnimationClip clip;
-			clip.start_time = float( start_frame + 1 ) / float( fps );
+			clip.start_time = float( start_frame ) / float( fps );
 			clip.duration = float( end_frame - start_frame ) / float( fps );
 			clip.loop_from = clip.duration - float( loop_frames ) / float( fps );
 

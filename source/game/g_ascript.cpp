@@ -1898,10 +1898,6 @@ static asstring_t *objectGItem_getSimpleItemName( gsitem_t *self ) {
 	return game.asExport->asStringFactoryBuffer( self->simpleitem, self->simpleitem ? strlen( self->simpleitem ) : 0 );
 }
 
-static asstring_t *objectGItem_getPickupSoundName( gsitem_t *self ) {
-	return game.asExport->asStringFactoryBuffer( self->pickup_sound, self->pickup_sound ? strlen( self->pickup_sound ) : 0 );
-}
-
 static asstring_t *objectGItem_getColorToken( gsitem_t *self ) {
 	return game.asExport->asStringFactoryBuffer( self->color, self->color ? strlen( self->color ) : 0 );
 }
@@ -1937,7 +1933,6 @@ static const asMethod_t asitem_Methods[] =
 	{ ASLIB_FUNCTION_DECL( const String @, get_model2, ( ) const ), asFUNCTION( objectGItem_getModel2Name ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_icon, ( ) const ), asFUNCTION( objectGItem_getIconName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_simpleIcon, ( ) const ), asFUNCTION( objectGItem_getSimpleItemName ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( const String @, get_pickupSound, ( ) const ), asFUNCTION( objectGItem_getPickupSoundName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_colorToken, ( ) const ), asFUNCTION( objectGItem_getColorToken ), asCALL_CDECL_OBJLAST },
 
 	{ ASLIB_FUNCTION_DECL( bool, isPickable, ( ) const ), asFUNCTION( objectGItem_isPickable ), asCALL_CDECL_OBJLAST },

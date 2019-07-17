@@ -138,13 +138,6 @@ bool Add_Ammo( gclient_t *client, const gsitem_t *item, int count, bool add_it )
 	return true;
 }
 
-//======================================================================
-
-void Touch_ItemSound( edict_t *other, const gsitem_t *item ) {
-	if( item->pickup_sound ) {
-		G_Sound( other, CHAN_AUTO, trap_SoundIndex( item->pickup_sound ), ATTN_NORM );
-	}
-}
 
 /*
 * Touch_Item
@@ -189,10 +182,6 @@ void Touch_Item( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) 
 	// show icon and name on status bar
 	other->r.client->ps.stats[STAT_PICKUP_ITEM] = item->tag;
 	other->r.client->resp.pickup_msg_time = level.time + 3000;
-
-	if( ent->attenuation ) {
-		Touch_ItemSound( other, item );
-	}
 
 	if( !( ent->spawnflags & DROPPED_ITEM ) && G_Gametype_CanRespawnItem( item ) ) {
 		if( ( item->type & IT_WEAPON ) && GS_RaceGametype() ) {
@@ -486,9 +475,6 @@ void PrecacheItem( const gsitem_t *it ) {
 		return;
 	}
 
-	if( it->pickup_sound ) {
-		trap_SoundIndex( it->pickup_sound );
-	}
 	for( i = 0; i < MAX_ITEM_MODELS; i++ ) {
 		if( it->world_model[i] ) {
 			trap_ModelIndex( it->world_model[i] );

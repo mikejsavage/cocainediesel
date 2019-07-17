@@ -421,7 +421,6 @@ void SpawnItem( edict_t *ent, const gsitem_t *item );
 void G_Items_FinishSpawningItems( void );
 const gsitem_t *GetItemByTag( int tag );
 bool Add_Ammo( gclient_t *client, const gsitem_t *item, int count, bool add_it );
-void Touch_ItemSound( edict_t *other, const gsitem_t *item );
 void Touch_Item( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags );
 bool G_PickupItem( edict_t *other, const gsitem_t *it, int flags, int count, const int *invpack );
 void G_UseItem( struct edict_s *ent, const gsitem_t *item );

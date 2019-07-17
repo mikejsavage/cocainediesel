@@ -376,7 +376,6 @@ typedef struct gitem_s {
 	const char *world_model[MAX_ITEM_MODELS];
 	const char *icon;
 	const char *simpleitem;       // Kurim : we use different images for representing simpleitems
-	const char *pickup_sound;
 	int effects;
 
 

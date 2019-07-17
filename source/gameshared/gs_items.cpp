@@ -57,7 +57,6 @@ gsitem_t itemdefs[] =
 		{ PATH_GUNBLADE_MODEL, 0 }, // models 1 and 2
 		PATH_GUNBLADE_ICON,         // icon
 		NULL,                       // image for simpleitem
-		S_PICKUP_WEAPON,            // pickup sound
 		0,                          // effects
 
 		"Gunblade",                 // pickup name
@@ -82,7 +81,6 @@ gsitem_t itemdefs[] =
 		{ PATH_MACHINEGUN_MODEL, 0 },
 		PATH_MACHINEGUN_ICON,
 		PATH_MACHINEGUN_SIMPLEITEM,
-		S_PICKUP_WEAPON,
 		EF_ROTATE_AND_BOB | EF_OUTLINE,
 
 		"Machinegun", "MG", S_COLOR_GREY,
@@ -104,7 +102,6 @@ gsitem_t itemdefs[] =
 		{ PATH_RIOTGUN_MODEL, 0 },
 		PATH_RIOTGUN_ICON,
 		PATH_RIOTGUN_SIMPLEITEM,
-		S_PICKUP_WEAPON,
 		EF_ROTATE_AND_BOB | EF_OUTLINE,
 
 		"Riotgun", "RG", S_COLOR_ORANGE,
@@ -126,7 +123,6 @@ gsitem_t itemdefs[] =
 		{ PATH_GRENADELAUNCHER_MODEL, 0 },
 		PATH_GRENADELAUNCHER_ICON,
 		PATH_GRENADELAUNCHER_SIMPLEITEM,
-		S_PICKUP_WEAPON,
 		EF_ROTATE_AND_BOB | EF_OUTLINE,
 
 		"Grenade Launcher", "GL", S_COLOR_BLUE,
@@ -149,7 +145,6 @@ gsitem_t itemdefs[] =
 		{ PATH_ROCKETLAUNCHER_MODEL, 0 },
 		PATH_ROCKETLAUNCHER_ICON,
 		PATH_ROCKETLAUNCHER_SIMPLEITEM,
-		S_PICKUP_WEAPON,
 		EF_ROTATE_AND_BOB | EF_OUTLINE,
 
 		"Rocket Launcher", "RL", S_COLOR_RED,
@@ -173,7 +168,6 @@ gsitem_t itemdefs[] =
 		{ PATH_PLASMAGUN_MODEL, 0 },
 		PATH_PLASMAGUN_ICON,
 		PATH_PLASMAGUN_SIMPLEITEM,
-		S_PICKUP_WEAPON,
 		EF_ROTATE_AND_BOB | EF_OUTLINE,
 
 		"Plasmagun", "PG", S_COLOR_GREEN,
@@ -197,7 +191,6 @@ gsitem_t itemdefs[] =
 		{ PATH_LASERGUN_MODEL, 0 },
 		PATH_LASERGUN_ICON,
 		PATH_LASERGUN_SIMPLEITEM,
-		S_PICKUP_WEAPON,
 		EF_ROTATE_AND_BOB | EF_OUTLINE,
 
 		"Lasergun", "LG", S_COLOR_YELLOW,
@@ -223,7 +216,6 @@ gsitem_t itemdefs[] =
 		{ PATH_ELECTROBOLT_MODEL, 0 },
 		PATH_ELECTROBOLT_ICON,
 		PATH_ELECTROBOLT_SIMPLEITEM,
-		S_PICKUP_WEAPON,
 		EF_ROTATE_AND_BOB | EF_OUTLINE,
 
 		"Electrobolt", "EB", S_COLOR_CYAN,

@@ -109,11 +109,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 //
 
-// pickup
-#define S_PICKUP_WEAPON     "sounds/items/weapon_pickup"
-
-#define S_ITEM_RESPAWN      "sounds/items/item_spawn"        // item respawn
-
 // misc sounds
 #define S_TIMER_BIP_BIP     "sounds/misc/timer_bip_bip"
 

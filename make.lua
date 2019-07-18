@@ -142,6 +142,8 @@ dll( "game", {
 	},
 
 	prebuilt_libs = { "angelscript" },
+
+	gcc_extra_ldflags = "-no-pie -static-libstdc++",
 } )
 
 obj_cxxflags( "source/game/angelwrap/.+", "-I third-party/angelscript/sdk/angelscript/include" )

@@ -421,6 +421,16 @@ local function write_ninja_script()
 			join( cfg.srcs, pie_obj_suffix ),
 			joinpb( cfg.prebuilt_libs, lib_suffix, lib_prefix )
 		)
+
+		local ldflags_key = toolchain .. "_ldflags"
+		local extra_ldflags_key = toolchain .. "_extra_ldflags"
+		if cfg[ ldflags_key ] then
+			printf( "    ldflags = %s", cfg[ ldflags_key ] )
+		end
+		if cfg[ extra_ldflags_key ] then
+			printf( "    extra_ldflags = %s", cfg[ extra_ldflags_key ] )
+		end
+
 		printf( "default %s", full_name )
 	end
 

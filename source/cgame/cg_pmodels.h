@@ -98,9 +98,7 @@ enum {
 
 typedef struct {
 	int anim;
-	int frame;
 	int64_t startTimestamp;
-	float lerpFrac;
 } animstate_t;
 
 struct PlayerModelAnimationSet {

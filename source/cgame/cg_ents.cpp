@@ -759,11 +759,6 @@ static void CG_AddPlayerEnt( centity_t *cent ) {
 	cent->ent.renderfx |= RF_MINLIGHT;
 
 	CG_AddPModel( cent );
-
-	// corpses can never have a model in modelindex2
-	if( cent->current.type == ET_CORPSE ) {
-		return;
-	}
 }
 
 //==========================================================================
@@ -1602,6 +1597,7 @@ void CG_UpdateEntities( void ) {
 			case ET_ITEM:
 				CG_UpdateItemEnt( cent );
 				break;
+
 			case ET_PLAYER:
 			case ET_CORPSE:
 				CG_UpdatePlayerModelEnt( cent );

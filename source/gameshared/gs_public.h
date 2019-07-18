@@ -243,7 +243,7 @@ enum {
 // ANIMATIONS
 
 enum {
-	ANIM_NONE = 0,
+	ANIM_NONE,
 	BOTH_DEATH1,      //Death animation
 	BOTH_DEAD1,       //corpse on the ground
 	BOTH_DEATH2,

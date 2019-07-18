@@ -885,7 +885,6 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team )
 	}
 
 
-	ent.setupModel( "models/players/bigvic", "fullbright" );
 	// auto-select best weapon in the inventory
 	ent.client.selectWeapon( -1 );
 

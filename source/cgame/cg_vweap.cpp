@@ -292,7 +292,6 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	viewweapon->ent.renderfx = RF_MINLIGHT | RF_WEAPONMODEL | RF_NOSHADOW;
 	viewweapon->ent.scale = 1.0f;
 	viewweapon->ent.customShader = NULL;
-	viewweapon->ent.customSkin = NULL;
 	viewweapon->ent.rtype = RT_MODEL;
 	Vector4Set( viewweapon->ent.shaderRGBA, 255, 255, 255, 255 );
 

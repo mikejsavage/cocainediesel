@@ -33,14 +33,13 @@ static bool CG_IsAlly( int team ) {
 	return team == myteam;
 }
 
-static void CG_RegisterForceModel( cvar_t *modelCvar, cvar_t *modelForceCvar, PlayerModelMetadata **model, struct skinfile_s **skin ) {
+static void CG_RegisterForceModel( cvar_t *modelCvar, cvar_t *modelForceCvar, PlayerModelMetadata **model ) {
 	if( !modelCvar->modified && !modelForceCvar->modified )
 		return;
 	modelCvar->modified = false;
 	modelForceCvar->modified = false;
 
 	*model = NULL;
-	*skin = NULL;
 
 	if( modelForceCvar->integer ) {
 		const char * name = modelCvar->string;
@@ -50,11 +49,8 @@ static void CG_RegisterForceModel( cvar_t *modelCvar, cvar_t *modelForceCvar, Pl
 			new_model = CG_RegisterPlayerModel( va( "models/players/%s", name ) );
 		}
 
-		skinfile_s * new_skin = trap_R_RegisterSkinFile( va( "models/players/%s/default", name ) );
-
-		if( new_model != NULL && new_skin != NULL ) {
+		if( new_model != NULL ) {
 			*model = new_model;
-			*skin = new_skin;
 		}
 	}
 }
@@ -62,10 +58,10 @@ static void CG_RegisterForceModel( cvar_t *modelCvar, cvar_t *modelForceCvar, Pl
 static void CG_CheckUpdateTeamModelRegistration( bool ally ) {
 	cvar_t * modelCvar = ally ? cg_allyModel : cg_enemyModel;
 	cvar_t * modelForceCvar = ally ? cg_allyForceModel : cg_enemyForceModel;
-	CG_RegisterForceModel( modelCvar, modelForceCvar, &cgs.teamModelInfo[ int( ally ) ], &cgs.teamCustomSkin[ int( ally ) ] );
+	CG_RegisterForceModel( modelCvar, modelForceCvar, &cgs.teamModelInfo[ int( ally ) ] );
 }
 
-void CG_PModelForCentity( centity_t *cent, PlayerModelMetadata **pmodelinfo, struct skinfile_s **skin ) {
+void CG_PModelForCentity( centity_t *cent, PlayerModelMetadata **pmodelinfo ) {
 	centity_t * owner = cent;
 	if( cent->current.type == ET_CORPSE && cent->current.bodyOwner )
 		owner = &cg_entities[cent->current.bodyOwner];
@@ -77,12 +73,10 @@ void CG_PModelForCentity( centity_t *cent, PlayerModelMetadata **pmodelinfo, str
 
 	// use the player defined one if not forcing
 	*pmodelinfo = cgs.pModelsIndex[cent->current.modelindex];
-	*skin = cgs.skinPrecache[cent->current.skinnum];
 
 	if( GS_CanForceModels() && ownerNum < unsigned( gs.maxclients + 1 ) ) {
 		if( cgs.teamModelInfo[ int( ally ) ] != NULL ) {
 			*pmodelinfo = cgs.teamModelInfo[ int( ally ) ];
-			*skin = cgs.teamCustomSkin[ int( ally ) ];
 		}
 	}
 }

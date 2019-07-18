@@ -565,16 +565,6 @@ void R_FlushBSPSurfBatch( void );
 void R_WalkBSPSurf( const entity_t *e, const shader_t *shader, drawSurfaceBSP_t *drawSurf, walkDrawSurf_cb_cb cb, void *ptr );
 
 //
-// r_skin.c
-//
-void R_InitSkinFiles( void );
-void R_ShutdownSkinFiles( void );
-void R_FreeUnusedSkinFiles( void );
-struct skinfile_s *R_SkinFile_Load( const char *name );
-struct skinfile_s *R_RegisterSkinFile( const char *name );
-shader_t    *R_FindShaderForSkinFile( const struct skinfile_s *skinfile, const char *meshname );
-
-//
 // r_vbo.c
 //
 

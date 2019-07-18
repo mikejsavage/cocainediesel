@@ -95,7 +95,6 @@ typedef struct {
 	int ( *ModelIndex )( const char *name );
 	int ( *SoundIndex )( const char *name );
 	int ( *ImageIndex )( const char *name );
-	int ( *SkinIndex )( const char *name );
 
 	int64_t ( *Milliseconds )( void );
 

@@ -919,7 +919,6 @@ static const msg_field_t ent_state_fields[] = {
 	{ ESOFS( solid ), 32, 1, WIRE_UBASE128 },
 	{ ESOFS( modelindex ), 32, 1, WIRE_FIXED_INT8 },
 	{ ESOFS( svflags ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( skinnum ), 32, 1, WIRE_BASE128 },
 	{ ESOFS( effects ), 32, 1, WIRE_UBASE128 },
 	{ ESOFS( ownerNum ), 32, 1, WIRE_BASE128 },
 	{ ESOFS( targetNum ), 32, 1, WIRE_BASE128 },

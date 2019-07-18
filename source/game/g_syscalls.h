@@ -70,10 +70,6 @@ static inline int trap_ImageIndex( const char *name ) {
 	return GAME_IMPORT.ImageIndex( name );
 }
 
-static inline int trap_SkinIndex( const char *name ) {
-	return GAME_IMPORT.SkinIndex( name );
-}
-
 static inline int64_t trap_Milliseconds( void ) {
 	return GAME_IMPORT.Milliseconds();
 }

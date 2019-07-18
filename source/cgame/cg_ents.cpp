@@ -514,7 +514,6 @@ void CG_AddLinkedModel( centity_t * cent, const orientation_t * tag ) {
 	Vector4Copy( cent->ent.shaderRGBA, ent.shaderRGBA );
 	ent.model = model;
 	ent.customShader = NULL;
-	ent.customSkin = NULL;
 	VectorCopy( cent->ent.origin, ent.origin );
 	VectorCopy( cent->ent.origin, ent.origin2 );
 	Matrix3_Copy( cent->ent.axis, ent.axis );

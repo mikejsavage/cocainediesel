@@ -466,7 +466,6 @@ void SV_InitGameProgs( void ) {
 	import.ModelIndex = SV_ModelIndex;
 	import.SoundIndex = SV_SoundIndex;
 	import.ImageIndex = SV_ImageIndex;
-	import.SkinIndex = SV_SkinIndex;
 
 	import.ConfigString = PF_ConfigString;
 	import.GetConfigString = PF_GetConfigString;

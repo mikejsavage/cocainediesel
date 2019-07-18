@@ -432,8 +432,6 @@ bool R_Init() {
 
 	R_InitShaders();
 
-	R_InitSkinFiles();
-
 	R_InitModels();
 
 	R_ClearScene();
@@ -523,7 +521,6 @@ void R_EndRegistration( void ) {
 
 	R_FreeUnusedModels();
 	R_FreeUnusedVBOs();
-	R_FreeUnusedSkinFiles();
 	R_FreeUnusedShaders();
 	R_FreeUnusedImages();
 
@@ -549,8 +546,6 @@ void R_Shutdown( bool verbose ) {
 	R_DestroyVolatileAssets();
 
 	R_ShutdownModels();
-
-	R_ShutdownSkinFiles();
 
 	R_ShutdownVBO();
 

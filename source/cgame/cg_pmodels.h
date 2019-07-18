@@ -146,7 +146,6 @@ struct PlayerModelMetadata {
 typedef struct {
 	// static data
 	PlayerModelMetadata * metadata;
-	struct skinfile_s *skin;
 
 	// dynamic
 	pmodel_animationstate_t animState;

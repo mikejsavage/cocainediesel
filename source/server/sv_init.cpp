@@ -77,10 +77,6 @@ int SV_ImageIndex( const char *name ) {
 	return SV_FindIndex( name, CS_IMAGES, MAX_IMAGES, true );
 }
 
-int SV_SkinIndex( const char *name ) {
-	return SV_FindIndex( name, CS_SKINFILES, MAX_SKINFILES, true );
-}
-
 /*
 * SV_CreateBaseline
 *

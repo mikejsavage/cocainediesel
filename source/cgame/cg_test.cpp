@@ -296,11 +296,6 @@ static void CG_TestEntities( void ) {
 
 		// skelmod splitmodels
 		ent.model = cgs.basePModelInfo->model;
-		if( cgs.baseSkin ) {
-			ent.customSkin = cgs.baseSkin;
-		} else {
-			ent.customSkin = NULL;
-		}
 
 		CG_AddEntityToScene( &ent ); // skelmod
 	}

@@ -285,12 +285,6 @@ void CG_RegisterBasePModel( void ) {
 	Q_snprintfz( filename, sizeof( filename ), "models/players/%s", DEFAULT_PLAYERMODEL );
 	cgs.basePModelInfo = CG_RegisterPlayerModel( filename );
 
-	Q_snprintfz( filename, sizeof( filename ), "models/players/%s/%s", DEFAULT_PLAYERMODEL, DEFAULT_PLAYERSKIN );
-	cgs.baseSkin = trap_R_RegisterSkinFile( filename );
-	if( !cgs.baseSkin ) {
-		CG_Error( "'Default Player Model'(%s): Skin (%s) failed to load", DEFAULT_PLAYERMODEL, filename );
-	}
-
 	if( !cgs.basePModelInfo ) {
 		CG_Error( "'Default Player Model'(%s): failed to load", DEFAULT_PLAYERMODEL );
 	}
@@ -407,7 +401,6 @@ static void CG_AddRaceGhostShell( entity_t *ent ) {
 	clamp( alpha, 0, 1.0 );
 
 	shell = *ent;
-	shell.customSkin = NULL;
 
 	if( shell.renderfx & RF_WEAPONMODEL ) {
 		return;
@@ -843,7 +836,7 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	cent->ent.renderfx = cent->renderfx;
 
 	pmodel = &cg_entPModels[cent->current.number];
-	CG_PModelForCentity( cent, &pmodel->metadata, &pmodel->skin );
+	CG_PModelForCentity( cent, &pmodel->metadata );
 
 	CG_TeamColorForEntity( cent->current.number, cent->ent.shaderRGBA );
 
@@ -861,9 +854,8 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	}
 
 	// fallback
-	if( !pmodel->metadata || !pmodel->skin ) {
+	if( !pmodel->metadata ) {
 		pmodel->metadata = cgs.basePModelInfo;
-		pmodel->skin = cgs.baseSkin;
 	}
 
 	// Spawning (teleported bit) forces nobacklerp and the interruption of EVENT_CHANNEL animations
@@ -1082,7 +1074,6 @@ void CG_AddPModel( centity_t *cent ) {
 	cent->ent.rtype = RT_MODEL;
 	cent->ent.model = meta->model;
 	cent->ent.customShader = NULL;
-	cent->ent.customSkin = pmodel->skin;
 	cent->ent.renderfx |= RF_NOSHADOW;
 	cent->ent.pose = R_ComputeMatrixPalettes( cls.frame_arena, meta->model, lower );
 

@@ -211,7 +211,6 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 		body->s.type = ET_CORPSE;
 		body->s.modelindex = ent->s.modelindex;
 		body->s.bodyOwner = ent->s.number; // bodyOwner is the same as modelindex2
-		body->s.skinnum = ent->s.skinnum;
 		body->s.teleported = true;
 
 		G_AddEvent( body, EV_DIE, rand(), true );
@@ -330,18 +329,8 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 }
 
 static void G_Client_AssignTeamSkin( edict_t *ent, char *userinfo ) {
-	char skin[MAX_QPATH], model[MAX_QPATH];
-	const char *userskin, *usermodel;
-
-	// index skin file
-	userskin = GS_TeamSkinName( ent->s.team ); // is it a team skin?
-	if( !userskin ) { // NULL indicates *user defined*
-		userskin = Info_ValueForKey( userinfo, "skin" );
-		if( !userskin || !userskin[0] || !COM_ValidateRelativeFilename( userskin ) ||
-			strchr( userskin, '/' ) || strstr( userskin, "invisibility" ) ) {
-			userskin = NULL;
-		}
-	}
+	char model[MAX_QPATH];
+	const char *usermodel;
 
 	// index player model
 	usermodel = Info_ValueForKey( userinfo, "model" );
@@ -349,18 +338,15 @@ static void G_Client_AssignTeamSkin( edict_t *ent, char *userinfo ) {
 		usermodel = NULL;
 	}
 
-	if( userskin && usermodel ) {
+	if( usermodel ) {
 		Q_snprintfz( model, sizeof( model ), "$models/players/%s", usermodel );
-		Q_snprintfz( skin, sizeof( skin ), "models/players/%s/%s", usermodel, userskin );
 	} else {
 		Q_snprintfz( model, sizeof( model ), "$models/players/%s", DEFAULT_PLAYERMODEL );
-		Q_snprintfz( skin, sizeof( skin ), "models/players/%s/%s", DEFAULT_PLAYERMODEL, DEFAULT_PLAYERSKIN );
 	}
 
 	if( !ent->deadflag ) {
 		ent->s.modelindex = trap_ModelIndex( model );
 	}
-	ent->s.skinnum = trap_SkinIndex( skin );
 }
 
 /*
@@ -387,7 +373,7 @@ void G_GhostClient( edict_t *ent ) {
 	ent->r.client->resp.old_waterlevel = 0;
 	ent->r.client->resp.old_watertype = 0;
 
-	ent->s.modelindex = ent->s.modelindex2 = ent->s.skinnum = 0;
+	ent->s.modelindex = ent->s.modelindex2 = 0;
 	ent->s.effects = 0;
 	ent->s.weapon = 0;
 	ent->s.sound = 0;

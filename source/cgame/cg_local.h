@@ -330,20 +330,16 @@ typedef struct {
 
 	PlayerModelMetadata *pModelsIndex[MAX_MODELS];
 	PlayerModelMetadata *basePModelInfo; //fall back replacements
-	struct skinfile_s *baseSkin;
 
 	// force models
 	PlayerModelMetadata *teamModelInfo[2];
-	struct skinfile_s *teamCustomSkin[2]; // user defined
 
 	struct sfx_s *soundPrecache[MAX_SOUNDS];
 	struct shader_s *imagePrecache[MAX_IMAGES];
-	struct skinfile_s *skinPrecache[MAX_SKINFILES];
 
 	int precacheModelsStart;
 	int precacheSoundsStart;
 	int precacheShadersStart;
-	int precacheSkinsStart;
 	int precacheClientsStart;
 
 	char checkname[MAX_QPATH];
@@ -697,7 +693,7 @@ void CG_SC_AutoRecordAction( const char *action );
 // cg_teams.c
 //
 void CG_RegisterForceModels();
-void CG_PModelForCentity( centity_t *cent, PlayerModelMetadata **pmodelinfo, struct skinfile_s **skin );
+void CG_PModelForCentity( centity_t *cent, PlayerModelMetadata **pmodelinfo );
 void CG_TeamColor( int team, vec4_t color );
 void CG_TeamColorForEntity( int entNum, byte_vec4_t color );
 

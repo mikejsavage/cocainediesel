@@ -86,7 +86,6 @@ static const asEnumVal_t asConfigstringEnumVals[] =
 	ASLIB_ENUM_VAL( CS_MODELS ),
 	ASLIB_ENUM_VAL( CS_SOUNDS ),
 	ASLIB_ENUM_VAL( CS_IMAGES ),
-	ASLIB_ENUM_VAL( CS_SKINFILES ),
 	ASLIB_ENUM_VAL( CS_ITEMS ),
 	ASLIB_ENUM_VAL( CS_PLAYERINFOS ),
 	ASLIB_ENUM_VAL( CS_GAMECOMMANDS ),
@@ -1472,7 +1471,7 @@ static void objectGameEntity_GhostClient( edict_t *self ) {
 	}
 }
 
-static void objectGameEntity_SetupModelExt( asstring_t *modelstr, asstring_t *skinstr, edict_t *self ) {
+static void objectGameEntity_SetupModel( asstring_t *modelstr, edict_t *self ) {
 	char *path;
 	const char *s;
 
@@ -1488,23 +1487,17 @@ static void objectGameEntity_SetupModelExt( asstring_t *modelstr, asstring_t *sk
 
 	// if it's a player model
 	if( s == path ) {
-		char skin[MAX_QPATH], model[MAX_QPATH];
+		char model[MAX_QPATH];
 
 		s += strlen( "models/players/" );
 
 		Q_snprintfz( model, sizeof( model ), "$%s", path );
-		Q_snprintfz( skin, sizeof( skin ), "models/players/%s/%s", s, skinstr && skinstr->buffer[0] ? skinstr->buffer : DEFAULT_PLAYERSKIN );
 
 		self->s.modelindex = trap_ModelIndex( model );
-		self->s.skinnum = trap_SkinIndex( skin );
 		return;
 	}
 
 	GClip_SetBrushModel( self, path );
-}
-
-static void objectGameEntity_SetupModel( asstring_t *modelstr, edict_t *self ) {
-	objectGameEntity_SetupModelExt( modelstr, NULL, self );
 }
 
 static void objectGameEntity_UseTargets( edict_t *activator, edict_t *self ) {
@@ -1669,7 +1662,6 @@ static const asMethod_t gedict_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, teleportEffect, ( bool ) ), asFUNCTION( objectGameEntity_TeleportEffect ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, respawnEffect, ( ) ), asFUNCTION( G_RespawnEffect ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, setupModel, ( const String &in ) ), asFUNCTION( objectGameEntity_SetupModel ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, setupModel, ( const String &in, const String &in ) ), asFUNCTION( objectGameEntity_SetupModelExt ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( array<Entity @> @, findTargets, ( ) const ), asFUNCTION( objectGameEntity_findTargets ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( array<Entity @> @, findTargeting, ( ) const ), asFUNCTION( objectGameEntity_findTargeting ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, useTargets, ( const Entity @activator ) ), asFUNCTION( objectGameEntity_UseTargets ), asCALL_CDECL_OBJLAST },
@@ -1696,7 +1688,6 @@ static const asProperty_t gedict_Properties[] =
 	{ ASLIB_PROPERTY_DECL( int, radius ), ASLIB_FOFFSET( edict_t, s.radius ) },
 	{ ASLIB_PROPERTY_DECL( int, ownerNum ), ASLIB_FOFFSET( edict_t, s.ownerNum ) },
 	{ ASLIB_PROPERTY_DECL( int, counterNum ), ASLIB_FOFFSET( edict_t, s.counterNum ) },
-	{ ASLIB_PROPERTY_DECL( int, skinNum ), ASLIB_FOFFSET( edict_t, s.skinnum ) },
 	{ ASLIB_PROPERTY_DECL( int, colorRGBA ), ASLIB_FOFFSET( edict_t, s.colorRGBA ) },
 	{ ASLIB_PROPERTY_DECL( int, weapon ), ASLIB_FOFFSET( edict_t, s.weapon ) },
 	{ ASLIB_PROPERTY_DECL( bool, teleported ), ASLIB_FOFFSET( edict_t, s.teleported ) },
@@ -2223,14 +2214,6 @@ static int asFunc_ImageIndex( asstring_t *str ) {
 	return trap_ImageIndex( str->buffer );
 }
 
-static int asFunc_SkinIndex( asstring_t *str ) {
-	if( !str || !str->buffer ) {
-		return 0;
-	}
-
-	return trap_SkinIndex( str->buffer );
-}
-
 static int asFunc_ModelIndexExt( asstring_t *str, bool pure ) {
 	int index;
 
@@ -2539,7 +2522,6 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "void __G_CallDie( Entity @ent, Entity @inflicter, Entity @attacker )", asFUNCTION( G_CallDie ), &asEntityCallDieFuncPtr },
 
 	{ "int G_ImageIndex( const String &in )", asFUNCTION( asFunc_ImageIndex ), NULL },
-	{ "int G_SkinIndex( const String &in )", asFUNCTION( asFunc_SkinIndex ), NULL },
 	{ "int G_ModelIndex( const String &in )", asFUNCTION( asFunc_ModelIndex ), NULL },
 	{ "int G_SoundIndex( const String &in )", asFUNCTION( asFunc_SoundIndex ), NULL },
 	{ "int G_ModelIndex( const String &in, bool pure )", asFUNCTION( asFunc_ModelIndexExt ), NULL },

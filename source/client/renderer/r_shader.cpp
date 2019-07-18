@@ -2060,13 +2060,6 @@ shader_t *R_RegisterSkin( const char *name ) {
 }
 
 /*
-* R_RegisterLinearPic
-*/
-shader_t *R_RegisterLinearPic( const char *name ) {
-	return R_LoadShader( name, SHADER_TYPE_2D_LINEAR, false, NULL );
-}
-
-/*
 * R_ReplaceRawSubPic
 *
 * Adds a new subimage to the specified raw pic.

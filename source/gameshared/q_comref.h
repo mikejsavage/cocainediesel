@@ -171,8 +171,7 @@ typedef struct {
 #define CS_MODELS           32
 #define CS_SOUNDS           ( CS_MODELS + MAX_MODELS )
 #define CS_IMAGES           ( CS_SOUNDS + MAX_SOUNDS )
-#define CS_SKINFILES        ( CS_IMAGES + MAX_IMAGES )
-#define CS_ITEMS            ( CS_SKINFILES + MAX_SKINFILES )
+#define CS_ITEMS            ( CS_IMAGES + MAX_IMAGES )
 #define CS_PLAYERINFOS      ( CS_ITEMS + MAX_ITEMS )
 #define CS_GAMECOMMANDS     ( CS_PLAYERINFOS + MAX_CLIENTS )
 #define CS_WEAPONDEFS       ( CS_GAMECOMMANDS + MAX_GAMECOMMANDS )
@@ -279,7 +278,6 @@ typedef struct entity_state_s {
 	int eventParms[2];
 
 	int counterNum;                 // ET_GENERIC
-	int skinnum;                    // for ET_PLAYER
 	int itemNum;                    // for ET_ITEM
 	int damage;                     // EV_BLOOD
 	int targetNum;                  // ET_EVENT specific

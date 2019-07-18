@@ -222,8 +222,6 @@ void CL_GameModule_Init( void ) {
 	import.R_RegisterModel = re.RegisterModel;
 	import.R_RegisterPic = re.RegisterPic;
 	import.R_RegisterSkin = re.RegisterSkin;
-	import.R_RegisterSkinFile = re.RegisterSkinFile;
-	import.R_RegisterLinearPic = re.RegisterLinearPic;
 	import.R_LerpTag = re.LerpTag;
 	import.R_DrawStretchPic = re.DrawStretchPic;
 	import.R_DrawRotatedStretchPic = re.DrawRotatedStretchPic;

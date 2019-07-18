@@ -101,8 +101,6 @@ typedef struct {
 	struct shader_s *( *RegisterPic )( const char *name );
 	struct shader_s *( *RegisterAlphaMask )( const char *name, int width, int height, const uint8_t * data );
 	struct shader_s *( *RegisterSkin )( const char *name );
-	struct skinfile_s *( *RegisterSkinFile )( const char *name );
-	struct shader_s *( *RegisterLinearPic )( const char *name );
 
 	void ( *ReplaceRawSubPic )( struct shader_s *shader, int x, int y, int width, int height, uint8_t *data );
 

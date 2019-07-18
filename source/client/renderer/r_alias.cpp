@@ -687,9 +687,7 @@ bool R_AddAliasModelToDrawList( const entity_t *e ) {
 		int numSkins = 1;
 		maliasskin_t *skins = &fakeskin;
 
-		if( e->customSkin ) {
-			fakeskin.shader = R_FindShaderForSkinFile( e->customSkin, mesh->name );
-		} else if( e->customShader ) {
+		if( e->customShader ) {
 			fakeskin.shader = e->customShader;
 		} else if( mesh->numskins ) {
 			skins = mesh->skins;

@@ -388,11 +388,7 @@ static void CG_RegisterShaders( void ) {
 			return;
 		}
 
-		if( strstr( name, "correction/" ) ) { // HACK HACK HACK -- for color correction LUTs
-			cgs.imagePrecache[i] = trap_R_RegisterLinearPic( name );
-		} else {
-			cgs.imagePrecache[i] = trap_R_RegisterPic( name );
-		}
+		cgs.imagePrecache[i] = trap_R_RegisterPic( name );
 	}
 
 	if( cgs.precacheShadersStart != MAX_IMAGES ) {
@@ -400,40 +396,6 @@ static void CG_RegisterShaders( void ) {
 	}
 
 	CG_RegisterMediaShaders();
-}
-
-/*
-* CG_RegisterSkinfiles
-*/
-static void CG_RegisterSkinFiles( void ) {
-	int i;
-	const char *name;
-
-	if( cgs.precacheSkinsStart == MAX_SKINFILES ) {
-		return;
-	}
-
-	if( !cgs.precacheSkinsStart ) {
-		cgs.precacheSkinsStart = 1;
-	}
-
-	for( i = cgs.precacheSkinsStart; i < MAX_SKINFILES; i++ ) {
-		name = cgs.configStrings[CS_SKINFILES + i];
-		if( !name[0] ) {
-			cgs.precacheSkinsStart = MAX_SKINFILES;
-			break;
-		}
-
-		cgs.precacheSkinsStart = i;
-
-		if( !CG_LoadingItemName( name ) ) {
-			return;
-		}
-
-		cgs.skinPrecache[i] = trap_R_RegisterSkinFile( name );
-	}
-
-	cgs.precacheSkinsStart = MAX_SKINFILES;
 }
 
 /*
@@ -659,11 +621,6 @@ void CG_Precache( void ) {
 		return;
 	}
 
-	CG_RegisterSkinFiles();
-	if( cgs.precacheSkinsStart < MAX_SKINFILES ) {
-		return;
-	}
-
 	CG_RegisterClients();
 	if( cgs.precacheClientsStart < MAX_CLIENTS ) {
 		return;
@@ -696,8 +653,6 @@ static void CG_RegisterConfigStrings( void ) {
 		} else if( i >= CS_SOUNDS && i < CS_SOUNDS + MAX_SOUNDS ) {
 			cgs.precacheTotal++;
 		} else if( i >= CS_IMAGES && i < CS_IMAGES + MAX_IMAGES ) {
-			cgs.precacheTotal++;
-		} else if( i >= CS_SKINFILES && i < CS_SKINFILES + MAX_SKINFILES ) {
 			cgs.precacheTotal++;
 		} else if( i >= CS_PLAYERINFOS && i < CS_PLAYERINFOS + MAX_CLIENTS ) {
 			cgs.precacheTotal++;

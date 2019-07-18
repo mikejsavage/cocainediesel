@@ -440,7 +440,6 @@ constexpr TeamColor TEAM_COLORS[] = {
 // teams
 const char *GS_TeamName( int team );
 const char *GS_DefaultTeamName( int team );
-const char *GS_TeamSkinName( int team );
 int GS_TeamFromName( const char *teamname );
 bool GS_IsTeamDamage( entity_state_t *targ, entity_state_t *attacker );
 

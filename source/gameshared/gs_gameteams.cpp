@@ -40,15 +40,6 @@ static const char *gs_teamNames[] =
 	NULL
 };
 
-static const char *gs_teamSkinsNames[] =
-{
-	NULL,   //null means user defined skin
-	NULL,
-	"default",
-	"default",
-	NULL
-};
-
 /*
 * GS_TeamName
 */
@@ -64,16 +55,6 @@ const char *GS_DefaultTeamName( int team ) {
 		return NULL;
 	}
 	return gs_teamNames[team];
-}
-
-/*
-* GS_TeamSkinName
-*/
-const char *GS_TeamSkinName( int team ) {
-	if( team < 0 || team >= GS_MAX_TEAMS ) {
-		return NULL;
-	}
-	return gs_teamSkinsNames[team];
 }
 
 /*

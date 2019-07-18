@@ -186,7 +186,6 @@ constexpr const char * MASTER_SERVERS[] = { "dpmaster.deathmask.net", "ghdigital
 #define SERVER_PINGING_TIMEOUT              50
 #define LAN_SERVER_PINGING_TIMEOUT          20
 #define DEFAULT_PLAYERMODEL                 "bigvic"
-#define DEFAULT_PLAYERSKIN                  "default"
 
 // entity_state_t is the information conveyed from the server
 // in an update message about entities that the client will

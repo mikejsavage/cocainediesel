@@ -171,8 +171,7 @@ parse_string:
 			}
 
 			w = -1;
-			len = trap_SCR_StrlenForWidth( text + s, font, width - padding_x * 2 );
-			clamp_low( len, 1 );
+			len = Max2( size_t( 1 ), trap_SCR_StrlenForWidth( text + s, font, width - padding_x * 2 ) );
 
 			for( j = s; ( j < ( s + len ) ) && text[j] != '\0'; j += utf_len ) {
 				utf_len = Q_Utf8SyncPos( text + j, 1, UTF8SYNC_RIGHT );

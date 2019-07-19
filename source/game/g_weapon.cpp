@@ -567,17 +567,9 @@ void W_Fire_Electrobolt_FullInstant( edict_t *self, vec3_t start, vec3_t angles,
 		mask = MASK_SOLID;
 	}
 
-	clamp_high( mindamage, maxdamage );
-	clamp_high( minknockback, maxknockback );
-	clamp_high( minDamageRange, range );
-
-	if( minDamageRange <= FULL_DAMAGE_RANGE ) {
-		minDamageRange = FULL_DAMAGE_RANGE + 1;
-	}
-
-	if( range <= FULL_DAMAGE_RANGE + 1 ) {
-		range = FULL_DAMAGE_RANGE + 1;
-	}
+	mindamage = Min2( mindamage, maxdamage );
+	minknockback = Min2( minknockback, maxknockback );
+	minDamageRange = bound( FULL_DAMAGE_RANGE + 1, minDamageRange, range );
 
 	tr.ent = -1;
 	while( ignore ) {
@@ -609,8 +601,7 @@ void W_Fire_Electrobolt_FullInstant( edict_t *self, vec3_t start, vec3_t angles,
 			if( dist <= FULL_DAMAGE_RANGE ) {
 				frac = 0.0f;
 			} else {
-				frac = ( dist - FULL_DAMAGE_RANGE ) / (float)( minDamageRange - FULL_DAMAGE_RANGE );
-				clamp( frac, 0.0f, 1.0f );
+				frac = Clamp01( ( dist - FULL_DAMAGE_RANGE ) / float( minDamageRange - FULL_DAMAGE_RANGE ) );
 			}
 
 			damage = maxdamage - ( ( maxdamage - mindamage ) * frac );

@@ -484,8 +484,7 @@ static void CG_EntAddTeamColorTransitionEffect( centity_t *cent ) {
 	vec4_t scaledcolor, newcolor;
 	const vec4_t neutralcolor = { 1.0f, 1.0f, 1.0f, 1.0f };
 
-	float f = (float)cent->current.counterNum / 255.0f;
-	clamp( f, 0.0f, 1.0f );
+	float f = Clamp01( (float)cent->current.counterNum / 255.0f );
 
 	CG_TeamColorForEntity( cent->current.number, currentcolor );
 
@@ -608,8 +607,7 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 		if( cgs.extrapolationTime && cent->canExtrapolate ) { // extrapolation
 			vec3_t origin, xorigin1, xorigin2;
 
-			float lerpfrac = cg.lerpfrac;
-			clamp( lerpfrac, 0.0f, 1.0f );
+			float lerpfrac = Clamp01( cg.lerpfrac );
 
 			// extrapolation with half-snapshot smoothing
 			if( cg.xerpTime >= 0 || !cent->canExtrapolatePrev ) {
@@ -652,8 +650,7 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 			}
 
 			VectorCopy( origin, cent->microSmoothOrigin );
-			cent->microSmooth++;
-			clamp_high( cent->microSmooth, 2 );
+			cent->microSmooth = Min2( 2, cent->microSmooth + 1 );
 
 			VectorCopy( cent->ent.origin, cent->ent.origin2 );
 		} else {   // plain interpolation

@@ -38,7 +38,7 @@ void ThrowSmallPileOfGibs( edict_t *self, int damage ) {
 	self->s.origin[2] += 4;
 
 	// clamp the damage value since events do bitwise & 0xFF on the passed param
-	damage = bound( 0, damage, 255 );
+	damage = Clamp( 0, damage, 255 );
 
 	event = G_SpawnEvent( EV_SPOG, damage, origin );
 	event->s.team = self->s.team;
@@ -565,8 +565,7 @@ void SP_misc_particles( edict_t *ent ) {
 	}
 
 	if( st.radius > 0 ) {
-		ent->particlesInfo.spread = st.radius;
-		clamp( ent->particlesInfo.spread, 0, 255 );
+		ent->particlesInfo.spread = Clamp( 0.0f, st.radius, 255.0f );
 	}
 
 	ent->think = SP_misc_particles_finish;

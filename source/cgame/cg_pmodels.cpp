@@ -395,12 +395,7 @@ bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result ) {
 * CG_AddRaceGhostShell
 */
 static void CG_AddRaceGhostShell( entity_t *ent ) {
-	entity_t shell;
-	float alpha = cg_raceGhostsAlpha->value;
-
-	clamp( alpha, 0, 1.0 );
-
-	shell = *ent;
+	entity_t shell = *ent;
 
 	if( shell.renderfx & RF_WEAPONMODEL ) {
 		return;
@@ -410,6 +405,7 @@ static void CG_AddRaceGhostShell( entity_t *ent ) {
 	shell.renderfx |= ( RF_FULLBRIGHT | RF_NOSHADOW );
 	shell.outlineHeight = 0;
 
+	float alpha = Clamp( 0.0f, cg_raceGhostsAlpha->value, 1.0f );
 	shell.color[0] *= alpha;
 	shell.color[1] *= alpha;
 	shell.color[2] *= alpha;
@@ -760,9 +756,8 @@ void CG_PModel_AddAnimation( int entNum, int loweranim, int upperanim, int heada
 void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
 	mat3_t axis;
 	vec3_t hvelocity;
-	float speed, front, side, aside, scale;
+	float speed;
 	vec3_t leanAngles[PMODEL_PARTS];
-	int i, j;
 
 	memset( leanAngles, 0, sizeof( leanAngles ) );
 
@@ -770,19 +765,19 @@ void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
 	hvelocity[1] = cent->animVelocity[1];
 	hvelocity[2] = 0;
 
-	scale = 0.04f;
+	float scale = 0.04f;
 
 	if( ( speed = VectorLengthFast( hvelocity ) ) * scale > 1.0f ) {
 		AnglesToAxis( tv( 0, cent->current.angles[YAW], 0 ), axis );
 
-		front = scale * DotProduct( hvelocity, &axis[AXIS_FORWARD] );
+		float front = scale * DotProduct( hvelocity, &axis[AXIS_FORWARD] );
 		if( front < -0.1 || front > 0.1 ) {
 			leanAngles[LOWER][PITCH] += front;
 			leanAngles[UPPER][PITCH] -= front * 0.25;
 			leanAngles[HEAD][PITCH] -= front * 0.5;
 		}
 
-		aside = ( front * 0.001f ) * cent->yawVelocity;
+		float aside = ( front * 0.001f ) * cent->yawVelocity;
 
 		if( aside ) {
 			float asidescale = 75;
@@ -791,7 +786,7 @@ void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
 			leanAngles[HEAD][ROLL] -= aside * 0.35 * asidescale;
 		}
 
-		side = scale * DotProduct( hvelocity, &axis[AXIS_RIGHT] );
+		float side = scale * DotProduct( hvelocity, &axis[AXIS_RIGHT] );
 
 		if( side < -1 || side > 1 ) {
 			leanAngles[LOWER][ROLL] -= side * 0.5;
@@ -799,18 +794,18 @@ void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
 			leanAngles[HEAD][ROLL] += side * 0.25;
 		}
 
-		clamp( leanAngles[LOWER][PITCH], -45, 45 );
-		clamp( leanAngles[LOWER][ROLL], -15, 15 );
+		leanAngles[LOWER][PITCH] = Clamp( -45.0f, leanAngles[LOWER][PITCH], 45.0f );
+		leanAngles[LOWER][ROLL] = Clamp( -15.0f, leanAngles[LOWER][ROLL], 15.0f );
 
-		clamp( leanAngles[UPPER][PITCH], -45, 45 );
-		clamp( leanAngles[UPPER][ROLL], -20, 20 );
+		leanAngles[UPPER][PITCH] = Clamp( -45.0f, leanAngles[UPPER][PITCH], 45.0f );
+		leanAngles[UPPER][ROLL] = Clamp( -20.0f, leanAngles[UPPER][ROLL], 20.0f );
 
-		clamp( leanAngles[HEAD][PITCH], -45, 45 );
-		clamp( leanAngles[HEAD][ROLL], -20, 20 );
+		leanAngles[HEAD][PITCH] = Clamp( -45.0f, leanAngles[HEAD][PITCH], 45.0f );
+		leanAngles[HEAD][ROLL] = Clamp( -20.0f, leanAngles[HEAD][ROLL], 20.0f );
 	}
 
-	for( j = LOWER; j < PMODEL_PARTS; j++ ) {
-		for( i = 0; i < 3; i++ )
+	for( int j = LOWER; j < PMODEL_PARTS; j++ ) {
+		for( int i = 0; i < 3; i++ )
 			pmodel->angles[i][j] = AngleNormalize180( pmodel->angles[i][j] + leanAngles[i][j] );
 	}
 }
@@ -875,12 +870,9 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 		cent->yawVelocity = 0;
 	} else {
 		// update smoothed velocities used for animations and leaning angles
-		int count;
-		float adelta;
-
 		// rotational yaw velocity
-		adelta = AngleDelta( cent->current.angles[YAW], cent->prev.angles[YAW] );
-		clamp( adelta, -35, 35 );
+		float adelta = AngleDelta( cent->current.angles[YAW], cent->prev.angles[YAW] );
+		adelta = Clamp( -35.0f, adelta, 35.0f );
 
 		// smooth a velocity vector between the last snaps
 		cent->lastVelocities[cg.frame.serverFrame & 3][0] = cent->velocity[0];
@@ -889,7 +881,7 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 		cent->lastVelocities[cg.frame.serverFrame & 3][3] = adelta;
 		cent->lastVelocitiesFrames[cg.frame.serverFrame & 3] = cg.frame.serverFrame;
 
-		count = 0;
+		int count = 0;
 		VectorClear( cent->animVelocity );
 		cent->yawVelocity = 0;
 		for( int i = cg.frame.serverFrame; ( i >= 0 ) && ( count < 3 ) && ( i == cent->lastVelocitiesFrames[i & 3] ); i-- ) {

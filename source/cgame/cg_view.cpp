@@ -347,12 +347,10 @@ void CG_StartKickAnglesEffect( vec3_t source, float knockback, float radius, int
 		}
 
 		side = DotProduct( v, right );
-		cg.kickangles[kicknum].v_roll = kick * side * 0.3;
-		clamp( cg.kickangles[kicknum].v_roll, -20, 20 );
+		cg.kickangles[kicknum].v_roll = Clamp( -20.0f, kick * side * 0.3f, 20.0f );
 
 		side = -DotProduct( v, forward );
-		cg.kickangles[kicknum].v_pitch = kick * side * 0.3;
-		clamp( cg.kickangles[kicknum].v_pitch, -20, 20 );
+		cg.kickangles[kicknum].v_pitch = Clamp( -20.0f, kick * side * 0.3f, 20.0f );
 
 		cg.kickangles[kicknum].timestamp = cg.time;
 		ftime = (float)time * delta;
@@ -371,8 +369,7 @@ void CG_StartFallKickEffect( int bounceTime ) {
 		cg.fallEffectRebounceTime = 0;
 	}
 
-	bounceTime += 200;
-	clamp_high( bounceTime, 400 );
+	bounceTime = Min2( 400, bounceTime + 200 );
 
 	cg.fallEffectTime = cg.time + bounceTime;
 	if( cg.fallEffectRebounceTime ) {
@@ -820,15 +817,13 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 			cg.oldXerpTime = 0.001f * ( (double)cg.time - (double)cg.oldFrame.serverTime );
 
 			if( cg.time >= cg.frame.serverTime ) {
-				cg.xerpSmoothFrac = (double)( cg.time - cg.frame.serverTime ) / (double)( cgs.extrapolationTime );
-				clamp( cg.xerpSmoothFrac, 0.0f, 1.0f );
+				cg.xerpSmoothFrac = Clamp01( double( cg.time - cg.frame.serverTime ) / double( cgs.extrapolationTime ) );
 			} else {
-				cg.xerpSmoothFrac = (double)( cg.frame.serverTime - cg.time ) / (double)( cgs.extrapolationTime );
-				clamp( cg.xerpSmoothFrac, -1.0f, 0.0f );
+				cg.xerpSmoothFrac = Clamp( -1.0, double( cg.frame.serverTime - cg.time ) / double( cgs.extrapolationTime ), 0.0 );
 				cg.xerpSmoothFrac = 1.0f - cg.xerpSmoothFrac;
 			}
 
-			clamp_low( cg.xerpTime, -( cgs.extrapolationTime * 0.001f ) );
+			cg.xerpTime = Max2( cg.xerpTime, -( cgs.extrapolationTime * 0.001f ) );
 		} else {
 			cg.xerpTime = 0.0f;
 			cg.xerpSmoothFrac = 0.0f;
@@ -843,7 +838,7 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 		}
 	}
 
-	clamp( cg.lerpfrac, 0.0f, 1.0f );
+	cg.lerpfrac = Clamp01( cg.lerpfrac );
 
 	if( !cgs.configStrings[CS_WORLDMODEL][0] ) {
 		CG_AddLocalSounds();

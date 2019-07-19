@@ -101,7 +101,7 @@ void G_Items_RespawnByType( unsigned int typeMask, int item_tag, float delay ) {
 
 		msecs = (int)( delay * 1000 );
 		if( msecs >= 0 ) {
-			clamp_low( msecs, 1 );
+			msecs = Max2( 1, msecs );
 		}
 
 		SetRespawn( ent, msecs );

@@ -1214,13 +1214,11 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	if( ent->r.svflags & SVF_FAKECLIENT ) {
 		client->timeDelta = 0;
 	} else {
-		int nudge;
 		int fixedNudge = ( game.snapFrameTime ) * 0.5; // fixme: find where this nudge comes from.
 
 		// add smoothing to timeDelta between the last few ucmds and a small fine-tuning nudge.
-		nudge = fixedNudge + g_antilag_timenudge->integer;
-		timeDelta += nudge;
-		clamp( timeDelta, -g_antilag_maxtimedelta->integer, 0 );
+		int nudge = fixedNudge + g_antilag_timenudge->integer;
+		timeDelta = Clamp( -g_antilag_maxtimedelta->integer, timeDelta + nudge, 0 );
 
 		// smooth using last valid deltas
 		i = client->timeDeltasHead - 6;
@@ -1245,7 +1243,7 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 		client->timeDeltasHead++;
 	}
 
-	clamp( client->timeDelta, -g_antilag_maxtimedelta->integer, 0 );
+	client->timeDelta = Clamp( -g_antilag_maxtimedelta->integer, client->timeDelta, 0 );
 
 	// update activity if he touched any controls
 	if( ucmd->forwardmove != 0 || ucmd->sidemove != 0 || ucmd->upmove != 0 ||

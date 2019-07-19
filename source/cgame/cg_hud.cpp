@@ -198,8 +198,7 @@ static int CG_GetDamageIndicatorDirValue( const void *parameter ) {
 	int index = (intptr_t)parameter;
 
 	if( cg.damageBlends[index] > cg.time && !cg.view.thirdperson ) {
-		frac = ( cg.damageBlends[index] - cg.time ) / 300.0f;
-		clamp( frac, 0.0f, 1.0f );
+		frac = Clamp01( ( cg.damageBlends[index] - cg.time ) / 300.0f );
 	}
 
 	return frac * 1000;
@@ -1523,10 +1522,8 @@ static bool CG_LFuncSizeHeight( struct cg_layoutnode_s *commandnode, struct cg_l
 }
 
 static bool CG_LFuncColor( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int i;
-	for( i = 0; i < 4; i++ ) {
-		layout_cursor_color[i] = CG_GetNumericArg( &argumentnode );
-		clamp( layout_cursor_color[i], 0, 1 );
+	for( int i = 0; i < 4; i++ ) {
+		layout_cursor_color[i] = Clamp01( CG_GetNumericArg( &argumentnode ) );
 	}
 	return true;
 }
@@ -1542,10 +1539,8 @@ static bool CG_LFuncColorAlpha( struct cg_layoutnode_s *commandnode, struct cg_l
 }
 
 static bool CG_LFuncRotationSpeed( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int i;
-	for( i = 0; i < 3; i++ ) {
-		layout_cursor_rotation[i] = CG_GetNumericArg( &argumentnode );
-		clamp( layout_cursor_rotation[i], 0, 999 );
+	for( int i = 0; i < 3; i++ ) {
+		layout_cursor_rotation[i] = Clamp( 0.0f, CG_GetNumericArg( &argumentnode ), 999.0f );
 	}
 	return true;
 }
@@ -1626,8 +1621,7 @@ static bool CG_LFuncFontSize( struct cg_layoutnode_s *commandnode, struct cg_lay
 		layout_cursor_font_size = (int)ceilf( CG_GetNumericArg( &argumentnode ) );
 	}
 
-	clamp_low( layout_cursor_font_size, 1 );
-
+	layout_cursor_font_size = Max2( 1, layout_cursor_font_size );
 	layout_cursor_font_dirty = true;
 
 	return true;

@@ -902,8 +902,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 		case EV_SPARKS:
 			ByteToDir( parm, dir );
 			if( ent->damage > 0 ) {
-				count = (int)( ent->damage * 0.25f );
-				clamp( count, 1, 10 );
+				count = Clamp( 1, int( ent->damage * 0.25f ), 10 );
 			} else {
 				count = 6;
 			}

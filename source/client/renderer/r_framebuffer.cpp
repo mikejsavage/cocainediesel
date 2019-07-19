@@ -110,7 +110,7 @@ int RFB_RegisterObject( int width, int height, bool builtin, bool depthRB, bool 
 		return 0;
 	}
 
-	clamp_high( samples, glConfig.maxFramebufferSamples );
+	samples = Min2( samples, glConfig.maxFramebufferSamples );
 
 	i = r_num_framebuffer_objects++;
 	fbo = r_framebuffer_objects + i;

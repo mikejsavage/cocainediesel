@@ -235,8 +235,7 @@ static void G_KnockBackPush( edict_t *targ, edict_t *attacker, const vec3_t base
 	dir[ 2 ] *= VERTICAL_KNOCKBACK_SCALE;
 
 	if( targ->r.client && targ != attacker && !( dflags & DAMAGE_KNOCKBACK_SOFT ) ) {
-		targ->r.client->ps.pmove.stats[PM_STAT_KNOCKBACK] = 3 * knockback;
-		clamp( targ->r.client->ps.pmove.stats[PM_STAT_KNOCKBACK], 100, 250 );
+		targ->r.client->ps.pmove.stats[PM_STAT_KNOCKBACK] = Clamp( 100, 3 * knockback, 250 );
 	}
 
 	VectorMA( targ->velocity, push, dir, targ->velocity );
@@ -446,8 +445,7 @@ void G_SplashFrac( const entity_state_t *s, const entity_shared_t *r, const vec3
 	// modify the origin so the inner sphere acts as a capsule
 	vec3_t closest_point;
 	VectorCopy( origin, closest_point );
-	closest_point[2] = point[2];
-	clamp( closest_point[2], ( origin[2] + mins[2] ) + innerradius, ( origin[2] + maxs[2] ) - innerradius );
+	closest_point[2] = Clamp( ( origin[2] + mins[2] ) + innerradius, point[2], ( origin[2] + maxs[2] ) - innerradius );
 
 	// find push intensity
 	float distance = Distance( closest_point, point );
@@ -467,16 +465,14 @@ void G_SplashFrac( const entity_state_t *s, const entity_shared_t *r, const vec3
 	maxradius -= refdistance;
 	distance = max( distance - refdistance, 0 );
 
-	float distance_frac = ( maxradius - distance ) / maxradius;
-
-	if( frac ) {
+	if( frac != NULL ) {
 		// soft sin curve
-		*frac = sin( DEG2RAD( distance_frac * 80 ) );
-		clamp( *frac, 0.0f, 1.0f );
+		float distance_frac = ( maxradius - distance ) / maxradius;
+		*frac = Clamp01( sinf( DEG2RAD( distance_frac * 80 ) ) );
 	}
 
 	// find push direction
-	if( pushdir ) {
+	if( pushdir != NULL ) {
 		vec3_t center_of_mass;
 
 		if( selfdamage ) {
@@ -518,8 +514,8 @@ void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edi
 		return;
 	}
 
-	clamp_high( mindamage, maxdamage );
-	clamp_high( minknockback, maxknockback );
+	mindamage = Min2( mindamage, maxdamage );
+	minknockback = Min2( minknockback, maxknockback );
 
 	numtouch = GClip_FindInRadius4D( inflictor->s.origin, radius, touch, MAX_EDICTS, inflictor->timeDelta );
 	for( i = 0; i < numtouch; i++ ) {

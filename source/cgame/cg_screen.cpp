@@ -443,13 +443,11 @@ void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color ) {
 				continue;
 			}
 
-			fadeFrac = ( cg_showPlayerNames_zfar->value - dist ) / ( cg_showPlayerNames_zfar->value * 0.25f );
-			clamp( fadeFrac, 0.0f, 1.0f );
+			fadeFrac = Clamp01( ( cg_showPlayerNames_zfar->value - dist ) / ( cg_showPlayerNames_zfar->value * 0.25f ) );
 
 			tmpcolor[3] = cg_showPlayerNames_alpha->value * color[3] * fadeFrac;
 		} else {
-			fadeFrac = (float)( cg.pointRemoveTime - cg.time ) / 150.0f;
-			clamp( fadeFrac, 0.0f, 1.0f );
+			fadeFrac = Clamp01( ( cg.pointRemoveTime - cg.time ) / 150.0f );
 
 			tmpcolor[3] = color[3] * fadeFrac;
 		}
@@ -583,8 +581,8 @@ void CG_DrawTeamMates( void ) {
 
 		coords[0] -= pic_size / 2;
 		coords[1] -= pic_size / 2;
-		clamp( coords[0], 0, cgs.vidWidth - pic_size );
-		clamp( coords[1], 0, cgs.vidHeight - pic_size );
+		coords[0] = Clamp( 0.0f, coords[0], float( cgs.vidWidth - pic_size ) );
+		coords[1] = Clamp( 0.0f, coords[1], float( cgs.vidHeight - pic_size ) );
 
 		CG_TeamColor( cg.predictedPlayerState.stats[STAT_TEAM], color );
 

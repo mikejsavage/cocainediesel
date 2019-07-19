@@ -220,11 +220,9 @@ void RB_PolygonOffset( float polygonfactor, float polygonunits ) {
 * RB_DepthRange
 */
 void RB_DepthRange( float depthmin, float depthmax ) {
-	clamp( depthmin, 0.0f, 1.0f );
-	clamp( depthmax, 0.0f, 1.0f );
-	rb.gl.depthmin = depthmin;
-	rb.gl.depthmax = depthmax;
-	glDepthRange( depthmin, depthmax );
+	rb.gl.depthmin = Clamp01( depthmin );
+	rb.gl.depthmax = Clamp01( depthmax );
+	glDepthRange( rb.gl.depthmin, rb.gl.depthmax );
 }
 
 /*

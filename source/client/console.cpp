@@ -640,10 +640,8 @@ void Con_DrawChat( int x, int y, int width, struct qfontface_s *font ) {
 
 	if( totalwidth > width ) {
 		// don't let the cursor go beyond the left screen edge
-		clamp_high( chat_prestep, prewidth );
-
 		// don't let it go beyond the right screen edge
-		clamp_low( chat_prestep, prewidth - width );
+		chat_prestep = Clamp( prewidth - width, chat_prestep, prewidth );
 
 		// don't leave an empty space after the string when deleting a character
 		if( ( totalwidth - chat_prestep ) < width ) {

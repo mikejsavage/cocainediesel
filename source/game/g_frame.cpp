@@ -204,8 +204,7 @@ void G_CheckCvars( void ) {
 	GS_GamestatSetFlag( GAMESTAT_FLAG_INFINITEAMMO, level.gametype.infiniteAmmo );
 	GS_GamestatSetFlag( GAMESTAT_FLAG_CANFORCEMODELS, level.gametype.canForceModels );
 
-	gs.gameState.stats[GAMESTAT_MAXPLAYERSINTEAM] = level.gametype.maxPlayersPerTeam;
-	clamp( gs.gameState.stats[GAMESTAT_MAXPLAYERSINTEAM], 0, 255 );
+	gs.gameState.stats[GAMESTAT_MAXPLAYERSINTEAM] = Clamp( 0, level.gametype.maxPlayersPerTeam, 255 );
 
 }
 

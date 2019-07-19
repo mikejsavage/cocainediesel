@@ -1079,7 +1079,7 @@ static int CG_Democam_CalcView( void ) {
 			case DEMOCAM_PATH_SPLINE:
 				viewType = VIEWDEF_DEMOCAM;
 				cam_POVent = 0;
-				clamp( lerpfrac, 0, 1 );
+				lerpfrac = Clamp01( lerpfrac );
 				VectorCopy( cam_origin, v );
 
 				if( !nextcam || nextcam->type == DEMOCAM_FIRSTPERSON || nextcam->type == DEMOCAM_THIRDPERSON ) {

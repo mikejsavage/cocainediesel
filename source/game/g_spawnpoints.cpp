@@ -318,8 +318,7 @@ void G_SpawnQueue_Init( void ) {
 	for( team = TEAM_SPECTATOR; team < GS_MAX_TEAMS; team++ )
 		memset( &g_spawnQueues[team].list, -1, sizeof( g_spawnQueues[team].list ) );
 
-	spawnsystem = g_spawnsystem->integer;
-	clamp( spawnsystem, SPAWNSYSTEM_INSTANT, SPAWNSYSTEM_HOLD );
+	spawnsystem = bound( SPAWNSYSTEM_INSTANT, g_spawnsystem->integer, SPAWNSYSTEM_HOLD );
 	if( spawnsystem != g_spawnsystem->integer ) {
 		trap_Cvar_ForceSet( "g_spawnsystem", va( "%i", spawnsystem ) );
 	}
@@ -476,7 +475,7 @@ void G_SpawnQueue_AddClient( edict_t *ent ) {
 * G_SpawnQueue_Think
 */
 void G_SpawnQueue_Think( void ) {
-	int team, maxCount, count, spawnSystem;
+	int team, maxCount, count;
 	g_teamspawnqueue_t *queue;
 	edict_t *ent;
 
@@ -486,10 +485,7 @@ void G_SpawnQueue_Think( void ) {
 		// if the system is limited, set limits
 		maxCount = MAX_CLIENTS;
 
-		spawnSystem = queue->system;
-		clamp( spawnSystem, SPAWNSYSTEM_INSTANT, SPAWNSYSTEM_HOLD );
-
-		switch( spawnSystem ) {
+		switch( queue->system ) {
 			case SPAWNSYSTEM_INSTANT:
 			default:
 				break;

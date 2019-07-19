@@ -551,8 +551,8 @@ static void PM_AddCurrents( vec3_t wishvel ) {
 		}
 
 		// limit horizontal speed when on a ladder
-		clamp( wishvel[0], -25, 25 );
-		clamp( wishvel[1], -25, 25 );
+		wishvel[0] = Clamp( -25.0f, wishvel[0], 25.0f );
+		wishvel[1] = Clamp( -25.0f, wishvel[1], 25.0f );
 	}
 }
 
@@ -1217,7 +1217,6 @@ static void PM_FlyMove( bool doclip ) {
 
 
 	// clamp to server defined max speed
-	//
 	if( wishspeed > maxspeed ) {
 		wishspeed = maxspeed / wishspeed;
 		VectorScale( wishvel, wishspeed, wishvel );
@@ -1256,11 +1255,9 @@ static void PM_CheckZoom( void ) {
 	}
 
 	if( ( pm->cmd.buttons & BUTTON_ZOOM ) && ( pm->playerState->pmove.stats[PM_STAT_FEATURES] & PMFEAT_ZOOM ) ) {
-		pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] += pm->cmd.msec;
-		clamp( pm->playerState->pmove.stats[PM_STAT_ZOOMTIME], 0, ZOOMTIME );
+		pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] = Clamp( 0, pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] + pm->cmd.msec, ZOOMTIME );
 	} else if( pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] > 0 ) {
-		pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] -= pm->cmd.msec;
-		clamp( pm->playerState->pmove.stats[PM_STAT_ZOOMTIME], 0, ZOOMTIME );
+		pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] = Max2( 0, pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] - pm->cmd.msec );
 	}
 }
 
@@ -1296,8 +1293,7 @@ static void PM_AdjustBBox( void ) {
 		pm->playerState->pmove.stats[PM_STAT_WJTIME] < ( PM_WALLJUMP_TIMEDELAY - PM_SPECIAL_CROUCH_INHIBIT ) &&
 		pm->playerState->pmove.stats[PM_STAT_DASHTIME] < ( PM_DASHJUMP_TIMEDELAY - PM_SPECIAL_CROUCH_INHIBIT ) &&
 		( pm->playerState->pmove.pm_flags & PMF_ON_GROUND ) ) {
-		pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] += pm->cmd.msec;
-		clamp( pm->playerState->pmove.stats[PM_STAT_CROUCHTIME], 0, CROUCHTIME );
+		pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] = bound( 0, pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] + pm->cmd.msec, CROUCHTIME );
 
 		crouchFrac = (float)pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] / (float)CROUCHTIME;
 		VectorLerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins, pm->mins );
@@ -1328,8 +1324,7 @@ static void PM_AdjustBBox( void ) {
 		}
 
 		// find the desired size
-		newcrouchtime = pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] - pm->cmd.msec;
-		clamp( newcrouchtime, 0, CROUCHTIME );
+		newcrouchtime = Clamp( 0, pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] - pm->cmd.msec, CROUCHTIME );
 		crouchFrac = (float)newcrouchtime / (float)CROUCHTIME;
 		VectorLerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins, wishmins );
 		VectorLerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs, wishmaxs );

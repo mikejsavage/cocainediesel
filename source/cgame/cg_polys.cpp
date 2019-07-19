@@ -133,14 +133,10 @@ static cpoly_t *CG_SpawnPolygon( float r, float g, float b, float a,
 	pl->fadefreq = ( fadetime ? ( 1000.0f / fadetime ) * 0.001f : 0 );
 	pl->shader = shader;
 	pl->tag = tag;
-	pl->color[0] = r;
-	pl->color[1] = g;
-	pl->color[2] = b;
-	pl->color[3] = a;
-	clamp( pl->color[0], 0.0f, 1.0f );
-	clamp( pl->color[1], 0.0f, 1.0f );
-	clamp( pl->color[2], 0.0f, 1.0f );
-	clamp( pl->color[3], 0.0f, 1.0f );
+	pl->color[0] = Clamp01( r );
+	pl->color[1] = Clamp01( g );
+	pl->color[2] = Clamp01( b );
+	pl->color[3] = Clamp01( a );
 
 	return pl;
 }

@@ -123,18 +123,12 @@ constexpr vec4_t color_table[] =
 #define M_TWOPI    6.28318530717958647692
 #endif
 
-#define DEG2RAD( a ) ( a * M_PI ) / 180.0F
-#define RAD2DEG( a ) ( a * 180.0F ) / M_PI
+#define DEG2RAD( a ) ( ( a * float( M_PI ) ) / 180.0f )
+#define RAD2DEG( a ) ( ( a * 180.0f ) / float( M_PI ) )
 
 #define max( a, b ) ( ( a ) > ( b ) ? ( a ) : ( b ) )
 #define min( a, b ) ( ( a ) < ( b ) ? ( a ) : ( b ) )
 #define bound( lo, x, hi ) ( ( lo ) >= ( hi ) ? ( lo ) : ( x ) < ( lo ) ? ( lo ) : ( x ) > ( hi ) ? ( hi ) : ( x ) )
-
-// clamps a (must be lvalue) to [b..c] range
-#define clamp( a, b, c ) ( ( b ) >= ( c ) ? ( a ) = ( b ) : ( a ) < ( b ) ? ( a ) = ( b ) : ( a ) > ( c ) ? ( a ) = ( c ) : ( a ) )
-
-#define clamp_low( a, low ) ( ( a ) = ( a ) < ( low ) ? ( low ) : ( a ) )
-#define clamp_high( a, high ) ( ( a ) = ( a ) > ( high ) ? ( high ) : ( a ) )
 
 #define random()    ( ( rand() & 0x7fff ) / ( (float)0x7fff ) )  // 0..1
 #define brandom( a, b )    ( ( a ) + random() * ( ( b ) - ( a ) ) )                // a..b
@@ -166,7 +160,13 @@ T Max2( const T & a, const T & b ) {
 
 template< typename T >
 T Clamp( const T & lo, const T & x, const T & hi ) {
+	assert( lo <= hi );
 	return Max2( lo, Min2( x, hi ) );
+}
+
+template< typename T >
+T Clamp01( const T & x ) {
+	return Max2( T( 0 ), Min2( x, T( 1 ) ) );
 }
 
 int Q_log2( int val );

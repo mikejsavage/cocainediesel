@@ -63,9 +63,6 @@ static void CG_ViewWeapon_UpdateProjectionSource( const vec3_t hand_origin, cons
 * CG_ViewWeapon_AddAngleEffects
 */
 static void CG_ViewWeapon_AddAngleEffects( vec3_t angles ) {
-	int i;
-	float delta;
-
 	if( !cg.view.drawWeapon ) {
 		return;
 	}
@@ -82,16 +79,9 @@ static void CG_ViewWeapon_AddAngleEffects( vec3_t angles ) {
 		angles[PITCH] += cg.xyspeed * cg.bobFracSin * 0.012;
 
 		// gun angles from delta movement
-		for( i = 0; i < 3; i++ ) {
-			delta = ( cg.oldFrame.playerState.viewangles[i] - cg.frame.playerState.viewangles[i] ) * cg.lerpfrac;
-			if( delta > 180 ) {
-				delta -= 360;
-			}
-			if( delta < -180 ) {
-				delta += 360;
-			}
-			clamp( delta, -45, 45 );
-
+		for( int i = 0; i < 3; i++ ) {
+			float delta = AngleNormalize180( ( cg.oldFrame.playerState.viewangles[i] - cg.frame.playerState.viewangles[i] ) * cg.lerpfrac );
+			delta = Clamp( -45.0f, delta, 45.0f );
 
 			if( i == YAW ) {
 				angles[ROLL] += 0.001 * delta;
@@ -252,7 +242,7 @@ setupframe:
 		framefrac = 0;
 		viewweapon->ent.oldframe = curframe;
 	} else {
-		clamp( framefrac, 0, 1 );
+		framefrac = Clamp01( framefrac );
 		if( curframe != viewweapon->ent.frame ) {
 			viewweapon->ent.oldframe = viewweapon->ent.frame;
 		}

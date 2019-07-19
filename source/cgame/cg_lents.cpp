@@ -590,7 +590,7 @@ void CG_ProjectileTrail( centity_t *cent ) {
 		return;
 
 	float radius = 8;
-	float alpha = clamp( cg_projectileFireTrailAlpha->value, 0.0f, 1.0f );
+	float alpha = Clamp01( cg_projectileFireTrailAlpha->value );
 
 	// didn't move
 	vec3_t vec;
@@ -632,7 +632,8 @@ void CG_NewBloodTrail( centity_t *cent ) {
 	vec3_t vec;
 	int contents;
 	int trailTime;
-	float radius = 2.5f, alpha = cg_bloodTrailAlpha->value;
+	float radius = 2.5f;
+	float alpha = Clamp01( cg_bloodTrailAlpha->value );
 	struct shader_s *shader = CG_MediaShader( cgs.media.shaderBloodTrailPuff );
 
 	if( !cg_showBloodTrail->integer ) {
@@ -665,10 +666,9 @@ void CG_NewBloodTrail( centity_t *cent ) {
 		if( contents & MASK_WATER ) {
 			shader = CG_MediaShader( cgs.media.shaderBloodTrailLiquidPuff );
 			radius = 4 + crandom();
-			alpha = 0.5f * cg_bloodTrailAlpha->value;
+			alpha *= 0.5f;
 		}
 
-		clamp( alpha, 0.0f, 1.0f );
 		le = CG_AllocSprite( LE_SCALE_ALPHA_FADE, cent->trailOrigin, radius, 8,
 							 1.0f, 1.0f, 1.0f, alpha,
 							 0, 0, 0, 0,
@@ -695,8 +695,7 @@ void CG_BloodDamageEffect( const vec3_t origin, const vec3_t dir, int damage, in
 		return;
 	}
 
-	int count = int( damage * 0.25f );
-	clamp( count, 1, 10 );
+	int count = Clamp( 1, int( damage * 0.25f ), 10 );
 
 	if( CG_PointContents( origin ) & MASK_WATER ) {
 		shader = CG_MediaShader( cgs.media.shaderBloodTrailLiquidPuff );
@@ -1091,8 +1090,7 @@ void CG_AddLocalEntities( void ) {
 		next = le->next;
 
 		frac = ( cg.time - le->start ) * 0.01f;
-		f = ( int )floor( frac );
-		clamp_low( f, 0 );
+		f = Max2( 0, int( floorf( frac ) ) );
 
 		// it's time to DIE
 		if( f >= le->frames - 1 ) {
@@ -1108,8 +1106,7 @@ void CG_AddLocalEntities( void ) {
 
 			// quick fade in, if time enough
 			if( le->frames > FADEINFRAMES * 2 ) {
-				scaleIn = frac / (float)FADEINFRAMES;
-				clamp( scaleIn, 0.0f, 1.0f );
+				scaleIn = Clamp01( frac / (float)FADEINFRAMES );
 				fadeIn = scaleIn * 255.0f;
 			} else {
 				fadeIn = 255.0f;
@@ -1179,8 +1176,7 @@ void CG_AddLocalEntities( void ) {
 				break;
 			case LE_INVERSESCALE_ALPHA_FADE:
 				fade = min( fade, fadeIn );
-				ent->scale = scale + 0.1f;
-				clamp( ent->scale, 0.1f, 1.0f );
+				ent->scale = Clamp( 0.1f, scale + 0.1f, 1.0f );
 				ent->shaderRGBA[3] = ( uint8_t )( fade * le->color[3] );
 				break;
 			case LE_ALPHA_FADE:

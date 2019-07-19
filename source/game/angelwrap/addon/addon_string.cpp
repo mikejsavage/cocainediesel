@@ -180,8 +180,7 @@ static asstring_t *objectString_FactoryFromDouble( double other ) {
 static void objectString_Addref( asstring_t *obj ) { obj->asRefCount++; }
 
 void objectString_Release( asstring_t *obj ) {
-	obj->asRefCount--;
-	clamp_low( obj->asRefCount, 0 );
+	obj->asRefCount = Max2( 0, obj->asRefCount - 1 );
 
 	if( !obj->asRefCount ) {
 		if( ( obj->size & CONST_STRING_BITFLAG ) == 0 ) {

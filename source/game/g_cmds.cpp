@@ -434,9 +434,8 @@ static void Cmd_PlayersExt_f( edict_t *ent, bool onlyspecs ) {
 	char msg[1024];
 
 	if( trap_Cmd_Argc() > 1 ) {
-		start = atoi( trap_Cmd_Argv( 1 ) );
+		start = Clamp( 0, atoi( trap_Cmd_Argv( 1 ) ), gs.maxclients - 1 );
 	}
-	clamp( start, 0, gs.maxclients - 1 );
 
 	// print information
 	msg[0] = 0;

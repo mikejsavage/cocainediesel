@@ -60,9 +60,9 @@ void R_ClearDrawList( drawList_t *list ) {
 	numLeafs = bm->numleafs;
 	numDrawSurfaces = bm->numDrawSurfaces;
 
-	clamp_high( numSurfaces, list->numWorldSurfVis );
-	clamp_high( numLeafs, list->numWorldLeafVis );
-	clamp_high( numDrawSurfaces, list->numWorldDrawSurfVis );
+	numSurfaces = Min2( numSurfaces, list->numWorldSurfVis );
+	numLeafs = Min2( numLeafs, list->numWorldLeafVis );
+	numDrawSurfaces = Min2( numDrawSurfaces, list->numWorldDrawSurfVis );
 
 	memset( (void *)list->worldSurfVis, 0, numSurfaces * sizeof( *list->worldSurfVis ) );
 	memset( (void *)list->worldSurfFullVis, 0, numSurfaces * sizeof( *list->worldSurfVis ) );

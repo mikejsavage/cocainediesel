@@ -436,7 +436,6 @@ int SCR_DrawMultilineString( int x, int y, const char *str, int halign, int maxw
 void SCR_DrawRawChar( int x, int y, wchar_t num, qfontface_t *font, const vec4_t color );
 void SCR_DrawClampChar( int x, int y, wchar_t num, int xmin, int ymin, int xmax, int ymax, qfontface_t *font, const vec4_t color );
 void SCR_DrawFillRect( int x, int y, int w, int h, const vec4_t color );
-void SCR_DrawClampFillRect( int x, int y, int w, int h, int xmin, int ymin, int xmax, int ymax, const vec4_t color );
 void SCR_DrawChat( int x, int y, int width, struct qfontface_s *font );
 
 void CL_InitMedia( void );

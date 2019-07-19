@@ -698,7 +698,7 @@ static bool R_LoadImageFromDisk( image_t *image ) {
 
 	uint8_t *pic = NULL;
 
-	Q_strncatz( pathname, ".tga", pathsize );
+	Q_strncatz( pathname, ".jpg", pathsize );
 	samples = R_ReadImageFromDisk( pathname, pathsize, &pic, &width, &height, &flags );
 
 	if( pic ) {

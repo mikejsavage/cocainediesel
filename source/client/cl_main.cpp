@@ -1123,7 +1123,7 @@ void CL_ReadPackets( void ) {
 				continue;
 			}
 
-			if( cls.state == CA_DISCONNECTED || cls.state == CA_GETTING_TICKET || cls.state == CA_CONNECTING ) {
+			if( cls.state == CA_DISCONNECTED || cls.state == CA_CONNECTING ) {
 				Com_DPrintf( "%s: Not connected\n", NET_AddressToString( &address ) );
 				continue; // dump it if not connected
 			}
@@ -1519,24 +1519,19 @@ void CL_SetClientState( connstate_t state ) {
 			Con_Close();
 			UI_Refresh();
 			UI_ShowMainMenu();
-			//UI_MenuMain ();
 			CL_SetKeyDest( key_menu );
-			//SCR_UpdateScreen();
 			break;
-		case CA_GETTING_TICKET:
 		case CA_CONNECTING:
 			cls.cgameActive = false;
 			Con_Close();
 			UI_HideMenu();
 			S_StopBackgroundTrack();
 			CL_SetKeyDest( key_game );
-			//SCR_UpdateScreen();
 			break;
 		case CA_CONNECTED:
 			cls.cgameActive = false;
 			Con_Close();
 			Cvar_FixCheatVars();
-			//SCR_UpdateScreen();
 			break;
 		case CA_ACTIVE:
 			cl_connectChain[0] = '\0';
@@ -1545,7 +1540,6 @@ void CL_SetClientState( connstate_t state ) {
 			UI_Refresh();
 			UI_HideMenu();
 			CL_SetKeyDest( key_game );
-			//SCR_UpdateScreen();
 			break;
 		default:
 			break;
@@ -1975,7 +1969,7 @@ void CL_SendMessagesToServer( bool sendNow ) {
 	msg_t message;
 	uint8_t messageData[MAX_MSGLEN];
 
-	if( cls.state == CA_DISCONNECTED || cls.state == CA_GETTING_TICKET || cls.state == CA_CONNECTING ) {
+	if( cls.state == CA_DISCONNECTED || cls.state == CA_CONNECTING ) {
 		return;
 	}
 

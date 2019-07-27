@@ -627,87 +627,6 @@ static bool NET_TCP_Listen( const socket_t *socket ) {
 }
 
 /*
-* NET_TCP_Connect
-*/
-static connection_status_t NET_TCP_Connect( socket_t *socket, const netadr_t *address ) {
-	struct sockaddr_storage sockaddress;
-	socklen_t addrlen;
-
-	assert( socket && socket->open && socket->type == SOCKET_TCP && socket->handle && !socket->connected );
-	assert( address );
-
-	if( !AddressToSockaddress( address, &sockaddress ) ) {
-		return CONNECTION_FAILED;
-	}
-
-	addrlen = ( sockaddress.ss_family == AF_INET6 ? sizeof( struct sockaddr_in6 ) : sizeof( struct sockaddr_in ) );
-	if( connect( socket->handle, (struct sockaddr*)&sockaddress, addrlen ) == SOCKET_ERROR ) {
-		net_error_t err;
-
-		err = Sys_NET_GetLastError();
-		if( err == NET_ERR_INPROGRESS || err == NET_ERR_WOULDBLOCK ) {
-			socket->remoteAddress = *address;
-			return CONNECTION_INPROGRESS;
-		} else {
-			NET_SetErrorStringFromLastError( "connect" );
-			return CONNECTION_FAILED;
-		}
-	}
-
-	socket->connected = true;
-	socket->remoteAddress = *address;
-
-	return CONNECTION_SUCCEEDED;
-}
-
-/*
-* NET_TCP_CheckConnect
-*/
-static connection_status_t NET_TCP_CheckConnect( socket_t *socket ) {
-	struct timeval timeout = { 0, 0 };
-	int result;
-	fd_set set;
-
-	assert( socket && socket->open && socket->type == SOCKET_TCP );
-
-	if( socket->connected ) {
-		return CONNECTION_SUCCEEDED;
-	}
-
-	FD_ZERO( &set );
-	FD_SET( socket->handle, &set );
-
-	if( ( result = select( socket->handle + 1, NULL, &set, NULL, &timeout ) ) == SOCKET_ERROR ) {
-		NET_SetErrorStringFromLastError( "select" );
-		return CONNECTION_FAILED;
-	} else if( result ) {
-		struct sockaddr_storage addr;
-		socklen_t addr_size;
-
-		if( !FD_ISSET( socket->handle, &set ) ) {
-			NET_SetErrorString( "Write fd not set" );
-			return CONNECTION_FAILED;
-		}
-
-		// trick to check if we actually got connection succesfully
-		// idea from http://cr.yp.to/docs/connect.html
-		addr_size = sizeof( addr );
-		if( getpeername( socket->handle, (struct sockaddr*)&addr, &addr_size ) != 0 ) {
-			char ch;
-			recv( socket->handle, &ch, 1, 0 ); // produces right errno
-			NET_SetErrorStringFromLastError( "getpeername" );
-			return CONNECTION_FAILED;
-		}
-
-		socket->connected = true;
-
-		return CONNECTION_SUCCEEDED;
-	} else {
-		return CONNECTION_INPROGRESS;
-	}
-}
-
-/*
 * NET_TCP_Accept
 */
 static int NET_TCP_Accept( const socket_t *socket, socket_t *newsocket, netadr_t *address ) {
@@ -766,20 +685,6 @@ static void NET_TCP_CloseSocket( socket_t *socket ) {
 	socket->handle = 0;
 	socket->open = false;
 	socket->connected = false;
-}
-
-/*
-* NET_TCP_SetNodelay
-*/
-static int NET_TCP_SetNoDelay( socket_t *socket, int nodelay ) {
-	assert( socket && socket->type == SOCKET_TCP );
-
-	if( setsockopt( socket->handle, IPPROTO_TCP, TCP_NODELAY, (char *)&nodelay, sizeof( nodelay ) ) < 0 ) {
-		NET_SetErrorStringFromLastError( "socket" );
-		return -1;
-	}
-
-	return 1;
 }
 
 #endif // TCP_SUPPORT
@@ -1559,49 +1464,6 @@ bool NET_Listen( const socket_t *socket ) {
 }
 
 /*
-* NET_Connect
-*/
-connection_status_t NET_Connect( socket_t *socket, const netadr_t *address ) {
-	assert( socket->open && !socket->connected );
-	assert( address );
-
-	switch( socket->type ) {
-		case SOCKET_TCP:
-			return NET_TCP_Connect( socket, address );
-
-		case SOCKET_LOOPBACK:
-		case SOCKET_UDP:
-		default:
-			assert( false );
-			NET_SetErrorString( "Unsupported socket type" );
-			return CONNECTION_FAILED;
-	}
-}
-
-/*
-* NET_CheckConnect
-*/
-connection_status_t NET_CheckConnect( socket_t *socket ) {
-	assert( socket->open );
-
-	if( socket->connected ) {
-		return CONNECTION_SUCCEEDED;
-	}
-
-	switch( socket->type ) {
-		case SOCKET_TCP:
-			return NET_TCP_CheckConnect( socket );
-
-		case SOCKET_LOOPBACK:
-		case SOCKET_UDP:
-		default:
-			assert( false );
-			NET_SetErrorString( "Unsupported socket type" );
-			return CONNECTION_FAILED;
-	}
-}
-
-/*
 * NET_Accept
 */
 int NET_Accept( const socket_t *socket, socket_t *newsocket, netadr_t *address ) {
@@ -1675,27 +1537,6 @@ void NET_CloseSocket( socket_t *socket ) {
 			NET_SetErrorString( "Unknown socket type" );
 			break;
 	}
-}
-
-/*
-* NET_SetSocketNoDelay
-*/
-int NET_SetSocketNoDelay( socket_t *socket, int nodelay ) {
-	switch( socket->type ) {
-		case SOCKET_LOOPBACK:
-			break;
-		case SOCKET_UDP:
-			break;
-#ifdef TCP_SUPPORT
-		case SOCKET_TCP:
-			return NET_TCP_SetNoDelay( socket, nodelay );
-#endif
-		default:
-			assert( false );
-			NET_SetErrorString( "Unknown socket type" );
-			return -1;
-	}
-	return 0;
 }
 
 /*

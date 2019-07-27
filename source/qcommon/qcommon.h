@@ -449,12 +449,8 @@ void        NET_Shutdown( void );
 bool        NET_OpenSocket( socket_t *socket, socket_type_t type, const netadr_t *address, bool server );
 void        NET_CloseSocket( socket_t *socket );
 
-#ifdef TCP_SUPPORT
-connection_status_t     NET_Connect( socket_t *socket, const netadr_t *address );
-connection_status_t     NET_CheckConnect( socket_t *socket );
 bool        NET_Listen( const socket_t *socket );
 int         NET_Accept( const socket_t *socket, socket_t *newsocket, netadr_t *address );
-#endif
 
 int         NET_GetPacket( const socket_t *socket, netadr_t *address, msg_t *message );
 bool        NET_SendPacket( const socket_t *socket, const void *data, size_t length, const netadr_t *address );
@@ -478,7 +474,6 @@ void NET_SetErrorString( _Printf_format_string_ const char *format, ... );
 
 void        NET_SetErrorStringFromLastError( const char *function );
 void        NET_ShowIP( void );
-int         NET_SetSocketNoDelay( socket_t *socket, int nodelay );
 
 const char *NET_SocketTypeToString( socket_type_t type );
 const char *NET_SocketToString( const socket_t *socket );

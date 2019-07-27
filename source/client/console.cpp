@@ -75,7 +75,7 @@ void Con_Shutdown() {
 }
 
 void Con_ToggleConsole() {
-	if( cls.state == CA_GETTING_TICKET || cls.state == CA_CONNECTING || cls.state == CA_CONNECTED ) {
+	if( cls.state == CA_CONNECTING || cls.state == CA_CONNECTED ) {
 		return;
 	}
 

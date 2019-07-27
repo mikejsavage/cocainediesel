@@ -473,7 +473,7 @@ void SCR_UpdateScreen( void ) {
 		UI_UpdateConnectScreen();
 	} else if( cls.state == CA_DISCONNECTED ) {
 		UI_Refresh();
-	} else if( cls.state == CA_GETTING_TICKET || cls.state == CA_CONNECTING || cls.state == CA_HANDSHAKE ) {
+	} else if( cls.state == CA_CONNECTING || cls.state == CA_HANDSHAKE ) {
 		UI_UpdateConnectScreen();
 	} else if( cls.state == CA_CONNECTED ) {
 		if( cls.cgameActive ) {

@@ -311,11 +311,9 @@ typedef struct entity_state_s {
 enum connstate_t {
 	CA_UNINITIALIZED,
 	CA_DISCONNECTED,                    // not talking to a server
-	CA_GETTING_TICKET,                  // getting a session ticket for matchmaking
 	CA_CONNECTING,                      // sending request packets to the server
 	CA_HANDSHAKE,                       // netchan_t established, waiting for svc_serverdata
 	CA_CONNECTED,                       // connection established, game module not loaded
-	CA_LOADING,                         // loading game module
 	CA_ACTIVE,                          // game views should be displayed
 };
 

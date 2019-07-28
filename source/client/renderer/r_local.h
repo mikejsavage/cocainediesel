@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 typedef struct mempool_s mempool_t;
 
-typedef unsigned short elem_t;
+typedef u16 elem_t;
 
 typedef vec_t instancePoint_t[8]; // quaternion for rotation + xyz pos + uniform scale
 
@@ -35,8 +35,6 @@ typedef vec_t instancePoint_t[8]; // quaternion for rotation + xyz pos + uniform
 #define SUBDIVISIONS_MIN        3
 #define SUBDIVISIONS_MAX        16
 #define SUBDIVISIONS_DEFAULT    5
-
-#define MIN_FRAMECACHE_SIZE		32 * 1024
 
 #define BACKFACE_EPSILON        4
 

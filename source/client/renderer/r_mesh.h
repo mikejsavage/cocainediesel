@@ -26,19 +26,19 @@ struct shader_s;
 #define MIN_RENDER_MESHES           2048
 
 typedef struct mesh_s {
-	unsigned short numVerts;
-	unsigned short numElems;
+	u16 numVerts;
+	u16 numElems;
 
-	elem_t              *elems;
+	u16 *elems;
 
-	vec4_t              *xyzArray;
-	vec4_t              *normalsArray;
-	vec4_t              *sVectorsArray;
-	vec2_t              *stArray;
-	byte_vec4_t         *colorsArray;
+	vec4_t *xyzArray;
+	vec4_t *normalsArray;
+	vec4_t *sVectorsArray;
+	vec2_t *stArray;
+	byte_vec4_t *colorsArray;
 
-	uint8_t             *blendIndices;
-	uint8_t             *blendWeights;
+	u8 *blendIndices;
+	u8 *blendWeights;
 } mesh_t;
 
 typedef struct {

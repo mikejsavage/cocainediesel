@@ -62,7 +62,7 @@ typedef struct poly_s {
 	vec2_t *stcoords;
 	byte_vec4_t *colors;
 	int numelems;
-	unsigned short *elems;
+	u16 *elems;
 	struct shader_s *shader;
 	int renderfx;
 } poly_t;

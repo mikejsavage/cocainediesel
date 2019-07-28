@@ -126,7 +126,7 @@ void UI_Init() {
 		console_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 14.0f );
 		ImGuiFreeType::BuildFontAtlas( io.Fonts );
 
-		uint8_t * pixels;
+		u8 * pixels;
 		int width, height;
 		io.Fonts->GetTexDataAsAlpha8( &pixels, &width, &height );
 		struct shader_s * shader = re.RegisterAlphaMask( "imgui_font", width, height, pixels );
@@ -946,13 +946,14 @@ static void SubmitDrawCalls() {
 
 	ImVec2 pos = draw_data->DisplayPos;
 	for( int n = 0; n < draw_data->CmdListsCount; n++ ) {
-		const ImDrawList * cmd_list = draw_data->CmdLists[n];
-		uint16_t idx_buffer_offset = 0;
+		TempAllocator temp = cls.frame_arena->temp();
 
-		vec4_t * verts = ( vec4_t * ) Mem_TempMalloc( cmd_list->VtxBuffer.Size * sizeof( vec4_t ) );
-		vec2_t * uvs = ( vec2_t * ) Mem_TempMalloc( cmd_list->VtxBuffer.Size * sizeof( vec2_t ) );
-		byte_vec4_t * colors = ( byte_vec4_t * ) Mem_TempMalloc( cmd_list->VtxBuffer.Size * sizeof( byte_vec4_t ) );
-		uint16_t * indices = ( uint16_t * ) Mem_TempMalloc( cmd_list->IdxBuffer.Size * sizeof( uint16_t ) );
+		const ImDrawList * cmd_list = draw_data->CmdLists[n];
+		u16 idx_buffer_offset = 0;
+
+		vec4_t * verts = ALLOC_MANY( &temp, vec4_t, cmd_list->VtxBuffer.Size );
+		vec2_t * uvs = ALLOC_MANY( &temp, vec2_t, cmd_list->VtxBuffer.Size );
+		byte_vec4_t * colors = ALLOC_MANY( &temp, byte_vec4_t, cmd_list->VtxBuffer.Size );
 
 		for( int i = 0; i < cmd_list->VtxBuffer.Size; i++ ) {
 			const ImDrawVert & v = cmd_list->VtxBuffer.Data[ i ];
@@ -965,7 +966,8 @@ static void SubmitDrawCalls() {
 			memcpy( &colors[ i ], &v.col, sizeof( byte_vec4_t ) );
 		}
 
-		memcpy( indices, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof( uint16_t ) );
+		Span< u16 > indices = ALLOC_SPAN( &temp, u16, cmd_list->IdxBuffer.Size );
+		memcpy( indices.ptr, cmd_list->IdxBuffer.Data, indices.num_bytes() );
 
 		for( int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++ ) {
 			const ImDrawCmd * pcmd = &cmd_list->CmdBuffer[cmd_i];
@@ -983,18 +985,13 @@ static void SubmitDrawCalls() {
 					poly.stcoords = uvs;
 					poly.colors = colors;
 					poly.numelems = pcmd->ElemCount;
-					poly.elems = indices + idx_buffer_offset;
+					poly.elems = indices.ptr + idx_buffer_offset;
 					poly.shader = ( shader_s * ) pcmd->TextureId;
 					R_DrawDynamicPoly( &poly );
 				}
 			}
 			idx_buffer_offset += pcmd->ElemCount;
 		}
-
-		Mem_TempFree( verts );
-		Mem_TempFree( uvs );
-		Mem_TempFree( colors );
-		Mem_TempFree( indices );
 	}
 
 	re.ResetScissor();

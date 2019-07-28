@@ -102,14 +102,6 @@ typedef struct glsl_program_s {
 		int hdrExposure;
 
 		int FogStrength;
-
-		// builtin uniforms
-		struct {
-			int ShaderTime;
-			int ViewOrigin;
-			int ViewAxis;
-			int EntityOrigin;
-		} builtin;
 	} loc;
 } glsl_program_t;
 
@@ -738,7 +730,7 @@ static const char *R_GLSLBuildDeformv( const deformv_t *deformv, int numDeforms 
 					return NULL;
 				}
 
-				Q_strncatz( program, va_r( tmp, sizeof( tmp ), "Position.xyz += %s(u_QF_ShaderTime,%f,%f,%f+%f*(Position.x+Position.y+Position.z),%f) * Normal.xyz;\n",
+				Q_strncatz( program, va_r( tmp, sizeof( tmp ), "Position.xyz += %s(u_ShaderTime,%f,%f,%f+%f*(Position.x+Position.y+Position.z),%f) * Normal.xyz;\n",
 										   funcs[funcType], deformv->func.args[0], deformv->func.args[1], deformv->func.args[2], deformv->func.args[3] ? deformv->args[0] : 0.0, deformv->func.args[3] ),
 							sizeof( program ) );
 				break;
@@ -748,23 +740,23 @@ static const char *R_GLSLBuildDeformv( const deformv_t *deformv, int numDeforms 
 					return NULL;
 				}
 
-				Q_strncatz( program, va_r( tmp, sizeof( tmp ), "Position.xyz += %s(u_QF_ShaderTime,%f,%f,%f,%f) * vec3(%f, %f, %f);\n",
+				Q_strncatz( program, va_r( tmp, sizeof( tmp ), "Position.xyz += %s(u_ShaderTime,%f,%f,%f,%f) * vec3(%f, %f, %f);\n",
 										   funcs[funcType], deformv->func.args[0], deformv->func.args[1], deformv->func.args[2], deformv->func.args[3],
 										   deformv->args[0], deformv->args[1], deformv->args[2] ),
 							sizeof( program ) );
 				break;
 			case DEFORMV_BULGE:
 				Q_strncatz( program, va_r( tmp, sizeof( tmp ),
-										   "t = sin(TexCoord.s * %f + u_QF_ShaderTime * %f);\n"
+										   "t = sin(TexCoord.s * %f + u_ShaderTime * %f);\n"
 										   "Position.xyz += max (-1.0 + %f, t) * %f * Normal.xyz;\n",
 										   deformv->args[0], deformv->args[2], deformv->args[3], deformv->args[1] ),
 							sizeof( program ) );
 				break;
 			case DEFORMV_AUTOSPRITE:
 				Q_strncatz( program,
-							"right = (1.0 + step(0.5, TexCoord.s) * -2.0) * u_QF_ViewAxis[1];\n;"
-							"up = (1.0 + step(0.5, TexCoord.t) * -2.0) * u_QF_ViewAxis[2];\n"
-							"forward = -1.0 * u_QF_ViewAxis[0];\n"
+							"right = (1.0 + step(0.5, TexCoord.s) * -2.0) * u_ViewAxis[1];\n;"
+							"up = (1.0 + step(0.5, TexCoord.t) * -2.0) * u_ViewAxis[2];\n"
+							"forward = -1.0 * u_ViewAxis[0];\n"
 							"Position.xyz = a_SpritePoint.xyz + (right + up) * a_SpritePoint.w;\n"
 							"Normal.xyz = forward;\n"
 							"TexCoord.st = vec2(step(0.5, TexCoord.s),step(0.5, TexCoord.t));\n",
@@ -772,11 +764,11 @@ static const char *R_GLSLBuildDeformv( const deformv_t *deformv, int numDeforms 
 				break;
 			case DEFORMV_AUTOPARTICLE:
 				Q_strncatz( program,
-							"right = (1.0 + TexCoord.s * -2.0) * u_QF_ViewAxis[1];\n;"
-							"up = (1.0 + TexCoord.t * -2.0) * u_QF_ViewAxis[2];\n"
-							"forward = -1.0 * u_QF_ViewAxis[0];\n"
+							"right = (1.0 + TexCoord.s * -2.0) * u_ViewAxis[1];\n;"
+							"up = (1.0 + TexCoord.t * -2.0) * u_ViewAxis[2];\n"
+							"forward = -1.0 * u_ViewAxis[0];\n"
 				            // prevent the particle from disappearing at large distances
-							"t = dot(a_SpritePoint.xyz + u_QF_EntityOrigin - u_QF_ViewOrigin, u_QF_ViewAxis[0]);\n"
+							"t = dot(a_SpritePoint.xyz + u_EntityOrigin - u_ViewOrigin, u_ViewAxis[0]);\n"
 							"t = 1.5 + step(20.0, t) * t * 0.006;\n"
 							"Position.xyz = a_SpritePoint.xyz + (right + up) * t * a_SpritePoint.w;\n"
 							"Normal.xyz = forward;\n",
@@ -789,7 +781,7 @@ static const char *R_GLSLBuildDeformv( const deformv_t *deformv, int numDeforms 
 							"up = QF_LatLong2Norm(a_SpriteRightUpAxis.zw);\n"
 
 				            // mid of quad to camera vector
-							"dist = u_QF_ViewOrigin - u_QF_EntityOrigin - a_SpritePoint.xyz;\n"
+							"dist = u_ViewOrigin - u_EntityOrigin - a_SpritePoint.xyz;\n"
 
 				            // filter any longest-axis-parts off the camera-direction
 							"forward = normalize(dist - up * dot(dist, up));\n"
@@ -1363,9 +1355,6 @@ void RP_UpdateShaderUniforms( int elem,
 		if( program->loc.EntityOrigin >= 0 ) {
 			glUniform3fv( program->loc.EntityOrigin, 1, entOrigin );
 		}
-		if( program->loc.builtin.EntityOrigin >= 0 ) {
-			glUniform3fv( program->loc.builtin.EntityOrigin, 1, entOrigin );
-		}
 	}
 
 	if( program->loc.EntityDist >= 0 && entDist ) {
@@ -1377,9 +1366,6 @@ void RP_UpdateShaderUniforms( int elem,
 
 	if( program->loc.ShaderTime >= 0 ) {
 		glUniform1f( program->loc.ShaderTime, shaderTime );
-	}
-	if( program->loc.builtin.ShaderTime >= 0 ) {
-		glUniform1f( program->loc.builtin.ShaderTime, shaderTime );
 	}
 
 	if( program->loc.ConstColor >= 0 && constColor ) {
@@ -1436,17 +1422,11 @@ void RP_UpdateViewUniforms( int elem,
 		if( program->loc.ViewOrigin >= 0 ) {
 			glUniform3fv( program->loc.ViewOrigin, 1, viewOrigin );
 		}
-		if( program->loc.builtin.ViewOrigin >= 0 ) {
-			glUniform3fv( program->loc.builtin.ViewOrigin, 1, viewOrigin );
-		}
 	}
 
 	if( viewAxis ) {
 		if( program->loc.ViewAxis >= 0 ) {
 			glUniformMatrix3fv( program->loc.ViewAxis, 1, GL_FALSE, viewAxis );
-		}
-		if( program->loc.builtin.ViewAxis >= 0 ) {
-			glUniformMatrix3fv( program->loc.builtin.ViewAxis, 1, GL_FALSE, viewAxis );
 		}
 	}
 }
@@ -1667,11 +1647,6 @@ static void RP_GetUniformLocations( glsl_program_t *program ) {
 	program->loc.ShaderTime = glGetUniformLocation( program->object, "u_ShaderTime" );
 
 	program->loc.VectorTexMatrix = glGetUniformLocation( program->object, "u_VectorTexMatrix" );
-
-	program->loc.builtin.ViewOrigin = glGetUniformLocation( program->object, "u_QF_ViewOrigin" );
-	program->loc.builtin.ViewAxis = glGetUniformLocation( program->object, "u_QF_ViewAxis" );
-	program->loc.builtin.EntityOrigin = glGetUniformLocation( program->object, "u_QF_EntityOrigin" );
-	program->loc.builtin.ShaderTime = glGetUniformLocation( program->object, "u_QF_ShaderTime" );
 
 	program->loc.BlendMix = glGetUniformLocation( program->object, "u_BlendMix" );
 	program->loc.ColorMod = glGetUniformLocation( program->object, "u_ColorMod" );

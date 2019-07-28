@@ -39,10 +39,6 @@ static void R_RenderDebugBounds( void );
 * R_ClearScene
 */
 void R_ClearScene( void ) {
-	R_ClearRefInstStack();
-
-	R_FrameCache_Clear();
-
 	R_ClearDebugBounds();
 
 	rsc.numLocalEntities = 0;

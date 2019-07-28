@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "microprofile/microprofileui.h"
 
 #include "r_local.h"
+#include "client/client.h"
 #include "r_backend_local.h"
 
 r_globals_t rf;
@@ -482,21 +483,6 @@ void R_ResetScissor( void ) {
 }
 
 /*
-* R_PolyBlend
-*/
-static void R_PolyBlend( void ) {
-	if( !r_polyblend->integer ) {
-		return;
-	}
-	if( rsc.refdef.blend[3] < 0.01f ) {
-		return;
-	}
-
-	R_DrawStretchPic( 0, 0, rf.frameBufferWidth, rf.frameBufferHeight, 0, 0, 1, 1, rsc.refdef.blend, rsh.whiteShader );
-	RB_FlushDynamicMeshes();
-}
-
-/*
 * R_InitPostProcessingVBO
 */
 mesh_vbo_t *R_InitPostProcessingVBO( void ) {
@@ -672,21 +658,16 @@ static void R_EndGL( void ) {
 * R_CullEntities
 */
 static void R_CullEntities( void ) {
-	unsigned int i;
-	int entNum;
-	entity_t *e;
-
 	rn.entities = NULL;
 	rn.entpvs = NULL;
 	rn.numEntities = 0;
 
-	rn.entities = ( int * ) R_FrameCache_Alloc( sizeof( *rn.entities ) * rsc.numEntities );
-	rn.entpvs = ( uint8_t * ) R_FrameCache_Alloc( sizeof( *rn.entpvs ) * (rsc.numEntities+7)/8 );
-	memset( rn.entpvs, 0, (rsc.numEntities+7)/8 );
+	rn.entities = ALLOC_MANY( cls.frame_arena, int, rsc.numEntities );
+	rn.entpvs = ALLOC_MANY( cls.frame_arena, u8, ( rsc.numEntities + 7 ) / 8 );
+	memset( rn.entpvs, 0, ( rsc.numEntities + 7 ) / 8 );
 
-	for( i = rsc.numLocalEntities; i < rsc.numEntities; i++ ) {
-		entNum = i;
-		e = R_NUM2ENT( entNum );
+	for( unsigned int i = rsc.numLocalEntities; i < rsc.numEntities; i++ ) {
+		const entity_t *e = R_NUM2ENT( i );
 
 		if( e->flags & RF_WEAPONMODEL ) {
 			goto add;
@@ -700,8 +681,8 @@ static void R_CullEntities( void ) {
 			continue;
 
 add:
-		rn.entpvs[entNum>>3] |= (1<<(entNum&7));
-		rn.entities[rn.numEntities++] = entNum;
+		rn.entpvs[i>>3] |= (1<<(i&7));
+		rn.entities[rn.numEntities++] = i;
 	}
 }
 
@@ -841,47 +822,6 @@ void R_RenderView( const refdef_t *fd ) {
 	R_TransformForWorld();
 
 	R_EndGL();
-}
-
-#define REFINST_STACK_SIZE  64
-static refinst_t riStack[REFINST_STACK_SIZE];
-static unsigned int riStackSize;
-
-/*
-* R_ClearRefInstStack
-*/
-void R_ClearRefInstStack( void ) {
-	riStackSize = 0;
-	memset( riStack, 0, sizeof( riStack ) );
-	memset( &rn, 0, sizeof( refinst_t ) );
-}
-
-/*
-* R_PushRefInst
-*/
-refinst_t *R_PushRefInst( void ) {
-	if( riStackSize == REFINST_STACK_SIZE ) {
-		return NULL;
-	}
-	riStack[riStackSize++] = rn;
-	R_EndGL();
-	return &riStack[riStackSize-1];
-}
-
-/*
-* R_PopRefInst
-*/
-void R_PopRefInst( void ) {
-	if( !riStackSize ) {
-		return;
-	}
-
-	RB_FlushDynamicMeshes();
-
-	rn = riStack[--riStackSize];
-	R_BindRefInstFBO();
-
-	R_SetupGL();
 }
 
 //=======================================================================
@@ -1090,7 +1030,6 @@ const char *R_WriteSpeedsMessage( char *out, size_t size ) {
 							 "polys\\ents: %5u\\%5u  draw: %5u\n"
 							 "world\\dynamic: lights %3u\\%3u\n"
 							 "ents total: %5u bmodels: %5u\n"
-							 "frame cache: %.3fMB\n"
 							 "%s",
 							 (int)(1000.0 / rf.frameTime.average),
 							 rf.stats.c_brush_polys, rf.stats.c_world_leafs, rf.stats.c_world_draw_surfs,
@@ -1099,7 +1038,6 @@ const char *R_WriteSpeedsMessage( char *out, size_t size ) {
 							 rf.stats.t_add_polys, rf.stats.t_add_entities, rf.stats.t_draw_meshes,
 							 rf.stats.c_world_lights, rf.stats.c_dynamic_lights,
 							 rf.stats.c_ents_total, rf.stats.c_ents_bmodels,
-							 R_FrameCache_TotalSize() / 1048576.0,
 							 backend_msg
 							);
 				break;
@@ -1270,8 +1208,6 @@ void R_EndFrame( void ) {
 		RB_FlushDynamicMeshes();
 	}
 
-	R_PolyBlend();
-
 	R_End2D();
 
 	RB_EndFrame();
@@ -1377,153 +1313,4 @@ int R_LoadFile_( const char *path, int flags, void **buffer, const char *filenam
 */
 void R_FreeFile_( void *buffer, const char *filename, int fileline ) {
 	_Mem_Free( buffer, 0, 0, filename, fileline );
-}
-
-//===================================================================
-
-typedef struct r_framecachemark_s {
-	uint8_t *ptr;
-	struct r_framecache_s *cache;
-} r_framecachemark_t;
-
-typedef struct r_framecache_s {
-	size_t dataSize;
-	uint8_t *dataRover;
-	r_framecachemark_t mark;
-	struct r_framecache_s *next;
-} r_framecache_t;
-
-static r_framecache_t *r_frameCacheHead;
-static size_t r_frameCacheTotalSize;
-
-/*
-* R_FrameCache_Free
-*/
-void R_FrameCache_Free( void ) {
-	r_framecache_t *next, *cache;
-
-	cache = r_frameCacheHead;
-	while( cache ) {
-		next = cache->next;
-		R_Free( cache );
-		cache = next;
-	}
-
-	r_frameCacheHead = NULL;
-	r_frameCacheTotalSize = 0;
-}
-
-/*
-* R_FrameCache_ResetBlock
-*/
-static void R_FrameCache_ResetBlock( r_framecache_t *cache ) {
-	cache->dataRover = (uint8_t *)(((uintptr_t)(cache + 1) + 15) & ~15);
-	cache->mark.cache = cache;
-	cache->mark.ptr = cache->dataRover;
-}
-
-/*
-* R_FrameCache_NewBlock
-*/
-r_framecache_t *R_FrameCache_NewBlock( size_t size ) {
-	r_framecache_t *cache;
-
-	cache = ( r_framecache_t * ) R_Malloc( size + sizeof( r_framecache_t ) + 16 );
-	cache->dataSize = size;
-
-	R_FrameCache_ResetBlock( cache );
-
-	r_frameCacheTotalSize += size;
-	return cache;
-}
-
-/*
-* R_FrameCache_Clear
-*
-* Allocate a whole new block of heap memory to accomodate all data from the previous frame.
-*/
-void R_FrameCache_Clear( void ) {
-	size_t newSize;
-
-	newSize = r_frameCacheTotalSize;
-	if( newSize < MIN_FRAMECACHE_SIZE )
-		newSize = MIN_FRAMECACHE_SIZE;
-
-	if( !r_frameCacheHead || r_frameCacheHead->dataSize < newSize ) {
-		r_framecache_t *cache;
-
-		R_FrameCache_Free();
-
-		cache = R_FrameCache_NewBlock( newSize );
-
-		r_frameCacheHead = cache;
-	}
-
-	R_FrameCache_ResetBlock( r_frameCacheHead );
-}
-
-/*
-* R_FrameCache_Alloc
-*/
-void *R_FrameCache_Alloc_( size_t size, const char *filename, int fileline ) {
-	uint8_t *data;
-	r_framecache_t *cache = r_frameCacheHead;
-	size_t used;
-
-	if( !size ) {
-		return NULL;
-	}
-
-	size = ((size + 15) & ~15);
-
-	assert( cache != NULL );
-	if( cache == NULL ) {
-		return NULL;
-	}
-
-	used = cache->dataRover - (uint8_t *)cache;
-	if( used + size > cache->dataSize ) {
-		size_t newSize = r_frameCacheTotalSize / 2;
-
-		if( newSize < MIN_FRAMECACHE_SIZE ) {
-			newSize = MIN_FRAMECACHE_SIZE;
-		}
-		if( newSize < size ) {
-			newSize = size;
-		}
-
-		cache = R_FrameCache_NewBlock( newSize );
-		cache->next = r_frameCacheHead;
-		r_frameCacheHead = cache;
-	}
-
-	data = cache->dataRover;
-	cache->dataRover += size;
-	return data;
-}
-
-/*
-* R_FrameCache_TotalSize
-*/
-size_t R_FrameCache_TotalSize( void ) {
-	return r_frameCacheTotalSize;
-}
-
-/*
-* R_FrameCache_SetMark
-*/
-void *R_FrameCache_SetMark_( const char *filename, int fileline ) {
-	r_framecache_t *cache = r_frameCacheHead;
-	r_framecachemark_t *cmark = &cache->mark;
-	cmark->ptr = cache->dataRover;
-	return (void *)cmark;
-}
-
-/*
-* R_FrameCache_FreeToMark_
-*/
-void R_FrameCache_FreeToMark_( void *mark, const char *filename, int fileline ) {
-	r_framecachemark_t *cmark = ( r_framecachemark_t * ) mark;
-	r_framecache_t *cache = cmark->cache;
-	cache->dataRover = cmark->ptr;
 }

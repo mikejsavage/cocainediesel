@@ -60,7 +60,6 @@ cvar_t *r_samples;
 cvar_t *r_gamma;
 cvar_t *r_texturefilter;
 cvar_t *r_nobind;
-cvar_t *r_polyblend;
 cvar_t *r_screenshot_fmtstr;
 
 cvar_t *r_drawflat;
@@ -240,7 +239,6 @@ static void R_Register() {
 	r_showtris = ri.Cvar_Get( "r_showtris", "0", CVAR_CHEAT );
 	r_showtris2D = ri.Cvar_Get( "r_showtris2D", "0", CVAR_CHEAT );
 	r_leafvis = ri.Cvar_Get( "r_leafvis", "0", CVAR_CHEAT );
-	r_polyblend = ri.Cvar_Get( "r_polyblend", "1", 0 );
 
 	r_sRGB = ri.Cvar_Get( "r_sRGB", "1", CVAR_ARCHIVE | CVAR_LATCH_VIDEO );
 
@@ -438,8 +436,6 @@ bool R_Init() {
 
 	R_InitVolatileAssets();
 
-	R_ClearRefInstStack();
-
 	RF_Init();
 
 	GLenum glerr = glGetError();
@@ -563,8 +559,6 @@ void R_Shutdown( bool verbose ) {
 
 	ri.Mutex_Destroy( &rf.speedsMsgLock );
 	ri.Mutex_Destroy( &rf.debugSurfaceLock );
-
-	R_FrameCache_Free();
 
 	R_FreePool( &r_mempool );
 }

@@ -301,7 +301,6 @@ extern cvar_t *r_samples;
 extern cvar_t *r_gamma;
 extern cvar_t *r_texturefilter;
 extern cvar_t *r_mode;
-extern cvar_t *r_polyblend;
 extern cvar_t *r_screenshot_fmtstr;
 
 extern cvar_t *r_drawflat;
@@ -484,17 +483,6 @@ void R_BindFrameBufferObject( int object );
 
 void R_Scissor( int x, int y, int w, int h );
 void R_ResetScissor( void );
-
-void R_FrameCache_Free( void );
-void R_FrameCache_Clear( void );
-void *R_FrameCache_Alloc_( size_t size, const char *filename, int fileline );
-size_t R_FrameCache_TotalSize( void );
-void *R_FrameCache_SetMark_( const char *filename, int fileline );
-void R_FrameCache_FreeToMark_( void *mark, const char *filename, int fileline );
-
-#define R_FrameCache_Alloc(s) R_FrameCache_Alloc_(s,__FILE__,__LINE__)
-#define R_FrameCache_SetMark() R_FrameCache_SetMark_(__FILE__,__LINE__)
-#define R_FrameCache_FreeToMark(m) R_FrameCache_FreeToMark_(m,__FILE__,__LINE__)
 
 //
 // r_mesh.c

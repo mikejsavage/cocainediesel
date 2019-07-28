@@ -71,11 +71,6 @@ typedef struct {
 
 typedef struct {
 	drawSurfaceType_t type;
-	struct model_s *model;
-} drawSurfaceGLTF_t;
-
-typedef struct {
-	drawSurfaceType_t type;
 
 	int renderfx;
 

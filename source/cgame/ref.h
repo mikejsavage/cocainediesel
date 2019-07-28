@@ -141,7 +141,6 @@ typedef struct refdef_s {
 	float fov_x, fov_y;
 	vec3_t vieworg;
 	mat3_t viewaxis;
-	float blend[4];                     // rgba 0-1 full screen blend
 	int64_t time;                       // time is used for timing offsets
 	int rdflags;                        // RDF_UNDERWATER, etc
 	uint8_t *areabits;                  // if not NULL, only areas with set bits will be drawn

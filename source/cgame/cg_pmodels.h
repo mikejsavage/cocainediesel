@@ -87,7 +87,7 @@ typedef struct weaponinfo_s {
 
 	// sfx
 	int num_fire_sounds;
-	struct sfx_s *sound_fire[WEAPONINFO_MAX_FIRE_SOUNDS];
+	const SoundAsset *sound_fire[WEAPONINFO_MAX_FIRE_SOUNDS];
 } weaponinfo_t;
 
 enum {

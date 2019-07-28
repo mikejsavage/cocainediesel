@@ -32,7 +32,7 @@ static constexpr const char * cg_defaultSexedSounds[] = {
 /*
 * CG_RegisterPmodelSexedSound
 */
-static struct sfx_s *CG_RegisterPmodelSexedSound( PlayerModelMetadata *metadata, const char *name ) {
+static const SoundAsset *CG_RegisterPmodelSexedSound( PlayerModelMetadata *metadata, const char *name ) {
 	if( !metadata ) {
 		return NULL;
 	}
@@ -62,7 +62,7 @@ static struct sfx_s *CG_RegisterPmodelSexedSound( PlayerModelMetadata *metadata,
 
 	char sexedFilename[MAX_QPATH];
 	Q_snprintfz( sexedFilename, sizeof( sexedFilename ), "sounds/players/%s/%s", model_name, name + 1 );
-	sexedSfx->sfx = trap_S_RegisterSound( sexedFilename );
+	sexedSfx->sfx = S_RegisterSound( sexedFilename );
 
 	return sexedSfx->sfx;
 }
@@ -93,7 +93,7 @@ void CG_UpdateSexedSoundsRegistration( PlayerModelMetadata *metadata ) {
 /*
 * CG_RegisterSexedSound
 */
-struct sfx_s *CG_RegisterSexedSound( int entnum, const char *name ) {
+const SoundAsset *CG_RegisterSexedSound( int entnum, const char *name ) {
 	if( entnum < 0 || entnum >= MAX_EDICTS ) {
 		return NULL;
 	}
@@ -110,11 +110,11 @@ void CG_SexedSound( int entnum, int entchannel, const char *name, float volume, 
 	entchannel &= ~CHAN_FIXED;
 
 	if( fixed ) {
-		trap_S_StartFixedSound( CG_RegisterSexedSound( entnum, name ), cg_entities[entnum].current.origin, entchannel, volume, attn );
+		S_StartFixedSound( CG_RegisterSexedSound( entnum, name ), cg_entities[entnum].current.origin, entchannel, volume, attn );
 	} else if( ISVIEWERENTITY( entnum ) ) {
-		trap_S_StartGlobalSound( CG_RegisterSexedSound( entnum, name ), entchannel, volume );
+		S_StartGlobalSound( CG_RegisterSexedSound( entnum, name ), entchannel, volume );
 	} else {
-		trap_S_StartEntitySound( CG_RegisterSexedSound( entnum, name ), entnum, entchannel, volume, attn );
+		S_StartEntitySound( CG_RegisterSexedSound( entnum, name ), entnum, entchannel, volume, attn );
 	}
 }
 

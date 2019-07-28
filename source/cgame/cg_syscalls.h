@@ -297,46 +297,6 @@ static inline bool trap_CM_InPVS( const vec3_t p1, const vec3_t p2 ) {
 	return CGAME_IMPORT.CM_InPVS( p1, p2 );
 }
 
-static inline struct sfx_s *trap_S_RegisterSound( const char *name ) {
-	return CGAME_IMPORT.S_RegisterSound( name );
-}
-
-static inline void trap_S_Update( const vec3_t origin, const vec3_t velocity, const mat3_t axis ) {
-	CGAME_IMPORT.S_Update( origin, velocity, axis );
-}
-
-static inline void trap_S_UpdateEntity( int entNum, const vec3_t origin, const vec3_t velocity ) {
-	return CGAME_IMPORT.S_UpdateEntity( entNum, origin, velocity );
-}
-
-static inline void trap_S_StartFixedSound( struct sfx_s *sfx, const vec3_t origin, int channel, float volume, float attenuation ) {
-	CGAME_IMPORT.S_StartFixedSound( sfx, origin, channel, volume, attenuation );
-}
-
-static inline void trap_S_StartEntitySound( struct sfx_s *sfx, int entnum, int channel, float volume, float attenuation ) {
-	CGAME_IMPORT.S_StartEntitySound( sfx, entnum, channel, volume, attenuation );
-}
-
-static inline void trap_S_StartGlobalSound( struct sfx_s *sfx, int channel, float volume ) {
-	CGAME_IMPORT.S_StartGlobalSound( sfx, channel, volume );
-}
-
-static inline void trap_S_StartLocalSound( struct sfx_s *sfx, int channel, float volume ) {
-	CGAME_IMPORT.S_StartLocalSound( sfx, channel, volume );
-}
-
-static inline void trap_S_ImmediateSound( struct sfx_s *sfx, int entnum, float volume, float attenuation ) {
-	CGAME_IMPORT.S_ImmediateSound( sfx, entnum, volume, attenuation );
-}
-
-static inline void trap_S_StartBackgroundTrack( struct sfx_s *sfx ) {
-	CGAME_IMPORT.S_StartBackgroundTrack( sfx );
-}
-
-static inline void trap_S_StopBackgroundTrack( void ) {
-	CGAME_IMPORT.S_StopBackgroundTrack();
-}
-
 static inline struct qfontface_s *trap_SCR_RegisterFont( const char *family, int style, unsigned int size ) {
 	return CGAME_IMPORT.SCR_RegisterFont( family, style, size );
 }

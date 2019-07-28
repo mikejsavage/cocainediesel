@@ -27,6 +27,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cg_public.h"
 #include "cg_syscalls.h"
 
+#include "client/sound.h"
+
 #define CG_OBITUARY_HUD     1
 #define CG_OBITUARY_CENTER  2
 #define CG_OBITUARY_CONSOLE 4
@@ -219,7 +221,7 @@ typedef struct {
 
 typedef struct cg_sexedSfx_s {
 	const char *name;
-	struct sfx_s *sfx;
+	const SoundAsset *sfx;
 	struct cg_sexedSfx_s *next;
 } cg_sexedSfx_t;
 
@@ -334,7 +336,7 @@ typedef struct {
 	// force models
 	PlayerModelMetadata *teamModelInfo[2];
 
-	struct sfx_s *soundPrecache[MAX_SOUNDS];
+	const SoundAsset *soundPrecache[MAX_SOUNDS];
 	struct shader_s *imagePrecache[MAX_IMAGES];
 
 	int precacheModelsStart;
@@ -502,7 +504,7 @@ void CG_RegisterFonts( void );
 
 struct model_s *CG_RegisterModel( const char *name );
 
-struct sfx_s *CG_MediaSfx( cgs_media_handle_t *mediasfx );
+const SoundAsset *CG_MediaSfx( cgs_media_handle_t *mediasfx );
 struct model_s *CG_MediaModel( cgs_media_handle_t *mediamodel );
 struct shader_s *CG_MediaShader( cgs_media_handle_t *mediashader );
 
@@ -515,7 +517,7 @@ void CG_ResetClientInfos( void );
 void CG_LoadClientInfo( int client );
 void CG_UpdateSexedSoundsRegistration( PlayerModelMetadata *pmodelinfo );
 void CG_SexedSound( int entnum, int entchannel, const char *name, float volume, float attn );
-struct sfx_s *CG_RegisterSexedSound( int entnum, const char *name );
+const SoundAsset *CG_RegisterSexedSound( int entnum, const char *name );
 
 //
 // cg_predict.c
@@ -835,7 +837,7 @@ extern cvar_t *cg_damage_indicator_time;
 
 void CG_FireEvents( bool early );
 void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted );
-void CG_AddAnnouncerEvent( struct sfx_s *sound, bool queued );
+void CG_AddAnnouncerEvent( const SoundAsset *sound, bool queued );
 void CG_ReleaseAnnouncerEvents( void );
 void CG_ClearAnnouncerEvents( void );
 

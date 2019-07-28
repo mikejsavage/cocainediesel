@@ -39,7 +39,7 @@ static cgs_media_handle_t *CG_RegisterMediaSfx( const char *name ) {
 	mediasfx->next = sfx_headnode;
 	sfx_headnode = mediasfx;
 
-	mediasfx->data = ( void * )trap_S_RegisterSound( mediasfx->name );
+	mediasfx->data = ( void * )S_RegisterSound( mediasfx->name );
 
 	return mediasfx;
 }
@@ -47,11 +47,11 @@ static cgs_media_handle_t *CG_RegisterMediaSfx( const char *name ) {
 /*
 * CG_MediaSfx
 */
-struct sfx_s *CG_MediaSfx( cgs_media_handle_t *mediasfx ) {
+const SoundAsset *CG_MediaSfx( cgs_media_handle_t *mediasfx ) {
 	if( !mediasfx->data ) {
-		mediasfx->data = ( void * )trap_S_RegisterSound( mediasfx->name );
+		mediasfx->data = ( void * )S_RegisterSound( mediasfx->name );
 	}
-	return ( struct sfx_s * )mediasfx->data;
+	return ( const SoundAsset * ) mediasfx->data;
 }
 
 /*

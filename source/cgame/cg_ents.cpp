@@ -1191,7 +1191,7 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 
 	if( attenuation == ATTN_NONE ) {
 		if( cgs.soundPrecache[soundindex] ) {
-			trap_S_StartGlobalSound( cgs.soundPrecache[soundindex], channel & ~CHAN_FIXED, 1.0f );
+			S_StartGlobalSound( cgs.soundPrecache[soundindex], channel & ~CHAN_FIXED, 1.0f );
 		}
 		return;
 	}
@@ -1222,11 +1222,11 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	}
 
 	if( fixed ) {
-		trap_S_StartFixedSound( cgs.soundPrecache[soundindex], cent->current.origin, channel, 1.0f, attenuation );
+		S_StartFixedSound( cgs.soundPrecache[soundindex], cent->current.origin, channel, 1.0f, attenuation );
 	} else if( ISVIEWERENTITY( owner ) ) {
-		trap_S_StartGlobalSound( cgs.soundPrecache[soundindex], channel, 1.0f );
+		S_StartGlobalSound( cgs.soundPrecache[soundindex], channel, 1.0f );
 	} else {
-		trap_S_StartEntitySound( cgs.soundPrecache[soundindex], owner, channel, 1.0f, attenuation );
+		S_StartEntitySound( cgs.soundPrecache[soundindex], owner, channel, 1.0f, attenuation );
 	}
 }
 
@@ -1284,16 +1284,16 @@ static void CG_UpdateSpikes( centity_t *cent ) {
 	int64_t delta = cg.frame.serverTime - cent->current.linearMovementTimeStamp;
 
 	if( old_delta < 0 && delta >= 0 ) {
-		trap_S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesArm ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+		S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesArm ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 	}
 	else if( old_delta < 1000 && delta >= 1000 ) {
-		trap_S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesDeploy ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+		S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesDeploy ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 	}
 	else if( old_delta < 1050 && delta >= 1050 ) {
-		trap_S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesGlint ), cent->current.number, CHAN_AUTO, cg_volume_effects->value * 0.05f, ATTN_NORM );
+		S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesGlint ), cent->current.number, CHAN_AUTO, cg_volume_effects->value * 0.05f, ATTN_NORM );
 	}
 	else if( old_delta < 1500 && delta >= 1500 ) {
-		trap_S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesRetract ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+		S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesRetract ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 	}
 }
 
@@ -1306,7 +1306,7 @@ void CG_EntityLoopSound( entity_state_t *state, float attenuation ) {
 		return;
 	}
 
-	trap_S_ImmediateSound( cgs.soundPrecache[state->sound], state->number, cg_volume_effects->value, ISVIEWERENTITY( state->number ) ? ATTN_NONE : ATTN_IDLE );
+	S_ImmediateSound( cgs.soundPrecache[state->sound], state->number, cg_volume_effects->value, ISVIEWERENTITY( state->number ) ? ATTN_NONE : ATTN_IDLE );
 }
 
 /*
@@ -1541,7 +1541,7 @@ void CG_LerpEntities( void ) {
 		if( spatialize ) {
 			vec3_t origin, velocity;
 			CG_GetEntitySpatilization( number, origin, velocity );
-			trap_S_UpdateEntity( number, origin, velocity );
+			S_UpdateEntity( number, origin, velocity );
 		}
 	}
 }

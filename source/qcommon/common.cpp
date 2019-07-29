@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // common.c -- misc functions used in client and server
 #include "qcommon.h"
 #include "qcommon/glob.h"
+#include "qcommon/csprng.h"
 #include <setjmp.h>
 #include "version.h"
 #include "wswcurl.h"
@@ -729,6 +730,8 @@ void Qcommon_Init( int argc, char **argv ) {
 
 	Sys_Init();
 
+	CSPRNG_Init();
+
 	NET_Init();
 	Netchan_Init();
 
@@ -870,6 +873,8 @@ void Qcommon_Shutdown( void ) {
 	Com_CloseConsoleLog( true, true );
 
 	FS_Shutdown();
+
+	CSPRNG_Shutdown();
 
 	wswcurl_cleanup();
 

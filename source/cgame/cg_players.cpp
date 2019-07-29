@@ -19,102 +19,52 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cg_local.h"
+#include "client/client.h"
 
-static constexpr const char * cg_defaultSexedSounds[] = {
-	"*death",
-	"*fall_0", "*fall_1", "*fall_2",
-	"*jump_1", "*jump_2",
-	"*pain25", "*pain50", "*pain75", "*pain100",
-	"*wj_1", "*wj_2",
-	"*dash_1", "*dash_2",
+static constexpr const char * PLAYER_SOUND_NAMES[] = {
+	"death",
+	"fall_0", "fall_1", "fall_2",
+	"jump_1", "jump_2",
+	"pain25", "pain50", "pain75", "pain100",
+	"wj_1", "wj_2",
+	"dash_1", "dash_2",
 };
 
-/*
-* CG_RegisterPmodelSexedSound
-*/
-static const SoundAsset *CG_RegisterPmodelSexedSound( PlayerModelMetadata *metadata, const char *name ) {
-	if( !metadata ) {
-		return NULL;
-	}
+STATIC_ASSERT( ARRAY_COUNT( PLAYER_SOUND_NAMES ) == PlayerSound_Count );
 
-	for( const cg_sexedSfx_t * sexedSfx = metadata->sexedSfx; sexedSfx; sexedSfx = sexedSfx->next ) {
-		if( !Q_stricmp( sexedSfx->name, name ) ) {
-			return sexedSfx->sfx;
+void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata ) {
+	for( size_t i = 0; i < ARRAY_COUNT( metadata->sounds ); i++ ) {
+		TempAllocator temp = cls.frame_arena->temp();
+
+		const char * model_name = metadata->name;
+		const char * p = strrchr( model_name, '/' );
+		if( p != NULL ) {
+			model_name = p + 1;
 		}
-	}
 
-	// find out what's the model name
-	const char * model_name = metadata->name;
-	const char * p = strrchr( model_name, '/' );
-	if( p != NULL ) {
-		model_name = p + 1;
-	}
-
-	// if we can't figure it out, they're DEFAULT_PLAYERMODEL
-	if( !model_name[0] ) {
-		model_name = DEFAULT_PLAYERMODEL;
-	}
-
-	cg_sexedSfx_t * sexedSfx = ( cg_sexedSfx_t * )CG_Malloc( sizeof( cg_sexedSfx_t ) );
-	sexedSfx->name = name;
-	sexedSfx->next = metadata->sexedSfx;
-	metadata->sexedSfx = sexedSfx;
-
-	char sexedFilename[MAX_QPATH];
-	Q_snprintfz( sexedFilename, sizeof( sexedFilename ), "sounds/players/%s/%s", model_name, name + 1 );
-	sexedSfx->sfx = S_RegisterSound( sexedFilename );
-
-	return sexedSfx->sfx;
-}
-
-/*
-* CG_UpdateSexedSoundsRegistration
-*/
-void CG_UpdateSexedSoundsRegistration( PlayerModelMetadata *metadata ) {
-	cg_sexedSfx_t *sexedSfx, *next;
-
-	if( !metadata ) {
-		return;
-	}
-
-	// free loaded sounds
-	for( sexedSfx = metadata->sexedSfx; sexedSfx; sexedSfx = next ) {
-		next = sexedSfx->next;
-		CG_Free( sexedSfx );
-	}
-	metadata->sexedSfx = NULL;
-
-	// load default sounds
-	for( const char * name : cg_defaultSexedSounds ) {
-		CG_RegisterPmodelSexedSound( metadata, name );
+		DynamicString path( &temp, "sounds/players/{}/{}", model_name, PLAYER_SOUND_NAMES[ i ] );
+		metadata->sounds[ i ] = S_RegisterSound( path.c_str() );
 	}
 }
 
-/*
-* CG_RegisterSexedSound
-*/
-const SoundAsset *CG_RegisterSexedSound( int entnum, const char *name ) {
+static const SoundAsset * GetPlayerSound( int entnum, PlayerSound ps ) {
 	if( entnum < 0 || entnum >= MAX_EDICTS ) {
 		return NULL;
 	}
-	return CG_RegisterPmodelSexedSound( cg_entPModels[entnum].metadata, name );
+	return cg_entPModels[ entnum ].metadata->sounds[ ps ];
 }
 
-/*
-* CG_SexedSound
-*/
-void CG_SexedSound( int entnum, int entchannel, const char *name, float volume, float attn ) {
-	bool fixed;
-
-	fixed = entchannel & CHAN_FIXED ? true : false;
+void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps, float volume, float attn ) {
+	bool fixed = entchannel & CHAN_FIXED ? true : false;
 	entchannel &= ~CHAN_FIXED;
 
+	const SoundAsset * sound = GetPlayerSound( entnum, ps );
 	if( fixed ) {
-		S_StartFixedSound( CG_RegisterSexedSound( entnum, name ), cg_entities[entnum].current.origin, entchannel, volume, attn );
+		S_StartFixedSound( sound, cg_entities[entnum].current.origin, entchannel, volume, attn );
 	} else if( ISVIEWERENTITY( entnum ) ) {
-		S_StartGlobalSound( CG_RegisterSexedSound( entnum, name ), entchannel, volume );
+		S_StartGlobalSound( sound, entchannel, volume );
 	} else {
-		S_StartEntitySound( CG_RegisterSexedSound( entnum, name ), entnum, entchannel, volume, attn );
+		S_StartEntitySound( sound, entnum, entchannel, volume, attn );
 	}
 }
 
@@ -122,8 +72,6 @@ void CG_SexedSound( int entnum, int entchannel, const char *name, float volume, 
 * CG_ParseClientInfo
 */
 static void CG_ParseClientInfo( cg_clientInfo_t *ci, const char *info ) {
-	char *s;
-
 	assert( ci );
 	assert( info );
 
@@ -131,7 +79,7 @@ static void CG_ParseClientInfo( cg_clientInfo_t *ci, const char *info ) {
 		CG_Error( "Invalid client info" );
 	}
 
-	s = Info_ValueForKey( info, "name" );
+	char *s = Info_ValueForKey( info, "name" );
 	Q_strncpyz( ci->name, s && s[0] ? s : "badname", sizeof( ci->name ) );
 
 	// name with color tokes stripped

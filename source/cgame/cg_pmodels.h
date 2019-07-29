@@ -111,6 +111,25 @@ typedef struct {
 	PlayerModelAnimationSet pending[PLAYERANIM_CHANNELS];
 } pmodel_animationstate_t;
 
+enum PlayerSound {
+	PlayerSound_Death,
+	PlayerSound_Fall1,
+	PlayerSound_Fall2,
+	PlayerSound_Fall3,
+	PlayerSound_Jump1,
+	PlayerSound_Jump2,
+	PlayerSound_Pain25,
+	PlayerSound_Pain50,
+	PlayerSound_Pain75,
+	PlayerSound_Pain100,
+	PlayerSound_WallJump1,
+	PlayerSound_WallJump2,
+	PlayerSound_Dash1,
+	PlayerSound_Dash2,
+
+	PlayerSound_Count
+};
+
 struct PlayerModelMetadata {
 	struct Tag {
 		u8 joint_idx;
@@ -126,7 +145,7 @@ struct PlayerModelMetadata {
 	char * name;
 
 	struct model_s * model;
-	struct cg_sexedSfx_s * sexedSfx;
+	const SoundAsset * sounds[ PlayerSound_Count ];
 
 	u8 upper_rotator_joints[ 2 ];
 	u8 head_rotator_joint;

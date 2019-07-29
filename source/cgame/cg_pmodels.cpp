@@ -243,8 +243,8 @@ static bool CG_LoadPlayerModel( PlayerModelMetadata *metadata, const char *filen
 
 	metadata->name = CG_CopyString( filename );
 
-	// load sexed sounds for this model
-	CG_UpdateSexedSoundsRegistration( metadata );
+	CG_RegisterPlayerSounds( metadata );
+
 	return true;
 }
 

@@ -219,12 +219,6 @@ typedef struct {
 	cgs_media_handle_t *shaderKeyIcon[KEYICON_TOTAL];
 } cgs_media_t;
 
-typedef struct cg_sexedSfx_s {
-	const char *name;
-	const SoundAsset *sfx;
-	struct cg_sexedSfx_s *next;
-} cg_sexedSfx_t;
-
 typedef struct {
 	char name[MAX_QPATH];
 	char cleanname[MAX_QPATH];
@@ -515,9 +509,8 @@ extern cvar_t *cg_hand;
 
 void CG_ResetClientInfos( void );
 void CG_LoadClientInfo( int client );
-void CG_UpdateSexedSoundsRegistration( PlayerModelMetadata *pmodelinfo );
-void CG_SexedSound( int entnum, int entchannel, const char *name, float volume, float attn );
-const SoundAsset *CG_RegisterSexedSound( int entnum, const char *name );
+void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata );
+void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps, float volume, float attn );
 
 //
 // cg_predict.c

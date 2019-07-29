@@ -1327,10 +1327,6 @@ void CL_RequestNextDownload( void ) {
 
 		}
 		while( precache_check < CS_SOUNDS + MAX_SOUNDS && cl.configstrings[precache_check][0] ) {
-			if( cl.configstrings[precache_check][0] == '*' ) { // sexed sounds
-				precache_check++;
-				continue;
-			}
 			Q_strncpyz( tempname, cl.configstrings[precache_check++], sizeof( tempname ) );
 			if( !COM_FileExtension( tempname ) ) {
 				if( !FS_FirstExtension( tempname, SOUND_EXTENSIONS, NUM_SOUND_EXTENSIONS ) ) {

@@ -1704,14 +1704,7 @@ void G_AnnouncerSound( edict_t *targ, int soundindex, int team, bool queued, edi
 void G_PureSound( const char *sound ) {
 	assert( sound && sound[0] && strlen( sound ) < MAX_CONFIGSTRING_CHARS );
 
-	if( sound[0] == '*' ) {
-		// sexed sounds
-		// jal : this isn't correct. Sexed sounds don't have the full path because
-		// the path depends on the model, so how can they be pure anyway?
-		trap_PureSound( sound + 1 );
-	} else {
-		trap_PureSound( sound );
-	}
+	trap_PureSound( sound );
 }
 
 /*

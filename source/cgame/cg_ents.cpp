@@ -1209,17 +1209,6 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 		fixed = true;
 	}
 
-	// sexed sounds are not in the sound index and ignore attenuation
-	if( !cgs.soundPrecache[soundindex] ) {
-		if( owner ) {
-			char *cstring = cgs.configStrings[CS_SOUNDS + soundindex];
-			if( cstring && cstring[0] == '*' ) {
-				CG_SexedSound( owner, channel | ( fixed ? CHAN_FIXED : 0 ), cstring, 1.0f, attenuation );
-			}
-		}
-		return;
-	}
-
 	if( fixed ) {
 		S_StartFixedSound( cgs.soundPrecache[soundindex], cent->current.origin, channel, 1.0f, attenuation );
 	} else if( ISVIEWERENTITY( owner ) ) {

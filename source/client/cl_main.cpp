@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/asyncstream.h"
 #include "qcommon/version.h"
 #include "qcommon/hash.h"
+#include "qcommon/csprng.h"
 #include "ftlib/ftlib_public.h"
 #include "renderer/r_frontend.h"
 
@@ -2049,6 +2050,10 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	cls.frame_arena = cls.frame_arena == &cls.frame_arenas[ 0 ] ? &cls.frame_arenas[ 1 ] : &cls.frame_arenas[ 0 ];
 	cls.frame_arena->clear();
+
+	u64 entropy[ 2 ];
+	CSPRNG_Bytes( entropy, sizeof( entropy ) );
+	cls.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
 
 	static int allRealMsec = 0, allGameMsec = 0, extraMsec = 0;
 	static float roundingMsec = 0.0f;

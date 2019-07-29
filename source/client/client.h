@@ -21,6 +21,7 @@
 
 #include "qcommon/qcommon.h"
 #include "qcommon/types.h"
+#include "qcommon/rng.h"
 #include "renderer/r_public.h"
 #include "cgame/cg_public.h"
 #include "ftlib/ftlib_public.h"
@@ -170,6 +171,8 @@ typedef cl_demo_t demorec_t;
 typedef struct {
 	ArenaAllocator frame_arenas[ 2 ];
 	ArenaAllocator * frame_arena;
+
+	RNG rng;
 
 	connstate_t state;          // only set through CL_SetClientState
 	keydest_t key_dest;

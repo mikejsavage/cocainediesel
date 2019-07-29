@@ -2237,7 +2237,6 @@ void CL_AsyncStreamRequest( const char *url, const char **headers, int timeout, 
 * CL_Init
 */
 void CL_Init( void ) {
-	ggprint( "cl_init\n" );
 	constexpr size_t frame_arena_size = 1024 * 1024;
 	void * frame_arena_memory = ALLOC( sys_allocator, frame_arena_size * 2, 16 );
 	cls.frame_arenas[ 0 ] = ArenaAllocator( frame_arena_memory, frame_arena_size );

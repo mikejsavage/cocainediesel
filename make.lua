@@ -4,6 +4,7 @@ require( "ggbuild.git_version" )
 require( "libs.cgltf" )
 require( "libs.glad" )
 require( "libs.imgui" )
+require( "libs.monocypher" )
 require( "libs.stb" )
 
 obj_cxxflags( ".*", "-I source -I libs" )
@@ -58,6 +59,7 @@ do
 			"cgltf",
 			"glad",
 			"imgui",
+			"monocypher",
 			"stb_image",
 			"stb_image_write",
 			"stb_vorbis"
@@ -118,6 +120,8 @@ do
 			"source/server/*.cpp",
 			platform_srcs
 		},
+
+		libs = { "monocypher" },
 
 		prebuilt_libs = {
 			"curl",

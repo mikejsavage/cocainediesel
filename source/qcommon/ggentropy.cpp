@@ -36,12 +36,13 @@ bool ggentropy( void * buf, size_t n ) {
 
 #elif PLATFORM_LINUX
 
-#include <sys/random.h>
+#include <unistd.h>
+#include <sys/syscall.h>
 
 bool ggentropy( void * buf, size_t n ) {
 	assert( n <= 256 );
 
-	ssize_t ok = getrandom( buf, n, 0 );
+	int ok = syscall( SYS_getrandom, buf, n, 0 );
 	if( ok >= 0 && size_t( ok ) == n )
 		return true;
 

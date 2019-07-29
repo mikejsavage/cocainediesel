@@ -1,5 +1,5 @@
 #include "qcommon/base.h"
-#include "qalgo/hash.h"
+#include "qcommon/hash.h"
 #include "r_local.h"
 
 #include "cgltf/cgltf.h"

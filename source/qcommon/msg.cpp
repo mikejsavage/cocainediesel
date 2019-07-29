@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // msg.c -- Message IO functions
 #include "qcommon.h"
-#include "../qalgo/half_float.h"
+#include "qcommon/half_float.h"
 
 /*
 ==============================================================================

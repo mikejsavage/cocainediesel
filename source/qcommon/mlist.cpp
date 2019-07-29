@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // MAPLIST FUNCTIONS
 
 #include "qcommon.h"
-#include "qalgo/q_trie.h"
+#include "qcommon/q_trie.h"
 
 #define MLIST_TRIE_CASING TRIE_CASE_INSENSITIVE
 

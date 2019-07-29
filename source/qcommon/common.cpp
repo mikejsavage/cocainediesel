@@ -19,10 +19,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // common.c -- misc functions used in client and server
 #include "qcommon.h"
+#include "qcommon/glob.h"
 #include <setjmp.h>
 #include "version.h"
 #include "wswcurl.h"
-#include "qalgo/glob.h"
 
 #define MAX_NUM_ARGVS   50
 

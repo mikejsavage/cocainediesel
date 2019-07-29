@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client.h"
 #include "qcommon/asyncstream.h"
 #include "qcommon/version.h"
-#include "qalgo/hash.h"
+#include "qcommon/hash.h"
 #include "ftlib/ftlib_public.h"
 #include "renderer/r_frontend.h"
 

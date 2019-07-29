@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "r_local.h"
 #include "r_imagelib.h"
-#include "qalgo/hash.h"
+#include "qcommon/hash.h"
 
 #include "blue_noise.h"
 #include "stb/stb_image.h"

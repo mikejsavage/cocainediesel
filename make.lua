@@ -49,7 +49,6 @@ do
 			"source/cgame/*.cpp",
 			"source/client/**.cpp",
 			"source/gameshared/*.cpp",
-			"source/qalgo/*.cpp",
 			"source/qcommon/*.cpp",
 			"source/server/sv_*.cpp",
 			platform_srcs
@@ -115,7 +114,6 @@ do
 	bin( "server", {
 		srcs = {
 			"source/gameshared/q_*.cpp",
-			"source/qalgo/*.cpp",
 			"source/qcommon/*.cpp",
 			"source/server/*.cpp",
 			platform_srcs
@@ -137,8 +135,8 @@ dll( "game", {
 	srcs = {
 		"source/game/**.cpp",
 		"source/gameshared/*.cpp",
-		"source/qalgo/hash.cpp",
-		"source/qalgo/rng.cpp",
+		"source/qcommon/hash.cpp",
+		"source/qcommon/rng.cpp",
 	},
 
 	prebuilt_libs = { "angelscript" },

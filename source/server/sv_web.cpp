@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // sv_web.c -- builtin HTTP server
 #include "server.h"
-#include "../qalgo/q_trie.h"
+#include "qcommon/q_trie.h"
 
 #ifdef HTTP_SUPPORT
 

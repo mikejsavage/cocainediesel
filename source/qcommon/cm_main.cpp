@@ -20,8 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // cmodel.c -- model loading
 
 #include "qcommon.h"
+#include "qcommon/hash.h"
 #include "cm_local.h"
-#include "qalgo/hash.h"
 
 static bool cm_initialized = false;
 

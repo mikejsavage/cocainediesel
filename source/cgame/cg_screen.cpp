@@ -33,7 +33,7 @@ end of unit intermissions
 */
 
 #include "cg_local.h"
-#include "qalgo/rng.h"
+#include "qcommon/rng.h"
 #include "client/ui.h"
 
 cvar_t *cg_centerTime;

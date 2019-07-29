@@ -19,6 +19,7 @@ static bool try_urandom( void * buf, size_t n ) {
 
 #if PLATFORM_WINDOWS
 
+#include <windows.h>
 #include <wincrypt.h>
 
 bool ggentropy( void * buf, size_t n ) {

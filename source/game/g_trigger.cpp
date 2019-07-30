@@ -316,18 +316,6 @@ static void hurt_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	}
 }
 
-static void hurt_delayer_think( edict_t *self ) {
-	edict_t *target = &game.edicts[self->s.ownerNum];
-	float damage = target->health + 1;
-
-	if( target->r.client && target->r.client->resp.timeStamp == self->deathTimeStamp ) {
-		target->takedamage = true;
-		G_Damage( target, target, world, vec3_origin, vec3_origin, target->s.origin, damage, 0, DAMAGE_NO_PROTECTION, MOD_TRIGGER_HURT );
-	}
-
-	G_FreeEdict( self );
-}
-
 static void hurt_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
 	int dflags;
 	int damage;
@@ -356,39 +344,10 @@ static void hurt_touch( edict_t *self, edict_t *other, cplane_t *plane, int surf
 	}
 
 	if( self->spawnflags & ( 32 | 64 ) ) { // KILL, FALL
-		int diedelay;
-
-		// not that the delay is primarly needed for the sexed sound to be played correctly
-		// if a player is gibbed on the same frame, his/her model info is reset and the default
-		// (male) sound will be played instead
-		if( other->r.client ) {
-			diedelay = game.snapFrameTime + 1;
-			other->r.client->ps.pmove.stats[PM_STAT_NOUSERCONTROL] = level.time + diedelay + 25;
-		} else {
-			diedelay = 0;
-		}
-
-		if( diedelay ) {
-			edict_t *delayer = G_Spawn();
-			delayer->s.ownerNum = ENTNUM( other );
-			delayer->think = hurt_delayer_think;
-			delayer->nextThink = level.time + diedelay;
-			if( other->r.client ) {
-				delayer->deathTimeStamp = other->r.client->resp.timeStamp;
-			}
-
-			// make it be dead so it doesn't touch the trigger again
-			other->takedamage = false;
-		}
-
 		// play the death sound
 		if( self->noise_index ) {
 			G_Sound( other, CHAN_AUTO | CHAN_FIXED, self->noise_index, ATTN_NORM );
-			other->pain_debounce_time = level.time + diedelay + 25;
-		}
-
-		if( diedelay ) {
-			return;
+			other->pain_debounce_time = level.time + 25;
 		}
 	} else if( !( self->spawnflags & 4 ) && self->noise_index ) {
 		if( (int)( level.time * 0.001 ) & 1 ) {

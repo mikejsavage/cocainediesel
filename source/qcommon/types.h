@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <float.h>
 
 /*
  * ints
@@ -100,10 +101,10 @@ struct Span {
 		return Span< T >( ptr + i, n - i );
 	}
 
-        T * begin() { return ptr; }
-        T * end() { return ptr + n; }
-        const T * begin() const { return ptr; }
-        const T * end() const { return ptr + n; }
+	T * begin() { return ptr; }
+	T * end() { return ptr + n; }
+	const T * begin() const { return ptr; }
+	const T * end() const { return ptr + n; }
 
 	Span< T > slice( size_t start, size_t one_past_end ) {
 		assert( start <= one_past_end );
@@ -253,6 +254,28 @@ struct Quaternion {
 	}
 };
 
+struct MinMax1 {
+	float lo, hi;
+
+	MinMax1() { }
+	constexpr MinMax1( float lo_, float hi_ ) : lo( lo_ ), hi( hi_ ) { }
+
+	static constexpr MinMax1 Empty() {
+		return MinMax1( FLT_MAX, -FLT_MAX );
+	}
+};
+
+struct MinMax2 {
+	Vec2 mins, maxs;
+
+	MinMax2() { }
+	constexpr MinMax2( Vec2 mins_, Vec2 maxs_ ) : mins( mins_ ), maxs( maxs_ ) { }
+
+	static constexpr MinMax2 Empty() {
+		return MinMax2( Vec2( FLT_MAX ), Vec2( -FLT_MAX ) );
+	}
+};
+
 // colors
 // struct RGB8 {
 //         u8 r, g, b;
@@ -260,12 +283,12 @@ struct Quaternion {
 // 	RGB8() { }
 //         constexpr RGB8( u8 r_, u8 g_, u8 b_ ) : r( r_ ), g( g_ ), b( b_ ) { }
 // };
-//
-// struct RGBA8 {
-//         u8 r, g, b, a;
-//
-// 	RGBA8() { }
-//         constexpr RGB8( u8 r_, u8 g_, u8 b_, u8 a_ ) : r( r_ ), g( g_ ), b( b_ ), a( a_ ) { }
-// };
+
+struct RGBA8 {
+	u8 r, g, b, a;
+
+	RGBA8() { }
+	constexpr RGBA8( u8 r_, u8 g_, u8 b_, u8 a_ ) : r( r_ ), g( g_ ), b( b_ ), a( a_ ) { }
+};
 
 // TODO: asset types?

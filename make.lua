@@ -11,8 +11,8 @@ obj_cxxflags( ".*", "-I source -I libs" )
 
 msvc_obj_cxxflags( ".*", "/W4 /wd4100 /wd4146 /wd4189 /wd4201 /wd4307 /wd4324 /wd4351 /wd4127 /wd4505 /wd4530 /wd4702 /wd4706 /D_CRT_SECURE_NO_WARNINGS" )
 msvc_obj_cxxflags( ".*", "/wd4244 /wd4267" ) -- silence conversion warnings because there are tons of them
-msvc_obj_cxxflags( ".*", "/fp:fast /GR-" )
-gcc_obj_cxxflags( ".*", "-std=c++11 -static-libstdc++ -msse3 -ffast-math -fno-rtti -fno-strict-aliasing -fno-strict-overflow -fvisibility=hidden" )
+msvc_obj_cxxflags( ".*", "/fp:fast /GR- /EHs-c-" )
+gcc_obj_cxxflags( ".*", "-std=c++11 -static-libstdc++ -msse3 -ffast-math -fno-exceptions -fno-rtti -fno-strict-aliasing -fno-strict-overflow -fvisibility=hidden" )
 gcc_obj_cxxflags( ".*", "-Wall -Wextra -Wcast-align -Wvla -Wformat-security" ) -- -Wconversion
 gcc_obj_cxxflags( ".*", "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-implicit-fallthrough" )
 

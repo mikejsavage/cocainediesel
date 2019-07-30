@@ -11,7 +11,7 @@ local configs = {
 
 		toolchain = "msvc",
 
-		cxxflags = "/c /Oi /Gm- /EHsc /nologo /DNOMINMAX /DWIN32_LEAN_AND_MEAN",
+		cxxflags = "/c /Oi /Gm- /nologo /DNOMINMAX /DWIN32_LEAN_AND_MEAN",
 		ldflags = "user32.lib shell32.lib advapi32.lib dbghelp.lib /nologo",
 	},
 

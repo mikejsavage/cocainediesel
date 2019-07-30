@@ -561,6 +561,7 @@ static const char * obituaries[] = {
 	"REFRIGERATED",
 	"REHABILITATED",
 	"REMOVED",
+	"RENDERED",
 	"RESPECTED",
 	"REVERSED INTO",
 	"REVISED",

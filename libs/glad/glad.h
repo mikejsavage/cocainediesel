@@ -104,6 +104,7 @@ GLAPI int gladLoadGL(void);
 
 GLAPI int gladLoadGLLoader(GLADloadproc);
 
+#include <stddef.h>
 #include <stdint.h>
 typedef unsigned int GLenum;
 typedef unsigned char GLboolean;

@@ -639,7 +639,11 @@ static const glsl_feature_t * const glsl_programtypes_features[] =
 	glsl_features_colcorrection,
 	// GLSL_PROGRAM_TYPE_KAWASE_BLUR
 	glsl_features_empty,
+	// GLSL_PROGRAM_TYPE_TEXT
+	glsl_features_empty,
 };
+
+STATIC_ASSERT( ARRAY_COUNT( glsl_programtypes_features ) == GLSL_PROGRAM_TYPE_MAXTYPE );
 
 // ======================================================================================
 

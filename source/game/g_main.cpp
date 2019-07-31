@@ -179,6 +179,7 @@ void G_Init( unsigned int seed, unsigned int framemsec ) {
 
 	game.snapFrameTime = framemsec;
 	game.frametime = game.snapFrameTime;
+	game.numBots = 0;
 
 	g_maxvelocity = trap_Cvar_Get( "g_maxvelocity", "16000", 0 );
 	if( g_maxvelocity->value < 20 ) {

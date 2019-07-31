@@ -93,8 +93,6 @@ typedef struct {
 	bool selfDamage;
 
 	int spawnpointRadius;
-
-	int numBots;
 } gametype_descriptor_t;
 
 typedef struct {

@@ -37,17 +37,12 @@ static edict_t * ConnectFakeClient() {
 	int entNum = trap_FakeClientConnect( userInfo, fakeSocketType, fakeIP );
 	if( entNum < 1 ) {
 		Com_Printf( "AI: Can't spawn the fake client\n" );
-		return nullptr;
+		return NULL;
 	}
 	return game.edicts + entNum;
 }
 
-void AI_Respawn( edict_t * ent ) {
-	VectorClear( ent->r.client->ps.pmove.delta_angles );
-	ent->r.client->level.last_activity = level.time;
-}
-
-void AI_SpawnBot( const char * teamName ) {
+void AI_SpawnBot() {
 	if( level.spawnedTimeStamp + 5000 > game.realtime || !level.canSpawnEntities ) {
 		return;
 	}
@@ -61,29 +56,15 @@ void AI_SpawnBot( const char * teamName ) {
 
 		AI_Respawn( ent );
 
-		int team = GS_TeamFromName( teamName );
-		if( team != -1 && team > TEAM_PLAYERS ) {
-			// Join specified team immediately
-			G_Teams_JoinTeam( ent, team );
-		} else {
-			// stay as spectator, give random time for joining
-			ent->nextThink = level.time + 500 + (unsigned)( random() * 2000 );
-		}
+		ent->nextThink = level.time + 500 + (unsigned)( random() * 2000 );
 
 		game.numBots++;
 	}
 }
 
-void AI_RemoveBot( const char * name ) {
-	// Do not iterate over the linked list of bots since it is implicitly modified by these calls
-	for( edict_t * ent = game.edicts + gs.maxclients; PLAYERNUM( ent ) >= 0; ent-- ) {
-		if( !Q_stricmp( ent->r.client->netname, name ) ) {
-			trap_DropClient( ent, DROP_TYPE_GENERAL, nullptr );
-			game.numBots--;
-			return;
-		}
-	}
-	G_Printf( "BOT: %s not found\n", name );
+void AI_Respawn( edict_t * ent ) {
+	VectorClear( ent->r.client->ps.pmove.delta_angles );
+	ent->r.client->level.last_activity = level.time;
 }
 
 static void AI_SpecThink( edict_t * self ) {

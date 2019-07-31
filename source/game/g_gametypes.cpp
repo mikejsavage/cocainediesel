@@ -833,9 +833,6 @@ static bool G_EachNewSecond( void ) {
 * G_CheckNumBots
 */
 static void G_CheckNumBots( void ) {
-	edict_t *ent;
-	int desiredNumBots;
-
 	if( level.spawnedTimeStamp + 5000 > game.realtime ) {
 		return;
 	}
@@ -849,28 +846,21 @@ static void G_CheckNumBots( void ) {
 		trap_Cvar_Set( "g_numbots", va( "%i", gs.maxclients ) );
 	}
 
-	if( level.gametype.numBots > gs.maxclients ) {
-		level.gametype.numBots = gs.maxclients;
-	}
-
-	desiredNumBots = level.gametype.numBots ? level.gametype.numBots : g_numbots->integer;
-
+	int desiredNumBots = g_numbots->integer;
 	if( desiredNumBots < game.numBots ) {
-		// kick one bot
-		for( ent = game.edicts + gs.maxclients; PLAYERNUM( ent ) >= 0; ent-- ) {
+		for( edict_t *ent = game.edicts + gs.maxclients; PLAYERNUM( ent ) >= 0; ent-- ) {
 			if( !ent->r.inuse || !( ent->r.svflags & SVF_FAKECLIENT ) ) {
 				continue;
 			}
-			AI_RemoveBot( ent->r.client->netname );
+			trap_DropClient( ent, DROP_TYPE_GENERAL, NULL );
+			game.numBots--;
 			break;
 		}
-		return;
 	}
-
-	if( desiredNumBots > game.numBots ) { // add a bot if there is room
-		for( ent = game.edicts + 1; PLAYERNUM( ent ) < gs.maxclients && game.numBots < desiredNumBots; ent++ ) {
+	else if( desiredNumBots > game.numBots ) {
+		for( edict_t *ent = game.edicts + 1; PLAYERNUM( ent ) < gs.maxclients && game.numBots < desiredNumBots; ent++ ) {
 			if( !ent->r.inuse && trap_GetClientState( PLAYERNUM( ent ) ) == CS_FREE ) {
-				AI_SpawnBot( NULL );
+				AI_SpawnBot();
 			}
 		}
 	}
@@ -1008,8 +998,6 @@ void G_Gametype_SetDefaults( void ) {
 	level.gametype.selfDamage = true;
 
 	level.gametype.spawnpointRadius = 64;
-
-	level.gametype.numBots = 0;
 }
 
 // this is pretty dirty, parse the first entity and grab the gametype key

@@ -488,15 +488,10 @@ void SV_Map( const char *level, bool devmap ) {
 		SV_Demo_Stop_f();
 	}
 
-	// skip the end-of-unit flag if necessary
-	if( level[0] == '*' ) {
-		level++;
-	}
-
 	if( sv.state == ss_dead ) {
 		SV_InitGame(); // the game is just starting
-
 	}
+
 	// remove all bots before changing map
 	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
 		if( cl->state && cl->edict && ( cl->edict->r.svflags & SVF_FAKECLIENT ) ) {

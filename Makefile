@@ -25,8 +25,9 @@ release:
 clean:
 	@$(LUA) make.lua debug > build.ninja
 	@$(NINJA) -t clean || true
-	@$(LUA) make.lua asan > build.ninja
+	@$(LUA) make.lua asan > build.ninja || true
 	@$(NINJA) -t clean || true
 	@rm -f source/qcommon/gitversion.h
 	@rm -rf build release
+	@rm -f *.exp *.ilk *.ilp *.lib *.pdb game/*.exp game/*.ilk game/*.ilp game/*.pdb
 	@rm -f build.ninja

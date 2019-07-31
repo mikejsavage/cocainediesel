@@ -101,9 +101,7 @@ void CG_ConfigString( int i, const char *s ) {
 			cgs.modelDraw[i - CS_MODELS] = CG_RegisterModel( cgs.configStrings[i] );
 		}
 	} else if( i >= CS_SOUNDS && i < CS_SOUNDS + MAX_SOUNDS ) {
-		if( cgs.configStrings[i][0] != '*' ) {
-			cgs.soundPrecache[i - CS_SOUNDS] = S_RegisterSound( cgs.configStrings[i] );
-		}
+		cgs.soundPrecache[i - CS_SOUNDS] = S_RegisterSound( cgs.configStrings[i] );
 	} else if( i >= CS_IMAGES && i < CS_IMAGES + MAX_IMAGES ) {
 		cgs.imagePrecache[i - CS_IMAGES] = trap_R_RegisterPic( cgs.configStrings[i] );
 	} else if( i >= CS_ITEMS && i < CS_ITEMS + MAX_ITEMS ) {

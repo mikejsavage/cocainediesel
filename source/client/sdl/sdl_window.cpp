@@ -19,7 +19,6 @@
  */
 
 #include "qcommon/qcommon.h"
-#include "glad/glad.h"
 
 #include "sdl_window.h"
 #include "icon.h"
@@ -28,6 +27,8 @@
 #include "sdl/SDL_syswm.h"
 
 #include "stb/stb_image.h"
+
+#include "glad/glad.h"
 
 SDL_Window * sdl_window = NULL;
 

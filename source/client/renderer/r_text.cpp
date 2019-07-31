@@ -24,7 +24,7 @@ struct Font {
 
 	float glyph_padding;
 	float pixel_range;
-	float descent;
+	float ascent;
 
 	Glyph glyphs[ 256 ];
 };
@@ -59,7 +59,7 @@ void R_ShutdownText() {
 }
 
 static void Serialize( SerializationBuffer * buf, Font & font ) {
-	*buf & font.glyph_padding & font.pixel_range & font.descent;
+	*buf & font.glyph_padding & font.pixel_range & font.ascent;
 	for( Glyph & glyph : font.glyphs ) {
 		*buf & glyph.bounds & glyph.uv_bounds & glyph.advance;
 	}
@@ -167,7 +167,7 @@ void DrawText( const Font * font, float pixel_size, Span< const char > str, floa
 	DynamicArray< u16 > indices( &temp, str.n * 6 );
 	DynamicArray< Vec2 > uvs( &temp, str.n * 4 );
 
-	y = glConfig.height - y - pixel_size * font->descent;
+	y = glConfig.height - y - pixel_size * font->ascent;
 
 	u32 state = 0;
 	for( size_t i = 0; i < str.n; i++ ) {
@@ -188,23 +188,23 @@ void DrawText( const Font * font, float pixel_size, Span< const char > str, floa
 				Vec2( x, y ) + pixel_size * ( glyph->bounds.maxs + font->glyph_padding )
 			);
 
-			u16 tl_idx = positions.add( ToClip( bounds.mins.x, bounds.mins.y ) );
-			u16 tr_idx = positions.add( ToClip( bounds.maxs.x, bounds.mins.y ) );
-			u16 bl_idx = positions.add( ToClip( bounds.mins.x, bounds.maxs.y ) );
-			u16 br_idx = positions.add( ToClip( bounds.maxs.x, bounds.maxs.y ) );
+			u16 bl_idx = positions.add( ToClip( bounds.mins.x, bounds.mins.y ) );
+			u16 br_idx = positions.add( ToClip( bounds.maxs.x, bounds.mins.y ) );
+			u16 tl_idx = positions.add( ToClip( bounds.mins.x, bounds.maxs.y ) );
+			u16 tr_idx = positions.add( ToClip( bounds.maxs.x, bounds.maxs.y ) );
 
 			uvs.add( Vec2( glyph->uv_bounds.mins.x, glyph->uv_bounds.mins.y ) );
 			uvs.add( Vec2( glyph->uv_bounds.maxs.x, glyph->uv_bounds.mins.y ) );
 			uvs.add( Vec2( glyph->uv_bounds.mins.x, glyph->uv_bounds.maxs.y ) );
 			uvs.add( Vec2( glyph->uv_bounds.maxs.x, glyph->uv_bounds.maxs.y ) );
 
+			indices.add( bl_idx );
 			indices.add( tl_idx );
-			indices.add( bl_idx );
-			indices.add( tr_idx );
-
-			indices.add( bl_idx );
 			indices.add( br_idx );
+
+			indices.add( tl_idx );
 			indices.add( tr_idx );
+			indices.add( br_idx );
 		}
 
 		x += pixel_size * glyph->advance;

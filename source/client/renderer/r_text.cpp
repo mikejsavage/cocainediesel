@@ -278,7 +278,7 @@ MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
 	return MinMax2( pixel_size * Vec2( 0, y_extents.lo ), pixel_size * Vec2( width, y_extents.hi ) );
 }
 
-void DrawAlignedText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, RGBA8 color, bool border, RGBA8 border_color ) {
+void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, RGBA8 color, bool border, RGBA8 border_color ) {
 	MinMax2 bounds = TextBounds( font, pixel_size, str );
 
 	if( align.x == XAlignment_Center ) {

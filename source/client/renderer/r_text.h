@@ -49,7 +49,7 @@ void DrawText( const Font * font, float pixel_size,
 
 MinMax2 TextBounds( const Font * font, float pixel_size, const char * str );
 
-void DrawAlignedText( const Font * font, float pixel_size,
+void DrawText( const Font * font, float pixel_size,
 	const char * str,
 	Alignment align, float x, float y,
 	RGBA8 color, bool border = false, RGBA8 border_color = RGBA8( 0, 0, 0, 0 ) );

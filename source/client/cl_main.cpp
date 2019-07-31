@@ -560,6 +560,7 @@ static void CL_EndRegistration( void ) {
 	cls.registrationOpen = false;
 
 	FTLIB_TouchAllFonts();
+	TouchFonts();
 	UI_TouchAllAssets();
 	RF_EndRegistration();
 }
@@ -1621,6 +1622,7 @@ void CL_RestartMedia( void ) {
 	cls.mediaInitialized = true;
 
 	FTLIB_TouchAllFonts();
+	TouchFonts();
 
 	// register console font and background
 	SCR_RegisterConsoleMedia();

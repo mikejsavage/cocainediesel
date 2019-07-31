@@ -88,6 +88,11 @@ typedef struct glsl_program_s {
 
 		int SkinningMatrices;
 
+		int TextColor;
+		int BorderColor;
+		int Border;
+		int PixelRange;
+
 		int InstancePoints;
 
 		int WallColor;
@@ -142,6 +147,7 @@ void RP_Init( void ) {
 	RP_RegisterProgram( GLSL_PROGRAM_TYPE_Q3A_SHADER, DEFAULT_GLSL_Q3A_SHADER_PROGRAM, NULL, NULL, 0, 0 );
 	RP_RegisterProgram( GLSL_PROGRAM_TYPE_COLOR_CORRECTION, DEFAULT_GLSL_COLORCORRECTION_PROGRAM, NULL, NULL, 0, 0 );
 	RP_RegisterProgram( GLSL_PROGRAM_TYPE_KAWASE_BLUR, DEFAULT_GLSL_KAWASE_BLUR_PROGRAM, NULL, NULL, 0, 0 );
+	RP_RegisterProgram( GLSL_PROGRAM_TYPE_TEXT, DEFAULT_GLSL_TEXT_PROGRAM, NULL, NULL, 0, 0 );
 
 	RP_RegisterProgram( GLSL_PROGRAM_TYPE_MATERIAL, DEFAULT_GLSL_Q3A_SHADER_PROGRAM, NULL, NULL, 0, GLSL_SHADER_COMMON_SKINNED );
 	RP_RegisterProgram( GLSL_PROGRAM_TYPE_MATERIAL, DEFAULT_GLSL_MATERIAL_PROGRAM, NULL, NULL, 0, GLSL_SHADER_COMMON_SKINNED );
@@ -1539,6 +1545,22 @@ void RP_UpdateSkinningUniforms( int elem, Span< const Mat4 > skinning_matrices )
 	glUniformMatrix4fv( program->loc.SkinningMatrices, skinning_matrices.n, GL_FALSE, ( const float * ) skinning_matrices.ptr );
 }
 
+void RP_UpdateTextUniforms( int elem, RGBA8 text_color, RGBA8 border_color, bool border, float pixel_range ) {
+	const glsl_program_t * program = r_glslprograms + elem - 1;
+	if( program->loc.TextColor >= 0 ) {
+		glUniform4f( program->loc.TextColor, text_color.r / 255.0f, text_color.g / 255.0f, text_color.b / 255.0f, text_color.a / 255.0f );
+	}
+	if( program->loc.BorderColor >= 0 ) {
+		glUniform4f( program->loc.BorderColor, border_color.r / 255.0f, border_color.g / 255.0f, border_color.b / 255.0f, border_color.a / 255.0f );
+	}
+	if( program->loc.Border >= 0 ) {
+		glUniform1i( program->loc.Border, border ? 1 : 0 );
+	}
+	if( program->loc.PixelRange >= 0 ) {
+		glUniform1f( program->loc.PixelRange, pixel_range );
+	}
+}
+
 /*
 * RP_UpdateInstancesUniforms
 *
@@ -1654,6 +1676,11 @@ static void RP_GetUniformLocations( glsl_program_t *program ) {
 	program->loc.SoftParticlesScale = glGetUniformLocation( program->object, "u_SoftParticlesScale" );
 
 	program->loc.SkinningMatrices = glGetUniformLocation( program->object, "u_SkinningMatrices" );
+
+	program->loc.TextColor = glGetUniformLocation( program->object, "u_TextColor" );
+	program->loc.BorderColor = glGetUniformLocation( program->object, "u_BorderColor" );
+	program->loc.Border = glGetUniformLocation( program->object, "u_HasBorder" );
+	program->loc.PixelRange = glGetUniformLocation( program->object, "u_PixelRange" );
 
 	program->loc.InstancePoints = glGetUniformLocation( program->object, "u_InstancePoints" );
 

@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MAX_STREAM_VBO_VERTS        ( 1 << 15 )
 #define MAX_STREAM_VBO_ELEMENTS     MAX_STREAM_VBO_VERTS * 6
-#define MAX_STREAM_VBO_TRIANGLES    MAX_STREAM_VBO_ELEMENTS / 3
 
 #define MAX_DYNAMIC_DRAWS           2048
 
@@ -109,7 +108,13 @@ typedef struct r_backend_s {
 	const entity_t *currentEntity;
 	ModelType currentModelType;
 	const mesh_vbo_t *currentMeshVBO;
+
 	Span< const Mat4 > skinning_matrices;
+
+	RGBA8 text_color;
+	RGBA8 border_color;
+	bool text_border;
+	float pixel_range;
 
 	// glUseProgram cache
 	int currentProgram;

@@ -925,6 +925,21 @@ static void RB_RenderMeshGLSL_KawaseBlur( const shaderpass_t *pass, r_glslfeat_t
 }
 
 /*
+* RB_RenderMeshGLSL_Text
+*/
+static void RB_RenderMeshGLSL_Text( const shaderpass_t *pass, r_glslfeat_t programFeatures ) {
+	// set shaderpass state (blending, depthwrite, etc)
+	RB_SetState( RB_GetShaderpassState( pass->flags ) );
+	RB_BindImage( 0, pass->images[0] );
+
+	int program = RB_RegisterProgram( GLSL_PROGRAM_TYPE_TEXT, NULL, NULL, NULL, 0, programFeatures );
+	if( RB_BindProgram( program ) ) {
+		RP_UpdateTextUniforms( program, rb.text_color, rb.border_color, rb.text_border, rb.pixel_range );
+		RB_DrawElementsReal( &rb.drawElements );
+	}
+}
+
+/*
 * RB_RenderMeshGLSLProgrammed
 */
 void RB_RenderMeshGLSLProgrammed( const shaderpass_t *pass, int programType ) {
@@ -965,6 +980,9 @@ void RB_RenderMeshGLSLProgrammed( const shaderpass_t *pass, int programType ) {
 			break;
 		case GLSL_PROGRAM_TYPE_KAWASE_BLUR:
 			RB_RenderMeshGLSL_KawaseBlur( pass, features );
+			break;
+		case GLSL_PROGRAM_TYPE_TEXT:
+			RB_RenderMeshGLSL_Text( pass, features );
 			break;
 		default:
 			ri.Com_DPrintf( S_COLOR_YELLOW "WARNING: Unknown GLSL program type %i\n", programType );
@@ -1050,6 +1068,14 @@ void RB_SetSkinningMatrices( Span< const Mat4 > skinning_matrices ) {
 	rb.skinning_matrices = skinning_matrices;
 	rb.dirtyUniformState = true;
 	RB_UpdateVertexAttribs();
+}
+
+void RB_SetTextParams( RGBA8 text_color, RGBA8 border_color, bool border, float pixel_range ) {
+	rb.text_color = text_color;
+	rb.border_color = border_color;
+	rb.text_border = border;
+	rb.pixel_range = pixel_range;
+	rb.dirtyUniformState = true;
 }
 
 /*

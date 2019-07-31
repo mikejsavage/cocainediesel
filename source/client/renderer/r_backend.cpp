@@ -70,6 +70,7 @@ void RB_BeginRegistration( void ) {
 	int i;
 
 	RB_RegisterStreamVBOs();
+	TouchFonts();
 	RB_BindVBO( 0, 0 );
 
 	// unbind all texture targets on all TMUs
@@ -117,6 +118,8 @@ void RB_BeginFrame( void ) {
 	RB_SetShaderStateMask( ~0, 0 );
 	RB_BindVBO( 0, 0 );
 	RB_FlushTextureCache();
+
+	ResetTextVBO();
 }
 
 /*

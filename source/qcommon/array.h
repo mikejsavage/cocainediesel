@@ -5,7 +5,7 @@
 template< typename T >
 class DynamicArray {
 public:
-	NONCOPYABLE( DynamicArray );
+	// NONCOPYABLE( DynamicArray );
 
 	DynamicArray( Allocator * a_, size_t initial_capacity = 0 ) {
 		a = a_;
@@ -18,9 +18,10 @@ public:
 		FREE( a, elems );
 	}
 
-	void add( const T & x ) {
+	size_t add( const T & x ) {
 		size_t idx = extend( 1 );
 		elems[ idx ] = x;
+		return idx;
 	}
 
 	void clear() {
@@ -63,8 +64,7 @@ public:
 		return elems[ i ];
 	}
 
-
-	T try_get( size_t i, T def ) const {
+	T & try_get( size_t i, T def ) const {
 		if( i >= n )
 			return def;
 		return elems[ i ];

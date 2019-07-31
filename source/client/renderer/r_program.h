@@ -29,6 +29,7 @@ typedef uint64_t r_glslfeat_t;
 #define DEFAULT_GLSL_Q3A_SHADER_PROGRAM         "q3AShader"
 #define DEFAULT_GLSL_COLORCORRECTION_PROGRAM    "colorCorrection"
 #define DEFAULT_GLSL_KAWASE_BLUR_PROGRAM        "kawaseBlur"
+#define DEFAULT_GLSL_TEXT_PROGRAM               "text"
 
 // program types
 enum {
@@ -38,6 +39,7 @@ enum {
 	GLSL_PROGRAM_TYPE_Q3A_SHADER,
 	GLSL_PROGRAM_TYPE_COLOR_CORRECTION,
 	GLSL_PROGRAM_TYPE_KAWASE_BLUR,
+	GLSL_PROGRAM_TYPE_TEXT,
 
 	GLSL_PROGRAM_TYPE_MAXTYPE
 };
@@ -136,6 +138,8 @@ void RP_UpdateDiffuseLightUniforms( int elem,
 void RP_UpdateTexGenUniforms( int elem, const mat4_t vectorMatrix );
 
 void RP_UpdateSkinningUniforms( int elem, Span< const Mat4 > skinning_matrices );
+
+void RP_UpdateTextUniforms( int elem, RGBA8 text_color, RGBA8 border_color, bool border, float pixel_range );
 
 void RP_UpdateInstancesUniforms( int elem, unsigned int numInstances, instancePoint_t *instances );
 

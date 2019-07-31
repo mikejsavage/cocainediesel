@@ -71,6 +71,7 @@ typedef vec_t instancePoint_t[8]; // quaternion for rotation + xyz pos + uniform
 #include "r_model.h"
 #include "r_trace.h"
 #include "r_program.h"
+#include "r_text.h"
 
 extern const elem_t r_boxedges[24];
 

@@ -432,6 +432,8 @@ bool R_Init() {
 
 	R_InitModels();
 
+	R_InitText();
+
 	R_ClearScene();
 
 	R_InitVolatileAssets();
@@ -540,6 +542,8 @@ void R_Shutdown( bool verbose ) {
 	// free shaders, models, etc.
 
 	R_DestroyVolatileAssets();
+
+	R_ShutdownText();
 
 	R_ShutdownModels();
 

@@ -249,7 +249,7 @@ void DrawText( const Font * font, float pixel_size, const char * str, float x, f
 	DrawText( font, pixel_size, Span< const char >( str, strlen( str ) ), x, y, color, border, border_color );
 }
 
-Vec2 TextSize( const Font * font, float pixel_size, const char * str ) {
+MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
 	float width = 0.0f;
 	MinMax1 y_extents = MinMax1::Empty();
 
@@ -264,16 +264,37 @@ Vec2 TextSize( const Font * font, float pixel_size, const char * str ) {
 			c = '?';
 
 		glyph = &font->glyphs[ c ];
-		width += pixel_size * glyph->advance;
+		width += glyph->advance;
 		y_extents.lo = Min2( glyph->bounds.mins.y, y_extents.lo );
 		y_extents.hi = Max2( glyph->bounds.maxs.y, y_extents.hi );
 	}
 
 	if( glyph == NULL )
-		return Vec2( 0 );
+		return MinMax2( Vec2( 0 ), Vec2( 0 ) );
 
-	width -= pixel_size * glyph->advance;
-	width += pixel_size * ( glyph->bounds.maxs.x - glyph->bounds.mins.x );
+	width -= glyph->advance;
+	width += glyph->bounds.maxs.x - glyph->bounds.mins.x;
 
-	return Vec2( width, pixel_size * ( y_extents.hi - y_extents.lo ) );
+	return MinMax2( pixel_size * Vec2( 0, y_extents.lo ), pixel_size * Vec2( width, y_extents.hi ) );
+}
+
+void DrawAlignedText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, RGBA8 color, bool border, RGBA8 border_color ) {
+	MinMax2 bounds = TextBounds( font, pixel_size, str );
+
+	if( align.x == XAlignment_Center ) {
+		x -= bounds.maxs.x / 2.0f;
+	}
+	else if( align.x == XAlignment_Right ) {
+		x -= bounds.maxs.x;
+	}
+
+	y -= pixel_size * font->ascent;
+	if( align.y == YAlignment_Top ) {
+		y += bounds.maxs.y - bounds.mins.y;
+	}
+	else if( align.y == YAlignment_Middle ) {
+		y += ( bounds.maxs.y - bounds.mins.y ) / 2.0f;
+	}
+
+	DrawText( font, pixel_size, str, x, y, color, border, border_color );
 }

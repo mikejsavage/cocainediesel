@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cg_syscalls.h"
 
 #include "client/sound.h"
+#include "client/renderer/r_text.h"
 
 #define CG_OBITUARY_HUD     1
 #define CG_OBITUARY_CENTER  2
@@ -292,6 +293,16 @@ typedef struct {
 	struct qfontface_s *fontSystemSmall;
 	struct qfontface_s *fontSystemMedium;
 	struct qfontface_s *fontSystemBig;
+
+	float textSizeTiny;
+	float textSizeSmall;
+	float textSizeMedium;
+	float textSizeBig;
+
+	const Font * fontMontserrat;
+	const Font * fontMontserratBold;
+	const Font * fontMontserratItalic;
+	const Font * fontMontserratBoldItalic;
 
 	cgs_media_t media;
 
@@ -689,6 +700,7 @@ void CG_SC_AutoRecordAction( const char *action );
 //
 void CG_RegisterForceModels();
 void CG_PModelForCentity( centity_t *cent, PlayerModelMetadata **pmodelinfo );
+RGB8 CG_TeamColor( int team );
 void CG_TeamColor( int team, vec4_t color );
 void CG_TeamColorForEntity( int entNum, byte_vec4_t color );
 

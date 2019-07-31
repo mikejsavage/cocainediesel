@@ -81,7 +81,7 @@ void CG_PModelForCentity( centity_t *cent, PlayerModelMetadata **pmodelinfo ) {
 	}
 }
 
-static RGB8 CG_TeamColorRGB8( int team ) {
+RGB8 CG_TeamColor( int team ) {
 	if( team == TEAM_PLAYERS )
 		return RGB8( 255, 255, 255 );
 
@@ -94,7 +94,7 @@ static RGB8 CG_TeamColorRGB8( int team ) {
 }
 
 void CG_TeamColor( int team, vec4_t color ) {
-	RGB8 rgb = CG_TeamColorRGB8( team );
+	RGB8 rgb = CG_TeamColor( team );
 	color[0] = rgb.r * ( 1.0f / 255.0f );
 	color[1] = rgb.g * ( 1.0f / 255.0f );
 	color[2] = rgb.b * ( 1.0f / 255.0f );
@@ -113,7 +113,7 @@ void CG_TeamColorForEntity( int entNum, byte_vec4_t color ) {
 		return;
 	}
 
-	RGB8 rgb = CG_TeamColorRGB8( cent->current.team );
+	RGB8 rgb = CG_TeamColor( cent->current.team );
 	color[0] = rgb.r;
 	color[1] = rgb.g;
 	color[2] = rgb.b;

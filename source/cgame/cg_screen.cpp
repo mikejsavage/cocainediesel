@@ -73,7 +73,6 @@ CENTER PRINTING
 
 char scr_centerstring[1024];
 int scr_centertime_off;
-int scr_center_lines;
 int scr_erase_center;
 
 /*
@@ -83,32 +82,12 @@ int scr_erase_center;
 * for a few moments
 */
 void CG_CenterPrint( const char *str ) {
-	char *s;
-
 	Q_strncpyz( scr_centerstring, str, sizeof( scr_centerstring ) );
 	scr_centertime_off = cg_centerTime->value * 1000.0f;
-
-	// count the number of lines for centering
-	scr_center_lines = 1;
-	s = scr_centerstring;
-	while( *s )
-		if( *s++ == '\n' ) {
-			scr_center_lines++;
-		}
 }
 
 static void CG_DrawCenterString( void ) {
-	int y;
-	struct qfontface_s *font = cgs.fontSystemMedium;
-	char *helpmessage = scr_centerstring;
-
-	if( scr_center_lines <= 4 ) {
-		y = cgs.vidHeight * 0.35f;
-	} else {
-		y = 48 * cgs.vidHeight / 600;
-	}
-
-	trap_SCR_DrawMultilineString( cgs.vidWidth / 2, y, helpmessage, ALIGN_CENTER_TOP, cgs.vidWidth, 0, font, colorWhite );
+	DrawText( cgs.fontMontserrat, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, cgs.vidWidth * 0.5f, cgs.vidHeight * 0.35f, rgba8_white, true, rgba8_black );
 }
 
 //============================================================================
@@ -665,23 +644,26 @@ void CG_DrawDamageNumbers() {
 		coords[ 0 ] += dn.drift * frac * 8;
 
 		char buf[ 16 ];
-		vec4_t color;
-		qfontface_s * font;
+		RGBA8 color;
+		float font_size;
 		if( dn.damage == MINI_OBITUARY_DAMAGE ) {
 			Q_strncpyz( buf, dn.obituary, sizeof( buf ) );
-			CG_TeamColor( TEAM_ENEMY, color );
-			font = cgs.fontSystemSmall;
+			RGB8 c = CG_TeamColor( TEAM_ENEMY );
+			color = RGBA8( c.r, c.g, c.b, 255 );
+			font_size = cgs.textSizeSmall;
 		}
 		else {
 			Q_snprintfz( buf, sizeof( buf ), "%d", dn.damage );
-			Vector4Copy( colorWhite, color );
-			font = cgs.fontSystemTiny;
+			color = rgba8_white;
+			font_size = cgs.textSizeTiny;
 		}
 
+		RGBA8 border_color = rgba8_black;
 		float alpha = 1 - max( 0, frac - 0.75f ) / 0.25f;
-		color[ 3 ] *= alpha;
+		color.a *= alpha;
+		border_color.a *= alpha;
 
-		trap_SCR_DrawString( coords[0], coords[1], ALIGN_CENTER_MIDDLE, buf, font, color );
+		DrawText( cgs.fontMontserrat, font_size, buf, Alignment_CenterMiddle, coords[ 0 ], coords[ 1 ], color, true, border_color );
 	}
 }
 
@@ -748,11 +730,12 @@ void CG_DrawBombHUD() {
 
 			char buf[ 4 ];
 			Q_snprintfz( buf, sizeof( buf ), "%c", site->letter );
-			trap_SCR_DrawString( coords[0], coords[1], ALIGN_CENTER_MIDDLE, buf, cgs.fontSystemMedium, colorWhite );
+			DrawText( cgs.fontMontserrat, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords[ 0 ], coords[ 1 ], rgba8_white, true, rgba8_black );
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {
 				const char * msg = my_team == site->team ? "DEFEND" : "ATTACK";
-				trap_SCR_DrawString( coords[0], coords[1] - ( cgs.fontSystemMediumSize * 3 ) / 4, ALIGN_CENTER_MIDDLE, msg, cgs.fontSystemTiny, colorWhite );
+				coords[ 1 ] -= ( cgs.fontSystemMediumSize * 3 ) / 4;
+				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords[ 0 ], coords[ 1 ], rgba8_white, true, rgba8_black );
 			}
 		}
 	}
@@ -774,7 +757,8 @@ void CG_DrawBombHUD() {
 					msg = "PLANTING";
 				else if( bomb.state == BombState_Armed )
 					msg = my_team == bomb.team ? "PROTECT" : "DEFUSE";
-				trap_SCR_DrawString( coords[0], coords[1] - icon_size - cgs.fontSystemTinySize / 2, ALIGN_CENTER_MIDDLE, msg, cgs.fontSystemTiny, colorWhite );
+				float y = coords[ 1 ] - icon_size - cgs.fontSystemTinySize / 2;
+				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords[ 0 ], y, rgba8_white, true, rgba8_black );
 			}
 		}
 

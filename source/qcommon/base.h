@@ -68,3 +68,10 @@ extern bool break1;
 extern bool break2;
 extern bool break3;
 extern bool break4;
+
+/*
+ * colors
+ */
+
+constexpr RGBA8 rgba8_white = RGBA8( 255, 255, 255, 255 );
+constexpr RGBA8 rgba8_black = RGBA8( 0, 0, 0, 255 );

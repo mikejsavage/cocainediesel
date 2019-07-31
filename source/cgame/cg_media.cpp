@@ -336,4 +336,15 @@ void CG_RegisterFonts( void ) {
 
 	cgs.fontSystemBigSize = ceilf( SYSTEM_FONT_BIG_SIZE * scale );
 	cgs.fontSystemBig = trap_SCR_RegisterFont( SYSTEM_FONT_FAMILY, QFONT_STYLE_NONE, cgs.fontSystemBigSize );
+
+	cgs.fontMontserrat = RegisterFont( "fonts/Montserrat-SemiBold" );
+	cgs.fontMontserratBold = RegisterFont( "fonts/Montserrat-Bold" );
+	cgs.fontMontserratItalic = RegisterFont( "fonts/Montserrat-SemiBoldItalic" );
+	cgs.fontMontserratBoldItalic = RegisterFont( "fonts/Montserrat-BoldItalic" );
+
+	scale *= 1.3f;
+	cgs.textSizeTiny = SYSTEM_FONT_TINY_SIZE * scale;;
+	cgs.textSizeSmall = SYSTEM_FONT_SMALL_SIZE * scale;;
+	cgs.textSizeMedium = SYSTEM_FONT_MEDIUM_SIZE * scale;;
+	cgs.textSizeBig = SYSTEM_FONT_BIG_SIZE * scale;;
 }

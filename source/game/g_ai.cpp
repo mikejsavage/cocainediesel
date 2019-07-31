@@ -47,18 +47,18 @@ void AI_SpawnBot() {
 		return;
 	}
 
-	if( edict_t * ent = ConnectFakeClient() ) {
-		// init this bot
-		ent->think = NULL;
-		ent->nextThink = level.time + 500 + (unsigned)( random() * 2000 );
-		ent->classname = "bot";
-		ent->die = player_die;
+	edict_t * ent = ConnectFakeClient();
+	if( ent == NULL )
+		return;
 
-		AI_Respawn( ent );
+	ent->think = NULL;
+	ent->nextThink = level.time + 500 + (unsigned)( random() * 2000 );
+	ent->classname = "bot";
+	ent->die = player_die;
 
+	AI_Respawn( ent );
 
-		game.numBots++;
-	}
+	game.numBots++;
 }
 
 void AI_Respawn( edict_t * ent ) {

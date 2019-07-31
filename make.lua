@@ -83,6 +83,7 @@ do
 
 	msvc_obj_cxxflags( "source/client/cl_microprofile.cpp", "/wd4005 /wd4244 /wd4245 /wd4267 /wd4456 /wd4457" )
 	obj_cxxflags( "source/client/ftlib/.+", "-I libs/freetype" )
+	obj_cxxflags( "source/client/renderer/r_text.cpp", "-I libs/freetype" )
 end
 
 do

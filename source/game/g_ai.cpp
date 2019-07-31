@@ -50,13 +50,12 @@ void AI_SpawnBot() {
 	if( edict_t * ent = ConnectFakeClient() ) {
 		// init this bot
 		ent->think = NULL;
-		ent->nextThink = level.time + 1;
+		ent->nextThink = level.time + 500 + (unsigned)( random() * 2000 );
 		ent->classname = "bot";
 		ent->die = player_die;
 
 		AI_Respawn( ent );
 
-		ent->nextThink = level.time + 500 + (unsigned)( random() * 2000 );
 
 		game.numBots++;
 	}

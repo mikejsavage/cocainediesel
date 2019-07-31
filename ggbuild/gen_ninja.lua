@@ -12,11 +12,12 @@ local configs = {
 		toolchain = "msvc",
 
 		cxxflags = "/c /Oi /Gm- /nologo /DNOMINMAX /DWIN32_LEAN_AND_MEAN",
-		ldflags = "user32.lib shell32.lib advapi32.lib dbghelp.lib /nologo",
+		ldflags = "user32.lib shell32.lib advapi32.lib dbghelp.lib /NOLOGO",
 	},
 
 	[ "windows-debug" ] = {
-		cxxflags = "/Od /MTd /Z7 /Zo",
+		cxxflags = "/Od /MTd /Z7",
+		ldflags = "/DEBUG",
 	},
 	[ "windows-release" ] = {
 		cxxflags = "/O2 /MT /DNDEBUG",
@@ -302,15 +303,15 @@ rule cpp
     deps = msvc
 
 rule bin
-    command = cl -Fe$out $in $ldflags $extra_ldflags
+    command = link /OUT:$out $in $ldflags $extra_ldflags
     description = $out
 
 rule lib
-    command = lib -OUT:$out $in
+    command = lib /NOLOGO /OUT:$out $in
     description = $out
 
 rule dll
-    command = cl -LD -Fe$out $in $ldflags $extra_ldflags
+    command = link /DLL /OUT:$out $in $ldflags $extra_ldflags
     description = $out
 
 rule rc

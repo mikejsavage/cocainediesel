@@ -78,7 +78,7 @@ do
 		rc = "source/win32/client",
 
 		gcc_extra_ldflags = "-lm -lpthread -ldl -no-pie -static-libstdc++",
-		msvc_extra_ldflags = "gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib /link /SUBSYSTEM:WINDOWS",
+		msvc_extra_ldflags = "gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib /SUBSYSTEM:WINDOWS",
 	} )
 
 	msvc_obj_cxxflags( "source/client/cl_microprofile.cpp", "/wd4005 /wd4244 /wd4245 /wd4267 /wd4456 /wd4457" )

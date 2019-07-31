@@ -731,8 +731,7 @@ void CG_SC_Obituary( void ) {
 	if( attackerNum ) {
 		if( victimNum != attackerNum ) {
 			// teamkill
-			if( cg_entities[attackerNum].current.team == cg_entities[victimNum].current.team &&
-				GS_TeamBasedGametype() ) {
+			if( cg_entities[attackerNum].current.team == cg_entities[victimNum].current.team && GS_TeamBasedGametype() ) {
 				current->type = OBITUARY_TEAM;
 				if( cg_showObituaries->integer & CG_OBITUARY_CONSOLE ) {
 					CG_LocalPrint( "%s%s%s %s %s%s %s%s%s\n", S_COLOR_RED, "TEAMFRAG:", S_COLOR_WHITE, victim->name,
@@ -740,11 +739,10 @@ void CG_SC_Obituary( void ) {
 				}
 
 				if( ISVIEWERENTITY( attackerNum ) && ( cg_showObituaries->integer & CG_OBITUARY_CENTER ) ) {
-					char name[MAX_NAME_BYTES + 2];
+					char name[MAX_NAME_BYTES];
 					Q_strncpyz( name, victim->name, sizeof( name ) );
 					Q_strupr( name );
-					Q_strncatz( name, S_COLOR_WHITE, sizeof( name ) );
-					CG_CenterPrint( va( "YOU TEAM%s%s %s", RandomPrefix(), RandomObituary(), name ) );
+					CG_CenterPrint( va( "YOU TEAM%s%s %s", RandomPrefix(), RandomObituary(), COM_RemoveColorTokens( name ) ) );
 				}
 			} else {   // good kill
 				current->type = OBITUARY_NORMAL;
@@ -754,11 +752,10 @@ void CG_SC_Obituary( void ) {
 				}
 
 				if( ISVIEWERENTITY( attackerNum ) && ( cg_showObituaries->integer & CG_OBITUARY_CENTER ) ) {
-					char name[MAX_NAME_BYTES + 2];
+					char name[MAX_NAME_BYTES];
 					Q_strncpyz( name, victim->name, sizeof( name ) );
 					Q_strupr( name );
-					Q_strncatz( name, S_COLOR_WHITE, sizeof( name ) );
-					CG_CenterPrint( va( "YOU %s%s %s", RandomPrefix(), RandomObituary(), name ) );
+					CG_CenterPrint( va( "YOU %s%s %s", RandomPrefix(), RandomObituary(), COM_RemoveColorTokens( name ) ) );
 				}
 			}
 		} else {   // suicide

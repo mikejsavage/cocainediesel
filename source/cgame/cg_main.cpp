@@ -325,9 +325,6 @@ static void CG_RegisterModels( void ) {
 * CG_RegisterSounds
 */
 static void CG_RegisterSounds( void ) {
-	int i;
-	const char *name;
-
 	if( cgs.precacheSoundsStart == MAX_SOUNDS ) {
 		return;
 	}
@@ -336,8 +333,8 @@ static void CG_RegisterSounds( void ) {
 		cgs.precacheSoundsStart = 1;
 	}
 
-	for( i = cgs.precacheSoundsStart; i < MAX_SOUNDS; i++ ) {
-		name = cgs.configStrings[CS_SOUNDS + i];
+	for( int i = cgs.precacheSoundsStart; i < MAX_SOUNDS; i++ ) {
+		const char *name = cgs.configStrings[CS_SOUNDS + i];
 		if( !name[0] ) {
 			cgs.precacheSoundsStart = MAX_SOUNDS;
 			break;
@@ -345,12 +342,10 @@ static void CG_RegisterSounds( void ) {
 
 		cgs.precacheSoundsStart = i;
 
-		if( name[0] != '*' ) {
-			if( !CG_LoadingItemName( name ) ) {
-				return;
-			}
-			cgs.soundPrecache[i] = S_RegisterSound( name );
+		if( !CG_LoadingItemName( name ) ) {
+			return;
 		}
+		cgs.soundPrecache[i] = S_RegisterSound( name );
 	}
 
 	if( cgs.precacheSoundsStart != MAX_SOUNDS ) {

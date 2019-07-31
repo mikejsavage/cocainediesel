@@ -1,4 +1,4 @@
-in vec2 v_TexCoord;
+qf_varying vec2 v_TexCoord;
 
 uniform sampler2D u_BaseTexture;
 

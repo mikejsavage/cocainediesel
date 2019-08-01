@@ -23,12 +23,14 @@ void CL_Profiler_Init() {
 	MicroProfileInitUI();
 
 	Cmd_AddCommand( "toggleprofiler", MicroProfileToggleDisplayMode );
+	Cmd_AddCommand( "pauseprofiler", MicroProfileTogglePause );
 }
 
 void CL_Profiler_Shutdown() {
 	MicroProfileShutdown();
 
 	Cmd_RemoveCommand( "toggleprofiler" );
+	Cmd_RemoveCommand( "pauseprofiler" );
 }
 
 void CL_Profiler_InitGL() {

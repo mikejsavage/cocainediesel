@@ -18,11 +18,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 #include "client.h"
+#include "microprofile/microprofileui.h"
 
 #define SEMICOLON_BINDNAME  "SEMICOLON"
 
 static char *keybindings[256];
-static bool menubound[256];     // if true, can't be rebound while in menu
 static int key_repeats[256];   // if > 1, it is autorepeating
 static bool keydown[256];
 
@@ -306,11 +306,6 @@ static void Key_Bindlist_f( void ) {
 void Key_Init( void ) {
 	assert( !key_initialized );
 
-	menubound[K_ESCAPE] = true;
-	// Vic: allow to bind F1-F12 from the menu
-	//	for (i=0 ; i<12 ; i++)
-	//		menubound[K_F1+i] = true;
-
 	//
 	// register our functions
 	//
@@ -436,8 +431,7 @@ void Key_Event( int key, bool down ) {
 	//
 	// if not a consolekey, send to the interpreter no matter what mode is
 	//
-	if( ( cls.key_dest == key_menu && menubound[key] )
-		|| ( cls.key_dest == key_game && cls.state == CA_ACTIVE )
+	if( ( cls.key_dest == key_game && cls.state == CA_ACTIVE )
 		|| ( cls.key_dest == key_message && ( key >= K_F1 && key <= K_F15 ) ) ) {
 		const char *kb = keybindings[key];
 

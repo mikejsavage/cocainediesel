@@ -1,5 +1,6 @@
-#include "sdl/SDL.h"
 #include "client/client.h"
+#include "microprofile/microprofileui.h"
+#include "sdl/SDL.h"
 
 cvar_t *in_disablemacosxmouseaccel;
 
@@ -9,8 +10,8 @@ static bool input_inited = false;
 static bool input_focus = false;
 static bool warped = false;
 
-static int mx = 0, my = 0;
-static int rx = 0, ry = 0;
+static int mx, my;
+static int rx, ry, rw;
 
 static bool running_in_debugger = false;
 
@@ -91,6 +92,7 @@ static void mouse_button_event( SDL_MouseButtonEvent *event, bool state ) {
 }
 
 static void mouse_wheel_event( SDL_MouseWheelEvent *event ) {
+	rw = -event->y;
 	int key = event->y > 0 ? K_MWHEELUP : K_MWHEELDOWN;
 	Key_Event( key, true );
 	Key_Event( key, false );
@@ -257,6 +259,7 @@ static void AppActivate( SDL_Window *window, bool active ) {
 static void IN_HandleEvents( void ) {
 	rx = 0;
 	ry = 0;
+	rw = 0;
 
 	Uint16 *wtext = NULL;
 	SDL_PumpEvents();
@@ -467,7 +470,11 @@ void IN_Shutdown() {
 void IN_Frame() {
 	assert( input_inited );
 
-	if( cls.key_dest == key_game && input_focus ) {
+	if( MicroProfileIsDrawing() ) {
+		SDL_SetRelativeMouseMode( SDL_FALSE );
+		SDL_ShowCursor( SDL_ENABLE );
+	}
+	else if( cls.key_dest == key_game && input_focus ) {
 		if( running_in_debugger ) {
 			// don't grab input if we're running a debugger
 			IN_WarpMouseToCenter();
@@ -494,4 +501,10 @@ void IN_Frame() {
 	break2 = keys[ SDL_SCANCODE_F2 ];
 	break3 = keys[ SDL_SCANCODE_F3 ];
 	break4 = keys[ SDL_SCANCODE_F4 ];
+
+	if( MicroProfileIsDrawing() ) {
+		u32 buttons = SDL_GetMouseState( NULL, NULL );
+		MicroProfileMousePosition( mx, my, rw );
+		MicroProfileMouseButton( ( buttons & SDL_BUTTON_LMASK ) > 0 ? 1 : 0, ( buttons & SDL_BUTTON_LMASK ) > 0 ? 1 : 0 );
+	}
 }

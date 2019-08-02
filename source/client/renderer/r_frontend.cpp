@@ -231,7 +231,7 @@ bool RF_TransformVectorToScreenClamped( const refdef_t *rd, const vec3_t target,
 	Matrix4_Multiply_Vector( v, homo, view );
 	Matrix4_Multiply_Vector( p, view, clip );
 
-	if( fabsf( clip[2] ) < near_plane ) {
+	if( clip[2] == 0 ) {
 		Vector2Set( out, rd->width * 0.5f, rd->height * 0.5f );
 		return false;
 	}

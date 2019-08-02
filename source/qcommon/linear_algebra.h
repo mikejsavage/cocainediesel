@@ -66,40 +66,6 @@ inline Vec2 Normalize( Vec2 v ) {
 }
 
 /*
- * Mat2
- */
-
-inline Mat2 rot2d( float theta ) {
-	float s = sinf( theta );
-	float c = cosf( theta );
-
-	return Mat2( c, -s, s, c );
-}
-
-inline Mat2 Mat2_identity() {
-	return Mat2( 1, 0, 0, 1 );
-}
-
-inline Mat2 Mat2_scale( float scale ) {
-	return Mat2( scale, 0, 0, scale );
-}
-
-inline Mat2 Mat2_scale( float x, float y ) {
-	return Mat2( x, 0, 0, y );
-}
-
-inline Mat2 operator*( const Mat2 & lhs, const Mat2 & rhs ) {
-	return Mat2(
-		Dot( lhs.row0(), rhs.col0 ), Dot( lhs.row0(), rhs.col1 ),
-		Dot( lhs.row1(), rhs.col0 ), Dot( lhs.row1(), rhs.col1 )
-	);
-}
-
-inline Vec2 operator*( const Mat2 & m, Vec2 v ) {
-	return Vec2( Dot( m.row0(), v ), Dot( m.row1(), v ) );
-}
-
-/*
  * Vec3
  */
 
@@ -410,14 +376,6 @@ inline void format( FormatBuffer * fb, const Vec4 & v, const FormatOpts & opts )
 	format( fb, v.z, opts );
 	format( fb, ", " );
 	format( fb, v.w, opts );
-	format( fb, ")" );
-}
-
-inline void format( FormatBuffer * fb, const Mat2 & m, const FormatOpts & opts ) {
-	format( fb, "Mat2(" );
-	format( fb, m.row0(), opts );
-	format( fb, ", " );
-	format( fb, m.row1(), opts );
 	format( fb, ")" );
 }
 

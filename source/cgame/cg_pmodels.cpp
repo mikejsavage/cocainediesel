@@ -127,7 +127,7 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata *metadata, char *filena
 	const char * ptr = ( const char * ) buf;
 	while( ptr ) {
 		const char * cmd = COM_ParseExt( &ptr, true );
-		if( strcmp( cmd, "" ) == 0 )
+		if( !cmd[0] )
 			break;
 
 		if( Q_stricmp( cmd, "upper_rotator_joints" ) == 0 ) {

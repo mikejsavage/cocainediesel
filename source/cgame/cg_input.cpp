@@ -57,7 +57,7 @@ static void ClearButton( Button * b ) {
 static void KeyDown( Button * b ) {
 	const char * c = trap_Cmd_Argv( 1 );
 	int k = -1;
-	if( strlen( c ) > 0 ) {
+	if( c[0] ) {
 		k = atoi( c );
 	}
 
@@ -82,7 +82,7 @@ static void KeyDown( Button * b ) {
 
 static void KeyUp( Button * b ) {
 	const char * c = trap_Cmd_Argv( 1 );
-	if( strlen( c ) == 0 ) {
+	if( !c[0] ) {
 		b->keys[ 0 ] = 0;
 		b->keys[ 1 ] = 0;
 		b->down = false;

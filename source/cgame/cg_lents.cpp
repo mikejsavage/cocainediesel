@@ -417,7 +417,7 @@ void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, int team, float rad
 
 	le->ent.rotation = rand() % 360;
 
-	CG_SpawnDecal( pos, dir, 90, 16,
+	CG_SpawnDecal( pos, dir, random() * 360, 16,
 				   color[0], color[1], color[2], color[3],
 				   4, 1, true,
 				   CG_MediaShader( cgs.media.shaderPlasmaMark ) );
@@ -555,7 +555,7 @@ void CG_BladeImpact( const vec3_t pos, const vec3_t dir ) {
 		S_StartFixedSound( CG_MediaSfx( cgs.media.sfxBladeWallHit[(int)( random() * 2 )] ), pos, CHAN_AUTO,
 								cg_volume_effects->value, ATTN_NORM );
 		if( !( trace.surfFlags & SURF_NOMARKS ) ) {
-			CG_SpawnDecal( pos, dir, random() * 10, 8, 1, 1, 1, 1, 10, 1, false, CG_MediaShader( cgs.media.shaderBladeMark ) );
+			CG_SpawnDecal( pos, dir, random() * 45, 8, 1, 1, 1, 1, 10, 1, false, CG_MediaShader( cgs.media.shaderBladeMark ) );
 		}
 	}
 }

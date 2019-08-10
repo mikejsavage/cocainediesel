@@ -1753,6 +1753,7 @@ static bool CG_LFuncDrawBindString( struct cg_layoutnode_s *commandnode, struct 
 
 	char keys[ 128 ];
 	CG_GetBoundKeysString( command, keys, sizeof( keys ) );
+	if( !strcmp(keys, "UNBOUND") ) Q_snprintfz( keys, sizeof( keys ), "[%s]", command );
 	char buf[ 1024 ];
 	Q_snprintfz( buf, sizeof( buf ), fmt, keys );
 

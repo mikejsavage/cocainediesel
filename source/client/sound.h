@@ -2,6 +2,7 @@
 
 bool S_Init();
 void S_Shutdown();
+void S_LoadAssets();
 
 void S_Update( const vec3_t origin, const vec3_t velocity, const mat3_t axis );
 void S_UpdateEntity( int ent_num, const vec3_t origin, const vec3_t velocity );

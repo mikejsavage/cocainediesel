@@ -1182,7 +1182,7 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	float attenuation = cent->current.attenuation;
 
 	if( attenuation == ATTN_NONE ) {
-		trap_S_StartGlobalSound( cent->current.sound, channel & ~CHAN_FIXED, 1.0f );
+		S_StartGlobalSound( cent->current.sound, channel & ~CHAN_FIXED, 1.0f );
 		return;
 	}
 
@@ -1201,11 +1201,11 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	}
 
 	if( fixed ) {
-		trap_S_StartFixedSound( cent->current.sound, cent->current.origin, channel, 1.0f, attenuation );
+		S_StartFixedSound( cent->current.sound, cent->current.origin, channel, 1.0f, attenuation );
 	} else if( ISVIEWERENTITY( owner ) ) {
-		trap_S_StartGlobalSound( cent->current.sound, channel, 1.0f );
+		S_StartGlobalSound( cent->current.sound, channel, 1.0f );
 	} else {
-		trap_S_StartEntitySound( cent->current.sound, owner, channel, 1.0f, attenuation );
+		S_StartEntitySound( cent->current.sound, owner, channel, 1.0f, attenuation );
 	}
 }
 
@@ -1263,17 +1263,16 @@ static void CG_UpdateSpikes( centity_t *cent ) {
 	int64_t delta = cg.frame.serverTime - cent->current.linearMovementTimeStamp;
 
 	if( old_delta < 0 && delta >= 0 ) {
-		S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesArm ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+		S_StartEntitySound( "sounds/spikes/arm", cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 	}
 	else if( old_delta < 1000 && delta >= 1000 ) {
-		S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesDeploy ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+		S_StartEntitySound( "sounds/spikes/deploy", cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 	}
 	else if( old_delta < 1050 && delta >= 1050 ) {
-		S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesGlint ), cent->current.number, CHAN_AUTO, cg_volume_effects->value * 0.05f, ATTN_NORM );
+		S_StartEntitySound( "sounds/spikes/glint", cent->current.number, CHAN_AUTO, cg_volume_effects->value * 0.05f, ATTN_NORM );
 	}
 	else if( old_delta < 1500 && delta >= 1500 ) {
-		S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesRetract ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
->>>>>>> master
+		S_StartEntitySound( "sounds/spikes/retract", cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 	}
 }
 

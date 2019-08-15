@@ -87,7 +87,7 @@ static void _LaserImpact( trace_t *trace, vec3_t dir ) {
 				"sounds/weapons/laser_hit1",
 				"sounds/weapons/laser_hit2",
 			};
-			trap_S_StartFixedSound( sounds[rand() % 3], trace->endpos, CHAN_AUTO, cg_volume_effects->value, ATTN_STATIC );
+			S_StartFixedSound( sounds[rand() % 3], trace->endpos, CHAN_AUTO, cg_volume_effects->value, ATTN_STATIC );
 		}
 #undef TRAILTIME
 	}
@@ -165,14 +165,10 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 		cg_entPModels[cent->current.number].flash_time = cg.time + CG_GetWeaponInfo( WEAP_LASERGUN )->flashTime;
 	}
 
-	constexpr StringHash hum = "sounds/weapons/laser_strong_hum";
-	constexpr StringHash quadhum = "sounds/weapons/laser_strong_quad_hum";
-	StringHash sound = cent->current.effects & EF_QUAD ? quadhum : hum;
-
 	if( ISVIEWERENTITY( cent->current.number ) ) {
-		S_ImmediateSound( sound, cent->current.number, cg_volume_effects->value, ATTN_NONE );
+		S_ImmediateSound( "sounds/weapons/laser_strong_hum", cent->current.number, cg_volume_effects->value, ATTN_NONE );
 	} else {
-		S_ImmediateSound( sound, cent->current.number, cg_volume_effects->value, ATTN_STATIC );
+		S_ImmediateSound( "sounds/weapons/laser_strong_hum", cent->current.number, cg_volume_effects->value, ATTN_STATIC );
 	}
 
 	laserOwner = NULL;
@@ -493,7 +489,7 @@ void CG_ReleaseAnnouncerEvents( void ) {
 		// play the event
 		StringHash sound = cg_announcerEvents[cg_announcerEventsCurrent & CG_MAX_ANNOUNCER_EVENTS_MASK].sound;
 		if( sound != EMPTY_HASH ) {
-			trap_S_StartLocalSound( sound, CHAN_ANNOUNCER, cg_volume_announcer->value );
+			S_StartLocalSound( sound, CHAN_ANNOUNCER, cg_volume_announcer->value );
 			cg_announcerEventsDelay = CG_ANNOUNCER_EVENTS_FRAMETIME; // wait
 		}
 		cg_announcerEventsCurrent++;

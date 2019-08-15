@@ -49,7 +49,7 @@ void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata ) {
 
 static StringHash GetPlayerSound( int entnum, PlayerSound ps ) {
 	if( entnum < 0 || entnum >= MAX_EDICTS ) {
-		return NULL;
+		return EMPTY_HASH;
 	}
 	return cg_entPModels[ entnum ].metadata->sounds[ ps ];
 }

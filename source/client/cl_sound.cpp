@@ -187,7 +187,7 @@ bool S_Init() {
 	return true;
 }
 
-void S_LoadSoundAssets() {
+void S_LoadAssets() {
 	for( const char * name : Assets_Names() ) {
 		const char * ext = COM_FileExtension( name );
 		if( ext == NULL || strcmp( ext, ".ogg" ) != 0 )

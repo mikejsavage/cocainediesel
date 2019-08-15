@@ -289,7 +289,7 @@ void CG_ImpactSmokePuff( const vec3_t origin, const vec3_t dir, float radius, fl
 	//offset the origin by half of the radius
 	VectorMA( origin, radius * 0.5f, local_dir, local_origin );
 
-	lentity_t *le = CG_AllocSprite( LE_SCALE_ALPHA_FADE, local_origin, radius + crandom(), time,
+	LocalEntity *le = CG_AllocSprite( LE_SCALE_ALPHA_FADE, local_origin, radius + crandom(), time,
 						 1, 1, 1, alpha, 0, 0, 0, 0, "gfx/misc/smokepuff" );
 
 	le->ent.rotation = rand() % 360;
@@ -623,11 +623,6 @@ void CG_ProjectileTrail( centity_t *cent ) {
 * CG_NewBloodTrail
 */
 void CG_NewBloodTrail( centity_t *cent ) {
-	LocalEntity *le;
-	float len;
-	vec3_t vec;
-	int contents;
-	int trailTime;
 	float radius = 2.5f;
 	float alpha = Clamp01( cg_bloodTrailAlpha->value );
 
@@ -665,7 +660,7 @@ void CG_NewBloodTrail( centity_t *cent ) {
 			alpha *= 0.5f;
 		}
 
-		le = CG_AllocSprite( LE_SCALE_ALPHA_FADE, cent->trailOrigin, radius, 8,
+		LocalEntity *le = CG_AllocSprite( LE_SCALE_ALPHA_FADE, cent->trailOrigin, radius, 8,
 							 1.0f, 1.0f, 1.0f, alpha,
 							 0, 0, 0, 0,
 							 shader );
@@ -983,7 +978,7 @@ void CG_ExplosionsDust( const vec3_t pos, const vec3_t dir, float radius ) {
 		VectorScale( dir_temp, crandom() * 8 + radius + 16.0f, dir_temp );
 
 		// make the sprite smaller & alpha'd
-		lentity_t *le = CG_AllocSprite( LE_ALPHA_FADE, pos, 10, 10,
+		LocalEntity *le = CG_AllocSprite( LE_ALPHA_FADE, pos, 10, 10,
 							 1.0f, 1.0f, 1.0f, 1.0f,
 							 0, 0, 0, 0,
 							 "gfx/misc/smokepuff3" );

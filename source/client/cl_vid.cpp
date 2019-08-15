@@ -244,7 +244,7 @@ void VID_Init() {
 	FTLIB_PrecacheFonts( true );
 
 	CL_InitMedia();
-	S_LoadSoundAssets();
+	S_LoadAssets();
 
 	cls.disable_screen = 0;
 

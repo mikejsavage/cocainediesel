@@ -34,7 +34,6 @@ static bool CG_IsAlly( int team ) {
 }
 
 static void CG_RegisterForceModel( cvar_t *modelCvar, cvar_t *modelForceCvar, PlayerModelMetadata **model ) {
->>>>>>> master
 	if( !modelCvar->modified && !modelForceCvar->modified )
 		return;
 	modelCvar->modified = false;

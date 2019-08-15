@@ -1,3 +1,4 @@
+#include "qcommon/qcommon.h"
 #include "qcommon/base.h"
 #include "qcommon/fs.h"
 #include "qcommon/hash.h"
@@ -11,7 +12,7 @@ struct Asset {
 	size_t len;
 };
 
-constexpr u32 MAX_ASSETS = 4096;
+static constexpr u32 MAX_ASSETS = 4096;
 
 static Asset assets[ MAX_ASSETS ];
 static const char * asset_names[ MAX_ASSETS ];

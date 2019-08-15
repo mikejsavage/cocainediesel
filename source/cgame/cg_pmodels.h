@@ -87,7 +87,7 @@ typedef struct weaponinfo_s {
 
 	// sfx
 	int num_fire_sounds;
-	const StringHash *sound_fire[WEAPONINFO_MAX_FIRE_SOUNDS];
+	StringHash sound_fire[WEAPONINFO_MAX_FIRE_SOUNDS];
 } weaponinfo_t;
 
 enum {
@@ -145,7 +145,7 @@ struct PlayerModelMetadata {
 	char * name;
 
 	struct model_s * model;
-	const SoundAsset * sounds[ PlayerSound_Count ];
+	StringHash sounds[ PlayerSound_Count ];
 
 	u8 upper_rotator_joints[ 2 ];
 	u8 head_rotator_joint;

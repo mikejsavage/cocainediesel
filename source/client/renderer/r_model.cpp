@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // r_model.c -- model loading and caching
 
 #include "r_local.h"
+#include "qcommon/assets.h"
 
 typedef struct {
 	unsigned number;
@@ -818,7 +819,7 @@ model_t *Mod_ForName( const char *name, bool crash ) {
 		return NULL;
 	}
 
-	descr->loader( mod, buf, bufsize, bspFormat );
+	descr->loader( mod, buf, len, bspFormat );
 
 	if( mod->type == mod_bad ) {
 		return NULL;

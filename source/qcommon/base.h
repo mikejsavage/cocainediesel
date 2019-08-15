@@ -61,6 +61,22 @@ void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t ne
 #define ALLOC_SPAN( a, T, n ) Span< T >( ALLOC_MANY( a, T, n ), n )
 
 /*
+ * helpers
+ */
+
+template< typename T >
+void Swap2( T * a, T * b ) {
+        T t = *a;
+        *a = *b;
+        *b = t;
+}
+
+template< typename T >
+constexpr bool IsPowerOf2( T x ) {
+        return ( x & ( x - 1 ) ) == 0;
+}
+
+/*
  * breaks
  */
 

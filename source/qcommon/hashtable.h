@@ -2,11 +2,6 @@
 
 #include "qcommon/base.h"
 
-template< typename T >
-constexpr bool IsPowerOf2( T x ) {
-	return ( x & ( x - 1 ) ) == 0;
-}
-
 template< size_t N >
 class Hashtable {
 	STATIC_ASSERT( IsPowerOf2( N ) );
@@ -28,7 +23,7 @@ public:
 	}
 
 	bool add( u64 key, u64 value ) {
-		ASSERT( key != EmptyKey );
+		assert( key != EmptyKey );
 
 		if( n == N )
 			return false;
@@ -56,8 +51,8 @@ public:
 					return true;
 				}
 
-				swap2( key, entries[ i ].key );
-				swap2( value, entries[ i ].value );
+				Swap2( &key, &entries[ i ].key );
+				Swap2( &value, &entries[ i ].value );
 				dist = existing_dist;
 			}
 
@@ -117,7 +112,7 @@ private:
 	}
 
 	bool find( u64 key, u64 * idx ) const {
-		ASSERT( key != EmptyKey );
+		assert( key != EmptyKey );
 
 		u64 i = hash_key( key ) % N;
 		u64 dist = 0;

@@ -10,5 +10,5 @@ struct ListDirHandle {
 };
 
 ListDirHandle FS_BeginListDir( const char * path );
-bool FS_ListDirNext( ListDirHandle scan, const char ** path, bool * dir );
-void FS_EndListDir( ListDirHandle scan );
+bool FS_ListDirNext( ListDirHandle handle, const char ** path, bool * dir );
+void FS_EndListDir( ListDirHandle handle );

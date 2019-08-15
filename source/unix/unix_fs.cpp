@@ -312,35 +312,37 @@ int Sys_FS_FileNo( FILE *fp ) {
 	return fileno( fp );
 }
 
-struct UnixListDirHandle {
+struct ListDirHandleImpl {
 	DIR * dir;
 };
 
-static UnixListDirHandle OpaqueToImpl( ListDirHandle scan ) {
-	UnixListDirHandle h;
-	memcpy( &h, scan.impl, sizeof( h ) );
-	return h;
+STATIC_ASSERT( sizeof( ListDirHandleImpl ) <= sizeof( ListDirHandle ) );
+
+static ListDirHandleImpl OpaqueToImpl( ListDirHandle opaque ) {
+	ListDirHandleImpl impl;
+	memcpy( &impl, opaque.impl, sizeof( impl ) );
+	return impl;
 }
 
-static ListDirHandle ImplToOpaque( UnixListDirHandle h ) {
-	ListDirHandle scan;
-	memcpy( scan.impl, &h, sizeof( h ) );
-	return scan;
+static ListDirHandle ImplToOpaque( ListDirHandleImpl impl ) {
+	ListDirHandle opaque;
+	memcpy( opaque.impl, &impl, sizeof( impl ) );
+	return opaque;
 }
 
 ListDirHandle FS_BeginListDir( const char * path ) {
-	UnixListDirHandle h;
-	h.dir = opendir( path );
-	return ImplToOpaque( h );
+	ListDirHandleImpl handle;
+	handle.dir = opendir( path );
+	return ImplToOpaque( handle );
 }
 
-bool FS_ListDirNext( ListDirHandle scan, const char ** path, bool * dir ) {
-	UnixListDirHandle h = OpaqueToImpl( scan );
-	if( h.dir == NULL )
+bool FS_ListDirNext( ListDirHandle opaque, const char ** path, bool * dir ) {
+	ListDirHandleImpl handle = OpaqueToImpl( opaque );
+	if( handle.dir == NULL )
 		return false;
 
 	dirent64 * dirent;
-	while( ( dirent = readdir64( h.dir ) ) != NULL ) {
+	while( ( dirent = readdir64( handle.dir ) ) != NULL ) {
 		if( strcmp( dirent->d_name, "." ) == 0 || strcmp( dirent->d_name, ".." ) == 0 )
 			continue;
 
@@ -353,8 +355,8 @@ bool FS_ListDirNext( ListDirHandle scan, const char ** path, bool * dir ) {
 	return false;
 }
 
-void FS_EndListDir( ListDirHandle scan ) {
-	UnixListDirHandle h = OpaqueToImpl( scan );
-	if( h.dir != NULL )
-		closedir( h.dir );
+void FS_EndListDir( ListDirHandle opaque ) {
+	ListDirHandleImpl handle = OpaqueToImpl( opaque );
+	if( handle.dir != NULL )
+		closedir( handle.dir );
 }

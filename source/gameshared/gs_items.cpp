@@ -27,8 +27,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "q_collision.h"
 #include "gs_public.h"
 
-#define QUAD_TIME   30
-
 /*
 *
 * ITEM DEFS
@@ -54,12 +52,11 @@ gsitem_t itemdefs[] =
 		"weapon_gunblade",          // entity name
 		WEAP_GUNBLADE, // item tag, weapon model for weapons
 		IT_WEAPON,                  // item type
-		ITFLAG_PICKABLE | ITFLAG_USABLE | ITFLAG_STAY_COOP, // game flags
+		ITFLAG_PICKABLE | ITFLAG_USABLE, // game flags
 
 		{ PATH_GUNBLADE_MODEL, 0 }, // models 1 and 2
 		PATH_GUNBLADE_ICON,         // icon
 		NULL,                       // image for simpleitem
-		S_PICKUP_WEAPON,            // pickup sound
 		0,                          // effects
 
 		"Gunblade",                 // pickup name
@@ -70,7 +67,7 @@ gsitem_t itemdefs[] =
 		AMMO_GUNBLADE,              // strong ammo tag
 		AMMO_NONE,                  // weak ammo tag
 		NULL,                       // miscelanea info pointer
-		PATH_GUNBLADEBLAST_MODEL, NULL, NULL
+		NULL, NULL, NULL
 	},
 
 	//QUAKED weapon_machinegun
@@ -79,12 +76,11 @@ gsitem_t itemdefs[] =
 		"weapon_machinegun",
 		WEAP_MACHINEGUN,
 		IT_WEAPON,
-		ITFLAG_PICKABLE | ITFLAG_USABLE | ITFLAG_DROPABLE | ITFLAG_STAY_COOP,
+		ITFLAG_PICKABLE | ITFLAG_USABLE | ITFLAG_DROPABLE,
 
-		{ PATH_MACHINEGUN_MODEL, PATH_MACHINEGUN_BARREL_MODEL },
+		{ PATH_MACHINEGUN_MODEL, 0 },
 		PATH_MACHINEGUN_ICON,
 		PATH_MACHINEGUN_SIMPLEITEM,
-		S_PICKUP_WEAPON,
 		EF_ROTATE_AND_BOB | EF_OUTLINE,
 
 		"Machinegun", "MG", S_COLOR_GREY,
@@ -101,12 +97,11 @@ gsitem_t itemdefs[] =
 		"weapon_riotgun",
 		WEAP_RIOTGUN,
 		IT_WEAPON,
-		ITFLAG_PICKABLE | ITFLAG_USABLE | ITFLAG_DROPABLE | ITFLAG_STAY_COOP,
+		ITFLAG_PICKABLE | ITFLAG_USABLE | ITFLAG_DROPABLE,
 
 		{ PATH_RIOTGUN_MODEL, 0 },
 		PATH_RIOTGUN_ICON,
 		PATH_RIOTGUN_SIMPLEITEM,
-		S_PICKUP_WEAPON,
 		EF_ROTATE_AND_BOB | EF_OUTLINE,
 
 		"Riotgun", "RG", S_COLOR_ORANGE,
@@ -123,12 +118,11 @@ gsitem_t itemdefs[] =
 		"weapon_grenadelauncher",
 		WEAP_GRENADELAUNCHER,
 		IT_WEAPON,
-		ITFLAG_PICKABLE | ITFLAG_USABLE | ITFLAG_DROPABLE | ITFLAG_STAY_COOP,
+		ITFLAG_PICKABLE | ITFLAG_USABLE | ITFLAG_DROPABLE,
 
-		{ PATH_GRENADELAUNCHER_MODEL, PATH_GRENADELAUNCHER_BARREL_MODEL },
+		{ PATH_GRENADELAUNCHER_MODEL, 0 },
 		PATH_GRENADELAUNCHER_ICON,
 		PATH_GRENADELAUNCHER_SIMPLEITEM,
-		S_PICKUP_WEAPON,
 		EF_ROTATE_AND_BOB | EF_OUTLINE,
 
 		"Grenade Launcher", "GL", S_COLOR_BLUE,
@@ -146,12 +140,11 @@ gsitem_t itemdefs[] =
 		"weapon_rocketlauncher",
 		WEAP_ROCKETLAUNCHER,
 		IT_WEAPON,
-		ITFLAG_PICKABLE | ITFLAG_USABLE | ITFLAG_DROPABLE | ITFLAG_STAY_COOP,
+		ITFLAG_PICKABLE | ITFLAG_USABLE | ITFLAG_DROPABLE,
 
 		{ PATH_ROCKETLAUNCHER_MODEL, 0 },
 		PATH_ROCKETLAUNCHER_ICON,
 		PATH_ROCKETLAUNCHER_SIMPLEITEM,
-		S_PICKUP_WEAPON,
 		EF_ROTATE_AND_BOB | EF_OUTLINE,
 
 		"Rocket Launcher", "RL", S_COLOR_RED,
@@ -170,12 +163,11 @@ gsitem_t itemdefs[] =
 		"weapon_plasmagun",
 		WEAP_PLASMAGUN,
 		IT_WEAPON,
-		ITFLAG_PICKABLE | ITFLAG_USABLE | ITFLAG_DROPABLE | ITFLAG_STAY_COOP,
+		ITFLAG_PICKABLE | ITFLAG_USABLE | ITFLAG_DROPABLE,
 
-		{ PATH_PLASMAGUN_MODEL, PATH_PLASMAGUN_BARREL_MODEL },
+		{ PATH_PLASMAGUN_MODEL, 0 },
 		PATH_PLASMAGUN_ICON,
 		PATH_PLASMAGUN_SIMPLEITEM,
-		S_PICKUP_WEAPON,
 		EF_ROTATE_AND_BOB | EF_OUTLINE,
 
 		"Plasmagun", "PG", S_COLOR_GREEN,
@@ -194,12 +186,11 @@ gsitem_t itemdefs[] =
 		"weapon_lasergun",
 		WEAP_LASERGUN,
 		IT_WEAPON,
-		ITFLAG_PICKABLE | ITFLAG_USABLE | ITFLAG_DROPABLE | ITFLAG_STAY_COOP,
+		ITFLAG_PICKABLE | ITFLAG_USABLE | ITFLAG_DROPABLE,
 
 		{ PATH_LASERGUN_MODEL, 0 },
 		PATH_LASERGUN_ICON,
 		PATH_LASERGUN_SIMPLEITEM,
-		S_PICKUP_WEAPON,
 		EF_ROTATE_AND_BOB | EF_OUTLINE,
 
 		"Lasergun", "LG", S_COLOR_YELLOW,
@@ -210,7 +201,6 @@ gsitem_t itemdefs[] =
 		NULL,
 		NULL,
 		S_WEAPON_LASERGUN_HUM " "
-		S_WEAPON_LASERGUN_QUAD_HUM " "
 		S_WEAPON_LASERGUN_STOP " "
 		S_WEAPON_LASERGUN_HIT_0 " " S_WEAPON_LASERGUN_HIT_1 " " S_WEAPON_LASERGUN_HIT_2,
 		NULL
@@ -221,12 +211,11 @@ gsitem_t itemdefs[] =
 		"weapon_electrobolt",
 		WEAP_ELECTROBOLT,
 		IT_WEAPON,
-		ITFLAG_PICKABLE | ITFLAG_USABLE | ITFLAG_DROPABLE | ITFLAG_STAY_COOP,
+		ITFLAG_PICKABLE | ITFLAG_USABLE | ITFLAG_DROPABLE,
 
 		{ PATH_ELECTROBOLT_MODEL, 0 },
 		PATH_ELECTROBOLT_ICON,
 		PATH_ELECTROBOLT_SIMPLEITEM,
-		S_PICKUP_WEAPON,
 		EF_ROTATE_AND_BOB | EF_OUTLINE,
 
 		"Electrobolt", "EB", S_COLOR_CYAN,
@@ -252,149 +241,6 @@ gsitem_t itemdefs[] =
 	{ "", AMMO_PLASMA },
 	{ "", AMMO_LASERS },
 	{ "", AMMO_BOLTS },
-
-	//------------------------
-	// HEALTH ITEMS
-	//------------------------
-
-	//QUAKED item_health_small (.3 .3 1) (-16 -16 -16) (16 16 16)
-	{
-		"item_health_small",
-		HEALTH_SMALL,
-		IT_HEALTH,
-		ITFLAG_PICKABLE,
-
-		{ PATH_SMALL_HEALTH_MODEL, 0 },
-		PATH_HEALTH_5_ICON,
-		PATH_HEALTH_5_SIMPLEITEM,
-		S_PICKUP_HEALTH_SMALL,
-		EF_ROTATE_AND_BOB,
-
-		"5 Health", "5H", S_COLOR_GREEN,
-		5,
-		0,
-		AMMO_NONE,
-		AMMO_NONE,
-		NULL,
-		NULL, NULL, NULL
-	},
-
-	//QUAKED item_health_medium (.3 .3 1) (-16 -16 -16) (16 16 16)
-	{
-		"item_health_medium",
-		HEALTH_MEDIUM,
-		IT_HEALTH,
-		ITFLAG_PICKABLE,
-
-		{ PATH_MEDIUM_HEALTH_MODEL, 0 },
-		PATH_HEALTH_25_ICON,
-		PATH_HEALTH_25_SIMPLEITEM,
-		S_PICKUP_HEALTH_MEDIUM,
-		EF_ROTATE_AND_BOB,
-
-		"25 Health", "25H", S_COLOR_YELLOW,
-		25,
-		100,
-		AMMO_NONE,
-		AMMO_NONE,
-		NULL,
-		NULL, NULL, NULL
-	},
-
-	//QUAKED item_health_large (.3 .3 1) (-16 -16 -16) (16 16 16)
-	{
-		"item_health_large",
-		HEALTH_LARGE,
-		IT_HEALTH,
-		ITFLAG_PICKABLE,
-
-		{ PATH_LARGE_HEALTH_MODEL, 0 },
-		PATH_HEALTH_50_ICON,
-		PATH_HEALTH_50_SIMPLEITEM,
-		S_PICKUP_HEALTH_LARGE,
-		EF_ROTATE_AND_BOB,
-
-		"50 Health", "50H", S_COLOR_ORANGE,
-		50,
-		100,
-		AMMO_NONE,
-		AMMO_NONE,
-		NULL,
-		NULL, NULL, NULL
-	},
-
-	//QUAKED item_health_mega (.3 .3 1) (-16 -16 -16) (16 16 16)
-	{
-		"item_health_mega",
-		HEALTH_MEGA,
-		IT_HEALTH,
-		ITFLAG_PICKABLE,
-
-		{ PATH_MEGA_HEALTH_MODEL, 0 },
-		PATH_HEALTH_100_ICON,
-		PATH_HEALTH_100_SIMPLEITEM,
-		S_PICKUP_HEALTH_MEGA,
-		EF_ROTATE_AND_BOB,
-
-		"Mega Health", "MH", S_COLOR_MAGENTA,
-		100,
-		200,
-		AMMO_NONE,
-		AMMO_NONE,
-		NULL,
-		NULL, NULL, NULL
-	},
-
-	//QUAKED item_health_ultra (.3 .3 1) (-16 -16 -16) (16 16 16)
-	{
-		"item_health_ultra",
-		HEALTH_ULTRA,
-		IT_HEALTH,
-		ITFLAG_PICKABLE,
-
-		{ PATH_ULTRA_HEALTH_MODEL, 0 },
-		PATH_HEALTH_ULTRA_ICON,
-		PATH_HEALTH_ULTRA_SIMPLEITEM,
-		S_PICKUP_HEALTH_MEGA,
-		EF_ROTATE_AND_BOB,
-
-		"Ultra Health", "UH", S_COLOR_CYAN,
-		100,
-		200,
-		AMMO_NONE,
-		AMMO_NONE,
-		NULL,
-		NULL, NULL, NULL
-	},
-
-
-	//------------------------
-	// POWERUP ITEMS
-	//------------------------
-	//QUAKED item_quad (.3 .3 1) (-16 -16 -16) (16 16 16)
-	{
-		"item_quad",
-		POWERUP_QUAD,
-		IT_POWERUP,
-		ITFLAG_PICKABLE | ITFLAG_DROPABLE,
-
-		{ PATH_QUAD_MODEL, PATH_QUAD_LIGHT_MODEL },
-		PATH_QUAD_ICON,
-		PATH_QUAD_SIMPLEITEM,
-		S_PICKUP_QUAD,
-		EF_OUTLINE | EF_ROTATE_AND_BOB,
-
-		"Quad Damage", "QUAD", NULL,
-		QUAD_TIME,
-		0,
-		AMMO_NONE,
-		AMMO_NONE,
-		NULL,
-		NULL,
-		S_QUAD_FIRE " " S_ITEM_QUAD_RESPAWN,
-		// S_QUAD_USE " " S_QUAD_FIRE,
-		NULL
-	},
 
 	// end of list marker
 	{ },
@@ -533,10 +379,6 @@ const gsitem_t *GS_Cmd_UseItem( player_state_t *playerState, const char *string,
 
 			if( weapondef ) {
 				// do we have any of these ammos ?
-				if( playerState->inventory[item->weakammo_tag] >= weapondef->firedef_weak.usage_count ) {
-					return item;
-				}
-
 				if( playerState->inventory[item->ammo_tag] >= weapondef->firedef.usage_count ) {
 					return item;
 				}
@@ -549,14 +391,6 @@ const gsitem_t *GS_Cmd_UseItem( player_state_t *playerState, const char *string,
 	}
 
 	if( item->type & IT_AMMO ) {
-		return item;
-	}
-
-	if( item->type & IT_HEALTH ) {
-		return item;
-	}
-
-	if( item->type & IT_POWERUP ) {
 		return item;
 	}
 
@@ -590,7 +424,7 @@ static const gsitem_t *GS_Cmd_UseWeaponStep_f( player_state_t *playerState, int 
 		curSlot = playerState->stats[STAT_PENDING_WEAPON];
 	}
 
-	clamp( curSlot, 0, WEAP_TOTAL - 1 );
+	curSlot = Clamp( 0, curSlot, WEAP_TOTAL - 1 );
 	newSlot = curSlot;
 	do {
 		newSlot += step;

@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qfiles.h"
 #include "cmodel.h"
 #include "bsp.h"
+#include "string.h"
 
 //============================================================================
 
@@ -282,14 +283,7 @@ Dynamic library loading
 */
 
 // qcommon/library.c
-typedef struct { const char *name; void **funcPointer; } dllfunc_t;
-
-void Com_UnloadLibrary( void **lib );
-void *Com_LoadLibrary( const char *name, dllfunc_t *funcs ); // NULL-terminated array of functions
-void *Com_LibraryProcAddress( void *lib, const char *name );
-
-void *Com_LoadGameLibrary( const char *basename, const char *apifuncname, void **handle, void *parms,
-						   bool pure, char *manifest );
+void *Com_LoadGameLibrary( const char *basename, const char *apifuncname, void **handle, void *parms );
 void Com_UnloadGameLibrary( void **handle );
 
 /*
@@ -458,12 +452,8 @@ void        NET_Shutdown( void );
 bool        NET_OpenSocket( socket_t *socket, socket_type_t type, const netadr_t *address, bool server );
 void        NET_CloseSocket( socket_t *socket );
 
-#ifdef TCP_SUPPORT
-connection_status_t     NET_Connect( socket_t *socket, const netadr_t *address );
-connection_status_t     NET_CheckConnect( socket_t *socket );
 bool        NET_Listen( const socket_t *socket );
 int         NET_Accept( const socket_t *socket, socket_t *newsocket, netadr_t *address );
-#endif
 
 int         NET_GetPacket( const socket_t *socket, netadr_t *address, msg_t *message );
 bool        NET_SendPacket( const socket_t *socket, const void *data, size_t length, const netadr_t *address );
@@ -487,7 +477,6 @@ void NET_SetErrorString( _Printf_format_string_ const char *format, ... );
 
 void        NET_SetErrorStringFromLastError( const char *function );
 void        NET_ShowIP( void );
-int         NET_SetSocketNoDelay( socket_t *socket, int nodelay );
 
 const char *NET_SocketTypeToString( socket_type_t type );
 const char *NET_SocketToString( const socket_t *socket );
@@ -532,8 +521,6 @@ typedef struct {
 	size_t unsentLength;
 	uint8_t unsentBuffer[MAX_MSGLEN];
 	bool unsentIsCompressed;
-
-	bool fatal_error;
 } netchan_t;
 
 extern netadr_t net_from;
@@ -648,10 +635,9 @@ bool    FS_CheckPakExtension( const char *filename );
 bool    FS_PakFileExists( const char *packfilename );
 
 // // only for game files
-const char *FS_FirstExtension( const char *filename, const char *extensions[], int num_extensions );
+const char *FS_FirstExtension( const char *filename, const char * const * extensions, int num_extensions );
 const char *FS_PakNameForFile( const char *filename );
 bool    FS_IsPureFile( const char *pakname );
-const char *FS_FileManifest( const char *filename );
 const char *FS_BaseNameForFile( const char *filename );
 
 int         FS_GetFileList( const char *dir, const char *extension, char *buf, size_t bufsize, int start, int end );
@@ -702,10 +688,8 @@ void        Com_SetServerState( int state );
 struct cmodel_state_s *Com_ServerCM( unsigned *checksum );
 void        Com_SetServerCM( struct cmodel_state_s *cms, unsigned checksum );
 
-unsigned int Com_DaysSince1900( void );
-
 extern cvar_t *developer;
-extern cvar_t *dedicated;
+extern const bool is_dedicated_server;
 extern cvar_t *host_speeds;
 extern cvar_t *versioncvar;
 
@@ -811,15 +795,12 @@ NON-PORTABLE SYSTEM SERVICES
 
 void    Sys_Init( void );
 
-void    Sys_AppActivate( void );
-
 int64_t    Sys_Milliseconds( void );
 uint64_t        Sys_Microseconds( void );
 void        Sys_Sleep( unsigned int millis );
 
 char    *Sys_ConsoleInput( void );
 void    Sys_ConsoleOutput( char *string );
-void    Sys_SendKeyEvents( void );
 
 #ifndef _MSC_VER
 void Sys_Error( const char *error, ... ) __attribute__( ( format( printf, 1, 2 ) ) ) __attribute__( ( noreturn ) );
@@ -832,10 +813,6 @@ __declspec( noreturn ) void Sys_Quit( void );
 char    *Sys_GetClipboardData( void );
 bool Sys_SetClipboardData( const char *data );
 void    Sys_FreeClipboardData( char *data );
-
-void    Sys_OpenURLInBrowser( const char *url );
-
-int     Sys_GetCurrentProcessId( void );
 
 /*
 ==============================================================

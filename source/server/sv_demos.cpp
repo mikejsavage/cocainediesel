@@ -224,7 +224,6 @@ static void SV_Demo_Stop( bool cancel, bool silent ) {
 		SV_SetDemoMetaKeyValue( "duration", va( "%u", (int)ceil( (double)svs.demo.duration / 1000.0 ) ) );
 		SV_SetDemoMetaKeyValue( "mapname", sv.configstrings[CS_MAPNAME] );
 		SV_SetDemoMetaKeyValue( "gametype", sv.configstrings[CS_GAMETYPENAME] );
-		SV_SetDemoMetaKeyValue( "levelname", sv.configstrings[CS_MESSAGE] );
 		SV_SetDemoMetaKeyValue( "matchname", sv.configstrings[CS_MATCHNAME] );
 		SV_SetDemoMetaKeyValue( "matchscore", sv.configstrings[CS_MATCHSCORE] );
 
@@ -491,7 +490,7 @@ void SV_DemoGet_f( client_t *client ) {
 		} else {
 			num = atoi( Cmd_Argv( 1 ) ) - 1;
 		}
-		clamp( num, 0, numdemos - 1 );
+		num = Clamp( 0, num, numdemos - 1 );
 
 		numdemos = FS_GetFileList( SV_DEMO_DIR, APP_DEMO_EXTENSION_STR, buffer, sizeof( buffer ), num, num + 1 );
 		if( numdemos ) {

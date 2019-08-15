@@ -25,21 +25,34 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //==============================================
 
 template< typename T, size_t N >
-char ( &ArrayCountObj( const T ( & )[ N ] ) )[ N ];
-#define ARRAY_COUNT( arr ) ( sizeof( ArrayCountObj( arr ) ) )
+constexpr size_t ARRAY_COUNT( const T ( &arr )[ N ] ) {
+        return N;
+}
 
 #define STATIC_ASSERT( p ) static_assert( p, #p )
+#define NONCOPYABLE( T ) T( const T & ) = delete; void operator=( const T & ) = delete
+
+template< typename To, typename From >
+inline To checked_cast( const From & from ) {
+	To result = To( from );
+	assert( From( result ) == from );
+	return result;
+}
+
+template< typename To, typename From >
+inline To bit_cast( const From & from ) {
+	STATIC_ASSERT( sizeof( To ) == sizeof( From ) );
+	To result;
+	memcpy( &result, &from, sizeof( result ) );
+	return result;
+}
 
 short ShortSwap( short l );
-int LongSwap( int l );
-float FloatSwap( float f );
 
 // little endian
 #define BigShort( l ) ShortSwap( l )
 #define LittleShort( l ) ( l )
-#define BigLong( l ) LongSwap( l )
 #define LittleLong( l ) ( l )
-#define BigFloat( l ) FloatSwap( l )
 #define LittleFloat( l ) ( l )
 
 //==============================================
@@ -54,9 +67,9 @@ float FloatSwap( float f );
 //=============================================
 
 #define SYSTEM_FONT_FAMILY          "Montserrat"
-#define SYSTEM_FONT_FAMILY_FALLBACK "Droid Sans Fallback"
-#define SYSTEM_FONT_FAMILY_MONO     "Droid Sans Mono"
+#define SYSTEM_FONT_FAMILY_FALLBACK "Montserrat"
 #define SYSTEM_FONT_TINY_SIZE       8
+#define SYSTEM_FONT_CONSOLE_SIZE    12
 #define SYSTEM_FONT_SMALL_SIZE      14
 #define SYSTEM_FONT_MEDIUM_SIZE     16
 #define SYSTEM_FONT_BIG_SIZE        24
@@ -105,7 +118,7 @@ char *COM_ParseExt2( const char **data_p, bool nl, bool sq );
 int COM_Compress( char *data_p );
 const char *COM_RemoveJunkChars( const char *in );
 int COM_ReadColorRGBString( const char *in );
-int COM_ValidatePlayerColor( int rgbcolor );
+int COM_ReadColorRGBAString( const char *in );
 bool COM_ValidateConfigstring( const char *string );
 
 char *COM_ListNameForPosition( const char *namesList, int position, const char separator );
@@ -187,12 +200,12 @@ int Q_snprintfz( char *dest, size_t size, _Printf_format_string_ const char *for
 
 char *Q_strupr( char *s );
 char *Q_strlwr( char *s );
-const char *Q_strlocate( const char *s, const char *substr, int skip );
 size_t Q_strcount( const char *s, const char *substr );
 const char *Q_strrstr( const char *s, const char *substr );
 bool Q_isdigit( const char *str );
 char *Q_trim( char *s );
 char *Q_chrreplace( char *s, const char subj, const char repl );
+void RemoveTrailingZeroesFloat( char * str );
 
 /**
  * Converts the given null-terminated string to an URL encoded null-terminated string.
@@ -204,8 +217,6 @@ void Q_urlencode_unsafechars( const char *src, char *dst, size_t dst_size );
  * total (untruncated) length of the resulting string.
  */
 size_t Q_urldecode( const char *src, char *dst, size_t dst_size );
-
-void *Q_memset32( void *dest, int c, size_t dwords );
 
 // color string functions ("^1text" etc)
 #define GRABCHAR_END    0
@@ -221,13 +232,11 @@ int Q_ColorStrLastColor( int previous, const char *s, int maxlen );
 size_t Q_WCharUtf8Length( wchar_t wc );
 size_t Q_WCharToUtf8( wchar_t wc, char *dest, size_t bufsize );
 char *Q_WCharToUtf8Char( wchar_t wc );
-size_t Q_WCharToUtf8String( const wchar_t *ws, char *dest, size_t bufsize );
 wchar_t Q_GrabWCharFromUtf8String( const char **pstr );
 int Q_GrabWCharFromColorString( const char **pstr, wchar_t *wc, int *colorindex );
 #define UTF8SYNC_LEFT 0
 #define UTF8SYNC_RIGHT 1
 int Q_Utf8SyncPos( const char *str, int pos, int dir );
-void Q_FixTruncatedUtf8( char *str );
 bool Q_IsBreakingSpace( const char *str );
 bool Q_IsBreakingSpaceChar( wchar_t c );
 
@@ -260,11 +269,10 @@ bool Info_Validate( const char *s );
 // per-level limits
 //
 #define MAX_CLIENTS                 256         // absolute limit
-#define MAX_EDICTS                  1024        // must change protocol to increase more
+#define MAX_EDICTS                  4096        // must change protocol to increase more
 #define MAX_MODELS                  1024        // these are sent over the net as shorts
 #define MAX_SOUNDS                  1024        // so they cannot be blindly increased
 #define MAX_IMAGES                  256
-#define MAX_SKINFILES               256
 #define MAX_ITEMS                   64          // 16x4
 #define MAX_GENERAL                 128         // general config strings
 
@@ -287,32 +295,11 @@ float Q_GainForAttenuation( int model, float maxdistance, float refdistance, flo
 
 //=============================================
 
-extern const char *SOUND_EXTENSIONS[];
-extern const size_t NUM_SOUND_EXTENSIONS;
+constexpr const char *SOUND_EXTENSIONS[] = { ".ogg" };
+constexpr size_t NUM_SOUND_EXTENSIONS = ARRAY_COUNT( SOUND_EXTENSIONS );
 
-extern const char *IMAGE_EXTENSIONS[];
-extern const size_t NUM_IMAGE_EXTENSIONS;
-
-//============================================
-// memory utilities
-//============================================
-
-typedef struct block_allocator_s block_allocator_t;
-typedef struct linear_allocator_s linear_allocator_t;
-
-typedef void *( *alloc_function_t )( size_t, const char*, int );
-typedef void ( *free_function_t )( void *ptr, const char*, int );
-
-// Block Allocator
-block_allocator_t * BlockAllocator( size_t elemSize, size_t blockSize, alloc_function_t alloc_function, free_function_t free_function );
-void BlockAllocator_Free( block_allocator_t *ba );
-void *BA_Alloc( block_allocator_t *ba );
-
-linear_allocator_t * LinearAllocator( size_t elemSize, size_t preAllocate, alloc_function_t alloc_function, free_function_t free_function );
-void LinearAllocator_Free( linear_allocator_t *la );
-void *LA_Alloc( linear_allocator_t *la );
-void *LA_Pointer( linear_allocator_t *la, size_t index );
-size_t LA_Size( linear_allocator_t *la );
+constexpr const char *IMAGE_EXTENSIONS[] = { ".jpg", ".png" };
+constexpr size_t NUM_IMAGE_EXTENSIONS = ARRAY_COUNT( IMAGE_EXTENSIONS );
 
 //==============================================================
 //
@@ -380,17 +367,7 @@ typedef enum {
 	key_console,
 	key_message,
 	key_menu,
-	key_delegate
 } keydest_t;
-
-typedef enum {
-	rserr_ok,
-	rserr_invalid_fullscreen,
-	rserr_invalid_mode,
-	rserr_invalid_driver,
-	rserr_restart_required,
-	rserr_unknown
-} rserr_t;
 
 // font style flags
 typedef enum {
@@ -399,9 +376,3 @@ typedef enum {
 	QFONT_STYLE_BOLD            = ( 1 << 1 ),
 	QFONT_STYLE_MASK            = ( 1 << 2 ) - 1
 } qfontstyle_t;
-
-// font drawing flags
-typedef enum {
-	TEXTDRAWFLAG_NO_COLORS  = 1 << 0,   // draw color codes instead of applying them
-	TEXTDRAWFLAG_KERNING    = 1 << 1
-} textdrawflag_t;

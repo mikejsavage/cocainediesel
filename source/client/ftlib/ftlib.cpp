@@ -315,8 +315,8 @@ static void QFT_RenderString( qfontface_t *qfont, const char *str ) {
 					qttf->imageCurX = 0;
 					qttf->imageCurY = 0;
 					shaderNum = ( qfont->numShaders )++;
-					shader = re.RegisterRawAlphaMask( FTLIB_FontShaderName( qfont, shaderNum ), qfont->shaderWidth, qfont->shaderHeight, NULL );
-					qfont->shaders = ( StringHash * ) Mem_Realloc( qfont->shaders, qfont->numShaders * sizeof( StringHash ) );
+					shader = re.RegisterAlphaMask( FTLIB_FontShaderName( qfont, shaderNum ), qfont->shaderWidth, qfont->shaderHeight, NULL );
+					qfont->shaders = ( shader_s ** ) Mem_Realloc( qfont->shaders, qfont->numShaders * sizeof( StringHash ) );
 					qfont->shaders[shaderNum] = shader;
 				}
 				qttf->imageCurLineHeight = bitmapHeight;
@@ -424,7 +424,6 @@ static qfontface_t *QFT_LoadFace( qfontfamily_t *family, unsigned int size ) {
 	qfont->family = family;
 	qfont->size = size;
 	qfont->height = fontHeight;
-	qfont->advance = ( ( FT_MulFix( ftface->max_advance_width, ftsize->metrics.x_scale ) ) >> 6 );
 	qfont->glyphYOffset = ftsize->metrics.ascender >> 6;
 	qfont->underlineThickness = ftface->underline_thickness * unitScale + 0.5f;
 	if( qfont->underlineThickness <= 0 ) {
@@ -451,8 +450,7 @@ static qfontface_t *QFT_LoadFace( qfontfamily_t *family, unsigned int size ) {
 		maxAdvanceX = ( ( ( FT_MulFix( ftface->max_advance_width, ftsize->metrics.x_scale ) + 63 ) & ~63 ) >> 6 ) + 2;
 		maxAdvanceY = ( ( ( FT_MulFix( ftface->max_advance_height, ftsize->metrics.y_scale ) + 63 ) & ~63 ) >> 6 ) + 2;
 
-		numCols = maxShaderWidth / maxAdvanceX;
-		clamp( numCols, 1, ftface->num_glyphs );
+		numCols = bound( 1, maxShaderWidth / maxAdvanceX, ftface->num_glyphs );
 
 		numRows = ftface->num_glyphs / numCols;
 
@@ -474,7 +472,7 @@ static qfontface_t *QFT_LoadFace( qfontfamily_t *family, unsigned int size ) {
 
 	qfont->numShaders = 1;
 	qfont->shaders = ( StringHash * ) Mem_Alloc( ftlibPool, sizeof( StringHash ) );
-	qfont->shaders[0] = re.RegisterRawAlphaMask( FTLIB_FontShaderName( qfont, 0 ),
+	qfont->shaders[0] = re.RegisterAlphaMask( FTLIB_FontShaderName( qfont, 0 ),
 													 qfont->shaderWidth, qfont->shaderHeight, NULL );
 	qfont->hasKerning = hasKerning;
 	qfont->f = &qft_face_funcs;
@@ -836,14 +834,10 @@ void FTLIB_FreeFonts( bool verbose ) {
 				qfamily->f->unloadFace( qface );
 			}
 
-			if( qface->shaders ) {
-				Mem_Free( qface->shaders );
-			}
+			Mem_Free( qface->shaders );
 
-			for( i = 0; i < ( sizeof( qface->glyphs ) / sizeof( qface->glyphs[0] ) ); i++ ) {
-				if( qface->glyphs[i] ) {
-					Mem_Free( qface->glyphs[i] );
-				}
+			for( i = 0; i < ARRAY_COUNT( qface->glyphs ); i++ ) {
+				Mem_Free( qface->glyphs[i] );
 			}
 
 			Mem_Free( qface );
@@ -852,10 +846,8 @@ void FTLIB_FreeFonts( bool verbose ) {
 		if( qfamily->f->unloadFamily ) {
 			qfamily->f->unloadFamily( qfamily );
 		}
-		if( qfamily->name ) {
-			Mem_Free( qfamily->name );
-		}
 
+		Mem_Free( qfamily->name );
 		Mem_Free( qfamily );
 	}
 

@@ -19,9 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #pragma once
 
-#define MAX_STREAM_VBO_VERTS        8192
+#define MAX_STREAM_VBO_VERTS        ( 1 << 15 )
 #define MAX_STREAM_VBO_ELEMENTS     MAX_STREAM_VBO_VERTS * 6
-#define MAX_STREAM_VBO_TRIANGLES    MAX_STREAM_VBO_ELEMENTS / 3
 
 #define MAX_DYNAMIC_DRAWS           2048
 
@@ -30,12 +29,6 @@ typedef struct r_backend_stats_s {
 	unsigned int c_totalVerts, c_totalTris, c_totalStaticVerts, c_totalStaticTris, c_totalDraws, c_totalBinds;
 	unsigned int c_totalPrograms;
 } rbStats_t;
-
-typedef struct {
-	unsigned int numBones;
-	dualquat_t dualQuats[MAX_GLSL_UNIFORM_BONES];
-	unsigned int maxWeights;
-} rbBonesData_t;
 
 typedef struct {
 	unsigned int firstVert;
@@ -99,7 +92,6 @@ typedef struct r_backend_s {
 
 	mat4_t cameraMatrix;
 	mat4_t objectMatrix;
-	mat4_t objectToLightMatrix;
 	vec3_t lightDir;
 	mat4_t modelviewMatrix;
 	mat4_t projectionMatrix;
@@ -114,9 +106,15 @@ typedef struct r_backend_s {
 	mat3_t cameraAxis;
 
 	const entity_t *currentEntity;
-	modtype_t currentModelType;
+	ModelType currentModelType;
 	const mesh_vbo_t *currentMeshVBO;
-	rbBonesData_t bonesData;
+
+	Span< const Mat4 > skinning_matrices;
+
+	RGBA8 text_color;
+	RGBA8 border_color;
+	bool text_border;
+	float pixel_range;
 
 	// glUseProgram cache
 	int currentProgram;
@@ -163,7 +161,6 @@ typedef struct r_backend_s {
 	bool greyscale;
 	bool alphaHack;
 	bool noDepthTest;
-	bool noColorWrite;
 	bool depthEqual;
 	float hackedAlpha;
 
@@ -177,7 +174,6 @@ extern rbackend_t rb;
 
 // r_backend.c
 #define RB_Alloc( size ) R_MallocExt( rb.mempool, size, 16, 1 )
-#define RB_Free( data ) R_Free( data )
 
 void RB_DrawElementsReal( rbDrawElements_t *de );
 #define RB_IsAlphaBlending( blendsrc,blenddst ) \

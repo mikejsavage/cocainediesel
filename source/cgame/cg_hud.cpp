@@ -28,8 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 extern cvar_t *cg_clientHUD;
 extern cvar_t *cg_specHUD;
 
-cvar_t *cg_strafeHUD;
-
 //=============================================================================
 
 enum { DEFAULTSCALE=0, NOSCALE, SCALEBYWIDTH, SCALEBYHEIGHT };
@@ -88,13 +86,6 @@ static const constant_numeric_t cg_numeric_constants[] = {
 
 	{ "NOGUN", 0 },
 	{ "GUN", 1 },
-
-	// player movement types
-	{ "PMOVE_TYPE_NORMAL", PM_NORMAL },
-	{ "PMOVE_TYPE_SPECTATOR", PM_SPECTATOR },
-	{ "PMOVE_TYPE_GIB", PM_GIB },
-	{ "PMOVE_TYPE_FREEZE", PM_FREEZE },
-	{ "PMOVE_TYPE_CHASECAM", PM_CHASECAM },
 
 	// config strings
 	{ "TEAM_SPECTATOR_NAME", CS_TEAM_SPECTATOR_NAME },
@@ -174,33 +165,12 @@ static int CG_GetFPS( const void *parameter ) {
 	return fps;
 }
 
-static int CG_GetPowerupTime( const void *parameter ) {
-	int powerup = (intptr_t)parameter;
-	return cg.predictedPlayerState.inventory[powerup];
-}
-
 static int CG_GetMatchState( const void *parameter ) {
 	return GS_MatchState();
 }
 
 static int CG_GetMatchDuration( const void *parameter ) {
 	return GS_MatchDuration();
-}
-
-static int CG_GetOvertime( const void *parameter ) {
-	return GS_MatchExtended();
-}
-
-static int CG_GetTeamBased( const void *parameter ) {
-	return GS_TeamBasedGametype();
-}
-
-static int CG_InvidualGameType( const void *parameter ) {
-	return GS_InvidualGameType();
-}
-
-static int CG_RaceGameType( const void *parameter ) {
-	return GS_RaceGametype();
 }
 
 static int CG_Paused( const void *parameter ) {
@@ -228,8 +198,7 @@ static int CG_GetDamageIndicatorDirValue( const void *parameter ) {
 	int index = (intptr_t)parameter;
 
 	if( cg.damageBlends[index] > cg.time && !cg.view.thirdperson ) {
-		frac = ( cg.damageBlends[index] - cg.time ) / 300.0f;
-		clamp( frac, 0.0f, 1.0f );
+		frac = Clamp01( ( cg.damageBlends[index] - cg.time ) / 300.0f );
 	}
 
 	return frac * 1000;
@@ -285,11 +254,6 @@ static int CG_GetWeaponCount( const void *parameter ) {
 	return n;
 }
 
-static int CG_GetPmoveType( const void *parameter ) {
-	// the real pmove type of the client, which is chasecam or spectator when playing a demo
-	return cg.frame.playerState.pmove.pm_type;
-}
-
 static int CG_IsDemoPlaying( const void *parameter ) {
 	return ( cgs.demoPlaying ? 1 : 0 );
 }
@@ -322,107 +286,6 @@ enum race_index {
 	max_index
 };
 
-static int CG_GetRaceVars( const void* parameter ) {
-	int index = (intptr_t)parameter;
-	int iNum;
-	vec3_t hor_vel, view_dir, an;
-
-	if( GS_MatchState() != MATCH_STATE_WARMUP && !GS_RaceGametype() ) {
-		return 0;
-	}
-
-	switch( index ) {
-		case diff_an:
-
-			// difference of look and move angles
-			hor_vel[0] = cg.predictedPlayerState.pmove.velocity[0];
-			hor_vel[1] = cg.predictedPlayerState.pmove.velocity[1];
-			hor_vel[2] = 0;
-			VecToAngles( hor_vel, an );
-			AngleVectors( cg.predictedPlayerState.viewangles, view_dir, NULL, NULL );
-			iNum = Q_rint( 100 * ( cg.predictedPlayerState.viewangles[YAW] - an[YAW] ) );
-			while( iNum > 18000 )
-				iNum -= 36000;
-			while( iNum < -18000 )
-				iNum += 36000;
-
-			// ch : check if player is moving backwards so iNum wont wrap around
-			if( DotProduct( hor_vel, view_dir ) >= 0.0 ) {
-				return iNum;
-			} else if( iNum < 0 ) {
-				return 18000 + iNum;
-			} else {
-				return -18000 + iNum;
-			}
-
-		case strafe_an:
-
-			// optimal strafing angle
-			iNum = Q_rint( 100 * ( acos( ( 320 - 0.32f * (float)cg.realFrameTime ) / CG_GetSpeed( 0 ) ) * 180 / M_PI - 45 ) ); //maybe need to check if speed below 320 is allowed for acos
-			if( iNum > 0 ) {
-				return iNum;
-			} else {
-				return 0;
-			}
-		case move_an:
-
-			// angle of current moving direction
-			hor_vel[0] = cg.predictedPlayerState.pmove.velocity[0];
-			hor_vel[1] = cg.predictedPlayerState.pmove.velocity[1];
-			hor_vel[2] = 0;
-			VecToAngles( hor_vel, an );
-			iNum = Q_rint( 100 * an[YAW] );
-			while( iNum > 18000 )
-				iNum -= 36000;
-			while( iNum < -18000 )
-				iNum += 36000;
-			return iNum;
-		case mouse_x:
-			return Q_rint( 100 * cg.predictedPlayerState.viewangles[YAW] );
-		case mouse_y:
-			return Q_rint( 100 * cg.predictedPlayerState.viewangles[PITCH] );
-		default:
-			return STAT_NOTSET;
-	}
-}
-
-static int CG_GetAccel( const void* parameter ) {
-#define ACCEL_SAMPLE_COUNT 16
-#define ACCEL_SAMPLE_MASK ( ACCEL_SAMPLE_COUNT - 1 )
-	int i;
-	float t, dt;
-	float accel;
-	float newSpeed;
-	static float oldSpeed = 0.0;
-	static float oldTime = 0.0;
-	static float accelHistory[ACCEL_SAMPLE_COUNT] = {0.0};
-	static int sampleCount = 0;
-
-	t = cg.realTime * 0.001f;
-	dt = t - oldTime;
-	if( dt > 0.0 ) {
-		// raw acceleration
-		newSpeed = _getspeed();
-		accel = ( newSpeed - oldSpeed ) / dt;
-		accelHistory[sampleCount & ACCEL_SAMPLE_MASK] = accel;
-		sampleCount++;
-		oldSpeed = newSpeed;
-		oldTime = t;
-	}
-
-	// average accel for n frames (TODO: emphasis on later frames)
-	accel = 0.0f;
-	for( i = 0; i < ACCEL_SAMPLE_COUNT; i++ )
-		accel += accelHistory[i];
-	accel /= (float)( ACCEL_SAMPLE_COUNT );
-
-	if( GS_MatchState() != MATCH_STATE_WARMUP && !GS_RaceGametype() ) {
-		return 0;
-	}
-
-	return (int)accel;
-}
-
 static int CG_GetScoreboardShown( const void *parameter ) {
 	return CG_IsScoreboardShown() ? 1 : 0;
 }
@@ -440,6 +303,8 @@ static const reference_numeric_t cg_numeric_references[] =
 	{ "HEALTH", CG_GetStatValue, (void *)STAT_HEALTH },
 	{ "WEAPON_ITEM", CG_GetStatValue, (void *)STAT_WEAPON },
 	{ "PENDING_WEAPON", CG_GetStatValue, (void *)STAT_PENDING_WEAPON },
+
+	{ "READY", CG_GetLayoutStatFlag, (void *)STAT_LAYOUT_READY },
 
 	{ "PICKUP_ITEM", CG_GetStatValue, (void *)STAT_PICKUP_ITEM },
 
@@ -480,35 +345,17 @@ static const reference_numeric_t cg_numeric_references[] =
 	{ "FPS", CG_GetFPS, NULL },
 	{ "MATCH_STATE", CG_GetMatchState, NULL },
 	{ "MATCH_DURATION", CG_GetMatchDuration, NULL },
-	{ "OVERTIME", CG_GetOvertime, NULL },
-	{ "MATCH_POINT", CG_GetOvertime, NULL },
-	{ "TEAMBASED", CG_GetTeamBased, NULL },
-	{ "INDIVIDUAL", CG_InvidualGameType, NULL },
-	{ "RACE", CG_RaceGameType, NULL },
 	{ "PAUSED", CG_Paused, NULL },
 	{ "ZOOM", CG_GetZoom, NULL },
 	{ "VIDWIDTH", CG_GetVidWidth, NULL },
 	{ "VIDHEIGHT", CG_GetVidHeight, NULL },
 	{ "SCOREBOARD", CG_GetScoreboardShown, NULL },
-	{ "PMOVE_TYPE", CG_GetPmoveType, NULL },
 	{ "DEMOPLAYING", CG_IsDemoPlaying, NULL },
-	{ "INSTANTRESPAWN", CG_GetLayoutStatFlag, (void *)STAT_LAYOUT_INSTANTRESPAWN },
-
-	{ "POWERUP_QUAD_TIME", CG_GetPowerupTime, (void *)POWERUP_QUAD },
 
 	{ "DAMAGE_INDICATOR_TOP", CG_GetDamageIndicatorDirValue, (void *)0 },
 	{ "DAMAGE_INDICATOR_RIGHT", CG_GetDamageIndicatorDirValue, (void *)1 },
 	{ "DAMAGE_INDICATOR_BOTTOM", CG_GetDamageIndicatorDirValue, (void *)2 },
 	{ "DAMAGE_INDICATOR_LEFT", CG_GetDamageIndicatorDirValue, (void *)3 },
-
-// ch : backport racesow hud elements
-//lm: race stuff
-	{ "MOUSE_X", CG_GetRaceVars, (void *)mouse_x },
-	{ "MOUSE_Y", CG_GetRaceVars, (void *)mouse_y },
-	{ "ACCELERATION", CG_GetAccel, NULL },
-	{ "MOVEANGLE", CG_GetRaceVars, (void *)move_an  },
-	{ "STRAFEANGLE", CG_GetRaceVars, (void *)strafe_an },
-	{ "DIFF_ANGLE", CG_GetRaceVars, (void *)diff_an },
 
 	// cvars
 	{ "SHOW_FPS", CG_GetCvar, "cg_showFPS" },
@@ -518,7 +365,6 @@ static const reference_numeric_t cg_numeric_references[] =
 	{ "SHOW_SPEED", CG_GetCvar, "cg_showSpeed" },
 	{ "SHOW_AWARDS", CG_GetCvar, "cg_showAwards" },
 	{ "SHOW_R_SPEEDS", CG_GetCvar, "r_speeds" },
-	{ "SHOW_STRAFE", CG_GetCvar, "cg_strafeHUD" },
 
 	{ "DOWNLOAD_IN_PROGRESS", CG_DownloadInProgress, NULL },
 	{ "DOWNLOAD_PERCENT", CG_GetCvar, "cl_download_percent" },
@@ -580,32 +426,42 @@ static const char * obituaries[] = {
 	"ABUSED",
 	"AIRED OUT",
 	"ANNIHILATED",
+	"ATOMIZED",
 	"AXED",
 	"BAKED",
 	"BATTERED",
+	"BBQED",
 	"BELITTLED",
 	"BIGGED ON",
 	"BINNED",
 	"BLASTED",
 	"BLESSED",
 	"BODYBAGGED",
+	"BONKED",
+	"BOUGHT",
 	"BROKE UP WITH",
+	"BROWN BAGGED",
 	"BURIED",
 	"BUTTERED",
 	"CANCELED",
 	"CANNED",
 	"CAPPED",
-	"CARAMELISED",
+	"CARAMELIZED",
 	"CARBONATED",
 	"CASHED OUT",
 	"CLUBBED",
 	"CONSUMED",
+	"COOKED",
+	"CORRECTED",
+	"CORRUPTED",
+	"CRASHED",
 	"CRIPPLED",
 	"CRUSHED",
 	"CULLED",
 	"CURED",
 	"DEBUGGED",
 	"DECIMATED",
+	"DECREMENTED",
 	"DEEP FRIED",
 	"DEEPWATER HORIZONED",
 	"DEFACED",
@@ -615,11 +471,14 @@ static const char * obituaries[] = {
 	"DEMOLISHED",
 	"DEPOSITED",
 	"DESTROYED",
+	"DIGITALIZED",
 	"DIPPED",
 	"DISASSEMBLED",
 	"DISCIPLINED",
 	"DISMANTLED",
+	"DISPATCHED",
 	"DIVORCED",
+	"DOWNVOTED",
 	"DRENCHED",
 	"DRILLED INTO",
 	"DUMPED ON",
@@ -627,18 +486,29 @@ static const char * obituaries[] = {
 	"DUMPSTERED",
 	"DUNKED",
 	"EDUCATED",
+	"EGGED",
 	"ELABORATED ON",
+	"EMANCIPATED",
+	"EMBRACED",
 	"ENDED",
 	"ERASED",
+	"EXCHANGED",
 	"EXECUTED",
 	"EXTERMINATED",
+	"EXTRAPOLATED",
 	"FACED",
 	"FILED",
+	"FIXED",
+	"FLAT EARTHED",
 	"FLUSHED",
 	"FOLDED",
 	"FORKED",
+	"FORMATTED",
 	"FRAGGED",
+	"FREED",
+	"FROSTED",
 	"FUCKED",
+	"GLAZED",
 	"GRAVEDUG",
 	"GRILLED",
 	"GUTTED",
@@ -646,30 +516,41 @@ static const char * obituaries[] = {
 	"HUMILIATED",
 	"ICED",
 	"IMPREGNATED",
+	"INSIDE JOBBED",
 	"INVADED",
+	"JACKED",
+	"JAMMED",
+	"LAGGED",
+	"LANDED ON",
 	"LANDFILLED",
 	"LARDED",
 	"LEFT CLICKED ON",
 	"LET GO",
 	"LIQUIDATED",
+	"LIVESTREAMED",
 	"LYNCHED",
 	"MASSACRED",
 	"MAULED",
+	"MIXED",
 	"MURDERED",
 	"MUTILATED",
 	"NEUTRALIZED",
+	"NOBODIED",
 	"NUKED",
 	"NULLIFIED",
 	"OBLITERATED",
+	"OUTRAGED",
+	"OWNED",
 	"PACKED",
 	"PAID RESPECTS TO",
+	"PERFORMED ON",
 	"PILED",
 	"PISSED ON",
 	"PLANTED",
-	"PLOUGHED",
+	"PLOWED", //:v_trump:
 	"POACHED",
 	"POUNDED",
-	"PULVERISED",
+	"PULVERIZED",
 	"PURGED",
 	"PUT DOWN",
 	"PYONGYANGED",
@@ -680,24 +561,31 @@ static const char * obituaries[] = {
 	"REFRIGERATED",
 	"REHABILITATED",
 	"REMOVED",
+	"RENDERED",
 	"RESPECTED",
 	"REVERSED INTO",
 	"REVISED",
 	"ROLLED",
 	"RUINED",
+	"RULED",
+	"SABOTAGED",
 	"SACKED",
 	"SANDED",
+	"SCUTTLED",
 	"SHAFTED",
 	"SHARPENED",
 	"SHATTERED",
 	"SHAVED",
+	"SHELVED",
 	"SHITTED ON",
+	"SIMBA'D",
 	"SKEWERED",
 	"SLAMMED",
 	"SLAPPED",
 	"SLAUGHTERED",
 	"SLICED",
 	"SMASHED",
+	"SPLIT",
 	"SPREAD",
 	"SQUASHED",
 	"STAMPED OUT",
@@ -706,15 +594,18 @@ static const char * obituaries[] = {
 	"SUNK",
 	"SWAMPED",
 	"SWIPED LEFT ON",
+	"SYNTHETIZED",
 	"TARNISHED",
 	"TERMINATED",
 	"TOILET STORED",
 	"TOOK CARE OF",
 	"TOPPLED",
+	"TORPEDOED",
 	"TOSSED",
 	"TRASHED",
 	"TRUMPED",
 	"UNFOLLOWED",
+	"UPSET",
 	"VAPED",
 	"VIOLATED",
 	"VULKANIZED",
@@ -729,22 +620,76 @@ static const char * obituaries[] = {
 };
 
 static const char * prefixes[] = {
-	"",
-	"",
-	"",
-	"",
-	"SHIT",
+	"AIR",
+	"ALPHA",
 	"ASS",
+	"ASTRO",
+	"BACK",
+	"BELLY",
+	"BLOOD",
+	"BUM",
+	"CHAOS",
+	"COCK",
+	"CODEX",
+	"COMBO",
+	"COUNTER",
+	"CORN",
+	"CUM",
+	"CUNT",
+	"DEEP",
+	"DEMON",
+	"DIESEL",
+	"DICK",
+	"DUMP",
+	"FACE",
+	"FAST",
+	"FISH",
+	"FLAT",
+	"FURY",
+	"GINGER",
+	"HOLE",
+	"HOLY",
+	"HUSKY",
+	"HYPE",
+	"HYPER",
+	"KARATE",
+	"KARMA",
+	"KING",
+	"MACHINE",
+	"MC",
+	"MERCY",
+	"OMEGA",
 	"PILE",
+	"POWER",
 	"PLANTER",
+	"QUICK",
+	"RAGE",
+	"RAMBO",
+	"RESPECT",
+	"ROFL",
+	"SHIT",
+	"SMACK",
+	"SNAP",
+	"SPEED",
+	"SPORTSMANSHIP",
+	"SUPER",
+	"TINDER",
+	"TITTY",
+	"TOILET",
+	"TOP",
+	"TRASH",
+	"TRAP",
+	"TURBO",
 };
 
 static const char * RandomObituary() {
-	return obituaries[ rand() % ( sizeof( obituaries ) / sizeof( obituaries[ 0 ] ) ) ];
+	return obituaries[ rand() % ARRAY_COUNT( obituaries ) ];
 }
 
 static const char * RandomPrefix() {
-	return prefixes[ rand() % ( sizeof( prefixes ) / sizeof( prefixes[ 0 ] ) ) ];
+	if( rand() % 2 == 0 )
+		return "";
+	return prefixes[ rand() % ARRAY_COUNT( prefixes ) ];
 }
 
 /*
@@ -757,13 +702,7 @@ void CG_SC_Obituary( void ) {
 	int victimNum = atoi( trap_Cmd_Argv( 1 ) );
 	int attackerNum = atoi( trap_Cmd_Argv( 2 ) );
 	int mod = atoi( trap_Cmd_Argv( 3 ) );
-	int victim_gender = GENDER_MALE;
 	obituary_t *current;
-
-	// wsw : jal : extract gender from their player model info, if any
-	if( victimNum >= 0 && victimNum < MAX_EDICTS && cg_entPModels[victimNum].pmodelinfo ) {
-		victim_gender = cg_entPModels[victimNum].pmodelinfo->sex;
-	}
 
 	victim = &cgs.clientInfo[victimNum - 1];
 
@@ -787,13 +726,12 @@ void CG_SC_Obituary( void ) {
 	}
 	current->mod = mod;
 
-	GS_Obituary( victim, victim_gender, attacker, mod, message, message2 );
+	GS_Obituary( victim, attacker, mod, message, message2 );
 
 	if( attackerNum ) {
 		if( victimNum != attackerNum ) {
 			// teamkill
-			if( cg_entities[attackerNum].current.team == cg_entities[victimNum].current.team &&
-				GS_TeamBasedGametype() ) {
+			if( cg_entities[attackerNum].current.team == cg_entities[victimNum].current.team && GS_TeamBasedGametype() ) {
 				current->type = OBITUARY_TEAM;
 				if( cg_showObituaries->integer & CG_OBITUARY_CONSOLE ) {
 					CG_LocalPrint( "%s%s%s %s %s%s %s%s%s\n", S_COLOR_RED, "TEAMFRAG:", S_COLOR_WHITE, victim->name,
@@ -801,11 +739,10 @@ void CG_SC_Obituary( void ) {
 				}
 
 				if( ISVIEWERENTITY( attackerNum ) && ( cg_showObituaries->integer & CG_OBITUARY_CENTER ) ) {
-					char name[MAX_NAME_BYTES + 2];
+					char name[MAX_NAME_BYTES];
 					Q_strncpyz( name, victim->name, sizeof( name ) );
 					Q_strupr( name );
-					Q_strncatz( name, S_COLOR_WHITE, sizeof( name ) );
-					CG_CenterPrint( va( "YOU TEAM%s%s %s", RandomPrefix(), RandomObituary(), name ) );
+					CG_CenterPrint( va( "YOU TEAM%s%s %s", RandomPrefix(), RandomObituary(), COM_RemoveColorTokens( name ) ) );
 				}
 			} else {   // good kill
 				current->type = OBITUARY_NORMAL;
@@ -815,11 +752,10 @@ void CG_SC_Obituary( void ) {
 				}
 
 				if( ISVIEWERENTITY( attackerNum ) && ( cg_showObituaries->integer & CG_OBITUARY_CENTER ) ) {
-					char name[MAX_NAME_BYTES + 2];
+					char name[MAX_NAME_BYTES];
 					Q_strncpyz( name, victim->name, sizeof( name ) );
 					Q_strupr( name );
-					Q_strncatz( name, S_COLOR_WHITE, sizeof( name ) );
-					CG_CenterPrint( va( "YOU %s%s %s", RandomPrefix(), RandomObituary(), name ) );
+					CG_CenterPrint( va( "YOU %s%s %s", RandomPrefix(), RandomObituary(), COM_RemoveColorTokens( name ) ) );
 				}
 			}
 		} else {   // suicide
@@ -903,11 +839,8 @@ static void CG_DrawObituaries( int x, int y, int align, struct qfontface_s *font
 		}
 
 		switch( obr->mod ) {
-			case MOD_GUNBLADE_W:
+			case MOD_GUNBLADE:
 				pic = PATH_GUNBLADE_ICON;
-				break;
-			case MOD_GUNBLADE_S:
-				pic = PATH_GUNBLADE_BLAST_ICON;
 				break;
 			case MOD_MACHINEGUN:
 				pic = PATH_MACHINEGUN_ICON;
@@ -1261,15 +1194,6 @@ static bool CG_IsWeaponSelected( int weapon ) {
 }
 
 static struct StringHash CG_GetWeaponIcon( int weapon ) {
-	int currentWeapon = cg.predictedPlayerState.stats[STAT_WEAPON];
-	int weaponState = cg.predictedPlayerState.weaponState;
-
-	if( weapon == WEAP_GUNBLADE && cg.predictedPlayerState.inventory[AMMO_GUNBLADE] ) {
-		if( currentWeapon != WEAP_GUNBLADE || ( weaponState != WEAPON_STATE_REFIRESTRONG && weaponState != WEAPON_STATE_REFIRE ) ) {
-			return PATH_GUNBLADE_BLAST_ICON;
-		}
-	}
-
 	constexpr StringHash icons[] = {
 		PATH_GUNBLADE_ICON,
 		PATH_MACHINEGUN_ICON,
@@ -1586,10 +1510,8 @@ static bool CG_LFuncSizeHeight( struct cg_layoutnode_s *commandnode, struct cg_l
 }
 
 static bool CG_LFuncColor( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int i;
-	for( i = 0; i < 4; i++ ) {
-		layout_cursor_color[i] = CG_GetNumericArg( &argumentnode );
-		clamp( layout_cursor_color[i], 0, 1 );
+	for( int i = 0; i < 4; i++ ) {
+		layout_cursor_color[i] = Clamp01( CG_GetNumericArg( &argumentnode ) );
 	}
 	return true;
 }
@@ -1605,10 +1527,8 @@ static bool CG_LFuncColorAlpha( struct cg_layoutnode_s *commandnode, struct cg_l
 }
 
 static bool CG_LFuncRotationSpeed( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int i;
-	for( i = 0; i < 3; i++ ) {
-		layout_cursor_rotation[i] = CG_GetNumericArg( &argumentnode );
-		clamp( layout_cursor_rotation[i], 0, 999 );
+	for( int i = 0; i < 3; i++ ) {
+		layout_cursor_rotation[i] = Clamp( 0.0f, CG_GetNumericArg( &argumentnode ), 999.0f );
 	}
 	return true;
 }
@@ -1654,8 +1574,6 @@ static bool CG_LFuncFontFamily( struct cg_layoutnode_s *commandnode, struct cg_l
 
 	if( !Q_stricmp( fontname, "con_fontSystem" ) ) {
 		Q_strncpyz( layout_cursor_font_name, SYSTEM_FONT_FAMILY, sizeof( layout_cursor_font_name ) );
-	} else if( !Q_stricmp( fontname, "con_fontSystemMono" ) ) {
-		Q_strncpyz( layout_cursor_font_name, SYSTEM_FONT_FAMILY_MONO, sizeof( layout_cursor_font_name ) );
 	} else {
 		Q_strncpyz( layout_cursor_font_name, fontname, sizeof( layout_cursor_font_name ) );
 	}
@@ -1691,8 +1609,7 @@ static bool CG_LFuncFontSize( struct cg_layoutnode_s *commandnode, struct cg_lay
 		layout_cursor_font_size = (int)ceilf( CG_GetNumericArg( &argumentnode ) );
 	}
 
-	clamp_low( layout_cursor_font_size, 1 );
-
+	layout_cursor_font_size = Max2( 1, layout_cursor_font_size );
 	layout_cursor_font_dirty = true;
 
 	return true;
@@ -1735,57 +1652,6 @@ static bool CG_LFuncDrawAwards( struct cg_layoutnode_s *commandnode, struct cg_l
 
 static bool CG_LFuncDrawClock( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	CG_DrawClock( layout_cursor_x, layout_cursor_y, layout_cursor_align, CG_GetLayoutCursorFont(), layout_cursor_color );
-	return true;
-}
-
-static bool CG_LFuncDrawHelpMessage( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	// hide this one when scoreboard is up
-	if( !CG_IsScoreboardShown() ) {
-		if( !cgs.demoPlaying ) {
-			int i;
-			int y = layout_cursor_y;
-			int font_height = trap_SCR_FontHeight( CG_GetLayoutCursorFont() );
-			const char *helpmessage = "";
-			vec4_t color;
-			bool showhelp = cg_showhelp->integer;
-
-			// scale alpha to text appears more faint if the player's moving
-			Vector4Copy( layout_cursor_color, color );
-
-			for( i = 0; i < 3; i++ ) {
-				int x = layout_cursor_x;
-
-				switch( i ) {
-					case 0:
-						helpmessage = "";
-						if( showhelp ) {
-							if( cg.helpmessage[0] ) {
-								helpmessage = cg.helpmessage;
-							} else if( cg.matchmessage ) {
-								helpmessage = cg.matchmessage;
-							}
-						}
-						break;
-					case 1:
-						if( !cg.motd ) {
-							return true;
-						}
-						helpmessage = "Message of the day:";
-						break;
-					case 2:
-						helpmessage = cg.motd;
-						break;
-					default:
-						return true;
-				}
-
-				if( helpmessage[0] ) {
-					y += trap_SCR_DrawMultilineString( x, y, helpmessage, layout_cursor_align,
-													   layout_cursor_width, 0, CG_GetLayoutCursorFont(), color ) * font_height;
-				}
-			}
-		}
-	}
 	return true;
 }
 
@@ -1874,6 +1740,7 @@ static bool CG_LFuncDrawBindString( struct cg_layoutnode_s *commandnode, struct 
 
 	char keys[ 128 ];
 	CG_GetBoundKeysString( command, keys, sizeof( keys ) );
+	if( !strcmp(keys, "UNBOUND") ) Q_snprintfz( keys, sizeof( keys ), "[%s]", command );
 	char buf[ 1024 ];
 	Q_snprintfz( buf, sizeof( buf ), fmt, keys );
 
@@ -2196,14 +2063,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 	},
 
 	{
-		"drawHelpString",
-		CG_LFuncDrawHelpMessage,
-		0,
-		"Draws the help message",
-		false
-	},
-
-	{
 		"drawPlayerName",
 		CG_LFuncDrawPlayerName,
 		1,
@@ -2451,51 +2310,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 	}
 };
 
-void Cmd_CG_PrintHudHelp_f( void ) {
-	const cg_layoutcommand_t *cmd;
-	cg_layoutoperators_t *op;
-	int i;
-	const gsitem_t *item;
-	char *name, *p;
-
-	CG_Printf( "- %sHUD scripts commands\n-------------------------------------%s\n", S_COLOR_YELLOW, S_COLOR_WHITE );
-	for( cmd = cg_LayoutCommands; cmd->name; cmd++ ) {
-		CG_Printf( "- cmd: %s%s%s expected arguments: %s%i%s\n- desc: %s%s%s\n",
-				   S_COLOR_YELLOW, cmd->name, S_COLOR_WHITE,
-				   S_COLOR_YELLOW, cmd->numparms, S_COLOR_WHITE,
-				   S_COLOR_BLUE, cmd->help, S_COLOR_WHITE );
-	}
-	CG_Printf( "\n" );
-
-	CG_Printf( "- %sHUD scripts operators\n------------------------------------%s\n", S_COLOR_YELLOW, S_COLOR_WHITE );
-	CG_Printf( "- " );
-	for( op = cg_LayoutOperators; op->name; op++ ) {
-		CG_Printf( "%s%s%s, ", S_COLOR_YELLOW, op->name, S_COLOR_WHITE );
-	}
-	CG_Printf( "\n\n" );
-
-	CG_Printf( "- %sHUD scripts CONSTANT names\n-------------------------------%s\n", S_COLOR_YELLOW, S_COLOR_WHITE );
-	for( item = &itemdefs[1]; item->classname; item++ ) {
-		name = Q_strupr( CG_CopyString( item->name ) );
-		p = name;
-		while( ( p = strchr( p, ' ' ) ) ) {
-			*p = '_';
-		}
-
-		CG_Printf( "%sITEM_%s%s, ", S_COLOR_YELLOW, name, S_COLOR_WHITE );
-	}
-	for( i = 0; cg_numeric_constants[i].name != NULL; i++ ) {
-		CG_Printf( "%s%s%s, ", S_COLOR_YELLOW, cg_numeric_constants[i].name, S_COLOR_WHITE );
-	}
-	CG_Printf( "\n\n" );
-
-	CG_Printf( "- %sHUD scripts REFERENCE names\n------------------------------%s\n", S_COLOR_YELLOW, S_COLOR_WHITE );
-	for( i = 0; cg_numeric_references[i].name != NULL; i++ ) {
-		CG_Printf( "%s%s%s, ", S_COLOR_YELLOW, cg_numeric_references[i].name, S_COLOR_WHITE );
-	}
-	CG_Printf( "\n" );
-}
-
 
 //=============================================================================
 
@@ -2665,21 +2479,6 @@ static cg_layoutnode_t *CG_LayoutParseArgumentNode( const char *token ) {
 			}
 		}
 
-#if 0 // not used yet at least
-	} else if( token[0] == '$' ) {   // it's a string constant
-		int i;
-		type = LNODE_STRING;
-		valuetok++; // skip $
-
-		// replace stat names by values
-		for( i = 0; cg_string_constants[i].name != NULL; i++ ) {
-			if( !Q_stricmp( valuetok, cg_string_constants[i].name ) ) {
-				Q_snprintfz( tmpstring, sizeof( tmpstring ), "%s", cg_string_constants[i].value );
-				valuetok = tmpstring;
-				break;
-			}
-		}
-#endif
 	} else if( token[0] == '\\' ) {
 		valuetok = ++token;
 		type = LNODE_STRING;
@@ -2717,10 +2516,6 @@ static int CG_LayoutCathegorizeToken( char *token ) {
 		return LNODE_REFERENCE_NUMERIC;
 	} else if( token[0] == '#' ) {   // it's a numerical constant
 		return LNODE_NUMERIC;
-#if 0
-	} else if( token[0] == '$' ) {   // it's a string constant
-		return LNODE_STRING;
-#endif
 	} else if( token[0] < '0' && token[0] > '9' && token[0] != '.' ) {
 		return LNODE_STRING;
 	}
@@ -2984,29 +2779,6 @@ static cg_layoutnode_t *CG_RecurseParseLayoutScript( char **ptr, int level ) {
 	return rootnode;
 }
 
-#if 0
-static void CG_RecursePrintLayoutThread( cg_layoutnode_t *rootnode, int level ) {
-	int i;
-	cg_layoutnode_t *node;
-
-	node = rootnode;
-	while( node->parent )
-		node = node->parent;
-
-	while( node ) {
-		for( i = 0; i < level; i++ )
-			CG_Printf( "   " );
-		CG_Printf( "%s\n", node->string );
-
-		if( node->ifthread ) {
-			CG_RecursePrintLayoutThread( node->ifthread, level + 1 );
-		}
-
-		node = node->next;
-	}
-}
-#endif
-
 /*
 * CG_ParseLayoutScript
 */
@@ -3014,10 +2786,6 @@ static void CG_ParseLayoutScript( char *string, cg_layoutnode_t *rootnode ) {
 
 	CG_RecurseFreeLayoutThread( cg.statusBar );
 	cg.statusBar = CG_RecurseParseLayoutScript( &string, 0 );
-
-#if 0
-	CG_RecursePrintLayoutThread( cg_layoutRootNode, 0 );
-#endif
 }
 
 //=============================================================================
@@ -3098,6 +2866,7 @@ static void CG_RecurseExecuteLayoutThread( cg_layoutnode_t *rootnode ) {
 * CG_ExecuteLayoutProgram
 */
 void CG_ExecuteLayoutProgram( struct cg_layoutnode_s *rootnode ) {
+	MICROPROFILE_SCOPEI( "Main", "CG_ExecuteLayoutProgram", 0xffffffff );
 	CG_RecurseExecuteLayoutThread( rootnode );
 }
 

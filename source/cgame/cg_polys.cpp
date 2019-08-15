@@ -133,14 +133,10 @@ static cpoly_t *CG_SpawnPolygon( float r, float g, float b, float a,
 	pl->fadefreq = ( fadetime ? ( 1000.0f / fadetime ) * 0.001f : 0 );
 	pl->shader = shader;
 	pl->tag = tag;
-	pl->color[0] = r;
-	pl->color[1] = g;
-	pl->color[2] = b;
-	pl->color[3] = a;
-	clamp( pl->color[0], 0.0f, 1.0f );
-	clamp( pl->color[1], 0.0f, 1.0f );
-	clamp( pl->color[2], 0.0f, 1.0f );
-	clamp( pl->color[3], 0.0f, 1.0f );
+	pl->color[0] = Clamp01( r );
+	pl->color[1] = Clamp01( g );
+	pl->color[2] = Clamp01( b );
+	pl->color[3] = Clamp01( a );
 
 	return pl;
 }
@@ -148,7 +144,7 @@ static cpoly_t *CG_SpawnPolygon( float r, float g, float b, float a,
 /*
 * CG_SpawnPolyQuad
 */
-static cpoly_t *CG_SpawnPolyQuad( const vec3_t v1, const vec3_t v2, const vec3_t v3, const vec3_t v4,
+static void CG_SpawnPolyQuad( const vec3_t v1, const vec3_t v2, const vec3_t v3, const vec3_t v4,
 	float stx, float sty, const vec4_t color, int64_t dietime, int64_t fadetime, StringHash shader, int tag ) {
 	int i;
 	cpoly_t *cgpoly;
@@ -196,8 +192,6 @@ static cpoly_t *CG_SpawnPolyQuad( const vec3_t v1, const vec3_t v2, const vec3_t
 	for( i = 0; i < 4; i++ ) {
 		Vector4Copy( ucolor, poly->colors[i] );
 	}
-
-	return cgpoly;
 }
 
 /*
@@ -206,7 +200,7 @@ static cpoly_t *CG_SpawnPolyQuad( const vec3_t v1, const vec3_t v2, const vec3_t
 * shaderlenght makes reference to size of the texture it will draw, so it can be tiled.
 * the beam shader must be an autosprite2!
 */
-static cpoly_t *CG_SpawnPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color,
+void CG_SpawnPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color,
 	int width, int64_t dietime, int64_t fadetime, StringHash shader, int shaderlength, int tag ) {
 	vec3_t dir, right, up;
 	vec3_t v[4];
@@ -226,7 +220,7 @@ static cpoly_t *CG_SpawnPolyBeam( const vec3_t start, const vec3_t end, const ve
 
 	if( xmax - xmin < ymax - ymin ) {
 		// do not render polybeams which have width longer than their length
-		return NULL;
+		return;
 	}
 
 	ViewVectors( dir, right, up );
@@ -236,7 +230,7 @@ static cpoly_t *CG_SpawnPolyBeam( const vec3_t start, const vec3_t end, const ve
 	VectorMA( end, ymax, right, v[2] );
 	VectorMA( end, ymin, right, v[3] );
 
-	return CG_SpawnPolyQuad( v[0], v[1], v[2], v[3], stx, sty, color, dietime, fadetime, shader, tag );
+	CG_SpawnPolyQuad( v[0], v[1], v[2], v[3], stx, sty, color, dietime, fadetime, shader, tag );
 }
 
 /*
@@ -272,13 +266,6 @@ void CG_LGPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color, in
 void CG_EBPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color ) {
 	constexpr int time = 250;
 	CG_SpawnPolyBeam( start, end, color, 16, time, time * 0.4f, "gfx/misc/ebbeam", 64, 0 );
-}
-
-/*
-* CG_PLink
-*/
-void CG_PLink( const vec3_t start, const vec3_t end, const vec4_t color, int flags ) {
-	CG_SpawnPolyBeam( start, end, color, 4, 2000.0f, 0.0f, "gfx/misc/laser", 64, 0 );
 }
 
 /*

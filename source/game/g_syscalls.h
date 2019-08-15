@@ -53,9 +53,6 @@ static inline const char *trap_GetConfigString( int num ) {
 static inline int trap_ModelIndex( const char *name ) {
 	return GAME_IMPORT.ModelIndex( name );
 }
-static inline int trap_SkinIndex( const char *name ) {
-	return GAME_IMPORT.SkinIndex( name );
-}
 
 static inline int64_t trap_Milliseconds( void ) {
 	return GAME_IMPORT.Milliseconds();
@@ -212,10 +209,6 @@ static inline int trap_FS_GetFileList( const char *dir, const char *extension, c
 	return GAME_IMPORT.FS_GetFileList( dir, extension, buf, bufsize, start, end );
 }
 
-static inline const char *trap_FS_FirstExtension( const char *filename, const char *extensions[], int num_extensions ) {
-	return GAME_IMPORT.FS_FirstExtension( filename, extensions, num_extensions );
-}
-
 static inline bool trap_FS_MoveFile( const char *src, const char *dst ) {
 	return GAME_IMPORT.FS_MoveFile( src, dst ) == true;
 }
@@ -258,8 +251,4 @@ static inline void trap_DropClient( edict_t *ent, int type, const char *message 
 
 static inline void trap_LocateEntities( struct edict_s *edicts, int edict_size, int num_edicts, int max_edicts ) {
 	GAME_IMPORT.LocateEntities( edicts, edict_size, num_edicts, max_edicts );
-}
-
-static inline struct angelwrap_api_s *trap_asGetAngelExport( void ) {
-	return GAME_IMPORT.asGetAngelExport();
 }

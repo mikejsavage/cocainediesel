@@ -22,46 +22,27 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PLAYER_MASS 200
 
 /*
-* player_pain
-*/
-void player_pain( edict_t *self, edict_t *other, float kick, int damage ) {
-	// player pain is handled at the end of the frame in P_DamageFeedback
-}
-
-/*
-* player_think
-*/
-void player_think( edict_t *self ) {
-	// player entities do not think
-}
-
-/*
 * ClientObituary
 */
 static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker ) {
-	int mod;
 	char message[64];
 	char message2[64];
 
-	if( level.gametype.disableObituaries ) {
-		return;
-	}
+	int mod = meansOfDeath;
 
-	mod = meansOfDeath;
-
-	GS_Obituary( self, G_PlayerGender( self ), attacker, mod, message, message2 );
+	GS_Obituary( self, attacker, mod, message, message2 );
 
 	// duplicate message at server console for logging
 	if( attacker && attacker->r.client ) {
 		if( attacker != self ) { // regular death message
 			self->enemy = attacker;
-			if( dedicated->integer ) {
+			if( GAME_IMPORT.is_dedicated_server ) {
 				G_Printf( "%s%s %s %s%s%s\n", self->r.client->netname, S_COLOR_WHITE, message,
 						  attacker->r.client->netname, S_COLOR_WHITE, message2 );
 			}
 		} else {      // suicide
 			self->enemy = NULL;
-			if( dedicated->integer ) {
+			if( GAME_IMPORT.is_dedicated_server ) {
 				G_Printf( "%s %s%s\n", self->r.client->netname, S_COLOR_WHITE, message );
 			}
 		}
@@ -69,7 +50,7 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 		G_Obituary( self, attacker, mod );
 	} else {      // wrong place, suicide, etc.
 		self->enemy = NULL;
-		if( dedicated->integer ) {
+		if( GAME_IMPORT.is_dedicated_server ) {
 			G_Printf( "%s %s%s\n", self->r.client->netname, S_COLOR_WHITE, message );
 		}
 
@@ -118,24 +99,10 @@ void G_InitBodyQueue( void ) {
 }
 
 /*
-* body_die
-*/
-static void body_die( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point ) {
-	if( self->health >= GIB_HEALTH ) {
-		return;
-	}
-
-	ThrowSmallPileOfGibs( self, damage );
-	self->s.origin[2] -= 48;
-	ThrowClientHead( self, damage );
-	self->nextThink = level.time + 3000 + random() * 3000;
-}
-
-/*
 * body_think
 */
 static void body_think( edict_t *self ) {
-	self->health = GIB_HEALTH - 1;
+	self->health = -1;
 
 	// disallow interaction with the world.
 	self->takedamage = DAMAGE_NO;
@@ -220,58 +187,44 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 	VectorCopy( ent->velocity, body->velocity );
 	body->r.maxs[2] = body->r.mins[2] + 8;
 
-	body->r.solid = SOLID_YES;
-	body->takedamage = DAMAGE_YES;
-	body->r.clipmask = CONTENTS_SOLID | CONTENTS_PLAYERCLIP;
+	body->r.solid = SOLID_NOT;
+	body->takedamage = DAMAGE_NO;
 	body->movetype = MOVETYPE_TOSS;
-	body->die = body_die;
 	body->think = body_think; // body self destruction countdown
 
-	if( ent->health < GIB_HEALTH || meansOfDeath == MOD_ELECTROBOLT ) {
+	int mod = meansOfDeath;
+	bool gib = mod == MOD_ELECTROBOLT || mod == MOD_ROCKET || mod == MOD_GRENADE ||
+		mod == MOD_TRIGGER_HURT || mod == MOD_TELEFRAG || mod == MOD_EXPLOSIVE ||
+		( ( mod == MOD_ROCKET_SPLASH || mod == MOD_GRENADE_SPLASH ) && damage >= 40 );
+
+	if( gib ) {
 		ThrowSmallPileOfGibs( body, damage );
 
 		// reset gib impulse
 		VectorClear( body->velocity );
-		ThrowClientHead( body, damage ); // sets ET_GIB
 
-		body->s.frame = 0;
 		body->nextThink = level.time + 3000 + random() * 3000;
 		body->deadflag = DEAD_DEAD;
-	} else if( ent->s.type == ET_PLAYER ) {
+	}
+	if( ent->s.type == ET_PLAYER ) {
 		// copy the model
 		body->s.type = ET_CORPSE;
 		body->s.modelindex = ent->s.modelindex;
 		body->s.bodyOwner = ent->s.number; // bodyOwner is the same as modelindex2
-		body->s.skin = ent->s.skin;
 		body->s.teleported = true;
 
-		// launch the death animation on the body
-		{
-			static int i;
-			i = ( i + 1 ) % 3;
-			G_AddEvent( body, EV_DIE, i, true );
-			switch( i ) {
-				default:
-				case 0:
-					body->s.frame = ( ( BOTH_DEAD1 & 0x3F ) | ( BOTH_DEAD1 & 0x3F ) << 6 | ( 0 & 0xF ) << 12 );
-					break;
-				case 1:
-					body->s.frame = ( ( BOTH_DEAD2 & 0x3F ) | ( BOTH_DEAD2 & 0x3F ) << 6 | ( 0 & 0xF ) << 12 );
-					break;
-				case 2:
-					body->s.frame = ( ( BOTH_DEAD3 & 0x3F ) | ( BOTH_DEAD3 & 0x3F ) << 6 | ( 0 & 0xF ) << 12 );
-					break;
-			}
-		}
+		G_AddEvent( body, EV_DIE, rand(), true );
 
-		body->think = body_think;
-		body->takedamage = DAMAGE_NO;
-		body->r.solid = SOLID_NOT;
-		body->nextThink = level.time + 3500;
+		// bit of a hack, if we're not in warmup, leave the body with no think. think self destructs
+		// after a timeout, but if we leave, next bomb round will call G_ResetLevel() cleaning up
+		if ( GS_MatchState() == MATCH_STATE_WARMUP ) {
+			body->nextThink = level.time + 3500;
+		} else {
+			body->think = NULL;
+		}
 	} else {   // wasn't a player, just copy it's model
 		VectorClear( body->velocity );
 		body->s.modelindex = ent->s.modelindex;
-		body->s.frame = ent->s.frame;
 		body->nextThink = level.time + 5000 + random() * 10000;
 	}
 
@@ -376,18 +329,8 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 }
 
 static void G_Client_AssignTeamSkin( edict_t *ent, char *userinfo ) {
-	char skin[MAX_QPATH], model[MAX_QPATH];
-	const char *userskin, *usermodel;
-
-	// index skin file
-	userskin = GS_TeamSkinName( ent->s.team ); // is it a team skin?
-	if( !userskin ) { // NULL indicates *user defined*
-		userskin = Info_ValueForKey( userinfo, "skin" );
-		if( !userskin || !userskin[0] || !COM_ValidateRelativeFilename( userskin ) ||
-			strchr( userskin, '/' ) || strstr( userskin, "invisibility" ) ) {
-			userskin = NULL;
-		}
-	}
+	char model[MAX_QPATH];
+	const char *usermodel;
 
 	// index player model
 	usermodel = Info_ValueForKey( userinfo, "model" );
@@ -395,18 +338,15 @@ static void G_Client_AssignTeamSkin( edict_t *ent, char *userinfo ) {
 		usermodel = NULL;
 	}
 
-	if( userskin && usermodel ) {
+	if( usermodel ) {
 		Q_snprintfz( model, sizeof( model ), "$models/players/%s", usermodel );
-		Q_snprintfz( skin, sizeof( skin ), "models/players/%s/%s", usermodel, userskin );
 	} else {
 		Q_snprintfz( model, sizeof( model ), "$models/players/%s", DEFAULT_PLAYERMODEL );
-		Q_snprintfz( skin, sizeof( skin ), "models/players/%s/%s", DEFAULT_PLAYERMODEL, DEFAULT_PLAYERSKIN );
 	}
 
 	if( !ent->deadflag ) {
 		ent->s.modelindex = trap_ModelIndex( model );
 	}
-	ent->s.skin = StringHash( skin );
 }
 
 /*
@@ -430,13 +370,10 @@ void G_GhostClient( edict_t *ent ) {
 	memset( &ent->snap, 0, sizeof( ent->snap ) );
 	memset( &ent->r.client->resp.snap, 0, sizeof( ent->r.client->resp.snap ) );
 	memset( &ent->r.client->resp.chase, 0, sizeof( ent->r.client->resp.chase ) );
-	memset( &ent->r.client->resp.awardInfo, 0, sizeof( ent->r.client->resp.awardInfo ) );
-	ent->r.client->resp.next_drown_time = 0;
 	ent->r.client->resp.old_waterlevel = 0;
 	ent->r.client->resp.old_watertype = 0;
 
 	ent->s.modelindex = ent->s.modelindex2 = 0;
-	ent->s.skin = EMPTY_HASH;
 	ent->s.effects = 0;
 	ent->s.weapon = 0;
 	ent->s.sound = EMPTY_HASH;
@@ -450,8 +387,6 @@ void G_GhostClient( edict_t *ent ) {
 	ent->r.client->ps.stats[STAT_WEAPON] = ent->r.client->ps.stats[STAT_PENDING_WEAPON] = WEAP_NONE;
 	ent->r.client->ps.weaponState = WEAPON_STATE_READY;
 	ent->r.client->ps.stats[STAT_WEAPON_TIME] = 0;
-
-	G_SetPlayerHelpMessage( ent, 0 );
 
 	GClip_LinkEntity( ent );
 }
@@ -509,13 +444,10 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->s.type = ET_PLAYER;
 	self->groundentity = NULL;
 	self->takedamage = DAMAGE_AIM;
-	self->think = player_think;
-	self->pain = player_pain;
 	self->die = player_die;
 	self->viewheight = playerbox_stand_viewheight;
 	self->r.inuse = true;
 	self->mass = PLAYER_MASS;
-	self->air_finished = level.time + ( 12 * 1000 );
 	self->r.clipmask = MASK_PLAYERSOLID;
 	self->waterlevel = 0;
 	self->watertype = 0;
@@ -568,7 +500,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 
 	// set angles
 	self->s.angles[PITCH] = 0;
-	self->s.angles[YAW] = anglemod( spawn_angles[YAW] );
+	self->s.angles[YAW] = AngleNormalize360( spawn_angles[YAW] );
 	self->s.angles[ROLL] = 0;
 	VectorCopy( self->s.angles, client->ps.viewangles );
 
@@ -578,8 +510,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 
 	// don't put spectators in the game
 	if( !ghost ) {
-		if( KillBox( self ) ) {
-		}
+		KillBox( self, MOD_TELEFRAG );
 	}
 
 	self->s.attenuation = ATTN_NORM;
@@ -590,7 +521,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	client->ps.pmove.pm_flags = PMF_TIME_TELEPORT;
 	client->ps.pmove.pm_time = 14;
 	client->ps.pmove.stats[PM_STAT_NOUSERCONTROL] = CLIENT_RESPAWN_FREEZE_DELAY;
-	client->ps.pmove.stats[PM_STAT_NOAUTOATTACK] = 1000;
 
 	// set race stats to invisible
 	client->ps.stats[STAT_TIME_SELF] = STAT_NOTSET;
@@ -606,9 +536,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	GClip_LinkEntity( self );
 
 	// let the gametypes perform their changes
-	if( game.asEngine != NULL ) {
-		GT_asCallPlayerRespawn( self, old_team, self->s.team );
-	}
+	GT_asCallPlayerRespawn( self, old_team, self->s.team );
 
 	if( self->r.svflags & SVF_FAKECLIENT ) {
 		AI_Respawn( self );
@@ -684,7 +612,7 @@ void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
 	GClip_UnlinkEntity( player );
 
 	// kill anything at the destination
-	KillBox( player );
+	KillBox( player, MOD_TELEFRAG );
 
 	GClip_LinkEntity( player );
 
@@ -711,11 +639,7 @@ void ClientBegin( edict_t *ent ) {
 	G_ClientRespawn( ent, true ); // respawn as ghost
 	ent->movetype = MOVETYPE_NOCLIP; // allow freefly
 
-	G_UpdatePlayerMatchMsg( ent );
-
-	if( !level.gametype.disableObituaries || !( ent->r.svflags & SVF_FAKECLIENT ) ) {
-		G_PrintMsg( NULL, "%s" S_COLOR_WHITE " entered the game\n", client->netname );
-	}
+	G_PrintMsg( NULL, "%s" S_COLOR_WHITE " entered the game\n", client->netname );
 
 	client->level.respawnCount = 0; // clear respawncount
 	client->connecting = false;
@@ -944,8 +868,6 @@ static void G_UpdatePlayerInfoString( int playerNum ) {
 
 	Info_SetValueForKey( playerString, "name", client->netname );
 	Info_SetValueForKey( playerString, "hand", va( "%i", client->hand ) );
-	Info_SetValueForKey( playerString, "color",
-						 va( "%i %i %i", client->color[0], client->color[1], client->color[2] ) );
 
 	playerString[MAX_CONFIGSTRING_CHARS - 1] = 0;
 	trap_ConfigString( CS_PLAYERINFOS + playerNum, playerString );
@@ -963,7 +885,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	char oldname[MAX_INFO_VALUE];
 	gclient_t *cl;
 
-	int rgbcolor, i;
+	int i;
 
 	assert( ent && ent->r.client );
 	assert( userinfo && Info_Validate( userinfo ) );
@@ -993,21 +915,6 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	}
 
 	Q_strncpyz( cl->socket, s, sizeof( cl->socket ) );
-
-	// color
-	s = Info_ValueForKey( userinfo, "color" );
-	if( s ) {
-		rgbcolor = COM_ReadColorRGBString( s );
-	} else {
-		rgbcolor = -1;
-	}
-
-	if( rgbcolor != -1 ) {
-		rgbcolor = COM_ValidatePlayerColor( rgbcolor );
-		Vector4Set( cl->color, COLOR_R( rgbcolor ), COLOR_G( rgbcolor ), COLOR_B( rgbcolor ), 255 );
-	} else {
-		Vector4Set( cl->color, 255, 255, 255, 255 );
-	}
 
 	// set name, it's validated and possibly changed first
 	Q_strncpyz( oldname, cl->netname, sizeof( oldname ) );
@@ -1043,16 +950,6 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 			cl->handicap = i;
 		}
 	}
-
-#ifdef UCMDTIMENUDGE
-	s = Info_ValueForKey( userinfo, "cl_ucmdTimeNudge" );
-	if( !s ) {
-		cl->ucmdTimeNudge = 0;
-	} else {
-		cl->ucmdTimeNudge = atoi( s );
-		clamp( cl->ucmdTimeNudge, -MAX_UCMD_TIMENUDGE, MAX_UCMD_TIMENUDGE );
-	}
-#endif
 
 	if( !G_ISGHOSTING( ent ) && trap_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
 		G_Client_AssignTeamSkin( ent, userinfo );
@@ -1170,12 +1067,10 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 		return;
 	}
 
-	if( !level.gametype.disableObituaries || !( ent->r.svflags & SVF_FAKECLIENT ) ) {
-		if( !reason ) {
-			G_PrintMsg( NULL, "%s" S_COLOR_WHITE " disconnected\n", ent->r.client->netname );
-		} else {
-			G_PrintMsg( NULL, "%s" S_COLOR_WHITE " disconnected (%s" S_COLOR_WHITE ")\n", ent->r.client->netname, reason );
-		}
+	if( !reason ) {
+		G_PrintMsg( NULL, "%s" S_COLOR_WHITE " disconnected\n", ent->r.client->netname );
+	} else {
+		G_PrintMsg( NULL, "%s" S_COLOR_WHITE " disconnected (%s" S_COLOR_WHITE ")\n", ent->r.client->netname, reason );
 	}
 
 	// send effect
@@ -1319,13 +1214,11 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	if( ent->r.svflags & SVF_FAKECLIENT ) {
 		client->timeDelta = 0;
 	} else {
-		int nudge;
 		int fixedNudge = ( game.snapFrameTime ) * 0.5; // fixme: find where this nudge comes from.
 
 		// add smoothing to timeDelta between the last few ucmds and a small fine-tuning nudge.
-		nudge = fixedNudge + g_antilag_timenudge->integer;
-		timeDelta += nudge;
-		clamp( timeDelta, -g_antilag_maxtimedelta->integer, 0 );
+		int nudge = fixedNudge + g_antilag_timenudge->integer;
+		timeDelta = Clamp( -g_antilag_maxtimedelta->integer, timeDelta + nudge, 0 );
 
 		// smooth using last valid deltas
 		i = client->timeDeltasHead - 6;
@@ -1348,26 +1241,17 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 
 		client->timeDeltas[client->timeDeltasHead & G_MAX_TIME_DELTAS_MASK] = timeDelta;
 		client->timeDeltasHead++;
-
-#ifdef UCMDTIMENUDGE
-		client->timeDelta += client->pers.ucmdTimeNudge;
-#endif
 	}
 
-	clamp( client->timeDelta, -g_antilag_maxtimedelta->integer, 0 );
+	client->timeDelta = Clamp( -g_antilag_maxtimedelta->integer, client->timeDelta, 0 );
 
 	// update activity if he touched any controls
-	if( ucmd->forwardmove != 0 || ucmd->sidemove != 0 || ucmd->upmove != 0 || ( ucmd->buttons & ~BUTTON_BUSYICON ) != 0
-		|| client->ucmd.angles[PITCH] != ucmd->angles[PITCH] || client->ucmd.angles[YAW] != ucmd->angles[YAW] ) {
+	if( ucmd->forwardmove != 0 || ucmd->sidemove != 0 || ucmd->upmove != 0 ||
+		client->ucmd.angles[PITCH] != ucmd->angles[PITCH] || client->ucmd.angles[YAW] != ucmd->angles[YAW] ) {
 		G_Client_UpdateActivity( client );
 	}
 
 	client->ucmd = *ucmd;
-
-	// can exit intermission after two seconds, not counting postmatch
-	if( GS_MatchState() == MATCH_STATE_WAITEXIT && game.serverTime > GS_MatchStartTime() + 2000 ) {
-		level.exitNow = true;
-	}
 
 	// (is this really needed?:only if not cared enough about ps in the rest of the code)
 	// refresh player state position from the entity

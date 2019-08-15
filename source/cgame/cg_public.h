@@ -20,10 +20,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include "qalgo/hash.h"
+#include "qcommon/hash.h"
 
 struct orientation_s;
-struct bonepose_s;
 struct fragment_s;
 struct entity_s;
 struct refdef_s;
@@ -35,8 +34,6 @@ struct qfontface_s;
 typedef void ( *cg_fdrawchar_t )( int x, int y, int w, int h, float s1, float t1, float s2, float t2, const vec4_t color, StringHash shader );
 
 // cg_public.h -- client game dll information visible to engine
-
-#define CGAME_API_VERSION   104
 
 //
 // structs and variables shared with the main engine
@@ -118,7 +115,6 @@ typedef struct {
 	void ( *FS_FCloseFile )( int file );
 	bool ( *FS_RemoveFile )( const char *filename );
 	int ( *FS_GetFileList )( const char *dir, const char *extension, char *buf, size_t bufsize, int start, int end );
-	const char *( *FS_FirstExtension )( const char *filename, const char *extensions[], int num_extensions );
 	bool ( *FS_IsPureFile )( const char *filename );
 	bool ( *FS_MoveFile )( const char *src, const char *dst );
 	bool ( *FS_RemoveDirectory )( const char *dirname );
@@ -146,19 +142,12 @@ typedef struct {
 	const char *( *R_GetSpeedsMessage )( char *out, size_t size );
 	int ( *R_GetAverageFrametime )( void );
 	void ( *R_RegisterWorldModel )( const char *name );
-	void ( *R_ModelBounds )( const struct model_s *mod, vec3_t mins, vec3_t maxs );
-	void ( *R_ModelFrameBounds )( const struct model_s *mod, int frame, vec3_t mins, vec3_t maxs );
 	struct model_s *( *R_RegisterModel )( const char *name );
 	bool ( *R_LerpTag )( struct orientation_s *orient, const struct model_s *mod, int oldframe, int frame, float lerpfrac, const char *name );
-	void ( *R_SetCustomColor )( int num, int r, int g, int b );
 	void ( *R_DrawStretchPic )( int x, int y, int w, int h, float s1, float t1, float s2, float t2, const vec4_t color, StringHash shader );
 	void ( *R_DrawRotatedStretchPic )( int x, int y, int w, int h, float s1, float t1, float s2, float t2, float angle, const vec4_t color, StringHash shader );
 	void ( *R_TransformVectorToScreen )( const struct refdef_s *rd, const vec3_t in, vec2_t out );
 	bool ( *R_TransformVectorToScreenClamped )( const struct refdef_s *rd, const vec3_t in, int border, vec2_t out );
-	int ( *R_SkeletalGetNumBones )( const struct model_s *mod, int *numFrames );
-	int ( *R_SkeletalGetBoneInfo )( const struct model_s *mod, int bone, char *name, size_t name_size, int *flags );
-	void ( *R_SkeletalGetBonePose )( const struct model_s *mod, int bone, int frame, struct bonepose_s *bonepose );
-	StringHash ( *R_GetShaderForOrigin )( const vec3_t origin );
 
 	void ( *VID_FlashWindow )();
 
@@ -172,40 +161,22 @@ typedef struct {
 	void ( *CM_InlineModelBounds )( struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs );
 	bool ( *CM_InPVS )( const vec3_t p1, const vec3_t p2 );
 
-	// sound system
-	void ( *S_Update )( const vec3_t origin, const vec3_t velocity, const mat3_t axis );
-	void ( *S_UpdateEntity )( int entNum, vec3_t origin, vec3_t velocity );
-	void ( *S_StartFixedSound )( StringHash sound, const vec3_t origin, int entchannel, float volume, float attenuation );
-	void ( *S_StartEntitySound )( StringHash sound, int entnum, int entchannel, float volume, float attenuation );
-	void ( *S_StartGlobalSound )( StringHash sound, int entchannel, float volume );
-	void ( *S_StartLocalSound )( StringHash sound, int channel, float volume );
-	void ( *S_ImmediateSound )( StringHash sound, int entnum, float volume, float attenuation );
-
 	// fonts
 	struct qfontface_s *( *SCR_RegisterFont )( const char *family, int style, unsigned int size );
 	struct qfontface_s *( *SCR_RegisterSpecialFont )( const char *family, int style, unsigned int size );
-	int ( *SCR_DrawString )( int x, int y, int align, const char *str, struct qfontface_s *font, const vec4_t color, int flags );
-	size_t ( *SCR_DrawStringWidth )( int x, int y, int align, const char *str, size_t maxwidth, struct qfontface_s *font, const vec4_t color, int flags );
-	void ( *SCR_DrawClampString )( int x, int y, const char *str, int xmin, int ymin, int xmax, int ymax, struct qfontface_s *font, const vec4_t color, int flags );
-	int ( *SCR_DrawMultilineString )( int x, int y, const char *str, int halign, int maxwidth, int maxlines, struct qfontface_s *font, const vec4_t color, int flags );
+	int ( *SCR_DrawString )( int x, int y, int align, const char *str, struct qfontface_s *font, const vec4_t color );
+	size_t ( *SCR_DrawStringWidth )( int x, int y, int align, const char *str, size_t maxwidth, struct qfontface_s *font, const vec4_t color );
+	void ( *SCR_DrawClampString )( int x, int y, const char *str, int xmin, int ymin, int xmax, int ymax, struct qfontface_s *font, const vec4_t color );
+	int ( *SCR_DrawMultilineString )( int x, int y, const char *str, int halign, int maxwidth, int maxlines, struct qfontface_s *font, const vec4_t color );
 	void ( *SCR_DrawRawChar )( int x, int y, wchar_t num, struct qfontface_s *font, const vec4_t color );
 	void ( *SCR_DrawClampChar )( int x, int y, wchar_t num, int xmin, int ymin, int xmax, int ymax, struct qfontface_s *font, const vec4_t color );
 	size_t ( *SCR_FontSize )( struct qfontface_s *font );
 	size_t ( *SCR_FontHeight )( struct qfontface_s *font );
 	int ( *SCR_FontUnderline )( struct qfontface_s *font, int *thickness );
-	size_t ( *SCR_FontAdvance )( struct qfontface_s *font );
-	size_t ( *SCR_FontXHeight )( struct qfontface_s *font );
-	size_t ( *SCR_strWidth )( const char *str, struct qfontface_s *font, size_t maxlen, int flags );
-	size_t ( *SCR_StrlenForWidth )( const char *str, struct qfontface_s *font, size_t maxwidth, int flags );
+	size_t ( *SCR_strWidth )( const char *str, struct qfontface_s *font, size_t maxlen );
+	size_t ( *SCR_StrlenForWidth )( const char *str, struct qfontface_s *font, size_t maxwidth );
 	cg_fdrawchar_t ( *SCR_SetDrawCharIntercept )( cg_fdrawchar_t intercept );
 	void ( *SCR_DrawChat )( int x, int y, int width, struct qfontface_s *font );
-
-	// managed memory allocation
-	void *( *Mem_Alloc )( size_t size, const char *filename, int fileline );
-	void ( *Mem_Free )( void *data, const char *filename, int fileline );
-
-	// angelscript api
-	struct angelwrap_api_s *( *asGetAngelExport )( void );
 } cgame_import_t;
 
 //
@@ -219,7 +190,7 @@ typedef struct {
 	void ( *Init )( const char *serverName, unsigned int playerNum,
 					int vidWidth, int vidHeight, float pixelRatio,
 					bool demoplaying, const char *demoName, bool pure, unsigned int snapFrameTime,
-					int protocol, const char *demoExtension, int sharedSeed, bool gameStart );
+					int sharedSeed, bool gameStart );
 
 	void ( *ResizeWindow )( int width, int height );
 
@@ -283,13 +254,4 @@ typedef struct {
 	 * @param movement movement vector to modify
 	 */
 	void ( *AddMovement )( vec3_t movement );
-
-	/**
-	* Passes the key press/up event to clientside game module.
-	* Returns true if the action bound to the key should not be sent to the interpreter.
-	*
-	* @param key  key id
-	* @param down true, if it's a button down event
-	*/
-	bool ( *KeyEvent )( int key, bool down );
 } cgame_export_t;

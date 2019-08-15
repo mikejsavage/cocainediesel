@@ -414,7 +414,7 @@ static void SV_Begin_f( client_t *client ) {
 
 	// wsw : r1q2[start] : could be abused to respawn or cause spam/other mod-specific problems
 	if( client->state != CS_CONNECTED ) {
-		if( dedicated->integer ) {
+		if( is_dedicated_server ) {
 			Com_Printf( "SV_Begin_f: 'Begin' from already spawned client: %s.\n", client->name );
 		}
 		SV_DropClient( client, DROP_TYPE_GENERAL, "Error: Begin while connected" );
@@ -446,8 +446,6 @@ static void SV_Begin_f( client_t *client ) {
 * If nextdl packet's offet information is negative, download will be stopped
 */
 static void SV_NextDownload_f( client_t *client ) {
-	int blocksize;
-	int offset;
 	uint8_t data[FRAGMENT_SIZE * 2];
 
 	if( !client->download.name ) {
@@ -460,7 +458,7 @@ static void SV_NextDownload_f( client_t *client ) {
 		return;
 	}
 
-	offset = atoi( Cmd_Argv( 2 ) );
+	int offset = atoi( Cmd_Argv( 2 ) );
 
 	if( offset > client->download.size ) {
 		Com_Printf( "nextdl message with too big offset, from: %s\n", client->name );
@@ -493,7 +491,7 @@ static void SV_NextDownload_f( client_t *client ) {
 	SV_InitClientMessage( client, &tmpMessage, NULL, 0 );
 	SV_AddReliableCommandsToMessage( client, &tmpMessage );
 
-	blocksize = client->download.size - offset;
+	int blocksize = client->download.size - offset;
 	if( blocksize > sizeof( data ) ) {
 		blocksize = sizeof( data );
 	}
@@ -788,8 +786,6 @@ ucmd_t ucmds[] =
 	{ "demolist", SV_DemoList_f },
 	{ "demoget", SV_DemoGet_f },
 
-	{ "svmotd", SV_MOTD_Get_f },
-
 	{ NULL, NULL }
 };
 
@@ -879,8 +875,7 @@ void SV_ExecuteClientThinks( int clientNum ) {
 	}
 
 	while( ( ucmd = SV_FindNextUserCommand( client ) ) != NULL ) {
-		msec = ucmd->serverTimeStamp - client->UcmdTime;
-		clamp( msec, 1, 200 );
+		msec = Clamp( int64_t( 1 ), ucmd->serverTimeStamp - client->UcmdTime, int64_t( 200 ) );
 		ucmd->msec = msec;
 		timeDelta = 0;
 		if( client->lastframe > 0 ) {

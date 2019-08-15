@@ -33,8 +33,6 @@ extern "C" QF_DLL_EXPORT cgame_export_t * GetCGameAPI( cgame_import_t * import )
 
 	CGAME_IMPORT = *import;
 
-	globals.API = CG_API;
-
 	globals.Init = CG_Init;
 	globals.ResizeWindow = CG_ResizeWindow;
 	globals.Reset = CG_Reset;
@@ -58,8 +56,6 @@ extern "C" QF_DLL_EXPORT cgame_export_t * GetCGameAPI( cgame_import_t * import )
 	globals.MouseMove = CG_MouseMove;
 	globals.AddViewAngles = CG_AddViewAngles;
 	globals.AddMovement = CG_AddMovement;
-
-	globals.KeyEvent = CG_KeyEvent;
 
 	return &globals;
 }

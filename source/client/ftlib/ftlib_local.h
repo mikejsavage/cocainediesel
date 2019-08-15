@@ -82,8 +82,6 @@ typedef struct qfontface_s {
 	int glyphYOffset;
 
 	int underlinePosition, underlineThickness;
-	int advance; // maximum character width/advance
-	int xHeight; // height of lowercase 'x'
 
 	// a font may not fit into single image
 	unsigned int numShaders;

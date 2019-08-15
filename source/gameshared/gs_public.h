@@ -33,15 +33,12 @@ typedef struct {
 	void ( *Error )( _Printf_format_string_ const char *format, ... );
 #endif
 
-	void *( *Malloc )( size_t size );
-	void ( *Free )( void *data );
 	void ( *Trace )( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask, int timeDelta );
 	entity_state_t *( *GetEntityState )( int entNum, int deltaTime );
 	int ( *PointContents )( const vec3_t point, int timeDelta );
 	void ( *PredictedEvent )( int entNum, int ev, uint64_t parm );
 	void ( *PMoveTouchTriggers )( pmove_t *pm, vec3_t previous_origin );
 	const char *( *GetConfigString )( int index );
-	struct angelwrap_api_s *( *GetAngelExport )( void );
 } gs_module_api_t;
 
 //===============================================================
@@ -97,7 +94,6 @@ enum {
 	GS_MODULE_CGAME,
 };
 
-
 enum {
 	GAMESTAT_FLAGS,
 	GAMESTAT_MATCHSTATE,
@@ -109,22 +105,18 @@ enum {
 
 #define GAMESTAT_FLAG_PAUSED ( 1 << 0LL )
 #define GAMESTAT_FLAG_WAITING ( 1 << 1LL )
-#define GAMESTAT_FLAG_MATCHEXTENDED ( 1 << 3LL )
-#define GAMESTAT_FLAG_HASCHALLENGERS ( 1 << 4LL )
-#define GAMESTAT_FLAG_INHIBITSHOOTING ( 1 << 5LL )
-#define GAMESTAT_FLAG_ISTEAMBASED ( 1 << 6LL )
-#define GAMESTAT_FLAG_ISRACE ( 1 << 7LL )
-#define GAMESTAT_FLAG_COUNTDOWN ( 1 << 8LL )
-#define GAMESTAT_FLAG_SELFDAMAGE ( 1 << 9LL )
-#define GAMESTAT_FLAG_INFINITEAMMO ( 1 << 10LL )
-#define GAMESTAT_FLAG_CANFORCEMODELS ( 1 << 11LL )
-#define GAMESTAT_FLAG_MMCOMPATIBLE ( 1 << 12LL )
-#define GAMESTAT_FLAG_CANDROPWEAPON ( 1 << 13LL )
+#define GAMESTAT_FLAG_HASCHALLENGERS ( 1 << 2LL )
+#define GAMESTAT_FLAG_INHIBITSHOOTING ( 1 << 3LL )
+#define GAMESTAT_FLAG_ISTEAMBASED ( 1 << 4LL )
+#define GAMESTAT_FLAG_ISRACE ( 1 << 5LL )
+#define GAMESTAT_FLAG_COUNTDOWN ( 1 << 6LL )
+#define GAMESTAT_FLAG_SELFDAMAGE ( 1 << 7LL )
+#define GAMESTAT_FLAG_INFINITEAMMO ( 1 << 8LL )
+#define GAMESTAT_FLAG_CANFORCEMODELS ( 1 << 9LL )
 
 typedef struct {
 	int module;
 	int maxclients;
-	char gametypeName[MAX_CONFIGSTRING_CHARS];
 	game_state_t gameState;
 	gs_module_api_t api;
 } gs_state_t;
@@ -138,13 +130,9 @@ extern gs_state_t gs;
 #define GS_RaceGametype() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_ISRACE ) ? true : false )
 #define GS_MatchPaused() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_PAUSED ) ? true : false )
 #define GS_MatchWaiting() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_WAITING ) ? true : false )
-#define GS_MatchExtended() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_MATCHEXTENDED ) ? true : false )
-#define GS_SelfDamage() true
 #define GS_Countdown() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_COUNTDOWN ) ? true : false )
 #define GS_InfiniteAmmo() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_INFINITEAMMO ) ? true : false )
 #define GS_CanForceModels() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_CANFORCEMODELS ) ? true : false )
-#define GS_MMCompatible() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_MMCOMPATIBLE ) ? true : false )
-#define GS_CanDropWeapon() ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_CANDROPWEAPON ? true : false )
 
 #define GS_MatchState() ( gs.gameState.stats[GAMESTAT_MATCHSTATE] )
 #define GS_MaxPlayersInTeam() ( gs.gameState.stats[GAMESTAT_MAXPLAYERSINTEAM] )
@@ -255,7 +243,7 @@ enum {
 // ANIMATIONS
 
 enum {
-	ANIM_NONE = 0,
+	ANIM_NONE,
 	BOTH_DEATH1,      //Death animation
 	BOTH_DEAD1,       //corpse on the ground
 	BOTH_DEATH2,
@@ -322,13 +310,6 @@ enum {
 	PMODEL_TOTAL_ANIMATIONS,
 };
 
-// gender stuff
-enum {
-	GENDER_MALE,
-	GENDER_FEMALE,
-	GENDER_NEUTRAL
-};
-
 //===============================================================
 
 #define HEALTH_TO_INT( x )    ( ( x ) < 1.0f ? (int)ceil( ( x ) ) : (int)floor( ( x ) + 0.5f ) )
@@ -364,27 +345,9 @@ typedef enum {
 	AMMO_LASERS,
 	AMMO_BOLTS,
 
-	AMMO_TOTAL
+	AMMO_TOTAL,
+	ITEMS_TOTAL = AMMO_TOTAL,
 } ammo_tag_t;
-
-typedef enum {
-	HEALTH_NONE = 0,
-	HEALTH_SMALL = AMMO_TOTAL,
-	HEALTH_MEDIUM,
-	HEALTH_LARGE,
-	HEALTH_MEGA,
-	HEALTH_ULTRA,
-
-	HEALTH_TOTAL
-} health_tag_t;
-
-typedef enum {
-	POWERUP_NONE = 0,
-	POWERUP_QUAD = HEALTH_TOTAL,
-
-	POWERUP_TOTAL,
-	ITEMS_TOTAL = POWERUP_TOTAL,
-} powerup_tag_t;
 
 #define GS_MAX_ITEM_TAGS ITEMS_TOTAL
 
@@ -394,15 +357,12 @@ typedef enum {
 #define ITFLAG_PICKABLE     1
 #define ITFLAG_USABLE       2
 #define ITFLAG_DROPABLE     4
-#define ITFLAG_STAY_COOP    8
 
 // gsitem_t->type
 // define as bitflags values so they can be masked
 typedef enum {
 	IT_WEAPON = 1,
 	IT_AMMO = 2,
-	IT_POWERUP = 4,
-	IT_HEALTH = 64,
 } itemtype_t;
 
 typedef struct gitem_s {
@@ -416,7 +376,6 @@ typedef struct gitem_s {
 	const char *world_model[MAX_ITEM_MODELS];
 	StringHash icon;
 	const char *simpleitem;       // Kurim : we use different images for representing simpleitems
-	StringHash pickup_sound;
 	int effects;
 
 
@@ -466,76 +425,31 @@ enum {
 	TEAM_ENEMY,
 };
 
+struct TeamColor {
+	const char * name;
+	RGB8 rgb;
+};
+
+constexpr TeamColor TEAM_COLORS[] = {
+	{ "Blue", RGB8( 0, 160, 255 ) },
+	{ "Red", RGB8( 255, 20, 60 ) },
+	{ "Green", RGB8( 82, 252, 95 ) },
+	{ "Yellow", RGB8( 255, 199, 30 ) },
+};
+
 // teams
 const char *GS_TeamName( int team );
 const char *GS_DefaultTeamName( int team );
-const char *GS_TeamSkinName( int team );
-int GS_Teams_TeamFromName( const char *teamname );
+int GS_TeamFromName( const char *teamname );
 bool GS_IsTeamDamage( entity_state_t *targ, entity_state_t *attacker );
 
 //===============================================================
 
-//gs_players.c
-
-enum {
-	BASE_CHANNEL,
-	EVENT_CHANNEL,
-	PLAYERANIM_CHANNELS
-};
-
-typedef struct {
-	int newanim[PMODEL_PARTS];
-} gs_animationbuffer_t;
-
-typedef struct {
-	int anim;
-	int frame;
-	int64_t startTimestamp;
-	float lerpFrac;
-} gs_animstate_t;
-
-typedef struct {
-	// animations in the mixer
-	gs_animstate_t curAnims[PMODEL_PARTS][PLAYERANIM_CHANNELS];
-	gs_animationbuffer_t buffer[PLAYERANIM_CHANNELS];
-
-	// results
-	int frame[PMODEL_PARTS];
-	int oldframe[PMODEL_PARTS];
-	float lerpFrac[PMODEL_PARTS];
-} gs_pmodel_animationstate_t;
-
-typedef struct {
-	int firstframe[PMODEL_TOTAL_ANIMATIONS];
-	int lastframe[PMODEL_TOTAL_ANIMATIONS];
-	int loopingframes[PMODEL_TOTAL_ANIMATIONS];
-	float frametime[PMODEL_TOTAL_ANIMATIONS];
-} gs_pmodel_animationset_t;
-
-int GS_UpdateBaseAnims( entity_state_t *state, vec3_t velocity );
-void GS_PModel_AnimToFrame( int64_t curTime, gs_pmodel_animationset_t *animSet, gs_pmodel_animationstate_t *anim );
-void GS_PlayerModel_ClearEventAnimations( gs_pmodel_animationset_t *animSet, gs_pmodel_animationstate_t *animState );
-void GS_PlayerModel_AddAnimation( gs_pmodel_animationstate_t *animState, int loweranim, int upperanim, int headanim, int channel );
-
-
-//===============================================================
-
-typedef enum {
-	MATCHMESSAGE_NONE
-	, MATCHMESSAGE_CHALLENGERS_QUEUE
-	, MATCHMESSAGE_ENTER_CHALLENGERS_QUEUE
-	, MATCHMESSAGE_SPECTATOR_MODES
-	, MATCHMESSAGE_GET_READY
-	, MATCHMESSAGE_WAITING_FOR_PLAYERS
-} matchmessage_t;
-
 // gs_misc.c
-void GS_SetGametypeName( const char *name );
-void GS_Obituary( void *victim, int gender, void *attacker, int mod, char *message, char *message2 );
+void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *message2 );
 void GS_TouchPushTrigger( player_state_t *playerState, entity_state_t *pusher );
 int GS_WaterLevel( entity_state_t *state, vec3_t mins, vec3_t maxs );
 void GS_BBoxForEntityState( entity_state_t *state, vec3_t mins, vec3_t maxs );
-float GS_FrameForTime( int *frame, int64_t curTime, int64_t startTimeStamp, float frametime, int firstframe, int lastframe, int loopingframes, bool forceLoop );
 
 //===============================================================
 
@@ -548,12 +462,11 @@ float GS_FrameForTime( int *frame, int64_t curTime, int64_t startTimeStamp, floa
 #define PMFEAT_ZOOM             ( 1 << 5 )
 #define PMFEAT_GHOSTMOVE        ( 1 << 6 )
 #define PMFEAT_ITEMPICK         ( 1 << 7 )
-#define PMFEAT_GUNBLADEAUTOATTACK ( 1 << 8 )
-#define PMFEAT_WEAPONSWITCH     ( 1 << 9 )
-#define PMFEAT_TEAMGHOST        ( 1 << 10 )
+#define PMFEAT_WEAPONSWITCH     ( 1 << 8 )
+#define PMFEAT_TEAMGHOST        ( 1 << 9 )
 
 #define PMFEAT_ALL              ( 0xFFFF )
-#define PMFEAT_DEFAULT          ( PMFEAT_ALL & ~PMFEAT_GHOSTMOVE )
+#define PMFEAT_DEFAULT          ( PMFEAT_ALL & ~PMFEAT_GHOSTMOVE & ~PMFEAT_TEAMGHOST )
 
 enum {
 	STAT_LAYOUTS = 0,
@@ -619,13 +532,12 @@ static constexpr const char *gs_keyicon_names[] = {
 };
 
 // STAT_LAYOUTS flag bits meanings
-#define STAT_LAYOUT_INSTANTRESPAWN  0x00000002
-#define STAT_LAYOUT_SCOREBOARD      0x00000004
-#define STAT_LAYOUT_TEAMTAB         0x00000008
-#define STAT_LAYOUT_CHALLENGER      0x00000010 // player is in challengers queue (used for ingame menu)
-#define STAT_LAYOUT_READY           0x00000020 // player is ready (used for ingame menu)
-//#define	STAT_LAYOUT_UNUSED			0x00000040
-#define STAT_LAYOUT_SPECTEAMONLY    0x00000080
+#define STAT_LAYOUT_INSTANTRESPAWN  ( 1 << 1 )
+#define STAT_LAYOUT_SCOREBOARD      ( 1 << 2 )
+#define STAT_LAYOUT_TEAMTAB         ( 1 << 3 )
+#define STAT_LAYOUT_CHALLENGER      ( 1 << 4 ) // player is in challengers queue (used for ingame menu)
+#define STAT_LAYOUT_READY           ( 1 << 5 ) // player is ready (used for ingame menu)
+#define STAT_LAYOUT_SPECTEAMONLY    ( 1 << 6 )
 
 #define STAT_NOTSET                 -9999 // used for stats that don't have meaningful value atm.
 
@@ -635,8 +547,7 @@ static constexpr const char *gs_keyicon_names[] = {
 #define MOD_UNKNOWN 0
 
 typedef enum {
-	MOD_GUNBLADE_W = 36,
-	MOD_GUNBLADE_S,
+	MOD_GUNBLADE = 36,
 	MOD_MACHINEGUN,
 	MOD_RIOTGUN,
 	MOD_GRENADE,
@@ -657,14 +568,10 @@ typedef enum {
 	MOD_SUICIDE,
 	MOD_EXPLOSIVE,
 
-	// probably not used
-	MOD_BARREL,
-	MOD_BOMB,
-	MOD_EXIT, // except this one : player leaves
-	MOD_SPLASH,
-	MOD_TARGET_LASER,
 	MOD_TRIGGER_HURT,
-	MOD_HIT,
+
+	MOD_LASER,
+	MOD_SPIKES,
 } mod_damage_t;
 
 //===============================================================
@@ -680,14 +587,6 @@ enum {
 	PAIN_100,
 
 	PAIN_TOTAL
-};
-
-//fire modes as event parm
-enum {
-	FIRE_MODE_WEAK,
-	FIRE_MODE_STRONG,
-
-	FIRE_MODES_COUNT
 };
 
 // vsay tokens list
@@ -732,14 +631,13 @@ typedef enum {
 	EV_FIREWEAPON,
 	EV_ELECTROTRAIL,
 	EV_FIRE_RIOTGUN,
-	EV_FIRE_BULLET,
+	EV_FIRE_MG,
 	EV_SMOOTHREFIREWEAPON,
 	EV_NOAMMOCLICK,
 
 	EV_DASH,
 
 	EV_WALLJUMP,
-	EV_WALLJUMP_FAILED,
 	EV_DOUBLEJUMP,
 	EV_JUMP,
 	EV_JUMP_PAD,
@@ -752,47 +650,30 @@ typedef enum {
 	EV_ITEM_RESPAWN,
 	EV_PAIN,
 	EV_DIE,
-	EV_GIB,
 
 	EV_PLAYER_RESPAWN,
 	EV_PLAYER_TELEPORT_IN,
 	EV_PLAYER_TELEPORT_OUT,
 
-	EV_GESTURE,
-	EV_DROP,
 	EV_SPOG,
 
 	EV_BLOOD,
 
 	EV_BLADE_IMPACT,
-	EV_GUNBLADEBLAST_IMPACT,
 	EV_GRENADE_BOUNCE,
 	EV_GRENADE_EXPLOSION,
 	EV_ROCKET_EXPLOSION,
 	EV_PLASMA_EXPLOSION,
 	EV_BOLT_EXPLOSION,
 
-	// 3 spots reserved for new weapons sfx, so
-	// the events below don't change their numbers easily
-	EV_FREE2,
-	EV_FREE3,
-	EV_FREE4,
-
 	EV_EXPLOSION1,
 	EV_EXPLOSION2,
 
-	EV_BLASTER,
 	EV_SPARKS,
-	EV_BULLET_SPARKS,
-
-	EV_SEXEDSOUND,
 
 	EV_VSAY,
 
 	EV_LASER_SPARKS,
-
-	EV_FIRE_SHOTGUN,
-	EV_PNODE,
 
 	// func movers
 	EV_PLAT_HIT_TOP,
@@ -853,7 +734,6 @@ enum {
 	ET_GENERIC,
 	ET_PLAYER,
 	ET_CORPSE,
-	ET_BEAM,
 	ET_PUSH_TRIGGER,
 
 	ET_GIB,         // leave a trail
@@ -874,6 +754,9 @@ enum {
 
 	ET_HUD,
 
+	ET_LASER,
+	ET_SPIKES,
+
 	// eventual entities: types below this will get event treatment
 	ET_EVENT = EVENT_ENTITIES_START,
 	ET_SOUNDEVENT,
@@ -888,29 +771,18 @@ enum {
 // An entity that has effects will be sent to the client
 // even if it has a zero index model.
 #define EF_ROTATE_AND_BOB           ( 1 << 0 )
-#define EF_QUAD                     ( 1 << 1 )
-#define EF_EXPIRING_QUAD            ( 1 << 2 )
-#define EF_CARRIER                  ( 1 << 3 )
-#define EF_BUSYICON                 ( 1 << 4 )
-#define EF_TAKEDAMAGE               ( 1 << 5 )
-#define EF_TEAMCOLOR_TRANSITION     ( 1 << 6 )
-#define EF_GODMODE                  ( 1 << 7 )
-#define EF_GHOST                    ( 1 << 8 )
-
-// oh, this is so nasty... (reuse effect bits for different entity types)
-#define EF_NOPORTALENTS             EF_CARRIER
-#define EF_PLAYER_HIDENAME          EF_TEAMCOLOR_TRANSITION
-
-// these ones can be only set from client side
-#define EF_AMMOBOX                  ( 1 << 9 )
-#define EF_RACEGHOST                ( 1 << 10 )
-#define EF_OUTLINE                  ( 1 << 11 )
-#define EF_GHOSTITEM                ( 1 << 12 )
+#define EF_CARRIER                  ( 1 << 1 )
+#define EF_TAKEDAMAGE               ( 1 << 2 )
+#define EF_TEAMCOLOR_TRANSITION     ( 1 << 3 )
+#define EF_GODMODE                  ( 1 << 4 )
+#define EF_GHOST                    ( 1 << 5 )
+#define EF_PLAYER_HIDENAME          ( 1 << 6 )
+#define EF_RACEGHOST                ( 1 << 7 )
+#define EF_OUTLINE                  ( 1 << 8 )
+#define EF_HAT                      ( 1 << 9 )
 
 //===============================================================
 // gs_weapons.c
-
-extern const char *gs_weaponStateNames[];
 
 enum {
 	WEAPON_STATE_READY,
@@ -921,12 +793,10 @@ enum {
 	WEAPON_STATE_FIRING,
 	WEAPON_STATE_NOAMMOCLICK,
 	WEAPON_STATE_REFIRE,        // projectile loading
-	WEAPON_STATE_REFIRESTRONG
 };
 
 typedef struct firedef_s {
 	//ammo def
-	int fire_mode;
 	int ammo_id;
 	int usage_count;
 	int projectile_count;
@@ -964,7 +834,6 @@ typedef struct {
 	int weapon_id;
 
 	firedef_t firedef;
-	firedef_t firedef_weak;
 } gs_weapon_definition_t;
 
 void GS_InitModule( int module, int maxClients, gs_module_api_t *api );
@@ -975,8 +844,6 @@ firedef_t *GS_FiredefForPlayerState( player_state_t *playerState, int checkweapo
 int GS_ThinkPlayerWeapon( player_state_t *playerState, int buttons, int msecs, int timeDelta );
 trace_t *GS_TraceBullet( trace_t *trace, vec3_t start, vec3_t dir, vec3_t right, vec3_t up, float r, float u, int range, int ignore, int timeDelta );
 void GS_TraceLaserBeam( trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( trace_t *tr, vec3_t dir ) );
-
-#define CURVELASERBEAM_SUBDIVISIONS 40
 
 //===============================================================
 // gs_weapondefs.c

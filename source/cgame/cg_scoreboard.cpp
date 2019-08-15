@@ -62,148 +62,6 @@ static void CG_PingColor( int ping, vec4_t color ) {
 }
 
 // ====================================================
-// player stats
-// ====================================================
-
-static int scb_player_stats[2 * ( WEAP_TOTAL - WEAP_GUNBLADE )]; // weak strong
-
-/*
-* SCB_ParsePlayerStats
-*/
-static void SCB_ParsePlayerStats( const char **s ) {
-	int i, j, weak, strong;
-	int shot_weak, hit_weak, shot_strong, hit_strong, hit_total, shot_total;
-	unsigned int playerNum;
-
-	if( !s || !*s ) {
-		return;
-	}
-
-	playerNum = CG_ParseValue( s );
-	if( cg.frame.playerState.POVnum != playerNum + 1 ) {
-		return;
-	}
-
-	memset( scb_player_stats, -1, sizeof( scb_player_stats ) );
-	j = 0;
-
-#define STATS_PERCENT( hit,total ) ( ( hit ) > 0 && ( total > 0 ) ? ( ( hit ) == ( total ) ? 100 : ( min( (int)( floor( ( 100.0f * ( hit ) ) / ( (float)( total ) ) + 0.5f ) ), 99 ) ) ) : -1 )
-
-	for( i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
-		weak = j++;
-		strong = j++;
-
-		// total
-		shot_total = CG_ParseValue( s );
-		if( shot_total == 0 ) {
-			continue;
-		}
-		hit_total = CG_ParseValue( s );
-
-		shot_strong = shot_total;
-		hit_strong = hit_total;
-		if( i == WEAP_LASERGUN || i == WEAP_ELECTROBOLT ) { // strong
-			shot_strong = CG_ParseValue( s );
-			if( shot_strong != shot_total ) {
-				hit_strong = CG_ParseValue( s );
-			}
-		}
-
-		// weak
-		shot_weak = shot_total - shot_strong;
-		hit_weak = hit_total - hit_strong;
-
-		scb_player_stats[weak] = STATS_PERCENT( hit_weak, shot_weak );
-		scb_player_stats[strong] = STATS_PERCENT( hit_strong, shot_strong );
-	}
-
-#undef STATS_PERCENT
-}
-
-/*
-* SCB_DrawPlayerStats
-*/
-static int SCB_DrawPlayerStats( int x, int y, struct qfontface_s *font ) {
-	int xoffset, yoffset, lines;
-	int i, j, num_weapons, weap, xpos, width, done;
-	gsitem_t *it;
-	char string[MAX_STRING_CHARS];
-	vec4_t color = { 0.5, 0.5, 0.5, 0.5f };
-
-	// don't display stats
-	if( !cg_scoreboardStats->integer ) {
-		return 0;
-	}
-
-	// total number of weapon
-	num_weapons = WEAP_TOTAL - WEAP_GUNBLADE;
-
-	width = ( SCB_TINYFIELD_PIXELWIDTH + 2 * SCB_SMALLFIELD_PIXELWIDTH ) * 2 + SCB_SMALLFIELD_PIXELWIDTH;
-
-	xpos = -width / 2;
-
-	// Center the box
-	xoffset = xpos;
-	yoffset = trap_SCR_FontHeight( font );
-
-	// Room for header, it's actually written later if we have at least one stat
-	yoffset += trap_SCR_FontHeight( font );
-
-	lines = 0;
-	for( i = 0; i < num_weapons; ) {
-		xoffset = xpos;
-
-		// two weapons per line
-		for( j = 0, done = 0; done < 2 && i + j < num_weapons; j++ ) {
-			weap = WEAP_GUNBLADE + i + j;
-
-			if( scb_player_stats[2 * ( i + j )] == -1 && scb_player_stats[2 * ( i + j ) + 1] == -1 ) {
-				continue;
-			}
-
-			it = GS_FindItemByTag( weap );
-
-			// short name
-			Q_snprintfz( string, sizeof( string ), "%s%2s", it->color, it->shortname );
-			trap_SCR_DrawStringWidth( x + xoffset, y + yoffset, ALIGN_LEFT_TOP, string, SCB_TINYFIELD_PIXELWIDTH, font, colorWhite );
-
-			Q_snprintfz( string, sizeof( string ), "%2d%c", scb_player_stats[2 * ( i + j ) + 1], '%' );
-			trap_SCR_DrawStringWidth( x + xoffset + 2 * SCB_TINYFIELD_PIXELWIDTH, y + yoffset, ALIGN_CENTER_TOP, string, 2 * SCB_SMALLFIELD_PIXELWIDTH, font, colorWhite );
-
-			// separator
-			xoffset = 0;
-			done++;
-		}
-
-		// next line
-		if( done > 0 ) {
-			lines++;
-			yoffset += trap_SCR_FontHeight( font );
-		}
-
-		i += j;
-	}
-
-	if( lines ) {
-		// if we drew anything, draw header and box too
-		xoffset = xpos;
-		yoffset = trap_SCR_FontHeight( font );
-
-		// header
-		trap_SCR_DrawStringWidth( x + xoffset, y + yoffset, ALIGN_LEFT_TOP, "Weapon stats", width, font, colorMdGrey );
-		yoffset += trap_SCR_FontHeight( font );
-
-		// box
-		trap_R_DrawStretchPic( x + xoffset - SCB_TINYFIELD_PIXELWIDTH / 2, y + yoffset, width + SCB_TINYFIELD_PIXELWIDTH,
-							   lines * trap_SCR_FontHeight( font ), 0, 0, 1, 1, color, cgs.shaderWhite );
-
-		return ( trap_SCR_FontHeight( font ) * ( 2 + lines ) );
-	}
-
-	return 0;
-}
-
-// ====================================================
 // player scoreboards
 // ====================================================
 
@@ -873,7 +731,6 @@ void CG_DrawScoreboard( void ) {
 	int xpos;
 	int ypos, yoffset, maxyoffset;
 	struct qfontface_s *font;
-	struct qfontface_s *monofont;
 	struct qfontface_s *titlefont;
 	int width, panelWidth;
 	vec4_t whiteTransparent = { 1.0f, 1.0f, 1.0f, 0.5f };
@@ -888,7 +745,6 @@ void CG_DrawScoreboard( void ) {
 	}
 
 	font = CG_ScoreboardFont( SYSTEM_FONT_FAMILY, SCOREBOARD_FONT_SIZE );
-	monofont = CG_ScoreboardFont( SYSTEM_FONT_FAMILY_MONO, SCOREBOARD_FONT_SIZE );
 	titlefont = CG_ScoreboardFont( SYSTEM_FONT_FAMILY, SCOREBOARD_TITLE_FONT_SIZE );
 
 	xpos = (int)( cgs.vidWidth * 0.5 );
@@ -946,10 +802,6 @@ void CG_DrawScoreboard( void ) {
 			SCR_DrawPlayerIcons( font );
 		}
 	}
-
-	// add the player stats
-	yoffset = maxyoffset + trap_SCR_FontHeight( font );
-	yoffset += SCB_DrawPlayerStats( xpos, ypos + yoffset, monofont );
 }
 
 
@@ -959,13 +811,6 @@ void CG_DrawScoreboard( void ) {
 */
 void SCR_UpdateScoreboardMessage( const char *string ) {
 	Q_strncpyz( scoreboardString, string, sizeof( scoreboardString ) );
-}
-
-/*
-* SCR_UpdatePlayerStatsMessage
-*/
-void SCR_UpdatePlayerStatsMessage( const char *string ) {
-	SCB_ParsePlayerStats( &string );
 }
 
 /*

@@ -1,0 +1,47 @@
+if %HEALTH != #NOTSET
+	if %HEALTH >= 0
+		setAlign #CENTER, #MIDDLE
+		setCursor #WIDTH / 2, #HEIGHT - 32
+		setFontSize %VIDHEIGHT / 48
+
+		// draw background
+		setColor 0.0, 0.0, 0.0, 0.5
+		setSize 200, 18
+		drawPicByName $whiteimage
+
+		moveCursor -100, 0
+
+		// fill coloured health bar
+		setAlign #LEFT, #MIDDLE
+		setColor 1.0, %HEALTH / 166.667, %HEALTH / 1000, 1
+		if %HEALTH > 100
+			setColor 1.0 - 0.01 * %HEALTH - 100, 0.6, %HEALTH / 1000, 1
+		endif
+		setSize %HEALTH, 18
+		drawPicByName $whiteimage
+
+		// draw white cross
+		setColor 1, 1, 1, 1
+		moveCursor 6 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+		setAlign #LEFT, #MIDDLE
+		setSize 12 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 4
+		drawPicByName $whiteimage
+		moveCursor 4 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+		setSize 4 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 12
+		drawPicByName $whiteimage
+
+		// draw hp number
+		setColor 1, 1, 1, 1
+		moveCursor 14 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+		setAlign #LEFT, #MIDDLE
+		setSize 12 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 12
+		setFontStyle bold
+		if %HEALTH == 1
+			drawStringNum 1
+		endif
+		if %HEALTH > 1
+			drawStringNum %HEALTH / 2
+		endif
+		setFontStyle normal
+	endif
+endif

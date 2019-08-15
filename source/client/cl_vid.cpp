@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // is used for both the software and OpenGL rendering versions of the
 // qfusion refresh engine.
 #include "client.h"
-#include "xpm.h"
 #include "ftlib/ftlib_public.h"
 #include "renderer/r_frontend.h"
 #include "sdl/sdl_window.h"
@@ -62,7 +61,7 @@ int VID_GetWindowHeight() {
 	return viddef.height;
 }
 
-static bool VID_LoadRefresh() {
+static void VID_LoadRefresh() {
 	static ref_import_t import;
 
 	import.Com_Error = &Com_Error;
@@ -106,9 +105,6 @@ static bool VID_LoadRefresh() {
 	import.FS_RemoveDirectory = &FS_RemoveDirectory;
 	import.FS_WriteDirectory = &FS_WriteDirectory;
 
-	import.Thread_Create = QThread_Create;
-	import.Thread_Join = QThread_Join;
-	import.Thread_Yield = QThread_Yield;
 	import.Mutex_Create = QMutex_Create;
 	import.Mutex_Destroy = QMutex_Destroy;
 	import.Mutex_Lock = QMutex_Lock;
@@ -124,53 +120,50 @@ static bool VID_LoadRefresh() {
 	// load succeeded
 	ref_export_t * rep = GetRefAPI( &import );
 	re = *rep;
-
-	Com_Printf( "\n" );
-	return true;
 }
 
 static bool ParseWindowMode( const char * str, WindowMode * mode ) {
 	*mode = { };
 
-	char fb[ 2 ];
-	int comps = sscanf( str, "%dx%d %1[FB] %d %dHz",
-		&mode->video_mode.width, &mode->video_mode.height,
-		fb, &mode->monitor,
-		&mode->video_mode.frequency );
-	if( comps == 5 ) {
-		mode->fullscreen = fb[ 0 ] == 'F' ? FullScreenMode_Fullscreen : FullScreenMode_FullscreenBorderless;
-		return true;
+	// windowed shorthand
+	{
+		int comps = sscanf( str, "%dx%d", &mode->video_mode.width, &mode->video_mode.height );
+		if( comps == 2 ) {
+			mode->fullscreen = FullScreenMode_Windowed;
+			mode->x = -1;
+			mode->y = -1;
+			return true;
+		}
 	}
 
-	comps = sscanf( str, "%dx%d %dx%d", &mode->video_mode.width, &mode->video_mode.height, &mode->x, &mode->y );
-	if( comps == 4 ) {
-		mode->fullscreen = FullScreenMode_Windowed;
-		return true;
+	// windowed
+	{
+		int comps = sscanf( str, "W %dx%d %dx%d", &mode->video_mode.width, &mode->video_mode.height, &mode->x, &mode->y );
+		if( comps == 4 ) {
+			mode->fullscreen = FullScreenMode_Windowed;
+			return true;
+		}
 	}
 
-	comps = sscanf( str, "%dx%d", &mode->video_mode.width, &mode->video_mode.height );
-	if( comps == 2 ) {
-		mode->fullscreen = FullScreenMode_Windowed;
-		mode->x = -1;
-		mode->y = -1;
-		return true;
+	// borderless
+	{
+		int comps = sscanf( str, "B %d", &mode->monitor );
+		if( comps == 1 ) {
+			mode->fullscreen = FullScreenMode_FullscreenBorderless;
+			return true;
+		}
+	}
+
+	// fullscreen
+	{
+		int comps = sscanf( str, "F %d %dx%d %dHz", &mode->monitor, &mode->video_mode.width, &mode->video_mode.height, &mode->video_mode.frequency );
+		if( comps == 4 ) {
+			mode->fullscreen = FullScreenMode_Fullscreen;
+			return true;
+		}
 	}
 
 	return false;
-}
-
-void VID_WindowModeToString( char * buf, size_t buf_len, WindowMode mode ) {
-	if( mode.fullscreen == FullScreenMode_Windowed ) {
-		Q_snprintfz( buf, buf_len, "%dx%d %dx%d",
-			mode.video_mode.width, mode.video_mode.height,
-			mode.x, mode.y );
-	}
-	else {
-		Q_snprintfz( buf, buf_len, "%dx%d %c %d %dHz",
-			mode.video_mode.width, mode.video_mode.height,
-			mode.fullscreen == FullScreenMode_Fullscreen ? 'F' : 'B',
-			mode.monitor, mode.video_mode.frequency );
-	}
 }
 
 // this is shit and should not exist but i am sick of working on this
@@ -183,9 +176,8 @@ void Retarded_SetWindowSize( int w, int h ) {
 
 static void UpdateVidModeCvar() {
 	WindowMode mode = VID_GetWindowMode();
-	char buf[ 128 ];
-	VID_WindowModeToString( buf, sizeof( buf ), mode );
-	Cvar_Set( vid_mode->name, buf );
+	String< 128 > buf( "{}", mode );
+	Cvar_Set( vid_mode->name, buf.c_str() );
 	vid_mode->modified = false;
 
 	Retarded_SetWindowSize( mode.video_mode.width, mode.video_mode.height );
@@ -231,21 +223,20 @@ void VID_Init() {
 		mode.y = -1;
 	}
 
-	VID_WindowInit( mode, 8 );
+	VID_WindowInit( mode );
 	UpdateVidModeCvar();
 
 	CL_Profiler_InitGL();
 
-	if( !VID_LoadRefresh() ) {
-		Sys_Error( "Failed to load renderer" );
+	VID_LoadRefresh();
+
+	if( !R_Init() ) {
+		Sys_Error( "R_Init() failed" );
 	}
 
-	rserr_t err = R_Init( true );
-	if( err != rserr_ok ) {
-		Sys_Error( "VID_Init() failed with code %i", err );
+	if( !S_Init() ) {
+		Com_Printf( S_COLOR_RED "Couldn't initialise audio engine\n" );
 	}
-
-	CL_SoundModule_Init();
 
 	RF_BeginRegistration();
 

@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // r_register.c
 #include "r_local.h"
-#include "qalgo/hash.h"
+#include "qcommon/hash.h"
 
 glconfig_t glConfig;
 
@@ -60,7 +60,6 @@ cvar_t *r_samples;
 cvar_t *r_gamma;
 cvar_t *r_texturefilter;
 cvar_t *r_nobind;
-cvar_t *r_polyblend;
 cvar_t *r_screenshot_fmtstr;
 
 cvar_t *r_drawflat;
@@ -68,8 +67,6 @@ cvar_t *r_wallcolor;
 cvar_t *r_floorcolor;
 
 cvar_t *r_usenotexture;
-
-static bool r_verbose;
 
 static void R_FinalizeGLExtensions( void );
 static void R_GfxInfo_f( void );
@@ -111,8 +108,7 @@ static const struct {
 * R_RegisterGLExtensions
 */
 static bool R_RegisterGLExtensions( void ) {
-	// for( size_t i = 0; i < ARRAY_COUNT( exts ); i++ ) { TODO
-	for( size_t i = 0; i < sizeof( exts ) / sizeof( exts[ 0 ] ); i++ ) {
+	for( size_t i = 0; i < ARRAY_COUNT( exts ); i++ ) {
 		*exts[ i ].enabled = *exts[ i ].glad != 0;
 	}
 
@@ -124,7 +120,7 @@ static bool R_RegisterGLExtensions( void ) {
 * R_PrintGLExtensionsInfo
 */
 static void R_PrintGLExtensionsInfo( void ) {
-	for( size_t i = 0; i < sizeof( exts ) / sizeof( exts[ 0 ] ); i++ ) {
+	for( size_t i = 0; i < ARRAY_COUNT( exts ); i++ ) {
 		Com_Printf( "%s: %s\n", exts[ i ].name, *exts[ i ].glad == 0 ? "disabled" : "enabled" );
 	}
 }
@@ -192,16 +188,6 @@ static void R_FinalizeGLExtensions( void ) {
 	ri.Cvar_Get( "gl_max_texture_size", "0", CVAR_READONLY );
 	ri.Cvar_ForceSet( "gl_max_texture_size", va_r( tmp, sizeof( tmp ), "%i", glConfig.maxTextureSize ) );
 
-	/* GL_ARB_texture_cube_map */
-	glConfig.maxTextureCubemapSize = 0;
-	glGetIntegerv( GL_MAX_CUBE_MAP_TEXTURE_SIZE, &glConfig.maxTextureCubemapSize );
-	glConfig.maxTextureCubemapSize = 1 << Q_log2( glConfig.maxTextureCubemapSize );
-
-	/* GL_ARB_multitexture */
-	glConfig.maxTextureUnits = 1;
-	glGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS, &glConfig.maxTextureUnits );
-	clamp( glConfig.maxTextureUnits, 1, MAX_TEXTURE_UNITS );
-
 	/* GL_EXT_framebuffer_object */
 	glConfig.maxRenderbufferSize = 0;
 	glGetIntegerv( GL_MAX_RENDERBUFFER_SIZE, &glConfig.maxRenderbufferSize );
@@ -216,19 +202,11 @@ static void R_FinalizeGLExtensions( void ) {
 		glGetIntegerv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glConfig.maxTextureFilterAnisotropic );
 	}
 
-	/* GL_EXT_texture3D and GL_EXT_texture_array */
-	glConfig.maxTexture3DSize = 0;
-	glConfig.maxTextureLayers = 0;
-	glGetIntegerv( GL_MAX_3D_TEXTURE_SIZE, &glConfig.maxTexture3DSize );
-	glGetIntegerv( GL_MAX_ARRAY_TEXTURE_LAYERS, &glConfig.maxTextureLayers );
-
 	glConfig.maxVertexUniformComponents = glConfig.maxFragmentUniformComponents = 0;
 
 	glGetIntegerv( GL_MAX_VERTEX_ATTRIBS, &glConfig.maxVertexAttribs );
 	glGetIntegerv( GL_MAX_VERTEX_UNIFORM_COMPONENTS, &glConfig.maxVertexUniformComponents );
 	glGetIntegerv( GL_MAX_FRAGMENT_UNIFORM_COMPONENTS, &glConfig.maxFragmentUniformComponents );
-
-	glConfig.depthEpsilon = 1.0 / ( 1 << 22 );
 
 	// require both texture_sRGB and texture_float for sRGB rendering as 8bit framebuffers
 	// run out of precision for linear colors in darker areas
@@ -261,7 +239,6 @@ static void R_Register() {
 	r_showtris = ri.Cvar_Get( "r_showtris", "0", CVAR_CHEAT );
 	r_showtris2D = ri.Cvar_Get( "r_showtris2D", "0", CVAR_CHEAT );
 	r_leafvis = ri.Cvar_Get( "r_leafvis", "0", CVAR_CHEAT );
-	r_polyblend = ri.Cvar_Get( "r_polyblend", "1", 0 );
 
 	r_sRGB = ri.Cvar_Get( "r_sRGB", "1", CVAR_ARCHIVE | CVAR_LATCH_VIDEO );
 
@@ -317,10 +294,6 @@ static void R_GfxInfo_f( void ) {
 	Com_Printf( "GL_VERSION: %s\n", glConfig.versionString );
 
 	Com_Printf( "GL_MAX_TEXTURE_SIZE: %i\n", glConfig.maxTextureSize );
-	Com_Printf( "GL_MAX_TEXTURE_IMAGE_UNITS: %i\n", glConfig.maxTextureUnits );
-	Com_Printf( "GL_MAX_CUBE_MAP_TEXTURE_SIZE: %i\n", glConfig.maxTextureCubemapSize );
-	Com_Printf( "GL_MAX_3D_TEXTURE_SIZE: %i\n", glConfig.maxTexture3DSize );
-	Com_Printf( "GL_MAX_ARRAY_TEXTURE_LAYERS: %i\n", glConfig.maxTextureLayers );
 	if( glConfig.ext.texture_filter_anisotropic ) {
 		Com_Printf( "GL_MAX_TEXTURE_MAX_ANISOTROPY: %i\n", glConfig.maxTextureFilterAnisotropic );
 	}
@@ -382,11 +355,9 @@ static unsigned R_GLVersionHash( const char *vendorString, const char *rendererS
 /*
 * R_Init
 */
-static rserr_t R_PostInit( void );
-rserr_t R_Init( bool verbose ) {
+void RF_Init();
+bool R_Init() {
 	r_mempool = R_AllocPool( NULL, "Rendering Frontend" );
-
-	r_verbose = verbose;
 
 	R_Register();
 
@@ -396,17 +367,6 @@ rserr_t R_Init( bool verbose ) {
 	memset( &glConfig, 0, sizeof( glConfig ) );
 	glConfig.width = w;
 	glConfig.height = h;
-
-	return R_PostInit();
-}
-
-/*
-* R_PostInit
-*/
-rserr_t RF_Init();
-static rserr_t R_PostInit( void ) {
-	int i;
-	GLenum glerr;
 
 	glConfig.hwGamma = VID_GetGammaRamp( GAMMARAMP_STRIDE, &glConfig.gammaRampSize, glConfig.originalGammaRamp );
 	if( glConfig.hwGamma ) {
@@ -441,19 +401,17 @@ static rserr_t R_PostInit( void ) {
 
 	rsh.worldModelSequence = 1;
 
-	for( i = 0; i < 256; i++ )
+	for( int i = 0; i < 256; i++ )
 		rsh.sinTableByte[i] = sin( (float)i / 255.0 * M_TWOPI );
 
 	rf.frameTime.average = 1;
 	rf.speedsMsgLock = ri.Mutex_Create();
 	rf.debugSurfaceLock = ri.Mutex_Create();
 
-	RJ_Init();
-
 	R_InitDrawLists();
 
 	if( !R_RegisterGLExtensions() ) {
-		return rserr_unknown;
+		return false;
 	}
 
 	R_FillStartupBackgroundColor( COLOR_R( APP_STARTUP_COLOR ) / 255.0f,
@@ -461,9 +419,7 @@ static rserr_t R_PostInit( void ) {
 
 	R_AnisotropicFilter( r_texturefilter->integer );
 
-	if( r_verbose ) {
-		R_GfxInfo_f();
-	}
+	R_GfxInfo_f();
 
 	// load and compile GLSL programs
 	RP_Init();
@@ -474,24 +430,23 @@ static rserr_t R_PostInit( void ) {
 
 	R_InitShaders();
 
-	R_InitSkinFiles();
-
 	R_InitModels();
+
+	R_InitText();
 
 	R_ClearScene();
 
 	R_InitVolatileAssets();
 
-	R_ClearRefInstStack();
-
 	RF_Init();
 
-	glerr = glGetError();
+	GLenum glerr = glGetError();
 	if( glerr != GL_NO_ERROR ) {
 		Com_Printf( "glGetError() = 0x%x\n", glerr );
+		return false;
 	}
 
-	return rserr_ok;
+	return true;
 }
 
 /*
@@ -502,11 +457,6 @@ static void R_InitVolatileAssets( void ) {
         glGenVertexArrays( 1, &vao );
         glBindVertexArray( vao );
 
-	// init volatile data
-	R_InitCustomColors();
-
-	rsh.envShader = R_LoadShader( "$environment", SHADER_TYPE_OPAQUE_ENV, true, NULL );
-	rsh.skyShader = R_LoadShader( "$skybox", SHADER_TYPE_SKYBOX, true, NULL );
 	rsh.whiteShader = R_LoadShader( "$whiteimage", SHADER_TYPE_2D, true, NULL );
 
 	if( !rsh.nullVBO ) {
@@ -520,15 +470,14 @@ static void R_InitVolatileAssets( void ) {
 	} else {
 		R_TouchMeshVBO( rsh.postProcessingVBO );
 	}
+
+	R_InitSky();
 }
 
 /*
 * R_DestroyVolatileAssets
 */
 static void R_DestroyVolatileAssets( void ) {
-	// kill volatile data
-	R_ShutdownCustomColors();
-
 	glBindVertexArray( 0 );
 	glDeleteVertexArrays( 1, &vao );
 }
@@ -570,7 +519,6 @@ void R_EndRegistration( void ) {
 
 	R_FreeUnusedModels();
 	R_FreeUnusedVBOs();
-	R_FreeUnusedSkinFiles();
 	R_FreeUnusedShaders();
 	R_FreeUnusedImages();
 
@@ -595,9 +543,9 @@ void R_Shutdown( bool verbose ) {
 
 	R_DestroyVolatileAssets();
 
-	R_ShutdownModels();
+	R_ShutdownText();
 
-	R_ShutdownSkinFiles();
+	R_ShutdownModels();
 
 	R_ShutdownVBO();
 
@@ -615,10 +563,6 @@ void R_Shutdown( bool verbose ) {
 
 	ri.Mutex_Destroy( &rf.speedsMsgLock );
 	ri.Mutex_Destroy( &rf.debugSurfaceLock );
-
-	RJ_Shutdown();
-
-	R_FrameCache_Free();
 
 	R_FreePool( &r_mempool );
 }

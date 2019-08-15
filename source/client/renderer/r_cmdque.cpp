@@ -50,9 +50,6 @@ enum {
 	REF_CMD_SET_SCISSOR,
 	REF_CMD_RESET_SCISSOR,
 
-	REF_CMD_PUSH_TRANSFORM_MATRIX,
-	REF_CMD_POP_TRANSFORM_MATRIX,
-
 	NUM_REF_CMDS
 };
 
@@ -87,9 +84,6 @@ typedef struct {
 	int id;
 	unsigned length;
 	entity_t entity;
-	int numBoneposes;
-	bonepose_t      *boneposes;
-	bonepose_t      *oldboneposes;
 } refCmdAddEntityToScene_t;
 
 typedef struct {
@@ -124,17 +118,6 @@ typedef struct {
 typedef struct {
 	int id;
 } refCmdSync_t;
-
-typedef struct {
-	int id;
-	int proj;
-	float m[16];
-} refCmdPushProjectionMatrix_t;
-
-typedef struct {
-	int id;
-	int proj;
-} refCmdPopProjectionMatrix_t;
 
 static unsigned R_HandleBeginFrameCmd( const void *pcmd ) {
 	const refCmdBeginFrame_t *cmd = ( const refCmdBeginFrame_t * ) pcmd;
@@ -213,18 +196,6 @@ static unsigned R_HandleResetScissorCmd( const void *pcmd ) {
 	return sizeof( *cmd );
 }
 
-static unsigned R_HandlePushProjectionMatrixCmd( const void *pcmd ) {
-	const refCmdPushProjectionMatrix_t *cmd = ( const refCmdPushProjectionMatrix_t * ) pcmd;
-	R_PushTransformMatrix( cmd->proj != 0, cmd->m );
-	return sizeof( *cmd );
-}
-
-static unsigned R_HandlePopProjectionMatrixCmd( const void *pcmd ) {
-	const refCmdPopProjectionMatrix_t *cmd = ( const refCmdPopProjectionMatrix_t * ) pcmd;
-	R_PopTransformMatrix( cmd->proj != 0 );
-	return sizeof( *cmd );
-}
-
 // must match the corresponding REF_CMD_ enums!
 typedef unsigned (*refCmdHandler_t)( const void * );
 static const refCmdHandler_t refCmdHandlers[NUM_REF_CMDS] =
@@ -240,8 +211,6 @@ static const refCmdHandler_t refCmdHandlers[NUM_REF_CMDS] =
 	R_HandleBlurScreenCmd,
 	R_HandleSetScissorCmd,
 	R_HandleResetScissorCmd,
-	R_HandlePushProjectionMatrixCmd,
-	R_HandlePopProjectionMatrixCmd,
 };
 
 // ============================================================================
@@ -299,19 +268,9 @@ static void RF_IssueAddEntityToSceneCmd( ref_cmdbuf_t *cmdbuf, const entity_t *e
 	refCmdAddEntityToScene_t cmd;
 	size_t cmd_len = sizeof( cmd );
 	uint8_t *pcmd;
-	size_t bones_len = 0;
 
 	cmd.id = REF_CMD_ADD_ENTITY_TO_SCENE;
 	cmd.entity = *ent;
-	cmd.numBoneposes = R_SkeletalGetNumBones( ent->model, NULL );
-
-	bones_len = cmd.numBoneposes * sizeof( bonepose_t );
-	if( cmd.numBoneposes && ent->boneposes ) {
-		cmd_len += bones_len;
-	}
-	if( cmd.numBoneposes && ent->oldboneposes ) {
-		cmd_len += bones_len;
-	}
 	cmd.length = cmd_len;
 
 	if( cmdbuf->len + cmd_len > cmdbuf->buf_size ) {
@@ -320,18 +279,6 @@ static void RF_IssueAddEntityToSceneCmd( ref_cmdbuf_t *cmdbuf, const entity_t *e
 
 	pcmd = cmdbuf->buf + cmdbuf->len;
 	pcmd += sizeof( cmd );
-
-	if( cmd.numBoneposes && ent->boneposes ) {
-		cmd.entity.boneposes = (bonepose_t *)pcmd;
-		memcpy( pcmd, ent->boneposes, bones_len );
-		pcmd += bones_len;
-	}
-
-	if( cmd.numBoneposes && ent->oldboneposes ) {
-		cmd.entity.oldboneposes = (bonepose_t *)pcmd;
-		memcpy( pcmd, ent->oldboneposes, bones_len );
-		pcmd += bones_len;
-	}
 
 	RF_IssueAbstractCmd( cmdbuf, &cmd, sizeof( cmd ), cmd_len );
 }
@@ -474,25 +421,6 @@ static void RF_IssueResetScissorCmd( ref_cmdbuf_t *cmdbuf ) {
 	RF_IssueAbstractCmd( cmdbuf, &cmd, sizeof( cmd ), sizeof( cmd ) );
 }
 
-void RF_IssuePushProjectionMatrixCmd( struct ref_cmdbuf_s *cmdbuf, bool projection, const float *m ) {
-	refCmdPushProjectionMatrix_t cmd;
-
-	cmd.id = REF_CMD_PUSH_TRANSFORM_MATRIX;
-	cmd.proj = projection ? 1 : 0;
-	memcpy( cmd.m, m, sizeof( float ) * 16 );
-
-	RF_IssueAbstractCmd( cmdbuf, &cmd, sizeof( cmd ), sizeof( cmd ) );
-}
-
-void RF_IssuePopProjectionMatrixCmd( struct ref_cmdbuf_s *cmdbuf, bool projection ) {
-	refCmdPopProjectionMatrix_t cmd;
-
-	cmd.id = REF_CMD_POP_TRANSFORM_MATRIX;
-	cmd.proj = projection ? 1 : 0;
-
-	RF_IssueAbstractCmd( cmdbuf, &cmd, sizeof( cmd ), sizeof( cmd ) );
-}
-
 // ============================================================================
 
 static void RF_ClearCmdBuf( ref_cmdbuf_t *cmdbuf ) {
@@ -514,8 +442,6 @@ ref_cmdbuf_t *RF_CreateCmdBuf() {
 	cmdbuf->BlurScreen = &RF_IssueBlurScreenCmd;
 	cmdbuf->SetScissor = &RF_IssueSetScissorCmd;
 	cmdbuf->ResetScissor = &RF_IssueResetScissorCmd;
-	cmdbuf->PushTransformMatrix = &RF_IssuePushProjectionMatrixCmd;
-	cmdbuf->PopTransformMatrix = &RF_IssuePopProjectionMatrixCmd;
 
 	cmdbuf->Clear = &RF_ClearCmdBuf;
 
@@ -555,7 +481,6 @@ enum {
 	REF_PIPE_CMD_BEGIN_REGISTRATION,
 	REF_PIPE_CMD_END_REGISTRATION,
 
-	REF_PIPE_CMD_SET_CUSTOM_COLOR,
 	REF_PIPE_CMD_SET_WALL_FLOOR_COLORS,
 
 	REF_PIPE_CMD_SET_TEXTURE_FILTER,
@@ -585,12 +510,6 @@ typedef struct {
 typedef struct {
 	int id;
 } refReliableCmdBeginEndRegistration_t;
-
-typedef struct {
-	int id;
-	int num;
-	int r, g, b;
-} refReliableCmdSetCustomColor_t;
 
 typedef struct {
 	int id;
@@ -663,14 +582,6 @@ static unsigned R_HandleEndRegistrationReliableCmd( const void *pcmd ) {
 	return sizeof( *cmd );
 }
 
-static unsigned R_HandleSetCustomColorReliableCmd( const void *pcmd ) {
-	const refReliableCmdSetCustomColor_t *cmd = ( const refReliableCmdSetCustomColor_t * ) pcmd;
-
-	R_SetCustomColor( cmd->num, cmd->r, cmd->g, cmd->b );
-
-	return sizeof( *cmd );
-}
-
 static unsigned R_HandleSetWallFloorColorsReliableCmd( const void *pcmd ) {
 	const refReliableCmdSetWallFloorColors_t *cmd = ( const refReliableCmdSetWallFloorColors_t * ) pcmd;
 
@@ -704,7 +615,6 @@ static refPipeCmdHandler_t refPipeCmdHandlers[NUM_REF_PIPE_CMDS] =
 	R_HandleScreenShotReliableCmd,
 	R_HandleBeginRegistrationReliableCmd,
 	R_HandleEndRegistrationReliableCmd,
-	R_HandleSetCustomColorReliableCmd,
 	R_HandleSetWallFloorColorsReliableCmd,
 	R_HandleSetTextureFilterReliableCmd,
 	R_HandleSetGammaReliableCmd,
@@ -755,10 +665,6 @@ static void RF_IssueScreenShotReliableCmd( ref_cmdpipe_t *cmdpipe, const char *p
 	RF_IssueEnvScreenShotReliableCmd( cmdpipe, REF_PIPE_CMD_SCREEN_SHOT, path, name, fmtstring, 0, 0, glConfig.width, glConfig.height, 0, silent );
 }
 
-static void RF_IssueAviShotReliableCmd( ref_cmdpipe_t *cmdpipe, const char *path, const char *name, int x, int y, int w, int h ) {
-	RF_IssueEnvScreenShotReliableCmd( cmdpipe, REF_PIPE_CMD_SCREEN_SHOT, path, name, "", x, y, w, h, 0, true );
-}
-
 static void RF_IssueBeginRegistrationReliableCmd( ref_cmdpipe_t *cmdpipe ) {
 	refReliableCmdBeginEndRegistration_t cmd = { REF_PIPE_CMD_BEGIN_REGISTRATION };
 
@@ -771,18 +677,6 @@ static void RF_IssueEndRegistrationReliableCmd( ref_cmdpipe_t *cmdpipe ) {
 	refReliableCmdBeginEndRegistration_t cmd = { REF_PIPE_CMD_END_REGISTRATION };
 
 	R_DeferDataSync();
-
-	RF_IssueAbstractReliableCmd( cmdpipe, &cmd, sizeof( cmd ) );
-}
-
-static void RF_IssueSetCustomColorReliableCmd( ref_cmdpipe_t *cmdpipe, int num, int r, int g, int b ) {
-	refReliableCmdSetCustomColor_t cmd;
-
-	cmd.id = REF_PIPE_CMD_SET_CUSTOM_COLOR;
-	cmd.num = num;
-	cmd.r = r;
-	cmd.g = g;
-	cmd.b = b;
 
 	RF_IssueAbstractReliableCmd( cmdpipe, &cmd, sizeof( cmd ) );
 }
@@ -824,10 +718,8 @@ ref_cmdpipe_t *RF_CreateCmdPipe() {
 	cmdpipe->Shutdown = &RF_IssueShutdownReliableCmd;
 	cmdpipe->ResizeFramebuffers = &RF_IssueResizeFramebuffersCmd;
 	cmdpipe->ScreenShot = &RF_IssueScreenShotReliableCmd;
-	cmdpipe->AviShot = &RF_IssueAviShotReliableCmd;
 	cmdpipe->BeginRegistration = &RF_IssueBeginRegistrationReliableCmd;
 	cmdpipe->EndRegistration = &RF_IssueEndRegistrationReliableCmd;
-	cmdpipe->SetCustomColor = &RF_IssueSetCustomColorReliableCmd;
 	cmdpipe->SetWallFloorColors = &RF_IssueSetWallFloorColorsReliableCmd;
 	cmdpipe->SetTextureFilter = &RF_IssueSetTextureFilterReliableCmd;
 	cmdpipe->SetGamma = &RF_IssueSetGammaReliableCmd;

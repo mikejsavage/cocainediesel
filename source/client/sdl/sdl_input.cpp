@@ -1,5 +1,6 @@
-#include "sdl/SDL.h"
 #include "client/client.h"
+#include "microprofile/microprofileui.h"
+#include "sdl/SDL.h"
 
 cvar_t *in_disablemacosxmouseaccel;
 
@@ -9,10 +10,15 @@ static bool input_inited = false;
 static bool input_focus = false;
 static bool warped = false;
 
-static int mx = 0, my = 0;
-static int rx = 0, ry = 0;
+static int mx, my;
+static int rx, ry, rw;
 
 static bool running_in_debugger = false;
+
+bool break1 = false;
+bool break2 = false;
+bool break3 = false;
+bool break4 = false;
 
 #if defined( __APPLE__ )
 void IN_SetMouseScalingEnabled( bool isRestore );
@@ -50,34 +56,34 @@ static void mouse_button_event( SDL_MouseButtonEvent *event, bool state ) {
 		// The engine only supports up to 8 buttons plus the mousewheel.
 		switch( button ) {
 			case SDL_BUTTON_LEFT:
-				Key_Event( K_MOUSE1, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE1, state );
 				break;
 			case SDL_BUTTON_MIDDLE:
-				Key_Event( K_MOUSE3, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE3, state );
 				break;
 			case SDL_BUTTON_RIGHT:
-				Key_Event( K_MOUSE2, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE2, state );
 				break;
 			case SDL_BUTTON_X1:
-				Key_Event( K_MOUSE4, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE4, state );
 				break;
 			case SDL_BUTTON_X2:
-				Key_Event( K_MOUSE5, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE5, state );
 				break;
 			case 6:
-				Key_Event( K_MOUSE6, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE6, state );
 				break;
 			case 7:
-				Key_Event( K_MOUSE7, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE7, state );
 				break;
 			case 8:
-				Key_Event( K_MOUSE4, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE4, state );
 				break;
 			case 9:
-				Key_Event( K_MOUSE5, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE5, state );
 				break;
 			case 10:
-				Key_Event( K_MOUSE8, state, Sys_Milliseconds() );
+				Key_Event( K_MOUSE8, state );
 				break;
 		}
 	} else {
@@ -86,11 +92,10 @@ static void mouse_button_event( SDL_MouseButtonEvent *event, bool state ) {
 }
 
 static void mouse_wheel_event( SDL_MouseWheelEvent *event ) {
+	rw = -event->y;
 	int key = event->y > 0 ? K_MWHEELUP : K_MWHEELDOWN;
-	int64_t sys_msg_time = Sys_Milliseconds();
-
-	Key_Event( key, true, sys_msg_time );
-	Key_Event( key, false, sys_msg_time );
+	Key_Event( key, true );
+	Key_Event( key, false );
 }
 
 static wchar_t TranslateSDLScancode( SDL_Scancode scancode ) {
@@ -238,7 +243,7 @@ static void key_event( const SDL_KeyboardEvent *event, bool state ) {
 	wchar_t charkey = TranslateSDLScancode( event->keysym.scancode );
 
 	if( charkey >= 0 && charkey <= 255 ) {
-		Key_Event( charkey, state, Sys_Milliseconds() );
+		Key_Event( charkey, state );
 	}
 }
 
@@ -247,13 +252,14 @@ static void key_event( const SDL_KeyboardEvent *event, bool state ) {
 static void AppActivate( SDL_Window *window, bool active ) {
 	bool minimized = ( SDL_GetWindowFlags( window ) & SDL_WINDOW_MINIMIZED ) != 0;
 
-	CL_SoundModule_SetWindowFocus( active );
+	S_SetWindowFocus( active );
 	VID_AppActivate( active, minimized );
 }
 
 static void IN_HandleEvents( void ) {
 	rx = 0;
 	ry = 0;
+	rw = 0;
 
 	Uint16 *wtext = NULL;
 	SDL_PumpEvents();
@@ -405,7 +411,7 @@ static bool being_debugged() {
                                 printf( "! or\n" );
                                 printf( "! sysctl kernel.yama.ptrace_scope=0\n" );
                         }
-                        exit( 1 );
+			_exit( 1 );
                 }
 
                 // ptrace automatically stops the process so wait for SIGSTOP and send PTRACE_CONT
@@ -414,13 +420,13 @@ static bool being_debugged() {
 
                 // detach
                 ptrace( PTRACE_DETACH, parent_pid, NULL, NULL );
-                exit( 0 );
+                _exit( 0 );
         }
 
         int status;
         waitpid( child_pid, &status, 0 );
         if( !WIFEXITED( status ) ) {
-                err( 1, "WIFEXITED" );
+		_exit( 1 );
         }
 
         return WEXITSTATUS( status ) == 1;
@@ -458,21 +464,17 @@ void IN_Shutdown() {
 }
 
 /**
- * Restart the input subsystem.
- */
-void IN_Restart( void ) {
-	IN_Shutdown();
-	IN_Init();
-}
-
-/**
  * This function is called for every frame and gives us some time to poll
  * for events that occured at our input devices.
  */
 void IN_Frame() {
 	assert( input_inited );
 
-	if( cls.key_dest == key_game && input_focus ) {
+	if( MicroProfileIsDrawing() ) {
+		SDL_SetRelativeMouseMode( SDL_FALSE );
+		SDL_ShowCursor( SDL_ENABLE );
+	}
+	else if( cls.key_dest == key_game && input_focus ) {
 		if( running_in_debugger ) {
 			// don't grab input if we're running a debugger
 			IN_WarpMouseToCenter();
@@ -493,4 +495,16 @@ void IN_Frame() {
 	}
 
 	IN_HandleEvents();
+
+	const u8 * keys = SDL_GetKeyboardState( NULL );
+	break1 = keys[ SDL_SCANCODE_F1 ];
+	break2 = keys[ SDL_SCANCODE_F2 ];
+	break3 = keys[ SDL_SCANCODE_F3 ];
+	break4 = keys[ SDL_SCANCODE_F4 ];
+
+	if( MicroProfileIsDrawing() ) {
+		u32 buttons = SDL_GetMouseState( NULL, NULL );
+		MicroProfileMousePosition( mx, my, rw );
+		MicroProfileMouseButton( ( buttons & SDL_BUTTON_LMASK ) > 0 ? 1 : 0, ( buttons & SDL_BUTTON_LMASK ) > 0 ? 1 : 0 );
+	}
 }

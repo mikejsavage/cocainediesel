@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #pragma once
 
-#include "qcommon/qcommon.h"
+#include "qcommon/types.h"
 #include "r_mesh.h"
 #include "r_shader.h"
 #include "r_surface.h"
@@ -152,17 +152,10 @@ typedef struct mbrushmodel_s {
 
 	/*unsigned*/ int numareas;
 
-	vec3_t gridSize;
-	vec3_t gridMins;
-	int gridBounds[4];
-
-	struct skydome_s *skydome;
-
 	unsigned int numDrawSurfaces;
 	drawSurfaceBSP_t *drawSurfaces;
 
-	unsigned entityStringLen;
-	char *entityString;
+	float fogStrength;
 } mbrushmodel_t;
 
 /*
@@ -237,115 +230,28 @@ typedef struct maliasmodel_s {
 	int numtris;             // sum of numtris for all meshes
 } maliasmodel_t;
 
-/*
-==============================================================================
-
-SKELETAL MODELS
-
-==============================================================================
-*/
-
-//
-// in memory representation
-//
-#define SKM_MAX_WEIGHTS     4
-
-//
-// in memory representation
-//
-typedef struct {
-	char            *name;
-	shader_t        *shader;
-} mskskin_t;
-
-typedef struct {
-	uint8_t indices[SKM_MAX_WEIGHTS];
-	uint8_t weights[SKM_MAX_WEIGHTS];
-} mskblend_t;
-
-typedef struct mskmesh_s {
-	char            *name;
-
-	uint8_t         *blendIndices;
-	uint8_t         *blendWeights;
-
-	unsigned int numverts;
-	vec4_t          *xyzArray;
-	vec4_t          *normalsArray;
-	vec2_t          *stArray;
-	vec4_t          *sVectorsArray;
-
-	unsigned int    *vertexBlends;  // [0..numbones-1] reference directly to bones
-	                                // [numbones..numbones+numblendweights-1] reference to model blendweights
-
-	unsigned int maxWeights;        // the maximum number of bones, affecting a single vertex in the mesh
-
-	unsigned int numtris;
-	elem_t          *elems;
-
-	mskskin_t skin;
-
-	struct mesh_vbo_s *vbo;
-} mskmesh_t;
-
-typedef struct {
-	char            *name;
-	signed int parent;
-	unsigned int flags;
-} mskbone_t;
-
-typedef struct {
-	vec3_t mins, maxs;
-	float radius;
-	bonepose_t      *boneposes;
-} mskframe_t;
-
-typedef struct mskmodel_s {
-	unsigned int numbones;
-	mskbone_t       *bones;
-
-	unsigned int nummeshes;
-	mskmesh_t       *meshes;
-	drawSurfaceSkeletal_t *drawSurfs;
-
-	unsigned int numtris;
-	elem_t          *elems;
-
-	unsigned int numverts;
-	vec4_t          *xyzArray;
-	vec4_t          *normalsArray;
-	vec2_t          *stArray;
-	vec4_t          *sVectorsArray;
-	uint8_t         *blendIndices;
-	uint8_t         *blendWeights;
-
-	unsigned int numblends;
-	mskblend_t      *blends;
-	unsigned int    *vertexBlends;  // [0..numbones-1] reference directly to bones
-	                                // [numbones..numbones+numblendweights-1] reference to blendweights
-
-	unsigned int numframes;
-	mskframe_t      *frames;
-	bonepose_t      *invbaseposes;
-} mskmodel_t;
-
-//===================================================================
-
 //
 // Whole model
 //
 
-typedef enum { mod_bad = -1, mod_free, mod_brush, mod_alias, mod_skeletal, mod_sprite } modtype_t;
+enum ModelType {
+	mod_bad = -1,
+	mod_free,
+	mod_brush,
+	mod_alias,
+	ModelType_GLTF,
+};
+
 typedef void ( *mod_touch_t )( struct model_s *model );
 
-#define MOD_MAX_LODS    4
-
 typedef struct model_s {
-	char            *name;
+	char *name;
 	int registrationSequence;
 	mod_touch_t touch;          // touching a model updates registration sequence, images and VBO's
 
-	modtype_t type;
+	ModelType type;
+
+	mat4_t transform;
 
 	//
 	// volume occupied by the model graphics
@@ -356,13 +262,9 @@ typedef struct model_s {
 	//
 	// memory representation pointer
 	//
-	void            *extradata;
+	void *extradata;
 
-	int lodnum;                 // LOD index, 0 for parent model, 1..MOD_MAX_LODS for LOD models
-	int numlods;
-	struct model_s  *lods[MOD_MAX_LODS];
-
-	mempool_t       *mempool;
+	mempool_t *mempool;
 } model_t;
 
 //============================================================================
@@ -373,8 +275,6 @@ void        R_InitModels( void );
 void        R_ShutdownModels( void );
 void        R_FreeUnusedModels( void );
 
-void        R_ModelBounds( const model_t *model, vec3_t mins, vec3_t maxs );
-void        R_ModelFrameBounds( const struct model_s *model, int frame, vec3_t mins, vec3_t maxs );
 void        R_RegisterWorldModel( const char *model );
 struct model_s *R_RegisterModel( const char *name );
 
@@ -383,7 +283,6 @@ void		R_GetTransformBufferForMesh( mesh_t *mesh, bool positions, bool normals, b
 model_t     *Mod_ForName( const char *name, bool crash );
 mleaf_t     *Mod_PointInLeaf( const vec3_t p, mbrushmodel_t *bmodel );
 uint8_t     *Mod_ClusterPVS( int cluster, mbrushmodel_t *bmodel );
-uint8_t		*Mod_SpherePVS( const vec3_t origin, float radius, mbrushmodel_t *bmodel, uint8_t *fatpvs );
 
 unsigned int Mod_Handle( const model_t *mod );
 model_t     *Mod_ForHandle( unsigned int elem );
@@ -392,7 +291,5 @@ model_t     *Mod_ForHandle( unsigned int elem );
 #define     Mod_Malloc( mod, size ) Mem_AllocExt( ( mod )->mempool, size, 1 )
 #define     Mod_Realloc( data, size ) Mem_Realloc( data, size )
 #define     Mod_MemFree( data ) Mem_Free( data )
-
-void        Mod_StripLODSuffix( char *name );
 
 void        Mod_Modellist_f( void );

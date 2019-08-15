@@ -38,29 +38,14 @@ static void RF_AdapterShutdown( ref_frontendAdapter_t *adapter ) {
 	memset( adapter, 0, sizeof( *adapter ) );
 }
 
-/*
-* RF_AdapterInit
-*/
-static bool RF_AdapterInit( ref_frontendAdapter_t *adapter ) {
-	adapter->cmdPipe = RF_CreateCmdPipe();
-	adapter->cmdPipe->Init( adapter->cmdPipe );
-
-	return true;
-}
-
-rserr_t RF_Init() {
+void RF_Init() {
 	rrf.frameNum = rrf.lastFrameNum = 0;
 	rrf.frame = RF_CreateCmdBuf();
 	rrf.frame->Clear( rrf.frame );
 
-	memset( rrf.customColors, 255, sizeof( rrf.customColors ) );
-
 	rrf.adapter.owner = (void *)&rrf;
-	if( RF_AdapterInit( &rrf.adapter ) != true ) {
-		return rserr_unknown;
-	}
-
-	return rserr_ok;
+	rrf.adapter.cmdPipe = RF_CreateCmdPipe();
+	rrf.adapter.cmdPipe->Init( rrf.adapter.cmdPipe );
 }
 
 void RF_AppActivate( bool active, bool minimize ) {
@@ -179,17 +164,6 @@ void RF_ResetScissor( void ) {
 	Vector4Set( rrf.scissor, 0, 0, glConfig.width, glConfig.height );
 }
 
-void RF_SetCustomColor( int num, int r, int g, int b ) {
-	byte_vec4_t rgba;
-
-	Vector4Set( rgba, r, g, b, 255 );
-
-	if( *(int *)rgba != *(int *)rrf.customColors[num] ) {
-		rrf.adapter.cmdPipe->SetCustomColor( rrf.adapter.cmdPipe, num, r, g, b );
-		*(int *)rrf.customColors[num] = *(int *)rgba;
-	}
-}
-
 void RF_ResizeFramebuffers() {
 	rrf.adapter.cmdPipe->ResizeFramebuffers( rrf.adapter.cmdPipe );
 }
@@ -213,27 +187,6 @@ void RF_ReplaceRawSubPic( shader_t *shader, int x, int y, int width, int height,
 	R_ReplaceRawSubPic( shader, x, y, width, height, data );
 }
 
-void RF_BeginAviDemo( void ) {
-}
-
-void RF_WriteAviFrame( int frame ) {
-	const char *writedir;
-	size_t path_size;
-	char *path;
-	char name[32];
-
-	writedir = ri.FS_WriteDirectory();
-	path_size = strlen( writedir ) + strlen( "/avi/" ) + 1;
-	path = ( char * ) alloca( path_size );
-	Q_snprintfz( path, path_size, "%s/avi/", writedir );
-	Q_snprintfz( name, sizeof( name ), "%06i", frame );
-
-	rrf.adapter.cmdPipe->AviShot( rrf.adapter.cmdPipe, path, name, 0, 0, glConfig.width, glConfig.height );
-}
-
-void RF_StopAviDemo( void ) {
-}
-
 void RF_TransformVectorToScreen( const refdef_t *rd, const vec3_t in, vec2_t out ) {
 	mat4_t p, m;
 	vec4_t temp, temp2;
@@ -251,7 +204,7 @@ void RF_TransformVectorToScreen( const refdef_t *rd, const vec3_t in, vec2_t out
 		Matrix4_OrthoProjection( rd->ortho_x, rd->ortho_x, rd->ortho_y, rd->ortho_y,
 									  -4096.0f, 4096.0f, p );
 	} else {
-		Matrix4_InfinitePerspectiveProjection( rd->fov_x, rd->fov_y, Z_NEAR, p, glConfig.depthEpsilon );
+		Matrix4_PerspectiveProjection( rd->fov_x, rd->fov_y, Z_NEAR, p );
 	}
 
 	Matrix4_QuakeModelview( rd->vieworg, rd->viewaxis, m );
@@ -270,7 +223,7 @@ void RF_TransformVectorToScreen( const refdef_t *rd, const vec3_t in, vec2_t out
 bool RF_TransformVectorToScreenClamped( const refdef_t *rd, const vec3_t target, int border, vec2_t out ) {
 	float near_plane = 0.0001f;
 	mat4_t p, v;
-	Matrix4_InfinitePerspectiveProjection( rd->fov_x, rd->fov_y, near_plane, p, glConfig.depthEpsilon );
+	Matrix4_PerspectiveProjection( rd->fov_x, rd->fov_y, near_plane, p );
 	Matrix4_QuakeModelview( rd->vieworg, rd->viewaxis, v );
 
 	vec4_t homo, view, clip;
@@ -278,7 +231,7 @@ bool RF_TransformVectorToScreenClamped( const refdef_t *rd, const vec3_t target,
 	Matrix4_Multiply_Vector( v, homo, view );
 	Matrix4_Multiply_Vector( p, view, clip );
 
-	if( fabsf( clip[2] ) < near_plane ) {
+	if( clip[2] == 0 ) {
 		Vector2Set( out, rd->width * 0.5f, rd->height * 0.5f );
 		return false;
 	}
@@ -326,56 +279,9 @@ bool RF_LerpTag( orientation_t *orient, const model_t *mod, int oldframe, int fr
 		return false;
 	}
 
-	if( mod->type == mod_skeletal ) {
-		return R_SkeletalModelLerpTag( orient, (const mskmodel_t *)mod->extradata, oldframe, frame, lerpfrac, name );
-	}
 	if( mod->type == mod_alias ) {
 		return R_AliasModelLerpTag( orient, (const maliasmodel_t *)mod->extradata, oldframe, frame, lerpfrac, name );
 	}
 
 	return false;
-}
-
-/*
-* RF_GetShaderForOrigin
-*
-* Trace 64 units in all axial directions to find the closest surface
-*/
-shader_t *RF_GetShaderForOrigin( const vec3_t origin ) {
-	int i, j;
-	vec3_t dir, end;
-	rtrace_t tr;
-	shader_t *best = NULL;
-	float best_frac = 1000.0f;
-
-	for( i = 0; i < 3; i++ ) {
-		VectorClear( dir );
-
-		for( j = -1; j <= 1; j += 2 ) {
-			dir[i] = j;
-			VectorMA( origin, 64, dir, end );
-
-			if( !R_TraceLine( &tr, origin, end, 0 ) ) {
-				continue;
-			}
-			if( !tr.shader ) {
-				continue;
-			}
-
-			if( tr.fraction < best_frac ) {
-				best = tr.shader;
-				best_frac = tr.fraction;
-			}
-		}
-	}
-
-	return best;
-}
-
-void RF_PushTransformMatrix( bool projection, const float *m ) {
-	rrf.frame->PushTransformMatrix( rrf.frame, projection, m );
-}
-
-void RF_PopTransformMatrix( bool projection ) {
-	rrf.frame->PopTransformMatrix( rrf.frame, projection );
 }

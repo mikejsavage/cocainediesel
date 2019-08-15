@@ -22,35 +22,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //g_gametypes.c
 extern cvar_t *g_warmup_timelimit;
-extern cvar_t *g_postmatch_timelimit;
-extern cvar_t *g_gametype; // only for use in function that deal with changing gametype, use GS_Gametype()
 
 #define G_CHALLENGERS_MIN_JOINTEAM_MAPTIME  9000 // must wait 10 seconds before joining
 #define GAMETYPE_PROJECT_EXTENSION          ".gt"
-#define CHAR_GAMETYPE_SEPARATOR             ';'
-
-#define MAX_RACE_CHECKPOINTS    32
-
-typedef struct {
-	int mm_attacker;    // session-id
-	int mm_victim;      // session-id
-	int weapon;         // weapon used
-	int64_t time;		// server timestamp
-} loggedFrag_t;
-
-typedef struct {
-	int owner;			// session-id
-	int64_t timestamp;	// milliseconds
-	int numSectors;
-	int64_t *times;		// unsigned int * numSectors+1, where last is final time
-} raceRun_t;
 
 typedef struct {
 	int score;
 	int deaths;
 	int frags;
 	int suicides;
-	int teamfrags;
 
 	int accuracy_shots[AMMO_TOTAL - AMMO_GUNBLADE];
 	int accuracy_hits[AMMO_TOTAL - AMMO_GUNBLADE];
@@ -58,8 +38,6 @@ typedef struct {
 	int accuracy_frags[AMMO_TOTAL - AMMO_GUNBLADE];
 	int total_damage_given;
 	int total_damage_received;
-	int total_teamdamage_given;
-	int total_teamdamage_received;
 	int health_taken;
 
 	int asFactored;
@@ -101,9 +79,6 @@ typedef struct {
 	int ammo_respawn;
 	int weapon_respawn;
 	int health_respawn;
-	int powerup_respawn;
-	int megahealth_respawn;
-	int ultrahealth_respawn;
 
 	// few default settings
 	bool readyAnnouncementEnabled;
@@ -115,17 +90,9 @@ typedef struct {
 	bool canForceModels;
 	bool customDeadBodyCam;
 	bool removeInactivePlayers;
-	bool disableObituaries;
+	bool selfDamage;
 
 	int spawnpointRadius;
-
-	bool mmCompatible;
-
-	int numBots;
-	bool dummyBots;
-
-	int forceTeamHumans;
-	int forceTeamBots;
 } gametype_descriptor_t;
 
 typedef struct {
@@ -141,14 +108,9 @@ typedef struct {
 
 extern g_teamlist_t teamlist[GS_MAX_TEAMS];
 
-//clock
-extern char clockstring[16];
-
 //
 //	matches management
 //
-bool G_Match_Tied( void );
-bool G_Match_CheckExtendPlayTime( void );
 void G_Match_RemoveProjectiles( edict_t *owner );
 void G_Match_CleanUpPlayerStats( edict_t *ent );
 void G_Match_FreeBodyQueue( void );
@@ -167,5 +129,4 @@ void G_Match_Autorecord_AltStart( void );
 void G_Match_Autorecord_Stop( void );
 void G_Match_Autorecord_Cancel( void );
 bool G_Match_ScorelimitHit( void );
-bool G_Match_SuddenDeathFinished( void );
 bool G_Match_TimelimitHit( void );

@@ -20,8 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // cmodel.c -- model loading
 
 #include "qcommon.h"
+#include "qcommon/hash.h"
 #include "cm_local.h"
-#include "qalgo/hash.h"
 
 static bool cm_initialized = false;
 
@@ -30,15 +30,16 @@ static mempool_t *cmap_mempool;
 static cvar_t *cm_noAreas;
 cvar_t *cm_noCurves;
 
-void CM_LoadQ3BrushModel( cmodel_state_t *cms, void *parent, void *buffer, bspFormatDesc_t *format );
+void CM_LoadQ3BrushModel( cmodel_state_t *cms, void *buffer, int buffer_size, const bspFormatDesc_t *format );
+void CM_LoadCompressedBSP( cmodel_state_t *cms, void *compressed, int compressed_size, const bspFormatDesc_t *format );
 
 static const modelFormatDescr_t cm_supportedformats[] =
 {
 	// Q3-alike .bsp models
-	{ "*", 4, q3BSPFormats, 0, ( const modelLoader_t )CM_LoadQ3BrushModel },
+	{ ( const char * ) COMPRESSED_BSP_MAGIC, sizeof( COMPRESSED_BSP_MAGIC ), NULL, ( const modelLoader_t )CM_LoadCompressedBSP },
+	{ "*", 4, q3BSPFormats, ( const modelLoader_t )CM_LoadQ3BrushModel },
 
-	// trailing NULL
-	{ NULL, 0, NULL, 0, NULL }
+	{ }
 };
 
 static void CM_AllocateCheckCounts( cmodel_state_t *cms );
@@ -191,9 +192,7 @@ MAP LOADING
 * Loads in the map and all submodels
 */
 cmodel_t *CM_LoadMap( cmodel_state_t *cms, const char *name, bool clientload, unsigned *checksum ) {
-	int length;
 	unsigned *buf;
-	char *header;
 	const modelFormatDescr_t *descr;
 	bspFormatDesc_t *bspFormat = NULL;
 
@@ -217,7 +216,7 @@ cmodel_t *CM_LoadMap( cmodel_state_t *cms, const char *name, bool clientload, un
 	//
 	// load the file
 	//
-	length = FS_LoadFile( name, ( void ** )&buf, NULL, 0 );
+	int length = FS_LoadFile( name, ( void ** )&buf, NULL, 0 );
 	if( !buf ) {
 		Com_Error( ERR_DROP, "Couldn't load %s", name );
 	}
@@ -231,18 +230,8 @@ cmodel_t *CM_LoadMap( cmodel_state_t *cms, const char *name, bool clientload, un
 		Com_Error( ERR_DROP, "CM_LoadMap: unknown fileid for %s", name );
 	}
 
-	if( !bspFormat ) {
-		Com_Error( ERR_DROP, "CM_LoadMap: %s: unknown bsp format", name );
-	}
-
-	// copy header into temp variable to be saveed in a cvar
-	header = ( char * ) Mem_TempMalloc( descr->headerLen + 1 );
-	memcpy( header, buf, descr->headerLen );
-	header[descr->headerLen] = '\0';
-
-	Mem_TempFree( header );
-
-	descr->loader( cms, NULL, buf, bspFormat );
+	descr->loader( cms, buf, length, bspFormat );
+	FS_FreeFile( buf );
 
 	if( cms->numareas ) {
 		cms->map_areas = ( carea_t * ) Mem_Alloc( cms->mempool, cms->numareas * sizeof( *cms->map_areas ) );
@@ -259,105 +248,6 @@ cmodel_t *CM_LoadMap( cmodel_state_t *cms, const char *name, bool clientload, un
 	Q_strncpyz( cms->map_name, name, sizeof( cms->map_name ) );
 
 	return cms->map_cmodels;
-}
-
-/*
-* CM_LoadMapMessage
-*/
-char *CM_LoadMapMessage( char *name, char *message, int size ) {
-	int file, len;
-	uint8_t h_v[8];
-	char *data, *entitystring;
-	lump_t l;
-	bool isworld;
-	char key[MAX_KEY], value[MAX_VALUE], token[MAX_TOKEN_CHARS];
-	size_t keyLength;
-	const modelFormatDescr_t *descr;
-	const bspFormatDesc_t *bspFormat = NULL;
-
-	*message = '\0';
-
-	len = FS_FOpenFile( name, &file, FS_READ );
-	if( !file || len < 1 ) {
-		if( file ) {
-			FS_FCloseFile( file );
-		}
-		return message;
-	}
-
-	FS_Read( h_v, sizeof( h_v ), file );
-	descr = Q_FindFormatDescriptor( cm_supportedformats, h_v, &bspFormat );
-	if( !descr ) {
-		Com_Printf( "CM_LoadMapMessage: %s: unknown bsp format\n", name );
-		FS_FCloseFile( file );
-		return message;
-	}
-
-	FS_Seek( file, descr->headerLen + sizeof( int ) + sizeof( lump_t ) * bspFormat->entityLumpNum, FS_SEEK_SET );
-
-	FS_Read( &l, sizeof( l ), file );
-	l.fileofs = LittleLong( l.fileofs );
-	l.filelen = LittleLong( l.filelen );
-
-	if( !l.filelen ) {
-		FS_FCloseFile( file );
-		return message;
-	}
-
-	FS_Seek( file, l.fileofs, FS_SEEK_SET );
-
-	entitystring = ( char * ) Mem_TempMalloc( l.filelen + 1 );
-	FS_Read( entitystring, l.filelen, file );
-	entitystring[l.filelen] = '\0';
-
-	FS_FCloseFile( file );
-
-	for( data = entitystring; ( COM_Parse_r( token, sizeof( token ), &data ) ) && token[0] == '{'; ) {
-		isworld = false;
-		*message = '\0';
-
-		while( 1 ) {
-			COM_Parse_r( token, sizeof( token ), &data );
-			if( !token[0] || token[0] == '}' ) {
-				break; // end of entity
-
-			}
-			Q_strncpyz( key, token, sizeof( key ) );
-			// remove trailing spaces
-			keyLength = strlen( key );
-			while( keyLength && key[keyLength - 1] == ' ' )
-				keyLength--;
-			key[keyLength] = '\0';
-
-			COM_Parse_r( token, sizeof( token ), &data );
-			if( !token[0] ) {
-				break; // error
-
-			}
-			Q_strncpyz( value, token, sizeof( value ) );
-
-			// now that we have the key pair worked out...
-			if( !strcmp( key, "classname" ) ) {
-				isworld = strcmp( value, "worldspawn" ) == 0;
-				if( *message ) {
-					break;
-				}
-			} else if( !strcmp( key, "message" ) ) {
-				Q_strncpyz( message, token, size );
-				if( isworld ) {
-					break;
-				}
-			}
-		}
-
-		if( isworld ) {
-			break;
-		}
-	}
-
-	Mem_Free( entitystring );
-
-	return message;
 }
 
 /*

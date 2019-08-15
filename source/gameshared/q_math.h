@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "q_arch.h"
 
+#include <emmintrin.h>
+
 //==============================================================
 //
 //MATHLIB
@@ -55,9 +57,16 @@ typedef vec_t quat_t[4];
 
 typedef vec_t mat3_t[9];
 
-typedef vec_t dualquat_t[8];
-
 typedef uint8_t byte_vec4_t[4];
+
+struct RGB8 {
+	uint8_t r, g, b;
+	constexpr RGB8( uint8_t r_, uint8_t g_, uint8_t b_ ) : r( r_ ), g( g_ ), b( b_ ) { }
+};
+
+struct MinMax3 {
+	vec3_t mins, maxs;
+};
 
 // 0-2 are axial planes
 #define PLANE_X     0
@@ -90,9 +99,7 @@ constexpr vec4_t colorLtGrey = { 0.75, 0.75, 0.75, 1 };
 constexpr vec4_t colorMdGrey = { 0.5, 0.5, 0.5, 1 };
 constexpr vec4_t colorDkGrey = { 0.25, 0.25, 0.25, 1 };
 
-#define MAX_S_COLORS 10
-
-constexpr vec4_t color_table[MAX_S_COLORS] =
+constexpr vec4_t color_table[] =
 {
 	{ 0.0, 0.0, 0.0, 1.0 },
 	{ 1.0, 0.0, 0.0, 1.0 },
@@ -106,10 +113,7 @@ constexpr vec4_t color_table[MAX_S_COLORS] =
 	{ 0.5, 0.5, 0.5, 1.0 }, // grey
 };
 
-
-#define nanmask ( 255 << 23 )
-
-#define IS_NAN( x ) ( ( ( *(int *)&x ) & nanmask ) == nanmask )
+#define MAX_S_COLORS ARRAY_COUNT( color_table )
 
 #ifndef M_PI
 #define M_PI       3.14159265358979323846   // matches value in gcc v2 math.h
@@ -119,34 +123,53 @@ constexpr vec4_t color_table[MAX_S_COLORS] =
 #define M_TWOPI    6.28318530717958647692
 #endif
 
-#define DEG2RAD( a ) ( a * M_PI ) / 180.0F
-#define RAD2DEG( a ) ( a * 180.0F ) / M_PI
+#define DEG2RAD( a ) ( ( a * float( M_PI ) ) / 180.0f )
+#define RAD2DEG( a ) ( ( a * 180.0f ) / float( M_PI ) )
 
 #define max( a, b ) ( ( a ) > ( b ) ? ( a ) : ( b ) )
 #define min( a, b ) ( ( a ) < ( b ) ? ( a ) : ( b ) )
 #define bound( lo, x, hi ) ( ( lo ) >= ( hi ) ? ( lo ) : ( x ) < ( lo ) ? ( lo ) : ( x ) > ( hi ) ? ( hi ) : ( x ) )
 
-// clamps a (must be lvalue) to [b..c] range
-#define clamp( a, b, c ) ( ( b ) >= ( c ) ? ( a ) = ( b ) : ( a ) < ( b ) ? ( a ) = ( b ) : ( a ) > ( c ) ? ( a ) = ( c ) : ( a ) )
-
-#define clamp_low( a, low ) ( ( a ) = ( a ) < ( low ) ? ( low ) : ( a ) )
-#define clamp_high( a, high ) ( ( a ) = ( a ) > ( high ) ? ( high ) : ( a ) )
-
 #define random()    ( ( rand() & 0x7fff ) / ( (float)0x7fff ) )  // 0..1
 #define brandom( a, b )    ( ( a ) + random() * ( ( b ) - ( a ) ) )                // a..b
 #define crandom()   brandom( -1, 1 )                           // -1..1
 
-int Q_rand( int *seed );
-#define Q_random( seed )      ( ( Q_rand( seed ) & 0x7fff ) / ( (float)0x7fff ) )    // 0..1
-#define Q_brandom( seed, a, b ) ( ( a ) + Q_random( seed ) * ( ( b ) - ( a ) ) )                      // a..b
-#define Q_crandom( seed )     Q_brandom( seed, -1, 1 )
+inline float Q_RSqrt( float x ) {
+	return _mm_cvtss_f32( _mm_rsqrt_ss( _mm_set_ss( x ) ) );
+}
 
-float   Q_RSqrt( float number );
+template< typename T >
+T Lerp( T a, float t, T b ) {
+        return a * ( 1.0f - t ) + b * t;
+}
+
+template< typename T >
+float Unlerp( T lo, T x, T hi ) {
+        return float( x - lo ) / float( hi - lo );
+}
+
+template< typename T >
+T Min2( const T & a, const T & b ) {
+	return a < b ? a : b;
+}
+
+template< typename T >
+T Max2( const T & a, const T & b ) {
+	return a > b ? a : b;
+}
+
+template< typename T >
+T Clamp( const T & lo, const T & x, const T & hi ) {
+	assert( lo <= hi );
+	return Max2( lo, Min2( x, hi ) );
+}
+
+template< typename T >
+T Clamp01( const T & x ) {
+	return Max2( T( 0 ), Min2( x, T( 1 ) ) );
+}
+
 int Q_log2( int val );
-
-int Q_bitcount( int v );
-
-#define ISPOWOF2( x ) ( !( ( x ) & ( ( x ) - 1 ) ) )
 
 #define SQRTFAST( x ) ( ( x ) * Q_RSqrt( x ) ) // jal : //The expression a * rsqrt(b) is intended as a higher performance alternative to a / sqrt(b). The two expressions are comparably accurate, but do not compute exactly the same value in every case. For example, a * rsqrt(a*a + b*b) can be just slightly greater than 1, in rare cases.
 
@@ -165,34 +188,24 @@ int Q_bitcount( int v );
 #define VectorMA( a, b, c, d )       ( ( d )[0] = ( a )[0] + ( b ) * ( c )[0], ( d )[1] = ( a )[1] + ( b ) * ( c )[1], ( d )[2] = ( a )[2] + ( b ) * ( c )[2] )
 #define VectorCompare( v1, v2 )    ( ( v1 )[0] == ( v2 )[0] && ( v1 )[1] == ( v2 )[1] && ( v1 )[2] == ( v2 )[2] )
 #define VectorLengthSquared( v )    ( DotProduct( ( v ), ( v ) ) )
-#define VectorLength( v )     ( sqrt( VectorLengthSquared( v ) ) )
+#define VectorLength( v )     ( sqrtf( VectorLengthSquared( v ) ) )
 #define VectorInverse( v )    ( ( v )[0] = -( v )[0], ( v )[1] = -( v )[1], ( v )[2] = -( v )[2] )
 #define VectorLerp( a, c, b, v )     ( ( v )[0] = ( a )[0] + ( c ) * ( ( b )[0] - ( a )[0] ), ( v )[1] = ( a )[1] + ( c ) * ( ( b )[1] - ( a )[1] ), ( v )[2] = ( a )[2] + ( c ) * ( ( b )[2] - ( a )[2] ) )
 #define VectorScale( in, scale, out ) ( ( out )[0] = ( in )[0] * ( scale ), ( out )[1] = ( in )[1] * ( scale ), ( out )[2] = ( in )[2] * ( scale ) )
 
 #define DistanceSquared( v1, v2 ) ( ( ( v1 )[0] - ( v2 )[0] ) * ( ( v1 )[0] - ( v2 )[0] ) + ( ( v1 )[1] - ( v2 )[1] ) * ( ( v1 )[1] - ( v2 )[1] ) + ( ( v1 )[2] - ( v2 )[2] ) * ( ( v1 )[2] - ( v2 )[2] ) )
-#define Distance( v1, v2 ) ( sqrt( DistanceSquared( v1, v2 ) ) )
+#define Distance( v1, v2 ) ( sqrtf( DistanceSquared( v1, v2 ) ) )
 
 #define VectorLengthFast( v )     ( SQRTFAST( DotProduct( ( v ), ( v ) ) ) )  // jal :  //The expression a * rsqrt(b) is intended as a higher performance alternative to a / sqrt(b). The two expressions are comparably accurate, but do not compute exactly the same value in every case. For example, a * rsqrt(a*a + b*b) can be just slightly greater than 1, in rare cases.
 #define DistanceFast( v1, v2 )     ( SQRTFAST( DistanceSquared( v1, v2 ) ) )  // jal :  //The expression a * rsqrt(b) is intended as a higher performance alternative to a / sqrt(b). The two expressions are comparably accurate, but do not compute exactly the same value in every case. For example, a * rsqrt(a*a + b*b) can be just slightly greater than 1, in rare cases.
 
 #define Vector2Set( v, x, y )     ( ( v )[0] = ( x ), ( v )[1] = ( y ) )
 #define Vector2Copy( a, b )    ( ( b )[0] = ( a )[0], ( b )[1] = ( a )[1] )
-#define Vector2Avg( a, b, c )       ( ( c )[0] = ( ( ( a[0] ) + ( b[0] ) ) * 0.5f ), ( c )[1] = ( ( ( a[1] ) + ( b[1] ) ) * 0.5f ) )
 
 #define Vector4Set( v, a, b, c, d )   ( ( v )[0] = ( a ), ( v )[1] = ( b ), ( v )[2] = ( c ), ( v )[3] = ( d ) )
 #define Vector4Clear( a )     ( ( a )[0] = ( a )[1] = ( a )[2] = ( a )[3] = 0 )
 #define Vector4Copy( a, b )    ( ( b )[0] = ( a )[0], ( b )[1] = ( a )[1], ( b )[2] = ( a )[2], ( b )[3] = ( a )[3] )
 #define Vector4Scale( in, scale, out )      ( ( out )[0] = ( in )[0] * scale, ( out )[1] = ( in )[1] * scale, ( out )[2] = ( in )[2] * scale, ( out )[3] = ( in )[3] * scale )
-#define Vector4Add( a, b, c )       ( ( c )[0] = ( ( ( ( a )[0] ) + ( ( b )[0] ) ) ), ( c )[1] = ( ( ( ( a )[1] ) + ( ( b )[1] ) ) ), ( c )[2] = ( ( ( ( a )[2] ) + ( ( b )[2] ) ) ), ( c )[3] = ( ( ( ( a )[3] ) + ( ( b )[3] ) ) ) )
-#define Vector4Subtract( a, b, c )       ( ( c )[0] = ( ( ( ( a )[0] ) - ( ( b )[0] ) ) ), ( c )[1] = ( ( ( ( a )[1] ) - ( ( b )[1] ) ) ), ( c )[2] = ( ( ( ( a )[2] ) - ( ( b )[2] ) ) ), ( c )[3] = ( ( ( ( a )[3] ) - ( ( b )[3] ) ) ) )
-#define Vector4Avg( a, b, c )       ( ( c )[0] = ( ( ( ( a )[0] ) + ( ( b )[0] ) ) * 0.5f ), ( c )[1] = ( ( ( ( a )[1] ) + ( ( b )[1] ) ) * 0.5f ), ( c )[2] = ( ( ( ( a )[2] ) + ( b )[2] ) ) * 0.5f ), ( c )[3] = ( ( ( ( a )[3] ) + ( ( b )[3] ) ) * 0.5f ) )
-#define Vector4Negate( a, b )      ( ( b )[0] = -( a )[0], ( b )[1] = -( a )[1], ( b )[2] = -( a )[2], ( b )[3] = -( a )[3] )
-#define Vector4Inverse( v )         ( ( v )[0] = -( v )[0], ( v )[1] = -( v )[1], ( v )[2] = -( v )[2], ( v )[3] = -( v )[3] )
-#define DotProduct4( x, y )    ( ( x )[0] * ( y )[0] + ( x )[1] * ( y )[1] + ( x )[2] * ( y )[2] + ( x )[3] * ( y )[3] )
-#define Vector4Compare( v1, v2 )    ( ( v1 )[0] == ( v2 )[0] && ( v1 )[1] == ( v2 )[1] && ( v1 )[2] == ( v2 )[2] && ( v1 )[3] == ( v2 )[3] )
-#define Vector4LengthSquared( v )    ( DotProduct4( ( v ), ( v ) ) )
-#define Vector4Length( v )     ( sqrt( Vector4LengthSquared( v ) ) )
 
 vec_t VectorNormalize( vec3_t v );       // returns vector length
 vec_t VectorNormalize2( const vec3_t v, vec3_t out );
@@ -200,32 +213,16 @@ void  VectorNormalizeFast( vec3_t v );
 
 vec_t Vector4Normalize( vec4_t v );      // returns vector length
 
-void VectorReflect( const vec3_t v, const vec3_t n, const vec_t dist, vec3_t out );
-
-// just in case you do't want to use the macros
-void _VectorMA( const vec3_t veca, float scale, const vec3_t vecb, vec3_t vecc );
-vec_t _DotProduct( const vec3_t v1, const vec3_t v2 );
-void _VectorSubtract( const vec3_t veca, const vec3_t vecb, vec3_t out );
-void _VectorAdd( const vec3_t veca, const vec3_t vecb, vec3_t out );
-void _VectorCopy( const vec3_t in, vec3_t out );
-
 void ClearBounds( vec3_t mins, vec3_t maxs );
 void CopyBounds( const vec3_t inmins, const vec3_t inmaxs, vec3_t outmins, vec3_t outmaxs );
-void ClipBounds( vec3_t mins, vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 );
-void UnionBounds( vec3_t mins, vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 );
 void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs );
 float RadiusFromBounds( const vec3_t mins, const vec3_t maxs );
 bool BoundsOverlap( const vec3_t mins1, const vec3_t maxs1, const vec3_t mins2, const vec3_t maxs2 );
 bool BoundsOverlapSphere( const vec3_t mins, const vec3_t maxs, const vec3_t centre, float radius );
 void BoundsFromRadius( const vec3_t centre, vec_t radius, vec3_t mins, vec3_t maxs );
-bool BoundsOverlapTriangle( const vec3_t v1, const vec3_t v2, const vec3_t v3, const vec3_t mins, const vec3_t maxs );
-bool BoundsInsideBounds( const vec3_t mins1, const vec3_t maxs1, const vec3_t mins2, const vec3_t maxs2 );
 void BoundsCentre( const vec3_t mins, const vec3_t maxs, vec3_t centre );
 float LocalBounds( const vec3_t inmins, const vec3_t inmaxs, vec3_t mins, vec3_t maxs, vec3_t centre );
-#define BoundsVolume(mins,maxs) (((maxs)[0]-(mins)[0]) * ((maxs)[1]-(mins)[1]) * ((maxs)[2]-(mins)[2]))
 void BoundsCorners( const vec3_t mins, const vec3_t maxs, vec3_t corners[8] );
-vec_t BoundsNearestDistance( const vec3_t point, const vec3_t mins, const vec3_t maxs );
-vec_t BoundsFurthestDistance( const vec3_t point, const vec3_t mins, const vec3_t maxs );
 
 // LordHavoc's triangle utility functions follow
 
@@ -234,44 +231,6 @@ vec_t BoundsFurthestDistance( const vec3_t point, const vec3_t mins, const vec3_
 	(n)[1] = ((a)[2] - (b)[2]) * ((c)[0] - (b)[0]) - ((a)[0] - (b)[0]) * ((c)[2] - (b)[2]), \
 	(n)[2] = ((a)[0] - (b)[0]) * ((c)[1] - (b)[1]) - ((a)[1] - (b)[1]) * ((c)[0] - (b)[0]) \
 	)
-
-/*! Fast PointInfrontOfTriangle.
-* subtracts v1 from v0 and v2, combined into a crossproduct, combined with a
-* dotproduct of the light location relative to the first point of the
-* triangle (any point works, since any triangle is obviously flat), and
-* finally a comparison to determine if the light is infront of the triangle
-* (the goal of this statement) we do not need to normalize the surface
-* normal because both sides of the comparison use it, therefore they are
-* both multiplied the same amount...  furthermore a subtract can be done on
-* the point to eliminate one dotproduct
-* this is ((p - a) * cross(a-b,c-b))
-*/
-#define PointInfrontOfTriangle(p,a,b,c) \
-( ((p)[0] - (a)[0]) * (((a)[1] - (b)[1]) * ((c)[2] - (b)[2]) - ((a)[2] - (b)[2]) * ((c)[1] - (b)[1])) \
-+ ((p)[1] - (a)[1]) * (((a)[2] - (b)[2]) * ((c)[0] - (b)[0]) - ((a)[0] - (b)[0]) * ((c)[2] - (b)[2])) \
-+ ((p)[2] - (a)[2]) * (((a)[0] - (b)[0]) * ((c)[1] - (b)[1]) - ((a)[1] - (b)[1]) * ((c)[0] - (b)[0])) > 0)
-
-#if 0
-// readable version, kept only for explanatory reasons
-inline int PointInfrontOfTriangle(const float *p, const float *a, const float *b, const float *c)
-{
-	float dir0[3], dir1[3], normal[3];
-
-	// calculate two mostly perpendicular edge directions
-	VectorSubtract(a, b, dir0);
-	VectorSubtract(c, b, dir1);
-
-	// we have two edge directions, we can calculate a third vector from
-	// them, which is the direction of the surface normal (its magnitude
-	// is not 1 however)
-	CrossProduct(dir0, dir1, normal);
-
-	// compare distance of light along normal, with distance of any point
-	// of the triangle along the same normal (the triangle is planar,
-	// I.E. flat, so all points give the same answer)
-	return DotProduct(p, normal) > DotProduct(a, normal);
-}
-#endif
 
 #define NUMVERTEXNORMALS    162
 int DirToByte( vec3_t dir );
@@ -283,10 +242,7 @@ void OrthonormalBasis( const vec3_t forward, vec3_t right, vec3_t up );
 void ViewVectors( const vec3_t forward, vec3_t right, vec3_t up );
 void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up );
 int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const struct cplane_s *plane );
-float anglemod( float a );
 float LerpAngle( float a1, float a2, const float frac );
-float AngleSubtract( float a1, float a2 );
-void AnglesSubtract( vec3_t v1, vec3_t v2, vec3_t v3 );
 float AngleNormalize360( float angle );
 float AngleNormalize180( float angle );
 float AngleDelta( float angle1, float angle2 );
@@ -297,13 +253,10 @@ void BuildBoxPoints( vec3_t p[8], const vec3_t org, const vec3_t mins, const vec
 
 vec_t ColorNormalize( const vec_t *in, vec_t *out );
 
-#define ColorGrayscale( c ) ( 0.299 * ( c )[0] + 0.587 * ( c )[1] + 0.114 * ( c )[2] )
-
 float WidescreenFov( float fov );
 float CalcVerticalFov( float fov_x, float width, float height );
 float CalcHorizontalFov( float fov_y, float width, float height );
 
-#define Q_sign( x ) ( ( x ) < 0 ? -1 : ( ( x ) > 0 ? 1 : 0 ) )
 #define Q_rint( x ) ( ( x ) < 0 ? ( (int)( ( x ) - 0.5f ) ) : ( (int)( ( x ) + 0.5f ) ) )
 
 int SignbitsForPlane( const cplane_t *out );
@@ -331,12 +284,10 @@ void SnapPlane( vec3_t normal, vec_t *dist );
 	  :                                       \
 	  BoxOnPlaneSide( ( emins ), ( emaxs ), ( p ) ) )
 
-void ProjectPointOntoPlane( vec3_t dst, const vec3_t p, const vec3_t normal );
 void PerpendicularVector( vec3_t dst, const vec3_t src );
 void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );
+void ProjectPointOntoPlane( vec3_t dst, const vec3_t p, const vec3_t normal );
 void ProjectPointOntoVector( const vec3_t point, const vec3_t vStart, const vec3_t vDir, vec3_t vProj );
-float DistanceFromLineSquared( const vec3_t p, const vec3_t lp1, const vec3_t lp2, const vec3_t dir );
-#define DistanceFromLine( p,lp1,lp2,dir ) ( sqrt( DistanceFromLineSquared( p,lp1,lp2,dir ) ) )
 
 void Matrix3_Identity( mat3_t m );
 void Matrix3_Copy( const mat3_t m1, mat3_t m2 );
@@ -345,45 +296,16 @@ void Matrix3_Multiply( const mat3_t m1, const mat3_t m2, mat3_t out );
 void Matrix3_TransformVector( const mat3_t m, const vec3_t v, vec3_t out );
 void Matrix3_Transpose( const mat3_t in, mat3_t out );
 void Matrix3_FromAngles( const vec3_t angles, mat3_t m );
-void Matrix3_ToAngles( const mat3_t m, vec3_t angles );
-void Matrix3_Rotate( const mat3_t in, vec_t angle, vec_t x, vec_t y, vec_t z, mat3_t out );
-void Matrix3_FromPoints( const vec3_t v1, const vec3_t v2, const vec3_t v3, mat3_t m );
-void Matrix3_Normalize( mat3_t m );
 
 void Quat_Identity( quat_t q );
 void Quat_Copy( const quat_t q1, quat_t q2 );
-void Quat_Quat3( const vec3_t in, quat_t out );
 bool Quat_Compare( const quat_t q1, const quat_t q2 );
-void Quat_Conjugate( const quat_t q1, quat_t q2 );
-vec_t Quat_DotProduct( const quat_t q1, const quat_t q2 );
 vec_t Quat_Normalize( quat_t q );
-vec_t Quat_Inverse( const quat_t q1, quat_t q2 );
 void Quat_Multiply( const quat_t q1, const quat_t q2, quat_t out );
 void Quat_Lerp( const quat_t q1, const quat_t q2, vec_t t, quat_t out );
 void Quat_Vectors( const quat_t q, vec3_t f, vec3_t r, vec3_t u );
 void Quat_ToMatrix3( const quat_t q, mat3_t m );
 void Quat_FromMatrix3( const mat3_t m, quat_t q );
-void Quat_TransformVector( const quat_t q, const vec3_t v, vec3_t out );
-void Quat_ConcatTransforms( const quat_t q1, const vec3_t v1, const quat_t q2, const vec3_t v2, quat_t q, vec3_t v );
-
-void DualQuat_Identity( dualquat_t dq );
-void DualQuat_Copy( const dualquat_t in, dualquat_t out );
-void DualQuat_FromAnglesAndVector( const vec3_t angles, const vec3_t v, dualquat_t out );
-void DualQuat_FromMatrix3AndVector( const mat3_t m, const vec3_t v, dualquat_t out );
-void DualQuat_FromQuatAndVector( const quat_t q, const vec3_t v, dualquat_t out );
-void DualQuat_FromQuat3AndVector( const vec3_t q, const vec3_t v, dualquat_t out );
-void DualQuat_GetVector( const dualquat_t dq, vec3_t v );
-void DualQuat_ToQuatAndVector( const dualquat_t dq, quat_t q, vec3_t v );
-void DualQuat_ToMatrix3AndVector( const dualquat_t dq, mat3_t m, vec3_t v );
-void DualQuat_Invert( dualquat_t dq );
-vec_t DualQuat_Normalize( dualquat_t dq );
-void DualQuat_Multiply( const dualquat_t dq1, const dualquat_t dq2, dualquat_t out );
-void DualQuat_Lerp( const dualquat_t dq1, const dualquat_t dq2, vec_t t, dualquat_t out );
-
-vec_t LogisticCDF( vec_t x );
-vec_t LogisticPDF( vec_t x );
-vec_t NormalCDF( vec_t x );
-vec_t NormalPDF( vec_t x );
 
 // ============================================================================
 
@@ -393,11 +315,3 @@ void Q_InitNoiseTable( int seed, float *noisetable, int *noiseperm );
 
 float Q_GetNoiseValueFromTable( float *noisetable, int *noiseperm, 
 	float x, float y, float z, float t );
-
-/*
-* Q_GetNoiseValue
-
-* Simplified version of Q_GetNoiseValueFromTable, to be used for general purposes.
-* NOT thread-safe!
-*/
-float Q_GetNoiseValue( float x, float y, float z, float t );

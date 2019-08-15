@@ -70,6 +70,7 @@ void RB_BeginRegistration( void ) {
 	int i;
 
 	RB_RegisterStreamVBOs();
+	TouchFonts();
 	RB_BindVBO( 0, 0 );
 
 	// unbind all texture targets on all TMUs
@@ -117,6 +118,8 @@ void RB_BeginFrame( void ) {
 	RB_SetShaderStateMask( ~0, 0 );
 	RB_BindVBO( 0, 0 );
 	RB_FlushTextureCache();
+
+	ResetTextVBO();
 }
 
 /*
@@ -141,12 +144,6 @@ void RB_StatsMessage( char *msg, size_t size ) {
 * RB_SetGLDefaults
 */
 static void RB_SetGLDefaults( void ) {
-	if( glConfig.stencilBits ) {
-		glStencilMask( ( GLuint ) ~0 );
-		glStencilFunc( GL_EQUAL, 128, 0xFF );
-		glStencilOp( GL_KEEP, GL_KEEP, GL_INCR );
-	}
-
 	glDisable( GL_CULL_FACE );
 	glFrontFace( GL_CCW );
 	glDisable( GL_BLEND );
@@ -192,7 +189,7 @@ void RB_BindImage( int tmu, const image_t *tex ) {
 		tex = rsh.noTexture;
 	} else if( !tex->loaded ) {
 		// not yet loaded from disk
-		tex = tex->flags & IT_CUBEMAP ? rsh.whiteCubemapTexture : rsh.whiteTexture;
+		tex = rsh.whiteTexture;
 	}
 
 	if( rb.gl.flushTextures ) {
@@ -226,11 +223,9 @@ void RB_PolygonOffset( float polygonfactor, float polygonunits ) {
 * RB_DepthRange
 */
 void RB_DepthRange( float depthmin, float depthmax ) {
-	clamp( depthmin, 0.0f, 1.0f );
-	clamp( depthmax, 0.0f, 1.0f );
-	rb.gl.depthmin = depthmin;
-	rb.gl.depthmax = depthmax;
-	glDepthRange( depthmin, depthmax );
+	rb.gl.depthmin = Clamp01( depthmin );
+	rb.gl.depthmax = Clamp01( depthmax );
+	glDepthRange( rb.gl.depthmin, rb.gl.depthmax );
 }
 
 /*
@@ -390,14 +385,6 @@ void RB_SetState( int state ) {
 		}
 	}
 
-	if( diff & ( GLSTATE_NO_COLORWRITE | GLSTATE_ALPHAWRITE ) ) {
-		if( state & GLSTATE_NO_COLORWRITE ) {
-			glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
-		} else {
-			glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, ( state & GLSTATE_ALPHAWRITE ) ? GL_TRUE : GL_FALSE );
-		}
-	}
-
 	if( diff & ( GLSTATE_DEPTHFUNC_EQ | GLSTATE_DEPTHFUNC_GT ) ) {
 		if( state & GLSTATE_DEPTHFUNC_EQ ) {
 			glDepthFunc( GL_EQUAL );
@@ -430,16 +417,6 @@ void RB_SetState( int state ) {
 			glPolygonOffset( rb.gl.polygonfactor, rb.gl.polygonunits );
 		} else {
 			glDisable( GL_POLYGON_OFFSET_FILL );
-		}
-	}
-
-	if( diff & GLSTATE_STENCIL_TEST ) {
-		if( glConfig.stencilBits ) {
-			if( state & GLSTATE_STENCIL_TEST ) {
-				glEnable( GL_STENCIL_TEST );
-			} else {
-				glDisable( GL_STENCIL_TEST );
-			}
 		}
 	}
 
@@ -589,20 +566,11 @@ void RB_GetViewport( int *x, int *y, int *w, int *h ) {
 /*
 * RB_Clear
 */
-void RB_Clear( int bits, float r, float g, float b, float a ) {
+void RB_Clear( int bits ) {
 	int state = rb.gl.state;
 
 	if( bits & GL_DEPTH_BUFFER_BIT ) {
 		state |= GLSTATE_DEPTHWRITE;
-	}
-
-	if( bits & GL_STENCIL_BUFFER_BIT ) {
-		glClearStencil( 128 );
-	}
-
-	if( bits & GL_COLOR_BUFFER_BIT ) {
-		state = ( state & ~GLSTATE_NO_COLORWRITE ) | GLSTATE_ALPHAWRITE;
-		glClearColor( r, g, b, a );
 	}
 
 	RB_SetState( state );
@@ -658,7 +626,7 @@ void RB_RegisterStreamVBOs( void ) {
 	int i;
 	rbDynamicStream_t *stream;
 	vattribmask_t vattribs[RB_VBO_NUM_STREAMS] = {
-		VATTRIBS_MASK &~VATTRIB_INSTANCES_BITS,
+		VATTRIBS_MASK & ~VATTRIB_INSTANCES_BITS,
 		COMPACT_STREAM_VATTRIBS
 	};
 
@@ -799,8 +767,7 @@ void RB_AddDynamicMesh( const entity_t *entity, const shader_t *shader, const st
 	}
 
 	destVertOffset = stream->drawElements.firstVert + stream->drawElements.numVerts;
-	R_FillVBOVertexDataBuffer( stream->vbo, vattribs, mesh,
-							   stream->vertexData + destVertOffset * stream->vbo->vertexSize, 0 );
+	R_FillVBOVertexDataBuffer( stream->vbo, vattribs, mesh, stream->vertexData + destVertOffset * stream->vbo->vertexSize );
 
 	destElems = dynamicStreamElems[-streamId - 1] + stream->drawElements.firstElem + stream->drawElements.numElems;
 	if( trifan ) {
@@ -919,7 +886,7 @@ static void RB_EnableVertexAttribs( void ) {
 	if( vattribs & VATTRIB_COLOR0_BIT ) {
 		RB_EnableVertexAttrib( VATTRIB_COLOR0, true );
 		glVertexAttribPointer( VATTRIB_COLOR0, 4, GL_UNSIGNED_BYTE,
-								   GL_TRUE, vbo->vertexSize, (const GLvoid * )vbo->colorsOffset );
+								   GL_TRUE, vbo->vertexSize, ( const GLvoid * )vbo->colorsOffset );
 	} else {
 		RB_EnableVertexAttrib( VATTRIB_COLOR0, false );
 	}
@@ -942,23 +909,15 @@ static void RB_EnableVertexAttribs( void ) {
 		RB_EnableVertexAttrib( VATTRIB_SPRITEPOINT, false );
 	}
 
-	// bones (skeletal models)
-	if( ( vattribs & VATTRIB_BONES_BITS ) == VATTRIB_BONES_BITS ) {
-		// submit indices
-		RB_EnableVertexAttrib( VATTRIB_BONESINDICES, true );
-		glVertexAttribPointer( VATTRIB_BONESINDICES, 4, GL_UNSIGNED_BYTE,
-								   GL_FALSE, vbo->vertexSize, ( const GLvoid * )vbo->bonesIndicesOffset );
-
-		// submit weights
-		RB_EnableVertexAttrib( VATTRIB_BONESWEIGHTS, true );
-		glVertexAttribPointer( VATTRIB_BONESWEIGHTS, 4, GL_UNSIGNED_BYTE,
-								   GL_TRUE, vbo->vertexSize, ( const GLvoid * )vbo->bonesWeightsOffset );
-	} else if( vattribs & VATTRIB_SURFINDEX_BIT ) {
-		RB_EnableVertexAttrib( VATTRIB_SURFINDEX, true );
-		glVertexAttribPointer( VATTRIB_SURFINDEX, 1, FLOAT_VATTRIB_GL_TYPE( VATTRIB_SURFINDEX_BIT, hfa ),
-			GL_FALSE, vbo->vertexSize, ( const GLvoid * )vbo->siOffset );
+	// joints
+	if( ( vattribs & VATTRIB_JOINTS_BITS ) == VATTRIB_JOINTS_BITS ) {
+		RB_EnableVertexAttrib( VATTRIB_JOINTSINDICES, true );
+		glVertexAttribIPointer( VATTRIB_JOINTSINDICES, 4, GL_UNSIGNED_BYTE, vbo->vertexSize, ( const GLvoid * )vbo->jointsIndicesOffset );
+		RB_EnableVertexAttrib( VATTRIB_JOINTSWEIGHTS, true );
+		glVertexAttribPointer( VATTRIB_JOINTSWEIGHTS, 4, GL_UNSIGNED_BYTE, GL_TRUE, vbo->vertexSize, ( const GLvoid * )vbo->jointsWeightsOffset );
 	} else {
-		RB_EnableVertexAttrib( VATTRIB_SURFINDEX, false );
+		RB_EnableVertexAttrib( VATTRIB_JOINTSINDICES, false );
+		RB_EnableVertexAttrib( VATTRIB_JOINTSWEIGHTS, false );
 	}
 
 	if( ( vattribs & VATTRIB_INSTANCES_BITS ) == VATTRIB_INSTANCES_BITS ) {
@@ -1106,7 +1065,7 @@ void RB_DrawElementsInstanced( int firstVert, int numVerts, int firstElem, int n
 		// the uniform state in between draw calls
 		if( rb.maxDrawInstances < numInstances ) {
 			if( rb.drawInstances ) {
-				RB_Free( rb.drawInstances );
+				R_Free( rb.drawInstances );
 			}
 			rb.drawInstances = ( instancePoint_t * ) RB_Alloc( numInstances * sizeof( *rb.drawInstances ) );
 			rb.maxDrawInstances = numInstances;

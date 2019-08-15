@@ -1,0 +1,43 @@
+if %PROGRESS
+	setAlign #CENTER, #MIDDLE
+	setCursor #WIDTH / 2, #HEIGHT - 64
+	setFontSize %VIDHEIGHT / 48
+
+	// draw background
+	setColor 0.0, 0.0, 0.0, 0.5
+	setSize 200, 18
+	drawPicByName $whiteimage
+
+	moveCursor -100, 0
+
+	// fill coloured bar
+	setAlign #LEFT, #MIDDLE
+	setColorToTeamColor #TEAM_ALLY
+	setSize %PROGRESS * 2, 18
+	if %PROGRESS < 0
+		setColorToTeamColor #TEAM_ENEMY
+		setSize %PROGRESS * -2, 18
+	endif
+	drawPicByName $whiteimage
+
+	// draw bomb icon
+	setColor 1, 1, 1, 1
+	moveCursor 5 * 1.333 * %VIDHEIGHT / %VIDWIDTH, -1
+	setAlign #LEFT, #MIDDLE
+	setSize 20 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 20
+	drawPicByName gfx/bomb/carriericon.png
+
+	// draw Planting/Defusing
+	setColor 1, 1, 1, 1
+	moveCursor 19 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 1
+	setAlign #LEFT, #MIDDLE
+	setSize 12 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 12
+	setFontStyle bold
+	if %PROGRESS_TYPE == #BombProgress_Planting
+		drawString "Planting..."
+	endif
+	if %PROGRESS_TYPE == #BombProgress_Defusing
+		drawString "Defusing..."
+	endif
+	setFontStyle normal
+endif

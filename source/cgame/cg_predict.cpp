@@ -124,7 +124,6 @@ void CG_BuildSolidList( void ) {
 		if( ent->solid ) {
 			switch( ent->type ) {
 				// the following entities can never be solid
-				case ET_BEAM:
 				case ET_BLASTER:
 				case ET_ROCKET:
 				case ET_GRENADE:
@@ -132,6 +131,8 @@ void CG_BuildSolidList( void ) {
 				case ET_LASERBEAM:
 				case ET_DECAL:
 				case ET_HUD:
+				case ET_LASER:
+				case ET_SPIKES:
 				case ET_PARTICLES:
 					break;
 

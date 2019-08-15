@@ -1,8 +1,7 @@
-#include "qcommon/qcommon.h"
+#include "qcommon/base.h"
 #include "qcommon/fs.h"
-#include "qalgo/hash.h"
-#include "qalgo/hashtable.h"
-#include "qalgo/span.h"
+#include "qcommon/hash.h"
+#include "qcommon/hashtable.h"
 
 // TODO: mempool asset data
 
@@ -12,18 +11,18 @@ struct Asset {
 	size_t len;
 };
 
-constexpr uint32_t MAX_ASSETS = 4096;
+constexpr u32 MAX_ASSETS = 4096;
 
 static Asset assets[ MAX_ASSETS ];
 static const char * asset_names[ MAX_ASSETS ];
-static uint32_t num_assets;
+static u32 num_assets;
 
 static Hashtable< MAX_ASSETS * 2 > assets_hashtable;
 
 void Assets_Init() {
 	num_assets = 0;
 	assets_hashtable.clear();
-	for( uint32_t i = 0; i < MAX_ASSETS; i++ ) {
+	for( u32 i = 0; i < MAX_ASSETS; i++ ) {
 		asset_names[ i ] = assets[ i ].name;
 	}
 }
@@ -85,7 +84,7 @@ void Assets_LoadFromFS() {
 }
 
 void Assets_Shutdown() {
-	for( uint32_t i = 0; i < num_assets; i++ ) {
+	for( u32 i = 0; i < num_assets; i++ ) {
 		free( const_cast< void * >( assets[ i ].data ) );
 	}
 }
@@ -100,7 +99,7 @@ int main() {
 	Assets_Init();
 	Assets_LoadFromFS();
 
-	for( uint32_t i = 0; i < num_assets; i++ ) {
+	for( u32 i = 0; i < num_assets; i++ ) {
 		printf( "%s\n", asset_names[ i ] );
 	}
 

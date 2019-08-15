@@ -71,15 +71,12 @@ typedef struct {
 	void ( *FS_FCloseFile )( int file );
 	bool ( *FS_RemoveFile )( const char *filename );
 	int ( *FS_GetFileList )( const char *dir, const char *extension, char *buf, size_t bufsize, int start, int end );
-	const char *( *FS_FirstExtension )( const char *filename, const char *extensions[], int num_extensions );
+	const char *( *FS_FirstExtension )( const char *filename, const char * const * extensions, int num_extensions );
 	bool ( *FS_MoveFile )( const char *src, const char *dst );
 	bool ( *FS_RemoveDirectory )( const char *dirname );
 	const char * ( *FS_WriteDirectory )( void );
 
 	// multithreading
-	struct qthread_s *( *Thread_Create )( void *( *routine )( void* ), void *param );
-	void ( *Thread_Join )( struct qthread_s *thread );
-	void ( *Thread_Yield )( void );
 	struct qmutex_s *( *Mutex_Create )( void );
 	void ( *Mutex_Destroy )( struct qmutex_s **mutex );
 	void ( *Mutex_Lock )( struct qmutex_s *mutex );
@@ -95,20 +92,15 @@ typedef struct {
 } ref_import_t;
 
 typedef struct {
-	rserr_t ( *Init )( bool verbose );
+	bool ( *Init )( bool verbose );
 
 	void ( *Shutdown )( bool verbose );
-
-	void ( *ModelBounds )( const struct model_s *model, vec3_t mins, vec3_t maxs );
-	void ( *ModelFrameBounds )( const struct model_s *model, int frame, vec3_t mins, vec3_t maxs );
 
 	void ( *RegisterWorldModel )( const char *model );
 	struct model_s *( *RegisterModel )( const char *name );
 	struct shader_s *( *RegisterPic )( const char *name );
-	struct shader_s *( *RegisterRawPic )( const char *name, int width, int height, uint8_t * data, int samples );
-	struct shader_s *( *RegisterRawAlphaMask )( const char *name, int width, int height, uint8_t * data );
+	struct shader_s *( *RegisterAlphaMask )( const char *name, int width, int height, const uint8_t * data );
 	struct shader_s *( *RegisterSkin )( const char *name );
-	struct skinfile_s *( *RegisterSkinFile )( const char *name );
 
 	void ( *ReplaceRawSubPic )( struct shader_s *shader, int x, int y, int width, int height, uint8_t *data );
 
@@ -131,18 +123,10 @@ typedef struct {
 	void ( *Scissor )( int x, int y, int w, int h );
 	void ( *ResetScissor )( void );
 
-	void ( *SetCustomColor )( int num, int r, int g, int b );
-
 	bool ( *LerpTag )( orientation_t *orient, const struct model_s *mod, int oldframe, int frame, float lerpfrac, const char *name );
-
-	int ( *SkeletalGetNumBones )( const struct model_s *mod, int *numFrames );
-	int ( *SkeletalGetBoneInfo )( const struct model_s *mod, int bone, char *name, size_t name_size, int *flags );
-	void ( *SkeletalGetBonePose )( const struct model_s *mod, int bone, int frame, bonepose_t *bonepose );
 
 	int ( *GetClippedFragments )( const vec3_t origin, float radius, vec3_t axis[3], int maxfverts, vec4_t *fverts,
 								  int maxfragments, fragment_t *fragments );
-
-	StringHash ( *GetShaderForOrigin )( const vec3_t origin );
 
 	void ( *TransformVectorToScreen )( const refdef_t *rd, const vec3_t in, vec2_t out );
 	bool ( *TransformVectorToScreenClamped )( const refdef_t *rd, const vec3_t target, int border, vec2_t out );
@@ -152,14 +136,7 @@ typedef struct {
 	const char *( *GetSpeedsMessage )( char *out, size_t size );
 	int ( *GetAverageFrametime )( void );
 
-	void ( *BeginAviDemo )( void );
-	void ( *WriteAviFrame )( int frame );
-	void ( *StopAviDemo )( void );
-
 	void ( *AppActivate )( bool active, bool minimize );
-
-	void ( *PushTransformMatrix )( bool projection, const float *m );
-	void ( *PopTransformMatrix )( bool projection );
 } ref_export_t;
 
 typedef ref_export_t *(*GetRefAPI_t)( const ref_import_t *imports );
@@ -167,6 +144,9 @@ typedef ref_export_t *(*GetRefAPI_t)( const ref_import_t *imports );
 extern "C" QF_DLL_EXPORT ref_export_t *GetRefAPI( ref_import_t *import );
 
 void R_DrawDynamicPoly( const poly_t * poly );
+MinMax3 R_ModelBounds( const model_s *mod );
 
-void RF_PushTransformMatrix( bool projection, const float *m );
-void RF_PopTransformMatrix( bool projection );
+Span< TRS > R_SampleAnimation( ArenaAllocator * a, const model_s * model, float t );
+MatrixPalettes R_ComputeMatrixPalettes( ArenaAllocator * a, const model_s * model, Span< TRS > local_poses );
+bool R_FindJointByName( const model_s * model, const char * name, u8 * joint_idx );
+void R_MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const model_s * model, u8 upper_root_joint );

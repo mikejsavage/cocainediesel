@@ -49,11 +49,8 @@ extern "C" QF_DLL_EXPORT ref_export_t *GetRefAPI( ref_import_t *import ) {
 	globals.DrawRotatedStretchPic = RF_DrawRotatedStretchPic;
 	globals.Scissor = RF_SetScissor;
 	globals.ResetScissor = RF_ResetScissor;
-	globals.SetCustomColor = RF_SetCustomColor;
 	globals.ReplaceRawSubPic = RF_ReplaceRawSubPic;
 	globals.BlurScreen = RF_BlurScreen;
-
-	globals.GetShaderForOrigin = RF_GetShaderForOrigin;
 
 	globals.LerpTag = RF_LerpTag;
 	globals.TransformVectorToScreen = RF_TransformVectorToScreen;
@@ -62,29 +59,13 @@ extern "C" QF_DLL_EXPORT ref_export_t *GetRefAPI( ref_import_t *import ) {
 	globals.GetSpeedsMessage = RF_GetSpeedsMessage;
 	globals.GetAverageFrametime = RF_GetAverageFrametime;
 
-	globals.BeginAviDemo = RF_BeginAviDemo;
-	globals.WriteAviFrame = RF_WriteAviFrame;
-	globals.StopAviDemo = RF_StopAviDemo;
-
 	globals.RegisterWorldModel = RF_RegisterWorldModel;
 	globals.RegisterModel = R_RegisterModel;
 	globals.RegisterPic = R_RegisterPic;
-	globals.RegisterRawPic = R_RegisterRawPic;
-	globals.RegisterRawAlphaMask = R_RegisterRawAlphaMask;
+	globals.RegisterAlphaMask = R_RegisterAlphaMask;
 	globals.RegisterSkin = R_RegisterSkin;
-	globals.RegisterSkinFile = R_RegisterSkinFile;
-
-	globals.SkeletalGetBoneInfo = R_SkeletalGetBoneInfo;
-	globals.SkeletalGetBonePose = R_SkeletalGetBonePose;
-	globals.SkeletalGetNumBones = R_SkeletalGetNumBones;
 
 	globals.GetClippedFragments = R_GetClippedFragments;
-
-	globals.ModelBounds = R_ModelBounds;
-	globals.ModelFrameBounds = R_ModelFrameBounds;
-
-	globals.PushTransformMatrix = RF_PushTransformMatrix;
-	globals.PopTransformMatrix = RF_PopTransformMatrix;
 
 	return &globals;
 }

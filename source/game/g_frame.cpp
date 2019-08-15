@@ -89,11 +89,7 @@ static void G_Timeout_Update( unsigned int msec ) {
 				G_AnnouncerSound( NULL, sounds[seconds_left + countdown_set * 3], GS_MAX_TEAMS, false, NULL );
 			}
 
-			if( seconds_left > 1 ) {
-				G_CenterPrintFormatMsg( NULL, 1, "Match will resume in %s seconds", va( "%i", seconds_left ) );
-			} else {
-				G_CenterPrintMsg( NULL, "Match will resume in 1 second" );
-			}
+			G_CenterPrintMsg( NULL, "Match will resume in %i %s", seconds_left, seconds_left == 1 ? "second" : "seconds" );
 		} else {
 			G_CenterPrintMsg( NULL, "Match paused" );
 		}
@@ -134,13 +130,6 @@ static void G_UpdateServerInfo( void ) {
 		}
 
 		extra[0] = 0;
-		if( GS_MatchExtended() ) {
-			if( timelimit ) {
-				Q_strncatz( extra, " overtime", sizeof( extra ) );
-			} else {
-				Q_strncatz( extra, " suddendeath", sizeof( extra ) );
-			}
-		}
 		if( GS_MatchPaused() ) {
 			Q_strncatz( extra, " (in timeout)", sizeof( extra ) );
 		}
@@ -179,12 +168,6 @@ static void G_UpdateServerInfo( void ) {
 			trap_Cvar_ForceSet( "g_needpass", "0" );
 		}
 		password->modified = false;
-	}
-
-	if( GS_RaceGametype() ) {
-		trap_Cvar_ForceSet( "g_race_gametype", "1" );
-	} else {
-		trap_Cvar_ForceSet( "g_race_gametype", "0" );
 	}
 }
 
@@ -231,12 +214,7 @@ void G_CheckCvars( void ) {
 	GS_GamestatSetFlag( GAMESTAT_FLAG_INFINITEAMMO, level.gametype.infiniteAmmo );
 	GS_GamestatSetFlag( GAMESTAT_FLAG_CANFORCEMODELS, level.gametype.canForceModels );
 
-	GS_GamestatSetFlag( GAMESTAT_FLAG_MMCOMPATIBLE, level.gametype.mmCompatible );
-
-	GS_GamestatSetFlag( GAMESTAT_FLAG_CANDROPWEAPON, ( level.gametype.dropableItemsMask & IT_WEAPON ) != 0 );
-
-	gs.gameState.stats[GAMESTAT_MAXPLAYERSINTEAM] = level.gametype.maxPlayersPerTeam;
-	clamp( gs.gameState.stats[GAMESTAT_MAXPLAYERSINTEAM], 0, 255 );
+	gs.gameState.stats[GAMESTAT_MAXPLAYERSINTEAM] = Clamp( 0, level.gametype.maxPlayersPerTeam, 255 );
 
 }
 
@@ -263,12 +241,6 @@ void G_SnapClients( void ) {
 		G_Client_InactivityRemove( ent->r.client );
 
 		G_ClientEndSnapFrame( ent );
-
-		if( ent->s.effects & EF_BUSYICON ) {
-			ent->flags |= FL_BUSY;
-		} else {
-			ent->flags &= ~FL_BUSY;
-		}
 	}
 
 	G_EndServerFrames_UpdateChaseCam();
@@ -290,7 +262,7 @@ static void G_SnapEntities( void ) {
 
 		if( ent->s.type == ET_PARTICLES ) { // particles use a special configuration
 			ent->s.frame = ent->particlesInfo.speed;
-			ent->s.eventParms[0] = ent->particlesInfo.shader;
+			ent->s.modelindex = ent->particlesInfo.shaderIndex;
 			ent->s.modelindex2 = ent->particlesInfo.spread;
 			ent->s.counterNum = ent->particlesInfo.time;
 			ent->s.weapon = ent->particlesInfo.frequency;
@@ -422,9 +394,6 @@ void G_ClearSnap( void ) {
 		ent->numEvents = 0;
 		ent->eventPriority[0] = ent->eventPriority[1] = false;
 		ent->s.teleported = false; // remove teleported bit.
-
-		// remove effect bits that are (most likely) added from gametypes
-		ent->s.effects = ( ent->s.effects & ( EF_TAKEDAMAGE | EF_CARRIER | EF_ROTATE_AND_BOB | EF_GHOST ) );
 	}
 
 	// recover some info, let players respawn and finally clear the snap structures
@@ -634,12 +603,9 @@ void G_RunFrame( unsigned int msec, int64_t serverTime ) {
 	G_SpawnQueue_Think();
 
 	// run the world
-	G_asCallMapPreThink();
-	AI_CommonFrame();
 	G_RunClients();
 	G_RunEntities();
 	G_RunGametype();
-	G_asCallMapPostThink();
 	GClip_BackUpCollisionFrame();
 
 	G_LevelGarbageCollect();

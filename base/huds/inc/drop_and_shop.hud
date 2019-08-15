@@ -1,0 +1,29 @@
+setCursor #WIDTH / 2, #HEIGHT - 64
+setAlign #CENTER, #MIDDLE
+setSize 200, 18
+setFontSize %VIDHEIGHT / 48
+
+if %CARRYING_BOMB
+	setColor 0.0, 0.0, 0.0, 0.5
+	drawPicByName $whiteimage
+
+	setColor 1, 1, 1, 1
+	drawBindString "Press %s to drop the bomb" "drop"
+	moveCursor 0, -32
+endif
+
+if %CAN_PLANT_BOMB
+	setColor 0.0, 0.0, 0.0, 0.5
+	drawPicByName $whiteimage
+
+	setColor 1, 1, 1, 1
+	drawBindString "Press %s to plant" "+crouch"
+endif
+
+if %CAN_CHANGE_LOADOUT
+	setColor 0.0, 0.0, 0.0, 0.5
+	drawPicByName $whiteimage
+
+	setColor 1, 1, 1, 1
+	drawBindString "Press %s to change loadout" "gametypemenu"
+endif

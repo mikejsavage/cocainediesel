@@ -3,10 +3,12 @@ clone_depth: 1
 image: Ubuntu
 
 build_script:
-- sh: cd source
-- sh: cmake -DCMAKE_BUILD_TYPE=Release .
-- sh: make -j$(nproc --all)
+- sh: sudo update-alternatives --set gcc /usr/bin/gcc-9
+- sh: ggbuild/lua.linux make.lua release > build.ninja
+- sh: ggbuild/ninja.linux -v -k 0
 
 artifacts:
-- path: source/build
+- path: release
   name: cocaine_diesel_linux
+- path: base
+  name: cocaine_diesel_base

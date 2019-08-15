@@ -26,11 +26,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "microprofile/microprofileui.h"
 
 #include "r_local.h"
+#include "client/client.h"
 #include "r_backend_local.h"
 
 r_globals_t rf;
-
-mapconfig_t mapConfig;
 
 refinst_t rn;
 
@@ -41,29 +40,6 @@ const elem_t r_boxedges[24] = {
 	4, 5, 4, 6, 5, 7, 6, 7,
 	0, 4, 1, 5, 2, 6, 3, 7,
 };
-
-/*
-* R_TransformBounds
-*/
-void R_TransformBounds( const vec3_t origin, const mat3_t axis, vec3_t mins, vec3_t maxs, vec3_t bbox[8] ) {
-	int i;
-	vec3_t tmp;
-	mat3_t axis_;
-
-	Matrix3_Transpose( axis, axis_ );   // switch row-column order
-
-	// rotate local bounding box and compute the full bounding box
-	for( i = 0; i < 8; i++ ) {
-		vec_t *corner = bbox[i];
-
-		corner[0] = ( ( i & 1 ) ? mins[0] : maxs[0] );
-		corner[1] = ( ( i & 2 ) ? mins[1] : maxs[1] );
-		corner[2] = ( ( i & 4 ) ? mins[2] : maxs[2] );
-
-		Matrix3_TransformVector( axis_, corner, tmp );
-		VectorAdd( tmp, origin, corner );
-	}
-}
 
 /*
 * R_TransformForWorld
@@ -98,51 +74,18 @@ void R_TransformForEntity( const entity_t *e ) {
 		return;
 	}
 
-	Matrix4_ObjectMatrix( e->origin, e->axis, e->scale, rn.objectMatrix );
+	if( e->model != NULL ) {
+		mat4_t t;
+		Matrix4_ObjectMatrix( e->origin, e->axis, e->scale, t );
+		Matrix4_MultiplyFast( t, e->model->transform, rn.objectMatrix );
+	}
+	else {
+		Matrix4_ObjectMatrix( e->origin, e->axis, e->scale, rn.objectMatrix );
+	}
+
 	Matrix4_MultiplyFast( rn.cameraMatrix, rn.objectMatrix, rn.modelviewMatrix );
 
 	RB_LoadObjectMatrix( rn.objectMatrix );
-}
-
-/*
-=============================================================
-
-CUSTOM COLORS
-
-=============================================================
-*/
-
-/*
-* R_InitCustomColors
-*/
-void R_InitCustomColors( void ) {
-	memset( rsh.customColors, 255, sizeof( rsh.customColors ) );
-}
-
-/*
-* R_SetCustomColor
-*/
-void R_SetCustomColor( int num, int r, int g, int b ) {
-	if( num < 0 || num >= NUM_CUSTOMCOLORS ) {
-		return;
-	}
-	Vector4Set( rsh.customColors[num], (uint8_t)r, (uint8_t)g, (uint8_t)b, 255 );
-}
-/*
-* R_GetCustomColor
-*/
-int R_GetCustomColor( int num ) {
-	if( num < 0 || num >= NUM_CUSTOMCOLORS ) {
-		return COLOR_RGBA( 255, 255, 255, 255 );
-	}
-	return *(int *)rsh.customColors[num];
-}
-
-/*
-* R_ShutdownCustomColors
-*/
-void R_ShutdownCustomColors( void ) {
-	memset( rsh.customColors, 255, sizeof( rsh.customColors ) );
 }
 
 /*
@@ -167,7 +110,7 @@ void R_BatchSpriteSurf( const entity_t *e, const shader_t *shader, drawSurfaceTy
 	vec4_t normals[4] = { {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0} };
 	byte_vec4_t colors[4];
 	vec2_t texcoords[4] = { {0, 1}, {0, 0}, {1,0}, {1,1} };
-	mesh_t mesh;
+	mesh_t mesh = { };
 	float radius = e->radius * e->scale;
 	float rotation = e->rotation;
 
@@ -199,7 +142,6 @@ void R_BatchSpriteSurf( const entity_t *e, const shader_t *shader, drawSurfaceTy
 	mesh.normalsArray = normals;
 	mesh.stArray = texcoords;
 	mesh.colorsArray = colors;
-	mesh.sVectorsArray = NULL;
 
 	RB_AddDynamicMesh( e, shader, &mesh, GL_TRIANGLES );
 }
@@ -292,7 +234,7 @@ mesh_vbo_t *R_InitNullModelVBO( void ) {
 	mesh.numElems = 6;
 	mesh.elems = elems;
 
-	R_UploadVBOVertexData( vbo, 0, vattribs, &mesh, 0 );
+	R_UploadVBOVertexData( vbo, 0, vattribs, &mesh );
 	R_UploadVBOElemData( vbo, 0, 0, &mesh );
 
 	return vbo;
@@ -301,7 +243,7 @@ mesh_vbo_t *R_InitNullModelVBO( void ) {
 /*
 * R_DrawNullSurf
 */
-void R_DrawNullSurf( const entity_t *e, const shader_t *shader, drawSurfaceType_t *drawSurf ) {
+void R_DrawNullSurf( const entity_t *e, const shader_t *shader, const drawSurfaceType_t *drawSurf ) {
 	assert( rsh.nullVBO != NULL );
 	if( !rsh.nullVBO ) {
 		return;
@@ -388,16 +330,8 @@ void R_SetupGL2D( void ) {
 	RB_SetCamera( vec3_origin, axis_identity );
 
 	RB_LoadCameraMatrix( mat4x4_identity );
-
-	if( rf.transformMatrixStackSize[0] > 0 )
-		RB_LoadObjectMatrix( rf.transformMatricesStack[0][rf.transformMatrixStackSize[0] - 1] );
-	else
-		RB_LoadObjectMatrix( mat4x4_identity );
-
-	if( rf.transformMatrixStackSize[1] > 0 )
-		RB_LoadProjectionMatrix( rf.transformMatricesStack[1][rf.transformMatrixStackSize[1] - 1] );
-	else
-		RB_LoadProjectionMatrix( projectionMatrix );
+	RB_LoadObjectMatrix( mat4x4_identity );
+	RB_LoadProjectionMatrix( projectionMatrix );
 
 	RB_SetShaderStateMask( ~0, GLSTATE_NO_DEPTH_TEST );
 
@@ -461,16 +395,13 @@ void R_DrawRotatedStretchPic( int x, int y, int w, int h, float s1, float t1, fl
 	*(int *)pic_colors[3] = bcolor;
 
 	// rotated image
-	angle = anglemod( angle );
+	angle = AngleNormalize360( angle );
 	if( angle ) {
-		int j;
-		float sint, cost;
-
 		angle = DEG2RAD( angle );
-		sint = sin( angle );
-		cost = cos( angle );
+		float sint = sinf( angle );
+		float cost = cosf( angle );
 
-		for( j = 0; j < 4; j++ ) {
+		for( int j = 0; j < 4; j++ ) {
 			t1 = pic_st[j][0];
 			t2 = pic_st[j][1];
 			pic_st[j][0] = cost * ( t1 - 0.5f ) - sint * ( t2 - 0.5f ) + 0.5f;
@@ -552,21 +483,6 @@ void R_ResetScissor( void ) {
 }
 
 /*
-* R_PolyBlend
-*/
-static void R_PolyBlend( void ) {
-	if( !r_polyblend->integer ) {
-		return;
-	}
-	if( rsc.refdef.blend[3] < 0.01f ) {
-		return;
-	}
-
-	R_DrawStretchPic( 0, 0, rf.frameBufferWidth, rf.frameBufferHeight, 0, 0, 1, 1, rsc.refdef.blend, rsh.whiteShader );
-	RB_FlushDynamicMeshes();
-}
-
-/*
 * R_InitPostProcessingVBO
 */
 mesh_vbo_t *R_InitPostProcessingVBO( void ) {
@@ -589,7 +505,7 @@ mesh_vbo_t *R_InitPostProcessingVBO( void ) {
 	mesh.numElems = 6;
 	mesh.elems = elems;
 
-	R_UploadVBOVertexData( vbo, 0, vattribs, &mesh, 0 );
+	R_UploadVBOVertexData( vbo, 0, vattribs, &mesh );
 	R_UploadVBOElemData( vbo, 0, 0, &mesh );
 
 	return vbo;
@@ -677,7 +593,7 @@ static void R_SetupViewMatrices_( const refdef_t *rd, const mat4_t camTransform 
 		Matrix4_OrthoProjection( -rd->ortho_x, rd->ortho_x, -rd->ortho_y, rd->ortho_y,
 			rn.nearClip, rn.farClip, proj );
 	} else {
-		Matrix4_PerspectiveProjection( rd->fov_x, rd->fov_y, rn.nearClip, rn.farClip, proj );
+		Matrix4_PerspectiveProjection( rd->fov_x, rd->fov_y, rn.nearClip, proj );
 	}
 
 	Matrix4_Multiply( camTransform, cam, cam_ );
@@ -699,89 +615,10 @@ void R_SetupViewMatrices( const refdef_t *rd ) {
 }
 
 /*
-* R_SetupSideViewMatrices
-*/
-void R_SetupSideViewMatrices( const refdef_t *rd, int side ) {
-	const mat4_t rectviewmatrix[6] =
-	{
-		// sign-preserving cubemap projections
-		{ // +X
-			0, 0,-1, 0,
-			0, 1, 0, 0,
-			1, 0, 0, 0,
-			0, 0, 0, 1,
-		},
-		{ // -X
-			0, 0, 1, 0,
-			0, 1, 0, 0,
-			1, 0, 0, 0,
-			0, 0, 0, 1,
-		},
-		{ // +Y
-			1, 0, 0, 0,
-			0, 0,-1, 0,
-			0, 1, 0, 0,
-			0, 0, 0, 1,
-		},
-		{ // -Y
-			1, 0, 0, 0,
-			0, 0, 1, 0,
-			0, 1, 0, 0,
-			0, 0, 0, 1,
-		},
-		{ // +Z
-			1, 0, 0, 0,
-			0, 1, 0, 0,
-			0, 0,-1, 0,
-			0, 0, 0, 1,
-		},
-		{ // -Z
-			1, 0, 0, 0,
-			0, 1, 0, 0,
-			0, 0, 1, 0,
-			0, 0, 0, 1,
-		},
-	};
-
-	assert( side >= 0 && side < 6 );
-	if( side < 0 || side >= 6 ) {
-		return;
-	}
-
-	R_SetupViewMatrices_( rd, rectviewmatrix[side] );
-}
-
-/*
 * R_Clear
 */
-static void R_Clear( int bitMask ) {
-	int fbo;
-	int bits;
-	vec4_t envColor;
-	bool clearColor = false;
-
-	fbo = RB_BoundFrameBufferObject();
-
-	if( rn.refdef.rdflags & RDF_NOWORLDMODEL ) {
-		clearColor = rn.renderTarget != rf.renderTarget;
-		Vector4Set( envColor, 1, 1, 1, 0 );
-	} else {
-		clearColor = false;
-
-		Vector4Scale( mapConfig.environmentColor, 1.0 / 255.0, envColor );
-	}
-
-	bits = GL_DEPTH_BUFFER_BIT;
-	if( clearColor ) {
-		bits |= GL_COLOR_BUFFER_BIT;
-	}
-	if( RFB_HasStencilRenderBuffer( fbo ) ) {
-		bits |= GL_STENCIL_BUFFER_BIT;
-	}
-
-	bits &= bitMask;
-
-	RB_Clear( bits, envColor[0], envColor[1], envColor[2], envColor[3] );
+static void R_Clear() {
+	RB_Clear( GL_DEPTH_BUFFER_BIT );
 }
 
 /*
@@ -821,21 +658,16 @@ static void R_EndGL( void ) {
 * R_CullEntities
 */
 static void R_CullEntities( void ) {
-	unsigned int i;
-	int entNum;
-	entity_t *e;
-
 	rn.entities = NULL;
 	rn.entpvs = NULL;
 	rn.numEntities = 0;
 
-	rn.entities = ( int * ) R_FrameCache_Alloc( sizeof( *rn.entities ) * rsc.numEntities );
-	rn.entpvs = ( uint8_t * ) R_FrameCache_Alloc( sizeof( *rn.entpvs ) * (rsc.numEntities+7)/8 );
-	memset( rn.entpvs, 0, (rsc.numEntities+7)/8 );
+	rn.entities = ALLOC_MANY( cls.frame_arena, int, rsc.numEntities );
+	rn.entpvs = ALLOC_MANY( cls.frame_arena, u8, ( rsc.numEntities + 7 ) / 8 );
+	memset( rn.entpvs, 0, ( rsc.numEntities + 7 ) / 8 );
 
-	for( i = rsc.numLocalEntities; i < rsc.numEntities; i++ ) {
-		entNum = i;
-		e = R_NUM2ENT( entNum );
+	for( unsigned int i = rsc.numLocalEntities; i < rsc.numEntities; i++ ) {
+		const entity_t *e = R_NUM2ENT( i );
 
 		if( e->flags & RF_WEAPONMODEL ) {
 			goto add;
@@ -849,8 +681,8 @@ static void R_CullEntities( void ) {
 			continue;
 
 add:
-		rn.entpvs[entNum>>3] |= (1<<(entNum&7));
-		rn.entities[rn.numEntities++] = entNum;
+		rn.entpvs[i>>3] |= (1<<(i&7));
+		rn.entities[rn.numEntities++] = i;
 	}
 }
 
@@ -870,10 +702,10 @@ static void R_DrawEntities( void ) {
 		case RT_MODEL:
 			switch( cache->mod_type ) {
 			case mod_alias:
-				R_AddAliasModelToDrawList( e, 0 );
+				R_AddAliasModelToDrawList( e );
 				break;
-			case mod_skeletal:
-				R_AddSkeletalModelToDrawList( e, 0 );
+			case ModelType_GLTF:
+				R_AddGLTFModelToDrawList( e );
 				break;
 			case mod_brush:
 				R_AddBrushModelToDrawList( e );
@@ -925,8 +757,6 @@ void R_RenderView( const refdef_t *fd ) {
 	VectorCopy( rn.refdef.vieworg, rn.viewOrigin );
 	Matrix3_Copy( rn.refdef.viewaxis, rn.viewAxis );
 
-	R_ClearSky( &rn.skyDrawSurface );
-
 	if( r_drawflat->integer ) {
 		rn.renderFlags |= RF_DRAWFLAT;
 	}
@@ -941,6 +771,7 @@ void R_RenderView( const refdef_t *fd ) {
 	// R_DrawEntities can make adjustments as well
 
 	R_DrawWorldNode();
+	R_AddSkyToDrawList( fd );
 
 	if( !( rn.refdef.rdflags & RDF_NOWORLDMODEL ) ) {
 		rn.hdrExposure = r_hdr_exposure->value;
@@ -966,15 +797,13 @@ void R_RenderView( const refdef_t *fd ) {
 		rf.stats.t_add_entities += ( ri.Sys_Milliseconds() - msec );
 	}
 
-	RJ_FinishJobs();
-
 	R_SortDrawList( rn.meshlist );
 
 	R_BindRefInstFBO();
 
 	R_SetupGL();
 
-	R_Clear( ~0 );
+	R_Clear();
 
 	if( r_speeds->integer ) {
 		msec = ri.Sys_Milliseconds();
@@ -993,95 +822,6 @@ void R_RenderView( const refdef_t *fd ) {
 	R_TransformForWorld();
 
 	R_EndGL();
-}
-
-#define REFINST_STACK_SIZE  64
-static refinst_t riStack[REFINST_STACK_SIZE];
-static unsigned int riStackSize;
-
-/*
-* R_ClearRefInstStack
-*/
-void R_ClearRefInstStack( void ) {
-	riStackSize = 0;
-	memset( riStack, 0, sizeof( riStack ) );
-	memset( &rn, 0, sizeof( refinst_t ) );
-}
-
-/*
-* R_PushRefInst
-*/
-refinst_t *R_PushRefInst( void ) {
-	if( riStackSize == REFINST_STACK_SIZE ) {
-		return NULL;
-	}
-	riStack[riStackSize++] = rn;
-	R_EndGL();
-	return &riStack[riStackSize-1];
-}
-
-/*
-* R_PopRefInst
-*/
-void R_PopRefInst( void ) {
-	if( !riStackSize ) {
-		return;
-	}
-
-	RB_FlushDynamicMeshes();
-
-	rn = riStack[--riStackSize];
-	R_BindRefInstFBO();
-
-	R_SetupGL();
-}
-
-//=======================================================================
-
-/*
-* R_PushTransformMatrix
-*/
-void R_PushTransformMatrix( bool projection, const float *pm ) {
-	int i;
-	int p;
-	int l = projection ? 1 : 0;
-
-	p = rf.transformMatrixStackSize[l];
-	if( p == MAX_PROJMATRIX_STACK_SIZE ) {
-		return;
-	}
-	for( i = 0; i < 16; i++ ) {
-		rf.transformMatricesStack[l][p][i] = pm[i];
-	}
-
-	RB_FlushDynamicMeshes();
-
-	RB_LoadObjectMatrix( rf.transformMatricesStack[l][p] );
-	rf.transformMatrixStackSize[l]++;
-}
-
-/*
-* R_PopTransformMatrix
-*/
-void R_PopTransformMatrix( bool projection ) {
-	int p;
-	int l = projection ? 1 : 0;
-
-	p = rf.transformMatrixStackSize[l];
-	if( p == 0 ) {
-		return;
-	}
-
-	RB_FlushDynamicMeshes();
-
-	if( p == 1 ) {
-		rf.transformMatrixStackSize[l] = 0;
-		RB_LoadObjectMatrix( mat4x4_identity );
-		return;
-	}
-
-	RB_LoadObjectMatrix( rf.transformMatricesStack[l][p - 1] );
-	rf.transformMatrixStackSize[l]--;
 }
 
 //=======================================================================
@@ -1290,7 +1030,6 @@ const char *R_WriteSpeedsMessage( char *out, size_t size ) {
 							 "polys\\ents: %5u\\%5u  draw: %5u\n"
 							 "world\\dynamic: lights %3u\\%3u\n"
 							 "ents total: %5u bmodels: %5u\n"
-							 "frame cache: %.3fMB\n"
 							 "%s",
 							 (int)(1000.0 / rf.frameTime.average),
 							 rf.stats.c_brush_polys, rf.stats.c_world_leafs, rf.stats.c_world_draw_surfs,
@@ -1299,7 +1038,6 @@ const char *R_WriteSpeedsMessage( char *out, size_t size ) {
 							 rf.stats.t_add_polys, rf.stats.t_add_entities, rf.stats.t_draw_meshes,
 							 rf.stats.c_world_lights, rf.stats.c_dynamic_lights,
 							 rf.stats.c_ents_total, rf.stats.c_ents_bmodels,
-							 R_FrameCache_TotalSize() / 1048576.0,
 							 backend_msg
 							);
 				break;
@@ -1470,8 +1208,6 @@ void R_EndFrame( void ) {
 		RB_FlushDynamicMeshes();
 	}
 
-	R_PolyBlend();
-
 	R_End2D();
 
 	RB_EndFrame();
@@ -1479,9 +1215,6 @@ void R_EndFrame( void ) {
 	R_DrawProfiler();
 
 	VID_Swap(); // TODO: this doesn't belong here
-
-	rf.transformMatrixStackSize[0] = 0;
-	rf.transformMatrixStackSize[1] = 0;
 }
 
 //===================================================================
@@ -1580,169 +1313,4 @@ int R_LoadFile_( const char *path, int flags, void **buffer, const char *filenam
 */
 void R_FreeFile_( void *buffer, const char *filename, int fileline ) {
 	_Mem_Free( buffer, 0, 0, filename, fileline );
-}
-
-//===================================================================
-
-//#define FRAMECACHE_DEBUG
-
-typedef struct r_framecachemark_s {
-	uint8_t *ptr;
-	struct r_framecache_s *cache;
-} r_framecachemark_t;
-
-typedef struct r_framecache_s {
-	size_t dataSize;
-	uint8_t *dataRover;
-	r_framecachemark_t mark;
-	struct r_framecache_s *next;
-} r_framecache_t;
-
-static r_framecache_t *r_frameCacheHead;
-static size_t r_frameCacheTotalSize;
-
-/*
-* R_FrameCache_Free
-*/
-void R_FrameCache_Free( void ) {
-	r_framecache_t *next, *cache;
-
-	cache = r_frameCacheHead;
-	while( cache ) {
-		next = cache->next;
-		R_Free( cache );
-		cache = next;
-	}
-
-	r_frameCacheHead = NULL;
-	r_frameCacheTotalSize = 0;
-}
-
-/*
-* R_FrameCache_ResetBlock
-*/
-static void R_FrameCache_ResetBlock( r_framecache_t *cache ) {
-	cache->dataRover = (uint8_t *)(((uintptr_t)(cache + 1) + 15) & ~15);
-	cache->mark.cache = cache;
-	cache->mark.ptr = cache->dataRover;
-}
-
-/*
-* R_FrameCache_NewBlock
-*/
-r_framecache_t *R_FrameCache_NewBlock( size_t size ) {
-	r_framecache_t *cache;
-
-	cache = ( r_framecache_t * ) R_Malloc( size + sizeof( r_framecache_t ) + 16 );
-	cache->dataSize = size;
-
-	R_FrameCache_ResetBlock( cache );
-
-	r_frameCacheTotalSize += size;
-	return cache;
-}
-
-/*
-* R_FrameCache_Clear
-*
-* Allocate a whole new block of heap memory to accomodate all data from the previous frame.
-*/
-void R_FrameCache_Clear( void ) {
-	size_t newSize;
-
-	newSize = r_frameCacheTotalSize;
-	if( newSize < MIN_FRAMECACHE_SIZE )
-		newSize = MIN_FRAMECACHE_SIZE;
-
-	if( !r_frameCacheHead || r_frameCacheHead->dataSize < newSize ) {
-		r_framecache_t *cache;
-
-		R_FrameCache_Free();
-
-		cache = R_FrameCache_NewBlock( newSize );
-
-		r_frameCacheHead = cache;
-	}
-
-	R_FrameCache_ResetBlock( r_frameCacheHead );
-
-#ifdef FRAMECACHE_DEBUG
-	Com_Printf( "R_FrameCache_Clear\n" );
-#endif
-}
-
-/*
-* R_FrameCache_Alloc
-*/
-void *R_FrameCache_Alloc_( size_t size, const char *filename, int fileline ) {
-	uint8_t *data;
-	r_framecache_t *cache = r_frameCacheHead;
-	size_t used;
-
-	if( !size ) {
-		return NULL;
-	}
-
-#ifdef FRAMECACHE_DEBUG
-	Com_Printf( "R_FrameCache_Alloc_: %s:%d\n", filename, fileline );
-#endif
-
-	size = ((size + 15) & ~15);
-
-	assert( cache != NULL );
-	if( cache == NULL ) {
-		return NULL;
-	}
-
-	used = cache->dataRover - (uint8_t *)cache;
-	if( used + size > cache->dataSize ) {
-		size_t newSize = r_frameCacheTotalSize / 2;
-
-		if( newSize < MIN_FRAMECACHE_SIZE ) {
-			newSize = MIN_FRAMECACHE_SIZE;
-		}
-		if( newSize < size ) {
-			newSize = size;
-		}
-
-		cache = R_FrameCache_NewBlock( newSize );
-		cache->next = r_frameCacheHead;
-		r_frameCacheHead = cache;
-	}
-
-	data = cache->dataRover;
-	cache->dataRover += size;
-	return data;
-}
-
-/*
-* R_FrameCache_TotalSize
-*/
-size_t R_FrameCache_TotalSize( void ) {
-	return r_frameCacheTotalSize;
-}
-
-/*
-* R_FrameCache_SetMark
-*/
-void *R_FrameCache_SetMark_( const char *filename, int fileline ) {
-	r_framecache_t *cache = r_frameCacheHead;
-	r_framecachemark_t *cmark = &cache->mark;
-	cmark->ptr = cache->dataRover;
-#ifdef FRAMECACHE_DEBUG
-	Com_Printf( "R_FrameCache_SetMark_: %s:%d\n", filename, fileline );
-#endif
-	return (void *)cmark;
-}
-
-/*
-* R_FrameCache_FreeToMark_
-*/
-void R_FrameCache_FreeToMark_( void *mark, const char *filename, int fileline ) {
-	r_framecachemark_t *cmark = ( r_framecachemark_t * ) mark;
-	r_framecache_t *cache = cmark->cache;
-#ifdef FRAMECACHE_DEBUG
-	Com_Printf( "R_FrameCache_FreeToMark_: %s:%d\n", filename, fileline );
-#endif
-	cache->dataRover = cmark->ptr;
 }

@@ -205,11 +205,6 @@ static c4clipedict_t *GClip_GetClipEdictForDeltaTime( int entNum, int deltaTime 
 			clipentNewer = cframeNewer->clipEdicts[entNum];
 		}
 
-#if 0
-		G_Printf( "backTime:%i cframeBackTime:%i backFrames:%i lerfrac:%f\n",
-				  backTime, game.serverTime - cframe->timestamp, backframes, lerpFrac );
-#endif
-
 		// interpolate
 		VectorLerp( clipent->s.origin, lerpFrac, clipentNewer.s.origin, clipent->s.origin );
 		VectorLerp( clipent->r.mins, lerpFrac, clipentNewer.r.mins, clipent->r.mins );
@@ -217,11 +212,6 @@ static c4clipedict_t *GClip_GetClipEdictForDeltaTime( int entNum, int deltaTime 
 		for( i = 0; i < 3; i++ )
 			clipent->s.angles[i] = LerpAngle( clipent->s.angles[i], clipentNewer.s.angles[i], lerpFrac );
 	}
-
-#if 0
-	G_Printf( "backTime:%i cframeBackTime:%i backFrames:%i\n", backTime,
-			  game.serverTime - cframe->timestamp, backframes );
-#endif
 
 	// back time entity
 	return clipent;
@@ -360,10 +350,6 @@ static int GClip_EntitiesInBox_AreaGrid( areagrid_t *areagrid, const vec3_t mins
 	vec3_t paddedmins, paddedmaxs;
 	int igrid[3], igridmins[3], igridmaxs[3];
 
-	// LordHavoc: discovered this actually causes its own bugs (dm6 teleporters
-	// being too close to info_teleport_destination)
-	//VectorSet( paddedmins, mins[0] - 1.0f, mins[1] - 1.0f, mins[2] - 1.0f );
-	//VectorSet( paddedmaxs, maxs[0] + 1.0f, maxs[1] + 1.0f, maxs[2] + 1.0f );
 	VectorCopy( mins, paddedmins );
 	VectorCopy( maxs, paddedmaxs );
 
@@ -538,16 +524,13 @@ void GClip_LinkEntity( edict_t *ent ) {
 			ent->s.solid = 0;
 		} else {
 			// assume that x/y are equal and symetric
-			i = ent->r.maxs[0] / 8;
-			clamp( i, 1, 31 );
+			i = Clamp( 1.0f, ent->r.maxs[0] / 8, 31.0f );
 
 			// z is not symetric
-			j = ( -ent->r.mins[2] ) / 8;
-			clamp( j, 1, 31 );
+			j = Clamp( 1.0f, ( -ent->r.mins[2] ) / 8, 31.0f );
 
 			// and z maxs can be negative...
-			k = ( ent->r.maxs[2] + 32 ) / 8;
-			clamp( k, 1, 63 );
+			k = Clamp( 1.0f, ( ent->r.maxs[2] + 32 ) / 8, 63.0f );
 
 			ent->s.solid = ( k << 10 ) | ( j << 5 ) | i;
 		}
@@ -1158,11 +1141,9 @@ int GClip_FindInRadius( vec3_t org, float rad, int *list, int maxcount ) {
 	return GClip_FindInRadius4D( org, rad, list, maxcount, 0 );
 }
 
-void G_SplashFrac4D( int entNum, vec3_t hitpoint, float maxradius, vec3_t pushdir, float *frac, int timeDelta ) {
-	c4clipedict_t *clipEnt;
-
-	clipEnt = GClip_GetClipEdictForDeltaTime( entNum, timeDelta );
-	G_SplashFrac( clipEnt->s.origin, clipEnt->r.mins, clipEnt->r.maxs, hitpoint, maxradius, pushdir, frac );
+void G_SplashFrac4D( const edict_t *ent, vec3_t hitpoint, float maxradius, vec3_t pushdir, float *frac, int timeDelta, bool selfdamage ) {
+	const c4clipedict_t *clipEnt = GClip_GetClipEdictForDeltaTime( ENTNUM( ent ), timeDelta );
+	G_SplashFrac( &clipEnt->s, &clipEnt->r, hitpoint, maxradius, pushdir, frac, selfdamage );
 }
 
 entity_state_t *G_GetEntityStateForDeltaTime( int entNum, int deltaTime ) {

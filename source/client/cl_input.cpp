@@ -20,15 +20,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // cl.input.c  -- builds an intended movement command to send to the server
 
 #include "client.h"
+#include "microprofile/microprofileui.h"
 
 static bool in_initialized = false;
 
 cvar_t *cl_ucmdMaxResend;
 
 cvar_t *cl_ucmdFPS;
-#ifdef UCMDTIMENUDGE
-cvar_t *cl_ucmdTimeNudge;
-#endif
 
 static void CL_CreateNewUserCommand( int realMsec );
 
@@ -58,10 +56,13 @@ static void CL_UpdateGameInput( int frameTime ) {
 	// refresh input in cgame
 	CL_GameModule_InputFrame( frameTime );
 
-	if( cls.key_dest == key_menu ) {
-		UI_MouseSet( true, movement.absx, movement.absy, true );
-	} else {
-		CL_GameModule_MouseMove( movement.relx, movement.rely );
+	if( !MicroProfileIsDrawing() ) {
+		if( cls.key_dest == key_menu ) {
+			UI_MouseSet( true, movement.absx, movement.absy, true );
+		}
+		else {
+			CL_GameModule_MouseMove( movement.relx, movement.rely );
+		}
 	}
 
 	if( cls.key_dest == key_game ) {
@@ -75,9 +76,6 @@ static void CL_UpdateGameInput( int frameTime ) {
 void CL_UserInputFrame( int realMsec ) {
 	// let the mouse activate or deactivate
 	IN_Frame();
-
-	// get new key events
-	Sys_SendKeyEvents();
 
 	// refresh mouse angles and movement velocity
 	CL_UpdateGameInput( realMsec );
@@ -97,23 +95,10 @@ void CL_InitInput( void ) {
 		return;
 	}
 
-	Cmd_AddCommand( "in_restart", IN_Restart );
-
 	IN_Init();
 
 	cl_ucmdMaxResend =  Cvar_Get( "cl_ucmdMaxResend", "3", CVAR_ARCHIVE );
 	cl_ucmdFPS =        Cvar_Get( "cl_ucmdFPS", "62", CVAR_DEVELOPER );
-
-#ifdef UCMDTIMENUDGE
-	cl_ucmdTimeNudge =  Cvar_Get( "cl_ucmdTimeNudge", "0", CVAR_USERINFO | CVAR_DEVELOPER );
-	if( abs( cl_ucmdTimeNudge->integer ) > MAX_UCMD_TIMENUDGE ) {
-		if( cl_ucmdTimeNudge->integer < -MAX_UCMD_TIMENUDGE ) {
-			Cvar_SetValue( "cl_ucmdTimeNudge", -MAX_UCMD_TIMENUDGE );
-		} else if( cl_ucmdTimeNudge->integer > MAX_UCMD_TIMENUDGE ) {
-			Cvar_SetValue( "cl_ucmdTimeNudge", MAX_UCMD_TIMENUDGE );
-		}
-	}
-#endif
 
 	in_initialized = true;
 }
@@ -125,8 +110,6 @@ void CL_ShutdownInput( void ) {
 	if( !in_initialized ) {
 		return;
 	}
-
-	Cmd_RemoveCommand( "in_restart" );
 
 	IN_Shutdown();
 
@@ -160,11 +143,7 @@ static void CL_SetUcmdMovement( usercmd_t *ucmd ) {
 static void CL_SetUcmdButtons( usercmd_t *ucmd ) {
 	if( cls.key_dest == key_game ) {
 		ucmd->buttons |= CL_GameModule_GetButtonBits();
-		return;
 	}
-
-	// add chat/console/ui icon as a button
-	ucmd->buttons |=  BUTTON_BUSYICON;
 }
 
 /*

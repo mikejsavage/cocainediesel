@@ -288,8 +288,7 @@ static size_t CL_WebDownloadReadCb( const void *buf, size_t numb, float percenta
 	// ignore percentage passed by the downloader as it doesn't account for total file size
 	// of resumed downloads
 	cls.download.offset += write;
-	cls.download.percent = (double)cls.download.offset / (double)cls.download.size;
-	clamp( cls.download.percent, 0, 1 );
+	cls.download.percent = Clamp01( (double)cls.download.offset / (double)cls.download.size );
 
 	Cvar_ForceSet( "cl_download_percent", va( "%.1f", cls.download.percent * 100 ) );
 
@@ -539,7 +538,7 @@ static void CL_InitServerDownload( const char *filename, int size, unsigned chec
 	cls.download.timeout = Sys_Milliseconds() + 3000;
 	cls.download.retries = 0;
 
-	CL_AddReliableCommand( va( "nextdl \"%s\" %i", cls.download.name, cls.download.offset ) );
+	CL_AddReliableCommand( va( "nextdl \"%s\" %li", cls.download.name, cls.download.offset ) );
 }
 
 /*
@@ -617,7 +616,7 @@ static void CL_RetryDownload( void ) {
 		CL_DownloadDone();
 	} else {
 		cls.download.timeout = Sys_Milliseconds() + 3000;
-		CL_AddReliableCommand( va( "nextdl \"%s\" %i", cls.download.name, cls.download.offset ) );
+		CL_AddReliableCommand( va( "nextdl \"%s\" %li", cls.download.name, cls.download.offset ) );
 	}
 }
 
@@ -735,8 +734,7 @@ static void CL_ParseDownload( msg_t *msg ) {
 	FS_Write( msg->data + msg->readcount, size, cls.download.filenum );
 	msg->readcount += size;
 	cls.download.offset += size;
-	cls.download.percent = (double)cls.download.offset / (double)cls.download.size;
-	clamp( cls.download.percent, 0, 1 );
+	cls.download.percent = Clamp01( (double)cls.download.offset / (double)cls.download.size );
 
 	Cvar_ForceSet( "cl_download_percent", va( "%.1f", cls.download.percent * 100 ) );
 
@@ -744,7 +742,7 @@ static void CL_ParseDownload( msg_t *msg ) {
 		cls.download.timeout = Sys_Milliseconds() + 3000;
 		cls.download.retries = 0;
 
-		CL_AddReliableCommand( va( "nextdl \"%s\" %i", cls.download.name, cls.download.offset ) );
+		CL_AddReliableCommand( va( "nextdl \"%s\" %li", cls.download.name, cls.download.offset ) );
 	} else {
 		Com_Printf( "Download complete: %s\n", cls.download.name );
 
@@ -950,7 +948,7 @@ static void CL_ParseFrame( msg_t *msg ) {
 				}
 			}
 
-			clamp( delta, cl.newServerTimeDelta - (int)cl.snapFrameTime, cl.newServerTimeDelta + (int)cl.snapFrameTime );
+			delta = Clamp( cl.newServerTimeDelta - (int)cl.snapFrameTime, delta, cl.newServerTimeDelta + (int)cl.snapFrameTime );
 
 			cl.serverTimeDeltas[cl.receivedSnapNum & MASK_TIMEDELTAS_BACKUP] = delta;
 		}
@@ -1268,7 +1266,7 @@ void CL_ParseServerMessage( msg_t *msg ) {
 	}
 
 	if( cl_debug_serverCmd->integer & 4 ) {
-		Com_Printf( "%3i:CMD %i %s\n", msg->readcount, -1, "EOF" );
+		Com_Printf( "%3li:CMD %i %s\n", msg->readcount, -1, "EOF" );
 	}
 	SHOWNET( msg, "END OF MESSAGE" );
 

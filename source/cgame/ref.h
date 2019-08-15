@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #pragma once
 
-#include "qalgo/hash.h"
+#include "qcommon/hash.h"
 
 // FIXME: move these to r_local.h?
 #define MAX_DLIGHTS             32
@@ -30,17 +30,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // entity_state_t->renderfx flags
 #define RF_MINLIGHT             0x1       // always have some light (viewmodel)
 #define RF_FULLBRIGHT           0x2       // always draw full intensity
-#define RF_FRAMELERP            0x4
-#define RF_NOSHADOW             0x8
+#define RF_NOSHADOW             0x4
 
-#define RF_WEAPONMODEL          0x20     // only draw through eyes and depth hack
-#define RF_CULLHACK             0x40
-#define RF_FORCENOLOD           0x80
-#define RF_NOPORTALENTS         0x100
-#define RF_ALPHAHACK            0x200   // force alpha blending on opaque passes, read alpha from entity
-#define RF_GREYSCALE            0x400
-#define RF_NODEPTHTEST          0x800
-#define RF_NOCOLORWRITE         0x1000
+#define RF_WEAPONMODEL          0x8     // only draw through eyes and depth hack
+#define RF_ALPHAHACK            0x10   // force alpha blending on opaque passes, read alpha from entity
+#define RF_GREYSCALE            0x20
+#define RF_NODEPTHTEST          0x40
 
 // refdef flags
 #define RDF_UNDERWATER          0x1     // warp the screen as apropriate
@@ -51,17 +46,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define RDF_USEORTHO            0x20    // use orthographic projection
 #define RDF_BLURRED             0x40
 
-// skm flags
-#define SKM_ATTACHMENT_BONE     1
-
 typedef struct orientation_s {
 	mat3_t axis;
 	vec3_t origin;
 } orientation_t;
-
-typedef struct bonepose_s {
-	dualquat_t dualquat;
-} bonepose_t;
 
 typedef struct fragment_s {
 	int firstvert;
@@ -76,7 +64,7 @@ typedef struct poly_s {
 	vec2_t *stcoords;
 	byte_vec4_t *colors;
 	int numelems;
-	unsigned short *elems;
+	u16 *elems;
 	StringHash shader;
 	int renderfx;
 } poly_t;
@@ -87,6 +75,17 @@ typedef enum {
 
 	NUM_RTYPES
 } refEntityType_t;
+
+struct TRS {
+	Quaternion rotation;
+	Vec3 translation;
+	float scale;
+};
+
+struct MatrixPalettes {
+	Span< Mat4 > joint_poses;
+	Span< Mat4 > skinning_matrices;
+};
 
 typedef struct entity_s {
 	refEntityType_t rtype;
@@ -102,21 +101,19 @@ typedef struct entity_s {
 	*/
 	mat3_t axis;
 	vec3_t origin, origin2;
-	vec3_t lightingOrigin;
 	int frame;
-	bonepose_t *boneposes;              // pretransformed boneposes for current frame
+
+	MatrixPalettes pose;
 
 	/*
 	** previous data for lerping
 	*/
 	int oldframe;
-	bonepose_t *oldboneposes;           // pretransformed boneposes for old frame
 	float backlerp;                     // 0.0 = current, 1.0 = old
 
 	/*
 	** texturing
 	*/
-	StringHash customSkin;      // registered .skin file
 	StringHash customShader;    // NULL for inline skin
 
 	/*
@@ -146,7 +143,6 @@ typedef struct refdef_s {
 	float fov_x, fov_y;
 	vec3_t vieworg;
 	mat3_t viewaxis;
-	float blend[4];                     // rgba 0-1 full screen blend
 	int64_t time;                       // time is used for timing offsets
 	int rdflags;                        // RDF_UNDERWATER, etc
 	uint8_t *areabits;                  // if not NULL, only areas with set bits will be drawn

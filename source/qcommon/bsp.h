@@ -28,8 +28,6 @@ BSP FORMATS
 ==============================================================
 */
 
-typedef void ( *modelLoader_t )( void *param0, void *param1, void *param2, void *param3 );
-
 #define BSP_NONE        0
 #define BSP_RAVEN       1
 #define BSP_NOAREAS     2
@@ -41,11 +39,12 @@ typedef struct {
 	int entityLumpNum;
 } bspFormatDesc_t;
 
+typedef void ( *modelLoader_t )( void *model, void *buffer, int buffer_size, const bspFormatDesc_t *param3 );
+
 typedef struct {
 	const char *header;
 	int headerLen;
 	const bspFormatDesc_t *bspFormats;
-	int maxLods;
 	modelLoader_t loader;
 } modelFormatDescr_t;
 

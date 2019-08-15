@@ -99,13 +99,12 @@ static void CG_AddLocalSounds( void ) {
 */
 static void CG_FlashGameWindow( void ) {
 	static int oldState = -1;
-	int newState;
 	bool flash = false;
 	static int oldAlphaScore, oldBetaScore;
 	static bool scoresSet = false;
 
 	// notify player of important match states
-	newState = GS_MatchState();
+	int newState = GS_MatchState();
 	if( oldState != newState ) {
 		switch( newState ) {
 			case MATCH_STATE_COUNTDOWN:
@@ -315,12 +314,10 @@ void CG_StartKickAnglesEffect( vec3_t source, float knockback, float radius, int
 		}
 
 		side = DotProduct( v, right );
-		cg.kickangles[kicknum].v_roll = kick * side * 0.3;
-		clamp( cg.kickangles[kicknum].v_roll, -20, 20 );
+		cg.kickangles[kicknum].v_roll = Clamp( -20.0f, kick * side * 0.3f, 20.0f );
 
 		side = -DotProduct( v, forward );
-		cg.kickangles[kicknum].v_pitch = kick * side * 0.3;
-		clamp( cg.kickangles[kicknum].v_pitch, -20, 20 );
+		cg.kickangles[kicknum].v_pitch = Clamp( -20.0f, kick * side * 0.3f, 20.0f );
 
 		cg.kickangles[kicknum].timestamp = cg.time;
 		ftime = (float)time * delta;
@@ -339,8 +336,7 @@ void CG_StartFallKickEffect( int bounceTime ) {
 		cg.fallEffectRebounceTime = 0;
 	}
 
-	bounceTime += 200;
-	clamp_high( bounceTime, 400 );
+	bounceTime = Min2( 400, bounceTime + 200 );
 
 	cg.fallEffectTime = cg.time + bounceTime;
 	if( cg.fallEffectRebounceTime ) {
@@ -363,12 +359,6 @@ void CG_ResetColorBlend( void ) {
 * CG_AddEntityToScene
 */
 void CG_AddEntityToScene( entity_t *ent ) {
-	if( ent->model && ( !ent->boneposes || !ent->oldboneposes ) ) {
-		if( trap_R_SkeletalGetNumBones( ent->model, NULL ) ) {
-			CG_SetBoneposesForTemporaryEntity( ent );
-		}
-	}
-
 	trap_R_AddEntityToScene( ent );
 }
 
@@ -436,32 +426,6 @@ static void CG_InterpolatePlayerState( player_state_t *playerState ) {
 		teleported = true;
 	}
 
-#ifdef EXTRAPOLATE_PLAYERSTATE // isn't smooth enough for the 1st person view
-	if( cgs.extrapolationTime ) {
-		vec3_t newPosition, oldPosition;
-
-		// if the player entity was teleported this frame use the final position
-		if( !teleported ) {
-			for( i = 0; i < 3; i++ ) {
-				playerState->pmove.velocity[i] = ops->pmove.velocity[i] + cg.lerpfrac * ( ps->pmove.velocity[i] - ops->pmove.velocity[i] );
-				playerState->viewangles[i] = LerpAngle( ops->viewangles[i], ps->viewangles[i], cg.lerpfrac );
-			}
-		}
-
-		VectorMA( ps->pmove.origin, cg.xerpTime, ps->pmove.velocity, newPosition );
-
-		if( cg.xerpTime < 0.0f ) { // smooth with the ending of oldsnap-newsnap interpolation
-			if( teleported ) {
-				VectorCopy( ps->pmove.origin, oldPosition );
-			} else {
-				VectorMA( ops->pmove.origin, cg.oldXerpTime, ops->pmove.velocity, oldPosition );
-			}
-		}
-
-		VectorLerp( oldPosition, cg.xerpSmoothFrac, newPosition, playerState->pmove.origin );
-	} else {
-#endif
-
 	// if the player entity was teleported this frame use the final position
 	if( !teleported ) {
 		for( i = 0; i < 3; i++ ) {
@@ -470,9 +434,6 @@ static void CG_InterpolatePlayerState( player_state_t *playerState ) {
 			playerState->viewangles[i] = LerpAngle( ops->viewangles[i], ps->viewangles[i], cg.lerpfrac );
 		}
 	}
-#ifdef EXTRAPOLATE_PLAYERSTATE
-}
-#endif
 
 	// interpolate fov and viewheight
 	if( !teleported ) {
@@ -642,15 +603,15 @@ static void CG_SetupRefDef( cg_viewdef_t *view, refdef_t *rd ) {
 	memset( rd, 0, sizeof( *rd ) );
 
 	// view rectangle size
-	rd->x = scr_vrect.x;
-	rd->y = scr_vrect.y;
-	rd->width = scr_vrect.width;
-	rd->height = scr_vrect.height;
+	rd->x = 0;
+	rd->y = 0;
+	rd->width = cgs.vidWidth;
+	rd->height = cgs.vidHeight;
 
-	rd->scissor_x = scr_vrect.x;
-	rd->scissor_y = scr_vrect.y;
-	rd->scissor_width = scr_vrect.width;
-	rd->scissor_height = scr_vrect.height;
+	rd->scissor_x = 0;
+	rd->scissor_y = 0;
+	rd->scissor_width = cgs.vidWidth;
+	rd->scissor_height = cgs.vidHeight;
 
 	rd->fov_x = view->fov_x;
 	rd->fov_y = view->fov_y;
@@ -677,8 +638,6 @@ static void CG_SetupRefDef( cg_viewdef_t *view, refdef_t *rd ) {
 		rd->fov_x *= v;
 		rd->fov_y *= v;
 	}
-
-	CG_asSetupRefdef( view, rd );
 }
 
 /*
@@ -774,9 +733,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 		view->fov_y = WidescreenFov( CG_DemoCam_GetOrientation( view->origin, view->angles, view->velocity ) );
 	}
 
-	view->fov_x = CalcHorizontalFov( view->fov_y, scr_vrect.width, scr_vrect.height );
-
-	CG_asSetupCamera( view );
+	view->fov_x = CalcHorizontalFov( view->fov_y, cgs.vidWidth, cgs.vidHeight );
 
 	Matrix3_FromAngles( view->angles, view->axis );
 
@@ -812,18 +769,13 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 	}
 
 	{
-		int snapTime = ( cg.frame.serverTime - cg.oldFrame.serverTime );
-
-		if( !snapTime ) {
-			snapTime = cgs.snapFrameTime;
-		}
-
 		// moved this from CG_Init here
 		cgs.extrapolationTime = extrapolationTime;
 
 		if( cg.oldFrame.serverTime == cg.frame.serverTime ) {
 			cg.lerpfrac = 1.0f;
 		} else {
+			int snapTime = cg.frame.serverTime - cg.oldFrame.serverTime;
 			cg.lerpfrac = ( (double)( cg.time - cgs.extrapolationTime ) - (double)cg.oldFrame.serverTime ) / (double)snapTime;
 		}
 
@@ -832,18 +784,13 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 			cg.oldXerpTime = 0.001f * ( (double)cg.time - (double)cg.oldFrame.serverTime );
 
 			if( cg.time >= cg.frame.serverTime ) {
-				cg.xerpSmoothFrac = (double)( cg.time - cg.frame.serverTime ) / (double)( cgs.extrapolationTime );
-				clamp( cg.xerpSmoothFrac, 0.0f, 1.0f );
+				cg.xerpSmoothFrac = Clamp01( double( cg.time - cg.frame.serverTime ) / double( cgs.extrapolationTime ) );
 			} else {
-				cg.xerpSmoothFrac = (double)( cg.frame.serverTime - cg.time ) / (double)( cgs.extrapolationTime );
-				clamp( cg.xerpSmoothFrac, -1.0f, 0.0f );
+				cg.xerpSmoothFrac = Clamp( -1.0, double( cg.frame.serverTime - cg.time ) / double( cgs.extrapolationTime ), 0.0 );
 				cg.xerpSmoothFrac = 1.0f - cg.xerpSmoothFrac;
 			}
 
-			clamp_low( cg.xerpTime, -( cgs.extrapolationTime * 0.001f ) );
-
-			//clamp( cg.xerpTime, -( cgs.extrapolationTime * 0.001f ), ( cgs.extrapolationTime * 0.001f ) );
-			//clamp( cg.oldXerpTime, 0, ( ( snapTime + cgs.extrapolationTime ) * 0.001f ) );
+			cg.xerpTime = Max2( cg.xerpTime, -( cgs.extrapolationTime * 0.001f ) );
 		} else {
 			cg.xerpTime = 0.0f;
 			cg.xerpSmoothFrac = 0.0f;
@@ -858,14 +805,14 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 		}
 	}
 
-	clamp( cg.lerpfrac, 0.0f, 1.0f );
+	cg.lerpfrac = Clamp01( cg.lerpfrac );
 
 	if( !cgs.configStrings[CS_WORLDMODEL][0] ) {
 		CG_AddLocalSounds();
 
 		trap_R_DrawStretchPic( 0, 0, cgs.vidWidth, cgs.vidHeight, 0, 0, 1, 1, colorBlack, cgs.shaderWhite );
 
-		trap_S_Update( vec3_origin, vec3_origin, axis_identity );
+		S_Update( vec3_origin, vec3_origin, axis_identity );
 
 		return;
 	}
@@ -893,8 +840,6 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 	}
 
 	CG_FlashGameWindow(); // notify player of important game events
-
-	CG_CalcVrect(); // find sizes of the 3d drawing screen
 
 	CG_UpdateChaseCam();
 
@@ -931,19 +876,15 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 
 	CG_AddLocalSounds();
 
-	CG_SetSceneTeamColors(); // update the team colors in the renderer
-
 	CG_SetupRefDef( &cg.view, rd );
 
 	trap_R_RenderScene( rd );
 
 	cg.oldAreabits = true;
 
-	trap_S_Update( cg.view.origin, cg.view.velocity, cg.view.axis );
+	S_Update( cg.view.origin, cg.view.velocity, cg.view.axis );
 
 	CG_Draw2D();
-
-	CG_ResetTemporaryBoneposesCache(); // clear for next frame
 
 	cg.viewFrameCount++;
 }

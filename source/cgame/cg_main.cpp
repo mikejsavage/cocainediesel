@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 cg_static_t cgs;
 cg_state_t cg;
 
+mempool_t *cg_mempool;
+
 centity_t cg_entities[MAX_EDICTS];
 
 cvar_t *cg_showMiss;
@@ -52,7 +54,6 @@ cvar_t *cg_volume_players;
 cvar_t *cg_volume_effects;
 cvar_t *cg_volume_announcer;
 cvar_t *cg_volume_voicechats;
-cvar_t *cg_projectileTrail;
 cvar_t *cg_projectileFireTrail;
 cvar_t *cg_bloodTrail;
 cvar_t *cg_showBloodTrail;
@@ -77,14 +78,12 @@ cvar_t *cg_cartoonEffects;
 cvar_t *cg_volume_hitsound;
 cvar_t *cg_autoaction_demo;
 cvar_t *cg_autoaction_screenshot;
-cvar_t *cg_autoaction_stats;
 cvar_t *cg_autoaction_spectator;
 cvar_t *cg_simpleItems;
 cvar_t *cg_simpleItemsSize;
 cvar_t *cg_showObituaries;
 cvar_t *cg_damageNumbers;
 cvar_t *cg_particles;
-cvar_t *cg_showhelp;
 cvar_t *cg_showClamp;
 
 cvar_t *cg_damage_indicator;
@@ -97,13 +96,6 @@ cvar_t *cg_allyForceModel;
 cvar_t *cg_enemyColor;
 cvar_t *cg_enemyModel;
 cvar_t *cg_enemyForceModel;
-
-/*
-* CG_API
-*/
-int CG_API( void ) {
-	return CGAME_API_VERSION;
-}
 
 /*
 * CG_Error
@@ -147,24 +139,6 @@ void CG_LocalPrint( const char *format, ... ) {
 	trap_PrintToLog( msg );
 
 	CG_StackChatString( &cg.chat, msg );
-}
-
-/*
-* CG_GS_Malloc
-*
-* Used only for gameshared linking
-*/
-static void *CG_GS_Malloc( size_t size ) {
-	return CG_Malloc( size );
-}
-
-/*
-* CG_GS_Free
-*
-* Used only for gameshared linking
-*/
-static void CG_GS_Free( void *data ) {
-	CG_Free( data );
 }
 
 /*
@@ -233,14 +207,11 @@ static void CG_InitGameShared( void ) {
 	api.PredictedEvent = CG_PredictedEvent;
 	api.Error = CG_Error;
 	api.Printf = CG_Printf;
-	api.Malloc = CG_GS_Malloc;
-	api.Free = CG_GS_Free;
 	api.Trace = CG_GS_Trace;
 	api.GetEntityState = CG_GS_GetEntityState;
 	api.PointContents = CG_GS_PointContents;
 	api.PMoveTouchTriggers = CG_Predict_TouchTriggers;
 	api.GetConfigString = CG_GS_GetConfigString;
-	api.GetAngelExport = NULL;
 
 	GS_InitModule( GS_MODULE_CGAME, maxclients, &api );
 }
@@ -251,7 +222,7 @@ static void CG_InitGameShared( void ) {
 char *_CG_CopyString( const char *in, const char *filename, int fileline ) {
 	char *out;
 
-	out = ( char * )trap_MemAlloc( strlen( in ) + 1, filename, fileline );
+	out = ( char * )CG_Malloc( strlen( in ) + 1 );
 	strcpy( out, in );
 	return out;
 }
@@ -287,14 +258,11 @@ static void CG_RegisterModels( void ) {
 			if( !CG_LoadingItemName( name ) ) {
 				return;
 			}
-			CG_LoadingString( name );
 			trap_R_RegisterWorldModel( name );
 		}
 
-		CG_LoadingString( "models" );
-
 		cgs.numWeaponModels = 1;
-		Q_strncpyz( cgs.weaponModels[0], "generic/generic.md3", sizeof( cgs.weaponModels[0] ) );
+		Q_strncpyz( cgs.weaponModels[0], "", sizeof( cgs.weaponModels[0] ) );
 
 		cgs.precacheModelsStart = 1;
 	}
@@ -364,10 +332,6 @@ static void CG_RegisterClients( void ) {
 		return;
 	}
 
-	if( !cgs.precacheClientsStart ) {
-		CG_LoadingString( "clients" );
-	}
-
 	for( i = cgs.precacheClientsStart; i < MAX_CLIENTS; i++ ) {
 		name = cgs.configStrings[CS_PLAYERINFOS + i];
 		cgs.precacheClientsStart = i;
@@ -422,7 +386,6 @@ static void CG_RegisterVariables( void ) {
 	cg_volume_hitsound =    trap_Cvar_Get( "cg_volume_hitsound", "1.0", CVAR_ARCHIVE );
 	cg_volume_voicechats =  trap_Cvar_Get( "cg_volume_voicechats", "1.0", CVAR_ARCHIVE );
 	cg_handOffset =     trap_Cvar_Get( "cg_handOffset", "5", CVAR_ARCHIVE );
-	cg_projectileTrail =    trap_Cvar_Get( "cg_projectileTrail", "0", CVAR_CHEAT );
 	cg_projectileFireTrail =    trap_Cvar_Get( "cg_projectileFireTrail", "140", CVAR_ARCHIVE );
 	cg_bloodTrail =     trap_Cvar_Get( "cg_bloodTrail", "10", CVAR_ARCHIVE );
 	cg_showBloodTrail = trap_Cvar_Get( "cg_showBloodTrail", "1", CVAR_ARCHIVE );
@@ -438,12 +401,10 @@ static void CG_RegisterVariables( void ) {
 	cg_damageNumbers = trap_Cvar_Get( "cg_damageNumbers", "1", CVAR_ARCHIVE );
 	cg_autoaction_demo =    trap_Cvar_Get( "cg_autoaction_demo", "0", CVAR_ARCHIVE );
 	cg_autoaction_screenshot =  trap_Cvar_Get( "cg_autoaction_screenshot", "0", CVAR_ARCHIVE );
-	cg_autoaction_stats =   trap_Cvar_Get( "cg_autoaction_stats", "0", CVAR_ARCHIVE );
 	cg_autoaction_spectator = trap_Cvar_Get( "cg_autoaction_spectator", "0", CVAR_ARCHIVE );
 	cg_simpleItems =    trap_Cvar_Get( "cg_simpleItems", "0", CVAR_ARCHIVE );
 	cg_simpleItemsSize =    trap_Cvar_Get( "cg_simpleItemsSize", "16", CVAR_ARCHIVE );
 	cg_particles =      trap_Cvar_Get( "cg_particles", "1", CVAR_ARCHIVE );
-	cg_showhelp =       trap_Cvar_Get( "cg_showhelp", "1", CVAR_ARCHIVE );
 
 	cg_cartoonEffects =     trap_Cvar_Get( "cg_cartoonEffects", "7", CVAR_ARCHIVE );
 
@@ -462,21 +423,17 @@ static void CG_RegisterVariables( void ) {
 	// developer cvars
 	cg_showClamp = trap_Cvar_Get( "cg_showClamp", "0", CVAR_DEVELOPER );
 
-	cg_allyColor = trap_Cvar_Get( "cg_allyColor", "0 160 255", CVAR_ARCHIVE );
+	cg_allyColor = trap_Cvar_Get( "cg_allyColor", "0", CVAR_ARCHIVE );
 	cg_allyModel = trap_Cvar_Get( "cg_allyModel", "bigvic", CVAR_ARCHIVE );
 	cg_allyForceModel = trap_Cvar_Get( "cg_allyForceModel", "1", CVAR_ARCHIVE | CVAR_READONLY );
-	cg_allyColor->modified = true;
 	cg_allyModel->modified = true;
 	cg_allyForceModel->modified = true;
 
-	cg_enemyColor = trap_Cvar_Get( "cg_enemyColor", "255 20 60", CVAR_ARCHIVE );
+	cg_enemyColor = trap_Cvar_Get( "cg_enemyColor", "1", CVAR_ARCHIVE );
 	cg_enemyModel = trap_Cvar_Get( "cg_enemyModel", "padpork", CVAR_ARCHIVE );
 	cg_enemyForceModel = trap_Cvar_Get( "cg_enemyForceModel", "1", CVAR_ARCHIVE | CVAR_READONLY );
-	cg_enemyColor->modified = true;
 	cg_enemyModel->modified = true;
 	cg_enemyForceModel->modified = true;
-
-	cg_strafeHUD = trap_Cvar_Get( "cg_strafeHUD", "0", CVAR_ARCHIVE );
 
 	trap_Cvar_Get( "cg_loadout", "", CVAR_ARCHIVE | CVAR_USERINFO );
 }
@@ -506,14 +463,12 @@ void CG_ValidateItemDef( int tag, char *name ) {
 */
 void CG_OverrideWeapondef( int index, const char *cstring ) {
 	int weapon, i;
-	int firemode = FIRE_MODE_WEAK;
 	gs_weapon_definition_t *weapondef;
 	firedef_t *firedef;
 
 	weapon = index;
 	if( index >= ( MAX_WEAPONDEFS / 2 ) ) {
 		weapon -= ( MAX_WEAPONDEFS / 2 );
-		firemode = FIRE_MODE_STRONG;
 	}
 
 	weapondef = GS_GetWeaponDef( weapon );
@@ -521,7 +476,7 @@ void CG_OverrideWeapondef( int index, const char *cstring ) {
 		CG_Error( "CG_OverrideWeapondef: Invalid weapon index\n" );
 	}
 
-	firedef = ( firemode == FIRE_MODE_STRONG ) ? &weapondef->firedef : &weapondef->firedef_weak;
+	firedef = &weapondef->firedef;
 
 	i = sscanf( cstring, "%7i %7i %7u %7u %7u %7u %7u %7i %7i %7i",
 				&firedef->usage_count,
@@ -612,8 +567,6 @@ static void CG_RegisterConfigStrings( void ) {
 			cgs.precacheTotal++;
 		} else if( i >= CS_IMAGES && i < CS_IMAGES + MAX_IMAGES ) {
 			cgs.precacheTotal++;
-		} else if( i >= CS_SKINFILES && i < CS_SKINFILES + MAX_SKINFILES ) {
-			cgs.precacheTotal++;
 		} else if( i >= CS_PLAYERINFOS && i < CS_PLAYERINFOS + MAX_CLIENTS ) {
 			cgs.precacheTotal++;
 		}
@@ -621,10 +574,6 @@ static void CG_RegisterConfigStrings( void ) {
 
 	// backup initial configstrings for CG_Reset
 	memcpy( &cgs.baseConfigStrings[0][0], &cgs.configStrings[0][0], MAX_CONFIGSTRINGS*MAX_CONFIGSTRING_CHARS );
-
-	GS_SetGametypeName( cgs.configStrings[CS_GAMETYPENAME] );
-
-	trap_Cmd_ExecuteText( EXEC_NOW, va( "exec configs/client/%s.cfg silent", gs.gametypeName ) );
 
 	CG_SC_AutoRecordAction( cgs.configStrings[CS_AUTORECORDSTATE] );
 }
@@ -661,8 +610,6 @@ void CG_Reset( void ) {
 
 	cg.time = 0;
 	cg.realTime = 0;
-	cg.helpmessage_time = 0;
-	cg.motd_time = 0;
 
 	chaseCam.key_pressed = false;
 
@@ -678,8 +625,9 @@ void CG_Reset( void ) {
 void CG_Init( const char *serverName, unsigned int playerNum,
 			  int vidWidth, int vidHeight, float pixelRatio,
 			  bool demoplaying, const char *demoName, bool pure,
-			  unsigned snapFrameTime, int protocol, const char *demoExtension,
-			  int sharedSeed, bool gameStart ) {
+			  unsigned snapFrameTime, int sharedSeed, bool gameStart ) {
+	cg_mempool = _Mem_AllocPool( NULL, "CGame", MEMPOOL_CLIENTGAME, __FILE__, __LINE__ );
+
 	CG_InitGameShared();
 
 	memset( &cg, 0, sizeof( cg_state_t ) );
@@ -706,25 +654,17 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	// demo
 	cgs.demoPlaying = demoplaying;
 	cgs.demoName = demoName;
-	Q_strncpyz( cgs.demoExtension, demoExtension, sizeof( cgs.demoExtension ) );
 
 	// whether to only allow pure files
 	cgs.pure = pure;
 
-	// game protocol number
-	cgs.gameProtocol = protocol;
 	cgs.snapFrameTime = snapFrameTime;
 
 	cgs.hasGametypeMenu = false; // this will update as soon as we receive configstrings
 
-	CG_asInitScriptEngine();
-
-	CG_asLoadGameScript();
-
 	CG_InitInput();
 
 	CG_RegisterVariables();
-	CG_InitTemporaryBoneposesCache();
 	CG_PModelsInit();
 	CG_WModelsInit();
 
@@ -745,8 +685,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	CG_ValidateItemList();
 
 	CG_LoadStatusBar();
-
-	CG_LoadingString( "" );
 
 	CG_ClearDecals();
 	CG_ClearPolys();
@@ -776,11 +714,9 @@ void CG_ResizeWindow( int width, int height ) {
 void CG_Shutdown( void ) {
 	CG_FreeLocalEntities();
 	CG_DemocamShutdown();
-	CG_ScreenShutdown();
 	CG_UnregisterCGameCommands();
 	CG_PModelsShutdown();
-	CG_FreeTemporaryBoneposesCache();
 	CG_ShutdownInput();
-	CG_asUnloadGameScript();
-	CG_asShutdownScriptEngine();
+
+	Mem_FreePool( &cg_mempool );
 }

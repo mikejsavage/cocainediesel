@@ -18,16 +18,17 @@
 
  */
 
+#include "qcommon/qcommon.h"
+
+#include "sdl_window.h"
+#include "icon.h"
+
 #include "sdl/SDL.h"
 #include "sdl/SDL_syswm.h"
 
-#include "qcommon/qcommon.h"
-#include "client/renderer/glad.h"
-#include "client/xpm.h"
-const
-#include "../../../icons/forksow.xpm"
+#include "stb/stb_image.h"
 
-#include "sdl_window.h"
+#include "glad/glad.h"
 
 SDL_Window * sdl_window = NULL;
 
@@ -97,6 +98,10 @@ static void gl_debug_output_callback(
                 return;
         }
 
+	if( type == GL_DEBUG_TYPE_PERFORMANCE ) {
+		return;
+	}
+
 	Com_Printf( "GL [%s - %s]: %s", type_string( type ), severity_string( severity ), message );
 	size_t len = strlen( message );
 	if( len == 0 || message[ len - 1 ] != '\n' )
@@ -114,9 +119,7 @@ static void gl_debug_output_callback_amd(
         gl_debug_output_callback( GL_DONT_CARE, type, id, severity, length, message, _ );
 }
 
-static bool InitGL( int stencilbits ) {
-	SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, max( 0, stencilbits ) );
-
+static bool InitGL() {
 	int flags = SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG;
 #if PUBLIC_BUILD
 	flags |= SDL_GL_CONTEXT_NO_ERROR;
@@ -181,7 +184,7 @@ static bool InitGL( int stencilbits ) {
 	return true;
 }
 
-void VID_WindowInit( WindowMode mode, int stencilbits ) {
+void VID_WindowInit( WindowMode mode ) {
 	uint32_t flags = SDL_WINDOW_OPENGL;
 	if( mode.fullscreen == FullScreenMode_Fullscreen )
 		flags |= SDL_WINDOW_FULLSCREEN;
@@ -202,28 +205,14 @@ void VID_WindowInit( WindowMode mode, int stencilbits ) {
 		VID_SetVideoMode( mode.video_mode ); // also set frequency
 	}
 
-#ifndef __APPLE__
-	uint32_t r = 0x00ff0000;
-	uint32_t g = 0x0000ff00;
-	uint32_t b = 0x000000ff;
-	uint32_t a = 0xff000000;
-
-#ifndef ENDIAN_LITTLE
-	r = 0x000000ff;
-	g = 0x0000ff00;
-	b = 0x00ff0000;
-	a = 0xff000000;
-#endif
-
-	int * xpm = XPM_ParseIcon( sizeof( ahacheers_xpm ) / sizeof( ahacheers_xpm[ 0 ] ), ahacheers_xpm );
-	SDL_Surface * surface = SDL_CreateRGBSurfaceFrom( ( xpm + 2 ), xpm[ 0 ], xpm[ 1 ], 32, xpm[ 0 ] * 4, r, g, b, a );
-	free( xpm );
-
+	int w, h;
+	uint8_t * icon = stbi_load_from_memory( icon_png, icon_png_len, &w, &h, NULL, 4 );
+	SDL_Surface * surface = SDL_CreateRGBSurfaceFrom( icon, w, h, 32, w * 4, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 );
 	SDL_SetWindowIcon( sdl_window, surface );
 	SDL_FreeSurface( surface );
-#endif
+	free( icon );
 
-	InitGL( stencilbits );
+	InitGL();
 }
 
 void VID_WindowShutdown() {
@@ -361,4 +350,21 @@ void VID_FlashWindow() {
 
 void VID_Swap() {
 	SDL_GL_SwapWindow( sdl_window );
+}
+
+void format( FormatBuffer * fb, VideoMode mode, const FormatOpts & opts ) {
+	ggformat_impl( fb, "{}x{} {}Hz", mode.width, mode.height, mode.frequency );
+}
+
+void format( FormatBuffer * fb, WindowMode mode, const FormatOpts & opts ) {
+	switch( mode.fullscreen ) {
+		case FullScreenMode_Windowed:
+			ggformat_impl( fb, "W {}x{} {}x{}", mode.video_mode.width, mode.video_mode.height, mode.x, mode.y ); break;
+		case FullScreenMode_FullscreenBorderless:
+			ggformat_impl( fb, "B {}", mode.monitor );
+			break;
+		case FullScreenMode_Fullscreen:
+			ggformat_impl( fb, "F {} {}x{} {}Hz", mode.monitor, mode.video_mode.width, mode.video_mode.height, mode.video_mode.frequency );
+			break;
+	}
 }

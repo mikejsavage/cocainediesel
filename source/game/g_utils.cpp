@@ -617,10 +617,10 @@ void G_UseTargets( edict_t *ent, edict_t *activator ) {
 }
 
 
-vec3_t VEC_UP       = { 0, -1, 0 };
-vec3_t MOVEDIR_UP   = { 0, 0, 1 };
-vec3_t VEC_DOWN     = { 0, -2, 0 };
-vec3_t MOVEDIR_DOWN = { 0, 0, -1 };
+static vec3_t VEC_UP       = { 0, -1, 0 };
+static vec3_t MOVEDIR_UP   = { 0, 0, 1 };
+static vec3_t VEC_DOWN     = { 0, -2, 0 };
+static vec3_t MOVEDIR_DOWN = { 0, 0, -1 };
 
 void G_SetMovedir( vec3_t angles, vec3_t movedir ) {
 	if( VectorCompare( angles, VEC_UP ) ) {
@@ -841,19 +841,19 @@ void G_InitMover( edict_t *ent ) {
 		if( r <= 1.0 ) {
 			r *= 255;
 		}
-		clamp( r, 0, 255 );
+		r = Clamp( 0, r, 255 );
 
 		g = ent->color[1];
 		if( g <= 1.0 ) {
 			g *= 255;
 		}
-		clamp( g, 0, 255 );
+		g = Clamp( 0, g, 255 );
 
 		b = ent->color[2];
 		if( b <= 1.0 ) {
 			b *= 255;
 		}
-		clamp( b, 0, 255 );
+		b = Clamp( 0, b, 255 );
 
 		ent->s.light = COLOR_RGBA( r, g, b, i );
 	}
@@ -933,14 +933,6 @@ void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage,
 
 
 /*
-* G_PlayerGender
-* server doesn't know the model gender, so all are neutrals in console prints.
-*/
-int G_PlayerGender( edict_t *player ) {
-	return GENDER_NEUTRAL;
-}
-
-/*
 * G_PrintMsg
 *
 * NULL sends to all the message to all clients
@@ -963,7 +955,7 @@ void G_PrintMsg( edict_t *ent, const char *format, ... ) {
 
 	if( !ent ) {
 		// mirror at server console
-		if( dedicated->integer ) {
+		if( GAME_IMPORT.is_dedicated_server ) {
 			G_Printf( "%s", msg );
 		}
 		trap_GameCmd( NULL, s );
@@ -997,7 +989,7 @@ void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, .
 
 	if( !ent ) {
 		// mirror at server console
-		if( dedicated->integer ) {
+		if( GAME_IMPORT.is_dedicated_server ) {
 			if( !who ) {
 				G_Printf( S_COLOR_GREEN "console: %s\n", msg );     // admin console
 			} else if( !who->r.client ) {
@@ -1073,95 +1065,6 @@ void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) {
 }
 
 /*
-* G_CenterPrintFormatMsg
-*
-* MUST be passed NULL as the last variadic argument
-*
-* NULL sends to all the message to all clients
-*/
-void G_CenterPrintFormatMsg( edict_t *ent, int numVargs, const char *format, ... ) {
-	int i;
-	char cmd[MAX_STRING_CHARS];
-	char arg_fmt[MAX_TOKEN_CHARS];
-	va_list argptr;
-	char *p, *arg_p;
-	bool overflow = false;
-	edict_t *other;
-
-	if( !numVargs ) {
-		// can't transmit formatted message with no arguments or
-		// no strings to replace the placeholders
-		return;
-	}
-
-	Q_strncpyz( cmd, "cpf ", sizeof( cmd ) );
-
-	// double quotes are bad
-	Q_strncpyz( arg_fmt, format, sizeof( arg_fmt ) );
-	arg_p = arg_fmt;
-
-	va_start( argptr, format );
-
-	for( i = 0; i <= numVargs; i++ ) {
-		size_t cmd_len;
-		size_t arg_len;
-
-		// double quotes are bad
-		p = arg_p;
-		if( !p ) {
-			overflow = true;
-			break;
-		}
-
-		while( ( p = strchr( p, '\"' ) ) != NULL )
-			*p = '\'';
-
-		cmd_len = strlen( cmd );
-		arg_len = strlen( arg_p );
-		if( arg_len > MAX_TOKEN_CHARS ) {
-			overflow = true;
-			break;
-		}
-
-		if( cmd_len + arg_len + 3 >= sizeof( cmd ) ) {
-			overflow = true;
-			break;
-		}
-
-		cmd[cmd_len + 0] = ' ';
-		cmd[cmd_len + 1] = '"';
-		memcpy( &cmd[cmd_len + 2], arg_p, arg_len );
-		cmd[cmd_len + 2 + arg_len] = '"';
-		cmd[cmd_len + 3 + arg_len] = '\0';
-
-		arg_p = va_arg( argptr, char * );
-	}
-
-	va_end( argptr );
-
-	if( overflow ) {
-		// couldn't fit it all into the cmd buffer
-		return;
-	}
-
-	trap_GameCmd( ent, cmd );
-
-	if( ent != NULL ) {
-		// add it to every player who's chasing this player
-		for( other = game.edicts + 1; PLAYERNUM( other ) < gs.maxclients; other++ ) {
-			if( !other->r.client || !other->r.inuse || !other->r.client->resp.chase.active ) {
-				continue;
-			}
-
-			if( other->r.client->resp.chase.target == ENTNUM( ent ) ) {
-				trap_GameCmd( other, cmd );
-			}
-		}
-	}
-}
-
-
-/*
 * G_Obituary
 *
 * Prints death message to all clients
@@ -1169,105 +1072,6 @@ void G_CenterPrintFormatMsg( edict_t *ent, int numVargs, const char *format, ...
 void G_Obituary( edict_t *victim, edict_t *attacker, int mod ) {
 	if( victim && attacker ) {
 		trap_GameCmd( NULL, va( "obry %i %i %i", (int)(victim - game.edicts), (int)(attacker - game.edicts), mod ) );
-	}
-}
-
-/*
-* G_UpdatePlayerMatchMsg
-*
-* Sends correct match msg to one client
-* Must be called whenever client's team, ready status or chase mode changes
-*/
-void G_UpdatePlayerMatchMsg( edict_t *ent, bool force ) {
-	matchmessage_t newmm;
-
-	if( GS_MatchWaiting() ) {
-		newmm = MATCHMESSAGE_WAITING_FOR_PLAYERS;
-	} else if( GS_MatchState() > MATCH_STATE_PLAYTIME ) {
-		newmm = MATCHMESSAGE_NONE;
-	} else if( ent->s.team == TEAM_SPECTATOR ) {
-		if( GS_HasChallengers() ) { // He is in the queue
-			newmm = ( ent->r.client->queueTimeStamp ? MATCHMESSAGE_CHALLENGERS_QUEUE : MATCHMESSAGE_ENTER_CHALLENGERS_QUEUE );
-		} else {
-			newmm = ( ent->r.client->resp.chase.active ? MATCHMESSAGE_NONE : MATCHMESSAGE_SPECTATOR_MODES );
-		}
-	} else {
-		if( GS_MatchState() == MATCH_STATE_WARMUP ) {
-			newmm = ( !level.ready[PLAYERNUM( ent )] ? MATCHMESSAGE_GET_READY : MATCHMESSAGE_NONE );
-		} else {
-			newmm = MATCHMESSAGE_NONE;
-		}
-	}
-
-	if( newmm != ent->r.client->level.matchmessage || force ) {
-		ent->r.client->level.matchmessage = newmm;
-		trap_GameCmd( ent, va( "mm %i", newmm ) );
-	}
-}
-
-/*
-* G_UpdatePlayerMatchMsg
-*
-* Sends correct match msg to every client
-* Must be called whenever match state changes
-*/
-void G_UpdatePlayersMatchMsgs( void ) {
-	int i;
-	edict_t *cl_ent;
-
-	for( i = 0; i < gs.maxclients; i++ ) {
-		cl_ent = game.edicts + 1 + i;
-		if( !cl_ent->r.inuse ) {
-			continue;
-		}
-		G_UpdatePlayerMatchMsg( cl_ent );
-	}
-}
-
-//==================================================
-// MAP MESSAGES
-//==================================================
-
-/*
-* G_RegisterHelpMessage
-*/
-unsigned G_RegisterHelpMessage( const char *str ) {
-	unsigned i;
-
-	if( !str || !*str ) {
-		return 0;
-	}
-
-	for( i = 0; i < MAX_HELPMESSAGES; i++ ) {
-		const char *cs = trap_GetConfigString( CS_HELPMESSAGES + i );
-		if( !cs[0] ) {
-			break;
-		}
-		if( !strcmp( cs, str ) ) {
-			return i + 1;
-		}
-	}
-
-	if( i < MAX_HELPMESSAGES ) {
-		trap_ConfigString( CS_HELPMESSAGES + i, str );
-	}
-	return i + 1;
-}
-
-/*
-* G_SetPlayerHelpMessage
-*/
-void G_SetPlayerHelpMessage( edict_t *ent, unsigned index, bool force ) {
-	if( index > MAX_HELPMESSAGES ) {
-		return;
-	}
-	if( !ent || !ent->r.client ) {
-		return;
-	}
-
-	if( index != ent->r.client->level.helpmessage || force ) {
-		ent->r.client->level.helpmessage = index;
-		trap_GameCmd( ent, va( "mapmsg %i", index ) );
 	}
 }
 
@@ -1386,7 +1190,7 @@ void G_LocalSound( edict_t *owner, int channel, StringHash sound ) {
 * Kills all entities that would touch the proposed new positioning
 * of ent.  Ent should be unlinked before calling this!
 */
-bool KillBox( edict_t *ent ) {
+bool KillBox( edict_t *ent, int mod ) {
 	trace_t tr;
 	bool telefragged = false;
 
@@ -1398,10 +1202,10 @@ bool KillBox( edict_t *ent ) {
 
 		if( tr.ent == ENTNUM( world ) ) {
 			return telefragged; // found the world (but a player could be in there too). suicide?
-
 		}
+
 		// nail it
-		G_Damage( &game.edicts[tr.ent], ent, ent, vec3_origin, vec3_origin, ent->s.origin, 100000, 0, DAMAGE_NO_PROTECTION, MOD_TELEFRAG );
+		G_Damage( &game.edicts[tr.ent], ent, ent, vec3_origin, vec3_origin, ent->s.origin, 100000, 0, 0, mod );
 		telefragged = true;
 
 		// if we didn't kill it, fail
@@ -1869,178 +1673,5 @@ void G_PrecacheWeapondef( int weapon, firedef_t *firedef ) {
 				 firedef->v_spread
 				 );
 
-	if( firedef->fire_mode == FIRE_MODE_WEAK ) {
-		trap_ConfigString( CS_WEAPONDEFS + weapon, cstring );
-	} else {
-		trap_ConfigString( CS_WEAPONDEFS + ( MAX_WEAPONDEFS / 2 ) + weapon, cstring );
-	}
-}
-
-#ifdef WEAPONDEFS_FROM_DISK
-
-#define WEAPONDEF_NUMPARMS 20
-static bool G_ParseFiredefFile( uint8_t *buf, int weapon, firedef_t *firedef ) {
-	char *ptr, *token;
-	int count = 0;
-	float parm[WEAPONDEF_NUMPARMS];
-
-	// jal: this is quite ugly.
-	ptr = ( char * )buf;
-	while( ptr ) {
-		token = COM_ParseExt( &ptr, true );
-		if( !token[0] ) {
-			break;
-		}
-
-		//ignore spacing tokens
-		if( !Q_stricmp( token, "," ) ||
-			!Q_stricmp( token, "{" ) ||
-			!Q_stricmp( token, "}" ) ) {
-			continue;
-		}
-
-		//some token sanity checks
-		if( token[strlen( token ) - 1] == ',' ) {
-			token[strlen( token ) - 1] = 0;
-		}
-		if( token[strlen( token ) - 1] == '}' ) {
-			token[strlen( token ) - 1] = 0;
-		}
-		//(I don't fix these ones, but show the error)
-		if( token[0] == ',' ) {
-			G_Printf( "ERROR in script. Comma must be followed by space or newline\n" );
-			return false;
-		}
-		if( token[0] == '{' || token[0] == '}' ) {
-			G_Printf( "ERROR in script. Scorches must be followed by space or newline\n" );
-			return false;
-		}
-
-		if( count > WEAPONDEF_NUMPARMS ) {
-			return false;
-		}
-
-		if( !Q_stricmp( token, "instant" ) ) {
-			parm[count] = 0;
-		} else {
-			parm[count] = atof( token );
-		}
-
-		if( parm[count] < 0 ) {
-			return false;
-		}
-
-		count++;
-	}
-
-	// incomplete or wrong file
-	if( count != WEAPONDEF_NUMPARMS ) {
-		G_Printf( "ERROR in weapondef. Incorrect count of parameters\n" );
-		return false;
-	}
-
-	// validate
-
-	count = 0;
-	// put the data into the firedef
-	firedef->usage_count = (int)parm[count++];
-	firedef->projectile_count = (int)parm[count++];
-
-	firedef->weaponup_time = (unsigned int)parm[count++];
-	firedef->weapondown_time = (unsigned int)parm[count++];
-	firedef->reload_time = (unsigned int)parm[count++];
-	firedef->cooldown_time = (unsigned int)parm[count++];
-	firedef->timeout = (unsigned int)parm[count++];
-	firedef->smooth_refire = (int)parm[count++];
-
-	firedef->damage = (float)parm[count++];
-	firedef->selfdamage = parm[count++];
-	firedef->knockback = (int)parm[count++];
-	firedef->splash_radius = (int)parm[count++];
-	firedef->mindamage = (int)parm[count++];
-	firedef->minknockback = (int)parm[count++];
-
-	firedef->speed = (int)parm[count++];
-	firedef->spread = (int)parm[count++];
-	firedef->v_spread = (int)parm[count++];
-
-	firedef->ammo_pickup = (int)parm[count++];
-	firedef->ammo_max = (int)parm[count++];
-	firedef->ammo_low = (int)parm[count++];
-
-	if( firedef->weaponup_time < 50 ) {
-		firedef->weaponup_time = 50;
-	}
-	if( firedef->weapondown_time < 50 ) {
-		firedef->weapondown_time = 50;
-	}
-
-	return true;
-}
-
-static bool G_LoadFiredefFromFile( int weapon, firedef_t *firedef ) {
-	int length, filenum;
-	uint8_t *data;
-	char filename[MAX_QPATH];
-
-	if( !firedef ) {
-		return false;
-	}
-
-	Q_snprintfz( filename, sizeof( filename ), "weapondefs/%s %s.def", GS_FindItemByTag( weapon )->shortname,
-				 ( firedef->fire_mode == FIRE_MODE_STRONG ) ? "strong" : "weak" );
-
-	Q_strlwr( filename );
-
-	length = trap_FS_FOpenFile( filename, &filenum, FS_READ );
-
-	if( length == -1 ) {
-		G_Printf( "Couldn't find script: %s.\n", filename );
-		return false;
-	}
-
-	if( !length ) {
-		G_Printf( "Found empty script: %s.\n", filename );
-		trap_FS_FCloseFile( filenum );
-		return false;
-	}
-
-	//load the script data into memory
-	data = G_Malloc( length + 1 );
-	trap_FS_Read( data, length, filenum );
-	trap_FS_FCloseFile( filenum );
-
-	if( !data[0] ) {
-		G_Printf( "Found empty script: %s.\n", filename );
-		G_Free( data );
-		return false;
-	}
-
-	//parse the file updating the firedef
-	if( !G_ParseFiredefFile( data, weapon, firedef ) ) {
-		G_Printf( "'InitWeapons': Error in definition file %s\n", filename );
-		G_Free( data );
-		return false;
-	}
-
-	G_Free( data );
-	return true;
-}
-#endif // WEAPONDEFS_FROM_DISK
-
-void G_LoadFiredefsFromDisk( void ) {
-#ifdef WEAPONDEFS_FROM_DISK
-	int i;
-	gs_weapon_definition_t *weapondef;
-
-	for( i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
-		weapondef = GS_GetWeaponDef( i );
-		if( !weapondef ) {
-			continue;
-		}
-
-		G_LoadFiredefFromFile( i, &weapondef->firedef_weak );
-		G_LoadFiredefFromFile( i, &weapondef->firedef );
-	}
-#endif
+	trap_ConfigString( CS_WEAPONDEFS + weapon, cstring );
 }

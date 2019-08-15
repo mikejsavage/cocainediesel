@@ -228,11 +228,8 @@ static void SNAP_RelayMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *ms
 	gcommand_t *gcmd;
 	const char *command;
 
-	first_index = numcmds - MAX_RELIABLE_COMMANDS;
-	last_index = first_index + MAX_RELIABLE_COMMANDS;
-
-	clamp_low( first_index, 0 );
-	clamp_high( last_index, numcmds );
+	first_index = Max2( 0, numcmds - MAX_RELIABLE_COMMANDS );
+	last_index = Min2( numcmds, first_index + MAX_RELIABLE_COMMANDS );
 
 	for( index = first_index, gcmd = commands + index; index < last_index; index++, gcmd++ ) {
 		command = commandsData + gcmd->commandOffset;

@@ -48,11 +48,9 @@ enum {
 
 enum {
 	WEAPMODEL_WEAPON,
-	WEAPMODEL_EXPANSION,
 	WEAPMODEL_FLASH,
 	WEAPMODEL_HAND,
 	WEAPMODEL_BARREL,
-	WEAPMODEL_BARREL2,
 
 	VWEAP_MAXPARTS
 };
@@ -65,7 +63,6 @@ typedef struct weaponinfo_s {
 	bool inuse;
 
 	struct model_s *model[VWEAP_MAXPARTS]; // one weapon consists of several models
-	struct cgs_skeleton_s *skel[VWEAP_MAXPARTS];
 
 	int firstframe[VWEAP_MAXANIMS];         // animation script
 	int lastframe[VWEAP_MAXANIMS];
@@ -86,51 +83,89 @@ typedef struct weaponinfo_s {
 
 	// barrel
 	int64_t barrelTime;
-	float barrelSpeed[VWEAP_MAXPARTS];
+	float barrelSpeed;
 
 	// sfx
 	int num_fire_sounds;
-	StringHash sound_fire[WEAPONINFO_MAX_FIRE_SOUNDS];
-	int num_strongfire_sounds;
-	StringHash sound_strongfire[WEAPONINFO_MAX_FIRE_SOUNDS];
-	StringHash sound_reload;
-
-	// ammo counter display
-	float acDigitWidth, acDigitHeight;
-	struct qfontface_s *acFont;
-	int acFontWidth;
-	float acDigitAlpha;
-	float acIconSize;
-	float acIconAlpha;
+	const StringHash *sound_fire[WEAPONINFO_MAX_FIRE_SOUNDS];
 } weaponinfo_t;
 
-#define SKM_MAX_BONES 256
+enum {
+	BASE_CHANNEL,
+	EVENT_CHANNEL,
+	PLAYERANIM_CHANNELS
+};
 
-//pmodelinfo_t is the playermodel structure as originally readed
-//Consider it static 'read-only', cause it is shared by different players
-typedef struct pmodelinfo_s {
-	char *name;
-	int sex;
+typedef struct {
+	int anim;
+	int64_t startTimestamp;
+} animstate_t;
 
-	struct  model_s *model;
-	struct cg_sexedSfx_s *sexedSfx;
+struct PlayerModelAnimationSet {
+	int parts[PMODEL_PARTS];
+};
 
-	int numRotators[PMODEL_PARTS];
-	int rotator[PMODEL_PARTS][16];
-	int rootanims[PMODEL_PARTS];
+typedef struct {
+	// animations in the mixer
+	animstate_t curAnims[PMODEL_PARTS][PLAYERANIM_CHANNELS];
+	PlayerModelAnimationSet pending[PLAYERANIM_CHANNELS];
+} pmodel_animationstate_t;
 
-	gs_pmodel_animationset_t animSet; // animation script
+enum PlayerSound {
+	PlayerSound_Death,
+	PlayerSound_Fall1,
+	PlayerSound_Fall2,
+	PlayerSound_Fall3,
+	PlayerSound_Jump1,
+	PlayerSound_Jump2,
+	PlayerSound_Pain25,
+	PlayerSound_Pain50,
+	PlayerSound_Pain75,
+	PlayerSound_Pain100,
+	PlayerSound_WallJump1,
+	PlayerSound_WallJump2,
+	PlayerSound_Dash1,
+	PlayerSound_Dash2,
 
-	struct pmodelinfo_s *next;
-} pmodelinfo_t;
+	PlayerSound_Count
+};
+
+struct PlayerModelMetadata {
+	struct Tag {
+		u8 joint_idx;
+		Mat4 transform;
+	};
+
+	struct AnimationClip {
+		float start_time;
+		float duration;
+		float loop_from; // we only loop the last part of the animation
+	};
+
+	char * name;
+
+	struct model_s * model;
+	const SoundAsset * sounds[ PlayerSound_Count ];
+
+	u8 upper_rotator_joints[ 2 ];
+	u8 head_rotator_joint;
+	u8 upper_root_joint;
+
+	Tag tag_backpack;
+	Tag tag_head;
+	Tag tag_weapon;
+
+	AnimationClip clips[ PMODEL_TOTAL_ANIMATIONS ];
+
+	PlayerModelMetadata *next;
+};
 
 typedef struct {
 	// static data
-	pmodelinfo_t *pmodelinfo;
-	StringHash skin;
+	PlayerModelMetadata * metadata;
 
 	// dynamic
-	gs_pmodel_animationstate_t animState;
+	pmodel_animationstate_t animState;
 
 	vec3_t angles[PMODEL_PARTS];                // for rotations
 	vec3_t oldangles[PMODEL_PARTS];             // for rotations
@@ -151,7 +186,7 @@ extern pmodel_t cg_entPModels[MAX_EDICTS];      //a pmodel handle for each cg_en
 //utils
 void CG_AddShellEffects( entity_t *ent, int effects );
 bool CG_GrabTag( orientation_t *tag, entity_t *ent, const char *tagname );
-void CG_PlaceModelOnTag( entity_t *ent, entity_t *dest, orientation_t *tag );
+void CG_PlaceModelOnTag( entity_t *ent, entity_t *dest, const orientation_t *tag );
 void CG_PlaceRotatedModelOnTag( entity_t *ent, entity_t *dest, orientation_t *tag );
 void CG_MoveToTag( vec3_t move_origin,
 				   mat3_t move_axis,
@@ -165,7 +200,7 @@ void CG_PModelsInit( void );
 void CG_PModelsShutdown( void );
 void CG_ResetPModels( void );
 void CG_RegisterBasePModel( void );
-struct pmodelinfo_s *CG_RegisterPlayerModel( const char *filename );
+PlayerModelMetadata *CG_RegisterPlayerModel( const char *filename );
 void CG_AddPModel( centity_t *cent );
 bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result );
 void CG_UpdatePlayerModelEnt( centity_t *cent );
@@ -178,7 +213,7 @@ void CG_PModel_ClearEventAnimations( int entNum );
 void CG_WModelsInit();
 struct weaponinfo_s *CG_CreateWeaponZeroModel( char *cgs_name );
 struct weaponinfo_s *CG_RegisterWeaponModel( char *cgs_name, int weaponTag );
-void CG_AddWeaponOnTag( entity_t *ent, orientation_t *tag, int weapon, int effects, 
+void CG_AddWeaponOnTag( entity_t *ent, const orientation_t *tag, int weapon, int effects,
 	orientation_t *projectionSource, int64_t flash_time, int64_t barrel_time );
 struct weaponinfo_s *CG_GetWeaponInfo( int currentweapon );
 

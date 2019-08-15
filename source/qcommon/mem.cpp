@@ -257,7 +257,6 @@ void _Mem_Free( void *data, int musthave, int canthave, const char *filename, in
 	mempool_t *pool;
 
 	if( data == NULL ) {
-		//_Mem_Error( "Mem_Free: data == NULL (called at %s:%i)", filename, fileline );
 		return;
 	}
 
@@ -581,7 +580,7 @@ static void Mem_PrintStats( void ) {
 						pool->realsize, pool->realsize / 1048576.0 );
 			Com_Printf( "listing temporary memory allocations for %s:\n", pool->name );
 
-			for( mem = tempMemPool->chain; mem; mem = mem->next )
+			for( mem = pool->chain; mem; mem = mem->next )
 				Com_Printf( "%10" PRIuPTR " bytes allocated at %s:%i\n", (uintptr_t)mem->size, mem->filename, mem->fileline );
 		}
 	}

@@ -200,7 +200,6 @@ static void SV_ReloadPureList( void ) {
 void SV_SetServerConfigStrings( void ) {
 	Q_snprintfz( sv.configstrings[CS_MAXCLIENTS], sizeof( sv.configstrings[0] ), "%i", sv_maxclients->integer );
 	Q_strncpyz( sv.configstrings[CS_HOSTNAME], Cvar_String( "sv_hostname" ), sizeof( sv.configstrings[0] ) );
-	Q_strncpyz( sv.configstrings[CS_MODMANIFEST], Cvar_String( "sv_modmanifest" ), sizeof( sv.configstrings[0] ) );
 }
 
 /*
@@ -328,14 +327,14 @@ void SV_InitGame( void ) {
 	address.type = NA_NOTRANSMIT;
 	ipv6_address.type = NA_NOTRANSMIT;
 
-	if( !dedicated->integer ) {
+	if( !is_dedicated_server ) {
 		NET_InitAddress( &address, NA_LOOPBACK );
 		if( !NET_OpenSocket( &svs.socket_loopback, SOCKET_LOOPBACK, &address, true ) ) {
 			Com_Error( ERR_FATAL, "Couldn't open loopback socket: %s\n", NET_ErrorString() );
 		}
 	}
 
-	if( dedicated->integer || sv_maxclients->integer > 1 ) {
+	if( is_dedicated_server || sv_maxclients->integer > 1 ) {
 		// IPv4
 		NET_StringToAddress( sv_ip->string, &address );
 		NET_SetAddressPort( &address, sv_port->integer );
@@ -359,7 +358,7 @@ void SV_InitGame( void ) {
 		}
 	}
 
-	if( dedicated->integer && !socket_opened ) {
+	if( is_dedicated_server && !socket_opened ) {
 		Com_Error( ERR_FATAL, "Couldn't open any socket\n" );
 	}
 
@@ -460,11 +459,6 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 
 	Com_FreePureList( &svs.purelist );
 
-	if( svs.motd ) {
-		Mem_Free( svs.motd );
-		svs.motd = NULL;
-	}
-
 	if( sv_mempool ) {
 		Mem_EmptyPool( sv_mempool );
 	}
@@ -486,15 +480,10 @@ void SV_Map( const char *level, bool devmap ) {
 		SV_Demo_Stop_f();
 	}
 
-	// skip the end-of-unit flag if necessary
-	if( level[0] == '*' ) {
-		level++;
-	}
-
 	if( sv.state == ss_dead ) {
 		SV_InitGame(); // the game is just starting
-
 	}
+
 	// remove all bots before changing map
 	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
 		if( cl->state && cl->edict && ( cl->edict->r.svflags & SVF_FAKECLIENT ) ) {
@@ -514,8 +503,6 @@ void SV_Map( const char *level, bool devmap ) {
 		svs.clients[i].lastframe = -1;
 		memset( svs.clients[i].gameCommands, 0, sizeof( svs.clients[i].gameCommands ) );
 	}
-
-	SV_MOTD_Update();
 
 	SCR_BeginLoadingPlaque();       // for local system
 	SV_BroadcastCommand( "changing\n" );

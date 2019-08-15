@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cg_local.h"
+#include "client/client.h"
 
 static void CG_UpdateEntities( void );
 
@@ -62,8 +63,6 @@ static void CG_FixVolumeCvars( void ) {
 	}
 }
 
-//#define DRAWFROMWEAPON
-
 static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 	vec3_t origin;
 	entity_state_t *state;
@@ -75,7 +74,7 @@ static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 	state = &cent->current;
 
 	if( !state->linearMovement ) {
-		return -1;
+		return false;
 	}
 
 	if( GS_MatchPaused() ) {
@@ -148,27 +147,6 @@ static void CG_NewPacketEntityState( entity_state_t *state ) {
 		VectorClear( cent->velocity );
 		cent->canExtrapolate = false;
 
-#ifdef DRAWFROMWEAPON
-		if( firstTime && ISVIEWERENTITY( state->ownerNum ) && ( state->solid != SOLID_BMODEL ) ) { // experimental. Draw linear projectiles as if coming from the weapon
-			orientation_t projection;
-			vec3_t dir, end;
-
-			if( CG_PModel_GetProjectionSource( state->ownerNum, &projection ) ) {
-				VectorCopy( projection.origin, cent->linearProjectileViewerSource );
-
-				// recalculate the direction from the new projection source
-				VectorNormalize2( state->linearProjectileVelocity, dir );
-				VectorMA( state->origin2, 16000, dir, end );
-				VectorSubtract( end, cent->linearProjectileViewerSource, dir );
-				VectorNormalize( dir );
-				VectorScale( dir, VectorLength( state->linearProjectileVelocity ), cent->linearProjectileViewerVelocity );
-			} else {
-				//CG_Printf( "Couldn't get projection source\n" );
-				VectorCopy( state->linearProjectileVelocity, cent->linearProjectileViewerVelocity );
-				VectorCopy( state->origin2, cent->linearProjectileViewerSource );
-			}
-		}
-#endif
 		cent->linearProjectileCanDraw = CG_UpdateLinearProjectilePosition( cent );
 
 		VectorCopy( cent->current.linearMovementVelocity, cent->velocity );
@@ -183,7 +161,7 @@ static void CG_NewPacketEntityState( entity_state_t *state ) {
 
 		// some data changes will force no lerping
 		if( state->modelindex != cent->current.modelindex
-			|| state->teleported 
+			|| state->teleported
 			|| state->linearMovement != cent->current.linearMovement ) {
 			cent->serverFrame = -99;
 		}
@@ -197,7 +175,6 @@ static void CG_NewPacketEntityState( entity_state_t *state ) {
 
 			// Init the animation when new into PVS
 			if( cg.frame.valid && ( state->type == ET_PLAYER || state->type == ET_CORPSE ) ) {
-				cent->lastAnims = 0;
 				memset( cent->lastVelocities, 0, sizeof( cent->lastVelocities ) );
 				memset( cent->lastVelocitiesFrames, 0, sizeof( cent->lastVelocitiesFrames ) );
 				CG_PModel_ClearEventAnimations( state->number );
@@ -251,9 +228,6 @@ static void CG_NewPacketEntityState( entity_state_t *state ) {
 		if( ISBRUSHMODEL( cent->current.modelindex ) ) { // disable extrapolation on movers
 			cent->canExtrapolate = false;
 		}
-
-		//if( cent->canExtrapolate )
-		//	VectorMA( cent->current.origin, 0.001f * cgs.extrapolationTime, cent->velocity, cent->extrapolatedOrigin );
 	}
 }
 
@@ -402,11 +376,6 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 
 	CG_FireEvents( true );
 
-	if( cg.firstFrame && !cgs.demoPlaying ) {
-		// request updates on our private state
-		trap_Cmd_ExecuteText( EXEC_NOW, "upstate" );
-	}
-
 	cg.firstFrame = false; // not the first frame anymore
 	return true;
 }
@@ -505,7 +474,6 @@ static void CG_EntAddBobEffect( centity_t *cent ) {
 
 	cent->ent.origin2[2] += bob;
 	cent->ent.origin[2] += bob;
-	cent->ent.lightingOrigin[2] += bob;
 }
 
 /*
@@ -516,8 +484,7 @@ static void CG_EntAddTeamColorTransitionEffect( centity_t *cent ) {
 	vec4_t scaledcolor, newcolor;
 	const vec4_t neutralcolor = { 1.0f, 1.0f, 1.0f, 1.0f };
 
-	float f = (float)cent->current.counterNum / 255.0f;
-	clamp( f, 0.0f, 1.0f );
+	float f = Clamp01( (float)cent->current.counterNum / 255.0f );
 
 	CG_TeamColorForEntity( cent->current.number, currentcolor );
 
@@ -533,23 +500,12 @@ static void CG_EntAddTeamColorTransitionEffect( centity_t *cent ) {
 /*
 * CG_AddLinkedModel
 */
-static void CG_AddLinkedModel( centity_t *cent ) {
-	bool barrel;
-	entity_t ent;
-	orientation_t tag;
-	struct model_s *model;
-
-	// linear projectiles can never have a linked model. Modelindex2 is used for a different purpose
-	if( cent->current.linearMovement ) {
+void CG_AddLinkedModel( centity_t * cent, const orientation_t * tag ) {
+	struct model_s * model = cgs.modelDraw[cent->current.modelindex2];
+	if( model == NULL )
 		return;
-	}
 
-	model = cgs.modelDraw[cent->current.modelindex2];
-	if( !model ) {
-		return;
-	}
-
-	memset( &ent, 0, sizeof( entity_t ) );
+	entity_t ent = { };
 	ent.rtype = RT_MODEL;
 	ent.scale = cent->ent.scale;
 	ent.renderfx = cent->ent.renderfx;
@@ -557,39 +513,15 @@ static void CG_AddLinkedModel( centity_t *cent ) {
 	Vector4Copy( cent->ent.shaderRGBA, ent.shaderRGBA );
 	ent.model = model;
 	ent.customShader = EMPTY_HASH;
-	ent.customSkin = EMPTY_HASH;
 	VectorCopy( cent->ent.origin, ent.origin );
 	VectorCopy( cent->ent.origin, ent.origin2 );
-	VectorCopy( cent->ent.lightingOrigin, ent.lightingOrigin );
 	Matrix3_Copy( cent->ent.axis, ent.axis );
 
-	if( cent->item && ( cent->effects & EF_AMMOBOX ) ) { // ammobox icon hack
-		ent.customShader = StringHash( cent->item->icon );
-	}
+	CG_AddColoredOutLineEffect( &ent, cent->effects, cent->outlineColor[0], cent->outlineColor[1], cent->outlineColor[2], cent->outlineColor[3] );
 
-	CG_AddColoredOutLineEffect( &ent, cent->effects,
-		cent->outlineColor[0], cent->outlineColor[1], cent->outlineColor[2], cent->outlineColor[3] );
-
-	barrel = false;
-	if( cent->item && ( cent->item->type & IT_WEAPON ) ) {
-		if( CG_GrabTag( &tag, &cent->ent, "tag_barrel" ) ) {
-			barrel = true;
-			CG_PlaceModelOnTag( &ent, &cent->ent, &tag );
-		}
-	} else {
-		if( CG_GrabTag( &tag, &cent->ent, "tag_linked" ) ) {
-			CG_PlaceModelOnTag( &ent, &cent->ent, &tag );
-		}
-	}
-
+	CG_PlaceModelOnTag( &ent, &cent->ent, tag );
 	CG_AddEntityToScene( &ent );
 	CG_AddShellEffects( &ent, cent->effects );
-
-	if( barrel && CG_GrabTag( &tag, &cent->ent, "tag_barrel2" ) ) {
-		CG_PlaceModelOnTag( &ent, &cent->ent, &tag );
-		CG_AddEntityToScene( &ent );
-		CG_AddShellEffects( &ent, cent->effects );
-	}
 }
 
 /*
@@ -620,10 +552,6 @@ static void CG_UpdateGenericEnt( centity_t *cent ) {
 		Vector4Set( cent->outlineColor, 0, 0, 0, 255 );
 	}
 
-	// set frame
-	cent->ent.frame = cent->current.frame;
-	cent->ent.oldframe = cent->prev.frame;
-
 	// set up the model
 	cent->ent.rtype = RT_MODEL;
 
@@ -631,8 +559,6 @@ static void CG_UpdateGenericEnt( centity_t *cent ) {
 	if( modelindex > 0 && modelindex < MAX_MODELS ) {
 		cent->ent.model = cgs.modelDraw[modelindex];
 	}
-
-	cent->skel = CG_SkeletonForModel( cent->ent.model );
 }
 
 /*
@@ -646,7 +572,7 @@ void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
 	cent->ent.backlerp = 1.0f;
 
 	for( i = 0; i < 3; i++ )
-		cent->ent.origin[i] = cent->ent.origin2[i] = cent->ent.lightingOrigin[i] = cent->current.origin[i];
+		cent->ent.origin[i] = cent->ent.origin2[i] = cent->current.origin[i];
 
 	AnglesToAxis( cent->current.angles, cent->ent.axis );
 }
@@ -674,24 +600,14 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 		Matrix3_Copy( axis_identity, cent->ent.axis );
 	}
 
-	if( cent->renderfx & RF_FRAMELERP ) {
-		// step origin discretely, because the frames
-		// do the animation properly
-		vec3_t delta, move;
-
-		// FIXME: does this still work?
-		VectorSubtract( cent->current.origin2, cent->current.origin, move );
-		Matrix3_TransformVector( cent->ent.axis, move, delta );
-		VectorMA( cent->current.origin, cent->ent.backlerp, delta, cent->ent.origin );
-	} else if( ISVIEWERENTITY( cent->current.number ) || cg.view.POVent == cent->current.number ) {
+	if( ISVIEWERENTITY( cent->current.number ) || cg.view.POVent == cent->current.number ) {
 		VectorCopy( cg.predictedPlayerState.pmove.origin, cent->ent.origin );
 		VectorCopy( cent->ent.origin, cent->ent.origin2 );
 	} else {
 		if( cgs.extrapolationTime && cent->canExtrapolate ) { // extrapolation
 			vec3_t origin, xorigin1, xorigin2;
 
-			float lerpfrac = cg.lerpfrac;
-			clamp( lerpfrac, 0.0f, 1.0f );
+			float lerpfrac = Clamp01( cg.lerpfrac );
 
 			// extrapolation with half-snapshot smoothing
 			if( cg.xerpTime >= 0 || !cent->canExtrapolatePrev ) {
@@ -718,19 +634,6 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 
 			VectorLerp( xorigin1, 0.5f, xorigin2, origin );
 
-
-			/*
-			// Interpolation between 2 extrapolated positions
-			if( !cent->canExtrapolatePrev )
-			    VectorMA( cent->current.origin, cg.xerpTime, cent->velocity, xorigin2 );
-			else
-			{
-			    float frac = cg.lerpfrac;
-			    clamp( frac, 0.0f, 1.0f );
-			    VectorLerp( cent->prevExtrapolatedOrigin, frac, cent->extrapolatedOrigin, xorigin2 );
-			}
-			*/
-
 			if( cent->microSmooth == 2 ) {
 				vec3_t oldsmoothorigin;
 
@@ -747,8 +650,7 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 			}
 
 			VectorCopy( origin, cent->microSmoothOrigin );
-			cent->microSmooth++;
-			clamp_high( cent->microSmooth, 2 );
+			cent->microSmooth = Min2( 2, cent->microSmooth + 1 );
 
 			VectorCopy( cent->ent.origin, cent->ent.origin2 );
 		} else {   // plain interpolation
@@ -757,8 +659,6 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 															 ( cent->current.origin[i] - cent->prev.origin[i] );
 		}
 	}
-
-	VectorCopy( cent->ent.origin, cent->ent.lightingOrigin );
 }
 
 /*
@@ -791,27 +691,6 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 	cent->ent.renderfx = cent->renderfx;
 
 	if( cent->item ) {
-		const gsitem_t *item = cent->item;
-
-		if( item->type & ( IT_HEALTH | IT_POWERUP ) ) {
-			cent->ent.renderfx |= RF_NOSHADOW;
-		}
-
-		if( cent->effects & EF_AMMOBOX ) {
-			cent->ent.scale *= 0.90f;
-
-			// find out the ammo box color
-			if( cent->item->color && strlen( cent->item->color ) > 1 ) {
-				vec4_t scolor;
-				Vector4Copy( color_table[ColorIndex( cent->item->color[1] )], scolor );
-				cent->ent.shaderRGBA[0] = ( uint8_t )( 255 * scolor[0] );
-				cent->ent.shaderRGBA[1] = ( uint8_t )( 255 * scolor[1] );
-				cent->ent.shaderRGBA[2] = ( uint8_t )( 255 * scolor[2] );
-			} else {   // set white
-				VectorSet( cent->ent.shaderRGBA, 255, 255, 255 );
-			}
-		}
-
 		if( cent->effects & EF_GHOST ) {
 			cent->ent.renderfx |= RF_ALPHAHACK | RF_GREYSCALE;
 			cent->ent.shaderRGBA[3] = 100;
@@ -842,22 +721,11 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 		}
 	}
 
-	if( cent->skel ) {
-		// get space in cache, interpolate, transform, link
-		cent->ent.boneposes = cent->ent.oldboneposes = CG_RegisterTemporaryExternalBoneposes( cent->skel );
-		CG_LerpSkeletonPoses( cent->skel, cent->ent.frame, cent->ent.oldframe, cent->ent.boneposes, 1.0 - cent->ent.backlerp );
-		CG_TransformBoneposes( cent->skel, cent->ent.boneposes, cent->ent.boneposes );
-	}
-
 	if( !cent->current.modelindex ) {
 		return;
 	}
 
 	CG_AddEntityToScene( &cent->ent );
-
-	if( cent->current.modelindex2 ) {
-		CG_AddLinkedModel( cent );
-	}
 }
 
 //==========================================================================
@@ -870,7 +738,6 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 static void CG_AddPlayerEnt( centity_t *cent ) {
 	if( ISVIEWERENTITY( cent->current.number ) ) {
 		cg.effects = cent->effects;
-		VectorCopy( cent->ent.lightingOrigin, cg.lightingOrigin );
 		if( !cg.view.thirdperson && cent->current.modelindex ) {
 			if( !( cent->renderfx & RF_NOSHADOW ) ) {
 				CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
@@ -889,15 +756,6 @@ static void CG_AddPlayerEnt( centity_t *cent ) {
 	cent->ent.renderfx |= RF_MINLIGHT;
 
 	CG_AddPModel( cent );
-
-	// corpses can never have a model in modelindex2
-	if( cent->current.type == ET_CORPSE ) {
-		return;
-	}
-
-	if( cent->current.modelindex2 ) {
-		CG_AddLinkedModel( cent );
-	}
 }
 
 //==========================================================================
@@ -931,23 +789,17 @@ static void CG_AddSpriteEnt( centity_t *cent ) {
 
 	// add to refresh list
 	CG_AddEntityToScene( &cent->ent );
-
-	if( cent->current.modelindex2 ) {
-		CG_AddLinkedModel( cent );
-	}
 }
 
 /*
 * CG_LerpSpriteEnt
 */
 static void CG_LerpSpriteEnt( centity_t *cent ) {
-	int i;
+	for( int i = 0; i < 3; i++ )
+		cent->ent.origin[i] = Lerp( cent->prev.origin[i], cg.lerpfrac, cent->current.origin[i] );
+	VectorCopy( cent->ent.origin, cent->ent.origin2 );
 
-	// interpolate origin
-	for( i = 0; i < 3; i++ )
-		cent->ent.origin[i] = cent->ent.origin2[i] = cent->ent.lightingOrigin[i] = cent->prev.origin[i] + cg.lerpfrac * ( cent->current.origin[i] - cent->prev.origin[i] );
-
-	cent->ent.radius = cent->prev.frame + cg.lerpfrac * ( cent->current.frame - cent->prev.frame );
+	cent->ent.radius = Lerp( cent->prev.radius, cg.lerpfrac, cent->current.radius );
 }
 
 /*
@@ -966,10 +818,9 @@ static void CG_UpdateSpriteEnt( centity_t *cent ) {
 	cent->ent.rtype = RT_SPRITE;
 	cent->ent.model = NULL;
 	cent->ent.customShader = StringHash( cent->current.eventParms[0] );
-	cent->ent.radius = cent->prev.frame;
+	cent->ent.radius = cent->prev.radius;
 	VectorCopy( cent->prev.origin, cent->ent.origin );
 	VectorCopy( cent->prev.origin, cent->ent.origin2 );
-	VectorCopy( cent->prev.origin, cent->ent.lightingOrigin );
 	Matrix3_Identity( cent->ent.axis );
 }
 
@@ -1007,7 +858,7 @@ static void CG_LerpDecalEnt( centity_t *cent ) {
 	for( i = 0; i < 3; i++ )
 		cent->ent.origin[i] = cent->prev.origin[i] + cg.lerpfrac * ( cent->current.origin[i] - cent->prev.origin[i] );
 
-	cent->ent.radius = cent->prev.frame + cg.lerpfrac * ( cent->current.frame - cent->prev.frame );
+	cent->ent.radius = Lerp( cent->prev.radius, cg.lerpfrac, cent->current.radius );
 
 	a1 = cent->prev.modelindex2 / 255.0 * 360;
 	a2 = cent->current.modelindex2 / 255.0 * 360;
@@ -1024,7 +875,7 @@ static void CG_UpdateDecalEnt( centity_t *cent ) {
 	// set up the null model, may be potentially needed for linked model
 	cent->ent.model = NULL;
 	cent->ent.customShader = StringHash( cent->current.eventParms[0] );
-	cent->ent.radius = cent->prev.frame;
+	cent->ent.radius = cent->prev.radius;
 	cent->ent.rotation = cent->prev.modelindex2 / 255.0 * 360;
 	VectorCopy( cent->prev.origin, cent->ent.origin );
 	VectorCopy( cent->prev.origin2, cent->ent.origin2 );
@@ -1051,9 +902,7 @@ static void CG_UpdateItemEnt( centity_t *cent ) {
 	if( cg_simpleItems->integer && cent->item->simpleitem ) {
 		cent->ent.rtype = RT_SPRITE;
 		cent->ent.model = NULL;
-		cent->skel = NULL;
 		cent->ent.renderfx = RF_NOSHADOW | RF_FULLBRIGHT;
-		cent->ent.frame = cent->ent.oldframe = 0;
 
 		cent->ent.radius = cg_simpleItemsSize->value <= 32 ? cg_simpleItemsSize->value : 32;
 		if( cent->ent.radius < 1.0f ) {
@@ -1067,8 +916,6 @@ static void CG_UpdateItemEnt( centity_t *cent ) {
 		cent->ent.customShader = StringHash( cent->item->simpleitem );
 	} else {
 		cent->ent.rtype = RT_MODEL;
-		cent->ent.frame = cent->current.frame;
-		cent->ent.oldframe = cent->prev.frame;
 
 		if( cent->effects & EF_OUTLINE ) {
 			Vector4Set( cent->outlineColor, 0, 0, 0, 255 ); // black
@@ -1076,7 +923,6 @@ static void CG_UpdateItemEnt( centity_t *cent ) {
 
 		// set up the model
 		cent->ent.model = cgs.modelDraw[cent->current.modelindex];
-		cent->skel = CG_SkeletonForModel( cent->ent.model );
 	}
 }
 
@@ -1109,12 +955,6 @@ static void CG_AddItemEnt( centity_t *cent ) {
 			cent->ent.scale *= 1.40f;
 		}
 
-		if( cent->item ) {
-			if( cent->item->tag == HEALTH_SMALL ) {
-				cent->ent.scale *= 0.85f;
-			}
-		}
-
 		CG_AddGenericEnt( cent );
 		return;
 	} else {
@@ -1136,14 +976,24 @@ static void CG_AddItemEnt( centity_t *cent ) {
 }
 
 //==========================================================================
-//		ET_BEAM
+// ET_LASER
 //==========================================================================
 
-/*
-* CG_AddBeamEnt
-*/
-static void CG_AddBeamEnt( centity_t *cent ) {
-	CG_QuickPolyBeam( cent->current.origin, cent->current.origin2, cent->current.frame * 0.5f, "gfx/misc/laser" );
+static void CG_LerpLaser( centity_t *cent ) {
+	for( int i = 0; i < 3; i++ ) {
+		cent->ent.origin[i] = Lerp( cent->prev.origin[i], cg.lerpfrac, cent->current.origin[i] );
+		cent->ent.origin2[i] = Lerp( cent->prev.origin2[i], cg.lerpfrac, cent->current.origin2[i] );
+	}
+}
+
+static void CG_AddLaserEnt( centity_t *cent ) {
+	vec4_t color;
+	Vector4Set( color,
+		COLOR_R( cent->current.colorRGBA ) * ( 1.0 / 255.0 ),
+		COLOR_G( cent->current.colorRGBA ) * ( 1.0 / 255.0 ),
+		COLOR_B( cent->current.colorRGBA ) * ( 1.0 / 255.0 ),
+		COLOR_A( cent->current.colorRGBA ) * ( 1.0 / 255.0 ) );
+	CG_SpawnPolyBeam( cent->ent.origin, cent->ent.origin2, NULL, cent->current.radius, 1, 0, "gfx/misc/laser", 64, 0 );
 }
 
 //==========================================================================
@@ -1243,7 +1093,7 @@ static void CG_AddParticlesEnt( centity_t *cent ) {
 
 	cent->localEffects[LOCALEFFECT_ROCKETTRAIL_LAST_DROP] = cg.time;
 
-	speed = cent->current.frame;
+	speed = cent->current.radius;
 
 	if( ( cent->current.effects >> 8 ) & 1 ) { // SPHERICAL DROP
 		angles[0] = brandom( 0, 360 );
@@ -1254,10 +1104,6 @@ static void CG_AddParticlesEnt( centity_t *cent ) {
 		VectorNormalizeFast( dir );
 		VectorScale( dir, speed, dir );
 	} else {   // DIRECTIONAL DROP
-		float r, u;
-		double alpha;
-		double s;
-		int seed = cg.time % 255;
 		int spread = (unsigned)cent->current.modelindex2 * 25;
 
 		// interpolate dropping angles
@@ -1266,10 +1112,10 @@ static void CG_AddParticlesEnt( centity_t *cent ) {
 
 		Matrix3_FromAngles( angles, cent->ent.axis );
 
-		alpha = M_PI * Q_crandom( &seed ); // [-PI ..+PI]
-		s = fabs( Q_crandom( &seed ) ); // [0..1]
-		r = s * cos( alpha ) * spread;
-		u = s * sin( alpha ) * spread;
+		float alpha = float( M_PI ) * random_float11( &cls.rng );
+		float s = random_float01( &cls.rng );
+		float r = s * cosf( alpha ) * spread;
+		float u = s * sinf( alpha ) * spread;
 
 		// apply spread on the direction
 		VectorMA( vec3_origin, 1024, &cent->ent.axis[AXIS_FORWARD], dir );
@@ -1354,23 +1200,80 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 		fixed = true;
 	}
 
-	// sexed sounds are not in the sound index and ignore attenuation
-	// if( !cgs.soundPrecache[soundindex] ) {
-	// 	if( owner ) {
-	// 		char *cstring = cgs.configStrings[CS_SOUNDS + soundindex];
-	// 		if( cstring && cstring[0] == '*' ) {
-	// 			CG_SexedSound( owner, channel | ( fixed ? CHAN_FIXED : 0 ), cstring, 1.0f, attenuation );
-	// 		}
-	// 	}
-	// 	return;
-	// }
-
 	if( fixed ) {
 		trap_S_StartFixedSound( cent->current.sound, cent->current.origin, channel, 1.0f, attenuation );
 	} else if( ISVIEWERENTITY( owner ) ) {
 		trap_S_StartGlobalSound( cent->current.sound, channel, 1.0f );
 	} else {
 		trap_S_StartEntitySound( cent->current.sound, owner, channel, 1.0f, attenuation );
+	}
+}
+
+//==================================================
+// ET_SPIKES
+//==================================================
+
+static void CG_LerpSpikes( centity_t *cent ) {
+	constexpr float retracted = -48;
+	constexpr float primed = -36;
+	constexpr float extended = 0;
+
+	float position = retracted;
+
+	if( cent->current.radius == 1 ) {
+		position = extended;
+	}
+	else if( cent->current.linearMovementTimeStamp != 0 ) {
+		int64_t delta = Lerp( cg.oldFrame.serverTime, cg.lerpfrac, cg.frame.serverTime ) - cent->current.linearMovementTimeStamp;
+		if( delta > 0 ) {
+			// 0-100: jump to primed
+			// 1000-1050: fully extend
+			// 1500-2000: retract
+			if( delta < 1000 ) {
+				float t = Min2( 1.0f, Unlerp( int64_t( 0 ), delta, int64_t( 100 ) ) );
+				position = Lerp( retracted, t, primed );
+			}
+			else if( delta < 1050 ) {
+				float t = Min2( 1.0f, Unlerp( int64_t( 1000 ), delta, int64_t( 1050 ) ) );
+				position = Lerp( primed, t, extended );
+			}
+			else {
+				float t = Max2( 0.0f, Unlerp( int64_t( 1500 ), delta, int64_t( 2000 ) ) );
+				position = Lerp( extended, t, retracted );
+			}
+		}
+	}
+
+	vec3_t up;
+	AngleVectors( cent->current.angles, NULL, NULL, up );
+
+	cent->ent.backlerp = 1.0f - cg.lerpfrac;
+	AnglesToAxis( cent->current.angles, cent->ent.axis );
+	VectorMA( cent->current.origin, position, up, cent->ent.origin );
+	VectorCopy( cent->ent.origin, cent->ent.origin2 );
+}
+
+static void CG_UpdateSpikes( centity_t *cent ) {
+	CG_UpdateGenericEnt( cent );
+
+	if( cent->current.linearMovementTimeStamp == 0 )
+		return;
+
+	int64_t old_delta = cg.oldFrame.serverTime - cent->current.linearMovementTimeStamp;
+	int64_t delta = cg.frame.serverTime - cent->current.linearMovementTimeStamp;
+
+	if( old_delta < 0 && delta >= 0 ) {
+		S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesArm ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+	}
+	else if( old_delta < 1000 && delta >= 1000 ) {
+		S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesDeploy ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+	}
+	else if( old_delta < 1050 && delta >= 1050 ) {
+		S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesGlint ), cent->current.number, CHAN_AUTO, cg_volume_effects->value * 0.05f, ATTN_NORM );
+	}
+	else if( old_delta < 1500 && delta >= 1500 ) {
+		S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesRetract ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+>>>>>>> master
 	}
 }
 
@@ -1383,7 +1286,7 @@ void CG_EntityLoopSound( entity_state_t *state, float attenuation ) {
 		return;
 	}
 
-	trap_S_ImmediateSound( state->sound, state->number, cg_volume_effects->value, ISVIEWERENTITY( state->number ) ? ATTN_NONE : ATTN_IDLE );
+	S_ImmediateSound( state->sound, state->number, cg_volume_effects->value, ISVIEWERENTITY( state->number ) ? ATTN_NONE : ATTN_IDLE );
 }
 
 /*
@@ -1486,11 +1389,6 @@ void CG_AddEntities( void ) {
 				canLight = true;
 				break;
 
-			case ET_BEAM:
-				CG_AddBeamEnt( cent );
-				CG_EntityLoopSound( state, ATTN_STATIC );
-				break;
-
 			case ET_LASERBEAM:
 				break;
 
@@ -1517,6 +1415,15 @@ void CG_AddEntities( void ) {
 
 			case ET_HUD:
 				CG_AddBombHudEntity( cent );
+				break;
+
+			case ET_LASER:
+				CG_AddLaserEnt( cent );
+				CG_EntityLoopSound( state, ATTN_STATIC );
+				break;
+
+			case ET_SPIKES:
+				CG_AddGenericEnt( cent );
 				break;
 
 			default:
@@ -1581,10 +1488,6 @@ void CG_LerpEntities( void ) {
 				CG_LerpDecalEnt( cent );
 				break;
 
-			case ET_BEAM:
-				// beams aren't interpolated
-				break;
-
 			case ET_LASERBEAM:
 				CG_LerpLaserbeamEnt( cent );
 				break;
@@ -1602,6 +1505,14 @@ void CG_LerpEntities( void ) {
 			case ET_HUD:
 				break;
 
+			case ET_LASER:
+				CG_LerpLaser( cent );
+				break;
+
+			case ET_SPIKES:
+				CG_LerpSpikes( cent );
+				break;
+
 			default:
 				CG_Error( "CG_LerpEntities: unknown entity type" );
 				break;
@@ -1610,7 +1521,7 @@ void CG_LerpEntities( void ) {
 		if( spatialize ) {
 			vec3_t origin, velocity;
 			CG_GetEntitySpatilization( number, origin, velocity );
-			trap_S_UpdateEntity( number, origin, velocity );
+			S_UpdateEntity( number, origin, velocity );
 		}
 	}
 }
@@ -1663,12 +1574,10 @@ void CG_UpdateEntities( void ) {
 			case ET_ITEM:
 				CG_UpdateItemEnt( cent );
 				break;
+
 			case ET_PLAYER:
 			case ET_CORPSE:
 				CG_UpdatePlayerModelEnt( cent );
-				break;
-
-			case ET_BEAM:
 				break;
 
 			case ET_LASERBEAM:
@@ -1691,6 +1600,13 @@ void CG_UpdateEntities( void ) {
 				break;
 
 			case ET_HUD:
+				break;
+
+			case ET_LASER:
+				break;
+
+			case ET_SPIKES:
+				CG_UpdateSpikes( cent );
 				break;
 
 			default:

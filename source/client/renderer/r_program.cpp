@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // r_program.c - OpenGL Shading Language support
 
 #include "r_local.h"
-#include "qalgo/q_trie.h"
+#include "qcommon/q_trie.h"
 
 #define MAX_GLSL_PROGRAMS           1024
 #define GLSL_PROGRAMS_HASH_SIZE     256
@@ -52,10 +52,11 @@ typedef struct glsl_program_s {
 	int binaryCachePos;
 
 	struct loc_s {
+		int ObjectMatrix;
 		int ModelViewMatrix;
 		int ModelViewProjectionMatrix;
 
-		int ZRange;
+		int NearClip;
 
 		int ViewOrigin;
 		int ViewAxis;
@@ -85,9 +86,12 @@ typedef struct glsl_program_s {
 
 		int VectorTexMatrix;
 
-		int AttrBonesIndices;
-		int AttrBonesWeights;
-		int DualQuats;
+		int SkinningMatrices;
+
+		int TextColor;
+		int BorderColor;
+		int Border;
+		int PixelRange;
 
 		int InstancePoints;
 
@@ -102,13 +106,7 @@ typedef struct glsl_program_s {
 		int hdrGamma;
 		int hdrExposure;
 
-		// builtin uniforms
-		struct {
-			int ShaderTime;
-			int ViewOrigin;
-			int ViewAxis;
-			int EntityOrigin;
-		} builtin;
+		int FogStrength;
 	} loc;
 } glsl_program_t;
 
@@ -149,8 +147,11 @@ void RP_Init( void ) {
 	RP_RegisterProgram( GLSL_PROGRAM_TYPE_Q3A_SHADER, DEFAULT_GLSL_Q3A_SHADER_PROGRAM, NULL, NULL, 0, 0 );
 	RP_RegisterProgram( GLSL_PROGRAM_TYPE_COLOR_CORRECTION, DEFAULT_GLSL_COLORCORRECTION_PROGRAM, NULL, NULL, 0, 0 );
 	RP_RegisterProgram( GLSL_PROGRAM_TYPE_KAWASE_BLUR, DEFAULT_GLSL_KAWASE_BLUR_PROGRAM, NULL, NULL, 0, 0 );
+	RP_RegisterProgram( GLSL_PROGRAM_TYPE_TEXT, DEFAULT_GLSL_TEXT_PROGRAM, NULL, NULL, 0, 0 );
 
-	RP_RegisterProgram( GLSL_PROGRAM_TYPE_MATERIAL, DEFAULT_GLSL_MATERIAL_PROGRAM, NULL, NULL, 0, GLSL_SHADER_COMMON_BONE_TRANSFORMS1 );
+	RP_RegisterProgram( GLSL_PROGRAM_TYPE_MATERIAL, DEFAULT_GLSL_Q3A_SHADER_PROGRAM, NULL, NULL, 0, GLSL_SHADER_COMMON_SKINNED );
+	RP_RegisterProgram( GLSL_PROGRAM_TYPE_MATERIAL, DEFAULT_GLSL_MATERIAL_PROGRAM, NULL, NULL, 0, GLSL_SHADER_COMMON_SKINNED );
+	RP_RegisterProgram( GLSL_PROGRAM_TYPE_MATERIAL, DEFAULT_GLSL_OUTLINE_PROGRAM, NULL, NULL, 0, GLSL_SHADER_COMMON_SKINNED );
 
 	r_glslprograms_initialized = true;
 }
@@ -525,10 +526,7 @@ static const glsl_feature_t glsl_features_material[] =
 {
 	{ GLSL_SHADER_COMMON_GREYSCALE, "#define APPLY_GREYSCALE\n", "_grey" },
 
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS4, "#define QF_NUM_BONE_INFLUENCES 4\n", "_bones4" },
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS3, "#define QF_NUM_BONE_INFLUENCES 3\n", "_bones3" },
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS2, "#define QF_NUM_BONE_INFLUENCES 2\n", "_bones2" },
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS1, "#define QF_NUM_BONE_INFLUENCES 1\n", "_bones1" },
+	{ GLSL_SHADER_COMMON_SKINNED, "#define SKINNED 1\n", "_skinned" },
 
 	{ GLSL_SHADER_COMMON_RGB_DISTANCERAMP, "#define APPLY_RGB_DISTANCERAMP\n", "_rgb_dr" },
 	{ GLSL_SHADER_COMMON_RGB_GEN_VERTEX, "#define APPLY_RGB_VERTEX\n", "_cv" },
@@ -540,6 +538,7 @@ static const glsl_feature_t glsl_features_material[] =
 	{ GLSL_SHADER_COMMON_ALPHA_GEN_VERTEX, "#define APPLY_ALPHA_VERTEX\n", "_av" },
 
 	{ GLSL_SHADER_COMMON_DRAWFLAT, "#define APPLY_DRAWFLAT\n", "_flat" },
+	{ GLSL_SHADER_COMMON_FOG, "#define APPLY_FOG\n", "_fog" },
 
 	{ GLSL_SHADER_COMMON_AUTOSPRITE, "#define APPLY_AUTOSPRITE\n", "" },
 	{ GLSL_SHADER_COMMON_AUTOSPRITE2, "#define APPLY_AUTOSPRITE2\n", "" },
@@ -555,11 +554,9 @@ static const glsl_feature_t glsl_features_material[] =
 	{ GLSL_SHADER_MATERIAL_DIRECTIONAL_LIGHT, "#define APPLY_DIRECTIONAL_LIGHT\n", "_dirlight" },
 
 	{ GLSL_SHADER_MATERIAL_SPECULAR, "#define APPLY_SPECULAR\n", "_gloss" },
-	{ GLSL_SHADER_MATERIAL_AMBIENT_COMPENSATION, "#define APPLY_AMBIENT_COMPENSATION\n", "_amb" },
 	{ GLSL_SHADER_MATERIAL_DECAL, "#define APPLY_DECAL\n", "_decal" },
 	{ GLSL_SHADER_MATERIAL_DECAL_ADD, "#define APPLY_DECAL_ADD\n", "_add" },
 	{ GLSL_SHADER_MATERIAL_BASETEX_ALPHA_ONLY, "#define APPLY_BASETEX_ALPHA_ONLY\n", "_alpha" },
-	{ GLSL_SHADER_MATERIAL_HALFLAMBERT, "#define APPLY_HALFLAMBERT\n", "_lambert" },
 
 	{ GLSL_SHADER_MATERIAL_ENTITY_DECAL, "#define APPLY_ENTITY_DECAL\n", "_decal2" },
 	{ GLSL_SHADER_MATERIAL_ENTITY_DECAL_ADD, "#define APPLY_ENTITY_DECAL_ADD\n", "_decal2_add" },
@@ -569,10 +566,7 @@ static const glsl_feature_t glsl_features_material[] =
 
 static const glsl_feature_t glsl_features_outline[] =
 {
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS4, "#define QF_NUM_BONE_INFLUENCES 4\n", "_bones4" },
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS3, "#define QF_NUM_BONE_INFLUENCES 3\n", "_bones3" },
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS2, "#define QF_NUM_BONE_INFLUENCES 2\n", "_bones2" },
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS1, "#define QF_NUM_BONE_INFLUENCES 1\n", "_bones1" },
+	{ GLSL_SHADER_COMMON_SKINNED, "#define SKINNED 1\n", "_skinned" },
 
 	{ GLSL_SHADER_COMMON_INSTANCED_TRANSFORMS, "#define APPLY_INSTANCED_TRANSFORMS\n", "_instanced" },
 	{ GLSL_SHADER_COMMON_INSTANCED_ATTRIB_TRANSFORMS, "#define APPLY_INSTANCED_TRANSFORMS\n#define APPLY_INSTANCED_ATTRIB_TRANSFORMS\n", "_instanced_va" },
@@ -586,10 +580,7 @@ static const glsl_feature_t glsl_features_q3a[] =
 {
 	{ GLSL_SHADER_COMMON_GREYSCALE, "#define APPLY_GREYSCALE\n", "_grey" },
 
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS4, "#define QF_NUM_BONE_INFLUENCES 4\n", "_bones4" },
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS3, "#define QF_NUM_BONE_INFLUENCES 3\n", "_bones3" },
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS2, "#define QF_NUM_BONE_INFLUENCES 2\n", "_bones2" },
-	{ GLSL_SHADER_COMMON_BONE_TRANSFORMS1, "#define QF_NUM_BONE_INFLUENCES 1\n", "_bones1" },
+	{ GLSL_SHADER_COMMON_SKINNED, "#define SKINNED 1\n", "_skinned" },
 
 	{ GLSL_SHADER_COMMON_RGB_DISTANCERAMP, "#define APPLY_RGB_DISTANCERAMP\n", "_rgb_dr" },
 	{ GLSL_SHADER_COMMON_RGB_GEN_VERTEX, "#define APPLY_RGB_VERTEX\n", "_cv" },
@@ -598,6 +589,7 @@ static const glsl_feature_t glsl_features_q3a[] =
 	{ GLSL_SHADER_COMMON_ALPHA_GEN_VERTEX, "#define APPLY_ALPHA_VERTEX\n", "_av" },
 
 	{ GLSL_SHADER_COMMON_DRAWFLAT, "#define APPLY_DRAWFLAT\n", "_flat" },
+	{ GLSL_SHADER_COMMON_FOG, "#define APPLY_FOG\n", "_fog" },
 
 	{ GLSL_SHADER_COMMON_AUTOSPRITE, "#define APPLY_AUTOSPRITE\n", "" },
 	{ GLSL_SHADER_COMMON_AUTOSPRITE2, "#define APPLY_AUTOSPRITE2\n", "" },
@@ -614,11 +606,8 @@ static const glsl_feature_t glsl_features_q3a[] =
 	{ GLSL_SHADER_COMMON_SRGB2LINEAR, "#define APPLY_SRGB2LINEAR\n", "_srgb" },
 	{ GLSL_SHADER_COMMON_LINEAR2SRB, "#define APPLY_LINEAR2SRGB\n", "_linear" },
 
-	{ GLSL_SHADER_Q3_TC_GEN_PROJECTION, "#define APPLY_TC_GEN_PROJECTION\n", "_tc_proj" },
-	{ GLSL_SHADER_Q3_TC_GEN_REFLECTION, "#define APPLY_TC_GEN_REFLECTION\n", "_tc_refl" },
 	{ GLSL_SHADER_Q3_TC_GEN_ENV, "#define APPLY_TC_GEN_ENV\n", "_tc_env" },
 	{ GLSL_SHADER_Q3_TC_GEN_VECTOR, "#define APPLY_TC_GEN_VECTOR\n", "_tc_vec" },
-	{ GLSL_SHADER_Q3_TC_GEN_SURROUND, "#define APPLY_TC_GEN_SURROUND\n", "_tc_surr" },
 
 	{ GLSL_SHADER_Q3_ALPHA_MASK, "#define APPLY_ALPHA_MASK\n", "_alpha_mask" },
 
@@ -650,7 +639,11 @@ static const glsl_feature_t * const glsl_programtypes_features[] =
 	glsl_features_colcorrection,
 	// GLSL_PROGRAM_TYPE_KAWASE_BLUR
 	glsl_features_empty,
+	// GLSL_PROGRAM_TYPE_TEXT
+	glsl_features_empty,
 };
+
+STATIC_ASSERT( ARRAY_COUNT( glsl_programtypes_features ) == GLSL_PROGRAM_TYPE_MAXTYPE );
 
 // ======================================================================================
 
@@ -667,7 +660,6 @@ static const glsl_feature_t * const glsl_programtypes_features[] =
 	"# define qf_BrightColor gl_FragData[1]\n" \
 	"#endif\n" \
 	"#define qf_texture texture2D\n" \
-        "#define qf_textureCube textureCube\n" \
         "#define qf_textureArray texture2DArray\n" \
 	"\n"
 
@@ -687,168 +679,8 @@ static const glsl_feature_t * const glsl_programtypes_features[] =
         "# define qf_flat_varying flat in\n" \
         "#endif\n" \
         "#define qf_texture texture\n" \
-        "#define qf_textureCube texture\n" \
         "#define qf_textureArray texture\n" \
         "\n"
-
-#define QF_GLSL_PI "" \
-	"#ifndef M_PI\n" \
-	"#define M_PI 3.14159265358979323846\n" \
-	"#endif\n" \
-	"#ifndef M_TWOPI\n" \
-	"#define M_TWOPI 6.28318530717958647692\n" \
-	"#endif\n"
-
-#define QF_BUILTIN_GLSL_CONSTANTS \
-	QF_GLSL_PI \
-	"\n" \
-	"#ifndef MAX_UNIFORM_INSTANCES\n" \
-	"#define MAX_UNIFORM_INSTANCES " STR_TOSTR( MAX_GLSL_UNIFORM_INSTANCES ) "\n" \
-	"#endif\n" \
-
-#define QF_BUILTIN_GLSL_UNIFORMS \
-	"uniform vec3 u_QF_ViewOrigin;\n" \
-	"uniform mat3 u_QF_ViewAxis;\n" \
-	"uniform vec3 u_QF_EntityOrigin;\n" \
-	"uniform float u_QF_ShaderTime;\n"
-
-#define QF_BUILTIN_GLSL_QUAT_TRANSFORM_OVERLOAD \
-	"#ifdef QF_DUAL_QUAT_TRANSFORM_TANGENT\n" \
-	"void QF_VertexDualQuatsTransform_Tangent(inout vec4 Position, inout vec3 Normal, inout vec3 Tangent)\n" \
-	"#else\n" \
-	"void QF_VertexDualQuatsTransform(inout vec4 Position, inout vec3 Normal)\n" \
-	"#endif\n" \
-	"{\n" \
-	"	ivec4 Indices = ivec4(a_BonesIndices * 2.0);\n" \
-	"	vec4 DQReal = u_DualQuats[Indices.x];\n" \
-	"	vec4 DQDual = u_DualQuats[Indices.x + 1];\n" \
-	"#if QF_NUM_BONE_INFLUENCES >= 2\n" \
-	"	DQReal *= a_BonesWeights.x;\n" \
-	"	DQDual *= a_BonesWeights.x;\n" \
-	"	vec4 DQReal1 = u_DualQuats[Indices.y];\n" \
-	"	vec4 DQDual1 = u_DualQuats[Indices.y + 1];\n" \
-	"	float Scale = mix(-1.0, 1.0, step(0.0, dot(DQReal1, DQReal))) * a_BonesWeights.y;\n" \
-	"	DQReal += DQReal1 * Scale;\n" \
-	"	DQDual += DQDual1 * Scale;\n" \
-	"#if QF_NUM_BONE_INFLUENCES >= 3\n" \
-	"	DQReal1 = u_DualQuats[Indices.z];\n" \
-	"	DQDual1 = u_DualQuats[Indices.z + 1];\n" \
-	"	Scale = mix(-1.0, 1.0, step(0.0, dot(DQReal1, DQReal))) * a_BonesWeights.z;\n" \
-	"	DQReal += DQReal1 * Scale;\n" \
-	"	DQDual += DQDual1 * Scale;\n" \
-	"#if QF_NUM_BONE_INFLUENCES >= 4\n" \
-	"	DQReal1 = u_DualQuats[Indices.w];\n" \
-	"	DQDual1 = u_DualQuats[Indices.w + 1];\n" \
-	"	Scale = mix(-1.0, 1.0, step(0.0, dot(DQReal1, DQReal))) * a_BonesWeights.w;\n" \
-	"	DQReal += DQReal1 * Scale;\n" \
-	"	DQDual += DQDual1 * Scale;\n" \
-	"#endif // QF_NUM_BONE_INFLUENCES >= 4\n" \
-	"#endif // QF_NUM_BONE_INFLUENCES >= 3\n" \
-	"	float Len = 1.0 / length(DQReal);\n" \
-	"	DQReal *= Len;\n" \
-	"	DQDual *= Len;\n" \
-	"#endif // QF_NUM_BONE_INFLUENCES >= 2\n" \
-	"	Position.xyz += (cross(DQReal.xyz, cross(DQReal.xyz, Position.xyz) + Position.xyz * DQReal.w + DQDual.xyz) +\n" \
-	"		DQDual.xyz*DQReal.w - DQReal.xyz*DQDual.w) * 2.0;\n" \
-	"	Normal += cross(DQReal.xyz, cross(DQReal.xyz, Normal) + Normal * DQReal.w) * 2.0;\n" \
-	"#ifdef QF_DUAL_QUAT_TRANSFORM_TANGENT\n" \
-	"	Tangent += cross(DQReal.xyz, cross(DQReal.xyz, Tangent) + Tangent * DQReal.w) * 2.0;\n" \
-	"#endif\n" \
-	"}\n" \
-	"\n"
-
-#define QF_BUILTIN_GLSL_QUAT_TRANSFORM \
-	"qf_attribute vec4 a_BonesIndices, a_BonesWeights;\n" \
-	"uniform vec4 u_DualQuats[MAX_UNIFORM_BONES*2];\n" \
-	"\n" \
-	QF_BUILTIN_GLSL_QUAT_TRANSFORM_OVERLOAD \
-	"#define QF_DUAL_QUAT_TRANSFORM_TANGENT\n" \
-	QF_BUILTIN_GLSL_QUAT_TRANSFORM_OVERLOAD \
-	"#undef QF_DUAL_QUAT_TRANSFORM_TANGENT\n"
-
-#define QF_BUILTIN_GLSL_INSTANCED_TRANSFORMS \
-	"#if defined(APPLY_INSTANCED_ATTRIB_TRANSFORMS)\n" \
-	"qf_attribute vec4 a_InstanceQuat, a_InstancePosAndScale;\n" \
-	"#elif defined(GL_ARB_draw_instanced) || (defined(GL_ES) && (__VERSION__ >= 300))\n" \
-	"uniform vec4 u_InstancePoints[MAX_UNIFORM_INSTANCES*2];\n" \
-	"#define a_InstanceQuat u_InstancePoints[gl_InstanceID*2]\n" \
-	"#define a_InstancePosAndScale u_InstancePoints[gl_InstanceID*2+1]\n" \
-	"#else\n" \
-	"uniform vec4 u_InstancePoints[2];\n" \
-	"#define a_InstanceQuat u_InstancePoints[0]\n" \
-	"#define a_InstancePosAndScale u_InstancePoints[1]\n" \
-	"#endif // APPLY_INSTANCED_ATTRIB_TRANSFORMS\n" \
-	"\n" \
-	"void QF_InstancedTransform(inout vec4 Position, inout vec3 Normal)\n" \
-	"{\n" \
-	"	Position.xyz = (cross(a_InstanceQuat.xyz,\n" \
-	"		cross(a_InstanceQuat.xyz, Position.xyz) + Position.xyz*a_InstanceQuat.w)*2.0 +\n" \
-	"		Position.xyz) * a_InstancePosAndScale.w + a_InstancePosAndScale.xyz;\n" \
-	"	Normal = cross(a_InstanceQuat.xyz, cross(a_InstanceQuat.xyz, Normal) + Normal*a_InstanceQuat.w)*2.0 + Normal;\n" \
-	"}\n" \
-	"\n"
-
-// We have to use these #ifdefs here because #defining prototypes
-// of these functions to nothing results in a crash on Intel GPUs.
-#define QF_BUILTIN_GLSL_TRANSFORM_VERTS \
-	"void QF_TransformVerts(inout vec4 Position, inout vec3 Normal, inout vec2 TexCoord)\n" \
-	"{\n" \
-	"#	ifdef QF_NUM_BONE_INFLUENCES\n" \
-	"		QF_VertexDualQuatsTransform(Position, Normal);\n" \
-	"#	endif\n" \
-	"#	ifdef QF_APPLY_DEFORMVERTS\n" \
-	"		QF_DeformVerts(Position, Normal, TexCoord);\n" \
-	"#	endif\n" \
-	"#	ifdef APPLY_INSTANCED_TRANSFORMS\n" \
-	"		QF_InstancedTransform(Position, Normal);\n" \
-	"#	endif\n" \
-	"}\n" \
-	"\n" \
-	"void QF_TransformVerts_Tangent(inout vec4 Position, inout vec3 Normal, inout vec3 Tangent, inout vec2 TexCoord)\n" \
-	"{\n" \
-	"#	ifdef QF_NUM_BONE_INFLUENCES\n" \
-	"		QF_VertexDualQuatsTransform_Tangent(Position, Normal, Tangent);\n" \
-	"#	endif\n" \
-	"#	ifdef QF_APPLY_DEFORMVERTS\n" \
-	"		QF_DeformVerts(Position, Normal, TexCoord);\n" \
-	"#	endif\n" \
-	"#	ifdef APPLY_INSTANCED_TRANSFORMS\n" \
-	"		QF_InstancedTransform(Position, Normal);\n" \
-	"#	endif\n" \
-	"}\n" \
-	"\n"
-
-#define QF_GLSL_WAVEFUNCS \
-	"#ifndef WAVE_SIN\n" \
-	"float QF_WaveFunc_Sin(float x)\n" \
-	"{\n" \
-	"return sin(fract(x) * M_TWOPI);\n" \
-	"}\n" \
-	"float QF_WaveFunc_Triangle(float x)\n" \
-	"{\n" \
-	"x = fract(x);\n" \
-	"return step(x, 0.25) * x * 4.0 + (2.0 - 4.0 * step(0.25, x) * step(x, 0.75) * x) + ((step(0.75, x) * x - 0.75) * 4.0 - 1.0);\n" \
-	"}\n" \
-	"float QF_WaveFunc_Square(float x)\n" \
-	"{\n" \
-	"return step(fract(x), 0.5) * 2.0 - 1.0;\n" \
-	"}\n" \
-	"float QF_WaveFunc_Sawtooth(float x)\n" \
-	"{\n" \
-	"return fract(x);\n" \
-	"}\n" \
-	"float QF_WaveFunc_InverseSawtooth(float x)\n" \
-	"{\n" \
-	"return 1.0 - fract(x);\n" \
-	"}\n" \
-	"\n" \
-	"#define WAVE_SIN(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Sin((phase)+(time)*(freq))))\n" \
-	"#define WAVE_TRIANGLE(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Triangle((phase)+(time)*(freq))))\n" \
-	"#define WAVE_SQUARE(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Square((phase)+(time)*(freq))))\n" \
-	"#define WAVE_SAWTOOTH(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_Sawtooth((phase)+(time)*(freq))))\n" \
-	"#define WAVE_INVERSESAWTOOTH(time,base,amplitude,phase,freq) (((base)+(amplitude)*QF_WaveFunc_InverseSawtooth((phase)+(time)*(freq))))\n" \
-	"#endif\n" \
-	"\n"
 
 #define QF_GLSL_MATH \
 	"#define QF_LatLong2Norm(ll) vec3(cos((ll).y) * sin((ll).x), sin((ll).y) * sin((ll).x), cos((ll).x))\n" \
@@ -870,7 +702,7 @@ static const char *R_GLSLBuildDeformv( const deformv_t *deformv, int numDeforms 
 	static const char * const funcs[] = {
 		NULL, "WAVE_SIN", "WAVE_TRIANGLE", "WAVE_SQUARE", "WAVE_SAWTOOTH", "WAVE_INVERSESAWTOOTH", NULL
 	};
-	static const int numSupportedFuncs = sizeof( funcs ) / sizeof( funcs[0] ) - 1;
+	static const int numSupportedFuncs = ARRAY_COUNT( funcs ) - 1;
 
 	if( !numDeforms ) {
 		return NULL;
@@ -908,7 +740,7 @@ static const char *R_GLSLBuildDeformv( const deformv_t *deformv, int numDeforms 
 					return NULL;
 				}
 
-				Q_strncatz( program, va_r( tmp, sizeof( tmp ), "Position.xyz += %s(u_QF_ShaderTime,%f,%f,%f+%f*(Position.x+Position.y+Position.z),%f) * Normal.xyz;\n",
+				Q_strncatz( program, va_r( tmp, sizeof( tmp ), "Position.xyz += %s(u_ShaderTime,%f,%f,%f+%f*(Position.x+Position.y+Position.z),%f) * Normal.xyz;\n",
 										   funcs[funcType], deformv->func.args[0], deformv->func.args[1], deformv->func.args[2], deformv->func.args[3] ? deformv->args[0] : 0.0, deformv->func.args[3] ),
 							sizeof( program ) );
 				break;
@@ -918,23 +750,23 @@ static const char *R_GLSLBuildDeformv( const deformv_t *deformv, int numDeforms 
 					return NULL;
 				}
 
-				Q_strncatz( program, va_r( tmp, sizeof( tmp ), "Position.xyz += %s(u_QF_ShaderTime,%f,%f,%f,%f) * vec3(%f, %f, %f);\n",
+				Q_strncatz( program, va_r( tmp, sizeof( tmp ), "Position.xyz += %s(u_ShaderTime,%f,%f,%f,%f) * vec3(%f, %f, %f);\n",
 										   funcs[funcType], deformv->func.args[0], deformv->func.args[1], deformv->func.args[2], deformv->func.args[3],
 										   deformv->args[0], deformv->args[1], deformv->args[2] ),
 							sizeof( program ) );
 				break;
 			case DEFORMV_BULGE:
 				Q_strncatz( program, va_r( tmp, sizeof( tmp ),
-										   "t = sin(TexCoord.s * %f + u_QF_ShaderTime * %f);\n"
+										   "t = sin(TexCoord.s * %f + u_ShaderTime * %f);\n"
 										   "Position.xyz += max (-1.0 + %f, t) * %f * Normal.xyz;\n",
 										   deformv->args[0], deformv->args[2], deformv->args[3], deformv->args[1] ),
 							sizeof( program ) );
 				break;
 			case DEFORMV_AUTOSPRITE:
 				Q_strncatz( program,
-							"right = (1.0 + step(0.5, TexCoord.s) * -2.0) * u_QF_ViewAxis[1];\n;"
-							"up = (1.0 + step(0.5, TexCoord.t) * -2.0) * u_QF_ViewAxis[2];\n"
-							"forward = -1.0 * u_QF_ViewAxis[0];\n"
+							"right = (1.0 + step(0.5, TexCoord.s) * -2.0) * u_ViewAxis[1];\n;"
+							"up = (1.0 + step(0.5, TexCoord.t) * -2.0) * u_ViewAxis[2];\n"
+							"forward = -1.0 * u_ViewAxis[0];\n"
 							"Position.xyz = a_SpritePoint.xyz + (right + up) * a_SpritePoint.w;\n"
 							"Normal.xyz = forward;\n"
 							"TexCoord.st = vec2(step(0.5, TexCoord.s),step(0.5, TexCoord.t));\n",
@@ -942,11 +774,11 @@ static const char *R_GLSLBuildDeformv( const deformv_t *deformv, int numDeforms 
 				break;
 			case DEFORMV_AUTOPARTICLE:
 				Q_strncatz( program,
-							"right = (1.0 + TexCoord.s * -2.0) * u_QF_ViewAxis[1];\n;"
-							"up = (1.0 + TexCoord.t * -2.0) * u_QF_ViewAxis[2];\n"
-							"forward = -1.0 * u_QF_ViewAxis[0];\n"
+							"right = (1.0 + TexCoord.s * -2.0) * u_ViewAxis[1];\n;"
+							"up = (1.0 + TexCoord.t * -2.0) * u_ViewAxis[2];\n"
+							"forward = -1.0 * u_ViewAxis[0];\n"
 				            // prevent the particle from disappearing at large distances
-							"t = dot(a_SpritePoint.xyz + u_QF_EntityOrigin - u_QF_ViewOrigin, u_QF_ViewAxis[0]);\n"
+							"t = dot(a_SpritePoint.xyz + u_EntityOrigin - u_ViewOrigin, u_ViewAxis[0]);\n"
 							"t = 1.5 + step(20.0, t) * t * 0.006;\n"
 							"Position.xyz = a_SpritePoint.xyz + (right + up) * t * a_SpritePoint.w;\n"
 							"Normal.xyz = forward;\n",
@@ -959,7 +791,7 @@ static const char *R_GLSLBuildDeformv( const deformv_t *deformv, int numDeforms 
 							"up = QF_LatLong2Norm(a_SpriteRightUpAxis.zw);\n"
 
 				            // mid of quad to camera vector
-							"dist = u_QF_ViewOrigin - u_QF_EntityOrigin - a_SpritePoint.xyz;\n"
+							"dist = u_ViewOrigin - u_EntityOrigin - a_SpritePoint.xyz;\n"
 
 				            // filter any longest-axis-parts off the camera-direction
 							"forward = normalize(dist - up * dot(dist, up));\n"
@@ -1217,10 +1049,12 @@ static int R_Features2HashKey( r_glslfeat_t features ) {
 static int RP_RegisterProgramBinary( int type, const char *name, const char *deformsKey,
 									 const deformv_t *deforms, int numDeforms, r_glslfeat_t features,
 									 int binaryFormat, unsigned binaryLength, void *binary ) {
+	MICROPROFILE_SCOPEI( "Assets", "RP_RegisterProgramBinary", 0xffffffff );
+
 	unsigned int i;
 	int hash;
 	int error = 0;
-	int shaderTypeIdx, wavefuncsIdx, deformvIdx, dualQuatsIdx, instancedIdx, vTransformsIdx;
+	int shaderTypeIdx, deformvIdx;
 	int body_start, num_init_strings;
 	glsl_program_t *program;
 	char fullName[1024];
@@ -1228,7 +1062,6 @@ static int RP_RegisterProgramBinary( int type, const char *name, const char *def
 	const char **header;
 	char *shaderBuffers[100];
 	const char *shaderStrings[MAX_DEFINES_FEATURES + 100];
-	char maxBones[100];
 	const char *deformv;
 	glslParser_t parser;
 
@@ -1325,12 +1158,8 @@ static int RP_RegisterProgramBinary( int type, const char *name, const char *def
 		shaderStrings[i++] = QF_BUILTIN_GLSL_MACROS_GLSL130;
 	else
 		shaderStrings[i++] = QF_BUILTIN_GLSL_MACROS_GLSL120;
-	shaderStrings[i++] = QF_BUILTIN_GLSL_CONSTANTS;
-	Q_snprintfz( maxBones, sizeof( maxBones ), "#define MAX_UNIFORM_BONES %i\n", MAX_GLSL_UNIFORM_BONES );
-	shaderStrings[i++] = maxBones;
-	shaderStrings[i++] = QF_BUILTIN_GLSL_UNIFORMS;
-	wavefuncsIdx = i;
-	shaderStrings[i++] = QF_GLSL_WAVEFUNCS;
+	shaderStrings[i++] = "#define MAX_UNIFORM_INSTANCES " STR_TOSTR( MAX_GLSL_UNIFORM_INSTANCES ) "\n";
+	shaderStrings[i++] = "#define MAX_UNIFORM_JOINTS " STR_TOSTR( MAX_GLSL_UNIFORM_JOINTS ) "\n";
 	shaderStrings[i++] = QF_GLSL_MATH;
 
 	if( header ) {
@@ -1347,31 +1176,14 @@ static int RP_RegisterProgramBinary( int type, const char *name, const char *def
 	}
 	shaderStrings[i++] = deformv;
 
-	dualQuatsIdx = i;
-	if( features & GLSL_SHADER_COMMON_BONE_TRANSFORMS ) {
-		shaderStrings[i++] = QF_BUILTIN_GLSL_QUAT_TRANSFORM;
-	} else {
-		shaderStrings[i++] = "\n";
-	}
-
-	instancedIdx = i;
-	if( features & ( GLSL_SHADER_COMMON_INSTANCED_TRANSFORMS | GLSL_SHADER_COMMON_INSTANCED_ATTRIB_TRANSFORMS ) ) {
-		shaderStrings[i++] = QF_BUILTIN_GLSL_INSTANCED_TRANSFORMS;
-	} else {
-		shaderStrings[i++] = "\n";
-	}
-
-	vTransformsIdx = i;
-	shaderStrings[i++] = QF_BUILTIN_GLSL_TRANSFORM_VERTS;
-
 	// setup the parser
 	num_init_strings = i;
 	memset( &parser, 0, sizeof( parser ) );
 	parser.topFile = fileName;
 	parser.buffers = &shaderBuffers[0];
-	parser.maxBuffers = sizeof( shaderBuffers ) / sizeof( shaderBuffers[0] );
+	parser.maxBuffers = ARRAY_COUNT( shaderBuffers );
 	parser.strings = &shaderStrings[num_init_strings];
-	parser.maxStrings = sizeof( shaderStrings ) / sizeof( shaderStrings[0] ) - num_init_strings;
+	parser.maxStrings = ARRAY_COUNT( shaderStrings ) - num_init_strings;
 
 	// compile
 	//
@@ -1396,11 +1208,7 @@ static int RP_RegisterProgramBinary( int type, const char *name, const char *def
 
 	// fragment shader
 	shaderStrings[shaderTypeIdx] = "#define FRAGMENT_SHADER\n";
-	shaderStrings[wavefuncsIdx] = "\n";
 	shaderStrings[deformvIdx] = "\n";
-	shaderStrings[dualQuatsIdx] = "\n";
-	shaderStrings[instancedIdx] = "\n";
-	shaderStrings[vTransformsIdx] = "\n";
 	Q_snprintfz( fileName, sizeof( fileName ), "glsl/%s.frag.glsl", name );
 	parser.error = false;
 	parser.numBuffers = 0;
@@ -1557,9 +1365,6 @@ void RP_UpdateShaderUniforms( int elem,
 		if( program->loc.EntityOrigin >= 0 ) {
 			glUniform3fv( program->loc.EntityOrigin, 1, entOrigin );
 		}
-		if( program->loc.builtin.EntityOrigin >= 0 ) {
-			glUniform3fv( program->loc.builtin.EntityOrigin, 1, entOrigin );
-		}
 	}
 
 	if( program->loc.EntityDist >= 0 && entDist ) {
@@ -1571,9 +1376,6 @@ void RP_UpdateShaderUniforms( int elem,
 
 	if( program->loc.ShaderTime >= 0 ) {
 		glUniform1f( program->loc.ShaderTime, shaderTime );
-	}
-	if( program->loc.builtin.ShaderTime >= 0 ) {
-		glUniform1f( program->loc.builtin.ShaderTime, shaderTime );
 	}
 
 	if( program->loc.ConstColor >= 0 && constColor ) {
@@ -1604,12 +1406,17 @@ void RP_UpdateShaderUniforms( int elem,
 * RP_UpdateViewUniforms
 */
 void RP_UpdateViewUniforms( int elem,
-							const mat4_t modelviewMatrix, const mat4_t modelviewProjectionMatrix,
-							const vec3_t viewOrigin, const mat3_t viewAxis,
-							int viewport[4],
-							float zNear, float zFar ) {
+	const mat4_t objectMatrix,
+	const mat4_t modelviewMatrix, const mat4_t modelviewProjectionMatrix,
+	const vec3_t viewOrigin, const mat3_t viewAxis,
+	int viewport[4],
+	float zNear, float zFar
+) {
 	glsl_program_t *program = r_glslprograms + elem - 1;
 
+	if( program->loc.ObjectMatrix >= 0 ) {
+		glUniformMatrix4fv( program->loc.ObjectMatrix, 1, GL_FALSE, objectMatrix );
+	}
 	if( program->loc.ModelViewMatrix >= 0 ) {
 		glUniformMatrix4fv( program->loc.ModelViewMatrix, 1, GL_FALSE, modelviewMatrix );
 	}
@@ -1617,16 +1424,13 @@ void RP_UpdateViewUniforms( int elem,
 		glUniformMatrix4fv( program->loc.ModelViewProjectionMatrix, 1, GL_FALSE, modelviewProjectionMatrix );
 	}
 
-	if( program->loc.ZRange >= 0 ) {
-		glUniform2f( program->loc.ZRange, zNear, zFar );
+	if( program->loc.NearClip >= 0 ) {
+		glUniform1f( program->loc.NearClip, zNear );
 	}
 
 	if( viewOrigin ) {
 		if( program->loc.ViewOrigin >= 0 ) {
 			glUniform3fv( program->loc.ViewOrigin, 1, viewOrigin );
-		}
-		if( program->loc.builtin.ViewOrigin >= 0 ) {
-			glUniform3fv( program->loc.builtin.ViewOrigin, 1, viewOrigin );
 		}
 	}
 
@@ -1634,9 +1438,14 @@ void RP_UpdateViewUniforms( int elem,
 		if( program->loc.ViewAxis >= 0 ) {
 			glUniformMatrix3fv( program->loc.ViewAxis, 1, GL_FALSE, viewAxis );
 		}
-		if( program->loc.builtin.ViewAxis >= 0 ) {
-			glUniformMatrix3fv( program->loc.builtin.ViewAxis, 1, GL_FALSE, viewAxis );
-		}
+	}
+}
+
+void RP_UpdateMapUniforms( int elem, float fog ) {
+	glsl_program_t *program = r_glslprograms + elem - 1;
+
+	if( program->loc.FogStrength >= 0 ) {
+		glUniform1f( program->loc.FogStrength, fog );
 	}
 }
 
@@ -1733,18 +1542,27 @@ void RP_UpdateTexGenUniforms( int elem, const mat4_t vectorMatrix ) {
 	}
 }
 
-/*
-* RP_UpdateBonesUniforms
-*
-* Set uniform values for animation dual quaternions
-*/
-void RP_UpdateBonesUniforms( int elem, unsigned int numBones, dualquat_t *animDualQuat ) {
-	glsl_program_t *program = r_glslprograms + elem - 1;
-
-	if( program->loc.DualQuats < 0 ) {
+void RP_UpdateSkinningUniforms( int elem, Span< const Mat4 > skinning_matrices ) {
+	const glsl_program_t * program = r_glslprograms + elem - 1;
+	if( program->loc.SkinningMatrices < 0 )
 		return;
+	glUniformMatrix4fv( program->loc.SkinningMatrices, skinning_matrices.n, GL_FALSE, ( const float * ) skinning_matrices.ptr );
+}
+
+void RP_UpdateTextUniforms( int elem, RGBA8 text_color, RGBA8 border_color, bool border, float pixel_range ) {
+	const glsl_program_t * program = r_glslprograms + elem - 1;
+	if( program->loc.TextColor >= 0 ) {
+		glUniform4f( program->loc.TextColor, text_color.r / 255.0f, text_color.g / 255.0f, text_color.b / 255.0f, text_color.a / 255.0f );
 	}
-	glUniform4fv( program->loc.DualQuats, numBones * 2, &animDualQuat[0][0] );
+	if( program->loc.BorderColor >= 0 ) {
+		glUniform4f( program->loc.BorderColor, border_color.r / 255.0f, border_color.g / 255.0f, border_color.b / 255.0f, border_color.a / 255.0f );
+	}
+	if( program->loc.Border >= 0 ) {
+		glUniform1i( program->loc.Border, border ? 1 : 0 );
+	}
+	if( program->loc.PixelRange >= 0 ) {
+		glUniform1f( program->loc.PixelRange, pixel_range );
+	}
 }
 
 /*
@@ -1810,10 +1628,11 @@ void RP_UpdateKawaseUniforms( int elem, int TexWidth, int TexHeight, int iterati
 static void RP_GetUniformLocations( glsl_program_t *program ) {
 	memset( &program->loc, -1, sizeof( program->loc ) );
 
+	program->loc.ObjectMatrix = glGetUniformLocation( program->object, "u_ObjectMatrix" );
 	program->loc.ModelViewMatrix = glGetUniformLocation( program->object, "u_ModelViewMatrix" );
 	program->loc.ModelViewProjectionMatrix = glGetUniformLocation( program->object, "u_ModelViewProjectionMatrix" );
 
-	program->loc.ZRange = glGetUniformLocation( program->object, "u_ZRange" );
+	program->loc.NearClip = glGetUniformLocation( program->object, "u_NearClip" );
 
 	program->loc.ViewOrigin = glGetUniformLocation( program->object, "u_ViewOrigin" );
 	program->loc.ViewAxis = glGetUniformLocation( program->object, "u_ViewAxis" );
@@ -1855,17 +1674,17 @@ static void RP_GetUniformLocations( glsl_program_t *program ) {
 
 	program->loc.VectorTexMatrix = glGetUniformLocation( program->object, "u_VectorTexMatrix" );
 
-	program->loc.builtin.ViewOrigin = glGetUniformLocation( program->object, "u_QF_ViewOrigin" );
-	program->loc.builtin.ViewAxis = glGetUniformLocation( program->object, "u_QF_ViewAxis" );
-	program->loc.builtin.EntityOrigin = glGetUniformLocation( program->object, "u_QF_EntityOrigin" );
-	program->loc.builtin.ShaderTime = glGetUniformLocation( program->object, "u_QF_ShaderTime" );
-
 	program->loc.BlendMix = glGetUniformLocation( program->object, "u_BlendMix" );
 	program->loc.ColorMod = glGetUniformLocation( program->object, "u_ColorMod" );
 
 	program->loc.SoftParticlesScale = glGetUniformLocation( program->object, "u_SoftParticlesScale" );
 
-	program->loc.DualQuats = glGetUniformLocation( program->object, "u_DualQuats" );
+	program->loc.SkinningMatrices = glGetUniformLocation( program->object, "u_SkinningMatrices" );
+
+	program->loc.TextColor = glGetUniformLocation( program->object, "u_TextColor" );
+	program->loc.BorderColor = glGetUniformLocation( program->object, "u_BorderColor" );
+	program->loc.Border = glGetUniformLocation( program->object, "u_HasBorder" );
+	program->loc.PixelRange = glGetUniformLocation( program->object, "u_PixelRange" );
 
 	program->loc.InstancePoints = glGetUniformLocation( program->object, "u_InstancePoints" );
 
@@ -1874,6 +1693,8 @@ static void RP_GetUniformLocations( glsl_program_t *program ) {
 
 	program->loc.hdrGamma = glGetUniformLocation( program->object, "u_HDRGamma" );
 	program->loc.hdrExposure = glGetUniformLocation( program->object, "u_HDRExposure" );
+
+	program->loc.FogStrength = glGetUniformLocation( program->object, "u_FogStrength" );
 
 	if( locBaseTexture >= 0 ) {
 		glUniform1i( locBaseTexture, 0 );
@@ -1916,10 +1737,8 @@ static void RP_BindAttrbibutesLocations( glsl_program_t *program ) {
 	glBindAttribLocation( program->object, VATTRIB_SPRITEPOINT, "a_SpritePoint" );
 	glBindAttribLocation( program->object, VATTRIB_SVECTOR, "a_SpriteRightUpAxis" );
 
-	glBindAttribLocation( program->object, VATTRIB_BONESINDICES, "a_BonesIndices" );
-	glBindAttribLocation( program->object, VATTRIB_BONESWEIGHTS, "a_BonesWeights" );
-
-	glBindAttribLocation( program->object, VATTRIB_SURFINDEX, "a_SurfaceIndex" );
+	glBindAttribLocation( program->object, VATTRIB_JOINTSINDICES, "a_JointIndices" );
+	glBindAttribLocation( program->object, VATTRIB_JOINTSWEIGHTS, "a_JointWeights" );
 
 	glBindAttribLocation( program->object, VATTRIB_INSTANCE_QUAT, "a_InstanceQuat" );
 	glBindAttribLocation( program->object, VATTRIB_INSTANCE_XYZS, "a_InstancePosAndScale" );

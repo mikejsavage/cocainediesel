@@ -60,9 +60,9 @@ void R_ClearDrawList( drawList_t *list ) {
 	numLeafs = bm->numleafs;
 	numDrawSurfaces = bm->numDrawSurfaces;
 
-	clamp_high( numSurfaces, list->numWorldSurfVis );
-	clamp_high( numLeafs, list->numWorldLeafVis );
-	clamp_high( numDrawSurfaces, list->numWorldDrawSurfVis );
+	numSurfaces = Min2( numSurfaces, list->numWorldSurfVis );
+	numLeafs = Min2( numLeafs, list->numWorldLeafVis );
+	numDrawSurfaces = Min2( numDrawSurfaces, list->numWorldDrawSurfVis );
 
 	memset( (void *)list->worldSurfVis, 0, numSurfaces * sizeof( *list->worldSurfVis ) );
 	memset( (void *)list->worldSurfFullVis, 0, numSurfaces * sizeof( *list->worldSurfVis ) );
@@ -126,34 +126,11 @@ void R_ReserveDrawListWorldSurfaces( drawList_t *list ) {
 * R_PackDistKey
 */
 static int R_PackDistKey( int renderFx, const shader_t *shader, float dist, unsigned order ) {
-	int shaderSort;
-
-	shaderSort = shader->sort;
-
-	if( renderFx & RF_WEAPONMODEL ) {
-		bool depthWrite = Shader_DepthWrite( shader );
-
-		if( renderFx & RF_NOCOLORWRITE ) {
-			// depth-pass for alpha-blended weapon:
-			// write to depth but do not write to color
-			if( !depthWrite ) {
-				return 0;
-			}
-			// reorder the mesh to be drawn after everything else
-			// but before the blend-pass for the weapon
-			shaderSort = SHADER_SORT_WEAPON;
-		} else if( renderFx & RF_ALPHAHACK ) {
-			// blend-pass for the weapon:
-			// meshes that do not write to depth, are rendered as additives,
-			// meshes that were previously added as SHADER_SORT_WEAPON (see above)
-			// are now added to the very end of the list
-			shaderSort = depthWrite ? SHADER_SORT_WEAPON2 : SHADER_SORT_ADDITIVE;
-		}
-	} else if( renderFx & RF_ALPHAHACK ) {
+	int shaderSort = shader->sort;
+	if( renderFx & RF_ALPHAHACK ) {
 		// force shader sort to additive
 		shaderSort = SHADER_SORT_ADDITIVE;
 	}
-
 	return ( shaderSort << 26 ) | ( max( 0x400 - (int)dist, 0 ) << 15 ) | ( order & 0x7FFF );
 }
 
@@ -178,7 +155,7 @@ static void R_UnpackSortKey( uint64_t sortKey, unsigned int *shaderNum, unsigned
 * Calculate sortkey and store info used for batching and sorting.
 * All 3D-geometry passes this function.
 */
-void *R_AddSurfToDrawList( drawList_t *list, const entity_t *e, const shader_t *shader, float dist, unsigned int order, void *drawSurf ) {
+void *R_AddSurfToDrawList( drawList_t *list, const entity_t *e, const shader_t *shader, float dist, unsigned int order, const void *drawSurf ) {
 	int distKey;
 	sortedDrawSurf_t *sds;
 
@@ -201,7 +178,7 @@ void *R_AddSurfToDrawList( drawList_t *list, const entity_t *e, const shader_t *
 	}
 
 	sds = &list->drawSurfs[list->numDrawSurfs++];
-	sds->drawSurf = ( drawSurfaceType_t * )drawSurf;
+	sds->drawSurf = ( const drawSurfaceType_t * )drawSurf;
 	sds->sortKey = R_PackSortKey( shader->id, R_ENT2NUM( e ) );
 	sds->distKey = distKey;
 
@@ -256,18 +233,18 @@ static const drawSurf_cb r_drawSurfCb[ST_MAX_TYPES] =
 	NULL,
 	/* ST_BSP */
 	NULL,
-	/* ST_SKY */
-	( drawSurf_cb ) & R_DrawSkySurf,
 	/* ST_ALIAS */
-	( drawSurf_cb ) & R_DrawAliasSurf,
-	/* ST_SKELETAL */
-	( drawSurf_cb ) & R_DrawSkeletalSurf,
+	drawSurf_cb( R_DrawAliasSurf ),
+	/* ST_GLTF */
+	drawSurf_cb( R_DrawGLTFMesh ),
+	/* ST_SKY */
+	drawSurf_cb( R_DrawSkyMesh ),
 	/* ST_SPRITE */
 	NULL,
 	/* ST_POLY */
 	NULL,
 	/* ST_NULLMODEL */
-	( drawSurf_cb ) & R_DrawNullSurf,
+	drawSurf_cb( R_DrawNullSurf ),
 };
 
 static const batchDrawSurf_cb r_batchDrawSurfCb[ST_MAX_TYPES] =
@@ -275,17 +252,17 @@ static const batchDrawSurf_cb r_batchDrawSurfCb[ST_MAX_TYPES] =
 	/* ST_NONE */
 	NULL,
 	/* ST_BSP */
-	( batchDrawSurf_cb ) & R_BatchBSPSurf,
-	/* ST_SKY */
-	NULL,
+	batchDrawSurf_cb( R_BatchBSPSurf ),
 	/* ST_ALIAS */
 	NULL,
-	/* ST_SKELETAL */
+	/* ST_GLTF */
+	NULL,
+	/* ST_SKY */
 	NULL,
 	/* ST_SPRITE */
-	( batchDrawSurf_cb ) & R_BatchSpriteSurf,
+	batchDrawSurf_cb( R_BatchSpriteSurf ),
 	/* ST_POLY */
-	( batchDrawSurf_cb ) & R_BatchPolySurf,
+	batchDrawSurf_cb( R_BatchPolySurf ),
 	/* ST_NULLMODEL */
 	NULL,
 };
@@ -295,12 +272,12 @@ static const walkDrawSurf_cb r_walkSurfCb[ST_MAX_TYPES] =
 	/* ST_NONE */
 	NULL,
 	/* ST_BSP */
-	( walkDrawSurf_cb ) & R_WalkBSPSurf,
-	/* ST_SKY */
-	NULL,
+	walkDrawSurf_cb( R_WalkBSPSurf ),
 	/* ST_ALIAS */
 	NULL,
-	/* ST_SKELETAL */
+	/* ST_GLTF */
+	NULL,
+	/* ST_SKY */
 	NULL,
 	/* ST_SPRITE */
 	NULL,
@@ -315,17 +292,17 @@ static const flushBatchDrawSurf_cb r_flushBatchSurfCb[ST_MAX_TYPES] =
 	/* ST_NONE */
 	NULL,
 	/* ST_BSP */
-	( flushBatchDrawSurf_cb ) & R_FlushBSPSurfBatch,
-	/* ST_SKY */
-	NULL,
+	flushBatchDrawSurf_cb( R_FlushBSPSurfBatch ),
 	/* ST_ALIAS */
 	NULL,
-	/* ST_SKELETAL */
+	/* ST_GLTF */
+	NULL,
+	/* ST_SKY */
 	NULL,
 	/* ST_SPRITE */
-	( flushBatchDrawSurf_cb ) & RB_FlushDynamicMeshes,
+	flushBatchDrawSurf_cb( RB_FlushDynamicMeshes ),
 	/* ST_POLY */
-	( flushBatchDrawSurf_cb ) & RB_FlushDynamicMeshes,
+	flushBatchDrawSurf_cb( RB_FlushDynamicMeshes ),
 	/* ST_NULLMODEL */
 	NULL,
 };
@@ -346,13 +323,11 @@ static void _R_DrawSurfaces( drawList_t *list, bool *depthCopied, int mode, int 
 	const shader_t *shader;
 	const entity_t *entity;
 	float depthmin = 0.0f, depthmax = 0.0f;
-	bool depthHack = false, cullHack = false;
-	bool infiniteProj = false, prevInfiniteProj = false;
+	bool depthHack = false;
 	bool depthWrite = false;
 	bool batchFlushed = true, batchOpaque = false;
 	bool batchMergable = true;
 	int entityFX = 0, prevEntityFX = -1;
-	mat4_t projectionMatrix;
 	int riFBO = 0;
 
 	if( !list ) {
@@ -398,11 +373,7 @@ static void _R_DrawSurfaces( drawList_t *list, bool *depthCopied, int mode, int 
 		depthWrite = Shader_DepthWrite( shader );
 		batchMergable = true;
 
-		if( ( mode == RB_MODE_DEPTH ) && !depthWrite ) {
-			continue;
-		}
-
-		batchDrawSurf = ( r_batchDrawSurfCb[drawSurfType] ? true : false );
+		batchDrawSurf = r_batchDrawSurfCb[drawSurfType] != NULL;
 
 		// see if we need to reset mesh properties in the backend
 		if( !prevBatchDrawSurf || !batchDrawSurf || shaderNum != prevShaderNum ||
@@ -426,32 +397,6 @@ static void _R_DrawSurfaces( drawList_t *list, bool *depthCopied, int mode, int 
 					batchFlushed = true;
 					depthHack = false;
 					RB_DepthRange( depthmin, depthmax );
-				}
-			}
-
-			if( entNum != prevEntNum ) {
-				// backface culling for left-handed weapons
-				bool oldCullHack = cullHack;
-				cullHack = ( ( entity->flags & RF_CULLHACK ) ? true : false );
-				if( cullHack != oldCullHack ) {
-					if( batchFlush ) batchFlush();
-					batchFlushed = true;
-					RB_FlipFrontFace();
-				}
-			}
-
-			// sky and things that don't use depth test use infinite projection matrix
-			// to not pollute the farclip
-			infiniteProj = entity->renderfx & RF_NODEPTHTEST ? true : ( shader->flags & SHADER_SKY ? true : false );
-			if( infiniteProj != prevInfiniteProj ) {
-				if( batchFlush ) batchFlush();
-				batchFlushed = true;
-				if( infiniteProj ) {
-					Matrix4_Copy( rn.projectionMatrix, projectionMatrix );
-					Matrix4_PerspectiveProjectionToInfinity( rn.nearClip, projectionMatrix, glConfig.depthEpsilon );
-					RB_LoadProjectionMatrix( projectionMatrix );
-				} else {
-					RB_LoadProjectionMatrix( rn.projectionMatrix );
 				}
 			}
 
@@ -510,7 +455,6 @@ static void _R_DrawSurfaces( drawList_t *list, bool *depthCopied, int mode, int 
 			prevShaderNum = shaderNum;
 			prevEntNum = entNum;
 			prevBatchDrawSurf = batchDrawSurf;
-			prevInfiniteProj = infiniteProj;
 			prevEntityFX = entityFX;
 		}
 
@@ -531,12 +475,6 @@ static void _R_DrawSurfaces( drawList_t *list, bool *depthCopied, int mode, int 
 
 	if( depthHack ) {
 		RB_DepthRange( depthmin, depthmax );
-	}
-	if( cullHack ) {
-		RB_FlipFrontFace();
-	}
-	if( infiniteProj ) {
-		RB_LoadProjectionMatrix( rn.projectionMatrix );
 	}
 
 	RB_BindFrameBufferObject( riFBO );

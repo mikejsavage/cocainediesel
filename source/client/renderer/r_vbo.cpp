@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "r_local.h"
-#include "../../qalgo/half_float.h"
+#include "qcommon/half_float.h"
 
 /*
 =========================================================
@@ -158,8 +158,8 @@ mesh_vbo_t *R_CreateMeshVBO( void *owner, int numVerts, int numElems, int numIns
 		halfFloatVattribs &= ~( VATTRIB_AUTOSPRITE_BIT );
 	}
 
-	halfFloatVattribs &= ~VATTRIB_COLORS_BITS;
-	halfFloatVattribs &= ~VATTRIB_BONES_BITS;
+	halfFloatVattribs &= ~VATTRIB_COLOR0_BIT;
+	halfFloatVattribs &= ~VATTRIB_JOINTS_BITS;
 
 	// TODO: convert quaternion component of instance_t to half-float
 	// when uploading instances data
@@ -196,24 +196,15 @@ mesh_vbo_t *R_CreateMeshVBO( void *owner, int numVerts, int numElems, int numIns
 		vertexSize += sizeof( int );
 	}
 
-	// bones data for skeletal animation
-	if( ( vattribs & VATTRIB_BONES_BITS ) == VATTRIB_BONES_BITS ) {
-		assert( SKM_MAX_WEIGHTS == 4 );
+	// joints
+	if( ( vattribs & VATTRIB_JOINTS_BITS ) == VATTRIB_JOINTS_BITS ) {
+		assert( !( vertexSize & 3 ) );
+		vbo->jointsIndicesOffset = vertexSize;
+		vertexSize += 4 * sizeof( u8 );
 
 		assert( !( vertexSize & 3 ) );
-		vbo->bonesIndicesOffset = vertexSize;
-		vertexSize += sizeof( int );
-
-		assert( !( vertexSize & 3 ) );
-		vbo->bonesWeightsOffset = vertexSize;
-		vertexSize += sizeof( int );
-	} else {
-		// surface index
-		if( vattribs & VATTRIB_SURFINDEX_BIT ) {
-			assert( !( vertexSize & 3 ) );
-			vbo->siOffset = vertexSize;
-			vertexSize += FLOAT_VATTRIB_SIZE( VATTRIB_SURFINDEX_BIT, halfFloatVattribs );
-		}
+		vbo->jointsWeightsOffset = vertexSize;
+		vertexSize += 4 * sizeof( u8 );
 	}
 
 	// autosprites
@@ -443,7 +434,7 @@ R_FillVertexBuffer_f( int, int, );
 * VATTRIB_POSITION_BIT is not set, it will also reset bits for other positional
 * attributes such as autosprite pos and instance pos.
 */
-vattribmask_t R_FillVBOVertexDataBuffer( mesh_vbo_t *vbo, vattribmask_t vattribs, const mesh_t *mesh, void *outData, int surfIndex ) {
+vattribmask_t R_FillVBOVertexDataBuffer( mesh_vbo_t *vbo, vattribmask_t vattribs, const mesh_t *mesh, void *outData ) {
 	int i, j;
 	unsigned numVerts;
 	size_t vertSize;
@@ -644,38 +635,23 @@ vattribmask_t R_FillVBOVertexDataBuffer( mesh_vbo_t *vbo, vattribmask_t vattribs
 		}
 	}
 
-	if( ( vattribs & VATTRIB_BONES_BITS ) == VATTRIB_BONES_BITS ) {
-		if( vbo->bonesIndicesOffset ) {
+	if( ( vattribs & VATTRIB_JOINTS_BITS ) == VATTRIB_JOINTS_BITS ) {
+		if( vbo->jointsIndicesOffset ) {
 			if( !mesh->blendIndices ) {
-				errMask |= VATTRIB_BONESINDICES_BIT;
+				errMask |= VATTRIB_JOINTSINDICES_BIT;
 			} else {
 				R_FillVertexBuffer( int, int,
-									(int *)&mesh->blendIndices[0],
-									1, vertSize, numVerts, data + vbo->bonesIndicesOffset );
+					(int *)&mesh->blendIndices[0],
+					1, vertSize, numVerts, data + vbo->jointsIndicesOffset );
 			}
 		}
-		if( vbo->bonesWeightsOffset ) {
+		if( vbo->jointsWeightsOffset ) {
 			if( !mesh->blendWeights ) {
-				errMask |= VATTRIB_BONESWEIGHTS_BIT;
+				errMask |= VATTRIB_JOINTSWEIGHTS_BIT;
 			} else {
 				R_FillVertexBuffer( int, int,
-									(int *)&mesh->blendWeights[0],
-									1, vertSize, numVerts, data + vbo->bonesWeightsOffset );
-			}
-		}
-	} else {
-		if( vattribs & VATTRIB_SURFINDEX_BIT ) {
-			if( !vbo->siOffset ) {
-				errMask |= VATTRIB_SURFINDEX_BIT;
-			} else {
-				float fsurfIndex = surfIndex;
-				size_t bufferOffset = vbo->siOffset;
-
-				for( i = 0; i < mesh->numVerts; i++ ) {
-					R_FillVertexBuffer_float_or_half( FLOAT_VATTRIB_GL_TYPE( VATTRIB_SURFINDEX_BIT, hfa ),
-						&fsurfIndex, 1, vertSize, 1, data + bufferOffset );
-					bufferOffset += vertSize;
-				}
+					(int *)&mesh->blendWeights[0],
+					1, vertSize, numVerts, data + vbo->jointsWeightsOffset );
 			}
 		}
 	}
@@ -703,7 +679,7 @@ void R_UploadVBOVertexRawData( mesh_vbo_t *vbo, int vertsOffset, int numVerts, c
 /*
 * R_UploadVBOVertexData
 */
-vattribmask_t R_UploadVBOVertexData( mesh_vbo_t *vbo, int vertsOffset, vattribmask_t vattribs, const mesh_t *mesh, int surfIndex ) {
+vattribmask_t R_UploadVBOVertexData( mesh_vbo_t *vbo, int vertsOffset, vattribmask_t vattribs, const mesh_t *mesh ) {
 	void *data;
 	vattribmask_t errMask;
 
@@ -718,7 +694,7 @@ vattribmask_t R_UploadVBOVertexData( mesh_vbo_t *vbo, int vertsOffset, vattribma
 	}
 
 	data = R_VBOVertBuffer( mesh->numVerts, vbo->vertexSize );
-	errMask = R_FillVBOVertexDataBuffer( vbo, vattribs, mesh, data, surfIndex );
+	errMask = R_FillVBOVertexDataBuffer( vbo, vattribs, mesh, data );
 	R_UploadVBOVertexRawData( vbo, vertsOffset, mesh->numVerts, data );
 	return errMask;
 }

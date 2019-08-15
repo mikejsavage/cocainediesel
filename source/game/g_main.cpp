@@ -32,7 +32,6 @@ int meansOfDeath;
 cvar_t *password;
 cvar_t *g_operator_password;
 cvar_t *g_select_empty;
-cvar_t *dedicated;
 cvar_t *developer;
 
 cvar_t *filterban;
@@ -67,7 +66,6 @@ cvar_t *g_autorecord_maxdemos;
 
 cvar_t *g_self_knockback;
 cvar_t *g_knockback_scale;
-cvar_t *g_allow_teamdamage;
 
 cvar_t *g_respawn_delay_min;
 cvar_t *g_respawn_delay_max;
@@ -82,8 +80,6 @@ static char *map_rotation_s = NULL;
 static char **map_rotation_p = NULL;
 static int map_rotation_current = -1;
 static int map_rotation_count = 0;
-
-static const char *G_SelectNextMapName( void );
 
 //===================================================================
 
@@ -127,20 +123,6 @@ void G_Printf( const char *format, ... ) {
 }
 
 /*
-* G_GS_Malloc - Used only for gameshared linking
-*/
-static void *G_GS_Malloc( size_t size ) {
-	return G_Malloc( size );
-}
-
-/*
-* G_GS_Free - Used only for gameshared linking
-*/
-static void G_GS_Free( void *data ) {
-	G_Free( data );
-}
-
-/*
 * G_GS_Trace - Used only for gameshared linking
 */
 static void G_GS_Trace( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask, int timeDelta ) {
@@ -169,14 +151,11 @@ static void G_InitGameShared( void ) {
 	api.PredictedEvent = G_PredictedEvent;
 	api.Error = G_Error;
 	api.Printf = G_Printf;
-	api.Malloc = G_GS_Malloc;
-	api.Free = G_GS_Free;
 	api.Trace = G_GS_Trace;
 	api.GetEntityState = G_GetEntityStateForDeltaTime;
 	api.PointContents = G_PointContents4D;
 	api.PMoveTouchTriggers = G_PMoveTouchTriggers;
 	api.GetConfigString = trap_GetConfigString;
-	api.GetAngelExport = trap_asGetAngelExport;
 
 	GS_InitModule( GS_MODULE_GAME, maxclients, &api );
 }
@@ -187,7 +166,7 @@ static void G_InitGameShared( void ) {
 * This will be called when the dll is first loaded, which
 * only happens when a new game is started or a save game is loaded.
 */
-void G_Init( unsigned int seed, unsigned int framemsec, int protocol, const char *demoExtension ) {
+void G_Init( unsigned int seed, unsigned int framemsec ) {
 	cvar_t *g_maxentities;
 
 	G_Printf( "==== G_Init ====\n" );
@@ -200,9 +179,7 @@ void G_Init( unsigned int seed, unsigned int framemsec, int protocol, const char
 
 	game.snapFrameTime = framemsec;
 	game.frametime = game.snapFrameTime;
-	game.protocol = protocol;
-	Q_strncpyz( game.demoExtension, demoExtension, sizeof( game.demoExtension ) );
-	game.levelSpawnCount = 0;
+	game.numBots = 0;
 
 	g_maxvelocity = trap_Cvar_Get( "g_maxvelocity", "16000", 0 );
 	if( g_maxvelocity->value < 20 ) {
@@ -212,15 +189,9 @@ void G_Init( unsigned int seed, unsigned int framemsec, int protocol, const char
 	g_gravity = trap_Cvar_Get( "g_gravity", va( "%i", GRAVITY ), 0 );
 	developer = trap_Cvar_Get( "developer", "0", 0 );
 
-	// noset vars
-	dedicated = trap_Cvar_Get( "dedicated", "0", CVAR_NOSET );
-
 	// latched vars
 	sv_cheats = trap_Cvar_Get( "sv_cheats", "0", CVAR_SERVERINFO | CVAR_LATCH );
 	sv_mm_enable = trap_Cvar_Get( "sv_mm_enable", "0", CVAR_ARCHIVE | CVAR_NOSET | CVAR_SERVERINFO );
-
-	// hack in CVAR_SERVERINFO flag
-	trap_Cvar_Get( "gamename", trap_Cvar_String( "gamename" ), CVAR_SERVERINFO );
 
 	password = trap_Cvar_Get( "password", "", CVAR_USERINFO );
 	password->modified = true; // force an update of g_needpass in G_UpdateServerInfo
@@ -242,7 +213,7 @@ void G_Init( unsigned int seed, unsigned int framemsec, int protocol, const char
 
 	g_allow_spectator_voting = trap_Cvar_Get( "g_allow_spectator_voting", "1", CVAR_ARCHIVE );
 
-	if( dedicated->integer ) {
+	if( GAME_IMPORT.is_dedicated_server ) {
 		g_autorecord = trap_Cvar_Get( "g_autorecord", "1", CVAR_ARCHIVE );
 		g_autorecord_maxdemos = trap_Cvar_Get( "g_autorecord_maxdemos", "200", CVAR_ARCHIVE );
 	} else {
@@ -275,16 +246,12 @@ void G_Init( unsigned int seed, unsigned int framemsec, int protocol, const char
 	trap_Cvar_Get( "g_match_time", "", CVAR_SERVERINFO | CVAR_READONLY );
 	trap_Cvar_Get( "g_match_score", "", CVAR_SERVERINFO | CVAR_READONLY );
 	trap_Cvar_Get( "g_needpass", "", CVAR_SERVERINFO | CVAR_READONLY );
-	trap_Cvar_Get( "g_race_gametype", "0", CVAR_SERVERINFO | CVAR_READONLY );
 
 	g_asGC_stats = trap_Cvar_Get( "g_asGC_stats", "0", CVAR_ARCHIVE );
 	g_asGC_interval = trap_Cvar_Get( "g_asGC_interval", "10", CVAR_ARCHIVE );
 
-	// nextmap
-	trap_Cvar_ForceSet( "nextmap", "match \"advance\"" );
-
 	// initialize all entities for this game
-	g_maxentities = trap_Cvar_Get( "sv_maxentities", "1024", CVAR_LATCH );
+	g_maxentities = trap_Cvar_Get( "sv_maxentities", "4096", CVAR_LATCH );
 	game.maxentities = g_maxentities->integer;
 	game.edicts = ( edict_t * )G_Malloc( game.maxentities * sizeof( game.edicts[0] ) );
 
@@ -298,8 +265,6 @@ void G_Init( unsigned int seed, unsigned int framemsec, int protocol, const char
 	// server console commands
 	G_AddServerCommands();
 
-	G_LoadFiredefsFromDisk();
-
 	// init AS engine
 	G_asInitGameModuleEngine();
 }
@@ -308,22 +273,14 @@ void G_Init( unsigned int seed, unsigned int framemsec, int protocol, const char
 * G_Shutdown
 */
 void G_Shutdown( void ) {
-	int i;
-
 	G_Printf( "==== G_Shutdown ====\n" );
 
 	GT_asCallShutdown();
-	G_asCallMapExit();
 
-	G_asShutdownMapScript();
 	GT_asShutdownScript();
 	G_asShutdownGameModuleEngine();
 
 	SV_WriteIPList();
-
-	trap_Cvar_ForceSet( "nextmap", va( "map \"%s\"", G_SelectNextMapName() ) );
-
-	AI_Shutdown();
 
 	G_RemoveCommands();
 
@@ -331,7 +288,7 @@ void G_Shutdown( void ) {
 
 	G_LevelFreePool();
 
-	for( i = 0; i < game.numentities; i++ ) {
+	for( int i = 0; i < game.numentities; i++ ) {
 		if( game.edicts[i].r.inuse ) {
 			G_FreeEdict( &game.edicts[i] );
 		}
@@ -342,30 +299,6 @@ void G_Shutdown( void ) {
 }
 
 //======================================================================
-
-/*
-* G_AllowDownload
-*/
-bool G_AllowDownload( edict_t *ent, const char *requestname, const char *uploadname ) {
-	return false;
-}
-
-//======================================================================
-
-/*
-* CreateTargetChangeLevel
-*
-* Returns the created target changelevel
-*/
-static edict_t *CreateTargetChangeLevel( const char *map ) {
-	edict_t *ent;
-
-	ent = G_Spawn();
-	ent->classname = "target_changelevel";
-	Q_strncpyz( level.nextmap, map, sizeof( level.nextmap ) );
-	ent->map = level.nextmap;
-	return ent;
-}
 
 /*
 * G_UpdateMapRotation
@@ -472,100 +405,36 @@ static const char *G_MapRotationNormal( void ) {
 	return map_rotation_p[map_rotation_current];
 }
 
-/*
-* G_MapRotationNormal
-*/
-static const char *G_MapRotationRandom( void ) {
-	int seed, selection;
-
-	G_UpdateMapRotation();
-
-	// avoid eternal loop
-	if( !map_rotation_count || map_rotation_count == 1 ) {
-		return NULL;
-	}
-
-	seed = game.realtime;
-	do {
-		selection = (int)Q_brandom( &seed, 0, map_rotation_count );
-	} while( selection == map_rotation_current );
-
-	map_rotation_current = selection;
-	return map_rotation_p[map_rotation_current];
-}
-
-/*
-* G_ChooseNextMap
-*/
-static edict_t *G_ChooseNextMap( void ) {
-	edict_t *ent = NULL;
-	const char *next;
-
-	if( *level.forcemap ) {
-		return CreateTargetChangeLevel( level.forcemap );
-	}
+static const char *G_NextMap( void ) {
+	if( strlen( level.callvote_map ) > 0 )
+		return level.callvote_map;
 
 	if( !( *g_maplist->string ) || g_maplist->string[0] == '\0' || g_maprotation->integer == 0 ) {
 		// same map again
-		return CreateTargetChangeLevel( level.mapname );
-	} else if( g_maprotation->integer == 1 ) {
-		next = G_MapRotationNormal();
-
-		// not in the list, we go for the first one
-		ent = CreateTargetChangeLevel( next ? next : level.mapname );
-		return ent;
-	} else if( g_maprotation->integer == 2 ) {
-		next = G_MapRotationRandom();
-		ent = CreateTargetChangeLevel( next ? next : level.mapname );
-		return ent;
+		return level.mapname;
 	}
 
-	if( level.nextmap[0] ) { // go to a specific map
-		return CreateTargetChangeLevel( level.nextmap );
-	}
-
-	// search for a changelevel
-	ent = G_Find( NULL, FOFS( classname ), "target_changelevel" );
-	if( !ent ) {
-		// the map designer didn't include a changelevel,
-		// so create a fake ent that goes back to the same level
-		return CreateTargetChangeLevel( level.mapname );
-	}
-	return ent;
-}
-
-/*
-* G_SelectNextMapName
-*/
-static const char *G_SelectNextMapName( void ) {
-	edict_t *changelevel;
-
-	changelevel = G_ChooseNextMap();
-	return changelevel->map;
+	const char *next = G_MapRotationNormal();
+	return next ? next : level.mapname;
 }
 
 /*
 * G_ExitLevel
 */
 void G_ExitLevel( void ) {
-	int i;
-	edict_t *ent;
-	char command[256];
-	const char *nextmapname;
 	bool loadmap = true;
 
 	level.exitNow = false;
 
-	nextmapname = G_SelectNextMapName();
+	const char *nextmapname = G_NextMap();
 
 	// if it's the same map see if we can restart without loading
 	if( !level.hardReset && !Q_stricmp( nextmapname, level.mapname ) && G_RespawnLevel() ) {
 		loadmap = false;
 	}
 
-	AI_RemoveBots();
-
 	if( loadmap ) {
+		char command[256];
 		Q_snprintfz( command, sizeof( command ), "gamemap \"%s\"\n", nextmapname );
 		trap_Cmd_ExecuteText( EXEC_APPEND, command );
 	}
@@ -573,8 +442,8 @@ void G_ExitLevel( void ) {
 	G_SnapClients();
 
 	// clear some things before going to next level
-	for( i = 0; i < gs.maxclients; i++ ) {
-		ent = game.edicts + 1 + i;
+	for( int i = 0; i < gs.maxclients; i++ ) {
+		edict_t *ent = game.edicts + 1 + i;
 		if( !ent->r.inuse ) {
 			continue;
 		}
@@ -585,7 +454,6 @@ void G_ExitLevel( void ) {
 			ent->health = ent->max_health;
 		}
 
-		// some things are only cleared when there's a new map load
 		if( loadmap ) {
 			ent->r.client->connecting = true; // set all connected players as "reconnecting"
 			ent->s.team = TEAM_SPECTATOR;

@@ -23,13 +23,5 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <ws2tcpip.h>
 
 #include <windows.h>
-#ifdef HAVE_MMSYSTEM
-#include <mmsystem.h>
-#endif
 
 #include <io.h>
-
-#include "win_input.h"
-
-extern HWND cl_hwnd, cl_parent_hwnd;
-extern int ActiveApp, Minimized, AppFocused;

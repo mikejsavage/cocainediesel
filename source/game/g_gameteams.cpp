@@ -179,7 +179,6 @@ void G_Teams_SetTeam( edict_t *ent, int team ) {
 	level.ready[PLAYERNUM( ent )] = false;
 
 	G_Match_CheckReadys();
-	G_UpdatePlayerMatchMsg( ent );
 }
 
 enum
@@ -237,8 +236,7 @@ static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
 	}
 
 	// waiting for chanllengers queue to be executed
-	if( GS_HasChallengers() &&
-		game.realtime < level.spawnedTimeStamp + (int64_t)( G_CHALLENGERS_MIN_JOINTEAM_MAPTIME + game.snapFrameTime ) ) {
+	if( GS_HasChallengers() && game.realtime < level.spawnedTimeStamp + (int64_t)( G_CHALLENGERS_MIN_JOINTEAM_MAPTIME + game.snapFrameTime ) ) {
 		return ER_TEAM_CHALLENGERS;
 	}
 
@@ -247,48 +245,33 @@ static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
 		return ER_TEAM_CHALLENGERS;
 	}
 
-	if( GS_TeamBasedGametype() && ( team >= TEAM_ALPHA && team < GS_MAX_TEAMS ) ) {
-		if( ent->r.svflags & SVF_FAKECLIENT ) {
-			if( level.gametype.forceTeamBots != TEAM_SPECTATOR ) {
-				return team == level.gametype.forceTeamBots ? ER_TEAM_OK : ER_TEAM_INVALID;
-			}
-		} else {
-			if( level.gametype.forceTeamHumans != TEAM_SPECTATOR ) {
-				return team == level.gametype.forceTeamHumans ? ER_TEAM_OK : ER_TEAM_INVALID;
-			}
-		}
-	}
-
 	// see if team is locked
 	if( G_Teams_TeamIsLocked( team ) ) {
 		return ER_TEAM_LOCKED;
 	}
 
-	if( GS_TeamBasedGametype() ) {
-		if( team >= TEAM_ALPHA && team < GS_MAX_TEAMS ) {
-			// see if team is full
-			int count = teamlist[team].numplayers;
-
-			if( ( count + 1 > level.gametype.maxPlayersPerTeam &&
-				  level.gametype.maxPlayersPerTeam > 0 ) ||
-				( count + 1 > g_teams_maxplayers->integer &&
-				  g_teams_maxplayers->integer > 0 ) ) {
-				return ER_TEAM_FULL;
-			}
-
-			if( !g_teams_allow_uneven->integer && !G_Teams_CanKeepEvenTeam( ent->s.team, team ) ) {
-				return ER_TEAM_UNEVEN;
-			}
-
-			return ER_TEAM_OK;
-		} else {
-			return ER_TEAM_INVALID;
-		}
-	} else if( team == TEAM_PLAYERS ) {
-		return ER_TEAM_OK;
+	if( !GS_TeamBasedGametype() ) {
+		return team == TEAM_PLAYERS ? ER_TEAM_OK : ER_TEAM_INVALID;
 	}
 
-	return ER_TEAM_INVALID;
+	if( team != TEAM_ALPHA && team != TEAM_BETA )
+		return ER_TEAM_INVALID;
+
+	// see if team is full
+	int count = teamlist[team].numplayers;
+
+	if( ( count + 1 > level.gametype.maxPlayersPerTeam &&
+		  level.gametype.maxPlayersPerTeam > 0 ) ||
+		( count + 1 > g_teams_maxplayers->integer &&
+		  g_teams_maxplayers->integer > 0 ) ) {
+		return ER_TEAM_FULL;
+	}
+
+	if( !g_teams_allow_uneven->integer && !G_Teams_CanKeepEvenTeam( ent->s.team, team ) ) {
+		return ER_TEAM_UNEVEN;
+	}
+
+	return ER_TEAM_OK;
 }
 
 /*
@@ -305,8 +288,7 @@ bool G_Teams_JoinTeam( edict_t *ent, int team ) {
 
 	if( ( error = G_GameTypes_DenyJoinTeam( ent, team ) ) ) {
 		if( error == ER_TEAM_INVALID ) {
-			G_PrintMsg( ent, "Can't join %s in %s\n", GS_TeamName( team ),
-						gs.gametypeName );
+			G_PrintMsg( ent, "Can't join %s\n", GS_TeamName( team ) );
 		} else if( error == ER_TEAM_CHALLENGERS ) {
 			G_Teams_JoinChallengersQueue( ent );
 		} else if( error == ER_TEAM_FULL ) {
@@ -418,7 +400,7 @@ void G_Teams_Join_Cmd( edict_t *ent ) {
 		return;
 	}
 
-	team = GS_Teams_TeamFromName( t );
+	team = GS_TeamFromName( t );
 	if( team != -1 ) {
 		if( team == TEAM_SPECTATOR ) { // special handling for spectator team
 			Cmd_Spec_f( ent );
@@ -526,7 +508,7 @@ void G_Teams_ExecuteChallengersQueue( void ) {
 		}
 		lasttime = time;
 		if( lasttime ) {
-			G_CenterPrintFormatMsg( NULL, 1, "Waiting... %s", va( "%i", lasttime ) );
+			G_CenterPrintMsg( NULL, "Waiting... %i", lasttime );
 		}
 		return;
 	}
@@ -664,7 +646,6 @@ void G_Teams_LeaveChallengersQueue( edict_t *ent ) {
 	if( ent->r.client->queueTimeStamp ) {
 		ent->r.client->queueTimeStamp = 0;
 		G_PrintMsg( ent, "%sYou left the challengers queue\n", S_COLOR_CYAN );
-		G_UpdatePlayerMatchMsg( ent );
 	}
 }
 
@@ -705,7 +686,6 @@ void G_Teams_JoinChallengersQueue( edict_t *ent ) {
 		}
 
 		G_PrintMsg( ent, "%sYou entered the challengers queue in position %i\n", S_COLOR_CYAN, pos + 1 );
-		G_UpdatePlayerMatchMsg( ent );
 	}
 }
 

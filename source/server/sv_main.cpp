@@ -77,10 +77,6 @@ cvar_t *sv_skilllevel;
 // wsw : debug netcode
 cvar_t *sv_debug_serverCmd;
 
-cvar_t *sv_MOTD;
-cvar_t *sv_MOTDFile;
-cvar_t *sv_MOTDString;
-
 cvar_t *sv_demodir;
 
 //============================================================================
@@ -121,12 +117,10 @@ static void SV_CalcPings( void ) {
 
 		if( !count ) {
 			cl->ping = 0;
-		} else
-#if 1
-		{ cl->ping = ( best + ( total / count ) ) * 0.5f;}
-#else
-		{ cl->ping = total / count;}
-#endif
+		}
+		else {
+			cl->ping = ( best + ( total / count ) ) * 0.5f;
+		}
 		// let the game dll know about the ping
 		cl->edict->r.client->r.ping = cl->ping;
 	}
@@ -381,17 +375,17 @@ static bool SV_RunGameFrame( int msec ) {
 	}
 
 	// if there aren't pending packets to be sent, we can sleep
-	if( dedicated->integer && !sentFragments && !refreshSnapshot ) {
+	if( is_dedicated_server && !sentFragments && !refreshSnapshot ) {
 		int sleeptime = min( WORLDFRAMETIME - ( accTime + 1 ), sv.nextSnapTime - ( svs.gametime + 1 ) );
 
 		if( sleeptime > 0 ) {
-			socket_t *sockets [] = { &svs.socket_udp, &svs.socket_udp6 };
-			socket_t *opened_sockets [sizeof( sockets ) / sizeof( sockets[0] ) + 1 ];
+			socket_t *sockets[] = { &svs.socket_udp, &svs.socket_udp6 };
+			socket_t *opened_sockets[ARRAY_COUNT( sockets ) + 1];
 			size_t sock_ind, open_ind;
 
 			// Pass only the opened sockets to the sleep function
 			open_ind = 0;
-			for( sock_ind = 0; sock_ind < sizeof( sockets ) / sizeof( sockets[0] ); sock_ind++ ) {
+			for( sock_ind = 0; sock_ind < ARRAY_COUNT( sockets ); sock_ind++ ) {
 				socket_t *sock = sockets[sock_ind];
 				if( sock->open ) {
 					opened_sockets[open_ind] = sock;
@@ -460,7 +454,7 @@ static void SV_CheckDefaultMap( void ) {
 	}
 
 	svc.autostarted = true;
-	if( dedicated->integer ) {
+	if( is_dedicated_server ) {
 		if( ( sv.state == ss_dead ) && sv_defaultmap && strlen( sv_defaultmap->string ) && !strlen( sv.mapname ) ) {
 			Cbuf_ExecuteText( EXEC_APPEND, va( "map %s\n", sv_defaultmap->string ) );
 		}
@@ -638,17 +632,17 @@ void SV_Init( void ) {
 	sv_uploads_baseurl =    Cvar_Get( "sv_uploads_baseurl", "", CVAR_ARCHIVE );
 	sv_uploads_demos =      Cvar_Get( "sv_uploads_demos", "1", CVAR_ARCHIVE );
 	sv_uploads_demos_baseurl =  Cvar_Get( "sv_uploads_demos_baseurl", "", CVAR_ARCHIVE );
-	if( dedicated->integer ) {
+	if( is_dedicated_server ) {
 		sv_pure =       Cvar_Get( "sv_pure", "1", CVAR_ARCHIVE | CVAR_LATCH | CVAR_SERVERINFO );
 
 #ifdef PUBLIC_BUILD
-		sv_public =     Cvar_Get( "sv_public", "1", CVAR_ARCHIVE | CVAR_LATCH );
+		sv_public =     Cvar_Get( "sv_public", "1", CVAR_LATCH );
 #else
-		sv_public =     Cvar_Get( "sv_public", "0", CVAR_ARCHIVE | CVAR_LATCH );
+		sv_public =     Cvar_Get( "sv_public", "0", CVAR_LATCH );
 #endif
 	} else {
 		sv_pure =       Cvar_Get( "sv_pure", "0", CVAR_ARCHIVE | CVAR_LATCH | CVAR_SERVERINFO );
-		sv_public =     Cvar_Get( "sv_public", "0", CVAR_ARCHIVE );
+		sv_public =     Cvar_Get( "sv_public", "0", CVAR_LATCH );
 	}
 
 	sv_iplimit = Cvar_Get( "sv_iplimit", "3", CVAR_ARCHIVE );
@@ -658,9 +652,6 @@ void SV_Init( void ) {
 	sv_defaultmap =         Cvar_Get( "sv_defaultmap", "dust", CVAR_ARCHIVE );
 	sv_reconnectlimit =     Cvar_Get( "sv_reconnectlimit", "3", CVAR_ARCHIVE );
 	sv_maxclients =         Cvar_Get( "sv_maxclients", "16", CVAR_ARCHIVE | CVAR_SERVERINFO | CVAR_LATCH );
-
-	Cvar_Get( "sv_modmanifest", "", CVAR_READONLY );
-	Cvar_ForceSet( "sv_modmanifest", "" );
 
 	// fix invalid sv_maxclients values
 	if( sv_maxclients->integer < 1 ) {
@@ -689,16 +680,11 @@ void SV_Init( void ) {
 
 	sv_debug_serverCmd =        Cvar_Get( "sv_debug_serverCmd", "0", CVAR_ARCHIVE );
 
-	sv_MOTD = Cvar_Get( "sv_MOTD", "0", CVAR_ARCHIVE );
-	sv_MOTDFile = Cvar_Get( "sv_MOTDFile", "", CVAR_ARCHIVE );
-	sv_MOTDString = Cvar_Get( "sv_MOTDString", "", CVAR_ARCHIVE );
-	SV_MOTD_Update();
-
 	// this is a message holder for shared use
 	MSG_Init( &tmpMessage, tmpMessageData, sizeof( tmpMessageData ) );
 
 	// init server updates ratio
-	if( dedicated->integer ) {
+	if( is_dedicated_server ) {
 		sv_pps = Cvar_Get( "sv_pps", "20", CVAR_SERVERINFO | CVAR_NOSET );
 	} else {
 		sv_pps = Cvar_Get( "sv_pps", "20", CVAR_SERVERINFO );

@@ -22,51 +22,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 g_teamlist_t teamlist[GS_MAX_TEAMS];
 
-static void G_Gametype_GENERIC_Init( void ) {
-	level.gametype.spawnableItemsMask = ( IT_WEAPON | IT_AMMO | IT_POWERUP | IT_HEALTH );
-	level.gametype.respawnableItemsMask = ( IT_WEAPON | IT_AMMO | IT_POWERUP | IT_HEALTH );
-	level.gametype.dropableItemsMask = ( IT_WEAPON | IT_AMMO | IT_POWERUP | IT_HEALTH );
-	level.gametype.pickableItemsMask = ( level.gametype.spawnableItemsMask | level.gametype.dropableItemsMask );
-
-	level.gametype.isTeamBased = false;
-	level.gametype.isRace = false;
-	level.gametype.hasChallengersQueue = false;
-	level.gametype.hasChallengersRoulette = false;
-	level.gametype.maxPlayersPerTeam = 0;
-
-	level.gametype.ammo_respawn = 20;
-	level.gametype.weapon_respawn = 5;
-	level.gametype.health_respawn = 25;
-	level.gametype.powerup_respawn = 90;
-	level.gametype.megahealth_respawn = 20;
-	level.gametype.ultrahealth_respawn = 60;
-
-	level.gametype.countdownEnabled = false;
-	level.gametype.matchAbortDisabled = false;
-	level.gametype.canForceModels = true;
-	level.gametype.spawnpointRadius = 256;
-
-	level.gametype.numBots = 0;
-	level.gametype.dummyBots = false;
-
-	level.gametype.forceTeamHumans = TEAM_SPECTATOR;
-	level.gametype.forceTeamBots = TEAM_SPECTATOR;
-
-	level.gametype.mmCompatible = false;
-
-	trap_ConfigString( CS_SCB_PLAYERTAB_LAYOUT, "%n 164 %i 64 %l 48 %p 18 %p 18" );
-	trap_ConfigString( CS_SCB_PLAYERTAB_TITLES, "Name Score Ping C R" );
-}
-
 //==========================================================
 //					Matches
 //==========================================================
 
 cvar_t *g_warmup_timelimit;
-cvar_t *g_postmatch_timelimit;
 cvar_t *g_match_extendedtime;
 cvar_t *g_scorelimit;
-cvar_t *g_gametype;
 
 //==========================================================
 //					Matches
@@ -77,48 +39,6 @@ cvar_t *g_gametype;
 */
 game_state_t *G_GetGameState( void ) {
 	return &gs.gameState;
-}
-
-/*
-* G_Match_Tied
-*/
-bool G_Match_Tied( void ) {
-	int team, total, numteams;
-
-	total = 0; numteams = 0;
-	for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-		if( !teamlist[team].numplayers ) {
-			continue;
-		}
-
-		numteams++;
-		total += teamlist[team].stats.score;
-	}
-
-	if( numteams < 2 ) {
-		return false;
-	} else {
-
-		// total / numteams = averaged score
-		for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-			if( !teamlist[team].numplayers ) {
-				continue;
-			}
-
-			if( teamlist[team].stats.score != total / numteams ) {
-				return false;
-			}
-		}
-	}
-
-	return true;
-}
-
-/*
-* G_Match_CheckExtendPlayTime
-*/
-bool G_Match_CheckExtendPlayTime( void ) {
-	return false;
 }
 
 /*
@@ -215,7 +135,7 @@ void G_Match_Autorecord_Stats( void ) {
 		if( !ent->r.inuse || ent->s.team == TEAM_SPECTATOR || ( ent->r.svflags & SVF_FAKECLIENT ) ) {
 			continue;
 		}
-		trap_GameCmd( ent, va( "plstats 2 \"%s\"", G_StatsMessage( ent ) ) );
+		trap_GameCmd( ent, va( "plstats \"%s\"", G_StatsMessage( ent ) ) );
 	}
 }
 
@@ -280,12 +200,10 @@ static void G_Match_CheckStateAbort( void ) {
 	// if waiting, turn on match states when enough players joined
 	if( GS_MatchWaiting() && enough ) {
 		GS_GamestatSetFlag( GAMESTAT_FLAG_WAITING, false );
-		G_UpdatePlayersMatchMsgs();
 	}
 	// turn off active match states if not enough players left
 	else if( GS_MatchState() == MATCH_STATE_WARMUP && !enough && GS_MatchDuration() ) {
 		GS_GamestatSetFlag( GAMESTAT_FLAG_WAITING, true );
-		G_UpdatePlayersMatchMsgs();
 	} else if( GS_MatchState() == MATCH_STATE_COUNTDOWN && !enough ) {
 		if( any ) {
 			G_PrintMsg( NULL, "Not enough players left. Countdown aborted.\n" );
@@ -294,7 +212,6 @@ static void G_Match_CheckStateAbort( void ) {
 		G_Match_Autorecord_Cancel();
 		G_Match_LaunchState( MATCH_STATE_WARMUP );
 		GS_GamestatSetFlag( GAMESTAT_FLAG_WAITING, true );
-		G_UpdatePlayersMatchMsgs();
 	}
 	// match running, but not enough players left
 	else if( GS_MatchState() == MATCH_STATE_PLAYTIME && !enough ) {
@@ -312,14 +229,11 @@ static void G_Match_CheckStateAbort( void ) {
 void G_Match_LaunchState( int matchState ) {
 	static bool advance_queue = false;
 
-	if( game.asEngine != NULL ) {
-		// give the gametype a chance to refuse the state change, or to set up things for it
-		if( !GT_asCallMatchStateFinished( matchState ) ) {
-			return;
-		}
+	// give the gametype a chance to refuse the state change, or to set up things for it
+	if( !GT_asCallMatchStateFinished( matchState ) ) {
+		return;
 	}
 
-	GS_GamestatSetFlag( GAMESTAT_FLAG_MATCHEXTENDED, false );
 	GS_GamestatSetFlag( GAMESTAT_FLAG_WAITING, false );
 
 	if( matchState == MATCH_STATE_POSTMATCH ) {
@@ -367,7 +281,7 @@ void G_Match_LaunchState( int matchState ) {
 		case MATCH_STATE_POSTMATCH:
 		{
 			gs.gameState.stats[GAMESTAT_MATCHSTATE] = MATCH_STATE_POSTMATCH;
-			gs.gameState.stats[GAMESTAT_MATCHDURATION] = (int64_t)fabs( g_postmatch_timelimit->value * 1000 ); // postmatch time in seconds
+			gs.gameState.stats[GAMESTAT_MATCHDURATION] = 4000; // postmatch time in seconds
 			gs.gameState.stats[GAMESTAT_MATCHSTART] = game.serverTime;
 
 			G_Timeout_Reset();
@@ -386,7 +300,7 @@ void G_Match_LaunchState( int matchState ) {
 			}
 
 			gs.gameState.stats[GAMESTAT_MATCHSTATE] = MATCH_STATE_WAITEXIT;
-			gs.gameState.stats[GAMESTAT_MATCHDURATION] = 25000;
+			gs.gameState.stats[GAMESTAT_MATCHDURATION] = 3000;
 			gs.gameState.stats[GAMESTAT_MATCHSTART] = game.serverTime;
 
 			level.exitNow = false;
@@ -395,12 +309,7 @@ void G_Match_LaunchState( int matchState ) {
 	}
 
 	// give the gametype the chance to setup for the new state
-
-	if( game.asEngine != NULL ) {
-		GT_asCallMatchStateStarted();
-	}
-
-	G_UpdatePlayersMatchMsgs();
+	GT_asCallMatchStateStarted();
 }
 
 /*
@@ -439,21 +348,6 @@ bool G_Match_ScorelimitHit( void ) {
 }
 
 /*
-* G_Match_SuddenDeathFinished
-*/
-bool G_Match_SuddenDeathFinished( void ) {
-	if( GS_MatchState() != MATCH_STATE_PLAYTIME ) {
-		return false;
-	}
-
-	if( !GS_MatchExtended() || GS_MatchDuration() ) {
-		return false;
-	}
-
-	return G_Match_Tied() ? false : true;
-}
-
-/*
 * G_Match_TimelimitHit
 */
 bool G_Match_TimelimitHit( void ) {
@@ -472,81 +366,6 @@ bool G_Match_TimelimitHit( void ) {
 	}
 
 	return true;
-}
-
-#define G_ANNOUNCER_READYUP_DELAY 20000; // milliseconds
-
-/*
-* G_Match_ReadyAnnouncement
-*/
-static void G_Match_ReadyAnnouncement( void ) {
-	int i;
-	edict_t *e;
-	int team;
-	bool readyupwarnings = false;
-	int START_TEAM, END_TEAM;
-
-	if( !level.gametype.readyAnnouncementEnabled ) {
-		return;
-	}
-
-	// ready up announcements
-
-	if( GS_TeamBasedGametype() ) {
-		START_TEAM = TEAM_ALPHA;
-		END_TEAM = GS_MAX_TEAMS;
-	} else {
-		START_TEAM = TEAM_PLAYERS;
-		END_TEAM = TEAM_PLAYERS + 1;
-	}
-
-	for( team = START_TEAM; team < END_TEAM; team++ ) {
-		if( !teamlist[team].numplayers ) {
-			continue;
-		}
-
-		for( i = 0; i < teamlist[team].numplayers; i++ ) {
-			e = game.edicts + teamlist[team].playerIndices[i];
-			if( e->r.svflags & SVF_FAKECLIENT ) {
-				continue;
-			}
-
-			if( level.ready[teamlist[team].playerIndices[i] - 1] ) {
-				readyupwarnings = true;
-				break;
-			}
-		}
-	}
-
-	if( !readyupwarnings ) {
-		return;
-	}
-
-	// now let's repeat and warn
-	for( team = START_TEAM; team < END_TEAM; team++ ) {
-		if( !teamlist[team].numplayers ) {
-			continue;
-		}
-		for( i = 0; i < teamlist[team].numplayers; i++ ) {
-			if( !level.ready[teamlist[team].playerIndices[i] - 1] ) {
-				e = game.edicts + teamlist[team].playerIndices[i];
-				if( !e->r.client || trap_GetClientState( PLAYERNUM( e ) ) != CS_SPAWNED ) {
-					continue;
-				}
-
-				if( e->r.client->teamstate.readyUpWarningNext < game.realtime ) {
-					e->r.client->teamstate.readyUpWarningNext = game.realtime + G_ANNOUNCER_READYUP_DELAY;
-					e->r.client->teamstate.readyUpWarningCount++;
-					if( e->r.client->teamstate.readyUpWarningCount > 3 ) {
-						G_AnnouncerSound( e, "sounds/announcer/readyupalready", GS_MAX_TEAMS, true, NULL );
-						e->r.client->teamstate.readyUpWarningCount = 0;
-					} else {
-						G_AnnouncerSound( e, "sounds/announcer/pleasereadyup", GS_MAX_TEAMS, true, NULL );
-					}
-				}
-			}
-		}
-	}
 }
 
 /*
@@ -653,8 +472,6 @@ void G_Match_Ready( edict_t *ent ) {
 
 	G_PrintMsg( NULL, "%s%s is ready!\n", ent->r.client->netname, S_COLOR_WHITE );
 
-	G_UpdatePlayerMatchMsg( ent );
-
 	G_Match_CheckReadys();
 }
 
@@ -680,8 +497,6 @@ void G_Match_NotReady( edict_t *ent ) {
 	level.ready[PLAYERNUM( ent )] = false;
 
 	G_PrintMsg( NULL, "%s%s is no longer ready.\n", ent->r.client->netname, S_COLOR_WHITE );
-
-	G_UpdatePlayerMatchMsg( ent );
 
 	G_Match_CheckReadys();
 }
@@ -733,8 +548,6 @@ void G_Match_FreeBodyQueue( void ) {
 			ent->r.svflags = SVF_NOCLIENT;
 
 			ent->s.type = ET_GENERIC;
-			ent->s.skin = EMPTY_HASH;
-			ent->s.frame = 0;
 			ent->s.modelindex = 0;
 			ent->s.sound = EMPTY_HASH;
 			ent->s.effects = 0;
@@ -812,20 +625,6 @@ bool G_Gametype_CanDropItem( const gsitem_t *item, bool ignoreMatchState ) {
 	return ( itemmask & item->type ) ? true : false;
 }
 
-/*
-* G_Gametype_CanTeamDamage
-*/
-bool G_Gametype_CanTeamDamage( int damageflags ) {
-	if( damageflags & DAMAGE_NO_PROTECTION ) {
-		return true;
-	}
-
-	if( !GS_TeamBasedGametype() ) {
-		return true;
-	}
-
-	return g_allow_teamdamage->integer ? true : false;
-}
 
 /*
 * G_Gametype_RespawnTimeForItem
@@ -841,22 +640,6 @@ int G_Gametype_RespawnTimeForItem( const gsitem_t *item ) {
 
 	if( item->type & IT_WEAPON ) {
 		return level.gametype.weapon_respawn * 1000;
-	}
-
-	if( item->tag == HEALTH_MEGA ) {
-		return level.gametype.megahealth_respawn * 1000;
-	}
-
-	if( item->tag == HEALTH_ULTRA ) {
-		return level.gametype.ultrahealth_respawn * 1000;
-	}
-
-	if( item->type & IT_HEALTH ) {
-		return level.gametype.health_respawn * 1000;
-	}
-
-	if( item->type & IT_POWERUP ) {
-		return level.gametype.powerup_respawn * 1000;
 	}
 
 	return item->quantity * 1000;
@@ -890,9 +673,6 @@ static bool G_EachNewSecond( void ) {
 * G_CheckNumBots
 */
 static void G_CheckNumBots( void ) {
-	edict_t *ent;
-	int desiredNumBots;
-
 	if( level.spawnedTimeStamp + 5000 > game.realtime ) {
 		return;
 	}
@@ -906,67 +686,21 @@ static void G_CheckNumBots( void ) {
 		trap_Cvar_Set( "g_numbots", va( "%i", gs.maxclients ) );
 	}
 
-	if( level.gametype.numBots > gs.maxclients ) {
-		level.gametype.numBots = gs.maxclients;
-	}
-
-	desiredNumBots = level.gametype.numBots ? level.gametype.numBots : g_numbots->integer;
-
+	int desiredNumBots = g_numbots->integer;
 	if( desiredNumBots < game.numBots ) {
-		// kick one bot
-		for( ent = game.edicts + gs.maxclients; PLAYERNUM( ent ) >= 0; ent-- ) {
+		for( edict_t *ent = game.edicts + gs.maxclients; PLAYERNUM( ent ) >= 0; ent-- ) {
 			if( !ent->r.inuse || !( ent->r.svflags & SVF_FAKECLIENT ) ) {
 				continue;
 			}
-			AI_RemoveBot( ent->r.client->netname );
+			trap_DropClient( ent, DROP_TYPE_GENERAL, NULL );
+			game.numBots--;
 			break;
 		}
-		return;
 	}
-
-	if( desiredNumBots > game.numBots ) { // add a bot if there is room
-		for( ent = game.edicts + 1; PLAYERNUM( ent ) < gs.maxclients && game.numBots < desiredNumBots; ent++ ) {
+	else if( desiredNumBots > game.numBots ) {
+		for( edict_t *ent = game.edicts + 1; PLAYERNUM( ent ) < gs.maxclients && game.numBots < desiredNumBots; ent++ ) {
 			if( !ent->r.inuse && trap_GetClientState( PLAYERNUM( ent ) ) == CS_FREE ) {
-				AI_SpawnBot( NULL );
-			}
-		}
-	}
-}
-
-/*
-* G_TickOutPowerUps
-*/
-static void G_TickOutPowerUps( void ) {
-	edict_t *ent;
-	const gsitem_t *item;
-	int i;
-
-	for( ent = game.edicts + 1; PLAYERNUM( ent ) < gs.maxclients; ent++ ) {
-		if( ent->r.inuse && trap_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
-			for( i = POWERUP_QUAD; i < POWERUP_TOTAL; i++ ) {
-				item = GS_FindItemByTag( i );
-				if( item && item->quantity && ent->r.client->ps.inventory[item->tag] > 0 ) {
-					ent->r.client->ps.inventory[item->tag]--;
-				}
-			}
-		}
-	}
-
-	// also tick out dropped powerups
-	for( ent = game.edicts + gs.maxclients + BODY_QUEUE_SIZE; ENTNUM( ent ) < game.numentities; ent++ ) {
-		if( !ent->r.inuse || !ent->item ) {
-			continue;
-		}
-
-		if( !( ent->item->type & IT_POWERUP ) ) {
-			continue;
-		}
-
-		if( ent->spawnflags & DROPPED_ITEM ) {
-			ent->count--;
-			if( ent->count <= 0 ) {
-				G_FreeEdict( ent );
-				continue;
+				AI_SpawnBot();
 			}
 		}
 	}
@@ -1041,9 +775,7 @@ void G_Gametype_ScoreEvent( gclient_t *client, const char *score_event, const ch
 		return;
 	}
 
-	if( game.asEngine != NULL ) {
-		GT_asCallScoreEvent( client, score_event, args );
-	}
+	GT_asCallScoreEvent( client, score_event, args );
 }
 
 /*
@@ -1056,21 +788,15 @@ void G_RunGametype( void ) {
 
 	G_UpdateScoreBoardMessages();
 
-	//check gametype specific rules
-	if( game.asEngine != NULL ) {
-		GT_asCallThinkRules();
-	}
+	GT_asCallThinkRules();
 
 	if( G_EachNewSecond() ) {
 		G_CheckNumBots();
-		G_TickOutPowerUps();
 	}
 
 	if( G_EachNewMinute() ) {
 		G_CheckEvenTeam();
 	}
-
-	G_Match_ReadyAnnouncement();
 
 	G_asGarbageCollect( false );
 }
@@ -1083,7 +809,7 @@ void G_RunGametype( void ) {
 * G_Gametype_SetDefaults
 */
 void G_Gametype_SetDefaults( void ) {
-	level.gametype.spawnableItemsMask = ( IT_WEAPON | IT_AMMO | IT_POWERUP | IT_HEALTH );
+	level.gametype.spawnableItemsMask = IT_WEAPON | IT_AMMO;
 	level.gametype.respawnableItemsMask = level.gametype.spawnableItemsMask;
 	level.gametype.dropableItemsMask = level.gametype.spawnableItemsMask;
 	level.gametype.pickableItemsMask = level.gametype.spawnableItemsMask;
@@ -1097,9 +823,6 @@ void G_Gametype_SetDefaults( void ) {
 	level.gametype.ammo_respawn = 20;
 	level.gametype.weapon_respawn = 5;
 	level.gametype.health_respawn = 15;
-	level.gametype.powerup_respawn = 90;
-	level.gametype.megahealth_respawn = 20;
-	level.gametype.ultrahealth_respawn = 40;
 
 	level.gametype.readyAnnouncementEnabled = false;
 	level.gametype.scoreAnnouncementEnabled = false;
@@ -1110,70 +833,67 @@ void G_Gametype_SetDefaults( void ) {
 	level.gametype.canForceModels = true;
 	level.gametype.customDeadBodyCam = false;
 	level.gametype.removeInactivePlayers = true;
-	level.gametype.disableObituaries = false;
+	level.gametype.selfDamage = true;
 
 	level.gametype.spawnpointRadius = 64;
+}
 
-	level.gametype.numBots = 0;
-	level.gametype.dummyBots = false;
+// this is pretty dirty, parse the first entity and grab the gametype key
+// do no validation, G_SpawnEntities will catch it
+static bool IsGladiatorMap() {
+	const char * entities = level.mapString;
+	COM_Parse( &entities ); // {
 
-	level.gametype.forceTeamHumans = TEAM_SPECTATOR;
-	level.gametype.forceTeamBots = TEAM_SPECTATOR;
+	while( true ) {
+		char key[ MAX_TOKEN_CHARS ];
+		COM_Parse_r( key, sizeof( key ), &entities );
 
-	level.gametype.mmCompatible = false;
+		char value[ MAX_TOKEN_CHARS ];
+		COM_Parse_r( value, sizeof( value ), &entities );
+
+		if( entities == NULL || strcmp( key, "}" ) == 0 )
+			break;
+
+		if( strcmp( key, "gametype" ) == 0 )
+			return strcmp( value, "gladiator" ) == 0;
+	}
+
+	return false;
 }
 
 /*
 * G_Gametype_Init
 */
 void G_Gametype_Init( void ) {
-	bool changed = false;
-
-	if( !g_gametype ) { // first time initialized
-		changed = true;
-	}
-
-	g_gametype = trap_Cvar_Get( "g_gametype", "bomb", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_LATCH | CVAR_READONLY );
-
 	// get the match cvars too
 	g_warmup_timelimit = trap_Cvar_Get( "g_warmup_timelimit", "5", CVAR_ARCHIVE );
-	g_postmatch_timelimit = trap_Cvar_Get( "g_postmatch_timelimit", "4", CVAR_ARCHIVE );
 	g_match_extendedtime = trap_Cvar_Get( "g_match_extendedtime", "2", CVAR_ARCHIVE );
 
 	// game settings
 	g_scorelimit = trap_Cvar_Get( "g_scorelimit", "10", CVAR_ARCHIVE );
-	g_allow_teamdamage = trap_Cvar_Get( "g_allow_teamdamage", "0", CVAR_ARCHIVE | CVAR_READONLY );
+
+	const char * gt = IsGladiatorMap() ? "gladiator" : "bomb";
 
 	G_Printf( "-------------------------------------\n" );
-	G_Printf( "Initalizing '%s' gametype\n", g_gametype->string );
+	G_Printf( "Initalizing '%s' gametype\n", gt );
 
-	if( changed ) {
-		const char *configs_path = "configs/server/gametypes/";
+	const char *configs_path = "configs/server/gametypes/";
 
-		G_InitChallengersQueue();
+	G_InitChallengersQueue();
 
-		// print a hint for admins so they know there's a chance to execute a
-		// config here, but don't show it as an error, because it isn't
-		G_Printf( "loading %s%s.cfg\n", configs_path, g_gametype->string );
-		trap_Cmd_ExecuteText( EXEC_NOW, va( "exec %s%s.cfg silent\n", configs_path, g_gametype->string ) );
-		trap_Cbuf_Execute();
-
-		// on a listen server, override gametype-specific settings in config
-		trap_Cmd_ExecuteText( EXEC_NOW, "vstr ui_startservercmd\n" );
-		trap_Cbuf_Execute();
-	}
+	// print a hint for admins so they know there's a chance to execute a
+	// config here, but don't show it as an error, because it isn't
+	G_Printf( "loading %s%s.cfg\n", configs_path, gt );
+	trap_Cmd_ExecuteText( EXEC_NOW, va( "exec %s%s.cfg silent\n", configs_path, gt ) );
+	trap_Cbuf_Execute();
 
 	G_CheckCvars();
 
 	G_Gametype_SetDefaults();
 
-	// most GT_InitGametype implementations rely on gs.gametypeName being set for checking their default config file
-	GS_SetGametypeName( g_gametype->string );
-
-	// Init the current gametype
-	if( !GT_asLoadScript( g_gametype->string ) ) {
-		G_Gametype_GENERIC_Init();
+	if( !GT_asLoadScript( gt ) ) {
+		G_Error( "Failed to load %s", gt );
 	}
 
-	trap_ConfigString( CS_GAMETYPENAME, g_gametype->string );
+	trap_ConfigString( CS_GAMETYPENAME, gt );
 }

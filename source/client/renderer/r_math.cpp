@@ -82,97 +82,6 @@ void Matrix4_MultiplyFast( const mat4_t m1, const mat4_t m2, mat4_t out ) {
 	out[15] = 1.0f;
 }
 
-#if defined ( id386 ) && ( defined ( __GNUC__ ) && defined ( __SSE__ ) ) ||  ( defined ( _WIN32 ) && ( _MSC_VER >= 1400 ) ) && 0
-
-#include <xmmintrin.h>
-
-static inline __m128 lincomb_SSE( const __m128 a, const float *m )
-{
-	__m128 result;
-	result = _mm_mul_ps( _mm_shuffle_ps( a, a, 0x00 ), _mm_load_ps( m ) );
-	result = _mm_add_ps( result, _mm_mul_ps( _mm_shuffle_ps( a, a, 0x55 ), _mm_load_ps( m + 4 ) ) );
-	result = _mm_add_ps( result, _mm_mul_ps( _mm_shuffle_ps( a, a, 0xaa ), _mm_load_ps( m + 8 ) ) );
-	result = _mm_add_ps( result, _mm_mul_ps( _mm_shuffle_ps( a, a, 0xff ), _mm_load_ps( m + 12 ) ) );
-	return result;
-}
-
-void Matrix4_MultiplySSE( const mat4_t m1, const mat4_t m2, mat4_t out ) {
-	float *fo = &out[0];
-	const float *fm1 = &m2[0], *fm2 = &m1[0];
-	__m128 out0x = lincomb_SSE( _mm_load_ps( fm1 ), fm2 );
-	__m128 out1x = lincomb_SSE( _mm_load_ps( fm1 + 4 ), fm2 );
-	__m128 out2x = lincomb_SSE( _mm_load_ps( fm1 + 8 ), fm2 );
-	__m128 out3x = lincomb_SSE( _mm_load_ps( fm1 + 12 ), fm2 );
-	_mm_store_ps( fo     , out0x );
-	_mm_store_ps( fo + 4 , out1x );
-	_mm_store_ps( fo + 8 , out2x );
-	_mm_store_ps( fo + 12 , out3x );
-}
-
-#else
-
-void Matrix4_MultiplySSE( const mat4_t m1, const mat4_t m2, mat4_t out ) {
-	Matrix4_Multiply( m1, m2, out );
-}
-
-#endif
-
-// Taken from Darkplaces source code
-// Adapted from code contributed to Mesa by David Moore (Mesa 7.6 under SGI Free License B - which is MIT/X11-type)
-// added helper for common subexpression elimination by eihrul, and other optimizations by div0
-bool Matrix4_Invert( const mat4_t in, mat4_t out ) {
-	vec_t det;
-
-	// note: orientation does not matter, as transpose(invert(transpose(m))) == invert(m), proof:
-	//   transpose(invert(transpose(m))) * m
-	// = transpose(invert(transpose(m))) * transpose(transpose(m))
-	// = transpose(transpose(m) * invert(transpose(m)))
-	// = transpose(identity)
-	// = identity
-
-	// this seems to help gcc's common subexpression elimination, and also makes the code look nicer
-	vec_t m00 = in[0], m01 = in[1], m02 = in[2], m03 = in[3],
-		  m10 = in[4], m11 = in[5], m12 = in[6], m13 = in[7],
-		  m20 = in[8], m21 = in[9], m22 = in[10], m23 = in[11],
-		  m30 = in[12], m31 = in[13], m32 = in[14], m33 = in[15];
-
-	// calculate the adjoint
-	out[0] =  ( m11 * ( m22 * m33 - m23 * m32 ) - m21 * ( m12 * m33 - m13 * m32 ) + m31 * ( m12 * m23 - m13 * m22 ) );
-	out[1] = -( m01 * ( m22 * m33 - m23 * m32 ) - m21 * ( m02 * m33 - m03 * m32 ) + m31 * ( m02 * m23 - m03 * m22 ) );
-	out[2] =  ( m01 * ( m12 * m33 - m13 * m32 ) - m11 * ( m02 * m33 - m03 * m32 ) + m31 * ( m02 * m13 - m03 * m12 ) );
-	out[3] = -( m01 * ( m12 * m23 - m13 * m22 ) - m11 * ( m02 * m23 - m03 * m22 ) + m21 * ( m02 * m13 - m03 * m12 ) );
-	out[4] = -( m10 * ( m22 * m33 - m23 * m32 ) - m20 * ( m12 * m33 - m13 * m32 ) + m30 * ( m12 * m23 - m13 * m22 ) );
-	out[5] =  ( m00 * ( m22 * m33 - m23 * m32 ) - m20 * ( m02 * m33 - m03 * m32 ) + m30 * ( m02 * m23 - m03 * m22 ) );
-	out[6] = -( m00 * ( m12 * m33 - m13 * m32 ) - m10 * ( m02 * m33 - m03 * m32 ) + m30 * ( m02 * m13 - m03 * m12 ) );
-	out[7] =  ( m00 * ( m12 * m23 - m13 * m22 ) - m10 * ( m02 * m23 - m03 * m22 ) + m20 * ( m02 * m13 - m03 * m12 ) );
-	out[8] =  ( m10 * ( m21 * m33 - m23 * m31 ) - m20 * ( m11 * m33 - m13 * m31 ) + m30 * ( m11 * m23 - m13 * m21 ) );
-	out[9] = -( m00 * ( m21 * m33 - m23 * m31 ) - m20 * ( m01 * m33 - m03 * m31 ) + m30 * ( m01 * m23 - m03 * m21 ) );
-	out[10] =  ( m00 * ( m11 * m33 - m13 * m31 ) - m10 * ( m01 * m33 - m03 * m31 ) + m30 * ( m01 * m13 - m03 * m11 ) );
-	out[11] = -( m00 * ( m11 * m23 - m13 * m21 ) - m10 * ( m01 * m23 - m03 * m21 ) + m20 * ( m01 * m13 - m03 * m11 ) );
-	out[12] = -( m10 * ( m21 * m32 - m22 * m31 ) - m20 * ( m11 * m32 - m12 * m31 ) + m30 * ( m11 * m22 - m12 * m21 ) );
-	out[13] =  ( m00 * ( m21 * m32 - m22 * m31 ) - m20 * ( m01 * m32 - m02 * m31 ) + m30 * ( m01 * m22 - m02 * m21 ) );
-	out[14] = -( m00 * ( m11 * m32 - m12 * m31 ) - m10 * ( m01 * m32 - m02 * m31 ) + m30 * ( m01 * m12 - m02 * m11 ) );
-	out[15] =  ( m00 * ( m11 * m22 - m12 * m21 ) - m10 * ( m01 * m22 - m02 * m21 ) + m20 * ( m01 * m12 - m02 * m11 ) );
-
-	// calculate the determinant (as inverse == 1/det * adjoint, adjoint * m == identity * det,
-	// so this calculates the det)
-	det = m00 * out[0] + m10 * out[1] + m20 * out[2] + m30 * out[3];
-	if( det == 0.0f ) {
-		return false;
-	}
-
-	// multiplications are faster than divisions, usually
-	det = 1.0f / det;
-
-	// manually unrolled loop to multiply all matrix elements by 1/det
-	out[0] *= det; out[1] *= det; out[2] *= det; out[3] *= det;
-	out[4] *= det; out[5] *= det; out[6] *= det; out[7] *= det;
-	out[8] *= det; out[9] *= det; out[10] *= det; out[11] *= det;
-	out[12] *= det; out[13] *= det; out[14] *= det; out[15] *= det;
-
-	return true;
-}
-
 void Matrix4_FromQuaternion( const quat_t q, mat4_t out ) {
 	mat3_t m;
 
@@ -183,18 +92,6 @@ void Matrix4_FromQuaternion( const quat_t q, mat4_t out ) {
 	out[8 ] = m[2], out[9 ] = m[5], out[10] = m[8], out[11] = 0;
 	out[12] = 0,    out[13] = 0,    out[14] = 0,    out[15] = 1;
 
-}
-
-void Matrix4_FromDualQuaternion( const dualquat_t dq, mat4_t out ) {
-	vec3_t v;
-	mat3_t m;
-
-	DualQuat_ToMatrix3AndVector( dq, m, v );
-
-	out[0 ] = m[0], out[1 ] = m[3], out[2 ] = m[6], out[3 ] = 0;
-	out[4 ] = m[1], out[5 ] = m[4], out[6 ] = m[7], out[7 ] = 0;
-	out[8 ] = m[2], out[9 ] = m[5], out[10] = m[8], out[11] = 0;
-	out[12] = v[0], out[13] = v[1], out[14] = v[2], out[15] = 1;
 }
 
 void Matrix4_Rotate( mat4_t m, vec_t angle, vec_t x, vec_t y, vec_t z ) {
@@ -370,57 +267,10 @@ void Matrix4_OrthoProjection( vec_t left, vec_t right, vec_t bottom, vec_t top,
 }
 
 /*
-* Matrix4_InfiniteOrthoProjection
-*/
-void Matrix4_InfiniteOrthoProjection( vec_t left, vec_t right, vec_t bottom, vec_t top,
-										   mat4_t m ) {
-	m[0] = 2.0f / ( right - left );
-	m[1] = 0.0f;
-	m[2] = 0.0f;
-	m[3] = 0.0f;
-
-	m[4] = 0.0f;
-	m[5] = 2.0f / ( top - bottom );
-	m[6] = 0.0f;
-	m[7] = 0.0f;
-
-	m[8] = 0.0f;
-	m[9] = 0.0f;
-	m[10] = 0.0f;
-	m[11] = 0.0f;
-
-	m[12] = -( right + left ) / ( right - left );
-	m[13] = -( top + bottom ) / ( top - bottom );
-	m[14] = -1.0f;
-	m[15] = 1.0f;
-}
-
-/*
 * Matrix4_PerspectiveProjection
 */
-void Matrix4_PerspectiveProjection( vec_t fov_x, vec_t fov_y, vec_t near, vec_t far, mat4_t m ) {
-	m[0] = 1.0f / tan( fov_x * M_PI / 360.0 );
-	m[1] = 0.0f;
-	m[2] = 0.0f;
-	m[3] = 0.0f;
-	m[4] = 0.0f;
-	m[5] = 1.0f / tan( fov_y * M_PI / 360.0 );
-	m[6] = 0.0f;
-	m[7] = 0.0f;
-	m[8] = 0.0f;
-	m[9] = 0.0f;
-	m[10] = -( far + near ) / ( far - near );
-	m[11] = -1.0f;
-	m[12] = 0.0f;
-	m[13] = 0.0f;
-	m[14] = -( 2.0 * far * near ) / ( far - near );
-	m[15] = 0.0f;
-}
-
-/*
-* Matrix4_InfinitePerspectiveProjection
-*/
-void Matrix4_InfinitePerspectiveProjection( vec_t fov_x, vec_t fov_y, vec_t near, mat4_t m, vec_t epsilon ) {
+void Matrix4_PerspectiveProjection( vec_t fov_x, vec_t fov_y, vec_t near, mat4_t m ) {
+	constexpr float epsilon = 1.0f / ( 1 << 22 );
 	m[0] = 1.0f / tan( fov_x * M_PI / 360.0 );
 	m[1] = 0.0f;
 	m[2] = 0.0f;
@@ -437,14 +287,6 @@ void Matrix4_InfinitePerspectiveProjection( vec_t fov_x, vec_t fov_y, vec_t near
 	m[13] = 0.0f;
 	m[14] = ( epsilon - 2.0f ) * near;
 	m[15] = 0.0f;
-}
-
-/*
-* Matrix4_PerspectiveProjectionToInfinity
-*/
-void Matrix4_PerspectiveProjectionToInfinity( vec_t near, mat4_t m, vec_t epsilon ) {
-	m[10] = epsilon - 1.0f;
-	m[14] = ( epsilon - 2.0f ) * near;
 }
 
 /*
@@ -513,39 +355,4 @@ void Matrix4_QuakeModelview( const vec3_t viewOrg, const mat3_t viewAxis, mat4_t
 
 	Matrix4_Modelview( viewOrg, viewAxis, view );
 	Matrix4_Multiply( flip, view, m );
-}
-
-/*
-* Matrix4_CropMatrixParams
-*/
-void Matrix4_CropMatrixParams( const vec3_t corners[8], const mat4_t m, vec_t *out ) {
-	int i, j;
-	vec3_t mins, maxs;
-
-	// compute the off-center orthographic projection parameters to fit corners into the view
-	for( i = 0; i < 8; i++ ) {
-		vec4_t c = { 0, 0, 0, 1 }, vv;
-
-		VectorCopy( corners[i], c );
-		Matrix4_Multiply_Vector( m, c, vv );
-
-		if( i == 0 ) {
-			for( j = 0; j < 3; j++ ) {
-				mins[j] = vv[j];
-				maxs[j] = vv[j];
-			}
-		} else {
-			for( j = 0; j < 3; j++ ) {
-				mins[j] = min( mins[j], vv[j] );
-				maxs[j] = max( maxs[j], vv[j] );
-			}
-		}
-	}
-
-	out[0] = mins[0];
-	out[1] = maxs[0];
-	out[2] = mins[1];
-	out[3] = maxs[1];
-	out[4] = mins[2];
-	out[5] = maxs[2];
 }

@@ -149,21 +149,6 @@ void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, const vec3
 		VectorCopy( vec3_origin, dir );
 	} else {
 		VectorNormalize2( basedir, dir );
-
-		//#define ACCENT_SCALE 2.0f
-#ifdef ACCENT_SCALE
-
-		// accent the vertical or horizontal aspect of the direction
-		if( VectorLengthFast( tv( dir[0], dir[1], 0 ) ) > dir[2] ) {
-			dir[0] *= ACCENT_SCALE;
-			dir[1] *= ACCENT_SCALE;
-		} else {
-			dir[2] *= ACCENT_SCALE;
-		}
-
-		VectorNormalizeFast( dir );
-#endif
-#undef ACCENT_SCALE
 	}
 
 	frac = (float)damage / ( damage + client->resp.snap.damageTaken );
@@ -193,25 +178,18 @@ void G_ClientDamageFeedback( edict_t *ent ) {
 	}
 
 	// add hitsounds from given damage
-	if( ent->snap.damage_given || ent->snap.damageteam_given || ent->snap.kill || ent->snap.teamkill ) {
-		// we can't make team damage hit sound at the same time as we do damage hit sound
-		// let's determine what's more relevant
-		if( ent->snap.teamkill || ent->snap.damageteam_given > 50 ||
-			( ent->snap.damageteam_given > 2 * ent->snap.damage_given && !ent->snap.kill ) ) {
-			G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 5 );
-		} else {
-			if( ent->snap.kill ) {
-				G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 4 );
-			} else if( ent->snap.damage_given >= 70 ) {
-				G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 0 );
-			} else if( ent->snap.damage_given >= 45 ) {
-				G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 1 );
-			} else if( ent->snap.damage_given >= 20 ) {
-				G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 2 );
-			} else {
-				G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 3 );
-			}
-		}
+	if( ent->snap.damageteam_given ) { //keep it in case we use a sound for teamhit
+		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 5 );
+	} else if( ent->snap.kill ) { //kill
+		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 4 );
+	} else if( ent->snap.damage_given >= 70 ) {
+		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 0 );
+	} else if( ent->snap.damage_given >= 45 ) {
+		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 1 );
+	} else if( ent->snap.damage_given >= 20 ) {
+		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 2 );
+	} else if( ent->snap.damage_given ) {
+		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 3 );
 	}
 }
 
@@ -223,7 +201,6 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 	int watertype, old_watertype;
 
 	if( ent->movetype == MOVETYPE_NOCLIP ) {
-		ent->air_finished = level.time + ( 12 * 1000 ); // don't need air
 		return;
 	}
 
@@ -265,51 +242,6 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 	}
 
 	//
-	// check for head just coming out of water
-	//
-	if( old_waterlevel == 3 && waterlevel != 3 ) {
-		if( ent->air_finished < level.time ) { // gasp for air
-			                                   // wsw : jal : todo : better variations of gasp sounds
-			G_AddEvent( ent, EV_SEXEDSOUND, 1, true );
-		} else if( ent->air_finished < level.time + 11000 ) {   // just break surface
-			                                                    // wsw : jal : todo : better variations of gasp sounds
-			G_AddEvent( ent, EV_SEXEDSOUND, 2, true );
-		}
-	}
-
-	//
-	// check for drowning
-	//
-	if( waterlevel == 3 ) {
-		// if out of air, start drowning
-		if( ent->air_finished < level.time ) { // drown!
-			if( ent->r.client->resp.next_drown_time < level.time && !G_IsDead( ent ) ) {
-				ent->r.client->resp.next_drown_time = level.time + 1000;
-
-				// take more damage the longer underwater
-				ent->r.client->resp.drowningDamage += 2;
-				if( ent->r.client->resp.drowningDamage > 15 ) {
-					ent->r.client->resp.drowningDamage = 15;
-				}
-
-				// wsw : jal : todo : better variations of gasp sounds
-				// play a gurp sound instead of a normal pain sound
-				if( HEALTH_TO_INT( ent->health ) - ent->r.client->resp.drowningDamage <= 0 ) {
-					G_AddEvent( ent, EV_SEXEDSOUND, 2, true );
-				} else {
-					G_AddEvent( ent, EV_SEXEDSOUND, 1, true );
-				}
-				ent->pain_debounce_time = level.time;
-
-				G_Damage( ent, world, world, vec3_origin, vec3_origin, ent->s.origin, ent->r.client->resp.drowningDamage, 0, 0, MOD_WATER );
-			}
-		}
-	} else {
-		ent->air_finished = level.time + 12000;
-		ent->r.client->resp.drowningDamage = 2;
-	}
-
-	//
 	// check for sizzle damage
 	//
 	if( waterlevel && ( ent->watertype & ( CONTENTS_LAVA | CONTENTS_SLIME ) ) ) {
@@ -329,27 +261,13 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 * G_SetClientEffects
 */
 static void G_SetClientEffects( edict_t *ent ) {
-	gclient_t *client = ent->r.client;
-
 	if( G_IsDead( ent ) || GS_MatchState() >= MATCH_STATE_POSTMATCH ) {
 		return;
-	}
-
-	if( client->ps.inventory[POWERUP_QUAD] > 0 ) {
-		ent->s.effects |= EF_QUAD;
-		if( client->ps.inventory[POWERUP_QUAD] < 6 ) {
-			ent->s.effects |= EF_EXPIRING_QUAD;
-		}
 	}
 
 	// show cheaters!!!
 	if( ent->flags & FL_GODMODE ) {
 		ent->s.effects |= EF_GODMODE;
-	}
-
-	// add chatting icon effect
-	if( ent->r.client->resp.snap.buttons & BUTTON_BUSYICON ) {
-		ent->s.effects |= EF_BUSYICON;
 	}
 }
 
@@ -368,17 +286,6 @@ static void G_SetClientSound( edict_t *ent ) {
 	} else {
 		ent->s.sound = EMPTY_HASH;
 	}
-}
-
-/*
-* G_SetClientFrame
-*/
-void G_SetClientFrame( edict_t *ent ) {
-	if( ent->s.type != ET_PLAYER ) {
-		return;
-	}
-
-	ent->s.frame = 0;
 }
 
 /*
@@ -411,7 +318,6 @@ void G_ClientEndSnapFrame( edict_t *ent ) {
 		G_SetClientStats( ent );
 		G_SetClientEffects( ent );
 		G_SetClientSound( ent );
-		G_SetClientFrame( ent );
 
 		client->ps.plrkeys = client->resp.snap.plrkeys;
 	}

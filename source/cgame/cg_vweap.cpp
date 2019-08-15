@@ -63,9 +63,6 @@ static void CG_ViewWeapon_UpdateProjectionSource( const vec3_t hand_origin, cons
 * CG_ViewWeapon_AddAngleEffects
 */
 static void CG_ViewWeapon_AddAngleEffects( vec3_t angles ) {
-	int i;
-	float delta;
-
 	if( !cg.view.drawWeapon ) {
 		return;
 	}
@@ -82,16 +79,9 @@ static void CG_ViewWeapon_AddAngleEffects( vec3_t angles ) {
 		angles[PITCH] += cg.xyspeed * cg.bobFracSin * 0.012;
 
 		// gun angles from delta movement
-		for( i = 0; i < 3; i++ ) {
-			delta = ( cg.oldFrame.playerState.viewangles[i] - cg.frame.playerState.viewangles[i] ) * cg.lerpfrac;
-			if( delta > 180 ) {
-				delta -= 360;
-			}
-			if( delta < -180 ) {
-				delta += 360;
-			}
-			clamp( delta, -45, 45 );
-
+		for( int i = 0; i < 3; i++ ) {
+			float delta = AngleNormalize180( ( cg.oldFrame.playerState.viewangles[i] - cg.frame.playerState.viewangles[i] ) * cg.lerpfrac );
+			delta = Clamp( -45.0f, delta, 45.0f );
 
 			if( i == YAW ) {
 				angles[ROLL] += 0.001 * delta;
@@ -116,6 +106,60 @@ static int CG_ViewWeapon_baseanimFromWeaponState( int weaponState ) {
 
 	return cg_gunbob->integer ? WEAPANIM_STANDBY : WEAPANIM_NOANIM;
 }
+
+/*
+* CG_FrameForTime
+* Returns the frame and interpolation fraction for current time in an animation started at a given time.
+* When the animation is finished it will return frame -1. Takes looping into account. Looping animations
+* are never finished.
+*/
+static float CG_FrameForTime( int *frame, int64_t curTime, int64_t startTimeStamp, float frametime, int firstframe, int lastframe, int loopingframes, bool forceLoop ) {
+	int64_t runningtime, framecount;
+	int curframe;
+	float framefrac;
+
+	if( curTime <= startTimeStamp ) {
+		*frame = firstframe;
+		return 0.0f;
+	}
+
+	if( firstframe == lastframe ) {
+		*frame = firstframe;
+		return 1.0f;
+	}
+
+	runningtime = curTime - startTimeStamp;
+	framefrac = ( (double)runningtime / (double)frametime );
+	framecount = (unsigned int)framefrac;
+	framefrac -= framecount;
+
+	curframe = firstframe + framecount;
+	if( curframe > lastframe ) {
+		if( forceLoop && !loopingframes ) {
+			loopingframes = lastframe - firstframe;
+		}
+
+		if( loopingframes ) {
+			unsigned int numloops;
+			unsigned int startcount;
+
+			startcount = ( lastframe - firstframe ) - loopingframes;
+
+			numloops = ( framecount - startcount ) / loopingframes;
+			curframe -= loopingframes * numloops;
+			if( loopingframes == 1 ) {
+				framefrac = 1.0f;
+			}
+		} else {
+			curframe = -1;
+		}
+	}
+
+	*frame = curframe;
+
+	return framefrac;
+}
+
 
 /*
 * CG_ViewWeapon_RefreshAnimation
@@ -171,7 +215,7 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 			viewweapon->eventAnimStartTime = cg.time;
 		}
 
-		framefrac = GS_FrameForTime( &curframe, cg.time, viewweapon->eventAnimStartTime, weaponInfo->frametime[viewweapon->eventAnim],
+		framefrac = CG_FrameForTime( &curframe, cg.time, viewweapon->eventAnimStartTime, weaponInfo->frametime[viewweapon->eventAnim],
 									 weaponInfo->firstframe[viewweapon->eventAnim], weaponInfo->lastframe[viewweapon->eventAnim],
 									 weaponInfo->loopingframes[viewweapon->eventAnim], false );
 
@@ -185,7 +229,7 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 	}
 
 	// find new frame for the current animation
-	framefrac = GS_FrameForTime( &curframe, cg.time, viewweapon->baseAnimStartTime, weaponInfo->frametime[viewweapon->baseAnim],
+	framefrac = CG_FrameForTime( &curframe, cg.time, viewweapon->baseAnimStartTime, weaponInfo->frametime[viewweapon->baseAnim],
 								 weaponInfo->firstframe[viewweapon->baseAnim], weaponInfo->lastframe[viewweapon->baseAnim],
 								 weaponInfo->loopingframes[viewweapon->baseAnim], true );
 
@@ -198,7 +242,7 @@ setupframe:
 		framefrac = 0;
 		viewweapon->ent.oldframe = curframe;
 	} else {
-		clamp( framefrac, 0, 1 );
+		framefrac = Clamp01( framefrac );
 		if( curframe != viewweapon->ent.frame ) {
 			viewweapon->ent.oldframe = viewweapon->ent.frame;
 		}
@@ -230,30 +274,19 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	vec3_t gunAngles;
 	vec3_t gunOffset;
 	float handOffset;
-	cgs_skeleton_t *skel;
 
 	CG_ViewWeapon_RefreshAnimation( viewweapon );
 
 	weaponInfo = CG_GetWeaponInfo( viewweapon->weapon );
 	viewweapon->ent.model = weaponInfo->model[WEAPMODEL_HAND];
-	viewweapon->ent.renderfx = RF_MINLIGHT | RF_WEAPONMODEL | RF_FORCENOLOD | RF_NOSHADOW;
+	viewweapon->ent.renderfx = RF_MINLIGHT | RF_WEAPONMODEL | RF_NOSHADOW;
 	viewweapon->ent.scale = 1.0f;
 	viewweapon->ent.customShader = EMPTY_HASH;
-	viewweapon->ent.customSkin = EMPTY_HASH;
 	viewweapon->ent.rtype = RT_MODEL;
-	viewweapon->ent.boneposes = viewweapon->ent.oldboneposes = NULL;
 	Vector4Set( viewweapon->ent.shaderRGBA, 255, 255, 255, 255 );
 
 	// calculate the entity position
 	VectorCopy( cg.view.origin, viewweapon->ent.origin );
-
-	skel = weaponInfo->skel[WEAPMODEL_HAND];
-	if( skel ) {
-		// get space in cache, interpolate, transform, link
-		viewweapon->ent.boneposes = viewweapon->ent.oldboneposes = CG_RegisterTemporaryExternalBoneposes( skel );
-		CG_LerpSkeletonPoses( skel, viewweapon->ent.frame, viewweapon->ent.oldframe, viewweapon->ent.boneposes, 1.0 - viewweapon->ent.backlerp );
-		CG_TransformBoneposes( skel, viewweapon->ent.boneposes, viewweapon->ent.boneposes );
-	}
 
 	// weapon config offsets
 	VectorAdd( weaponInfo->handpositionAngles, cg.predictedPlayerState.viewangles, gunAngles );
@@ -299,7 +332,7 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	if( cg_gun_fov->integer && !cg.predictedPlayerState.pmove.stats[PM_STAT_ZOOMTIME] ) {
 		float fracWeapFOV;
 		float gun_fov_y = WidescreenFov( bound( 20, cg_gun_fov->value, 160 ) );
-		float gun_fov_x = CalcHorizontalFov( gun_fov_y, scr_vrect.width, scr_vrect.height );
+		float gun_fov_x = CalcHorizontalFov( gun_fov_y, cgs.vidWidth, cgs.vidHeight );
 
 		fracWeapFOV = tan( DEG2RAD( gun_fov_x ) * 0.5f ) / cg.view.fracDistFOV;
 
@@ -327,7 +360,6 @@ void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
 
 	// update the other origins
 	VectorCopy( viewweapon->ent.origin, viewweapon->ent.origin2 );
-	VectorCopy( cg_entities[viewweapon->POVnum].ent.lightingOrigin, viewweapon->ent.lightingOrigin );
 
 	CG_AddColoredOutLineEffect( &viewweapon->ent, cg.effects, 0, 0, 0, viewweapon->ent.shaderRGBA[3] );
 	CG_AddEntityToScene( &viewweapon->ent );

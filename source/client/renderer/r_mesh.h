@@ -26,25 +26,25 @@ struct shader_s;
 #define MIN_RENDER_MESHES           2048
 
 typedef struct mesh_s {
-	unsigned short numVerts;
-	unsigned short numElems;
+	u16 numVerts;
+	u16 numElems;
 
-	elem_t              *elems;
+	u16 *elems;
 
-	vec4_t              *xyzArray;
-	vec4_t              *normalsArray;
-	vec4_t              *sVectorsArray;
-	vec2_t              *stArray;
-	byte_vec4_t         *colorsArray;
+	vec4_t *xyzArray;
+	vec4_t *normalsArray;
+	vec4_t *sVectorsArray;
+	vec2_t *stArray;
+	byte_vec4_t *colorsArray;
 
-	uint8_t             *blendIndices;
-	uint8_t             *blendWeights;
+	u8 *blendIndices;
+	u8 *blendWeights;
 } mesh_t;
 
 typedef struct {
 	unsigned int distKey;
 	uint64_t sortKey;
-	drawSurfaceType_t *drawSurf;
+	const drawSurfaceType_t *drawSurf;
 } sortedDrawSurf_t;
 
 typedef struct {
@@ -74,10 +74,10 @@ typedef struct {
 	volatile unsigned char *worldDrawSurfVis;
 } drawList_t;
 
-typedef void *(*drawSurf_cb)( const entity_t *, const struct shader_s *, void * );
+typedef void *(*drawSurf_cb)( const entity_t *, const struct shader_s *, const void * );
 
 typedef void (*flushBatchDrawSurf_cb)( void );
-typedef void (*batchDrawSurf_cb)( const entity_t *, const struct shader_s *, void *, bool );
+typedef void (*batchDrawSurf_cb)( const entity_t *, const struct shader_s *, const void *, bool );
 
 typedef void (*walkDrawSurf_cb_cb)( void *, const entity_t *, const struct shader_s *, void *, void *p );
-typedef void (*walkDrawSurf_cb)( const entity_t *, const struct shader_s *, void *, walkDrawSurf_cb_cb, void * );
+typedef void (*walkDrawSurf_cb)( const entity_t *, const struct shader_s *, const void *, walkDrawSurf_cb_cb, void * );

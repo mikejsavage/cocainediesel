@@ -19,11 +19,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // cl_main.c  -- client main loop
 
+#include "qcommon/base.h"
 #include "client.h"
 #include "qcommon/asyncstream.h"
 #include "qcommon/version.h"
 #include "qcommon/assets.h"
-#include "qalgo/hash.h"
+#include "qcommon/hash.h"
+#include "qcommon/csprng.h"
 #include "ftlib/ftlib_public.h"
 #include "renderer/r_frontend.h"
 
@@ -37,10 +39,6 @@ cvar_t *cl_shownet;
 
 cvar_t *cl_extrapolationTime;
 cvar_t *cl_extrapolate;
-
-cvar_t *cl_demoavi_video;
-cvar_t *cl_demoavi_audio;
-cvar_t *cl_demoavi_fps;
 
 //
 // userinfo
@@ -324,7 +322,7 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 */
 static void CL_Connect_Cmd_f( socket_type_t socket ) {
 	netadr_t serveraddress;
-	char *servername, password[64], autowatch[64] = { 0 };
+	char *servername, password[64];
 	const char *extension;
 	char *connectstring, *connectstring_base;
 	const char *tmp;
@@ -367,19 +365,12 @@ static void CL_Connect_Cmd_f( socket_type_t socket ) {
 	if( ( tmp = Q_strrstr( connectstring, "@" ) ) != NULL ) {
 		Q_strncpyz( password, connectstring, min( sizeof( password ),( tmp - connectstring + 1 ) ) );
 		Cvar_Set( "password", password );
-		connectstring = connectstring + ( tmp - connectstring ) + 1;
-	}
-
-	if( ( tmp = Q_strrstr( connectstring, "#" ) ) != NULL ) {
-		Q_strncpyz( autowatch, COM_RemoveColorTokens( tmp + 1 ), sizeof( autowatch ) );
-		connectstring[tmp - connectstring] = '\0';
+		connectstring += ( tmp - connectstring ) + 1;
 	}
 
 	if( ( tmp = Q_strrstr( connectstring, "/" ) ) != NULL ) {
 		connectstring[tmp - connectstring] = '\0';
 	}
-
-	Cvar_ForceSet( "autowatch", autowatch );
 
 	if( !NET_StringToAddress( connectstring, &serveraddress ) ) {
 		Mem_TempFree( connectstring_base );
@@ -497,13 +488,6 @@ void CL_FreeClipboardData( char *data ) {
 }
 
 /*
-* CL_OpenURLInBrowser
-*/
-void CL_OpenURLInBrowser( const char *url ) {
-	Sys_OpenURLInBrowser( url );
-}
-
-/*
 * CL_GetKeyDest
 */
 keydest_t CL_GetKeyDest( void ) {
@@ -514,10 +498,6 @@ keydest_t CL_GetKeyDest( void ) {
 * CL_SetKeyDest
 */
 void CL_SetKeyDest( keydest_t key_dest ) {
-	if( key_dest < key_game || key_dest > key_delegate ) {
-		Com_Error( ERR_DROP, "CL_SetKeyDest: invalid key_dest" );
-	}
-
 	if( cls.key_dest != key_dest ) {
 		CL_ClearInputState();
 		cls.key_dest = key_dest;
@@ -529,9 +509,6 @@ void CL_SetKeyDest( keydest_t key_dest ) {
 * CL_SetOldKeyDest
 */
 void CL_SetOldKeyDest( keydest_t key_dest ) {
-	if( key_dest < key_game || key_dest > key_delegate ) {
-		Com_Error( ERR_DROP, "CL_SetKeyDest: invalid key_dest" );
-	}
 	cls.old_key_dest = key_dest;
 }
 
@@ -584,6 +561,7 @@ static void CL_EndRegistration( void ) {
 	cls.registrationOpen = false;
 
 	FTLIB_TouchAllFonts();
+	TouchFonts();
 	UI_TouchAllAssets();
 	RF_EndRegistration();
 }
@@ -841,7 +819,7 @@ void CL_ServerReconnect_f( void ) {
 	cls.rejected = false;
 
 	CL_GameModule_Shutdown();
-	CL_SoundModule_StopAllSounds( true );
+	S_StopAllSounds( true );
 
 	Com_Printf( "Reconnecting...\n" );
 
@@ -1015,7 +993,6 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 			Com_Printf( "Command packet from remote host, ignored\n" );
 			return;
 		}
-		Sys_AppActivate();
 		s = MSG_ReadString( msg );
 		Cbuf_AddText( s );
 		Cbuf_AddText( "\n" );
@@ -1149,7 +1126,7 @@ void CL_ReadPackets( void ) {
 				continue;
 			}
 
-			if( cls.state == CA_DISCONNECTED || cls.state == CA_GETTING_TICKET || cls.state == CA_CONNECTING ) {
+			if( cls.state == CA_DISCONNECTED || cls.state == CA_CONNECTING ) {
 				Com_DPrintf( "%s: Not connected\n", NET_AddressToString( &address ) );
 				continue; // dump it if not connected
 			}
@@ -1352,10 +1329,6 @@ void CL_RequestNextDownload( void ) {
 
 		}
 		while( precache_check < CS_SOUNDS + MAX_SOUNDS && cl.configstrings[precache_check][0] ) {
-			if( cl.configstrings[precache_check][0] == '*' ) { // sexed sounds
-				precache_check++;
-				continue;
-			}
 			Q_strncpyz( tempname, cl.configstrings[precache_check++], sizeof( tempname ) );
 			if( !COM_FileExtension( tempname ) ) {
 				if( !FS_FirstExtension( tempname, SOUND_EXTENSIONS, NUM_SOUND_EXTENSIONS ) ) {
@@ -1461,7 +1434,7 @@ void CL_Precache_f( void ) {
 			CL_GameModule_Init();
 		} else {
 			CL_GameModule_Reset();
-			CL_SoundModule_StopAllSounds( false );
+			S_StopAllSounds( false );
 		}
 
 		cls.demo.play_ignore_next_frametime = true;
@@ -1543,36 +1516,29 @@ void CL_SetClientState( connstate_t state ) {
 	switch( state ) {
 		case CA_DISCONNECTED:
 			Con_Close();
-			UI_Refresh( true, true );
+			UI_Refresh();
 			UI_ShowMainMenu();
-			//UI_MenuMain ();
 			CL_SetKeyDest( key_menu );
-			//SCR_UpdateScreen();
 			break;
-		case CA_GETTING_TICKET:
 		case CA_CONNECTING:
 			cls.cgameActive = false;
 			Con_Close();
 			UI_HideMenu();
-			CL_SoundModule_StopBackgroundTrack();
+			S_StopBackgroundTrack();
 			CL_SetKeyDest( key_game );
-			//SCR_UpdateScreen();
 			break;
 		case CA_CONNECTED:
 			cls.cgameActive = false;
 			Con_Close();
 			Cvar_FixCheatVars();
-			//SCR_UpdateScreen();
 			break;
 		case CA_ACTIVE:
 			cl_connectChain[0] = '\0';
 			CL_EndRegistration();
 			Con_Close();
-			UI_Refresh( false, false );
+			UI_Refresh();
 			UI_HideMenu();
 			CL_SetKeyDest( key_game );
-			//SCR_UpdateScreen();
-			CL_AddReliableCommand( "svmotd 1" );
 			break;
 		default:
 			break;
@@ -1605,7 +1571,7 @@ void CL_InitMedia( void ) {
 
 	cls.mediaInitialized = true;
 
-	CL_SoundModule_StopAllSounds( true );
+	S_StopAllSounds( true );
 
 	// register console font and background
 	SCR_RegisterConsoleMedia();
@@ -1627,7 +1593,7 @@ void CL_ShutdownMedia( void ) {
 
 	cls.mediaInitialized = false;
 
-	CL_SoundModule_StopAllSounds( true );
+	S_StopAllSounds( true );
 
 	// shutdown cgame
 	CL_GameModule_Shutdown();
@@ -1646,7 +1612,7 @@ void CL_RestartMedia( void ) {
 		cls.mediaInitialized = false;
 	}
 
-	CL_SoundModule_StopAllSounds( true );
+	S_StopAllSounds( true );
 
 	// random seed to be shared among game modules so pseudo-random stuff is in sync
 	if( cls.state != CA_CONNECTED ) {
@@ -1657,6 +1623,7 @@ void CL_RestartMedia( void ) {
 	cls.mediaInitialized = true;
 
 	FTLIB_TouchAllFonts();
+	TouchFonts();
 
 	// register console font and background
 	SCR_RegisterConsoleMedia();
@@ -1710,10 +1677,6 @@ static void CL_InitLocal( void ) {
 
 	cl_shownet =        Cvar_Get( "cl_shownet", "0", 0 );
 	cl_timeout =        Cvar_Get( "cl_timeout", "120", 0 );
-	cl_demoavi_video =  Cvar_Get( "cl_demoavi_video", "1", CVAR_ARCHIVE );
-	cl_demoavi_audio =  Cvar_Get( "cl_demoavi_audio", "0", CVAR_ARCHIVE );
-	cl_demoavi_fps =    Cvar_Get( "cl_demoavi_fps", "30.3", CVAR_ARCHIVE );
-	cl_demoavi_fps->modified = true;
 
 	rcon_client_password =  Cvar_Get( "rcon_password", "", 0 );
 	rcon_address =      Cvar_Get( "rcon_address", "", 0 );
@@ -1737,14 +1700,11 @@ static void CL_InitLocal( void ) {
 	}
 
 	Cvar_Get( "clan", "", CVAR_USERINFO | CVAR_ARCHIVE );
-	Cvar_Get( "model", DEFAULT_PLAYERMODEL, CVAR_USERINFO | CVAR_ARCHIVE );
 	Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
 	Cvar_Get( "handicap", "0", CVAR_USERINFO | CVAR_ARCHIVE );
 
 	Cvar_Get( "cl_download_name", "", CVAR_READONLY );
 	Cvar_Get( "cl_download_percent", "0", CVAR_READONLY );
-
-	Cvar_Get( "color", "", CVAR_ARCHIVE | CVAR_USERINFO );
 
 	//
 	// register our commands
@@ -1764,7 +1724,6 @@ static void CL_InitLocal( void ) {
 	Cmd_AddCommand( "writeconfig", CL_WriteConfig_f );
 	Cmd_AddCommand( "showip", CL_ShowIP_f ); // jal : wsw : print our ip
 	Cmd_AddCommand( "demo", CL_PlayDemo_f );
-	Cmd_AddCommand( "demoavi", CL_PlayDemoToAvi_f );
 	Cmd_AddCommand( "next", CL_SetNext_f );
 	Cmd_AddCommand( "pingserver", CL_PingServer_f );
 	Cmd_AddCommand( "demopause", CL_PauseDemo_f );
@@ -1774,7 +1733,6 @@ static void CL_InitLocal( void ) {
 	Cmd_AddCommand( "downloadcancel", CL_DownloadCancel_f );
 
 	Cmd_SetCompletionFunc( "demo", CL_DemoComplete );
-	Cmd_SetCompletionFunc( "demoavi", CL_DemoComplete );
 }
 
 /*
@@ -1799,7 +1757,6 @@ static void CL_ShutdownLocal( void ) {
 	Cmd_RemoveCommand( "writeconfig" );
 	Cmd_RemoveCommand( "showip" );
 	Cmd_RemoveCommand( "demo" );
-	Cmd_RemoveCommand( "demoavi" );
 	Cmd_RemoveCommand( "next" );
 	Cmd_RemoveCommand( "pingserver" );
 	Cmd_RemoveCommand( "demopause" );
@@ -2012,7 +1969,7 @@ void CL_SendMessagesToServer( bool sendNow ) {
 	msg_t message;
 	uint8_t messageData[MAX_MSGLEN];
 
-	if( cls.state == CA_DISCONNECTED || cls.state == CA_GETTING_TICKET || cls.state == CA_CONNECTING ) {
+	if( cls.state == CA_DISCONNECTED || cls.state == CA_CONNECTING ) {
 		return;
 	}
 
@@ -2090,14 +2047,17 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 void CL_Frame( int realMsec, int gameMsec ) {
 	MICROPROFILE_SCOPEI( "Main", "CL_Frame", 0xffffffff );
 
+	cls.frame_arena = cls.frame_arena == &cls.frame_arenas[ 0 ] ? &cls.frame_arenas[ 1 ] : &cls.frame_arenas[ 0 ];
+	cls.frame_arena->clear();
+
+	u64 entropy[ 2 ];
+	CSPRNG_Bytes( entropy, sizeof( entropy ) );
+	cls.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
+
 	static int allRealMsec = 0, allGameMsec = 0, extraMsec = 0;
 	static float roundingMsec = 0.0f;
 	int minMsec;
 	float maxFps;
-
-	if( dedicated->integer ) {
-		return;
-	}
 
 	cls.monotonicTime += realMsec;
 	cls.realtime += realMsec;
@@ -2105,32 +2065,6 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	if( cls.demo.playing && cls.demo.play_ignore_next_frametime ) {
 		gameMsec = 0;
 		cls.demo.play_ignore_next_frametime = false;
-	}
-
-	if( cl_demoavi_fps->modified ) {
-		float newvalue = 1000.0f / (int)( 1000.0f / cl_demoavi_fps->value );
-		if( fabs( newvalue - cl_demoavi_fps->value ) > 0.001 ) {
-			Com_Printf( "cl_demoavi_fps value has been adjusted to %.4f\n", newvalue );
-		}
-
-		Cvar_SetValue( "cl_demoavi_fps", newvalue );
-		cl_demoavi_fps->modified = false;
-	}
-
-	// demoavi
-	if( ( cls.demo.avi || cls.demo.pending_avi ) && cls.state == CA_ACTIVE ) {
-		if( cls.demo.pending_avi && !cls.demo.avi ) {
-			cls.demo.pending_avi = false;
-			CL_BeginDemoAviDump();
-		}
-
-		// fixed time for next frame
-		if( cls.demo.avi_video ) {
-			gameMsec = ( 1000.0 / (double)cl_demoavi_fps->integer ) * Cvar_Value( "timescale" );
-			if( gameMsec < 1 ) {
-				gameMsec = 1;
-			}
-		}
 	}
 
 	if( cls.demo.playing ) {
@@ -2151,12 +2085,12 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	CL_UserInputFrame( realMsec );
 	CL_NetFrame( realMsec, gameMsec );
 
-	if( cl_maxfps->integer > 0 && !cls.demo.playing && !( cls.demo.avi_video && cls.state == CA_ACTIVE ) ) {
+	if( cl_maxfps->integer > 0 && !cls.demo.playing ) {
 		const int absMinFps = 24;
 
 		// do not allow setting cl_maxfps to very low values to prevent cheating
 		if( cl_maxfps->integer < absMinFps ) {
-			Cvar_ForceSet( "cl_maxfps", STR_TOSTR( absMinFps ) );
+			Cvar_ForceSet( "cl_maxfps", va( "%i", absMinFps ) );
 		}
 		maxFps = VID_AppIsActive() ? cl_maxfps->value : absMinFps;
 		minMsec = max( ( 1000.0f / maxFps ), 1 );
@@ -2185,11 +2119,9 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	cls.frametime = allGameMsec;
 	cls.realFrameTime = allRealMsec;
 	if( allRealMsec < minMsec ) { // is compensating for a too slow frame
-		extraMsec -= ( minMsec - allRealMsec );
-		clamp( extraMsec, 0, 100 );
+		extraMsec = Clamp( 0, extraMsec - ( minMsec - allRealMsec ), 100 );
 	} else {   // too slow, or exact frame
-		extraMsec = allRealMsec - minMsec;
-		clamp( extraMsec, 0, 100 );
+		extraMsec = Clamp( 0, allRealMsec - minMsec, 100 );
 	}
 
 	VID_CheckChanges();
@@ -2203,20 +2135,10 @@ void CL_Frame( int realMsec, int gameMsec ) {
 		time_after_ref = Sys_Milliseconds();
 	}
 
-	if( CL_WriteAvi() ) {
-		int frame = ++cls.demo.avi_frame;
-		if( cls.demo.avi_video ) {
-			re.WriteAviFrame( frame );
-		}
-	}
-
 	// update audio
 	if( cls.state != CA_ACTIVE && !cls.disable_screen ) {
-		CL_SoundModule_Update( vec3_origin, vec3_origin, axis_identity );
+		S_Update( vec3_origin, vec3_origin, axis_identity );
 	}
-
-	// advance local effects for next frame
-	SCR_RunConsole( allRealMsec );
 
 	allRealMsec = 0;
 	allGameMsec = 0;
@@ -2314,16 +2236,18 @@ void CL_AsyncStreamRequest( const char *url, const char **headers, int timeout, 
 * CL_Init
 */
 void CL_Init( void ) {
+	constexpr size_t frame_arena_size = 1024 * 1024;
+	void * frame_arena_memory = ALLOC( sys_allocator, frame_arena_size * 2, 16 );
+	cls.frame_arenas[ 0 ] = ArenaAllocator( frame_arena_memory, frame_arena_size );
+	cls.frame_arenas[ 1 ] = ArenaAllocator( ( u8 * ) frame_arena_memory + frame_arena_size, frame_arena_size );
+	cls.frame_arena = &cls.frame_arenas[ 0 ];
+
 	cls.monotonicTime = 0;
 
 	netadr_t address;
 
 	assert( !cl_initialized );
 
-	if( dedicated->integer ) {
-		return; // nothing running on the client
-
-	}
 	cl_initialized = true;
 
 	Assets_Init();
@@ -2379,7 +2303,7 @@ void CL_Shutdown( void ) {
 		return;
 	}
 
-	CL_SoundModule_StopAllSounds( true );
+	S_StopAllSounds( true );
 
 	ML_Shutdown();
 	CL_ShutDownServerList();
@@ -2397,7 +2321,7 @@ void CL_Shutdown( void ) {
 
 	UI_Shutdown();
 	CL_GameModule_Shutdown();
-	CL_SoundModule_Shutdown();
+	S_Shutdown();
 	CL_ShutdownInput();
 	VID_Shutdown();
 
@@ -2415,4 +2339,6 @@ void CL_Shutdown( void ) {
 
 	cls.state = CA_UNINITIALIZED;
 	cl_initialized = false;
+
+	FREE( sys_allocator, cls.frame_arenas[ 0 ].get_memory() );
 }

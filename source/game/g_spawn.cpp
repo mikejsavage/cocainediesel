@@ -20,7 +20,25 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "g_local.h"
 
-const field_t fields[] = {
+enum EntityFieldType {
+	F_INT,
+	F_FLOAT,
+	F_LSTRING,      // string on disk, pointer in memory, TAG_LEVEL
+	F_VECTOR,
+	F_ANGLE,
+	F_RGBA,
+};
+
+struct EntityField {
+	const char *name;
+	size_t ofs;
+	EntityFieldType type;
+	int flags;
+};
+
+#define FFL_SPAWNTEMP       1
+
+static const EntityField fields[] = {
 	{ "classname", FOFS( classname ), F_LSTRING },
 	{ "origin", FOFS( s.origin ), F_VECTOR },
 	{ "model", FOFS( model ), F_LSTRING },
@@ -32,7 +50,6 @@ const field_t fields[] = {
 	{ "pathtarget", FOFS( pathtarget ), F_LSTRING },
 	{ "killtarget", FOFS( killtarget ), F_LSTRING },
 	{ "message", FOFS( message ), F_LSTRING },
-	{ "helpmessage", FOFS( helpmessage ), F_LSTRING },
 	{ "team", FOFS( team ), F_LSTRING },
 	{ "wait", FOFS( wait ), F_FLOAT },
 	{ "delay", FOFS( delay ), F_FLOAT },
@@ -45,46 +62,34 @@ const field_t fields[] = {
 	{ "dmg", FOFS( dmg ), F_INT },
 	{ "angles", FOFS( s.angles ), F_VECTOR },
 	{ "mangle", FOFS( s.angles ), F_VECTOR },
-	{ "angle", FOFS( s.angles ), F_ANGLEHACK },
+	{ "angle", FOFS( s.angles ), F_ANGLE },
 	{ "mass", FOFS( mass ), F_INT },
 	{ "attenuation", FOFS( attenuation ), F_FLOAT },
-	{ "map", FOFS( map ), F_LSTRING },
 	{ "random", FOFS( random ), F_FLOAT },
 
 	// temp spawn vars -- only valid when the spawn function is called
 	{ "lip", STOFS( lip ), F_INT, FFL_SPAWNTEMP },
 	{ "distance", STOFS( distance ), F_INT, FFL_SPAWNTEMP },
 	{ "radius", STOFS( radius ), F_FLOAT, FFL_SPAWNTEMP },
-	{ "roll", STOFS( roll ), F_FLOAT, FFL_SPAWNTEMP },
 	{ "height", STOFS( height ), F_INT, FFL_SPAWNTEMP },
-	{ "phase", STOFS( phase ), F_FLOAT, FFL_SPAWNTEMP },
 	{ "noise", STOFS( noise ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "noise_start", STOFS( noise_start ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "noise_stop", STOFS( noise_stop ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "pausetime", STOFS( pausetime ), F_FLOAT, FFL_SPAWNTEMP },
 	{ "item", STOFS( item ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "gravity", STOFS( gravity ), F_LSTRING, FFL_SPAWNTEMP },
-	{ "music", STOFS( music ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "fov", STOFS( fov ), F_FLOAT, FFL_SPAWNTEMP },
-	{ "nextmap", STOFS( nextmap ), F_LSTRING, FFL_SPAWNTEMP },
-	{ "notsingle", STOFS( notsingle ), F_INT, FFL_SPAWNTEMP },
-	{ "notteam", STOFS( notteam ), F_INT, FFL_SPAWNTEMP },
-	{ "notfree", STOFS( notfree ), F_INT, FFL_SPAWNTEMP },
-	{ "notduel", STOFS( notduel ), F_INT, FFL_SPAWNTEMP },
-	{ "noents", STOFS( noents ), F_INT, FFL_SPAWNTEMP },
 	{ "gameteam", STOFS( gameteam ), F_INT, FFL_SPAWNTEMP },
 	{ "weight", STOFS( weight ), F_INT, FFL_SPAWNTEMP },
 	{ "scale", STOFS( scale ), F_FLOAT, FFL_SPAWNTEMP },
-	{ "gametype", STOFS( gametype ), F_LSTRING, FFL_SPAWNTEMP },
-	{ "not_gametype", STOFS( not_gametype ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "debris1", STOFS( debris1 ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "debris2", STOFS( debris2 ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "shaderName", STOFS( shaderName ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "size", STOFS( size ), F_INT, FFL_SPAWNTEMP },
+	{ "rgba", STOFS( rgba ), F_RGBA, FFL_SPAWNTEMP },
 
-	{ NULL, 0, F_INT, 0 }
+	{ }
 };
-
 
 typedef struct
 {
@@ -97,64 +102,50 @@ static void SP_worldspawn( edict_t *ent );
 spawn_t spawns[] = {
 	{ "info_player_start", SP_info_player_start },
 	{ "info_player_deathmatch", SP_info_player_deathmatch },
-	{ "info_player_intermission", SP_info_player_intermission },
+
+	{ "post_match_camera", SP_post_match_camera },
+	{ "info_player_intermission", SP_post_match_camera },
 
 	{ "func_plat", SP_func_plat },
 	{ "func_button", SP_func_button },
 	{ "func_door", SP_func_door },
 	{ "func_door_rotating", SP_func_door_rotating },
-	{ "func_door_secret", SP_func_door_secret },
-	{ "func_water", SP_func_water },
 	{ "func_rotating", SP_func_rotating },
 	{ "func_train", SP_func_train },
 	{ "func_timer", SP_func_timer },
-	{ "func_conveyor", SP_func_conveyor },
 	{ "func_wall", SP_func_wall },
 	{ "func_object", SP_func_object },
 	{ "func_explosive", SP_func_explosive },
-	{ "func_killbox", SP_func_killbox },
 	{ "func_static", SP_func_static },
-	{ "func_bobbing", SP_func_bobbing },
-	{ "func_pendulum", SP_func_pendulum },
 
 	{ "trigger_always", SP_trigger_always },
 	{ "trigger_once", SP_trigger_once },
 	{ "trigger_multiple", SP_trigger_multiple },
-	{ "trigger_relay", SP_trigger_relay },
 	{ "trigger_push", SP_trigger_push },
 	{ "trigger_hurt", SP_trigger_hurt },
-	{ "trigger_counter", SP_trigger_counter },
 	{ "trigger_elevator", SP_trigger_elevator },
 	{ "trigger_gravity", SP_trigger_gravity },
 
 	{ "target_explosion", SP_target_explosion },
-	{ "target_crosslevel_trigger", SP_target_crosslevel_trigger },
-	{ "target_crosslevel_target", SP_target_crosslevel_target },
 	{ "target_laser", SP_target_laser },
 	{ "target_position", SP_target_position },
 	{ "target_print", SP_target_print },
-	{ "target_give", SP_target_give },
-	{ "target_push", SP_info_notnull },
-	{ "target_changelevel", SP_target_changelevel },
-	{ "target_relay", SP_target_relay },
 	{ "target_delay", SP_target_delay },
 	{ "target_teleporter", SP_target_teleporter },
-	{ "target_kill", SP_target_kill },
 
 	{ "worldspawn", SP_worldspawn },
 
-	{ "info_null", SP_info_null },
-	{ "func_group", SP_info_null },
-	{ "info_notnull", SP_info_notnull },
 	{ "path_corner", SP_path_corner },
 
-	{ "misc_teleporter_dest", SP_misc_teleporter_dest },
-
 	{ "trigger_teleport", SP_trigger_teleport },
-	{ "info_teleport_destination", SP_info_teleport_destination },
+	{ "misc_teleporter_dest", SP_misc_teleporter_dest },
 
 	{ "misc_model", SP_misc_model },
 	{ "misc_particles", SP_misc_particles },
+
+	{ "model", SP_model },
+
+	{ "spikes", SP_spikes },
 
 	{ NULL, NULL }
 };
@@ -171,30 +162,6 @@ static const gsitem_t *G_ItemForEntity( edict_t *ent ) {
 }
 
 /*
-* G_GametypeFilterMatch
-*
-* Returns true if there's a direct match
-*/
-static bool G_GametypeFilterMatch( const char *filter ) {
-	const char *list_separators = ", ";
-	char *tok, *temp;
-	bool match = false;
-
-	temp = G_CopyString( filter );
-	tok = strtok( temp, list_separators );
-	while( tok ) {
-		if( !Q_stricmp( tok, gs.gametypeName ) ) {
-			match = true;
-			break;
-		}
-		tok = strtok( NULL, list_separators );
-	}
-	G_Free( temp );
-
-	return match;
-}
-
-/*
 * G_CanSpawnEntity
 */
 static bool G_CanSpawnEntity( edict_t *ent ) {
@@ -202,28 +169,6 @@ static bool G_CanSpawnEntity( edict_t *ent ) {
 
 	if( ent == world ) {
 		return true;
-	}
-
-	if( !GS_TeamBasedGametype() && st.notfree ) {
-		return false;
-	}
-	if( ( GS_TeamBasedGametype() && ( GS_MaxPlayersInTeam() == 1 ) ) && ( st.notduel || st.notfree ) ) {
-		return false;
-	}
-	if( ( GS_TeamBasedGametype() && ( GS_MaxPlayersInTeam() != 1 ) ) && st.notteam ) {
-		return false;
-	}
-
-	// check for Q3TA-style inhibition key
-	if( st.gametype ) {
-		if( !G_GametypeFilterMatch( st.gametype ) ) {
-			return false;
-		}
-	}
-	if( st.not_gametype ) {
-		if( G_GametypeFilterMatch( st.not_gametype ) ) {
-			return false;
-		}
 	}
 
 	if( ( item = G_ItemForEntity( ent ) ) != NULL ) {
@@ -374,10 +319,8 @@ static char *ED_NewString( const char *string ) {
 * in an edict
 */
 static void ED_ParseField( char *key, char *value, edict_t *ent ) {
-	const field_t *f;
+	const EntityField *f;
 	uint8_t *b;
-	float v;
-	vec3_t vec;
 
 	for( f = fields; f->name; f++ ) {
 		if( !Q_stricmp( f->name, key ) ) {
@@ -392,28 +335,29 @@ static void ED_ParseField( char *key, char *value, edict_t *ent ) {
 				case F_LSTRING:
 					*(char **)( b + f->ofs ) = ED_NewString( value );
 					break;
-				case F_VECTOR:
-					sscanf( value, "%f %f %f", &vec[0], &vec[1], &vec[2] );
-					( (float *)( b + f->ofs ) )[0] = vec[0];
-					( (float *)( b + f->ofs ) )[1] = vec[1];
-					( (float *)( b + f->ofs ) )[2] = vec[2];
-					break;
 				case F_INT:
 					*(int *)( b + f->ofs ) = atoi( value );
 					break;
 				case F_FLOAT:
 					*(float *)( b + f->ofs ) = atof( value );
 					break;
-				case F_ANGLEHACK:
-					v = atof( value );
+				case F_ANGLE:
 					( (float *)( b + f->ofs ) )[0] = 0;
-					( (float *)( b + f->ofs ) )[1] = v;
+					( (float *)( b + f->ofs ) )[1] = atof( value );
 					( (float *)( b + f->ofs ) )[2] = 0;
 					break;
-				case F_IGNORE:
-					break;
-				default:
-					break; // FIXME: Should this be error?
+
+				case F_VECTOR: {
+					vec3_t vec;
+					sscanf( value, "%f %f %f", &vec[0], &vec[1], &vec[2] );
+					( (float *)( b + f->ofs ) )[0] = vec[0];
+					( (float *)( b + f->ofs ) )[1] = vec[1];
+					( (float *)( b + f->ofs ) )[2] = vec[2];
+				} break;
+
+				case F_RGBA: {
+					*( int * ) ( b + f->ofs ) = COM_ReadColorRGBAString( value );
+				} break;
 			}
 			return;
 		}
@@ -475,9 +419,6 @@ static char *ED_ParseEdict( char *data, edict_t *ent ) {
 
 	if( !init ) {
 		ent->classname = NULL;
-	}
-	if( ent->classname && ent->helpmessage ) {
-		ent->mapmessage_index = G_RegisterHelpMessage( ent->helpmessage );
 	}
 
 	return data;
@@ -559,10 +500,8 @@ void G_PrecacheMedia( void ) {
 	// precache our basic player models, they are just a very few
 	trap_ModelIndex( "$models/players/bigvic" );
 
-	trap_SkinIndex( "models/players/bigvic/default" );
-
 	// FIXME: Temporarily use normal gib until the head is fixed
-	trap_ModelIndex( "models/objects/gibs/gib.md3" );
+	trap_ModelIndex( "models/objects/gibs/gib.glb" );
 }
 
 /*
@@ -595,7 +534,6 @@ static void G_SpawnEntities( void ) {
 	const gsitem_t *item;
 	char *entities;
 
-	game.levelSpawnCount++;
 	level.spawnedTimeStamp = game.realtime;
 	level.canSpawnEntities = true;
 
@@ -692,9 +630,7 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 	G_asGarbageCollect( true );
 
 	GT_asCallShutdown();
-	G_asCallMapExit();
 
-	G_asShutdownMapScript();
 	GT_asShutdownScript();
 
 	G_FreeCallvotes();
@@ -751,46 +687,27 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 
 	// initialize game subsystems
 	trap_ConfigString( CS_MAPNAME, level.mapname );
-	trap_ConfigString( CS_SKYBOX, "" );
 	trap_ConfigString( CS_STATNUMS, va( "%i %i %i", STAT_SCORE, STAT_HEALTH, STAT_LAST_KILLER ) );
-	trap_ConfigString( CS_POWERUPEFFECTS, va( "%i %i", EF_QUAD, EF_CARRIER ) );
 	trap_ConfigString( CS_SCB_PLAYERTAB_LAYOUT, "" );
 	trap_ConfigString( CS_SCB_PLAYERTAB_TITLES, "" );
 	trap_ConfigString( CS_MATCHNAME, "" );
 	trap_ConfigString( CS_MATCHSCORE, "" );
-
-	// reset map messages
-	for( i = 0; i < MAX_HELPMESSAGES; i++ ) {
-		trap_ConfigString( CS_HELPMESSAGES + i, "" );
-	}
 
 	G_InitGameCommands();
 	G_CallVotes_Init();
 	G_SpawnQueue_Init();
 	G_Teams_Init();
 
-	// load map script
-	G_asLoadMapScript( level.mapname );
 	G_Gametype_Init();
 
-	// ch : this would be the location to "transfer ratings"
 	G_PrecacheItems(); // set configstrings for items (gametype must be initialized)
 	G_PrecacheMedia();
 	G_PrecacheGameCommands(); // adding commands after this point won't update them to the client
-	AI_InitLevel();
 
 	// start spawning entities
 	G_SpawnEntities();
 
-	//
-	// initialize game subsystems which require entities initialized
-	//
-
-	// call gametype specific
 	GT_asCallSpawn();
-
-	// call map specific
-	G_asCallMapInit();
 
 	// always start in warmup match state and let the thinking code
 	// revert it to wait state if empty ( so gametype based item masks are setup )
@@ -811,11 +728,7 @@ void G_ResetLevel( void ) {
 
 	G_SpawnEntities();
 
-	// call gametype specific
 	GT_asCallSpawn();
-
-	// call map specific
-	G_asCallMapInit();
 }
 
 bool G_RespawnLevel( void ) {
@@ -823,18 +736,6 @@ bool G_RespawnLevel( void ) {
 	return true;
 }
 
-//===================================================================
-
-//QUAKED worldspawn (0 0 0) ?
-//
-//Only used for the world.
-//"sky"	environment map name
-//"skyaxis"	vector axis for rotating sky
-//"skyrotate"	speed of rotation in degrees/second
-//"sounds"	music cd track number
-//"gravity"	800 is default gravity
-//"message"	text to print at user logon
-//========================
 static void SP_worldspawn( edict_t *ent ) {
 	ent->movetype = MOVETYPE_PUSH;
 	ent->r.solid = SOLID_YES;
@@ -842,18 +743,6 @@ static void SP_worldspawn( edict_t *ent ) {
 	VectorClear( ent->s.origin );
 	VectorClear( ent->s.angles );
 	GClip_SetBrushModel( ent, "*0" ); // sets mins / maxs and modelindex 1
-
-	if( st.nextmap ) {
-		Q_strncpyz( level.nextmap, st.nextmap, sizeof( level.nextmap ) );
-	}
-
-	if( ent->message && ent->message[0] ) {
-		trap_ConfigString( CS_MESSAGE, ent->message );
-		Q_strncpyz( level.level_name, ent->message, sizeof( level.level_name ) );
-	} else {
-		trap_ConfigString( CS_MESSAGE, level.mapname );
-		Q_strncpyz( level.level_name, level.mapname, sizeof( level.level_name ) );
-	}
 
 	if( st.gravity ) {
 		level.gravity = atof( st.gravity );

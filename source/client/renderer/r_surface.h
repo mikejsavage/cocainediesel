@@ -24,9 +24,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 typedef enum {
 	ST_NONE,
 	ST_BSP,
-	ST_SKY,
 	ST_ALIAS,
-	ST_SKELETAL,
+	ST_GLTF,
+	ST_SKY,
 	ST_SPRITE,
 	ST_POLY,
 	ST_NULLMODEL,
@@ -59,16 +59,7 @@ typedef struct {
 	instancePoint_t *instances;
 
 	struct shader_s *shader;
-
-	void *listSurf;                 // only valid if visFrame == rf.frameCount
 } drawSurfaceBSP_t;
-
-typedef struct {
-	drawSurfaceType_t type;
-
-	float skyMins[2][6];
-	float skyMaxs[2][6];
-} drawSurfaceSky_t;
 
 typedef struct {
 	drawSurfaceType_t type;
@@ -77,14 +68,6 @@ typedef struct {
 
 	struct model_s *model;
 } drawSurfaceAlias_t;
-
-typedef struct {
-	drawSurfaceType_t type;
-
-	struct mskmesh_s *mesh;
-
-	struct model_s *model;
-} drawSurfaceSkeletal_t;
 
 typedef struct {
 	drawSurfaceType_t type;

@@ -32,11 +32,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define PM_DASHJUMP_TIMEDELAY 1000 // delay in milliseconds
 #define PM_WALLJUMP_TIMEDELAY   1300
-#define PM_WALLJUMP_FAILED_TIMEDELAY    700
 #define PM_SPECIAL_CROUCH_INHIBIT 400
 #define PM_AIRCONTROL_BOUNCE_DELAY 200
 #define PM_OVERBOUNCE       1.01f
-#define PM_FORWARD_ACCEL_TIMEDELAY 0 // delay before the forward acceleration kicks in
 
 //===============================================================
 
@@ -96,17 +94,11 @@ const float pm_wishspeed = 30;
 
 const float pm_dashupspeed = ( 174.0f * GRAVITY_COMPENSATE );
 
-#ifdef OLDWALLJUMP
-const float pm_wjupspeed = 370;
-const float pm_wjbouncefactor = 0.5f;
-#define pm_wjminspeed pm_maxspeed
-#else
 const float pm_wjupspeed = ( 330.0f * GRAVITY_COMPENSATE );
 const float pm_failedwjupspeed = ( 50.0f * GRAVITY_COMPENSATE );
 const float pm_wjbouncefactor = 0.3f;
 const float pm_failedwjbouncefactor = 0.1f;
 #define pm_wjminspeed ( ( pml.maxWalkSpeed + pml.maxPlayerSpeed ) * 0.5f )
-#endif
 
 //
 // Kurim : some functions/defines that can be useful to work on the horizontal movement of player :
@@ -537,30 +529,6 @@ static void PM_Aircontrol( vec3_t wishdir, float wishspeed ) {
 	pml.velocity[2] = zspeed;
 }
 
-#if 0 // never used
-static void PM_AirAccelerate( vec3_t wishdir, float wishspeed, float accel ) {
-	int i;
-	float addspeed, accelspeed, currentspeed, wishspd = wishspeed;
-
-	if( wishspd > 30 ) {
-		wishspd = 30;
-	}
-	currentspeed = DotProduct( pml.velocity, wishdir );
-	addspeed = wishspd - currentspeed;
-	if( addspeed <= 0 ) {
-		return;
-	}
-	accelspeed = accel * wishspeed * pml.frametime;
-	if( accelspeed > addspeed ) {
-		accelspeed = addspeed;
-	}
-
-	for( i = 0; i < 3; i++ )
-		pml.velocity[i] += accelspeed * wishdir[i];
-}
-#endif
-
-
 /*
 * PM_AddCurrents
 */
@@ -583,8 +551,8 @@ static void PM_AddCurrents( vec3_t wishvel ) {
 		}
 
 		// limit horizontal speed when on a ladder
-		clamp( wishvel[0], -25, 25 );
-		clamp( wishvel[1], -25, 25 );
+		wishvel[0] = Clamp( -25.0f, wishvel[0], 25.0f );
+		wishvel[1] = Clamp( -25.0f, wishvel[1], 25.0f );
 	}
 }
 
@@ -717,11 +685,8 @@ static void PM_Move( void ) {
 			accel = pm_airaccelerate;
 		}
 
-		// ch : remove knockback test here
-		if( ( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING )
-		    /* || ( pm->playerState->pmove.stats[PM_STAT_KNOCKBACK] > 0 ) */ ) {
+		if( ( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING ) ) {
 			accel = 0; // no stopmove while walljumping
-
 		}
 		if( ( smove > 0 || smove < 0 ) && !fmove && ( pm->playerState->pmove.stats[PM_STAT_KNOCKBACK] <= 0 ) ) {
 			if( wishspeed > pm_wishspeed ) {
@@ -1252,7 +1217,6 @@ static void PM_FlyMove( bool doclip ) {
 
 
 	// clamp to server defined max speed
-	//
 	if( wishspeed > maxspeed ) {
 		wishspeed = maxspeed / wishspeed;
 		VectorScale( wishvel, wishspeed, wishvel );
@@ -1291,11 +1255,9 @@ static void PM_CheckZoom( void ) {
 	}
 
 	if( ( pm->cmd.buttons & BUTTON_ZOOM ) && ( pm->playerState->pmove.stats[PM_STAT_FEATURES] & PMFEAT_ZOOM ) ) {
-		pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] += pm->cmd.msec;
-		clamp( pm->playerState->pmove.stats[PM_STAT_ZOOMTIME], 0, ZOOMTIME );
+		pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] = Clamp( 0, pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] + pm->cmd.msec, ZOOMTIME );
 	} else if( pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] > 0 ) {
-		pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] -= pm->cmd.msec;
-		clamp( pm->playerState->pmove.stats[PM_STAT_ZOOMTIME], 0, ZOOMTIME );
+		pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] = Max2( 0, pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] - pm->cmd.msec );
 	}
 }
 
@@ -1329,9 +1291,9 @@ static void PM_AdjustBBox( void ) {
 
 	if( pml.upPush < 0 && ( pm->playerState->pmove.stats[PM_STAT_FEATURES] & PMFEAT_CROUCH ) &&
 		pm->playerState->pmove.stats[PM_STAT_WJTIME] < ( PM_WALLJUMP_TIMEDELAY - PM_SPECIAL_CROUCH_INHIBIT ) &&
-		pm->playerState->pmove.stats[PM_STAT_DASHTIME] < ( PM_DASHJUMP_TIMEDELAY - PM_SPECIAL_CROUCH_INHIBIT ) ) {
-		pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] += pm->cmd.msec;
-		clamp( pm->playerState->pmove.stats[PM_STAT_CROUCHTIME], 0, CROUCHTIME );
+		pm->playerState->pmove.stats[PM_STAT_DASHTIME] < ( PM_DASHJUMP_TIMEDELAY - PM_SPECIAL_CROUCH_INHIBIT ) &&
+		( pm->playerState->pmove.pm_flags & PMF_ON_GROUND ) ) {
+		pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] = bound( 0, pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] + pm->cmd.msec, CROUCHTIME );
 
 		crouchFrac = (float)pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] / (float)CROUCHTIME;
 		VectorLerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins, pm->mins );
@@ -1362,8 +1324,7 @@ static void PM_AdjustBBox( void ) {
 		}
 
 		// find the desired size
-		newcrouchtime = pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] - pm->cmd.msec;
-		clamp( newcrouchtime, 0, CROUCHTIME );
+		newcrouchtime = Clamp( 0, pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] - pm->cmd.msec, CROUCHTIME );
 		crouchFrac = (float)newcrouchtime / (float)CROUCHTIME;
 		VectorLerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins, wishmins );
 		VectorLerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs, wishmaxs );
@@ -1451,7 +1412,7 @@ static void PM_BeginMove( void ) {
 	pm->groundentity = -1;
 	pm->watertype = 0;
 	pm->waterlevel = 0;
-	pm->step = false;
+	pm->step = 0;
 
 	// clear all pmove local vars
 	memset( &pml, 0, sizeof( pml ) );
@@ -1575,44 +1536,14 @@ void Pmove( pmove_t *pmove ) {
 			}
 		}
 
-		if( pm->playerState->pmove.stats[PM_STAT_NOUSERCONTROL] > 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_NOUSERCONTROL] -= pm->cmd.msec;
-		} else if( pm->playerState->pmove.stats[PM_STAT_NOUSERCONTROL] < 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_NOUSERCONTROL] = 0;
-		}
+		pmove_state_t & pmove = pm->playerState->pmove;
 
-		if( pm->playerState->pmove.stats[PM_STAT_KNOCKBACK] > 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_KNOCKBACK] -= pm->cmd.msec;
-		} else if( pm->playerState->pmove.stats[PM_STAT_KNOCKBACK] < 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_KNOCKBACK] = 0;
-		}
-
+		pmove.stats[PM_STAT_NOUSERCONTROL] = Max2( 0, pmove.stats[PM_STAT_NOUSERCONTROL] - pm->cmd.msec );
+		pmove.stats[PM_STAT_KNOCKBACK] = Max2( 0, pmove.stats[PM_STAT_KNOCKBACK] - pm->cmd.msec );
+		pmove.stats[PM_STAT_DASHTIME] = Max2( 0, pmove.stats[PM_STAT_DASHTIME] - pm->cmd.msec );
+		pmove.stats[PM_STAT_WJTIME] = Max2( 0, pmove.stats[PM_STAT_WJTIME] - pm->cmd.msec );
 		// PM_STAT_CROUCHTIME is handled at PM_AdjustBBox
 		// PM_STAT_ZOOMTIME is handled at PM_CheckZoom
-
-		if( pm->playerState->pmove.stats[PM_STAT_DASHTIME] > 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_DASHTIME] -= pm->cmd.msec;
-		} else if( pm->playerState->pmove.stats[PM_STAT_DASHTIME] < 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_DASHTIME] = 0;
-		}
-
-		if( pm->playerState->pmove.stats[PM_STAT_WJTIME] > 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_WJTIME] -= pm->cmd.msec;
-		} else if( pm->playerState->pmove.stats[PM_STAT_WJTIME] < 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_WJTIME] = 0;
-		}
-
-		if( pm->playerState->pmove.stats[PM_STAT_NOAUTOATTACK] > 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_NOAUTOATTACK] -= pm->cmd.msec;
-		} else if( pm->playerState->pmove.stats[PM_STAT_NOAUTOATTACK] < 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_NOAUTOATTACK] = 0;
-		}
-
-		if( pm->playerState->pmove.stats[PM_STAT_FWDTIME] > 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_FWDTIME] -= pm->cmd.msec;
-		} else if( pm->playerState->pmove.stats[PM_STAT_FWDTIME] < 0 ) {
-			pm->playerState->pmove.stats[PM_STAT_FWDTIME] = 0;
-		}
 	}
 
 	pml.forwardPush = pm->cmd.forwardmove * SPEEDKEY / 127.0f;
@@ -1624,12 +1555,6 @@ void Pmove( pmove_t *pmove ) {
 		pml.sidePush = 0;
 		pml.upPush = 0;
 		pm->cmd.buttons = 0;
-	}
-
-	// in order the forward accelt to kick in, one has to keep +fwd pressed
-	// for some time without strafing
-	if( pml.forwardPush <= 0 || pml.sidePush ) {
-		pm->playerState->pmove.stats[PM_STAT_FWDTIME] = PM_FORWARD_ACCEL_TIMEDELAY;
 	}
 
 	if( pm->playerState->pmove.pm_type != PM_NORMAL ) { // includes dead, freeze, chasecam...

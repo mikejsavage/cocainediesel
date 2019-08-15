@@ -30,8 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 enum {
 	BUILTIN_GLSLPASS_OUTLINE,
-	BUILTIN_GLSLPASS_SKYBOX,
-	MAX_BUILTIN_GLSLPASSES
+	MAX_BUILTIN_GLSLPASSES,
 };
 
 static float rb_sintable[FTABLE_SIZE];
@@ -60,25 +59,16 @@ static void RB_RenderMeshGLSL_Q3AShader( const shaderpass_t *pass, r_glslfeat_t 
 * RB_InitBuiltinPasses
 */
 static void RB_InitBuiltinPasses( void ) {
-	shaderpass_t *pass;
-
 	// init optional GLSL program passes
 	memset( r_GLSLpasses, 0, sizeof( r_GLSLpasses ) );
 
 	// outlines
-	pass = &r_GLSLpasses[BUILTIN_GLSLPASS_OUTLINE];
+	shaderpass_t * pass = &r_GLSLpasses[BUILTIN_GLSLPASS_OUTLINE];
 	pass->flags = GLSTATE_DEPTHWRITE;
 	pass->rgbgen.type = RGB_GEN_OUTLINE;
 	pass->alphagen.type = ALPHA_GEN_OUTLINE;
 	pass->tcgen = TC_GEN_NONE;
 	pass->program_type = GLSL_PROGRAM_TYPE_OUTLINE;
-
-	// skybox
-	pass = &r_GLSLpasses[BUILTIN_GLSLPASS_SKYBOX];
-	pass->program_type = GLSL_PROGRAM_TYPE_Q3A_SHADER;
-	pass->tcgen = TC_GEN_BASE;
-	pass->rgbgen.type = RGB_GEN_IDENTITY;
-	pass->alphagen.type = ALPHA_GEN_IDENTITY;
 }
 
 /*
@@ -237,7 +227,6 @@ void RB_GetShaderpassColor( const shaderpass_t *pass, byte_vec4_t rgba_, float *
 			break;
 		case RGB_GEN_ENTITYWAVE:
 		case RGB_GEN_WAVE:
-		case RGB_GEN_CUSTOMWAVE:
 			if( rgbgenfunc->type == SHADER_FUNC_NONE ) {
 				temp = 1;
 			} else if( rgbgenfunc->type == SHADER_FUNC_RAMP ) {
@@ -260,12 +249,6 @@ void RB_GetShaderpassColor( const shaderpass_t *pass, byte_vec4_t rgba_, float *
 						   rb.entityColor[0] * ( 1.0 / 255.0 ),
 						   rb.entityColor[1] * ( 1.0 / 255.0 ),
 						   rb.entityColor[2] * ( 1.0 / 255.0 ) );
-			} else if( pass->rgbgen.type == RGB_GEN_CUSTOMWAVE ) {
-				c = R_GetCustomColor( (int)pass->rgbgen.args[0] );
-				VectorSet( v,
-						   COLOR_R( c ) * ( 1.0 / 255.0 ),
-						   COLOR_G( c ) * ( 1.0 / 255.0 ),
-						   COLOR_B( c ) * ( 1.0 / 255.0 ) );
 			} else {
 				VectorCopy( pass->rgbgen.args, v );
 			}
@@ -284,11 +267,6 @@ void RB_GetShaderpassColor( const shaderpass_t *pass, byte_vec4_t rgba_, float *
 			rgba[0] = 255 - rb.entityColor[0];
 			rgba[1] = 255 - rb.entityColor[1];
 			rgba[2] = 255 - rb.entityColor[2];
-			break;
-		case RGB_GEN_ENVIRONMENT:
-			rgba[0] = mapConfig.environmentColor[0];
-			rgba[1] = mapConfig.environmentColor[1];
-			rgba[2] = mapConfig.environmentColor[2];
 			break;
 		default:
 			break;
@@ -343,10 +321,6 @@ static inline const image_t *RB_ShaderpassTex( const shaderpass_t *pass ) {
 		return pass->images[(int)( pass->anim_fps * rb.currentShaderTime ) % pass->anim_numframes];
 	}
 
-	if( ( pass->flags & SHADERPASS_SKYBOXSIDE ) && rb.skyboxShader && rb.skyboxSide >= 0 ) {
-		return rb.skyboxShader->skyParms.images[rb.skyboxSide];
-	}
-
 	tex = pass->images[0];
 
 	if( !tex ) {
@@ -374,7 +348,6 @@ static int RB_RGBAlphaGenToProgramFeatures( const colorgen_t *rgbgen, const colo
 			programFeatures |= GLSL_SHADER_COMMON_RGB_GEN_VERTEX;
 			break;
 		case RGB_GEN_WAVE:
-		case RGB_GEN_CUSTOMWAVE:
 		case RGB_GEN_ENTITYWAVE:
 			if( rgbgen->func.type == SHADER_FUNC_RAMP ) {
 				programFeatures |= GLSL_SHADER_COMMON_RGB_DISTANCERAMP;
@@ -405,15 +378,9 @@ static int RB_RGBAlphaGenToProgramFeatures( const colorgen_t *rgbgen, const colo
 * RB_BonesTransformsToProgramFeatures
 */
 static r_glslfeat_t RB_BonesTransformsToProgramFeatures( void ) {
-	// check whether the current model is actually sketetal
-	if( rb.currentModelType != mod_skeletal ) {
+	if( rb.currentModelType != ModelType_GLTF )
 		return 0;
-	}
-	// base pose sketetal models aren't animated and rendered as-is
-	if( !rb.bonesData.numBones ) {
-		return 0;
-	}
-	return rb.bonesData.maxWeights * GLSL_SHADER_COMMON_BONE_TRANSFORMS1;
+	return rb.skinning_matrices.ptr != NULL ? GLSL_SHADER_COMMON_SKINNED : 0;
 }
 
 /*
@@ -513,11 +480,12 @@ static void RB_UpdateCommonUniforms( int program, const shaderpass_t *pass, mat4
 	}
 
 	RP_UpdateViewUniforms( program,
-						   rb.modelviewMatrix, rb.modelviewProjectionMatrix,
-						   rb.cameraOrigin, rb.cameraAxis,
-						   rb.gl.viewport,
-						   rb.zNear, rb.zFar
-						   );
+		rb.objectMatrix,
+		rb.modelviewMatrix, rb.modelviewProjectionMatrix,
+		rb.cameraOrigin, rb.cameraAxis,
+		rb.gl.viewport,
+		rb.zNear, rb.zFar
+	);
 
 	if( RB_IsAlphaBlending( rb.gl.state & GLSTATE_SRCBLEND_MASK, rb.gl.state & GLSTATE_DSTBLEND_MASK ) ) {
 		blendMix[1] = 1;
@@ -532,16 +500,20 @@ static void RB_UpdateCommonUniforms( int program, const shaderpass_t *pass, mat4
 	}
 
 	RP_UpdateShaderUniforms( program,
-							 rb.currentShaderTime,
-							 entOrigin, entDist, rb.entityColor,
-							 constColor,
-							 pass->rgbgen.func.type != SHADER_FUNC_NONE ? pass->rgbgen.func.args : pass->rgbgen.args,
-							 pass->alphagen.func.type != SHADER_FUNC_NONE ? pass->alphagen.func.args : pass->alphagen.args,
-							 texMatrix, colorMod );
+		rb.currentShaderTime,
+		entOrigin, entDist, rb.entityColor,
+		constColor,
+		pass->rgbgen.func.type != SHADER_FUNC_NONE ? pass->rgbgen.func.args : pass->rgbgen.args,
+		pass->alphagen.func.type != SHADER_FUNC_NONE ? pass->alphagen.func.args : pass->alphagen.args,
+		texMatrix, colorMod );
 
 	RP_UpdateBlendMixUniform( program, blendMix );
 
 	RP_UpdateSoftParticlesUniforms( program, r_soft_particles_scale->value );
+
+	if( rsh.worldBrushModel != NULL ) {
+		RP_UpdateMapUniforms( program, rsh.worldBrushModel->fogStrength );
+	}
 }
 
 /*
@@ -591,7 +563,7 @@ static void RB_RenderMeshGLSL_Material( const shaderpass_t *pass, r_glslfeat_t p
 		glossmap = NULL;
 	}
 
-	if( rb.noColorWrite || rb.currentModelType == mod_brush ) {
+	if( rb.currentModelType == mod_brush ) {
 		// render as plain Q3A shader, which is less computation-intensive
 		// TODO: write a depth only shader
 		RB_RenderMeshGLSL_Q3AShader( pass, programFeatures );
@@ -601,12 +573,6 @@ static void RB_RenderMeshGLSL_Material( const shaderpass_t *pass, r_glslfeat_t p
 	state = RB_GetShaderpassState( pass->flags );
 	if( rb.mode == RB_MODE_POST_LIGHT ) {
 		state = ( state & ~GLSTATE_DEPTHWRITE ) | GLSTATE_SRCBLEND_SRC_ALPHA | GLSTATE_DSTBLEND_ONE;
-	}
-
-	if( rb.mode == RB_MODE_DEPTH ) {
-		if( !(state & GLSTATE_DEPTHWRITE) ) {
-			return;
-		}
 	}
 
 	glossIntensity = rb.currentShader->glossIntensity ? rb.currentShader->glossIntensity : r_lighting_glossintensity->value;
@@ -622,17 +588,9 @@ static void RB_RenderMeshGLSL_Material( const shaderpass_t *pass, r_glslfeat_t p
 			return;
 		}
 
-		// brush models
 		if( DRAWFLAT() ) {
-			programFeatures |= GLSL_SHADER_COMMON_DRAWFLAT | GLSL_SHADER_MATERIAL_BASETEX_ALPHA_ONLY;
+			programFeatures |= GLSL_SHADER_COMMON_DRAWFLAT | GLSL_SHADER_COMMON_FOG | GLSL_SHADER_MATERIAL_BASETEX_ALPHA_ONLY;
 		}
-	} else if( rb.currentModelType == mod_bad ) {
-		// polys
-	} else {
-		// regular models
-	#ifdef HALFLAMBERTLIGHTING
-		programFeatures |= GLSL_SHADER_MATERIAL_HALFLAMBERT;
-	#endif
 	}
 
 	Matrix4_Identity( texMatrix );
@@ -713,8 +671,8 @@ static void RB_RenderMeshGLSL_Material( const shaderpass_t *pass, r_glslfeat_t p
 		RP_UpdateDiffuseLightUniforms( program, lightDir, ambient, diffuse );
 
 		// submit animation data
-		if( programFeatures & GLSL_SHADER_COMMON_BONE_TRANSFORMS ) {
-			RP_UpdateBonesUniforms( program, rb.bonesData.numBones, rb.bonesData.dualQuats );
+		if( programFeatures & GLSL_SHADER_COMMON_SKINNED ) {
+			RP_UpdateSkinningUniforms( program, rb.skinning_matrices );
 		}
 
 		// r_drawflat
@@ -760,8 +718,8 @@ static void RB_RenderMeshGLSL_Outline( const shaderpass_t *pass, r_glslfeat_t pr
 	RP_UpdateOutlineUniforms( program, rb.currentEntity->outlineHeight * r_outlines_scale->value );
 
 	// submit animation data
-	if( programFeatures & GLSL_SHADER_COMMON_BONE_TRANSFORMS ) {
-		RP_UpdateBonesUniforms( program, rb.bonesData.numBones, rb.bonesData.dualQuats );
+	if( programFeatures & GLSL_SHADER_COMMON_SKINNED ) {
+		RP_UpdateSkinningUniforms( program, rb.skinning_matrices );
 	}
 
 	RB_DrawElementsReal( &rb.drawElements );
@@ -787,15 +745,6 @@ r_glslfeat_t RB_TcGenToProgramFeatures( int tcgen, vec_t *tcgenVec, mat4_t texMa
 			Vector4Copy( &tcgenVec[4], &genVectors[4] );
 			programFeatures |= GLSL_SHADER_Q3_TC_GEN_VECTOR;
 			break;
-		case TC_GEN_PROJECTION:
-			programFeatures |= GLSL_SHADER_Q3_TC_GEN_PROJECTION;
-			break;
-		case TC_GEN_REFLECTION:
-			programFeatures |= GLSL_SHADER_Q3_TC_GEN_REFLECTION;
-			break;
-		case TC_GEN_SURROUND:
-			programFeatures |= GLSL_SHADER_Q3_TC_GEN_SURROUND;
-			break;
 		default:
 			break;
 	}
@@ -817,7 +766,7 @@ static void RB_RenderMeshGLSL_Q3AShader( const shaderpass_t *pass, r_glslfeat_t 
 	vec3_t lightDir;
 	vec4_t lightAmbient, lightDiffuse;
 	mat4_t texMatrix, genVectors;
-	bool noDlight = ( rb.surfFlags & (SURF_SKY|SURF_NODLIGHT) ) != 0;
+	bool noDlight = ( rb.surfFlags & SURF_NODLIGHT ) != 0;
 
 	if( isWorldSurface ) {
 		if( rb.mode == RB_MODE_DIFFUSE ) {
@@ -833,7 +782,7 @@ static void RB_RenderMeshGLSL_Q3AShader( const shaderpass_t *pass, r_glslfeat_t 
 	Vector4Set( lightDiffuse, 1, 1, 1, 1 );
 
 	image = RB_ShaderpassTex( pass );
-	if( rb.triangleOutlines || rb.noColorWrite || rb.mode == RB_MODE_DECALS ) {
+	if( rb.triangleOutlines || rb.mode == RB_MODE_DECALS ) {
 		applyLighting = false;
 	} else {
 		applyLighting = isWorldVertexLight;
@@ -848,7 +797,7 @@ static void RB_RenderMeshGLSL_Q3AShader( const shaderpass_t *pass, r_glslfeat_t 
 
 	if( applyLighting ) {
 		if( DRAWFLAT() ) {
-			programFeatures |= GLSL_SHADER_COMMON_DRAWFLAT;
+			programFeatures |= GLSL_SHADER_COMMON_DRAWFLAT | GLSL_SHADER_COMMON_FOG;
 		}
 	}
 
@@ -869,12 +818,6 @@ static void RB_RenderMeshGLSL_Q3AShader( const shaderpass_t *pass, r_glslfeat_t 
 			state &= ~GLSTATE_BLEND_MASK;
 		}
 		state |= GLSTATE_DEPTHWRITE;
-	}
-
-	if( rb.mode == RB_MODE_DEPTH ) {
-		if( !( state & GLSTATE_DEPTHWRITE ) ) {
-			return;
-		}
 	}
 
 	RB_SetState( RB_GetShaderpassState( state ) );
@@ -900,8 +843,8 @@ static void RB_RenderMeshGLSL_Q3AShader( const shaderpass_t *pass, r_glslfeat_t 
 		}
 
 		// submit animation data
-		if( programFeatures & GLSL_SHADER_COMMON_BONE_TRANSFORMS ) {
-			RP_UpdateBonesUniforms( program, rb.bonesData.numBones, rb.bonesData.dualQuats );
+		if( programFeatures & GLSL_SHADER_COMMON_SKINNED ) {
+			RP_UpdateSkinningUniforms( program, rb.skinning_matrices );
 		}
 
 		// r_drawflat
@@ -982,6 +925,21 @@ static void RB_RenderMeshGLSL_KawaseBlur( const shaderpass_t *pass, r_glslfeat_t
 }
 
 /*
+* RB_RenderMeshGLSL_Text
+*/
+static void RB_RenderMeshGLSL_Text( const shaderpass_t *pass, r_glslfeat_t programFeatures ) {
+	// set shaderpass state (blending, depthwrite, etc)
+	RB_SetState( RB_GetShaderpassState( pass->flags ) );
+	RB_BindImage( 0, pass->images[0] );
+
+	int program = RB_RegisterProgram( GLSL_PROGRAM_TYPE_TEXT, NULL, NULL, NULL, 0, programFeatures );
+	if( RB_BindProgram( program ) ) {
+		RP_UpdateTextUniforms( program, rb.text_color, rb.border_color, rb.text_border, rb.pixel_range );
+		RB_DrawElementsReal( &rb.drawElements );
+	}
+}
+
+/*
 * RB_RenderMeshGLSLProgrammed
 */
 void RB_RenderMeshGLSLProgrammed( const shaderpass_t *pass, int programType ) {
@@ -996,6 +954,10 @@ void RB_RenderMeshGLSLProgrammed( const shaderpass_t *pass, int programType ) {
 	features |= RB_InstancedArraysProgramFeatures();
 	features |= RB_AlphatestProgramFeatures( pass );
 	features |= RB_sRGBProgramFeatures( pass );
+
+	if( rb.currentShader->flags & SHADER_FOG ) {
+		features |= GLSL_SHADER_COMMON_FOG;
+	}
 
 	if( ( rb.currentShader->flags & SHADER_SOFT_PARTICLE )
 		&& rb.st.screenDepthTexCopy
@@ -1019,6 +981,9 @@ void RB_RenderMeshGLSLProgrammed( const shaderpass_t *pass, int programType ) {
 		case GLSL_PROGRAM_TYPE_KAWASE_BLUR:
 			RB_RenderMeshGLSL_KawaseBlur( pass, features );
 			break;
+		case GLSL_PROGRAM_TYPE_TEXT:
+			RB_RenderMeshGLSL_Text( pass, features );
+			break;
 		default:
 			ri.Com_DPrintf( S_COLOR_YELLOW "WARNING: Unknown GLSL program type %i\n", programType );
 			return;
@@ -1036,8 +1001,8 @@ static void RB_UpdateVertexAttribs( void ) {
 	if( rb.currentShader ) {
 		vattribs |= rb.currentShader->vattribs;
 	}
-	if( rb.bonesData.numBones ) {
-		vattribs |= VATTRIB_BONES_BITS;
+	if( rb.skinning_matrices.ptr != NULL ) {
+		vattribs |= VATTRIB_JOINTS_BITS;
 	}
 	if( rb.currentEntity && rb.currentEntity->outlineHeight ) {
 		vattribs |= VATTRIB_NORMAL_BIT;
@@ -1067,11 +1032,7 @@ void RB_BindShader( const entity_t *e, const shader_t *shader ) {
 	rb.currentEntity = e ? e : &rb.nullEnt;
 	rb.currentModelType = rb.currentEntity->rtype == RT_MODEL && rb.currentEntity->model ? rb.currentEntity->model->type : mod_bad;
 
-	rb.bonesData.numBones = 0;
-	rb.bonesData.maxWeights = 0;
-
-	rb.skyboxShader = NULL;
-	rb.skyboxSide = -1;
+	rb.skinning_matrices = Span< const Mat4 >();
 
 	rb.surfFlags = SURF_NODLIGHT;
 
@@ -1080,7 +1041,6 @@ void RB_BindShader( const entity_t *e, const shader_t *shader ) {
 		rb.alphaHack = false;
 		rb.greyscale = false;
 		rb.noDepthTest = false;
-		rb.noColorWrite = false;
 		rb.depthEqual = false;
 	} else {
 		Vector4Copy( rb.currentEntity->shaderRGBA, rb.entityColor );
@@ -1094,13 +1054,9 @@ void RB_BindShader( const entity_t *e, const shader_t *shader ) {
 		rb.hackedAlpha = e->shaderRGBA[3] / 255.0;
 		rb.greyscale = e->renderfx & RF_GREYSCALE ? true : false;
 		rb.noDepthTest = e->renderfx & RF_NODEPTHTEST && e->rtype == RT_SPRITE ? true : false;
-		rb.noColorWrite = e->renderfx & RF_NOCOLORWRITE ? true : false;
 		rb.depthEqual = rb.alphaHack && !( e->renderfx & RF_WEAPONMODEL );
 	}
 
-	if( rb.mode == RB_MODE_DEPTH ) {
-		rb.noColorWrite = true;
-	}
 	if( rb.mode == RB_MODE_DIFFUSE ) {
 		rb.depthEqual = true;
 	}
@@ -1108,52 +1064,17 @@ void RB_BindShader( const entity_t *e, const shader_t *shader ) {
 	RB_UpdateVertexAttribs();
 }
 
-/*
-* RB_SetAnimData
-*/
-void RB_SetBonesData( int numBones, dualquat_t *dualQuats, int maxWeights ) {
-	assert( rb.currentShader != NULL );
-
-	if( numBones > MAX_GLSL_UNIFORM_BONES ) {
-		numBones = MAX_GLSL_UNIFORM_BONES;
-	}
-	if( maxWeights > 4 ) {
-		maxWeights = 4;
-	}
-
-	rb.bonesData.numBones = numBones;
-	memcpy( rb.bonesData.dualQuats, dualQuats, numBones * sizeof( *dualQuats ) );
-	rb.bonesData.maxWeights = maxWeights;
-
+void RB_SetSkinningMatrices( Span< const Mat4 > skinning_matrices ) {
+	rb.skinning_matrices = skinning_matrices;
 	rb.dirtyUniformState = true;
-
 	RB_UpdateVertexAttribs();
 }
 
-/*
-* RB_SetSkyboxShader
-*/
-void RB_SetSkyboxShader( const shader_t *shader ) {
-	if( rb.skyboxShader == shader ) {
-		return;
-	}
-	rb.skyboxShader = shader;
-	rb.dirtyUniformState = true;
-}
-
-/*
-* RB_SetSkyboxSide
-*/
-void RB_SetSkyboxSide( int side ) {
-	if( side < 0 || side >= 6 ) {
-		side = -1;
-	}
-
-	if( rb.skyboxSide == side ) {
-		return;
-	}
-
-	rb.skyboxSide = side;
+void RB_SetTextParams( RGBA8 text_color, RGBA8 border_color, bool border, float pixel_range ) {
+	rb.text_color = text_color;
+	rb.border_color = border_color;
+	rb.text_border = border;
+	rb.pixel_range = pixel_range;
 	rb.dirtyUniformState = true;
 }
 
@@ -1288,9 +1209,6 @@ static void RB_SetShaderState( void ) {
 	if( shaderFlags & SHADER_POLYGONOFFSET ) {
 		state |= GLSTATE_OFFSET_FILL;
 	}
-	if( shaderFlags & SHADER_STENCILTEST ) {
-		state |= GLSTATE_STENCIL_TEST;
-	}
 
 	if( rb.noDepthTest ) {
 		state |= GLSTATE_NO_DEPTH_TEST;
@@ -1316,9 +1234,6 @@ static int RB_GetShaderpassState( int state ) {
 		if( rb.alphaHack && !( state & GLSTATE_BLEND_MASK ) ) {
 			// force alpha blending
 			state = ( state & ~GLSTATE_DEPTHWRITE ) | GLSTATE_SRCBLEND_SRC_ALPHA | GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA;
-		}
-		if( rb.noColorWrite ) {
-			state |= GLSTATE_NO_COLORWRITE;
 		}
 		if( rb.depthEqual && ( state & GLSTATE_DEPTHWRITE ) ) {
 			state |= GLSTATE_DEPTHFUNC_EQ;
@@ -1405,9 +1320,6 @@ void RB_DrawShadedElements( void ) {
 	bool addGLSLOutline = false;
 	shaderpass_t *pass;
 
-	if( ( rb.mode == RB_MODE_DEPTH ) && !( rb.currentShader->flags & SHADER_DEPTHWRITE ) ) {
-		return;
-	}
 	if( RB_CleanSinglePass() ) {
 		return;
 	}
@@ -1433,15 +1345,10 @@ void RB_DrawShadedElements( void ) {
 		RB_RenderPass( pass );
 	}
 
-	if( rb.mode == RB_MODE_DEPTH || rb.mode == RB_MODE_TRIANGLE_OUTLINES || rb.mode == RB_MODE_DIFFUSE ) {
-		goto end;
-	}
-
 	// outlines
 	if( addGLSLOutline ) {
 		RB_RenderPass( &r_GLSLpasses[BUILTIN_GLSLPASS_OUTLINE] );
 	}
 
-end:
 	rb.dirtyUniformState = rb.donePassesTotal != 1;
 }

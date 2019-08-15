@@ -36,9 +36,7 @@ typedef enum {
 	SHADER_TYPE_DIFFUSE,
 	SHADER_TYPE_2D,
 	SHADER_TYPE_2D_RAW,
-	SHADER_TYPE_OPAQUE_ENV,
 	SHADER_TYPE_VIDEO,
-	SHADER_TYPE_SKYBOX,
 	SHADER_TYPE_2D_LINEAR,
 } shaderType_e;
 
@@ -47,18 +45,17 @@ typedef enum {
 // shader flags
 enum {
 	SHADER_DEPTHWRITE               = 1 << 0,
-	SHADER_SKY                      = 1 << 1,
-	SHADER_CULL_FRONT               = 1 << 2,
-	SHADER_CULL_BACK                = 1 << 3,
-	SHADER_POLYGONOFFSET            = 1 << 4,
-	SHADER_ENTITY_MERGABLE          = 1 << 5,
-	SHADER_AUTOSPRITE               = 1 << 6,
-	SHADER_NO_TEX_FILTERING         = 1 << 7,
-	SHADER_ALLDETAIL                = 1 << 8,
-	SHADER_NODRAWFLAT               = 1 << 9,
+	SHADER_CULL_FRONT               = 1 << 1,
+	SHADER_CULL_BACK                = 1 << 2,
+	SHADER_POLYGONOFFSET            = 1 << 3,
+	SHADER_ENTITY_MERGABLE          = 1 << 4,
+	SHADER_AUTOSPRITE               = 1 << 5,
+	SHADER_NO_TEX_FILTERING         = 1 << 6,
+	SHADER_ALLDETAIL                = 1 << 7,
+	SHADER_NODRAWFLAT               = 1 << 8,
+	SHADER_FOG                      = 1 << 9,
 	SHADER_SOFT_PARTICLE            = 1 << 10,
 	SHADER_FORCE_OUTLINE_WORLD      = 1 << 11,
-	SHADER_STENCILTEST              = 1 << 12,
 };
 
 // sorting
@@ -72,10 +69,8 @@ enum {
 	SHADER_SORT_UNDERWATER,
 	SHADER_SORT_ADDITIVE,
 	SHADER_SORT_NEAREST,
-	SHADER_SORT_WEAPON, // optional phase: depth write but no color write
-	SHADER_SORT_WEAPON2,
 
-	SHADER_SORT_MAX = SHADER_SORT_WEAPON2
+	SHADER_SORT_MAX = SHADER_SORT_NEAREST,
 };
 
 // shaderpass flags
@@ -83,12 +78,11 @@ enum {
 enum {
 	SHADERPASS_DETAIL               = SHADERPASS_MARK_BEGIN << 0,
 	SHADERPASS_GREYSCALE            = SHADERPASS_MARK_BEGIN << 1,
-	SHADERPASS_SKYBOXSIDE           = SHADERPASS_MARK_BEGIN << 2,
 
-	SHADERPASS_AFUNC_GT0            = SHADERPASS_MARK_BEGIN << 3,
-	SHADERPASS_AFUNC_LT128          = SHADERPASS_MARK_BEGIN << 4,
+	SHADERPASS_AFUNC_GT0            = SHADERPASS_MARK_BEGIN << 2,
+	SHADERPASS_AFUNC_LT128          = SHADERPASS_MARK_BEGIN << 3,
 	SHADERPASS_AFUNC_GE128          = SHADERPASS_AFUNC_GT0 | SHADERPASS_AFUNC_LT128,
-	SHADERPASS_NOSRGB               = SHADERPASS_MARK_BEGIN << 5,
+	SHADERPASS_NOSRGB               = SHADERPASS_MARK_BEGIN << 4,
 };
 
 #define SHADERPASS_ALPHAFUNC ( SHADERPASS_AFUNC_GT0 | SHADERPASS_AFUNC_LT128 | SHADERPASS_AFUNC_GE128 )
@@ -119,9 +113,7 @@ enum {
 	RGB_GEN_VERTEX,
 	RGB_GEN_LIGHTING_DIFFUSE,
 	RGB_GEN_EXACT_VERTEX,
-	RGB_GEN_CUSTOMWAVE,
 	RGB_GEN_OUTLINE,
-	RGB_GEN_ENVIRONMENT,
 };
 
 // alpha channel generation
@@ -141,10 +133,6 @@ enum {
 	TC_GEN_BASE,
 	TC_GEN_ENVIRONMENT,
 	TC_GEN_VECTOR,
-	TC_GEN_REFLECTION,
-	TC_GEN_SVECTORS,
-	TC_GEN_PROJECTION,
-	TC_GEN_SURROUND
 };
 
 // tcmod functions
@@ -192,13 +180,6 @@ typedef struct {
 	shaderfunc_t func;
 } deformv_t;
 
-typedef struct {
-	float height;
-	image_t *images[6];
-	vec3_t lightDir;
-	vec3_t lightColor;
-} shaderskyparms_t;
-
 // Per-pass rendering state information
 typedef struct {
 	unsigned int flags;
@@ -245,8 +226,6 @@ typedef struct shader_s {
 	float glossIntensity;
 	float glossExponent;
 
-	shaderskyparms_t skyParms;
-
 	struct shader_s     *prev, *next;
 } shader_t;
 
@@ -271,9 +250,7 @@ shader_t    *R_LoadShader( const char *name, shaderType_e type, bool forceDefaul
 
 shader_t    *R_RegisterShader( const char *name, shaderType_e type );
 shader_t    *R_RegisterPic( const char *name );
-shader_t    *R_RegisterRawPic( const char *name, int width, int height, uint8_t *data, int samples );
-StringHash   R_RegisterRawAlphaMask( const char *name, int width, int height, uint8_t *data );
-shader_t    *R_RegisterLevelshot( const char *name, shader_t *defaultShader, bool *matchesDefault );
+shader_t    *R_RegisterAlphaMask( const char *name, int width, int height, const uint8_t *data );
 shader_t    *R_RegisterSkin( const char *name );
 
 unsigned    R_PackShaderOrder( const shader_t *shader );

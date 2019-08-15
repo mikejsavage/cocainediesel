@@ -32,14 +32,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "g_gametypes.h"
 #include "g_ai.h"
 
+#include "angelscript/angelscript.h"
+
 //==================================================================
 
 // FIXME: Medar: Remove the spectator test and just make sure they always have health
 #define G_IsDead( ent )       ( ( !( ent )->r.client || ( ent )->s.team != TEAM_SPECTATOR ) && HEALTH_TO_INT( ( ent )->health ) <= 0 )
-
-// Quad scale for damage and knockback
-#define QUAD_DAMAGE_SCALE 4
-#define QUAD_KNOCKBACK_SCALE 3
 
 #define CLIENT_RESPAWN_FREEZE_DELAY 300
 
@@ -56,7 +54,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define FL_WATERJUMP        0x00000200  // player jumping out of water
 #define FL_TEAMSLAVE        0x00000400  // not the first on the team
 #define FL_NO_KNOCKBACK     0x00000800
-#define FL_BUSY             0x00001000
 
 #define FRAMETIME ( (float)game.frametime * 0.001f )
 
@@ -104,9 +101,6 @@ typedef struct {
 	edict_t *edicts;        // [maxentities]
 	gclient_t *clients;     // [maxclients]
 
-	int protocol;
-	char demoExtension[MAX_QPATH];
-
 	// store latched cvars here that we want to get at often
 	int maxentities;
 	int numentities;
@@ -116,7 +110,7 @@ typedef struct {
 
 	// AngelScript engine object
 	struct angelwrap_api_s *asExport;
-	void *asEngine;
+	asIScriptEngine *asEngine;
 
 	unsigned int frametime;         // in milliseconds
 	int snapFrameTime;              // in milliseconds
@@ -127,8 +121,6 @@ typedef struct {
 	time_t localTime;               // local time in milliseconds
 
 	int numBots;
-
-	unsigned int levelSpawnCount;   // the number of times G_InitLevel was called
 } game_locals_t;
 
 #define TIMEOUT_TIME                    180000
@@ -145,7 +137,6 @@ typedef struct {
 
 //
 // this structure is cleared as each map is entered
-// it is read/written to the level.sav file for savegames
 //
 typedef struct {
 	int64_t framenum;
@@ -153,10 +144,8 @@ typedef struct {
 	int64_t spawnedTimeStamp; // time when map was restarted
 	int64_t finalMatchDuration;
 
-	char level_name[MAX_CONFIGSTRING_CHARS];    // the descriptive name (Outer Base, etc)
-	char mapname[MAX_CONFIGSTRING_CHARS];       // the server name (q3dm0, etc)
-	char nextmap[MAX_CONFIGSTRING_CHARS];       // go here when match is finished
-	char forcemap[MAX_CONFIGSTRING_CHARS];      // go here
+	char mapname[MAX_CONFIGSTRING_CHARS];
+	char callvote_map[MAX_CONFIGSTRING_CHARS];
 	char autorecord_name[128];
 
 	// backup entities string
@@ -176,15 +165,6 @@ typedef struct {
 	// gametype definition and execution
 	gametype_descriptor_t gametype;
 
-	// map scripts
-	struct {
-		void *initFunc;
-		void *preThinkFunc;
-		void *postThinkFunc;
-		void *exitFunc;
-		void *gametypeFunc;
-	} mapscript;
-
 	bool teamlock;
 	bool ready[MAX_CLIENTS];
 	bool forceStart;    // force starting the game, when warmup timelimit is up
@@ -193,9 +173,6 @@ typedef struct {
 	edict_t *current_entity;    // entity running from G_RunFrame
 	edict_t *spawning_entity;   // entity being spawned from G_InitLevel
 	int body_que;               // dead bodies
-
-	int numCheckpoints;
-	int numLocations;
 
 	timeout_t timeout;
 	float gravity;
@@ -208,16 +185,11 @@ typedef struct {
 typedef struct {
 	// world vars
 	float fov;
-	const char *nextmap;
-
-	const char *music;
 
 	int lip;
 	int distance;
 	int height;
-	float roll;
 	float radius;
-	float phase;
 	const char *noise;
 	const char *noise_start;
 	const char *noise_stop;
@@ -226,22 +198,15 @@ typedef struct {
 	const char *gravity;
 	const char *debris1, *debris2;
 
-	int notsingle;
-	int notteam;
-	int notfree;
-	int notduel;
-	int noents;
-
 	int gameteam;
 
 	int weight;
 	float scale;
-	const char *gametype;
-	const char *not_gametype;
 	const char *shaderName;
 	int size;
-} spawn_temp_t;
 
+	int rgba;
+} spawn_temp_t;
 
 extern game_locals_t game;
 extern level_locals_t level;
@@ -249,16 +214,11 @@ extern spawn_temp_t st;
 
 extern int meansOfDeath;
 
-
 #define FOFS( x ) offsetof( edict_t,x )
 #define STOFS( x ) offsetof( spawn_temp_t,x )
-#define LLOFS( x ) offsetof( level_locals_t,x )
-#define CLOFS( x ) offsetof( gclient_t,x )
-#define AWOFS( x ) offsetof( award_info_t,x )
 
 extern cvar_t *password;
 extern cvar_t *g_operator_password;
-extern cvar_t *dedicated;
 extern cvar_t *developer;
 
 extern cvar_t *filterban;
@@ -289,7 +249,6 @@ extern cvar_t *g_maxtimeouts;
 
 extern cvar_t *g_self_knockback;
 extern cvar_t *g_knockback_scale;
-extern cvar_t *g_allow_teamdamage;
 extern cvar_t *g_respawn_delay_min;
 extern cvar_t *g_respawn_delay_max;
 extern cvar_t *g_deadbody_followkiller;
@@ -329,7 +288,6 @@ void G_Teams_JoinChallengersQueue( edict_t *ent );
 void G_Teams_LeaveChallengersQueue( edict_t *ent );
 void G_InitChallengersQueue( void );
 
-void G_MoveClientToPostMatchScoreBoards( edict_t *ent, edict_t *spawnpoint );
 void G_Gametype_Init( void );
 void G_Gametype_ScoreEvent( gclient_t *client, const char *score_event, const char *args );
 void G_RunGametype( void );
@@ -337,7 +295,6 @@ bool G_Gametype_CanPickUpItem( const gsitem_t *item );
 bool G_Gametype_CanSpawnItem( const gsitem_t *item );
 bool G_Gametype_CanRespawnItem( const gsitem_t *item );
 bool G_Gametype_CanDropItem( const gsitem_t *item, bool ignoreMatchState );
-bool G_Gametype_CanTeamDamage( int damageflags );
 int G_Gametype_RespawnTimeForItem( const gsitem_t *item );
 int G_Gametype_DroppedItemTimeout( const gsitem_t *item );
 
@@ -362,37 +319,34 @@ void G_SpawnQueue_AddClient( edict_t *ent );
 void G_SpawnQueue_RemoveClient( edict_t *ent );
 void G_SpawnQueue_Think( void );
 
-edict_t *SelectDeathmatchSpawnPoint( edict_t *ent );
 void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, vec3_t origin, vec3_t angles );
 edict_t *G_SelectIntermissionSpawnPoint( void );
 float PlayersRangeFromSpot( edict_t *spot, int ignore_team );
 void SP_info_player_start( edict_t *ent );
 void SP_info_player_deathmatch( edict_t *ent );
-void SP_info_player_intermission( edict_t *ent );
+void SP_post_match_camera( edict_t *ent );
 
 //
 // g_func.c
 //
 void G_AssignMoverSounds( edict_t *ent, StringHash start, StringHash move, StringHash stop );
-bool G_EntIsADoor( edict_t *ent );
 
 void SP_func_plat( edict_t *ent );
 void SP_func_rotating( edict_t *ent );
 void SP_func_button( edict_t *ent );
 void SP_func_door( edict_t *ent );
 void SP_func_door_rotating( edict_t *ent );
-void SP_func_door_secret( edict_t *self );
-void SP_func_water( edict_t *self );
 void SP_func_train( edict_t *ent );
 void SP_func_timer( edict_t *self );
-void SP_func_conveyor( edict_t *self );
 void SP_func_wall( edict_t *self );
 void SP_func_object( edict_t *self );
 void SP_func_explosive( edict_t *self );
-void SP_func_killbox( edict_t *ent );
 void SP_func_static( edict_t *ent );
-void SP_func_bobbing( edict_t *ent );
-void SP_func_pendulum( edict_t *ent );
+
+//
+// g_gladiator
+//
+void SP_spikes( edict_t *ent );
 
 //
 // g_ascript.c
@@ -422,14 +376,6 @@ void G_asResetEntityBehaviors( edict_t *ent );
 void G_asClearEntityBehaviors( edict_t *ent );
 void G_asReleaseEntityBehaviors( edict_t *ent );
 
-bool G_asLoadMapScript( const char *mapname );
-void G_asShutdownMapScript( void );
-void G_asCallMapInit( void );
-void G_asCallMapPreThink( void );
-void G_asCallMapPostThink( void );
-void G_asCallMapExit( void );
-const char *G_asCallMapGametype( void );
-
 bool G_asCallMapEntitySpawnScript( const char *classname, edict_t *ent );
 
 void G_asInitGameModuleEngine( void );
@@ -437,7 +383,7 @@ void G_asShutdownGameModuleEngine( void );
 void G_asGarbageCollect( bool force );
 void G_asDumpAPI_f( void );
 
-#define world   ( (edict_t *)game.edicts )
+#define world game.edicts
 
 // item spawnflags
 #define ITEM_TRIGGER_SPAWN  0x00000001
@@ -448,30 +394,6 @@ void G_asDumpAPI_f( void );
 #define DROPPED_PLAYER_ITEM 0x00020000
 #define ITEM_TARGETS_USED   0x00040000
 #define ITEM_IGNORE_MAX     0x00080000
-#define ITEM_TIMED          0x00100000
-//
-// fields are needed for spawning from the entity string
-//
-#define FFL_SPAWNTEMP       1
-
-typedef enum {
-	F_INT,
-	F_FLOAT,
-	F_LSTRING,      // string on disk, pointer in memory, TAG_LEVEL
-	F_VECTOR,
-	F_ANGLEHACK,
-	F_IGNORE
-} fieldtype_t;
-
-typedef struct {
-	const char *name;
-	size_t ofs;
-	fieldtype_t type;
-	int flags;
-} field_t;
-
-extern const field_t fields[];
-
 
 //
 // g_cmds.c
@@ -484,7 +406,6 @@ bool CheckFlood( edict_t *ent, bool teamonly );
 void G_InitGameCommands( void );
 void G_PrecacheGameCommands( void );
 void G_AddCommand( const char *name, gamecommandfunc_t cmdfunc );
-void G_BOTvsay_f( edict_t *ent, const char *msg, bool team );
 
 //
 // g_items.c
@@ -500,7 +421,6 @@ void SpawnItem( edict_t *ent, const gsitem_t *item );
 void G_Items_FinishSpawningItems( void );
 const gsitem_t *GetItemByTag( int tag );
 bool Add_Ammo( gclient_t *client, const gsitem_t *item, int count, bool add_it );
-void Touch_ItemSound( edict_t *other, const gsitem_t *item );
 void Touch_Item( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags );
 bool G_PickupItem( edict_t *other, const gsitem_t *it, int flags, int count, const int *invpack );
 void G_UseItem( struct edict_s *ent, const gsitem_t *item );
@@ -511,7 +431,7 @@ edict_t *G_DropItem( struct edict_s *ent, const gsitem_t *item );
 //
 #define G_LEVELPOOL_BASE_SIZE   45 * 1024 * 1024
 
-bool KillBox( edict_t *ent );
+bool KillBox( edict_t *ent, int mod );
 float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker );
 edict_t *G_Find( edict_t *from, size_t fieldofs, const char *match );
 edict_t *G_PickTarget( const char *targetname );
@@ -554,26 +474,17 @@ void G_CallStop( edict_t *self );
 void G_CallPain( edict_t *ent, edict_t *attacker, float kick, float damage );
 void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point );
 
-int G_PlayerGender( edict_t *player );
-
 #ifndef _MSC_VER
 void G_PrintMsg( edict_t *ent, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
 void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, ... ) __attribute__( ( format( printf, 4, 5 ) ) );
 void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
-void G_CenterPrintFormatMsg( edict_t *ent, int numVargs, const char *format, ... ) __attribute__( ( format( printf, 3, 4 ) ) );
 #else
 void G_PrintMsg( edict_t *ent, _Printf_format_string_ const char *format, ... );
 void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, _Printf_format_string_ const char *format, ... );
 void G_CenterPrintMsg( edict_t *ent, _Printf_format_string_ const char *format, ... );
-void G_CenterPrintFormatMsg( edict_t *ent, int numVargs, _Printf_format_string_ const char *format, ... );
 #endif
 
-void G_UpdatePlayerMatchMsg( edict_t *ent, bool force = false );
-void G_UpdatePlayersMatchMsgs( void );
 void G_Obituary( edict_t *victim, edict_t *attacker, int mod );
-
-unsigned G_RegisterHelpMessage( const char *str );
-void G_SetPlayerHelpMessage( edict_t *ent, unsigned index, bool force = false );
 
 edict_t *G_Sound( edict_t *owner, int channel, StringHash sound, float attenuation );
 edict_t *G_PositionedSound( vec3_t origin, int channel, StringHash sound, float attenuation );
@@ -603,7 +514,6 @@ void G_ClearPlayerStateEvents( gclient_t *client );
 void G_AnnouncerSound( edict_t *targ, StringHash sound, int team, bool queued, edict_t *ignore );
 edict_t *G_PlayerForText( const char *text );
 
-void G_LoadFiredefsFromDisk( void );
 void G_PrecacheWeapondef( int weapon, firedef_t *firedef );
 
 void G_SetBoundsForSpanEntity( edict_t *ent, vec_t size );
@@ -626,15 +536,12 @@ http_response_code_t G_CallVotes_WebRequest( http_query_method_t method, const c
 // g_trigger.c
 //
 void SP_trigger_teleport( edict_t *ent );
-void SP_info_teleport_destination( edict_t *ent );
 void SP_trigger_always( edict_t *ent );
 void SP_trigger_once( edict_t *ent );
 void SP_trigger_multiple( edict_t *ent );
-void SP_trigger_relay( edict_t *ent );
 void SP_trigger_push( edict_t *ent );
 void SP_trigger_hurt( edict_t *ent );
 void SP_trigger_key( edict_t *ent );
-void SP_trigger_counter( edict_t *ent );
 void SP_trigger_elevator( edict_t *ent );
 void SP_trigger_gravity( edict_t *ent );
 
@@ -654,7 +561,7 @@ int G_PointContents4D( const vec3_t p, int timeDelta );
 void G_Trace4D( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, edict_t *passedict, int contentmask, int timeDelta );
 void GClip_BackUpCollisionFrame( void );
 int GClip_FindInRadius4D( vec3_t org, float rad, int *list, int maxcount, int timeDelta );
-void G_SplashFrac4D( int entNum, vec3_t hitpoint, float maxradius, vec3_t pushdir, float *frac, int timeDelta );
+void G_SplashFrac4D( const edict_t *ent, vec3_t hitpoint, float maxradius, vec3_t pushdir, float *frac, int timeDelta, bool selfdamage );
 void GClip_ClearWorld( void );
 void GClip_SetBrushModel( edict_t *ent, const char *name );
 void GClip_SetAreaPortalState( edict_t *ent, bool open );
@@ -678,36 +585,30 @@ bool GClip_EntityContact( const vec3_t mins, const vec3_t maxs, edict_t *ent );
 //
 void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point, int mod );
 int G_ModToAmmo( int mod );
-bool CheckTeamDamage( edict_t *targ, edict_t *attacker );
-void G_SplashFrac( const vec3_t origin, const vec3_t mins, const vec3_t maxs, const vec3_t point, float maxradius, vec3_t pushdir, float *frac );
+void G_SplashFrac( const entity_state_t *s, const entity_shared_t *r, const vec3_t point, float maxradius, vec3_t pushdir, float *frac, bool selfdamage );
 void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_t pushdir, const vec3_t dmgdir, const vec3_t point, float damage, float knockback, int dflags, int mod );
 void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edict_t *ignore, int mod );
 
 // damage flags
 #define DAMAGE_RADIUS 0x00000001  // damage was indirect
 #define DAMAGE_NO_PROTECTION 0x00000002
-#define DAMAGE_NO_KNOCKBACK 0x00000004
 #define DAMAGE_KNOCKBACK_SOFT 0x00000040
-
-#define GIB_HEALTH      -40
-
 
 //
 // g_misc.c
 //
-void ThrowClientHead( edict_t *self, int damage );
 void ThrowSmallPileOfGibs( edict_t *self, int damage );
 
 void BecomeExplosion1( edict_t *self );
 
-void SP_info_null( edict_t *self );
-void SP_info_notnull( edict_t *self );
 void SP_path_corner( edict_t *self );
 
 void SP_misc_teleporter_dest( edict_t *self );
 void SP_misc_model( edict_t *ent );
 void SP_misc_particles( edict_t *ent );
 void SP_misc_video_speaker( edict_t *ent );
+
+void SP_model( edict_t *ent );
 
 //
 // g_weapon.c
@@ -717,8 +618,7 @@ bool fire_hit( edict_t *self, vec3_t aim, int damage, int kick );
 void G_HideLaser( edict_t *ent );
 
 void W_Fire_Blade( edict_t *self, int range, vec3_t start, vec3_t angles, float damage, int knockback, int timeDelta );
-void W_Fire_Bullet( edict_t *self, vec3_t start, vec3_t angles, int seed, int range, int hspread, int vspread, float damage, int knockback, int timeDelta );
-edict_t *W_Fire_GunbladeBlast( edict_t *self, vec3_t start, vec3_t angles, float damage, int minKnockback, int maxKnockback, int minDamage, int radius, int speed, int timeout, int timeDelta );
+void W_Fire_MG( edict_t *self, vec3_t start, vec3_t angles, int seed, int range, int hspread, int vspread, float damage, int knockback, int timeDelta );
 void W_Fire_Riotgun( edict_t *self, vec3_t start, vec3_t angles, int range, int hspread, int vspread, int count, float damage, int knockback, int timeDelta );
 edict_t *W_Fire_Grenade( edict_t *self, vec3_t start, vec3_t angles, int speed, float damage, int minKnockback, int maxKnockback, int minDamage, float radius, int timeout, int timeDelta, bool aim_up );
 edict_t *W_Fire_Rocket( edict_t *self, vec3_t start, vec3_t angles, int speed, float damage, int minKnockback, int maxKnockback, int minDamage, int radius, int timeout, int timeDelta );
@@ -776,19 +676,12 @@ void player_think( edict_t *self );
 void target_laser_start( edict_t *self );
 
 void SP_target_temp_entity( edict_t *ent );
-void SP_target_speaker( edict_t *ent );
 void SP_target_explosion( edict_t *ent );
-void SP_target_crosslevel_trigger( edict_t *ent );
-void SP_target_crosslevel_target( edict_t *ent );
 void SP_target_laser( edict_t *self );
 void SP_target_position( edict_t *self );
 void SP_target_print( edict_t *self );
-void SP_target_give( edict_t *self );
-void SP_target_changelevel( edict_t *ent );
-void SP_target_relay( edict_t *self );
 void SP_target_delay( edict_t *ent );
 void SP_target_teleporter( edict_t *self );
-void SP_target_kill( edict_t *self );
 
 //
 // g_svcmds.c
@@ -816,7 +709,6 @@ extern char scoreboardString[MAX_STRING_CHARS];
 extern const unsigned int scoreboardInterval;
 #define SCOREBOARD_MSG_MAXSIZE ( MAX_STRING_CHARS - 8 ) //I know, I know, doesn't make sense having a bigger string than the maxsize value
 
-void MoveClientToIntermission( edict_t *client );
 void G_SetClientStats( edict_t *ent );
 void G_Snap_UpdateWeaponListMessages( void );
 void G_ScoreboardMessage_AddSpectators( void );
@@ -851,13 +743,11 @@ __declspec( noreturn ) void G_Error( _Printf_format_string_ const char *format, 
 void G_Printf( _Printf_format_string_ const char *format, ... );
 #endif
 
-void    G_Init( unsigned int seed, unsigned int framemsec, int protocol, const char *demoExtension );
-void    G_Shutdown( void );
-void    G_ExitLevel( void );
+void G_Init( unsigned int seed, unsigned int framemsec );
+void G_Shutdown( void );
+void G_ExitLevel( void );
 game_state_t *G_GetGameState( void );
-void    G_Timeout_Reset( void );
-
-bool G_AllowDownload( edict_t *ent, const char *requestname, const char *uploadname );
+void G_Timeout_Reset( void );
 
 //
 // g_frame.c
@@ -882,7 +772,6 @@ const char *G_GetEntitySpawnKey( const char *key, edict_t *self );
 // g_awards.c
 //
 void G_PlayerAward( edict_t *ent, const char *awardMsg );
-void G_AwardPlayerKilled( edict_t *self, edict_t *inflictor, edict_t *attacker, int mod );
 void G_AwardRaceRecord( edict_t *self );
 
 //============================================================================
@@ -923,8 +812,6 @@ typedef struct {
 
 	float wait;
 
-	float phase;
-
 	// state data
 	int state;
 	vec3_t dir;             // used by func_bobbing and func_pendulum
@@ -936,11 +823,6 @@ typedef struct {
 	vec3_t dest;
 	vec3_t destangles;
 } moveinfo_t;
-
-typedef struct {
-	int multifrag_timer;
-	int multifrag_count;
-} award_info_t;
 
 #define MAX_CLIENT_EVENTS   16
 #define MAX_CLIENT_EVENTS_MASK ( MAX_CLIENT_EVENTS - 1 )
@@ -959,7 +841,6 @@ typedef struct {
 typedef struct {
 	client_snapreset_t snap;
 	chasecam_t chase;
-	award_info_t awardInfo;
 
 	int64_t timeStamp; // last time it was reset
 
@@ -968,8 +849,6 @@ typedef struct {
 	unsigned int eventsCurrent;
 	unsigned int eventsHead;
 
-	int64_t next_drown_time;
-	int drowningDamage;
 	int old_waterlevel;
 	int old_watertype;
 
@@ -980,8 +859,6 @@ typedef struct {
 	int64_t timeStamp;				// last time it was reset
 
 	unsigned int respawnCount;
-	matchmessage_t matchmessage;
-	unsigned int helpmessage;
 
 	int64_t last_vsay;				// time when last vsay was said
 	int64_t last_activity;
@@ -1055,7 +932,6 @@ struct gclient_s {
 	bool connecting;
 	bool multiview;
 
-	byte_vec4_t color;
 	int team;
 	int hand;
 	unsigned mmflags;
@@ -1181,25 +1057,17 @@ struct edict_s {
 	int dmg;
 
 	const char *message;
-	const char *helpmessage;
-	unsigned mapmessage_index;
 
 	int mass;
-	int64_t air_finished;
 	float gravity;              // per entity gravity multiplier (1.0 is normal) // use for lowgrav artifact, flares
 
-	edict_t *goalentity;
 	edict_t *movetarget;
-	float yaw_speed;
 
 	int64_t pain_debounce_time;
 
 	float health;
 	int max_health;
-	int gib_health;
 	int deadflag;
-
-	const char *map;			// target_changelevel
 
 	int viewheight;				// height above origin where eyesight is determined
 	int takedamage;
@@ -1241,21 +1109,14 @@ struct edict_s {
 
 	snap_edict_t snap; // information that is cleared each frame snap
 
-	//JALFIXME
-	bool is_swim;
-	bool is_step;
-	bool is_ladder;
-	bool was_swim;
-	bool was_step;
-
 	edict_t *trigger_entity;
 	int64_t trigger_timeout;
 
 	bool linked;
 
 	bool scriptSpawned;
-	void *asScriptModule;
-	void *asSpawnFunc, *asThinkFunc, *asUseFunc, *asTouchFunc, *asPainFunc, *asDieFunc, *asStopFunc;
+	asIScriptModule *asScriptModule;
+	asIScriptFunction *asSpawnFunc, *asThinkFunc, *asUseFunc, *asTouchFunc, *asPainFunc, *asDieFunc, *asStopFunc;
 };
 
 static inline int ENTNUM( const edict_t *x ) { return x - game.edicts; }

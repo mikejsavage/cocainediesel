@@ -19,11 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // common.c -- misc functions used in client and server
 #include "qcommon.h"
+#include "qcommon/glob.h"
+#include "qcommon/csprng.h"
 #include <setjmp.h>
 #include "version.h"
 #include "wswcurl.h"
-#include "qalgo/glob.h"
-#include "gameshared/angelwrap/qas_public.h"
 
 #define MAX_NUM_ARGVS   50
 
@@ -40,7 +40,6 @@ static jmp_buf abortframe;     // an ERR_DROP occured, exit the entire frame
 cvar_t *host_speeds;
 cvar_t *developer;
 cvar_t *timescale;
-cvar_t *dedicated;
 cvar_t *versioncvar;
 
 static cvar_t *logconsole = NULL;
@@ -353,17 +352,6 @@ void Com_SetDemoPlaying( bool state ) {
 	demo_playing = state;
 }
 
-unsigned int Com_DaysSince1900( void ) {
-	time_t long_time;
-	struct tm *newtime;
-
-	// get date from system
-	time( &long_time );
-	newtime = localtime( &long_time );
-
-	return ( newtime->tm_year * 365 ) + newtime->tm_yday;
-}
-
 //============================================================================
 
 /*
@@ -635,7 +623,7 @@ void Qcommon_InitCommands( void ) {
 	Cmd_AddCommand( "lag", Com_Lag_f );
 #endif
 
-	if( dedicated->integer ) {
+	if( is_dedicated_server ) {
 		Cmd_AddCommand( "quit", Com_Quit );
 	}
 
@@ -655,7 +643,7 @@ void Qcommon_ShutdownCommands( void ) {
 	Cmd_RemoveCommand( "lag" );
 #endif
 
-	if( dedicated->integer ) {
+	if( is_dedicated_server ) {
 		Cmd_RemoveCommand( "quit" );
 	}
 
@@ -702,18 +690,12 @@ void Qcommon_Init( int argc, char **argv ) {
 	Cbuf_AddEarlyCommands( false );
 	Cbuf_Execute();
 
-#ifdef DEDICATED_ONLY
-	dedicated =     Cvar_Get( "dedicated", "1", CVAR_NOSET );
-	Cvar_ForceSet( "dedicated", "1" );
-#else
-	dedicated =     Cvar_Get( "dedicated", "0", CVAR_NOSET );
-#endif
 	developer =     Cvar_Get( "developer", "0", 0 );
 
 	FS_Init();
 
 	Cbuf_AddText( "exec default.cfg\n" );
-	if( !dedicated->integer ) {
+	if( !is_dedicated_server ) {
 		Cbuf_AddText( "exec config.cfg\n" );
 		Cbuf_AddText( "exec autoexec.cfg\n" );
 	} else {
@@ -732,7 +714,7 @@ void Qcommon_Init( int argc, char **argv ) {
 
 	host_speeds =       Cvar_Get( "host_speeds", "0", 0 );
 	timescale =     Cvar_Get( "timescale", "1.0", CVAR_CHEAT );
-	if( dedicated->integer ) {
+	if( is_dedicated_server ) {
 		logconsole =        Cvar_Get( "logconsole", "wswconsole.log", CVAR_ARCHIVE );
 	} else {
 		logconsole =        Cvar_Get( "logconsole", "", CVAR_ARCHIVE );
@@ -743,24 +725,24 @@ void Qcommon_Init( int argc, char **argv ) {
 
 	com_showtrace =     Cvar_Get( "com_showtrace", "0", 0 );
 
-	Cvar_Get( "gamename", APPLICATION_NOSPACES, CVAR_READONLY );
+	Cvar_Get( "gamename", APPLICATION_NOSPACES, CVAR_SERVERINFO | CVAR_READONLY );
 	versioncvar = Cvar_Get( "version", APP_VERSION " " ARCH " " BUILDSTRING, CVAR_SERVERINFO | CVAR_READONLY );
 
 	Sys_Init();
+
+	CSPRNG_Init();
 
 	NET_Init();
 	Netchan_Init();
 
 	CM_Init();
 
-	QAS_Init();
-
 	SV_Init();
 	CL_Init();
 
 	SCR_EndLoadingPlaque();
 
-	if( !dedicated->integer ) {
+	if( !is_dedicated_server ) {
 		Cbuf_AddText( "exec autoexec_postinit.cfg\n" );
 	} else {
 		Cbuf_AddText( "exec dedicated_autoexec_postinit.cfg\n" );
@@ -786,7 +768,6 @@ void Qcommon_Init( int argc, char **argv ) {
 void Qcommon_Frame( unsigned int realMsec ) {
 	MICROPROFILE_SCOPEI( "Main", "Qcommon_Frame", 0xffffffff );
 
-	char *s;
 	int time_before = 0, time_between = 0, time_after = 0;
 	static unsigned int gameMsec;
 
@@ -823,7 +804,8 @@ void Qcommon_Frame( unsigned int realMsec ) {
 
 	FS_Frame();
 
-	if( dedicated->integer ) {
+	if( is_dedicated_server ) {
+		char *s;
 		do {
 			s = Sys_ConsoleInput();
 			if( s ) {
@@ -880,7 +862,6 @@ void Qcommon_Shutdown( void ) {
 	}
 	isdown = true;
 
-	QAS_Shutdown();
 	CM_Shutdown();
 	Netchan_Shutdown();
 	NET_Shutdown();
@@ -892,6 +873,8 @@ void Qcommon_Shutdown( void ) {
 	Com_CloseConsoleLog( true, true );
 
 	FS_Shutdown();
+
+	CSPRNG_Shutdown();
 
 	wswcurl_cleanup();
 

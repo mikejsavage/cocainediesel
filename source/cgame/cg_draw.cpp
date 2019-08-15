@@ -136,7 +136,7 @@ void CG_DrawPicBar( int x, int y, int width, int height, int align, float percen
 		color = colorWhite;
 	}
 
-	clamp( percent, 0, 100 );
+	percent = Clamp( 0.0f, percent, 100.0f );
 	if( !percent ) {
 		return;
 	}

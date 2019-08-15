@@ -374,39 +374,6 @@ static void plat_spawn_inside_trigger( edict_t *ent ) {
 	GClip_LinkEntity( trigger );
 }
 
-
-//QUAKED func_plat (0 .5 .8) ? LOW_TRIGGER
-//Rising platform the player can ride to reach higher places. Plats must always be drawn in the raised position, so they will operate and be lighted correctly but they spawn in the lowered position. The plat will stay in the raised position until the player steps off.
-//-------- KEYS --------
-//speed : determines how fast the plat moves (default 300).
-//lip : lip remaining at end of move (default 8).
-//height : if set, this will determine the total amount of vertical travel of the plat, instead of being implicitly assigned by the model's height.
-//dmg : damage to inflict on player when he blocks operation of plat (default 2). Plat will reverse direction when blocked.
-//targetname : if set, the trigger that points to this will raise the plat each time it fires.
-//noise_start : overrides default start moving sound
-//noise : overrides default movement sound
-//noise_stop : overrides default stop moving sound
-//light : constantLight radius of .md3 model included with entity. Has no effect on the entity's brushes (default 0).
-//color : constantLight color of .md3 model included with entity. Has no effect on the entity's brushes (default 1 1 1).
-//model2 : path/name of model to include (eg: models/mapobjects/pipe/pipe02.md3).
-//origin : alternate method of setting XYZ origin of .md3 model included with entity (See Notes).
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jal: todo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//LOW_TRIGGER : &1 the plat is triggered from its lower side
-//-------- NOTES --------
-//By default, the total amount of vertical travel of a platform is implicitly determined by
-//the overall vertical size of the brushes of which it's made minus the lip value.
-//But if the "height" key is used, then the total amount of vertical travel of the plat will
-//be exactly that value regardless of the shape and size of the plat and regardless of the
-//value of the "lip" key. Using the "height" key is the best method for any kind of platforms
-//and the only possible one for thin plats which need to travel vertical distances many times
-//their own thickness. Setting the origin key is simply an alternate method to using an
-//origin brush. When using the model2 key, the origin point of the model will correspond
-//to the origin point defined by either the origin brush or the origin coordinate value.
-
 void SP_func_plat( edict_t *ent ) {
 	G_InitMover( ent );
 
@@ -478,38 +445,6 @@ void SP_func_plat( edict_t *ent ) {
 
 //wsw
 #define DOOR_DIE_ONCE       1024 // auto set when health is > 0
-
-//QUAKED func_door (0 .5 .8) ? START_OPEN - CRUSHER NOMONSTER - TOGGLE -
-//Normal sliding door entity. By default, the door will activate when player walks close to it or when damage is inflicted to it.
-//-------- KEYS --------
-//message : is printed when the door is touched if it is a trigger door and it hasn't been fired yet
-//angle : determines the opening direction of door (up = -1, down = -2).
-//speed : determines how fast the door moves (default 600).
-//wait : number of seconds before door returns (2 default, -1 = never return)
-//lip : lip remaining at end of move (default 8)
-//targetname : if set, a func_button or trigger is required to activate the door.
-//target : fire entities with this targetname when activated
-//health : (default 0) if set to any non-zero value, the button must take damage (any amount) to activate.
-//dmg : damage to inflict on player when he blocks operation of door (default 2). Door will reverse direction when blocked unless CRUSHER spawnflag is set.
-//team: assign the same team name to multiple doors that should operate together (see Notes).
-//noise_start : overrides default start moving sound
-//noise : overrides default movement sound
-//noise_stop : overrides default stop moving sound
-//light : constantLight radius of .md3 model included with entity. Has no effect on the entity's brushes (default 0).
-//color : constantLight color of .md3 model included with entity. Has no effect on the entity's brushes (default 1 1 1).
-//model2 : path/name of model to include (eg: models/mapobjects/pipe/pipe02.md3).
-//origin : alternate method of setting XYZ origin of .md3 model included with entity (See Notes).
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jal: todo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//START_OPEN : &1 the door will spawn in the open state and operate in reverse.
-//CRUSHER : &4 door will not reverse direction when blocked and will keep damaging player until he dies or gets out of the way.
-//NOMONSTER : &8 monsters will not trigger this door
-//TOGGLE : &32 wait in both the start and end states for a trigger event
-//-------- NOTES --------
-
 
 static void door_use_areaportals( edict_t *self, bool open ) {
 	int iopen = open ? 1 : 0;
@@ -866,41 +801,6 @@ void SP_func_door( edict_t *ent ) {
 	}
 }
 
-//QUAKED func_door_rotating (0 .5 .8) ? START_OPEN REVERSE CRUSHER NOMONSTER - TOGGLE X_AXIS Y_AXIS
-//Door which opens by rotating in one axis. You need to have an origin brush as part of this entity.
-//-------- KEYS --------
-//message : is printed when the door is touched if it is a trigger door and it hasn't been fired yet
-//distance : is how many degrees the door will be rotated.
-//angle : determines the opening direction of door (up = -1, down = -2).
-//speed : determines how fast the door moves (default 100).
-//wait : wait before returning (3 default, -1 = never return)
-//targetname : if set, a func_button or trigger is required to activate the door.
-//target : fire entities with this targetname when activated
-//health : if set, door must be shot open (default 0).
-//dmg : damage to inflict on player when he blocks operation of door (default 2). Door will reverse direction when blocked unless CRUSHER spawnflag is set.
-//team: assign the same team name to multiple doors that should operate together.
-//noise_start : overrides default start moving sound
-//noise : overrides default movement sound
-//noise_stop : overrides default stop moving sound
-//light : constantLight radius of .md3 model included with entity. Has no effect on the entity's brushes (default 0).
-//color : constantLight color of .md3 model included with entity. Has no effect on the entity's brushes (default 1 1 1).
-//model2 : path/name of model to include (eg: models/mapobjects/pipe/pipe02.md3).
-//origin : alternate method of setting XYZ origin of .md3 model included with entity (See Notes).
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jal: todo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//START_OPEN : &1 the door will spawn in the open state and operate in reverse.
-//REVERSE : &2 will cause the door to rotate in the opposite direction.
-//CRUSHER : &4 door will not reverse direction when blocked and will keep damaging player until he dies or gets out of the way.
-//NOMONSTER : &8 monsters can't trigger this door.
-//TOGGLE : &32 wait in both the start and end states for a trigger event
-//X_AXIS : &64 rotate in the X axis
-//Y_AXIS : &128 rotate in the Y axis
-//-------- NOTES --------
-//The center of the origin brush determines the point around which it is rotated. It will rotate around the Z axis by default. You can check either the X_AXIS or Y_AXIS box to change that.
-
 void SP_func_door_rotating( edict_t *ent ) {
 	G_InitMover( ent );
 
@@ -986,139 +886,7 @@ void SP_func_door_rotating( edict_t *ent ) {
 	}
 }
 
-/*QUAKED func_door_secret (0 .5 .8) ? open_once 1st_left 1st_down no_shoot always_shoot
-Basic secret door. Slides back, then to the side. Angle determines direction.
-*/
-
-#define SECRET_OPEN_ONCE    1       // stays open
-#define SECRET_1ST_LEFT     2       // 1st move is left of arrow
-#define SECRET_1ST_DOWN     4       // 1st move is down from arrow
-#define SECRET_NO_SHOOT     8       // only opened by trigger
-#define SECRET_YES_SHOOT    16      // shootable even if targeted
-
-void SP_func_door_secret( edict_t *self ) {
-	int oldflags;
-
-	oldflags = self->spawnflags;
-	self->spawnflags = 0;
-
-	if( oldflags & SECRET_OPEN_ONCE ) {
-		self->wait = -1;
-		self->spawnflags |= DOOR_DIE_ONCE;
-	}
-
-	self->health = 0;
-	if( oldflags & SECRET_YES_SHOOT || !self->targetname ) {
-		self->health = 1;
-	}
-	if( oldflags & SECRET_NO_SHOOT ) {
-		self->health = -1;
-	}
-
-	SP_func_door( self );
-	self->think = Think_CalcMoveSpeed;
-}
-
-/*QUAKED func_water (0 .5 .8) ? START_OPEN
-func_water is a moveable water brush.  It must be targeted to operate.  Use a non-water texture at your own risk.
-
-START_OPEN causes the water to move to its destination when spawned and operate in reverse.
-
-"angle"		determines the opening direction (up or down only)
-"speed"		movement speed (25 default)
-"wait"		wait before returning (-1 default, -1 = TOGGLE)
-"lip"		lip remaining at end of move (0 default)
-*/
-
-void SP_func_water( edict_t *self ) {
-	vec3_t abs_movedir;
-
-	G_InitMover( self );
-
-	G_SetMovedir( self->s.angles, self->moveinfo.movedir );
-
-	// calculate second position
-	VectorCopy( self->s.origin, self->moveinfo.start_origin );
-	abs_movedir[0] = fabs( self->moveinfo.movedir[0] );
-	abs_movedir[1] = fabs( self->moveinfo.movedir[1] );
-	abs_movedir[2] = fabs( self->moveinfo.movedir[2] );
-	self->moveinfo.distance = abs_movedir[0] * self->r.size[0] + abs_movedir[1] * self->r.size[1] + abs_movedir[2] * self->r.size[2] - st.lip;
-	VectorMA( self->moveinfo.start_origin, self->moveinfo.distance, self->moveinfo.movedir, self->moveinfo.end_origin );
-
-	// if it starts open, switch the positions
-	if( self->spawnflags & DOOR_START_OPEN ) {
-		VectorCopy( self->moveinfo.end_origin, self->s.origin );
-		VectorCopy( self->moveinfo.start_origin, self->moveinfo.end_origin );
-		VectorCopy( self->s.origin, self->moveinfo.start_origin );
-	}
-
-	VectorCopy( self->moveinfo.start_origin, self->moveinfo.start_origin );
-	VectorCopy( self->s.angles, self->moveinfo.start_angles );
-	VectorCopy( self->moveinfo.end_origin, self->moveinfo.end_origin );
-	VectorCopy( self->s.angles, self->moveinfo.end_angles );
-
-	self->health = 0;
-
-	if( !self->speed ) {
-		self->speed = 25;
-	}
-	if( !self->wait ) {
-		self->wait = -1;
-	}
-
-	self->moveinfo.state = STATE_BOTTOM;
-	self->accel = self->decel = self->moveinfo.speed = self->speed;
-
-	self->moveinfo.wait = self->wait;
-
-	self->use = door_use;
-
-	if( self->wait == -1 ) {
-		self->spawnflags |= DOOR_TOGGLE;
-	}
-
-	GClip_LinkEntity( self );
-}
-
-/*
-* G_EntIsADoor
-*
-* A simple function to check whether a mover acts as a door
-*/
-bool G_EntIsADoor( edict_t *ent ) {
-	return ( ent->use == door_use ) ? true : false;
-}
-
 //====================================================================
-
-//QUAKED func_rotating (0 .5 .8) ? START_OFF REVERSE X_AXIS Y_AXIS TOUCH_PAIN STOP - -
-//You need to have an origin brush as part of this entity.  The center of that brush will be
-//the point around which it is rotated. It will rotate around the Z axis by default.  You can
-//check either the X_AXIS or Y_AXIS box to change that.
-//-------- KEYS --------
-//targetname : name to be targeted
-//target : names to target.
-//speed : determines how fast entity rotates (default 100).
-//noise_start : overrides default start moving sound
-//noise : overrides default movement sound
-//noise_stop : overrides default stop moving sound
-//model2 : path/name of model to include (eg: models/mapobjects/bitch/fembotbig.md3).
-//origin : alternate method of setting XYZ origin of entity's rotation axis and .md3 model included with entity (default "0 0 0" - See Notes).
-//light : constantLight radius of .md3 model included with entity. Has no effect on the entity's brushes (default 0).
-//color : constantLight color of .md3 model included with entity. Has no effect on the entity's brushes (default 1 1 1).
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jal: todo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//START_OFF : &1 must be triggered to start moving.
-//REVERSE : &2 will cause the it to rotate in the opposite direction.
-//X_AXIS : &4 entity will rotate along the X axis.
-//Y_AXIS : &8 entity will rotate along the Y axis.
-//TOUCH_PAIN : &16 dunno what it does (jal)
-//STOP : &32 it will stop moving instead when blocked, instead of pushing or crushing them.
-//-------- NOTES --------
-//You need to have an origin brush as part of this entity. The center of that brush will be the point through which the rotation axis passes. Setting the origin key is simply an alternate method to using an origin brush. It will rotate along the Z axis by default. You can check either the X_AXIS or Y_AXIS box to change that. When using the model2 key, the origin point of the model will correspond to the origin point defined by either the origin brush or the origin coordinate value.
 
 #define STATE_STOPPED       0
 #define STATE_ACCEL     1
@@ -1280,30 +1048,6 @@ void SP_func_rotating( edict_t *ent ) {
 //
 //======================================================================
 
-
-//QUAKED func_button (0 .5 .8) ?
-//When a button is touched by a player, it moves in the direction set by the "angle" key, triggers all its targets, stays pressed by an amount of time set by the "wait" key, then returns to it's original position where it can be operated again.
-//-------- KEYS --------
-//angle : determines the direction in which the button will move (up = -1, down = -2).
-//target : all entities with a matching targetname will be triggered.
-//speed : speed of button's displacement (default 40).
-//wait : number of seconds button stays pressed (default 1, -1 = return immediately).
-//lip : lip remaining at end of move (default 4 units).
-//health : (default 0) if set to any non-zero value, the button must take damage (any amount) to activate.
-//noise : custom noise to be played when activated
-//light : constantLight radius of .md3 model included with entity. Has no effect on the entity's brushes (default 0).
-//color : constantLight color of .md3 model included with entity. Has no effect on the entity's brushes (default 1 1 1).
-//model2 : path/name of model to include (eg: models/mapobjects/pipe/pipe02.md3).
-//origin : alternate method of setting XYZ origin of .md3 model included with entity (See Notes).
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jal: todo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//nobot : bots can't trigger it  (jal: todo)
-//nomonster : monsters can't trigger it  (jal: todo)
-//-------- NOTES --------
-//Setting the origin key is simply an alternate method to using an origin brush. When using the model2 key, the origin point of the model will correspond to the origin point defined by either the origin brush or the origin coordinate value.
-
 static void button_done( edict_t *self ) {
 	self->moveinfo.state = STATE_BOTTOM;
 }
@@ -1312,8 +1056,6 @@ static void button_return( edict_t *self ) {
 	self->moveinfo.state = STATE_DOWN;
 
 	Move_Calc( self, self->moveinfo.start_origin, button_done );
-
-	self->s.frame = 0;
 
 	if( self->health ) {
 		self->deadflag = DEAD_NO;
@@ -1325,7 +1067,6 @@ static void button_wait( edict_t *self ) {
 	self->moveinfo.state = STATE_TOP;
 
 	G_UseTargets( self, self->activator );
-	self->s.frame = 1;
 	if( self->moveinfo.wait >= 0 ) {
 		self->nextThink = level.time + ( self->moveinfo.wait * 1000 );
 		self->think = button_return;
@@ -1420,32 +1161,6 @@ void SP_func_button( edict_t *ent ) {
 
 	GClip_LinkEntity( ent );
 }
-
-
-//QUAKED func_train (0 .5 .8) ? START_ON TOGGLE BLOCK_STOPS
-//Trains are moving platforms that players can ride. The targets origin specifies the min point of the train at each corner. The train spawns at the first target it is pointing at. If the train is the target of a button or trigger, it will not begin moving until activated.
-//-------- KEYS --------
-//speed : speed of displacement of train (default 100).
-//dmg : default 2
-//target : point to first entity in the path
-//targetname : train's targetname
-//noise_start : start moving sound (default silent)
-//noise : movement sound (default silent)
-//noise_stop : stop moving sound (default silent)
-//model2 : path/name of model to include (eg: models/mapobjects/pipe/pipe02.md3).
-//origin : alternate method of setting XYZ origin of the train's brush(es) and .md3 model included with entity (See Notes).
-//light : constantLight radius of .md3 model included with entity. Has no effect on the entity's brushes (default 0).
-//color : constantLight color of .md3 model included with entity. Has no effect on the entity's brushes (default 1 1 1).
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jal: todo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//START_ON : &1
-//TOGGLE : &2
-//BLOCK_STOPS : &4
-//-------- NOTES --------
-//Setting the origin key is simply an alternate method to using an origin brush. When using the model2 key, the origin point of the model will correspond to the origin point defined by either the origin brush or the origin coordinate value.
 
 #define TRAIN_START_ON      1
 #define TRAIN_TOGGLE        2
@@ -1674,8 +1389,6 @@ void SP_func_train( edict_t *self ) {
 	}
 }
 
-
-//QUAKED trigger_elevator (0.3 0.1 0.6) (-8 -8 -8) (8 8 8)
 static void trigger_elevator_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	edict_t *target;
 
@@ -1734,19 +1447,6 @@ void SP_trigger_elevator( edict_t *self ) {
 	self->nextThink = level.time + 1;
 }
 
-//QUAKED func_timer (0.3 0.1 0.6) (-8 -8 -8) (8 8 8) START_ON
-//"wait"	base time between triggering all targets, default is 1
-//"random"	wait variance, default is 0
-//
-//so, the basic time between firing is a random time between
-//(wait - random) and (wait + random)
-//
-//"delay"		delay before first firing when turned on, default is 0
-//
-//"pausetime"	additional delay used only the very first time
-//				and only if spawned with START_ON
-//
-//These can used but not touched.
 void func_timer_think( edict_t *self ) {
 	G_UseTargets( self, self->activator );
 	self->nextThink = level.time + 1000 * ( self->wait + crandom() * self->random );
@@ -1789,269 +1489,4 @@ void SP_func_timer( edict_t *self ) {
 						  ( 1.0 + st.pausetime + self->delay + self->wait + crandom() * self->random );
 		self->activator = self;
 	}
-}
-
-//QUAKED func_conveyor (0 .5 .8) ? START_ON TOGGLE
-//Conveyors are stationary brushes that move what's on them.
-//-------- KEYS --------
-//speed : speed of displacement (default 100).
-//target : targetname to activate when used
-//targetname : to be targeted with
-//noise_start : start moving sound (default silent)
-//noise : movement sound (default silent)
-//noise_stop : stop moving sound (default silent)
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jal: todo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//START_ON : &1 start activated
-//TOGGLE : &2 must be triggered again to toogle it's state
-//-------- NOTES --------
-//The brush should be have a surface with at least one current content enabled.
-
-static void func_conveyor_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	if( self->spawnflags & 1 ) {
-		self->speed = 0;
-		self->spawnflags &= ~1;
-	} else {
-		self->speed = self->count;
-		self->spawnflags |= 1;
-	}
-
-	if( !( self->spawnflags & 2 ) ) {
-		self->count = 0;
-	}
-}
-
-void SP_func_conveyor( edict_t *self ) {
-	G_InitMover( self );
-
-	if( !self->speed ) {
-		self->speed = 100;
-	}
-
-	if( !( self->spawnflags & 1 ) ) {
-		self->count = self->speed;
-		self->speed = 0;
-	}
-
-	self->use = func_conveyor_use;
-
-	GClip_LinkEntity( self );
-
-	G_AssignMoverSounds( self, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
-}
-
-//QUAKED func_killbox (1 0 0) ?
-//Kills everything inside when fired, irrespective of protection.
-static void use_killbox( edict_t *self, edict_t *other, edict_t *activator ) {
-	KillBox( self );
-}
-
-void SP_func_killbox( edict_t *ent ) {
-	ent->use = use_killbox;
-	ent->r.svflags = SVF_NOCLIENT;
-}
-
-
-//QUAKED func_bobbing (0 .5 .8) ? X_AXIS Y_AXIS
-//Solid entity that oscillates back and forth in a linear motion. Entity bobs on the Z axis (up-down) by default. It can also emit sound if the "noise" key is set. Will crush the player when blocked.
-//-------- KEYS --------
-//speed : amount of time in seconds for one complete oscillation cycle (default 4).
-//height : sets the amount of travel of the oscillation movement (default 32).
-//phase : sets the start offset of the oscillation cycle. Values must be 0 < phase < 1. Any integer phase value is the same as no offset (default 0).
-//noise_start : start moving sound (default is silent)
-//noise : path/name of .wav file to play (default is silent). Use looping sounds only (eg. sounds/world/drone6.wav - See Notes).
-//noise_stop : stop moving sound (default is silent)
-//model2 : path/name of model to include.
-//origin : alternate method of setting XYZ origin of sound and .md3 model included with entity (See Notes).
-//light : constantLight radius of .md3 model included with entity. Has no effect on the entity's brushes (default 0).
-//color : constantLight color of .md3 model included with entity. Has no effect on the entity's brushes (default 1 1 1).
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jal: todo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//X_AXIS : &1 entity will bob along the X axis.
-//Y_AXIS : &2 entity will bob along the Y axis.
-//-------- NOTES --------
-//In order for the sound to be emitted from the entity, it is recommended to include a brush with an origin shader at its center, otherwise the sound will not follow the entity as it moves. Setting the origin key is simply an alternate method to using an origin brush. When using the model2 key, the origin point of the model will correspond to the origin point defined by either the origin brush or the origin coordinate value.
-//Start and stop sounds will only be played if the entity is set to be triggered
-
-/*
-* func_bobbing_blocked
-*/
-static void func_bobbing_blocked( edict_t *self, edict_t *other ) {
-	G_Damage( other, self, self, vec3_origin, vec3_origin, other->s.origin, 100000, 1, 0, MOD_CRUSH );
-}
-
-/*
-* func_bobbing_use
-*/
-static void func_bobbing_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	if( self->flags & FL_TEAMSLAVE ) {
-		G_UseTargets( self->teammaster, activator );
-		return;
-	}
-
-	self->activator = activator;
-	G_UseTargets( self, self->activator );
-}
-
-/*
-* func_bobbing_think
-*/
-static void func_bobbing_think( edict_t *ent ) {
-	float delta;
-	float phase;
-
-	delta = ( ( level.time * 0.001 ) - ent->speed * ent->moveinfo.phase ) / ent->speed;
-	delta = delta - (int)delta;
-	phase = sin( delta * M_TWOPI );
-
-	VectorMA( ent->moveinfo.start_origin, phase, ent->moveinfo.dir, ent->velocity );
-	VectorSubtract( ent->velocity, ent->s.origin, ent->velocity );
-
-	ent->nextThink = level.time + 1;
-}
-
-/*
-* SP_func_bobbing
-*/
-void SP_func_bobbing( edict_t *ent ) {
-	G_InitMover( ent );
-
-	if( !ent->speed ) {
-		ent->speed = 4;
-	}
-	if( !ent->dmg ) {
-		ent->dmg = 2;
-	}
-	if( !st.height ) {
-		st.height = 32;
-	}
-
-	ent->moveinfo.phase = st.phase;
-	VectorClear( ent->moveinfo.dir );
-
-	// set the axis of bobbing
-	if( ent->spawnflags & 1 ) {
-		ent->moveinfo.dir[0] = st.height;
-	} else if( ent->spawnflags & 2 ) {
-		ent->moveinfo.dir[1] = st.height;
-	} else {
-		ent->moveinfo.dir[2] = st.height;
-	}
-
-	VectorClear( ent->s.angles );
-	VectorClear( ent->velocity );
-	VectorCopy( ent->s.origin, ent->moveinfo.start_origin );
-
-	ent->think = func_bobbing_think;
-	ent->nextThink = level.time + 1;
-	ent->moveinfo.blocked = func_bobbing_blocked;
-	ent->use = func_bobbing_use;
-
-	G_AssignMoverSounds( ent, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
-
-	GClip_LinkEntity( ent );
-}
-
-//===============================================================================
-//
-//PENDULUM
-//
-//===============================================================================
-
-
-/*
-* func_pendulum_blocked
-*/
-static void func_pendulum_blocked( edict_t *self, edict_t *other ) {
-	G_Damage( other, self, self, vec3_origin, vec3_origin, other->s.origin, 100000, 1, 0, MOD_CRUSH );
-}
-
-/*
-* func_pendulum_use
-*/
-static void func_pendulum_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	if( self->flags & FL_TEAMSLAVE ) {
-		G_UseTargets( self->teammaster, activator );
-		return;
-	}
-
-	self->activator = activator;
-	G_UseTargets( self, self->activator );
-}
-
-/*
-* func_pendulum_think
-*/
-static void func_pendulum_think( edict_t *ent ) {
-	float delta;
-	float phase;
-
-	delta = ( ( level.time * 0.001 ) + ent->moveinfo.wait ) * ent->moveinfo.phase;
-	delta = delta - (int)delta;
-	phase = sin( delta * M_TWOPI );
-	VectorMA( ent->moveinfo.start_angles, phase, ent->moveinfo.dir, ent->avelocity );
-	VectorSubtract( ent->avelocity, ent->s.angles, ent->avelocity );
-	ent->nextThink = level.time + 1;
-}
-
-//QUAKED func_pendulum (0 .5 .8) ?
-//You need to have an origin brush as part of this entity. Solid entity that describes a pendulum back and forth rotation movement. Rotates on the X axis by default. Pendulum frequency is a physical constant based on the length of the beam and gravity. Blocking the pendulum instantly kills a player.
-//-------- KEYS --------
-//angle : angle offset of axis of rotation from default X axis (default 0).
-//speed : angle of swing arc in either direction from initial position (default 30).
-//phase : sets the start offset of the swinging cycle. Values must be 0 < phase < 1. Any integer phase value is the same as no offset (default 0).
-//noise_start :	start moving sound to be played only if triggered (default is silent)
-//noise : path/name of .wav file to play. Use looping sounds only (default is silent).
-//noise_stop : stop moving sound to be played only if triggered (default is silent)
-//model2 : path/name of model to include (eg: models/mapobjects/jets/jets01.md3).
-//origin : alternate method of setting XYZ origin of entity's rotation axis and .md3 model included with entity (default "0 0 0" - See Notes).
-//light : constantLight radius of .md3 model included with entity. Has no effect on the entity's brushes (default 0).
-//color : constantLight color of .md3 model included with entity. Has no effect on the entity's brushes (default 1 1 1).
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jal: todo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- NOTES --------
-//You need to have an origin brush as part of this entity. The center of that brush will be the point through which the rotation axis passes. Setting the origin key is simply an alternate method to using an origin brush. Pendulum will rotate along the X axis by default. Very crude operation: pendulum cannot rotate along Z axis, the speed of swing (frequency) is not adjustable. When using the model2 key, the origin point of the model will correspond to the origin point defined by either the origin brush or the origin coordinate value. Pendulums always swing north / south on unrotated models. Add an angles field to the model to allow rotation in other directions. Pendulum frequency is a physical constant based on the length of the beam and gravity.
-void SP_func_pendulum( edict_t *ent ) {
-	float freq;
-	float length;
-
-	G_InitMover( ent );
-
-	if( !ent->speed ) {
-		ent->speed = 30;
-	}
-	if( !ent->dmg ) {
-		ent->dmg = 2;
-	}
-
-	// find pendulum length
-	length = fabs( ent->r.mins[2] );
-	if( length < 8 ) {
-		length = 8;
-	}
-
-	freq = 1 / ( M_PI * 2 ) * sqrt( level.gravity / ( 3 * length ) );
-
-	VectorCopy( ent->s.angles, ent->moveinfo.start_angles );
-	VectorClear( ent->moveinfo.dir );
-	ent->moveinfo.phase = freq;
-	ent->moveinfo.wait = st.phase / ent->moveinfo.phase;
-	ent->moveinfo.dir[2] = ent->speed;
-
-	ent->think = func_pendulum_think;
-	ent->nextThink = level.time + 1;
-	ent->moveinfo.blocked = func_pendulum_blocked;
-	ent->use = func_pendulum_use;
-
-	G_AssignMoverSounds( ent, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
-
-	GClip_LinkEntity( ent );
 }

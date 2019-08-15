@@ -28,8 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // TEMP MOVE ME
 gs_state_t gs;
 
-void GS_asInitializeExport( void );
-
 /*
 * GS_TouchPushTrigger
 */
@@ -101,74 +99,14 @@ void GS_BBoxForEntityState( entity_state_t *state, vec3_t mins, vec3_t maxs ) {
 	}
 }
 
-/*
-* GS_FrameForTime
-* Returns the frame and interpolation fraction for current time in an animation started at a given time.
-* When the animation is finished it will return frame -1. Takes looping into account. Looping animations
-* are never finished.
-*/
-float GS_FrameForTime( int *frame, int64_t curTime, int64_t startTimeStamp, float frametime, int firstframe, int lastframe, int loopingframes, bool forceLoop ) {
-	int64_t runningtime, framecount;
-	int curframe;
-	float framefrac;
-
-	if( curTime <= startTimeStamp ) {
-		*frame = firstframe;
-		return 0.0f;
-	}
-
-	if( firstframe == lastframe ) {
-		*frame = firstframe;
-		return 1.0f;
-	}
-
-	runningtime = curTime - startTimeStamp;
-	framefrac = ( (double)runningtime / (double)frametime );
-	framecount = (unsigned int)framefrac;
-	framefrac -= framecount;
-
-	curframe = firstframe + framecount;
-	if( curframe > lastframe ) {
-		if( forceLoop && !loopingframes ) {
-			loopingframes = lastframe - firstframe;
-		}
-
-		if( loopingframes ) {
-			unsigned int numloops;
-			unsigned int startcount;
-
-			startcount = ( lastframe - firstframe ) - loopingframes;
-
-			numloops = ( framecount - startcount ) / loopingframes;
-			curframe -= loopingframes * numloops;
-			if( loopingframes == 1 ) {
-				framefrac = 1.0f;
-			}
-		} else {
-			curframe = -1;
-		}
-	}
-
-	*frame = curframe;
-
-	return framefrac;
-}
-
 //============================================================================
-
-/*
-* GS_SetGametypeName
-*/
-void GS_SetGametypeName( const char *name ) {
-	Q_strncpyz( gs.gametypeName, name, sizeof( gs.gametypeName ) );
-}
 
 /*
 * GS_Obituary
 *
 * Can be called by either the server or the client
 */
-void GS_Obituary( void *victim, int gender, void *attacker, int mod, char *message, char *message2 ) {
+void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *message2 ) {
 	message[0] = 0;
 	message2[0] = 0;
 
@@ -192,17 +130,14 @@ void GS_Obituary( void *victim, int gender, void *attacker, int mod, char *messa
 			case MOD_LAVA:
 				strcpy( message, "sacrificed to the lava god" ); // wsw : pb : some killed messages
 				break;
-			case MOD_EXPLOSIVE:
-			case MOD_BARREL:
-				strcpy( message, "blew up" );
-				break;
-			case MOD_EXIT:
-				strcpy( message, "found a way out" );
-				break;
-			case MOD_BOMB:
-			case MOD_SPLASH:
 			case MOD_TRIGGER_HURT:
 				strcpy( message, "was in the wrong place" );
+				break;
+			case MOD_LASER:
+				strcpy( message, "was cut in half" );
+				break;
+			case MOD_SPIKES:
+				strcpy( message, "was impaled by spikes" );
 				break;
 			default:
 				strcpy( message, "died" );
@@ -216,13 +151,9 @@ void GS_Obituary( void *victim, int gender, void *attacker, int mod, char *messa
 			strcpy( message, "tried to invade" );
 			strcpy( message2, "'s personal space" );
 			break;
-		case MOD_GUNBLADE_W:
+		case MOD_GUNBLADE:
 			strcpy( message, "was impaled by" );
 			strcpy( message2, "'s gunblade" );
-			break;
-		case MOD_GUNBLADE_S:
-			strcpy( message, "could not hide from" );
-			strcpy( message2, "'s almighty gunblade" );
 			break;
 		case MOD_MACHINEGUN:
 			strcpy( message, "was penetrated by" );
@@ -281,6 +212,4 @@ void GS_InitModule( int module, int maxClients, gs_module_api_t *api ) {
 	gs.module = module;
 	gs.maxclients = maxClients;
 	gs.api = *api;
-
-	GS_asInitializeExport();
 }

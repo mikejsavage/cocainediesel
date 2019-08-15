@@ -19,24 +19,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "g_local.h"
+#include "qcommon/rng.h"
 
-//QUAKED info_player_start (1 0 0) (-16 -16 -24) (16 16 32)
-//The normal starting point for a level.
 void SP_info_player_start( edict_t *self ) {
 	G_DropSpawnpointToFloor( self );
 }
 
-//QUAKED info_player_deathmatch (1 0 1) (-16 -16 -24) (16 16 32)
-//potential spawning position for deathmatch games
 void SP_info_player_deathmatch( edict_t *self ) {
 	G_DropSpawnpointToFloor( self );
 }
 
-//QUAKED info_player_intermission (1 0 1) (-16 -16 -24) (16 16 32)
-//The deathmatch intermission point will be at one of these
-//Use 'angles' instead of 'angle', so you can set pitch or roll as well as yaw.  'pitch yaw roll'
-void SP_info_player_intermission( edict_t *ent ) {
-}
+void SP_post_match_camera( edict_t *ent ) { }
 
 //=======================================================================
 //
@@ -81,102 +74,12 @@ float PlayersRangeFromSpot( edict_t *spot, int ignore_team ) {
 	return bestplayerdistance;
 }
 
+static edict_t *G_FindPostMatchCamera( void ) {
+	edict_t * ent = G_Find( NULL, FOFS( classname ), "post_match_camera" );
+	if( ent != NULL )
+		return ent;
 
-/*
-* G_SelectIntermissionSpawnPoint
-* Returns a intermission spawnpoint, or a deathmatch spawnpoint if
-* no info_player_intermission was found.
-*/
-edict_t *G_SelectIntermissionSpawnPoint( void ) {
-	edict_t *ent;
-	int i;
-
-	// find an intermission spot
-	ent = G_Find( NULL, FOFS( classname ), "info_player_intermission" );
-	if( !ent ) { // the map creator forgot to put in an intermission point...
-		ent = G_Find( NULL, FOFS( classname ), "info_player_start" );
-		if( !ent ) {
-			ent = G_Find( NULL, FOFS( classname ), "info_player_deathmatch" );
-		}
-	} else {
-		// chose one of four spots
-		i = rand() & 3;
-		while( i-- ) {
-			ent = G_Find( ent, FOFS( classname ), "info_player_intermission" );
-			if( !ent ) { // wrap around the list
-				ent = G_Find( ent, FOFS( classname ), "info_player_intermission" );
-			}
-		}
-	}
-
-	return ent;
-}
-
-/*
-* SelectRandomDeathmatchSpawnPoint
-*
-* go to a random point, but NOT the two points closest
-* to other players
-*/
-static edict_t *SelectRandomDeathmatchSpawnPoint( edict_t *ent ) {
-	edict_t *spot, *spot1, *spot2;
-	int count = 0;
-	int selection, ignore_team = 0;
-	float range, range1, range2;
-
-	spot = NULL;
-	range1 = range2 = 99999;
-	spot1 = spot2 = NULL;
-
-	if( ent && GS_TeamBasedGametype() ) {
-		ignore_team = ent->s.team;
-	}
-
-	while( ( spot = G_Find( spot, FOFS( classname ), "info_player_deathmatch" ) ) != NULL ) {
-		count++;
-		range = PlayersRangeFromSpot( spot, ignore_team );
-		if( range < range1 ) {
-			if( range1 < range2 ) {
-				range2 = range1;
-				spot2 = spot1;
-			}
-			range1 = range;
-			spot1 = spot;
-		} else if( range < range2 ) {
-			range2 = range;
-			spot2 = spot;
-		}
-	}
-
-	if( !count ) {
-		return NULL;
-	}
-
-	if( count <= 2 ) {
-		spot1 = spot2 = NULL;
-	} else {
-		if( spot1 ) {
-			count--;
-		}
-		if( spot2 && spot2 != spot1 ) {
-			count--;
-		}
-	}
-
-	selection = rand() % count;
-	spot = NULL;
-	do {
-		spot = G_Find( spot, FOFS( classname ), "info_player_deathmatch" );
-		if( spot == spot1 || spot == spot2 ) {
-			selection++;
-		}
-	} while( selection-- );
-
-	return spot;
-}
-
-edict_t *SelectDeathmatchSpawnPoint( edict_t *ent ) {
-	return SelectRandomDeathmatchSpawnPoint( ent );
+	return G_Find( NULL, FOFS( classname ), "info_player_intermission" );
 }
 
 /*
@@ -189,9 +92,8 @@ bool G_OffsetSpawnPoint( vec3_t origin, const vec3_t box_mins, const vec3_t box_
 	float playerbox_rowwidth;
 	float playerbox_columnwidth;
 	int rows, columns;
-	int i, j, row = 0, column = 0;
-	int rowseed = rand() & 255;
-	int columnseed = rand() & 255;
+	int i, j;
+	RNG rng = new_rng( rand(), 0 );
 	int mask_spawn = MASK_PLAYERSOLID | ( CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_TELEPORTER | CONTENTS_JUMPPAD | CONTENTS_BODY | CONTENTS_NODROP );
 	int playersFound = 0, worldfound = 0, nofloorfound = 0, badclusterfound = 0;
 
@@ -226,8 +128,8 @@ bool G_OffsetSpawnPoint( vec3_t origin, const vec3_t box_mins, const vec3_t box_
 	// no, we won't just do a while, let's go safe and just check as many times as
 	// positions in the grid. If we didn't found a spawnpoint by then, we let it telefrag.
 	for( i = 0; i < ( rows * columns ); i++ ) {
-		row = Q_brandom( &rowseed, -rows, rows );
-		column = Q_brandom( &columnseed, -columns, columns );
+		int row = random_uniform( &rng, -rows, rows + 1 );
+		int column = random_uniform( &rng, -columns, columns + 1 );
 
 		VectorSet( virtualorigin, origin[0] + ( row * playerbox_rowwidth ),
 				   origin[1] + ( column * playerbox_columnwidth ),
@@ -310,15 +212,9 @@ void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, vec3_t origin, vec3_t
 	edict_t *spot = NULL;
 
 	if( GS_MatchState() >= MATCH_STATE_POSTMATCH ) {
-		spot = G_SelectIntermissionSpawnPoint();
+		spot = G_FindPostMatchCamera();
 	} else {
-		if( game.asEngine != NULL ) {
-			spot = GT_asCallSelectSpawnPoint( ent );
-		}
-
-		if( !spot ) {
-			spot = SelectDeathmatchSpawnPoint( ent );
-		}
+		spot = GT_asCallSelectSpawnPoint( ent );
 	}
 
 	// find a single player start spot
@@ -422,8 +318,7 @@ void G_SpawnQueue_Init( void ) {
 	for( team = TEAM_SPECTATOR; team < GS_MAX_TEAMS; team++ )
 		memset( &g_spawnQueues[team].list, -1, sizeof( g_spawnQueues[team].list ) );
 
-	spawnsystem = g_spawnsystem->integer;
-	clamp( spawnsystem, SPAWNSYSTEM_INSTANT, SPAWNSYSTEM_HOLD );
+	spawnsystem = bound( SPAWNSYSTEM_INSTANT, g_spawnsystem->integer, SPAWNSYSTEM_HOLD );
 	if( spawnsystem != g_spawnsystem->integer ) {
 		trap_Cvar_ForceSet( "g_spawnsystem", va( "%i", spawnsystem ) );
 	}
@@ -580,7 +475,7 @@ void G_SpawnQueue_AddClient( edict_t *ent ) {
 * G_SpawnQueue_Think
 */
 void G_SpawnQueue_Think( void ) {
-	int team, maxCount, count, spawnSystem;
+	int team, maxCount, count;
 	g_teamspawnqueue_t *queue;
 	edict_t *ent;
 
@@ -590,10 +485,7 @@ void G_SpawnQueue_Think( void ) {
 		// if the system is limited, set limits
 		maxCount = MAX_CLIENTS;
 
-		spawnSystem = queue->system;
-		clamp( spawnSystem, SPAWNSYSTEM_INSTANT, SPAWNSYSTEM_HOLD );
-
-		switch( spawnSystem ) {
+		switch( queue->system ) {
 			case SPAWNSYSTEM_INSTANT:
 			default:
 				break;

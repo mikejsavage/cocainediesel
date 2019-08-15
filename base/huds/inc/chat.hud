@@ -1,0 +1,21 @@
+setFontSize %VIDHEIGHT / 50
+
+setAlign 1 1
+setSize #WIDTH - 20 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 130
+setCursor 10 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 390
+if %CHASING != #NOTSET
+	moveCursor 0, -30
+endif
+
+if %CHAT_MODE > 0
+    setColor 0 0 0 1
+endif
+if %CHAT_MODE == 0
+    setColor 0 0 0 0
+endif
+
+drawChat 7 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 6, "gfx/2d/chat1"
+
+// there's a bug in the hudscript parser, need this or we get spammed with
+// ERROR: Layout command drawChat: invalid argument count (expecting 3, found 6)
+moveCursor 0, 0

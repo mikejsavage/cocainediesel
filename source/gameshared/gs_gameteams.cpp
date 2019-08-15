@@ -40,15 +40,6 @@ static const char *gs_teamNames[] =
 	NULL
 };
 
-static const char *gs_teamSkinsNames[] =
-{
-	NULL,   //null means user defined skin
-	NULL,
-	"default",
-	"default",
-	NULL
-};
-
 /*
 * GS_TeamName
 */
@@ -67,19 +58,9 @@ const char *GS_DefaultTeamName( int team ) {
 }
 
 /*
-* GS_TeamSkinName
-*/
-const char *GS_TeamSkinName( int team ) {
-	if( team < 0 || team >= GS_MAX_TEAMS ) {
-		return NULL;
-	}
-	return gs_teamSkinsNames[team];
-}
-
-/*
 * GS_Teams_TeamFromName
 */
-int GS_Teams_TeamFromName( const char *teamname ) {
+int GS_TeamFromName( const char *teamname ) {
 	const char *s;
 	int i;
 
@@ -106,17 +87,7 @@ int GS_Teams_TeamFromName( const char *teamname ) {
 * GS_IsTeamDamage
 */
 bool GS_IsTeamDamage( entity_state_t *targ, entity_state_t *attacker ) {
-	if( !GS_TeamBasedGametype() ) {
+	if( !GS_TeamBasedGametype() )
 		return false;
-	}
-
-	assert( targ && attacker );
-
-	if( targ->team && attacker->team &&
-		targ->team == attacker->team &&
-		targ->number != attacker->number ) {
-		return true;
-	}
-
-	return false;
+	return targ->number != attacker->number && targ->team == attacker->team;
 }

@@ -92,44 +92,6 @@ void GS_TraceLaserBeam( trace_t *trace, vec3_t origin, vec3_t angles, float rang
 	}
 }
 
-static bool GS_CheckBladeAutoAttack( player_state_t *playerState, int timeDelta ) {
-	vec3_t origin, dir, end;
-	trace_t trace;
-	entity_state_t *targ, *player;
-	gs_weapon_definition_t *weapondef = GS_GetWeaponDef( WEAP_GUNBLADE );
-
-	if( playerState->POVnum <= 0 || (int)playerState->POVnum > gs.maxclients ) {
-		return false;
-	}
-
-	if( !( playerState->pmove.stats[PM_STAT_FEATURES] & PMFEAT_GUNBLADEAUTOATTACK ) ) {
-		return false;
-	}
-
-	VectorCopy( playerState->pmove.origin, origin );
-	origin[2] += playerState->viewheight;
-	AngleVectors( playerState->viewangles, dir, NULL, NULL );
-	VectorMA( origin, weapondef->firedef_weak.timeout, dir, end );
-
-	// check for a player to touch
-	gs.api.Trace( &trace, origin, vec3_origin, vec3_origin, end, playerState->POVnum, CONTENTS_BODY, timeDelta );
-	if( trace.ent <= 0 || trace.ent > gs.maxclients ) {
-		return false;
-	}
-
-	player = gs.api.GetEntityState( playerState->POVnum, 0 );
-	targ = gs.api.GetEntityState( trace.ent, 0 );
-	if( !( targ->effects & EF_TAKEDAMAGE ) || targ->type != ET_PLAYER ) {
-		return false;
-	}
-
-	if( GS_TeamBasedGametype() && ( targ->team == player->team ) ) {
-		return false;
-	}
-
-	return true;
-}
-
 
 //============================================================
 //
@@ -137,22 +99,7 @@ static bool GS_CheckBladeAutoAttack( player_state_t *playerState, int timeDelta 
 //
 //============================================================
 
-const char *gs_weaponStateNames[] =
-{
-	"WEAPON_STATE_READY",
-	"WEAPON_STATE_ACTIVATING",
-	"WEAPON_STATE_DROPPING",
-	"WEAPON_STATE_POWERING",
-	"WEAPON_STATE_COOLDOWN",
-	"WEAPON_STATE_FIRING",
-	"WEAPON_STATE_RELOADING",       // clip loading
-	"WEAPON_STATE_NOAMMOCLICK",
-	"WEAPON_STATE_REFIRE",      // projectile loading
-	"WEAPON_STATE_REFIRESTRONG"
-};
-
 #define NOAMMOCLICK_PENALTY 100
-#define NOAMMOCLICK_AUTOSWITCH 50
 
 /*
 * GS_SelectBestWeapon
@@ -162,7 +109,7 @@ int GS_SelectBestWeapon( player_state_t *playerState ) {
 	gs_weapon_definition_t *weapondef;
 
 	//find with strong ammos
-	for( weap = WEAP_TOTAL - 1; weap > WEAP_GUNBLADE; weap-- ) {
+	for( weap = WEAP_TOTAL - 1; weap >= WEAP_GUNBLADE; weap-- ) {
 		if( !playerState->inventory[weap] ) {
 			continue;
 		}
@@ -171,21 +118,6 @@ int GS_SelectBestWeapon( player_state_t *playerState ) {
 
 		if( !weapondef->firedef.usage_count ||
 			playerState->inventory[weapondef->firedef.ammo_id] >= weapondef->firedef.usage_count ) {
-			weap_chosen = weap;
-			goto found;
-		}
-	}
-
-	//repeat find with weak ammos
-	for( weap = WEAP_TOTAL - 1; weap >= WEAP_NONE; weap-- ) {
-		if( !playerState->inventory[weap] ) {
-			continue;
-		}
-
-		weapondef = GS_GetWeaponDef( weap );
-
-		if( !weapondef->firedef_weak.usage_count ||
-			playerState->inventory[weapondef->firedef_weak.ammo_id] >= weapondef->firedef_weak.usage_count ) {
 			weap_chosen = weap;
 			goto found;
 		}
@@ -199,11 +131,6 @@ found:
 */
 firedef_t *GS_FiredefForPlayerState( player_state_t *playerState, int checkweapon ) {
 	gs_weapon_definition_t *weapondef = GS_GetWeaponDef( checkweapon );
-
-	//find out our current fire mode
-	if( checkweapon == WEAP_GUNBLADE ) {
-		return &weapondef->firedef_weak;
-	}
 
 	return &weapondef->firedef;
 }
@@ -262,17 +189,12 @@ int GS_ThinkPlayerWeapon( player_state_t *playerState, int buttons, int msecs, i
 	firedef = GS_FiredefForPlayerState( playerState, playerState->stats[STAT_WEAPON] );
 
 	// during cool-down time it can shoot again or go into reload time
-	if( playerState->weaponState == WEAPON_STATE_REFIRE || playerState->weaponState == WEAPON_STATE_REFIRESTRONG ) {
-		int last_firemode;
-
+	if( playerState->weaponState == WEAPON_STATE_REFIRE ) {
 		if( playerState->stats[STAT_WEAPON_TIME] > 0 ) {
 			goto done;
 		}
 
-		last_firemode = ( playerState->weaponState == WEAPON_STATE_REFIRESTRONG ) ? FIRE_MODE_STRONG : FIRE_MODE_WEAK;
-		if( last_firemode == firedef->fire_mode ) {
-			refire = true;
-		}
+		refire = true;
 
 		playerState->weaponState = WEAPON_STATE_READY;
 	}
@@ -344,29 +266,14 @@ int GS_ThinkPlayerWeapon( player_state_t *playerState, int buttons, int msecs, i
 					goto done;
 				}
 			}
-			// gunblade auto attack is special
-			else if( playerState->stats[STAT_WEAPON] == WEAP_GUNBLADE &&
-					 playerState->pmove.stats[PM_STAT_NOUSERCONTROL] <= 0 &&
-					 playerState->pmove.stats[PM_STAT_NOAUTOATTACK] <= 0 &&
-					 GS_CheckBladeAutoAttack( playerState, timeDelta ) ) {
-				firedef = &GS_GetWeaponDef( WEAP_GUNBLADE )->firedef_weak;
-				playerState->weaponState = WEAPON_STATE_FIRING;
-			}
 		}
 	}
 
 	if( playerState->weaponState == WEAPON_STATE_FIRING ) {
 		int parm = playerState->stats[STAT_WEAPON] << 1;
-		if( firedef->fire_mode == FIRE_MODE_STRONG ) {
-			parm |= 0x1;
-		}
 
 		playerState->stats[STAT_WEAPON_TIME] += firedef->reload_time;
-		if( firedef->fire_mode == FIRE_MODE_STRONG ) {
-			playerState->weaponState = WEAPON_STATE_REFIRESTRONG;
-		} else {
-			playerState->weaponState = WEAPON_STATE_REFIRE;
-		}
+		playerState->weaponState = WEAPON_STATE_REFIRE;
 
 		if( refire && firedef->smooth_refire ) {
 			gs.api.PredictedEvent( playerState->POVnum, EV_SMOOTHREFIREWEAPON, parm );
@@ -374,10 +281,12 @@ int GS_ThinkPlayerWeapon( player_state_t *playerState, int buttons, int msecs, i
 			gs.api.PredictedEvent( playerState->POVnum, EV_FIREWEAPON, parm );
 		}
 
-		// waste ammo
 		if( !GS_InfiniteAmmo() && playerState->stats[STAT_WEAPON] != WEAP_GUNBLADE ) {
 			if( firedef->ammo_id != AMMO_NONE && firedef->usage_count ) {
 				playerState->inventory[firedef->ammo_id] -= firedef->usage_count;
+				if( playerState->inventory[firedef->ammo_id] == 0 ) {
+					gs.api.PredictedEvent( playerState->POVnum, EV_NOAMMOCLICK, 0 );
+				}
 			}
 		}
 	}

@@ -15,9 +15,11 @@
 #include <stdarg.h>
 #include <string.h>
 #include <time.h>
-#include "curl/curl.h"
 #include "wswcurl.h"
 #include "qcommon.h"
+
+#define CURL_STATICLIB
+#include "curl/curl.h"
 
 ///////////////////////
 #define WMALLOC( x )      _Mem_Alloc( wswcurl_mempool, x, 0, 0, __FILE__, __LINE__ )
@@ -810,7 +812,7 @@ static size_t wswcurl_write( void *ptr, size_t size, size_t nmemb, void *stream 
 	req->last_action = wswcurl_now();
 
 	progress = !req->rx_expsize ? 0.0 : (float)( ( (double)req->rxreceived / (double)req->rx_expsize ) * 100.0 );
-	clamp( progress, 0, 100 );
+	progress = Clamp( 0.0f, progress, 100.0f );
 
 	if( req->callback_read ) {
 		return req->callback_read( req, ptr, numb, progress, req->customp );

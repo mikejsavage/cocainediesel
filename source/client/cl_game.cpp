@@ -20,13 +20,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client.h"
 #include "qcommon/version.h"
-#include "gameshared/angelwrap/qas_public.h"
 
 static cgame_export_t *cge;
 
 extern "C" QF_DLL_EXPORT cgame_export_t *GetCGameAPI( void * );
-
-static mempool_t *cl_gamemodulepool;
 
 //======================================================================
 
@@ -94,7 +91,7 @@ static void CL_GameModule_Print( const char *msg ) {
 * CL_GameModule_PrintToLog
 */
 static void CL_GameModule_PrintToLog( const char *msg ) {
-	Con_PrintSilent( msg );
+	Con_Print( msg );
 }
 
 /*
@@ -148,20 +145,6 @@ static void CL_GameModule_NET_GetCurrentState( int64_t *incomingAcknowledged, in
 	}
 }
 
-/*
-* CL_GameModule_MemAlloc
-*/
-static void *CL_GameModule_MemAlloc( size_t size, const char *filename, int fileline ) {
-	return _Mem_Alloc( cl_gamemodulepool, size, MEMPOOL_CLIENTGAME, 0, filename, fileline );
-}
-
-/*
-* CL_GameModule_MemFree
-*/
-static void CL_GameModule_MemFree( void *data, const char *filename, int fileline ) {
-	_Mem_Free( data, MEMPOOL_CLIENTGAME, 0, filename, fileline );
-}
-
 //==============================================
 
 float VID_GetPixelRatio() { return 1; }
@@ -174,11 +157,9 @@ void CL_GameModule_Init( void ) {
 	cgame_import_t import;
 
 	// stop all playing sounds
-	CL_SoundModule_StopAllSounds( true );
+	S_StopAllSounds( true );
 
 	CL_GameModule_Shutdown();
-
-	cl_gamemodulepool = _Mem_AllocPool( NULL, "Client Game Progs", MEMPOOL_CLIENTGAME, __FILE__, __LINE__ );
 
 	import.Error = CL_GameModule_Error;
 	import.Print = CL_GameModule_Print;
@@ -213,7 +194,6 @@ void CL_GameModule_Init( void ) {
 	import.FS_FCloseFile = FS_FCloseFile;
 	import.FS_RemoveFile = FS_RemoveFile;
 	import.FS_GetFileList = FS_GetFileList;
-	import.FS_FirstExtension = FS_FirstExtension;
 	import.FS_IsPureFile = FS_IsPureFile;
 	import.FS_MoveFile = FS_MoveFile;
 	import.FS_RemoveDirectory = FS_RemoveDirectory;
@@ -239,20 +219,12 @@ void CL_GameModule_Init( void ) {
 	import.R_GetSpeedsMessage = re.GetSpeedsMessage;
 	import.R_GetAverageFrametime = re.GetAverageFrametime;
 	import.R_RegisterWorldModel = re.RegisterWorldModel;
-	import.R_ModelBounds = re.ModelBounds;
-	import.R_ModelFrameBounds = re.ModelFrameBounds;
 	import.R_RegisterModel = re.RegisterModel;
 	import.R_LerpTag = re.LerpTag;
-	import.R_SetCustomColor = re.SetCustomColor;
 	import.R_DrawStretchPic = re.DrawStretchPic;
 	import.R_DrawRotatedStretchPic = re.DrawRotatedStretchPic;
 	import.R_TransformVectorToScreen = re.TransformVectorToScreen;
 	import.R_TransformVectorToScreenClamped = re.TransformVectorToScreenClamped;
-	import.R_SkeletalGetNumBones = re.SkeletalGetNumBones;
-	import.R_SkeletalGetBoneInfo = re.SkeletalGetBoneInfo;
-	import.R_SkeletalGetBonePose = re.SkeletalGetBonePose;
-
-	import.R_GetShaderForOrigin = re.GetShaderForOrigin;
 
 	import.VID_FlashWindow = VID_FlashWindow;
 
@@ -265,14 +237,6 @@ void CL_GameModule_Init( void ) {
 	import.CM_InlineModelBounds = CL_GameModule_CM_InlineModelBounds;
 	import.CM_InPVS = CL_GameModule_CM_InPVS;
 
-	import.S_StartFixedSound = CL_SoundModule_StartFixedSound;
-	import.S_StartEntitySound = CL_SoundModule_StartEntitySound;
-	import.S_StartGlobalSound = CL_SoundModule_StartGlobalSound;
-	import.S_StartLocalSound = CL_SoundModule_StartLocalSound;
-	import.S_Update = CL_SoundModule_Update;
-	import.S_ImmediateSound = CL_SoundModule_ImmediateSound;
-	import.S_UpdateEntity = CL_SoundModule_UpdateEntity;
-
 	import.SCR_RegisterFont = SCR_RegisterFont;
 	import.SCR_RegisterSpecialFont = SCR_RegisterSpecialFont;
 	import.SCR_DrawString = SCR_DrawString;
@@ -284,17 +248,10 @@ void CL_GameModule_Init( void ) {
 	import.SCR_FontSize = SCR_FontSize;
 	import.SCR_FontHeight = SCR_FontHeight;
 	import.SCR_FontUnderline = SCR_FontUnderline;
-	import.SCR_FontAdvance = SCR_FontAdvance;
-	import.SCR_FontXHeight = SCR_FontXHeight;
 	import.SCR_SetDrawCharIntercept = SCR_SetDrawCharIntercept;
 	import.SCR_strWidth = SCR_strWidth;
 	import.SCR_StrlenForWidth = SCR_StrlenForWidth;
 	import.SCR_DrawChat = Con_DrawChat;
-
-	import.Mem_Alloc = CL_GameModule_MemAlloc;
-	import.Mem_Free = CL_GameModule_MemFree;
-
-	import.asGetAngelExport = QAS_GetAngelExport;
 
 	cge = GetCGameAPI( &import );
 
@@ -302,8 +259,7 @@ void CL_GameModule_Init( void ) {
 	cge->Init( cls.servername, cl.playernum,
 			   viddef.width, viddef.height, VID_GetPixelRatio(),
 			   cls.demo.playing, cls.demo.playing ? cls.demo.filename : "",
-			   cls.sv_pure, cl.snapFrameTime, APP_PROTOCOL_VERSION, APP_DEMO_EXTENSION_STR,
-			   cls.mediaRandomSeed, cl.gamestart );
+			   cls.sv_pure, cl.snapFrameTime, cls.mediaRandomSeed, cl.gamestart );
 
 	Com_DPrintf( "CL_GameModule_Init: %.2f seconds\n", (float)( Sys_Milliseconds() - start ) * 0.001f );
 
@@ -337,7 +293,6 @@ void CL_GameModule_Shutdown( void ) {
 	cls.cgameActive = false;
 
 	cge->Shutdown();
-	Mem_FreePool( &cl_gamemodulepool );
 	cge = NULL;
 }
 
@@ -446,14 +401,4 @@ void CL_GameModule_MouseMove( int dx, int dy ) {
 	if( cge ) {
 		cge->MouseMove( dx, dy );
 	}
-}
-
-/*
-* CL_GameModule_KeyEvent
-*/
-bool CL_GameModule_KeyEvent( int key, bool down ) {
-	if( cge ) {
-		return cge->KeyEvent( key, down );
-	}
-	return false;
 }

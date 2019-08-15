@@ -2,9 +2,9 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "../qcommon/qcommon.h"
+#include "qcommon/qcommon.h"
 
-bool stdin_active = true;
+static bool stdin_active = true;
 
 char *Sys_ConsoleInput( void ) {
 	static char text[256];
@@ -12,7 +12,7 @@ char *Sys_ConsoleInput( void ) {
 	fd_set fdset;
 	struct timeval timeout;
 
-	if( !dedicated || !dedicated->integer ) {
+	if( !is_dedicated_server ) {
 		return NULL;
 	}
 
@@ -46,7 +46,7 @@ char *Sys_ConsoleInput( void ) {
 
 static void Sys_AnsiColorPrint( const char *msg ) {
 	static char buffer[2096];
-	int length = 0;
+	size_t length = 0;
 	static const int q3ToAnsi[ MAX_S_COLORS ] =
 	{
 		30, // COLOR_BLACK

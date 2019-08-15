@@ -278,7 +278,7 @@ valid_map:
 }
 
 static void G_VoteMapPassed( callvotedata_t *vote ) {
-	Q_strncpyz( level.forcemap, Q_strlwr( vote->argv[0] ), sizeof( level.forcemap ) );
+	Q_strncpyz( level.callvote_map, Q_strlwr( vote->argv[0] ), sizeof( level.callvote_map ) );
 	G_EndMatch();
 }
 
@@ -342,7 +342,7 @@ static http_response_code_t G_VoteMapWebRequest( http_query_method_t method, con
 */
 
 static void G_VoteNextMapPassed( callvotedata_t *vote ) {
-	level.forcemap[0] = 0;
+	level.callvote_map[0] = 0;
 	G_EndMatch();
 }
 
@@ -455,7 +455,6 @@ static void G_VoteAllreadyPassed( callvotedata_t *vote ) {
 
 		if( ent->s.team > TEAM_SPECTATOR && !level.ready[PLAYERNUM( ent )] ) {
 			level.ready[PLAYERNUM( ent )] = true;
-			G_UpdatePlayerMatchMsg( ent );
 			G_Match_CheckReadys();
 		}
 	}
@@ -1678,7 +1677,7 @@ void G_OperatorVote_Cmd( edict_t *ent ) {
 			return;
 		}
 
-		if( ( newTeam = GS_Teams_TeamFromName( steam ) ) < 0 ) {
+		if( ( newTeam = GS_TeamFromName( steam ) ) < 0 ) {
 			G_PrintMsg( ent, "The team '%s' doesn't exist.\n", steam );
 			return;
 		}

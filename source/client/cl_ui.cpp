@@ -1,5 +1,6 @@
 #include "client.h"
 #include "qcommon/version.h"
+#include "gameshared/gs_public.h"
 
 #include "sdl/sdl_window.h"
 
@@ -48,6 +49,7 @@ struct Server {
 };
 
 static ImFont * large_font;
+static ImFont * console_font;
 
 static Server servers[ 1024 ];
 static int num_servers = 0;
@@ -82,12 +84,11 @@ static void RefreshServerBrowser() {
 	ResetServerBrowser();
 
 	for( const char * masterserver : MASTER_SERVERS ) {
-		char buf[ 256 ];
-		Q_snprintfz( buf, sizeof( buf ), "requestservers global %s %s full empty\n", masterserver, APPLICATION_NOSPACES );
-		Cbuf_ExecuteText( EXEC_APPEND, buf );
+		String< 256 > buf( "requestservers global {} {} full empty\n", masterserver, APPLICATION_NOSPACES );
+		Cbuf_AddText( buf );
 	}
 
-	Cbuf_ExecuteText( EXEC_APPEND, "requestservers local full empty\n" );
+	Cbuf_AddText( "requestservers local full empty\n" );
 }
 
 void UI_Init() {
@@ -122,18 +123,21 @@ void UI_Init() {
 
 		io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 16.0f );
 		large_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 64.0f );
+		console_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 14.0f );
 		ImGuiFreeType::BuildFontAtlas( io.Fonts );
 
-		uint8_t * pixels;
+		u8 * pixels;
 		int width, height;
 		io.Fonts->GetTexDataAsAlpha8( &pixels, &width, &height );
-		struct shader_s * shader = re.RegisterRawAlphaMask( "imgui_font", width, height, pixels );
+		struct shader_s * shader = re.RegisterAlphaMask( "imgui_font", width, height, pixels );
 		io.Fonts->TexID = shader;
 	}
 
 	{
 		ImGuiStyle & style = ImGui::GetStyle();
 		style.WindowRounding = 0;
+		style.FrameRounding = 1;
+		style.GrabRounding = 2;
 		style.FramePadding = ImVec2( 8, 8 );
 		style.FrameBorderSize = 0;
 		style.WindowPadding = ImVec2( 16, 16 );
@@ -174,8 +178,7 @@ static void CvarTextbox( const char * label, const char * cvar_name, const char 
 	char buf[ maxlen + 1 ];
 	Q_strncpyz( buf, cvar->string, sizeof( buf ) );
 
-	char unique[ 128 ];
-	Q_snprintfz( unique, sizeof( unique ), "##%s", cvar_name );
+	String< 128 > unique( "##{}", cvar_name );
 	ImGui::InputText( unique, buf, sizeof( buf ) );
 
 	Cvar_Set( cvar_name, buf );
@@ -186,8 +189,7 @@ static void CvarCheckbox( const char * label, const char * cvar_name, const char
 
 	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
 
-	char unique[ 128 ];
-	Q_snprintfz( unique, sizeof( unique ), "##%s", cvar_name );
+	String< 128 > unique( "##{}", cvar_name );
 	bool val = cvar->integer != 0;
 	ImGui::Checkbox( unique, &val );
 
@@ -199,13 +201,11 @@ static void CvarSliderInt( const char * label, const char * cvar_name, int lo, i
 
 	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
 
-	char unique[ 128 ];
-	Q_snprintfz( unique, sizeof( unique ), "##%s", cvar_name );
+	String< 128 > unique( "##{}", cvar_name );
 	int val = cvar->integer;
 	ImGui::SliderInt( unique, &val, lo, hi, format );
 
-	char buf[ 128 ];
-	Q_snprintfz( buf, sizeof( buf ), "%d", val );
+	String< 128 > buf( "{}", val );
 	Cvar_Set( cvar_name, buf );
 }
 
@@ -214,13 +214,13 @@ static void CvarSliderFloat( const char * label, const char * cvar_name, float l
 
 	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
 
-	char unique[ 128 ];
-	Q_snprintfz( unique, sizeof( unique ), "##%s", cvar_name );
+	String< 128 > unique( "##{}", cvar_name );
 	float val = cvar->value;
 	ImGui::SliderFloat( unique, &val, lo, hi, "%.2f" );
 
 	char buf[ 128 ];
 	Q_snprintfz( buf, sizeof( buf ), "%f", val );
+	RemoveTrailingZeroesFloat( buf );
 	Cvar_Set( cvar_name, buf );
 }
 
@@ -235,7 +235,6 @@ static void KeyBindButton( const char * label, const char * command ) {
 	CG_GetBoundKeysString( command, keys, sizeof( keys ) );
 	if( ImGui::Button( keys, ImVec2( 200, 0 ) ) ) {
 		ImGui::OpenPopup( label );
-		pressed_key = -1;
 	}
 
 	if( ImGui::BeginPopupModal( label, NULL, ImGuiWindowFlags_NoDecoration ) ) {
@@ -252,18 +251,54 @@ static void KeyBindButton( const char * label, const char * command ) {
 	ImGui::PopID();
 }
 
-static void PushDisabled( bool disabled ) {
-	if( disabled ) {
-		ImGui::PushItemFlag( ImGuiItemFlags_Disabled, true );
-		ImGui::PushStyleVar( ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f );
-	}
+static bool SelectableColor( const char * label, RGB8 rgb, bool selected ) {
+	bool clicked = ImGui::Selectable( "", selected, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_PressedOnRelease );
+
+	ImGui::NextColumn();
+	ImVec2 window_pos = ImGui::GetWindowPos();
+	ImVec2 top_left = ImGui::GetCursorPos();
+	top_left.x += window_pos.x;
+	top_left.y += window_pos.y;
+	ImVec2 bottom_right = top_left;
+	bottom_right.x += ImGui::GetTextLineHeight() * 1.618f;
+	bottom_right.y += ImGui::GetTextLineHeight();
+	ImGui::GetWindowDrawList()->AddRectFilled( top_left, bottom_right, IM_COL32( rgb.r, rgb.g, rgb.b, 255 ) );
+	ImGui::NextColumn();
+
+	return clicked;
 }
 
-static void PopDisabled( bool disabled ) {
-	if( disabled ) {
-		ImGui::PopItemFlag();
-		ImGui::PopStyleVar();
+static void CvarTeamColorCombo( const char * label, const char * cvar_name, int def ) {
+	SettingLabel( label );
+	ImGui::PushItemWidth( 100 );
+
+	String< 16 > def_str( "{}", def );
+	cvar_t * cvar = Cvar_Get( cvar_name, def_str, CVAR_ARCHIVE );
+
+	String< 128 > unique( "##{}", cvar_name );
+
+	int selected = cvar->integer;
+	if( selected >= int( ARRAY_COUNT( TEAM_COLORS ) ) )
+		selected = def;
+
+	if( ImGui::BeginCombo( unique, TEAM_COLORS[ selected ].name ) ) {
+		ImGui::Columns( 2, cvar_name, false );
+		ImGui::SetColumnWidth( 0, 0 );
+
+		for( int i = 0; i < int( ARRAY_COUNT( TEAM_COLORS ) ); i++ ) {
+			if( SelectableColor( TEAM_COLORS[ i ].name, TEAM_COLORS[ i ].rgb, i == selected ) )
+				selected = i;
+			if( i == selected )
+				ImGui::SetItemDefaultFocus();
+		}
+
+		ImGui::EndCombo();
+		ImGui::Columns( 1 );
 	}
+	ImGui::PopItemWidth();
+
+	String< 16 > buf( "{}", selected );
+	Cvar_Set( cvar_name, buf );
 }
 
 static void SettingsGeneral() {
@@ -271,6 +306,8 @@ static void SettingsGeneral() {
 
 	CvarTextbox< MAX_NAME_BYTES >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
 	CvarSliderInt( "FOV", "fov", 60, 140, "100", CVAR_ARCHIVE );
+	CvarTeamColorCombo( "Ally color", "cg_allyColor", 0 );
+	CvarTeamColorCombo( "Enemy color", "cg_enemyColor", 1 );
 	CvarCheckbox( "Show FPS", "cg_showFPS", "0", CVAR_ARCHIVE );
 }
 
@@ -278,7 +315,7 @@ static void SettingsMouse() {
 	ImGui::Text( "These settings are saved automatically" );
 
 	CvarSliderFloat( "Sensitivity", "sensitivity", 1.0f, 10.0f, "3", CVAR_ARCHIVE );
-	CvarSliderFloat( "Horizontal sensitivity", "horizontalsensscale", 0.5f, 2.0f, "1.0", CVAR_ARCHIVE );
+	CvarSliderFloat( "Horizontal sensitivity", "horizontalsensscale", 0.5f, 2.0f, "1", CVAR_ARCHIVE );
 	CvarSliderFloat( "Acceleration", "m_accel", 0.0f, 1.0f, "0", CVAR_ARCHIVE );
 }
 
@@ -351,6 +388,15 @@ static void SettingsKeys() {
 	ImGui::EndChild();
 }
 
+static const char * FullscreenModeToString( FullScreenMode mode ) {
+	switch( mode ) {
+		case FullScreenMode_Windowed: return "Windowed";
+		case FullScreenMode_FullscreenBorderless: return "Borderless";
+		case FullScreenMode_Fullscreen: return "Fullscreen";
+	}
+	return NULL;
+}
+
 static void SettingsVideo() {
 	static WindowMode mode;
 
@@ -361,52 +407,56 @@ static void SettingsVideo() {
 
 	ImGui::Text( "Changing resolution is buggy and you should restart the game after doing it" );
 
-	SettingLabel( "Fullscreen" );
-	bool fullscreen = mode.fullscreen != FullScreenMode_Windowed;
-	ImGui::Checkbox( "##vid_fullscreen", &fullscreen );
-
-	PushDisabled( !fullscreen );
-
-	SettingLabel( "Borderless fullscreen" );
-	bool borderless = mode.fullscreen == FullScreenMode_FullscreenBorderless;
-	ImGui::Checkbox( "##borderless", &borderless );
-
-	mode.fullscreen = FullScreenMode_Windowed;
-	if( fullscreen )
-		mode.fullscreen = borderless ? FullScreenMode_FullscreenBorderless : FullScreenMode_Fullscreen;
-
-	SettingLabel( "Video mode" );
+	SettingLabel( "Window mode" );
 	ImGui::PushItemWidth( 200 );
-
-	if( fullscreen && mode.video_mode.frequency == 0 ) {
-		mode.video_mode = VID_GetVideoMode( 0 );
-	}
-
-	char preview[ 128 ] = "";
-	if( fullscreen )
-		Q_snprintfz( preview, sizeof( preview ), "%dx%d %dHz", mode.video_mode.width, mode.video_mode.height, mode.video_mode.frequency );
-
-	if( ImGui::BeginCombo( "##mode", preview ) ) {
-		for( int i = 0; i < VID_GetNumVideoModes(); i++ ) {
-			VideoMode video_mode = VID_GetVideoMode( i );
-
-			char buf[ 128 ];
-			Q_snprintfz( buf, sizeof( buf ), "%dx%d %dHz", video_mode.width, video_mode.height, video_mode.frequency );
-
-			bool is_selected = mode.video_mode.width == video_mode.width && mode.video_mode.height == video_mode.height && mode.video_mode.frequency == video_mode.frequency;
-			if( ImGui::Selectable( buf, is_selected ) ) {
-				mode.video_mode = video_mode;
-			}
+	if( ImGui::BeginCombo( "##fullscreen", FullscreenModeToString( mode.fullscreen ) ) ) {
+		if( ImGui::Selectable( FullscreenModeToString( FullScreenMode_Windowed ), mode.fullscreen == FullScreenMode_Windowed ) ) {
+			mode.fullscreen = FullScreenMode_Windowed;
+		}
+		if( ImGui::Selectable( FullscreenModeToString( FullScreenMode_FullscreenBorderless ), mode.fullscreen == FullScreenMode_FullscreenBorderless ) ) {
+			mode.fullscreen = FullScreenMode_FullscreenBorderless;
+		}
+		if( ImGui::Selectable( FullscreenModeToString( FullScreenMode_Fullscreen ), mode.fullscreen == FullScreenMode_Fullscreen ) ) {
+			mode.fullscreen = FullScreenMode_Fullscreen;
 		}
 		ImGui::EndCombo();
 	}
-	ImGui::PopItemWidth();
 
-	PopDisabled( !fullscreen );
+	if( mode.fullscreen == FullScreenMode_Windowed ) {
+		mode.video_mode.frequency = 0;
+	}
+	else if( mode.fullscreen == FullScreenMode_FullscreenBorderless ) {
+		mode.video_mode.width = 0;
+		mode.video_mode.height = 0;
+		mode.video_mode.frequency = 0;
+	}
+	else if( mode.fullscreen == FullScreenMode_Fullscreen ) {
+		SettingLabel( "Resolution" );
+		ImGui::PushItemWidth( 200 );
+
+		if( mode.video_mode.frequency == 0 ) {
+			mode.video_mode = VID_GetVideoMode( 0 );
+		}
+
+		String< 128 > preview( "{}", mode.video_mode );
+
+		if( ImGui::BeginCombo( "##resolution", preview ) ) {
+			for( int i = 0; i < VID_GetNumVideoModes(); i++ ) {
+				VideoMode video_mode = VID_GetVideoMode( i );
+
+				String< 128 > buf( "{}", video_mode );
+				bool is_selected = mode.video_mode.width == video_mode.width && mode.video_mode.height == video_mode.height && mode.video_mode.frequency == video_mode.frequency;
+				if( ImGui::Selectable( buf, is_selected ) ) {
+					mode.video_mode = video_mode;
+				}
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::PopItemWidth();
+	}
 
 	if( ImGui::Button( "Apply mode changes" ) ) {
-		char buf[ 128 ];
-		VID_WindowModeToString( buf, sizeof( buf ), mode );
+		String< 128 > buf( "{}", mode );
 		Cvar_Set( "vid_mode", buf );
 	}
 
@@ -425,11 +475,11 @@ static void SettingsVideo() {
 		cvar_t * cvar = Cvar_Get( "r_samples", "0", CVAR_ARCHIVE );
 		int samples = cvar->integer;
 
-		char current_samples[ 16 ];
+		String< 16 > current_samples;
 		if( samples == 0 )
-			Q_snprintfz( current_samples, sizeof( current_samples ), "Off" );
+			current_samples.format( "Off" );
 		else
-			Q_snprintfz( current_samples, sizeof( current_samples ), "%dx", samples );
+			current_samples.format( "{}x", samples );
 
 		ImGui::PushItemWidth( 100 );
 		if( ImGui::BeginCombo( "##r_samples", current_samples ) ) {
@@ -439,8 +489,7 @@ static void SettingsVideo() {
 				ImGui::SetItemDefaultFocus();
 
 			for( int i = 2; i <= 16; i *= 2 ) {
-				char buf[ 16 ];
-				Q_snprintfz( buf, sizeof( buf ), "%dx", i );
+				String< 16 > buf( "{}x", i );
 				if( ImGui::Selectable( buf, i == samples ) )
 					samples = i;
 				if( i == samples )
@@ -451,8 +500,7 @@ static void SettingsVideo() {
 		}
 		ImGui::PopItemWidth();
 
-		char buf[ 16 ];
-		Q_snprintfz( buf, sizeof( buf ), "%d", samples );
+		String< 16 > buf( "{}", samples );
 		Cvar_Set( "r_samples", buf );
 	}
 
@@ -466,14 +514,12 @@ static void SettingsVideo() {
 		cvar_t * cvar = Cvar_Get( "cl_maxfps", "250", CVAR_ARCHIVE );
 		int maxfps = cvar->integer;
 
-		char current[ 16 ];
-		Q_snprintfz( current, sizeof( current ), "%d", maxfps );
+		String< 16 > current( "{}", maxfps );
 
 		ImGui::PushItemWidth( 100 );
 		if( ImGui::BeginCombo( "##cl_maxfps", current ) ) {
 			for( int value : values ) {
-				char buf[ 16 ];
-				Q_snprintfz( buf, sizeof( buf ), "%d", value );
+				String< 16 > buf( "{}", value );
 				if( ImGui::Selectable( buf, maxfps == value ) )
 					maxfps = value;
 				if( value == maxfps )
@@ -484,8 +530,7 @@ static void SettingsVideo() {
 		}
 		ImGui::PopItemWidth();
 
-		char buf[ 16 ];
-		Q_snprintfz( buf, sizeof( buf ), "%d", maxfps );
+		String< 16 > buf( "{}", maxfps );
 		Cvar_Set( "cl_maxfps", buf );
 	}
 }
@@ -493,8 +538,8 @@ static void SettingsVideo() {
 static void SettingsAudio() {
 	ImGui::Text( "These settings are saved automatically" );
 
-	CvarSliderFloat( "Master volume", "s_volume", 0.0f, 1.0f, "0.8", CVAR_ARCHIVE );
-	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f, "1.0", CVAR_ARCHIVE );
+	CvarSliderFloat( "Master volume", "s_volume", 0.0f, 1.0f, "1", CVAR_ARCHIVE );
+	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f, "1", CVAR_ARCHIVE );
 	CvarCheckbox( "Mute when alt-tabbed", "s_muteinbackground", "1", CVAR_ARCHIVE );
 }
 
@@ -555,9 +600,8 @@ static void ServerBrowser() {
 	for( int i = 0; i < num_servers; i++ ) {
 		if( ImGui::Selectable( servers[ i ].address, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
 			if( ImGui::IsMouseDoubleClicked( 0 ) ) {
-				char buf[ 256 ];
-				Q_snprintfz( buf, sizeof( buf ), "connect \"%s\"\n", servers[ i ].address );
-				Cbuf_ExecuteText( EXEC_APPEND, buf );
+				String< 256 > buf( "connect \"{}\"\n", servers[ i ].address );
+				Cbuf_AddText( buf );
 			}
 			selected_server = i;
 		}
@@ -585,8 +629,7 @@ static void CreateServer() {
 		maxclients = max( maxclients, 1 );
 		maxclients = min( maxclients, 64 );
 
-		char buf[ 128 ];
-		Q_snprintfz( buf, sizeof( buf ), "%d", maxclients );
+		String< 128 > buf( "{}", maxclients );
 		Cvar_Set( "sv_maxclients", buf );
 	}
 
@@ -612,14 +655,13 @@ static void CreateServer() {
 		ImGui::PopItemWidth();
 	}
 
-	CvarCheckbox( "Public", "sv_public", "0", CVAR_ARCHIVE | CVAR_LATCH );
+	CvarCheckbox( "Public", "sv_public", "0", CVAR_LATCH );
 
 	if( ImGui::Button( "Create server" ) ) {
 		char mapname[ 128 ];
 		if( ML_GetMapByNum( selected_map, mapname, sizeof( mapname ) ) != 0 ) {
-			char buf[ 256 ];
-			Q_snprintfz( buf, sizeof( buf ), "map \"%s\"\n", mapname );
-			Cbuf_ExecuteText( EXEC_APPEND, buf );
+			String< 256 > buf( "map \"{}\"\n", mapname );
+			Cbuf_AddText( buf );
 		}
 	}
 }
@@ -627,7 +669,7 @@ static void CreateServer() {
 static void MainMenu() {
 	ImGui::SetNextWindowPos( ImVec2() );
 	ImGui::SetNextWindowSize( ImVec2( viddef.width, viddef.height ) );
-	ImGui::Begin( "mainmenu", NULL, ImGuiWindowFlags_NoDecoration );
+	ImGui::Begin( "mainmenu", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 	ImVec2 window_padding = ImGui::GetStyle().WindowPadding;
 
@@ -676,35 +718,83 @@ static void MainMenu() {
 
 	ImGui::EndChild();
 
-	const char * buf = APP_VERSION u8" \u00A9 AHA CHEERS";
-	ImVec2 size = ImGui::CalcTextSize( buf );
-	ImGui::SetCursorPosX( ImGui::GetWindowWidth() - size.x - window_padding.x - 1 - sinf( cls.monotonicTime / 29.0f ) );
-	ImGui::Text( buf );
+	{
+		ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0, 0 ) );
+		ImGui::PushStyleColor( ImGuiCol_Button, IM_COL32( 0, 0, 0, 0 ) );
+		ImGui::PushStyleColor( ImGuiCol_ButtonHovered, IM_COL32( 0, 0, 0, 0 ) );
+		ImGui::PushStyleColor( ImGuiCol_ButtonActive, IM_COL32( 0, 0, 0, 0 ) );
+
+		const char * buf = APP_VERSION u8" \u00A9 AHA CHEERS";
+		ImVec2 size = ImGui::CalcTextSize( buf );
+		ImGui::SetCursorPosX( ImGui::GetWindowWidth() - size.x - window_padding.x - 1 - sinf( cls.monotonicTime / 29.0f ) );
+
+		if( ImGui::Button( buf ) ) {
+			ImGui::OpenPopup( "Credits" );
+		}
+
+		ImGui::PopStyleColor( 3 );
+		ImGui::PopStyleVar();
+
+		ImGuiWindowFlags flags = ( ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar ) | ImGuiWindowFlags_NoMove;
+		if( ImGui::BeginPopupModal( "Credits", NULL, flags ) ) {
+			ImGui::Text( "goochie - art & programming" );
+			ImGui::Text( "MikeJS - programming" );
+			ImGui::Text( "Obani - music & fx & programming" );
+			ImGui::Text( "Dexter - programming" );
+			ImGui::Text( "Special thanks to MSC" );
+			ImGui::Text( "Special thanks to the Warsow team except for slk and MWAGA" );
+			ImGui::Spacing();
+
+			if( ImGui::Button( "Close" ) )
+				ImGui::CloseCurrentPopup();
+
+			ImGui::EndPopup();
+		}
+	}
 
 	ImGui::End();
 }
 
-static void GameMenuButton( const char * label, const char * command, bool * clicked = NULL ) {
-	if( ImGui::Button( label, ImVec2( -1, 0 ) ) ) {
-		char buf[ 256 ];
-		Q_snprintfz( buf, sizeof( buf ), "%s\n", command );
-		Cbuf_ExecuteText( EXEC_APPEND, buf );
+static void GameMenuButton( const char * label, const char * command, bool * clicked = NULL, int column = -1 ) {
+	ImVec2 size = ImVec2( -1, 0 );
+	if( column != -1 ) {
+		ImGuiStyle & style = ImGui::GetStyle();
+		size = ImVec2( ImGui::GetColumnWidth( 0 ) - style.ItemSpacing.x, 0 );
+	}
+
+	if( ImGui::Button( label, size ) ) {
+		String< 256 > buf( "{}\n", command );
+		Cbuf_AddText( buf );
 		if( clicked != NULL )
 			*clicked = true;
 	}
 }
 
 static void GameMenu() {
-	ImGui::PushStyleColor( ImGuiCol_WindowBg, ImVec4( ImColor( 0x1a, 0x1a, 0x1a, 192 ) ) );
+	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 192 ) );
 	bool should_close = false;
 
 	if( gamemenu_state == GameMenuState_Menu ) {
 		ImGui::SetNextWindowPosCenter();
 		ImGui::SetNextWindowSize( ImVec2( 300, 0 ) );
-		ImGui::Begin( "gamemenu", NULL, ImGuiWindowFlags_NoDecoration );
+		ImGui::Begin( "gamemenu", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+		ImGuiStyle & style = ImGui::GetStyle();
+		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
 
 		if( is_spectating ) {
-			GameMenuButton( "Join the game", "join", &should_close );
+			if( GS_TeamBasedGametype() ) {
+				ImGui::Columns( 2, NULL, false );
+				ImGui::SetColumnWidth( 0, half );
+				ImGui::SetColumnWidth( 1, half );
+
+				GameMenuButton( "Join Cocaine", "join cocaine", &should_close, 0 );
+				ImGui::NextColumn();
+				GameMenuButton( "Join Diesel", "join diesel", &should_close, 1 );
+				ImGui::NextColumn();
+			} else {
+				GameMenuButton( "Join Game", "join", &should_close );
+			}
+			ImGui::Columns( 1 );
 		}
 		else {
 			GameMenuButton( "Spectate", "spec", &should_close );
@@ -712,9 +802,9 @@ static void GameMenu() {
 			if( can_ready )
 				GameMenuButton( "Ready", "ready", &should_close );
 			if( can_unready )
-				GameMenuButton( "Uneady", "unready", &should_close );
-
-			GameMenuButton( "Change loadout", "gametypemenu", &should_close );
+				GameMenuButton( "Unready", "unready", &should_close );
+			if( GS_TeamBasedGametype() )
+				GameMenuButton( "Change loadout", "gametypemenu", &should_close );
 		}
 
 		if( ImGui::Button( "Settings", ImVec2( -1, 0 ) ) ) {
@@ -722,35 +812,44 @@ static void GameMenu() {
 			settings_state = SettingsState_General;
 		}
 
-		GameMenuButton( "Disconnect to main menu", "disconnect", &should_close );
-		GameMenuButton( "Exit to desktop", "quit", &should_close );
+		ImGui::Columns( 2, NULL, false );
+		ImGui::SetColumnWidth( 0, half );
+		ImGui::SetColumnWidth( 1, half );
+
+		GameMenuButton( "Disconnect", "disconnect", &should_close, 0 );
+		ImGui::NextColumn();
+		GameMenuButton( "Exit game", "quit", &should_close, 1 );
+		ImGui::NextColumn();
+
+		ImGui::Columns( 1 );
 
 		ImGui::End();
 	}
 	else if( gamemenu_state == GameMenuState_Loadout ) {
 		ImGui::SetNextWindowPosCenter();
 		ImGui::SetNextWindowSize( ImVec2( 300, 0 ) );
-		ImGui::Begin( "loadout", NULL, ImGuiWindowFlags_NoDecoration );
+		ImGui::Begin( "loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		ImGui::Text( "Primary weapons" );
 
 		// this has to match up with the order in player.as
 		// TODO: should make this less fragile
-		const char * primaries[] = { "EB + RL", "RL + LG", "EB + LG" };
+		const char * primaries[]   = { "EB + RL", "RL + LG", "EB + LG" };
 		const char * secondaries[] = { "PG", "RG", "GL" };
 
 		ImGui::Columns( ARRAY_COUNT( primaries ), NULL, false );
 
 		for( size_t i = 0; i < ARRAY_COUNT( primaries ); i++ ) {
-			char buf[ 128 ];
 			int key = '1' + int( i );
-			Q_snprintfz( buf, sizeof( buf ), "%c: %s", key, primaries[ i ] );
-			if( ImGui::Selectable( buf, i == selected_primary ) || pressed_key == key ) {
+			String< 128 > buf( "{}: {}", char( key ), primaries[ i ] );
+			ImVec2 size = ImVec2( ImGui::GetColumnWidth( i ), 0 );
+			if( ImGui::Selectable( buf, i == selected_primary, 0, size ) || pressed_key == key ) {
 				selected_primary = i;
 			}
 			ImGui::NextColumn();
 		}
 
+		ImGui::Spacing();
 		ImGui::Columns( 1 );
 
 		ImGui::Text( "Secondary weapon" );
@@ -759,23 +858,24 @@ static void GameMenu() {
 
 		bool selected_with_number = false;
 		for( size_t i = 0; i < ARRAY_COUNT( secondaries ); i++ ) {
-			char buf[ 128 ];
 			int key = '1' + int( i + ARRAY_COUNT( primaries ) );
-			Q_snprintfz( buf, sizeof( buf ), "%c: %s", key, secondaries[ i ] );
-			if( ImGui::Selectable( buf, i == selected_secondary ) || pressed_key == key ) {
+			String< 128 > buf( "{}: {}", char( key ), secondaries[ i ] );
+			ImVec2 size = ImVec2( ImGui::GetColumnWidth( i ), 0 );
+			if( ImGui::Selectable( buf, i == selected_secondary, 0, size ) || pressed_key == key ) {
 				selected_secondary = i;
 				selected_with_number = pressed_key == key;
 			}
 			ImGui::NextColumn();
 		}
 
+		ImGui::Spacing();
+		ImGui::Spacing();
+		ImGui::Columns( 1 );
+
 		if( ImGui::Button( "OK", ImVec2( -1, 0 ) ) || selected_with_number ) {
 			const char * primaries_weapselect[] = { "ebrl", "rllg", "eblg" };
-
-			char buf[ 128 ];
-			Q_snprintfz( buf, sizeof( buf ), "weapselect %s %s\n",
-				primaries_weapselect[ selected_primary ], secondaries[ selected_secondary ] );
-			Cbuf_ExecuteText( EXEC_APPEND, buf );
+			String< 128 > buf( "weapselect {} {}\n", primaries_weapselect[ selected_primary ], secondaries[ selected_secondary ] );
+			Cbuf_AddText( buf );
 			should_close = true;
 		}
 
@@ -791,7 +891,7 @@ static void GameMenu() {
 		pos.y *= 0.5f;
 		ImGui::SetNextWindowPos( pos, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
 		ImGui::SetNextWindowSize( ImVec2( 600, 500 ) );
-		ImGui::Begin( "settings", NULL, ImGuiWindowFlags_NoDecoration );
+		ImGui::Begin( "settings", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		Settings();
 
@@ -807,7 +907,7 @@ static void GameMenu() {
 }
 
 static void DemoMenu() {
-	ImGui::PushStyleColor( ImGuiCol_WindowBg, ImVec4( ImColor( 0x1a, 0x1a, 0x1a, 192 ) ) );
+	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 192 ) );
 	bool should_close = false;
 
 	ImVec2 pos = ImGui::GetIO().DisplaySize;
@@ -815,7 +915,7 @@ static void DemoMenu() {
 	pos.y *= 0.8f;
 	ImGui::SetNextWindowPos( pos, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
 	ImGui::SetNextWindowSize( ImVec2( 600, 0 ) );
-	ImGui::Begin( "demomenu", NULL, ImGuiWindowFlags_NoDecoration );
+	ImGui::Begin( "demomenu", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 	GameMenuButton( cls.demo.paused ? "Play" : "Pause", "demopause" );
 	GameMenuButton( "Jump +15s", "demojump +15" );
@@ -834,7 +934,7 @@ static void DemoMenu() {
 	ImGui::PopStyleColor();
 }
 
-static void RenderUI() {
+static void SubmitDrawCalls() {
 	ImDrawData * draw_data = ImGui::GetDrawData();
 
 	ImGuiIO& io = ImGui::GetIO();
@@ -846,13 +946,14 @@ static void RenderUI() {
 
 	ImVec2 pos = draw_data->DisplayPos;
 	for( int n = 0; n < draw_data->CmdListsCount; n++ ) {
-		const ImDrawList * cmd_list = draw_data->CmdLists[n];
-		uint16_t idx_buffer_offset = 0;
+		TempAllocator temp = cls.frame_arena->temp();
 
-		vec4_t * verts = ( vec4_t * ) Mem_TempMalloc( cmd_list->VtxBuffer.Size * sizeof( vec4_t ) );
-		vec2_t * uvs = ( vec2_t * ) Mem_TempMalloc( cmd_list->VtxBuffer.Size * sizeof( vec2_t ) );
-		byte_vec4_t * colors = ( byte_vec4_t * ) Mem_TempMalloc( cmd_list->VtxBuffer.Size * sizeof( byte_vec4_t ) );
-		uint16_t * indices = ( uint16_t * ) Mem_TempMalloc( cmd_list->IdxBuffer.Size * sizeof( uint16_t ) );
+		const ImDrawList * cmd_list = draw_data->CmdLists[n];
+		u16 idx_buffer_offset = 0;
+
+		vec4_t * verts = ALLOC_MANY( &temp, vec4_t, cmd_list->VtxBuffer.Size );
+		vec2_t * uvs = ALLOC_MANY( &temp, vec2_t, cmd_list->VtxBuffer.Size );
+		byte_vec4_t * colors = ALLOC_MANY( &temp, byte_vec4_t, cmd_list->VtxBuffer.Size );
 
 		for( int i = 0; i < cmd_list->VtxBuffer.Size; i++ ) {
 			const ImDrawVert & v = cmd_list->VtxBuffer.Data[ i ];
@@ -865,7 +966,8 @@ static void RenderUI() {
 			memcpy( &colors[ i ], &v.col, sizeof( byte_vec4_t ) );
 		}
 
-		memcpy( indices, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof( uint16_t ) );
+		Span< u16 > indices = ALLOC_SPAN( &temp, u16, cmd_list->IdxBuffer.Size );
+		memcpy( indices.ptr, cmd_list->IdxBuffer.Data, indices.num_bytes() );
 
 		for( int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++ ) {
 			const ImDrawCmd * pcmd = &cmd_list->CmdBuffer[cmd_i];
@@ -883,26 +985,25 @@ static void RenderUI() {
 					poly.stcoords = uvs;
 					poly.colors = colors;
 					poly.numelems = pcmd->ElemCount;
-					poly.elems = indices + idx_buffer_offset;
+					poly.elems = indices.ptr + idx_buffer_offset;
 					poly.shader = StringHash( uint64_t( uintptr_t( pcmd->TextureId ) ) );
 					R_DrawDynamicPoly( &poly );
 				}
 			}
 			idx_buffer_offset += pcmd->ElemCount;
 		}
-
-		Mem_TempFree( verts );
-		Mem_TempFree( uvs );
-		Mem_TempFree( colors );
-		Mem_TempFree( indices );
 	}
 
 	re.ResetScissor();
 }
 
-void UI_Refresh( bool background, bool showCursor ) {
-	if( uistate == UIState_Hidden )
+void UI_Refresh() {
+	MICROPROFILE_SCOPEI( "Main", "UI_Refresh", 0xffffffff );
+
+	if( uistate == UIState_Hidden && !Con_IsVisible() ) {
+		pressed_key = -1;
 		return;
+	}
 
 	ImGui_ImplSDL2_NewFrame( sdl_window );
 	ImGui::NewFrame();
@@ -914,7 +1015,7 @@ void UI_Refresh( bool background, bool showCursor ) {
 	if( uistate == UIState_Connecting ) {
 		ImGui::SetNextWindowPos( ImVec2() );
 		ImGui::SetNextWindowSize( ImVec2( viddef.width, viddef.height ) );
-		ImGui::Begin( "mainmenu", NULL, ImGuiWindowFlags_NoDecoration );
+		ImGui::Begin( "mainmenu", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		ImGui::Text( "Connecting..." );
 
@@ -931,15 +1032,23 @@ void UI_Refresh( bool background, bool showCursor ) {
 
 	// ImGui::ShowDemoWindow();
 
+	if( Con_IsVisible() ) {
+		ImGui::PushFont( console_font );
+		Con_Draw( pressed_key );
+		ImGui::PopFont();
+	}
+
 	ImGui::Render();
-	RenderUI();
+	SubmitDrawCalls();
 
 	Cbuf_Execute();
+
+	pressed_key = -1;
 }
 
-void UI_UpdateConnectScreen( bool background ) {
+void UI_UpdateConnectScreen() {
 	uistate = UIState_Connecting;
-	UI_Refresh( background, false );
+	UI_Refresh();
 }
 
 void UI_KeyEvent( bool mainContext, int key, bool down ) {
@@ -951,6 +1060,15 @@ void UI_KeyEvent( bool mainContext, int key, bool down ) {
 		if( key == K_MWHEELDOWN || key == K_MWHEELUP ) {
 			if( down )
 				ImGui::GetIO().MouseWheel += key == K_MWHEELDOWN ? -1 : 1;
+		}
+		else if( key == K_LCTRL || key == K_RCTRL ) {
+			ImGui::GetIO().KeyCtrl = down;
+		}
+		else if( key == K_LSHIFT || key == K_RSHIFT ) {
+			ImGui::GetIO().KeyShift = down;
+		}
+		else if( key == K_LALT || key == K_RALT ) {
+			ImGui::GetIO().KeyAlt = down;
 		}
 		else {
 			ImGui::GetIO().KeysDown[ key ] = down;
@@ -965,14 +1083,13 @@ void UI_CharEvent( bool mainContext, wchar_t key ) {
 void UI_ShowMainMenu() {
 	uistate = UIState_MainMenu;
 	mainmenu_state = MainMenuState_ServerBrowser;
-	CL_SoundModule_StartMenuMusic();
+	S_StartMenuMusic();
 	RefreshServerBrowser();
 }
 
 void UI_ShowGameMenu( bool spectating, bool ready, bool unready ) {
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Menu;
-	pressed_key = -1;
 	is_spectating = spectating;
 	can_ready = ready;
 	can_unready = unready;
@@ -981,7 +1098,6 @@ void UI_ShowGameMenu( bool spectating, bool ready, bool unready ) {
 
 void UI_ShowDemoMenu() {
 	uistate = UIState_DemoMenu;
-	pressed_key = -1;
 	CL_SetKeyDest( key_menu );
 }
 
@@ -1000,14 +1116,9 @@ void UI_AddToServerList( const char * address, const char *info ) {
 void UI_MouseSet( bool mainContext, int mx, int my, bool showCursor ) {
 }
 
-bool UI_MouseHover( bool mainContext ) {
-	return false;
-}
-
 void UI_ShowLoadoutMenu( int primary, int secondary ) {
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Loadout;
-	pressed_key = -1;
 	selected_primary = primary;
 	selected_secondary = secondary;
 	CL_SetKeyDest( key_menu );

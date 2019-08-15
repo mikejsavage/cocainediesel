@@ -143,10 +143,6 @@ static inline int trap_FS_GetFileList( const char *dir, const char *extension, c
 	return CGAME_IMPORT.FS_GetFileList( dir, extension, buf, bufsize, start, end );
 }
 
-static inline const char *trap_FS_FirstExtension( const char *filename, const char *extensions[], int num_extensions ) {
-	return CGAME_IMPORT.FS_FirstExtension( filename, extensions, num_extensions );
-}
-
 static inline bool trap_FS_IsPureFile( const char *filename ) {
 	return CGAME_IMPORT.FS_IsPureFile( filename ) == true;
 }
@@ -197,10 +193,6 @@ static inline int trap_R_GetClippedFragments( const vec3_t origin, float radius,
 											   maxfverts, fverts, maxfragments, fragments );
 }
 
-static inline StringHash trap_R_GetShaderForOrigin( const vec3_t origin ) {
-	return CGAME_IMPORT.R_GetShaderForOrigin( origin );
-}
-
 static inline void trap_R_ClearScene( void ) {
 	CGAME_IMPORT.R_ClearScene();
 }
@@ -237,20 +229,8 @@ static inline struct model_s *trap_R_RegisterModel( const char *name ) {
 	return CGAME_IMPORT.R_RegisterModel( name );
 }
 
-static inline void trap_R_ModelBounds( const struct model_s *mod, vec3_t mins, vec3_t maxs ) {
-	CGAME_IMPORT.R_ModelBounds( mod, mins, maxs );
-}
-
-static inline void trap_R_ModelFrameBounds( const struct model_s *mod, int frame, vec3_t mins, vec3_t maxs ) {
-	CGAME_IMPORT.R_ModelFrameBounds( mod, frame, mins, maxs );
-}
-
 static inline bool trap_R_LerpTag( orientation_t *orient, const struct model_s *mod, int oldframe, int frame, float lerpfrac, const char *name ) {
 	return CGAME_IMPORT.R_LerpTag( orient, mod, oldframe, frame, lerpfrac, name ) == true;
-}
-
-static inline void trap_R_SetCustomColor( int num, int r, int g, int b ) {
-	CGAME_IMPORT.R_SetCustomColor( num, r, g, b );
 }
 
 static inline void trap_R_DrawStretchPic( int x, int y, int w, int h, float s1, float t1, float s2, float t2, const vec4_t color, StringHash shader ) {
@@ -267,18 +247,6 @@ static inline void trap_R_TransformVectorToScreen( const refdef_t *rd, const vec
 
 static inline bool trap_R_TransformVectorToScreenClamped( const refdef_t *rd, const vec3_t target, int border, vec2_t out ) {
 	return CGAME_IMPORT.R_TransformVectorToScreenClamped( rd, target, border, out );
-}
-
-static inline int trap_R_SkeletalGetNumBones( const struct model_s *mod, int *numFrames ) {
-	return CGAME_IMPORT.R_SkeletalGetNumBones( mod, numFrames );
-}
-
-static inline int trap_R_SkeletalGetBoneInfo( const struct model_s *mod, int bone, char *name, size_t name_size, int *flags ) {
-	return CGAME_IMPORT.R_SkeletalGetBoneInfo( mod, bone, name, name_size, flags );
-}
-
-static inline void trap_R_SkeletalGetBonePose( const struct model_s *mod, int bone, int frame, bonepose_t *bonepose ) {
-	CGAME_IMPORT.R_SkeletalGetBonePose( mod, bone, frame, bonepose );
 }
 
 static inline void trap_VID_FlashWindow() {
@@ -317,34 +285,6 @@ static inline bool trap_CM_InPVS( const vec3_t p1, const vec3_t p2 ) {
 	return CGAME_IMPORT.CM_InPVS( p1, p2 );
 }
 
-static inline void trap_S_Update( const vec3_t origin, const vec3_t velocity, const mat3_t axis ) {
-	CGAME_IMPORT.S_Update( origin, velocity, axis );
-}
-
-static inline void trap_S_UpdateEntity( int entNum, vec3_t origin, vec3_t velocity ) {
-	return CGAME_IMPORT.S_UpdateEntity( entNum, origin, velocity );
-}
-
-static inline void trap_S_StartFixedSound( StringHash sound, const vec3_t origin, int channel, float volume, float attenuation ) {
-	CGAME_IMPORT.S_StartFixedSound( sound, origin, channel, volume, attenuation );
-}
-
-static inline void trap_S_StartEntitySound( StringHash sound, int entnum, int channel, float volume, float attenuation ) {
-	CGAME_IMPORT.S_StartEntitySound( sound, entnum, channel, volume, attenuation );
-}
-
-static inline void trap_S_StartGlobalSound( StringHash sound, int channel, float volume ) {
-	CGAME_IMPORT.S_StartGlobalSound( sound, channel, volume );
-}
-
-static inline void trap_S_StartLocalSound( StringHash sound, int channel, float volume ) {
-	CGAME_IMPORT.S_StartLocalSound( sound, channel, volume );
-}
-
-static inline void trap_S_ImmediateSound( StringHash sound, int entnum, float volume, float attenuation ) {
-	CGAME_IMPORT.S_ImmediateSound( sound, entnum, volume, attenuation );
-}
-
 static inline struct qfontface_s *trap_SCR_RegisterFont( const char *family, int style, unsigned int size ) {
 	return CGAME_IMPORT.SCR_RegisterFont( family, style, size );
 }
@@ -354,19 +294,19 @@ static inline struct qfontface_s *trap_SCR_RegisterSpecialFont( const char *fami
 }
 
 static inline int trap_SCR_DrawString( int x, int y, int align, const char *str, struct qfontface_s *font, const vec4_t color ) {
-	return CGAME_IMPORT.SCR_DrawString( x, y, align, str, font, color, 0 );
+	return CGAME_IMPORT.SCR_DrawString( x, y, align, str, font, color );
 }
 
 static inline size_t trap_SCR_DrawStringWidth( int x, int y, int align, const char *str, size_t maxwidth, struct qfontface_s *font, const vec4_t color ) {
-	return CGAME_IMPORT.SCR_DrawStringWidth( x, y, align, str, maxwidth, font, color, 0 );
+	return CGAME_IMPORT.SCR_DrawStringWidth( x, y, align, str, maxwidth, font, color );
 }
 
 static inline void trap_SCR_DrawClampString( int x, int y, const char *str, int xmin, int ymin, int xmax, int ymax, struct qfontface_s *font, const vec4_t color ) {
-	CGAME_IMPORT.SCR_DrawClampString( x, y, str, xmin, ymin, xmax, ymax, font, color, 0 );
+	CGAME_IMPORT.SCR_DrawClampString( x, y, str, xmin, ymin, xmax, ymax, font, color );
 }
 
 static inline int trap_SCR_DrawMultilineString( int x, int y, const char *str, int halign, int maxwidth, int maxlines, struct qfontface_s *font, const vec4_t color ) {
-	return CGAME_IMPORT.SCR_DrawMultilineString( x, y, str, halign, maxwidth, maxlines, font, color, 0 );
+	return CGAME_IMPORT.SCR_DrawMultilineString( x, y, str, halign, maxwidth, maxlines, font, color );
 }
 
 static inline void trap_SCR_DrawRawChar( int x, int y, wchar_t num, struct qfontface_s *font, const vec4_t color ) {
@@ -382,11 +322,11 @@ static inline int trap_SCR_FontHeight( struct qfontface_s *font ) {
 }
 
 static inline size_t trap_SCR_strWidth( const char *str, struct qfontface_s *font, int maxlen ) {
-	return CGAME_IMPORT.SCR_strWidth( str, font, maxlen, 0 );
+	return CGAME_IMPORT.SCR_strWidth( str, font, maxlen );
 }
 
 static inline size_t trap_SCR_StrlenForWidth( const char *str, struct qfontface_s *font, size_t maxwidth ) {
-	return CGAME_IMPORT.SCR_StrlenForWidth( str, font, maxwidth, 0 );
+	return CGAME_IMPORT.SCR_StrlenForWidth( str, font, maxwidth );
 }
 
 static inline void trap_SCR_DrawChat( int x, int y, int width, struct qfontface_s *font ) {
@@ -395,16 +335,4 @@ static inline void trap_SCR_DrawChat( int x, int y, int width, struct qfontface_
 
 inline cg_fdrawchar_t trap_SCR_SetDrawCharIntercept( cg_fdrawchar_t intercept ) {
 	return CGAME_IMPORT.SCR_SetDrawCharIntercept( intercept );
-}
-
-static inline ATTRIBUTE_MALLOC void *trap_MemAlloc( size_t size, const char *filename, int fileline ) {
-	return CGAME_IMPORT.Mem_Alloc( size, filename, fileline );
-}
-
-static inline void trap_MemFree( void *data, const char *filename, int fileline ) {
-	CGAME_IMPORT.Mem_Free( data, filename, fileline );
-}
-
-static inline struct angelwrap_api_s *trap_asGetAngelExport( void ) {
-	return CGAME_IMPORT.asGetAngelExport();
 }

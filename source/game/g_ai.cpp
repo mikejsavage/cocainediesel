@@ -19,20 +19,14 @@ static struct {
 	{ "Slice*>", "padpork" },
 };
 
-static constexpr int BOT_CHARACTERS_COUNT = sizeof( botCharacters ) / sizeof( botCharacters[0] );
-
 static void CreateUserInfo( char * buffer, size_t bufferSize ) {
 	// Try to avoid bad distribution, otherwise some bots are selected too often. Weights are prime numbers
-	int characterIndex = ( (int)( 3 * random() + 11 * random() +  97 * random() + 997 * random() ) ) % BOT_CHARACTERS_COUNT;
+	int characterIndex = rand() % ARRAY_COUNT( botCharacters );
 
 	memset( buffer, 0, bufferSize );
 
 	Info_SetValueForKey( buffer, "name", botCharacters[characterIndex].name );
-	Info_SetValueForKey( buffer, "model", botCharacters[characterIndex].model );
-	Info_SetValueForKey( buffer, "skin", "default" );
 	Info_SetValueForKey( buffer, "hand", va( "%i", (int)( random() * 2.5 ) ) );
-	const char *color = va( "%i %i %i", (uint8_t)( random() * 255 ), (uint8_t)( random() * 255 ), (uint8_t)( random() * 255 ) );
-	Info_SetValueForKey( buffer, "color", color );
 }
 
 static edict_t * ConnectFakeClient() {
@@ -43,62 +37,33 @@ static edict_t * ConnectFakeClient() {
 	int entNum = trap_FakeClientConnect( userInfo, fakeSocketType, fakeIP );
 	if( entNum < 1 ) {
 		Com_Printf( "AI: Can't spawn the fake client\n" );
-		return nullptr;
+		return NULL;
 	}
 	return game.edicts + entNum;
 }
 
-void AI_InitLevel() { }
-void AI_Shutdown() { }
-void AI_RemoveBots() { }
-
-void AI_CommonFrame() { }
-
-void AI_Respawn( edict_t * ent ) {
-	VectorClear( ent->r.client->ps.pmove.delta_angles );
-	ent->r.client->level.last_activity = level.time;
-}
-
-void AI_SpawnBot( const char * teamName ) {
+void AI_SpawnBot() {
 	if( level.spawnedTimeStamp + 5000 > game.realtime || !level.canSpawnEntities ) {
 		return;
 	}
 
-	if( edict_t * ent = ConnectFakeClient() ) {
-		// init this bot
-		ent->think = NULL;
-		ent->nextThink = level.time + 1;
-		ent->classname = "bot";
-		ent->die = player_die;
+	edict_t * ent = ConnectFakeClient();
+	if( ent == NULL )
+		return;
 
-		AI_Respawn( ent );
+	ent->think = NULL;
+	ent->nextThink = level.time + 500 + (unsigned)( random() * 2000 );
+	ent->classname = "bot";
+	ent->die = player_die;
 
-		int team = GS_Teams_TeamFromName( teamName );
-		if( team != -1 && team > TEAM_PLAYERS ) {
-			// Join specified team immediately
-			G_Teams_JoinTeam( ent, team );
-		} else {
-			// stay as spectator, give random time for joining
-			ent->nextThink = level.time + 500 + (unsigned)( random() * 2000 );
-		}
+	AI_Respawn( ent );
 
-		game.numBots++;
-	}
+	game.numBots++;
 }
 
-void AI_RemoveBot( const char * name ) {
-	// Do not iterate over the linked list of bots since it is implicitly modified by these calls
-	for( edict_t * ent = game.edicts + gs.maxclients; PLAYERNUM( ent ) >= 0; ent-- ) {
-		if( !Q_stricmp( ent->r.client->netname, name ) ) {
-			trap_DropClient( ent, DROP_TYPE_GENERAL, nullptr );
-			game.numBots--;
-			return;
-		}
-	}
-	G_Printf( "BOT: %s not found\n", name );
-}
-
-void AI_TouchedEntity( edict_t * self, edict_t * ent ) {
+void AI_Respawn( edict_t * ent ) {
+	VectorClear( ent->r.client->ps.pmove.delta_angles );
+	ent->r.client->level.last_activity = level.time;
 }
 
 static void AI_SpecThink( edict_t * self ) {

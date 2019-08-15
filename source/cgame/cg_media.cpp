@@ -30,11 +30,6 @@ struct model_s *CG_RegisterModel( const char *name ) {
 
 	model = trap_R_RegisterModel( name );
 
-	// precache bones
-	if( trap_R_SkeletalGetNumBones( model, NULL ) ) {
-		CG_SkeletonForModel( model );
-	}
-
 	return model;
 }
 
@@ -80,19 +75,17 @@ struct model_s *CG_MediaModel( cgs_media_handle_t *mediamodel ) {
 void CG_RegisterMediaModels( void ) {
 	model_headnode = NULL;
 
-	cgs.media.modRocketExplosion = CG_RegisterMediaModel( PATH_ROCKET_EXPLOSION_MODEL );
 	cgs.media.modPlasmaExplosion = CG_RegisterMediaModel( PATH_PLASMA_EXPLOSION_MODEL );
 
-	cgs.media.modDash = CG_RegisterMediaModel( "models/effects/dash_burst.md3" );
+	cgs.media.modDash = CG_RegisterMediaModel( "models/effects/dash_burst.glb" );
 
 	cgs.media.modBulletExplode = CG_RegisterMediaModel( PATH_BULLET_EXPLOSION_MODEL );
-	cgs.media.modBladeWallHit = CG_RegisterMediaModel( PATH_GUNBLADEBLAST_IMPACT_MODEL );
-	cgs.media.modBladeWallExplo = CG_RegisterMediaModel( PATH_GUNBLADEBLAST_EXPLOSION_MODEL );
 	cgs.media.modElectroBoltWallHit = CG_RegisterMediaModel( PATH_ELECTROBLAST_IMPACT_MODEL );
 	cgs.media.modLasergunWallExplo = CG_RegisterMediaModel( PATH_LASERGUN_IMPACT_MODEL );
+	cgs.media.modBladeWallHit = CG_RegisterMediaModel( PATH_GUNBLADEBLAST_IMPACT_MODEL );
 
 	// gibs model
-	cgs.media.modGib = CG_RegisterMediaModel( "models/objects/gibs/gib.md3" );
+	cgs.media.modGib = CG_RegisterMediaModel( "models/objects/gibs/gib.glb" );
 }
 
 #if 0
@@ -105,7 +98,6 @@ void CG_RegisterMediaShaders( void ) {
 	cgs.media.shaderParticle = CG_RegisterMediaShader( "particle" );
 
 	cgs.media.shaderNet = CG_RegisterMediaShader( "gfx/hud/net" );
-	cgs.media.shaderDownArrow = CG_RegisterMediaShader( "gfx/2d/arrow_down" );
 
 	cgs.media.shaderPlayerShadow = CG_RegisterMediaShader( "gfx/decals/shadow" );
 
@@ -128,8 +120,6 @@ void CG_RegisterMediaShaders( void ) {
 	cgs.media.shaderBombIcon = CG_RegisterMediaShader( "gfx/bomb/carriericon" );
 	cgs.media.shaderTeleportShellGfx = CG_RegisterMediaShader( "gfx/misc/teleportshell" );
 
-	cgs.media.shaderAdditiveParticleShine = CG_RegisterMediaShader( "additiveParticleShine" );
-
 	cgs.media.shaderBladeMark = CG_RegisterMediaShader( "gfx/decals/d_blade_hit" );
 	cgs.media.shaderBulletMark = CG_RegisterMediaShader( "gfx/decals/d_bullet_hit" );
 	cgs.media.shaderExplosionMark = CG_RegisterMediaShader( "gfx/decals/d_explode_hit" );
@@ -145,9 +135,6 @@ void CG_RegisterMediaShaders( void ) {
 
 	cgs.media.shaderLaser = CG_RegisterMediaShader( "gfx/misc/laser" );
 
-	// ctf
-	cgs.media.shaderFlagFlare = CG_RegisterMediaShader( PATH_FLAG_FLARE_SHADER );
-
 	cgs.media.shaderRaceGhostEffect = CG_RegisterMediaShader( "gfx/raceghost" );
 
 	// Kurim : weapon icons
@@ -160,8 +147,6 @@ void CG_RegisterMediaShaders( void ) {
 	cgs.media.shaderWeaponIcon[WEAP_LASERGUN - 1] = CG_RegisterMediaShader( PATH_LASERGUN_ICON );
 	cgs.media.shaderWeaponIcon[WEAP_ELECTROBOLT - 1] = CG_RegisterMediaShader( PATH_ELECTROBOLT_ICON );
 
-	cgs.media.shaderGunbladeBlastIcon = CG_RegisterMediaShader( PATH_GUNBLADE_BLAST_ICON );
-
 	// Kurim : keyicons
 	cgs.media.shaderKeyIcon[KEYICON_FORWARD] = CG_RegisterMediaShader( PATH_KEYICON_FORWARD );
 	cgs.media.shaderKeyIcon[KEYICON_BACKWARD] = CG_RegisterMediaShader( PATH_KEYICON_BACKWARD );
@@ -172,32 +157,7 @@ void CG_RegisterMediaShaders( void ) {
 	cgs.media.shaderKeyIcon[KEYICON_CROUCH] = CG_RegisterMediaShader( PATH_KEYICON_CROUCH );
 	cgs.media.shaderKeyIcon[KEYICON_SPECIAL] = CG_RegisterMediaShader( PATH_KEYICON_SPECIAL );
 
-	// VSAY icons
-	cgs.media.shaderVSayIcon[VSAY_GENERIC] = CG_RegisterMediaShader( PATH_VSAY_GENERIC_ICON );
-	cgs.media.shaderVSayIcon[VSAY_AFFIRMATIVE] = CG_RegisterMediaShader( PATH_VSAY_AFFIRMATIVE_ICON );
-	cgs.media.shaderVSayIcon[VSAY_NEGATIVE] = CG_RegisterMediaShader( PATH_VSAY_NEGATIVE_ICON );
-	cgs.media.shaderVSayIcon[VSAY_YES] = CG_RegisterMediaShader( PATH_VSAY_YES_ICON );
-	cgs.media.shaderVSayIcon[VSAY_NO] = CG_RegisterMediaShader( PATH_VSAY_NO_ICON );
-	cgs.media.shaderVSayIcon[VSAY_ONDEFENSE] = CG_RegisterMediaShader( PATH_VSAY_ONDEFENSE_ICON );
-	cgs.media.shaderVSayIcon[VSAY_ONOFFENSE] = CG_RegisterMediaShader( PATH_VSAY_ONOFFENSE_ICON );
-	cgs.media.shaderVSayIcon[VSAY_OOPS] = CG_RegisterMediaShader( PATH_VSAY_OOPS_ICON );
-	cgs.media.shaderVSayIcon[VSAY_SORRY] = CG_RegisterMediaShader( PATH_VSAY_SORRY_ICON );
-	cgs.media.shaderVSayIcon[VSAY_THANKS] = CG_RegisterMediaShader( PATH_VSAY_THANKS_ICON );
-	cgs.media.shaderVSayIcon[VSAY_NOPROBLEM] = CG_RegisterMediaShader( PATH_VSAY_NOPROBLEM_ICON );
-	cgs.media.shaderVSayIcon[VSAY_YEEHAA] = CG_RegisterMediaShader( PATH_VSAY_YEEHAA_ICON );
-	cgs.media.shaderVSayIcon[VSAY_GOODGAME] = CG_RegisterMediaShader( PATH_VSAY_GOODGAME_ICON );
-	cgs.media.shaderVSayIcon[VSAY_DEFEND] = CG_RegisterMediaShader( PATH_VSAY_DEFEND_ICON );
-	cgs.media.shaderVSayIcon[VSAY_ATTACK] = CG_RegisterMediaShader( PATH_VSAY_ATTACK_ICON );
-	cgs.media.shaderVSayIcon[VSAY_NEEDBACKUP] = CG_RegisterMediaShader( PATH_VSAY_NEEDBACKUP_ICON );
-	cgs.media.shaderVSayIcon[VSAY_BOOO] = CG_RegisterMediaShader( PATH_VSAY_BOOO_ICON );
-	cgs.media.shaderVSayIcon[VSAY_NEEDDEFENSE] = CG_RegisterMediaShader( PATH_VSAY_NEEDDEFENSE_ICON );
-	cgs.media.shaderVSayIcon[VSAY_NEEDOFFENSE] = CG_RegisterMediaShader( PATH_VSAY_NEEDOFFENSE_ICON );
-	cgs.media.shaderVSayIcon[VSAY_NEEDHELP] = CG_RegisterMediaShader( PATH_VSAY_NEEDHELP_ICON );
-	cgs.media.shaderVSayIcon[VSAY_ROGER] = CG_RegisterMediaShader( PATH_VSAY_ROGER_ICON );
-	cgs.media.shaderVSayIcon[VSAY_AREASECURED] = CG_RegisterMediaShader( PATH_VSAY_AREASECURED_ICON );
-	cgs.media.shaderVSayIcon[VSAY_BOOMSTICK] = CG_RegisterMediaShader( PATH_VSAY_BOOMSTICK_ICON );
-	cgs.media.shaderVSayIcon[VSAY_OK] = CG_RegisterMediaShader( PATH_VSAY_OK_ICON );
-	cgs.media.shaderVSayIcon[VSAY_SHUTUP] = CG_RegisterMediaShader( PATH_VSAY_SHUTUP_ICON );
+	cgs.media.shaderTick = CG_RegisterMediaShader( PATH_VSAY_YES_ICON );
 }
 #endif
 /*
@@ -220,4 +180,15 @@ void CG_RegisterFonts( void ) {
 
 	cgs.fontSystemBigSize = ceilf( SYSTEM_FONT_BIG_SIZE * scale );
 	cgs.fontSystemBig = trap_SCR_RegisterFont( SYSTEM_FONT_FAMILY, QFONT_STYLE_NONE, cgs.fontSystemBigSize );
+
+	cgs.fontMontserrat = RegisterFont( "fonts/Montserrat-SemiBold" );
+	cgs.fontMontserratBold = RegisterFont( "fonts/Montserrat-Bold" );
+	cgs.fontMontserratItalic = RegisterFont( "fonts/Montserrat-SemiBoldItalic" );
+	cgs.fontMontserratBoldItalic = RegisterFont( "fonts/Montserrat-BoldItalic" );
+
+	scale *= 1.3f;
+	cgs.textSizeTiny = SYSTEM_FONT_TINY_SIZE * scale;;
+	cgs.textSizeSmall = SYSTEM_FONT_SMALL_SIZE * scale;;
+	cgs.textSizeMedium = SYSTEM_FONT_MEDIUM_SIZE * scale;;
+	cgs.textSizeBig = SYSTEM_FONT_BIG_SIZE * scale;;
 }

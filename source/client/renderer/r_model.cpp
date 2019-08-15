@@ -22,42 +22,35 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // r_model.c -- model loading and caching
 
 #include "r_local.h"
-#include "iqm.h"
 
 typedef struct {
 	unsigned number;
 	int cluster;
-	unsigned drawSurfIndex;
 	msurface_t *surf;
 } msortedSurface_t;
 
-static void R_InitMapConfig( const char *model );
-static void R_FinishMapConfig( const model_t *mod );
-
 static uint8_t mod_novis[MAX_MAP_LEAFS / 8];
 
-#define MAX_MOD_KNOWN   512 * MOD_MAX_LODS
+#define MAX_MOD_KNOWN 512
 static model_t mod_known[MAX_MOD_KNOWN];
 static int mod_numknown;
-static bool mod_isworldmodel;
 model_t *r_prevworldmodel;
-static mapconfig_t *mod_mapConfigs;
 
 static mempool_t *mod_mempool;
 
 static const modelFormatDescr_t mod_supportedformats[] =
 {
 	// Quake III Arena .md3 models
-	{ IDMD3HEADER, 4, NULL, MOD_MAX_LODS, ( const modelLoader_t )Mod_LoadAliasMD3Model },
+	{ IDMD3HEADER, 4, NULL, modelLoader_t( Mod_LoadAliasMD3Model ) },
 
-	// Skeletal models
-	{ IQM_MAGIC, sizeof( IQM_MAGIC ), NULL, MOD_MAX_LODS, ( const modelLoader_t )Mod_LoadSkeletalModel },
+	// GLTF binaries
+	{ "glTF", 4, NULL, modelLoader_t( Mod_LoadGLTFModel ) },
 
 	// Q3-alike .bsp models
-	{ "*", 4, q3BSPFormats, 0, ( const modelLoader_t )Mod_LoadQ3BrushModel },
+	{ ( const char * ) COMPRESSED_BSP_MAGIC, sizeof( COMPRESSED_BSP_MAGIC ), NULL, modelLoader_t( Mod_LoadCompressedBSP ) },
+	{ "*", 4, q3BSPFormats, modelLoader_t( Mod_LoadQ3BrushModel ) },
 
-	// trailing NULL
-	{ NULL, 0, NULL, 0, NULL }
+	{ }
 };
 
 //===============================================================================
@@ -94,53 +87,6 @@ uint8_t *Mod_ClusterPVS( int cluster, mbrushmodel_t *bmodel ) {
 	}
 
 	return ( (uint8_t *)vis->data + cluster * vis->rowsize );
-}
-
-/*
-* Mod_SpherePVS_r
-*/
-static void Mod_SpherePVS_r( mnode_t *node, const vec3_t origin, float radius, const dvis_t *vis, uint8_t *fatpvs ) {
-	int i;
-	const mleaf_t *leaf;
-	const uint8_t *row;
-
-	while( node->plane != NULL ) {
-		float d = PlaneDiff( origin, node->plane );
-
-		if( d > radius - ON_EPSILON ) {
-			node = node->children[0];
-		} else if( d < -radius + ON_EPSILON ) {
-			node = node->children[1];
-		}  else {
-			Mod_SpherePVS_r( node->children[0], origin, radius, vis, fatpvs );
-			node = node->children[1];
-		}
-	}
-
-	leaf = ( const mleaf_t * )node;
-	if( leaf->cluster < 0 ) {
-		return;
-	}
-
-	row = (uint8_t *)vis->data + leaf->cluster * vis->rowsize;
-	for( i = 0; i < vis->rowsize; i++ )
-		fatpvs[i] |= row[i];
-}
-
-/*
-* Mod_SpherePVS
-*/
-uint8_t *Mod_SpherePVS( const vec3_t origin, float radius, mbrushmodel_t *bmodel, uint8_t *fatpvs ) {
-	const dvis_t *vis;
-
-	vis = bmodel->pvs;
-	if( !vis ) {
-		return mod_novis;
-	}
-
-	memset( fatpvs, 0, vis->rowsize );
-	Mod_SpherePVS_r( bmodel->nodes, origin, radius, vis, fatpvs );
-	return fatpvs;
 }
 
 //===============================================================================
@@ -317,6 +263,7 @@ static void Mod_SetupSubmodels( model_t *mod ) {
 		VectorCopy( bm->maxs, starmod->maxs );
 		VectorCopy( bm->mins, starmod->mins );
 		starmod->radius = bm->radius;
+		Matrix4_Identity( starmod->transform );
 
 		if( i == 0 ) {
 			*mod = *starmod;
@@ -325,10 +272,6 @@ static void Mod_SetupSubmodels( model_t *mod ) {
 		}
 	}
 }
-
-#define VBO_Printf ri.Com_DPrintf
-
-static mbrushmodel_t *loadbmodel_; // FIXME
 
 /*
 * R_SurfaceCmp
@@ -406,7 +349,6 @@ static int Mod_CreateSubmodelBufferObjects( model_t *mod, size_t *vbo_total_size
 	mbrushmodel_t *loadbmodel;
 
 	loadbmodel = ( ( mbrushmodel_t * )mod->extradata );
-	loadbmodel_ = loadbmodel; // FIXME
 
 	worldSurfaces = ( unsigned * )Mod_Malloc( mod, loadbmodel->numsurfaces * sizeof( *worldSurfaces ) );
 	sortedSurfaces = ( msurface_t ** )Mod_Malloc( mod, loadbmodel->numsurfaces * sizeof( *sortedSurfaces ) );
@@ -420,7 +362,7 @@ static int Mod_CreateSubmodelBufferObjects( model_t *mod, size_t *vbo_total_size
 
 	// merge faces if they have the same shader
 
-	floatVattribs = VATTRIB_POSITION_BIT|VATTRIB_SURFINDEX_BIT;
+	floatVattribs = VATTRIB_POSITION_BIT;
 
 	num_vbos = 0;
 	*vbo_total_size = 0;
@@ -450,7 +392,7 @@ static int Mod_CreateSubmodelBufferObjects( model_t *mod, size_t *vbo_total_size
 			}
 
 			// create vertex buffer object for this face then upload data
-			vattribs = shader->vattribs | VATTRIB_NORMAL_BIT | VATTRIB_SURFINDEX_BIT;
+			vattribs = shader->vattribs | VATTRIB_NORMAL_BIT;
 			if( surf->numInstances ) {
 				vattribs |= VATTRIB_INSTANCES_BITS;
 			}
@@ -589,7 +531,7 @@ static int Mod_CreateSubmodelBufferObjects( model_t *mod, size_t *vbo_total_size
 			vertsOffset = drawSurf->firstVboVert + surf->firstDrawSurfVert;
 			elemsOffset = drawSurf->firstVboElem + surf->firstDrawSurfElem;
 
-			R_UploadVBOVertexData( vbo, vertsOffset, vbo->vertexAttribs, mesh, j );
+			R_UploadVBOVertexData( vbo, vertsOffset, vbo->vertexAttribs, mesh );
 			R_UploadVBOElemData( vbo, vertsOffset, elemsOffset, mesh );
 			R_UploadVBOInstancesData( vbo, 0, surf->numInstances, surf->instances );
 		}
@@ -605,8 +547,6 @@ static int Mod_CreateSubmodelBufferObjects( model_t *mod, size_t *vbo_total_size
 * Mod_CreateVertexBufferObjects
 */
 void Mod_CreateVertexBufferObjects( model_t *mod ) {
-	unsigned int total_vbos = 0;
-	size_t total_size = 0;
 	mbrushmodel_t *loadbmodel = ( ( mbrushmodel_t * )mod->extradata );
 
 	// free all VBO's allocated for previous world map so
@@ -620,32 +560,8 @@ void Mod_CreateVertexBufferObjects( model_t *mod ) {
 	loadbmodel->numDrawSurfaces = 0;
 	loadbmodel->drawSurfaces = ( drawSurfaceBSP_t * ) Mod_Malloc( mod, sizeof( *loadbmodel->drawSurfaces ) * loadbmodel->numsurfaces );
 
-	total_vbos = Mod_CreateSubmodelBufferObjects( mod, &total_size );
-
-	if( total_vbos ) {
-		VBO_Printf( "Created %i VBOs, totalling %.1f MiB of memory\n", total_vbos, ( total_size + 1048574 ) / 1048576.0f );
-	}
-}
-
-/*
-* Mod_CreateSkydome
-*/
-static void Mod_CreateSkydome( model_t *mod ) {
-	unsigned int i, j;
-	mbrushmodel_t *loadbmodel = ( ( mbrushmodel_t * )mod->extradata );
-
-	for( i = 0; i < loadbmodel->numsubmodels; i++ ) {
-		mmodel_t *bm = loadbmodel->submodels + i;
-		msurface_t *surf = loadbmodel->surfaces + bm->firstModelSurface;
-
-		for( j = 0; j < bm->numModelSurfaces; j++ ) {
-			if( !R_SurfNoDraw( surf ) && ( surf->shader->flags & SHADER_SKY ) ) {
-				loadbmodel->skydome = R_CreateSkydome( mod );
-				return;
-			}
-			surf++;
-		}
-	}
+	size_t total_size = 0;
+	Mod_CreateSubmodelBufferObjects( mod, &total_size );
 }
 
 /*
@@ -659,8 +575,6 @@ static void Mod_FinalizeBrushModel( model_t *model ) {
 	Mod_CreateVertexBufferObjects( model );
 
 	Mod_SetupSubmodels( model );
-
-	Mod_CreateSkydome( model );
 }
 
 /*
@@ -686,10 +600,6 @@ static void Mod_TouchBrushModel( model_t *model ) {
 		drawSurfaceBSP_t *drawSurf = &loadbmodel->drawSurfaces[i];
 		R_TouchShader( drawSurf->shader );
 		R_TouchMeshVBO( R_GetVBOByIndex( drawSurf->vbo ) );
-	}
-
-	if( loadbmodel->skydome ) {
-		R_TouchSkydome( loadbmodel->skydome );
 	}
 }
 
@@ -723,9 +633,7 @@ void Mod_Modellist_f( void ) {
 void R_InitModels( void ) {
 	mod_mempool = R_AllocPool( r_mempool, "Models" );
 	memset( mod_novis, 0xff, sizeof( mod_novis ) );
-	mod_isworldmodel = false;
 	r_prevworldmodel = NULL;
-	mod_mapConfigs = ( mapconfig_t * ) R_MallocExt( mod_mempool, sizeof( *mod_mapConfigs ) * MAX_MOD_KNOWN, 0, 1 );
 }
 
 /*
@@ -789,25 +697,6 @@ void R_ShutdownModels( void ) {
 }
 
 /*
-* Mod_StripLODSuffix
-*/
-void Mod_StripLODSuffix( char *name ) {
-	size_t len;
-
-	len = strlen( name );
-	if( len <= 2 ) {
-		return;
-	}
-	if( name[len - 2] != '_' ) {
-		return;
-	}
-
-	if( name[len - 1] >= '0' && name[len - 1] <= '0' + MOD_MAX_LODS ) {
-		name[len - 2] = 0;
-	}
-}
-
-/*
 * Mod_FindSlot
 */
 static model_t *Mod_FindSlot( const char *name ) {
@@ -865,11 +754,9 @@ model_t *Mod_ForHandle( unsigned int elem ) {
 * Loads in a model for the given name
 */
 model_t *Mod_ForName( const char *name, bool crash ) {
-	int i;
-	model_t *mod, *lod;
-	void *buf;
-	char shortname[MAX_QPATH], lodname[MAX_QPATH];
-	const char *extension;
+	model_t *mod;
+	unsigned *buf;
+	char shortname[MAX_QPATH];
 	const modelFormatDescr_t *descr;
 	bspFormatDesc_t *bspFormat = NULL;
 
@@ -890,7 +777,6 @@ model_t *Mod_ForName( const char *name, bool crash ) {
 
 	Q_strncpyz( shortname, name, sizeof( shortname ) );
 	COM_StripExtension( shortname );
-	extension = &name[strlen( shortname ) + 1];
 
 	mod = Mod_FindSlot( name );
 	if( mod->type == mod_bad ) {
@@ -932,61 +818,16 @@ model_t *Mod_ForName( const char *name, bool crash ) {
 		return NULL;
 	}
 
-	if( mod_isworldmodel ) {
-		// we only init map config when loading the map from disk
-		R_InitMapConfig( name );
-	}
-
-	descr->loader( mod, NULL, buf, bspFormat );
+	descr->loader( mod, buf, bufsize, bspFormat );
 
 	if( mod->type == mod_bad ) {
 		return NULL;
-	}
-
-	if( mod_isworldmodel ) {
-		// we only init map config when loading the map from disk
-		R_FinishMapConfig( mod );
 	}
 
 	// do some common things
 	if( mod->type == mod_brush ) {
 		Mod_FinalizeBrushModel( mod );
 		mod->touch = &Mod_TouchBrushModel;
-	}
-
-	if( !descr->maxLods ) {
-		return mod;
-	}
-
-	//
-	// load level-of-detail models
-	//
-	mod->lodnum = 0;
-	mod->numlods = 0;
-	for( i = 0; i < descr->maxLods; i++ ) {
-		Q_snprintfz( lodname, sizeof( lodname ), "%s_%i.%s", shortname, i + 1, extension );
-		R_LoadFile( lodname, (void **)&buf );
-		if( !buf || strncmp( (const char *)buf, descr->header, descr->headerLen ) ) {
-			break;
-		}
-
-		lod = mod->lods[i] = Mod_FindSlot( lodname );
-		if( lod->name && !strcmp( lod->name, lodname ) ) {
-			continue;
-		}
-
-		lod->type = mod_bad;
-		lod->lodnum = i + 1;
-		lod->mempool = R_AllocPool( mod_mempool, lodname );
-		lod->name = ( char * ) Mod_Malloc( lod, strlen( lodname ) + 1 );
-		strcpy( lod->name, lodname );
-
-		mod_numknown++;
-
-		descr->loader( lod, mod, buf, bspFormat );
-		R_FreeFile( buf );
-
-		mod->numlods++;
 	}
 
 	return mod;
@@ -996,9 +837,6 @@ model_t *Mod_ForName( const char *name, bool crash ) {
 * R_TouchModel
 */
 static void R_TouchModel( model_t *mod ) {
-	int i;
-	model_t *lod;
-
 	if( mod->registrationSequence == rsh.registrationSequence ) {
 		return;
 	}
@@ -1008,39 +846,6 @@ static void R_TouchModel( model_t *mod ) {
 	if( mod->touch ) {
 		mod->touch( mod );
 	}
-
-	// handle Level Of Details
-	for( i = 0; i < mod->numlods; i++ ) {
-		lod = mod->lods[i];
-		lod->registrationSequence = rsh.registrationSequence;
-		if( lod->touch ) {
-			lod->touch( lod );
-		}
-	}
-}
-
-//=============================================================================
-
-/*
-* R_InitMapConfig
-*
-* Clears map config before loading the map from disk. NOT called when the map
-* is reloaded from model cache.
-*/
-static void R_InitMapConfig( const char *model ) {
-	memset( &mapConfig, 0, sizeof( mapConfig ) );
-}
-
-/*
-* R_FinishMapConfig
-*
-* Called after loading the map from disk.
-*/
-static void R_FinishMapConfig( const model_t *mod ) {
-	// ambient lighting
-	ColorNormalize( mapConfig.ambient,  mapConfig.ambient );
-
-	mod_mapConfigs[mod - mod_known] = mapConfig;
 }
 
 //=============================================================================
@@ -1056,18 +861,11 @@ void R_RegisterWorldModel( const char *model ) {
 	rsh.worldBrushModel = NULL;
 	rsh.worldModelSequence++;
 
-	mod_isworldmodel = true;
-
 	rsh.worldModel = Mod_ForName( model, true );
-
-	mod_isworldmodel = false;
 
 	if( !rsh.worldModel ) {
 		return;
 	}
-
-	// FIXME: this is ugly...
-	mapConfig = mod_mapConfigs[rsh.worldModel - mod_known];
 
 	R_TouchModel( rsh.worldModel );
 	rsh.worldBrushModel = ( mbrushmodel_t * )rsh.worldModel->extradata;
@@ -1086,35 +884,11 @@ struct model_s *R_RegisterModel( const char *name ) {
 	return mod;
 }
 
-/*
-* R_ModelBounds
-*/
-void R_ModelBounds( const model_t *model, vec3_t mins, vec3_t maxs ) {
-	if( model ) {
-		VectorCopy( model->mins, mins );
-		VectorCopy( model->maxs, maxs );
-	} else if( rsh.worldModel ) {
-		VectorCopy( rsh.worldModel->mins, mins );
-		VectorCopy( rsh.worldModel->maxs, maxs );
-	}
-}
-
-/*
-* R_ModelFrameBounds
-*/
-void R_ModelFrameBounds( const struct model_s *model, int frame, vec3_t mins, vec3_t maxs ) {
-	if( model ) {
-		switch( model->type ) {
-			case mod_alias:
-				R_AliasModelFrameBounds( model, frame, mins, maxs );
-				break;
-			case mod_skeletal:
-				R_SkeletalModelFrameBounds( model, frame, mins, maxs );
-				break;
-			default:
-				break;
-		}
-	}
+MinMax3 R_ModelBounds( const model_s * model ) {
+	MinMax3 res;
+	VectorCopy( model->mins, res.mins );
+	VectorCopy( model->maxs, res.maxs );
+	return res;
 }
 
 static vec4_t *r_modelTransformBuf;

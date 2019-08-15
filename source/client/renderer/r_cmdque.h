@@ -42,8 +42,6 @@ typedef struct ref_cmdbuf_s {
 	void ( *BlurScreen )( struct ref_cmdbuf_s *cmdbuf );
 	void ( *SetScissor )( struct ref_cmdbuf_s *cmdbuf, int x, int y, int w, int h );
 	void ( *ResetScissor )( struct ref_cmdbuf_s *cmdbuf );
-	void ( *PushTransformMatrix )( struct ref_cmdbuf_s *cmdbuf, bool projection, const float *m );
-	void ( *PopTransformMatrix )( struct ref_cmdbuf_s *cmdbuf, bool projection );
 
 	// execution proc
 	void ( *Clear )( struct ref_cmdbuf_s *cmdbuf );
@@ -66,10 +64,8 @@ typedef struct ref_cmdpipe_s {
 
 	void ( *ResizeFramebuffers )( struct ref_cmdpipe_s *cmdpipe );
 	void ( *ScreenShot )( struct ref_cmdpipe_s *cmdpipe, const char *path, const char *name, const char *fmtstring, bool silent );
-	void ( *AviShot )( struct ref_cmdpipe_s *cmdpipe, const char *path, const char *name, int x, int y, int w, int h );
 	void ( *BeginRegistration )( struct ref_cmdpipe_s *cmdpipe );
 	void ( *EndRegistration )( struct ref_cmdpipe_s *cmdpipe );
-	void ( *SetCustomColor )( struct ref_cmdpipe_s *cmdpipe, int num, int r, int g, int b );
 	void ( *SetWallFloorColors )( struct ref_cmdpipe_s *cmdpipe, const vec3_t wallColor, const vec3_t floorColor );
 	void ( *SetTextureFilter )( struct ref_cmdpipe_s *cmdpipe, int filter );
 	void ( *SetGamma )( struct ref_cmdpipe_s *cmdpipe, float gamma );

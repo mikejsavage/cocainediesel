@@ -82,8 +82,6 @@ typedef struct cmodel_s {
 	int nummarkfaces;
 	int nummarkbrushes;
 
-	float cyl_halfheight;
-	float cyl_radius;
 	vec3_t cyl_offset;
 
 	vec3_t mins, maxs;

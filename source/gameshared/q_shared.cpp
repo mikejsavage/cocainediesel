@@ -19,16 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "q_arch.h"
-#include "q_math.h" // fixme : needed for MAX_S_COLORS define
+#include "q_math.h"
 #include "q_shared.h"
-
-//============================================================================
-
-const char *SOUND_EXTENSIONS[] = { ".ogg" };
-const size_t NUM_SOUND_EXTENSIONS = ARRAY_COUNT( SOUND_EXTENSIONS );
-
-const char *IMAGE_EXTENSIONS[] = { ".tga", ".jpg", ".png" };
-const size_t NUM_IMAGE_EXTENSIONS = ARRAY_COUNT( IMAGE_EXTENSIONS );
 
 //============================================================================
 
@@ -223,32 +215,6 @@ short ShortSwap( short l ) {
 	b2 = ( l >> 8 ) & 255;
 
 	return ( b1 << 8 ) + b2;
-}
-
-int LongSwap( int l ) {
-	uint8_t b1, b2, b3, b4;
-
-	b1 = l & 255;
-	b2 = ( l >> 8 ) & 255;
-	b3 = ( l >> 16 ) & 255;
-	b4 = ( l >> 24 ) & 255;
-
-	return ( (int)b1 << 24 ) + ( (int)b2 << 16 ) + ( (int)b3 << 8 ) + b4;
-}
-
-float FloatSwap( float f ) {
-	union {
-		float f;
-		uint8_t b[4];
-	} dat1, dat2;
-
-
-	dat1.f = f;
-	dat2.b[0] = dat1.b[3];
-	dat2.b[1] = dat1.b[2];
-	dat2.b[2] = dat1.b[1];
-	dat2.b[3] = dat1.b[0];
-	return dat2.f;
 }
 
 /*
@@ -848,38 +814,29 @@ const char *COM_RemoveJunkChars( const char *in ) {
 * COM_ReadColorRGBString
 */
 int COM_ReadColorRGBString( const char *in ) {
-	int playerColor[3];
-	if( in && in[0] ) {
-		if( sscanf( in, "%3i %3i %3i", &playerColor[0], &playerColor[1], &playerColor[2] ) == 3 ) {
-			return COLOR_RGB( playerColor[0], playerColor[1], playerColor[2] );
-		}
-	}
-	return -1;
+	if( in == NULL )
+		return 0;
+
+	int rgb[3];
+	if( sscanf( in, "%3i %3i %3i", &rgb[0], &rgb[1], &rgb[2] ) != 3 )
+		return 0;
+
+	for( int i = 0; i < 3; i++ )
+		rgb[i] = bound( rgb[i], 0, 255 );
+	return COLOR_RGB( rgb[0], rgb[1], rgb[2] );
 }
 
-int COM_ValidatePlayerColor( int rgbcolor ) {
-	int r, g, b;
+int COM_ReadColorRGBAString( const char *in ) {
+	if( in == NULL )
+		return 0;
 
-	r = COLOR_R( rgbcolor );
-	g = COLOR_G( rgbcolor );
-	b = COLOR_B( rgbcolor );
+	int rgba[4];
+	if( sscanf( in, "%3i %3i %3i %3i", &rgba[0], &rgba[1], &rgba[2], &rgba[3] ) != 4 )
+		return 0;
 
-	if( r >= 200 || g >= 200 || b >= 200 ) {
-		return rgbcolor;
-	}
-
-	if( r + g >= 255 || g + b >= 255 || r + b >= 255 ) {
-		return rgbcolor;
-	}
-
-	if( r + g + b >= 128 * 3 ) {
-		return rgbcolor;
-	}
-
-	r = r > 127 ? 255 : 128 + r;
-	g = g > 127 ? 255 : 128 + g;
-	b = b > 127 ? 255 : 128 + b;
-	return COLOR_RGB( r, g, b );
+	for( int i = 0; i < 4; i++ )
+		rgba[i] = bound( rgba[i], 0, 255 );
+	return COLOR_RGBA( rgba[0], rgba[1], rgba[2], rgba[3] );
 }
 
 /*
@@ -944,58 +901,19 @@ char *COM_ListNameForPosition( const char *namesList, int position, const char s
 //============================================================================
 
 /*
-* Q_memset32
-*/
-void *Q_memset32( void *dest, int c, size_t dwords ) {
-	assert( ( (size_t)dest & 0x03 ) == 0 );
-
-#if defined ( __GNUC__ ) && defined ( id386 )
-	__asm__ (   "cld\n"
-				"rep; stosl\n"
-				: // nada
-				: "c" ( dwords ), "D" ( dest ), "a" ( c )
-				);
-#elif defined ( _WIN32 ) && defined ( id386 )
-	__asm {
-		cld
-		mov edi, dest
-		mov eax, c
-		mov ecx, dwords
-		repne stosd
-	}
-#else
-	{
-		size_t i;
-		int *idest = (int *)dest;
-		for( i = 0; i < dwords; i++ )
-			*idest++ = c;
-	}
-#endif
-
-	return dest;
-}
-
-/*
 * Q_strncpyz
 */
 void Q_strncpyz( char *dest, const char *src, size_t size ) {
-#ifdef HAVE_STRLCPY
-	strlcpy( dest, src, size );
-#else
 	if( size ) {
 		while( --size && ( *dest++ = *src++ ) ) ;
 		*dest = '\0';
 	}
-#endif
 }
 
 /*
 * Q_strncatz
 */
 void Q_strncatz( char *dest, const char *src, size_t size ) {
-#ifdef HAVE_STRLCAT
-	strlcat( dest, src, size );
-#else
 	if( size ) {
 		while( --size && *dest++ ) ;
 		if( size ) {
@@ -1004,7 +922,6 @@ void Q_strncatz( char *dest, const char *src, size_t size ) {
 		}
 		*dest = '\0';
 	}
-#endif
 }
 
 /*
@@ -1064,32 +981,6 @@ char *Q_strlwr( char *s ) {
 	}
 
 	return NULL;
-}
-
-/*
-* Q_strlocate
-*/
-const char *Q_strlocate( const char *s, const char *substr, int skip ) {
-	int i;
-	const char *p = NULL;
-	size_t substr_len;
-
-	if( !s || !*s ) {
-		return NULL;
-	}
-
-	if( !substr || !*substr ) {
-		return NULL;
-	}
-
-	substr_len = strlen( substr );
-
-	for( i = 0; i <= skip; i++, s = p + substr_len ) {
-		if( !( p = strstr( s, substr ) ) ) {
-			return NULL;
-		}
-	}
-	return p;
 }
 
 /*
@@ -1234,36 +1125,6 @@ char *Q_WCharToUtf8Char( wchar_t wc ) {
 }
 
 /*
-* Q_WCharToUtf8String
-*
-* Converts a wchar_t string (of the system native wchar size) to UTF-8.
-* Returns the length of the written string.
-*/
-size_t Q_WCharToUtf8String( const wchar_t *ws, char *dest, size_t bufsize ) {
-	size_t len = 0, utflen;
-
-	if( !bufsize ) {
-		return 0;
-	}
-
-	dest[0] = '\0';
-
-	while( ( bufsize > 1 ) && *ws ) {
-		utflen = Q_WCharToUtf8( *ws, dest, bufsize );
-		if( !utflen ) {
-			break;
-		}
-
-		ws++;
-		dest += utflen;
-		bufsize -= utflen;
-		len += utflen;
-	}
-
-	return len;
-}
-
-/*
 * Q_Utf8SyncPos
 *
 * For line editing: if we're in the middle of a UTF-8 sequence,
@@ -1347,25 +1208,6 @@ wchar_t Q_GrabWCharFromUtf8String( const char **pstr ) {
 }
 
 /*
-* Q_FixTruncatedUtf8
-*
-* Terminates a UTF-8 string correctly if it's cut to a specific buffer length (for instance, when using strncpyz).
-*/
-void Q_FixTruncatedUtf8( char *str ) {
-	size_t len = strlen( str );
-	const char *temp;
-	if( !len ) {
-		return;
-	}
-
-	len = Q_Utf8SyncPos( str, len - 1, UTF8SYNC_LEFT );
-	temp = str + len;
-	if( ( *temp != '?' ) && ( Q_GrabWCharFromUtf8String( &temp ) == '?' ) ) {
-		str[len] = '\0';
-	}
-}
-
-/*
 * Q_IsBreakingSpace
 */
 bool Q_IsBreakingSpace( const char *str ) {
@@ -1414,6 +1256,27 @@ char *Q_chrreplace( char *s, const char subj, const char repl ) {
 	while( ( t = strchr( t, subj ) ) != NULL )
 		*t++ = repl;
 	return s;
+}
+
+void RemoveTrailingZeroesFloat( char * str ) {
+	size_t len = strlen( str );
+	if( len == 0 )
+		return;
+
+	if( strchr( str, '.' ) == NULL )
+		return;
+
+	len--;
+	while( true ) {
+		char c = str[ len ];
+		if( c == '.' )
+			len--;
+		if( c != '0' )
+			break;
+		len--;
+	}
+
+	str[ len + 1 ] = '\0';
 }
 
 /*
@@ -1869,243 +1732,4 @@ float Q_GainForAttenuation( int model, float maxdistance, float refdistance, flo
 	}
 
 	return gain;
-}
-
-//==========================================
-
-/*
-    ch : rewrite the creator functions so that they take
-    these functions as callback parameters and store these
-    to the allocator objects
-
-        void *Alloc( size_t size, const char *filename, int fileline );
-        void Free( void *data, const char *filename, int fileline );
-
-    and then forget the pool. this is so that we can generalize these utilities
-    to be used in all modules, like Game Sound etc..
-*/
-
-/*
-    BLOCK ALLOCATOR
-
-    cant implicitly free elements.
-    memory is not linear nor in order, no random access supported.
-
-    create new block allocator
-        BlockAllocator( pool, elemSize, blockSize, alloc, free )
-
-    allocate element with the allocator
-        BA_Alloc( block_allocator )
-
-    release the memory of the allocator
-        BlockAllocator_Free( block_allocator )
-
-    TODO: Sys_Error instead of return 0?
-*/
-
-#define BA_DEFAULT_BLOCKSIZE    32
-
-// typedef void *( *alloc_function_t )( size_t, const char*, int );
-// typedef void ( *free_function_t )( void *ptr );
-
-typedef struct block_alloc_block_s {
-	void *base;                 // base memory
-	size_t numAllocs;           // number of allocations on this block
-	struct block_alloc_block_s *prev;   // umm, we dont really need prev?
-	struct block_alloc_block_s *next;
-} block_alloc_block_t;
-
-struct block_allocator_s {
-	size_t blockSize;   // number of elements in block
-	size_t elemSize;    // number of bytes in elements
-	block_alloc_block_t *blocks;
-
-	alloc_function_t alloc;
-	free_function_t free;
-};
-
-block_allocator_t * BlockAllocator( size_t elemSize, size_t blockSize, alloc_function_t alloc_function, free_function_t free_function ) {
-	block_allocator_t *ba;
-
-	if( !elemSize ) {
-		return NULL;
-	}
-
-	if( !blockSize ) {
-		blockSize = BA_DEFAULT_BLOCKSIZE;
-	}
-
-	ba = (block_allocator_t*)alloc_function( sizeof( *ba ), __FILE__, __LINE__ );
-	if( !ba ) {
-		Sys_Error( "BlockAllocator: Failed to create allocator\n" );
-		return NULL;
-	}
-
-	memset( ba, 0, sizeof( *ba ) );
-	ba->blockSize = blockSize;
-	ba->elemSize = elemSize;
-
-	ba->alloc = alloc_function;
-	ba->free = free_function;
-
-	return ba;
-}
-
-void *BA_Alloc( block_allocator_t *ba ) {
-	block_alloc_block_t *b;
-
-	// find a free block
-	for( b = ba->blocks; b ; b = b->next ) {
-		if( b->numAllocs < ba->blockSize ) {
-			b->numAllocs++;
-			return ( (unsigned char*)b->base ) + ( ( b->numAllocs - 1 ) * ba->elemSize );
-		}
-	}
-
-	// lets allocate new block
-	b = (block_alloc_block_t*)ba->alloc( sizeof( *b ) + ba->blockSize * ba->elemSize, __FILE__, __LINE__ );
-	if( !b ) {
-		Sys_Error( "BlockAllocator: Failed to allocate element\n" );
-		return NULL;
-	}
-
-	memset( b, 0, sizeof( *b ) );
-	b->base = (void*)( &b[1] );
-
-	// since no linearity nor ordering is required,
-	// just drop this to the start of the list
-	b->next = ba->blocks;
-	b->prev = 0;
-	if( ba->blocks ) {
-		ba->blocks->prev = b;
-	}
-	ba->blocks = b;
-
-	b->numAllocs++;
-	return b->base;
-}
-
-void BlockAllocator_Free( block_allocator_t *ba ) {
-	block_alloc_block_t *b, *next;
-
-	// release all memory
-	for( b = ba->blocks; b; ) {
-		next = b->next;
-		ba->free( b, __FILE__, __LINE__ );
-		b = next;
-	}
-
-	ba->free( ba, __FILE__, __LINE__ );
-}
-
-//============================================
-
-/*
-    Linear Alloator
-
-    cant implicitly free elements.
-    memory is linear and does support random access.
-
-    create new linear allocator  (preAllocate is num of elements)
-        LinearAllocator( pool, elemSize, preAllocate)
-
-    allocate element with the allocator (on "top" of the block)
-        LA_Alloc( linear_allocator )
-
-    get pointer to an element
-        LA_Pointer( linear_allocator, size_t index )
-
-    release the memory of the allocator
-        LinearAllocator_Free(linear_allocator )
-
-    TODO: resize?
-    TODO: Sys_Error instead of return 0?
-*/
-
-// minimum number of preallocated elems, also in reallocation
-#define LA_MIN_PREALLOCATE  16
-
-struct linear_allocator_s {
-	void *base;
-	size_t elemSize;
-	size_t allocatedElems;  // number of elements allocated and in-use
-	size_t allocatedActual; // number of actual elements allocated
-
-	alloc_function_t alloc;
-	free_function_t free;
-};
-
-linear_allocator_t * LinearAllocator( size_t elemSize, size_t preAllocate, alloc_function_t alloc_function, free_function_t free_function ) {
-	linear_allocator_t *la;
-	size_t size;
-
-	if( !elemSize ) {
-		return NULL;
-	}
-
-	if( preAllocate < LA_MIN_PREALLOCATE ) {
-		preAllocate = LA_MIN_PREALLOCATE;
-	}
-
-	size = preAllocate * elemSize + sizeof( *la );
-
-	la = (linear_allocator_t*)alloc_function( size, __FILE__, __LINE__ );
-	if( !la ) {
-		Sys_Error( "LinearAllocator: failed to create allocator\n" );
-		return NULL;
-	}
-	memset( la, 0, sizeof( *la ) );
-	la->base = (void*)( &la[1] );
-	la->elemSize = elemSize;
-	la->allocatedElems = 0;
-	la->allocatedActual = preAllocate;
-
-	la->alloc = alloc_function;
-	la->free = free_function;
-
-	return la;
-}
-
-void *LA_Alloc( linear_allocator_t *la ) {
-	size_t currSize, newSize;
-
-	if( la->allocatedElems < la->allocatedActual ) {
-		la->allocatedElems++;
-		return ( (unsigned char*)la->base ) + ( la->allocatedElems - 1 ) * la->elemSize;
-	}
-
-	currSize = sizeof( *la ) + la->allocatedActual * la->elemSize;
-	newSize = currSize + LA_MIN_PREALLOCATE * la->elemSize;
-
-	la = (linear_allocator_t*)la->alloc( newSize, __FILE__, __LINE__ );
-	if( !la ) {
-		Sys_Error( "LinearAllocator: Failed to allocate element\n" );
-		return NULL;
-	}
-
-	// fix the base pointer
-	la->base = (void*)( &la[1] );
-
-	// and the size
-	la->allocatedActual += LA_MIN_PREALLOCATE;
-	la->allocatedElems++;
-	return ( (unsigned char*)la->base ) + ( la->allocatedElems - 1 ) * la->elemSize;
-}
-
-void *LA_Pointer( linear_allocator_t *la, size_t index ) {
-	// Sys_Error?
-	if( index >= la->allocatedElems ) {
-		Sys_Error( "LinearAllocator: Incorrect index in LA_Pointer\n" );
-		return NULL;
-	}
-
-	return ( (unsigned char*)la->base ) + index * la->elemSize;
-}
-
-size_t LA_Size( linear_allocator_t *la ) {
-	return la->allocatedElems;
-}
-
-void LinearAllocator_Free( linear_allocator_t *la ) {
-	la->free( la, __FILE__, __LINE__ );
 }

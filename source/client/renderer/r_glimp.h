@@ -19,13 +19,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #pragma once
 
-#include "glad.h"
+#include "glad/glad.h"
 
 //====================================================================
 
 #define MAX_TEXTURE_UNITS               8
 
-#define MAX_GLSL_UNIFORM_BONES          100
+#define MAX_GLSL_UNIFORM_JOINTS         100
 #define MAX_GLSL_UNIFORM_INSTANCES      40
 
 #define GAMMARAMP_STRIDE                4096
@@ -56,19 +56,14 @@ enum {
 	GLSTATE_DSTBLEND_DST_ALPHA              = 16 | 32 | 64,
 	GLSTATE_DSTBLEND_ONE_MINUS_DST_ALPHA    = 128,
 
-	GLSTATE_NO_COLORWRITE                   = 0x100,
-	GLSTATE_ALPHAWRITE                      = 0x200,
+	GLSTATE_DEPTHWRITE                      = 0x100,
+	GLSTATE_DEPTHFUNC_EQ                    = 0x200,
+	GLSTATE_DEPTHFUNC_GT                    = 0x400,
 
-	GLSTATE_DEPTHWRITE                      = 0x400,
-	GLSTATE_DEPTHFUNC_EQ                    = 0x800,
-	GLSTATE_DEPTHFUNC_GT                    = 0x1000,
+	GLSTATE_OFFSET_FILL                     = 0x800,
+	GLSTATE_NO_DEPTH_TEST                   = 0x1000,
 
-	GLSTATE_OFFSET_FILL                     = 0x2000,
-	GLSTATE_NO_DEPTH_TEST                   = 0x4000,
-
-	GLSTATE_STENCIL_TEST                    = 0x8000,
-
-	GLSTATE_ALPHATEST                       = 0x10000,
+	GLSTATE_ALPHATEST                       = 0x2000,
 
 	GLSTATE_MARK_END                        = 0x20000 // SHADERPASS_MARK_BEGIN
 };
@@ -122,19 +117,11 @@ typedef struct {
 	bool fullScreen;
 	bool borderless;
 
-	int stencilBits;
-
 	bool hwGamma;
 	unsigned short gammaRampSize;
 	unsigned short originalGammaRamp[3 * GAMMARAMP_STRIDE];
 
-	float depthEpsilon;
-
 	int maxTextureSize;
-	int maxTextureUnits;
-	int maxTextureCubemapSize;
-	int maxTexture3DSize;
-	int maxTextureLayers;
 	int maxTextureFilterAnisotropic;
 	int maxRenderbufferSize;
 	int maxVertexUniformComponents;
@@ -142,7 +129,6 @@ typedef struct {
 	int maxFragmentUniformComponents;
 	int maxFramebufferSamples;
 
-	bool forceRGBAFramebuffers;             // PowerVR hack - its blending interprets alpha in RGB FBs as 0, not 1
 	bool sSRGB;
 
 	glextinfo_t ext;
@@ -150,22 +136,6 @@ typedef struct {
 
 extern glconfig_t glConfig;
 
-/*
-====================================================================
-
-IMPLEMENTATION SPECIFIC FUNCTIONS
-
-====================================================================
-*/
-
-bool    GLimp_RenderingEnabled( void );
 void    VID_Swap(); // TODO: this doesn't belong here
-bool    GLimp_Init( const char *applicationName, void *hinstance, void *wndproc, void *parenthWnd,
-					int iconResource, const int *iconXPM );
-void    GLimp_Shutdown( void );
-rserr_t GLimp_SetMode( int x, int y, int width, int height, int displayFrequency, bool fullscreen, bool stereo, bool borderless );
-rserr_t GLimp_SetWindow( void *hinstance, void *wndproc, void *parenthWnd, bool *surfaceChangePending );
-rserr_t GLimp_SetFullscreenMode( int displayFrequency, bool fullscreen );
-void    GLimp_AppActivate( bool active, bool minimize );
 bool    VID_GetGammaRamp( size_t stride, unsigned short *psize, unsigned short *ramp ); // TODO: this doesn't belong here
 void    VID_SetGammaRamp( size_t stride, unsigned short size, unsigned short *ramp );

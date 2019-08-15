@@ -91,7 +91,6 @@ typedef struct {
 
 	// the *index functions create configstrings and some internal server state
 	int ( *ModelIndex )( const char *name );
-	int ( *SkinIndex )( const char *name );
 
 	int64_t ( *Milliseconds )( void );
 
@@ -147,7 +146,6 @@ typedef struct {
 	void ( *FS_FCloseFile )( int file );
 	bool ( *FS_RemoveFile )( const char *filename );
 	int ( *FS_GetFileList )( const char *dir, const char *extension, char *buf, size_t bufsize, int start, int end );
-	const char *( *FS_FirstExtension )( const char *filename, const char *extensions[], int num_extensions );
 	bool ( *FS_MoveFile )( const char *src, const char *dst );
 	bool ( *FS_RemoveDirectory )( const char *dirname );
 
@@ -168,17 +166,12 @@ typedef struct {
 
 	// The edict array is allocated in the game dll so it
 	// can vary in size from one game to another.
-	void ( *LocateEntities )( struct edict_s *edicts, int edict_size, int num_edicts, int max_edicts );
+	void ( *LocateEntities )( struct edict_s *edicts, size_t edict_size, int num_edicts, int max_edicts );
 
 	// angelscript api
 	struct angelwrap_api_s *( *asGetAngelExport )( void );
 
-	// Match reporting to MM
-
-	// GAME CANT USE ->Send directly!
-	struct stat_query_api_s *( *GetStatQueryAPI )( void );
-	void ( *MM_SendQuery )( struct stat_query_s *query );
-	void ( *MM_GameState )( bool state );
+	bool is_dedicated_server;
 } game_import_t;
 
 //
@@ -191,7 +184,7 @@ typedef struct {
 	// the init function will only be called when a game starts,
 	// not each time a level is loaded.  Persistant data for clients
 	// and the server can be allocated in init
-	void ( *Init )( unsigned int seed, unsigned int framemsec, int protocol, const char *demoExtension );
+	void ( *Init )( unsigned int seed, unsigned int framemsec );
 	void ( *Shutdown )( void );
 
 	// each new level entered will cause a call to SpawnEntities
@@ -210,8 +203,6 @@ typedef struct {
 	void ( *ClearSnap )( void );
 
 	game_state_t *( *GetGameState )( void );
-
-	bool ( *AllowDownload )( edict_t *ent, const char *requestname, const char *uploadname );
 
 	// Web requests to local HTTP server
 	http_response_code_t ( *WebRequest )( http_query_method_t method, const char *resource,

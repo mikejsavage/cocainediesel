@@ -18,32 +18,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#ifndef R_IMAGE_H
-#define R_IMAGE_H
+#pragma once
 
 enum {
 	IT_NONE,
 	IT_CLAMP             = 1 << 0,
 	IT_NOMIPMAP          = 1 << 1,
-	IT_SKY               = 1 << 2,
-	IT_CUBEMAP           = 1 << 3,
-	IT_FLIPX             = 1 << 4,
-	IT_FLIPY             = 1 << 5,
-	IT_FLIPDIAGONAL      = 1 << 6,     // when used alone, equals to rotating 90 CW and flipping X; with FLIPX|Y, 90 CCW and flipping X
-	IT_DEPTH             = 1 << 7,
-	IT_NORMALMAP         = 1 << 8,
-	IT_FRAMEBUFFER       = 1 << 9,
-	IT_DEPTHRB           = 1 << 10,    // framebuffer has a depth renderbuffer
-	IT_NOFILTERING       = 1 << 11,
-	IT_ALPHAMASK         = 1 << 12,    // image only contains an alpha mask
-	IT_ARRAY             = 1 << 13,
-	IT_3D                = 1 << 14,
-	IT_STENCIL           = 1 << 15,    // for IT_DEPTH or IT_DEPTHRB textures, whether there's stencil
-	IT_NO_DATA_SYNC      = 1 << 16,    // owned by the drawing thread, do not sync in the frontend thread
-	IT_FLOAT             = 1 << 17,
-	IT_SRGB              = 1 << 18,
-	IT_LEFTHALF          = 1 << 19,
-	IT_RIGHTHALF         = 1 << 20,
+	IT_DEPTH             = 1 << 2,
+	IT_NORMALMAP         = 1 << 3,
+	IT_FRAMEBUFFER       = 1 << 4,
+	IT_DEPTHRB           = 1 << 5,    // framebuffer has a depth renderbuffer
+	IT_NOFILTERING       = 1 << 6,
+	IT_ALPHAMASK         = 1 << 7,    // image only contains an alpha mask
+	IT_FLOAT             = 1 << 8,
+	IT_SRGB              = 1 << 9,
 };
 
 /**
@@ -53,9 +41,7 @@ enum {
  * so they must not be used for anything that has a long-term effect.
  */
 #define IT_LOADFLAGS        ( IT_ALPHAMASK | IT_SRGB )
-
 #define IT_SPECIAL          ( IT_CLAMP | IT_NOMIPMAP )
-#define IT_SKYFLAGS         ( IT_SKY | IT_NOMIPMAP | IT_CLAMP )
 
 /**
  * Image usage tags, to allow certain images to be freed separately.
@@ -95,8 +81,6 @@ void R_FreeUnusedImages( void );
 void R_InitBuiltinScreenImages( void );
 void R_ReleaseBuiltinScreenImages( void );
 void R_ShutdownImages( void );
-void R_GetRenderBufferSize( const int inWidth, const int inHeight,
-							const int inLimit, const int flags, int *outWidth, int *outHeight );
 void R_InitViewportTexture( image_t **texture, const char *name, int id,
 							int viewportWidth, int viewportHeight, int size, int flags, int tags, int samples );
 void R_InitDrawFlatTexture( void );
@@ -108,12 +92,7 @@ void R_ScreenShot( const char *filename, int x, int y, int width, int height,
 
 void R_AnisotropicFilter( int value );
 
-image_t *R_LoadImage( const char *name, uint8_t **pic, int width, int height, int flags, int minmipsize, int tags, int samples );
+image_t *R_LoadImage( const char *name, const uint8_t *pic, int width, int height, int flags, int minmipsize, int tags, int samples );
 image_t *R_FindImage( const char *name, const char *suffix, int flags, int minmipsize, int tags );
-image_t *R_Create3DImage( const char *name, int width, int height, int layers, int flags, int tags, int samples, bool array );
-void R_ReplaceImage( image_t *image, uint8_t **pic, int width, int height, int flags, int minmipsize, int samples );
-void R_ReplaceSubImage( image_t *image, int layer, int x, int y, uint8_t **pic, int width, int height );
-void R_ReplaceImageLayer( image_t *image, int layer, uint8_t **pic );
-unsigned *R_LoadPalette( int flags );
-
-#endif // R_IMAGE_H
+void R_ReplaceImage( image_t *image, const uint8_t *pic, int width, int height, int flags, int minmipsize, int samples );
+void R_ReplaceSubImage( image_t *image, int x, int y, const uint8_t *pic, int width, int height );

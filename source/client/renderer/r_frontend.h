@@ -18,8 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#ifndef R_FRONTEND_H
-#define R_FRONTEND_H
+#pragma once
 
 #include "r_local.h"
 #include "r_cmdque.h"
@@ -45,11 +44,10 @@ typedef struct {
 
 	// these fields serve as the frontend cache which can also queried by the public API
 	int scissor[4];
-	byte_vec4_t customColors[NUM_CUSTOMCOLORS];
 } ref_frontend_t;
 
 // public API
-rserr_t RF_SetMode( int x, int y, int width, int height, int displayFrequency, bool fullScreen, bool borderless );
+bool RF_SetMode( int x, int y, int width, int height, int displayFrequency, bool fullScreen, bool borderless );
 void RF_AppActivate( bool active, bool minimize );
 void RF_Shutdown( bool verbose );
 void RF_BeginFrame( void );
@@ -71,29 +69,12 @@ void RF_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows,
 						float s1, float t1, float s2, float t2, uint8_t *data );
 void RF_SetScissor( int x, int y, int w, int h );
 void RF_ResetScissor( void );
-void RF_SetCustomColor( int num, int r, int g, int b );
 void RF_ResizeFramebuffers();
 void RF_ScreenShot( const char *path, const char *name, const char *fmtstring, bool silent );
 bool RF_RenderingEnabled( void );
 const char *RF_GetSpeedsMessage( char *out, size_t size );
 int RF_GetAverageFrametime( void );
 void RF_ReplaceRawSubPic( shader_t *shader, int x, int y, int width, int height, uint8_t *data );
-void RF_BeginAviDemo( void );
-void RF_WriteAviFrame( int frame );
-void RF_StopAviDemo( void );
 void RF_TransformVectorToScreen( const refdef_t *rd, const vec3_t in, vec2_t out );
 bool RF_TransformVectorToScreenClamped( const refdef_t *rd, const vec3_t target, int border, vec2_t out );
 bool RF_LerpTag( orientation_t *orient, const model_t *mod, int oldframe, int frame, float lerpfrac, const char *name );
-shader_t *RF_GetShaderForOrigin( const vec3_t origin );
-
-/**
-* Called by UI when it wants to set the current transform matrix to a new matrix
-*/
-void RF_PushTransformMatrix( bool projection, const float *m );
-
-/**
-* Called by UI when it wants to revert the latest transform matrix change
-*/
-void RF_PopTransformMatrix( bool projection );
-
-#endif // R_FRONTEND_H

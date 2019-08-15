@@ -34,16 +34,10 @@ end of unit intermissions
 #include "client.h"
 #include "ftlib/ftlib_public.h"
 
-float scr_con_current;    // aproaches scr_conlines at scr_conspeed
-float scr_con_previous;
-float scr_conlines;       // 0.0 to 1.0 lines of console to display
-
 static bool scr_initialized;    // ready to draw
 
 static int scr_draw_loading;
 
-static cvar_t *scr_consize;
-static cvar_t *scr_conspeed;
 static cvar_t *scr_netgraph;
 static cvar_t *scr_timegraph;
 static cvar_t *scr_debuggraph;
@@ -77,13 +71,9 @@ qfontface_t *SCR_RegisterSpecialFont( const char *family, int style, unsigned in
 * SCR_RegisterConsoleFont
 */
 static void SCR_RegisterConsoleFont( void ) {
-	const int con_fontSystemStyle = SYSTEM_FONT_STYLE;
-	float pixelRatio = Con_GetPixelRatio();
-
-	int size = ceil( SYSTEM_FONT_SMALL_SIZE * pixelRatio );
-	cls.consoleFont = SCR_RegisterFont( SYSTEM_FONT_FAMILY_MONO, con_fontSystemStyle, size );
+	cls.consoleFont = SCR_RegisterFont( SYSTEM_FONT_FAMILY, SYSTEM_FONT_STYLE, SYSTEM_FONT_CONSOLE_SIZE );
 	if( !cls.consoleFont ) {
-		Com_Error( ERR_FATAL, "Couldn't load default font \"" SYSTEM_FONT_FAMILY_MONO "\"" );
+		Com_Error( ERR_FATAL, "Couldn't load default font \"" SYSTEM_FONT_FAMILY "\"" );
 	}
 }
 
@@ -145,24 +135,16 @@ size_t SCR_FontHeight( qfontface_t *font ) {
 	return FTLIB_FontHeight( font );
 }
 
-size_t SCR_strWidth( const char *str, qfontface_t *font, size_t maxlen, int flags ) {
-	return FTLIB_StringWidth( str, font, maxlen, flags );
+size_t SCR_strWidth( const char *str, qfontface_t *font, size_t maxlen ) {
+	return FTLIB_StringWidth( str, font, maxlen );
 }
 
-size_t SCR_StrlenForWidth( const char *str, qfontface_t *font, size_t maxwidth, int flags ) {
-	return FTLIB_StrlenForWidth( str, font, maxwidth, flags );
+size_t SCR_StrlenForWidth( const char *str, qfontface_t *font, size_t maxwidth ) {
+	return FTLIB_StrlenForWidth( str, font, maxwidth );
 }
 
 int SCR_FontUnderline( qfontface_t *font, int *thickness ) {
 	return FTLIB_FontUnderline( font, thickness );
-}
-
-size_t SCR_FontAdvance( qfontface_t *font ) {
-	return FTLIB_FontAdvance( font );
-}
-
-size_t SCR_FontXHeight( qfontface_t *font ) {
-	return FTLIB_FontXHeight( font );
 }
 
 fdrawchar_t SCR_SetDrawCharIntercept( fdrawchar_t intercept ) {
@@ -181,18 +163,18 @@ void SCR_DrawClampChar( int x, int y, wchar_t num, int xmin, int ymin, int xmax,
 	FTLIB_DrawClampChar( x, y, num, xmin, ymin, xmax, ymax, font, color );
 }
 
-void SCR_DrawClampString( int x, int y, const char *str, int xmin, int ymin, int xmax, int ymax, qfontface_t *font, const vec4_t color, int flags ) {
-	FTLIB_DrawClampString( x, y, str, xmin, ymin, xmax, ymax, font, color, flags );
+void SCR_DrawClampString( int x, int y, const char *str, int xmin, int ymin, int xmax, int ymax, qfontface_t *font, const vec4_t color ) {
+	FTLIB_DrawClampString( x, y, str, xmin, ymin, xmax, ymax, font, color );
 }
 
-int SCR_DrawMultilineString( int x, int y, const char *str, int halign, int maxwidth, int maxlines, qfontface_t *font, const vec4_t color, int flags ) {
-	return FTLIB_DrawMultilineString( x, y, str, halign, maxwidth, maxlines, font, color, flags );
+int SCR_DrawMultilineString( int x, int y, const char *str, int halign, int maxwidth, int maxlines, qfontface_t *font, const vec4_t color ) {
+	return FTLIB_DrawMultilineString( x, y, str, halign, maxwidth, maxlines, font, color );
 }
 
 /*
 * SCR_DrawString
 */
-int SCR_DrawString( int x, int y, int align, const char *str, qfontface_t *font, const vec4_t color, int flags ) {
+int SCR_DrawString( int x, int y, int align, const char *str, qfontface_t *font, const vec4_t color ) {
 	int width;
 	int fontHeight;
 
@@ -206,11 +188,11 @@ int SCR_DrawString( int x, int y, int align, const char *str, qfontface_t *font,
 	fontHeight = FTLIB_FontHeight( font );
 
 	if( ( align % 3 ) != 0 ) { // not left - don't precalculate the width if not needed
-		x = SCR_HorizontalAlignForString( x, align, FTLIB_StringWidth( str, font, 0, flags ) );
+		x = SCR_HorizontalAlignForString( x, align, FTLIB_StringWidth( str, font, 0 ) );
 	}
 	y = SCR_VerticalAlignForString( y, align, fontHeight );
 
-	FTLIB_DrawRawString( x, y, str, 0, &width, font, color, flags );
+	FTLIB_DrawRawString( x, y, str, 0, &width, font, color );
 
 	return width;
 }
@@ -220,7 +202,7 @@ int SCR_DrawString( int x, int y, int align, const char *str, qfontface_t *font,
 *
 * ClampS to width in pixels. Returns drawn len
 */
-size_t SCR_DrawStringWidth( int x, int y, int align, const char *str, size_t maxwidth, qfontface_t *font, const vec4_t color, int flags ) {
+size_t SCR_DrawStringWidth( int x, int y, int align, const char *str, size_t maxwidth, qfontface_t *font, const vec4_t color ) {
 	size_t width;
 	int fontHeight;
 
@@ -233,7 +215,7 @@ size_t SCR_DrawStringWidth( int x, int y, int align, const char *str, size_t max
 	}
 	fontHeight = FTLIB_FontHeight( font );
 
-	width = FTLIB_StringWidth( str, font, 0, flags );
+	width = FTLIB_StringWidth( str, font, 0 );
 	if( width ) {
 		if( maxwidth && width > maxwidth ) {
 			width = maxwidth;
@@ -242,7 +224,7 @@ size_t SCR_DrawStringWidth( int x, int y, int align, const char *str, size_t max
 		x = SCR_HorizontalAlignForString( x, align, width );
 		y = SCR_VerticalAlignForString( y, align, fontHeight );
 
-		return FTLIB_DrawRawString( x, y, str, maxwidth, NULL, font, color, flags );
+		return FTLIB_DrawRawString( x, y, str, maxwidth, NULL, font, color );
 	}
 
 	return 0;
@@ -263,34 +245,6 @@ void SCR_DrawStretchPic( int x, int y, int w, int h, float s1, float t1, float s
 * Fills a box of pixels with a single color
 */
 void SCR_DrawFillRect( int x, int y, int w, int h, const vec4_t color ) {
-	constexpr StringHash white = "$whiteimage";
-	re.DrawStretchPic( x, y, w, h, 0, 0, 1, 1, color, white );
-}
-
-/*
-* SCR_DrawClampFillRect
-*
-* Fills a scissored box of pixels with a single color
-*/
-void SCR_DrawClampFillRect( int x, int y, int w, int h, int xmin, int ymin, int xmax, int ymax, const vec4_t color ) {
-	int x2 = x + w;
-	int y2 = y + h;
-
-	if( ( xmax <= xmin ) || ( ymax <= ymin ) ) {
-		return;
-	}
-
-	clamp_low( x, xmin );
-	clamp_low( y, ymin );
-	clamp_high( x2, xmax );
-	clamp_high( y2, ymax );
-
-	w = x2 - x;
-	h = y2 - y;
-	if( ( w <= 0 ) || ( h <= 0 ) ) {
-		return;
-	}
-
 	constexpr StringHash white = "$whiteimage";
 	re.DrawStretchPic( x, y, w, h, 0, 0, 1, 1, color, white );
 }
@@ -390,8 +344,6 @@ static void SCR_DrawDebugGraph( void ) {
 * SCR_InitScreen
 */
 void SCR_InitScreen( void ) {
-	scr_consize = Cvar_Get( "scr_consize", "0.4", CVAR_ARCHIVE );
-	scr_conspeed = Cvar_Get( "scr_conspeed", "3", CVAR_ARCHIVE );
 	scr_netgraph = Cvar_Get( "netgraph", "0", 0 );
 	scr_timegraph = Cvar_Get( "timegraph", "0", 0 );
 	scr_debuggraph = Cvar_Get( "debuggraph", "0", 0 );
@@ -424,7 +376,7 @@ void SCR_ShutdownScreen( void ) {
 }
 
 /*
-* SCR_DrawConsole
+* SCR_DrawChat
 */
 void SCR_DrawChat( int x, int y, int width, struct qfontface_s *font ) {
 	Con_DrawChat( x, y, width, font );
@@ -433,64 +385,13 @@ void SCR_DrawChat( int x, int y, int width, struct qfontface_s *font ) {
 //=============================================================================
 
 /*
-* SCR_RunConsole
-*
-* Scroll it up or down
-*/
-void SCR_RunConsole( int msec ) {
-	// decide on the height of the console
-	if( cls.key_dest == key_console ) {
-		scr_conlines = bound( 0.1f, scr_consize->value, 1.0f );
-	} else {
-		scr_conlines = 0;
-	}
-
-	if( scr_conspeed->value == 0 ) {
-		scr_con_current = scr_conlines;
-		return;
-	}
-
-	scr_con_previous = scr_con_current;
-	if( scr_conlines < scr_con_current ) {
-		scr_con_current -= scr_conspeed->value * msec * 0.001f;
-		if( scr_conlines > scr_con_current ) {
-			scr_con_current = scr_conlines;
-		}
-
-	} else if( scr_conlines > scr_con_current ) {
-		scr_con_current += scr_conspeed->value * msec * 0.001f;
-		if( scr_conlines < scr_con_current ) {
-			scr_con_current = scr_conlines;
-		}
-	}
-}
-
-/*
-* SCR_DrawConsole
-*/
-static void SCR_DrawConsole( void ) {
-	if( scr_con_current ) {
-		Con_DrawConsole();
-		return;
-	}
-}
-
-/*
-* SCR_DrawNotify
-*/
-static void SCR_DrawNotify( void ) {
-	Con_DrawNotify();
-}
-
-/*
 * SCR_BeginLoadingPlaque
 */
 void SCR_BeginLoadingPlaque( void ) {
-	CL_SoundModule_StopAllSounds( true );
+	S_StopAllSounds( true );
 
 	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 
-	scr_conlines = 0;       // none visible
 	scr_draw_loading = 2;   // clear to black first
 
 	SCR_UpdateScreen();
@@ -501,7 +402,6 @@ void SCR_BeginLoadingPlaque( void ) {
 */
 void SCR_EndLoadingPlaque( void ) {
 	cls.disable_screen = 0;
-	Con_ClearNotify();
 }
 
 
@@ -551,11 +451,9 @@ void SCR_UpdateScreen( void ) {
 		return;
 	}
 
-	if( !scr_initialized || !con_initialized || !cls.mediaInitialized ) {
-		return;     // not ready yet
-
+	if( !scr_initialized || !cls.mediaInitialized ) {
+		return; // not ready yet
 	}
-	Con_CheckResize();
 
 	CL_ForceVsync( cls.state == CA_DISCONNECTED );
 
@@ -564,23 +462,22 @@ void SCR_UpdateScreen( void ) {
 	if( scr_draw_loading == 2 ) {
 		// loading plaque over APP_STARTUP_COLOR screen
 		scr_draw_loading = 0;
-		UI_UpdateConnectScreen( true );
+		UI_UpdateConnectScreen();
 	} else if( cls.state == CA_DISCONNECTED ) {
-		UI_Refresh( true, true );
-		SCR_DrawConsole();
-	} else if( cls.state == CA_GETTING_TICKET || cls.state == CA_CONNECTING || cls.state == CA_HANDSHAKE ) {
-		UI_UpdateConnectScreen( true );
+		UI_Refresh();
+	} else if( cls.state == CA_CONNECTING || cls.state == CA_HANDSHAKE ) {
+		UI_UpdateConnectScreen();
 	} else if( cls.state == CA_CONNECTED ) {
 		if( cls.cgameActive ) {
-			UI_UpdateConnectScreen( false );
+			UI_UpdateConnectScreen();
 			SCR_RenderView();
 		} else {
-			UI_UpdateConnectScreen( true );
+			UI_UpdateConnectScreen();
 		}
 	} else if( cls.state == CA_ACTIVE ) {
 		SCR_RenderView();
 
-		UI_Refresh( false, true );
+		UI_Refresh();
 
 		if( scr_timegraph->integer ) {
 			SCR_DebugGraph( cls.frametime * 0.3f, 1, 1, 1 );
@@ -589,9 +486,6 @@ void SCR_UpdateScreen( void ) {
 		if( scr_debuggraph->integer || scr_timegraph->integer || scr_netgraph->integer ) {
 			SCR_DrawDebugGraph();
 		}
-
-		SCR_DrawConsole();
-		SCR_DrawNotify();
 	}
 
 	re.EndFrame();

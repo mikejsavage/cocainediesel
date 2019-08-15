@@ -33,10 +33,7 @@ end of unit intermissions
 */
 
 #include "cg_local.h"
-#include "qalgo/rng.h"
-#include "client/ui.h"
-
-vrect_t scr_vrect;
+#include "client/client.h"
 
 cvar_t *cg_centerTime;
 cvar_t *cg_showFPS;
@@ -76,7 +73,6 @@ CENTER PRINTING
 
 char scr_centerstring[1024];
 int scr_centertime_off;
-int scr_center_lines;
 int scr_erase_center;
 
 /*
@@ -86,45 +82,12 @@ int scr_erase_center;
 * for a few moments
 */
 void CG_CenterPrint( const char *str ) {
-	char *s;
-
 	Q_strncpyz( scr_centerstring, str, sizeof( scr_centerstring ) );
 	scr_centertime_off = cg_centerTime->value * 1000.0f;
-
-	// count the number of lines for centering
-	scr_center_lines = 1;
-	s = scr_centerstring;
-	while( *s )
-		if( *s++ == '\n' ) {
-			scr_center_lines++;
-		}
 }
 
 static void CG_DrawCenterString( void ) {
-	int y;
-	struct qfontface_s *font = cgs.fontSystemMedium;
-	char *helpmessage = scr_centerstring;
-
-	if( scr_center_lines <= 4 ) {
-		y = cgs.vidHeight * 0.35f;
-	} else {
-		y = 48 * cgs.vidHeight / 600;
-	}
-
-	trap_SCR_DrawMultilineString( cgs.vidWidth / 2, y, helpmessage, ALIGN_CENTER_TOP, cgs.vidWidth, 0, font, colorWhite );
-}
-
-//=============================================================================
-
-/*
-* CG_CalcVrect
-*
-* Sets scr_vrect, the coordinates of the rendered window
-*/
-void CG_CalcVrect( void ) {
-	scr_vrect.width = cgs.vidWidth;
-	scr_vrect.height = cgs.vidHeight;
-	scr_vrect.x = scr_vrect.y = 0;
+	DrawText( cgs.fontMontserrat, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, cgs.vidWidth * 0.5f, cgs.vidHeight * 0.35f, rgba8_white, true, rgba8_black );
 }
 
 //============================================================================
@@ -143,8 +106,8 @@ void CG_ScreenInit( void ) {
 	cg_crosshair_color->modified = true;
 	cg_crosshair_damage_color->modified = true;
 
-	cg_clientHUD =      trap_Cvar_Get( "cg_clientHUD", "", CVAR_ARCHIVE );
-	cg_specHUD =        trap_Cvar_Get( "cg_specHUD", "", CVAR_ARCHIVE );
+	cg_clientHUD =      trap_Cvar_Get( "cg_clientHUD", "default", CVAR_ARCHIVE );
+	cg_specHUD =        trap_Cvar_Get( "cg_specHUD", "default", CVAR_ARCHIVE );
 	cg_showSpeed =      trap_Cvar_Get( "cg_showSpeed", "0", CVAR_ARCHIVE );
 	cg_showPointedPlayer =  trap_Cvar_Get( "cg_showPointedPlayer", "1", CVAR_ARCHIVE );
 	cg_showViewBlends = trap_Cvar_Get( "cg_showViewBlends", "1", CVAR_ARCHIVE );
@@ -159,18 +122,6 @@ void CG_ScreenInit( void ) {
 
 	cg_scoreboardWidthScale = trap_Cvar_Get( "cg_scoreboardWidthScale", "1.0", CVAR_ARCHIVE );
 	cg_scoreboardStats =    trap_Cvar_Get( "cg_scoreboardStats", "1", CVAR_ARCHIVE );
-
-	//
-	// register our commands
-	//
-	trap_Cmd_AddCommand( "help_hud", Cmd_CG_PrintHudHelp_f );
-}
-
-/*
-* CG_ScreenShutdown
-*/
-void CG_ScreenShutdown( void ) {
-	trap_Cmd_RemoveCommand( "help_hud" );
 }
 
 /*
@@ -481,13 +432,11 @@ void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color ) {
 				continue;
 			}
 
-			fadeFrac = ( cg_showPlayerNames_zfar->value - dist ) / ( cg_showPlayerNames_zfar->value * 0.25f );
-			clamp( fadeFrac, 0.0f, 1.0f );
+			fadeFrac = Clamp01( ( cg_showPlayerNames_zfar->value - dist ) / ( cg_showPlayerNames_zfar->value * 0.25f ) );
 
 			tmpcolor[3] = cg_showPlayerNames_alpha->value * color[3] * fadeFrac;
 		} else {
-			fadeFrac = (float)( cg.pointRemoveTime - cg.time ) / 150.0f;
-			clamp( fadeFrac, 0.0f, 1.0f );
+			fadeFrac = Clamp01( ( cg.pointRemoveTime - cg.time ) / 150.0f );
 
 			tmpcolor[3] = color[3] * fadeFrac;
 		}
@@ -619,8 +568,8 @@ void CG_DrawTeamMates( void ) {
 
 		coords[0] -= pic_size / 2;
 		coords[1] -= pic_size / 2;
-		clamp( coords[0], 0, cgs.vidWidth - pic_size );
-		clamp( coords[1], 0, cgs.vidHeight - pic_size );
+		coords[0] = Clamp( 0.0f, coords[0], float( cgs.vidWidth - pic_size ) );
+		coords[1] = Clamp( 0.0f, coords[1], float( cgs.vidHeight - pic_size ) );
 
 		CG_TeamColor( cg.predictedPlayerState.stats[STAT_TEAM], color );
 
@@ -650,14 +599,12 @@ struct DamageNumber {
 
 static DamageNumber damage_numbers[ 16 ];
 size_t damage_numbers_head;
-static RNG damage_numbers_rng;
 
 void CG_InitDamageNumbers() {
 	damage_numbers_head = 0;
 	for( DamageNumber & dn : damage_numbers ) {
 		dn.damage = 0;
 	}
-	damage_numbers_rng = new_rng();
 }
 
 void CG_AddDamageNumber( entity_state_t * ent ) {
@@ -670,11 +617,11 @@ void CG_AddDamageNumber( entity_state_t * ent ) {
 	dn->damage = ent->damage;
 
 	float distance_jitter = 4;
-	dn->origin[ 0 ] += random_float( &damage_numbers_rng ) * distance_jitter * 2 - distance_jitter;
-	dn->origin[ 1 ] += random_float( &damage_numbers_rng ) * distance_jitter * 2 - distance_jitter;
+	dn->origin[ 0 ] += random_float11( &cls.rng ) * distance_jitter;
+	dn->origin[ 1 ] += random_float11( &cls.rng ) * distance_jitter;
 	dn->origin[ 2 ] += 48;
-	dn->drift = random_float( &damage_numbers_rng ) * 2 - 1;
-	dn->obituary = random_select( &damage_numbers_rng, mini_obituaries );
+	dn->drift = random_float11( &cls.rng );
+	dn->obituary = random_select( &cls.rng, mini_obituaries );
 
 	damage_numbers_head = ( damage_numbers_head + 1 ) % ARRAY_COUNT( damage_numbers );
 }
@@ -707,26 +654,26 @@ void CG_DrawDamageNumbers() {
 		coords[ 0 ] += dn.drift * frac * 8;
 
 		char buf[ 16 ];
-		vec4_t color;
-		qfontface_s * font;
+		RGBA8 color;
+		float font_size;
 		if( dn.damage == MINI_OBITUARY_DAMAGE ) {
-			Q_snprintfz( buf, sizeof( buf ), dn.obituary );
-			CG_TeamColor( TEAM_ENEMY, color );
-			font = cgs.fontSystemSmall;
+			Q_strncpyz( buf, dn.obituary, sizeof( buf ) );
+			RGB8 c = CG_TeamColor( TEAM_ENEMY );
+			color = RGBA8( c.r, c.g, c.b, 255 );
+			font_size = cgs.textSizeSmall;
 		}
 		else {
-			float damage = dn.damage;
-			if( dn.damage > 10 )
-				damage -= dn.damage % 2;
-			Q_snprintfz( buf, sizeof( buf ), "%g", damage / 2.0f );
-			Vector4Copy( colorWhite, color );
-			font = cgs.fontSystemTiny;
+			Q_snprintfz( buf, sizeof( buf ), "%d", dn.damage );
+			color = rgba8_white;
+			font_size = cgs.textSizeTiny;
 		}
 
+		RGBA8 border_color = rgba8_black;
 		float alpha = 1 - max( 0, frac - 0.75f ) / 0.25f;
-		color[ 3 ] *= alpha;
+		color.a *= alpha;
+		border_color.a *= alpha;
 
-		trap_SCR_DrawString( coords[0], coords[1], ALIGN_CENTER_MIDDLE, buf, font, color );
+		DrawText( cgs.fontMontserrat, font_size, buf, Alignment_CenterMiddle, coords[ 0 ], coords[ 1 ], color, true, border_color );
 	}
 }
 
@@ -768,7 +715,7 @@ void CG_AddBombHudEntity( centity_t * cent ) {
 	}
 	else {
 		if( cent->current.svflags & SVF_ONLYTEAM ) {
-			bomb.state = cent->current.frame == BombDown_Dropped ? BombState_Dropped : BombState_Placed;
+			bomb.state = cent->current.radius == BombDown_Dropped ? BombState_Dropped : BombState_Placed;
 		}
 		else {
 			bomb.state = BombState_Armed;
@@ -793,11 +740,12 @@ void CG_DrawBombHUD() {
 
 			char buf[ 4 ];
 			Q_snprintfz( buf, sizeof( buf ), "%c", site->letter );
-			trap_SCR_DrawString( coords[0], coords[1], ALIGN_CENTER_MIDDLE, buf, cgs.fontSystemMedium, colorWhite );
+			DrawText( cgs.fontMontserrat, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords[ 0 ], coords[ 1 ], rgba8_white, true, rgba8_black );
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {
 				const char * msg = my_team == site->team ? "DEFEND" : "ATTACK";
-				trap_SCR_DrawString( coords[0], coords[1] - ( cgs.fontSystemMediumSize * 3 ) / 4, ALIGN_CENTER_MIDDLE, msg, cgs.fontSystemTiny, colorWhite );
+				coords[ 1 ] -= ( cgs.fontSystemMediumSize * 3 ) / 4;
+				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords[ 0 ], coords[ 1 ], rgba8_white, true, rgba8_black );
 			}
 		}
 	}
@@ -819,7 +767,8 @@ void CG_DrawBombHUD() {
 					msg = "PLANTING";
 				else if( bomb.state == BombState_Armed )
 					msg = my_team == bomb.team ? "PROTECT" : "DEFUSE";
-				trap_SCR_DrawString( coords[0], coords[1] - icon_size - cgs.fontSystemTinySize / 2, ALIGN_CENTER_MIDDLE, msg, cgs.fontSystemTiny, colorWhite );
+				float y = coords[ 1 ] - icon_size - cgs.fontSystemTinySize / 2;
+				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords[ 0 ], y, rgba8_white, true, rgba8_black );
 			}
 		}
 
@@ -879,19 +828,17 @@ void CG_EscapeKey( void ) {
 		return;
 	}
 
-	int team = cg.predictedPlayerState.stats[STAT_REALTEAM];
+	bool spectator = cg.predictedPlayerState.stats[STAT_REALTEAM] == TEAM_SPECTATOR;
 	bool can_ready = false;
 	bool can_unready = false;
 
-	if( GS_MatchState() <= MATCH_STATE_WARMUP && team != TEAM_SPECTATOR ) {
+	if( GS_MatchState() <= MATCH_STATE_WARMUP && !spectator ) {
 		bool ready = ( cg.predictedPlayerState.stats[STAT_LAYOUTS] & STAT_LAYOUT_READY ) != 0;
-		if( ready )
-			can_unready = true;
-		else
-			can_ready = true;
+		can_ready = !ready;
+		can_unready = ready;
 	}
 
-	UI_ShowGameMenu( team == TEAM_SPECTATOR, can_ready, can_unready );
+	UI_ShowGameMenu( spectator, can_ready, can_unready );
 }
 
 //=============================================================================
@@ -926,13 +873,6 @@ void CG_DrawLoading( void ) {
 		trap_R_DrawStretchPic( x + height / 2, y, barWidth, height, 0.25f, 0.5f, 0.25f, 1.0f, colorWhite, shader );
 		trap_R_DrawStretchPic( x + barWidth, y, height, height, 0.5f, 0.5f, 1.0f, 1.0f, colorWhite, shader );
 	}
-}
-
-/*
-* CG_LoadingString
-*/
-void CG_LoadingString( const char *str ) {
-	Q_strncpyz( cgs.loadingstring, str, sizeof( cgs.loadingstring ) );
 }
 
 /*
@@ -1062,16 +1002,13 @@ void CG_DrawHUD() {
 * CG_Draw2DView
 */
 void CG_Draw2DView( void ) {
+	MICROPROFILE_SCOPEI( "Main", "CG_Draw2DView", 0xffffffff );
+
 	if( !cg.view.draw2D ) {
 		return;
 	}
 
 	CG_SCRDrawViewBlend();
-
-	if( cg.motd && ( cg.time > cg.motd_time ) ) {
-		CG_Free( cg.motd );
-		cg.motd = NULL;
-	}
 
 	CG_DrawHUD();
 

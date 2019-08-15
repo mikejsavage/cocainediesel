@@ -20,16 +20,18 @@
 // client.h -- primary header for client
 
 #include "qcommon/qcommon.h"
+#include "qcommon/types.h"
+#include "qcommon/rng.h"
 #include "renderer/r_public.h"
 #include "cgame/cg_public.h"
 #include "ftlib/ftlib_public.h"
-#include "sound/snd_public.h"
 
 #include "vid.h"
 #include "ui.h"
 #include "input.h"
 #include "keys.h"
 #include "console.h"
+#include "sound.h"
 
 typedef struct shader_s shader_t;
 typedef struct qfontface_s qfontface_t;
@@ -158,11 +160,7 @@ typedef struct {
 	int64_t play_jump_time;
 	bool play_ignore_next_frametime;
 
-	bool avi;
-	bool avi_video, avi_audio;
-	bool pending_avi;
 	bool pause_on_stop;
-	int avi_frame;
 
 	char meta_data[SNAP_MAX_DEMO_META_DATA_SIZE];
 	size_t meta_data_realsize;
@@ -171,6 +169,11 @@ typedef struct {
 typedef cl_demo_t demorec_t;
 
 typedef struct {
+	ArenaAllocator frame_arenas[ 2 ];
+	ArenaAllocator * frame_arena;
+
+	RNG rng;
+
 	connstate_t state;          // only set through CL_SetClientState
 	keydest_t key_dest;
 	keydest_t old_key_dest;
@@ -269,10 +272,6 @@ extern cvar_t *cl_shownet;
 extern cvar_t *cl_extrapolationTime;
 extern cvar_t *cl_extrapolate;
 
-extern cvar_t *cl_demoavi_video;
-extern cvar_t *cl_demoavi_audio;
-extern cvar_t *cl_demoavi_fps;
-
 // wsw : debug netcode
 extern cvar_t *cl_debug_serverCmd;
 extern cvar_t *cl_debug_timeDelta;
@@ -312,8 +311,6 @@ void CL_ClearState( void );
 void CL_ReadPackets( void );
 void CL_Disconnect_f( void );
 
-void CL_OpenURLInBrowser( const char *url );
-
 void CL_Reconnect_f( void );
 void CL_ServerReconnect_f( void );
 void CL_Changing_f( void );
@@ -349,34 +346,6 @@ unsigned CL_GameModule_GetButtonBits( void );
 void CL_GameModule_AddViewAngles( vec3_t viewAngles );
 void CL_GameModule_AddMovement( vec3_t movement );
 void CL_GameModule_MouseMove( int dx, int dy );
-
-/**
-* Passes the key press/up event to clientside game module.
-* Returns true if the action bound to the key should not be sent to the interpreter.
-*
-* @param key  key id
-* @param down true, if it's a button down event
-*/
-bool CL_GameModule_KeyEvent( int key, bool down );
-
-//
-// cl_sound.c
-//
-void CL_SoundModule_Init();
-void CL_SoundModule_Shutdown();
-void CL_SoundModule_StopAllSounds( bool stopMusic );
-void CL_SoundModule_Update( const vec3_t origin, const vec3_t velocity, const mat3_t axis );
-void CL_SoundModule_UpdateEntity( int entNum, vec3_t origin, vec3_t velocity );
-void CL_SoundModule_SetWindowFocus( bool focused );
-void CL_SoundModule_StartFixedSound( StringHash sound, const vec3_t origin, int channel, float volume, float attenuation );
-void CL_SoundModule_StartEntitySound( StringHash sound, int entnum, int channel, float volume, float attenuation );
-void CL_SoundModule_StartGlobalSound( StringHash sound, int channel, float volume );
-void CL_SoundModule_StartLocalSound( StringHash sound, int channel, float volume );
-void CL_SoundModule_ImmediateSound( StringHash sound, int entnum, float volume, float attenuation );
-void CL_SoundModule_StartMenuMusic();
-void CL_SoundModule_StopBackgroundTrack();
-void CL_SoundModule_BeginAviDemo();
-void CL_SoundModule_StopAviDemo();
 
 //
 // cl_serverlist.c
@@ -415,17 +384,14 @@ void CL_ClearInputState( void );
 void CL_WriteDemoMessage( msg_t *msg );
 void CL_DemoCompleted( void );
 void CL_PlayDemo_f( void );
-void CL_PlayDemoToAvi_f( void );
 void CL_ReadDemoPackets( void );
 void CL_LatchedDemoJump( void );
 void CL_Stop_f( void );
 void CL_Record_f( void );
 void CL_PauseDemo_f( void );
 void CL_DemoJump_f( void );
-void CL_BeginDemoAviDump( void );
 size_t CL_ReadDemoMetaData( const char *demopath, char *meta_data, size_t meta_data_size );
 char **CL_DemoComplete( const char *partial );
-#define CL_WriteAvi() ( cls.demo.avi && cls.state == CA_ACTIVE && cls.demo.playing && !cls.demo.play_jump )
 #define CL_SetDemoMetaKeyValue( k,v ) cls.demo.meta_data_realsize = SNAP_SetDemoMetaKeyValue( cls.demo.meta_data, sizeof( cls.demo.meta_data ), cls.demo.meta_data_realsize, k, v )
 
 //
@@ -453,27 +419,23 @@ void SCR_UpdateScreen( void );
 void SCR_BeginLoadingPlaque( void );
 void SCR_EndLoadingPlaque( void );
 void SCR_DebugGraph( float value, float r, float g, float b );
-void SCR_RunConsole( int msec );
 void SCR_RegisterConsoleMedia( void );
 void SCR_ShutDownConsoleMedia( void );
 qfontface_t *SCR_RegisterFont( const char *family, int style, unsigned int size );
 qfontface_t *SCR_RegisterSpecialFont( const char *family, int style, unsigned int size );
 size_t SCR_FontSize( qfontface_t *font );
 size_t SCR_FontHeight( qfontface_t *font );
-size_t SCR_strWidth( const char *str, qfontface_t *font, size_t maxlen, int flags );
-size_t SCR_StrlenForWidth( const char *str, qfontface_t *font, size_t maxwidth, int flags );
+size_t SCR_strWidth( const char *str, qfontface_t *font, size_t maxlen );
+size_t SCR_StrlenForWidth( const char *str, qfontface_t *font, size_t maxwidth );
 int SCR_FontUnderline( qfontface_t *font, int *thickness );
-size_t SCR_FontAdvance( qfontface_t *font );
-size_t SCR_FontXHeight( qfontface_t *font );
 fdrawchar_t SCR_SetDrawCharIntercept( fdrawchar_t intercept );
-int SCR_DrawString( int x, int y, int align, const char *str, qfontface_t *font, const vec4_t color, int flags );
-size_t SCR_DrawStringWidth( int x, int y, int align, const char *str, size_t maxwidth, qfontface_t *font, const vec4_t color, int flags );
-void SCR_DrawClampString( int x, int y, const char *str, int xmin, int ymin, int xmax, int ymax, qfontface_t *font, const vec4_t color, int flags );
-int SCR_DrawMultilineString( int x, int y, const char *str, int halign, int maxwidth, int maxlines, qfontface_t *font, const vec4_t color, int flags );
+int SCR_DrawString( int x, int y, int align, const char *str, qfontface_t *font, const vec4_t color );
+size_t SCR_DrawStringWidth( int x, int y, int align, const char *str, size_t maxwidth, qfontface_t *font, const vec4_t color );
+void SCR_DrawClampString( int x, int y, const char *str, int xmin, int ymin, int xmax, int ymax, qfontface_t *font, const vec4_t color );
+int SCR_DrawMultilineString( int x, int y, const char *str, int halign, int maxwidth, int maxlines, qfontface_t *font, const vec4_t color );
 void SCR_DrawRawChar( int x, int y, wchar_t num, qfontface_t *font, const vec4_t color );
 void SCR_DrawClampChar( int x, int y, wchar_t num, int xmin, int ymin, int xmax, int ymax, qfontface_t *font, const vec4_t color );
 void SCR_DrawFillRect( int x, int y, int w, int h, const vec4_t color );
-void SCR_DrawClampFillRect( int x, int y, int w, int h, int xmin, int ymin, int xmax, int ymax, const vec4_t color );
 void SCR_DrawChat( int x, int y, int width, struct qfontface_s *font );
 
 void CL_InitMedia( void );
@@ -481,9 +443,6 @@ void CL_ShutdownMedia( void );
 void CL_RestartMedia( void );
 
 void CL_AddNetgraph( void );
-
-extern float scr_con_current;
-extern float scr_conlines;       // lines of console to display
 
 extern ref_export_t re;     // interface to refresh .dll
 

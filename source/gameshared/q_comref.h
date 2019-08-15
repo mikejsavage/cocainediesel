@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 #include "q_arch.h"
-#include "qalgo/hash.h"
+#include "qcommon/hash.h"
 
 //
 // button bits
@@ -31,7 +31,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define BUTTON_WALK                 2
 #define BUTTON_SPECIAL              4
 #define BUTTON_ZOOM                 8
-#define BUTTON_BUSYICON             16
 
 enum {
 	KEYICON_FORWARD = 0,
@@ -68,11 +67,9 @@ enum {
 	PM_STAT_ZOOMTIME,
 	PM_STAT_DASHTIME,
 	PM_STAT_WJTIME,
-	PM_STAT_NOAUTOATTACK,
 	PM_STAT_MAXSPEED,
 	PM_STAT_JUMPSPEED,
 	PM_STAT_DASHSPEED,
-	PM_STAT_FWDTIME,
 
 	PM_STAT_SIZE = MAX_PM_STATS
 };
@@ -93,15 +90,15 @@ typedef enum {
 // pmove->pm_flags
 #define PMF_WALLJUMPCOUNT   ( 1 << 0 )
 #define PMF_ON_GROUND       ( 1 << 1 )
-#define PMF_TIME_WATERJUMP  ( 1 << 2 )   // pm_time is waterjump
+#define PMF_TIME_WATERJUMP  ( 1 << 2 )  // pm_time is waterjump
 #define PMF_TIME_LAND       ( 1 << 3 )  // pm_time is time before rejump
 #define PMF_TIME_TELEPORT   ( 1 << 4 )  // pm_time is non-moving time
 #define PMF_NO_PREDICTION   ( 1 << 5 )  // temporarily disables prediction (used for grappling hook)
-#define PMF_DASHING         ( 1 << 6 ) // Dashing flag
-#define PMF_SPECIAL_HELD    ( 1 << 7 ) // Special flag
-#define PMF_WALLJUMPING     ( 1 << 8 ) // WJ starting flag
-#define PMF_DOUBLEJUMPED    ( 1 << 9 ) // DJ stat flag
-#define PMF_JUMPPAD_TIME    ( 1 << 10 )    // temporarily disables fall damage
+#define PMF_DASHING         ( 1 << 6 )  // Dashing flag
+#define PMF_SPECIAL_HELD    ( 1 << 7 )  // Special flag
+#define PMF_WALLJUMPING     ( 1 << 8 )  // WJ starting flag
+#define PMF_DOUBLEJUMPED    ( 1 << 9 )  // DJ stat flag
+#define PMF_JUMPPAD_TIME    ( 1 << 10 ) // temporarily disables fall damage
 
 typedef struct {
 	int pm_type;
@@ -137,9 +134,7 @@ typedef struct {
 #define BYTE2ANGLE( x )     ( ( x ) * ( 360.0 / 256 ) )
 
 #define MAX_GAMECOMMANDS    256     // command names for command completion
-#define MAX_LOCATIONS       256
 #define MAX_WEAPONDEFS      MAX_ITEMS
-#define MAX_HELPMESSAGES    256
 
 //
 // config strings are a general means of communication from
@@ -148,31 +143,27 @@ typedef struct {
 //
 #define CS_HOSTNAME         0
 #define CS_MAXCLIENTS       1
-#define CS_MODMANIFEST      2
 
 #define SERVER_PROTECTED_CONFIGSTRINGS 4
 
-#define CS_MESSAGE          4
-#define CS_MAPNAME          5
-#define CS_SKYBOX           6
-#define CS_STATNUMS         7
-#define CS_POWERUPEFFECTS   8
-#define CS_GAMETYPENAME     9
-#define CS_AUTORECORDSTATE  10
+#define CS_MAPNAME          4
+#define CS_STATNUMS         5
+#define CS_GAMETYPENAME     6
+#define CS_AUTORECORDSTATE  7
 
-#define CS_SCB_PLAYERTAB_LAYOUT 11
-#define CS_SCB_PLAYERTAB_TITLES 12
+#define CS_SCB_PLAYERTAB_LAYOUT 8
+#define CS_SCB_PLAYERTAB_TITLES 9
 
-#define CS_TEAM_SPECTATOR_NAME 13
-#define CS_TEAM_PLAYERS_NAME 14
-#define CS_TEAM_ALPHA_NAME  15
-#define CS_TEAM_BETA_NAME   16
+#define CS_TEAM_SPECTATOR_NAME 10
+#define CS_TEAM_PLAYERS_NAME 11
+#define CS_TEAM_ALPHA_NAME  12
+#define CS_TEAM_BETA_NAME   13
 
-#define CS_MATCHNAME        17
-#define CS_MATCHSCORE       18
+#define CS_MATCHNAME        14
+#define CS_MATCHSCORE       15
 
-#define CS_ACTIVE_CALLVOTE  19
-#define CS_ACTIVE_CALLVOTE_VOTES 20
+#define CS_ACTIVE_CALLVOTE  16
+#define CS_ACTIVE_CALLVOTE_VOTES 17
 
 #define CS_WORLDMODEL       30
 #define CS_MAPCHECKSUM      31      // for catching cheater maps
@@ -181,15 +172,13 @@ typedef struct {
 #define CS_MODELS           32
 #define CS_SOUNDS           ( CS_MODELS + MAX_MODELS )
 #define CS_IMAGES           ( CS_SOUNDS + MAX_SOUNDS )
-#define CS_SKINFILES        ( CS_IMAGES + MAX_IMAGES )
-#define CS_ITEMS            ( CS_SKINFILES + MAX_SKINFILES )
+#define CS_ITEMS            ( CS_IMAGES + MAX_IMAGES )
 #define CS_PLAYERINFOS      ( CS_ITEMS + MAX_ITEMS )
 #define CS_GAMECOMMANDS     ( CS_PLAYERINFOS + MAX_CLIENTS )
 #define CS_WEAPONDEFS       ( CS_GAMECOMMANDS + MAX_GAMECOMMANDS )
 #define CS_GENERAL          ( CS_WEAPONDEFS + MAX_WEAPONDEFS )
-#define CS_HELPMESSAGES     ( CS_GENERAL + MAX_GENERAL ) // for localizable messages, that got a special place on the HUD
 
-#define MAX_CONFIGSTRINGS   ( CS_HELPMESSAGES + MAX_HELPMESSAGES )
+#define MAX_CONFIGSTRINGS   ( CS_GENERAL + MAX_GENERAL )
 
 //==============================================
 
@@ -198,11 +187,6 @@ constexpr const char * MASTER_SERVERS[] = { "dpmaster.deathmask.net", "ghdigital
 #define SERVER_PINGING_TIMEOUT              50
 #define LAN_SERVER_PINGING_TIMEOUT          20
 #define DEFAULT_PLAYERMODEL                 "bigvic"
-#define DEFAULT_PLAYERSKIN                  "default"
-
-#ifdef UCMDTIMENUDGE
-# define MAX_UCMD_TIMENUDGE 50
-#endif
 
 // entity_state_t is the information conveyed from the server
 // in an update message about entities that the client will
@@ -285,7 +269,6 @@ typedef struct entity_state_s {
 	int bodyOwner;                  // ET_PLAYER specific, for dead bodies
 	int channel;                    // ET_SOUNDEVENT
 
-	int frame;
 	int ownerNum;                   // ET_EVENT specific
 
 	unsigned int effects;
@@ -297,13 +280,11 @@ typedef struct entity_state_s {
 	StringHash eventParms[2];
 
 	int counterNum;                 // ET_GENERIC
-	StringHash skin;                  // for ET_PLAYER
 	int itemNum;                    // for ET_ITEM
-	int firemode;                   // for weapon events
 	int damage;                     // EV_BLOOD
 	int targetNum;                  // ET_EVENT specific
 	int colorRGBA;                  // ET_BEAM, ET_EVENT specific
-	int range;                      // ET_LASERBEAM specific
+	int radius;                     // ET_SPRITE/ET_DECAL radius, ET_GLADIATOR always extended, ET_HUD type, ...
 
 	bool linearMovement;
 	vec3_t linearMovementVelocity;      // this is transmitted instead of origin when linearProjectile is true
@@ -333,11 +314,9 @@ typedef struct entity_state_s {
 enum connstate_t {
 	CA_UNINITIALIZED,
 	CA_DISCONNECTED,                    // not talking to a server
-	CA_GETTING_TICKET,                  // getting a session ticket for matchmaking
 	CA_CONNECTING,                      // sending request packets to the server
 	CA_HANDSHAKE,                       // netchan_t established, waiting for svc_serverdata
 	CA_CONNECTED,                       // connection established, game module not loaded
-	CA_LOADING,                         // loading game module
 	CA_ACTIVE,                          // game views should be displayed
 };
 

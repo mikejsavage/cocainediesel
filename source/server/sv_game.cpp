@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "server.h"
 #include "qcommon/version.h"
-#include "gameshared/angelwrap/qas_public.h"
 
 game_export_t *ge;
 
@@ -358,7 +357,7 @@ void SV_ShutdownGameProgs( void ) {
 /*
 * SV_LocateEntities
 */
-static void SV_LocateEntities( struct edict_s *edicts, int edict_size, int num_edicts, int max_edicts ) {
+static void SV_LocateEntities( struct edict_s *edicts, size_t edict_size, int num_edicts, int max_edicts ) {
 	if( !edicts || edict_size < sizeof( entity_shared_t ) ) {
 		Com_Error( ERR_DROP, "SV_LocateEntities: bad edicts" );
 	}
@@ -380,7 +379,6 @@ void SV_InitGameProgs( void ) {
 	int apiversion;
 	game_import_t import;
 	game_export_t *( *builtinAPIfunc )( void * ) = NULL;
-	char manifest[MAX_INFO_STRING];
 
 #ifdef GAME_HARD_LINKED
 	builtinAPIfunc = GetGameAPI;
@@ -432,7 +430,6 @@ void SV_InitGameProgs( void ) {
 	import.FS_FCloseFile = FS_FCloseFile;
 	import.FS_RemoveFile = FS_RemoveFile;
 	import.FS_GetFileList = FS_GetFileList;
-	import.FS_FirstExtension = FS_FirstExtension;
 	import.FS_MoveFile = FS_MoveFile;
 	import.FS_RemoveDirectory = FS_RemoveDirectory;
 
@@ -466,16 +463,12 @@ void SV_InitGameProgs( void ) {
 
 	import.LocateEntities = SV_LocateEntities;
 
-	import.asGetAngelExport = QAS_GetAngelExport;
-
-	// clear module manifest string
-	assert( sizeof( manifest ) >= MAX_INFO_STRING );
-	memset( manifest, 0, sizeof( manifest ) );
+	import.is_dedicated_server = is_dedicated_server;
 
 	if( builtinAPIfunc ) {
 		ge = builtinAPIfunc( &import );
 	} else {
-		ge = (game_export_t *)Com_LoadGameLibrary( "game", "GetGameAPI", &module_handle, &import, false, manifest );
+		ge = (game_export_t *)Com_LoadGameLibrary( "game", "GetGameAPI", &module_handle, &import );
 	}
 	if( !ge ) {
 		Com_Error( ERR_DROP, "Failed to load game DLL" );
@@ -489,9 +482,7 @@ void SV_InitGameProgs( void ) {
 		Com_Error( ERR_DROP, "Game is version %i, not %i", apiversion, GAME_API_VERSION );
 	}
 
-	Cvar_ForceSet( "sv_modmanifest", manifest );
-
 	SV_SetServerConfigStrings();
 
-	ge->Init( time( NULL ), svc.snapFrameTime, APP_PROTOCOL_VERSION, APP_DEMO_EXTENSION_STR );
+	ge->Init( time( NULL ), svc.snapFrameTime );
 }

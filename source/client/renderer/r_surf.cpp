@@ -49,7 +49,7 @@ bool R_SurfNoDraw( const msurface_t *surf ) {
 * R_SurfNoDlight
 */
 bool R_SurfNoDlight( const msurface_t *surf ) {
-	if( surf->flags & (SURF_NODRAW|SURF_SKY|SURF_NODLIGHT) ) {
+	if( surf->flags & (SURF_NODRAW|SURF_NODLIGHT) ) {
 		return true;
 	}
 	return R_ShaderNoDlight( surf->shader );
@@ -69,10 +69,6 @@ void R_FlushBSPSurfBatch( void ) {
 	}
 
 	batch->count = 0;
-
-	if( shader->flags & SHADER_SKY ) {
-		return;
-	}
 
 	RB_BindShader( e, shader );
 
@@ -155,7 +151,6 @@ void R_WalkBSPSurf( const entity_t *e, const shader_t *shader, drawSurfaceBSP_t 
 static bool R_AddWorldDrawSurfaceToDrawList( const entity_t *e, unsigned ds ) {
 	drawSurfaceBSP_t *drawSurf = rsh.worldBrushModel->drawSurfaces + ds;
 	const shader_t *shader = drawSurf->shader;
-	bool sky;
 	unsigned drawOrder = 0;
 
 	if( !drawSurf->vbo ) {
@@ -165,24 +160,12 @@ static bool R_AddWorldDrawSurfaceToDrawList( const entity_t *e, unsigned ds ) {
 		return true;
 	}
 
-	sky = ( shader->flags & SHADER_SKY ) != 0;
-
-	if( sky ) {
-		drawSurf->visFrame = rf.frameCount;
-
-		// the actual skydome surface
-		R_AddSkySurfToDrawList( rn.meshlist, shader, &rn.skyDrawSurface );
-
-		rf.stats.c_world_draw_surfs++;
-		return true;
-	}
-
 	drawOrder = R_PackShaderOrder( shader );
 
 	drawSurf->visFrame = rf.frameCount;
-	drawSurf->listSurf = R_AddSurfToDrawList( rn.meshlist, e, shader, WORLDSURF_DIST, drawOrder, drawSurf );
+	void *listSurf = R_AddSurfToDrawList( rn.meshlist, e, shader, WORLDSURF_DIST, drawOrder, drawSurf );
 
-	if( !drawSurf->listSurf ) {
+	if( !listSurf ) {
 		return false;
 	}
 
@@ -359,7 +342,7 @@ static void R_CullVisLeaves( unsigned firstLeaf, unsigned numLeaves, unsigned cl
 		// track leaves, which are entirely inside the frustum
 		clipped = 0;
 		testFlags = clipFlags;
-		for( j = sizeof( rn.frustum ) / sizeof( rn.frustum[0] ), bit = 1, clipplane = rn.frustum; j > 0; j--, bit <<= 1, clipplane++ ) {
+		for( j = ARRAY_COUNT( rn.frustum ), bit = 1, clipplane = rn.frustum; j > 0; j--, bit <<= 1, clipplane++ ) {
 			if( testFlags & bit ) {
 				clipped = BoxOnPlaneSide( leaf->mins, leaf->maxs, clipplane );
 				if( clipped == 2 ) {
@@ -426,10 +409,6 @@ static void R_CullVisSurfaces( unsigned firstSurf, unsigned numSurfs, unsigned c
 
 		if( rn.meshlist->worldSurfVis[i] ) {
 			rn.meshlist->worldDrawSurfVis[surf->drawSurf - 1] = 1;
-
-			if( surf->flags & SURF_SKY ) {
-				R_ClipSkySurface( &rn.skyDrawSurface, surf );
-			}
 
 			rf.stats.c_brush_polys++;
 		}
@@ -533,7 +512,7 @@ void R_DrawWorldNode( void ) {
 	} else {
 		rsc.worldent->outlineHeight = 0;
 	}
-	Vector4Copy( mapConfig.outlineColor, rsc.worldent->outlineColor );
+	Vector4Copy( colorBlack, rsc.worldent->outlineColor );
 
 	// BEGIN t_world_node
 	if( speeds ) {

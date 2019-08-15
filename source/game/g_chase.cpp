@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 static void G_Chase_SetChaseActive( edict_t *ent, bool active ) {
 	ent->r.client->resp.chase.active = active;
-	G_UpdatePlayerMatchMsg( ent );
 }
 
 /*
@@ -58,166 +57,17 @@ static bool G_Chase_IsValidTarget( edict_t *ent, edict_t *target, bool teamonly 
 	return true;
 }
 
-/*
-* G_Chase_FindFollowPOV
-*/
-static int G_Chase_FindFollowPOV( edict_t *ent ) {
-	int i, j;
-	int quad, scorelead;
-	int maxteam;
-	int flags[GS_MAX_TEAMS];
-	int newctfpov;
-	int score_best;
-	int newpov = -1;
-	edict_t *target;
-	static int ctfpov = -1, poweruppov = -1;
-	static int64_t flagswitchTime = 0;
-#define CARRIERSWITCHDELAY 8000
 
-	if( !ent->r.client || !ent->r.client->resp.chase.active || !ent->r.client->resp.chase.followmode ) {
-		return newpov;
-	}
-
-	// follow killer, with a small delay
-	if( ( ent->r.client->resp.chase.followmode & 8 ) ) {
-		edict_t *targ;
-
-		targ = &game.edicts[ent->r.client->resp.chase.target];
-		if( G_IsDead( targ ) && targ->deathTimeStamp + 400 < level.time ) {
-			edict_t *attacker = targ->r.client->teamstate.last_killer;
-
-			// ignore world and team kills
-			if( attacker && attacker->r.client && !GS_IsTeamDamage( &targ->s, &attacker->s ) ) {
-				newpov = ENTNUM( attacker );
-			}
-		}
-
-		return newpov;
-	}
-
-	// find what players have what
-	score_best = INT_MIN;
-	quad = scorelead = -1;
-	memset( flags, -1, sizeof( flags ) );
-	newctfpov = -1;
-	maxteam = 0;
-
-	for( i = 1; PLAYERNUM( ( game.edicts + i ) ) < gs.maxclients; i++ ) {
-		target = game.edicts + i;
-
-		if( !target->r.inuse || trap_GetClientState( PLAYERNUM( target ) ) < CS_SPAWNED ) {
-			// check if old targets are still valid
-			if( ctfpov == ENTNUM( target ) ) {
-				ctfpov = -1;
-			}
-			if( poweruppov == ENTNUM( target ) ) {
-				poweruppov = -1;
-			}
-			continue;
-		}
-		if( target->s.team <= 0 || target->s.team >= (int)( sizeof( flags ) / sizeof( flags[0] ) ) ) {
-			continue;
-		}
-		if( ent->r.client->resp.chase.teamonly && ent->s.team != target->s.team ) {
-			continue;
-		}
-
-		if( target->s.effects & EF_QUAD ) {
-			quad = ENTNUM( target );
-		}
-
-		if( target->s.team && ( target->s.effects & EF_CARRIER ) ) {
-			if( target->s.team > maxteam ) {
-				maxteam = target->s.team;
-			}
-			flags[target->s.team - 1] = ENTNUM( target );
-		}
-
-		// find the scoring leader
-		if( target->r.client->ps.stats[STAT_SCORE] > score_best ) {
-			score_best = target->r.client->ps.stats[STAT_SCORE];
-			scorelead = ENTNUM( target );
-		}
-	}
-
-	// do some categorization
-
-	for( i = 0; i < maxteam; i++ ) {
-		if( flags[i] == -1 ) {
-			continue;
-		}
-
-		// default new ctfpov to the first flag carrier
-		if( newctfpov == -1 ) {
-			newctfpov = flags[i];
-		} else {
-			break;
-		}
-	}
-
-	// do we have more than one flag carrier?
-	if( i < maxteam ) {
-		// default to old ctfpov
-		if( ctfpov >= 0 ) {
-			newctfpov = ctfpov;
-		}
-		if( ctfpov < 0 || level.time > flagswitchTime ) {
-			// alternate between flag carriers
-			for( i = 0; i < maxteam; i++ ) {
-				if( flags[i] != ctfpov ) {
-					continue;
-				}
-
-				for( j = 0; j < maxteam - 1; j++ ) {
-					if( flags[( i + j + 1 ) % maxteam] != -1 ) {
-						newctfpov = flags[( i + j + 1 ) % maxteam];
-						break;
-					}
-				}
-				break;
-			}
-		}
-
-		if( newctfpov != ctfpov ) {
-			ctfpov = newctfpov;
-			flagswitchTime = level.time + CARRIERSWITCHDELAY;
-		}
-	} else {
-		ctfpov = newctfpov;
-		flagswitchTime = 0;
-	}
-
-	if( quad != -1 ) {
-		poweruppov = quad;
-	}
-
-	// so, we got all, select what we prefer to show
-	if( ctfpov != -1 && ( ent->r.client->resp.chase.followmode & 4 ) ) {
-		newpov = ctfpov;
-	} else if( poweruppov != -1 && ( ent->r.client->resp.chase.followmode & 2 ) ) {
-		newpov = poweruppov;
-	} else if( scorelead != -1 && ( ent->r.client->resp.chase.followmode & 1 ) ) {
-		newpov = scorelead;
-	}
-
-	return newpov;
-#undef CARRIERSWITCHDELAY
-}
 
 /*
 * G_EndFrame_UpdateChaseCam
 */
 static void G_EndFrame_UpdateChaseCam( edict_t *ent ) {
 	edict_t *targ;
-	int followpov;
 
 	// not in chasecam
 	if( !ent->r.client->resp.chase.active ) {
 		return;
-	}
-
-	if( ( followpov = G_Chase_FindFollowPOV( ent ) ) != -1 ) {
-		ent->r.client->resp.chase.target = followpov;
 	}
 
 	// is our chase target gone?
@@ -303,9 +153,8 @@ void G_EndServerFrames_UpdateChaseCam( void ) {
 	}
 
 	// Do spectators last
-	team = TEAM_SPECTATOR;
-	for( i = 0; i < teamlist[team].numplayers; i++ ) {
-		ent = game.edicts + teamlist[team].playerIndices[i];
+	for( i = 0; i < teamlist[TEAM_SPECTATOR].numplayers; i++ ) {
+		ent = game.edicts + teamlist[TEAM_SPECTATOR].playerIndices[i];
 		if( trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 			G_Chase_SetChaseActive( ent, false );
 			continue;
@@ -512,7 +361,6 @@ void Cmd_ChaseCam_f( edict_t *ent ) {
 	}
 
 	// & 1 = scorelead
-	// & 2 = powerups
 	// & 4 = objectives
 	// & 8 = fragger
 
@@ -526,9 +374,6 @@ void Cmd_ChaseCam_f( edict_t *ent ) {
 	} else if( !Q_stricmp( arg1, "carriers" ) ) {
 		G_PrintMsg( ent, "Chasecam mode is 'carriers'. It will switch to flag or powerup carriers when any of these items is picked up.\n" );
 		G_ChasePlayer( ent, NULL, false, 6 );
-	} else if( !Q_stricmp( arg1, "powerups" ) ) {
-		G_PrintMsg( ent, "Chasecam mode is 'powerups'. It will switch to powerup carriers when any of these items is picked up.\n" );
-		G_ChasePlayer( ent, NULL, false, 2 );
 	} else if( !Q_stricmp( arg1, "objectives" ) ) {
 		G_PrintMsg( ent, "Chasecam mode is 'objectives'. It will switch to objectives carriers when any of these items is picked up.\n" );
 		G_ChasePlayer( ent, NULL, false, 4 );
@@ -543,7 +388,6 @@ void Cmd_ChaseCam_f( edict_t *ent ) {
 		G_PrintMsg( ent, "- 'auto': Chase the score leader unless there's an objective carrier or a powerup carrier.\n" );
 		G_PrintMsg( ent, "- 'carriers': User has pov control unless there's an objective carrier or a powerup carrier.\n" );
 		G_PrintMsg( ent, "- 'objectives': User has pov control unless there's an objective carrier.\n" );
-		G_PrintMsg( ent, "- 'powerups': User has pov control unless there's a flag carrier.\n" );
 		G_PrintMsg( ent, "- 'score': Always follow the score leader. User has no pov control.\n" );
 		G_PrintMsg( ent, "- 'none': Disable chasecam.\n" );
 		return;

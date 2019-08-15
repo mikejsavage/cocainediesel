@@ -28,7 +28,6 @@ enum {
 
 enum {
 	RB_MODE_NORMAL,		// regular mode, render all passes
-	RB_MODE_DEPTH,		// only render passes that write to depth buffer, writing to color buffer is disabled
 	RB_MODE_DIFFUSE,	// diffuse lighting pass or fullbright, depth func EQ
 	RB_MODE_POST_LIGHT,     // render decals on materials, depth func EQ
 	RB_MODE_DECALS,	        // render additive stuff which isn't a material (translucent windows, etc)
@@ -67,7 +66,7 @@ void RB_GetScissor( int *x, int *y, int *w, int *h );
 void RB_ApplyScissor( void );
 void RB_Viewport( int x, int y, int w, int h );
 void RB_GetViewport( int *x, int *y, int *w, int *h );
-void RB_Clear( int bits, float r, float g, float b, float a );
+void RB_Clear( int bits );
 void RB_SetZClip( float zNear, float zFar );
 void RB_SetScreenImageSet( const struct refScreenTexSet_s *st );
 
@@ -88,9 +87,8 @@ void RB_FlushTextureCache( void );
 
 // shader
 void RB_BindShader( const entity_t *e, const struct shader_s *shader );
-void RB_SetBonesData( int numBones, dualquat_t *dualQuats, int maxWeights );
-void RB_SetSkyboxShader( const shader_t *shader );
-void RB_SetSkyboxSide( int side );
+void RB_SetSkinningMatrices( Span< const Mat4 > skinning_matrices );
+void RB_SetTextParams( RGBA8 text_color, RGBA8 border_color, bool border, float pixel_range );
 void RB_SetMode( int mode );
 void RB_SetSurfFlags( int flags );
 void RB_SetRenderFlags( int flags );

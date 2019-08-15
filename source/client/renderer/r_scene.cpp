@@ -39,12 +39,6 @@ static void R_RenderDebugBounds( void );
 * R_ClearScene
 */
 void R_ClearScene( void ) {
-	R_ClearRefInstStack();
-
-	R_FrameCache_Clear();
-
-	R_ClearSkeletalCache();
-
 	R_ClearDebugBounds();
 
 	rsc.numLocalEntities = 0;
@@ -106,8 +100,8 @@ static void R_CacheSceneEntity( entity_t *e ) {
 		case mod_alias:
 			R_CacheAliasModelEntity( e );
 			break;
-		case mod_skeletal:
-			R_CacheSkeletalModelEntity( e );
+		case ModelType_GLTF:
+			R_CacheGLTFModelEntity( e );
 			break;
 		case mod_brush:
 			R_CacheBrushModelEntity( e );
@@ -144,13 +138,11 @@ void R_AddEntityToScene( const entity_t *ent ) {
 
 		if( de->rtype == RT_MODEL ) {
 			if( de->model && de->model->type == mod_brush ) {
-				de->flags |= RF_FORCENOLOD;
 				rsc.bmodelEntities[rsc.numBmodelEntities++] = eNum;
 			}
 		} else if( de->rtype == RT_SPRITE ) {
 			// simplifies further checks
 			de->model = NULL;
-			de->flags |= RF_FORCENOLOD;
 			if( !de->customShader || de->radius <= 0 || de->scale <= 0 ) {
 				return;
 			}
@@ -224,10 +216,10 @@ static image_t *R_BlurTextureToScrFbo( const refdef_t *fd, image_t *image, image
 
 	if( true ) {
 		kernel = kernel63x63;
-		numPasses = sizeof( kernel63x63 ) / sizeof( kernel63x63[0] );
+		numPasses = ARRAY_COUNT( kernel63x63 );
 	} else {
 		kernel = kernel35x35;
-		numPasses = sizeof( kernel35x35 ) / sizeof( kernel35x35[0] );
+		numPasses = ARRAY_COUNT( kernel35x35 );
 	}
 
 	images[0] = image;

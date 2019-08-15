@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon.h"
-#include "qalgo/q_trie.h"
+#include "qcommon/q_trie.h"
 #include "client/console.h"
 
 static bool cvar_initialized = false;
@@ -27,7 +27,6 @@ static bool cvar_preinitialized = false;
 
 static trie_t *cvar_trie = NULL;
 static qmutex_t *cvar_mutex = NULL;
-static const trie_casing_t CVAR_TRIE_CASING = CON_CASE_SENSITIVE ? TRIE_CASE_SENSITIVE : TRIE_CASE_INSENSITIVE;
 
 static int Cvar_HasFlags( void *cvar, void *flags ) {
 	assert( cvar );
@@ -807,7 +806,7 @@ void Cvar_PreInit( void ) {
 
 	cvar_mutex = QMutex_Create();
 
-	Trie_Create( CVAR_TRIE_CASING, &cvar_trie );
+	Trie_Create( TRIE_CASE_INSENSITIVE, &cvar_trie );
 
 	cvar_preinitialized = true;
 }
@@ -867,7 +866,6 @@ void Cvar_Shutdown( void ) {
 		// reset the pointers to NULL
 		developer = NULL;
 		developer_memory = NULL;
-		dedicated = NULL;
 
 		Cmd_RemoveCommand( "set" );
 		Cmd_RemoveCommand( "seta" );

@@ -434,9 +434,8 @@ static void Cmd_PlayersExt_f( edict_t *ent, bool onlyspecs ) {
 	char msg[1024];
 
 	if( trap_Cmd_Argc() > 1 ) {
-		start = atoi( trap_Cmd_Argv( 1 ) );
+		start = Clamp( 0, atoi( trap_Cmd_Argv( 1 ) ), gs.maxclients - 1 );
 	}
-	clamp( start, 0, gs.maxclients - 1 );
 
 	// print information
 	msg[0] = 0;
@@ -718,35 +717,6 @@ static const g_vsays_t g_vsays[] = {
 	{ NULL, 0 }
 };
 
-void G_BOTvsay_f( edict_t *ent, const char *msg, bool team ) {
-	edict_t *event = NULL;
-	const g_vsays_t *vsay;
-
-	if( !( ent->r.svflags & SVF_FAKECLIENT ) ) {
-		return;
-	}
-
-	if( ent->r.client && ( ent->r.client->muted & 2 ) ) {
-		return;
-	}
-
-	for( vsay = g_vsays; vsay->name; vsay++ ) {
-		if( !Q_stricmp( msg, vsay->name ) ) {
-			event = G_SpawnEvent( EV_VSAY, vsay->id, NULL );
-			break;
-		}
-	}
-
-	if( event ) {
-		event->r.svflags |= SVF_BROADCAST; // force sending even when not in PVS
-		event->s.ownerNum = ent->s.number;
-		if( team ) {
-			event->s.team = ent->s.team;
-			event->r.svflags |= SVF_ONLYTEAM; // send only to clients with the same ->s.team value
-		}
-	}
-}
-
 /*
 * G_vsay_f
 */
@@ -759,7 +729,7 @@ static void G_vsay_f( edict_t *ent, bool team ) {
 		return;
 	}
 
-	if( G_ISGHOSTING( ent ) ) {
+	if( G_ISGHOSTING( ent ) && GS_MatchState() < MATCH_STATE_POSTMATCH ) {
 		return;
 	}
 
@@ -1025,17 +995,7 @@ static void Cmd_ShowStats_f( edict_t *ent ) {
 		return;
 	}
 
-	trap_GameCmd( ent, va( "plstats 1 \"%s\"", G_StatsMessage( target ) ) );
-}
-
-/*
-* Cmd_Upstate_f
-*
-* Update client on the state of things
-*/
-static void Cmd_Upstate_f( edict_t *ent ) {
-	G_UpdatePlayerMatchMsg( ent, true );
-	G_SetPlayerHelpMessage( ent, ent->r.client->level.helpmessage, true );
+	trap_GameCmd( ent, va( "plstats \"%s\"", G_StatsMessage( target ) ) );
 }
 
 //===========================================================
@@ -1165,9 +1125,6 @@ void G_InitGameCommands( void ) {
 
 	G_AddCommand( "vsay", G_vsay_Cmd );
 	G_AddCommand( "vsay_team", G_Teams_vsay_Cmd );
-
-	// misc
-	G_AddCommand( "upstate", Cmd_Upstate_f );
 }
 
 /*

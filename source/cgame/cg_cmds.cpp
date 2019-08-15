@@ -57,6 +57,12 @@ static void CG_SC_ChatPrint( void ) {
 	} else {
 		CG_LocalPrint( "%s" S_COLOR_GREEN ": %s\n", name, text );
 	}
+
+	// check highlight of player nick here instead of local print because its used for things like stats
+	// dont highlight for server messages
+	if( name && !cgs.demoPlaying ) {
+		CG_FlashChatHighlight( who - 1, text );
+	}
 }
 
 /*
@@ -64,31 +70,6 @@ static void CG_SC_ChatPrint( void ) {
 */
 static void CG_SC_CenterPrint( void ) {
 	CG_CenterPrint( trap_Cmd_Argv( 1 ) );
-}
-
-/*
-* CG_SC_CenterPrintFormat
-*/
-static void CG_SC_CenterPrintFormat( void ) {
-	if( trap_Cmd_Argc() == 8 ) {
-		CG_CenterPrint( va( trap_Cmd_Argv( 1 ), trap_Cmd_Argv( 2 ), trap_Cmd_Argv( 3 ),
-							trap_Cmd_Argv( 4 ), trap_Cmd_Argv( 5 ), trap_Cmd_Argv( 6 ), trap_Cmd_Argv( 7 ) ) );
-	} else if( trap_Cmd_Argc() == 7 ) {
-		CG_CenterPrint( va( trap_Cmd_Argv( 1 ), trap_Cmd_Argv( 2 ), trap_Cmd_Argv( 3 ),
-							trap_Cmd_Argv( 4 ), trap_Cmd_Argv( 5 ), trap_Cmd_Argv( 6 ) ) );
-	} else if( trap_Cmd_Argc() == 6 ) {
-		CG_CenterPrint( va( trap_Cmd_Argv( 1 ), trap_Cmd_Argv( 2 ), trap_Cmd_Argv( 3 ),
-							trap_Cmd_Argv( 4 ), trap_Cmd_Argv( 5 ) ) );
-	} else if( trap_Cmd_Argc() == 5 ) {
-		CG_CenterPrint( va( trap_Cmd_Argv( 1 ), trap_Cmd_Argv( 2 ), trap_Cmd_Argv( 3 ),
-							trap_Cmd_Argv( 4 ) ) );
-	} else if( trap_Cmd_Argc() == 4 ) {
-		CG_CenterPrint( va( trap_Cmd_Argv( 1 ), trap_Cmd_Argv( 2 ), trap_Cmd_Argv( 3 ) ) );
-	} else if( trap_Cmd_Argc() == 3 ) {
-		CG_CenterPrint( va( trap_Cmd_Argv( 1 ), trap_Cmd_Argv( 2 ) ) );
-	} else if( trap_Cmd_Argc() == 2 ) {
-		CG_CenterPrint( trap_Cmd_Argv( 1 ) ); // theoretically, shouldn't happen
-	}
 }
 
 /*
@@ -111,9 +92,7 @@ void CG_ConfigString( int i, const char *s ) {
 	Q_strncpyz( cgs.configStrings[i], s, sizeof( cgs.configStrings[i] ) );
 
 	// do something apropriate
-	if( i == CS_GAMETYPENAME ) {
-		GS_SetGametypeName( cgs.configStrings[CS_GAMETYPENAME] );
-	} else if( i == CS_AUTORECORDSTATE ) {
+	if( i == CS_AUTORECORDSTATE ) {
 		CG_SC_AutoRecordAction( cgs.configStrings[i] );
 	} else if( i >= CS_MODELS && i < CS_MODELS + MAX_MODELS ) {
 		if( cgs.configStrings[i][0] == '$' ) {  // indexed pmodel
@@ -123,7 +102,6 @@ void CG_ConfigString( int i, const char *s ) {
 		}
 	} else if( i >= CS_SOUNDS && i < CS_SOUNDS + MAX_SOUNDS ) {
 	} else if( i >= CS_IMAGES && i < CS_IMAGES + MAX_IMAGES ) {
-	} else if( i >= CS_SKINFILES && i < CS_SKINFILES + MAX_SKINFILES ) {
 	} else if( i >= CS_ITEMS && i < CS_ITEMS + MAX_ITEMS ) {
 		CG_ValidateItemDef( i - CS_ITEMS, cgs.configStrings[i] );
 	} else if( i >= CS_PLAYERINFOS && i < CS_PLAYERINFOS + MAX_CLIENTS ) {
@@ -229,43 +207,11 @@ void CG_SC_PrintStatsToFile( const char *format, ... ) {
 }
 
 /*
-* CG_SC_DumpPlayerStats
-*/
-static void CG_SC_DumpPlayerStats( const char *filename, const char *stats ) {
-	if( cgs.demoPlaying ) {
-		return;
-	}
-
-	if( trap_FS_FOpenFile( filename, &cg_statsFileHandle, FS_APPEND ) == -1 ) {
-		CG_Printf( "Couldn't write autorecorded stats, error opening file %s\n", filename );
-		return;
-	}
-
-	CG_SC_PrintPlayerStats( stats, CG_SC_PrintStatsToFile, NULL );
-
-	trap_FS_FCloseFile( cg_statsFileHandle );
-}
-
-/*
 * CG_SC_PlayerStats
 */
 static void CG_SC_PlayerStats( void ) {
-	const char *s;
-	int print;
-
-	print = atoi( trap_Cmd_Argv( 1 ) );
-	s = trap_Cmd_Argv( 2 );
-
-	if( !print ) { // scoreboard message update
-		SCR_UpdatePlayerStatsMessage( s );
-		return;
-	}
-
+	const char * s = trap_Cmd_Argv( 1 );
 	CG_SC_PrintPlayerStats( s, CG_Printf, CG_LocalPrint );
-
-	if( print == 2 ) {
-		CG_SC_AutoRecordAction( "stats" );
-	}
 }
 
 /*
@@ -298,8 +244,7 @@ static const char *CG_SC_AutoRecordName( void ) {
 
 	// make file name
 	// duel_year-month-day_hour-min_map_player
-	Q_snprintfz( name, sizeof( name ), "%s_%04d-%02d-%02d_%02d-%02d_%s_%s_%04i",
-				 gs.gametypeName,
+	Q_snprintfz( name, sizeof( name ), "%04d-%02d-%02d_%02d-%02d_%s_%s_%04i",
 				 newtime->tm_year + 1900, newtime->tm_mon + 1, newtime->tm_mday,
 				 newtime->tm_hour, newtime->tm_min,
 				 mapname,
@@ -343,14 +288,12 @@ void CG_SC_AutoRecordAction( const char *action ) {
 	if( !Q_stricmp( action, "start" ) ) {
 		if( cg_autoaction_demo->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
 			trap_Cmd_ExecuteText( EXEC_NOW, "stop silent" );
-			trap_Cmd_ExecuteText( EXEC_NOW, va( "record autorecord/%s/%s silent",
-												gs.gametypeName, name ) );
+			trap_Cmd_ExecuteText( EXEC_NOW, va( "record autorecord/%s silent", name ) );
 			autorecording = true;
 		}
 	} else if( !Q_stricmp( action, "altstart" ) ) {
 		if( cg_autoaction_demo->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
-			trap_Cmd_ExecuteText( EXEC_NOW, va( "record autorecord/%s/%s silent",
-												gs.gametypeName, name ) );
+			trap_Cmd_ExecuteText( EXEC_NOW, va( "record autorecord/%s silent", name ) );
 			autorecording = true;
 		}
 	} else if( !Q_stricmp( action, "stop" ) ) {
@@ -360,129 +303,16 @@ void CG_SC_AutoRecordAction( const char *action ) {
 		}
 
 		if( cg_autoaction_screenshot->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
-			trap_Cmd_ExecuteText( EXEC_NOW, va( "screenshot autorecord/%s/%s silent",
-												gs.gametypeName, name ) );
+			trap_Cmd_ExecuteText( EXEC_NOW, va( "screenshot autorecord/%s silent", name ) );
 		}
 	} else if( !Q_stricmp( action, "cancel" ) ) {
 		if( autorecording ) {
 			trap_Cmd_ExecuteText( EXEC_NOW, "stop cancel silent" );
 			autorecording = false;
 		}
-	} else if( !Q_stricmp( action, "stats" ) ) {
-		if( cg_autoaction_stats->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
-			const char *filename = va( "stats/%s/%s.txt", gs.gametypeName, name );
-			CG_SC_DumpPlayerStats( filename, trap_Cmd_Argv( 2 ) );
-		}
 	} else if( developer->integer ) {
 		CG_Printf( "CG_SC_AutoRecordAction: Unknown action: %s\n", action );
 	}
-}
-
-/**
- * Returns the English match state message.
- *
- * @param mm match message ID
- * @return match message text
- */
-static const char *CG_MatchMessageString( matchmessage_t mm ) {
-	switch( mm ) {
-		case MATCHMESSAGE_CHALLENGERS_QUEUE:
-			return "'ESC' for in-game menu or 'ENTER' for in-game chat.\n"
-				   "You are inside the challengers queue waiting for your turn to play.\n"
-				   "Use the in-game menu to exit the queue.\n"
-				   "\nUse the mouse buttons for switching spectator modes.";
-
-		case MATCHMESSAGE_ENTER_CHALLENGERS_QUEUE:
-			return "'ESC' for in-game menu or 'ENTER' for in-game chat.\n"
-				   "Use the in-game menu or press 'F3' to enter the challengers queue.\n"
-				   "Only players in the queue will have a turn to play against the last winner.\n"
-				   "\nUse the mouse buttons for switching spectator modes.";
-
-		case MATCHMESSAGE_SPECTATOR_MODES:
-			return "'ESC' for in-game menu or 'ENTER' for in-game chat.\n"
-				   "Mouse buttons for switching spectator modes.\n"
-				   "This message can be hidden by disabling 'help' in player setup menu.";
-
-		case MATCHMESSAGE_GET_READY:
-			return "Set yourself READY to start the match!\n"
-				   "You can use the in-game menu or simply press 'F4'.\n"
-				   "'ESC' for in-game menu or 'ENTER' for in-game chat.";
-
-		case MATCHMESSAGE_WAITING_FOR_PLAYERS:
-			return "Waiting for players.\n"
-				   "'ESC' for in-game menu.";
-
-		default:
-			return "";
-	}
-
-	return "";
-}
-
-/*
-* CG_SC_MatchMessage
-*/
-static void CG_SC_MatchMessage( void ) {
-	matchmessage_t mm = (matchmessage_t)atoi( trap_Cmd_Argv( 1 ) );
-	cg.matchmessage = CG_MatchMessageString( mm );
-}
-
-/*
-* CG_SC_HelpMessage
-*/
-static void CG_SC_HelpMessage( void ) {
-	unsigned index;
-	unsigned outlen = 0;
-	int c;
-
-	cg.helpmessage[0] = '\0';
-
-	index = atoi( trap_Cmd_Argv( 1 ) );
-	if( !index || index > MAX_HELPMESSAGES ) {
-		return;
-	}
-
-	const char *helpmessage = cgs.configStrings[CS_HELPMESSAGES + index - 1];
-	if( !helpmessage[0] ) {
-		return;
-	}
-
-	while( ( c = helpmessage[0] ) && ( outlen < MAX_HELPMESSAGE_CHARS - 1 ) ) {
-		helpmessage++;
-
-		if( c == '{' ) { // template
-			int t = *( helpmessage++ );
-			switch( t ) {
-				case 'B': // key binding
-				{
-					char cmd[MAX_STRING_CHARS];
-					unsigned cmdlen = 0;
-					while( ( c = helpmessage[0] ) != '\0' ) {
-						helpmessage++;
-						if( c == '}' ) {
-							break;
-						}
-						if( cmdlen < MAX_STRING_CHARS - 1 ) {
-							cmd[cmdlen++] = c;
-						}
-					}
-					cmd[cmdlen] = '\0';
-					CG_GetBoundKeysString( cmd, cg.helpmessage + outlen, MAX_HELPMESSAGE_CHARS - outlen );
-					outlen += strlen( cg.helpmessage + outlen );
-				}
-					continue;
-				default:
-					helpmessage--;
-					break;
-			}
-		}
-
-		cg.helpmessage[outlen++] = c;
-	}
-	cg.helpmessage[outlen] = '\0';
-	Q_FixTruncatedUtf8( cg.helpmessage );
-
-	cg.helpmessage_time = cg.time;
 }
 
 /*
@@ -533,39 +363,12 @@ static void CG_SC_DemoGet( void ) {
 	filename = trap_Cmd_Argv( 1 );
 	extension = COM_FileExtension( filename );
 	if( !COM_ValidateRelativeFilename( filename ) ||
-		!extension || Q_stricmp( extension, cgs.demoExtension ) ) {
+		!extension || Q_stricmp( extension, APP_DEMO_EXTENSION_STR ) ) {
 		CG_Printf( "Warning: demoget: Invalid filename, ignored\n" );
 		return;
 	}
 
 	trap_DownloadRequest( filename, false );
-}
-
-/*
-* CG_SC_MOTD
-*/
-static void CG_SC_MOTD( void ) {
-	char *motd;
-
-	if( cg.motd ) {
-		CG_Free( cg.motd );
-	}
-	cg.motd = NULL;
-
-	motd = trap_Cmd_Argv( 2 );
-	if( !motd[0] ) {
-		return;
-	}
-
-	if( !strcmp( trap_Cmd_Argv( 1 ), "1" ) ) {
-		cg.motd = CG_CopyString( motd );
-		cg.motd_time = cg.time + 50 * strlen( motd );
-		if( cg.motd_time < cg.time + 5000 ) {
-			cg.motd_time = cg.time + 5000;
-		}
-	}
-
-	CG_Printf( "\nMessage of the Day:\n%s", motd );
 }
 
 static void CG_SC_ChangeLoadout() {
@@ -652,16 +455,12 @@ static const svcmd_t cg_svcmds[] =
 	{ "ch", CG_SC_ChatPrint },
 	{ "tch", CG_SC_ChatPrint },
 	{ "cp", CG_SC_CenterPrint },
-	{ "cpf", CG_SC_CenterPrintFormat },
 	{ "obry", CG_SC_Obituary },
 	{ "scb", CG_SC_Scoreboard },
 	{ "plstats", CG_SC_PlayerStats },
-	{ "mm", CG_SC_MatchMessage },
-	{ "mapmsg", CG_SC_HelpMessage },
 	{ "demoget", CG_SC_DemoGet },
 	{ "meop", CG_SC_MenuOpen },
 	{ "memo", CG_SC_MenuModal },
-	{ "motd", CG_SC_MOTD },
 	{ "aw", CG_SC_AddAward },
 	{ "changeloadout", CG_SC_ChangeLoadout },
 	{ "saveloadout", CG_SC_SaveLoadout },
@@ -826,13 +625,6 @@ static void CG_Viewpos_f( void ) {
 	CG_Printf( "\"angles\" \"%i %i %i\"\n", (int)cg.view.angles[0], (int)cg.view.angles[1], (int)cg.view.angles[2] );
 }
 
-/*
-* CG_CenterViewCmd_f
-*/
-static void CG_CenterViewCmd_f( void ) {
-	CG_CenterView( -SHORT2ANGLE( cg.predictedPlayerState.pmove.delta_angles[PITCH] ) );
-}
-
 // ======================================================================
 
 /*
@@ -936,12 +728,11 @@ static const cgcmd_t cgcmds[] =
 	{ "demoget", CG_Cmd_DemoGet_f, false },
 	{ "demolist", NULL, false },
 	{ "use", CG_Cmd_UseItem_f, false },
-	{ "weapnext", CG_Cmd_NextWeapon_f, true },
-	{ "weapprev", CG_Cmd_PrevWeapon_f, true },
-	{ "weaplast", CG_Cmd_LastWeapon_f, true },
+	{ "weapnext", CG_Cmd_NextWeapon_f, false },
+	{ "weapprev", CG_Cmd_PrevWeapon_f, false },
+	{ "weaplast", CG_Cmd_LastWeapon_f, false },
 	{ "weapon", CG_Cmd_Weapon_f, false },
 	{ "viewpos", CG_Viewpos_f, true },
-	{ "centerview", CG_CenterViewCmd_f, false },
 	{ "players", NULL, false },
 	{ "spectators", NULL, false },
 

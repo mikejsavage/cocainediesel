@@ -126,6 +126,7 @@ typedef struct {
 #define IDBSPHEADER     "IBSP"
 #define RBSPHEADER      "RBSP"
 #define QFBSPHEADER     "FBSP"
+constexpr const uint8_t COMPRESSED_BSP_MAGIC[] = { 0x28, 0xb5, 0x2f, 0xfd };
 
 #define Q3BSPVERSION        46
 #define RTCWBSPVERSION      47
@@ -372,16 +373,3 @@ typedef struct {
 	int rowsize;
 	unsigned char data[1];
 } dvis_t;
-
-typedef struct {
-	unsigned char ambient[3];
-	unsigned char diffuse[3];
-	unsigned char direction[2];
-} dgridlight_t;
-
-typedef struct {
-	unsigned char ambient[MAX_LIGHTMAPS][3];
-	unsigned char diffuse[MAX_LIGHTMAPS][3];
-	unsigned char styles[MAX_LIGHTMAPS];
-	unsigned char direction[2];
-} rdgridlight_t;

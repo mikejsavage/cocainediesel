@@ -19,11 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "g_local.h"
 
-//QUAKED target_explosion (1 0 0) (-8 -8 -8) (8 8 8)
-//Spawns an explosion temporary entity when used.
-//
-//"delay"		wait this long before going off
-//"dmg"		how much radius damage should be done, defaults to 0
 static void target_explosion_explode( edict_t *self ) {
 	float save;
 	int radius;
@@ -78,98 +73,6 @@ void SP_target_explosion( edict_t *self ) {
 
 //==========================================================
 
-/*QUAKED target_changelevel (1 0 0) (-8 -8 -8) (8 8 8)
-Changes level to "map" when fired
-*/
-void use_target_changelevel( edict_t *self, edict_t *other, edict_t *activator ) {
-	//	if( GS_MatchState() >= MATCH_STATE_POSTMATCH )
-	return;     // allready activated
-	/*
-	if( 0 )
-	{
-	// if noexit, do a ton of damage to other
-	if( noexit->value && other != world )
-	{
-	T_Damage( other, self, self, vec3_origin, other->s.origin, vec3_origin, 10 * other->max_health, 1000, 0 );
-	return;
-	}
-
-	// let everyone know who hit the exit
-	if( other && other->client )
-	G_Printf( "%s" S_COLOR_WHITE " exited the level.\n", other->client->pers.netname);
-	}
-	*/
-	trap_Cvar_SetValue( "g_maprotation", -1 );
-	G_Match_LaunchState( MATCH_STATE_POSTMATCH );
-}
-
-void SP_target_changelevel( edict_t *ent ) {
-	if( !ent->map ) {
-		if( developer->integer ) {
-			G_Printf( "target_changelevel with no map at %s\n", vtos( ent->s.origin ) );
-		}
-		G_FreeEdict( ent );
-		return;
-	}
-
-	ent->use = use_target_changelevel;
-}
-
-//==========================================================
-
-//QUAKED target_crosslevel_trigger (.5 .5 .5) (-8 -8 -8) (8 8 8) trigger1 trigger2 trigger3 trigger4 trigger5 trigger6 trigger7 trigger8
-//Once this trigger is touched/used, any trigger_crosslevel_target with the same trigger number is automatically used when a level is started within the same unit.  It is OK to check multiple triggers.  Message, delay, target, and killtarget also work.
-static void trigger_crosslevel_trigger_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	game.serverflags |= self->spawnflags;
-	G_FreeEdict( self );
-}
-
-void SP_target_crosslevel_trigger( edict_t *self ) {
-	self->r.svflags = SVF_NOCLIENT;
-	self->use = trigger_crosslevel_trigger_use;
-}
-
-//QUAKED target_crosslevel_target (.5 .5 .5) (-8 -8 -8) (8 8 8) trigger1 trigger2 trigger3 trigger4 trigger5 trigger6 trigger7 trigger8
-//Triggered by a trigger_crosslevel elsewhere within a unit.  If multiple triggers are checked, all must be true.  Delay, target and
-//killtarget also work.
-//
-//"delay"		delay before using targets if the trigger has been activated (default 1)
-static void target_crosslevel_target_think( edict_t *self ) {
-	if( self->spawnflags == ( game.serverflags & SFL_CROSS_TRIGGER_MASK & self->spawnflags ) ) {
-		G_UseTargets( self, self );
-		G_FreeEdict( self );
-	}
-}
-
-void SP_target_crosslevel_target( edict_t *self ) {
-	if( !self->delay ) {
-		self->delay = 1;
-	}
-	self->r.svflags = SVF_NOCLIENT;
-
-	self->think = target_crosslevel_target_think;
-	self->nextThink = level.time + self->delay * 1000;
-}
-
-//==========================================================
-
-//QUAKED target_laser (0 .5 0) (-8 -8 -8) (8 8 8) START_ON RED GREEN BLUE YELLOW ORANGE FAT
-//When triggered, fires a laser.  You can either set a target or a direction.
-//-------- KEYS --------
-//angles: alternate "pitch, yaw, roll" angles method of aiming laser (default 0 0 0).
-//target : point this to a target_position entity to set the laser's aiming direction.
-//targetname : the activating trigger points to this.
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jal: todo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//START_ON : when set, the laser will start on in the game.
-//RED :
-//GREEN : BLUE :
-//YELLOW :
-//ORANGE :
-//FAT :
 static void target_laser_think( edict_t *self ) {
 	edict_t *ignore;
 	vec3_t start;
@@ -220,10 +123,10 @@ static void target_laser_think( edict_t *self ) {
 			if( game.edicts[tr.ent].r.client && self->activator->r.client ) {
 				if( !GS_TeamBasedGametype() ||
 					game.edicts[tr.ent].s.team != self->activator->s.team ) {
-					G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, self->dmg, 1, 0, self->count );
+					G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 5, 0, 0, self->count );
 				}
 			} else {
-				G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, self->dmg, 1, 0, self->count );
+				G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 5, 0, 0, self->count );
 			}
 		}
 
@@ -283,29 +186,13 @@ void target_laser_start( edict_t *self ) {
 
 	self->movetype = MOVETYPE_NONE;
 	self->r.solid = SOLID_NOT;
-	self->s.type = ET_BEAM;
-	self->s.modelindex = 1;     // must be non-zero
+	self->s.type = ET_LASER;
+	self->s.modelindex = 1; // must be non-zero
 	self->r.svflags = 0;
-
-	// set the beam diameter
-	if( self->spawnflags & 64 ) {
-		self->s.frame = 16;
-	} else {
-		self->s.frame = 4;
-	}
-
-	// set the color
-	if( self->spawnflags & 2 ) {
-		self->s.colorRGBA = COLOR_RGBA( 220, 0, 0, 76 );
-	} else if( self->spawnflags & 4 ) {
-		self->s.colorRGBA = COLOR_RGBA( 0, 220, 0, 76 );
-	} else if( self->spawnflags & 8 ) {
-		self->s.colorRGBA = COLOR_RGBA( 0, 0, 220, 76 );
-	} else if( self->spawnflags & 16 ) {
-		self->s.colorRGBA = COLOR_RGBA( 220, 220, 0, 76 );
-	} else if( self->spawnflags & 32 ) {
-		self->s.colorRGBA = COLOR_RGBA( 255, 255, 0, 76 );
-	}
+	self->s.radius = st.size > 0 ? st.size : 8;
+	self->s.colorRGBA = st.rgba != 0 ? st.rgba : COLOR_RGBA( 220, 0, 0, 76 );
+	self->s.sound = trap_SoundIndex( "sounds/gladiator/laser_hum" );
+	self->s.attenuation = ATTN_IDLE;
 
 	if( !self->enemy ) {
 		if( self->target ) {
@@ -337,60 +224,15 @@ void target_laser_start( edict_t *self ) {
 void SP_target_laser( edict_t *self ) {
 	// let everything else get spawned before we start firing
 	self->think = target_laser_start;
-	self->nextThink = level.time + 1000;
-	self->count = MOD_TARGET_LASER;
+	self->nextThink = level.time + 1;
+	self->count = MOD_LASER;
 }
 
-//QUAKED target_position (0 .5 0) (-8 -8 -8) (8 8 8)
-//Aiming target for entities like light and trigger_push (jump pads) in particular.
-//-------- KEYS --------
-//targetname : the entity that requires an aiming direction points to this.
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jal: todo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- NOTES --------
-//To make a jump pad, place this entity at the highest point of the jump and target it with a trigger_push entity.
-
-void SP_target_position( edict_t *self ) {
-	self->r.svflags |= SVF_NOCLIENT;
-}
-
-//QUAKED target_print (0 .5 0) (-8 -8 -8) (8 8 8) SAMETEAM OTHERTEAM PRIVATE
-//This will print a message on the center of the screen when triggered. By default, all the clients will see the message.
-//-------- KEYS --------
-//message : text string to print on screen.
-//helpmessage : sets persistent message to be displayed on players HUD
-//targetname : the activating trigger points to this.
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jal: todo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//SAMETEAM : &1 only players in activator's team will see the message.
-//OTHERTEAM : &2 only players in other than activator's team will see the message.
-//PRIVATE : &4 only the player that activates the target will see the message.
-//CLEAR : &8 Clears the helpmessage and exits.
-
-static void SP_target_print_print( edict_t *self, edict_t *activator ) {
-	if( self->spawnflags & 8 ) {
-		G_SetPlayerHelpMessage( activator, 0 );
-		return;
-	}
-
-	if( self->mapmessage_index && self->mapmessage_index <= MAX_HELPMESSAGES ) {
-		G_SetPlayerHelpMessage( activator, self->mapmessage_index );
-	} else if( self->message && self->message[0] ) {
-		G_CenterPrintMsg( activator, "%s", self->message );
-	}
-}
+void SP_target_position( edict_t *self ) { }
 
 static void SP_target_print_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	int n;
-	edict_t *player;
-
 	if( activator->r.client && ( self->spawnflags & 4 ) ) {
-		SP_target_print_print( self, activator );
+		G_CenterPrintMsg( activator, "%s", self->message );
 		return;
 	}
 
@@ -400,84 +242,35 @@ static void SP_target_print_use( edict_t *self, edict_t *other, edict_t *activat
 		for( e = game.edicts + 1; PLAYERNUM( e ) < gs.maxclients; e++ ) {
 			if( e->r.inuse && e->s.team ) {
 				if( self->spawnflags & 1 && e->s.team == activator->s.team ) {
-					SP_target_print_print( self, e );
+					G_CenterPrintMsg( e, "%s", self->message );
 				}
 				if( self->spawnflags & 2 && e->s.team != activator->s.team ) {
-					SP_target_print_print( self, e );
+					G_CenterPrintMsg( e, "%s", self->message );
 				}
 			}
 		}
 		return;
 	}
 
-	for( n = 1; n <= gs.maxclients; n++ ) {
-		player = &game.edicts[n];
+	for( int i = 1; i <= gs.maxclients; i++ ) {
+		edict_t *player = &game.edicts[i];
 		if( !player->r.inuse ) {
 			continue;
 		}
 
-		SP_target_print_print( self, player );
+		G_CenterPrintMsg( player, "%s", self->message );
 	}
 }
 
 void SP_target_print( edict_t *self ) {
-	if( !self->message && !self->helpmessage ) {
+	if( !self->message ) {
 		G_FreeEdict( self );
 		return;
 	}
 
 	self->use = SP_target_print_use;
-
-	// do nothing
 }
 
-
-// JALFIXME: We have trigger_relay (and I already commented it should be a target), Q3 has
-// this target_relay. IMO we should do the move into target_relay too.
-
-//=============================================================================
-//
-//QUAKED target_relay (0 .7 .7) (-8 -8 -8) (8 8 8) RED_ONLY BLUE_ONLY RANDOM
-//This can only be activated by other triggers which will cause it in turn to activate its own targets.
-//-------- KEYS --------
-//targetname : activating trigger points to this.
-//target : this points to entities to activate when this entity is triggered.
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//notsingle : when set to 1, entity will not spawn in Single Player mode (bot play mode).
-//-------- SPAWNFLAGS --------
-//RED_ONLY : only alpha team players can activate the target.
-//BLUE_ONLY : only beta team players can activate the target.
-//RANDOM : one one of the targeted entities will be triggered at random.
-
-//=============================================================================
-
-static void target_relay_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	if( ( self->spawnflags & 1 ) != 0 && activator->r.client
-		&& activator->s.team != TEAM_ALPHA ) {
-		return;
-	}
-
-	if( ( self->spawnflags & 2 ) != 0 && activator->r.client
-		&& activator->s.team != TEAM_BETA ) {
-		return;
-	}
-
-	if( ( self->spawnflags & 4 ) != 0 ) {
-		edict_t *target;
-		target = G_PickTarget( self->targetname );
-		if( target != NULL ) {
-			G_CallUse( target, self, activator );
-		}
-		return;
-	}
-
-	G_UseTargets( self, activator );
-}
-
-void SP_target_relay( edict_t *self ) {
-	self->use = target_relay_use;
-}
 
 //==========================================================
 
@@ -491,9 +284,6 @@ static void target_delay_use( edict_t *ent, edict_t *other, edict_t *activator )
 	ent->activator = activator;
 }
 
-//QUAKED target_delay (1 0 0) (-8 -8 -8) (8 8 8)
-//"wait" seconds to pause before firing targets.
-//"random" delay variance, total delay = delay +/- random seconds
 void SP_target_delay( edict_t *ent ) {
 	// check the "delay" key for backwards compatibility with Q3 maps
 	if( ent->delay ) {
@@ -507,96 +297,7 @@ void SP_target_delay( edict_t *ent ) {
 	ent->use = target_delay_use;
 }
 
-#define MAX_GIVE_SOUNDS 8
-
-//target_give wait classname weapon_xxx
-static void target_give_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	edict_t *give;
-	const gsitem_t *item;
-	int i, numsounds;
-	float attenuation;
-	StringHash pickup_sound;
-	int prev_pickup = -1;
-	gclient_t *aclient = activator && activator->r.client ? activator->r.client : NULL;
-	const gsitem_t *sounds[MAX_GIVE_SOUNDS];
-
-	give = NULL;
-	numsounds = 0;
-
-	// more than one item can be given
-	while( ( give = G_Find( give, FOFS( targetname ), self->target ) ) != NULL ) {
-		// sanity
-		item = give->item;
-		if( !item ) {
-			continue;
-		}
-
-		if( !( item->flags & ITFLAG_PICKABLE ) ) {
-			continue;
-		}
-
-		if( aclient ) {
-			prev_pickup = aclient->ps.stats[STAT_PICKUP_ITEM];
-		}
-		pickup_sound = item->pickup_sound;
-
-		// disable pickup sound, we'll play it later
-		attenuation = give->attenuation;
-		give->attenuation = 0;
-
-		Touch_Item( give, activator, NULL, 0 );
-
-		if( give->r.inuse ) {
-			give->nextThink = 0;
-			give->think = 0;
-			give->attenuation = attenuation;
-			GClip_UnlinkEntity( give );
-		}
-
-		// a hacky way to check for successful item pickup
-		if( aclient && aclient->ps.stats[STAT_PICKUP_ITEM] == item->tag && prev_pickup != item->tag ) {
-			prev_pickup = item->tag;
-
-			// see if we don't know this pickup sound yet
-			if( pickup_sound != EMPTY_HASH ) {
-				for( i = 0; i < numsounds; i++ ) {
-					if( sounds[i]->pickup_sound == pickup_sound ) {
-						break;
-					}
-				}
-
-				if( i == numsounds && numsounds < MAX_GIVE_SOUNDS ) {
-					sounds[numsounds++] = item;
-				}
-			}
-		}
-	}
-
-	// play unique pickup sounds
-	for( i = 0; i < numsounds; i++ ) {
-		Touch_ItemSound( activator, sounds[i] );
-	}
-}
-
-void SP_target_give( edict_t *self ) {
-	self->r.svflags |= SVF_NOCLIENT;
-	self->use = target_give_use;
-}
-
-
 //==========================================================
-
-//QUAKED target_teleporter (1 0 0) (-8 -8 -8) (8 8 8)
-//The activator will be teleported away.
-//-------- KEYS --------
-//target : point this to a misc_teleporter_dest entity to set the teleport destination.
-//targetname : activating trigger points to this.
-//notsingle : when set to 1, entity will not spawn in Single Player mode
-//notfree : when set to 1, entity will not spawn in "Free for all" and "Tournament" modes.
-//notduel : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes. (jal: todo)
-//notteam : when set to 1, entity will not spawn in "Teamplay" and "CTF" modes.
-//-------- SPAWNFLAGS --------
-//SPECTATOR : &1 only teleport players moving in spectator mode
 
 static void target_teleporter_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	edict_t *dest;
@@ -639,19 +340,4 @@ void SP_target_teleporter( edict_t *self ) {
 	}
 
 	self->use = target_teleporter_use;
-}
-
-
-//==========================================================
-
-//QUAKED target_kill (.5 .5 .5) (-8 -8 -8) (8 8 8)
-//Kills the activator.
-
-static void target_kill_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	G_Damage( activator, self, world, vec3_origin, vec3_origin, activator->s.origin, 100000, 0, DAMAGE_NO_PROTECTION, MOD_TRIGGER_HURT );
-}
-
-void SP_target_kill( edict_t *self ) {
-	self->r.svflags |= SVF_NOCLIENT;
-	self->use = target_kill_use;
 }

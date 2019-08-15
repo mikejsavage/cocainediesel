@@ -59,7 +59,7 @@ static void Mod_AliasBuildStaticVBOForMesh( maliasmesh_t *mesh ) {
 	aliasmesh.normalsArray = mesh->normalsArray;
 	aliasmesh.sVectorsArray = mesh->sVectorsArray;
 
-	R_UploadVBOVertexData( mesh->vbo, 0, vattribs, &aliasmesh, 0 );
+	R_UploadVBOVertexData( mesh->vbo, 0, vattribs, &aliasmesh );
 	R_UploadVBOElemData( mesh->vbo, 0, 0, &aliasmesh );
 }
 
@@ -136,7 +136,9 @@ MD3 MODELS
 /*
 * Mod_LoadAliasMD3Model
 */
-void Mod_LoadAliasMD3Model( model_t *mod, const model_t *parent, void *buffer, bspFormatDesc_t *unused ) {
+void Mod_LoadAliasMD3Model( model_t *mod, void *buffer, int buffer_size, const bspFormatDesc_t *unused ) {
+	MICROPROFILE_SCOPEI( "Assets", "Mod_LoadAliasMD3Model", 0xffffffff );
+
 	int version, i, j, l;
 	int bufsize, numverts;
 	uint8_t *buf;
@@ -171,6 +173,7 @@ void Mod_LoadAliasMD3Model( model_t *mod, const model_t *parent, void *buffer, b
 	mod->radius = 0;
 	mod->registrationSequence = rsh.registrationSequence;
 	mod->touch = &Mod_TouchAliasModel;
+	Matrix4_Identity( mod->transform );
 
 	ClearBounds( mod->mins, mod->maxs );
 
@@ -275,8 +278,6 @@ void Mod_LoadAliasMD3Model( model_t *mod, const model_t *parent, void *buffer, b
 		}
 
 		Q_strncpyz( poutmesh->name, inmesh.name, MD3_MAX_PATH );
-
-		Mod_StripLODSuffix( poutmesh->name );
 
 		poutmesh->numtris = LittleLong( inmesh.num_tris );
 		poutmesh->numskins = LittleLong( inmesh.num_skins );
@@ -511,7 +512,7 @@ bool R_AliasModelLerpTag( orientation_t *orient, const maliasmodel_t *aliasmodel
 *
 * Interpolates between two frames and origins
 */
-void R_DrawAliasSurf( const entity_t *e, const shader_t *shader, drawSurfaceAlias_t *drawSurf ) {
+void R_DrawAliasSurf( const entity_t *e, const shader_t *shader, const drawSurfaceAlias_t *drawSurf ) {
 	int i;
 	int framenum = e->frame, oldframenum = e->oldframe;
 	float backv[3], frontv[3];
@@ -546,7 +547,7 @@ void R_DrawAliasSurf( const entity_t *e, const shader_t *shader, drawSurfaceAlia
 
 		RB_DrawElements( 0, aliasmesh->numverts, 0, aliasmesh->numtris * 3 );
 	} else {
-		mesh_t dynamicMesh;
+		mesh_t dynamicMesh = { };
 		vec4_t *inVertsArray;
 		vec4_t *inNormalsArray;
 		vec4_t *inSVectorsArray;
@@ -555,8 +556,6 @@ void R_DrawAliasSurf( const entity_t *e, const shader_t *shader, drawSurfaceAlia
 		calcVerts = ( framenum || oldframenum ) ? true : false;
 		calcNormals = ( ( ( vattribs & VATTRIB_NORMAL_BIT ) != 0 ) && calcVerts ) ? true : false;
 		calcSTVectors = ( ( ( vattribs & VATTRIB_SVECTOR_BIT ) != 0 ) && calcNormals ) ? true : false;
-
-		memset( &dynamicMesh, 0, sizeof( dynamicMesh ) );
 
 		dynamicMesh.elems = aliasmesh->elems;
 		dynamicMesh.numElems = aliasmesh->numtris * 3;
@@ -634,31 +633,6 @@ void R_DrawAliasSurf( const entity_t *e, const shader_t *shader, drawSurfaceAlia
 }
 
 /*
-* R_AliasModelFrameBounds
-*/
-void R_AliasModelFrameBounds( const model_t *mod, int frame, vec3_t mins, vec3_t maxs ) {
-	const maliasframe_t *pframe;
-	const maliasmodel_t *aliasmodel = ( const maliasmodel_t * )mod->extradata;
-
-	if( !aliasmodel->nummeshes ) {
-		ClearBounds( mins, maxs );
-		return;
-	}
-
-	if( ( frame >= (int)aliasmodel->numframes ) || ( frame < 0 ) ) {
-#ifndef PUBLIC_BUILD
-		ri.Com_DPrintf( "R_SkeletalModelFrameBounds %s: no such frame %d\n", mod->name, frame );
-#endif
-		ClearBounds( mins, maxs );
-		return;
-	}
-
-	pframe = aliasmodel->frames + frame;
-	VectorCopy( pframe->mins, mins );
-	VectorCopy( pframe->maxs, maxs );
-}
-
-/*
 * R_CacheAliasModelEntity
 */
 void R_CacheAliasModelEntity( const entity_t *e ) {
@@ -685,9 +659,7 @@ void R_CacheAliasModelEntity( const entity_t *e ) {
 *
 * Returns true if the entity is added to draw list
 */
-bool R_AddAliasModelToDrawList( const entity_t *e, int lod ) {
-	int i, j;
-	const model_t *mod = lod < e->model->numlods ? e->model->lods[lod] : e->model;
+bool R_AddAliasModelToDrawList( const entity_t *e ) {
 	const maliasmodel_t *aliasmodel;
 	const maliasmesh_t *mesh;
 	float distance;
@@ -697,7 +669,7 @@ bool R_AddAliasModelToDrawList( const entity_t *e, int lod ) {
 	if( cache->mod_type != mod_alias ) {
 		return false;
 	}
-	if( !( aliasmodel = ( ( const maliasmodel_t * )mod->extradata ) ) || !aliasmodel->nummeshes ) {
+	if( !( aliasmodel = ( ( const maliasmodel_t * )e->model->extradata ) ) || !aliasmodel->nummeshes ) {
 		return false;
 	}
 
@@ -710,13 +682,12 @@ bool R_AddAliasModelToDrawList( const entity_t *e, int lod ) {
 	fakeskin.name[0] = 0;
 	fakeskin.shader = NULL;
 
+	int i;
 	for( i = 0, mesh = aliasmodel->meshes; i < aliasmodel->nummeshes; i++, mesh++ ) {
 		int numSkins = 1;
 		maliasskin_t *skins = &fakeskin;
 
-		if( e->customSkin != EMPTY_HASH ) {
-			fakeskin.shader = R_FindShaderForSkinFile( e->customSkin, mesh->name );
-		} else if( e->customShader != EMPTY_HASH ) {
+		if( e->customShader != EMPTY_HASH ) {
 			fakeskin.shader = e->customShader;
 		} else if( mesh->numskins ) {
 			skins = mesh->skins;
@@ -725,7 +696,7 @@ bool R_AddAliasModelToDrawList( const entity_t *e, int lod ) {
 			continue;
 		}
 
-		for( j = 0; j < numSkins; j++ ) {
+		for( int j = 0; j < numSkins; j++ ) {
 			int drawOrder;
 			const shader_t *shader = skins[j].shader;
 		

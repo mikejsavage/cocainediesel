@@ -1,8 +1,7 @@
 #pragma once
 
-#include <stddef.h>
-#include "qalgo/hash.h"
-#include "qalgo/span.h"
+#include "qcommon/types.h"
+#include "qcommon/hash.h"
 
 void Assets_Init();
 void Assets_Shutdown();

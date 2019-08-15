@@ -29,3 +29,14 @@ uint32_t Hash32( const char * str ) {
 uint64_t Hash64( const char * str ) {
 	return Hash64( str, strlen( str ) );
 }
+
+#ifdef PUBLIC_BUILD
+StringHash::StringHash( const char * s ) {
+	hash = Hash64( s, strlen( s ) );
+}
+#else
+StringHash::StringHash( const char * s ) {
+	hash = Hash64( s, strlen( s ) );
+	str = NULL;
+}
+#endif

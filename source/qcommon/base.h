@@ -40,6 +40,45 @@
 #define U64 UINT64_C
 
 /*
+ * helpers
+ */
+
+template< typename T, size_t N >
+constexpr size_t ARRAY_COUNT( const T ( &arr )[ N ] ) {
+        return N;
+}
+
+#define STATIC_ASSERT( p ) static_assert( p, #p )
+#define NONCOPYABLE( T ) T( const T & ) = delete; void operator=( const T & ) = delete
+
+template< typename To, typename From >
+inline To checked_cast( const From & from ) {
+	To result = To( from );
+	assert( From( result ) == from );
+	return result;
+}
+
+template< typename To, typename From >
+inline To bit_cast( const From & from ) {
+	STATIC_ASSERT( sizeof( To ) == sizeof( From ) );
+	To result;
+	memcpy( &result, &from, sizeof( result ) );
+	return result;
+}
+
+template< typename T >
+void Swap2( T * a, T * b ) {
+        T t = *a;
+        *a = *b;
+        *b = t;
+}
+
+template< typename T >
+constexpr bool IsPowerOf2( T x ) {
+        return ( x & ( x - 1 ) ) == 0;
+}
+
+/*
  * allocators
  */
 

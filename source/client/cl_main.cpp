@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/base.h"
 #include "client.h"
+#include "qcommon/assets.h"
 #include "qcommon/asyncstream.h"
 #include "qcommon/version.h"
 #include "qcommon/hash.h"
@@ -2249,7 +2250,10 @@ void CL_Init( void ) {
 
 	cl_initialized = true;
 
-	// all archived variables will now be loaded
+	{
+		TempAllocator temp = cls.frame_arena->temp();
+		InitAssets( &temp );
+	}
 
 	CL_Profiler_Init();
 
@@ -2332,6 +2336,8 @@ void CL_Shutdown( void ) {
 	Con_Shutdown();
 
 	CL_Profiler_Shutdown();
+
+	ShutdownAssets();
 
 	cls.state = CA_UNINITIALIZED;
 	cl_initialized = false;

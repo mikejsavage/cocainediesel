@@ -142,6 +142,13 @@ public:
 		return buf.ptr();
 	}
 
+	void truncate( size_t len ) {
+		if( len < length() ) {
+			buf.resize( len + 1 );
+			buf[ len ] = '\0';
+		}
+	}
+
 	size_t length() const {
 		return buf.size() == 0 ? 0 : buf.size() - 1;
 	}

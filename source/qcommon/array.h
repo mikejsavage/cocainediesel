@@ -5,7 +5,7 @@
 template< typename T >
 class DynamicArray {
 public:
-	// NONCOPYABLE( DynamicArray );
+	NONCOPYABLE( DynamicArray );
 
 	DynamicArray( Allocator * a_, size_t initial_capacity = 0 ) {
 		a = a_;

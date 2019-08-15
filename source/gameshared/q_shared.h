@@ -21,31 +21,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 #include "q_arch.h"
+#include "qcommon/base.h"
 
 //==============================================
-
-template< typename T, size_t N >
-constexpr size_t ARRAY_COUNT( const T ( &arr )[ N ] ) {
-        return N;
-}
-
-#define STATIC_ASSERT( p ) static_assert( p, #p )
-#define NONCOPYABLE( T ) T( const T & ) = delete; void operator=( const T & ) = delete
-
-template< typename To, typename From >
-inline To checked_cast( const From & from ) {
-	To result = To( from );
-	assert( From( result ) == from );
-	return result;
-}
-
-template< typename To, typename From >
-inline To bit_cast( const From & from ) {
-	STATIC_ASSERT( sizeof( To ) == sizeof( From ) );
-	To result;
-	memcpy( &result, &from, sizeof( result ) );
-	return result;
-}
 
 short ShortSwap( short l );
 

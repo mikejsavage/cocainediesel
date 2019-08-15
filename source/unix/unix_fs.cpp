@@ -345,8 +345,7 @@ bool FS_ListDirNext( ListDirHandle scan, const char ** path, bool * dir ) {
 			continue;
 
 		*path = dirent->d_name;
-		// kinda a hack, remove this once I have the unified repo sorted out
-		*dir = dirent->d_type == DT_DIR || dirent->d_type == DT_LNK;
+		*dir = dirent->d_type == DT_DIR;
 
 		return true;
 	}

@@ -9,31 +9,68 @@ constexpr bool IsPowerOf2( T x ) {
 
 template< size_t N >
 class Hashtable {
-public:
 	STATIC_ASSERT( IsPowerOf2( N ) );
 
+	static constexpr u64 DeletedBit = U64( 1 ) << U64( 63 );
+	static constexpr u64 EmptyKey = 0;
+
+	struct Entry {
+		u64 key;
+		u64 value;
+	};
+
+	Entry entries[ N ];
+	size_t n;
+
+public:
 	Hashtable() {
 		clear();
 	}
 
 	bool add( u64 key, u64 value ) {
-		key >>= 2;
+		ASSERT( key != EmptyKey );
 
-		size_t i = find( key );
-		if( i == N || entry_status( i ) == STATUS_USED )
+		if( n == N )
 			return false;
 
-		entries[ i ].key = key | STATUS_USED;
-		entries[ i ].value = value;
+		u64 i = hash_key( key ) % N;
+		u64 dist = 0;
 
-		return true;
+		for( ;; ) {
+			if( entries[ i ].key == key )
+				return false;
+
+			if( entries[ i ].key == EmptyKey ) {
+				entries[ i ].key = key;
+				entries[ i ].value = value;
+				n++;
+				return true;
+			}
+
+			u64 existing_dist = probe_distance( hash_key( entries[ i ].key ), i );
+			if( existing_dist < dist ) {
+				if( is_deleted( entries[ i ].key ) ) {
+					entries[ i ].key = key;
+					entries[ i ].value = value;
+					n++;
+					return true;
+				}
+
+				swap2( key, entries[ i ].key );
+				swap2( value, entries[ i ].value );
+				dist = existing_dist;
+			}
+
+			i = ( i + 1 ) % N;
+			dist++;
+		}
+
+		return false;
 	}
 
 	bool get( u64 key, u64 * value ) const {
-		key >>= 2;
-
-		size_t i = find( key );
-		if( i == N || entry_status( i ) != STATUS_USED )
+		u64 i;
+		if( !find( key, &i ) )
 			return false;
 
 		*value = entries[ i ].value;
@@ -41,56 +78,66 @@ public:
 	}
 
 	bool remove( u64 key ) {
-		key >>= 2;
-
-		size_t i = find( key );
-		if( i == N || entry_status( i ) != STATUS_USED )
+		u64 i;
+		if( !find( key, &i ) )
 			return false;
 
-		entries[ i ].key = key | STATUS_REMOVED;
+		entries[ i ].key |= DeletedBit;
+		n--;
+		return true;
+	}
+
+	size_t size() const {
+		return n;
 	}
 
 	void clear() {
-		for( Entry & e : entries )
-			e.key = STATUS_EMPTY;
+		for( Entry & e : entries ) {
+			e.key = EmptyKey;
+			e.value = 0;
+		}
+		n = 0;
 	}
 
 private:
-	struct Entry {
-		// top 2 bits of key are used for status
-		u64 key;
-		u64 value;
-	};
-
-	static constexpr u64 STATUS_EMPTY = U64( 0 ) << U64( 62 );
-	static constexpr u64 STATUS_REMOVED = U64( 1 ) << U64( 62 );
-	static constexpr u64 STATUS_USED = U64( 2 ) << U64( 62 );
-	static constexpr u64 STATUS_MASK = U64( 3 ) << U64( 62 );
-
-	Entry entries[ N ];
-
-	u64 entry_key( size_t i ) const {
-		return entries[ i ].key & ~STATUS_MASK;
+	static u64 probe_distance( u64 hash, u64 pos ) {
+		return ( pos - hash ) % N;
 	}
 
-	u64 entry_status( size_t i ) const {
-		return entries[ i ].key & STATUS_MASK;
+	static u64 is_deleted( u64 key ) {
+		return ( key & DeletedBit ) != 0;
 	}
 
-	size_t find( u64 key ) const {
-		size_t i = key % N;
-		size_t step = 1;
-		while( step <= N ) {
-			u64 status = entry_status( i );
-			if( status == STATUS_EMPTY )
-				return i;
+	// u64 hash_key( u64 key ) const {
+	// 	return Hash64( key ) & ~DeletedBit;
+	// }
 
-			if( entry_key( i ) == key )
-				return i;
+	u64 hash_key( u64 key ) const {
+		return key & ~DeletedBit;
+	}
 
-			i = ( i + step ) % N;
-			step++;
+	bool find( u64 key, u64 * idx ) const {
+		ASSERT( key != EmptyKey );
+
+		u64 i = hash_key( key ) % N;
+		u64 dist = 0;
+
+		for( ;; ) {
+			if( entries[ i ].key == key ) {
+				*idx = i;
+				return true;
+			}
+
+			if( entries[ i ].key == EmptyKey )
+				break;
+
+			if( probe_distance( hash_key( entries[ i ].key ), i ) < dist )
+				break;
+
+			i = ( i + 1 ) % N;
+			dist++;
 		}
-		return N;
+
+		return false;
 	}
 };

@@ -819,16 +819,14 @@ void CG_EscapeKey( void ) {
 	}
 
 	bool spectator = cg.predictedPlayerState.stats[STAT_REALTEAM] == TEAM_SPECTATOR;
-	bool can_ready = false;
-	bool can_unready = false;
+	bool is_ready = false;
 
 	if( GS_MatchState() <= MATCH_STATE_WARMUP && !spectator ) {
 		bool ready = ( cg.predictedPlayerState.stats[STAT_LAYOUTS] & STAT_LAYOUT_READY ) != 0;
-		can_ready = !ready;
-		can_unready = ready;
+		is_ready = ready;
 	}
 
-	UI_ShowGameMenu( spectator, can_ready, can_unready );
+	UI_ShowGameMenu( spectator, is_ready );
 }
 
 //=============================================================================

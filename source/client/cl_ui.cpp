@@ -62,8 +62,7 @@ static int selected_map;
 
 static GameMenuState gamemenu_state;
 static bool is_spectating;
-static bool can_ready;
-static bool can_unready;
+static bool is_ready;
 static size_t selected_primary;
 static size_t selected_secondary;
 
@@ -797,12 +796,13 @@ static void GameMenu() {
 			ImGui::Columns( 1 );
 		}
 		else {
+			if( ImGui::Checkbox( (is_ready ? " Ready !" : " Not ready"), &is_ready )) {
+				String< 256 > buf( "{}\n", (is_ready ? "ready" : "unready"));
+				Cbuf_AddText( buf );
+			}
+
 			GameMenuButton( "Spectate", "spec", &should_close );
 
-			if( can_ready )
-				GameMenuButton( "Ready", "ready", &should_close );
-			if( can_unready )
-				GameMenuButton( "Unready", "unready", &should_close );
 			if( GS_TeamBasedGametype() )
 				GameMenuButton( "Change loadout", "gametypemenu", &should_close );
 		}
@@ -1087,12 +1087,11 @@ void UI_ShowMainMenu() {
 	RefreshServerBrowser();
 }
 
-void UI_ShowGameMenu( bool spectating, bool ready, bool unready ) {
+void UI_ShowGameMenu( bool spectating, bool ready ) {
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Menu;
 	is_spectating = spectating;
-	can_ready = ready;
-	can_unready = unready;
+	is_ready = ready;
 	CL_SetKeyDest( key_menu );
 }
 

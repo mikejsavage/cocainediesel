@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/qcommon.h"
+#include "qcommon/fs.h"
+
 #include "qcommon/sys_fs.h"
 
 #include "winquake.h"
@@ -286,4 +288,64 @@ bool Sys_FS_RemoveDirectory( const char *path ) {
 */
 int Sys_FS_FileNo( FILE *fp ) {
 	return _fileno( fp );
+}
+
+struct ListDirHandleImpl {
+	HANDLE handle;
+	WIN32_FIND_DATAA * ffd;
+	bool first;
+};
+
+STATIC_ASSERT( sizeof( ListDirHandleImpl ) <= sizeof( ListDirHandle ) );
+
+static ListDirHandleImpl OpaqueToImpl( ListDirHandle opaque ) {
+	ListDirHandleImpl impl;
+	memcpy( &impl, opaque.impl, sizeof( impl ) );
+	return impl;
+}
+
+static ListDirHandle ImplToOpaque( ListDirHandleImpl impl ) {
+	ListDirHandle opaque;
+	memcpy( opaque.impl, &impl, sizeof( impl ) );
+	return opaque;
+}
+
+ListDirHandle FS_BeginListDir( const char * path ) {
+	ListDirHandleImpl handle;
+	handle.handle = NULL;
+	handle.first = true;
+
+	if( strlen( path ) > MAX_PATH - 3 )
+		return ImplToOpaque( handle );
+
+	handle.ffd = ( WIN32_FIND_DATAA * ) malloc( sizeof( *handle.ffd ) );
+	if( handle.ffd == NULL )
+		return ImplToOpaque( handle );
+
+	String< MAX_PATH > path_and_wildcard( "{}/*", path );
+	handle.handle = FindFirstFileA( path_and_wildcard.c_str(), handle.ffd );
+
+	return ImplToOpaque( handle );
+}
+
+bool FS_ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
+	ListDirHandleImpl handle = OpaqueToImpl( *opaque );
+	if( handle.handle == NULL )
+		return false;
+
+	if( !handle.first ) {
+		if( FindNextFileA( handle.handle, handle.ffd ) == 0 ) {
+			FindClose( handle.handle );
+			free( handle.ffd );
+			return false;
+		}
+	}
+
+	*path = handle.ffd->cFileName;
+	*dir = ( handle.ffd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0;
+
+	handle.first = false;
+	*opaque = ImplToOpaque( handle );
+
+	return true;
 }

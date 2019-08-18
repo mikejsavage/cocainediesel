@@ -336,8 +336,8 @@ ListDirHandle FS_BeginListDir( const char * path ) {
 	return ImplToOpaque( handle );
 }
 
-bool FS_ListDirNext( ListDirHandle opaque, const char ** path, bool * dir ) {
-	ListDirHandleImpl handle = OpaqueToImpl( opaque );
+bool FS_ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
+	ListDirHandleImpl handle = OpaqueToImpl( *opaque );
 	if( handle.dir == NULL )
 		return false;
 
@@ -352,11 +352,7 @@ bool FS_ListDirNext( ListDirHandle opaque, const char ** path, bool * dir ) {
 		return true;
 	}
 
-	return false;
-}
+	closedir( handle.dir );
 
-void FS_EndListDir( ListDirHandle opaque ) {
-	ListDirHandleImpl handle = OpaqueToImpl( opaque );
-	if( handle.dir != NULL )
-		closedir( handle.dir );
+	return false;
 }

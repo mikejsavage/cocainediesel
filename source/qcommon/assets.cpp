@@ -40,7 +40,7 @@ static void LoadAssetsRecursive( DynamicString * path, size_t skip ) {
 
 	const char * name;
 	bool dir;
-	while( FS_ListDirNext( scan, &name, &dir ) ) {
+	while( FS_ListDirNext( &scan, &name, &dir ) ) {
 		if( num_assets == MAX_ASSETS ) {
 			Com_Printf( S_COLOR_YELLOW "Too many assets\n" );
 			return;
@@ -60,8 +60,6 @@ static void LoadAssetsRecursive( DynamicString * path, size_t skip ) {
 		}
 		path->truncate( old_len );
 	}
-
-	FS_EndListDir( scan );
 }
 
 void InitAssets( TempAllocator * temp ) {

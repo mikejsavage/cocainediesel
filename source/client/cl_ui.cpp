@@ -16,6 +16,7 @@ enum UIState {
 	UIState_MainMenu,
 	UIState_Connecting,
 	UIState_GameMenu,
+	UIState_Scoreboard,
 	UIState_DemoMenu,
 };
 
@@ -906,6 +907,76 @@ static void GameMenu() {
 	ImGui::PopStyleColor();
 }
 
+static void CenterText( const char *text, ImVec2 size ) {
+	ImVec2 t_size = ImGui::CalcTextSize(text);
+	ImGui::SetCursorPos( ImVec2((size.x - t_size.x)/2, (size.y - t_size.y)/2 ) );
+	ImGui::Text( text );
+}
+
+
+RGB8 CG_TeamColor( int team );
+
+static void Scoreboard() {
+
+	ImGuiIO& io = ImGui::GetIO();
+	ImGuiStyle & style = ImGui::GetStyle();
+	ImVec2 size = io.DisplaySize;
+
+	size.x *= 0.5f;
+	size.y *= 0.75f;
+	ImGuiWindowFlags basic_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+
+	if( GS_TeamBasedGametype() ) {
+		//whole background window
+		ImGui::SetNextWindowSize( ImVec2(size.x, -1) );
+		ImGui::SetNextWindowPos( size, ImGuiCond_Always, ImVec2( 0.5f, 1 ) );
+		ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32( 10, 10, 10, 175 ));
+		ImGui::Begin( "title", NULL, basic_flags );
+
+			//team tab
+			for( int i = TEAM_ALPHA; i < GS_MAX_TEAMS; i++ ) {
+				RGB8 color = CG_TeamColor( i );
+
+				//team name and score tab
+				String< 256 > team_name(i == TEAM_ALPHA ? "Cocaine" : "Diesel");
+				ImGui::PushFont( large_font );
+				ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 100 ) );
+				ImGui::BeginChild( team_name, ImVec2( size.x, size.y/10 ), basic_flags );
+					ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 100 ) );
+					ImGui::BeginChild( String< 256 >("{}score", team_name), ImVec2( size.y/10, size.y/10 ), basic_flags );
+						CenterText( "10", ImVec2( size.y/10, size.y/10 ) );
+					ImGui::EndChild();
+					ImGui::PopStyleColor();
+					ImGui::SameLine();
+					CenterText( team_name, ImVec2( size.x, size.y/10 ) );
+				ImGui::EndChild();
+				ImGui::PopStyleColor();
+				ImGui::PopFont();
+
+				style.WindowBorderSize = 0;
+				//players infos tab
+				for( int i = 0; i < 5; i++ ) {
+					ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 75 + ((i+1) % 2)*25 ) );
+					ImGui::BeginChild(String< 256 >("{}info{}", team_name, i), ImVec2( size.y/10, size.y/20 ), basic_flags );
+						CenterText( "info", ImVec2( size.y/10, size.y/20 ) );
+					ImGui::EndChild();
+					ImGui::PopStyleColor();
+					ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 75 + (i % 2)*25 ) );
+					ImGui::SameLine();
+					ImGui::BeginChild(String< 256 >("{}player{}", team_name, i), ImVec2( -1, size.y/20 ), basic_flags );
+						ImGui::Text("player info");
+					ImGui::EndChild();
+					ImGui::PopStyleColor();
+				}
+			}
+
+		ImGui::End();
+		ImGui::PopStyleColor();
+	} else {
+
+	}
+}
+
 static void DemoMenu() {
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 192 ) );
 	bool should_close = false;
@@ -1026,11 +1097,16 @@ void UI_Refresh() {
 		GameMenu();
 	}
 
+	if( uistate == UIState_Scoreboard ) {
+		Scoreboard();
+	}
+
+
 	if( uistate == UIState_DemoMenu ) {
 		DemoMenu();
 	}
 
-	// ImGui::ShowDemoWindow();
+	ImGui::ShowDemoWindow();
 
 	if( Con_IsVisible() ) {
 		ImGui::PushFont( console_font );
@@ -1093,6 +1169,23 @@ void UI_ShowGameMenu( bool spectating, bool ready ) {
 	is_spectating = spectating;
 	is_ready = ready;
 	CL_SetKeyDest( key_menu );
+}
+
+void UI_ShowScoreboard( bool show ) {
+	if( uistate != UIState_Hidden && uistate != UIState_Scoreboard ) return;
+
+	//Change style when showing scoreboard
+	ImGuiStyle & style = ImGui::GetStyle();
+
+	if( show ) {
+		style.WindowPadding = ImVec2( 0, 0 );
+		style.ItemSpacing = ImVec2( 0, 0 );
+		uistate = UIState_Scoreboard;
+	} else {
+		style.WindowPadding = ImVec2( 16, 16 );
+		style.ItemSpacing = ImVec2( 8, 8 );
+		uistate = UIState_Hidden;
+	}
 }
 
 void UI_ShowDemoMenu() {

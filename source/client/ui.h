@@ -11,6 +11,7 @@ void UI_UpdateConnectScreen();
 void UI_ShowMainMenu();
 void UI_ShowGameMenu( bool spectating, bool ready );
 void UI_ShowLoadoutMenu( int primary, int secondary );
+void UI_ShowScoreboard( bool show );
 void UI_ShowDemoMenu();
 void UI_HideMenu();
 

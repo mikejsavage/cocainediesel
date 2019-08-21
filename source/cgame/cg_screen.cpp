@@ -1001,9 +1001,9 @@ void CG_Draw2DView( void ) {
 	CG_DrawHUD();
 
 	scr_centertime_off -= cg.frameTime;
-	if( CG_IsScoreboardShown() ) {
-		CG_DrawScoreboard();
-	} else if( scr_centertime_off > 0 ) {
+	UI_ShowScoreboard( CG_IsScoreboardShown() );
+
+	if( scr_centertime_off > 0 ) {
 		CG_DrawCenterString();
 	}
 

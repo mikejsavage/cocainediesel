@@ -964,7 +964,7 @@ static void Scoreboard() {
 	if( GS_TeamBasedGametype() ) {
 		//whole background window
 		ImGui::SetNextWindowSize( ImVec2(size.x, -1) );
-		ImGui::SetNextWindowPos( ImVec2(size.x, size.y*0.5f), ImGuiCond_Always, ImVec2( 0.5f, 0 ) );
+		ImGui::SetNextWindowPos( ImVec2(size.x, height), ImGuiCond_Always, ImVec2( 0.5f, 0 ) );
 		ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32( 10, 10, 10, 175 ));
 		ImGui::Begin( "scoreboard", NULL, basic_flags );
 
@@ -993,7 +993,7 @@ static void Scoreboard() {
 
 
 				ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 50, 50, 50, 100 ) );
-				CenterTextWindow( String<128>("{}ping", team), "Ping", ImVec2( size.x/10, size.y/30 ), basic_flags );
+				CenterTextWindow( String<128>("{}ping", team), "Ping", ImVec2( size.x/12, size.y/30 ), basic_flags );
 
 				ImGui::SameLine();
 				CenterTextWindow( String<128>("{}name", team), "Player name", ImVec2( size.x/1.5, size.y/30 ), basic_flags );
@@ -1013,7 +1013,7 @@ static void Scoreboard() {
 				while( strcmp(token, "&t") != 0 && strcmp(token, "&s") != 0 ) {
 					token = strtok( NULL, split );
 					ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 75 + ((i+1) % 2)*25 ) );
-					CenterTextWindow( String<128>("{}ping{}", team, i), token, ImVec2( size.x/10, size.y/20 ), basic_flags );
+					CenterTextWindow( String<128>("{}ping{}", team, i), token, ImVec2( size.x/12, size.y/20 ), basic_flags );
 					ImGui::PopStyleColor();
 
 					token = strtok( NULL, split );
@@ -1037,7 +1037,7 @@ static void Scoreboard() {
 
 					token = strtok( NULL, split );
 					ImGui::SameLine();
-					CenterTextWindow( String<128>("{}carrier{}", team, i), "unworking", ImVec2( size.y/12, size.y/20 ), basic_flags );
+					CenterTextWindow( String<128>("{}carrier{}", team, i), "unworking", ImVec2( size.x/12, size.y/20 ), basic_flags );
 					ImGui::PopStyleColor();
 
 					token = strtok( NULL, split );
@@ -1114,6 +1114,28 @@ static void Scoreboard() {
 	}
 	ImGui::End();
 	ImGui::PopStyleColor();
+
+	//spectators
+	token = strtok( NULL, split );
+	if(token == NULL) //if no spectators
+		return;
+	String< 256 > spectators = "Spectating : ";
+	while(token != NULL) {
+		spectators += cgs.clientInfo[atoi(token)].cleanname;
+		token = strtok( NULL, split );
+		token = strtok( NULL, split );
+		if(token != NULL)
+			spectators += ", ";
+		if(spectators.len() == 256) { //if too many spectators
+			for(int i = 253; i != 256; i++) spectators[i] = '.';
+		}
+	}
+	ImGui::SetNextWindowSize( ImVec2(size.x, size.y/10) );
+	ImGui::SetNextWindowPos( ImVec2(size.x, size.y), ImGuiCond_Always, ImVec2( 0.5f, 0 ) );
+	ImGui::Begin("spectators", NULL, basic_flags | ImGuiWindowFlags_NoBackground);
+	CenterText(spectators, ImVec2(size.x, size.y/10));
+	ImGui::End();
+
 }
 
 static void DemoMenu() {

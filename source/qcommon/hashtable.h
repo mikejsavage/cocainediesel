@@ -28,7 +28,9 @@ public:
 		if( n == N )
 			return false;
 
-		u64 i = hash_key( key ) % N;
+		key = hash_key( key );
+
+		u64 i = key % N;
 		u64 dist = 0;
 
 		for( ;; ) {
@@ -65,7 +67,7 @@ public:
 
 	bool get( u64 key, u64 * value ) const {
 		u64 i;
-		if( !find( key, &i ) )
+		if( !find( hash_key( key ), &i ) )
 			return false;
 
 		*value = entries[ i ].value;

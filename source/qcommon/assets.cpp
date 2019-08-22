@@ -6,33 +6,38 @@
 #include "qcommon/hashtable.h"
 
 struct Asset {
-	char * name;
-	Span< u8 > data;
+	char * path;
+	Span< char > data;
 };
 
 static constexpr u32 MAX_ASSETS = 4096;
 
 static Asset assets[ MAX_ASSETS ];
-static const char * asset_names[ MAX_ASSETS ];
+static const char * asset_paths[ MAX_ASSETS ];
 static u32 num_assets;
 
 static Hashtable< MAX_ASSETS * 2 > assets_hashtable;
 
-static void LoadAsset( const char * path, size_t skip ) {
-	Span< u8 > contents = FS_ReadEntireFile( sys_allocator, path );
+static void LoadAsset( const char * full_path, size_t skip ) {
+	Span< char > contents = FS_ReadFileString( sys_allocator, full_path );
 	if( contents.ptr == NULL )
 		return;
 
-	const char * name = path + skip;
+	const char * path = full_path + skip;
 
 	Asset * a = &assets[ num_assets ];
-	a->name = ALLOC_MANY( sys_allocator, char, strlen( name ) + 1 );
-	Q_strncpyz( a->name, name, strlen( name ) + 1 );
+	a->path = ALLOC_MANY( sys_allocator, char, strlen( path ) + 1 );
+	Q_strncpyz( a->path, path, strlen( path ) + 1 );
 	a->data = contents;
 
-	asset_names[ num_assets ] = a->name;
-	assets_hashtable.add( Hash64( name, strlen( name ) ), num_assets );
+	asset_paths[ num_assets ] = a->path;
+
+	bool ok = assets_hashtable.add( Hash64( path ), num_assets );
 	num_assets++;
+
+	if( !ok ) {
+		Com_Error( ERR_FATAL, "Asset hash name collision %s", path );
+	}
 }
 
 static void LoadAssetsRecursive( DynamicString * path, size_t skip ) {
@@ -72,18 +77,33 @@ void InitAssets( TempAllocator * temp ) {
 
 void ShutdownAssets() {
 	for( u32 i = 0; i < num_assets; i++ ) {
-		FREE( sys_allocator, assets[ i ].name );
+		FREE( sys_allocator, assets[ i ].path );
 		FREE( sys_allocator, assets[ i ].data.ptr );
 	}
 }
 
-Span< const u8 > AssetData( StringHash name ) {
+Span< const char > AssetString( StringHash path ) {
 	size_t i;
-	if( !assets_hashtable.get( name.hash, &i ) )
-		return Span< const u8 >();
+	if( !assets_hashtable.get( path.hash, &i ) )
+		return Span< const char >();
 	return assets[ i ].data;
 }
 
-Span< const char * > AssetNames() {
-	return Span< const char * >( asset_names, num_assets );
+Span< const char > AssetString( const char * path ) {
+	return AssetString( StringHash( path ) );
+}
+
+Span< const u8 > AssetBinary( StringHash path ) {
+	size_t i;
+	if( !assets_hashtable.get( path.hash, &i ) )
+		return Span< const u8 >();
+	return Span< const char >( assets[ i ].data.ptr, assets[ i ].data.n - 1 ).cast< const u8 >();
+}
+
+Span< const u8 > AssetBinary( const char * path ) {
+	return AssetBinary( StringHash( path ) );
+}
+
+Span< const char * > AssetPaths() {
+	return Span< const char * >( asset_paths, num_assets );
 }

@@ -45,11 +45,16 @@
 
 template< typename T, size_t N >
 constexpr size_t ARRAY_COUNT( const T ( &arr )[ N ] ) {
-        return N;
+	return N;
 }
 
 #define STATIC_ASSERT( p ) static_assert( p, #p )
 #define NONCOPYABLE( T ) T( const T & ) = delete; void operator=( const T & ) = delete
+
+#define CONCAT_HELPER( a, b ) a##b
+#define CONCAT( a, b ) CONCAT_HELPER( a, b )
+#define COUNTER_NAME( x ) CONCAT( x, __COUNTER__ )
+#define LINE_NAME( x ) CONCAT( x, __LINE__ )
 
 template< typename To, typename From >
 inline To checked_cast( const From & from ) {
@@ -68,15 +73,33 @@ inline To bit_cast( const From & from ) {
 
 template< typename T >
 void Swap2( T * a, T * b ) {
-        T t = *a;
-        *a = *b;
-        *b = t;
+	T t = *a;
+	*a = *b;
+	*b = t;
 }
 
 template< typename T >
 constexpr bool IsPowerOf2( T x ) {
-        return ( x & ( x - 1 ) ) == 0;
+	return ( x & ( x - 1 ) ) == 0;
 }
+
+/*
+ * defer
+ */
+
+template< typename F >
+struct ScopeExit {
+	ScopeExit( F f_ ) : f( f_ ) { }
+	~ScopeExit() { f(); }
+	F f;
+};
+
+struct DeferHelper {
+	template< typename F >
+		ScopeExit< F > operator+( F f ) { return f; }
+};
+
+#define defer const auto & COUNTER_NAME( DEFER_ ) = DeferHelper() + [&]()
 
 /*
  * allocators

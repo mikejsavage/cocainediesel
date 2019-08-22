@@ -1,6 +1,7 @@
 void Con_Init();
 void Con_Shutdown();
 
+const char * FindNextColorToken( const char * str, char * token );
 void Con_Print( const char * str );
 void Con_Clear();
 // imgui text fields don't have pageup/down callbacks so we have to do it like this

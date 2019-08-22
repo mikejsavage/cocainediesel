@@ -964,7 +964,7 @@ static void Scoreboard() {
 	if( GS_TeamBasedGametype() ) {
 		//whole background window
 		ImGui::SetNextWindowSize( ImVec2(size.x, -1) );
-		ImGui::SetNextWindowPos( ImVec2(size.x, height), ImGuiCond_Always, ImVec2( 0.5f, 0 ) );
+		ImGui::SetNextWindowPos( ImVec2(size.x, size.y/2), ImGuiCond_Always, ImVec2( 0.5f, 0 ) );
 		ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32( 10, 10, 10, 175 ));
 		ImGui::Begin( "scoreboard", NULL, basic_flags );
 
@@ -1019,13 +1019,26 @@ static void Scoreboard() {
 					token = strtok( NULL, split );
 					ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 75 + (i % 2)*25 ) );
 					ImGui::SameLine();
-					//if player is dead
+
+					//player name
 					int ply = atoi(token);
+					char color_token;
+					ImVec4 color_text = { 1, 1, 1, 1 };
+					//if player is dead
 					if( ply < 0 ) {
-						ColorCenterTextWindow(String<128>("{}name{}", team, i), cgs.clientInfo[-1 - ply].cleanname, ImVec2( size.x/1.5, size.y/20 ), ImVec4(1.0f,1.0f,1.0f,0.25f), basic_flags);
-					} else {
-						CenterTextWindow( String<128>("{}name{}", team, i), cgs.clientInfo[ply].cleanname, ImVec2( size.x/1.5, size.y/20 ), basic_flags );
+						ply = -1 - ply;
+						color_text.w = 0.25f;
 					}
+					//if there is a color token
+					const char * before = FindNextColorToken( cgs.clientInfo[ply].name, &color_token );
+					if( before != NULL && color_token != '^' ) {
+						const vec4_t & color = color_table[ color_token - '0' ];
+						color_text.x = color[0];
+						color_text.y = color[1];
+						color_text.z = color[2];
+					}
+					ColorCenterTextWindow(String<128>("{}name{}", team, i), cgs.clientInfo[ply].cleanname, ImVec2( size.x/1.5, size.y/20 ), color_text, basic_flags);
+					
 
 					token = strtok( NULL, split );
 					ImGui::SameLine();
@@ -1085,13 +1098,26 @@ static void Scoreboard() {
 				token = strtok( NULL, split );
 				ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 255, 255, 255, 75 + (i % 2)*25 ) );
 				ImGui::SameLine();
-				//if player is dead
+
+				//player name
 				int ply = atoi(token);
+				char color_token;
+				ImVec4 color_text = { 1, 1, 1, 1 };
+				//if player is dead
 				if( ply < 0 ) {
-					ColorCenterTextWindow(String<128>("name{}", i), cgs.clientInfo[-1 - ply].cleanname, ImVec2( size_x2*0.75f, size.y/20 ), ImVec4(1.0f,1.0f,1.0f,0.25f), basic_flags);
-				} else {
-					CenterTextWindow( String<128>("name{}", i), cgs.clientInfo[ply].cleanname, ImVec2( size_x2*0.75f, size.y/20 ), basic_flags );
+					ply = -1 - ply;
+					color_text.w = 0.25f;
 				}
+				//if there is a color token
+				const char * before = FindNextColorToken( cgs.clientInfo[ply].name, &color_token );
+				if( before != NULL && color_token != '^' ) {
+					const vec4_t & color = color_table[ color_token - '0' ];
+					color_text.x = color[0];
+					color_text.y = color[1];
+					color_text.z = color[2];
+				}
+				ColorCenterTextWindow(String<128>("name{}", i), cgs.clientInfo[ply].cleanname, ImVec2( size_x2*0.75f, size.y/20 ), color_text, basic_flags);
+
 
 				token = strtok( NULL, split );
 				ImGui::SameLine();

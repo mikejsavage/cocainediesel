@@ -764,11 +764,11 @@ String @GT_ScoreboardMessage( uint maxlen )
 			else
 				playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
 
-			entry = "&p " + aliveIcon + " "
+			entry = "&p " + client.ping + " "
 				+ playerID + " "
-				+ client.clanName + " "
 				+ client.stats.score + " "
-				+ client.ping + " "
+				+ client.stats.frags + " "
+				+ aliveIcon + " "
 				+ ( client.isReady() ? "1" : "0" ) + " ";
 
 			if ( scoreboardMessage.len() + entry.len() < maxlen )
@@ -789,11 +789,11 @@ String @GT_ScoreboardMessage( uint maxlen )
 				else
 					playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
 
-				entry = "&p " + deadIcon + " "
+				entry = "&p " + client.ping + " "
 					+ playerID + " "
-					+ client.clanName + " "
 					+ client.stats.score + " "
-					+ client.ping + " "
+					+ client.stats.frags + " "
+					+ deadIcon + " "
 					+ ( client.isReady() ? "1" : "0" ) + " ";
 
 				if ( scoreboardMessage.len() + entry.len() < maxlen )
@@ -817,11 +817,11 @@ String @GT_ScoreboardMessage( uint maxlen )
 		else
 			playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
 
-		entry = "&p " + "0 "
+		entry = "&p " + client.ping + " "
 			+ playerID + " "
-			+ client.clanName + " "
 			+ client.stats.score + " "
-			+ client.ping + " "
+			+ client.stats.frags + " "
+			+ "0 " + " "
 			+ ( client.isReady() ? "1" : "0" ) + " ";
 
 		if ( scoreboardMessage.len() + entry.len() < maxlen )

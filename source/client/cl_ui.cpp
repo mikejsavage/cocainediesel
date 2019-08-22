@@ -958,14 +958,15 @@ static void Scoreboard() {
 
 	size.x *= 0.5f;
 	size.y *= 0.75f;
+	int size_x2 = size.x - size.y/20;
 	ImGuiWindowFlags basic_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
 
 	if( GS_TeamBasedGametype() ) {
 		//whole background window
 		ImGui::SetNextWindowSize( ImVec2(size.x, -1) );
-		ImGui::SetNextWindowPos( size, ImGuiCond_Always, ImVec2( 0.5f, 1 ) );
+		ImGui::SetNextWindowPos( ImVec2(size.x, size.y*0.5f), ImGuiCond_Always, ImVec2( 0.5f, 0 ) );
 		ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32( 10, 10, 10, 175 ));
-		ImGui::Begin( "title", NULL, basic_flags );
+		ImGui::Begin( "scoreboard", NULL, basic_flags );
 
 			//team tab
 			while( strcmp(token, "&s") != 0 ) {
@@ -992,7 +993,7 @@ static void Scoreboard() {
 
 
 				ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 50, 50, 50, 100 ) );
-				CenterTextWindow( String<128>("{}ping", team), "Ping", ImVec2( size.y/10, size.y/30 ), basic_flags );
+				CenterTextWindow( String<128>("{}ping", team), "Ping", ImVec2( size.x/10, size.y/30 ), basic_flags );
 
 				ImGui::SameLine();
 				CenterTextWindow( String<128>("{}name", team), "Player name", ImVec2( size.x/1.5, size.y/30 ), basic_flags );
@@ -1009,48 +1010,110 @@ static void Scoreboard() {
 
 				//players infos tab
 				int i = 0;
-				if( strcmp( token, "&p" ) == 0 ) {
-					while( strcmp(token, "&t") != 0 && strcmp(token, "&s") != 0 ) {
-						token = strtok( NULL, split );
-						ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 75 + ((i+1) % 2)*25 ) );
-						CenterTextWindow( String<128>("{}ping{}", team_name, i), token, ImVec2( size.y/10, size.y/20 ), basic_flags );
-						ImGui::PopStyleColor();
+				while( strcmp(token, "&t") != 0 && strcmp(token, "&s") != 0 ) {
+					token = strtok( NULL, split );
+					ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 75 + ((i+1) % 2)*25 ) );
+					CenterTextWindow( String<128>("{}ping{}", team, i), token, ImVec2( size.x/10, size.y/20 ), basic_flags );
+					ImGui::PopStyleColor();
 
-						token = strtok( NULL, split );
-						ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 75 + (i % 2)*25 ) );
-						ImGui::SameLine();
-						//if player is dead
-						int ply = atoi(token);
-						if( ply < 0 ) {
-							ColorCenterTextWindow(String<128>("{}name{}", team, i), cgs.clientInfo[-1 - ply].cleanname, ImVec2( size.x/1.5, size.y/20 ), ImVec4(1.0f,1.0f,1.0f,0.25f), basic_flags);
-						} else {
-							CenterTextWindow( String<128>("{}name{}", team, i), cgs.clientInfo[ply].cleanname, ImVec2( size.x/1.5, size.y/20 ), basic_flags );
-						}
-
-						token = strtok( NULL, split );
-						ImGui::SameLine();
-						CenterTextWindow( String<128>("{}score{}", team, i), token, ImVec2( size.x/12, size.y/20 ), basic_flags );
-
-						token = strtok( NULL, split );
-						ImGui::SameLine();
-						CenterTextWindow( String<128>("{}kills{}", team, i), token, ImVec2( size.x/12, size.y/20 ), basic_flags );
-
-						token = strtok( NULL, split );
-						ImGui::SameLine();
-						CenterTextWindow( String<128>("{}carrier{}", team, i), "unworking", ImVec2( size.x/12, size.y/20 ), basic_flags );
-						ImGui::PopStyleColor();
-
-						token = strtok( NULL, split );
-						i++;
+					token = strtok( NULL, split );
+					ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 75 + (i % 2)*25 ) );
+					ImGui::SameLine();
+					//if player is dead
+					int ply = atoi(token);
+					if( ply < 0 ) {
+						ColorCenterTextWindow(String<128>("{}name{}", team, i), cgs.clientInfo[-1 - ply].cleanname, ImVec2( size.x/1.5, size.y/20 ), ImVec4(1.0f,1.0f,1.0f,0.25f), basic_flags);
+					} else {
+						CenterTextWindow( String<128>("{}name{}", team, i), cgs.clientInfo[ply].cleanname, ImVec2( size.x/1.5, size.y/20 ), basic_flags );
 					}
+
+					token = strtok( NULL, split );
+					ImGui::SameLine();
+					CenterTextWindow( String<128>("{}score{}", team, i), token, ImVec2( size.x/12, size.y/20 ), basic_flags );
+
+					token = strtok( NULL, split );
+					ImGui::SameLine();
+					CenterTextWindow( String<128>("{}kills{}", team, i), token, ImVec2( size.x/12, size.y/20 ), basic_flags );
+
+					token = strtok( NULL, split );
+					ImGui::SameLine();
+					CenterTextWindow( String<128>("{}carrier{}", team, i), "unworking", ImVec2( size.y/12, size.y/20 ), basic_flags );
+					ImGui::PopStyleColor();
+
+					token = strtok( NULL, split );
+					i++;
 				}
 			}
-
-		ImGui::End();
-		ImGui::PopStyleColor();
 	} else {
+		token = strtok( NULL, split );
+		token = strtok( NULL, split );
+		token = strtok( NULL, split );
+		ImGui::SetNextWindowSize( ImVec2(size.x, -1) );
+		ImGui::SetNextWindowPos( ImVec2(size.x, size.y*0.5f), ImGuiCond_Always, ImVec2( 0.5f, 0 ) );
+		ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32( 10, 10, 10, 175 ));
+		ImGui::Begin( "scoreboard", NULL, basic_flags );
+			ImGui::PushFont( large_font );
+			ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 255, 255, 255, 100 ) );
+			CenterTextWindow( "title", "Gladiator", ImVec2( size.x, size.y/10 ), basic_flags );
+			ImGui::PopStyleColor();
+			ImGui::PopFont();
+
+			ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 100, 100, 100, 100 ) );
+			CenterTextWindow( String<128>("ping"), "Ping", ImVec2( size_x2/12, size.y/30 ), basic_flags );
+
+			ImGui::SameLine();
+			CenterTextWindow( String<128>("name"), "Player name", ImVec2( size_x2*0.75f, size.y/30 ), basic_flags );
+
+			ImGui::SameLine();
+			CenterTextWindow( String<128>("score"), "Score", ImVec2( size_x2/12, size.y/30 ), basic_flags );
+
+			ImGui::SameLine();
+			CenterTextWindow( String<128>("kills"), "Kills", ImVec2( size_x2/12, size.y/30 ), basic_flags );
+
+			ImGui::SameLine();
+			CenterTextWindow( String<128>("state"), "State", ImVec2( size.y/20, size.y/30 ), basic_flags );
+			ImGui::PopStyleColor();
+
+			int i = 0;
+			//players tab
+			while( strcmp(token, "&s") != 0 ) {
+				token = strtok( NULL, split );
+				ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 255, 255, 255, 75 + ((i+1) % 2)*25 ) );
+				CenterTextWindow( String<128>("ping{}", i), token, ImVec2( size_x2/12, size.y/20 ), basic_flags );
+				ImGui::PopStyleColor();
+
+				token = strtok( NULL, split );
+				ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 255, 255, 255, 75 + (i % 2)*25 ) );
+				ImGui::SameLine();
+				//if player is dead
+				int ply = atoi(token);
+				if( ply < 0 ) {
+					ColorCenterTextWindow(String<128>("name{}", i), cgs.clientInfo[-1 - ply].cleanname, ImVec2( size_x2*0.75f, size.y/20 ), ImVec4(1.0f,1.0f,1.0f,0.25f), basic_flags);
+				} else {
+					CenterTextWindow( String<128>("name{}", i), cgs.clientInfo[ply].cleanname, ImVec2( size_x2*0.75f, size.y/20 ), basic_flags );
+				}
+
+				token = strtok( NULL, split );
+				ImGui::SameLine();
+				CenterTextWindow( String<128>("score{}", i), token, ImVec2( size_x2/12, size.y/20 ), basic_flags );
+
+				token = strtok( NULL, split );
+				ImGui::SameLine();
+				CenterTextWindow( String<128>("kills{}", i), token, ImVec2( size_x2/12, size.y/20 ), basic_flags );
+
+				token = strtok( NULL, split );
+				ImGui::SameLine();
+				CenterTextWindow( String<128>("state{}", i), "state", ImVec2( size.y/20, size.y/20 ), basic_flags );
+				ImGui::PopStyleColor();
+
+				token = strtok( NULL, split ); //ready icon
+				token = strtok( NULL, split );
+				i++;
+			}
 
 	}
+	ImGui::End();
+	ImGui::PopStyleColor();
 }
 
 static void DemoMenu() {

@@ -8,10 +8,12 @@ void UI_CharEvent( bool mainContext, wchar_t key );
 void UI_Refresh();
 void UI_UpdateConnectScreen();
 
+void SCR_UpdateScoreboardMessage( const char *string );
 void UI_ShowMainMenu();
 void UI_ShowGameMenu( bool spectating, bool ready );
 void UI_ShowLoadoutMenu( int primary, int secondary );
-void UI_ShowScoreboard( bool show );
+bool UI_ScoreboardShown();
+void UI_ShowScoreboard();
 void UI_ShowDemoMenu();
 void UI_HideMenu();
 

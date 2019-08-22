@@ -600,8 +600,6 @@ void CG_DrawScoreboard( void );
 void CG_ScoresOn_f( void );
 void CG_ScoresOff_f( void );
 bool CG_ExecuteScoreboardTemplateLayout( char *s );
-void SCR_UpdateScoreboardMessage( const char *string );
-bool CG_IsScoreboardShown( void );
 
 //
 // cg_main.c

@@ -827,10 +827,10 @@ void CG_DrawScoreboard( void ) {
 
 /*
 * SCR_UpdateScoreboardMessage
-*/
+
 void SCR_UpdateScoreboardMessage( const char *string ) {
 	Q_strncpyz( scoreboardString, string, sizeof( scoreboardString ) );
-}
+}*/
 
 /*
 * CG_ScoresOn_f
@@ -852,23 +852,4 @@ void CG_ScoresOff_f( void ) {
 	} else {
 		trap_Cmd_ExecuteText( EXEC_NOW, "svscore 0" );
 	}
-}
-
-/*
-* CG_IsScoreboardShown
-*/
-bool CG_IsScoreboardShown( void ) {
-	if( !cgs.configStrings[CS_SCB_PLAYERTAB_LAYOUT][0] ) { // no layout defined
-		return false;
-	}
-
-	if( scoreboardString[0] != '&' ) { // nothing to draw
-		return false;
-	}
-
-	if( cgs.demoPlaying || cg.frame.multipov ) {
-		return cg.showScoreboard || ( GS_MatchState() > MATCH_STATE_PLAYTIME );
-	}
-
-	return ( cg.predictedPlayerState.stats[STAT_LAYOUTS] & STAT_LAYOUT_SCOREBOARD ) ? true : false;
 }

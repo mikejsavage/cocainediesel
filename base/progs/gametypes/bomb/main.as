@@ -232,11 +232,10 @@ String @GT_ScoreboardMessage( uint maxlen ) {
 			int playerId = ent.isGhosting() && matchState == MATCH_STATE_PLAYTIME ? -( ent.playerNum + 1 ) : ent.playerNum;
 
 			// Name Clan Score Frags W1 W2 W3 Ping R
-			entry = "&p " + playerId
-				+ " " + client.clanName
+			entry = "&p " + client.ping
+				+ " " + playerId
 				+ " " + client.stats.score
 				+ " " + client.stats.frags
-				+ " " + client.ping
 				+ " " + statusIcon
 				+ " "; // don't delete me!
 

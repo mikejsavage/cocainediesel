@@ -52,8 +52,6 @@ void G_UpdateScoreBoardMessages( void ) {
 
 	staticlen = strlen( scoreboardString );
 
-update:
-
 	// send to players who have scoreboard visible
 	for( i = 0; i < gs.maxclients; i++ ) {
 		ent = game.edicts + 1 + i;
@@ -74,21 +72,6 @@ update:
 			client->level.scoreboard_time = game.realtime + scoreboardInterval - ( game.realtime % scoreboardInterval );
 			trap_GameCmd( ent, command );
 		}
-	}
-
-	if( !forcedUpdate ) {
-		// every 10 seconds, send everyone the scoreboard
-		nexttime -= game.snapFrameTime;
-		if( nexttime > 0 ) {
-			return;
-		}
-
-		do {
-			nexttime += 10000;
-		} while( nexttime <= 0 );
-
-		forcedUpdate = true;
-		goto update;
 	}
 }
 

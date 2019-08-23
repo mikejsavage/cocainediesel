@@ -925,18 +925,6 @@ static void CenterTextWindow( String<128> window, const char *text, ImVec2 size,
 	ImGui::EndChild();
 }
 
-static void ColorCenterText( const char *text, ImVec2 size, ImVec4 color ) {
-	ImVec2 t_size = ImGui::CalcTextSize(text);
-	ImGui::SetCursorPos( ImVec2((size.x - t_size.x)/2, (size.y - t_size.y)/2 ) );
-	ImGui::TextColored(color, text);
-}
-
-static void ColorCenterTextWindow( String<128> window, const char *text, ImVec2 size, ImVec4 color, ImGuiWindowFlags flags ) {
-	ImGui::BeginChild( window, size, flags );
-		ColorCenterText( text, size, color );
-	ImGui::EndChild();
-}
-
 RGB8 CG_TeamColor( int team );
 
 static char scoreboardString[MAX_STRING_CHARS];
@@ -947,9 +935,6 @@ void SCR_UpdateScoreboardMessage( const char *string ) {
 
 
 static void Scoreboard() {
-	const char *split = " ";
-	char *tmp_scoreboardString = strdup(scoreboardString);
-	//printf("%s\n", tmp_scoreboardString); //debug string
 	const char * token = scoreboardString;
 	char *last = COM_Parse(&token);
 
@@ -975,7 +960,7 @@ static void Scoreboard() {
 				RGB8 color = CG_TeamColor( team );
 
 				//team name and score tab
-				String< 256 > team_name(team == TEAM_ALPHA ? "Cocaine" : "Diesel");
+				String< 128 > team_name(GS_DefaultTeamName(team));
 				ImGui::PushFont( large_font );
 				ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 100 ) );
 				ImGui::BeginChild( team_name, ImVec2( size.x, size.y/10 ), basic_flags );
@@ -1019,22 +1004,39 @@ static void Scoreboard() {
 
 					//player name
 					int ply = atoi(COM_Parse(&token));
-					char color_token;
-					ImVec4 color_text = { 1, 1, 1, 1 };
+					uint8_t a = 255;
 					//if player is dead
 					if( ply < 0 ) {
 						ply = -1 - ply;
-						color_text.w = 0.25f;
+						a = 75;
 					}
 					//if there is a color token
-					const char * before = FindNextColorToken( cgs.clientInfo[ply].name, &color_token );
-					if( before != NULL && color_token != '^' ) {
-						const vec4_t & color = color_table[ color_token - '0' ];
-						color_text.x = color[0];
-						color_text.y = color[1];
-						color_text.z = color[2];
+					String< 512 > final_name;
+					const char * p = cgs.clientInfo[ply].name;
+					const char * end = p + strlen( p );
+					while( p < end ) {
+						char token;
+						const char * before = FindNextColorToken( p, &token );
+
+						if( before == NULL ) {
+							final_name.append_raw( p, end - p );
+							break;
+						}
+
+						final_name.append_raw( p, before - p );
+
+						if( token == '^' ) {
+							final_name += "^";
+						}
+						else {
+							const vec4_t & color = color_table[ token - '0' ];
+							uint8_t escape[] = { 033, max( 1, uint8_t( color[ 0 ] * 255.0f ) ), max( 1, uint8_t( color[ 1 ] * 255.0f ) ), max( 1, uint8_t( color[ 2 ] * 255.0f ) ), a };
+							final_name.append_raw(( const char * ) escape, sizeof( escape ) );
+						}
+
+						p = before + 2;
 					}
-					ColorCenterTextWindow(String<128>("{}name{}", team, i), cgs.clientInfo[ply].cleanname, ImVec2( size.x/1.5, size.y/20 ), color_text, basic_flags);
+					CenterTextWindow(String<128>("{}name{}", team, i), final_name.c_str(), ImVec2( size.x/1.5, size.y/20 ), basic_flags);
 					
 
 					ImGui::SameLine();
@@ -1094,22 +1096,39 @@ static void Scoreboard() {
 
 				//player name
 				int ply = atoi(COM_Parse(&token));
-				char color_token;
-				ImVec4 color_text = { 1, 1, 1, 1 };
+				uint8_t a = 255;
 				//if player is dead
 				if( ply < 0 ) {
 					ply = -1 - ply;
-					color_text.w = 0.25f;
+					a = 75;
 				}
 				//if there is a color token
-				const char * before = FindNextColorToken( cgs.clientInfo[ply].name, &color_token );
-				if( before != NULL && color_token != '^' ) {
-					const vec4_t & color = color_table[ color_token - '0' ];
-					color_text.x = color[0];
-					color_text.y = color[1];
-					color_text.z = color[2];
+				String< 512 > final_name;
+				const char * p = cgs.clientInfo[ply].name;
+				const char * end = p + strlen( p );
+				while( p < end ) {
+					char token;
+					const char * before = FindNextColorToken( p, &token );
+
+					if( before == NULL ) {
+						final_name.append_raw( p, end - p );
+						break;
+					}
+
+					final_name.append_raw( p, before - p );
+
+					if( token == '^' ) {
+						final_name += "^";
+					}
+					else {
+						const vec4_t & color = color_table[ token - '0' ];
+						uint8_t escape[] = { 033, max( 1, uint8_t( color[ 0 ] * 255.0f ) ), max( 1, uint8_t( color[ 1 ] * 255.0f ) ), max( 1, uint8_t( color[ 2 ] * 255.0f ) ), a };
+						final_name.append_raw(( const char * ) escape, sizeof( escape ) );
+					}
+
+					p = before + 2;
 				}
-				ColorCenterTextWindow(String<128>("name{}", i), cgs.clientInfo[ply].cleanname, ImVec2( size_x2*0.75f, size.y/20 ), color_text, basic_flags);
+				CenterTextWindow(String<128>("name{}", i), final_name.c_str(), ImVec2( size_x2*0.75f, size.y/20 ), basic_flags);
 
 
 				ImGui::SameLine();
@@ -1135,12 +1154,41 @@ static void Scoreboard() {
 	//spectators
 	if(*(last = COM_Parse(&token)) == NULL) //if no spectators
 		return;
-	String< 256 > spectators = "Spectating : ";
+	String< 512 > spectators = "Spectating : ";
 	while(*last) {
-		spectators += cgs.clientInfo[atoi(last)].cleanname;
+		String< 256 > final_name;
+		const char * p = cgs.clientInfo[atoi(last)].name;
+		const char * end = p + strlen( p );
+		while( p < end ) {
+			char token;
+			const char * before = FindNextColorToken( p, &token );
+
+			if( before == NULL ) {
+				final_name.append_raw( p, end - p );
+				break;
+			}
+
+			final_name.append_raw( p, before - p );
+
+			if( token == '^' ) {
+				final_name += "^";
+			}
+			else {
+				const vec4_t & color = color_table[ token - '0' ];
+				uint8_t escape[] = { 033, max( 1, uint8_t( color[ 0 ] * 255.0f ) ), max( 1, uint8_t( color[ 1 ] * 255.0f ) ), max( 1, uint8_t( color[ 2 ] * 255.0f ) ), 200 };
+				final_name.append_raw(( const char * ) escape, sizeof( escape ) );
+			}
+
+			p = before + 2;
+		}
+
+		spectators += final_name;
 		COM_Parse(&token);
-		if(*(last = COM_Parse(&token)))
+		if(*(last = COM_Parse(&token))) {
+			uint8_t escape[] = { 033, 255, 255, 255, 200 };
+			spectators.append_raw(( const char * ) escape, sizeof( escape ) );
 			spectators += ", ";
+		}
 		if(spectators.len() == 256) { //if too many spectators
 			for(int i = 253; i != 256; i++) spectators[i] = '.';
 		}

@@ -55,6 +55,7 @@ struct Server {
 };
 
 static ImFont * large_font;
+static ImFont * medium_font;
 static ImFont * console_font;
 
 static Server servers[ 1024 ];
@@ -179,8 +180,9 @@ void UI_Init() {
 		io.KeyMap[ ImGuiKey_Y ] = 'y';
 		io.KeyMap[ ImGuiKey_Z ] = 'z';
 
-		io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 16.0f );
+		io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 18.0f );
 		large_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 64.0f );
+		medium_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 32.0f );
 		console_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 14.0f );
 		ImGuiFreeType::BuildFontAtlas( io.Fonts );
 
@@ -997,15 +999,15 @@ static void Scoreboard() {
 	ImGuiStyle & style = ImGui::GetStyle();
 	ImVec2 size = io.DisplaySize;
 
-	size.x *= 0.5f;
-	size.y *= 0.75f;
+	size.x *= 0.6f;
+	size.y *= 0.8f;
 	int size_x2 = size.x - size.y/20;
 	ImGuiWindowFlags basic_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
 
 	if( GS_TeamBasedGametype() ) {
 		//whole background window
 		ImGui::SetNextWindowSize( ImVec2(size.x, -1) );
-		ImGui::SetNextWindowPos( ImVec2(size.x, size.y/2), ImGuiCond_Always, ImVec2( 0.5f, 0 ) );
+		ImGui::SetNextWindowPosCenter();
 		ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32( 10, 10, 10, 175 ));
 		ImGui::Begin( "scoreboard", NULL, basic_flags );
 
@@ -1016,42 +1018,44 @@ static void Scoreboard() {
 
 				//team name and score tab
 				String< 32 > team_name(GS_DefaultTeamName(team));
-				ImGui::PushFont( large_font );
 				ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 100 ) );
 				ImGui::BeginChild( team_name, ImVec2( size.x, size.y/10 ), basic_flags );
+					ImGui::PushFont( io.DisplaySize.x > 1280 ? large_font : medium_font );
 					ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 100 ) );
-					CenterTextWindow( String<16>("{}score", team_name), COM_Parse(&token), ImVec2( size.y/10, size.y/10 ), basic_flags );
+					CenterTextWindow( String<16>("{}score", team_name), COM_Parse(&token), ImVec2( size.x/10, size.y/10 ), basic_flags );
 					ImGui::PopStyleColor();
+					if(io.DisplaySize.x <= 1280) ImGui::PopFont();
 					ImGui::SameLine();
+					if(io.DisplaySize.x <= 1280) ImGui::PushFont( large_font );
 					CenterText( team_name, ImVec2( size.x, size.y/10 ) );
+					ImGui::PopFont();
 				ImGui::EndChild();
 				ImGui::PopStyleColor();
-				ImGui::PopFont();
 
 				last = COM_Parse(&token);
 
 
 				ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 50, 50, 50, 100 ) );
-				CenterTextWindow( String<16>("{}ping", team), "Ping", ImVec2( size.x/12, size.y/30 ), basic_flags );
+				CenterTextWindow( String<16>("{}ping", team), "Ping", ImVec2( size.x/10, size.y/30 ), basic_flags );
 
 				ImGui::SameLine();
-				CenterTextWindow( String<16>("{}name", team), "Player name", ImVec2( size.x/1.5, size.y/30 ), basic_flags );
+				CenterTextWindow( String<16>("{}name", team), "Player name", ImVec2( size.x*0.6f, size.y/30 ), basic_flags );
 
 				ImGui::SameLine();
-				CenterTextWindow( String<16>("{}score", team), "Score", ImVec2( size.x/12, size.y/30 ), basic_flags );
+				CenterTextWindow( String<16>("{}score", team), "Score", ImVec2( size.x/10, size.y/30 ), basic_flags );
 
 				ImGui::SameLine();
-				CenterTextWindow( String<16>("{}kills", team), "Kills", ImVec2( size.x/12, size.y/30 ), basic_flags );
+				CenterTextWindow( String<16>("{}kills", team), "Kills", ImVec2( size.x/10, size.y/30 ), basic_flags );
 
 				ImGui::SameLine();
-				CenterTextWindow( String<16>("{}carrier", team), "Carrier", ImVec2( size.x/12, size.y/30 ), basic_flags );
+				CenterTextWindow( String<16>("{}carrier", team), "Carrier", ImVec2( size.x/10, size.y/30 ), basic_flags );
 				ImGui::PopStyleColor();
 
 				//players infos tab
 				int i = 0;
 				while( strcmp(last, "&t") != 0 && strcmp(last, "&s") != 0 ) {
 					ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 75 + ((i+1) % 2)*25 ) );
-					CenterTextWindow( String<16>("{}ping{}", team, i), COM_Parse(&token), ImVec2( size.x/12, size.y/20 ), basic_flags );
+					CenterTextWindow( String<16>("{}ping{}", team, i), COM_Parse(&token), ImVec2( size.x/10, size.y/20 ), basic_flags );
 					ImGui::PopStyleColor();
 
 					ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 75 + (i % 2)*25 ) );
@@ -1069,17 +1073,17 @@ static void Scoreboard() {
 						a = 75;
 					}
 					ExpandColorTokens( &final_name, cgs.clientInfo[ply].name, a );
-					CenterTextWindow(String<16>("{}name{}", team, i), final_name, ImVec2( size.x/1.5, size.y/20 ), basic_flags);
+					CenterTextWindow(String<16>("{}name{}", team, i), final_name, ImVec2( size.x*0.6f, size.y/20 ), basic_flags);
 					
 
 					ImGui::SameLine();
-					CenterTextWindow( String<16>("{}score{}", team, i), COM_Parse(&token), ImVec2( size.x/12, size.y/20 ), basic_flags );
+					CenterTextWindow( String<16>("{}score{}", team, i), COM_Parse(&token), ImVec2( size.x/10, size.y/20 ), basic_flags );
 
 					ImGui::SameLine();
-					CenterTextWindow( String<16>("{}kills{}", team, i), COM_Parse(&token), ImVec2( size.x/12, size.y/20 ), basic_flags );
+					CenterTextWindow( String<16>("{}kills{}", team, i), COM_Parse(&token), ImVec2( size.x/10, size.y/20 ), basic_flags );
 
 					ImGui::SameLine();
-					CenterTextWindow( String<16>("{}carrier{}", team, i), "unworking", ImVec2( size.x/12, size.y/20 ), basic_flags );
+					CenterTextWindow( String<16>("{}carrier{}", team, i), "unworking", ImVec2( size.x/10, size.y/20 ), basic_flags );
 					ImGui::PopStyleColor();
 
 					COM_Parse(&token);
@@ -1180,7 +1184,7 @@ static void Scoreboard() {
 	}
 	ExpandColorTokens( &final_str, spectators.c_str(), 200 );
 	ImGui::SetNextWindowSize( ImVec2(size.x, size.y/10) );
-	ImGui::SetNextWindowPos( ImVec2(size.x, size.y), ImGuiCond_Always, ImVec2( 0.5f, 0 ) );
+	ImGui::SetNextWindowPos( ImVec2(io.DisplaySize.x/2, io.DisplaySize.y*0.84375f), ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
 	ImGui::Begin("spec", NULL, basic_flags | ImGuiWindowFlags_NoBackground);
 	CenterText(final_str, ImVec2(size.x, size.y/10));
 	ImGui::End();

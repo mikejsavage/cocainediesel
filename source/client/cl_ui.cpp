@@ -182,7 +182,7 @@ void UI_Init() {
 
 		io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 18.0f );
 		large_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 64.0f );
-		medium_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 32.0f );
+		medium_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 48.0f );
 		console_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 14.0f );
 		ImGuiFreeType::BuildFontAtlas( io.Fonts );
 
@@ -1024,9 +1024,7 @@ static void Scoreboard() {
 					ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 100 ) );
 					CenterTextWindow( String<16>("{}score", team_name), COM_Parse(&token), ImVec2( size.x/10, size.y/10 ), basic_flags );
 					ImGui::PopStyleColor();
-					if(io.DisplaySize.x <= 1280) ImGui::PopFont();
 					ImGui::SameLine();
-					if(io.DisplaySize.x <= 1280) ImGui::PushFont( large_font );
 					CenterText( team_name, ImVec2( size.x, size.y/10 ) );
 					ImGui::PopFont();
 				ImGui::EndChild();
@@ -1036,19 +1034,19 @@ static void Scoreboard() {
 
 
 				ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 50, 50, 50, 100 ) );
-				CenterTextWindow( String<16>("{}ping", team), "Ping", ImVec2( size.x/10, size.y/30 ), basic_flags );
+				CenterTextWindow( String<16>("{}ping", team), "Ping", ImVec2( size.x/10, size.y/25 ), basic_flags );
 
 				ImGui::SameLine();
-				CenterTextWindow( String<16>("{}name", team), "Player name", ImVec2( size.x*0.6f, size.y/30 ), basic_flags );
+				CenterTextWindow( String<16>("{}name", team), "Player name", ImVec2( size.x*0.6f, size.y/25 ), basic_flags );
 
 				ImGui::SameLine();
-				CenterTextWindow( String<16>("{}score", team), "Score", ImVec2( size.x/10, size.y/30 ), basic_flags );
+				CenterTextWindow( String<16>("{}score", team), "Score", ImVec2( size.x/10, size.y/25 ), basic_flags );
 
 				ImGui::SameLine();
-				CenterTextWindow( String<16>("{}kills", team), "Kills", ImVec2( size.x/10, size.y/30 ), basic_flags );
+				CenterTextWindow( String<16>("{}kills", team), "Kills", ImVec2( size.x/10, size.y/25 ), basic_flags );
 
 				ImGui::SameLine();
-				CenterTextWindow( String<16>("{}carrier", team), "Carrier", ImVec2( size.x/10, size.y/30 ), basic_flags );
+				CenterTextWindow( String<16>("{}carrier", team), "Carrier", ImVec2( size.x/10, size.y/25 ), basic_flags );
 				ImGui::PopStyleColor();
 
 				//players infos tab
@@ -1106,19 +1104,19 @@ static void Scoreboard() {
 			ImGui::PopFont();
 
 			ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 100, 100, 100, 100 ) );
-			CenterTextWindow( String<16>("ping"), "Ping", ImVec2( size_x2/12, size.y/30 ), basic_flags );
+			CenterTextWindow( String<16>("ping"), "Ping", ImVec2( size_x2/12, size.y/25 ), basic_flags );
 
 			ImGui::SameLine();
 			CenterTextWindow( String<16>("name"), "Player name", ImVec2( size_x2*0.75f, size.y/30 ), basic_flags );
 
 			ImGui::SameLine();
-			CenterTextWindow( String<16>("score"), "Score", ImVec2( size_x2/12, size.y/30 ), basic_flags );
+			CenterTextWindow( String<16>("score"), "Score", ImVec2( size_x2/12, size.y/25 ), basic_flags );
 
 			ImGui::SameLine();
-			CenterTextWindow( String<16>("kills"), "Kills", ImVec2( size_x2/12, size.y/30 ), basic_flags );
+			CenterTextWindow( String<16>("kills"), "Kills", ImVec2( size_x2/12, size.y/25 ), basic_flags );
 
 			ImGui::SameLine();
-			CenterTextWindow( String<16>("state"), "State", ImVec2( size.y/20, size.y/30 ), basic_flags );
+			CenterTextWindow( String<16>("state"), "State", ImVec2( size.y/20, size.y/25 ), basic_flags );
 			ImGui::PopStyleColor();
 
 			int i = 0;

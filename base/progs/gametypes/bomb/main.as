@@ -220,23 +220,16 @@ String @GT_ScoreboardMessage( uint maxlen ) {
 
 			cPlayer @player = @playerFromClient( @client );
 
-			int statusIcon = 0;
+			int state = matchState == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : player.isCarrier ? 1 : 0;
 
-			if( matchState == MATCH_STATE_PLAYTIME ) {
-				statusIcon = player.isCarrier ? iconCarrier : 0;
-			}
-			else if( matchState == MATCH_STATE_WARMUP && client.isReady() ) {
-				statusIcon = iconReady;
-			}
-
-			int playerId = ent.isGhosting() && matchState == MATCH_STATE_PLAYTIME ? -( ent.playerNum + 1 ) : ent.playerNum;
+			int playerId = ent.isGhosting() ? -( ent.playerNum + 1 ) : ent.playerNum;
 
 			// Name Clan Score Frags W1 W2 W3 Ping R
 			entry = "&p " + client.ping
 				+ " " + playerId
 				+ " " + client.stats.score
 				+ " " + client.stats.frags
-				+ " " + statusIcon
+				+ " " + state
 				+ " "; // don't delete me!
 
 			if( scoreboardMessage.len() + entry.len() < maxlen ) {

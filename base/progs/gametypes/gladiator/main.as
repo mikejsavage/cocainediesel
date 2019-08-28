@@ -744,7 +744,9 @@ String @GT_ScoreboardMessage( uint maxlen )
 	String entry;
 	Team @team;
 	Client @client;
-	int i, playerID;
+	int i;
+
+	int matchState = match.getState();
 
 	@team = @G_GetTeam( TEAM_PLAYERS );
 
@@ -759,17 +761,17 @@ String @GT_ScoreboardMessage( uint maxlen )
 		@client = @daRound.roundChallengers[j];
 		if ( @client != null )
 		{
-			if ( match.getState() != MATCH_STATE_PLAYTIME )
-				playerID = client.playerNum;
-			else
-				playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
 
-			entry = "&p " + client.ping + " "
-				+ playerID + " "
-				+ client.stats.score + " "
-				+ client.stats.frags + " "
-				+ aliveIcon + " "
-				+ ( client.isReady() ? "1" : "0" ) + " ";
+			int state = matchState == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : aliveIcon;
+
+			int playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
+
+			entry = "&p " + client.ping
+				+ " " + playerID
+				+ " " + client.stats.score
+				+ " " + client.stats.frags
+				+ " " + state
+				+ " ";
 
 			if ( scoreboardMessage.len() + entry.len() < maxlen )
 				scoreboardMessage += entry;
@@ -784,17 +786,16 @@ String @GT_ScoreboardMessage( uint maxlen )
 			@client = @daRound.roundLosers[j];
 			if ( @client != null )
 			{
-				if ( match.getState() != MATCH_STATE_PLAYTIME )
-					playerID = client.playerNum;
-				else
-					playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
+				int state = matchState == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : deadIcon;
 
-				entry = "&p " + client.ping + " "
-					+ playerID + " "
-					+ client.stats.score + " "
-					+ client.stats.frags + " "
-					+ deadIcon + " "
-					+ ( client.isReady() ? "1" : "0" ) + " ";
+				int playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
+
+				entry = "&p " + client.ping
+					+ " " + playerID
+					+ " " + client.stats.score
+					+ " " + client.stats.frags
+					+ " " + state
+					+ " ";
 
 				if ( scoreboardMessage.len() + entry.len() < maxlen )
 					scoreboardMessage += entry;
@@ -812,17 +813,16 @@ String @GT_ScoreboardMessage( uint maxlen )
 		if ( @client == null )
 			break;
 
-		if ( match.getState() != MATCH_STATE_PLAYTIME )
-			playerID = client.playerNum;
-		else
-			playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
+		int state = matchState == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : "0";
 
-		entry = "&p " + client.ping + " "
-			+ playerID + " "
-			+ client.stats.score + " "
-			+ client.stats.frags + " "
-			+ "0 " + " "
-			+ ( client.isReady() ? "1" : "0" ) + " ";
+		int playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
+
+		entry = "&p " + client.ping
+			+ " " + playerID
+			+ " " + client.stats.score
+			+ " " + client.stats.frags
+			+ " " + state
+			+ " ";
 
 		if ( scoreboardMessage.len() + entry.len() < maxlen )
 			scoreboardMessage += entry;

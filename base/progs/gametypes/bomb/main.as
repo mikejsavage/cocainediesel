@@ -203,7 +203,6 @@ Entity @GT_SelectSpawnPoint( Entity @self ) {
 
 String @GT_ScoreboardMessage( uint maxlen ) {
 	String scoreboardMessage = "";
-	int matchState = match.getState();
 
 	for( int t = TEAM_ALPHA; t < GS_MAX_TEAMS; t++ ) {
 		Team @team = @G_GetTeam( t );
@@ -220,8 +219,7 @@ String @GT_ScoreboardMessage( uint maxlen ) {
 
 			cPlayer @player = @playerFromClient( @client );
 
-			int state = matchState == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : player.isCarrier ? 1 : 0;
-
+			int state = match.getState() == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : ( player.isCarrier ? 1 : 0 );
 			int playerId = ent.isGhosting() ? -( ent.playerNum + 1 ) : ent.playerNum;
 
 			// Name Clan Score Frags W1 W2 W3 Ping R

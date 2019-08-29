@@ -202,6 +202,7 @@ void UI_Init() {
 		style.FrameBorderSize = 0;
 		style.WindowPadding = ImVec2( 16, 16 );
 		style.WindowBorderSize = 0;
+		style.PopupBorderSize = 0;
 		style.Colors[ ImGuiCol_WindowBg ] = ImColor( 0x1a, 0x1a, 0x1a );
 		style.ItemSpacing.y = 8;
 	}
@@ -994,17 +995,16 @@ void SCR_UpdateScoreboardMessage( const char *string ) {
 static void Scoreboard() {
 	const char * token = scoreboardString;
 	char *last = COM_Parse(&token);
+	bool warmup =	GS_MatchState() == MATCH_STATE_WARMUP;
 
 	ImGuiIO& io = ImGui::GetIO();
 	ImGuiStyle & style = ImGui::GetStyle();
 	ImVec2 size = io.DisplaySize;
 
-	bool warmup =	GS_MatchState() == MATCH_STATE_WARMUP ||
-					GS_MatchState() == MATCH_STATE_COUNTDOWN ||
-					GS_MatchState() == MATCH_STATE_POSTMATCH;
-
 	size.x *= 0.6f;
 	size.y *= 0.8f;
+	const float tab_height = size.y/22; //use float for precision
+
 	ImGuiWindowFlags basic_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
 
 	ImGui::SetNextWindowSize( ImVec2(size.x, -1) );
@@ -1044,25 +1044,22 @@ static void Scoreboard() {
 					CenterText( "Ping", ImVec2( size.x/10, size.y/25 ) );
 
 					ImGui::SameLine();
-					CenterText( "Player name", ImVec2( size.x*0.6f, size.y/25 ), ImVec2(size.x/10, 0) );
+					CenterText( "Player name", ImVec2( size.x*0.7f, size.y/25 ), ImVec2(size.x/10, 0) );
 
 					ImGui::SameLine();
-					CenterText( "Score", ImVec2( size.x/10, size.y/25 ), ImVec2(size.x*7/10, 0) );
+					CenterText( "Score", ImVec2( size.x/10, size.y/25 ), ImVec2(size.x*8/10, 0) );
 
 					ImGui::SameLine();
-					CenterText( "Kills", ImVec2( size.x/10, size.y/25 ), ImVec2(size.x*8/10, 0) );
-
-					ImGui::SameLine();
-					CenterText( warmup ? "Ready" : "Carrier", ImVec2( size.x/10, size.y/25 ), ImVec2(size.x*9/10, 0) );
+					CenterText( "Kills", ImVec2( size.x/10, size.y/25 ), ImVec2(size.x*9/10, 0) );
 				ImGui::EndChild();
 				ImGui::PopStyleColor();
 
 				//players infos tab
 				int height = 0;
 				ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 75 ));
-				ImGui::BeginChild( String<16>("{}players", team), ImVec2(size.x, size.y*num_players/20), basic_flags );
+				ImGui::BeginChild( String<16>("{}players", team), ImVec2(size.x, tab_height*num_players), basic_flags );
 					while( strcmp(last, "&t") != 0 && strcmp(last, "&s") != 0 ) {
-						CenterText( COM_Parse(&token), ImVec2( size.x/10, size.y/20 ), ImVec2(0, height) );
+						CenterText( COM_Parse(&token), ImVec2( size.x/10, tab_height ), ImVec2(0, height) );
 
 						ImGui::SameLine();
 
@@ -1078,24 +1075,25 @@ static void Scoreboard() {
 							a = 75;
 						}
 						ExpandColorTokens( &final_name, cgs.clientInfo[ply].name, a );
-						CenterText( final_name, ImVec2( size.x*0.6f, size.y/20 ), ImVec2(size.x/10, height) );
+						ImVec2 t_size = ImGui::CalcTextSize(final_name);
+						ImGui::SetCursorPos( ImVec2(size.x*1.25f/10, height + (tab_height - t_size.y)/2 ) );
+						ImGui::Text( final_name );
 
 						ImGui::SameLine();
-						CenterText( COM_Parse(&token), ImVec2( size.x/10, size.y/20 ), ImVec2(size.x*7/10, height ) );
+						CenterText( COM_Parse(&token), ImVec2( size.x/10, tab_height ), ImVec2(size.x*8/10, height ) );
 
 						ImGui::SameLine();
-						CenterText( COM_Parse(&token), ImVec2( size.x/10, size.y/20 ), ImVec2(size.x*8/10, height ) );
+						CenterText( COM_Parse(&token), ImVec2( size.x/10, tab_height ), ImVec2(size.x*9/10, height ) );
 
 						ImGui::SameLine();
-						ImGui::SetCursorPos(ImVec2(size.x*9/10, height));
-						bool state = (bool(atoi(COM_Parse(&token))) ^ !warmup); //ready/dead
-						if(state) ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 255*int(!warmup), 255*int(warmup), 0, 100 ) );
-							ImGui::BeginChild( String<16>("{}state", ply), ImVec2( size.x/10, size.y/20 ), basic_flags );
-							ImGui::EndChild();
-						if(state) ImGui::PopStyleColor();
+						if(atoi(COM_Parse(&token))) {
+							ImGui::SetCursorPos(ImVec2((size.x*8/10)-tab_height, height));
+							if(warmup)	ImGui::Image(CG_MediaShader( cgs.media.shaderTick ), ImVec2(tab_height, tab_height), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(255,255,255,128));
+							else		ImGui::Image(CG_MediaShader( cgs.media.shaderBombIcon ), ImVec2(tab_height, tab_height), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(255,255,255,128));
+						}
 
 						last = COM_Parse(&token);
-						height += size.y/20;
+						height += tab_height;
 					}
 				ImGui::EndChild();
 				ImGui::PopStyleColor();
@@ -1120,26 +1118,23 @@ static void Scoreboard() {
 				CenterText( "Ping", ImVec2( size.x/10, size.y/25 ), ImVec2( 0, 0 ) );
 
 				ImGui::SameLine();
-				CenterText( "Player name", ImVec2( size.x*0.6f, size.y/25 ), ImVec2( size.x/10, 0 ) );
+				CenterText( "Player name", ImVec2( size.x*0.7f, size.y/25 ), ImVec2( size.x/10, 0 ) );
 
 				ImGui::SameLine();
-				CenterText( "Score", ImVec2( size.x/10, size.y/25 ), ImVec2( size.x*7/10, 0 ) );
+				CenterText( "Score", ImVec2( size.x/10, size.y/25 ), ImVec2( size.x*8/10, 0 ) );
 
 				ImGui::SameLine();
-				CenterText( "Kills", ImVec2( size.x/10, size.y/25 ), ImVec2( size.x*8/10, 0 ) );
-
-				ImGui::SameLine();
-				CenterText( warmup ? "Ready" : "State", ImVec2( size.x/10, size.y/25 ), ImVec2( size.x*9/10, 0 ) );
+				CenterText( "Kills", ImVec2( size.x/10, size.y/25 ), ImVec2( size.x*9/10, 0 ) );
 			ImGui::EndChild();
 			ImGui::PopStyleColor();
 
 			if(num_players) {
 				int height = 0;
 				ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 255, 255, 255, 75 ) );
-				ImGui::BeginChild( "players", ImVec2(size.x, size.y*num_players/20), basic_flags );
+				ImGui::BeginChild( "players", ImVec2(size.x, tab_height*num_players), basic_flags );
 				//players tab
 					while( strcmp(last, "&s") != 0 ) {
-						CenterText( COM_Parse(&token), ImVec2( size.x/10, size.y/20 ), ImVec2( 0, height ) );
+						CenterText( COM_Parse(&token), ImVec2( size.x/10, tab_height ), ImVec2( 0, height ) );
 						ImGui::SameLine();
 
 						//player name
@@ -1154,25 +1149,25 @@ static void Scoreboard() {
 							a = 75;
 						}
 						ExpandColorTokens( &final_name, cgs.clientInfo[ply].name, a );
-						CenterText( final_name, ImVec2( size.x*0.6f, size.y/20 ), ImVec2( size.x/10, height ) );
+						ImVec2 t_size = ImGui::CalcTextSize(final_name);
+						ImGui::SetCursorPos( ImVec2(size.x*1.25f/10, height + (tab_height - t_size.y)/2 ) );
+						ImGui::Text( final_name );
 
 						ImGui::SameLine();
-						CenterText( COM_Parse(&token), ImVec2( size.x/10, size.y/20 ), ImVec2( size.x*7/10, height ) );
+						CenterText( COM_Parse(&token), ImVec2( size.x/10, tab_height ), ImVec2( size.x*8/10, height ) );
 
 						ImGui::SameLine();
-						CenterText( COM_Parse(&token), ImVec2( size.x/10, size.y/20 ), ImVec2( size.x*8/10, height ) );
+						CenterText( COM_Parse(&token), ImVec2( size.x/10, tab_height ), ImVec2( size.x*9/10, height ) );
 
 						ImGui::SameLine();
-						bool state = (bool(atoi(COM_Parse(&token))) ^ !warmup); //ready/dead
-						if(state) ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 255*int(!warmup), 255*int(warmup), 0, 100 ) );
-							ImGui::SetCursorPos(ImVec2( size.x*9/10, height ));
-							ImGui::BeginChild( String<16>("state{}", ply), ImVec2( size.x/10, size.y/20 ), basic_flags );
-							ImGui::EndChild();
-						if(state) ImGui::PopStyleColor();
-
-
+						ImGui::SetCursorPos(ImVec2((size.x*8/10)-tab_height, height));
+						if(atoi(COM_Parse(&token))) {
+							if(warmup)		ImGui::Image(CG_MediaShader( cgs.media.shaderTick ), ImVec2(tab_height, tab_height), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(255,255,255,128));
+							else			ImGui::Image(CG_MediaShader( cgs.media.shaderAlive ), ImVec2(tab_height, tab_height), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(255,255,255,128));
+						} else if(!warmup)	ImGui::Image(CG_MediaShader( cgs.media.shaderDead ), ImVec2(tab_height, tab_height), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(255,255,255,128));
+						
 						last = COM_Parse(&token);
-						height += size.y/20;
+						height += tab_height;
 					}
 				ImGui::EndChild();
 				ImGui::PopStyleColor();

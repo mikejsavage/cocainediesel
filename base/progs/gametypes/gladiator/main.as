@@ -29,8 +29,6 @@ const float CountdownInitialSwitchDelay = 0.1;
 
 const int MAX_HEALTH = 333;
 
-int deadIcon;
-int aliveIcon;
 int[] endMatchSounds;
 
 int crownModel;
@@ -762,7 +760,7 @@ String @GT_ScoreboardMessage( uint maxlen )
 		if ( @client != null )
 		{
 
-			int state = matchState == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : aliveIcon;
+			int state = matchState == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : 1;
 
 			int playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
 
@@ -786,7 +784,7 @@ String @GT_ScoreboardMessage( uint maxlen )
 			@client = @daRound.roundLosers[j];
 			if ( @client != null )
 			{
-				int state = matchState == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : deadIcon;
+				int state = matchState == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : 0;
 
 				int playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
 
@@ -813,7 +811,7 @@ String @GT_ScoreboardMessage( uint maxlen )
 		if ( @client == null )
 			break;
 
-		int state = matchState == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : "0";
+		int state = matchState == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : 0;
 
 		int playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
 
@@ -1063,7 +1061,5 @@ void GT_InitGametype()
 	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/drillbit", true ) );
 	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/demo", true ) );
 
-	deadIcon = G_ImageIndex( "gfx/gladiator_icons/dead" );
-	aliveIcon = G_ImageIndex( "gfx/gladiator_icons/alive" );
 	crownModel = G_ModelIndex( "models/objects/crown.glb", true );
 }

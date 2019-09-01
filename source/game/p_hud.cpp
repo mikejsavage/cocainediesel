@@ -23,49 +23,37 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 char scoreboardString[MAX_STRING_CHARS];
 const unsigned int scoreboardInterval = 1000;
 
-//======================================================================
-//
-//PLAYER SCOREBOARDS
-//
-//======================================================================
-
 /*
 * G_ClientUpdateScoreBoardMessage
 *
 * Show the scoreboard messages if the scoreboards are active
 */
 void G_UpdateScoreBoardMessages( void ) {
-	static int nexttime = 0;
-	int i;
-	edict_t *ent;
-	gclient_t *client;
-	bool forcedUpdate = false;
 	char command[MAX_STRING_CHARS];
-	size_t maxlen, staticlen;
 
 	// fixme : mess of copying
-	maxlen = MAX_STRING_CHARS - ( strlen( "scb \"\"" + 4 ) );
+	size_t maxlen = MAX_STRING_CHARS - ( strlen( "scb \"\"" ) + 4 );
 
 	GT_asCallScoreboardMessage( maxlen );
 
 	G_ScoreboardMessage_AddSpectators();
 
-	staticlen = strlen( scoreboardString );
+	size_t staticlen = strlen( scoreboardString );
 
 	// send to players who have scoreboard visible
-	for( i = 0; i < gs.maxclients; i++ ) {
-		ent = game.edicts + 1 + i;
+	for( int i = 0; i < gs.maxclients; i++ ) {
+		edict_t * ent = game.edicts + 1 + i;
 		if( !ent->r.inuse || !ent->r.client ) {
 			continue;
 		}
 
-		client = ent->r.client;
+		gclient_t * client = ent->r.client;
 
 		if( game.realtime <= client->level.scoreboard_time + scoreboardInterval ) {
 			continue;
 		}
 
-		if( forcedUpdate || ( client->ps.stats[STAT_LAYOUTS] & STAT_LAYOUT_SCOREBOARD ) ) {
+		if( client->ps.stats[STAT_LAYOUTS] & STAT_LAYOUT_SCOREBOARD ) {
 			scoreboardString[staticlen] = '\0';
 			Q_snprintfz( command, sizeof( command ), "scb \"%s\"", scoreboardString );
 

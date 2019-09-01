@@ -598,10 +598,8 @@ void CG_DamageIndicatorAdd( int damage, const vec3_t dir );
 //
 // cg_scoreboard.c
 //
-void CG_DrawScoreboard( void );
 void CG_ScoresOn_f( void );
 void CG_ScoresOff_f( void );
-bool CG_ExecuteScoreboardTemplateLayout( char *s );
 
 //
 // cg_main.c

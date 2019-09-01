@@ -533,10 +533,6 @@ void GT_InitGametype() {
 		gametype.setTeamSpawnsystem( t, SPAWNSYSTEM_INSTANT, 0, 0, false );
 	}
 
-	// define the scoreboard layout
-	G_ConfigString( CS_SCB_PLAYERTAB_LAYOUT, "%n 112 %s 52 %i 42 %i 42 %l 36 %p l1" );
-	G_ConfigString( CS_SCB_PLAYERTAB_TITLES, "Name Clan Score Frags Ping " + S_COLOR_WHITE );
-
 	// add commands
 	G_RegisterCommand( "drop" );
 	G_RegisterCommand( "carrier" );

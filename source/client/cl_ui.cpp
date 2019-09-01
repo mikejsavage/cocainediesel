@@ -1394,20 +1394,15 @@ void UI_ShowGameMenu( bool spectating, bool ready ) {
 }
 
 bool UI_ScoreboardShown() {
-	if( !cgs.configStrings[CS_SCB_PLAYERTAB_LAYOUT][0] ) { // no layout defined
-		return false;
-	}
-
 	if( scoreboardString[0] != '&' ) { // nothing to draw
 		return false;
 	}
-
 
 	if( cgs.demoPlaying || cg.frame.multipov ) {
 		return cg.showScoreboard || ( GS_MatchState() > MATCH_STATE_PLAYTIME );
 	}
 
-	return ( cg.predictedPlayerState.stats[STAT_LAYOUTS] & STAT_LAYOUT_SCOREBOARD ) ? true : false;
+	return ( cg.predictedPlayerState.stats[STAT_LAYOUTS] & STAT_LAYOUT_SCOREBOARD ) != 0;
 }
 
 void UI_ShowScoreboard() {

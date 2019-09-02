@@ -3,7 +3,7 @@
 #include "qcommon/types.h"
 
 const char * FS_RootPath();
-Span< u8 > FS_ReadEntireFile( Allocator * a, const char * path );
+Span< char > FS_ReadFileString( Allocator * a, const char * path );
 
 struct ListDirHandle {
 	char impl[ 64 ];

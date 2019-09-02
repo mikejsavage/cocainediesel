@@ -1,4 +1,8 @@
+#include "qcommon/base.h"
 #include "qcommon/qcommon.h"
+#include "qcommon/assets.h"
+#include "qcommon/hash.h"
+#include "qcommon/hashtable.h"
 #include "sound.h"
 
 #define AL_LIBTYPE_STATIC
@@ -10,7 +14,6 @@
 #include "stb/stb_vorbis.h"
 
 struct SoundAsset {
-	char filename[ MAX_QPATH ];
 	ALuint buffer;
 };
 
@@ -46,8 +49,12 @@ static cvar_t * s_volume;
 static cvar_t * s_musicvolume;
 static cvar_t * s_muteinbackground;
 
-static SoundAsset sound_assets[ 4096 ];
+constexpr size_t MAX_SOUND_ASSETS = 4096;
+
+static SoundAsset sound_assets[ MAX_SOUND_ASSETS ];
 static size_t num_sound_assets;
+static Hashtable< MAX_SOUND_ASSETS * 2 > sound_assets_hashtable;
+
 static const SoundAsset * menu_music_asset;
 
 static PlayingSound playing_sounds[ 128 ];
@@ -83,12 +90,6 @@ static void S_ALAssert() {
 	ALenum err = alGetError();
 	if( err != AL_NO_ERROR ) {
 		Sys_Error( "%s", S_ErrorMessage( err ) );
-	}
-}
-
-static void S_SoundList_f( void ) {
-	for( size_t i = 0; i < num_sound_assets; i++ ) {
-		Com_Printf( "%s\n", sound_assets[ i ].filename );
 	}
 }
 
@@ -130,50 +131,47 @@ static bool S_InitAL() {
 	return true;
 }
 
-static const SoundAsset * S_Register( const char * filename, bool allow_stereo ) {
-	MICROPROFILE_SCOPEI( "Assets", "S_Register", 0xffffffff );
+static void LoadSound( const char * path, bool allow_stereo ) {
+	MICROPROFILE_SCOPEI( "Assets", "LoadSound", 0xffffffff );
 
 	assert( num_sound_assets < ARRAY_COUNT( sound_assets ) );
 	SoundAsset * sfx = &sound_assets[ num_sound_assets ];
 
-	// TODO: maybe we need to dedupe this.
-	Q_strncpyz( sfx->filename, filename, sizeof( sfx->filename ) - 1 );
-	Q_strncatz( sfx->filename, ".ogg", sizeof( sfx->filename ) - 1 );
-
-	uint8_t * compressed_data;
-	int compressed_len = FS_LoadFile( sfx->filename, ( void ** ) &compressed_data, NULL, 0 );
-	if( compressed_data == NULL ) {
-		Com_Printf( S_COLOR_RED "Couldn't read file %s\n", sfx->filename );
-		return NULL;
-	}
+	Span< const u8 > ogg = AssetBinary( path );
 
 	int channels, sample_rate;
-	int16_t * data;
-	int num_samples = stb_vorbis_decode_memory( compressed_data, compressed_len, &channels, &sample_rate, &data );
-	if( channels == -1 ) {
-		Com_Printf( S_COLOR_RED "Couldn't decode sound %s\n", sfx->filename );
-		FS_FreeFile( compressed_data );
-		return NULL;
+	s16 * samples;
+	int num_samples = stb_vorbis_decode_memory( ogg.ptr, ogg.num_bytes(), &channels, &sample_rate, &samples );
+	if( num_samples == -1 ) {
+		Com_Printf( S_COLOR_RED "Couldn't decode sound %s\n", path );
+		return;
 	}
 
+	defer { free( samples ); };
+
 	if( !allow_stereo && channels != 1 ) {
-		Com_Printf( S_COLOR_RED "Couldn't load sound %s: needs to be a mono file!\n", sfx->filename );
-		FS_FreeFile( compressed_data );
-		free( data );
-		return NULL;
+		Com_Printf( S_COLOR_RED "Couldn't load sound %s: needs to be a mono file!\n", path );
+		return;
 	}
 
 	ALenum format = channels == 1 ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
 	alGenBuffers( 1, &sfx->buffer );
-	alBufferData( sfx->buffer, format, data, num_samples * channels * sizeof( int16_t ), sample_rate );
+	alBufferData( sfx->buffer, format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
 	S_ALAssert();
 
-	free( data );
-	FS_FreeFile( compressed_data );
-
+	sound_assets_hashtable.add( Hash64( path, strlen( path ) - strlen( ".ogg" ) ), num_sound_assets );
 	num_sound_assets++;
+}
 
-	return sfx;
+static void LoadSoundAssets() {
+	for( const char * path : AssetPaths() ) {
+		const char * ext = COM_FileExtension( path );
+		if( ext == NULL || strcmp( ext, ".ogg" ) != 0 )
+			continue;
+
+		bool stereo = strcmp( path, "sounds/music/menu_1.ogg" ) == 0;
+		LoadSound( path, stereo );
+	}
 }
 
 bool S_Init() {
@@ -190,13 +188,14 @@ bool S_Init() {
 	s_muteinbackground = Cvar_Get( "s_muteinbackground", "1", CVAR_ARCHIVE );
 	s_muteinbackground->modified = true;
 
-	Cmd_AddCommand( "soundlist", S_SoundList_f );
-
 	if( !S_InitAL() )
 		return false;
 
-	menu_music_asset = S_Register( "sounds/music/menu_1", true );
+	LoadSoundAssets();
+
 	initialized = true;
+
+	menu_music_asset = S_RegisterSound( "sounds/music/menu_1" );
 
 	return true;
 }
@@ -220,14 +219,13 @@ void S_Shutdown() {
 
 	alcDestroyContext( al_context );
 	alcCloseDevice( al_device );
-
-	Cmd_RemoveCommand( "soundlist" );
 }
 
 const SoundAsset * S_RegisterSound( const char * filename ) {
-	if( !initialized )
+	u64 idx;
+	if( !initialized || !sound_assets_hashtable.get( StringHash( filename ).hash, &idx ) )
 		return NULL;
-	return S_Register( filename, false );
+	return &sound_assets[ idx ];
 }
 
 static void swap( PlayingSound * a, PlayingSound * b ) {

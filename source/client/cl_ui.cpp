@@ -1025,8 +1025,8 @@ static void Scoreboard() {
 						ImGui::SameLine();
 						if(atoi(COM_Parse(&token))) {
 							ImGui::SetCursorPos(ImVec2(0, height));
-							if(warmup)	ImGui::Image(CG_MediaShader( cgs.media.shaderTick ), ImVec2(tab_height, tab_height), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(255,255,255,128));
-							else		ImGui::Image(CG_MediaShader( cgs.media.shaderBombIcon ), ImVec2(tab_height, tab_height), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(255,255,255,128));
+							if(warmup)	ImGui::Image(CG_MediaShader( cgs.media.shaderTick ), ImVec2(tab_height, tab_height), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(0,0,0,0));
+							else		ImGui::Image(CG_MediaShader( cgs.media.shaderBombIcon ), ImVec2(tab_height, tab_height), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(0,0,0,0));
 						}
 
 						//player name

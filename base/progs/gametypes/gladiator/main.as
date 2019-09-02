@@ -764,11 +764,11 @@ String @GT_ScoreboardMessage( uint maxlen )
 
 			int playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
 
-			entry = "&p " + client.ping
+			entry = "&p " + state
 				+ " " + playerID
 				+ " " + client.stats.score
 				+ " " + client.stats.frags
-				+ " " + state
+				+ " " + client.ping
 				+ " ";
 
 			if ( scoreboardMessage.len() + entry.len() < maxlen )

@@ -223,11 +223,11 @@ String @GT_ScoreboardMessage( uint maxlen ) {
 			int playerId = ent.isGhosting() ? -( ent.playerNum + 1 ) : ent.playerNum;
 
 			// Name Clan Score Frags W1 W2 W3 Ping R
-			entry = "&p " + client.ping
+			entry = "&p " + state
 				+ " " + playerId
 				+ " " + client.stats.score
 				+ " " + client.stats.frags
-				+ " " + state
+				+ " " + client.ping
 				+ " "; // don't delete me!
 
 			if( scoreboardMessage.len() + entry.len() < maxlen ) {

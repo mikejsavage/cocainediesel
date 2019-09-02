@@ -991,7 +991,6 @@ static void Scoreboard() {
 					ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 100 ) );
 						CenterTextWindow( String<16>("{}score", team), COM_Parse(&token), ImVec2( size.x/10, size.y/10 ), basic_flags );
 					ImGui::PopStyleColor();
-					ImGui::SameLine();
 					CenterText( GS_DefaultTeamName(team), ImVec2( size.x, size.y/10 ) );
 					ImGui::PopFont();
 				ImGui::EndChild();
@@ -1002,18 +1001,14 @@ static void Scoreboard() {
 
 				ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 75, 75, 75, 100 ) );
 				ImGui::BeginChild( String<16>("{}", team), ImVec2(size.x, size.y/25), basic_flags );
+
 					ImVec2 t_size = ImGui::CalcTextSize("Player name");
-					ImGui::SetCursorPos( ImVec2(tab_height*3/2, (size.y/25 - t_size.y)/2 ) );
+					ImGui::SetCursorPos( ImVec2(tab_height, (size.y/25 - t_size.y)/2 ) );
 					ImGui::Text( "Player name" );
-
-					ImGui::SameLine();
 					CenterText( "Score", ImVec2( size.x/10, size.y/25 ), ImVec2(size.x*7/10, 0) );
-
-					ImGui::SameLine();
 					CenterText( "Kills", ImVec2( size.x/10, size.y/25 ), ImVec2(size.x*8/10, 0) );
-
-					ImGui::SameLine();
 					CenterText( "Ping", ImVec2( size.x/10, size.y/25 ), ImVec2(size.x*9/10, 0) );
+
 				ImGui::EndChild();
 				ImGui::PopStyleColor();
 
@@ -1022,11 +1017,10 @@ static void Scoreboard() {
 				ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 75 ));
 				ImGui::BeginChild( String<16>("{}players", team), ImVec2(size.x, tab_height*num_players), basic_flags );
 					while( strcmp(last, "&t") != 0 && strcmp(last, "&s") != 0 ) {
-						ImGui::SameLine();
 						if(atoi(COM_Parse(&token))) {
-							ImGui::SetCursorPos(ImVec2(0, height));
-							if(warmup)	ImGui::Image(CG_MediaShader( cgs.media.shaderTick ), ImVec2(tab_height, tab_height), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(0,0,0,0));
-							else		ImGui::Image(CG_MediaShader( cgs.media.shaderBombIcon ), ImVec2(tab_height, tab_height), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(0,0,0,0));
+							ImGui::SetCursorPos(ImVec2(tab_height/8, height + tab_height/8));
+							if(warmup)	ImGui::Image(CG_MediaShader( cgs.media.shaderTick ), ImVec2(tab_height/1.25, tab_height/1.25), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(0,0,0,0));
+							else		ImGui::Image(CG_MediaShader( cgs.media.shaderBombIcon ), ImVec2(tab_height/1.25, tab_height/1.25), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(0,0,0,0));
 						}
 
 						//player name
@@ -1042,14 +1036,11 @@ static void Scoreboard() {
 						}
 						ExpandColorTokens( &final_name, cgs.clientInfo[ply].name, a );
 						ImVec2 t_size = ImGui::CalcTextSize(final_name);
-						ImGui::SetCursorPos( ImVec2(tab_height*3/2, height + (tab_height - t_size.y)/2 ) );
+						ImGui::SetCursorPos( ImVec2(tab_height, height + (tab_height - t_size.y)/2 ) );
 						ImGui::Text( final_name );
 
-						ImGui::SameLine();
 						CenterText( COM_Parse(&token), ImVec2( size.x/10, tab_height ), ImVec2(size.x*7/10, height) );
-						ImGui::SameLine();
 
-						ImGui::SameLine();
 						CenterText( COM_Parse(&token), ImVec2( size.x/10, tab_height ), ImVec2(size.x*8/10, height ) );
 
 						int ping = atoi(COM_Parse(&token));
@@ -1079,18 +1070,14 @@ static void Scoreboard() {
 
 			ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 75, 75, 75, 100 ) );
 			ImGui::BeginChild( "scoreboard", ImVec2( size.x, size.y/25 ), basic_flags );
+
 				ImVec2 t_size = ImGui::CalcTextSize("Player name");
-				ImGui::SetCursorPos( ImVec2(tab_height*3/2, (tab_height - t_size.y)/2 ) );
+				ImGui::SetCursorPos( ImVec2(tab_height, (tab_height - t_size.y)/2 ) );
 				ImGui::Text( "Player name" );
+				CenterText( "Score", ImVec2( size.x/10, size.y/25 ), ImVec2( size.x*7/10, 0 ) );
+				CenterText( "Kills", ImVec2( size.x/10, size.y/25 ), ImVec2( size.x*8/10, 0 ) );
+				CenterText( "Ping", ImVec2( size.x/10, size.y/25 ), ImVec2( size.x*9/10, 0 ) );
 
-				ImGui::SameLine();
-				CenterText( "Ping", ImVec2( size.x/10, size.y/25 ), ImVec2( size.x*7/10, 0 ) );
-
-				ImGui::SameLine();
-				CenterText( "Score", ImVec2( size.x/10, size.y/25 ), ImVec2( size.x*8/10, 0 ) );
-
-				ImGui::SameLine();
-				CenterText( "Kills", ImVec2( size.x/10, size.y/25 ), ImVec2( size.x*9/10, 0 ) );
 			ImGui::EndChild();
 			ImGui::PopStyleColor();
 
@@ -1100,12 +1087,12 @@ static void Scoreboard() {
 				ImGui::BeginChild( "players", ImVec2(size.x, tab_height*num_players), basic_flags );
 				//players tab
 					while( strcmp(last, "&s") != 0 ) {
+						ImGui::SetCursorPos(ImVec2(tab_height/8, height + tab_height/8));
 						if(atoi(COM_Parse(&token))) {
-							if(warmup)		ImGui::Image(CG_MediaShader( cgs.media.shaderTick ), ImVec2(tab_height, tab_height), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(255,255,255,128));
-							else			ImGui::Image(CG_MediaShader( cgs.media.shaderAlive ), ImVec2(tab_height, tab_height), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(255,255,255,128));
-						} else if(!warmup)	ImGui::Image(CG_MediaShader( cgs.media.shaderDead ), ImVec2(tab_height, tab_height), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(255,255,255,128));
+							if(warmup)		ImGui::Image(CG_MediaShader( cgs.media.shaderTick ), ImVec2(tab_height/1.25, tab_height/1.25), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(0,0,0,0));
+							else			ImGui::Image(CG_MediaShader( cgs.media.shaderAlive ), ImVec2(tab_height/1.25, tab_height/1.25), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(0,0,0,0));
+						} else if(!warmup)	ImGui::Image(CG_MediaShader( cgs.media.shaderDead ), ImVec2(tab_height/1.25, tab_height/1.25), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(0,0,0,0));
 						
-						ImGui::SameLine();
 						//player name
 						int ply = atoi(COM_Parse(&token));
 						uint8_t a = 255;
@@ -1119,17 +1106,13 @@ static void Scoreboard() {
 						}
 						ExpandColorTokens( &final_name, cgs.clientInfo[ply].name, a );
 						ImVec2 t_size = ImGui::CalcTextSize(final_name);
-						ImGui::SetCursorPos( ImVec2(tab_height*3/2, height + (tab_height - t_size.y)/2 ) );
+						ImGui::SetCursorPos( ImVec2(tab_height, height + (tab_height - t_size.y)/2 ) );
 						ImGui::Text( final_name );
 
-						ImGui::SameLine();
 						CenterText( COM_Parse(&token), ImVec2( size.x/10, tab_height ), ImVec2( size.x*7/10, height ) );
-						ImGui::SameLine();
 
-						ImGui::SameLine();
 						CenterText( COM_Parse(&token), ImVec2( size.x/10, tab_height ), ImVec2( size.x*8/10, height ) );
 
-						ImGui::SameLine();
 						int ping = atoi(COM_Parse(&token));
 						uint8_t escape[] = { 033, 255, max(1, 255 - ping), max(1, 255 - ping*2), 255 };
 						CenterText( String<16>("{}{}", (char *)escape, ping), ImVec2( size.x/10, tab_height ), ImVec2( size.x*9/10, height ) );

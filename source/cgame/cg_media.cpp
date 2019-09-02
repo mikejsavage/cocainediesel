@@ -314,8 +314,8 @@ void CG_RegisterMediaShaders( void ) {
 	cgs.media.shaderKeyIcon[KEYICON_SPECIAL] = CG_RegisterMediaShader( PATH_KEYICON_SPECIAL );
 
 	cgs.media.shaderTick = CG_RegisterMediaShader( PATH_VSAY_YES_ICON );
-	cgs.media.shaderAlive = CG_RegisterMediaShader( "gfx/gladiator_icons/dead" );
-	cgs.media.shaderDead = CG_RegisterMediaShader( "gfx/gladiator_icons/alive" );
+	cgs.media.shaderAlive = CG_RegisterMediaShader( "gfx/gladiator_icons/alive" );
+	cgs.media.shaderDead = CG_RegisterMediaShader( "gfx/gladiator_icons/dead" );
 }
 
 /*

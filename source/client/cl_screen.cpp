@@ -399,8 +399,6 @@ void SCR_BeginLoadingPlaque( void ) {
 	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 
 	scr_draw_loading = 2;   // clear to black first
-
-	SCR_UpdateScreen();
 }
 
 /*
@@ -467,6 +465,8 @@ void SCR_UpdateScreen( void ) {
 
 	re.BeginFrame();
 
+	CL_ImGuiBeginFrame();
+
 	if( scr_draw_loading == 2 ) {
 		// loading plaque over APP_STARTUP_COLOR screen
 		scr_draw_loading = 0;
@@ -495,6 +495,8 @@ void SCR_UpdateScreen( void ) {
 			SCR_DrawDebugGraph();
 		}
 	}
+
+	CL_ImGuiEndFrame();
 
 	re.EndFrame();
 }

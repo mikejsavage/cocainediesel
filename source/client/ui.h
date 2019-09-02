@@ -4,7 +4,6 @@ const char * FindNextColorToken( const char * str, char * token );
 void ExpandColorTokens( String< 256 > * str, const char * name, uint8_t alpha );
 
 void UI_Init();
-void UI_Shutdown();
 void UI_TouchAllAssets();
 void UI_KeyEvent( bool mainContext, int key, bool down );
 void UI_CharEvent( bool mainContext, wchar_t key );

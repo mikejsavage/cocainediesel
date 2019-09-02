@@ -1516,7 +1516,6 @@ void CL_SetClientState( connstate_t state ) {
 	switch( state ) {
 		case CA_DISCONNECTED:
 			Con_Close();
-			UI_Refresh();
 			UI_ShowMainMenu();
 			CL_SetKeyDest( key_menu );
 			break;
@@ -1536,7 +1535,6 @@ void CL_SetClientState( connstate_t state ) {
 			cl_connectChain[0] = '\0';
 			CL_EndRegistration();
 			Con_Close();
-			UI_Refresh();
 			UI_HideMenu();
 			CL_SetKeyDest( key_game );
 			break;
@@ -1577,6 +1575,7 @@ void CL_InitMedia( void ) {
 	SCR_RegisterConsoleMedia();
 
 	// load user interface
+	CL_InitImGui();
 	UI_Init();
 
 	// check memory integrity
@@ -2319,7 +2318,7 @@ void CL_Shutdown( void ) {
 		cls.servername = NULL;
 	}
 
-	UI_Shutdown();
+	CL_ShutdownImGui();
 	CL_GameModule_Shutdown();
 	S_Shutdown();
 	CL_ShutdownInput();

@@ -460,3 +460,12 @@ void CL_Profiler_InitGL();
 void CL_Profiler_ShutdownGL();
 
 void CL_Profiler_Flip();
+
+//
+// cl_imgui
+//
+
+void CL_InitImGui();
+void CL_ShutdownImGui();
+void CL_ImGuiBeginFrame();
+void CL_ImGuiEndFrame();

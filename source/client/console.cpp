@@ -318,6 +318,7 @@ void Con_Draw( int pressed_key ) {
 		input_flags |= ImGuiInputTextFlags_EnterReturnsTrue;
 
 		ImGui::PushItemWidth( ImGui::GetWindowWidth() );
+		ImGui::SetKeyboardFocusHere();
 		bool enter = ImGui::InputText( "##consoleinput", console.input, sizeof( console.input ), input_flags, InputCallback );
 		// can't drag the scrollbar without this
 		if( !ImGui::IsAnyItemActive() )

@@ -25,6 +25,7 @@
 #include "renderer/r_public.h"
 #include "cgame/cg_public.h"
 #include "ftlib/ftlib_public.h"
+#include "imgui/imgui.h"
 
 #include "vid.h"
 #include "ui.h"
@@ -464,6 +465,10 @@ void CL_Profiler_Flip();
 //
 // cl_imgui
 //
+
+extern ImFont * large_font;
+extern ImFont * medium_font;
+extern ImFont * console_font;
 
 void CL_InitImGui();
 void CL_ShutdownImGui();

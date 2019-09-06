@@ -3,8 +3,11 @@
 #include "client/client.h"
 #include "client/sdl/sdl_window.h"
 
-#include "imgui/imgui.h"
 #include "imgui/imgui_impl_sdl.h"
+
+ImFont * large_font;
+ImFont * medium_font;
+ImFont * console_font;
 
 void CL_InitImGui() {
 	IMGUI_CHECKVERSION();

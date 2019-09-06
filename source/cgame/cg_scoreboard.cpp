@@ -1,6 +1,6 @@
 #include "cgame/cg_local.h"
-
-#include "imgui/imgui.h"
+#include "client/client.h"
+#include "qcommon/string.h"
 
 static char scoreboardString[MAX_STRING_CHARS];
 
@@ -31,8 +31,6 @@ static void CenterTextWindow( const char *title, const char *text, ImVec2 size, 
 		CenterText( text, size );
 	ImGui::EndChild();
 }
-
-RGB8 CG_TeamColor( int team );
 
 void CG_DrawScoreboard() {
 	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, 0 ) );
@@ -109,18 +107,17 @@ void CG_DrawScoreboard() {
 						//player name
 						int ply = atoi(COM_Parse(&token));
 						uint8_t a = 255;
-						//TempAllocator tmp = cls.frame_arena->temp();
-	        			//DynamicString final_name( &tmp );
-	        			String< 256 > final_name;
+						TempAllocator tmp = cls.frame_arena->temp();
+	        			DynamicString final_name( &tmp );
 						//if player is dead
 						if( ply < 0 ) {
 							ply = -1 - ply;
 							a = 75;
 						}
 						CL_ImGuiExpandColorTokens( &final_name, cgs.clientInfo[ply].name, a );
-						ImVec2 t_size = ImGui::CalcTextSize(final_name);
+						ImVec2 t_size = ImGui::CalcTextSize(final_name.c_str());
 						ImGui::SetCursorPos( ImVec2(tab_height, height + (tab_height - t_size.y)/2 ) );
-						ImGui::Text( "%s", final_name );
+						ImGui::Text( "%s", final_name.c_str() );
 
 						CenterText( COM_Parse(&token), ImVec2( size.x/10, tab_height ), ImVec2(size.x*7/10, height) );
 
@@ -179,18 +176,17 @@ void CG_DrawScoreboard() {
 						//player name
 						int ply = atoi(COM_Parse(&token));
 						uint8_t a = 255;
-						//TempAllocator tmp = cls.frame_arena->temp();
-		    			//DynamicString final_name( &tmp );
-		    			String< 256 > final_name;
+						TempAllocator tmp = cls.frame_arena->temp();
+		    			DynamicString final_name( &tmp );
 						//if player is dead
 						if( ply < 0 ) {
 							ply = -1 - ply;
 							a = 75;
 						}
 						CL_ImGuiExpandColorTokens( &final_name, cgs.clientInfo[ply].name, a );
-						ImVec2 t_size = ImGui::CalcTextSize(final_name);
+						ImVec2 t_size = ImGui::CalcTextSize(final_name.c_str());
 						ImGui::SetCursorPos( ImVec2(tab_height, height + (tab_height - t_size.y)/2 ) );
-						ImGui::Text( "%s", final_name );
+						ImGui::Text( "%s", final_name.c_str() );
 
 						CenterText( COM_Parse(&token), ImVec2( size.x/10, tab_height ), ImVec2( size.x*7/10, height ) );
 
@@ -214,9 +210,8 @@ void CG_DrawScoreboard() {
 			return;
 		}
 
-		//TempAllocator tmp = cls.frame_arena->temp();
-	    //DynamicString final_str( &tmp );
-	    String< 256 > final_str;
+		TempAllocator tmp = cls.frame_arena->temp();
+	    DynamicString final_str( &tmp );
 		String< 256 > spectators = "Spectating : ";
 
 		while(*last) {
@@ -227,7 +222,7 @@ void CG_DrawScoreboard() {
 			}
 		}
 		CL_ImGuiExpandColorTokens( &final_str, spectators, 200 );
-		CenterTextWindow("spec", final_str, ImVec2(size.x, size.y/10), basic_flags | ImGuiWindowFlags_NoBackground);
+		CenterTextWindow("spec", final_str.c_str(), ImVec2(size.x, size.y/10), basic_flags | ImGuiWindowFlags_NoBackground);
 
 	ImGui::End();
 

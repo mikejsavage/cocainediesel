@@ -1,10 +1,7 @@
 #include "client/client.h"
 #include "qcommon/version.h"
-#include "qcommon/string.h"
-#include "qcommon/utf8.h"
 #include "client/sdl/sdl_window.h"
 
-#include "imgui/imgui.h"
 #include "imgui/imgui_freetype.h"
 #include "imgui/imgui_internal.h"
 
@@ -46,10 +43,6 @@ struct Server {
 	const char * address;
 	const char * info;
 };
-
-static ImFont * large_font;
-static ImFont * medium_font;
-static ImFont * console_font;
 
 static Server servers[ 1024 ];
 static int num_servers = 0;
@@ -98,7 +91,6 @@ void UI_Init() {
 		medium_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 48.0f );
 		console_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 14.0f );
 		ImGuiFreeType::BuildFontAtlas( io.Fonts );
-
 		u8 * pixels;
 		int width, height;
 		io.Fonts->GetTexDataAsAlpha8( &pixels, &width, &height );

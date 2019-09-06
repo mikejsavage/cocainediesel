@@ -56,9 +56,6 @@ cvar_t *cg_showPlayerNames_barWidth;
 
 cvar_t *cg_showPressedKeys;
 
-cvar_t *cg_scoreboardWidthScale;
-cvar_t *cg_scoreboardStats;
-
 cvar_t *cg_showViewBlends;
 
 static int64_t scr_damagetime = 0;
@@ -119,9 +116,6 @@ void CG_ScreenInit( void ) {
 	cg_showPlayerNames_barWidth =   trap_Cvar_Get( "cg_showPlayerNames_barWidth", "8", CVAR_ARCHIVE );
 
 	cg_showPressedKeys = trap_Cvar_Get( "cg_showPressedKeys", "0", CVAR_ARCHIVE );
-
-	cg_scoreboardWidthScale = trap_Cvar_Get( "cg_scoreboardWidthScale", "1.0", CVAR_ARCHIVE );
-	cg_scoreboardStats =    trap_Cvar_Get( "cg_scoreboardStats", "1", CVAR_ARCHIVE );
 }
 
 /*
@@ -332,7 +326,7 @@ void CG_ClearPointedNum( void ) {
 */
 static void CG_UpdatePointedNum( void ) {
 	// disable cases
-	if( cg.view.thirdperson || cg.view.type != VIEWDEF_PLAYERVIEW || !cg_showPointedPlayer->integer ) {
+	if( CG_ScoreboardShown() || cg.view.thirdperson || cg.view.type != VIEWDEF_PLAYERVIEW || !cg_showPointedPlayer->integer ) {
 		CG_ClearPointedNum();
 		return;
 	}
@@ -372,6 +366,11 @@ void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color ) {
 	}
 
 	CG_UpdatePointedNum();
+
+	// don't draw when scoreboard is up
+	if( CG_ScoreboardShown() ) {
+		return;
+	}
 
 	for( i = 0; i < gs.maxclients; i++ ) {
 		if( !cgs.clientInfo[i].name[0] || ISVIEWERENTITY( i + 1 ) ) {
@@ -498,6 +497,10 @@ void CG_DrawTeamMates( void ) {
 	int i;
 	int pic_size = 18 * cgs.vidHeight / 600;
 
+	// don't draw when scoreboard is up
+	if( CG_ScoreboardShown() ) {
+		return;
+	}
 	if( cg.predictedPlayerState.stats[STAT_TEAM] < TEAM_ALPHA ) {
 		return;
 	}
@@ -992,9 +995,10 @@ void CG_Draw2DView( void ) {
 	CG_DrawHUD();
 
 	scr_centertime_off -= cg.frameTime;
-	UI_ShowScoreboard();
-
-	if( scr_centertime_off > 0 ) {
+	if( CG_ScoreboardShown() ) {
+		CG_DrawScoreboard();
+	}
+	else if( scr_centertime_off > 0 ) {
 		CG_DrawCenterString();
 	}
 

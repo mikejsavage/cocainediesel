@@ -542,8 +542,6 @@ void CG_Predict_TouchTriggers( pmove_t *pm, vec3_t previous_origin );
 //
 // cg_screen.c
 //
-extern cvar_t *cg_scoreboardStats;
-extern cvar_t *cg_scoreboardWidthScale;
 extern cvar_t *cg_showFPS;
 extern cvar_t *cg_showAwards;
 
@@ -598,8 +596,11 @@ void CG_DamageIndicatorAdd( int damage, const vec3_t dir );
 //
 // cg_scoreboard.c
 //
-void CG_ScoresOn_f( void );
-void CG_ScoresOff_f( void );
+void CG_DrawScoreboard();
+void CG_ScoresOn_f();
+void CG_ScoresOff_f();
+void SCR_UpdateScoreboardMessage( const char * string );
+bool CG_ScoreboardShown();
 
 //
 // cg_main.c

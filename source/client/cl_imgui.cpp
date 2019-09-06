@@ -1,4 +1,5 @@
 #include "qcommon/base.h"
+#include "qcommon/utf8.h"
 #include "client/client.h"
 #include "client/sdl/sdl_window.h"
 
@@ -111,4 +112,42 @@ void CL_ImGuiBeginFrame() {
 void CL_ImGuiEndFrame() {
 	ImGui::Render();
 	SubmitDrawCalls();
+}
+
+void CL_ImGuiExpandColorTokens( DynamicString * result, const char * original, u8 alpha ) {
+	assert( alpha > 0 );
+
+	const char * p = original;
+	const char * end = p + strlen( p );
+
+	if( alpha != 255 ) {
+		const u8 escape[] = { 033, 255, 255, 255, alpha };
+		result->append_raw( ( const char * ) escape, sizeof( escape ) );
+	}
+
+	while( p < end ) {
+		char token;
+		const char * before = FindNextColorToken( p, &token );
+
+		if( before == NULL ) {
+			result->append_raw( p, end - p );
+			break;
+		}
+
+		result->append_raw( p, before - p );
+
+		if( token == '^' ) {
+			*result += "^";
+		}
+		else {
+			const vec4_t & c = color_table[ token - '0' ];
+			u8 r = max( 1, u8( c[ 0 ] * 255.0f ) );
+			u8 g = max( 1, u8( c[ 1 ] * 255.0f ) );
+			u8 b = max( 1, u8( c[ 2 ] * 255.0f ) );
+			const u8 escape[] = { 033, r, g, b, alpha };
+			result->append_raw( ( const char * ) escape, sizeof( escape ) );
+		}
+
+		p = before + 2;
+	}
 }

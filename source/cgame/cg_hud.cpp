@@ -288,7 +288,7 @@ enum race_index {
 };
 
 static int CG_GetScoreboardShown( const void *parameter ) {
-	return UI_ScoreboardShown() ? 1 : 0;
+	return CG_ScoreboardShown() ? 1 : 0;
 }
 
 typedef struct

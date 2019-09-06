@@ -7,8 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "qcommon/types.h"
 #include "qcommon/platform.h"
+#include "qcommon/types.h"
 #include "qcommon/ggformat.h"
 #include "qcommon/linear_algebra.h"
 
@@ -79,8 +79,34 @@ void Swap2( T * a, T * b ) {
 }
 
 template< typename T >
+constexpr T AlignPow2( T x, T alignment ) {
+	return ( x + alignment - 1 ) & ~( alignment - 1 );
+}
+
+template< typename T >
 constexpr bool IsPowerOf2( T x ) {
 	return ( x & ( x - 1 ) ) == 0;
+}
+
+template< typename T >
+constexpr T Min2( const T & a, const T & b ) {
+	return a < b ? a : b;
+}
+
+template< typename T >
+constexpr T Max2( const T & a, const T & b ) {
+	return a > b ? a : b;
+}
+
+template< typename T >
+T Clamp( const T & lo, const T & x, const T & hi ) {
+	assert( lo <= hi );
+	return Max2( lo, Min2( x, hi ) );
+}
+
+template< typename T >
+T Clamp01( const T & x ) {
+	return Max2( T( 0 ), Min2( x, T( 1 ) ) );
 }
 
 /*

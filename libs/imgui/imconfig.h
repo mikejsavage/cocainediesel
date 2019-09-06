@@ -72,16 +72,26 @@ namespace ImGui
 }
 */
 
+#include "qcommon/types.h"
+
+#define IM_VEC2_CLASS_EXTRA \
+	ImVec2( const Vec2 & v ) { x = v.x; y = v.y; } \
+	operator Vec2() const { return Vec2( x, y ); }
+
+#define IM_VEC4_CLASS_EXTRA \
+	ImVec4( const Vec4 & v ) { x = v.x; y = v.y; z = v.z; w = v.w; } \
+	operator Vec4() const { return Vec4( x, y, z, w ); }
+
 // copied from gpuvis
 // https://github.com/ocornut/imgui/issues/902
-#define IMGUI_TEXT_ESCAPE_SKIP()    \
+#define IMGUI_TEXT_ESCAPE_SKIP() \
 	if (c == '\033' && s[1] && s[2] && s[3] && s[4]) \
 	{ \
 		s += 5; \
 		continue; \
 	}
 
-#define IMGUI_TEXT_ESCAPE_RENDER()  \
+#define IMGUI_TEXT_ESCAPE_RENDER() \
 	if (c == '\033' && s[1] && s[2] && s[3] && s[4]) \
 	{ \
 		const unsigned char *us = (const unsigned char *)s; \

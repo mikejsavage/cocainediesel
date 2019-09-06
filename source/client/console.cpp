@@ -1,5 +1,7 @@
-#include "client.h"
+#include "client/client.h"
+#include "qcommon/string.h"
 #include "qcommon/utf8.h"
+
 #include "imgui/imgui.h"
 
 // TODO: revamp key_dest garbage
@@ -266,6 +268,7 @@ const char * NextChunkEnd( const char * str ) {
 void Con_Draw( int pressed_key ) {
 	QMutex_Lock( console.mutex );
 
+	ImGui::PushFont( cls.console_font );
 	ImGui::PushStyleColor( ImGuiCol_FrameBg, IM_COL32( 27, 24, 33, 224 ) );
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0, 0, 0, 0 ) );
 	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
@@ -274,6 +277,7 @@ void Con_Draw( int pressed_key ) {
 	ImGui::SetNextWindowPos( ImVec2() );
 	ImGui::SetNextWindowSize( ImVec2( viddef.width, viddef.height ) );
 	ImGui::Begin( "console", NULL, ImGuiWindowFlags_NoDecoration );
+
 	{
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 27, 24, 33, 224 ) );
 		ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8, 4 ) );
@@ -340,6 +344,7 @@ void Con_Draw( int pressed_key ) {
 	ImGui::End();
 	ImGui::PopStyleVar( 3 );
 	ImGui::PopStyleColor( 2 );
+	ImGui::PopFont();
 
 	QMutex_Unlock( console.mutex );
 }

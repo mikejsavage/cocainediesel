@@ -1,8 +1,10 @@
 #include "qcommon/base.h"
+#include "qcommon/string.h"
 #include "qcommon/utf8.h"
 #include "client/client.h"
 #include "client/sdl/sdl_window.h"
 
+#include "imgui/imgui.h"
 #include "imgui/imgui_impl_sdl.h"
 
 ImFont * large_font;

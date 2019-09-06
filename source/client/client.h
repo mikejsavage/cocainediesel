@@ -25,7 +25,6 @@
 #include "renderer/r_public.h"
 #include "cgame/cg_public.h"
 #include "ftlib/ftlib_public.h"
-#include "imgui/imgui.h"
 
 #include "vid.h"
 #include "ui.h"
@@ -36,6 +35,7 @@
 
 typedef struct shader_s shader_t;
 typedef struct qfontface_s qfontface_t;
+struct ImFont;
 
 //=============================================================================
 
@@ -262,6 +262,10 @@ typedef struct {
 	purelist_t *purelist;
 
 	char session[MAX_INFO_VALUE];
+
+	ImFont * large_font;
+	ImFont * medium_font;
+	ImFont * console_font;
 } client_static_t;
 
 extern client_static_t cls;
@@ -466,13 +470,10 @@ void CL_Profiler_Flip();
 // cl_imgui
 //
 
-extern ImFont * large_font;
-extern ImFont * medium_font;
-extern ImFont * console_font;
-
 void CL_InitImGui();
 void CL_ShutdownImGui();
 void CL_ImGuiBeginFrame();
 void CL_ImGuiEndFrame();
 
+struct DynamicString;
 void CL_ImGuiExpandColorTokens( DynamicString * result, const char * original, u8 alpha );

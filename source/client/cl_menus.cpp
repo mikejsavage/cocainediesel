@@ -1,7 +1,9 @@
 #include "client/client.h"
 #include "qcommon/version.h"
+#include "qcommon/string.h"
 #include "client/sdl/sdl_window.h"
 
+#include "imgui/imgui.h"
 #include "imgui/imgui_freetype.h"
 #include "imgui/imgui_internal.h"
 
@@ -87,10 +89,11 @@ void UI_Init() {
 	{
 		ImGuiIO & io = ImGui::GetIO();
 		io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 18.0f );
-		large_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 64.0f );
-		medium_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 48.0f );
-		console_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 14.0f );
+		cls.large_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 64.0f );
+		cls.medium_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 48.0f );
+		cls.console_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 14.0f );
 		ImGuiFreeType::BuildFontAtlas( io.Fonts );
+
 		u8 * pixels;
 		int width, height;
 		io.Fonts->GetTexDataAsAlpha8( &pixels, &width, &height );
@@ -637,7 +640,7 @@ static void MainMenu() {
 	ImGui::BeginChild( "mainmenubody", ImVec2( 0, -ImGui::GetFrameHeightWithSpacing() + window_padding.y ) );
 
 	ImGui::SetCursorPosX( 2 + 2 * sinf( cls.monotonicTime / 20.0f ) );
-	ImGui::PushFont( large_font );
+	ImGui::PushFont( cls.large_font );
 	ImGui::Text( "COCAINE DIESEL" );
 	ImGui::PopFont();
 
@@ -929,9 +932,7 @@ void UI_Refresh() {
 	ImGui::ShowDemoWindow();
 
 	if( Con_IsVisible() ) {
-		ImGui::PushFont( console_font );
 		Con_Draw( pressed_key );
-		ImGui::PopFont();
 	}
 
 	Cbuf_Execute();

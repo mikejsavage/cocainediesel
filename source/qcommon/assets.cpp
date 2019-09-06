@@ -4,6 +4,7 @@
 #include "qcommon/fs.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
+#include "qcommon/string.h"
 
 struct Asset {
 	char * path;

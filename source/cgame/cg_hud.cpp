@@ -26,9 +26,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cg_local.h"
 #include "client/ui.h"
 
-extern cvar_t *cg_clientHUD;
-extern cvar_t *cg_specHUD;
-
 //=============================================================================
 
 enum { DEFAULTSCALE=0, NOSCALE, SCALEBYWIDTH, SCALEBYHEIGHT };
@@ -2593,7 +2590,7 @@ void CG_ExecuteLayoutProgram( struct cg_layoutnode_s *rootnode ) {
 // Loads the HUD-file recursively. Recursive includes now supported
 // Also processes "preload" statements for graphics pre-loading
 #define HUD_MAX_LVL 16 // maximum levels of recursive file loading
-static char *CG_LoadHUDFile( char *path ) {
+static char *CG_LoadHUDFile( const char *path ) {
 	char *rec_fn[HUD_MAX_LVL]; // Recursive filenames...
 	char *rec_buf[HUD_MAX_LVL]; // Recursive file contents buffers
 	char *rec_ptr[HUD_MAX_LVL]; // Recursive file position buffers
@@ -2755,7 +2752,7 @@ static char *CG_LoadHUDFile( char *path ) {
 /*
 * CG_LoadStatusBarFile
 */
-static void CG_LoadStatusBarFile( char *path ) {
+static void CG_LoadStatusBarFile( const char *path ) {
 	char *opt;
 
 	assert( path && path[0] );
@@ -2785,30 +2782,6 @@ static void CG_LoadStatusBarFile( char *path ) {
 /*
 * CG_LoadStatusBar
 */
-void CG_LoadStatusBar( void ) {
-	cvar_t *hud = ISREALSPECTATOR() ? cg_specHUD : cg_clientHUD;
-	const char *default_hud = "default";
-	size_t filename_size;
-	char *filename;
-
-	assert( hud );
-
-	// buffer for filenames
-	filename_size = strlen( "huds/" ) + max( strlen( default_hud ), strlen( hud->string ) ) + 4 + 1;
-	filename = ( char * )alloca( filename_size );
-
-	// always load default first. Custom second if needed
-	Q_snprintfz( filename, filename_size, "huds/%s", default_hud );
-	COM_DefaultExtension( filename, ".hud", filename_size );
-	CG_LoadStatusBarFile( filename );
-
-	if( hud->string[0] ) {
-		if( Q_stricmp( hud->string, default_hud ) ) {
-			Q_snprintfz( filename, filename_size, "huds/%s", hud->string );
-			COM_DefaultExtension( filename, ".hud", filename_size );
-			CG_LoadStatusBarFile( filename );
-		}
-	} else {
-		trap_Cvar_Set( hud->name, default_hud );
-	}
+void CG_LoadStatusBar() {
+	CG_LoadStatusBarFile( "huds/default.hud" );
 }

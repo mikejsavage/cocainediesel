@@ -408,7 +408,6 @@ typedef struct {
 	int effects;
 
 	bool showScoreboard;            // demos and multipov
-	bool specStateChanged;
 
 	unsigned int multiviewPlayerNum;       // for multipov chasing, takes effect on next snap
 
@@ -458,7 +457,6 @@ extern mempool_t *cg_mempool;
 #define ISBRUSHMODEL( x ) ( ( ( x > 0 ) && ( (int)x < trap_CM_NumInlineModels() ) ) ? true : false )
 
 #define ISREALSPECTATOR()       ( cg.frame.playerState.stats[STAT_REALTEAM] == TEAM_SPECTATOR )
-#define SPECSTATECHANGED()      ( ( cg.frame.playerState.stats[STAT_REALTEAM] == TEAM_SPECTATOR ) != ( cg.oldFrame.playerState.stats[STAT_REALTEAM] == TEAM_SPECTATOR ) )
 
 extern centity_t cg_entities[MAX_EDICTS];
 

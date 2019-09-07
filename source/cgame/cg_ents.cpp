@@ -355,8 +355,6 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 		return false;
 	}
 
-	cg.specStateChanged = SPECSTATECHANGED() || lerpframe == NULL || cg.firstFrame;
-
 	// a new server frame begins now
 	CG_FixVolumeCvars();
 

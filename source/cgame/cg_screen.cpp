@@ -44,8 +44,6 @@ cvar_t *cg_crosshair_color;
 cvar_t *cg_crosshair_damage_color;
 cvar_t *cg_crosshair_size;
 
-cvar_t *cg_clientHUD;
-cvar_t *cg_specHUD;
 cvar_t *cg_showSpeed;
 cvar_t *cg_showAwards;
 
@@ -103,8 +101,6 @@ void CG_ScreenInit( void ) {
 	cg_crosshair_color->modified = true;
 	cg_crosshair_damage_color->modified = true;
 
-	cg_clientHUD =      trap_Cvar_Get( "cg_clientHUD", "default", CVAR_ARCHIVE );
-	cg_specHUD =        trap_Cvar_Get( "cg_specHUD", "default", CVAR_ARCHIVE );
 	cg_showSpeed =      trap_Cvar_Get( "cg_showSpeed", "0", CVAR_ARCHIVE );
 	cg_showPointedPlayer =  trap_Cvar_Get( "cg_showPointedPlayer", "1", CVAR_ARCHIVE );
 	cg_showViewBlends = trap_Cvar_Get( "cg_showViewBlends", "1", CVAR_ARCHIVE );
@@ -116,6 +112,8 @@ void CG_ScreenInit( void ) {
 	cg_showPlayerNames_barWidth =   trap_Cvar_Get( "cg_showPlayerNames_barWidth", "8", CVAR_ARCHIVE );
 
 	cg_showPressedKeys = trap_Cvar_Get( "cg_showPressedKeys", "0", CVAR_ARCHIVE );
+
+	Cmd_AddCommand( "reloadhud", CG_LoadStatusBar );
 }
 
 /*
@@ -888,18 +886,6 @@ static void CG_SCRDrawViewBlend( void ) {
 * CG_DrawHUD
 */
 void CG_DrawHUD() {
-	// if changed from or to spec, reload the HUD
-	if( cg.specStateChanged ) {
-		cg_specHUD->modified = cg_clientHUD->modified = true;
-		cg.specStateChanged = false;
-	}
-
-	cvar_t *hud = ISREALSPECTATOR() ? cg_specHUD : cg_clientHUD;
-	if( hud->modified ) {
-		CG_LoadStatusBar();
-		hud->modified = false;
-	}
-
 	CG_ExecuteLayoutProgram( cg.statusBar );
 }
 

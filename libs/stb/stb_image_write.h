@@ -1,4 +1,4 @@
-/* stb_image_write - v1.11 - public domain - http://nothings.org/stb/stb_image_write.h
+/* stb_image_write - v1.13 - public domain - http://nothings.org/stb
    writes out PNG/BMP/TGA/JPEG/HDR images to C stdio - Sean Barrett 2010-2015
                                      no warranty implied; use at your own risk
 
@@ -9,11 +9,6 @@
    in the file that you want to have the implementation.
 
    Will probably not work correctly with strict-aliasing optimizations.
-
-   If using a modern Microsoft Compiler, non-safe versions of CRT calls may cause 
-   compilation warnings or even errors. To avoid this, also before #including,
-
-       #define STBI_MSC_SECURE_CRT
 
 ABOUT:
 
@@ -299,7 +294,7 @@ STBIW_EXTERN __declspec(dllimport) int __stdcall WideCharToMultiByte(unsigned in
 
 STBIWDEF int stbiw_convert_wchar_to_utf8(char *buffer, size_t bufferlen, const wchar_t* input)
 {
-	return WideCharToMultiByte(65001 /* UTF8 */, 0, input, -1, buffer, bufferlen, NULL, NULL);
+	return WideCharToMultiByte(65001 /* UTF8 */, 0, input, -1, buffer, (int) bufferlen, NULL, NULL);
 }
 #endif
 
@@ -393,7 +388,7 @@ static void stbiw__putc(stbi__write_context *s, unsigned char c)
 static void stbiw__write3(stbi__write_context *s, unsigned char a, unsigned char b, unsigned char c)
 {
    unsigned char arr[3];
-   arr[0] = a, arr[1] = b, arr[2] = c;
+   arr[0] = a; arr[1] = b; arr[2] = c;
    s->func(s->context, arr, 3);
 }
 
@@ -441,10 +436,11 @@ static void stbiw__write_pixels(stbi__write_context *s, int rgb_dir, int vdir, i
    if (stbi__flip_vertically_on_write)
       vdir *= -1;
 
-   if (vdir < 0)
-      j_end = -1, j = y-1;
-   else
-      j_end =  y, j = 0;
+   if (vdir < 0) {
+      j_end = -1; j = y-1;
+   } else {
+      j_end =  y; j = 0;
+   }
 
    for (; j != j_end; j += vdir) {
       for (i=0; i < x; ++i) {
@@ -736,8 +732,8 @@ static int stbi_write_hdr_core(stbi__write_context *s, int x, int y, int comp, f
       char header[] = "#?RADIANCE\n# Written by stb_image_write.h\nFORMAT=32-bit_rle_rgbe\n";
       s->func(s->context, header, sizeof(header)-1);
 
-#ifdef STBI_MSC_SECURE_CRT
-      len = sprintf_s(buffer, "EXPOSURE=          1.0000000000000\n\n-Y %d +X %d\n", y, x);
+#ifdef __STDC_WANT_SECURE_LIB__
+      len = sprintf_s(buffer, sizeof(buffer), "EXPOSURE=          1.0000000000000\n\n-Y %d +X %d\n", y, x);
 #else
       len = sprintf(buffer, "EXPOSURE=          1.0000000000000\n\n-Y %d +X %d\n", y, x);
 #endif
@@ -872,7 +868,7 @@ STBIWDEF unsigned char * stbi_zlib_compress(unsigned char *data, int data_len, i
    unsigned int bitbuf=0;
    int i,j, bitcount=0;
    unsigned char *out = NULL;
-   unsigned char ***hash_table = (unsigned char***) STBIW_MALLOC(stbiw__ZHASH * sizeof(char**));
+   unsigned char ***hash_table = (unsigned char***) STBIW_MALLOC(stbiw__ZHASH * sizeof(unsigned char**));
    if (hash_table == NULL)
       return NULL;
    if (quality < 5) quality = 5;
@@ -895,7 +891,7 @@ STBIWDEF unsigned char * stbi_zlib_compress(unsigned char *data, int data_len, i
       for (j=0; j < n; ++j) {
          if (hlist[j]-data > i-32768) { // if entry lies within window
             int d = stbiw__zlib_countm(hlist[j], data+i, data_len-i);
-            if (d >= best) best=d,bestloc=hlist[j];
+            if (d >= best) { best=d; bestloc=hlist[j]; }
          }
       }
       // when hash table entry is too long, delete half the entries
@@ -954,8 +950,8 @@ STBIWDEF unsigned char * stbi_zlib_compress(unsigned char *data, int data_len, i
       int blocklen = (int) (data_len % 5552);
       j=0;
       while (j < data_len) {
-         for (i=0; i < blocklen; ++i) s1 += data[j+i], s2 += s1;
-         s1 %= 65521, s2 %= 65521;
+         for (i=0; i < blocklen; ++i) { s1 += data[j+i]; s2 += s1; }
+         s1 %= 65521; s2 %= 65521;
          j += blocklen;
          blocklen = 5552;
       }
@@ -1534,6 +1530,8 @@ STBIWDEF int stbi_write_jpg(char const *filename, int x, int y, int comp, const 
 #endif // STB_IMAGE_WRITE_IMPLEMENTATION
 
 /* Revision history
+      1.11  (2019-08-11)
+             
       1.10  (2019-02-07)
              support utf8 filenames in Windows; fix warnings and platform ifdefs 
       1.09  (2018-02-11)

@@ -8,7 +8,6 @@ static char scoreboardString[ MAX_STRING_CHARS ];
 
 void SCR_UpdateScoreboardMessage( const char *string ) {
 	Q_strncpyz( scoreboardString, string, sizeof( scoreboardString ) );
-	printf( "%s\n", string );
 }
 
 bool CG_ScoreboardShown() {
@@ -63,10 +62,6 @@ void CG_DrawScoreboard() {
 		while( strcmp(last, "&s") != 0 ) {
 			int team = atoi(COM_Parse(&token));
 			RGB8 color = CG_TeamColor( team );
-			int num_players = 0;
-			for(int i = 7; scoreboardString[i] != 't' && scoreboardString[i] != 's'; i++ ) if(scoreboardString[i] == 'p') num_players++;
-			if(num_players < 5) num_players = 5;
-
 
 			//team name and score tab
 			ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 100 ) );
@@ -79,6 +74,8 @@ void CG_DrawScoreboard() {
 			ImGui::PopFont();
 			ImGui::EndChild();
 			ImGui::PopStyleColor();
+
+			int num_players = Max2( 5, atoi(COM_Parse(&token)) );
 
 			last = COM_Parse(&token);
 
@@ -134,12 +131,8 @@ void CG_DrawScoreboard() {
 			ImGui::PopStyleColor();
 		}
 	} else {
-		COM_Parse(&token);
-		COM_Parse(&token);
+		int num_players = atoi(COM_Parse(&token));
 		last = COM_Parse(&token);
-
-		int num_players = 0;
-		for(int i = 7; scoreboardString[i] != 's'; i++ ) if(scoreboardString[i] == 'p') num_players++;
 
 		ImGui::Begin( "scoreboard", NULL, basic_flags | ImGuiWindowFlags_NoBackground );
 		ImGui::PushFont( cls.large_font );

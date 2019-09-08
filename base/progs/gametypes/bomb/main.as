@@ -203,6 +203,7 @@ Entity @GT_SelectSpawnPoint( Entity @self ) {
 
 String @GT_ScoreboardMessage( uint maxlen ) {
 	String scoreboardMessage = "";
+	bool warmup = match.getState() == MATCH_STATE_WARMUP;
 
 	for( int t = TEAM_ALPHA; t < GS_MAX_TEAMS; t++ ) {
 		Team @team = @G_GetTeam( t );
@@ -213,13 +214,16 @@ String @GT_ScoreboardMessage( uint maxlen ) {
 			scoreboardMessage += entry;
 		}
 
-		for( int i = 0; @team.ent( i ) != null; i++ ) {
+		int i;
+		int scblen = scoreboardMessage.len() + 4; // 4 stands for max num players (and one space)
+		String plyinfo = "";
+		for( i = 0; @team.ent( i ) != null; i++ ) {
 			Entity @ent = @team.ent( i );
 			Client @client = @ent.client;
 
 			cPlayer @player = @playerFromClient( @client );
 
-			int state = match.getState() == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : ( player.isCarrier ? 1 : 0 );
+			int state = warmup ? ( client.isReady() ? 1 : 0 ) : ( player.isCarrier ? 1 : 0 );
 			int playerId = ent.isGhosting() ? -( ent.playerNum + 1 ) : ent.playerNum;
 
 			// Name Clan Score Frags W1 W2 W3 Ping R
@@ -230,9 +234,12 @@ String @GT_ScoreboardMessage( uint maxlen ) {
 				+ " " + client.ping
 				+ " "; // don't delete me!
 
-			if( scoreboardMessage.len() + entry.len() < maxlen ) {
-				scoreboardMessage += entry;
+			if( scblen + plyinfo.len() + entry.len() < maxlen ) {
+				plyinfo += entry;
 			}
+		}
+		if( scblen + plyinfo.len() < maxlen ) {
+			scoreboardMessage += i + " " + plyinfo;
 		}
 	}
 

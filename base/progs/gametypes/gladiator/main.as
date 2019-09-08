@@ -738,31 +738,29 @@ Entity @GT_SelectSpawnPoint( Entity @self )
 
 String @GT_ScoreboardMessage( uint maxlen )
 {
-	String scoreboardMessage = "";
 	String entry;
 	Team @team;
 	Client @client;
-	int i;
+	int i, scblen;
 
-	int matchState = match.getState();
+	String scbteam = "&t ";
+	int challengers = daRound.roundChallengers.size();
+	int loosers = daRound.roundLosers.size();
+	bool warmup = match.getState() == MATCH_STATE_WARMUP;
 
 	@team = @G_GetTeam( TEAM_PLAYERS );
 
-	// &t = team tab, team tag, team score (doesn't apply), team ping (doesn't apply)
-	entry = "&t " + int( TEAM_PLAYERS ) + " " + team.stats.score + " ";
-	if ( scoreboardMessage.len() + entry.len() < maxlen )
-		scoreboardMessage += entry;
-
 	// first add the players in the duel
-	for ( uint j = 0; j < daRound.roundChallengers.size(); j++ )
+	scblen = scbteam.len() + 4; // 4 stands for max num players (and one space)
+	String plyinfo = "";
+	for ( i = 0; i < challengers; i++ )
 	{
-		@client = @daRound.roundChallengers[j];
+		@client = @daRound.roundChallengers[i];
 		if ( @client != null )
 		{
 
-			int state = matchState == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : 1;
-
-			int playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
+			int state = warmup ? ( client.isReady() ? 1 : 0 ) : 1;
+			int playerID = client.playerNum;
 
 			entry = "&p " + state
 				+ " " + playerID
@@ -771,22 +769,22 @@ String @GT_ScoreboardMessage( uint maxlen )
 				+ " " + client.ping
 				+ " ";
 
-			if ( scoreboardMessage.len() + entry.len() < maxlen )
-				scoreboardMessage += entry;
+			if ( scblen + plyinfo.len() + entry.len() < maxlen ) {
+				plyinfo += entry;
+			}
 		}
 	}
 
 	// then add the round losers
-	if ( daRound.state > DA_ROUNDSTATE_NONE && daRound.state < DA_ROUNDSTATE_POSTROUND && daRound.roundLosers.size() > 0 )
+	if ( daRound.state > DA_ROUNDSTATE_NONE && daRound.state < DA_ROUNDSTATE_POSTROUND && loosers > 0 )
 	{
-		for ( int j = daRound.roundLosers.size()-1; j >= 0; j-- )
+		for ( i = loosers-1; i >= 0; i-- )
 		{
-			@client = @daRound.roundLosers[j];
+			@client = @daRound.roundLosers[i];
 			if ( @client != null )
 			{
-				int state = matchState == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : 0;
-
-				int playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
+				int state = warmup ? ( client.isReady() ? 1 : 0 ) : 0;
+				int playerID = -( client.playerNum + 1 );
 
 				entry = "&p " + state
 					+ " " + playerID
@@ -795,8 +793,9 @@ String @GT_ScoreboardMessage( uint maxlen )
 					+ " " + client.ping
 					+ " ";
 
-				if ( scoreboardMessage.len() + entry.len() < maxlen )
-					scoreboardMessage += entry;
+				if ( scblen + plyinfo.len() + entry.len() < maxlen ) {
+					plyinfo += entry;
+				}
 			}
 		}
 	}
@@ -811,8 +810,7 @@ String @GT_ScoreboardMessage( uint maxlen )
 		if ( @client == null )
 			break;
 
-		int state = matchState == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : 0;
-
+		int state = warmup ? ( client.isReady() ? 1 : 0 ) : 0;
 		int playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
 
 		entry = "&p " + state
@@ -822,12 +820,12 @@ String @GT_ScoreboardMessage( uint maxlen )
 			+ " " + client.ping
 			+ " ";
 
-		if ( scoreboardMessage.len() + entry.len() < maxlen )
-			scoreboardMessage += entry;
-
+		if ( scblen + plyinfo.len() + entry.len() < maxlen ) {
+			plyinfo += entry;
+		}
 	}
 
-	return scoreboardMessage;
+	return scbteam + (challengers + loosers + i) + " " + plyinfo;
 }
 
 // Some game actions trigger score events. These are events not related to killing

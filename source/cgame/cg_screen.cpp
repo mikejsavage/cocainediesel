@@ -688,7 +688,7 @@ struct Bomb {
 	int team;
 };
 
-static BombSite bomb_sites[ 2 ];
+static BombSite bomb_sites[ 26 ];
 static size_t num_bomb_sites;
 static Bomb bomb;
 

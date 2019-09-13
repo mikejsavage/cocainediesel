@@ -63,7 +63,7 @@ class cBombSite
 	cBombSite @next;
 
 	cBombSite( Entity @ent, bool hasTargets, int team ) {
-		if( siteCount >= SITE_LETTERS.length() ) {
+		if( siteCount >= MAX_SITES ) {
 			G_Print( "Too many bombsites... ignoring\n" );
 
 			return;
@@ -80,7 +80,8 @@ class cBombSite
 		Vec3 origin = this.indicator.origin;
 		origin.z += 128;
 
-		this.letter = SITE_LETTERS[siteCount];
+		this.letter = 'A';
+		this.letter[0] += siteCount++;
 
 		@this.hud = @G_SpawnEntity( "hud_bomb_site" );
 		this.hud.type = ET_HUD;
@@ -102,8 +103,6 @@ class cBombSite
 
 		@this.next = @siteHead;
 		@siteHead = @this;
-
-		siteCount++;
 	}
 
 	void carrierTouched() {

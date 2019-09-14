@@ -145,20 +145,14 @@ bool GT_Command( Client @client, const String &cmdString, const String &argsStri
 
 		if( token.len() != 0 ) {
 			if( token.toInt() == 1 ) {
-				player.isCarrier = true;
-
 				G_PrintMsg( @client.getEnt(), "You are now a bomb carrier!\n" );
 			}
 			else {
-				player.isCarrier = false;
-
 				G_PrintMsg( @client.getEnt(), "You are no longer a bomb carrier.\n" );
 			}
 		}
 		else {
-			player.isCarrier = !player.isCarrier;
-
-			if( player.isCarrier ) {
+			if( @client.getEnt() == @bombCarrier ) {
 				G_PrintMsg( @client.getEnt(), "You are now a bomb carrier!\n" );
 			}
 			else {
@@ -223,7 +217,7 @@ String @GT_ScoreboardMessage( uint maxlen ) {
 
 			cPlayer @player = @playerFromClient( @client );
 
-			int state = warmup ? ( client.isReady() ? 1 : 0 ) : ( player.isCarrier ? 1 : 0 );
+			int state = warmup ? ( client.isReady() ? 1 : 0 ) : ( @ent == @bombCarrier ? 1 : 0 );
 			int playerId = ent.isGhosting() ? -( ent.playerNum + 1 ) : ent.playerNum;
 
 			// Name Clan Score Frags W1 W2 W3 Ping R

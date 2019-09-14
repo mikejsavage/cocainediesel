@@ -741,7 +741,8 @@ String @GT_ScoreboardMessage( uint maxlen )
 	String entry;
 	Team @team;
 	Client @client;
-	int i, scblen;
+	uint scblen;
+	int i;
 
 	String scbteam = "&t ";
 	int challengers = daRound.roundChallengers.size();
@@ -762,11 +763,11 @@ String @GT_ScoreboardMessage( uint maxlen )
 			int state = warmup ? ( client.isReady() ? 1 : 0 ) : 1;
 			int playerID = client.playerNum;
 
-			entry = "&p " + state
-				+ " " + playerID
+			entry = "&p " + playerID
+				+ " " + client.ping
 				+ " " + client.stats.score
 				+ " " + client.stats.frags
-				+ " " + client.ping
+				+ " " + state
 				+ " ";
 
 			if ( scblen + plyinfo.len() + entry.len() < maxlen ) {
@@ -786,11 +787,11 @@ String @GT_ScoreboardMessage( uint maxlen )
 				int state = warmup ? ( client.isReady() ? 1 : 0 ) : 0;
 				int playerID = -( client.playerNum + 1 );
 
-				entry = "&p " + state
-					+ " " + playerID
+				entry = "&p " + playerID
+					+ " " + client.ping
 					+ " " + client.stats.score
 					+ " " + client.stats.frags
-					+ " " + client.ping
+					+ " " + state
 					+ " ";
 
 				if ( scblen + plyinfo.len() + entry.len() < maxlen ) {
@@ -813,11 +814,11 @@ String @GT_ScoreboardMessage( uint maxlen )
 		int state = warmup ? ( client.isReady() ? 1 : 0 ) : 0;
 		int playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
 
-		entry = "&p " + state
-			+ " " + playerID
+		entry = "&p " + playerID
+			+ " " + client.ping
 			+ " " + client.stats.score
 			+ " " + client.stats.frags
-			+ " " + client.ping
+			+ " " + state
 			+ " ";
 
 		if ( scblen + plyinfo.len() + entry.len() < maxlen ) {

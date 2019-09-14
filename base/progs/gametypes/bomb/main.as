@@ -215,7 +215,7 @@ String @GT_ScoreboardMessage( uint maxlen ) {
 		}
 
 		int i;
-		int scblen = scoreboardMessage.len() + 4; // 4 stands for max num players (and one space)
+		uint scblen = scoreboardMessage.len() + 4; // 4 stands for max num players (and one space)
 		String plyinfo = "";
 		for( i = 0; @team.ent( i ) != null; i++ ) {
 			Entity @ent = @team.ent( i );
@@ -227,11 +227,11 @@ String @GT_ScoreboardMessage( uint maxlen ) {
 			int playerId = ent.isGhosting() ? -( ent.playerNum + 1 ) : ent.playerNum;
 
 			// Name Clan Score Frags W1 W2 W3 Ping R
-			entry = "&p " + state
-				+ " " + playerId
+			entry = "&p " + playerId
+				+ " " + client.ping
 				+ " " + client.stats.score
 				+ " " + client.stats.frags
-				+ " " + client.ping
+				+ " " + state
 				+ " "; // don't delete me!
 
 			if( scblen + plyinfo.len() + entry.len() < maxlen ) {

@@ -6,9 +6,9 @@
 
 static char scoreboardString[ MAX_STRING_CHARS ];
 
-typedef struct ScoreboardPlayer {
+struct ScoreboardPlayer {
 	int state, ID, score, kills, ping;
-} ScoreboardPlayer;
+};
 
 void SCR_UpdateScoreboardMessage( const char *string ) {
 	Q_strncpyz( scoreboardString, string, sizeof( scoreboardString ) );
@@ -40,7 +40,7 @@ static void CenterTextWindow( const char * title, const char * text, Vec2 size, 
 
 static bool ParsePlayer( const char ** token, ScoreboardPlayer * player, char * starter ) { //true means that there is a player after this one.
 	char * last;
-	int * values[] = { &(player->state), &(player->ID), &(player->score), &(player->kills), &(player->ping) };
+	int * values[] = { &(player->ID), &(player->ping), &(player->score), &(player->kills), &(player->state) };
 	int i = 0;
 
 	if(strcmp(starter, "&p") != 0)
@@ -121,10 +121,13 @@ void CG_DrawScoreboard() {
 
 			last = COM_Parse(&token);
 			while( ParsePlayer( &token, &player, last ) ) {
+				int ID = (player.ID < 0 ? -1 - player.ID : player.ID);
 				if(player.state) {
 					ImGui::SetCursorPos(ImVec2(tab_height/8, height + tab_height/8));
-					if(warmup)	ImGui::Image( CG_MediaShader( cgs.media.shaderTick ), ImVec2(tab_height/1.25, tab_height/1.25) );
-					else		ImGui::Image( CG_MediaShader( cgs.media.shaderBombIcon ), ImVec2(tab_height/1.25, tab_height/1.25) );
+					if( warmup )
+						ImGui::Image( CG_MediaShader( cgs.media.shaderTick ), ImVec2(tab_height/1.25, tab_height/1.25) );
+					else if( cg_entities[ID+1].current.team == cg.predictedPlayerState.stats[STAT_TEAM] )
+						ImGui::Image( CG_MediaShader( cgs.media.shaderBombIcon ), ImVec2(tab_height/1.25, tab_height/1.25) );
 				}
 
 				//player name
@@ -132,11 +135,9 @@ void CG_DrawScoreboard() {
 				TempAllocator tmp = cls.frame_arena->temp();
 				DynamicString final_name( &tmp );
 				//if player is dead
-				if( player.ID < 0 ) {
-					player.ID = -1 - player.ID;
-					a = 75;
-				}
-				CL_ImGuiExpandColorTokens( &final_name, cgs.clientInfo[player.ID].name, a );
+				if( player.ID < 0 ) a = 75;
+
+				CL_ImGuiExpandColorTokens( &final_name, cgs.clientInfo[ID].name, a );
 				ImVec2 t_size = ImGui::CalcTextSize(final_name.c_str());
 				ImGui::SetCursorPos( ImVec2(tab_height, height + (tab_height - t_size.y)/2 ) );
 				ImGui::Text( "%s", final_name.c_str() );

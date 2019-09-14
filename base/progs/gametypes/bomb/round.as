@@ -328,6 +328,10 @@ void roundNewState( uint state ) {
 			roundStateEndTime = levelTime + 3000; // XXX: old bomb did +5s but i don't see the point
 
 			roundCount++;
+			if( @bombCarrier != null ) {
+				cPlayer @player = @playerFromClient(@bombCarrier.client);
+				player.isCarrier = false;
+			}
 
 			break;
 	}

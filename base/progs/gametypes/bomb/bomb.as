@@ -123,6 +123,9 @@ void bombSetCarrier( Entity @ent, bool no_sound ) {
 		bombCarrier.modelindex2 = 0;
 	}
 
+	cPlayer @player = @playerFromClient(@ent.client);
+	player.isCarrier = true;
+
 	@bombCarrier = @ent;
 	bombPickUp();
 
@@ -137,6 +140,10 @@ void bombDrop( BombDrop drop_reason ) {
 	Vec3 start = bombCarrier.origin;
 	Vec3 end, velocity;
 	setTeamProgress( attackingTeam, 0, BombProgress_Nothing );
+
+
+	cPlayer @player = @playerFromClient(@bombCarrier.client);
+	player.isCarrier = false;
 
 	switch( drop_reason ) {
 		case BombDrop_Normal:
@@ -247,6 +254,8 @@ void bombPlanted() {
 
 	G_CenterPrintMsg( null, "Bomb planted at " + bombSite.letter + "!" );
 
+	cPlayer @player = @playerFromClient(@bombCarrier.client);
+	player.isCarrier = false;
 	@bombCarrier = null;
 	defuseProgress = 0;
 	bombState = BombState_Planted;
@@ -466,9 +475,6 @@ void bombGiveToRandom() {
 		if( !hasCarriers || player.isCarrier ) {
 			if( seenCarriers == carrierIdx ) {
 				bombSetCarrier( @ent, true );
-
-				G_CenterPrintMsg( null, client.name + " has the bomb!" );
-
 				break;
 			}
 

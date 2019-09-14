@@ -78,7 +78,6 @@ class cBombSite
 		this.indicator.linkEntity();
 
 		Vec3 origin = this.indicator.origin;
-		origin.z += 128;
 
 		this.letter = 'A';
 		this.letter[0] += siteCount++;

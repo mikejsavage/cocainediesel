@@ -112,6 +112,8 @@ static void SubmitDrawCalls() {
 void CL_ImGuiBeginFrame() {
 	ImGui_ImplSDL2_NewFrame( sdl_window );
 	ImGui::NewFrame();
+
+	// ImGui::ShowDemoWindow();
 }
 
 void CL_ImGuiEndFrame() {
@@ -126,8 +128,7 @@ void CL_ImGuiExpandColorTokens( DynamicString * result, const char * original, u
 	const char * end = p + strlen( p );
 
 	if( alpha != 255 ) {
-		const u8 escape[] = { 033, 255, 255, 255, alpha };
-		result->append_raw( ( const char * ) escape, sizeof( escape ) );
+		*result += ImGuiColorToken( 255, 255, 255, alpha );
 	}
 
 	while( p < end ) {
@@ -146,13 +147,25 @@ void CL_ImGuiExpandColorTokens( DynamicString * result, const char * original, u
 		}
 		else {
 			const vec4_t & c = color_table[ token - '0' ];
-			u8 r = max( 1, u8( c[ 0 ] * 255.0f ) );
-			u8 g = max( 1, u8( c[ 1 ] * 255.0f ) );
-			u8 b = max( 1, u8( c[ 2 ] * 255.0f ) );
-			const u8 escape[] = { 033, r, g, b, alpha };
-			result->append_raw( ( const char * ) escape, sizeof( escape ) );
+			u8 r = u8( c[ 0 ] * 255.0f );
+			u8 g = u8( c[ 1 ] * 255.0f );
+			u8 b = u8( c[ 2 ] * 255.0f );
+			*result += ImGuiColorToken( r, g, b, alpha );
 		}
 
 		p = before + 2;
 	}
+}
+
+ImGuiColorToken::ImGuiColorToken( u8 r, u8 g, u8 b, u8 a ) {
+	token[ 0 ] = 033;
+	token[ 1 ] = Max2( r, u8( 1 ) );
+	token[ 2 ] = Max2( g, u8( 1 ) );
+	token[ 3 ] = Max2( b, u8( 1 ) );
+	token[ 4 ] = Max2( a, u8( 1 ) );
+	token[ 5 ] = 0;
+}
+
+void format( FormatBuffer * fb, const ImGuiColorToken & token, const FormatOpts & opts ) {
+	format( fb, ( const char * ) token.token );
 }

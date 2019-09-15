@@ -736,97 +736,55 @@ Entity @GT_SelectSpawnPoint( Entity @self )
 	return @last_spawnposition;
 }
 
-String @GT_ScoreboardMessage( uint maxlen )
-{
-	String entry;
-	Team @team;
-	Client @client;
-	uint scblen;
-	int i;
+String @playerScoreboardMessage( Client @client ) {
+	int state = match.getState() == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : 1;
+	int playerID = client.playerNum;
 
-	String scbteam = "&t ";
+	return " " + playerID
+		+ " " + client.ping
+		+ " " + client.stats.score
+		+ " " + client.stats.frags
+		+ " " + state;
+}
+
+String @GT_ScoreboardMessage() {
 	int challengers = daRound.roundChallengers.size();
 	int loosers = daRound.roundLosers.size();
-	bool warmup = match.getState() == MATCH_STATE_WARMUP;
 
-	@team = @G_GetTeam( TEAM_PLAYERS );
+	Team @team = @G_GetTeam( TEAM_PLAYERS );
+	String scoreboard = "" + team.numPlayers;
 
 	// first add the players in the duel
-	scblen = scbteam.len() + 4; // 4 stands for max num players (and one space)
-	String plyinfo = "";
-	for ( i = 0; i < challengers; i++ )
-	{
-		@client = @daRound.roundChallengers[i];
-		if ( @client != null )
-		{
-
-			int state = warmup ? ( client.isReady() ? 1 : 0 ) : 1;
-			int playerID = client.playerNum;
-
-			entry = "&p " + playerID
-				+ " " + client.ping
-				+ " " + client.stats.score
-				+ " " + client.stats.frags
-				+ " " + state
-				+ " ";
-
-			if ( scblen + plyinfo.len() + entry.len() < maxlen ) {
-				plyinfo += entry;
-			}
+	for( int i = 0; i < challengers; i++ ) {
+		Client @client = @daRound.roundChallengers[i];
+		if( @client != null ) {
+			scoreboard += playerScoreboardMessage( client );
 		}
 	}
 
 	// then add the round losers
-	if ( daRound.state > DA_ROUNDSTATE_NONE && daRound.state < DA_ROUNDSTATE_POSTROUND && loosers > 0 )
-	{
-		for ( i = loosers-1; i >= 0; i-- )
-		{
-			@client = @daRound.roundLosers[i];
-			if ( @client != null )
-			{
-				int state = warmup ? ( client.isReady() ? 1 : 0 ) : 0;
-				int playerID = -( client.playerNum + 1 );
-
-				entry = "&p " + playerID
-					+ " " + client.ping
-					+ " " + client.stats.score
-					+ " " + client.stats.frags
-					+ " " + state
-					+ " ";
-
-				if ( scblen + plyinfo.len() + entry.len() < maxlen ) {
-					plyinfo += entry;
-				}
+	if( daRound.state > DA_ROUNDSTATE_NONE && daRound.state < DA_ROUNDSTATE_POSTROUND && loosers > 0 ) {
+		for( int i = loosers - 1; i >= 0; i-- ) {
+			Client @client = @daRound.roundLosers[i];
+			if( @client != null ) {
+				scoreboard += playerScoreboardMessage( client );
 			}
 		}
 	}
 
 	// then add all the players in the queue
-	for ( i = 0; i < maxClients; i++ )
-	{
+	for( int i = 0; i < maxClients; i++ ) {
 		if ( daRound.daChallengersQueue[i] < 0 || daRound.daChallengersQueue[i] >= maxClients )
 			break;
 
-		@client = @G_GetClient( daRound.daChallengersQueue[i] );
+		Client @client = @G_GetClient( daRound.daChallengersQueue[i] );
 		if ( @client == null )
 			break;
 
-		int state = warmup ? ( client.isReady() ? 1 : 0 ) : 0;
-		int playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
-
-		entry = "&p " + playerID
-			+ " " + client.ping
-			+ " " + client.stats.score
-			+ " " + client.stats.frags
-			+ " " + state
-			+ " ";
-
-		if ( scblen + plyinfo.len() + entry.len() < maxlen ) {
-			plyinfo += entry;
-		}
+		scoreboard += playerScoreboardMessage( client );
 	}
 
-	return scbteam + (challengers + loosers + i) + " " + plyinfo;
+	return scoreboard;
 }
 
 // Some game actions trigger score events. These are events not related to killing

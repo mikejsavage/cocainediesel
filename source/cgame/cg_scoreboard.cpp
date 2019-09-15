@@ -65,6 +65,7 @@ static bool ParseTeam( const char ** cursor, ScoreboardTeam * team ) {
 static bool ParsePlayer( const char ** cursor, ScoreboardPlayer * player ) {
 	bool ok = true;
 	ok = ok && ParseInt( cursor, &player->id );
+	ok = ok && ( ( player->id >= 0 && size_t( player->id ) < ARRAY_COUNT( cg_entities ) ) || ( player->id < 0 && size_t( -( player->id + 1 ) ) < ARRAY_COUNT( cg_entities ) ) );
 	ok = ok && ParseInt( cursor, &player->ping );
 	ok = ok && ParseInt( cursor, &player->score );
 	ok = ok && ParseInt( cursor, &player->kills );
@@ -73,6 +74,8 @@ static bool ParsePlayer( const char ** cursor, ScoreboardPlayer * player ) {
 }
 
 void CG_DrawScoreboard() {
+	TempAllocator temp = cls.frame_arena->temp();
+
 	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, 0 ) );
 	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
 
@@ -94,7 +97,7 @@ void CG_DrawScoreboard() {
 
 		for( int team = TEAM_ALPHA; team <= TEAM_BETA; team++ ) {
 			ScoreboardTeam team_info;
-			if( !ParseTeam( cursor, &team_info ) )
+			if( !ParseTeam( &cursor, &team_info ) )
 				return;
 
 			RGB8 color = CG_TeamColor( team );
@@ -104,17 +107,15 @@ void CG_DrawScoreboard() {
 			ImGui::BeginChild( team, ImVec2( size.x, size.y/10 ), basic_flags );
 			ImGui::PushFont( io.DisplaySize.x > 1280 ? cls.large_font : cls.medium_font );
 			ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 100 ) );
-			CenterTextWindow( String<16>("{}score", team), team_info.score, ImVec2( size.x/10, size.y/10 ), basic_flags );
+			CenterTextWindow( temp( "{}score", team ), temp( "{}", team_info.score ), ImVec2( size.x/10, size.y/10 ), basic_flags );
 			ImGui::PopStyleColor();
 			CenterText( GS_DefaultTeamName( team ), ImVec2( size.x, size.y/10 ) );
 			ImGui::PopFont();
 			ImGui::EndChild();
 			ImGui::PopStyleColor();
 
-			team_info.num_players = Max2( 5, team_info.num_players );
-
 			ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 75, 75, 75, 100 ) );
-			ImGui::BeginChild( String<16>("{}", team), ImVec2(size.x, size.y/25), basic_flags );
+			ImGui::BeginChild( temp( "{}", team ), ImVec2(size.x, size.y/25), basic_flags );
 
 			CenterText( "Score", ImVec2( size.x/10, size.y/25 ), ImVec2(size.x*7/10, 0) );
 			CenterText( "Kills", ImVec2( size.x/10, size.y/25 ), ImVec2(size.x*8/10, 0) );
@@ -123,12 +124,13 @@ void CG_DrawScoreboard() {
 			ImGui::EndChild();
 			ImGui::PopStyleColor();
 
-			//players infos tab
+			// players infos tab
 			int height = 0;
+			int slots = Max2( team_info.num_players, 5 );
 			ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 75 ));
-			ImGui::BeginChild( String<16>("{}players", team), ImVec2(size.x, tab_height*num_players), basic_flags );
+			ImGui::BeginChild( temp( "{}players", team ), ImVec2(size.x, tab_height*slots), basic_flags );
 
-			for( int i = 0; i < team_info.num_players ) {
+			for( int i = 0; i < team_info.num_players; i++ ) {
 				ScoreboardPlayer player;
 				if( !ParsePlayer( &cursor, &player ) )
 					break;
@@ -144,29 +146,27 @@ void CG_DrawScoreboard() {
 
 				// player name
 				u8 alpha = player.id >= 0 ? 255 : 75;
-				TempAllocator temp = cls.frame_arena->temp();
 				DynamicString final_name( &temp );
 
-				CL_ImGuiExpandColorTokens( &final_name, cgs.clientInfo[ID].name, alpha );
+				CL_ImGuiExpandColorTokens( &final_name, cgs.clientInfo[id].name, alpha );
 				ImVec2 t_size = ImGui::CalcTextSize(final_name.c_str());
 				ImGui::SetCursorPos( ImVec2(tab_height, height + (tab_height - t_size.y)/2 ) );
 				ImGui::Text( "%s", final_name.c_str() );
 
-				CenterText( String<8>("{}", player.score), ImVec2( size.x/10, tab_height ), ImVec2(size.x*7/10, height ) );
+				CenterText( temp( "{}", player.score ), ImVec2( size.x/10, tab_height ), ImVec2(size.x*7/10, height ) );
+				CenterText( temp( "{}", player.kills ), ImVec2( size.x/10, tab_height ), ImVec2(size.x*8/10, height ) );
 
-				CenterText( String<8>("{}", player.kills), ImVec2( size.x/10, tab_height ), ImVec2(size.x*8/10, height ) );
-
-				u8 escape[] = { 033, 255, Max2(1, 255 - player.ping), Max2(1, 255 - player.ping*2), 255 };
-				CenterText( String<16>("{}{}", (char *)escape, player.ping), ImVec2( size.x/10, tab_height ), ImVec2( size.x*9/10, height ) );
+				ImGuiColorToken color( 255, Max2( 0, 255 - player.ping ), Max2( 0, 255 - player.ping * 2 ), 255 );
+				CenterText( temp( "{}{}", color, player.ping ), ImVec2( size.x/10, tab_height ), ImVec2( size.x*9/10, height ) );
 
 				height += tab_height;
 			}
+
 			ImGui::EndChild();
 			ImGui::PopStyleColor();
 		}
-	} else {
-		int num_players = atoi(COM_Parse(&cursor));
-
+	}
+	else {
 		ImGui::Begin( "scoreboard", NULL, basic_flags | ImGuiWindowFlags_NoBackground );
 		ImGui::PushFont( cls.large_font );
 		ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 255, 255, 255, 100 ) );
@@ -184,13 +184,18 @@ void CG_DrawScoreboard() {
 		ImGui::EndChild();
 		ImGui::PopStyleColor();
 
-		if(num_players) {
+		int num_players;
+		if( ParseInt( &cursor, &num_players ) && num_players > 0 ) {
 			int height = 0;
 			ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 255, 255, 255, 75 ) );
 			ImGui::BeginChild( "players", ImVec2(size.x, tab_height*num_players), basic_flags );
 			//players tab
-			last = COM_Parse(&cursor);
-			while( ParsePlayer( &cursor, &player, last ) ) {
+			for( int i = 0; i < num_players; i++ ) {
+				ScoreboardPlayer player;
+				if( !ParsePlayer( &cursor, &player ) )
+					break;
+
+				int id = player.id < 0 ? -( player.id + 1 ) : player.id;
 				ImGui::SetCursorPos(ImVec2(tab_height/8, height + tab_height/8));
 				if(player.state) {
 					if(warmup)		ImGui::Image(CG_MediaShader( cgs.media.shaderTick ), ImVec2(tab_height/1.25, tab_height/1.25), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(0,0,0,0));
@@ -198,25 +203,19 @@ void CG_DrawScoreboard() {
 				} else if(!warmup)	ImGui::Image(CG_MediaShader( cgs.media.shaderDead ), ImVec2(tab_height/1.25, tab_height/1.25), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(0,0,0,0));
 
 				//player name
-				u8 a = 255;
-				TempAllocator tmp = cls.frame_arena->temp();
-				DynamicString final_name( &tmp );
-				//if player is dead
-				if( player.ID < 0 ) {
-					player.ID = -1 - player.ID;
-					a = 75;
-				}
-				CL_ImGuiExpandColorTokens( &final_name, cgs.clientInfo[player.ID].name, a );
+				u8 alpha = player.id >= 0 ? 255 : 75;
+				DynamicString final_name( &temp );
+
+				CL_ImGuiExpandColorTokens( &final_name, cgs.clientInfo[ id ].name, alpha );
 				ImVec2 t_size = ImGui::CalcTextSize(final_name.c_str());
 				ImGui::SetCursorPos( ImVec2(tab_height, height + (tab_height - t_size.y)/2 ) );
 				ImGui::Text( "%s", final_name.c_str() );
 
-				CenterText( String<16>("{}", player.score), ImVec2( size.x/10, tab_height ), ImVec2( size.x*7/10, height ) );
+				CenterText( temp( "{}", player.score ), ImVec2( size.x/10, tab_height ), ImVec2( size.x*7/10, height ) );
+				CenterText( temp( "{}", player.kills ), ImVec2( size.x/10, tab_height ), ImVec2( size.x*8/10, height ) );
 
-				CenterText( String<16>("{}", player.kills), ImVec2( size.x/10, tab_height ), ImVec2( size.x*8/10, height ) );
-
-				u8 escape[] = { 033, 255, Max2(1, 255 - player.ping), Max2(1, 255 - player.ping*2), 255 };
-				CenterText( String<16>("{}{}", (char *)escape, player.ping), ImVec2( size.x/10, tab_height ), ImVec2( size.x*9/10, height ) );
+				ImGuiColorToken color( 255, Max2( 0, 255 - player.ping ), Max2( 0, 255 - player.ping * 2 ), 255 );
+				CenterText( temp( "{}{}", color, player.ping ), ImVec2( size.x/10, tab_height ), ImVec2( size.x*9/10, height ) );
 
 				height += tab_height;
 			}
@@ -225,29 +224,24 @@ void CG_DrawScoreboard() {
 		}
 	}
 
-	//spectators
-	if(*(last = COM_Parse(&cursor)) == NULL) { //if no spectators
-		ImGui::End();
-		ImGui::PopStyleVar( 2 );
-		return;
-	}
-
-	TempAllocator tmp = cls.frame_arena->temp();
-	DynamicString final_str( &tmp );
-	String< 256 > spectators = "Spectating: ";
-
-	while(*last) {
-		spectators += cgs.clientInfo[atoi(last)].name;
-		COM_Parse(&cursor);
-		if(*(last = COM_Parse(&cursor))) {
-			spectators += S_COLOR_WHITE ", ";
+	int num_spectators;
+	if( ParseInt( &cursor, &num_spectators ) && num_spectators > 0 ) {
+		DynamicString spectators( &temp, "Spectating: " );
+		for( int i = 0; i < num_spectators; i++ ) {
+			int id;
+			if( !ParseInt( &cursor, &id ) )
+				break;
+			if( i > 0 )
+				spectators += S_COLOR_WHITE ", ";
+			spectators += cgs.clientInfo[ id ].name;
 		}
+
+		DynamicString expanded( &temp );
+		CL_ImGuiExpandColorTokens( &expanded, spectators.c_str(), 200 );
+		CenterTextWindow( "spec", expanded.c_str(), ImVec2(size.x, size.y/10), basic_flags | ImGuiWindowFlags_NoBackground );
 	}
-	CL_ImGuiExpandColorTokens( &final_str, spectators, 200 );
-	CenterTextWindow("spec", final_str.c_str(), ImVec2(size.x, size.y/10), basic_flags | ImGuiWindowFlags_NoBackground);
 
 	ImGui::End();
-
 	ImGui::PopStyleVar( 2 );
 }
 

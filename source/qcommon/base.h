@@ -148,6 +148,14 @@ void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t ne
 #define REALLOC_MANY( a, T, ptr, current_n, new_n ) ( ( T * ) ReallocManyHelper( a, ptr, checked_cast< size_t >( current_n ), checked_cast< size_t >( new_n ), sizeof( T ), alignof( T ), __PRETTY_FUNCTION__, __FILE__, __LINE__ ) )
 #define ALLOC_SPAN( a, T, n ) Span< T >( ALLOC_MANY( a, T, n ), n )
 
+template< typename... Rest >
+const char * TempAllocator::operator()( const char * fmt, const Rest & ... rest ) {
+	size_t len = ggformat( NULL, 0, fmt, rest... );
+	char * buf = ALLOC_MANY( this, char, len + 1 );
+	ggformat( buf, len + 1, fmt, rest... );
+	return buf;
+}
+
 /*
  * breaks
  */

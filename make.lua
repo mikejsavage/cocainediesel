@@ -141,6 +141,7 @@ dll( "game", {
 		"source/game/**.cpp",
 		"source/gameshared/*.cpp",
 		"source/qcommon/hash.cpp",
+		"source/qcommon/ggformat.cpp",
 		"source/qcommon/rng.cpp",
 	},
 

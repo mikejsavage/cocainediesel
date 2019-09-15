@@ -195,12 +195,11 @@ Entity @GT_SelectSpawnPoint( Entity @self ) {
 	return GENERIC_SelectBestRandomSpawnPoint( @self, "team_CTF_alphaspawn" );
 }
 
-String teamScoreboardMessage( int t ) {
+String @teamScoreboardMessage( int t ) {
 	Team @team = @G_GetTeam( t );
 
 	String players = "";
 
-	uint num_players = 0;
 	for( int i = 0; @team.ent( i ) != null; i++ ) {
 		Entity @ent = @team.ent( i );
 		Client @client = @ent.client;
@@ -216,14 +215,12 @@ String teamScoreboardMessage( int t ) {
 			+ " " + client.stats.score
 			+ " " + client.stats.frags
 			+ " " + state;
-
-		num_players++;
 	}
 
-	return "" + team.stats.score + players;
+	return "" + team.stats.score + " " + team.numPlayers + players;
 }
 
-String @GT_ScoreboardMessage( uint maxlen ) {
+String @GT_ScoreboardMessage() {
 	return teamScoreboardMessage( TEAM_ALPHA ) + " " + teamScoreboardMessage( TEAM_BETA );
 }
 

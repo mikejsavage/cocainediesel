@@ -929,8 +929,6 @@ void UI_Refresh() {
 		DemoMenu();
 	}
 
-	ImGui::ShowDemoWindow();
-
 	if( Con_IsVisible() ) {
 		Con_Draw( pressed_key );
 	}

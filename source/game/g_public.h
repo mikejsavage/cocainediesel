@@ -30,13 +30,6 @@ typedef struct edict_s edict_t;
 typedef struct gclient_s gclient_t;
 typedef struct gclient_quit_s gclient_quit_t;
 
-/*
-typedef struct stat_query_s stat_query_t;
-typedef struct stat_query_api_s stat_query_api_t;
-*/
-struct stat_query_api_s;
-struct stat_query_s;
-
 typedef struct {
 	int ping;
 	int health;

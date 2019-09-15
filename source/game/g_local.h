@@ -836,7 +836,6 @@ typedef struct {
 	uint8_t plrkeys; // used for displaying key icons
 	int damageTaken;
 	vec3_t damageTakenDir;
-
 } client_snapreset_t;
 
 typedef struct {
@@ -859,15 +858,12 @@ typedef struct {
 typedef struct {
 	int64_t timeStamp;				// last time it was reset
 
-	unsigned int respawnCount;
-
 	int64_t last_vsay;				// time when last vsay was said
 	int64_t last_activity;
 
 	score_stats_t stats;
 	bool showscores;
 	int64_t scoreboard_time;		// when scoreboard was last sent
-	bool showPLinks;				// bot debug
 
 	// flood protection
 	int64_t flood_locktill;			// locked from talking
@@ -882,9 +878,6 @@ typedef struct {
 
 typedef struct {
 	int64_t timeStamp; // last time it was reset
-
-	int64_t readyUpWarningNext; // (timer) warn people to ready up
-	int readyUpWarningCount;
 
 	// for position command
 	bool position_saved;
@@ -935,7 +928,6 @@ struct gclient_s {
 
 	int team;
 	int hand;
-	unsigned mmflags;
 	int handicap;
 	bool isoperator;
 	int64_t queueTimeStamp;
@@ -949,17 +941,6 @@ struct gclient_s {
 	pmove_state_t old_pmove;    // for detecting out-of-pmove changes
 
 	int asRefCount, asFactored;
-};
-
-// quit or teamchange data for clients (stats)
-struct gclient_quit_s {
-	char netname[MAX_NAME_BYTES];
-	int team;
-
-	score_stats_t stats;
-	int64_t timePlayed;
-	bool final;         // is true, player was there in the end
-	struct gclient_quit_s *next;
 };
 
 typedef struct snap_edict_s {
@@ -1072,8 +1053,7 @@ struct edict_s {
 
 	int viewheight;				// height above origin where eyesight is determined
 	int takedamage;
-	
-	const char *sounds;         // make this a spawntemp var?
+
 	int count;
 
 	int64_t timeout;			// for SW and fat PG

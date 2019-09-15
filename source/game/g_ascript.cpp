@@ -1452,10 +1452,6 @@ static void objectGameEntity_setTarget( asstring_t *target, edict_t *self ) {
 	self->target = G_RegisterLevelString( target->buffer );
 }
 
-static asstring_t *objectGameEntity_getSoundName( edict_t *self ) {
-	return game.asExport->asStringFactoryBuffer( self->sounds, self->sounds ? strlen( self->sounds ) : 0 );
-}
-
 static void objectGameEntity_setClassname( asstring_t *classname, edict_t *self ) {
 	self->classname = G_RegisterLevelString( classname->buffer );
 }
@@ -1644,7 +1640,6 @@ static const asMethod_t gedict_Methods[] =
 	{ ASLIB_FUNCTION_DECL( int, get_playerNum, ( ) const ), asFUNCTION( objectGameEntity_PlayerNum ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_model, ( ) const ), asFUNCTION( objectGameEntity_getModelName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_model2, ( ) const ), asFUNCTION( objectGameEntity_getModel2Name ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( const String @, get_sounds, ( ) const ), asFUNCTION( objectGameEntity_getSoundName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_classname, ( ) const ), asFUNCTION( objectGameEntity_getClassname ), asCALL_CDECL_OBJLAST },
 	//{ ASLIB_FUNCTION_DECL(const String @, getSpawnKey, ( String &in )), asFUNCTION(objectGameEntity_getSpawnKey), NULL, asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_targetname, ( ) const ), asFUNCTION( objectGameEntity_getTargetname ), asCALL_CDECL_OBJLAST },

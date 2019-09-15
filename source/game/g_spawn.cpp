@@ -56,7 +56,6 @@ static const EntityField fields[] = {
 	{ "style", FOFS( style ), F_INT },
 	{ "count", FOFS( count ), F_INT },
 	{ "health", FOFS( health ), F_FLOAT },
-	{ "sounds", FOFS( sounds ), F_LSTRING },
 	{ "light", FOFS( light ), F_FLOAT },
 	{ "color", FOFS( color ), F_VECTOR },
 	{ "dmg", FOFS( dmg ), F_INT },

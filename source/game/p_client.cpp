@@ -529,8 +529,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	client->ps.stats[STAT_TIME_ALPHA] = STAT_NOTSET;
 	client->ps.stats[STAT_TIME_BETA] = STAT_NOTSET;
 
-	self->r.client->level.respawnCount++;
-
 	G_UseTargets( spawnpoint, self );
 
 	GClip_LinkEntity( self );
@@ -641,7 +639,6 @@ void ClientBegin( edict_t *ent ) {
 
 	G_PrintMsg( NULL, "%s" S_COLOR_WHITE " entered the game\n", client->netname );
 
-	client->level.respawnCount = 0; // clear respawncount
 	client->connecting = false;
 
 	// schedule the next scoreboard update

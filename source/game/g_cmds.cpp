@@ -1004,10 +1004,6 @@ typedef struct
 
 g_gamecommands_t g_Commands[MAX_GAMECOMMANDS];
 
-// FIXME
-void Cmd_ShowPLinks_f( edict_t *ent );
-void Cmd_deleteClosestNode_f( edict_t *ent );
-
 /*
 * G_PrecacheGameCommands
 */

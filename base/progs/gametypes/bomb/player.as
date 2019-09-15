@@ -73,8 +73,6 @@ class cPlayer {
 
 		this.dueToSpawn = false;
 
-		this.isCarrier = false;
-
 		@players[player.playerNum] = @this;
 	}
 
@@ -198,10 +196,7 @@ uint getCarrierCount( int teamNum ) {
 	Team @team = @G_GetTeam( teamNum );
 
 	for( int i = 0; @team.ent( i ) != null; i++ ) {
-		Client @client = @team.ent( i ).client; // stupid AS...
-		cPlayer @player = @playerFromClient( @client );
-
-		if( player.isCarrier ) {
+		if( @team.ent( i ) == @bombCarrier ) {
 			count++;
 		}
 	}

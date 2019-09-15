@@ -326,7 +326,7 @@ void CG_ClearPointedNum( void ) {
 */
 static void CG_UpdatePointedNum( void ) {
 	// disable cases
-	if( CG_ScoreboardShown() || cg.view.thirdperson || cg.view.type != VIEWDEF_PLAYERVIEW || !cg_showPointedPlayer->integer ) {
+	if( cg.view.thirdperson || cg.view.type != VIEWDEF_PLAYERVIEW || !cg_showPointedPlayer->integer ) {
 		CG_ClearPointedNum();
 		return;
 	}
@@ -366,11 +366,6 @@ void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color ) {
 	}
 
 	CG_UpdatePointedNum();
-
-	// don't draw when scoreboard is up
-	if( CG_ScoreboardShown() ) {
-		return;
-	}
 
 	for( i = 0; i < gs.maxclients; i++ ) {
 		if( !cgs.clientInfo[i].name[0] || ISVIEWERENTITY( i + 1 ) ) {
@@ -497,10 +492,6 @@ void CG_DrawTeamMates( void ) {
 	int i;
 	int pic_size = 18 * cgs.vidHeight / 600;
 
-	// don't draw when scoreboard is up
-	if( CG_ScoreboardShown() ) {
-		return;
-	}
 	if( cg.predictedPlayerState.stats[STAT_TEAM] < TEAM_ALPHA ) {
 		return;
 	}
@@ -816,8 +807,7 @@ void CG_EscapeKey( void ) {
 	bool is_ready = false;
 
 	if( GS_MatchState() <= MATCH_STATE_WARMUP && !spectator ) {
-		bool ready = ( cg.predictedPlayerState.stats[STAT_LAYOUTS] & STAT_LAYOUT_READY ) != 0;
-		is_ready = ready;
+		is_ready = ( cg.predictedPlayerState.stats[STAT_LAYOUTS] & STAT_LAYOUT_READY ) != 0;
 	}
 
 	UI_ShowGameMenu( spectator, is_ready );

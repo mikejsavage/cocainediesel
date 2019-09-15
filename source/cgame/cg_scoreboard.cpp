@@ -98,7 +98,7 @@ void CG_DrawScoreboard() {
 		for( int team = TEAM_ALPHA; team <= TEAM_BETA; team++ ) {
 			ScoreboardTeam team_info;
 			if( !ParseTeam( &cursor, &team_info ) )
-				return;
+				break;
 
 			RGB8 color = CG_TeamColor( team );
 

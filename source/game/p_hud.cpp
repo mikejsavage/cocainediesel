@@ -103,7 +103,7 @@ void G_ScoreboardMessage_AddSpectators( void ) {
 			if( !( e->r.client->connecting == true || trap_GetClientState( PLAYERNUM( e ) ) < CS_SPAWNED ) ) {
 				Q_snprintfz( entry, sizeof( entry ), "%i %i ",
 							 PLAYERNUM( e ),
-							 e->r.client->r.ping > 999 ? 999 : e->r.client->r.ping );
+							 Min2( e->r.client->r.ping, 999 ) );
 				ADD_SCOREBOARD_ENTRY( scoreboardString, len, entry );
 			}
 		}
@@ -116,7 +116,7 @@ void G_ScoreboardMessage_AddSpectators( void ) {
 	for( i = 0; i < teamlist[TEAM_SPECTATOR].numplayers; i++ ) {
 		e = game.edicts + teamlist[TEAM_SPECTATOR].playerIndices[i];
 
-		if( e->r.client->connecting == true || trap_GetClientState( PLAYERNUM( e ) ) < CS_SPAWNED ) {
+		if( e->r.client->connecting || trap_GetClientState( PLAYERNUM( e ) ) < CS_SPAWNED ) {
 			continue;
 		}
 

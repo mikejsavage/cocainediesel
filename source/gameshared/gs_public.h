@@ -66,8 +66,7 @@ constexpr vec3_t item_box_maxs = { 16.0f, 16.0f, 40.0f };
 
 #define ZOOMTIME 60
 #define CROUCHTIME 100
-#define DEFAULT_PLAYERSPEED_STANDARD 320.0f
-#define DEFAULT_PLAYERSPEED_RACE 320.0f
+#define DEFAULT_PLAYERSPEED 320.0f
 #define DEFAULT_JUMPSPEED 280.0f
 #define DEFAULT_DASHSPEED 450.0f
 #define PROJECTILE_PRESTEP 100
@@ -136,14 +135,12 @@ extern gs_state_t gs;
 
 #define GS_MatchState() ( gs.gameState.stats[GAMESTAT_MATCHSTATE] )
 #define GS_MaxPlayersInTeam() ( gs.gameState.stats[GAMESTAT_MAXPLAYERSINTEAM] )
-#define GS_InvidualGameType() ( GS_MaxPlayersInTeam() == 1 ? true : false )
+#define GS_InvidualGameType() ( GS_MaxPlayersInTeam() == 1 )
 
 #define GS_MatchDuration() ( gs.gameState.stats[GAMESTAT_MATCHDURATION] )
 #define GS_MatchStartTime() ( gs.gameState.stats[GAMESTAT_MATCHSTART] )
 #define GS_MatchEndTime() ( gs.gameState.stats[GAMESTAT_MATCHDURATION] ? gs.gameState.stats[GAMESTAT_MATCHSTART] + gs.gameState.stats[GAMESTAT_MATCHDURATION] : 0 )
 #define GS_MatchClockOverride() ( gs.gameState.stats[GAMESTAT_CLOCKOVERRIDE] )
-
-#define DEFAULT_PLAYERSPEED ( GS_RaceGametype() ? DEFAULT_PLAYERSPEED_RACE : DEFAULT_PLAYERSPEED_STANDARD )
 
 //==================================================================
 

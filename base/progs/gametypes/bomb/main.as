@@ -195,49 +195,36 @@ Entity @GT_SelectSpawnPoint( Entity @self ) {
 	return GENERIC_SelectBestRandomSpawnPoint( @self, "team_CTF_alphaspawn" );
 }
 
-String @GT_ScoreboardMessage( uint maxlen ) {
-	String scoreboardMessage = "";
-	bool warmup = match.getState() == MATCH_STATE_WARMUP;
+String teamScoreboardMessage( int t ) {
+	Team @team = @G_GetTeam( t );
 
-	for( int t = TEAM_ALPHA; t < GS_MAX_TEAMS; t++ ) {
-		Team @team = @G_GetTeam( t );
+	String players = "";
 
-		String entry = "&t " + t + " " + team.stats.score + " ";
+	uint num_players = 0;
+	for( int i = 0; @team.ent( i ) != null; i++ ) {
+		Entity @ent = @team.ent( i );
+		Client @client = @ent.client;
 
-		if( scoreboardMessage.len() + entry.len() < maxlen ) {
-			scoreboardMessage += entry;
-		}
+		cPlayer @player = @playerFromClient( @client );
 
-		int i;
-		uint scblen = scoreboardMessage.len() + 4; // 4 stands for max num players (and one space)
-		String plyinfo = "";
-		for( i = 0; @team.ent( i ) != null; i++ ) {
-			Entity @ent = @team.ent( i );
-			Client @client = @ent.client;
+		bool warmup = match.getState() == MATCH_STATE_WARMUP;
+		int state = warmup ? ( client.isReady() ? 1 : 0 ) : ( player.isCarrier ? 1 : 0 );
+		int playerId = ent.isGhosting() ? -( ent.playerNum + 1 ) : ent.playerNum;
 
-			cPlayer @player = @playerFromClient( @client );
+		players += " " + playerId
+			+ " " + client.ping
+			+ " " + client.stats.score
+			+ " " + client.stats.frags
+			+ " " + state;
 
-			int state = warmup ? ( client.isReady() ? 1 : 0 ) : ( @ent == @bombCarrier ? 1 : 0 );
-			int playerId = ent.isGhosting() ? -( ent.playerNum + 1 ) : ent.playerNum;
-
-			// Name Clan Score Frags W1 W2 W3 Ping R
-			entry = "&p " + playerId
-				+ " " + client.ping
-				+ " " + client.stats.score
-				+ " " + client.stats.frags
-				+ " " + state
-				+ " "; // don't delete me!
-
-			if( scblen + plyinfo.len() + entry.len() < maxlen ) {
-				plyinfo += entry;
-			}
-		}
-		if( scblen + plyinfo.len() < maxlen ) {
-			scoreboardMessage += i + " " + plyinfo;
-		}
+		num_players++;
 	}
 
-	return scoreboardMessage;
+	return "" + team.stats.score + players;
+}
+
+String @GT_ScoreboardMessage( uint maxlen ) {
+	return teamScoreboardMessage( TEAM_ALPHA ) + " " + teamScoreboardMessage( TEAM_BETA );
 }
 
 void GT_updateScore( Client @client ) {

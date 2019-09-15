@@ -59,8 +59,6 @@ class cPlayer {
 
 	bool dueToSpawn; // used for respawning during countdown
 
-	bool isCarrier;
-
 	cPlayer( Client @player ) {
 		@this.client = @player;
 

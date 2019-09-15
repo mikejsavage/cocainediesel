@@ -207,7 +207,7 @@ String @teamScoreboardMessage( int t ) {
 		cPlayer @player = @playerFromClient( @client );
 
 		bool warmup = match.getState() == MATCH_STATE_WARMUP;
-		int state = warmup ? ( client.isReady() ? 1 : 0 ) : ( player.isCarrier ? 1 : 0 );
+		int state = warmup ? ( client.isReady() ? 1 : 0 ) : ( @ent == @bombCarrier ? 1 : 0 );
 		int playerId = ent.isGhosting() ? -( ent.playerNum + 1 ) : ent.playerNum;
 
 		players += " " + playerId

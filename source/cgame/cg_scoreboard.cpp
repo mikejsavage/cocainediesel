@@ -100,10 +100,12 @@ static void TeamScoreboard( TempAllocator & temp, const char ** cursor, int team
 	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, 8 ) );
 
 
+	int line_height = ImGui::GetTextLineHeightWithSpacing();
+
 	// score box
 	{
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 255 ) );
-		ImGui::BeginChild( temp( "{}score", team ), ImVec2( 200, slots * ImGui::GetTextLineHeightWithSpacing() ), false );
+		ImGui::BeginChild( temp( "{}score", team ), ImVec2( 200, slots * line_height ), false );
 		ImGui::PushFont( cls.large_font );
 		WindowCenterText( temp( "{}", team_info.score ) );
 		ImGui::PopFont();
@@ -117,16 +119,17 @@ static void TeamScoreboard( TempAllocator & temp, const char ** cursor, int team
 
 		// TODO: srgb?
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( color.r / 2, color.g / 2, color.b / 2, 255 ) );
-		ImGui::BeginChild( temp( "{}paddedplayers", team ), ImVec2( 0, slots * ImGui::GetTextLineHeightWithSpacing() ), false );
+		ImGui::BeginChild( temp( "{}paddedplayers", team ), ImVec2( 0, slots * line_height ), false );
 
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( color.r * 0.75f, color.g * 0.75f, color.b * 0.75f, 255 ) );
-		ImGui::BeginChild( temp( "{}players", team ), ImVec2( 0, team_info.num_players * ImGui::GetTextLineHeightWithSpacing() ), false );
+		ImGui::BeginChild( temp( "{}players", team ), ImVec2( 0, team_info.num_players * line_height ), false );
 
-		ImGui::Columns( 4, NULL, false );
-		ImGui::SetColumnWidth( 0, ImGui::GetWindowWidth() - 64 * 3 );
-		ImGui::SetColumnWidth( 1, 64 );
+		ImGui::Columns( 5, NULL, false );
+		ImGui::SetColumnWidth( 0, line_height );
+		ImGui::SetColumnWidth( 1, ImGui::GetWindowWidth() - 32 * 7 );
 		ImGui::SetColumnWidth( 2, 64 );
 		ImGui::SetColumnWidth( 3, 64 );
+		ImGui::SetColumnWidth( 4, 64 );
 
 		for( int i = 0; i < team_info.num_players; i++ ) {
 			ScoreboardPlayer player;
@@ -136,15 +139,13 @@ static void TeamScoreboard( TempAllocator & temp, const char ** cursor, int team
 			int id = player.id < 0 ? -( player.id + 1 ) : player.id;
 			if( player.state != 0 ) {
 				float dim = ImGui::GetTextLineHeight();
+				ImGui::SetCursorPos(Vec2((line_height-dim)/2, (line_height-dim)/2));
 				if( warmup )
 					ImGui::Image( CG_MediaShader( cgs.media.shaderTick ), ImVec2( dim, dim ) );
 				else if( cg_entities[id+1].current.team == cg.predictedPlayerState.stats[STAT_TEAM] )
 					ImGui::Image( CG_MediaShader( cgs.media.shaderBombIcon ), ImVec2( dim, dim ) );
-				ImGui::SameLine();
 			}
-			else {
-				ImGui::SameLine( ImGui::GetTextLineHeightWithSpacing() );
-			}
+			ImGui::NextColumn();
 
 			// player name
 			u8 alpha = player.id >= 0 ? 255 : 75;

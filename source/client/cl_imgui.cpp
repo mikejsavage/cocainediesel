@@ -128,7 +128,7 @@ void CL_ImGuiExpandColorTokens( DynamicString * result, const char * original, u
 	const char * end = p + strlen( p );
 
 	if( alpha != 255 ) {
-		*result += ImGuiColorToken( 255, 255, 255, alpha );
+		*result += ImGuiColorToken( 0, 0, 0, alpha );
 	}
 
 	while( p < end ) {

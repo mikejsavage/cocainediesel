@@ -139,7 +139,7 @@ static void TeamScoreboard( TempAllocator & temp, const char ** cursor, int team
 			int id = player.id < 0 ? -( player.id + 1 ) : player.id;
 			if( player.state != 0 ) {
 				float dim = ImGui::GetTextLineHeight();
-				ImGui::SetCursorPos(Vec2((line_height-dim)/2, (line_height-dim)/2));
+				ImGui::SetCursorPos(Vec2((line_height-dim)/2, (line_height-dim)/2 + line_height*i));
 				if( warmup )
 					ImGui::Image( CG_MediaShader( cgs.media.shaderTick ), ImVec2( dim, dim ) );
 				else if( cg_entities[id+1].current.team == cg.predictedPlayerState.stats[STAT_TEAM] )

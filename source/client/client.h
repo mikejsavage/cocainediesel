@@ -263,6 +263,7 @@ typedef struct {
 
 	char session[MAX_INFO_VALUE];
 
+	ImFont * huge_font;
 	ImFont * large_font;
 	ImFont * medium_font;
 	ImFont * console_font;

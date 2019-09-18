@@ -104,8 +104,8 @@ static void TeamScoreboard( TempAllocator & temp, const char ** cursor, int team
 	// score box
 	{
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 255 ) );
-		ImGui::BeginChild( temp( "{}score", team ), ImVec2( 200, slots * line_height ), false );
-		ImGui::PushFont( cls.large_font );
+		ImGui::BeginChild( temp( "{}score", team ), ImVec2( 5 * line_height, slots * line_height ), false );
+		ImGui::PushFont( cls.huge_font );
 		WindowCenterText( temp( "{}", team_info.score ) );
 		ImGui::PopFont();
 		ImGui::EndChild();
@@ -125,10 +125,10 @@ static void TeamScoreboard( TempAllocator & temp, const char ** cursor, int team
 
 		ImGui::Columns( 5, NULL, false );
 		ImGui::SetColumnWidth( 0, line_height );
-		ImGui::SetColumnWidth( 1, ImGui::GetWindowWidth() - 32 * 7 );
-		ImGui::SetColumnWidth( 2, 64 );
-		ImGui::SetColumnWidth( 3, 64 );
-		ImGui::SetColumnWidth( 4, 64 );
+		ImGui::SetColumnWidth( 1, ImGui::GetWindowWidth() - 80 * 3 - 32 );
+		ImGui::SetColumnWidth( 2, 80 );
+		ImGui::SetColumnWidth( 3, 80 );
+		ImGui::SetColumnWidth( 4, 80 );
 
 		for( int i = 0; i < team_info.num_players; i++ ) {
 			ScoreboardPlayer player;
@@ -199,17 +199,20 @@ void CG_DrawScoreboard() {
 	ImGui::PopStyleVar();
 
 	if( GS_TeamBasedGametype() ) {
+		float score_width = 5 * ( ImGui::GetTextLineHeight() + 2 * 8 );
+		float col_width = 80;
+
 		{
 			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 2, 2 ) );
 			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 255 ) );
 			ImGui::BeginChild( "scoreboardheader", ImVec2( 0, ImGui::GetFrameHeight() ), false );
 
 			ImGui::Columns( 5, NULL, false );
-			ImGui::SetColumnWidth( 0, 200 );
-			ImGui::SetColumnWidth( 1, size.x - 200 - 64 * 3 );
-			ImGui::SetColumnWidth( 2, 64 );
-			ImGui::SetColumnWidth( 3, 64 );
-			ImGui::SetColumnWidth( 4, 64 );
+			ImGui::SetColumnWidth( 0, score_width );
+			ImGui::SetColumnWidth( 1, size.x - score_width - col_width * 3 );
+			ImGui::SetColumnWidth( 2, col_width );
+			ImGui::SetColumnWidth( 3, col_width );
+			ImGui::SetColumnWidth( 4, col_width );
 
 			ImGui::AlignTextToFramePadding();
 			ColumnCenterText( "ATTACKING" );
@@ -242,11 +245,11 @@ void CG_DrawScoreboard() {
 			ImGui::BeginChild( "scoreboarddivider", ImVec2( 0, ImGui::GetFrameHeight() ), false );
 
 			ImGui::Columns( 5, NULL, false );
-			ImGui::SetColumnWidth( 0, 200 );
-			ImGui::SetColumnWidth( 1, size.x - 200 - 64 * 3 );
-			ImGui::SetColumnWidth( 2, 64 );
-			ImGui::SetColumnWidth( 3, 64 );
-			ImGui::SetColumnWidth( 4, 64 );
+			ImGui::SetColumnWidth( 0, score_width );
+			ImGui::SetColumnWidth( 1, size.x - score_width - col_width * 3 );
+			ImGui::SetColumnWidth( 2, col_width );
+			ImGui::SetColumnWidth( 3, col_width );
+			ImGui::SetColumnWidth( 4, col_width );
 
 			ImGui::AlignTextToFramePadding();
 			ColumnCenterText( "ROUND 1" );
@@ -269,11 +272,11 @@ void CG_DrawScoreboard() {
 			ImGui::BeginChild( "scoreboardfooter", ImVec2( 0, ImGui::GetFrameHeight() ), false );
 
 			ImGui::Columns( 5, NULL, false );
-			ImGui::SetColumnWidth( 0, 200 );
-			ImGui::SetColumnWidth( 1, size.x - 200 - 64 * 3 );
-			ImGui::SetColumnWidth( 2, 64 );
-			ImGui::SetColumnWidth( 3, 64 );
-			ImGui::SetColumnWidth( 4, 64 );
+			ImGui::SetColumnWidth( 0, score_width );
+			ImGui::SetColumnWidth( 1, size.x - score_width - col_width * 3 );
+			ImGui::SetColumnWidth( 2, col_width );
+			ImGui::SetColumnWidth( 3, col_width );
+			ImGui::SetColumnWidth( 4, col_width );
 
 			ImGui::AlignTextToFramePadding();
 			ColumnCenterText( "DEFENDING" );

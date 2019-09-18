@@ -89,6 +89,7 @@ void UI_Init() {
 	{
 		ImGuiIO & io = ImGui::GetIO();
 		io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 18.0f );
+		cls.huge_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 128.0f );
 		cls.large_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 64.0f );
 		cls.medium_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 48.0f );
 		cls.console_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 14.0f );

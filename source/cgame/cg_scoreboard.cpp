@@ -96,11 +96,10 @@ static void TeamScoreboard( TempAllocator & temp, const char ** cursor, int team
 
 	int slots = Max2( team_info.num_players, 5 );
 	ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 0, 0, 0, 255 ) );
-	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 8 ) );
 	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, 8 ) );
+	ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0, 8 ) );
 
-
-	int line_height = ImGui::GetTextLineHeightWithSpacing();
+	int line_height = ImGui::GetFrameHeight();
 
 	// score box
 	{
@@ -151,14 +150,18 @@ static void TeamScoreboard( TempAllocator & temp, const char ** cursor, int team
 			u8 alpha = player.id >= 0 ? 255 : 75;
 			DynamicString final_name( &temp );
 			CL_ImGuiExpandColorTokens( &final_name, cgs.clientInfo[ id ].name, alpha );
+			ImGui::AlignTextToFramePadding();
 			ImGui::Text( "%s", final_name.c_str() );
 			ImGui::NextColumn();
 
+			ImGui::AlignTextToFramePadding();
 			ColumnCenterText( temp( "{}", player.score ) );
 			ImGui::NextColumn();
+			ImGui::AlignTextToFramePadding();
 			ColumnCenterText( temp( "{}", player.kills ) );
 			ImGui::NextColumn();
 
+			ImGui::AlignTextToFramePadding();
 			ImGuiColorToken color( Min2( 255, player.ping ), 0, 0, 255 );
 			ColumnCenterText( temp( "{}{}", color, player.ping ) );
 			ImGui::NextColumn();
@@ -180,7 +183,6 @@ void CG_DrawScoreboard() {
 	bool warmup = GS_MatchState() == MATCH_STATE_WARMUP || GS_MatchState() == MATCH_STATE_COUNTDOWN;
 
 	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
-	ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 2, 2 ) );
 	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, 0 ) );
 
 	const char * cursor = scoreboard_string;
@@ -198,6 +200,7 @@ void CG_DrawScoreboard() {
 
 	if( GS_TeamBasedGametype() ) {
 		{
+			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 2, 2 ) );
 			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 255 ) );
 			ImGui::BeginChild( "scoreboardheader", ImVec2( 0, ImGui::GetFrameHeight() ), false );
 
@@ -224,6 +227,7 @@ void CG_DrawScoreboard() {
 
 			ImGui::EndChild();
 			ImGui::PopStyleColor();
+			ImGui::PopStyleVar();
 		}
 
 		int myteam = cg.predictedPlayerState.stats[ STAT_TEAM ];
@@ -233,6 +237,7 @@ void CG_DrawScoreboard() {
 		TeamScoreboard( temp, &cursor, myteam );
 
 		{
+			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 2, 2 ) );
 			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 255 ) );
 			ImGui::BeginChild( "scoreboarddivider", ImVec2( 0, ImGui::GetFrameHeight() ), false );
 
@@ -253,11 +258,13 @@ void CG_DrawScoreboard() {
 
 			ImGui::EndChild();
 			ImGui::PopStyleColor();
+			ImGui::PopStyleVar();
 		}
 
 		TeamScoreboard( temp, &cursor, myteam == TEAM_ALPHA ? TEAM_BETA : TEAM_ALPHA );
 
 		{
+			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 2, 2 ) );
 			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 255 ) );
 			ImGui::BeginChild( "scoreboardfooter", ImVec2( 0, ImGui::GetFrameHeight() ), false );
 
@@ -278,6 +285,7 @@ void CG_DrawScoreboard() {
 
 			ImGui::EndChild();
 			ImGui::PopStyleColor();
+			ImGui::PopStyleVar();
 		}
 	}
 	else {
@@ -355,7 +363,7 @@ void CG_DrawScoreboard() {
 	}
 
 	ImGui::End();
-	ImGui::PopStyleVar( 2 );
+	ImGui::PopStyleVar();
 }
 
 void CG_ScoresOn_f() {

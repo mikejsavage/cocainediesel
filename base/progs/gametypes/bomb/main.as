@@ -217,11 +217,11 @@ String @teamScoreboardMessage( int t ) {
 			+ " " + state;
 	}
 
-	return "" + team.stats.score + " " + team.numPlayers + players;
+	return team.stats.score + " " + team.numPlayers + players;
 }
 
 String @GT_ScoreboardMessage() {
-	return teamScoreboardMessage( TEAM_ALPHA ) + " " + teamScoreboardMessage( TEAM_BETA );
+	return roundCount + " " + teamScoreboardMessage( TEAM_ALPHA ) + " " + teamScoreboardMessage( TEAM_BETA );
 }
 
 void GT_updateScore( Client @client ) {

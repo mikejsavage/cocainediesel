@@ -737,8 +737,9 @@ Entity @GT_SelectSpawnPoint( Entity @self )
 }
 
 String @playerScoreboardMessage( Client @client ) {
-	int state = match.getState() == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : 1;
-	int playerID = client.playerNum;
+	int playerID = client.getEnt().isGhosting() ? -client.playerNum - 1 : client.playerNum;
+	int state = match.getState() == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : (playerID < 0 ? 0 : 1);
+
 
 	return " " + playerID
 		+ " " + client.ping
@@ -752,7 +753,7 @@ String @GT_ScoreboardMessage() {
 	int loosers = daRound.roundLosers.size();
 
 	Team @team = @G_GetTeam( TEAM_PLAYERS );
-	String scoreboard = "" + team.numPlayers;
+	String scoreboard = daRound.numRounds + " " + team.numPlayers;
 
 	// first add the players in the duel
 	for( int i = 0; i < challengers; i++ ) {

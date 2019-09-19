@@ -151,7 +151,7 @@ static void TeamScoreboard( TempAllocator & temp, const char ** cursor, int team
 			DynamicString final_name( &temp );
 			CL_ImGuiExpandColorTokens( &final_name, cgs.clientInfo[ id ].name, alpha );
 			ImGui::AlignTextToFramePadding();
-			ImGui::Text( "%s", final_name.c_str() );
+			ImGui::Text( final_name.c_str() );
 			ImGui::NextColumn();
 
 			ImGui::AlignTextToFramePadding();
@@ -181,6 +181,7 @@ static void TeamScoreboard( TempAllocator & temp, const char ** cursor, int team
 void CG_DrawScoreboard() {
 	TempAllocator temp = cls.frame_arena->temp();
 	bool warmup = GS_MatchState() == MATCH_STATE_WARMUP || GS_MatchState() == MATCH_STATE_COUNTDOWN;
+	int round;
 
 	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
 	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, 0 ) );
@@ -189,7 +190,6 @@ void CG_DrawScoreboard() {
 
 	ImGuiIO & io = ImGui::GetIO();
 	Vec2 size = io.DisplaySize * Vec2( 0.8f, 0.8f );
-	const float tab_height = size.y/22; //use float for precision
 
 	ImGuiWindowFlags basic_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
 
@@ -198,9 +198,10 @@ void CG_DrawScoreboard() {
 	ImGui::Begin( "scoreboard", NULL, basic_flags | ImGuiWindowFlags_NoBackground );
 	ImGui::PopStyleVar();
 
+	float col_width = 80;
+
 	if( GS_TeamBasedGametype() ) {
 		float score_width = 5 * ( ImGui::GetTextLineHeight() + 2 * 8 );
-		float col_width = 80;
 
 		{
 			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 2, 2 ) );
@@ -237,6 +238,8 @@ void CG_DrawScoreboard() {
 		if( myteam == TEAM_SPECTATOR )
 			myteam = TEAM_ALPHA;
 
+		ParseInt( &cursor, &round );
+
 		TeamScoreboard( temp, &cursor, myteam );
 
 		{
@@ -252,7 +255,7 @@ void CG_DrawScoreboard() {
 			ImGui::SetColumnWidth( 4, col_width );
 
 			ImGui::AlignTextToFramePadding();
-			ColumnCenterText( "ROUND 1" );
+			ColumnCenterText( round == 0 ? "WARMUP" : temp("ROUND {}", round) );
 			ImGui::NextColumn();
 			ImGui::NextColumn();
 			ImGui::NextColumn();
@@ -292,60 +295,106 @@ void CG_DrawScoreboard() {
 		}
 	}
 	else {
-		ImGui::PushFont( cls.large_font );
-		ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 255, 255, 255, 100 ) );
-		CenterTextWindow( "title", "Gladiator", ImVec2( size.x, size.y/10 ) );
-		ImGui::PopStyleColor();
-		ImGui::PopFont();
+		ScoreboardTeam team_info;
+		if( !ParseTeam( &cursor, &team_info ) )
+			return;
 
-		ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 75, 75, 75, 100 ) );
-		ImGui::BeginChild( "scoreboard", ImVec2( size.x, size.y/25 ), basic_flags );
+		ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, 8 ) );
+		ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0, 16 ) );
 
-		CenterText( "Score", ImVec2( size.x/10, size.y/25 ), ImVec2( size.x*7/10, 0 ) );
-		CenterText( "Kills", ImVec2( size.x/10, size.y/25 ), ImVec2( size.x*8/10, 0 ) );
-		CenterText( "Ping", ImVec2( size.x/10, size.y/25 ), ImVec2( size.x*9/10, 0 ) );
+		int line_height = ImGui::GetFrameHeight();
 
-		ImGui::EndChild();
-		ImGui::PopStyleColor();
+		// players
+		{
+			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 2, 2 ) );
+			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 255 ) );
+			ImGui::BeginChild( "scoreboardheader", ImVec2( 0, ImGui::GetFrameHeight() ), false );
 
-		int num_players;
-		if( ParseInt( &cursor, &num_players ) && num_players > 0 ) {
-			int height = 0;
-			ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32( 255, 255, 255, 75 ) );
-			ImGui::BeginChild( "players", ImVec2(size.x, tab_height*num_players), basic_flags );
-			//players tab
-			for( int i = 0; i < num_players; i++ ) {
+			ImGui::Columns( 5, NULL, false );
+			ImGui::SetColumnWidth( 0, line_height );
+			ImGui::SetColumnWidth( 1, ImGui::GetWindowWidth() - 80 * 3 - 32 );
+			ImGui::SetColumnWidth( 2, col_width );
+			ImGui::SetColumnWidth( 3, col_width );
+			ImGui::SetColumnWidth( 4, col_width );
+
+			ImGui::NextColumn();
+			ImGui::AlignTextToFramePadding();
+			ColumnCenterText( team_info.score == 0 ? "WARMUP" : temp( "ROUND {}", team_info.score) );
+			ImGui::NextColumn();
+			ImGui::AlignTextToFramePadding();
+			ColumnCenterText( "SCORE" );
+			ImGui::NextColumn();
+			ImGui::AlignTextToFramePadding();
+			ColumnCenterText( "KILLS" );
+			ImGui::NextColumn();
+			ImGui::AlignTextToFramePadding();
+			ColumnCenterText( "PING" );
+			ImGui::NextColumn();
+
+			ImGui::EndChild();
+			ImGui::PopStyleColor();
+			ImGui::PopStyleVar();
+
+
+			ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 0, 0, 0, 255 ) );
+			for( int i = 0; i < team_info.num_players; i++ ) {
 				ScoreboardPlayer player;
 				if( !ParsePlayer( &cursor, &player ) )
 					break;
 
-				int id = player.id < 0 ? -( player.id + 1 ) : player.id;
-				ImGui::SetCursorPos(ImVec2(tab_height/8, height + tab_height/8));
-				if(player.state) {
-					if(warmup)		ImGui::Image(CG_MediaShader( cgs.media.shaderTick ), ImVec2(tab_height/1.25, tab_height/1.25), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(0,0,0,0));
-					else			ImGui::Image(CG_MediaShader( cgs.media.shaderAlive ), ImVec2(tab_height/1.25, tab_height/1.25), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(0,0,0,0));
-				} else if(!warmup)	ImGui::Image(CG_MediaShader( cgs.media.shaderDead ), ImVec2(tab_height/1.25, tab_height/1.25), ImVec2(0, 0), ImVec2(1, 1), ImColor(255,255,255,255), ImColor(0,0,0,0));
+				RGB8 ply_color = TEAM_COLORS[i].rgb;
+				bool alive = player.id >= 0;
 
-				//player name
-				u8 alpha = player.id >= 0 ? 255 : 75;
+				ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( ply_color.r * 0.75f * (float(alive)/2 + 0.5f), ply_color.g * 0.75f * (float(alive)/2 + 0.5f), ply_color.b * 0.75f * (float(alive)/2 + 0.5f), 255 ) );
+				ImGui::BeginChild( temp( "players{}", i ), ImVec2( 0, line_height ), false );
+
+				ImGui::Columns( 5, NULL, false );
+				ImGui::SetColumnWidth( 0, line_height );
+				ImGui::SetColumnWidth( 1, ImGui::GetWindowWidth() - 80 * 3 - 32 );
+				ImGui::SetColumnWidth( 2, col_width );
+				ImGui::SetColumnWidth( 3, col_width );
+				ImGui::SetColumnWidth( 4, col_width );
+
+				int id = alive ? player.id : -( player.id + 1 );
+				float dim = ImGui::GetTextLineHeight();
+				ImGui::SetCursorPos(Vec2((line_height-dim)/2, (line_height-dim)/2));
+				if( player.state != 0 ) {
+					if(warmup)
+						ImGui::Image(CG_MediaShader( cgs.media.shaderTick ), ImVec2( dim, dim ));
+					else
+						ImGui::Image(CG_MediaShader( cgs.media.shaderAlive ), ImVec2( dim, dim ));
+				} else if(!warmup)
+					ImGui::Image(CG_MediaShader( cgs.media.shaderDead ), ImVec2( dim, dim ));
+				
+				ImGui::NextColumn();
+
+				// player name
+				u8 alpha = alive ? 255 : 75;
 				DynamicString final_name( &temp );
-
 				CL_ImGuiExpandColorTokens( &final_name, cgs.clientInfo[ id ].name, alpha );
-				ImVec2 t_size = ImGui::CalcTextSize(final_name.c_str());
-				ImGui::SetCursorPos( ImVec2(tab_height, height + (tab_height - t_size.y)/2 ) );
-				ImGui::Text( "%s", final_name.c_str() );
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text( final_name.c_str() );
+				ImGui::NextColumn();
 
-				CenterText( temp( "{}", player.score ), ImVec2( size.x/10, tab_height ), ImVec2( size.x*7/10, height ) );
-				CenterText( temp( "{}", player.kills ), ImVec2( size.x/10, tab_height ), ImVec2( size.x*8/10, height ) );
+				ImGui::AlignTextToFramePadding();
+				ColumnCenterText( temp( "{}", player.score ) );
+				ImGui::NextColumn();
+				ImGui::AlignTextToFramePadding();
+				ColumnCenterText( temp( "{}", player.kills ) );
+				ImGui::NextColumn();
 
-				ImGuiColorToken color( 255, Max2( 0, 255 - player.ping ), Max2( 0, 255 - player.ping * 2 ), 255 );
-				CenterText( temp( "{}{}", color, player.ping ), ImVec2( size.x/10, tab_height ), ImVec2( size.x*9/10, height ) );
+				ImGui::AlignTextToFramePadding();
+				ImGuiColorToken color( Min2( 255, player.ping ), 0, 0, 255 );
+				ColumnCenterText( temp( "{}{}", color, player.ping ) );
+				ImGui::NextColumn();
 
-				height += tab_height;
+				ImGui::EndChild();
+				ImGui::PopStyleColor();
 			}
-			ImGui::EndChild();
 			ImGui::PopStyleColor();
 		}
+
+		ImGui::PopStyleVar( 2 );
 	}
 
 	int num_spectators;

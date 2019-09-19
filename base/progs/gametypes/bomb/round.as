@@ -168,7 +168,7 @@ void setTeams() {
 }
 
 void newGame() {
-	roundCount = 0;
+	roundCount = 1;
 	setTeams();
 
 	for( int t = TEAM_PLAYERS; t < GS_MAX_TEAMS; t++ ) {

@@ -393,8 +393,7 @@ void CG_DrawScoreboard() {
 				ImGui::NextColumn();
 
 				ImGui::AlignTextToFramePadding();
-				ImGuiColorToken color( Min2( 255, player.ping ), 0, 0, 255 );
-				ColumnCenterText( temp( "{}{}", color, player.ping ) );
+				ColumnCenterText( temp( "{}{}", ImGuiColorToken( Min2( 255, player.ping ), 0, 0, 255 ), player.ping ) );
 				ImGui::NextColumn();
 
 				ImGui::EndChild();

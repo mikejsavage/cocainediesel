@@ -349,10 +349,10 @@ void CG_DrawScoreboard() {
 				if( !ParsePlayer( &cursor, &player ) )
 					break;
 
-				RGB8 ply_color = TEAM_COLORS[i].rgb;
+				RGB8 color = TEAM_COLORS[ i % ARRAY_COUNT( TEAM_COLORS ) ].rgb;
 				bool alive = player.id >= 0;
 
-				ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( ply_color.r * 0.75f * (float(alive)/2 + 0.5f), ply_color.g * 0.75f * (float(alive)/2 + 0.5f), ply_color.b * 0.75f * (float(alive)/2 + 0.5f), 255 ) );
+				ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( color.r * 0.75f * (float(alive)/2 + 0.5f), color.g * 0.75f * (float(alive)/2 + 0.5f), color.b * 0.75f * (float(alive)/2 + 0.5f), 255 ) );
 				ImGui::BeginChild( temp( "players{}", i ), ImVec2( 0, line_height ), false );
 
 				ImGui::Columns( 5, NULL, false );

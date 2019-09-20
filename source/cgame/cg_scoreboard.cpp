@@ -85,7 +85,7 @@ static bool ParsePlayer( const char ** cursor, ScoreboardPlayer * player ) {
 	return ok;
 }
 
-static void TeamScoreboard( TempAllocator & temp, const char ** cursor, int team ) {
+static void TeamScoreboard( TempAllocator & temp, const char ** cursor, int team, float col_width ) {
 	bool warmup = GS_MatchState() == MATCH_STATE_WARMUP || GS_MatchState() == MATCH_STATE_COUNTDOWN;
 
 	ScoreboardTeam team_info;
@@ -125,10 +125,10 @@ static void TeamScoreboard( TempAllocator & temp, const char ** cursor, int team
 
 		ImGui::Columns( 5, NULL, false );
 		ImGui::SetColumnWidth( 0, line_height );
-		ImGui::SetColumnWidth( 1, ImGui::GetWindowWidth() - 80 * 3 - 32 );
-		ImGui::SetColumnWidth( 2, 80 );
-		ImGui::SetColumnWidth( 3, 80 );
-		ImGui::SetColumnWidth( 4, 80 );
+		ImGui::SetColumnWidth( 1, ImGui::GetWindowWidth() - col_width * 3 - 32 );
+		ImGui::SetColumnWidth( 2, col_width );
+		ImGui::SetColumnWidth( 3, col_width );
+		ImGui::SetColumnWidth( 4, col_width );
 
 		for( int i = 0; i < team_info.num_players; i++ ) {
 			ScoreboardPlayer player;
@@ -245,7 +245,7 @@ void CG_DrawScoreboard() {
 		if( !ParseInt( &cursor, &round ) )
 			return;
 
-		TeamScoreboard( temp, &cursor, myteam );
+		TeamScoreboard( temp, &cursor, myteam, col_width );
 
 		{
 			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 2, 2 ) );
@@ -260,7 +260,7 @@ void CG_DrawScoreboard() {
 			ImGui::SetColumnWidth( 4, col_width );
 
 			ImGui::AlignTextToFramePadding();
-			ColumnCenterText( round == 0 ? "WARMUP" : temp("ROUND {}", round) );
+			ColumnCenterText( round == 0 ? "WARMUP" : temp( "ROUND {}", round ) );
 			ImGui::NextColumn();
 			ImGui::NextColumn();
 			ImGui::NextColumn();
@@ -272,7 +272,7 @@ void CG_DrawScoreboard() {
 			ImGui::PopStyleVar();
 		}
 
-		TeamScoreboard( temp, &cursor, myteam == TEAM_ALPHA ? TEAM_BETA : TEAM_ALPHA );
+		TeamScoreboard( temp, &cursor, myteam == TEAM_ALPHA ? TEAM_BETA : TEAM_ALPHA, col_width );
 
 		{
 			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 2, 2 ) );
@@ -309,7 +309,6 @@ void CG_DrawScoreboard() {
 
 		int line_height = ImGui::GetFrameHeight();
 
-		// players
 		{
 			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 2, 2 ) );
 			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 255 ) );
@@ -317,7 +316,7 @@ void CG_DrawScoreboard() {
 
 			ImGui::Columns( 5, NULL, false );
 			ImGui::SetColumnWidth( 0, line_height );
-			ImGui::SetColumnWidth( 1, ImGui::GetWindowWidth() - 80 * 3 - 32 );
+			ImGui::SetColumnWidth( 1, ImGui::GetWindowWidth() - col_width * 3 - 32 );
 			ImGui::SetColumnWidth( 2, col_width );
 			ImGui::SetColumnWidth( 3, col_width );
 			ImGui::SetColumnWidth( 4, col_width );
@@ -339,8 +338,10 @@ void CG_DrawScoreboard() {
 			ImGui::EndChild();
 			ImGui::PopStyleColor();
 			ImGui::PopStyleVar();
+		}
 
-
+		// players
+		{
 			ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 0, 0, 0, 255 ) );
 			for( int i = 0; i < team_info.num_players; i++ ) {
 				ScoreboardPlayer player;
@@ -355,7 +356,7 @@ void CG_DrawScoreboard() {
 
 				ImGui::Columns( 5, NULL, false );
 				ImGui::SetColumnWidth( 0, line_height );
-				ImGui::SetColumnWidth( 1, ImGui::GetWindowWidth() - 80 * 3 - 32 );
+				ImGui::SetColumnWidth( 1, ImGui::GetWindowWidth() - col_width * 3 - 32 );
 				ImGui::SetColumnWidth( 2, col_width );
 				ImGui::SetColumnWidth( 3, col_width );
 				ImGui::SetColumnWidth( 4, col_width );
@@ -364,13 +365,15 @@ void CG_DrawScoreboard() {
 				float dim = ImGui::GetTextLineHeight();
 				ImGui::SetCursorPos(Vec2((line_height-dim)/2, (line_height-dim)/2));
 				if( player.state != 0 ) {
-					if(warmup)
-						ImGui::Image(CG_MediaShader( cgs.media.shaderTick ), ImVec2( dim, dim ));
+					if( warmup )
+						ImGui::Image( CG_MediaShader( cgs.media.shaderTick ), ImVec2( dim, dim ) );
 					else
-						ImGui::Image(CG_MediaShader( cgs.media.shaderAlive ), ImVec2( dim, dim ));
-				} else if(!warmup)
+						ImGui::Image( CG_MediaShader( cgs.media.shaderAlive ), ImVec2( dim, dim ) );
+				}
+				else if( !warmup ) {
 					ImGui::Image(CG_MediaShader( cgs.media.shaderDead ), ImVec2( dim, dim ));
-				
+				}
+
 				ImGui::NextColumn();
 
 				// player name

@@ -151,7 +151,7 @@ static void TeamScoreboard( TempAllocator & temp, const char ** cursor, int team
 			DynamicString final_name( &temp );
 			CL_ImGuiExpandColorTokens( &final_name, cgs.clientInfo[ id ].name, alpha );
 			ImGui::AlignTextToFramePadding();
-			ImGui::Text( final_name.c_str() );
+			ImGui::Text( "%s", final_name.c_str() );
 			ImGui::NextColumn();
 
 			ImGui::AlignTextToFramePadding();
@@ -181,7 +181,6 @@ static void TeamScoreboard( TempAllocator & temp, const char ** cursor, int team
 void CG_DrawScoreboard() {
 	TempAllocator temp = cls.frame_arena->temp();
 	bool warmup = GS_MatchState() == MATCH_STATE_WARMUP || GS_MatchState() == MATCH_STATE_COUNTDOWN;
-	int round;
 
 	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
 	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, 0 ) );
@@ -197,6 +196,10 @@ void CG_DrawScoreboard() {
 	ImGui::SetNextWindowPosCenter();
 	ImGui::Begin( "scoreboard", NULL, basic_flags | ImGuiWindowFlags_NoBackground );
 	ImGui::PopStyleVar();
+	defer {
+		ImGui::End();
+		ImGui::PopStyleVar();
+	};
 
 	float col_width = 80;
 
@@ -238,7 +241,9 @@ void CG_DrawScoreboard() {
 		if( myteam == TEAM_SPECTATOR )
 			myteam = TEAM_ALPHA;
 
-		ParseInt( &cursor, &round );
+		int round;
+		if( !ParseInt( &cursor, &round ) )
+			return;
 
 		TeamScoreboard( temp, &cursor, myteam );
 
@@ -373,7 +378,7 @@ void CG_DrawScoreboard() {
 				DynamicString final_name( &temp );
 				CL_ImGuiExpandColorTokens( &final_name, cgs.clientInfo[ id ].name, alpha );
 				ImGui::AlignTextToFramePadding();
-				ImGui::Text( final_name.c_str() );
+				ImGui::Text( "%s", final_name.c_str() );
 				ImGui::NextColumn();
 
 				ImGui::AlignTextToFramePadding();
@@ -398,24 +403,22 @@ void CG_DrawScoreboard() {
 	}
 
 	int num_spectators;
-	if( ParseInt( &cursor, &num_spectators ) && num_spectators > 0 ) {
-		DynamicString spectators( &temp, "Spectating: " );
-		for( int i = 0; i < num_spectators; i++ ) {
-			int id;
-			if( !ParseInt( &cursor, &id ) )
-				break;
-			if( i > 0 )
-				spectators += S_COLOR_WHITE ", ";
-			spectators += cgs.clientInfo[ id ].name;
-		}
+	if( !ParseInt( &cursor, &num_spectators ) || num_spectators == 0 )
+		return;
 
-		DynamicString expanded( &temp );
-		CL_ImGuiExpandColorTokens( &expanded, spectators.c_str(), 200 );
-		CenterTextWindow( "spec", expanded.c_str(), ImVec2(size.x, size.y/10) );
+	DynamicString spectators( &temp, "Spectating: " );
+	for( int i = 0; i < num_spectators; i++ ) {
+		int id;
+		if( !ParseInt( &cursor, &id ) )
+			break;
+		if( i > 0 )
+			spectators += S_COLOR_WHITE ", ";
+		spectators += cgs.clientInfo[ id ].name;
 	}
 
-	ImGui::End();
-	ImGui::PopStyleVar();
+	DynamicString expanded( &temp );
+	CL_ImGuiExpandColorTokens( &expanded, spectators.c_str(), 200 );
+	CenterTextWindow( "spec", expanded.c_str(), ImVec2( size.x, size.y/10 ) );
 }
 
 void CG_ScoresOn_f() {

@@ -181,9 +181,9 @@ gfx/hud/icons/drop/bomb
 	template mipmapped_HUD_Template icons/drop/bomb
 }
 
-gfx/bomb/carriericon
+gfx/bomb
 {
-	template mipmapped_GFX_Template bomb/carriericon
+	template mipmapped_GFX_Template bomb
 }
 
 

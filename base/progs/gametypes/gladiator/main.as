@@ -738,8 +738,7 @@ Entity @GT_SelectSpawnPoint( Entity @self )
 
 String @playerScoreboardMessage( Client @client ) {
 	int playerID = client.getEnt().isGhosting() ? -client.playerNum - 1 : client.playerNum;
-	int state = match.getState() == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : (playerID < 0 ? 0 : 1);
-
+	int state = match.getState() == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : 0;
 
 	return " " + playerID
 		+ " " + client.ping

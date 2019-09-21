@@ -152,7 +152,8 @@ static int CG_GetFPS( const void *parameter ) {
 	}
 
 	if( cg_showFPS->integer == 1 ) {
-		frameTimes[cg.frameCount & FPSSAMPLESMASK] = trap_R_GetAverageFrametime();
+		// frameTimes[cg.frameCount & FPSSAMPLESMASK] = trap_R_GetAverageFrametime();
+		frameTimes[cg.frameCount & FPSSAMPLESMASK] = 1;
 	} else {
 		frameTimes[cg.frameCount & FPSSAMPLESMASK] = cg.realFrameTime;
 	}
@@ -183,11 +184,11 @@ static int CG_GetZoom( const void *parameter ) {
 }
 
 static int CG_GetVidWidth( const void *parameter ) {
-	return cgs.vidWidth;
+	return frame_static.viewport_width;
 }
 
 static int CG_GetVidHeight( const void *parameter ) {
-	return cgs.vidHeight;
+	return frame_static.viewport_height;
 }
 
 static int CG_GetCvar( const void *parameter ) {
@@ -396,22 +397,6 @@ typedef struct obituary_s
 
 static obituary_t cg_obituaries[MAX_OBITUARIES];
 static int cg_obituaries_current = -1;
-
-/*
-* CG_SC_PrintObituary
-*/
-void CG_SC_PrintObituary( const char *format, ... ) {
-	va_list argptr;
-	char msg[GAMECHAT_STRING_SIZE];
-
-	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
-	va_end( argptr );
-
-	trap_Print( msg );
-
-	CG_StackChatString( &cg.chat, msg );
-}
 
 /*
 * CG_SC_ResetObituaries
@@ -773,14 +758,18 @@ void CG_SC_Obituary( void ) {
 	}
 }
 
-static void CG_DrawObituaries( int x, int y, int align, struct qfontface_s *font, vec4_t color, int width, int height,
+static const Material * CG_GetWeaponIcon( int weapon ) {
+	return cgs.media.shaderWeaponIcon[ weapon - WEAP_GUNBLADE ];
+}
+
+static void CG_DrawObituaries( int x, int y, int align, struct qfontface_s *font, int width, int height,
 							   int internal_align, unsigned int icon_size ) {
 	const int icon_padding = 4;
 	int i, num, skip, next, w, num_max;
 	unsigned line_height;
 	int xoffset, yoffset;
 	obituary_t *obr;
-	struct shader_s *pic;
+	const Material *pic;
 	vec4_t teamcolor;
 
 	if( !( cg_showObituaries->integer & CG_OBITUARY_HUD ) ) {
@@ -841,34 +830,34 @@ static void CG_DrawObituaries( int x, int y, int align, struct qfontface_s *font
 
 		switch( obr->mod ) {
 			case MOD_GUNBLADE:
-				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_GUNBLADE - 1] );
+				pic = CG_GetWeaponIcon( WEAP_GUNBLADE );
 				break;
 			case MOD_MACHINEGUN:
-				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_MACHINEGUN - 1] );
+				pic = CG_GetWeaponIcon( WEAP_MACHINEGUN );
 				break;
 			case MOD_RIOTGUN:
-				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_RIOTGUN - 1] );
+				pic = CG_GetWeaponIcon( WEAP_RIOTGUN );
 				break;
 			case MOD_GRENADE:
 			case MOD_GRENADE_SPLASH:
-				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_GRENADELAUNCHER - 1] );
+				pic = CG_GetWeaponIcon( WEAP_GRENADELAUNCHER );
 				break;
 			case MOD_ROCKET:
 			case MOD_ROCKET_SPLASH:
-				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_ROCKETLAUNCHER - 1] );
+				pic = CG_GetWeaponIcon( WEAP_ROCKETLAUNCHER );
 				break;
 			case MOD_PLASMA:
 			case MOD_PLASMA_SPLASH:
-				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_PLASMAGUN - 1] );
+				pic = CG_GetWeaponIcon( WEAP_PLASMAGUN );
 				break;
 			case MOD_ELECTROBOLT:
-				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_ELECTROBOLT - 1] );
+				pic = CG_GetWeaponIcon( WEAP_ELECTROBOLT );
 				break;
 			case MOD_LASERGUN:
-				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_LASERGUN - 1] );
+				pic = CG_GetWeaponIcon( WEAP_LASERGUN );
 				break;
 			default:
-				pic = CG_MediaShader( cgs.media.shaderWeaponIcon[WEAP_GUNBLADE - 1] ); // FIXME
+				pic = CG_GetWeaponIcon( WEAP_GUNBLADE ); // FIXME
 				break;
 		}
 
@@ -913,8 +902,8 @@ static void CG_DrawObituaries( int x, int y, int align, struct qfontface_s *font
 		trap_SCR_DrawStringWidth( x + xoffset + icon_size + 2 * icon_padding, obituary_y,
 			ALIGN_LEFT_TOP, COM_RemoveColorTokensExt( obr->victim, true ), ( width - icon_size ) / 2, font, teamcolor );
 
-		trap_R_DrawStretchPic( x + xoffset + icon_padding, y + yoffset + ( line_height - icon_size ) / 2, icon_size,
-							   icon_size, 0, 0, 1, 1, colorWhite, pic );
+		Draw2DBox( frame_static.ui_pass, x + xoffset + icon_padding, y + yoffset + ( line_height - icon_size ) / 2,
+			icon_size, icon_size, pic, vec4_white );
 
 		yoffset += line_height;
 	} while( i != next );
@@ -922,17 +911,13 @@ static void CG_DrawObituaries( int x, int y, int align, struct qfontface_s *font
 
 //=============================================================================
 
-#define AWARDS_OVERSHOOT_DURATION 0.2f
-#define AWARDS_OVERSHOOT_FREQUENCY 6.0f
-#define AWARDS_OVERSHOOT_DECAY 10.0f
-
 void CG_ClearAwards( void ) {
 	// reset awards
 	cg.award_head = 0;
 	memset( cg.award_times, 0, sizeof( cg.award_times ) );
 }
 
-static void CG_DrawAwards( int x, int y, int align, struct qfontface_s *font, vec4_t color ) {
+static void CG_DrawAwards( int x, int y, int align, struct qfontface_s *font, Vec4 color ) {
 	int i, count, current;
 	int yoffset;
 
@@ -971,7 +956,7 @@ static void CG_DrawAwards( int x, int y, int align, struct qfontface_s *font, ve
 
 		yoffset = trap_SCR_FontHeight( font ) * ( MAX_AWARD_LINES - i );
 
-		trap_SCR_DrawStringWidth( x, y + yoffset, align, str, 0, font, color );
+		// trap_SCR_DrawStringWidth( x, y + yoffset, align, str, 0, font, color );
 	}
 }
 
@@ -1164,7 +1149,7 @@ static int layout_cursor_y = 300;
 static int layout_cursor_width = 100;
 static int layout_cursor_height = 100;
 static int layout_cursor_align = ALIGN_LEFT_TOP;
-static vec4_t layout_cursor_color = { 1, 1, 1, 1 };
+static Vec4 layout_cursor_color = vec4_white;
 static vec3_t layout_cursor_rotation = { 0, 0, 0 };
 
 static struct qfontface_s *layout_cursor_font;
@@ -1194,10 +1179,6 @@ static bool CG_IsWeaponSelected( int weapon ) {
 	return ( weapon == cg.predictedPlayerState.stats[STAT_PENDING_WEAPON] );
 }
 
-static struct shader_s *CG_GetWeaponIcon( int weapon ) {
-	return CG_MediaShader( cgs.media.shaderWeaponIcon[weapon - WEAP_GUNBLADE] );
-}
-
 constexpr float SELECTED_WEAPON_Y_OFFSET = 0.0125;
 
 static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih, int align ) {
@@ -1222,9 +1203,9 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		int cury = CG_VerticalAlignForHeight( y + offy * drawn_weapons, align, total_height );
 
 		if( CG_IsWeaponSelected( i ) )
-			cury -= SELECTED_WEAPON_Y_OFFSET * cgs.vidHeight;
+			cury -= SELECTED_WEAPON_Y_OFFSET * frame_static.viewport_height;
 
-		trap_R_DrawStretchPic( curx, cury, iw, ih, 0, 0, 1, 1, colorWhite, CG_GetWeaponIcon( i ) );
+		Draw2DBox( frame_static.ui_pass, curx, cury, iw, ih, CG_GetWeaponIcon( i ) );
 
 		drawn_weapons++;
 	}
@@ -1253,17 +1234,17 @@ static void CG_DrawWeaponAmmos( int x, int y, int offx, int offy, int fontsize, 
 		int cury = y + offy * drawn_weapons;
 
 		if( CG_IsWeaponSelected( i ) )
-			cury -= SELECTED_WEAPON_Y_OFFSET * cgs.vidHeight;
+			cury -= SELECTED_WEAPON_Y_OFFSET * frame_static.viewport_height;
 
 		int ammo = cg.predictedPlayerState.inventory[ AMMO_GUNBLADE + i - WEAP_GUNBLADE ];
 
-		trap_SCR_DrawString( curx, cury, ALIGN_RIGHT_BOTTOM, va( "%i", ammo ), CG_GetLayoutCursorFont(), layout_cursor_color );
+		// trap_SCR_DrawString( curx, cury, ALIGN_RIGHT_BOTTOM, va( "%i", ammo ), CG_GetLayoutCursorFont(), layout_cursor_color );
 
 		drawn_weapons++;
 	}
 }
 
-static bool CG_LFuncDrawTimer( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawTimer( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	char time[64];
 	int min, sec, milli;
 
@@ -1280,171 +1261,53 @@ static bool CG_LFuncDrawTimer( struct cg_layoutnode_s *commandnode, struct cg_la
 
 	// we want MM:SS:m
 	Q_snprintfz( time, sizeof( time ), "%02d:%02d.%1d", min, sec, milli );
-	trap_SCR_DrawString( layout_cursor_x, layout_cursor_y, layout_cursor_align, time, CG_GetLayoutCursorFont(), layout_cursor_color );
+	// trap_SCR_DrawString( layout_cursor_x, layout_cursor_y, layout_cursor_align, time, CG_GetLayoutCursorFont(), layout_cursor_color );
 	return true;
 }
 
-static bool CG_LFuncDrawPicVar( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int min, max, val, firstimg, lastimg, imgcount;
-	static char filefmt[MAX_QPATH], filenm[MAX_QPATH], *ptr;
-	int x, y, filenr;
-	int cnt = 1;
-
-	// get tje arguments
-	val      = (int)( CG_GetNumericArg( &argumentnode ) );
-	min      = (int)( CG_GetNumericArg( &argumentnode ) );
-	max      = (int)( CG_GetNumericArg( &argumentnode ) );
-	firstimg = (int)( CG_GetNumericArg( &argumentnode ) );
-	lastimg  = (int)( CG_GetNumericArg( &argumentnode ) );
-
-	if( min > max ) { // swap min and max and count downwards
-		int t = min;
-		min = max;
-		max = t;
-		cnt = -cnt;
-	}
-	if( firstimg > lastimg ) { // swap firstimg and lastimg and count the other way around
-		int t = firstimg;
-		firstimg = lastimg;
-		lastimg = t;
-		cnt = -cnt;
-	}
-
-	if( val < min ) {
-		val = min;
-	}
-	if( val > max ) {
-		val = max;
-	}
-	val -= min;
-	max -= min;
-	min = 0;
-
-	imgcount = lastimg - firstimg + 1;
-
-	if( ( max != 0 ) && ( imgcount != 0 ) ) { // Check for division by 0
-		filenr =  (int)( ( (double)val / ( (double)max / imgcount ) ) );
-	} else {
-		filenr = 0;
-	}
-	if( filenr >= imgcount ) {
-		filenr = ( imgcount - 1 );
-	}
-	if( filenr < 0 ) {
-		filenr = 0;
-	}
-
-	if( cnt < 0 ) {
-		filenr = ( imgcount - filenr ) - 1;
-	}
-	filenr += firstimg;
-
-	filefmt[0] = '\0';
-	Q_strncpyz( filefmt, CG_GetStringArg( &argumentnode ), sizeof( filenm ) );
-	ptr = filefmt;
-	while( ( ptr[0] ) && ( ptr[1] ) ) {
-		if( ( ptr[0] == '#' ) && ( ptr[1] == '#' ) ) {
-			ptr[0] = '%';
-			ptr[1] = 'd';
-			break; // Only replace first occurance?
-		}
-		ptr++;
-	}
-	if( ( ptr[0] != '%' ) && ( ptr[1] != 'd' ) ) {
-		CG_Printf( "WARNING 'CG_LFuncDrawPicVar' Invalid file string parameter, no '##' present!" );
-		return false;
-	}
-	Q_snprintfz( filenm, sizeof( filenm ), filefmt, filenr );
-	x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
-	y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
-	trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, trap_R_RegisterPic( filenm ) );
+static bool CG_LFuncDrawPicByName( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+	int x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
+	int y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
+	Draw2DBox( frame_static.ui_pass, x, y, layout_cursor_width, layout_cursor_height, FindMaterial( CG_GetStringArg( &argumentnode ) ), layout_cursor_color );
 	return true;
 }
 
-static bool CG_LFuncDrawPicByIndex( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int value = (int)CG_GetNumericArg( &argumentnode );
-	int x, y;
+static bool CG_LFuncDrawSubPicByName( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+	int x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
+	int y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
 
-	if( value >= 0 && value < MAX_IMAGES ) {
-		if( cgs.configStrings[CS_IMAGES + value][0] ) {
-			x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
-			y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
-			trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, trap_R_RegisterPic( cgs.configStrings[CS_IMAGES + value] ) );
-			return true;
-		}
-	}
+	const Material * material = FindMaterial( CG_GetStringArg( &argumentnode ) );
 
-	return false;
-}
+	float s1 = CG_GetNumericArg( &argumentnode );
+	float t1 = CG_GetNumericArg( &argumentnode );
+	float s2 = CG_GetNumericArg( &argumentnode );
+	float t2 = CG_GetNumericArg( &argumentnode );
 
-static bool CG_LFuncDrawPicByItemIndex( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int itemindex = (int)CG_GetNumericArg( &argumentnode );
-	int x, y;
-	gsitem_t    *item;
-
-	item = GS_FindItemByTag( itemindex );
-	if( !item ) {
-		return false;
-	}
-	x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
-	y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
-	trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, trap_R_RegisterPic( item->icon ) );
+	// Draw2DBox( frame_static.ui_pass, x, y, layout_cursor_width, layout_cursor_height, material, layout_cursor_color );
 	return true;
 }
 
-static bool CG_LFuncDrawPicByName( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int x, y;
+static bool CG_LFuncDrawRotatedPicByName( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+	int x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
+	int y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
 
-	x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
-	y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
-	trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, trap_R_RegisterPic( CG_GetStringArg( &argumentnode ) ) );
+	const Material * material = FindMaterial( CG_GetStringArg( &argumentnode ) );
+
+	float angle = CG_GetNumericArg( &argumentnode );
+
+	// trap_R_DrawRotatedStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, angle, layout_cursor_color, shader );
 	return true;
 }
 
-static bool CG_LFuncDrawSubPicByName( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int x, y;
-	struct shader_s *shader;
-	float s1, t1, s2, t2;
-
-	x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
-	y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
-
-	shader = trap_R_RegisterPic( CG_GetStringArg( &argumentnode ) );
-
-	s1 = CG_GetNumericArg( &argumentnode );
-	t1 = CG_GetNumericArg( &argumentnode );
-	s2 = CG_GetNumericArg( &argumentnode );
-	t2 = CG_GetNumericArg( &argumentnode );
-
-	trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, s1, t1, s2, t2, layout_cursor_color, shader );
-	return true;
-}
-
-static bool CG_LFuncDrawRotatedPicByName( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int x, y;
-	struct shader_s *shader;
-	float angle;
-
-	x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
-	y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
-
-	shader = trap_R_RegisterPic( CG_GetStringArg( &argumentnode ) );
-
-	angle = CG_GetNumericArg( &argumentnode );
-
-	trap_R_DrawRotatedStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, angle, layout_cursor_color, shader );
-	return true;
-}
-
-static bool CG_LFuncScale( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncScale( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	layout_cursor_scale = (int)CG_GetNumericArg( &argumentnode );
 	return true;
 }
 
-#define SCALE_X( n ) ( ( layout_cursor_scale == NOSCALE ) ? ( n ) : ( ( layout_cursor_scale == SCALEBYHEIGHT ) ? ( n ) * cgs.vidHeight / 600.0f : ( n ) * cgs.vidWidth / 800.0f ) )
-#define SCALE_Y( n ) ( ( layout_cursor_scale == NOSCALE ) ? ( n ) : ( ( layout_cursor_scale == SCALEBYWIDTH ) ? ( n ) * cgs.vidWidth / 800.0f : ( n ) * cgs.vidHeight / 600.0f ) )
+#define SCALE_X( n ) ( ( layout_cursor_scale == NOSCALE ) ? ( n ) : ( ( layout_cursor_scale == SCALEBYHEIGHT ) ? ( n ) * frame_static.viewport_height / 600.0f : ( n ) * frame_static.viewport_width / 800.0f ) )
+#define SCALE_Y( n ) ( ( layout_cursor_scale == NOSCALE ) ? ( n ) : ( ( layout_cursor_scale == SCALEBYWIDTH ) ? ( n ) * frame_static.viewport_width / 800.0f : ( n ) * frame_static.viewport_height / 600.0f ) )
 
-static bool CG_LFuncCursor( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncCursor( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	float x, y;
 
 	x = CG_GetNumericArg( &argumentnode );
@@ -1457,7 +1320,7 @@ static bool CG_LFuncCursor( struct cg_layoutnode_s *commandnode, struct cg_layou
 	return true;
 }
 
-static bool CG_LFuncCursorX( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncCursorX( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	float x;
 
 	x = CG_GetNumericArg( &argumentnode );
@@ -1467,7 +1330,7 @@ static bool CG_LFuncCursorX( struct cg_layoutnode_s *commandnode, struct cg_layo
 	return true;
 }
 
-static bool CG_LFuncCursorY( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncCursorY( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	float y;
 
 	y = CG_GetNumericArg( &argumentnode );
@@ -1477,7 +1340,7 @@ static bool CG_LFuncCursorY( struct cg_layoutnode_s *commandnode, struct cg_layo
 	return true;
 }
 
-static bool CG_LFuncMoveCursor( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncMoveCursor( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	float x, y;
 
 	x = CG_GetNumericArg( &argumentnode );
@@ -1490,7 +1353,7 @@ static bool CG_LFuncMoveCursor( struct cg_layoutnode_s *commandnode, struct cg_l
 	return true;
 }
 
-static bool CG_LFuncSize( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncSize( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	float x, y;
 
 	x = CG_GetNumericArg( &argumentnode );
@@ -1503,7 +1366,7 @@ static bool CG_LFuncSize( struct cg_layoutnode_s *commandnode, struct cg_layoutn
 	return true;
 }
 
-static bool CG_LFuncSizeWidth( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncSizeWidth( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	float x;
 
 	x = CG_GetNumericArg( &argumentnode );
@@ -1513,7 +1376,7 @@ static bool CG_LFuncSizeWidth( struct cg_layoutnode_s *commandnode, struct cg_la
 	return true;
 }
 
-static bool CG_LFuncSizeHeight( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncSizeHeight( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	float y;
 
 	y = CG_GetNumericArg( &argumentnode );
@@ -1523,31 +1386,28 @@ static bool CG_LFuncSizeHeight( struct cg_layoutnode_s *commandnode, struct cg_l
 	return true;
 }
 
-static bool CG_LFuncColor( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncColor( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	for( int i = 0; i < 4; i++ ) {
-		layout_cursor_color[i] = Clamp01( CG_GetNumericArg( &argumentnode ) );
+		layout_cursor_color.ptr()[ i ] = Clamp01( CG_GetNumericArg( &argumentnode ) );
 	}
 	return true;
 }
 
-static bool CG_LFuncColorToTeamColor( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	CG_TeamColor( CG_GetNumericArg( &argumentnode ), layout_cursor_color );
-	return true;
-}
-
-static bool CG_LFuncColorAlpha( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	layout_cursor_color[3] = CG_GetNumericArg( &argumentnode );
-	return true;
-}
-
-static bool CG_LFuncRotationSpeed( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	for( int i = 0; i < 3; i++ ) {
-		layout_cursor_rotation[i] = Clamp( 0.0f, CG_GetNumericArg( &argumentnode ), 999.0f );
+static bool CG_LFuncColorToTeamColor( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+	vec4_t v;
+	CG_TeamColor( CG_GetNumericArg( &argumentnode ), v );
+	for( int i = 0; i < 4; i++ ) {
+		layout_cursor_color.ptr()[ i ] = v[ i ];
 	}
 	return true;
 }
 
-static bool CG_LFuncAlign( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncColorAlpha( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+	layout_cursor_color.w = CG_GetNumericArg( &argumentnode );
+	return true;
+}
+
+static bool CG_LFuncAlign( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	int v, h;
 
 	h = (int)CG_GetNumericArg( &argumentnode );
@@ -1583,7 +1443,7 @@ static struct qfontface_s *CG_GetLayoutCursorFont( void ) {
 	return layout_cursor_font;
 }
 
-static bool CG_LFuncFontFamily( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncFontFamily( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	const char *fontname = CG_GetStringArg( &argumentnode );
 
 	if( !Q_stricmp( fontname, "con_fontSystem" ) ) {
@@ -1597,7 +1457,7 @@ static bool CG_LFuncFontFamily( struct cg_layoutnode_s *commandnode, struct cg_l
 	return true;
 }
 
-static bool CG_LFuncSpecialFontFamily( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncSpecialFontFamily( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	const char *fontname = CG_GetStringArg( &argumentnode );
 
 	Q_strncpyz( layout_cursor_font_name, fontname, sizeof( layout_cursor_font_name ) );
@@ -1607,7 +1467,7 @@ static bool CG_LFuncSpecialFontFamily( struct cg_layoutnode_s *commandnode, stru
 	return true;
 }
 
-static bool CG_LFuncFontSize( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncFontSize( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	struct cg_layoutnode_s *charnode = argumentnode;
 	const char *fontsize = CG_GetStringArg( &charnode );
 
@@ -1629,7 +1489,7 @@ static bool CG_LFuncFontSize( struct cg_layoutnode_s *commandnode, struct cg_lay
 	return true;
 }
 
-static bool CG_LFuncFontStyle( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncFontStyle( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	const char *fontstyle = CG_GetStringArg( &argumentnode );
 
 	if( !Q_stricmp( fontstyle, "normal" ) ) {
@@ -1650,53 +1510,52 @@ static bool CG_LFuncFontStyle( struct cg_layoutnode_s *commandnode, struct cg_la
 	return true;
 }
 
-static bool CG_LFuncDrawObituaries( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawObituaries( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	int internal_align = (int)CG_GetNumericArg( &argumentnode );
 	int icon_size = (int)CG_GetNumericArg( &argumentnode );
 
-	CG_DrawObituaries( layout_cursor_x, layout_cursor_y, layout_cursor_align, CG_GetLayoutCursorFont(), layout_cursor_color,
-					   layout_cursor_width, layout_cursor_height, internal_align, icon_size * cgs.vidHeight / 600 );
+	CG_DrawObituaries( layout_cursor_x, layout_cursor_y, layout_cursor_align, CG_GetLayoutCursorFont(),
+					   layout_cursor_width, layout_cursor_height, internal_align, icon_size * frame_static.viewport_height / 600 );
 	return true;
 }
 
-static bool CG_LFuncDrawAwards( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawAwards( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	CG_DrawAwards( layout_cursor_x, layout_cursor_y, layout_cursor_align, CG_GetLayoutCursorFont(), layout_cursor_color );
 	return true;
 }
 
-static bool CG_LFuncDrawClock( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	CG_DrawClock( layout_cursor_x, layout_cursor_y, layout_cursor_align, CG_GetLayoutCursorFont(), layout_cursor_color );
+static bool CG_LFuncDrawClock( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+	// CG_DrawClock( layout_cursor_x, layout_cursor_y, layout_cursor_align, CG_GetLayoutCursorFont(), layout_cursor_color );
 	return true;
 }
 
-static bool CG_LFuncDrawTeamMates( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawTeamMates( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	CG_DrawTeamMates();
 	return true;
 }
 
-static bool CG_LFuncDrawDamageNumbers( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawDamageNumbers( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	CG_DrawDamageNumbers();
 	return true;
 }
 
-static bool CG_LFuncDrawBombIndicators( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawBombIndicators( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	CG_DrawBombHUD();
 	return true;
 }
 
-static bool CG_LFuncDrawPointed( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	CG_DrawPlayerNames( CG_GetLayoutCursorFont(), layout_cursor_color );
+static bool CG_LFuncDrawPointed( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+	// CG_DrawPlayerNames( CG_GetLayoutCursorFont(), layout_cursor_color );
 	return true;
 }
 
-static bool CG_LFuncDrawString( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawString( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	const char *string = CG_GetStringArg( &argumentnode );
 
 	if( !string || !string[0] ) {
 		return false;
 	}
-	trap_SCR_DrawString( layout_cursor_x, layout_cursor_y, layout_cursor_align,
-						 string, CG_GetLayoutCursorFont(), layout_cursor_color );
+	// trap_SCR_DrawString( layout_cursor_x, layout_cursor_y, layout_cursor_align, string, CG_GetLayoutCursorFont(), layout_cursor_color );
 	return true;
 }
 
@@ -1724,18 +1583,18 @@ static bool CG_LFuncDrawStringRepeat_x( const char *string, int num_draws ) {
 	}
 	temps[pos] = '\0';
 
-	trap_SCR_DrawString( layout_cursor_x, layout_cursor_y, layout_cursor_align, temps, CG_GetLayoutCursorFont(), layout_cursor_color );
+	// trap_SCR_DrawString( layout_cursor_x, layout_cursor_y, layout_cursor_align, temps, CG_GetLayoutCursorFont(), layout_cursor_color );
 
 	return true;
 }
 
-static bool CG_LFuncDrawStringRepeat( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawStringRepeat( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	const char *string = CG_GetStringArg( &argumentnode );
 	int num_draws = CG_GetNumericArg( &argumentnode );
 	return CG_LFuncDrawStringRepeat_x( string, num_draws );
 }
 
-static bool CG_LFuncDrawStringRepeatConfigString( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawStringRepeatConfigString( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	const char *string = CG_GetStringArg( &argumentnode );
 	int index = (int)CG_GetNumericArg( &argumentnode );
 
@@ -1748,7 +1607,7 @@ static bool CG_LFuncDrawStringRepeatConfigString( struct cg_layoutnode_s *comman
 	return CG_LFuncDrawStringRepeat_x( string, num_draws );
 }
 
-static bool CG_LFuncDrawBindString( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawBindString( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	const char * fmt = CG_GetStringArg( &argumentnode );
 	const char * command = CG_GetStringArg( &argumentnode );
 
@@ -1758,42 +1617,30 @@ static bool CG_LFuncDrawBindString( struct cg_layoutnode_s *commandnode, struct 
 	char buf[ 1024 ];
 	Q_snprintfz( buf, sizeof( buf ), fmt, keys );
 
-	trap_SCR_DrawString( layout_cursor_x, layout_cursor_y, layout_cursor_align, buf, CG_GetLayoutCursorFont(), layout_cursor_color );
+	// trap_SCR_DrawString( layout_cursor_x, layout_cursor_y, layout_cursor_align, buf, CG_GetLayoutCursorFont(), layout_cursor_color );
 
 	return true;
 }
 
-static bool CG_LFuncDrawItemNameFromIndex( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	gsitem_t    *item;
-	int itemindex = CG_GetNumericArg( &argumentnode );
-
-	item = GS_FindItemByTag( itemindex );
-	if( !item || !item->name ) {
-		return false;
-	}
-	trap_SCR_DrawString( layout_cursor_x, layout_cursor_y, layout_cursor_align, item->name, CG_GetLayoutCursorFont(), layout_cursor_color );
-	return true;
-}
-
-static bool CG_LFuncDrawConfigstring( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawConfigstring( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	int index = (int)CG_GetNumericArg( &argumentnode );
 
 	if( index < 0 || index >= MAX_CONFIGSTRINGS ) {
 		CG_Printf( "WARNING 'CG_LFuncDrawConfigstring' Bad stat_string index" );
 		return false;
 	}
-	trap_SCR_DrawString( layout_cursor_x, layout_cursor_y, layout_cursor_align,
-						 cgs.configStrings[index], CG_GetLayoutCursorFont(), layout_cursor_color );
+	// trap_SCR_DrawString( layout_cursor_x, layout_cursor_y, layout_cursor_align,
+	// 					 cgs.configStrings[index], CG_GetLayoutCursorFont(), layout_cursor_color );
 	return true;
 }
 
-static bool CG_LFuncDrawPlayerName( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawPlayerName( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	int index = (int)CG_GetNumericArg( &argumentnode ) - 1;
 
 	if( ( index >= 0 && index < gs.maxclients ) && cgs.clientInfo[index].name[0] ) {
 		vec4_t color;
 		VectorCopy( colorWhite, color );
-		color[3] = layout_cursor_color[3];
+		color[3] = layout_cursor_color.w;
 		trap_SCR_DrawString( layout_cursor_x, layout_cursor_y, layout_cursor_align,
 							 cgs.clientInfo[index].name, CG_GetLayoutCursorFont(), color );
 		return true;
@@ -1801,67 +1648,34 @@ static bool CG_LFuncDrawPlayerName( struct cg_layoutnode_s *commandnode, struct 
 	return false;
 }
 
-static bool CG_LFuncDrawNumeric( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawNumeric( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	int value = (int)CG_GetNumericArg( &argumentnode );
 
-	trap_SCR_DrawString( layout_cursor_x, layout_cursor_y, layout_cursor_align, va( "%i", value ), CG_GetLayoutCursorFont(), layout_cursor_color );
-	return true;
-}
-
-static bool CG_LFuncDrawBar( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int value = (int)CG_GetNumericArg( &argumentnode );
-	int maxvalue = (int)CG_GetNumericArg( &argumentnode );
-	CG_DrawHUDRect( layout_cursor_x, layout_cursor_y, layout_cursor_align,
-					layout_cursor_width, layout_cursor_height, value, maxvalue,
-					layout_cursor_color, NULL );
-	return true;
-}
-
-static bool CG_LFuncDrawPicBar( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int value = (int)CG_GetNumericArg( &argumentnode );
-	int maxvalue = (int)CG_GetNumericArg( &argumentnode );
-
-	CG_DrawHUDRect( layout_cursor_x, layout_cursor_y, layout_cursor_align,
-					layout_cursor_width, layout_cursor_height, value, maxvalue,
-					layout_cursor_color, trap_R_RegisterPic( CG_GetStringArg( &argumentnode ) ) );
-	return true;
-}
-
-static bool CG_LFuncDrawWeaponIcon( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int weapon = cg.predictedPlayerState.stats[STAT_WEAPON];
-	int x, y;
-
-	if( weapon < WEAP_GUNBLADE || weapon >= WEAP_TOTAL ) {
-		return false;
-	}
-
-	x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
-	y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
-	trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, CG_GetWeaponIcon( weapon ) );
+	// trap_SCR_DrawString( layout_cursor_x, layout_cursor_y, layout_cursor_align, va( "%i", value ), CG_GetLayoutCursorFont(), layout_cursor_color );
 	return true;
 }
 
 static void CG_LFuncsWeaponIcons( struct cg_layoutnode_s *argumentnode ) {
 	int offx, offy, w, h;
 
-	offx = (int)( CG_GetNumericArg( &argumentnode ) * cgs.vidWidth / 800 );
-	offy = (int)( CG_GetNumericArg( &argumentnode ) * cgs.vidHeight / 600 );
-	w = (int)( CG_GetNumericArg( &argumentnode ) * cgs.vidWidth / 800 );
-	h = (int)( CG_GetNumericArg( &argumentnode ) * cgs.vidHeight / 600 );
+	offx = (int)( CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800 );
+	offy = (int)( CG_GetNumericArg( &argumentnode ) * frame_static.viewport_height / 600 );
+	w = (int)( CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800 );
+	h = (int)( CG_GetNumericArg( &argumentnode ) * frame_static.viewport_height / 600 );
 
 	CG_DrawWeaponIcons( layout_cursor_x, layout_cursor_y, offx, offy, w, h, layout_cursor_align );
 }
 
-static bool CG_LFuncDrawWeaponIcons( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawWeaponIcons( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	CG_LFuncsWeaponIcons( argumentnode );
 	return true;
 }
 
-static bool CG_LFuncDrawWeaponStrongAmmo( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawWeaponStrongAmmo( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	int offx, offy, fontsize;
 
-	offx = (int)( CG_GetNumericArg( &argumentnode ) * cgs.vidWidth / 800 );
-	offy = (int)( CG_GetNumericArg( &argumentnode ) * cgs.vidHeight / 600 );
+	offx = (int)( CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800 );
+	offy = (int)( CG_GetNumericArg( &argumentnode ) * frame_static.viewport_height / 600 );
 	fontsize = (int)CG_GetNumericArg( &argumentnode );
 
 	CG_DrawWeaponAmmos( layout_cursor_x, layout_cursor_y, offx, offy, fontsize, layout_cursor_align );
@@ -1869,41 +1683,38 @@ static bool CG_LFuncDrawWeaponStrongAmmo( struct cg_layoutnode_s *commandnode, s
 	return true;
 }
 
-static bool CG_LFuncDrawCrossHair( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawCrossHair( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	CG_DrawCrosshair();
 	return true;
 }
 
-static bool CG_LFuncDrawKeyState( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawKeyState( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	const char *key = CG_GetStringArg( &argumentnode );
 
 	CG_DrawKeyState( layout_cursor_x, layout_cursor_y, layout_cursor_width, layout_cursor_height, layout_cursor_align, key );
 	return true;
 }
 
-static bool CG_LFuncDrawNet( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawNet( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	CG_DrawNet( layout_cursor_x, layout_cursor_y, layout_cursor_width, layout_cursor_height, layout_cursor_align, layout_cursor_color );
 	return true;
 }
 
-static bool CG_LFuncDrawChat( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int padding_x, padding_y;
-	struct shader_s *shader;
+static bool CG_LFuncDrawChat( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+	int padding_x = (int)( CG_GetNumericArg( &argumentnode ) ) * frame_static.viewport_width / 800;
+	int padding_y = (int)( CG_GetNumericArg( &argumentnode ) ) * frame_static.viewport_height / 600;
+	const Material * material = FindMaterial( CG_GetStringArg( &argumentnode ) );
 
-	padding_x = (int)( CG_GetNumericArg( &argumentnode ) ) * cgs.vidWidth / 800;
-	padding_y = (int)( CG_GetNumericArg( &argumentnode ) ) * cgs.vidHeight / 600;
-	shader = trap_R_RegisterPic( CG_GetStringArg( &argumentnode ) );
-
-	CG_DrawChat( &cg.chat, layout_cursor_x, layout_cursor_y, layout_cursor_font_name, CG_GetLayoutCursorFont(), layout_cursor_font_size,
-				 layout_cursor_width, layout_cursor_height, padding_x, padding_y, layout_cursor_color, shader );
+	// CG_DrawChat( &cg.chat, layout_cursor_x, layout_cursor_y, layout_cursor_font_name, CG_GetLayoutCursorFont(), layout_cursor_font_size,
+	// 			 layout_cursor_width, layout_cursor_height, padding_x, padding_y, layout_cursor_color, material );
 	return true;
 }
 
-static bool CG_LFuncIf( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncIf( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	return (int)CG_GetNumericArg( &argumentnode ) != 0;
 }
 
-static bool CG_LFuncIfNot( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncIfNot( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	return (int)CG_GetNumericArg( &argumentnode ) == 0;
 }
 
@@ -1911,10 +1722,9 @@ static bool CG_LFuncIfNot( struct cg_layoutnode_s *commandnode, struct cg_layout
 typedef struct cg_layoutcommand_s
 {
 	const char *name;
-	bool ( *func )( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments );
+	bool ( *func )( struct cg_layoutnode_s *argumentnode, int numArguments );
 	int numparms;
 	const char *help;
-	bool precache;
 } cg_layoutcommand_t;
 
 static const cg_layoutcommand_t cg_LayoutCommands[] =
@@ -1924,7 +1734,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncScale,
 		1,
 		"Sets the cursor scaling method.",
-		false
 	},
 
 	{
@@ -1932,7 +1741,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncCursor,
 		2,
 		"Sets the cursor position to x and y coordinates.",
-		false
 	},
 
 	{
@@ -1940,7 +1748,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncCursorX,
 		1,
 		"Sets the cursor x position.",
-		false
 	},
 
 	{
@@ -1948,7 +1755,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncCursorY,
 		1,
 		"Sets the cursor y position.",
-		false
 	},
 
 	{
@@ -1956,7 +1762,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncMoveCursor,
 		2,
 		"Moves the cursor position by dx and dy.",
-		false
 	},
 
 	{
@@ -1964,7 +1769,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncAlign,
 		2,
 		"Changes align setting. Parameters: horizontal alignment, vertical alignment",
-		false
 	},
 
 	{
@@ -1972,7 +1776,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncSize,
 		2,
 		"Sets width and height. Used for pictures and models.",
-		false
 	},
 
 	{
@@ -1980,7 +1783,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncSizeWidth,
 		1,
 		"Sets width. Used for pictures and models.",
-		false
 	},
 
 	{
@@ -1988,7 +1790,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncSizeHeight,
 		1,
 		"Sets height. Used for pictures and models.",
-		false
 	},
 
 	{
@@ -1996,7 +1797,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncFontFamily,
 		1,
 		"Sets font by font family. Accepts 'con_fontSystem', as a shortcut to default game font family.",
-		false
 	},
 
 	{
@@ -2004,7 +1804,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncSpecialFontFamily,
 		1,
 		"Sets font by font family. The font will not overriden by the fallback font used when CJK is detected.",
-		false
 	},
 
 	{
@@ -2012,7 +1811,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncFontSize,
 		1,
 		"Sets font by font name. Accepts 'con_fontSystemSmall', 'con_fontSystemMedium' and 'con_fontSystemBig' as shortcuts to default game fonts sizes.",
-		false
 	},
 
 	{
@@ -2020,7 +1818,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncFontStyle,
 		1,
 		"Sets font style. Possible values are: 'normal', 'italic', 'bold' and 'bold-italic'.",
-		false
 	},
 
 	{
@@ -2028,7 +1825,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncColor,
 		4,
 		"Sets color setting in RGBA mode. Used for text and pictures",
-		false
 	},
 
 	{
@@ -2036,7 +1832,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncColorToTeamColor,
 		1,
 		"Sets cursor color to the color of the team provided in the argument",
-		false
 	},
 
 	{
@@ -2044,15 +1839,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncColorAlpha,
 		1,
 		"Changes the alpha value of the current color",
-		false
-	},
-
-	{
-		"setRotationSpeed",
-		CG_LFuncRotationSpeed,
-		3,
-		"Sets rotation speeds as vector. Used for models",
-		false
 	},
 
 	{
@@ -2060,7 +1846,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawObituaries,
 		2,
 		"Draws graphical death messages",
-		false
 	},
 
 	{
@@ -2068,7 +1853,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawAwards,
 		0,
 		"Draws award messages",
-		false
 	},
 
 	{
@@ -2076,7 +1860,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawClock,
 		0,
 		"Draws clock",
-		false
 	},
 
 	{
@@ -2084,7 +1867,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawPlayerName,
 		1,
 		"Draws the name of the player with id provided by the argument, colored with color tokens, white by default",
-		false
 	},
 
 	{
@@ -2092,7 +1874,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawPointed,
 		0,
 		"Draws the name of the player in the crosshair",
-		false
 	},
 
 	{
@@ -2100,7 +1881,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawTeamMates,
 		0,
 		"Draws indicators where team mates are",
-		false
 	},
 
 	{
@@ -2108,7 +1888,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawDamageNumbers,
 		0,
 		"Draws damage numbers",
-		false
 	},
 
 	{
@@ -2116,7 +1895,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawBombIndicators,
 		0,
 		"Draws bomb HUD",
-		false
 	},
 
 	{
@@ -2124,15 +1902,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawConfigstring,
 		1,
 		"Draws configstring of argument id",
-		false
-	},
-
-	{
-		"drawItemName",
-		CG_LFuncDrawItemNameFromIndex,
-		1,
-		"Draws the name of the item with given item index",
-		false
 	},
 
 	{
@@ -2140,7 +1909,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawString,
 		1,
 		"Draws the string in the argument",
-		false
 	},
 
 	{
@@ -2148,7 +1916,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawNumeric,
 		1,
 		"Draws numbers as text",
-		false
 	},
 
 	{
@@ -2156,7 +1923,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawStringRepeat,
 		2,
 		"Draws argument string multiple times",
-		false
 	},
 
 	{
@@ -2164,7 +1930,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawStringRepeatConfigString,
 		2,
 		"Draws argument string multiple times",
-		false
 	},
 
 	{
@@ -2172,23 +1937,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawBindString,
 		2,
 		"Draws a string with %s replaced by a key name",
-		false
-	},
-
-	{
-		"drawBar",
-		CG_LFuncDrawBar,
-		2,
-		"Draws a bar of size setting, the bar is filled in proportion to the arguments",
-		false
-	},
-
-	{
-		"drawPicBar",
-		CG_LFuncDrawPicBar,
-		3,
-		"Draws a picture of size setting, is filled in proportion to the 2 arguments (value, maxvalue). 3rd argument is the picture path",
-		false
 	},
 
 	{
@@ -2196,7 +1944,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawCrossHair,
 		0,
 		"Draws the game crosshair",
-		false
 	},
 
 	{
@@ -2204,7 +1951,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawKeyState,
 		1,
 		"Draws icons showing if the argument key is pressed. Possible arg: forward, backward, left, right, fire, jump, crouch, special",
-		false
 	},
 
 	{
@@ -2212,7 +1958,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawNet,
 		0,
 		"Draws the disconnection icon",
-		false
 	},
 
 	{
@@ -2220,23 +1965,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawChat,
 		3,
 		"Draws the game chat messages",
-		false
-	},
-
-	{
-		"drawPicByIndex",
-		CG_LFuncDrawPicByIndex,
-		1,
-		"Draws a pic with argument as imageIndex",
-		true
-	},
-
-	{
-		"drawPicByItemIndex",
-		CG_LFuncDrawPicByItemIndex,
-		1,
-		"Draws a item icon pic with argument as itemIndex",
-		false
 	},
 
 	{
@@ -2244,7 +1972,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawPicByName,
 		1,
 		"Draws a pic with argument being the file path",
-		true
 	},
 
 	{
@@ -2252,7 +1979,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawSubPicByName,
 		5,
 		"Draws a part of a pic with arguments being the file path and the texture coordinates",
-		true
 	},
 
 	{
@@ -2260,7 +1986,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawRotatedPicByName,
 		2,
 		"Draws a pic with arguments being the file path and the rotation",
-		true
 	},
 
 	{
@@ -2268,7 +1993,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawWeaponIcons,
 		4,
 		"Draws the icons of weapon/ammo owned by the player, arguments are offset x, offset y, size x, size y",
-		false
 	},
 
 	{
@@ -2276,15 +2000,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawWeaponStrongAmmo,
 		3,
 		"Draws the amount of strong ammo owned by the player,  arguments are offset x, offset y, fontsize",
-		false
-	},
-
-	{
-		"drawWeaponIcon",
-		CG_LFuncDrawWeaponIcon,
-		0,
-		"Draws the icon of the current weapon",
-		false
 	},
 
 	{
@@ -2292,7 +2007,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncIf,
 		1,
 		"Conditional expression. Argument accepts operations >, <, ==, >=, <=, etc",
-		false
 	},
 
 	{
@@ -2300,7 +2014,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncIfNot,
 		1,
 		"Negative conditional expression. Argument accepts operations >, <, ==, >=, <=, etc",
-		false
 	},
 
 	{
@@ -2308,7 +2021,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		NULL,
 		0,
 		"End of conditional expression block",
-		false
 	},
 
 	{
@@ -2316,23 +2028,9 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawTimer,
 		1,
 		"Draws a timer clock for the race gametype",
-		false
-	},
-	{
-		"drawPicVar",
-		CG_LFuncDrawPicVar,
-		6,
-		"Draws a picture from a sequence, depending on the value of a given parameter. Parameters: minval, maxval, value, firstimg, lastimg, imagename (replacing ## by the picture number, no leading zeros), starting at 0)",
-		false
 	},
 
-	{
-		NULL,
-		NULL,
-		0,
-		NULL,
-		false
-	}
+	{ }
 };
 
 
@@ -2341,7 +2039,7 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 
 typedef struct cg_layoutnode_s
 {
-	bool ( *func )( struct cg_layoutnode_s *commandnode, struct cg_layoutnode_s *argumentnode, int numArguments );
+	bool ( *func )( struct cg_layoutnode_s *argumentnode, int numArguments );
 	int type;
 	char *string;
 	int integer;
@@ -2350,7 +2048,6 @@ typedef struct cg_layoutnode_s
 	struct cg_layoutnode_s *parent;
 	struct cg_layoutnode_s *next;
 	struct cg_layoutnode_s *ifthread;
-	bool precache;
 } cg_layoutnode_t;
 
 /*
@@ -2426,7 +2123,6 @@ static cg_layoutnode_t *CG_LayoutParseCommandNode( const char *token ) {
 	node->string = CG_CopyString( command->name );
 	node->func = command->func;
 	node->ifthread = NULL;
-	node->precache = command->precache;
 
 	return node;
 }
@@ -2519,7 +2215,6 @@ static cg_layoutnode_t *CG_LayoutParseArgumentNode( const char *token ) {
 	node->string = CG_CopyString( token );
 	node->func = NULL;
 	node->ifthread = NULL;
-	node->precache = false;
 
 	// return it
 	return node;
@@ -2784,16 +2479,6 @@ static cg_layoutnode_t *CG_RecurseParseLayoutScript( char **ptr, int level ) {
 			}
 			node->parent = rootnode;
 			rootnode = node;
-
-			// precache arguments by calling the function at load time
-			if( command && expecArgs == numArgs && command->func && command->precache ) {
-				Vector4Set( layout_cursor_color, 0, 0, 0, 0 );
-				layout_cursor_x = -layout_cursor_width - 1;
-				layout_cursor_y = -layout_cursor_height - 1;
-				layout_cursor_width = 0;
-				layout_cursor_height = 0;
-				command->func( command, argumentnode, numArgs );
-			}
 		}
 	}
 
@@ -2867,7 +2552,7 @@ static void CG_RecurseExecuteLayoutThread( cg_layoutnode_t *rootnode ) {
 		}
 		if( commandnode->func ) {
 			//special case for if commands
-			if( commandnode->func( commandnode, argumentnode, numArguments ) ) {
+			if( commandnode->func( argumentnode, numArguments ) ) {
 				// execute the "if" thread when command returns a value
 				if( commandnode->ifthread ) {
 					CG_RecurseExecuteLayoutThread( commandnode->ifthread );
@@ -3033,21 +2718,6 @@ static char *CG_LoadHUDFile( char *path ) {
 						rec_fn[rec_lvl] = NULL;
 						rec_lvl--;
 					}
-				}
-			}
-		} else if( !Q_stricmp( "precache", token ) ) {
-			// Handle graphics precaching
-			if( rec_ptr[rec_lvl] == NULL ) {
-				CG_Printf( "HUD: ERROR: EOF instead of file argument for preload\n" );
-			} else {
-				token = COM_ParseExt2( ( const char ** )&rec_ptr[rec_lvl], false, false );
-				if( ( token ) && ( token[0] != '\0' ) ) {
-					if( developer->integer ) {
-						CG_Printf( "HUD: INFO: Precaching image '%s'\n", token );
-					}
-					trap_R_RegisterPic( token );
-				} else {
-					CG_Printf( "HUD: ERROR: Missing argument for preload\n" );
 				}
 			}
 		} else if( ( len = strlen( token ) ) > 0 ) {

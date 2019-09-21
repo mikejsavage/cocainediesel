@@ -98,12 +98,12 @@ void CG_ConfigString( int i, const char *s ) {
 		if( cgs.configStrings[i][0] == '$' ) {  // indexed pmodel
 			cgs.pModelsIndex[i - CS_MODELS] = CG_RegisterPlayerModel( cgs.configStrings[i] + 1 );
 		} else {
-			cgs.modelDraw[i - CS_MODELS] = CG_RegisterModel( cgs.configStrings[i] );
+			cgs.modelDraw[i - CS_MODELS] = FindModel( cgs.configStrings[i] );
 		}
 	} else if( i >= CS_SOUNDS && i < CS_SOUNDS + MAX_SOUNDS ) {
 		cgs.soundPrecache[i - CS_SOUNDS] = S_RegisterSound( cgs.configStrings[i] );
 	} else if( i >= CS_IMAGES && i < CS_IMAGES + MAX_IMAGES ) {
-		cgs.imagePrecache[i - CS_IMAGES] = trap_R_RegisterPic( cgs.configStrings[i] );
+		cgs.imagePrecache[i - CS_IMAGES] = FindMaterial( cgs.configStrings[i] );
 	} else if( i >= CS_ITEMS && i < CS_ITEMS + MAX_ITEMS ) {
 		CG_ValidateItemDef( i - CS_ITEMS, cgs.configStrings[i] );
 	} else if( i >= CS_PLAYERINFOS && i < CS_PLAYERINFOS + MAX_CLIENTS ) {

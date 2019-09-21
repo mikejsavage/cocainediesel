@@ -3,67 +3,59 @@
 
 #define DRAWFLAT_NORMAL_STEP	0.5		// floor or ceiling if < abs(normal.z)
 
-float LinearFromsRGB(float c)
-{
-	if (c <= 0.04045)
-		return c * (1.0 / 12.92);
-	return float(pow((c + 0.055)*(1.0/1.055), 2.4));
+float sRGBToLinear( float srgb ) {
+	if( srgb <= 0.04045 )
+		return srgb * ( 1.0 / 12.92 );
+	return float( pow( ( srgb + 0.055 ) * ( 1.0 / 1.055 ), 2.4 ) );
 }
 
-vec3 LinearFromsRGB(vec3 v)
-{
-	return vec3(LinearFromsRGB(v.r), LinearFromsRGB(v.g), LinearFromsRGB(v.b));
+vec3 sRGBToLinear( vec3 srgb ) {
+	return vec3( sRGBToLinear( srgb.r ), sRGBToLinear( srgb.g ), sRGBToLinear( srgb.b ) );
 }
 
-vec4 LinearFromsRGB(vec4 v)
-{
-	return vec4(LinearFromsRGB(v.r), LinearFromsRGB(v.g), LinearFromsRGB(v.b), v.a);
+vec4 sRGBToLinear( vec4 srgb ) {
+	return vec4( sRGBToLinear( srgb.r ), sRGBToLinear( srgb.g ), sRGBToLinear( srgb.b ), srgb.a );
 }
 
-float sRGBFromLinear(float c)
-{
-	if (c < 0.0031308)
-		return c * 12.92;
-	return 1.055 * pow(c, 1.0/2.4) - 0.055;
+float LinearTosRGB( float linear ) {
+	if( linear <= 0.0031308 )
+		return linear * 12.92;
+	return 1.055 * pow( linear, 1.0 / 2.4 ) - 0.055;
 }
 
-vec3 sRGBFromLinear(vec3 v)
-{
-	return vec3(sRGBFromLinear(v.r), sRGBFromLinear(v.g), sRGBFromLinear(v.b));
+vec3 LinearTosRGB( vec3 linear ) {
+	return vec3( LinearTosRGB( linear.r ), LinearTosRGB( linear.g ), LinearTosRGB( linear.b ) );
 }
 
-vec4 sRGBFromLinear(vec4 v)
-{
-	return vec4(sRGBFromLinear(v.r), sRGBFromLinear(v.g), sRGBFromLinear(v.b), v.a);
+vec4 LinearTosRGB( vec4 linear ) {
+	return vec4( LinearTosRGB( linear.r ), LinearTosRGB( linear.g ), LinearTosRGB( linear.b ), linear.a );
 }
 
-float LinearizeDepth(float ndc, float nearclip)
-{
-	return nearclip / (1.0 - ndc);
+float LinearizeDepth( float ndc, float nearclip ) {
+	return nearclip / ( 1.0 - ndc );
 }
 
 vec3 NormalToRGB( vec3 normal ) {
-	return ( normal + 1.0 ) * 0.5;
+	return normal * 0.5 + 0.5;
 }
 
-#ifdef APPLY_SRGB2LINEAR
-# define LinearColor(c) LinearFromsRGB(c)
-#else
-# define LinearColor(c) (c)
-#endif
+vec2 OctahedronWrap( vec2 v ) {
+	float x = ( 1.0 - abs( v.y ) ) * ( v.x >= 0.0 ? 1.0 : -1.0 );
+	float y = ( 1.0 - abs( v.x ) ) * ( v.y >= 0.0 ? 1.0 : -1.0 );
+	return vec2( x, y );
+}
 
-#ifdef APPLY_LINEAR2SRGB
-# define sRGBColor(c) sRGBFromLinear(c)
-#else
-# define sRGBColor(c) (c)
-#endif
+vec2 CompressNormal( vec3 n ) {
+	n /= abs( n.x ) + abs( n.y ) + abs( n.z );
+	vec2 oct = n.z >= 0.0 ? n.xy : OctahedronWrap( n.xy );
+	return oct * 0.5 + 0.5;
+}
 
-#if defined(APPLY_RGB_DISTANCERAMP) || defined(APPLY_RGB_CONST) || defined(APPLY_RGB_VERTEX)
-#define APPLY_ENV_MODULATE_COLOR
-#else
-
-#if defined(APPLY_ALPHA_DISTANCERAMP) || defined(APPLY_ALPHA_CONST) || defined(APPLY_ALPHA_VERTEX)
-#define APPLY_ENV_MODULATE_COLOR
-#endif
-
-#endif
+vec3 DecompressNormal( vec2 oct ) {
+	oct = oct * 2.0 - 1.0;
+	vec3 n = vec3( oct.x, oct.y, 1.0 - abs( oct.x ) - abs( oct.y ) );
+	float t = max( -n.z, 0.0 );
+	n.x += n.x >= 0.0 ? -t : t;
+	n.y += n.y >= 0.0 ? -t : t;
+	return normalize( n );
+}

@@ -640,7 +640,7 @@ static void CG_DrawEntityNumbers( void ) {
 	float dist;
 	trace_t trace;
 	vec3_t eorigin;
-	int shadowOffset = max( 1, cgs.vidHeight / 600 );
+	int shadowOffset = max( 1, frame_static.viewport_height / 600 );
 
 	for( i = 0; i < cg.frame.numEntities; i++ ) {
 		entnum = cg.frame.parsedEntities[i & ( MAX_PARSE_ENTITIES - 1 )].number;
@@ -670,15 +670,14 @@ static void CG_DrawEntityNumbers( void ) {
 
 		CG_Trace( &trace, cam_origin, vec3_origin, vec3_origin, eorigin, cent->current.number, MASK_OPAQUE );
 		if( trace.fraction == 1.0f ) {
-			// find the 3d point in 2d screen
-			trap_R_TransformVectorToScreen( &cg.view.refdef, eorigin, coords );
-			if( ( coords[0] < 0 || coords[0] > cgs.vidWidth ) || ( coords[1] < 0 || coords[1] > cgs.vidHeight ) ) {
+			Vec2 coords = WorldToScreen( FromQF3( eorigin ) );
+			if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {
 				return;
 			}
 
-			trap_SCR_DrawString( coords[0] + shadowOffset, coords[1] + shadowOffset,
+			trap_SCR_DrawString( coords.x + shadowOffset, coords.y + shadowOffset,
 								 ALIGN_LEFT_MIDDLE, va( "%i", cent->current.number ), cgs.fontSystemSmall, colorBlack );
-			trap_SCR_DrawString( coords[0], coords[1],
+			trap_SCR_DrawString( coords.x, coords.y,
 								 ALIGN_LEFT_MIDDLE, va( "%i", cent->current.number ), cgs.fontSystemSmall, colorWhite );
 		}
 	}
@@ -686,13 +685,13 @@ static void CG_DrawEntityNumbers( void ) {
 
 void CG_Democam_DrawCenterSubtitle( int y, unsigned int maxwidth, struct qfontface_s *font, char *text ) {
 	char *ptr, *s, *t, c, d;
-	int x = cgs.vidWidth / 2;
+	int x = frame_static.viewport_width / 2;
 
 	if( !text || !text[0] ) {
 		return;
 	}
 
-	int shadowOffset = 2 * cgs.vidHeight / 600;
+	int shadowOffset = 2 * frame_static.viewport_height / 600;
 	if( !shadowOffset ) {
 		shadowOffset = 1;
 	}
@@ -767,12 +766,12 @@ void CG_DrawDemocam2D( void ) {
 			int y;
 
 			if( sub->highprint ) {
-				y = cgs.vidHeight * 0.30f;
+				y = frame_static.viewport_height * 0.30f;
 			} else {
-				y = cgs.vidHeight - ( cgs.vidHeight * 0.30f );
+				y = frame_static.viewport_height - ( frame_static.viewport_height * 0.30f );
 			}
 
-			CG_Democam_DrawCenterSubtitle( y, cgs.vidWidth * 0.75, cgs.fontSystemBig, sub->text );
+			CG_Democam_DrawCenterSubtitle( y, frame_static.viewport_width * 0.75, cgs.fontSystemBig, sub->text );
 		}
 	}
 
@@ -781,8 +780,8 @@ void CG_DrawDemocam2D( void ) {
 		CG_DrawEntityNumbers();
 
 		// draw the cams info
-		xpos = 8 * cgs.vidHeight / 600;
-		ypos = 100 * cgs.vidHeight / 600;
+		xpos = 8 * frame_static.viewport_height / 600;
+		ypos = 100 * frame_static.viewport_height / 600;
 
 		if( *cgs.demoName ) {
 			trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP, va( "Demo: %s", cgs.demoName ), cgs.fontSystemSmall, colorWhite );

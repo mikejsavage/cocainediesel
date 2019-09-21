@@ -84,6 +84,11 @@ const char *COM_FileBase( const char *in );
 void COM_StripFilename( char *filename );
 int COM_FilePathLength( const char *in );
 
+Span< char > ParseSpan( char ** ptr, bool stop_on_newline );
+Span< const char > ParseSpan( const char ** ptr, bool stop_on_newline );
+
+Span< const char > ParseSpan( Span< const char > * cursor, bool stop_on_newline );
+
 // data is an in/out parm, returns a parsed out token
 char *COM_ParseExt2_r( char *token, size_t token_size, const char **data_p, bool nl, bool sq );
 #define COM_ParseExt_r( token, token_size, data_p, nl ) COM_ParseExt2_r( token, token_size, (const char **)data_p, nl, true )
@@ -178,7 +183,6 @@ int Q_snprintfz( char *dest, size_t size, _Printf_format_string_ const char *for
 
 char *Q_strupr( char *s );
 char *Q_strlwr( char *s );
-size_t Q_strcount( const char *s, const char *substr );
 const char *Q_strrstr( const char *s, const char *substr );
 bool Q_isdigit( const char *str );
 char *Q_trim( char *s );

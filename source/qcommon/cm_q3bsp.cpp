@@ -213,7 +213,7 @@ static void CM_CreatePatch( cmodel_state_t *cms, cface_t *patch, cshaderref_t *s
 	}
 
 	patchpoints = ( vec3_t * ) Mem_TempMalloc( size[0] * size[1] * sizeof( vec3_t ) );
-	Patch_Evaluate( vec_t, 3, verts[0], patch_cp, step, patchpoints[0], 0 );
+	Patch_Evaluate( 3, verts[0], patch_cp, step, patchpoints[0], 0 );
 	Patch_RemoveLinearColumnsRows( patchpoints[0], 3, &size[0], &size[1], 0, NULL, NULL );
 
 	data = ( uint8_t * ) Mem_Alloc( cms->mempool, size[0] * size[1] * sizeof( vec3_t ) +
@@ -470,7 +470,7 @@ static void CMod_LoadFaces( cmodel_state_t *cms, lump_t *l ) {
 		out->contents = 0;
 		out->numfacets = 0;
 		out->facets = NULL;
-		if( LittleLong( in->facetype ) != FACETYPE_PATCH ) {
+		if( LittleLong( in->facetype ) != FaceType_Patch ) {
 			continue;
 		}
 		CMod_LoadFace( cms, out, in->shadernum, in->firstvert, in->numverts, in->patch_cp );
@@ -501,7 +501,7 @@ static void CMod_LoadFaces_RBSP( cmodel_state_t *cms, lump_t *l ) {
 		out->contents = 0;
 		out->numfacets = 0;
 		out->facets = NULL;
-		if( LittleLong( in->facetype ) != FACETYPE_PATCH ) {
+		if( LittleLong( in->facetype ) != FaceType_Patch ) {
 			continue;
 		}
 		CMod_LoadFace( cms, out, in->shadernum, in->firstvert, in->numverts, in->patch_cp );

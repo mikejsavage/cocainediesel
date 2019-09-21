@@ -1,6 +1,6 @@
 textures/leaves/leaves0108_s
 {
-	qer_editorimage textures/leaves/leaves0108_s.tga
+	qer_editorimage textures/leaves/leaves0108_s
 	surfaceparm nomarks
 	surfaceparm	nonsolid
 	//surfaceparm alphashadow
@@ -10,20 +10,19 @@ textures/leaves/leaves0108_s
 	surfaceparm nolightmap
 
 	{
-		map textures/leaves/leaves0108_s.tga
-		alphaFunc GE128
+		map textures/leaves/leaves0108_s
+		alphatest 0.5
 		rgbGen vertex
-		depthWrite
 	}
 }
 
 vertex/trees/barkdecidious048
 {
-	qer_editorimage textures/trees/barkdecidious048.tga
+	qer_editorimage textures/trees/barkdecidious048
 	surfaceparm nolightmap
 
 	{
 		rgbgen vertex
-		material textures/trees/barkdecidious048.tga
+		material textures/trees/barkdecidious048
 	}
 }

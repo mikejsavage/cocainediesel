@@ -18,8 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-// gs_weapondefs.c	-	hard coded weapon definitions
-
 #include "q_arch.h"
 #include "q_math.h"
 #include "q_shared.h"
@@ -31,7 +29,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define WEAPONDOWN_FRAMETIME 50
 #define WEAPONUP_FRAMETIME 50
-#define DEFAULT_BULLET_SPREAD 350
 
 gs_weapon_definition_t gs_weaponDefs[] =
 {
@@ -369,13 +366,9 @@ gs_weapon_definition_t gs_weaponDefs[] =
 	},
 };
 
-#define GS_NUMWEAPONDEFS ( sizeof( gs_weaponDefs ) / sizeof( gs_weapon_definition_t ) )
+STATIC_ASSERT( ARRAY_COUNT( gs_weaponDefs ) == WEAP_TOTAL );
 
-/*
-* GS_GetWeaponDef
-*/
-gs_weapon_definition_t *GS_GetWeaponDef( int weapon ) {
-	assert( GS_NUMWEAPONDEFS == WEAP_TOTAL );
+gs_weapon_definition_t * GS_GetWeaponDef( int weapon ) {
 	assert( weapon >= 0 && weapon < WEAP_TOTAL );
-	return &gs_weaponDefs[weapon];
+	return &gs_weaponDefs[ weapon ];
 }

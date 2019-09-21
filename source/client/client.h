@@ -22,10 +22,10 @@
 #include "qcommon/qcommon.h"
 #include "qcommon/types.h"
 #include "qcommon/rng.h"
-#include "renderer/r_public.h"
 #include "cgame/cg_public.h"
 #include "ftlib/ftlib_public.h"
 
+#include "client/renderer/renderer.h"
 #include "vid.h"
 #include "ui.h"
 #include "input.h"
@@ -80,7 +80,6 @@ typedef struct {
 	//
 	int servercount;        // server identification for prespawns
 	int playernum;
-	bool gamestart;
 
 	char servermessage[MAX_STRING_CHARS];
 	char configstrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
@@ -193,7 +192,6 @@ typedef struct {
 
 	// screen rendering information
 	bool cgameActive;
-	int mediaRandomSeed;
 	bool mediaInitialized;
 
 	unsigned int disable_screen;    // showing loading plaque between levels
@@ -226,13 +224,10 @@ typedef struct {
 
 	download_t download;
 
-	bool registrationOpen;
-
 	// demo recording info must be here, so it isn't cleared on level change
 	cl_demo_t demo;
 
-	// these shaders have nothing to do with media
-	shader_t *whiteShader;
+	Texture whiteTexture;
 
 	// system font
 	qfontface_t *consoleFont;
@@ -341,7 +336,6 @@ void CL_AsyncStreamRequest( const char *url, const char **headers, int timeout, 
 // cl_game.c
 //
 void CL_GameModule_Init( void );
-void CL_GameModule_ResizeWindow( int width, int height );
 void CL_GameModule_Reset( void );
 void CL_GameModule_Shutdown( void );
 void CL_GameModule_ConfigString( int number, const char *value );
@@ -452,8 +446,6 @@ void CL_ShutdownMedia( void );
 void CL_RestartMedia( void );
 
 void CL_AddNetgraph( void );
-
-extern ref_export_t re;     // interface to refresh .dll
 
 //
 // cl_microprofile

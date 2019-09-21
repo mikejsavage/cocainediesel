@@ -23,7 +23,7 @@ models/weapons/rl_flash1
 	cull front
 	sort nearest
 	{
-		map models/weapons/rl_flash1.tga
+		map models/weapons/rl_flash1
 		blendFunc GL_SRC_ALPHA GL_ONE
 		tcmod rotate 90
 		alphaGen const 0.5
@@ -35,7 +35,7 @@ models/weapons/rl_flash2
 	cull front
 	sort nearest
 	{
-		map models/weapons/rl_flash2.tga
+		map models/weapons/rl_flash2
 		blendFunc GL_SRC_ALPHA GL_ONE
 		alphaGen const 0.75
 	}

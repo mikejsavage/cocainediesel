@@ -53,20 +53,9 @@ typedef vec_t vec2_t[2];
 typedef vec_t vec3_t[3];
 typedef vec_t vec4_t[4];
 
-typedef vec_t quat_t[4];
-
 typedef vec_t mat3_t[9];
 
 typedef uint8_t byte_vec4_t[4];
-
-struct RGB8 {
-	uint8_t r, g, b;
-	constexpr RGB8( uint8_t r_, uint8_t g_, uint8_t b_ ) : r( r_ ), g( g_ ), b( b_ ) { }
-};
-
-struct MinMax3 {
-	vec3_t mins, maxs;
-};
 
 // 0-2 are axial planes
 #define PLANE_X     0
@@ -84,7 +73,6 @@ typedef struct cplane_s {
 
 constexpr vec3_t vec3_origin = { 0, 0, 0 };
 constexpr mat3_t axis_identity = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
-constexpr quat_t quat_identity = { 0, 0, 0, 1 };
 
 constexpr vec4_t colorBlack  = { 0, 0, 0, 1 };
 constexpr vec4_t colorRed    = { 1, 0, 0, 1 };
@@ -115,13 +103,7 @@ constexpr vec4_t color_table[] =
 
 #define MAX_S_COLORS ARRAY_COUNT( color_table )
 
-#ifndef M_PI
-#define M_PI       3.14159265358979323846   // matches value in gcc v2 math.h
-#endif
-
-#ifndef M_TWOPI
-#define M_TWOPI    6.28318530717958647692
-#endif
+constexpr double M_TWOPI = M_PI * 2.0;
 
 #define DEG2RAD( a ) ( ( a * float( M_PI ) ) / 180.0f )
 #define RAD2DEG( a ) ( ( a * 180.0f ) / float( M_PI ) )
@@ -140,12 +122,12 @@ inline float Q_RSqrt( float x ) {
 
 template< typename T >
 T Lerp( T a, float t, T b ) {
-        return a * ( 1.0f - t ) + b * t;
+	return a * ( 1.0f - t ) + b * t;
 }
 
 template< typename T >
 float Unlerp( T lo, T x, T hi ) {
-        return float( x - lo ) / float( hi - lo );
+	return float( x - lo ) / float( hi - lo );
 }
 
 int Q_log2( int val );
@@ -198,10 +180,6 @@ void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs );
 float RadiusFromBounds( const vec3_t mins, const vec3_t maxs );
 bool BoundsOverlap( const vec3_t mins1, const vec3_t maxs1, const vec3_t mins2, const vec3_t maxs2 );
 bool BoundsOverlapSphere( const vec3_t mins, const vec3_t maxs, const vec3_t centre, float radius );
-void BoundsFromRadius( const vec3_t centre, vec_t radius, vec3_t mins, vec3_t maxs );
-void BoundsCentre( const vec3_t mins, const vec3_t maxs, vec3_t centre );
-float LocalBounds( const vec3_t inmins, const vec3_t inmaxs, vec3_t mins, vec3_t maxs, vec3_t centre );
-void BoundsCorners( const vec3_t mins, const vec3_t maxs, vec3_t corners[8] );
 
 // LordHavoc's triangle utility functions follow
 
@@ -230,10 +208,7 @@ void AnglesToAxis( const vec3_t angles, mat3_t axis );
 void NormalVectorToAxis( const vec3_t forward, mat3_t axis );
 void BuildBoxPoints( vec3_t p[8], const vec3_t org, const vec3_t mins, const vec3_t maxs );
 
-vec_t ColorNormalize( const vec_t *in, vec_t *out );
-
 float WidescreenFov( float fov );
-float CalcVerticalFov( float fov_x, float width, float height );
 float CalcHorizontalFov( float fov_y, float width, float height );
 
 #define Q_rint( x ) ( ( x ) < 0 ? ( (int)( ( x ) - 0.5f ) ) : ( (int)( ( x ) + 0.5f ) ) )
@@ -275,22 +250,3 @@ void Matrix3_Multiply( const mat3_t m1, const mat3_t m2, mat3_t out );
 void Matrix3_TransformVector( const mat3_t m, const vec3_t v, vec3_t out );
 void Matrix3_Transpose( const mat3_t in, mat3_t out );
 void Matrix3_FromAngles( const vec3_t angles, mat3_t m );
-
-void Quat_Identity( quat_t q );
-void Quat_Copy( const quat_t q1, quat_t q2 );
-bool Quat_Compare( const quat_t q1, const quat_t q2 );
-vec_t Quat_Normalize( quat_t q );
-void Quat_Multiply( const quat_t q1, const quat_t q2, quat_t out );
-void Quat_Lerp( const quat_t q1, const quat_t q2, vec_t t, quat_t out );
-void Quat_Vectors( const quat_t q, vec3_t f, vec3_t r, vec3_t u );
-void Quat_ToMatrix3( const quat_t q, mat3_t m );
-void Quat_FromMatrix3( const mat3_t m, quat_t q );
-
-// ============================================================================
-
-#define NOISE_SIZE  256
-
-void Q_InitNoiseTable( int seed, float *noisetable, int *noiseperm );
-
-float Q_GetNoiseValueFromTable( float *noisetable, int *noiseperm, 
-	float x, float y, float z, float t );

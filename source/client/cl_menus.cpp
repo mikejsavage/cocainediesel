@@ -98,8 +98,14 @@ void UI_Init() {
 		u8 * pixels;
 		int width, height;
 		io.Fonts->GetTexDataAsAlpha8( &pixels, &width, &height );
-		struct shader_s * shader = re.RegisterAlphaMask( "imgui_font", width, height, pixels );
-		io.Fonts->TexID = shader;
+
+		TextureConfig config;
+		config.width = width;
+		config.height = height;
+		config.data = pixels;
+		config.format = TextureFormat_A_U8;
+		Texture texture = NewTexture( config );
+		io.Fonts->TexID = ( void * ) uintptr_t( texture.texture );
 	}
 
 	{
@@ -122,10 +128,6 @@ void UI_Init() {
 	mainmenu_state = MainMenuState_ServerBrowser;
 
 	reset_video_settings = true;
-}
-
-void UI_TouchAllAssets() {
-	re.RegisterPic( "imgui_font" );
 }
 
 static void SettingLabel( const char * label ) {
@@ -633,7 +635,7 @@ static void CreateServer() {
 
 static void MainMenu() {
 	ImGui::SetNextWindowPos( ImVec2() );
-	ImGui::SetNextWindowSize( ImVec2( viddef.width, viddef.height ) );
+	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
 	ImGui::Begin( "mainmenu", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 	ImVec2 window_padding = ImGui::GetStyle().WindowPadding;
@@ -914,7 +916,7 @@ void UI_Refresh() {
 
 	if( uistate == UIState_Connecting ) {
 		ImGui::SetNextWindowPos( ImVec2() );
-		ImGui::SetNextWindowSize( ImVec2( viddef.width, viddef.height ) );
+		ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
 		ImGui::Begin( "mainmenu", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		ImGui::Text( "Connecting..." );

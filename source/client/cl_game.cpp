@@ -147,8 +147,6 @@ static void CL_GameModule_NET_GetCurrentState( int64_t *incomingAcknowledged, in
 
 //==============================================
 
-float VID_GetPixelRatio() { return 1; }
-
 /*
 * CL_GameModule_Init
 */
@@ -209,25 +207,6 @@ void CL_GameModule_Init( void ) {
 	import.NET_GetCurrentUserCmdNum = CL_GameModule_NET_GetCurrentUserCmdNum;
 	import.NET_GetCurrentState = CL_GameModule_NET_GetCurrentState;
 
-	import.R_UpdateScreen = SCR_UpdateScreen;
-	import.R_GetClippedFragments = re.GetClippedFragments;
-	import.R_ClearScene = re.ClearScene;
-	import.R_AddEntityToScene = re.AddEntityToScene;
-	import.R_AddLightToScene = re.AddLightToScene;
-	import.R_AddPolyToScene = re.AddPolyToScene;
-	import.R_RenderScene = re.RenderScene;
-	import.R_GetSpeedsMessage = re.GetSpeedsMessage;
-	import.R_GetAverageFrametime = re.GetAverageFrametime;
-	import.R_RegisterWorldModel = re.RegisterWorldModel;
-	import.R_RegisterModel = re.RegisterModel;
-	import.R_RegisterPic = re.RegisterPic;
-	import.R_RegisterSkin = re.RegisterSkin;
-	import.R_LerpTag = re.LerpTag;
-	import.R_DrawStretchPic = re.DrawStretchPic;
-	import.R_DrawRotatedStretchPic = re.DrawRotatedStretchPic;
-	import.R_TransformVectorToScreen = re.TransformVectorToScreen;
-	import.R_TransformVectorToScreenClamped = re.TransformVectorToScreenClamped;
-
 	import.VID_FlashWindow = VID_FlashWindow;
 
 	import.CM_NumInlineModels = CL_GameModule_CM_NumInlineModels;
@@ -259,20 +238,12 @@ void CL_GameModule_Init( void ) {
 
 	start = Sys_Milliseconds();
 	cge->Init( cls.servername, cl.playernum,
-			   viddef.width, viddef.height, VID_GetPixelRatio(),
 			   cls.demo.playing, cls.demo.playing ? cls.demo.filename : "",
-			   cls.sv_pure, cl.snapFrameTime, cls.mediaRandomSeed, cl.gamestart );
+			   cls.sv_pure, cl.snapFrameTime );
 
 	Com_DPrintf( "CL_GameModule_Init: %.2f seconds\n", (float)( Sys_Milliseconds() - start ) * 0.001f );
 
-	cl.gamestart = false;
 	cls.cgameActive = true;
-}
-
-void CL_GameModule_ResizeWindow( int width, int height ) {
-	if( cge ) {
-		cge->ResizeWindow( width, height );
-	}
 }
 
 /*

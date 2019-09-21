@@ -84,7 +84,7 @@ void CG_CenterPrint( const char *str ) {
 }
 
 static void CG_DrawCenterString( void ) {
-	DrawText( cgs.fontMontserrat, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, cgs.vidWidth * 0.5f, cgs.vidHeight * 0.35f, rgba8_white, true, rgba8_black );
+	DrawText( cgs.fontMontserrat, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, frame_static.viewport_width * 0.5f, frame_static.viewport_height * 0.35f, vec4_white, true );
 }
 
 //============================================================================
@@ -144,20 +144,19 @@ int CG_ParseValue( const char **s ) {
 /*
 * CG_DrawNet
 */
-void CG_DrawNet( int x, int y, int w, int h, int align, vec4_t color ) {
-	int64_t incomingAcknowledged, outgoingSequence;
-
+void CG_DrawNet( int x, int y, int w, int h, int align, Vec4 color ) {
 	if( cgs.demoPlaying ) {
 		return;
 	}
 
+	int64_t incomingAcknowledged, outgoingSequence;
 	trap_NET_GetCurrentState( &incomingAcknowledged, &outgoingSequence, NULL );
 	if( outgoingSequence - incomingAcknowledged < CMD_BACKUP - 1 ) {
 		return;
 	}
 	x = CG_HorizontalAlignForWidth( x, align, w );
 	y = CG_VerticalAlignForHeight( y, align, h );
-	trap_R_DrawStretchPic( x, y, w, h, 0, 0, 1, 1, color, CG_MediaShader( cgs.media.shaderNet ) );
+	Draw2DBox( frame_static.ui_pass, x, y, w, h, cgs.media.shaderNet, color );
 }
 
 /*
@@ -167,12 +166,12 @@ void CG_ScreenCrosshairDamageUpdate( void ) {
 	scr_damagetime = cg.monotonicTime;
 }
 
-static void CG_FillRect( int x, int y, int w, int h, vec4_t color ) {
-	trap_R_DrawStretchPic( x, y, w, h, x, y, x + w, y + h, color, cgs.shaderWhite );
+static void CG_FillRect( int x, int y, int w, int h, Vec4 color ) {
+	Draw2DBox( frame_static.ui_pass, x, y, w, h, cgs.white_material, color );
 }
 
-static vec4_t crosshair_color = { 1, 1, 1, 1 };
-static vec4_t crosshair_damage_color = { 1, 0, 0, 1 };
+static Vec4 crosshair_color = vec4_white;
+static Vec4 crosshair_damage_color = vec4_red;
 
 void CG_DrawCrosshair() {
 	float s = 1.0f / 255.0f;
@@ -181,9 +180,10 @@ void CG_DrawCrosshair() {
 		cg_crosshair_color->modified = false;
 		int rgb = COM_ReadColorRGBString( cg_crosshair_color->string );
 		if( rgb != -1 ) {
-			Vector4Set( crosshair_color, COLOR_R( rgb ) * s, COLOR_G( rgb ) * s, COLOR_B( rgb ) * s, 255 );
-		} else {
-			Vector4Set( crosshair_color, 1, 1, 1, 1 );
+			crosshair_color = Vec4( COLOR_R( rgb ) * s, COLOR_G( rgb ) * s, COLOR_B( rgb ) * s, 1.0f );
+		}
+		else {
+			crosshair_color = vec4_white;
 			trap_Cvar_Set( cg_crosshair_color->name, "255 255 255" );
 		}
 	}
@@ -192,33 +192,29 @@ void CG_DrawCrosshair() {
 		cg_crosshair_damage_color->modified = false;
 		int rgb = COM_ReadColorRGBString( cg_crosshair_damage_color->string );
 		if( rgb != -1 ) {
-			Vector4Set( crosshair_damage_color, COLOR_R( rgb ) * s, COLOR_G( rgb ) * s, COLOR_B( rgb ) * s, 255 );
-		} else {
-			Vector4Set( crosshair_damage_color, 1, 0, 0, 1 );
+			crosshair_damage_color = Vec4( COLOR_R( rgb ) * s, COLOR_G( rgb ) * s, COLOR_B( rgb ) * s, 1.0f );
+		}
+		else {
+			crosshair_color = vec4_red;
 			trap_Cvar_Set( cg_crosshair_damage_color->name, "255 255 255" );
 		}
 	}
 
-	vec4_t inner;
-	Vector4Copy( crosshair_color, inner );
-	vec4_t border = { 0, 0, 0, 1 };
-	if( cg.monotonicTime - scr_damagetime <= 300 )
-		Vector4Copy( crosshair_damage_color, inner );
+	Vec4 color = cg.monotonicTime - scr_damagetime <= 300 ? crosshair_damage_color : crosshair_color;
 
-	int w = cgs.vidWidth;
-	int h = cgs.vidHeight;
+	int w = frame_static.viewport_width;
+	int h = frame_static.viewport_height;
 	int size = cg_crosshair_size->integer > 0 ? cg_crosshair_size->integer : 0;
 
-	CG_FillRect( w / 2 - 2, h / 2 - 2 - size, 4, 4 + 2 * size, border );
-	CG_FillRect( w / 2 - 2 - size, h / 2 - 2, 4 + 2 * size, 4, border );
-	CG_FillRect( w / 2 - 1, h / 2 - 1 - size, 2, 2 + 2 * size, inner );
-	CG_FillRect( w / 2 - 1 - size, h / 2 - 1, 2 + 2 * size, 2, inner );
+	CG_FillRect( w / 2 - 2, h / 2 - 2 - size, 4, 4 + 2 * size, vec4_black );
+	CG_FillRect( w / 2 - 2 - size, h / 2 - 2, 4 + 2 * size, 4, vec4_black );
+	CG_FillRect( w / 2 - 1, h / 2 - 1 - size, 2, 2 + 2 * size, color );
+	CG_FillRect( w / 2 - 1 - size, h / 2 - 1, 2 + 2 * size, 2, color );
 }
 
 void CG_DrawKeyState( int x, int y, int w, int h, int align, const char *key ) {
 	int i;
-	uint8_t on = 0;
-	vec4_t color;
+	bool pressed = false;
 
 	if( !cg_showPressedKeys->integer ) {
 		return;
@@ -238,15 +234,15 @@ void CG_DrawKeyState( int x, int y, int w, int h, int align, const char *key ) {
 	}
 
 	if( cg.predictedPlayerState.plrkeys & ( 1 << i ) ) {
-		on = 1;
+		pressed = 1;
 	}
 
-	Vector4Copy( colorWhite, color );
-	if( !on ) {
-		color[3] = 0.5f;
+	Vec4 color = vec4_white;
+	if( !pressed ) {
+		color.w = 0.5f;
 	}
 
-	trap_R_DrawStretchPic( x, y, w, h, 0, 0, 1, 1, color, CG_MediaShader( cgs.media.shaderKeyIcon[i] ) );
+	Draw2DBox( frame_static.ui_pass, x, y, w, h, cgs.media.shaderKeyIcon[i], color );
 }
 
 /*
@@ -356,7 +352,6 @@ void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color ) {
 	centity_t *cent;
 	vec4_t tmpcolor;
 	vec3_t dir, drawOrigin;
-	vec2_t coords;
 	float dist, fadeFrac;
 	trace_t trace;
 	int i;
@@ -430,13 +425,12 @@ void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color ) {
 
 		VectorSet( drawOrigin, cent->ent.origin[0], cent->ent.origin[1], cent->ent.origin[2] + playerbox_stand_maxs[2] + 8 );
 
-		// find the 3d point in 2d screen
-		trap_R_TransformVectorToScreen( &cg.view.refdef, drawOrigin, coords );
-		if( ( coords[0] < 0 || coords[0] > cgs.vidWidth ) || ( coords[1] < 0 || coords[1] > cgs.vidHeight ) ) {
+		Vec2 coords = WorldToScreen( FromQF3( drawOrigin ) );
+		if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {
 			continue;
 		}
 
-		trap_SCR_DrawString( coords[0], coords[1], ALIGN_CENTER_BOTTOM, cgs.clientInfo[i].name, font, tmpcolor );
+		trap_SCR_DrawString( coords.x, coords.y, ALIGN_CENTER_BOTTOM, cgs.clientInfo[i].name, font, tmpcolor );
 
 		// if not the pointed player we are done
 		if( cent->current.number != cg.pointedNum ) {
@@ -460,23 +454,23 @@ void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color ) {
 			tmpcolor[3] *= 0.4f;
 
 			// we have to align first, then draw as left top, cause we want the bar to grow from left to right
-			x = CG_HorizontalAlignForWidth( coords[0], ALIGN_CENTER_TOP, barwidth );
-			y = CG_VerticalAlignForHeight( coords[1], ALIGN_CENTER_TOP, barheight );
+			x = CG_HorizontalAlignForWidth( coords.x, ALIGN_CENTER_TOP, barwidth );
+			y = CG_VerticalAlignForHeight( coords.y, ALIGN_CENTER_TOP, barheight );
 
 			y += barseparator;
 
 			// draw the background box
-			CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight + 2 * barseparator, 100, 100, tmpcolor, NULL );
-
-			y += barseparator;
-
-			if( pointed_health <= 33 ) {
-				CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight, pointed_health, 100, alphared, NULL );
-			} else if( pointed_health <= 66 ) {
-				CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight, pointed_health, 100, alphayellow, NULL );
-			} else {
-				CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight, pointed_health, 100, alphagreen, NULL );
-			}
+			// CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight + 2 * barseparator, 100, 100, tmpcolor, NULL );
+			//
+			// y += barseparator;
+			//
+			// if( pointed_health <= 33 ) {
+			// 	CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight, pointed_health, 100, alphared, NULL );
+			// } else if( pointed_health <= 66 ) {
+			// 	CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight, pointed_health, 100, alphayellow, NULL );
+			// } else {
+			// 	CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight, pointed_health, 100, alphagreen, NULL );
+			// }
 		}
 	}
 }
@@ -484,13 +478,11 @@ void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color ) {
 /*
 * CG_DrawTeamMates
 */
-void CG_DrawTeamMates( void ) {
+void CG_DrawTeamMates() {
 	centity_t *cent;
 	vec3_t dir, drawOrigin;
-	vec2_t coords;
-	vec4_t color;
 	int i;
-	int pic_size = 18 * cgs.vidHeight / 600;
+	int pic_size = 18 * frame_static.viewport_height / 600;
 
 	if( cg.predictedPlayerState.stats[STAT_TEAM] < TEAM_ALPHA ) {
 		return;
@@ -498,7 +490,6 @@ void CG_DrawTeamMates( void ) {
 
 	for( i = 0; i < gs.maxclients; i++ ) {
 		trace_t trace;
-		cgs_media_handle_t *media;
 
 		if( !cgs.clientInfo[i].name[0] || ISVIEWERENTITY( i + 1 ) ) {
 			continue;
@@ -532,8 +523,8 @@ void CG_DrawTeamMates( void ) {
 		}
 
 		// find the 3d point in 2d screen
-		trap_R_TransformVectorToScreen( &cg.view.refdef, drawOrigin, coords );
-		if( ( coords[0] < 0 || coords[0] > cgs.vidWidth ) || ( coords[1] < 0 || coords[1] > cgs.vidHeight ) ) {
+		Vec2 coords = WorldToScreen( FromQF3( drawOrigin ) );
+		if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {
 			continue;
 		}
 
@@ -542,20 +533,21 @@ void CG_DrawTeamMates( void ) {
 			continue;
 		}
 
-		coords[0] -= pic_size / 2;
-		coords[1] -= pic_size / 2;
-		coords[0] = Clamp( 0.0f, coords[0], float( cgs.vidWidth - pic_size ) );
-		coords[1] = Clamp( 0.0f, coords[1], float( cgs.vidHeight - pic_size ) );
+		coords.x -= pic_size / 2;
+		coords.y -= pic_size / 2;
+		coords.x = Clamp( 0.0f, coords.x, float( frame_static.viewport_width - pic_size ) );
+		coords.y = Clamp( 0.0f, coords.y, float( frame_static.viewport_height - pic_size ) );
 
-		CG_TeamColor( cg.predictedPlayerState.stats[STAT_TEAM], color );
+		Vec4 color = CG_TeamColorVec4( cg.predictedPlayerState.stats[STAT_TEAM] );
 
+		const Material * material;
 		if( cent->current.effects & EF_CARRIER ) {
-			media = cgs.media.shaderTeamCarrierIndicator;
+			material = cgs.media.shaderTeamCarrierIndicator;
 		} else {
-			media = cgs.media.shaderTeamMateIndicator;
+			material = cgs.media.shaderTeamMateIndicator;
 		}
 
-		trap_R_DrawStretchPic( coords[0], coords[1], pic_size, pic_size, 0, 0, 1, 1, color, CG_MediaShader( media ) );
+		Draw2DBox( frame_static.ui_pass, coords.x, coords.y, pic_size, pic_size, material, color );
 	}
 }
 
@@ -620,35 +612,32 @@ void CG_DrawDamageNumbers() {
 		if( DotProduct( &cg.view.axis[ AXIS_FORWARD ], to_target ) <= 0 )
 			continue;
 
-		vec2_t coords;
-		trap_R_TransformVectorToScreen( &cg.view.refdef, o, coords );
-		if( ( coords[ 0 ] < 0 || coords[ 0 ] > cgs.vidWidth ) || ( coords[ 1 ] < 0 || coords[ 1 ] > cgs.vidHeight ) ) {
+		Vec2 coords = WorldToScreen( FromQF3( o ) );
+		coords.x += dn.drift * frac * 8;
+		if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {
 			continue;
 		}
 
-		coords[ 0 ] += dn.drift * frac * 8;
-
 		char buf[ 16 ];
-		RGBA8 color;
+		Vec4 color;
 		float font_size;
 		if( dn.damage == MINI_OBITUARY_DAMAGE ) {
 			Q_strncpyz( buf, dn.obituary, sizeof( buf ) );
-			RGB8 c = CG_TeamColor( TEAM_ENEMY );
-			color = RGBA8( c.r, c.g, c.b, 255 );
+			color = CG_TeamColorVec4( TEAM_ENEMY );
 			font_size = cgs.textSizeSmall;
 		}
 		else {
 			Q_snprintfz( buf, sizeof( buf ), "%d", dn.damage );
-			color = rgba8_white;
+			color = vec4_white;
 			font_size = cgs.textSizeTiny;
 		}
 
-		RGBA8 border_color = rgba8_black;
+		Vec4 border_color = vec4_black;
 		float alpha = 1 - max( 0, frac - 0.75f ) / 0.25f;
-		color.a *= alpha;
-		border_color.a *= alpha;
+		color.w *= alpha;
+		border_color.w *= alpha;
 
-		DrawText( cgs.fontMontserrat, font_size, buf, Alignment_CenterMiddle, coords[ 0 ], coords[ 1 ], color, true, border_color );
+		DrawText( cgs.fontMontserrat, font_size, buf, Alignment_CenterMiddle, coords.x, coords.y, color, true, border_color );
 	}
 }
 
@@ -710,26 +699,26 @@ void CG_DrawBombHUD() {
 	if( bomb.state == BombState_None || bomb.state == BombState_Dropped ) {
 		for( size_t i = 0; i < num_bomb_sites; i++ ) {
 			const BombSite * site = &bomb_sites[ i ];
-			vec2_t coords;
-			bool clamped = trap_R_TransformVectorToScreenClamped( &cg.view.refdef, site->origin, cgs.fontSystemMediumSize * 2, coords );
+			bool clamped;
+			Vec2 coords = WorldToScreenClamped( FromQF3( site->origin ), Vec2( cgs.fontSystemMediumSize * 2 ), &clamped );
 
 			char buf[ 4 ];
 			Q_snprintfz( buf, sizeof( buf ), "%c", site->letter );
-			DrawText( cgs.fontMontserrat, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords[ 0 ], coords[ 1 ], rgba8_white, true, rgba8_black );
+			DrawText( cgs.fontMontserrat, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords.x, coords.y, vec4_white, true );
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {
 				const char * msg = my_team == site->team ? "DEFEND" : "ATTACK";
-				coords[ 1 ] -= ( cgs.fontSystemMediumSize * 3 ) / 4;
-				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords[ 0 ], coords[ 1 ], rgba8_white, true, rgba8_black );
+				coords.y -= ( cgs.fontSystemMediumSize * 3 ) / 4;
+				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, vec4_white, true );
 			}
 		}
 	}
 
 	if( bomb.state != BombState_None ) {
-		vec2_t coords;
-		bool clamped = trap_R_TransformVectorToScreenClamped( &cg.view.refdef, bomb.origin, cgs.fontSystemMediumSize * 2, coords );
+		bool clamped;
+		Vec2 coords = WorldToScreenClamped( FromQF3( bomb.origin ), Vec2( cgs.fontSystemMediumSize * 2 ), &clamped );
 
-		cgs_media_handle_t * icon = cgs.media.shaderBombIcon;
+		const Material * icon = cgs.media.shaderBombIcon;
 		int icon_size = cgs.fontSystemMediumSize;
 
 		if( !clamped ) {
@@ -742,13 +731,13 @@ void CG_DrawBombHUD() {
 					msg = "PLANTING";
 				else if( bomb.state == BombState_Armed )
 					msg = my_team == bomb.team ? "PROTECT" : "DEFUSE";
-				float y = coords[ 1 ] - icon_size - cgs.fontSystemTinySize / 2;
-				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords[ 0 ], y, rgba8_white, true, rgba8_black );
+				float y = coords.y - icon_size - cgs.fontSystemTinySize / 2;
+				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, y, vec4_white, true );
 			}
 		}
 
-		icon_size = ( icon_size * cgs.vidHeight ) / 600;
-		trap_R_DrawStretchPic( coords[0] - icon_size / 2, coords[1] - icon_size / 2, icon_size, icon_size, 0, 0, 1, 1, colorWhite, CG_MediaShader( icon ) );
+		icon_size = ( icon_size * frame_static.viewport_height ) / 600;
+		Draw2DBox( frame_static.ui_pass, coords.x - icon_size / 2, coords.y - icon_size / 2, icon_size, icon_size, icon );
 	}
 }
 
@@ -757,40 +746,6 @@ void CG_ResetBombHUD() {
 	bomb.state = BombState_None;
 }
 
-//=============================================================================
-
-/*
-* CG_DrawRSpeeds
-*/
-void CG_DrawRSpeeds( int x, int y, int align, struct qfontface_s *font, const vec4_t color ) {
-	char msg[1024];
-
-	trap_R_GetSpeedsMessage( msg, sizeof( msg ) );
-
-	if( msg[0] ) {
-		int height;
-		const char *p, *start, *end;
-
-		height = trap_SCR_FontHeight( font );
-
-		p = start = msg;
-		do {
-			end = strchr( p, '\n' );
-			if( end ) {
-				msg[end - start] = '\0';
-			}
-
-			trap_SCR_DrawString( x, y, align, p, font, color );
-			y += height;
-
-			if( end ) {
-				p = end + 1;
-			} else {
-				break;
-			}
-		} while( 1 );
-	}
-}
 
 //=============================================================================
 
@@ -819,32 +774,6 @@ void CG_EscapeKey( void ) {
 * CG_DrawLoading
 */
 void CG_DrawLoading( void ) {
-	if( !cgs.configStrings[CS_MAPNAME][0] ) {
-		return;
-	}
-
-	float scale = cgs.vidHeight / 1080.0f;
-
-	const vec4_t color = { 22.0f / 255.0f, 20.0f / 255.0f, 28.0f / 255.0f, 1.0f };
-	trap_R_DrawStretchPic( 0, 0, cgs.vidWidth, cgs.vidHeight, 0.0f, 0.0f, 1.0f, 1.0f, color, cgs.shaderWhite );
-	trap_R_DrawStretchPic( cgs.vidWidth / 2 - ( int )( 375 * scale ), cgs.vidHeight / 2 - ( int )( 128 * scale ),
-						   750 * scale, 256 * scale, 0.0f, 0.0f, 1.0f, 1.0f, colorWhite, trap_R_RegisterPic( UI_SHADER_LOADINGLOGO ) );
-
-	if( cgs.precacheCount && cgs.precacheTotal ) {
-		struct shader_s *shader = trap_R_RegisterPic( UI_SHADER_LOADINGBAR );
-		int width = 700 * scale;
-		int height = 32 * scale;
-		float percent = ( ( float )cgs.precacheCount / ( float )cgs.precacheTotal );
-		int barWidth = ( width - height ) * bound( 0.0f, percent, 1.0f );
-		int x = ( cgs.vidWidth - width ) / 2;
-		int y = cgs.vidHeight / 2 + ( int )( 160 * scale );
-
-		trap_R_DrawStretchPic( x, y, height, height, 0.0f, 0.0f, 0.5f, 0.5f, colorWhite, shader );
-		trap_R_DrawStretchPic( x + height, y, width - height * 2, height, 0.5f, 0.0f, 0.5f, 0.5f, colorWhite, shader );
-		trap_R_DrawStretchPic( x + width - height, y, height, height, 0.5f, 0.0f, 1.0f, 0.5f, colorWhite, shader );
-		trap_R_DrawStretchPic( x + height / 2, y, barWidth, height, 0.25f, 0.5f, 0.25f, 1.0f, colorWhite, shader );
-		trap_R_DrawStretchPic( x + barWidth, y, height, height, 0.5f, 0.5f, 1.0f, 1.0f, colorWhite, shader );
-	}
 }
 
 /*
@@ -945,7 +874,11 @@ static void CG_SCRDrawViewBlend( void ) {
 		return;
 	}
 
-	trap_R_DrawStretchPic( 0, 0, cgs.vidWidth, cgs.vidHeight, 0, 0, 1, 1, colorblend, cgs.shaderWhite );
+	Vec4 c;
+	for( int i = 0; i < 4; i++ ) {
+		c.ptr()[ i ] = colorblend[ i ];
+	}
+	Draw2DBox( frame_static.ui_pass, 0, 0, frame_static.viewport_width, frame_static.viewport_height, cgs.white_material, c );
 }
 
 
@@ -991,9 +924,6 @@ void CG_Draw2DView( void ) {
 	else if( scr_centertime_off > 0 ) {
 		CG_DrawCenterString();
 	}
-
-	CG_DrawRSpeeds( cgs.vidWidth, cgs.vidHeight / 2 + 8 * cgs.vidHeight / 600,
-					ALIGN_RIGHT_TOP, cgs.fontSystemSmall, colorWhite );
 }
 
 /*

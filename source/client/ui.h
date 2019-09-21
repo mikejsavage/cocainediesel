@@ -3,7 +3,6 @@
 #include "qcommon/types.h"
 
 void UI_Init();
-void UI_TouchAllAssets();
 void UI_KeyEvent( bool mainContext, int key, bool down );
 void UI_CharEvent( bool mainContext, wchar_t key );
 void UI_Refresh();

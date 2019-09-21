@@ -707,10 +707,10 @@ typedef enum {
 } playerstate_event_t;
 
 enum RoundType {
-        RoundType_Normal,
-        RoundType_MatchPoint,
-        RoundType_Overtime,
-        RoundType_OvertimeMatchPoint,
+	RoundType_Normal,
+	RoundType_MatchPoint,
+	RoundType_Overtime,
+	RoundType_OvertimeMatchPoint,
 };
 
 enum BombDown {
@@ -719,9 +719,9 @@ enum BombDown {
 };
 
 enum BombProgress {
-        BombProgress_Nothing,
-        BombProgress_Planting,
-        BombProgress_Defusing,
+	BombProgress_Nothing,
+	BombProgress_Planting,
+	BombProgress_Defusing,
 };
 
 //===============================================================
@@ -739,15 +739,11 @@ enum {
 	ET_GRENADE,
 	ET_PLASMA,
 
-	ET_SPRITE,
-
 	ET_ITEM,        // for simple items
 	ET_LASERBEAM,   // for continuous beams
 
 	ET_DECAL,
 	ET_PARTICLES,
-
-	ET_RADAR,       // same as ET_SPRITE but sets NO_DEPTH_TEST bit
 
 	ET_HUD,
 

@@ -70,28 +70,6 @@ void ByteToDir( int b, vec3_t dir ) {
 
 //============================================================================
 
-/*
-* ColorNormalize
-*/
-vec_t ColorNormalize( const vec_t *in, vec_t *out ) {
-	vec_t f = max( max( in[0], in[1] ), in[2] );
-
-	if( f > 1.0f ) {
-		f = 1.0f / f;
-		out[0] = in[0] * f;
-		out[1] = in[1] * f;
-		out[2] = in[2] * f;
-	} else {
-		out[0] = in[0];
-		out[1] = in[1];
-		out[2] = in[2];
-	}
-
-	return f;
-}
-
-//============================================================================
-
 void NormToLatLong( const vec3_t normal, float latlong[2] ) {
 	// can't do atan2 (normal[1], normal[0])
 	if( normal[0] == 0 && normal[1] == 0 ) {
@@ -364,21 +342,6 @@ float WidescreenFov( float fov ) {
 }
 
 /*
-* CalcVerticalFov
-*/
-float CalcVerticalFov( float fov_x, float width, float height ) {
-	float x;
-
-	if( fov_x < 1 || fov_x > 179 ) {
-		Sys_Error( "Bad horizontal fov: %f", fov_x );
-	}
-
-	x = height;
-	x *= tan( fov_x / 360.0 * M_PI );
-	return atan( x / width ) * 360.0 / M_PI;
-}
-
-/*
 * CalcHorizontalFov
 */
 float CalcHorizontalFov( float fov_y, float width, float height ) {
@@ -596,11 +559,8 @@ bool BoundsOverlap( const vec3_t mins1, const vec3_t maxs1, const vec3_t mins2, 
 }
 
 bool BoundsOverlapSphere( const vec3_t mins, const vec3_t maxs, const vec3_t centre, float radius ) {
-	int i;
 	float dmin = 0;
-	float radius2 = radius * radius;
-
-	for( i = 0; i < 3; i++ ) {
+	for( int i = 0; i < 3; i++ ) {
 		if( centre[i] < mins[i] ) {
 			dmin += ( centre[i] - mins[i] ) * ( centre[i] - mins[i] );
 		} else if( centre[i] > maxs[i] ) {
@@ -608,17 +568,13 @@ bool BoundsOverlapSphere( const vec3_t mins, const vec3_t maxs, const vec3_t cen
 		}
 	}
 
-	if( dmin <= radius2 ) {
-		return true;
-	}
-	return false;
+	return dmin <= radius * radius;
 }
 
 void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs ) {
-	int i;
 	vec_t val;
 
-	for( i = 0; i < 3; i++ ) {
+	for( int i = 0; i < 3; i++ ) {
 		val = v[i];
 		if( val < mins[i] ) {
 			mins[i] = val;
@@ -629,74 +585,14 @@ void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs ) {
 	}
 }
 
-/*
-* RadiusFromBounds
-*/
 float RadiusFromBounds( const vec3_t mins, const vec3_t maxs ) {
-	int i;
 	vec3_t corner;
 
-	for( i = 0; i < 3; i++ ) {
+	for( int i = 0; i < 3; i++ ) {
 		corner[i] = fabs( mins[i] ) > fabs( maxs[i] ) ? fabs( mins[i] ) : fabs( maxs[i] );
 	}
 
 	return VectorLength( corner );
-}
-
-/*
-* BoundsCentre
-*/
-void BoundsCentre( const vec3_t mins, const vec3_t maxs, vec3_t centre ) {
-	VectorClear( centre );
-	VectorMA( centre, 0.5, mins, centre );
-	VectorMA( centre, 0.5, maxs, centre );
-}
-
-/*
-* LocalBounds
-*/
-float LocalBounds( const vec3_t inmins, const vec3_t inmaxs, vec3_t mins, vec3_t maxs, vec3_t centre ) {
-	vec3_t v, vmin, vmax;
-
-	BoundsCentre( inmins, inmaxs, v );
-	VectorSubtract( inmins, v, vmin );
-	VectorSubtract( inmaxs, v, vmax );
-
-	if( mins ) {
-		VectorCopy( vmin, mins );
-	}
-	if( maxs ) {
-		VectorCopy( vmax, maxs );
-	}
-	if( centre ) {
-		VectorCopy( v, centre );
-	}
-	return RadiusFromBounds( vmin, vmax );
-}
-
-/*
-* BoundsFromRadius
-*/
-void BoundsFromRadius( const vec3_t centre, vec_t radius, vec3_t mins, vec3_t maxs ) {
-	int i;
-
-	for( i = 0; i < 3; i++ ) {
-		mins[i] = centre[i] - radius;
-		maxs[i] = centre[i] + radius;
-	}
-}
-
-/*
-* BoundsCorners
-*/
-void BoundsCorners( const vec3_t mins, const vec3_t maxs, vec3_t corners[8] ) {
-	int j;
-
-	for( j = 0; j < 8; j++ ) {
-		corners[j][0] = ( ( j & 1 ) ? mins[0] : maxs[0] );
-		corners[j][1] = ( ( j & 2 ) ? mins[1] : maxs[1] );
-		corners[j][2] = ( ( j & 4 ) ? mins[2] : maxs[2] );
-	}
 }
 
 vec_t VectorNormalize( vec3_t v ) {
@@ -826,215 +722,4 @@ void Matrix3_Transpose( const mat3_t in, mat3_t out ) {
 
 void Matrix3_FromAngles( const vec3_t angles, mat3_t m ) {
 	AngleVectors( angles, &m[AXIS_FORWARD], &m[AXIS_RIGHT], &m[AXIS_UP] );
-}
-
-//============================================================================
-
-void Quat_Identity( quat_t q ) {
-	q[0] = 0;
-	q[1] = 0;
-	q[2] = 0;
-	q[3] = 1;
-}
-
-void Quat_Copy( const quat_t q1, quat_t q2 ) {
-	q2[0] = q1[0];
-	q2[1] = q1[1];
-	q2[2] = q1[2];
-	q2[3] = q1[3];
-}
-
-bool Quat_Compare( const quat_t q1, const quat_t q2 ) {
-	if( q1[0] != q2[0] || q1[1] != q2[1] || q1[2] != q2[2] || q1[3] != q2[3] ) {
-		return false;
-	}
-	return true;
-}
-
-vec_t Quat_Normalize( quat_t q ) {
-	vec_t length;
-
-	length = q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3];
-	if( length != 0 ) {
-		vec_t ilength = 1.0 / sqrt( length );
-		q[0] *= ilength;
-		q[1] *= ilength;
-		q[2] *= ilength;
-		q[3] *= ilength;
-	}
-
-	return length;
-}
-
-void Quat_FromMatrix3( const mat3_t m, quat_t q ) {
-	vec_t tr, s;
-
-	tr = m[0] + m[4] + m[8];
-	if( tr > 0.00001 ) {
-		s = sqrt( tr + 1.0 );
-		q[3] = s * 0.5; s = 0.5 / s;
-		q[0] = ( m[7] - m[5] ) * s;
-		q[1] = ( m[2] - m[6] ) * s;
-		q[2] = ( m[3] - m[1] ) * s;
-	} else {
-		int i, j, k;
-
-		i = 0;
-		if( m[4] > m[i * 3 + i] ) {
-			i = 1;
-		}
-		if( m[8] > m[i * 3 + i] ) {
-			i = 2;
-		}
-		j = ( i + 1 ) % 3;
-		k = ( i + 2 ) % 3;
-
-		s = sqrt( m[i * 3 + i] - ( m[j * 3 + j] + m[k * 3 + k] ) + 1.0 );
-
-		q[i] = s * 0.5; if( s != 0.0 ) {
-			s = 0.5 / s;
-		}
-		q[j] = ( m[j * 3 + i] + m[i * 3 + j] ) * s;
-		q[k] = ( m[k * 3 + i] + m[i * 3 + k] ) * s;
-		q[3] = ( m[k * 3 + j] - m[j * 3 + k] ) * s;
-	}
-
-	Quat_Normalize( q );
-}
-
-void Quat_Multiply( const quat_t q1, const quat_t q2, quat_t out ) {
-	out[0] = q1[3] * q2[0] + q1[0] * q2[3] + q1[1] * q2[2] - q1[2] * q2[1];
-	out[1] = q1[3] * q2[1] + q1[1] * q2[3] + q1[2] * q2[0] - q1[0] * q2[2];
-	out[2] = q1[3] * q2[2] + q1[2] * q2[3] + q1[0] * q2[1] - q1[1] * q2[0];
-	out[3] = q1[3] * q2[3] - q1[0] * q2[0] - q1[1] * q2[1] - q1[2] * q2[2];
-}
-
-static void Quat_LLerp( const quat_t q1, const quat_t q2, vec_t t, quat_t out ) {
-	vec_t scale0, scale1;
-
-	scale0 = 1.0 - t;
-	scale1 = t;
-
-	out[0] = scale0 * q1[0] + scale1 * q2[0];
-	out[1] = scale0 * q1[1] + scale1 * q2[1];
-	out[2] = scale0 * q1[2] + scale1 * q2[2];
-	out[3] = scale0 * q1[3] + scale1 * q2[3];
-}
-
-void Quat_Lerp( const quat_t q1, const quat_t q2, vec_t t, quat_t out ) {
-	quat_t p1;
-	vec_t omega, cosom, sinom, scale0, scale1, sinsqr;
-
-	if( Quat_Compare( q1, q2 ) ) {
-		Quat_Copy( q1, out );
-		return;
-	}
-
-	cosom = q1[0] * q2[0] + q1[1] * q2[1] + q1[2] * q2[2] + q1[3] * q2[3];
-	if( cosom < 0.0 ) {
-		cosom = -cosom;
-		p1[0] = -q1[0]; p1[1] = -q1[1];
-		p1[2] = -q1[2]; p1[3] = -q1[3];
-	} else {
-		p1[0] = q1[0]; p1[1] = q1[1];
-		p1[2] = q1[2]; p1[3] = q1[3];
-	}
-
-	if( cosom >= 1.0 - 0.0001 ) {
-		Quat_LLerp( q1, q2, t, out );
-		return;
-	}
-
-	sinsqr = 1.0 - cosom * cosom;
-	sinom = Q_RSqrt( sinsqr );
-	omega = atan2( sinsqr * sinom, cosom );
-	scale0 = sin( ( 1.0 - t ) * omega ) * sinom;
-	scale1 = sin( t * omega ) * sinom;
-
-	out[0] = scale0 * p1[0] + scale1 * q2[0];
-	out[1] = scale0 * p1[1] + scale1 * q2[1];
-	out[2] = scale0 * p1[2] + scale1 * q2[2];
-	out[3] = scale0 * p1[3] + scale1 * q2[3];
-}
-
-void Quat_Vectors( const quat_t q, vec3_t f, vec3_t r, vec3_t u ) {
-	vec_t wx, wy, wz, xx, yy, yz, xy, xz, zz, x2, y2, z2;
-
-	x2 = q[0] + q[0]; y2 = q[1] + q[1]; z2 = q[2] + q[2];
-
-	xx = q[0] * x2; yy = q[1] * y2; zz = q[2] * z2;
-	f[0] = 1.0f - yy - zz; r[1] = 1.0f - xx - zz; u[2] = 1.0f - xx - yy;
-
-	yz = q[1] * z2; wx = q[3] * x2;
-	r[2] = yz - wx; u[1] = yz + wx;
-
-	xy = q[0] * y2; wz = q[3] * z2;
-	f[1] = xy - wz; r[0] = xy + wz;
-
-	xz = q[0] * z2; wy = q[3] * y2;
-	f[2] = xz + wy; u[0] = xz - wy;
-}
-
-void Quat_ToMatrix3( const quat_t q, mat3_t m ) {
-	Quat_Vectors( q, &m[0], &m[3], &m[6] );
-}
-
-//============================================================================
-
-/*
-* Q_InitNoiseTable
-*/
-void Q_InitNoiseTable( int seed, float *noisetable, int *noiseperm ) {
-	int i;
-	
-	srand( seed );
-
-	for( i = 0; i < NOISE_SIZE; i++ ) {
-		noisetable[i] = (float)( ( ( rand() / (float)RAND_MAX ) * 2.0 - 1.0 ) );
-		noiseperm[i] = (unsigned char)( rand() / (float)RAND_MAX * 255 );
-	}
-}
-
-/*
-* Q_GetNoiseValueFromTable
-*/
-float Q_GetNoiseValueFromTable( float *noisetable, int *noiseperm, float x, float y, float z, float t ) {
-	int i;
-	int ix, iy, iz, it;
-	float fx, fy, fz, ft;
-	float front[4], back[4];
-	float fvalue, bvalue, value[2], finalvalue;
-
-#define NOISE_VAL( a )    noiseperm[( a ) & ( NOISE_SIZE - 1 )]
-#define NOISE_INDEX( x, y, z, t ) NOISE_VAL( x + NOISE_VAL( y + NOISE_VAL( z + NOISE_VAL( t ) ) ) )
-#define NOISE_LERP( a, b, w ) ( a * ( 1.0f - w ) + b * w )
-
-	ix = ( int )floor( x );
-	fx = x - ix;
-	iy = ( int )floor( y );
-	fy = y - iy;
-	iz = ( int )floor( z );
-	fz = z - iz;
-	it = ( int )floor( t );
-	ft = t - it;
-
-	for( i = 0; i < 2; i++ ) {
-		front[0] = noisetable[NOISE_INDEX( ix, iy, iz, it + i )];
-		front[1] = noisetable[NOISE_INDEX( ix + 1, iy, iz, it + i )];
-		front[2] = noisetable[NOISE_INDEX( ix, iy + 1, iz, it + i )];
-		front[3] = noisetable[NOISE_INDEX( ix + 1, iy + 1, iz, it + i )];
-
-		back[0] = noisetable[NOISE_INDEX( ix, iy, iz + 1, it + i )];
-		back[1] = noisetable[NOISE_INDEX( ix + 1, iy, iz + 1, it + i )];
-		back[2] = noisetable[NOISE_INDEX( ix, iy + 1, iz + 1, it + i )];
-		back[3] = noisetable[NOISE_INDEX( ix + 1, iy + 1, iz + 1, it + i )];
-
-		fvalue = NOISE_LERP( NOISE_LERP( front[0], front[1], fx ), NOISE_LERP( front[2], front[3], fx ), fy );
-		bvalue = NOISE_LERP( NOISE_LERP( back[0], back[1], fx ), NOISE_LERP( back[2], back[3], fx ), fy );
-		value[i] = NOISE_LERP( fvalue, bvalue, fz );
-	}
-
-	finalvalue = NOISE_LERP( value[0], value[1], ft );
-
-	return finalvalue;
 }

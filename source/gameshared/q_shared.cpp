@@ -367,6 +367,112 @@ int COM_Compress( char *data_p ) {
 	return out - data_p;
 }
 
+static bool IsWhitespace( char c ) {
+	return c == '\0' || c == ' ' || c == '\t' || c == '\r' || c == '\n';
+}
+
+Span< char > ParseSpan( char ** ptr, bool stop_on_newline ) {
+	char * cursor = *ptr;
+
+	// skip leading whitespace
+	while( IsWhitespace( *cursor ) ) {
+		if( *cursor == '\0' ) {
+			*ptr = NULL;
+			return Span< char >();
+		}
+
+		if( *cursor == '\n' && stop_on_newline ) {
+			*ptr = cursor;
+			return Span< char >();
+		}
+
+		cursor++;
+	}
+
+	bool quoted = false;
+	if( *cursor == '\"' ) {
+		quoted = true;
+		cursor++;
+	}
+
+	Span< char > span( cursor, 0 );
+
+	if( !quoted ) {
+		while( !IsWhitespace( *cursor ) ) {
+			cursor++;
+			span.n++;
+		}
+	}
+	else {
+		while( *cursor != '\0' && *cursor != '\"' ) {
+			cursor++;
+			span.n++;
+		}
+
+		if( *cursor == '\"' )
+			cursor++;
+	}
+
+	*ptr = cursor;
+
+	return span;
+}
+
+Span< const char > ParseSpan( const char ** ptr, bool stop_on_newline ) {
+	return ParseSpan( const_cast< char ** >( ptr ), stop_on_newline );
+}
+
+Span< const char > ParseSpan( Span< const char > * cursor, bool stop_on_newline ) {
+	Span< const char > c = *cursor;
+
+	// skip leading whitespace
+	while( c.n == 0 || IsWhitespace( c[ 0 ] ) ) {
+		if( c.n == 0 ) {
+			*cursor = c;
+			return c;
+		}
+
+		if( c[ 0 ] == '\n' && stop_on_newline ) {
+			*cursor = c;
+			return Span< char >();
+		}
+
+		c++;
+	}
+
+	bool quoted = false;
+	if( c[ 0 ] == '\"' ) {
+		quoted = true;
+		c++;
+	}
+
+	Span< const char > token( c.ptr, 0 );
+
+	if( !quoted ) {
+		while( c.n > 0 && !IsWhitespace( c[ 0 ] ) ) {
+			c++;
+			token.n++;
+		}
+	}
+	else {
+		while( c.n > 0 && c[ 0 ] != '\"' ) {
+			c++;
+			token.n++;
+		}
+
+		if( c.n > 0 && c[ 0 ] == '\"' )
+			c++;
+	}
+
+	*cursor = c;
+
+	return token;
+}
+
+Span< char > ParseSpan( Span< char > * cursor, bool stop_on_newline ) {
+	return ParseSpan( cursor, stop_on_newline ).cast< char >();
+}
+
 /*
 * COM_ParseExt2_r
 *
@@ -981,32 +1087,6 @@ char *Q_strlwr( char *s ) {
 	}
 
 	return NULL;
-}
-
-/*
-* Q_strcount
-*/
-size_t Q_strcount( const char *s, const char *substr ) {
-	size_t cnt;
-	size_t substr_len;
-
-	if( !s || !*s ) {
-		return 0;
-	}
-
-	if( !substr || !*substr ) {
-		return 0;
-	}
-
-	substr_len = strlen( substr );
-
-	cnt = 0;
-	while( ( s = strstr( s, substr ) ) != NULL ) {
-		cnt++;
-		s += substr_len;
-	}
-
-	return cnt;
 }
 
 /*

@@ -33,7 +33,7 @@ typedef struct cdecal_s
 	bool fadealpha;
 
 	float color[4];
-	struct shader_s *shader;
+	const Material * material;
 
 	poly_t *poly;
 } cdecal_t;
@@ -117,7 +117,7 @@ static void CG_FreeDecal( cdecal_t *dl ) {
 * CG_SpawnDecal
 */
 int CG_SpawnDecal( const vec3_t origin, const vec3_t dir, float orient, float radius,
-				   float r, float g, float b, float a, float die, float fadetime, bool fadealpha, struct shader_s *shader ) {
+				   float r, float g, float b, float a, float die, float fadetime, bool fadealpha, const Material * material ) {
 	int i, j;
 	cdecal_t *dl;
 	poly_t *poly;
@@ -145,8 +145,9 @@ int CG_SpawnDecal( const vec3_t origin, const vec3_t dir, float orient, float ra
 	RotatePointAroundVector( axis[2], axis[0], axis[1], orient );
 	CrossProduct( axis[0], axis[2], axis[1] );
 
-	numfragments = trap_R_GetClippedFragments( origin, radius, axis, // clip it
-											   MAX_DECAL_VERTS, verts, MAX_DECAL_FRAGMENTS, fragments );
+	// numfragments = trap_R_GetClippedFragments( origin, radius, axis, // clip it
+	// 										   MAX_DECAL_VERTS, verts, MAX_DECAL_FRAGMENTS, fragments );
+	numfragments = 0;
 
 	// no valid fragments
 	if( !numfragments ) {
@@ -213,7 +214,7 @@ int CG_SpawnDecal( const vec3_t origin, const vec3_t dir, float orient, float ra
 		dl->fadetime = fadetime;
 		dl->fadefreq = fadefreq;
 		dl->fadealpha = fadealpha;
-		dl->shader = shader;
+		dl->material = material;
 		dl->color[0] = r;
 		dl->color[1] = g;
 		dl->color[2] = b;
@@ -221,7 +222,7 @@ int CG_SpawnDecal( const vec3_t origin, const vec3_t dir, float orient, float ra
 
 		// setup polygon for drawing
 		poly = dl->poly;
-		poly->shader = shader;
+		poly->material = material;
 		poly->numverts = fr->numverts;
 
 		for( j = 0; j < fr->numverts; j++ ) {
@@ -279,6 +280,6 @@ void CG_AddDecals( void ) {
 				*( int * )poly->colors[i] = *( int * )color;
 		}
 
-		trap_R_AddPolyToScene( poly );
+		// trap_R_AddPolyToScene( poly );
 	}
 }

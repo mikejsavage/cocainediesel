@@ -81,7 +81,7 @@ struct Span {
 	size_t n;
 
 	constexpr Span() : ptr( NULL ), n( 0 ) { }
-	constexpr Span( T * ptr, size_t n ) : ptr( ptr ), n( n ) { }
+	constexpr Span( T * ptr_, size_t n_ ) : ptr( ptr_ ), n( n_ ) { }
 
 	// allow implicit conversion to Span< const T >
 	operator Span< const T >() { return Span< const T >( ptr, n ); }
@@ -99,9 +99,20 @@ struct Span {
 		return ptr[ i ];
 	}
 
-	Span< T > operator+( size_t i ) const {
+	Span< T > operator+( size_t i ) {
 		assert( i <= n );
 		return Span< T >( ptr + i, n - i );
+	}
+
+	Span< const T > operator+( size_t i ) const {
+		assert( i <= n );
+		return Span< const T >( ptr + i, n - i );
+	}
+
+	void operator++( int ) {
+		assert( n > 0 );
+		ptr++;
+		n--;
 	}
 
 	T * begin() { return ptr; }
@@ -115,10 +126,10 @@ struct Span {
 		return Span< T >( ptr + start, one_past_end - start );
 	}
 
-	const Span< T > slice( size_t start, size_t one_past_end ) const {
+	Span< const T > slice( size_t start, size_t one_past_end ) const {
 		assert( start <= one_past_end );
 		assert( one_past_end <= n );
-		return Span< T >( ptr + start, one_past_end - start );
+		return Span< const T >( ptr + start, one_past_end - start );
 	}
 
 	template< typename S >
@@ -129,7 +140,7 @@ struct Span {
 };
 
 /*
- * linear_algebra
+ * maths types
  */
 
 struct Vec2 {
@@ -240,6 +251,32 @@ struct alignas( 16 ) Mat4 {
 	}
 };
 
+struct alignas( 16 ) Mat3x4 {
+	Vec3 col0, col1, col2, col3;
+
+	Mat3x4() { }
+	constexpr Mat3x4(
+		float e00, float e01, float e02, float e03,
+		float e10, float e11, float e12, float e13,
+		float e20, float e21, float e22, float e23
+	) : col0( e00, e10, e20 ), col1( e01, e11, e21 ), col2( e02, e12, e22 ), col3( e03, e13, e23 ) { }
+
+	Vec4 row0() const { return Vec4( col0.x, col1.x, col2.x, col3.x ); }
+	Vec4 row1() const { return Vec4( col0.y, col1.y, col2.y, col3.y ); }
+	Vec4 row2() const { return Vec4( col0.z, col1.z, col2.z, col3.z ); }
+	Vec4 row3() const { return Vec4( 0, 0, 0, 1 ); }
+
+	float * ptr() { return col0.ptr(); }
+
+	static constexpr Mat3x4 Identity() {
+		return Mat3x4(
+			1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, 1, 0
+		);
+	}
+};
+
 struct EulerDegrees3 {
 	float pitch, yaw, roll;
 };
@@ -279,19 +316,41 @@ struct MinMax2 {
 	}
 };
 
-// colors
-// struct RGB8 {
-//         u8 r, g, b;
-//
-// 	RGB8() { }
-//         constexpr RGB8( u8 r_, u8 g_, u8 b_ ) : r( r_ ), g( g_ ), b( b_ ) { }
-// };
+struct MinMax3 {
+	Vec3 mins, maxs;
+
+	MinMax3() { }
+	constexpr MinMax3( Vec3 mins_, Vec3 maxs_ ) : mins( mins_ ), maxs( maxs_ ) { }
+
+	static constexpr MinMax3 Empty() {
+		return MinMax3( Vec3( FLT_MAX ), Vec3( -FLT_MAX ) );
+	}
+};
+
+struct RGB8 {
+	u8 r, g, b;
+
+	RGB8() { }
+	constexpr RGB8( u8 r_, u8 g_, u8 b_ ) : r( r_ ), g( g_ ), b( b_ ) { }
+};
 
 struct RGBA8 {
 	u8 r, g, b, a;
 
 	RGBA8() { }
 	constexpr RGBA8( u8 r_, u8 g_, u8 b_, u8 a_ ) : r( r_ ), g( g_ ), b( b_ ), a( a_ ) { }
+
+	RGBA8( const Vec4 & v ) {
+		constexpr float scale = 1.0f / 255.0f;
+		r = v.x * scale;
+		g = v.y * scale;
+		b = v.z * scale;
+		a = v.w * scale;
+	}
 };
 
 // TODO: asset types?
+
+struct Model;
+struct Material;
+struct SoundAsset;

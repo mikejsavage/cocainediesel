@@ -66,7 +66,7 @@ void CG_DrawChat( cg_gamechat_t *chat, int x, int y, char *fontName, struct qfon
 	vec4_t fontColor;
 	bool chat_active = false;
 	bool background_drawn = false;
-	int corner_radius = 12 * cgs.vidHeight / 600;
+	int corner_radius = 12 * frame_static.viewport_height / 600;
 	int background_y;
 
 	font_height = trap_SCR_FontHeight( font );
@@ -131,16 +131,16 @@ void CG_DrawChat( cg_gamechat_t *chat, int x, int y, char *fontName, struct qfon
 			}
 
 			background_y = y;
-			trap_R_DrawStretchPic( x, background_y, width, height - corner_radius,
-								   0.0f, 0.0f, 1.0f, 0.5f, backColor, backShader );
+			// trap_R_DrawStretchPic( x, background_y, width, height - corner_radius,
+			// 					   0.0f, 0.0f, 1.0f, 0.5f, backColor, backShader );
 			background_y += height - corner_radius;
 
-			trap_R_DrawStretchPic( x, background_y, corner_radius, corner_radius,
-								   0.0f, 0.5f, 0.5f, 1.0f, backColor, backShader );
-			trap_R_DrawStretchPic( x + corner_radius, background_y, width - corner_radius * 2, corner_radius,
-								   0.5f, 0.5f, 0.5f, 1.0f, backColor, backShader );
-			trap_R_DrawStretchPic( x + width - corner_radius, background_y, corner_radius, corner_radius,
-								   0.5f, 0.5f, 1.0f, 1.0f, backColor, backShader );
+			// trap_R_DrawStretchPic( x, background_y, corner_radius, corner_radius,
+			// 					   0.0f, 0.5f, 0.5f, 1.0f, backColor, backShader );
+			// trap_R_DrawStretchPic( x + corner_radius, background_y, width - corner_radius * 2, corner_radius,
+			// 					   0.5f, 0.5f, 0.5f, 1.0f, backColor, backShader );
+			// trap_R_DrawStretchPic( x + width - corner_radius, background_y, corner_radius, corner_radius,
+			// 					   0.5f, 0.5f, 1.0f, 1.0f, backColor, backShader );
 
 			background_drawn = true;
 		}

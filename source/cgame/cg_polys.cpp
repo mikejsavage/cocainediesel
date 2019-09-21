@@ -27,7 +27,7 @@ typedef struct cpoly_s
 {
 	struct cpoly_s *prev, *next;
 
-	struct shader_s *shader;
+	const Material * material;
 
 	int64_t die;                   // remove after this time
 	int64_t fadetime;
@@ -120,8 +120,7 @@ static void CG_FreePoly( cpoly_t *dl ) {
 /*
 * CG_SpawnPolygon
 */
-static cpoly_t *CG_SpawnPolygon( float r, float g, float b, float a,
-	int64_t die, int64_t fadetime, struct shader_s *shader, int tag ) {
+static cpoly_t *CG_SpawnPolygon( float r, float g, float b, float a, int64_t die, int64_t fadetime, const Material * material, int tag ) {
 	cpoly_t *pl;
 
 	fadetime = min( fadetime, die );
@@ -131,7 +130,7 @@ static cpoly_t *CG_SpawnPolygon( float r, float g, float b, float a,
 	pl->die = cg.time + die;
 	pl->fadetime = cg.time + ( die - fadetime );
 	pl->fadefreq = ( fadetime ? ( 1000.0f / fadetime ) * 0.001f : 0 );
-	pl->shader = shader;
+	pl->material = material;
 	pl->tag = tag;
 	pl->color[0] = Clamp01( r );
 	pl->color[1] = Clamp01( g );
@@ -145,13 +144,13 @@ static cpoly_t *CG_SpawnPolygon( float r, float g, float b, float a,
 * CG_SpawnPolyQuad
 */
 static void CG_SpawnPolyQuad( const vec3_t v1, const vec3_t v2, const vec3_t v3, const vec3_t v4,
-	float stx, float sty, const vec4_t color, int64_t dietime, int64_t fadetime, struct shader_s *shader, int tag ) {
+	float stx, float sty, const vec4_t color, int64_t dietime, int64_t fadetime, const Material * material, int tag ) {
 	int i;
 	cpoly_t *cgpoly;
 	poly_t *poly;
 	byte_vec4_t ucolor;
 
-	cgpoly = CG_SpawnPolygon( 1.0, 1.0, 1.0, 1.0, dietime ? dietime : cgs.snapFrameTime, fadetime, shader, tag );
+	cgpoly = CG_SpawnPolygon( 1.0, 1.0, 1.0, 1.0, dietime ? dietime : cgs.snapFrameTime, fadetime, material, tag );
 	if( color ) {
 		Vector4Copy( color, cgpoly->color );
 	}
@@ -162,7 +161,7 @@ static void CG_SpawnPolyQuad( const vec3_t v1, const vec3_t v2, const vec3_t v3,
 
 	// create the polygon inside the cgpolygon
 	poly = cgpoly->poly;
-	poly->shader = cgpoly->shader;
+	poly->material = cgpoly->material;
 	poly->numverts = 0;
 
 	// A
@@ -197,11 +196,11 @@ static void CG_SpawnPolyQuad( const vec3_t v1, const vec3_t v2, const vec3_t v3,
 /*
 * CG_SpawnPolyBeam
 * Spawns a polygon from start to end points length and given width.
-* shaderlenght makes reference to size of the texture it will draw, so it can be tiled.
+* shaderlength makes reference to size of the texture it will draw, so it can be tiled.
 * the beam shader must be an autosprite2!
 */
 void CG_SpawnPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color,
-	int width, int64_t dietime, int64_t fadetime, struct shader_s *shader, int shaderlength, int tag ) {
+	int width, int64_t dietime, int64_t fadetime, const Material * material, int shaderlength, int tag ) {
 	vec3_t dir, right, up;
 	vec3_t v[4];
 	float xmin, ymin, xmax, ymax;
@@ -230,7 +229,7 @@ void CG_SpawnPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color,
 	VectorMA( end, ymax, right, v[2] );
 	VectorMA( end, ymin, right, v[3] );
 
-	CG_SpawnPolyQuad( v[0], v[1], v[2], v[3], stx, sty, color, dietime, fadetime, shader, tag );
+	CG_SpawnPolyQuad( v[0], v[1], v[2], v[3], stx, sty, color, dietime, fadetime, material, tag );
 }
 
 /*
@@ -252,15 +251,15 @@ void CG_KillPolyBeamsByTag( int tag ) {
 /*
 * CG_QuickPolyBeam
 */
-void CG_QuickPolyBeam( const vec3_t start, const vec3_t end, int width, struct shader_s *shader ) {
-	if( !shader ) {
-		shader = CG_MediaShader( cgs.media.shaderLaser );
+void CG_QuickPolyBeam( const vec3_t start, const vec3_t end, int width, const Material * material ) {
+	if( material == NULL ) {
+		material = cgs.media.shaderLaser;
 	}
-	CG_SpawnPolyBeam( start, end, NULL, width, 1, 0, shader, 64, 0 );
+	CG_SpawnPolyBeam( start, end, NULL, width, 1, 0, material, 64, 0 );
 }
 
 void CG_LGPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color, int tag ) {
-	CG_SpawnPolyBeam( start, end, color, 16, 1, 0, CG_MediaShader( cgs.media.shaderLGBeam ), 64, tag );
+	CG_SpawnPolyBeam( start, end, color, 16, 1, 0, cgs.media.shaderLGBeam, 64, tag );
 }
 
 /*
@@ -268,7 +267,7 @@ void CG_LGPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color, in
 */
 void CG_EBPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color ) {
 	constexpr int time = 250;
-	CG_SpawnPolyBeam( start, end, color, 16, time, time * 0.4f, CG_MediaShader( cgs.media.shaderEBBeam ), 64, 0 );
+	CG_SpawnPolyBeam( start, end, color, 16, time, time * 0.4f, cgs.media.shaderEBBeam, 64, 0 );
 }
 
 /*
@@ -305,6 +304,6 @@ void CG_AddPolys( void ) {
 			}
 		}
 
-		trap_R_AddPolyToScene( poly );
+		// trap_R_AddPolyToScene( poly );
 	}
 }

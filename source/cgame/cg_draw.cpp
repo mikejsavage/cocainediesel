@@ -50,104 +50,41 @@ int CG_VerticalAlignForHeight( const int y, int align, int height ) {
 	return ny;
 }
 
-int CG_HorizontalMovementForAlign( int align ) {
-	int m = 1; // move to the right
-
-	if( align % 3 == 0 ) { // left
-		m = -1; // move to the left
-
-	}
-	return m;
+static Vec2 ClipToScreen( Vec2 clip ) {
+	clip.y = -clip.y;
+	return ( clip + 1.0f ) / 2.0f * frame_static.viewport;
 }
 
-/*
-* CG_DrawHUDRect
-*/
-void CG_DrawHUDRect( int x, int y, int align, int w, int h, int val, int maxval, vec4_t color, struct shader_s *shader ) {
-	float frac;
-	vec2_t tc[2];
-
-	if( val < 1 || maxval < 1 || w < 1 || h < 1 ) {
-		return;
-	}
-
-	if( !shader ) {
-		shader = cgs.shaderWhite;
-	}
-
-	if( val >= maxval ) {
-		frac = 1.0f;
-	} else {
-		frac = (float)val / (float)maxval;
-	}
-
-	tc[0][0] = 0.0f;
-	tc[0][1] = 1.0f;
-	tc[1][0] = 0.0f;
-	tc[1][1] = 1.0f;
-	if( h > w ) {
-		h = (int)( (float)h * frac + 0.5 );
-		if( align / 3 == 0 ) { // top
-			tc[1][1] = 1.0f * frac;
-		} else if( align / 3 == 1 ) {   // middle
-			tc[1][0] = ( 1.0f - ( 1.0f * frac ) ) * 0.5f;
-			tc[1][1] = ( 1.0f * frac ) * 0.5f;
-		} else if( align / 3 == 2 ) {   // bottom
-			tc[1][0] = 1.0f - ( 1.0f * frac );
-		}
-	} else {
-		w = (int)( (float)w * frac + 0.5 );
-		if( align % 3 == 0 ) { // left
-			tc[0][1] = 1.0f * frac;
-		}
-		if( align % 3 == 1 ) { // center
-			tc[0][0] = ( 1.0f - ( 1.0f * frac ) ) * 0.5f;
-			tc[0][1] = ( 1.0f * frac ) * 0.5f;
-		}
-		if( align % 3 == 2 ) { // right
-			tc[0][0] = 1.0f - ( 1.0f * frac );
-		}
-	}
-
-	x = CG_HorizontalAlignForWidth( x, align, w );
-	y = CG_VerticalAlignForHeight( y, align, h );
-
-	trap_R_DrawStretchPic( x, y, w, h, tc[0][0], tc[1][0], tc[0][1], tc[1][1], color, shader );
+Vec2 WorldToScreen( Vec3 v ) {
+	Vec4 clip = frame_static.P * frame_static.V * Vec4( v, 1.0 );
+	if( clip.z == 0 )
+		return Vec2( 0, 0 );
+	return ClipToScreen( clip.xy() / clip.z );
 }
 
-/*
-* CG_DrawPicBar
-*/
-void CG_DrawPicBar( int x, int y, int width, int height, int align, float percent, struct shader_s *shader, const vec4_t backColor, const vec4_t color ) {
-	float widthFrac, heightFrac;
+Vec2 WorldToScreenClamped( Vec3 v, Vec2 screen_border, bool * clamped ) {
+	*clamped = false;
 
-	x = CG_HorizontalAlignForWidth( x, align, width );
-	y = CG_VerticalAlignForHeight( y, align, height );
+	Vec4 clip = frame_static.P * frame_static.V * Vec4( v, 1.0 );
+	if( clip.z == 0 )
+		return Vec2( 0, 0 );
 
-	if( !shader ) {
-		shader = cgs.shaderWhite;
+	Vec2 res = clip.xy() / clip.z;
+
+	Vec3 forward = -frame_static.V.row2().xyz();
+	float d = Dot( v - frame_static.position, forward );
+	if( d < 0 )
+		res = -res;
+
+	screen_border = 1.0f - ( screen_border / frame_static.viewport );
+	if( fabsf( res.x ) > screen_border.x || fabsf( res.y ) > screen_border.y || d < 0 ) {
+		float rx = screen_border.x / fabsf( res.x );
+		float ry = screen_border.y / fabsf( res.y );
+
+		res *= Min2( rx, ry );
+
+		*clamped = true;
 	}
 
-	if( backColor ) {
-		trap_R_DrawStretchPic( x, y, width, height, 0, 0, 1, 1, backColor, shader );
-	}
-
-	if( !color ) {
-		color = colorWhite;
-	}
-
-	percent = Clamp( 0.0f, percent, 100.0f );
-	if( !percent ) {
-		return;
-	}
-
-	if( height > width ) {
-		widthFrac = 1.0f;
-		heightFrac = percent / 100.0f;
-	} else {
-		widthFrac = percent / 100.0f;
-		heightFrac = 1.0f;
-	}
-
-	trap_R_DrawStretchPic( x, y, (int)( width * widthFrac ), (int)( height * heightFrac ), 0, 0, widthFrac, heightFrac, color, shader );
+	return ClipToScreen( res );
 }

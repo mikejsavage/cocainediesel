@@ -1,7 +1,7 @@
 textures/common/areaportal
 {
 	qer_trans 0.50
-	qer_editorimage textures/common/areaportal.tga
+	qer_editorimage textures/common/areaportal
 	surfaceparm nodraw
 	surfaceparm nolightmap
 	surfaceparm nonsolid
@@ -13,7 +13,7 @@ textures/common/areaportal
 
 textures/common/caulk
 {
-	qer_editorimage textures/common/caulk.tga
+	qer_editorimage textures/common/caulk
 	surfaceparm nodraw
 	surfaceparm nolightmap
 	surfaceparm nomarks
@@ -22,7 +22,7 @@ textures/common/caulk
 textures/common/playerclip
 {
 	qer_trans 0.40
-	qer_editorimage textures/common/playerclip.tga
+	qer_editorimage textures/common/playerclip
 	surfaceparm nodraw
 	surfaceparm nolightmap
 	surfaceparm nonsolid
@@ -35,7 +35,7 @@ textures/common/playerclip
 textures/common/nowalljumpclip
 {
 	qer_trans 0.40
-	qer_editorimage textures/common/nowalljumpclip.tga
+	qer_editorimage textures/common/nowalljumpclip
 	surfaceparm nodraw
 	surfaceparm nolightmap
 	surfaceparm nonsolid
@@ -49,7 +49,7 @@ textures/common/nowalljumpclip
 textures/common/nodraw
 {
 	qer_trans 0.30
-	qer_editorimage textures/common/nodraw.tga
+	qer_editorimage textures/common/nodraw
 	surfaceparm nodraw
 	surfaceparm nolightmap
 	//surfaceparm nonsolid
@@ -60,7 +60,7 @@ textures/common/nodraw
 textures/common/nodrawnonsolid
 {
 	qer_trans 0.30
-	qer_editorimage textures/common/nodrawnonsolid.tga
+	qer_editorimage textures/common/nodrawnonsolid
 	surfaceparm nonsolid
 	surfaceparm nolightmap
 	surfaceparm nodraw
@@ -70,7 +70,7 @@ textures/common/nodrawnonsolid
 
 textures/common/nodrawwater
 {
-	qer_editorimage textures/common/nodraw.tga
+	qer_editorimage textures/common/nodraw
 	surfaceparm nolightmap
 	surfaceparm nodraw
 	q3map_globaltexture
@@ -82,7 +82,7 @@ textures/common/nodrawwater
 
 textures/common/trigger
 {
-	qer_editorimage textures/common/trigger.tga
+	qer_editorimage textures/common/trigger
 	qer_trans 0.50
 	qer_nocarve
 	surfaceparm nodraw
@@ -90,7 +90,7 @@ textures/common/trigger
 
 textures/common/skipdetail
 {
-	qer_editorimage textures/common/skip.tga
+	qer_editorimage textures/common/skip
 	qer_nocarve
 	surfaceparm nomarks
 	surfaceparm nodraw
@@ -102,7 +102,7 @@ textures/common/skipdetail
 
 textures/common/skip
 {
-	qer_editorimage textures/common/skip.tga
+	qer_editorimage textures/common/skip
 	qer_nocarve
 	surfaceparm nolightmap
 	surfaceparm nodraw
@@ -116,7 +116,7 @@ textures/common/skip
 textures/common/ladder
 {
 	qer_trans 0.40
-	qer_editorimage textures/common/ladder.tga
+	qer_editorimage textures/common/ladder
 	surfaceparm nodraw
 	surfaceparm nolightmap
 	surfaceparm nonsolid

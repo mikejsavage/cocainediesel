@@ -8,7 +8,6 @@
 
 #define APP_COPYRIGHT_OWNER             "Aha Cheers"
 
-#define APP_SCREENSHOTS_PREFIX          "cocainediesel_"
 #define APP_DEMO_EXTENSION_STR          ".cddemo"
 
 #define APP_STARTUP_COLOR               0x1c1416

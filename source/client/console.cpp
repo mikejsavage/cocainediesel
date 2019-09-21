@@ -275,13 +275,13 @@ void Con_Draw( int pressed_key ) {
 	ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 8, 4 ) );
 	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, 0 ) );
 	ImGui::SetNextWindowPos( ImVec2() );
-	ImGui::SetNextWindowSize( ImVec2( viddef.width, viddef.height ) );
+	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
 	ImGui::Begin( "console", NULL, ImGuiWindowFlags_NoDecoration );
 
 	{
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 27, 24, 33, 224 ) );
 		ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8, 4 ) );
-		ImGui::BeginChild( "consoletext", ImVec2( 0, viddef.height * 0.4 - ImGui::GetFrameHeightWithSpacing() - 3 ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
+		ImGui::BeginChild( "consoletext", ImVec2( 0, frame_static.viewport_height * 0.4 - ImGui::GetFrameHeightWithSpacing() - 3 ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
 		{
 			ImGui::PushTextWrapPos( 0 );
 			const char * p = console.log.c_str();
@@ -608,7 +608,7 @@ void Con_DrawChat( int x, int y, int width, struct qfontface_s *font ) {
 	fontHeight = SCR_FontHeight( font );
 
 	// 48 is an arbitrary offset for not overlapping the FPS and clock prints
-	width -= 48 * viddef.height / 600;
+	width -= 48 * frame_static.viewport_height / 600;
 
 	say = Con_ChatPrompt();
 	SCR_DrawString( x, y, ALIGN_LEFT_TOP, say, font, colorWhite );

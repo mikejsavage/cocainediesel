@@ -1,0 +1,130 @@
+/*
+* Mod_PointInLeaf
+*/
+mleaf_t *Mod_PointInLeaf( const vec3_t p, mbrushmodel_t *bmodel ) {
+	mnode_t *node;
+	cplane_t *plane;
+
+	if( !bmodel || !bmodel->nodes ) {
+		ri.Com_Error( ERR_DROP, "Mod_PointInLeaf: bad model" );
+		return NULL;
+	}
+
+	node = bmodel->nodes;
+	do {
+		plane = node->plane;
+		node = node->children[PlaneDiff( p, plane ) < 0];
+	} while( node->plane != NULL );
+
+	return ( mleaf_t * )node;
+}
+
+/*
+* Mod_ClusterPVS
+*/
+uint8_t *Mod_ClusterPVS( int cluster, mbrushmodel_t *bmodel ) {
+	dvis_t *vis = bmodel->pvs;
+
+	if( cluster < 0 || !vis ) {
+		return mod_novis;
+	}
+
+	return ( (uint8_t *)vis->data + cluster * vis->rowsize );
+}
+
+//===============================================================================
+
+/*
+* Mod_CreateVisLeafs
+*/
+static void Mod_CreateVisLeafs( model_t *mod ) {
+	unsigned i, j;
+	unsigned count;
+	unsigned numVisSurfaces, numFragmentSurfaces;
+	mleaf_t *leaf;
+	msurface_t *surf;
+	mbrushmodel_t *loadbmodel = ( ( mbrushmodel_t * )mod->extradata );
+
+	count = loadbmodel->numleafs;
+
+	for( i = 0; i < count; i++ ) {
+		numVisSurfaces = numFragmentSurfaces = 0;
+
+		leaf = loadbmodel->leafs + i;
+		if( leaf->cluster < 0 || !leaf->numVisSurfaces ) {
+			leaf->visSurfaces = NULL;
+			leaf->numVisSurfaces = 0;
+			leaf->fragmentSurfaces = NULL;
+			leaf->numFragmentSurfaces = 0;
+			leaf->fragmentSurfaces = NULL;
+			continue;
+		}
+
+		for( j = 0; j < leaf->numVisSurfaces; j++ ) {
+			unsigned surfNum;
+
+			surfNum = leaf->visSurfaces[j];
+			surf = loadbmodel->surfaces + surfNum;
+
+			if( !R_SurfNoDraw( surf ) ) {
+				leaf->visSurfaces[numVisSurfaces++] = surfNum;
+				if( R_SurfPotentiallyFragmented( surf ) ) {
+					leaf->fragmentSurfaces[numFragmentSurfaces++] = surfNum;
+				}
+			}
+		}
+
+		leaf->numVisSurfaces = numVisSurfaces;
+		leaf->numFragmentSurfaces = numFragmentSurfaces;
+	}
+}
+
+/*
+* Mod_CalculateAutospriteBounds
+*
+* Make bounding box of an autosprite surf symmetric and enlarges it
+* to account for rotation along the longest axis.
+*/
+static void Mod_CalculateAutospriteBounds( msurface_t *surf ) {
+	int j;
+	int l_axis, s1_axis, s2_axis;
+	vec_t dist, max_dist;
+	vec_t radius[3];
+	vec3_t centre;
+	vec_t *mins = surf->mins, *maxs = surf->maxs;
+
+	// find the longest axis
+	l_axis = 2;
+	max_dist = -9999999;
+	for( j = 0; j < 3; j++ ) {
+		dist = maxs[j] - mins[j];
+		if( dist > max_dist ) {
+			l_axis = j;
+			max_dist = dist;
+		}
+
+		// make the bbox symmetrical
+		radius[j] = dist * 0.5;
+		centre[j] = ( maxs[j] + mins[j] ) * 0.5;
+		mins[j] = centre[j] - radius[j];
+		maxs[j] = centre[j] + radius[j];
+	}
+
+	// shorter axis
+	s1_axis = ( l_axis + 1 ) % 3;
+	s2_axis = ( l_axis + 2 ) % 3;
+
+	// enlarge the bounding box, accouting for rotation along the longest axis
+	maxs[s1_axis] = max( maxs[s1_axis], centre[s1_axis] + radius[s2_axis] );
+	maxs[s2_axis] = max( maxs[s2_axis], centre[s2_axis] + radius[s1_axis] );
+
+	mins[s1_axis] = min( mins[s1_axis], centre[s1_axis] - radius[s2_axis] );
+	mins[s2_axis] = min( mins[s2_axis], centre[s2_axis] - radius[s1_axis] );
+}
+
+MinMax3 R_ModelBounds( const model_s * model ) {
+	MinMax3 res;
+	VectorCopy( model->mins, res.mins );
+	VectorCopy( model->maxs, res.maxs );
+	return res;
+}

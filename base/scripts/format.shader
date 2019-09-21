@@ -5,12 +5,12 @@ textures/format/glow_purple
 	surfaceparm noimpact
 	surfaceparm nomarks
 	nomipmaps
-	qer_editorimage textures/format/glow_purple.tga
+	qer_editorimage textures/format/glow_purple
 	cull front
 	surfaceparm trans
 	//	qer_trans 0.5
 	{
-		map textures/format/glow_purple.tga
+		map textures/format/glow_purple
 		blendfunc add
 	}
 }

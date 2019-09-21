@@ -1,6 +1,6 @@
 textures/noir/noira
 {
-	qer_editorimage textures/noir/a.tga
+	qer_editorimage textures/noir/a
 	qer_trans 0.9
 	surfaceparm nolightmap
 	surfaceparm nomarks
@@ -11,7 +11,7 @@ textures/noir/noira
 
 	{
 		detail
-		map textures/noir/a.tga
+		map textures/noir/a
 		blendFunc blend
 		//blendFunc GL_SRC_ALPHA GL_ONE // blendfunc add the alphamasked part only
 		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
@@ -21,7 +21,7 @@ textures/noir/noira
 
 textures/noir/noirb
 {
-	qer_editorimage textures/noir/b.tga
+	qer_editorimage textures/noir/b
 	qer_trans 0.9
 	surfaceparm nolightmap
 	surfaceparm nomarks
@@ -32,7 +32,7 @@ textures/noir/noirb
 
 	{
 		detail
-		map textures/noir/b.tga
+		map textures/noir/b
 		blendFunc blend
 		//blendFunc GL_SRC_ALPHA GL_ONE // blendfunc add the alphamasked part only
 		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
@@ -42,7 +42,7 @@ textures/noir/noirb
 
 textures/noir/noirarrow100
 {
-	qer_editorimage textures/noir/arrow100.tga
+	qer_editorimage textures/noir/arrow100
 	qer_trans 0.9
 	surfaceparm nolightmap
 	surfaceparm nomarks
@@ -53,7 +53,7 @@ textures/noir/noirarrow100
 
 	{
 		detail
-		map textures/noir/arrow100.tga
+		map textures/noir/arrow100
 		blendFunc blend
 		//blendFunc GL_SRC_ALPHA GL_ONE // blendfunc add the alphamasked part only
 		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA

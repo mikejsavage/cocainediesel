@@ -28,7 +28,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cg_syscalls.h"
 
 #include "client/sound.h"
-#include "client/renderer/r_text.h"
+#include "client/renderer/renderer.h"
+#include "client/renderer/text.h"
 
 #define CG_OBITUARY_HUD     1
 #define CG_OBITUARY_CENTER  2
@@ -111,115 +112,108 @@ typedef struct {
 
 #include "cg_pmodels.h"
 
-typedef struct cgs_media_handle_s {
-	char *name;
-	void *data;
-	struct cgs_media_handle_s *next;
-} cgs_media_handle_t;
-
-#define STAT_MINUS              10  // num frame for '-' stats digit
-
 typedef struct {
 	// sounds
-	cgs_media_handle_t *sfxWeaponUp;
-	cgs_media_handle_t *sfxWeaponUpNoAmmo;
+	const SoundAsset * sfxWeaponUp;
+	const SoundAsset * sfxWeaponUpNoAmmo;
 
-	cgs_media_handle_t *sfxWeaponHit[4];
-	cgs_media_handle_t *sfxWeaponKill;
-	cgs_media_handle_t *sfxWeaponHitTeam;
+	const SoundAsset * sfxWeaponHit[4];
+	const SoundAsset * sfxWeaponKill;
+	const SoundAsset * sfxWeaponHitTeam;
 
-	cgs_media_handle_t *sfxItemRespawn;
-	cgs_media_handle_t *sfxTeleportIn;
-	cgs_media_handle_t *sfxTeleportOut;
-	cgs_media_handle_t *sfxShellHit;
+	const SoundAsset * sfxItemRespawn;
+	const SoundAsset * sfxTeleportIn;
+	const SoundAsset * sfxTeleportOut;
+	const SoundAsset * sfxShellHit;
 
-	cgs_media_handle_t *sfxGunbladeShot[3];
-	cgs_media_handle_t *sfxBladeFleshHit[3];
-	cgs_media_handle_t *sfxBladeWallHit[2];
+	const SoundAsset * sfxBladeFleshHit[3];
+	const SoundAsset * sfxBladeWallHit[2];
 
-	cgs_media_handle_t *sfxRic[2];
+	const SoundAsset * sfxRic[2];
 
-	cgs_media_handle_t *sfxRiotgunHit;
+	const SoundAsset * sfxRiotgunHit;
 
-	cgs_media_handle_t *sfxGrenadeBounce[2];
-	cgs_media_handle_t *sfxGrenadeExplosion;
+	const SoundAsset * sfxGrenadeBounce[2];
+	const SoundAsset * sfxGrenadeExplosion;
 
-	cgs_media_handle_t *sfxRocketLauncherHit;
+	const SoundAsset * sfxRocketLauncherHit;
 
-	cgs_media_handle_t *sfxPlasmaHit;
+	const SoundAsset * sfxPlasmaHit;
 
-	cgs_media_handle_t *sfxLasergunHum;
-	cgs_media_handle_t *sfxLasergunStop;
-	cgs_media_handle_t *sfxLasergunHit[3];
+	const SoundAsset * sfxLasergunHum;
+	const SoundAsset * sfxLasergunStop;
+	const SoundAsset * sfxLasergunHit[3];
 
-	cgs_media_handle_t *sfxElectroboltHit;
+	const SoundAsset * sfxElectroboltHit;
 
-	cgs_media_handle_t *sfxVSaySounds[VSAY_TOTAL];
+	const SoundAsset * sfxVSaySounds[VSAY_TOTAL];
 
-	cgs_media_handle_t *sfxSpikesArm;
-	cgs_media_handle_t *sfxSpikesDeploy;
-	cgs_media_handle_t *sfxSpikesGlint;
-	cgs_media_handle_t *sfxSpikesRetract;
+	const SoundAsset * sfxSpikesArm;
+	const SoundAsset * sfxSpikesDeploy;
+	const SoundAsset * sfxSpikesGlint;
+	const SoundAsset * sfxSpikesRetract;
 
 	// models
-	cgs_media_handle_t *modDash;
-	cgs_media_handle_t *modGib;
+	const Model * modDash;
+	const Model * modGib;
 
-	cgs_media_handle_t *modPlasmaExplosion;
+	const Model * modPlasmaExplosion;
 
-	cgs_media_handle_t *modBulletExplode;
-	cgs_media_handle_t *modBladeWallHit;
-	cgs_media_handle_t *modBladeWallExplo;
+	const Model * modBulletExplode;
+	const Model * modBladeWallHit;
+	const Model * modBladeWallExplo;
 
-	cgs_media_handle_t *modElectroBoltWallHit;
+	const Model * modElectroBoltWallHit;
 
-	cgs_media_handle_t *modLasergunWallExplo;
+	const Model * modLasergunWallExplo;
 
-	cgs_media_handle_t *shaderParticle;
-	cgs_media_handle_t *shaderRocketExplosion;
-	cgs_media_handle_t *shaderRocketExplosionRing;
-	cgs_media_handle_t *shaderGrenadeExplosion;
-	cgs_media_handle_t *shaderGrenadeExplosionRing;
-	cgs_media_handle_t *shaderBulletExplosion;
-	cgs_media_handle_t *shaderRaceGhostEffect;
-	cgs_media_handle_t *shaderWaterBubble;
-	cgs_media_handle_t *shaderSmokePuff;
+	const Material * shaderParticle;
+	const Material * shaderRocketExplosion;
+	const Material * shaderRocketExplosionRing;
+	const Material * shaderGrenadeExplosion;
+	const Material * shaderGrenadeExplosionRing;
+	const Material * shaderBulletExplosion;
+	const Material * shaderRaceGhostEffect;
+	const Material * shaderWaterBubble;
+	const Material * shaderSmokePuff;
 
-	cgs_media_handle_t *shaderSmokePuff1;
-	cgs_media_handle_t *shaderSmokePuff2;
-	cgs_media_handle_t *shaderSmokePuff3;
+	const Material * shaderSmokePuff1;
+	const Material * shaderSmokePuff2;
+	const Material * shaderSmokePuff3;
 
-	cgs_media_handle_t *shaderRocketFireTrailPuff;
-	cgs_media_handle_t *shaderGrenadeTrailSmokePuff;
-	cgs_media_handle_t *shaderRocketTrailSmokePuff;
-	cgs_media_handle_t *shaderBloodTrailPuff;
-	cgs_media_handle_t *shaderBloodTrailLiquidPuff;
-	cgs_media_handle_t *shaderBloodImpactPuff;
-	cgs_media_handle_t *shaderTeamMateIndicator;
-	cgs_media_handle_t *shaderTeamCarrierIndicator;
-	cgs_media_handle_t *shaderBombIcon;
-	cgs_media_handle_t *shaderTeleporterSmokePuff;
-	cgs_media_handle_t *shaderBladeMark;
-	cgs_media_handle_t *shaderBulletMark;
-	cgs_media_handle_t *shaderExplosionMark;
-	cgs_media_handle_t *shaderEnergyMark;
-	cgs_media_handle_t *shaderLaser;
-	cgs_media_handle_t *shaderNet;
-	cgs_media_handle_t *shaderTeleportShellGfx;
+	const Material * shaderRocketFireTrailPuff;
+	const Material * shaderGrenadeTrailSmokePuff;
+	const Material * shaderRocketTrailSmokePuff;
+	const Material * shaderBloodTrailPuff;
+	const Material * shaderBloodTrailLiquidPuff;
+	const Material * shaderBloodImpactPuff;
+	const Material * shaderTeamMateIndicator;
+	const Material * shaderTeamCarrierIndicator;
+	const Material * shaderBombIcon;
+	const Material * shaderTeleporterSmokePuff;
+	const Material * shaderBladeMark;
+	const Material * shaderBulletMark;
+	const Material * shaderExplosionMark;
+	const Material * shaderEnergyMark;
+	const Material * shaderLaser;
+	const Material * shaderNet;
+	const Material * shaderTeleportShellGfx;
 
-	cgs_media_handle_t *shaderPlasmaMark;
-	cgs_media_handle_t *shaderEBBeam;
-	cgs_media_handle_t *shaderLGBeam;
-	cgs_media_handle_t *shaderEBImpact;
+	const Material * shaderPlasmaMark;
+	const Material * shaderEBBeam;
+	const Material * shaderLGBeam;
+	const Material * shaderEBImpact;
 
-	cgs_media_handle_t *shaderPlayerShadow;
+	const Material * shaderPlayerShadow;
 
-	cgs_media_handle_t *shaderWeaponIcon[WEAP_TOTAL];
-	cgs_media_handle_t *shaderKeyIcon[KEYICON_TOTAL];
+	const Material * shaderTick;
 
-	cgs_media_handle_t *shaderAlive;
-	cgs_media_handle_t *shaderDead;
-	cgs_media_handle_t *shaderReady;
+	const Material * shaderWeaponIcon[WEAP_TOTAL];
+	const Material * shaderKeyIcon[KEYICON_TOTAL];
+
+	const Material * shaderAlive;
+	const Material * shaderDead;
+	const Material * shaderReady;
 } cgs_media_t;
 
 typedef struct {
@@ -253,9 +247,6 @@ typedef struct {
 enum {
 	VIEWDEF_DEMOCAM,
 	VIEWDEF_PLAYERVIEW,
-	VIEWDEF_OVERHEAD,
-
-	VIEWDEF_MAXTYPES
 };
 
 typedef struct {
@@ -282,8 +273,8 @@ typedef struct {
 	const char *demoName;
 	unsigned int playerNum;
 
-	// shaders
-	struct shader_s *shaderWhite;
+	// materials
+	const Material * white_material;
 
 	// fonts
 	int fontSystemTinySize;
@@ -310,9 +301,6 @@ typedef struct {
 
 	bool precacheDone;
 
-	int vidWidth, vidHeight;
-	float pixelRatio;
-
 	bool demoPlaying;
 	bool pure;
 	unsigned snapFrameTime;
@@ -335,7 +323,7 @@ typedef struct {
 
 	cg_clientInfo_t clientInfo[MAX_CLIENTS];
 
-	struct model_s *modelDraw[MAX_MODELS];
+	const Model *modelDraw[MAX_MODELS];
 
 	PlayerModelMetadata *pModelsIndex[MAX_MODELS];
 	PlayerModelMetadata *basePModelInfo; //fall back replacements
@@ -344,7 +332,7 @@ typedef struct {
 	PlayerModelMetadata *teamModelInfo[2];
 
 	const SoundAsset *soundPrecache[MAX_SOUNDS];
-	struct shader_s *imagePrecache[MAX_IMAGES];
+	const Material *imagePrecache[MAX_IMAGES];
 
 	int precacheModelsStart;
 	int precacheSoundsStart;
@@ -496,10 +484,8 @@ void CG_AddCentityOutLineEffect( centity_t *cent );
 //
 int CG_HorizontalAlignForWidth( const int x, int align, int width );
 int CG_VerticalAlignForHeight( const int y, int align, int height );
-int CG_HorizontalMovementForAlign( int align );
-
-void CG_DrawHUDRect( int x, int y, int align, int w, int h, int val, int maxval, vec4_t color, struct shader_s *shader );
-void CG_DrawPicBar( int x, int y, int width, int height, int align, float percent, struct shader_s *shader, const vec4_t backColor, const vec4_t color );
+Vec2 WorldToScreen( Vec3 v );
+Vec2 WorldToScreenClamped( Vec3 v, Vec2 screen_border, bool * clamped );
 
 //
 // cg_media.c
@@ -508,12 +494,6 @@ void CG_RegisterMediaSounds( void );
 void CG_RegisterMediaModels( void );
 void CG_RegisterMediaShaders( void );
 void CG_RegisterFonts( void );
-
-struct model_s *CG_RegisterModel( const char *name );
-
-const SoundAsset *CG_MediaSfx( cgs_media_handle_t *mediasfx );
-struct model_s *CG_MediaModel( cgs_media_handle_t *mediamodel );
-struct shader_s *CG_MediaShader( cgs_media_handle_t *mediashader );
 
 //
 // cg_players.c
@@ -565,9 +545,8 @@ int CG_ParseValue( const char **s );
 
 void CG_DrawClock( int x, int y, int align, struct qfontface_s *font, vec4_t color );
 void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color );
-void CG_DrawTeamMates( void );
-void CG_DrawHUDNumeric( int x, int y, int align, float *color, int charwidth, int charheight, int value );
-void CG_DrawNet( int x, int y, int w, int h, int align, vec4_t color );
+void CG_DrawTeamMates();
+void CG_DrawNet( int x, int y, int w, int h, int align, Vec4 color );
 
 void CG_ClearPointedNum( void );
 
@@ -641,8 +620,6 @@ extern cvar_t *cg_zoomfov;
 extern cvar_t *cg_particles;
 extern cvar_t *cg_voiceChats;
 extern cvar_t *cg_projectileAntilagOffset;
-extern cvar_t *cg_raceGhosts;
-extern cvar_t *cg_raceGhostsAlpha;
 extern cvar_t *cg_chatFilter;
 
 extern cvar_t *cg_allyColor;
@@ -657,10 +634,7 @@ extern cvar_t *cg_enemyForceModel;
 #define CG_Free( data ) Mem_Free( data )
 
 void CG_Init( const char *serverName, unsigned int playerNum,
-			  int vidWidth, int vidHeight, float pixelRatio,
-			  bool demoplaying, const char *demoName, bool pure, unsigned snapFrameTime,
-			  int sharedSeed, bool gameStart );
-void CG_ResizeWindow( int width, int height );
+			  bool demoplaying, const char *demoName, bool pure, unsigned snapFrameTime );
 void CG_Shutdown( void );
 void CG_ValidateItemDef( int tag, char *name );
 
@@ -700,6 +674,7 @@ void CG_SC_AutoRecordAction( const char *action );
 void CG_RegisterForceModels();
 void CG_PModelForCentity( centity_t *cent, PlayerModelMetadata **pmodelinfo );
 RGB8 CG_TeamColor( int team );
+Vec4 CG_TeamColorVec4( int team );
 void CG_TeamColor( int team, vec4_t color );
 void CG_TeamColorForEntity( int entNum, byte_vec4_t color );
 
@@ -758,11 +733,11 @@ void CG_EBBeam( const vec3_t start, const vec3_t end, int team );
 void CG_EBImpact( const vec3_t pos, const vec3_t dir, int surfFlags, int team );
 void CG_ImpactSmokePuff( const vec3_t origin, const vec3_t dir, float radius, float alpha, int time, int speed );
 void CG_BladeImpact( const vec3_t pos, const vec3_t dir );
-void CG_PModel_SpawnTeleportEffect( centity_t *cent );
+void CG_PModel_SpawnTeleportEffect( centity_t * cent, MatrixPalettes temp_pose );
 void CG_SpawnSprite( const vec3_t origin, const vec3_t velocity, const vec3_t accel,
 					 float radius, int time, int bounce, bool expandEffect, bool shrinkEffect,
 					 float r, float g, float b, float a,
-					 float light, float lr, float lg, float lb, struct shader_s *shader );
+					 float light, float lr, float lg, float lb, const Material * material );
 void CG_LaserGunImpact( const vec3_t pos, float radius, const vec3_t laser_dir, const vec4_t color );
 
 void CG_Dash( const entity_state_t *state );
@@ -777,7 +752,7 @@ extern cvar_t *cg_addDecals;
 
 void CG_ClearDecals( void );
 int CG_SpawnDecal( const vec3_t origin, const vec3_t dir, float orient, float radius,
-				   float r, float g, float b, float a, float die, float fadetime, bool fadealpha, struct shader_s *shader );
+				   float r, float g, float b, float a, float die, float fadetime, bool fadealpha, const Material * material );
 void CG_AddDecals( void );
 
 //
@@ -787,8 +762,8 @@ void CG_ClearPolys( void );
 void CG_AddPolys( void );
 void CG_KillPolyBeamsByTag( int key );
 void CG_SpawnPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color,
-	int width, int64_t dietime, int64_t fadetime, struct shader_s *shader, int shaderlength, int tag );
-void CG_QuickPolyBeam( const vec3_t start, const vec3_t end, int width, struct shader_s *shader );
+	int width, int64_t dietime, int64_t fadetime, const Material * material, int shaderlength, int tag );
+void CG_QuickPolyBeam( const vec3_t start, const vec3_t end, int width, const Material * material );
 void CG_LGPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color, int tag );
 void CG_EBPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color );
 
@@ -804,7 +779,7 @@ void CG_AddPlayerShadows( void );
 
 void CG_ClearFragmentedDecals( void );
 void CG_AddFragmentedDecal( vec3_t origin, vec3_t dir, float orient, float radius,
-							float r, float g, float b, float a, struct shader_s *shader );
+							float r, float g, float b, float a, const Material * material );
 
 void CG_AddParticles( void );
 void CG_ParticleEffect( const vec3_t org, const vec3_t dir, float r, float g, float b, int count );
@@ -813,8 +788,8 @@ void CG_ParticleExplosionEffect( const vec3_t org, const vec3_t dir, float r, fl
 void CG_BlasterTrail( const vec3_t start, const vec3_t end );
 void CG_FlyEffect( centity_t *ent, const vec3_t origin );
 void CG_EBIonsTrail( const vec3_t start, const vec3_t end, const vec4_t color );
-void CG_ImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, struct shader_s *shader );
-void CG_HighVelImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, struct shader_s *shader );
+void CG_ImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, const Material * material );
+void CG_HighVelImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, const Material * material );
 
 //
 // cg_test.c - debug only
@@ -822,7 +797,6 @@ void CG_HighVelImpactPuffParticles( const vec3_t org, const vec3_t dir, int coun
 #ifndef PUBLIC_BUILD
 void CG_DrawTestLine( const vec3_t start, const vec3_t end );
 void CG_DrawTestBox( const vec3_t origin, const vec3_t mins, const vec3_t maxs, const vec3_t angles );
-void CG_AddTest( void );
 #endif
 
 //
@@ -856,7 +830,7 @@ void CG_LaserBeamEffect( centity_t *cent );
 void CG_InitChat( cg_gamechat_t *chat );
 void CG_StackChatString( cg_gamechat_t *chat, const char *str );
 void CG_DrawChat( cg_gamechat_t *chat, int x, int y, char *fontName, struct qfontface_s *font, int fontSize,
-				  int width, int height, int padding_x, int padding_y, vec4_t backColor, struct shader_s *backShader );
+				  int width, int height, int padding_x, int padding_y, vec4_t backColor, const Material * backShader );
 
 //
 // cg_input.cpp

@@ -18,13 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "cg_local.h"
-
-// cg_view.c -- player rendering positioning
-
-//======================================================================
-//					ChaseHack (In Eyes Chasecam)
-//======================================================================
+#include "cgame/cg_local.h"
+#include "client/renderer/skybox.h"
 
 ChasecamState chaseCam;
 
@@ -391,8 +386,8 @@ void CG_ResetColorBlend( void ) {
 /*
 * CG_AddEntityToScene
 */
-void CG_AddEntityToScene( entity_t *ent ) {
-	trap_R_AddEntityToScene( ent );
+void CG_AddEntityToScene( entity_t * ent ) {
+	// trap_R_AddEntityToScene( ent );
 }
 
 //============================================================================
@@ -638,13 +633,13 @@ static void CG_SetupRefDef( cg_viewdef_t *view, refdef_t *rd ) {
 	// view rectangle size
 	rd->x = 0;
 	rd->y = 0;
-	rd->width = cgs.vidWidth;
-	rd->height = cgs.vidHeight;
+	rd->width = frame_static.viewport_width;
+	rd->height = frame_static.viewport_height;
 
 	rd->scissor_x = 0;
 	rd->scissor_y = 0;
-	rd->scissor_width = cgs.vidWidth;
-	rd->scissor_height = cgs.vidHeight;
+	rd->scissor_width = frame_static.viewport_width;
+	rd->scissor_height = frame_static.viewport_height;
 
 	rd->fov_x = view->fov_x;
 	rd->fov_y = view->fov_y;
@@ -667,7 +662,7 @@ static void CG_SetupRefDef( cg_viewdef_t *view, refdef_t *rd ) {
 	// warp if underwater
 	if( rd->rdflags & RDF_UNDERWATER ) {
 		float phase = rd->time * 0.001 * WAVE_FREQUENCY * M_TWOPI;
-		float v = WAVE_AMPLITUDE * ( sin( phase ) - 1.0 ) + 1;
+		float v = WAVE_AMPLITUDE * ( sinf( phase ) - 1.0 ) + 1;
 		rd->fov_x *= v;
 		rd->fov_y *= v;
 	}
@@ -766,7 +761,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 		view->fov_y = WidescreenFov( CG_DemoCam_GetOrientation( view->origin, view->angles, view->velocity ) );
 	}
 
-	view->fov_x = CalcHorizontalFov( view->fov_y, cgs.vidWidth, cgs.vidHeight );
+	view->fov_x = CalcHorizontalFov( view->fov_y, frame_static.viewport_width, frame_static.viewport_height );
 
 	Matrix3_FromAngles( view->angles, view->axis );
 
@@ -779,6 +774,46 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 	if( !view->playerPrediction ) {
 		cg.predictedWeaponSwitch = 0;
 	}
+}
+
+static void DrawWorld() {
+	const char * name = cgs.configStrings[ CS_WORLDMODEL ];
+	const char * ext = COM_FileExtension( name );
+	const char * suffix = "*0";
+
+	u64 hash = Hash64( name, strlen( name ) - strlen( ext ) );
+	const MapMetadata * map = FindMapMetadata( StringHash( hash ) );
+
+	hash = Hash64( suffix, strlen( suffix ), hash );
+	const Model * model = FindModel( StringHash( hash ) );
+
+	for( u32 i = 0; i < model->num_primitives; i++ ) {
+		if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
+			PipelineState pipeline;
+			pipeline.pass = frame_static.world_write_gbuffer_pass;
+			pipeline.shader = &shaders.world_write_gbuffer;
+			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+
+			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+		}
+
+		{
+			PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
+			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+			pipeline.set_uniform( "u_Fog", UploadUniformBlock( map->fog_strength ) );
+
+			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+		}
+	}
+
+	// {
+	// 	PipelineState pipeline;
+	// 	pipeline.pass = frame_static.world_postprocess_gbuffer_pass;
+	// 	pipeline.shader = &shaders.world_postprocess_gbuffer_pass;
+	// 	DrawFullscreenMesh( pipeline );
+	// }
 }
 
 /*
@@ -843,7 +878,7 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 	if( !cgs.configStrings[CS_WORLDMODEL][0] ) {
 		CG_AddLocalSounds();
 
-		trap_R_DrawStretchPic( 0, 0, cgs.vidWidth, cgs.vidHeight, 0, 0, 1, 1, colorBlack, cgs.shaderWhite );
+		// trap_R_DrawStretchPic( 0, 0, frame_static.viewport_width, frame_static.viewport_height, 0, 0, 1, 1, colorBlack, cgs.shaderWhite );
 
 		S_Update( vec3_origin, vec3_origin, axis_identity );
 
@@ -878,13 +913,13 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 
 	CG_ClearFragmentedDecals();
 
-	trap_R_ClearScene();
-
 	if( CG_DemoCam_Update() ) {
 		CG_SetupViewDef( &cg.view, CG_DemoCam_GetViewType() );
 	} else {
 		CG_SetupViewDef( &cg.view, VIEWDEF_PLAYERVIEW );
 	}
+
+	RendererSetView( FromQF3( cg.view.origin ), FromQFAngles( cg.view.angles ), cg.view.fov_y );
 
 	CG_LerpEntities();  // interpolate packet entities positions
 
@@ -894,6 +929,7 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 
 	CG_ResetBombHUD();
 
+	DrawWorld();
 	CG_AddEntities();
 	CG_AddViewWeapon( &cg.weapon );
 	CG_AddLocalEntities();
@@ -902,16 +938,11 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 	CG_AddPlayerShadows();
 	CG_AddDecals();
 	CG_AddPolys();
-
-#ifndef PUBLIC_BUILD
-	CG_AddTest();
-#endif
+	DrawSkybox();
 
 	CG_AddLocalSounds();
 
 	CG_SetupRefDef( &cg.view, rd );
-
-	trap_R_RenderScene( rd );
 
 	cg.oldAreabits = true;
 

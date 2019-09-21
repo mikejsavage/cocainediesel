@@ -19,21 +19,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #pragma once
 
-// FIXME: move these to r_local.h?
-#define MAX_DLIGHTS             32
-#define MAX_ENTITIES            2048
-#define MAX_POLY_VERTS          3000
-#define MAX_POLYS               2048
+#include "gameshared/q_math.h"
 
 // entity_state_t->renderfx flags
-#define RF_MINLIGHT             0x1       // always have some light (viewmodel)
-#define RF_FULLBRIGHT           0x2       // always draw full intensity
-#define RF_NOSHADOW             0x4
-
-#define RF_WEAPONMODEL          0x8     // only draw through eyes and depth hack
-#define RF_ALPHAHACK            0x10   // force alpha blending on opaque passes, read alpha from entity
-#define RF_GREYSCALE            0x20
-#define RF_NODEPTHTEST          0x40
+#define RenderFX_WeaponModel ( 1 << 0 ) // only draw through eyes and depth hack
 
 // refdef flags
 #define RDF_UNDERWATER          0x1     // warp the screen as apropriate
@@ -63,16 +52,9 @@ typedef struct poly_s {
 	byte_vec4_t *colors;
 	int numelems;
 	u16 *elems;
-	struct shader_s *shader;
+	const Material * material;
 	int renderfx;
 } poly_t;
-
-typedef enum {
-	RT_MODEL,
-	RT_SPRITE,
-
-	NUM_RTYPES
-} refEntityType_t;
 
 struct TRS {
 	Quaternion rotation;
@@ -86,33 +68,23 @@ struct MatrixPalettes {
 };
 
 typedef struct entity_s {
-	refEntityType_t rtype;
 	union {
 		int flags;
 		int renderfx;
 	};
 
-	struct model_s *model;              // opaque type outside refresh
+	const Model * model;
 
 	/*
 	** most recent data
 	*/
 	mat3_t axis;
 	vec3_t origin, origin2;
-	int frame;
-
-	MatrixPalettes pose;
-
-	/*
-	** previous data for lerping
-	*/
-	int oldframe;
-	float backlerp;                     // 0.0 = current, 1.0 = old
 
 	/*
 	** texturing
 	*/
-	struct shader_s *customShader;      // NULL for inline skin
+	const Material * override_material; // NULL for inline skin
 
 	/*
 	** misc

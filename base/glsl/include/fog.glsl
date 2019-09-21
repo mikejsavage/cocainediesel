@@ -1,4 +1,6 @@
-uniform float u_FogStrength;
+layout( std140 ) uniform u_Fog {
+	float u_FogStrength;
+};
 
 vec3 Fog( vec3 color, float dist ) {
 	vec3 fog_color = vec3( 1.0 );

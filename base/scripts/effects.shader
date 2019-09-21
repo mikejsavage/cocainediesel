@@ -2,7 +2,7 @@ gfx/dash/dash_burst_mid
 {
 	cull disable
 	{
-		map gfx/dash/dash_burst_mid.tga
+		map gfx/dash/dash_burst_mid
 		blendfunc blend
 	}
 }
@@ -11,7 +11,7 @@ gfx/dash/dash_burst_side
 {
 	cull disable
 	{
-		map gfx/dash/dash_burst_side.tga
+		map gfx/dash/dash_burst_side
 		blendfunc blend
 	}
 
@@ -23,8 +23,8 @@ gfx/misc/smokepuff1
 	entityMergable		// allow all the sprites to be merged together
 	softParticle
 	{
-		clampmap gfx/misc/cartoon_smokepuff1.tga
-		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		clampmap gfx/misc/cartoon_smokepuff1
+		blendFunc blend
 		rgbGen		vertex
 		alphaGen	vertex
 	}
@@ -36,8 +36,8 @@ gfx/misc/smokepuff3
 	entityMergable		// allow all the sprites to be merged together
 	softParticle
 	{
-		clampmap gfx/misc/cartoon_smokepuff3.tga
-		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		clampmap gfx/misc/cartoon_smokepuff3
+		blendFunc blend
 		rgbGen		vertex
 		alphaGen	vertex
 	}
@@ -49,8 +49,8 @@ gfx/misc/smokepuff2
 	entityMergable		// allow all the sprites to be merged together
 	softParticle
 	{
-		clampmap gfx/misc/cartoon_smokepuff2.tga
-		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		clampmap gfx/misc/cartoon_smokepuff2
+		blendFunc blend
 		rgbGen		vertex
 		alphaGen	vertex
 	}
@@ -62,8 +62,8 @@ gfx/misc/smokepuff2_dark
 	entityMergable		// allow all the sprites to be merged together
 	softParticle
 	{
-		clampmap gfx/misc/cartoon_smokepuff2_dark.tga
-		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		clampmap gfx/misc/cartoon_smokepuff2_dark
+		blendFunc blend
 		rgbGen		vertex
 		alphaGen	vertex
 	}
@@ -75,8 +75,8 @@ gfx/misc/smokepuff1_dark
 	entityMergable		// allow all the sprites to be merged together
 	softParticle
 	{
-		clampmap gfx/misc/cartoon_smokepuff1_dark.tga
-		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		clampmap gfx/misc/cartoon_smokepuff1_dark
+		blendFunc blend
 		rgbGen		vertex
 		alphaGen	vertex
 	}
@@ -88,8 +88,8 @@ gfx/misc/smokepuff3_dark
 	entityMergable		// allow all the sprites to be merged together
 	softParticle
 	{
-		clampmap gfx/misc/cartoon_smokepuff3_dark.tga
-		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		clampmap gfx/misc/cartoon_smokepuff3_dark
+		blendFunc blend
 		rgbGen		vertex
 		alphaGen	vertex
 	}

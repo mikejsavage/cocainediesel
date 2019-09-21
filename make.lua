@@ -4,6 +4,7 @@ require( "ggbuild.git_version" )
 require( "libs.cgltf" )
 require( "libs.glad" )
 require( "libs.imgui" )
+require( "libs.meshoptimizer" )
 require( "libs.monocypher" )
 require( "libs.stb" )
 
@@ -33,6 +34,7 @@ do
 			"source/win32/win_fs.cpp",
 			"source/win32/win_net.cpp",
 			"source/win32/win_threads.cpp",
+			"source/win32/win_time.cpp",
 		}
 		platform_libs = { }
 	else
@@ -41,6 +43,7 @@ do
 			"source/unix/unix_fs.cpp",
 			"source/unix/unix_net.cpp",
 			"source/unix/unix_threads.cpp",
+			"source/unix/unix_time.cpp",
 		}
 		platform_libs = { "mbedtls" }
 	end
@@ -59,6 +62,7 @@ do
 			"cgltf",
 			"glad",
 			"imgui",
+			"meshoptimizer",
 			"monocypher",
 			"stb_image",
 			"stb_image_write",
@@ -83,7 +87,7 @@ do
 
 	msvc_obj_cxxflags( "source/client/cl_microprofile.cpp", "/wd4005 /wd4244 /wd4245 /wd4267 /wd4456 /wd4457" )
 	obj_cxxflags( "source/client/ftlib/.+", "-I libs/freetype" )
-	obj_cxxflags( "source/client/renderer/r_text.cpp", "-I libs/freetype" )
+	obj_cxxflags( "source/client/renderer/text.cpp", "-I libs/freetype" )
 end
 
 do

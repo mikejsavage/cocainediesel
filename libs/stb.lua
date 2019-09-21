@@ -1,6 +1,6 @@
 lib( "stb_image", { "libs/stb/stb_image.cpp" } )
-msvc_obj_cxxflags( "libs/stb/stb_image.cpp", "/wd4244 /wd4456" )
-gcc_obj_cxxflags( "libs/stb/stb_image.cpp", "-Wno-shadow -Wno-implicit-fallthrough" )
+msvc_obj_cxxflags( "libs/stb/stb_image.cpp", "/O2 /wd4244 /wd4456" )
+gcc_obj_cxxflags( "libs/stb/stb_image.cpp", "-O2 -Wno-shadow -Wno-implicit-fallthrough -Wno-type-limits" )
 
 lib( "stb_image_write", { "libs/stb/stb_image_write.cpp" } )
 

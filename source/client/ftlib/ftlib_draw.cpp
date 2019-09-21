@@ -220,7 +220,8 @@ fdrawchar_t FTLIB_SetDrawCharIntercept( fdrawchar_t intercept ) {
 */
 void FTLIB_DrawRawChar( int x, int y, wchar_t num, qfontface_t *font, const vec4_t color ) {
 	qglyph_t *glyph;
-	fdrawchar_t draw = re.DrawStretchPic;
+	// fdrawchar_t draw = re.DrawStretchPic;
+	fdrawchar_t draw = NULL;
 
 	if( ( num <= ' ' ) || !font || ( y <= -font->height ) ) {
 		return;
@@ -244,10 +245,10 @@ void FTLIB_DrawRawChar( int x, int y, wchar_t num, qfontface_t *font, const vec4
 		draw = drawCharIntercept;
 	}
 
-	draw( x + glyph->x_offset, y + font->glyphYOffset + glyph->y_offset,
-		  glyph->width, glyph->height,
-		  glyph->s1, glyph->t1, glyph->s2, glyph->t2,
-		  color, glyph->shader );
+	// draw( x + glyph->x_offset, y + font->glyphYOffset + glyph->y_offset,
+	// 	  glyph->width, glyph->height,
+	// 	  glyph->s1, glyph->t1, glyph->s2, glyph->t2,
+	// 	  color, glyph->shader );
 }
 
 /*
@@ -261,7 +262,8 @@ void FTLIB_DrawClampChar( int x, int y, wchar_t num, int xmin, int ymin, int xma
 	int x2, y2;
 	float s1 = 0.0f, t1 = 0.0f, s2 = 1.0f, t2 = 1.0f;
 	float tw, th;
-	fdrawchar_t draw = re.DrawStretchPic;
+	// fdrawchar_t draw = re.DrawStretchPic;
+	fdrawchar_t draw = NULL;
 
 	if( ( num <= ' ' ) || !font || ( xmax <= xmin ) || ( ymax <= ymin ) ) {
 		return;
@@ -316,10 +318,10 @@ void FTLIB_DrawClampChar( int x, int y, wchar_t num, int xmin, int ymin, int xma
 		draw = drawCharIntercept;
 	}
 
-	draw( x, y, x2 - x, y2 - y,
-		  glyph->s1 + tw * s1, glyph->t1 + th * t1,
-		  glyph->s1 + tw * s2, glyph->t1 + th * t2,
-		  color, glyph->shader );
+	// draw( x, y, x2 - x, y2 - y,
+	// 	  glyph->s1 + tw * s1, glyph->t1 + th * t1,
+	// 	  glyph->s1 + tw * s2, glyph->t1 + th * t2,
+	// 	  color, glyph->shader );
 }
 
 /*

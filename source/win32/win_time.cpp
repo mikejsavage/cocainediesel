@@ -1,27 +1,41 @@
-#include "qcommon/qcommon.h"
 #include <windows.h>
+#include <time.h>
 
-static uint64_t hwtimer_freq;
+#include "qcommon/types.h"
 
-void Sys_InitTime( void ) {
-	QueryPerformanceFrequency( (LARGE_INTEGER *) &hwtimer_freq );
+static LARGE_INTEGER hwtimer_freq;
+
+void Sys_InitTime() {
+	QueryPerformanceFrequency( &hwtimer_freq );
 }
 
-uint64_t Sys_Microseconds( void ) {
+static bool time_set = false;
+static u64 base_usec;
+
+u64 Sys_Microseconds() {
 	static bool first = true;
-	static int64_t p_start;
+	static LARGE_INTEGER p_start;
 
-	int64_t p_now;
-	QueryPerformanceCounter( (LARGE_INTEGER *) &p_now );
+	LARGE_INTEGER now;
+	QueryPerformanceCounter( &now );
 
-	if( first ) {
-		first = false;
-		p_start = p_now;
+	u64 usec = ( ( now.QuadPart - p_start.QuadPart ) * 1000000 ) / hwtimer_freq.QuadPart;
+
+	if( !time_set ) {
+		base_usec = usec;
+		time_set = true;
 	}
 
-	return ( ( p_now - p_start ) * 1000000 ) / hwtimer_freq;
+	return usec - base_usec;
 }
 
-int64_t Sys_Milliseconds( void ) {
+s64 Sys_Milliseconds() {
 	return Sys_Microseconds() / 1000;
+}
+
+bool Sys_FormatTime( char * buf, size_t buf_size, const char * fmt ) {
+	time_t now = time( NULL );
+	struct tm tm;
+	localtime_s( &tm, &now );
+	return strftime( buf, buf_size, fmt, &tm ) != 0;
 }

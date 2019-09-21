@@ -18,22 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-//
-//
-// gs_qrespaths.h
-//
-//
-
-//
-//
-// SHADERS
-//
-//
-
-//outlines
 #define DEFAULT_OUTLINE_HEIGHT      0.3f
-
-// icons
 
 // weapon
 #define PATH_GUNBLADE_ICON      "gfx/hud/icons/weapon/gunblade"
@@ -81,25 +66,25 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
 // weapons
-#define PATH_GUNBLADE_MODEL         "models/weapons/gunblade/gunblade.md3"
-#define PATH_MACHINEGUN_MODEL       "models/weapons/machinegun/machinegun.md3"
-#define PATH_RIOTGUN_MODEL          "models/weapons/riotgun/riotgun.md3"
-#define PATH_GRENADELAUNCHER_MODEL  "models/weapons/glauncher/glauncher.md3"
-#define PATH_ROCKETLAUNCHER_MODEL   "models/weapons/rl.md3"
-#define PATH_PLASMAGUN_MODEL        "models/weapons/plasmagun/plasmagun.md3"
-#define PATH_ELECTROBOLT_MODEL      "models/weapons/electrobolt/electrobolt.md3"
-#define PATH_LASERGUN_MODEL         "models/weapons/lg.md3"
+#define PATH_GUNBLADE_MODEL         "models/weapons/gunblade/gunblade"
+#define PATH_MACHINEGUN_MODEL       "models/weapons/machinegun/machinegun"
+#define PATH_RIOTGUN_MODEL          "models/weapons/riotgun/riotgun"
+#define PATH_GRENADELAUNCHER_MODEL  "models/weapons/glauncher/glauncher"
+#define PATH_ROCKETLAUNCHER_MODEL   "models/weapons/rl"
+#define PATH_PLASMAGUN_MODEL        "models/weapons/plasmagun/plasmagun"
+#define PATH_ELECTROBOLT_MODEL      "models/weapons/electrobolt/electrobolt"
+#define PATH_LASERGUN_MODEL         "models/weapons/lg"
 
 // weapon projectiles
-#define PATH_PLASMA_MODEL        "models/objects/projectile/pg.glb"
-#define PATH_GRENADE_MODEL       "models/objects/projectile/gl.glb"
-#define PATH_ROCKET_MODEL        "models/objects/projectile/rl.glb"
+#define PATH_PLASMA_MODEL        "models/objects/projectile/pg"
+#define PATH_GRENADE_MODEL       "models/objects/projectile/gl"
+#define PATH_ROCKET_MODEL        "models/objects/projectile/rl"
 
-#define PATH_BULLET_EXPLOSION_MODEL         "models/weapon_hits/bullet/hit_bullet.glb"
-#define PATH_PLASMA_EXPLOSION_MODEL         "models/weapon_hits/plasmagun/hit_plasmagun.glb"
-#define PATH_ELECTROBLAST_IMPACT_MODEL      "models/weapon_hits/electrobolt/hit_electrobolt.glb"
-#define PATH_LASERGUN_IMPACT_MODEL          "models/weapon_hits/lasergun/hit_blastexp.glb"
-#define PATH_GUNBLADEBLAST_IMPACT_MODEL     "models/weapon_hits/gunblade/hit_blast.glb"
+#define PATH_BULLET_EXPLOSION_MODEL         "models/weapon_hits/bullet/hit_bullet"
+#define PATH_PLASMA_EXPLOSION_MODEL         "models/weapon_hits/plasmagun/hit_plasmagun"
+#define PATH_ELECTROBLAST_IMPACT_MODEL      "models/weapon_hits/electrobolt/hit_electrobolt"
+#define PATH_LASERGUN_IMPACT_MODEL          "models/weapon_hits/lasergun/hit_blastexp"
+#define PATH_GUNBLADEBLAST_IMPACT_MODEL     "models/weapon_hits/gunblade/hit_blast"
 
 #define PLASMA_EXPLOSION_MODEL_RADIUS           10.0
 
@@ -112,35 +97,24 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // misc sounds
 #define S_TIMER_BIP_BIP     "sounds/misc/timer_bip_bip"
 
-//wsw: pb disable unreferenced sounds
-//#define S_LAND					"sounds/misc/land"
 #define S_HIT_WATER     "sounds/misc/hit_water"
 
 #define S_TELEPORT      "sounds/world/tele_in"
 #define S_JUMPPAD       "sounds/world/jumppad"
 #define S_LAUNCHPAD     "sounds/world/launchpad"
 
-//#define S_PLAT_START		"sounds/movers/elevator_start"
 #define S_PLAT_START        NULL
 #define S_PLAT_MOVE     "sounds/movers/elevator_move"
-//#define S_PLAT_STOP		"sounds/movers/elevator_stop"
 #define S_PLAT_STOP     NULL
 
 #define S_DOOR_START        "sounds/movers/door_start"
-//#define S_DOOR_MOVE		"sounds/movers/door_move"
 #define S_DOOR_MOVE     NULL
 #define S_DOOR_STOP     "sounds/movers/door_stop"
 
-//#define S_DOOR_ROTATING_START	"sounds/movers/door_rotating_start"
 #define S_DOOR_ROTATING_START   "sounds/movers/door_start"
-//#define S_DOOR_ROTATING_MOVE	"sounds/movers/door_rotating_move"
 #define S_DOOR_ROTATING_MOVE    NULL
-//#define S_DOOR_ROTATING_STOP	"sounds/movers/door_rotating_stop"
 #define S_DOOR_ROTATING_STOP    "sounds/movers/door_stop"
 
-//#define S_FUNC_ROTATING_START	"sounds/movers/rotating_start"
-//#define S_FUNC_ROTATING_MOVE	"sounds/movers/rotating_move"
-//#define S_FUNC_ROTATING_STOP	"sounds/movers/rotating_stop"
 #define S_FUNC_ROTATING_START   NULL
 #define S_FUNC_ROTATING_MOVE    NULL
 #define S_FUNC_ROTATING_STOP    NULL
@@ -163,18 +137,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define S_WORLD_SECRET              "sounds/misc/secret"
 #define S_WORLD_MESSAGE             "sounds/misc/talk"
 
-// player sounds
-#define S_PLAYER_JUMP_1_to_2        "*jump_%i"                   // player jump
-#define S_PLAYER_WALLJUMP_1_to_2    "*wj_%i"                 // player walljump
-#define S_PLAYER_DASH_1_to_2        "*dash_%i"                   // player dash
-
-
-//#define S_PLAYER_FALL_0_to_3		"*fall_%i"					// player fall (height)
-#define S_PLAYER_PAINS          "*pain%i"                    // player pain (percent)
-#define S_PLAYER_DEATH          "*death"
-
-// PLAYERS FALL MISSING
-
 // combat and weapons
 #define S_WEAPON_HITS               "sounds/misc/hit_%i"
 #define S_WEAPON_KILL               "sounds/misc/kill"
@@ -183,7 +145,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define S_WEAPON_NOAMMO             "sounds/weapons/weapon_noammo"
 
 // weapon sounds
-#define S_WEAPON_GUNBLADE_SHOT_1_to_3     "sounds/weapons/blade_strike%i"
 #define S_WEAPON_GUNBLADE_HIT_FLESH_1_to_3    "sounds/weapons/blade_hitflsh%i"
 #define S_WEAPON_GUNBLADE_HIT_WALL_1_to_2 "sounds/weapons/blade_hitwall%i"
 
@@ -212,7 +173,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define S_ANNOUNCER_COUNTDOWN_READY_1_to_2      "sounds/announcer/countdown/ready%02i"
 #define S_ANNOUNCER_COUNTDOWN_GET_READY_TO_FIGHT_1_to_2 "sounds/announcer/countdown/get_ready_to_fight%02i"
 #define S_ANNOUNCER_COUNTDOWN_FIGHT_1_to_2      "sounds/announcer/countdown/fight%02i"
-//#define S_ANNOUNCER_COUNTDOWN_GO_1_to_2				"sounds/announcer/countdown/go%02i"
 #define S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2   "sounds/announcer/countdown/%i_%02i"
 
 // post match

@@ -501,18 +501,17 @@ static void CG_EntAddTeamColorTransitionEffect( centity_t *cent ) {
 * CG_AddLinkedModel
 */
 void CG_AddLinkedModel( centity_t * cent, const orientation_t * tag ) {
-	struct model_s * model = cgs.modelDraw[cent->current.modelindex2];
+	const Model * model = cgs.modelDraw[cent->current.modelindex2];
 	if( model == NULL )
 		return;
 
 	entity_t ent = { };
-	ent.rtype = RT_MODEL;
 	ent.scale = cent->ent.scale;
 	ent.renderfx = cent->ent.renderfx;
 	ent.shaderTime = cent->ent.shaderTime;
 	Vector4Copy( cent->ent.shaderRGBA, ent.shaderRGBA );
 	ent.model = model;
-	ent.customShader = NULL;
+	ent.override_material = NULL;
 	VectorCopy( cent->ent.origin, ent.origin );
 	VectorCopy( cent->ent.origin, ent.origin2 );
 	Matrix3_Copy( cent->ent.axis, ent.axis );
@@ -521,7 +520,6 @@ void CG_AddLinkedModel( centity_t * cent, const orientation_t * tag ) {
 
 	CG_PlaceModelOnTag( &ent, &cent->ent, tag );
 	CG_AddEntityToScene( &ent );
-	CG_AddShellEffects( &ent, cent->effects );
 }
 
 /*
@@ -553,8 +551,6 @@ static void CG_UpdateGenericEnt( centity_t *cent ) {
 	}
 
 	// set up the model
-	cent->ent.rtype = RT_MODEL;
-
 	modelindex = cent->current.modelindex;
 	if( modelindex > 0 && modelindex < MAX_MODELS ) {
 		cent->ent.model = cgs.modelDraw[modelindex];
@@ -569,8 +565,6 @@ void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
 
 	cent->linearProjectileCanDraw = CG_UpdateLinearProjectilePosition( cent );
 
-	cent->ent.backlerp = 1.0f;
-
 	for( i = 0; i < 3; i++ )
 		cent->ent.origin[i] = cent->ent.origin2[i] = cent->current.origin[i];
 
@@ -583,8 +577,6 @@ void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
 void CG_LerpGenericEnt( centity_t *cent ) {
 	int i;
 	vec3_t ent_angles = { 0, 0, 0 };
-
-	cent->ent.backlerp = 1.0f - cg.lerpfrac;
 
 	if( ISVIEWERENTITY( cent->current.number ) || cg.view.POVent == cent->current.number ) {
 		VectorCopy( cg.predictedPlayerState.viewangles, ent_angles );
@@ -690,37 +682,6 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 	// render effects
 	cent->ent.renderfx = cent->renderfx;
 
-	if( cent->item ) {
-		if( cent->effects & EF_GHOST ) {
-			cent->ent.renderfx |= RF_ALPHAHACK | RF_GREYSCALE;
-			cent->ent.shaderRGBA[3] = 100;
-
-			// outlines don't work on transparent objects...
-			cent->ent.outlineHeight = 0;
-		} else {
-			cent->ent.shaderRGBA[3] = 255;
-		}
-
-		// add shadows for items (do it before offseting for weapons)
-		if( !( cent->renderfx & RF_NOSHADOW ) ) {
-			CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, item_box_mins, item_box_maxs );
-			cent->ent.renderfx |= RF_NOSHADOW;
-		} else {
-			cent->ent.renderfx |= RF_NOSHADOW;
-		}
-
-		cent->ent.renderfx |= RF_MINLIGHT;
-
-		// offset weapon items by their special tag
-		if( cent->item->type & IT_WEAPON ) {
-			CG_PlaceModelOnTag( &cent->ent, &cent->ent, &cgs.weaponItemTag );
-		}
-	} else {
-		if( cent->current.solid != SOLID_BMODEL ) {
-			cent->ent.renderfx |= RF_NOSHADOW;
-		}
-	}
-
 	if( !cent->current.modelindex ) {
 		return;
 	}
@@ -739,9 +700,7 @@ static void CG_AddPlayerEnt( centity_t *cent ) {
 	if( ISVIEWERENTITY( cent->current.number ) ) {
 		cg.effects = cent->effects;
 		if( !cg.view.thirdperson && cent->current.modelindex ) {
-			if( !( cent->renderfx & RF_NOSHADOW ) ) {
-				CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
-			}
+			CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
 			return;
 		}
 	}
@@ -753,75 +712,8 @@ static void CG_AddPlayerEnt( centity_t *cent ) {
 
 	// render effects
 	cent->ent.renderfx = cent->renderfx;
-	cent->ent.renderfx |= RF_MINLIGHT;
 
-	CG_AddPModel( cent );
-}
-
-//==========================================================================
-//		ET_SPRITE, ET_RADAR
-//==========================================================================
-
-/*
-* CG_AddSpriteEnt
-*/
-static void CG_AddSpriteEnt( centity_t *cent ) {
-	if( !cent->ent.scale ) {
-		return;
-	}
-
-	// if set to invisible, skip
-	if( !cent->current.modelindex ) {
-		return;
-	}
-
-	// bobbing & auto-rotation
-	if( cent->effects & EF_ROTATE_AND_BOB ) {
-		CG_EntAddBobEffect( cent );
-	}
-
-	if( cent->effects & EF_TEAMCOLOR_TRANSITION ) {
-		CG_EntAddTeamColorTransitionEffect( cent );
-	}
-
-	// render effects
-	cent->ent.renderfx = cent->renderfx;
-
-	// add to refresh list
-	CG_AddEntityToScene( &cent->ent );
-}
-
-/*
-* CG_LerpSpriteEnt
-*/
-static void CG_LerpSpriteEnt( centity_t *cent ) {
-	for( int i = 0; i < 3; i++ )
-		cent->ent.origin[i] = Lerp( cent->prev.origin[i], cg.lerpfrac, cent->current.origin[i] );
-	VectorCopy( cent->ent.origin, cent->ent.origin2 );
-
-	cent->ent.radius = Lerp( cent->prev.radius, cg.lerpfrac, cent->current.radius );
-}
-
-/*
-* CG_UpdateSpriteEnt
-*/
-static void CG_UpdateSpriteEnt( centity_t *cent ) {
-	// start from clean
-	memset( &cent->ent, 0, sizeof( cent->ent ) );
-	cent->ent.scale = 1.0f;
-	cent->ent.renderfx = cent->renderfx;
-
-	// set entity color based on team
-	CG_TeamColorForEntity( cent->current.number, cent->ent.shaderRGBA );
-
-	// set up the model
-	cent->ent.rtype = RT_SPRITE;
-	cent->ent.model = NULL;
-	cent->ent.customShader = cgs.imagePrecache[ cent->current.modelindex ];
-	cent->ent.radius = cent->prev.radius;
-	VectorCopy( cent->prev.origin, cent->ent.origin );
-	VectorCopy( cent->prev.origin, cent->ent.origin2 );
-	Matrix3_Identity( cent->ent.axis );
+	CG_DrawPlayer( cent );
 }
 
 //==========================================================================
@@ -844,7 +736,7 @@ static void CG_AddDecalEnt( centity_t *cent ) {
 	CG_AddFragmentedDecal( cent->ent.origin, cent->ent.origin2,
 						   cent->ent.rotation, cent->ent.radius,
 						   cent->ent.shaderRGBA[0] * ( 1.0 / 255.0 ), cent->ent.shaderRGBA[1] * ( 1.0 / 255.0 ), cent->ent.shaderRGBA[2] * ( 1.0 / 255.0 ),
-						   cent->ent.shaderRGBA[3] * ( 1.0 / 255.0 ), cent->ent.customShader );
+						   cent->ent.shaderRGBA[3] * ( 1.0 / 255.0 ), cent->ent.override_material );
 }
 
 /*
@@ -874,7 +766,7 @@ static void CG_UpdateDecalEnt( centity_t *cent ) {
 
 	// set up the null model, may be potentially needed for linked model
 	cent->ent.model = NULL;
-	cent->ent.customShader = cgs.imagePrecache[ cent->current.modelindex ];
+	cent->ent.override_material = cgs.imagePrecache[ cent->current.modelindex ];
 	cent->ent.radius = cent->prev.radius;
 	cent->ent.rotation = cent->prev.modelindex2 / 255.0 * 360;
 	VectorCopy( cent->prev.origin, cent->ent.origin );
@@ -899,32 +791,12 @@ static void CG_UpdateItemEnt( centity_t *cent ) {
 
 	cent->effects |= cent->item->effects;
 
-	if( cg_simpleItems->integer && cent->item->simpleitem ) {
-		cent->ent.rtype = RT_SPRITE;
-		cent->ent.model = NULL;
-		cent->ent.renderfx = RF_NOSHADOW | RF_FULLBRIGHT;
-
-		cent->ent.radius = cg_simpleItemsSize->value <= 32 ? cg_simpleItemsSize->value : 32;
-		if( cent->ent.radius < 1.0f ) {
-			cent->ent.radius = 1.0f;
-		}
-
-		if( cg_simpleItems->integer == 2 ) {
-			cent->effects &= ~EF_ROTATE_AND_BOB;
-		}
-
-		cent->ent.customShader = NULL;
-		cent->ent.customShader = trap_R_RegisterPic( cent->item->simpleitem );
-	} else {
-		cent->ent.rtype = RT_MODEL;
-
-		if( cent->effects & EF_OUTLINE ) {
-			Vector4Set( cent->outlineColor, 0, 0, 0, 255 ); // black
-		}
-
-		// set up the model
-		cent->ent.model = cgs.modelDraw[cent->current.modelindex];
+	if( cent->effects & EF_OUTLINE ) {
+		Vector4Set( cent->outlineColor, 0, 0, 0, 255 ); // black
 	}
+
+	// set up the model
+	cent->ent.model = cgs.modelDraw[cent->current.modelindex];
 }
 
 /*
@@ -950,30 +822,12 @@ static void CG_AddItemEnt( centity_t *cent ) {
 		cent->ent.scale = 1.0f;
 	}
 
-	if( cent->ent.rtype != RT_SPRITE ) {
-		// weapons are special
-		if( cent->item && cent->item->type & IT_WEAPON ) {
-			cent->ent.scale *= 1.40f;
-		}
-
-		CG_AddGenericEnt( cent );
-		return;
-	} else {
-		if( cent->effects & EF_GHOST ) {
-			cent->ent.shaderRGBA[3] = 100;
-			cent->ent.renderfx |= RF_GREYSCALE;
-		}
+	// weapons are special
+	if( cent->item && cent->item->type & IT_WEAPON ) {
+		cent->ent.scale *= 1.40f;
 	}
 
-	// offset the item origin up
-	cent->ent.origin[2] += cent->ent.radius + 2;
-	cent->ent.origin2[2] += cent->ent.radius + 2;
-	if( cent->effects & EF_ROTATE_AND_BOB ) {
-		CG_EntAddBobEffect( cent );
-	}
-
-	Matrix3_Identity( cent->ent.axis );
-	CG_AddEntityToScene( &cent->ent );
+	CG_AddGenericEnt( cent );
 }
 
 //==========================================================================
@@ -988,14 +842,14 @@ static void CG_LerpLaser( centity_t *cent ) {
 }
 
 static void CG_AddLaserEnt( centity_t *cent ) {
-	struct shader_s *shader = CG_MediaShader( cgs.media.shaderLaser );
+	const Material * material = cgs.media.shaderLaser;
 	vec4_t color;
 	Vector4Set( color,
 		COLOR_R( cent->current.colorRGBA ) * ( 1.0 / 255.0 ),
 		COLOR_G( cent->current.colorRGBA ) * ( 1.0 / 255.0 ),
 		COLOR_B( cent->current.colorRGBA ) * ( 1.0 / 255.0 ),
 		COLOR_A( cent->current.colorRGBA ) * ( 1.0 / 255.0 ) );
-	CG_SpawnPolyBeam( cent->ent.origin, cent->ent.origin2, NULL, cent->current.radius, 1, 0, shader, 64, 0 );
+	CG_SpawnPolyBeam( cent->ent.origin, cent->ent.origin2, NULL, cent->current.radius, 1, 0, material, 64, 0 );
 }
 
 //==========================================================================
@@ -1159,7 +1013,7 @@ static void CG_AddParticlesEnt( centity_t *cent ) {
 					COLOR_R( cent->current.light ) / 255.0f,
 					COLOR_G( cent->current.light ) / 255.0f,
 					COLOR_B( cent->current.light ) / 255.0f,
-					cent->ent.customShader );
+					cent->ent.override_material );
 }
 
 void CG_UpdateParticlesEnt( centity_t *cent ) {
@@ -1168,7 +1022,7 @@ void CG_UpdateParticlesEnt( centity_t *cent ) {
 
 	// set up the data in the old position
 	cent->ent.model = NULL;
-	cent->ent.customShader = cgs.imagePrecache[ cent->current.modelindex ];
+	cent->ent.override_material = cgs.imagePrecache[ cent->current.modelindex ];
 	VectorCopy( cent->prev.origin, cent->ent.origin );
 	VectorCopy( cent->prev.origin2, cent->ent.origin2 );
 }
@@ -1256,7 +1110,6 @@ static void CG_LerpSpikes( centity_t *cent ) {
 	vec3_t up;
 	AngleVectors( cent->current.angles, NULL, NULL, up );
 
-	cent->ent.backlerp = 1.0f - cg.lerpfrac;
 	AnglesToAxis( cent->current.angles, cent->ent.axis );
 	VectorMA( cent->current.origin, position, up, cent->ent.origin );
 	VectorCopy( cent->ent.origin, cent->ent.origin2 );
@@ -1272,16 +1125,16 @@ static void CG_UpdateSpikes( centity_t *cent ) {
 	int64_t delta = cg.frame.serverTime - cent->current.linearMovementTimeStamp;
 
 	if( old_delta < 0 && delta >= 0 ) {
-		S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesArm ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+		S_StartEntitySound( cgs.media.sfxSpikesArm, cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 	}
 	else if( old_delta < 1000 && delta >= 1000 ) {
-		S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesDeploy ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+		S_StartEntitySound( cgs.media.sfxSpikesDeploy, cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 	}
 	else if( old_delta < 1050 && delta >= 1050 ) {
-		S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesGlint ), cent->current.number, CHAN_AUTO, cg_volume_effects->value * 0.05f, ATTN_NORM );
+		S_StartEntitySound( cgs.media.sfxSpikesGlint, cent->current.number, CHAN_AUTO, cg_volume_effects->value * 0.05f, ATTN_NORM );
 	}
 	else if( old_delta < 1500 && delta >= 1500 ) {
-		S_StartEntitySound( CG_MediaSfx( cgs.media.sfxSpikesRetract ), cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+		S_StartEntitySound( cgs.media.sfxSpikesRetract, cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 	}
 }
 
@@ -1359,13 +1212,6 @@ void CG_AddEntities( void ) {
 			case ET_PLASMA:
 				CG_AddGenericEnt( cent );
 				CG_EntityLoopSound( state, ATTN_STATIC );
-				break;
-
-			case ET_SPRITE:
-			case ET_RADAR:
-				CG_AddSpriteEnt( cent );
-				CG_EntityLoopSound( state, ATTN_STATIC );
-				canLight = true;
 				break;
 
 			case ET_ITEM:
@@ -1487,11 +1333,6 @@ void CG_LerpEntities( void ) {
 				}
 				break;
 
-			case ET_SPRITE:
-			case ET_RADAR:
-				CG_LerpSpriteEnt( cent );
-				break;
-
 			case ET_DECAL:
 				CG_LerpDecalEnt( cent );
 				break;
@@ -1556,11 +1397,10 @@ void CG_UpdateEntities( void ) {
 				CG_UpdateGenericEnt( cent );
 				break;
 			case ET_GIB:
-				cent->renderfx |= RF_NOSHADOW;
 				CG_UpdateGenericEnt( cent );
 
 				// set the gib model ignoring the modelindex one
-				cent->ent.model = CG_MediaModel( cgs.media.modGib );
+				cent->ent.model = cgs.media.modGib;
 				break;
 
 			// projectiles with linear trajectories
@@ -1568,15 +1408,7 @@ void CG_UpdateEntities( void ) {
 			case ET_ROCKET:
 			case ET_PLASMA:
 			case ET_GRENADE:
-				cent->renderfx |= ( RF_NOSHADOW | RF_FULLBRIGHT );
 				CG_UpdateGenericEnt( cent );
-				break;
-
-			case ET_RADAR:
-				cent->renderfx |= RF_NODEPTHTEST;
-			case ET_SPRITE:
-				cent->renderfx |= ( RF_NOSHADOW | RF_FULLBRIGHT );
-				CG_UpdateSpriteEnt( cent );
 				break;
 
 			case ET_ITEM:

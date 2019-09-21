@@ -2,11 +2,11 @@
  * ggformat v1.0
  *
  * Copyright (c) 2017 Michael Savage <mike@mikejsavage.co.uk>
- * 
+ *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -119,8 +119,8 @@ void format( FormatBuffer * fb, const char * x, const FormatOpts & opts = Format
 #  define GGFORMAT_ENABLE_OPTIMISATIONS() __pragma( optimize( "", on ) )
 #elif GGFORMAT_COMPILER_GCC
 #  define GGFORMAT_DISABLE_OPTIMISATIONS() \
-        _Pragma( "GCC push_options" ) \
-        _Pragma( "GCC optimize (\"O0\")" )
+	_Pragma( "GCC push_options" ) \
+	_Pragma( "GCC optimize (\"O0\")" )
 #  define GGFORMAT_ENABLE_OPTIMISATIONS() _Pragma( "GCC pop_options" )
 #elif GGFORMAT_COMPILER_CLANG
 #  define GGFORMAT_DISABLE_OPTIMISATIONS() _Pragma( "clang optimize off" )

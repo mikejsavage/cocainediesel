@@ -37,6 +37,7 @@ typedef struct cdlight_s
 	float radius;
 } cdlight_t;
 
+#define MAX_DLIGHTS 256
 static cdlight_t cg_dlights[MAX_DLIGHTS];
 static int cg_numDlights;
 
@@ -80,8 +81,8 @@ void CG_AddDlights( void ) {
 	int i;
 	cdlight_t *dl;
 
-	for( i = 0, dl = cg_dlights; i < cg_numDlights; i++, dl++ )
-		trap_R_AddLightToScene( dl->origin, dl->radius, dl->color[0], dl->color[1], dl->color[2] );
+	// for( i = 0, dl = cg_dlights; i < cg_numDlights; i++, dl++ )
+	// 	trap_R_AddLightToScene( dl->origin, dl->radius, dl->color[0], dl->color[1], dl->color[2] );
 
 	cg_numDlights = 0;
 }
@@ -127,7 +128,8 @@ static void CG_AddPlayerShadow( vec3_t origin, vec3_t normal, float radius, floa
 	RotatePointAroundVector( axis[2], axis[0], axis[1], 0 );
 	CrossProduct( axis[0], axis[2], axis[1] );
 
-	int numfragments = trap_R_GetClippedFragments( origin, radius, axis, MAX_PLAYERSHADOW_VERTS, verts, MAX_PLAYERSHADOW_FRAGMENTS, fragments );
+	// int numfragments = trap_R_GetClippedFragments( origin, radius, axis, MAX_PLAYERSHADOW_VERTS, verts, MAX_PLAYERSHADOW_FRAGMENTS, fragments );
+	int numfragments = 0;
 	if( numfragments == 0 )
 		return;
 
@@ -155,7 +157,7 @@ static void CG_AddPlayerShadow( vec3_t origin, vec3_t normal, float radius, floa
 			continue;
 		}
 
-		poly.shader = CG_MediaShader( cgs.media.shaderPlayerShadow );
+		poly.material = cgs.media.shaderPlayerShadow;
 		poly.verts = &player_shadow->verts[nverts];
 		poly.normals = &player_shadow->norms[nverts];
 		poly.stcoords = &player_shadow->stcoords[nverts];
@@ -174,7 +176,7 @@ static void CG_AddPlayerShadow( vec3_t origin, vec3_t normal, float radius, floa
 			*( int * )poly.colors[j] = c;
 		}
 
-		trap_R_AddPolyToScene( &poly );
+		// trap_R_AddPolyToScene( &poly );
 	}
 }
 
@@ -260,7 +262,7 @@ void CG_ClearFragmentedDecals( void ) {
 * CG_AddFragmentedDecal
 */
 void CG_AddFragmentedDecal( vec3_t origin, vec3_t dir, float orient, float radius,
-							float r, float g, float b, float a, struct shader_s *shader ) {
+							float r, float g, float b, float a, const Material * material ) {
 	int i, j, c;
 	vec3_t axis[3];
 	byte_vec4_t color;
@@ -284,8 +286,9 @@ void CG_AddFragmentedDecal( vec3_t origin, vec3_t dir, float orient, float radiu
 	RotatePointAroundVector( axis[2], axis[0], axis[1], orient );
 	CrossProduct( axis[0], axis[2], axis[1] );
 
-	numfragments = trap_R_GetClippedFragments( origin, radius, axis, // clip it
-											   MAX_PLAYERSHADOW_VERTS, verts, MAX_TEMPDECAL_FRAGMENTS, fragments );
+	// numfragments = trap_R_GetClippedFragments( origin, radius, axis, // clip it
+	// 										   MAX_PLAYERSHADOW_VERTS, verts, MAX_TEMPDECAL_FRAGMENTS, fragments );
+	numfragments = 0;
 
 	// no valid fragments
 	if( !numfragments ) {
@@ -342,7 +345,7 @@ void CG_AddFragmentedDecal( vec3_t origin, vec3_t dir, float orient, float radiu
 			return;
 		}
 
-		poly.shader = shader;
+		poly.material = material;
 		poly.verts = &t_verts[cg_numDecalVerts];
 		poly.normals = &t_norms[cg_numDecalVerts];
 		poly.stcoords = &t_stcoords[cg_numDecalVerts];
@@ -361,7 +364,7 @@ void CG_AddFragmentedDecal( vec3_t origin, vec3_t dir, float orient, float radiu
 			*( int * )poly.colors[j] = c;
 		}
 
-		trap_R_AddPolyToScene( &poly );
+		// trap_R_AddPolyToScene( &poly );
 	}
 }
 
@@ -390,7 +393,7 @@ typedef struct particle_s
 	vec2_t pStcoords[4];
 	byte_vec4_t pColor[4];
 
-	struct shader_s *shader;
+	const Material * material;
 } cparticle_t;
 
 #define PARTICLE_GRAVITY    500
@@ -428,7 +431,7 @@ static void CG_ClearParticles( void ) {
 		( p )->color[0] = ( r ), \
 		( p )->color[1] = ( g ), \
 		( p )->color[2] = ( b ), \
-		( p )->shader = ( h ) \
+		( p )->material = ( h ) \
 	)
 
 /*
@@ -611,7 +614,7 @@ void CG_ElectroWeakTrail( const vec3_t start, const vec3_t end, const vec4_t col
 * CG_ImpactPuffParticles
 * Wall impact puffs
 */
-void CG_ImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, struct shader_s *shader ) {
+void CG_ImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, const Material * material ) {
 	int j;
 	float d;
 	cparticle_t *p;
@@ -624,7 +627,7 @@ void CG_ImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, floa
 		count = MAX_PARTICLES - cg_numparticles;
 	}
 	for( p = &particles[cg_numparticles], cg_numparticles += count; count > 0; count--, p++ ) {
-		CG_InitParticle( p, scale, a, r, g, b, shader );
+		CG_InitParticle( p, scale, a, r, g, b, material );
 
 		d = rand() & 15;
 		for( j = 0; j < 3; j++ ) {
@@ -642,7 +645,7 @@ void CG_ImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, floa
 * CG_HighVelImpactPuffParticles
 * High velocity wall impact puffs
 */
-void CG_HighVelImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, struct shader_s *shader ) {
+void CG_HighVelImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, const Material * material ) {
 	int j;
 	float d;
 	cparticle_t *p;
@@ -655,7 +658,7 @@ void CG_HighVelImpactPuffParticles( const vec3_t org, const vec3_t dir, int coun
 		count = MAX_PARTICLES - cg_numparticles;
 	}
 	for( p = &particles[cg_numparticles], cg_numparticles += count; count > 0; count--, p++ ) {
-		CG_InitParticle( p, scale, a, r, g, b, shader );
+		CG_InitParticle( p, scale, a, r, g, b, material );
 
 		d = rand() & 15;
 		for( j = 0; j < 3; j++ ) {
@@ -864,9 +867,9 @@ void CG_AddParticles( void ) {
 		p->poly.verts = p->pVerts;
 		p->poly.stcoords = p->pStcoords;
 		p->poly.colors = p->pColor;
-		p->poly.shader = ( p->shader == NULL ) ? CG_MediaShader( cgs.media.shaderParticle ) : p->shader;
+		p->poly.material = p->material == NULL ? cgs.media.shaderParticle : p->material;
 
-		trap_R_AddPolyToScene( &p->poly );
+		// trap_R_AddPolyToScene( &p->poly );
 	}
 
 	i = 0;

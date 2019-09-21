@@ -4,54 +4,25 @@
  * Vec2
  */
 
-inline Vec2 operator+( Vec2 v, float x ) {
-	return Vec2( v.x + x, v.y + x );
-}
+inline Vec2 operator+( Vec2 v, float x ) { return Vec2( v.x + x, v.y + x ); }
+inline Vec2 operator-( Vec2 v, float x ) { return Vec2( v.x - x, v.y - x ); }
+inline Vec2 operator-( float x, Vec2 v ) { return Vec2( x - v.x, x - v.y ); }
+inline Vec2 operator*( Vec2 v, float scale ) { return Vec2( v.x * scale, v.y * scale ); }
+inline Vec2 operator*( float scale, Vec2 v ) { return v * scale; }
+inline Vec2 operator/( float x, Vec2 v ) { return Vec2( x / v.x, x / v.y ); }
+inline Vec2 operator/( Vec2 v, float scale ) { return v * ( 1.0f / scale ); }
 
-inline Vec2 operator+( Vec2 lhs, Vec2 rhs ) {
-	return Vec2( lhs.x + rhs.x, lhs.y + rhs.y );
-}
+inline Vec2 operator+( Vec2 lhs, Vec2 rhs ) { return Vec2( lhs.x + rhs.x, lhs.y + rhs.y ); }
+inline Vec2 operator-( Vec2 lhs, Vec2 rhs ) { return Vec2( lhs.x - rhs.x, lhs.y - rhs.y ); }
+inline Vec2 operator*( Vec2 lhs, Vec2 rhs ) { return Vec2( lhs.x * rhs.x, lhs.y * rhs.y ); }
+inline Vec2 operator/( Vec2 lhs, Vec2 rhs ) { return Vec2( lhs.x / rhs.x, lhs.y / rhs.y ); }
 
-inline void operator+=( Vec2 & lhs, Vec2 rhs ) {
-	lhs = lhs + rhs;
-}
+inline void operator*=( Vec2 & v, float scale ) { v = v * scale; }
 
-inline Vec2 operator-( Vec2 v, float x ) {
-	return Vec2( v.x - x, v.y - x );
-}
+inline void operator+=( Vec2 & lhs, Vec2 rhs ) { lhs = lhs + rhs; }
+inline void operator*=( Vec2 & lhs, Vec2 rhs ) { lhs = lhs * rhs; }
 
-inline Vec2 operator-( Vec2 lhs, Vec2 rhs ) {
-	return Vec2( lhs.x - rhs.x, lhs.y - rhs.y );
-}
-
-inline Vec2 operator*( Vec2 v, float scale ) {
-	return Vec2( v.x * scale, v.y * scale );
-}
-
-inline void operator*=( Vec2 & v, float scale ) {
-	v = v * scale;
-}
-
-inline Vec2 operator*( float scale, Vec2 v ) {
-	return v * scale;
-}
-
-inline Vec2 operator*( Vec2 lhs, Vec2 rhs ) {
-	return Vec2( lhs.x * rhs.x, lhs.y * rhs.y );
-}
-
-inline void operator*=( Vec2 & lhs, Vec2 rhs ) {
-	lhs = lhs * rhs;
-}
-
-inline Vec2 operator/( Vec2 v, float scale ) {
-	float inv_scale = 1.0f / scale;
-	return v * inv_scale;
-}
-
-inline Vec2 operator-( Vec2 v ) {
-	return Vec2( -v.x, -v.y );
-}
+inline Vec2 operator-( Vec2 v ) { return Vec2( -v.x, -v.y ); }
 
 inline float Dot( Vec2 lhs, Vec2 rhs ) {
 	return lhs.x * rhs.x + lhs.y * rhs.y;
@@ -68,10 +39,6 @@ inline Vec2 Normalize( Vec2 v ) {
 /*
  * Vec3
  */
-
-inline Vec3 rcp( Vec3 v ) {
-	return Vec3( 1.0f / v.x, 1.0f / v.y, 1.0f / v.z );
-}
 
 inline Vec3 operator+( Vec3 lhs, Vec3 rhs ) {
 	return Vec3( lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z );
@@ -112,10 +79,6 @@ inline Vec3 operator/( Vec3 v, float scale ) {
 
 inline void operator/=( Vec3 & v, float scale ) {
 	v = v / scale;
-}
-
-inline Vec3 operator/( Vec3 lhs, Vec3 rhs ) {
-	return lhs * rcp( rhs );
 }
 
 inline Vec3 operator-( Vec3 v ) {
@@ -241,6 +204,28 @@ inline Vec4 Normalize( Vec4 v ) {
 /*
  * Mat4
  */
+
+inline Mat4 Mat4Translation( float x, float y, float z ) {
+	return Mat4(
+		1, 0, 0, x,
+		0, 1, 0, y,
+		0, 0, 1, z,
+		0, 0, 0, 1
+	);
+}
+
+inline Mat4 Mat4Translation( Vec3 v ) {
+	return Mat4Translation( v.x, v.y, v.z );
+}
+
+inline Mat4 Mat4Scale( float x, float y, float z ) {
+	return Mat4(
+		x, 0, 0, 0,
+		0, y, 0, 0,
+		0, 0, z, 0,
+		0, 0, 0, 1
+	);
+}
 
 inline Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
 	return Mat4(

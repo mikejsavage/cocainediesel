@@ -17,19 +17,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// cl_screen.c -- master for refresh, status bar, console, chat, notify, etc
-
-/*
-
-full screen console
-put up loading plaque
-blanked background with loading plaque
-blanked background with menu
-full screen image for quit and victory
-
-end of unit intermissions
-
-*/
 
 #include "client.h"
 #include "ftlib/ftlib_public.h"
@@ -233,26 +220,14 @@ size_t SCR_DrawStringWidth( int x, int y, int align, const char *str, size_t max
 //===============================================================================
 
 /*
-* SCR_RegisterPic
-*/
-struct shader_s *SCR_RegisterPic( const char *name ) {
-	return re.RegisterPic( name );
-}
-
-/*
-* SCR_DrawStretchPic
-*/
-void SCR_DrawStretchPic( int x, int y, int w, int h, float s1, float t1, float s2, float t2, const float *color, const struct shader_s *shader ) {
-	re.DrawStretchPic( x, y, w, h, s1, t1, s2, t2, color, shader );
-}
-
-/*
 * SCR_DrawFillRect
 *
 * Fills a box of pixels with a single color
 */
 void SCR_DrawFillRect( int x, int y, int w, int h, const vec4_t color ) {
-	re.DrawStretchPic( x, y, w, h, 0, 0, 1, 1, color, cls.whiteShader );
+	Vec4 c;
+	memcpy( &c, color, sizeof( c ) );
+	Draw2DBox( frame_static.ui_pass, x, y, w, h, cls.whiteTexture, c );
 }
 
 /*
@@ -323,9 +298,9 @@ static void SCR_DrawDebugGraph( void ) {
 	//
 	// draw the graph
 	//
-	w = viddef.width;
+	w = frame_static.viewport_width;
 	x = 0;
-	y = 0 + viddef.height;
+	y = 0 + frame_static.viewport_height;
 	SCR_DrawFillRect( x, y - scr_graphheight->integer,
 					  w, scr_graphheight->integer, colorBlack );
 
@@ -358,20 +333,6 @@ void SCR_InitScreen( void ) {
 	scr_graphshift = Cvar_Get( "graphshift", "0", 0 );
 
 	scr_initialized = true;
-}
-
-/*
-* SCR_GetScreenWidth
-*/
-unsigned int SCR_GetScreenWidth( void ) {
-	return VID_GetWindowWidth();
-}
-
-/*
-* SCR_GetScreenHeight
-*/
-unsigned int SCR_GetScreenHeight( void ) {
-	return VID_GetWindowHeight();
 }
 
 /*
@@ -415,7 +376,7 @@ void SCR_EndLoadingPlaque( void ) {
 * SCR_RegisterConsoleMedia
 */
 void SCR_RegisterConsoleMedia() {
-	cls.whiteShader = re.RegisterPic( "$whiteimage" );
+	cls.whiteTexture = FindTexture( "$whiteimage" );
 
 	SCR_InitFonts();
 }
@@ -441,12 +402,8 @@ static void SCR_RenderView() {
 
 /*
 * SCR_UpdateScreen
-*
-* This is called every frame, and can also be called explicitly to flush
-* text to the screen.
 */
-void SCR_UpdateScreen( void ) {
-
+void SCR_UpdateScreen() {
 	// if the screen is disabled (loading plaque is up, or vid mode changing)
 	// do nothing at all
 	if( cls.disable_screen ) {
@@ -462,8 +419,6 @@ void SCR_UpdateScreen( void ) {
 	}
 
 	CL_ForceVsync( cls.state == CA_DISCONNECTED );
-
-	re.BeginFrame();
 
 	CL_ImGuiBeginFrame();
 
@@ -497,6 +452,4 @@ void SCR_UpdateScreen( void ) {
 	}
 
 	CL_ImGuiEndFrame();
-
-	re.EndFrame();
 }

@@ -210,15 +210,15 @@ void * ArenaAllocator::get_memory() {
 }
 
 void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, const char * func, const char * file, int line ) {
-        if( SIZE_MAX / n < size )
-                Sys_Error( "allocation too large" );
-        return a->allocate( n * size, alignment, func, file, line );
+	if( SIZE_MAX / n < size )
+		Sys_Error( "allocation too large" );
+	return a->allocate( n * size, alignment, func, file, line );
 }
 
 void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t new_n, size_t size, size_t alignment, const char * func, const char * file, int line ) {
-        if( SIZE_MAX / new_n < size )
-                Sys_Error( "allocation too large" );
-        return a->reallocate( ptr, current_n * size, new_n * size, alignment, func, file, line );
+	if( SIZE_MAX / new_n < size )
+		Sys_Error( "allocation too large" );
+	return a->reallocate( ptr, current_n * size, new_n * size, alignment, func, file, line );
 }
 
 static SystemAllocator sys_allocator_;

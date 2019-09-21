@@ -232,7 +232,7 @@ gsitem_t itemdefs[] =
 	//------------------------
 	// AMMO ITEMS
 	//------------------------
-	
+
 	{ "", AMMO_GUNBLADE },
 	{ "", AMMO_BULLETS },
 	{ "", AMMO_SHELLS },

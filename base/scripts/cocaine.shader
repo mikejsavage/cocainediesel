@@ -9,8 +9,8 @@ textures/cocaine/s_lazery_blue
 	surfaceparm trans
 	fog
 	{
-		map textures/cocaine/lazery_blue.tga
-		blendfunc GL_ONE GL_ONE
+		map textures/cocaine/lazery_blue
+		blendfunc add
 		tcGen base
 		tcmod scroll 2 -2.0
 		tcmod rotate 120
@@ -28,8 +28,8 @@ textures/cocaine/s_lazery_red
 	surfaceparm trans
 	fog
 	{
-		map textures/cocaine/lazery_red.tga
-		blendfunc GL_ONE GL_ONE
+		map textures/cocaine/lazery_red
+		blendfunc add
 		tcGen base
 		tcmod scroll 2 -2.0
 		tcmod rotate 120
@@ -47,8 +47,8 @@ textures/cocaine/s_lazery_green
 	surfaceparm trans
 	fog
 	{
-		map textures/cocaine/lazery_green.tga
-		blendfunc GL_ONE GL_ONE
+		map textures/cocaine/lazery_green
+		blendfunc add
 		tcGen base
 		tcmod scroll 2 -2.0
 		tcmod rotate 120
@@ -66,8 +66,8 @@ textures/cocaine/s_lazery_orange
 	surfaceparm trans
 	fog
 	{
-		map textures/cocaine/lazery_orange.tga
-		blendfunc GL_ONE GL_ONE
+		map textures/cocaine/lazery_orange
+		blendfunc add
 		tcGen base
 		tcmod scroll 2 -2.0
 		tcmod rotate 120
@@ -85,8 +85,8 @@ textures/cocaine/s_lazery_white
 	surfaceparm trans
 	fog
 	{
-		map textures/cocaine/lazery_white.tga
-		blendfunc GL_ONE GL_ONE
+		map textures/cocaine/lazery_white
+		blendfunc add
 		tcGen base
 		tcmod scroll 2 -2.0
 		tcmod rotate 120
@@ -104,8 +104,8 @@ textures/cocaine/s_lazery_kush
 	surfaceparm trans
 	fog
 	{
-		map textures/cocaine/lazery_kush.tga
-		blendfunc GL_ONE GL_ONE
+		map textures/cocaine/lazery_kush
+		blendfunc add
 		tcGen base
 		tcmod scroll 2 -2.0
 		tcmod rotate 120

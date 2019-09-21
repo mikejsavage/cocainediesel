@@ -2,6 +2,7 @@
 #include "qcommon/string.h"
 #include "qcommon/utf8.h"
 #include "client/client.h"
+#include "client/renderer/renderer.h"
 #include "client/sdl/sdl_window.h"
 
 #include "imgui/imgui.h"
@@ -54,55 +55,53 @@ static void SubmitDrawCalls() {
 
 	ImVec2 pos = draw_data->DisplayPos;
 	for( int n = 0; n < draw_data->CmdListsCount; n++ ) {
-		TempAllocator temp = cls.frame_arena->temp();
-
-		const ImDrawList * cmd_list = draw_data->CmdLists[n];
+		const ImDrawList * cmd_list = draw_data->CmdLists[ n ];
 		u16 idx_buffer_offset = 0;
 
-		vec4_t * verts = ALLOC_MANY( &temp, vec4_t, cmd_list->VtxBuffer.Size );
-		vec2_t * uvs = ALLOC_MANY( &temp, vec2_t, cmd_list->VtxBuffer.Size );
-		byte_vec4_t * colors = ALLOC_MANY( &temp, byte_vec4_t, cmd_list->VtxBuffer.Size );
-
-		for( int i = 0; i < cmd_list->VtxBuffer.Size; i++ ) {
-			const ImDrawVert & v = cmd_list->VtxBuffer.Data[ i ];
-			verts[ i ][ 0 ] = v.pos.x;
-			verts[ i ][ 1 ] = v.pos.y;
-			verts[ i ][ 2 ] = 0;
-			verts[ i ][ 3 ] = 1;
-			uvs[ i ][ 0 ] = v.uv.x;
-			uvs[ i ][ 1 ] = v.uv.y;
-			memcpy( &colors[ i ], &v.col, sizeof( byte_vec4_t ) );
-		}
-
-		Span< u16 > indices = ALLOC_SPAN( &temp, u16, cmd_list->IdxBuffer.Size );
-		memcpy( indices.ptr, cmd_list->IdxBuffer.Data, indices.num_bytes() );
+		MeshConfig config;
+		config.unified_buffer = NewVertexBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof( ImDrawVert ) );
+		config.positions_offset = offsetof( ImDrawVert, pos );
+		config.tex_coords_offset = offsetof( ImDrawVert, uv );
+		config.colors_offset = offsetof( ImDrawVert, col );
+		config.positions_format = VertexFormat_Floatx2;
+		config.stride = sizeof( ImDrawVert );
+		config.indices = NewIndexBuffer( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof( u16 ) );
+		Mesh mesh = NewMesh( config );
+		DeferDeleteMesh( mesh );
 
 		for( int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++ ) {
-			const ImDrawCmd * pcmd = &cmd_list->CmdBuffer[cmd_i];
+			const ImDrawCmd * pcmd = &cmd_list->CmdBuffer[ cmd_i ];
 			if( pcmd->UserCallback ) {
 				pcmd->UserCallback( cmd_list, pcmd );
 			}
 			else {
-				ImVec4 clip_rect = ImVec4( pcmd->ClipRect.x - pos.x, pcmd->ClipRect.y - pos.y, pcmd->ClipRect.z - pos.x, pcmd->ClipRect.w - pos.y );
-				if( clip_rect.x < fb_width && clip_rect.y < fb_height && clip_rect.z >= 0.0f && clip_rect.w >= 0.0f ) {
-					re.Scissor( int( clip_rect.x ), int( clip_rect.y ), int( clip_rect.z - clip_rect.x ), int( clip_rect.w - clip_rect.y ) );
+				MinMax2 scissor = MinMax2( Vec2( pcmd->ClipRect.x - pos.x, pcmd->ClipRect.y - pos.y ), Vec2( pcmd->ClipRect.z - pos.x, pcmd->ClipRect.w - pos.y ) );
+				if( scissor.mins.x < fb_width && scissor.mins.y < fb_height && scissor.maxs.x >= 0.0f && scissor.maxs.y >= 0.0f ) {
+					PipelineState pipeline;
+					pipeline.pass = frame_static.ui_pass;
+					pipeline.shader = &shaders.standard_vertexcolors;
+					pipeline.depth_func = DepthFunc_Disabled;
+					pipeline.blend_func = BlendFunc_Blend;
+					pipeline.cull_face = CullFace_Disabled;
+					pipeline.write_depth = false;
+					pipeline.scissor.x = scissor.mins.x;
+					pipeline.scissor.y = scissor.mins.y;
+					pipeline.scissor.w = scissor.maxs.x - scissor.mins.x;
+					pipeline.scissor.h = scissor.maxs.y - scissor.mins.y;
 
-					poly_t poly = { };
-					poly.numverts = cmd_list->VtxBuffer.Size;
-					poly.verts = verts;
-					poly.stcoords = uvs;
-					poly.colors = colors;
-					poly.numelems = pcmd->ElemCount;
-					poly.elems = indices.ptr + idx_buffer_offset;
-					poly.shader = ( shader_s * ) pcmd->TextureId;
-					R_DrawDynamicPoly( &poly );
+					pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
+					pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+
+					Texture texture = { };
+					texture.texture = u32( uintptr_t( pcmd->TextureId ) );
+					pipeline.set_texture( "u_BaseTexture", texture );
+
+					DrawMesh( mesh, pipeline, pcmd->ElemCount, idx_buffer_offset * sizeof( u16 ) );
 				}
 			}
 			idx_buffer_offset += pcmd->ElemCount;
 		}
 	}
-
-	re.ResetScissor();
 }
 
 void CL_ImGuiBeginFrame() {

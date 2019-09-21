@@ -307,7 +307,6 @@ void CG_Trace( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t m
 	t->ent = t->fraction < 1.0 ? 0 : -1; // world entity is 0
 	if( t->fraction == 0 ) {
 		return; // blocked by the world
-
 	}
 
 	// check all other solid models

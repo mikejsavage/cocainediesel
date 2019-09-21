@@ -19,9 +19,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "client/client.h"
+#include "client/renderer/renderer.h"
 #include "qcommon/string.h"
 #include "ftlib/ftlib_public.h"
-#include "renderer/r_frontend.h"
 #include "sdl/sdl_window.h"
 
 static cvar_t *vid_mode;
@@ -29,8 +29,6 @@ static cvar_t *vid_vsync;
 static bool force_vsync;
 
 viddef_t viddef; // global video state; used by other modules
-
-ref_export_t re;
 
 static bool vid_app_active;
 static bool vid_app_minimized;
@@ -40,7 +38,6 @@ static VideoMode startup_video_mode;
 void VID_AppActivate( bool active, bool minimize ) {
 	vid_app_active = active;
 	vid_app_minimized = minimize;
-	re.AppActivate( active, minimize );
 }
 
 bool VID_AppIsActive() {
@@ -49,75 +46,6 @@ bool VID_AppIsActive() {
 
 bool VID_AppIsMinimized() {
 	return vid_app_minimized;
-}
-
-int VID_GetWindowWidth() {
-	return viddef.width;
-}
-
-int VID_GetWindowHeight() {
-	return viddef.height;
-}
-
-static void VID_LoadRefresh() {
-	static ref_import_t import;
-
-	import.Com_Error = &Com_Error;
-	import.Com_Printf = &Com_Printf;
-	import.Com_DPrintf = &Com_DPrintf;
-
-	import.Sys_Milliseconds = &Sys_Milliseconds;
-	import.Sys_Microseconds = &Sys_Microseconds;
-	import.Sys_Sleep = &Sys_Sleep;
-
-	import.Cvar_Get = &Cvar_Get;
-	import.Cvar_Set = &Cvar_Set;
-	import.Cvar_ForceSet = &Cvar_ForceSet;
-	import.Cvar_SetValue = &Cvar_SetValue;
-	import.Cvar_String = &Cvar_String;
-	import.Cvar_Value = &Cvar_Value;
-
-	import.Cmd_Argc = &Cmd_Argc;
-	import.Cmd_Argv = &Cmd_Argv;
-	import.Cmd_Args = &Cmd_Args;
-	import.Cmd_AddCommand = &Cmd_AddCommand;
-	import.Cmd_RemoveCommand = &Cmd_RemoveCommand;
-	import.Cmd_Execute = &Cbuf_Execute;
-	import.Cmd_ExecuteText = &Cbuf_ExecuteText;
-	import.Cmd_SetCompletionFunc = &Cmd_SetCompletionFunc;
-
-	import.FS_FOpenFile = &FS_FOpenFile;
-	import.FS_FOpenAbsoluteFile = &FS_FOpenAbsoluteFile;
-	import.FS_Read = &FS_Read;
-	import.FS_Write = &FS_Write;
-	import.FS_Printf = &FS_Printf;
-	import.FS_Tell = &FS_Tell;
-	import.FS_Seek = &FS_Seek;
-	import.FS_Eof = &FS_Eof;
-	import.FS_Flush = &FS_Flush;
-	import.FS_FCloseFile = &FS_FCloseFile;
-	import.FS_RemoveFile = &FS_RemoveFile;
-	import.FS_GetFileList = &FS_GetFileList;
-	import.FS_FirstExtension = &FS_FirstExtension;
-	import.FS_MoveFile = &FS_MoveFile;
-	import.FS_RemoveDirectory = &FS_RemoveDirectory;
-	import.FS_WriteDirectory = &FS_WriteDirectory;
-
-	import.Mutex_Create = QMutex_Create;
-	import.Mutex_Destroy = QMutex_Destroy;
-	import.Mutex_Lock = QMutex_Lock;
-	import.Mutex_Unlock = QMutex_Unlock;
-
-	import.BufPipe_Create = QBufPipe_Create;
-	import.BufPipe_Destroy = QBufPipe_Destroy;
-	import.BufPipe_Finish = QBufPipe_Finish;
-	import.BufPipe_WriteCmd = QBufPipe_WriteCmd;
-	import.BufPipe_ReadCmds = QBufPipe_ReadCmds;
-	import.BufPipe_Wait = QBufPipe_Wait;
-
-	// load succeeded
-	ref_export_t * rep = GetRefAPI( &import );
-	re = *rep;
 }
 
 static bool ParseWindowMode( const char * str, WindowMode * mode ) {
@@ -168,8 +96,6 @@ static bool ParseWindowMode( const char * str, WindowMode * mode ) {
 void Retarded_SetWindowSize( int w, int h ) {
 	viddef.width = w;
 	viddef.height = h;
-	glConfig.width = w;
-	glConfig.height = h;
 }
 
 static void UpdateVidModeCvar() {
@@ -194,7 +120,6 @@ void VID_CheckChanges() {
 	WindowMode mode;
 	if( ParseWindowMode( vid_mode->string, &mode ) ) {
 		VID_SetWindowMode( mode );
-		RF_ResizeFramebuffers();
 	}
 	else {
 		Com_Printf( "Invalid vid_mode string\n" );
@@ -226,17 +151,11 @@ void VID_Init() {
 
 	CL_Profiler_InitGL();
 
-	VID_LoadRefresh();
-
-	if( !R_Init() ) {
-		Sys_Error( "R_Init() failed" );
-	}
+	InitRenderer();
 
 	if( !S_Init() ) {
 		Com_Printf( S_COLOR_RED "Couldn't initialise audio engine\n" );
 	}
-
-	RF_BeginRegistration();
 
 	FTLIB_LoadLibrary( false );
 	FTLIB_PrecacheFonts( true );
@@ -251,14 +170,9 @@ void VID_Init() {
 	if( cls.cgameActive ) {
 		CL_GameModule_Init();
 		CL_SetKeyDest( key_game );
-
-		// this will precache game assets
-		SCR_UpdateScreen();
 	} else {
 		CL_SetKeyDest( key_menu );
 	}
-
-	RF_EndRegistration();
 }
 
 void CL_ForceVsync( bool force ) {
@@ -273,7 +187,7 @@ void VID_Shutdown() {
 
 	FTLIB_FreeFonts( false );
 
-	RF_Shutdown( false );
+	ShutdownRenderer();
 
 	FTLIB_Shutdown();
 

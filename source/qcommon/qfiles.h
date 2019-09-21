@@ -26,96 +26,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 /*
-========================================================================
-
-.MD3 model file format
-
-========================================================================
-*/
-
-#define IDMD3HEADER         "IDP3"
-
-#define MD3_ALIAS_VERSION   15
-
-#define MD3_MAX_TRIANGLES   8192    // per mesh
-#define MD3_MAX_VERTS       4096    // per mesh
-#define MD3_MAX_SHADERS     256     // per mesh
-#define MD3_MAX_FRAMES      1024    // per model
-#define MD3_MAX_MESHES      32      // per model
-#define MD3_MAX_TAGS        16      // per frame
-#define MD3_MAX_PATH        64
-
-// vertex scales
-#define MD3_XYZ_SCALE       ( 1.0 / 64 )
-
-typedef struct {
-	float st[2];
-} dmd3coord_t;
-
-typedef struct {
-	short point[3];
-	unsigned char norm[2];
-} dmd3vertex_t;
-
-typedef struct {
-	float mins[3];
-	float maxs[3];
-	float translate[3];
-	float radius;
-	char creator[16];
-} dmd3frame_t;
-
-typedef struct {
-	char name[MD3_MAX_PATH];            // tag name
-	float origin[3];
-	float axis[3][3];
-} dmd3tag_t;
-
-typedef struct {
-	char name[MD3_MAX_PATH];
-	int unused;                         // shader
-} dmd3skin_t;
-
-typedef struct {
-	char id[4];
-
-	char name[MD3_MAX_PATH];
-
-	int flags;
-
-	int num_frames;
-	int num_skins;
-	int num_verts;
-	int num_tris;
-
-	int ofs_elems;
-	int ofs_skins;
-	int ofs_tcs;
-	int ofs_verts;
-
-	int meshsize;
-} dmd3mesh_t;
-
-typedef struct {
-	int id;
-	int version;
-
-	char filename[MD3_MAX_PATH];
-
-	int flags;
-
-	int num_frames;
-	int num_tags;
-	int num_meshes;
-	int num_skins;
-
-	int ofs_frames;
-	int ofs_tags;
-	int ofs_meshes;
-	int ofs_end;
-} dmd3header_t;
-
-/*
 ==============================================================================
 
 .BSP file format
@@ -279,13 +189,13 @@ typedef struct shaderref_s {
 	int contents;
 } dshaderref_t;
 
-enum {
-	FACETYPE_BAD        = 0,
-	FACETYPE_PLANAR     = 1,
-	FACETYPE_PATCH      = 2,
-	FACETYPE_TRISURF    = 3,
-	FACETYPE_FLARE      = 4,
-	FACETYPE_FOLIAGE    = 5
+enum BSPFaceType {
+	FaceType_Bad,
+	FaceType_Planar,
+	FaceType_Patch,
+	FaceType_Mesh,
+	FaceType_Flare,
+	FaceType_Foliage,
 };
 
 typedef struct {
@@ -302,11 +212,11 @@ typedef struct {
 	int lm_offset[2];
 	int lm_size[2];
 
-	float origin[3];            // FACETYPE_FLARE only
+	float origin[3];            // FaceType_Flare only
 
 	float mins[3];
-	float maxs[3];              // FACETYPE_PATCH and FACETYPE_TRISURF only
-	float normal[3];            // FACETYPE_PLANAR only
+	float maxs[3];              // FaceType_Patch and FaceType_Mesh only
+	float normal[3];            // FaceType_Planar only
 
 	int patch_cp[2];            // patch control point dimensions
 } dface_t;
@@ -328,11 +238,11 @@ typedef struct {
 	int lm_offset[MAX_LIGHTMAPS][2];
 	int lm_size[2];
 
-	float origin[3];            // FACETYPE_FLARE only
+	float origin[3];            // FaceType_Flare only
 
 	float mins[3];
-	float maxs[3];              // FACETYPE_PATCH and FACETYPE_TRISURF only
-	float normal[3];            // FACETYPE_PLANAR only
+	float maxs[3];              // FaceType_Patch and FaceType_Mesh only
+	float normal[3];            // FaceType_Planar only
 
 	int patch_cp[2];            // patch control point dimensions
 } rdface_t;

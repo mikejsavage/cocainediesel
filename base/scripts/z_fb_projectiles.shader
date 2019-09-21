@@ -16,7 +16,7 @@ models/objects/projectile/plasmagun/plnew
 {
 	cull disable
 	{
-		map models/objects/projectile/plasmagun/plnew.tga
+		map models/objects/projectile/plasmagun/plnew
 		blendFunc add
 		tcmod rotate -150
 		rgbgen entity

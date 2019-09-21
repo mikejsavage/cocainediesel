@@ -9,7 +9,7 @@ textures/world/lava
 	surfaceparm nomarks
 	q3map_surfacelight 200
 	tesssize 64
-	qer_editorimage textures/world/sh/lava2.tga
+	qer_editorimage textures/world/sh/lava2
 	fog
 
 	deformVertexes wave 100 sin 3 2 .1 0.1
@@ -22,7 +22,7 @@ textures/world/lava
 
 textures/world/bluewater
 {
-	qer_editorimage textures/colors/blue.tga
+	qer_editorimage textures/colors/blue
 	surfaceparm noimpact
 	surfaceparm nolightmap
 	surfaceparm water
@@ -34,7 +34,7 @@ textures/world/bluewater
 	q3map_globaltexture
 	sort underwater
 	{
-		map textures/colors/blue.tga
+		map textures/colors/blue
 		blendfunc add
 		rgbGen const ( 0.227451 0.227451 0.227451 )
 	}
@@ -42,7 +42,7 @@ textures/world/bluewater
 
 textures/world/bluewater1
 {
-	qer_editorimage textures/world/sh/water2.tga
+	qer_editorimage textures/world/sh/water2
 	q3map_globaltexture
 	q3map_surfacelight 10
 	qer_trans .75
@@ -66,7 +66,7 @@ textures/world/bluewater1
 
 textures/world/bluedistortwater
 {
-	qer_editorimage textures/world/sh/water2.tga
+	qer_editorimage textures/world/sh/water2
 	q3map_globaltexture
 	qer_trans .35
 	surfaceparm trans
@@ -78,7 +78,7 @@ textures/world/bluedistortwater
 	sort underwater
 
 	{
-		map textures/world/sh/water2.tga
+		map textures/world/sh/water2
 		blendFunc GL_dst_color GL_one
 		//rgbgen const 0.01 0.075 0.075
 		rgbgen const 0.1 0.175 0.175
@@ -87,7 +87,7 @@ textures/world/bluedistortwater
 	}
 
 	{
-		map textures/world/sh/water1.tga
+		map textures/world/sh/water1
 		blendFunc GL_dst_color GL_one
 		rgbgen const 0.2 0.2 0.2
 		tcmod scale -.25 -.25

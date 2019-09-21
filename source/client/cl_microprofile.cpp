@@ -16,9 +16,9 @@
 
 void CL_Profiler_Init() {
 	MicroProfileOnThreadCreate( "Main" );
-        MicroProfileSetForceEnable( true );
-        MicroProfileSetEnableAllGroups( true );
-        MicroProfileSetForceMetaCounters( true );
+	MicroProfileSetForceEnable( true );
+	MicroProfileSetEnableAllGroups( true );
+	MicroProfileSetForceMetaCounters( true );
 
 	MicroProfileInitUI();
 

@@ -1,6 +1,6 @@
 textures/decals/orangearrows
 {
-	qer_editorimage textures/decals/orangearrows.tga
+	qer_editorimage textures/decals/orangearrows
 	qer_trans 0.6
 	surfaceparm nolightmap
 	surfaceparm nomarks
@@ -10,7 +10,7 @@ textures/decals/orangearrows
 	polygonOffset
 
 	{
-		map textures/decals/orangearrows.tga
+		map textures/decals/orangearrows
 		blendFunc blend
 	}
 }
@@ -22,7 +22,7 @@ textures/decals/orangearrows_outlined
 
 textures/decals/dirt_01
 {
-	qer_editorimage textures/decals/dirt_01.tga
+	qer_editorimage textures/decals/dirt_01
 	qer_trans 0.3
 	surfaceparm nomarks
 	surfaceparm nonsolid
@@ -34,7 +34,7 @@ textures/decals/dirt_01
 
 textures/decals/dirt_02
 {
-	qer_editorimage textures/decals/dirt_02.tga
+	qer_editorimage textures/decals/dirt_02
 	qer_trans 0.3
 	surfaceparm nomarks
 	surfaceparm nonsolid
@@ -46,7 +46,7 @@ textures/decals/dirt_02
 
 textures/decals/dirt_scratch_02
 {
-	qer_editorimage textures/decals/dirt_scratch_02.tga
+	qer_editorimage textures/decals/dirt_scratch_02
 	qer_trans 0.3
 	surfaceparm nomarks
 	surfaceparm nonsolid

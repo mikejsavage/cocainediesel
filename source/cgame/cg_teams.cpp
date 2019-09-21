@@ -93,6 +93,16 @@ RGB8 CG_TeamColor( int team ) {
 	return TEAM_COLORS[ cvar->integer ].rgb;
 }
 
+Vec4 CG_TeamColorVec4( int team ) {
+	RGB8 rgb = CG_TeamColor( team );
+	return Vec4(
+		rgb.r * ( 1.0f / 255.0f ),
+		rgb.g * ( 1.0f / 255.0f ),
+		rgb.b * ( 1.0f / 255.0f ),
+		1.0f
+	);
+}
+
 void CG_TeamColor( int team, vec4_t color ) {
 	RGB8 rgb = CG_TeamColor( team );
 	color[0] = rgb.r * ( 1.0f / 255.0f );

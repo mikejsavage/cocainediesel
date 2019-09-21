@@ -91,7 +91,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, ScoreboardPlayer player,
 
 	// icon
 	bool warmup = GS_MatchState() == MATCH_STATE_WARMUP || GS_MatchState() == MATCH_STATE_COUNTDOWN;
-	cgs_media_handle_t * icon = NULL;
+	const Material * icon = NULL;
 
 	if( warmup ) {
 		icon = player.state != 0 ? cgs.media.shaderReady : NULL;
@@ -109,8 +109,10 @@ static void DrawPlayerScoreboard( TempAllocator & temp, ScoreboardPlayer player,
 	if( icon != NULL ) {
 		float dim = ImGui::GetTextLineHeight();
 		ImGui::SetCursorPos( ImGui::GetCursorPos() - Vec2( ( dim - line_height ) * 0.5f ) );
-		// TODO: fix uvs
-		ImGui::Image( CG_MediaShader( icon ), Vec2( dim ), Vec2( 0 ), Vec2( 1 ), Vec4( 0, 0, 0, 1 ) );
+
+		Texture texture = icon->textures[ 0 ].texture;
+		Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
+		ImGui::Image( ( void * ) uintptr_t( texture.texture ), Vec2( dim ), half_pixel, 1.0f - half_pixel, Vec4( 0, 0, 0, 1 ) );
 	}
 
 	ImGui::NextColumn();

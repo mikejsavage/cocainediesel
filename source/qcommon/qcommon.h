@@ -36,6 +36,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cmodel.h"
 #include "bsp.h"
 
+inline Vec3 FromQF3( const vec3_t v ) { return Vec3( v[ 0 ], v[ 1 ], v[ 2 ] ); }
+inline Vec4 FromQF4( const vec4_t v ) { return Vec4( v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] ); }
+inline EulerDegrees3 FromQFAngles( const vec3_t v ) { return { v[ PITCH ], v[ YAW ], v[ ROLL ] }; }
+
 //============================================================================
 
 struct mempool_s;
@@ -791,9 +795,10 @@ NON-PORTABLE SYSTEM SERVICES
 
 void    Sys_Init( void );
 
-int64_t    Sys_Milliseconds( void );
-uint64_t        Sys_Microseconds( void );
-void        Sys_Sleep( unsigned int millis );
+int64_t Sys_Milliseconds();
+uint64_t Sys_Microseconds();
+void Sys_Sleep( unsigned int millis );
+bool Sys_FormatTime( char * buf, size_t buf_size, const char * fmt );
 
 char    *Sys_ConsoleInput( void );
 void    Sys_ConsoleOutput( char *string );

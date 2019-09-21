@@ -486,14 +486,14 @@ void G_PrecacheMedia( void ) {
 	// THIS ORDER MUST MATCH THE DEFINES IN gs_public.h
 	// you can add more, max 255
 
-	trap_ModelIndex( "#gunblade/gunblade.md3" );      // WEAP_GUNBLADE
-	trap_ModelIndex( "#machinegun/machinegun.md3" );    // WEAP_MACHINEGUN
-	trap_ModelIndex( "#riotgun/riotgun.md3" );        // WEAP_RIOTGUN
-	trap_ModelIndex( "#glauncher/glauncher.md3" );    // WEAP_GRENADELAUNCHER
-	trap_ModelIndex( "#rl.md3" );    // WEAP_ROCKETLAUNCHER
-	trap_ModelIndex( "#plasmagun/plasmagun.md3" );    // WEAP_PLASMAGUN
-	trap_ModelIndex( "#lg.md3" );      // WEAP_LASERGUN
-	trap_ModelIndex( "#electrobolt/electrobolt.md3" ); // WEAP_ELECTROBOLT
+	trap_ModelIndex( "#gunblade/gunblade" );      // WEAP_GUNBLADE
+	trap_ModelIndex( "#machinegun/machinegun" );    // WEAP_MACHINEGUN
+	trap_ModelIndex( "#riotgun/riotgun" );        // WEAP_RIOTGUN
+	trap_ModelIndex( "#glauncher/glauncher" );    // WEAP_GRENADELAUNCHER
+	trap_ModelIndex( "#rl" );    // WEAP_ROCKETLAUNCHER
+	trap_ModelIndex( "#plasmagun/plasmagun" );    // WEAP_PLASMAGUN
+	trap_ModelIndex( "#lg" );      // WEAP_LASERGUN
+	trap_ModelIndex( "#electrobolt/electrobolt" ); // WEAP_ELECTROBOLT
 
 	//-------------------
 
@@ -501,7 +501,7 @@ void G_PrecacheMedia( void ) {
 	trap_ModelIndex( "$models/players/bigvic" );
 
 	// FIXME: Temporarily use normal gib until the head is fixed
-	trap_ModelIndex( "models/objects/gibs/gib.glb" );
+	trap_ModelIndex( "models/objects/gibs/gib" );
 
 	//
 	// SOUNDS

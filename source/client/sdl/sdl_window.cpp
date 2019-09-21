@@ -1,27 +1,6 @@
-/*
-   Copyright (C) 1997-2001 Id Software, Inc.
-
-   This program is free software; you can redistribute it and/or
-   modify it under the terms of the GNU General Public License
-   as published by the Free Software Foundation; either version 2
-   of the License, or (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-   See the GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
- */
-
 #include "qcommon/qcommon.h"
-
-#include "sdl_window.h"
-#include "icon.h"
+#include "client/sdl/sdl_window.h"
+#include "client/sdl/icon.h"
 
 #include "sdl/SDL.h"
 #include "sdl/SDL_syswm.h"
@@ -33,70 +12,70 @@
 SDL_Window * sdl_window = NULL;
 
 static const char * type_string( GLenum type ) {
-        switch( type ) {
-                case GL_DEBUG_TYPE_ERROR:
-                case GL_DEBUG_CATEGORY_API_ERROR_AMD:
-                        return "error";
-                case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-                case GL_DEBUG_CATEGORY_DEPRECATION_AMD:
-                        return "deprecated";
-                case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-                case GL_DEBUG_CATEGORY_UNDEFINED_BEHAVIOR_AMD:
-                        return "undefined";
-                case GL_DEBUG_TYPE_PORTABILITY:
-                        return "nonportable";
-                case GL_DEBUG_TYPE_PERFORMANCE:
-                case GL_DEBUG_CATEGORY_PERFORMANCE_AMD:
-                        return "performance";
-                case GL_DEBUG_CATEGORY_WINDOW_SYSTEM_AMD:
-                        return "window system";
-                case GL_DEBUG_CATEGORY_SHADER_COMPILER_AMD:
-                        return "shader compiler";
-                case GL_DEBUG_CATEGORY_APPLICATION_AMD:
-                        return "application";
-                case GL_DEBUG_TYPE_OTHER:
-                case GL_DEBUG_CATEGORY_OTHER_AMD:
-                        return "other";
-                default:
-                        return "idk";
-        }
+	switch( type ) {
+		case GL_DEBUG_TYPE_ERROR:
+		case GL_DEBUG_CATEGORY_API_ERROR_AMD:
+			return "error";
+		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+		case GL_DEBUG_CATEGORY_DEPRECATION_AMD:
+			return "deprecated";
+		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+		case GL_DEBUG_CATEGORY_UNDEFINED_BEHAVIOR_AMD:
+			return "undefined";
+		case GL_DEBUG_TYPE_PORTABILITY:
+			return "nonportable";
+		case GL_DEBUG_TYPE_PERFORMANCE:
+		case GL_DEBUG_CATEGORY_PERFORMANCE_AMD:
+			return "performance";
+		case GL_DEBUG_CATEGORY_WINDOW_SYSTEM_AMD:
+			return "window system";
+		case GL_DEBUG_CATEGORY_SHADER_COMPILER_AMD:
+			return "shader compiler";
+		case GL_DEBUG_CATEGORY_APPLICATION_AMD:
+			return "application";
+		case GL_DEBUG_TYPE_OTHER:
+		case GL_DEBUG_CATEGORY_OTHER_AMD:
+			return "other";
+		default:
+			return "idk";
+	}
 }
 
 static const char * severity_string( GLenum severity ) {
-        switch( severity ) {
-                case GL_DEBUG_SEVERITY_LOW:
-                // case GL_DEBUG_SEVERITY_LOW_AMD:
-                        return S_COLOR_GREEN "low" S_COLOR_WHITE;
-                case GL_DEBUG_SEVERITY_MEDIUM:
-                // case GL_DEBUG_SEVERITY_MEDIUM_AMD:
-                        return S_COLOR_YELLOW "medium" S_COLOR_WHITE;
-                case GL_DEBUG_SEVERITY_HIGH:
-                // case GL_DEBUG_SEVERITY_HIGH_AMD:
-                        return S_COLOR_RED "high" S_COLOR_WHITE;
-                case GL_DEBUG_SEVERITY_NOTIFICATION:
-                        return "notice";
-                default:
-                        return "idk";
-        }
+	switch( severity ) {
+		case GL_DEBUG_SEVERITY_LOW:
+			// case GL_DEBUG_SEVERITY_LOW_AMD:
+			return S_COLOR_GREEN "low" S_COLOR_WHITE;
+		case GL_DEBUG_SEVERITY_MEDIUM:
+			// case GL_DEBUG_SEVERITY_MEDIUM_AMD:
+			return S_COLOR_YELLOW "medium" S_COLOR_WHITE;
+		case GL_DEBUG_SEVERITY_HIGH:
+			// case GL_DEBUG_SEVERITY_HIGH_AMD:
+			return S_COLOR_RED "high" S_COLOR_WHITE;
+		case GL_DEBUG_SEVERITY_NOTIFICATION:
+			return "notice";
+		default:
+			return "idk";
+	}
 }
 
 static void gl_debug_output_callback(
-        GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
-        const GLchar * message, const void * _
+	GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
+	const GLchar * message, const void * _
 ) {
-        if(
-            source == 33352 || // shader compliation errors
-            id == 131169 ||
-            id == 131185 ||
-            id == 131218 ||
-            id == 131204
-        ) {
-                return;
-        }
+	if(
+	    source == 33352 || // shader compliation errors
+	    id == 131169 ||
+	    id == 131185 ||
+	    id == 131218 ||
+	    id == 131204
+	) {
+		return;
+	}
 
-        if( severity == GL_DEBUG_SEVERITY_NOTIFICATION || severity == GL_DEBUG_SEVERITY_NOTIFICATION_KHR ) {
-                return;
-        }
+	if( severity == GL_DEBUG_SEVERITY_NOTIFICATION || severity == GL_DEBUG_SEVERITY_NOTIFICATION_KHR ) {
+		return;
+	}
 
 	if( type == GL_DEBUG_TYPE_PERFORMANCE ) {
 		return;
@@ -107,16 +86,16 @@ static void gl_debug_output_callback(
 	if( len == 0 || message[ len - 1 ] != '\n' )
 		Com_Printf( "\n" );
 
-        if( severity == GL_DEBUG_SEVERITY_HIGH ) {
+	if( severity == GL_DEBUG_SEVERITY_HIGH ) {
 		abort();
-        }
+	}
 }
 
 static void gl_debug_output_callback_amd(
-        GLuint id, GLenum type, GLenum severity, GLsizei length,
-        const GLchar * message, const void * _
+	GLuint id, GLenum type, GLenum severity, GLsizei length,
+	const GLchar * message, const void * _
 ) {
-        gl_debug_output_callback( GL_DONT_CARE, type, id, severity, length, message, _ );
+	gl_debug_output_callback( GL_DONT_CARE, type, id, severity, length, message, _ );
 }
 
 static bool InitGL() {
@@ -186,6 +165,10 @@ static bool InitGL() {
 
 void VID_WindowInit( WindowMode mode ) {
 	uint32_t flags = SDL_WINDOW_OPENGL;
+#if PUBLIC_BUILD && 0
+	if( mode.fullscreen == FullScreenMode_Windowed )
+		flags |= SDL_WINDOW_RESIZABLE;
+#endif
 	if( mode.fullscreen == FullScreenMode_Fullscreen )
 		flags |= SDL_WINDOW_FULLSCREEN;
 	if( mode.fullscreen == FullScreenMode_FullscreenBorderless )
@@ -298,6 +281,10 @@ void VID_SetWindowMode( WindowMode mode ) {
 		flags = SDL_WINDOW_FULLSCREEN_DESKTOP;
 	SDL_SetWindowFullscreen( sdl_window, flags );
 
+#if PUBLIC_BUILD && 0
+	SDL_SetWindowResizable( sdl_window, mode.fullscreen == FullScreenMode_Windowed ? SDL_TRUE : SDL_FALSE );
+#endif
+
 	if( mode.fullscreen == FullScreenMode_Windowed ) {
 		SDL_SetWindowSize( sdl_window, mode.video_mode.width, mode.video_mode.height );
 		if( mode.x == -1 && mode.y == -1 ) {
@@ -315,7 +302,7 @@ bool VID_GetGammaRamp( size_t stride, unsigned short *psize, unsigned short *ram
 	return false;
 	/* unsigned short ramp256[3 * 256]; */
 	/* assert( stride < 256 ); */
-        /*  */
+	/*  */
 	/* if( SDL_GetWindowGammaRamp( sdl_window, ramp256, ramp256 + 256, ramp256 + ( 256 << 1 ) ) != -1 ) { */
 	/* 	*psize = 256; */
 	/* 	memcpy( ramp, ramp256, 256 * sizeof( *ramp ) ); */

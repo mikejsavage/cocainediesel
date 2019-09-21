@@ -17,17 +17,17 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// cl_main.c  -- client main loop
 
 #include "qcommon/base.h"
-#include "client.h"
+#include "client/client.h"
+#include "client/renderer/renderer.h"
+#include "client/sdl/sdl_window.h"
 #include "qcommon/assets.h"
 #include "qcommon/asyncstream.h"
 #include "qcommon/version.h"
 #include "qcommon/hash.h"
 #include "qcommon/csprng.h"
 #include "ftlib/ftlib_public.h"
-#include "renderer/r_frontend.h"
 
 cvar_t *rcon_client_password;
 cvar_t *rcon_address;
@@ -538,35 +538,6 @@ void CL_ResetServerCount( void ) {
 }
 
 /*
-* CL_BeginRegistration
-*/
-static void CL_BeginRegistration( void ) {
-	if( cls.registrationOpen ) {
-		return;
-	}
-
-	cls.registrationOpen = true;
-
-	RF_BeginRegistration();
-}
-
-/*
-* CL_EndRegistration
-*/
-static void CL_EndRegistration( void ) {
-	if( !cls.registrationOpen ) {
-		return;
-	}
-
-	cls.registrationOpen = false;
-
-	FTLIB_TouchAllFonts();
-	TouchFonts();
-	UI_TouchAllAssets();
-	RF_EndRegistration();
-}
-
-/*
 * CL_ClearState
 */
 void CL_ClearState( void ) {
@@ -710,8 +681,6 @@ void CL_Disconnect( const char *message ) {
 		Mem_Free( cls.httpbaseurl );
 		cls.httpbaseurl = NULL;
 	}
-
-	CL_EndRegistration();
 
 	CL_RestartMedia();
 
@@ -1372,18 +1341,12 @@ void CL_RequestNextDownload( void ) {
 			restart_msg = "Files downloaded. Restarting media...";
 		}
 
-		CL_BeginRegistration();
-
 		if( restart ) {
 			Com_Printf( "%s\n", restart_msg );
 
 			if( vid_restart ) {
 				// no media is going to survive a vid_restart...
 				Cbuf_ExecuteText( EXEC_NOW, "s_restart 1\n" );
-			} else {
-				// make sure all media assets will be freed
-				CL_EndRegistration();
-				CL_BeginRegistration();
 			}
 		}
 
@@ -1533,7 +1496,6 @@ void CL_SetClientState( connstate_t state ) {
 			break;
 		case CA_ACTIVE:
 			cl_connectChain[0] = '\0';
-			CL_EndRegistration();
 			Con_Close();
 			UI_HideMenu();
 			CL_SetKeyDest( key_game );
@@ -1564,7 +1526,6 @@ void CL_InitMedia( void ) {
 	// random seed to be shared among game modules so pseudo-random stuff is in sync
 	if( cls.state != CA_CONNECTED ) {
 		srand( time( NULL ) );
-		cls.mediaRandomSeed = rand();
 	}
 
 	cls.mediaInitialized = true;
@@ -1616,20 +1577,14 @@ void CL_RestartMedia( void ) {
 	// random seed to be shared among game modules so pseudo-random stuff is in sync
 	if( cls.state != CA_CONNECTED ) {
 		srand( time( NULL ) );
-		cls.mediaRandomSeed = rand();
 	}
 
 	cls.mediaInitialized = true;
-
-	FTLIB_TouchAllFonts();
-	TouchFonts();
 
 	// register console font and background
 	SCR_RegisterConsoleMedia();
 
 	UI_HideMenu();
-
-	UI_TouchAllAssets();
 
 	// check memory integrity
 	Mem_DebugCheckSentinelsGlobal();
@@ -2129,7 +2084,9 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	if( host_speeds->integer ) {
 		time_before_ref = Sys_Milliseconds();
 	}
+	RendererBeginFrame( viddef.width, viddef.height );
 	SCR_UpdateScreen();
+	RendererSubmitFrame();
 	if( host_speeds->integer ) {
 		time_after_ref = Sys_Milliseconds();
 	}
@@ -2143,6 +2100,8 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	allGameMsec = 0;
 
 	cls.framecount++;
+
+	VID_Swap();
 }
 
 //============================================================================
@@ -2236,7 +2195,7 @@ void CL_AsyncStreamRequest( const char *url, const char **headers, int timeout, 
 */
 void CL_Init( void ) {
 	constexpr size_t frame_arena_size = 1024 * 1024;
-	void * frame_arena_memory = ALLOC( sys_allocator, frame_arena_size * 2, 16 );
+	void * frame_arena_memory = ALLOC_SIZE( sys_allocator, frame_arena_size * 2, 16 );
 	cls.frame_arenas[ 0 ] = ArenaAllocator( frame_arena_memory, frame_arena_size );
 	cls.frame_arenas[ 1 ] = ArenaAllocator( ( u8 * ) frame_arena_memory + frame_arena_size, frame_arena_size );
 	cls.frame_arena = &cls.frame_arenas[ 0 ];

@@ -31,7 +31,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client/client.h"
 #include "cg_local.h"
-#include "client/renderer/r_local.h"
+#include "client/renderer/renderer.h"
+#include "client/renderer/model.h"
 
 pmodel_t cg_entPModels[MAX_EDICTS];
 PlayerModelMetadata *cg_PModelInfos;
@@ -132,23 +133,23 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata *metadata, char *filena
 
 		if( Q_stricmp( cmd, "upper_rotator_joints" ) == 0 ) {
 			const char * joint_name = COM_ParseExt( &ptr, false );
-			R_FindJointByName( metadata->model, joint_name, &metadata->upper_rotator_joints[ 0 ] );
+			FindJointByName( metadata->model, joint_name, &metadata->upper_rotator_joints[ 0 ] );
 
 			joint_name = COM_ParseExt( &ptr, false );
-			R_FindJointByName( metadata->model, joint_name, &metadata->upper_rotator_joints[ 1 ] );
+			FindJointByName( metadata->model, joint_name, &metadata->upper_rotator_joints[ 1 ] );
 		}
 		else if( Q_stricmp( cmd, "head_rotator_joint" ) == 0 ) {
 			const char * joint_name  = COM_ParseExt( &ptr, false );
-			R_FindJointByName( metadata->model, joint_name, &metadata->head_rotator_joint );
+			FindJointByName( metadata->model, joint_name, &metadata->head_rotator_joint );
 		}
 		else if( Q_stricmp( cmd, "upper_root_joint" ) == 0 ) {
 			const char * joint_name  = COM_ParseExt( &ptr, false );
-			R_FindJointByName( metadata->model, joint_name, &metadata->upper_root_joint );
+			FindJointByName( metadata->model, joint_name, &metadata->upper_root_joint );
 		}
 		else if( Q_stricmp( cmd, "tag" ) == 0 ) {
 			const char * joint_name = COM_ParseExt( &ptr, false );
 			u8 joint_idx;
-			if( R_FindJointByName( metadata->model, joint_name, &joint_idx ) ) {
+			if( FindJointByName( metadata->model, joint_name, &joint_idx ) ) {
 				const char * tag_name = COM_ParseExt( &ptr, false );
 				PlayerModelMetadata::Tag * tag = &metadata->tag_backpack;
 				if( strcmp( tag_name, "tag_head" ) == 0 )
@@ -218,14 +219,8 @@ static bool CG_LoadPlayerModel( PlayerModelMetadata *metadata, const char *filen
 
 	bool loaded_model = false;
 	char anim_filename[MAX_QPATH];
-	char scratch[MAX_QPATH];
 
-	Q_snprintfz( scratch, sizeof( scratch ), "%s.glb", filename );
-	if( cgs.pure && !trap_FS_IsPureFile( scratch ) ) {
-		return false;
-	}
-
-	metadata->model = CG_RegisterModel( scratch );
+	metadata->model = FindModel( filename );
 
 	// load animations script
 	if( metadata->model ) {
@@ -299,11 +294,7 @@ void CG_RegisterBasePModel( void ) {
 * CG_GrabTag
 */
 bool CG_GrabTag( orientation_t *tag, entity_t *ent, const char *tagname ) {
-	if( !ent->model ) {
-		return false;
-	}
-
-	return trap_R_LerpTag( tag, ent->model, ent->frame, ent->oldframe, ent->backlerp, tagname );
+	return false;
 }
 
 /*
@@ -392,45 +383,13 @@ bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result ) {
 }
 
 /*
-* CG_AddRaceGhostShell
-*/
-static void CG_AddRaceGhostShell( entity_t *ent ) {
-	entity_t shell = *ent;
-
-	if( shell.renderfx & RF_WEAPONMODEL ) {
-		return;
-	}
-
-	shell.customShader = CG_MediaShader( cgs.media.shaderRaceGhostEffect );
-	shell.renderfx |= ( RF_FULLBRIGHT | RF_NOSHADOW );
-	shell.outlineHeight = 0;
-
-	float alpha = Clamp( 0.0f, cg_raceGhostsAlpha->value, 1.0f );
-	shell.color[0] *= alpha;
-	shell.color[1] *= alpha;
-	shell.color[2] *= alpha;
-	shell.color[3] = 255 * alpha;
-
-	CG_AddEntityToScene( &shell );
-}
-
-/*
-* CG_AddShellEffects
-*/
-void CG_AddShellEffects( entity_t *ent, int effects ) {
-	if( effects & EF_RACEGHOST ) {
-		CG_AddRaceGhostShell( ent );
-	}
-}
-
-/*
 * CG_OutlineScaleForDist
 */
-static float CG_OutlineScaleForDist( entity_t *e, float maxdist, float scale ) {
+static float CG_OutlineScaleForDist( const entity_t * e, float maxdist, float scale ) {
 	float dist;
 	vec3_t dir;
 
-	if( e->renderfx & RF_WEAPONMODEL ) {
+	if( e->renderfx & RenderFX_WeaponModel ) {
 		return 0.14f;
 	}
 
@@ -441,10 +400,8 @@ static float CG_OutlineScaleForDist( entity_t *e, float maxdist, float scale ) {
 		return 0;
 	}
 
-	if( !( e->renderfx & RF_WEAPONMODEL ) ) {
-		if( DotProduct( dir, &cg.view.axis[AXIS_FORWARD] ) < 0 ) {
-			return 0;
-		}
+	if( DotProduct( dir, &cg.view.axis[AXIS_FORWARD] ) < 0 ) {
+		return 0;
 	}
 
 	dist *= scale;
@@ -657,10 +614,10 @@ static PlayerModelAnimationSet CG_GetBaseAnims( entity_state_t *state, const vec
 }
 
 static float PositiveMod( float x, float y ) {
-        float res = fmodf( x, y );
-        if( res < 0 )
-                res += y;
-        return res;
+	float res = fmodf( x, y );
+	if( res < 0 )
+		res += y;
+	return res;
 }
 
 static float GetAnimationTime( const PlayerModelMetadata * metadata, int64_t curTime, animstate_t state, bool loop ) {
@@ -830,7 +787,6 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	// start from clean
 	memset( &cent->ent, 0, sizeof( cent->ent ) );
 	cent->ent.scale = 1.0f;
-	cent->ent.rtype = RT_MODEL;
 	cent->ent.renderfx = cent->renderfx;
 
 	pmodel = &cg_entPModels[cent->current.number];
@@ -840,15 +796,10 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 
 	Vector4Set( cent->outlineColor, 0, 0, 0, 255 );
 
-	if( cg_raceGhosts->integer && !ISVIEWERENTITY( cent->current.number ) && GS_RaceGametype() ) {
-		cent->effects &= ~EF_OUTLINE;
-		cent->effects |= EF_RACEGHOST;
+	if( cg_outlinePlayers->integer ) {
+		cent->effects |= EF_OUTLINE; // add EF_OUTLINE to players
 	} else {
-		if( cg_outlinePlayers->integer ) {
-			cent->effects |= EF_OUTLINE; // add EF_OUTLINE to players
-		} else {
-			cent->effects &= ~EF_OUTLINE;
-		}
+		cent->effects &= ~EF_OUTLINE;
 	}
 
 	// fallback
@@ -959,14 +910,8 @@ static Quaternion EulerAnglesToQuaternion( EulerDegrees3 angles ) {
 	);
 }
 
-static Mat4 QFToMat4( const mat4_t qf ) {
-	Mat4 m;
-	memcpy( m.ptr(), qf, sizeof( m ) );
-	return m;
-}
-
-static orientation_t TransformTag( const model_t * model, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
-	Mat4 transform = QFToMat4( model->transform ) * pose.joint_poses[ tag.joint_idx ] * tag.transform;
+static orientation_t TransformTag( const Model * model, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
+	Mat4 transform = model->transform * pose.joint_poses[ tag.joint_idx ] * tag.transform;
 	orientation_t o;
 
 	o.axis[ 0 ] = transform.col0.x;
@@ -986,7 +931,7 @@ static orientation_t TransformTag( const model_t * model, const MatrixPalettes &
 	return o;
 }
 
-void CG_AddPModel( centity_t *cent ) {
+void CG_DrawPlayer( centity_t *cent ) {
 	pmodel_t * pmodel = &cg_entPModels[cent->current.number];
 	const PlayerModelMetadata * meta = pmodel->metadata;
 
@@ -994,43 +939,38 @@ void CG_AddPModel( centity_t *cent ) {
 	// for view and shadow accuracy
 
 	if( ISVIEWERENTITY( cent->current.number ) ) {
-		vec3_t org;
+		vec3_t origin;
 
 		if( cg.view.playerPrediction ) {
 			float backlerp = 1.0f - cg.lerpfrac;
 
 			for( int i = 0; i < 3; i++ )
-				org[i] = cg.predictedPlayerState.pmove.origin[i] - backlerp * cg.predictionError[i];
+				origin[i] = cg.predictedPlayerState.pmove.origin[i] - backlerp * cg.predictionError[i];
 
-			CG_ViewSmoothPredictedSteps( org );
-
-			vec3_t tmpangles;
-			tmpangles[YAW] = cg.predictedPlayerState.viewangles[YAW];
-			tmpangles[PITCH] = 0;
-			tmpangles[ROLL] = 0;
-			AnglesToAxis( tmpangles, cent->ent.axis );
-		} else {
-			VectorCopy( cent->ent.origin, org );
+			CG_ViewSmoothPredictedSteps( origin );
+		}
+		else {
+			VectorCopy( cent->ent.origin, origin );
 		}
 
-		VectorCopy( org, cent->ent.origin );
-		VectorCopy( org, cent->ent.origin2 );
+		VectorCopy( origin, cent->ent.origin );
+		VectorCopy( origin, cent->ent.origin2 );
 	}
 
 	float lower_time, upper_time;
 	CG_GetAnimationTimes( pmodel, cg.time, &lower_time, &upper_time );
-	Span< TRS > lower = R_SampleAnimation( cls.frame_arena, meta->model, lower_time );
-	Span< TRS > upper = R_SampleAnimation( cls.frame_arena, meta->model, upper_time );
-	R_MergeLowerUpperPoses( lower, upper, meta->model, meta->upper_root_joint );
+	Span< TRS > lower = SampleAnimation( cls.frame_arena, meta->model, lower_time );
+	Span< TRS > upper = SampleAnimation( cls.frame_arena, meta->model, upper_time );
+	MergeLowerUpperPoses( lower, upper, meta->model, meta->upper_root_joint );
 
 	// add skeleton effects (pose is unmounted yet)
 	if( cent->current.type != ET_CORPSE ) {
 		vec3_t tmpangles;
 		// if it's our client use the predicted angles
-		if( cg.view.playerPrediction && ISVIEWERENTITY( cent->current.number ) && ( (unsigned)cg.view.POVent == cgs.playerNum + 1 ) ) {
-			tmpangles[YAW] = cg.predictedPlayerState.viewangles[YAW];
-			tmpangles[PITCH] = 0;
-			tmpangles[ROLL] = 0;
+		if( cg.view.playerPrediction && ISVIEWERENTITY( cent->current.number ) ) {
+			tmpangles[ YAW ] = cg.predictedPlayerState.viewangles[YAW];
+			tmpangles[ PITCH ] = 0;
+			tmpangles[ ROLL ] = 0;
 		}
 		else {
 			// apply interpolated LOWER angles to entity
@@ -1064,31 +1004,33 @@ void CG_AddPModel( centity_t *cent ) {
 		}
 	}
 
-	// Add playermodel ent
-	cent->ent.scale = 1.0f;
-	cent->ent.rtype = RT_MODEL;
-	cent->ent.model = meta->model;
-	cent->ent.customShader = NULL;
-	cent->ent.renderfx |= RF_NOSHADOW;
-	cent->ent.pose = R_ComputeMatrixPalettes( cls.frame_arena, meta->model, lower );
+	MatrixPalettes pose = ComputeMatrixPalettes( cls.frame_arena, meta->model, lower );
 
-	if( !( cent->renderfx & RF_NOSHADOW ) ) {
-		CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
-	}
+	CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
 
-	if( !( cent->effects & EF_RACEGHOST ) ) {
-		CG_AddCentityOutLineEffect( cent );
-		CG_AddEntityToScene( &cent->ent );
-	}
+	Mat4 transform = Mat4::Identity();
+	transform.col0.x = cent->ent.axis[ 0 ];
+	transform.col0.y = cent->ent.axis[ 1 ];
+	transform.col0.z = cent->ent.axis[ 2 ];
+	transform.col1.x = cent->ent.axis[ 3 ];
+	transform.col1.y = cent->ent.axis[ 4 ];
+	transform.col1.z = cent->ent.axis[ 5 ];
+	transform.col2.x = cent->ent.axis[ 6 ];
+	transform.col2.y = cent->ent.axis[ 7 ];
+	transform.col2.z = cent->ent.axis[ 8 ];
+	transform = Mat4_Translation( cent->ent.origin[ 0 ], cent->ent.origin[ 1 ], cent->ent.origin[ 2 ] ) * transform;
 
-	CG_AddShellEffects( &cent->ent, cent->effects );
+	Vec4 color = CG_TeamColorVec4( cent->current.team );
+	DrawModel( meta->model, transform, color, pose.skinning_matrices );
 
-	// add teleporter sfx if needed
-	CG_PModel_SpawnTeleportEffect( cent );
+	float outline_height = CG_OutlineScaleForDist( &cent->ent, 4096, 1.0f );
+	DrawOutlinedModel( meta->model, transform, vec4_black, outline_height, pose.skinning_matrices );
+
+	CG_PModel_SpawnTeleportEffect( cent, pose );
 
 	// add weapon model
 	if( cent->current.weapon ) {
-		orientation_t tag_weapon = TransformTag( meta->model, cent->ent.pose, meta->tag_weapon );
+		orientation_t tag_weapon = TransformTag( meta->model, pose, meta->tag_weapon );
 		CG_AddWeaponOnTag( &cent->ent, &tag_weapon, cent->current.weapon, cent->effects,
 			&pmodel->projectionSource, pmodel->flash_time, pmodel->barrel_time );
 	}
@@ -1098,7 +1040,7 @@ void CG_AddPModel( centity_t *cent ) {
 		PlayerModelMetadata::Tag tag = meta->tag_backpack;
 		if( cent->current.effects & EF_HAT )
 			tag = meta->tag_head;
-		orientation_t o = TransformTag( meta->model, cent->ent.pose, tag );
+		orientation_t o = TransformTag( meta->model, pose, tag );
 		CG_AddLinkedModel( cent, &o );
 	}
 }

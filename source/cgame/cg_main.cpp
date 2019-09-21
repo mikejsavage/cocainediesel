@@ -69,8 +69,6 @@ cvar_t *cg_fov;
 cvar_t *cg_zoomfov;
 cvar_t *cg_voiceChats;
 cvar_t *cg_projectileAntilagOffset;
-cvar_t *cg_raceGhosts;
-cvar_t *cg_raceGhostsAlpha;
 cvar_t *cg_chatFilter;
 
 cvar_t *cg_cartoonEffects;
@@ -258,7 +256,6 @@ static void CG_RegisterModels( void ) {
 			if( !CG_LoadingItemName( name ) ) {
 				return;
 			}
-			trap_R_RegisterWorldModel( name );
 		}
 
 		cgs.numWeaponModels = 1;
@@ -300,7 +297,7 @@ static void CG_RegisterModels( void ) {
 			if( !CG_LoadingItemName( name ) ) {
 				return;
 			}
-			cgs.modelDraw[i] = CG_RegisterModel( name );
+			cgs.modelDraw[i] = FindModel( name );
 		}
 	}
 
@@ -383,7 +380,7 @@ static void CG_RegisterShaders( void ) {
 			return;
 		}
 
-		cgs.imagePrecache[i] = trap_R_RegisterPic( name );
+		cgs.imagePrecache[i] = FindMaterial( name );
 	}
 
 	if( cgs.precacheShadersStart != MAX_IMAGES ) {
@@ -486,9 +483,6 @@ static void CG_RegisterVariables( void ) {
 	cg_voiceChats =     trap_Cvar_Get( "cg_voiceChats", "1", CVAR_ARCHIVE );
 
 	cg_projectileAntilagOffset = trap_Cvar_Get( "cg_projectileAntilagOffset", "1.0", CVAR_ARCHIVE );
-
-	cg_raceGhosts =     trap_Cvar_Get( "cg_raceGhosts", "0", CVAR_ARCHIVE );
-	cg_raceGhostsAlpha =    trap_Cvar_Get( "cg_raceGhostsAlpha", "0.25", CVAR_ARCHIVE );
 
 	cg_chatFilter =     trap_Cvar_Get( "cg_chatFilter", "0", CVAR_ARCHIVE );
 
@@ -705,9 +699,8 @@ void CG_Reset( void ) {
 * CG_Init
 */
 void CG_Init( const char *serverName, unsigned int playerNum,
-			  int vidWidth, int vidHeight, float pixelRatio,
 			  bool demoplaying, const char *demoName, bool pure,
-			  unsigned snapFrameTime, int sharedSeed, bool gameStart ) {
+			  unsigned snapFrameTime ) {
 	cg_mempool = _Mem_AllocPool( NULL, "CGame", MEMPOOL_CLIENTGAME, __FILE__, __LINE__ );
 
 	CG_InitGameShared();
@@ -727,11 +720,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	// save local player number
 	cgs.playerNum = playerNum;
-
-	// save current width and height
-	cgs.vidWidth = vidWidth;
-	cgs.vidHeight = vidHeight;
-	cgs.pixelRatio = pixelRatio;
 
 	// demo
 	cgs.demoPlaying = demoplaying;
@@ -761,7 +749,7 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	// register fonts here so loading screen works
 	CG_RegisterFonts();
-	cgs.shaderWhite = trap_R_RegisterPic( "$whiteimage" );
+	cgs.white_material = FindMaterial( "$whiteimage" );
 
 	CG_RegisterCGameCommands();
 
@@ -786,15 +774,7 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	CG_DemocamInit();
 }
 
-void CG_ResizeWindow( int width, int height ) {
-	cgs.vidWidth = width;
-	cgs.vidHeight = height;
-}
-
-/*
-* CG_Shutdown
-*/
-void CG_Shutdown( void ) {
+void CG_Shutdown() {
 	CG_FreeLocalEntities();
 	CG_DemocamShutdown();
 	CG_UnregisterCGameCommands();

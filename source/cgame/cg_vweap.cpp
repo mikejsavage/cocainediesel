@@ -169,12 +169,10 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 	weaponinfo_t *weaponInfo;
 	int curframe = 0;
 	float framefrac;
-	bool nolerp = false;
 
 	// if the pov changed, or weapon changed, force restart
 	if( viewweapon->POVnum != cg.predictedPlayerState.POVnum ||
 		viewweapon->weapon != cg.predictedPlayerState.stats[STAT_WEAPON] ) {
-		nolerp = true;
 		viewweapon->eventAnim = 0;
 		viewweapon->eventAnimStartTime = 0;
 		viewweapon->baseAnim = 0;
@@ -186,8 +184,6 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 
 	// hack cause of missing animation config
 	if( viewweapon->weapon == WEAP_NONE ) {
-		viewweapon->ent.frame = viewweapon->ent.oldframe = 0;
-		viewweapon->ent.backlerp = 0.0f;
 		viewweapon->eventAnim = 0;
 		viewweapon->eventAnimStartTime = 0;
 		return;
@@ -200,7 +196,6 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 	if( !viewweapon->baseAnimStartTime ) {
 		viewweapon->baseAnim = baseAnim;
 		viewweapon->baseAnimStartTime = cg.time;
-		nolerp = true;
 	}
 
 	// base animation changed?
@@ -220,7 +215,7 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 									 weaponInfo->loopingframes[viewweapon->eventAnim], false );
 
 		if( curframe >= 0 ) {
-			goto setupframe;
+			return;
 		}
 
 		// disable event anim and fall through
@@ -236,20 +231,6 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 	if( curframe < 0 ) {
 		CG_Error( "CG_ViewWeapon_UpdateAnimation(2): Base Animation without a defined loop.\n" );
 	}
-
-setupframe:
-	if( nolerp ) {
-		framefrac = 0;
-		viewweapon->ent.oldframe = curframe;
-	} else {
-		framefrac = Clamp01( framefrac );
-		if( curframe != viewweapon->ent.frame ) {
-			viewweapon->ent.oldframe = viewweapon->ent.frame;
-		}
-	}
-
-	viewweapon->ent.frame = curframe;
-	viewweapon->ent.backlerp = 1.0f - framefrac;
 }
 
 /*
@@ -279,10 +260,9 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 
 	weaponInfo = CG_GetWeaponInfo( viewweapon->weapon );
 	viewweapon->ent.model = weaponInfo->model[WEAPMODEL_HAND];
-	viewweapon->ent.renderfx = RF_MINLIGHT | RF_WEAPONMODEL | RF_NOSHADOW;
+	viewweapon->ent.renderfx = RenderFX_WeaponModel;
 	viewweapon->ent.scale = 1.0f;
-	viewweapon->ent.customShader = NULL;
-	viewweapon->ent.rtype = RT_MODEL;
+	viewweapon->ent.override_material = NULL;
 	Vector4Set( viewweapon->ent.shaderRGBA, 255, 255, 255, 255 );
 
 	// calculate the entity position
@@ -295,7 +275,7 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	gunOffset[UP] = cg_guny->value + weaponInfo->handpositionOrigin[UP];
 
 	// scale forward gun offset depending on fov and aspect ratio
-	gunOffset[FORWARD] = gunOffset[FORWARD] * cgs.vidWidth / ( cgs.vidHeight * cg.view.fracDistFOV ) ;
+	gunOffset[FORWARD] = gunOffset[FORWARD] * frame_static.viewport_width / ( frame_static.viewport_height * cg.view.fracDistFOV ) ;
 
 	// hand cvar offset
 	handOffset = 0.0f;
@@ -332,7 +312,7 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	if( cg_gun_fov->integer && !cg.predictedPlayerState.pmove.stats[PM_STAT_ZOOMTIME] ) {
 		float fracWeapFOV;
 		float gun_fov_y = WidescreenFov( bound( 20, cg_gun_fov->value, 160 ) );
-		float gun_fov_x = CalcHorizontalFov( gun_fov_y, cgs.vidWidth, cgs.vidHeight );
+		float gun_fov_x = CalcHorizontalFov( gun_fov_y, frame_static.viewport_width, frame_static.viewport_height );
 
 		fracWeapFOV = tan( DEG2RAD( gun_fov_x ) * 0.5f ) / cg.view.fracDistFOV;
 
@@ -363,7 +343,6 @@ void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
 
 	CG_AddColoredOutLineEffect( &viewweapon->ent, cg.effects, 0, 0, 0, viewweapon->ent.shaderRGBA[3] );
 	CG_AddEntityToScene( &viewweapon->ent );
-	CG_AddShellEffects( &viewweapon->ent, cg.effects );
 
 	if( cg_weaponFlashes->integer == 2 ) {
 		flash_time = cg_entPModels[viewweapon->POVnum].flash_time;

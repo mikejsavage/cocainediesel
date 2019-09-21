@@ -26,7 +26,6 @@ struct fragment_s;
 struct entity_s;
 struct refdef_s;
 struct poly_s;
-struct model_s;
 struct cmodel_s;
 struct qfontface_s;
 
@@ -131,26 +130,6 @@ typedef struct {
 	void ( *NET_GetCurrentState )( int64_t *incomingAcknowledged, int64_t *outgoingSequence, int64_t *outgoingSent );
 
 	// refresh system
-	void ( *R_UpdateScreen )( void );
-	int ( *R_GetClippedFragments )( const vec3_t origin, float radius, vec3_t axis[3], int maxfverts, vec4_t *fverts, int maxfragments, struct fragment_s *fragments );
-	void ( *R_ClearScene )( void );
-	void ( *R_AddEntityToScene )( const struct entity_s *ent );
-	void ( *R_AddLightToScene )( const vec3_t org, float intensity, float r, float g, float b );
-	void ( *R_AddPolyToScene )( const struct poly_s *poly );
-	void ( *R_RenderScene )( const struct refdef_s *fd );
-	const char *( *R_GetSpeedsMessage )( char *out, size_t size );
-	int ( *R_GetAverageFrametime )( void );
-	void ( *R_RegisterWorldModel )( const char *name );
-	struct model_s *( *R_RegisterModel )( const char *name );
-	struct shader_s *( *R_RegisterPic )( const char *name );
-	struct shader_s *( *R_RegisterSkin )( const char *name );
-	struct skinfile_s *( *R_RegisterSkinFile )( const char *name );
-	bool ( *R_LerpTag )( struct orientation_s *orient, const struct model_s *mod, int oldframe, int frame, float lerpfrac, const char *name );
-	void ( *R_DrawStretchPic )( int x, int y, int w, int h, float s1, float t1, float s2, float t2, const vec4_t color, const struct shader_s *shader );
-	void ( *R_DrawRotatedStretchPic )( int x, int y, int w, int h, float s1, float t1, float s2, float t2, float angle, const vec4_t color, const struct shader_s *shader );
-	void ( *R_TransformVectorToScreen )( const struct refdef_s *rd, const vec3_t in, vec2_t out );
-	bool ( *R_TransformVectorToScreenClamped )( const struct refdef_s *rd, const vec3_t in, int border, vec2_t out );
-
 	void ( *VID_FlashWindow )();
 
 	// collision detection
@@ -190,11 +169,7 @@ typedef struct {
 
 	// the init function will be called at each restart
 	void ( *Init )( const char *serverName, unsigned int playerNum,
-					int vidWidth, int vidHeight, float pixelRatio,
-					bool demoplaying, const char *demoName, bool pure, unsigned int snapFrameTime,
-					int sharedSeed, bool gameStart );
-
-	void ( *ResizeWindow )( int width, int height );
+					bool demoplaying, const char *demoName, bool pure, unsigned int snapFrameTime );
 
 	// "soft restarts" at demo jumps
 	void ( *Reset )( void );

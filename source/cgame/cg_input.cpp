@@ -280,9 +280,6 @@ void CG_MouseMove( int mx, int my ) {
 }
 
 void CG_AddViewAngles( vec3_t viewAngles ) {
-	vec3_t am;
-	VectorClear( am );
-
 	// m_pitch/m_yaw used to default to 0.022
 	viewAngles[ YAW ] -= 0.022f * horizontalSensScale->value * mouse_movement.x;
 	viewAngles[ PITCH ] += 0.022f * mouse_movement.y;

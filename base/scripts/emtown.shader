@@ -1,6 +1,6 @@
 textures/emtown/vine1
 {
-	qer_editorimage textures/emtown/vine1.tga
+	qer_editorimage textures/emtown/vine1
 	qer_trans 0.9
 	surfaceparm nolightmap
 	surfaceparm nomarks
@@ -11,17 +11,15 @@ textures/emtown/vine1
 
 	{
 		detail
-		map textures/emtown/vine1.tga
+		map textures/emtown/vine1
 		blendFunc blend
-		//blendFunc GL_SRC_ALPHA GL_ONE // blendfunc add the alphamasked part only
-		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
 		rgbGen Vertex
 	}
 }
 
 textures/emtown/emtag
 {
-	qer_editorimage textures/emtown/emtag.tga
+	qer_editorimage textures/emtown/emtag
 	qer_trans 0.3
 	surfaceparm nolightmap
 	surfaceparm nomarks
@@ -32,17 +30,15 @@ textures/emtown/emtag
 
 	{
 		detail
-		map textures/emtown/emtag.tga
-		blendFunc filter
-		//blendFunc GL_SRC_ALPHA GL_ONE // blendfunc add the alphamasked part only
-		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		map textures/emtown/emtag
+		blendFunc blend
 		rgbGen Vertex
 	}
 }
 
 textures/emtown/fztag
 {
-	qer_editorimage textures/emtown/fztag.tga
+	qer_editorimage textures/emtown/fztag
 	qer_trans 0.3
 	surfaceparm nolightmap
 	surfaceparm nomarks
@@ -53,17 +49,15 @@ textures/emtown/fztag
 
 	{
 		detail
-		map textures/emtown/fztag.tga
-		blendFunc filter
-		//blendFunc GL_SRC_ALPHA GL_ONE // blendfunc add the alphamasked part only
-		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		map textures/emtown/fztag
+		blendFunc blend
 		rgbGen Vertex
 	}
 }
 
 textures/emtown/ilverdi2
 {
-	qer_editorimage textures/emtown/ilverdi2.tga
+	qer_editorimage textures/emtown/ilverdi2
 	qer_trans 0.3
 	surfaceparm nolightmap
 	surfaceparm nomarks
@@ -74,17 +68,15 @@ textures/emtown/ilverdi2
 
 	{
 		detail
-		map textures/emtown/ilverdi2.tga
-		blendFunc filter
-		//blendFunc GL_SRC_ALPHA GL_ONE // blendfunc add the alphamasked part only
-		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		map textures/emtown/ilverdi2
+		blendFunc blend
 		rgbGen Vertex
 	}
 }
 
 textures/emtown/b
 {
-	qer_editorimage textures/emtown/b.tga
+	qer_editorimage textures/emtown/b
 	qer_trans 0.3
 	surfaceparm nolightmap
 	surfaceparm nomarks
@@ -95,17 +87,15 @@ textures/emtown/b
 
 	{
 		detail
-		map textures/emtown/b.tga
-		blendFunc filter
-		//blendFunc GL_SRC_ALPHA GL_ONE // blendfunc add the alphamasked part only
-		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		map textures/emtown/b
+		blendFunc blend
 		rgbGen Vertex
 	}
 }
 
 textures/emtown/thisway
 {
-	qer_editorimage textures/emtown/thisway.tga
+	qer_editorimage textures/emtown/thisway
 	qer_trans 0.5
 	surfaceparm nolightmap
 	surfaceparm nomarks
@@ -115,17 +105,14 @@ textures/emtown/thisway
 
 	{
 		detail
-		map textures/emtown/thisway.tga
-		blendFunc filter
-		//blendFunc GL_SRC_ALPHA GL_ONE // blendfunc add the alphamasked part only
-		//blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
-		//rgbGen Vertex
+		map textures/emtown/thisway
+		blendFunc blend
 	}
 }
 
 textures/emtown/lightwhite
 {
-	qer_editorimage textures/8x8/fafad2.tga
+	qer_editorimage textures/8x8/fafad2
 	q3map_surfacelight   400
 	surfaceparm	nomarks
 	surfaceparm	nolightmap
@@ -133,13 +120,13 @@ textures/emtown/lightwhite
 	surfaceparm nonsolid
 	cull none
 	{
-		clampmap textures/8x8/fafad2.tga
+		clampmap textures/8x8/fafad2
 	}
 }
 
 textures/emtown/lightf4a460
 {
-	qer_editorimage textures/8x8/f4a460.tga
+	qer_editorimage textures/8x8/f4a460
 	q3map_surfacelight   400
 	surfaceparm	nomarks
 	surfaceparm	nolightmap
@@ -147,14 +134,14 @@ textures/emtown/lightf4a460
 	surfaceparm nonsolid
 	cull none
 	{
-		clampmap textures/8x8/f4a460.tga
+		clampmap textures/8x8/f4a460
 	}
 }
 
 textures/grates/fence01nolightmap
 {
 	qer_trans 0.5
-	qer_editorimage textures/grates/fence01.tga
+	qer_editorimage textures/grates/fence01
 	surfaceparm trans
 	surfaceparn nolightmap
 	surfaceparm nomarks
@@ -166,35 +153,15 @@ textures/grates/fence01nolightmap
 	q3map_forceMeta
 	q3map_lightmapsamplesize 64
 
-	if deluxe
 	{
-		material textures/grates/fence01.tga textures/grates/fence01_norm.tga
-		alphaFunc GE128
-		blendFunc blend
-		depthWrite
+		map textures/grates/fence01
+		alphatest 0.5
 	}
-	endif
-
-	if ! deluxe
-	{
-		map textures/grates/fence01.tga
-		blendfunc blend
-		alphaFunc GE128
-		depthWrite
-	}
-
-	{
-		map $lightmap
-		rgbGen identity
-		blendFunc filter
-		depthFunc equal
-	}
-	endif
 }
 
 textures/emtown/red1nonsolid
 {
-	qer_editorimage textures/8x8/red1.tga
+	qer_editorimage textures/8x8/red1
 	surfaceparm nolightmap
 	surfaceparm nomarks
 	surfaceparm nodlight
@@ -204,10 +171,7 @@ textures/emtown/red1nonsolid
 
 	{
 		detail
-		map textures/8x8/red1.tga
-		//blendFunc filter
-		//blendFunc GL_SRC_ALPHA GL_ONE // blendfunc add the alphamasked part only
-		//blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		map textures/8x8/red1
 		rgbGen Vertex
 	}
 }

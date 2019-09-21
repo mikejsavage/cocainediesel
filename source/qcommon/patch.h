@@ -18,15 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#define PATCH_EVALUATE_DECL( type )                                       \
-	void Patch_Evaluate_ ## type                                          \
-		( const type * p, int *numcp, const int *tess, type * dest, int comp, int stride )
-
-PATCH_EVALUATE_DECL( vec_t );
-PATCH_EVALUATE_DECL( uint8_t );
-
-#define Patch_Evaluate( type,comp,p,numcp,tess,dest,stride )              \
-	Patch_Evaluate_ ## type( p,numcp,tess,dest,comp,stride )
+void Patch_Evaluate( int comp, const float * p, const int *numcp, const int *tess, float * dest, int stride );
 
 void Patch_GetFlatness( float maxflat, const float *points, int comp, const int *patch_cp, int *flat );
 

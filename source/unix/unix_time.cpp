@@ -1,49 +1,33 @@
-#include <sys/time.h>
-#include "../qcommon/qcommon.h"
+#include <time.h>
 
-/*
-* Sys_Microseconds
-*/
-static unsigned long sys_secbase;
-uint64_t Sys_Microseconds( void ) {
-	struct timeval tp;
+#include "qcommon/types.h"
 
-	gettimeofday( &tp, NULL );
+static bool time_set = false;
+static u64 base_usec;
 
-	if( !sys_secbase ) {
-		sys_secbase = tp.tv_sec;
-		return tp.tv_usec;
+void Sys_InitTime() { }
+
+u64 Sys_Microseconds() {
+	struct timespec ts;
+	clock_gettime( CLOCK_MONOTONIC, &ts );
+
+	u64 usec = u64( ts.tv_sec ) * 1000000 + u64( ts.tv_nsec ) / 1000;
+
+	if( !time_set ) {
+		base_usec = usec;
+		time_set = true;
 	}
 
-	// TODO handle the wrap
-	return (uint64_t)( tp.tv_sec - sys_secbase ) * 1000000 + tp.tv_usec;
+	return usec - base_usec;
 }
 
-/*
-* Sys_Milliseconds
-*/
-int64_t Sys_Milliseconds( void ) {
+s64 Sys_Milliseconds() {
 	return Sys_Microseconds() / 1000;
 }
 
-/*
-* Sys_XTimeToSysTime
-*
-* Sub-frame timing of events returned by X
-* Ported from Quake III Arena source code.
-*/
-int Sys_XTimeToSysTime( unsigned long xtime ) {
-	int ret, time, test;
-
-	// some X servers (like suse 8.1's) report weird event times
-	// if the game is loading, resolving DNS, etc. we are also getting old events
-	// so we only deal with subframe corrections that look 'normal'
-	ret = xtime - (unsigned long)( sys_secbase * 1000 );
-	time = Sys_Milliseconds();
-	test = time - ret;
-
-	if( test < 0 || test > 30 ) { // in normal conditions I've never seen this go above
-		return time;
-	}
-	return ret;
+bool Sys_FormatTime( char * buf, size_t buf_size, const char * fmt ) {
+	time_t now = time( NULL );
+	struct tm tm;
+	localtime_r( &now, &tm );
+	return strftime( buf, buf_size, fmt, &tm ) != 0;
 }

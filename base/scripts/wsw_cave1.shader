@@ -1,20 +1,19 @@
 textures/wsw_cave1/stairs1
 {
-	qer_editorimage textures/wsw_cave1/stairs1.tga
+	qer_editorimage textures/wsw_cave1/stairs1
 	surfaceparm nomarks
 	cull none
 	sort alphatest
 
 	{
 		material
-		alphafunc GE128
-		depthwrite
+		alphatest 0.5
 	}
 }
 
 textures/wsw_cave1/scratchedmetal1
 {
-	qer_editorimage textures/wsw_cave1/scratchedmetal1.tga
+	qer_editorimage textures/wsw_cave1/scratchedmetal1
 	surfaceparm nomarks
 	cull none
 
@@ -22,7 +21,7 @@ textures/wsw_cave1/scratchedmetal1
 		map $lightmap
 	}
 	{
-		map textures/wsw_cave1/scratchedmetal1.tga
+		map textures/wsw_cave1/scratchedmetal1
 		blendfunc filter
 	}
 }

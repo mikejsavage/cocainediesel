@@ -1,5 +1,3 @@
-precache gfx/hud/damage
-
 setColor 0.8 0 0 1
 
 if %DAMAGE_INDICATOR_LEFT > 0

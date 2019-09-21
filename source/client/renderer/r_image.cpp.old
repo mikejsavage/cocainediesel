@@ -1,0 +1,26 @@
+static void R_InitParticleTexture( int *w, int *h, int *flags, int *samples ) {
+	int x, y;
+	int dx2, dy, d;
+	float dd2;
+	uint8_t *data;
+
+	//
+	// particle texture
+	//
+	*w = *h = 16;
+	*flags = IT_NOMIPMAP | IT_SRGB;
+	*samples = 4;
+
+	data = R_PrepareImageBuffer( TEXTURE_LOADING_BUF, 16 * 16 * 4 );
+	for( x = 0; x < 16; x++ ) {
+		dx2 = x - 8;
+		dx2 = dx2 * dx2;
+
+		for( y = 0; y < 16; y++ ) {
+			dy = y - 8;
+			dd2 = dx2 + dy * dy;
+			d = 255 - 35 * sqrt( dd2 );
+			data[( y * 16 + x ) * 4 + 3] = bound( 0, d, 255 );
+		}
+	}
+}

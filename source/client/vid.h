@@ -39,4 +39,3 @@ bool VID_AppIsActive( void );
 bool VID_AppIsMinimized( void );
 int VID_GetWindowWidth( void );
 int VID_GetWindowHeight( void );
-float VID_GetPixelRatio( void );

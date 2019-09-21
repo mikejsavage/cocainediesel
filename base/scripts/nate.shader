@@ -8,16 +8,15 @@ models/mapobjects/nateleaf1/tree2
 	surfaceparm nolightmap
 
 	{
-		map models/mapobjects/nateleaf1/tree2.tga
-		alphaFunc GE128
-		depthWrite
+		map models/mapobjects/nateleaf1/tree2
+		alphatest 0.5
 		rgbGen vertex
 	}
 }
 
 textures/natestah/nateswater
 {
-	qer_editorimage textures/natestah/nateswater.tga
+	qer_editorimage textures/natestah/nateswater
 	surfaceparm nonsolid
 	surfaceparm trans
 	surfaceparm water
@@ -26,7 +25,7 @@ textures/natestah/nateswater
 	qer_trans 0.5
 	q3map_globaltexture
 	{
-		map textures/natestah/nateswater.tga
+		map textures/natestah/nateswater
 		blendfunc add
 		rgbGen identity
 		tcMod scale 0.5 0.5

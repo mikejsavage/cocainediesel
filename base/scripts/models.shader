@@ -7,7 +7,7 @@ models/weapons/electrobolt/electrobolt
 	cull front
 
 	{
-		material models/weapons/electrobolt/electrobolt.tga
+		map models/weapons/electrobolt/electrobolt
 		rgbgen entity
 		alphagen entity
 	}
@@ -17,8 +17,8 @@ models/weapons/electrobolt/electrobolt_fx
 {
 	cull disable
 	{
-		map models/weapons/electrobolt/electrobolt_fx.tga
-		blendFunc GL_ONE GL_ONE
+		map models/weapons/electrobolt/electrobolt_fx
+		blendFunc add
 		rgbGen wave sin 0.5 0.5 0 0.5
 	}
 }
@@ -27,7 +27,7 @@ models/weapons/electrobolt/electrobolt_fx_1
 	cull disable
 	//deformVertexes autosprite2
 	{
-		animmap 15 models/weapons/electrobolt/electrobolt_fx_1.tga models/weapons/electrobolt/electrobolt_fx_2.tga models/weapons/electrobolt/electrobolt_fx_3.tga models/weapons/electrobolt/electrobolt_fx_4.tga models/weapons/electrobolt/electrobolt_fx_5.tga models/weapons/electrobolt/electrobolt_fx_6.tga models/weapons/electrobolt/electrobolt_fx_7.tga models/weapons/electrobolt/electrobolt_fx_8.tga
+		animmap 15 models/weapons/electrobolt/electrobolt_fx_1 models/weapons/electrobolt/electrobolt_fx_2 models/weapons/electrobolt/electrobolt_fx_3 models/weapons/electrobolt/electrobolt_fx_4 models/weapons/electrobolt/electrobolt_fx_5 models/weapons/electrobolt/electrobolt_fx_6 models/weapons/electrobolt/electrobolt_fx_7 models/weapons/electrobolt/electrobolt_fx_8
 		blendfunc add
 	}
 }
@@ -37,7 +37,7 @@ models/weapons/glauncher/glauncher
 	cull front
 
 	{
-		material models/weapons/glauncher/glauncher.tga models/weapons/glauncher/glauncher_norm.tga models/weapons/glauncher/glauncher_gloss.tga
+		map models/weapons/glauncher/glauncher
 		rgbgen entity
 	}
 }
@@ -46,8 +46,8 @@ models/weapons/glauncher/glauncher_fx
 {
 	cull disable
 	{
-		map models/weapons/glauncher/glauncher_fx.tga
-		blendFunc GL_ONE GL_ONE
+		map models/weapons/glauncher/glauncher_fx
+		blendFunc add
 		rgbGen wave sin 0.5 0.5 0 0.5
 	}
 }
@@ -57,7 +57,7 @@ models/weapons/plasmagun/plasmagun
 	cull front
 
 	{
-		material models/weapons/plasmagun/plasmagun.tga
+		map models/weapons/plasmagun/plasmagun
 		rgbgen entity
 	}
 }
@@ -66,8 +66,8 @@ models/weapons/plasmagun/plasmagun_fx
 {
 	cull disable
 	{
-		map models/weapons/plasmagun/plasmagun_fx.tga
-		blendFunc GL_ONE GL_ONE
+		map models/weapons/plasmagun/plasmagun_fx
+		blendFunc add
 		rgbGen wave sin 0.5 0.5 0 0.5
 	}
 }
@@ -77,7 +77,7 @@ models/weapons/riotgun/riotgun
 	cull front
 
 	{
-		material models/weapons/riotgun/riotgun.tga
+		map models/weapons/riotgun/riotgun
 		rgbgen entity
 	}
 }
@@ -87,7 +87,7 @@ models/weapons/gunblade/gunblade
 	cull front
 
 	{
-		material models/weapons/gunblade/gunblade.tga
+		map models/weapons/gunblade/gunblade
 		rgbgen entity
 	}
 }
@@ -98,7 +98,7 @@ models/weapons/gunblade/barrel
 	cull front
 
 	{
-		material models/weapons/gunblade/barrel.tga
+		map models/weapons/gunblade/barrel
 		rgbgen entity
 	}
 }
@@ -108,7 +108,7 @@ models/weapons/machinegun/machinegun
 	cull front
 
 	{
-		material models/weapons/machinegun/machinegun.tga
+		map models/weapons/machinegun/machinegun
 		rgbgen entity
 	}
 }
@@ -118,7 +118,7 @@ models/weapons/rlauncher/rlauncher
 	cull front
 
 	{
-		material models/weapons/rlauncher/rlauncher.tga
+		map models/weapons/rlauncher/rlauncher
 		rgbgen entity
 	}
 }
@@ -127,8 +127,8 @@ models/weapons/rlauncher/rlauncher_fx
 {
 	cull disable
 	{
-		map models/weapons/rlauncher/rlauncher_fx.tga
-		blendFunc GL_ONE GL_ONE
+		map models/weapons/rlauncher/rlauncher_fx
+		blendFunc add
 		rgbGen wave sin 0.5 0.5 0 0.5
 	}
 }
@@ -137,7 +137,7 @@ models/weapons/lasergun/lasergun
 	cull front
 
 	{
-		material models/weapons/lasergun/lasergun.tga
+		map models/weapons/lasergun/lasergun
 		rgbgen entity
 	}
 }
@@ -146,13 +146,13 @@ models/weapons/lg_fx
 {
 	cull disable
 	{
-		map models/weapons/lg_fx.tga
-		blendFunc GL_ONE GL_ONE
+		map models/weapons/lg_fx
+		blendFunc add
 		tcmod scroll -2 0
 	}
 	{
-		map models/weapons/lg_fx.tga
-		blendFunc GL_ONE GL_ONE
+		map models/weapons/lg_fx
+		blendFunc add
 		tcmod scroll 2 0
 	}
 }
@@ -166,9 +166,8 @@ models/objects/projectile/plasmagun/plnew
 	//sort additive
 	cull disable
 	{
-		map models/objects/projectile/plasmagun/plnew.tga
+		map models/objects/projectile/plasmagun/plnew
 		blendFunc add
-		//blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
 		tcmod rotate -150
 	}
 }
@@ -177,7 +176,7 @@ models/objects/projectile/glauncher/grenadegradstrong
 {
 	cull disable
 	{
-		map models/objects/projectile/glauncher/grenadegradstrong.tga
+		map models/objects/projectile/glauncher/grenadegradstrong
 		blendFunc add
 		rgbGen wave triangle .07 .1 0 5
 		tcmod scroll 0.2 0
@@ -187,7 +186,7 @@ models/objects/projectile/glauncher/grenadegradstrong
 models/objects/projectile/glauncher/grenadestrong
 {
 	{
-		map models/objects/projectile/glauncher/grenadestrong.tga
+		map models/objects/projectile/glauncher/grenadestrong
 	}
 }
 
@@ -196,8 +195,8 @@ models/objects/projectile/glauncher/grenadestrong_flare
 	//deformVertexes autosprite
 	cull none
 	{
-		map models/objects/projectile/glauncher/grenadestrong_flare.tga
-		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		map models/objects/projectile/glauncher/grenadestrong_flare
+		blendFunc blend
 	}
 }
 
@@ -206,7 +205,7 @@ models/objects/projectile/rlauncher/rocket_strong
 	sort additive
 	cull disable
 	{
-		map models/objects/projectile/rlauncher/rocket_strong.tga
+		map models/objects/projectile/rlauncher/rocket_strong
 		blendFunc add
 		rgbGen entity
 		tcmod rotate -360
@@ -218,7 +217,7 @@ models/objects/projectile/rlauncher/rocket_flare_2
 	sort additive
 	cull disable
 	{
-		map models/objects/projectile/rlauncher/rocket_flare_2.tga
+		map models/objects/projectile/rlauncher/rocket_flare_2
 		blendFunc add
 		rgbGen wave triangle .1 .1 0 1
 		tcmod scroll 3.2 0
@@ -229,7 +228,7 @@ models/objects/projectile/rlauncher/rocketgradstrong
 {
 	cull disable
 	{
-		map models/objects/projectile/rlauncher/rocketgradstrong.tga
+		map models/objects/projectile/rlauncher/rocketgradstrong
 		blendFunc add
 		rgbGen wave triangle .01 .15 0 20
 		tcmod scroll 0.2 0
@@ -242,7 +241,7 @@ models/objects/projectile/lasergun/laserbeam
 	cull none
 	deformVertexes autosprite2
 	{
-		map models/objects/projectile/lasergun/laserbeam.tga
+		map models/objects/projectile/lasergun/laserbeam
 		blendFunc add
 		tcMod scroll 6 0
 	}
@@ -267,7 +266,7 @@ models/v_weapons/generic/f_generic
 	cull disable
 	softParticle
 	{
-		map models/weapons/generic/f_generic.tga
+		map models/weapons/generic/f_generic
 		rgbgen entity
 		tcmod rotate 90
 		blendFunc add
@@ -280,7 +279,7 @@ models/weapons/plasmagun/f_plasma
 	cull disable
 	softParticle
 	{
-		map models/weapons/plasmagun/f_plasma.tga
+		map models/weapons/plasmagun/f_plasma
 		rgbgen entity
 		tcmod rotate 90
 		blendFunc add
@@ -293,7 +292,7 @@ models/weapons/plasmagun/f_plasma_2
 	//deformVertexes autosprite2
 	softParticle
 	{
-		map models/weapons/plasmagun/f_plasma_2.tga
+		map models/weapons/plasmagun/f_plasma_2
 		rgbgen entity
 		blendFunc add
 	}
@@ -305,12 +304,12 @@ models/weapons/glauncher/f_glaunch
 	cull disable
 	softParticle
 	{
-		map models/weapons/glauncher/f_glaunch.tga
+		map models/weapons/glauncher/f_glaunch
 		rgbgen entity
 		blendFunc add
 	}
 	{
-		map models/weapons/glauncher/f_glaunch_spark.tga
+		map models/weapons/glauncher/f_glaunch_spark
 		rgbgen entity
 		tcMod stretch sawtooth .65 .3 0 8
 		blendFunc add
@@ -322,7 +321,7 @@ models/weapons/glauncher/f_glaunch_2
 	cull disable
 	softParticle
 	{
-		map models/weapons/glauncher/f_glaunch_2.tga
+		map models/weapons/glauncher/f_glaunch_2
 		rgbgen entity
 		blendfunc add
 	}
@@ -333,7 +332,7 @@ models/weapons/glauncher/f_glaunch_3
 	cull disable
 	softParticle
 	{
-		map models/weapons/glauncher/f_glaunch_2.tga
+		map models/weapons/glauncher/f_glaunch_2
 		rgbgen entity
 		blendfunc add
 	}
@@ -344,12 +343,12 @@ models/weapons/riotgun/f_riot
 	cull disable
 	softParticle
 	{
-		map models/weapons/riotgun/f_riot.tga
+		map models/weapons/riotgun/f_riot
 		rgbgen entity
 		blendfunc add
 	}
 	{
-		map models/weapons/riotgun/f_riot_spark.tga
+		map models/weapons/riotgun/f_riot_spark
 		rgbgen entity
 		tcMod stretch sawtooth .65 .3 0 8
 		blendFunc add
@@ -361,7 +360,7 @@ models/weapons/riotgun/f_riot_2
 	cull disable
 	softParticle
 	{
-		map models/weapons/riotgun/f_riot_2.tga
+		map models/weapons/riotgun/f_riot_2
 		rgbgen entity
 		blendfunc add
 	}
@@ -372,7 +371,7 @@ models/weapons/riotgun/f_riot_3
 	cull disable
 	softParticle
 	{
-		map models/weapons/riotgun/f_riot_3.tga
+		map models/weapons/riotgun/f_riot_3
 		rgbgen entity
 		blendfunc add
 	}
@@ -383,13 +382,13 @@ models/weapons/gunblade/f_gunblade
 	cull disable
 	softParticle
 	{
-		map models/weapons/gunblade/f_gunblade.tga
+		map models/weapons/gunblade/f_gunblade
 		rgbgen entity
 		tcmod rotate 200
 		blendFunc add
 	}
 	{
-		map models/weapons/gunblade/f_gunblade_1.tga
+		map models/weapons/gunblade/f_gunblade_1
 		rgbgen entity
 		tcmod rotate -175
 		blendFunc add
@@ -401,7 +400,7 @@ models/weapons/gunblade/f_gunblade_2
 	cull disable
 	softParticle
 	{
-		map models/weapons/gunblade/f_gunblade_2.tga
+		map models/weapons/gunblade/f_gunblade_2
 		rgbgen entity
 		blendfunc add
 	}
@@ -413,7 +412,7 @@ models/weapons/rlauncher/f_rlaunch
 	cull disable
 	softParticle
 	{
-		map models/weapons/rlauncher/f_rlaunch.tga
+		map models/weapons/rlauncher/f_rlaunch
 		rgbgen entity
 		//tcmod rotate 90
 		blendFunc add
@@ -427,7 +426,7 @@ models/weapons/rlauncher/f_rlaunch_2
 	//deformVertexes autosprite2
 	softParticle
 	{
-		map models/weapons/rlauncher/f_rlaunch_2.tga
+		map models/weapons/rlauncher/f_rlaunch_2
 		rgbgen entity
 		blendFunc add
 	}
@@ -439,7 +438,7 @@ models/weapons/electrobolt/f_electrobolt
 	cull disable
 	softParticle
 	{
-		map models/weapons/electrobolt/f_electro.tga
+		map models/weapons/electrobolt/f_electro
 		rgbgen entity
 		tcmod rotate 90
 		blendFunc add
@@ -453,7 +452,7 @@ models/weapons/electrobolt/f_electrobolt_2
 	//deformVertexes autosprite2
 	softParticle
 	{
-		map models/weapons/electrobolt/f_electro_2.tga
+		map models/weapons/electrobolt/f_electro_2
 		rgbgen entity
 		blendFunc add
 	}
@@ -464,7 +463,7 @@ models/weapons/electrobolt/f_electrobolt_3
 	cull disable
 	softParticle
 	{
-		animMap 6 models/weapons/electrobolt/f_electro_3.tga models/weapons/electrobolt/f_electro_4.tga models/weapons/electrobolt/f_electro_5.tga models/weapons/electrobolt/f_electro_6.tga
+		animMap 6 models/weapons/electrobolt/f_electro_3 models/weapons/electrobolt/f_electro_4 models/weapons/electrobolt/f_electro_5 models/weapons/electrobolt/f_electro_6
 		rgbgen entity
 		blendfunc add
 	}
@@ -476,7 +475,7 @@ models/weapons/lasergun/f_laser
 	cull disable
 	softParticle
 	{
-		map models/weapons/lasergun/f_laser.tga
+		map models/weapons/lasergun/f_laser
 		rgbgen entity
 		tcmod rotate 180
 		blendFunc add
@@ -488,7 +487,7 @@ models/weapons/lasergun/f_laser_2
 	cull disable
 	softParticle
 	{
-		map models/weapons/lasergun/f_laser_2.tga
+		map models/weapons/lasergun/f_laser_2
 		rgbgen entity
 		tcmod scroll 0 3
 		blendFunc add
@@ -502,7 +501,7 @@ models/weapons/machinegun/machinegun_flash
 	softParticle
 	//deformVertexes wave 20 noise 5 5 0 15
 	{
-		animMap 6 models/weapons/machinegun/machinegun_flash_1.tga models/weapons/machinegun/machinegun_flash_2.tga models/weapons/machinegun/machinegun_flash_3.tga models/weapons/machinegun/machinegun_flash_4.tga
+		animMap 6 models/weapons/machinegun/machinegun_flash_1 models/weapons/machinegun/machinegun_flash_2 models/weapons/machinegun/machinegun_flash_3 models/weapons/machinegun/machinegun_flash_4
 		rgbgen entity
 		blendfunc add
 	}
@@ -514,10 +513,8 @@ models/objects/debris/debris_template
 	cull front
 
 	{
-		map models/objects/debris/debris$1.tga
+		map models/objects/debris/debris$1
 	}
-
-	blendFunc filter
 }
 
 models/objects/debris/debris1

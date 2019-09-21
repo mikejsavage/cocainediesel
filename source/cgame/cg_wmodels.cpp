@@ -303,7 +303,6 @@ static void CG_ComputeWeaponInfoTags( weaponinfo_t *weaponinfo ) {
 
 	// try getting the tag_flash from the weapon model
 	entity_t ent = { };
-	ent.rtype = RT_MODEL;
 	ent.scale = 1.0f;
 	ent.model = weaponinfo->model[WEAPMODEL_WEAPON];
 
@@ -319,7 +318,7 @@ static bool CG_WeaponModelUpdateRegistration( weaponinfo_t *weaponinfo, char *fi
 	for( int p = 0; p < VWEAP_MAXPARTS; p++ ) {
 		if( !weaponinfo->model[p] ) {
 			Q_snprintfz( scratch, sizeof( scratch ), "models/weapons/%s%s.md3", filename, wmPartSufix[p] );
-			weaponinfo->model[p] = CG_RegisterModel( scratch );
+			weaponinfo->model[p] = FindModel( scratch );
 		}
 	}
 
@@ -498,9 +497,6 @@ static void CG_AddWeaponFlashOnTag( entity_t *weapon, const weaponinfo_t *weapon
 	Vector4Set( flash.shaderRGBA, c, c, c, c );
 	flash.model = weaponInfo->model[WEAPMODEL_FLASH];
 	flash.scale = weapon->scale;
-	flash.renderfx = weapon->renderfx | RF_NOSHADOW;
-	flash.frame = 0;
-	flash.oldframe = 0;
 
 	CG_PlaceModelOnTag( &flash, weapon, &tag );
 
@@ -533,8 +529,6 @@ static void CG_AddWeaponBarrelOnTag( entity_t *weapon, const weaponinfo_t *weapo
 	barrel.model = weaponInfo->model[WEAPMODEL_BARREL];
 	barrel.scale = weapon->scale;
 	barrel.renderfx = weapon->renderfx;
-	barrel.frame = 0;
-	barrel.oldframe = 0;
 
 	// rotation
 	if( barrel_time > cg.time ) {
@@ -553,8 +547,6 @@ static void CG_AddWeaponBarrelOnTag( entity_t *weapon, const weaponinfo_t *weapo
 
 	if( !( effects & EF_RACEGHOST ) )
 		CG_AddEntityToScene( &barrel );
-
-	CG_AddShellEffects( &barrel, effects );
 }
 
 /*
@@ -573,8 +565,6 @@ void CG_AddWeaponOnTag( entity_t *ent, const orientation_t *tag, int weaponid, i
 	Vector4Set( weapon.shaderRGBA, 255, 255, 255, ent->shaderRGBA[3] );
 	weapon.scale = ent->scale;
 	weapon.renderfx = ent->renderfx;
-	weapon.frame = 0;
-	weapon.oldframe = 0;
 	weapon.model = weaponInfo->model[WEAPMODEL_WEAPON];
 
 	CG_PlaceModelOnTag( &weapon, ent, tag );
@@ -588,8 +578,6 @@ void CG_AddWeaponOnTag( entity_t *ent, const orientation_t *tag, int weaponid, i
 	if( !weapon.model ) {
 		return;
 	}
-
-	CG_AddShellEffects( &weapon, effects );
 
 	// update projection source
 	if( projectionSource != NULL ) {

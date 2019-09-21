@@ -4,17 +4,38 @@
 
 template< typename T >
 class DynamicArray {
+	Allocator * a;
+	size_t n;
+	size_t capacity;
+	T * elems;
+	bool auto_destruct;
+
 public:
 	NONCOPYABLE( DynamicArray );
 
+	DynamicArray( NoInit ) {
+		auto_destruct = false;
+	}
+
 	DynamicArray( Allocator * a_, size_t initial_capacity = 0 ) {
+		init( a_, initial_capacity );
+		auto_destruct = true;
+	}
+
+	~DynamicArray() {
+		if( auto_destruct ) {
+			shutdown();
+		}
+	}
+
+	void init( Allocator * a_, size_t initial_capacity = 0 ) {
 		a = a_;
 		n = 0;
 		capacity = initial_capacity;
 		elems = capacity == 0 ? NULL : ALLOC_MANY( a, T, capacity );
 	}
 
-	~DynamicArray() {
+	void shutdown() {
 		FREE( a, elems );
 	}
 
@@ -64,10 +85,14 @@ public:
 		return elems[ i ];
 	}
 
-	T & try_get( size_t i, T def ) const {
-		if( i >= n )
-			return def;
-		return elems[ i ];
+	T & top() {
+		assert( n > 0 );
+		return elems[ n - 1 ];
+	}
+
+	const T & top() const {
+		assert( n > 0 );
+		return elems[ n - 1 ];
 	}
 
 	T * ptr() { return elems; }
@@ -80,9 +105,6 @@ public:
 	const T * begin() const { return elems; }
 	const T * end() const { return elems + n; }
 
-private:
-	Allocator * a;
-	size_t n;
-	size_t capacity;
-	T * elems;
+	Span< T > span() { return Span< T >( elems, n ); }
+	Span< const T > span() const { return Span< const T >( elems, n ); }
 };

@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,7 +123,7 @@ struct ScopeExit {
 
 struct DeferHelper {
 	template< typename F >
-		ScopeExit< F > operator+( F f ) { return f; }
+	ScopeExit< F > operator+( F f ) { return f; }
 };
 
 #define defer const auto & COUNTER_NAME( DEFER_ ) = DeferHelper() + [&]()
@@ -140,10 +141,11 @@ extern Allocator * sys_allocator;
 void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, const char * func, const char * file, int line );
 void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t new_n, size_t size, size_t alignment, const char * func, const char * file, int line );
 
-#define ALLOC( a, size, alignment ) ( a )->allocate( size, alignment, __PRETTY_FUNCTION__, __FILE__, __LINE__ )
+#define ALLOC_SIZE( a, size, alignment ) ( a )->allocate( size, alignment, __PRETTY_FUNCTION__, __FILE__, __LINE__ )
 #define REALLOC( a, ptr, current_size, new_size, alignment ) ( a )->reallocate( ptr, current_size, new_size, alignment, __PRETTY_FUNCTION__, __FILE__, __LINE__ )
 #define FREE( a, p ) a->deallocate( p, __PRETTY_FUNCTION__, __FILE__, __LINE__ )
 
+#define ALLOC( a, T ) ( ( T * ) ( a )->allocate( sizeof( T ), alignof( T ), __PRETTY_FUNCTION__, __FILE__, __LINE__ ) )
 #define ALLOC_MANY( a, T, n ) ( ( T * ) AllocManyHelper( a, checked_cast< size_t >( n ), sizeof( T ), alignof( T ), __PRETTY_FUNCTION__, __FILE__, __LINE__ ) )
 #define REALLOC_MANY( a, T, ptr, current_n, new_n ) ( ( T * ) ReallocManyHelper( a, ptr, checked_cast< size_t >( current_n ), checked_cast< size_t >( new_n ), sizeof( T ), alignof( T ), __PRETTY_FUNCTION__, __FILE__, __LINE__ ) )
 #define ALLOC_SPAN( a, T, n ) Span< T >( ALLOC_MANY( a, T, n ), n )
@@ -157,6 +159,30 @@ const char * TempAllocator::operator()( const char * fmt, const Rest & ... rest 
 }
 
 /*
+ * Span< const char >
+ */
+
+void format( FormatBuffer * fb, Span< const char > arr, const FormatOpts & opts );
+
+template< size_t N >
+bool operator==( Span< const char > span, const char ( &str )[ N ] ) {
+	if( span.n != N )
+		return false;
+	return memcmp( span.ptr, str, N ) == 0;
+}
+
+template< size_t N > bool operator==( const char ( &str )[ N ], Span< const char > span ) { return span == str; }
+template< size_t N > bool operator!=( Span< const char > span, const char ( &str )[ N ] ) { return !( span == str ); }
+template< size_t N > bool operator!=( const char ( &str )[ N ], Span< const char > span ) { return !( span == str ); }
+
+/*
+ * NoInit
+ */
+
+enum class NoInit { NoInit };
+constexpr NoInit NO_INIT = NoInit::NoInit;
+
+/*
  * breaks
  */
 
@@ -168,6 +194,10 @@ extern bool break4;
 /*
  * colors
  */
+
+constexpr Vec4 vec4_white = Vec4( 1, 1, 1, 1 );
+constexpr Vec4 vec4_black = Vec4( 0, 0, 0, 1 );
+constexpr Vec4 vec4_red = Vec4( 1, 0, 0, 1 );
 
 constexpr RGBA8 rgba8_white = RGBA8( 255, 255, 255, 255 );
 constexpr RGBA8 rgba8_black = RGBA8( 0, 0, 0, 255 );

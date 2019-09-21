@@ -62,7 +62,7 @@ typedef struct weaponinfo_s {
 	char name[MAX_QPATH];
 	bool inuse;
 
-	struct model_s *model[VWEAP_MAXPARTS]; // one weapon consists of several models
+	const Model *model[VWEAP_MAXPARTS]; // one weapon consists of several models
 
 	int firstframe[VWEAP_MAXANIMS];         // animation script
 	int lastframe[VWEAP_MAXANIMS];
@@ -144,7 +144,7 @@ struct PlayerModelMetadata {
 
 	char * name;
 
-	struct model_s * model;
+	const Model * model;
 	const SoundAsset * sounds[ PlayerSound_Count ];
 
 	u8 upper_rotator_joints[ 2 ];
@@ -184,7 +184,6 @@ extern pmodel_t cg_entPModels[MAX_EDICTS];      //a pmodel handle for each cg_en
 //
 
 //utils
-void CG_AddShellEffects( entity_t *ent, int effects );
 bool CG_GrabTag( orientation_t *tag, entity_t *ent, const char *tagname );
 void CG_PlaceModelOnTag( entity_t *ent, entity_t *dest, const orientation_t *tag );
 void CG_PlaceRotatedModelOnTag( entity_t *ent, entity_t *dest, orientation_t *tag );
@@ -201,7 +200,7 @@ void CG_PModelsShutdown( void );
 void CG_ResetPModels( void );
 void CG_RegisterBasePModel( void );
 PlayerModelMetadata *CG_RegisterPlayerModel( const char *filename );
-void CG_AddPModel( centity_t *cent );
+void CG_DrawPlayer( centity_t * cent );
 bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result );
 void CG_UpdatePlayerModelEnt( centity_t *cent );
 void CG_PModel_AddAnimation( int entNum, int loweranim, int upperanim, int headanim, int channel );

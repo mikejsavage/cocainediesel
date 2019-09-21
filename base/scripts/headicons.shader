@@ -2,7 +2,7 @@ gfx/hud/icons/vsay/onoffense
 {
 	cull none
 	{
-		map gfx/hud/icons/vsay/onoffense.tga
+		map gfx/hud/icons/vsay/onoffense
 		blendfunc blend
 	}
 }
@@ -11,7 +11,7 @@ gfx/hud/icons/vsay/yes
 {
 	cull none
 	{
-		map gfx/hud/icons/vsay/yes.tga
+		map gfx/hud/icons/vsay/yes
 		blendfunc blend
 	}
 }

@@ -41,7 +41,7 @@ void SP_spikes( edict_t * spikes ) {
 	spikes->s.angles[ PITCH ] += 90;
 	vec3_t forward, right, up;
 	AngleVectors( spikes->s.angles, forward, right, up );
-	
+
 	vec3_t mins, maxs;
 	VectorSet( mins, 0, 0, 0 );
 	VectorSet( maxs, 0, 0, 0 );
@@ -56,7 +56,7 @@ void SP_spikes( edict_t * spikes ) {
 		spikes->r.maxs[ i ] = max( mins[ i ], maxs[ i ] );
 	}
 
-	spikes->s.modelindex = trap_ModelIndex( "models/objects/spikes/spikes.glb" );
+	spikes->s.modelindex = trap_ModelIndex( "models/objects/spikes/spikes" );
 	spikes->s.type = ET_SPIKES;
 
 	spikes->touch = SpikesTouched;
@@ -67,6 +67,6 @@ void SP_spikes( edict_t * spikes ) {
 	base->r.svflags &= ~SVF_NOCLIENT;
 	VectorCopy( spikes->s.origin, base->s.origin );
 	VectorCopy( spikes->s.angles, base->s.angles );
-	base->s.modelindex = trap_ModelIndex( "models/objects/spikes/base.glb" );
+	base->s.modelindex = trap_ModelIndex( "models/objects/spikes/base" );
 	GClip_LinkEntity( base );
 }

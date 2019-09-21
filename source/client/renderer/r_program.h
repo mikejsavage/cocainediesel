@@ -24,7 +24,6 @@ typedef uint64_t r_glslfeat_t;
 #define GLSL_BIT( x )                           ( 1ULL << ( x ) )
 #define GLSL_BITS_VERSION                       22
 
-#define DEFAULT_GLSL_MATERIAL_PROGRAM           "material"
 #define DEFAULT_GLSL_OUTLINE_PROGRAM            "outline"
 #define DEFAULT_GLSL_Q3A_SHADER_PROGRAM         "q3AShader"
 #define DEFAULT_GLSL_COLORCORRECTION_PROGRAM    "colorCorrection"
@@ -34,7 +33,6 @@ typedef uint64_t r_glslfeat_t;
 // program types
 enum {
 	GLSL_PROGRAM_TYPE_NONE,
-	GLSL_PROGRAM_TYPE_MATERIAL,
 	GLSL_PROGRAM_TYPE_OUTLINE,
 	GLSL_PROGRAM_TYPE_Q3A_SHADER,
 	GLSL_PROGRAM_TYPE_COLOR_CORRECTION,
@@ -45,7 +43,7 @@ enum {
 };
 
 // features common for all program types
-#define GLSL_SHADER_COMMON_GREYSCALE            GLSL_BIT( 0 )
+// #define GLSL_SHADER_COMMON_GREYSCALE            GLSL_BIT( 0 )
 
 #define GLSL_SHADER_COMMON_RGB_GEN_VERTEX       GLSL_BIT( 1 )
 #define GLSL_SHADER_COMMON_RGB_DISTANCERAMP     GLSL_BIT( 2 )
@@ -75,20 +73,6 @@ enum {
 #define GLSL_SHADER_COMMON_LINEAR2SRB           GLSL_BIT( 16 )
 
 #define GLSL_SHADER_COMMON_SKINNED              GLSL_BIT( 17 )
-
-// material program type features
-#define GLSL_SHADER_MATERIAL_SPECULAR           GLSL_BIT( 32 )
-#define GLSL_SHADER_MATERIAL_DIRECTIONAL_LIGHT  GLSL_BIT( 33 )
-#define GLSL_SHADER_MATERIAL_DECAL              GLSL_BIT( 34 )
-#define GLSL_SHADER_MATERIAL_DECAL_ADD          GLSL_BIT( 35 )
-#define GLSL_SHADER_MATERIAL_BASETEX_ALPHA_ONLY GLSL_BIT( 36 )
-#define GLSL_SHADER_MATERIAL_ENTITY_DECAL       GLSL_BIT( 37 )
-#define GLSL_SHADER_MATERIAL_ENTITY_DECAL_ADD   GLSL_BIT( 38 )
-
-// q3a shader features
-#define GLSL_SHADER_Q3_TC_GEN_ENV               GLSL_BIT( 32 )
-#define GLSL_SHADER_Q3_TC_GEN_VECTOR            GLSL_BIT( 33 )
-#define GLSL_SHADER_Q3_ALPHA_MASK               GLSL_BIT( 34 )
 
 // outlines
 #define GLSL_SHADER_OUTLINE_OUTLINES_CUTOFF     GLSL_BIT( 32 )

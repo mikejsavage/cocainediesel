@@ -738,7 +738,7 @@ void CG_Event_Jump( entity_state_t *state, int parm ) {
 void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 	vec3_t dir;
 	bool viewer = ISVIEWERENTITY( ent->number );
-	int weapon = 0, count = 0;
+	int count = 0;
 
 	if( viewer && ( ev < PREDICTABLE_EVENTS_MAX ) && ( predicted != cg.view.playerPrediction ) ) {
 		return;
@@ -751,9 +751,9 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 
 		//  PREDICTABLE EVENTS
 
-		case EV_WEAPONACTIVATE:
-			CG_PModel_AddAnimation( ent->number, 0, TORSO_WEAPON_SWITCHIN, 0, EVENT_CHANNEL );
-			weapon = ( parm >> 1 ) & 0x3f;
+		case EV_WEAPONACTIVATE: {
+			int weapon = ( parm >> 1 ) & 0x3f;
+			bool silent = ( parm & 1 ) != 0;
 			if( predicted ) {
 				cg_entities[ent->number].current.weapon = weapon;
 				CG_ViewWeapon_RefreshAnimation( &cg.weapon );
@@ -767,16 +767,20 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 			cg_entPModels[ent->number].flash_time = 0;
 			cg_entPModels[ent->number].barrel_time = 0;
 
-			if( viewer ) {
-				S_StartGlobalSound( cgs.media.sfxWeaponUp, CHAN_AUTO, cg_volume_effects->value );
-			} else {
-				S_StartFixedSound( cgs.media.sfxWeaponUp, ent->origin, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+			if( !silent ) {
+				CG_PModel_AddAnimation( ent->number, 0, TORSO_WEAPON_SWITCHIN, 0, EVENT_CHANNEL );
+
+				if( viewer ) {
+					S_StartGlobalSound( cgs.media.sfxWeaponUp, CHAN_AUTO, cg_volume_effects->value );
+				} else {
+					S_StartFixedSound( cgs.media.sfxWeaponUp, ent->origin, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+				}
 			}
-			break;
+		} break;
 
 		case EV_SMOOTHREFIREWEAPON: // the server never sends this event
 			if( predicted ) {
-				weapon = ( parm >> 1 ) & 0x3f;
+				int weapon = ( parm >> 1 ) & 0x3f;
 
 				cg_entities[ent->number].current.weapon = weapon;
 
@@ -793,8 +797,8 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 			}
 			break;
 
-		case EV_FIREWEAPON:
-			weapon = ( parm >> 1 ) & 0x3f;
+		case EV_FIREWEAPON: {
+			int weapon = ( parm >> 1 ) & 0x3f;
 
 			if( predicted ) {
 				cg_entities[ent->number].current.weapon = weapon;
@@ -821,7 +825,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 					CG_Event_FireMachinegun( origin, dir, weapon, cg.predictedPlayerState.POVnum );
 				}
 			}
-			break;
+		} break;
 
 		case EV_ELECTROTRAIL:
 			// check the owner for predicted case

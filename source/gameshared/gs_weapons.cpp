@@ -231,13 +231,19 @@ int GS_ThinkPlayerWeapon( player_state_t *playerState, int buttons, int msecs, i
 			goto done;
 		}
 
+		bool had_weapon_before = playerState->stats[STAT_WEAPON] != WEAP_NONE;
 		playerState->stats[STAT_WEAPON] = playerState->stats[STAT_PENDING_WEAPON];
 
 		// update the firedef
 		firedef = GS_FiredefForPlayerState( playerState, playerState->stats[STAT_WEAPON] );
 		playerState->weaponState = WEAPON_STATE_ACTIVATING;
 		playerState->stats[STAT_WEAPON_TIME] += firedef->weaponup_time;
-		gs.api.PredictedEvent( playerState->POVnum, EV_WEAPONACTIVATE, playerState->stats[STAT_WEAPON]<<1 );
+
+		int parm = playerState->stats[STAT_WEAPON] << 1;
+		if( !had_weapon_before )
+			parm |= 1;
+
+		gs.api.PredictedEvent( playerState->POVnum, EV_WEAPONACTIVATE, parm );
 	}
 
 	if( playerState->weaponState == WEAPON_STATE_ACTIVATING ) {

@@ -18,16 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "g_local.h"
-
-char scoreboardString[MAX_STRING_CHARS];
-const unsigned int scoreboardInterval = 1000;
-
-//======================================================================
-//
-//PLAYER SCOREBOARDS
-//
-//======================================================================
+#include "qcommon/string.h"
+#include "game/g_local.h"
 
 /*
 * G_ClientUpdateScoreBoardMessage
@@ -35,138 +27,36 @@ const unsigned int scoreboardInterval = 1000;
 * Show the scoreboard messages if the scoreboards are active
 */
 void G_UpdateScoreBoardMessages( void ) {
-	static int nexttime = 0;
-	int i;
-	edict_t *ent;
-	gclient_t *client;
-	bool forcedUpdate = false;
-	char command[MAX_STRING_CHARS];
-	size_t maxlen, staticlen;
+	char as_scoreboard[ 1024 ];
+	GT_asCallScoreboardMessage( as_scoreboard, sizeof( as_scoreboard ) );
 
-	// fixme : mess of copying
-	maxlen = MAX_STRING_CHARS - ( strlen( "scb \"\"" + 4 ) );
+	String< 1024 > scoreboard( "scb \"{}", as_scoreboard );
 
-	GT_asCallScoreboardMessage( maxlen );
+	// add spectators
+	scoreboard.append( " {}", teamlist[ TEAM_SPECTATOR ].numplayers );
+	for( int i = 0; i < teamlist[TEAM_SPECTATOR].numplayers; i++ ) {
+		const edict_t * e = game.edicts + teamlist[TEAM_SPECTATOR].playerIndices[i];
+		scoreboard.append( " {}", PLAYERNUM( e ) );
+	}
 
-	G_ScoreboardMessage_AddSpectators();
-
-	staticlen = strlen( scoreboardString );
-
-update:
+	scoreboard += '"';
 
 	// send to players who have scoreboard visible
-	for( i = 0; i < gs.maxclients; i++ ) {
-		ent = game.edicts + 1 + i;
+	for( int i = 0; i < gs.maxclients; i++ ) {
+		edict_t * ent = game.edicts + 1 + i;
 		if( !ent->r.inuse || !ent->r.client ) {
 			continue;
 		}
 
-		client = ent->r.client;
+		gclient_t * client = ent->r.client;
 
 		if( game.realtime <= client->level.scoreboard_time + scoreboardInterval ) {
 			continue;
 		}
 
-		if( forcedUpdate || ( client->ps.stats[STAT_LAYOUTS] & STAT_LAYOUT_SCOREBOARD ) ) {
-			scoreboardString[staticlen] = '\0';
-			Q_snprintfz( command, sizeof( command ), "scb \"%s\"", scoreboardString );
-
+		if( client->ps.stats[STAT_LAYOUTS] & STAT_LAYOUT_SCOREBOARD ) {
 			client->level.scoreboard_time = game.realtime + scoreboardInterval - ( game.realtime % scoreboardInterval );
-			trap_GameCmd( ent, command );
-		}
-	}
-
-	if( !forcedUpdate ) {
-		// every 10 seconds, send everyone the scoreboard
-		nexttime -= game.snapFrameTime;
-		if( nexttime > 0 ) {
-			return;
-		}
-
-		do {
-			nexttime += 10000;
-		} while( nexttime <= 0 );
-
-		forcedUpdate = true;
-		goto update;
-	}
-}
-
-/*
-* G_ScoreboardMessage_AddSpectators
-* generic one to add the same spectator entries to all scoreboards
-*/
-#define ADD_SCOREBOARD_ENTRY( scoreboardString,len,entry ) \
-    \
-	if( SCOREBOARD_MSG_MAXSIZE - len > strlen( entry ) ) \
-	{ \
-		Q_strncatz( scoreboardString, entry, sizeof( scoreboardString ) ); \
-		len = strlen( scoreboardString ); \
-	} \
-	else \
-	{ \
-		return; \
-	}
-
-void G_ScoreboardMessage_AddSpectators( void ) {
-	char entry[MAX_TOKEN_CHARS];
-	int i, clstate;
-	edict_t *e;
-	edict_t **challengers;
-	size_t len;
-
-	len = strlen( scoreboardString );
-	if( !len ) {
-		return;
-	}
-
-	if( GS_HasChallengers() && ( challengers = G_Teams_ChallengersQueue() ) != NULL ) {
-		// add the challengers
-		Q_strncpyz( entry, "&w ", sizeof( entry ) );
-		ADD_SCOREBOARD_ENTRY( scoreboardString, len, entry );
-
-		for( i = 0; challengers[i]; i++ ) {
-			e = challengers[i];
-
-			//spectator tab entry
-			if( !( e->r.client->connecting == true || trap_GetClientState( PLAYERNUM( e ) ) < CS_SPAWNED ) ) {
-				Q_snprintfz( entry, sizeof( entry ), "%i %i ",
-							 PLAYERNUM( e ),
-							 e->r.client->r.ping > 999 ? 999 : e->r.client->r.ping );
-				ADD_SCOREBOARD_ENTRY( scoreboardString, len, entry );
-			}
-		}
-	}
-
-	// add spectator team
-	Q_strncpyz( entry, "&s ", sizeof( entry ) );
-	ADD_SCOREBOARD_ENTRY( scoreboardString, len, entry );
-
-	for( i = 0; i < teamlist[TEAM_SPECTATOR].numplayers; i++ ) {
-		e = game.edicts + teamlist[TEAM_SPECTATOR].playerIndices[i];
-
-		if( e->r.client->connecting == true || trap_GetClientState( PLAYERNUM( e ) ) < CS_SPAWNED ) {
-			continue;
-		}
-
-		if( !e->r.client->queueTimeStamp ) {
-			// not in challenger queue
-			Q_snprintfz( entry, sizeof( entry ), "%i %i ",
-						 PLAYERNUM( e ),
-						 e->r.client->r.ping > 999 ? 999 : e->r.client->r.ping );
-			ADD_SCOREBOARD_ENTRY( scoreboardString, len, entry );
-		}
-	}
-
-	// add connecting spectators
-	for( i = 0; i < teamlist[TEAM_SPECTATOR].numplayers; i++ ) {
-		e = game.edicts + teamlist[TEAM_SPECTATOR].playerIndices[i];
-
-		// spectator tab entry
-		clstate = trap_GetClientState( PLAYERNUM( e ) );
-		if( e->r.client->connecting == true || ( clstate >= CS_CONNECTED && clstate < CS_SPAWNED ) ) {
-			Q_snprintfz( entry, sizeof( entry ), "%i %i ", PLAYERNUM( e ), -1 );
-			ADD_SCOREBOARD_ENTRY( scoreboardString, len, entry );
+			trap_GameCmd( ent, scoreboard.c_str() );
 		}
 	}
 }

@@ -1,15 +1,13 @@
-#include "client.h"
+#include "client/client.h"
 #include "qcommon/version.h"
-#include "gameshared/gs_public.h"
-
-#include "sdl/sdl_window.h"
+#include "qcommon/string.h"
+#include "client/sdl/sdl_window.h"
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_freetype.h"
 #include "imgui/imgui_internal.h"
-#include "imgui/imgui_impl_sdl.h"
 
-extern SDL_Window * sdl_window;
+#include "cgame/cg_local.h"
 
 enum UIState {
 	UIState_Hidden,
@@ -47,9 +45,6 @@ struct Server {
 	const char * address;
 	const char * info;
 };
-
-static ImFont * large_font;
-static ImFont * console_font;
 
 static Server servers[ 1024 ];
 static int num_servers = 0;
@@ -91,38 +86,13 @@ static void RefreshServerBrowser() {
 }
 
 void UI_Init() {
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGui_ImplSDL2_InitForOpenGL( sdl_window, NULL );
-
 	{
 		ImGuiIO & io = ImGui::GetIO();
-		io.IniFilename = NULL;
-		io.KeyMap[ ImGuiKey_Tab ] = K_TAB;
-		io.KeyMap[ ImGuiKey_LeftArrow ] = K_LEFTARROW;
-		io.KeyMap[ ImGuiKey_RightArrow ] = K_RIGHTARROW;
-		io.KeyMap[ ImGuiKey_UpArrow ] = K_UPARROW;
-		io.KeyMap[ ImGuiKey_DownArrow ] = K_DOWNARROW;
-		io.KeyMap[ ImGuiKey_PageUp ] = K_PGUP;
-		io.KeyMap[ ImGuiKey_PageDown ] = K_PGDN;
-		io.KeyMap[ ImGuiKey_Home ] = K_HOME;
-		io.KeyMap[ ImGuiKey_End ] = K_END;
-		io.KeyMap[ ImGuiKey_Insert ] = K_INS;
-		io.KeyMap[ ImGuiKey_Delete ] = K_DEL;
-		io.KeyMap[ ImGuiKey_Backspace ] = K_BACKSPACE;
-		io.KeyMap[ ImGuiKey_Space ] = K_SPACE;
-		io.KeyMap[ ImGuiKey_Enter ] = K_ENTER;
-		io.KeyMap[ ImGuiKey_Escape ] = K_ESCAPE;
-		io.KeyMap[ ImGuiKey_A ] = 'a';
-		io.KeyMap[ ImGuiKey_C ] = 'c';
-		io.KeyMap[ ImGuiKey_V ] = 'v';
-		io.KeyMap[ ImGuiKey_X ] = 'x';
-		io.KeyMap[ ImGuiKey_Y ] = 'y';
-		io.KeyMap[ ImGuiKey_Z ] = 'z';
-
-		io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 16.0f );
-		large_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 64.0f );
-		console_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 14.0f );
+		io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 18.0f );
+		cls.huge_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 128.0f );
+		cls.large_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 64.0f );
+		cls.medium_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 48.0f );
+		cls.console_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 14.0f );
 		ImGuiFreeType::BuildFontAtlas( io.Fonts );
 
 		u8 * pixels;
@@ -141,6 +111,7 @@ void UI_Init() {
 		style.FrameBorderSize = 0;
 		style.WindowPadding = ImVec2( 16, 16 );
 		style.WindowBorderSize = 0;
+		style.PopupBorderSize = 0;
 		style.Colors[ ImGuiCol_WindowBg ] = ImColor( 0x1a, 0x1a, 0x1a );
 		style.ItemSpacing.y = 8;
 	}
@@ -151,11 +122,6 @@ void UI_Init() {
 	mainmenu_state = MainMenuState_ServerBrowser;
 
 	reset_video_settings = true;
-}
-
-void UI_Shutdown() {
-	ImGui_ImplSDL2_Shutdown();
-	ImGui::DestroyContext();
 }
 
 void UI_TouchAllAssets() {
@@ -675,7 +641,7 @@ static void MainMenu() {
 	ImGui::BeginChild( "mainmenubody", ImVec2( 0, -ImGui::GetFrameHeightWithSpacing() + window_padding.y ) );
 
 	ImGui::SetCursorPosX( 2 + 2 * sinf( cls.monotonicTime / 20.0f ) );
-	ImGui::PushFont( large_font );
+	ImGui::PushFont( cls.large_font );
 	ImGui::Text( "COCAINE DIESEL" );
 	ImGui::PopFont();
 
@@ -934,69 +900,6 @@ static void DemoMenu() {
 	ImGui::PopStyleColor();
 }
 
-static void SubmitDrawCalls() {
-	ImDrawData * draw_data = ImGui::GetDrawData();
-
-	ImGuiIO& io = ImGui::GetIO();
-	int fb_width = int( draw_data->DisplaySize.x * io.DisplayFramebufferScale.x );
-	int fb_height = int( draw_data->DisplaySize.y * io.DisplayFramebufferScale.y );
-	if( fb_width <= 0 || fb_height <= 0 )
-		return;
-	draw_data->ScaleClipRects( io.DisplayFramebufferScale );
-
-	ImVec2 pos = draw_data->DisplayPos;
-	for( int n = 0; n < draw_data->CmdListsCount; n++ ) {
-		TempAllocator temp = cls.frame_arena->temp();
-
-		const ImDrawList * cmd_list = draw_data->CmdLists[n];
-		u16 idx_buffer_offset = 0;
-
-		vec4_t * verts = ALLOC_MANY( &temp, vec4_t, cmd_list->VtxBuffer.Size );
-		vec2_t * uvs = ALLOC_MANY( &temp, vec2_t, cmd_list->VtxBuffer.Size );
-		byte_vec4_t * colors = ALLOC_MANY( &temp, byte_vec4_t, cmd_list->VtxBuffer.Size );
-
-		for( int i = 0; i < cmd_list->VtxBuffer.Size; i++ ) {
-			const ImDrawVert & v = cmd_list->VtxBuffer.Data[ i ];
-			verts[ i ][ 0 ] = v.pos.x;
-			verts[ i ][ 1 ] = v.pos.y;
-			verts[ i ][ 2 ] = 0;
-			verts[ i ][ 3 ] = 1;
-			uvs[ i ][ 0 ] = v.uv.x;
-			uvs[ i ][ 1 ] = v.uv.y;
-			memcpy( &colors[ i ], &v.col, sizeof( byte_vec4_t ) );
-		}
-
-		Span< u16 > indices = ALLOC_SPAN( &temp, u16, cmd_list->IdxBuffer.Size );
-		memcpy( indices.ptr, cmd_list->IdxBuffer.Data, indices.num_bytes() );
-
-		for( int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++ ) {
-			const ImDrawCmd * pcmd = &cmd_list->CmdBuffer[cmd_i];
-			if( pcmd->UserCallback ) {
-				pcmd->UserCallback( cmd_list, pcmd );
-			}
-			else {
-				ImVec4 clip_rect = ImVec4( pcmd->ClipRect.x - pos.x, pcmd->ClipRect.y - pos.y, pcmd->ClipRect.z - pos.x, pcmd->ClipRect.w - pos.y );
-				if( clip_rect.x < fb_width && clip_rect.y < fb_height && clip_rect.z >= 0.0f && clip_rect.w >= 0.0f ) {
-					re.Scissor( int( clip_rect.x ), int( clip_rect.y ), int( clip_rect.z - clip_rect.x ), int( clip_rect.w - clip_rect.y ) );
-
-					poly_t poly = { };
-					poly.numverts = cmd_list->VtxBuffer.Size;
-					poly.verts = verts;
-					poly.stcoords = uvs;
-					poly.colors = colors;
-					poly.numelems = pcmd->ElemCount;
-					poly.elems = indices.ptr + idx_buffer_offset;
-					poly.shader = ( shader_s * ) pcmd->TextureId;
-					R_DrawDynamicPoly( &poly );
-				}
-			}
-			idx_buffer_offset += pcmd->ElemCount;
-		}
-	}
-
-	re.ResetScissor();
-}
-
 void UI_Refresh() {
 	MICROPROFILE_SCOPEI( "Main", "UI_Refresh", 0xffffffff );
 
@@ -1004,9 +907,6 @@ void UI_Refresh() {
 		pressed_key = -1;
 		return;
 	}
-
-	ImGui_ImplSDL2_NewFrame( sdl_window );
-	ImGui::NewFrame();
 
 	if( uistate == UIState_MainMenu ) {
 		MainMenu();
@@ -1030,16 +930,9 @@ void UI_Refresh() {
 		DemoMenu();
 	}
 
-	// ImGui::ShowDemoWindow();
-
 	if( Con_IsVisible() ) {
-		ImGui::PushFont( console_font );
 		Con_Draw( pressed_key );
-		ImGui::PopFont();
 	}
-
-	ImGui::Render();
-	SubmitDrawCalls();
 
 	Cbuf_Execute();
 

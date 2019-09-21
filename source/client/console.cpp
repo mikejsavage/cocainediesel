@@ -1,5 +1,7 @@
-#include "client.h"
+#include "client/client.h"
+#include "qcommon/string.h"
 #include "qcommon/utf8.h"
+
 #include "imgui/imgui.h"
 
 // TODO: revamp key_dest garbage
@@ -123,17 +125,6 @@ static void Con_Append( const char * str, size_t len ) {
 		console.scroll_to_bottom = true;
 }
 
-static const char * FindNextColorToken( const char * str, char * token ) {
-	const char * p = str;
-	while( ( p = StrChrUTF8( p, Q_COLOR_ESCAPE ) ) != NULL ) {
-		if( p[ 1 ] == Q_COLOR_ESCAPE || ( p[ 1 ] >= '0' && p[ 1 ] <= char( '0' + MAX_S_COLORS ) ) ) {
-			*token = p[ 1 ];
-			return p;
-		}
-		p++;
-	}
-	return NULL;
-}
 
 void Con_Print( const char * str ) {
 	if( console.mutex == NULL )
@@ -277,6 +268,7 @@ const char * NextChunkEnd( const char * str ) {
 void Con_Draw( int pressed_key ) {
 	QMutex_Lock( console.mutex );
 
+	ImGui::PushFont( cls.console_font );
 	ImGui::PushStyleColor( ImGuiCol_FrameBg, IM_COL32( 27, 24, 33, 224 ) );
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0, 0, 0, 0 ) );
 	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
@@ -285,6 +277,7 @@ void Con_Draw( int pressed_key ) {
 	ImGui::SetNextWindowPos( ImVec2() );
 	ImGui::SetNextWindowSize( ImVec2( viddef.width, viddef.height ) );
 	ImGui::Begin( "console", NULL, ImGuiWindowFlags_NoDecoration );
+
 	{
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 27, 24, 33, 224 ) );
 		ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8, 4 ) );
@@ -329,6 +322,7 @@ void Con_Draw( int pressed_key ) {
 		input_flags |= ImGuiInputTextFlags_EnterReturnsTrue;
 
 		ImGui::PushItemWidth( ImGui::GetWindowWidth() );
+		ImGui::SetKeyboardFocusHere();
 		bool enter = ImGui::InputText( "##consoleinput", console.input, sizeof( console.input ), input_flags, InputCallback );
 		// can't drag the scrollbar without this
 		if( !ImGui::IsAnyItemActive() )
@@ -350,6 +344,7 @@ void Con_Draw( int pressed_key ) {
 	ImGui::End();
 	ImGui::PopStyleVar( 3 );
 	ImGui::PopStyleColor( 2 );
+	ImGui::PopFont();
 
 	QMutex_Unlock( console.mutex );
 }

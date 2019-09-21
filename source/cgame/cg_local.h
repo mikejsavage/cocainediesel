@@ -214,10 +214,12 @@ typedef struct {
 
 	cgs_media_handle_t *shaderPlayerShadow;
 
-	cgs_media_handle_t *shaderTick;
-
 	cgs_media_handle_t *shaderWeaponIcon[WEAP_TOTAL];
 	cgs_media_handle_t *shaderKeyIcon[KEYICON_TOTAL];
+
+	cgs_media_handle_t *shaderAlive;
+	cgs_media_handle_t *shaderDead;
+	cgs_media_handle_t *shaderReady;
 } cgs_media_t;
 
 typedef struct {
@@ -540,8 +542,6 @@ void CG_Predict_TouchTriggers( pmove_t *pm, vec3_t previous_origin );
 //
 // cg_screen.c
 //
-extern cvar_t *cg_scoreboardStats;
-extern cvar_t *cg_scoreboardWidthScale;
 extern cvar_t *cg_showFPS;
 extern cvar_t *cg_showAwards;
 
@@ -596,12 +596,11 @@ void CG_DamageIndicatorAdd( int damage, const vec3_t dir );
 //
 // cg_scoreboard.c
 //
-void CG_DrawScoreboard( void );
-void CG_ScoresOn_f( void );
-void CG_ScoresOff_f( void );
-bool CG_ExecuteScoreboardTemplateLayout( char *s );
-void SCR_UpdateScoreboardMessage( const char *string );
-bool CG_IsScoreboardShown( void );
+void CG_DrawScoreboard();
+void CG_ScoresOn_f();
+void CG_ScoresOff_f();
+void SCR_UpdateScoreboardMessage( const char * string );
+bool CG_ScoreboardShown();
 
 //
 // cg_main.c

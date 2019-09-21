@@ -463,12 +463,9 @@ void bombGiveToRandom() {
 
 		cPlayer @player = @playerFromClient( @client );
 
-		if( !hasCarriers || player.isCarrier ) {
+		if( !hasCarriers || @ent == @bombCarrier ) {
 			if( seenCarriers == carrierIdx ) {
 				bombSetCarrier( @ent, true );
-
-				G_CenterPrintMsg( null, client.name + " has the bomb!" );
-
 				break;
 			}
 

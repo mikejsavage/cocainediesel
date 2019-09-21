@@ -29,8 +29,6 @@ const float CountdownInitialSwitchDelay = 0.1;
 
 const int MAX_HEALTH = 333;
 
-int deadIcon;
-int aliveIcon;
 int[] endMatchSounds;
 
 int crownModel;
@@ -738,98 +736,55 @@ Entity @GT_SelectSpawnPoint( Entity @self )
 	return @last_spawnposition;
 }
 
-String @GT_ScoreboardMessage( uint maxlen )
-{
-	String scoreboardMessage = "";
-	String entry;
-	Team @team;
-	Client @client;
-	int i, playerID;
+String @playerScoreboardMessage( Client @client ) {
+	int playerID = client.getEnt().isGhosting() ? -client.playerNum - 1 : client.playerNum;
+	int state = match.getState() == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : 0;
 
-	@team = @G_GetTeam( TEAM_PLAYERS );
+	return " " + playerID
+		+ " " + client.ping
+		+ " " + client.stats.score
+		+ " " + client.stats.frags
+		+ " " + state;
+}
 
-	// &t = team tab, team tag, team score (doesn't apply), team ping (doesn't apply)
-	entry = "&t " + int( TEAM_PLAYERS ) + " " + team.stats.score + " ";
-	if ( scoreboardMessage.len() + entry.len() < maxlen )
-		scoreboardMessage += entry;
+String @GT_ScoreboardMessage() {
+	int challengers = daRound.roundChallengers.size();
+	int loosers = daRound.roundLosers.size();
+
+	Team @team = @G_GetTeam( TEAM_PLAYERS );
+	String scoreboard = daRound.numRounds + " " + team.numPlayers;
 
 	// first add the players in the duel
-	for ( uint j = 0; j < daRound.roundChallengers.size(); j++ )
-	{
-		@client = @daRound.roundChallengers[j];
-		if ( @client != null )
-		{
-			if ( match.getState() != MATCH_STATE_PLAYTIME )
-				playerID = client.playerNum;
-			else
-				playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
-
-			entry = "&p " + aliveIcon + " "
-				+ playerID + " "
-				+ client.clanName + " "
-				+ client.stats.score + " "
-				+ client.ping + " "
-				+ ( client.isReady() ? "1" : "0" ) + " ";
-
-			if ( scoreboardMessage.len() + entry.len() < maxlen )
-				scoreboardMessage += entry;
+	for( int i = 0; i < challengers; i++ ) {
+		Client @client = @daRound.roundChallengers[i];
+		if( @client != null ) {
+			scoreboard += playerScoreboardMessage( client );
 		}
 	}
 
 	// then add the round losers
-	if ( daRound.state > DA_ROUNDSTATE_NONE && daRound.state < DA_ROUNDSTATE_POSTROUND && daRound.roundLosers.size() > 0 )
-	{
-		for ( int j = daRound.roundLosers.size()-1; j >= 0; j-- )
-		{
-			@client = @daRound.roundLosers[j];
-			if ( @client != null )
-			{
-				if ( match.getState() != MATCH_STATE_PLAYTIME )
-					playerID = client.playerNum;
-				else
-					playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
-
-				entry = "&p " + deadIcon + " "
-					+ playerID + " "
-					+ client.clanName + " "
-					+ client.stats.score + " "
-					+ client.ping + " "
-					+ ( client.isReady() ? "1" : "0" ) + " ";
-
-				if ( scoreboardMessage.len() + entry.len() < maxlen )
-					scoreboardMessage += entry;
+	if( daRound.state > DA_ROUNDSTATE_NONE && daRound.state < DA_ROUNDSTATE_POSTROUND && loosers > 0 ) {
+		for( int i = loosers - 1; i >= 0; i-- ) {
+			Client @client = @daRound.roundLosers[i];
+			if( @client != null ) {
+				scoreboard += playerScoreboardMessage( client );
 			}
 		}
 	}
 
 	// then add all the players in the queue
-	for ( i = 0; i < maxClients; i++ )
-	{
+	for( int i = 0; i < maxClients; i++ ) {
 		if ( daRound.daChallengersQueue[i] < 0 || daRound.daChallengersQueue[i] >= maxClients )
 			break;
 
-		@client = @G_GetClient( daRound.daChallengersQueue[i] );
+		Client @client = @G_GetClient( daRound.daChallengersQueue[i] );
 		if ( @client == null )
 			break;
 
-		if ( match.getState() != MATCH_STATE_PLAYTIME )
-			playerID = client.playerNum;
-		else
-			playerID = client.getEnt().isGhosting() ? -( client.playerNum + 1 ) : client.playerNum;
-
-		entry = "&p " + "0 "
-			+ playerID + " "
-			+ client.clanName + " "
-			+ client.stats.score + " "
-			+ client.ping + " "
-			+ ( client.isReady() ? "1" : "0" ) + " ";
-
-		if ( scoreboardMessage.len() + entry.len() < maxlen )
-			scoreboardMessage += entry;
-
+		scoreboard += playerScoreboardMessage( client );
 	}
 
-	return scoreboardMessage;
+	return scoreboard;
 }
 
 // Some game actions trigger score events. These are events not related to killing
@@ -1022,10 +977,6 @@ void GT_InitGametype()
 	for ( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ )
 		gametype.setTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
 
-	// define the scoreboard layout
-	G_ConfigString( CS_SCB_PLAYERTAB_LAYOUT, "%p l1 %n 112 %s 52 %i 52 %l 48 %r l1" );
-	G_ConfigString( CS_SCB_PLAYERTAB_TITLES, "\u00A0 Name Clan Score Ping R" );
-
 	// add commands
 	G_RegisterCommand( "gametype" );
 
@@ -1063,7 +1014,5 @@ void GT_InitGametype()
 	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/drillbit", true ) );
 	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/demo", true ) );
 
-	deadIcon = G_ImageIndex( "gfx/gladiator_icons/dead" );
-	aliveIcon = G_ImageIndex( "gfx/gladiator_icons/alive" );
 	crownModel = G_ModelIndex( "models/objects/crown.glb", true );
 }

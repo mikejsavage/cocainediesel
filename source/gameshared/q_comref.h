@@ -150,19 +150,16 @@ typedef struct {
 #define CS_GAMETYPENAME     6
 #define CS_AUTORECORDSTATE  7
 
-#define CS_SCB_PLAYERTAB_LAYOUT 8
-#define CS_SCB_PLAYERTAB_TITLES 9
+#define CS_TEAM_SPECTATOR_NAME 8
+#define CS_TEAM_PLAYERS_NAME 9
+#define CS_TEAM_ALPHA_NAME  10
+#define CS_TEAM_BETA_NAME   11
 
-#define CS_TEAM_SPECTATOR_NAME 10
-#define CS_TEAM_PLAYERS_NAME 11
-#define CS_TEAM_ALPHA_NAME  12
-#define CS_TEAM_BETA_NAME   13
+#define CS_MATCHNAME        12
+#define CS_MATCHSCORE       13
 
-#define CS_MATCHNAME        14
-#define CS_MATCHSCORE       15
-
-#define CS_ACTIVE_CALLVOTE  16
-#define CS_ACTIVE_CALLVOTE_VOTES 17
+#define CS_ACTIVE_CALLVOTE  14
+#define CS_ACTIVE_CALLVOTE_VOTES 15
 
 #define CS_WORLDMODEL       30
 #define CS_MAPCHECKSUM      31      // for catching cheater maps

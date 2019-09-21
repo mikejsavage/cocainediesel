@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cg_local.h"
+#include "client/ui.h"
 
 extern cvar_t *cg_clientHUD;
 extern cvar_t *cg_specHUD;
@@ -287,7 +288,7 @@ enum race_index {
 };
 
 static int CG_GetScoreboardShown( const void *parameter ) {
-	return CG_IsScoreboardShown() ? 1 : 0;
+	return CG_ScoreboardShown() ? 1 : 0;
 }
 
 typedef struct

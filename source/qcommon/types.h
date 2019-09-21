@@ -40,6 +40,9 @@ struct TempAllocator final : public Allocator {
 	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
 	void deallocate( void * ptr, const char * func, const char * file, int line );
 
+	template< typename... Rest >
+	const char * operator()( const char * fmt, const Rest & ... rest );
+
 private:
 	ArenaAllocator * arena;
 	u8 * old_cursor;

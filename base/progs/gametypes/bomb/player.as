@@ -59,8 +59,6 @@ class cPlayer {
 
 	bool dueToSpawn; // used for respawning during countdown
 
-	bool isCarrier;
-
 	cPlayer( Client @player ) {
 		@this.client = @player;
 
@@ -72,8 +70,6 @@ class cPlayer {
 		this.defuses = 0;
 
 		this.dueToSpawn = false;
-
-		this.isCarrier = false;
 
 		@players[player.playerNum] = @this;
 	}
@@ -198,10 +194,7 @@ uint getCarrierCount( int teamNum ) {
 	Team @team = @G_GetTeam( teamNum );
 
 	for( int i = 0; @team.ent( i ) != null; i++ ) {
-		Client @client = @team.ent( i ).client; // stupid AS...
-		cPlayer @player = @playerFromClient( @client );
-
-		if( player.isCarrier ) {
+		if( @team.ent( i ) == @bombCarrier ) {
 			count++;
 		}
 	}

@@ -154,21 +154,21 @@ void oneVsMsg( int teamNum, uint enemies ) {
 void setTeams() {
 	uint limit = cvarScoreLimit.integer;
 
-	bool even = roundCount % 2 == 0;
-
-	if( limit == 0 || roundCount >= ( limit - 1 ) * 2 ) {
-		attackingTeam = even ? INITIAL_ATTACKERS : INITIAL_DEFENDERS;
-		defendingTeam = even ? INITIAL_DEFENDERS : INITIAL_ATTACKERS;
+	if( limit == 0 || roundCount > ( limit - 1 ) * 2 ) {
+		// overtime starts with round 2n + 1, which is odd
+		bool odd = roundCount % 2 == 1;
+		attackingTeam = odd ? INITIAL_ATTACKERS : INITIAL_DEFENDERS;
+		defendingTeam = odd ? INITIAL_DEFENDERS : INITIAL_ATTACKERS;
 		return;
 	}
 
-	bool first_half = roundCount < limit - 1;
+	bool first_half = roundCount < limit;
 	attackingTeam = first_half ? INITIAL_ATTACKERS : INITIAL_DEFENDERS;
 	defendingTeam = first_half ? INITIAL_DEFENDERS : INITIAL_ATTACKERS;
 }
 
 void newGame() {
-	roundCount = 0;
+	roundCount = 1;
 	setTeams();
 
 	for( int t = TEAM_PLAYERS; t < GS_MAX_TEAMS; t++ ) {
@@ -328,7 +328,6 @@ void roundNewState( uint state ) {
 			roundStateEndTime = levelTime + 3000; // XXX: old bomb did +5s but i don't see the point
 
 			roundCount++;
-
 			break;
 	}
 }

@@ -235,9 +235,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define UI_SHADER_LOADINGLOGO       "ui/baseui/gfx/logo"
 #define UI_SHADER_LOADINGBAR        "gfx/ui/loadingbar"
 
-// vsay icons
-#define PATH_VSAY_YES_ICON          "gfx/hud/icons/vsay/yes"
-
 // vsay sounds
 #define S_VSAY_AFFIRMATIVE          "sounds/vsay/affirmative"
 #define S_VSAY_NEGATIVE             "sounds/vsay/negative"

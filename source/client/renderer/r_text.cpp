@@ -3,6 +3,7 @@
 
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
+#include "qcommon/array.h"
 #include "qcommon/string.h"
 #include "qcommon/utf8.h"
 #include "qcommon/hash.h"

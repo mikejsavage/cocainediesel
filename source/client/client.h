@@ -35,6 +35,7 @@
 
 typedef struct shader_s shader_t;
 typedef struct qfontface_s qfontface_t;
+struct ImFont;
 
 //=============================================================================
 
@@ -261,6 +262,11 @@ typedef struct {
 	purelist_t *purelist;
 
 	char session[MAX_INFO_VALUE];
+
+	ImFont * huge_font;
+	ImFont * large_font;
+	ImFont * medium_font;
+	ImFont * console_font;
 } client_static_t;
 
 extern client_static_t cls;
@@ -460,3 +466,15 @@ void CL_Profiler_InitGL();
 void CL_Profiler_ShutdownGL();
 
 void CL_Profiler_Flip();
+
+//
+// cl_imgui
+//
+
+void CL_InitImGui();
+void CL_ShutdownImGui();
+void CL_ImGuiBeginFrame();
+void CL_ImGuiEndFrame();
+
+struct DynamicString;
+void CL_ImGuiExpandColorTokens( DynamicString * result, const char * original, u8 alpha );

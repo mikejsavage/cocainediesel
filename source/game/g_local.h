@@ -360,7 +360,7 @@ void GT_asCallThinkRules( void );
 void GT_asCallPlayerKilled( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point, int mod );
 void GT_asCallPlayerRespawn( edict_t *ent, int old_team, int new_team );
 void GT_asCallScoreEvent( gclient_t *client, const char *score_event, const char *args );
-void GT_asCallScoreboardMessage( unsigned int maxlen );
+void GT_asCallScoreboardMessage( char * buf, size_t buf_size );
 edict_t *GT_asCallSelectSpawnPoint( edict_t *ent );
 bool GT_asCallGameCommand( gclient_t *client, const char *cmd, const char *args, int argc );
 bool GT_asCallBotStatus( edict_t *ent );
@@ -708,10 +708,7 @@ void G_ClientDamageFeedback( edict_t *ent );
 // p_hud.c
 //
 
-//scoreboards string
-extern char scoreboardString[MAX_STRING_CHARS];
-extern const unsigned int scoreboardInterval;
-#define SCOREBOARD_MSG_MAXSIZE ( MAX_STRING_CHARS - 8 ) //I know, I know, doesn't make sense having a bigger string than the maxsize value
+constexpr unsigned int scoreboardInterval = 1000;
 
 void G_SetClientStats( edict_t *ent );
 void G_Snap_UpdateWeaponListMessages( void );

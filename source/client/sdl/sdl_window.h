@@ -1,8 +1,9 @@
 #pragma once
 
-#include <stddef.h>
+#include "qcommon/types.h"
 
-#include "qcommon/ggformat.h"
+struct SDL_Window;
+extern SDL_Window * sdl_window;
 
 enum FullScreenMode {
 	FullScreenMode_Windowed,

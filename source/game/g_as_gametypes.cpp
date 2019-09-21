@@ -225,14 +225,11 @@ void GT_asCallScoreEvent( gclient_t *client, const char *score_event, const char
 	game.asExport->asStringRelease( s2 );
 }
 
-//"String @GT_ScoreboardMessage( uint maxlen )"
-// The result is stored in scoreboardString.
-void GT_asCallScoreboardMessage( unsigned int maxlen ) {
+//"String @GT_ScoreboardMessage()"
+void GT_asCallScoreboardMessage( char * buf, size_t buf_size ) {
 	asstring_t *string;
 	int error;
 	asIScriptContext *ctx;
-
-	scoreboardString[0] = 0;
 
 	if( !level.gametype.scoreboardMessageFunc ) {
 		return;
@@ -245,9 +242,6 @@ void GT_asCallScoreboardMessage( unsigned int maxlen ) {
 		return;
 	}
 
-	// Now we need to pass the parameters to the script function.
-	ctx->SetArgDWord( 0, maxlen );
-
 	error = ctx->Execute();
 	if( G_ExecutionErrorReport( error ) ) {
 		GT_asShutdownScript();
@@ -258,7 +252,7 @@ void GT_asCallScoreboardMessage( unsigned int maxlen ) {
 		return;
 	}
 
-	Q_strncpyz( scoreboardString, string->buffer, sizeof( scoreboardString ) );
+	Q_strncpyz( buf, string->buffer, buf_size );
 }
 
 //"Entity @GT_SelectSpawnPoint( Entity @ent )"
@@ -431,7 +425,7 @@ static bool G_asInitializeGametypeScript( asIScriptModule *asModule ) {
 		funcCount++;
 	}
 
-	fdeclstr = "String @GT_ScoreboardMessage( uint maxlen )";
+	fdeclstr = "String @GT_ScoreboardMessage()";
 	level.gametype.scoreboardMessageFunc = asModule->GetFunctionByDecl( fdeclstr );
 	if( !level.gametype.scoreboardMessageFunc ) {
 		if( developer->integer || sv_cheats->integer ) {

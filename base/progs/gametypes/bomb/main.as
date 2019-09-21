@@ -145,20 +145,14 @@ bool GT_Command( Client @client, const String &cmdString, const String &argsStri
 
 		if( token.len() != 0 ) {
 			if( token.toInt() == 1 ) {
-				player.isCarrier = true;
-
 				G_PrintMsg( @client.getEnt(), "You are now a bomb carrier!\n" );
 			}
 			else {
-				player.isCarrier = false;
-
 				G_PrintMsg( @client.getEnt(), "You are no longer a bomb carrier.\n" );
 			}
 		}
 		else {
-			player.isCarrier = !player.isCarrier;
-
-			if( player.isCarrier ) {
+			if( @client.getEnt() == @bombCarrier ) {
 				G_PrintMsg( @client.getEnt(), "You are now a bomb carrier!\n" );
 			}
 			else {
@@ -201,52 +195,33 @@ Entity @GT_SelectSpawnPoint( Entity @self ) {
 	return GENERIC_SelectBestRandomSpawnPoint( @self, "team_CTF_alphaspawn" );
 }
 
-String @GT_ScoreboardMessage( uint maxlen ) {
-	String scoreboardMessage = "";
-	int matchState = match.getState();
+String @teamScoreboardMessage( int t ) {
+	Team @team = @G_GetTeam( t );
 
-	for( int t = TEAM_ALPHA; t < GS_MAX_TEAMS; t++ ) {
-		Team @team = @G_GetTeam( t );
+	String players = "";
 
-		String entry = "&t " + t + " " + team.stats.score + " ";
+	for( int i = 0; @team.ent( i ) != null; i++ ) {
+		Entity @ent = @team.ent( i );
+		Client @client = @ent.client;
 
-		if( scoreboardMessage.len() + entry.len() < maxlen ) {
-			scoreboardMessage += entry;
-		}
+		cPlayer @player = @playerFromClient( @client );
 
-		for( int i = 0; @team.ent( i ) != null; i++ ) {
-			Entity @ent = @team.ent( i );
-			Client @client = @ent.client;
+		bool warmup = match.getState() == MATCH_STATE_WARMUP;
+		int state = warmup ? ( client.isReady() ? 1 : 0 ) : ( @ent == @bombCarrier ? 1 : 0 );
+		int playerId = ent.isGhosting() ? -( ent.playerNum + 1 ) : ent.playerNum;
 
-			cPlayer @player = @playerFromClient( @client );
-
-			int statusIcon = 0;
-
-			if( matchState == MATCH_STATE_PLAYTIME ) {
-				statusIcon = player.isCarrier ? iconCarrier : 0;
-			}
-			else if( matchState == MATCH_STATE_WARMUP && client.isReady() ) {
-				statusIcon = iconReady;
-			}
-
-			int playerId = ent.isGhosting() && matchState == MATCH_STATE_PLAYTIME ? -( ent.playerNum + 1 ) : ent.playerNum;
-
-			// Name Clan Score Frags W1 W2 W3 Ping R
-			entry = "&p " + playerId
-				+ " " + client.clanName
-				+ " " + client.stats.score
-				+ " " + client.stats.frags
-				+ " " + client.ping
-				+ " " + statusIcon
-				+ " "; // don't delete me!
-
-			if( scoreboardMessage.len() + entry.len() < maxlen ) {
-				scoreboardMessage += entry;
-			}
-		}
+		players += " " + playerId
+			+ " " + client.ping
+			+ " " + client.stats.score
+			+ " " + client.stats.frags
+			+ " " + state;
 	}
 
-	return scoreboardMessage;
+	return team.stats.score + " " + team.numPlayers + players;
+}
+
+String @GT_ScoreboardMessage() {
+	return roundCount + " " + teamScoreboardMessage( TEAM_ALPHA ) + " " + teamScoreboardMessage( TEAM_BETA );
 }
 
 void GT_updateScore( Client @client ) {
@@ -542,10 +517,6 @@ void GT_InitGametype() {
 	for( int t = TEAM_PLAYERS; t < GS_MAX_TEAMS; t++ ) {
 		gametype.setTeamSpawnsystem( t, SPAWNSYSTEM_INSTANT, 0, 0, false );
 	}
-
-	// define the scoreboard layout
-	G_ConfigString( CS_SCB_PLAYERTAB_LAYOUT, "%n 112 %s 52 %i 42 %i 42 %l 36 %p l1" );
-	G_ConfigString( CS_SCB_PLAYERTAB_TITLES, "Name Clan Score Frags Ping " + S_COLOR_WHITE );
 
 	// add commands
 	G_RegisterCommand( "drop" );

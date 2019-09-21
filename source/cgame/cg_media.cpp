@@ -273,7 +273,7 @@ void CG_RegisterMediaShaders( void ) {
 	cgs.media.shaderBloodImpactPuff = CG_RegisterMediaShader( "gfx/misc/bloodimpact_puff" );
 	cgs.media.shaderTeamMateIndicator = CG_RegisterMediaShader( "gfx/indicators/teammate_indicator" );
 	cgs.media.shaderTeamCarrierIndicator = CG_RegisterMediaShader( "gfx/indicators/teamcarrier_indicator" );
-	cgs.media.shaderBombIcon = CG_RegisterMediaShader( "gfx/bomb/carriericon" );
+	cgs.media.shaderBombIcon = CG_RegisterMediaShader( "gfx/bomb" );
 	cgs.media.shaderTeleportShellGfx = CG_RegisterMediaShader( "gfx/misc/teleportshell" );
 
 	cgs.media.shaderBladeMark = CG_RegisterMediaShader( "gfx/decals/d_blade_hit" );
@@ -313,7 +313,9 @@ void CG_RegisterMediaShaders( void ) {
 	cgs.media.shaderKeyIcon[KEYICON_CROUCH] = CG_RegisterMediaShader( PATH_KEYICON_CROUCH );
 	cgs.media.shaderKeyIcon[KEYICON_SPECIAL] = CG_RegisterMediaShader( PATH_KEYICON_SPECIAL );
 
-	cgs.media.shaderTick = CG_RegisterMediaShader( PATH_VSAY_YES_ICON );
+	cgs.media.shaderAlive = CG_RegisterMediaShader( "gfx/scoreboard/alive" );
+	cgs.media.shaderDead = CG_RegisterMediaShader( "gfx/scoreboard/dead" );
+	cgs.media.shaderReady = CG_RegisterMediaShader( "gfx/scoreboard/ready" );
 }
 
 /*

@@ -5,6 +5,9 @@
 
 template< size_t N >
 class String {
+	size_t length;
+	char buf[ N ];
+
 public:
 	STATIC_ASSERT( N > 0 );
 
@@ -91,13 +94,11 @@ public:
 	bool operator!=( const char * rhs ) const {
 		return !( *this == rhs );
 	}
-
-private:
-	size_t length;
-	char buf[ N ];
 };
 
 class DynamicString {
+	DynamicArray< char > buf;
+
 public:
 	DynamicString( Allocator * a ) : buf( a ) { }
 
@@ -109,16 +110,6 @@ public:
 	template< typename T >
 	void operator+=( const T & x ) {
 		append( "{}", x );
-	}
-
-	void append( const char * str ) {
-		append( str, strlen( str ) );
-	}
-
-	void append( const void * data, size_t n ) {
-		size_t old_len = length();
-		buf.extend( old_len == 0 ? n + 1 : n );
-		memmove( &buf[ old_len ], data, n );
 	}
 
 	template< typename... Rest >
@@ -136,6 +127,13 @@ public:
 		ggformat( &buf[ old_len ], len + 1, fmt, rest... );
 	}
 
+	void append_raw( const char * data, size_t n ) {
+		size_t old_len = length();
+		buf.extend( old_len == 0 ? n + 1 : n );
+		memmove( &buf[ old_len ], data, n );
+		buf[ length() ] = '\0';
+	}
+
 	const char * c_str() const {
 		if( buf.size() == 0 )
 			return "";
@@ -149,12 +147,17 @@ public:
 		}
 	}
 
+	char & operator[]( size_t i ) { return buf[ i ]; }
+	const char & operator[]( size_t i ) const { return buf[ i ]; }
+
 	size_t length() const {
 		return buf.size() == 0 ? 0 : buf.size() - 1;
 	}
 
-private:
-	DynamicArray< char > buf;
+	char * begin() { return buf.begin(); }
+	char * end() { return buf.end(); }
+	const char * begin() const { return buf.begin(); }
+	const char * end() const { return buf.end(); }
 };
 
 template< size_t N >

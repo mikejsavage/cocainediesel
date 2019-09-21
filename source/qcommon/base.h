@@ -7,8 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "qcommon/types.h"
 #include "qcommon/platform.h"
+#include "qcommon/types.h"
 #include "qcommon/ggformat.h"
 #include "qcommon/linear_algebra.h"
 
@@ -79,8 +79,34 @@ void Swap2( T * a, T * b ) {
 }
 
 template< typename T >
+constexpr T AlignPow2( T x, T alignment ) {
+	return ( x + alignment - 1 ) & ~( alignment - 1 );
+}
+
+template< typename T >
 constexpr bool IsPowerOf2( T x ) {
 	return ( x & ( x - 1 ) ) == 0;
+}
+
+template< typename T >
+constexpr T Min2( const T & a, const T & b ) {
+	return a < b ? a : b;
+}
+
+template< typename T >
+constexpr T Max2( const T & a, const T & b ) {
+	return a > b ? a : b;
+}
+
+template< typename T >
+T Clamp( const T & lo, const T & x, const T & hi ) {
+	assert( lo <= hi );
+	return Max2( lo, Min2( x, hi ) );
+}
+
+template< typename T >
+T Clamp01( const T & x ) {
+	return Max2( T( 0 ), Min2( x, T( 1 ) ) );
 }
 
 /*
@@ -121,6 +147,14 @@ void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t ne
 #define ALLOC_MANY( a, T, n ) ( ( T * ) AllocManyHelper( a, checked_cast< size_t >( n ), sizeof( T ), alignof( T ), __PRETTY_FUNCTION__, __FILE__, __LINE__ ) )
 #define REALLOC_MANY( a, T, ptr, current_n, new_n ) ( ( T * ) ReallocManyHelper( a, ptr, checked_cast< size_t >( current_n ), checked_cast< size_t >( new_n ), sizeof( T ), alignof( T ), __PRETTY_FUNCTION__, __FILE__, __LINE__ ) )
 #define ALLOC_SPAN( a, T, n ) Span< T >( ALLOC_MANY( a, T, n ), n )
+
+template< typename... Rest >
+const char * TempAllocator::operator()( const char * fmt, const Rest & ... rest ) {
+	size_t len = ggformat( NULL, 0, fmt, rest... );
+	char * buf = ALLOC_MANY( this, char, len + 1 );
+	ggformat( buf, len + 1, fmt, rest... );
+	return buf;
+}
 
 /*
  * breaks

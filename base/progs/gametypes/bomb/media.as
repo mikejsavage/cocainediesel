@@ -17,10 +17,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-// ICONS
-int iconCarrier;
-int iconReady;
-
 // MODELS
 int modelBombModel;
 int modelBombModelActive;
@@ -72,9 +68,6 @@ void announceDef( Announcement announcement ) {
 }
 
 void mediaInit() {
-	iconCarrier = G_ImageIndex( "gfx/hud/icons/vsay/onoffense" ); // TODO: less crappy icon
-	iconReady = G_ImageIndex( "gfx/hud/icons/vsay/yes" );
-
 	modelBombModel = G_ModelIndex( "models/objects/misc/bomb_centered.glb", true );
 	modelBombModelActive = G_ModelIndex( "models/objects/misc/bomb_centered_active.glb", true );
 	modelBombBackpack = G_ModelIndex( "models/objects/misc/bomb.glb", true );

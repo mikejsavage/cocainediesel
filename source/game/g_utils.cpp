@@ -360,101 +360,6 @@ const char *_G_RegisterLevelString( const char *string, const char *filename, in
 
 //==============================================================================
 
-/*
-* G_AllocCreateNamesList
-*/
-char *G_AllocCreateNamesList( const char *path, const char *extension, const char separator ) {
-	char separators[2];
-	char name[MAX_CONFIGSTRING_CHARS];
-	char buffer[MAX_STRING_CHARS], *s, *list;
-	int numfiles, i, j, found, length, fulllength;
-
-	if( !extension || !path ) {
-		return NULL;
-	}
-
-	if( extension[0] != '.' || strlen( extension ) < 2 ) {
-		return NULL;
-	}
-
-	if( ( numfiles = trap_FS_GetFileList( path, extension, NULL, 0, 0, 0 ) ) == 0 ) {
-		return NULL;
-	}
-
-	separators[0] = separator;
-	separators[1] = 0;
-
-	//
-	// do a first pass just for finding the full len of the list
-	//
-
-	i = 0;
-	found = 0;
-	length = 0;
-	fulllength = 0;
-	do {
-		if( ( j = trap_FS_GetFileList( path, extension, buffer, sizeof( buffer ), i, numfiles ) ) == 0 ) {
-			// can happen if the filename is too long to fit into the buffer or we're done
-			i++;
-			continue;
-		}
-
-		i += j;
-		for( s = buffer; j > 0; j--, s += length + 1 ) {
-			length = strlen( s );
-
-			if( strlen( path ) + 1 + length >= MAX_CONFIGSTRING_CHARS ) {
-				Com_Printf( "Warning: G_AllocCreateNamesList :file name too long: %s\n", s );
-				continue;
-			}
-
-			Q_strncpyz( name, s, sizeof( name ) );
-			COM_StripExtension( name );
-
-			fulllength += strlen( name ) + 1;
-			found++;
-		}
-	} while( i < numfiles );
-
-	if( !found ) {
-		return NULL;
-	}
-
-	//
-	// Allocate a string for the full list and do a second pass to copy them in there
-	//
-
-	fulllength += 1;
-	list = ( char * )G_Malloc( fulllength );
-
-	i = 0;
-	length = 0;
-	do {
-		if( ( j = trap_FS_GetFileList( path, extension, buffer, sizeof( buffer ), i, numfiles ) ) == 0 ) {
-			// can happen if the filename is too long to fit into the buffer or we're done
-			i++;
-			continue;
-		}
-
-		i += j;
-		for( s = buffer; j > 0; j--, s += length + 1 ) {
-			length = strlen( s );
-
-			if( strlen( path ) + 1 + length >= MAX_CONFIGSTRING_CHARS ) {
-				continue;
-			}
-
-			Q_strncpyz( name, s, sizeof( name ) );
-			COM_StripExtension( name );
-
-			Q_strncatz( list, name, fulllength );
-			Q_strncatz( list, separators, fulllength );
-		}
-	} while( i < numfiles );
-
-	return list;
-}
-
 void G_ProjectSource( vec3_t point, vec3_t distance, vec3_t forward, vec3_t right, vec3_t result ) {
 	result[0] = point[0] + forward[0] * distance[0] + right[0] * distance[1];
 	result[1] = point[1] + forward[1] * distance[0] + right[1] * distance[1];
@@ -647,28 +552,6 @@ void G_SetMovedir( vec3_t angles, vec3_t movedir ) {
 
 	VectorClear( angles );
 }
-
-
-float vectoyaw( vec3_t vec ) {
-	float yaw;
-
-	if( vec[PITCH] == 0 ) {
-		yaw = 0;
-		if( vec[YAW] > 0 ) {
-			yaw = 90;
-		} else if( vec[YAW] < 0 ) {
-			yaw = -90;
-		}
-	} else {
-		yaw = RAD2DEG( atan2( vec[YAW], vec[PITCH] ) );
-		if( yaw < 0 ) {
-			yaw += 360;
-		}
-	}
-
-	return yaw;
-}
-
 
 char *_G_CopyString( const char *in, const char *filename, int fileline ) {
 	char *out;
@@ -1423,30 +1306,6 @@ void G_CategorizePosition( edict_t *ent ) {
 }
 
 /*
-* G_DropToFloor
-*/
-void G_DropToFloor( edict_t *ent ) {
-	vec3_t end;
-	trace_t trace;
-
-	ent->s.origin[2] += 1;
-	VectorCopy( ent->s.origin, end );
-	end[2] -= 256;
-
-	G_Trace( &trace, ent->s.origin, ent->r.mins, ent->r.maxs, end, ent, G_SolidMaskForEnt( ent ) );
-
-	if( trace.fraction == 1 || trace.allsolid ) {
-		return;
-	}
-
-	VectorCopy( trace.endpos, ent->s.origin );
-
-	GClip_LinkEntity( ent );
-	G_CheckGround( ent );
-	G_CategorizePosition( ent );
-}
-
-/*
 * G_DropSpawnpointToFloor
 */
 void G_DropSpawnpointToFloor( edict_t *ent ) {
@@ -1472,76 +1331,6 @@ void G_DropSpawnpointToFloor( edict_t *ent ) {
 	if( trace.fraction < 1.0f ) {
 		VectorMA( trace.endpos, 1.0f, trace.plane.normal, ent->s.origin );
 	}
-}
-
-/*
-* G_CheckBottom
-*
-* Returns false if any part of the bottom of the entity is off an edge that
-* is not a staircase.
-*
-*/
-bool G_CheckBottom( edict_t *ent ) {
-	vec3_t mins, maxs, start, stop;
-	trace_t trace;
-	int x, y;
-	float mid, bottom;
-
-	VectorAdd( ent->s.origin, ent->r.mins, mins );
-	VectorAdd( ent->s.origin, ent->r.maxs, maxs );
-
-	// if all of the points under the corners are solid world, don't bother
-	// with the tougher checks
-	// the corners must be within 16 of the midpoint
-	start[2] = mins[2] - 1;
-	for( x = 0; x <= 1; x++ ) {
-		for( y = 0; y <= 1; y++ ) {
-			start[0] = x ? maxs[0] : mins[0];
-			start[1] = y ? maxs[1] : mins[1];
-			if( G_PointContents( start ) != CONTENTS_SOLID ) {
-				goto realcheck;
-			}
-		}
-	}
-
-	return true;       // we got out easy
-
-realcheck:
-
-	//
-	// check it for real...
-	//
-	start[2] = mins[2];
-
-	// the midpoint must be within 16 of the bottom
-	start[0] = stop[0] = ( mins[0] + maxs[0] ) * 0.5;
-	start[1] = stop[1] = ( mins[1] + maxs[1] ) * 0.5;
-	stop[2] = start[2] - 2 * STEPSIZE;
-	G_Trace( &trace, start, vec3_origin, vec3_origin, stop, ent, G_SolidMaskForEnt( ent ) );
-
-	if( trace.fraction == 1.0 ) {
-		return false;
-	}
-	mid = bottom = trace.endpos[2];
-
-	// the corners must be within 16 of the midpoint
-	for( x = 0; x <= 1; x++ ) {
-		for( y = 0; y <= 1; y++ ) {
-			start[0] = stop[0] = x ? maxs[0] : mins[0];
-			start[1] = stop[1] = y ? maxs[1] : mins[1];
-
-			G_Trace( &trace, start, vec3_origin, vec3_origin, stop, ent, G_SolidMaskForEnt( ent ) );
-
-			if( trace.fraction != 1.0 && trace.endpos[2] > bottom ) {
-				bottom = trace.endpos[2];
-			}
-			if( trace.fraction == 1.0 || mid - trace.endpos[2] > STEPSIZE ) {
-				return false;
-			}
-		}
-	}
-
-	return true;
 }
 
 /*

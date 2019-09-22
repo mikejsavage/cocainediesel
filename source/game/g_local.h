@@ -490,8 +490,6 @@ edict_t *G_PositionedSound( vec3_t origin, int channel, int soundindex, float at
 void G_GlobalSound( int channel, int soundindex );
 void G_LocalSound( edict_t *owner, int channel, int soundindex );
 
-float vectoyaw( vec3_t vec );
-
 void G_PureSound( const char *sound );
 void G_PureModel( const char *model );
 
@@ -502,14 +500,9 @@ extern game_locals_t game;
 
 void G_TeleportEffect( edict_t *ent, bool in );
 void G_RespawnEffect( edict_t *ent );
-bool G_Visible( edict_t *self, edict_t *other );
-bool G_InFront( edict_t *self, edict_t *other );
-bool G_EntNotBlocked( edict_t *viewer, edict_t *targ );
-void G_DropToFloor( edict_t *ent );
 int G_SolidMaskForEnt( edict_t *ent );
 void G_CheckGround( edict_t *ent );
 void G_CategorizePosition( edict_t *ent );
-bool G_CheckBottom( edict_t *ent );
 void G_ReleaseClientPSEvent( gclient_t *client );
 void G_AddPlayerStateEvent( gclient_t *client, int event, int parm );
 void G_ClearPlayerStateEvents( gclient_t *client );

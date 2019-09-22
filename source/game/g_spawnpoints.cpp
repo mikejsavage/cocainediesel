@@ -37,43 +37,6 @@ void SP_post_match_camera( edict_t *ent ) { }
 //
 //=======================================================================
 
-
-/*
-* PlayersRangeFromSpot
-*
-* Returns the distance to the nearest player from the given spot
-*/
-float PlayersRangeFromSpot( edict_t *spot, int ignore_team ) {
-	edict_t *player;
-	float bestplayerdistance;
-	int n;
-	float playerdistance;
-
-	bestplayerdistance = 9999999;
-
-	for( n = 1; n <= gs.maxclients; n++ ) {
-		player = &game.edicts[n];
-
-		if( !player->r.inuse ) {
-			continue;
-		}
-		if( player->r.solid == SOLID_NOT ) {
-			continue;
-		}
-		if( ( ignore_team && ignore_team == player->s.team ) || player->s.team == TEAM_SPECTATOR ) {
-			continue;
-		}
-
-		playerdistance = DistanceFast( spot->s.origin, player->s.origin );
-
-		if( playerdistance < bestplayerdistance ) {
-			bestplayerdistance = playerdistance;
-		}
-	}
-
-	return bestplayerdistance;
-}
-
 static edict_t *G_FindPostMatchCamera( void ) {
 	edict_t * ent = G_Find( NULL, FOFS( classname ), "post_match_camera" );
 	if( ent != NULL )

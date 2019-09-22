@@ -321,7 +321,6 @@ void G_SpawnQueue_Think( void );
 
 void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, vec3_t origin, vec3_t angles );
 edict_t *G_SelectIntermissionSpawnPoint( void );
-float PlayersRangeFromSpot( edict_t *spot, int ignore_team );
 void SP_info_player_start( edict_t *ent );
 void SP_info_player_deathmatch( edict_t *ent );
 void SP_post_match_camera( edict_t *ent );

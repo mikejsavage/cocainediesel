@@ -469,10 +469,6 @@ Span< const char > ParseSpan( Span< const char > * cursor, bool stop_on_newline 
 	return token;
 }
 
-Span< char > ParseSpan( Span< char > * cursor, bool stop_on_newline ) {
-	return ParseSpan( cursor, stop_on_newline ).cast< char >();
-}
-
 /*
 * COM_ParseExt2_r
 *

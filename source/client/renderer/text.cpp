@@ -188,9 +188,10 @@ void DrawText( const Font * font, float pixel_size, Span< const char > str, floa
 			uvs.add( Vec2( glyph->uv_bounds.mins.x, glyph->uv_bounds.maxs.y ) );
 			uvs.add( Vec2( glyph->uv_bounds.maxs.x, glyph->uv_bounds.maxs.y ) );
 
-			for( int i = 0; i < 4; i++ ) {
-				colors.add( rgba8_white ); // TODO
-			}
+			colors.add( rgba8_white ); // TODO
+			colors.add( rgba8_white );
+			colors.add( rgba8_white );
+			colors.add( rgba8_white );
 
 			indices.add( bl_idx + base_index );
 			indices.add( br_idx + base_index );

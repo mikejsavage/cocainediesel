@@ -2084,7 +2084,11 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	if( host_speeds->integer ) {
 		time_before_ref = Sys_Milliseconds();
 	}
-	RendererBeginFrame( viddef.width, viddef.height );
+
+	u32 viewport_width, viewport_height;
+	VID_GetViewportSize( &viewport_width, &viewport_height );
+	RendererBeginFrame( viewport_width, viewport_height );
+
 	SCR_UpdateScreen();
 	RendererSubmitFrame();
 	if( host_speeds->integer ) {

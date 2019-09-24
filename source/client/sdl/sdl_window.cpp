@@ -298,6 +298,13 @@ void VID_SetWindowMode( WindowMode mode ) {
 	}
 }
 
+void VID_GetViewportSize( u32 * width, u32 * height ) {
+	int w, h;
+	SDL_GL_GetDrawableSize( sdl_window, &w, &h );
+	*width = checked_cast< u32 >( w );
+	*height = checked_cast< u32 >( h );
+}
+
 bool VID_GetGammaRamp( size_t stride, unsigned short *psize, unsigned short *ramp ) {
 	return false;
 	/* unsigned short ramp256[3 * 256]; */

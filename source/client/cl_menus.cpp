@@ -372,8 +372,6 @@ static void SettingsVideo() {
 		reset_video_settings = false;
 	}
 
-	ImGui::Text( "Changing resolution is buggy and you should restart the game after doing it" );
-
 	SettingLabel( "Window mode" );
 	ImGui::PushItemWidth( 200 );
 	if( ImGui::BeginCombo( "##fullscreen", FullscreenModeToString( mode.fullscreen ) ) ) {

@@ -28,8 +28,6 @@ static cvar_t *vid_mode;
 static cvar_t *vid_vsync;
 static bool force_vsync;
 
-viddef_t viddef; // global video state; used by other modules
-
 static bool vid_app_active;
 static bool vid_app_minimized;
 
@@ -92,19 +90,11 @@ static bool ParseWindowMode( const char * str, WindowMode * mode ) {
 	return false;
 }
 
-// this is shit and should not exist but i am sick of working on this
-void Retarded_SetWindowSize( int w, int h ) {
-	viddef.width = w;
-	viddef.height = h;
-}
-
 static void UpdateVidModeCvar() {
 	WindowMode mode = VID_GetWindowMode();
 	String< 128 > buf( "{}", mode );
 	Cvar_Set( vid_mode->name, buf.c_str() );
 	vid_mode->modified = false;
-
-	Retarded_SetWindowSize( mode.video_mode.width, mode.video_mode.height );
 }
 
 void VID_CheckChanges() {

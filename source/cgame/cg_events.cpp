@@ -543,8 +543,16 @@ void CG_Event_Fall( entity_state_t *state, int parm ) {
 		CG_StartFallKickEffect( ( parm + 5 ) * 10 );
 	}
 
+
+	vec3_t mins, maxs;
+	GS_BBoxForEntityState( state, mins, maxs );
+
+	vec3_t ground_position;
+	VectorCopy( state->origin, ground_position );
+	ground_position[ 2 ] += mins[ 2 ];
+
 	float frac = parm * ( 1.0f / 255.0f );
-	S_StartEntitySound( cgs.media.sfxFall, state->number, CHAN_AUTO, frac, state->attenuation );
+	S_StartFixedSound( cgs.media.sfxFall, ground_position, CHAN_AUTO, frac, state->attenuation );
 }
 
 /*

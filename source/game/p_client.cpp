@@ -1105,20 +1105,6 @@ void G_PredictedEvent( int entNum, int ev, int parm ) {
 
 	ent = &game.edicts[entNum];
 	switch( ev ) {
-		case EV_FALL:
-		{
-			int dflags, damage;
-			dflags = 0;
-			damage = parm;
-
-			if( damage ) {
-				G_Damage( ent, world, world, vec3_origin, upDir, ent->s.origin, damage, 0, dflags, MOD_FALLING );
-			}
-
-			G_AddEvent( ent, ev, damage, true );
-		}
-		break;
-
 		case EV_SMOOTHREFIREWEAPON: // update the firing
 			G_FireWeapon( ent, parm );
 			break; // don't send the event

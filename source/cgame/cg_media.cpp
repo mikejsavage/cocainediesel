@@ -67,6 +67,8 @@ void CG_RegisterMediaSounds() {
 	cgs.media.sfxSpikesGlint = S_RegisterSound( "sounds/spikes/glint" );
 	cgs.media.sfxSpikesRetract = S_RegisterSound( "sounds/spikes/retract" );
 
+	cgs.media.sfxFall = S_RegisterSound( "sounds/players/fall" );
+
 	// VSAY sounds
 	cgs.media.sfxVSaySounds[VSAY_GENERIC] = S_RegisterSound( S_VSAY_GOODGAME );
 	cgs.media.sfxVSaySounds[VSAY_AFFIRMATIVE] = S_RegisterSound( S_VSAY_AFFIRMATIVE );

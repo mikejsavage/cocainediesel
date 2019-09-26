@@ -113,9 +113,6 @@ typedef struct {
 
 enum PlayerSound {
 	PlayerSound_Death,
-	PlayerSound_Fall1,
-	PlayerSound_Fall2,
-	PlayerSound_Fall3,
 	PlayerSound_Jump1,
 	PlayerSound_Jump2,
 	PlayerSound_Pain25,

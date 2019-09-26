@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static constexpr const char * PLAYER_SOUND_NAMES[] = {
 	"death",
-	"fall_0", "fall_1", "fall_2",
 	"jump_1", "jump_2",
 	"pain25", "pain50", "pain75", "pain100",
 	"wj_1", "wj_2",
@@ -62,9 +61,11 @@ void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps, float volume, f
 	const SoundAsset * sound = GetPlayerSound( entnum, ps );
 	if( fixed ) {
 		S_StartFixedSound( sound, cg_entities[entnum].current.origin, entchannel, volume, attn );
-	} else if( ISVIEWERENTITY( entnum ) ) {
+	}
+	else if( ISVIEWERENTITY( entnum ) ) {
 		S_StartGlobalSound( sound, entchannel, volume );
-	} else {
+	}
+	else {
 		S_StartEntitySound( sound, entnum, entchannel, volume, attn );
 	}
 }

@@ -1438,9 +1438,6 @@ static void PM_EndMove( void ) {
 * Can be called by either the server or the client
 */
 void Pmove( pmove_t *pmove ) {
-	float fallvelocity, falldelta;
-	int oldGroundEntity;
-
 	if( !pmove->playerState ) {
 		return;
 	}
@@ -1450,7 +1447,7 @@ void Pmove( pmove_t *pmove ) {
 	// clear all pmove local vars
 	PM_BeginMove();
 
-	fallvelocity = ( ( pml.velocity[2] < 0.0f ) ? fabs( pml.velocity[2] ) : 0.0f );
+	float fallvelocity = Max2( 0.0f, -pml.velocity[ 2 ] );
 
 	pml.frametime = pm->cmd.msec * 0.001;
 
@@ -1595,7 +1592,7 @@ void Pmove( pmove_t *pmove ) {
 	// set groundentity, watertype, and waterlevel
 	PM_CategorizePosition();
 
-	oldGroundEntity = pm->groundentity;
+	int oldGroundEntity = pm->groundentity;
 
 	PM_CheckSpecialMovement();
 
@@ -1656,13 +1653,6 @@ void Pmove( pmove_t *pmove ) {
 
 	PM_EndMove();
 
-	// falling event
-
-#define FALL_DAMAGE_MIN_DELTA 675
-#define FALL_STEP_MIN_DELTA 400
-#define MAX_FALLING_DAMAGE 15
-#define FALL_DAMAGE_SCALE 1.0
-
 	// Execute the triggers that are touched.
 	// We check the entire path between the origin before the pmove and the
 	// current origin to ensure no triggers are missed at high velocity.
@@ -1689,21 +1679,25 @@ void Pmove( pmove_t *pmove ) {
 	}
 
 	if( oldGroundEntity == -1 ) {
-		falldelta = fallvelocity - ( ( pml.velocity[2] < 0.0f ) ? fabs( pml.velocity[2] ) : 0.0f );
+		constexpr float min_fall_velocity = 200;
+		constexpr float max_fall_velocity = 800;
 
-		// scale delta if in water
+		float fall_delta = fallvelocity - Max2( 0.0f, -pml.velocity[ 2 ] );
+
+		// scale velocity if in water
 		if( pm->waterlevel == 3 ) {
-			falldelta = 0;
+			fall_delta = 0;
 		}
 		if( pm->waterlevel == 2 ) {
-			falldelta *= 0.25;
+			fall_delta *= 0.25;
 		}
 		if( pm->waterlevel == 1 ) {
-			falldelta *= 0.5;
+			fall_delta *= 0.5;
 		}
 
-		if( falldelta > FALL_STEP_MIN_DELTA ) {
-			gs.api.PredictedEvent( pm->playerState->POVnum, EV_FALL, 0 );
+		float frac = Clamp01( Unlerp( min_fall_velocity, fall_delta, max_fall_velocity ) );
+		if( frac > 0 ) {
+			gs.api.PredictedEvent( pm->playerState->POVnum, EV_FALL, frac * 255 );
 		}
 
 		pm->playerState->pmove.pm_flags &= ~PMF_JUMPPAD_TIME;

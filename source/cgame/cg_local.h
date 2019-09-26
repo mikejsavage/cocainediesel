@@ -153,6 +153,8 @@ typedef struct {
 	const SoundAsset * sfxSpikesGlint;
 	const SoundAsset * sfxSpikesRetract;
 
+	const SoundAsset * sfxFall;
+
 	// models
 	const Model * modDash;
 	const Model * modGib;

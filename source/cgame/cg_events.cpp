@@ -540,61 +540,11 @@ static void CG_StartVoiceTokenEffect( int entNum, int vsay ) {
 */
 void CG_Event_Fall( entity_state_t *state, int parm ) {
 	if( ISVIEWERENTITY( state->number ) ) {
-		if( cg.frame.playerState.pmove.pm_type != PM_NORMAL ) {
-			CG_PlayerSound( state->number, CHAN_AUTO, PlayerSound_Fall1, cg_volume_players->value, state->attenuation );
-			return;
-		}
-
 		CG_StartFallKickEffect( ( parm + 5 ) * 10 );
-
-		if( parm >= 15 ) {
-			CG_DamageIndicatorAdd( parm, tv( 0, 0, 1 ) );
-		}
 	}
 
-	if( parm > 10 ) {
-		CG_PlayerSound( state->number, CHAN_PAIN, PlayerSound_Fall3, cg_volume_players->value, state->attenuation );
-		switch( (int)brandom( 0, 3 ) ) {
-			case 0:
-				CG_PModel_AddAnimation( state->number, 0, TORSO_PAIN1, 0, EVENT_CHANNEL );
-				break;
-			case 1:
-				CG_PModel_AddAnimation( state->number, 0, TORSO_PAIN2, 0, EVENT_CHANNEL );
-				break;
-			case 2:
-			default:
-				CG_PModel_AddAnimation( state->number, 0, TORSO_PAIN3, 0, EVENT_CHANNEL );
-				break;
-		}
-	} else if( parm > 0 ) {
-		CG_PlayerSound( state->number, CHAN_PAIN, PlayerSound_Fall2, cg_volume_players->value, state->attenuation );
-	} else {
-		CG_PlayerSound( state->number, CHAN_PAIN, PlayerSound_Fall1, cg_volume_players->value, state->attenuation );
-	}
-
-	// smoke effect
-	if( parm > 0 && ( cg_cartoonEffects->integer & 2 ) ) {
-		vec3_t start, end;
-		trace_t trace;
-
-		if( ISVIEWERENTITY( state->number ) ) {
-			VectorCopy( cg.predictedPlayerState.pmove.origin, start );
-		} else {
-			VectorCopy( state->origin, start );
-		}
-
-		VectorCopy( start, end );
-		end[2] += playerbox_stand_mins[2] - 48.0f;
-
-		CG_Trace( &trace, start, vec3_origin, vec3_origin, end, state->number, MASK_PLAYERSOLID );
-		if( trace.ent == -1 ) {
-			start[2] += playerbox_stand_mins[2] + 8;
-			CG_DustCircle( start, tv( 0, 0, 1 ), 50, 12 );
-		} else if( !( trace.surfFlags & SURF_NODAMAGE ) ) {
-			VectorMA( trace.endpos, 8, trace.plane.normal, end );
-			CG_DustCircle( end, trace.plane.normal, 50, 12 );
-		}
-	}
+	float frac = parm * ( 1.0f / 255.0f );
+	S_StartEntitySound( cgs.media.sfxFall, state->number, CHAN_AUTO, frac, state->attenuation );
 }
 
 /*
@@ -875,7 +825,6 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 		case EV_FALL:
 			CG_Event_Fall( ent, parm );
 			break;
-
 
 		//  NON PREDICTABLE EVENTS
 

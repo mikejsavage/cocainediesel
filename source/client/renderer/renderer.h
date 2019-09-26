@@ -19,6 +19,7 @@ struct FrameStatic {
 	UniformBlock view_uniforms;
 	UniformBlock ortho_view_uniforms;
 	UniformBlock identity_model_uniforms;
+	UniformBlock blue_noise_uniforms;
 
 	Mat4 V, P;
 	Vec3 position;

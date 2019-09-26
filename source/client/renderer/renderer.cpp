@@ -276,6 +276,8 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Vec3( 0 ), -1 );
 	frame_static.identity_model_uniforms = UploadUniformBlock( Mat4::Identity(), Vec4( 1 ) );
 
+	frame_static.blue_noise_uniforms = UploadUniformBlock( Vec2( blue_noise.width, blue_noise.height ) );
+
 	frame_static.world_write_gbuffer_pass = AddRenderPass( "Write world gbuffer", frame_static.world_gbuffer, ClearColor_Dont, ClearDepth_Do );
 
 	if( msaa ) {

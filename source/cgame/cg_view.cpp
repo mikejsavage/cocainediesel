@@ -804,6 +804,9 @@ static void DrawWorld() {
 			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
 			pipeline.set_uniform( "u_Fog", UploadUniformBlock( map->fog_strength ) );
 
+			pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
+			pipeline.set_uniform( "u_BlueNoiseTextureParams", frame_static.blue_noise_uniforms );
+
 			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 		}
 	}

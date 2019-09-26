@@ -1,5 +1,8 @@
 uniform sampler2D u_BlueNoiseTexture;
-uniform vec2 u_BlueNoiseTextureSize;
+
+layout( std140 ) uniform u_BlueNoiseTextureParams {
+	vec2 u_BlueNoiseTextureSize;
+};
 
 vec3 Dither() {
 	vec3 noise = qf_texture( u_BlueNoiseTexture, gl_FragCoord.xy / u_BlueNoiseTextureSize ).xxx;

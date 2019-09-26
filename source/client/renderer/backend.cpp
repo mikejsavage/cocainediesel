@@ -743,7 +743,7 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 	glGenFramebuffers( 1, &fbo );
 	glBindFramebuffer( GL_FRAMEBUFFER, fbo );
 
-	Framebuffer fb;
+	Framebuffer fb = { };
 	fb.fbo = fbo;
 
 	u32 width = 0;
@@ -756,6 +756,8 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, texture.texture, 0 );
 		bufs[ 0 ] = GL_COLOR_ATTACHMENT0;
 
+		fb.albedo_texture = texture;
+
 		width = texture.width;
 		height = texture.height;
 	}
@@ -765,6 +767,8 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, target, texture.texture, 0 );
 		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
 
+		fb.normal_texture = texture;
+
 		width = texture.width;
 		height = texture.height;
 	}
@@ -772,6 +776,8 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 	if( config.depth_attachment.width != 0 ) {
 		Texture texture = NewTextureSamples( config.depth_attachment, config.msaa_samples );
 		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, target, texture.texture, 0 );
+
+		fb.depth_texture = texture;
 
 		width = texture.width;
 		height = texture.height;

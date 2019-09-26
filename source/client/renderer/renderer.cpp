@@ -221,7 +221,7 @@ static void CreateFramebuffers() {
 	{
 		FramebufferConfig fb;
 
-		texture_config.format = TextureFormat_RG_Half;
+		texture_config.format = TextureFormat_RGB_Float;
 		fb.normal_attachment = texture_config;
 
 		texture_config.format = TextureFormat_Depth;
@@ -278,15 +278,16 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	frame_static.blue_noise_uniforms = UploadUniformBlock( Vec2( blue_noise.width, blue_noise.height ) );
 
-	frame_static.world_write_gbuffer_pass = AddRenderPass( "Write world gbuffer", frame_static.world_gbuffer, ClearColor_Dont, ClearDepth_Do );
+	frame_static.world_write_gbuffer_pass = AddRenderPass( "Write world gbuffer", frame_static.world_gbuffer, ClearColor_Do, ClearDepth_Do );
+	frame_static.world_postprocess_gbuffer_pass = AddRenderPass( "Postprocess world gbuffer", frame_static.world_outlines_fb );
 
 	if( msaa ) {
 		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", frame_static.msaa_fb, ClearColor_Do, ClearDepth_Do );
-		frame_static.world_postprocess_gbuffer_pass = AddRenderPass( "Postprocess world gbuffer", frame_static.msaa_fb );
+		frame_static.world_add_outlines_pass = AddRenderPass( "Render world outlines", frame_static.msaa_fb );
 	}
 	else {
 		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", ClearColor_Do, ClearDepth_Do );
-		frame_static.world_postprocess_gbuffer_pass = AddRenderPass( "Postprocess world gbuffer" );
+		frame_static.world_add_outlines_pass = AddRenderPass( "Render world outlines" );
 	}
 
 	// frame_static.teammate_write_gbuffer_pass = AddRenderPass( "Write teammate gbuffer", ClearColor_Dont, ClearDepth_Do );

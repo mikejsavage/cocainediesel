@@ -8,7 +8,6 @@
 Shaders shaders;
 
 static void BuildShaderSrcs( const char * path, const char * defines, DynamicArray< const char * > * srcs, DynamicArray< int > * lengths ) {
-	printf( "%s\n", path );
 	srcs->clear();
 	lengths->clear();
 
@@ -80,8 +79,8 @@ void InitShaders() {
 	BuildShaderSrcs( "glsl/world_write_gbuffer.glsl", NULL, &srcs, &lengths );
 	shaders.world_write_gbuffer = NewShader( srcs.span(), lengths.span() );
 
-	// BuildShaderSrcs( "glsl/world_postprocess_gbuffer.glsl", NULL, &srcs, &lengths );
-	// shaders.world_postprocess_gbuffer = NewShader( srcs.span(), lengths.span() );
+	BuildShaderSrcs( "glsl/world_postprocess_gbuffer.glsl", NULL, &srcs, &lengths );
+	shaders.world_postprocess_gbuffer = NewShader( srcs.span(), lengths.span() );
 
 	BuildShaderSrcs( "glsl/blur.glsl", NULL, &srcs, &lengths );
 	shaders.blur = NewShader( srcs.span(), lengths.span() );

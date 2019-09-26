@@ -15,10 +15,10 @@ void main() {
 
 #else
 
-out vec2 f_Normal;
+out vec3 f_Normal;
 
 void main() {
-	f_Normal = CompressNormal( normalize( v_Normal ) );
+	f_Normal = normalize( v_Normal );
 }
 
 #endif

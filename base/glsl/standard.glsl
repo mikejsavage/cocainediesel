@@ -75,9 +75,7 @@ uniform sampler2D u_DepthTexture;
 
 void main() {
 #ifdef APPLY_DRAWFLAT
-	/* float n = float( step( DRAWFLAT_NORMAL_STEP, abs( v_Normal.z ) ) ); */
-	/* vec4 diffuse = vec4( vec3( mix( u_WallColor, u_FloorColor, n ) ), 1.0 ); */
-	vec4 diffuse = vec4( NormalToRGB( normalize( v_Normal ) ), 1.0 );
+	vec4 diffuse = vec4( 0.0, 0.0, 0.0, 1.0 );
 #else
 	vec4 color = sRGBToLinear( u_ModelColor );
 

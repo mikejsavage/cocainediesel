@@ -19,12 +19,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-/*
-* Warsow hud scripts
-*/
-
-#include "cg_local.h"
-#include "client/ui.h"
+#include "cgame/cg_local.h"
+#include "client/client.h"
+#include "qcommon/rng.h"
 
 //=============================================================================
 
@@ -379,7 +376,7 @@ static struct qfontface_s *CG_GetLayoutCursorFont( void );
 
 #define MAX_OBITUARIES 32
 
-typedef enum { OBITUARY_NONE, OBITUARY_NORMAL, OBITUARY_TEAM, OBITUARY_SUICIDE, OBITUARY_ACCIDENT } obituary_type_t;
+typedef enum { OBITUARY_NONE, OBITUARY_NORMAL, OBITUARY_SUICIDE, OBITUARY_ACCIDENT } obituary_type_t;
 
 typedef struct obituary_s
 {
@@ -855,6 +852,7 @@ static const char * prefixes[] = {
 	"GIANT",
 	"GINGER",
 	"GIRL",
+	"GNU/",
 	"GOD",
 	"GOOD",
 	"GOOF",
@@ -1004,8 +1002,8 @@ static const char * RandomObituary() {
 	return obituaries[ rand() % ARRAY_COUNT( obituaries ) ];
 }
 
-static const char * RandomPrefix() {
-	if( rand() % 2 == 0 )
+static const char * RandomPrefix( float p ) {
+	if( !random_p( &cls.rng, p ) )
 		return "";
 	return prefixes[ rand() % ARRAY_COUNT( prefixes ) ];
 }
@@ -1048,33 +1046,17 @@ void CG_SC_Obituary( void ) {
 
 	if( attackerNum ) {
 		if( victimNum != attackerNum ) {
-			// teamkill
-			if( cg_entities[attackerNum].current.team == cg_entities[victimNum].current.team && GS_TeamBasedGametype() ) {
-				current->type = OBITUARY_TEAM;
-				if( cg_showObituaries->integer & CG_OBITUARY_CONSOLE ) {
-					CG_LocalPrint( "%s%s%s %s %s%s %s%s%s\n", S_COLOR_RED, "TEAMFRAG:", S_COLOR_WHITE, victim->name,
-								   S_COLOR_WHITE, message, attacker->name, S_COLOR_WHITE, message2 );
-				}
+			current->type = OBITUARY_NORMAL;
+			if( cg_showObituaries->integer & CG_OBITUARY_CONSOLE ) {
+				CG_LocalPrint( "%s %s%s %s%s%s\n", victim->name, S_COLOR_WHITE, message, attacker->name, S_COLOR_WHITE,
+							   message2 );
+			}
 
-				if( ISVIEWERENTITY( attackerNum ) && ( cg_showObituaries->integer & CG_OBITUARY_CENTER ) ) {
-					char name[MAX_NAME_BYTES];
-					Q_strncpyz( name, victim->name, sizeof( name ) );
-					Q_strupr( name );
-					CG_CenterPrint( va( "YOU TEAM%s%s %s", RandomPrefix(), RandomObituary(), COM_RemoveColorTokens( name ) ) );
-				}
-			} else {   // good kill
-				current->type = OBITUARY_NORMAL;
-				if( cg_showObituaries->integer & CG_OBITUARY_CONSOLE ) {
-					CG_LocalPrint( "%s %s%s %s%s%s\n", victim->name, S_COLOR_WHITE, message, attacker->name, S_COLOR_WHITE,
-								   message2 );
-				}
-
-				if( ISVIEWERENTITY( attackerNum ) && ( cg_showObituaries->integer & CG_OBITUARY_CENTER ) ) {
-					char name[MAX_NAME_BYTES];
-					Q_strncpyz( name, victim->name, sizeof( name ) );
-					Q_strupr( name );
-					CG_CenterPrint( va( "YOU %s%s %s", RandomPrefix(), RandomObituary(), COM_RemoveColorTokens( name ) ) );
-				}
+			if( ISVIEWERENTITY( attackerNum ) && ( cg_showObituaries->integer & CG_OBITUARY_CENTER ) ) {
+				char name[MAX_NAME_BYTES];
+				Q_strncpyz( name, victim->name, sizeof( name ) );
+				Q_strupr( name );
+				CG_CenterPrint( va( "YOU %s%s%s %s", RandomPrefix( 0.05f ), RandomPrefix( 0.5f ), RandomObituary(), COM_RemoveColorTokens( name ) ) );
 			}
 		} else {   // suicide
 			current->type = OBITUARY_SUICIDE;

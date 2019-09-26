@@ -35,8 +35,8 @@ void main() {
 	vec3 normal_up = qf_texture( u_NormalTexture, uv + vec2( 0.0, pixel_size.y ) ).rgb;
 
 	float normal_edgeness = 0.0;
-	normal_edgeness += 1.0 - abs( dot( normal_left, normal_right ) );
-	normal_edgeness += 1.0 - abs( dot( normal_up, normal_down ) );
+	normal_edgeness += max( 0.0, 1.0 - dot( normal_left, normal_right ) );
+	normal_edgeness += max( 0.0, 1.0 - dot( normal_up, normal_down ) );
 	normal_edgeness *= 0.5;
 
 	/* f_Albedo = max( depth_edgeness, normal_edgeness ); */

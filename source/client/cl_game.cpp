@@ -218,20 +218,6 @@ void CL_GameModule_Init( void ) {
 	import.CM_InlineModelBounds = CL_GameModule_CM_InlineModelBounds;
 	import.CM_InPVS = CL_GameModule_CM_InPVS;
 
-	import.SCR_RegisterFont = SCR_RegisterFont;
-	import.SCR_RegisterSpecialFont = SCR_RegisterSpecialFont;
-	import.SCR_DrawString = SCR_DrawString;
-	import.SCR_DrawStringWidth = SCR_DrawStringWidth;
-	import.SCR_DrawClampString = SCR_DrawClampString;
-	import.SCR_DrawMultilineString = SCR_DrawMultilineString;
-	import.SCR_DrawRawChar = SCR_DrawRawChar;
-	import.SCR_DrawClampChar = SCR_DrawClampChar;
-	import.SCR_FontSize = SCR_FontSize;
-	import.SCR_FontHeight = SCR_FontHeight;
-	import.SCR_FontUnderline = SCR_FontUnderline;
-	import.SCR_SetDrawCharIntercept = SCR_SetDrawCharIntercept;
-	import.SCR_strWidth = SCR_strWidth;
-	import.SCR_StrlenForWidth = SCR_StrlenForWidth;
 	import.SCR_DrawChat = Con_DrawChat;
 
 	cge = GetCGameAPI( &import );

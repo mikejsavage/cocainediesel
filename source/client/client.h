@@ -23,7 +23,6 @@
 #include "qcommon/types.h"
 #include "qcommon/rng.h"
 #include "cgame/cg_public.h"
-#include "ftlib/ftlib_public.h"
 
 #include "client/renderer/renderer.h"
 #include "vid.h"
@@ -423,21 +422,6 @@ void SCR_BeginLoadingPlaque( void );
 void SCR_EndLoadingPlaque( void );
 void SCR_DebugGraph( float value, float r, float g, float b );
 void SCR_RegisterConsoleMedia( void );
-void SCR_ShutDownConsoleMedia( void );
-qfontface_t *SCR_RegisterFont( const char *family, int style, unsigned int size );
-qfontface_t *SCR_RegisterSpecialFont( const char *family, int style, unsigned int size );
-size_t SCR_FontSize( qfontface_t *font );
-size_t SCR_FontHeight( qfontface_t *font );
-size_t SCR_strWidth( const char *str, qfontface_t *font, size_t maxlen );
-size_t SCR_StrlenForWidth( const char *str, qfontface_t *font, size_t maxwidth );
-int SCR_FontUnderline( qfontface_t *font, int *thickness );
-fdrawchar_t SCR_SetDrawCharIntercept( fdrawchar_t intercept );
-int SCR_DrawString( int x, int y, int align, const char *str, qfontface_t *font, const vec4_t color );
-size_t SCR_DrawStringWidth( int x, int y, int align, const char *str, size_t maxwidth, qfontface_t *font, const vec4_t color );
-void SCR_DrawClampString( int x, int y, const char *str, int xmin, int ymin, int xmax, int ymax, qfontface_t *font, const vec4_t color );
-int SCR_DrawMultilineString( int x, int y, const char *str, int halign, int maxwidth, int maxlines, qfontface_t *font, const vec4_t color );
-void SCR_DrawRawChar( int x, int y, wchar_t num, qfontface_t *font, const vec4_t color );
-void SCR_DrawClampChar( int x, int y, wchar_t num, int xmin, int ymin, int xmax, int ymax, qfontface_t *font, const vec4_t color );
 void SCR_DrawFillRect( int x, int y, int w, int h, const vec4_t color );
 void SCR_DrawChat( int x, int y, int width, struct qfontface_s *font );
 

@@ -303,7 +303,7 @@ void CG_DrawClock( int x, int y, int align, struct qfontface_s *font, vec4_t col
 		Q_snprintfz( string, sizeof( string ), "%i:%02i", minutes, (int)seconds );
 	}
 
-	trap_SCR_DrawString( x, y, align, string, font, color );
+	// trap_SCR_DrawString( x, y, align, string, font, color );
 }
 
 /*
@@ -428,7 +428,7 @@ void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color ) {
 			continue;
 		}
 
-		trap_SCR_DrawString( coords.x, coords.y, ALIGN_CENTER_BOTTOM, cgs.clientInfo[i].name, font, tmpcolor );
+		// trap_SCR_DrawString( coords.x, coords.y, ALIGN_CENTER_BOTTOM, cgs.clientInfo[i].name, font, tmpcolor );
 
 		// if not the pointed player we are done
 		if( cent->current.number != cg.pointedNum ) {
@@ -442,8 +442,10 @@ void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color ) {
 		// pointed player hasn't a health value to be drawn, so skip adding the bars
 		if( pointed_health && cg_showPlayerNames_barWidth->integer > 0 ) {
 			int x, y;
-			int barwidth = trap_SCR_strWidth( "_", font, 0 ) * cg_showPlayerNames_barWidth->integer; // size of 8 characters
-			int barheight = trap_SCR_FontHeight( font ) * 0.25; // quarter of a character height
+			// int barwidth = trap_SCR_strWidth( "_", font, 0 ) * cg_showPlayerNames_barWidth->integer; // size of 8 characters
+			// int barheight = trap_SCR_FontHeight( font ) * 0.25; // quarter of a character height
+			int barwidth = 0;
+			int barheight = 0;
 			int barseparator = barheight * 0.333;
 
 			alphagreen[3] = alphared[3] = alphayellow[3] = alphamagenta[3] = alphagrey[3] = tmpcolor[3];

@@ -45,6 +45,8 @@ void CG_StackChatString( cg_gamechat_t *chat, const char *str ) {
 #define GAMECHAT_HIGHLIGHT_TIME     4000
 #define GAMECHAT_FADE_OUT_TIME      ( GAMECHAT_NOTIFY_TIME - GAMECHAT_WAIT_OUT_TIME )
 
+static int trap_SCR_FontHeight( struct qfontface_s * font ) { return 1; }
+
 /*
 ** CG_DrawChat
 */
@@ -171,7 +173,8 @@ parse_string:
 			}
 
 			w = -1;
-			len = Max2( size_t( 1 ), trap_SCR_StrlenForWidth( text + s, font, width - padding_x * 2 ) );
+			// len = Max2( size_t( 1 ), trap_SCR_StrlenForWidth( text + s, font, width - padding_x * 2 ) );
+			len = 1;
 
 			for( j = s; ( j < ( s + len ) ) && text[j] != '\0'; j += utf_len ) {
 				utf_len = Q_Utf8SyncPos( text + j, 1, UTF8SYNC_RIGHT );
@@ -205,8 +208,8 @@ parse_string:
 					break;
 				}
 
-				trap_SCR_DrawClampString( x + x_offset, y + y_offset, tstr,
-										  x + padding_x, y + padding_y, x - padding_x + width, y - padding_y + height, font, fontColor );
+				// trap_SCR_DrawClampString( x + x_offset, y + y_offset, tstr,
+				// 						  x + padding_x, y + padding_y, x - padding_x + width, y - padding_y + height, font, fontColor );
 
 				l++;
 			} else {
@@ -223,8 +226,8 @@ parse_string:
 						break;
 					}
 
-					trap_SCR_DrawClampString( x + x_offset, y + y_offset, tstr,
-											  x + padding_x, y + padding_y, x - padding_x + width, y - padding_y + height, font, fontColor );
+					// trap_SCR_DrawClampString( x + x_offset, y + y_offset, tstr,
+					// 						  x + padding_x, y + padding_y, x - padding_x + width, y - padding_y + height, font, fontColor );
 
 					total_lines++;
 					pass++;

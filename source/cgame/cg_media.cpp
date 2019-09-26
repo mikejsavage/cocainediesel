@@ -180,19 +180,9 @@ void CG_RegisterFonts() {
 	float scale = ( float )( frame_static.viewport_height ) / 600.0f;
 
 	cgs.fontSystemTinySize = ceilf( SYSTEM_FONT_TINY_SIZE * scale );
-	cgs.fontSystemTiny = trap_SCR_RegisterFont( SYSTEM_FONT_FAMILY, QFONT_STYLE_NONE, cgs.fontSystemTinySize );
-	if( !cgs.fontSystemTiny ) {
-		CG_Error( "Couldn't load default font \"%s\"", SYSTEM_FONT_FAMILY );
-	}
-
 	cgs.fontSystemSmallSize = ceilf( SYSTEM_FONT_SMALL_SIZE * scale );
-	cgs.fontSystemSmall = trap_SCR_RegisterFont( SYSTEM_FONT_FAMILY, QFONT_STYLE_NONE, cgs.fontSystemSmallSize );
-
 	cgs.fontSystemMediumSize = ceilf( SYSTEM_FONT_MEDIUM_SIZE * scale );
-	cgs.fontSystemMedium = trap_SCR_RegisterFont( SYSTEM_FONT_FAMILY, QFONT_STYLE_NONE, cgs.fontSystemMediumSize );
-
 	cgs.fontSystemBigSize = ceilf( SYSTEM_FONT_BIG_SIZE * scale );
-	cgs.fontSystemBig = trap_SCR_RegisterFont( SYSTEM_FONT_FAMILY, QFONT_STYLE_NONE, cgs.fontSystemBigSize );
 
 	cgs.fontMontserrat = RegisterFont( "fonts/Montserrat-SemiBold" );
 	cgs.fontMontserratBold = RegisterFont( "fonts/Montserrat-Bold" );
@@ -200,8 +190,8 @@ void CG_RegisterFonts() {
 	cgs.fontMontserratBoldItalic = RegisterFont( "fonts/Montserrat-BoldItalic" );
 
 	scale *= 1.3f;
-	cgs.textSizeTiny = SYSTEM_FONT_TINY_SIZE * scale;;
-	cgs.textSizeSmall = SYSTEM_FONT_SMALL_SIZE * scale;;
-	cgs.textSizeMedium = SYSTEM_FONT_MEDIUM_SIZE * scale;;
-	cgs.textSizeBig = SYSTEM_FONT_BIG_SIZE * scale;;
+	cgs.textSizeTiny = SYSTEM_FONT_TINY_SIZE * scale;
+	cgs.textSizeSmall = SYSTEM_FONT_SMALL_SIZE * scale;
+	cgs.textSizeMedium = SYSTEM_FONT_MEDIUM_SIZE * scale;
+	cgs.textSizeBig = SYSTEM_FONT_BIG_SIZE * scale;
 }

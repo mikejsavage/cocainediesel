@@ -1076,6 +1076,8 @@ static const Material * CG_GetWeaponIcon( int weapon ) {
 	return cgs.media.shaderWeaponIcon[ weapon - WEAP_GUNBLADE ];
 }
 
+static int trap_SCR_FontHeight( struct qfontface_s * font ) { return 1; }
+
 static void CG_DrawObituaries( int x, int y, int align, struct qfontface_s *font, int width, int height,
 							   int internal_align, unsigned int icon_size ) {
 	const int icon_padding = 4;
@@ -1177,12 +1179,12 @@ static void CG_DrawObituaries( int x, int y, int align, struct qfontface_s *font
 
 		w = 0;
 		if( obr->type != OBITUARY_ACCIDENT ) {
-			w += min( trap_SCR_strWidth( obr->attacker, font, 0 ), ( width - icon_size ) / 2 );
+			// w += min( trap_SCR_strWidth( obr->attacker, font, 0 ), ( width - icon_size ) / 2 );
 		}
 		w += icon_padding;
 		w += icon_size;
 		w += icon_padding;
-		w += min( trap_SCR_strWidth( obr->victim, font, 0 ), ( width - icon_size ) / 2 );
+		// w += min( trap_SCR_strWidth( obr->victim, font, 0 ), ( width - icon_size ) / 2 );
 
 		if( internal_align == 1 ) {
 			// left
@@ -1202,10 +1204,10 @@ static void CG_DrawObituaries( int x, int y, int align, struct qfontface_s *font
 			} else {
 				Vector4Set( teamcolor, 255, 255, 255, 255 );
 			}
-			trap_SCR_DrawStringWidth( x + xoffset, obituary_y,
-									  ALIGN_LEFT_TOP, COM_RemoveColorTokensExt( obr->attacker, true ), ( width - icon_size ) / 2,
-									  font, teamcolor );
-			xoffset += min( trap_SCR_strWidth( obr->attacker, font, 0 ), ( width - icon_size ) / 2 );
+			// trap_SCR_DrawStringWidth( x + xoffset, obituary_y,
+			// 						  ALIGN_LEFT_TOP, COM_RemoveColorTokensExt( obr->attacker, true ), ( width - icon_size ) / 2,
+			// 						  font, teamcolor );
+			// xoffset += min( trap_SCR_strWidth( obr->attacker, font, 0 ), ( width - icon_size ) / 2 );
 		}
 
 		if( obr->victim_team == TEAM_ALPHA || obr->victim_team == TEAM_BETA ) {
@@ -1213,8 +1215,8 @@ static void CG_DrawObituaries( int x, int y, int align, struct qfontface_s *font
 		} else {
 			Vector4Set( teamcolor, 255, 255, 255, 255 );
 		}
-		trap_SCR_DrawStringWidth( x + xoffset + icon_size + 2 * icon_padding, obituary_y,
-			ALIGN_LEFT_TOP, COM_RemoveColorTokensExt( obr->victim, true ), ( width - icon_size ) / 2, font, teamcolor );
+		// trap_SCR_DrawStringWidth( x + xoffset + icon_size + 2 * icon_padding, obituary_y,
+		// 	ALIGN_LEFT_TOP, COM_RemoveColorTokensExt( obr->victim, true ), ( width - icon_size ) / 2, font, teamcolor );
 
 		Draw2DBox( frame_static.ui_pass, x + xoffset + icon_padding, y + yoffset + ( line_height - icon_size ) / 2,
 			icon_size, icon_size, pic, vec4_white );
@@ -1742,16 +1744,8 @@ static struct qfontface_s *CG_GetLayoutCursorFont( void ) {
 	if( !layout_cursor_font_dirty ) {
 		return layout_cursor_font;
 	}
-	if( !layout_cursor_font_regfunc ) {
-		layout_cursor_font_regfunc = trap_SCR_RegisterFont;
-	}
 
-	font = layout_cursor_font_regfunc( layout_cursor_font_name, layout_cursor_font_style, layout_cursor_font_size );
-	if( font ) {
-		layout_cursor_font = font;
-	} else {
-		layout_cursor_font = cgs.fontSystemSmall;
-	}
+	layout_cursor_font = NULL;
 	layout_cursor_font_dirty = false;
 
 	return layout_cursor_font;
@@ -1766,7 +1760,7 @@ static bool CG_LFuncFontFamily( struct cg_layoutnode_s *argumentnode, int numArg
 		Q_strncpyz( layout_cursor_font_name, fontname, sizeof( layout_cursor_font_name ) );
 	}
 	layout_cursor_font_dirty = true;
-	layout_cursor_font_regfunc = trap_SCR_RegisterFont;
+	layout_cursor_font_regfunc = NULL;
 
 	return true;
 }
@@ -1775,7 +1769,7 @@ static bool CG_LFuncSpecialFontFamily( struct cg_layoutnode_s *argumentnode, int
 	const char *fontname = CG_GetStringArg( &argumentnode );
 
 	Q_strncpyz( layout_cursor_font_name, fontname, sizeof( layout_cursor_font_name ) );
-	layout_cursor_font_regfunc = trap_SCR_RegisterSpecialFont;
+	layout_cursor_font_regfunc = NULL;
 	layout_cursor_font_dirty = true;
 
 	return true;
@@ -1955,8 +1949,8 @@ static bool CG_LFuncDrawPlayerName( struct cg_layoutnode_s *argumentnode, int nu
 		vec4_t color;
 		VectorCopy( colorWhite, color );
 		color[3] = layout_cursor_color.w;
-		trap_SCR_DrawString( layout_cursor_x, layout_cursor_y, layout_cursor_align,
-							 cgs.clientInfo[index].name, CG_GetLayoutCursorFont(), color );
+		// trap_SCR_DrawString( layout_cursor_x, layout_cursor_y, layout_cursor_align,
+		// 					 cgs.clientInfo[index].name, CG_GetLayoutCursorFont(), color );
 		return true;
 	}
 	return false;
@@ -3093,7 +3087,7 @@ static void CG_LoadStatusBarFile( const char *path ) {
 	layout_cursor_font_style = QFONT_STYLE_NONE;
 	layout_cursor_font_size = SYSTEM_FONT_SMALL_SIZE;
 	layout_cursor_font_dirty = true;
-	layout_cursor_font_regfunc = trap_SCR_RegisterFont;
+	layout_cursor_font_regfunc = NULL;
 }
 
 /*

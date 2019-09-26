@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/client.h"
 #include "client/renderer/renderer.h"
 #include "qcommon/string.h"
-#include "ftlib/ftlib_public.h"
 #include "sdl/sdl_window.h"
 
 static cvar_t *vid_mode;
@@ -147,9 +146,6 @@ void VID_Init() {
 		Com_Printf( S_COLOR_RED "Couldn't initialise audio engine\n" );
 	}
 
-	FTLIB_LoadLibrary( false );
-	FTLIB_PrecacheFonts( true );
-
 	CL_InitMedia();
 
 	cls.disable_screen = 0;
@@ -175,11 +171,7 @@ void CL_ForceVsync( bool force ) {
 void VID_Shutdown() {
 	CL_ShutdownMedia();
 
-	FTLIB_FreeFonts( false );
-
 	ShutdownRenderer();
-
-	FTLIB_Shutdown();
 
 	VID_SetVideoMode( startup_video_mode );
 

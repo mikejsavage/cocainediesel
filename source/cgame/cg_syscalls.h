@@ -219,54 +219,6 @@ static inline bool trap_CM_InPVS( const vec3_t p1, const vec3_t p2 ) {
 	return CGAME_IMPORT.CM_InPVS( p1, p2 );
 }
 
-static inline struct qfontface_s *trap_SCR_RegisterFont( const char *family, int style, unsigned int size ) {
-	return CGAME_IMPORT.SCR_RegisterFont( family, style, size );
-}
-
-static inline struct qfontface_s *trap_SCR_RegisterSpecialFont( const char *family, int style, unsigned int size ) {
-	return CGAME_IMPORT.SCR_RegisterSpecialFont( family, style, size );
-}
-
-static inline int trap_SCR_DrawString( int x, int y, int align, const char *str, struct qfontface_s *font, const vec4_t color ) {
-	return CGAME_IMPORT.SCR_DrawString( x, y, align, str, font, color );
-}
-
-static inline size_t trap_SCR_DrawStringWidth( int x, int y, int align, const char *str, size_t maxwidth, struct qfontface_s *font, const vec4_t color ) {
-	return CGAME_IMPORT.SCR_DrawStringWidth( x, y, align, str, maxwidth, font, color );
-}
-
-static inline void trap_SCR_DrawClampString( int x, int y, const char *str, int xmin, int ymin, int xmax, int ymax, struct qfontface_s *font, const vec4_t color ) {
-	CGAME_IMPORT.SCR_DrawClampString( x, y, str, xmin, ymin, xmax, ymax, font, color );
-}
-
-static inline int trap_SCR_DrawMultilineString( int x, int y, const char *str, int halign, int maxwidth, int maxlines, struct qfontface_s *font, const vec4_t color ) {
-	return CGAME_IMPORT.SCR_DrawMultilineString( x, y, str, halign, maxwidth, maxlines, font, color );
-}
-
-static inline void trap_SCR_DrawRawChar( int x, int y, wchar_t num, struct qfontface_s *font, const vec4_t color ) {
-	CGAME_IMPORT.SCR_DrawRawChar( x, y, num, font, color );
-}
-
-static inline void trap_SCR_DrawClampChar( int x, int y, wchar_t num, int xmin, int ymin, int xmax, int ymax, struct qfontface_s *font, const vec4_t color ) {
-	CGAME_IMPORT.SCR_DrawClampChar( x, y, num, xmin, ymin, xmax, ymax, font, color );
-}
-
-static inline int trap_SCR_FontHeight( struct qfontface_s *font ) {
-	return CGAME_IMPORT.SCR_FontHeight( font );
-}
-
-static inline size_t trap_SCR_strWidth( const char *str, struct qfontface_s *font, int maxlen ) {
-	return CGAME_IMPORT.SCR_strWidth( str, font, maxlen );
-}
-
-static inline size_t trap_SCR_StrlenForWidth( const char *str, struct qfontface_s *font, size_t maxwidth ) {
-	return CGAME_IMPORT.SCR_StrlenForWidth( str, font, maxwidth );
-}
-
 static inline void trap_SCR_DrawChat( int x, int y, int width, struct qfontface_s *font ) {
 	CGAME_IMPORT.SCR_DrawChat( x, y, width, font );
-}
-
-inline cg_fdrawchar_t trap_SCR_SetDrawCharIntercept( cg_fdrawchar_t intercept ) {
-	return CGAME_IMPORT.SCR_SetDrawCharIntercept( intercept );
 }

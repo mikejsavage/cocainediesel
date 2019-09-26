@@ -284,11 +284,6 @@ typedef struct {
 	int fontSystemMediumSize;
 	int fontSystemBigSize;
 
-	struct qfontface_s *fontSystemTiny;
-	struct qfontface_s *fontSystemSmall;
-	struct qfontface_s *fontSystemMedium;
-	struct qfontface_s *fontSystemBig;
-
 	float textSizeTiny;
 	float textSizeSmall;
 	float textSizeMedium;

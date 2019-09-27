@@ -1744,7 +1744,8 @@ static bool CG_LFuncSpecialFontFamily( struct cg_layoutnode_s *argumentnode, int
 }
 
 static bool CG_LFuncFontSize( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	const char * fontsize = CG_GetStringArg( &argumentnode );
+	struct cg_layoutnode_s *charnode = argumentnode;
+	const char * fontsize = CG_GetStringArg( &charnode );
 
 	if( !Q_stricmp( fontsize, "tiny" ) ) {
 		layout_cursor_font_size = cgs.textSizeTiny;

@@ -3,10 +3,10 @@ setColor 1, 1, 1, 1
 setCursor 400 110
 
 if %SCOREBOARD == 0
-	setAlign #CENTER, #TOP
+	setAlignment center top
 endif
 if %SCOREBOARD != 0
-	setAlign #CENTER, #BOTTOM
+	setAlignment center bottom
 endif
 
 drawAwards

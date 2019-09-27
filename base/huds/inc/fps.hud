@@ -1,5 +1,5 @@
 if %SHOW_FPS
-	setAlign #RIGHT, #TOP
+	setAlignment right top
 	setCursor #WIDTH, 2
 	moveCursor -4 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
 	setColor 1, 1, 1, 0.75

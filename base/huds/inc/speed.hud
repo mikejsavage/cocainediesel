@@ -1,7 +1,7 @@
 if %SHOW_SPEED == 1
 	setFontSize %VIDHEIGHT / 48
 	setColor 1, 1, 1, 1
-	setAlign #CENTER, #BOTTOM
+	setAlignment center bottom
 	setCursor #WIDTH / 2, #HEIGHT - 2
 	drawStringNum %SPEED
 endif

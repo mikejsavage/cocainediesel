@@ -350,11 +350,3 @@ typedef enum {
 	key_message,
 	key_menu,
 } keydest_t;
-
-// font style flags
-typedef enum {
-	QFONT_STYLE_NONE            = 0,
-	QFONT_STYLE_ITALIC          = ( 1 << 0 ),
-	QFONT_STYLE_BOLD            = ( 1 << 1 ),
-	QFONT_STYLE_MASK            = ( 1 << 2 ) - 1
-} qfontstyle_t;

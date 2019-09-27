@@ -142,7 +142,7 @@ int CG_ParseValue( const char **s ) {
 /*
 * CG_DrawNet
 */
-void CG_DrawNet( int x, int y, int w, int h, int align, Vec4 color ) {
+void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color ) {
 	if( cgs.demoPlaying ) {
 		return;
 	}
@@ -152,8 +152,8 @@ void CG_DrawNet( int x, int y, int w, int h, int align, Vec4 color ) {
 	if( outgoingSequence - incomingAcknowledged < CMD_BACKUP - 1 ) {
 		return;
 	}
-	x = CG_HorizontalAlignForWidth( x, align, w );
-	y = CG_VerticalAlignForHeight( y, align, h );
+	x = CG_HorizontalAlignForWidth( x, alignment, w );
+	y = CG_VerticalAlignForHeight( y, alignment, h );
 	Draw2DBox( frame_static.ui_pass, x, y, w, h, cgs.media.shaderNet, color );
 }
 
@@ -210,7 +210,7 @@ void CG_DrawCrosshair() {
 	CG_FillRect( w / 2 - 1 - size, h / 2 - 1, 2 + 2 * size, 2, color );
 }
 
-void CG_DrawKeyState( int x, int y, int w, int h, int align, const char *key ) {
+void CG_DrawKeyState( int x, int y, int w, int h, const char *key ) {
 	int i;
 	bool pressed = false;
 
@@ -246,10 +246,8 @@ void CG_DrawKeyState( int x, int y, int w, int h, int align, const char *key ) {
 /*
 * CG_DrawClock
 */
-void CG_DrawClock( int x, int y, int align, struct qfontface_s *font, vec4_t color ) {
+void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float font_size, Vec4 color ) {
 	int64_t clocktime, startTime, duration, curtime;
-	double seconds;
-	int minutes;
 	char string[12];
 
 	if( GS_MatchState() > MATCH_STATE_PLAYTIME ) {
@@ -259,14 +257,17 @@ void CG_DrawClock( int x, int y, int align, struct qfontface_s *font, vec4_t col
 	if( GS_RaceGametype() ) {
 		if( cg.predictedPlayerState.stats[STAT_TIME_SELF] != STAT_NOTSET ) {
 			clocktime = cg.predictedPlayerState.stats[STAT_TIME_SELF] * 100;
-		} else {
+		}
+		else {
 			clocktime = 0;
 		}
-	} else if( GS_MatchClockOverride() ) {
+	}
+	else if( GS_MatchClockOverride() ) {
 		clocktime = GS_MatchClockOverride();
 		if( clocktime < 0 )
 			return;
-	} else {
+	}
+	else {
 		curtime = ( GS_MatchWaiting() || GS_MatchPaused() ) ? cg.frame.serverTime : cg.time;
 		duration = GS_MatchDuration();
 		startTime = GS_MatchStartTime();
@@ -275,20 +276,21 @@ void CG_DrawClock( int x, int y, int align, struct qfontface_s *font, vec4_t col
 		if( duration ) {
 			if( duration + startTime < curtime ) {
 				duration = curtime - startTime; // avoid negative results
-
 			}
 			clocktime = startTime + duration - curtime;
-		} else {
+		}
+		else {
 			if( curtime >= startTime ) { // avoid negative results
 				clocktime = curtime - startTime;
-			} else {
+			}
+			else {
 				clocktime = 0;
 			}
 		}
 	}
 
-	seconds = (double)clocktime * 0.001;
-	minutes = (int)( seconds / 60 );
+	double seconds = (double)clocktime * 0.001;
+	int minutes = (int)( seconds / 60 );
 	seconds -= minutes * 60;
 
 	// fixme?: this could have its own HUD drawing, I guess.
@@ -296,14 +298,16 @@ void CG_DrawClock( int x, int y, int align, struct qfontface_s *font, vec4_t col
 	if( GS_RaceGametype() ) {
 		Q_snprintfz( string, sizeof( string ), "%i:%02i.%i",
 					 minutes, ( int )seconds, ( int )( seconds * 10.0 ) % 10 );
-	} else if( cg.predictedPlayerState.stats[STAT_NEXT_RESPAWN] ) {
+	}
+	else if( cg.predictedPlayerState.stats[STAT_NEXT_RESPAWN] ) {
 		int respawn = cg.predictedPlayerState.stats[STAT_NEXT_RESPAWN];
 		Q_snprintfz( string, sizeof( string ), "%i:%02i R:%02i", minutes, (int)seconds, respawn );
-	} else {
+	}
+	else {
 		Q_snprintfz( string, sizeof( string ), "%i:%02i", minutes, (int)seconds );
 	}
 
-	// trap_SCR_DrawString( x, y, align, string, font, color );
+	DrawText( font, font_size, string, alignment, x, y, color );
 }
 
 /*
@@ -454,8 +458,8 @@ void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color ) {
 			tmpcolor[3] *= 0.4f;
 
 			// we have to align first, then draw as left top, cause we want the bar to grow from left to right
-			x = CG_HorizontalAlignForWidth( coords.x, ALIGN_CENTER_TOP, barwidth );
-			y = CG_VerticalAlignForHeight( coords.y, ALIGN_CENTER_TOP, barheight );
+			x = CG_HorizontalAlignForWidth( coords.x, Alignment_CenterTop, barwidth );
+			y = CG_VerticalAlignForHeight( coords.y, Alignment_CenterTop, barheight );
 
 			y += barseparator;
 

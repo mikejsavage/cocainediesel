@@ -1,6 +1,6 @@
 setFontSize %VIDHEIGHT / 50
 
-setAlign 1 1
+setAlignment left top
 setSize #WIDTH - 20 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 130
 setCursor 10 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 390
 if %CHASING != #NOTSET

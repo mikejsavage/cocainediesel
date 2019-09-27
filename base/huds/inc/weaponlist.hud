@@ -1,6 +1,6 @@
 if %TEAM != #TEAM_SPECTATOR
 	if %WEAPON_ITEM
-		setAlign #RIGHT, #MIDDLE
+		setAlignment right middle
 		setCursor #WIDTH, #HEIGHT - 32
 		setFontSize %VIDHEIGHT / 48
 

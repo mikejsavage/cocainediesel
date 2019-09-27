@@ -477,8 +477,8 @@ void CG_AddCentityOutLineEffect( centity_t *cent );
 //
 // cg_draw.c
 //
-int CG_HorizontalAlignForWidth( const int x, int align, int width );
-int CG_VerticalAlignForHeight( const int y, int align, int height );
+int CG_HorizontalAlignForWidth( int x, Alignment alignment, int width );
+int CG_VerticalAlignForHeight( int y, Alignment alignment, int height );
 Vec2 WorldToScreen( Vec3 v );
 Vec2 WorldToScreenClamped( Vec3 v, Vec2 screen_border, bool * clamped );
 
@@ -534,14 +534,14 @@ bool CG_LoadingItemName( const char *str );
 void CG_DrawCrosshair();
 void CG_ScreenCrosshairDamageUpdate( void );
 
-void CG_DrawKeyState( int x, int y, int w, int h, int align, const char *key );
+void CG_DrawKeyState( int x, int y, int w, int h, const char *key );
 
 int CG_ParseValue( const char **s );
 
-void CG_DrawClock( int x, int y, int align, struct qfontface_s *font, vec4_t color );
+void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float font_size, Vec4 color );
 void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color );
 void CG_DrawTeamMates();
-void CG_DrawNet( int x, int y, int w, int h, int align, Vec4 color );
+void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color );
 
 void CG_ClearPointedNum( void );
 

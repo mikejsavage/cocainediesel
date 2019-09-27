@@ -9,10 +9,6 @@ Credz:
  - clownFart for most of the work
 */
 
-setFontFamily con_fontSystem
-setFontSize con_fontSystemSmall
-
-setScale #DEFAULTSCALE
 if %MATCH_STATE < #MATCH_STATE_POSTMATCH
 
 include damage_indicator_screen

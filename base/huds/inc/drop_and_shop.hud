@@ -1,5 +1,5 @@
 setCursor #WIDTH / 2, #HEIGHT - 64
-setAlign #CENTER, #MIDDLE
+setAlignment center middle
 setSize 200, 18
 setFontSize %VIDHEIGHT / 48
 

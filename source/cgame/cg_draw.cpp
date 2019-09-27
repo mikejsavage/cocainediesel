@@ -1,53 +1,19 @@
-/*
-Copyright (C) 2002-2003 Victor Luchits
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-
 #include "cg_local.h"
 
-int CG_HorizontalAlignForWidth( const int x, int align, int width ) {
-	int nx = x;
-
-	if( align % 3 == 0 ) { // left
-		nx = x;
-	}
-	if( align % 3 == 1 ) { // center
-		nx = x - width / 2;
-	}
-	if( align % 3 == 2 ) { // right
-		nx = x - width;
-	}
-
-	return nx;
+int CG_HorizontalAlignForWidth( int x, Alignment alignment, int width ) {
+	if( alignment.x == XAlignment_Left )
+		return x;
+	if( alignment.x == XAlignment_Center )
+		return x - width / 2;
+	return x - width;
 }
 
-int CG_VerticalAlignForHeight( const int y, int align, int height ) {
-	int ny = y;
-
-	if( align / 3 == 0 ) { // top
-		ny = y;
-	} else if( align / 3 == 1 ) { // middle
-		ny = y - height / 2;
-	} else if( align / 3 == 2 ) { // bottom
-		ny = y - height;
-	}
-
-	return ny;
+int CG_VerticalAlignForHeight( int y, Alignment alignment, int height ) {
+	if( alignment.y == YAlignment_Top )
+		return y;
+	if( alignment.y == YAlignment_Middle )
+		return y - height / 2;
+	return y - height;
 }
 
 static Vec2 ClipToScreen( Vec2 clip ) {

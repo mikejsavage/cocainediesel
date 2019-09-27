@@ -559,6 +559,7 @@ static const char * obituaries[] = {
 	"FUCKED",
 	"GAGGED",
 	"GARFUNKELED",
+	"GERRYMANDERED",
 	"GHOSTED",
 	"GLAZED",
 	"GRAVEDUG",

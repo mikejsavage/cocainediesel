@@ -40,7 +40,7 @@ void main() {
 	normal_edgeness *= 0.5;
 
 	/* f_Albedo = max( depth_edgeness, normal_edgeness ); */
-	f_Albedo = normal_edgeness * 0.1;
+	f_Albedo = LinearTosRGB( normal_edgeness );
 }
 
 #endif

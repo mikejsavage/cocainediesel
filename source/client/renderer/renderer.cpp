@@ -222,7 +222,7 @@ static void CreateFramebuffers() {
 	{
 		FramebufferConfig fb;
 
-		texture_config.format = TextureFormat_RGB_Float;
+		texture_config.format = TextureFormat_RGB_Half;
 		fb.normal_attachment = texture_config;
 
 		texture_config.format = TextureFormat_Depth;
@@ -322,11 +322,7 @@ void RendererSubmitFrame() {
 }
 
 bool HasAlpha( TextureFormat format ) {
-	return
-		format == TextureFormat_A_U8
-		|| format == TextureFormat_RGBA_U8
-		|| format == TextureFormat_RGBA_U8_sRGB
-		|| format == TextureFormat_RGBA_Float;
+	return format == TextureFormat_A_U8 || format == TextureFormat_RGBA_U8 || format == TextureFormat_RGBA_U8_sRGB;
 }
 
 PipelineState MaterialToPipelineState( const Material * material, bool skinned ) {

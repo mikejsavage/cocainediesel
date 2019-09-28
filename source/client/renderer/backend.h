@@ -36,7 +36,6 @@ enum TextureFormat : u8 {
 	TextureFormat_R_U8,
 	TextureFormat_R_U8Norm,
 	TextureFormat_R_U16,
-	TextureFormat_R_Float,
 
 	TextureFormat_A_U8,
 
@@ -46,11 +45,9 @@ enum TextureFormat : u8 {
 	TextureFormat_RGB_U8,
 	TextureFormat_RGB_U8_sRGB,
 	TextureFormat_RGB_Half,
-	TextureFormat_RGB_Float,
 
 	TextureFormat_RGBA_U8,
 	TextureFormat_RGBA_U8_sRGB,
-	TextureFormat_RGBA_Float,
 
 	TextureFormat_Depth,
 };

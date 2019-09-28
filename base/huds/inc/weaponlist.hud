@@ -13,16 +13,13 @@ if %TEAM != #TEAM_SPECTATOR
 
 		setSize 16 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 16
 		setFontStyle bold
-
-		moveCursor 1 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 1
-		setColor 0, 0, 0, 0.75
-		drawWeaponStrongAmmo 56 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0, 15
-		moveCursor -1 * 1.333 * %VIDHEIGHT / %VIDWIDTH, -1
+		setFontBorder on
 
 		setColor 1, 1, 1, 1
 		setSize 16 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 16
 		drawWeaponStrongAmmo 56 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0, 15
 
 		setFontStyle normal
+		setFontBorder off
 	endif
 endif

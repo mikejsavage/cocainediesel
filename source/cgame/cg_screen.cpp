@@ -246,7 +246,7 @@ void CG_DrawKeyState( int x, int y, int w, int h, const char *key ) {
 /*
 * CG_DrawClock
 */
-void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float font_size, Vec4 color ) {
+void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float font_size, Vec4 color, bool border ) {
 	int64_t clocktime, startTime, duration, curtime;
 	char string[12];
 
@@ -307,7 +307,7 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 		Q_snprintfz( string, sizeof( string ), "%i:%02i", minutes, (int)seconds );
 	}
 
-	DrawText( font, font_size, string, alignment, x, y, color );
+	DrawText( font, font_size, string, alignment, x, y, color, border );
 }
 
 /*
@@ -349,14 +349,11 @@ static void CG_UpdatePointedNum( void ) {
 /*
 * CG_DrawPlayerNames
 */
-void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color ) {
+void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border ) {
 	static vec4_t alphagreen = { 0, 1, 0, 0 }, alphared = { 1, 0, 0, 0 }, alphayellow = { 1, 1, 0, 0 }, alphamagenta = { 1, 0, 1, 1 }, alphagrey = { 0.85, 0.85, 0.85, 1 };
-	centity_t *cent;
-	vec4_t tmpcolor;
 	vec3_t dir, drawOrigin;
 	float dist, fadeFrac;
 	trace_t trace;
-	int i;
 
 	if( !cg_showPlayerNames->integer && !cg_showPointedPlayer->integer ) {
 		return;
@@ -364,12 +361,12 @@ void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color ) {
 
 	CG_UpdatePointedNum();
 
-	for( i = 0; i < gs.maxclients; i++ ) {
+	for( int i = 0; i < gs.maxclients; i++ ) {
 		if( !cgs.clientInfo[i].name[0] || ISVIEWERENTITY( i + 1 ) ) {
 			continue;
 		}
 
-		cent = &cg_entities[i + 1];
+		const centity_t * cent = &cg_entities[i + 1];
 		if( cent->serverFrame != cg.frame.serverFrame ) {
 			continue;
 		}
@@ -400,7 +397,7 @@ void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color ) {
 			continue;
 		}
 
-		Vector4Copy( color, tmpcolor );
+		Vec4 tmpcolor = color;
 
 		if( cent->current.number != cg.pointedNum ) {
 			if( dist > cg_showPlayerNames_zfar->value ) {
@@ -409,14 +406,14 @@ void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color ) {
 
 			fadeFrac = Clamp01( ( cg_showPlayerNames_zfar->value - dist ) / ( cg_showPlayerNames_zfar->value * 0.25f ) );
 
-			tmpcolor[3] = cg_showPlayerNames_alpha->value * color[3] * fadeFrac;
+			tmpcolor.w = cg_showPlayerNames_alpha->value * color.w * fadeFrac;
 		} else {
 			fadeFrac = Clamp01( ( cg.pointRemoveTime - cg.time ) / 150.0f );
 
-			tmpcolor[3] = color[3] * fadeFrac;
+			tmpcolor.w = color.w * fadeFrac;
 		}
 
-		if( tmpcolor[3] <= 0.0f ) {
+		if( tmpcolor.w <= 0.0f ) {
 			continue;
 		}
 
@@ -432,7 +429,7 @@ void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color ) {
 			continue;
 		}
 
-		// trap_SCR_DrawString( coords.x, coords.y, ALIGN_CENTER_BOTTOM, cgs.clientInfo[i].name, font, tmpcolor );
+		DrawText( font, font_size, cgs.clientInfo[i].name, Alignment_CenterBottom, coords.x, coords.y, tmpcolor, border );
 
 		// if not the pointed player we are done
 		if( cent->current.number != cg.pointedNum ) {
@@ -452,10 +449,10 @@ void CG_DrawPlayerNames( struct qfontface_s *font, vec4_t color ) {
 			int barheight = 0;
 			int barseparator = barheight * 0.333;
 
-			alphagreen[3] = alphared[3] = alphayellow[3] = alphamagenta[3] = alphagrey[3] = tmpcolor[3];
+			alphagreen[3] = alphared[3] = alphayellow[3] = alphamagenta[3] = alphagrey[3] = tmpcolor.w;
 
 			// soften the alpha of the box color
-			tmpcolor[3] *= 0.4f;
+			tmpcolor.w *= 0.4f;
 
 			// we have to align first, then draw as left top, cause we want the bar to grow from left to right
 			x = CG_HorizontalAlignForWidth( coords.x, Alignment_CenterTop, barwidth );

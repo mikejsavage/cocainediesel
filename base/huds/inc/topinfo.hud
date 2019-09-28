@@ -1,6 +1,7 @@
 setCursor #WIDTH / 2, 0
 setAlignment center top
 setColor 0, 0, 0, 0.5
+setFontBorder on
 
 if %MATCH_STATE < #MATCH_STATE_PLAYTIME
 	// background
@@ -125,3 +126,5 @@ if %MATCH_STATE == #MATCH_STATE_PLAYTIME
 
 	setFontFamily con_fontSystem
 endif
+
+setFontBorder off

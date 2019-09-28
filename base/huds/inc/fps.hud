@@ -5,6 +5,8 @@ if %SHOW_FPS
 	setColor 1, 1, 1, 0.75
 	setFontSize %VIDHEIGHT / 64
 	setFontStyle bold
+	setFontBorder on
 	drawStringNum %FPS
 	setFontStyle normal
+	setFontBorder off
 endif

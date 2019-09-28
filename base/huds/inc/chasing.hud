@@ -7,7 +7,10 @@ if %CHASING != #NOTSET
 
 	moveCursor 32 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 2
 	setFontSize %VIDHEIGHT / 25
-
 	setColor 1 1 1 1
+	setFontBorder on
+
 	drawPlayerName %CHASING
+
+	setFontBorder off
 endif

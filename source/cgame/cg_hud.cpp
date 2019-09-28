@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "cgame/cg_local.h"
 #include "client/client.h"
-#include "qcommon/rng.h"
 
 enum { DEFAULTSCALE=0, NOSCALE, SCALEBYWIDTH, SCALEBYHEIGHT };
 
@@ -43,6 +42,7 @@ enum FontStyle {
 
 static float layout_cursor_font_size;
 static FontStyle layout_cursor_font_style;
+static bool layout_cursor_font_border;
 
 static const Font * GetHUDFont() {
 	switch( layout_cursor_font_style ) {
@@ -1250,7 +1250,7 @@ void CG_ClearAwards( void ) {
 	memset( cg.award_times, 0, sizeof( cg.award_times ) );
 }
 
-static void CG_DrawAwards( int x, int y, Alignment alignment, float font_size, Vec4 color ) {
+static void CG_DrawAwards( int x, int y, Alignment alignment, float font_size, Vec4 color, bool border ) {
 	if( !cg_showAwards->integer ) {
 		return;
 	}
@@ -1287,7 +1287,7 @@ static void CG_DrawAwards( int x, int y, Alignment alignment, float font_size, V
 
 		int yoffset = font_size * ( MAX_AWARD_LINES - i );
 
-		DrawText( GetHUDFont(), font_size, str, alignment, x, y + yoffset, color );
+		DrawText( GetHUDFont(), font_size, str, alignment, x, y + yoffset, color, border );
 	}
 }
 
@@ -1552,7 +1552,7 @@ static void CG_DrawWeaponAmmos( int x, int y, int offx, int offy, float font_siz
 
 		int ammo = cg.predictedPlayerState.inventory[ AMMO_GUNBLADE + i - WEAP_GUNBLADE ];
 
-		DrawText( GetHUDFont(), font_size, va( "%i", ammo ), Alignment_RightBottom, curx, cury, layout_cursor_color );
+		DrawText( GetHUDFont(), font_size, va( "%i", ammo ), Alignment_RightBottom, curx, cury, layout_cursor_color, layout_cursor_font_border );
 
 		drawn_weapons++;
 	}
@@ -1789,6 +1789,12 @@ static bool CG_LFuncFontStyle( struct cg_layoutnode_s *argumentnode, int numArgu
 	return true;
 }
 
+static bool CG_LFuncFontBorder( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+	const char * border = CG_GetStringArg( &argumentnode );
+	layout_cursor_font_border = Q_stricmp( border, "on" ) == 0;
+	return true;
+}
+
 static bool CG_LFuncDrawObituaries( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	int internal_align = (int)CG_GetNumericArg( &argumentnode );
 	int icon_size = (int)CG_GetNumericArg( &argumentnode );
@@ -1799,12 +1805,12 @@ static bool CG_LFuncDrawObituaries( struct cg_layoutnode_s *argumentnode, int nu
 }
 
 static bool CG_LFuncDrawAwards( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	CG_DrawAwards( layout_cursor_x, layout_cursor_y, layout_cursor_alignment, layout_cursor_font_size, layout_cursor_color );
+	CG_DrawAwards( layout_cursor_x, layout_cursor_y, layout_cursor_alignment, layout_cursor_font_size, layout_cursor_color, layout_cursor_font_border );
 	return true;
 }
 
 static bool CG_LFuncDrawClock( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	CG_DrawClock( layout_cursor_x, layout_cursor_y, layout_cursor_alignment, GetHUDFont(), layout_cursor_font_size, layout_cursor_color );
+	CG_DrawClock( layout_cursor_x, layout_cursor_y, layout_cursor_alignment, GetHUDFont(), layout_cursor_font_size, layout_cursor_color, layout_cursor_font_border );
 	return true;
 }
 
@@ -1824,7 +1830,7 @@ static bool CG_LFuncDrawBombIndicators( struct cg_layoutnode_s *argumentnode, in
 }
 
 static bool CG_LFuncDrawPointed( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	// CG_DrawPlayerNames( CG_GetLayoutCursorFont(), layout_cursor_color );
+	CG_DrawPlayerNames( GetHUDFont(), layout_cursor_font_size, layout_cursor_color, layout_cursor_font_border );
 	return true;
 }
 
@@ -1835,7 +1841,7 @@ static bool CG_LFuncDrawString( struct cg_layoutnode_s *argumentnode, int numArg
 		return false;
 	}
 
-	DrawText( GetHUDFont(), layout_cursor_font_size, string, layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color );
+	DrawText( GetHUDFont(), layout_cursor_font_size, string, layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
 
 	return true;
 }
@@ -1864,7 +1870,7 @@ static bool CG_LFuncDrawStringRepeat_x( const char *string, int num_draws ) {
 	}
 	temps[pos] = '\0';
 
-	DrawText( GetHUDFont(), layout_cursor_font_size, temps, layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color );
+	DrawText( GetHUDFont(), layout_cursor_font_size, temps, layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
 
 	return true;
 }
@@ -1898,7 +1904,7 @@ static bool CG_LFuncDrawBindString( struct cg_layoutnode_s *argumentnode, int nu
 	char buf[ 1024 ];
 	Q_snprintfz( buf, sizeof( buf ), fmt, keys );
 
-	DrawText( GetHUDFont(), layout_cursor_font_size, buf, layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color );
+	DrawText( GetHUDFont(), layout_cursor_font_size, buf, layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
 
 	return true;
 }
@@ -1923,7 +1929,7 @@ static bool CG_LFuncDrawPlayerName( struct cg_layoutnode_s *argumentnode, int nu
 		vec4_t color;
 		VectorCopy( colorWhite, color );
 		color[3] = layout_cursor_color.w;
-		DrawText( GetHUDFont(), layout_cursor_font_size, cgs.clientInfo[ index ].name, layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color );
+		DrawText( GetHUDFont(), layout_cursor_font_size, cgs.clientInfo[ index ].name, layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
 		return true;
 	}
 	return false;
@@ -1931,7 +1937,7 @@ static bool CG_LFuncDrawPlayerName( struct cg_layoutnode_s *argumentnode, int nu
 
 static bool CG_LFuncDrawNumeric( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	int value = (int)CG_GetNumericArg( &argumentnode );
-	DrawText( GetHUDFont(), layout_cursor_font_size, va( "%i", value ), layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color );
+	DrawText( GetHUDFont(), layout_cursor_font_size, va( "%i", value ), layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
 	return true;
 }
 
@@ -2082,6 +2088,13 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncFontStyle,
 		1,
 		"Sets font style. Possible values are: 'normal', 'italic', 'bold' and 'bold-italic'.",
+	},
+
+	{
+		"setFontBorder",
+		CG_LFuncFontBorder,
+		1,
+		"Enable or disable font border. Values are 'on' and 'off'",
 	},
 
 	{

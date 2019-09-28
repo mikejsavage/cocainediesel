@@ -155,7 +155,7 @@ void DrawText( const Font * font, float pixel_size, Span< const char > str, floa
 	DynamicArray< RGBA8 > colors( &temp, str.n * 4 );
 	DynamicArray< u16 > indices( &temp, str.n * 6 );
 
-	u32 base_index = DynamicMeshBaseIndex();
+	u16 base_index = DynamicMeshBaseIndex();
 
 	y = frame_static.viewport_height - y - pixel_size * font->ascent;
 

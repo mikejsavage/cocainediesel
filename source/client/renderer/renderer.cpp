@@ -16,10 +16,10 @@ static Texture blue_noise;
 
 static Mesh fullscreen_mesh;
 
-static constexpr size_t MaxDynamicVerts = 100000;
+static constexpr size_t MaxDynamicVerts = U16_MAX;
 static Mesh dynamic_geometry_mesh;
-static u32 dynamic_geometry_num_vertices;
-static u32 dynamic_geometry_num_indices;
+static u16 dynamic_geometry_num_vertices;
+static u16 dynamic_geometry_num_indices;
 
 static char last_screenshot_date[ 256 ];
 static int same_date_count;
@@ -361,7 +361,7 @@ void DrawFullscreenMesh( const PipelineState & pipeline ) {
 	DrawMesh( fullscreen_mesh, pipeline );
 }
 
-u32 DynamicMeshBaseIndex() {
+u16 DynamicMeshBaseIndex() {
 	return dynamic_geometry_num_vertices;
 }
 
@@ -396,7 +396,7 @@ void Draw2DBox( u8 render_pass, float x, float y, float w, float h, Texture text
 
 	Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
 	RGBA8 c = RGBA8( color );
-	u32 base_index = DynamicMeshBaseIndex();
+	u16 base_index = DynamicMeshBaseIndex();
 
 	constexpr Vec3 positions[] = {
 		Vec3( 0, 0, 0 ),

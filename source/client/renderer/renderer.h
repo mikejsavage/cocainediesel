@@ -75,7 +75,7 @@ void Draw2DBox( u8 render_pass, float x, float y, float w, float h, Texture text
 void Draw2DBox( u8 render_pass, float x, float y, float w, float h, const Material * material, Vec4 color = vec4_white );
 // void DrawRotatedBox( float x, float y, float w, float h, float angle, const Material * material, RGBA8 color );
 
-u32 DynamicMeshBaseIndex();
+u16 DynamicMeshBaseIndex();
 void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh );
 
 UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & P, const Vec3 & camera_pos, float near_plane );

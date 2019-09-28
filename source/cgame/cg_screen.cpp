@@ -558,7 +558,7 @@ static const char * mini_obituaries[] = { "GG", "RIP", "BYE", "CYA", "L8R", "CHR
 constexpr int MINI_OBITUARY_DAMAGE = 255;
 
 struct DamageNumber {
-	vec3_t origin;
+	Vec3 origin;
 	float drift;
 	int64_t t;
 	const char * obituary;
@@ -580,16 +580,17 @@ void CG_AddDamageNumber( entity_state_t * ent ) {
 		return;
 
 	DamageNumber * dn = &damage_numbers[ damage_numbers_head ];
-	VectorCopy( ent->origin, dn->origin );
+
 	dn->t = cg.time;
 	dn->damage = ent->damage;
-
-	float distance_jitter = 4;
-	dn->origin[ 0 ] += random_float11( &cls.rng ) * distance_jitter;
-	dn->origin[ 1 ] += random_float11( &cls.rng ) * distance_jitter;
-	dn->origin[ 2 ] += 48;
 	dn->drift = random_float11( &cls.rng );
 	dn->obituary = random_select( &cls.rng, mini_obituaries );
+
+	float distance_jitter = 4;
+	dn->origin = FromQF3( ent->origin );
+	dn->origin.x += random_float11( &cls.rng ) * distance_jitter;
+	dn->origin.y += random_float11( &cls.rng ) * distance_jitter;
+	dn->origin.z += 48;
 
 	damage_numbers_head = ( damage_numbers_head + 1 ) % ARRAY_COUNT( damage_numbers );
 }
@@ -604,16 +605,13 @@ void CG_DrawDamageNumbers() {
 		if( frac > 1 )
 			continue;
 
-		vec3_t o;
-		VectorCopy( dn.origin, o );
-		o[ 2 ] += frac * 32;
+		Vec3 origin = dn.origin;
+		origin.z += frac * 32;
 
-		vec3_t to_target;
-		VectorSubtract( o, cg.view.origin, to_target );
-		if( DotProduct( &cg.view.axis[ AXIS_FORWARD ], to_target ) <= 0 )
+		if( Dot( -frame_static.V.row2().xyz(), origin - frame_static.position ) <= 0 )
 			continue;
 
-		Vec2 coords = WorldToScreen( FromQF3( o ) );
+		Vec2 coords = WorldToScreen( origin );
 		coords.x += dn.drift * frac * 8;
 		if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {
 			continue;

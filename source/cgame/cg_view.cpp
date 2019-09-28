@@ -845,7 +845,7 @@ static void DrawWorld() {
 			Vec3( frame_static.viewport_width, frame_static.viewport_height, 0 ),
 		};
 
-		Vec2 half_pixel = 1.0f / frame_static.viewport;
+		Vec2 half_pixel = 0.5f / frame_static.viewport;
 		Vec2 uvs[] = {
 			Vec2( half_pixel.x, 1.0f - half_pixel.y ),
 			Vec2( 1.0f - half_pixel.x, 1.0f - half_pixel.y ),
@@ -855,7 +855,11 @@ static void DrawWorld() {
 
 		constexpr RGBA8 colors[] = { rgba8_white, rgba8_white, rgba8_white, rgba8_white };
 
-		constexpr u16 indices[] = { 0, 2, 1, 3, 1, 2 };
+		u16 base_index = DynamicMeshBaseIndex();
+		u16 indices[] = { 0, 2, 1, 3, 1, 2 };
+		for( u16 & idx : indices ) {
+			idx += base_index;
+		}
 
 		DynamicMesh mesh = { };
 		mesh.positions = positions;

@@ -217,6 +217,7 @@ static void CreateFramebuffers() {
 	TextureConfig texture_config;
 	texture_config.width = frame_static.viewport_width;
 	texture_config.height = frame_static.viewport_height;
+	texture_config.wrap = TextureWrap_Clamp;
 
 	{
 		FramebufferConfig fb;

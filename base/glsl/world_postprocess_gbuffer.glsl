@@ -55,7 +55,7 @@ void main() {
 	float normal_edgeness_y = length( 3.0 * normal00 + 10.0 * normal10 + 3.0 * normal20 - ( 3.0 * normal02 + 10.0 * normal12 + 3.0 * normal22 ) ) * ( 1.0 / 32.0 );
 	normal_edgeness_x = Threshold( normal_edgeness_x, 0.2 );
 	normal_edgeness_y = Threshold( normal_edgeness_y, 0.2 );
-	float normal_edgeness = sqrt( normal_edgeness_x * normal_edgeness_x + normal_edgeness_y * normal_edgeness_y );
+	float normal_edgeness = length( vec2( normal_edgeness_x, normal_edgeness_y ) );
 
 	/* f_Albedo = max( depth_edgeness, normal_edgeness ); */
 	f_Albedo = LinearTosRGB( normal_edgeness );

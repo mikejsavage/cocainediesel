@@ -2544,7 +2544,6 @@ static const asglobproperties_t asGlobProps[] =
 	{ "const int64 realTime", &game.realtime },
 
 	//{ "const uint serverTime", &game.serverTime }, // I think this one isn't script business
-	{ "const int64 localTime", &game.localTime },
 	{ "const int maxEntities", &game.maxentities },
 	{ "const int numEntities", &game.numentities },
 	{ "const int maxClients", &gs.maxclients },

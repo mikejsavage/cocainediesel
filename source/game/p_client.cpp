@@ -1100,10 +1100,7 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 * G_PredictedEvent
 */
 void G_PredictedEvent( int entNum, int ev, int parm ) {
-	edict_t *ent;
-	vec3_t upDir = { 0, 0, 1 };
-
-	ent = &game.edicts[entNum];
+	edict_t *ent = &game.edicts[entNum];
 	switch( ev ) {
 		case EV_SMOOTHREFIREWEAPON: // update the firing
 			G_FireWeapon( ent, parm );
@@ -1111,10 +1108,6 @@ void G_PredictedEvent( int entNum, int ev, int parm ) {
 
 		case EV_FIREWEAPON:
 			G_FireWeapon( ent, parm );
-			G_AddEvent( ent, ev, parm, true );
-			break;
-
-		case EV_WEAPONDROP:
 			G_AddEvent( ent, ev, parm, true );
 			break;
 

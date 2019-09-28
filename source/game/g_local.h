@@ -70,14 +70,6 @@ typedef enum {
 #define DEAD_NO         0
 #define DEAD_DEAD       1
 
-// game.serverflags values
-#define SFL_CROSS_TRIGGER_MASK  0x000000ff
-
-// handedness values
-#define RIGHT_HANDED        0
-#define LEFT_HANDED     1
-#define CENTER_HANDED       2
-
 // edict->movetype values
 typedef enum {
 	MOVETYPE_NONE,      // never moves
@@ -118,15 +110,11 @@ typedef struct {
 	int64_t serverTime;             // actual time in the server
 	int64_t prevServerTime;         // last frame's server time
 
-	time_t localTime;               // local time in milliseconds
-
 	int numBots;
 } game_locals_t;
 
 #define TIMEOUT_TIME                    180000
 #define TIMEIN_TIME                     5000
-
-#define SIGNIFICANT_MATCH_DURATION      66 * 1000
 
 typedef struct {
 	int64_t time;
@@ -320,7 +308,6 @@ void G_SpawnQueue_RemoveClient( edict_t *ent );
 void G_SpawnQueue_Think( void );
 
 void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, vec3_t origin, vec3_t angles );
-edict_t *G_SelectIntermissionSpawnPoint( void );
 void SP_info_player_start( edict_t *ent );
 void SP_info_player_deathmatch( edict_t *ent );
 void SP_post_match_camera( edict_t *ent );

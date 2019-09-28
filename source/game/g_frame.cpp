@@ -25,14 +25,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 * G_Timeout_Reset
 */
 void G_Timeout_Reset( void ) {
-	int i;
-
 	GS_GamestatSetFlag( GAMESTAT_FLAG_PAUSED, false );
-	level.timeout.time = 0;
-	level.timeout.endtime = 0;
-	level.timeout.caller = 0;
-	for( i = 0; i < MAX_CLIENTS; i++ )
-		level.timeout.used[i] = 0;
+	level.timeout = { };
 }
 
 /*
@@ -555,7 +549,6 @@ static void G_RunClients( void ) {
 void G_RunFrame( unsigned int msec, int64_t serverTime ) {
 	G_CheckCvars();
 
-	game.localTime = time( NULL );
 	game.prevServerTime = game.serverTime;
 	game.serverTime = serverTime;
 

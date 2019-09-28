@@ -222,7 +222,7 @@ static void CreateFramebuffers() {
 	{
 		FramebufferConfig fb;
 
-		texture_config.format = TextureFormat_RGB_Half;
+		texture_config.format = TextureFormat_RG_Half;
 		fb.normal_attachment = texture_config;
 
 		texture_config.format = TextureFormat_Depth;

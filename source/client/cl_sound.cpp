@@ -228,12 +228,6 @@ const SoundAsset * S_RegisterSound( const char * filename ) {
 	return &sound_assets[ idx ];
 }
 
-static void swap( PlayingSound * a, PlayingSound * b ) {
-	PlayingSound t = *a;
-	*a = *b;
-	*b = t;
-}
-
 void S_Update( const vec3_t origin, const vec3_t velocity, const mat3_t axis ) {
 	if( !initialized )
 		return;
@@ -268,7 +262,7 @@ void S_Update( const vec3_t origin, const vec3_t velocity, const mat3_t axis ) {
 			// remove-swap it from playing_sounds
 			num_playing_sounds--;
 			if( ps != &playing_sounds[ num_playing_sounds ] ) {
-				swap( ps, &playing_sounds[ num_playing_sounds ] );
+				Swap2( ps, &playing_sounds[ num_playing_sounds ] );
 
 				// fix up the immediate_ps pointer for the sound that got swapped in
 				if( ps->type == SoundType_AttachedImmediate )

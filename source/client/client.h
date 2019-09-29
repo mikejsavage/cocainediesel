@@ -453,4 +453,3 @@ void CL_ImGuiBeginFrame();
 void CL_ImGuiEndFrame();
 
 class DynamicString;
-void CL_ImGuiExpandColorTokens( DynamicString * result, const char * original, u8 alpha );

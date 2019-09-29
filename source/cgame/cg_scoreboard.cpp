@@ -119,8 +119,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, ScoreboardPlayer player,
 
 	// player name
 	u8 alpha = player.id >= 0 ? 255 : 75;
-	DynamicString final_name( &temp );
-	CL_ImGuiExpandColorTokens( &final_name, cgs.clientInfo[ id ].name, alpha );
+	DynamicString final_name( &temp, "{}{}", ImGuiColorToken( 0, 0, 0, alpha ), cgs.clientInfo[ id ].name );
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text( "%s", final_name.c_str() );
 	ImGui::NextColumn();
@@ -410,12 +409,11 @@ void CG_DrawScoreboard() {
 		if( !ParseInt( &cursor, &id ) )
 			break;
 		if( i > 0 )
-			spectators += S_COLOR_WHITE ", ";
+			spectators += ", ";
 		spectators += cgs.clientInfo[ id ].name;
 	}
 
-	DynamicString expanded( &temp );
-	CL_ImGuiExpandColorTokens( &expanded, spectators.c_str(), 200 );
+	DynamicString expanded( &temp, "{}{}", ImGuiColorToken( 0, 0, 0, 200 ), spectators.c_str() );
 	CenterTextWindow( "spec", expanded.c_str(), ImVec2( size.x, size.y/10 ) );
 }
 

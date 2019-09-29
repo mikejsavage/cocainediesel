@@ -116,42 +116,6 @@ void CL_ImGuiEndFrame() {
 	SubmitDrawCalls();
 }
 
-void CL_ImGuiExpandColorTokens( DynamicString * result, const char * original, u8 alpha ) {
-	assert( alpha > 0 );
-
-	const char * p = original;
-	const char * end = p + strlen( p );
-
-	if( alpha != 255 ) {
-		*result += ImGuiColorToken( 0, 0, 0, alpha );
-	}
-
-	while( p < end ) {
-		char token;
-		const char * before = FindNextColorToken( p, &token );
-
-		if( before == NULL ) {
-			result->append_raw( p, end - p );
-			break;
-		}
-
-		result->append_raw( p, before - p );
-
-		if( token == '^' ) {
-			*result += "^";
-		}
-		else {
-			const vec4_t & c = color_table[ token - '0' ];
-			u8 r = u8( c[ 0 ] * 255.0f );
-			u8 g = u8( c[ 1 ] * 255.0f );
-			u8 b = u8( c[ 2 ] * 255.0f );
-			*result += ImGuiColorToken( r, g, b, alpha );
-		}
-
-		p = before + 2;
-	}
-}
-
 ImGuiColorToken::ImGuiColorToken( u8 r, u8 g, u8 b, u8 a ) {
 	token[ 0 ] = 033;
 	token[ 1 ] = Max2( r, u8( 1 ) );

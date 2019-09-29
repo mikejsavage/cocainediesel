@@ -37,13 +37,13 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 		if( attacker != self ) { // regular death message
 			self->enemy = attacker;
 			if( GAME_IMPORT.is_dedicated_server ) {
-				G_Printf( "%s%s %s %s%s%s\n", self->r.client->netname, S_COLOR_WHITE, message,
-						  attacker->r.client->netname, S_COLOR_WHITE, message2 );
+				G_Printf( "%s %s %s%s\n", self->r.client->netname, message,
+						  attacker->r.client->netname, message2 );
 			}
 		} else {      // suicide
 			self->enemy = NULL;
 			if( GAME_IMPORT.is_dedicated_server ) {
-				G_Printf( "%s %s%s\n", self->r.client->netname, S_COLOR_WHITE, message );
+				G_Printf( "%s %s\n", self->r.client->netname, message );
 			}
 		}
 
@@ -51,7 +51,7 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 	} else {      // wrong place, suicide, etc.
 		self->enemy = NULL;
 		if( GAME_IMPORT.is_dedicated_server ) {
-			G_Printf( "%s %s%s\n", self->r.client->netname, S_COLOR_WHITE, message );
+			G_Printf( "%s %s\n", self->r.client->netname, message );
 		}
 
 		G_Obituary( self, ( attacker == self ) ? self : world, mod );
@@ -323,7 +323,7 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 			G_Teams_SetTeam( ent, TEAM_SPECTATOR );
 			client->queueTimeStamp = 0;
 
-			G_PrintMsg( NULL, "%s" S_COLOR_YELLOW " has been moved to spectator after %.1f seconds of inactivity\n", client->netname, g_inactivity_maxtime->value );
+			G_PrintMsg( NULL, "%s has been moved to spectator after %.1f seconds of inactivity\n", client->netname, g_inactivity_maxtime->value );
 		}
 	}
 }
@@ -637,7 +637,7 @@ void ClientBegin( edict_t *ent ) {
 	G_ClientRespawn( ent, true ); // respawn as ghost
 	ent->movetype = MOVETYPE_NOCLIP; // allow freefly
 
-	G_PrintMsg( NULL, "%s" S_COLOR_WHITE " entered the game\n", client->netname );
+	G_PrintMsg( NULL, "%s entered the game\n", client->netname );
 
 	client->connecting = false;
 
@@ -759,11 +759,11 @@ static void G_SetName( edict_t *ent, const char *original_name ) {
 			// if nick is already in use, try with (number) appended
 			if( !Q_stricmp( colorless, COM_RemoveColorTokens( other->r.client->netname ) ) ) {
 				if( trynum != 1 ) { // remove last try
-					name[strlen( name ) - strlen( va( "%s(%i)", S_COLOR_WHITE, trynum - 1 ) )] = 0;
+					name[strlen( name ) - strlen( va( "(%i)", trynum - 1 ) )] = 0;
 				}
 
 				// make sure there is enough space for the postfix
-				trylen = strlen( va( "%s(%i)", S_COLOR_WHITE, trynum ) );
+				trylen = strlen( va( "(%i)", trynum ) );
 				if( (int)strlen( colorless ) + trylen > maxchars ) {
 					COM_SanitizeColorString( va( "%s", name ), name, sizeof( name ),
 											 maxchars - trylen, COLOR_WHITE );
@@ -771,7 +771,7 @@ static void G_SetName( edict_t *ent, const char *original_name ) {
 				}
 
 				// add the postfix
-				Q_strncatz( name, va( "%s(%i)", S_COLOR_WHITE, trynum ), sizeof( name ) );
+				Q_strncatz( name, va( "(%i)", trynum ), sizeof( name ) );
 				Q_strncpyz( colorless, COM_RemoveColorTokens( name ), sizeof( colorless ) );
 
 				// go trough all clients again
@@ -917,7 +917,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	Q_strncpyz( oldname, cl->netname, sizeof( oldname ) );
 	G_SetName( ent, Info_ValueForKey( userinfo, "name" ) );
 	if( oldname[0] && Q_stricmp( oldname, cl->netname ) && !CheckFlood( ent, false ) ) {
-		G_PrintMsg( NULL, "%s%s is now known as %s%s\n", oldname, S_COLOR_WHITE, cl->netname, S_COLOR_WHITE );
+		G_PrintMsg( NULL, "%s is now known as %s\n", oldname, cl->netname );
 	}
 	if( !Info_SetValueForKey( userinfo, "name", cl->netname ) ) {
 		trap_DropClient( ent, DROP_TYPE_GENERAL, "Error: Couldn't set userinfo (name)" );
@@ -1039,11 +1039,11 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient ) {
 	if( !fakeClient ) {
 		char message[MAX_STRING_CHARS];
 
-		Q_snprintfz( message, sizeof( message ), "%s%s connected", ent->r.client->netname, S_COLOR_WHITE );
+		Q_snprintfz( message, sizeof( message ), "%s connected", ent->r.client->netname );
 
 		G_PrintMsg( NULL, "%s\n", message );
 
-		G_Printf( "%s%s connected from %s\n", ent->r.client->netname, S_COLOR_WHITE, ent->r.client->ip );
+		G_Printf( "%s connected from %s\n", ent->r.client->netname, ent->r.client->ip );
 	}
 
 	// let the gametype scripts know this client just connected
@@ -1065,9 +1065,9 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 	}
 
 	if( !reason ) {
-		G_PrintMsg( NULL, "%s" S_COLOR_WHITE " disconnected\n", ent->r.client->netname );
+		G_PrintMsg( NULL, "%s disconnected\n", ent->r.client->netname );
 	} else {
-		G_PrintMsg( NULL, "%s" S_COLOR_WHITE " disconnected (%s" S_COLOR_WHITE ")\n", ent->r.client->netname, reason );
+		G_PrintMsg( NULL, "%s disconnected (%s)\n", ent->r.client->netname, reason );
 	}
 
 	// send effect

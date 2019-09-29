@@ -391,7 +391,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 				glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 			}
 			else {
-				glBlendFunc( GL_ONE, GL_ONE );
+				glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 			}
 		}
 	}

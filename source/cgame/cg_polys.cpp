@@ -258,18 +258,6 @@ void CG_QuickPolyBeam( const vec3_t start, const vec3_t end, int width, const Ma
 	CG_SpawnPolyBeam( start, end, NULL, width, 1, 0, material, 64, 0 );
 }
 
-void CG_LGPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color, int tag ) {
-	CG_SpawnPolyBeam( start, end, color, 16, 1, 0, cgs.media.shaderLGBeam, 64, tag );
-}
-
-/*
-* CG_EBPolyBeam
-*/
-void CG_EBPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color ) {
-	constexpr int time = 250;
-	CG_SpawnPolyBeam( start, end, color, 16, time, time * 0.4f, cgs.media.shaderEBBeam, 64, 0 );
-}
-
 /*
 * CG_Addpolys
 */

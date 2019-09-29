@@ -724,7 +724,7 @@ void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, int team, float rad
 void CG_GrenadeExplosionMode( const vec3_t pos, const vec3_t dir, float radius, int team );
 void CG_GenericExplosion( const vec3_t pos, const vec3_t dir, float radius );
 void CG_RocketExplosionMode( const vec3_t pos, const vec3_t dir, float radius, int team );
-void CG_EBBeam( const vec3_t start, const vec3_t end, int team );
+void CG_EBBeam( Vec3 start, Vec3 end, int team );
 void CG_EBImpact( const vec3_t pos, const vec3_t dir, int surfFlags, int team );
 void CG_ImpactSmokePuff( const vec3_t origin, const vec3_t dir, float radius, float alpha, int time, int speed );
 void CG_BladeImpact( const vec3_t pos, const vec3_t dir );
@@ -759,8 +759,6 @@ void CG_KillPolyBeamsByTag( int key );
 void CG_SpawnPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color,
 	int width, int64_t dietime, int64_t fadetime, const Material * material, int shaderlength, int tag );
 void CG_QuickPolyBeam( const vec3_t start, const vec3_t end, int width, const Material * material );
-void CG_LGPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color, int tag );
-void CG_EBPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color );
 
 //
 // cg_effects.c
@@ -788,6 +786,12 @@ void CG_HighVelImpactPuffParticles( const vec3_t org, const vec3_t dir, int coun
 
 void InitParticles();
 void DrawParticles();
+
+void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, Texture texture );
+
+void InitPersistentBeams();
+void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, Texture texture, float duration, float fade_time );
+void DrawPersistentBeams();
 
 //
 // cg_test.c - debug only

@@ -249,11 +249,10 @@ void CG_SpawnSprite( const vec3_t origin, const vec3_t velocity, const vec3_t ac
 	le->ent.rotation = rand() % 360;
 }
 
-void CG_EBBeam( const vec3_t start, const vec3_t end, int team ) {
-	vec4_t color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	CG_TeamColor( team, color );
-	CG_EBPolyBeam( start, end, color );
-	CG_EBIonsTrail( FromQF3( start ), FromQF3( end ), FromQF4( color ) );
+void CG_EBBeam( Vec3 start, Vec3 end, int team ) {
+	Vec4 color = CG_TeamColorVec4( team );
+	AddPersistentBeam( start, end, 16.0f, color, cgs.media.shaderEBBeam->textures[ 0 ].texture, 0.25f, 0.1f );
+	CG_EBIonsTrail( start, end, color );
 }
 
 /*

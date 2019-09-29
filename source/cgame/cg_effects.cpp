@@ -999,3 +999,120 @@ void AddParticle2( const Particle & p ) {
 	particles2[ num_particles ].spawn_time = cg.time;
 	num_particles++;
 }
+
+void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, Texture texture ) {
+	Vec3 dir = Normalize( end - start );
+	Vec3 forward = Normalize( start - frame_static.position );
+
+	if( fabsf( Dot( dir, forward ) ) == 1.0f )
+		return;
+
+	Vec3 beam_across = Normalize( Cross( -forward, dir ) );
+	Vec3 beam_normal = Normalize( Cross( dir, beam_across ) );
+
+	Vec3 positions[] = {
+		start + width * beam_across * 0.5f,
+		start - width * beam_across * 0.5f,
+		end + width * beam_across * 0.5f,
+		end - width * beam_across * 0.5f,
+	};
+
+	float texture_aspect_ratio = float( texture.width ) / float( texture.height );
+	float beam_aspect_ratio = Length( end - start ) / width;
+	float repetitions = beam_aspect_ratio / texture_aspect_ratio;
+
+	Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
+	Vec2 uvs[] = {
+		Vec2( half_pixel.x, half_pixel.y ),
+		Vec2( half_pixel.x, 1.0f - half_pixel.y ),
+		Vec2( repetitions - half_pixel.x, half_pixel.y ),
+		Vec2( repetitions - half_pixel.x, 1.0f - half_pixel.y ),
+	};
+
+	constexpr RGBA8 colors[] = { rgba8_white, rgba8_white, rgba8_white, rgba8_white };
+
+	u16 base_index = DynamicMeshBaseIndex();
+	u16 indices[] = { 0, 1, 2, 1, 3, 2 };
+	for( u16 & idx : indices ) {
+		idx += base_index;
+	}
+
+	PipelineState pipeline;
+	pipeline.shader = &shaders.standard;
+	pipeline.pass = frame_static.transparent_pass;
+	pipeline.blend_func = BlendFunc_Add;
+	pipeline.write_depth = false;
+	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+	pipeline.set_uniform( "u_Model", UploadModelUniforms( Mat4::Identity(), color ) );
+	pipeline.set_texture( "u_BaseTexture", texture );
+	pipeline.set_uniform( "u_Material", UploadUniformBlock( Vec4( 0 ), Vec4( 0 ), Vec2( texture.width, texture.height ), 0.0f ) );
+
+	DynamicMesh mesh = { };
+	mesh.positions = positions;
+	mesh.uvs = uvs;
+	mesh.colors = colors;
+	mesh.indices = indices;
+	mesh.num_vertices = 4;
+	mesh.num_indices = 6;
+
+	DrawDynamicMesh( pipeline, mesh );
+}
+
+struct PersistentBeam {
+	Vec3 start, end;
+	float width;
+	Vec4 color;
+	Texture texture;
+
+	s64 spawn_time;
+	float duration;
+	float start_fade_time;
+};
+
+static constexpr size_t MaxPersistentBeams = 256;
+static PersistentBeam persistent_beams[ MaxPersistentBeams ];
+static size_t num_persistent_beams;
+
+void InitPersistentBeams() {
+	num_persistent_beams = 0;
+}
+
+void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, Texture texture, float duration, float fade_time ) {
+	if( num_persistent_beams == ARRAY_COUNT( persistent_beams ) )
+		return;
+
+	PersistentBeam & beam = persistent_beams[ num_persistent_beams ];
+	num_persistent_beams++;
+
+	beam.start = start;
+	beam.end = end;
+	beam.width = width;
+	beam.color = color;
+	beam.texture = texture;
+	beam.spawn_time = cg.time;
+	beam.duration = duration;
+	beam.start_fade_time = duration - fade_time;
+}
+
+void DrawPersistentBeams() {
+	for( size_t i = 0; i < num_persistent_beams; i++ ) {
+		PersistentBeam & beam = persistent_beams[ i ];
+		float t = ( cg.time - beam.spawn_time ) / 1000.0f;
+		float alpha;
+		if( beam.start_fade_time != beam.duration )
+			alpha = 1.0f - Clamp01( Unlerp( beam.start_fade_time, t, beam.duration ) );
+		else
+			alpha = t < beam.duration ? 1.0f : 0.0f;
+
+		if( alpha <= 0 ) {
+			num_persistent_beams--;
+			Swap2( &beam, &persistent_beams[ num_persistent_beams ] );
+			i--;
+			continue;
+		}
+
+		Vec4 color = beam.color;
+		color.w *= alpha;
+		DrawBeam( beam.start, beam.end, beam.width, color, beam.texture );
+	}
+}

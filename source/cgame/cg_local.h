@@ -782,9 +782,12 @@ void CG_ParticleEffect2( const vec3_t org, const vec3_t dir, float r, float g, f
 void CG_ParticleExplosionEffect( const vec3_t org, const vec3_t dir, float r, float g, float b, int count );
 void CG_BlasterTrail( const vec3_t start, const vec3_t end );
 void CG_FlyEffect( centity_t *ent, const vec3_t origin );
-void CG_EBIonsTrail( const vec3_t start, const vec3_t end, const vec4_t color );
+void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color );
 void CG_ImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, const Material * material );
 void CG_HighVelImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, const Material * material );
+
+void InitParticles();
+void DrawParticles();
 
 //
 // cg_test.c - debug only

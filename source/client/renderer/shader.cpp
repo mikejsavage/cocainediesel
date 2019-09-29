@@ -94,6 +94,9 @@ void InitShaders() {
 	BuildShaderSrcs( "glsl/outline.glsl", "#define SKINNED 1\n", &srcs, &lengths );
 	shaders.outline_skinned = NewShader( srcs.span(), lengths.span() );
 
+	BuildShaderSrcs( "glsl/particle.glsl", NULL, &srcs, &lengths );
+	shaders.particle = NewShader( srcs.span(), lengths.span() );
+
 	BuildShaderSrcs( "glsl/text.glsl", NULL, &srcs, &lengths );
 	shaders.text = NewShader( srcs.span(), lengths.span() );
 }

@@ -24,8 +24,9 @@
 #include <string.h>
 #include <assert.h>
 
-#include "rng.h"
+#include "qcommon/rng.h"
 #include "gameshared/q_shared.h"
+#include "gameshared/q_math.h"
 
 RNG new_rng() {
 	RNG rng;
@@ -97,6 +98,11 @@ float random_float11( RNG * rng ) {
 	x.f -= 1.0f;
 	x.u |= sign;
 	return x.f;
+}
+
+float random_uniform_float( RNG * rng, float lo, float hi ) {
+	float t = random_float01( rng );
+	return Lerp( lo, t, hi );
 }
 
 double random_double01( RNG * rng ) {

@@ -253,7 +253,7 @@ void CG_EBBeam( const vec3_t start, const vec3_t end, int team ) {
 	vec4_t color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	CG_TeamColor( team, color );
 	CG_EBPolyBeam( start, end, color );
-	CG_EBIonsTrail( start, end, color );
+	CG_EBIonsTrail( FromQF3( start ), FromQF3( end ), FromQF4( color ) );
 }
 
 /*

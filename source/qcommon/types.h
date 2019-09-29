@@ -340,12 +340,11 @@ struct RGBA8 {
 	RGBA8() { }
 	constexpr RGBA8( u8 r_, u8 g_, u8 b_, u8 a_ ) : r( r_ ), g( g_ ), b( b_ ), a( a_ ) { }
 
-	RGBA8( const Vec4 & v ) {
-		constexpr float scale = 1.0f / 255.0f;
-		r = v.x * scale;
-		g = v.y * scale;
-		b = v.z * scale;
-		a = v.w * scale;
+	explicit RGBA8( const Vec4 & v ) {
+		r = v.x * 255.0f;
+		g = v.y * 255.0f;
+		b = v.z * 255.0f;
+		a = v.w * 255.0f;
 	}
 };
 

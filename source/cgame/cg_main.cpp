@@ -761,6 +761,8 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	CG_ClearPolys();
 	CG_ClearEffects();
 
+	InitParticles();
+
 	CG_InitChat( &cg.chat );
 
 	// start up announcer events queue from clean

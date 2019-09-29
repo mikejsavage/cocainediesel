@@ -105,9 +105,12 @@ T Clamp( const T & lo, const T & x, const T & hi ) {
 	return Max2( lo, Min2( x, hi ) );
 }
 
-template< typename T >
-T Clamp01( const T & x ) {
-	return Max2( T( 0 ), Min2( x, T( 1 ) ) );
+inline float Clamp01( float x ) {
+	return Clamp( 0.0f, x, 1.0f );
+}
+
+inline Vec4 Clamp01( Vec4 v ) {
+	return Vec4( Clamp01( v.x ), Clamp01( v.y ), Clamp01( v.z ), Clamp01( v.w ) );
 }
 
 /*

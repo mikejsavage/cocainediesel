@@ -20,7 +20,25 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // cg_effects.c -- entity effects parsing and management
 
-#include "cg_local.h"
+#include "cgame/cg_local.h"
+#include "client/client.h"
+
+struct Particle {
+	Vec3 origin;
+	Vec3 velocity;
+	bool gravity;
+
+	RGBA8 color;
+	float dalpha;
+
+	float size;
+
+	s64 spawn_time;
+
+	Texture texture;
+};
+
+void AddParticle2( const Particle & p );
 
 /*
 ==============================================================
@@ -672,42 +690,46 @@ void CG_HighVelImpactPuffParticles( const vec3_t org, const vec3_t dir, int coun
 	}
 }
 
-void CG_EBIonsTrail( const vec3_t start, const vec3_t end, const vec4_t color ) {
-#define MAX_BOLT_IONS 256
-	int i, count;
-	vec3_t move, vec;
-	float len;
-	float dec2 = 4.0f;
-	cparticle_t *p;
+static Vec3 UniformSampleSphere( RNG * rng ) {
+	float z = 1.0f - 2.0f * random_float01( rng );
+	float r = sqrtf( Max2( 0.0f, 1.0f - z * z ) );
+	float phi = 2.0f * float( M_PI ) * random_float01( rng );
+	return Vec3( r * cosf( phi ), r * sinf( phi ), z );
+}
 
-	if( !cg_particles->integer ) {
-		return;
+void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color ) {
+	constexpr int max_ions = 256;
+	float distance_between_particles = 4.0f;
+
+	float len = Length( end - start );
+	Vec3 dir = Normalize( end - start );
+
+	int n = int( len / distance_between_particles ) + 1;
+
+	if( n > max_ions ) {
+		distance_between_particles *= float( max_ions ) / n;
+		n = max_ions;
 	}
 
-	VectorSubtract( end, start, vec );
-	len = VectorNormalize( vec );
-	count = (int)( len / dec2 ) + 1;
-	if( count > MAX_BOLT_IONS ) {
-		count = MAX_BOLT_IONS;
-		dec2 = len / count;
-	}
+	for( int i = 0; i < n; i++ ) {
+		Particle p;
+		memset( &p, 0, sizeof( p ) );
+		p.origin = start + dir * distance_between_particles * i;
+		p.velocity = UniformSampleSphere( &cls.rng ) * 4;
 
-	VectorScale( vec, dec2, vec );
-	VectorCopy( start, move );
+		Vec4 random_color = color;
+		random_color.x += random_float11( &cls.rng ) * 0.1f;
+		random_color.y += random_float11( &cls.rng ) * 0.1f;
+		random_color.z += random_float11( &cls.rng ) * 0.1f;
+		p.color = RGBA8( Clamp01( random_color ) );
 
-	if( cg_numparticles + count > MAX_PARTICLES ) {
-		count = MAX_PARTICLES - cg_numparticles;
-	}
-	for( p = &particles[cg_numparticles], cg_numparticles += count; count > 0; count--, p++ ) {
-		CG_InitParticle( p, 0.65f, color[3], color[0] + crandom() * 0.1, color[1] + crandom() * 0.1, color[2] + crandom() * 0.1, NULL );
+		p.dalpha = -1.0f / random_uniform_float( &cls.rng, 0.6f, 1.2f );
 
-		for( i = 0; i < 3; i++ ) {
-			p->org[i] = move[i];
-			p->vel[i] = crandom() * 4;
-		}
-		p->alphavel = -1.0 / ( 0.6 + random() * 0.6 );
-		VectorClear( p->accel );
-		VectorAdd( move, vec, move );
+		p.size = 0.65f;
+
+		p.texture = FindTexture( "gfx/misc/cartoon_smokepuff1" );
+
+		AddParticle2( p );
 	}
 }
 
@@ -896,4 +918,84 @@ void CG_ClearEffects( void ) {
 	CG_ClearParticles();
 	CG_ClearDlights();
 	CG_ClearPlayerShadows();
+}
+
+static constexpr size_t MAX_PARTICLES2 = 8192;
+static Particle particles2[ MAX_PARTICLES2 ];
+static size_t num_particles;
+
+void InitParticles() {
+	num_particles = 0;
+}
+
+void DrawParticles() {
+	PipelineState pipeline;
+	pipeline.shader = &shaders.particle;
+	pipeline.pass = frame_static.transparent_pass;
+	pipeline.blend_func = BlendFunc_Add;
+	pipeline.write_depth = false;
+	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+
+	for( size_t i = 0; i < num_particles; i++ ) {
+		Particle & p = particles2[ i ];
+		float t = ( cg.time - p.spawn_time ) / 1000.0f;
+		float alpha = p.color.a / 255.0f + p.dalpha * t;
+
+		if( alpha <= 0 ) {
+			num_particles--;
+			Swap2( &p, &particles2[ num_particles ] );
+			i--;
+			continue;
+		}
+
+		Vec3 accel = p.gravity ? Vec3( 0, 0, -BASEGRAVITY ) : Vec3( 0 );
+		Vec3 origin = p.origin + p.velocity * t + 0.5f * accel * t * t;
+
+		Vec3 right = 0.5f * p.size * frame_static.V.row0().xyz();
+		Vec3 up = 0.5f * p.size * frame_static.V.row1().xyz();
+
+		Vec3 positions[] = {
+			origin - right - up,
+			origin + right - up,
+			origin - right + up,
+			origin + right + up,
+		};
+
+		Vec2 half_pixel = 0.5f / Vec2( p.texture.width, p.texture.height );
+		Vec2 uvs[] = {
+			Vec2( half_pixel.x, 1.0f - half_pixel.y ),
+			Vec2( 1.0f - half_pixel.x, 1.0f - half_pixel.y ),
+			Vec2( half_pixel.x, half_pixel.y ),
+			Vec2( 1.0f - half_pixel.x, half_pixel.y ),
+		};
+
+		RGBA8 color = RGBA8( p.color.r, p.color.g, p.color.b, 255 * alpha );
+		RGBA8 colors[] = { color, color, color, color };
+
+		u16 base_index = DynamicMeshBaseIndex();
+		u16 indices[] = { 0, 1, 2, 1, 3, 2 };
+		for( u16 & idx : indices ) {
+			idx += base_index;
+		}
+
+		DynamicMesh mesh = { };
+		mesh.positions = positions;
+		mesh.uvs = uvs;
+		mesh.colors = colors;
+		mesh.indices = indices;
+		mesh.num_vertices = 4;
+		mesh.num_indices = 6;
+
+		pipeline.set_texture( "u_BaseTexture", p.texture );
+
+		DrawDynamicMesh( pipeline, mesh );
+	}
+}
+
+void AddParticle2( const Particle & p ) {
+	if( num_particles == ARRAY_COUNT( particles2 ) )
+		return;
+	particles2[ num_particles ] = p;
+	particles2[ num_particles ].spawn_time = cg.time;
+	num_particles++;
 }

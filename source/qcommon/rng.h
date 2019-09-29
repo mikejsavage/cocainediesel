@@ -50,6 +50,8 @@ float random_float01( RNG * rng );
 // return a random float in [-1, 1)
 float random_float11( RNG * rng );
 
+float random_uniform_float( RNG * rng, float lo, float hi );
+
 // return a random double in [0, 1)
 double random_double01( RNG * rng );
 // return a random double in [-1, 1)

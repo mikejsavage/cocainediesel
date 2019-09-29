@@ -22,6 +22,8 @@ struct Shaders {
 	Shader outline;
 	Shader outline_skinned;
 
+	Shader particle;
+
 	Shader text;
 };
 

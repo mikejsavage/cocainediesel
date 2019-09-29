@@ -1,7 +1,7 @@
 setCursor #WIDTH / 2, #HEIGHT - 64
 setAlignment center middle
 setSize 200, 18
-setFontSize %VIDHEIGHT / 48
+setFontSize %VIDHEIGHT / 40
 setFontBorder on
 
 if %CARRYING_BOMB

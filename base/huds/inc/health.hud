@@ -2,7 +2,7 @@ if %HEALTH != #NOTSET
 	if %HEALTH >= 0
 		setAlignment center middle
 		setCursor #WIDTH / 2, #HEIGHT - 32
-		setFontSize %VIDHEIGHT / 48
+		setFontSize %VIDHEIGHT / 40
 
 		// draw background
 		setColor 0.0, 0.0, 0.0, 0.5

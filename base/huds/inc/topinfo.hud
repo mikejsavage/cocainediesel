@@ -1,6 +1,5 @@
-setCursor #WIDTH / 2, 0
+setCursor #WIDTH / 2, 4
 setAlignment center top
-setColor 0, 0, 0, 0.5
 setFontBorder on
 
 if %MATCH_STATE < #MATCH_STATE_PLAYTIME
@@ -9,18 +8,16 @@ if %MATCH_STATE < #MATCH_STATE_PLAYTIME
 	if %TEAM != #TEAM_SPECTATOR
 		setSize 120 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 48
 	endif
-	drawPicByName $whiteimage
 
 	moveCursor 0, 15
-	setAlignment center middle
-	setFontSize %VIDHEIGHT / 64
+	setFontSize %VIDHEIGHT / 50
 	setFontStyle bold
 	setColor 1, 1, 1, 1
 	drawString "WARMUP"
 
 	if %TEAM != #TEAM_SPECTATOR
 		moveCursor 0, 17
-		setFontSize %VIDHEIGHT / 64
+		setFontSize %VIDHEIGHT / 50
 		setFontStyle bold
 
 		if %READY || %MATCH_STATE == #MATCH_STATE_COUNTDOWN
@@ -43,11 +40,10 @@ if %MATCH_STATE == #MATCH_STATE_PLAYTIME
 	if %ROUND_TYPE != #RoundType_Normal
 		setSize 120 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 48
 	endif
-	drawPicByName $whiteimage
 
 	// clock
 	setColor 1, 1, 1, 1
-	setFontSize %VIDHEIGHT / 32
+	setFontSize %VIDHEIGHT / 24
 	moveCursor 0, 3
 	drawClock
 
@@ -55,27 +51,27 @@ if %MATCH_STATE == #MATCH_STATE_PLAYTIME
 	setFontStyle bold
 
 	if %TEAM_ALPHA_SCORE != #NOTSET
-		moveCursor -40 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+		moveCursor -50 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
 
 		setColorToTeamColor #TEAM_ALPHA
 		drawStringNum %TEAM_ALPHA_SCORE
 
-		moveCursor 40 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+		moveCursor 50 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
 	endif
 
 	if %TEAM_BETA_SCORE != #NOTSET
-		moveCursor 40 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+		moveCursor 50 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
 
 		setColorToTeamColor #TEAM_BETA
 		drawStringNum %TEAM_BETA_SCORE
 
-		moveCursor -40 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+		moveCursor -50 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
 	endif
 
 	// match point/overtime
 	if %ROUND_TYPE != #RoundType_Normal
 		moveCursor 0, 26
-		setFontSize %VIDHEIGHT / 64
+		setFontSize %VIDHEIGHT / 50
 		setFontStyle bold
 		setColor 1, 1, 1, 1
 		if %ROUND_TYPE == #RoundType_MatchPoint
@@ -85,7 +81,7 @@ if %MATCH_STATE == #MATCH_STATE_PLAYTIME
 			drawString "OVERTIME"
 		endif
 		if %ROUND_TYPE == #RoundType_OvertimeMatchPoint
-			drawString "OT MATCH POINT"
+			drawString "OVERTIME MATCH POINT"
 		endif
 	endif
 
@@ -98,27 +94,17 @@ if %MATCH_STATE == #MATCH_STATE_PLAYTIME
 
 	if %ALPHA_PLAYERS_TOTAL
 		setAlignment right top
-		moveCursor -70 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
-
-		moveCursor 1, 1
-		setColor 0.2, 0.2, 0.2, 1
-		drawStringRepeatConfigString "?" %ALPHA_PLAYERS_TOTAL
-		moveCursor -1 -1
+		moveCursor -90 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
 
 		setColorToTeamColor #TEAM_ALPHA
 		drawStringRepeatConfigString "?" %ALPHA_PLAYERS_ALIVE
 
-		moveCursor 70 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+		moveCursor 90 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
 	endif
 
 	if %BETA_PLAYERS_TOTAL
 		setAlignment left top
-		moveCursor 70 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
-
-		moveCursor 1, 1
-		setColor 0.2, 0.2, 0.2, 1
-		drawStringRepeatConfigString "?" %BETA_PLAYERS_TOTAL
-		moveCursor -1 -1
+		moveCursor 90 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
 
 		setColorToTeamColor #TEAM_BETA
 		drawStringRepeatConfigString "?" %BETA_PLAYERS_ALIVE

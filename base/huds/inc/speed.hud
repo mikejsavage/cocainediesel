@@ -1,5 +1,5 @@
 if %SHOW_SPEED == 1
-	setFontSize %VIDHEIGHT / 48
+	setFontSize %VIDHEIGHT / 40
 	setFontBorder on
 	setColor 1, 1, 1, 1
 	setAlignment center bottom

@@ -1984,11 +1984,6 @@ static bool CG_LFuncDrawNet( struct cg_layoutnode_s *argumentnode, int numArgume
 	return true;
 }
 
-static bool CG_LFuncDrawChat( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	CG_DrawChat( &cg.chat );
-	return true;
-}
-
 static bool CG_LFuncIf( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	return (int)CG_GetNumericArg( &argumentnode ) != 0;
 }
@@ -2230,13 +2225,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawNet,
 		0,
 		"Draws the disconnection icon",
-	},
-
-	{
-		"drawChat",
-		CG_LFuncDrawChat,
-		3,
-		"Draws the game chat messages",
 	},
 
 	{

@@ -902,8 +902,6 @@ void CG_Draw2DView( void ) {
 
 	CG_SCRDrawViewBlend();
 
-	CG_DrawHUD();
-
 	scr_centertime_off -= cg.frameTime;
 	if( CG_ScoreboardShown() ) {
 		CG_DrawScoreboard();
@@ -911,6 +909,10 @@ void CG_Draw2DView( void ) {
 	else if( scr_centertime_off > 0 ) {
 		CG_DrawCenterString();
 	}
+
+	CG_DrawChat( &cg.chat );
+
+	CG_DrawHUD();
 }
 
 /*

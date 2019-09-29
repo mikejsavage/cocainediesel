@@ -88,15 +88,13 @@ void CG_DrawChat( cg_gamechat_t *chat ) {
 	ImGui::Begin( "chat", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground );
 
 	int l;
-	int message_mode;
 	const cg_gamemessage_t *msg;
 	const char *msg_text;
 	char tstr[GAMECHAT_STRING_SIZE];
-	bool chat_active = false;
 	bool background_drawn = false;
 
-	message_mode = (int)trap_Cvar_Value( "con_messageMode" );
-	chat_active = ( chat->lastMsgTime + GAMECHAT_WAIT_IN_TIME + GAMECHAT_FADE_IN_TIME > cg.realTime || message_mode );
+	int message_mode = (int)trap_Cvar_Value( "con_messageMode" );
+	bool chat_active = ( chat->lastMsgTime + GAMECHAT_WAIT_IN_TIME + GAMECHAT_FADE_IN_TIME > cg.realTime || message_mode );
 
 	if( chat_active ) {
 		

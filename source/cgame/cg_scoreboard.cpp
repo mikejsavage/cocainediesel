@@ -47,15 +47,11 @@ static void WindowCenterText( const char * str ) {
 	ImGui::Text( "%s", str );
 }
 
-static void CenterText( const char * text, Vec2 box_size, Vec2 pos = Vec2( 0, 0 ) ) {
-	Vec2 text_size = ImGui::CalcTextSize( text );
-	ImGui::SetCursorPos( pos + ( box_size - text_size ) * 0.5f );
-	ImGui::Text( "%s", text );
-}
-
 static void CenterTextWindow( const char * title, const char * text, Vec2 size ) {
 	ImGui::BeginChild( title, size, true );
-	CenterText( text, size );
+	Vec2 text_size = ImGui::CalcTextSize( text );
+	ImGui::SetCursorPos( ( size - text_size ) * 0.5f );
+	ImGui::Text( "%s", text );
 	ImGui::EndChild();
 }
 

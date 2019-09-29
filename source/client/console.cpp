@@ -579,12 +579,6 @@ static const char *Con_ChatPrompt( void ) {
 	}
 }
 
-/*
-* Con_DrawChat
-*/
-void Con_DrawChat( int x, int y, int width, struct qfontface_s *font ) {
-	return;
-}
 
 /*
 * Con_SendChatMessage

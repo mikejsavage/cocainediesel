@@ -7,7 +7,6 @@ void Con_Clear();
 void Con_Draw( int pressed_key );
 
 struct qfontface_s;
-void Con_DrawChat( int x, int y, int width, struct qfontface_s *font );
 void Con_SetMessageMode();
 
 void Con_ToggleConsole();

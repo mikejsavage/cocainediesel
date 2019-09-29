@@ -1985,12 +1985,7 @@ static bool CG_LFuncDrawNet( struct cg_layoutnode_s *argumentnode, int numArgume
 }
 
 static bool CG_LFuncDrawChat( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int padding_x = (int)( CG_GetNumericArg( &argumentnode ) ) * frame_static.viewport_width / 800;
-	int padding_y = (int)( CG_GetNumericArg( &argumentnode ) ) * frame_static.viewport_height / 600;
-	const Material * material = FindMaterial( CG_GetStringArg( &argumentnode ) );
-
-	// CG_DrawChat( &cg.chat, layout_cursor_x, layout_cursor_y, layout_cursor_font_name, CG_GetLayoutCursorFont(), layout_cursor_font_size,
-	// 			 layout_cursor_width, layout_cursor_height, padding_x, padding_y, layout_cursor_color, material );
+	CG_DrawChat( &cg.chat );
 	return true;
 }
 

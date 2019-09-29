@@ -218,8 +218,6 @@ void CL_GameModule_Init( void ) {
 	import.CM_InlineModelBounds = CL_GameModule_CM_InlineModelBounds;
 	import.CM_InPVS = CL_GameModule_CM_InPVS;
 
-	import.SCR_DrawChat = Con_DrawChat;
-
 	cge = GetCGameAPI( &import );
 
 	start = Sys_Milliseconds();

@@ -154,12 +154,6 @@ void SCR_ShutdownScreen( void ) {
 	scr_initialized = false;
 }
 
-/*
-* SCR_DrawChat
-*/
-void SCR_DrawChat( int x, int y, int width, struct qfontface_s *font ) {
-	Con_DrawChat( x, y, width, font );
-}
 
 //=============================================================================
 

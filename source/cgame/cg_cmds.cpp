@@ -42,25 +42,21 @@ static void CG_SC_Print( void ) {
 static void CG_SC_ChatPrint( void ) {
 	const bool teamonly = ( !Q_stricmp( trap_Cmd_Argv( 0 ), "tch" ) ? true : false );
 	const int who = atoi( trap_Cmd_Argv( 1 ) );
-	const char *name = ( who && who == bound( 1, who, MAX_CLIENTS ) ? cgs.clientInfo[who - 1].name : NULL );
 	const char *text = trap_Cmd_Argv( 2 );
 
 	if( cg_chatFilter->integer & ( teamonly ? 2 : 1 ) ) {
 		return;
 	}
 
-	if( !name ) {
-		CG_LocalPrint( S_COLOR_GREEN "console: %s\n", text );
-	} else if( teamonly ) {
-		CG_LocalPrint( S_COLOR_YELLOW "[%s]" S_COLOR_WHITE "%s" S_COLOR_YELLOW ": %s\n",
-					   cg.frame.playerState.stats[STAT_REALTEAM] == TEAM_SPECTATOR ? "SPEC" : "TEAM", name, text );
+	if( !(who || who == bound( 1, who, MAX_CLIENTS )) ) {
+		CG_LocalPrint( "-1 -1 Console : %s\n", text );
 	} else {
-		CG_LocalPrint( "%s" S_COLOR_GREEN ": %s\n", name, text );
+		CG_LocalPrint( "%d %d %s\n", cg.frame.playerState.stats[STAT_REALTEAM], who - 1, text );
 	}
 
 	// check highlight of player nick here instead of local print because its used for things like stats
 	// dont highlight for server messages
-	if( name && !cgs.demoPlaying ) {
+	if( who && !cgs.demoPlaying ) {
 		CG_FlashChatHighlight( who - 1, text );
 	}
 }

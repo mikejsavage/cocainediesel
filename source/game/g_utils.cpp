@@ -908,11 +908,14 @@ void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, .
 		// mirror at server console
 		if( GAME_IMPORT.is_dedicated_server ) {
 			if( !who ) {
-				G_Printf( "-1 -1 Console: %s\n", msg );     // admin console
+				G_Printf( "Console : %s\n", msg );     // admin console
 			} else if( !who->r.client ) {
 				;   // wtf?
+			} else if( teamonly ) {
+				G_Printf( "[%s] %s %s\n",
+						  who->r.client->ps.stats[STAT_TEAM] == TEAM_SPECTATOR ? "SPEC" : "TEAM", who->r.client->netname, msg );
 			} else {
-				G_Printf( "%d %d %s\n", who->r.client->ps.stats[STAT_TEAM], ENTNUM(who) - 1, msg );
+				G_Printf( "%s %s\n", who->r.client->netname, msg );
 			}
 		}
 

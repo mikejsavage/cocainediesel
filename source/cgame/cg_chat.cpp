@@ -25,12 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "imgui/imgui.h"
 
 
-
-struct PlayerMsg {
-	int team;
-	int id;
-};
-
 /*
 ** CG_InitChat
 */
@@ -55,23 +49,6 @@ void CG_StackChatString( cg_gamechat_t *chat, const char *str ) {
 #define GAMECHAT_WAIT_OUT_TIME      4000
 #define GAMECHAT_HIGHLIGHT_TIME     4000
 #define GAMECHAT_FADE_OUT_TIME      ( GAMECHAT_NOTIFY_TIME - GAMECHAT_WAIT_OUT_TIME )
-
-
-static bool ParseInt( const char ** cursor, int * x ) {
-	const char * token = COM_Parse( cursor );
-	if( cursor == NULL )
-		return false;
-	*x = atoi( token );
-	return true;
-}
-
-
-static bool ParsePlayer( const char ** cursor, PlayerMsg * player ) {
-	bool ok = true;
-	ok = ok && ParseInt( cursor, &player->team );
-	ok = ok && ParseInt( cursor, &player->id );
-	return ok;
-}
 
 /*
 ** CG_DrawChat
@@ -108,11 +85,8 @@ void CG_DrawChat( cg_gamechat_t *chat ) {
 			l = GAMECHAT_STACK_SIZE + l;
 		}
 
-		PlayerMsg player;
 		msg = &chat->messages[l];
 		msg_text = msg->text;
-		ParsePlayer( &msg_text, &player );
-
 		bool old_msg = !message_mode && ( cg.realTime > msg->time + GAMECHAT_NOTIFY_TIME );
 
 		if( !background_drawn ) {
@@ -132,25 +106,34 @@ void CG_DrawChat( cg_gamechat_t *chat ) {
 
 		ImGui::SetCursorPos( Vec2( 20, size.y - (i+1)*20 ) );
 
-		if( msg_text != NULL ) {
-			int alpha = ( message_mode ? 255 : ((msg->time) - cg.realTime + GAMECHAT_NOTIFY_TIME)/20);
-
-			if( player.team == TEAM_SPECTATOR ) {
-				DynamicString name( &temp, "{}{}", ImGuiColorToken(150, 150, 150, alpha), cgs.clientInfo[ player.id ].name );
-				ImGui::Text( "%s", name.c_str() );
-				ImGui::SetCursorPosX( ImGui::CalcTextSize( name.c_str() ).x*1.1f );
-			} else if( player.team > 0 ) {
-				RGB8 team_color = CG_TeamColor( player.team );
-				DynamicString name( &temp, "{}{}", ImGuiColorToken(team_color.r, team_color.g, team_color.b, alpha), cgs.clientInfo[ player.id ].name );
-				ImGui::Text( "%s", name.c_str() );
-				ImGui::SetCursorPosX( ImGui::CalcTextSize( name.c_str() ).x*1.1f );
-			}
-
-
-			ImGui::SameLine();
-			DynamicString text( &temp, "{}{}", ImGuiColorToken(255, 255, 255, alpha), msg_text );
-			ImGui::Text( "%s", text.c_str() );
+		const char *cursor = COM_Parse( &msg_text );
+		RGB8 team_color = { 255, 255, 255 };
+		if( strcmp( cursor, "[SPEC]") == 0 ) {
+			team_color.r = 125;
+			team_color.g = 125;
+			team_color.b = 125;
+			cursor = COM_Parse( &msg_text );
+		} else if( strcmp( cursor, "[TEAM]" ) == 0 ) {
+			team_color = CG_TeamColor( TEAM_ALLY );
+			cursor = COM_Parse( &msg_text );
+		} else if( strcmp( cursor, "Console" ) == 0 ) {
+			team_color.r = 50;
+			team_color.g = 255;
+			team_color.b = 50;
+			cursor = COM_Parse( &msg_text );
 		}
+		
+		int alpha = ( message_mode ? 255 : ((msg->time) - cg.realTime + GAMECHAT_NOTIFY_TIME)/20);
+
+		DynamicString name( &temp, "{}{}", ImGuiColorToken(team_color.r, team_color.g, team_color.b, alpha), cursor );
+		ImGui::Text( "%s", name.c_str() );
+		ImGui::SetCursorPosX( ImGui::CalcTextSize( name.c_str() ).x*1.1f );
+
+		cursor = COM_Parse( &msg_text );
+
+		ImGui::SameLine();
+		DynamicString text( &temp, "{}{}", ImGuiColorToken(Max2( team_color.r - 50, 0 ), Max2( team_color.g - 50, 0 ), Max2( team_color.b - 50, 0 ), alpha), cursor );
+		ImGui::Text( "%s", text.c_str() );
 	}
 
 	chat->lastActive = chat_active;

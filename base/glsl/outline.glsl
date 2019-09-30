@@ -1,5 +1,6 @@
 #include "include/common.glsl"
 #include "include/uniforms.glsl"
+#include "include/skinning.glsl"
 
 layout( std140 ) uniform u_Outline {
 	float u_OutlineHeight;
@@ -8,8 +9,6 @@ layout( std140 ) uniform u_Outline {
 qf_varying vec4 v_Color;
 
 #if VERTEX_SHADER
-
-#include "include/skinning.glsl"
 
 in vec4 a_Position;
 in vec3 a_Normal;

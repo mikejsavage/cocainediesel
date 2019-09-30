@@ -1,9 +1,8 @@
 #include "include/common.glsl"
 #include "include/uniforms.glsl"
+#include "include/skinning.glsl"
 
 #ifdef VERTEX_SHADER
-
-#include "include/skinning.glsl"
 
 in vec4 a_Position;
 

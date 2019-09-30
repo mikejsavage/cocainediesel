@@ -1,4 +1,5 @@
-#ifdef SKINNED
+#if VERTEX_SHADER
+#if SKINNED
 
 qf_attribute uvec4 a_JointIndices;
 qf_attribute vec4 a_JointWeights;
@@ -18,4 +19,5 @@ void Skin( inout vec4 position, inout vec3 normal ) {
 	normal = normalize( mat3( skin ) * normal );
 }
 
+#endif
 #endif

@@ -1,5 +1,6 @@
 #include "include/common.glsl"
 #include "include/uniforms.glsl"
+#include "include/skinning.glsl"
 
 qf_varying vec3 v_Position;
 qf_varying vec2 v_TexCoord;
@@ -18,8 +19,6 @@ in vec4 a_Position;
 in vec3 a_Normal;
 in vec4 a_Color;
 in vec2 a_TexCoord;
-
-#include "include/skinning.glsl"
 
 void main() {
 	vec4 Position = a_Position;

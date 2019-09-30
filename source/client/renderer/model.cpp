@@ -161,6 +161,30 @@ void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 
 	}
 }
 
+void DrawTeammateModel( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices ) {
+	bool skinned = skinning_matrices.ptr != NULL;
+
+	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform, color );
+	UniformBlock pose_uniforms;
+	if( skinned ) {
+		pose_uniforms = UploadUniforms( skinning_matrices.ptr, skinning_matrices.num_bytes() );
+	}
+
+	for( u32 i = 0; i < model->num_primitives; i++ ) {
+		PipelineState pipeline;
+		pipeline.shader = &shaders.teammate_write_gbuffer_skinned;
+		pipeline.pass = frame_static.teammate_write_gbuffer_pass;
+		pipeline.write_depth = false;
+		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+		pipeline.set_uniform( "u_Model", model_uniforms );
+		if( skinned ) {
+			pipeline.set_uniform( "u_Pose", pose_uniforms );
+		}
+
+		DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+	}
+}
+
 template< typename T, typename F >
 static T SampleAnimationChannel( const Model::AnimationChannel< T > & channel, float t, T def, F lerp ) {
 	if( channel.samples == NULL )

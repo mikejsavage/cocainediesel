@@ -120,6 +120,8 @@ void InitRenderer() {
 static void DeleteFramebuffers() {
 	DeleteFramebuffer( frame_static.world_gbuffer );
 	DeleteFramebuffer( frame_static.world_outlines_fb );
+	DeleteFramebuffer( frame_static.teammate_gbuffer );
+	DeleteFramebuffer( frame_static.teammate_outlines_fb );
 	DeleteFramebuffer( frame_static.msaa_fb );
 }
 
@@ -243,6 +245,16 @@ static void CreateFramebuffers() {
 	{
 		FramebufferConfig fb;
 
+		texture_config.format = TextureFormat_RGBA_U8_sRGB;
+		fb.albedo_attachment = texture_config;
+
+		frame_static.teammate_gbuffer = NewFramebuffer( fb );
+		frame_static.teammate_outlines_fb = NewFramebuffer( fb );
+	}
+
+	{
+		FramebufferConfig fb;
+
 		texture_config.format = TextureFormat_RGB_U8_sRGB;
 		fb.albedo_attachment = texture_config;
 
@@ -291,11 +303,18 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		frame_static.world_add_outlines_pass = AddRenderPass( "Render world outlines" );
 	}
 
-	// frame_static.teammate_write_gbuffer_pass = AddRenderPass( "Write teammate gbuffer", ClearColor_Dont, ClearDepth_Do );
-	// frame_static.teammate_postprocess_gbuffer_pass = AddRenderPass( "Postprocess teammate gbuffer" );
+	frame_static.teammate_write_gbuffer_pass = AddRenderPass( "Write teammate gbuffer", frame_static.teammate_gbuffer, ClearColor_Do, ClearDepth_Dont );
+	frame_static.teammate_postprocess_gbuffer_pass = AddRenderPass( "Postprocess teammate gbuffer", frame_static.teammate_outlines_fb );
 
 	frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque" );
 	frame_static.transparent_pass = AddRenderPass( "Render transparent" );
+
+	if( msaa ) {
+		frame_static.teammate_add_outlines_pass = AddRenderPass( "Render teammate outlines", frame_static.msaa_fb );
+	}
+	else {
+		frame_static.teammate_add_outlines_pass = AddRenderPass( "Render teammate outlines" );
+	}
 
 	frame_static.sky_pass = AddRenderPass( "Render sky" );
 

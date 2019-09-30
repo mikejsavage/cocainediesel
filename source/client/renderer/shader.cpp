@@ -82,6 +82,12 @@ void InitShaders() {
 	BuildShaderSrcs( "glsl/world_postprocess_gbuffer.glsl", NULL, &srcs, &lengths );
 	shaders.world_postprocess_gbuffer = NewShader( srcs.span(), lengths.span() );
 
+	BuildShaderSrcs( "glsl/teammate_write_gbuffer.glsl", "#define SKINNED 1\n", &srcs, &lengths );
+	shaders.teammate_write_gbuffer_skinned = NewShader( srcs.span(), lengths.span() );
+
+	BuildShaderSrcs( "glsl/teammate_postprocess_gbuffer.glsl", NULL, &srcs, &lengths );
+	shaders.teammate_postprocess_gbuffer = NewShader( srcs.span(), lengths.span() );
+
 	BuildShaderSrcs( "glsl/blur.glsl", NULL, &srcs, &lengths );
 	shaders.blur = NewShader( srcs.span(), lengths.span() );
 

@@ -1023,6 +1023,10 @@ void CG_DrawPlayer( centity_t *cent ) {
 	Vec4 color = CG_TeamColorVec4( cent->current.team );
 	DrawModel( meta->model, transform, color, pose.skinning_matrices );
 
+	if( cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR || cg.predictedPlayerState.stats[ STAT_TEAM ] == cent->current.team ) {
+		DrawTeammateModel( meta->model, transform, color, pose.skinning_matrices );
+	}
+
 	float outline_height = CG_OutlineScaleForDist( &cent->ent, 4096, 1.0f );
 	DrawOutlinedModel( meta->model, transform, vec4_black, outline_height, pose.skinning_matrices );
 

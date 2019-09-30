@@ -26,6 +26,8 @@ struct FrameStatic {
 
 	Framebuffer world_gbuffer;
 	Framebuffer world_outlines_fb;
+	Framebuffer teammate_gbuffer;
+	Framebuffer teammate_outlines_fb;
 	Framebuffer msaa_fb;
 
 	u8 world_write_gbuffer_pass;

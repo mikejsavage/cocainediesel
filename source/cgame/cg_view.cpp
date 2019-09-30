@@ -874,6 +874,67 @@ static void DrawWorld() {
 	}
 }
 
+static void DrawTeammateOutlines() {
+	{
+		PipelineState pipeline;
+		pipeline.pass = frame_static.teammate_postprocess_gbuffer_pass;
+		pipeline.shader = &shaders.teammate_postprocess_gbuffer;
+
+		const Framebuffer & fb = frame_static.teammate_gbuffer;
+		pipeline.set_texture( "u_TeammateTexture", fb.albedo_texture );
+		pipeline.set_uniform( "u_Material", UploadUniformBlock( Vec4( 0 ), Vec4( 0 ), Vec2( fb.albedo_texture.width, fb.albedo_texture.height ), 0.0f ) );
+
+		DrawFullscreenMesh( pipeline );
+	}
+
+	{
+		PipelineState pipeline;
+		pipeline.pass = frame_static.teammate_add_outlines_pass;
+		pipeline.shader = &shaders.standard;
+		pipeline.blend_func = BlendFunc_Blend;
+		pipeline.write_depth = false;
+
+		const Framebuffer & fb = frame_static.teammate_outlines_fb;
+		pipeline.set_texture( "u_BaseTexture", fb.albedo_texture );
+		pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
+		pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+		pipeline.set_uniform( "u_Material", UploadUniformBlock( Vec4( 0 ), Vec4( 0 ), Vec2( fb.albedo_texture.width, fb.albedo_texture.height ), 0.0f ) );
+
+		Vec3 positions[] = {
+			Vec3( 0, 0, 0 ),
+			Vec3( frame_static.viewport_width, 0, 0 ),
+			Vec3( 0, frame_static.viewport_height, 0 ),
+			Vec3( frame_static.viewport_width, frame_static.viewport_height, 0 ),
+		};
+
+		Vec2 half_pixel = 0.5f / frame_static.viewport;
+		Vec2 uvs[] = {
+			Vec2( half_pixel.x, 1.0f - half_pixel.y ),
+			Vec2( 1.0f - half_pixel.x, 1.0f - half_pixel.y ),
+			Vec2( half_pixel.x, half_pixel.y ),
+			Vec2( 1.0f - half_pixel.x, half_pixel.y ),
+		};
+
+		constexpr RGBA8 colors[] = { rgba8_white, rgba8_white, rgba8_white, rgba8_white };
+
+		u16 base_index = DynamicMeshBaseIndex();
+		u16 indices[] = { 0, 2, 1, 3, 1, 2 };
+		for( u16 & idx : indices ) {
+			idx += base_index;
+		}
+
+		DynamicMesh mesh = { };
+		mesh.positions = positions;
+		mesh.uvs = uvs;
+		mesh.colors = colors;
+		mesh.indices = indices;
+		mesh.num_vertices = 4;
+		mesh.num_indices = 6;
+
+		DrawDynamicMesh( pipeline, mesh );
+	}
+}
+
 /*
 * CG_RenderView
 */
@@ -988,6 +1049,7 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 	CG_ResetBombHUD();
 
 	DrawWorld();
+	DrawTeammateOutlines();
 	CG_AddEntities();
 	CG_AddViewWeapon( &cg.weapon );
 	CG_AddLocalEntities();

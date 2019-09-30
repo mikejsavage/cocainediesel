@@ -15,6 +15,9 @@ struct Shaders {
 	Shader world_write_gbuffer;
 	Shader world_postprocess_gbuffer;
 
+	Shader teammate_write_gbuffer_skinned;
+	Shader teammate_postprocess_gbuffer;
+
 	Shader blur;
 
 	Shader tonemap;

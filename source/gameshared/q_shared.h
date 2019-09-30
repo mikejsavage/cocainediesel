@@ -44,28 +44,11 @@ short ShortSwap( short l );
 // fonts
 //=============================================
 
-#define SYSTEM_FONT_FAMILY          "Montserrat"
-#define SYSTEM_FONT_FAMILY_FALLBACK "Montserrat"
 #define SYSTEM_FONT_TINY_SIZE       8
 #define SYSTEM_FONT_CONSOLE_SIZE    12
 #define SYSTEM_FONT_SMALL_SIZE      14
 #define SYSTEM_FONT_MEDIUM_SIZE     16
 #define SYSTEM_FONT_BIG_SIZE        24
-#define SYSTEM_FONT_STYLE           0
-
-#define SCOREBOARD_FONT_SIZE         12
-#define SCOREBOARD_TITLE_FONT_SIZE   24
-#define SCOREBOARD_FONT_STYLE        0
-
-#define ALIGN_LEFT_TOP              0
-#define ALIGN_CENTER_TOP            1
-#define ALIGN_RIGHT_TOP             2
-#define ALIGN_LEFT_MIDDLE           3
-#define ALIGN_CENTER_MIDDLE         4
-#define ALIGN_RIGHT_MIDDLE          5
-#define ALIGN_LEFT_BOTTOM           6
-#define ALIGN_CENTER_BOTTOM         7
-#define ALIGN_RIGHT_BOTTOM          8
 
 //==============================================================
 //

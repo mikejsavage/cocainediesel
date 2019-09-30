@@ -37,9 +37,7 @@ static cvar_t *scr_graphshift;
 * Fills a box of pixels with a single color
 */
 void SCR_DrawFillRect( int x, int y, int w, int h, const vec4_t color ) {
-	Vec4 c;
-	memcpy( &c, color, sizeof( c ) );
-	Draw2DBox( frame_static.ui_pass, x, y, w, h, cls.whiteTexture, c );
+	Draw2DBox( frame_static.ui_pass, x, y, w, h, cls.whiteTexture, FromQF4( color ) );
 }
 
 /*

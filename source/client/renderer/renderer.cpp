@@ -406,8 +406,8 @@ void Draw2DBox( u8 render_pass, float x, float y, float w, float h, Texture text
 	};
 	Vec2 uvs[] = {
 		half_pixel,
-		Vec2( half_pixel.x, 1.0f - half_pixel.y ),
 		Vec2( 1.0f - half_pixel.x, half_pixel.y ),
+		Vec2( half_pixel.x, 1.0f - half_pixel.y ),
 		Vec2( 1.0f - half_pixel.x, 1.0f - half_pixel.y ),
 	};
 	RGBA8 colors[] = { c, c, c, c };

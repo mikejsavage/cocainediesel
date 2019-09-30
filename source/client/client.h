@@ -451,5 +451,3 @@ void CL_InitImGui();
 void CL_ShutdownImGui();
 void CL_ImGuiBeginFrame();
 void CL_ImGuiEndFrame();
-
-class DynamicString;

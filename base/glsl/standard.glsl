@@ -8,10 +8,6 @@ qf_varying vec2 v_TexCoord;
 qf_varying vec4 v_Color;
 #endif
 
-#if APPLY_DRAWFLAT
-qf_varying vec3 v_Normal;
-#endif
-
 #if APPLY_SOFT_PARTICLE
 qf_varying float v_Depth;
 #endif
@@ -42,10 +38,6 @@ void main() {
 	v_Color = sRGBToLinear( a_Color );
 #endif
 
-#if APPLY_DRAWFLAT
-	v_Normal = mat3( u_M ) * Normal;
-#endif
-
 	gl_Position = u_P * u_V * u_M * Position;
 
 #if APPLY_SOFT_PARTICLE
@@ -62,11 +54,6 @@ out vec4 f_Albedo;
 #include "include/fog.glsl"
 
 uniform sampler2D u_BaseTexture;
-
-#ifdef APPLY_DRAWFLAT
-uniform vec3 u_WallColor;
-uniform vec3 u_FloorColor;
-#endif
 
 #if APPLY_SOFT_PARTICLE
 #include "include/softparticle.glsl"

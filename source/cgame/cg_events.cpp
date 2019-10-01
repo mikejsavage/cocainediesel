@@ -549,7 +549,7 @@ void CG_Event_Fall( entity_state_t *state, int parm ) {
 	VectorCopy( state->origin, ground_position );
 	ground_position[ 2 ] += mins[ 2 ];
 
-	float frac = parm * ( 1.0f / 255.0f );
+	float frac = Max2(( parm - 40 ) * ( 1.0f / 300.0f ), 0.f);
 	S_StartFixedSound( cgs.media.sfxFall, ground_position, CHAN_AUTO, frac, state->attenuation );
 }
 

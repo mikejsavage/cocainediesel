@@ -307,6 +307,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.teammate_postprocess_gbuffer_pass = AddRenderPass( "Postprocess teammate gbuffer", frame_static.teammate_outlines_fb );
 
 	frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque" );
+	frame_static.sky_pass = AddRenderPass( "Render sky" );
 	frame_static.transparent_pass = AddRenderPass( "Render transparent" );
 
 	if( msaa ) {
@@ -315,8 +316,6 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	else {
 		frame_static.teammate_add_outlines_pass = AddRenderPass( "Render teammate outlines" );
 	}
-
-	frame_static.sky_pass = AddRenderPass( "Render sky" );
 
 	if( msaa ) {
 		AddResolveMSAAPass( frame_static.msaa_fb );

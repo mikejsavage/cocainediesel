@@ -39,11 +39,11 @@ struct FrameStatic {
 	u8 teammate_postprocess_gbuffer_pass;
 
 	u8 nonworld_opaque_pass;
+	u8 sky_pass;
 	u8 transparent_pass;
 
 	u8 teammate_add_outlines_pass;
 
-	u8 sky_pass;
 	u8 blur_pass;
 	u8 ui_pass;
 };

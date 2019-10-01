@@ -17,7 +17,7 @@ void main() {
 	vec4 Position = a_Position;
 	vec3 Normal = a_Normal;
 
-#ifdef SKINNED
+#if SKINNED
 	Skin( Position, Normal );
 #endif
 

@@ -3,7 +3,7 @@
 
 uniform sampler2D u_TeammateTexture;
 
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 
 in vec4 a_Position;
 

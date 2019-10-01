@@ -2,7 +2,7 @@
 #include "include/uniforms.glsl"
 #include "include/skinning.glsl"
 
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 
 in vec4 a_Position;
 
@@ -10,7 +10,7 @@ void main() {
 	vec4 Position = a_Position;
 	vec3 NormalDontCare = vec3( 0 );
 
-#ifdef SKINNED
+#if SKINNED
 	Skin( Position, NormalDontCare );
 #endif
 

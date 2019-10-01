@@ -25,7 +25,7 @@ void main() {
 	vec3 Normal = a_Normal;
 	vec2 TexCoord = a_TexCoord;
 
-#ifdef SKINNED
+#if SKINNED
 	Skin( Position, Normal );
 #endif
 
@@ -33,7 +33,7 @@ void main() {
 	/* v_TexCoord = TextureMatrix2x3Mul( u_TextureMatrix, a_TexCoord ); */
 	v_TexCoord = a_TexCoord;
 
-#ifdef VERTEX_COLORS
+#if VERTEX_COLORS
 	v_Color = sRGBToLinear( a_Color );
 #endif
 
@@ -60,7 +60,7 @@ uniform sampler2D u_DepthTexture;
 #endif
 
 void main() {
-#ifdef APPLY_DRAWFLAT
+#if APPLY_DRAWFLAT
 	vec4 diffuse = vec4( 0.0, 0.0, 0.0, 1.0 );
 #else
 	vec4 color = sRGBToLinear( u_ModelColor );
@@ -82,7 +82,7 @@ void main() {
 	diffuse *= mix(vec4(1.0), vec4(softness), u_BlendMix.xxxy);
 #endif
 
-#ifdef APPLY_FOG
+#if APPLY_FOG
 	diffuse.rgb = Fog( diffuse.rgb, length( v_Position - u_CameraPos ) );
 	diffuse.rgb += Dither();
 #endif

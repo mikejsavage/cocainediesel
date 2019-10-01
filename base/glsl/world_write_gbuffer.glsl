@@ -3,7 +3,7 @@
 
 qf_varying vec3 v_Normal;
 
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 
 in vec4 a_Position;
 in vec3 a_Normal;

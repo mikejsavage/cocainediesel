@@ -4,7 +4,7 @@
 uniform sampler2D u_DepthTexture;
 uniform sampler2D u_NormalTexture;
 
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 
 in vec4 a_Position;
 

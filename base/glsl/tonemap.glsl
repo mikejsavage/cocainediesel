@@ -19,7 +19,7 @@ uniform sampler2D u_BaseTexture;
 
 const float W = 0.90; // the white point
 
-#ifdef APPLY_HDR
+#if APPLY_HDR
 
 uniform float u_HDRGamma;
 uniform float u_HDRExposure;
@@ -46,13 +46,13 @@ void main() {
 	vec4 texel = qf_texture(u_BaseTexture, v_TexCoord);
 	vec3 color = texel.rgb;
 
-#ifdef APPLY_HDR
+#if APPLY_HDR
 	color = ToneMap(color * u_HDRExposure);
 #endif
 
-#ifdef APPLY_SRGB2LINEAR
+#if APPLY_SRGB2LINEAR
 
-#ifdef APPLY_HDR
+#if APPLY_HDR
 	color = pow(color, vec3(1.0 / u_HDRGamma));
 #else
 	color = pow(color, vec3(1.0 / 2.2));

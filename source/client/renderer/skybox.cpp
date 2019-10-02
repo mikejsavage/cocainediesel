@@ -42,7 +42,7 @@ void DrawSkybox() {
 	pipeline.pass = frame_static.sky_pass;
 	pipeline.cull_face = CullFace_Front;
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.set_uniform( "u_Sky", UploadUniformBlock( Vec3( 1.0 ), Vec3( 0.5 ) ) );
+	pipeline.set_uniform( "u_Sky", UploadUniformBlock( Vec3( 0.625, 0.25, 0.625 ), Vec3( 0.75, 0.375, 0.125 ) ) );
 	pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
 	pipeline.set_uniform( "u_BlueNoiseTextureParams", frame_static.blue_noise_uniforms );
 	DrawMesh( sky_mesh, pipeline );

@@ -16,7 +16,7 @@ local configs = {
 	},
 
 	[ "windows-debug" ] = {
-		cxxflags = "/Od /MTd /Z7",
+		cxxflags = "/MTd /Z7",
 		ldflags = "/DEBUG",
 	},
 	[ "windows-release" ] = {

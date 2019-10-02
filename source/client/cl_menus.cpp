@@ -740,7 +740,7 @@ static void GameMenu() {
 	bool should_close = false;
 
 	if( gamemenu_state == GameMenuState_Menu ) {
-		ImGui::SetNextWindowPosCenter();
+		ImGui::SetNextWindowPos( ImGui::GetIO().DisplaySize * 0.5f, 0, Vec2( 0.5f ) );
 		ImGui::SetNextWindowSize( ImVec2( 300, 0 ) );
 		ImGui::Begin( "gamemenu", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 		ImGuiStyle & style = ImGui::GetStyle();
@@ -792,7 +792,7 @@ static void GameMenu() {
 		ImGui::End();
 	}
 	else if( gamemenu_state == GameMenuState_Loadout ) {
-		ImGui::SetNextWindowPosCenter();
+		ImGui::SetNextWindowPos( ImGui::GetIO().DisplaySize * 0.5f, 0, Vec2( 0.5f ) );
 		ImGui::SetNextWindowSize( ImVec2( 300, 0 ) );
 		ImGui::Begin( "loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 

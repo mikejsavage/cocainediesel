@@ -941,6 +941,7 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens ) {
 		shader->uniforms[ i ] = Hash64( name, len );
 	}
 
+	prev_pipeline.shader = NULL;
 	glUseProgram( 0 );
 
 	return true;

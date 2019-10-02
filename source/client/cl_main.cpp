@@ -2208,12 +2208,12 @@ void CL_Init( void ) {
 
 	cl_initialized = true;
 
+	CL_Profiler_Init();
+
 	{
 		TempAllocator temp = cls.frame_arena->temp();
 		InitAssets( &temp );
 	}
-
-	CL_Profiler_Init();
 
 	Con_Init();
 

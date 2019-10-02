@@ -503,6 +503,8 @@ static void Shader_Readpass( Material * material, const char * name, const char 
 }
 
 static void ParseMaterial( Material * material, const char * name, const char ** ptr ) {
+	MICROPROFILE_SCOPEI( "Assets", "ParseMaterial", 0xffffffff );
+
 	bool seen_pass = false;
 	while( ptr != NULL ) {
 		const char * token = COM_ParseExt( ptr, true );
@@ -550,6 +552,8 @@ static void ParseMaterial( Material * material, const char * name, const char **
 }
 
 static void AddTexture( u64 hash, const TextureConfig & config ) {
+	MICROPROFILE_SCOPEI( "Assets", "AddTexture", 0xffffffff );
+
 	Texture texture = NewTexture( config );
 
 	textures[ num_textures ] = texture;
@@ -563,6 +567,8 @@ static void AddTexture( u64 hash, const TextureConfig & config ) {
 }
 
 static void LoadBuiltinTextures() {
+	MICROPROFILE_SCOPEI( "Assets", "LoadBuiltinTextures", 0xffffffff );
+
 	{
 		u8 white = 255;
 
@@ -607,6 +613,8 @@ static void LoadBuiltinTextures() {
 }
 
 static void LoadDiskTextures() {
+	MICROPROFILE_SCOPEI( "Assets", "LoadDiskTextures", 0xffffffff );
+
 	for( const char * path : AssetPaths() ) {
 		const char * ext = COM_FileExtension( path );
 		if( ext == NULL || ( strcmp( ext, ".png" ) != 0 && strcmp( ext, ".jpg" ) != 0 ) )
@@ -617,7 +625,11 @@ static void LoadDiskTextures() {
 		Span< const u8 > data = AssetBinary( path );
 
 		int w, h, channels;
-		u8 * pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
+		u8 * pixels;
+		{
+			MICROPROFILE_SCOPEI( "Assets", "stbi_load_from_memory", 0xffffffff );
+			pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
+		}
 		defer { stbi_image_free( pixels ); };
 
 		if( pixels == NULL ) {
@@ -643,6 +655,8 @@ static void LoadDiskTextures() {
 }
 
 void InitMaterials() {
+	MICROPROFILE_SCOPEI( "Assets", "InitMaterials", 0xffffffff );
+
 	num_textures = 0;
 	num_materials = 0;
 

@@ -139,9 +139,12 @@ static void LoadSound( const char * path, bool allow_stereo ) {
 
 	Span< const u8 > ogg = AssetBinary( path );
 
-	int channels, sample_rate;
+	int channels, sample_rate, num_samples;
 	s16 * samples;
-	int num_samples = stb_vorbis_decode_memory( ogg.ptr, ogg.num_bytes(), &channels, &sample_rate, &samples );
+	{
+		MICROPROFILE_SCOPEI( "Assets", "stb_vorbis_decode_memory", 0xffffffff );
+		num_samples = stb_vorbis_decode_memory( ogg.ptr, ogg.num_bytes(), &channels, &sample_rate, &samples );
+	}
 	if( num_samples == -1 ) {
 		Com_Printf( S_COLOR_RED "Couldn't decode sound %s\n", path );
 		return;
@@ -164,6 +167,8 @@ static void LoadSound( const char * path, bool allow_stereo ) {
 }
 
 static void LoadSoundAssets() {
+	MICROPROFILE_SCOPEI( "Assets", "LoadSoundAssets", 0xffffffff );
+
 	for( const char * path : AssetPaths() ) {
 		const char * ext = COM_FileExtension( path );
 		if( ext == NULL || strcmp( ext, ".ogg" ) != 0 )

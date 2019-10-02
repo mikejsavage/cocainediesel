@@ -17,6 +17,8 @@ static u32 num_maps;
 static Hashtable< MAX_MAPS * 2 > maps_hashtable;
 
 void InitModels() {
+	MICROPROFILE_SCOPEI( "Assets", "InitModels", 0xffffffff );
+
 	num_models = 0;
 	num_maps = 0;
 

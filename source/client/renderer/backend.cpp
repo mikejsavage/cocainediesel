@@ -947,8 +947,14 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens ) {
 }
 
 void DeleteShader( Shader shader ) {
-	if( shader.program != 0 )
-		glDeleteProgram( shader.program );
+	if( shader.program == 0 )
+		return;
+
+	if( prev_pipeline.shader != NULL && prev_pipeline.shader->program == shader.program ) {
+		prev_pipeline.shader = NULL;
+		glUseProgram( 0 );
+	}
+	glDeleteProgram( shader.program );
 }
 
 static void SetupAttribute( GLuint index, VertexFormat format, u32 stride = 0, u32 offset = 0 ) {

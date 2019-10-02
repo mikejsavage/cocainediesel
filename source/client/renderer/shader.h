@@ -27,6 +27,8 @@ struct Shaders {
 
 	Shader particle;
 
+	Shader skybox;
+
 	Shader text;
 };
 

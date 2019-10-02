@@ -1,6 +1,8 @@
 #include "include/common.glsl"
 #include "include/uniforms.glsl"
 #include "include/skinning.glsl"
+#include "include/dither.glsl"
+#include "include/fog.glsl"
 
 qf_varying vec3 v_Position;
 qf_varying vec2 v_TexCoord;
@@ -48,9 +50,6 @@ void main() {
 #else
 
 out vec4 f_Albedo;
-
-#include "include/dither.glsl"
-#include "include/fog.glsl"
 
 uniform sampler2D u_BaseTexture;
 

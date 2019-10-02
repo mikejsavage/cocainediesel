@@ -103,6 +103,9 @@ void InitShaders() {
 	BuildShaderSrcs( "glsl/particle.glsl", NULL, &srcs, &lengths );
 	shaders.particle = NewShader( srcs.span(), lengths.span() );
 
+	BuildShaderSrcs( "glsl/skybox.glsl", NULL, &srcs, &lengths );
+	shaders.skybox = NewShader( srcs.span(), lengths.span() );
+
 	BuildShaderSrcs( "glsl/text.glsl", NULL, &srcs, &lengths );
 	shaders.text = NewShader( srcs.span(), lengths.span() );
 }

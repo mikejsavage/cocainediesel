@@ -1,9 +1,10 @@
 #include "qcommon/base.h"
+#include "qcommon/qcommon.h"
+#include "qcommon/array.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/material.h"
 
 static Mesh sky_mesh;
-static const Material * sky_material = NULL;
 
 void InitSkybox() {
 	// w = 0 projects to infinity
@@ -26,9 +27,9 @@ void InitSkybox() {
 	mesh_config.indices = NewIndexBuffer( indices, sizeof( indices ) );
 	mesh_config.num_vertices = ARRAY_COUNT( indices );
 	mesh_config.primitive_type = PrimitiveType_TriangleStrip;
+	mesh_config.ccw_winding = false;
 
 	sky_mesh = NewMesh( mesh_config );
-	sky_material = FindMaterial( "sky" );
 }
 
 void ShutdownSkybox() {
@@ -36,9 +37,13 @@ void ShutdownSkybox() {
 }
 
 void DrawSkybox() {
-	PipelineState pipeline = MaterialToPipelineState( sky_material );
+	PipelineState pipeline;
+	pipeline.shader = &shaders.skybox;
 	pipeline.pass = frame_static.sky_pass;
-	pipeline.set_uniform( "u_View", UploadViewUniforms( Mat4::Identity(), frame_static.P, Vec3( 0 ), 0.0f ) );
-	pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+	pipeline.cull_face = CullFace_Front;
+	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+	pipeline.set_uniform( "u_Sky", UploadUniformBlock( Vec3( 1.0 ), Vec3( 0.5 ) ) );
+	pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
+	pipeline.set_uniform( "u_BlueNoiseTextureParams", frame_static.blue_noise_uniforms );
 	DrawMesh( sky_mesh, pipeline );
 }

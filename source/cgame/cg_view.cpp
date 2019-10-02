@@ -418,14 +418,6 @@ static int CG_RenderFlags( void ) {
 		}
 	}
 
-	if( cg.oldAreabits ) {
-		rdflags |= RDF_OLDAREABITS;
-	}
-
-	if( cg_outlineWorld->integer ) {
-		rdflags |= RDF_WORLDOUTLINES;
-	}
-
 	if( GS_MatchState() >= MATCH_STATE_POSTMATCH ) {
 		rdflags |= RDF_BLURRED;
 	}

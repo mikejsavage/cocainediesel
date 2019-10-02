@@ -39,6 +39,8 @@ cvar_t *cl_shownet;
 cvar_t *cl_extrapolationTime;
 cvar_t *cl_extrapolate;
 
+static cvar_t *cl_hotloadAssets;
+
 //
 // userinfo
 //
@@ -1625,6 +1627,12 @@ static void CL_InitLocal( void ) {
 	cl_extrapolationTime =  Cvar_Get( "cl_extrapolationTime", "0", CVAR_DEVELOPER );
 	cl_extrapolate = Cvar_Get( "cl_extrapolate", "1", CVAR_ARCHIVE );
 
+#if PUBLIC_KEY
+	cl_hotloadAssets = Cvar_Get( "cl_hotloadAssets", "0", CVAR_ARCHIVE );
+#else
+	cl_hotloadAssets = Cvar_Get( "cl_hotloadAssets", "1", CVAR_ARCHIVE );
+#endif
+
 	cl_shownet =        Cvar_Get( "cl_shownet", "0", 0 );
 	cl_timeout =        Cvar_Get( "cl_timeout", "120", 0 );
 
@@ -2029,6 +2037,19 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	allRealMsec += realMsec;
 	allGameMsec += gameMsec;
+
+	DoneHotloadingAssets();
+
+	if( cl_hotloadAssets->integer != 0 ) {
+		static s64 last_hotload_time = 0;
+
+		if( cls.monotonicTime - last_hotload_time >= 1000 ) {
+			TempAllocator temp = cls.frame_arena->temp();
+			HotloadAssets( &temp );
+
+			last_hotload_time = cls.monotonicTime;
+		}
+	}
 
 	CL_UpdateSnapshot();
 	CL_AdjustServerTime( gameMsec );

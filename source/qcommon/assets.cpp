@@ -1,3 +1,6 @@
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #include "qcommon/qcommon.h"
 #include "qcommon/base.h"
 #include "qcommon/assets.h"
@@ -9,6 +12,7 @@
 struct Asset {
 	char * path;
 	Span< char > data;
+	s64 modified_time;
 };
 
 static constexpr u32 MAX_ASSETS = 4096;
@@ -17,27 +21,63 @@ static Asset assets[ MAX_ASSETS ];
 static const char * asset_paths[ MAX_ASSETS ];
 static u32 num_assets;
 
+static const char * modified_asset_paths[ MAX_ASSETS ];
+static u32 num_modified_assets;
+
 static Hashtable< MAX_ASSETS * 2 > assets_hashtable;
 
+static s64 FileLastModifiedTime( const char * path ) {
+	struct stat buf;
+	if( stat( path, &buf ) == -1 ) {
+		return 0;
+	}
+
+	return checked_cast< s64 >( buf.st_mtime );
+}
+
 static void LoadAsset( const char * full_path, size_t skip ) {
+	const char * path = full_path + skip;
+	u64 hash = Hash64( path );
+
+	s64 modified_time = FileLastModifiedTime( full_path );
+
+	u64 idx;
+	bool exists = assets_hashtable.get( hash, &idx );
+	if( exists ) {
+		if( assets[ idx ].modified_time == modified_time ) {
+			return;
+		}
+	}
+
 	Span< char > contents = FS_ReadFileString( sys_allocator, full_path );
 	if( contents.ptr == NULL )
 		return;
 
-	const char * path = full_path + skip;
+	Asset * a;
+	if( exists ) {
+		a = &assets[ idx ];
+		FREE( sys_allocator, a->data.ptr );
+	}
+	else if( !exists ) {
+		a = &assets[ num_assets ];
+		a->path = ALLOC_MANY( sys_allocator, char, strlen( path ) + 1 );
+		Q_strncpyz( a->path, path, strlen( path ) + 1 );
+		asset_paths[ num_assets ] = a->path;
+	}
 
-	Asset * a = &assets[ num_assets ];
-	a->path = ALLOC_MANY( sys_allocator, char, strlen( path ) + 1 );
-	Q_strncpyz( a->path, path, strlen( path ) + 1 );
 	a->data = contents;
+	a->modified_time = modified_time;
 
-	asset_paths[ num_assets ] = a->path;
+	modified_asset_paths[ num_modified_assets ] = a->path;
+	num_modified_assets++;
 
-	bool ok = assets_hashtable.add( Hash64( path ), num_assets );
-	num_assets++;
+	if( !exists ) {
+		bool ok = assets_hashtable.add( hash, num_assets );
+		num_assets++;
 
-	if( !ok ) {
-		Com_Error( ERR_FATAL, "Asset hash name collision %s", path );
+		if( !ok ) {
+			Com_Error( ERR_FATAL, "Asset hash name collision %s", path );
+		}
 	}
 }
 
@@ -70,10 +110,24 @@ static void LoadAssetsRecursive( DynamicString * path, size_t skip ) {
 
 void InitAssets( TempAllocator * temp ) {
 	num_assets = 0;
+	num_modified_assets = 0;
 	assets_hashtable.clear();
 
 	DynamicString path( temp, "{}/base", FS_RootPath() );
 	LoadAssetsRecursive( &path, path.length() + 1 );
+
+	num_modified_assets = 0;
+}
+
+void HotloadAssets( TempAllocator * temp ) {
+	num_modified_assets = 0;
+
+	DynamicString path( temp, "{}/base", FS_RootPath() );
+	LoadAssetsRecursive( &path, path.length() + 1 );
+}
+
+void DoneHotloadingAssets() {
+	num_modified_assets = 0;
 }
 
 void ShutdownAssets() {
@@ -107,4 +161,8 @@ Span< const u8 > AssetBinary( const char * path ) {
 
 Span< const char * > AssetPaths() {
 	return Span< const char * >( asset_paths, num_assets );
+}
+
+Span< const char * > ModifiedAssetPaths() {
+	return Span< const char * >( modified_asset_paths, num_modified_assets );
 }

@@ -303,7 +303,7 @@ static bool operator!=( PipelineState::Scissor a, PipelineState::Scissor b ) {
 }
 
 static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
-	if( pipeline.shader != prev_pipeline.shader ) {
+	if( pipeline.shader != NULL && ( prev_pipeline.shader == NULL || pipeline.shader->program != prev_pipeline.shader->program ) ) {
 		glUseProgram( pipeline.shader->program );
 	}
 
@@ -863,8 +863,8 @@ static GLuint CompileShader( GLenum type, Span< const char * > srcs, Span< int >
 	return shader;
 }
 
-Shader NewShader( Span< const char * > srcs, Span< int > lens ) {
-	Shader shader = { };
+bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens ) {
+	*shader = { };
 
 	GLuint vs = CompileShader( GL_VERTEX_SHADER, srcs, lens );
 	GLuint fs = CompileShader( GL_FRAGMENT_SHADER, srcs, lens );
@@ -874,7 +874,7 @@ Shader NewShader( Span< const char * > srcs, Span< int > lens ) {
 			glDeleteShader( vs );
 		if( fs != 0 )
 			glDeleteShader( fs );
-		return shader;
+		return false;
 	}
 
 	GLuint program = glCreateProgram();
@@ -906,11 +906,11 @@ Shader NewShader( Span< const char * > srcs, Span< int > lens ) {
 		glGetProgramInfoLog( program, sizeof( buf ), NULL, buf );
 		Com_Printf( S_COLOR_YELLOW "Shader linking failed: %s\n", buf );
 
-		return shader;
+		return false;
 	}
 
 	glUseProgram( program );
-	shader.program = program;
+	shader->program = program;
 
 	GLint count, maxlen;
 	glGetProgramiv( program, GL_ACTIVE_UNIFORMS, &count );
@@ -925,7 +925,7 @@ Shader NewShader( Span< const char * > srcs, Span< int > lens ) {
 
 		if( type == GL_SAMPLER_2D ) {
 			glUniform1i( glGetUniformLocation( program, name ), num_textures );
-			shader.textures[ num_textures ] = Hash64( name, len );
+			shader->textures[ num_textures ] = Hash64( name, len );
 			num_textures++;
 		}
 	}
@@ -938,16 +938,17 @@ Shader NewShader( Span< const char * > srcs, Span< int > lens ) {
 		GLint len;
 		glGetActiveUniformBlockName( program, i, sizeof( name ), &len, name );
 		glUniformBlockBinding( program, i, i );
-		shader.uniforms[ i ] = Hash64( name, len );
+		shader->uniforms[ i ] = Hash64( name, len );
 	}
 
 	glUseProgram( 0 );
 
-	return shader;
+	return true;
 }
 
 void DeleteShader( Shader shader ) {
-	glDeleteProgram( shader.program );
+	if( shader.program != 0 )
+		glDeleteProgram( shader.program );
 }
 
 static void SetupAttribute( GLuint index, VertexFormat format, u32 stride = 0, u32 offset = 0 ) {

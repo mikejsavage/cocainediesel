@@ -332,7 +332,7 @@ void DeleteSampler( SamplerObject sampler );
 Framebuffer NewFramebuffer( const FramebufferConfig & config );
 void DeleteFramebuffer( Framebuffer fb );
 
-Shader NewShader( Span< const char * > srcs, Span< int > lengths );
+bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lengths );
 void DeleteShader( Shader shader );
 
 Mesh NewMesh( MeshConfig config );

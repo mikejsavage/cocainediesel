@@ -35,4 +35,5 @@ struct Shaders {
 extern Shaders shaders;
 
 void InitShaders();
+void HotloadShaders();
 void ShutdownShaders();

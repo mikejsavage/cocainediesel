@@ -270,6 +270,8 @@ static void CreateFramebuffers() {
 void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	bool msaa = false;
 
+	HotloadShaders();
+
 	RenderBackendBeginFrame();
 
 	dynamic_geometry_num_vertices = 0;

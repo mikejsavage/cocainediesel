@@ -7,11 +7,11 @@ layout( std140 ) uniform u_View {
 
 layout( std140 ) uniform u_Model {
 	mat4 u_M;
-	vec4 u_ModelColor;
 };
 
 layout( std140 ) uniform u_Material {
 	vec4 u_TextureMatrix[ 2 ];
+	vec4 u_MaterialColor;
 	vec2 u_TextureSize;
 	float u_AlphaCutoff;
 };

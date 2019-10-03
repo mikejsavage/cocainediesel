@@ -91,6 +91,7 @@ static void SubmitDrawCalls() {
 
 					pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
 					pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+					pipeline.set_uniform( "u_Material", frame_static.identity_material_uniforms );
 
 					Texture texture = { };
 					texture.texture = u32( uintptr_t( pcmd->TextureId ) );

@@ -1003,9 +1003,9 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, Texture texture ) 
 	pipeline.blend_func = BlendFunc_Add;
 	pipeline.write_depth = false;
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.set_uniform( "u_Model", UploadModelUniforms( Mat4::Identity(), color ) );
+	pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
 	pipeline.set_texture( "u_BaseTexture", texture );
-	pipeline.set_uniform( "u_Material", UploadUniformBlock( Vec4( 0 ), Vec4( 0 ), Vec2( texture.width, texture.height ), 0.0f ) );
+	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( texture.width, texture.height ), 0.0f ) );
 
 	DynamicMesh mesh = { };
 	mesh.positions = positions;

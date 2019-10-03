@@ -3,6 +3,7 @@
 #include "include/skinning.glsl"
 
 layout( std140 ) uniform u_Outline {
+	vec4 u_OutlineColor;
 	float u_OutlineHeight;
 };
 
@@ -24,7 +25,7 @@ void main() {
 	Position += vec4( Normal * u_OutlineHeight, 0.0 );
 	gl_Position = u_P * u_V * u_M * Position;
 
-	v_Color = sRGBToLinear( u_ModelColor );
+	v_Color = sRGBToLinear( u_OutlineColor );
 }
 
 #else

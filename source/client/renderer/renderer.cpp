@@ -289,7 +289,8 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	}
 
 	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Vec3( 0 ), -1 );
-	frame_static.identity_model_uniforms = UploadUniformBlock( Mat4::Identity(), Vec4( 1 ) );
+	frame_static.identity_model_uniforms = UploadModelUniforms( Mat4::Identity() );
+	frame_static.identity_material_uniforms = UploadMaterialUniforms( vec4_white, Vec2( 0 ), 0.0f );
 
 	frame_static.blue_noise_uniforms = UploadUniformBlock( Vec2( blue_noise.width, blue_noise.height ) );
 
@@ -345,7 +346,7 @@ bool HasAlpha( TextureFormat format ) {
 	return format == TextureFormat_A_U8 || format == TextureFormat_RGBA_U8 || format == TextureFormat_RGBA_U8_sRGB;
 }
 
-PipelineState MaterialToPipelineState( const Material * material, bool skinned ) {
+PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bool skinned ) {
 	if( material == &world_material ) {
 		PipelineState pipeline;
 		pipeline.shader = &shaders.world;
@@ -358,7 +359,7 @@ PipelineState MaterialToPipelineState( const Material * material, bool skinned )
 	pipeline.cull_face = material->double_sided ? CullFace_Disabled : CullFace_Back;
 	pipeline.blend_func = material->blend_func;
 	pipeline.set_texture( "u_BaseTexture", material->textures[ 0 ].texture );
-	pipeline.set_uniform( "u_Material", UploadUniformBlock( Vec4( 0 ), Vec4( 0 ), Vec2( material->textures[ 0 ].texture.width, material->textures[ 0 ].texture.height ), material->alpha_cutoff ) );
+	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( material->textures[ 0 ].texture.width, material->textures[ 0 ].texture.height ), material->alpha_cutoff ) );
 
 	if( material->alpha_cutoff > 0 ) {
 		pipeline.shader = &shaders.standard_alphatest;
@@ -409,10 +410,10 @@ void Draw2DBox( u8 render_pass, float x, float y, float w, float h, Texture text
 	}
 
 	Mat4 transform = Mat4Translation( x, y, 0 ) * Mat4Scale( w, h, 0 );
-	pipeline.set_uniform( "u_Model", UploadModelUniforms( transform, color ) );
+	pipeline.set_uniform( "u_Model", UploadModelUniforms( transform ) );
 	pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
 	pipeline.set_texture( "u_BaseTexture", texture );
-	pipeline.set_uniform( "u_Material", UploadUniformBlock( Vec4( 0 ), Vec4( 0 ), Vec2( texture.width, texture.height ), 0.0f ) );
+	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( texture.width, texture.height ), 0.0f ) );
 
 	Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
 	RGBA8 c = RGBA8( color );
@@ -456,6 +457,10 @@ UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & P, const Vec3 & ca
 	return UploadUniformBlock( V, P, camera_pos, near_plane );
 }
 
-UniformBlock UploadModelUniforms( const Mat4 & M, const Vec4 & color ) {
-	return UploadUniformBlock( M, color );
+UniformBlock UploadModelUniforms( const Mat4 & M ) {
+	return UploadUniformBlock( M );
+}
+
+UniformBlock UploadMaterialUniforms( const Vec4 & color, const Vec2 & texture_size, float alpha_cutoff ) {
+	return UploadUniformBlock( Vec4( 0 ), Vec4( 0 ), color, texture_size, alpha_cutoff );
 }

@@ -812,7 +812,7 @@ static void DrawWorld() {
 		pipeline.set_texture( "u_DepthTexture", fb.depth_texture );
 		pipeline.set_texture( "u_NormalTexture", fb.normal_texture );
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-		pipeline.set_uniform( "u_Material", UploadUniformBlock( Vec4( 0 ), Vec4( 0 ), Vec2( fb.normal_texture.width, fb.normal_texture.height ), 0.0f ) );
+		pipeline.set_uniform( "u_Material", UploadMaterialUniforms( vec4_white, Vec2( fb.normal_texture.width, fb.normal_texture.height ), 0.0f ) );
 
 		DrawFullscreenMesh( pipeline );
 	}
@@ -828,7 +828,7 @@ static void DrawWorld() {
 		pipeline.set_texture( "u_BaseTexture", fb.albedo_texture );
 		pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
 		pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
-		pipeline.set_uniform( "u_Material", UploadUniformBlock( Vec4( 0 ), Vec4( 0 ), Vec2( fb.albedo_texture.width, fb.albedo_texture.height ), 0.0f ) );
+		pipeline.set_uniform( "u_Material", frame_static.identity_material_uniforms );
 
 		Vec3 positions[] = {
 			Vec3( 0, 0, 0 ),
@@ -874,7 +874,7 @@ static void DrawTeammateOutlines() {
 
 		const Framebuffer & fb = frame_static.teammate_gbuffer;
 		pipeline.set_texture( "u_TeammateTexture", fb.albedo_texture );
-		pipeline.set_uniform( "u_Material", UploadUniformBlock( Vec4( 0 ), Vec4( 0 ), Vec2( fb.albedo_texture.width, fb.albedo_texture.height ), 0.0f ) );
+		pipeline.set_uniform( "u_Material", UploadMaterialUniforms( vec4_white, Vec2( fb.albedo_texture.width, fb.albedo_texture.height ), 0.0f ) );
 
 		DrawFullscreenMesh( pipeline );
 	}
@@ -890,7 +890,7 @@ static void DrawTeammateOutlines() {
 		pipeline.set_texture( "u_BaseTexture", fb.albedo_texture );
 		pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
 		pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
-		pipeline.set_uniform( "u_Material", UploadUniformBlock( Vec4( 0 ), Vec4( 0 ), Vec2( fb.albedo_texture.width, fb.albedo_texture.height ), 0.0f ) );
+		pipeline.set_uniform( "u_Material", frame_static.identity_material_uniforms );
 
 		Vec3 positions[] = {
 			Vec3( 0, 0, 0 ),

@@ -119,14 +119,14 @@ void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive
 void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices ) {
 	bool skinned = skinning_matrices.ptr != NULL;
 
-	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform, color );
+	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
 	UniformBlock pose_uniforms;
 	if( skinned ) {
 		pose_uniforms = UploadUniforms( skinning_matrices.ptr, skinning_matrices.num_bytes() );
 	}
 
 	for( u32 i = 0; i < model->num_primitives; i++ ) {
-		PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material, skinned );
+		PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material, color, skinned );
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 		pipeline.set_uniform( "u_Model", model_uniforms );
 		if( skinned ) {
@@ -140,8 +140,8 @@ void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color,
 void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, Span< const Mat4 > skinning_matrices ) {
 	bool skinned = skinning_matrices.ptr != NULL;
 
-	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform, color );
-	UniformBlock outline_uniforms = UploadUniformBlock( outline_height );
+	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
+	UniformBlock outline_uniforms = UploadUniformBlock( color, outline_height );
 	UniformBlock pose_uniforms;
 	if( skinned ) {
 		pose_uniforms = UploadUniforms( skinning_matrices.ptr, skinning_matrices.num_bytes() );
@@ -166,7 +166,8 @@ void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 
 void DrawTeammateModel( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices ) {
 	bool skinned = skinning_matrices.ptr != NULL;
 
-	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform, color );
+	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
+	UniformBlock material_uniforms = UploadMaterialUniforms( color, Vec2( 0 ), 0.0f );
 	UniformBlock pose_uniforms;
 	if( skinned ) {
 		pose_uniforms = UploadUniforms( skinning_matrices.ptr, skinning_matrices.num_bytes() );
@@ -179,6 +180,7 @@ void DrawTeammateModel( const Model * model, const Mat4 & transform, const Vec4 
 		pipeline.write_depth = false;
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 		pipeline.set_uniform( "u_Model", model_uniforms );
+		pipeline.set_uniform( "u_Material", material_uniforms );
 		if( skinned ) {
 			pipeline.set_uniform( "u_Pose", pose_uniforms );
 		}

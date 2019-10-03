@@ -22,7 +22,7 @@ void main() {
 out vec4 f_Albedo;
 
 void main() {
-	f_Albedo = u_ModelColor;
+	f_Albedo = u_MaterialColor;
 }
 
 #endif

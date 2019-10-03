@@ -21,9 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "gameshared/q_math.h"
 
-// entity_state_t->renderfx flags
-#define RenderFX_WeaponModel ( 1 << 0 ) // only draw through eyes and depth hack
-
 // refdef flags
 #define RDF_UNDERWATER          0x1     // warp the screen as apropriate
 #define RDF_CROSSINGWATER       0x2     // potentially crossing water surface
@@ -49,7 +46,6 @@ typedef struct poly_s {
 	int numelems;
 	u16 *elems;
 	const Material * material;
-	int renderfx;
 } poly_t;
 
 struct TRS {
@@ -64,10 +60,6 @@ struct MatrixPalettes {
 };
 
 typedef struct entity_s {
-	union {
-		int flags;
-		int renderfx;
-	};
 
 	const Model * model;
 

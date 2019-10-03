@@ -389,9 +389,9 @@ static float CG_OutlineScaleForDist( const entity_t * e, float maxdist, float sc
 	float dist;
 	vec3_t dir;
 
-	if( e->renderfx & RenderFX_WeaponModel ) {
-		return 0.14f;
-	}
+	// if( e->renderfx & RenderFX_WeaponModel ) {
+	// 	return 0.14f;
+	// }
 
 	// Kill if behind the view or if too far away
 	VectorSubtract( e->origin, cg.view.origin, dir );
@@ -787,7 +787,6 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	// start from clean
 	memset( &cent->ent, 0, sizeof( cent->ent ) );
 	cent->ent.scale = 1.0f;
-	cent->ent.renderfx = cent->renderfx;
 
 	pmodel = &cg_entPModels[cent->current.number];
 	CG_PModelForCentity( cent, &pmodel->metadata );

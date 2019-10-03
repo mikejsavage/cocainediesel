@@ -68,7 +68,6 @@ typedef struct {
 
 	entity_t ent;                   // interpolated, to be added to render list
 	unsigned int type;
-	unsigned int renderfx;
 	unsigned int effects;
 
 	vec3_t velocity;
@@ -472,7 +471,6 @@ void CG_LerpGenericEnt( centity_t *cent );
 
 void CG_AddLinkedModel( centity_t * cent, const orientation_t * tag );
 void CG_AddColoredOutLineEffect( entity_t *ent, int effects, uint8_t r, uint8_t g, uint8_t b, uint8_t a );
-void CG_AddCentityOutLineEffect( centity_t *cent );
 
 //
 // cg_draw.c
@@ -777,7 +775,6 @@ void CG_AddParticles( void );
 void CG_ParticleEffect( const vec3_t org, const vec3_t dir, float r, float g, float b, int count );
 void CG_ParticleEffect2( const vec3_t org, const vec3_t dir, float r, float g, float b, int count );
 void CG_ParticleExplosionEffect( const vec3_t org, const vec3_t dir, float r, float g, float b, int count );
-void CG_BlasterTrail( const vec3_t start, const vec3_t end );
 void CG_FlyEffect( centity_t *ent, const vec3_t origin );
 void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color );
 void CG_ImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, const Material * material );

@@ -734,7 +734,6 @@ enum {
 	ET_PUSH_TRIGGER,
 
 	ET_GIB,         // leave a trail
-	ET_BLASTER,     // redlight + trail
 	ET_ROCKET,      // redlight + trail
 	ET_GRENADE,
 	ET_PLASMA,

@@ -260,7 +260,6 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 
 	weaponInfo = CG_GetWeaponInfo( viewweapon->weapon );
 	viewweapon->ent.model = weaponInfo->model[WEAPMODEL_HAND];
-	viewweapon->ent.renderfx = RenderFX_WeaponModel;
 	viewweapon->ent.scale = 1.0f;
 	viewweapon->ent.override_material = NULL;
 	Vector4Set( viewweapon->ent.shaderRGBA, 255, 255, 255, 255 );

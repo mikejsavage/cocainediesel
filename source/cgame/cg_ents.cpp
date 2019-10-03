@@ -464,11 +464,8 @@ void CG_DrawEntityBox( centity_t *cent ) {
 * CG_EntAddBobEffect
 */
 static void CG_EntAddBobEffect( centity_t *cent ) {
-	double scale;
-	double bob;
-
-	scale = 0.005 + cent->current.number * 0.00001;
-	bob = 4 + cos( ( cg.time + 1000 ) * scale ) * 4;
+	float scale = 0.005f + cent->current.number * 0.00001f;
+	float bob = 4 + cosf( ( cg.time + 1000 ) * scale ) * 4;
 
 	cent->ent.origin2[2] += bob;
 	cent->ent.origin[2] += bob;
@@ -505,7 +502,6 @@ void CG_AddLinkedModel( centity_t * cent, const orientation_t * tag ) {
 
 	entity_t ent = { };
 	ent.scale = cent->ent.scale;
-	ent.renderfx = cent->ent.renderfx;
 	ent.shaderTime = cent->ent.shaderTime;
 	Vector4Copy( cent->ent.shaderRGBA, ent.shaderRGBA );
 	ent.model = model;
@@ -520,14 +516,6 @@ void CG_AddLinkedModel( centity_t * cent, const orientation_t * tag ) {
 	CG_AddEntityToScene( &ent );
 }
 
-/*
-* CG_AddCentityOutLineEffect
-*/
-void CG_AddCentityOutLineEffect( centity_t *cent ) {
-	CG_AddColoredOutLineEffect( &cent->ent, cent->effects,
-		cent->outlineColor[0], cent->outlineColor[1], cent->outlineColor[2], cent->outlineColor[3] );
-}
-
 //==========================================================================
 //		ET_GENERIC
 //==========================================================================
@@ -536,8 +524,6 @@ void CG_AddCentityOutLineEffect( centity_t *cent ) {
 * CG_UpdateGenericEnt
 */
 static void CG_UpdateGenericEnt( centity_t *cent ) {
-	int modelindex;
-
 	// start from clean
 	memset( &cent->ent, 0, sizeof( cent->ent ) );
 	cent->ent.scale = 1.0f;
@@ -549,7 +535,7 @@ static void CG_UpdateGenericEnt( centity_t *cent ) {
 	}
 
 	// set up the model
-	modelindex = cent->current.modelindex;
+	int modelindex = cent->current.modelindex;
 	if( modelindex > 0 && modelindex < MAX_MODELS ) {
 		cent->ent.model = cgs.modelDraw[modelindex];
 	}
@@ -559,11 +545,9 @@ static void CG_UpdateGenericEnt( centity_t *cent ) {
 * CG_ExtrapolateLinearProjectile
 */
 void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
-	int i;
-
 	cent->linearProjectileCanDraw = CG_UpdateLinearProjectilePosition( cent );
 
-	for( i = 0; i < 3; i++ )
+	for( int i = 0; i < 3; i++ )
 		cent->ent.origin[i] = cent->ent.origin2[i] = cent->current.origin[i];
 
 	AnglesToAxis( cent->current.angles, cent->ent.axis );
@@ -674,12 +658,6 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 		CG_EntAddTeamColorTransitionEffect( cent );
 	}
 
-	// add to refresh list
-	CG_AddCentityOutLineEffect( cent );
-
-	// render effects
-	cent->ent.renderfx = cent->renderfx;
-
 	if( !cent->current.modelindex ) {
 		return;
 	}
@@ -707,9 +685,6 @@ static void CG_AddPlayerEnt( centity_t *cent ) {
 	if( !cent->current.modelindex || cent->current.team == TEAM_SPECTATOR ) {
 		return;
 	}
-
-	// render effects
-	cent->ent.renderfx = cent->renderfx;
 
 	CG_DrawPlayer( cent );
 }
@@ -1189,11 +1164,6 @@ void CG_AddEntities( void ) {
 				CG_EntityLoopSound( state, ATTN_STATIC );
 				canLight = true;
 				break;
-			case ET_BLASTER:
-				CG_AddGenericEnt( cent );
-				CG_BlasterTrail( cent->trailOrigin, cent->ent.origin );
-				CG_EntityLoopSound( state, ATTN_STATIC );
-				break;
 
 			case ET_ROCKET:
 				CG_AddGenericEnt( cent );
@@ -1317,7 +1287,6 @@ void CG_LerpEntities( void ) {
 		switch( cent->type ) {
 			case ET_GENERIC:
 			case ET_GIB:
-			case ET_BLASTER:
 			case ET_ROCKET:
 			case ET_PLASMA:
 			case ET_GRENADE:
@@ -1388,7 +1357,6 @@ void CG_UpdateEntities( void ) {
 		cent->type = state->type;
 		cent->effects = state->effects;
 		cent->item = NULL;
-		cent->renderfx = 0;
 
 		switch( cent->type ) {
 			case ET_GENERIC:
@@ -1402,7 +1370,6 @@ void CG_UpdateEntities( void ) {
 				break;
 
 			// projectiles with linear trajectories
-			case ET_BLASTER:
 			case ET_ROCKET:
 			case ET_PLASMA:
 			case ET_GRENADE:

@@ -955,6 +955,7 @@ void DeleteShader( Shader shader ) {
 		prev_pipeline.shader = NULL;
 		glUseProgram( 0 );
 	}
+
 	glDeleteProgram( shader.program );
 }
 

@@ -166,14 +166,14 @@ void G_ClientDamageFeedback( edict_t *ent ) {
 		int damage = ent->r.client->resp.snap.damageTaken;
 		int byteDir = DirToByte( ent->r.client->resp.snap.damageTakenDir );
 
-		if( damage <= 20 ) {
+		if( damage <= 10 ) {
+			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_10, byteDir );
+		} else if( damage <= 20 ) {
 			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_20, byteDir );
-		} else if( damage <= 40 ) {
-			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_40, byteDir );
-		} else if( damage <= 60 ) {
-			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_60, byteDir );
+		} else if( damage <= 30 ) {
+			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_30, byteDir );
 		} else {
-			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_80, byteDir );
+			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_40, byteDir );
 		}
 	}
 
@@ -182,11 +182,11 @@ void G_ClientDamageFeedback( edict_t *ent ) {
 		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 5 );
 	} else if( ent->snap.kill ) { //kill
 		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 4 );
-	} else if( ent->snap.damage_given >= 70 ) {
+	} else if( ent->snap.damage_given >= 35 ) {
 		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 0 );
-	} else if( ent->snap.damage_given >= 45 ) {
-		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 1 );
 	} else if( ent->snap.damage_given >= 20 ) {
+		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 1 );
+	} else if( ent->snap.damage_given >= 10 ) {
 		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 2 );
 	} else if( ent->snap.damage_given ) {
 		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 3 );

@@ -13,11 +13,11 @@ if %HEALTH != #NOTSET
 
 		// fill coloured health bar
 		setAlignment left middle
-		setColor 1.0, %HEALTH / 166.667, %HEALTH / 1000, 1
-		if %HEALTH > 100
-			setColor 1.0 - 0.01 * %HEALTH - 100, 0.6, %HEALTH / 1000, 1
+		setColor 1.0, %HEALTH / 83.333, %HEALTH / 500, 1
+		if %HEALTH > 50
+			setColor 1.0 - 0.02 * %HEALTH - 50, 0.6, %HEALTH / 500, 1
 		endif
-		setSize %HEALTH, 18
+		setSize %HEALTH * 2, 18
 		drawPicByName $whiteimage
 
 		// draw white cross
@@ -36,12 +36,7 @@ if %HEALTH != #NOTSET
 		setAlignment left middle
 		setSize 12 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 12
 		setFontStyle bold
-		if %HEALTH == 1
-			drawStringNum 1
-		endif
-		if %HEALTH > 1
-			drawStringNum %HEALTH / 2
-		endif
+		drawStringNum %HEALTH
 		setFontStyle normal
 	endif
 endif

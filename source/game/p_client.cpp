@@ -455,7 +455,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->r.svflags &= ~SVF_CORPSE;
 	self->enemy = NULL;
 	self->r.owner = NULL;
-	self->max_health = 200;
+	self->max_health = 100;
 	self->health = self->max_health;
 
 	if( self->r.svflags & SVF_FAKECLIENT ) {

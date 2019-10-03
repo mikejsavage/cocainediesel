@@ -1007,17 +1007,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 
 	CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
 
-	Mat4 transform = Mat4::Identity();
-	transform.col0.x = cent->ent.axis[ 0 ];
-	transform.col0.y = cent->ent.axis[ 1 ];
-	transform.col0.z = cent->ent.axis[ 2 ];
-	transform.col1.x = cent->ent.axis[ 3 ];
-	transform.col1.y = cent->ent.axis[ 4 ];
-	transform.col1.z = cent->ent.axis[ 5 ];
-	transform.col2.x = cent->ent.axis[ 6 ];
-	transform.col2.y = cent->ent.axis[ 7 ];
-	transform.col2.z = cent->ent.axis[ 8 ];
-	transform = Mat4_Translation( cent->ent.origin[ 0 ], cent->ent.origin[ 1 ], cent->ent.origin[ 2 ] ) * transform;
+	Mat4 transform = FromQFAxisAndOrigin( cent->ent.axis, cent->ent.origin );
 
 	Vec4 color = CG_TeamColorVec4( cent->current.team );
 	DrawModel( meta->model, transform, color, pose.skinning_matrices );

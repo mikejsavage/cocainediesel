@@ -643,8 +643,7 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 		return;
 	}
 
-	// if set to invisible, skip
-	if( !cent->current.modelindex ) {
+	if( cent->ent.model == NULL ) {
 		return;
 	}
 
@@ -658,11 +657,13 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 		CG_EntAddTeamColorTransitionEffect( cent );
 	}
 
-	if( !cent->current.modelindex ) {
-		return;
-	}
+	Mat4 transform = FromQFAxisAndOrigin( cent->ent.axis, cent->ent.origin );
 
-	CG_AddEntityToScene( &cent->ent );
+	Vec4 color;
+	for( int i = 0; i < 4; i++ )
+		color.ptr()[ i ] = cent->ent.shaderRGBA[ i ] / 255.0f;
+
+	DrawModel( cent->ent.model, transform, color );
 }
 
 //==========================================================================

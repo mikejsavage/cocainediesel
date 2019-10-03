@@ -934,7 +934,6 @@ typedef struct snap_edict_s {
 	vec3_t damage_at;
 	float damage_given;             // for hitsounds
 	float damageteam_given;
-	float damage_fall;
 } snap_edict_t;
 
 typedef struct {

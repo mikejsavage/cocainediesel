@@ -369,10 +369,6 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 	{
 		vec3_t dorigin;
 
-		if( inflictor == world && mod == MOD_FALLING ) { // it's fall damage
-			targ->snap.damage_fall += take + save;
-		}
-
 		if( point[0] != 0.0f || point[1] != 0.0f || point[2] != 0.0f ) {
 			VectorCopy( point, dorigin );
 		} else {
@@ -385,7 +381,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 		G_BlendFrameDamage( targ, take, &targ->snap.damage_taken, dorigin, dmgdir, targ->snap.damage_at, targ->snap.damage_dir );
 		G_BlendFrameDamage( targ, save, &targ->snap.damage_saved, dorigin, dmgdir, targ->snap.damage_at, targ->snap.damage_dir );
 
-		if( targ->r.client && mod != MOD_FALLING && mod != MOD_TELEFRAG && mod != MOD_SUICIDE ) {
+		if( targ->r.client && mod != MOD_TELEFRAG && mod != MOD_SUICIDE ) {
 			if( inflictor == world || attacker == world ) {
 				// for world inflicted damage use always 'frontal'
 				G_ClientAddDamageIndicatorImpact( targ->r.client, take + save, NULL );

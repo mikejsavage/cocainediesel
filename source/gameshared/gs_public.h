@@ -556,12 +556,10 @@ typedef enum {
 	MOD_ROCKET_SPLASH,
 	MOD_PLASMA_SPLASH,
 
-	MOD_WATER,
 	MOD_SLIME,
 	MOD_LAVA,
 	MOD_CRUSH, // moving item blocked by player
 	MOD_TELEFRAG,
-	MOD_FALLING,
 	MOD_SUICIDE,
 	MOD_EXPLOSIVE,
 
@@ -579,8 +577,8 @@ typedef enum {
 
 enum {
 	PAIN_20,
-	PAIN_30,
-	PAIN_60,
+	PAIN_35,
+	PAIN_80,
 	PAIN_100,
 
 	PAIN_TOTAL

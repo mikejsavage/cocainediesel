@@ -700,3 +700,10 @@ void Matrix3_Transpose( const mat3_t in, mat3_t out ) {
 void Matrix3_FromAngles( const vec3_t angles, mat3_t m ) {
 	AngleVectors( angles, &m[AXIS_FORWARD], &m[AXIS_RIGHT], &m[AXIS_UP] );
 }
+
+float PositiveMod( float x, float y ) {
+	float res = fmodf( x, y );
+	if( res < 0 )
+		res += y;
+	return res;
+}

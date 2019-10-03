@@ -5,20 +5,15 @@
 #include "client/renderer/backend.h"
 
 enum WaveFunc {
-	WaveFunc_None,
 	WaveFunc_Sin,
 	WaveFunc_Triangle,
-	WaveFunc_Square,
 	WaveFunc_Sawtooth,
 	WaveFunc_InverseSawtooth,
-	WaveFunc_Noise,
-	WaveFunc_Constant,
 };
 
 enum ColorGenType {
-	ColorGenType_Unknown,
 	ColorGenType_Constant,
-	ColorGenType_Vertex,
+	ColorGenType_Entity,
 	ColorGenType_Wave,
 	ColorGenType_EntityWave,
 };
@@ -45,13 +40,13 @@ struct Wave {
 };
 
 struct TCMod {
-	TCModType type;
+	TCModType type = TCModFunc_None;
 	float args[ 6 ];
 };
 
 struct ColorGen {
-	ColorGenType type;
-	float args[ 4 ];
+	ColorGenType type = ColorGenType_Constant;
+	float args[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	Wave wave;
 };
 
@@ -67,19 +62,19 @@ struct TextureSampler {
 };
 
 struct Material {
-	TextureSampler textures[ 16 ];
-	u8 num_anim_frames;
-	float anim_fps;
+	TextureSampler textures[ 16 ] = { };
+	u8 num_anim_frames = 0;
+	float anim_fps = 0;
 
 	ColorGen rgbgen;
 	ColorGen alphagen;
-	BlendFunc blend_func;
-	bool double_sided;
-	bool discard;
-	float alpha_cutoff;
+	BlendFunc blend_func = BlendFunc_Disabled;
+	bool double_sided = false;
+	bool discard = false;
+	float alpha_cutoff = 0.0f;
 
 	TCMod tcmods[ 4 ];
-	u8 num_tcmods;
+	u8 num_tcmods = 0;
 };
 
 extern Material world_material;

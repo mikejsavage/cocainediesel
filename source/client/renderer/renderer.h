@@ -72,7 +72,7 @@ Texture BlueNoiseTexture();
 void DrawFullscreenMesh( const PipelineState & pipeline );
 
 bool HasAlpha( TextureFormat format );
-PipelineState MaterialToPipelineState( const Material * material, Vec4 color = vec4_white, bool skinned = false ); // float t = 0
+PipelineState MaterialToPipelineState( const Material * material, Vec4 color = vec4_white, bool skinned = false );
 
 void Draw2DBox( u8 render_pass, float x, float y, float w, float h, Texture texture, Vec4 color = vec4_white );
 void Draw2DBox( u8 render_pass, float x, float y, float w, float h, const Material * material, Vec4 color = vec4_white );

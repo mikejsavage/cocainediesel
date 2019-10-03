@@ -238,3 +238,5 @@ void Matrix3_Multiply( const mat3_t m1, const mat3_t m2, mat3_t out );
 void Matrix3_TransformVector( const mat3_t m, const vec3_t v, vec3_t out );
 void Matrix3_Transpose( const mat3_t in, mat3_t out );
 void Matrix3_FromAngles( const vec3_t angles, mat3_t m );
+
+float PositiveMod( float x, float y );

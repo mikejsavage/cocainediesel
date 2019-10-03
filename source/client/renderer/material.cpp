@@ -148,7 +148,7 @@ static void Shader_SkipLine( const char ** ptr ) {
 }
 
 static Wave Shader_ParseWave( const char ** ptr ) {
-	Wave wave;
+	Wave wave = { };
 	const char * token = Shader_ParseString( ptr );
 	if( !strcmp( token, "sin" ) ) {
 		wave.type = WaveFunc_Sin;
@@ -156,20 +156,11 @@ static Wave Shader_ParseWave( const char ** ptr ) {
 	else if( !strcmp( token, "triangle" ) ) {
 		wave.type = WaveFunc_Triangle;
 	}
-	else if( !strcmp( token, "square" ) ) {
-		wave.type = WaveFunc_Square;
-	}
 	else if( !strcmp( token, "sawtooth" ) ) {
 		wave.type = WaveFunc_Sawtooth;
 	}
 	else if( !strcmp( token, "inversesawtooth" ) ) {
 		wave.type = WaveFunc_InverseSawtooth;
-	}
-	else if( !strcmp( token, "noise" ) ) {
-		wave.type = WaveFunc_Noise;
-	}
-	else {
-		wave.type = WaveFunc_None;
 	}
 
 	wave.args[ 0 ] = Shader_ParseFloat( ptr );
@@ -349,9 +340,6 @@ static void Shaderpass_RGBGen( Material * material, const char * name, const cha
 	const char * token = Shader_ParseString( ptr );
 	if( !strcmp( token, "wave" ) ) {
 		material->rgbgen.type = ColorGenType_Wave;
-		material->rgbgen.args[0] = 1.0f;
-		material->rgbgen.args[1] = 1.0f;
-		material->rgbgen.args[2] = 1.0f;
 		material->rgbgen.wave = Shader_ParseWave( ptr );
 	}
 	else if( !strcmp( token, "colorwave" ) ) {
@@ -360,16 +348,12 @@ static void Shaderpass_RGBGen( Material * material, const char * name, const cha
 		material->rgbgen.wave = Shader_ParseWave( ptr );
 	}
 	else if( !strcmp( token, "entity" ) ) {
-		material->rgbgen.type = ColorGenType_EntityWave;
-		material->rgbgen.wave.type = WaveFunc_None;
+		material->rgbgen.type = ColorGenType_Entity;
 	}
 	else if( !strcmp( token, "entitycolorwave" ) ) {
 		material->rgbgen.type = ColorGenType_EntityWave;
 		Shader_ParseVector( ptr, material->rgbgen.args, 3 );
 		material->rgbgen.wave = Shader_ParseWave( ptr );
-	}
-	else if( !strcmp( token, "vertex" ) ) {
-		material->rgbgen.type = ColorGenType_Vertex;
 	}
 	else if( !strcmp( token, "const" ) ) {
 		material->rgbgen.type = ColorGenType_Constant;
@@ -381,10 +365,7 @@ static void Shaderpass_RGBGen( Material * material, const char * name, const cha
 
 static void Shaderpass_AlphaGen( Material * material, const char * name, const char ** ptr ) {
 	const char * token = Shader_ParseString( ptr );
-	if( !strcmp( token, "vertex" ) ) {
-		material->alphagen.type = ColorGenType_Vertex;
-	}
-	else if( !strcmp( token, "entity" ) ) {
+	if( !strcmp( token, "entity" ) ) {
 		material->alphagen.type = ColorGenType_EntityWave;
 	}
 	else if( !strcmp( token, "wave" ) ) {
@@ -477,7 +458,12 @@ static bool Shader_Parsetok( Material * material, const char * name, const Mater
 
 static void Shader_Readpass( Material * material, const char * name, const char ** ptr ) {
 	material->rgbgen.type = ColorGenType_Constant;
-	material->alphagen.type = ColorGenType_Unknown;
+	material->rgbgen.args[ 0 ] = 1.0f;
+	material->rgbgen.args[ 1 ] = 1.0f;
+	material->rgbgen.args[ 2 ] = 1.0f;
+
+	material->alphagen.type = ColorGenType_Constant;
+	material->rgbgen.args[ 0 ] = 1.0f;
 
 	while( ptr ) {
 		const char * token = COM_ParseExt( ptr, true );
@@ -489,15 +475,6 @@ static void Shader_Readpass( Material * material, const char * name, const char 
 		}
 		else if( Shader_Parsetok( material, name, shaderpasskeys, token, ptr ) ) {
 			break;
-		}
-	}
-
-	if( material->alphagen.type == ColorGenType_Unknown ) {
-		if( material->rgbgen.type == ColorGenType_Vertex ) {
-			material->alphagen.type = ColorGenType_Vertex;
-		}
-		else {
-			material->alphagen.type = ColorGenType_Constant;
 		}
 	}
 }
@@ -560,7 +537,7 @@ static void AddTexture( u64 hash, const TextureConfig & config ) {
 	textures_hashtable.add( hash, num_textures );
 	num_textures++;
 
-	materials[ num_materials ] = { };
+	materials[ num_materials ] = Material();
 	materials[ num_materials ].textures[ 0 ].texture = texture;
 	materials_hashtable.add( hash, num_materials );
 	num_materials++;
@@ -688,7 +665,7 @@ void InitMaterials() {
 				num_materials++;
 			}
 
-			materials[ idx ] = { }; // TODO: defaults
+			materials[ idx ] = Material();
 			ParseMaterial( &materials[ idx ], material_name, &ptr );
 
 			material_locations[ idx ] = { start, ptr };
@@ -698,7 +675,7 @@ void InitMaterials() {
 		material_locations_hashtable.clear();
 	}
 
-	missing_material = { };
+	missing_material = Material();
 	missing_material.textures[ 0 ].texture = missing_texture;
 }
 

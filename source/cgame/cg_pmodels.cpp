@@ -613,13 +613,6 @@ static PlayerModelAnimationSet CG_GetBaseAnims( entity_state_t *state, const vec
 	return a;
 }
 
-static float PositiveMod( float x, float y ) {
-	float res = fmodf( x, y );
-	if( res < 0 )
-		res += y;
-	return res;
-}
-
 static float GetAnimationTime( const PlayerModelMetadata * metadata, int64_t curTime, animstate_t state, bool loop ) {
 	if( state.anim == ANIM_NONE )
 		return -1.0f;

@@ -346,12 +346,68 @@ bool HasAlpha( TextureFormat format ) {
 	return format == TextureFormat_A_U8 || format == TextureFormat_RGBA_U8 || format == TextureFormat_RGBA_U8_sRGB;
 }
 
+static float EvaluateWaveFunc( Wave wave ) {
+	float t = PositiveMod( ( cls.gametime % 1000 ) / 1000.0f * wave.args[ 3 ] + wave.args[ 2 ], 1.0f );
+	float v;
+	switch( wave.type ) {
+		case WaveFunc_Sin:
+			 v = sinf( t * M_TWOPI );
+			 break;
+
+		case WaveFunc_Triangle:
+			 v = t < 0.5 ? t * 4 - 1 : 1 - ( t - 0.5f ) * 4;
+			 break;
+
+		case WaveFunc_Sawtooth:
+			 v = t;
+			 break;
+
+		case WaveFunc_InverseSawtooth:
+			 v = 1 - t;
+			 break;
+	}
+
+	return wave.args[ 0 ] + wave.args[ 1 ] * v;
+}
+
 PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bool skinned ) {
 	if( material == &world_material ) {
 		PipelineState pipeline;
 		pipeline.shader = &shaders.world;
 		pipeline.pass = frame_static.world_opaque_pass;
 		return pipeline;
+	}
+
+	if( material->rgbgen.type == ColorGenType_Constant ) {
+		color.x = material->rgbgen.args[ 0 ];
+		color.y = material->rgbgen.args[ 1 ];
+		color.z = material->rgbgen.args[ 2 ];
+	}
+	else if( material->rgbgen.type == ColorGenType_Wave || material->rgbgen.type == ColorGenType_EntityWave ) {
+		float wave = EvaluateWaveFunc( material->rgbgen.wave );
+		if( material->rgbgen.type == ColorGenType_EntityWave ) {
+			color.x += wave;
+			color.y += wave;
+			color.z += wave;
+		}
+		else {
+			color.x = wave;
+			color.y = wave;
+			color.z = wave;
+		}
+	}
+
+	if( material->alphagen.type == ColorGenType_Constant ) {
+		color.w = material->rgbgen.args[ 0 ];
+	}
+	else if( material->alphagen.type == ColorGenType_Wave || material->alphagen.type == ColorGenType_EntityWave ) {
+		float wave = EvaluateWaveFunc( material->rgbgen.wave );
+		if( material->alphagen.type == ColorGenType_EntityWave ) {
+			color.w += wave;
+		}
+		else {
+			color.w = wave;
+		}
 	}
 
 	PipelineState pipeline;

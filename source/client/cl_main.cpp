@@ -2042,13 +2042,20 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	if( cl_hotloadAssets->integer != 0 ) {
 		static s64 last_hotload_time = 0;
+		static bool last_focused = true;
 
-		if( cls.monotonicTime - last_hotload_time >= 1000 ) {
+		bool focused = VID_AppIsActive();
+		bool just_became_focused = focused && !last_focused;
+
+		// hotload assets when the window regains focus or every 1 second when not focused
+		if( just_became_focused || ( !focused && cls.monotonicTime - last_hotload_time >= 1000 ) ) {
 			TempAllocator temp = cls.frame_arena->temp();
 			HotloadAssets( &temp );
 
 			last_hotload_time = cls.monotonicTime;
 		}
+
+		last_focused = focused;
 	}
 
 	CL_UpdateSnapshot();

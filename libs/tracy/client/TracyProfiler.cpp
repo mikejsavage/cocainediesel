@@ -1519,6 +1519,10 @@ void Profiler::Worker()
         return;
     }
     // Handle remaining server queries
+    { // XXX diesel changes
+        if( m_bufferOffset != m_bufferStart ) CommitData();
+        std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) );
+    }
     for(;;)
     {
         if( m_sock->HasData() )
@@ -1544,8 +1548,11 @@ void Profiler::Worker()
         }
         else
         {
-            if( m_bufferOffset != m_bufferStart ) CommitData();
-            std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) );
+            // XXX diesel changes
+            // if( m_bufferOffset != m_bufferStart ) CommitData();
+            // std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) );
+            m_shutdownFinished.store( true, std::memory_order_relaxed );
+            return;
         }
     }
 }

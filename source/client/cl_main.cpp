@@ -2003,8 +2003,6 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 * CL_Frame
 */
 void CL_Frame( int realMsec, int gameMsec ) {
-	MICROPROFILE_SCOPEI( "Main", "CL_Frame", 0xffffffff );
-
 	cls.frame_arena = cls.frame_arena == &cls.frame_arenas[ 0 ] ? &cls.frame_arenas[ 1 ] : &cls.frame_arenas[ 0 ];
 	cls.frame_arena->clear();
 
@@ -2236,8 +2234,6 @@ void CL_Init( void ) {
 
 	cl_initialized = true;
 
-	CL_Profiler_Init();
-
 	{
 		TempAllocator temp = cls.frame_arena->temp();
 		InitAssets( &temp );
@@ -2320,8 +2316,6 @@ void CL_Shutdown( void ) {
 	SCR_ShutdownScreen();
 
 	Con_Shutdown();
-
-	CL_Profiler_Shutdown();
 
 	ShutdownAssets();
 

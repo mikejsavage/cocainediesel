@@ -901,8 +901,6 @@ static void DemoMenu() {
 }
 
 void UI_Refresh() {
-	MICROPROFILE_SCOPEI( "Main", "UI_Refresh", 0xffffffff );
-
 	if( uistate == UIState_Hidden && !Con_IsVisible() ) {
 		pressed_key = -1;
 		return;

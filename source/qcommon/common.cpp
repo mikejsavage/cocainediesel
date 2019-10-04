@@ -766,8 +766,6 @@ void Qcommon_Init( int argc, char **argv ) {
 * Qcommon_Frame
 */
 void Qcommon_Frame( unsigned int realMsec ) {
-	MICROPROFILE_SCOPEI( "Main", "Qcommon_Frame", 0xffffffff );
-
 	int time_before = 0, time_between = 0, time_after = 0;
 	static unsigned int gameMsec;
 

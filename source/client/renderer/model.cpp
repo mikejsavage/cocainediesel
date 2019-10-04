@@ -17,8 +17,6 @@ static u32 num_maps;
 static Hashtable< MAX_MAPS * 2 > maps_hashtable;
 
 void InitModels() {
-	MICROPROFILE_SCOPEI( "Assets", "InitModels", 0xffffffff );
-
 	num_models = 0;
 	num_maps = 0;
 
@@ -299,7 +297,6 @@ static void MergePosesRecursive( Span< TRS > lower, Span< const TRS > upper, con
 }
 
 void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const Model * model, u8 upper_root_joint ) {
-
 	lower[ upper_root_joint ] = upper[ upper_root_joint ];
 
 	const Model::Joint & joint = model->joints[ upper_root_joint ];

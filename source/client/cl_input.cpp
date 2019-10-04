@@ -20,7 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // cl.input.c  -- builds an intended movement command to send to the server
 
 #include "client.h"
-#include "microprofile/microprofileui.h"
 
 static bool in_initialized = false;
 
@@ -56,13 +55,11 @@ static void CL_UpdateGameInput( int frameTime ) {
 	// refresh input in cgame
 	CL_GameModule_InputFrame( frameTime );
 
-	if( !MicroProfileIsDrawing() ) {
-		if( cls.key_dest == key_menu ) {
-			UI_MouseSet( true, movement.absx, movement.absy, true );
-		}
-		else {
-			CL_GameModule_MouseMove( movement.relx, movement.rely );
-		}
+	if( cls.key_dest == key_menu ) {
+		UI_MouseSet( true, movement.absx, movement.absy, true );
+	}
+	else {
+		CL_GameModule_MouseMove( movement.relx, movement.rely );
 	}
 
 	if( cls.key_dest == key_game ) {

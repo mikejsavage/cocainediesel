@@ -215,8 +215,6 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata *metadata, char *filena
 * CG_LoadPlayerModel
 */
 static bool CG_LoadPlayerModel( PlayerModelMetadata *metadata, const char *filename ) {
-	MICROPROFILE_SCOPEI( "Assets", "CG_LoadPlayerModel", 0xffffffff );
-
 	bool loaded_model = false;
 	char anim_filename[MAX_QPATH];
 

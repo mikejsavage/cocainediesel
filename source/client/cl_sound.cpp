@@ -132,8 +132,6 @@ static bool S_InitAL() {
 }
 
 static void LoadSound( const char * path, bool allow_stereo ) {
-	MICROPROFILE_SCOPEI( "Assets", "LoadSound", 0xffffffff );
-
 	assert( num_sound_assets < ARRAY_COUNT( sound_assets ) );
 	SoundAsset * sfx = &sound_assets[ num_sound_assets ];
 
@@ -142,7 +140,6 @@ static void LoadSound( const char * path, bool allow_stereo ) {
 	int channels, sample_rate, num_samples;
 	s16 * samples;
 	{
-		MICROPROFILE_SCOPEI( "Assets", "stb_vorbis_decode_memory", 0xffffffff );
 		num_samples = stb_vorbis_decode_memory( ogg.ptr, ogg.num_bytes(), &channels, &sample_rate, &samples );
 	}
 	if( num_samples == -1 ) {
@@ -167,8 +164,6 @@ static void LoadSound( const char * path, bool allow_stereo ) {
 }
 
 static void LoadSoundAssets() {
-	MICROPROFILE_SCOPEI( "Assets", "LoadSoundAssets", 0xffffffff );
-
 	for( const char * path : AssetPaths() ) {
 		const char * ext = COM_FileExtension( path );
 		if( ext == NULL || strcmp( ext, ".ogg" ) != 0 )

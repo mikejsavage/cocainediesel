@@ -59,11 +59,9 @@ int main( int argc, char **argv ) {
 
 	oldtime = Sys_Milliseconds();
 	while( true ) {
-		CL_Profiler_Flip();
 
 		int time;
 		{
-			MICROPROFILE_SCOPEI( "Main", "Interframe", 0xffff0000 );
 			// find time spent rendering last frame
 			do {
 				newtime = Sys_Milliseconds();

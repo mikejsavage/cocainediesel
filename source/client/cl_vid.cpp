@@ -138,8 +138,6 @@ void VID_Init() {
 	VID_WindowInit( mode );
 	UpdateVidModeCvar();
 
-	CL_Profiler_InitGL();
-
 	InitRenderer();
 
 	if( !S_Init() ) {
@@ -176,6 +174,4 @@ void VID_Shutdown() {
 	VID_SetVideoMode( startup_video_mode );
 
 	VID_WindowShutdown();
-
-	CL_Profiler_ShutdownGL();
 }

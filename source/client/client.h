@@ -432,18 +432,6 @@ void CL_RestartMedia( void );
 void CL_AddNetgraph( void );
 
 //
-// cl_microprofile
-//
-
-void CL_Profiler_Init();
-void CL_Profiler_Shutdown();
-
-void CL_Profiler_InitGL();
-void CL_Profiler_ShutdownGL();
-
-void CL_Profiler_Flip();
-
-//
 // cl_imgui
 //
 

@@ -3482,7 +3482,6 @@ int FS_Rescan( void ) {
 * FS_Frame
 */
 void FS_Frame( void ) {
-	MICROPROFILE_SCOPEI( "Main", "FS_Frame", 0xffffffff );
 	FS_FreeSearchFiles();
 }
 

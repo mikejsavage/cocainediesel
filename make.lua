@@ -21,7 +21,7 @@ gcc_obj_cxxflags( ".*", "-Werror=vla -Werror=format-security" )
 obj_cxxflags( ".*", "-D_LIBCPP_TYPE_TRAITS" )
 
 if config == "release" then
-	obj_cxxflags( ".*", "-DPUBLIC_BUILD -DMICROPROFILE_ENABLED=0" )
+	obj_cxxflags( ".*", "-DPUBLIC_BUILD" )
 end
 
 do
@@ -86,7 +86,6 @@ do
 		msvc_extra_ldflags = "gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib /SUBSYSTEM:WINDOWS",
 	} )
 
-	msvc_obj_cxxflags( "source/client/cl_microprofile.cpp", "/wd4005 /wd4244 /wd4245 /wd4267 /wd4456 /wd4457" )
 	obj_cxxflags( "source/client/ftlib/.+", "-I libs/freetype" )
 	obj_cxxflags( "source/client/renderer/text.cpp", "-I libs/freetype" )
 end

@@ -294,8 +294,6 @@ static void FixupMissingAnimationChannels( Model * model, const cgltf_skin * ski
 }
 
 bool LoadGLTFModel( Model * model, const char * path ) {
-	MICROPROFILE_SCOPEI( "Assets", "LoadGLTFModel", 0xffffffff );
-
 	Span< const u8 > data = AssetBinary( path );
 
 	cgltf_options options = { };

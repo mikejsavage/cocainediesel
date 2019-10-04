@@ -818,8 +818,6 @@ void CG_DrawHUD() {
 * CG_Draw2DView
 */
 void CG_Draw2DView( void ) {
-	MICROPROFILE_SCOPEI( "Main", "CG_Draw2DView", 0xffffffff );
-
 	if( !cg.view.draw2D ) {
 		return;
 	}

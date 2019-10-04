@@ -417,9 +417,10 @@ local function write_ninja_script()
 
 	for dll_name, cfg in pairs( dlls ) do
 		local full_name = dll_prefix .. dll_name .. dll_suffix
-		printf( "build %s: dll %s %s",
+		printf( "build %s: dll %s %s %s",
 			full_name,
 			join( cfg.srcs, pie_obj_suffix ),
+			join( cfg.libs, lib_suffix, lib_prefix ),
 			joinpb( cfg.prebuilt_libs, lib_suffix, lib_prefix )
 		)
 

@@ -7,6 +7,7 @@ require( "libs.imgui" )
 require( "libs.meshoptimizer" )
 require( "libs.monocypher" )
 require( "libs.stb" )
+require( "libs.tracy" )
 
 obj_cxxflags( ".*", "-I source -I libs" )
 
@@ -22,6 +23,8 @@ obj_cxxflags( ".*", "-D_LIBCPP_TYPE_TRAITS" )
 
 if config == "release" then
 	obj_cxxflags( ".*", "-DPUBLIC_BUILD" )
+else
+	obj_cxxflags( ".*", "-DTRACY_ENABLE" )
 end
 
 do
@@ -67,7 +70,8 @@ do
 			"monocypher",
 			"stb_image",
 			"stb_image_write",
-			"stb_vorbis"
+			"stb_vorbis",
+			"tracy",
 		},
 
 		prebuilt_libs = {
@@ -126,7 +130,10 @@ do
 			platform_srcs
 		},
 
-		libs = { "monocypher" },
+		libs = {
+			"monocypher",
+			"tracy",
+		},
 
 		prebuilt_libs = {
 			"curl",
@@ -148,6 +155,8 @@ dll( "game", {
 		"source/qcommon/ggformat.cpp",
 		"source/qcommon/rng.cpp",
 	},
+
+	libs = { "tracy" },
 
 	prebuilt_libs = { "angelscript" },
 

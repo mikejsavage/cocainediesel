@@ -3482,6 +3482,7 @@ int FS_Rescan( void ) {
 * FS_Frame
 */
 void FS_Frame( void ) {
+	ZoneScoped;
 	FS_FreeSearchFiles();
 }
 

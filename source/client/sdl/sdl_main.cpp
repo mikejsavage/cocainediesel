@@ -53,12 +53,16 @@ int main( int argc, char **argv ) {
 #endif
 #endif
 
-	SDL_Init( SDL_INIT_VIDEO );
+	{
+		ZoneScopedN( "SDL_Init" );
+		SDL_Init( SDL_INIT_VIDEO );
+	}
 
 	Qcommon_Init( argc, argv );
 
 	oldtime = Sys_Milliseconds();
 	while( true ) {
+		FrameMark;
 
 		int time;
 		{

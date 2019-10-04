@@ -818,6 +818,8 @@ void CG_DrawHUD() {
 * CG_Draw2DView
 */
 void CG_Draw2DView( void ) {
+	ZoneScoped;
+
 	if( !cg.view.draw2D ) {
 		return;
 	}

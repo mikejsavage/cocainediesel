@@ -62,6 +62,8 @@ static void TakeScreenshot() {
 }
 
 void InitRenderer() {
+	ZoneScoped;
+
 	RenderBackendInit();
 
 	frame_static = { };

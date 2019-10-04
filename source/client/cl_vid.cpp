@@ -118,6 +118,8 @@ void VID_CheckChanges() {
 }
 
 void VID_Init() {
+	ZoneScoped;
+
 	vid_mode = Cvar_Get( "vid_mode", "", CVAR_ARCHIVE );
 	vid_mode->modified = false;
 

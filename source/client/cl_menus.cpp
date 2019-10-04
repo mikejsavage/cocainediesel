@@ -901,6 +901,8 @@ static void DemoMenu() {
 }
 
 void UI_Refresh() {
+	ZoneScoped;
+
 	if( uistate == UIState_Hidden && !Con_IsVisible() ) {
 		pressed_key = -1;
 		return;

@@ -2834,6 +2834,7 @@ static void CG_RecurseExecuteLayoutThread( cg_layoutnode_t *rootnode ) {
 * CG_ExecuteLayoutProgram
 */
 void CG_ExecuteLayoutProgram( struct cg_layoutnode_s *rootnode ) {
+	ZoneScoped;
 	CG_RecurseExecuteLayoutThread( rootnode );
 }
 

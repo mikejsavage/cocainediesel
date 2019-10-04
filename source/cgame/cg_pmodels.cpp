@@ -215,6 +215,8 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata *metadata, char *filena
 * CG_LoadPlayerModel
 */
 static bool CG_LoadPlayerModel( PlayerModelMetadata *metadata, const char *filename ) {
+	ZoneScoped;
+
 	bool loaded_model = false;
 	char anim_filename[MAX_QPATH];
 

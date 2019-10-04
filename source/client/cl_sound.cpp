@@ -94,6 +94,8 @@ static void S_ALAssert() {
 }
 
 static bool S_InitAL() {
+	ZoneScoped;
+
 	al_device = alcOpenDevice( NULL );
 	if( al_device == NULL ) {
 		Com_Printf( S_COLOR_RED "Failed to open device\n" );
@@ -132,6 +134,8 @@ static bool S_InitAL() {
 }
 
 static void LoadSound( const char * path, bool allow_stereo ) {
+	ZoneScoped;
+
 	assert( num_sound_assets < ARRAY_COUNT( sound_assets ) );
 	SoundAsset * sfx = &sound_assets[ num_sound_assets ];
 
@@ -140,6 +144,7 @@ static void LoadSound( const char * path, bool allow_stereo ) {
 	int channels, sample_rate, num_samples;
 	s16 * samples;
 	{
+		ZoneScoped( "stb_vorbis_decode_memory" );
 		num_samples = stb_vorbis_decode_memory( ogg.ptr, ogg.num_bytes(), &channels, &sample_rate, &samples );
 	}
 	if( num_samples == -1 ) {
@@ -164,6 +169,8 @@ static void LoadSound( const char * path, bool allow_stereo ) {
 }
 
 static void LoadSoundAssets() {
+	ZoneScoped;
+
 	for( const char * path : AssetPaths() ) {
 		const char * ext = COM_FileExtension( path );
 		if( ext == NULL || strcmp( ext, ".ogg" ) != 0 )
@@ -175,6 +182,8 @@ static void LoadSoundAssets() {
 }
 
 bool S_Init() {
+	ZoneScoped;
+
 	num_sound_assets = 0;
 	num_playing_sounds = 0;
 	music_playing = false;
@@ -229,6 +238,8 @@ const SoundAsset * S_RegisterSound( const char * filename ) {
 }
 
 void S_Update( const vec3_t origin, const vec3_t velocity, const mat3_t axis ) {
+	ZoneScoped;
+
 	if( !initialized )
 		return;
 

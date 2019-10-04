@@ -421,6 +421,8 @@ void wswcurl_cleanup( void ) {
 }
 
 int wswcurl_perform() {
+	ZoneScoped;
+
 	int ret = 0;
 	wswcurl_req *r, *next;
 

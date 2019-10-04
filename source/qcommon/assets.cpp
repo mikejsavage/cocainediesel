@@ -36,6 +36,8 @@ static s64 FileLastModifiedTime( const char * path ) {
 }
 
 static void LoadAsset( const char * full_path, size_t skip ) {
+	ZoneScoped;
+
 	const char * path = full_path + skip;
 	u64 hash = Hash64( path );
 
@@ -109,6 +111,8 @@ static void LoadAssetsRecursive( DynamicString * path, size_t skip ) {
 }
 
 void InitAssets( TempAllocator * temp ) {
+	ZoneScoped;
+
 	num_assets = 0;
 	num_modified_assets = 0;
 	assets_hashtable.clear();
@@ -120,6 +124,8 @@ void InitAssets( TempAllocator * temp ) {
 }
 
 void HotloadAssets( TempAllocator * temp ) {
+	ZoneScoped;
+
 	num_modified_assets = 0;
 
 	DynamicString path( temp, "{}/base", FS_RootPath() );

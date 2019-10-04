@@ -1,12 +1,14 @@
 #include <algorithm> // std::stable_sort
 
+#include "glad/glad.h"
+
+#include "tracy/TracyOpenGL.hpp"
+
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
 #include "qcommon/hash.h"
 #include "client/renderer/renderer.h"
-
-#include "glad/glad.h"
 
 template< typename S, typename T >
 struct SameType { enum { value = false }; };
@@ -227,6 +229,8 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 }
 
 void RenderBackendInit() {
+	TracyGpuContext;
+
 	render_passes.init( sys_allocator );
 	draw_calls.init( sys_allocator );
 	deferred_deletes.init( sys_allocator );
@@ -480,6 +484,8 @@ static void SetupRenderPass( const RenderPass & pass ) {
 }
 
 static void SubmitDrawCall( const DrawCall & dc ) {
+	TracyGpuZone( "Draw call" );
+
 	SetPipelineState( dc.pipeline, dc.mesh.ccw_winding );
 
 	glBindVertexArray( dc.mesh.vao );
@@ -547,6 +553,8 @@ void RenderBackendSubmitFrame() {
 	for( const Mesh & mesh : deferred_deletes ) {
 		DeleteMesh( mesh );
 	}
+
+	TracyGpuCollect;
 }
 
 u32 renderer_num_draw_calls() {

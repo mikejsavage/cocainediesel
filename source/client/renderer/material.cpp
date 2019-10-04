@@ -480,6 +480,8 @@ static void Shader_Readpass( Material * material, const char * name, const char 
 }
 
 static void ParseMaterial( Material * material, const char * name, const char ** ptr ) {
+	ZoneScoped;
+
 	bool seen_pass = false;
 	while( ptr != NULL ) {
 		const char * token = COM_ParseExt( ptr, true );
@@ -527,6 +529,8 @@ static void ParseMaterial( Material * material, const char * name, const char **
 }
 
 static void AddTexture( u64 hash, const TextureConfig & config ) {
+	ZoneScoped;
+
 	Texture texture = NewTexture( config );
 
 	textures[ num_textures ] = texture;
@@ -540,6 +544,8 @@ static void AddTexture( u64 hash, const TextureConfig & config ) {
 }
 
 static void LoadBuiltinTextures() {
+	ZoneScoped;
+
 	{
 		u8 white = 255;
 
@@ -584,6 +590,8 @@ static void LoadBuiltinTextures() {
 }
 
 static void LoadDiskTextures() {
+	ZoneScoped;
+
 	for( const char * path : AssetPaths() ) {
 		const char * ext = COM_FileExtension( path );
 		if( ext == NULL || ( strcmp( ext, ".png" ) != 0 && strcmp( ext, ".jpg" ) != 0 ) )
@@ -596,6 +604,7 @@ static void LoadDiskTextures() {
 		int w, h, channels;
 		u8 * pixels;
 		{
+			ZoneScopedN( "stbi_load_from_memory" );
 			pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
 		}
 		defer { stbi_image_free( pixels ); };
@@ -623,6 +632,8 @@ static void LoadDiskTextures() {
 }
 
 void InitMaterials() {
+	ZoneScoped;
+
 	num_textures = 0;
 	num_materials = 0;
 
@@ -631,38 +642,42 @@ void InitMaterials() {
 	LoadBuiltinTextures();
 	LoadDiskTextures();
 
-	for( const char * path : AssetPaths() ) {
-		const char * ext = COM_FileExtension( path );
-		if( ext == NULL || strcmp( ext, ".shader" ) != 0 )
-			continue;
+	{
+		ZoneScoped( "Parse materials" );
 
-		Span< const char > data = AssetString( path );
+		for( const char * path : AssetPaths() ) {
+			const char * ext = COM_FileExtension( path );
+			if( ext == NULL || strcmp( ext, ".shader" ) != 0 )
+				continue;
 
-		const char * ptr = data.ptr;
-		while( ptr != NULL ) {
-			const char * material_name = COM_ParseExt( &ptr, true );
-			if( strlen( material_name ) == 0 )
-				break;
+			Span< const char > data = AssetString( path );
 
-			u64 hash = HashMaterialName( material_name );
-			COM_ParseExt( &ptr, true ); // skip { TODO check
-			const char * start = ptr;
+			const char * ptr = data.ptr;
+			while( ptr != NULL ) {
+				const char * material_name = COM_ParseExt( &ptr, true );
+				if( strlen( material_name ) == 0 )
+					break;
 
-			u64 idx = num_materials;
-			if( !materials_hashtable.get( hash, &idx ) ) {
-				materials_hashtable.add( hash, idx );
-				num_materials++;
+				u64 hash = HashMaterialName( material_name );
+				COM_ParseExt( &ptr, true ); // skip { TODO check
+				const char * start = ptr;
+
+				u64 idx = num_materials;
+				if( !materials_hashtable.get( hash, &idx ) ) {
+					materials_hashtable.add( hash, idx );
+					num_materials++;
+				}
+
+				materials[ idx ] = Material();
+				ParseMaterial( &materials[ idx ], material_name, &ptr );
+
+				material_locations[ idx ] = { start, ptr };
+				material_locations_hashtable.add( hash, idx );
 			}
 
-			materials[ idx ] = Material();
-			ParseMaterial( &materials[ idx ], material_name, &ptr );
-
-			material_locations[ idx ] = { start, ptr };
-			material_locations_hashtable.add( hash, idx );
+			material_locations_hashtable.clear();
+			}
 		}
-
-		material_locations_hashtable.clear();
-	}
 
 	missing_material = Material();
 	missing_material.textures[ 0 ].texture = missing_texture;

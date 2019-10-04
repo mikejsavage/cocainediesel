@@ -165,6 +165,8 @@ static bool InitGL() {
 }
 
 void VID_WindowInit( WindowMode mode ) {
+	ZoneScoped;
+
 	uint32_t flags = SDL_WINDOW_OPENGL;
 #if PUBLIC_BUILD && 0
 	if( mode.fullscreen == FullScreenMode_Windowed )

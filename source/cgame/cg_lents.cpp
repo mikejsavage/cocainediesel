@@ -32,7 +32,6 @@ enum LocalEntityType {
 	LE_ALPHA_FADE,
 	LE_SCALE_ALPHA_FADE,
 	LE_INVERSESCALE_ALPHA_FADE,
-	LE_LASER,
 	LE_DASH_SCALE,
 	LE_PUFF_SCALE,
 	LE_PUFF_SHRINK,
@@ -1074,11 +1073,6 @@ void CG_AddLocalEntities( void ) {
 
 		if( le->light && scale ) {
 			CG_AddLightToScene( ent->origin, le->light * scale, le->lightcolor[0], le->lightcolor[1], le->lightcolor[2] );
-		}
-
-		if( le->type == LE_LASER ) {
-			CG_QuickPolyBeam( ent->origin, ent->origin2, ent->radius, ent->override_material ); // wsw : jalfixme: missing the color (comes inside ent->skinnum)
-			continue;
 		}
 
 		if( le->type == LE_DASH_SCALE ) {

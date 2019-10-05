@@ -601,7 +601,6 @@ extern cvar_t *cg_outlineModels;
 extern cvar_t *cg_outlineWorld;
 extern cvar_t *cg_outlinePlayers;
 
-extern cvar_t *cg_drawEntityBoxes;
 extern cvar_t *cg_fov;
 extern cvar_t *cg_zoomfov;
 extern cvar_t *cg_particles;
@@ -742,16 +741,6 @@ int CG_SpawnDecal( const vec3_t origin, const vec3_t dir, float orient, float ra
 void CG_AddDecals( void );
 
 //
-// cg_polys.c	-	wsw	: jal
-//
-void CG_ClearPolys( void );
-void CG_AddPolys( void );
-void CG_KillPolyBeamsByTag( int key );
-void CG_SpawnPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color,
-	int width, int64_t dietime, int64_t fadetime, const Material * material, int shaderlength, int tag );
-void CG_QuickPolyBeam( const vec3_t start, const vec3_t end, int width, const Material * material );
-
-//
 // cg_effects.c
 //
 void CG_ClearEffects( void );
@@ -782,14 +771,6 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * m
 void InitPersistentBeams();
 void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material, float duration, float fade_time );
 void DrawPersistentBeams();
-
-//
-// cg_test.c - debug only
-//
-#ifndef PUBLIC_BUILD
-void CG_DrawTestLine( const vec3_t start, const vec3_t end );
-void CG_DrawTestBox( const vec3_t origin, const vec3_t mins, const vec3_t maxs, const vec3_t angles );
-#endif
 
 //
 //	cg_vweap.c - client weapon

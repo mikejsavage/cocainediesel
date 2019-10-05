@@ -1051,7 +1051,6 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 	CG_AddDlights();
 	CG_AddPlayerShadows();
 	CG_AddDecals();
-	CG_AddPolys();
 	DrawSkybox();
 
 	CG_AddLocalSounds();

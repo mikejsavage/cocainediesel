@@ -433,34 +433,6 @@ struct cmodel_s *CG_CModelForEntity( int entNum ) {
 }
 
 /*
-* CG_DrawEntityBox
-* draw the bounding box (in brush models case the box containing the model)
-*/
-void CG_DrawEntityBox( centity_t *cent ) {
-#ifndef PUBLIC_BUILD
-	struct cmodel_s *cmodel;
-	vec3_t mins, maxs;
-
-	cmodel = CG_CModelForEntity( cent->current.number );
-	if( cmodel ) {
-		trap_CM_InlineModelBounds( cmodel, mins, maxs );
-		if( cg_drawEntityBoxes->integer < 2 && cent->current.solid == SOLID_BMODEL ) {
-			return;
-		}
-
-		// push triggers don't move so aren't interpolated
-		if( cent->current.type == ET_PUSH_TRIGGER ) {
-			CG_DrawTestBox( cent->current.origin, mins, maxs, vec3_origin );
-		} else {
-			vec3_t origin;
-			VectorLerp( cent->prev.origin, cg.lerpfrac, cent->current.origin, origin );
-			CG_DrawTestBox( origin, mins, maxs, vec3_origin );
-		}
-	}
-#endif
-}
-
-/*
 * CG_EntAddBobEffect
 */
 static void CG_EntAddBobEffect( centity_t *cent ) {
@@ -1066,9 +1038,6 @@ void CG_AddEntities( void ) {
 		switch( cent->type ) {
 			case ET_GENERIC:
 				CG_AddGenericEnt( cent );
-				if( cg_drawEntityBoxes->integer ) {
-					CG_DrawEntityBox( cent );
-				}
 				CG_EntityLoopSound( state, ATTN_STATIC );
 				canLight = true;
 				break;
@@ -1097,9 +1066,6 @@ void CG_AddEntities( void ) {
 
 			case ET_PLAYER:
 				CG_AddPlayerEnt( cent );
-				if( cg_drawEntityBoxes->integer ) {
-					CG_DrawEntityBox( cent );
-				}
 				CG_EntityLoopSound( state, ATTN_IDLE );
 				CG_LaserBeamEffect( cent );
 				CG_WeaponBeamEffect( cent );
@@ -1108,9 +1074,6 @@ void CG_AddEntities( void ) {
 
 			case ET_CORPSE:
 				CG_AddPlayerEnt( cent );
-				if( cg_drawEntityBoxes->integer ) {
-					CG_DrawEntityBox( cent );
-				}
 				CG_EntityLoopSound( state, ATTN_IDLE );
 				canLight = true;
 				break;
@@ -1124,9 +1087,6 @@ void CG_AddEntities( void ) {
 				break;
 
 			case ET_PUSH_TRIGGER:
-				if( cg_drawEntityBoxes->integer ) {
-					CG_DrawEntityBox( cent );
-				}
 				CG_EntityLoopSound( state, ATTN_STATIC );
 				break;
 

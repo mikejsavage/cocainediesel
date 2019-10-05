@@ -387,7 +387,7 @@ static void Shaderpass_TcMod( Material * material, const char * name, const char
 
 	const char * token = Shader_ParseString( ptr );
 	if( !strcmp( token, "rotate" ) ) {
-		material->tcmod.args[0] = -Shader_ParseFloat( ptr ) / 360.0f;
+		material->tcmod.args[0] = -Shader_ParseFloat( ptr );
 		if( !material->tcmod.args[0] ) {
 			return;
 		}
@@ -795,13 +795,15 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		float degrees = float( PositiveMod( double( material->tcmod.args[ 0 ] ) * double( cls.gametime / 1000.0 ), 360.0 ) );
 		float s = sinf( DEG2RAD( degrees ) );
 		float c = cosf( DEG2RAD( degrees ) );
-		tcmod_row0 = Vec3( s, -c, 0 );
-		tcmod_row1 = Vec3( c, s, 0 );
+		// keep centered on (0.5, 0.5)
+		tcmod_row0 = Vec3( c, -s, 0.5f * ( 1.0f + s - c ) );
+		tcmod_row1 = Vec3( s, c, 0.5f * ( 1.0f - s - c ) );
 	}
 	else if( material->tcmod.type == TCModFunc_Stretch ) {
 		float wave = EvaluateWaveFunc( material->rgbgen.wave );
 		float scale = wave == 0 ? 1.0f : 1.0f / wave;
-		float offset = 0.5f - 0.5f * scale; // keep centered on (0.5, 0.5)
+		// keep centered on (0.5, 0.5)
+		float offset = 0.5f - 0.5f * scale;
 		tcmod_row0 = Vec3( scale, 0, offset );
 		tcmod_row1 = Vec3( 0, scale, offset );
 	}

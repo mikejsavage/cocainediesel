@@ -354,7 +354,7 @@ bool HasAlpha( TextureFormat format ) {
 
 static float EvaluateWaveFunc( Wave wave ) {
 	float t = PositiveMod( ( cls.gametime % 1000 ) / 1000.0f * wave.args[ 3 ] + wave.args[ 2 ], 1.0f );
-	float v;
+	float v = 0.0f;
 	switch( wave.type ) {
 		case WaveFunc_Sin:
 			 v = sinf( t * M_TWOPI );

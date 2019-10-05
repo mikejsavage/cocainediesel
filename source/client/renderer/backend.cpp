@@ -585,7 +585,7 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 	UniformBlock block;
 	block.ubo = ubo->ubo;
 	block.offset = offset;
-	block.size = checked_cast< u32 >( size );
+	block.size = AlignPow2( checked_cast< u32 >( size ), u32( 16 ) );
 
 	// memset so we don't leave any gaps. good for write combined memory!
 	memset( ubo->buffer + ubo->bytes_used, 0, offset - ubo->bytes_used );

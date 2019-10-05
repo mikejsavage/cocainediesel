@@ -215,6 +215,10 @@ static Mat4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
 	return rotation * Mat4Translation( -position );
 }
 
+static UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & P, const Vec3 & camera_pos, const Vec2 & viewport_size, float near_plane ) {
+	return UploadUniformBlock( V, P, camera_pos, viewport_size, near_plane );
+}
+
 static void CreateFramebuffers() {
 	DeleteFramebuffers();
 
@@ -290,7 +294,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		last_viewport_height = viewport_height;
 	}
 
-	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Vec3( 0 ), -1 );
+	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Vec3( 0 ), frame_static.viewport, -1 );
 	frame_static.identity_model_uniforms = UploadModelUniforms( Mat4::Identity() );
 	frame_static.identity_material_uniforms = UploadMaterialUniforms( vec4_white, Vec2( 0 ), 0.0f );
 
@@ -337,7 +341,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	frame_static.P = PerspectiveProjection( vertical_fov, frame_static.aspect_ratio, near_plane );
 	frame_static.position = position;
 
-	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.P, position, near_plane );
+	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.P, position, frame_static.viewport, near_plane );
 }
 
 void RendererSubmitFrame() {
@@ -509,10 +513,6 @@ void Draw2DBox( u8 render_pass, float x, float y, float w, float h, Texture text
 
 void Draw2DBox( u8 render_pass, float x, float y, float w, float h, const Material * material, Vec4 color ) {
 	Draw2DBox( render_pass, x, y, w, h, material->textures[ 0 ].texture, color );
-}
-
-UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & P, const Vec3 & camera_pos, float near_plane ) {
-	return UploadUniformBlock( V, P, camera_pos, near_plane );
 }
 
 UniformBlock UploadModelUniforms( const Mat4 & M ) {

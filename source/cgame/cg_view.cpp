@@ -812,7 +812,6 @@ static void DrawWorld() {
 		pipeline.set_texture( "u_DepthTexture", fb.depth_texture );
 		pipeline.set_texture( "u_NormalTexture", fb.normal_texture );
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-		pipeline.set_uniform( "u_Material", UploadMaterialUniforms( vec4_white, Vec2( fb.normal_texture.width, fb.normal_texture.height ), 0.0f ) );
 
 		DrawFullscreenMesh( pipeline );
 	}
@@ -874,7 +873,7 @@ static void DrawTeammateOutlines() {
 
 		const Framebuffer & fb = frame_static.teammate_gbuffer;
 		pipeline.set_texture( "u_TeammateTexture", fb.albedo_texture );
-		pipeline.set_uniform( "u_Material", UploadMaterialUniforms( vec4_white, Vec2( fb.albedo_texture.width, fb.albedo_texture.height ), 0.0f ) );
+		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 
 		DrawFullscreenMesh( pipeline );
 	}

@@ -21,8 +21,8 @@ float Threshold( float x, float t ) {
 }
 
 void main() {
-	vec2 pixel_size = 1.0 / u_TextureSize;
-	vec2 uv = gl_FragCoord.xy / u_TextureSize;
+	vec2 pixel_size = 1.0 / u_ViewportSize;
+	vec2 uv = gl_FragCoord.xy / u_ViewportSize;
 
 #if 0
 	float depth_left = LinearizeDepth( qf_texture( u_DepthTexture, uv + vec2( -pixel_size.x, 0.0 ) ).r, u_NearClip );

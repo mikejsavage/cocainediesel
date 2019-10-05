@@ -81,6 +81,5 @@ void Draw2DBox( u8 render_pass, float x, float y, float w, float h, const Materi
 u16 DynamicMeshBaseIndex();
 void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh );
 
-UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & P, const Vec3 & camera_pos, float near_plane );
 UniformBlock UploadModelUniforms( const Mat4 & M );
 UniformBlock UploadMaterialUniforms( const Vec4 & color, const Vec2 & texture_size, float alpha_cutoff );

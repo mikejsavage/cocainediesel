@@ -16,8 +16,8 @@ void main() {
 out vec4 f_Albedo;
 
 void main() {
-	vec2 pixel_size = 1.0 / u_TextureSize;
-	vec2 uv = gl_FragCoord.xy / u_TextureSize;
+	vec2 pixel_size = 1.0 / u_ViewportSize;
+	vec2 uv = gl_FragCoord.xy / u_ViewportSize;
 
 	vec4 colour_up = qf_texture( u_TeammateTexture, uv + vec2( 0.0, pixel_size.y ) );
 	vec4 colour_down = qf_texture( u_TeammateTexture, uv + vec2( 0.0, -pixel_size.y ) );

@@ -64,21 +64,11 @@ typedef struct {
 	void *clientCommandFunc;
 	void *shutdownFunc;
 
-	int spawnableItemsMask;
-	int respawnableItemsMask;
-	int dropableItemsMask;
-	int pickableItemsMask;
-
 	bool isTeamBased;
 	bool isRace;
 	bool hasChallengersQueue;
 	bool hasChallengersRoulette;
 	int maxPlayersPerTeam;
-
-	// default item respawn time
-	int ammo_respawn;
-	int weapon_respawn;
-	int health_respawn;
 
 	// few default settings
 	bool readyAnnouncementEnabled;

@@ -53,7 +53,7 @@ static void debris_die( edict_t *self, edict_t *inflictor, edict_t *attacker, in
 	G_FreeEdict( self );
 }
 
-void ThrowDebris( edict_t *self, int modelindex, float speed, vec3_t origin ) {
+static void ThrowDebris( edict_t *self, int modelindex, float speed, vec3_t origin ) {
 	edict_t *chunk;
 	vec3_t v;
 

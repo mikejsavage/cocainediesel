@@ -149,41 +149,6 @@ spawn_t spawns[] = {
 	{ NULL, NULL }
 };
 
-static const gsitem_t *G_ItemForEntity( edict_t *ent ) {
-	const gsitem_t *item;
-
-	// check item spawn functions
-	if( ( item = GS_FindItemByClassname( ent->classname ) ) != NULL ) {
-		return item;
-	}
-
-	return NULL;
-}
-
-/*
-* G_CanSpawnEntity
-*/
-static bool G_CanSpawnEntity( edict_t *ent ) {
-	const gsitem_t *item;
-
-	if( ent == world ) {
-		return true;
-	}
-
-	if( ( item = G_ItemForEntity( ent ) ) != NULL ) {
-		// not pickable items aren't either spawnable
-		if( !( item->flags & ITFLAG_PICKABLE ) ) {
-			return false;
-		}
-
-		if( !G_Gametype_CanSpawnItem( item ) ) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
 /*
 * G_CallSpawn
 *
@@ -191,18 +156,12 @@ static bool G_CanSpawnEntity( edict_t *ent ) {
 */
 bool G_CallSpawn( edict_t *ent ) {
 	spawn_t *s;
-	const gsitem_t *item;
 
 	if( !ent->classname ) {
 		if( developer->integer ) {
 			G_Printf( "G_CallSpawn: NULL classname\n" );
 		}
 		return false;
-	}
-
-	if( ( item = G_ItemForEntity( ent ) ) != NULL ) {
-		SpawnItem( ent, item );
-		return true;
 	}
 
 	// check normal spawn functions
@@ -597,7 +556,6 @@ static void G_SpawnEntities( void ) {
 	int i;
 	edict_t *ent;
 	char *token;
-	const gsitem_t *item;
 	char *entities;
 
 	level.spawnedTimeStamp = game.realtime;
@@ -639,30 +597,7 @@ static void G_SpawnEntities( void ) {
 			continue;
 		}
 
-		if( !G_CanSpawnEntity( ent ) ) {
-			i++;
-			G_FreeEdict( ent );
-			continue;
-		}
-
 		if( !G_CallSpawn( ent ) ) {
-			i++;
-			G_FreeEdict( ent );
-			continue;
-		}
-
-		// check whether an item is allowed to spawn
-		if( ( item = ent->item ) ) {
-			// not pickable items aren't spawnable
-			if( item->flags & ITFLAG_PICKABLE ) {
-				if( G_Gametype_CanSpawnItem( item ) ) {
-					// override entity's classname with whatever item specifies
-					ent->classname = item->classname;
-					PrecacheItem( item );
-					continue;
-				}
-			}
-
 			i++;
 			G_FreeEdict( ent );
 			continue;
@@ -677,9 +612,6 @@ static void G_SpawnEntities( void ) {
 
 	// make sure server got the edicts data
 	trap_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
-
-	// items need brush model entities spawned before they are linked
-	G_Items_FinishSpawningItems();
 }
 
 /*

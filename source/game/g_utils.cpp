@@ -1515,13 +1515,12 @@ void G_PrecacheWeapondef( int weapon, firedef_t *firedef ) {
 		return;
 	}
 
-	Q_snprintfz( cstring, sizeof( cstring ), "%i %i %u %u %u %u %u %i %i %i",
+	Q_snprintfz( cstring, sizeof( cstring ), "%i %i %u %u %u %u %i %i %i",
 				 firedef->usage_count,
 				 firedef->projectile_count,
 				 firedef->weaponup_time,
 				 firedef->weapondown_time,
 				 firedef->reload_time,
-				 firedef->cooldown_time,
 				 firedef->timeout,
 				 firedef->speed,
 				 firedef->spread,

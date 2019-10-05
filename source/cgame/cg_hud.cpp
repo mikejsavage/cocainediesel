@@ -221,28 +221,6 @@ static int CG_GetDamageIndicatorDirValue( const void *parameter ) {
 	return frac * 1000;
 }
 
-static int CG_GetCurrentWeaponInventoryData( const void *parameter ) {
-	gs_weapon_definition_t *weapondef = GS_GetWeaponDef( cg.predictedPlayerState.stats[STAT_WEAPON] );
-	firedef_t *firedef;
-	int result;
-
-	switch( (intptr_t)parameter ) {
-		case 0: // AMMO_ITEM
-		default:
-			firedef = GS_FiredefForPlayerState( &cg.predictedPlayerState, cg.predictedPlayerState.stats[STAT_WEAPON] );
-			result = firedef->ammo_id;
-			break;
-		case 1: // STRONG AMMO COUNT
-			result = cg.predictedPlayerState.inventory[weapondef->firedef.ammo_id];
-			break;
-		case 2: // LOW AMMO THRESHOLD
-			result = weapondef->firedef.ammo_low;
-			break;
-	}
-
-	return result;
-}
-
 /**
  * Returns whether the weapon should be displayed in the weapon list on the HUD
  * (if the player either has the weapon ammo for it).
@@ -259,16 +237,6 @@ static bool CG_IsWeaponInList( int weapon ) {
 	}
 
 	return hasWeapon || hasAmmo;
-}
-
-static int CG_GetWeaponCount( const void *parameter ) {
-	int i, n = 0;
-	for( i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
-		if( CG_IsWeaponInList( i ) ) {
-			n++;
-		}
-	}
-	return n;
 }
 
 static int CG_IsDemoPlaying( const void *parameter ) {
@@ -323,8 +291,6 @@ static const reference_numeric_t cg_numeric_references[] =
 
 	{ "READY", CG_GetLayoutStatFlag, (void *)STAT_LAYOUT_READY },
 
-	{ "PICKUP_ITEM", CG_GetStatValue, (void *)STAT_PICKUP_ITEM },
-
 	{ "SCORE", CG_GetStatValue, (void *)STAT_SCORE },
 	{ "TEAM", CG_GetStatValue, (void *)STAT_TEAM },
 	{ "RESPAWN_TIME", CG_GetStatValue, (void *)STAT_NEXT_RESPAWN },
@@ -348,12 +314,6 @@ static const reference_numeric_t cg_numeric_references[] =
 	{ "ALPHA_PLAYERS_TOTAL", CG_GetStatValue, (void *)STAT_ALPHA_PLAYERS_TOTAL },
 	{ "BETA_PLAYERS_ALIVE", CG_GetStatValue, (void *)STAT_BETA_PLAYERS_ALIVE },
 	{ "BETA_PLAYERS_TOTAL", CG_GetStatValue, (void *)STAT_BETA_PLAYERS_TOTAL },
-
-	// inventory grabs
-	{ "AMMO_ITEM", CG_GetCurrentWeaponInventoryData, (void *)0 },
-	{ "AMMO", CG_GetCurrentWeaponInventoryData, (void *)1 },
-	{ "LOW_AMMO", CG_GetCurrentWeaponInventoryData, (void *)2 },
-	{ "WEAPON_COUNT", CG_GetWeaponCount, NULL },
 
 	// other
 	{ "CHASING", CG_GetPOVnum, NULL },
@@ -2395,7 +2355,6 @@ static cg_layoutnode_t *CG_LayoutParseArgumentNode( const char *token ) {
 	char tokcopy[MAX_TOKEN_CHARS], *p;
 	const char *valuetok;
 	static char tmpstring[8];
-	const gsitem_t *item;
 
 	// find what's it
 	if( !token ) {
@@ -2427,35 +2386,16 @@ static cg_layoutnode_t *CG_LayoutParseArgumentNode( const char *token ) {
 		type = LNODE_NUMERIC;
 		valuetok++; // skip #
 
-		// replace constants names by values
-		if( !strncmp( valuetok, "ITEM_", strlen( "ITEM_" ) ) ) {
-			Q_strncpyz( tokcopy, valuetok, sizeof( tokcopy ) );
-			valuetok = tokcopy;
-
-			p = tokcopy;
-			while( ( p = strchr( p, '_' ) ) ) {
-				*p = ' ';
-			}
-			if( ( item = GS_FindItemByName( valuetok + strlen( "ITEM_" ) ) ) ) {
-				Q_snprintfz( tmpstring, sizeof( tmpstring ), "%i", item->tag );
+		for( int i = 0; cg_numeric_constants[i].name != NULL; i++ ) {
+			if( !Q_stricmp( valuetok, cg_numeric_constants[i].name ) ) {
+				Q_snprintfz( tmpstring, sizeof( tmpstring ), "%i", cg_numeric_constants[i].value );
 				valuetok = tmpstring;
+				break;
 			}
-			if( item == NULL ) {
-				CG_Printf( "Warning: HUD: %s is not valid numeric constant\n", valuetok );
-				valuetok = "0";
-			}
-		} else {
-			for( i = 0; cg_numeric_constants[i].name != NULL; i++ ) {
-				if( !Q_stricmp( valuetok, cg_numeric_constants[i].name ) ) {
-					Q_snprintfz( tmpstring, sizeof( tmpstring ), "%i", cg_numeric_constants[i].value );
-					valuetok = tmpstring;
-					break;
-				}
-			}
-			if( cg_numeric_constants[i].name == NULL ) {
-				CG_Printf( "Warning: HUD: %s is not valid numeric constant\n", valuetok );
-				valuetok = "0";
-			}
+		}
+		if( cg_numeric_constants[i].name == NULL ) {
+			CG_Printf( "Warning: HUD: %s is not valid numeric constant\n", valuetok );
+			valuetok = "0";
 		}
 
 	} else if( token[0] == '\\' ) {

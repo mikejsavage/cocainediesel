@@ -634,7 +634,7 @@ void W_Fire_Electrobolt_FullInstant( edict_t *self, vec3_t start, vec3_t angles,
 /*
 * G_HideLaser
 */
-void G_HideLaser( edict_t *ent ) {
+static void G_HideLaser( edict_t *ent ) {
 	ent->s.modelindex = 0;
 	ent->s.sound = 0;
 	ent->r.svflags = SVF_NOCLIENT;

@@ -820,8 +820,8 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team )
 	if ( ent.isGhosting() )
 		return;
 
-	Item @item;
-	Item @ammoItem;
+	const Item @item;
+	const Item @ammoItem;
 
 	if ( match.getState() == MATCH_STATE_PLAYTIME )
 	{
@@ -950,11 +950,6 @@ void GT_SpawnGametype()
 void GT_InitGametype()
 {
 	daRound.init();
-
-	gametype.spawnableItemsMask = 0;
-	gametype.respawnableItemsMask = 0;
-	gametype.dropableItemsMask = 0;
-	gametype.pickableItemsMask = 0;
 
 	gametype.isTeamBased = false;
 	gametype.isRace = false;

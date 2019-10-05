@@ -725,93 +725,6 @@ void G_Match_FreeBodyQueue( void ) {
 
 //======================================================
 //		Game types
-//======================================================
-
-/*
-* G_Gametype_CanPickUpItem
-*/
-bool G_Gametype_CanPickUpItem( const gsitem_t *item ) {
-	if( !item ) {
-		return false;
-	}
-
-	return ( item->type & level.gametype.pickableItemsMask ) ? true : false;
-}
-
-/*
-* G_Gametype_CanSpawnItem
-*/
-bool G_Gametype_CanSpawnItem( const gsitem_t *item ) {
-	if( !item ) {
-		return false;
-	}
-
-	return ( level.gametype.spawnableItemsMask & item->type ) ? true : false;
-}
-
-/*
-* G_Gametype_CanRespawnItem
-*/
-bool G_Gametype_CanRespawnItem( const gsitem_t *item ) {
-	int itemmask;
-
-	if( !item ) {
-		return false;
-	}
-
-	itemmask = level.gametype.respawnableItemsMask;
-
-	return ( ( itemmask & item->type ) != 0 ) ? true : false;
-}
-
-/*
-* G_Gametype_CanDropItem
-*/
-bool G_Gametype_CanDropItem( const gsitem_t *item, bool ignoreMatchState ) {
-	int itemmask;
-
-	if( !item ) {
-		return false;
-	}
-
-	if( !ignoreMatchState ) {
-		if( GS_MatchState() > MATCH_STATE_PLAYTIME ) {
-			return false;
-		}
-	}
-
-	itemmask = level.gametype.dropableItemsMask;
-
-	return ( itemmask & item->type ) ? true : false;
-}
-
-
-/*
-* G_Gametype_RespawnTimeForItem
-*/
-int G_Gametype_RespawnTimeForItem( const gsitem_t *item ) {
-	if( !item ) {
-		return -1; // free the edict
-
-	}
-	if( item->type & IT_AMMO ) {
-		return level.gametype.ammo_respawn * 1000;
-	}
-
-	if( item->type & IT_WEAPON ) {
-		return level.gametype.weapon_respawn * 1000;
-	}
-
-	return item->quantity * 1000;
-}
-
-/*
-* G_Gametype_DroppedItemTimeout
-*/
-int G_Gametype_DroppedItemTimeout( const gsitem_t *item ) {
-	// to do: add cvar
-	return 29;
-}
 
 /*
 * G_EachNewSecond
@@ -971,20 +884,11 @@ void G_RunGametype( void ) {
 * G_Gametype_SetDefaults
 */
 void G_Gametype_SetDefaults( void ) {
-	level.gametype.spawnableItemsMask = IT_WEAPON | IT_AMMO;
-	level.gametype.respawnableItemsMask = level.gametype.spawnableItemsMask;
-	level.gametype.dropableItemsMask = level.gametype.spawnableItemsMask;
-	level.gametype.pickableItemsMask = level.gametype.spawnableItemsMask;
-
 	level.gametype.isTeamBased = false;
 	level.gametype.isRace = false;
 	level.gametype.hasChallengersQueue = false;
 	level.gametype.hasChallengersRoulette = false;
 	level.gametype.maxPlayersPerTeam = 0;
-
-	level.gametype.ammo_respawn = 20;
-	level.gametype.weapon_respawn = 5;
-	level.gametype.health_respawn = 15;
 
 	level.gametype.readyAnnouncementEnabled = false;
 	level.gametype.scoreAnnouncementEnabled = false;

@@ -350,11 +350,6 @@ typedef enum {
 
 #define MAX_ITEM_MODELS 2
 
-// gsitem_t->flags
-#define ITFLAG_PICKABLE     1
-#define ITFLAG_USABLE       2
-#define ITFLAG_DROPABLE     4
-
 // gsitem_t->type
 // define as bitflags values so they can be masked
 typedef enum {
@@ -363,31 +358,14 @@ typedef enum {
 } itemtype_t;
 
 typedef struct gitem_s {
-	//header
-	const char *classname;        // spawning name
 	int tag;
 	itemtype_t type;
-	int flags;              // actions the item does in the game
-
-	//media
-	const char *world_model[MAX_ITEM_MODELS];
-	const char *icon;
-	const char *simpleitem;       // Kurim : we use different images for representing simpleitems
-	int effects;
-
 
 	const char *name;      // for printing on pickup
 	const char *shortname; // for printing on messages
 	const char *color;     // for printing on messages
 
-	int quantity;           // how much it gives at picking
-	int inventory_max;      // how much quantity of this the inventory can carry
-
-	// special
-	int ammo_tag;           // uses this ammo, for weapons
-	int weakammo_tag;
-
-	void *info;             // miscelanea info goes pointed in here
+	int ammo_tag;          // uses this ammo, for weapons
 
 	// space separated string of stuff to precache that's not mentioned above
 	const char *precache_models;
@@ -395,10 +373,9 @@ typedef struct gitem_s {
 	const char *precache_images;
 } gsitem_t;
 
-extern gsitem_t itemdefs[];
+extern const gsitem_t itemdefs[];
 
-gsitem_t *GS_FindItemByTag( const int tag );
-const gsitem_t *GS_FindItemByClassname( const char *classname );
+const gsitem_t *GS_FindItemByTag( const int tag );
 const gsitem_t *GS_FindItemByName( const char *name );
 const gsitem_t *GS_Cmd_UseItem( player_state_t *playerState, const char *string, int typeMask );
 const gsitem_t *GS_Cmd_NextWeapon_f( player_state_t *playerState, int predictedWeaponSwitch );
@@ -458,9 +435,8 @@ void GS_BBoxForEntityState( entity_state_t *state, vec3_t mins, vec3_t maxs );
 #define PMFEAT_WALLJUMP         ( 1 << 4 )
 #define PMFEAT_ZOOM             ( 1 << 5 )
 #define PMFEAT_GHOSTMOVE        ( 1 << 6 )
-#define PMFEAT_ITEMPICK         ( 1 << 7 )
-#define PMFEAT_WEAPONSWITCH     ( 1 << 8 )
-#define PMFEAT_TEAMGHOST        ( 1 << 9 )
+#define PMFEAT_WEAPONSWITCH     ( 1 << 7 )
+#define PMFEAT_TEAMGHOST        ( 1 << 8 )
 
 #define PMFEAT_ALL              ( 0xFFFF )
 #define PMFEAT_DEFAULT          ( PMFEAT_ALL & ~PMFEAT_GHOSTMOVE & ~PMFEAT_TEAMGHOST )
@@ -471,8 +447,6 @@ enum {
 	STAT_WEAPON,
 	STAT_WEAPON_TIME,
 	STAT_PENDING_WEAPON,
-
-	STAT_PICKUP_ITEM,
 
 	STAT_SCORE,
 	STAT_TEAM,
@@ -692,7 +666,6 @@ typedef enum {
 typedef enum {
 	PSEV_NONE = 0,
 	PSEV_HIT,
-	PSEV_PICKUP,
 	PSEV_DAMAGE_10,
 	PSEV_DAMAGE_20,
 	PSEV_DAMAGE_30,
@@ -736,7 +709,6 @@ enum {
 	ET_GRENADE,
 	ET_PLASMA,
 
-	ET_ITEM,        // for simple items
 	ET_LASERBEAM,   // for continuous beams
 
 	ET_DECAL,
@@ -795,7 +767,6 @@ typedef struct firedef_s {
 	unsigned int weaponup_time;
 	unsigned int weapondown_time;
 	unsigned int reload_time;
-	unsigned int cooldown_time;
 	unsigned int timeout;
 	bool smooth_refire;
 
@@ -811,12 +782,6 @@ typedef struct firedef_s {
 	int speed;
 	int spread;     // horizontal spread
 	int v_spread;   // vertical spread
-
-	// ammo amounts
-	int weapon_pickup;
-	int ammo_pickup;
-	int ammo_max;
-	int ammo_low;
 } firedef_t;
 
 typedef struct {

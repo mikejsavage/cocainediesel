@@ -221,7 +221,7 @@ static void CG_NewPacketEntityState( entity_state_t *state ) {
 
 		if( ( cent->current.type == ET_GENERIC || cent->current.type == ET_PLAYER
 			  || cent->current.type == ET_GIB || cent->current.type == ET_GRENADE
-			  || cent->current.type == ET_ITEM || cent->current.type == ET_CORPSE ) ) {
+			  || cent->current.type == ET_CORPSE ) ) {
 			cent->canExtrapolate = true;
 		}
 
@@ -748,63 +748,6 @@ static void CG_UpdateDecalEnt( centity_t *cent ) {
 }
 
 //==========================================================================
-//		ET_ITEM
-//==========================================================================
-
-/*
-* CG_UpdateItemEnt
-*/
-static void CG_UpdateItemEnt( centity_t *cent ) {
-	memset( &cent->ent, 0, sizeof( cent->ent ) );
-	Vector4Set( cent->ent.shaderRGBA, 255, 255, 255, 255 );
-
-	cent->item = GS_FindItemByTag( cent->current.itemNum );
-	if( !cent->item ) {
-		return;
-	}
-
-	cent->effects |= cent->item->effects;
-
-	if( cent->effects & EF_OUTLINE ) {
-		Vector4Set( cent->outlineColor, 0, 0, 0, 255 ); // black
-	}
-
-	// set up the model
-	cent->ent.model = cgs.modelDraw[cent->current.modelindex];
-}
-
-/*
-* CG_AddItemEnt
-*/
-static void CG_AddItemEnt( centity_t *cent ) {
-	int msec;
-
-	if( !cent->item ) {
-		return;
-	}
-
-	// respawning items
-	if( cent->respawnTime ) {
-		msec = cg.time - cent->respawnTime;
-	} else {
-		msec = ITEM_RESPAWN_TIME;
-	}
-
-	if( msec >= 0 && msec < ITEM_RESPAWN_TIME ) {
-		cent->ent.scale = (float)msec / ITEM_RESPAWN_TIME;
-	} else {
-		cent->ent.scale = 1.0f;
-	}
-
-	// weapons are special
-	if( cent->item && cent->item->type & IT_WEAPON ) {
-		cent->ent.scale *= 1.40f;
-	}
-
-	CG_AddGenericEnt( cent );
-}
-
-//==========================================================================
 // ET_LASER
 //==========================================================================
 
@@ -1183,15 +1126,6 @@ void CG_AddEntities( void ) {
 				CG_EntityLoopSound( state, ATTN_STATIC );
 				break;
 
-			case ET_ITEM:
-				CG_AddItemEnt( cent );
-				if( cg_drawEntityBoxes->integer ) {
-					CG_DrawEntityBox( cent );
-				}
-				CG_EntityLoopSound( state, ATTN_IDLE );
-				canLight = true;
-				break;
-
 			case ET_PLAYER:
 				CG_AddPlayerEnt( cent );
 				if( cg_drawEntityBoxes->integer ) {
@@ -1291,7 +1225,6 @@ void CG_LerpEntities( void ) {
 			case ET_ROCKET:
 			case ET_PLASMA:
 			case ET_GRENADE:
-			case ET_ITEM:
 			case ET_PLAYER:
 			case ET_CORPSE:
 				if( state->linearMovement ) {
@@ -1357,7 +1290,6 @@ void CG_UpdateEntities( void ) {
 		cent = &cg_entities[state->number];
 		cent->type = state->type;
 		cent->effects = state->effects;
-		cent->item = NULL;
 
 		switch( cent->type ) {
 			case ET_GENERIC:
@@ -1375,10 +1307,6 @@ void CG_UpdateEntities( void ) {
 			case ET_PLASMA:
 			case ET_GRENADE:
 				CG_UpdateGenericEnt( cent );
-				break;
-
-			case ET_ITEM:
-				CG_UpdateItemEnt( cent );
 				break;
 
 			case ET_PLAYER:

@@ -166,13 +166,6 @@ void G_SetClientStats( edict_t *ent ) {
 	client->r.frags = client->ps.stats[STAT_SCORE];
 
 	//
-	// pickup message
-	//
-	if( level.time > client->resp.pickup_msg_time ) {
-		client->ps.stats[STAT_PICKUP_ITEM] = 0;
-	}
-
-	//
 	// frags
 	//
 	if( ent->s.team == TEAM_SPECTATOR ) {

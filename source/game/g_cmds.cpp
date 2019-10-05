@@ -70,137 +70,6 @@ static bool G_Teleport( edict_t *ent, vec3_t origin, vec3_t angles ) {
 //=================================================================================
 
 /*
-* Cmd_Give_f
-*
-* Give items to a client
-*/
-static void Cmd_Give_f( edict_t *ent ) {
-	char *name;
-	const gsitem_t *it;
-	int i;
-	bool give_all;
-
-	if( !sv_cheats->integer ) {
-		G_PrintMsg( ent, "Cheats are not enabled on this server.\n" );
-		return;
-	}
-
-	name = trap_Cmd_Args();
-
-	if( !Q_stricmp( name, "all" ) ) {
-		give_all = true;
-	} else {
-		give_all = false;
-	}
-
-	if( give_all || !Q_stricmp( trap_Cmd_Argv( 1 ), "health" ) ) {
-		if( trap_Cmd_Argc() == 3 ) {
-			ent->health = atoi( trap_Cmd_Argv( 2 ) );
-		} else {
-			ent->health = ent->max_health;
-		}
-		if( !give_all ) {
-			return;
-		}
-	}
-
-	if( give_all || !Q_stricmp( name, "weapons" ) ) {
-		for( i = 0; i < GS_MAX_ITEM_TAGS; i++ ) {
-			it = GS_FindItemByTag( i );
-			if( !it ) {
-				continue;
-			}
-
-			if( !( it->flags & ITFLAG_PICKABLE ) ) {
-				continue;
-			}
-
-			if( !( it->type & IT_WEAPON ) ) {
-				continue;
-			}
-
-			ent->r.client->ps.inventory[i] += 1;
-		}
-		if( !give_all ) {
-			return;
-		}
-	}
-
-	if( give_all || !Q_stricmp( name, "ammo" ) ) {
-		for( i = 0; i < GS_MAX_ITEM_TAGS; i++ ) {
-			it = GS_FindItemByTag( i );
-			if( !it ) {
-				continue;
-			}
-
-			if( !( it->flags & ITFLAG_PICKABLE ) ) {
-				continue;
-			}
-
-			if( !( it->type & IT_AMMO ) ) {
-				continue;
-			}
-
-			Add_Ammo( ent->r.client, it, 1000, true );
-		}
-		if( !give_all ) {
-			return;
-		}
-	}
-
-	if( give_all ) {
-		for( i = 0; i < GS_MAX_ITEM_TAGS; i++ ) {
-			it = GS_FindItemByTag( i );
-			if( !it ) {
-				continue;
-			}
-
-			if( !( it->flags & ITFLAG_PICKABLE ) ) {
-				continue;
-			}
-
-			if( it->type & ( IT_WEAPON | IT_AMMO ) ) {
-				continue;
-			}
-
-			ent->r.client->ps.inventory[i] = 1;
-		}
-		return;
-	}
-
-	it = GS_FindItemByName( name );
-	if( !it ) {
-		name = trap_Cmd_Argv( 1 );
-		it = GS_FindItemByName( name );
-		if( !it ) {
-			G_PrintMsg( ent, "unknown item\n" );
-			return;
-		}
-	}
-
-	if( !( it->flags & ITFLAG_PICKABLE ) ) {
-		G_PrintMsg( ent, "non-pickup (givable) item\n" );
-		return;
-	}
-
-	if( it->type & IT_AMMO ) {
-		if( trap_Cmd_Argc() == 3 ) {
-			ent->r.client->ps.inventory[it->tag] = atoi( trap_Cmd_Argv( 2 ) );
-		} else {
-			ent->r.client->ps.inventory[it->tag] += it->quantity;
-		}
-	} else {
-		if( it->tag && ( it->tag > 0 ) && ( it->tag < GS_MAX_ITEM_TAGS ) ) {
-			if( GS_FindItemByTag( it->tag ) != NULL ) {
-				ent->r.client->ps.inventory[it->tag]++;
-			}
-		} else {
-			G_PrintMsg( ent, "non-pickup (givable) item\n" );
-		}
-	}
-}
-
-/*
 * Cmd_God_f
 * Sets client to godmode
 * argv(0) god
@@ -904,48 +773,31 @@ static void Cmd_Timein_f( edict_t *ent ) {
 * Note: This string must never contain " characters
 */
 char *G_StatsMessage( edict_t *ent ) {
-	gclient_t *client;
-	const gsitem_t *item;
-	int i, shot_weak, hit_weak, shot_strong, hit_strong, shot_total, hit_total;
 	static char entry[MAX_TOKEN_CHARS];
 
 	assert( ent && ent->r.client );
-	client = ent->r.client;
+	const gclient_t * client = ent->r.client;
 
 	// message header
 	Q_snprintfz( entry, sizeof( entry ), "%d", PLAYERNUM( ent ) );
 
-	for( i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
-		item = GS_FindItemByTag( i );
+	for( int i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
+		const gsitem_t * item = GS_FindItemByTag( i );
 		assert( item );
 
-		hit_weak = hit_strong = 0;
-		shot_weak = shot_strong = 0;
-
-		if( item->weakammo_tag != AMMO_NONE ) {
-			hit_weak = client->level.stats.accuracy_hits[item->weakammo_tag - AMMO_GUNBLADE];
-			shot_weak = client->level.stats.accuracy_shots[item->weakammo_tag - AMMO_GUNBLADE];
-		}
+		int hit = 0;
+		int shot = 0;
 
 		if( item->ammo_tag != AMMO_NONE ) {
-			hit_strong = client->level.stats.accuracy_hits[item->ammo_tag - AMMO_GUNBLADE];
-			shot_strong = client->level.stats.accuracy_shots[item->ammo_tag - AMMO_GUNBLADE];
+			hit = client->level.stats.accuracy_hits[item->ammo_tag - AMMO_GUNBLADE];
+			shot = client->level.stats.accuracy_shots[item->ammo_tag - AMMO_GUNBLADE];
 		}
 
-		hit_total = hit_weak + hit_strong;
-		shot_total = shot_weak + shot_strong;
-
-		Q_strncatz( entry, va( " %d", shot_total ), sizeof( entry ) );
-		if( shot_total < 1 ) {
+		Q_strncatz( entry, va( " %d", shot ), sizeof( entry ) );
+		if( shot < 1 ) {
 			continue;
 		}
-		Q_strncatz( entry, va( " %d", hit_total ), sizeof( entry ) );
-
-		// strong
-		Q_strncatz( entry, va( " %d", shot_strong ), sizeof( entry ) );
-		if( shot_strong != shot_total ) {
-			Q_strncatz( entry, va( " %d", hit_strong ), sizeof( entry ) );
-		}
+		Q_strncatz( entry, va( " %d", hit ), sizeof( entry ) );
 	}
 
 	Q_strncatz( entry, va( " %d %d", client->level.stats.total_damage_given, client->level.stats.total_damage_received ), sizeof( entry ) );
@@ -1082,7 +934,6 @@ void G_InitGameCommands( void ) {
 	G_AddCommand( "god", Cmd_God_f );
 	G_AddCommand( "noclip", Cmd_Noclip_f );
 	G_AddCommand( "use", Cmd_Use_f );
-	G_AddCommand( "give", Cmd_Give_f );
 	G_AddCommand( "kill", Cmd_Kill_f );
 	G_AddCommand( "putaway", Cmd_PutAway_f );
 	G_AddCommand( "chase", Cmd_ChaseCam_f );

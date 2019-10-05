@@ -279,12 +279,6 @@ void G_InitChallengersQueue( void );
 void G_Gametype_Init( void );
 void G_Gametype_ScoreEvent( gclient_t *client, const char *score_event, const char *args );
 void G_RunGametype( void );
-bool G_Gametype_CanPickUpItem( const gsitem_t *item );
-bool G_Gametype_CanSpawnItem( const gsitem_t *item );
-bool G_Gametype_CanRespawnItem( const gsitem_t *item );
-bool G_Gametype_CanDropItem( const gsitem_t *item, bool ignoreMatchState );
-int G_Gametype_RespawnTimeForItem( const gsitem_t *item );
-int G_Gametype_DroppedItemTimeout( const gsitem_t *item );
 
 //
 // g_spawnpoints.c
@@ -396,21 +390,13 @@ void G_AddCommand( const char *name, gamecommandfunc_t cmdfunc );
 //
 // g_items.c
 //
-void DoRespawn( edict_t *ent );
 void PrecacheItem( const gsitem_t *it );
 void G_PrecacheItems( void );
-edict_t *Drop_Item( edict_t *ent, const gsitem_t *item );
-void SetRespawn( edict_t *ent, int delay );
-void G_Items_RespawnByType( unsigned int typeMask, int item_tag, float delay );
 void G_FireWeapon( edict_t *ent, int parm );
-void SpawnItem( edict_t *ent, const gsitem_t *item );
-void G_Items_FinishSpawningItems( void );
 const gsitem_t *GetItemByTag( int tag );
 bool Add_Ammo( gclient_t *client, const gsitem_t *item, int count, bool add_it );
-void Touch_Item( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags );
 bool G_PickupItem( edict_t *other, const gsitem_t *it, int flags, int count, const int *invpack );
 void G_UseItem( struct edict_s *ent, const gsitem_t *item );
-edict_t *G_DropItem( struct edict_s *ent, const gsitem_t *item );
 
 //
 // g_utils.c
@@ -596,10 +582,6 @@ void SP_model( edict_t *ent );
 //
 // g_weapon.c
 //
-void ThrowDebris( edict_t *self, int modelindex, float speed, vec3_t origin );
-bool fire_hit( edict_t *self, vec3_t aim, int damage, int kick );
-void G_HideLaser( edict_t *ent );
-
 void W_Fire_Blade( edict_t *self, int range, vec3_t start, vec3_t angles, float damage, int knockback, int timeDelta );
 void W_Fire_MG( edict_t *self, vec3_t start, vec3_t angles, int seed, int range, int hspread, int vspread, float damage, int knockback, int timeDelta );
 void W_Fire_Riotgun( edict_t *self, vec3_t start, vec3_t angles, int range, int hspread, int vspread, int count, float damage, int knockback, int timeDelta );
@@ -609,8 +591,6 @@ edict_t *W_Fire_Plasma( edict_t *self, vec3_t start, vec3_t angles, float damage
 void W_Fire_Electrobolt_FullInstant( edict_t *self, vec3_t start, vec3_t angles, float maxdamage, float mindamage, int maxknockback, int minknockback, int range, int minDamageRange, int timeDelta );
 edict_t *W_Fire_Lasergun( edict_t *self, vec3_t start, vec3_t angles, float damage, int knockback, int timeout, int timeDelta );
 
-bool Pickup_Weapon( edict_t *other, const gsitem_t *item, int flags, int ammo_count );
-edict_t *Drop_Weapon( edict_t *ent, const gsitem_t *item );
 void Use_Weapon( edict_t *ent, const gsitem_t *item );
 
 //
@@ -830,8 +810,6 @@ typedef struct {
 
 	int old_waterlevel;
 	int old_watertype;
-
-	int64_t pickup_msg_time;
 } client_respawnreset_t;
 
 typedef struct {
@@ -864,9 +842,6 @@ typedef struct {
 	vec3_t position_angles;
 	int64_t position_lastcmd;
 
-	const gsitem_t *last_drop_item;
-	vec3_t last_drop_location;
-	edict_t *last_pickup;
 	edict_t *last_killer;
 } client_teamreset_t;
 

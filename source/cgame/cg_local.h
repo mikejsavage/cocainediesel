@@ -79,8 +79,6 @@ typedef struct {
 	vec3_t microSmoothOrigin;
 	vec3_t microSmoothOrigin2;
 
-	const gsitem_t *item;
-
 	// effects
 	vec3_t trailOrigin;         // for particle trails
 
@@ -586,8 +584,6 @@ extern cvar_t *cg_volume_hitsound;    // hit sound volume
 extern cvar_t *cg_autoaction_demo;
 extern cvar_t *cg_autoaction_screenshot;
 extern cvar_t *cg_autoaction_spectator;
-extern cvar_t *cg_simpleItems; // simple items
-extern cvar_t *cg_simpleItemsSize; // simple items
 extern cvar_t *cg_volume_players; // players sound volume
 extern cvar_t *cg_volume_effects; // world sound volume
 extern cvar_t *cg_volume_announcer; // announcer sounds volume
@@ -628,7 +624,6 @@ extern cvar_t *cg_enemyForceModel;
 void CG_Init( const char *serverName, unsigned int playerNum,
 			  bool demoplaying, const char *demoName, bool pure, unsigned snapFrameTime );
 void CG_Shutdown( void );
-void CG_ValidateItemDef( int tag, char *name );
 
 #ifndef _MSC_VER
 void CG_Printf( const char *format, ... ) __attribute( ( format( printf, 1, 2 ) ) );

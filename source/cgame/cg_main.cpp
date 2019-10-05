@@ -77,8 +77,6 @@ cvar_t *cg_volume_hitsound;
 cvar_t *cg_autoaction_demo;
 cvar_t *cg_autoaction_screenshot;
 cvar_t *cg_autoaction_spectator;
-cvar_t *cg_simpleItems;
-cvar_t *cg_simpleItemsSize;
 cvar_t *cg_showObituaries;
 cvar_t *cg_damageNumbers;
 cvar_t *cg_particles;
@@ -471,8 +469,6 @@ static void CG_RegisterVariables( void ) {
 	cg_autoaction_demo =    trap_Cvar_Get( "cg_autoaction_demo", "0", CVAR_ARCHIVE );
 	cg_autoaction_screenshot =  trap_Cvar_Get( "cg_autoaction_screenshot", "0", CVAR_ARCHIVE );
 	cg_autoaction_spectator = trap_Cvar_Get( "cg_autoaction_spectator", "0", CVAR_ARCHIVE );
-	cg_simpleItems =    trap_Cvar_Get( "cg_simpleItems", "0", CVAR_ARCHIVE );
-	cg_simpleItemsSize =    trap_Cvar_Get( "cg_simpleItemsSize", "16", CVAR_ARCHIVE );
 	cg_particles =      trap_Cvar_Get( "cg_particles", "1", CVAR_ARCHIVE );
 
 	cg_cartoonEffects =     trap_Cvar_Get( "cg_cartoonEffects", "7", CVAR_ARCHIVE );
@@ -505,24 +501,6 @@ static void CG_RegisterVariables( void ) {
 }
 
 /*
-* CG_ValidateItemDef
-*
-* Compares name and tag against the itemlist to make sure cgame and game lists match
-*/
-void CG_ValidateItemDef( int tag, char *name ) {
-	const gsitem_t *item;
-
-	item = GS_FindItemByName( name );
-	if( !item ) {
-		CG_Error( "Client/Server itemlist missmatch (Game and Cgame version/mod differs). Item '%s' not found\n", name );
-	}
-
-	if( item->tag != tag ) {
-		CG_Error( "Client/Server itemlist missmatch (Game and Cgame version/mod differs).\n" );
-	}
-}
-
-/*
 * CG_OverrideWeapondef
 *
 * Compares name and tag against the itemlist to make sure cgame and game lists match
@@ -544,20 +522,19 @@ void CG_OverrideWeapondef( int index, const char *cstring ) {
 
 	firedef = &weapondef->firedef;
 
-	i = sscanf( cstring, "%7i %7i %7u %7u %7u %7u %7u %7i %7i %7i",
+	i = sscanf( cstring, "%7i %7i %7u %7u %7u %7u %7i %7i %7i",
 				&firedef->usage_count,
 				&firedef->projectile_count,
 				&firedef->weaponup_time,
 				&firedef->weapondown_time,
 				&firedef->reload_time,
-				&firedef->cooldown_time,
 				&firedef->timeout,
 				&firedef->speed,
 				&firedef->spread,
 				&firedef->v_spread
 				);
 
-	if( i != 10 ) {
+	if( i != 9 ) {
 		CG_Error( "CG_OverrideWeapondef: Bad configstring: %s \"%s\" (%i)\n", weapondef->name, cstring, i );
 	}
 }
@@ -566,18 +543,8 @@ void CG_OverrideWeapondef( int index, const char *cstring ) {
 * CG_ValidateItemList
 */
 static void CG_ValidateItemList( void ) {
-	int i;
-	int cs;
-
-	for( i = 0; i < MAX_ITEMS; i++ ) {
-		cs = CS_ITEMS + i;
-		if( cgs.configStrings[cs][0] ) {
-			CG_ValidateItemDef( i, cgs.configStrings[cs] );
-		}
-	}
-
-	for( i = 0; i < MAX_WEAPONDEFS; i++ ) {
-		cs = CS_WEAPONDEFS + i;
+	for( int i = 0; i < MAX_WEAPONDEFS; i++ ) {
+		int cs = CS_WEAPONDEFS + i;
 		if( cgs.configStrings[cs][0] ) {
 			CG_OverrideWeapondef( i, cgs.configStrings[cs] );
 		}

@@ -168,8 +168,7 @@ typedef struct {
 #define CS_MODELS           32
 #define CS_SOUNDS           ( CS_MODELS + MAX_MODELS )
 #define CS_IMAGES           ( CS_SOUNDS + MAX_SOUNDS )
-#define CS_ITEMS            ( CS_IMAGES + MAX_IMAGES )
-#define CS_PLAYERINFOS      ( CS_ITEMS + MAX_ITEMS )
+#define CS_PLAYERINFOS      ( CS_IMAGES + MAX_IMAGES )
 #define CS_GAMECOMMANDS     ( CS_PLAYERINFOS + MAX_CLIENTS )
 #define CS_WEAPONDEFS       ( CS_GAMECOMMANDS + MAX_GAMECOMMANDS )
 #define CS_GENERAL          ( CS_WEAPONDEFS + MAX_WEAPONDEFS )

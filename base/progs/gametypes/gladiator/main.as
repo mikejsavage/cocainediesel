@@ -1009,5 +1009,5 @@ void GT_InitGametype()
 	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/drillbit", true ) );
 	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/demo", true ) );
 
-	crownModel = G_ModelIndex( "models/objects/crown.glb", true );
+	crownModel = G_ModelIndex( "models/objects/crown", true );
 }

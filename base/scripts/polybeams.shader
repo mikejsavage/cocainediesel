@@ -1,26 +1,21 @@
 gfx/misc/ebbeam
 {
-	cull none
-	nomipmaps
-	deformVertexes autosprite2
 	{
+		blendfunc add
 		map gfx/misc/electro
-		rgbgen vertex
-		alphaGen vertex
-		blendFunc GL_ONE GL_ONE_MINUS_SRC_COLOR
+		rgbgen entity
+		alphagen entity
 	}
 }
 
 gfx/misc/lgbeam
 {
-	nomipmaps
-	cull none
-	deformVertexes autosprite2
 	softParticle
 	{
+		blendfunc add
 		map gfx/misc/laserbeam
-		blendfunc GL_SRC_ALPHA GL_ONE
-		rgbgen vertex
+		rgbgen entity
+		alphagen entity
 	}
 }
 

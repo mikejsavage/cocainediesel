@@ -777,10 +777,10 @@ void CG_HighVelImpactPuffParticles( const vec3_t org, const vec3_t dir, int coun
 void InitParticles();
 void DrawParticles();
 
-void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, Texture texture );
+void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material );
 
 void InitPersistentBeams();
-void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, Texture texture, float duration, float fade_time );
+void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material, float duration, float fade_time );
 void DrawPersistentBeams();
 
 //

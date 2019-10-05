@@ -960,7 +960,7 @@ void AddParticle2( const Particle & p ) {
 	num_particles++;
 }
 
-void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, Texture texture ) {
+void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material ) {
 	Vec3 dir = Normalize( end - start );
 	Vec3 forward = Normalize( start - frame_static.position );
 
@@ -976,6 +976,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, Texture texture ) 
 		end - width * beam_across * 0.5f,
 	};
 
+	Texture texture = material->textures[ 0 ].texture;
 	float texture_aspect_ratio = float( texture.width ) / float( texture.height );
 	float beam_aspect_ratio = Length( end - start ) / width;
 	float repetitions = beam_aspect_ratio / texture_aspect_ratio;
@@ -996,15 +997,9 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, Texture texture ) 
 		idx += base_index;
 	}
 
-	PipelineState pipeline;
-	pipeline.shader = &shaders.standard;
-	pipeline.pass = frame_static.transparent_pass;
-	pipeline.blend_func = BlendFunc_Add;
-	pipeline.write_depth = false;
+	PipelineState pipeline = MaterialToPipelineState( material, color );
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
-	pipeline.set_texture( "u_BaseTexture", texture );
-	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( texture.width, texture.height ), 0.0f ) );
 
 	DynamicMesh mesh = { };
 	mesh.positions = positions;
@@ -1021,7 +1016,7 @@ struct PersistentBeam {
 	Vec3 start, end;
 	float width;
 	Vec4 color;
-	Texture texture;
+	const Material * material;
 
 	s64 spawn_time;
 	float duration;
@@ -1036,7 +1031,7 @@ void InitPersistentBeams() {
 	num_persistent_beams = 0;
 }
 
-void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, Texture texture, float duration, float fade_time ) {
+void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material, float duration, float fade_time ) {
 	if( num_persistent_beams == ARRAY_COUNT( persistent_beams ) )
 		return;
 
@@ -1047,7 +1042,7 @@ void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, Texture t
 	beam.end = end;
 	beam.width = width;
 	beam.color = color;
-	beam.texture = texture;
+	beam.material = material;
 	beam.spawn_time = cg.time;
 	beam.duration = duration;
 	beam.start_fade_time = duration - fade_time;
@@ -1072,6 +1067,6 @@ void DrawPersistentBeams() {
 
 		Vec4 color = beam.color;
 		color.w *= alpha;
-		DrawBeam( beam.start, beam.end, beam.width, color, beam.texture );
+		DrawBeam( beam.start, beam.end, beam.width, color, beam.material );
 	}
 }

@@ -251,7 +251,7 @@ void CG_SpawnSprite( const vec3_t origin, const vec3_t velocity, const vec3_t ac
 
 void CG_EBBeam( Vec3 start, Vec3 end, int team ) {
 	Vec4 color = CG_TeamColorVec4( team );
-	AddPersistentBeam( start, end, 16.0f, color, cgs.media.shaderEBBeam->textures[ 0 ].texture, 0.25f, 0.1f );
+	AddPersistentBeam( start, end, 16.0f, color, cgs.media.shaderEBBeam, 0.25f, 0.1f );
 	CG_EBIonsTrail( start, end, color );
 }
 

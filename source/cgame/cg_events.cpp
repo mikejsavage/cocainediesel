@@ -157,7 +157,7 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 		VectorCopy( projectsource.origin, laserOrigin );
 	}
 
-	DrawBeam( FromQF3( laserOrigin ), FromQF3( trace.endpos ), 16.0f, FromQF4( color ), cgs.media.shaderLGBeam->textures[ 0 ].texture );
+	DrawBeam( FromQF3( laserOrigin ), FromQF3( trace.endpos ), 16.0f, FromQF4( color ), cgs.media.shaderLGBeam );
 
 	// enable continuous flash on the weapon owner
 	if( cg_weaponFlashes->integer ) {

@@ -2352,7 +2352,6 @@ static cg_layoutnode_t *CG_LayoutParseCommandNode( const char *token ) {
 static cg_layoutnode_t *CG_LayoutParseArgumentNode( const char *token ) {
 	cg_layoutnode_t *node;
 	int type = LNODE_NUMERIC;
-	char tokcopy[MAX_TOKEN_CHARS], *p;
 	const char *valuetok;
 	static char tmpstring[8];
 
@@ -2386,7 +2385,7 @@ static cg_layoutnode_t *CG_LayoutParseArgumentNode( const char *token ) {
 		type = LNODE_NUMERIC;
 		valuetok++; // skip #
 
-		for( int i = 0; cg_numeric_constants[i].name != NULL; i++ ) {
+		for( i = 0; cg_numeric_constants[i].name != NULL; i++ ) {
 			if( !Q_stricmp( valuetok, cg_numeric_constants[i].name ) ) {
 				Q_snprintfz( tmpstring, sizeof( tmpstring ), "%i", cg_numeric_constants[i].value );
 				valuetok = tmpstring;

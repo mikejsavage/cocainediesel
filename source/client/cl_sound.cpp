@@ -144,7 +144,7 @@ static void LoadSound( const char * path, bool allow_stereo ) {
 	int channels, sample_rate, num_samples;
 	s16 * samples;
 	{
-		ZoneScoped( "stb_vorbis_decode_memory" );
+		ZoneScopedN( "stb_vorbis_decode_memory" );
 		num_samples = stb_vorbis_decode_memory( ogg.ptr, ogg.num_bytes(), &channels, &sample_rate, &samples );
 	}
 	if( num_samples == -1 ) {

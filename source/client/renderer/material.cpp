@@ -643,7 +643,7 @@ void InitMaterials() {
 	LoadDiskTextures();
 
 	{
-		ZoneScoped( "Parse materials" );
+		ZoneScopedN( "Parse materials" );
 
 		for( const char * path : AssetPaths() ) {
 			const char * ext = COM_FileExtension( path );

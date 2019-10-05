@@ -12,7 +12,7 @@ in vec2 a_TexCoord;
 
 void main() {
 	gl_Position = a_Position;
-	v_TexCoord = TextureMatrix2x3Mul( u_TextureMatrix, a_TexCoord );
+	v_TexCoord = a_TexCoord;
 }
 
 #else

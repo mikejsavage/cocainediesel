@@ -20,18 +20,9 @@ enum ColorGenType {
 
 enum TCModType {
 	TCModFunc_None,
-	TCModFunc_Scale,
 	TCModFunc_Scroll,
 	TCModFunc_Rotate,
-	TCModFunc_Turb,
 	TCModFunc_Stretch,
-};
-
-enum VertexDeformType {
-	DEFORMV_NONE,
-	DEFORMV_WAVE,
-	DEFORMV_BULGE,
-	DEFORMV_MOVE,
 };
 
 struct Wave {
@@ -40,8 +31,9 @@ struct Wave {
 };
 
 struct TCMod {
-	TCModType type = TCModFunc_None;
-	float args[ 6 ];
+	TCModType type;
+	float args[ 2 ];
+	Wave wave;
 };
 
 struct ColorGen {
@@ -73,8 +65,7 @@ struct Material {
 	bool discard = false;
 	float alpha_cutoff = 0.0f;
 
-	TCMod tcmods[ 4 ];
-	u8 num_tcmods = 0;
+	TCMod tcmod = { };
 };
 
 extern Material world_material;

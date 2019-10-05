@@ -707,3 +707,10 @@ float PositiveMod( float x, float y ) {
 		res += y;
 	return res;
 }
+
+double PositiveMod( double x, double y ) {
+	double res = fmod( x, y );
+	if( res < 0 )
+		res += y;
+	return res;
+}

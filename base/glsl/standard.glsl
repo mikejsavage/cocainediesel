@@ -22,6 +22,11 @@ in vec3 a_Normal;
 in vec4 a_Color;
 in vec2 a_TexCoord;
 
+vec2 ApplyTCMod( vec2 uv ) {
+	mat3x2 m = transpose( mat2x3( u_TextureMatrix[ 0 ], u_TextureMatrix[ 1 ] ) );
+	return ( m * vec3( uv, 1.0 ) ).xy;
+}
+
 void main() {
 	vec4 Position = a_Position;
 	vec3 Normal = a_Normal;
@@ -32,8 +37,7 @@ void main() {
 #endif
 
 	v_Position = ( u_M * Position ).xyz;
-	/* v_TexCoord = TextureMatrix2x3Mul( u_TextureMatrix, a_TexCoord ); */
-	v_TexCoord = a_TexCoord;
+	v_TexCoord = ApplyTCMod( a_TexCoord );
 
 #if VERTEX_COLORS
 	v_Color = sRGBToLinear( a_Color );

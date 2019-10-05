@@ -11,12 +11,10 @@ layout( std140 ) uniform u_Model {
 };
 
 layout( std140 ) uniform u_Material {
-	vec4 u_TextureMatrix[ 2 ];
 	vec4 u_MaterialColor;
+	vec3 u_TextureMatrix[ 2 ];
 	vec2 u_TextureSize;
 	float u_AlphaCutoff;
 };
 
 uniform vec2 u_BlendMix;
-
-#define TextureMatrix2x3Mul(m2x3,tc) (vec2(dot((m2x3)[0].xy, (tc)), dot((m2x3)[0].zw, (tc))) + (m2x3)[1].xy)

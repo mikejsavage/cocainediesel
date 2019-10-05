@@ -492,30 +492,6 @@ static void CG_EntAddTeamColorTransitionEffect( centity_t *cent ) {
 	cent->ent.shaderRGBA[3] = 255;
 }
 
-/*
-* CG_AddLinkedModel
-*/
-void CG_AddLinkedModel( centity_t * cent, const orientation_t * tag ) {
-	const Model * model = cgs.modelDraw[cent->current.modelindex2];
-	if( model == NULL )
-		return;
-
-	entity_t ent = { };
-	ent.scale = cent->ent.scale;
-	ent.shaderTime = cent->ent.shaderTime;
-	Vector4Copy( cent->ent.shaderRGBA, ent.shaderRGBA );
-	ent.model = model;
-	ent.override_material = NULL;
-	VectorCopy( cent->ent.origin, ent.origin );
-	VectorCopy( cent->ent.origin, ent.origin2 );
-	Matrix3_Copy( cent->ent.axis, ent.axis );
-
-	CG_AddColoredOutLineEffect( &ent, cent->effects, cent->outlineColor[0], cent->outlineColor[1], cent->outlineColor[2], cent->outlineColor[3] );
-
-	CG_PlaceModelOnTag( &ent, &cent->ent, tag );
-	CG_AddEntityToScene( &ent );
-}
-
 //==========================================================================
 //		ET_GENERIC
 //==========================================================================

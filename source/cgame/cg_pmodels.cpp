@@ -902,23 +902,26 @@ static Quaternion EulerAnglesToQuaternion( EulerDegrees3 angles ) {
 	);
 }
 
-static orientation_t TransformTag( const Model * model, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
-	Mat4 transform = model->transform * pose.joint_poses[ tag.joint_idx ] * tag.transform;
+static Mat4 TransformTag( const Model * model, const Mat4 & transform, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
+	return transform * model->transform * pose.joint_poses[ tag.joint_idx ] * tag.transform;
+}
+
+static orientation_t Mat4ToOrientation( const Mat4 & m ) {
 	orientation_t o;
 
-	o.axis[ 0 ] = transform.col0.x;
-	o.axis[ 1 ] = transform.col0.y;
-	o.axis[ 2 ] = transform.col0.z;
-	o.axis[ 3 ] = transform.col1.x;
-	o.axis[ 4 ] = transform.col1.y;
-	o.axis[ 5 ] = transform.col1.z;
-	o.axis[ 6 ] = transform.col2.x;
-	o.axis[ 7 ] = transform.col2.y;
-	o.axis[ 8 ] = transform.col2.z;
+	o.axis[ 0 ] = m.col0.x;
+	o.axis[ 1 ] = m.col0.y;
+	o.axis[ 2 ] = m.col0.z;
+	o.axis[ 3 ] = m.col1.x;
+	o.axis[ 4 ] = m.col1.y;
+	o.axis[ 5 ] = m.col1.z;
+	o.axis[ 6 ] = m.col2.x;
+	o.axis[ 7 ] = m.col2.y;
+	o.axis[ 8 ] = m.col2.z;
 
-	o.origin[ 0 ] = transform.col3.x;
-	o.origin[ 1 ] = transform.col3.y;
-	o.origin[ 2 ] = transform.col3.z;
+	o.origin[ 0 ] = m.col3.x;
+	o.origin[ 1 ] = m.col3.y;
+	o.origin[ 2 ] = m.col3.z;
 
 	return o;
 }
@@ -1016,17 +1019,20 @@ void CG_DrawPlayer( centity_t *cent ) {
 
 	// add weapon model
 	if( cent->current.weapon ) {
-		orientation_t tag_weapon = TransformTag( meta->model, pose, meta->tag_weapon );
+		orientation_t tag_weapon = Mat4ToOrientation( TransformTag( meta->model, transform, pose, meta->tag_weapon ) );
 		CG_AddWeaponOnTag( &cent->ent, &tag_weapon, cent->current.weapon, cent->effects,
 			&pmodel->projectionSource, pmodel->flash_time, pmodel->barrel_time );
 	}
 
 	// add backpack/hat
 	if( cent->current.modelindex2 ) {
-		PlayerModelMetadata::Tag tag = meta->tag_backpack;
-		if( cent->current.effects & EF_HAT )
-			tag = meta->tag_head;
-		orientation_t o = TransformTag( meta->model, pose, tag );
-		CG_AddLinkedModel( cent, &o );
+		const Model * attached_model = cgs.modelDraw[ cent->current.modelindex2 ];
+		if( attached_model != NULL ) {
+			PlayerModelMetadata::Tag tag = meta->tag_backpack;
+			if( cent->current.effects & EF_HAT )
+				tag = meta->tag_head;
+			Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag );
+			DrawModel( attached_model, tag_transform, vec4_white );
+		}
 	}
 }

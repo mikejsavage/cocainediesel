@@ -467,7 +467,6 @@ void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity );
 void CG_LerpEntities( void );
 void CG_LerpGenericEnt( centity_t *cent );
 
-void CG_AddLinkedModel( centity_t * cent, const orientation_t * tag );
 void CG_AddColoredOutLineEffect( entity_t *ent, int effects, uint8_t r, uint8_t g, uint8_t b, uint8_t a );
 
 //

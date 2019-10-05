@@ -968,7 +968,6 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, Texture texture ) 
 		return;
 
 	Vec3 beam_across = Normalize( Cross( -forward, dir ) );
-	Vec3 beam_normal = Normalize( Cross( dir, beam_across ) );
 
 	Vec3 positions[] = {
 		start + width * beam_across * 0.5f,

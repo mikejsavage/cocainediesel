@@ -29,6 +29,8 @@ struct Shaders {
 
 	Shader skybox;
 
+	Shader decal;
+
 	Shader text;
 };
 

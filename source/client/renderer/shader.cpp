@@ -115,6 +115,9 @@ static void LoadShaders() {
 	BuildShaderSrcs( "glsl/skybox.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.skybox, srcs.span(), lengths.span() );
 
+	BuildShaderSrcs( "glsl/decal.glsl", NULL, &srcs, &lengths );
+	ReplaceShader( &shaders.decal, srcs.span(), lengths.span() );
+
 	BuildShaderSrcs( "glsl/text.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.text, srcs.span(), lengths.span() );
 }

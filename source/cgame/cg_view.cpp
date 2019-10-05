@@ -818,6 +818,20 @@ static void DrawWorld() {
 
 	{
 		PipelineState pipeline;
+		pipeline.pass = frame_static.decal_pass;
+		pipeline.shader = &shaders.decal;
+
+		const Framebuffer & fb = frame_static.world_gbuffer;
+		pipeline.set_texture( "u_DepthTexture", fb.depth_texture );
+		pipeline.set_texture( "u_NormalTexture", fb.normal_texture );
+		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+		pipeline.set_uniform( "u_Fog", UploadUniformBlock( map->fog_strength ) );
+
+		DrawFullscreenMesh( pipeline );
+	}
+
+	{
+		PipelineState pipeline;
 		pipeline.pass = frame_static.world_add_outlines_pass;
 		pipeline.shader = &shaders.standard_vertexcolors;
 		pipeline.blend_func = BlendFunc_Add;

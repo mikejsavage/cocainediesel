@@ -22,7 +22,8 @@ struct FrameStatic {
 	UniformBlock identity_material_uniforms;
 	UniformBlock blue_noise_uniforms;
 
-	Mat4 V, P;
+	Mat4 V, inverse_V;
+	Mat4 P, inverse_P;
 	Vec3 position;
 
 	Framebuffer world_gbuffer;
@@ -35,6 +36,8 @@ struct FrameStatic {
 	u8 world_postprocess_gbuffer_pass;
 	u8 world_opaque_pass;
 	u8 world_add_outlines_pass;
+
+	u8 decal_pass;
 
 	u8 teammate_write_gbuffer_pass;
 	u8 teammate_postprocess_gbuffer_pass;

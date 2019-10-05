@@ -735,14 +735,7 @@ static void CG_LerpLaser( centity_t *cent ) {
 }
 
 static void CG_AddLaserEnt( centity_t *cent ) {
-	const Material * material = cgs.media.shaderLaser;
-	vec4_t color;
-	Vector4Set( color,
-		COLOR_R( cent->current.colorRGBA ) * ( 1.0 / 255.0 ),
-		COLOR_G( cent->current.colorRGBA ) * ( 1.0 / 255.0 ),
-		COLOR_B( cent->current.colorRGBA ) * ( 1.0 / 255.0 ),
-		COLOR_A( cent->current.colorRGBA ) * ( 1.0 / 255.0 ) );
-	CG_SpawnPolyBeam( cent->ent.origin, cent->ent.origin2, NULL, cent->current.radius, 1, 0, material, 64, 0 );
+	DrawBeam( FromQF3( cent->ent.origin ), FromQF3( cent->ent.origin2 ), cent->current.radius, vec4_white, cgs.media.shaderLaser );
 }
 
 //==========================================================================

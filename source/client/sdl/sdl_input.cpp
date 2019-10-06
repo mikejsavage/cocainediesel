@@ -1,8 +1,6 @@
 #include "client/client.h"
 #include "sdl/SDL.h"
 
-cvar_t *in_disablemacosxmouseaccel;
-
 extern SDL_Window * sdl_window;
 
 static bool input_inited = false;
@@ -436,8 +434,6 @@ void IN_Init() {
 	SDL_version linked;
 
 	assert( !input_inited );
-
-	in_disablemacosxmouseaccel = Cvar_Get( "in_disablemacosxmouseaccel", "1", CVAR_ARCHIVE );
 
 	SDL_GetVersion( &linked );
 

@@ -371,10 +371,6 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			continue;
 		}
 
-		if( cent->current.effects & EF_PLAYER_HIDENAME ) {
-			continue;
-		}
-
 		// only show the pointed player
 		if( !cg_showPlayerNames->integer && ( cent->current.number != cg.pointedNum ) ) {
 			continue;

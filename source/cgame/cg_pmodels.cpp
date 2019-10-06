@@ -429,7 +429,7 @@ static float CG_OutlineScaleForDist( const entity_t * e, float maxdist, float sc
 * CG_AddColoredOutLineEffect
 */
 void CG_AddColoredOutLineEffect( entity_t *ent, int effects, uint8_t r, uint8_t g, uint8_t b, uint8_t a ) {
-	if( !cg_outlineModels->integer || !( effects & EF_OUTLINE ) ) {
+	if( !cg_outlineModels->integer ) {
 		ent->outlineHeight = 0;
 		return;
 	}
@@ -787,12 +787,6 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	CG_TeamColorForEntity( cent->current.number, cent->ent.shaderRGBA );
 
 	Vector4Set( cent->outlineColor, 0, 0, 0, 255 );
-
-	if( cg_outlinePlayers->integer ) {
-		cent->effects |= EF_OUTLINE; // add EF_OUTLINE to players
-	} else {
-		cent->effects &= ~EF_OUTLINE;
-	}
 
 	// fallback
 	if( !pmodel->metadata ) {

@@ -737,11 +737,8 @@ enum {
 #define EF_TAKEDAMAGE               ( 1 << 2 )
 #define EF_TEAMCOLOR_TRANSITION     ( 1 << 3 )
 #define EF_GODMODE                  ( 1 << 4 )
-#define EF_GHOST                    ( 1 << 5 )
-#define EF_PLAYER_HIDENAME          ( 1 << 6 )
-#define EF_RACEGHOST                ( 1 << 7 )
-#define EF_OUTLINE                  ( 1 << 8 )
-#define EF_HAT                      ( 1 << 9 )
+#define EF_RACEGHOST                ( 1 << 5 )
+#define EF_HAT                      ( 1 << 6 )
 
 //===============================================================
 // gs_weapons.c

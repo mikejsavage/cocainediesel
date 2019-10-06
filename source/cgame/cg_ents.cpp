@@ -478,9 +478,7 @@ static void CG_UpdateGenericEnt( centity_t *cent ) {
 
 	// set entity color based on team
 	CG_TeamColorForEntity( cent->current.number, cent->ent.shaderRGBA );
-	if( cent->effects & EF_OUTLINE ) {
-		Vector4Set( cent->outlineColor, 0, 0, 0, 255 );
-	}
+	Vector4Set( cent->outlineColor, 0, 0, 0, 255 );
 
 	// set up the model
 	int modelindex = cent->current.modelindex;

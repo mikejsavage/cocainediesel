@@ -60,8 +60,8 @@ void CG_DrawChat( cg_gamechat_t *chat ) {
 	Vec2 size = io.DisplaySize;
 	size.y /= 4;
 
-	ImGui::SetNextWindowSize( ImVec2( size.x*0.95f, size.y ) );
-	ImGui::SetNextWindowPos( ImVec2(0, size.y*3), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+	ImGui::SetNextWindowSize( ImVec2( size.x*0.5f, size.y ) );
+	ImGui::SetNextWindowPos( ImVec2(0, size.y*3.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 	ImGui::Begin( "chat", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground );
 
 	int l;
@@ -73,10 +73,23 @@ void CG_DrawChat( cg_gamechat_t *chat ) {
 	int message_mode = (int)trap_Cvar_Value( "con_messageMode" );
 	bool chat_active = ( chat->lastMsgTime + GAMECHAT_WAIT_IN_TIME + GAMECHAT_FADE_IN_TIME > cg.realTime || message_mode );
 
-	if( chat_active ) {
-		
-	} else {
 
+	if( message_mode ) {
+		RGB8 color = { 50, 50, 50 };
+		if( message_mode == 2 ) {
+			color = CG_TeamColor( TEAM_ALLY );
+		}
+
+		ImGui::SetCursorPos( Vec2( 20, size.y - 40 ) );
+
+		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 50 ) );
+		ImGui::BeginChild( "chat", Vec2( size.x, 40 ) );
+
+		ImGui::SetCursorPos( Vec2( 10, 10 ) );
+		ImGui::Text("%s", chat_buffer );
+
+		ImGui::EndChild();
+		ImGui::PopStyleColor();
 	}
 
 	for( int i = 0; i < GAMECHAT_STACK_SIZE; i++ ) {
@@ -104,7 +117,11 @@ void CG_DrawChat( cg_gamechat_t *chat ) {
 			break;
 		}
 
-		ImGui::SetCursorPos( Vec2( 20, size.y - (i+1)*20 ) );
+		int Y = size.y - (i+3)*20;
+		if( Y < 0 ) {
+			break;
+		}
+		ImGui::SetCursorPos( Vec2( 20, Y ) );
 
 		const char *cursor = COM_Parse( &msg_text );
 		RGB8 team_color = { 255, 255, 255 };
@@ -123,7 +140,7 @@ void CG_DrawChat( cg_gamechat_t *chat ) {
 			cursor = COM_Parse( &msg_text );
 		}
 		
-		int alpha = ( message_mode ? 255 : ((msg->time) - cg.realTime + GAMECHAT_NOTIFY_TIME)/20);
+		int alpha = ( message_mode ? 255 : ( msg->time  - cg.realTime + GAMECHAT_NOTIFY_TIME )/20 );
 
 		DynamicString name( &temp, "{}{}", ImGuiColorToken(team_color.r, team_color.g, team_color.b, alpha), cursor );
 		ImGui::Text( "%s", name.c_str() );

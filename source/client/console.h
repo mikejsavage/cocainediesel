@@ -1,3 +1,6 @@
+#define MAXCMDLINE  256
+extern char chat_buffer[MAXCMDLINE];
+
 void Con_Init();
 void Con_Shutdown();
 

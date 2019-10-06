@@ -469,16 +469,9 @@ static void TabCompletion( char * buf, int buf_size ) {
  * chat stuff
  */
 
-// keep these around from previous Con_DrawChat call
-static int con_chatX, con_chatY;
-static int con_chatWidth;
-static struct qfontface_s *con_chatFont;
-
 // messagemode[2]
 static bool chat_team;
-#define     MAXCMDLINE  256
-static char chat_buffer[MAXCMDLINE];
-static int chat_prestep = 0;
+char chat_buffer[MAXCMDLINE];
 static unsigned int chat_linepos = 0;
 static unsigned int chat_bufferlen = 0;
 
@@ -564,19 +557,6 @@ static int Q_ColorCharOffset( const char *s, int charcount ) {
 	}
 
 	return s - start;
-}
-
-/*
-* Con_ChatPrompt
-*
-* Returns the prompt for the chat input
-*/
-static const char *Con_ChatPrompt( void ) {
-	if( chat_team || ctrl_is_down ) {
-		return "say (to team):";
-	} else {
-		return "say:";
-	}
 }
 
 

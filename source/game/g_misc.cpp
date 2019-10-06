@@ -442,6 +442,7 @@ void SP_func_explosive( edict_t *self ) {
 		self->takedamage = DAMAGE_YES;
 	}
 	self->max_health = self->health;
+	self->s.effects = EF_WORLD_MODEL;
 
 	// HACK HACK HACK
 	if( st.debris1 && st.debris1[0] ) {

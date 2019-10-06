@@ -739,6 +739,7 @@ enum {
 #define EF_GODMODE                  ( 1 << 4 )
 #define EF_RACEGHOST                ( 1 << 5 )
 #define EF_HAT                      ( 1 << 6 )
+#define EF_WORLD_MODEL              ( 1 << 7 )
 
 //===============================================================
 // gs_weapons.c

@@ -20,6 +20,7 @@ struct FrameStatic {
 	UniformBlock ortho_view_uniforms;
 	UniformBlock identity_model_uniforms;
 	UniformBlock identity_material_uniforms;
+	UniformBlock fog_uniforms;
 	UniformBlock blue_noise_uniforms;
 
 	Mat4 V, P;

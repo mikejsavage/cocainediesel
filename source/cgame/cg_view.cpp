@@ -790,10 +790,6 @@ static void DrawWorld() {
 			PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
 			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
-			pipeline.set_uniform( "u_Fog", UploadUniformBlock( map->fog_strength ) );
-
-			pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
-			pipeline.set_uniform( "u_BlueNoiseTextureParams", frame_static.blue_noise_uniforms );
 
 			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 		}
@@ -1030,6 +1026,7 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 	}
 
 	RendererSetView( FromQF3( cg.view.origin ), FromQFAngles( cg.view.angles ), cg.view.fov_y );
+	frame_static.fog_uniforms = UploadUniformBlock( cgs.map->fog_strength );
 
 	CG_LerpEntities();  // interpolate packet entities positions
 

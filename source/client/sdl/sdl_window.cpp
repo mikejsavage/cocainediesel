@@ -335,6 +335,7 @@ void VID_FlashWindow() {
 }
 
 void VID_Swap() {
+	ZoneScoped;
 	SDL_GL_SwapWindow( sdl_window );
 }
 

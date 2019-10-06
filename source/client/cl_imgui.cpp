@@ -44,6 +44,8 @@ void CL_ShutdownImGui() {
 }
 
 static void SubmitDrawCalls() {
+	ZoneScoped;
+
 	ImDrawData * draw_data = ImGui::GetDrawData();
 
 	ImGuiIO& io = ImGui::GetIO();
@@ -106,6 +108,8 @@ static void SubmitDrawCalls() {
 }
 
 void CL_ImGuiBeginFrame() {
+	ZoneScoped;
+
 	ImGui_ImplSDL2_NewFrame( sdl_window );
 	ImGui::NewFrame();
 
@@ -113,6 +117,8 @@ void CL_ImGuiBeginFrame() {
 }
 
 void CL_ImGuiEndFrame() {
+	ZoneScoped;
+
 	ImGui::Render();
 	SubmitDrawCalls();
 }

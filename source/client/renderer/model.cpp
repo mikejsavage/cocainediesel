@@ -216,6 +216,8 @@ static Vec3 LerpVec3( Vec3 a, float t, Vec3 b ) { return Lerp( a, t, b ); }
 static float LerpFloat( float a, float t, float b ) { return Lerp( a, t, b ); }
 
 Span< TRS > SampleAnimation( ArenaAllocator * a, const Model * model, float t ) {
+	ZoneScoped;
+
 	Span< TRS > local_poses = ALLOC_SPAN( a, TRS, model->num_joints );
 
 	for( u8 i = 0; i < model->num_joints; i++ ) {
@@ -255,6 +257,8 @@ static Mat4 TRSToMat4( const TRS & trs ) {
 }
 
 MatrixPalettes ComputeMatrixPalettes( ArenaAllocator * a, const Model * model, Span< TRS > local_poses ) {
+	ZoneScoped;
+
 	assert( local_poses.n == model->num_joints );
 
 	MatrixPalettes palettes;

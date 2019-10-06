@@ -845,6 +845,8 @@ void InitParticles() {
 }
 
 void DrawParticles() {
+	ZoneScoped;
+
 	PipelineState pipeline;
 	pipeline.shader = &shaders.particle;
 	pipeline.pass = frame_static.transparent_pass;
@@ -1005,6 +1007,8 @@ void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Mat
 }
 
 void DrawPersistentBeams() {
+	ZoneScoped;
+
 	for( size_t i = 0; i < num_persistent_beams; i++ ) {
 		PersistentBeam & beam = persistent_beams[ i ];
 		float t = ( cg.time - beam.spawn_time ) / 1000.0f;

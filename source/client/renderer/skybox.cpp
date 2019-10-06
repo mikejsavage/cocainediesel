@@ -37,6 +37,8 @@ void ShutdownSkybox() {
 }
 
 void DrawSkybox() {
+	ZoneScoped;
+
 	PipelineState pipeline;
 	pipeline.shader = &shaders.skybox;
 	pipeline.pass = frame_static.sky_pass;

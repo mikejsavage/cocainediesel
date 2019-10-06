@@ -66,6 +66,8 @@ int main( int argc, char **argv ) {
 
 		int time;
 		{
+			ZoneScopedN( "Interframe" );
+
 			// find time spent rendering last frame
 			do {
 				newtime = Sys_Milliseconds();

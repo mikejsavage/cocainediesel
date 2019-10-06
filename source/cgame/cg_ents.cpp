@@ -1013,6 +1013,8 @@ void CG_EntityLoopSound( entity_state_t *state, float attenuation ) {
 * Add the entities to the rendering list
 */
 void CG_AddEntities( void ) {
+	ZoneScoped;
+
 	entity_state_t *state;
 	vec3_t autorotate;
 	int pnum;
@@ -1135,6 +1137,8 @@ void CG_AddEntities( void ) {
 * Interpolate the entity states positions into the entity_t structs
 */
 void CG_LerpEntities( void ) {
+	ZoneScoped;
+
 	entity_state_t *state;
 	int pnum;
 	centity_t *cent;
@@ -1210,6 +1214,8 @@ void CG_LerpEntities( void ) {
 * Called at receiving a new serverframe. Sets up the model, type, etc to be drawn later on
 */
 void CG_UpdateEntities( void ) {
+	ZoneScoped;
+
 	entity_state_t *state;
 	int pnum;
 	centity_t *cent;

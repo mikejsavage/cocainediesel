@@ -769,6 +769,8 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 }
 
 static void DrawWorld() {
+	ZoneScoped;
+
 	const char * name = cgs.configStrings[ CS_WORLDMODEL ];
 	const char * ext = COM_FileExtension( name );
 	const char * suffix = "*0";
@@ -866,6 +868,8 @@ static void DrawWorld() {
 }
 
 static void DrawTeammateOutlines() {
+	ZoneScoped;
+
 	{
 		PipelineState pipeline;
 		pipeline.pass = frame_static.teammate_postprocess_gbuffer_pass;
@@ -930,6 +934,8 @@ static void DrawTeammateOutlines() {
 * CG_RenderView
 */
 void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int64_t realTime, int64_t serverTime, unsigned extrapolationTime ) {
+	ZoneScoped;
+
 	refdef_t *rd = &cg.view.refdef;
 
 	// update time

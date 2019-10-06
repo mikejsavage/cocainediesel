@@ -405,6 +405,8 @@ static void CG_PredictSmoothSteps( void ) {
 * Sets cg.predictedVelocty, cg.predictedOrigin and cg.predictedAngles
 */
 void CG_PredictMovement( void ) {
+	ZoneScoped;
+
 	int64_t ucmdExecuted, ucmdHead;
 	int64_t frame;
 	pmove_t pm;

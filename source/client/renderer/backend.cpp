@@ -307,6 +307,8 @@ static bool operator!=( PipelineState::Scissor a, PipelineState::Scissor b ) {
 }
 
 static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
+	TracyGpuZone( "Set pipeline state" );
+
 	if( pipeline.shader != NULL && ( prev_pipeline.shader == NULL || pipeline.shader->program != prev_pipeline.shader->program ) ) {
 		glUseProgram( pipeline.shader->program );
 	}
@@ -438,6 +440,9 @@ static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
 }
 
 static void SetupRenderPass( const RenderPass & pass ) {
+	ZoneScoped;
+	TracyGpuZone( "Setup render pass" );
+
 	if( GLAD_GL_KHR_debug != 0 ) {
 		glPushDebugGroup( GL_DEBUG_SOURCE_APPLICATION, 0, -1, pass.name );
 	}
@@ -510,33 +515,44 @@ static void SubmitResolveMSAA( Framebuffer fb ) {
 }
 
 void RenderBackendSubmitFrame() {
+	ZoneScoped;
+
 	assert( in_frame );
 	assert( render_passes.size() > 0 );
 	in_frame = false;
 
-	for( UBO ubo : ubos ) {
-		glBindBuffer( GL_UNIFORM_BUFFER, ubo.ubo );
-		glUnmapBuffer( GL_UNIFORM_BUFFER );
+	{
+		ZoneScopedN( "Unmap UBOs" );
+		for( UBO ubo : ubos ) {
+			glBindBuffer( GL_UNIFORM_BUFFER, ubo.ubo );
+			glUnmapBuffer( GL_UNIFORM_BUFFER );
+		}
 	}
 
-	std::stable_sort( draw_calls.begin(), draw_calls.end(), SortDrawCall );
+	{
+		ZoneScopedN( "Sort draw calls" );
+		std::stable_sort( draw_calls.begin(), draw_calls.end(), SortDrawCall );
+	}
 
 	SetupRenderPass( render_passes[ 0 ] );
 	u8 pass_idx = 0;
 
-	for( const DrawCall & dc : draw_calls ) {
-		while( dc.pipeline.pass > pass_idx ) {
-			if( GLAD_GL_KHR_debug != 0 )
-				glPopDebugGroup();
-			pass_idx++;
-			SetupRenderPass( render_passes[ pass_idx ] );
-		}
+	{
+		ZoneScopedN( "Submit draw calls" );
+		for( const DrawCall & dc : draw_calls ) {
+			while( dc.pipeline.pass > pass_idx ) {
+				if( GLAD_GL_KHR_debug != 0 )
+					glPopDebugGroup();
+				pass_idx++;
+				SetupRenderPass( render_passes[ pass_idx ] );
+			}
 
-		if( dc.pipeline.shader == NULL ) {
-			SubmitResolveMSAA( render_passes[ dc.pipeline.pass ].msaa_source );
-		}
-		else {
-			SubmitDrawCall( dc );
+			if( dc.pipeline.shader == NULL ) {
+				SubmitResolveMSAA( render_passes[ dc.pipeline.pass ].msaa_source );
+			}
+			else {
+				SubmitDrawCall( dc );
+			}
 		}
 	}
 
@@ -550,8 +566,11 @@ void RenderBackendSubmitFrame() {
 			glPopDebugGroup();
 	}
 
-	for( const Mesh & mesh : deferred_deletes ) {
-		DeleteMesh( mesh );
+	{
+		ZoneScopedN( "Deferred deletes" );
+		for( const Mesh & mesh : deferred_deletes ) {
+			DeleteMesh( mesh );
+		}
 	}
 
 	TracyGpuCollect;

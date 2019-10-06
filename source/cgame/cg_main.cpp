@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "cg_local.h"
+#include "cgame/cg_local.h"
 
 cg_static_t cgs;
 cg_state_t cg;
@@ -290,6 +290,9 @@ static void CG_RegisterModels( void ) {
 
 			// indexed pmodel
 			cgs.pModelsIndex[i] = CG_RegisterPlayerModel( name + 1 );
+		} else if( name[0] == '*' ) {
+			u64 hash = Hash64( name, strlen( name ), cgs.map->base_hash );
+			cgs.modelDraw[i] = FindModel( StringHash( hash ) );
 		} else {
 			if( !CG_LoadingItemName( name ) ) {
 				return;
@@ -559,6 +562,14 @@ void CG_Precache( void ) {
 
 	cgs.precacheStart = cgs.precacheCount;
 	cgs.precacheStartMsec = trap_Milliseconds();
+
+	{
+		const char * name = cgs.configStrings[ CS_WORLDMODEL ];
+		const char * ext = COM_FileExtension( name );
+
+		u64 hash = Hash64( name, strlen( name ) - strlen( ext ) );
+		cgs.map = FindMapMetadata( StringHash( hash ) );
+	}
 
 	CG_RegisterModels();
 	if( cgs.precacheModelsStart < MAX_MODELS ) {

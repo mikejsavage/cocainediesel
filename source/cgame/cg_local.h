@@ -319,6 +319,8 @@ typedef struct {
 
 	const Model *modelDraw[MAX_MODELS];
 
+	const MapMetadata * map;
+
 	PlayerModelMetadata *pModelsIndex[MAX_MODELS];
 	PlayerModelMetadata *basePModelInfo; //fall back replacements
 

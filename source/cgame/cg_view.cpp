@@ -771,14 +771,8 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 static void DrawWorld() {
 	ZoneScoped;
 
-	const char * name = cgs.configStrings[ CS_WORLDMODEL ];
-	const char * ext = COM_FileExtension( name );
 	const char * suffix = "*0";
-
-	u64 hash = Hash64( name, strlen( name ) - strlen( ext ) );
-	const MapMetadata * map = FindMapMetadata( StringHash( hash ) );
-
-	hash = Hash64( suffix, strlen( suffix ), hash );
+	u64 hash = Hash64( suffix, strlen( suffix ), cgs.map->base_hash );
 	const Model * model = FindModel( StringHash( hash ) );
 
 	for( u32 i = 0; i < model->num_primitives; i++ ) {

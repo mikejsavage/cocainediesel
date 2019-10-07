@@ -721,8 +721,6 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 			config.width, config.height, 0, channels, type, config.data );
 	}
 	else {
-		glTexParameteri( GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_BASE_LEVEL, 0 );
-		glTexParameteri( GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAX_LEVEL, 0 );
 		glTexImage2DMultisample( GL_TEXTURE_2D_MULTISAMPLE, msaa_samples,
 			internal_format, config.width, config.height, GL_TRUE );
 	}

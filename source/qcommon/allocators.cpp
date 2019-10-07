@@ -184,7 +184,7 @@ void * ArenaAllocator::try_reallocate( void * ptr, size_t current_size, size_t n
 		return ptr;
 	}
 
-	void * mem = allocate( new_size, alignment, func, file, line );
+	void * mem = try_allocate( new_size, alignment, func, file, line );
 	if( mem == NULL )
 		return NULL;
 	memcpy( mem, ptr, current_size );

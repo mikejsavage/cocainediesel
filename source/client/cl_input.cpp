@@ -71,6 +71,8 @@ static void CL_UpdateGameInput( int frameTime ) {
 * CL_UserInputFrame
 */
 void CL_UserInputFrame( int realMsec ) {
+	ZoneScoped;
+
 	// let the mouse activate or deactivate
 	IN_Frame();
 

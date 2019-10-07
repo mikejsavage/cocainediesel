@@ -1730,6 +1730,8 @@ static void CL_ShutdownLocal( void ) {
 * CL_AdjustServerTime - adjust delta to new frame snap timestamp
 */
 void CL_AdjustServerTime( unsigned int gameMsec ) {
+	ZoneScoped;
+
 	// hurry up if coming late (unless in demos)
 	if( !cls.demo.playing ) {
 		if( ( cl.newServerTimeDelta < cl.serverTimeDelta ) && gameMsec > 0 ) {
@@ -1813,6 +1815,8 @@ int CL_SmoothTimeDeltas( void ) {
 * CL_UpdateSnapshot - Check for pending snapshots, and fire if needed
 */
 void CL_UpdateSnapshot( void ) {
+	ZoneScoped;
+
 	snapshot_t  *snap;
 	int i;
 
@@ -1975,6 +1979,8 @@ void CL_SendMessagesToServer( bool sendNow ) {
 * CL_NetFrame
 */
 static void CL_NetFrame( int realMsec, int gameMsec ) {
+	ZoneScoped;
+
 	// read packets from server
 	if( realMsec > 5000 ) { // if in the debugger last frame, don't timeout
 		cls.lastPacketReceivedTime = cls.realtime;

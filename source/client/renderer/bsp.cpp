@@ -482,6 +482,7 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 
 bool LoadBSPMap( MapMetadata * map, const char * path ) {
 	ZoneScoped;
+	ZoneText( path, strlen( path ) );
 
 	StringHash hash = StringHash( path );
 	Span< const u8 > compressed = AssetBinary( hash );

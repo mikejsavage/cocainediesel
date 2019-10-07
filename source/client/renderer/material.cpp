@@ -582,6 +582,9 @@ static void LoadDiskTextures() {
 		if( ext == NULL || ( strcmp( ext, ".png" ) != 0 && strcmp( ext, ".jpg" ) != 0 ) )
 			continue;
 
+		ZoneScopedN( "Load texture" );
+		ZoneText( path, strlen( path ) );
+
 		assert( num_textures < ARRAY_COUNT( textures ) );
 
 		Span< const u8 > data = AssetBinary( path );

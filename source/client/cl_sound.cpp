@@ -135,6 +135,7 @@ static bool S_InitAL() {
 
 static void LoadSound( const char * path, bool allow_stereo ) {
 	ZoneScoped;
+	ZoneText( path, strlen( path ) );
 
 	assert( num_sound_assets < ARRAY_COUNT( sound_assets ) );
 	SoundAsset * sfx = &sound_assets[ num_sound_assets ];

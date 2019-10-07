@@ -577,6 +577,12 @@ void RenderBackendSubmitFrame() {
 		}
 	}
 
+	u32 ubo_bytes_used = 0;
+	for( const UBO & ubo : ubos ) {
+		ubo_bytes_used += ubo.bytes_used;
+	}
+	TracyPlot( "UBO utilisation", float( ubo_bytes_used ) / float( UNIFORM_BUFFER_SIZE * ARRAY_COUNT( ubos ) ) );
+
 	TracyGpuCollect;
 }
 

@@ -45,3 +45,18 @@ textures/concretestrike/sky { polygonoffset }
 textures/concretestrike/sky_newlight { polygonoffset }
 textures/concretestrike/sky_surfacelight { polygonoffset }
 textures/devtex/whitesky { polygonoffset }
+
+textures/wsw_flareshalos/flare_sphere_orange { polygonoffset }
+textures/wsw_flareshalos/flare_sphere_cyan { polygonoffset }
+textures/wsw_flareshalos/flare_sphere_fog_white { polygonoffset }
+textures/wsw_flareshalos/flare_sphere_white { polygonoffset }
+textures/wsw_flareshalos/glow_halo_white { polygonoffset }
+textures/wsw_flareshalos/glow_halo_white_soft { polygonoffset }
+textures/wsw_flareshalos/glow_cone_cyan { polygonoffset }
+textures/wsw_flareshalos/glow_cone_verycyan { polygonoffset }
+textures/wsw_flareshalos/small_light_halo { polygonoffset }
+textures/wsw_flareshalos/flare_sphere_white_front { polygonoffset }
+textures/wsw_flareshalos/flare_sphere_white_front_soft { polygonoffset }
+textures/wsw_city1/lighthalo1_high { polygonoffset }
+textures/wsw_city1/light_bulb_corona { polygonoffset }
+models_mapobjects_lamp_lamp_halo { polygonoffset }

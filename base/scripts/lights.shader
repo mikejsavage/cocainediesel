@@ -238,7 +238,6 @@ textures/lights/tech
 	q3map_forcemeta
 	q3map_lightmapSampleSize 128
 
-	if ! deluxe
 	{
 		map $lightmap
 		rgbGen identity
@@ -251,13 +250,6 @@ textures/lights/tech
 		map textures/lights/tech.blend
 		blendfunc add
 	}
-	endif
-
-	if deluxe
-	{
-		material textures/lights/tech $blankbumpimage - textures/lights/tech.blend
-	}
-	endif
 }
 
 textures/lights/tech_1000
@@ -271,7 +263,6 @@ textures/lights/tech_1000
 	q3map_forcemeta
 	q3map_lightmapSampleSize 128
 
-	if ! deluxe
 	{
 		map $lightmap
 		rgbGen identity
@@ -284,13 +275,6 @@ textures/lights/tech_1000
 		map textures/lights/tech.blend
 		blendfunc add
 	}
-	endif
-
-	if deluxe
-	{
-		material textures/lights/tech $blankbumpimage - textures/lights/tech.blend
-	}
-	endif
 }
 
 textures/lights/square_light_tile
@@ -431,24 +415,10 @@ textures/lights/turqs2
 	surfaceparm nodlight
 	q3map_forcemeta
 
-	if ! deluxe
-	{
-		map textures/lights/turqs2
-		blendFunc blend
-	}
-
 	{
 		map $lightmap
 		blendFunc filter
 	}
-	endif
-
-	if deluxe
-	{
-		material textures/lights/turqs2
-		blendFunc blend
-	}
-	endif
 
 	{
 		map textures/lights/turqs2.blend
@@ -466,7 +436,6 @@ textures/lights/turqs2_1000
 	surfaceparm nodlight
 	q3map_forcemeta
 
-	if ! deluxe
 	{
 		map textures/lights/turqs2
 		blendFunc blend
@@ -476,14 +445,6 @@ textures/lights/turqs2_1000
 		map $lightmap
 		blendFunc filter
 	}
-	endif
-
-	if deluxe
-	{
-		material textures/lights/turqs2
-		blendFunc blend
-	}
-	endif
 
 	{
 		map textures/lights/turqs2.blend
@@ -547,7 +508,6 @@ textures/lights/strip
 	surfaceparm nodlight
 	q3map_forcemeta
 
-	if ! deluxe
 	{
 		map $lightmap
 	}
@@ -561,13 +521,6 @@ textures/lights/strip
 		map textures/lights/strip.blend
 		blendFunc blend
 	}
-	endif
-
-	if deluxe
-	{
-		material textures/lights/strip textures/lights/strip_norm textures/lights/strip_gloss textures/lights/strip.blend
-	}
-	endif
 }
 
 textures/lights/stripred
@@ -580,7 +533,6 @@ textures/lights/stripred
 	surfaceparm nodlight
 	q3map_forcemeta
 
-	if ! deluxe
 	{
 		map $lightmap
 	}
@@ -594,11 +546,4 @@ textures/lights/stripred
 		map textures/lights/stripred.blend
 		blendFunc blend
 	}
-	endif
-
-	if deluxe
-	{
-		material textures/lights/strip textures/lights/strip_norm textures/lights/strip_gloss textures/lights/stripred.blend
-	}
-	endif
 }

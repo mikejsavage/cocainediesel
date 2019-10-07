@@ -7,7 +7,7 @@ models_mapobjects_lamp_lamp
 
 	{
 		rgbgen vertex
-		material models/mapobjects/lamp/lamp
+		map models/mapobjects/lamp/lamp
 	}
 
 	{
@@ -26,7 +26,7 @@ models_mapobjects_lamp_lamp_yellow
 
 	{
 		rgbgen vertex
-		material models/mapobjects/lamp/lamp_yellow models/mapobjects/lamp/lamp_norm models/mapobjects/lamp/lamp_gloss
+		map models/mapobjects/lamp/lamp_yellow
 	}
 
 	{
@@ -45,33 +45,13 @@ models_mapobjects_lamp_lamp_blue
 
 	{
 		rgbgen vertex
-		material models/mapobjects/lamp/lamp_blue models/mapobjects/lamp/lamp_norm models/mapobjects/lamp/lamp_gloss
+		map models/mapobjects/lamp/lamp_blue
 	}
 
 	{
 		map models/mapobjects/lamp/lamp_alpha
 		alphaGen wave sin 0.75 0.25 0.75 1.5
 		blendFunc blend
-	}
-}
-
-models_mapobjects_lamp_lamp_halo
-{
-	qer_editorimage textures/wsw_flareshalos/glow_halo_white
-	qer_trans 0.25
-	cull none
-	surfaceparm nomarks
-	surfaceparm trans
-	surfaceparm nonsolid
-	surfaceparm nolightmap
-	deformVertexes autosprite2
-	softParticle
-
-	{
-		detail
-		clampmap textures/wsw_flareshalos/glow_halo_white
-		blendfunc add
-		rgbgen wave distanceramp 0 0.7 80 400
 	}
 }
 
@@ -94,25 +74,7 @@ models/mapobjects/jumppad/jumppad1
 	cull none
 	qer_editorimage models/mapobjects/jumppad/jumppad1
 
-	if deluxe
-	{
-		material models/mapobjects/jumppad/jumppad1_diffuse models/mapobjects/jumppad/jumppad1_norm models/mapobjects/jumppad/jumppad1_gloss
-	}
-	endif
-
-	if ! deluxe
-	{
-		map $lightmap
-	}
-	{
-		map models/mapobjects/jumppad/jumppad1
-		blendfunc filter
-	}
-	endif
-	{
-		map models/mapobjects/jumppad/jumppad1_light
-		blendFunc add
-	}
+	map models/mapobjects/jumppad/jumppad1
 }
 
 models/mapobjects/jumppad1/diffuse
@@ -165,7 +127,7 @@ mapobjects_leds_iron_frame
 
 	{
 		rgbgen vertex
-		material models/mapobjects/lights/leds_iron_frame
+		map models/mapobjects/lights/leds_iron_frame
 	}
 }
 
@@ -189,40 +151,7 @@ models_mapobjects_decor_misc_powerline
 
 	{
 		rgbgen vertex
-		material models/mapobjects/decor_misc/powerline
-	}
-}
-
-models/mapobjects/decor_misc/aircondition_01
-{
-	qer_editorimage models/mapobjects/decor_misc/aircondition_01
-	surfaceparm nolightmap
-
-	{
-		rgbgen vertex
-		material models/mapobjects/decor_misc/aircondition_01 models/mapobjects/decor_misc/aircondition_01_norm models/mapobjects/decor_misc/aircondition_01_gloss
-	}
-}
-
-models/mapobjects/decor_misc/aircondition_02
-{
-	qer_editorimage models/mapobjects/decor_misc/aircondition_02
-	surfaceparm nolightmap
-
-	{
-		rgbgen vertex
-		material models/mapobjects/decor_misc/aircondition_02 models/mapobjects/decor_misc/aircondition_01_norm models/mapobjects/decor_misc/aircondition_01_gloss
-	}
-}
-
-models/mapobjects/decor_misc/aircondition_02a
-{
-	qer_editorimage models/mapobjects/decor_misc/aircondition_02a
-	surfaceparm nolightmap
-
-	{
-		rgbgen vertex
-		material models/mapobjects/decor_misc/aircondition_02a models/mapobjects/decor_misc/aircondition_01_norm models/mapobjects/decor_misc/aircondition_01_gloss
+		map models/mapobjects/decor_misc/powerline
 	}
 }
 
@@ -234,7 +163,7 @@ models/mapobjects/decor_misc/aircondition_fan_01
 
 	{
 		rgbgen vertex
-		material models/mapobjects/decor_misc/aircondition_fan_01
+		map models/mapobjects/decor_misc/aircondition_fan_01
 		blendFunc blend
 		tcmod rotate 160
 	}
@@ -247,7 +176,7 @@ models/mapobjects/lights/coldlight_01
 
 	{
 		rgbgen vertex
-		material models/mapobjects/lights/coldlight_01 models/mapobjects/lights/coldlight_01_norm models/mapobjects/lights/coldlight_01_gloss
+		map models/mapobjects/lights/coldlight_01
 	}
 }
 
@@ -275,6 +204,6 @@ models/mapobjects/lights/coldlight_01a
 
 	{
 		rgbgen vertex
-		material models/mapobjects/lights/coldlight_01a models/mapobjects/lights/coldlight_01a_norm models/mapobjects/lights/coldlight_01a_gloss
+		map models/mapobjects/lights/coldlight_01a
 	}
 }

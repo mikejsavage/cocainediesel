@@ -79,7 +79,7 @@ void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 
 
 MinMax3 ModelBounds( const Model * model );
 
-Span< TRS > SampleAnimation( ArenaAllocator * a, const Model * model, float t );
-MatrixPalettes ComputeMatrixPalettes( ArenaAllocator * a, const Model * model, Span< TRS > local_poses );
+Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t );
+MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< TRS > local_poses );
 bool FindJointByName( const Model * model, const char * name, u8 * joint_idx );
 void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const Model * model, u8 upper_root_joint );

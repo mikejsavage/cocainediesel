@@ -946,10 +946,12 @@ void CG_DrawPlayer( centity_t *cent ) {
 		VectorCopy( origin, cent->ent.origin2 );
 	}
 
+	TempAllocator temp = cls.frame_arena->temp();
+
 	float lower_time, upper_time;
 	CG_GetAnimationTimes( pmodel, cg.time, &lower_time, &upper_time );
-	Span< TRS > lower = SampleAnimation( cls.frame_arena, meta->model, lower_time );
-	Span< TRS > upper = SampleAnimation( cls.frame_arena, meta->model, upper_time );
+	Span< TRS > lower = SampleAnimation( &temp, meta->model, lower_time );
+	Span< TRS > upper = SampleAnimation( &temp, meta->model, upper_time );
 	MergeLowerUpperPoses( lower, upper, meta->model, meta->upper_root_joint );
 
 	// add skeleton effects (pose is unmounted yet)
@@ -993,7 +995,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 		}
 	}
 
-	MatrixPalettes pose = ComputeMatrixPalettes( cls.frame_arena, meta->model, lower );
+	MatrixPalettes pose = ComputeMatrixPalettes( &temp, meta->model, lower );
 
 	CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
 

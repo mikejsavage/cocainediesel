@@ -2011,6 +2011,8 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 void CL_Frame( int realMsec, int gameMsec ) {
 	ZoneScoped;
 
+	TracyPlot( "Frame arena max utilisation", cls.frame_arena->max_utilisation() );
+
 	cls.frame_arena = cls.frame_arena == &cls.frame_arenas[ 0 ] ? &cls.frame_arenas[ 1 ] : &cls.frame_arenas[ 0 ];
 	cls.frame_arena->clear();
 

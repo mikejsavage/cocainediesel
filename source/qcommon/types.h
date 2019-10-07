@@ -63,10 +63,13 @@ struct ArenaAllocator final : public Allocator {
 	void clear();
 	void * get_memory();
 
+	float max_utilisation() const;
+
 private:
 	u8 * memory;
 	u8 * top;
 	u8 * cursor;
+	u8 * cursor_max;
 
 	friend struct TempAllocator;
 };

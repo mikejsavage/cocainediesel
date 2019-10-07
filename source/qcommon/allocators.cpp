@@ -153,6 +153,7 @@ ArenaAllocator::ArenaAllocator( void * mem, size_t size ) {
 	memory = ( u8 * ) mem;
 	top = memory + size;
 	cursor = memory;
+	cursor_max = cursor;
 }
 
 void * ArenaAllocator::try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
@@ -162,6 +163,7 @@ void * ArenaAllocator::try_allocate( size_t size, size_t alignment, const char *
 		return NULL;
 	ASAN_UNPOISON_MEMORY_REGION( aligned, size );
 	cursor = aligned + size;
+	cursor_max = Max2( cursor, cursor_max );
 	return aligned;
 }
 
@@ -181,6 +183,7 @@ void * ArenaAllocator::try_reallocate( void * ptr, size_t current_size, size_t n
 		}
 
 		cursor = new_cursor;
+		cursor_max = Max2( cursor, cursor_max );
 		return ptr;
 	}
 
@@ -203,10 +206,15 @@ TempAllocator ArenaAllocator::temp() {
 void ArenaAllocator::clear() {
 	ASAN_POISON_MEMORY_REGION( memory, top - memory );
 	cursor = memory;
+	cursor_max = cursor;
 }
 
 void * ArenaAllocator::get_memory() {
 	return memory;
+}
+
+float ArenaAllocator::max_utilisation() const {
+	return float( cursor_max - cursor ) / float( top - cursor );
 }
 
 void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, const char * func, const char * file, int line ) {

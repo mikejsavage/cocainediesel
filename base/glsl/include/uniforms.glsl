@@ -4,6 +4,7 @@ layout( std140 ) uniform u_View {
 	vec3 u_CameraPos;
 	vec2 u_ViewportSize;
 	float u_NearClip;
+	int u_Samples;
 };
 
 layout( std140 ) uniform u_Model {

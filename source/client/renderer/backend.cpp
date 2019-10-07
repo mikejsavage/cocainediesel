@@ -338,7 +338,10 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		bool found = false;
 		for( size_t j = 0; j < pipeline.num_textures; j++ ) {
 			if( pipeline.textures[ j ].name_hash == pipeline.shader->textures[ i ] ) {
-				glBindTexture( GL_TEXTURE_2D, pipeline.textures[ j ].texture.texture );
+				GLenum target = pipeline.textures[ j ].texture.msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+				GLenum other_target = pipeline.textures[ j ].texture.msaa ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
+				glBindTexture( other_target, 0 );
+				glBindTexture( target, pipeline.textures[ j ].texture.texture );
 				found = true;
 				break;
 			}
@@ -346,6 +349,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 
 		if( !found ) {
 			glBindTexture( GL_TEXTURE_2D, 0 );
+			glBindTexture( GL_TEXTURE_2D_MULTISAMPLE, 0 );
 		}
 	}
 
@@ -665,60 +669,60 @@ void DeleteIndexBuffer( IndexBuffer ib ) {
 }
 
 static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
-	GLenum target = msaa_samples == 0 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
-
 	Texture texture;
 	texture.width = config.width;
 	texture.height = config.height;
+	texture.msaa = msaa_samples > 1;
 	texture.format = config.format;
 
 	glGenTextures( 1, &texture.texture );
 	// TODO: should probably update the gl state since we bind a new texture
 	// TODO: or glactivetexture 0?
+	GLenum target = msaa_samples == 0 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
 	glBindTexture( target, texture.texture );
 
 	GLenum internal_format, channels, type;
 	TextureFormatToGL( config.format, &internal_format, &channels, &type );
 
 	if( msaa_samples == 0 ) {
-		glTexParameteri( target, GL_TEXTURE_WRAP_S, TextureWrapToGL( config.wrap ) );
-		glTexParameteri( target, GL_TEXTURE_WRAP_T, TextureWrapToGL( config.wrap ) );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, TextureWrapToGL( config.wrap ) );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, TextureWrapToGL( config.wrap ) );
 
 		GLenum filter = TextureFilterToGL( config.filter );
-		glTexParameteri( target, GL_TEXTURE_MIN_FILTER, filter );
-		glTexParameteri( target, GL_TEXTURE_MAG_FILTER, filter );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter );
 
 		if( config.wrap == TextureWrap_Border ) {
-			glTexParameterfv( target, GL_TEXTURE_BORDER_COLOR, ( GLfloat * ) &config.border_color );
+			glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, ( GLfloat * ) &config.border_color );
 		}
 
 		if( channels == GL_RED ) {
 			if( config.format == TextureFormat_A_U8 ) {
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_RED );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_ONE );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_ONE );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_ONE );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED );
 			}
 			else {
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_RED );
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_G, GL_RED );
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_RED );
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_ONE );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_ONE );
 			}
 		}
 		else if( channels == GL_RG ) {
-			glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_RED );
-			glTexParameteri( target, GL_TEXTURE_SWIZZLE_G, GL_RED );
-			glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_RED );
-			glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
 		}
-	}
 
-	if( msaa_samples == 0 ) {
 		glTexImage2D( GL_TEXTURE_2D, 0, internal_format,
 			config.width, config.height, 0, channels, type, config.data );
 	}
 	else {
+		glTexParameteri( GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_BASE_LEVEL, 0 );
+		glTexParameteri( GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAX_LEVEL, 0 );
 		glTexImage2DMultisample( GL_TEXTURE_2D_MULTISAMPLE, msaa_samples,
 			internal_format, config.width, config.height, GL_TRUE );
 	}
@@ -766,7 +770,7 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 
 	u32 width = 0;
 	u32 height = 0;
-	GLenum target = config.msaa_samples == 0 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
+	GLenum target = config.msaa_samples <= 1 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
 	GLenum bufs[ 2 ] = { GL_NONE, GL_NONE };
 
 	if( config.albedo_attachment.width != 0 ) {
@@ -950,7 +954,7 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens ) {
 		GLenum type;
 		glGetActiveUniform( program, i, sizeof( name ), &len, &size, &type, name );
 
-		if( type == GL_SAMPLER_2D ) {
+		if( type == GL_SAMPLER_2D || type == GL_SAMPLER_2D_MULTISAMPLE ) {
 			glUniform1i( glGetUniformLocation( program, name ), num_textures );
 			shader->textures[ num_textures ] = Hash64( name, len );
 			num_textures++;

@@ -15,6 +15,7 @@ struct FrameStatic {
 	u32 viewport_width, viewport_height;
 	Vec2 viewport;
 	float aspect_ratio;
+	int msaa_samples;
 
 	UniformBlock view_uniforms;
 	UniformBlock ortho_view_uniforms;

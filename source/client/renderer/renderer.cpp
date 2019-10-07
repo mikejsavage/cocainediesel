@@ -25,7 +25,9 @@ static char last_screenshot_date[ 256 ];
 static int same_date_count;
 
 static u32 last_viewport_width, last_viewport_height;
-static u32 last_msaa;
+static int last_msaa;
+
+static cvar_t * r_samples;
 
 static void TakeScreenshot() {
 	RGB8 * buf = ALLOC_MANY( sys_allocator, RGB8, frame_static.viewport_width * frame_static.viewport_height );
@@ -65,6 +67,8 @@ void InitRenderer() {
 	ZoneScoped;
 
 	RenderBackendInit();
+
+	r_samples = Cvar_Get( "r_samples", "0", CVAR_ARCHIVE );
 
 	frame_static = { };
 	last_viewport_width = U32_MAX;
@@ -215,8 +219,8 @@ static Mat4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
 	return rotation * Mat4Translation( -position );
 }
 
-static UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & P, const Vec3 & camera_pos, const Vec2 & viewport_size, float near_plane ) {
-	return UploadUniformBlock( V, P, camera_pos, viewport_size, near_plane );
+static UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & P, const Vec3 & camera_pos, const Vec2 & viewport_size, float near_plane, int samples ) {
+	return UploadUniformBlock( V, P, camera_pos, viewport_size, near_plane, samples );
 }
 
 static void CreateFramebuffers() {
@@ -235,6 +239,8 @@ static void CreateFramebuffers() {
 
 		texture_config.format = TextureFormat_Depth;
 		fb.depth_attachment = texture_config;
+
+		fb.msaa_samples = frame_static.msaa_samples;
 
 		frame_static.world_gbuffer = NewFramebuffer( fb );
 	}
@@ -258,7 +264,7 @@ static void CreateFramebuffers() {
 		frame_static.teammate_outlines_fb = NewFramebuffer( fb );
 	}
 
-	{
+	if( frame_static.msaa_samples > 1 ) {
 		FramebufferConfig fb;
 
 		texture_config.format = TextureFormat_RGB_U8_sRGB;
@@ -267,15 +273,13 @@ static void CreateFramebuffers() {
 		texture_config.format = TextureFormat_Depth;
 		fb.depth_attachment = texture_config;
 
-		fb.msaa_samples = 0;
+		fb.msaa_samples = frame_static.msaa_samples;
 
 		frame_static.msaa_fb = NewFramebuffer( fb );
 	}
 }
 
 void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
-	bool msaa = false;
-
 	HotloadShaders();
 
 	RenderBackendBeginFrame();
@@ -287,14 +291,18 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.viewport_height = viewport_height;
 	frame_static.viewport = Vec2( viewport_width, viewport_height );
 	frame_static.aspect_ratio = float( viewport_width ) / float( viewport_height );
+	frame_static.msaa_samples = r_samples->integer;
 
-	if( viewport_width != last_viewport_width || viewport_height != last_viewport_height ) {
+	if( viewport_width != last_viewport_width || viewport_height != last_viewport_height || frame_static.msaa_samples != last_msaa ) {
 		CreateFramebuffers();
 		last_viewport_width = viewport_width;
 		last_viewport_height = viewport_height;
+		last_msaa = frame_static.msaa_samples;
 	}
 
-	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Vec3( 0 ), frame_static.viewport, -1 );
+	bool msaa = frame_static.msaa_samples;
+
+	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples );
 	frame_static.identity_model_uniforms = UploadModelUniforms( Mat4::Identity() );
 	frame_static.identity_material_uniforms = UploadMaterialUniforms( vec4_white, Vec2( 0 ), 0.0f );
 
@@ -315,21 +323,20 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.teammate_write_gbuffer_pass = AddRenderPass( "Write teammate gbuffer", frame_static.teammate_gbuffer, ClearColor_Do, ClearDepth_Dont );
 	frame_static.teammate_postprocess_gbuffer_pass = AddRenderPass( "Postprocess teammate gbuffer", frame_static.teammate_outlines_fb );
 
-	frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque" );
-	frame_static.sky_pass = AddRenderPass( "Render sky" );
-	frame_static.transparent_pass = AddRenderPass( "Render transparent" );
-
 	if( msaa ) {
-		frame_static.teammate_add_outlines_pass = AddRenderPass( "Render teammate outlines", frame_static.msaa_fb );
-	}
-	else {
-		frame_static.teammate_add_outlines_pass = AddRenderPass( "Render teammate outlines" );
-	}
+		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque", frame_static.msaa_fb );
+		frame_static.sky_pass = AddRenderPass( "Render sky", frame_static.msaa_fb );
+		frame_static.transparent_pass = AddRenderPass( "Render transparent", frame_static.msaa_fb );
 
-	if( msaa ) {
 		AddResolveMSAAPass( frame_static.msaa_fb );
 	}
+	else {
+		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque" );
+		frame_static.sky_pass = AddRenderPass( "Render sky" );
+		frame_static.transparent_pass = AddRenderPass( "Render transparent" );
+	}
 
+	frame_static.teammate_add_outlines_pass = AddRenderPass( "Render teammate outlines" );
 	frame_static.blur_pass = AddRenderPass( "Blur screen" );
 	frame_static.ui_pass = AddRenderPass( "Render UI" );
 }
@@ -341,7 +348,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	frame_static.P = PerspectiveProjection( vertical_fov, frame_static.aspect_ratio, near_plane );
 	frame_static.position = position;
 
-	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.P, position, frame_static.viewport, near_plane );
+	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.P, position, frame_static.viewport, near_plane, frame_static.msaa_samples );
 }
 
 void RendererSubmitFrame() {

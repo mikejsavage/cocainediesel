@@ -96,6 +96,7 @@ struct IndexBuffer {
 struct Texture {
 	u32 texture;
 	u32 width, height;
+	bool msaa;
 	TextureFormat format;
 };
 

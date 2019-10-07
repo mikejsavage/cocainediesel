@@ -91,6 +91,9 @@ static void LoadShaders() {
 	BuildShaderSrcs( "glsl/world_postprocess_gbuffer.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.world_postprocess_gbuffer, srcs.span(), lengths.span() );
 
+	BuildShaderSrcs( "glsl/world_postprocess_gbuffer.glsl", "#define MSAA 1\n", &srcs, &lengths );
+	ReplaceShader( &shaders.world_postprocess_gbuffer_msaa, srcs.span(), lengths.span() );
+
 	BuildShaderSrcs( "glsl/teammate_write_gbuffer.glsl", "#define SKINNED 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.teammate_write_gbuffer_skinned, srcs.span(), lengths.span() );
 

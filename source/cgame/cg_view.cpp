@@ -796,9 +796,11 @@ static void DrawWorld() {
 	}
 
 	{
+		bool msaa = frame_static.msaa_samples >= 1;
+
 		PipelineState pipeline;
 		pipeline.pass = frame_static.world_postprocess_gbuffer_pass;
-		pipeline.shader = &shaders.world_postprocess_gbuffer;
+		pipeline.shader = msaa ? &shaders.world_postprocess_gbuffer_msaa : &shaders.world_postprocess_gbuffer;
 
 		const Framebuffer & fb = frame_static.world_gbuffer;
 		pipeline.set_texture( "u_DepthTexture", fb.depth_texture );
@@ -876,6 +878,7 @@ static void DrawTeammateOutlines() {
 		PipelineState pipeline;
 		pipeline.pass = frame_static.teammate_add_outlines_pass;
 		pipeline.shader = &shaders.standard;
+		pipeline.depth_func = DepthFunc_Disabled;
 		pipeline.blend_func = BlendFunc_Blend;
 		pipeline.write_depth = false;
 

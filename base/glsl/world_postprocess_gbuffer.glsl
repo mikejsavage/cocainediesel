@@ -1,8 +1,13 @@
 #include "include/common.glsl"
 #include "include/uniforms.glsl"
 
+#if MSAA
+uniform sampler2DMS u_DepthTexture;
+uniform sampler2DMS u_NormalTexture;
+#else
 uniform sampler2D u_DepthTexture;
 uniform sampler2D u_NormalTexture;
+#endif
 
 #if VERTEX_SHADER
 
@@ -18,6 +23,12 @@ out float f_Albedo;
 
 float Threshold( float x, float t ) {
 	return ( 1.0 - t ) * max( 0.0, x - t );
+}
+
+float Scharr( vec3 sample00, vec3 sample10, vec3 sample20, vec3 sample01, vec3 sample21, vec3 sample02, vec3 sample12, vec3 sample22 ) {
+	float x = length( 3.0 * sample00 + 10.0 * sample01 + 3.0 * sample02 - ( 3.0 * sample20 + 10.0 * sample21 + 3.0 * sample22 ) ) * ( 1.0 / 32.0 );
+	float y = length( 3.0 * sample00 + 10.0 * sample10 + 3.0 * sample20 - ( 3.0 * sample02 + 10.0 * sample12 + 3.0 * sample22 ) ) * ( 1.0 / 32.0 );
+	return length( vec2( x, y ) );
 }
 
 void main() {
@@ -40,6 +51,32 @@ void main() {
 	f_Albedo = LinearTosRGB( depth_edgeness );
 #endif
 
+#if MSAA
+
+	float normal_edgeness = 0.0;
+
+	for( int i = 0; i < u_Samples; i++ ) {
+		ivec2 p = ivec2( gl_FragCoord.xy );
+
+		vec3 normal00 = DecompressNormal( texelFetch( u_NormalTexture, p + ivec2( -1, -1 ), i ).rg );
+		vec3 normal10 = DecompressNormal( texelFetch( u_NormalTexture, p + ivec2( 0.0, -1 ), i ).rg );
+		vec3 normal20 = DecompressNormal( texelFetch( u_NormalTexture, p + ivec2( 1, -1 ), i ).rg );
+
+		vec3 normal01 = DecompressNormal( texelFetch( u_NormalTexture, p + ivec2( -1, 0 ), i ).rg );
+		vec3 normal21 = DecompressNormal( texelFetch( u_NormalTexture, p + ivec2( 1, 0 ), i ).rg );
+
+		vec3 normal02 = DecompressNormal( texelFetch( u_NormalTexture, p + ivec2( -1, 1 ), i ).rg );
+		vec3 normal12 = DecompressNormal( texelFetch( u_NormalTexture, p + ivec2( 0, 1 ), i ).rg );
+		vec3 normal22 = DecompressNormal( texelFetch( u_NormalTexture, p + ivec2( 1, 1 ), i ).rg );
+
+		float edgeness = Scharr( normal00, normal10, normal20, normal01, normal21, normal02, normal12, normal22 );
+		normal_edgeness += Threshold( edgeness, 0.2 );
+	}
+
+	normal_edgeness /= u_Samples;
+
+#else
+
 	vec3 normal00 = DecompressNormal( qf_texture( u_NormalTexture, uv + vec2( -pixel_size.x, -pixel_size.y ) ).ra );
 	vec3 normal10 = DecompressNormal( qf_texture( u_NormalTexture, uv + vec2( 0.0, -pixel_size.y ) ).ra );
 	vec3 normal20 = DecompressNormal( qf_texture( u_NormalTexture, uv + vec2( pixel_size.x, -pixel_size.y ) ).ra );
@@ -51,11 +88,10 @@ void main() {
 	vec3 normal12 = DecompressNormal( qf_texture( u_NormalTexture, uv + vec2( 0.0, pixel_size.y ) ).ra );
 	vec3 normal22 = DecompressNormal( qf_texture( u_NormalTexture, uv + vec2( pixel_size.x, pixel_size.y ) ).ra );
 
-	float normal_edgeness_x = length( 3.0 * normal00 + 10.0 * normal01 + 3.0 * normal02 - ( 3.0 * normal20 + 10.0 * normal21 + 3.0 * normal22 ) ) * ( 1.0 / 32.0 );
-	float normal_edgeness_y = length( 3.0 * normal00 + 10.0 * normal10 + 3.0 * normal20 - ( 3.0 * normal02 + 10.0 * normal12 + 3.0 * normal22 ) ) * ( 1.0 / 32.0 );
-	normal_edgeness_x = Threshold( normal_edgeness_x, 0.2 );
-	normal_edgeness_y = Threshold( normal_edgeness_y, 0.2 );
-	float normal_edgeness = length( vec2( normal_edgeness_x, normal_edgeness_y ) );
+	float normal_edgeness = Scharr( normal00, normal10, normal20, normal01, normal21, normal02, normal12, normal22 );
+	normal_edgeness = Threshold( normal_edgeness, 0.2 );
+
+#endif
 
 	/* f_Albedo = max( depth_edgeness, normal_edgeness ); */
 	f_Albedo = LinearTosRGB( normal_edgeness );

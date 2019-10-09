@@ -443,7 +443,7 @@ void IN_Frame() {
 	bool gui_active = false;
 	const ImGuiContext * ctx = ImGui::GetCurrentContext();
 	for( const ImGuiWindow * window : ctx->Windows ) {
-		if( window->Active && window->ParentWindow == NULL && ( window->Flags & ImGuiWindowFlags_NoInputs ) == 0 ) {
+		if( window->Active && window->ParentWindow == NULL && ( window->Flags & ImGuiWindowFlags_NoMouseInputs ) == 0 ) {
 			gui_active = true;
 			break;
 		}

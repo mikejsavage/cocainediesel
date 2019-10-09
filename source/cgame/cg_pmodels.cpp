@@ -375,6 +375,8 @@ bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result ) {
 		return true;
 	}
 
+	return false;
+
 	// it's a 3rd person model
 	pmodel = &cg_entPModels[entnum];
 	VectorCopy( pmodel->projectionSource.origin, tag_result->origin );

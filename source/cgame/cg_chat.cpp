@@ -60,17 +60,22 @@ void CG_DrawChat( cg_gamechat_t *chat ) {
 	Vec2 size = io.DisplaySize;
 	size.y /= 4;
 
+	int message_mode = (int)trap_Cvar_Value( "con_messageMode" );
+
+	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoBackground;
+	if( message_mode == 0 ) {
+		flags |= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollWithMouse;
+	}
+
 	ImGui::SetNextWindowSize( ImVec2( size.x*0.5f, size.y ) );
-	ImGui::SetNextWindowPos( ImVec2(0, size.y*3.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-	ImGui::Begin( "chat", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground );
+	ImGui::SetNextWindowPos( ImVec2(0, size.y*2.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+	ImGui::Begin( "chat", NULL, flags );
 
 	int l;
 	const cg_gamemessage_t *msg;
 	const char *msg_text;
-	char tstr[GAMECHAT_STRING_SIZE];
 	bool background_drawn = false;
 
-	int message_mode = (int)trap_Cvar_Value( "con_messageMode" );
 	bool chat_active = ( chat->lastMsgTime + GAMECHAT_WAIT_IN_TIME + GAMECHAT_FADE_IN_TIME > cg.realTime || message_mode );
 
 
@@ -130,10 +135,12 @@ void CG_DrawChat( cg_gamechat_t *chat ) {
 			team_color.g = 125;
 			team_color.b = 125;
 			cursor = COM_Parse( &msg_text );
-		} else if( strcmp( cursor, "[TEAM]" ) == 0 ) {
+		}
+		else if( strcmp( cursor, "[TEAM]" ) == 0 ) {
 			team_color = CG_TeamColor( TEAM_ALLY );
 			cursor = COM_Parse( &msg_text );
-		} else if( strcmp( cursor, "Console" ) == 0 ) {
+		}
+		else if( strcmp( cursor, "Console" ) == 0 ) {
 			team_color.r = 50;
 			team_color.g = 255;
 			team_color.b = 50;

@@ -108,15 +108,17 @@ void CG_DrawChat() {
 	size.y /= 4;
 
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground;
+	ImGuiWindowFlags log_flags = 0;
 	if( chat.mode == ChatMode_None ) {
 		flags |= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
+		log_flags |= ImGuiWindowFlags_NoScrollbar;
 	}
 
 	ImGui::SetNextWindowSize( ImVec2( size.x * 0.5f, size.y ) );
 	ImGui::SetNextWindowPos( ImVec2( 0, size.y * 2.5f ), ImGuiCond_Always, ImVec2( 0, 0.5f ) );
 	ImGui::Begin( "chat", NULL, flags );
 
-	ImGui::BeginChild( "chatlog", ImVec2( 0, -ImGui::GetFrameHeight() ), false );
+	ImGui::BeginChild( "chatlog", ImVec2( 0, -ImGui::GetFrameHeight() ), false, log_flags );
 	for( size_t i = 0; i < chat.history_len; i++ ) {
 		size_t idx = ( chat.history_head + i ) % ARRAY_COUNT( chat.history );
 		const ChatMessage * msg = &chat.history[ idx ];
@@ -136,8 +138,9 @@ void CG_DrawChat() {
 			color = CG_TeamColor( TEAM_ALLY );
 		}
 
-		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 50 ) );
+		ImGui::PushStyleColor( ImGuiCol_FrameBg, IM_COL32( color.r, color.g, color.b, 50 ) );
 
+		ImGui::PushItemWidth( ImGui::GetWindowWidth() );
 		ImGui::SetKeyboardFocusHere();
 		bool enter = ImGui::InputText( "##chatinput", chat.input, sizeof( chat.input ), ImGuiInputTextFlags_EnterReturnsTrue );
 

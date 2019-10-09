@@ -2,7 +2,7 @@
 
 #include "qcommon/types.h"
 
-const char * FS_RootPath();
+const char * FS_RootPath( TempAllocator * a );
 Span< char > ReadFileString( Allocator * a, const char * path );
 
 struct ListDirHandle {

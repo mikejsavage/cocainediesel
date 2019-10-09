@@ -26,6 +26,7 @@ require( "libs.meshoptimizer" )
 require( "libs.monocypher" )
 require( "libs.stb" )
 require( "libs.tracy" )
+require( "libs.whereami" )
 
 do
 	local platform_srcs
@@ -72,6 +73,7 @@ do
 			"stb_image_write",
 			"stb_vorbis",
 			"tracy",
+			"whereami",
 		},
 
 		prebuilt_libs = {
@@ -133,6 +135,7 @@ do
 		libs = {
 			"monocypher",
 			"tracy",
+			"whereami",
 		},
 
 		prebuilt_libs = {

@@ -1,10 +1,20 @@
 #include "qcommon/base.h"
 #include "qcommon/fs.h"
-#include "qcommon/sys_fs.h"
 
-const char * FS_RootPath() {
-	// TODO:
-	return ".";
+#include "whereami/whereami.h"
+
+const char * FS_RootPath( TempAllocator * a ) {
+	int len = wai_getExecutablePath( NULL, 0, NULL );
+	if( len == -1 )
+		return ".";
+
+	char * buf = ALLOC_MANY( a, char, len + 1 );
+	int dirlen;
+	if( wai_getExecutablePath( buf, len, &dirlen ) == -1 )
+		return ".";
+	buf[ dirlen ] = '\0';
+
+	return buf;
 }
 
 Span< char > ReadFileString( Allocator * a, const char * path ) {

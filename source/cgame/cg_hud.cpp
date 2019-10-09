@@ -346,8 +346,6 @@ static const reference_numeric_t cg_numeric_references[] =
 	{ "DOWNLOAD_IN_PROGRESS", CG_DownloadInProgress, NULL },
 	{ "DOWNLOAD_PERCENT", CG_GetCvar, "cl_download_percent" },
 
-	{ "CHAT_MODE", CG_GetCvar, "con_messageMode" },
-
 	{ NULL, NULL, NULL }
 };
 

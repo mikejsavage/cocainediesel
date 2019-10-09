@@ -830,7 +830,7 @@ void CG_Draw2DView( void ) {
 		CG_DrawCenterString();
 	}
 
-	CG_DrawChat( &cg.chat );
+	CG_DrawChat();
 
 	CG_DrawHUD();
 }

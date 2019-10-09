@@ -1,131 +1,152 @@
-/*
-Copyright (C) 2010 Victor Luchits
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-
-#include "cg_local.h"
+#include "cgame/cg_local.h"
 #include "client/client.h"
 #include "qcommon/string.h"
 
 #include "imgui/imgui.h"
 
+constexpr size_t CHAT_MESSAGE_SIZE = 512;
+constexpr size_t CHAT_HISTORY_SIZE = 64;
 
-/*
-** CG_InitChat
-*/
-void CG_InitChat( cg_gamechat_t *chat ) {
-	memset( chat, 0, sizeof( *chat ) );
+enum ChatMode {
+	ChatMode_None,
+	ChatMode_Say,
+	ChatMode_SayTeam,
+};
+
+struct ChatMessage {
+	s64 time;
+	char text[ CHAT_MESSAGE_SIZE ];
+};
+
+struct Chat {
+	ChatMode mode;
+	char input[ CHAT_MESSAGE_SIZE ];
+
+	ChatMessage history[ CHAT_HISTORY_SIZE ];
+	size_t history_head;
+	size_t history_len;
+
+	s64 lastHighlightTime;
+};
+
+static Chat chat;
+
+static void OpenChat() {
+	if( !cls.demo.playing ) {
+		chat.mode = ChatMode_Say;
+		chat.input[ 0 ] = '\0';
+		CL_SetKeyDest( key_message );
+	}
 }
 
-/*
-** CG_StackChatString
-*/
-void CG_StackChatString( cg_gamechat_t *chat, const char *str ) {
-	chat->messages[chat->nextMsg].time = cg.realTime;
-	Q_strncpyz( chat->messages[chat->nextMsg].text, str, sizeof( chat->messages[0].text ) );
+static void OpenTeamChat() {
+	if( !cls.demo.playing ) {
+		chat.mode = Cmd_Exists( "say_team" ) ? ChatMode_SayTeam : ChatMode_Say;
+		chat.input[ 0 ] = '\0';
+		CL_SetKeyDest( key_message );
+	}
+}
 
-	chat->lastMsgTime = cg.realTime;
-	chat->nextMsg = ( chat->nextMsg + 1 ) % GAMECHAT_STACK_SIZE;
+void CloseChat() {
+	chat.mode = ChatMode_None;
+	CL_SetKeyDest( key_game );
+}
+
+void CG_InitChat() {
+	chat = { };
+
+	Cmd_AddCommand( "messagemode", OpenChat );
+	Cmd_AddCommand( "messagemode2", OpenTeamChat );
+}
+
+void CG_ShutdownChat() {
+	Cmd_RemoveCommand( "messagemode" );
+	Cmd_RemoveCommand( "messagemode2" );
+}
+
+void CG_AddChat( const char * str ) {
+	size_t idx = ( chat.history_head + chat.history_len ) % ARRAY_COUNT( chat.history );
+	chat.history[ idx ].time = cg.monotonicTime;
+	Q_strncpyz( chat.history[ idx ].text, str, sizeof( chat.history[ idx ].text ) );
+
+	if( chat.history_len < ARRAY_COUNT( chat.history ) ) {
+		chat.history_len++;
+	}
+	else {
+		chat.history_head = ( chat.history_head + 1 ) % GAMECHAT_STACK_SIZE;
+	}
 }
 
 #define GAMECHAT_NOTIFY_TIME        5000
-#define GAMECHAT_WAIT_IN_TIME       0
-#define GAMECHAT_FADE_IN_TIME       100
 #define GAMECHAT_WAIT_OUT_TIME      4000
 #define GAMECHAT_HIGHLIGHT_TIME     4000
 #define GAMECHAT_FADE_OUT_TIME      ( GAMECHAT_NOTIFY_TIME - GAMECHAT_WAIT_OUT_TIME )
 
-/*
-** CG_DrawChat
-*/
-void CG_DrawChat( cg_gamechat_t *chat ) {
-	TempAllocator temp = cls.frame_arena->temp();
+static void SendChat() {
+	if( strlen( chat.input ) > 0 ) {
+		// convert double quotes to single quotes
+		for( char * p = chat.input; *p != '\0'; p++ ) {
+			if( *p == '"' ) {
+				*p = '\'';
+			}
+		}
 
-	ImGuiIO & io = ImGui::GetIO();
+		TempAllocator temp = cls.frame_arena.temp();
+
+		const char * cmd = chat.mode == ChatMode_SayTeam && Cmd_Exists( "say_team" ) ? "say_team" : "say";
+		Cbuf_AddText( temp( "{} \"{}\"\n", cmd, chat.input ) );
+	}
+
+	CloseChat();
+}
+
+void CG_DrawChat() {
+	TempAllocator temp = cls.frame_arena.temp();
+
+	const ImGuiIO & io = ImGui::GetIO();
 	Vec2 size = io.DisplaySize;
 	size.y /= 4;
 
-	int message_mode = (int)trap_Cvar_Value( "con_messageMode" );
-
-	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground;
-	if( message_mode == 0 ) {
+	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground;
+	if( chat.mode == ChatMode_None ) {
 		flags |= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
 	}
 
-	ImGui::SetNextWindowSize( ImVec2( size.x*0.5f, size.y ) );
-	ImGui::SetNextWindowPos( ImVec2(0, size.y*2.5f), ImGuiCond_Always, ImVec2(0, 0.5f));
+	ImGui::SetNextWindowSize( ImVec2( size.x * 0.5f, size.y ) );
+	ImGui::SetNextWindowPos( ImVec2( 0, size.y * 2.5f ), ImGuiCond_Always, ImVec2( 0, 0.5f ) );
 	ImGui::Begin( "chat", NULL, flags );
 
-	bool background_drawn = false;
+	ImGui::BeginChild( "chatlog", ImVec2( 0, -ImGui::GetFrameHeight() ), false );
+	for( size_t i = 0; i < chat.history_len; i++ ) {
+		size_t idx = ( chat.history_head + i ) % ARRAY_COUNT( chat.history );
+		const ChatMessage * msg = &chat.history[ idx ];
 
-	bool chat_active = ( chat->lastMsgTime + GAMECHAT_WAIT_IN_TIME + GAMECHAT_FADE_IN_TIME > cg.realTime || message_mode );
+		if( chat.mode == ChatMode_None && cg.monotonicTime > msg->time + GAMECHAT_NOTIFY_TIME ) {
+			continue;
+		}
 
-	if( message_mode ) {
+		ImGui::TextWrapped( "%s", msg->text );
+		ImGui::SetScrollHereY( 1.0f );
+	}
+	ImGui::EndChild();
+
+	if( chat.mode != ChatMode_None ) {
 		RGB8 color = { 50, 50, 50 };
-		if( message_mode == 2 ) {
+		if( chat.mode == ChatMode_SayTeam ) {
 			color = CG_TeamColor( TEAM_ALLY );
 		}
 
-		ImGui::SetCursorPos( Vec2( 20, size.y - 40 ) );
-
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 50 ) );
-		ImGui::BeginChild( "chat", Vec2( size.x, 40 ) );
 
-		ImGui::SetCursorPos( Vec2( 10, 10 ) );
-		ImGui::Text("%s", chat_buffer );
+		ImGui::SetKeyboardFocusHere();
+		bool enter = ImGui::InputText( "##chatinput", chat.input, sizeof( chat.input ), ImGuiInputTextFlags_EnterReturnsTrue );
 
-		ImGui::EndChild();
+		if( enter ) {
+			SendChat();
+		}
+
 		ImGui::PopStyleColor();
 	}
-
-	for( int i = 0; i < GAMECHAT_STACK_SIZE; i++ ) {
-		int l = chat->nextMsg - 1 - i;
-		if( l < 0 ) {
-			l = GAMECHAT_STACK_SIZE + l;
-		}
-
-		const cg_gamemessage_t * msg = &chat->messages[l];
-		bool old_msg = !message_mode && ( cg.realTime > msg->time + GAMECHAT_NOTIFY_TIME );
-
-		if( !background_drawn ) {
-			if( old_msg ) {
-				if( !( !chat_active && cg.realTime <= chat->lastActiveChangeTime + 200 ) ) {
-					break;
-				}
-			}
-
-			background_drawn = true;
-		}
-
-		// unless user is typing something, only display recent messages
-		if( old_msg ) {
-			break;
-		}
-
-		int Y = size.y - (i+3)*20;
-		if( Y < 0 ) {
-			break;
-		}
-		ImGui::SetCursorPos( Vec2( 20, Y ) );
-		ImGui::Text( "%s", msg->text );
-	}
-
-	chat->lastActive = chat_active;
 
 	ImGui::End();
 }
@@ -136,7 +157,7 @@ void CG_FlashChatHighlight( const unsigned int fromIndex, const char *text ) {
 		return;
 
 	// if we've been highlighted recently, dont let people spam it..
-	bool eligible = !cg.chat.lastHighlightTime || cg.chat.lastHighlightTime + GAMECHAT_HIGHLIGHT_TIME < cg.realTime;
+	bool eligible = !chat.lastHighlightTime || chat.lastHighlightTime + GAMECHAT_HIGHLIGHT_TIME < cg.realTime;
 
 	// dont bother doing text match if we've been pinged recently
 	if( !eligible )
@@ -159,6 +180,6 @@ void CG_FlashChatHighlight( const unsigned int fromIndex, const char *text ) {
 	bool hadNick = strstr( msgUncolored, plainName ) != NULL;
 	if( hadNick ) {
 		trap_VID_FlashWindow();
-		cg.chat.lastHighlightTime = cg.realTime;
+		chat.lastHighlightTime = cg.realTime;
 	}
 }

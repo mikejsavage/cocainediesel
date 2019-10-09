@@ -17,7 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-#include "client.h"
+
+#include "client/client.h"
 
 #define SEMICOLON_BINDNAME  "SEMICOLON"
 
@@ -337,11 +338,9 @@ void Key_Shutdown( void ) {
 */
 void Key_CharEvent( int key, wchar_t charkey ) {
 	switch( cls.key_dest ) {
-		case key_message:
-			Con_MessageCharEvent( charkey );
-			break;
 		case key_menu:
 		case key_console:
+		case key_message:
 			UI_CharEvent( true, charkey );
 			break;
 		case key_game:
@@ -351,6 +350,8 @@ void Key_CharEvent( int key, wchar_t charkey ) {
 	}
 }
 
+void CloseChat(); // TODO: this shouldn't be here!
+
 /*
 * Key_Event
 *
@@ -359,7 +360,6 @@ void Key_CharEvent( int key, wchar_t charkey ) {
 */
 void Key_Event( int key, bool down ) {
 	char cmd[1024];
-	bool handled = false;
 
 	// update auto-repeat status
 	if( down ) {
@@ -410,7 +410,7 @@ void Key_Event( int key, bool down ) {
 
 		switch( cls.key_dest ) {
 			case key_message:
-				Con_MessageKeyDown( key );
+				CloseChat();
 				break;
 			case key_menu:
 				UI_KeyEvent( true, key, down );
@@ -448,28 +448,12 @@ void Key_Event( int key, bool down ) {
 				Cbuf_AddText( "\n" );
 			}
 		}
-		handled = true; // can't return here, because we want to track keydown & repeats
 	}
 
 	keydown[key] = down;
 
-	if( cls.key_dest == key_menu || cls.key_dest == key_console ) {
+	if( cls.key_dest == key_menu || cls.key_dest == key_console || cls.key_dest == key_message ) {
 		UI_KeyEvent( cls.key_dest == key_menu, key, down );
-		return;
-	}
-
-	if( handled || !down ) {
-		return; // other systems only care about key down events
-	}
-
-	switch( cls.key_dest ) {
-		case key_message:
-			Con_MessageKeyDown( key );
-			break;
-		case key_game:
-			break;
-		default:
-			Com_Error( ERR_FATAL, "Bad cls.key_dest" );
 	}
 }
 
@@ -492,14 +476,4 @@ void Key_ClearStates( void ) {
 */
 const char *Key_GetBindingBuf( int binding ) {
 	return keybindings[binding];
-}
-
-/*
-* Key_IsDown
-*/
-bool Key_IsDown( int keynum ) {
-	if( keynum < 0 || keynum > 255 ) {
-		return false;
-	}
-	return keydown[keynum];
 }

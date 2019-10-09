@@ -47,14 +47,6 @@ static void WindowCenterText( const char * str ) {
 	ImGui::Text( "%s", str );
 }
 
-static void CenterTextWindow( const char * title, const char * text, Vec2 size ) {
-	ImGui::BeginChild( title, size, true );
-	Vec2 text_size = ImGui::CalcTextSize( text );
-	ImGui::SetCursorPos( ( size - text_size ) * 0.5f );
-	ImGui::Text( "%s", text );
-	ImGui::EndChild();
-}
-
 static bool ParseInt( const char ** cursor, int * x ) {
 	const char * token = COM_Parse( cursor );
 	if( cursor == NULL )
@@ -397,18 +389,32 @@ void CG_DrawScoreboard() {
 	if( !ParseInt( &cursor, &num_spectators ) || num_spectators == 0 )
 		return;
 
-	DynamicString spectators( &temp, "Spectating: " );
-	for( int i = 0; i < num_spectators; i++ ) {
-		int id;
-		if( !ParseInt( &cursor, &id ) )
-			break;
-		if( i > 0 )
-			spectators += ", ";
-		spectators += cgs.clientInfo[ id ].name;
+	ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 2, 2 ) );
+	ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 255 ) );
+
+	ImGui::Dummy( ImVec2( 0, ImGui::GetFrameHeight() ) );
+
+	ImGui::BeginChild( "spectators", ImVec2( 0, ImGui::GetFrameHeight() ), false );
+
+	{
+		DynamicString spectators( &temp, "Spectating: " );
+		for( int i = 0; i < num_spectators; i++ ) {
+			int id;
+			if( !ParseInt( &cursor, &id ) )
+				break;
+			if( i > 0 )
+				spectators += ", ";
+			spectators += cgs.clientInfo[ id ].name;
+		}
+
+		ImGui::Indent();
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text( "%s", spectators.c_str() );
 	}
 
-	DynamicString expanded( &temp, "{}{}", ImGuiColorToken( 0, 0, 0, 200 ), spectators.c_str() );
-	CenterTextWindow( "spec", expanded.c_str(), ImVec2( size.x, size.y/10 ) );
+	ImGui::EndChild();
+	ImGui::PopStyleColor();
+	ImGui::PopStyleVar();
 }
 
 void CG_ScoresOn_f() {

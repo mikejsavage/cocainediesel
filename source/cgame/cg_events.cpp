@@ -51,9 +51,9 @@ void CG_WeaponBeamEffect( centity_t *cent ) {
 	}
 
 	// now find the projection source for the beam we will draw
-	if( !CG_PModel_GetProjectionSource( cent->current.number, &projection ) ) {
-		VectorCopy( cent->laserOrigin, projection.origin );
-	}
+	// if( !CG_PModel_GetProjectionSource( cent->current.number, &projection ) ) {
+	// 	VectorCopy( cent->laserOrigin, projection.origin );
+	// }
 
 	CG_EBBeam( FromQF3( projection.origin ), FromQF3( cent->laserPoint ), cent->current.team );
 
@@ -127,7 +127,7 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 	_LaserColor( color );
 
 	// interpolate the positions
-	firstPerson = (ISVIEWERENTITY( cent->current.number ) && !cg.view.thirdperson);
+	firstPerson = ISVIEWERENTITY( cent->current.number ) && !cg.view.thirdperson;
 
 	if( firstPerson ) {
 		VectorCopy( cg.predictedPlayerState.pmove.origin, laserOrigin );
@@ -135,7 +135,8 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 		VectorCopy( cg.predictedPlayerState.viewangles, laserAngles );
 
 		VectorLerp( cent->laserPointOld, cg.lerpfrac, cent->laserPoint, laserPoint );
-	} else {
+	}
+	else {
 		VectorLerp( cent->laserOriginOld, cg.lerpfrac, cent->laserOrigin, laserOrigin );
 		VectorLerp( cent->laserPointOld, cg.lerpfrac, cent->laserPoint, laserPoint );
 		vec3_t dir;
@@ -153,9 +154,9 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 	GS_TraceLaserBeam( &trace, laserOrigin, laserAngles, range, cent->current.number, 0, _LaserImpact );
 
 	// draw the beam: for drawing we use the weapon projection source (already handles the case of viewer entity)
-	if( CG_PModel_GetProjectionSource( cent->current.number, &projectsource ) ) {
-		VectorCopy( projectsource.origin, laserOrigin );
-	}
+	// if( CG_PModel_GetProjectionSource( cent->current.number, &projectsource ) ) {
+	// 	VectorCopy( projectsource.origin, laserOrigin );
+	// }
 
 	DrawBeam( FromQF3( laserOrigin ), FromQF3( trace.endpos ), 16.0f, FromQF4( color ), cgs.media.shaderLGBeam );
 

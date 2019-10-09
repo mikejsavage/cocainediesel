@@ -1,4 +1,5 @@
 #include "qcommon/base.h"
+#include "qcommon/assets.h"
 #include "qcommon/string.h"
 #include "qcommon/utf8.h"
 #include "client/client.h"
@@ -7,6 +8,17 @@
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_sdl.h"
+#include "imgui/imgui_freetype.h"
+
+static ImFont * AddFontAsset( StringHash path, float pixel_size ) {
+	Span< const u8 > data = AssetBinary( path );
+	ImFontConfig config;
+	config.FontData = ( void * ) data.ptr;
+	config.FontDataOwnedByAtlas = false;
+	config.FontDataSize = data.n;
+	config.SizePixels = pixel_size;
+	return ImGui::GetIO().Fonts->AddFont( &config );
+}
 
 void CL_InitImGui() {
 	IMGUI_CHECKVERSION();
@@ -14,28 +26,68 @@ void CL_InitImGui() {
 	ImGui_ImplSDL2_InitForOpenGL( sdl_window, NULL );
 
 	ImGuiIO & io = ImGui::GetIO();
-	io.IniFilename = NULL;
-	io.KeyMap[ ImGuiKey_Tab ] = K_TAB;
-	io.KeyMap[ ImGuiKey_LeftArrow ] = K_LEFTARROW;
-	io.KeyMap[ ImGuiKey_RightArrow ] = K_RIGHTARROW;
-	io.KeyMap[ ImGuiKey_UpArrow ] = K_UPARROW;
-	io.KeyMap[ ImGuiKey_DownArrow ] = K_DOWNARROW;
-	io.KeyMap[ ImGuiKey_PageUp ] = K_PGUP;
-	io.KeyMap[ ImGuiKey_PageDown ] = K_PGDN;
-	io.KeyMap[ ImGuiKey_Home ] = K_HOME;
-	io.KeyMap[ ImGuiKey_End ] = K_END;
-	io.KeyMap[ ImGuiKey_Insert ] = K_INS;
-	io.KeyMap[ ImGuiKey_Delete ] = K_DEL;
-	io.KeyMap[ ImGuiKey_Backspace ] = K_BACKSPACE;
-	io.KeyMap[ ImGuiKey_Space ] = K_SPACE;
-	io.KeyMap[ ImGuiKey_Enter ] = K_ENTER;
-	io.KeyMap[ ImGuiKey_Escape ] = K_ESCAPE;
-	io.KeyMap[ ImGuiKey_A ] = 'a';
-	io.KeyMap[ ImGuiKey_C ] = 'c';
-	io.KeyMap[ ImGuiKey_V ] = 'v';
-	io.KeyMap[ ImGuiKey_X ] = 'x';
-	io.KeyMap[ ImGuiKey_Y ] = 'y';
-	io.KeyMap[ ImGuiKey_Z ] = 'z';
+
+	{
+		io.IniFilename = NULL;
+		io.KeyMap[ ImGuiKey_Tab ] = K_TAB;
+		io.KeyMap[ ImGuiKey_LeftArrow ] = K_LEFTARROW;
+		io.KeyMap[ ImGuiKey_RightArrow ] = K_RIGHTARROW;
+		io.KeyMap[ ImGuiKey_UpArrow ] = K_UPARROW;
+		io.KeyMap[ ImGuiKey_DownArrow ] = K_DOWNARROW;
+		io.KeyMap[ ImGuiKey_PageUp ] = K_PGUP;
+		io.KeyMap[ ImGuiKey_PageDown ] = K_PGDN;
+		io.KeyMap[ ImGuiKey_Home ] = K_HOME;
+		io.KeyMap[ ImGuiKey_End ] = K_END;
+		io.KeyMap[ ImGuiKey_Insert ] = K_INS;
+		io.KeyMap[ ImGuiKey_Delete ] = K_DEL;
+		io.KeyMap[ ImGuiKey_Backspace ] = K_BACKSPACE;
+		io.KeyMap[ ImGuiKey_Space ] = K_SPACE;
+		io.KeyMap[ ImGuiKey_Enter ] = K_ENTER;
+		io.KeyMap[ ImGuiKey_Escape ] = K_ESCAPE;
+		io.KeyMap[ ImGuiKey_A ] = 'a';
+		io.KeyMap[ ImGuiKey_C ] = 'c';
+		io.KeyMap[ ImGuiKey_V ] = 'v';
+		io.KeyMap[ ImGuiKey_X ] = 'x';
+		io.KeyMap[ ImGuiKey_Y ] = 'y';
+		io.KeyMap[ ImGuiKey_Z ] = 'z';
+	}
+
+	{
+		AddFontAsset( "fonts/Montserrat-SemiBold.ttf", 18.0f );
+		cls.huge_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 128.0f );
+		cls.large_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 64.0f );
+		cls.medium_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 48.0f );
+		cls.console_font = AddFontAsset( "fonts/Montserrat-SemiBold.ttf", 14.0f );
+
+		ImGuiFreeType::BuildFontAtlas( io.Fonts );
+
+		u8 * pixels;
+		int width, height;
+		io.Fonts->GetTexDataAsAlpha8( &pixels, &width, &height );
+
+		TextureConfig config;
+		config.width = width;
+		config.height = height;
+		config.data = pixels;
+		config.format = TextureFormat_A_U8;
+		Texture texture = NewTexture( config );
+		io.Fonts->TexID = ( void * ) uintptr_t( texture.texture );
+	}
+
+	{
+		ImGuiStyle & style = ImGui::GetStyle();
+		style.WindowRounding = 0;
+		style.FrameRounding = 1;
+		style.GrabRounding = 2;
+		style.FramePadding = ImVec2( 8, 8 );
+		style.FrameBorderSize = 0;
+		style.WindowPadding = ImVec2( 16, 16 );
+		style.WindowBorderSize = 0;
+		style.PopupBorderSize = 0;
+		style.Colors[ ImGuiCol_WindowBg ] = ImColor( 0x1a, 0x1a, 0x1a );
+		style.ItemSpacing.y = 8;
+	}
+
 }
 
 void CL_ShutdownImGui() {

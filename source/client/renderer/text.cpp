@@ -67,7 +67,7 @@ static void Serialize( SerializationBuffer * buf, Font & font ) {
 }
 
 const Font * RegisterFont( const char * path ) {
-	TempAllocator temp = cls.frame_arena->temp();
+	TempAllocator temp = cls.frame_arena.temp();
 
 	u32 path_hash = Hash32( path );
 	for( size_t i = 0; i < num_fonts; i++ ) {
@@ -149,7 +149,7 @@ void DrawText( const Font * font, float pixel_size, Span< const char > str, floa
 	if( font == NULL )
 		return;
 
-	TempAllocator temp = cls.frame_arena->temp();
+	TempAllocator temp = cls.frame_arena.temp();
 	DynamicArray< Vec3 > positions( &temp, str.n * 4 );
 	DynamicArray< Vec2 > uvs( &temp, str.n * 4 );
 	DynamicArray< RGBA8 > colors( &temp, str.n * 4 );

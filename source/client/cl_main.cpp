@@ -2011,10 +2011,8 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 void CL_Frame( int realMsec, int gameMsec ) {
 	ZoneScoped;
 
-	TracyPlot( "Frame arena max utilisation", cls.frame_arena->max_utilisation() );
-
-	cls.frame_arena = cls.frame_arena == &cls.frame_arenas[ 0 ] ? &cls.frame_arenas[ 1 ] : &cls.frame_arenas[ 0 ];
-	cls.frame_arena->clear();
+	TracyPlot( "Frame arena max utilisation", cls.frame_arena.max_utilisation() );
+	cls.frame_arena.clear();
 
 	u64 entropy[ 2 ];
 	CSPRNG_Bytes( entropy, sizeof( entropy ) );
@@ -2057,7 +2055,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 		// hotload assets when the window regains focus or every 1 second when not focused
 		if( just_became_focused || ( !focused && cls.monotonicTime - last_hotload_time >= 1000 ) ) {
-			TempAllocator temp = cls.frame_arena->temp();
+			TempAllocator temp = cls.frame_arena.temp();
 			HotloadAssets( &temp );
 
 			last_hotload_time = cls.monotonicTime;
@@ -2233,10 +2231,8 @@ void CL_Init( void ) {
 	ZoneScoped;
 
 	constexpr size_t frame_arena_size = 1024 * 1024;
-	void * frame_arena_memory = ALLOC_SIZE( sys_allocator, frame_arena_size * 2, 16 );
-	cls.frame_arenas[ 0 ] = ArenaAllocator( frame_arena_memory, frame_arena_size );
-	cls.frame_arenas[ 1 ] = ArenaAllocator( ( u8 * ) frame_arena_memory + frame_arena_size, frame_arena_size );
-	cls.frame_arena = &cls.frame_arenas[ 0 ];
+	void * frame_arena_memory = ALLOC_SIZE( sys_allocator, frame_arena_size, 16 );
+	cls.frame_arena = ArenaAllocator( frame_arena_memory, frame_arena_size );
 
 	cls.monotonicTime = 0;
 
@@ -2247,7 +2243,7 @@ void CL_Init( void ) {
 	cl_initialized = true;
 
 	{
-		TempAllocator temp = cls.frame_arena->temp();
+		TempAllocator temp = cls.frame_arena.temp();
 		InitAssets( &temp );
 	}
 
@@ -2334,5 +2330,5 @@ void CL_Shutdown( void ) {
 	cls.state = CA_UNINITIALIZED;
 	cl_initialized = false;
 
-	FREE( sys_allocator, cls.frame_arenas[ 0 ].get_memory() );
+	FREE( sys_allocator, cls.frame_arena.get_memory() );
 }

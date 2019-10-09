@@ -26,15 +26,6 @@ static u32 num_modified_assets;
 
 static Hashtable< MAX_ASSETS * 2 > assets_hashtable;
 
-static s64 FileLastModifiedTime( const char * path ) {
-	struct stat buf;
-	if( stat( path, &buf ) == -1 ) {
-		return 0;
-	}
-
-	return checked_cast< s64 >( buf.st_mtime );
-}
-
 static void LoadAsset( const char * full_path, size_t skip ) {
 	ZoneScoped;
 
@@ -51,7 +42,7 @@ static void LoadAsset( const char * full_path, size_t skip ) {
 		}
 	}
 
-	Span< char > contents = FS_ReadFileString( sys_allocator, full_path );
+	Span< char > contents = ReadFileString( sys_allocator, full_path );
 	if( contents.ptr == NULL )
 		return;
 
@@ -84,11 +75,11 @@ static void LoadAsset( const char * full_path, size_t skip ) {
 }
 
 static void LoadAssetsRecursive( DynamicString * path, size_t skip ) {
-	ListDirHandle scan = FS_BeginListDir( path->c_str() );
+	ListDirHandle scan = BeginListDir( path->c_str() );
 
 	const char * name;
 	bool dir;
-	while( FS_ListDirNext( &scan, &name, &dir ) ) {
+	while( ListDirNext( &scan, &name, &dir ) ) {
 		if( num_assets == MAX_ASSETS ) {
 			Com_Printf( S_COLOR_YELLOW "Too many assets\n" );
 			return;
@@ -117,7 +108,8 @@ void InitAssets( TempAllocator * temp ) {
 	num_modified_assets = 0;
 	assets_hashtable.clear();
 
-	DynamicString path( temp, "{}/base", FS_RootPath() );
+	const char * root = FS_RootPath( temp );
+	DynamicString path( temp, "{}/base", root );
 	LoadAssetsRecursive( &path, path.length() + 1 );
 
 	num_modified_assets = 0;
@@ -128,7 +120,8 @@ void HotloadAssets( TempAllocator * temp ) {
 
 	num_modified_assets = 0;
 
-	DynamicString path( temp, "{}/base", FS_RootPath() );
+	const char * root = FS_RootPath( temp );
+	DynamicString path( temp, "{}/base", root );
 	LoadAssetsRecursive( &path, path.length() + 1 );
 }
 

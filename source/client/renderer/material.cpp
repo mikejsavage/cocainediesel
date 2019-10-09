@@ -201,7 +201,7 @@ static void Shader_Template( Material * material, const char * material_name, co
 	}
 
 	MaterialLocation location = material_locations[ idx ];
-	TempAllocator temp = cls.frame_arena->temp();
+	TempAllocator temp = cls.frame_arena.temp();
 	DynamicString original( &temp );
 	original.append_raw( location.start, location.end - location.start );
 

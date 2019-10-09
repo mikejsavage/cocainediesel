@@ -946,7 +946,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 		VectorCopy( origin, cent->ent.origin2 );
 	}
 
-	TempAllocator temp = cls.frame_arena->temp();
+	TempAllocator temp = cls.frame_arena.temp();
 
 	float lower_time, upper_time;
 	CG_GetAnimationTimes( pmodel, cg.time, &lower_time, &upper_time );

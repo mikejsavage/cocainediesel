@@ -168,8 +168,7 @@ typedef struct {
 typedef cl_demo_t demorec_t;
 
 typedef struct {
-	ArenaAllocator frame_arenas[ 2 ];
-	ArenaAllocator * frame_arena;
+	ArenaAllocator frame_arena;
 
 	RNG rng;
 

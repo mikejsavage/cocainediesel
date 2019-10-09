@@ -132,6 +132,9 @@ ImGuiColorToken::ImGuiColorToken( u8 r, u8 g, u8 b, u8 a ) {
 	token[ 5 ] = 0;
 }
 
+ImGuiColorToken::ImGuiColorToken( RGB8 rgb ) : ImGuiColorToken( rgb.r, rgb.g, rgb.b, 255 ) { }
+ImGuiColorToken::ImGuiColorToken( RGBA8 rgba ) : ImGuiColorToken( rgba.r, rgba.g, rgba.b, rgba.a ) { }
+
 void format( FormatBuffer * fb, const ImGuiColorToken & token, const FormatOpts & opts ) {
 	format( fb, ( const char * ) token.token );
 }

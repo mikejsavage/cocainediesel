@@ -71,13 +71,9 @@ void CG_DrawChat( cg_gamechat_t *chat ) {
 	ImGui::SetNextWindowPos( ImVec2(0, size.y*2.5f), ImGuiCond_Always, ImVec2(0, 0.5f));
 	ImGui::Begin( "chat", NULL, flags );
 
-	int l;
-	const cg_gamemessage_t *msg;
-	const char *msg_text;
 	bool background_drawn = false;
 
 	bool chat_active = ( chat->lastMsgTime + GAMECHAT_WAIT_IN_TIME + GAMECHAT_FADE_IN_TIME > cg.realTime || message_mode );
-
 
 	if( message_mode ) {
 		RGB8 color = { 50, 50, 50 };
@@ -98,13 +94,12 @@ void CG_DrawChat( cg_gamechat_t *chat ) {
 	}
 
 	for( int i = 0; i < GAMECHAT_STACK_SIZE; i++ ) {
-		l = chat->nextMsg - 1 - i;
+		int l = chat->nextMsg - 1 - i;
 		if( l < 0 ) {
 			l = GAMECHAT_STACK_SIZE + l;
 		}
 
-		msg = &chat->messages[l];
-		msg_text = msg->text;
+		const cg_gamemessage_t * msg = &chat->messages[l];
 		bool old_msg = !message_mode && ( cg.realTime > msg->time + GAMECHAT_NOTIFY_TIME );
 
 		if( !background_drawn ) {
@@ -127,37 +122,7 @@ void CG_DrawChat( cg_gamechat_t *chat ) {
 			break;
 		}
 		ImGui::SetCursorPos( Vec2( 20, Y ) );
-
-		const char *cursor = COM_Parse( &msg_text );
-		RGB8 team_color = { 255, 255, 255 };
-		if( strcmp( cursor, "[SPEC]") == 0 ) {
-			team_color.r = 125;
-			team_color.g = 125;
-			team_color.b = 125;
-			cursor = COM_Parse( &msg_text );
-		}
-		else if( strcmp( cursor, "[TEAM]" ) == 0 ) {
-			team_color = CG_TeamColor( TEAM_ALLY );
-			cursor = COM_Parse( &msg_text );
-		}
-		else if( strcmp( cursor, "Console" ) == 0 ) {
-			team_color.r = 50;
-			team_color.g = 255;
-			team_color.b = 50;
-			cursor = COM_Parse( &msg_text );
-		}
-		
-		int alpha = ( message_mode ? 255 : ( msg->time  - cg.realTime + GAMECHAT_NOTIFY_TIME )/20 );
-
-		DynamicString name( &temp, "{}{}", ImGuiColorToken(team_color.r, team_color.g, team_color.b, alpha), cursor );
-		ImGui::Text( "%s", name.c_str() );
-		ImGui::SetCursorPosX( ImGui::CalcTextSize( name.c_str() ).x*1.1f );
-
-		cursor = COM_Parse( &msg_text );
-
-		ImGui::SameLine();
-		DynamicString text( &temp, "{}{}", ImGuiColorToken(Max2( team_color.r - 50, 0 ), Max2( team_color.g - 50, 0 ), Max2( team_color.b - 50, 0 ), alpha), cursor );
-		ImGui::Text( "%s", text.c_str() );
+		ImGui::Text( "%s", msg->text );
 	}
 
 	chat->lastActive = chat_active;
@@ -170,7 +135,7 @@ void CG_FlashChatHighlight( const unsigned int fromIndex, const char *text ) {
 	if( fromIndex == cgs.playerNum )
 		return;
 
-	// if we've been highlighted recently, dont let people spam it.. 
+	// if we've been highlighted recently, dont let people spam it..
 	bool eligible = !cg.chat.lastHighlightTime || cg.chat.lastHighlightTime + GAMECHAT_HIGHLIGHT_TIME < cg.realTime;
 
 	// dont bother doing text match if we've been pinged recently

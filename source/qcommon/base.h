@@ -202,5 +202,8 @@ constexpr Vec4 vec4_white = Vec4( 1, 1, 1, 1 );
 constexpr Vec4 vec4_black = Vec4( 0, 0, 0, 1 );
 constexpr Vec4 vec4_red = Vec4( 1, 0, 0, 1 );
 
+constexpr RGB8 rgb8_white = RGB8( 255, 255, 255 );
+constexpr RGB8 rgb8_black = RGB8( 0, 0, 0 );
+
 constexpr RGBA8 rgba8_white = RGBA8( 255, 255, 255, 255 );
 constexpr RGBA8 rgba8_black = RGBA8( 0, 0, 0, 255 );

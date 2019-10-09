@@ -39,28 +39,41 @@ static void CG_SC_Print( void ) {
 /*
 * CG_SC_ChatPrint
 */
-static void CG_SC_ChatPrint( void ) {
-	const bool teamonly = ( !Q_stricmp( trap_Cmd_Argv( 0 ), "tch" ) ? true : false );
-	const int who = atoi( trap_Cmd_Argv( 1 ) );
-	const char *name = ( who && who == bound( 1, who, MAX_CLIENTS ) ? cgs.clientInfo[who - 1].name : NULL );
-	const char *text = trap_Cmd_Argv( 2 );
+static void CG_SC_ChatPrint() {
+	bool teamonly = Q_stricmp( trap_Cmd_Argv( 0 ), "tch" ) == 0;
+	int who = atoi( trap_Cmd_Argv( 1 ) );
+
+	if( who < 0 || who > MAX_CLIENTS ) {
+		return;
+	}
 
 	if( cg_chatFilter->integer & ( teamonly ? 2 : 1 ) ) {
 		return;
 	}
 
-	if( !name ) {
-		CG_LocalPrint( "Console : %s\n", text );
-	} else if( teamonly ) {
-		CG_LocalPrint( "[%s] %s %s\n",
-					   cg.frame.playerState.stats[STAT_REALTEAM] == TEAM_SPECTATOR ? "SPEC" : "TEAM", name, text );
-	} else {
-		CG_LocalPrint( "%s %s\n", name, text );
+	const char * text = trap_Cmd_Argv( 2 );
+
+	if( who == 0 ) {
+		CG_LocalPrint( "Console: %s\n", text );
+		return;
 	}
 
-	// check highlight of player nick here instead of local print because its used for things like stats
-	// dont highlight for server messages
-	if( name && !cgs.demoPlaying ) {
+	const char * name = cgs.clientInfo[ who - 1 ].name;
+	int team = cg_entities[ who ].current.team;
+	RGB8 team_color = team == TEAM_SPECTATOR ? RGB8( 128, 128, 128 ) : CG_TeamColor( team );
+
+	const char * prefix = "";
+	if( teamonly ) {
+		prefix = team == TEAM_SPECTATOR ? "[SPEC] " : "[TEAM] ";
+	}
+
+	ImGuiColorToken color( team_color );
+	CG_LocalPrint( "%s%s%s%s: %s\n",
+		prefix,
+		( const char * ) ImGuiColorToken( team_color ).token, name,
+		( const char * ) ImGuiColorToken( rgba8_white ).token, text );
+
+	if( !cgs.demoPlaying ) {
 		CG_FlashChatHighlight( who - 1, text );
 	}
 }

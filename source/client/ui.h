@@ -20,6 +20,8 @@ void UI_MouseSet( bool mainContext, int mx, int my, bool showCursor );
 struct ImGuiColorToken {
 	u8 token[ 6 ];
 	ImGuiColorToken( u8 r, u8 g, u8 b, u8 a );
+	ImGuiColorToken( RGB8 rgb );
+	ImGuiColorToken( RGBA8 rgba );
 };
 
 void format( FormatBuffer * fb, const ImGuiColorToken & token, const FormatOpts & opts );

@@ -1,9 +1,12 @@
 #include "client/client.h"
+
+#include "imgui/imgui.h"
+#include "imgui/imgui_internal.h"
+
 #include "sdl/SDL.h"
 
 extern SDL_Window * sdl_window;
 
-static bool input_inited = false;
 static bool input_focus = false;
 static bool warped = false;
 
@@ -24,10 +27,6 @@ void IN_SetMouseScalingEnabled( bool isRestore ) {
 }
 #endif
 
-/**
- * Function which is called whenever the mouse is moved.
- * @param ev the SDL event object containing the mouse position et all
- */
 static void mouse_motion_event( SDL_MouseMotionEvent *event ) {
 	mx = event->x;
 	my = event->y;
@@ -41,11 +40,6 @@ static void mouse_motion_event( SDL_MouseMotionEvent *event ) {
 	warped = false;
 }
 
-/**
- * Function which is called whenever a mouse button is pressed or released.
- * @param ev the SDL event object containing the button number et all
- * @param state either true if it is a keydown event or false otherwise
- */
 static void mouse_button_event( SDL_MouseButtonEvent *event, bool state ) {
 	Uint8 button = event->button;
 
@@ -220,11 +214,6 @@ static wchar_t TranslateSDLScancode( SDL_Scancode scancode ) {
 	return charkey;
 }
 
-/**
- * Function which is called whenever a key is pressed or released.
- * @param event the SDL event object containing the keysym et all
- * @param state either true if it is a keydown event or false otherwise
- */
 static void key_event( const SDL_KeyboardEvent *event, bool state ) {
 	if( event->keysym.scancode == SDL_SCANCODE_GRAVE ) {
 		if( state ) {
@@ -433,8 +422,6 @@ static bool being_debugged() {
 void IN_Init() {
 	SDL_version linked;
 
-	assert( !input_inited );
-
 	SDL_GetVersion( &linked );
 
 	running_in_debugger = being_debugged();
@@ -444,45 +431,40 @@ void IN_Init() {
 	SDL_SetHint( SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "0" );
 
 	input_focus = true;
-	input_inited = true;
 }
 
-/**
- * Shutdown input subsystem.
- */
 void IN_Shutdown() {
-	assert( input_inited );
-
-	input_inited = false;
 	SDL_SetRelativeMouseMode( SDL_FALSE );
 	IN_SetMouseScalingEnabled( true );
 }
 
-/**
- * This function is called for every frame and gives us some time to poll
- * for events that occured at our input devices.
- */
 void IN_Frame() {
-	assert( input_inited );
+	// grab input and hide cursor if there are any imgui windows accepting inputs
+	bool gui_active = false;
+	const ImGuiContext * ctx = ImGui::GetCurrentContext();
+	for( const ImGuiWindow * window : ctx->Windows ) {
+		if( window->Active && window->ParentWindow == NULL && ( window->Flags & ImGuiWindowFlags_NoInputs ) == 0 ) {
+			gui_active = true;
+			break;
+		}
+	}
 
-	if( cls.key_dest == key_game && input_focus ) {
-		if( running_in_debugger ) {
-			// don't grab input if we're running a debugger
+	// don't grab input if we're running a debugger
+	if( running_in_debugger ) {
+		if( !gui_active )
 			IN_WarpMouseToCenter();
+		SDL_SetRelativeMouseMode( SDL_FALSE );
+		SDL_ShowCursor( SDL_ENABLE );
+	}
+	else {
+		if( gui_active ) {
 			SDL_SetRelativeMouseMode( SDL_FALSE );
 			SDL_ShowCursor( SDL_ENABLE );
 		}
 		else {
 			SDL_SetRelativeMouseMode( SDL_TRUE );
+			SDL_ShowCursor( SDL_DISABLE );
 		}
-	}
-	else if( cls.key_dest == key_console || cls.key_dest == key_menu ) {
-		SDL_SetRelativeMouseMode( SDL_FALSE );
-		SDL_ShowCursor( SDL_ENABLE );
-	}
-	else {
-		SDL_SetRelativeMouseMode( SDL_FALSE );
-		SDL_ShowCursor( SDL_DISABLE );
 	}
 
 	IN_HandleEvents();

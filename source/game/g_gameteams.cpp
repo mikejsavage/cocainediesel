@@ -363,8 +363,7 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 		if( team != -1 ) {
 			if( G_Teams_JoinTeam( ent, team ) ) {
 				if( !silent ) {
-					G_PrintMsg( NULL, "%s%s joined the %s team.\n",
-								ent->r.client->netname, S_COLOR_WHITE, GS_TeamName( ent->s.team ) );
+					G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->netname, GS_TeamName( ent->s.team ) );
 				}
 				return true;
 			}
@@ -410,8 +409,7 @@ void G_Teams_Join_Cmd( edict_t *ent ) {
 			return;
 		}
 		if( G_Teams_JoinTeam( ent, team ) ) {
-			G_PrintMsg( NULL, "%s%s joined the %s%s team.\n", ent->r.client->netname, S_COLOR_WHITE,
-						GS_TeamName( ent->s.team ), S_COLOR_WHITE );
+			G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->netname, GS_TeamName( ent->s.team ) );
 			return;
 		}
 	} else {

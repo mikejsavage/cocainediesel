@@ -756,6 +756,7 @@ void CG_Shutdown() {
 	CG_DemocamShutdown();
 	CG_UnregisterCGameCommands();
 	CG_PModelsShutdown();
+	CG_ShutdownChat();
 	CG_ShutdownInput();
 
 	Mem_FreePool( &cg_mempool );

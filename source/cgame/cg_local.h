@@ -786,6 +786,7 @@ void CG_LaserBeamEffect( centity_t *cent );
 // cg_chat.cpp
 //
 void CG_InitChat();
+void CG_ShutdownChat();
 void CG_AddChat( const char * str );
 void CG_DrawChat();
 

@@ -352,7 +352,7 @@ bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 }
 
 s64 FileLastModifiedTime( const char * path ) {
-	HANDLE handle = CreateFile( path, 0, 0, NULL, OPEN_EXISTING, 0, NULL );
+	HANDLE handle = CreateFileA( path, 0, 0, NULL, OPEN_EXISTING, 0, NULL );
 	if( handle == INVALID_HANDLE_VALUE ) {
 		return 0;
 	}

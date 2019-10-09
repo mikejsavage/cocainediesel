@@ -257,15 +257,11 @@ void CG_DrawScoreboard() {
 			ImGui::PopStyleVar();
 		}
 
-		int myteam = cg.predictedPlayerState.stats[ STAT_TEAM ];
-		if( myteam == TEAM_SPECTATOR )
-			myteam = TEAM_ALPHA;
-
 		int round;
 		if( !ParseInt( &cursor, &round ) )
 			return;
 
-		DrawTeamScoreboard( temp, &cursor, myteam, col_width );
+		DrawTeamScoreboard( temp, &cursor, TEAM_ALPHA, col_width );
 
 		{
 			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 2, 2 ) );
@@ -292,7 +288,7 @@ void CG_DrawScoreboard() {
 			ImGui::PopStyleVar();
 		}
 
-		DrawTeamScoreboard( temp, &cursor, myteam == TEAM_ALPHA ? TEAM_BETA : TEAM_ALPHA, col_width );
+		DrawTeamScoreboard( temp, &cursor, TEAM_BETA, col_width );
 
 		{
 			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 2, 2 ) );

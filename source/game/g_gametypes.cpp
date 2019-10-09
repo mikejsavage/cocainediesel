@@ -630,7 +630,7 @@ void G_Match_Ready( edict_t *ent ) {
 
 	level.ready[PLAYERNUM( ent )] = true;
 
-	G_PrintMsg( NULL, "%s%s is ready!\n", ent->r.client->netname, S_COLOR_WHITE );
+	G_PrintMsg( NULL, "%s is ready!\n", ent->r.client->netname );
 
 	G_Match_CheckReadys();
 }
@@ -656,7 +656,7 @@ void G_Match_NotReady( edict_t *ent ) {
 
 	level.ready[PLAYERNUM( ent )] = false;
 
-	G_PrintMsg( NULL, "%s%s is no longer ready.\n", ent->r.client->netname, S_COLOR_WHITE );
+	G_PrintMsg( NULL, "%s is no longer ready.\n", ent->r.client->netname );
 
 	G_Match_CheckReadys();
 }

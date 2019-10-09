@@ -346,8 +346,6 @@ static const reference_numeric_t cg_numeric_references[] =
 	{ "DOWNLOAD_IN_PROGRESS", CG_DownloadInProgress, NULL },
 	{ "DOWNLOAD_PERCENT", CG_GetCvar, "cl_download_percent" },
 
-	{ "CHAT_MODE", CG_GetCvar, "con_messageMode" },
-
 	{ NULL, NULL, NULL }
 };
 
@@ -1939,16 +1937,6 @@ static bool CG_LFuncDrawNet( struct cg_layoutnode_s *argumentnode, int numArgume
 	return true;
 }
 
-static bool CG_LFuncDrawChat( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int padding_x = (int)( CG_GetNumericArg( &argumentnode ) ) * frame_static.viewport_width / 800;
-	int padding_y = (int)( CG_GetNumericArg( &argumentnode ) ) * frame_static.viewport_height / 600;
-	const Material * material = FindMaterial( CG_GetStringArg( &argumentnode ) );
-
-	// CG_DrawChat( &cg.chat, layout_cursor_x, layout_cursor_y, layout_cursor_font_name, CG_GetLayoutCursorFont(), layout_cursor_font_size,
-	// 			 layout_cursor_width, layout_cursor_height, padding_x, padding_y, layout_cursor_color, material );
-	return true;
-}
-
 static bool CG_LFuncIf( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	return (int)CG_GetNumericArg( &argumentnode ) != 0;
 }
@@ -2183,13 +2171,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawNet,
 		0,
 		"Draws the disconnection icon",
-	},
-
-	{
-		"drawChat",
-		CG_LFuncDrawChat,
-		3,
-		"Draws the game chat messages",
 	},
 
 	{

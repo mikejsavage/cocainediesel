@@ -133,7 +133,7 @@ void CG_LocalPrint( const char *format, ... ) {
 
 	trap_PrintToLog( msg );
 
-	CG_StackChatString( &cg.chat, msg );
+	CG_AddChat( msg );
 }
 
 /*
@@ -738,7 +738,7 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	InitParticles();
 	InitPersistentBeams();
 
-	CG_InitChat( &cg.chat );
+	CG_InitChat();
 
 	// start up announcer events queue from clean
 	CG_ClearAnnouncerEvents();
@@ -756,6 +756,7 @@ void CG_Shutdown() {
 	CG_DemocamShutdown();
 	CG_UnregisterCGameCommands();
 	CG_PModelsShutdown();
+	CG_ShutdownChat();
 	CG_ShutdownInput();
 
 	Mem_FreePool( &cg_mempool );

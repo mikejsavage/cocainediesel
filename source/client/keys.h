@@ -33,4 +33,3 @@ const char *Key_GetBindingBuf( int binding );
 const char *Key_KeynumToString( int keynum );
 
 int Key_StringToKeynum( const char *str );
-bool Key_IsDown( int keynum );

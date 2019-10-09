@@ -342,21 +342,6 @@ typedef struct {
 
 typedef struct {
 	int64_t time;
-	char text[GAMECHAT_STRING_SIZE];
-} cg_gamemessage_t;
-
-typedef struct {
-	int64_t nextMsg;
-	int64_t lastMsgTime;
-	bool lastActive;
-	int64_t lastActiveChangeTime;
-	float activeFrac;
-	cg_gamemessage_t messages[GAMECHAT_STACK_SIZE];
-	int64_t lastHighlightTime;
-} cg_gamechat_t;
-
-typedef struct {
-	int64_t time;
 	float delay;
 
 	int64_t monotonicTime;
@@ -440,8 +425,6 @@ typedef struct {
 
 	cg_viewweapon_t weapon;
 	cg_viewdef_t view;
-
-	cg_gamechat_t chat;
 } cg_state_t;
 
 extern cg_static_t cgs;
@@ -802,10 +785,10 @@ void CG_LaserBeamEffect( centity_t *cent );
 //
 // cg_chat.cpp
 //
-void CG_InitChat( cg_gamechat_t *chat );
-void CG_StackChatString( cg_gamechat_t *chat, const char *str );
-void CG_DrawChat( cg_gamechat_t *chat, int x, int y, char *fontName, struct qfontface_s *font, int fontSize,
-				  int width, int height, int padding_x, int padding_y, vec4_t backColor, const Material * backShader );
+void CG_InitChat();
+void CG_ShutdownChat();
+void CG_AddChat( const char * str );
+void CG_DrawChat();
 
 //
 // cg_input.cpp

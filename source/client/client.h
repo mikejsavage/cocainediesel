@@ -422,7 +422,6 @@ void SCR_EndLoadingPlaque( void );
 void SCR_DebugGraph( float value, float r, float g, float b );
 void SCR_RegisterConsoleMedia( void );
 void SCR_DrawFillRect( int x, int y, int w, int h, const vec4_t color );
-void SCR_DrawChat( int x, int y, int width, struct qfontface_s *font );
 
 void CL_InitMedia( void );
 void CL_ShutdownMedia( void );

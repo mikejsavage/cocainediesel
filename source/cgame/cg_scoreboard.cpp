@@ -47,15 +47,11 @@ static void WindowCenterText( const char * str ) {
 	ImGui::Text( "%s", str );
 }
 
-static void CenterText( const char * text, Vec2 box_size, Vec2 pos = Vec2( 0, 0 ) ) {
-	Vec2 text_size = ImGui::CalcTextSize( text );
-	ImGui::SetCursorPos( pos + ( box_size - text_size ) * 0.5f );
-	ImGui::Text( "%s", text );
-}
-
 static void CenterTextWindow( const char * title, const char * text, Vec2 size ) {
 	ImGui::BeginChild( title, size, true );
-	CenterText( text, size );
+	Vec2 text_size = ImGui::CalcTextSize( text );
+	ImGui::SetCursorPos( ( size - text_size ) * 0.5f );
+	ImGui::Text( "%s", text );
 	ImGui::EndChild();
 }
 
@@ -210,7 +206,7 @@ void CG_DrawScoreboard() {
 
 	const char * cursor = scoreboard_string;
 
-	ImGuiIO & io = ImGui::GetIO();
+	const ImGuiIO & io = ImGui::GetIO();
 	float width_frac = Lerp( 0.8f, Clamp01( Unlerp( 1024.0f, io.DisplaySize.x, 1920.0f ) ), 0.6f );
 	Vec2 size = io.DisplaySize * Vec2( width_frac, 0.8f );
 

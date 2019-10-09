@@ -100,7 +100,7 @@ static void SubmitDrawCalls() {
 
 	ImDrawData * draw_data = ImGui::GetDrawData();
 
-	ImGuiIO& io = ImGui::GetIO();
+	const ImGuiIO & io = ImGui::GetIO();
 	int fb_width = int( draw_data->DisplaySize.x * io.DisplayFramebufferScale.x );
 	int fb_height = int( draw_data->DisplaySize.y * io.DisplayFramebufferScale.y );
 	if( fb_width <= 0 || fb_height <= 0 )
@@ -183,6 +183,9 @@ ImGuiColorToken::ImGuiColorToken( u8 r, u8 g, u8 b, u8 a ) {
 	token[ 4 ] = Max2( a, u8( 1 ) );
 	token[ 5 ] = 0;
 }
+
+ImGuiColorToken::ImGuiColorToken( RGB8 rgb ) : ImGuiColorToken( rgb.r, rgb.g, rgb.b, 255 ) { }
+ImGuiColorToken::ImGuiColorToken( RGBA8 rgba ) : ImGuiColorToken( rgba.r, rgba.g, rgba.b, rgba.a ) { }
 
 void format( FormatBuffer * fb, const ImGuiColorToken & token, const FormatOpts & opts ) {
 	format( fb, ( const char * ) token.token );

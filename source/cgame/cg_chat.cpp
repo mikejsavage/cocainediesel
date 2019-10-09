@@ -1,260 +1,157 @@
-/*
-Copyright (C) 2010 Victor Luchits
+#include "cgame/cg_local.h"
+#include "client/client.h"
+#include "qcommon/string.h"
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
+#include "imgui/imgui.h"
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+constexpr size_t CHAT_MESSAGE_SIZE = 512;
+constexpr size_t CHAT_HISTORY_SIZE = 64;
 
-See the GNU General Public License for more details.
+enum ChatMode {
+	ChatMode_None,
+	ChatMode_Say,
+	ChatMode_SayTeam,
+};
 
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+struct ChatMessage {
+	s64 time;
+	char text[ CHAT_MESSAGE_SIZE ];
+};
 
-*/
+struct Chat {
+	ChatMode mode;
+	char input[ CHAT_MESSAGE_SIZE ];
 
-#include "cg_local.h"
+	ChatMessage history[ CHAT_HISTORY_SIZE ];
+	size_t history_head;
+	size_t history_len;
 
-/*
-** CG_InitChat
-*/
-void CG_InitChat( cg_gamechat_t *chat ) {
-	memset( chat, 0, sizeof( *chat ) );
+	s64 lastHighlightTime;
+};
+
+static Chat chat;
+
+static void OpenChat() {
+	if( !cls.demo.playing ) {
+		chat.mode = ChatMode_Say;
+		chat.input[ 0 ] = '\0';
+		CL_SetKeyDest( key_message );
+	}
 }
 
-/*
-** CG_StackChatString
-*/
-void CG_StackChatString( cg_gamechat_t *chat, const char *str ) {
-	chat->messages[chat->nextMsg].time = cg.realTime;
-	Q_strncpyz( chat->messages[chat->nextMsg].text, str, sizeof( chat->messages[0].text ) );
+static void OpenTeamChat() {
+	if( !cls.demo.playing ) {
+		chat.mode = Cmd_Exists( "say_team" ) ? ChatMode_SayTeam : ChatMode_Say;
+		chat.input[ 0 ] = '\0';
+		CL_SetKeyDest( key_message );
+	}
+}
 
-	chat->lastMsgTime = cg.realTime;
-	chat->nextMsg = ( chat->nextMsg + 1 ) % GAMECHAT_STACK_SIZE;
+void CloseChat() {
+	chat.mode = ChatMode_None;
+	CL_SetKeyDest( key_game );
+}
+
+void CG_InitChat() {
+	chat = { };
+
+	Cmd_AddCommand( "messagemode", OpenChat );
+	Cmd_AddCommand( "messagemode2", OpenTeamChat );
+}
+
+void CG_ShutdownChat() {
+	Cmd_RemoveCommand( "messagemode" );
+	Cmd_RemoveCommand( "messagemode2" );
+}
+
+void CG_AddChat( const char * str ) {
+	size_t idx = ( chat.history_head + chat.history_len ) % ARRAY_COUNT( chat.history );
+	chat.history[ idx ].time = cg.monotonicTime;
+	Q_strncpyz( chat.history[ idx ].text, str, sizeof( chat.history[ idx ].text ) );
+
+	if( chat.history_len < ARRAY_COUNT( chat.history ) ) {
+		chat.history_len++;
+	}
+	else {
+		chat.history_head = ( chat.history_head + 1 ) % GAMECHAT_STACK_SIZE;
+	}
 }
 
 #define GAMECHAT_NOTIFY_TIME        5000
-#define GAMECHAT_WAIT_IN_TIME       0
-#define GAMECHAT_FADE_IN_TIME       100
 #define GAMECHAT_WAIT_OUT_TIME      4000
 #define GAMECHAT_HIGHLIGHT_TIME     4000
 #define GAMECHAT_FADE_OUT_TIME      ( GAMECHAT_NOTIFY_TIME - GAMECHAT_WAIT_OUT_TIME )
 
-static int trap_SCR_FontHeight( struct qfontface_s * font ) { return 1; }
+static void SendChat() {
+	if( strlen( chat.input ) > 0 ) {
+		// convert double quotes to single quotes
+		for( char * p = chat.input; *p != '\0'; p++ ) {
+			if( *p == '"' ) {
+				*p = '\'';
+			}
+		}
 
-/*
-** CG_DrawChat
-*/
-void CG_DrawChat( cg_gamechat_t *chat, int x, int y, char *fontName, struct qfontface_s *font, int fontSize,
-				  int width, int height, int padding_x, int padding_y, vec4_t backColor, struct shader_s *backShader ) {
-	int i, j;
-	int s, e, w;
-	int utf_len;
-	int l, total_lines, lines;
-	int x_offset, y_offset;
-	int font_height;
-	int pass;
-	int lastcolor;
-	int message_mode;
-	int wait_time, fade_time;
-	const cg_gamemessage_t *msg;
-	const char *text;
-	char tstr[GAMECHAT_STRING_SIZE];
-	vec4_t fontColor;
-	bool chat_active = false;
-	bool background_drawn = false;
-	int corner_radius = 12 * frame_static.viewport_height / 600;
-	int background_y;
+		TempAllocator temp = cls.frame_arena.temp();
 
-	font_height = trap_SCR_FontHeight( font );
-	message_mode = (int)trap_Cvar_Value( "con_messageMode" );
-	chat_active = ( chat->lastMsgTime + GAMECHAT_WAIT_IN_TIME + GAMECHAT_FADE_IN_TIME > cg.realTime || message_mode );
-	lines = 0;
-	total_lines = /*!message_mode ? 0 : */ 1;
-
-	if( chat_active ) {
-		wait_time = GAMECHAT_WAIT_IN_TIME;
-		fade_time = GAMECHAT_FADE_IN_TIME;
-	} else {
-		wait_time = GAMECHAT_WAIT_OUT_TIME;
-		fade_time = GAMECHAT_FADE_OUT_TIME;
+		const char * cmd = chat.mode == ChatMode_SayTeam && Cmd_Exists( "say_team" ) ? "say_team" : "say";
+		Cbuf_AddText( temp( "{} \"{}\"\n", cmd, chat.input ) );
 	}
 
-	if( chat_active != chat->lastActive ) {
-		// smooth fade ins and fade outs
-		chat->lastActiveChangeTime = cg.realTime - ( 1.0 - chat->activeFrac ) * ( wait_time + fade_time );
+	CloseChat();
+}
+
+void CG_DrawChat() {
+	TempAllocator temp = cls.frame_arena.temp();
+
+	const ImGuiIO & io = ImGui::GetIO();
+	Vec2 size = io.DisplaySize;
+	size.y /= 4;
+
+	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground;
+	ImGuiWindowFlags log_flags = 0;
+	if( chat.mode == ChatMode_None ) {
+		flags |= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
+		log_flags |= ImGuiWindowFlags_NoScrollbar;
 	}
 
-	if( cg.realTime >= chat->lastActiveChangeTime + wait_time ) {
-		int time_diff, time_interval;
+	ImGui::SetNextWindowSize( ImVec2( size.x * 0.5f, size.y ) );
+	ImGui::SetNextWindowPos( ImVec2( 0, size.y * 2.5f ), ImGuiCond_Always, ImVec2( 0, 0.5f ) );
+	ImGui::Begin( "chat", NULL, flags );
 
-		time_diff = cg.realTime - ( chat->lastActiveChangeTime + wait_time );
-		time_interval = fade_time;
+	ImGui::BeginChild( "chatlog", ImVec2( 0, -ImGui::GetFrameHeight() ), false, log_flags );
+	for( size_t i = 0; i < chat.history_len; i++ ) {
+		size_t idx = ( chat.history_head + i ) % ARRAY_COUNT( chat.history );
+		const ChatMessage * msg = &chat.history[ idx ];
 
-		if( time_diff <= time_interval ) {
-			chat->activeFrac = (float)time_diff / time_interval;
-		} else {
-			chat->activeFrac = 1;
+		if( chat.mode == ChatMode_None && cg.monotonicTime > msg->time + GAMECHAT_NOTIFY_TIME ) {
+			continue;
 		}
-	} else {
-		chat->activeFrac = 0;
+
+		ImGui::TextWrapped( "%s", msg->text );
+		ImGui::SetScrollHereY( 1.0f );
+	}
+	ImGui::EndChild();
+
+	if( chat.mode != ChatMode_None ) {
+		RGB8 color = { 50, 50, 50 };
+		if( chat.mode == ChatMode_SayTeam ) {
+			color = CG_TeamColor( TEAM_ALLY );
+		}
+
+		ImGui::PushStyleColor( ImGuiCol_FrameBg, IM_COL32( color.r, color.g, color.b, 50 ) );
+
+		ImGui::PushItemWidth( ImGui::GetWindowWidth() );
+		ImGui::SetKeyboardFocusHere();
+		bool enter = ImGui::InputText( "##chatinput", chat.input, sizeof( chat.input ), ImGuiInputTextFlags_EnterReturnsTrue );
+
+		if( enter ) {
+			SendChat();
+		}
+
+		ImGui::PopStyleColor();
 	}
 
-	if( chat_active ) {
-		backColor[3] *= chat->activeFrac;
-	} else {
-		backColor[3] *= ( 1.0 - chat->activeFrac );
-	}
-
-	for( i = 0; i < GAMECHAT_STACK_SIZE; i++ ) {
-		bool old_msg;
-
-		l = chat->nextMsg - 1 - i;
-		if( l < 0 ) {
-			l = GAMECHAT_STACK_SIZE + l;
-		}
-
-		msg = &chat->messages[l];
-		text = msg->text;
-		old_msg = !message_mode && ( cg.realTime > msg->time + GAMECHAT_NOTIFY_TIME );
-
-		if( !background_drawn && backColor[3] ) {
-			if( old_msg ) {
-				// keep the box being drawn for a while to prevent it from flickering
-				// upon arrival of the possibly entered chat message
-				if( !( !chat_active && cg.realTime <= chat->lastActiveChangeTime + 200 ) ) {
-					break;
-				}
-			}
-
-			background_y = y;
-			// trap_R_DrawStretchPic( x, background_y, width, height - corner_radius,
-			// 					   0.0f, 0.0f, 1.0f, 0.5f, backColor, backShader );
-			background_y += height - corner_radius;
-
-			// trap_R_DrawStretchPic( x, background_y, corner_radius, corner_radius,
-			// 					   0.0f, 0.5f, 0.5f, 1.0f, backColor, backShader );
-			// trap_R_DrawStretchPic( x + corner_radius, background_y, width - corner_radius * 2, corner_radius,
-			// 					   0.5f, 0.5f, 0.5f, 1.0f, backColor, backShader );
-			// trap_R_DrawStretchPic( x + width - corner_radius, background_y, corner_radius, corner_radius,
-			// 					   0.5f, 0.5f, 1.0f, 1.0f, backColor, backShader );
-
-			background_drawn = true;
-		}
-
-		// unless user is typing something, only display recent messages
-		if( old_msg ) {
-			break;
-		}
-
-		pass = 0;
-		lines = 0;
-		lastcolor = ColorIndex( COLOR_WHITE );
-
-parse_string:
-		l = 1;
-		s = e = 0;
-		while( 1 ) {
-			int len;
-
-			memset( tstr, 0, sizeof( tstr ) );
-
-			// skip whitespaces at start
-			for( ; text[s] == '\n' || Q_IsBreakingSpace( text + s ); s = Q_Utf8SyncPos( text, s + 1, UTF8SYNC_RIGHT ) ) ;
-
-			// empty string
-			if( !text[s] ) {
-				break;
-			}
-
-			w = -1;
-			// len = Max2( size_t( 1 ), trap_SCR_StrlenForWidth( text + s, font, width - padding_x * 2 ) );
-			len = 1;
-
-			for( j = s; ( j < ( s + len ) ) && text[j] != '\0'; j += utf_len ) {
-				utf_len = Q_Utf8SyncPos( text + j, 1, UTF8SYNC_RIGHT );
-				memcpy( tstr + j - s, text + j, utf_len );
-
-				if( text[j] == '\n' || Q_IsBreakingSpace( text + j ) ) {
-					w = j; // last whitespace
-				}
-				if( text[j] == '\n' ) {
-					break;
-				}
-			}
-			e = j; // end
-
-			// try to word avoid splitting words, unless no other options
-			if( text[j] != '\0' && w > 0 ) {
-				// stop at the last encountered whitespace
-				j = w;
-			}
-
-			tstr[j - s] = '\0';
-
-			Vector4Copy( color_table[lastcolor], fontColor );
-			fontColor[3] = chat_active ? chat->activeFrac : 1.0 - chat->activeFrac;
-
-			if( pass ) {
-				// now actually render the line
-				x_offset = padding_x;
-				y_offset = height - padding_y - font_height - ( total_lines + lines - l ) * ( font_height + 2 );
-				if( y_offset < padding_y ) {
-					break;
-				}
-
-				// trap_SCR_DrawClampString( x + x_offset, y + y_offset, tstr,
-				// 						  x + padding_x, y + padding_y, x - padding_x + width, y - padding_y + height, font, fontColor );
-
-				l++;
-			} else {
-				// increase the lines counter
-				lines++;
-			}
-
-			if( !text[j] ) {
-				// fast path: we don't need two passes in case of one-liners..
-				if( lines == 1 ) {
-					x_offset = padding_x;
-					y_offset = height - font_height - total_lines * ( font_height + 2 );
-					if( y_offset < padding_y ) {
-						break;
-					}
-
-					// trap_SCR_DrawClampString( x + x_offset, y + y_offset, tstr,
-					// 						  x + padding_x, y + padding_y, x - padding_x + width, y - padding_y + height, font, fontColor );
-
-					total_lines++;
-					pass++;
-				}
-				break;
-			}
-
-			if( pass ) {
-				// grab the last color token to carry it over to the next line
-				lastcolor = Q_ColorStrLastColor( lastcolor, tstr, j - s );
-			}
-
-			s = j;
-		}
-
-		if( !pass ) {
-			pass++;
-			goto parse_string;
-		} else {
-			total_lines += lines;
-		}
-	}
-
-	// let the engine know where the input line should be drawn
-	trap_SCR_DrawChat( x + padding_x, y + height - padding_y - font_height, width - padding_x, font );
-
-	chat->lastActive = chat_active;
+	ImGui::End();
 }
 
 void CG_FlashChatHighlight( const unsigned int fromIndex, const char *text ) {
@@ -262,8 +159,8 @@ void CG_FlashChatHighlight( const unsigned int fromIndex, const char *text ) {
 	if( fromIndex == cgs.playerNum )
 		return;
 
-	// if we've been highlighted recently, dont let people spam it.. 
-	bool eligible = !cg.chat.lastHighlightTime || cg.chat.lastHighlightTime + GAMECHAT_HIGHLIGHT_TIME < cg.realTime;
+	// if we've been highlighted recently, dont let people spam it..
+	bool eligible = !chat.lastHighlightTime || chat.lastHighlightTime + GAMECHAT_HIGHLIGHT_TIME < cg.realTime;
 
 	// dont bother doing text match if we've been pinged recently
 	if( !eligible )
@@ -286,6 +183,6 @@ void CG_FlashChatHighlight( const unsigned int fromIndex, const char *text ) {
 	bool hadNick = strstr( msgUncolored, plainName ) != NULL;
 	if( hadNick ) {
 		trap_VID_FlashWindow();
-		cg.chat.lastHighlightTime = cg.realTime;
+		chat.lastHighlightTime = cg.realTime;
 	}
 }

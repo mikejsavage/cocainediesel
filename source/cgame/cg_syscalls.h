@@ -218,7 +218,3 @@ static inline void trap_CM_InlineModelBounds( struct cmodel_s *cmodel, vec3_t mi
 static inline bool trap_CM_InPVS( const vec3_t p1, const vec3_t p2 ) {
 	return CGAME_IMPORT.CM_InPVS( p1, p2 );
 }
-
-static inline void trap_SCR_DrawChat( int x, int y, int width, struct qfontface_s *font ) {
-	CGAME_IMPORT.SCR_DrawChat( x, y, width, font );
-}

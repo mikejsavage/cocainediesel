@@ -502,7 +502,6 @@ void CL_SetKeyDest( keydest_t key_dest ) {
 	if( cls.key_dest != key_dest ) {
 		CL_ClearInputState();
 		cls.key_dest = key_dest;
-		Con_SetMessageMode();
 	}
 }
 

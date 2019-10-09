@@ -418,14 +418,6 @@ static int CG_RenderFlags( void ) {
 		}
 	}
 
-	if( cg.oldAreabits ) {
-		rdflags |= RDF_OLDAREABITS;
-	}
-
-	if( cg_outlineWorld->integer ) {
-		rdflags |= RDF_WORLDOUTLINES;
-	}
-
 	if( GS_MatchState() >= MATCH_STATE_POSTMATCH ) {
 		rdflags |= RDF_BLURRED;
 	}
@@ -777,14 +769,10 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 }
 
 static void DrawWorld() {
-	const char * name = cgs.configStrings[ CS_WORLDMODEL ];
-	const char * ext = COM_FileExtension( name );
+	ZoneScoped;
+
 	const char * suffix = "*0";
-
-	u64 hash = Hash64( name, strlen( name ) - strlen( ext ) );
-	const MapMetadata * map = FindMapMetadata( StringHash( hash ) );
-
-	hash = Hash64( suffix, strlen( suffix ), hash );
+	u64 hash = Hash64( suffix, strlen( suffix ), cgs.map->base_hash );
 	const Model * model = FindModel( StringHash( hash ) );
 
 	for( u32 i = 0; i < model->num_primitives; i++ ) {
@@ -802,25 +790,22 @@ static void DrawWorld() {
 			PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
 			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
-			pipeline.set_uniform( "u_Fog", UploadUniformBlock( map->fog_strength ) );
-
-			pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
-			pipeline.set_uniform( "u_BlueNoiseTextureParams", frame_static.blue_noise_uniforms );
 
 			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 		}
 	}
 
 	{
+		bool msaa = frame_static.msaa_samples >= 1;
+
 		PipelineState pipeline;
 		pipeline.pass = frame_static.world_postprocess_gbuffer_pass;
-		pipeline.shader = &shaders.world_postprocess_gbuffer;
+		pipeline.shader = msaa ? &shaders.world_postprocess_gbuffer_msaa : &shaders.world_postprocess_gbuffer;
 
 		const Framebuffer & fb = frame_static.world_gbuffer;
 		pipeline.set_texture( "u_DepthTexture", fb.depth_texture );
 		pipeline.set_texture( "u_NormalTexture", fb.normal_texture );
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-		pipeline.set_uniform( "u_Material", UploadUniformBlock( Vec4( 0 ), Vec4( 0 ), Vec2( fb.normal_texture.width, fb.normal_texture.height ), 0.0f ) );
 
 		DrawFullscreenMesh( pipeline );
 	}
@@ -836,7 +821,7 @@ static void DrawWorld() {
 		pipeline.set_texture( "u_BaseTexture", fb.albedo_texture );
 		pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
 		pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
-		pipeline.set_uniform( "u_Material", UploadUniformBlock( Vec4( 0 ), Vec4( 0 ), Vec2( fb.albedo_texture.width, fb.albedo_texture.height ), 0.0f ) );
+		pipeline.set_uniform( "u_Material", frame_static.identity_material_uniforms );
 
 		Vec3 positions[] = {
 			Vec3( 0, 0, 0 ),
@@ -874,10 +859,76 @@ static void DrawWorld() {
 	}
 }
 
+static void DrawTeammateOutlines() {
+	ZoneScoped;
+
+	{
+		PipelineState pipeline;
+		pipeline.pass = frame_static.teammate_postprocess_gbuffer_pass;
+		pipeline.shader = &shaders.teammate_postprocess_gbuffer;
+
+		const Framebuffer & fb = frame_static.teammate_gbuffer;
+		pipeline.set_texture( "u_TeammateTexture", fb.albedo_texture );
+		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+
+		DrawFullscreenMesh( pipeline );
+	}
+
+	{
+		PipelineState pipeline;
+		pipeline.pass = frame_static.teammate_add_outlines_pass;
+		pipeline.shader = &shaders.standard;
+		pipeline.depth_func = DepthFunc_Disabled;
+		pipeline.blend_func = BlendFunc_Blend;
+		pipeline.write_depth = false;
+
+		const Framebuffer & fb = frame_static.teammate_outlines_fb;
+		pipeline.set_texture( "u_BaseTexture", fb.albedo_texture );
+		pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
+		pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+		pipeline.set_uniform( "u_Material", frame_static.identity_material_uniforms );
+
+		Vec3 positions[] = {
+			Vec3( 0, 0, 0 ),
+			Vec3( frame_static.viewport_width, 0, 0 ),
+			Vec3( 0, frame_static.viewport_height, 0 ),
+			Vec3( frame_static.viewport_width, frame_static.viewport_height, 0 ),
+		};
+
+		Vec2 half_pixel = 0.5f / frame_static.viewport;
+		Vec2 uvs[] = {
+			Vec2( half_pixel.x, 1.0f - half_pixel.y ),
+			Vec2( 1.0f - half_pixel.x, 1.0f - half_pixel.y ),
+			Vec2( half_pixel.x, half_pixel.y ),
+			Vec2( 1.0f - half_pixel.x, half_pixel.y ),
+		};
+
+		constexpr RGBA8 colors[] = { rgba8_white, rgba8_white, rgba8_white, rgba8_white };
+
+		u16 base_index = DynamicMeshBaseIndex();
+		u16 indices[] = { 0, 2, 1, 3, 1, 2 };
+		for( u16 & idx : indices ) {
+			idx += base_index;
+		}
+
+		DynamicMesh mesh = { };
+		mesh.positions = positions;
+		mesh.uvs = uvs;
+		mesh.colors = colors;
+		mesh.indices = indices;
+		mesh.num_vertices = 4;
+		mesh.num_indices = 6;
+
+		DrawDynamicMesh( pipeline, mesh );
+	}
+}
+
 /*
 * CG_RenderView
 */
 void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int64_t realTime, int64_t serverTime, unsigned extrapolationTime ) {
+	ZoneScoped;
+
 	refdef_t *rd = &cg.view.refdef;
 
 	// update time
@@ -978,6 +1029,7 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 	}
 
 	RendererSetView( FromQF3( cg.view.origin ), FromQFAngles( cg.view.angles ), cg.view.fov_y );
+	frame_static.fog_uniforms = UploadUniformBlock( cgs.map->fog_strength );
 
 	CG_LerpEntities();  // interpolate packet entities positions
 
@@ -988,14 +1040,17 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 	CG_ResetBombHUD();
 
 	DrawWorld();
+	DrawTeammateOutlines();
 	CG_AddEntities();
 	CG_AddViewWeapon( &cg.weapon );
 	CG_AddLocalEntities();
 	CG_AddParticles();
+	DrawParticles();
+	DrawPersistentBeams();
+
 	CG_AddDlights();
 	CG_AddPlayerShadows();
 	CG_AddDecals();
-	CG_AddPolys();
 	DrawSkybox();
 
 	CG_AddLocalSounds();

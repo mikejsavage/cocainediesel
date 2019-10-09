@@ -74,11 +74,12 @@ bool LoadBSPMap( MapMetadata * map, const char * path );
 
 void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline );
 void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices = Span< const Mat4 >() );
+void DrawTeammateModel( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices = Span< const Mat4 >() );
 void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, Span< const Mat4 > skinning_matrices );
 
 MinMax3 ModelBounds( const Model * model );
 
-Span< TRS > SampleAnimation( ArenaAllocator * a, const Model * model, float t );
-MatrixPalettes ComputeMatrixPalettes( ArenaAllocator * a, const Model * model, Span< TRS > local_poses );
+Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t );
+MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< TRS > local_poses );
 bool FindJointByName( const Model * model, const char * name, u8 * joint_idx );
 void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const Model * model, u8 upper_root_joint );

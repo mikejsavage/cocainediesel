@@ -96,6 +96,7 @@ struct IndexBuffer {
 struct Texture {
 	u32 texture;
 	u32 width, height;
+	bool msaa;
 	TextureFormat format;
 };
 
@@ -332,7 +333,7 @@ void DeleteSampler( SamplerObject sampler );
 Framebuffer NewFramebuffer( const FramebufferConfig & config );
 void DeleteFramebuffer( Framebuffer fb );
 
-Shader NewShader( Span< const char * > srcs, Span< int > lengths );
+bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lengths );
 void DeleteShader( Shader shader );
 
 Mesh NewMesh( MeshConfig config );

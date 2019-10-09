@@ -115,14 +115,8 @@ void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *me
 			case MOD_SUICIDE:
 				strcpy( message, "suicides" );
 				break;
-			case MOD_FALLING:
-				strcpy( message, "cratered" );
-				break;
 			case MOD_CRUSH:
 				strcpy( message, "was squished" );
-				break;
-			case MOD_WATER:
-				strcpy( message, "sank like a rock" );
 				break;
 			case MOD_SLIME:
 				strcpy( message, "melted" );

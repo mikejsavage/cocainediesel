@@ -84,7 +84,6 @@ static const asEnumVal_t asConfigstringEnumVals[] =
 	ASLIB_ENUM_VAL( CS_MODELS ),
 	ASLIB_ENUM_VAL( CS_SOUNDS ),
 	ASLIB_ENUM_VAL( CS_IMAGES ),
-	ASLIB_ENUM_VAL( CS_ITEMS ),
 	ASLIB_ENUM_VAL( CS_PLAYERINFOS ),
 	ASLIB_ENUM_VAL( CS_GAMECOMMANDS ),
 	ASLIB_ENUM_VAL( CS_GENERAL ),
@@ -99,11 +98,9 @@ static const asEnumVal_t asEffectEnumVals[] =
 	ASLIB_ENUM_VAL( EF_TAKEDAMAGE ),
 	ASLIB_ENUM_VAL( EF_TEAMCOLOR_TRANSITION ),
 	ASLIB_ENUM_VAL( EF_GODMODE ),
-	ASLIB_ENUM_VAL( EF_GHOST ),
-	ASLIB_ENUM_VAL( EF_PLAYER_HIDENAME ),
 	ASLIB_ENUM_VAL( EF_RACEGHOST ),
-	ASLIB_ENUM_VAL( EF_OUTLINE ),
 	ASLIB_ENUM_VAL( EF_HAT ),
+	ASLIB_ENUM_VAL( EF_WORLD_MODEL ),
 
 	ASLIB_ENUM_VAL_NULL
 };
@@ -159,11 +156,9 @@ static const asEnumVal_t asEntityTypeEnumVals[] =
 	ASLIB_ENUM_VAL( ET_CORPSE ),
 	ASLIB_ENUM_VAL( ET_PUSH_TRIGGER ),
 	ASLIB_ENUM_VAL( ET_GIB ),
-	ASLIB_ENUM_VAL( ET_BLASTER ),
 	ASLIB_ENUM_VAL( ET_ROCKET ),
 	ASLIB_ENUM_VAL( ET_GRENADE ),
 	ASLIB_ENUM_VAL( ET_PLASMA ),
-	ASLIB_ENUM_VAL( ET_ITEM ),
 	ASLIB_ENUM_VAL( ET_LASERBEAM ),
 	ASLIB_ENUM_VAL( ET_DECAL ),
 	ASLIB_ENUM_VAL( ET_PARTICLES ),
@@ -195,7 +190,6 @@ static const asEnumVal_t asPMoveFeaturesVals[] =
 	ASLIB_ENUM_VAL( PMFEAT_WALLJUMP ),
 	ASLIB_ENUM_VAL( PMFEAT_ZOOM ),
 	ASLIB_ENUM_VAL( PMFEAT_GHOSTMOVE ),
-	ASLIB_ENUM_VAL( PMFEAT_ITEMPICK ),
 	ASLIB_ENUM_VAL( PMFEAT_WEAPONSWITCH ),
 	ASLIB_ENUM_VAL( PMFEAT_TEAMGHOST ),
 	ASLIB_ENUM_VAL( PMFEAT_ALL ),
@@ -363,12 +357,10 @@ static const asEnumVal_t asMeaningsOfDeathEnumVals[] =
 	ASLIB_ENUM_VAL( MOD_PLASMA_SPLASH ),
 
 	// World damage
-	ASLIB_ENUM_VAL( MOD_WATER ),
 	ASLIB_ENUM_VAL( MOD_SLIME ),
 	ASLIB_ENUM_VAL( MOD_LAVA ),
 	ASLIB_ENUM_VAL( MOD_CRUSH ),
 	ASLIB_ENUM_VAL( MOD_TELEFRAG ),
-	ASLIB_ENUM_VAL( MOD_FALLING ),
 	ASLIB_ENUM_VAL( MOD_SUICIDE ),
 	ASLIB_ENUM_VAL( MOD_EXPLOSIVE ),
 
@@ -460,7 +452,6 @@ static const asEnum_t asGameEnums[] =
 	{ "entitytype_e", asEntityTypeEnumVals },
 	{ "solid_e", asSolidEnumVals },
 	{ "pmovefeats_e", asPMoveFeaturesVals },
-	{ "itemtype_e", asItemTypeEnumVals },
 
 	{ "weapon_tag_e", asWeaponTagEnumVals },
 	{ "ammo_tag_e", asAmmoTagEnumVals },
@@ -646,18 +637,11 @@ static const asMethod_t gametypedescr_Methods[] =
 
 static const asProperty_t gametypedescr_Properties[] =
 {
-	{ ASLIB_PROPERTY_DECL( uint, spawnableItemsMask ), ASLIB_FOFFSET( gametype_descriptor_t, spawnableItemsMask ) },
-	{ ASLIB_PROPERTY_DECL( uint, respawnableItemsMask ), ASLIB_FOFFSET( gametype_descriptor_t, respawnableItemsMask ) },
-	{ ASLIB_PROPERTY_DECL( uint, dropableItemsMask ), ASLIB_FOFFSET( gametype_descriptor_t, dropableItemsMask ) },
-	{ ASLIB_PROPERTY_DECL( uint, pickableItemsMask ), ASLIB_FOFFSET( gametype_descriptor_t, pickableItemsMask ) },
 	{ ASLIB_PROPERTY_DECL( bool, isTeamBased ), ASLIB_FOFFSET( gametype_descriptor_t, isTeamBased ) },
 	{ ASLIB_PROPERTY_DECL( bool, isRace ), ASLIB_FOFFSET( gametype_descriptor_t, isRace ) },
 	{ ASLIB_PROPERTY_DECL( bool, hasChallengersQueue ), ASLIB_FOFFSET( gametype_descriptor_t, hasChallengersQueue ) },
 	{ ASLIB_PROPERTY_DECL( bool, hasChallengersRoulette ), ASLIB_FOFFSET( gametype_descriptor_t, hasChallengersRoulette ) },
 	{ ASLIB_PROPERTY_DECL( int, maxPlayersPerTeam ), ASLIB_FOFFSET( gametype_descriptor_t, maxPlayersPerTeam ) },
-	{ ASLIB_PROPERTY_DECL( int, ammoRespawn ), ASLIB_FOFFSET( gametype_descriptor_t, ammo_respawn ) },
-	{ ASLIB_PROPERTY_DECL( int, weaponRespawn ), ASLIB_FOFFSET( gametype_descriptor_t, weapon_respawn ) },
-	{ ASLIB_PROPERTY_DECL( int, healthRespawn ), ASLIB_FOFFSET( gametype_descriptor_t, health_respawn ) },
 	{ ASLIB_PROPERTY_DECL( bool, readyAnnouncementEnabled ), ASLIB_FOFFSET( gametype_descriptor_t, readyAnnouncementEnabled ) },
 	{ ASLIB_PROPERTY_DECL( bool, scoreAnnouncementEnabled ), ASLIB_FOFFSET( gametype_descriptor_t, scoreAnnouncementEnabled ) },
 	{ ASLIB_PROPERTY_DECL( bool, countdownEnabled ), ASLIB_FOFFSET( gametype_descriptor_t, countdownEnabled ) },
@@ -1003,32 +987,25 @@ static void objectGameClient_InventorySetCount( int index, int newcount, gclient
 }
 
 static void objectGameClient_InventoryGiveItemExt( int index, int count, gclient_t *self ) {
-	const gsitem_t *it;
-	int playerNum;
-
 	if( index < 0 || index >= MAX_ITEMS ) {
 		return;
 	}
 
-	it = GS_FindItemByTag( index );
+	const gsitem_t * it = GS_FindItemByTag( index );
 	if( !it ) {
 		return;
 	}
 
-	if( !( it->flags & ITFLAG_PICKABLE ) ) {
-		return;
-	}
-
-	playerNum = objectGameClient_PlayerNum( self );
+	int playerNum = objectGameClient_PlayerNum( self );
 	if( playerNum < 0 || playerNum >= gs.maxclients ) {
 		return;
 	}
 
-	G_PickupItem( PLAYERENT( playerNum ), it, 0, count < 0 ? it->quantity : count, NULL );
+	G_PickupItem( PLAYERENT( playerNum ), it, 0, count, NULL );
 }
 
 static void objectGameClient_InventoryGiveItem( int index, gclient_t *self ) {
-	objectGameClient_InventoryGiveItemExt( index, -1, self );
+	objectGameClient_InventoryGiveItemExt( index, 1, self );
 }
 
 static void objectGameClient_InventoryClear( gclient_t *self ) {
@@ -1495,23 +1472,6 @@ static void objectGameEntity_UseTargets( edict_t *activator, edict_t *self ) {
 	G_UseTargets( self, activator );
 }
 
-static edict_t *objectGameEntity_DropItemByTag( int tag, edict_t *self ) {
-	const gsitem_t *item = GS_FindItemByTag( tag );
-
-	if( !item ) {
-		return NULL;
-	}
-
-	return Drop_Item( self, item );
-}
-
-static edict_t *objectGameEntity_DropItem( gsitem_t *item, edict_t *self ) {
-	if( !item ) {
-		return NULL;
-	}
-	return Drop_Item( self, item );
-}
-
 static CScriptArrayInterface *objectGameEntity_findTargets( edict_t *self ) {
 	asIObjectType *ot = asEntityArrayType();
 	CScriptArrayInterface *arr = game.asExport->asCreateArrayCpp( 0, ot );
@@ -1655,8 +1615,6 @@ static const asMethod_t gedict_Methods[] =
 	{ ASLIB_FUNCTION_DECL( array<Entity @> @, findTargets, ( ) const ), asFUNCTION( objectGameEntity_findTargets ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( array<Entity @> @, findTargeting, ( ) const ), asFUNCTION( objectGameEntity_findTargeting ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, useTargets, ( const Entity @activator ) ), asFUNCTION( objectGameEntity_UseTargets ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( Entity @, dropItem, ( int tag ) const ), asFUNCTION( objectGameEntity_DropItemByTag ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( Entity @, dropItem, ( Item @ ) const ), asFUNCTION( objectGameEntity_DropItem ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, sustainDamage, ( Entity @inflicter, Entity @attacker, const Vec3 &in dir, float damage, float knockback, int mod ) ), asFUNCTION( objectGameEntity_sustainDamage ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, splashDamage, ( Entity @attacker, int radius, float damage, float knockback, int mod ) ), asFUNCTION( objectGameEntity_splashDamage ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, explosionEffect, ( int radius ) ), asFUNCTION( objectGameEntity_explosionEffect ), asCALL_CDECL_OBJLAST },
@@ -1851,10 +1809,6 @@ static const asClassDescriptor_t asTraceClassDescriptor =
 //=======================================================================
 
 // CLASS: Item
-static asstring_t *objectGItem_getClassName( gsitem_t *self ) {
-	return game.asExport->asStringFactoryBuffer( self->classname, self->classname ? strlen( self->classname ) : 0 );
-}
-
 static asstring_t *objectGItem_getName( gsitem_t *self ) {
 	return game.asExport->asStringFactoryBuffer( self->name, self->name ? strlen( self->name ) : 0 );
 }
@@ -1863,36 +1817,8 @@ static asstring_t *objectGItem_getShortName( gsitem_t *self ) {
 	return game.asExport->asStringFactoryBuffer( self->shortname, self->shortname ? strlen( self->shortname ) : 0 );
 }
 
-static asstring_t *objectGItem_getModelName( gsitem_t *self ) {
-	return game.asExport->asStringFactoryBuffer( self->world_model[0], self->world_model[0] ? strlen( self->world_model[0] ) : 0 );
-}
-
-static asstring_t *objectGItem_getModel2Name( gsitem_t *self ) {
-	return game.asExport->asStringFactoryBuffer( self->world_model[1], self->world_model[1] ? strlen( self->world_model[1] ) : 0 );
-}
-
-static asstring_t *objectGItem_getIconName( gsitem_t *self ) {
-	return game.asExport->asStringFactoryBuffer( self->icon, self->icon ? strlen( self->icon ) : 0 );
-}
-
-static asstring_t *objectGItem_getSimpleItemName( gsitem_t *self ) {
-	return game.asExport->asStringFactoryBuffer( self->simpleitem, self->simpleitem ? strlen( self->simpleitem ) : 0 );
-}
-
 static asstring_t *objectGItem_getColorToken( gsitem_t *self ) {
 	return game.asExport->asStringFactoryBuffer( self->color, self->color ? strlen( self->color ) : 0 );
-}
-
-static bool objectGItem_isPickable( gsitem_t *self ) {
-	return ( self && ( self->flags & ITFLAG_PICKABLE ) ) ? true : false;
-}
-
-static bool objectGItem_isUsable( gsitem_t *self ) {
-	return ( self && ( self->flags & ITFLAG_USABLE ) ) ? true : false;
-}
-
-static bool objectGItem_isDropable( gsitem_t *self ) {
-	return ( self && ( self->flags & ITFLAG_DROPABLE ) ) ? true : false;
 }
 
 static const asFuncdef_t asitem_Funcdefs[] =
@@ -1907,18 +1833,9 @@ static const asBehavior_t asitem_ObjectBehaviors[] =
 
 static const asMethod_t asitem_Methods[] =
 {
-	{ ASLIB_FUNCTION_DECL( const String @, get_classname, ( ) const ), asFUNCTION( objectGItem_getClassName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_name, ( ) const ), asFUNCTION( objectGItem_getName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_shortName, ( ) const ), asFUNCTION( objectGItem_getShortName ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( const String @, get_model, ( ) const ), asFUNCTION( objectGItem_getModelName ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( const String @, get_model2, ( ) const ), asFUNCTION( objectGItem_getModel2Name ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( const String @, get_icon, ( ) const ), asFUNCTION( objectGItem_getIconName ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( const String @, get_simpleIcon, ( ) const ), asFUNCTION( objectGItem_getSimpleItemName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_colorToken, ( ) const ), asFUNCTION( objectGItem_getColorToken ), asCALL_CDECL_OBJLAST },
-
-	{ ASLIB_FUNCTION_DECL( bool, isPickable, ( ) const ), asFUNCTION( objectGItem_isPickable ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( bool, isUsable, ( ) const ), asFUNCTION( objectGItem_isUsable ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( bool, isDropable, ( ) const ), asFUNCTION( objectGItem_isDropable ), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL
 };
@@ -1927,9 +1844,6 @@ static const asProperty_t asitem_Properties[] =
 {
 	{ ASLIB_PROPERTY_DECL( const int, tag ), ASLIB_FOFFSET( gsitem_t, tag ) },
 	{ ASLIB_PROPERTY_DECL( const uint, type ), ASLIB_FOFFSET( gsitem_t, type ) },
-	{ ASLIB_PROPERTY_DECL( const int, flags ), ASLIB_FOFFSET( gsitem_t, flags ) },
-	{ ASLIB_PROPERTY_DECL( const int, quantity ), ASLIB_FOFFSET( gsitem_t, quantity ) },
-	{ ASLIB_PROPERTY_DECL( const int, inventoryMax ), ASLIB_FOFFSET( gsitem_t, inventory_max ) },
 	{ ASLIB_PROPERTY_DECL( const int, ammoTag ), ASLIB_FOFFSET( gsitem_t, ammo_tag ) },
 
 	ASLIB_PROPERTY_NULL
@@ -2013,16 +1927,12 @@ static g_teamlist_t *asFunc_GetTeamlist( int teamNum ) {
 	return &teamlist[teamNum];
 }
 
-static gsitem_t *asFunc_GS_FindItemByTag( int tag ) {
+static const gsitem_t *asFunc_GS_FindItemByTag( int tag ) {
 	return GS_FindItemByTag( tag );
 }
 
 static const gsitem_t *asFunc_GS_FindItemByName( asstring_t *name ) {
 	return ( !name || !name->len ) ? NULL : GS_FindItemByName( name->buffer );
-}
-
-static const gsitem_t *asFunc_GS_FindItemByClassname( asstring_t *name ) {
-	return ( !name || !name->len ) ? NULL : GS_FindItemByClassname( name->buffer );
 }
 
 static void asFunc_G_Match_RemoveProjectiles( edict_t *owner ) {
@@ -2039,10 +1949,6 @@ static void asFunc_G_ResetLevel( void ) {
 
 static void asFunc_G_Match_FreeBodyQueue( void ) {
 	G_Match_FreeBodyQueue();
-}
-
-static void asFunc_G_Items_RespawnByType( unsigned int typeMask, int item_tag, float delay ) {
-	G_Items_RespawnByType( typeMask, item_tag, delay );
 }
 
 static void asFunc_Print( const asstring_t *str ) {
@@ -2472,9 +2378,8 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "Entity @G_GetEntity( int entNum )", asFUNCTION( asFunc_GetEntity ), NULL },
 	{ "Client @G_GetClient( int clientNum )", asFUNCTION( asFunc_GetClient ), NULL },
 	{ "Team @G_GetTeam( int team )", asFUNCTION( asFunc_GetTeamlist ), NULL },
-	{ "Item @G_GetItem( int tag )", asFUNCTION( asFunc_GS_FindItemByTag ), NULL },
+	{ "const Item @G_GetItem( int tag )", asFUNCTION( asFunc_GS_FindItemByTag ), NULL },
 	{ "const Item @G_GetItemByName( const String &in name )", asFUNCTION( asFunc_GS_FindItemByName ), NULL },
-	{ "const Item @G_GetItemByClassname( const String &in name )", asFUNCTION( asFunc_GS_FindItemByClassname ), NULL },
 	{ "array<Entity @> @G_FindInRadius( const Vec3 &in, float radius )", asFUNCTION( asFunc_G_FindInRadius ), NULL },
 	{ "array<Entity @> @G_FindByClassname( const String &in )", asFUNCTION( asFunc_G_FindByClassname ), NULL },
 
@@ -2483,7 +2388,6 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "void G_RemoveAllProjectiles()", asFUNCTION( asFunc_G_Match_RemoveAllProjectiles ), NULL },
 	{ "void G_ResetLevel()", asFUNCTION( asFunc_G_ResetLevel ), NULL },
 	{ "void G_RemoveDeadBodies()", asFUNCTION( asFunc_G_Match_FreeBodyQueue ), NULL },
-	{ "void G_Items_RespawnByType( uint typeMask, int item_tag, float delay )", asFUNCTION( asFunc_G_Items_RespawnByType ), NULL },
 
 	// misc
 	{ "void G_Print( const String &in )", asFUNCTION( asFunc_Print ), NULL },

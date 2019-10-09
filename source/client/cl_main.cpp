@@ -39,6 +39,8 @@ cvar_t *cl_shownet;
 cvar_t *cl_extrapolationTime;
 cvar_t *cl_extrapolate;
 
+static cvar_t *cl_hotloadAssets;
+
 //
 // userinfo
 //
@@ -1625,6 +1627,12 @@ static void CL_InitLocal( void ) {
 	cl_extrapolationTime =  Cvar_Get( "cl_extrapolationTime", "0", CVAR_DEVELOPER );
 	cl_extrapolate = Cvar_Get( "cl_extrapolate", "1", CVAR_ARCHIVE );
 
+#if PUBLIC_BUILD
+	cl_hotloadAssets = Cvar_Get( "cl_hotloadAssets", "0", CVAR_ARCHIVE );
+#else
+	cl_hotloadAssets = Cvar_Get( "cl_hotloadAssets", "1", CVAR_ARCHIVE );
+#endif
+
 	cl_shownet =        Cvar_Get( "cl_shownet", "0", 0 );
 	cl_timeout =        Cvar_Get( "cl_timeout", "120", 0 );
 
@@ -1722,6 +1730,8 @@ static void CL_ShutdownLocal( void ) {
 * CL_AdjustServerTime - adjust delta to new frame snap timestamp
 */
 void CL_AdjustServerTime( unsigned int gameMsec ) {
+	ZoneScoped;
+
 	// hurry up if coming late (unless in demos)
 	if( !cls.demo.playing ) {
 		if( ( cl.newServerTimeDelta < cl.serverTimeDelta ) && gameMsec > 0 ) {
@@ -1805,6 +1815,8 @@ int CL_SmoothTimeDeltas( void ) {
 * CL_UpdateSnapshot - Check for pending snapshots, and fire if needed
 */
 void CL_UpdateSnapshot( void ) {
+	ZoneScoped;
+
 	snapshot_t  *snap;
 	int i;
 
@@ -1967,6 +1979,8 @@ void CL_SendMessagesToServer( bool sendNow ) {
 * CL_NetFrame
 */
 static void CL_NetFrame( int realMsec, int gameMsec ) {
+	ZoneScoped;
+
 	// read packets from server
 	if( realMsec > 5000 ) { // if in the debugger last frame, don't timeout
 		cls.lastPacketReceivedTime = cls.realtime;
@@ -1995,7 +2009,9 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 * CL_Frame
 */
 void CL_Frame( int realMsec, int gameMsec ) {
-	MICROPROFILE_SCOPEI( "Main", "CL_Frame", 0xffffffff );
+	ZoneScoped;
+
+	TracyPlot( "Frame arena max utilisation", cls.frame_arena->max_utilisation() );
 
 	cls.frame_arena = cls.frame_arena == &cls.frame_arenas[ 0 ] ? &cls.frame_arenas[ 1 ] : &cls.frame_arenas[ 0 ];
 	cls.frame_arena->clear();
@@ -2029,6 +2045,26 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	allRealMsec += realMsec;
 	allGameMsec += gameMsec;
+
+	DoneHotloadingAssets();
+
+	if( cl_hotloadAssets->integer != 0 ) {
+		static s64 last_hotload_time = 0;
+		static bool last_focused = true;
+
+		bool focused = VID_AppIsActive();
+		bool just_became_focused = focused && !last_focused;
+
+		// hotload assets when the window regains focus or every 1 second when not focused
+		if( just_became_focused || ( !focused && cls.monotonicTime - last_hotload_time >= 1000 ) ) {
+			TempAllocator temp = cls.frame_arena->temp();
+			HotloadAssets( &temp );
+
+			last_hotload_time = cls.monotonicTime;
+		}
+
+		last_focused = focused;
+	}
 
 	CL_UpdateSnapshot();
 	CL_AdjustServerTime( gameMsec );
@@ -2194,6 +2230,8 @@ void CL_AsyncStreamRequest( const char *url, const char **headers, int timeout, 
 * CL_Init
 */
 void CL_Init( void ) {
+	ZoneScoped;
+
 	constexpr size_t frame_arena_size = 1024 * 1024;
 	void * frame_arena_memory = ALLOC_SIZE( sys_allocator, frame_arena_size * 2, 16 );
 	cls.frame_arenas[ 0 ] = ArenaAllocator( frame_arena_memory, frame_arena_size );
@@ -2212,8 +2250,6 @@ void CL_Init( void ) {
 		TempAllocator temp = cls.frame_arena->temp();
 		InitAssets( &temp );
 	}
-
-	CL_Profiler_Init();
 
 	Con_Init();
 
@@ -2292,8 +2328,6 @@ void CL_Shutdown( void ) {
 	SCR_ShutdownScreen();
 
 	Con_Shutdown();
-
-	CL_Profiler_Shutdown();
 
 	ShutdownAssets();
 

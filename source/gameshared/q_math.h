@@ -130,8 +130,6 @@ float Unlerp( T lo, T x, T hi ) {
 	return float( x - lo ) / float( hi - lo );
 }
 
-int Q_log2( int val );
-
 #define SQRTFAST( x ) ( ( x ) * Q_RSqrt( x ) ) // jal : //The expression a * rsqrt(b) is intended as a higher performance alternative to a / sqrt(b). The two expressions are comparably accurate, but do not compute exactly the same value in every case. For example, a * rsqrt(a*a + b*b) can be just slightly greater than 1, in rare cases.
 
 #define DotProduct( x, y )     ( ( x )[0] * ( y )[0] + ( x )[1] * ( y )[1] + ( x )[2] * ( y )[2] )
@@ -181,19 +179,9 @@ float RadiusFromBounds( const vec3_t mins, const vec3_t maxs );
 bool BoundsOverlap( const vec3_t mins1, const vec3_t maxs1, const vec3_t mins2, const vec3_t maxs2 );
 bool BoundsOverlapSphere( const vec3_t mins, const vec3_t maxs, const vec3_t centre, float radius );
 
-// LordHavoc's triangle utility functions follow
-
-#define TriangleNormal(a,b,c,n) ( \
-	(n)[0] = ((a)[1] - (b)[1]) * ((c)[2] - (b)[2]) - ((a)[2] - (b)[2]) * ((c)[1] - (b)[1]), \
-	(n)[1] = ((a)[2] - (b)[2]) * ((c)[0] - (b)[0]) - ((a)[0] - (b)[0]) * ((c)[2] - (b)[2]), \
-	(n)[2] = ((a)[0] - (b)[0]) * ((c)[1] - (b)[1]) - ((a)[1] - (b)[1]) * ((c)[0] - (b)[0]) \
-	)
-
 #define NUMVERTEXNORMALS    162
 int DirToByte( vec3_t dir );
 void ByteToDir( int b, vec3_t dir );
-
-void NormToLatLong( const vec3_t normal, float latlong[2] );
 
 void OrthonormalBasis( const vec3_t forward, vec3_t right, vec3_t up );
 void ViewVectors( const vec3_t forward, vec3_t right, vec3_t up );
@@ -250,3 +238,6 @@ void Matrix3_Multiply( const mat3_t m1, const mat3_t m2, mat3_t out );
 void Matrix3_TransformVector( const mat3_t m, const vec3_t v, vec3_t out );
 void Matrix3_Transpose( const mat3_t in, mat3_t out );
 void Matrix3_FromAngles( const vec3_t angles, mat3_t m );
+
+float PositiveMod( float x, float y );
+double PositiveMod( double x, double y );

@@ -654,6 +654,8 @@ void Qcommon_ShutdownCommands( void ) {
 * Qcommon_Init
 */
 void Qcommon_Init( int argc, char **argv ) {
+	ZoneScoped;
+
 	if( setjmp( abortframe ) ) {
 		Sys_Error( "Error during initialization: %s", com_errormsg );
 	}
@@ -766,7 +768,7 @@ void Qcommon_Init( int argc, char **argv ) {
 * Qcommon_Frame
 */
 void Qcommon_Frame( unsigned int realMsec ) {
-	MICROPROFILE_SCOPEI( "Main", "Qcommon_Frame", 0xffffffff );
+	ZoneScoped;
 
 	int time_before = 0, time_between = 0, time_after = 0;
 	static unsigned int gameMsec;

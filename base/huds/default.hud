@@ -27,8 +27,6 @@ include bomb_progress
 
 include chasing
 
-include teammate_indicators
-
 include speed
 include fps
 include download

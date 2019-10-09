@@ -218,6 +218,8 @@ static bool ParseBSP( BSPSpans * bsp, Span< const u8 > data ) {
 }
 
 static float ParseFogStrength( const BSPSpans * bsp ) {
+	ZoneScoped;
+
 	float default_fog_strength = 0.000015f;
 
 	Span< const char > cursor = bsp->entities;
@@ -312,6 +314,8 @@ static bool SortByMaterial( const BSPDrawCall & a, const BSPDrawCall & b ) {
 }
 
 static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSpans & bsp, u64 base_hash, size_t model_idx ) {
+	ZoneScoped;
+
 	const BSPModel & bsp_model = bsp.models[ model_idx ];
 	if( bsp_model.num_faces == 0 )
 		return;
@@ -378,6 +382,8 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 		}
 
 		if( dc.patch ) {
+			ZoneScopedN( "Generate patch" );
+
 			u32 num_patches_x = ( dc.patch_width - 1 ) / 2;
 			u32 num_patches_y = ( dc.patch_height - 1 ) / 2;
 
@@ -475,7 +481,8 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 }
 
 bool LoadBSPMap( MapMetadata * map, const char * path ) {
-	MICROPROFILE_SCOPEI( "Assets", "LoadBSPMap", 0xffffffff );
+	ZoneScoped;
+	ZoneText( path, strlen( path ) );
 
 	StringHash hash = StringHash( path );
 	Span< const u8 > compressed = AssetBinary( hash );
@@ -494,10 +501,13 @@ bool LoadBSPMap( MapMetadata * map, const char * path ) {
 		}
 
 		decompressed = ALLOC_SPAN( sys_allocator, u8, decompressed_size );
-		size_t r = ZSTD_decompress( decompressed.ptr, decompressed.n, compressed.ptr, compressed.n );
-		if( r != decompressed_size ) {
-			// ri.Com_Error( ERR_DROP, "Failed to decompress BSP: %s", ZSTD_getErrorName( r ) );
-			return false;
+		{
+			ZoneScopedN( "ZSTD_decompress" );
+			size_t r = ZSTD_decompress( decompressed.ptr, decompressed.n, compressed.ptr, compressed.n );
+			if( r != decompressed_size ) {
+				// ri.Com_Error( ERR_DROP, "Failed to decompress BSP: %s", ZSTD_getErrorName( r ) );
+				return false;
+			}
 		}
 	}
 

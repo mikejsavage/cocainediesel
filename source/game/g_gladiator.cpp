@@ -68,5 +68,6 @@ void SP_spikes( edict_t * spikes ) {
 	VectorCopy( spikes->s.origin, base->s.origin );
 	VectorCopy( spikes->s.angles, base->s.angles );
 	base->s.modelindex = trap_ModelIndex( "models/objects/spikes/base" );
+	base->s.effects = EF_WORLD_MODEL;
 	GClip_LinkEntity( base );
 }

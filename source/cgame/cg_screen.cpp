@@ -371,10 +371,6 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			continue;
 		}
 
-		if( cent->current.effects & EF_PLAYER_HIDENAME ) {
-			continue;
-		}
-
 		// only show the pointed player
 		if( !cg_showPlayerNames->integer && ( cent->current.number != cg.pointedNum ) ) {
 			continue;
@@ -473,82 +469,6 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			// 	CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight, pointed_health, 100, alphagreen, NULL );
 			// }
 		}
-	}
-}
-
-/*
-* CG_DrawTeamMates
-*/
-void CG_DrawTeamMates() {
-	centity_t *cent;
-	vec3_t dir, drawOrigin;
-	int i;
-	int pic_size = 18 * frame_static.viewport_height / 600;
-
-	if( cg.predictedPlayerState.stats[STAT_TEAM] < TEAM_ALPHA ) {
-		return;
-	}
-
-	for( i = 0; i < gs.maxclients; i++ ) {
-		trace_t trace;
-
-		if( !cgs.clientInfo[i].name[0] || ISVIEWERENTITY( i + 1 ) ) {
-			continue;
-		}
-
-		cent = &cg_entities[i + 1];
-		if( cent->serverFrame != cg.frame.serverFrame ) {
-			continue;
-		}
-
-		if( cent->current.team != cg.predictedPlayerState.stats[STAT_TEAM] ) {
-			continue;
-		}
-
-		VectorSet( drawOrigin, cent->ent.origin[0], cent->ent.origin[1], cent->ent.origin[2] + playerbox_stand_maxs[2] + 16 );
-		VectorSubtract( drawOrigin, cg.view.origin, dir );
-
-		// ignore, if not in view
-		if( DotProduct( dir, &cg.view.axis[AXIS_FORWARD] ) < 0 ) {
-			continue;
-		}
-
-		if( !cent->current.modelindex || !cent->current.solid ||
-			cent->current.solid == SOLID_BMODEL || cent->current.team == TEAM_SPECTATOR ) {
-			continue;
-		}
-
-		// players might be SVF_FORCETEAM'ed for teammates, prevent ugly flickering for specs
-		if( cg.predictedPlayerState.stats[STAT_REALTEAM] == TEAM_SPECTATOR && !trap_CM_InPVS( cg.view.origin, cent->ent.origin ) ) {
-			continue;
-		}
-
-		// find the 3d point in 2d screen
-		Vec2 coords = WorldToScreen( FromQF3( drawOrigin ) );
-		if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {
-			continue;
-		}
-
-		CG_Trace( &trace, cg.view.origin, vec3_origin, vec3_origin, cent->ent.origin, cg.predictedPlayerState.POVnum, MASK_OPAQUE );
-		if( trace.fraction == 1.0f ) {
-			continue;
-		}
-
-		coords.x -= pic_size / 2;
-		coords.y -= pic_size / 2;
-		coords.x = Clamp( 0.0f, coords.x, float( frame_static.viewport_width - pic_size ) );
-		coords.y = Clamp( 0.0f, coords.y, float( frame_static.viewport_height - pic_size ) );
-
-		Vec4 color = CG_TeamColorVec4( cg.predictedPlayerState.stats[STAT_TEAM] );
-
-		const Material * material;
-		if( cent->current.effects & EF_CARRIER ) {
-			material = cgs.media.shaderTeamCarrierIndicator;
-		} else {
-			material = cgs.media.shaderTeamMateIndicator;
-		}
-
-		Draw2DBox( frame_static.ui_pass, coords.x, coords.y, pic_size, pic_size, material, color );
 	}
 }
 
@@ -894,7 +814,7 @@ void CG_DrawHUD() {
 * CG_Draw2DView
 */
 void CG_Draw2DView( void ) {
-	MICROPROFILE_SCOPEI( "Main", "CG_Draw2DView", 0xffffffff );
+	ZoneScoped;
 
 	if( !cg.view.draw2D ) {
 		return;

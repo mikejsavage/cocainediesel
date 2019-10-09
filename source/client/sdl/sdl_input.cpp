@@ -1,8 +1,5 @@
 #include "client/client.h"
-#include "microprofile/microprofileui.h"
 #include "sdl/SDL.h"
-
-cvar_t *in_disablemacosxmouseaccel;
 
 extern SDL_Window * sdl_window;
 
@@ -438,8 +435,6 @@ void IN_Init() {
 
 	assert( !input_inited );
 
-	in_disablemacosxmouseaccel = Cvar_Get( "in_disablemacosxmouseaccel", "1", CVAR_ARCHIVE );
-
 	SDL_GetVersion( &linked );
 
 	running_in_debugger = being_debugged();
@@ -470,11 +465,7 @@ void IN_Shutdown() {
 void IN_Frame() {
 	assert( input_inited );
 
-	if( MicroProfileIsDrawing() ) {
-		SDL_SetRelativeMouseMode( SDL_FALSE );
-		SDL_ShowCursor( SDL_ENABLE );
-	}
-	else if( cls.key_dest == key_game && input_focus ) {
+	if( cls.key_dest == key_game && input_focus ) {
 		if( running_in_debugger ) {
 			// don't grab input if we're running a debugger
 			IN_WarpMouseToCenter();
@@ -501,10 +492,4 @@ void IN_Frame() {
 	break2 = keys[ SDL_SCANCODE_F2 ];
 	break3 = keys[ SDL_SCANCODE_F3 ];
 	break4 = keys[ SDL_SCANCODE_F4 ];
-
-	if( MicroProfileIsDrawing() ) {
-		u32 buttons = SDL_GetMouseState( NULL, NULL );
-		MicroProfileMousePosition( mx, my, rw );
-		MicroProfileMouseButton( ( buttons & SDL_BUTTON_LMASK ) > 0 ? 1 : 0, ( buttons & SDL_BUTTON_LMASK ) > 0 ? 1 : 0 );
-	}
 }

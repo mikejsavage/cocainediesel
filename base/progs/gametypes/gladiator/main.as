@@ -820,8 +820,8 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team )
 	if ( ent.isGhosting() )
 		return;
 
-	Item @item;
-	Item @ammoItem;
+	const Item @item;
+	const Item @ammoItem;
 
 	if ( match.getState() == MATCH_STATE_PLAYTIME )
 	{
@@ -951,11 +951,6 @@ void GT_InitGametype()
 {
 	daRound.init();
 
-	gametype.spawnableItemsMask = 0;
-	gametype.respawnableItemsMask = 0;
-	gametype.dropableItemsMask = 0;
-	gametype.pickableItemsMask = 0;
-
 	gametype.isTeamBased = false;
 	gametype.isRace = false;
 	gametype.hasChallengersQueue = false;
@@ -1014,5 +1009,5 @@ void GT_InitGametype()
 	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/drillbit", true ) );
 	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/demo", true ) );
 
-	crownModel = G_ModelIndex( "models/objects/crown.glb", true );
+	crownModel = G_ModelIndex( "models/objects/crown", true );
 }

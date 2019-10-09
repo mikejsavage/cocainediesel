@@ -68,7 +68,6 @@ typedef struct {
 
 	entity_t ent;                   // interpolated, to be added to render list
 	unsigned int type;
-	unsigned int renderfx;
 	unsigned int effects;
 
 	vec3_t velocity;
@@ -79,8 +78,6 @@ typedef struct {
 	int microSmooth;
 	vec3_t microSmoothOrigin;
 	vec3_t microSmoothOrigin2;
-
-	const gsitem_t *item;
 
 	// effects
 	vec3_t trailOrigin;         // for particle trails
@@ -322,6 +319,8 @@ typedef struct {
 
 	const Model *modelDraw[MAX_MODELS];
 
+	const MapMetadata * map;
+
 	PlayerModelMetadata *pModelsIndex[MAX_MODELS];
 	PlayerModelMetadata *basePModelInfo; //fall back replacements
 
@@ -470,9 +469,7 @@ void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity );
 void CG_LerpEntities( void );
 void CG_LerpGenericEnt( centity_t *cent );
 
-void CG_AddLinkedModel( centity_t * cent, const orientation_t * tag );
 void CG_AddColoredOutLineEffect( entity_t *ent, int effects, uint8_t r, uint8_t g, uint8_t b, uint8_t a );
-void CG_AddCentityOutLineEffect( centity_t *cent );
 
 //
 // cg_draw.c
@@ -540,7 +537,6 @@ int CG_ParseValue( const char **s );
 
 void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float font_size, Vec4 color, bool border );
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border );
-void CG_DrawTeamMates();
 void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color );
 
 void CG_ClearPointedNum( void );
@@ -589,8 +585,6 @@ extern cvar_t *cg_volume_hitsound;    // hit sound volume
 extern cvar_t *cg_autoaction_demo;
 extern cvar_t *cg_autoaction_screenshot;
 extern cvar_t *cg_autoaction_spectator;
-extern cvar_t *cg_simpleItems; // simple items
-extern cvar_t *cg_simpleItemsSize; // simple items
 extern cvar_t *cg_volume_players; // players sound volume
 extern cvar_t *cg_volume_effects; // world sound volume
 extern cvar_t *cg_volume_announcer; // announcer sounds volume
@@ -609,7 +603,6 @@ extern cvar_t *cg_outlineModels;
 extern cvar_t *cg_outlineWorld;
 extern cvar_t *cg_outlinePlayers;
 
-extern cvar_t *cg_drawEntityBoxes;
 extern cvar_t *cg_fov;
 extern cvar_t *cg_zoomfov;
 extern cvar_t *cg_particles;
@@ -631,7 +624,6 @@ extern cvar_t *cg_enemyForceModel;
 void CG_Init( const char *serverName, unsigned int playerNum,
 			  bool demoplaying, const char *demoName, bool pure, unsigned snapFrameTime );
 void CG_Shutdown( void );
-void CG_ValidateItemDef( int tag, char *name );
 
 #ifndef _MSC_VER
 void CG_Printf( const char *format, ... ) __attribute( ( format( printf, 1, 2 ) ) );
@@ -724,7 +716,7 @@ void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, int team, float rad
 void CG_GrenadeExplosionMode( const vec3_t pos, const vec3_t dir, float radius, int team );
 void CG_GenericExplosion( const vec3_t pos, const vec3_t dir, float radius );
 void CG_RocketExplosionMode( const vec3_t pos, const vec3_t dir, float radius, int team );
-void CG_EBBeam( const vec3_t start, const vec3_t end, int team );
+void CG_EBBeam( Vec3 start, Vec3 end, int team );
 void CG_EBImpact( const vec3_t pos, const vec3_t dir, int surfFlags, int team );
 void CG_ImpactSmokePuff( const vec3_t origin, const vec3_t dir, float radius, float alpha, int time, int speed );
 void CG_BladeImpact( const vec3_t pos, const vec3_t dir );
@@ -751,18 +743,6 @@ int CG_SpawnDecal( const vec3_t origin, const vec3_t dir, float orient, float ra
 void CG_AddDecals( void );
 
 //
-// cg_polys.c	-	wsw	: jal
-//
-void CG_ClearPolys( void );
-void CG_AddPolys( void );
-void CG_KillPolyBeamsByTag( int key );
-void CG_SpawnPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color,
-	int width, int64_t dietime, int64_t fadetime, const Material * material, int shaderlength, int tag );
-void CG_QuickPolyBeam( const vec3_t start, const vec3_t end, int width, const Material * material );
-void CG_LGPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color, int tag );
-void CG_EBPolyBeam( const vec3_t start, const vec3_t end, const vec4_t color );
-
-//
 // cg_effects.c
 //
 void CG_ClearEffects( void );
@@ -780,19 +760,19 @@ void CG_AddParticles( void );
 void CG_ParticleEffect( const vec3_t org, const vec3_t dir, float r, float g, float b, int count );
 void CG_ParticleEffect2( const vec3_t org, const vec3_t dir, float r, float g, float b, int count );
 void CG_ParticleExplosionEffect( const vec3_t org, const vec3_t dir, float r, float g, float b, int count );
-void CG_BlasterTrail( const vec3_t start, const vec3_t end );
 void CG_FlyEffect( centity_t *ent, const vec3_t origin );
-void CG_EBIonsTrail( const vec3_t start, const vec3_t end, const vec4_t color );
+void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color );
 void CG_ImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, const Material * material );
 void CG_HighVelImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, const Material * material );
 
-//
-// cg_test.c - debug only
-//
-#ifndef PUBLIC_BUILD
-void CG_DrawTestLine( const vec3_t start, const vec3_t end );
-void CG_DrawTestBox( const vec3_t origin, const vec3_t mins, const vec3_t maxs, const vec3_t angles );
-#endif
+void InitParticles();
+void DrawParticles();
+
+void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material );
+
+void InitPersistentBeams();
+void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material, float duration, float fade_time );
+void DrawPersistentBeams();
 
 //
 //	cg_vweap.c - client weapon

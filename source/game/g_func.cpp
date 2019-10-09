@@ -768,6 +768,8 @@ void SP_func_door( edict_t *ent ) {
 		}
 	}
 
+	ent->s.effects = EF_WORLD_MODEL;
+
 	// calculate second position
 	VectorCopy( ent->s.origin, ent->moveinfo.start_origin );
 	abs_movedir[0] = fabs( ent->moveinfo.movedir[0] );
@@ -1397,6 +1399,7 @@ void SP_func_train( edict_t *self ) {
 
 	self->moveinfo.speed = self->speed;
 	self->use = train_use;
+	self->s.effects = EF_WORLD_MODEL;
 
 	GClip_LinkEntity( self );
 

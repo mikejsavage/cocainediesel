@@ -104,8 +104,6 @@ void CG_ConfigString( int i, const char *s ) {
 		cgs.soundPrecache[i - CS_SOUNDS] = S_RegisterSound( cgs.configStrings[i] );
 	} else if( i >= CS_IMAGES && i < CS_IMAGES + MAX_IMAGES ) {
 		cgs.imagePrecache[i - CS_IMAGES] = FindMaterial( cgs.configStrings[i] );
-	} else if( i >= CS_ITEMS && i < CS_ITEMS + MAX_ITEMS ) {
-		CG_ValidateItemDef( i - CS_ITEMS, cgs.configStrings[i] );
 	} else if( i >= CS_PLAYERINFOS && i < CS_PLAYERINFOS + MAX_CLIENTS ) {
 		CG_LoadClientInfo( i - CS_PLAYERINFOS );
 	} else if( i >= CS_GAMECOMMANDS && i < CS_GAMECOMMANDS + MAX_GAMECOMMANDS ) {
@@ -134,7 +132,7 @@ static void CG_SC_PrintPlayerStats( const char *s, void ( *print )( const char *
 	int playerNum;
 	int i, shot_strong, hit_total, shot_total;
 	int total_damage_given, total_damage_received;
-	gsitem_t *item;
+	const gsitem_t *item;
 
 	playerNum = CG_ParseValue( &s );
 	if( playerNum < 0 || playerNum >= gs.maxclients ) {

@@ -53,17 +53,21 @@ int main( int argc, char **argv ) {
 #endif
 #endif
 
-	SDL_Init( SDL_INIT_VIDEO );
+	{
+		ZoneScopedN( "SDL_Init" );
+		SDL_Init( SDL_INIT_VIDEO );
+	}
 
 	Qcommon_Init( argc, argv );
 
 	oldtime = Sys_Milliseconds();
 	while( true ) {
-		CL_Profiler_Flip();
+		FrameMark;
 
 		int time;
 		{
-			MICROPROFILE_SCOPEI( "Main", "Interframe", 0xffff0000 );
+			ZoneScopedN( "Interframe" );
+
 			// find time spent rendering last frame
 			do {
 				newtime = Sys_Milliseconds();

@@ -294,46 +294,37 @@ static void G_SnapEntities( void ) {
 
 			//spawn accumulated damage
 			if( ent->snap.damage_taken && !( ent->flags & FL_GODMODE ) && HEALTH_TO_INT( ent->health ) > 0 ) {
-				edict_t *event;
-				float damage = ent->snap.damage_taken;
-				if( damage > 120 ) {
-					damage = 120;
-				}
+				float damage = Min2( ent->snap.damage_taken, 120.0f );
 
 				VectorCopy( ent->snap.damage_dir, dir );
 				VectorNormalize( dir );
 				VectorAdd( ent->s.origin, ent->snap.damage_at, origin );
 
 				if( ent->s.type == ET_PLAYER || ent->s.type == ET_CORPSE ) {
-					event = G_SpawnEvent( EV_BLOOD, DirToByte( dir ), origin );
+					edict_t * event = G_SpawnEvent( EV_BLOOD, DirToByte( dir ), origin );
 					event->s.damage = HEALTH_TO_INT( damage );
 					event->s.ownerNum = i; // set owner
 					event->s.team = ent->s.team;
 
 					// ET_PLAYERS can also spawn sound events
-					if( ent->s.type == ET_PLAYER ) {
+					if( ent->s.type == ET_PLAYER && !G_IsDead( ent ) ) {
 						// play an apropriate pain sound
 						if( level.time >= ent->pain_debounce_time ) {
-							// see if it should pain for a FALL or for damage received
-							if( ent->snap.damage_fall ) {
-								ent->pain_debounce_time = level.time + 200;
-							} else if( !G_IsDead( ent ) ) {
-								if( ent->health <= 20 ) {
-									G_AddEvent( ent, EV_PAIN, PAIN_20, true );
-								} else if( ent->health <= 35 ) {
-									G_AddEvent( ent, EV_PAIN, PAIN_30, true );
-								} else if( ent->health <= 80 ) {
-									G_AddEvent( ent, EV_PAIN, PAIN_60, true );
-								} else {
-									G_AddEvent( ent, EV_PAIN, PAIN_100, true );
-								}
-
-								ent->pain_debounce_time = level.time + 400;
+							if( ent->health <= 20 ) {
+								G_AddEvent( ent, EV_PAIN, PAIN_20, true );
+							} else if( ent->health <= 35 ) {
+								G_AddEvent( ent, EV_PAIN, PAIN_35, true );
+							} else if( ent->health <= 80 ) {
+								G_AddEvent( ent, EV_PAIN, PAIN_80, true );
+							} else {
+								G_AddEvent( ent, EV_PAIN, PAIN_100, true );
 							}
+
+							ent->pain_debounce_time = level.time + 400;
 						}
 					}
 				} else {
-					event = G_SpawnEvent( EV_SPARKS, DirToByte( dir ), origin );
+					edict_t * event = G_SpawnEvent( EV_SPARKS, DirToByte( dir ), origin );
 					event->s.damage = HEALTH_TO_INT( damage );
 				}
 			}

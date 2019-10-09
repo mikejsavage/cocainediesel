@@ -16,26 +16,6 @@ textures/wsw_city1/wires1
 	}
 }
 
-textures/wsw_city1/lighthalo1_high
-{
-	qer_editorimage textures/wsw_flareshalos/glow_halo_white
-	cull none
-	surfaceparm nomarks
-	surfaceparm trans
-	surfaceparm nonsolid
-	surfaceparm nolightmap
-	deformVertexes autosprite2
-	forceoverlays
-	qer_trans 0.6
-
-	{
-		detail
-		clampmap textures/wsw_flareshalos/glow_halo_white
-		blendfunc add
-		rgbgen wave distanceramp 0 1 20 350
-	}
-}
-
 textures/wsw_city1/grate_nosolid
 {
 	qer_editorimage textures/wsw_city1/grate
@@ -111,26 +91,5 @@ textures/wsw_city1/light_bulb_top
 		blendfunc blend
 		rgbGen lightingIdentity
 		alphaFunc GT0
-	}
-}
-
-textures/wsw_city1/light_bulb_corona
-{
-	qer_editorimage textures/wsw_city1/light_bulb_corona
-	qer_trans 0.1
-	surfaceparm nolightmap
-	surfaceparm trans
-	surfaceparm nomarks
-	surfaceparm nonsolid
-	//cull none
-	sort 7
-
-	deformVertexes autosprite
-
-	{
-		detail
-		clampmap textures/wsw_city1/light_bulb_corona
-		blendFunc GL_ONE GL_ONE_MINUS_SRC_COLOR
-		rgbgen wave distanceramp 0.5 1 0 400
 	}
 }

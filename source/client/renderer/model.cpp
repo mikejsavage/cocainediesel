@@ -17,6 +17,8 @@ static u32 num_maps;
 static Hashtable< MAX_MAPS * 2 > maps_hashtable;
 
 void InitModels() {
+	ZoneScoped;
+
 	num_models = 0;
 	num_maps = 0;
 
@@ -117,14 +119,14 @@ void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive
 void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices ) {
 	bool skinned = skinning_matrices.ptr != NULL;
 
-	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform, color );
+	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
 	UniformBlock pose_uniforms;
 	if( skinned ) {
 		pose_uniforms = UploadUniforms( skinning_matrices.ptr, skinning_matrices.num_bytes() );
 	}
 
 	for( u32 i = 0; i < model->num_primitives; i++ ) {
-		PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material, skinned );
+		PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material, color, skinned );
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 		pipeline.set_uniform( "u_Model", model_uniforms );
 		if( skinned ) {
@@ -138,8 +140,8 @@ void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color,
 void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, Span< const Mat4 > skinning_matrices ) {
 	bool skinned = skinning_matrices.ptr != NULL;
 
-	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform, color );
-	UniformBlock outline_uniforms = UploadUniformBlock( outline_height );
+	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
+	UniformBlock outline_uniforms = UploadUniformBlock( color, outline_height );
 	UniformBlock pose_uniforms;
 	if( skinned ) {
 		pose_uniforms = UploadUniforms( skinning_matrices.ptr, skinning_matrices.num_bytes() );
@@ -153,6 +155,32 @@ void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 		pipeline.set_uniform( "u_Model", model_uniforms );
 		pipeline.set_uniform( "u_Outline", outline_uniforms );
+		if( skinned ) {
+			pipeline.set_uniform( "u_Pose", pose_uniforms );
+		}
+
+		DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+	}
+}
+
+void DrawTeammateModel( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices ) {
+	bool skinned = skinning_matrices.ptr != NULL;
+
+	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
+	UniformBlock material_uniforms = UploadMaterialUniforms( color, Vec2( 0 ), 0.0f );
+	UniformBlock pose_uniforms;
+	if( skinned ) {
+		pose_uniforms = UploadUniforms( skinning_matrices.ptr, skinning_matrices.num_bytes() );
+	}
+
+	for( u32 i = 0; i < model->num_primitives; i++ ) {
+		PipelineState pipeline;
+		pipeline.shader = &shaders.teammate_write_gbuffer_skinned;
+		pipeline.pass = frame_static.teammate_write_gbuffer_pass;
+		pipeline.write_depth = false;
+		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+		pipeline.set_uniform( "u_Model", model_uniforms );
+		pipeline.set_uniform( "u_Material", material_uniforms );
 		if( skinned ) {
 			pipeline.set_uniform( "u_Pose", pose_uniforms );
 		}
@@ -187,7 +215,9 @@ static T SampleAnimationChannel( const Model::AnimationChannel< T > & channel, f
 static Vec3 LerpVec3( Vec3 a, float t, Vec3 b ) { return Lerp( a, t, b ); }
 static float LerpFloat( float a, float t, float b ) { return Lerp( a, t, b ); }
 
-Span< TRS > SampleAnimation( ArenaAllocator * a, const Model * model, float t ) {
+Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t ) {
+	ZoneScoped;
+
 	Span< TRS > local_poses = ALLOC_SPAN( a, TRS, model->num_joints );
 
 	for( u8 i = 0; i < model->num_joints; i++ ) {
@@ -226,7 +256,9 @@ static Mat4 TRSToMat4( const TRS & trs ) {
 	);
 }
 
-MatrixPalettes ComputeMatrixPalettes( ArenaAllocator * a, const Model * model, Span< TRS > local_poses ) {
+MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< TRS > local_poses ) {
+	ZoneScoped;
+
 	assert( local_poses.n == model->num_joints );
 
 	MatrixPalettes palettes;
@@ -271,7 +303,6 @@ static void MergePosesRecursive( Span< TRS > lower, Span< const TRS > upper, con
 }
 
 void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const Model * model, u8 upper_root_joint ) {
-
 	lower[ upper_root_joint ] = upper[ upper_root_joint ];
 
 	const Model::Joint & joint = model->joints[ upper_root_joint ];

@@ -68,9 +68,9 @@ void announceDef( Announcement announcement ) {
 }
 
 void mediaInit() {
-	modelBombModel = G_ModelIndex( "models/objects/misc/bomb_centered.glb", true );
-	modelBombModelActive = G_ModelIndex( "models/objects/misc/bomb_centered_active.glb", true );
-	modelBombBackpack = G_ModelIndex( "models/objects/misc/bomb.glb", true );
+	modelBombModel = G_ModelIndex( "models/objects/misc/bomb_centered", true );
+	modelBombModelActive = G_ModelIndex( "models/objects/misc/bomb_centered_active", true );
+	modelBombBackpack = G_ModelIndex( "models/objects/misc/bomb", true );
 
 	imgBombDecal = G_ImageIndex( "gfx/indicators/radar_decal" );
 

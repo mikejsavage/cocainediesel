@@ -148,7 +148,7 @@ static void Shader_SkipLine( const char ** ptr ) {
 }
 
 static Wave Shader_ParseWave( const char ** ptr ) {
-	Wave wave;
+	Wave wave = { };
 	const char * token = Shader_ParseString( ptr );
 	if( !strcmp( token, "sin" ) ) {
 		wave.type = WaveFunc_Sin;
@@ -156,20 +156,11 @@ static Wave Shader_ParseWave( const char ** ptr ) {
 	else if( !strcmp( token, "triangle" ) ) {
 		wave.type = WaveFunc_Triangle;
 	}
-	else if( !strcmp( token, "square" ) ) {
-		wave.type = WaveFunc_Square;
-	}
 	else if( !strcmp( token, "sawtooth" ) ) {
 		wave.type = WaveFunc_Sawtooth;
 	}
 	else if( !strcmp( token, "inversesawtooth" ) ) {
 		wave.type = WaveFunc_InverseSawtooth;
-	}
-	else if( !strcmp( token, "noise" ) ) {
-		wave.type = WaveFunc_Noise;
-	}
-	else {
-		wave.type = WaveFunc_None;
 	}
 
 	wave.args[ 0 ] = Shader_ParseFloat( ptr );
@@ -349,9 +340,6 @@ static void Shaderpass_RGBGen( Material * material, const char * name, const cha
 	const char * token = Shader_ParseString( ptr );
 	if( !strcmp( token, "wave" ) ) {
 		material->rgbgen.type = ColorGenType_Wave;
-		material->rgbgen.args[0] = 1.0f;
-		material->rgbgen.args[1] = 1.0f;
-		material->rgbgen.args[2] = 1.0f;
 		material->rgbgen.wave = Shader_ParseWave( ptr );
 	}
 	else if( !strcmp( token, "colorwave" ) ) {
@@ -360,16 +348,12 @@ static void Shaderpass_RGBGen( Material * material, const char * name, const cha
 		material->rgbgen.wave = Shader_ParseWave( ptr );
 	}
 	else if( !strcmp( token, "entity" ) ) {
-		material->rgbgen.type = ColorGenType_EntityWave;
-		material->rgbgen.wave.type = WaveFunc_None;
+		material->rgbgen.type = ColorGenType_Entity;
 	}
 	else if( !strcmp( token, "entitycolorwave" ) ) {
 		material->rgbgen.type = ColorGenType_EntityWave;
 		Shader_ParseVector( ptr, material->rgbgen.args, 3 );
 		material->rgbgen.wave = Shader_ParseWave( ptr );
-	}
-	else if( !strcmp( token, "vertex" ) ) {
-		material->rgbgen.type = ColorGenType_Vertex;
 	}
 	else if( !strcmp( token, "const" ) ) {
 		material->rgbgen.type = ColorGenType_Constant;
@@ -381,10 +365,7 @@ static void Shaderpass_RGBGen( Material * material, const char * name, const cha
 
 static void Shaderpass_AlphaGen( Material * material, const char * name, const char ** ptr ) {
 	const char * token = Shader_ParseString( ptr );
-	if( !strcmp( token, "vertex" ) ) {
-		material->alphagen.type = ColorGenType_Vertex;
-	}
-	else if( !strcmp( token, "entity" ) ) {
+	if( !strcmp( token, "entity" ) ) {
 		material->alphagen.type = ColorGenType_EntityWave;
 	}
 	else if( !strcmp( token, "wave" ) ) {
@@ -398,47 +379,32 @@ static void Shaderpass_AlphaGen( Material * material, const char * name, const c
 }
 
 static void Shaderpass_TcMod( Material * material, const char * name, const char ** ptr ) {
-	if( material->num_tcmods == ARRAY_COUNT( material->tcmods ) ) {
-		Com_Printf( S_COLOR_YELLOW "WARNING: material %s has too many tcmods\n", name );
+	if( material->tcmod.type != TCModFunc_None ) {
+		Com_Printf( S_COLOR_YELLOW "WARNING: material %s has multiple tcmods\n", name );
 		Shader_SkipLine( ptr );
 		return;
 	}
 
-	TCMod * tcmod = &material->tcmods[ material->num_tcmods ];
-
 	const char * token = Shader_ParseString( ptr );
 	if( !strcmp( token, "rotate" ) ) {
-		tcmod->args[0] = -Shader_ParseFloat( ptr ) / 360.0f;
-		if( !tcmod->args[0] ) {
+		material->tcmod.args[0] = -Shader_ParseFloat( ptr );
+		if( !material->tcmod.args[0] ) {
 			return;
 		}
-		tcmod->type = TCModFunc_Rotate;
-	}
-	else if( !strcmp( token, "scale" ) ) {
-		Shader_ParseVector( ptr, tcmod->args, 2 );
-		tcmod->type = TCModFunc_Scale;
+		material->tcmod.type = TCModFunc_Rotate;
 	}
 	else if( !strcmp( token, "scroll" ) ) {
-		Shader_ParseVector( ptr, tcmod->args, 2 );
-		tcmod->type = TCModFunc_Scroll;
+		Shader_ParseVector( ptr, material->tcmod.args, 2 );
+		material->tcmod.type = TCModFunc_Scroll;
 	}
 	else if( !strcmp( token, "stretch" ) ) {
-		Wave wave = Shader_ParseWave( ptr );
-		tcmod->args[0] = wave.type;
-		for( int i = 1; i < 5; i++ )
-			tcmod->args[ i ] = wave.args[ i - 1 ];
-		tcmod->type = TCModFunc_Stretch;
-	}
-	else if( !strcmp( token, "turb" ) ) {
-		Shader_ParseVector( ptr, tcmod->args, 4 );
-		tcmod->type = TCModFunc_Turb;
+		material->tcmod.wave = Shader_ParseWave( ptr );
+		material->tcmod.type = TCModFunc_Stretch;
 	}
 	else {
 		Shader_SkipLine( ptr );
 		return;
 	}
-
-	material->num_tcmods++;
 }
 
 static const MaterialSpecKey shaderpasskeys[] = {
@@ -477,7 +443,12 @@ static bool Shader_Parsetok( Material * material, const char * name, const Mater
 
 static void Shader_Readpass( Material * material, const char * name, const char ** ptr ) {
 	material->rgbgen.type = ColorGenType_Constant;
-	material->alphagen.type = ColorGenType_Unknown;
+	material->rgbgen.args[ 0 ] = 1.0f;
+	material->rgbgen.args[ 1 ] = 1.0f;
+	material->rgbgen.args[ 2 ] = 1.0f;
+
+	material->alphagen.type = ColorGenType_Constant;
+	material->rgbgen.args[ 0 ] = 1.0f;
 
 	while( ptr ) {
 		const char * token = COM_ParseExt( ptr, true );
@@ -491,18 +462,11 @@ static void Shader_Readpass( Material * material, const char * name, const char 
 			break;
 		}
 	}
-
-	if( material->alphagen.type == ColorGenType_Unknown ) {
-		if( material->rgbgen.type == ColorGenType_Vertex ) {
-			material->alphagen.type = ColorGenType_Vertex;
-		}
-		else {
-			material->alphagen.type = ColorGenType_Constant;
-		}
-	}
 }
 
 static void ParseMaterial( Material * material, const char * name, const char ** ptr ) {
+	ZoneScoped;
+
 	bool seen_pass = false;
 	while( ptr != NULL ) {
 		const char * token = COM_ParseExt( ptr, true );
@@ -550,19 +514,23 @@ static void ParseMaterial( Material * material, const char * name, const char **
 }
 
 static void AddTexture( u64 hash, const TextureConfig & config ) {
+	ZoneScoped;
+
 	Texture texture = NewTexture( config );
 
 	textures[ num_textures ] = texture;
 	textures_hashtable.add( hash, num_textures );
 	num_textures++;
 
-	materials[ num_materials ] = { };
+	materials[ num_materials ] = Material();
 	materials[ num_materials ].textures[ 0 ].texture = texture;
 	materials_hashtable.add( hash, num_materials );
 	num_materials++;
 }
 
 static void LoadBuiltinTextures() {
+	ZoneScoped;
+
 	{
 		u8 white = 255;
 
@@ -607,17 +575,26 @@ static void LoadBuiltinTextures() {
 }
 
 static void LoadDiskTextures() {
+	ZoneScoped;
+
 	for( const char * path : AssetPaths() ) {
 		const char * ext = COM_FileExtension( path );
 		if( ext == NULL || ( strcmp( ext, ".png" ) != 0 && strcmp( ext, ".jpg" ) != 0 ) )
 			continue;
+
+		ZoneScopedN( "Load texture" );
+		ZoneText( path, strlen( path ) );
 
 		assert( num_textures < ARRAY_COUNT( textures ) );
 
 		Span< const u8 > data = AssetBinary( path );
 
 		int w, h, channels;
-		u8 * pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
+		u8 * pixels;
+		{
+			ZoneScopedN( "stbi_load_from_memory" );
+			pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
+		}
 		defer { stbi_image_free( pixels ); };
 
 		if( pixels == NULL ) {
@@ -643,6 +620,8 @@ static void LoadDiskTextures() {
 }
 
 void InitMaterials() {
+	ZoneScoped;
+
 	num_textures = 0;
 	num_materials = 0;
 
@@ -651,40 +630,44 @@ void InitMaterials() {
 	LoadBuiltinTextures();
 	LoadDiskTextures();
 
-	for( const char * path : AssetPaths() ) {
-		const char * ext = COM_FileExtension( path );
-		if( ext == NULL || strcmp( ext, ".shader" ) != 0 )
-			continue;
+	{
+		ZoneScopedN( "Parse materials" );
 
-		Span< const char > data = AssetString( path );
+		for( const char * path : AssetPaths() ) {
+			const char * ext = COM_FileExtension( path );
+			if( ext == NULL || strcmp( ext, ".shader" ) != 0 )
+				continue;
 
-		const char * ptr = data.ptr;
-		while( ptr != NULL ) {
-			const char * material_name = COM_ParseExt( &ptr, true );
-			if( strlen( material_name ) == 0 )
-				break;
+			Span< const char > data = AssetString( path );
 
-			u64 hash = HashMaterialName( material_name );
-			COM_ParseExt( &ptr, true ); // skip { TODO check
-			const char * start = ptr;
+			const char * ptr = data.ptr;
+			while( ptr != NULL ) {
+				const char * material_name = COM_ParseExt( &ptr, true );
+				if( strlen( material_name ) == 0 )
+					break;
 
-			u64 idx = num_materials;
-			if( !materials_hashtable.get( hash, &idx ) ) {
-				materials_hashtable.add( hash, idx );
-				num_materials++;
+				u64 hash = HashMaterialName( material_name );
+				COM_ParseExt( &ptr, true ); // skip { TODO check
+				const char * start = ptr;
+
+				u64 idx = num_materials;
+				if( !materials_hashtable.get( hash, &idx ) ) {
+					materials_hashtable.add( hash, idx );
+					num_materials++;
+				}
+
+				materials[ idx ] = Material();
+				ParseMaterial( &materials[ idx ], material_name, &ptr );
+
+				material_locations[ idx ] = { start, ptr };
+				material_locations_hashtable.add( hash, idx );
 			}
 
-			materials[ idx ] = { }; // TODO: defaults
-			ParseMaterial( &materials[ idx ], material_name, &ptr );
-
-			material_locations[ idx ] = { start, ptr };
-			material_locations_hashtable.add( hash, idx );
+			material_locations_hashtable.clear();
+			}
 		}
 
-		material_locations_hashtable.clear();
-	}
-
-	missing_material = { };
+	missing_material = Material();
 	missing_material.textures[ 0 ].texture = missing_texture;
 }
 
@@ -728,4 +711,130 @@ const Material * FindMaterial( StringHash name, const Material * def ) {
 
 const Material * FindMaterial( const char * name, const Material * def ) {
 	return FindMaterial( StringHash( HashMaterialName( name ) ), def );
+}
+
+bool HasAlpha( TextureFormat format ) {
+	return format == TextureFormat_A_U8 || format == TextureFormat_RGBA_U8 || format == TextureFormat_RGBA_U8_sRGB;
+}
+
+static float EvaluateWaveFunc( Wave wave ) {
+	float t = PositiveMod( ( cls.gametime % 1000 ) / 1000.0f * wave.args[ 3 ] + wave.args[ 2 ], 1.0f );
+	float v = 0.0f;
+	switch( wave.type ) {
+		case WaveFunc_Sin:
+			 v = sinf( t * M_TWOPI );
+			 break;
+
+		case WaveFunc_Triangle:
+			 v = t < 0.5 ? t * 4 - 1 : 1 - ( t - 0.5f ) * 4;
+			 break;
+
+		case WaveFunc_Sawtooth:
+			 v = t;
+			 break;
+
+		case WaveFunc_InverseSawtooth:
+			 v = 1 - t;
+			 break;
+	}
+
+	return wave.args[ 0 ] + wave.args[ 1 ] * v;
+}
+
+PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bool skinned ) {
+	if( material == &world_material ) {
+		PipelineState pipeline;
+		pipeline.shader = &shaders.world;
+		pipeline.pass = frame_static.world_opaque_pass;
+		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
+		pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
+		pipeline.set_uniform( "u_BlueNoiseTextureParams", frame_static.blue_noise_uniforms );
+		return pipeline;
+	}
+
+	// evaluate rgbgen/alphagen
+	if( material->rgbgen.type == ColorGenType_Constant ) {
+		color.x = material->rgbgen.args[ 0 ];
+		color.y = material->rgbgen.args[ 1 ];
+		color.z = material->rgbgen.args[ 2 ];
+	}
+	else if( material->rgbgen.type == ColorGenType_Wave || material->rgbgen.type == ColorGenType_EntityWave ) {
+		float wave = EvaluateWaveFunc( material->rgbgen.wave );
+		if( material->rgbgen.type == ColorGenType_EntityWave ) {
+			color.x += wave;
+			color.y += wave;
+			color.z += wave;
+		}
+		else {
+			color.x = wave;
+			color.y = wave;
+			color.z = wave;
+		}
+	}
+
+	if( material->alphagen.type == ColorGenType_Constant ) {
+		color.w = material->rgbgen.args[ 0 ];
+	}
+	else if( material->alphagen.type == ColorGenType_Wave || material->alphagen.type == ColorGenType_EntityWave ) {
+		float wave = EvaluateWaveFunc( material->rgbgen.wave );
+		if( material->alphagen.type == ColorGenType_EntityWave ) {
+			color.w += wave;
+		}
+		else {
+			color.w = wave;
+		}
+	}
+
+	// evaluate tcmod
+	Vec3 tcmod_row0, tcmod_row1;
+	if( material->tcmod.type == TCModFunc_None ) {
+		tcmod_row0 = Vec3( 1, 0, 0 );
+		tcmod_row1 = Vec3( 0, 1, 0 );
+	}
+	else if( material->tcmod.type == TCModFunc_Scroll ) {
+		float s = float( PositiveMod( double( material->tcmod.args[ 0 ] ) * double( cls.gametime / 1000.0 ), 1.0 ) );
+		float t = float( PositiveMod( double( material->tcmod.args[ 1 ] ) * double( cls.gametime / 1000.0 ), 1.0 ) );
+		tcmod_row0 = Vec3( 1, 0, s );
+		tcmod_row1 = Vec3( 0, 1, t );
+	}
+	else if( material->tcmod.type == TCModFunc_Rotate ) {
+		float degrees = float( PositiveMod( double( material->tcmod.args[ 0 ] ) * double( cls.gametime / 1000.0 ), 360.0 ) );
+		float s = sinf( DEG2RAD( degrees ) );
+		float c = cosf( DEG2RAD( degrees ) );
+		// keep centered on (0.5, 0.5)
+		tcmod_row0 = Vec3( c, -s, 0.5f * ( 1.0f + s - c ) );
+		tcmod_row1 = Vec3( s, c, 0.5f * ( 1.0f - s - c ) );
+	}
+	else if( material->tcmod.type == TCModFunc_Stretch ) {
+		float wave = EvaluateWaveFunc( material->rgbgen.wave );
+		float scale = wave == 0 ? 1.0f : 1.0f / wave;
+		// keep centered on (0.5, 0.5)
+		float offset = 0.5f - 0.5f * scale;
+		tcmod_row0 = Vec3( scale, 0, offset );
+		tcmod_row1 = Vec3( 0, scale, offset );
+	}
+
+	PipelineState pipeline;
+	pipeline.pass = material->blend_func == BlendFunc_Disabled ? frame_static.nonworld_opaque_pass : frame_static.transparent_pass;
+	pipeline.cull_face = material->double_sided ? CullFace_Disabled : CullFace_Back;
+	pipeline.blend_func = material->blend_func;
+
+	if( material->blend_func != BlendFunc_Disabled ) {
+		pipeline.write_depth = false;
+	}
+
+	pipeline.set_texture( "u_BaseTexture", material->textures[ 0 ].texture );
+	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( material->textures[ 0 ].texture.width, material->textures[ 0 ].texture.height ), material->alpha_cutoff, tcmod_row0, tcmod_row1 ) );
+
+	if( material->alpha_cutoff > 0 ) {
+		pipeline.shader = &shaders.standard_alphatest;
+	}
+	else if( skinned ) {
+		pipeline.shader = &shaders.standard_skinned;
+	}
+	else {
+		pipeline.shader = &shaders.standard;
+	}
+
+	return pipeline;
 }

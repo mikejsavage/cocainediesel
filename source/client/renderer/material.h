@@ -5,38 +5,24 @@
 #include "client/renderer/backend.h"
 
 enum WaveFunc {
-	WaveFunc_None,
 	WaveFunc_Sin,
 	WaveFunc_Triangle,
-	WaveFunc_Square,
 	WaveFunc_Sawtooth,
 	WaveFunc_InverseSawtooth,
-	WaveFunc_Noise,
-	WaveFunc_Constant,
 };
 
 enum ColorGenType {
-	ColorGenType_Unknown,
 	ColorGenType_Constant,
-	ColorGenType_Vertex,
+	ColorGenType_Entity,
 	ColorGenType_Wave,
 	ColorGenType_EntityWave,
 };
 
 enum TCModType {
 	TCModFunc_None,
-	TCModFunc_Scale,
 	TCModFunc_Scroll,
 	TCModFunc_Rotate,
-	TCModFunc_Turb,
 	TCModFunc_Stretch,
-};
-
-enum VertexDeformType {
-	DEFORMV_NONE,
-	DEFORMV_WAVE,
-	DEFORMV_BULGE,
-	DEFORMV_MOVE,
 };
 
 struct Wave {
@@ -46,12 +32,13 @@ struct Wave {
 
 struct TCMod {
 	TCModType type;
-	float args[ 6 ];
+	float args[ 2 ];
+	Wave wave;
 };
 
 struct ColorGen {
-	ColorGenType type;
-	float args[ 4 ];
+	ColorGenType type = ColorGenType_Constant;
+	float args[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	Wave wave;
 };
 
@@ -67,19 +54,18 @@ struct TextureSampler {
 };
 
 struct Material {
-	TextureSampler textures[ 16 ];
-	u8 num_anim_frames;
-	float anim_fps;
+	TextureSampler textures[ 16 ] = { };
+	u8 num_anim_frames = 0;
+	float anim_fps = 0;
 
 	ColorGen rgbgen;
 	ColorGen alphagen;
-	BlendFunc blend_func;
-	bool double_sided;
-	bool discard;
-	float alpha_cutoff;
+	BlendFunc blend_func = BlendFunc_Disabled;
+	bool double_sided = false;
+	bool discard = false;
+	float alpha_cutoff = 0.0f;
 
-	TCMod tcmods[ 4 ];
-	u8 num_tcmods;
+	TCMod tcmod = { };
 };
 
 extern Material world_material;

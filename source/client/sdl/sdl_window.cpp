@@ -65,6 +65,7 @@ static void gl_debug_output_callback(
 ) {
 	if(
 	    source == 33352 || // shader compliation errors
+	    id == 131139 || // non-fullscreen clear causing fallback from CSAA to MSAA
 	    id == 131169 ||
 	    id == 131185 ||
 	    id == 131218 ||
@@ -114,19 +115,8 @@ static bool InitGL() {
 	SDL_GLContext context = SDL_GL_CreateContext( sdl_window );
 
 	if( context == NULL ) {
-		Com_Printf( "Couldn't create GL 3.3 context (%s), trying GL 2.1\n", SDL_GetError() );
-
-		SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY );
-		SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, 0 );
-		SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 );
-		SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 1 );
-
-		context = SDL_GL_CreateContext( sdl_window );
-
-		if( context == NULL ) {
-			Com_Printf( "SDL_GL_CreateContext failed: \"%s\"\n", SDL_GetError() );
-			return false;
-		}
+		Com_Printf( "SDL_GL_CreateContext failed: \"%s\"\n", SDL_GetError() );
+		return false;
 	}
 
 	if( SDL_GL_MakeCurrent( sdl_window, context ) != 0 ) {
@@ -164,6 +154,8 @@ static bool InitGL() {
 }
 
 void VID_WindowInit( WindowMode mode ) {
+	ZoneScoped;
+
 	uint32_t flags = SDL_WINDOW_OPENGL;
 #if PUBLIC_BUILD && 0
 	if( mode.fullscreen == FullScreenMode_Windowed )
@@ -343,6 +335,7 @@ void VID_FlashWindow() {
 }
 
 void VID_Swap() {
+	ZoneScoped;
 	SDL_GL_SwapWindow( sdl_window );
 }
 

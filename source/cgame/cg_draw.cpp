@@ -25,7 +25,7 @@ Vec2 WorldToScreen( Vec3 v ) {
 	Vec4 clip = frame_static.P * frame_static.V * Vec4( v, 1.0 );
 	if( clip.z == 0 )
 		return Vec2( 0, 0 );
-	return ClipToScreen( clip.xy() / clip.z );
+	return ClipToScreen( clip.xy() / clip.w );
 }
 
 Vec2 WorldToScreenClamped( Vec3 v, Vec2 screen_border, bool * clamped ) {
@@ -35,7 +35,7 @@ Vec2 WorldToScreenClamped( Vec3 v, Vec2 screen_border, bool * clamped ) {
 	if( clip.z == 0 )
 		return Vec2( 0, 0 );
 
-	Vec2 res = clip.xy() / clip.z;
+	Vec2 res = clip.xy() / clip.w;
 
 	Vec3 forward = -frame_static.V.row2().xyz();
 	float d = Dot( v - frame_static.position, forward );

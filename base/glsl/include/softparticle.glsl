@@ -1,4 +1,4 @@
-#ifdef FRAGMENT_SHADER
+#if FRAGMENT_SHADER
 
 uniform float u_SoftParticlesScale;
 

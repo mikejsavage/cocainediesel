@@ -70,22 +70,6 @@ void ByteToDir( int b, vec3_t dir ) {
 
 //============================================================================
 
-void NormToLatLong( const vec3_t normal, float latlong[2] ) {
-	// can't do atan2 (normal[1], normal[0])
-	if( normal[0] == 0 && normal[1] == 0 ) {
-		if( normal[2] > 0 ) {
-			latlong[0] = 0; // acos ( 1 )
-			latlong[1] = 0;
-		} else {
-			latlong[0] = M_PI; // acos ( -1 )
-			latlong[1] = 0;
-		}
-	} else {
-		latlong[0] = acos( normal[2] );
-		latlong[1] = atan2( normal[1], normal[0] );
-	}
-}
-
 void OrthonormalBasis( const vec3_t forward, vec3_t right, vec3_t up ) {
 	float d;
 
@@ -654,13 +638,6 @@ void VectorNormalizeFast( vec3_t v ) {
 	v[2] *= ilength;
 }
 
-int Q_log2( int val ) {
-	int answer = 0;
-	while( val >>= 1 )
-		answer++;
-	return answer;
-}
-
 //============================================================================
 
 void Matrix3_Identity( mat3_t m ) {
@@ -722,4 +699,18 @@ void Matrix3_Transpose( const mat3_t in, mat3_t out ) {
 
 void Matrix3_FromAngles( const vec3_t angles, mat3_t m ) {
 	AngleVectors( angles, &m[AXIS_FORWARD], &m[AXIS_RIGHT], &m[AXIS_UP] );
+}
+
+float PositiveMod( float x, float y ) {
+	float res = fmodf( x, y );
+	if( res < 0 )
+		res += y;
+	return res;
+}
+
+double PositiveMod( double x, double y ) {
+	double res = fmod( x, y );
+	if( res < 0 )
+		res += y;
+	return res;
 }

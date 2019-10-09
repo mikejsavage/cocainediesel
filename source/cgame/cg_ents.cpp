@@ -221,7 +221,7 @@ static void CG_NewPacketEntityState( entity_state_t *state ) {
 
 		if( ( cent->current.type == ET_GENERIC || cent->current.type == ET_PLAYER
 			  || cent->current.type == ET_GIB || cent->current.type == ET_GRENADE
-			  || cent->current.type == ET_ITEM || cent->current.type == ET_CORPSE ) ) {
+			  || cent->current.type == ET_CORPSE ) ) {
 			cent->canExtrapolate = true;
 		}
 
@@ -433,42 +433,11 @@ struct cmodel_s *CG_CModelForEntity( int entNum ) {
 }
 
 /*
-* CG_DrawEntityBox
-* draw the bounding box (in brush models case the box containing the model)
-*/
-void CG_DrawEntityBox( centity_t *cent ) {
-#ifndef PUBLIC_BUILD
-	struct cmodel_s *cmodel;
-	vec3_t mins, maxs;
-
-	cmodel = CG_CModelForEntity( cent->current.number );
-	if( cmodel ) {
-		trap_CM_InlineModelBounds( cmodel, mins, maxs );
-		if( cg_drawEntityBoxes->integer < 2 && cent->current.solid == SOLID_BMODEL ) {
-			return;
-		}
-
-		// push triggers don't move so aren't interpolated
-		if( cent->current.type == ET_PUSH_TRIGGER ) {
-			CG_DrawTestBox( cent->current.origin, mins, maxs, vec3_origin );
-		} else {
-			vec3_t origin;
-			VectorLerp( cent->prev.origin, cg.lerpfrac, cent->current.origin, origin );
-			CG_DrawTestBox( origin, mins, maxs, vec3_origin );
-		}
-	}
-#endif
-}
-
-/*
 * CG_EntAddBobEffect
 */
 static void CG_EntAddBobEffect( centity_t *cent ) {
-	double scale;
-	double bob;
-
-	scale = 0.005 + cent->current.number * 0.00001;
-	bob = 4 + cos( ( cg.time + 1000 ) * scale ) * 4;
+	float scale = 0.005f + cent->current.number * 0.00001f;
+	float bob = 4 + cosf( ( cg.time + 1000 ) * scale ) * 4;
 
 	cent->ent.origin2[2] += bob;
 	cent->ent.origin[2] += bob;
@@ -495,39 +464,6 @@ static void CG_EntAddTeamColorTransitionEffect( centity_t *cent ) {
 	cent->ent.shaderRGBA[3] = 255;
 }
 
-/*
-* CG_AddLinkedModel
-*/
-void CG_AddLinkedModel( centity_t * cent, const orientation_t * tag ) {
-	const Model * model = cgs.modelDraw[cent->current.modelindex2];
-	if( model == NULL )
-		return;
-
-	entity_t ent = { };
-	ent.scale = cent->ent.scale;
-	ent.renderfx = cent->ent.renderfx;
-	ent.shaderTime = cent->ent.shaderTime;
-	Vector4Copy( cent->ent.shaderRGBA, ent.shaderRGBA );
-	ent.model = model;
-	ent.override_material = NULL;
-	VectorCopy( cent->ent.origin, ent.origin );
-	VectorCopy( cent->ent.origin, ent.origin2 );
-	Matrix3_Copy( cent->ent.axis, ent.axis );
-
-	CG_AddColoredOutLineEffect( &ent, cent->effects, cent->outlineColor[0], cent->outlineColor[1], cent->outlineColor[2], cent->outlineColor[3] );
-
-	CG_PlaceModelOnTag( &ent, &cent->ent, tag );
-	CG_AddEntityToScene( &ent );
-}
-
-/*
-* CG_AddCentityOutLineEffect
-*/
-void CG_AddCentityOutLineEffect( centity_t *cent ) {
-	CG_AddColoredOutLineEffect( &cent->ent, cent->effects,
-		cent->outlineColor[0], cent->outlineColor[1], cent->outlineColor[2], cent->outlineColor[3] );
-}
-
 //==========================================================================
 //		ET_GENERIC
 //==========================================================================
@@ -536,20 +472,16 @@ void CG_AddCentityOutLineEffect( centity_t *cent ) {
 * CG_UpdateGenericEnt
 */
 static void CG_UpdateGenericEnt( centity_t *cent ) {
-	int modelindex;
-
 	// start from clean
 	memset( &cent->ent, 0, sizeof( cent->ent ) );
 	cent->ent.scale = 1.0f;
 
 	// set entity color based on team
 	CG_TeamColorForEntity( cent->current.number, cent->ent.shaderRGBA );
-	if( cent->effects & EF_OUTLINE ) {
-		Vector4Set( cent->outlineColor, 0, 0, 0, 255 );
-	}
+	Vector4Set( cent->outlineColor, 0, 0, 0, 255 );
 
 	// set up the model
-	modelindex = cent->current.modelindex;
+	int modelindex = cent->current.modelindex;
 	if( modelindex > 0 && modelindex < MAX_MODELS ) {
 		cent->ent.model = cgs.modelDraw[modelindex];
 	}
@@ -559,11 +491,9 @@ static void CG_UpdateGenericEnt( centity_t *cent ) {
 * CG_ExtrapolateLinearProjectile
 */
 void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
-	int i;
-
 	cent->linearProjectileCanDraw = CG_UpdateLinearProjectilePosition( cent );
 
-	for( i = 0; i < 3; i++ )
+	for( int i = 0; i < 3; i++ )
 		cent->ent.origin[i] = cent->ent.origin2[i] = cent->current.origin[i];
 
 	AnglesToAxis( cent->current.angles, cent->ent.axis );
@@ -659,8 +589,7 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 		return;
 	}
 
-	// if set to invisible, skip
-	if( !cent->current.modelindex ) {
+	if( cent->ent.model == NULL ) {
 		return;
 	}
 
@@ -674,17 +603,29 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 		CG_EntAddTeamColorTransitionEffect( cent );
 	}
 
-	// add to refresh list
-	CG_AddCentityOutLineEffect( cent );
+	const Model * model = cent->ent.model;
+	Mat4 transform = FromQFAxisAndOrigin( cent->ent.axis, cent->ent.origin );
 
-	// render effects
-	cent->ent.renderfx = cent->renderfx;
+	Vec4 color;
+	for( int i = 0; i < 4; i++ )
+		color.ptr()[ i ] = cent->ent.shaderRGBA[ i ] / 255.0f;
 
-	if( !cent->current.modelindex ) {
-		return;
+	DrawModel( model, transform, color );
+
+	if( cent->effects & EF_WORLD_MODEL ) {
+		UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
+		for( u32 i = 0; i < model->num_primitives; i++ ) {
+			if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
+				PipelineState pipeline;
+				pipeline.pass = frame_static.world_write_gbuffer_pass;
+				pipeline.shader = &shaders.world_write_gbuffer;
+				pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+				pipeline.set_uniform( "u_Model", model_uniforms );
+
+				DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+			}
+		}
 	}
-
-	CG_AddEntityToScene( &cent->ent );
 }
 
 //==========================================================================
@@ -707,9 +648,6 @@ static void CG_AddPlayerEnt( centity_t *cent ) {
 	if( !cent->current.modelindex || cent->current.team == TEAM_SPECTATOR ) {
 		return;
 	}
-
-	// render effects
-	cent->ent.renderfx = cent->renderfx;
 
 	CG_DrawPlayer( cent );
 }
@@ -772,63 +710,6 @@ static void CG_UpdateDecalEnt( centity_t *cent ) {
 }
 
 //==========================================================================
-//		ET_ITEM
-//==========================================================================
-
-/*
-* CG_UpdateItemEnt
-*/
-static void CG_UpdateItemEnt( centity_t *cent ) {
-	memset( &cent->ent, 0, sizeof( cent->ent ) );
-	Vector4Set( cent->ent.shaderRGBA, 255, 255, 255, 255 );
-
-	cent->item = GS_FindItemByTag( cent->current.itemNum );
-	if( !cent->item ) {
-		return;
-	}
-
-	cent->effects |= cent->item->effects;
-
-	if( cent->effects & EF_OUTLINE ) {
-		Vector4Set( cent->outlineColor, 0, 0, 0, 255 ); // black
-	}
-
-	// set up the model
-	cent->ent.model = cgs.modelDraw[cent->current.modelindex];
-}
-
-/*
-* CG_AddItemEnt
-*/
-static void CG_AddItemEnt( centity_t *cent ) {
-	int msec;
-
-	if( !cent->item ) {
-		return;
-	}
-
-	// respawning items
-	if( cent->respawnTime ) {
-		msec = cg.time - cent->respawnTime;
-	} else {
-		msec = ITEM_RESPAWN_TIME;
-	}
-
-	if( msec >= 0 && msec < ITEM_RESPAWN_TIME ) {
-		cent->ent.scale = (float)msec / ITEM_RESPAWN_TIME;
-	} else {
-		cent->ent.scale = 1.0f;
-	}
-
-	// weapons are special
-	if( cent->item && cent->item->type & IT_WEAPON ) {
-		cent->ent.scale *= 1.40f;
-	}
-
-	CG_AddGenericEnt( cent );
-}
-
-//==========================================================================
 // ET_LASER
 //==========================================================================
 
@@ -840,14 +721,7 @@ static void CG_LerpLaser( centity_t *cent ) {
 }
 
 static void CG_AddLaserEnt( centity_t *cent ) {
-	const Material * material = cgs.media.shaderLaser;
-	vec4_t color;
-	Vector4Set( color,
-		COLOR_R( cent->current.colorRGBA ) * ( 1.0 / 255.0 ),
-		COLOR_G( cent->current.colorRGBA ) * ( 1.0 / 255.0 ),
-		COLOR_B( cent->current.colorRGBA ) * ( 1.0 / 255.0 ),
-		COLOR_A( cent->current.colorRGBA ) * ( 1.0 / 255.0 ) );
-	CG_SpawnPolyBeam( cent->ent.origin, cent->ent.origin2, NULL, cent->current.radius, 1, 0, material, 64, 0 );
+	DrawBeam( FromQF3( cent->ent.origin ), FromQF3( cent->ent.origin2 ), cent->current.radius, vec4_white, cgs.media.shaderLaser );
 }
 
 //==========================================================================
@@ -1153,6 +1027,8 @@ void CG_EntityLoopSound( entity_state_t *state, float attenuation ) {
 * Add the entities to the rendering list
 */
 void CG_AddEntities( void ) {
+	ZoneScoped;
+
 	entity_state_t *state;
 	vec3_t autorotate;
 	int pnum;
@@ -1178,9 +1054,6 @@ void CG_AddEntities( void ) {
 		switch( cent->type ) {
 			case ET_GENERIC:
 				CG_AddGenericEnt( cent );
-				if( cg_drawEntityBoxes->integer ) {
-					CG_DrawEntityBox( cent );
-				}
 				CG_EntityLoopSound( state, ATTN_STATIC );
 				canLight = true;
 				break;
@@ -1188,11 +1061,6 @@ void CG_AddEntities( void ) {
 				CG_AddGenericEnt( cent );
 				CG_EntityLoopSound( state, ATTN_STATIC );
 				canLight = true;
-				break;
-			case ET_BLASTER:
-				CG_AddGenericEnt( cent );
-				CG_BlasterTrail( cent->trailOrigin, cent->ent.origin );
-				CG_EntityLoopSound( state, ATTN_STATIC );
 				break;
 
 			case ET_ROCKET:
@@ -1212,20 +1080,8 @@ void CG_AddEntities( void ) {
 				CG_EntityLoopSound( state, ATTN_STATIC );
 				break;
 
-			case ET_ITEM:
-				CG_AddItemEnt( cent );
-				if( cg_drawEntityBoxes->integer ) {
-					CG_DrawEntityBox( cent );
-				}
-				CG_EntityLoopSound( state, ATTN_IDLE );
-				canLight = true;
-				break;
-
 			case ET_PLAYER:
 				CG_AddPlayerEnt( cent );
-				if( cg_drawEntityBoxes->integer ) {
-					CG_DrawEntityBox( cent );
-				}
 				CG_EntityLoopSound( state, ATTN_IDLE );
 				CG_LaserBeamEffect( cent );
 				CG_WeaponBeamEffect( cent );
@@ -1234,9 +1090,6 @@ void CG_AddEntities( void ) {
 
 			case ET_CORPSE:
 				CG_AddPlayerEnt( cent );
-				if( cg_drawEntityBoxes->integer ) {
-					CG_DrawEntityBox( cent );
-				}
 				CG_EntityLoopSound( state, ATTN_IDLE );
 				canLight = true;
 				break;
@@ -1250,9 +1103,6 @@ void CG_AddEntities( void ) {
 				break;
 
 			case ET_PUSH_TRIGGER:
-				if( cg_drawEntityBoxes->integer ) {
-					CG_DrawEntityBox( cent );
-				}
 				CG_EntityLoopSound( state, ATTN_STATIC );
 				break;
 
@@ -1301,6 +1151,8 @@ void CG_AddEntities( void ) {
 * Interpolate the entity states positions into the entity_t structs
 */
 void CG_LerpEntities( void ) {
+	ZoneScoped;
+
 	entity_state_t *state;
 	int pnum;
 	centity_t *cent;
@@ -1317,11 +1169,9 @@ void CG_LerpEntities( void ) {
 		switch( cent->type ) {
 			case ET_GENERIC:
 			case ET_GIB:
-			case ET_BLASTER:
 			case ET_ROCKET:
 			case ET_PLASMA:
 			case ET_GRENADE:
-			case ET_ITEM:
 			case ET_PLAYER:
 			case ET_CORPSE:
 				if( state->linearMovement ) {
@@ -1378,6 +1228,8 @@ void CG_LerpEntities( void ) {
 * Called at receiving a new serverframe. Sets up the model, type, etc to be drawn later on
 */
 void CG_UpdateEntities( void ) {
+	ZoneScoped;
+
 	entity_state_t *state;
 	int pnum;
 	centity_t *cent;
@@ -1387,8 +1239,6 @@ void CG_UpdateEntities( void ) {
 		cent = &cg_entities[state->number];
 		cent->type = state->type;
 		cent->effects = state->effects;
-		cent->item = NULL;
-		cent->renderfx = 0;
 
 		switch( cent->type ) {
 			case ET_GENERIC:
@@ -1402,15 +1252,10 @@ void CG_UpdateEntities( void ) {
 				break;
 
 			// projectiles with linear trajectories
-			case ET_BLASTER:
 			case ET_ROCKET:
 			case ET_PLASMA:
 			case ET_GRENADE:
 				CG_UpdateGenericEnt( cent );
-				break;
-
-			case ET_ITEM:
-				CG_UpdateItemEnt( cent );
 				break;
 
 			case ET_PLAYER:

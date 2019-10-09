@@ -118,6 +118,8 @@ void VID_CheckChanges() {
 }
 
 void VID_Init() {
+	ZoneScoped;
+
 	vid_mode = Cvar_Get( "vid_mode", "", CVAR_ARCHIVE );
 	vid_mode->modified = false;
 
@@ -137,8 +139,6 @@ void VID_Init() {
 
 	VID_WindowInit( mode );
 	UpdateVidModeCvar();
-
-	CL_Profiler_InitGL();
 
 	InitRenderer();
 
@@ -176,6 +176,4 @@ void VID_Shutdown() {
 	VID_SetVideoMode( startup_video_mode );
 
 	VID_WindowShutdown();
-
-	CL_Profiler_ShutdownGL();
 }

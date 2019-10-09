@@ -528,7 +528,6 @@ static void CG_AddWeaponBarrelOnTag( entity_t *weapon, const weaponinfo_t *weapo
 	Vector4Set( barrel.shaderRGBA, 255, 255, 255, weapon->shaderRGBA[3] );
 	barrel.model = weaponInfo->model[WEAPMODEL_BARREL];
 	barrel.scale = weapon->scale;
-	barrel.renderfx = weapon->renderfx;
 
 	// rotation
 	if( barrel_time > cg.time ) {
@@ -564,7 +563,6 @@ void CG_AddWeaponOnTag( entity_t *ent, const orientation_t *tag, int weaponid, i
 	entity_t weapon = { };
 	Vector4Set( weapon.shaderRGBA, 255, 255, 255, ent->shaderRGBA[3] );
 	weapon.scale = ent->scale;
-	weapon.renderfx = ent->renderfx;
 	weapon.model = weaponInfo->model[WEAPMODEL_WEAPON];
 
 	CG_PlaceModelOnTag( &weapon, ent, tag );

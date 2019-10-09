@@ -55,7 +55,7 @@ void CG_WeaponBeamEffect( centity_t *cent ) {
 		VectorCopy( cent->laserOrigin, projection.origin );
 	}
 
-	CG_EBBeam( projection.origin, cent->laserPoint, cent->current.team );
+	CG_EBBeam( FromQF3( projection.origin ), FromQF3( cent->laserPoint ), cent->current.team );
 
 	cent->localEffects[LOCALEFFECT_EV_WEAPONBEAM] = 0;
 }
@@ -157,9 +157,7 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 		VectorCopy( projectsource.origin, laserOrigin );
 	}
 
-	CG_KillPolyBeamsByTag( cent->current.number );
-
-	CG_LGPolyBeam( laserOrigin, trace.endpos, color, cent->current.number );
+	DrawBeam( FromQF3( laserOrigin ), FromQF3( trace.endpos ), 16.0f, FromQF4( color ), cgs.media.shaderLGBeam );
 
 	// enable continuous flash on the weapon owner
 	if( cg_weaponFlashes->integer ) {
@@ -551,7 +549,7 @@ void CG_Event_Fall( entity_state_t *state, int parm ) {
 	VectorCopy( state->origin, ground_position );
 	ground_position[ 2 ] += mins[ 2 ];
 
-	float frac = parm * ( 1.0f / 255.0f );
+	float frac = Max2(( parm - 40 ) * ( 1.0f / 300.0f ), 0.f);
 	S_StartFixedSound( cgs.media.sfxFall, ground_position, CHAN_AUTO, frac, state->attenuation );
 }
 
@@ -1052,24 +1050,24 @@ static void CG_FirePlayerStateEvents( void ) {
 				}
 				break;
 
+			case PSEV_DAMAGE_10:
+				ByteToDir( parm, dir );
+				CG_DamageIndicatorAdd( 10, dir );
+				break;
+
 			case PSEV_DAMAGE_20:
 				ByteToDir( parm, dir );
 				CG_DamageIndicatorAdd( 20, dir );
 				break;
 
+			case PSEV_DAMAGE_30:
+				ByteToDir( parm, dir );
+				CG_DamageIndicatorAdd( 30, dir );
+				break;
+
 			case PSEV_DAMAGE_40:
 				ByteToDir( parm, dir );
 				CG_DamageIndicatorAdd( 40, dir );
-				break;
-
-			case PSEV_DAMAGE_60:
-				ByteToDir( parm, dir );
-				CG_DamageIndicatorAdd( 60, dir );
-				break;
-
-			case PSEV_DAMAGE_80:
-				ByteToDir( parm, dir );
-				CG_DamageIndicatorAdd( 80, dir );
 				break;
 
 			case PSEV_INDEXEDSOUND:

@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include "microprofile/microprofile.h"
+#include "tracy/Tracy.hpp"
 
 #include "gameshared/q_arch.h"
 #include "gameshared/q_math.h"
@@ -39,6 +39,26 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 inline Vec3 FromQF3( const vec3_t v ) { return Vec3( v[ 0 ], v[ 1 ], v[ 2 ] ); }
 inline Vec4 FromQF4( const vec4_t v ) { return Vec4( v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] ); }
 inline EulerDegrees3 FromQFAngles( const vec3_t v ) { return { v[ PITCH ], v[ YAW ], v[ ROLL ] }; }
+
+inline Mat4 FromQFAxisAndOrigin( const mat3_t axis, const vec3_t origin ) {
+	Mat4 rotation = Mat4::Identity();
+	rotation.col0.x = axis[ 0 ];
+	rotation.col0.y = axis[ 1 ];
+	rotation.col0.z = axis[ 2 ];
+	rotation.col1.x = axis[ 3 ];
+	rotation.col1.y = axis[ 4 ];
+	rotation.col1.z = axis[ 5 ];
+	rotation.col2.x = axis[ 6 ];
+	rotation.col2.y = axis[ 7 ];
+	rotation.col2.z = axis[ 8 ];
+
+	Mat4 translation = Mat4::Identity();
+	translation.col3.x = origin[ 0 ];
+	translation.col3.y = origin[ 1 ];
+	translation.col3.z = origin[ 2 ];
+
+	return translation * rotation;
+}
 
 //============================================================================
 

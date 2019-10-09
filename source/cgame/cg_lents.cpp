@@ -32,7 +32,6 @@ enum LocalEntityType {
 	LE_ALPHA_FADE,
 	LE_SCALE_ALPHA_FADE,
 	LE_INVERSESCALE_ALPHA_FADE,
-	LE_LASER,
 	LE_DASH_SCALE,
 	LE_PUFF_SCALE,
 	LE_PUFF_SHRINK,
@@ -249,10 +248,9 @@ void CG_SpawnSprite( const vec3_t origin, const vec3_t velocity, const vec3_t ac
 	le->ent.rotation = rand() % 360;
 }
 
-void CG_EBBeam( const vec3_t start, const vec3_t end, int team ) {
-	vec4_t color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	CG_TeamColor( team, color );
-	CG_EBPolyBeam( start, end, color );
+void CG_EBBeam( Vec3 start, Vec3 end, int team ) {
+	Vec4 color = CG_TeamColorVec4( team );
+	AddPersistentBeam( start, end, 16.0f, color, cgs.media.shaderEBBeam, 0.25f, 0.1f );
 	CG_EBIonsTrail( start, end, color );
 }
 
@@ -1075,11 +1073,6 @@ void CG_AddLocalEntities( void ) {
 
 		if( le->light && scale ) {
 			CG_AddLightToScene( ent->origin, le->light * scale, le->lightcolor[0], le->lightcolor[1], le->lightcolor[2] );
-		}
-
-		if( le->type == LE_LASER ) {
-			CG_QuickPolyBeam( ent->origin, ent->origin2, ent->radius, ent->override_material ); // wsw : jalfixme: missing the color (comes inside ent->skinnum)
-			continue;
 		}
 
 		if( le->type == LE_DASH_SCALE ) {

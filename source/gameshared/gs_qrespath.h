@@ -40,16 +40,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PATH_GRENADE_EXPLOSION_SPRITE    "gfx/grenade_explosion"
 #define PATH_GRENADE_EXPLOSION_RING_SPRITE   "gfx/grenade_explosion_ring"
 
-// simpleitems
-#define PATH_MACHINEGUN_SIMPLEITEM      "gfx/simpleitems/weapon/machinegun"
-#define PATH_RIOTGUN_SIMPLEITEM         "gfx/simpleitems/weapon/riot"
-#define PATH_GRENADELAUNCHER_SIMPLEITEM     "gfx/simpleitems/weapon/grenade"
-#define PATH_ROCKETLAUNCHER_SIMPLEITEM      "gfx/simpleitems/weapon/rocket"
-#define PATH_PLASMAGUN_SIMPLEITEM       "gfx/simpleitems/weapon/plasma"
-#define PATH_LASERGUN_SIMPLEITEM        "gfx/simpleitems/weapon/laser"
-#define PATH_ELECTROBOLT_SIMPLEITEM     "gfx/simpleitems/weapon/electro"
-#define PATH_AMMOPACK_SIMPLEITEM        "gfx/simpleitems/ammo/pack"
-
 #define PATH_KEYICON_FORWARD            "gfx/hud/keys/key_forward"
 #define PATH_KEYICON_BACKWARD           "gfx/hud/keys/key_back"
 #define PATH_KEYICON_LEFT               "gfx/hud/keys/key_left"

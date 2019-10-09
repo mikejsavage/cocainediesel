@@ -340,29 +340,6 @@ gfx/indicators/radar_decal
 	}
 }
 
-gfx/misc/playerspawn
-{
-	cull none
-	{
-		clampmap gfx/misc/playerspawn
-		blendfunc blend
-		rgbgen entity
-		alphagen wave distanceramp 0 1 80 300
-	}
-}
-
-gfx/misc/playerspawnmarker
-{
-	polygonOffset
-	sort banner
-	{
-		clampmap gfx/misc/playerspawnmarker
-		blendFunc blend
-		rgbgen vertex
-		alphagen vertex
-	}
-}
-
 gfx/misc/teleportshell
 {
 	cull front

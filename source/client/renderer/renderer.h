@@ -15,10 +15,13 @@ struct FrameStatic {
 	u32 viewport_width, viewport_height;
 	Vec2 viewport;
 	float aspect_ratio;
+	int msaa_samples;
 
 	UniformBlock view_uniforms;
 	UniformBlock ortho_view_uniforms;
 	UniformBlock identity_model_uniforms;
+	UniformBlock identity_material_uniforms;
+	UniformBlock fog_uniforms;
 	UniformBlock blue_noise_uniforms;
 
 	Mat4 V, P;
@@ -26,6 +29,8 @@ struct FrameStatic {
 
 	Framebuffer world_gbuffer;
 	Framebuffer world_outlines_fb;
+	Framebuffer teammate_gbuffer;
+	Framebuffer teammate_outlines_fb;
 	Framebuffer msaa_fb;
 
 	u8 world_write_gbuffer_pass;
@@ -37,11 +42,11 @@ struct FrameStatic {
 	u8 teammate_postprocess_gbuffer_pass;
 
 	u8 nonworld_opaque_pass;
+	u8 sky_pass;
 	u8 transparent_pass;
 
 	u8 teammate_add_outlines_pass;
 
-	u8 sky_pass;
 	u8 blur_pass;
 	u8 ui_pass;
 };
@@ -69,7 +74,7 @@ Texture BlueNoiseTexture();
 void DrawFullscreenMesh( const PipelineState & pipeline );
 
 bool HasAlpha( TextureFormat format );
-PipelineState MaterialToPipelineState( const Material * material, bool skinned = false ); // float t = 0
+PipelineState MaterialToPipelineState( const Material * material, Vec4 color = vec4_white, bool skinned = false );
 
 void Draw2DBox( u8 render_pass, float x, float y, float w, float h, Texture texture, Vec4 color = vec4_white );
 void Draw2DBox( u8 render_pass, float x, float y, float w, float h, const Material * material, Vec4 color = vec4_white );
@@ -78,5 +83,5 @@ void Draw2DBox( u8 render_pass, float x, float y, float w, float h, const Materi
 u16 DynamicMeshBaseIndex();
 void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh );
 
-UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & P, const Vec3 & camera_pos, float near_plane );
-UniformBlock UploadModelUniforms( const Mat4 & M, const Vec4 & color );
+UniformBlock UploadModelUniforms( const Mat4 & M );
+UniformBlock UploadMaterialUniforms( const Vec4 & color, const Vec2 & texture_size, float alpha_cutoff, Vec3 tcmod_row0 = Vec3( 1, 0, 0 ), Vec3 tcmod_row1 = Vec3( 0, 1, 0 ) );

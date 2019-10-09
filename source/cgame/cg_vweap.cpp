@@ -260,7 +260,6 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 
 	weaponInfo = CG_GetWeaponInfo( viewweapon->weapon );
 	viewweapon->ent.model = weaponInfo->model[WEAPMODEL_HAND];
-	viewweapon->ent.renderfx = RenderFX_WeaponModel;
 	viewweapon->ent.scale = 1.0f;
 	viewweapon->ent.override_material = NULL;
 	Vector4Set( viewweapon->ent.shaderRGBA, 255, 255, 255, 255 );
@@ -350,7 +349,7 @@ void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
 
 	// add attached weapon
 	if( CG_GrabTag( &tag, &viewweapon->ent, "tag_weapon" ) ) {
-		CG_AddWeaponOnTag( &viewweapon->ent, &tag, viewweapon->weapon, cg.effects | EF_OUTLINE, NULL, flash_time, 
+		CG_AddWeaponOnTag( &viewweapon->ent, &tag, viewweapon->weapon, cg.effects, NULL, flash_time,
 			cg_entPModels[viewweapon->POVnum].barrel_time );
 	}
 }

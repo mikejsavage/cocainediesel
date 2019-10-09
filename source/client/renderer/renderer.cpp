@@ -25,7 +25,9 @@ static char last_screenshot_date[ 256 ];
 static int same_date_count;
 
 static u32 last_viewport_width, last_viewport_height;
-static u32 last_msaa;
+static int last_msaa;
+
+static cvar_t * r_samples;
 
 static void TakeScreenshot() {
 	RGB8 * buf = ALLOC_MANY( sys_allocator, RGB8, frame_static.viewport_width * frame_static.viewport_height );
@@ -62,7 +64,11 @@ static void TakeScreenshot() {
 }
 
 void InitRenderer() {
+	ZoneScoped;
+
 	RenderBackendInit();
+
+	r_samples = Cvar_Get( "r_samples", "0", CVAR_ARCHIVE );
 
 	frame_static = { };
 	last_viewport_width = U32_MAX;
@@ -120,6 +126,8 @@ void InitRenderer() {
 static void DeleteFramebuffers() {
 	DeleteFramebuffer( frame_static.world_gbuffer );
 	DeleteFramebuffer( frame_static.world_outlines_fb );
+	DeleteFramebuffer( frame_static.teammate_gbuffer );
+	DeleteFramebuffer( frame_static.teammate_outlines_fb );
 	DeleteFramebuffer( frame_static.msaa_fb );
 }
 
@@ -211,6 +219,10 @@ static Mat4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
 	return rotation * Mat4Translation( -position );
 }
 
+static UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & P, const Vec3 & camera_pos, const Vec2 & viewport_size, float near_plane, int samples ) {
+	return UploadUniformBlock( V, P, camera_pos, viewport_size, near_plane, samples );
+}
+
 static void CreateFramebuffers() {
 	DeleteFramebuffers();
 
@@ -228,6 +240,8 @@ static void CreateFramebuffers() {
 		texture_config.format = TextureFormat_Depth;
 		fb.depth_attachment = texture_config;
 
+		fb.msaa_samples = frame_static.msaa_samples;
+
 		frame_static.world_gbuffer = NewFramebuffer( fb );
 	}
 
@@ -243,20 +257,30 @@ static void CreateFramebuffers() {
 	{
 		FramebufferConfig fb;
 
+		texture_config.format = TextureFormat_RGBA_U8_sRGB;
+		fb.albedo_attachment = texture_config;
+
+		frame_static.teammate_gbuffer = NewFramebuffer( fb );
+		frame_static.teammate_outlines_fb = NewFramebuffer( fb );
+	}
+
+	if( frame_static.msaa_samples > 1 ) {
+		FramebufferConfig fb;
+
 		texture_config.format = TextureFormat_RGB_U8_sRGB;
 		fb.albedo_attachment = texture_config;
 
 		texture_config.format = TextureFormat_Depth;
 		fb.depth_attachment = texture_config;
 
-		fb.msaa_samples = 0;
+		fb.msaa_samples = frame_static.msaa_samples;
 
 		frame_static.msaa_fb = NewFramebuffer( fb );
 	}
 }
 
 void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
-	bool msaa = false;
+	HotloadShaders();
 
 	RenderBackendBeginFrame();
 
@@ -267,15 +291,20 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.viewport_height = viewport_height;
 	frame_static.viewport = Vec2( viewport_width, viewport_height );
 	frame_static.aspect_ratio = float( viewport_width ) / float( viewport_height );
+	frame_static.msaa_samples = r_samples->integer;
 
-	if( viewport_width != last_viewport_width || viewport_height != last_viewport_height ) {
+	if( viewport_width != last_viewport_width || viewport_height != last_viewport_height || frame_static.msaa_samples != last_msaa ) {
 		CreateFramebuffers();
 		last_viewport_width = viewport_width;
 		last_viewport_height = viewport_height;
+		last_msaa = frame_static.msaa_samples;
 	}
 
-	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Vec3( 0 ), -1 );
-	frame_static.identity_model_uniforms = UploadUniformBlock( Mat4::Identity(), Vec4( 1 ) );
+	bool msaa = frame_static.msaa_samples;
+
+	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples );
+	frame_static.identity_model_uniforms = UploadModelUniforms( Mat4::Identity() );
+	frame_static.identity_material_uniforms = UploadMaterialUniforms( vec4_white, Vec2( 0 ), 0.0f );
 
 	frame_static.blue_noise_uniforms = UploadUniformBlock( Vec2( blue_noise.width, blue_noise.height ) );
 
@@ -291,18 +320,23 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		frame_static.world_add_outlines_pass = AddRenderPass( "Render world outlines" );
 	}
 
-	// frame_static.teammate_write_gbuffer_pass = AddRenderPass( "Write teammate gbuffer", ClearColor_Dont, ClearDepth_Do );
-	// frame_static.teammate_postprocess_gbuffer_pass = AddRenderPass( "Postprocess teammate gbuffer" );
-
-	frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque" );
-	frame_static.transparent_pass = AddRenderPass( "Render transparent" );
-
-	frame_static.sky_pass = AddRenderPass( "Render sky" );
+	frame_static.teammate_write_gbuffer_pass = AddRenderPass( "Write teammate gbuffer", frame_static.teammate_gbuffer, ClearColor_Do, ClearDepth_Dont );
+	frame_static.teammate_postprocess_gbuffer_pass = AddRenderPass( "Postprocess teammate gbuffer", frame_static.teammate_outlines_fb );
 
 	if( msaa ) {
+		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque", frame_static.msaa_fb );
+		frame_static.sky_pass = AddRenderPass( "Render sky", frame_static.msaa_fb );
+		frame_static.transparent_pass = AddRenderPass( "Render transparent", frame_static.msaa_fb );
+
 		AddResolveMSAAPass( frame_static.msaa_fb );
 	}
+	else {
+		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque" );
+		frame_static.sky_pass = AddRenderPass( "Render sky" );
+		frame_static.transparent_pass = AddRenderPass( "Render transparent" );
+	}
 
+	frame_static.teammate_add_outlines_pass = AddRenderPass( "Render teammate outlines" );
 	frame_static.blur_pass = AddRenderPass( "Blur screen" );
 	frame_static.ui_pass = AddRenderPass( "Render UI" );
 }
@@ -314,43 +348,11 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	frame_static.P = PerspectiveProjection( vertical_fov, frame_static.aspect_ratio, near_plane );
 	frame_static.position = position;
 
-	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.P, position, near_plane );
+	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.P, position, frame_static.viewport, near_plane, frame_static.msaa_samples );
 }
 
 void RendererSubmitFrame() {
 	RenderBackendSubmitFrame();
-}
-
-bool HasAlpha( TextureFormat format ) {
-	return format == TextureFormat_A_U8 || format == TextureFormat_RGBA_U8 || format == TextureFormat_RGBA_U8_sRGB;
-}
-
-PipelineState MaterialToPipelineState( const Material * material, bool skinned ) {
-	if( material == &world_material ) {
-		PipelineState pipeline;
-		pipeline.shader = &shaders.world;
-		pipeline.pass = frame_static.world_opaque_pass;
-		return pipeline;
-	}
-
-	PipelineState pipeline;
-	pipeline.pass = material->blend_func == BlendFunc_Disabled ? frame_static.nonworld_opaque_pass : frame_static.transparent_pass;
-	pipeline.cull_face = material->double_sided ? CullFace_Disabled : CullFace_Back;
-	pipeline.blend_func = material->blend_func;
-	pipeline.set_texture( "u_BaseTexture", material->textures[ 0 ].texture );
-	pipeline.set_uniform( "u_Material", UploadUniformBlock( Vec4( 0 ), Vec4( 0 ), Vec2( material->textures[ 0 ].texture.width, material->textures[ 0 ].texture.height ), material->alpha_cutoff ) );
-
-	if( material->alpha_cutoff > 0 ) {
-		pipeline.shader = &shaders.standard_alphatest;
-	}
-	else if( skinned ) {
-		pipeline.shader = &shaders.standard_skinned;
-	}
-	else {
-		pipeline.shader = &shaders.standard;
-	}
-
-	return pipeline;
 }
 
 Texture BlueNoiseTexture() {
@@ -389,10 +391,10 @@ void Draw2DBox( u8 render_pass, float x, float y, float w, float h, Texture text
 	}
 
 	Mat4 transform = Mat4Translation( x, y, 0 ) * Mat4Scale( w, h, 0 );
-	pipeline.set_uniform( "u_Model", UploadModelUniforms( transform, color ) );
+	pipeline.set_uniform( "u_Model", UploadModelUniforms( transform ) );
 	pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
 	pipeline.set_texture( "u_BaseTexture", texture );
-	pipeline.set_uniform( "u_Material", UploadUniformBlock( Vec4( 0 ), Vec4( 0 ), Vec2( texture.width, texture.height ), 0.0f ) );
+	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( texture.width, texture.height ), 0.0f ) );
 
 	Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
 	RGBA8 c = RGBA8( color );
@@ -406,8 +408,8 @@ void Draw2DBox( u8 render_pass, float x, float y, float w, float h, Texture text
 	};
 	Vec2 uvs[] = {
 		half_pixel,
-		Vec2( half_pixel.x, 1.0f - half_pixel.y ),
 		Vec2( 1.0f - half_pixel.x, half_pixel.y ),
+		Vec2( half_pixel.x, 1.0f - half_pixel.y ),
 		Vec2( 1.0f - half_pixel.x, 1.0f - half_pixel.y ),
 	};
 	RGBA8 colors[] = { c, c, c, c };
@@ -432,10 +434,10 @@ void Draw2DBox( u8 render_pass, float x, float y, float w, float h, const Materi
 	Draw2DBox( render_pass, x, y, w, h, material->textures[ 0 ].texture, color );
 }
 
-UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & P, const Vec3 & camera_pos, float near_plane ) {
-	return UploadUniformBlock( V, P, camera_pos, near_plane );
+UniformBlock UploadModelUniforms( const Mat4 & M ) {
+	return UploadUniformBlock( M );
 }
 
-UniformBlock UploadModelUniforms( const Mat4 & M, const Vec4 & color ) {
-	return UploadUniformBlock( M, color );
+UniformBlock UploadMaterialUniforms( const Vec4 & color, const Vec2 & texture_size, float alpha_cutoff, Vec3 tcmod_row0, Vec3 tcmod_row1 ) {
+	return UploadUniformBlock( color, tcmod_row0, tcmod_row1, texture_size, alpha_cutoff );
 }

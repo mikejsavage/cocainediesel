@@ -215,7 +215,7 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata *metadata, char *filena
 * CG_LoadPlayerModel
 */
 static bool CG_LoadPlayerModel( PlayerModelMetadata *metadata, const char *filename ) {
-	MICROPROFILE_SCOPEI( "Assets", "CG_LoadPlayerModel", 0xffffffff );
+	ZoneScoped;
 
 	bool loaded_model = false;
 	char anim_filename[MAX_QPATH];
@@ -389,9 +389,9 @@ static float CG_OutlineScaleForDist( const entity_t * e, float maxdist, float sc
 	float dist;
 	vec3_t dir;
 
-	if( e->renderfx & RenderFX_WeaponModel ) {
-		return 0.14f;
-	}
+	// if( e->renderfx & RenderFX_WeaponModel ) {
+	// 	return 0.14f;
+	// }
 
 	// Kill if behind the view or if too far away
 	VectorSubtract( e->origin, cg.view.origin, dir );
@@ -429,7 +429,7 @@ static float CG_OutlineScaleForDist( const entity_t * e, float maxdist, float sc
 * CG_AddColoredOutLineEffect
 */
 void CG_AddColoredOutLineEffect( entity_t *ent, int effects, uint8_t r, uint8_t g, uint8_t b, uint8_t a ) {
-	if( !cg_outlineModels->integer || !( effects & EF_OUTLINE ) ) {
+	if( !cg_outlineModels->integer ) {
 		ent->outlineHeight = 0;
 		return;
 	}
@@ -613,13 +613,6 @@ static PlayerModelAnimationSet CG_GetBaseAnims( entity_state_t *state, const vec
 	return a;
 }
 
-static float PositiveMod( float x, float y ) {
-	float res = fmodf( x, y );
-	if( res < 0 )
-		res += y;
-	return res;
-}
-
 static float GetAnimationTime( const PlayerModelMetadata * metadata, int64_t curTime, animstate_t state, bool loop ) {
 	if( state.anim == ANIM_NONE )
 		return -1.0f;
@@ -787,7 +780,6 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	// start from clean
 	memset( &cent->ent, 0, sizeof( cent->ent ) );
 	cent->ent.scale = 1.0f;
-	cent->ent.renderfx = cent->renderfx;
 
 	pmodel = &cg_entPModels[cent->current.number];
 	CG_PModelForCentity( cent, &pmodel->metadata );
@@ -795,12 +787,6 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	CG_TeamColorForEntity( cent->current.number, cent->ent.shaderRGBA );
 
 	Vector4Set( cent->outlineColor, 0, 0, 0, 255 );
-
-	if( cg_outlinePlayers->integer ) {
-		cent->effects |= EF_OUTLINE; // add EF_OUTLINE to players
-	} else {
-		cent->effects &= ~EF_OUTLINE;
-	}
 
 	// fallback
 	if( !pmodel->metadata ) {
@@ -910,23 +896,26 @@ static Quaternion EulerAnglesToQuaternion( EulerDegrees3 angles ) {
 	);
 }
 
-static orientation_t TransformTag( const Model * model, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
-	Mat4 transform = model->transform * pose.joint_poses[ tag.joint_idx ] * tag.transform;
+static Mat4 TransformTag( const Model * model, const Mat4 & transform, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
+	return transform * model->transform * pose.joint_poses[ tag.joint_idx ] * tag.transform;
+}
+
+static orientation_t Mat4ToOrientation( const Mat4 & m ) {
 	orientation_t o;
 
-	o.axis[ 0 ] = transform.col0.x;
-	o.axis[ 1 ] = transform.col0.y;
-	o.axis[ 2 ] = transform.col0.z;
-	o.axis[ 3 ] = transform.col1.x;
-	o.axis[ 4 ] = transform.col1.y;
-	o.axis[ 5 ] = transform.col1.z;
-	o.axis[ 6 ] = transform.col2.x;
-	o.axis[ 7 ] = transform.col2.y;
-	o.axis[ 8 ] = transform.col2.z;
+	o.axis[ 0 ] = m.col0.x;
+	o.axis[ 1 ] = m.col0.y;
+	o.axis[ 2 ] = m.col0.z;
+	o.axis[ 3 ] = m.col1.x;
+	o.axis[ 4 ] = m.col1.y;
+	o.axis[ 5 ] = m.col1.z;
+	o.axis[ 6 ] = m.col2.x;
+	o.axis[ 7 ] = m.col2.y;
+	o.axis[ 8 ] = m.col2.z;
 
-	o.origin[ 0 ] = transform.col3.x;
-	o.origin[ 1 ] = transform.col3.y;
-	o.origin[ 2 ] = transform.col3.z;
+	o.origin[ 0 ] = m.col3.x;
+	o.origin[ 1 ] = m.col3.y;
+	o.origin[ 2 ] = m.col3.z;
 
 	return o;
 }
@@ -957,10 +946,12 @@ void CG_DrawPlayer( centity_t *cent ) {
 		VectorCopy( origin, cent->ent.origin2 );
 	}
 
+	TempAllocator temp = cls.frame_arena->temp();
+
 	float lower_time, upper_time;
 	CG_GetAnimationTimes( pmodel, cg.time, &lower_time, &upper_time );
-	Span< TRS > lower = SampleAnimation( cls.frame_arena, meta->model, lower_time );
-	Span< TRS > upper = SampleAnimation( cls.frame_arena, meta->model, upper_time );
+	Span< TRS > lower = SampleAnimation( &temp, meta->model, lower_time );
+	Span< TRS > upper = SampleAnimation( &temp, meta->model, upper_time );
 	MergeLowerUpperPoses( lower, upper, meta->model, meta->upper_root_joint );
 
 	// add skeleton effects (pose is unmounted yet)
@@ -1004,24 +995,18 @@ void CG_DrawPlayer( centity_t *cent ) {
 		}
 	}
 
-	MatrixPalettes pose = ComputeMatrixPalettes( cls.frame_arena, meta->model, lower );
+	MatrixPalettes pose = ComputeMatrixPalettes( &temp, meta->model, lower );
 
 	CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
 
-	Mat4 transform = Mat4::Identity();
-	transform.col0.x = cent->ent.axis[ 0 ];
-	transform.col0.y = cent->ent.axis[ 1 ];
-	transform.col0.z = cent->ent.axis[ 2 ];
-	transform.col1.x = cent->ent.axis[ 3 ];
-	transform.col1.y = cent->ent.axis[ 4 ];
-	transform.col1.z = cent->ent.axis[ 5 ];
-	transform.col2.x = cent->ent.axis[ 6 ];
-	transform.col2.y = cent->ent.axis[ 7 ];
-	transform.col2.z = cent->ent.axis[ 8 ];
-	transform = Mat4_Translation( cent->ent.origin[ 0 ], cent->ent.origin[ 1 ], cent->ent.origin[ 2 ] ) * transform;
+	Mat4 transform = FromQFAxisAndOrigin( cent->ent.axis, cent->ent.origin );
 
 	Vec4 color = CG_TeamColorVec4( cent->current.team );
 	DrawModel( meta->model, transform, color, pose.skinning_matrices );
+
+	if( cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR || cg.predictedPlayerState.stats[ STAT_TEAM ] == cent->current.team ) {
+		DrawTeammateModel( meta->model, transform, color, pose.skinning_matrices );
+	}
 
 	float outline_height = CG_OutlineScaleForDist( &cent->ent, 4096, 1.0f );
 	DrawOutlinedModel( meta->model, transform, vec4_black, outline_height, pose.skinning_matrices );
@@ -1030,17 +1015,20 @@ void CG_DrawPlayer( centity_t *cent ) {
 
 	// add weapon model
 	if( cent->current.weapon ) {
-		orientation_t tag_weapon = TransformTag( meta->model, pose, meta->tag_weapon );
+		orientation_t tag_weapon = Mat4ToOrientation( TransformTag( meta->model, transform, pose, meta->tag_weapon ) );
 		CG_AddWeaponOnTag( &cent->ent, &tag_weapon, cent->current.weapon, cent->effects,
 			&pmodel->projectionSource, pmodel->flash_time, pmodel->barrel_time );
 	}
 
 	// add backpack/hat
 	if( cent->current.modelindex2 ) {
-		PlayerModelMetadata::Tag tag = meta->tag_backpack;
-		if( cent->current.effects & EF_HAT )
-			tag = meta->tag_head;
-		orientation_t o = TransformTag( meta->model, pose, tag );
-		CG_AddLinkedModel( cent, &o );
+		const Model * attached_model = cgs.modelDraw[ cent->current.modelindex2 ];
+		if( attached_model != NULL ) {
+			PlayerModelMetadata::Tag tag = meta->tag_backpack;
+			if( cent->current.effects & EF_HAT )
+				tag = meta->tag_head;
+			Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag );
+			DrawModel( attached_model, tag_transform, vec4_white );
+		}
 	}
 }

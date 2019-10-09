@@ -21,17 +21,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "gameshared/q_math.h"
 
-// entity_state_t->renderfx flags
-#define RenderFX_WeaponModel ( 1 << 0 ) // only draw through eyes and depth hack
-
 // refdef flags
 #define RDF_UNDERWATER          0x1     // warp the screen as apropriate
-#define RDF_NOWORLDMODEL        0x2     // used for player configuration screen
-#define RDF_OLDAREABITS         0x4     // forces R_MarkLeaves if not set
-#define RDF_WORLDOUTLINES       0x8     // draw cell outlines for world surfaces
-#define RDF_CROSSINGWATER       0x10    // potentially crossing water surface
-#define RDF_USEORTHO            0x20    // use orthographic projection
-#define RDF_BLURRED             0x40
+#define RDF_CROSSINGWATER       0x2     // potentially crossing water surface
+#define RDF_BLURRED             0x4
 
 typedef struct orientation_s {
 	mat3_t axis;
@@ -53,7 +46,6 @@ typedef struct poly_s {
 	int numelems;
 	u16 *elems;
 	const Material * material;
-	int renderfx;
 } poly_t;
 
 struct TRS {
@@ -68,10 +60,6 @@ struct MatrixPalettes {
 };
 
 typedef struct entity_s {
-	union {
-		int flags;
-		int renderfx;
-	};
 
 	const Model * model;
 

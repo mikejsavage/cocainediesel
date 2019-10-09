@@ -115,8 +115,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, ScoreboardPlayer player,
 
 	// player name
 	u8 alpha = player.id >= 0 ? 255 : 75;
-	DynamicString final_name( &temp );
-	CL_ImGuiExpandColorTokens( &final_name, cgs.clientInfo[ id ].name, alpha );
+	DynamicString final_name( &temp, "{}{}", ImGuiColorToken( 0, 0, 0, alpha ), cgs.clientInfo[ id ].name );
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text( "%s", final_name.c_str() );
 	ImGui::NextColumn();
@@ -198,6 +197,8 @@ static void DrawTeamScoreboard( TempAllocator & temp, const char ** cursor, int 
 }
 
 void CG_DrawScoreboard() {
+	ZoneScoped;
+
 	TempAllocator temp = cls.frame_arena->temp();
 
 	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
@@ -212,7 +213,7 @@ void CG_DrawScoreboard() {
 	ImGuiWindowFlags basic_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
 
 	ImGui::SetNextWindowSize( ImVec2( size.x, -1 ) );
-	ImGui::SetNextWindowPosCenter();
+	ImGui::SetNextWindowPos( io.DisplaySize * 0.5f, 0, Vec2( 0.5f ) );
 	ImGui::Begin( "scoreboard", NULL, basic_flags | ImGuiWindowFlags_NoBackground );
 	ImGui::PopStyleVar();
 	defer {
@@ -406,12 +407,11 @@ void CG_DrawScoreboard() {
 		if( !ParseInt( &cursor, &id ) )
 			break;
 		if( i > 0 )
-			spectators += S_COLOR_WHITE ", ";
+			spectators += ", ";
 		spectators += cgs.clientInfo[ id ].name;
 	}
 
-	DynamicString expanded( &temp );
-	CL_ImGuiExpandColorTokens( &expanded, spectators.c_str(), 200 );
+	DynamicString expanded( &temp, "{}{}", ImGuiColorToken( 0, 0, 0, 200 ), spectators.c_str() );
 	CenterTextWindow( "spec", expanded.c_str(), ImVec2( size.x, size.y/10 ) );
 }
 

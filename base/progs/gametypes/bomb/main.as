@@ -492,11 +492,6 @@ void GT_SpawnGametype() {
 // spawning at initialization do it in GT_SpawnGametype, which is called
 // right after the map entities spawning.
 void GT_InitGametype() {
-	gametype.spawnableItemsMask = 0;
-	gametype.respawnableItemsMask = 0;
-	gametype.dropableItemsMask = 0;
-	gametype.pickableItemsMask = 0;
-
 	gametype.isTeamBased = true;
 	gametype.isRace = false;
 	gametype.hasChallengersQueue = false;

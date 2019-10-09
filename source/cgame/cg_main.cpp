@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "cg_local.h"
+#include "cgame/cg_local.h"
 
 cg_static_t cgs;
 cg_state_t cg;
@@ -64,7 +64,6 @@ cvar_t *cg_explosionsDust;
 cvar_t *cg_outlineModels;
 cvar_t *cg_outlineWorld;
 cvar_t *cg_outlinePlayers;
-cvar_t *cg_drawEntityBoxes;
 cvar_t *cg_fov;
 cvar_t *cg_zoomfov;
 cvar_t *cg_voiceChats;
@@ -77,8 +76,6 @@ cvar_t *cg_volume_hitsound;
 cvar_t *cg_autoaction_demo;
 cvar_t *cg_autoaction_screenshot;
 cvar_t *cg_autoaction_spectator;
-cvar_t *cg_simpleItems;
-cvar_t *cg_simpleItemsSize;
 cvar_t *cg_showObituaries;
 cvar_t *cg_damageNumbers;
 cvar_t *cg_particles;
@@ -293,6 +290,9 @@ static void CG_RegisterModels( void ) {
 
 			// indexed pmodel
 			cgs.pModelsIndex[i] = CG_RegisterPlayerModel( name + 1 );
+		} else if( name[0] == '*' ) {
+			u64 hash = Hash64( name, strlen( name ), cgs.map->base_hash );
+			cgs.modelDraw[i] = FindModel( StringHash( hash ) );
 		} else {
 			if( !CG_LoadingItemName( name ) ) {
 				return;
@@ -465,14 +465,11 @@ static void CG_RegisterVariables( void ) {
 	cg_outlineModels =  trap_Cvar_Get( "cg_outlineModels", "1", CVAR_ARCHIVE );
 	cg_outlineWorld =   trap_Cvar_Get( "cg_outlineWorld", "0", CVAR_CHEAT );
 	cg_outlinePlayers = trap_Cvar_Get( "cg_outlinePlayers", "1", CVAR_ARCHIVE );
-	cg_drawEntityBoxes =    trap_Cvar_Get( "cg_drawEntityBoxes", "0", CVAR_DEVELOPER );
 	cg_showObituaries = trap_Cvar_Get( "cg_showObituaries", va( "%i", CG_OBITUARY_HUD | CG_OBITUARY_CENTER ), CVAR_ARCHIVE );
 	cg_damageNumbers = trap_Cvar_Get( "cg_damageNumbers", "1", CVAR_ARCHIVE );
 	cg_autoaction_demo =    trap_Cvar_Get( "cg_autoaction_demo", "0", CVAR_ARCHIVE );
 	cg_autoaction_screenshot =  trap_Cvar_Get( "cg_autoaction_screenshot", "0", CVAR_ARCHIVE );
 	cg_autoaction_spectator = trap_Cvar_Get( "cg_autoaction_spectator", "0", CVAR_ARCHIVE );
-	cg_simpleItems =    trap_Cvar_Get( "cg_simpleItems", "0", CVAR_ARCHIVE );
-	cg_simpleItemsSize =    trap_Cvar_Get( "cg_simpleItemsSize", "16", CVAR_ARCHIVE );
 	cg_particles =      trap_Cvar_Get( "cg_particles", "1", CVAR_ARCHIVE );
 
 	cg_cartoonEffects =     trap_Cvar_Get( "cg_cartoonEffects", "7", CVAR_ARCHIVE );
@@ -505,24 +502,6 @@ static void CG_RegisterVariables( void ) {
 }
 
 /*
-* CG_ValidateItemDef
-*
-* Compares name and tag against the itemlist to make sure cgame and game lists match
-*/
-void CG_ValidateItemDef( int tag, char *name ) {
-	const gsitem_t *item;
-
-	item = GS_FindItemByName( name );
-	if( !item ) {
-		CG_Error( "Client/Server itemlist missmatch (Game and Cgame version/mod differs). Item '%s' not found\n", name );
-	}
-
-	if( item->tag != tag ) {
-		CG_Error( "Client/Server itemlist missmatch (Game and Cgame version/mod differs).\n" );
-	}
-}
-
-/*
 * CG_OverrideWeapondef
 *
 * Compares name and tag against the itemlist to make sure cgame and game lists match
@@ -544,20 +523,19 @@ void CG_OverrideWeapondef( int index, const char *cstring ) {
 
 	firedef = &weapondef->firedef;
 
-	i = sscanf( cstring, "%7i %7i %7u %7u %7u %7u %7u %7i %7i %7i",
+	i = sscanf( cstring, "%7i %7i %7u %7u %7u %7u %7i %7i %7i",
 				&firedef->usage_count,
 				&firedef->projectile_count,
 				&firedef->weaponup_time,
 				&firedef->weapondown_time,
 				&firedef->reload_time,
-				&firedef->cooldown_time,
 				&firedef->timeout,
 				&firedef->speed,
 				&firedef->spread,
 				&firedef->v_spread
 				);
 
-	if( i != 10 ) {
+	if( i != 9 ) {
 		CG_Error( "CG_OverrideWeapondef: Bad configstring: %s \"%s\" (%i)\n", weapondef->name, cstring, i );
 	}
 }
@@ -566,18 +544,8 @@ void CG_OverrideWeapondef( int index, const char *cstring ) {
 * CG_ValidateItemList
 */
 static void CG_ValidateItemList( void ) {
-	int i;
-	int cs;
-
-	for( i = 0; i < MAX_ITEMS; i++ ) {
-		cs = CS_ITEMS + i;
-		if( cgs.configStrings[cs][0] ) {
-			CG_ValidateItemDef( i, cgs.configStrings[cs] );
-		}
-	}
-
-	for( i = 0; i < MAX_WEAPONDEFS; i++ ) {
-		cs = CS_WEAPONDEFS + i;
+	for( int i = 0; i < MAX_WEAPONDEFS; i++ ) {
+		int cs = CS_WEAPONDEFS + i;
 		if( cgs.configStrings[cs][0] ) {
 			CG_OverrideWeapondef( i, cgs.configStrings[cs] );
 		}
@@ -594,6 +562,14 @@ void CG_Precache( void ) {
 
 	cgs.precacheStart = cgs.precacheCount;
 	cgs.precacheStartMsec = trap_Milliseconds();
+
+	{
+		const char * name = cgs.configStrings[ CS_WORLDMODEL ];
+		const char * ext = COM_FileExtension( name );
+
+		u64 hash = Hash64( name, strlen( name ) - strlen( ext ) );
+		cgs.map = FindMapMetadata( StringHash( hash ) );
+	}
 
 	CG_RegisterModels();
 	if( cgs.precacheModelsStart < MAX_MODELS ) {
@@ -671,7 +647,6 @@ void CG_Reset( void ) {
 	CG_SC_ResetObituaries();
 
 	CG_ClearDecals();
-	CG_ClearPolys();
 	CG_ClearEffects();
 	CG_ClearLocalEntities();
 
@@ -758,8 +733,10 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	CG_LoadStatusBar();
 
 	CG_ClearDecals();
-	CG_ClearPolys();
 	CG_ClearEffects();
+
+	InitParticles();
+	InitPersistentBeams();
 
 	CG_InitChat( &cg.chat );
 

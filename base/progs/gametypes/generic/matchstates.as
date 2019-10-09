@@ -54,11 +54,8 @@ void GENERIC_SetUpWarmup()
 	match.name = "";
 }
 
-void GENERIC_SetUpCountdown( bool respawnItems = true )
+void GENERIC_SetUpCountdown()
 {
-	if( respawnItems )
-		G_Items_RespawnByType( 0, 0, 0 ); // respawn all items
-
 	gametype.shootingDisabled = false;
 	gametype.readyAnnouncementEnabled = false;
 	gametype.scoreAnnouncementEnabled = false;

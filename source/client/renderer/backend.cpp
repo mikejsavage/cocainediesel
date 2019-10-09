@@ -1,12 +1,14 @@
 #include <algorithm> // std::stable_sort
 
+#include "glad/glad.h"
+
+#include "tracy/TracyOpenGL.hpp"
+
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
 #include "qcommon/hash.h"
 #include "client/renderer/renderer.h"
-
-#include "glad/glad.h"
 
 template< typename S, typename T >
 struct SameType { enum { value = false }; };
@@ -227,6 +229,8 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 }
 
 void RenderBackendInit() {
+	TracyGpuContext;
+
 	render_passes.init( sys_allocator );
 	draw_calls.init( sys_allocator );
 	deferred_deletes.init( sys_allocator );
@@ -303,7 +307,9 @@ static bool operator!=( PipelineState::Scissor a, PipelineState::Scissor b ) {
 }
 
 static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
-	if( pipeline.shader != prev_pipeline.shader ) {
+	TracyGpuZone( "Set pipeline state" );
+
+	if( pipeline.shader != NULL && ( prev_pipeline.shader == NULL || pipeline.shader->program != prev_pipeline.shader->program ) ) {
 		glUseProgram( pipeline.shader->program );
 	}
 
@@ -332,7 +338,10 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		bool found = false;
 		for( size_t j = 0; j < pipeline.num_textures; j++ ) {
 			if( pipeline.textures[ j ].name_hash == pipeline.shader->textures[ i ] ) {
-				glBindTexture( GL_TEXTURE_2D, pipeline.textures[ j ].texture.texture );
+				GLenum target = pipeline.textures[ j ].texture.msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+				GLenum other_target = pipeline.textures[ j ].texture.msaa ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
+				glBindTexture( other_target, 0 );
+				glBindTexture( target, pipeline.textures[ j ].texture.texture );
 				found = true;
 				break;
 			}
@@ -340,6 +349,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 
 		if( !found ) {
 			glBindTexture( GL_TEXTURE_2D, 0 );
+			glBindTexture( GL_TEXTURE_2D_MULTISAMPLE, 0 );
 		}
 	}
 
@@ -391,7 +401,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 				glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 			}
 			else {
-				glBlendFunc( GL_ONE, GL_ONE );
+				glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 			}
 		}
 	}
@@ -434,6 +444,9 @@ static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
 }
 
 static void SetupRenderPass( const RenderPass & pass ) {
+	ZoneScoped;
+	TracyGpuZone( "Setup render pass" );
+
 	if( GLAD_GL_KHR_debug != 0 ) {
 		glPushDebugGroup( GL_DEBUG_SOURCE_APPLICATION, 0, -1, pass.name );
 	}
@@ -457,6 +470,12 @@ static void SetupRenderPass( const RenderPass & pass ) {
 	clear_mask |= pass.clear_color ? GL_COLOR_BUFFER_BIT : 0;
 	clear_mask |= pass.clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
 	if( clear_mask != 0 ) {
+		PipelineState::Scissor scissor = prev_pipeline.scissor;
+		if( scissor.x != 0 && scissor.y != 0 && scissor.w != 0 && scissor.h != 0 ) {
+			glDisable( GL_SCISSOR_TEST );
+			prev_pipeline.scissor = { };
+		}
+
 		if( pass.clear_color ) {
 			glClearColor( pass.color.x, pass.color.y, pass.color.z, pass.color.w );
 		}
@@ -474,6 +493,8 @@ static void SetupRenderPass( const RenderPass & pass ) {
 }
 
 static void SubmitDrawCall( const DrawCall & dc ) {
+	TracyGpuZone( "Draw call" );
+
 	SetPipelineState( dc.pipeline, dc.mesh.ccw_winding );
 
 	glBindVertexArray( dc.mesh.vao );
@@ -498,33 +519,44 @@ static void SubmitResolveMSAA( Framebuffer fb ) {
 }
 
 void RenderBackendSubmitFrame() {
+	ZoneScoped;
+
 	assert( in_frame );
 	assert( render_passes.size() > 0 );
 	in_frame = false;
 
-	for( UBO ubo : ubos ) {
-		glBindBuffer( GL_UNIFORM_BUFFER, ubo.ubo );
-		glUnmapBuffer( GL_UNIFORM_BUFFER );
+	{
+		ZoneScopedN( "Unmap UBOs" );
+		for( UBO ubo : ubos ) {
+			glBindBuffer( GL_UNIFORM_BUFFER, ubo.ubo );
+			glUnmapBuffer( GL_UNIFORM_BUFFER );
+		}
 	}
 
-	std::stable_sort( draw_calls.begin(), draw_calls.end(), SortDrawCall );
+	{
+		ZoneScopedN( "Sort draw calls" );
+		std::stable_sort( draw_calls.begin(), draw_calls.end(), SortDrawCall );
+	}
 
 	SetupRenderPass( render_passes[ 0 ] );
 	u8 pass_idx = 0;
 
-	for( const DrawCall & dc : draw_calls ) {
-		while( dc.pipeline.pass > pass_idx ) {
-			if( GLAD_GL_KHR_debug != 0 )
-				glPopDebugGroup();
-			pass_idx++;
-			SetupRenderPass( render_passes[ pass_idx ] );
-		}
+	{
+		ZoneScopedN( "Submit draw calls" );
+		for( const DrawCall & dc : draw_calls ) {
+			while( dc.pipeline.pass > pass_idx ) {
+				if( GLAD_GL_KHR_debug != 0 )
+					glPopDebugGroup();
+				pass_idx++;
+				SetupRenderPass( render_passes[ pass_idx ] );
+			}
 
-		if( dc.pipeline.shader == NULL ) {
-			SubmitResolveMSAA( render_passes[ dc.pipeline.pass ].msaa_source );
-		}
-		else {
-			SubmitDrawCall( dc );
+			if( dc.pipeline.shader == NULL ) {
+				SubmitResolveMSAA( render_passes[ dc.pipeline.pass ].msaa_source );
+			}
+			else {
+				SubmitDrawCall( dc );
+			}
 		}
 	}
 
@@ -538,9 +570,20 @@ void RenderBackendSubmitFrame() {
 			glPopDebugGroup();
 	}
 
-	for( const Mesh & mesh : deferred_deletes ) {
-		DeleteMesh( mesh );
+	{
+		ZoneScopedN( "Deferred deletes" );
+		for( const Mesh & mesh : deferred_deletes ) {
+			DeleteMesh( mesh );
+		}
 	}
+
+	u32 ubo_bytes_used = 0;
+	for( const UBO & ubo : ubos ) {
+		ubo_bytes_used += ubo.bytes_used;
+	}
+	TracyPlot( "UBO utilisation", float( ubo_bytes_used ) / float( UNIFORM_BUFFER_SIZE * ARRAY_COUNT( ubos ) ) );
+
+	TracyGpuCollect;
 }
 
 u32 renderer_num_draw_calls() {
@@ -571,7 +614,7 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 	UniformBlock block;
 	block.ubo = ubo->ubo;
 	block.offset = offset;
-	block.size = checked_cast< u32 >( size );
+	block.size = AlignPow2( checked_cast< u32 >( size ), u32( 16 ) );
 
 	// memset so we don't leave any gaps. good for write combined memory!
 	memset( ubo->buffer + ubo->bytes_used, 0, offset - ubo->bytes_used );
@@ -632,56 +675,54 @@ void DeleteIndexBuffer( IndexBuffer ib ) {
 }
 
 static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
-	GLenum target = msaa_samples == 0 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
-
 	Texture texture;
 	texture.width = config.width;
 	texture.height = config.height;
+	texture.msaa = msaa_samples > 1;
 	texture.format = config.format;
 
 	glGenTextures( 1, &texture.texture );
 	// TODO: should probably update the gl state since we bind a new texture
 	// TODO: or glactivetexture 0?
+	GLenum target = msaa_samples == 0 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
 	glBindTexture( target, texture.texture );
 
 	GLenum internal_format, channels, type;
 	TextureFormatToGL( config.format, &internal_format, &channels, &type );
 
 	if( msaa_samples == 0 ) {
-		glTexParameteri( target, GL_TEXTURE_WRAP_S, TextureWrapToGL( config.wrap ) );
-		glTexParameteri( target, GL_TEXTURE_WRAP_T, TextureWrapToGL( config.wrap ) );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, TextureWrapToGL( config.wrap ) );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, TextureWrapToGL( config.wrap ) );
 
 		GLenum filter = TextureFilterToGL( config.filter );
-		glTexParameteri( target, GL_TEXTURE_MIN_FILTER, filter );
-		glTexParameteri( target, GL_TEXTURE_MAG_FILTER, filter );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter );
 
 		if( config.wrap == TextureWrap_Border ) {
-			glTexParameterfv( target, GL_TEXTURE_BORDER_COLOR, ( GLfloat * ) &config.border_color );
+			glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, ( GLfloat * ) &config.border_color );
 		}
 
 		if( channels == GL_RED ) {
 			if( config.format == TextureFormat_A_U8 ) {
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_RED );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_ONE );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_ONE );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_ONE );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED );
 			}
 			else {
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_RED );
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_G, GL_RED );
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_RED );
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_ONE );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_ONE );
 			}
 		}
 		else if( channels == GL_RG ) {
-			glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_RED );
-			glTexParameteri( target, GL_TEXTURE_SWIZZLE_G, GL_RED );
-			glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_RED );
-			glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
 		}
-	}
 
-	if( msaa_samples == 0 ) {
 		glTexImage2D( GL_TEXTURE_2D, 0, internal_format,
 			config.width, config.height, 0, channels, type, config.data );
 	}
@@ -733,7 +774,7 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 
 	u32 width = 0;
 	u32 height = 0;
-	GLenum target = config.msaa_samples == 0 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
+	GLenum target = config.msaa_samples <= 1 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
 	GLenum bufs[ 2 ] = { GL_NONE, GL_NONE };
 
 	if( config.albedo_attachment.width != 0 ) {
@@ -857,8 +898,8 @@ static GLuint CompileShader( GLenum type, Span< const char * > srcs, Span< int >
 	return shader;
 }
 
-Shader NewShader( Span< const char * > srcs, Span< int > lens ) {
-	Shader shader = { };
+bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens ) {
+	*shader = { };
 
 	GLuint vs = CompileShader( GL_VERTEX_SHADER, srcs, lens );
 	GLuint fs = CompileShader( GL_FRAGMENT_SHADER, srcs, lens );
@@ -868,7 +909,7 @@ Shader NewShader( Span< const char * > srcs, Span< int > lens ) {
 			glDeleteShader( vs );
 		if( fs != 0 )
 			glDeleteShader( fs );
-		return shader;
+		return false;
 	}
 
 	GLuint program = glCreateProgram();
@@ -900,11 +941,11 @@ Shader NewShader( Span< const char * > srcs, Span< int > lens ) {
 		glGetProgramInfoLog( program, sizeof( buf ), NULL, buf );
 		Com_Printf( S_COLOR_YELLOW "Shader linking failed: %s\n", buf );
 
-		return shader;
+		return false;
 	}
 
 	glUseProgram( program );
-	shader.program = program;
+	shader->program = program;
 
 	GLint count, maxlen;
 	glGetProgramiv( program, GL_ACTIVE_UNIFORMS, &count );
@@ -917,9 +958,9 @@ Shader NewShader( Span< const char * > srcs, Span< int > lens ) {
 		GLenum type;
 		glGetActiveUniform( program, i, sizeof( name ), &len, &size, &type, name );
 
-		if( type == GL_SAMPLER_2D ) {
+		if( type == GL_SAMPLER_2D || type == GL_SAMPLER_2D_MULTISAMPLE ) {
 			glUniform1i( glGetUniformLocation( program, name ), num_textures );
-			shader.textures[ num_textures ] = Hash64( name, len );
+			shader->textures[ num_textures ] = Hash64( name, len );
 			num_textures++;
 		}
 	}
@@ -932,15 +973,24 @@ Shader NewShader( Span< const char * > srcs, Span< int > lens ) {
 		GLint len;
 		glGetActiveUniformBlockName( program, i, sizeof( name ), &len, name );
 		glUniformBlockBinding( program, i, i );
-		shader.uniforms[ i ] = Hash64( name, len );
+		shader->uniforms[ i ] = Hash64( name, len );
 	}
 
+	prev_pipeline.shader = NULL;
 	glUseProgram( 0 );
 
-	return shader;
+	return true;
 }
 
 void DeleteShader( Shader shader ) {
+	if( shader.program == 0 )
+		return;
+
+	if( prev_pipeline.shader != NULL && prev_pipeline.shader->program == shader.program ) {
+		prev_pipeline.shader = NULL;
+		glUseProgram( 0 );
+	}
+
 	glDeleteProgram( shader.program );
 }
 

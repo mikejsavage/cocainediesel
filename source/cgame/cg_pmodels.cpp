@@ -955,7 +955,8 @@ void CG_DrawPlayer( centity_t *cent ) {
 	MergeLowerUpperPoses( lower, upper, meta->model, meta->upper_root_joint );
 
 	// add skeleton effects (pose is unmounted yet)
-	if( cent->current.type != ET_CORPSE ) {
+	bool corpse = cent->current.type == ET_CORPSE;
+	if( corpse ) {
 		vec3_t tmpangles;
 		// if it's our client use the predicted angles
 		if( cg.view.playerPrediction && ISVIEWERENTITY( cent->current.number ) ) {
@@ -1004,7 +1005,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 	Vec4 color = CG_TeamColorVec4( cent->current.team );
 	DrawModel( meta->model, transform, color, pose.skinning_matrices );
 
-	if( cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR || cg.predictedPlayerState.stats[ STAT_TEAM ] == cent->current.team ) {
+	if( !corpse && ( cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR || cg.predictedPlayerState.stats[ STAT_TEAM ] == cent->current.team ) ) {
 		DrawTeammateModel( meta->model, transform, color, pose.skinning_matrices );
 	}
 

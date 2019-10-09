@@ -439,7 +439,7 @@ void IN_Shutdown() {
 }
 
 void IN_Frame() {
-	// grab input and hide cursor if there are any imgui windows accepting inputs
+	// show cursor if there are any imgui windows accepting inputs
 	bool gui_active = false;
 	const ImGuiContext * ctx = ImGui::GetCurrentContext();
 	for( const ImGuiWindow * window : ctx->Windows ) {
@@ -449,21 +449,18 @@ void IN_Frame() {
 		}
 	}
 
-	// don't grab input if we're running a debugger
-	if( running_in_debugger ) {
-		if( !gui_active )
-			IN_WarpMouseToCenter();
+	if( gui_active ) {
+		SDL_SetRelativeMouseMode( SDL_FALSE );
+		SDL_ShowCursor( SDL_ENABLE );
+	}
+	else if( running_in_debugger ) {
+		// don't grab input if we're running a debugger
+		IN_WarpMouseToCenter();
 		SDL_SetRelativeMouseMode( SDL_FALSE );
 		SDL_ShowCursor( SDL_ENABLE );
 	}
 	else {
-		if( gui_active ) {
-			SDL_SetRelativeMouseMode( SDL_FALSE );
-			SDL_ShowCursor( SDL_ENABLE );
-		}
-		else {
-			SDL_SetRelativeMouseMode( SDL_TRUE );
-		}
+		SDL_SetRelativeMouseMode( SDL_TRUE );
 	}
 
 	IN_HandleEvents();

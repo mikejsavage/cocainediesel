@@ -4,7 +4,6 @@
 #include "client/sdl/sdl_window.h"
 
 #include "imgui/imgui.h"
-#include "imgui/imgui_freetype.h"
 #include "imgui/imgui_internal.h"
 
 #include "cgame/cg_local.h"
@@ -86,42 +85,6 @@ static void RefreshServerBrowser() {
 }
 
 void UI_Init() {
-	{
-		ImGuiIO & io = ImGui::GetIO();
-		io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 18.0f );
-		cls.huge_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 128.0f );
-		cls.large_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 64.0f );
-		cls.medium_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 48.0f );
-		cls.console_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 14.0f );
-		ImGuiFreeType::BuildFontAtlas( io.Fonts );
-
-		u8 * pixels;
-		int width, height;
-		io.Fonts->GetTexDataAsAlpha8( &pixels, &width, &height );
-
-		TextureConfig config;
-		config.width = width;
-		config.height = height;
-		config.data = pixels;
-		config.format = TextureFormat_A_U8;
-		Texture texture = NewTexture( config );
-		io.Fonts->TexID = ( void * ) uintptr_t( texture.texture );
-	}
-
-	{
-		ImGuiStyle & style = ImGui::GetStyle();
-		style.WindowRounding = 0;
-		style.FrameRounding = 1;
-		style.GrabRounding = 2;
-		style.FramePadding = ImVec2( 8, 8 );
-		style.FrameBorderSize = 0;
-		style.WindowPadding = ImVec2( 16, 16 );
-		style.WindowBorderSize = 0;
-		style.PopupBorderSize = 0;
-		style.Colors[ ImGuiCol_WindowBg ] = ImColor( 0x1a, 0x1a, 0x1a );
-		style.ItemSpacing.y = 8;
-	}
-
 	ResetServerBrowser();
 
 	uistate = UIState_MainMenu;

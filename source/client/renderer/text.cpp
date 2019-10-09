@@ -98,7 +98,7 @@ const Font * RegisterFont( const char * path ) {
 
 	// load MSDF atlas
 	{
-		DynamicString atlas_path( &temp, "{}_atlas.png", path );
+		DynamicString atlas_path( &temp, "{}.png", path );
 		Span< const u8 > data = AssetBinary( atlas_path.c_str() );
 
 		int w, h, channels;

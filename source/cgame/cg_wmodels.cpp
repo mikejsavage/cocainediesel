@@ -312,14 +312,20 @@ static void CG_ComputeWeaponInfoTags( weaponinfo_t *weaponinfo ) {
 /*
 * CG_WeaponModelUpdateRegistration
 */
-static bool CG_WeaponModelUpdateRegistration( weaponinfo_t *weaponinfo, char *filename ) {
-	char scratch[MAX_QPATH];
-
+static void CG_WeaponModelUpdateRegistration( weaponinfo_t *weaponinfo, char *filename ) {
 	for( int p = 0; p < VWEAP_MAXPARTS; p++ ) {
 		if( !weaponinfo->model[p] ) {
+			char scratch[MAX_QPATH];
 			Q_snprintfz( scratch, sizeof( scratch ), "models/weapons/%s%s.md3", filename, wmPartSufix[p] );
 			weaponinfo->model[p] = FindModel( scratch );
 		}
+	}
+
+	// load animation script for the hand model
+	char scratch[MAX_QPATH];
+	Q_snprintfz( scratch, sizeof( scratch ), "models/weapons/%s.cfg", filename );
+	if( !CG_vWeap_ParseAnimationScript( weaponinfo, scratch ) ) {
+		CG_CreateHandDefaultAnimations( weaponinfo );
 	}
 
 	// load failed
@@ -327,14 +333,7 @@ static bool CG_WeaponModelUpdateRegistration( weaponinfo_t *weaponinfo, char *fi
 		weaponinfo->name[0] = 0;
 		for( int p = 0; p < VWEAP_MAXPARTS; p++ )
 			weaponinfo->model[p] = NULL;
-		return false;
-	}
-
-	// load animation script for the hand model
-	Q_snprintfz( scratch, sizeof( scratch ), "models/weapons/%s.cfg", filename );
-
-	if( !CG_vWeap_ParseAnimationScript( weaponinfo, scratch ) ) {
-		CG_CreateHandDefaultAnimations( weaponinfo );
+		return;
 	}
 
 	// create a tag_projection from tag_flash, to position fire effects
@@ -345,43 +344,6 @@ static bool CG_WeaponModelUpdateRegistration( weaponinfo_t *weaponinfo, char *fi
 	}
 
 	Q_strncpyz( weaponinfo->name, filename, sizeof( weaponinfo->name ) );
-
-	return true;
-}
-
-/*
-* CG_FindWeaponModelSpot
-*
-* Stored names format is without extension, like this: "rocketl/rocketl"
-*/
-static struct weaponinfo_s *CG_FindWeaponModelSpot( char *filename ) {
-	int freespot = -1;
-
-	for( int i = 0; i < WEAP_TOTAL; i++ ) {
-		if( cg_pWeaponModelInfos[i].inuse ) {
-			if( !Q_stricmp( cg_pWeaponModelInfos[i].name, filename ) ) { //found it
-				if( cg_debugWeaponModels->integer ) {
-					CG_Printf( "WEAPModel: found at spot %i: %s\n", i, filename );
-				}
-
-				return &cg_pWeaponModelInfos[i];
-			}
-		} else if( freespot < 0 ) {
-			freespot = i;
-		}
-	}
-
-	if( freespot < 0 ) {
-		CG_Error( "%sCG_FindWeaponModelSpot: Couldn't find a free weaponinfo spot%s", S_COLOR_RED, S_COLOR_WHITE );
-		return NULL;
-	}
-
-	//we have a free spot
-	if( cg_debugWeaponModels->integer ) {
-		CG_Printf( "WEAPmodel: assigned free spot %i for weaponinfo %s\n", freespot, filename );
-	}
-
-	return &cg_pWeaponModelInfos[freespot];
 }
 
 /*
@@ -389,27 +351,16 @@ static struct weaponinfo_s *CG_FindWeaponModelSpot( char *filename ) {
 */
 struct weaponinfo_s *CG_RegisterWeaponModel( char *cgs_name, int weaponTag ) {
 	char filename[MAX_QPATH];
-	weaponinfo_t *weaponinfo;
-
 	Q_strncpyz( filename, cgs_name, sizeof( filename ) );
 	COM_StripExtension( filename );
 
-	weaponinfo = CG_FindWeaponModelSpot( filename );
-	if( !weaponinfo ) {
-		return NULL;
-	}
+	weaponinfo_t * weaponinfo = &cg_pWeaponModelInfos[ weaponTag ];
 	if( weaponinfo->inuse ) {
 		return weaponinfo;
 	}
 
-	weaponinfo->inuse = CG_WeaponModelUpdateRegistration( weaponinfo, filename );
-	if( !weaponinfo->inuse ) {
-		if( cg_debugWeaponModels->integer ) {
-			CG_Printf( "%sWEAPmodel: Failed:%s%s\n", S_COLOR_YELLOW, filename, S_COLOR_WHITE );
-		}
-
-		return NULL;
-	}
+	CG_WeaponModelUpdateRegistration( weaponinfo, filename );
+	weaponinfo->inuse = true;
 
 	return weaponinfo;
 }
@@ -425,14 +376,9 @@ struct weaponinfo_s *CG_RegisterWeaponModel( char *cgs_name, int weaponTag ) {
 * even if the registration failed
 */
 struct weaponinfo_s *CG_CreateWeaponZeroModel( char *filename ) {
-	weaponinfo_t *weaponinfo;
-
 	COM_StripExtension( filename );
 
-	weaponinfo = CG_FindWeaponModelSpot( filename );
-	if( !weaponinfo ) {
-		return NULL;
-	}
+	weaponinfo_t * weaponinfo = &cg_pWeaponModelInfos[ 0 ];
 	if( weaponinfo->inuse ) {
 		return weaponinfo;
 	}

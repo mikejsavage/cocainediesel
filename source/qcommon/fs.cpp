@@ -7,7 +7,7 @@ const char * FS_RootPath() {
 	return ".";
 }
 
-Span< char > FS_ReadFileString( Allocator * a, const char * path ) {
+Span< char > ReadFileString( Allocator * a, const char * path ) {
 	FILE * file = fopen( path, "rb" );
 	if( file == NULL )
 		return Span< char >();

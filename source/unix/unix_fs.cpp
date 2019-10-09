@@ -330,13 +330,13 @@ static ListDirHandle ImplToOpaque( ListDirHandleImpl impl ) {
 	return opaque;
 }
 
-ListDirHandle FS_BeginListDir( const char * path ) {
+ListDirHandle BeginListDir( const char * path ) {
 	ListDirHandleImpl handle;
 	handle.dir = opendir( path );
 	return ImplToOpaque( handle );
 }
 
-bool FS_ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
+bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 	ListDirHandleImpl handle = OpaqueToImpl( *opaque );
 	if( handle.dir == NULL )
 		return false;
@@ -355,4 +355,13 @@ bool FS_ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 	closedir( handle.dir );
 
 	return false;
+}
+
+s64 FileLastModifiedTime( const char * path ) {
+	struct stat buf;
+	if( stat( path, &buf ) == -1 ) {
+		return 0;
+	}
+
+	return checked_cast< s64 >( buf.st_mtim.tv_sec ) * 1000 + checked_cast< s64 >( buf.st_mtim.tv_nsec ) / 1000000;
 }

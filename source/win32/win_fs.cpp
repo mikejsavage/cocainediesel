@@ -311,7 +311,7 @@ static ListDirHandle ImplToOpaque( ListDirHandleImpl impl ) {
 	return opaque;
 }
 
-ListDirHandle FS_BeginListDir( const char * path ) {
+ListDirHandle BeginListDir( const char * path ) {
 	ListDirHandleImpl handle;
 	handle.handle = NULL;
 	handle.first = true;
@@ -329,7 +329,7 @@ ListDirHandle FS_BeginListDir( const char * path ) {
 	return ImplToOpaque( handle );
 }
 
-bool FS_ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
+bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 	ListDirHandleImpl handle = OpaqueToImpl( *opaque );
 	if( handle.handle == NULL )
 		return false;
@@ -349,4 +349,22 @@ bool FS_ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 	*opaque = ImplToOpaque( handle );
 
 	return true;
+}
+
+s64 FileLastModifiedTime( const char * path ) {
+	HANDLE handle = CreateFile( path, 0, 0, NULL, OPEN_EXISTING, 0, NULL );
+	if( handle == INVALID_HANDLE_VALUE ) {
+		return 0;
+	}
+
+	defer { CloseHandle( handle ); };
+
+	FILETIME modified;
+	if( GetFileTime( handle, NULL, NULL, &modified ) == 0 ) {
+		return 0;
+	}
+
+	ULARGE_INTEGER modified64;
+	memcpy( &modified64, &modified, sizeof( modified ) );
+	return modified64.QuadPart;
 }

@@ -156,30 +156,22 @@ static int CG_GetSpeedVertical( const void *parameter ) {
 static int CG_GetFPS( const void *parameter ) {
 #define FPSSAMPLESCOUNT 32
 #define FPSSAMPLESMASK ( FPSSAMPLESCOUNT - 1 )
-	int i;
-	int fps;
 	static int frameTimes[FPSSAMPLESCOUNT];
-	float avFrameTime;
 
 	if( cg_showFPS->modified ) {
 		memset( frameTimes, 0, sizeof( frameTimes ) );
 		cg_showFPS->modified = false;
 	}
 
-	if( cg_showFPS->integer == 1 ) {
-		// frameTimes[cg.frameCount & FPSSAMPLESMASK] = trap_R_GetAverageFrametime();
-		frameTimes[cg.frameCount & FPSSAMPLESMASK] = 1;
-	} else {
-		frameTimes[cg.frameCount & FPSSAMPLESMASK] = cg.realFrameTime;
-	}
+	frameTimes[cg.frameCount & FPSSAMPLESMASK] = cg.realFrameTime;
 
-	for( avFrameTime = 0.0f, i = 0; i < FPSSAMPLESCOUNT; i++ ) {
-		avFrameTime += frameTimes[( cg.frameCount - i ) & FPSSAMPLESMASK];
+	float average = 0.0f;
+	for( size_t i = 0; i < ARRAY_COUNT( frameTimes ); i++ ) {
+		average += frameTimes[( cg.frameCount - i ) & FPSSAMPLESMASK];
 	}
-	avFrameTime /= FPSSAMPLESCOUNT;
-	fps = (int)( 1000.0f / avFrameTime + 0.5f );
-
-	return fps;
+	average /= FPSSAMPLESCOUNT;
+	return int( 1000.0f / average + 0.5f );
+;
 }
 
 static int CG_GetMatchState( const void *parameter ) {

@@ -117,12 +117,7 @@ void CG_TeamColorForEntity( int entNum, byte_vec4_t color ) {
 		return;
 	}
 
-	centity_t *cent = &cg_entities[entNum];
-	if( cent->current.type == ET_CORPSE ) {
-		Vector4Set( color, 60, 60, 60, 255 );
-		return;
-	}
-
+	const centity_t * cent = &cg_entities[entNum];
 	RGB8 rgb = CG_TeamColor( cent->current.team );
 	color[0] = rgb.r;
 	color[1] = rgb.g;

@@ -62,9 +62,9 @@ void CG_DrawChat( cg_gamechat_t *chat ) {
 
 	int message_mode = (int)trap_Cvar_Value( "con_messageMode" );
 
-	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoBackground;
+	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground;
 	if( message_mode == 0 ) {
-		flags |= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollWithMouse;
+		flags |= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
 	}
 
 	ImGui::SetNextWindowSize( ImVec2( size.x*0.5f, size.y ) );

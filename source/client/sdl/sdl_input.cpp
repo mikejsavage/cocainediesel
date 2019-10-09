@@ -463,7 +463,6 @@ void IN_Frame() {
 		}
 		else {
 			SDL_SetRelativeMouseMode( SDL_TRUE );
-			SDL_ShowCursor( SDL_DISABLE );
 		}
 	}
 

@@ -68,7 +68,7 @@ void CG_DrawChat( cg_gamechat_t *chat ) {
 	}
 
 	ImGui::SetNextWindowSize( ImVec2( size.x*0.5f, size.y ) );
-	ImGui::SetNextWindowPos( ImVec2(0, size.y*2.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+	ImGui::SetNextWindowPos( ImVec2(0, size.y*2.5f), ImGuiCond_Always, ImVec2(0, 0.5f));
 	ImGui::Begin( "chat", NULL, flags );
 
 	int l;

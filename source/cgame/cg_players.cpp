@@ -34,7 +34,7 @@ STATIC_ASSERT( ARRAY_COUNT( PLAYER_SOUND_NAMES ) == PlayerSound_Count );
 
 void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata ) {
 	for( size_t i = 0; i < ARRAY_COUNT( metadata->sounds ); i++ ) {
-		TempAllocator temp = cls.frame_arena->temp();
+		TempAllocator temp = cls.frame_arena.temp();
 
 		const char * model_name = metadata->name;
 		const char * p = strrchr( model_name, '/' );

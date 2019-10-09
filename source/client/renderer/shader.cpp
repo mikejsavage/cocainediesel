@@ -60,7 +60,7 @@ static void ReplaceShader( Shader * shader, Span< const char * > srcs, Span< int
 }
 
 static void LoadShaders() {
-	TempAllocator temp = cls.frame_arena->temp();
+	TempAllocator temp = cls.frame_arena.temp();
 	DynamicArray< const char * > srcs( &temp );
 	DynamicArray< int > lengths( &temp );
 

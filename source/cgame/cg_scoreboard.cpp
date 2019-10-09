@@ -203,7 +203,7 @@ static void DrawTeamScoreboard( TempAllocator & temp, const char ** cursor, int 
 void CG_DrawScoreboard() {
 	ZoneScoped;
 
-	TempAllocator temp = cls.frame_arena->temp();
+	TempAllocator temp = cls.frame_arena.temp();
 
 	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
 	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, 0 ) );

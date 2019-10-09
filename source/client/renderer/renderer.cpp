@@ -37,7 +37,7 @@ static void TakeScreenshot() {
 	char date[ 256 ];
 	Sys_FormatTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
 
-	TempAllocator temp = cls.frame_arena->temp();
+	TempAllocator temp = cls.frame_arena.temp();
 	DynamicString filename( &temp );
 	filename.append( "{}/screenshots/{}", FS_WriteDirectory(), date );
 

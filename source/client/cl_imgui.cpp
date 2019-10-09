@@ -100,7 +100,7 @@ static void SubmitDrawCalls() {
 
 	ImDrawData * draw_data = ImGui::GetDrawData();
 
-	ImGuiIO& io = ImGui::GetIO();
+	const ImGuiIO & io = ImGui::GetIO();
 	int fb_width = int( draw_data->DisplaySize.x * io.DisplayFramebufferScale.x );
 	int fb_height = int( draw_data->DisplaySize.y * io.DisplayFramebufferScale.y );
 	if( fb_width <= 0 || fb_height <= 0 )

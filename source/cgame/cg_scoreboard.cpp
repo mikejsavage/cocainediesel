@@ -219,7 +219,7 @@ void CG_DrawScoreboard() {
 		float score_width = 5 * ( ImGui::GetTextLineHeight() + 2 * 8 );
 
 		{
-			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 2, 2 ) );
+			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 4, 4 ) );
 			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 255 ) );
 			ImGui::BeginChild( "scoreboardheader", ImVec2( 0, ImGui::GetFrameHeight() ), false );
 
@@ -256,7 +256,7 @@ void CG_DrawScoreboard() {
 		DrawTeamScoreboard( temp, &cursor, TEAM_ALPHA, col_width );
 
 		{
-			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 2, 2 ) );
+			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 4, 4 ) );
 			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 255 ) );
 			ImGui::BeginChild( "scoreboarddivider", ImVec2( 0, ImGui::GetFrameHeight() ), false );
 
@@ -283,7 +283,7 @@ void CG_DrawScoreboard() {
 		DrawTeamScoreboard( temp, &cursor, TEAM_BETA, col_width );
 
 		{
-			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 2, 2 ) );
+			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 4, 4 ) );
 			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 255 ) );
 			ImGui::BeginChild( "scoreboardfooter", ImVec2( 0, ImGui::GetFrameHeight() ), false );
 
@@ -318,7 +318,7 @@ void CG_DrawScoreboard() {
 		int line_height = ImGui::GetFrameHeight();
 
 		{
-			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 2, 2 ) );
+			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 4, 4 ) );
 			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 255 ) );
 			ImGui::BeginChild( "scoreboardheader", ImVec2( 0, ImGui::GetFrameHeight() ), false );
 
@@ -389,7 +389,7 @@ void CG_DrawScoreboard() {
 	if( !ParseInt( &cursor, &num_spectators ) || num_spectators == 0 )
 		return;
 
-	ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 2, 2 ) );
+	ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 4, 4 ) );
 	ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 255 ) );
 
 	ImGui::Dummy( ImVec2( 0, ImGui::GetFrameHeight() ) );

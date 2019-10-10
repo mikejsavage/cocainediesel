@@ -19,10 +19,10 @@
  */
 // input.h -- external (non-keyboard) input devices
 
-typedef struct {
+struct MouseMovement {
 	int relx, rely;
 	int absx, absy;
-} MouseMovement;
+};
 
 void IN_Init();
 void IN_Shutdown();

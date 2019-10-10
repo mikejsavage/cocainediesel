@@ -627,7 +627,7 @@ void CG_DrawBombHUD() {
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {
 				const char * msg = my_team == site->team ? "DEFEND" : "ATTACK";
-				coords.y -= ( cgs.fontSystemMediumSize * 3 ) / 4;
+				coords.y += ( cgs.fontSystemMediumSize * 7 ) / 8;
 				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, vec4_white, true );
 			}
 		}

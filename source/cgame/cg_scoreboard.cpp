@@ -35,18 +35,6 @@ bool CG_ScoreboardShown() {
 	return ( cg.predictedPlayerState.stats[ STAT_LAYOUTS ] & STAT_LAYOUT_SCOREBOARD ) != 0;
 }
 
-static void ColumnCenterText( const char * str ) {
-	float width = ImGui::CalcTextSize( str ).x;
-	ImGui::SetCursorPosX( ImGui::GetColumnOffset() + 0.5f * ( ImGui::GetColumnWidth() - width ) );
-	ImGui::Text( "%s", str );
-}
-
-static void WindowCenterText( const char * str ) {
-	Vec2 text_size = ImGui::CalcTextSize( str );
-	ImGui::SetCursorPos( 0.5f * ( ImGui::GetWindowSize() - text_size ) );
-	ImGui::Text( "%s", str );
-}
-
 static bool ParseInt( const char ** cursor, int * x ) {
 	const char * token = COM_Parse( cursor );
 	if( cursor == NULL )

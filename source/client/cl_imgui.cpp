@@ -190,3 +190,17 @@ ImGuiColorToken::ImGuiColorToken( RGBA8 rgba ) : ImGuiColorToken( rgba.r, rgba.g
 void format( FormatBuffer * fb, const ImGuiColorToken & token, const FormatOpts & opts ) {
 	format( fb, ( const char * ) token.token );
 }
+
+/* Utility */
+
+void ColumnCenterText( const char * str ) {
+	float width = ImGui::CalcTextSize( str ).x;
+	ImGui::SetCursorPosX( ImGui::GetColumnOffset() + 0.5f * ( ImGui::GetColumnWidth() - width ) );
+	ImGui::Text( "%s", str );
+}
+
+void WindowCenterText( const char * str ) {
+	Vec2 text_size = ImGui::CalcTextSize( str );
+	ImGui::SetCursorPos( 0.5f * ( ImGui::GetWindowSize() - text_size ) );
+	ImGui::Text( "%s", str );
+}

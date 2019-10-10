@@ -145,49 +145,20 @@ inline Mat3 operator-( const Mat3 & m ) {
  * Vec4
  */
 
-inline Vec4 operator+( Vec4 lhs, Vec4 rhs ) {
-	return Vec4(
-		lhs.x + rhs.x,
-		lhs.y + rhs.y,
-		lhs.z + rhs.z,
-		lhs.w + rhs.w
-	);
-}
+inline Vec4 operator*( Vec4 v, float scale ) { return Vec4( v.x * scale, v.y * scale, v.z * scale, v.w * scale ); }
+inline Vec4 operator*( float scale, Vec4 v ) { return v * scale; }
+inline Vec4 operator/( Vec4 v, float scale ) { return v * ( 1.0f / scale ); }
 
-inline Vec4 operator-( Vec4 lhs, Vec4 rhs ) {
-	return Vec4(
-		lhs.x - rhs.x,
-		lhs.y - rhs.y,
-		lhs.z - rhs.z,
-		lhs.w - rhs.w
-	);
-}
+inline Vec4 operator+( Vec4 lhs, Vec4 rhs ) { return Vec4( lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z, lhs.w + rhs.w ); }
+inline Vec4 operator-( Vec4 lhs, Vec4 rhs ) { return Vec4( lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z, lhs.w - rhs.w ); }
+inline Vec4 operator*( Vec4 lhs, Vec4 rhs ) { return Vec4( lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z, lhs.w * rhs.w ); }
 
-inline Vec4 operator*( Vec4 v, float scale ) {
-	return Vec4(
-		v.x * scale,
-		v.y * scale,
-		v.z * scale,
-		v.w * scale
-	);
-}
+inline void operator*=( Vec4 & v, float scale ) { v = v / scale; }
+inline void operator/=( Vec4 & v, float scale ) { v = v / scale; }
 
-inline Vec4 operator*( float scale, Vec4 v ) {
-	return v * scale;
-}
+inline void operator*=( Vec4 & lhs, Vec4 rhs ) { lhs = lhs * rhs; }
 
-inline Vec4 operator/( Vec4 v, float scale ) {
-	float inv_scale = 1.0f / scale;
-	return v * inv_scale;
-}
-
-inline void operator/=( Vec4 & v, float scale ) {
-	v = v / scale;
-}
-
-inline Vec4 operator-( Vec4 v ) {
-	return Vec4( -v.x, -v.y, -v.z, -v.w );
-}
+inline Vec4 operator-( Vec4 v ) { return Vec4( -v.x, -v.y, -v.z, -v.w ); }
 
 inline float Dot( Vec4 lhs, Vec4 rhs ) {
 	return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z + lhs.w * rhs.w;

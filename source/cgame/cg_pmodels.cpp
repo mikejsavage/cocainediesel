@@ -1004,7 +1004,11 @@ void CG_DrawPlayer( centity_t *cent ) {
 
 	Mat4 transform = FromQFAxisAndOrigin( cent->ent.axis, cent->ent.origin );
 
-	Vec4 color = corpse ? Vec4( 0.25f, 0.25f, 0.25f, 1.0 ) : CG_TeamColorVec4( cent->current.team );
+	Vec4 color = CG_TeamColorVec4( cent->current.team );
+	if( corpse ) {
+		color *= Vec4( 0.25f, 0.25f, 0.25f, 1.0 );
+	}
+
 	DrawModel( meta->model, transform, color, pose.skinning_matrices );
 
 	if( !corpse && ( cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR || cg.predictedPlayerState.stats[ STAT_TEAM ] == cent->current.team ) ) {

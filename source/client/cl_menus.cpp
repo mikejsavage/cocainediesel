@@ -698,6 +698,18 @@ static void GameMenuButton( const char * label, const char * command, bool * cli
 	}
 }
 
+static void SelectableWeapon( const int weapon_pic, int idx, size_t *selection, ImVec2 size, const char *loadout, const char **weapselect, bool primary ) {
+	const Material * icon = cgs.media.shaderWeaponIcon[ weapon_pic ];
+	Texture texture = icon->textures[ 0 ].texture;
+
+	if( ImGui::ImageButton( ( void * ) uintptr_t( texture.texture ), size, ImVec2( 0, 0 ), ImVec2(1, 1), 0 ) ) {
+		*selection = idx;
+		String< 128 > buf( "weapselect {} {}\n", ( primary ? weapselect[ idx ] : loadout ) , ( primary ? loadout : weapselect[ idx ] ) );
+		Cbuf_AddText( buf );
+	}
+}
+
+
 static void GameMenu() {
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 192 ) );
 	bool should_close = false;
@@ -755,60 +767,66 @@ static void GameMenu() {
 		ImGui::End();
 	}
 	else if( gamemenu_state == GameMenuState_Loadout ) {
-		ImGui::SetNextWindowPos( ImGui::GetIO().DisplaySize * 0.5f, 0, Vec2( 0.5f ) );
-		ImGui::SetNextWindowSize( ImVec2( 300, 0 ) );
+		Vec2 display_size = ImGui::GetIO().DisplaySize;
+		ImGui::SetNextWindowPos( display_size * 0.5f, 0, Vec2( 0.5f ) );
+		ImGui::SetNextWindowSize( display_size * 0.3f );
 		ImGui::Begin( "loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
-
-		ImGui::Text( "Primary weapons" );
 
 		// this has to match up with the order in player.as
 		// TODO: should make this less fragile
-		const char * primaries[]   = { "EB + RL", "RL + LG", "EB + LG" };
-		const char * secondaries[] = { "PG", "RG", "GL" };
+		static const char * primaries_weapselect[]   = { "ebrl", "rllg", "eblg" };
+		static const char * secondaries_weapselect[] = { "pg", "rg", "gl", "mg" };
+		static const int primaries_weapicon[][2] = { { WEAP_ELECTROBOLT - 1, WEAP_ROCKETLAUNCHER - 1 },
+											 		 { WEAP_ROCKETLAUNCHER - 1, WEAP_LASERGUN - 1 }, 
+											 		 { WEAP_ELECTROBOLT - 1, WEAP_LASERGUN - 1 } };
 
-		ImGui::Columns( ARRAY_COUNT( primaries ), NULL, false );
+		static const int secondaries_weapicon[] = { WEAP_PLASMAGUN - 1,
+													WEAP_RIOTGUN - 1,
+													WEAP_GRENADELAUNCHER - 1,
+													WEAP_MACHINEGUN - 1 };
 
-		for( size_t i = 0; i < ARRAY_COUNT( primaries ); i++ ) {
-			int key = '1' + int( i );
-			String< 128 > buf( "{}: {}", char( key ), primaries[ i ] );
-			ImVec2 size = ImVec2( ImGui::GetColumnWidth( i ), 0 );
-			if( ImGui::Selectable( buf, i == selected_primary, 0, size ) || pressed_key == key ) {
-				selected_primary = i;
-			}
-			ImGui::NextColumn();
+		ImVec2 icon_size = ImVec2( display_size.x * 0.046875f, display_size.x * 0.046875f );
+
+		ImGui::SetCursorPos(ImVec2( display_size.x * 0.03125f, display_size.x * 0.03125f ));
+		ImGui::BeginChild("primaries", ImVec2( display_size.x * 0.11875, display_size.y * 0.2f  ) );
+		ImGui::Text("Primary");
+
+		ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, icon_size.x ) );
+		for( size_t i = 0; i < 3; i++ ) {
+			if( selected_primary == i )
+				continue;
+			SelectableWeapon( primaries_weapicon[i][0], i, &selected_primary, icon_size, secondaries_weapselect[selected_secondary], primaries_weapselect, true );
+			ImGui::SameLine();
+			SelectableWeapon( primaries_weapicon[i][1], i, &selected_primary, icon_size, secondaries_weapselect[selected_secondary], primaries_weapselect, true );
 		}
+		ImGui::PopStyleVar();
 
-		ImGui::Spacing();
-		ImGui::Columns( 1 );
+		ImGui::EndChild();
 
-		ImGui::Text( "Secondary weapon" );
+		ImGui::SameLine();
 
-		ImGui::Columns( ARRAY_COUNT( secondaries ), NULL, false );
+		ImGui::SetCursorPosX(display_size.x * 0.18125f);
+		ImGui::BeginChild("secondaries", ImVec2( display_size.x * 0.11875f, display_size.y * 0.2f  ) );
+		ImGui::Text("Secondary");
 
-		bool selected_with_number = false;
-		for( size_t i = 0; i < ARRAY_COUNT( secondaries ); i++ ) {
-			int key = '1' + int( i + ARRAY_COUNT( primaries ) );
-			String< 128 > buf( "{}: {}", char( key ), secondaries[ i ] );
-			ImVec2 size = ImVec2( ImGui::GetColumnWidth( i ), 0 );
-			if( ImGui::Selectable( buf, i == selected_secondary, 0, size ) || pressed_key == key ) {
-				selected_secondary = i;
-				selected_with_number = pressed_key == key;
-			}
-			ImGui::NextColumn();
+		ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
+		for( size_t i = 0; i < 4; i++ ) {
+			if( selected_secondary == i )
+				continue;
+			SelectableWeapon( secondaries_weapicon[i], i, &selected_secondary, icon_size, primaries_weapselect[selected_primary], secondaries_weapselect, false );
 		}
+		ImGui::PopStyleVar();
 
-		ImGui::Spacing();
-		ImGui::Spacing();
-		ImGui::Columns( 1 );
+		ImGui::EndChild();
 
-		if( ImGui::Button( "OK", ImVec2( -1, 0 ) ) || selected_with_number ) {
-			const char * primaries_weapselect[] = { "ebrl", "rllg", "eblg" };
-			String< 128 > buf( "weapselect {} {}\n", primaries_weapselect[ selected_primary ], secondaries[ selected_secondary ] );
-			Cbuf_AddText( buf );
-			should_close = true;
-		}
+		ImGui::SetCursorPos(ImVec2( display_size.x*0.03125f, display_size.y*0.23125f ));
+		ImGui::BeginChild("loadout", ImVec2( display_size.x*0.3875f, display_size.x*0.075f ));
+		/*ImGui::Im*/
+		ImGui::EndChild();
 
-		if( pressed_key == K_ESCAPE || pressed_key == 'b' ) {
+
+
+		if( ImGui::Button( "OK", ImVec2( -1, 0 ) ) || pressed_key == K_ESCAPE || pressed_key == 'b' ) {
 			should_close = true;
 		}
 

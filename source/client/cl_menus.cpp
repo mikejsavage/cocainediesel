@@ -835,20 +835,18 @@ static void GameMenu() {
 				if( ++num_weapons == PRIM_SIZE ) //prevent a third window to show up for a frame
 					break;
 				ImGui::SetCursorPosX( win_size.x * 0.25f - icon_size.x );
-				ImGui::PushID(i*2);
 				SelectableWeapon( primaries_weapicon[i][0], i, &selected_primary, icon_size, secondaries_weapselect[selected_secondary], primaries_weapselect, true );
-				ImGui::PopID();
 
 				ImGui::SameLine();
-				ImGui::PushID(i*2 + 1);
 				SelectableWeapon( primaries_weapicon[i][1], i, &selected_primary, icon_size, secondaries_weapselect[selected_secondary], primaries_weapselect, true );
-				ImGui::PopID();
+				ImGui::SetCursorPosY( icon_size.y + icon_size.y/4 );
 			}
 
 			num_weapons = 0;
 			ImGui::NextColumn();
 			ImGui::AlignTextToFramePadding();
 
+			ImGui::SetCursorPosY( icon_size.y/8 );
 			for( size_t i = 0; i < SEC_SIZE; i++ ) {
 				ImGui::SetCursorPosX( win_size.x * 0.75f - icon_size.x );
 				if( selected_secondary == i )

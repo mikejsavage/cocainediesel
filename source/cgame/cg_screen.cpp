@@ -551,12 +551,10 @@ void CG_DrawDamageNumbers() {
 			font_size = cgs.textSizeTiny;
 		}
 
-		Vec4 border_color = vec4_black;
 		float alpha = 1 - max( 0, frac - 0.75f ) / 0.25f;
 		color.w *= alpha;
-		border_color.w *= alpha;
 
-		DrawText( cgs.fontMontserrat, font_size, buf, Alignment_CenterMiddle, coords.x, coords.y, color, true, border_color );
+		DrawText( cgs.fontMontserrat, font_size, buf, Alignment_CenterMiddle, coords.x, coords.y, color, true );
 	}
 }
 

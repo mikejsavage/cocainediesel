@@ -145,7 +145,7 @@ static Vec3 ToClip( float x, float y ) {
 	return Vec3( clip, 0 );
 }
 
-void DrawText( const Font * font, float pixel_size, Span< const char > str, float x, float y, Vec4 color, bool border, Vec4 border_color ) {
+static void DrawText( const Font * font, float pixel_size, Span< const char > str, float x, float y, Vec4 color, bool border, Vec4 border_color ) {
 	if( font == NULL )
 		return;
 
@@ -229,8 +229,13 @@ void DrawText( const Font * font, float pixel_size, Span< const char > str, floa
 	DrawDynamicMesh( pipeline, mesh );
 }
 
-void DrawText( const Font * font, float pixel_size, const char * str, float x, float y, Vec4 color, bool border, Vec4 border_color ) {
+void DrawText( const Font * font, float pixel_size, const char * str, float x, float y, Vec4 color, bool border ) {
+	Vec4 border_color = Vec4( 0, 0, 0, color.w );
 	DrawText( font, pixel_size, Span< const char >( str, strlen( str ) ), x, y, color, border, border_color );
+}
+
+void DrawText( const Font * font, float pixel_size, const char * str, float x, float y, Vec4 color, Vec4 border_color ) {
+	DrawText( font, pixel_size, Span< const char >( str, strlen( str ) ), x, y, color, true, border_color );
 }
 
 MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
@@ -262,7 +267,7 @@ MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
 	return MinMax2( pixel_size * Vec2( 0, y_extents.lo ), pixel_size * Vec2( width, y_extents.hi ) );
 }
 
-void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, Vec4 color, bool border, Vec4 border_color ) {
+static void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, Vec4 color, bool border, Vec4 border_color ) {
 	MinMax2 bounds = TextBounds( font, pixel_size, str );
 
 	if( align.x == XAlignment_Center ) {
@@ -280,5 +285,14 @@ void DrawText( const Font * font, float pixel_size, const char * str, Alignment 
 		y += ( bounds.maxs.y - bounds.mins.y ) / 2.0f;
 	}
 
-	DrawText( font, pixel_size, str, x, y, color, border, border_color );
+	DrawText( font, pixel_size, Span< const char >( str, strlen( str ) ), x, y, color, border, border_color );
+}
+
+void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, Vec4 color, bool border ) {
+	Vec4 border_color = Vec4( 0, 0, 0, color.w );
+	DrawText( font, pixel_size, str, align, x, y, color, border, border_color );
+}
+
+void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, Vec4 color, Vec4 border_color ) {
+	DrawText( font, pixel_size, str, align, x, y, color, true, border_color );
 }

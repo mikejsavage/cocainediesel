@@ -205,7 +205,6 @@ typedef struct {
 
 	socket_t *socket;               // socket used by current connection
 	bool reliable;
-	bool mv;
 
 	netadr_t rconaddress;       // address where we are sending rcon messages, to ignore other print packets
 

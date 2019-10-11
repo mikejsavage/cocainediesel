@@ -957,14 +957,6 @@ static void CL_ParseFrame( msg_t *msg ) {
 //========= StringCommands================
 
 /*
-* CL_Multiview_f
-*/
-static void CL_Multiview_f( void ) {
-	cls.mv = ( atoi( Cmd_Argv( 1 ) ) != 0 );
-	Com_Printf( "multiview: %i\n", cls.mv );
-}
-
-/*
 * CL_CvarInfoRequest_f
 */
 static void CL_CvarInfoRequest_f( void ) {
@@ -1084,7 +1076,6 @@ svcmd_t svcmds[] =
 	{ "cs", CL_ParseConfigstringCommand },
 	{ "disconnect", CL_ServerDisconnect_f },
 	{ "initdownload", CL_InitDownload_f },
-	{ "multiview", CL_Multiview_f },
 	{ "cvarinfo", CL_CvarInfoRequest_f },
 
 	{ NULL, NULL }

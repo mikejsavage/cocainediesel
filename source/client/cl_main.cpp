@@ -315,7 +315,6 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 	cls.connect_count = 0;
 	cls.rejected = false;
 	cls.lastPacketReceivedTime = cls.realtime; // reset the timeout limit
-	cls.mv = false;
 }
 
 /*
@@ -675,7 +674,6 @@ void CL_Disconnect( const char *message ) {
 
 	cls.socket = NULL;
 	cls.reliable = false;
-	cls.mv = false;
 
 	if( cls.httpbaseurl ) {
 		Mem_Free( cls.httpbaseurl );
@@ -1895,24 +1893,20 @@ static bool CL_MaxPacketsReached( void ) {
 	}
 
 	elapsedTime = cls.realtime - lastPacketTime;
-	if( cls.mv ) {
-		minpackettime = ( 1000.0f / 2 );
-	} else {
-		float minTime = ( 1000.0f / cl_pps->value );
+	float minTime = ( 1000.0f / cl_pps->value );
 
-		// don't let cl_pps be smaller than sv_pps
-		if( cls.state == CA_ACTIVE && !cls.demo.playing && cl.snapFrameTime ) {
-			if( (unsigned int)minTime > cl.snapFrameTime ) {
-				minTime = cl.snapFrameTime;
-			}
+	// don't let cl_pps be smaller than sv_pps
+	if( cls.state == CA_ACTIVE && !cls.demo.playing && cl.snapFrameTime ) {
+		if( (unsigned int)minTime > cl.snapFrameTime ) {
+			minTime = cl.snapFrameTime;
 		}
+	}
 
-		minpackettime = (int)minTime;
-		roundingMsec += minTime - (int)minTime;
-		if( roundingMsec >= 1.0f ) {
-			minpackettime += (int)roundingMsec;
-			roundingMsec -= (int)roundingMsec;
-		}
+	minpackettime = (int)minTime;
+	roundingMsec += minTime - (int)minTime;
+	if( roundingMsec >= 1.0f ) {
+		minpackettime += (int)roundingMsec;
+		roundingMsec -= (int)roundingMsec;
 	}
 
 	if( elapsedTime < minpackettime ) {

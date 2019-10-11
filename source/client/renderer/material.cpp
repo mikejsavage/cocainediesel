@@ -604,7 +604,7 @@ static void LoadDiskTextures() {
 
 		constexpr TextureFormat formats[] = {
 			TextureFormat_R_U8,
-			TextureFormat_RG_U8,
+			TextureFormat_RA_U8,
 			TextureFormat_RGB_U8_sRGB,
 			TextureFormat_RGBA_U8_sRGB,
 		};
@@ -714,7 +714,7 @@ const Material * FindMaterial( const char * name, const Material * def ) {
 }
 
 bool HasAlpha( TextureFormat format ) {
-	return format == TextureFormat_A_U8 || format == TextureFormat_RGBA_U8 || format == TextureFormat_RGBA_U8_sRGB;
+	return format == TextureFormat_A_U8 || format == TextureFormat_RA_U8 || format == TextureFormat_RGBA_U8 || format == TextureFormat_RGBA_U8_sRGB;
 }
 
 static float EvaluateWaveFunc( Wave wave ) {

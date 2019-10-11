@@ -92,8 +92,9 @@ static GLenum PrimitiveTypeToGL( PrimitiveType primitive_type ) {
 static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum * channels, GLenum * type ) {
 	switch( format ) {
 		case TextureFormat_R_U8:
-		case TextureFormat_R_U8Norm:
-			*internal = format == TextureFormat_R_U8 ? GL_R8 : GL_R8_SNORM;
+		case TextureFormat_R_S8:
+		case TextureFormat_A_U8:
+			*internal = format == TextureFormat_R_S8 ? GL_R8_SNORM : GL_R8;
 			*channels = GL_RED;
 			*type = GL_UNSIGNED_BYTE;
 			return;
@@ -103,13 +104,7 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 			*type = GL_UNSIGNED_SHORT;
 			return;
 
-		case TextureFormat_A_U8:
-			*internal = GL_R8;
-			*channels = GL_RED;
-			*type = GL_UNSIGNED_BYTE;
-			return;
-
-		case TextureFormat_RG_U8:
+		case TextureFormat_RA_U8:
 			*internal = GL_RG8;
 			*channels = GL_RG;
 			*type = GL_UNSIGNED_BYTE;
@@ -716,7 +711,7 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_ONE );
 			}
 		}
-		else if( channels == GL_RG ) {
+		else if( channels == GL_RG && config.format == TextureFormat_RA_U8 ) {
 			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED );
 			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED );
 			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED );

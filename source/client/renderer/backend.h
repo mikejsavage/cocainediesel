@@ -34,13 +34,14 @@ enum PrimitiveType : u8 {
 
 enum TextureFormat : u8 {
 	TextureFormat_R_U8,
-	TextureFormat_R_U8Norm,
+	TextureFormat_R_S8,
 	TextureFormat_R_U16,
 
 	TextureFormat_A_U8,
 
-	TextureFormat_RG_U8,
 	TextureFormat_RG_Half,
+
+	TextureFormat_RA_U8,
 
 	TextureFormat_RGB_U8,
 	TextureFormat_RGB_U8_sRGB,

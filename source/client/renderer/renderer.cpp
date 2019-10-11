@@ -84,7 +84,7 @@ void InitRenderer() {
 		config.width = w;
 		config.height = h;
 		config.data = img;
-		config.format = TextureFormat_R_U8Norm; // TODO: wtf is u8norm
+		config.format = TextureFormat_R_S8;
 		blue_noise = NewTexture( config );
 
 		stbi_image_free( img );

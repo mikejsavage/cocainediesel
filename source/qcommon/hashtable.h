@@ -1,6 +1,6 @@
 #pragma once
 
-#include "qcommon/base.h"
+#include "qcommon/types.h"
 
 template< size_t N >
 class Hashtable {

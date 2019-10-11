@@ -1,6 +1,6 @@
 #pragma once
 
-#include "qcommon/base.h"
+#include "qcommon/types.h"
 #include "qcommon/hash.h"
 
 constexpr size_t SHADER_MAX_TEXTURES = 4;

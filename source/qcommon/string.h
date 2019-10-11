@@ -1,7 +1,10 @@
 #pragma once
 
-#include "qcommon/base.h"
+#include <string.h>
+
+#include "qcommon/types.h"
 #include "qcommon/array.h"
+#include "qcommon/ggformat.h"
 
 template< size_t N >
 class String {

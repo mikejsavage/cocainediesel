@@ -117,7 +117,6 @@ char *COM_ListNameForPosition( const char *namesList, int position, const char s
 //=============================================
 
 #define Q_COLOR_ESCAPE  '^'
-#define S_COLOR_ESCAPE  "^"
 
 #define COLOR_BLACK     '0'
 #define COLOR_RED       '1'

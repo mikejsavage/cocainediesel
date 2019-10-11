@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 enum { DEFAULTSCALE=0, NOSCALE, SCALEBYWIDTH, SCALEBYHEIGHT };
 
-static int layout_cursor_scale = DEFAULTSCALE;
 static int layout_cursor_x = 400;
 static int layout_cursor_y = 300;
 static int layout_cursor_width = 100;
@@ -1608,54 +1607,26 @@ static bool CG_LFuncDrawRotatedPicByName( struct cg_layoutnode_s *argumentnode, 
 	return true;
 }
 
-static bool CG_LFuncScale( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	layout_cursor_scale = (int)CG_GetNumericArg( &argumentnode );
-	return true;
+static float ScaleX( float x ) {
+	return x * frame_static.viewport_width / 800.0f;
 }
 
-#define SCALE_X( n ) ( ( layout_cursor_scale == NOSCALE ) ? ( n ) : ( ( layout_cursor_scale == SCALEBYHEIGHT ) ? ( n ) * frame_static.viewport_height / 600.0f : ( n ) * frame_static.viewport_width / 800.0f ) )
-#define SCALE_Y( n ) ( ( layout_cursor_scale == NOSCALE ) ? ( n ) : ( ( layout_cursor_scale == SCALEBYWIDTH ) ? ( n ) * frame_static.viewport_width / 800.0f : ( n ) * frame_static.viewport_height / 600.0f ) )
+static float ScaleY( float y ) {
+	return y * frame_static.viewport_height / 600.0f;
+}
 
 static bool CG_LFuncCursor( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	float x, y;
-
-	x = CG_GetNumericArg( &argumentnode );
-	x = SCALE_X( x );
-	y = CG_GetNumericArg( &argumentnode );
-	y = SCALE_Y( y );
+	float x = ScaleX( CG_GetNumericArg( &argumentnode ) );
+	float y = ScaleY( CG_GetNumericArg( &argumentnode ) );
 
 	layout_cursor_x = Q_rint( x );
-	layout_cursor_y = Q_rint( y );
-	return true;
-}
-
-static bool CG_LFuncCursorX( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	float x;
-
-	x = CG_GetNumericArg( &argumentnode );
-	x = SCALE_X( x );
-
-	layout_cursor_x = Q_rint( x );
-	return true;
-}
-
-static bool CG_LFuncCursorY( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	float y;
-
-	y = CG_GetNumericArg( &argumentnode );
-	y = SCALE_Y( y );
-
 	layout_cursor_y = Q_rint( y );
 	return true;
 }
 
 static bool CG_LFuncMoveCursor( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	float x, y;
-
-	x = CG_GetNumericArg( &argumentnode );
-	x = SCALE_X( x );
-	y = CG_GetNumericArg( &argumentnode );
-	y = SCALE_Y( y );
+	float x = ScaleX( CG_GetNumericArg( &argumentnode ) );
+	float y = ScaleY( CG_GetNumericArg( &argumentnode ) );
 
 	layout_cursor_x += Q_rint( x );
 	layout_cursor_y += Q_rint( y );
@@ -1663,34 +1634,10 @@ static bool CG_LFuncMoveCursor( struct cg_layoutnode_s *argumentnode, int numArg
 }
 
 static bool CG_LFuncSize( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	float x, y;
-
-	x = CG_GetNumericArg( &argumentnode );
-	x = SCALE_X( x );
-	y = CG_GetNumericArg( &argumentnode );
-	y = SCALE_Y( y );
+	float x = ScaleX( CG_GetNumericArg( &argumentnode ) );
+	float y = ScaleY( CG_GetNumericArg( &argumentnode ) );
 
 	layout_cursor_width = Q_rint( x );
-	layout_cursor_height = Q_rint( y );
-	return true;
-}
-
-static bool CG_LFuncSizeWidth( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	float x;
-
-	x = CG_GetNumericArg( &argumentnode );
-	x = SCALE_X( x );
-
-	layout_cursor_width = Q_rint( x );
-	return true;
-}
-
-static bool CG_LFuncSizeHeight( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	float y;
-
-	y = CG_GetNumericArg( &argumentnode );
-	y = SCALE_Y( y );
-
 	layout_cursor_height = Q_rint( y );
 	return true;
 }
@@ -1903,13 +1850,11 @@ static bool CG_LFuncDrawBindString( struct cg_layoutnode_s *argumentnode, int nu
 static bool CG_LFuncDrawPlayerName( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	int index = (int)CG_GetNumericArg( &argumentnode ) - 1;
 
-	if( ( index >= 0 && index < gs.maxclients ) && cgs.clientInfo[index].name[0] ) {
-		vec4_t color;
-		VectorCopy( colorWhite, color );
-		color[3] = layout_cursor_color.w;
+	if( index >= 0 && index < gs.maxclients && cgs.clientInfo[index].name[0] ) {
 		DrawText( GetHUDFont(), layout_cursor_font_size, cgs.clientInfo[ index ].name, layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
 		return true;
 	}
+
 	return false;
 }
 
@@ -1989,20 +1934,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 	},
 
 	{
-		"setCursorX",
-		CG_LFuncCursorX,
-		1,
-		"Sets the cursor x position.",
-	},
-
-	{
-		"setCursorY",
-		CG_LFuncCursorY,
-		1,
-		"Sets the cursor y position.",
-	},
-
-	{
 		"moveCursor",
 		CG_LFuncMoveCursor,
 		2,
@@ -2021,20 +1952,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncSize,
 		2,
 		"Sets width and height. Used for pictures and models.",
-	},
-
-	{
-		"setWidth",
-		CG_LFuncSizeWidth,
-		1,
-		"Sets width. Used for pictures and models.",
-	},
-
-	{
-		"setHeight",
-		CG_LFuncSizeHeight,
-		1,
-		"Sets height. Used for pictures and models.",
 	},
 
 	{

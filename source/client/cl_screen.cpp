@@ -32,15 +32,6 @@ static cvar_t *scr_graphscale;
 static cvar_t *scr_graphshift;
 
 /*
-* SCR_DrawFillRect
-*
-* Fills a box of pixels with a single color
-*/
-void SCR_DrawFillRect( int x, int y, int w, int h, const vec4_t color ) {
-	Draw2DBox( frame_static.ui_pass, x, y, w, h, cls.whiteTexture, FromQF4( color ) );
-}
-
-/*
 ===============================================================================
 
 BAR GRAPHS
@@ -78,7 +69,7 @@ void CL_AddNetgraph( void ) {
 
 typedef struct {
 	float value;
-	vec4_t color;
+	Vec4 color;
 } graphsamp_t;
 
 static int current;
@@ -89,42 +80,39 @@ static graphsamp_t values[1024];
 */
 void SCR_DebugGraph( float value, float r, float g, float b ) {
 	values[current].value = value;
-	values[current].color[0] = r;
-	values[current].color[1] = g;
-	values[current].color[2] = b;
-	values[current].color[3] = 1.0f;
+	values[current].color = Vec4( r, g, b, 1.0f );
 
 	current++;
 	current &= 1023;
+}
+
+static void SCR_DrawFillRect( int x, int y, int w, int h, Vec4 color ) {
+	Draw2DBox( frame_static.ui_pass, x, y, w, h, cls.whiteTexture, color );
 }
 
 /*
 * SCR_DrawDebugGraph
 */
 static void SCR_DrawDebugGraph( void ) {
-	int a, x, y, w, i, h, s;
-	float v;
-
 	//
 	// draw the graph
 	//
-	w = frame_static.viewport_width;
-	x = 0;
-	y = 0 + frame_static.viewport_height;
-	SCR_DrawFillRect( x, y - scr_graphheight->integer,
-					  w, scr_graphheight->integer, colorBlack );
+	int w = frame_static.viewport_width;
+	int x = 0;
+	int y = 0 + frame_static.viewport_height;
+	SCR_DrawFillRect( x, y - scr_graphheight->integer, w, scr_graphheight->integer, vec4_black );
 
-	s = ( w + 1024 - 1 ) / 1024; //scale for resolutions with width >1024
+	int s = ( w + 1024 - 1 ) / 1024; //scale for resolutions with width >1024
 
-	for( a = 0; a < w; a++ ) {
-		i = ( current - 1 - a + 1024 ) & 1023;
-		v = values[i].value;
+	for( int a = 0; a < w; a++ ) {
+		int i = ( current - 1 - a + 1024 ) & 1023;
+		float v = values[i].value;
 		v = v * scr_graphscale->integer + scr_graphshift->integer;
 
 		if( v < 0 ) {
 			v += scr_graphheight->integer * ( 1 + (int)( -v / scr_graphheight->integer ) );
 		}
-		h = (int)v % scr_graphheight->integer;
+		int h = (int)v % scr_graphheight->integer;
 		SCR_DrawFillRect( x + w - 1 - a * s, y - h, s, h, values[i].color );
 	}
 }

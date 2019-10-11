@@ -69,18 +69,6 @@ models/weapons/lg_fx
 //WEAPON PROJECTILES
 //---------------------
 
-models/objects/projectile/plasmagun/plnew
-{
-	//sort additive
-	cull disable
-	{
-		map models/objects/projectile/plasmagun/plnew
-		blendFunc add
-		rgbGen entity
-		tcmod rotate -150
-	}
-}
-
 models/objects/projectile/glauncher/grenadegradstrong
 {
 	cull disable

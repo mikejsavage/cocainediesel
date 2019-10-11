@@ -156,30 +156,22 @@ static int CG_GetSpeedVertical( const void *parameter ) {
 static int CG_GetFPS( const void *parameter ) {
 #define FPSSAMPLESCOUNT 32
 #define FPSSAMPLESMASK ( FPSSAMPLESCOUNT - 1 )
-	int i;
-	int fps;
 	static int frameTimes[FPSSAMPLESCOUNT];
-	float avFrameTime;
 
 	if( cg_showFPS->modified ) {
 		memset( frameTimes, 0, sizeof( frameTimes ) );
 		cg_showFPS->modified = false;
 	}
 
-	if( cg_showFPS->integer == 1 ) {
-		// frameTimes[cg.frameCount & FPSSAMPLESMASK] = trap_R_GetAverageFrametime();
-		frameTimes[cg.frameCount & FPSSAMPLESMASK] = 1;
-	} else {
-		frameTimes[cg.frameCount & FPSSAMPLESMASK] = cg.realFrameTime;
-	}
+	frameTimes[cg.frameCount & FPSSAMPLESMASK] = cg.realFrameTime;
 
-	for( avFrameTime = 0.0f, i = 0; i < FPSSAMPLESCOUNT; i++ ) {
-		avFrameTime += frameTimes[( cg.frameCount - i ) & FPSSAMPLESMASK];
+	float average = 0.0f;
+	for( size_t i = 0; i < ARRAY_COUNT( frameTimes ); i++ ) {
+		average += frameTimes[( cg.frameCount - i ) & FPSSAMPLESMASK];
 	}
-	avFrameTime /= FPSSAMPLESCOUNT;
-	fps = (int)( 1000.0f / avFrameTime + 0.5f );
-
-	return fps;
+	average /= FPSSAMPLESCOUNT;
+	return int( 1000.0f / average + 0.5f );
+;
 }
 
 static int CG_GetMatchState( const void *parameter ) {
@@ -345,8 +337,6 @@ static const reference_numeric_t cg_numeric_references[] =
 
 	{ "DOWNLOAD_IN_PROGRESS", CG_DownloadInProgress, NULL },
 	{ "DOWNLOAD_PERCENT", CG_GetCvar, "cl_download_percent" },
-
-	{ "CHAT_MODE", CG_GetCvar, "con_messageMode" },
 
 	{ NULL, NULL, NULL }
 };
@@ -810,6 +800,7 @@ static const char * prefixes[] = {
 	"COUNTER",
 	"CRAB",
 	"CREAM",
+	"CHASSEUR DE ",
 	"CRINGE",
 	"CRUELLY ",
 	"CRUNK",
@@ -937,6 +928,7 @@ static const char * prefixes[] = {
 	"OBAMA",
 	"OMEGA",
 	"OPEN-SOURCE ",
+	"OUT",
 	"PANTY",
 	"PARTY",
 	"PERFECTLY ",
@@ -1123,34 +1115,32 @@ static const Material * CG_GetWeaponIcon( int weapon ) {
 	return cgs.media.shaderWeaponIcon[ weapon - WEAP_GUNBLADE ];
 }
 
-static void CG_DrawObituaries( int x, int y, Alignment alignment, float font_size, int width, int height,
-							   int internal_align, unsigned int icon_size ) {
+static void CG_DrawObituaries(
+	int x, int y, Alignment alignment, int width, int height,
+	int internal_align, unsigned int icon_size
+) {
 	const int icon_padding = 4;
-	int i, num, skip, next, w, num_max;
-	unsigned line_height;
-	int xoffset, yoffset;
-	obituary_t *obr;
-	const Material *pic;
-	vec4_t teamcolor;
 
 	if( !( cg_showObituaries->integer & CG_OBITUARY_HUD ) ) {
 		return;
 	}
 
-	line_height = max( (unsigned)font_size, icon_size );
-	num_max = height / line_height;
+	unsigned line_height = max( (unsigned)layout_cursor_font_size, icon_size );
+	int num_max = height / line_height;
 
 	if( width < (int)icon_size || !num_max ) {
 		return;
 	}
 
-	next = cg_obituaries_current + 1;
+	const Font * font = GetHUDFont();
+
+	int next = cg_obituaries_current + 1;
 	if( next >= MAX_OBITUARIES ) {
 		next = 0;
 	}
 
-	num = 0;
-	i = next;
+	int num = 0;
+	int i = next;
 	do {
 		if( cg_obituaries[i].type != OBITUARY_NONE && cg.monotonicTime - cg_obituaries[i].time <= 5000 ) {
 			num++;
@@ -1160,6 +1150,7 @@ static void CG_DrawObituaries( int x, int y, Alignment alignment, float font_siz
 		}
 	} while( i != next );
 
+	int skip;
 	if( num > num_max ) {
 		skip = num - num_max;
 		num = num_max;
@@ -1170,12 +1161,12 @@ static void CG_DrawObituaries( int x, int y, Alignment alignment, float font_siz
 	y = CG_VerticalAlignForHeight( y, alignment, height );
 	x = CG_HorizontalAlignForWidth( x, alignment, width );
 
-	xoffset = 0;
-	yoffset = 0;
+	int xoffset = 0;
+	int yoffset = 0;
 
 	i = next;
 	do {
-		obr = &cg_obituaries[i];
+		const obituary_t * obr = &cg_obituaries[i];
 		if( ++i >= MAX_OBITUARIES ) {
 			i = 0;
 		}
@@ -1189,6 +1180,7 @@ static void CG_DrawObituaries( int x, int y, Alignment alignment, float font_siz
 			continue;
 		}
 
+		const Material *pic;
 		switch( obr->mod ) {
 			case MOD_GUNBLADE:
 				pic = CG_GetWeaponIcon( WEAP_GUNBLADE );
@@ -1222,14 +1214,17 @@ static void CG_DrawObituaries( int x, int y, Alignment alignment, float font_siz
 				break;
 		}
 
-		w = 0;
+		float attacker_width = TextBounds( font, layout_cursor_font_size, obr->attacker ).maxs.x;
+		float victim_width = TextBounds( font, layout_cursor_font_size, obr->victim ).maxs.x;
+
+		int w = 0;
 		if( obr->type != OBITUARY_ACCIDENT ) {
-			// w += min( trap_SCR_strWidth( obr->attacker, font, 0 ), ( width - icon_size ) / 2 );
+			w += attacker_width;
 		}
 		w += icon_padding;
 		w += icon_size;
 		w += icon_padding;
-		// w += min( trap_SCR_strWidth( obr->victim, font, 0 ), ( width - icon_size ) / 2 );
+		w += victim_width;
 
 		if( internal_align == 1 ) {
 			// left
@@ -1242,29 +1237,22 @@ static void CG_DrawObituaries( int x, int y, Alignment alignment, float font_siz
 			xoffset = width - w;
 		}
 
-		int obituary_y = y + yoffset + ( line_height - font_size ) / 2;
+		int obituary_y = y + yoffset + ( line_height - layout_cursor_font_size ) / 2;
 		if( obr->type != OBITUARY_ACCIDENT ) {
-			if( obr->attacker_team == TEAM_ALPHA || obr->attacker_team == TEAM_BETA ) {
-				CG_TeamColor( obr->attacker_team, teamcolor );
-			} else {
-				Vector4Set( teamcolor, 255, 255, 255, 255 );
-			}
-			// trap_SCR_DrawStringWidth( x + xoffset, obituary_y,
-			// 						  ALIGN_LEFT_TOP, COM_RemoveColorTokensExt( obr->attacker, true ), ( width - icon_size ) / 2,
-			// 						  font, teamcolor );
-			// xoffset += min( trap_SCR_strWidth( obr->attacker, font, 0 ), ( width - icon_size ) / 2 );
+			Vec4 color = CG_TeamColorVec4( obr->attacker_team );
+			DrawText( font, layout_cursor_font_size, obr->attacker, x + xoffset, obituary_y, color, layout_cursor_font_border );
+			xoffset += attacker_width;
 		}
 
-		if( obr->victim_team == TEAM_ALPHA || obr->victim_team == TEAM_BETA ) {
-			CG_TeamColor( obr->victim_team, teamcolor );
-		} else {
-			Vector4Set( teamcolor, 255, 255, 255, 255 );
-		}
-		// trap_SCR_DrawStringWidth( x + xoffset + icon_size + 2 * icon_padding, obituary_y,
-		// 	ALIGN_LEFT_TOP, COM_RemoveColorTokensExt( obr->victim, true ), ( width - icon_size ) / 2, font, teamcolor );
+		xoffset += icon_padding;
 
-		Draw2DBox( frame_static.ui_pass, x + xoffset + icon_padding, y + yoffset + ( line_height - icon_size ) / 2,
+		Draw2DBox( frame_static.ui_pass, x + xoffset, y + yoffset + ( line_height - icon_size ) / 2,
 			icon_size, icon_size, pic, vec4_white );
+
+		xoffset += icon_size + icon_padding;
+
+		Vec4 color = CG_TeamColorVec4( obr->victim_team );
+		DrawText( font, layout_cursor_font_size, obr->victim, x + xoffset, obituary_y, color, layout_cursor_font_border );
 
 		yoffset += line_height;
 	} while( i != next );
@@ -1827,8 +1815,8 @@ static bool CG_LFuncDrawObituaries( struct cg_layoutnode_s *argumentnode, int nu
 	int internal_align = (int)CG_GetNumericArg( &argumentnode );
 	int icon_size = (int)CG_GetNumericArg( &argumentnode );
 
-	// CG_DrawObituaries( layout_cursor_x, layout_cursor_y, layout_cursor_alignment, CG_GetLayoutCursorFont(),
-	// 				   layout_cursor_width, layout_cursor_height, internal_align, icon_size * frame_static.viewport_height / 600 );
+	CG_DrawObituaries( layout_cursor_x, layout_cursor_y, layout_cursor_alignment,
+		layout_cursor_width, layout_cursor_height, internal_align, icon_size * frame_static.viewport_height / 600 );
 	return true;
 }
 
@@ -2004,16 +1992,6 @@ static bool CG_LFuncDrawKeyState( struct cg_layoutnode_s *argumentnode, int numA
 
 static bool CG_LFuncDrawNet( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	CG_DrawNet( layout_cursor_x, layout_cursor_y, layout_cursor_width, layout_cursor_height, layout_cursor_alignment, layout_cursor_color );
-	return true;
-}
-
-static bool CG_LFuncDrawChat( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int padding_x = (int)( CG_GetNumericArg( &argumentnode ) ) * frame_static.viewport_width / 800;
-	int padding_y = (int)( CG_GetNumericArg( &argumentnode ) ) * frame_static.viewport_height / 600;
-	const Material * material = FindMaterial( CG_GetStringArg( &argumentnode ) );
-
-	// CG_DrawChat( &cg.chat, layout_cursor_x, layout_cursor_y, layout_cursor_font_name, CG_GetLayoutCursorFont(), layout_cursor_font_size,
-	// 			 layout_cursor_width, layout_cursor_height, padding_x, padding_y, layout_cursor_color, material );
 	return true;
 }
 
@@ -2254,13 +2232,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 	},
 
 	{
-		"drawChat",
-		CG_LFuncDrawChat,
-		3,
-		"Draws the game chat messages",
-	},
-
-	{
 		"drawPicByName",
 		CG_LFuncDrawPicByName,
 		1,
@@ -2420,7 +2391,6 @@ static cg_layoutnode_t *CG_LayoutParseCommandNode( const char *token ) {
 static cg_layoutnode_t *CG_LayoutParseArgumentNode( const char *token ) {
 	cg_layoutnode_t *node;
 	int type = LNODE_NUMERIC;
-	char tokcopy[MAX_TOKEN_CHARS], *p;
 	const char *valuetok;
 	static char tmpstring[8];
 
@@ -2454,7 +2424,7 @@ static cg_layoutnode_t *CG_LayoutParseArgumentNode( const char *token ) {
 		type = LNODE_NUMERIC;
 		valuetok++; // skip #
 
-		for( int i = 0; cg_numeric_constants[i].name != NULL; i++ ) {
+		for( i = 0; cg_numeric_constants[i].name != NULL; i++ ) {
 			if( !Q_stricmp( valuetok, cg_numeric_constants[i].name ) ) {
 				Q_snprintfz( tmpstring, sizeof( tmpstring ), "%i", cg_numeric_constants[i].value );
 				valuetok = tmpstring;

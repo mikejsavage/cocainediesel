@@ -287,9 +287,9 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	dynamic_geometry_num_vertices = 0;
 	dynamic_geometry_num_indices = 0;
 
-	frame_static.viewport_width = viewport_width;
-	frame_static.viewport_height = viewport_height;
-	frame_static.viewport = Vec2( viewport_width, viewport_height );
+	frame_static.viewport_width = Max2( u32( 1 ), viewport_width );
+	frame_static.viewport_height = Max2( u32( 1 ), viewport_height );
+	frame_static.viewport = Vec2( frame_static.viewport_width, frame_static.viewport_height );
 	frame_static.aspect_ratio = float( viewport_width ) / float( viewport_height );
 	frame_static.msaa_samples = r_samples->integer;
 

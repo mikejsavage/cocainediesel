@@ -98,7 +98,7 @@ if %MATCH_STATE == #MATCH_STATE_PLAYTIME
 
 		setFontBorder off
 		setColor 0.2 0.2 0.2 1
-		drawStringRepeatConfigString "?" %ALPHA_PLAYERS_ALIVE
+		drawStringRepeatConfigString "?" %ALPHA_PLAYERS_TOTAL
 
 		setFontBorder on
 		setColorToTeamColor #TEAM_ALPHA
@@ -113,7 +113,7 @@ if %MATCH_STATE == #MATCH_STATE_PLAYTIME
 
 		setFontBorder off
 		setColor 0.2 0.2 0.2 1
-		drawStringRepeatConfigString "?" %ALPHA_PLAYERS_ALIVE
+		drawStringRepeatConfigString "?" %BETA_PLAYERS_TOTAL
 
 		setFontBorder on
 		setColorToTeamColor #TEAM_BETA

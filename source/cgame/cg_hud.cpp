@@ -1751,14 +1751,6 @@ static bool CG_LFuncAlignment( struct cg_layoutnode_s *argumentnode, int numArgu
 	return true;
 }
 
-static bool CG_LFuncSpecialFontFamily( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	const char *fontname = CG_GetStringArg( &argumentnode );
-
-	// Q_strncpyz( layout_cursor_font_name, fontname, sizeof( layout_cursor_font_name ) );
-
-	return true;
-}
-
 static bool CG_LFuncFontSize( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	struct cg_layoutnode_s *charnode = argumentnode;
 	const char * fontsize = CG_GetStringArg( &charnode );
@@ -1840,6 +1832,42 @@ static bool CG_LFuncDrawBombIndicators( struct cg_layoutnode_s *argumentnode, in
 	return true;
 }
 
+static bool CG_LFuncDrawPlayerIcons( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+	int team = int( CG_GetNumericArg( &argumentnode ) );
+	int alive_index = int( CG_GetNumericArg( &argumentnode ) );
+	int total_index = int( CG_GetNumericArg( &argumentnode ) );
+
+	if( total_index < 0 || alive_index < 0 || total_index >= MAX_CONFIGSTRINGS || alive_index >= MAX_CONFIGSTRINGS ) {
+		CG_Printf( "WARNING 'CG_LFuncDrawPlayerIcons' configstring out of range" );
+		return false;
+	}
+
+	int alive = atoi( cgs.configStrings[ alive_index ] );
+	int total = atoi( cgs.configStrings[ total_index ] );
+	Vec4 team_color = CG_TeamColorVec4( team );
+
+	Texture icon = FindTexture( "gfx/hud/guy" );
+
+	float height = layout_cursor_font_size;
+	float width = float( icon.width ) / float( icon.height ) * height;
+	float padding = width * 0.25f;
+
+	float x = layout_cursor_x;
+	float y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_alignment, height );
+	float dx = width + padding;
+	if( layout_cursor_alignment.x == XAlignment_Right ) {
+		x -= width;
+		dx = -dx;
+	}
+
+	for( int i = 0; i < total; i++ ) {
+		Vec4 color = i < alive ? team_color : layout_cursor_color;
+		Draw2DBox( frame_static.ui_pass, x + dx * i, y, width, height, icon, color );
+	}
+
+	return true;
+}
+
 static bool CG_LFuncDrawPointed( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	CG_DrawPlayerNames( GetHUDFont(), layout_cursor_font_size, layout_cursor_color, layout_cursor_font_border );
 	return true;
@@ -1857,54 +1885,6 @@ static bool CG_LFuncDrawString( struct cg_layoutnode_s *argumentnode, int numArg
 	return true;
 }
 
-static bool CG_LFuncDrawStringRepeat_x( const char *string, int num_draws ) {
-	int i;
-	char temps[1024];
-	size_t pos, string_len;
-
-	if( !string || !string[0] ) {
-		return false;
-	}
-	if( !num_draws ) {
-		return false;
-	}
-
-	string_len = strlen( string );
-
-	pos = 0;
-	for( i = 0; i < num_draws; i++ ) {
-		if( pos + string_len >= sizeof( temps ) ) {
-			break;
-		}
-		memcpy( temps + pos, string, string_len );
-		pos += string_len;
-	}
-	temps[pos] = '\0';
-
-	DrawText( GetHUDFont(), layout_cursor_font_size, temps, layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
-
-	return true;
-}
-
-static bool CG_LFuncDrawStringRepeat( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	const char *string = CG_GetStringArg( &argumentnode );
-	int num_draws = CG_GetNumericArg( &argumentnode );
-	return CG_LFuncDrawStringRepeat_x( string, num_draws );
-}
-
-static bool CG_LFuncDrawStringRepeatConfigString( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	const char *string = CG_GetStringArg( &argumentnode );
-	int index = (int)CG_GetNumericArg( &argumentnode );
-
-	if( index < 0 || index >= MAX_CONFIGSTRINGS ) {
-		CG_Printf( "WARNING 'CG_LFuncDrawStringRepeatConfigString' Bad stat_string index" );
-		return false;
-	}
-
-	int num_draws = atoi( cgs.configStrings[index] );
-	return CG_LFuncDrawStringRepeat_x( string, num_draws );
-}
-
 static bool CG_LFuncDrawBindString( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	const char * fmt = CG_GetStringArg( &argumentnode );
 	const char * command = CG_GetStringArg( &argumentnode );
@@ -1916,19 +1896,6 @@ static bool CG_LFuncDrawBindString( struct cg_layoutnode_s *argumentnode, int nu
 	Q_snprintfz( buf, sizeof( buf ), fmt, keys );
 
 	DrawText( GetHUDFont(), layout_cursor_font_size, buf, layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
-
-	return true;
-}
-
-static bool CG_LFuncDrawConfigstring( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int index = (int)CG_GetNumericArg( &argumentnode );
-
-	if( index < 0 || index >= MAX_CONFIGSTRINGS ) {
-		CG_Printf( "WARNING 'CG_LFuncDrawConfigstring' Bad stat_string index" );
-		return false;
-	}
-
-	DrawText( GetHUDFont(), layout_cursor_font_size, cgs.configStrings[ index ], layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color );
 
 	return true;
 }
@@ -2071,13 +2038,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 	},
 
 	{
-		"setSpecialFontFamily",
-		CG_LFuncSpecialFontFamily,
-		1,
-		"Sets font by font family. The font will not overriden by the fallback font used when CJK is detected.",
-	},
-
-	{
 		"setFontSize",
 		CG_LFuncFontSize,
 		1,
@@ -2169,10 +2129,10 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 	},
 
 	{
-		"drawStatString",
-		CG_LFuncDrawConfigstring,
-		1,
-		"Draws configstring of argument id",
+		"drawPlayerIcons",
+		CG_LFuncDrawPlayerIcons,
+		3,
+		"Draw dead/alive player icons",
 	},
 
 	{
@@ -2187,20 +2147,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawNumeric,
 		1,
 		"Draws numbers as text",
-	},
-
-	{
-		"drawStringRepeat",
-		CG_LFuncDrawStringRepeat,
-		2,
-		"Draws argument string multiple times",
-	},
-
-	{
-		"drawStringRepeatConfigString",
-		CG_LFuncDrawStringRepeatConfigString,
-		2,
-		"Draws argument string multiple times",
 	},
 
 	{
@@ -2314,7 +2260,7 @@ static const char *CG_GetStringArg( struct cg_layoutnode_s **argumentsnode ) {
 	struct cg_layoutnode_s *anode = *argumentsnode;
 
 	if( !anode || anode->type == LNODE_COMMAND ) {
-		CG_Error( "'CG_LayoutGetIntegerArg': bad arg count" );
+		CG_Error( "'CG_LayoutGetStringArg': bad arg count" );
 	}
 
 	// we can return anything as string
@@ -2331,11 +2277,11 @@ static float CG_GetNumericArg( struct cg_layoutnode_s **argumentsnode ) {
 	float value;
 
 	if( !anode || anode->type == LNODE_COMMAND ) {
-		CG_Error( "'CG_LayoutGetIntegerArg': bad arg count" );
+		CG_Error( "'CG_LayoutGetNumericArg': bad arg count" );
 	}
 
 	if( anode->type != LNODE_NUMERIC && anode->type != LNODE_REFERENCE_NUMERIC ) {
-		CG_Printf( "WARNING: 'CG_LayoutGetIntegerArg': arg %s is not numeric", anode->string );
+		CG_Printf( "WARNING: 'CG_LayoutGetNumericArg': arg %s is not numeric", anode->string );
 	}
 
 	*argumentsnode = anode->next;

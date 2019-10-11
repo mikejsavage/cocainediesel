@@ -537,11 +537,10 @@ static void CG_StartVoiceTokenEffect( int entNum, int vsay ) {
 /*
 * CG_Event_Fall
 */
-void CG_Event_Fall( entity_state_t *state, int parm ) {
+void CG_Event_Fall( const entity_state_t * state, int parm ) {
 	if( ISVIEWERENTITY( state->number ) ) {
 		CG_StartFallKickEffect( ( parm + 5 ) * 10 );
 	}
-
 
 	vec3_t mins, maxs;
 	GS_BBoxForEntityState( state, mins, maxs );
@@ -551,7 +550,7 @@ void CG_Event_Fall( entity_state_t *state, int parm ) {
 	ground_position[ 2 ] += mins[ 2 ];
 
 	float frac = Max2(( parm - 40 ) * ( 1.0f / 300.0f ), 0.f);
-	S_StartFixedSound( cgs.media.sfxFall, ground_position, CHAN_AUTO, frac, state->attenuation );
+	S_StartEntitySound( cgs.media.sfxFall, state->number, CHAN_AUTO, frac, state->attenuation );
 }
 
 /*

@@ -104,8 +104,8 @@ void CG_DrawChat() {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	const ImGuiIO & io = ImGui::GetIO();
-	Vec2 size = io.DisplaySize;
-	size.y /= 4;
+	float width_frac = Lerp( 0.5f, Clamp01( Unlerp( 1024.0f, io.DisplaySize.x, 1920.0f ) ), 0.25f );
+	Vec2 size = io.DisplaySize * Vec2( width_frac, 0.25f );
 
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground;
 	ImGuiWindowFlags log_flags = 0;
@@ -114,8 +114,8 @@ void CG_DrawChat() {
 		log_flags |= ImGuiWindowFlags_NoScrollbar;
 	}
 
-	ImGui::SetNextWindowSize( ImVec2( size.x * 0.5f, size.y ) );
-	ImGui::SetNextWindowPos( ImVec2( 0, size.y * 2.5f ), ImGuiCond_Always, ImVec2( 0, 0.5f ) );
+	ImGui::SetNextWindowSize( ImVec2( size.x, size.y ) );
+	ImGui::SetNextWindowPos( ImVec2( 0, size.y * 3 ), ImGuiCond_Always, ImVec2( 0, 0.5f ) );
 	ImGui::Begin( "chat", NULL, flags );
 
 	ImGui::BeginChild( "chatlog", ImVec2( 0, -ImGui::GetFrameHeight() ), false, log_flags );

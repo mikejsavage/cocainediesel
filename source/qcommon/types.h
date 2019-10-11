@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <float.h>
 
+#include "qcommon/platform.h"
+
 /*
  * ints
  */

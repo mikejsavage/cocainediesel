@@ -958,7 +958,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 
 	// add skeleton effects (pose is unmounted yet)
 	bool corpse = cent->current.type == ET_CORPSE;
-	if( corpse ) {
+	if( !corpse ) {
 		vec3_t tmpangles;
 		// if it's our client use the predicted angles
 		if( cg.view.playerPrediction && ISVIEWERENTITY( cent->current.number ) ) {

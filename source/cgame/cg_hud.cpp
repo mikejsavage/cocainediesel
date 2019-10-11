@@ -1125,7 +1125,7 @@ static void CG_DrawObituaries(
 		return;
 	}
 
-	unsigned line_height = max( (unsigned)layout_cursor_font_size, icon_size );
+	unsigned line_height = Max3( 1u, unsigned( layout_cursor_font_size ), icon_size );
 	int num_max = height / line_height;
 
 	if( width < (int)icon_size || !num_max ) {

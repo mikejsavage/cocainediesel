@@ -549,11 +549,12 @@ void CG_Event_Fall( const entity_state_t * state, int parm ) {
 	VectorCopy( state->origin, ground_position );
 	ground_position[ 2 ] += mins[ 2 ];
 
-	float frac = Max2(( parm - 40 ) * ( 1.0f / 300.0f ), 0.f);
-	if( (state->number-1) == cgs.playerNum ) {
-		S_StartLocalSound( cgs.media.sfxFall, CHAN_AUTO, frac );
-	} else {
-		S_StartEntitySound( cgs.media.sfxFall, state->number, CHAN_AUTO, frac, state->attenuation );
+	float volume = Max2(( parm - 40 ) * ( 1.0f / 300.0f ), 0.f);
+	if( ISVIEWERENTITY( state->number ) ) {
+		S_StartLocalSound( cgs.media.sfxFall, CHAN_AUTO, volume );
+	}
+	else {
+		S_StartEntitySound( cgs.media.sfxFall, state->number, CHAN_AUTO, volume, state->attenuation );
 	}
 }
 

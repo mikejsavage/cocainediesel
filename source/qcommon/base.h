@@ -100,6 +100,11 @@ constexpr T Max2( const T & a, const T & b ) {
 }
 
 template< typename T >
+constexpr T Max3( const T & a, const T & b, const T & c ) {
+	return Max2( Max2( a, b ), c );
+}
+
+template< typename T >
 T Clamp( const T & lo, const T & x, const T & hi ) {
 	assert( lo <= hi );
 	return Max2( lo, Min2( x, hi ) );

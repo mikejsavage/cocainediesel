@@ -195,10 +195,15 @@ void CG_DrawScoreboard() {
 	ImGui::SetNextWindowSize( ImVec2( size.x, -1 ) );
 	ImGui::SetNextWindowPos( io.DisplaySize * 0.5f, 0, Vec2( 0.5f ) );
 	ImGui::Begin( "scoreboard", NULL, basic_flags | ImGuiWindowFlags_NoBackground );
-	ImGui::PopStyleVar();
+
+	float padding = 4;
+	float separator_height = ImGui::GetTextLineHeight() + 2 * padding;
+	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, padding ) );
+
 	defer {
-		ImGui::End();
 		ImGui::PopStyleVar();
+		ImGui::End();
+		ImGui::PopStyleVar( 2 );
 	};
 
 	float col_width = 80;
@@ -208,9 +213,8 @@ void CG_DrawScoreboard() {
 		float score_width = 5 * ( ImGui::GetTextLineHeight() + 2 * 8 );
 
 		{
-			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 4, 4 ) );
 			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, alpha ) );
-			ImGui::BeginChild( "scoreboardheader", ImVec2( 0, ImGui::GetFrameHeight() ), false );
+			ImGui::BeginChild( "scoreboardheader", ImVec2( 0, separator_height ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
 
 			ImGui::Columns( 5, NULL, false );
 			ImGui::SetColumnWidth( 0, score_width );
@@ -219,23 +223,18 @@ void CG_DrawScoreboard() {
 			ImGui::SetColumnWidth( 3, col_width );
 			ImGui::SetColumnWidth( 4, col_width );
 
-			ImGui::AlignTextToFramePadding();
 			ColumnCenterText( "ATTACKING" );
 			ImGui::NextColumn();
 			ImGui::NextColumn();
-			ImGui::AlignTextToFramePadding();
 			ColumnCenterText( "SCORE" );
 			ImGui::NextColumn();
-			ImGui::AlignTextToFramePadding();
 			ColumnCenterText( "KILLS" );
 			ImGui::NextColumn();
-			ImGui::AlignTextToFramePadding();
 			ColumnCenterText( "PING" );
 			ImGui::NextColumn();
 
 			ImGui::EndChild();
 			ImGui::PopStyleColor();
-			ImGui::PopStyleVar();
 		}
 
 		int round;
@@ -245,9 +244,8 @@ void CG_DrawScoreboard() {
 		DrawTeamScoreboard( temp, &cursor, TEAM_ALPHA, col_width, alpha );
 
 		{
-			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 4, 4 ) );
 			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, alpha ) );
-			ImGui::BeginChild( "scoreboarddivider", ImVec2( 0, ImGui::GetFrameHeight() ), false );
+			ImGui::BeginChild( "scoreboarddivider", ImVec2( 0, separator_height ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
 
 			ImGui::Columns( 5, NULL, false );
 			ImGui::SetColumnWidth( 0, score_width );
@@ -256,7 +254,6 @@ void CG_DrawScoreboard() {
 			ImGui::SetColumnWidth( 3, col_width );
 			ImGui::SetColumnWidth( 4, col_width );
 
-			ImGui::AlignTextToFramePadding();
 			ColumnCenterText( round == 0 ? "WARMUP" : temp( "ROUND {}", round ) );
 			ImGui::NextColumn();
 			ImGui::NextColumn();
@@ -266,15 +263,13 @@ void CG_DrawScoreboard() {
 
 			ImGui::EndChild();
 			ImGui::PopStyleColor();
-			ImGui::PopStyleVar();
 		}
 
 		DrawTeamScoreboard( temp, &cursor, TEAM_BETA, col_width, alpha );
 
 		{
-			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 4, 4 ) );
 			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, alpha ) );
-			ImGui::BeginChild( "scoreboardfooter", ImVec2( 0, ImGui::GetFrameHeight() ), false );
+			ImGui::BeginChild( "scoreboardfooter", ImVec2( 0, separator_height ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
 
 			ImGui::Columns( 5, NULL, false );
 			ImGui::SetColumnWidth( 0, score_width );
@@ -283,7 +278,6 @@ void CG_DrawScoreboard() {
 			ImGui::SetColumnWidth( 3, col_width );
 			ImGui::SetColumnWidth( 4, col_width );
 
-			ImGui::AlignTextToFramePadding();
 			ColumnCenterText( "DEFENDING" );
 			ImGui::NextColumn();
 			ImGui::NextColumn();
@@ -293,7 +287,6 @@ void CG_DrawScoreboard() {
 
 			ImGui::EndChild();
 			ImGui::PopStyleColor();
-			ImGui::PopStyleVar();
 		}
 	}
 	else {
@@ -307,9 +300,8 @@ void CG_DrawScoreboard() {
 		int line_height = ImGui::GetFrameHeight();
 
 		{
-			ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 4, 4 ) );
 			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, alpha ) );
-			ImGui::BeginChild( "scoreboardheader", ImVec2( 0, ImGui::GetFrameHeight() ), false );
+			ImGui::BeginChild( "scoreboardheader", ImVec2( 0, separator_height ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
 
 			ImGui::Columns( 5, NULL, false );
 			ImGui::SetColumnWidth( 0, line_height );
@@ -319,22 +311,17 @@ void CG_DrawScoreboard() {
 			ImGui::SetColumnWidth( 4, col_width );
 
 			ImGui::NextColumn();
-			ImGui::AlignTextToFramePadding();
 			ColumnCenterText( team_info.score == 0 ? "WARMUP" : temp( "ROUND {}", team_info.score) );
 			ImGui::NextColumn();
-			ImGui::AlignTextToFramePadding();
 			ColumnCenterText( "SCORE" );
 			ImGui::NextColumn();
-			ImGui::AlignTextToFramePadding();
 			ColumnCenterText( "KILLS" );
 			ImGui::NextColumn();
-			ImGui::AlignTextToFramePadding();
 			ColumnCenterText( "PING" );
 			ImGui::NextColumn();
 
 			ImGui::EndChild();
 			ImGui::PopStyleColor();
-			ImGui::PopStyleVar();
 		}
 
 		// players
@@ -378,12 +365,10 @@ void CG_DrawScoreboard() {
 	if( !ParseInt( &cursor, &num_spectators ) || num_spectators == 0 )
 		return;
 
-	ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 4, 4 ) );
+	ImGui::Dummy( ImVec2( 0, separator_height ) );
+
 	ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, alpha ) );
-
-	ImGui::Dummy( ImVec2( 0, ImGui::GetFrameHeight() ) );
-
-	ImGui::BeginChild( "spectators", ImVec2( 0, ImGui::GetFrameHeight() ), false );
+	ImGui::BeginChild( "spectators", ImVec2( 0, separator_height ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
 
 	{
 		DynamicString spectators( &temp, "Spectating: " );
@@ -396,14 +381,11 @@ void CG_DrawScoreboard() {
 			spectators += cgs.clientInfo[ id ].name;
 		}
 
-		ImGui::Indent();
-		ImGui::AlignTextToFramePadding();
 		ImGui::Text( "%s", spectators.c_str() );
 	}
 
 	ImGui::EndChild();
 	ImGui::PopStyleColor();
-	ImGui::PopStyleVar();
 }
 
 void CG_ScoresOn_f() {

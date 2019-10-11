@@ -2,17 +2,6 @@
 //WEAPONS
 //------------
 
-models/weapons/electrobolt/electrobolt
-{
-	cull front
-
-	{
-		map models/weapons/electrobolt/electrobolt
-		rgbgen entity
-		alphagen entity
-	}
-}
-
 models/weapons/electrobolt/electrobolt_fx
 {
 	cull disable
@@ -32,16 +21,6 @@ models/weapons/electrobolt/electrobolt_fx_1
 	}
 }
 
-models/weapons/glauncher/glauncher
-{
-	cull front
-
-	{
-		map models/weapons/glauncher/glauncher
-		rgbgen entity
-	}
-}
-
 models/weapons/glauncher/glauncher_fx
 {
 	cull disable
@@ -49,16 +28,6 @@ models/weapons/glauncher/glauncher_fx
 		map models/weapons/glauncher/glauncher_fx
 		blendFunc add
 		rgbGen wave sin 0.5 0.5 0 0.5
-	}
-}
-
-models/weapons/plasmagun/plasmagun
-{
-	cull front
-
-	{
-		map models/weapons/plasmagun/plasmagun
-		rgbgen entity
 	}
 }
 
@@ -72,57 +41,6 @@ models/weapons/plasmagun/plasmagun_fx
 	}
 }
 
-models/weapons/riotgun/riotgun
-{
-	cull front
-
-	{
-		map models/weapons/riotgun/riotgun
-		rgbgen entity
-	}
-}
-
-models/weapons/gunblade/gunblade
-{
-	cull front
-
-	{
-		map models/weapons/gunblade/gunblade
-		rgbgen entity
-	}
-}
-
-
-models/weapons/gunblade/barrel
-{
-	cull front
-
-	{
-		map models/weapons/gunblade/barrel
-		rgbgen entity
-	}
-}
-
-models/weapons/machinegun/machinegun
-{
-	cull front
-
-	{
-		map models/weapons/machinegun/machinegun
-		rgbgen entity
-	}
-}
-
-models/weapons/rlauncher/rlauncher
-{
-	cull front
-
-	{
-		map models/weapons/rlauncher/rlauncher
-		rgbgen entity
-	}
-}
-
 models/weapons/rlauncher/rlauncher_fx
 {
 	cull disable
@@ -132,16 +50,6 @@ models/weapons/rlauncher/rlauncher_fx
 		rgbGen wave sin 0.5 0.5 0 0.5
 	}
 }
-models/weapons/lasergun/lasergun
-{
-	cull front
-
-	{
-		map models/weapons/lasergun/lasergun
-		rgbgen entity
-	}
-}
-
 models/weapons/lg_fx
 {
 	cull disable
@@ -168,6 +76,7 @@ models/objects/projectile/plasmagun/plnew
 	{
 		map models/objects/projectile/plasmagun/plnew
 		blendFunc add
+		rgbGen entity
 		tcmod rotate -150
 	}
 }

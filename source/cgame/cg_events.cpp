@@ -550,7 +550,11 @@ void CG_Event_Fall( const entity_state_t * state, int parm ) {
 	ground_position[ 2 ] += mins[ 2 ];
 
 	float frac = Max2(( parm - 40 ) * ( 1.0f / 300.0f ), 0.f);
-	S_StartEntitySound( cgs.media.sfxFall, state->number, CHAN_AUTO, frac, state->attenuation );
+	if( (state->number-1) == cgs.playerNum ) {
+		S_StartLocalSound( cgs.media.sfxFall, CHAN_AUTO, frac );
+	} else {
+		S_StartEntitySound( cgs.media.sfxFall, state->number, CHAN_AUTO, frac, state->attenuation );
+	}
 }
 
 /*

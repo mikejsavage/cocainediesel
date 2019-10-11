@@ -31,6 +31,13 @@ float Scharr( vec3 sample00, vec3 sample10, vec3 sample20, vec3 sample01, vec3 s
 	return length( vec2( x, y ) );
 }
 
+ivec2 ClampPixelOffset( ivec2 p, int dx, int dy ) {
+	return ivec2(
+		clamp( p.x + dx, 0, int( u_ViewportSize.x ) - 1 ),
+		clamp( p.y + dy, 0, int( u_ViewportSize.y ) - 1 )
+	);
+}
+
 void main() {
 	vec2 pixel_size = 1.0 / u_ViewportSize;
 	vec2 uv = gl_FragCoord.xy / u_ViewportSize;
@@ -58,16 +65,16 @@ void main() {
 	for( int i = 0; i < u_Samples; i++ ) {
 		ivec2 p = ivec2( gl_FragCoord.xy );
 
-		vec3 normal00 = DecompressNormal( texelFetch( u_NormalTexture, p + ivec2( -1, -1 ), i ).rg );
-		vec3 normal10 = DecompressNormal( texelFetch( u_NormalTexture, p + ivec2( 0.0, -1 ), i ).rg );
-		vec3 normal20 = DecompressNormal( texelFetch( u_NormalTexture, p + ivec2( 1, -1 ), i ).rg );
+		vec3 normal00 = DecompressNormal( texelFetch( u_NormalTexture, ClampPixelOffset( p, -1, -1 ), i ).rg );
+		vec3 normal10 = DecompressNormal( texelFetch( u_NormalTexture, ClampPixelOffset( p, 0, -1 ), i ).rg );
+		vec3 normal20 = DecompressNormal( texelFetch( u_NormalTexture, ClampPixelOffset( p, 1, -1 ), i ).rg );
 
-		vec3 normal01 = DecompressNormal( texelFetch( u_NormalTexture, p + ivec2( -1, 0 ), i ).rg );
-		vec3 normal21 = DecompressNormal( texelFetch( u_NormalTexture, p + ivec2( 1, 0 ), i ).rg );
+		vec3 normal01 = DecompressNormal( texelFetch( u_NormalTexture, ClampPixelOffset( p, -1, 0 ), i ).rg );
+		vec3 normal21 = DecompressNormal( texelFetch( u_NormalTexture, ClampPixelOffset( p, 1, 0 ), i ).rg );
 
-		vec3 normal02 = DecompressNormal( texelFetch( u_NormalTexture, p + ivec2( -1, 1 ), i ).rg );
-		vec3 normal12 = DecompressNormal( texelFetch( u_NormalTexture, p + ivec2( 0, 1 ), i ).rg );
-		vec3 normal22 = DecompressNormal( texelFetch( u_NormalTexture, p + ivec2( 1, 1 ), i ).rg );
+		vec3 normal02 = DecompressNormal( texelFetch( u_NormalTexture, ClampPixelOffset( p, -1, 1 ), i ).rg );
+		vec3 normal12 = DecompressNormal( texelFetch( u_NormalTexture, ClampPixelOffset( p, 0, 1 ), i ).rg );
+		vec3 normal22 = DecompressNormal( texelFetch( u_NormalTexture, ClampPixelOffset( p, 1, 1 ), i ).rg );
 
 		float edgeness = Scharr( normal00, normal10, normal20, normal01, normal21, normal02, normal12, normal22 );
 		normal_edgeness += Threshold( edgeness, 0.2 );

@@ -1011,7 +1011,9 @@ void CG_DrawPlayer( centity_t *cent ) {
 
 	DrawModel( meta->model, transform, color, pose.skinning_matrices );
 
-	if( !corpse && ( cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR || cg.predictedPlayerState.stats[ STAT_TEAM ] == cent->current.team ) ) {
+	bool speccing = cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR;
+	bool same_team = GS_TeamBasedGametype() && cg.predictedPlayerState.stats[ STAT_TEAM ] == cent->current.team;
+	if( !corpse && ( speccing || same_team ) ) {
 		DrawTeammateModel( meta->model, transform, color, pose.skinning_matrices );
 	}
 

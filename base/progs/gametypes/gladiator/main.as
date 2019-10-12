@@ -315,19 +315,6 @@ class cDARound
 
 		GENERIC_UpdateMatchScore();
 
-		// print scores to console
-		if ( gametype.isTeamBased )
-		{
-			Team @team1 = @G_GetTeam( TEAM_ALPHA );
-			Team @team2 = @G_GetTeam( TEAM_BETA );
-
-			String sC1 = (team1.stats.score < team2.stats.score ? S_COLOR_RED : S_COLOR_GREEN);
-			String sC2 = (team2.stats.score < team1.stats.score ? S_COLOR_RED : S_COLOR_GREEN);
-
-			G_PrintMsg( null, S_COLOR_YELLOW + "Final score: " + S_COLOR_WHITE + team1.name + S_COLOR_WHITE + " vs " +
-				team2.name + S_COLOR_WHITE + " - " + match.getScore() + "\n" );
-		}
-
 		int soundIndex = endMatchSounds[random_uniform(0,endMatchSounds.size())];
 		G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, true, null );
 	}

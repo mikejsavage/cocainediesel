@@ -27,7 +27,7 @@ const int CountdownSeconds = 4;
 const int CountdownNumSwitches = 20;
 const float CountdownInitialSwitchDelay = 0.1;
 
-const int MAX_HEALTH = 333;
+const int MAX_HEALTH = 166;
 
 int[] endMatchSounds;
 

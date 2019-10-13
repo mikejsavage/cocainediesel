@@ -637,6 +637,62 @@ int Q_GrabCharFromColorString( const char **pstr, char *c, int *colorindex ) {
 	}
 }
 
+// returns a wide char, advances (*pstr) to next char (unless at end of string)
+static wchar_t Q_GrabWCharFromUtf8String( const char **pstr ) {
+	int part, i;
+	wchar_t val;
+	const char *src = *pstr;
+
+	if( !*src ) {
+		return 0;
+	}
+
+	part = ( unsigned char )*src;
+	src++;
+
+	if( !( part & 0x80 ) ) { // 1 octet
+		val = part;
+	} else if( ( part & 0xE0 ) == 0xC0 ) {   // 2 octets
+		val = ( part & 0x1F ) << 6;
+		if( ( *src & 0xC0 ) != 0x80 ) {
+			val = '?'; // incomplete 2-octet sequence (including unexpected '\0')
+		} else {
+			val |= *src & 0x3f;
+			src++;
+			if( val < 0x80 ) {
+				val = '?';  // overlong utf-8 sequence
+			}
+		}
+	} else if( ( part & 0xF0 ) == 0xE0 ) {   // 3 octets
+		val = ( part & 0x0F ) << 12;
+		if( ( *src & 0xC0 ) != 0x80 ) { // check 2nd octet
+			val = '?';
+		} else {
+			val |= ( *src & 0x3f ) << 6;
+			src++;
+			if( ( *src & 0xC0 ) != 0x80 ) { // check 3rd octet
+				val = '?';
+			} else {
+				val |= *src & 0x3f;
+				src++;
+				if( val < 0x800 ) {
+					val = '?';  // overlong sequence
+				}
+			}
+		}
+	} else if( ( part & 0xF8 ) == 0xF0 ) {   // 4 octets
+		// throw it away (it may be a valid sequence, we just don't support it)
+		val = '?';
+		for( i = 0; i < 4 && ( *src & 0xC0 ) == 0x80; i++ )
+			src++;
+	} else {
+		val = '?';  // invalid utf-8 octet
+
+	}
+	*pstr = src;
+	return val;
+}
+
 // Like Q_GrabCharFromColorString, but reads whole UTF-8 sequences
 // and returns wide chars
 int Q_GrabWCharFromColorString( const char **pstr, wchar_t *wc, int *colorindex ) {
@@ -668,7 +724,6 @@ int Q_GrabWCharFromColorString( const char **pstr, wchar_t *wc, int *colorindex 
 			return GRABCHAR_CHAR;
 	}
 }
-
 
 /*
 * COM_RemoveColorTokensExt
@@ -1198,117 +1253,6 @@ char *Q_WCharToUtf8Char( wchar_t wc ) {
 	static char buf[5]; // longest valid utf-8 sequence is 4 bytes
 	Q_WCharToUtf8( wc, buf, sizeof( buf ) );
 	return buf;
-}
-
-/*
-* Q_Utf8SyncPos
-*
-* For line editing: if we're in the middle of a UTF-8 sequence,
-* skip left or right to the start of a UTF-8 sequence (or end of string)
-* 'dir' should be UTF8SYNC_LEFT or UTF8SYNC_RIGHT
-* Returns new position
-* ------------------------------
-* (To be pedantic, I must note that we may skip too many continuation chars
-* in a malformed UTF-8 string.  But malformed UTF-8 isn't supposed to get
-* into the console input line, and even if it does, we'll only be happy
-* to delete it all with one BACKSPACE stroke)
-*/
-int Q_Utf8SyncPos( const char *str, int pos, int dir ) {
-	// Skip until we hit an ASCII char (char & 0x80 == 0)
-	// or the start of a utf-8 sequence (char & 0xC0 == 0xC0).
-	if( dir == UTF8SYNC_LEFT ) {
-		while( pos > 0 && !( ( str[pos] & 0x80 ) == 0 || ( str[pos] & 0x40 ) ) )
-			pos--;
-	} else {
-		while( !( ( str[pos] & 0x80 ) == 0 || ( str[pos] & 0x40 ) ) )
-			pos++;
-	}
-
-	return pos;
-}
-
-// returns a wide char, advances (*pstr) to next char (unless at end of string)
-wchar_t Q_GrabWCharFromUtf8String( const char **pstr ) {
-	int part, i;
-	wchar_t val;
-	const char *src = *pstr;
-
-	if( !*src ) {
-		return 0;
-	}
-
-	part = ( unsigned char )*src;
-	src++;
-
-	if( !( part & 0x80 ) ) { // 1 octet
-		val = part;
-	} else if( ( part & 0xE0 ) == 0xC0 ) {   // 2 octets
-		val = ( part & 0x1F ) << 6;
-		if( ( *src & 0xC0 ) != 0x80 ) {
-			val = '?'; // incomplete 2-octet sequence (including unexpected '\0')
-		} else {
-			val |= *src & 0x3f;
-			src++;
-			if( val < 0x80 ) {
-				val = '?';  // overlong utf-8 sequence
-			}
-		}
-	} else if( ( part & 0xF0 ) == 0xE0 ) {   // 3 octets
-		val = ( part & 0x0F ) << 12;
-		if( ( *src & 0xC0 ) != 0x80 ) { // check 2nd octet
-			val = '?';
-		} else {
-			val |= ( *src & 0x3f ) << 6;
-			src++;
-			if( ( *src & 0xC0 ) != 0x80 ) { // check 3rd octet
-				val = '?';
-			} else {
-				val |= *src & 0x3f;
-				src++;
-				if( val < 0x800 ) {
-					val = '?';  // overlong sequence
-				}
-			}
-		}
-	} else if( ( part & 0xF8 ) == 0xF0 ) {   // 4 octets
-		// throw it away (it may be a valid sequence, we just don't support it)
-		val = '?';
-		for( i = 0; i < 4 && ( *src & 0xC0 ) == 0x80; i++ )
-			src++;
-	} else {
-		val = '?';  // invalid utf-8 octet
-
-	}
-	*pstr = src;
-	return val;
-}
-
-/*
-* Q_IsBreakingSpace
-*/
-bool Q_IsBreakingSpace( const char *str ) {
-	const unsigned char *s = ( const unsigned char * )str;
-
-	switch( s[0] ) {
-		case ' ':
-		case '\t':
-			return true;
-		case 0xe3:
-			return ( s[1] == 0x80 ) && ( s[2] == 0x80 );
-		case 0xe2:
-			return ( s[1] == 0x80 ) && ( s[2] >= 0x80 ) && ( s[2] <= 0x8b );
-	}
-
-	return false;
-}
-
-/*
-* Q_IsBreakingSpaceChar
-*
-* Same as IsBreakingSpace, but for a single character.
-*/
-bool Q_IsBreakingSpaceChar( wchar_t c ) {
-	return ( c == ' ' ) || ( c == '\t' ) || ( c == 0x3000 ) || ( ( c >= 0x2000 ) && ( c <= 0x200b ) );
 }
 
 /*

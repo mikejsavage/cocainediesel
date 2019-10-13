@@ -196,13 +196,7 @@ int Q_ColorStrLastColor( int previous, const char *s, int maxlen );
 size_t Q_WCharUtf8Length( wchar_t wc );
 size_t Q_WCharToUtf8( wchar_t wc, char *dest, size_t bufsize );
 char *Q_WCharToUtf8Char( wchar_t wc );
-wchar_t Q_GrabWCharFromUtf8String( const char **pstr );
 int Q_GrabWCharFromColorString( const char **pstr, wchar_t *wc, int *colorindex );
-#define UTF8SYNC_LEFT 0
-#define UTF8SYNC_RIGHT 1
-int Q_Utf8SyncPos( const char *str, int pos, int dir );
-bool Q_IsBreakingSpace( const char *str );
-bool Q_IsBreakingSpaceChar( wchar_t c );
 
 float *tv( float x, float y, float z );
 char *vtos( float v[3] );

@@ -98,8 +98,14 @@ void Con_Close() {
 	}
 }
 
-static void Con_Append( const char * str, size_t len ) {
+void Con_Print( const char * str ) {
+	if( console.mutex == NULL )
+		return;
+
+	QMutex_Lock( console.mutex );
+
 	// delete lines until we have enough space to add str
+	size_t len = strlen( str );
 	size_t trim = 0;
 	while( console.log.len() - trim + len >= CONSOLE_LOG_SIZE ) {
 		const char * newline = StrChrUTF8( console.log.c_str() + trim, '\n' );
@@ -116,46 +122,6 @@ static void Con_Append( const char * str, size_t len ) {
 
 	if( console.at_bottom )
 		console.scroll_to_bottom = true;
-}
-
-
-void Con_Print( const char * str ) {
-	if( console.mutex == NULL )
-		return;
-
-	QMutex_Lock( console.mutex );
-
-	const char * p = str;
-	const char * end = str + strlen( str );
-	while( p < end ) {
-		char token;
-		const char * before = FindNextColorToken( p, &token );
-
-		if( before == NULL ) {
-			Con_Append( p, end - p );
-			break;
-		}
-
-		Con_Append( p, before - p );
-
-		if( token == '^' ) {
-			Con_Append( "^", 1 );
-		}
-		else {
-			const vec4_t & color = color_table[ token - '0' ];
-			uint8_t r = max( 1, uint8_t( color[ 0 ] * 255.0f ) );
-			uint8_t g = max( 1, uint8_t( color[ 1 ] * 255.0f ) );
-			uint8_t b = max( 1, uint8_t( color[ 2 ] * 255.0f ) );
-			uint8_t a = max( 1, uint8_t( color[ 3 ] * 255.0f ) );
-			uint8_t escape[] = { 033, r, g, b, a };
-			Con_Append( ( const char * ) escape, sizeof( escape ) );
-		}
-
-		p = before + 2;
-	}
-
-	uint8_t white[] = { 033, 255, 255, 255, 255 };
-	Con_Append( ( const char * ) white, sizeof( white ) );
 
 	QMutex_Unlock( console.mutex );
 }

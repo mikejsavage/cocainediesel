@@ -217,7 +217,6 @@ typedef struct {
 
 typedef struct {
 	char name[MAX_QPATH];
-	char cleanname[MAX_QPATH];
 	int hand;
 	struct shader_s *icon;
 } cg_clientInfo_t;

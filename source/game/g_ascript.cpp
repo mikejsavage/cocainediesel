@@ -532,11 +532,7 @@ static asstring_t *objectMatch_getScore( match_t *self ) {
 }
 
 static void objectMatch_setScore( asstring_t *name, match_t *self ) {
-	char buf[MAX_CONFIGSTRING_CHARS];
-
-	COM_SanitizeColorString( name->buffer, buf, sizeof( buf ), -1, COLOR_WHITE );
-
-	trap_ConfigString( CS_MATCHSCORE, buf );
+	trap_ConfigString( CS_MATCHSCORE, name->buffer );
 }
 
 static void objectMatch_setClockOverride( int64_t time, match_t *self ) {
@@ -874,12 +870,7 @@ static void objectGameClient_ClearPlayerStateEvents( gclient_t *self ) {
 }
 
 static asstring_t *objectGameClient_getName( gclient_t *self ) {
-	char temp[MAX_NAME_BYTES + 2];
-
-	Q_strncpyz( temp, self->netname, sizeof( temp ) );
-	Q_strncatz( temp, S_COLOR_WHITE, sizeof( temp ) );
-
-	return game.asExport->asStringFactoryBuffer( temp, strlen( temp ) );
+	return game.asExport->asStringFactoryBuffer( self->netname, strlen( self->netname ) );
 }
 
 static void objectGameClient_Respawn( bool ghost, gclient_t *self ) {

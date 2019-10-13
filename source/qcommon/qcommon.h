@@ -820,8 +820,8 @@ uint64_t Sys_Microseconds();
 void Sys_Sleep( unsigned int millis );
 bool Sys_FormatTime( char * buf, size_t buf_size, const char * fmt );
 
-char    *Sys_ConsoleInput( void );
-void    Sys_ConsoleOutput( char *string );
+const char * Sys_ConsoleInput();
+void Sys_ConsoleOutput( const char * string );
 
 #ifndef _MSC_VER
 void Sys_Error( const char *error, ... ) __attribute__( ( format( printf, 1, 2 ) ) ) __attribute__( ( noreturn ) );

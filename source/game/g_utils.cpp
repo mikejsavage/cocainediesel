@@ -1405,37 +1405,32 @@ void G_ClearPlayerStateEvents( gclient_t *client ) {
 * Returns player matching given text. It can be either number of the player or player's name.
 */
 edict_t *G_PlayerForText( const char *text ) {
-	int pnum;
-
 	if( !text || !text[0] ) {
 		return NULL;
 	}
 
-	pnum = atoi( text );
+	int pnum = atoi( text );
 
 	if( !Q_stricmp( text, va( "%i", pnum ) ) && pnum >= 0 && pnum < gs.maxclients && game.edicts[pnum + 1].r.inuse ) {
 		return &game.edicts[atoi( text ) + 1];
-	} else {
-		int i;
-		edict_t *e;
-		char colorless[MAX_INFO_VALUE];
+	}
 
-		Q_strncpyz( colorless, COM_RemoveColorTokens( text ), sizeof( colorless ) );
+	int i;
+	edict_t *e;
 
-		// check if it's a known player name
-		for( i = 0, e = game.edicts + 1; i < gs.maxclients; i++, e++ ) {
-			if( !e->r.inuse ) {
-				continue;
-			}
-
-			if( !Q_stricmp( colorless, COM_RemoveColorTokens( e->r.client->netname ) ) ) {
-				return e;
-			}
+	// check if it's a known player name
+	for( i = 0, e = game.edicts + 1; i < gs.maxclients; i++, e++ ) {
+		if( !e->r.inuse ) {
+			continue;
 		}
 
-		// nothing found
-		return NULL;
+		if( !Q_stricmp( text, e->r.client->netname ) ) {
+			return e;
+		}
 	}
+
+	// nothing found
+	return NULL;
 }
 
 /*

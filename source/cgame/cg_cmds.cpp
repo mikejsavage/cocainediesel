@@ -235,20 +235,17 @@ static const char *CG_SC_AutoRecordName( void ) {
 	struct tm *newtime;
 	static char name[MAX_STRING_CHARS];
 	char mapname[MAX_CONFIGSTRING_CHARS];
-	const char *cleanplayername, *cleanplayername2;
+	const char *cleanplayername;
 
 	// get date from system
 	time( &long_time );
 	newtime = localtime( &long_time );
 
 	if( cg.view.POVent <= 0 ) {
-		cleanplayername2 = "";
+		cleanplayername = "";
 	} else {
-		// remove color tokens from player names (doh)
-		cleanplayername = COM_RemoveColorTokens( cgs.clientInfo[cg.view.POVent - 1].name );
-
 		// remove junk chars from player names for files
-		cleanplayername2 = COM_RemoveJunkChars( cleanplayername );
+		cleanplayername = COM_RemoveJunkChars( cgs.clientInfo[cg.view.POVent - 1].name );
 	}
 
 	// lowercase mapname
@@ -261,7 +258,7 @@ static const char *CG_SC_AutoRecordName( void ) {
 				 newtime->tm_year + 1900, newtime->tm_mon + 1, newtime->tm_mday,
 				 newtime->tm_hour, newtime->tm_min,
 				 mapname,
-				 cleanplayername2,
+				 cleanplayername,
 				 (int)brandom( 0, 9999 )
 				 );
 
@@ -664,14 +661,14 @@ static char **CG_PlayerNamesCompletionExt_f( const char *partial, bool teamOnly 
 		matches = (char **) CG_Malloc( sizeof( char * ) * ( gs.maxclients + 1 ) );
 		for( i = 0; i < gs.maxclients; i++ ) {
 			cg_clientInfo_t *info = cgs.clientInfo + i;
-			if( !info->cleanname[0] ) {
+			if( !info->name[0] ) {
 				continue;
 			}
 			if( teamOnly && ( cg_entities[i + 1].current.team != team ) ) {
 				continue;
 			}
-			if( !Q_strnicmp( info->cleanname, partial, partial_len ) ) {
-				matches[num_matches++] = info->cleanname;
+			if( !Q_strnicmp( info->name, partial, partial_len ) ) {
+				matches[num_matches++] = info->name;
 			}
 		}
 		matches[num_matches] = NULL;

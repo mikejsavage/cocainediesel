@@ -77,15 +77,3 @@ const char * StrChrUTF8( const char * str, uint32_t needle ) {
 char * StrChrUTF8( char * str, uint32_t needle ) {
 	return const_cast< char * >( StrChrUTF8( const_cast< const char * >( str ), needle ) );
 }
-
-const char * FindNextColorToken( const char * str, char * token ) {
-	const char * p = str;
-	while( ( p = StrChrUTF8( p, Q_COLOR_ESCAPE ) ) != NULL ) {
-		if( p[ 1 ] == Q_COLOR_ESCAPE || ( p[ 1 ] >= '0' && p[ 1 ] <= char( '0' + MAX_S_COLORS ) ) ) {
-			*token = p[ 1 ];
-			return p;
-		}
-		p++;
-	}
-	return NULL;
-}

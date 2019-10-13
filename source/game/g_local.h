@@ -870,8 +870,7 @@ struct gclient_s {
 	// persistent info along all the time the client is connected
 
 	char userinfo[MAX_INFO_STRING];
-	char netname[MAX_NAME_BYTES];   // maximum name length is characters without counting color tokens
-	                                // is controlled by MAX_NAME_CHARS constant
+	char netname[MAX_NAME_CHARS + 1];
 	char ip[MAX_INFO_VALUE];
 	char socket[MAX_INFO_VALUE];
 

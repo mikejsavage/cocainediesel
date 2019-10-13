@@ -60,8 +60,7 @@ static bool Cvar_InfoValidate( const char *s, bool name ) {
 	return !( ( strlen( s ) >= (unsigned)( name ? MAX_INFO_KEY : MAX_INFO_VALUE ) ) ||
 			  ( strchr( s, '\\' ) ) ||
 			  ( strchr( s, '"' ) ) ||
-			  ( strchr( s, ';' ) ) ||
-			  ( name && strchr( s, Q_COLOR_ESCAPE ) ) );
+			  ( strchr( s, ';' ) ) );
 }
 
 /*
@@ -430,12 +429,9 @@ bool Cvar_Command( void ) {
 
 	// perform a variable print or set
 	if( Cmd_Argc() == 1 ) {
-		Com_Printf( "\"%s\" is \"%s%s\" default: \"%s%s\"\n", v->name,
-					v->string, Q_ColorStringTerminator( v->string, ColorIndex( COLOR_WHITE ) ),
-					v->dvalue, Q_ColorStringTerminator( v->dvalue, ColorIndex( COLOR_WHITE ) ) );
+		Com_Printf( "\"%s\" is \"%s\" default: \"%s\"\n", v->name, v->string, v->dvalue );
 		if( v->latched_string ) {
-			Com_Printf( "latched: \"%s%s\"\n", v->latched_string,
-						Q_ColorStringTerminator( v->latched_string, ColorIndex( COLOR_WHITE ) ) );
+			Com_Printf( "latched: \"%s\"\n", v->latched_string );
 		}
 		return true;
 	}
@@ -622,9 +618,7 @@ static void Cvar_List_f( void ) {
 		} else {
 			Com_Printf( " " );
 		}
-		Com_Printf( " %s \"%s%s\", default: \"%s%s\"\n", var->name,
-					var->string, Q_ColorStringTerminator( var->string, ColorIndex( COLOR_WHITE ) ),
-					var->dvalue, Q_ColorStringTerminator( var->dvalue, ColorIndex( COLOR_WHITE ) ) );
+		Com_Printf( " %s \"%s\", default: \"%s\"\n", var->name, var->string, var->dvalue );
 	}
 	Com_Printf( "%i variables\n", i );
 

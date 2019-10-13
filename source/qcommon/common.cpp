@@ -805,7 +805,7 @@ void Qcommon_Frame( unsigned int realMsec ) {
 	FS_Frame();
 
 	if( is_dedicated_server ) {
-		char *s;
+		const char * s;
 		do {
 			s = Sys_ConsoleInput();
 			if( s ) {

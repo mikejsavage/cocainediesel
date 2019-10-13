@@ -231,7 +231,7 @@ static void CvarTeamColorCombo( const char * label, const char * cvar_name, int 
 static void SettingsGeneral() {
 	ImGui::Text( "These settings are saved automatically" );
 
-	CvarTextbox< MAX_NAME_BYTES >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
+	CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
 	CvarSliderInt( "FOV", "fov", 60, 140, "100", CVAR_ARCHIVE );
 	CvarTeamColorCombo( "Ally color", "cg_allyColor", 0 );
 	CvarTeamColorCombo( "Enemy color", "cg_enemyColor", 1 );

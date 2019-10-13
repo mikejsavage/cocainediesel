@@ -668,35 +668,21 @@ static void strip_highchars( char *in ) {
 * G_SanitizeUserString
 */
 static int G_SanitizeUserString( char *string, size_t size ) {
-	static char *colorless = NULL;
-	static size_t colorless_size = 0;
-	int i, c_ascii;
-
 	// life is hard, UTF-8 will have to go
 	strip_highchars( string );
 
-	COM_SanitizeColorString( va( "%s", string ), string, size, -1, COLOR_WHITE );
-
 	Q_trim( string );
-
-	if( colorless_size < strlen( string ) + 1 ) {
-		colorless_size = strlen( string ) + 1;
-
-		G_Free( colorless );
-		colorless = ( char * )G_Malloc( colorless_size );
-	}
-
-	Q_strncpyz( colorless, COM_RemoveColorTokens( string ), colorless_size );
 
 	// require at least one non-whitespace ascii char in the string
 	// (this will upset people who would like to have a name entirely in a non-latin
 	// script, but it makes damn sure you can't get an empty name by exploiting some
 	// utf-8 decoder quirk)
-	c_ascii = 0;
-	for( i = 0; colorless[i]; i++ )
-		if( colorless[i] > 32 && colorless[i] < 127 ) {
+	int c_ascii = 0;
+	for( int i = 0; string[i]; i++ ) {
+		if( string[i] > 32 && string[i] < 127 ) {
 			c_ascii++;
 		}
+	}
 
 	return c_ascii;
 }
@@ -707,11 +693,9 @@ static int G_SanitizeUserString( char *string, size_t size ) {
 static void G_SetName( edict_t *ent, const char *original_name ) {
 	const char *invalid_prefixes[] = { "console", "[team]", "[spec]", "[bot]", NULL };
 	edict_t *other;
-	char name[MAX_NAME_BYTES];
-	char colorless[MAX_NAME_BYTES];
+	char name[MAX_NAME_CHARS + 1];
 	int i, trynum, trylen;
 	int c_ascii;
-	int maxchars;
 
 	if( !ent->r.client ) {
 		return;
@@ -728,25 +712,15 @@ static void G_SetName( edict_t *ent, const char *original_name ) {
 	if( !c_ascii ) {
 		Q_strncpyz( name, "Player", sizeof( name ) );
 	}
-	Q_strncpyz( colorless, COM_RemoveColorTokens( name ), sizeof( colorless ) );
 
 	if( !( ent->r.svflags & SVF_FAKECLIENT ) ) {
 		for( i = 0; invalid_prefixes[i] != NULL; i++ ) {
-			if( !Q_strnicmp( colorless, invalid_prefixes[i], strlen( invalid_prefixes[i] ) ) ) {
+			if( !Q_strnicmp( name, invalid_prefixes[i], strlen( invalid_prefixes[i] ) ) ) {
 				Q_strncpyz( name, "Player", sizeof( name ) );
-				Q_strncpyz( colorless, COM_RemoveColorTokens( name ), sizeof( colorless ) );
 				break;
 			}
 		}
 	}
-
-	maxchars = MAX_NAME_CHARS;
-
-	// Limit the name to MAX_NAME_CHARS printable characters
-	// (non-ascii utf-8 sequences are currently counted as 2 or more each, sorry)
-	COM_SanitizeColorString( va( "%s", name ), name, sizeof( name ),
-							 maxchars, COLOR_WHITE );
-	Q_strncpyz( colorless, COM_RemoveColorTokens( name ), sizeof( colorless ) );
 
 	trynum = 1;
 	do {
@@ -757,22 +731,19 @@ static void G_SetName( edict_t *ent, const char *original_name ) {
 			}
 
 			// if nick is already in use, try with (number) appended
-			if( !Q_stricmp( colorless, COM_RemoveColorTokens( other->r.client->netname ) ) ) {
+			if( !Q_stricmp( name, other->r.client->netname ) ) {
 				if( trynum != 1 ) { // remove last try
 					name[strlen( name ) - strlen( va( "(%i)", trynum - 1 ) )] = 0;
 				}
 
 				// make sure there is enough space for the postfix
 				trylen = strlen( va( "(%i)", trynum ) );
-				if( (int)strlen( colorless ) + trylen > maxchars ) {
-					COM_SanitizeColorString( va( "%s", name ), name, sizeof( name ),
-											 maxchars - trylen, COLOR_WHITE );
-					Q_strncpyz( colorless, COM_RemoveColorTokens( name ), sizeof( colorless ) );
+				if( (int)strlen( name ) + trylen > MAX_NAME_CHARS ) {
+					name[ MAX_NAME_CHARS - trylen - 1 ] = '\0';
 				}
 
 				// add the postfix
 				Q_strncatz( name, va( "(%i)", trynum ), sizeof( name ) );
-				Q_strncpyz( colorless, COM_RemoveColorTokens( name ), sizeof( colorless ) );
 
 				// go trough all clients again
 				trynum++;

@@ -411,17 +411,6 @@ static bool objectString_IsAlphaNumerical( asstring_t *self ) {
 	return true;
 }
 
-static asstring_t *objectString_RemoveColorTokens( asstring_t *self ) {
-	const char *s;
-
-	if( !self->len ) {
-		return objectString_FactoryBuffer( NULL, 0 );
-	}
-
-	s = COM_RemoveColorTokens( self->buffer );
-	return objectString_FactoryBuffer( s, strlen( s ) );
-}
-
 static int objectString_toInt( asstring_t *self ) {
 	return strtol( self->buffer, NULL, 0 );
 }
@@ -529,7 +518,6 @@ void RegisterStringAddon( asIScriptEngine *engine ) {
 	r = engine->RegisterObjectMethod( "String", "String @tolower() const", asFUNCTION( objectString_ToLower ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
 	r = engine->RegisterObjectMethod( "String", "String @toupper() const", asFUNCTION( objectString_ToUpper ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
 	r = engine->RegisterObjectMethod( "String", "String @trim() const", asFUNCTION( objectString_Trim ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
-	r = engine->RegisterObjectMethod( "String", "String @removeColorTokens() const", asFUNCTION( objectString_RemoveColorTokens ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
 	r = engine->RegisterObjectMethod( "String", "String @getToken(const uint) const", asFUNCTION( objectString_getToken ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
 
 	r = engine->RegisterObjectMethod( "String", "int toInt() const", asFUNCTION( objectString_toInt ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );

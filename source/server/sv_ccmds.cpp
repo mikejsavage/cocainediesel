@@ -187,9 +187,8 @@ void SV_Status_f( void ) {
 			Com_Printf( "%4i ", ping );
 		}
 
-		s = COM_RemoveColorTokens( cl->name );
-		Com_Printf( "%s", s );
-		l = MAX_NAME_CHARS - (int)strlen( s );
+		Com_Printf( "%s", cl->name );
+		l = MAX_NAME_CHARS - (int)strlen( cl->name );
 		for( j = 0; j < l; j++ )
 			Com_Printf( " " );
 

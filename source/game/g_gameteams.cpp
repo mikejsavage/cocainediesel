@@ -694,26 +694,19 @@ void G_InitChallengersQueue( void ) {
 //======================================================================
 
 void G_Say_Team( edict_t *who, const char *inmsg, bool checkflood ) {
-	char *msg;
-	char msgbuf[256];
-	char outmsg[256];
-	char *p;
-	char current_color[3];
-
 	if( who->s.team != TEAM_SPECTATOR && ( !GS_TeamBasedGametype() || GS_InvidualGameType() ) ) {
 		Cmd_Say_f( who, false, true );
 		return;
 	}
 
-	if( checkflood ) {
-		if( CheckFlood( who, true ) ) {
-			return;
-		}
+	if( checkflood && CheckFlood( who, true ) ) {
+		return;
 	}
 
+	char msgbuf[256];
 	Q_strncpyz( msgbuf, inmsg, sizeof( msgbuf ) );
 
-	msg = msgbuf;
+	char * msg = msgbuf;
 	if( *msg == '\"' ) {
 		msg[strlen( msg ) - 1] = 0;
 		msg++;
@@ -721,30 +714,10 @@ void G_Say_Team( edict_t *who, const char *inmsg, bool checkflood ) {
 
 	if( who->s.team == TEAM_SPECTATOR ) {
 		// if speccing, also check for non-team flood
-		if( checkflood ) {
-			if( CheckFlood( who, false ) ) {
-				return;
-			}
-		}
-
-		G_ChatMsg( NULL, who, true, "%s", msg );
-		return;
-	}
-
-	Q_strncpyz( current_color, S_COLOR_WHITE, sizeof( current_color ) );
-
-	memset( outmsg, 0, sizeof( outmsg ) );
-
-	for( p = outmsg; *msg && (size_t)( p - outmsg ) < sizeof( outmsg ) - 3; msg++ ) {
-		if( *msg == '^' ) {
-			*p++ = *msg++;
-			*p++ = *msg;
-			Q_strncpyz( current_color, p - 2, sizeof( current_color ) );
-		} else {
-			*p++ = *msg;
+		if( checkflood && CheckFlood( who, false ) ) {
+			return;
 		}
 	}
-	*p = 0;
 
-	G_ChatMsg( NULL, who, true, "%s", outmsg );
+	G_ChatMsg( NULL, who, true, "%s", msg );
 }

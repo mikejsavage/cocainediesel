@@ -154,7 +154,6 @@ void G_ChasePlayer( edict_t *ent, const char *name, bool teamonly, int followmod
 	gclient_t *client;
 	int targetNum = -1;
 	int oldTarget;
-	char colorlessname[MAX_NAME_BYTES];
 
 	client = ent->r.client;
 
@@ -180,9 +179,7 @@ void G_ChasePlayer( edict_t *ent, const char *name, bool teamonly, int followmod
 				continue;
 			}
 
-			Q_strncpyz( colorlessname, COM_RemoveColorTokens( e->r.client->netname ), sizeof( colorlessname ) );
-
-			if( !Q_stricmp( COM_RemoveColorTokens( name ), colorlessname ) ) {
+			if( !Q_stricmp( name, e->r.client->netname ) ) {
 				targetNum = PLAYERNUM( e );
 				break;
 			}

@@ -95,9 +95,7 @@ const float pm_wishspeed = 30;
 const float pm_dashupspeed = ( 174.0f * GRAVITY_COMPENSATE );
 
 const float pm_wjupspeed = ( 330.0f * GRAVITY_COMPENSATE );
-const float pm_failedwjupspeed = ( 50.0f * GRAVITY_COMPENSATE );
 const float pm_wjbouncefactor = 0.3f;
-const float pm_failedwjbouncefactor = 0.1f;
 #define pm_wjminspeed ( ( pml.maxWalkSpeed + pml.maxPlayerSpeed ) * 0.5f )
 
 //

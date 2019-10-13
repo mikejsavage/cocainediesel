@@ -29,7 +29,6 @@ centity_t cg_entities[MAX_EDICTS];
 cvar_t *cg_showMiss;
 
 cvar_t *cg_hand;
-cvar_t *cg_clan;
 cvar_t *cg_handicap;
 
 cvar_t *cg_addDecals;
@@ -429,7 +428,6 @@ static void CG_RegisterVariables( void ) {
 
 	cg_hand =           trap_Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
 	cg_handicap =       trap_Cvar_Get( "handicap", "0", CVAR_USERINFO | CVAR_ARCHIVE );
-	cg_clan =           trap_Cvar_Get( "clan", "", CVAR_USERINFO | CVAR_ARCHIVE );
 	cg_fov =        trap_Cvar_Get( "fov", "100", CVAR_ARCHIVE );
 	cg_zoomfov =    trap_Cvar_Get( "zoomfov", "75", CVAR_ARCHIVE );
 

@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include "gs_ref.h"
+#include "gs_qrespath.h"
 
 // shared callbacks
 
@@ -413,7 +413,6 @@ constexpr TeamColor TEAM_COLORS[] = {
 
 // teams
 const char *GS_TeamName( int team );
-const char *GS_DefaultTeamName( int team );
 int GS_TeamFromName( const char *teamname );
 bool GS_IsTeamDamage( entity_state_t *targ, entity_state_t *attacker );
 

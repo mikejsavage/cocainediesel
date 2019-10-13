@@ -81,7 +81,6 @@ char *COM_ParseExt2( const char **data_p, bool nl, bool sq );
 #define COM_ParseExt( data_p, nl ) COM_ParseExt2( (const char **)data_p, nl, true )
 #define COM_Parse( data_p )   COM_ParseExt( data_p, true )
 
-int COM_Compress( char *data_p );
 const char *COM_RemoveJunkChars( const char *in );
 int COM_ReadColorRGBString( const char *in );
 int COM_ReadColorRGBAString( const char *in );

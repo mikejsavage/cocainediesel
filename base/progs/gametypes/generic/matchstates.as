@@ -50,8 +50,6 @@ void GENERIC_SetUpWarmup()
 		if ( team.unlock() )
 			G_PrintMsg( null, "Teams unlocked.\n" );
 	}
-
-	match.name = "";
 }
 
 void GENERIC_SetUpCountdown()
@@ -328,10 +326,6 @@ Entity @GENERIC_SelectBestRandomSpawnPoint( Entity @self, String &className )
 	return spawnents[ random_uniform( 0, spawnents.size() ) ];
 }
 
-///*****************************************************************
-/// SET TEAM NAMES IN TEAM BASED GAMETYPES
-///*****************************************************************
-
 void GENERIC_UpdateMatchScore()
 {
 	if ( gametype.isTeamBased )
@@ -348,81 +342,8 @@ void GENERIC_UpdateMatchScore()
 	match.setScore( "" );
 }
 
-void GENERIC_DetectTeamsAndMatchNames()
-{
-	if ( !gametype.isTeamBased )
-		return;
-
-	String matchName = "";
-	bool matchNameOk = true;
-
-	for ( int teamNo = TEAM_ALPHA; teamNo <= TEAM_BETA; teamNo++ )
-	{
-		Team @team;
-		String teamName, defaultTeamName;
-		bool multiPlayerTeams = ( gametype.maxPlayersPerTeam == 0 || gametype.maxPlayersPerTeam > 1 );
-
-		@team = @G_GetTeam( teamNo );
-		teamName = defaultTeamName = team.defaultName;
-		if ( team.numPlayers > 0 )
-		{
-			// use first player's clan name (with color chars intact)
-			String clanName = team.ent( 0 ).client.clanName;
-			String clanNameColorless = clanName.removeColorTokens();
-
-			if ( multiPlayerTeams && ( team.numPlayers > 1 ) )
-			{
-				for ( int i = 1; @team.ent( i ) != null; i++ )
-				{
-					if ( team.ent( i ).client.clanName.removeColorTokens() != clanNameColorless )
-					{
-						clanName = clanNameColorless = "";
-						break;
-					}
-				}
-			}
-
-			if ( multiPlayerTeams )
-			{
-				// set clan name as team name
-				if ( ( team.numPlayers > 1 ) && ( clanNameColorless.len() > 0 ) )
-					teamName = clanName + S_COLOR_WHITE;
-			}
-			else
-			{
-				// for individual gametypes, append clan name to player's name
-				String lastClanNameChar = "";
-				if ( clanNameColorless.len() > 0 )
-					lastClanNameChar = clanNameColorless.substr( clanNameColorless.length() - 1, 1 );
-				teamName = (lastClanNameChar.length() > 0 ? clanName + (lastClanNameChar.isAlphaNumerical() ? "/" : "") : "") + team.ent( 0 ).client.name;
-			}
-		}
-
-		if ( teamName != team.name )
-			team.name = teamName;
-
-		// match name
-		if ( matchNameOk )
-		{
-			if ( teamName != defaultTeamName )
-			{
-				matchName += (matchName.len() > 0 ? " vs " : "") + teamName;
-			}
-			else
-			{
-				matchName = "";
-				matchNameOk = false;
-			}
-		}
-	}
-
-	if ( matchName != match.name )
-		match.name = matchName;
-}
-
 void GENERIC_Think()
 {
-	GENERIC_DetectTeamsAndMatchNames();
 	GENERIC_UpdateMatchScore();
 	GENERIC_RequestCheatVars();
 }

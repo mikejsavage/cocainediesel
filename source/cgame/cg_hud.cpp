@@ -75,12 +75,6 @@ static const constant_numeric_t cg_numeric_constants[] = {
 	{ "WIDTH", 800 },
 	{ "HEIGHT", 600 },
 
-	// scale
-	{ "DEFAULTSCALE", DEFAULTSCALE },
-	{ "NOSCALE", NOSCALE },
-	{ "SCALEBYWIDTH", SCALEBYWIDTH },
-	{ "SCALEBYHEIGHT", SCALEBYHEIGHT },
-
 	// match states
 	{ "MATCH_STATE_NONE", MATCH_STATE_NONE },
 	{ "MATCH_STATE_WARMUP", MATCH_STATE_WARMUP },
@@ -98,15 +92,6 @@ static const constant_numeric_t cg_numeric_constants[] = {
 	{ "WEAP_PLASMAGUN", WEAP_PLASMAGUN },
 	{ "WEAP_LASERGUN", WEAP_LASERGUN },
 	{ "WEAP_ELECTROBOLT", WEAP_ELECTROBOLT },
-
-	{ "NOGUN", 0 },
-	{ "GUN", 1 },
-
-	// config strings
-	{ "TEAM_SPECTATOR_NAME", CS_TEAM_SPECTATOR_NAME },
-	{ "TEAM_PLAYERS_NAME", CS_TEAM_PLAYERS_NAME },
-	{ "TEAM_ALPHA_NAME", CS_TEAM_ALPHA_NAME },
-	{ "TEAM_BETA_NAME", CS_TEAM_BETA_NAME },
 
 	{ "BombProgress_Nothing", BombProgress_Nothing },
 	{ "BombProgress_Planting", BombProgress_Planting },

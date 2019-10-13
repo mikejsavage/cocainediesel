@@ -34,12 +34,6 @@ cvar_t *g_teams_allow_uneven;
 void G_Teams_Init( void ) {
 	edict_t *ent;
 
-	// set the team names with default ones
-	trap_ConfigString( CS_TEAM_SPECTATOR_NAME, GS_DefaultTeamName( TEAM_SPECTATOR ) );
-	trap_ConfigString( CS_TEAM_PLAYERS_NAME, GS_DefaultTeamName( TEAM_PLAYERS ) );
-	trap_ConfigString( CS_TEAM_ALPHA_NAME, GS_DefaultTeamName( TEAM_ALPHA ) );
-	trap_ConfigString( CS_TEAM_BETA_NAME, GS_DefaultTeamName( TEAM_BETA ) );
-
 	g_teams_maxplayers = trap_Cvar_Get( "g_teams_maxplayers", "0", CVAR_ARCHIVE );
 	g_teams_allow_uneven = trap_Cvar_Get( "g_teams_allow_uneven", "1", CVAR_ARCHIVE );
 

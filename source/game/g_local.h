@@ -873,7 +873,6 @@ struct gclient_s {
 	char userinfo[MAX_INFO_STRING];
 	char netname[MAX_NAME_BYTES];   // maximum name length is characters without counting color tokens
 	                                // is controlled by MAX_NAME_CHARS constant
-	char clanname[MAX_CLANNAME_BYTES];
 	char ip[MAX_INFO_VALUE];
 	char socket[MAX_INFO_VALUE];
 

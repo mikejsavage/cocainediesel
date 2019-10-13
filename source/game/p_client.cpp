@@ -785,72 +785,6 @@ static void G_SetName( edict_t *ent, const char *original_name ) {
 }
 
 /*
-* G_SetClan
-*/
-static void G_SetClan( edict_t *ent, const char *original_clan ) {
-	const char *invalid_values[] = { "console", "spec", "bot", NULL };
-	char clan[MAX_CLANNAME_BYTES];
-	char colorless[MAX_CLANNAME_BYTES];
-	int i;
-	int c_ascii;
-	int maxchars;
-
-	if( !ent->r.client ) {
-		return;
-	}
-
-	// we allow NULL to be passed for clan name
-	if( ent->r.svflags & SVF_FAKECLIENT ) {
-		original_clan = "BOT";
-	} else if( !original_clan ) {
-		original_clan = "";
-	}
-
-	Q_strncpyz( clan, original_clan, sizeof( clan ) );
-	COM_Compress( clan );
-
-	c_ascii = G_SanitizeUserString( clan, sizeof( clan ) );
-	if( !c_ascii ) {
-		clan[0] = colorless[0] = '\0';
-	} else {
-		Q_strncpyz( colorless, COM_RemoveColorTokens( clan ), sizeof( colorless ) );
-	}
-
-	if( !( ent->r.svflags & SVF_FAKECLIENT ) ) {
-		for( i = 0; invalid_values[i] != NULL; i++ ) {
-			if( !Q_strnicmp( colorless, invalid_values[i], strlen( invalid_values[i] ) ) ) {
-				clan[0] = colorless[0] = '\0';
-				break;
-			}
-		}
-	}
-
-	// clan names can not contain spaces
-	Q_chrreplace( clan, ' ', '_' );
-
-	// clan names can not start with an ampersand
-	{
-		char *t;
-		int len;
-
-		t = clan;
-		while( *t == '&' ) t++;
-		len = strlen( clan ) - ( t - clan );
-		if( clan != t ) {
-			memmove( clan, t, len + 1 );
-		}
-	}
-
-	maxchars = MAX_CLANNAME_CHARS;
-
-	// Limit the name to MAX_NAME_CHARS printable characters
-	// (non-ascii utf-8 sequences are currently counted as 2 or more each, sorry)
-	COM_SanitizeColorString( va( "%s", clan ), clan, sizeof( clan ), maxchars, COLOR_WHITE );
-
-	Q_strncpyz( ent->r.client->clanname, clan, sizeof( ent->r.client->clanname ) );
-}
-
-/*
 * G_UpdatePlayerInfoString
 */
 static void G_UpdatePlayerInfoString( int playerNum ) {
@@ -923,9 +857,6 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 		trap_DropClient( ent, DROP_TYPE_GENERAL, "Error: Couldn't set userinfo (name)" );
 		return;
 	}
-
-	// clan tag
-	G_SetClan( ent, Info_ValueForKey( userinfo, "clan" ) );
 
 	// handedness
 	s = Info_ValueForKey( userinfo, "hand" );

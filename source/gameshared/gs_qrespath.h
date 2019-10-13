@@ -18,8 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#define DEFAULT_OUTLINE_HEIGHT      0.3f
-
 // weapon
 #define PATH_GUNBLADE_ICON      "gfx/hud/icons/weapon/gunblade"
 #define PATH_MACHINEGUN_ICON    "gfx/hud/icons/weapon/machinegun"

@@ -507,7 +507,7 @@ static constexpr const char *gs_keyicon_names[] = {
 #define STAT_LAYOUT_TEAMTAB         ( 1 << 3 )
 #define STAT_LAYOUT_CHALLENGER      ( 1 << 4 ) // player is in challengers queue (used for ingame menu)
 #define STAT_LAYOUT_READY           ( 1 << 5 ) // player is ready (used for ingame menu)
-#define STAT_LAYOUT_SPECTEAMONLY    ( 1 << 6 )
+#define STAT_LAYOUT_VOTED           ( 1 << 6 )
 
 #define STAT_NOTSET                 -9999 // used for stats that don't have meaningful value atm.
 

@@ -97,31 +97,12 @@ static void G_EndFrame_UpdateChaseCam( edict_t *ent ) {
 	G_ClearPlayerStateEvents( ent->r.client );
 
 	// copy target playerState to me
+	int64_t layouts = ent->r.client->ps.stats[STAT_LAYOUTS];
 	ent->r.client->ps = targ->r.client->ps;
 
 	// fix some stats we don't want copied from the target
 	ent->r.client->ps.stats[STAT_REALTEAM] = ent->s.team;
-	ent->r.client->ps.stats[STAT_LAYOUTS] &= ~STAT_LAYOUT_SCOREBOARD;
-	ent->r.client->ps.stats[STAT_LAYOUTS] &= ~STAT_LAYOUT_CHALLENGER;
-	ent->r.client->ps.stats[STAT_LAYOUTS] &= ~STAT_LAYOUT_READY;
-	ent->r.client->ps.stats[STAT_LAYOUTS] &= ~STAT_LAYOUT_SPECTEAMONLY;
-	ent->r.client->ps.stats[STAT_LAYOUTS] &= ~STAT_LAYOUT_INSTANTRESPAWN;
-
-	if( ent->r.client->resp.chase.teamonly ) {
-		ent->r.client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_SPECTEAMONLY;
-	}
-
-	if( ent->r.client->level.showscores || GS_MatchState() >= MATCH_STATE_POSTMATCH ) {
-		ent->r.client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_SCOREBOARD; // show the scoreboard
-
-	}
-	if( GS_HasChallengers() && ent->r.client->queueTimeStamp ) {
-		ent->r.client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_CHALLENGER;
-	}
-
-	if( GS_MatchState() <= MATCH_STATE_WARMUP && level.ready[PLAYERNUM( ent )] ) {
-		ent->r.client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_READY;
-	}
+	ent->r.client->ps.stats[STAT_LAYOUTS] = layouts;
 
 	// chasecam uses PM_CHASECAM
 	ent->r.client->ps.pmove.pm_type = PM_CHASECAM;

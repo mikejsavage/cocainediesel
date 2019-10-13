@@ -495,11 +495,10 @@ void G_FreeCallvotes( void );
 void G_CallVotes_ResetClient( int n );
 void G_CallVotes_CmdVote( edict_t *ent );
 void G_CallVotes_Think( void );
+bool G_Callvotes_HasVoted( edict_t *ent );
 void G_CallVote_Cmd( edict_t *ent );
 void G_OperatorVote_Cmd( edict_t *ent );
 void G_RegisterGametypeScriptCallvote( const char *name, const char *usage, const char *type, const char *help );
-http_response_code_t G_CallVotes_WebRequest( http_query_method_t method, const char *resource,
-											 const char *query_string, char **content, size_t *content_length );
 
 //
 // g_trigger.c
@@ -1059,7 +1058,3 @@ static inline int PLAYERNUM( const edict_t *x ) { return x - game.edicts - 1; }
 static inline int PLAYERNUM( const gclient_t *x ) { return x - game.clients; }
 
 static inline edict_t *PLAYERENT( int x ) { return game.edicts + x + 1; }
-
-// web
-http_response_code_t G_WebRequest( http_query_method_t method, const char *resource,
-								   const char *query_string, char **content, size_t *content_length );

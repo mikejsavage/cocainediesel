@@ -200,8 +200,4 @@ typedef struct {
 	void ( *ClearSnap )( void );
 
 	game_state_t *( *GetGameState )( void );
-
-	// Web requests to local HTTP server
-	http_response_code_t ( *WebRequest )( http_query_method_t method, const char *resource,
-										  const char *query_string, char **content, size_t *content_length );
 } game_export_t;

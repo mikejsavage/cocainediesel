@@ -149,6 +149,9 @@ void G_SetClientStats( edict_t *ent ) {
 	if( G_SpawnQueue_GetSystem( ent->s.team ) == SPAWNSYSTEM_INSTANT ) {
 		client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_INSTANTRESPAWN;
 	}
+	if( G_Callvotes_HasVoted( ent ) ) {
+		client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_VOTED;
+	}
 
 	//
 	// team

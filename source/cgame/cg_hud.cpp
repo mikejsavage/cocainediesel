@@ -93,6 +93,11 @@ static const constant_numeric_t cg_numeric_constants[] = {
 	{ "WEAP_LASERGUN", WEAP_LASERGUN },
 	{ "WEAP_ELECTROBOLT", WEAP_ELECTROBOLT },
 
+	{ "CS_CALLVOTE", CS_CALLVOTE },
+	{ "CS_CALLVOTE_REQUIRED_VOTES", CS_CALLVOTE_REQUIRED_VOTES },
+	{ "CS_CALLVOTE_YES_VOTES", CS_CALLVOTE_YES_VOTES },
+	{ "CS_CALLVOTE_NO_VOTES", CS_CALLVOTE_NO_VOTES },
+
 	{ "BombProgress_Nothing", BombProgress_Nothing },
 	{ "BombProgress_Planting", BombProgress_Planting },
 	{ "BombProgress_Defusing", BombProgress_Defusing },
@@ -216,7 +221,11 @@ static bool CG_IsWeaponInList( int weapon ) {
 }
 
 static int CG_IsDemoPlaying( const void *parameter ) {
-	return ( cgs.demoPlaying ? 1 : 0 );
+	return cgs.demoPlaying ? 1 : 0;
+}
+
+static int CG_IsActiveCallvote( const void * parameter ) {
+	return strcmp( cgs.configStrings[ CS_CALLVOTE ], "" ) != 0;
 }
 
 static int CG_DownloadInProgress( const void *parameter ) {
@@ -258,8 +267,7 @@ typedef struct
 	const void *parameter;
 } reference_numeric_t;
 
-static const reference_numeric_t cg_numeric_references[] =
-{
+static const reference_numeric_t cg_numeric_references[] = {
 	// stats
 	{ "HEALTH", CG_GetStatValue, (void *)STAT_HEALTH },
 	{ "WEAPON_ITEM", CG_GetStatValue, (void *)STAT_WEAPON },
@@ -304,6 +312,7 @@ static const reference_numeric_t cg_numeric_references[] =
 	{ "VIDHEIGHT", CG_GetVidHeight, NULL },
 	{ "SCOREBOARD", CG_GetScoreboardShown, NULL },
 	{ "DEMOPLAYING", CG_IsDemoPlaying, NULL },
+	{ "CALLVOTE", CG_IsActiveCallvote, NULL },
 
 	{ "DAMAGE_INDICATOR_TOP", CG_GetDamageIndicatorDirValue, (void *)0 },
 	{ "DAMAGE_INDICATOR_RIGHT", CG_GetDamageIndicatorDirValue, (void *)1 },
@@ -1291,6 +1300,52 @@ static void CG_DrawAwards( int x, int y, Alignment alignment, float font_size, V
 	}
 }
 
+static Vec4 AttentionGettingColor() {
+	float t = sinf( cg.monotonicTime / 20.0f ) * 0.5f + 1.0f;
+	return Lerp( vec4_red, t, vec4_yellow );
+}
+
+static bool CG_LFuncDrawCallvote( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+	const char * vote = cgs.configStrings[ CS_CALLVOTE ];
+	if( strlen( vote ) == 0 )
+		return true;
+
+	int left = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_alignment, layout_cursor_width );
+	int top = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_alignment, layout_cursor_height );
+	int right = left + layout_cursor_width;
+
+	TempAllocator temp = cls.frame_arena.temp();
+
+	const char * yeses = cgs.configStrings[ CS_CALLVOTE_YES_VOTES ];
+	const char * required = cgs.configStrings[ CS_CALLVOTE_REQUIRED_VOTES ];
+
+	bool voted = cg.predictedPlayerState.stats[ STAT_LAYOUTS ] & STAT_LAYOUT_VOTED;
+	float padding = layout_cursor_font_size * 0.5f;
+
+	if( !voted ) {
+		float height = padding * 2 + layout_cursor_font_size * 2.2f;
+		Draw2DBox( frame_static.ui_pass, left, top, layout_cursor_width, height, cgs.white_material, Vec4( 0, 0, 0, 0.5f ) );
+	}
+
+	Vec4 color = voted ? vec4_white : AttentionGettingColor();
+
+	DrawText( GetHUDFont(), layout_cursor_font_size, temp( "Vote: {}", vote ), left + padding, top + padding, color, true );
+	DrawText( GetHUDFont(), layout_cursor_font_size, temp( "{}/{}", yeses, required ), Alignment_RightTop, right - padding, top + padding, color, true );
+
+	if( !voted ) {
+		char vote_yes_keys[ 128 ];
+		CG_GetBoundKeysString( "vote yes", vote_yes_keys, sizeof( vote_yes_keys ) );
+		char vote_no_keys[ 128 ];
+		CG_GetBoundKeysString( "vote no", vote_no_keys, sizeof( vote_no_keys ) );
+
+		const char * str = temp( "[{}] Vote yes [{}] Vote no", vote_yes_keys, vote_no_keys );
+		float y = top + padding + layout_cursor_font_size * 1.2f;
+		DrawText( GetHUDFont(), layout_cursor_font_size, str, left + padding, y, color, true );
+	}
+
+	return true;
+}
+
 //=============================================================================
 //	STATUS BAR PROGRAMS
 //=============================================================================
@@ -1822,8 +1877,10 @@ static bool CG_LFuncDrawBindString( struct cg_layoutnode_s *argumentnode, int nu
 	const char * command = CG_GetStringArg( &argumentnode );
 
 	char keys[ 128 ];
-	CG_GetBoundKeysString( command, keys, sizeof( keys ) );
-	if( !strcmp(keys, "UNBOUND") ) Q_snprintfz( keys, sizeof( keys ), "[%s]", command );
+	if( !CG_GetBoundKeysString( command, keys, sizeof( keys ) ) ) {
+		Q_snprintfz( keys, sizeof( keys ), "[%s]", command );
+	}
+
 	char buf[ 1024 ];
 	Q_snprintfz( buf, sizeof( buf ), fmt, keys );
 
@@ -1993,6 +2050,13 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawAwards,
 		0,
 		"Draws award messages",
+	},
+
+	{
+		"drawCallvote",
+		CG_LFuncDrawCallvote,
+		0,
+		"Draw callvote",
 	},
 
 	{

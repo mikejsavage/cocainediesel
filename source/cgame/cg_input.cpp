@@ -158,7 +158,7 @@ void CG_AddMovement( vec3_t movement ) {
 	movement[ 2 ] += ( button_jump.down ? 1.0f : 0.0f ) - ( button_crouch.down ? 1.0f : 0.0f );
 }
 
-void CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize ) {
+bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize ) {
 	int key;
 	const char *bind;
 	int numKeys = 0;
@@ -197,6 +197,8 @@ void CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize ) {
 	} else {
 		Q_strncpyz( keys, keyNames[0], keysSize );
 	}
+
+	return numKeys > 0;
 }
 
 /*

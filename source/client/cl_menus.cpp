@@ -154,9 +154,6 @@ static void CvarSliderFloat( const char * label, const char * cvar_name, float l
 	Cvar_Set( cvar_name, buf );
 }
 
-// TODO: put this somewhere else
-void CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize );
-
 static void KeyBindButton( const char * label, const char * command ) {
 	SettingLabel( label );
 	ImGui::PushID( label );

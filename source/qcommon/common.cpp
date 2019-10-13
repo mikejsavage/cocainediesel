@@ -660,8 +660,6 @@ void Qcommon_Init( int argc, char **argv ) {
 		Sys_Error( "Error during initialization: %s", com_errormsg );
 	}
 
-	QThreads_Init();
-
 	com_print_mutex = QMutex_Create();
 
 	// initialize memory manager
@@ -886,6 +884,4 @@ void Qcommon_Shutdown( void ) {
 	Memory_Shutdown();
 
 	QMutex_Destroy( &com_print_mutex );
-
-	QThreads_Shutdown();
 }

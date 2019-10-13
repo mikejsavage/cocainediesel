@@ -144,10 +144,6 @@ static uint64_t sv_http_request_autoicr;
 static trie_t *sv_http_clients = NULL;
 static qmutex_t *sv_http_clients_mutex = NULL;
 
-static http_game_query_cb sv_http_incoming_cb;
-static qbufPipe_t *sv_http_incoming_queue;
-static qbufPipe_t *sv_http_outgoing_queue;
-
 static qthread_t *sv_http_thread = NULL;
 static void *SV_Web_ThreadProc( void *param );
 
@@ -535,128 +531,6 @@ typedef struct {
 	size_t content_length;
 } queryOutCmd_t;
 
-/*
-* SV_Web_IssueQueryInCmd
-*/
-static void SV_Web_IssueQueryInCmd( sv_http_response_t *response, http_query_method_t method, const char *resource, const char *query_string ) {
-	queryInCmd_t cmd;
-	cmd.id = CMD_QUERY_IN;
-	cmd.response = response;
-	cmd.request_id = response->request_id;
-	cmd.method = method;
-	cmd.resource = ( char * )resource;
-	cmd.query_string = query_string;
-	QBufPipe_WriteCmd( sv_http_incoming_queue, &cmd, sizeof( cmd ) );
-}
-
-/*
-* SV_Web_IssueQueryOutCmd
-*/
-static void SV_Web_IssueQueryOutCmd( sv_http_response_t *response, uint64_t request_id, http_response_code_t code, char *content, size_t content_length ) {
-	queryOutCmd_t cmd;
-	cmd.id = CMD_QUERY_OUT;
-	cmd.response = response;
-	cmd.request_id = request_id;
-	cmd.code = code;
-	cmd.content = content;
-	cmd.content_length = content_length;
-	QBufPipe_WriteCmd( sv_http_outgoing_queue, &cmd, sizeof( cmd ) );
-}
-
-/*
-* SV_Web_HandleInQueryCmd
-*
-* Handle incoming web query. Pass the query to the game module.
-*/
-unsigned SV_Web_HandleInQueryCmd( void *pcmd ) {
-	queryInCmd_t *cmd = ( queryInCmd_t * ) pcmd;
-	char *content = NULL;
-	size_t content_length = 0;
-	http_response_code_t code;
-
-	if( !sv_http_running ) {
-		return 0;
-	}
-	code = sv_http_incoming_cb( cmd->method, cmd->resource, cmd->query_string, &content, &content_length );
-	SV_Web_IssueQueryOutCmd( cmd->response, cmd->request_id, code, content, content_length );
-	return sizeof( *cmd );
-}
-
-/*
-* SV_Web_HandleOutQueryCmd
-*/
-unsigned SV_Web_HandleOutQueryCmd( void *pcmd ) {
-	queryOutCmd_t *cmd = ( queryOutCmd_t * ) pcmd;
-	sv_http_response_t *response = cmd->response;
-
-	if( !response ) {
-		Mem_Free( cmd->content );
-		return sizeof( *cmd );
-	}
-
-	if( response->content_state != CONTENT_STATE_AWAITING || response->request_id != cmd->request_id ) {
-		// outdated?
-		Mem_Free( cmd->content );
-		return sizeof( *cmd );
-	}
-
-	response->content = cmd->content;
-	response->content_length = cmd->content_length;
-	response->content_state = CONTENT_STATE_RECEIVED;
-	return sizeof( *cmd );
-}
-
-/*
-* SV_Web_ReadIncomingQueueCmds
-*
-* Called from the main thread. Passing incoming HTTP queries to the game module.
-*/
-static void SV_Web_ReadIncomingQueueCmds( http_game_query_cb cb ) {
-	queueCmdHandler_t cmdHandlers[1] =
-	{
-		(queueCmdHandler_t)SV_Web_HandleInQueryCmd
-	};
-	sv_http_incoming_cb = cb;
-
-	if( QBufPipe_ReadCmds( sv_http_incoming_queue, cmdHandlers ) < 0 ) {
-		// FIXME?
-		sv_http_running = false;
-	}
-}
-
-/*
-* SV_Web_ReadOutgoingQueueCmds
-*
-* Called from the web server thread. Passes responses from the game module to clients.
-*/
-static void SV_Web_ReadOutgoingQueueCmds( void ) {
-	queueCmdHandler_t cmdHandlers[1] =
-	{
-		(queueCmdHandler_t)SV_Web_HandleOutQueryCmd
-	};
-
-	if( QBufPipe_ReadCmds( sv_http_outgoing_queue, cmdHandlers ) < 0 ) {
-		// FIXME?
-		sv_http_running = false;
-	}
-}
-
-/*
-* SV_Web_InitQueues
-*/
-static void SV_Web_InitQueues( void ) {
-	sv_http_incoming_queue = QBufPipe_Create( 0x10000, 1 );
-	sv_http_outgoing_queue = QBufPipe_Create( 0x10000, 1 );
-}
-
-/*
-* SV_Web_DestroyQueues
-*/
-static void SV_Web_DestroyQueues( void ) {
-	QBufPipe_Destroy( &sv_http_incoming_queue );
-	QBufPipe_Destroy( &sv_http_outgoing_queue );
-}
-
 // ============================================================================
 
 /*
@@ -1023,7 +897,6 @@ static const char *SV_Web_ResponseCodeMessage( http_response_code_t code ) {
 static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_response_t *response,
 								 char **content, size_t *content_length ) {
 	const char *resource = request->resource;
-	const char *query_string = request->query_string;
 
 	*content = NULL;
 	*content_length = 0;
@@ -1031,10 +904,6 @@ static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_respo
 	response->request_id = request->id;
 	if( !resource ) {
 		response->code = HTTP_RESP_BAD_REQUEST;
-	} else if( !Q_strnicmp( resource, "game/", 5 ) ) {
-		// request to game module
-		response->content_state = CONTENT_STATE_AWAITING;
-		SV_Web_IssueQueryInCmd( response, request->method, resource + 5, query_string );
 	} else if( !Q_strnicmp( resource, "files/", 6 ) ) {
 		const char *filename, *extension;
 
@@ -1399,8 +1268,6 @@ void SV_Web_Init( void ) {
 
 	sv_http_running = true;
 
-	SV_Web_InitQueues();
-
 	Trie_Create( TRIE_CASE_SENSITIVE, &sv_http_clients );
 	sv_http_clients_mutex = QMutex_Create();
 	sv_http_thread = QThread_Create( SV_Web_ThreadProc, NULL );
@@ -1457,9 +1324,6 @@ static void SV_Web_Frame( void ) {
 		}
 	}
 	sockets[num_sockets] = NULL;
-
-	// read query results from the game module
-	SV_Web_ReadOutgoingQueueCmds();
 
 	if( num_sockets != 0 ) {
 		NET_Monitor( HTTP_SERVER_SLEEP_TIME, sockets,
@@ -1521,13 +1385,6 @@ bool SV_Web_Running( void ) {
 }
 
 /*
-* SV_Web_GameFrame
-*/
-void SV_Web_GameFrame( http_game_query_cb cb ) {
-	SV_Web_ReadIncomingQueueCmds( cb );
-}
-
-/*
 * SV_Web_ThreadProc
 */
 static void *SV_Web_ThreadProc( void *param ) {
@@ -1550,8 +1407,6 @@ void SV_Web_Shutdown( void ) {
 	sv_http_running = false;
 	QThread_Join( sv_http_thread );
 
-	SV_Web_DestroyQueues();
-
 	NET_CloseSocket( &sv_socket_http );
 	NET_CloseSocket( &sv_socket_http6 );
 
@@ -1571,12 +1426,6 @@ const char *SV_Web_UpstreamBaseUrl( void ) {
 * SV_Web_Init
 */
 void SV_Web_Init( void ) {
-}
-
-/*
-* SV_Web_GameFrame
-*/
-void SV_Web_GameFrame( http_game_query_cb cb ) {
 }
 
 /*

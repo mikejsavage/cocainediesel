@@ -76,6 +76,7 @@ enum VertexFormat : u8 {
 	VertexFormat_Halfx3,
 	VertexFormat_Halfx4,
 
+	VertexFormat_Floatx1,
 	VertexFormat_Floatx2,
 	VertexFormat_Floatx3,
 	VertexFormat_Floatx4,
@@ -197,6 +198,12 @@ struct Mesh {
 	bool ccw_winding;
 };
 
+struct GPUParticle {
+	Vec3 position;
+	float scale;
+	RGBA8 color;
+};
+
 struct MeshConfig {
 	MeshConfig() {
 		positions = { };
@@ -314,6 +321,8 @@ VertexBuffer NewVertexBuffer( Span< T > data ) {
 	return NewVertexBuffer( data.ptr, data.num_bytes() );
 }
 
+VertexBuffer NewParticleVertexBuffer( u32 n );
+
 IndexBuffer NewIndexBuffer( const void * data, u32 len );
 IndexBuffer NewIndexBuffer( u32 len );
 void WriteIndexBuffer( IndexBuffer ib, const void * data, u32 size, u32 offset = 0 );
@@ -339,9 +348,10 @@ void DeleteShader( Shader shader );
 
 Mesh NewMesh( MeshConfig config );
 void DeleteMesh( const Mesh & mesh );
+void DeferDeleteMesh( const Mesh & mesh );
 
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override = 0, u32 first_index = 0 );
-void DeferDeleteMesh( const Mesh & mesh );
+void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, Texture texture, u32 num_particles );
 
 void DownloadFramebuffer( void * buf );
 

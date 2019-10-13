@@ -6,14 +6,20 @@ qf_varying vec4 v_Color;
 
 #if VERTEX_SHADER
 
-in vec3 a_Position;
-in vec4 a_Color;
+in vec2 a_Position;
 in vec2 a_TexCoord;
 
+in vec3 a_ParticlePosition;
+in float a_ParticleScale;
+in vec4 a_ParticleColor;
+
 void main() {
-	v_Color = sRGBToLinear( a_Color );
+	v_Color = sRGBToLinear( a_ParticleColor );
 	v_TexCoord = a_TexCoord;
-	gl_Position = u_P * u_V * vec4( a_Position, 1.0 );
+
+	vec3 Position = vec3( a_Position, 0.0 ) * a_ParticleScale + a_ParticlePosition;
+
+	gl_Position = u_P * u_V * vec4( Position, 1.0 );
 }
 
 #else

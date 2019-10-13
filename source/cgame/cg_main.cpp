@@ -755,6 +755,7 @@ void CG_Shutdown() {
 	CG_PModelsShutdown();
 	CG_ShutdownChat();
 	CG_ShutdownInput();
+	ShutdownParticles();
 
 	Mem_FreePool( &cg_mempool );
 }

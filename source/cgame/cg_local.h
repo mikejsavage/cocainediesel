@@ -748,6 +748,7 @@ void CG_HighVelImpactPuffParticles( const vec3_t org, const vec3_t dir, int coun
 
 void InitParticles();
 void DrawParticles();
+void ShutdownParticles();
 
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material );
 

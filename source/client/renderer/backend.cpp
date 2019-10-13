@@ -17,13 +17,17 @@ struct SameType< T, T > { enum { value = true }; };
 
 STATIC_ASSERT( ( SameType< u32, GLuint >::value ) );
 
-enum Attribute : GLuint {
-	Attribute_Position,
-	Attribute_Normal,
-	Attribute_TexCoord,
-	Attribute_Color,
-	Attribute_JointIndices,
-	Attribute_JointWeights,
+enum VertexAttribute : GLuint {
+	VertexAttribute_Position,
+	VertexAttribute_Normal,
+	VertexAttribute_TexCoord,
+	VertexAttribute_Color,
+	VertexAttribute_JointIndices,
+	VertexAttribute_JointWeights,
+
+	VertexAttribute_ParticlePosition,
+	VertexAttribute_ParticleScale,
+	VertexAttribute_ParticleColor,
 };
 
 static const u32 UNIFORM_BUFFER_SIZE = 64 * 1024;
@@ -33,6 +37,9 @@ struct DrawCall {
 	Mesh mesh;
 	u32 num_vertices;
 	u32 index_offset;
+
+	u32 num_instances;
+	VertexBuffer instance_data;
 };
 
 static DynamicArray< RenderPass > render_passes( NO_INIT );
@@ -206,6 +213,10 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 			*num_components = 4;
 			return;
 
+		case VertexFormat_Floatx1:
+			*type = GL_FLOAT;
+			*num_components = 1;
+			return;
 		case VertexFormat_Floatx2:
 			*type = GL_FLOAT;
 			*num_components = 2;
@@ -438,6 +449,22 @@ static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
 	return a.pipeline.shader < b.pipeline.shader;
 }
 
+static void SetupAttribute( GLuint index, VertexFormat format, u32 stride = 0, u32 offset = 0 ) {
+	const GLvoid * gl_offset = checked_cast< const GLvoid * >( checked_cast< uintptr_t >( offset ) );
+
+	GLenum type;
+	int num_components;
+	bool integral;
+	GLboolean normalized;
+	VertexFormatToGL( format, &type, &num_components, &integral, &normalized );
+
+	glEnableVertexAttribArray( index );
+	if( integral && !normalized )
+		glVertexAttribIPointer( index, num_components, type, stride, gl_offset );
+	else
+		glVertexAttribPointer( index, num_components, type, normalized, stride, gl_offset );
+}
+
 static void SetupRenderPass( const RenderPass & pass ) {
 	ZoneScoped;
 	TracyGpuZone( "Setup render pass" );
@@ -495,8 +522,21 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	glBindVertexArray( dc.mesh.vao );
 	GLenum primitive = PrimitiveTypeToGL( dc.mesh.primitive_type );
 
-	if( dc.mesh.indices.ebo != 0 ) {
-		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;;
+	if( dc.num_instances != 0 ) {
+		glBindBuffer( GL_ARRAY_BUFFER, dc.instance_data.vbo );
+
+		SetupAttribute( VertexAttribute_ParticlePosition, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, position ) );
+		glVertexAttribDivisor( VertexAttribute_ParticlePosition, 1 );
+		SetupAttribute( VertexAttribute_ParticleScale, VertexFormat_Floatx1, sizeof( GPUParticle ), offsetof( GPUParticle, scale ) );
+		glVertexAttribDivisor( VertexAttribute_ParticleScale, 1 );
+		SetupAttribute( VertexAttribute_ParticleColor, VertexFormat_U8x4_Norm, sizeof( GPUParticle ), offsetof( GPUParticle, color ) );
+		glVertexAttribDivisor( VertexAttribute_ParticleColor, 1 );
+
+		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
+		glDrawElementsInstanced( primitive, dc.num_vertices, type, 0, dc.num_instances );
+	}
+	else if( dc.mesh.indices.ebo != 0 ) {
+		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
 		const void * offset = ( const void * ) uintptr_t( dc.index_offset );
 		glDrawElements( primitive, dc.num_vertices, type, offset );
 	}
@@ -643,6 +683,20 @@ void WriteVertexBuffer( VertexBuffer vb, const void * data, u32 len, u32 offset 
 
 void DeleteVertexBuffer( VertexBuffer vb ) {
 	glDeleteBuffers( 1, &vb.vbo );
+}
+
+VertexBuffer NewParticleVertexBuffer( u32 n ) {
+	// glBufferData's length parameter is GLsizeiptr, so we need to make
+	// sure len fits in a signed 32bit int
+	u32 len = n * sizeof( GPUParticle );
+	assert( len < S32_MAX );
+
+	VertexBuffer vb;
+	glGenBuffers( 1, &vb.vbo );
+	glBindBuffer( GL_ARRAY_BUFFER, vb.vbo );
+	glBufferData( GL_ARRAY_BUFFER, len, NULL, GL_STREAM_DRAW );
+
+	return vb;
 }
 
 IndexBuffer NewIndexBuffer( const void * data, u32 len ) {
@@ -911,12 +965,16 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens ) {
 	glAttachShader( program, vs );
 	glAttachShader( program, fs );
 
-	glBindAttribLocation( program, Attribute_Position, "a_Position" );
-	glBindAttribLocation( program, Attribute_Normal, "a_Normal" );
-	glBindAttribLocation( program, Attribute_TexCoord, "a_TexCoord" );
-	glBindAttribLocation( program, Attribute_Color, "a_Color" );
-	glBindAttribLocation( program, Attribute_JointIndices, "a_JointIndices" );
-	glBindAttribLocation( program, Attribute_JointWeights, "a_JointWeights" );
+	glBindAttribLocation( program, VertexAttribute_Position, "a_Position" );
+	glBindAttribLocation( program, VertexAttribute_Normal, "a_Normal" );
+	glBindAttribLocation( program, VertexAttribute_TexCoord, "a_TexCoord" );
+	glBindAttribLocation( program, VertexAttribute_Color, "a_Color" );
+	glBindAttribLocation( program, VertexAttribute_JointIndices, "a_JointIndices" );
+	glBindAttribLocation( program, VertexAttribute_JointWeights, "a_JointWeights" );
+
+	glBindAttribLocation( program, VertexAttribute_ParticlePosition, "a_ParticlePosition" );
+	glBindAttribLocation( program, VertexAttribute_ParticleScale, "a_ParticleScale" );
+	glBindAttribLocation( program, VertexAttribute_ParticleColor, "a_ParticleColor" );
 
 	glBindFragDataLocation( program, 0, "f_Albedo" );
 	glBindFragDataLocation( program, 1, "f_Normal" );
@@ -989,22 +1047,6 @@ void DeleteShader( Shader shader ) {
 	glDeleteProgram( shader.program );
 }
 
-static void SetupAttribute( GLuint index, VertexFormat format, u32 stride = 0, u32 offset = 0 ) {
-	const GLvoid * gl_offset = checked_cast< const GLvoid * >( checked_cast< uintptr_t >( offset ) );
-
-	GLenum type;
-	int num_components;
-	bool integral;
-	GLboolean normalized;
-	VertexFormatToGL( format, &type, &num_components, &integral, &normalized );
-
-	glEnableVertexAttribArray( index );
-	if( integral && !normalized )
-		glVertexAttribIPointer( index, num_components, type, stride, gl_offset );
-	else
-		glVertexAttribPointer( index, num_components, type, normalized, stride, gl_offset );
-}
-
 Mesh NewMesh( MeshConfig config ) {
 	switch( config.primitive_type ) {
 		case PrimitiveType_Triangles:
@@ -1028,31 +1070,31 @@ Mesh NewMesh( MeshConfig config ) {
 		assert( config.positions.vbo != 0 );
 
 		glBindBuffer( GL_ARRAY_BUFFER, config.positions.vbo );
-		SetupAttribute( Attribute_Position, config.positions_format );
+		SetupAttribute( VertexAttribute_Position, config.positions_format );
 
 		if( config.normals.vbo != 0 ) {
 			glBindBuffer( GL_ARRAY_BUFFER, config.normals.vbo );
-			SetupAttribute( Attribute_Normal, config.normals_format );
+			SetupAttribute( VertexAttribute_Normal, config.normals_format );
 		}
 
 		if( config.tex_coords.vbo != 0 ) {
 			glBindBuffer( GL_ARRAY_BUFFER, config.tex_coords.vbo );
-			SetupAttribute( Attribute_TexCoord, config.tex_coords_format );
+			SetupAttribute( VertexAttribute_TexCoord, config.tex_coords_format );
 		}
 
 		if( config.colors.vbo != 0 ) {
 			glBindBuffer( GL_ARRAY_BUFFER, config.colors.vbo );
-			SetupAttribute( Attribute_Color, config.colors_format );
+			SetupAttribute( VertexAttribute_Color, config.colors_format );
 		}
 
 		if( config.joints.vbo != 0 ) {
 			glBindBuffer( GL_ARRAY_BUFFER, config.joints.vbo );
-			SetupAttribute( Attribute_JointIndices, config.joints_format );
+			SetupAttribute( VertexAttribute_JointIndices, config.joints_format );
 		}
 
 		if( config.weights.vbo != 0 ) {
 			glBindBuffer( GL_ARRAY_BUFFER, config.weights.vbo );
-			SetupAttribute( Attribute_JointWeights, config.weights_format );
+			SetupAttribute( VertexAttribute_JointWeights, config.weights_format );
 		}
 	}
 	else {
@@ -1060,26 +1102,26 @@ Mesh NewMesh( MeshConfig config ) {
 
 		glBindBuffer( GL_ARRAY_BUFFER, config.unified_buffer.vbo );
 
-		SetupAttribute( Attribute_Position, config.positions_format, config.stride, config.positions_offset );
+		SetupAttribute( VertexAttribute_Position, config.positions_format, config.stride, config.positions_offset );
 
 		if( config.normals_offset != 0 ) {
-			SetupAttribute( Attribute_Normal, config.normals_format, config.stride, config.normals_offset );
+			SetupAttribute( VertexAttribute_Normal, config.normals_format, config.stride, config.normals_offset );
 		}
 
 		if( config.tex_coords_offset != 0 ) {
-			SetupAttribute( Attribute_TexCoord, config.tex_coords_format, config.stride, config.tex_coords_offset );
+			SetupAttribute( VertexAttribute_TexCoord, config.tex_coords_format, config.stride, config.tex_coords_offset );
 		}
 
 		if( config.colors_offset != 0 ) {
-			SetupAttribute( Attribute_Color, config.colors_format, config.stride, config.colors_offset );
+			SetupAttribute( VertexAttribute_Color, config.colors_format, config.stride, config.colors_offset );
 		}
 
 		if( config.joints_offset != 0 ) {
-			SetupAttribute( Attribute_JointIndices, config.joints_format, config.stride, config.joints_offset );
+			SetupAttribute( VertexAttribute_JointIndices, config.joints_format, config.stride, config.joints_offset );
 		}
 
 		if( config.weights_offset != 0 ) {
-			SetupAttribute( Attribute_JointWeights, config.weights_format, config.stride, config.weights_offset );
+			SetupAttribute( VertexAttribute_JointWeights, config.weights_format, config.stride, config.weights_offset );
 		}
 	}
 
@@ -1160,7 +1202,7 @@ void AddResolveMSAAPass( Framebuffer fb ) {
 	dummy.pass = AddRenderPass( pass );
 	dummy.shader = NULL;
 
-	DrawCall dc;
+	DrawCall dc = { };
 	dc.pipeline = dummy;
 	draw_calls.add( dc );
 }
@@ -1174,7 +1216,7 @@ void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertic
 	assert( pipeline.pass != U8_MAX );
 	assert( pipeline.shader != NULL );
 
-	DrawCall dc;
+	DrawCall dc = { };
 	dc.mesh = mesh;
 	dc.pipeline = pipeline;
 	dc.num_vertices = num_vertices_override == 0 ? mesh.num_vertices : num_vertices_override;
@@ -1182,6 +1224,28 @@ void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertic
 	draw_calls.add( dc );
 
 	num_vertices_this_frame += mesh.num_vertices;
+}
+
+void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, Texture texture, u32 num_particles ) {
+	assert( in_frame );
+
+	PipelineState pipeline;
+	pipeline.pass = frame_static.transparent_pass;
+	pipeline.shader = &shaders.particle;
+	pipeline.blend_func = BlendFunc_Add;
+	pipeline.write_depth = false;
+	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+	pipeline.set_texture( "u_BaseTexture", texture );
+
+	DrawCall dc = { };
+	dc.mesh = mesh;
+	dc.pipeline = pipeline;
+	dc.num_vertices = mesh.num_vertices;
+	dc.instance_data = vb;
+	dc.num_instances = num_particles;
+
+	draw_calls.add( dc );
+	num_vertices_this_frame += mesh.num_vertices * num_particles;
 }
 
 void DownloadFramebuffer( void * buf ) {

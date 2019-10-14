@@ -27,6 +27,7 @@ if %MATCH_STATE < #MATCH_STATE_PLAYTIME
 			setColor 1, 0.23, 0.26, 1
 			drawString "NOT READY"
 			moveCursor 0, 10
+			setAttentionGettingColor
 			drawBindString "[%s] to ready up" "toggleready"
 		endif
 	endif

@@ -1689,11 +1689,12 @@ static bool CG_LFuncColor( struct cg_layoutnode_s *argumentnode, int numArgument
 }
 
 static bool CG_LFuncColorToTeamColor( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	vec4_t v;
-	CG_TeamColor( CG_GetNumericArg( &argumentnode ), v );
-	for( int i = 0; i < 4; i++ ) {
-		layout_cursor_color.ptr()[ i ] = v[ i ];
-	}
+	layout_cursor_color = CG_TeamColorVec4( CG_GetNumericArg( &argumentnode ) );
+	return true;
+}
+
+static bool CG_LFuncAttentionGettingColor( struct cg_layoutnode_s * argumentnode, int numArguments ) {
+	layout_cursor_color = AttentionGettingColor();
 	return true;
 }
 
@@ -2028,6 +2029,13 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncColorToTeamColor,
 		1,
 		"Sets cursor color to the color of the team provided in the argument",
+	},
+
+	{
+		"setAttentionGettingColor",
+		CG_LFuncAttentionGettingColor,
+		0,
+		"Sets cursor color to something that flashes and is distracting",
 	},
 
 	{

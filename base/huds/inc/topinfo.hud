@@ -17,8 +17,6 @@ if %MATCH_STATE < #MATCH_STATE_PLAYTIME
 
 	if %TEAM != #TEAM_SPECTATOR
 		moveCursor 0, 17
-		setFontSize %VIDHEIGHT / 50
-		setFontStyle bold
 
 		if %READY || %MATCH_STATE == #MATCH_STATE_COUNTDOWN
 			setColor 0.32, 0.99, 0.37, 1
@@ -28,6 +26,8 @@ if %MATCH_STATE < #MATCH_STATE_PLAYTIME
 		ifnot %READY || %MATCH_STATE == #MATCH_STATE_COUNTDOWN
 			setColor 1, 0.23, 0.26, 1
 			drawString "NOT READY"
+			moveCursor 0, 10
+			drawBindString "[%s] to ready up" "toggleready"
 		endif
 	endif
 

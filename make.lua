@@ -15,7 +15,10 @@ obj_cxxflags( ".*", "-D_LIBCPP_TYPE_TRAITS" )
 
 if config == "release" then
 	obj_cxxflags( ".*", "-DPUBLIC_BUILD" )
-else
+end
+
+local env_ci = os.getenv( "CI" )
+if env_ci ~= "True" and env_ci ~= "true" then
 	obj_cxxflags( ".*", "-DTRACY_ENABLE" )
 end
 

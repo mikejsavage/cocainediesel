@@ -113,7 +113,7 @@ struct DeferHelper {
 extern Allocator * sys_allocator;
 
 template< typename... Rest >
-const char * TempAllocator::operator()( const char * fmt, const Rest & ... rest ) {
+const char * Allocator::operator()( const char * fmt, const Rest & ... rest ) {
 	size_t len = ggformat( NULL, 0, fmt, rest... );
 	char * buf = ALLOC_MANY( this, char, len + 1 );
 	ggformat( buf, len + 1, fmt, rest... );

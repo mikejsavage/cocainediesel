@@ -32,6 +32,9 @@ struct Allocator {
 	void * allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
 	void * reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
 	virtual void deallocate( void * ptr, const char * func, const char * file, int line ) = 0;
+
+	template< typename... Rest >
+	const char * operator()( const char * fmt, const Rest & ... rest );
 };
 
 struct ArenaAllocator;
@@ -45,9 +48,6 @@ struct TempAllocator final : public Allocator {
 	void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
 	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
 	void deallocate( void * ptr, const char * func, const char * file, int line );
-
-	template< typename... Rest >
-	const char * operator()( const char * fmt, const Rest & ... rest );
 
 private:
 	ArenaAllocator * arena;

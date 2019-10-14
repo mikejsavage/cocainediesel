@@ -160,7 +160,7 @@ void DrawParticleSystem( ParticleSystem * ps ) {
 
 	size_t active_chunks = AlignPow2( ps->num_particles, size_t( 4 ) ) / 4;
 	for( size_t i = 0; i < active_chunks; i++ ) {
-		const ParticleChunk & chunk = ps->chunks[ i / 4 ];
+		const ParticleChunk & chunk = ps->chunks[ i ];
 		for( int j = 0; j < 4; j++ ) {
 			ps->vb_memory[ i * 4 + j ].position = Vec3( chunk.position_x[ j ], chunk.position_y[ j ], chunk.position_z[ j ] );
 			ps->vb_memory[ i * 4 + j ].scale = chunk.size[ j ];

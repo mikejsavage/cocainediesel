@@ -608,7 +608,7 @@ void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color ) {
 	int n = int( len / distance_between_particles ) + 1;
 
 	if( n > max_ions ) {
-		distance_between_particles *= float( max_ions ) / n;
+		distance_between_particles *= n / float( max_ions );
 		n = max_ions;
 	}
 

@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "cg_public.h"
 #include "cg_syscalls.h"
+#include "cg_particles.h"
 
 #include "client/sound.h"
 #include "client/renderer/renderer.h"
@@ -337,6 +338,10 @@ typedef struct {
 	char checkname[MAX_QPATH];
 	int precacheCount, precacheTotal, precacheStart;
 	int64_t precacheStartMsec;
+	
+	ParticleSystem ions;
+	ParticleSystem sparks;
+	ParticleSystem smoke;
 } cg_static_t;
 
 typedef struct {

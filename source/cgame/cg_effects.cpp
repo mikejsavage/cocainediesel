@@ -501,6 +501,31 @@ void CG_ParticleEffect2( const vec3_t org, const vec3_t dir, float r, float g, f
 * CG_ParticleExplosionEffect
 */
 void CG_ParticleExplosionEffect( const vec3_t org, const vec3_t dir, float r, float g, float b, int count ) {
+	{
+		ParticleEmitter emitter = { };
+		emitter.position = FromQF3( org );
+
+		// TODO: normal
+		emitter.velocity_cone.radius = 400.0f;
+		emitter.velocity_cone.theta = float( M_PI );
+
+		emitter.color = Vec4( 0.25f, 0.25f, 0.25f, 0.5f );
+		emitter.alpha_distribution.type = RandomDistributionType_Uniform;
+		emitter.alpha_distribution.uniform = MinMax1( -0.1f, 0.1f );
+
+		emitter.size = 16.0f;
+		emitter.size_distribution.type = RandomDistributionType_Uniform;
+		emitter.size_distribution.uniform = MinMax1( -2.0f, 2.0f );
+
+		emitter.lifetime = 0.0f;
+		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
+		emitter.lifetime_distribution.uniform = MinMax1( 0.6f, 1.2f );
+
+		emitter.n = 64;
+
+		EmitParticles( &cgs.smoke, emitter );
+	}
+
 	int j;
 	cparticle_t *p;
 	float d;
@@ -589,42 +614,42 @@ void CG_HighVelImpactPuffParticles( const vec3_t org, const vec3_t dir, int coun
 	}
 }
 
-static Vec3 UniformSampleSphere( RNG * rng ) {
-	float z = 1.0f - 2.0f * random_float01( rng );
-	float r = sqrtf( Max2( 0.0f, 1.0f - z * z ) );
-	float phi = 2.0f * float( M_PI ) * random_float01( rng );
-	return Vec3( r * cosf( phi ), r * sinf( phi ), z );
-}
-
-// TODO
-void EmitIon( Vec3 position, Vec3 velocity, Vec4 color, float size, float lifetime );
 void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color ) {
+	ParticleEmitter emitter = { };
+	emitter.position = start;
+	emitter.position_dist_shape = DistributionShape_Line;
+	emitter.position_line.end = end;
+
+	emitter.velocity_cone.radius = 4.0f;
+	emitter.velocity_cone.theta = 2.0f * float( M_PI );
+
+	emitter.color = color;
+
+	RandomDistribution color_dist;
+	color_dist.type = RandomDistributionType_Uniform;
+	color_dist.uniform = MinMax1( -0.1f, 0.1f );
+	emitter.red_distribution = color_dist;
+	emitter.green_distribution = color_dist;
+	emitter.blue_distribution = color_dist;
+	emitter.alpha_distribution = color_dist;
+
+	emitter.size = 0.65f;
+	emitter.size_distribution.type = RandomDistributionType_Uniform;
+	emitter.size_distribution.uniform = MinMax1( -0.1f, 0.1f );
+
+	emitter.lifetime = 0.0f;
+	emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
+	emitter.lifetime_distribution.uniform = MinMax1( 0.6f, 1.2f );
+
 	constexpr int max_ions = 256;
 	float distance_between_particles = 4.0f;
 
 	float len = Length( end - start );
 	Vec3 dir = Normalize( end - start );
 
-	int n = int( len / distance_between_particles ) + 1;
+	emitter.n = Min2( len / distance_between_particles + 1.0f, float( max_ions ) );
 
-	if( n > max_ions ) {
-		distance_between_particles *= n / float( max_ions );
-		n = max_ions;
-	}
-
-	for( int i = 0; i < n; i++ ) {
-		Vec3 origin = start + dir * distance_between_particles * i;
-		Vec3 velocity = UniformSampleSphere( &cls.rng ) * 4;
-
-		Vec4 random_color = color;
-		random_color.x += random_float11( &cls.rng ) * 0.1f;
-		random_color.y += random_float11( &cls.rng ) * 0.1f;
-		random_color.z += random_float11( &cls.rng ) * 0.1f;
-
-		float lifetime = random_uniform_float( &cls.rng, 0.6f, 1.2f );
-
-		EmitIon( origin, velocity, random_color, 0.65f, lifetime );
-	}
+	EmitParticles( &cgs.ions, emitter );
 }
 
 #define BEAMLENGTH      16

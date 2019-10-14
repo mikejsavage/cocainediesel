@@ -1,38 +1,5 @@
+#include "client/client.h"
 #include "cgame/cg_local.h"
-
-struct ParticleChunk {
-	alignas( 16 ) float position_x[ 4 ];
-	alignas( 16 ) float position_y[ 4 ];
-	alignas( 16 ) float position_z[ 4 ];
-
-	alignas( 16 ) float velocity_x[ 4 ];
-	alignas( 16 ) float velocity_y[ 4 ];
-	alignas( 16 ) float velocity_z[ 4 ];
-
-	alignas( 16 ) float color_r[ 4 ];
-	alignas( 16 ) float color_g[ 4 ];
-	alignas( 16 ) float color_b[ 4 ];
-	alignas( 16 ) float color_a[ 4 ];
-
-	alignas( 16 ) float dalpha[ 4 ];
-
-	alignas( 16 ) float size[ 4 ];
-};
-
-struct ParticleSystem {
-	Span< ParticleChunk > chunks;
-	size_t num_particles;
-
-	VertexBuffer vb;
-	GPUParticle * vb_memory;
-	Mesh mesh;
-
-	Texture texture;
-	Vec3 acceleration;
-};
-
-static ParticleSystem ions_ps;
-static ParticleSystem sparks_ps;
 
 ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture, Vec3 acceleration ) {
 	ParticleSystem ps;
@@ -86,13 +53,15 @@ void DeleteParticleSystem( Allocator * a, ParticleSystem ps ) {
 
 void InitParticles() {
 	Vec3 gravity = Vec3( 0, 0, -GRAVITY );
-	ions_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( "gfx/misc/cartoon_smokepuff1" ), Vec3( 0 ) );
-	sparks_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( "gfx/misc/cartoon_smokepuff1" ), gravity );
+	cgs.ions = NewParticleSystem( sys_allocator, 8192, FindTexture( "gfx/misc/cartoon_smokepuff1" ), Vec3( 0 ) );
+	cgs.sparks = NewParticleSystem( sys_allocator, 8192, FindTexture( "gfx/misc/cartoon_smokepuff1" ), gravity );
+	cgs.smoke = NewParticleSystem( sys_allocator, 1024, FindTexture( "gfx/misc/cartoon_smokepuff3" ), Vec3( 0 ) );
 }
 
 void ShutdownParticles() {
-	DeleteParticleSystem( sys_allocator, ions_ps );
-	DeleteParticleSystem( sys_allocator, sparks_ps );
+	DeleteParticleSystem( sys_allocator, cgs.ions );
+	DeleteParticleSystem( sys_allocator, cgs.sparks );
+	DeleteParticleSystem( sys_allocator, cgs.smoke );
 }
 
 static void UpdateParticleChunk( ParticleChunk * chunk, Vec3 acceleration, float dt ) {
@@ -176,10 +145,12 @@ void DrawParticleSystem( ParticleSystem * ps ) {
 
 void DrawParticles() {
 	float dt = cg.frameTime / 1000.0f;
-	UpdateParticleSystem( &ions_ps, dt );
-	UpdateParticleSystem( &sparks_ps, dt );
-	DrawParticleSystem( &ions_ps );
-	DrawParticleSystem( &sparks_ps );
+	UpdateParticleSystem( &cgs.ions, dt );
+	UpdateParticleSystem( &cgs.sparks, dt );
+	UpdateParticleSystem( &cgs.smoke, dt );
+	DrawParticleSystem( &cgs.ions );
+	DrawParticleSystem( &cgs.sparks );
+	DrawParticleSystem( &cgs.smoke );
 }
 
 void EmitParticle( ParticleSystem * ps, Vec3 position, Vec3 velocity, Vec4 color, float size, float lifetime ) {
@@ -209,6 +180,104 @@ void EmitParticle( ParticleSystem * ps, Vec3 position, Vec3 velocity, Vec4 color
 	ps->num_particles++;
 }
 
-void EmitIon( Vec3 position, Vec3 velocity, Vec4 color, float size, float lifetime ) {
-	EmitParticle( &ions_ps, position, velocity, color, size, lifetime );
+static Vec3 UniformSampleSphere( RNG * rng ) {
+	float z = random_float11( rng );
+	float r = sqrtf( Max2( 0.0f, 1.0f - z * z ) );
+	float phi = 2.0f * float( M_PI ) * random_float01( rng );
+	return Vec3( r * cosf( phi ), r * sinf( phi ), z );
+}
+
+static Vec3 UniformSampleInsideSphere( RNG * rng ) {
+	Vec3 p = UniformSampleSphere( rng );
+	float r = powf( random_float01( rng ), 1.0f / 3.0f );
+	return p * r;
+}
+
+static Vec2 UniformSampleDisk( RNG * rng ) {
+	float theta = random_float01( rng ) * 2.0f * float( M_PI );
+	float r = sqrtf( random_float01( rng ) );
+	return Vec2( r * cosf( theta ), r * sinf( theta ) );
+}
+
+static float SampleNormalDistribution( RNG * rng, float mean, float sigma ) {
+	static float spare;
+	static bool hasSpare = false;
+
+	if( hasSpare ) {
+		hasSpare = false;
+		return spare * sigma + mean;
+	}
+
+	float u, v, s;
+	do {
+		u = random_float11( rng );
+		v = random_float11( rng );
+		s = u * u + v * v;
+	} while ( s >= 1.0f || s == 0.0f );
+
+	s = sqrtf( -2.0f * logf( s ) / s );
+	spare = v * s;
+	hasSpare = true;
+
+	return mean + sigma * u * s;
+}
+
+static float SampleRandomDistribution( RNG * rng, RandomDistribution dist ) {
+	if( dist.type == RandomDistributionType_Uniform ) {
+		return random_uniform_float( rng, dist.uniform.lo, dist.uniform.hi );
+	}
+
+	return SampleNormalDistribution( rng, dist.normal.mean, dist.normal.sigma );
+}
+
+static void EmitParticle( ParticleSystem * ps, const ParticleEmitter & emitter, float t ) {
+	Vec3 position = emitter.position;
+
+	switch( emitter.position_dist_shape ) {
+		case DistributionShape_Sphere: {
+			position += UniformSampleInsideSphere( &cls.rng ) * emitter.position_sphere.radius;
+		} break;
+
+		case DistributionShape_Disk: {
+			Vec2 p = UniformSampleDisk( &cls.rng );
+			position += emitter.position_disk.radius * Vec3( p, 0.0f );
+			// TODO: emitter.position_disk.normal;
+		} break;
+
+		case DistributionShape_Line: {
+			position = Lerp( position, t, emitter.position_line.end );
+		} break;
+	}
+
+	// TODO
+	Vec3 velocity = emitter.velocity + UniformSampleInsideSphere( &cls.rng ) * emitter.velocity_cone.radius;
+
+	Vec4 color = emitter.color;
+	color.x += SampleRandomDistribution( &cls.rng, emitter.red_distribution );
+	color.y += SampleRandomDistribution( &cls.rng, emitter.green_distribution );
+	color.z += SampleRandomDistribution( &cls.rng, emitter.blue_distribution );
+	color.w += SampleRandomDistribution( &cls.rng, emitter.alpha_distribution );
+
+	float size = emitter.size + SampleRandomDistribution( &cls.rng, emitter.size_distribution );
+
+	float lifetime = emitter.lifetime + SampleRandomDistribution( &cls.rng, emitter.lifetime_distribution );
+
+	EmitParticle( ps, position, velocity, color, size, lifetime );
+}
+
+void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter ) {
+	float dt = cg.frameTime / 1000.0f;
+
+	float p = emitter.emission_rate > 0 ? emitter.emission_rate * dt : emitter.n;
+	u32 n = u32( p );
+	float remaining_p = p - n;
+
+	for( u32 i = 0; i < n; i++ ) {
+		float t = float( i ) / ( p + 1.0f );
+		EmitParticle( ps, emitter, t );
+	}
+
+	if( random_p( &cls.rng, remaining_p ) ) {
+		EmitParticle( ps, emitter, p / ( p + 1.0f ) );
+	}
 }

@@ -467,6 +467,7 @@ static void SetupAttribute( GLuint index, VertexFormat format, u32 stride = 0, u
 
 static void SetupRenderPass( const RenderPass & pass ) {
 	ZoneScoped;
+	ZoneText( pass.name, strlen( pass.name ) );
 	TracyGpuZone( "Setup render pass" );
 
 	if( GLAD_GL_KHR_debug != 0 ) {
@@ -515,6 +516,7 @@ static void SetupRenderPass( const RenderPass & pass ) {
 }
 
 static void SubmitDrawCall( const DrawCall & dc ) {
+	ZoneScoped;
 	TracyGpuZone( "Draw call" );
 
 	SetPipelineState( dc.pipeline, dc.mesh.ccw_winding );

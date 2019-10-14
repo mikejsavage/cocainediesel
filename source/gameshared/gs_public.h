@@ -551,7 +551,7 @@ typedef enum {
 enum {
 	PAIN_20,
 	PAIN_35,
-	PAIN_80,
+	PAIN_60,
 	PAIN_100,
 
 	PAIN_TOTAL

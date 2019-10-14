@@ -36,7 +36,11 @@ struct Allocator {
 
 struct ArenaAllocator;
 struct TempAllocator final : public Allocator {
+	TempAllocator() = default;
+	TempAllocator( const TempAllocator & other );
 	~TempAllocator();
+
+	void operator=( const TempAllocator & ) = delete;
 
 	void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
 	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
@@ -53,7 +57,7 @@ private:
 };
 
 struct ArenaAllocator final : public Allocator {
-	ArenaAllocator();
+	ArenaAllocator() = default;
 	ArenaAllocator( void * mem, size_t size );
 
 	void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
@@ -72,6 +76,11 @@ private:
 	u8 * top;
 	u8 * cursor;
 	u8 * cursor_max;
+
+	u32 num_temp_allocators;
+
+	void * try_temp_allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
+	void * try_temp_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
 
 	friend struct TempAllocator;
 };

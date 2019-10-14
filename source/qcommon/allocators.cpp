@@ -132,21 +132,26 @@ struct SystemAllocator final : public Allocator {
  * ArenaAllocator
  */
 
+TempAllocator::TempAllocator( const TempAllocator & other ) {
+	arena = other.arena;
+	old_cursor = other.old_cursor;
+	arena->num_temp_allocators++;
+}
+
 TempAllocator::~TempAllocator() {
 	arena->cursor = old_cursor;
+	arena->num_temp_allocators--;
 }
 
 void * TempAllocator::try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
-	return arena->try_allocate( size, alignment, func, file, line );
+	return arena->try_temp_allocate( size, alignment, func, file, line );
 }
 
 void * TempAllocator::try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
-	return arena->try_reallocate( ptr, current_size, new_size, alignment, func, file, line );
+	return arena->try_temp_reallocate( ptr, current_size, new_size, alignment, func, file, line );
 }
 
 void TempAllocator::deallocate( void * ptr, const char * func, const char * file, int line ) { }
-
-ArenaAllocator::ArenaAllocator() { }
 
 ArenaAllocator::ArenaAllocator( void * mem, size_t size ) {
 	ASAN_POISON_MEMORY_REGION( mem, size );
@@ -154,9 +159,20 @@ ArenaAllocator::ArenaAllocator( void * mem, size_t size ) {
 	top = memory + size;
 	cursor = memory;
 	cursor_max = cursor;
+	num_temp_allocators = 0;
 }
 
 void * ArenaAllocator::try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
+	assert( num_temp_allocators == 0 );
+	return try_temp_allocate( size, alignment, func, file, line );
+}
+
+void * ArenaAllocator::try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
+	assert( num_temp_allocators == 0 );
+	return try_temp_reallocate( ptr, current_size, new_size, alignment, func, file, line );
+}
+
+void * ArenaAllocator::try_temp_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
 	assert( ( alignment & ( alignment - 1 ) ) == 0 );
 	u8 * aligned = ( u8 * ) ( size_t( cursor + alignment - 1 ) & ~( alignment - 1 ) );
 	if( aligned + size > top )
@@ -167,9 +183,9 @@ void * ArenaAllocator::try_allocate( size_t size, size_t alignment, const char *
 	return aligned;
 }
 
-void * ArenaAllocator::try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
+void * ArenaAllocator::try_temp_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
 	if( ptr == NULL )
-		return try_allocate( new_size, alignment, func, file, line );
+		return try_temp_allocate( new_size, alignment, func, file, line );
 
 	if( ptr == cursor - current_size && size_t( ptr ) % alignment == 0 ) {
 		assert( size_t( ptr ) % alignment == 0 );
@@ -187,7 +203,7 @@ void * ArenaAllocator::try_reallocate( void * ptr, size_t current_size, size_t n
 		return ptr;
 	}
 
-	void * mem = try_allocate( new_size, alignment, func, file, line );
+	void * mem = try_temp_allocate( new_size, alignment, func, file, line );
 	if( mem == NULL )
 		return NULL;
 	memcpy( mem, ptr, current_size );
@@ -197,6 +213,8 @@ void * ArenaAllocator::try_reallocate( void * ptr, size_t current_size, size_t n
 void ArenaAllocator::deallocate( void * ptr, const char * func, const char * file, int line ) { }
 
 TempAllocator ArenaAllocator::temp() {
+	num_temp_allocators++;
+
 	TempAllocator t;
 	t.arena = this;
 	t.old_cursor = cursor;
@@ -204,6 +222,7 @@ TempAllocator ArenaAllocator::temp() {
 }
 
 void ArenaAllocator::clear() {
+	assert( num_temp_allocators == 0 );
 	ASAN_POISON_MEMORY_REGION( memory, top - memory );
 	cursor = memory;
 	cursor_max = cursor;

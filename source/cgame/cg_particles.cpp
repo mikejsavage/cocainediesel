@@ -110,10 +110,15 @@ static void UpdateParticleChunk( ParticleChunk * chunk, Vec3 acceleration, float
 }
 
 void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
-	size_t active_chunks = AlignPow2( ps->num_particles, size_t( 4 ) ) / 4;
-	for( size_t i = 0; i < active_chunks; i++ ) {
-		UpdateParticleChunk( &ps->chunks[ i ], ps->acceleration, dt );
+	{
+		ZoneScopedN( "Update particles" );
+		size_t active_chunks = AlignPow2( ps->num_particles, size_t( 4 ) ) / 4;
+		for( size_t i = 0; i < active_chunks; i++ ) {
+			UpdateParticleChunk( &ps->chunks[ i ], ps->acceleration, dt );
+		}
 	}
+
+	ZoneScopedN( "Delete expired particles" );
 
 	// delete expired particles
 	for( size_t i = 0; i < ps->num_particles; i++ ) {
@@ -150,6 +155,8 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 void DrawParticleSystem( ParticleSystem * ps ) {
 	if( ps->num_particles == 0 )
 		return;
+
+	ZoneScoped;
 
 	size_t active_chunks = AlignPow2( ps->num_particles, size_t( 4 ) ) / 4;
 	for( size_t i = 0; i < active_chunks; i++ ) {

@@ -22,7 +22,7 @@ constexpr uint64_t Hash64_CT( const char * str, size_t n, uint64_t basis = UINT6
 struct StringHash {
 	uint64_t hash;
 
-	StringHash() { }
+	StringHash() = default;
 	explicit StringHash( const char * s );
 
 #ifdef PUBLIC_BUILD

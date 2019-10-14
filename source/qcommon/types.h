@@ -208,7 +208,7 @@ struct Span {
 struct Vec2 {
 	float x, y;
 
-	Vec2() { }
+	Vec2() = default;
 	explicit constexpr Vec2( float xy ) : x( xy ), y( xy ) { }
 	constexpr Vec2( float x_, float y_ ) : x( x_ ), y( y_ ) { }
 
@@ -218,7 +218,7 @@ struct Vec2 {
 struct Vec3 {
 	float x, y, z;
 
-	Vec3() { }
+	Vec3() = default;
 	explicit constexpr Vec3( float xyz ) : x( xyz ), y( xyz ), z( xyz ) { }
 	constexpr Vec3( Vec2 xy, float z_ ) : x( xy.x ), y( xy.y ), z( z_ ) { }
 	constexpr Vec3( float x_, float y_, float z_ ) : x( x_ ), y( y_ ), z( z_ ) { }
@@ -231,7 +231,7 @@ struct Vec3 {
 struct Vec4 {
 	float x, y, z, w;
 
-	Vec4() { }
+	Vec4() = default;
 	explicit constexpr Vec4( float xyzw ) : x( xyzw ), y( xyzw ), z( xyzw ), w( xyzw ) { }
 	constexpr Vec4( Vec2 xy, float z_, float w_ ) : x( xy.x ), y( xy.y ), z( z_ ), w( w_ ) { }
 	constexpr Vec4( Vec3 xyz, float w_ ) : x( xyz.x ), y( xyz.y ), z( xyz.z ), w( w_ ) { }
@@ -246,7 +246,7 @@ struct Vec4 {
 struct Mat2 {
 	Vec2 col0, col1;
 
-	Mat2() { }
+	Mat2() = default;
 	constexpr Mat2( Vec2 c0, Vec2 c1 ) : col0( c0 ), col1( c1 ) { }
 	constexpr Mat2( float e00, float e01, float e10, float e11 ) : col0( e00, e10 ), col1( e01, e11 ) { }
 
@@ -261,7 +261,7 @@ struct Mat2 {
 struct Mat3 {
 	Vec3 col0, col1, col2;
 
-	Mat3() { }
+	Mat3() = default;
 	constexpr Mat3( Vec3 c0, Vec3 c1, Vec3 c2 ) : col0( c0 ), col1( c1 ), col2( c2 ) { }
 	constexpr Mat3(
 		float e00, float e01, float e02,
@@ -287,7 +287,7 @@ struct Mat3 {
 struct alignas( 16 ) Mat4 {
 	Vec4 col0, col1, col2, col3;
 
-	Mat4() { }
+	Mat4() = default;
 	constexpr Mat4( Vec4 c0, Vec4 c1, Vec4 c2, Vec4 c3 ) : col0( c0 ), col1( c1 ), col2( c2 ), col3( c3 ) { }
 	constexpr Mat4(
 		float e00, float e01, float e02, float e03,
@@ -316,7 +316,7 @@ struct alignas( 16 ) Mat4 {
 struct alignas( 16 ) Mat3x4 {
 	Vec3 col0, col1, col2, col3;
 
-	Mat3x4() { }
+	Mat3x4() = default;
 	constexpr Mat3x4(
 		float e00, float e01, float e02, float e03,
 		float e10, float e11, float e12, float e13,
@@ -346,7 +346,7 @@ struct EulerDegrees3 {
 struct Quaternion {
 	float x, y, z, w;
 
-	Quaternion() { }
+	Quaternion() = default;
 	constexpr Quaternion( float x_, float y_, float z_, float w_ ) : x( x_ ), y( y_ ), z( z_ ), w( w_ ) { }
 
 	float * ptr() { return &x; }
@@ -359,7 +359,7 @@ struct Quaternion {
 struct MinMax1 {
 	float lo, hi;
 
-	MinMax1() { }
+	MinMax1() = default;
 	constexpr MinMax1( float lo_, float hi_ ) : lo( lo_ ), hi( hi_ ) { }
 
 	static constexpr MinMax1 Empty() {
@@ -370,7 +370,7 @@ struct MinMax1 {
 struct MinMax2 {
 	Vec2 mins, maxs;
 
-	MinMax2() { }
+	MinMax2() = default;
 	constexpr MinMax2( Vec2 mins_, Vec2 maxs_ ) : mins( mins_ ), maxs( maxs_ ) { }
 
 	static constexpr MinMax2 Empty() {
@@ -381,7 +381,7 @@ struct MinMax2 {
 struct MinMax3 {
 	Vec3 mins, maxs;
 
-	MinMax3() { }
+	MinMax3() = default;
 	constexpr MinMax3( Vec3 mins_, Vec3 maxs_ ) : mins( mins_ ), maxs( maxs_ ) { }
 
 	static constexpr MinMax3 Empty() {
@@ -392,14 +392,14 @@ struct MinMax3 {
 struct RGB8 {
 	u8 r, g, b;
 
-	RGB8() { }
+	RGB8() = default;
 	constexpr RGB8( u8 r_, u8 g_, u8 b_ ) : r( r_ ), g( g_ ), b( b_ ) { }
 };
 
 struct RGBA8 {
 	u8 r, g, b, a;
 
-	RGBA8() { }
+	RGBA8() = default;
 	constexpr RGBA8( u8 r_, u8 g_, u8 b_, u8 a_ ) : r( r_ ), g( g_ ), b( b_ ), a( a_ ) { }
 
 	explicit RGBA8( const Vec4 & v ) {

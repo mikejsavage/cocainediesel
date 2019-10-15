@@ -61,24 +61,10 @@ static void CG_CheckUpdateTeamModelRegistration( bool ally ) {
 	CG_RegisterForceModel( modelCvar, modelForceCvar, &cgs.teamModelInfo[ int( ally ) ] );
 }
 
-void CG_PModelForCentity( centity_t *cent, PlayerModelMetadata **pmodelinfo ) {
-	centity_t * owner = cent;
-	if( cent->current.type == ET_CORPSE && cent->current.bodyOwner )
-		owner = &cg_entities[cent->current.bodyOwner];
-	unsigned int ownerNum = owner->current.number;
-
-	bool ally = CG_IsAlly( owner->current.team );
-
+const PlayerModelMetadata * CG_PModelForCentity( centity_t * cent ) {
+	bool ally = CG_IsAlly( cent->current.team );
 	CG_CheckUpdateTeamModelRegistration( ally );
-
-	// use the player defined one if not forcing
-	*pmodelinfo = cgs.pModelsIndex[cent->current.modelindex];
-
-	if( GS_CanForceModels() && ownerNum < unsigned( gs.maxclients + 1 ) ) {
-		if( cgs.teamModelInfo[ int( ally ) ] != NULL ) {
-			*pmodelinfo = cgs.teamModelInfo[ int( ally ) ];
-		}
-	}
+	return cgs.teamModelInfo[ int( ally ) ];
 }
 
 RGB8 CG_TeamColor( int team ) {

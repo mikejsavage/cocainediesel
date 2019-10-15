@@ -270,26 +270,9 @@ PlayerModelMetadata *CG_RegisterPlayerModel( const char *filename ) {
 	return metadata;
 }
 
-/*
-* CG_RegisterBasePModel
-* Default fallback replacements
-*/
-void CG_RegisterBasePModel( void ) {
-	char filename[MAX_QPATH];
-
-	// metadata
-	Q_snprintfz( filename, sizeof( filename ), "models/players/%s", DEFAULT_PLAYERMODEL );
-	cgs.basePModelInfo = CG_RegisterPlayerModel( filename );
-
-	if( !cgs.basePModelInfo ) {
-		CG_Error( "'Default Player Model'(%s): failed to load", DEFAULT_PLAYERMODEL );
-	}
-}
-
 //======================================================================
 //							tools
 //======================================================================
-
 
 /*
 * CG_GrabTag
@@ -778,23 +761,16 @@ static void CG_UpdatePModelAnimations( centity_t *cent ) {
 * Called each new serverframe
 */
 void CG_UpdatePlayerModelEnt( centity_t *cent ) {
-	pmodel_t *pmodel;
-
 	// start from clean
 	memset( &cent->ent, 0, sizeof( cent->ent ) );
 	cent->ent.scale = 1.0f;
 
-	pmodel = &cg_entPModels[cent->current.number];
-	CG_PModelForCentity( cent, &pmodel->metadata );
+	pmodel_t * pmodel = &cg_entPModels[cent->current.number];
+	pmodel->metadata = CG_PModelForCentity( cent );
 
 	CG_TeamColorForEntity( cent->current.number, cent->ent.shaderRGBA );
 
 	Vector4Set( cent->outlineColor, 0, 0, 0, 255 );
-
-	// fallback
-	if( !pmodel->metadata ) {
-		pmodel->metadata = cgs.basePModelInfo;
-	}
 
 	// Spawning (teleported bit) forces nobacklerp and the interruption of EVENT_CHANNEL animations
 	if( cent->current.teleported ) {

@@ -455,9 +455,6 @@ void G_PrecacheMedia( void ) {
 
 	//-------------------
 
-	// precache our basic player models, they are just a very few
-	trap_ModelIndex( "$models/players/bigvic" );
-
 	// FIXME: Temporarily use normal gib until the head is fixed
 	trap_ModelIndex( "models/objects/gibs/gib" );
 

@@ -317,12 +317,9 @@ typedef struct {
 
 	cg_clientInfo_t clientInfo[MAX_CLIENTS];
 
-	const Model *modelDraw[MAX_MODELS];
+	const Model * modelDraw[MAX_MODELS];
 
 	const MapMetadata * map;
-
-	PlayerModelMetadata *pModelsIndex[MAX_MODELS];
-	PlayerModelMetadata *basePModelInfo; //fall back replacements
 
 	// force models
 	PlayerModelMetadata *teamModelInfo[2];
@@ -338,7 +335,7 @@ typedef struct {
 	char checkname[MAX_QPATH];
 	int precacheCount, precacheTotal, precacheStart;
 	int64_t precacheStartMsec;
-	
+
 	ParticleSystem ions;
 	ParticleSystem sparks;
 	ParticleSystem smoke;
@@ -646,7 +643,7 @@ void CG_SC_AutoRecordAction( const char *action );
 // cg_teams.c
 //
 void CG_RegisterForceModels();
-void CG_PModelForCentity( centity_t *cent, PlayerModelMetadata **pmodelinfo );
+const PlayerModelMetadata * CG_PModelForCentity( centity_t * cent );
 RGB8 CG_TeamColor( int team );
 Vec4 CG_TeamColorVec4( int team );
 void CG_TeamColor( int team, vec4_t color );

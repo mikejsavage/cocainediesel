@@ -282,13 +282,6 @@ static void CG_RegisterModels( void ) {
 
 			Q_strncpyz( cgs.weaponModels[cgs.numWeaponModels], name + 1, sizeof( cgs.weaponModels[cgs.numWeaponModels] ) );
 			cgs.numWeaponModels++;
-		} else if( name[0] == '$' ) {
-			if( !CG_LoadingItemName( name ) ) {
-				return;
-			}
-
-			// indexed pmodel
-			cgs.pModelsIndex[i] = CG_RegisterPlayerModel( name + 1 );
 		} else if( name[0] == '*' ) {
 			u64 hash = Hash64( name, strlen( name ), cgs.map->base_hash );
 			cgs.modelDraw[i] = FindModel( StringHash( hash ) );
@@ -305,7 +298,6 @@ static void CG_RegisterModels( void ) {
 	}
 
 	CG_RegisterMediaModels();
-	CG_RegisterBasePModel(); // never before registering the weapon models
 	CG_RegisterWeaponModels();
 
 	// precache forcemodels if defined

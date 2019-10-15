@@ -1276,9 +1276,7 @@ void CL_RequestNextDownload( void ) {
 
 	if( precache_check >= CS_MODELS && precache_check < CS_MODELS + MAX_MODELS ) {
 		while( precache_check < CS_MODELS + MAX_MODELS && cl.configstrings[precache_check][0] ) {
-			if( cl.configstrings[precache_check][0] == '*' ||
-				cl.configstrings[precache_check][0] == '$' || // disable playermodel downloading for now
-				cl.configstrings[precache_check][0] == '#' ) {
+			if( cl.configstrings[precache_check][0] == '*' || cl.configstrings[precache_check][0] == '#' ) {
 				precache_check++;
 				continue;
 			}

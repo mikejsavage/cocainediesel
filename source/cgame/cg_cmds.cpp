@@ -108,11 +108,7 @@ void CG_ConfigString( int i, const char *s ) {
 	if( i == CS_AUTORECORDSTATE ) {
 		CG_SC_AutoRecordAction( cgs.configStrings[i] );
 	} else if( i >= CS_MODELS && i < CS_MODELS + MAX_MODELS ) {
-		if( cgs.configStrings[i][0] == '$' ) {  // indexed pmodel
-			cgs.pModelsIndex[i - CS_MODELS] = CG_RegisterPlayerModel( cgs.configStrings[i] + 1 );
-		} else {
-			cgs.modelDraw[i - CS_MODELS] = FindModel( cgs.configStrings[i] );
-		}
+		cgs.modelDraw[i - CS_MODELS] = FindModel( cgs.configStrings[i] );
 	} else if( i >= CS_SOUNDS && i < CS_SOUNDS + MAX_SOUNDS ) {
 		cgs.soundPrecache[i - CS_SOUNDS] = S_RegisterSound( cgs.configStrings[i] );
 	} else if( i >= CS_IMAGES && i < CS_IMAGES + MAX_IMAGES ) {

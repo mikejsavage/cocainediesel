@@ -159,7 +159,7 @@ struct PlayerModelMetadata {
 
 typedef struct {
 	// static data
-	PlayerModelMetadata * metadata;
+	const PlayerModelMetadata * metadata;
 
 	// dynamic
 	pmodel_animationstate_t animState;
@@ -195,7 +195,6 @@ void CG_MoveToTag( vec3_t move_origin,
 void CG_PModelsInit( void );
 void CG_PModelsShutdown( void );
 void CG_ResetPModels( void );
-void CG_RegisterBasePModel( void );
 PlayerModelMetadata *CG_RegisterPlayerModel( const char *filename );
 void CG_DrawPlayer( centity_t * cent );
 bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result );

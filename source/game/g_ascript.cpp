@@ -1383,32 +1383,12 @@ static void objectGameEntity_GhostClient( edict_t *self ) {
 }
 
 static void objectGameEntity_SetupModel( asstring_t *modelstr, edict_t *self ) {
-	char *path;
-	const char *s;
-
 	if( !modelstr ) {
 		self->s.modelindex = 0;
 		return;
 	}
 
-	path = modelstr->buffer;
-	while( path[0] == '$' )
-		path++;
-	s = strstr( path, "models/players/" );
-
-	// if it's a player model
-	if( s == path ) {
-		char model[MAX_QPATH];
-
-		s += strlen( "models/players/" );
-
-		Q_snprintfz( model, sizeof( model ), "$%s", path );
-
-		self->s.modelindex = trap_ModelIndex( model );
-		return;
-	}
-
-	GClip_SetBrushModel( self, path );
+	GClip_SetBrushModel( self, modelstr->buffer );
 }
 
 static void objectGameEntity_UseTargets( edict_t *activator, edict_t *self ) {

@@ -304,6 +304,4 @@ void SV_ShutdownOperatorCommands( void ) {
 	Cmd_RemoveCommand( "serverrecordpurge" );
 
 	Cmd_RemoveCommand( "purelist" );
-
-	Cmd_RemoveCommand( "cvarcheck" );
 }

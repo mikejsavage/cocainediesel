@@ -199,22 +199,6 @@ static void Cmd_Score_f( edict_t *ent ) {
 }
 
 /*
-* Cmd_CvarInfo_f - Contains a cvar name and string provided by the client
-*/
-static void Cmd_CvarInfo_f( edict_t *ent ) {
-	if( trap_Cmd_Argc() < 2 ) {
-		G_PrintMsg( ent, "Cmd_CvarInfo_f: invalid argument count\n" );
-		return;
-	}
-
-	// see if the gametype script is requesting this info
-	if( !GT_asCallGameCommand( ent->r.client, "cvarinfo", trap_Cmd_Args(), trap_Cmd_Argc() - 1 ) ) {
-		// if the gametype script wasn't interested in this command, print the output to console
-		G_Printf( "%s%s's cvar '%s' is '%s%s'\n", ent->r.client->netname, S_COLOR_WHITE, trap_Cmd_Argv( 1 ), trap_Cmd_Argv( 2 ), S_COLOR_WHITE );
-	}
-}
-
-/*
 * Cmd_Position_f
 */
 static void Cmd_Position_f( edict_t *ent ) {
@@ -916,7 +900,6 @@ void G_InitGameCommands( void ) {
 		g_Commands[i].name[0] = 0;
 	}
 
-	G_AddCommand( "cvarinfo", Cmd_CvarInfo_f );
 	G_AddCommand( "position", Cmd_Position_f );
 	G_AddCommand( "players", Cmd_Players_f );
 	G_AddCommand( "spectators", Cmd_Spectators_f );
@@ -971,10 +954,8 @@ void ClientCommand( edict_t *ent ) {
 	}
 	cmd = trap_Cmd_Argv( 0 );
 
-	if( Q_stricmp( cmd, "cvarinfo" ) ) { // skip cvarinfo cmds because they are automatic responses
-		G_Client_UpdateActivity( ent->r.client ); // activity detected
+	G_Client_UpdateActivity( ent->r.client ); // activity detected
 
-	}
 	for( i = 0; i < MAX_GAMECOMMANDS; i++ ) {
 		if( !g_Commands[i].name[0] ) {
 			break;

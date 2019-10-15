@@ -161,103 +161,6 @@ void GENERIC_SetUpEndMatch()
 }
 
 ///*****************************************************************
-/// CHECK FOR CHEAT CVARS
-///*****************************************************************
-
-bool cheatVarsListInitialized = false;
-int64 lastCheatVarRequestTime = levelTime + 30000;
-int cheackVarChecked = 0;
-
-class cCheatVar
-{
-	String name;
-	String content;
-	bool anyContent;
-}
-
-const int MAX_CHEATVAR_NAMES = 27;
-cCheatVar[] cheatVarNames( MAX_CHEATVAR_NAMES );
-
-void GENERIC_InitCheatVarsList()
-{
-	if ( cheatVarsListInitialized == true )
-		return;
-
-	//cheatVarNames[0].name = "orgy_aim_aimbot";
-	//cheatVarNames[0].anyContent = true;
-
-	cheatVarsListInitialized = true;
-}
-
-void GENERIC_RequestCheatVars()
-{
-	GENERIC_InitCheatVarsList();
-
-	if( cheatVarNames.empty() )
-		return;
-
-	if ( lastCheatVarRequestTime + 15000 > levelTime )
-		return;
-
-	lastCheatVarRequestTime = levelTime;
-
-	G_CmdExecute( "cvarcheck " + "all \"" + cheatVarNames[cheackVarChecked].name + "\"\n" );
-
-	cheackVarChecked++;
-	if ( cheackVarChecked >= MAX_CHEATVAR_NAMES || cheatVarNames[cheackVarChecked].name.len() == 0 )
-		cheackVarChecked = 0;
-}
-
-void GENERIC_CheatVarResponse( Client @client, String &cmdString, String &argsString, int argc )
-{
-	//G_Print( S_COLOR_RED + "cvarinfo response: (argc" + argc + ") " + S_COLOR_WHITE + client.name + S_COLOR_WHITE + " " + argsString + "\n" );
-
-	if ( argc < 2 )
-		return;
-
-	if ( @client == null )
-		return;
-
-	bool kick = false;
-
-	String cvarName = argsString.getToken( 0 );
-	String cvarContent = argsString.getToken( 1 );
-
-	if ( cvarContent.len() > 0 && cvarContent != "not found" )
-	{
-		// find what was the cvar
-		for ( int i = 0; i < MAX_CHEATVAR_NAMES; i++ )
-		{
-			if ( cheatVarNames[i].name == cvarName )
-			{
-				if ( cheatVarNames[i].anyContent ) // any means we kick if it exists, no matter the content
-				{
-					kick = true;
-					break;
-				}
-				else if ( cheatVarNames[i].content == cvarContent )
-				{
-					kick = true;
-					break;
-				}
-
-			}
-			else if ( cheatVarNames[i].name.len() == 0 )
-				break;
-		}
-	}
-
-	if ( kick )
-	{
-		G_PrintMsg( null, S_COLOR_RED + "WARNING: " + S_COLOR_WHITE + client.name + S_COLOR_RED + " is kickbanned cause of forbidden cvar \"" + cvarName + " " + cvarContent + "\"\n" );
-
-		G_CmdExecute( "addip \"" + client.getUserInfoKey( "ip" ) + "\" 10080\n" );
-		G_CmdExecute( "kick " + client.playerNum + "\n" );
-		return;
-	}
-}
-
-///*****************************************************************
 /// MISC UTILS (this should get its own generic file
 ///*****************************************************************
 
@@ -345,5 +248,4 @@ void GENERIC_UpdateMatchScore()
 void GENERIC_Think()
 {
 	GENERIC_UpdateMatchScore();
-	GENERIC_RequestCheatVars();
 }

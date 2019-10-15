@@ -669,12 +669,6 @@ void DA_SetUpCountdown()
 
 bool GT_Command( Client @client, const String &cmdString, const String &argsString, int argc )
 {
-	if( cmdString == "cvarinfo" )
-	{
-		GENERIC_CheatVarResponse( client, cmdString, argsString, argc );
-		return true;
-	}
-
 	return false;
 }
 

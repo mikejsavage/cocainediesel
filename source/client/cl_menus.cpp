@@ -20,6 +20,8 @@ enum MainMenuState {
 	MainMenuState_ServerBrowser,
 	MainMenuState_CreateServer,
 	MainMenuState_Settings,
+
+	MainMenuState_ParticleEditor,
 };
 
 enum GameMenuState {
@@ -86,11 +88,16 @@ static void RefreshServerBrowser() {
 
 void UI_Init() {
 	ResetServerBrowser();
+	InitParticleEditor();
 
 	uistate = UIState_MainMenu;
 	mainmenu_state = MainMenuState_ServerBrowser;
 
 	reset_video_settings = true;
+}
+
+void UI_Shutdown() {
+	ShutdownParticleEditor();
 }
 
 static void SettingLabel( const char * label ) {
@@ -594,7 +601,13 @@ static void CreateServer() {
 static void MainMenu() {
 	ImGui::SetNextWindowPos( ImVec2() );
 	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
-	ImGui::Begin( "mainmenu", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+
+	ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus;
+	if( mainmenu_state == MainMenuState_ParticleEditor ) {
+		flags |= ImGuiWindowFlags_NoBackground;
+	}
+
+	ImGui::Begin( "mainmenu", NULL, flags );
 
 	ImVec2 window_padding = ImGui::GetStyle().WindowPadding;
 
@@ -629,16 +642,26 @@ static void MainMenu() {
 		CL_Quit();
 	}
 
+	if( cl_devtools->integer != 0 ) {
+		ImGui::SameLine( 0, 50 );
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text( "Dev tools:" );
+
+		ImGui::SameLine();
+
+		if( ImGui::Button( "Particle editor" ) ) {
+			mainmenu_state = MainMenuState_ParticleEditor;
+			ResetParticleEditor();
+		}
+	}
+
 	ImGui::Separator();
 
-	if( mainmenu_state == MainMenuState_ServerBrowser ) {
-		ServerBrowser();
-	}
-	else if( mainmenu_state == MainMenuState_CreateServer ) {
-		CreateServer();
-	}
-	else {
-		Settings();
+	switch( mainmenu_state ) {
+		case MainMenuState_ServerBrowser: ServerBrowser(); break;
+		case MainMenuState_CreateServer: CreateServer(); break;
+		case MainMenuState_Settings: Settings(); break;
+		case MainMenuState_ParticleEditor: DrawParticleEditor(); break;
 	}
 
 	ImGui::EndChild();
@@ -660,8 +683,8 @@ static void MainMenu() {
 		ImGui::PopStyleColor( 3 );
 		ImGui::PopStyleVar();
 
-		ImGuiWindowFlags flags = ( ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar ) | ImGuiWindowFlags_NoMove;
-		if( ImGui::BeginPopupModal( "Credits", NULL, flags ) ) {
+		ImGuiWindowFlags credits_flags = ( ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar ) | ImGuiWindowFlags_NoMove;
+		if( ImGui::BeginPopupModal( "Credits", NULL, credits_flags ) ) {
 			ImGui::Text( "goochie - art & programming" );
 			ImGui::Text( "MikeJS - programming" );
 			ImGui::Text( "Obani - music & fx & programming" );
@@ -781,7 +804,7 @@ static void GameMenu() {
 		static const char * primaries_weapselect[PRIM_SIZE]   = { "ebrl", "rllg", "eblg" };
 		static const char * secondaries_weapselect[SEC_SIZE] = { "pg", "rg", "gl", "mg" };
 		static const int primaries_weapicon[PRIM_SIZE][2] = { { WEAP_ELECTROBOLT - 1, WEAP_ROCKETLAUNCHER - 1 },
-											 			{ WEAP_ROCKETLAUNCHER - 1, WEAP_LASERGUN - 1 }, 
+											 			{ WEAP_ROCKETLAUNCHER - 1, WEAP_LASERGUN - 1 },
 											 			{ WEAP_ELECTROBOLT - 1, WEAP_LASERGUN - 1 } };
 
 		static const int secondaries_weapicon[SEC_SIZE] = { WEAP_PLASMAGUN - 1,

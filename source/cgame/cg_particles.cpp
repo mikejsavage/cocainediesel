@@ -1,6 +1,8 @@
 #include "client/client.h"
 #include "cgame/cg_local.h"
 
+#include "imgui/imgui.h"
+
 ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture, Vec3 acceleration ) {
 	ParticleSystem ps;
 	size_t num_chunks = AlignPow2( n, size_t( 4 ) ) / 4;
@@ -40,6 +42,8 @@ ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture, Vec3
 
 		ps.mesh = NewMesh( mesh_config );
 	}
+
+	ps.acceleration = acceleration;
 
 	return ps;
 }
@@ -137,7 +141,7 @@ void DrawParticleSystem( ParticleSystem * ps ) {
 			ps->vb_memory[ i * 4 + j ].color = RGBA8( Clamp01( color ) );
 		}
 	}
-	
+
 	WriteVertexBuffer( ps->vb, ps->vb_memory, ps->num_particles * sizeof( GPUParticle ) );
 
 	DrawInstancedParticles( ps->mesh, ps->vb, ps->texture, ps->num_particles );
@@ -199,13 +203,13 @@ static Vec2 UniformSampleDisk( RNG * rng ) {
 	return Vec2( r * cosf( theta ), r * sinf( theta ) );
 }
 
-static float SampleNormalDistribution( RNG * rng, float mean, float sigma ) {
+static float SampleNormalDistribution( RNG * rng, float sigma ) {
 	static float spare;
 	static bool hasSpare = false;
 
 	if( hasSpare ) {
 		hasSpare = false;
-		return spare * sigma + mean;
+		return spare * sigma;
 	}
 
 	float u, v, s;
@@ -219,15 +223,15 @@ static float SampleNormalDistribution( RNG * rng, float mean, float sigma ) {
 	spare = v * s;
 	hasSpare = true;
 
-	return mean + sigma * u * s;
+	return sigma * u * s;
 }
 
 static float SampleRandomDistribution( RNG * rng, RandomDistribution dist ) {
 	if( dist.type == RandomDistributionType_Uniform ) {
-		return random_uniform_float( rng, dist.uniform.lo, dist.uniform.hi );
+		return random_float11( rng ) * dist.uniform;
 	}
 
-	return SampleNormalDistribution( rng, dist.normal.mean, dist.normal.sigma );
+	return SampleNormalDistribution( rng, dist.sigma );
 }
 
 static void EmitParticle( ParticleSystem * ps, const ParticleEmitter & emitter, float t ) {
@@ -265,9 +269,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter & emitter, 
 	EmitParticle( ps, position, velocity, color, size, lifetime );
 }
 
-void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter ) {
-	float dt = cg.frameTime / 1000.0f;
-
+static void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter, float dt ) {
 	float p = emitter.emission_rate > 0 ? emitter.emission_rate * dt : emitter.n;
 	u32 n = u32( p );
 	float remaining_p = p - n;
@@ -280,4 +282,173 @@ void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter ) {
 	if( random_p( &cls.rng, remaining_p ) ) {
 		EmitParticle( ps, emitter, p / ( p + 1.0f ) );
 	}
+}
+
+void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter ) {
+	EmitParticles( ps, emitter, cg.frameTime / 1000.0f );
+}
+
+/*
+ * particle editor
+ */
+
+static ParticleSystem editor_ps = { };
+static ParticleEmitter editor_emitter;
+static char editor_texture_name[ 256 ];
+static bool editor_one_shot;
+
+void InitParticleEditor() {
+	strcpy( editor_texture_name, "$particle" );
+	editor_one_shot = false;
+
+	editor_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( StringHash( ( const char * ) editor_texture_name ) ), Vec3( 0 ) );
+	editor_emitter = { };
+
+	editor_emitter.velocity_cone.radius = 400.0f;
+	editor_emitter.color = vec4_white;
+	editor_emitter.size = 16.0f;
+	editor_emitter.lifetime = 1.0f;
+	editor_emitter.emission_rate = 1000;
+}
+
+void ShutdownParticleEditor() {
+	DeleteParticleSystem( sys_allocator, editor_ps );
+}
+
+void ResetParticleEditor() {
+	DeleteParticleSystem( sys_allocator, editor_ps );
+	editor_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( StringHash( ( const char * ) editor_texture_name ) ), Vec3( 0 ) );
+}
+
+static constexpr char * position_distribution_names[] = { "Sphere", "Disk", "Line" };
+
+static void RandomDistributionEditor( const char * id, RandomDistribution * dist, float range ) {
+	constexpr char * names[] = { "Uniform", "Normal" };
+
+	TempAllocator temp = cls.frame_arena.temp();
+
+	if( ImGui::BeginCombo( temp( "Distribution##{}", id ), names[ dist->type ] ) ) {
+		for( int i = 0; i < 2; i++ ) {
+			if( ImGui::Selectable( names[ i ], i == dist->type ) )
+				dist->type = RandomDistributionType( i );
+			if( i == dist->type )
+				ImGui::SetItemDefaultFocus();
+		}
+
+		ImGui::EndCombo();
+	}
+
+	switch( dist->type ) {
+		case RandomDistributionType_Uniform:
+			ImGui::SliderFloat( temp( "Range##{}", id ), &dist->uniform, 0, range, "%.2f" );
+			break;
+
+		case RandomDistributionType_Normal:
+			ImGui::SliderFloat( temp( "Stddev##{}", id ), &dist->sigma, 0, 8, "%.2f" );
+			break;
+	}
+}
+
+void DrawParticleEditor() {
+	bool emit = false;
+
+	ImGui::PushFont( cls.console_font );
+	ImGui::BeginChild( "Particle editor", ImVec2( 300, 0 ) );
+	{
+		if( ImGui::InputText( "Texture", editor_texture_name, sizeof( editor_texture_name ) ) ) {
+			ResetParticleEditor();
+		}
+
+		ImGui::Separator();
+
+		if( ImGui::BeginCombo( "Position distribution", position_distribution_names[ editor_emitter.position_dist_shape ] ) ) {
+			for( int i = 0; i < 3; i++ ) {
+				if( ImGui::Selectable( position_distribution_names[ i ], i == editor_emitter.position_dist_shape ) )
+					editor_emitter.position_dist_shape = DistributionShape( i );
+				if( i == editor_emitter.position_dist_shape )
+					ImGui::SetItemDefaultFocus();
+			}
+
+			ImGui::EndCombo();
+		}
+
+		editor_emitter.position = Vec3( 0 );
+
+		switch( editor_emitter.position_dist_shape ) {
+			case DistributionShape_Sphere:
+				ImGui::SliderFloat( "Radius", &editor_emitter.position_sphere.radius, 0, 100, "%.2f" );
+				break;
+
+			case DistributionShape_Disk:
+				ImGui::SliderFloat( "Radius", &editor_emitter.position_disk.radius, 0, 100, "%.2f" );
+				break;
+
+			case DistributionShape_Line:
+				editor_emitter.position = Vec3( 0, -300, 0 );
+				editor_emitter.position_line.end = Vec3( 0, 300, 0 );
+				break;
+		}
+
+		ImGui::Separator();
+
+		ImGui::SliderFloat( "Velocity", &editor_emitter.velocity_cone.radius, 0, 1000, "%.2f" );
+
+		ImGui::Separator();
+
+		ImGui::ColorEdit4( "Color", editor_emitter.color.ptr() );
+
+		if( ImGui::TreeNodeEx( "Color randomness", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_NoAutoOpenOnLog ) ) {
+			ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 255, 0, 0, 255 ) );
+			RandomDistributionEditor( "r", &editor_emitter.red_distribution, editor_emitter.color.x );
+			ImGui::PopStyleColor();
+
+			ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 0, 255, 0, 255 ) );
+			RandomDistributionEditor( "g", &editor_emitter.green_distribution, editor_emitter.color.y );
+			ImGui::PopStyleColor();
+
+			ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 0, 0, 255, 255 ) );
+			RandomDistributionEditor( "b", &editor_emitter.blue_distribution, editor_emitter.color.z );
+			ImGui::PopStyleColor();
+
+			RandomDistributionEditor( "a", &editor_emitter.alpha_distribution, editor_emitter.color.w );
+
+			ImGui::TreePop();
+		}
+
+		ImGui::Separator();
+
+		ImGui::SliderFloat( "Size", &editor_emitter.size, 0, 256, "%.2f" );
+		RandomDistributionEditor( "size", &editor_emitter.size_distribution, editor_emitter.size );
+
+		ImGui::Separator();
+
+		ImGui::SliderFloat( "Lifetime", &editor_emitter.lifetime, 0, 10, "%.2f" );
+		RandomDistributionEditor( "lifetime", &editor_emitter.lifetime_distribution, editor_emitter.lifetime );
+
+		ImGui::Separator();
+
+		ImGui::Checkbox( "One shot mode", &editor_one_shot );
+
+		if( editor_one_shot ) {
+			ImGui::SliderFloat( "Particle count", &editor_emitter.n, 0, 500, "%.2f" );
+			editor_emitter.emission_rate = 0;
+			emit = ImGui::Button( "Go" );
+		}
+		else {
+			ImGui::SliderFloat( "Emission rate", &editor_emitter.emission_rate, 0, 500, "%.2f" );
+		}
+	}
+	ImGui::EndChild();
+	ImGui::PopFont();
+
+	RendererSetView( Vec3( -400, 0, 400 ), EulerDegrees3( 45, 0, 0 ), 90 );
+
+	float dt = cls.frametime / 1000.0f;
+
+	if( !editor_one_shot || emit || editor_ps.num_particles == 0 ) {
+		EmitParticles( &editor_ps, editor_emitter, dt );
+	}
+
+	UpdateParticleSystem( &editor_ps, dt );
+	DrawParticleSystem( &editor_ps );
 }

@@ -511,15 +511,15 @@ void CG_ParticleExplosionEffect( const vec3_t org, const vec3_t dir, float r, fl
 
 		emitter.color = Vec4( 0.25f, 0.25f, 0.25f, 0.5f );
 		emitter.alpha_distribution.type = RandomDistributionType_Uniform;
-		emitter.alpha_distribution.uniform = MinMax1( -0.1f, 0.1f );
+		emitter.alpha_distribution.uniform = 0.1f;
 
 		emitter.size = 16.0f;
 		emitter.size_distribution.type = RandomDistributionType_Uniform;
-		emitter.size_distribution.uniform = MinMax1( -2.0f, 2.0f );
+		emitter.size_distribution.uniform = 2.0f;
 
-		emitter.lifetime = 0.0f;
+		emitter.lifetime = 0.9f;
 		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-		emitter.lifetime_distribution.uniform = MinMax1( 0.6f, 1.2f );
+		emitter.lifetime_distribution.uniform = 0.3f;
 
 		emitter.n = 64;
 
@@ -627,7 +627,7 @@ void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color ) {
 
 	RandomDistribution color_dist;
 	color_dist.type = RandomDistributionType_Uniform;
-	color_dist.uniform = MinMax1( -0.1f, 0.1f );
+	color_dist.uniform = 0.1f;
 	emitter.red_distribution = color_dist;
 	emitter.green_distribution = color_dist;
 	emitter.blue_distribution = color_dist;
@@ -635,11 +635,11 @@ void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color ) {
 
 	emitter.size = 1.0f;
 	emitter.size_distribution.type = RandomDistributionType_Uniform;
-	emitter.size_distribution.uniform = MinMax1( -0.1f, 0.1f );
+	emitter.size_distribution.uniform = 0.1f;
 
-	emitter.lifetime = 0.0f;
+	emitter.lifetime = 0.9f;
 	emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-	emitter.lifetime_distribution.uniform = MinMax1( 0.6f, 1.2f );
+	emitter.lifetime_distribution.uniform = 0.3f;
 
 	constexpr int max_ions = 256;
 	float distance_between_particles = 4.0f;

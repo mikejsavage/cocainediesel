@@ -64,15 +64,11 @@ enum RandomDistributionType {
 	RandomDistributionType_Normal,
 };
 
-struct NormalDistribution {
-	float mean, sigma;
-};
-
 struct RandomDistribution {
 	RandomDistributionType type;
 	union {
-		MinMax1 uniform;
-		NormalDistribution normal;
+		float uniform;
+		float sigma;
 	};
 };
 
@@ -103,5 +99,16 @@ struct ParticleEmitter {
 	float n;
 };
 
+void InitParticles();
+void ShutdownParticles();
+
 void EmitParticle( ParticleSystem * ps, Vec3 position, Vec3 velocity, Vec4 color, float size, float lifetime );
 void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter );
+
+void DrawParticles();
+
+void InitParticleEditor();
+void ShutdownParticleEditor();
+
+void ResetParticleEditor();
+void DrawParticleEditor();

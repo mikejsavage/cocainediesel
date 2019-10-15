@@ -747,10 +747,6 @@ void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color );
 void CG_ImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, const Material * material );
 void CG_HighVelImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, const Material * material );
 
-void InitParticles();
-void DrawParticles();
-void ShutdownParticles();
-
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material );
 
 void InitPersistentBeams();

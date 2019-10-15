@@ -350,6 +350,9 @@ struct alignas( 16 ) Mat3x4 {
 
 struct EulerDegrees3 {
 	float pitch, yaw, roll;
+
+	EulerDegrees3() = default;
+	constexpr EulerDegrees3( float p, float y, float r ) : pitch( p ), yaw( y ), roll( r ) { }
 };
 
 struct Quaternion {

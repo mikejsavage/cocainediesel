@@ -54,6 +54,7 @@ cvar_t *cl_downloads;
 cvar_t *cl_downloads_from_web;
 cvar_t *cl_downloads_from_web_timeout;
 
+cvar_t *cl_devtools;
 
 static char cl_nextString[MAX_STRING_CHARS];
 static char cl_connectChain[MAX_STRING_CHARS];
@@ -1537,6 +1538,8 @@ static void CL_InitLocal( void ) {
 	cl_downloads_from_web = Cvar_Get( "cl_downloads_from_web", "1", CVAR_ARCHIVE | CVAR_READONLY );
 	cl_downloads_from_web_timeout = Cvar_Get( "cl_downloads_from_web_timeout", "600", CVAR_ARCHIVE );
 
+	cl_devtools = Cvar_Get( "cl_devtools", "0", CVAR_ARCHIVE );
+
 	//
 	// userinfo
 	//
@@ -2201,6 +2204,7 @@ void CL_Shutdown( void ) {
 		cls.servername = NULL;
 	}
 
+	UI_Shutdown();
 	CL_ShutdownImGui();
 
 	CL_GameModule_Shutdown();

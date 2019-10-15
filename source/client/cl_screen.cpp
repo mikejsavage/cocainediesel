@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client.h"
 
-static bool scr_initialized;    // ready to draw
-
 static int scr_draw_loading;
 
 static cvar_t *scr_netgraph;
@@ -129,17 +127,7 @@ void SCR_InitScreen( void ) {
 	scr_graphheight = Cvar_Get( "graphheight", "32", 0 );
 	scr_graphscale = Cvar_Get( "graphscale", "1", 0 );
 	scr_graphshift = Cvar_Get( "graphshift", "0", 0 );
-
-	scr_initialized = true;
 }
-
-/*
-* SCR_ShutdownScreen
-*/
-void SCR_ShutdownScreen( void ) {
-	scr_initialized = false;
-}
-
 
 //=============================================================================
 
@@ -195,10 +183,6 @@ void SCR_UpdateScreen() {
 			Com_Printf( "Loading plaque timed out.\n" );
 		}
 		return;
-	}
-
-	if( !scr_initialized || !cls.mediaInitialized ) {
-		return; // not ready yet
 	}
 
 	CL_ForceVsync( cls.state == CA_DISCONNECTED );

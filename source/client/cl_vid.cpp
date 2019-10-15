@@ -146,11 +146,7 @@ void VID_Init() {
 		Com_Printf( S_COLOR_RED "Couldn't initialise audio engine\n" );
 	}
 
-	CL_InitMedia();
-
 	cls.disable_screen = 0;
-
-	Con_Close();
 
 	// TODO: what is this?
 	if( cls.cgameActive ) {
@@ -169,8 +165,6 @@ void CL_ForceVsync( bool force ) {
 }
 
 void VID_Shutdown() {
-	CL_ShutdownMedia();
-
 	ShutdownRenderer();
 
 	VID_SetVideoMode( startup_video_mode );

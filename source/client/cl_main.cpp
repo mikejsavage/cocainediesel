@@ -680,7 +680,7 @@ void CL_Disconnect( const char *message ) {
 		cls.httpbaseurl = NULL;
 	}
 
-	CL_RestartMedia();
+	S_StopAllSounds( false );
 
 	CL_ClearState();
 	CL_SetClientState( CA_DISCONNECTED );
@@ -1320,39 +1320,9 @@ void CL_RequestNextDownload( void ) {
 	}
 
 	if( precache_check == ENV_CNT ) {
-		bool restart = false;
-		bool vid_restart = false;
-		const char *restart_msg = "";
-		unsigned map_checksum;
-
-		// we're done with the download phase, so clear the list
-		CL_FreeDownloadList();
-		if( cls.pure_restart ) {
-			restart = true;
-			restart_msg = "Pure server. Restarting media...";
-		}
-		if( cls.download.successCount ) {
-			restart = true;
-			vid_restart = true;
-			restart_msg = "Files downloaded. Restarting media...";
-		}
-
-		if( restart ) {
-			Com_Printf( "%s\n", restart_msg );
-
-			if( vid_restart ) {
-				// no media is going to survive a vid_restart...
-				Cbuf_ExecuteText( EXEC_NOW, "s_restart 1\n" );
-			}
-		}
-
-		if( !vid_restart ) {
-			CL_RestartMedia();
-		}
-
 		cls.download.successCount = 0;
 
-		map_checksum = CL_LoadMap( cl.configstrings[CS_WORLDMODEL] );
+		unsigned map_checksum = CL_LoadMap( cl.configstrings[CS_WORLDMODEL] );
 		if( map_checksum != (unsigned)atoi( cl.configstrings[CS_MAPCHECKSUM] ) ) {
 			Com_Error( ERR_DROP, "Local map version differs from server: %u != '%u'",
 					   map_checksum, (unsigned)atoi( cl.configstrings[CS_MAPCHECKSUM] ) );
@@ -1506,81 +1476,6 @@ void CL_SetClientState( connstate_t state ) {
 */
 connstate_t CL_GetClientState( void ) {
 	return cls.state;
-}
-
-/*
-* CL_InitMedia
-*/
-void CL_InitMedia( void ) {
-	if( cls.mediaInitialized ) {
-		return;
-	}
-	if( cls.state == CA_UNINITIALIZED ) {
-		return;
-	}
-
-	// random seed to be shared among game modules so pseudo-random stuff is in sync
-	if( cls.state != CA_CONNECTED ) {
-		srand( time( NULL ) );
-	}
-
-	cls.mediaInitialized = true;
-
-	S_StopAllSounds( true );
-
-	SCR_RegisterConsoleMedia();
-
-	// load user interface
-	CL_InitImGui();
-	UI_Init();
-
-	// check memory integrity
-	Mem_DebugCheckSentinelsGlobal();
-}
-
-/*
-* CL_ShutdownMedia
-*/
-void CL_ShutdownMedia( void ) {
-	if( !cls.mediaInitialized ) {
-		return;
-	}
-
-	cls.mediaInitialized = false;
-
-	S_StopAllSounds( true );
-
-	// shutdown cgame
-	CL_GameModule_Shutdown();
-}
-
-/*
-* CL_RestartMedia
-*/
-void CL_RestartMedia( void ) {
-	if( cls.mediaInitialized ) {
-		// shutdown cgame
-		CL_GameModule_Shutdown();
-
-		cls.mediaInitialized = false;
-	}
-
-	S_StopAllSounds( true );
-
-	// random seed to be shared among game modules so pseudo-random stuff is in sync
-	if( cls.state != CA_CONNECTED ) {
-		srand( time( NULL ) );
-	}
-
-	cls.mediaInitialized = true;
-
-	// register console font and background
-	SCR_RegisterConsoleMedia();
-
-	UI_HideMenu();
-
-	// check memory integrity
-	Mem_DebugCheckSentinelsGlobal();
 }
 
 /*
@@ -2224,6 +2119,8 @@ void CL_Init( void ) {
 	void * frame_arena_memory = ALLOC_SIZE( sys_allocator, frame_arena_size, 16 );
 	cls.frame_arena = ArenaAllocator( frame_arena_memory, frame_arena_size );
 
+	srand( time( NULL ) );
+
 	cls.monotonicTime = 0;
 
 	netadr_t address;
@@ -2263,13 +2160,18 @@ void CL_Init( void ) {
 
 	CL_InitAsyncStream();
 
-	CL_InitMedia();
+	SCR_RegisterConsoleMedia();
+
+	CL_InitImGui();
+	UI_Init();
 
 	UI_ShowMainMenu();
 
 	CL_InitServerList();
 
 	ML_Init();
+
+	Mem_DebugCheckSentinelsGlobal();
 }
 
 /*
@@ -2300,18 +2202,15 @@ void CL_Shutdown( void ) {
 	}
 
 	CL_ShutdownImGui();
+
 	CL_GameModule_Shutdown();
 	S_Shutdown();
 	CL_ShutdownInput();
 	VID_Shutdown();
 
-	CL_ShutdownMedia();
-
 	CL_ShutdownAsyncStream();
 
 	CL_ShutdownLocal();
-
-	SCR_ShutdownScreen();
 
 	Con_Shutdown();
 

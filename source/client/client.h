@@ -190,7 +190,6 @@ typedef struct {
 
 	// screen rendering information
 	bool cgameActive;
-	bool mediaInitialized;
 
 	unsigned int disable_screen;    // showing loading plaque between levels
 	                                // or changing rendering dlls
@@ -414,16 +413,11 @@ void CL_CheckDownloadTimeout( void );
 // cl_screen.c
 //
 void SCR_InitScreen( void );
-void SCR_ShutdownScreen( void );
 void SCR_UpdateScreen( void );
 void SCR_BeginLoadingPlaque( void );
 void SCR_EndLoadingPlaque( void );
 void SCR_DebugGraph( float value, float r, float g, float b );
 void SCR_RegisterConsoleMedia( void );
-
-void CL_InitMedia( void );
-void CL_ShutdownMedia( void );
-void CL_RestartMedia( void );
 
 void CL_AddNetgraph( void );
 

@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "qcommon/string.h"
+#include "qcommon/span2d.h"
 #include "gameshared/q_shared.h"
 #include "client/client.h"
 #include "client/renderer/renderer.h"
@@ -571,6 +572,27 @@ static void LoadBuiltinTextures() {
 		config.format = TextureFormat_RGB_U8;
 
 		missing_texture = NewTexture( config );
+	}
+
+	{
+		u8 data[ 16 * 16 ];
+		Span2D< u8 > image( data, 16, 16 );
+
+		for( int y = 0; y < 16; y++ ) {
+			for( int x = 0; x < 16; x++ ) {
+				float d = Length( Vec2( x - 8.5f, y - 8.5f ) );
+				float a = Clamp01( Unlerp( 1.0f, d, 8.0f ) );
+				image( x, y ) = 255 * ( 1.0f - a );
+			}
+		}
+
+		TextureConfig config;
+		config.width = 16;
+		config.height = 16;
+		config.data = data;
+		config.format = TextureFormat_A_U8;
+
+		AddTexture( Hash64( "$particle" ), config );
 	}
 }
 

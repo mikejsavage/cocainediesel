@@ -633,7 +633,7 @@ void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color ) {
 	emitter.blue_distribution = color_dist;
 	emitter.alpha_distribution = color_dist;
 
-	emitter.size = 0.65f;
+	emitter.size = 1.0f;
 	emitter.size_distribution.type = RandomDistributionType_Uniform;
 	emitter.size_distribution.uniform = MinMax1( -0.1f, 0.1f );
 

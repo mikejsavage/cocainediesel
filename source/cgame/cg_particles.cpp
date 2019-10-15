@@ -53,8 +53,8 @@ void DeleteParticleSystem( Allocator * a, ParticleSystem ps ) {
 
 void InitParticles() {
 	Vec3 gravity = Vec3( 0, 0, -GRAVITY );
-	cgs.ions = NewParticleSystem( sys_allocator, 8192, FindTexture( "gfx/misc/cartoon_smokepuff1" ), Vec3( 0 ) );
-	cgs.sparks = NewParticleSystem( sys_allocator, 8192, FindTexture( "gfx/misc/cartoon_smokepuff1" ), gravity );
+	cgs.ions = NewParticleSystem( sys_allocator, 8192, FindTexture( "$particle" ), Vec3( 0 ) );
+	cgs.sparks = NewParticleSystem( sys_allocator, 8192, FindTexture( "$particle" ), gravity );
 	cgs.smoke = NewParticleSystem( sys_allocator, 1024, FindTexture( "gfx/misc/cartoon_smokepuff3" ), Vec3( 0 ) );
 }
 

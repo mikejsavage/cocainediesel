@@ -92,6 +92,10 @@ void CL_InitImGui() {
 }
 
 void CL_ShutdownImGui() {
+	Texture texture;
+	texture.texture = uintptr_t( ImGui::GetIO().Fonts->TexID );
+	DeleteTexture( texture );
+
 	ImGui_ImplSDL2_Shutdown();
 	ImGui::DestroyContext();
 }

@@ -517,10 +517,7 @@ void GT_InitGametype() {
 	G_RegisterCommand( "drop" );
 	G_RegisterCommand( "carrier" );
 
-	G_RegisterCommand( "gametype" );
-
 	G_RegisterCommand( "gametypemenu" );
-	G_RegisterCommand( "gametypemenu2" );
 	G_RegisterCommand( "weapselect" );
 
 	mediaInit();

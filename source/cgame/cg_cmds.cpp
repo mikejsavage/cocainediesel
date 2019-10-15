@@ -118,9 +118,6 @@ void CG_ConfigString( int i, const char *s ) {
 	} else if( i >= CS_GAMECOMMANDS && i < CS_GAMECOMMANDS + MAX_GAMECOMMANDS ) {
 		if( !cgs.demoPlaying ) {
 			trap_Cmd_AddCommand( cgs.configStrings[i], NULL );
-			if( !Q_stricmp( cgs.configStrings[i], "gametypemenu" ) ) {
-				cgs.hasGametypeMenu = true;
-			}
 		}
 	} else if( i >= CS_WEAPONDEFS && i < CS_WEAPONDEFS + MAX_WEAPONDEFS ) {
 		CG_OverrideWeapondef( i - CS_WEAPONDEFS, cgs.configStrings[i] );
@@ -634,13 +631,6 @@ static void CG_Viewpos_f( void ) {
 // ======================================================================
 
 /*
-* CG_GametypeMenuCmdAdd_f
-*/
-static void CG_GametypeMenuCmdAdd_f( void ) {
-	cgs.hasGametypeMenu = true;
-}
-
-/*
 * CG_PlayerNamesCompletionExt_f
 *
 * Helper function
@@ -711,7 +701,6 @@ static void CG_StatsCmdAdd_f( void ) {
 // server commands
 static svcmd_t cg_consvcmds[] =
 {
-	{ "gametypemenu", CG_GametypeMenuCmdAdd_f },
 	{ "say", CG_SayCmdAdd_f },
 	{ "say_team", CG_SayTeamCmdAdd_f },
 	{ "stats", CG_StatsCmdAdd_f },
@@ -825,8 +814,6 @@ void CG_UnregisterCGameCommands( void ) {
 
 			trap_Cmd_RemoveCommand( name );
 		}
-
-		cgs.hasGametypeMenu = false;
 	}
 
 	// remove local commands

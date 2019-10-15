@@ -308,8 +308,6 @@ typedef struct {
 	char configStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 	char baseConfigStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 
-	bool hasGametypeMenu;
-
 	char weaponModels[WEAP_TOTAL][MAX_QPATH];
 	int numWeaponModels;
 	weaponinfo_t *weaponInfos[WEAP_TOTAL];    // indexed list of weapon model infos

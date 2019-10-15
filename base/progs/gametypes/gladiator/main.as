@@ -959,9 +959,6 @@ void GT_InitGametype()
 	for ( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ )
 		gametype.setTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
 
-	// add commands
-	G_RegisterCommand( "gametype" );
-
 	// register gladiator media pure
 	G_SoundIndex( "sounds/gladiator/fight", true );
 	G_SoundIndex( "sounds/gladiator/score", true );

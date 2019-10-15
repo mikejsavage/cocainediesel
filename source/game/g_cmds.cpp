@@ -184,13 +184,6 @@ void Cmd_ChasePrev_f( edict_t *ent ) {
 }
 
 /*
-* Cmd_PutAway_f
-*/
-static void Cmd_PutAway_f( edict_t *ent ) {
-	ent->r.client->level.showscores = false;
-}
-
-/*
 * Cmd_Score_f
 */
 static void Cmd_Score_f( edict_t *ent ) {
@@ -935,7 +928,6 @@ void G_InitGameCommands( void ) {
 	G_AddCommand( "noclip", Cmd_Noclip_f );
 	G_AddCommand( "use", Cmd_Use_f );
 	G_AddCommand( "kill", Cmd_Kill_f );
-	G_AddCommand( "putaway", Cmd_PutAway_f );
 	G_AddCommand( "chase", Cmd_ChaseCam_f );
 	G_AddCommand( "chasenext", Cmd_ChaseNext_f );
 	G_AddCommand( "chaseprev", Cmd_ChasePrev_f );

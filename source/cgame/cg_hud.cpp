@@ -2907,17 +2907,9 @@ static char *CG_LoadHUDFile( const char *path ) {
 	return retbuf;
 }
 
-/*
-* CG_LoadStatusBarFile
-*/
-static void CG_LoadStatusBarFile( const char *path ) {
-	char *opt;
-
-	assert( path && path[0] );
-
-	//opt = CG_OptimizeStatusBarFile( path, false );
-	opt = CG_LoadHUDFile( path );
-
+static void CG_LoadHUD() {
+	const char * path = "huds/default.hud";
+	char * opt = CG_LoadHUDFile( path );
 	if( opt == NULL ) {
 		CG_Printf( "HUD: failed to load %s file\n", path );
 		return;
@@ -2934,9 +2926,12 @@ static void CG_LoadStatusBarFile( const char *path ) {
 	layout_cursor_font_size = cgs.textSizeSmall;
 }
 
-/*
-* CG_LoadStatusBar
-*/
-void CG_LoadStatusBar() {
-	CG_LoadStatusBarFile( "huds/default.hud" );
+void CG_InitHUD() {
+	Cmd_AddCommand( "reloadhud", CG_LoadHUD );
+	CG_LoadHUD();
+}
+
+void CG_ShutdownHUD() {
+	CG_RecurseFreeLayoutThread( cg.statusBar );
+	Cmd_RemoveCommand( "reloadhud" );
 }

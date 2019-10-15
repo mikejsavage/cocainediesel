@@ -727,7 +727,7 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	CG_ValidateItemList();
 
-	CG_LoadStatusBar();
+	CG_InitHUD();
 
 	CG_ClearDecals();
 	CG_ClearEffects();
@@ -755,7 +755,10 @@ void CG_Shutdown() {
 	CG_PModelsShutdown();
 	CG_ShutdownChat();
 	CG_ShutdownInput();
+	CG_ShutdownHUD();
 	ShutdownParticles();
+
+	CG_Free( const_cast< char * >( cgs.serverName ) );
 
 	Mem_FreePool( &cg_mempool );
 }

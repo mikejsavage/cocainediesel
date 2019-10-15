@@ -112,8 +112,6 @@ void CG_ScreenInit( void ) {
 	cg_showPlayerNames_barWidth =   trap_Cvar_Get( "cg_showPlayerNames_barWidth", "8", CVAR_ARCHIVE );
 
 	cg_showPressedKeys = trap_Cvar_Get( "cg_showPressedKeys", "0", CVAR_ARCHIVE );
-
-	Cmd_AddCommand( "reloadhud", CG_LoadStatusBar );
 }
 
 /*

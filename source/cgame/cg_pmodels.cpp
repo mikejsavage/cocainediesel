@@ -236,9 +236,9 @@ static bool CG_LoadPlayerModel( PlayerModelMetadata *metadata, const char *filen
 		return false;
 	}
 
-	metadata->name = CG_CopyString( filename );
+	metadata->name_hash = Hash64( filename );
 
-	CG_RegisterPlayerSounds( metadata );
+	CG_RegisterPlayerSounds( metadata, filename );
 
 	return true;
 }
@@ -251,8 +251,9 @@ static bool CG_LoadPlayerModel( PlayerModelMetadata *metadata, const char *filen
 PlayerModelMetadata *CG_RegisterPlayerModel( const char *filename ) {
 	PlayerModelMetadata *metadata;
 
+	u64 hash = Hash64( filename );
 	for( metadata = cg_PModelInfos; metadata; metadata = metadata->next ) {
-		if( !Q_stricmp( metadata->name, filename ) ) {
+		if( hash == metadata->name_hash ) {
 			return metadata;
 		}
 	}

@@ -32,17 +32,16 @@ static constexpr const char * PLAYER_SOUND_NAMES[] = {
 
 STATIC_ASSERT( ARRAY_COUNT( PLAYER_SOUND_NAMES ) == PlayerSound_Count );
 
-void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata ) {
+void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata, const char * name ) {
 	for( size_t i = 0; i < ARRAY_COUNT( metadata->sounds ); i++ ) {
 		TempAllocator temp = cls.frame_arena.temp();
 
-		const char * model_name = metadata->name;
-		const char * p = strrchr( model_name, '/' );
+		const char * p = strrchr( name, '/' );
 		if( p != NULL ) {
-			model_name = p + 1;
+			name = p + 1;
 		}
 
-		DynamicString path( &temp, "sounds/players/{}/{}", model_name, PLAYER_SOUND_NAMES[ i ] );
+		DynamicString path( &temp, "sounds/players/{}/{}", name, PLAYER_SOUND_NAMES[ i ] );
 		metadata->sounds[ i ] = S_RegisterSound( path.c_str() );
 	}
 }

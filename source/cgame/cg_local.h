@@ -481,7 +481,7 @@ extern cvar_t *cg_hand;
 
 void CG_ResetClientInfos( void );
 void CG_LoadClientInfo( int client );
-void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata );
+void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata, const char * name );
 void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps, float volume, float attn );
 
 //
@@ -511,7 +511,6 @@ void CG_DrawLoading( void );
 void CG_CenterPrint( const char *str );
 
 void CG_EscapeKey( void );
-void CG_LoadStatusBar( void );
 
 bool CG_LoadingItemName( const char *str );
 
@@ -539,10 +538,12 @@ void CG_ResetBombHUD();
 //
 // cg_hud.c
 //
-void CG_SC_ResetObituaries( void );
-void CG_SC_Obituary( void );
+void CG_InitHUD();
+void CG_ShutdownHUD();
+void CG_SC_ResetObituaries();
+void CG_SC_Obituary();
 void CG_ExecuteLayoutProgram( struct cg_layoutnode_s *rootnode );
-void CG_ClearAwards( void );
+void CG_ClearAwards();
 
 //
 // cg_damage_indicator.c

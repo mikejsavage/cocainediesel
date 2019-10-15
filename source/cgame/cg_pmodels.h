@@ -139,7 +139,7 @@ struct PlayerModelMetadata {
 		float loop_from; // we only loop the last part of the animation
 	};
 
-	char * name;
+	u64 name_hash;
 
 	const Model * model;
 	const SoundAsset * sounds[ PlayerSound_Count ];

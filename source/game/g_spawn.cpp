@@ -137,11 +137,9 @@ spawn_t spawns[] = {
 	{ "path_corner", SP_path_corner },
 
 	{ "trigger_teleport", SP_trigger_teleport },
-	{ "misc_teleporter_dest", SP_misc_teleporter_dest },
+	{ "misc_teleporter_dest", SP_target_position },
 
 	{ "misc_model", SP_misc_model },
-	{ "misc_particles", SP_misc_particles },
-
 	{ "model", SP_model },
 
 	{ "spikes", SP_spikes },

@@ -110,13 +110,11 @@ void CG_CheckPredictionError( void ) {
 * CG_BuildSolidList
 */
 void CG_BuildSolidList( void ) {
-	int i;
-	entity_state_t *ent;
-
 	cg_numSolids = 0;
 	cg_numTriggers = 0;
-	for( i = 0; i < cg.frame.numEntities; i++ ) {
-		ent = &cg.frame.parsedEntities[i & ( MAX_PARSE_ENTITIES - 1 )];
+
+	for( int i = 0; i < cg.frame.numEntities; i++ ) {
+		const entity_state_t * ent = &cg.frame.parsedEntities[i & ( MAX_PARSE_ENTITIES - 1 )];
 		if( ISEVENTENTITY( ent ) ) {
 			continue;
 		}
@@ -132,7 +130,6 @@ void CG_BuildSolidList( void ) {
 				case ET_HUD:
 				case ET_LASER:
 				case ET_SPIKES:
-				case ET_PARTICLES:
 					break;
 
 				case ET_PUSH_TRIGGER:

@@ -234,42 +234,10 @@ void G_SnapClients( void ) {
 * G_EdictsAddSnapEffects
 * add effects based on accumulated info along the server frame
 */
-static void G_SnapEntities( void ) {
-	edict_t *ent;
-	int i;
-	vec3_t dir, origin;
-
-	for( i = 0, ent = &game.edicts[0]; i < game.numentities; i++, ent++ ) {
+static void G_SnapEntities() {
+	for( int i = 0; i < game.numentities; i++ ) {
+		edict_t * ent = &game.edicts[ i ];
 		if( !ent->r.inuse || ( ent->r.svflags & SVF_NOCLIENT ) ) {
-			continue;
-		}
-
-		if( ent->s.type == ET_PARTICLES ) { // particles use a special configuration
-			ent->s.radius = ent->particlesInfo.speed;
-			ent->s.modelindex = ent->particlesInfo.shaderIndex;
-			ent->s.modelindex2 = ent->particlesInfo.spread;
-			ent->s.counterNum = ent->particlesInfo.time;
-			ent->s.weapon = ent->particlesInfo.frequency;
-
-			ent->s.effects = ent->particlesInfo.size & 0xFF;
-			if( ent->particlesInfo.spherical ) {
-				ent->s.effects |= ( 1 << 8 );
-			}
-			if( ent->particlesInfo.bounce ) {
-				ent->s.effects |= ( 1 << 9 );
-			}
-			if( ent->particlesInfo.gravity ) {
-				ent->s.effects |= ( 1 << 10 );
-			}
-			if( ent->particlesInfo.expandEffect ) {
-				ent->s.effects |= ( 1 << 11 );
-			}
-			if( ent->particlesInfo.shrinkEffect ) {
-				ent->s.effects |= ( 1 << 11 );
-			}
-
-			GClip_LinkEntity( ent );
-
 			continue;
 		}
 
@@ -285,7 +253,7 @@ static void G_SnapEntities( void ) {
 		}
 
 		// types which can have accumulated damage effects
-		if( ( ent->s.type == ET_GENERIC || ent->s.type == ET_PLAYER || ent->s.type == ET_CORPSE ) ) { // doors don't bleed
+		if( ent->s.type == ET_GENERIC || ent->s.type == ET_PLAYER || ent->s.type == ET_CORPSE ) { // doors don't bleed
 			// Until we get a proper damage saved effect, we accumulate both into the blood fx
 			// so, at least, we don't send 2 entities where we can send one
 			ent->snap.damage_taken += ent->snap.damage_saved;
@@ -296,6 +264,7 @@ static void G_SnapEntities( void ) {
 			if( ent->snap.damage_taken && !( ent->flags & FL_GODMODE ) && HEALTH_TO_INT( ent->health ) > 0 ) {
 				float damage = Min2( ent->snap.damage_taken, 120.0f );
 
+				vec3_t dir, origin;
 				VectorCopy( ent->snap.damage_dir, dir );
 				VectorNormalize( dir );
 				VectorAdd( ent->s.origin, ent->snap.damage_at, origin );

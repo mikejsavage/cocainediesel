@@ -571,10 +571,7 @@ void BecomeExplosion1( edict_t *self );
 
 void SP_path_corner( edict_t *self );
 
-void SP_misc_teleporter_dest( edict_t *self );
 void SP_misc_model( edict_t *ent );
-void SP_misc_particles( edict_t *ent );
-void SP_misc_video_speaker( edict_t *ent );
 
 void SP_model( edict_t *ent );
 
@@ -908,20 +905,6 @@ typedef struct snap_edict_s {
 	float damageteam_given;
 } snap_edict_t;
 
-typedef struct {
-	int speed;
-	int shaderIndex;
-	int spread;
-	int size;
-	int time;
-	bool spherical;
-	bool bounce;
-	bool gravity;
-	bool expandEffect;
-	bool shrinkEffect;
-	int frequency;
-} particles_edict_t;
-
 struct edict_s {
 	entity_state_t s;
 	entity_shared_t r;
@@ -984,7 +967,6 @@ struct edict_s {
 	int timeDelta;              // SVF_PROJECTILE only. Used for 4D collision detection
 
 	projectileinfo_t projectileInfo;    // specific for projectiles
-	particles_edict_t particlesInfo;        // specific for ET_PARTICLES
 
 	int dmg;
 

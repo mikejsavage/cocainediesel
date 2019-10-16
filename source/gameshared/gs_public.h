@@ -711,7 +711,6 @@ enum {
 	ET_LASERBEAM,   // for continuous beams
 
 	ET_DECAL,
-	ET_PARTICLES,
 
 	ET_HUD,
 

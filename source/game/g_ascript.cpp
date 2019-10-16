@@ -161,7 +161,6 @@ static const asEnumVal_t asEntityTypeEnumVals[] =
 	ASLIB_ENUM_VAL( ET_PLASMA ),
 	ASLIB_ENUM_VAL( ET_LASERBEAM ),
 	ASLIB_ENUM_VAL( ET_DECAL ),
-	ASLIB_ENUM_VAL( ET_PARTICLES ),
 	ASLIB_ENUM_VAL( ET_HUD ),
 	ASLIB_ENUM_VAL( ET_LASER ),
 	ASLIB_ENUM_VAL( ET_SPIKES ),
@@ -1599,19 +1598,6 @@ static const asProperty_t gedict_Properties[] =
 	{ ASLIB_PROPERTY_DECL( entPain @, pain ), ASLIB_FOFFSET( edict_t, asPainFunc ) },
 	{ ASLIB_PROPERTY_DECL( entDie @, die ), ASLIB_FOFFSET( edict_t, asDieFunc ) },
 	{ ASLIB_PROPERTY_DECL( entStop @, stop ), ASLIB_FOFFSET( edict_t, asStopFunc ) },
-
-	// specific for ET_PARTICLES
-	{ ASLIB_PROPERTY_DECL( int, particlesSpeed ), ASLIB_FOFFSET( edict_t, particlesInfo.speed ) },
-	{ ASLIB_PROPERTY_DECL( int, particlesShaderIndex ), ASLIB_FOFFSET( edict_t, particlesInfo.shaderIndex ) },
-	{ ASLIB_PROPERTY_DECL( int, particlesSpread ), ASLIB_FOFFSET( edict_t, particlesInfo.spread ) },
-	{ ASLIB_PROPERTY_DECL( int, particlesSize ), ASLIB_FOFFSET( edict_t, particlesInfo.size ) },
-	{ ASLIB_PROPERTY_DECL( int, particlesTime ), ASLIB_FOFFSET( edict_t, particlesInfo.time ) },
-	{ ASLIB_PROPERTY_DECL( int, particlesFrequency ), ASLIB_FOFFSET( edict_t, particlesInfo.frequency ) },
-	{ ASLIB_PROPERTY_DECL( bool, particlesSpherical ), ASLIB_FOFFSET( edict_t, particlesInfo.spherical ) },
-	{ ASLIB_PROPERTY_DECL( bool, particlesBounce ), ASLIB_FOFFSET( edict_t, particlesInfo.bounce ) },
-	{ ASLIB_PROPERTY_DECL( bool, particlesGravity ), ASLIB_FOFFSET( edict_t, particlesInfo.gravity ) },
-	{ ASLIB_PROPERTY_DECL( bool, particlesExpandEffect ), ASLIB_FOFFSET( edict_t, particlesInfo.expandEffect ) },
-	{ ASLIB_PROPERTY_DECL( bool, particlesShrinkEffect ), ASLIB_FOFFSET( edict_t, particlesInfo.shrinkEffect ) },
 
 	ASLIB_PROPERTY_NULL
 };

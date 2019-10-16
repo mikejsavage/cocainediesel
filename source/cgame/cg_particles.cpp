@@ -204,27 +204,11 @@ static Vec2 UniformSampleDisk( RNG * rng ) {
 	return Vec2( r * cosf( theta ), r * sinf( theta ) );
 }
 
-static float SampleNormalDistribution( RNG * rng, float sigma ) {
-	static float spare;
-	static bool hasSpare = false;
-
-	if( hasSpare ) {
-		hasSpare = false;
-		return spare * sigma;
-	}
-
-	float u, v, s;
-	do {
-		u = random_float11( rng );
-		v = random_float11( rng );
-		s = u * u + v * v;
-	} while ( s >= 1.0f || s == 0.0f );
-
-	s = sqrtf( -2.0f * logf( s ) / s );
-	spare = v * s;
-	hasSpare = true;
-
-	return sigma * u * s;
+static float SampleNormalDistribution( RNG * rng ) {
+	// generate a float in (0, 1). works because prev(1) + FLT_MIN == prev(1)
+	float u1 = random_float01( rng ) + FLT_MIN;
+	float u2 = random_float01( rng );
+	return sqrtf( -2.0f * logf( u1 ) ) * cosf( u2 * 2.0f * float( M_PI ) );
 }
 
 static float SampleRandomDistribution( RNG * rng, RandomDistribution dist ) {
@@ -232,7 +216,7 @@ static float SampleRandomDistribution( RNG * rng, RandomDistribution dist ) {
 		return random_float11( rng ) * dist.uniform;
 	}
 
-	return SampleNormalDistribution( rng, dist.sigma );
+	return SampleNormalDistribution( rng ) * dist.sigma;
 }
 
 static void EmitParticle( ParticleSystem * ps, const ParticleEmitter & emitter, float t ) {

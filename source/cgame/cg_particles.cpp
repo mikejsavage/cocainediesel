@@ -139,7 +139,7 @@ void DrawParticleSystem( ParticleSystem * ps ) {
 			ps->vb_memory[ i * 4 + j ].position = Vec3( chunk.position_x[ j ], chunk.position_y[ j ], chunk.position_z[ j ] );
 			ps->vb_memory[ i * 4 + j ].scale = chunk.size[ j ];
 			Vec4 color = Vec4( chunk.color_r[ j ], chunk.color_g[ j ], chunk.color_b[ j ], chunk.color_a[ j ] );
-			ps->vb_memory[ i * 4 + j ].color = RGBA8( Clamp01( color ) );
+			ps->vb_memory[ i * 4 + j ].color = RGBA8( color );
 		}
 	}
 
@@ -246,15 +246,18 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter & emitter, 
 	color.y += SampleRandomDistribution( &cls.rng, emitter.green_distribution );
 	color.z += SampleRandomDistribution( &cls.rng, emitter.blue_distribution );
 	color.w += SampleRandomDistribution( &cls.rng, emitter.alpha_distribution );
+	color = Clamp01( color );
 
-	float size = emitter.size + SampleRandomDistribution( &cls.rng, emitter.size_distribution );
+	float size = Max2( 0.0f, emitter.size + SampleRandomDistribution( &cls.rng, emitter.size_distribution ) );
 
-	float lifetime = emitter.lifetime + SampleRandomDistribution( &cls.rng, emitter.lifetime_distribution );
+	float lifetime = Max2( 0.0f, emitter.lifetime + SampleRandomDistribution( &cls.rng, emitter.lifetime_distribution ) );
 
 	EmitParticle( ps, position, velocity, color, size, lifetime );
 }
 
 static void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter, float dt ) {
+	ZoneScoped;
+
 	float p = emitter.emission_rate > 0 ? emitter.emission_rate * dt : emitter.n;
 	u32 n = u32( p );
 	float remaining_p = p - n;

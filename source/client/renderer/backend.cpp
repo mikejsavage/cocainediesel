@@ -494,7 +494,7 @@ static void SetupRenderPass( const RenderPass & pass ) {
 	clear_mask |= pass.clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
 	if( clear_mask != 0 ) {
 		PipelineState::Scissor scissor = prev_pipeline.scissor;
-		if( scissor.x != 0 && scissor.y != 0 && scissor.w != 0 && scissor.h != 0 ) {
+		if( scissor.x != 0 || scissor.y != 0 || scissor.w != 0 || scissor.h != 0 ) {
 			glDisable( GL_SCISSOR_TEST );
 			prev_pipeline.scissor = { };
 		}

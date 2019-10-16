@@ -65,7 +65,6 @@ static void gl_debug_output_callback(
 ) {
 	if(
 	    source == 33352 || // shader compliation errors
-	    id == 131139 || // non-fullscreen clear causing fallback from CSAA to MSAA
 	    id == 131169 ||
 	    id == 131185 ||
 	    id == 131218 ||

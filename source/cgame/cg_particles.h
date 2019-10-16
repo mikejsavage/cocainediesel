@@ -30,6 +30,7 @@ struct ParticleSystem {
 	GPUParticle * vb_memory;
 	Mesh mesh;
 
+	BlendFunc blend_func;
 	Texture texture;
 	Vec3 acceleration;
 };
@@ -101,6 +102,9 @@ struct ParticleEmitter {
 
 void InitParticles();
 void ShutdownParticles();
+
+ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture, Vec3 acceleration, bool blend );
+void DeleteParticleSystem( Allocator * a, ParticleSystem ps );
 
 void EmitParticle( ParticleSystem * ps, Vec3 position, Vec3 velocity, Vec4 color, float size, float lifetime );
 void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter );

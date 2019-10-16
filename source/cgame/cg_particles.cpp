@@ -3,7 +3,20 @@
 
 #include "imgui/imgui.h"
 
-ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture, Vec3 acceleration ) {
+void InitParticles() {
+	Vec3 gravity = Vec3( 0, 0, -GRAVITY );
+	cgs.ions = NewParticleSystem( sys_allocator, 8192, FindTexture( "$particle" ), Vec3( 0 ), false );
+	cgs.sparks = NewParticleSystem( sys_allocator, 8192, FindTexture( "$particle" ), gravity, false );
+	cgs.smoke = NewParticleSystem( sys_allocator, 1024, FindTexture( "gfx/misc/cartoon_smokepuff3" ), Vec3( 0 ), false );
+}
+
+void ShutdownParticles() {
+	DeleteParticleSystem( sys_allocator, cgs.ions );
+	DeleteParticleSystem( sys_allocator, cgs.sparks );
+	DeleteParticleSystem( sys_allocator, cgs.smoke );
+}
+
+ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture, Vec3 acceleration, bool blend ) {
 	ParticleSystem ps;
 	size_t num_chunks = AlignPow2( n, size_t( 4 ) ) / 4;
 	ps.chunks = ALLOC_SPAN( a, ParticleChunk, num_chunks );
@@ -43,6 +56,7 @@ ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture, Vec3
 		ps.mesh = NewMesh( mesh_config );
 	}
 
+	ps.blend_func = blend ? BlendFunc_Blend : BlendFunc_Add;
 	ps.acceleration = acceleration;
 
 	return ps;
@@ -53,19 +67,6 @@ void DeleteParticleSystem( Allocator * a, ParticleSystem ps ) {
 	FREE( a, ps.vb_memory );
 	DeleteVertexBuffer( ps.vb );
 	DeleteMesh( ps.mesh );
-}
-
-void InitParticles() {
-	Vec3 gravity = Vec3( 0, 0, -GRAVITY );
-	cgs.ions = NewParticleSystem( sys_allocator, 8192, FindTexture( "$particle" ), Vec3( 0 ) );
-	cgs.sparks = NewParticleSystem( sys_allocator, 8192, FindTexture( "$particle" ), gravity );
-	cgs.smoke = NewParticleSystem( sys_allocator, 1024, FindTexture( "gfx/misc/cartoon_smokepuff3" ), Vec3( 0 ) );
-}
-
-void ShutdownParticles() {
-	DeleteParticleSystem( sys_allocator, cgs.ions );
-	DeleteParticleSystem( sys_allocator, cgs.sparks );
-	DeleteParticleSystem( sys_allocator, cgs.smoke );
 }
 
 static void UpdateParticleChunk( ParticleChunk * chunk, Vec3 acceleration, float dt ) {
@@ -144,7 +145,7 @@ void DrawParticleSystem( ParticleSystem * ps ) {
 
 	WriteVertexBuffer( ps->vb, ps->vb_memory, ps->num_particles * sizeof( GPUParticle ) );
 
-	DrawInstancedParticles( ps->mesh, ps->vb, ps->texture, ps->num_particles );
+	DrawInstancedParticles( ps->mesh, ps->vb, ps->texture, ps->blend_func, ps->num_particles );
 }
 
 void DrawParticles() {
@@ -296,12 +297,14 @@ static ParticleSystem editor_ps = { };
 static ParticleEmitter editor_emitter;
 static char editor_texture_name[ 256 ];
 static bool editor_one_shot;
+static bool editor_blend;
 
 void InitParticleEditor() {
 	strcpy( editor_texture_name, "$particle" );
 	editor_one_shot = false;
+	editor_blend = false;
 
-	editor_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( StringHash( ( const char * ) editor_texture_name ) ), Vec3( 0 ) );
+	editor_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( StringHash( ( const char * ) editor_texture_name ) ), Vec3( 0 ), editor_blend );
 	editor_emitter = { };
 
 	editor_emitter.velocity_cone.radius = 400.0f;
@@ -317,7 +320,7 @@ void ShutdownParticleEditor() {
 
 void ResetParticleEditor() {
 	DeleteParticleSystem( sys_allocator, editor_ps );
-	editor_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( StringHash( ( const char * ) editor_texture_name ) ), Vec3( 0 ) );
+	editor_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( StringHash( ( const char * ) editor_texture_name ) ), Vec3( 0 ), editor_blend );
 }
 
 static constexpr char * position_distribution_names[] = { "Sphere", "Disk", "Line" };
@@ -358,6 +361,9 @@ void DrawParticleEditor() {
 		if( ImGui::InputText( "Texture", editor_texture_name, sizeof( editor_texture_name ) ) ) {
 			ResetParticleEditor();
 		}
+
+		ImGui::Checkbox( "Blend", &editor_blend );
+		editor_ps.blend_func = editor_blend ? BlendFunc_Blend : BlendFunc_Add;
 
 		ImGui::Separator();
 

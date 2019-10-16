@@ -351,7 +351,7 @@ void DeleteMesh( const Mesh & mesh );
 void DeferDeleteMesh( const Mesh & mesh );
 
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override = 0, u32 first_index = 0 );
-void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, Texture texture, u32 num_particles );
+void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, Texture texture, BlendFunc blend_func, u32 num_particles );
 
 void DownloadFramebuffer( void * buf );
 

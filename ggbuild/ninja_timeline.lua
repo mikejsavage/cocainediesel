@@ -1,4 +1,4 @@
-local graph_width = 90
+local graph_width = 85
 local filename_length = 16
 
 local log = io.open( "build/.ninja_log", "r" ):read( "*all" )

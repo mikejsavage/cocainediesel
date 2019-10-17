@@ -1,3 +1,6 @@
+#include "qcommon/assets.h"
+#include "qcommon/fs.h"
+#include "qcommon/serialization.h"
 #include "client/client.h"
 #include "cgame/cg_local.h"
 
@@ -222,19 +225,19 @@ static float SampleRandomDistribution( RNG * rng, RandomDistribution dist ) {
 static void EmitParticle( ParticleSystem * ps, const ParticleEmitter & emitter, float t ) {
 	Vec3 position = emitter.position;
 
-	switch( emitter.position_dist_shape ) {
-		case DistributionShape_Sphere: {
-			position += UniformSampleInsideSphere( &cls.rng ) * emitter.position_sphere.radius;
+	switch( emitter.position_distribution.type ) {
+		case RandomDistribution3DType_Sphere: {
+			position += UniformSampleInsideSphere( &cls.rng ) * emitter.position_distribution.sphere.radius;
 		} break;
 
-		case DistributionShape_Disk: {
+		case RandomDistribution3DType_Disk: {
 			Vec2 p = UniformSampleDisk( &cls.rng );
-			position += emitter.position_disk.radius * Vec3( p, 0.0f );
+			position += emitter.position_distribution.disk.radius * Vec3( p, 0.0f );
 			// TODO: emitter.position_disk.normal;
 		} break;
 
-		case DistributionShape_Line: {
-			position = Lerp( position, t, emitter.position_line.end );
+		case RandomDistribution3DType_Line: {
+			position = Lerp( position, t, emitter.position_distribution.line.end );
 		} break;
 	}
 
@@ -274,6 +277,49 @@ static void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter,
 
 void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter ) {
 	EmitParticles( ps, emitter, cg.frameTime / 1000.0f );
+}
+
+enum ParticleEmitterVersion : u32 {
+	ParticleEmitterVersion_First,
+};
+
+static void Serialize( SerializationBuffer * buf, SphereDistribution & sphere ) { *buf & sphere.radius; }
+static void Serialize( SerializationBuffer * buf, ConeDistribution & cone ) { *buf & cone.normal & cone.radius & cone.theta; }
+static void Serialize( SerializationBuffer * buf, DiskDistribution & disk ) { *buf & disk.normal & disk.radius; }
+static void Serialize( SerializationBuffer * buf, LineDistribution & line ) { *buf & line.end; }
+
+static void Serialize( SerializationBuffer * buf, RandomDistribution & dist ) {
+	*buf & dist.type;
+	if( dist.type == RandomDistributionType_Uniform )
+		*buf & dist.uniform;
+	else
+		*buf & dist.sigma;
+}
+
+static void Serialize( SerializationBuffer * buf, RandomDistribution3D & dist ) {
+	*buf & dist.type;
+	if( dist.type == RandomDistribution3DType_Sphere )
+		*buf & dist.sphere;
+	else if( dist.type == RandomDistribution3DType_Disk )
+		*buf & dist.disk;
+	else
+		*buf & dist.line;
+}
+
+static void Serialize( SerializationBuffer * buf, ParticleEmitter & emitter ) {
+	u32 version = ParticleEmitterVersion_First;
+	*buf & version;
+
+	*buf & emitter.position & emitter.position_distribution;
+	*buf & emitter.velocity & emitter.velocity_cone;
+
+	*buf & emitter.color & emitter.red_distribution & emitter.green_distribution & emitter.blue_distribution & emitter.alpha_distribution;
+
+	*buf & emitter.size & emitter.size_distribution;
+
+	*buf & emitter.lifetime & emitter.lifetime_distribution;
+
+	*buf & emitter.emission_rate & emitter.n;
 }
 
 /*
@@ -340,11 +386,87 @@ static void RandomDistributionEditor( const char * id, RandomDistribution * dist
 }
 
 void DrawParticleEditor() {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	bool emit = false;
 
 	ImGui::PushFont( cls.console_font );
 	ImGui::BeginChild( "Particle editor", ImVec2( 300, 0 ) );
 	{
+		ImGuiWindowFlags popup_flags = ( ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar ) | ImGuiWindowFlags_NoMove;
+
+		if( ImGui::Button( "Load..." ) ) {
+			ImGui::OpenPopup( "Load" );
+		}
+
+		ImGui::SameLine();
+
+		if( ImGui::Button( "Save..." ) ) {
+			ImGui::OpenPopup( "Save" );
+		}
+
+		if( ImGui::BeginPopupModal( "Load", NULL, popup_flags ) ) {
+			static char name[ 64 ];
+			ImGui::PushItemWidth( 300 );
+			if( ImGui::IsWindowAppearing() ) {
+				ImGui::SetKeyboardFocusHere();
+				strcpy( name, "" );
+			}
+			bool ok = ImGui::InputText( "##loadpath", name, sizeof( name ), ImGuiInputTextFlags_EnterReturnsTrue );
+			ImGui::PopItemWidth();
+			ok = ImGui::Button( "Load" ) || ok;
+
+			if( ok ) {
+				Span< const char > data = AssetBinary( temp( "particles/{}.emitter", name ) ).cast< const char >();
+				if( data.ptr != NULL ) {
+					bool ok = Deserialize( editor_emitter, data.ptr, data.n );
+					assert( ok );
+				}
+
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::SameLine();
+
+			if( ImGui::Button( "Cancel" ) )
+				ImGui::CloseCurrentPopup();
+
+			ImGui::EndPopup();
+		}
+
+		if( ImGui::BeginPopupModal( "Save", NULL, popup_flags ) ) {
+			static char name[ 64 ];
+			ImGui::PushItemWidth( 300 );
+			if( ImGui::IsWindowAppearing() ) {
+				ImGui::SetKeyboardFocusHere();
+				strcpy( name, "" );
+			}
+			bool ok = ImGui::InputText( "##savepath", name, sizeof( name ), ImGuiInputTextFlags_EnterReturnsTrue );
+			ImGui::PopItemWidth();
+			ok = ImGui::Button( "Save" ) || ok;
+
+			if( ok ) {
+				char buf[ 1024 ];
+				SerializationBuffer sb( SerializationMode_Serializing, buf, sizeof( buf ) );
+				sb & editor_emitter;
+				assert( !sb.error );
+				// TODO: writefile can fail
+				WriteFile( temp( "base/particles/{}.emitter", name ), buf, sb.cursor - buf );
+				HotloadAssets( &temp );
+
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::SameLine();
+
+			if( ImGui::Button( "Cancel" ) )
+				ImGui::CloseCurrentPopup();
+
+			ImGui::EndPopup();
+		}
+
+		ImGui::Separator();
+
 		if( ImGui::InputText( "Texture", editor_texture_name, sizeof( editor_texture_name ) ) ) {
 			ResetParticleEditor();
 		}
@@ -354,11 +476,11 @@ void DrawParticleEditor() {
 
 		ImGui::Separator();
 
-		if( ImGui::BeginCombo( "Position distribution", position_distribution_names[ editor_emitter.position_dist_shape ] ) ) {
+		if( ImGui::BeginCombo( "Position distribution", position_distribution_names[ editor_emitter.position_distribution.type ] ) ) {
 			for( int i = 0; i < 3; i++ ) {
-				if( ImGui::Selectable( position_distribution_names[ i ], i == editor_emitter.position_dist_shape ) )
-					editor_emitter.position_dist_shape = DistributionShape( i );
-				if( i == editor_emitter.position_dist_shape )
+				if( ImGui::Selectable( position_distribution_names[ i ], i == editor_emitter.position_distribution.type ) )
+					editor_emitter.position_distribution.type = RandomDistribution3DType( i );
+				if( i == editor_emitter.position_distribution.type )
 					ImGui::SetItemDefaultFocus();
 			}
 
@@ -367,18 +489,18 @@ void DrawParticleEditor() {
 
 		editor_emitter.position = Vec3( 0 );
 
-		switch( editor_emitter.position_dist_shape ) {
-			case DistributionShape_Sphere:
-				ImGui::SliderFloat( "Radius", &editor_emitter.position_sphere.radius, 0, 100, "%.2f" );
+		switch( editor_emitter.position_distribution.type ) {
+			case RandomDistribution3DType_Sphere:
+				ImGui::SliderFloat( "Radius", &editor_emitter.position_distribution.sphere.radius, 0, 100, "%.2f" );
 				break;
 
-			case DistributionShape_Disk:
-				ImGui::SliderFloat( "Radius", &editor_emitter.position_disk.radius, 0, 100, "%.2f" );
+			case RandomDistribution3DType_Disk:
+				ImGui::SliderFloat( "Radius", &editor_emitter.position_distribution.disk.radius, 0, 100, "%.2f" );
 				break;
 
-			case DistributionShape_Line:
+			case RandomDistribution3DType_Line:
 				editor_emitter.position = Vec3( 0, -300, 0 );
-				editor_emitter.position_line.end = Vec3( 0, 300, 0 );
+				editor_emitter.position_distribution.line.end = Vec3( 0, 300, 0 );
 				break;
 		}
 

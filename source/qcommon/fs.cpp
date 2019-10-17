@@ -38,3 +38,14 @@ Span< char > ReadFileString( Allocator * a, const char * path ) {
 
 	return contents;
 }
+
+bool WriteFile( const char * path, const void * data, size_t len ) {
+	FILE * file = fopen( path, "wb" );
+	if( file == NULL )
+		return false;
+
+	size_t w = fwrite( data, 1, len, file );
+	fclose( file );
+
+	return w == len;
+}

@@ -3,7 +3,9 @@
 #include "qcommon/types.h"
 
 const char * FS_RootPath( TempAllocator * a );
+
 Span< char > ReadFileString( Allocator * a, const char * path );
+bool WriteFile( const char * path, const void * data, size_t len );
 
 struct ListDirHandle {
 	char impl[ 64 ];

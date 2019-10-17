@@ -617,8 +617,8 @@ void CG_HighVelImpactPuffParticles( const vec3_t org, const vec3_t dir, int coun
 void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color ) {
 	ParticleEmitter emitter = { };
 	emitter.position = start;
-	emitter.position_dist_shape = DistributionShape_Line;
-	emitter.position_line.end = end;
+	emitter.position_distribution.type = RandomDistribution3DType_Line;
+	emitter.position_distribution.line.end = end;
 
 	emitter.velocity_cone.radius = 4.0f;
 	emitter.velocity_cone.theta = 2.0f * float( M_PI );

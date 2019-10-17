@@ -84,7 +84,7 @@ const Font * RegisterFont( const char * path ) {
 	// load MSDF spec
 	{
 		DynamicString msdf_path( &temp, "{}.msdf", path );
-		Span< const char > data = AssetBinary( msdf_path.c_str() ).cast< char >();
+		Span< const char > data = AssetBinary( msdf_path.c_str() ).cast< const char >();
 		if( data.ptr == NULL ) {
 			Com_Printf( S_COLOR_RED "Couldn't read file %s\n", msdf_path.c_str() );
 			return NULL;

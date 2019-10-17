@@ -35,10 +35,10 @@ struct ParticleSystem {
 	Vec3 acceleration;
 };
 
-enum DistributionShape {
-	DistributionShape_Sphere,
-	DistributionShape_Disk,
-	DistributionShape_Line,
+enum RandomDistribution3DType : u8 {
+	RandomDistribution3DType_Sphere,
+	RandomDistribution3DType_Disk,
+	RandomDistribution3DType_Line,
 };
 
 struct SphereDistribution {
@@ -60,25 +60,31 @@ struct LineDistribution {
 	Vec3 end;
 };
 
-enum RandomDistributionType {
+enum RandomDistributionType : u8 {
 	RandomDistributionType_Uniform,
 	RandomDistributionType_Normal,
 };
 
 struct RandomDistribution {
-	RandomDistributionType type;
+	u8 type;
 	union {
 		float uniform;
 		float sigma;
 	};
 };
 
+struct RandomDistribution3D {
+	u8 type;
+	union {
+		SphereDistribution sphere;
+		DiskDistribution disk;
+		LineDistribution line;
+	};
+};
+
 struct ParticleEmitter {
 	Vec3 position;
-	DistributionShape position_dist_shape;
-	SphereDistribution position_sphere;
-	DiskDistribution position_disk;
-	LineDistribution position_line;
+	RandomDistribution3D position_distribution;
 
 	Vec3 velocity;
 	ConeDistribution velocity_cone;
@@ -94,7 +100,6 @@ struct ParticleEmitter {
 
 	float lifetime;
 	RandomDistribution lifetime_distribution;
-	MinMax1 lifetime_range;
 	
 	float emission_rate;
 	float n;

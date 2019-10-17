@@ -26,8 +26,6 @@ local function truncate( str, len )
 end
 
 local total_duration = edges[ #edges ].start + edges[ #edges ].dt
-print( ( "Build time: %.2fs" ):format( total_duration ) )
-print()
 
 for i, e in ipairs( edges ) do
 	local pre = math.floor( graph_width * e.start / total_duration )
@@ -42,3 +40,6 @@ for i, e in ipairs( edges ) do
 
 	print( ( "%s %s[%s] %.2fs" ):format( target, spacing, string.rep( ">", width ), e.dt / 1000 ) )
 end
+
+print()
+print( ( "Total build time: %.2fs" ):format( total_duration / 1000 ) )

@@ -129,7 +129,6 @@ void COM_DefaultExtension( char *path, const char *extension, size_t size ) {
 	src = strrchr( last ? last : path, '.' );
 	if( src && *( src + 1 ) ) {
 		return;             // it has an extension
-
 	}
 	if( strlen( path ) + extlen >= size ) {
 		path[size - extlen - 1] = 0;

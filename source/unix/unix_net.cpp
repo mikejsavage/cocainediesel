@@ -32,11 +32,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <errno.h>
 #include <arpa/inet.h>
 
-#ifdef ALIGN
-#undef ALIGN
-#endif
-#include "../qcommon/qcommon.h"
-#include "../qcommon/sys_net.h"
+#include "qcommon/qcommon.h"
+#include "qcommon/sys_net.h"
 
 //=============================================================================
 

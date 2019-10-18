@@ -85,15 +85,6 @@ static Mat4 EulerAnglesToMat4( float pitch, float yaw, float roll ) {
 	return m;
 }
 
-static Mat4 Mat4_Translation( float x, float y, float z ) {
-	return Mat4(
-		1, 0, 0, x,
-		0, 1, 0, y,
-		0, 0, 1, z,
-		0, 0, 0, 1
-	);
-}
-
 /*
 * CG_ParseAnimationScript
 *
@@ -165,7 +156,7 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata *metadata, char *filena
 				float roll = atof( COM_ParseExt( &ptr, false ) );
 
 				tag->joint_idx = joint_idx;
-				tag->transform = Mat4_Translation( forward, right, up ) * EulerAnglesToMat4( pitch, yaw, roll );
+				tag->transform = Mat4Translation( forward, right, up ) * EulerAnglesToMat4( pitch, yaw, roll );
 			}
 			else {
 				CG_Printf( "%s: Unknown joint name: %s\n", filename, joint_name );

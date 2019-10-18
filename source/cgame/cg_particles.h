@@ -108,7 +108,7 @@ struct ParticleEmitter {
 void InitParticles();
 void ShutdownParticles();
 
-ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture, Vec3 acceleration, bool blend );
+ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture, Vec3 acceleration, BlendFunc blend_func );
 void DeleteParticleSystem( Allocator * a, ParticleSystem ps );
 
 void EmitParticle( ParticleSystem * ps, Vec3 position, Vec3 velocity, Vec4 color, float size, float lifetime );

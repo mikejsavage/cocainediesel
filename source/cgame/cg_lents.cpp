@@ -1149,7 +1149,7 @@ void DrawGibs() {
 			emitter.velocity_cone.radius = 128;
 			emitter.color = color;
 
-			emitter.size = 2.0f;
+			emitter.size = 4.0f;
 			emitter.lifetime = 1.0f;
 
 			emitter.n = 64;

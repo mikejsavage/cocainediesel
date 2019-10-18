@@ -8,9 +8,9 @@
 
 void InitParticles() {
 	Vec3 gravity = Vec3( 0, 0, -GRAVITY );
-	cgs.ions = NewParticleSystem( sys_allocator, 8192, FindTexture( "$particle" ), Vec3( 0 ), false );
-	cgs.sparks = NewParticleSystem( sys_allocator, 8192, FindTexture( "$particle" ), gravity, false );
-	cgs.smoke = NewParticleSystem( sys_allocator, 1024, FindTexture( "gfx/misc/cartoon_smokepuff3" ), Vec3( 0 ), false );
+	cgs.ions = NewParticleSystem( sys_allocator, 8192, FindTexture( "$particle" ), Vec3( 0 ), BlendFunc_Add );
+	cgs.sparks = NewParticleSystem( sys_allocator, 8192, FindTexture( "$particle" ), gravity, BlendFunc_Blend );
+	cgs.smoke = NewParticleSystem( sys_allocator, 1024, FindTexture( "gfx/misc/cartoon_smokepuff3" ), Vec3( 0 ), BlendFunc_Add );
 }
 
 void ShutdownParticles() {
@@ -19,7 +19,7 @@ void ShutdownParticles() {
 	DeleteParticleSystem( sys_allocator, cgs.smoke );
 }
 
-ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture, Vec3 acceleration, bool blend ) {
+ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture, Vec3 acceleration, BlendFunc blend_func ) {
 	ParticleSystem ps;
 	size_t num_chunks = AlignPow2( n, size_t( 4 ) ) / 4;
 	ps.chunks = ALLOC_SPAN( a, ParticleChunk, num_chunks );
@@ -59,7 +59,7 @@ ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture, Vec3
 		ps.mesh = NewMesh( mesh_config );
 	}
 
-	ps.blend_func = blend ? BlendFunc_Blend : BlendFunc_Add;
+	ps.blend_func = blend_func;
 	ps.acceleration = acceleration;
 
 	return ps;
@@ -311,7 +311,7 @@ void InitParticleEditor() {
 	editor_one_shot = false;
 	editor_blend = false;
 
-	editor_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( StringHash( ( const char * ) editor_texture_name ) ), Vec3( 0 ), editor_blend );
+	editor_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( StringHash( ( const char * ) editor_texture_name ) ), Vec3( 0 ), editor_blend ? BlendFunc_Blend : BlendFunc_Add );
 	editor_emitter = { };
 
 	editor_emitter.velocity_cone.radius = 400.0f;
@@ -327,7 +327,7 @@ void ShutdownParticleEditor() {
 
 void ResetParticleEditor() {
 	DeleteParticleSystem( sys_allocator, editor_ps );
-	editor_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( StringHash( ( const char * ) editor_texture_name ) ), Vec3( 0 ), editor_blend );
+	editor_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( StringHash( ( const char * ) editor_texture_name ) ), Vec3( 0 ), editor_blend ? BlendFunc_Blend : BlendFunc_Add );
 }
 
 static constexpr char * position_distribution_names[] = { "Sphere", "Disk", "Line" };

@@ -923,6 +923,7 @@ static void DrawTeammateOutlines() {
 	}
 }
 
+void UpdatePhysics();
 /*
 * CG_RenderView
 */
@@ -1053,6 +1054,7 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 	CG_AddPlayerShadows();
 	CG_AddDecals();
 	DrawSkybox();
+	UpdatePhysics();
 
 	CG_AddLocalSounds();
 

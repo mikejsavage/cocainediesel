@@ -659,6 +659,7 @@ void CG_Reset( void ) {
 	memset( cg_entities, 0, sizeof( cg_entities ) );
 }
 
+void InitPhysics();
 /*
 * CG_Init
 */
@@ -737,6 +738,7 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	CG_ConfigString( CS_AUTORECORDSTATE, cgs.configStrings[CS_AUTORECORDSTATE] );
 
 	CG_DemocamInit();
+	InitPhysics();
 }
 
 void CG_Shutdown() {

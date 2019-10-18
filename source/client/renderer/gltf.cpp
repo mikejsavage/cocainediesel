@@ -7,8 +7,6 @@
 
 #include "cgltf/cgltf.h"
 
-// TODO: lots of memory leaks in error paths. fix with new asset system
-
 // like cgltf_load_buffers, but doesn't try to load URIs
 static bool LoadBinaryBuffers( cgltf_data * data ) {
 	if( data->buffers_count && data->buffers[0].data == NULL && data->buffers[0].uri == NULL && data->bin ) {

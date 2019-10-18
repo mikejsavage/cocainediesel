@@ -201,6 +201,7 @@ extern level_locals_t level;
 extern spawn_temp_t st;
 
 extern int meansOfDeath;
+extern vec3_t knockbackOfDeath;
 
 #define FOFS( x ) offsetof( edict_t,x )
 #define STOFS( x ) offsetof( spawn_temp_t,x )
@@ -403,7 +404,7 @@ void G_UseItem( struct edict_s *ent, const gsitem_t *item );
 //
 #define G_LEVELPOOL_BASE_SIZE   45 * 1024 * 1024
 
-bool KillBox( edict_t *ent, int mod );
+bool KillBox( edict_t *ent, int mod, const vec3_t knockback );
 float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker );
 edict_t *G_Find( edict_t *from, size_t fieldofs, const char *match );
 edict_t *G_PickTarget( const char *targetname );
@@ -565,7 +566,7 @@ void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edi
 //
 // g_misc.c
 //
-void ThrowSmallPileOfGibs( edict_t *self, int damage );
+void ThrowSmallPileOfGibs( edict_t *self, const vec3_t knockback, int damage );
 
 void BecomeExplosion1( edict_t *self );
 

@@ -198,6 +198,10 @@ inline Mat4 Mat4Scale( float x, float y, float z ) {
 	);
 }
 
+inline Mat4 Mat4Scale( float s ) {
+	return Mat4Scale( s, s, s );
+}
+
 inline Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
 	return Mat4(
 		Dot( lhs.row0(), rhs.col0 ),
@@ -299,6 +303,16 @@ inline Quaternion NLerp( Quaternion from, float t, Quaternion to ) {
 	float lt = 1.0f - t;
 	float rt = Dot( from, to ) > 0 ? t : -t;
 	return Normalize( from * lt + to * rt );
+}
+
+/*
+ * MinMax3
+ */
+
+inline MinMax3 operator*( MinMax3 bounds, float scale ) {
+	bounds.mins *= scale;
+	bounds.maxs *= scale;
+	return bounds;
 }
 
 /*

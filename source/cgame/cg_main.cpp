@@ -724,6 +724,7 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	InitParticles();
 	InitPersistentBeams();
+	InitGibs();
 
 	CG_InitChat();
 

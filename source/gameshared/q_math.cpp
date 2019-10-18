@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "q_math.h"
 #include "q_shared.h"
 #include "q_collision.h"
+#include "qcommon/rng.h"
 
 //============================================================================
 
@@ -713,4 +714,30 @@ double PositiveMod( double x, double y ) {
 	if( res < 0 )
 		res += y;
 	return res;
+}
+
+Vec3 UniformSampleSphere( RNG * rng ) {
+	float z = random_float11( rng );
+	float r = sqrtf( Max2( 0.0f, 1.0f - z * z ) );
+	float phi = 2.0f * float( M_PI ) * random_float01( rng );
+	return Vec3( r * cosf( phi ), r * sinf( phi ), z );
+}
+
+Vec3 UniformSampleInsideSphere( RNG * rng ) {
+	Vec3 p = UniformSampleSphere( rng );
+	float r = powf( random_float01( rng ), 1.0f / 3.0f );
+	return p * r;
+}
+
+Vec2 UniformSampleDisk( RNG * rng ) {
+	float theta = random_float01( rng ) * 2.0f * float( M_PI );
+	float r = sqrtf( random_float01( rng ) );
+	return Vec2( r * cosf( theta ), r * sinf( theta ) );
+}
+
+float SampleNormalDistribution( RNG * rng ) {
+	// generate a float in (0, 1). works because prev(1) + FLT_MIN == prev(1)
+	float u1 = random_float01( rng ) + FLT_MIN;
+	float u2 = random_float01( rng );
+	return sqrtf( -2.0f * logf( u1 ) ) * cosf( u2 * 2.0f * float( M_PI ) );
 }

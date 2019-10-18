@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 #include "q_arch.h"
+#include "qcommon/types.h"
 
 #include <emmintrin.h>
 
@@ -228,3 +229,10 @@ void Matrix3_FromAngles( const vec3_t angles, mat3_t m );
 
 float PositiveMod( float x, float y );
 double PositiveMod( double x, double y );
+
+struct RNG;
+
+Vec3 UniformSampleSphere( RNG * rng );
+Vec3 UniformSampleInsideSphere( RNG * rng );
+Vec2 UniformSampleDisk( RNG * rng );
+float SampleNormalDistribution( RNG * rng );

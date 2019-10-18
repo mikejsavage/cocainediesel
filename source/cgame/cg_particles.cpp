@@ -188,32 +188,6 @@ void EmitParticle( ParticleSystem * ps, Vec3 position, Vec3 velocity, Vec4 color
 	ps->num_particles++;
 }
 
-static Vec3 UniformSampleSphere( RNG * rng ) {
-	float z = random_float11( rng );
-	float r = sqrtf( Max2( 0.0f, 1.0f - z * z ) );
-	float phi = 2.0f * float( M_PI ) * random_float01( rng );
-	return Vec3( r * cosf( phi ), r * sinf( phi ), z );
-}
-
-static Vec3 UniformSampleInsideSphere( RNG * rng ) {
-	Vec3 p = UniformSampleSphere( rng );
-	float r = powf( random_float01( rng ), 1.0f / 3.0f );
-	return p * r;
-}
-
-static Vec2 UniformSampleDisk( RNG * rng ) {
-	float theta = random_float01( rng ) * 2.0f * float( M_PI );
-	float r = sqrtf( random_float01( rng ) );
-	return Vec2( r * cosf( theta ), r * sinf( theta ) );
-}
-
-static float SampleNormalDistribution( RNG * rng ) {
-	// generate a float in (0, 1). works because prev(1) + FLT_MIN == prev(1)
-	float u1 = random_float01( rng ) + FLT_MIN;
-	float u2 = random_float01( rng );
-	return sqrtf( -2.0f * logf( u1 ) ) * cosf( u2 * 2.0f * float( M_PI ) );
-}
-
 static float SampleRandomDistribution( RNG * rng, RandomDistribution dist ) {
 	if( dist.type == RandomDistributionType_Uniform ) {
 		return random_float11( rng ) * dist.uniform;

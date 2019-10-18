@@ -20,31 +20,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "g_local.h"
 
-
-void ThrowSmallPileOfGibs( edict_t *self, int damage ) {
-	vec3_t origin;
-	edict_t *event;
-	int contents;
-	int i;
-
-	contents = G_PointContents( self->s.origin );
+void ThrowSmallPileOfGibs( edict_t *self, const vec3_t knockback, int damage ) {
+	int contents = G_PointContents( self->s.origin );
 	if( contents & CONTENTS_NODROP ) {
 		return;
 	}
 
-	for( i = 0; i < 3; i++ )
-		origin[i] = self->s.origin[i];
-
+	vec3_t origin;
+	VectorCopy( self->s.origin, origin );
 	self->s.origin[2] += 4;
 
 	// clamp the damage value since events do bitwise & 0xFF on the passed param
 	damage = Clamp( 0, damage, 255 );
 
-	event = G_SpawnEvent( EV_SPOG, damage, origin );
+	edict_t * event = G_SpawnEvent( EV_SPOG, damage, origin );
 	event->s.team = self->s.team;
-	VectorCopy( self->velocity, event->s.origin2 );
+	VectorAdd( self->velocity, knockback, event->s.origin2 );
 }
-
 
 /*
 * debris
@@ -173,7 +165,7 @@ static void func_wall_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	if( self->r.solid == SOLID_NOT ) {
 		self->r.solid = SOLID_YES;
 		self->r.svflags &= ~SVF_NOCLIENT;
-		KillBox( self, MOD_CRUSH );
+		KillBox( self, MOD_CRUSH, vec3_origin );
 	} else {
 		self->r.solid = SOLID_NOT;
 		self->r.svflags |= SVF_NOCLIENT;
@@ -257,7 +249,7 @@ static void func_object_use( edict_t *self, edict_t *other, edict_t *activator )
 	self->r.solid = SOLID_YES;
 	self->r.svflags &= ~SVF_NOCLIENT;
 	self->use = NULL;
-	KillBox( self, MOD_CRUSH );
+	KillBox( self, MOD_CRUSH, vec3_origin );
 	func_object_release( self );
 }
 
@@ -408,7 +400,7 @@ static void func_explosive_spawn( edict_t *self, edict_t *other, edict_t *activa
 	self->r.solid = SOLID_YES;
 	self->r.svflags &= ~SVF_NOCLIENT;
 	self->use = NULL;
-	KillBox( self, MOD_CRUSH );
+	KillBox( self, MOD_CRUSH, vec3_origin );
 	GClip_LinkEntity( self );
 }
 

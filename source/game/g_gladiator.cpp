@@ -8,7 +8,11 @@ static void SpikesDeploy( edict_t * self ) {
 	int64_t deployed_for = game.serverTime - self->s.linearMovementTimeStamp;
 
 	if( deployed_for < 1500 ) {
-		KillBox( self, MOD_SPIKES );
+		vec3_t dir;
+		AngleVectors( self->s.angles, NULL, NULL, dir );
+		vec3_t knockback;
+		VectorScale( dir, 30.0f, knockback );
+		KillBox( self, MOD_SPIKES, knockback );
 		self->nextThink = level.time + 1;
 	}
 	else {

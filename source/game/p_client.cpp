@@ -146,7 +146,7 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 
 	// send an effect on the removed body
 	if( body->s.modelindex && body->s.type == ET_CORPSE ) {
-		ThrowSmallPileOfGibs( body, 10 );
+		ThrowSmallPileOfGibs( body, vec3_origin, 10 );
 	}
 
 	GClip_UnlinkEntity( body );
@@ -195,10 +195,11 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 	int mod = meansOfDeath;
 	bool gib = mod == MOD_ELECTROBOLT || mod == MOD_ROCKET || mod == MOD_GRENADE ||
 		mod == MOD_TRIGGER_HURT || mod == MOD_TELEFRAG || mod == MOD_EXPLOSIVE ||
+		mod == MOD_SPIKES ||
 		( ( mod == MOD_ROCKET_SPLASH || mod == MOD_GRENADE_SPLASH ) && damage >= 20 );
 
 	if( gib ) {
-		ThrowSmallPileOfGibs( body, damage );
+		ThrowSmallPileOfGibs( body, knockbackOfDeath, damage );
 
 		// reset gib impulse
 		VectorClear( body->velocity );
@@ -510,7 +511,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 
 	// don't put spectators in the game
 	if( !ghost ) {
-		KillBox( self, MOD_TELEFRAG );
+		KillBox( self, MOD_TELEFRAG, vec3_origin );
 	}
 
 	self->s.attenuation = ATTN_NORM;
@@ -610,7 +611,7 @@ void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
 	GClip_UnlinkEntity( player );
 
 	// kill anything at the destination
-	KillBox( player, MOD_TELEFRAG );
+	KillBox( player, MOD_TELEFRAG, vec3_origin );
 
 	GClip_LinkEntity( player );
 

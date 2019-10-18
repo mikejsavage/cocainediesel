@@ -28,6 +28,7 @@ struct mempool_s *gamepool;
 struct mempool_s *levelpool;
 
 int meansOfDeath;
+vec3_t knockbackOfDeath;
 
 cvar_t *password;
 cvar_t *g_operator_password;

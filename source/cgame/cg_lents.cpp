@@ -1116,7 +1116,7 @@ void DrawGibs() {
 
 	float dt = cg.frameTime * 0.001f;
 
-	const Model * model = FindModel( "models/objects/gibs/gib" );
+	const Model * model = cgs.media.modGib;
 	Vec3 gravity = Vec3( 0, 0, -GRAVITY );
 
 	for( u32 i = 0; i < num_gibs; i++ ) {

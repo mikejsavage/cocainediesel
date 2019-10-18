@@ -1087,6 +1087,8 @@ void InitGibs() {
 }
 
 void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, int team ) {
+	ZoneScoped;
+
 	int count = Min2( damage * 3 / 2, 60 );
 	float player_radius = playerbox_stand_maxs[ 0 ];
 
@@ -1110,6 +1112,8 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, int team ) {
 }
 
 void DrawGibs() {
+	ZoneScoped;
+
 	float dt = cg.frameTime * 0.001f;
 
 	const Model * model = FindModel( "models/objects/gibs/gib" );

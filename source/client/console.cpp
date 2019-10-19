@@ -239,7 +239,7 @@ void Con_Draw( int pressed_key ) {
 	// make a fullscreen window so you can't interact with menus while console is open
 	ImGui::SetNextWindowPos( ImVec2() );
 	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
-	ImGui::Begin( "console", NULL, ImGuiWindowFlags_NoDecoration );
+	ImGui::Begin( "console", WindowZOrder_Console, ImGuiWindowFlags_NoDecoration );
 
 	{
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, bg );

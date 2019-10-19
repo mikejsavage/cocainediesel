@@ -8,6 +8,7 @@
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_sdl.h"
+#include "imgui/imgui_internal.h"
 #include "imgui/imgui_freetype.h"
 
 static ImFont * AddFontAsset( StringHash path, float pixel_size ) {
@@ -169,15 +170,29 @@ void CL_ImGuiBeginFrame() {
 
 	ImGui_ImplSDL2_NewFrame( sdl_window );
 	ImGui::NewFrame();
-
-	// ImGui::ShowDemoWindow();
 }
 
 void CL_ImGuiEndFrame() {
 	ZoneScoped;
 
+	// ImGui::ShowDemoWindow();
+
+	ImGuiContext * ctx = ImGui::GetCurrentContext();
+	std::stable_sort( ctx->Windows.begin(), ctx->Windows.end(),
+		[]( const ImGuiWindow * a, const ImGuiWindow * b ) {
+			return a->BeginOrderWithinContext < b->BeginOrderWithinContext;
+		}
+	);
+
 	ImGui::Render();
 	SubmitDrawCalls();
+}
+
+namespace ImGui {
+	void Begin( const char * name, WindowZOrder z_order, ImGuiWindowFlags flags ) {
+		ImGui::Begin( name, NULL, flags );
+		ImGui::GetCurrentWindow()->BeginOrderWithinContext = z_order;
+	}
 }
 
 ImGuiColorToken::ImGuiColorToken( u8 r, u8 g, u8 b, u8 a ) {

@@ -194,7 +194,7 @@ void CG_DrawScoreboard() {
 
 	ImGui::SetNextWindowSize( ImVec2( size.x, -1 ) );
 	ImGui::SetNextWindowPos( io.DisplaySize * 0.5f, 0, Vec2( 0.5f ) );
-	ImGui::Begin( "scoreboard", NULL, basic_flags | ImGuiWindowFlags_NoBackground );
+	ImGui::Begin( "scoreboard", WindowZOrder_Scoreboard, basic_flags | ImGuiWindowFlags_NoBackground );
 
 	float padding = 4;
 	float separator_height = ImGui::GetTextLineHeight() + 2 * padding;

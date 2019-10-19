@@ -116,7 +116,7 @@ void CG_DrawChat() {
 
 	ImGui::SetNextWindowSize( ImVec2( size.x, size.y ) );
 	ImGui::SetNextWindowPos( ImVec2( 0, size.y * 3 ), ImGuiCond_Always, ImVec2( 0, 0.5f ) );
-	ImGui::Begin( "chat", NULL, flags );
+	ImGui::Begin( "chat", WindowZOrder_Chat, flags );
 
 	ImGui::BeginChild( "chatlog", ImVec2( 0, -ImGui::GetFrameHeight() ), false, log_flags );
 	for( size_t i = 0; i < chat.history_len; i++ ) {

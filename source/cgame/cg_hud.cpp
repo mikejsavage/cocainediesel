@@ -1574,7 +1574,6 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		int curih = ih;
 
 		int ammo = cg.predictedPlayerState.inventory[ AMMO_GUNBLADE + i - WEAP_GUNBLADE ];
-		Draw2DBox( curx, cury, iw, ih, CG_GetWeaponIcon( i ) );
 
 		if( CG_IsWeaponSelected( i ) ) {
 			selected_found = true;
@@ -1584,7 +1583,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 			curih += ih*SEL_WEAP_X_OFFSET;
 		}
 
-		Draw2DBox( frame_static.ui_pass, curx, cury, curiw, curih, CG_GetWeaponIcon( i ) );
+		Draw2DBox( curx, cury, curiw, curih, CG_GetWeaponIcon( i ) );
 
 		if( i != WEAP_GUNBLADE ) {
 			DrawText( GetHUDFont(), font_size + (curiw - iw)/4, va( "%i", ammo ), Alignment_LeftBottom, curx + curiw*0.15f, cury + curih*0.85f, layout_cursor_color, layout_cursor_font_border );

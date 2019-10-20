@@ -1547,9 +1547,9 @@ static bool CG_IsWeaponSelected( int weapon ) {
 	return weapon == cg.predictedPlayerState.stats[STAT_PENDING_WEAPON];
 }
 
-constexpr float SELECTED_WEAPON_Y_OFFSET = 0.0125;
+constexpr float SEL_WEAP_X_OFFSET = 0.25f;
 
-static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih, Alignment alignment ) {
+static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih, Alignment alignment, float font_size ) {
 	int num_weapons = 0;
 	for( int i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
 		if( CG_IsWeaponInList( i ) ) {
@@ -1563,50 +1563,32 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 	int total_height = max( 0, num_weapons * offy - pady );
 
 	int drawn_weapons = 0;
+	bool selected_found = false;
 	for( int i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
 		if( !CG_IsWeaponInList( i ) )
 			continue;
 
-		int curx = CG_HorizontalAlignForWidth( x + offx * drawn_weapons, alignment, total_width );
+		int curx = CG_HorizontalAlignForWidth( x + offx * drawn_weapons + ( selected_found ? iw*SEL_WEAP_X_OFFSET : 0.f ), alignment, total_width );
 		int cury = CG_VerticalAlignForHeight( y + offy * drawn_weapons, alignment, total_height );
 
-		if( CG_IsWeaponSelected( i ) )
-			cury -= SELECTED_WEAPON_Y_OFFSET * frame_static.viewport_height;
-
-		Draw2DBox( frame_static.ui_pass, curx, cury, iw, ih, CG_GetWeaponIcon( i ) );
-
-		drawn_weapons++;
-	}
-}
-
-static void CG_DrawWeaponAmmos( int x, int y, int offx, int offy, float font_size, Alignment alignment ) {
-	/*
-	 * we don't draw ammo text for GB
-	 * so all the loops in this function skip it
-	 */
-	int num_weapons = 0;
-	for( int i = WEAP_GUNBLADE + 1; i < WEAP_TOTAL; i++ ) {
-		if( CG_IsWeaponInList( i ) ) {
-			num_weapons++;
-		}
-	}
-
-	int total_width = max( 0, num_weapons * offx );
-
-	int drawn_weapons = 1;
-	for( int i = WEAP_GUNBLADE + 1; i < WEAP_TOTAL; i++ ) {
-		if( !CG_IsWeaponInList( i ) )
-			continue;
-
-		int curx = CG_HorizontalAlignForWidth( x + offx * drawn_weapons, alignment, total_width );
-		int cury = y + offy * drawn_weapons;
-
-		if( CG_IsWeaponSelected( i ) )
-			cury -= SELECTED_WEAPON_Y_OFFSET * frame_static.viewport_height;
+		int curiw = iw;
+		int curih = ih;
 
 		int ammo = cg.predictedPlayerState.inventory[ AMMO_GUNBLADE + i - WEAP_GUNBLADE ];
 
-		DrawText( GetHUDFont(), font_size, va( "%i", ammo ), Alignment_RightBottom, curx, cury, layout_cursor_color, layout_cursor_font_border );
+		if( CG_IsWeaponSelected( i ) ) {
+			selected_found = true;
+			cury -= ih*SEL_WEAP_X_OFFSET;
+
+			curiw += iw*SEL_WEAP_X_OFFSET;
+			curih += ih*SEL_WEAP_X_OFFSET;
+		}
+
+		Draw2DBox( frame_static.ui_pass, curx, cury, curiw, curih, CG_GetWeaponIcon( i ) );
+
+		if( i != WEAP_GUNBLADE ) {
+			DrawText( GetHUDFont(), font_size + (curiw - iw)/4, va( "%i", ammo ), Alignment_LeftBottom, curx + curiw*0.15f, cury + curih*0.85f, layout_cursor_color, layout_cursor_font_border );
+		}
 
 		drawn_weapons++;
 	}
@@ -1913,8 +1895,9 @@ static void CG_LFuncsWeaponIcons( struct cg_layoutnode_s *argumentnode ) {
 	offy = (int)( CG_GetNumericArg( &argumentnode ) * frame_static.viewport_height / 600 );
 	w = (int)( CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800 );
 	h = (int)( CG_GetNumericArg( &argumentnode ) * frame_static.viewport_height / 600 );
+	float font_size = CG_GetNumericArg( &argumentnode );
 
-	CG_DrawWeaponIcons( layout_cursor_x, layout_cursor_y, offx, offy, w, h, layout_cursor_alignment );
+	CG_DrawWeaponIcons( layout_cursor_x, layout_cursor_y, offx, offy, w, h, layout_cursor_alignment, font_size );
 }
 
 static bool CG_LFuncDrawWeaponIcons( struct cg_layoutnode_s *argumentnode, int numArguments ) {
@@ -1922,15 +1905,6 @@ static bool CG_LFuncDrawWeaponIcons( struct cg_layoutnode_s *argumentnode, int n
 	return true;
 }
 
-static bool CG_LFuncDrawWeaponStrongAmmo( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int offx = int( CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800 );
-	int offy = int( CG_GetNumericArg( &argumentnode ) * frame_static.viewport_height / 600 );
-	float font_size = CG_GetNumericArg( &argumentnode );
-
-	CG_DrawWeaponAmmos( layout_cursor_x, layout_cursor_y, offx, offy, font_size, layout_cursor_alignment );
-
-	return true;
-}
 
 static bool CG_LFuncDrawCrossHair( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	CG_DrawCrosshair();
@@ -2174,15 +2148,8 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 	{
 		"drawWeaponIcons",
 		CG_LFuncDrawWeaponIcons,
-		4,
+		5,
 		"Draws the icons of weapon/ammo owned by the player, arguments are offset x, offset y, size x, size y",
-	},
-
-	{
-		"drawWeaponStrongAmmo",
-		CG_LFuncDrawWeaponStrongAmmo,
-		3,
-		"Draws the amount of strong ammo owned by the player,  arguments are offset x, offset y, fontsize",
 	},
 
 	{

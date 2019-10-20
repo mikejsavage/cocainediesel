@@ -282,6 +282,8 @@ struct RenderPass {
 	bool clear_depth = false;
 	float depth = 1.0f;
 
+	bool sorted = true;
+
 	Framebuffer msaa_source = { };
 };
 
@@ -304,6 +306,7 @@ void RenderBackendSubmitFrame();
 u8 AddRenderPass( const RenderPass & config );
 u8 AddRenderPass( const char * name, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
 u8 AddRenderPass( const char * name, Framebuffer target, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
+u8 AddUnsortedRenderPass( const char * name );
 void AddResolveMSAAPass( Framebuffer fb );
 
 u32 renderer_num_draw_calls();

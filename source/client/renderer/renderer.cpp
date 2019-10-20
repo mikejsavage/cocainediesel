@@ -338,7 +338,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	frame_static.teammate_add_outlines_pass = AddRenderPass( "Render teammate outlines" );
 	frame_static.blur_pass = AddRenderPass( "Blur screen" );
-	frame_static.ui_pass = AddRenderPass( "Render UI" );
+	frame_static.ui_pass = AddUnsortedRenderPass( "Render UI" );
 }
 
 void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) {

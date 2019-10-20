@@ -446,6 +446,8 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
 	if( a.pipeline.pass != b.pipeline.pass )
 		return a.pipeline.pass < b.pipeline.pass;
+	if( !render_passes[ a.pipeline.pass ].sorted )
+		return false;
 	return a.pipeline.shader < b.pipeline.shader;
 }
 
@@ -1193,6 +1195,13 @@ u8 AddRenderPass( const char * name, Framebuffer target, ClearColor clear_color,
 u8 AddRenderPass( const char * name, ClearColor clear_color, ClearDepth clear_depth ) {
 	Framebuffer target = { };
 	return AddRenderPass( name, target, clear_color, clear_depth );
+}
+
+u8 AddUnsortedRenderPass( const char * name ) {
+	RenderPass pass;
+	pass.name = name;
+	pass.sorted = false;
+	return AddRenderPass( pass );
 }
 
 void AddResolveMSAAPass( Framebuffer fb ) {

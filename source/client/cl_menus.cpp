@@ -64,7 +64,6 @@ static size_t selected_secondary;
 
 static SettingsState settings_state;
 static bool reset_video_settings;
-static int pressed_key;
 
 static void ResetServerBrowser() {
 	for( int i = 0; i < num_servers; i++ ) {
@@ -173,12 +172,17 @@ static void KeyBindButton( const char * label, const char * command ) {
 
 	if( ImGui::BeginPopupModal( label, NULL, ImGuiWindowFlags_NoDecoration ) ) {
 		ImGui::Text( "Press a key to set a new bind, or press ESCAPE to cancel." );
-		if( pressed_key != -1 ) {
-			if( pressed_key != K_ESCAPE ) {
-				Key_SetBinding( pressed_key, command );
+
+		const ImGuiIO & io = ImGui::GetIO();
+		for( size_t i = 0; i < ARRAY_COUNT( io.KeysDown ); i++ ) {
+			if( ImGui::IsKeyPressed( i ) ) {
+				if( i != K_ESCAPE ) {
+					Key_SetBinding( i, command );
+				}
+				ImGui::CloseCurrentPopup();
 			}
-			ImGui::CloseCurrentPopup();
 		}
+
 		ImGui::EndPopup();
 	}
 
@@ -882,7 +886,7 @@ static void GameMenu() {
 			ImGui::Columns( 1 );
 			ImGui::SetCursorPosY( ImGui::GetWindowSize().y - ImGui::GetFrameHeight() );
 
-			if( ImGui::Button( "Leave", ImVec2( -1, 0 ) ) || pressed_key == K_ESCAPE || pressed_key == 'b' ) {
+			if( ImGui::Button( "Leave", ImVec2( -1, 0 ) ) ) {
 				should_close = true;
 			}
 
@@ -907,7 +911,7 @@ static void GameMenu() {
 		ImGui::End();
 	}
 
-	if( pressed_key == K_ESCAPE || should_close ) {
+	if( ImGui::IsKeyPressed( K_ESCAPE, false ) || should_close ) {
 		uistate = UIState_Hidden;
 		CL_SetKeyDest( key_game );
 	}
@@ -935,7 +939,7 @@ static void DemoMenu() {
 
 	ImGui::End();
 
-	if( pressed_key == K_ESCAPE || should_close ) {
+	if( ImGui::IsKeyPressed( K_ESCAPE, false ) || should_close ) {
 		uistate = UIState_Hidden;
 		CL_SetKeyDest( key_game );
 	}
@@ -947,7 +951,6 @@ void UI_Refresh() {
 	ZoneScoped;
 
 	if( uistate == UIState_Hidden && !Con_IsVisible() ) {
-		pressed_key = -1;
 		return;
 	}
 
@@ -974,12 +977,10 @@ void UI_Refresh() {
 	}
 
 	if( Con_IsVisible() ) {
-		Con_Draw( pressed_key );
+		Con_Draw();
 	}
 
 	Cbuf_Execute();
-
-	pressed_key = -1;
 }
 
 void UI_UpdateConnectScreen() {
@@ -987,32 +988,26 @@ void UI_UpdateConnectScreen() {
 	UI_Refresh();
 }
 
-void UI_KeyEvent( bool mainContext, int key, bool down ) {
-	if( down ) {
-		pressed_key = key;
+void UI_KeyEvent( int key, bool down ) {
+	if( key == K_MWHEELDOWN || key == K_MWHEELUP ) {
+		if( down ) {
+			ImGui::GetIO().MouseWheel += key == K_MWHEELDOWN ? -1 : 1;
+		}
+	}
+	else if( key == K_LCTRL || key == K_RCTRL ) {
+		ImGui::GetIO().KeyCtrl = down;
+	}
+	else if( key == K_LSHIFT || key == K_RSHIFT ) {
+		ImGui::GetIO().KeyShift = down;
+	}
+	else if( key == K_LALT || key == K_RALT ) {
+		ImGui::GetIO().KeyAlt = down;
 	}
 
-	if( key != K_ESCAPE ) {
-		if( key == K_MWHEELDOWN || key == K_MWHEELUP ) {
-			if( down )
-				ImGui::GetIO().MouseWheel += key == K_MWHEELDOWN ? -1 : 1;
-		}
-		else if( key == K_LCTRL || key == K_RCTRL ) {
-			ImGui::GetIO().KeyCtrl = down;
-		}
-		else if( key == K_LSHIFT || key == K_RSHIFT ) {
-			ImGui::GetIO().KeyShift = down;
-		}
-		else if( key == K_LALT || key == K_RALT ) {
-			ImGui::GetIO().KeyAlt = down;
-		}
-		else {
-			ImGui::GetIO().KeysDown[ key ] = down;
-		}
-	}
+	ImGui::GetIO().KeysDown[ key ] = down;
 }
 
-void UI_CharEvent( bool mainContext, wchar_t key ) {
+void UI_CharEvent( wchar_t key ) {
 	ImGui::GetIO().AddInputCharacter( key );
 }
 
@@ -1024,6 +1019,9 @@ void UI_ShowMainMenu() {
 }
 
 void UI_ShowGameMenu( bool spectating, bool ready ) {
+	// so the menu doesn't instantly close
+	ImGui::GetIO().KeysDown[ K_ESCAPE ] = false;
+
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Menu;
 	is_spectating = spectating;
@@ -1032,6 +1030,9 @@ void UI_ShowGameMenu( bool spectating, bool ready ) {
 }
 
 void UI_ShowDemoMenu() {
+	// so the menu doesn't instantly close
+	ImGui::GetIO().KeysDown[ K_ESCAPE ] = false;
+
 	uistate = UIState_DemoMenu;
 	CL_SetKeyDest( key_menu );
 }
@@ -1046,9 +1047,6 @@ void UI_AddToServerList( const char * address, const char *info ) {
 		servers[ num_servers ].info = strdup( info );
 		num_servers++;
 	}
-}
-
-void UI_MouseSet( bool mainContext, int mx, int my, bool showCursor ) {
 }
 
 void UI_ShowLoadoutMenu( int primary, int secondary ) {

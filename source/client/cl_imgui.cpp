@@ -212,8 +212,6 @@ void format( FormatBuffer * fb, const ImGuiColorToken & token, const FormatOpts 
 	format( fb, ( const char * ) token.token );
 }
 
-/* Utility */
-
 void ColumnCenterText( const char * str ) {
 	float width = ImGui::CalcTextSize( str ).x;
 	ImGui::SetCursorPosX( ImGui::GetColumnOffset() + 0.5f * ( ImGui::GetColumnWidth() - width ) );

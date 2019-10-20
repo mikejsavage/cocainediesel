@@ -315,15 +315,6 @@ void CL_GameModule_InputFrame( int frameTime ) {
 }
 
 /*
-* CL_GameModule_ClearInputState
-*/
-void CL_GameModule_ClearInputState( void ) {
-	if( cge ) {
-		cge->ClearInputState();
-	}
-}
-
-/*
 * CL_GameModule_GetButtonBits
 */
 unsigned CL_GameModule_GetButtonBits( void ) {

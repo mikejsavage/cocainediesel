@@ -47,7 +47,7 @@ static void OpenTeamChat() {
 	}
 }
 
-void CloseChat() {
+static void CloseChat() {
 	chat.mode = ChatMode_None;
 	CL_SetKeyDest( key_game );
 }
@@ -152,6 +152,10 @@ void CG_DrawChat() {
 	}
 
 	ImGui::End();
+
+	if( ImGui::IsKeyPressed( K_ESCAPE ) ) {
+		CloseChat();
+	}
 }
 
 void CG_FlashChatHighlight( const unsigned int fromIndex, const char *text ) {

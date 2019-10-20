@@ -89,8 +89,8 @@ static void mouse_wheel_event( SDL_MouseWheelEvent *event ) {
 	Key_Event( key, false );
 }
 
-static wchar_t TranslateSDLScancode( SDL_Scancode scancode ) {
-	wchar_t charkey = 0;
+static int TranslateSDLScancode( SDL_Scancode scancode ) {
+	int charkey = 0;
 
 	switch( scancode ) {
 		case SDL_SCANCODE_TAB:          charkey = K_TAB;        break;
@@ -218,17 +218,12 @@ static void key_event( const SDL_KeyboardEvent *event, bool state ) {
 	if( event->keysym.scancode == SDL_SCANCODE_GRAVE ) {
 		if( state ) {
 			Con_ToggleConsole();
-			SDL_StopTextInput();
-		}
-		else {
-			SDL_StartTextInput();
 		}
 		return;
 	}
 
-	wchar_t charkey = TranslateSDLScancode( event->keysym.scancode );
-
-	if( charkey >= 0 && charkey <= 255 ) {
+	int charkey = TranslateSDLScancode( event->keysym.scancode );
+	if( charkey != 0 ) {
 		Key_Event( charkey, state );
 	}
 }
@@ -255,24 +250,6 @@ static void IN_HandleEvents( void ) {
 		switch( event.type ) {
 			case SDL_KEYDOWN:
 				key_event( &event.key, true );
-
-				// Emulate copy/paste
-				#if defined( __APPLE__ )
-					#define KEYBOARD_COPY_PASTE_MODIFIER KMOD_GUI
-				#else
-					#define KEYBOARD_COPY_PASTE_MODIFIER KMOD_CTRL
-				#endif
-
-				if( event.key.keysym.sym == SDLK_c ) {
-					if( event.key.keysym.mod & KEYBOARD_COPY_PASTE_MODIFIER ) {
-						Key_CharEvent( KC_CTRLC, KC_CTRLC );
-					}
-				} else if( event.key.keysym.sym == SDLK_v ) {
-					if( event.key.keysym.mod & KEYBOARD_COPY_PASTE_MODIFIER ) {
-						Key_CharEvent( KC_CTRLV, KC_CTRLV );
-					}
-				}
-
 				break;
 
 			case SDL_KEYUP:
@@ -293,7 +270,7 @@ static void IN_HandleEvents( void ) {
 				if( wtext ) {
 					wchar_t charkey = wtext[0];
 					int key = ( charkey <= 255 ) ? charkey : 0;
-					Key_CharEvent( key, charkey );
+					Key_CharEvent( charkey );
 					SDL_free( wtext );
 				}
 				break;

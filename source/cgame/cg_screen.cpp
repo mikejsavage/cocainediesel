@@ -152,7 +152,7 @@ void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color ) {
 	}
 	x = CG_HorizontalAlignForWidth( x, alignment, w );
 	y = CG_VerticalAlignForHeight( y, alignment, h );
-	Draw2DBox( frame_static.ui_pass, x, y, w, h, cgs.media.shaderNet, color );
+	Draw2DBox( x, y, w, h, cgs.media.shaderNet, color );
 }
 
 /*
@@ -163,7 +163,7 @@ void CG_ScreenCrosshairDamageUpdate( void ) {
 }
 
 static void CG_FillRect( int x, int y, int w, int h, Vec4 color ) {
-	Draw2DBox( frame_static.ui_pass, x, y, w, h, cgs.white_material, color );
+	Draw2DBox( x, y, w, h, cgs.white_material, color );
 }
 
 static Vec4 crosshair_color = vec4_white;
@@ -238,7 +238,7 @@ void CG_DrawKeyState( int x, int y, int w, int h, const char *key ) {
 		color.w = 0.5f;
 	}
 
-	Draw2DBox( frame_static.ui_pass, x, y, w, h, cgs.media.shaderKeyIcon[i], color );
+	Draw2DBox( x, y, w, h, cgs.media.shaderKeyIcon[i], color );
 }
 
 /*
@@ -652,7 +652,7 @@ void CG_DrawBombHUD() {
 		}
 
 		icon_size = ( icon_size * frame_static.viewport_height ) / 600;
-		Draw2DBox( frame_static.ui_pass, coords.x - icon_size / 2, coords.y - icon_size / 2, icon_size, icon_size, icon );
+		Draw2DBox( coords.x - icon_size / 2, coords.y - icon_size / 2, icon_size, icon_size, icon );
 	}
 }
 
@@ -793,7 +793,7 @@ static void CG_SCRDrawViewBlend( void ) {
 	for( int i = 0; i < 4; i++ ) {
 		c.ptr()[ i ] = colorblend[ i ];
 	}
-	Draw2DBox( frame_static.ui_pass, 0, 0, frame_static.viewport_width, frame_static.viewport_height, cgs.white_material, c );
+	Draw2DBox( 0, 0, frame_static.viewport_width, frame_static.viewport_height, cgs.white_material, c );
 }
 
 

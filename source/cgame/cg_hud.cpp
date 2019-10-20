@@ -1238,8 +1238,7 @@ static void CG_DrawObituaries(
 
 		xoffset += icon_padding;
 
-		Draw2DBox( frame_static.ui_pass, x + xoffset, y + yoffset + ( line_height - icon_size ) / 2,
-			icon_size, icon_size, pic, vec4_white );
+		Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, pic, vec4_white );
 
 		xoffset += icon_size + icon_padding;
 
@@ -1323,7 +1322,7 @@ static bool CG_LFuncDrawCallvote( struct cg_layoutnode_s *argumentnode, int numA
 
 	if( !voted ) {
 		float height = padding * 2 + layout_cursor_font_size * 2.2f;
-		Draw2DBox( frame_static.ui_pass, left, top, layout_cursor_width, height, cgs.white_material, Vec4( 0, 0, 0, 0.5f ) );
+		Draw2DBox( left, top, layout_cursor_width, height, cgs.white_material, Vec4( 0, 0, 0, 0.5f ) );
 	}
 
 	Vec4 color = voted ? vec4_white : AttentionGettingColor();
@@ -1575,6 +1574,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		int curih = ih;
 
 		int ammo = cg.predictedPlayerState.inventory[ AMMO_GUNBLADE + i - WEAP_GUNBLADE ];
+		Draw2DBox( curx, cury, iw, ih, CG_GetWeaponIcon( i ) );
 
 		if( CG_IsWeaponSelected( i ) ) {
 			selected_found = true;
@@ -1597,7 +1597,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 static bool CG_LFuncDrawPicByName( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	int x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_alignment, layout_cursor_width );
 	int y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_alignment, layout_cursor_height );
-	Draw2DBox( frame_static.ui_pass, x, y, layout_cursor_width, layout_cursor_height, FindMaterial( CG_GetStringArg( &argumentnode ) ), layout_cursor_color );
+	Draw2DBox( x, y, layout_cursor_width, layout_cursor_height, FindMaterial( CG_GetStringArg( &argumentnode ) ), layout_cursor_color );
 	return true;
 }
 
@@ -1612,7 +1612,7 @@ static bool CG_LFuncDrawSubPicByName( struct cg_layoutnode_s *argumentnode, int 
 	float s2 = CG_GetNumericArg( &argumentnode );
 	float t2 = CG_GetNumericArg( &argumentnode );
 
-	// Draw2DBox( frame_static.ui_pass, x, y, layout_cursor_width, layout_cursor_height, material, layout_cursor_color );
+	// Draw2DBox( x, y, layout_cursor_width, layout_cursor_height, material, layout_cursor_color );
 	return true;
 }
 
@@ -1831,7 +1831,7 @@ static bool CG_LFuncDrawPlayerIcons( struct cg_layoutnode_s *argumentnode, int n
 
 	for( int i = 0; i < total; i++ ) {
 		Vec4 color = i < alive ? team_color : layout_cursor_color;
-		Draw2DBox( frame_static.ui_pass, x + dx * i, y, width, height, icon, color );
+		Draw2DBox( x + dx * i, y, width, height, icon, color );
 	}
 
 	return true;

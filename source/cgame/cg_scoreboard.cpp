@@ -88,7 +88,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, ScoreboardPlayer player,
 
 		Texture texture = icon->textures[ 0 ].texture;
 		Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
-		ImGui::Image( ( void * ) uintptr_t( texture.texture ), Vec2( dim ), half_pixel, 1.0f - half_pixel, vec4_black );
+		ImGui::Image( texture, Vec2( dim ), half_pixel, 1.0f - half_pixel, vec4_black );
 	}
 
 	ImGui::NextColumn();

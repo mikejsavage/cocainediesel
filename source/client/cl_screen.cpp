@@ -85,7 +85,7 @@ void SCR_DebugGraph( float value, float r, float g, float b ) {
 }
 
 static void SCR_DrawFillRect( int x, int y, int w, int h, Vec4 color ) {
-	Draw2DBox( frame_static.ui_pass, x, y, w, h, cls.whiteTexture, color );
+	Draw2DBox( x, y, w, h, cls.whiteTexture, color );
 }
 
 /*

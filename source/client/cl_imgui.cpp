@@ -72,8 +72,9 @@ void CL_InitImGui() {
 		config.height = height;
 		config.data = pixels;
 		config.format = TextureFormat_A_U8;
+
 		Texture texture = NewTexture( config );
-		io.Fonts->TexID = ( void * ) uintptr_t( texture.texture );
+		io.Fonts->TexID = ImGuiShaderAndTexture( texture );
 	}
 
 	{
@@ -93,9 +94,7 @@ void CL_InitImGui() {
 }
 
 void CL_ShutdownImGui() {
-	Texture texture;
-	texture.texture = uintptr_t( ImGui::GetIO().Fonts->TexID );
-	DeleteTexture( texture );
+	DeleteTexture( ImGui::GetIO().Fonts->TexID.texture );
 
 	ImGui_ImplSDL2_Shutdown();
 	ImGui::DestroyContext();
@@ -139,7 +138,7 @@ static void SubmitDrawCalls() {
 				if( scissor.mins.x < fb_width && scissor.mins.y < fb_height && scissor.maxs.x >= 0.0f && scissor.maxs.y >= 0.0f ) {
 					PipelineState pipeline;
 					pipeline.pass = frame_static.ui_pass;
-					pipeline.shader = &shaders.standard_vertexcolors;
+					pipeline.shader = pcmd->TextureId.shader;
 					pipeline.depth_func = DepthFunc_Disabled;
 					pipeline.blend_func = BlendFunc_Blend;
 					pipeline.cull_face = CullFace_Disabled;
@@ -153,9 +152,11 @@ static void SubmitDrawCalls() {
 					pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
 					pipeline.set_uniform( "u_Material", frame_static.identity_material_uniforms );
 
-					Texture texture = { };
-					texture.texture = u32( uintptr_t( pcmd->TextureId ) );
-					pipeline.set_texture( "u_BaseTexture", texture );
+					if( pcmd->TextureId.uniform_name != EMPTY_HASH ) {
+						pipeline.set_uniform( pcmd->TextureId.uniform_name, pcmd->TextureId.uniform_block );
+					}
+
+					pipeline.set_texture( "u_BaseTexture", pcmd->TextureId.texture );
 
 					DrawMesh( mesh, pipeline, pcmd->ElemCount, idx_buffer_offset * sizeof( u16 ) );
 				}

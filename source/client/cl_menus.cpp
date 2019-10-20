@@ -722,7 +722,7 @@ static void SelectableWeapon( const int weapon_pic, int idx, size_t *selection, 
 	const Material * icon = cgs.media.shaderWeaponIcon[ weapon_pic ];
 	Texture texture = icon->textures[ 0 ].texture;
 
-	if( ImGui::ImageButton( ( void * ) uintptr_t( texture.texture ), size, ImVec2( 0, 0 ), ImVec2(1, 1), 0 ) ) {
+	if( ImGui::ImageButton( texture, size, ImVec2( 0, 0 ), ImVec2( 1, 1 ), 0 ) ) {
 		*selection = idx;
 		String< 128 > buf( "weapselect {} {}\n", ( primary ? weapselect[ idx ] : loadout ) , ( primary ? loadout : weapselect[ idx ] ) );
 		Cbuf_AddText( buf );

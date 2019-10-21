@@ -499,7 +499,10 @@ keydest_t CL_GetKeyDest( void ) {
 * CL_SetKeyDest
 */
 void CL_SetKeyDest( keydest_t key_dest ) {
-	cls.key_dest = key_dest;
+	if( key_dest != cls.key_dest ) {
+		Key_ClearStates();
+		cls.key_dest = key_dest;
+	}
 }
 
 /*

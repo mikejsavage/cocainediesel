@@ -50,6 +50,7 @@ do
 			"source/unix/unix_console.cpp",
 			"source/unix/unix_fs.cpp",
 			"source/unix/unix_net.cpp",
+			"source/unix/unix_sys.cpp",
 			"source/unix/unix_threads.cpp",
 			"source/unix/unix_time.cpp",
 		}
@@ -121,6 +122,7 @@ do
 			"source/unix/unix_lib.cpp",
 			"source/unix/unix_net.cpp",
 			"source/unix/unix_server.cpp",
+			"source/unix/unix_sys.cpp",
 			"source/unix/unix_threads.cpp",
 			"source/unix/unix_time.cpp",
 		}

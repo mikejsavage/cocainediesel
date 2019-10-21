@@ -58,8 +58,6 @@ static void InitSig() {
 	catchsig( SIGUSR1, sigusr_handler );
 }
 
-void Sys_Init() { }
-
 void Sys_Quit() {
 	fcntl( 0, F_SETFL, fcntl( 0, F_GETFL, 0 ) & ~O_NONBLOCK );
 

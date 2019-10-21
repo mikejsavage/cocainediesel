@@ -198,12 +198,15 @@ static int TranslateSDLScancode( SDL_Scancode scancode ) {
 		case SDL_SCANCODE_KP_8:         return KP_UPARROW;
 		case SDL_SCANCODE_KP_9:         return KP_PGUP;
 		case SDL_SCANCODE_KP_ENTER:     return KP_ENTER;
+		case SDL_SCANCODE_RETURN2:      return KP_ENTER;
 		case SDL_SCANCODE_KP_PERIOD:    return KP_DEL;
 		case SDL_SCANCODE_KP_PLUS:      return KP_PLUS;
 		case SDL_SCANCODE_KP_MINUS:     return KP_MINUS;
 		case SDL_SCANCODE_KP_DIVIDE:    return KP_SLASH;
 		case SDL_SCANCODE_KP_MULTIPLY:  return KP_STAR;
 		case SDL_SCANCODE_KP_EQUALS:    return KP_EQUAL;
+
+		default: break;
 	}
 	return 0;
 }

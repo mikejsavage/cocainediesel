@@ -47,7 +47,7 @@ void CL_InitImGui() {
 		io.KeyMap[ ImGuiKey_Space ] = K_SPACE;
 		io.KeyMap[ ImGuiKey_Enter ] = K_ENTER;
 		io.KeyMap[ ImGuiKey_Escape ] = K_ESCAPE;
-		io.KeyMap[ ImGuiKey_KeyPadEnter] = K_ENTER;
+		io.KeyMap[ ImGuiKey_KeyPadEnter ] = KP_ENTER;
 		io.KeyMap[ ImGuiKey_A ] = 'a';
 		io.KeyMap[ ImGuiKey_C ] = 'c';
 		io.KeyMap[ ImGuiKey_V ] = 'v';

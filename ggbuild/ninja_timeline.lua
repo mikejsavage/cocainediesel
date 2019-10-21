@@ -21,7 +21,7 @@ table.sort( edges, function( a, b )
 end )
 
 local function truncate( str, len )
-	str = str:gsub( "%.pic", "" ):gsub( "%.o", "" )
+	str = str:gsub( "%.pic", "" ):gsub( "%.obj", "" ):gsub( "%.o", "" )
 	return str:sub( 1, len ) .. string.rep( " ", len - str:len() )
 end
 

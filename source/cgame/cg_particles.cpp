@@ -330,10 +330,8 @@ void ResetParticleEditor() {
 	editor_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( StringHash( ( const char * ) editor_texture_name ) ), Vec3( 0 ), editor_blend ? BlendFunc_Blend : BlendFunc_Add );
 }
 
-static constexpr char * position_distribution_names[] = { "Sphere", "Disk", "Line" };
-
 static void RandomDistributionEditor( const char * id, RandomDistribution * dist, float range ) {
-	constexpr char * names[] = { "Uniform", "Normal" };
+	constexpr const char * names[] = { "Uniform", "Normal" };
 
 	TempAllocator temp = cls.frame_arena.temp();
 
@@ -450,6 +448,7 @@ void DrawParticleEditor() {
 
 		ImGui::Separator();
 
+		constexpr const char * position_distribution_names[] = { "Sphere", "Disk", "Line" };
 		if( ImGui::BeginCombo( "Position distribution", position_distribution_names[ editor_emitter.position_distribution.type ] ) ) {
 			for( int i = 0; i < 3; i++ ) {
 				if( ImGui::Selectable( position_distribution_names[ i ], i == editor_emitter.position_distribution.type ) )

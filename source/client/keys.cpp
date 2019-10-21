@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/client.h"
 
 static char *keybindings[256];
+static bool keydown[256];
 
 struct keyname_t {
 	const char *name;
@@ -180,8 +181,8 @@ static void Key_Unbind_f() {
 }
 
 static void Key_Unbindall() {
-	for( int i = 0; i < ARRAY_COUNT( keybindings ); i++ ) {
-		if( keybindings[i] ) {
+	for( int i = 0; i < int( ARRAY_COUNT( keybindings ) ); i++ ) {
+		if( keybindings[ i ] ) {
 			Key_SetBinding( i, NULL );
 		}
 	}
@@ -224,7 +225,7 @@ static void Key_Bind_f() {
 void Key_WriteBindings( int file ) {
 	FS_Printf( file, "unbindall\r\n" );
 
-	for( int i = 0; i < ARRAY_COUNT( keybindings ); i++ ) {
+	for( int i = 0; i < int( ARRAY_COUNT( keybindings ) ); i++ ) {
 		if( keybindings[i] && keybindings[i][0] ) {
 			FS_Printf( file, "bind %s \"%s\"\r\n", Key_KeynumToString( i ), keybindings[i] );
 		}
@@ -232,7 +233,7 @@ void Key_WriteBindings( int file ) {
 }
 
 static void Key_Bindlist_f() {
-	for( int i = 0; i < ARRAY_COUNT( keybindings ); i++ ) {
+	for( int i = 0; i < int( ARRAY_COUNT( keybindings ) ); i++ ) {
 		if( keybindings[i] && keybindings[i][0] ) {
 			Com_Printf( "%s \"%s\"\n", Key_KeynumToString( i ), keybindings[i] );
 		}
@@ -284,6 +285,16 @@ void Key_Event( int key, bool down ) {
 				Cbuf_AddText( kb );
 				Cbuf_AddText( "\n" );
 			}
+		}
+	}
+
+	keydown[ key ] = down;
+}
+
+void Key_ClearStates() {
+	for( int i = 0; i < int( ARRAY_COUNT( keydown ) ); i++ ) {
+		if( keydown[ i ] ) {
+			Key_Event( i, false );
 		}
 	}
 }

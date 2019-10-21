@@ -716,6 +716,8 @@ done:
 	CL_FreeDownloadList();
 
 	CL_ExecuteNext(); // start next action if any is defined
+
+	CL_GameModule_Shutdown();
 }
 
 void CL_Disconnect_f( void ) {
@@ -2207,7 +2209,6 @@ void CL_Shutdown( void ) {
 	UI_Shutdown();
 	CL_ShutdownImGui();
 
-	CL_GameModule_Shutdown();
 	S_Shutdown();
 	CL_ShutdownInput();
 	VID_Shutdown();

@@ -4,6 +4,8 @@
 #include "cgame/ref.h"
 #include "client/renderer/backend.h"
 
+class btCollisionShape;
+
 struct Model {
 	struct Primitive {
 		const Material * material;
@@ -41,6 +43,9 @@ struct Model {
 
 	Primitive * primitives;
 	u32 num_primitives;
+
+	btCollisionShape ** collision_shapes;
+	u32 num_collision_shapes;
 
 	Joint * joints;
 	u8 num_joints;

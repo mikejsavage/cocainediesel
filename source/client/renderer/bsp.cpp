@@ -8,20 +8,24 @@
 #include "qcommon/span2d.h"
 #include "client/renderer/renderer.h"
 
+#include "bullet/btBulletCollisionCommon.h"
+#include "bullet/LinearMath/btGeometryUtil.h"
+
 #include "meshoptimizer/meshoptimizer.h"
+
 #include "zstd/zstd.h"
 
 enum BSPLump {
 	BSPLump_Entities,
 	BSPLump_Materials,
-	BSPLump_Planes_Unused,
+	BSPLump_Planes,
 	BSPLump_Nodes_Unused,
 	BSPLump_Leaves_Unused,
 	BSPLump_LeafFaces_Unused,
 	BSPLump_LeafBrushes_Unused,
 	BSPLump_Models,
-	BSPLump_Brushes_Unused,
-	BSPLump_BrushSides_Unused,
+	BSPLump_Brushes,
+	BSPLump_BrushSides,
 	BSPLump_Vertices,
 	BSPLump_Indices,
 	BSPLump_Fogs_Unused,
@@ -51,12 +55,34 @@ struct BSPMaterial {
 	u32 contents;
 };
 
+struct BSPPlane {
+	Vec3 normal;
+	float distance;
+};
+
 struct BSPModel {
 	MinMax3 bounds;
 	u32 first_face;
 	u32 num_faces;
 	u32 first_brush;
 	u32 num_brushes;
+};
+
+struct BSPBrush {
+	u32 first_brush_side;
+	u32 num_brush_sides;
+	u32 material;
+};
+
+struct BSPBrushSide {
+	u32 plane;
+	u32 material;
+};
+
+struct RavenBSPBrushSide {
+	u32 plane;
+	u32 material;
+	u32 surface;
 };
 
 struct BSPVertex {
@@ -133,7 +159,11 @@ struct BSPVisbilityHeader {
 struct BSPSpans {
 	Span< const char > entities;
 	Span< const BSPMaterial > materials;
+	Span< const BSPPlane > planes;
 	Span< const BSPModel > models;
+	Span< const BSPBrush > brushes;
+	Span< const BSPBrushSide > brush_sides;
+	Span< const RavenBSPBrushSide > raven_brush_sides;
 	Span< const BSPVertex > vertices;
 	Span< const RavenBSPVertex > raven_vertices;
 	Span< const BSPIndex > indices;
@@ -196,20 +226,26 @@ static bool ParseBSP( BSPSpans * bsp, Span< const u8 > data ) {
 	bool ok = true;
 	ok = ok && ParseLump( &bsp->entities, data, BSPLump_Entities );
 	ok = ok && ParseLump( &bsp->materials, data, BSPLump_Materials );
+	ok = ok && ParseLump( &bsp->planes, data, BSPLump_Planes );
 	ok = ok && ParseLump( &bsp->models, data, BSPLump_Models );
+	ok = ok && ParseLump( &bsp->brushes, data, BSPLump_Brushes );
 	ok = ok && ParseLump( &bsp->indices, data, BSPLump_Indices );
 
 	if( bsp->idbsp ) {
 		ok = ok && ParseLump( &bsp->vertices, data, BSPLump_Vertices );
 		ok = ok && ParseLump( &bsp->faces, data, BSPLump_Faces );
+		ok = ok && ParseLump( &bsp->brush_sides, data, BSPLump_BrushSides );
 		bsp->raven_vertices = { };
 		bsp->raven_faces = { };
+		bsp->raven_brush_sides = { };
 	}
 	else {
 		bsp->vertices = { };
 		bsp->faces = { };
+		bsp->brush_sides = { };
 		ok = ok && ParseLump( &bsp->raven_vertices, data, BSPLump_Vertices );
 		ok = ok && ParseLump( &bsp->raven_faces, data, BSPLump_Faces );
+		ok = ok && ParseLump( &bsp->raven_brush_sides, data, BSPLump_BrushSides );
 	}
 
 	ok = ok && ParsePVS( bsp, data );
@@ -478,6 +514,54 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 	// }
 
 	model->mesh = NewMesh( mesh_config );
+
+	// bullet
+	{
+		ZoneScopedN( "Create bullet collision shapes" );
+
+		u32 num_solid_brushes = 0;
+		for( u32 i = 0; i < bsp_model.num_brushes; i++ ) {
+			const BSPBrush & brush = bsp.brushes[ bsp_model.first_brush + i ];
+			if( bsp.materials[ brush.material ].contents & CONTENTS_SOLID ) {
+				num_solid_brushes++;
+			}
+		}
+
+		if( num_solid_brushes != 0 ) {
+			model->collision_shapes = ALLOC_MANY( sys_allocator, btCollisionShape *, num_solid_brushes );
+
+			for( u32 i = 0; i < bsp_model.num_brushes; i++ ) {
+				const BSPBrush & brush = bsp.brushes[ bsp_model.first_brush + i ];
+				if( ( bsp.materials[ brush.material ].contents & CONTENTS_SOLID ) == 0 )
+					continue;
+
+				btAlignedObjectArray< btVector3 > planes;
+
+				if( bsp.idbsp ) {
+					for( u32 j = 0; j < brush.num_brush_sides; j++ ) {
+						BSPPlane plane = bsp.planes[ bsp.brush_sides[ brush.first_brush_side + j ].plane ];
+						btVector3 bt_plane( plane.normal.x, plane.normal.y, plane.normal.z );
+						bt_plane[ 3 ] = -plane.distance;
+						planes.push_back( bt_plane );
+					}
+				}
+				else {
+					for( u32 j = 0; j < brush.num_brush_sides; j++ ) {
+						BSPPlane plane = bsp.planes[ bsp.raven_brush_sides[ brush.first_brush_side + j ].plane ];
+						btVector3 bt_plane( plane.normal.x, plane.normal.y, plane.normal.z );
+						bt_plane[ 3 ] = -plane.distance;
+						planes.push_back( bt_plane );
+					}
+				}
+
+				btAlignedObjectArray< btVector3 > hull_vertices;
+				btGeometryUtil::getVerticesFromPlaneEquations( planes, hull_vertices );
+
+				model->collision_shapes[ model->num_collision_shapes ] = new btConvexHullShape( &hull_vertices[ 0 ].getX(), hull_vertices.size() );
+				model->num_collision_shapes++;
+			}
+		}
+	}
 }
 
 bool LoadBSPMap( MapMetadata * map, const char * path ) {

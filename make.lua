@@ -93,7 +93,7 @@ do
 		rc = "source/win32/client",
 
 		gcc_extra_ldflags = "-lm -lpthread -ldl -no-pie -static-libstdc++",
-		msvc_extra_ldflags = "gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib /SUBSYSTEM:WINDOWS libs/bullet/Bullet2FileLoader.lib libs/bullet/Bullet3Collision.lib libs/bullet/Bullet3Common.lib libs/bullet/Bullet3Dynamics.lib libs/bullet/Bullet3Geometry.lib libs/bullet/Bullet3OpenCL_clew.lib libs/bullet/BulletCollision.lib libs/bullet/BulletDynamics.lib libs/bullet/BulletInverseDynamics.lib libs/bullet/BulletSoftBody.lib libs/bullet/LinearMath.lib",
+		msvc_extra_ldflags = "gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib /SUBSYSTEM:WINDOWS libs/bullet/BulletCollision.lib libs/bullet/BulletDynamics.lib libs/bullet/LinearMath.lib",
 	} )
 
 	obj_cxxflags( "source/client/ftlib/.+", "-I libs/freetype" )

@@ -1,3 +1,5 @@
+#include <new>
+
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "gameshared/gs_public.h"
@@ -9,7 +11,85 @@
 #include "bullet/btBulletDynamicsCommon.h"
 #include "bullet/LinearMath/btGeometryUtil.h"
 
-btDiscreteDynamicsWorld* dynamicsWorld;
+#define NEW( a, T, ... ) new ( ALLOC( a, T ) ) T( __VA_ARGS__ )
+#define DELETE( a, T, p ) p->~T(); FREE( a, p )
+
+struct BulletDebugRenderer : public btIDebugDraw {
+	int mode;
+	DefaultColors default_colors;
+
+	virtual DefaultColors getDefaultColors() const {
+		return default_colors;
+	}
+
+	virtual void setDefaultColors( const DefaultColors & colors ) {
+		default_colors = colors;
+	}
+
+	virtual void drawLine( const btVector3 & start, const btVector3 & end, const btVector3 & color ) {
+		Vec3 positions[] = {
+			Vec3( start.x(), start.y(), start.z() ),
+			Vec3( end.x(), end.y(), end.z() ),
+		};
+
+		Vec4 colors[] = {
+			Vec4( color.x(), color.y(), color.z(), 1.0f ),
+			Vec4( color.x(), color.y(), color.z(), 1.0f ),
+		};
+
+		u16 indices[] = { 0, 1 };
+
+		MeshConfig config;
+		config.positions = NewVertexBuffer( positions, sizeof( positions ) );
+		config.colors = NewVertexBuffer( colors, sizeof( colors ) );
+		config.indices = NewIndexBuffer( indices, sizeof( indices ) );
+		config.num_vertices = 2;
+		config.primitive_type = PrimitiveType_Lines;
+
+		Mesh mesh = NewMesh( config );
+
+		PipelineState pipeline;
+		pipeline.pass = frame_static.transparent_pass;
+		pipeline.shader = &shaders.standard_vertexcolors;
+		pipeline.write_depth = false;
+		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+		pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+		pipeline.set_uniform( "u_Material", frame_static.identity_material_uniforms );
+		pipeline.set_texture( "u_BaseTexture", FindTexture( "$whiteimage" ) );
+
+		DrawMesh( mesh, pipeline );
+
+		DeferDeleteMesh( mesh );
+	}
+
+	virtual void drawContactPoint( const btVector3 & p, const btVector3 & normal, btScalar distance, int lifetime, const btVector3 & color ) {
+		drawLine( p, p + normal * distance, color );
+	}
+
+	virtual void reportErrorWarning( const char * str ) {
+		Com_Printf( "%s\n", str );
+	}
+
+	virtual void draw3dText( const btVector3 & location, const char * str ) {
+		Com_Printf( "%s\n", str );
+	}
+
+	virtual void setDebugMode( int debugMode ) {
+		mode = debugMode;
+	}
+
+	virtual int getDebugMode() const {
+		return mode;
+	}
+};
+
+static BulletDebugRenderer debug_renderer;
+
+static btDefaultCollisionConfiguration * collision_configuration;
+static btCollisionDispatcher * collision_dispatcher;
+static btBroadphaseInterface * broadphase_pass;
+static btSequentialImpulseConstraintSolver * constraint_solver;
+static btDiscreteDynamicsWorld * dynamics_world;
 
 btSphereShape * ball0;
 btSphereShape * ball1;
@@ -19,16 +99,24 @@ btRigidBody * body1;
 void InitPhysics() {
 	ZoneScoped;
 
-	btDefaultCollisionConfiguration* collisionConfiguration = new btDefaultCollisionConfiguration();
-	btCollisionDispatcher* dispatcher = new btCollisionDispatcher( collisionConfiguration );
-	btBroadphaseInterface* overlappingPairCache = new btDbvtBroadphase();
-	btSequentialImpulseConstraintSolver* solver = new btSequentialImpulseConstraintSolver;
-	dynamicsWorld = new btDiscreteDynamicsWorld( dispatcher, overlappingPairCache, solver, collisionConfiguration );
+	collision_configuration = NEW( sys_allocator, btDefaultCollisionConfiguration );
+	collision_dispatcher = NEW( sys_allocator, btCollisionDispatcher, collision_configuration );
+	broadphase_pass = NEW( sys_allocator, btDbvtBroadphase );
+	constraint_solver = NEW( sys_allocator, btSequentialImpulseConstraintSolver );
+	dynamics_world = NEW( sys_allocator, btDiscreteDynamicsWorld, collision_dispatcher, broadphase_pass, constraint_solver, collision_configuration );
 
-	dynamicsWorld->setGravity( btVector3( 0, 0, -GRAVITY ) );
+	dynamics_world->setGravity( btVector3( 0, 0, -GRAVITY ) );
+	dynamics_world->setDebugDrawer( &debug_renderer );
+	debug_renderer.setDebugMode( 0
+		// | btIDebugDraw::DBG_DrawWireframe
+		// | btIDebugDraw::DBG_DrawAabb
+		| btIDebugDraw::DBG_DrawContactPoints
+		| btIDebugDraw::DBG_DrawConstraints
+		| btIDebugDraw::DBG_DrawConstraintLimits
+	);
 
 	{
-		ball0 = new btSphereShape( 64 );
+		ball0 = NEW( sys_allocator, btSphereShape, 64 );
 
 		btTransform startTransform;
 		startTransform.setIdentity();
@@ -40,9 +128,9 @@ void InitPhysics() {
 
 		startTransform.setOrigin(btVector3(-215, 400, 1000));
 
-		btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
+		btDefaultMotionState* myMotionState = NEW( sys_allocator, btDefaultMotionState, startTransform );
 		btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, ball0, localInertia);
-		body0 = new btRigidBody(rbInfo);
+		body0 = NEW( sys_allocator, btRigidBody, rbInfo );
 
 		body0->setRestitution( 1.0f );
 
@@ -50,11 +138,11 @@ void InitPhysics() {
 		// body0->setDeactivationTime(0.8f);
 		// body0->setSleepingThresholds(1.6f, 2.5f);
 
-		dynamicsWorld->addRigidBody(body0);
+		dynamics_world->addRigidBody(body0);
 	}
 
 	{
-		ball1 = new btSphereShape( 64 );
+		ball1 = NEW( sys_allocator, btSphereShape, 64 );
 
 		btTransform startTransform;
 		startTransform.setIdentity();
@@ -66,9 +154,9 @@ void InitPhysics() {
 
 		startTransform.setOrigin(btVector3(-215, 600, 1000));
 
-		btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
+		btDefaultMotionState* myMotionState = NEW( sys_allocator, btDefaultMotionState, startTransform );
 		btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, ball1, localInertia);
-		body1 = new btRigidBody(rbInfo);
+		body1 = NEW( sys_allocator, btRigidBody, rbInfo );
 
 		body1->setRestitution( 1.0f );
 
@@ -76,7 +164,7 @@ void InitPhysics() {
 		// body1->setDeactivationTime(0.8f);
 		// body1->setSleepingThresholds(1.6f, 2.5f);
 
-		dynamicsWorld->addRigidBody(body1);
+		dynamics_world->addRigidBody(body1);
 	}
 
 	{
@@ -86,58 +174,85 @@ void InitPhysics() {
 		localA.setOrigin( btVector3( 0, 0, 0 ) );
 		localB.setOrigin( btVector3( 0, 200, 0 ) );
 
-		btGeneric6DofConstraint * joint = new btGeneric6DofConstraint( *body0, *body1, localA, localB, true );
+		// btGeneric6DofConstraint * joint = NEW( sys_allocator, btGeneric6DofConstraint, *body0, *body1, localA, localB, true );
+                //
+		// joint->setAngularLowerLimit(btVector3(-SIMD_EPSILON,-SIMD_EPSILON,-SIMD_EPSILON));
+		// joint->setAngularUpperLimit(btVector3(SIMD_EPSILON,SIMD_EPSILON,SIMD_EPSILON));
+                //
+		// joint->setLinearLowerLimit(btVector3(-SIMD_EPSILON, -SIMD_EPSILON,-SIMD_EPSILON));
+		// joint->setLinearUpperLimit(btVector3(SIMD_EPSILON, SIMD_EPSILON,SIMD_EPSILON));
 
-		joint->setAngularLowerLimit(btVector3(-SIMD_EPSILON,-SIMD_EPSILON,-SIMD_EPSILON));
-		joint->setAngularUpperLimit(btVector3(SIMD_EPSILON,SIMD_EPSILON,SIMD_EPSILON));
+		btSliderConstraint * joint = NEW( sys_allocator, btSliderConstraint, *body0, *body1, localA, localB, true );
+		joint->setLowerLinLimit( -100 );
+		joint->setUpperLinLimit( 100 );
+		joint->setUpperAngLimit( 0 );
+		joint->setLowerAngLimit( 0 );
 
-		joint->setLinearLowerLimit(btVector3(-SIMD_EPSILON, -SIMD_EPSILON,-SIMD_EPSILON));
-		joint->setLinearUpperLimit(btVector3(SIMD_EPSILON, SIMD_EPSILON,SIMD_EPSILON));
-
-		dynamicsWorld->addConstraint( joint, true );
+		dynamics_world->addConstraint( joint, true );
 	}
 
 	{
-		const cmodel_t * model = &cl.cms->map_cmodels[ 0 ];
-		for( int i = 0; i < model->nummarkbrushes; i++ ) {
-			const cbrush_t * brush = &model->brushes[ i ];
-			btAlignedObjectArray< btVector3 > planes;
+		const char * suffix = "*0";
+		u64 hash = Hash64( suffix, strlen( suffix ), cgs.map->base_hash );
+		const Model * model = FindModel( StringHash( hash ) );
 
-			for( int j = 0; j < brush->numsides; j++ ) {
-				cplane_t plane = brush->brushsides[ j ].plane;
-				// plane.normal/plane.dist
-				btVector3 bt_plane( plane.normal[ 0 ], plane.normal[ 1 ], plane.normal[ 2 ] );
-				bt_plane[ 3 ] = -plane.dist;
-				planes.push_back( bt_plane );
-			}
-
-			btAlignedObjectArray<btVector3> vertices;
-			btGeometryUtil::getVerticesFromPlaneEquations(planes, vertices);
-
-			float mass = 0.f;
+		for( u32 i = 0; i < model->num_collision_shapes; i++ ) {
+			float mass = 0.0f;
 			btTransform startTransform;
 			startTransform.setIdentity();
 
-			btCollisionShape* shape = new btConvexHullShape(&(vertices[0].getX()), vertices.size());
-
-			btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
-			btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, shape);
-			btRigidBody* body = new btRigidBody(rbInfo);
+			btDefaultMotionState * myMotionState = NEW( sys_allocator, btDefaultMotionState, startTransform );
+			btRigidBody::btRigidBodyConstructionInfo info( mass, myMotionState, model->collision_shapes[ i ] );
+			btRigidBody* body = NEW( sys_allocator, btRigidBody, info );
 
 			body->setRestitution( 1.0f );
 
-			dynamicsWorld->addRigidBody(body);
+			dynamics_world->addRigidBody( body );
 		}
 	}
 }
 
+void ShutdownPhysics() {
+	while( dynamics_world->getNumConstraints() > 0 ) {
+		btTypedConstraint * constraint = dynamics_world->getConstraint( dynamics_world->getNumConstraints() - 1 );
+		dynamics_world->removeConstraint( constraint );
+		DELETE( sys_allocator, btTypedConstraint, constraint );
+	}
+
+	while( dynamics_world->getNumCollisionObjects() > 0 ) {
+		btCollisionObject * obj = dynamics_world->getCollisionObjectArray()[ dynamics_world->getNumCollisionObjects() - 1 ];
+		btRigidBody * body = btRigidBody::upcast( obj );
+		if( body != NULL && body->getMotionState() != NULL ) {
+			DELETE( sys_allocator, btMotionState, body->getMotionState() );
+		}
+		dynamics_world->removeCollisionObject( obj );
+		DELETE( sys_allocator, btCollisionObject, obj );
+	}
+
+	DELETE( sys_allocator, btSphereShape, ball0 );
+	DELETE( sys_allocator, btSphereShape, ball1 );
+
+	DELETE( sys_allocator, btDiscreteDynamicsWorld, dynamics_world );
+	DELETE( sys_allocator, btSequentialImpulseConstraintSolver, constraint_solver );
+	DELETE( sys_allocator, btBroadphaseInterface, broadphase_pass );
+	DELETE( sys_allocator, btCollisionDispatcher, collision_dispatcher );
+	DELETE( sys_allocator, btDefaultCollisionConfiguration, collision_configuration );
+}
+
 void UpdatePhysics() {
+	ZoneScoped;
+
 	float dt = cg.frameTime / 1000.0f;
-	dynamicsWorld->stepSimulation( dt, 10 );
+	dynamics_world->stepSimulation( dt, 10 );
+
+	{
+		ZoneScopedN( "Debug draw world" );
+		dynamics_world->debugDrawWorld();
+	}
 
 	{
 		int j = 0;
-		btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[j];
+		btCollisionObject* obj = dynamics_world->getCollisionObjectArray()[j];
 		btRigidBody* body = btRigidBody::upcast(obj);
 		btTransform trans;
 		if (body && body->getMotionState())
@@ -156,7 +271,7 @@ void UpdatePhysics() {
 
 	{
 		int j = 1;
-		btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[j];
+		btCollisionObject* obj = dynamics_world->getCollisionObjectArray()[j];
 		btRigidBody* body = btRigidBody::upcast(obj);
 		btTransform trans;
 		if (body && body->getMotionState())

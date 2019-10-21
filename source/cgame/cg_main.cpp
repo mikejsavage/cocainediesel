@@ -660,6 +660,7 @@ void CG_Reset( void ) {
 }
 
 void InitPhysics();
+void ShutdownPhysics(); // TODO
 /*
 * CG_Init
 */
@@ -738,10 +739,14 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	CG_ConfigString( CS_AUTORECORDSTATE, cgs.configStrings[CS_AUTORECORDSTATE] );
 
 	CG_DemocamInit();
+
+	CG_Precache();
+
 	InitPhysics();
 }
 
 void CG_Shutdown() {
+	ShutdownPhysics();
 	CG_FreeLocalEntities();
 	CG_DemocamShutdown();
 	CG_UnregisterCGameCommands();

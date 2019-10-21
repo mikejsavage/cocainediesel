@@ -72,6 +72,7 @@ static void DeleteModel( Model * model ) {
 
 	FREE( sys_allocator, model->primitives );
 	FREE( sys_allocator, model->joints );
+	FREE( sys_allocator, model->collision_shapes );
 }
 
 void ShutdownModels() {

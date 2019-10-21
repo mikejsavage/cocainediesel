@@ -189,7 +189,7 @@ void Com_Printf( const char *format, ... ) {
 			rd_flush( rd_target, rd_buffer, rd_extra );
 			*rd_buffer = 0;
 		}
-		strcat( rd_buffer, msg );
+		Q_strncatz( rd_buffer, msg, rd_buffersize );
 
 		QMutex_Unlock( com_print_mutex );
 		return;

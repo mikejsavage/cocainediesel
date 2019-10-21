@@ -99,3 +99,7 @@ void Sys_ConsoleOutput( const char * str ) {
 
 	fputs( print_from, stdout );
 }
+
+void Sys_ShowErrorMessage( const char * msg ) {
+	printf( "%s\n", msg );
+}

@@ -656,6 +656,8 @@ void Qcommon_ShutdownCommands( void ) {
 void Qcommon_Init( int argc, char **argv ) {
 	ZoneScoped;
 
+	Sys_Init();
+
 	if( setjmp( abortframe ) ) {
 		Sys_Error( "Error during initialization: %s", com_errormsg );
 	}
@@ -854,14 +856,6 @@ void Qcommon_Frame( unsigned int realMsec ) {
 * Qcommon_Shutdown
 */
 void Qcommon_Shutdown( void ) {
-	static bool isdown = false;
-
-	if( isdown ) {
-		printf( "Recursive shutdown\n" );
-		return;
-	}
-	isdown = true;
-
 	CM_Shutdown();
 	Netchan_Shutdown();
 	NET_Shutdown();

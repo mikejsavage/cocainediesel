@@ -5,8 +5,6 @@
 void UI_Init();
 void UI_Shutdown();
 
-void UI_KeyEvent( int key, bool down );
-void UI_CharEvent( wchar_t key );
 void UI_Refresh();
 void UI_UpdateConnectScreen();
 

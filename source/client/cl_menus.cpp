@@ -988,29 +988,6 @@ void UI_UpdateConnectScreen() {
 	UI_Refresh();
 }
 
-void UI_KeyEvent( int key, bool down ) {
-	if( key == K_MWHEELDOWN || key == K_MWHEELUP ) {
-		if( down ) {
-			ImGui::GetIO().MouseWheel += key == K_MWHEELDOWN ? -1 : 1;
-		}
-	}
-	else if( key == K_LCTRL || key == K_RCTRL ) {
-		ImGui::GetIO().KeyCtrl = down;
-	}
-	else if( key == K_LSHIFT || key == K_RSHIFT ) {
-		ImGui::GetIO().KeyShift = down;
-	}
-	else if( key == K_LALT || key == K_RALT ) {
-		ImGui::GetIO().KeyAlt = down;
-	}
-
-	ImGui::GetIO().KeysDown[ key ] = down;
-}
-
-void UI_CharEvent( wchar_t key ) {
-	ImGui::GetIO().AddInputCharacter( key );
-}
-
 void UI_ShowMainMenu() {
 	uistate = UIState_MainMenu;
 	mainmenu_state = MainMenuState_ServerBrowser;

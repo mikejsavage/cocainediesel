@@ -255,13 +255,7 @@ void Key_Shutdown() {
 	Key_Unbindall();
 }
 
-void Key_CharEvent( wchar_t charkey ) {
-	UI_CharEvent( charkey );
-}
-
 void Key_Event( int key, bool down ) {
-	UI_KeyEvent( key, down );
-
 	if( key == K_ESCAPE ) {
 		if( cls.key_dest != key_game || !down ) {
 			return;

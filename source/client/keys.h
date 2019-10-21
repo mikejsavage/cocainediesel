@@ -20,7 +20,6 @@
 
 #include "gameshared/q_keycodes.h"
 
-void Key_CharEvent( wchar_t charkey );
 void Key_Event( int key, bool down );
 void Key_Init();
 void Key_Shutdown();

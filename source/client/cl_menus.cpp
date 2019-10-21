@@ -96,6 +96,7 @@ void UI_Init() {
 }
 
 void UI_Shutdown() {
+	ResetServerBrowser();
 	ShutdownParticleEditor();
 }
 

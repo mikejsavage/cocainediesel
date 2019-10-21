@@ -178,13 +178,6 @@ void Com_Printf( const char *format, ... ) {
 	va_list argptr;
 	char msg[MAX_PRINTMSG];
 
-	time_t timestamp;
-	char timestamp_str[MAX_PRINTMSG];
-	struct tm *timestampptr;
-	timestamp = time( NULL );
-	timestampptr = gmtime( &timestamp );
-	strftime( timestamp_str, MAX_PRINTMSG, "%Y-%m-%dT%H:%M:%SZ ", timestampptr );
-
 	va_start( argptr, format );
 	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
@@ -209,7 +202,9 @@ void Com_Printf( const char *format, ... ) {
 
 	if( log_file ) {
 		if( logconsole_timestamp && logconsole_timestamp->integer ) {
-			FS_Printf( log_file, "%s", timestamp_str );
+			char timestamp[MAX_PRINTMSG];
+			Sys_FormatTime( timestamp, sizeof( timestamp ), "%Y-%m-%dT%H:%M:%SZ " );
+			FS_Printf( log_file, "%s", timestamp );
 		}
 		FS_Printf( log_file, "%s", msg );
 		if( logconsole_flush && logconsole_flush->integer ) {

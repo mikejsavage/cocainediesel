@@ -20,16 +20,12 @@
 
 #include "gameshared/q_keycodes.h"
 
-void Key_CharEvent( int key, wchar_t charkey );
 void Key_Event( int key, bool down );
-void Key_MouseEvent( int key, bool down );
-void Key_Init( void );
-void Key_Shutdown( void );
+void Key_Init();
+void Key_Shutdown();
 void Key_WriteBindings( int file );
 void Key_SetBinding( int keynum, const char *binding );
-void Key_ClearStates( void );
 const char *Key_GetBindingBuf( int binding );
 
 const char *Key_KeynumToString( int keynum );
-
 int Key_StringToKeynum( const char *str );

@@ -119,3 +119,49 @@ namespace ImGui
 		s += 5; \
 		continue; \
 	}
+
+#include "client/renderer/backend.h"
+#include "client/renderer/shader.h"
+
+struct ImGuiShaderAndTexture {
+	ImGuiShaderAndTexture() {
+		shader = NULL;
+		texture = { };
+		uniform_name = { };
+		uniform_block = { };
+	}
+
+	ImGuiShaderAndTexture( void * p ) : ImGuiShaderAndTexture() { }
+
+	ImGuiShaderAndTexture( Texture tex ) {
+		shader = &shaders.standard_vertexcolors;
+		texture = tex;
+		uniform_name = { };
+		uniform_block = { };
+	}
+
+	operator intptr_t() const {
+		return intptr_t( shader ) ^ texture.texture;
+	}
+
+	const Shader * shader;
+	Texture texture;
+
+	StringHash uniform_name;
+	UniformBlock uniform_block;
+};
+
+inline bool operator==( const ImGuiShaderAndTexture & a, const ImGuiShaderAndTexture & b ) {
+	return a.shader == b.shader
+		&& a.texture.texture == b.texture.texture
+		&& a.uniform_name == b.uniform_name
+		&& a.uniform_block.ubo == b.uniform_block.ubo
+		&& a.uniform_block.offset == b.uniform_block.offset
+		&& a.uniform_block.size == b.uniform_block.size;
+}
+
+inline bool operator!=( const ImGuiShaderAndTexture & a, const ImGuiShaderAndTexture & b ) {
+	return !( a == b );
+}
+
+#define ImTextureID ImGuiShaderAndTexture

@@ -30,21 +30,6 @@ cvar_t *cl_ucmdFPS;
 static void CL_CreateNewUserCommand( int realMsec );
 
 /*
-* CL_ClearInputState
-*/
-void CL_ClearInputState( void ) {
-	Key_ClearStates();
-
-	switch( cls.key_dest ) {
-		case key_game:
-			CL_GameModule_ClearInputState();
-			break;
-		default:
-			break;
-	}
-}
-
-/*
 * CL_UpdateGameInput
 *
 * Notifies cgame of new frame, refreshes input timings, coordinates and angles
@@ -55,14 +40,8 @@ static void CL_UpdateGameInput( int frameTime ) {
 	// refresh input in cgame
 	CL_GameModule_InputFrame( frameTime );
 
-	if( cls.key_dest == key_menu ) {
-		UI_MouseSet( true, movement.absx, movement.absy, true );
-	}
-	else {
-		CL_GameModule_MouseMove( movement.relx, movement.rely );
-	}
-
 	if( cls.key_dest == key_game ) {
+		CL_GameModule_MouseMove( movement.relx, movement.rely );
 		CL_GameModule_AddViewAngles( cl.viewangles );
 	}
 }

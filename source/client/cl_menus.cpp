@@ -64,7 +64,6 @@ static size_t selected_secondary;
 
 static SettingsState settings_state;
 static bool reset_video_settings;
-static int pressed_key;
 
 static void ResetServerBrowser() {
 	for( int i = 0; i < num_servers; i++ ) {
@@ -97,6 +96,7 @@ void UI_Init() {
 }
 
 void UI_Shutdown() {
+	ResetServerBrowser();
 	ShutdownParticleEditor();
 }
 
@@ -173,12 +173,17 @@ static void KeyBindButton( const char * label, const char * command ) {
 
 	if( ImGui::BeginPopupModal( label, NULL, ImGuiWindowFlags_NoDecoration ) ) {
 		ImGui::Text( "Press a key to set a new bind, or press ESCAPE to cancel." );
-		if( pressed_key != -1 ) {
-			if( pressed_key != K_ESCAPE ) {
-				Key_SetBinding( pressed_key, command );
+
+		const ImGuiIO & io = ImGui::GetIO();
+		for( size_t i = 0; i < ARRAY_COUNT( io.KeysDown ); i++ ) {
+			if( ImGui::IsKeyPressed( i ) ) {
+				if( i != K_ESCAPE ) {
+					Key_SetBinding( i, command );
+				}
+				ImGui::CloseCurrentPopup();
 			}
-			ImGui::CloseCurrentPopup();
 		}
+
 		ImGui::EndPopup();
 	}
 
@@ -607,7 +612,7 @@ static void MainMenu() {
 		flags |= ImGuiWindowFlags_NoBackground;
 	}
 
-	ImGui::Begin( "mainmenu", NULL, flags );
+	ImGui::Begin( "mainmenu", WindowZOrder_Menu, flags );
 
 	ImVec2 window_padding = ImGui::GetStyle().WindowPadding;
 
@@ -722,7 +727,7 @@ static void SelectableWeapon( const int weapon_pic, int idx, size_t *selection, 
 	const Material * icon = cgs.media.shaderWeaponIcon[ weapon_pic ];
 	Texture texture = icon->textures[ 0 ].texture;
 
-	if( ImGui::ImageButton( ( void * ) uintptr_t( texture.texture ), size, ImVec2( 0, 0 ), ImVec2(1, 1), 0 ) ) {
+	if( ImGui::ImageButton( texture, size, ImVec2( 0, 0 ), ImVec2( 1, 1 ), 0 ) ) {
 		*selection = idx;
 		String< 128 > buf( "weapselect {} {}\n", ( primary ? weapselect[ idx ] : loadout ) , ( primary ? loadout : weapselect[ idx ] ) );
 		Cbuf_AddText( buf );
@@ -737,7 +742,7 @@ static void GameMenu() {
 	if( gamemenu_state == GameMenuState_Menu ) {
 		ImGui::SetNextWindowPos( ImGui::GetIO().DisplaySize * 0.5f, 0, Vec2( 0.5f ) );
 		ImGui::SetNextWindowSize( ImVec2( 300, 0 ) );
-		ImGui::Begin( "gamemenu", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+		ImGui::Begin( "gamemenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 		ImGuiStyle & style = ImGui::GetStyle();
 		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
 
@@ -882,7 +887,7 @@ static void GameMenu() {
 			ImGui::Columns( 1 );
 			ImGui::SetCursorPosY( ImGui::GetWindowSize().y - ImGui::GetFrameHeight() );
 
-			if( ImGui::Button( "Leave", ImVec2( -1, 0 ) ) || pressed_key == K_ESCAPE || pressed_key == 'b' ) {
+			if( ImGui::Button( "Leave", ImVec2( -1, 0 ) ) ) {
 				should_close = true;
 			}
 
@@ -900,14 +905,14 @@ static void GameMenu() {
 		pos.y *= 0.5f;
 		ImGui::SetNextWindowPos( pos, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
 		ImGui::SetNextWindowSize( ImVec2( 600, 500 ) );
-		ImGui::Begin( "settings", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+		ImGui::Begin( "settings", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		Settings();
 
 		ImGui::End();
 	}
 
-	if( pressed_key == K_ESCAPE || should_close ) {
+	if( ImGui::IsKeyPressed( K_ESCAPE, false ) || should_close ) {
 		uistate = UIState_Hidden;
 		CL_SetKeyDest( key_game );
 	}
@@ -924,7 +929,7 @@ static void DemoMenu() {
 	pos.y *= 0.8f;
 	ImGui::SetNextWindowPos( pos, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
 	ImGui::SetNextWindowSize( ImVec2( 600, 0 ) );
-	ImGui::Begin( "demomenu", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+	ImGui::Begin( "demomenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 	GameMenuButton( cls.demo.paused ? "Play" : "Pause", "demopause" );
 	GameMenuButton( "Jump +15s", "demojump +15" );
@@ -935,7 +940,7 @@ static void DemoMenu() {
 
 	ImGui::End();
 
-	if( pressed_key == K_ESCAPE || should_close ) {
+	if( ImGui::IsKeyPressed( K_ESCAPE, false ) || should_close ) {
 		uistate = UIState_Hidden;
 		CL_SetKeyDest( key_game );
 	}
@@ -947,7 +952,6 @@ void UI_Refresh() {
 	ZoneScoped;
 
 	if( uistate == UIState_Hidden && !Con_IsVisible() ) {
-		pressed_key = -1;
 		return;
 	}
 
@@ -958,7 +962,7 @@ void UI_Refresh() {
 	if( uistate == UIState_Connecting ) {
 		ImGui::SetNextWindowPos( ImVec2() );
 		ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
-		ImGui::Begin( "mainmenu", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+		ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		ImGui::Text( "Connecting..." );
 
@@ -974,46 +978,15 @@ void UI_Refresh() {
 	}
 
 	if( Con_IsVisible() ) {
-		Con_Draw( pressed_key );
+		Con_Draw();
 	}
 
 	Cbuf_Execute();
-
-	pressed_key = -1;
 }
 
 void UI_UpdateConnectScreen() {
 	uistate = UIState_Connecting;
 	UI_Refresh();
-}
-
-void UI_KeyEvent( bool mainContext, int key, bool down ) {
-	if( down ) {
-		pressed_key = key;
-	}
-
-	if( key != K_ESCAPE ) {
-		if( key == K_MWHEELDOWN || key == K_MWHEELUP ) {
-			if( down )
-				ImGui::GetIO().MouseWheel += key == K_MWHEELDOWN ? -1 : 1;
-		}
-		else if( key == K_LCTRL || key == K_RCTRL ) {
-			ImGui::GetIO().KeyCtrl = down;
-		}
-		else if( key == K_LSHIFT || key == K_RSHIFT ) {
-			ImGui::GetIO().KeyShift = down;
-		}
-		else if( key == K_LALT || key == K_RALT ) {
-			ImGui::GetIO().KeyAlt = down;
-		}
-		else {
-			ImGui::GetIO().KeysDown[ key ] = down;
-		}
-	}
-}
-
-void UI_CharEvent( bool mainContext, wchar_t key ) {
-	ImGui::GetIO().AddInputCharacter( key );
 }
 
 void UI_ShowMainMenu() {
@@ -1024,6 +997,9 @@ void UI_ShowMainMenu() {
 }
 
 void UI_ShowGameMenu( bool spectating, bool ready ) {
+	// so the menu doesn't instantly close
+	ImGui::GetIO().KeysDown[ K_ESCAPE ] = false;
+
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Menu;
 	is_spectating = spectating;
@@ -1032,6 +1008,9 @@ void UI_ShowGameMenu( bool spectating, bool ready ) {
 }
 
 void UI_ShowDemoMenu() {
+	// so the menu doesn't instantly close
+	ImGui::GetIO().KeysDown[ K_ESCAPE ] = false;
+
 	uistate = UIState_DemoMenu;
 	CL_SetKeyDest( key_menu );
 }
@@ -1046,9 +1025,6 @@ void UI_AddToServerList( const char * address, const char *info ) {
 		servers[ num_servers ].info = strdup( info );
 		num_servers++;
 	}
-}
-
-void UI_MouseSet( bool mainContext, int mx, int my, bool showCursor ) {
 }
 
 void UI_ShowLoadoutMenu( int primary, int secondary ) {

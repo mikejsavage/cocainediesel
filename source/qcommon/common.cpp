@@ -178,13 +178,6 @@ void Com_Printf( const char *format, ... ) {
 	va_list argptr;
 	char msg[MAX_PRINTMSG];
 
-	time_t timestamp;
-	char timestamp_str[MAX_PRINTMSG];
-	struct tm *timestampptr;
-	timestamp = time( NULL );
-	timestampptr = gmtime( &timestamp );
-	strftime( timestamp_str, MAX_PRINTMSG, "%Y-%m-%dT%H:%M:%SZ ", timestampptr );
-
 	va_start( argptr, format );
 	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
@@ -196,7 +189,7 @@ void Com_Printf( const char *format, ... ) {
 			rd_flush( rd_target, rd_buffer, rd_extra );
 			*rd_buffer = 0;
 		}
-		strcat( rd_buffer, msg );
+		Q_strncatz( rd_buffer, msg, rd_buffersize );
 
 		QMutex_Unlock( com_print_mutex );
 		return;
@@ -209,7 +202,9 @@ void Com_Printf( const char *format, ... ) {
 
 	if( log_file ) {
 		if( logconsole_timestamp && logconsole_timestamp->integer ) {
-			FS_Printf( log_file, "%s", timestamp_str );
+			char timestamp[MAX_PRINTMSG];
+			Sys_FormatTime( timestamp, sizeof( timestamp ), "%Y-%m-%dT%H:%M:%SZ " );
+			FS_Printf( log_file, "%s", timestamp );
 		}
 		FS_Printf( log_file, "%s", msg );
 		if( logconsole_flush && logconsole_flush->integer ) {
@@ -656,6 +651,8 @@ void Qcommon_ShutdownCommands( void ) {
 void Qcommon_Init( int argc, char **argv ) {
 	ZoneScoped;
 
+	Sys_Init();
+
 	if( setjmp( abortframe ) ) {
 		Sys_Error( "Error during initialization: %s", com_errormsg );
 	}
@@ -727,8 +724,6 @@ void Qcommon_Init( int argc, char **argv ) {
 
 	Cvar_Get( "gamename", APPLICATION_NOSPACES, CVAR_SERVERINFO | CVAR_READONLY );
 	versioncvar = Cvar_Get( "version", APP_VERSION " " ARCH " " OSNAME, CVAR_SERVERINFO | CVAR_READONLY );
-
-	Sys_Init();
 
 	CSPRNG_Init();
 
@@ -854,14 +849,6 @@ void Qcommon_Frame( unsigned int realMsec ) {
 * Qcommon_Shutdown
 */
 void Qcommon_Shutdown( void ) {
-	static bool isdown = false;
-
-	if( isdown ) {
-		printf( "Recursive shutdown\n" );
-		return;
-	}
-	isdown = true;
-
 	CM_Shutdown();
 	Netchan_Shutdown();
 	NET_Shutdown();

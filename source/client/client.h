@@ -342,7 +342,6 @@ bool CL_GameModule_NewSnapshot( int pendingSnapshot );
 void CL_GameModule_RenderView();
 void CL_GameModule_GetEntitySpatilization( int entnum, vec3_t origin, vec3_t velocity );
 void CL_GameModule_InputFrame( int frameTime );
-void CL_GameModule_ClearInputState( void );
 unsigned CL_GameModule_GetButtonBits( void );
 void CL_GameModule_AddViewAngles( vec3_t viewAngles );
 void CL_GameModule_AddMovement( vec3_t movement );
@@ -370,14 +369,6 @@ void CL_InitInput( void );
 void CL_ShutdownInput( void );
 void CL_UserInputFrame( int realMsec );
 void CL_WriteUcmdsToMessage( msg_t *msg );
-
-/**
- * Resets the input state to the same as when no input is done,
- * mainly when the current input dest can't receive events anymore.
- */
-void CL_ClearInputState( void );
-
-
 
 //
 // cl_demo.c

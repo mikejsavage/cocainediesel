@@ -1,3 +1,4 @@
+#include "qcommon/types.h"
 #include "qcommon/qcommon.h"
 #include "winquake.h"
 
@@ -20,22 +21,7 @@ static char *OEM_to_utf8( const char *str ) {
 	return utf8str;
 }
 
-static char *utf8_to_OEM( const char *utf8str ) {
-	WCHAR wstr[MAX_PRINTMSG];
-	static char oemstr[MAX_PRINTMSG];
-
-	MultiByteToWideChar( CP_UTF8, 0, utf8str, -1, wstr, sizeof( wstr ) / sizeof( WCHAR ) );
-	wstr[sizeof( wstr ) / sizeof( wstr[0] ) - 1] = 0;
-	WideCharToMultiByte( CP_OEMCP, 0, wstr, -1, oemstr, sizeof( oemstr ), "?", NULL );
-	oemstr[sizeof( oemstr ) - 1] = 0;
-
-	return oemstr;
-}
-
-/*
-* Sys_ConsoleInput
-*/
-char *Sys_ConsoleInput( void ) {
+const char *Sys_ConsoleInput( void ) {
 	INPUT_RECORD rec;
 	int ch;
 	DWORD dummy;
@@ -52,9 +38,9 @@ char *Sys_ConsoleInput( void ) {
 		houtput = GetStdHandle( STD_OUTPUT_HANDLE );
 	}
 
-	for(;; ) {
+	for( ;; ) {
 		if( !GetNumberOfConsoleInputEvents( hinput, &numevents ) ) {
-			Sys_Error( "Error getting # of console events" );
+			Sys_Error( "Error getting # of console events: %d", GetLastError() );
 		}
 
 		if( numevents <= 0 ) {
@@ -108,73 +94,75 @@ char *Sys_ConsoleInput( void ) {
 	return NULL;
 }
 
-static void PrintColoredText( const char *s ) {
-	char c;
-	int colorindex;
-	DWORD dummy;
+struct WindowsConsoleColor {
+	RGB8 color;
+	WORD attr;
+};
 
-	while( *s ) {
-		int gc = Q_GrabCharFromColorString( &s, &c, &colorindex );
-		if( gc == GRABCHAR_CHAR ) {
-			if( c == '\n' ) {
-				SetConsoleTextAttribute( houtput, 7 );
-			}
-			// I hope it's not too slow to output char by char
-			WriteFile( houtput, &c, 1, &dummy, NULL );
-		} else if( gc == GRABCHAR_COLOR ) {
-			switch( colorindex ) {
-				case 0: colorindex = 3; break; // dark cyan instead of black to keep it visible
-				case 1: colorindex = 12; break;
-				case 2: colorindex = 10; break;
-				case 3: colorindex = 14; break;
-				case 4: colorindex = 9; break;
-				case 5: colorindex = 11; break; // note that cyan and magenta are
-				case 6: colorindex = 13; break; // not where one might expect
-				case 8: colorindex = 6; break;
-				case 9: colorindex = 8; break;
-				default:
-				case 7: colorindex = 7; break; // 15 would be bright white
-			}
-			;
-			SetConsoleTextAttribute( houtput, colorindex );
-		} else if( gc == GRABCHAR_END ) {
-			break;
-		} else {
-			assert( 0 );
-		}
-	}
+static WindowsConsoleColor console_colors[] = {
+	{ RGB8( 128, 0, 0 ), FOREGROUND_RED },
+	{ RGB8( 0, 128, 0 ), FOREGROUND_GREEN },
+	{ RGB8( 0, 0, 128 ), FOREGROUND_BLUE },
+	{ RGB8( 128, 128, 0 ), FOREGROUND_RED | FOREGROUND_GREEN },
+	{ RGB8( 128, 0, 128 ), FOREGROUND_RED | FOREGROUND_BLUE },
+	{ RGB8( 0, 128, 128 ), FOREGROUND_GREEN | FOREGROUND_BLUE },
+	{ RGB8( 128, 128, 128 ), FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE },
+
+	{ RGB8( 192, 192, 192 ), FOREGROUND_INTENSITY },
+
+	{ RGB8( 255, 0, 0 ), FOREGROUND_INTENSITY | FOREGROUND_RED },
+	{ RGB8( 0, 255, 0 ), FOREGROUND_INTENSITY | FOREGROUND_GREEN },
+	{ RGB8( 0, 0, 255 ), FOREGROUND_INTENSITY | FOREGROUND_BLUE },
+	{ RGB8( 255, 255, 0 ), FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN },
+	{ RGB8( 255, 0, 255 ), FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_BLUE },
+	{ RGB8( 0, 255, 255 ), FOREGROUND_INTENSITY | FOREGROUND_GREEN | FOREGROUND_BLUE },
+	{ RGB8( 255, 255, 255 ), FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE },
+};
+
+static float ColorDistance( RGB8 a, RGB8 b ) {
+	float dr = float( a.r ) - float( b.r );
+	float dg = float( a.g ) - float( b.g );
+	float db = float( a.b ) - float( b.b );
+	return dr * dr + dg * dg + db * db;
 }
 
-/*
-* Sys_ConsoleOutput
-*
-* Print text to the dedicated console
-*/
-void Sys_ConsoleOutput( char *string ) {
-	DWORD dummy;
-	char text[MAX_CONSOLETEXT + 2];   /* need 2 chars for the \r's */
+static WORD NearestConsoleColor( RGB8 c ) {
+	float best = FLT_MAX;
+	WORD attr = 0;
+	for( WindowsConsoleColor console : console_colors ) {
+		float d = ColorDistance( console.color, c );
+		if( d < best ) {
+			best = d;
+			attr = console.attr;
+		}
+	}
+	return attr;
+}
 
-	if( !is_dedicated_server ) {
-		return;
+void Sys_ConsoleOutput( const char * str ) {
+	HANDLE output = GetStdHandle( STD_OUTPUT_HANDLE );
+	SetConsoleTextAttribute( output, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE );
+
+	const char * end = str + strlen( str );
+
+	const char * p = str;
+	const char * print_from = str;
+	while( p < end ) {
+		if( p[ 0 ] == '\033' && p[ 1 ] && p[ 2 ] && p[ 3 ] && p[ 4 ] ) {
+			const u8 * u = ( const u8 * ) p;
+
+			SetConsoleTextAttribute( output, NearestConsoleColor( RGB8( u[ 1 ], u[ 2 ], u[ 3 ] ) ) );
+
+			DWORD written;
+			WriteConsole( output, print_from, p - print_from, &written, NULL );
+
+			p += 5;
+			print_from = p;
+			continue;
+		}
+		p++;
 	}
 
-	if( !houtput ) {
-		houtput = GetStdHandle( STD_OUTPUT_HANDLE );
-	}
-
-	if( console_textlen ) {
-		text[0] = '\r';
-		memset( &text[1], ' ', console_textlen );
-		text[console_textlen + 1] = '\r';
-		text[console_textlen + 2] = 0;
-		WriteFile( houtput, text, console_textlen + 2, &dummy, NULL );
-	}
-
-	string = utf8_to_OEM( string );
-
-	PrintColoredText( string );
-
-	if( console_textlen ) {
-		WriteFile( houtput, console_text, console_textlen, &dummy, NULL );
-	}
+	DWORD written;
+	WriteConsole( output, print_from, strlen( print_from ), &written, NULL );
 }

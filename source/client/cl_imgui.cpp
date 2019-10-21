@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "qcommon/base.h"
 #include "qcommon/assets.h"
 #include "qcommon/string.h"
@@ -8,6 +10,7 @@
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_sdl.h"
+#include "imgui/imgui_internal.h"
 #include "imgui/imgui_freetype.h"
 
 static ImFont * AddFontAsset( StringHash path, float pixel_size ) {
@@ -71,8 +74,9 @@ void CL_InitImGui() {
 		config.height = height;
 		config.data = pixels;
 		config.format = TextureFormat_A_U8;
+
 		Texture texture = NewTexture( config );
-		io.Fonts->TexID = ( void * ) uintptr_t( texture.texture );
+		io.Fonts->TexID = ImGuiShaderAndTexture( texture );
 	}
 
 	{
@@ -92,9 +96,7 @@ void CL_InitImGui() {
 }
 
 void CL_ShutdownImGui() {
-	Texture texture;
-	texture.texture = uintptr_t( ImGui::GetIO().Fonts->TexID );
-	DeleteTexture( texture );
+	DeleteTexture( ImGui::GetIO().Fonts->TexID.texture );
 
 	ImGui_ImplSDL2_Shutdown();
 	ImGui::DestroyContext();
@@ -138,7 +140,7 @@ static void SubmitDrawCalls() {
 				if( scissor.mins.x < fb_width && scissor.mins.y < fb_height && scissor.maxs.x >= 0.0f && scissor.maxs.y >= 0.0f ) {
 					PipelineState pipeline;
 					pipeline.pass = frame_static.ui_pass;
-					pipeline.shader = &shaders.standard_vertexcolors;
+					pipeline.shader = pcmd->TextureId.shader;
 					pipeline.depth_func = DepthFunc_Disabled;
 					pipeline.blend_func = BlendFunc_Blend;
 					pipeline.cull_face = CullFace_Disabled;
@@ -152,9 +154,11 @@ static void SubmitDrawCalls() {
 					pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
 					pipeline.set_uniform( "u_Material", frame_static.identity_material_uniforms );
 
-					Texture texture = { };
-					texture.texture = u32( uintptr_t( pcmd->TextureId ) );
-					pipeline.set_texture( "u_BaseTexture", texture );
+					if( pcmd->TextureId.uniform_name != EMPTY_HASH ) {
+						pipeline.set_uniform( pcmd->TextureId.uniform_name, pcmd->TextureId.uniform_block );
+					}
+
+					pipeline.set_texture( "u_BaseTexture", pcmd->TextureId.texture );
 
 					DrawMesh( mesh, pipeline, pcmd->ElemCount, idx_buffer_offset * sizeof( u16 ) );
 				}
@@ -169,15 +173,29 @@ void CL_ImGuiBeginFrame() {
 
 	ImGui_ImplSDL2_NewFrame( sdl_window );
 	ImGui::NewFrame();
-
-	// ImGui::ShowDemoWindow();
 }
 
 void CL_ImGuiEndFrame() {
 	ZoneScoped;
 
+	// ImGui::ShowDemoWindow();
+
+	ImGuiContext * ctx = ImGui::GetCurrentContext();
+	std::stable_sort( ctx->Windows.begin(), ctx->Windows.end(),
+		[]( const ImGuiWindow * a, const ImGuiWindow * b ) {
+			return a->BeginOrderWithinContext < b->BeginOrderWithinContext;
+		}
+	);
+
 	ImGui::Render();
 	SubmitDrawCalls();
+}
+
+namespace ImGui {
+	void Begin( const char * name, WindowZOrder z_order, ImGuiWindowFlags flags ) {
+		ImGui::Begin( name, NULL, flags );
+		ImGui::GetCurrentWindow()->BeginOrderWithinContext = z_order;
+	}
 }
 
 ImGuiColorToken::ImGuiColorToken( u8 r, u8 g, u8 b, u8 a ) {
@@ -195,8 +213,6 @@ ImGuiColorToken::ImGuiColorToken( RGBA8 rgba ) : ImGuiColorToken( rgba.r, rgba.g
 void format( FormatBuffer * fb, const ImGuiColorToken & token, const FormatOpts & opts ) {
 	format( fb, ( const char * ) token.token );
 }
-
-/* Utility */
 
 void ColumnCenterText( const char * str ) {
 	float width = ImGui::CalcTextSize( str ).x;

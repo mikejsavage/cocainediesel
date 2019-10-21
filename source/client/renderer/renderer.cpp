@@ -7,6 +7,8 @@
 #include "client/renderer/skybox.h"
 #include "client/renderer/text.h"
 
+#include "imgui/imgui.h"
+
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
 
@@ -338,7 +340,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	frame_static.teammate_add_outlines_pass = AddRenderPass( "Render teammate outlines" );
 	frame_static.blur_pass = AddRenderPass( "Blur screen" );
-	frame_static.ui_pass = AddRenderPass( "Render UI" );
+	frame_static.ui_pass = AddUnsortedRenderPass( "Render UI" );
 }
 
 void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) {
@@ -379,59 +381,19 @@ void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh )
 	dynamic_geometry_num_indices += mesh.num_indices;
 }
 
-void Draw2DBox( u8 render_pass, float x, float y, float w, float h, Texture texture, Vec4 color ) {
-	PipelineState pipeline;
-	pipeline.pass = render_pass;
-	pipeline.shader = &shaders.standard;
-	pipeline.depth_func = DepthFunc_Disabled;
-	pipeline.write_depth = false;
-
-	if( HasAlpha( texture.format ) || color.w < 1 ) {
-		pipeline.blend_func = BlendFunc_Blend;
-	}
-
-	Mat4 transform = Mat4Translation( x, y, 0 ) * Mat4Scale( w, h, 0 );
-	pipeline.set_uniform( "u_Model", UploadModelUniforms( transform ) );
-	pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
-	pipeline.set_texture( "u_BaseTexture", texture );
-	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( texture.width, texture.height ), 0.0f ) );
-
+void Draw2DBox( float x, float y, float w, float h, Texture texture, Vec4 color ) {
 	Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
-	RGBA8 c = RGBA8( color );
-	u16 base_index = DynamicMeshBaseIndex();
+	RGBA8 rgba = RGBA8( color );
 
-	constexpr Vec3 positions[] = {
-		Vec3( 0, 0, 0 ),
-		Vec3( 1, 0, 0 ),
-		Vec3( 0, 1, 0 ),
-		Vec3( 1, 1, 0 ),
-	};
-	Vec2 uvs[] = {
-		half_pixel,
-		Vec2( 1.0f - half_pixel.x, half_pixel.y ),
-		Vec2( half_pixel.x, 1.0f - half_pixel.y ),
-		Vec2( 1.0f - half_pixel.x, 1.0f - half_pixel.y ),
-	};
-	RGBA8 colors[] = { c, c, c, c };
-
-	u16 indices[] = { 0, 2, 1, 3, 1, 2 };
-	for( u16 & idx : indices ) {
-		idx += base_index;
-	}
-
-	DynamicMesh mesh;
-	mesh.positions = positions;
-	mesh.uvs = uvs;
-	mesh.colors = colors;
-	mesh.indices = indices;
-	mesh.num_vertices = 4;
-	mesh.num_indices = 6;
-
-	DrawDynamicMesh( pipeline, mesh );
+	ImDrawList * bg = ImGui::GetBackgroundDrawList();
+	bg->PushTextureID( ImGuiShaderAndTexture( texture ) );
+	bg->PrimReserve( 6, 4 );
+	bg->PrimRectUV( Vec2( x, y ), Vec2( x + w, y + h ), half_pixel, 1.0f - half_pixel, IM_COL32( rgba.r, rgba.g, rgba.b, rgba.a ) );
+	bg->PopTextureID();
 }
 
-void Draw2DBox( u8 render_pass, float x, float y, float w, float h, const Material * material, Vec4 color ) {
-	Draw2DBox( render_pass, x, y, w, h, material->textures[ 0 ].texture, color );
+void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color ) {
+	Draw2DBox( x, y, w, h, material->textures[ 0 ].texture, color );
 }
 
 UniformBlock UploadModelUniforms( const Mat4 & M ) {

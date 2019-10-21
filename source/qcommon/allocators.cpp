@@ -60,7 +60,7 @@ struct AllocationTracker {
 	~AllocationTracker() {
 		for( auto & alloc : allocations ) {
 			const AllocInfo & info = alloc.second;
-			printf( "Leaked allocation in '%s' (%s:%d)\n", info.func, info.file, info.line );
+			Com_Printf( "Leaked allocation in '%s' (%s:%d)\n", info.func, info.file, info.line );
 		}
 		assert( allocations.empty() );
 		QMutex_Destroy( &mutex );

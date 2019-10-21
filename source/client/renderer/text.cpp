@@ -11,8 +11,11 @@
 #include "client/renderer/text.h"
 #include "client/client.h"
 
+#include "imgui/imgui.h"
+
 #include "freetype/ft2build.h"
 #include FT_FREETYPE_H
+
 #include "stb/stb_image.h"
 
 static constexpr size_t MAX_CHARS_PER_FRAME = 100000;
@@ -140,24 +143,23 @@ const Font * RegisterFont( const char * path ) {
 	return font;
 }
 
-static Vec3 ToClip( float x, float y ) {
-	Vec2 clip = Vec2( x, y ) / frame_static.viewport * 2.0f - 1.0f;
-	return Vec3( clip, 0 );
-}
-
 static void DrawText( const Font * font, float pixel_size, Span< const char > str, float x, float y, Vec4 color, bool border, Vec4 border_color ) {
 	if( font == NULL )
 		return;
 
-	TempAllocator temp = cls.frame_arena.temp();
-	DynamicArray< Vec3 > positions( &temp, str.n * 4 );
-	DynamicArray< Vec2 > uvs( &temp, str.n * 4 );
-	DynamicArray< RGBA8 > colors( &temp, str.n * 4 );
-	DynamicArray< u16 > indices( &temp, str.n * 6 );
+	y += pixel_size * font->ascent;
 
-	u16 base_index = DynamicMeshBaseIndex();
+	ImGuiShaderAndTexture sat;
+	sat.shader = &shaders.text;
+	sat.texture = font->atlas;
+	sat.uniform_name = "u_Text";
+	sat.uniform_block = UploadUniformBlock(
+		color, border_color,
+		Vec2( font->atlas.width, font->atlas.height ),
+		font->pixel_range, border ? 1 : 0 );
 
-	y = frame_static.viewport_height - y - pixel_size * font->ascent;
+	ImDrawList * bg = ImGui::GetBackgroundDrawList();
+	bg->PushTextureID( sat );
 
 	u32 state = 0;
 	for( size_t i = 0; i < str.n; i++ ) {
@@ -173,60 +175,17 @@ static void DrawText( const Font * font, float pixel_size, Span< const char > st
 			// TODO: this is bogus. it should expand glyphs by 1 or
 			// 2 pixels to allow for border/antialiasing, up to a
 			// limit determined by font->glyph_padding
-			MinMax2 bounds = MinMax2(
-				Vec2( x, y ) + pixel_size * ( glyph->bounds.mins - font->glyph_padding ),
-				Vec2( x, y ) + pixel_size * ( glyph->bounds.maxs + font->glyph_padding )
-			);
-
-			u16 bl_idx = positions.add( ToClip( bounds.mins.x, bounds.mins.y ) );
-			u16 br_idx = positions.add( ToClip( bounds.maxs.x, bounds.mins.y ) );
-			u16 tl_idx = positions.add( ToClip( bounds.mins.x, bounds.maxs.y ) );
-			u16 tr_idx = positions.add( ToClip( bounds.maxs.x, bounds.maxs.y ) );
-
-			uvs.add( Vec2( glyph->uv_bounds.mins.x, glyph->uv_bounds.mins.y ) );
-			uvs.add( Vec2( glyph->uv_bounds.maxs.x, glyph->uv_bounds.mins.y ) );
-			uvs.add( Vec2( glyph->uv_bounds.mins.x, glyph->uv_bounds.maxs.y ) );
-			uvs.add( Vec2( glyph->uv_bounds.maxs.x, glyph->uv_bounds.maxs.y ) );
-
-			colors.add( rgba8_white ); // TODO
-			colors.add( rgba8_white );
-			colors.add( rgba8_white );
-			colors.add( rgba8_white );
-
-			indices.add( bl_idx + base_index );
-			indices.add( br_idx + base_index );
-			indices.add( tl_idx + base_index );
-
-			indices.add( tl_idx + base_index );
-			indices.add( br_idx + base_index );
-			indices.add( tr_idx + base_index );
+			Vec2 mins = Vec2( x, y ) + pixel_size * ( Vec2( glyph->bounds.mins.x, -glyph->bounds.maxs.y ) - font->glyph_padding );
+			Vec2 maxs = Vec2( x, y ) + pixel_size * ( Vec2( glyph->bounds.maxs.x, -glyph->bounds.mins.y ) + font->glyph_padding );
+			bg->PrimReserve( 6, 4 );
+			bg->PrimRectUV( mins, maxs, Vec2( glyph->uv_bounds.mins.x, glyph->uv_bounds.maxs.y ), Vec2( glyph->uv_bounds.maxs.x, glyph->uv_bounds.mins.y ), IM_COL32_WHITE );
 		}
 
 		x += pixel_size * glyph->advance;
 		// TODO: kerning
 	}
 
-	PipelineState pipeline;
-	pipeline.pass = frame_static.ui_pass;
-	pipeline.shader = &shaders.text;
-	pipeline.depth_func = DepthFunc_Disabled;
-	pipeline.blend_func = BlendFunc_Blend;
-	pipeline.write_depth = false;
-	pipeline.set_uniform( "u_Text", UploadUniformBlock(
-		color, border_color,
-		Vec2( font->atlas.width, font->atlas.height ),
-		font->pixel_range, border ? 1 : 0 ) );
-	pipeline.set_texture( "u_Atlas", font->atlas );
-
-	DynamicMesh mesh;
-	mesh.positions = positions.ptr();
-	mesh.uvs = uvs.ptr();
-	mesh.colors = colors.ptr();
-	mesh.indices = indices.ptr();
-	mesh.num_vertices = positions.size();
-	mesh.num_indices = indices.size();
-
-	DrawDynamicMesh( pipeline, mesh );
+	bg->PopTextureID();
 }
 
 void DrawText( const Font * font, float pixel_size, const char * str, float x, float y, Vec4 color, bool border ) {

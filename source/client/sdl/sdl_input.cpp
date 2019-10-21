@@ -7,7 +7,6 @@
 
 extern SDL_Window * sdl_window;
 
-static bool input_focus = false;
 static bool warped = false;
 
 static int mx, my;
@@ -89,155 +88,162 @@ static void mouse_wheel_event( SDL_MouseWheelEvent *event ) {
 	Key_Event( key, false );
 }
 
-static wchar_t TranslateSDLScancode( SDL_Scancode scancode ) {
-	wchar_t charkey = 0;
-
+static int TranslateSDLScancode( SDL_Scancode scancode ) {
 	switch( scancode ) {
-		case SDL_SCANCODE_TAB:          charkey = K_TAB;        break;
-		case SDL_SCANCODE_RETURN:       charkey = K_ENTER;      break;
-		case SDL_SCANCODE_ESCAPE:       charkey = K_ESCAPE;     break;
-		case SDL_SCANCODE_SPACE:        charkey = K_SPACE;      break;
-		case SDL_SCANCODE_CAPSLOCK:     charkey = K_CAPSLOCK;   break;
-		case SDL_SCANCODE_SCROLLLOCK:   charkey = K_SCROLLLOCK; break;
-		case SDL_SCANCODE_NUMLOCKCLEAR: charkey = K_NUMLOCK;    break;
-		case SDL_SCANCODE_BACKSPACE:    charkey = K_BACKSPACE;  break;
-		case SDL_SCANCODE_UP:           charkey = K_UPARROW;    break;
-		case SDL_SCANCODE_DOWN:         charkey = K_DOWNARROW;  break;
-		case SDL_SCANCODE_LEFT:         charkey = K_LEFTARROW;  break;
-		case SDL_SCANCODE_RIGHT:        charkey = K_RIGHTARROW; break;
+		case SDL_SCANCODE_TAB:          return K_TAB;
+		case SDL_SCANCODE_RETURN:       return K_ENTER;
+		case SDL_SCANCODE_ESCAPE:       return K_ESCAPE;
+		case SDL_SCANCODE_SPACE:        return K_SPACE;
+		case SDL_SCANCODE_CAPSLOCK:     return K_CAPSLOCK;
+		case SDL_SCANCODE_SCROLLLOCK:   return K_SCROLLLOCK;
+		case SDL_SCANCODE_NUMLOCKCLEAR: return K_NUMLOCK;
+		case SDL_SCANCODE_BACKSPACE:    return K_BACKSPACE;
+		case SDL_SCANCODE_UP:           return K_UPARROW;
+		case SDL_SCANCODE_DOWN:         return K_DOWNARROW;
+		case SDL_SCANCODE_LEFT:         return K_LEFTARROW;
+		case SDL_SCANCODE_RIGHT:        return K_RIGHTARROW;
 #if defined( __APPLE__ )
-		case SDL_SCANCODE_LALT:
-		case SDL_SCANCODE_RALT:         charkey = K_OPTION;     break;
+		case SDL_SCANCODE_LALT:         return K_OPTION;
+		case SDL_SCANCODE_RALT:         return K_OPTION;
 #else
-		case SDL_SCANCODE_LALT:         charkey = K_LALT;       break;
-		case SDL_SCANCODE_RALT:         charkey = K_RALT;       break;
+		case SDL_SCANCODE_LALT:         return K_LALT;
+		case SDL_SCANCODE_RALT:         return K_RALT;
 #endif
-		case SDL_SCANCODE_LCTRL:        charkey = K_LCTRL;      break;
-		case SDL_SCANCODE_RCTRL:        charkey = K_RCTRL;      break;
-		case SDL_SCANCODE_LSHIFT:       charkey = K_LSHIFT;     break;
-		case SDL_SCANCODE_RSHIFT:       charkey = K_RSHIFT;     break;
-		case SDL_SCANCODE_F1:           charkey = K_F1;         break;
-		case SDL_SCANCODE_F2:           charkey = K_F2;         break;
-		case SDL_SCANCODE_F3:           charkey = K_F3;         break;
-		case SDL_SCANCODE_F4:           charkey = K_F4;         break;
-		case SDL_SCANCODE_F5:           charkey = K_F5;         break;
-		case SDL_SCANCODE_F6:           charkey = K_F6;         break;
-		case SDL_SCANCODE_F7:           charkey = K_F7;         break;
-		case SDL_SCANCODE_F8:           charkey = K_F8;         break;
-		case SDL_SCANCODE_F9:           charkey = K_F9;         break;
-		case SDL_SCANCODE_F10:          charkey = K_F10;        break;
-		case SDL_SCANCODE_F11:          charkey = K_F11;        break;
-		case SDL_SCANCODE_F12:          charkey = K_F12;        break;
-		case SDL_SCANCODE_F13:          charkey = K_F13;        break;
-		case SDL_SCANCODE_F14:          charkey = K_F14;        break;
-		case SDL_SCANCODE_F15:          charkey = K_F15;        break;
-		case SDL_SCANCODE_INSERT:       charkey = K_INS;        break;
-		case SDL_SCANCODE_DELETE:       charkey = K_DEL;        break;
-		case SDL_SCANCODE_PAGEUP:       charkey = K_PGUP;       break;
-		case SDL_SCANCODE_PAGEDOWN:     charkey = K_PGDN;       break;
-		case SDL_SCANCODE_HOME:         charkey = K_HOME;       break;
-		case SDL_SCANCODE_END:          charkey = K_END;        break;
-		case SDL_SCANCODE_NONUSBACKSLASH: charkey = '<';          break;
-		case SDL_SCANCODE_LGUI:
-		case SDL_SCANCODE_RGUI:         charkey = K_COMMAND;    break;
+		case SDL_SCANCODE_LCTRL:        return K_LCTRL;
+		case SDL_SCANCODE_RCTRL:        return K_RCTRL;
+		case SDL_SCANCODE_LSHIFT:       return K_LSHIFT;
+		case SDL_SCANCODE_RSHIFT:       return K_RSHIFT;
+		case SDL_SCANCODE_F1:           return K_F1;
+		case SDL_SCANCODE_F2:           return K_F2;
+		case SDL_SCANCODE_F3:           return K_F3;
+		case SDL_SCANCODE_F4:           return K_F4;
+		case SDL_SCANCODE_F5:           return K_F5;
+		case SDL_SCANCODE_F6:           return K_F6;
+		case SDL_SCANCODE_F7:           return K_F7;
+		case SDL_SCANCODE_F8:           return K_F8;
+		case SDL_SCANCODE_F9:           return K_F9;
+		case SDL_SCANCODE_F10:          return K_F10;
+		case SDL_SCANCODE_F11:          return K_F11;
+		case SDL_SCANCODE_F12:          return K_F12;
+		case SDL_SCANCODE_F13:          return K_F13;
+		case SDL_SCANCODE_F14:          return K_F14;
+		case SDL_SCANCODE_F15:          return K_F15;
+		case SDL_SCANCODE_INSERT:       return K_INS;
+		case SDL_SCANCODE_DELETE:       return K_DEL;
+		case SDL_SCANCODE_PAGEUP:       return K_PGUP;
+		case SDL_SCANCODE_PAGEDOWN:     return K_PGDN;
+		case SDL_SCANCODE_HOME:         return K_HOME;
+		case SDL_SCANCODE_END:          return K_END;
+		case SDL_SCANCODE_NONUSBACKSLASH: return '<';
+		case SDL_SCANCODE_LGUI:         return K_COMMAND;
+		case SDL_SCANCODE_RGUI:         return K_COMMAND;
 
+		case SDL_SCANCODE_A:            return 'a';
+		case SDL_SCANCODE_B:            return 'b';
+		case SDL_SCANCODE_C:            return 'c';
+		case SDL_SCANCODE_D:            return 'd';
+		case SDL_SCANCODE_E:            return 'e';
+		case SDL_SCANCODE_F:            return 'f';
+		case SDL_SCANCODE_G:            return 'g';
+		case SDL_SCANCODE_H:            return 'h';
+		case SDL_SCANCODE_I:            return 'i';
+		case SDL_SCANCODE_J:            return 'j';
+		case SDL_SCANCODE_K:            return 'k';
+		case SDL_SCANCODE_L:            return 'l';
+		case SDL_SCANCODE_M:            return 'm';
+		case SDL_SCANCODE_N:            return 'n';
+		case SDL_SCANCODE_O:            return 'o';
+		case SDL_SCANCODE_P:            return 'p';
+		case SDL_SCANCODE_Q:            return 'q';
+		case SDL_SCANCODE_R:            return 'r';
+		case SDL_SCANCODE_S:            return 's';
+		case SDL_SCANCODE_T:            return 't';
+		case SDL_SCANCODE_U:            return 'u';
+		case SDL_SCANCODE_V:            return 'v';
+		case SDL_SCANCODE_W:            return 'w';
+		case SDL_SCANCODE_X:            return 'x';
+		case SDL_SCANCODE_Y:            return 'y';
+		case SDL_SCANCODE_Z:            return 'z';
 
-		case SDL_SCANCODE_A:            charkey = 'a';          break;
-		case SDL_SCANCODE_B:            charkey = 'b';          break;
-		case SDL_SCANCODE_C:            charkey = 'c';          break;
-		case SDL_SCANCODE_D:            charkey = 'd';          break;
-		case SDL_SCANCODE_E:            charkey = 'e';          break;
-		case SDL_SCANCODE_F:            charkey = 'f';          break;
-		case SDL_SCANCODE_G:            charkey = 'g';          break;
-		case SDL_SCANCODE_H:            charkey = 'h';          break;
-		case SDL_SCANCODE_I:            charkey = 'i';          break;
-		case SDL_SCANCODE_J:            charkey = 'j';          break;
-		case SDL_SCANCODE_K:            charkey = 'k';          break;
-		case SDL_SCANCODE_L:            charkey = 'l';          break;
-		case SDL_SCANCODE_M:            charkey = 'm';          break;
-		case SDL_SCANCODE_N:            charkey = 'n';          break;
-		case SDL_SCANCODE_O:            charkey = 'o';          break;
-		case SDL_SCANCODE_P:            charkey = 'p';          break;
-		case SDL_SCANCODE_Q:            charkey = 'q';          break;
-		case SDL_SCANCODE_R:            charkey = 'r';          break;
-		case SDL_SCANCODE_S:            charkey = 's';          break;
-		case SDL_SCANCODE_T:            charkey = 't';          break;
-		case SDL_SCANCODE_U:            charkey = 'u';          break;
-		case SDL_SCANCODE_V:            charkey = 'v';          break;
-		case SDL_SCANCODE_W:            charkey = 'w';          break;
-		case SDL_SCANCODE_X:            charkey = 'x';          break;
-		case SDL_SCANCODE_Y:            charkey = 'y';          break;
-		case SDL_SCANCODE_Z:            charkey = 'z';          break;
+		case SDL_SCANCODE_1:            return '1';
+		case SDL_SCANCODE_2:            return '2';
+		case SDL_SCANCODE_3:            return '3';
+		case SDL_SCANCODE_4:            return '4';
+		case SDL_SCANCODE_5:            return '5';
+		case SDL_SCANCODE_6:            return '6';
+		case SDL_SCANCODE_7:            return '7';
+		case SDL_SCANCODE_8:            return '8';
+		case SDL_SCANCODE_9:            return '9';
+		case SDL_SCANCODE_0:            return '0';
 
-		case SDL_SCANCODE_1:            charkey = '1';          break;
-		case SDL_SCANCODE_2:            charkey = '2';          break;
-		case SDL_SCANCODE_3:            charkey = '3';          break;
-		case SDL_SCANCODE_4:            charkey = '4';          break;
-		case SDL_SCANCODE_5:            charkey = '5';          break;
-		case SDL_SCANCODE_6:            charkey = '6';          break;
-		case SDL_SCANCODE_7:            charkey = '7';          break;
-		case SDL_SCANCODE_8:            charkey = '8';          break;
-		case SDL_SCANCODE_9:            charkey = '9';          break;
-		case SDL_SCANCODE_0:            charkey = '0';          break;
+		case SDL_SCANCODE_MINUS:        return '-';
+		case SDL_SCANCODE_EQUALS:       return '=';
+		case SDL_SCANCODE_BACKSLASH:    return '\\';
+		case SDL_SCANCODE_COMMA:        return ',';
+		case SDL_SCANCODE_PERIOD:       return '.';
+		case SDL_SCANCODE_SLASH:        return '/';
+		case SDL_SCANCODE_LEFTBRACKET:  return '[';
+		case SDL_SCANCODE_RIGHTBRACKET: return ']';
+		case SDL_SCANCODE_SEMICOLON:    return ';';
+		case SDL_SCANCODE_APOSTROPHE:   return '\'';
 
-		case SDL_SCANCODE_MINUS:        charkey = '-';          break;
-		case SDL_SCANCODE_EQUALS:       charkey = '=';          break;
-		case SDL_SCANCODE_BACKSLASH:        charkey = '\\';         break;
-		case SDL_SCANCODE_COMMA:        charkey = ',';          break;
-		case SDL_SCANCODE_PERIOD:       charkey = '.';          break;
-		case SDL_SCANCODE_SLASH:        charkey = '/';          break;
-		case SDL_SCANCODE_LEFTBRACKET:      charkey = '[';          break;
-		case SDL_SCANCODE_RIGHTBRACKET:     charkey = ']';          break;
-		case SDL_SCANCODE_SEMICOLON:        charkey = ';';          break;
-		case SDL_SCANCODE_APOSTROPHE:       charkey = '\'';         break;
-
-		case SDL_SCANCODE_KP_0:         charkey = KP_INS;       break;
-		case SDL_SCANCODE_KP_1:         charkey = KP_END;       break;
-		case SDL_SCANCODE_KP_2:         charkey = KP_DOWNARROW;     break;
-		case SDL_SCANCODE_KP_3:         charkey = KP_PGDN;      break;
-		case SDL_SCANCODE_KP_4:         charkey = KP_LEFTARROW;     break;
-		case SDL_SCANCODE_KP_5:         charkey = KP_5;         break;
-		case SDL_SCANCODE_KP_6:         charkey = KP_RIGHTARROW;    break;
-		case SDL_SCANCODE_KP_7:         charkey = KP_HOME;      break;
-		case SDL_SCANCODE_KP_8:         charkey = KP_UPARROW;       break;
-		case SDL_SCANCODE_KP_9:         charkey = KP_PGUP;      break;
-		case SDL_SCANCODE_KP_ENTER:     charkey = KP_ENTER;     break;
-		case SDL_SCANCODE_KP_PERIOD:        charkey = KP_DEL;       break;
-		case SDL_SCANCODE_KP_PLUS:      charkey = KP_PLUS;      break;
-		case SDL_SCANCODE_KP_MINUS:     charkey = KP_MINUS;     break;
-		case SDL_SCANCODE_KP_DIVIDE:        charkey = KP_SLASH;     break;
-		case SDL_SCANCODE_KP_MULTIPLY:      charkey = KP_STAR;      break;
-		case SDL_SCANCODE_KP_EQUALS:        charkey = KP_EQUAL;     break;
-
-		default: break;
+		case SDL_SCANCODE_KP_0:         return KP_INS;
+		case SDL_SCANCODE_KP_1:         return KP_END;
+		case SDL_SCANCODE_KP_2:         return KP_DOWNARROW;
+		case SDL_SCANCODE_KP_3:         return KP_PGDN;
+		case SDL_SCANCODE_KP_4:         return KP_LEFTARROW;
+		case SDL_SCANCODE_KP_5:         return KP_5;
+		case SDL_SCANCODE_KP_6:         return KP_RIGHTARROW;
+		case SDL_SCANCODE_KP_7:         return KP_HOME;
+		case SDL_SCANCODE_KP_8:         return KP_UPARROW;
+		case SDL_SCANCODE_KP_9:         return KP_PGUP;
+		case SDL_SCANCODE_KP_ENTER:     return KP_ENTER;
+		case SDL_SCANCODE_KP_PERIOD:    return KP_DEL;
+		case SDL_SCANCODE_KP_PLUS:      return KP_PLUS;
+		case SDL_SCANCODE_KP_MINUS:     return KP_MINUS;
+		case SDL_SCANCODE_KP_DIVIDE:    return KP_SLASH;
+		case SDL_SCANCODE_KP_MULTIPLY:  return KP_STAR;
+		case SDL_SCANCODE_KP_EQUALS:    return KP_EQUAL;
 	}
-	return charkey;
+	return 0;
 }
 
-static void key_event( const SDL_KeyboardEvent *event, bool state ) {
+static void key_event( const SDL_KeyboardEvent *event, bool down ) {
 	if( event->keysym.scancode == SDL_SCANCODE_GRAVE ) {
-		if( state ) {
+		if( down ) {
 			Con_ToggleConsole();
-			SDL_StopTextInput();
-		}
-		else {
-			SDL_StartTextInput();
 		}
 		return;
 	}
 
-	wchar_t charkey = TranslateSDLScancode( event->keysym.scancode );
+	int key = TranslateSDLScancode( event->keysym.scancode );
+	if( key == 0 )
+		return;
 
-	if( charkey >= 0 && charkey <= 255 ) {
-		Key_Event( charkey, state );
+	if( key == K_MWHEELDOWN || key == K_MWHEELUP ) {
+		if( down ) {
+			ImGui::GetIO().MouseWheel += key == K_MWHEELDOWN ? -1 : 1;
+		}
 	}
+	else if( key == K_LCTRL || key == K_RCTRL ) {
+		ImGui::GetIO().KeyCtrl = down;
+	}
+	else if( key == K_LSHIFT || key == K_RSHIFT ) {
+		ImGui::GetIO().KeyShift = down;
+	}
+	else if( key == K_LALT || key == K_RALT ) {
+		ImGui::GetIO().KeyAlt = down;
+	}
+
+	ImGui::GetIO().KeysDown[ key ] = down;
+
+	Key_Event( key, down );
 }
 
 /*****************************************************************************/
 
-static void AppActivate( SDL_Window *window, bool active ) {
-	bool minimized = ( SDL_GetWindowFlags( window ) & SDL_WINDOW_MINIMIZED ) != 0;
-
+static void AppActivate( bool active ) {
+	bool minimized = ( SDL_GetWindowFlags( sdl_window ) & SDL_WINDOW_MINIMIZED ) != 0;
 	S_SetWindowFocus( active );
 	VID_AppActivate( active, minimized );
 }
@@ -247,7 +253,6 @@ static void IN_HandleEvents( void ) {
 	ry = 0;
 	rw = 0;
 
-	Uint16 *wtext = NULL;
 	SDL_PumpEvents();
 	SDL_Event event;
 
@@ -255,24 +260,6 @@ static void IN_HandleEvents( void ) {
 		switch( event.type ) {
 			case SDL_KEYDOWN:
 				key_event( &event.key, true );
-
-				// Emulate copy/paste
-				#if defined( __APPLE__ )
-					#define KEYBOARD_COPY_PASTE_MODIFIER KMOD_GUI
-				#else
-					#define KEYBOARD_COPY_PASTE_MODIFIER KMOD_CTRL
-				#endif
-
-				if( event.key.keysym.sym == SDLK_c ) {
-					if( event.key.keysym.mod & KEYBOARD_COPY_PASTE_MODIFIER ) {
-						Key_CharEvent( KC_CTRLC, KC_CTRLC );
-					}
-				} else if( event.key.keysym.sym == SDLK_v ) {
-					if( event.key.keysym.mod & KEYBOARD_COPY_PASTE_MODIFIER ) {
-						Key_CharEvent( KC_CTRLV, KC_CTRLV );
-					}
-				}
-
 				break;
 
 			case SDL_KEYUP:
@@ -280,22 +267,7 @@ static void IN_HandleEvents( void ) {
 				break;
 
 			case SDL_TEXTINPUT:
-				// SDL_iconv_utf8_ucs2 uses "UCS-2-INTERNAL" as tocode and fails to convert text on Linux
-				// where SDL_iconv uses system iconv. So we force needed encoding directly
-
-				#if SDL_BYTEORDER == SDL_LIL_ENDIAN
-					#define UCS_2_INTERNAL "UCS-2LE"
-				#else
-					#define UCS_2_INTERNAL "UCS-2BE"
-				#endif
-
-				wtext = (Uint16 *)SDL_iconv_string( UCS_2_INTERNAL, "UTF-8", event.text.text, SDL_strlen( event.text.text ) + 1 );
-				if( wtext ) {
-					wchar_t charkey = wtext[0];
-					int key = ( charkey <= 255 ) ? charkey : 0;
-					Key_CharEvent( key, charkey );
-					SDL_free( wtext );
-				}
+				ImGui::GetIO().AddInputCharactersUTF8( event.text.text );
 				break;
 
 			case SDL_MOUSEMOTION:
@@ -321,20 +293,14 @@ static void IN_HandleEvents( void ) {
 			case SDL_WINDOWEVENT:
 				switch( event.window.event ) {
 					case SDL_WINDOWEVENT_SHOWN:
-						AppActivate( SDL_GetWindowFromID( event.window.windowID ), true );
-						break;
 					case SDL_WINDOWEVENT_HIDDEN:
-						AppActivate( SDL_GetWindowFromID( event.window.windowID ), false );
+						AppActivate( event.window.event == SDL_WINDOWEVENT_SHOWN );
 						break;
 					case SDL_WINDOWEVENT_CLOSE:
 						break;
 					case SDL_WINDOWEVENT_FOCUS_GAINED:
-						AppActivate( SDL_GetWindowFromID( event.window.windowID ), true );
-						input_focus = true;
-						break;
 					case SDL_WINDOWEVENT_FOCUS_LOST:
-						AppActivate( SDL_GetWindowFromID( event.window.windowID ), false );
-						input_focus = false;
+						AppActivate( event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED );
 						break;
 				}
 				break;
@@ -429,8 +395,6 @@ void IN_Init() {
 	SDL_ShowCursor( running_in_debugger ? SDL_ENABLE : SDL_DISABLE );
 
 	SDL_SetHint( SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "0" );
-
-	input_focus = true;
 }
 
 void IN_Shutdown() {

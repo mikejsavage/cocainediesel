@@ -21,6 +21,29 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
+#define S8_MAX s8( INT8_MAX )
+#define S16_MAX s16( INT16_MAX )
+#define S32_MAX s32( INT32_MAX )
+#define S64_MAX s64( INT64_MAX )
+#define S8_MIN s8( INT8_MIN )
+#define S16_MIN s16( INT16_MIN )
+#define S32_MIN s32( INT32_MIN )
+#define S64_MIN s64( INT64_MIN )
+
+#define U8_MAX u8( UINT8_MAX )
+#define U16_MAX u16( UINT16_MAX )
+#define U32_MAX u32( UINT32_MAX )
+#define U64_MAX u64( UINT64_MAX )
+
+#define S8 INT8_C
+#define S16 INT16_C
+#define S32 INT32_C
+#define S64 INT64_C
+#define U8 UINT8_C
+#define U16 UINT16_C
+#define U32 UINT32_C
+#define U64 UINT64_C
+
 /*
  * allocators
  */

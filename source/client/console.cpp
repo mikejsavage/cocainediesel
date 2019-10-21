@@ -224,7 +224,7 @@ const char * NextChunkEnd( const char * str ) {
 	return NULL;
 }
 
-void Con_Draw( int pressed_key ) {
+void Con_Draw() {
 	QMutex_Lock( console.mutex );
 
 	u32 bg = IM_COL32( 27, 27, 27, 224 );
@@ -239,7 +239,7 @@ void Con_Draw( int pressed_key ) {
 	// make a fullscreen window so you can't interact with menus while console is open
 	ImGui::SetNextWindowPos( ImVec2() );
 	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
-	ImGui::Begin( "console", NULL, ImGuiWindowFlags_NoDecoration );
+	ImGui::Begin( "console", WindowZOrder_Console, ImGuiWindowFlags_NoDecoration );
 
 	{
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, bg );
@@ -259,10 +259,10 @@ void Con_Draw( int pressed_key ) {
 				ImGui::SetScrollHereY( 1.0f );
 			console.scroll_to_bottom = false;
 
-			if( pressed_key == K_PGUP || pressed_key == K_PGDN ) {
+			if( ImGui::IsKeyPressed( K_PGUP ) || ImGui::IsKeyPressed( K_PGDN ) ) {
 				float scroll = ImGui::GetScrollY();
 				float page = ImGui::GetWindowSize().y - ImGui::GetTextLineHeight();
-				scroll += page * ( pressed_key == K_PGUP ? -1 : 1 );
+				scroll += page * ( ImGui::IsKeyPressed( K_PGUP ) ? -1 : 1 );
 				scroll = bound( 0.0f, scroll, ImGui::GetScrollMaxY() );
 				ImGui::SetScrollY( scroll );
 			}
@@ -308,6 +308,10 @@ void Con_Draw( int pressed_key ) {
 	ImGui::PopStyleVar( 3 );
 	ImGui::PopStyleColor( 2 );
 	ImGui::PopFont();
+
+	if( ImGui::IsKeyPressed( K_ESCAPE ) ) {
+		Con_Close();
+	}
 
 	QMutex_Unlock( console.mutex );
 }

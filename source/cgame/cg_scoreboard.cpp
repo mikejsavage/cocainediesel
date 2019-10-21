@@ -88,7 +88,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, ScoreboardPlayer player,
 
 		Texture texture = icon->textures[ 0 ].texture;
 		Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
-		ImGui::Image( ( void * ) uintptr_t( texture.texture ), Vec2( dim ), half_pixel, 1.0f - half_pixel, vec4_black );
+		ImGui::Image( texture, Vec2( dim ), half_pixel, 1.0f - half_pixel, vec4_black );
 	}
 
 	ImGui::NextColumn();
@@ -194,7 +194,7 @@ void CG_DrawScoreboard() {
 
 	ImGui::SetNextWindowSize( ImVec2( size.x, -1 ) );
 	ImGui::SetNextWindowPos( io.DisplaySize * 0.5f, 0, Vec2( 0.5f ) );
-	ImGui::Begin( "scoreboard", NULL, basic_flags | ImGuiWindowFlags_NoBackground );
+	ImGui::Begin( "scoreboard", WindowZOrder_Scoreboard, basic_flags | ImGuiWindowFlags_NoBackground );
 
 	float padding = 4;
 	float separator_height = ImGui::GetTextLineHeight() + 2 * padding;

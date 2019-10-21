@@ -204,11 +204,6 @@ typedef struct {
 	void ( *MouseMove )( int dx, int dy );
 
 	/**
-	 * Resets cgame input state.
-	 */
-	void ( *ClearInputState )( void );
-
-	/**
 	 * Gets input command buttons added by cgame.
 	 * May be called multiple times in a frame.
 	 *

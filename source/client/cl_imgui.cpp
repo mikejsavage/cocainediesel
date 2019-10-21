@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "qcommon/base.h"
 #include "qcommon/assets.h"
 #include "qcommon/string.h"

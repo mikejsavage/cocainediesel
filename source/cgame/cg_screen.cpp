@@ -673,14 +673,7 @@ void CG_EscapeKey( void ) {
 		return;
 	}
 
-	bool spectator = cg.predictedPlayerState.stats[STAT_REALTEAM] == TEAM_SPECTATOR;
-	bool is_ready = false;
-
-	if( GS_MatchState() <= MATCH_STATE_WARMUP && !spectator ) {
-		is_ready = ( cg.predictedPlayerState.stats[STAT_LAYOUTS] & STAT_LAYOUT_READY ) != 0;
-	}
-
-	UI_ShowGameMenu( spectator, is_ready );
+	UI_ShowGameMenu();
 }
 
 //=============================================================================

@@ -57,8 +57,6 @@ static int selected_server;
 static int selected_map;
 
 static GameMenuState gamemenu_state;
-static bool is_spectating;
-static bool is_ready;
 static size_t selected_primary;
 static size_t selected_secondary;
 
@@ -736,6 +734,13 @@ static void SelectableWeapon( const int weapon_pic, int idx, size_t *selection, 
 
 
 static void GameMenu() {
+	bool spectating = cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR;
+	bool ready = false;
+
+	if( GS_MatchState() <= MATCH_STATE_WARMUP && !spectating ) {
+		ready = ( cg.predictedPlayerState.stats[ STAT_LAYOUTS ] & STAT_LAYOUT_READY ) != 0;
+	}
+
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 192 ) );
 	bool should_close = false;
 
@@ -746,7 +751,7 @@ static void GameMenu() {
 		ImGuiStyle & style = ImGui::GetStyle();
 		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
 
-		if( is_spectating ) {
+		if( spectating ) {
 			if( GS_TeamBasedGametype() ) {
 				ImGui::Columns( 2, NULL, false );
 				ImGui::SetColumnWidth( 0, half );
@@ -762,15 +767,16 @@ static void GameMenu() {
 			ImGui::Columns( 1 );
 		}
 		else {
-			if( ImGui::Checkbox( (is_ready ? " Ready !" : " Not ready"), &is_ready )) {
-				String< 256 > buf( "{}\n", (is_ready ? "ready" : "unready"));
+			if( ImGui::Checkbox( ready ? "Ready!" : "Not ready", &ready ) ) {
+				String< 256 > buf( "{}\n", ready ? "ready" : "unready" );
 				Cbuf_AddText( buf );
 			}
 
 			GameMenuButton( "Spectate", "spec", &should_close );
 
-			if( GS_TeamBasedGametype() )
+			if( GS_TeamBasedGametype() ) {
 				GameMenuButton( "Change loadout", "gametypemenu", &should_close );
+			}
 		}
 
 		if( ImGui::Button( "Settings", ImVec2( -1, 0 ) ) ) {
@@ -996,14 +1002,12 @@ void UI_ShowMainMenu() {
 	RefreshServerBrowser();
 }
 
-void UI_ShowGameMenu( bool spectating, bool ready ) {
+void UI_ShowGameMenu() {
 	// so the menu doesn't instantly close
 	ImGui::GetIO().KeysDown[ K_ESCAPE ] = false;
 
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Menu;
-	is_spectating = spectating;
-	is_ready = ready;
 	CL_SetKeyDest( key_menu );
 }
 

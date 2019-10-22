@@ -2209,7 +2209,6 @@ void CL_Shutdown( void ) {
 
 	CL_GameModule_Shutdown();
 	S_Shutdown();
-	CL_ShutdownInput();
 	VID_Shutdown();
 
 	CL_ShutdownAsyncStream();

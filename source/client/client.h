@@ -366,7 +366,6 @@ void CL_ShutDownServerList( void );
 // cl_input.c
 //
 void CL_InitInput( void );
-void CL_ShutdownInput( void );
 void CL_UserInputFrame( int realMsec );
 void CL_WriteUcmdsToMessage( msg_t *msg );
 

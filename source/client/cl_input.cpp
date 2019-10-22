@@ -21,8 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client.h"
 
-static bool in_initialized = false;
-
 cvar_t *cl_ucmdMaxResend;
 
 cvar_t *cl_ucmdFPS;
@@ -69,29 +67,10 @@ void CL_UserInputFrame( int realMsec ) {
 * CL_InitInput
 */
 void CL_InitInput( void ) {
-	if( in_initialized ) {
-		return;
-	}
-
 	IN_Init();
 
 	cl_ucmdMaxResend =  Cvar_Get( "cl_ucmdMaxResend", "3", CVAR_ARCHIVE );
 	cl_ucmdFPS =        Cvar_Get( "cl_ucmdFPS", "62", CVAR_DEVELOPER );
-
-	in_initialized = true;
-}
-
-/*
-* CL_ShutdownInput
-*/
-void CL_ShutdownInput( void ) {
-	if( !in_initialized ) {
-		return;
-	}
-
-	IN_Shutdown();
-
-	in_initialized = true;
 }
 
 //===============================================================================

@@ -360,6 +360,7 @@ static bool being_debugged() {
 				printf( "! echo 0 > /proc/sys/kernel/yama/ptrace_scope\n" );
 				printf( "! or\n" );
 				printf( "! sysctl kernel.yama.ptrace_scope=0\n" );
+				_exit( 0 );
 			}
 			_exit( 1 );
 		}

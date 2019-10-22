@@ -85,6 +85,8 @@ static void mouse_wheel_event( const SDL_MouseWheelEvent * event ) {
 	if( event->y != 0 ) {
 		ImGui::GetIO().MouseWheel += event->y > 0 ? 1 : -1;
 	}
+
+	ImGui::GetIO().KeysDownDuration[ key ] = 0;
 }
 
 static int TranslateSDLScancode( SDL_Scancode scancode ) {

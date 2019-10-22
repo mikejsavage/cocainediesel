@@ -320,7 +320,7 @@ static void SettingsKeys() {
 
 	for( int i = WEAP_NONE + 1; i < WEAP_TOTAL; i++ ) {
 		const gsitem_t * item = GS_FindItemByTag( i );
-		String< 128 > bind( "use %s", item->shortname );
+		String< 128 > bind( "use {}", item->shortname );
 		KeyBindButton( item->name, bind.c_str() );
 	}
 

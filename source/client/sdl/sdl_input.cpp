@@ -329,7 +329,7 @@ static bool being_debugged() {
 }
 #endif
 
-#if _WIN32 && !defined( PUBLIC_BUILD )
+#if PLATFORM_WINDOWS && !defined( PUBLIC_BUILD )
 #define _WIN32_WINNT 0x4000
 #include <windows.h>
 
@@ -338,7 +338,7 @@ static bool being_debugged() {
 }
 #endif
 
-#if __linux__ && !defined( PUBLIC_BUILD )
+#if PLATFORM_LINUX && !defined( PUBLIC_BUILD )
 #include <sys/ptrace.h>
 #include <sys/wait.h>
 

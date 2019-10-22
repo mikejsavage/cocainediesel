@@ -1367,10 +1367,6 @@ static void PM_UpdateDeltaAngles( void ) {
 * PM_ApplyMouseAnglesClamp
 *
 */
-#if defined ( _WIN32 ) && ( _MSC_VER >= 1400 )
-#pragma warning( push )
-#pragma warning( disable : 4310 )   // cast truncates constant value
-#endif
 static void PM_ApplyMouseAnglesClamp( void ) {
 	int i;
 	short temp;
@@ -1397,9 +1393,6 @@ static void PM_ApplyMouseAnglesClamp( void ) {
 	pml.flatforward[2] = 0.0f;
 	VectorNormalize( pml.flatforward );
 }
-#if defined ( _WIN32 ) && ( _MSC_VER >= 1400 )
-#pragma warning( pop )
-#endif
 
 /*
 * PM_BeginMove

@@ -1726,10 +1726,6 @@ static asstring_t *objectGItem_getShortName( gsitem_t *self ) {
 	return game.asExport->asStringFactoryBuffer( self->shortname, self->shortname ? strlen( self->shortname ) : 0 );
 }
 
-static asstring_t *objectGItem_getColorToken( gsitem_t *self ) {
-	return game.asExport->asStringFactoryBuffer( self->color, self->color ? strlen( self->color ) : 0 );
-}
-
 static const asFuncdef_t asitem_Funcdefs[] =
 {
 	ASLIB_FUNCDEF_NULL
@@ -1744,7 +1740,6 @@ static const asMethod_t asitem_Methods[] =
 {
 	{ ASLIB_FUNCTION_DECL( const String @, get_name, ( ) const ), asFUNCTION( objectGItem_getName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_shortName, ( ) const ), asFUNCTION( objectGItem_getShortName ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( const String @, get_colorToken, ( ) const ), asFUNCTION( objectGItem_getColorToken ), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL
 };
@@ -1754,6 +1749,7 @@ static const asProperty_t asitem_Properties[] =
 	{ ASLIB_PROPERTY_DECL( const int, tag ), ASLIB_FOFFSET( gsitem_t, tag ) },
 	{ ASLIB_PROPERTY_DECL( const uint, type ), ASLIB_FOFFSET( gsitem_t, type ) },
 	{ ASLIB_PROPERTY_DECL( const int, ammoTag ), ASLIB_FOFFSET( gsitem_t, ammo_tag ) },
+	{ ASLIB_PROPERTY_DECL( const int, cost ), ASLIB_FOFFSET( gsitem_t, cost ) },
 
 	ASLIB_PROPERTY_NULL
 };

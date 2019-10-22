@@ -171,7 +171,7 @@ static void CG_SC_PrintPlayerStats( const char *s, void ( *print )( const char *
 		}
 
 		// name
-		print( "%s%2s" S_COLOR_WHITE ": ", item->color, item->shortname );
+		print( "%s%2s" S_COLOR_WHITE ": ", ImGuiColorToken( item->color ), item->shortname );
 
 #define STATS_PERCENT( hit,total ) ( ( total ) == 0 ? 0 : ( ( hit ) == ( total ) ? 100 : (float)( hit ) * 100.0f / (float)( total ) ) )
 
@@ -375,61 +375,28 @@ static void CG_SC_DemoGet( void ) {
 }
 
 static void CG_SC_ChangeLoadout() {
-	if( trap_Cmd_Argc() != 3 )
+	int weapons[ WEAP_TOTAL ] = { };
+	size_t n = 0;
+
+	if( trap_Cmd_Argc() - 1 >= ARRAY_COUNT( weapons ) )
 		return;
 
-	UI_ShowLoadoutMenu( atoi( trap_Cmd_Argv( 1 ) ), atoi( trap_Cmd_Argv( 2 ) ) );
+	for( int i = 0; i < trap_Cmd_Argc() - 1; i++ ) {
+		int weapon = atoi( trap_Cmd_Argv( i + 1 ) );
+		if( weapon <= WEAP_NONE || weapon >= WEAP_TOTAL )
+			return;
+		weapons[ n ] = weapon;
+		n++;
+	}
+
+	UI_ShowLoadoutMenu( Span< int >( weapons, n ) );
 }
 
 static void CG_SC_SaveLoadout() {
-	if( trap_Cmd_Argc() != 3 )
-		return;
-
-	char loadout[ 32 ];
-	snprintf( loadout, sizeof( loadout ), "%s %s", trap_Cmd_Argv( 1 ), trap_Cmd_Argv( 2 ) );
-	trap_Cvar_Set( "cg_loadout", loadout );
+	trap_Cvar_Set( "cg_loadout", Cmd_Args() );
 }
 
-/*
-* CG_SC_MenuOpen
-*/
-static void CG_SC_MenuOpen_( bool modal ) {
-	char request[MAX_STRING_CHARS];
-	int i, c;
-
-	if( cgs.demoPlaying ) {
-		return;
-	}
-
-	if( trap_Cmd_Argc() < 2 ) {
-		return;
-	}
-
-	Q_strncpyz( request, va( "%s \"%s\"", modal ? "menu_modal" : "menu_open", trap_Cmd_Argv( 1 ) ), sizeof( request ) );
-	for( i = 2, c = 1; i < trap_Cmd_Argc(); i++, c++ )
-		Q_strncatz( request, va( " param%i \"%s\"", c, trap_Cmd_Argv( i ) ), sizeof( request ) );
-
-	trap_Cmd_ExecuteText( EXEC_APPEND, va( "%s\n", request ) );
-}
-
-/*
-* CG_SC_MenuOpen
-*/
-static void CG_SC_MenuOpen( void ) {
-	CG_SC_MenuOpen_( false );
-}
-
-/*
-* CG_SC_MenuModal
-*/
-static void CG_SC_MenuModal( void ) {
-	CG_SC_MenuOpen_( true );
-}
-
-/*
-* CG_AddAward
-*/
-void CG_AddAward( const char *str ) {
+void CG_AddAward( const char * str ) {
 	if( !str || !str[0] ) {
 		return;
 	}
@@ -439,21 +406,16 @@ void CG_AddAward( const char *str ) {
 	cg.award_head++;
 }
 
-/*
-* CG_SC_AddAward
-*/
-static void CG_SC_AddAward( void ) {
+static void CG_SC_AddAward() {
 	CG_AddAward( trap_Cmd_Argv( 1 ) );
 }
 
-typedef struct
-{
-	const char *name;
-	void ( *func )( void );
-} svcmd_t;
+struct ServerCommand {
+	const char * name;
+	void ( *func )();
+};
 
-static const svcmd_t cg_svcmds[] =
-{
+static const ServerCommand server_commands[] = {
 	{ "pr", CG_SC_Print },
 	{ "ch", CG_SC_ChatPrint },
 	{ "tch", CG_SC_ChatPrint },
@@ -462,33 +424,23 @@ static const svcmd_t cg_svcmds[] =
 	{ "scb", CG_SC_Scoreboard },
 	{ "plstats", CG_SC_PlayerStats },
 	{ "demoget", CG_SC_DemoGet },
-	{ "meop", CG_SC_MenuOpen },
-	{ "memo", CG_SC_MenuModal },
 	{ "aw", CG_SC_AddAward },
 	{ "changeloadout", CG_SC_ChangeLoadout },
 	{ "saveloadout", CG_SC_SaveLoadout },
-
-	{ NULL }
 };
 
-/*
-* CG_GameCommand
-*/
-void CG_GameCommand( const char *command ) {
-	char *s;
-	const svcmd_t *cmd;
-
+void CG_GameCommand( const char * command ) {
 	trap_Cmd_TokenizeString( command );
+	const char * name = trap_Cmd_Argv( 0 );
 
-	s = trap_Cmd_Argv( 0 );
-	for( cmd = cg_svcmds; cmd->name; cmd++ ) {
-		if( !strcmp( s, cmd->name ) ) {
-			cmd->func();
+	for( ServerCommand cmd : server_commands ) {
+		if( strcmp( name, cmd.name ) == 0 ) {
+			cmd.func();
 			return;
 		}
 	}
 
-	CG_Printf( "Unknown game command: %s\n", s );
+	CG_Printf( "Unknown game command: %s\n", name );
 }
 
 /*
@@ -699,8 +651,7 @@ static void CG_StatsCmdAdd_f( void ) {
 }
 
 // server commands
-static svcmd_t cg_consvcmds[] =
-{
+static const ServerCommand cg_consvcmds[] = {
 	{ "say", CG_SayCmdAdd_f },
 	{ "say_team", CG_SayTeamCmdAdd_f },
 	{ "stats", CG_StatsCmdAdd_f },
@@ -743,7 +694,7 @@ void CG_RegisterCGameCommands( void ) {
 	const cgcmd_t *cmd;
 
 	if( !cgs.demoPlaying ) {
-		const svcmd_t *svcmd;
+		const ServerCommand *svcmd;
 
 		// add game side commands
 		for( i = 0; i < MAX_GAMECOMMANDS; i++ ) {

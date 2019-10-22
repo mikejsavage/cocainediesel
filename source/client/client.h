@@ -256,6 +256,7 @@ typedef struct {
 
 	ImFont * huge_font;
 	ImFont * large_font;
+	ImFont * big_font;
 	ImFont * medium_font;
 	ImFont * console_font;
 } client_static_t;

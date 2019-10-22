@@ -361,16 +361,18 @@ typedef struct gitem_s {
 	int tag;
 	itemtype_t type;
 
-	const char *name;      // for printing on pickup
-	const char *shortname; // for printing on messages
-	const char *color;     // for printing on messages
+	const char * name;      // for printing on pickup
+	const char * shortname; // for printing on messages
+	RGB8 color;
+	const char * description;
+	int cost;
 
 	int ammo_tag;          // uses this ammo, for weapons
 
 	// space separated string of stuff to precache that's not mentioned above
-	const char *precache_models;
-	const char *precache_sounds;
-	const char *precache_images;
+	const char * precache_models;
+	const char * precache_sounds;
+	const char * precache_images;
 } gsitem_t;
 
 const gsitem_t *GS_FindItemByTag( const int tag );

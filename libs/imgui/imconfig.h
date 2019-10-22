@@ -131,7 +131,7 @@ struct ImGuiShaderAndTexture {
 		uniform_block = { };
 	}
 
-	ImGuiShaderAndTexture( void * p ) : ImGuiShaderAndTexture() { }
+	explicit ImGuiShaderAndTexture( void * p ) : ImGuiShaderAndTexture() { }
 
 	ImGuiShaderAndTexture( Texture tex ) {
 		shader = &shaders.standard_vertexcolors;
@@ -140,7 +140,7 @@ struct ImGuiShaderAndTexture {
 		uniform_block = { };
 	}
 
-	operator intptr_t() const {
+	explicit operator intptr_t() const {
 		return intptr_t( shader ) ^ texture.texture;
 	}
 

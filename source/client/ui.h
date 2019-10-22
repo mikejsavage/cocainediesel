@@ -10,7 +10,7 @@ void UI_UpdateConnectScreen();
 
 void UI_ShowMainMenu();
 void UI_ShowGameMenu();
-void UI_ShowLoadoutMenu( int primary, int secondary );
+void UI_ShowLoadoutMenu( Span< int > weapons );
 void UI_ShowDemoMenu();
 void UI_HideMenu();
 
@@ -26,4 +26,7 @@ struct ImGuiColorToken {
 void format( FormatBuffer * fb, const ImGuiColorToken & token, const FormatOpts & opts );
 
 void ColumnCenterText( const char * str );
-void WindowCenterText( const char * str );
+void ColumnRightText( const char * str );
+void WindowCenterTextXY( const char * str );
+
+Vec4 AttentionGettingColor();

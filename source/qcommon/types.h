@@ -57,7 +57,7 @@ struct Allocator {
 	virtual void deallocate( void * ptr, const char * func, const char * file, int line ) = 0;
 
 	template< typename... Rest >
-	const char * operator()( const char * fmt, const Rest & ... rest );
+	char * operator()( const char * fmt, const Rest & ... rest );
 };
 
 struct ArenaAllocator;
@@ -436,6 +436,7 @@ struct RGBA8 {
 
 	RGBA8() = default;
 	constexpr RGBA8( u8 r_, u8 g_, u8 b_, u8 a_ ) : r( r_ ), g( g_ ), b( b_ ), a( a_ ) { }
+	constexpr RGBA8( RGB8 rgb, u8 a_ ) : r( rgb.r ), g( rgb.g ), b( rgb.b ), a( a_ ) { }
 
 	explicit RGBA8( const Vec4 & v ) {
 		r = v.x * 255.0f;

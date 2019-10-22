@@ -57,8 +57,8 @@ static int selected_server;
 static int selected_map;
 
 static GameMenuState gamemenu_state;
-static size_t selected_primary;
-static size_t selected_secondary;
+static constexpr int MAX_CASH = 500;
+static bool selected_weapons[ WEAP_TOTAL ];
 
 static SettingsState settings_state;
 static bool reset_video_settings;
@@ -723,15 +723,26 @@ static void GameMenuButton( const char * label, const char * command, bool * cli
 	}
 }
 
-static void SelectableWeapon( const int weapon_pic, int idx, size_t *selection, ImVec2 size, const char *loadout, const char **weapselect, bool primary ) {
-	const Material * icon = cgs.media.shaderWeaponIcon[ weapon_pic ];
+static bool WeaponButton( int cash, int weapon, ImVec2 size, Vec4 * tint ) {
+	const Material * icon = cgs.media.shaderWeaponIcon[ weapon - 1 ];
 	Texture texture = icon->textures[ 0 ].texture;
+	Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
 
-	if( ImGui::ImageButton( texture, size, ImVec2( 0, 0 ), ImVec2( 1, 1 ), 0 ) ) {
-		*selection = idx;
-		String< 128 > buf( "weapselect {} {}\n", ( primary ? weapselect[ idx ] : loadout ) , ( primary ? loadout : weapselect[ idx ] ) );
-		Cbuf_AddText( buf );
+	int cost = GS_FindItemByTag( weapon )->cost;
+	bool selected = selected_weapons[ weapon ];
+
+	if( !selected && cost > cash ) {
+		*tint = Vec4( 1.0f, 1.0f, 1.0f, 0.25f );
+		ImGui::Image( texture, size, half_pixel, 1.0f - half_pixel, *tint );
+		return false;
 	}
+
+	*tint = vec4_white;
+	if( !selected ) {
+		tint->w = 0.5f;
+	}
+
+	return ImGui::ImageButton( texture, size, half_pixel, 1.0f - half_pixel, 0, vec4_black, *tint );
 }
 
 
@@ -800,112 +811,209 @@ static void GameMenu() {
 		ImGui::End();
 	}
 	else if( gamemenu_state == GameMenuState_Loadout ) {
-		Vec2 win_size = ImVec2( ImGui::GetIO().DisplaySize.x * 0.35f, ImGui::GetIO().DisplaySize.y * 0.5f );
-		ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
-		ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, 0 ) );
+		ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 255 ) );
+		ImGui::SetNextWindowPos( Vec2( 0, 0 ) );
+		ImGui::SetNextWindowSize( ImGui::GetIO().DisplaySize );
+		ImGui::Begin( "Loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
-		ImGui::SetNextWindowPos( ImGui::GetIO().DisplaySize * 0.5f, 0, Vec2( 0.5f ) );
-		ImGui::SetNextWindowSize( win_size );
-		ImGui::Begin( "loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+		int hovered = WEAP_NONE;
+
+		int cash = MAX_CASH;
+		for( int i = 0; i < WEAP_TOTAL; i++ ) {
+			if( selected_weapons[ i ] ) {
+				cash -= GS_FindItemByTag( i )->cost;
+			}
+		}
 
 		// this has to match up with the order in player.as
 		// TODO: should make this less fragile
 
-		static const int PRIM_SIZE = 3;
-		static const int SEC_SIZE = 4;
+		Vec2 window_size = ImGui::GetWindowSize();
 
-		static const char * primaries_weapselect[PRIM_SIZE]   = { "ebrl", "rllg", "eblg" };
-		static const char * secondaries_weapselect[SEC_SIZE] = { "pg", "rg", "gl", "mg" };
-		static const int primaries_weapicon[PRIM_SIZE][2] = { { WEAP_ELECTROBOLT - 1, WEAP_ROCKETLAUNCHER - 1 },
-											 			{ WEAP_ROCKETLAUNCHER - 1, WEAP_LASERGUN - 1 },
-											 			{ WEAP_ELECTROBOLT - 1, WEAP_LASERGUN - 1 } };
-
-		static const int secondaries_weapicon[SEC_SIZE] = { WEAP_PLASMAGUN - 1,
-														WEAP_RIOTGUN - 1,
-														WEAP_GRENADELAUNCHER - 1,
-														WEAP_MACHINEGUN - 1 };
+		TempAllocator temp = cls.frame_arena.temp();
+		const Vec2 icon_size = Vec2( window_size.x * 0.1f );
+		const int desc_width = window_size.x * 0.375f;
+		const bool bigger_font = window_size.y >= 864;
 
 		{
-			ImGui::PushFont(cls.medium_font);
-			ImGui::PushStyleColor( ImGuiCol_ChildBg, ImGui::GetStyle().Colors[ImGuiCol_Button] );
-			ImGui::BeginChild("loadout_title", ImVec2( win_size.x, ImGui::CalcTextSize("Loadout").y*2));
-			WindowCenterText("Loadout");
-			ImGui::EndChild();
-			ImGui::PopStyleColor();
-			ImGui::PopFont();
-		}
-
-		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 225 ) );
-
-		{
-			ImGui::BeginChild("prim_title", ImVec2( win_size.x, ImGui::GetFrameHeight()*2));
-			ImGui::Columns( 2, NULL, false );
-			ImGui::SetColumnWidth( 0, win_size.x * 0.5f );
-			ImGui::SetColumnWidth( 1, win_size.x * 0.5f );
-
-			ImGui::SetCursorPosY( ImGui::GetFrameHeight() - ImGui::CalcTextSize("primaries").y/2 );
-			ColumnCenterText("primaries");
+			ImGui::Columns( 9, NULL, false );
+			ImGui::SetColumnWidth( 0, window_size.x * 0.075f );
+			ImGui::SetColumnWidth( 1, icon_size.x );
+			ImGui::SetColumnWidth( 2, window_size.x * 0.05f );
+			ImGui::SetColumnWidth( 3, icon_size.x );
+			ImGui::SetColumnWidth( 4, window_size.x * 0.05f );
+			ImGui::SetColumnWidth( 5, icon_size.x );
+			ImGui::SetColumnWidth( 6, window_size.x * 0.075f );
+			ImGui::SetColumnWidth( 7, desc_width );
+			ImGui::SetColumnWidth( 8, window_size.x * 0.075f );
+			ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, ImGui::GetStyle().ItemSpacing.y ) );
 			ImGui::NextColumn();
-			ImGui::SetCursorPosY( ImGui::GetFrameHeight() - ImGui::CalcTextSize("secondaries").y/2 );
-			ColumnCenterText("secondaries");
 
-			ImGui::EndChild();
-		}
+			constexpr int weapon_order[] = {
+				WEAP_ELECTROBOLT, WEAP_ROCKETLAUNCHER, WEAP_LASERGUN,
+				WEAP_MACHINEGUN, WEAP_RIOTGUN, WEAP_PLASMAGUN,
+				WEAP_GRENADELAUNCHER
+			};
 
-		ImVec2 icon_size = ImVec2( win_size.x * 0.15f, win_size.x * 0.15f );
-		int num_weapons = 0;
+			// weapon grid
+			{
 
-		{
-			ImGui::BeginChild("weapons", ImVec2( win_size.x, -1 ) );
-			ImGui::Columns( 2, NULL, false );
-			ImGui::SetColumnWidth( 0, win_size.x * 0.5f );
-			ImGui::SetColumnWidth( 1, win_size.x * 0.5f );
+				if( bigger_font ) ImGui::PushFont( cls.medium_font );
+				for( size_t i = 0; i < ARRAY_COUNT( weapon_order ); i++ ) {
+					int weapon = weapon_order[ i ];
 
-			ImGui::AlignTextToFramePadding();
-			for( size_t i = 0; i < PRIM_SIZE; i++ ) {
-				if( selected_primary == i )
-					continue;
-				if( ++num_weapons == PRIM_SIZE ) //prevent a third window to show up for a frame
-					break;
-				ImGui::SetCursorPosX( win_size.x * 0.25f - icon_size.x );
-				SelectableWeapon( primaries_weapicon[i][0], i, &selected_primary, icon_size, secondaries_weapselect[selected_secondary], primaries_weapselect, true );
+					Vec4 tint;
+					if( WeaponButton( cash, weapon, icon_size, &tint ) || ImGui::IsKeyPressed( '1' + i, false ) ) {
+						selected_weapons[ weapon ] = !selected_weapons[ weapon ];
+					}
 
-				ImGui::SameLine();
-				SelectableWeapon( primaries_weapicon[i][1], i, &selected_primary, icon_size, secondaries_weapselect[selected_secondary], primaries_weapselect, true );
-				ImGui::SetCursorPosY( icon_size.y + icon_size.y/4 );
-			}
+					if( ImGui::IsItemHovered() ) {
+						hovered = weapon;
+					}
 
-			num_weapons = 0;
-			ImGui::NextColumn();
-			ImGui::AlignTextToFramePadding();
+					int cost = GS_FindItemByTag( weapon )->cost;
+					RGB8 color = GS_FindItemByTag( weapon )->color;
+					ImGuiColorToken token = ImGuiColorToken( color.r * tint.x, color.g * tint.y, color.b * tint.z, 255 * tint.w );
+					ColumnCenterText( temp( "{}{}: {}", token, i + 1, GS_GetWeaponDef( weapon )->name ) );
+					ColumnCenterText( temp( "{}${}.{02}", token, cost / 100, cost % 100 ) );
 
-			ImGui::SetCursorPosY( icon_size.y/8 );
-			for( size_t i = 0; i < SEC_SIZE; i++ ) {
-				ImGui::SetCursorPosX( win_size.x * 0.75f - icon_size.x );
-				if( selected_secondary == i )
-					continue;
-				if( ++num_weapons == SEC_SIZE-1 ) {
-					ImGui::SetCursorPos( ImVec2( win_size.x * 0.75f, icon_size.x/2) );
-					SelectableWeapon( secondaries_weapicon[i], i, &selected_secondary, icon_size, primaries_weapselect[selected_primary], secondaries_weapselect, false );
-					break; //prevent a new window to show up for a frame
+					if( i % 3 == 2 ) {
+						ImGui::NextColumn();
+						ImGui::NextColumn();
+					}
 				}
-				SelectableWeapon( secondaries_weapicon[i], i, &selected_secondary, icon_size, primaries_weapselect[selected_primary], secondaries_weapselect, false );
+
+				{
+					Texture texture = FindTexture( "gfx/hud/icons/weapon/weap_none" );
+					Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
+					ImGuiColorToken pink = ImGuiColorToken( 255, 53, 255, 64 );
+
+					ImGui::Image( texture, icon_size, half_pixel, 1.0f - half_pixel, Vec4( 1.0f, 1.0f, 1.0f, 0.25f ) );
+					ColumnCenterText( temp( "{}Dud bomb", pink ) );
+					ColumnCenterText( temp( "{}$13.37", pink ) );
+
+					ImGui::Image( texture, icon_size, half_pixel, 1.0f - half_pixel, Vec4( 1.0f, 1.0f, 1.0f, 0.25f ) );
+					ColumnCenterText( temp( "{}Smoke", pink ) );
+					ColumnCenterText( temp( "{}$13.37", pink ) );
+				}
+
+				if( bigger_font ) ImGui::PopFont();
+
+				if( ARRAY_COUNT( weapon_order ) % 3 != 0 ) {
+					ImGui::NextColumn();
+					ImGui::NextColumn();
+				}
 			}
 
-			ImGui::Columns( 1 );
-			ImGui::SetCursorPosY( ImGui::GetWindowSize().y - ImGui::GetFrameHeight() );
+			ImGui::PopStyleVar();
 
-			if( ImGui::Button( "Leave", ImVec2( -1, 0 ) ) ) {
+			{
+				// Weapon description
+				if( hovered != WEAP_NONE ) {
+					ImGui::SetCursorPosY( window_size.y*0.2f - icon_size.y/2 );
+					ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 225 ) );
+
+					const gsitem_t * item = GS_FindItemByTag( hovered );
+					const Material * icon = cgs.media.shaderWeaponIcon[ hovered - 1 ];
+					Texture texture = icon->textures[ 0 ].texture;
+					Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
+					firedef_t weap_def = GS_GetWeaponDef( hovered )->firedef;
+					int desc_win_y = window_size.y*0.6f + icon_size.y;
+
+					ImGui::PushStyleVar( ImGuiStyleVar_ChildBorderSize, 2 );
+					ImGui::BeginChild( "weapondescription", ImVec2( ImGui::GetColumnWidth() - 4, desc_win_y ), true );
+
+					ImGui::Image( texture, icon_size * 0.5f, half_pixel, 1.0f - half_pixel );
+					
+					ImGui::SameLine();
+					if( bigger_font ) ImGui::PushFont( cls.big_font );
+					Vec2 header_pos = ImGui::GetCursorPos();
+					ImGui::Text( "%s", temp( "{}{}", ImGuiColorToken( item->color ), GS_GetWeaponDef( hovered )->name ) );
+					ImGui::SetCursorPos( header_pos + Vec2( 0, ImGui::GetTextLineHeightWithSpacing() ) );
+					if( bigger_font ) ImGui::PopFont();
+
+					if( !bigger_font ) ImGui::PushFont( cls.console_font );
+					ImGui::TextWrapped( "%s", temp( "{}{}", ImGuiColorToken( 150, 150, 150, 255 ), item->description ) );
+					if( !bigger_font ) ImGui::PopFont();
+
+					ImGui::Separator();
+
+					int pos_y = ImGui::GetCursorPosY();
+					if( bigger_font ) ImGui::PushFont( cls.medium_font );
+					
+					const float val_spacing = ( desc_win_y - pos_y )*0.075f;
+					const float txt_spacing = ImGui::GetTextLineHeight() + 10;
+
+					pos_y +=  val_spacing;
+					ImGui::SetCursorPosY( pos_y );
+					ColumnCenterText( temp( "{}Type", ImGuiColorToken( 255, 200, 0, 255 ) ) );
+					ImGui::SetCursorPosY(pos_y + txt_spacing );
+					ColumnCenterText( ( weap_def.speed == 0 ? "Hitscan" : "Projectile" ) );
+
+					pos_y = ImGui::GetCursorPosY() + val_spacing;
+					ImGui::SetCursorPosY( pos_y );
+					ColumnCenterText( temp( "{}Damage", ImGuiColorToken( 255, 200, 0, 255 ) ) );
+					ImGui::SetCursorPosY( pos_y + txt_spacing );
+					ColumnCenterText( temp( "{}", int( weap_def.damage ) ) );
+
+					pos_y = ImGui::GetCursorPosY() + val_spacing;
+					ImGui::SetCursorPosY( pos_y );
+					ColumnCenterText( temp("{}Reload", ImGuiColorToken( 255, 200, 0, 255 ) ) );
+					ImGui::SetCursorPosY( pos_y + txt_spacing );
+
+					char * reload = temp( "{.1}s", weap_def.reload_time / 1000.f );
+					RemoveTrailingZeroesFloat( reload );
+					ColumnCenterText( reload );
+
+					pos_y = ImGui::GetCursorPosY() + val_spacing;
+					ImGui::SetCursorPosY( pos_y );
+					ColumnCenterText( temp( "{}Cost", ImGuiColorToken( 255, 200, 0, 255 ) ) );
+
+					int cost = GS_FindItemByTag( hovered )->cost;
+					ImGui::SetCursorPosY(pos_y + txt_spacing );
+					ColumnCenterText( temp( "${}.{02}", cost / 100, cost % 100 ) );
+
+					if( bigger_font ) ImGui::PopFont();
+					ImGui::EndChild();
+					ImGui::PopStyleVar();
+					ImGui::PopStyleColor();
+				}
+			}
+
+			ImGui::SetCursorPosY( ImGui::GetWindowHeight() - 80 );
+			if( bigger_font ) ImGui::PushFont( cls.medium_font );
+
+			if( ImGui::Button( "OK" ) || ImGui::IsKeyPressed( K_ENTER ) ) {
+				DynamicString loadout( &temp, "weapselect" );
+				for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
+					if( selected_weapons[ i ] ) {
+						loadout.append( " {}", i );
+					}
+				}
+				loadout += "\n";
+
+				Cbuf_AddText( loadout.c_str() );
 				should_close = true;
 			}
 
-			ImGui::EndChild();
+			ImGui::SameLine();
 
+			if( ImGui::Button( "Cancel" ) ) {
+				should_close = true;
+			}
+
+			ImGui::SameLine();
+
+			ImGuiColorToken c = cash == 0 ? ImGuiColorToken( 255, 255, 255, 255 ) : ImGuiColorToken( RGBA8( AttentionGettingColor() ) );
+			ColumnRightText( temp( "{}CASH: {}${}.{02}{}{}", c, S_COLOR_GREEN, cash / 100, cash % 100, c, cash == 0 ? "" : "!!!" ) );
+
+			if( bigger_font ) ImGui::PopFont();
+
+			ImGui::NextColumn();
 		}
-		ImGui::PopStyleColor();
 
 		ImGui::End();
-		ImGui::PopStyleVar( 2 );
+		ImGui::PopStyleColor();
 	}
 	else if( gamemenu_state == GameMenuState_Settings ) {
 		ImVec2 pos = ImGui::GetIO().DisplaySize;
@@ -1033,10 +1141,17 @@ void UI_AddToServerList( const char * address, const char *info ) {
 	}
 }
 
-void UI_ShowLoadoutMenu( int primary, int secondary ) {
+void UI_ShowLoadoutMenu( Span< int > weapons ) {
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Loadout;
-	selected_primary = primary;
-	selected_secondary = secondary;
+
+	for( bool & w : selected_weapons ) {
+		w = false;
+	}
+
+	for( int w : weapons ) {
+		selected_weapons[ w ] = true;
+	}
+
 	CL_SetKeyDest( key_menu );
 }

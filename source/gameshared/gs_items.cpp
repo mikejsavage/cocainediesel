@@ -40,7 +40,7 @@ const gsitem_t itemdefs[] = {
 		WEAP_GUNBLADE, // item tag, weapon model for weapons
 		IT_WEAPON,
 
-		"Gunblade", "GB", S_COLOR_WHITE,
+		"Knife", "gb", S_COLOR_WHITE,
 
 		AMMO_GUNBLADE,
 		NULL, NULL, NULL
@@ -50,7 +50,7 @@ const gsitem_t itemdefs[] = {
 		WEAP_MACHINEGUN,
 		IT_WEAPON,
 
-		"Machinegun", "MG", S_COLOR_GREY,
+		"AK-69", "mg", S_COLOR_GREY,
 		AMMO_BULLETS,
 		NULL, NULL, NULL
 	},
@@ -59,7 +59,7 @@ const gsitem_t itemdefs[] = {
 		WEAP_RIOTGUN,
 		IT_WEAPON,
 
-		"Riotgun", "RG", S_COLOR_ORANGE,
+		"Shotgun", "rg", S_COLOR_ORANGE,
 		AMMO_SHELLS,
 		NULL, NULL, NULL
 	},
@@ -68,7 +68,7 @@ const gsitem_t itemdefs[] = {
 		WEAP_GRENADELAUNCHER,
 		IT_WEAPON,
 
-		"Grenade Launcher", "GL", S_COLOR_BLUE,
+		"Grenades", "gl", S_COLOR_BLUE,
 		AMMO_GRENADES,
 		PATH_GRENADE_MODEL,
 		NULL, NULL
@@ -78,7 +78,7 @@ const gsitem_t itemdefs[] = {
 		WEAP_ROCKETLAUNCHER,
 		IT_WEAPON,
 
-		"Rocket Launcher", "RL", S_COLOR_RED,
+		"Rockets", "rl", S_COLOR_RED,
 		AMMO_ROCKETS,
 		PATH_ROCKET_MODEL,
 		S_WEAPON_ROCKET_FLY,
@@ -89,7 +89,7 @@ const gsitem_t itemdefs[] = {
 		WEAP_PLASMAGUN,
 		IT_WEAPON,
 
-		"Plasmagun", "PG", S_COLOR_GREEN,
+		"Plasma", "pg", S_COLOR_GREEN,
 		AMMO_PLASMA,
 		PATH_PLASMA_MODEL,
 		S_WEAPON_PLASMAGUN_FLY,
@@ -100,7 +100,7 @@ const gsitem_t itemdefs[] = {
 		WEAP_LASERGUN,
 		IT_WEAPON,
 
-		"Lasergun", "LG", S_COLOR_YELLOW,
+		"Laser", "lg", S_COLOR_YELLOW,
 		AMMO_LASERS,
 		NULL,
 		S_WEAPON_LASERGUN_HUM " "
@@ -109,12 +109,11 @@ const gsitem_t itemdefs[] = {
 		NULL
 	},
 
-	//QUAKED electrobolt
 	{
 		WEAP_ELECTROBOLT,
 		IT_WEAPON,
 
-		"Electrobolt", "EB", S_COLOR_CYAN,
+		"Railgun", "eb", S_COLOR_CYAN,
 		AMMO_BOLTS,
 		NULL,
 		S_WEAPON_ELECTROBOLT_HIT,

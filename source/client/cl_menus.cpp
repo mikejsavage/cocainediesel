@@ -318,14 +318,11 @@ static void SettingsKeys() {
 	ImGui::Text( "Specific weapons" );
 	ImGui::Separator();
 
-	KeyBindButton( "Gunblade", "use gb" );
-	// KeyBindButton( "Machine Gun", "use mg" );
-	KeyBindButton( "Disrespect Gun", "use rg" );
-	KeyBindButton( "Grenade Launcher", "use gl" );
-	KeyBindButton( "Rocket Launcher", "use rl" );
-	KeyBindButton( "Plasma Gun", "use pg" );
-	KeyBindButton( "Lasergun", "use lg" );
-	KeyBindButton( "Electrobolt", "use eb" );
+	for( int i = WEAP_NONE + 1; i < WEAP_TOTAL; i++ ) {
+		const gsitem_t * item = GS_FindItemByTag( i );
+		String< 128 > bind( "use %s", item->shortname );
+		KeyBindButton( item->name, bind.c_str() );
+	}
 
 	ImGui::EndChild();
 }

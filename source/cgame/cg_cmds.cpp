@@ -614,7 +614,7 @@ static void CG_Cmd_Weapon_f() {
 		seen++;
 
 		if( seen == w ) {
-			const gsitem_t * item = &itemdefs[ i ];
+			const gsitem_t * item = GS_FindItemByTag( i );
 			CG_UseItem( item->name );
 		}
 	}

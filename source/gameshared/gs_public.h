@@ -373,8 +373,6 @@ typedef struct gitem_s {
 	const char *precache_images;
 } gsitem_t;
 
-extern const gsitem_t itemdefs[];
-
 const gsitem_t *GS_FindItemByTag( const int tag );
 const gsitem_t *GS_FindItemByName( const char *name );
 const gsitem_t *GS_Cmd_UseItem( player_state_t *playerState, const char *string, int typeMask );

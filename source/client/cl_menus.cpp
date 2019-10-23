@@ -922,19 +922,22 @@ static void GameMenu() {
 
 					ImGui::PushStyleVar( ImGuiStyleVar_ChildBorderSize, 2 );
 					ImGui::BeginChild( "weapondescription", ImVec2( ImGui::GetColumnWidth() - 4, desc_win_y ), true );
+					
+					ImGui::Columns( 2, NULL, false );
+					ImGui::SetColumnWidth( 0, icon_size.x * 0.5f + ImGui::GetStyle().WindowPadding.x*2 );
 
 					ImGui::Image( texture, icon_size * 0.5f, half_pixel, 1.0f - half_pixel );
-					
-					ImGui::SameLine();
-					if( bigger_font ) ImGui::PushFont( cls.big_font );
-					Vec2 header_pos = ImGui::GetCursorPos();
-					ImGui::Text( "%s", temp( "{}{}", ImGuiColorToken( item->color ), GS_GetWeaponDef( hovered )->name ) );
-					ImGui::SetCursorPos( header_pos + Vec2( 0, ImGui::GetTextLineHeightWithSpacing() ) );
-					if( bigger_font ) ImGui::PopFont();
+					ImGui::NextColumn();
 
+					if( bigger_font ) ImGui::PushFont( cls.big_font );
+					ImGui::Text( "%s", temp( "{}{}", ImGuiColorToken( item->color ), GS_GetWeaponDef( hovered )->name ) );
+					if( bigger_font ) ImGui::PopFont();
 					if( !bigger_font ) ImGui::PushFont( cls.console_font );
 					ImGui::TextWrapped( "%s", temp( "{}{}", ImGuiColorToken( 150, 150, 150, 255 ), item->description ) );
 					if( !bigger_font ) ImGui::PopFont();
+
+					ImGui::NextColumn();
+					ImGui::Columns( 1 );
 
 					ImGui::Separator();
 

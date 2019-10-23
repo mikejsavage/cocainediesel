@@ -94,6 +94,7 @@ if %MATCH_STATE == #MATCH_STATE_PLAYTIME
 
 	// match point/overtime
 	if %ROUND_TYPE != #RoundType_Normal
+		setAlignment center top
 		moveCursor 0, 26
 		setFontSize %VIDHEIGHT / 50
 		setFontStyle bold

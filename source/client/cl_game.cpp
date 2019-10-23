@@ -49,7 +49,7 @@ static inline struct cmodel_s *CL_GameModule_CM_InlineModel( int num ) {
 	return CM_InlineModel( cl.cms, num );
 }
 
-static inline void CL_GameModule_CM_InlineModelBounds( struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs ) {
+static inline void CL_GameModule_CM_InlineModelBounds( const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs ) {
 	CM_InlineModelBounds( cl.cms, cmodel, mins, maxs );
 }
 

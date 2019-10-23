@@ -1017,18 +1017,10 @@ void CG_AddEntities( void ) {
 void CG_LerpEntities( void ) {
 	ZoneScoped;
 
-	entity_state_t *state;
-	int pnum;
-	centity_t *cent;
-
-	for( pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
-		int number;
-		bool spatialize;
-
-		state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
-		number = state->number;
-		cent = &cg_entities[number];
-		spatialize = true;
+	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
+		entity_state_t * state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
+		int number = state->number;
+		centity_t * cent = &cg_entities[number];
 
 		switch( cent->type ) {
 			case ET_GENERIC:
@@ -1076,11 +1068,9 @@ void CG_LerpEntities( void ) {
 				break;
 		}
 
-		if( spatialize ) {
-			vec3_t origin, velocity;
-			CG_GetEntitySpatilization( number, origin, velocity );
-			S_UpdateEntity( number, origin, velocity );
-		}
+		vec3_t origin, velocity;
+		CG_GetEntitySpatilization( number, origin, velocity );
+		S_UpdateEntity( number, origin, velocity );
 	}
 }
 
@@ -1164,10 +1154,6 @@ void CG_UpdateEntities( void ) {
 * Called to get the sound spatialization origin and velocity
 */
 void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
-	centity_t *cent;
-	struct cmodel_s *cmodel;
-	vec3_t mins, maxs;
-
 	if( entNum < -1 || entNum >= MAX_EDICTS ) {
 		CG_Error( "CG_GetEntitySpatilization: bad entnum" );
 		return;
@@ -1184,7 +1170,7 @@ void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
 		return;
 	}
 
-	cent = &cg_entities[entNum];
+	const centity_t * cent = &cg_entities[entNum];
 
 	// normal
 	if( cent->current.solid != SOLID_BMODEL ) {
@@ -1199,7 +1185,8 @@ void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
 
 	// bmodel
 	if( origin != NULL ) {
-		cmodel = trap_CM_InlineModel( cent->current.modelindex );
+		const struct cmodel_s * cmodel = trap_CM_InlineModel( cent->current.modelindex );
+		vec3_t mins, maxs;
 		trap_CM_InlineModelBounds( cmodel, mins, maxs );
 		VectorAdd( maxs, mins, origin );
 		VectorMA( cent->ent.origin, 0.5f, origin, origin );

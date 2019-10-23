@@ -270,7 +270,7 @@ int CM_NumInlineModels( cmodel_state_t *cms ) {
 /*
 * CM_InlineModelBounds
 */
-void CM_InlineModelBounds( cmodel_state_t *cms, cmodel_t *cmodel, vec3_t mins, vec3_t maxs ) {
+void CM_InlineModelBounds( const cmodel_state_t *cms, const cmodel_t *cmodel, vec3_t mins, vec3_t maxs ) {
 	if( cmodel == cms->map_cmodels ) {
 		VectorCopy( cms->world_mins, mins );
 		VectorCopy( cms->world_maxs, maxs );

@@ -53,7 +53,7 @@ static inline struct cmodel_s *PF_CM_InlineModel( int num ) {
 	return CM_InlineModel( svs.cms, num );
 }
 
-static inline void PF_CM_InlineModelBounds( struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs ) {
+static inline void PF_CM_InlineModelBounds( const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs ) {
 	CM_InlineModelBounds( svs.cms, cmodel, mins, maxs );
 }
 

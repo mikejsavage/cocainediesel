@@ -94,7 +94,7 @@ static inline struct cmodel_s *trap_CM_InlineModel( int num ) {
 	return GAME_IMPORT.CM_InlineModel( num );
 }
 
-static inline void trap_CM_InlineModelBounds( struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs ) {
+static inline void trap_CM_InlineModelBounds( const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs ) {
 	GAME_IMPORT.CM_InlineModelBounds( cmodel, mins, maxs );
 }
 

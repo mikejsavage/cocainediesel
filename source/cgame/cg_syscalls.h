@@ -211,7 +211,7 @@ static inline int trap_CM_TransformedPointContents( const vec3_t p, struct cmode
 	return CGAME_IMPORT.CM_TransformedPointContents( p, cmodel, origin, angles );
 }
 
-static inline void trap_CM_InlineModelBounds( struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs ) {
+static inline void trap_CM_InlineModelBounds( const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs ) {
 	CGAME_IMPORT.CM_InlineModelBounds( cmodel, mins, maxs );
 }
 

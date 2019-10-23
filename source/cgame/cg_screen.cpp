@@ -518,7 +518,7 @@ void CG_DrawDamageNumbers() {
 		if( dn.damage == 0 )
 			continue;
 
-		float lifetime = 750.0f + 5 * dn.damage;
+		float lifetime = Lerp( 750.0f, Clamp01( Unlerp( 0, dn.damage, MINI_OBITUARY_DAMAGE ) ), 2000.0f );
 		float frac = ( cg.time - dn.t ) / lifetime;
 		if( frac > 1 )
 			continue;
@@ -537,17 +537,16 @@ void CG_DrawDamageNumbers() {
 
 		char buf[ 16 ];
 		Vec4 color;
-		float font_size;
 		if( dn.damage == MINI_OBITUARY_DAMAGE ) {
 			Q_strncpyz( buf, dn.obituary, sizeof( buf ) );
 			color = CG_TeamColorVec4( TEAM_ENEMY );
-			font_size = cgs.textSizeSmall;
 		}
 		else {
 			Q_snprintfz( buf, sizeof( buf ), "%d", dn.damage );
 			color = vec4_white;
-			font_size = cgs.textSizeTiny;
 		}
+
+		float font_size = Lerp( cgs.textSizeTiny, Clamp01( Unlerp( 0, dn.damage, 60 ) ), cgs.textSizeSmall );
 
 		float alpha = 1 - max( 0, frac - 0.75f ) / 0.25f;
 		color.w *= alpha;

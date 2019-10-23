@@ -12,12 +12,13 @@ struct Shaders {
 	Shader standard_alphatest;
 
 	Shader world;
-	Shader world_write_gbuffer;
-	Shader world_postprocess_gbuffer;
-	Shader world_postprocess_gbuffer_msaa;
+	Shader write_world_gbuffer;
+	Shader postprocess_world_gbuffer;
+	Shader postprocess_world_gbuffer_msaa;
 
-	Shader teammate_write_gbuffer_skinned;
-	Shader teammate_postprocess_gbuffer;
+	Shader write_silhouette_gbuffer;
+	Shader write_silhouette_gbuffer_skinned;
+	Shader postprocess_silhouette_gbuffer;
 
 	Shader blur;
 

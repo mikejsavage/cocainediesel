@@ -163,7 +163,7 @@ void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 
 	}
 }
 
-void DrawTeammateModel( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices ) {
+void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices ) {
 	bool skinned = skinning_matrices.ptr != NULL;
 
 	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
@@ -175,8 +175,8 @@ void DrawTeammateModel( const Model * model, const Mat4 & transform, const Vec4 
 
 	for( u32 i = 0; i < model->num_primitives; i++ ) {
 		PipelineState pipeline;
-		pipeline.shader = &shaders.teammate_write_gbuffer_skinned;
-		pipeline.pass = frame_static.teammate_write_gbuffer_pass;
+		pipeline.shader = skinned ? &shaders.write_silhouette_gbuffer_skinned : &shaders.write_silhouette_gbuffer;
+		pipeline.pass = frame_static.write_silhouette_gbuffer_pass;
 		pipeline.write_depth = false;
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 		pipeline.set_uniform( "u_Model", model_uniforms );

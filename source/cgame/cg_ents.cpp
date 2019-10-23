@@ -617,8 +617,8 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 		for( u32 i = 0; i < model->num_primitives; i++ ) {
 			if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
 				PipelineState pipeline;
-				pipeline.pass = frame_static.world_write_gbuffer_pass;
-				pipeline.shader = &shaders.world_write_gbuffer;
+				pipeline.pass = frame_static.write_world_gbuffer_pass;
+				pipeline.shader = &shaders.write_world_gbuffer;
 				pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 				pipeline.set_uniform( "u_Model", model_uniforms );
 

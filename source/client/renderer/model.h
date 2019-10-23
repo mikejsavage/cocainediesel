@@ -74,7 +74,7 @@ bool LoadBSPMap( MapMetadata * map, const char * path );
 
 void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline );
 void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices = Span< const Mat4 >() );
-void DrawTeammateModel( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices = Span< const Mat4 >() );
+void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices = Span< const Mat4 >() );
 void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, Span< const Mat4 > skinning_matrices );
 
 MinMax3 ModelBounds( const Model * model );

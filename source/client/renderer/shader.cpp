@@ -85,20 +85,23 @@ static void LoadShaders() {
 	BuildShaderSrcs( "glsl/standard.glsl", world_defines, &srcs, &lengths );
 	ReplaceShader( &shaders.world, srcs.span(), lengths.span() );
 
-	BuildShaderSrcs( "glsl/world_write_gbuffer.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.world_write_gbuffer, srcs.span(), lengths.span() );
+	BuildShaderSrcs( "glsl/write_world_gbuffer.glsl", NULL, &srcs, &lengths );
+	ReplaceShader( &shaders.write_world_gbuffer, srcs.span(), lengths.span() );
 
-	BuildShaderSrcs( "glsl/world_postprocess_gbuffer.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.world_postprocess_gbuffer, srcs.span(), lengths.span() );
+	BuildShaderSrcs( "glsl/postprocess_world_gbuffer.glsl", NULL, &srcs, &lengths );
+	ReplaceShader( &shaders.postprocess_world_gbuffer, srcs.span(), lengths.span() );
 
-	BuildShaderSrcs( "glsl/world_postprocess_gbuffer.glsl", "#define MSAA 1\n", &srcs, &lengths );
-	ReplaceShader( &shaders.world_postprocess_gbuffer_msaa, srcs.span(), lengths.span() );
+	BuildShaderSrcs( "glsl/postprocess_world_gbuffer.glsl", "#define MSAA 1\n", &srcs, &lengths );
+	ReplaceShader( &shaders.postprocess_world_gbuffer_msaa, srcs.span(), lengths.span() );
 
-	BuildShaderSrcs( "glsl/teammate_write_gbuffer.glsl", "#define SKINNED 1\n", &srcs, &lengths );
-	ReplaceShader( &shaders.teammate_write_gbuffer_skinned, srcs.span(), lengths.span() );
+	BuildShaderSrcs( "glsl/write_silhouette_gbuffer.glsl", NULL, &srcs, &lengths );
+	ReplaceShader( &shaders.write_silhouette_gbuffer, srcs.span(), lengths.span() );
 
-	BuildShaderSrcs( "glsl/teammate_postprocess_gbuffer.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.teammate_postprocess_gbuffer, srcs.span(), lengths.span() );
+	BuildShaderSrcs( "glsl/write_silhouette_gbuffer.glsl", "#define SKINNED 1\n", &srcs, &lengths );
+	ReplaceShader( &shaders.write_silhouette_gbuffer_skinned, srcs.span(), lengths.span() );
+
+	BuildShaderSrcs( "glsl/postprocess_silhouette_gbuffer.glsl", NULL, &srcs, &lengths );
+	ReplaceShader( &shaders.postprocess_silhouette_gbuffer, srcs.span(), lengths.span() );
 
 	BuildShaderSrcs( "glsl/blur.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.blur, srcs.span(), lengths.span() );

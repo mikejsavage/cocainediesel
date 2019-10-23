@@ -191,10 +191,6 @@ typedef struct {
 	// screen rendering information
 	bool cgameActive;
 
-	unsigned int disable_screen;    // showing loading plaque between levels
-	                                // or changing rendering dlls
-	                                // if time gets > 30 seconds ahead, break it
-
 	// connection information
 	char *servername;               // name of server from original connect
 	socket_type_t servertype;       // socket type used to connect to the server
@@ -407,8 +403,6 @@ void CL_CheckDownloadTimeout( void );
 //
 void SCR_InitScreen( void );
 void SCR_UpdateScreen( void );
-void SCR_BeginLoadingPlaque( void );
-void SCR_EndLoadingPlaque( void );
 void SCR_DebugGraph( float value, float r, float g, float b );
 void SCR_RegisterConsoleMedia( void );
 

@@ -851,7 +851,6 @@ void CL_Frame( int realMsec, int gameMsec );
 void CL_ParseServerMessage( msg_t *msg );
 void CL_Netchan_Transmit( msg_t *msg );
 void Con_Print( const char *text );
-void SCR_BeginLoadingPlaque( void );
 
 void SV_Init( void );
 void SV_Shutdown( const char *finalmsg );

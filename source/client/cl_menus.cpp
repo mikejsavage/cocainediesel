@@ -1115,9 +1115,8 @@ void UI_Refresh() {
 	Cbuf_Execute();
 }
 
-void UI_UpdateConnectScreen() {
+void UI_ShowConnectingScreen() {
 	uistate = UIState_Connecting;
-	UI_Refresh();
 }
 
 void UI_ShowMainMenu() {

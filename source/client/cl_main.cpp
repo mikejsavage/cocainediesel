@@ -710,8 +710,6 @@ void CL_Disconnect( const char *message ) {
 	}
 
 done:
-	SCR_EndLoadingPlaque(); // get rid of loading plaque
-
 	// in case we disconnect while in download phase
 	CL_FreeDownloadList();
 
@@ -1452,7 +1450,7 @@ void CL_SetClientState( connstate_t state ) {
 		case CA_CONNECTING:
 			cls.cgameActive = false;
 			Con_Close();
-			UI_HideMenu();
+			UI_ShowConnectingScreen();
 			S_StopBackgroundTrack();
 			CL_SetKeyDest( key_game );
 			break;
@@ -2014,7 +2012,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	}
 
 	// update audio
-	if( cls.state != CA_ACTIVE && !cls.disable_screen ) {
+	if( cls.state != CA_ACTIVE ) {
 		S_Update( vec3_origin, vec3_origin, axis_identity );
 	}
 
@@ -2156,7 +2154,6 @@ void CL_Init( void ) {
 	}
 
 	SCR_InitScreen();
-	cls.disable_screen = true; // don't draw yet
 
 	CL_InitLocal();
 	CL_InitInput();

@@ -6,9 +6,9 @@ void UI_Init();
 void UI_Shutdown();
 
 void UI_Refresh();
-void UI_UpdateConnectScreen();
 
 void UI_ShowMainMenu();
+void UI_ShowConnectingScreen();
 void UI_ShowGameMenu();
 void UI_ShowLoadoutMenu( Span< int > weapons );
 void UI_ShowDemoMenu();

@@ -146,8 +146,6 @@ void VID_Init() {
 		Com_Printf( S_COLOR_RED "Couldn't initialise audio engine\n" );
 	}
 
-	cls.disable_screen = 0;
-
 	// TODO: what is this?
 	if( cls.cgameActive ) {
 		CL_GameModule_Init();

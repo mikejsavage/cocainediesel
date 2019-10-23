@@ -588,7 +588,7 @@ static void CG_Event_Pain( entity_state_t *state, int parm ) {
 /*
 * CG_Event_Die
 */
-static void CG_Event_Die( entity_state_t *state, int parm ) {
+static void CG_Event_Die( int entNum, int parm ) {
 	constexpr struct { int dead, dying; } animations[] = {
 		{ BOTH_DEAD1, BOTH_DEATH1 },
 		{ BOTH_DEAD2, BOTH_DEATH2 },
@@ -596,9 +596,9 @@ static void CG_Event_Die( entity_state_t *state, int parm ) {
 	};
 	parm %= ARRAY_COUNT( animations );
 
-	CG_PlayerSound( state->number, CHAN_PAIN, PlayerSound_Death, cg_volume_players->value, state->attenuation );
-	CG_PModel_AddAnimation( state->number, animations[ parm ].dead, animations[ parm ].dead, ANIM_NONE, BASE_CHANNEL );
-	CG_PModel_AddAnimation( state->number, animations[ parm ].dying, animations[ parm ].dying, ANIM_NONE, EVENT_CHANNEL );
+	CG_PlayerSound( entNum, CHAN_PAIN, PlayerSound_Death, cg_volume_players->value, ATTN_NORM );
+	CG_PModel_AddAnimation( entNum, animations[ parm ].dead, animations[ parm ].dead, ANIM_NONE, BASE_CHANNEL );
+	CG_PModel_AddAnimation( entNum, animations[ parm ].dying, animations[ parm ].dying, ANIM_NONE, EVENT_CHANNEL );
 }
 
 /*
@@ -864,7 +864,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 			break;
 
 		case EV_DIE:
-			CG_Event_Die( ent, parm );
+			CG_Event_Die( ent->ownerNum, parm );
 			break;
 
 		case EV_EXPLOSION1:

@@ -769,6 +769,7 @@ static const char * prefixes[] = {
 	"CANDY",
 	"CANNON",
 	"CAPITAL",
+	"CARE",
 	"CAREFULLY ",
 	"CARDINAL",
 	"CASH",

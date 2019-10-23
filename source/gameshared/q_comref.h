@@ -272,6 +272,7 @@ typedef struct entity_state_s {
 	int damage;                     // EV_BLOOD
 	int targetNum;                  // ET_EVENT specific
 	int colorRGBA;                  // ET_BEAM, ET_EVENT specific
+	RGBA8 silhouetteColor;
 	int radius;                     // ET_GLADIATOR always extended, ET_HUD type, ...
 
 	bool linearMovement;

@@ -92,7 +92,6 @@ static const asEnumVal_t asConfigstringEnumVals[] =
 
 static const asEnumVal_t asEffectEnumVals[] =
 {
-	ASLIB_ENUM_VAL( EF_ROTATE_AND_BOB ),
 	ASLIB_ENUM_VAL( EF_CARRIER ),
 	ASLIB_ENUM_VAL( EF_TAKEDAMAGE ),
 	ASLIB_ENUM_VAL( EF_TEAMCOLOR_TRANSITION ),
@@ -100,6 +99,7 @@ static const asEnumVal_t asEffectEnumVals[] =
 	ASLIB_ENUM_VAL( EF_RACEGHOST ),
 	ASLIB_ENUM_VAL( EF_HAT ),
 	ASLIB_ENUM_VAL( EF_WORLD_MODEL ),
+	ASLIB_ENUM_VAL( EF_TEAM_SILHOUETTE ),
 
 	ASLIB_ENUM_VAL_NULL
 };
@@ -1558,6 +1558,7 @@ static const asProperty_t gedict_Properties[] =
 	{ ASLIB_PROPERTY_DECL( int, ownerNum ), ASLIB_FOFFSET( edict_t, s.ownerNum ) },
 	{ ASLIB_PROPERTY_DECL( int, counterNum ), ASLIB_FOFFSET( edict_t, s.counterNum ) },
 	{ ASLIB_PROPERTY_DECL( int, colorRGBA ), ASLIB_FOFFSET( edict_t, s.colorRGBA ) },
+	{ ASLIB_PROPERTY_DECL( uint, silhouetteColor ), ASLIB_FOFFSET( edict_t, s.silhouetteColor ) },
 	{ ASLIB_PROPERTY_DECL( int, weapon ), ASLIB_FOFFSET( edict_t, s.weapon ) },
 	{ ASLIB_PROPERTY_DECL( bool, teleported ), ASLIB_FOFFSET( edict_t, s.teleported ) },
 	{ ASLIB_PROPERTY_DECL( uint, effects ), ASLIB_FOFFSET( edict_t, s.effects ) },

@@ -60,7 +60,6 @@ struct MatrixPalettes {
 };
 
 typedef struct entity_s {
-
 	const Model * model;
 
 	/*

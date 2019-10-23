@@ -433,17 +433,6 @@ struct cmodel_s *CG_CModelForEntity( int entNum ) {
 }
 
 /*
-* CG_EntAddBobEffect
-*/
-static void CG_EntAddBobEffect( centity_t *cent ) {
-	float scale = 0.005f + cent->current.number * 0.00001f;
-	float bob = 4 + cosf( ( cg.time + 1000 ) * scale ) * 4;
-
-	cent->ent.origin2[2] += bob;
-	cent->ent.origin[2] += bob;
-}
-
-/*
 * CG_EntAddTeamColorTransitionEffect
 */
 static void CG_EntAddTeamColorTransitionEffect( centity_t *cent ) {
@@ -593,12 +582,6 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 		return;
 	}
 
-	// bobbing & auto-rotation
-	if( cent->effects & EF_ROTATE_AND_BOB ) {
-		CG_EntAddBobEffect( cent );
-		Matrix3_Copy( cg.autorotateAxis, cent->ent.axis );
-	}
-
 	if( cent->effects & EF_TEAMCOLOR_TRANSITION ) {
 		CG_EntAddTeamColorTransitionEffect( cent );
 	}
@@ -607,10 +590,24 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 	Mat4 transform = FromQFAxisAndOrigin( cent->ent.axis, cent->ent.origin );
 
 	Vec4 color;
-	for( int i = 0; i < 4; i++ )
+	for( int i = 0; i < 4; i++ ) {
 		color.ptr()[ i ] = cent->ent.shaderRGBA[ i ] / 255.0f;
+	}
 
 	DrawModel( model, transform, color );
+
+	if( cent->current.silhouetteColor.a > 0 ) {
+		if( ( cent->current.effects & EF_TEAM_SILHOUETTE ) == 0 || cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR || cent->current.team == cg.predictedPlayerState.stats[ STAT_TEAM ] ) {
+			Vec4 silhouette_color = Vec4(
+				cent->current.silhouetteColor.r / 255.0f,
+				cent->current.silhouetteColor.g / 255.0f,
+				cent->current.silhouetteColor.b / 255.0f,
+				cent->current.silhouetteColor.a / 255.0f
+			);
+
+			DrawModelSilhouette( model, transform, silhouette_color );
+		}
+	}
 
 	if( cent->effects & EF_WORLD_MODEL ) {
 		UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
@@ -899,14 +896,9 @@ void CG_AddEntities( void ) {
 	ZoneScoped;
 
 	entity_state_t *state;
-	vec3_t autorotate;
 	int pnum;
 	centity_t *cent;
 	bool canLight;
-
-	// bonus items rotate at a fixed rate
-	VectorSet( autorotate, 0, ( cg.time % 3600 ) * 0.1, 0 );
-	AnglesToAxis( autorotate, cg.autorotateAxis );
 
 	for( pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
 		state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];

@@ -378,8 +378,6 @@ typedef struct {
 
 	int lastWeapon;
 
-	mat3_t autorotateAxis;
-
 	float lerpfrac;                     // between oldframe and frame
 	float xerpTime;
 	float oldXerpTime;

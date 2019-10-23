@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /*
 * CG_Event_WeaponBeam
 */
-static void CG_Event_WeaponBeam( vec3_t origin, vec3_t dir, int ownerNum, int weapon ) {
+static void CG_Event_WeaponBeam( vec3_t origin, vec3_t dir, int ownerNum ) {
 	vec3_t end;
 	VectorNormalizeFast( dir );
 	VectorMA( origin, ELECTROBOLT_RANGE, dir, end );
@@ -38,19 +38,18 @@ static void CG_Event_WeaponBeam( vec3_t origin, vec3_t dir, int ownerNum, int we
 	}
 
 	// when it's predicted we have to delay the drawing until the view weapon is calculated
-	owner->localEffects[LOCALEFFECT_EV_WEAPONBEAM] = weapon;
+	owner->localEffects[LOCALEFFECT_EV_WEAPONBEAM] = WEAP_ELECTROBOLT;
 	VectorCopy( origin, owner->laserOrigin );
 	VectorCopy( trace.endpos, owner->laserPoint );
 }
 
 void CG_WeaponBeamEffect( centity_t *cent ) {
-	orientation_t projection;
-
 	if( !cent->localEffects[LOCALEFFECT_EV_WEAPONBEAM] ) {
 		return;
 	}
 
 	// now find the projection source for the beam we will draw
+	orientation_t projection;
 	if( !CG_PModel_GetProjectionSource( cent->current.number, &projection ) ) {
 		VectorCopy( cent->laserOrigin, projection.origin );
 	}
@@ -174,7 +173,7 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 	laserOwner = NULL;
 }
 
-static void CG_Event_LaserBeam( const vec3_t origin, const vec3_t dir, int entNum, int weapon ) {
+static void CG_Event_LaserBeam( const vec3_t origin, const vec3_t dir, int entNum ) {
 	// lasergun's smooth refire
 	// it appears that 64ms is that maximum allowed time interval between prediction events on localhost
 	unsigned int timeout = Max2( GS_GetWeaponDef( WEAP_LASERGUN )->firedef.reload_time + 10, 65u );
@@ -332,16 +331,14 @@ static void CG_BulletImpact( trace_t *tr ) {
 	}
 }
 
-static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int weapon, int owner ) {
-	trace_t trace, *water_trace;
-	const gs_weapon_definition_t *weapondef = GS_GetWeaponDef( weapon );
-	const firedef_t *firedef = &weapondef->firedef;
-	int range = firedef->timeout;
+static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int owner, int team ) {
+	int range = GS_GetWeaponDef( WEAP_MACHINEGUN )->firedef.timeout;
 
 	vec3_t right, up;
 	ViewVectors( dir, right, up );
 
-	water_trace = GS_TraceBullet( &trace, origin, dir, right, up, 0, 0, range, owner, 0 );
+	trace_t trace;
+	trace_t * water_trace = GS_TraceBullet( &trace, origin, dir, right, up, 0, 0, range, owner, 0 );
 	if( water_trace ) {
 		if( !VectorCompare( water_trace->endpos, origin ) ) {
 			CG_LeadWaterSplash( water_trace );
@@ -349,14 +346,24 @@ static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int weapon, int 
 	}
 
 	if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
-		CG_BulletImpact( &trace );
-
 		if( !water_trace ) {
 			if( trace.surfFlags & SURF_FLESH || ( trace.ent > 0 && cg_entities[trace.ent].current.type == ET_PLAYER ) ) {
 				// flesh impact sound
-			} else {
-				CG_ImpactPuffParticles( trace.endpos, trace.plane.normal, 1, 0.7, 1, 0.7, 0.0, 1.0, NULL );
+			}
+			else {
 				S_StartFixedSound( cgs.media.sfxRic[ rand() % 2 ], trace.endpos, CHAN_AUTO, cg_volume_effects->value, ATTN_STATIC );
+
+				ParticleEmitter emitter = { };
+				emitter.position = FromQF3( trace.endpos );
+				emitter.velocity_cone.radius = 128;
+				emitter.color = Vec4( 0.95f, 0.97f, 0.32f, 1.0f );
+
+				emitter.size = 2.0f;
+				emitter.lifetime = 0.1f;
+
+				emitter.n = 16;
+
+				EmitParticles( &cgs.sparks, emitter );
 			}
 		}
 	}
@@ -364,6 +371,15 @@ static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int weapon, int 
 	if( water_trace ) {
 		CG_LeadBubbleTrail( &trace, water_trace->endpos );
 	}
+
+	orientation_t projection;
+	if( !CG_PModel_GetProjectionSource( owner, &projection ) ) {
+		VectorCopy( origin, projection.origin );
+	}
+
+	Vec4 color = CG_TeamColorVec4( team );
+	color.w = 0.5f;
+	AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 2.0f, color, cgs.media.shaderLGBeam, 0.05f, 0.05f );
 }
 
 /*
@@ -406,10 +422,10 @@ static void CG_Fire_SunflowerPattern( vec3_t start, vec3_t dir, int ignore, int 
 /*
 * CG_Event_FireRiotgun
 */
-static void CG_Event_FireRiotgun( vec3_t origin, vec3_t dir, int weapon, int owner ) {
+static void CG_Event_FireRiotgun( vec3_t origin, vec3_t dir, int owner ) {
 	trace_t trace;
 	vec3_t end;
-	const gs_weapon_definition_t *weapondef = GS_GetWeaponDef( weapon );
+	const gs_weapon_definition_t *weapondef = GS_GetWeaponDef( WEAP_RIOTGUN );
 	const firedef_t *firedef = &weapondef->firedef;
 
 	CG_Fire_SunflowerPattern( origin, dir, owner, firedef->projectile_count,
@@ -753,7 +769,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 					origin[2] += cg.predictedPlayerState.viewheight;
 					AngleVectors( cg.predictedPlayerState.viewangles, dir, NULL, NULL );
 
-					CG_Event_LaserBeam( origin, dir, ent->number, weapon );
+					CG_Event_LaserBeam( origin, dir, ent->number );
 				}
 			}
 			break;
@@ -774,16 +790,16 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 				AngleVectors( cg.predictedPlayerState.viewangles, dir, NULL, NULL );
 
 				if( weapon == WEAP_ELECTROBOLT ) {
-					CG_Event_WeaponBeam( origin, dir, cg.predictedPlayerState.POVnum, weapon );
+					CG_Event_WeaponBeam( origin, dir, ent->number );
 				}
 				else if( weapon == WEAP_RIOTGUN ) {
-					CG_Event_FireRiotgun( origin, dir, weapon, cg.predictedPlayerState.POVnum );
+					CG_Event_FireRiotgun( origin, dir, ent->number );
 				}
 				else if( weapon == WEAP_LASERGUN ) {
-					CG_Event_LaserBeam( origin, dir, ent->number, weapon );
+					CG_Event_LaserBeam( origin, dir, ent->number );
 				}
 				else if( weapon == WEAP_MACHINEGUN ) {
-					CG_Event_FireMachinegun( origin, dir, weapon, cg.predictedPlayerState.POVnum );
+					CG_Event_FireMachinegun( origin, dir, ent->number, ent->team );
 				}
 			}
 		} break;
@@ -793,7 +809,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 			if( ISVIEWERENTITY( parm ) && ev < PREDICTABLE_EVENTS_MAX && predicted != cg.view.playerPrediction ) {
 				return;
 			}
-			CG_Event_WeaponBeam( ent->origin, ent->origin2, parm, WEAP_ELECTROBOLT );
+			CG_Event_WeaponBeam( ent->origin, ent->origin2, parm );
 			break;
 
 		case EV_FIRE_RIOTGUN:
@@ -801,7 +817,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 			if( ISVIEWERENTITY( ent->ownerNum ) && ev < PREDICTABLE_EVENTS_MAX && predicted != cg.view.playerPrediction ) {
 				return;
 			}
-			CG_Event_FireRiotgun( ent->origin, ent->origin2, ent->weapon, ent->ownerNum );
+			CG_Event_FireRiotgun( ent->origin, ent->origin2, ent->ownerNum );
 			break;
 
 		case EV_NOAMMOCLICK:

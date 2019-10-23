@@ -605,8 +605,11 @@ void CG_AddBombHudEntity( centity_t * cent ) {
 }
 
 void CG_DrawBombHUD() {
-	int my_team = cg.predictedPlayerState.stats[STAT_REALTEAM];
-	bool show_labels = my_team != TEAM_SPECTATOR && GS_MatchState() == MATCH_STATE_PLAYTIME;
+	if( GS_MatchState() != MATCH_STATE_PLAYTIME )
+		return;
+
+	int my_team = cg.predictedPlayerState.stats[ STAT_REALTEAM ];
+	bool show_labels = my_team != TEAM_SPECTATOR;
 
 	// TODO: draw arrows when clamped
 
@@ -632,26 +635,22 @@ void CG_DrawBombHUD() {
 		bool clamped;
 		Vec2 coords = WorldToScreenClamped( FromQF3( bomb.origin ), Vec2( cgs.fontSystemMediumSize * 2 ), &clamped );
 
-		const Material * icon = cgs.media.shaderBombIcon;
-		int icon_size = cgs.fontSystemMediumSize;
-
-		if( !clamped ) {
-			icon = cgs.media.shaderTeamMateIndicator;
-			icon_size = cgs.fontSystemMediumSize / 2;
-
+		if( clamped ) {
+			int icon_size = ( cgs.fontSystemMediumSize * frame_static.viewport_height ) / 600;
+			Draw2DBox( coords.x - icon_size / 2, coords.y - icon_size / 2, icon_size, icon_size, cgs.media.shaderBombIcon );
+		}
+		else {
 			if( show_labels ) {
 				const char * msg = "RETRIEVE";
 				if( bomb.state == BombState_Placed )
 					msg = "PLANTING";
 				else if( bomb.state == BombState_Armed )
 					msg = my_team == bomb.team ? "PROTECT" : "DEFUSE";
-				float y = coords.y - icon_size - cgs.fontSystemTinySize / 2;
+				float y = coords.y - cgs.fontSystemTinySize / 2;
 				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, y, vec4_white, true );
 			}
 		}
 
-		icon_size = ( icon_size * frame_static.viewport_height ) / 600;
-		Draw2DBox( coords.x - icon_size / 2, coords.y - icon_size / 2, icon_size, icon_size, icon );
 	}
 }
 

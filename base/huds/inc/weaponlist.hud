@@ -10,5 +10,7 @@ if %TEAM != #TEAM_SPECTATOR
 
 		// draw selected gun
 		drawWeaponIcons 56 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0, 48 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 48, %VIDHEIGHT / 40
+
+		setFontBorder off
 	endif
 endif

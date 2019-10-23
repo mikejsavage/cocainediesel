@@ -190,7 +190,6 @@ void SCR_UpdateScreen() {
 	CL_ImGuiBeginFrame();
 
 	if( scr_draw_loading == 2 ) {
-		// loading plaque over APP_STARTUP_COLOR screen
 		scr_draw_loading = 0;
 		UI_UpdateConnectScreen();
 	} else if( cls.state == CA_DISCONNECTED ) {

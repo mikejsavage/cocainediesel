@@ -80,7 +80,7 @@ void bombModelCreate() {
 	bombModel.solid = SOLID_TRIGGER;
 	bombModel.light = BOMB_LIGHT_INACTIVE;
 	bombModel.modelindex = modelBombModel;
-	bombModel.silhouetteColor = ( 255 << 0 ) | ( 255 << 8 ) | ( 255 << 16 ) | ( 255 << 24 );
+	bombModel.silhouetteColor = uint( 255 << 0 ) | uint( 255 << 8 ) | uint( 255 << 16 ) | uint( 255 << 24 );
 	@bombModel.touch = bomb_touch;
 	@bombModel.stop = bomb_stop;
 }

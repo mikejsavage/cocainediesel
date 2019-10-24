@@ -778,7 +778,6 @@ char *G_StatsMessage( edict_t *ent ) {
 	}
 
 	Q_strncatz( entry, va( " %d %d", client->level.stats.total_damage_given, client->level.stats.total_damage_received ), sizeof( entry ) );
-	Q_strncatz( entry, va( " %d", client->level.stats.health_taken ), sizeof( entry ) );
 
 	// add enclosing quote
 	Q_strncatz( entry, "\"", sizeof( entry ) );

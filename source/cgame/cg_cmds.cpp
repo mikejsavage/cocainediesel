@@ -131,93 +131,49 @@ static void CG_SC_Scoreboard( void ) {
 	SCR_UpdateScoreboardMessage( trap_Cmd_Argv( 1 ) );
 }
 
-/*
-* CG_SC_PrintPlayerStats
-*/
-static void CG_SC_PrintPlayerStats( const char *s, void ( *print )( const char *format, ... ), void ( *printDmg )( const char *format, ... ) ) {
-	int playerNum;
-	int i, shot_strong, hit_total, shot_total;
-	int total_damage_given, total_damage_received;
-	const gsitem_t *item;
+static void CG_SC_PlayerStats() {
+	const char * s = trap_Cmd_Argv( 1 );
 
-	playerNum = CG_ParseValue( &s );
+	int playerNum = CG_ParseValue( &s );
 	if( playerNum < 0 || playerNum >= gs.maxclients ) {
 		return;
 	}
 
-	if( !printDmg ) {
-		printDmg = print;
-	}
+	CG_LocalPrint( "Stats for %s" S_COLOR_WHITE ":\n", cgs.clientInfo[playerNum].name );
+	CG_Printf( "\nWeapon\n" );
+	CG_Printf( "    hit/shot percent\n" );
 
-	// print stats to console/file
-	printDmg( "Stats for %s" S_COLOR_WHITE ":\r\n", cgs.clientInfo[playerNum].name );
-	print( "\r\nWeapon\r\n" );
-	print( "    hit/shot percent\r\n" );
-
-	for( i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
-		item = GS_FindItemByTag( i );
+	for( int i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
+		const gsitem_t * item = GS_FindItemByTag( i );
 		assert( item );
 
-		shot_total = CG_ParseValue( &s );
-		if( shot_total < 1 ) { // only continue with registered shots
+		int shots = CG_ParseValue( &s );
+		if( shots < 1 ) { // only continue with registered shots
 			continue;
 		}
-		hit_total = CG_ParseValue( &s );
-
-		// legacy - parse shot_strong and hit_strong
-		shot_strong = CG_ParseValue( &s );
-		if( shot_strong != shot_total ) {
-			CG_ParseValue( &s );
-		}
+		int hits = CG_ParseValue( &s );
 
 		// name
-		print( "%s%2s" S_COLOR_WHITE ": ", ImGuiColorToken( item->color ), item->shortname );
+		CG_Printf( "%s%2s" S_COLOR_WHITE ": ", ImGuiColorToken( item->color ), item->shortname );
 
-#define STATS_PERCENT( hit,total ) ( ( total ) == 0 ? 0 : ( ( hit ) == ( total ) ? 100 : (float)( hit ) * 100.0f / (float)( total ) ) )
+#define STATS_PERCENT( hit, total ) ( ( total ) == 0 ? 0 : ( ( hit ) == ( total ) ? 100 : (float)( hit ) * 100.0f / (float)( total ) ) )
 
 		// total
-		print( S_COLOR_GREEN "%3i" S_COLOR_WHITE "/" S_COLOR_CYAN "%3i      " S_COLOR_YELLOW "%2.1f",
-			   hit_total, shot_total, STATS_PERCENT( hit_total, shot_total ) );
-
-		print( "\r\n" );
+		CG_Printf( S_COLOR_GREEN "%3i" S_COLOR_WHITE "/" S_COLOR_CYAN "%3i      " S_COLOR_YELLOW "%2.1f\n",
+			   hits, shots, STATS_PERCENT( hits, shots ) );
 	}
 
-	print( "\r\n" );
+	CG_Printf( "\n" );
 
-	total_damage_given = CG_ParseValue( &s );
-	total_damage_received = CG_ParseValue( &s );
+	int total_damage_given = CG_ParseValue( &s );
+	int total_damage_received = CG_ParseValue( &s );
 
-	printDmg( S_COLOR_YELLOW "Damage given/received: " S_COLOR_WHITE "%i/%i " S_COLOR_YELLOW "ratio: %s%3.2f\r\n",
-			  total_damage_given, total_damage_received,
-			  ( total_damage_given > total_damage_received ? S_COLOR_GREEN : S_COLOR_RED ),
-			  STATS_PERCENT( total_damage_given, total_damage_given + total_damage_received ) );
-
-	CG_ParseValue( &s ); // health taken
+	CG_LocalPrint( S_COLOR_YELLOW "Damage given/received: " S_COLOR_WHITE "%i/%i " S_COLOR_YELLOW "ratio: %s%3.2f\n",
+		total_damage_given, total_damage_received,
+		total_damage_given > total_damage_received ? S_COLOR_GREEN : S_COLOR_RED,
+		STATS_PERCENT( total_damage_given, total_damage_given + total_damage_received ) );
 
 #undef STATS_PERCENT
-}
-
-/*
-* CG_SC_PrintStatsToFile
-*/
-static int cg_statsFileHandle;
-void CG_SC_PrintStatsToFile( const char *format, ... ) {
-	va_list argptr;
-	char msg[1024];
-
-	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
-	va_end( argptr );
-
-	trap_FS_Print( cg_statsFileHandle, msg );
-}
-
-/*
-* CG_SC_PlayerStats
-*/
-static void CG_SC_PlayerStats( void ) {
-	const char * s = trap_Cmd_Argv( 1 );
-	CG_SC_PrintPlayerStats( s, CG_Printf, CG_LocalPrint );
 }
 
 /*

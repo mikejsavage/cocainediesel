@@ -154,7 +154,7 @@ static void CG_SC_PlayerStats() {
 		int hits = CG_ParseValue( &s );
 
 		// name
-		CG_Printf( "%s%2s" S_COLOR_WHITE ": ", ImGuiColorToken( item->color ), item->shortname );
+		CG_Printf( "%s%2s" S_COLOR_WHITE ": ", ImGuiColorToken( item->color ).token, item->shortname );
 
 #define STATS_PERCENT( hit, total ) ( ( total ) == 0 ? 0 : ( ( hit ) == ( total ) ? 100 : (float)( hit ) * 100.0f / (float)( total ) ) )
 

@@ -93,8 +93,7 @@ static void UpdateParticleChunk( const ParticleSystem * ps, ParticleChunk * chun
 		chunk->velocity_y[ i ] += acceleration.y * dt;
 		chunk->velocity_z[ i ] += acceleration.z * dt;
 
-		// float damping = powf( chunk->velocity_damping[ i ], dt );
-		float damping = 1.0f;
+		float damping = powf( chunk->velocity_damping[ i ], dt );
 		chunk->velocity_x[ i ] *= damping;
 		chunk->velocity_y[ i ] *= damping;
 		chunk->velocity_z[ i ] *= damping;

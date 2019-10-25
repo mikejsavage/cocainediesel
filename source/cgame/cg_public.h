@@ -106,16 +106,8 @@ typedef struct {
 	int ( *FS_Read )( void *buffer, size_t len, int file );
 	int ( *FS_Write )( const void *buffer, size_t len, int file );
 	int ( *FS_Print )( int file, const char *msg );
-	int ( *FS_Tell )( int file );
-	int ( *FS_Seek )( int file, int offset, int whence );
-	int ( *FS_Eof )( int file );
-	int ( *FS_Flush )( int file );
 	void ( *FS_FCloseFile )( int file );
-	bool ( *FS_RemoveFile )( const char *filename );
-	int ( *FS_GetFileList )( const char *dir, const char *extension, char *buf, size_t bufsize, int start, int end );
 	bool ( *FS_IsPureFile )( const char *filename );
-	bool ( *FS_MoveFile )( const char *src, const char *dst );
-	bool ( *FS_RemoveDirectory )( const char *dirname );
 
 	// key bindings
 	const char *( *Key_GetBindingBuf )( int binding );

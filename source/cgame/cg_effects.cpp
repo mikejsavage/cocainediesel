@@ -509,11 +509,13 @@ void CG_ParticleExplosionEffect( const vec3_t org, const vec3_t dir, float r, fl
 		emitter.velocity_cone.radius = 400.0f;
 		emitter.velocity_cone.theta = float( M_PI );
 
-		emitter.color = Vec4( 0.25f, 0.25f, 0.25f, 0.5f );
+		emitter.start_color = Vec4( 0.25f, 0.25f, 0.25f, 0.5f );
+		emitter.end_color = Vec3( 0.25f, 0.25f, 0.25f );
 		emitter.alpha_distribution.type = RandomDistributionType_Uniform;
 		emitter.alpha_distribution.uniform = 0.1f;
 
-		emitter.size = 16.0f;
+		emitter.start_size = 16.0f;
+		emitter.end_size = 16.0f;
 		emitter.size_distribution.type = RandomDistributionType_Uniform;
 		emitter.size_distribution.uniform = 2.0f;
 
@@ -623,7 +625,8 @@ void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color ) {
 	emitter.velocity_cone.radius = 4.0f;
 	emitter.velocity_cone.theta = 2.0f * float( M_PI );
 
-	emitter.color = color;
+	emitter.start_color = color;
+	emitter.end_color = color.xyz();
 
 	RandomDistribution color_dist;
 	color_dist.type = RandomDistributionType_Uniform;
@@ -633,7 +636,8 @@ void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color ) {
 	emitter.blue_distribution = color_dist;
 	emitter.alpha_distribution = color_dist;
 
-	emitter.size = 1.0f;
+	emitter.start_size = 1.0f;
+	emitter.end_size = 1.0f;
 	emitter.size_distribution.type = RandomDistributionType_Uniform;
 	emitter.size_distribution.uniform = 0.1f;
 

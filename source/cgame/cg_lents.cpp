@@ -1147,9 +1147,13 @@ void DrawGibs() {
 			ParticleEmitter emitter = { };
 			emitter.position = FromQF3( trace.endpos );
 			emitter.velocity_cone.radius = 128;
-			emitter.color = color;
 
-			emitter.size = 4.0f;
+			emitter.start_color = color;
+			emitter.end_color = color.xyz();
+
+			emitter.start_size = 4.0f;
+			emitter.end_size = 4.0f;
+
 			emitter.lifetime = 1.0f;
 
 			emitter.n = 64;

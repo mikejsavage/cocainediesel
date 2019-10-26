@@ -122,7 +122,10 @@ void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t ne
 #define ALLOC( a, T ) ( ( T * ) ( a )->allocate( sizeof( T ), alignof( T ), __PRETTY_FUNCTION__, __FILE__, __LINE__ ) )
 #define ALLOC_MANY( a, T, n ) ( ( T * ) AllocManyHelper( a, checked_cast< size_t >( n ), sizeof( T ), alignof( T ), __PRETTY_FUNCTION__, __FILE__, __LINE__ ) )
 #define REALLOC_MANY( a, T, ptr, current_n, new_n ) ( ( T * ) ReallocManyHelper( a, ptr, checked_cast< size_t >( current_n ), checked_cast< size_t >( new_n ), sizeof( T ), alignof( T ), __PRETTY_FUNCTION__, __FILE__, __LINE__ ) )
-#define ALLOC_SPAN( a, T, n ) Span< T >( ALLOC_MANY( a, T, n ), n )
+#define ALLOC_SPAN( a, T, n ) Span< T >( ALLOC_MANY( ( a ), T, ( n ) ), n )
+
+#define QF_NEW( a, T, ... ) new ( ALLOC( ( a ), T ) ) T( __VA_ARGS__ )
+#define QF_DELETE( a, T, p ) do { if( ( p ) != NULL ) { ( p )->~T(); FREE( ( a ), ( p ) ); } } while( 0 )
 
 /*
  * helper functions that are useful in templates. so headers don't need to include base.h

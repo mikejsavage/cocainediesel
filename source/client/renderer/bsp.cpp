@@ -528,7 +528,10 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 		}
 
 		if( num_solid_brushes != 0 ) {
-			model->collision_shapes = ALLOC_MANY( sys_allocator, btCollisionShape *, num_solid_brushes );
+			model->collision_shape = QF_NEW( sys_allocator, btCompoundShape, true, num_solid_brushes );
+
+			btTransform transform;
+			transform.setIdentity();
 
 			for( u32 i = 0; i < bsp_model.num_brushes; i++ ) {
 				const BSPBrush & brush = bsp.brushes[ bsp_model.first_brush + i ];
@@ -557,8 +560,8 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 				btAlignedObjectArray< btVector3 > hull_vertices;
 				btGeometryUtil::getVerticesFromPlaneEquations( planes, hull_vertices );
 
-				model->collision_shapes[ model->num_collision_shapes ] = new btConvexHullShape( &hull_vertices[ 0 ].getX(), hull_vertices.size() );
-				model->num_collision_shapes++;
+				btConvexHullShape * shape = QF_NEW( sys_allocator, btConvexHullShape, &hull_vertices[ 0 ].getX(), hull_vertices.size() );
+				model->collision_shape->addChildShape( transform, shape );
 			}
 		}
 	}

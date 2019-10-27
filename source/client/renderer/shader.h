@@ -22,8 +22,6 @@ struct Shaders {
 
 	Shader blur;
 
-	Shader tonemap;
-
 	Shader outline;
 	Shader outline_skinned;
 

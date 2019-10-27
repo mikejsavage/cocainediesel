@@ -7,13 +7,5 @@ void CL_Disconnect( const char * message ) { }
 
 void Con_Print( const char * text ) { }
 
-static void Bind() { }
-void Key_Init() {
-	Cmd_AddCommand( "bind", Bind );
-}
-void Key_Shutdown() {
-	Cmd_RemoveCommand( "bind" );
-}
-
-void SCR_BeginLoadingPlaque() { }
-void SCR_EndLoadingPlaque() { }
+void Key_Init() { }
+void Key_Shutdown() { }

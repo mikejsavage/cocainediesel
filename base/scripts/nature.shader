@@ -15,14 +15,3 @@ textures/leaves/leaves0108_s
 		rgbGen vertex
 	}
 }
-
-vertex/trees/barkdecidious048
-{
-	qer_editorimage textures/trees/barkdecidious048
-	surfaceparm nolightmap
-
-	{
-		rgbgen vertex
-		material textures/trees/barkdecidious048
-	}
-}

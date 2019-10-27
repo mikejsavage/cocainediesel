@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include "gs_ref.h"
+#include "gs_qrespath.h"
 
 // shared callbacks
 
@@ -361,19 +361,19 @@ typedef struct gitem_s {
 	int tag;
 	itemtype_t type;
 
-	const char *name;      // for printing on pickup
-	const char *shortname; // for printing on messages
-	const char *color;     // for printing on messages
+	const char * name;      // for printing on pickup
+	const char * shortname; // for printing on messages
+	RGB8 color;
+	const char * description;
+	int cost;
 
 	int ammo_tag;          // uses this ammo, for weapons
 
 	// space separated string of stuff to precache that's not mentioned above
-	const char *precache_models;
-	const char *precache_sounds;
-	const char *precache_images;
+	const char * precache_models;
+	const char * precache_sounds;
+	const char * precache_images;
 } gsitem_t;
-
-extern const gsitem_t itemdefs[];
 
 const gsitem_t *GS_FindItemByTag( const int tag );
 const gsitem_t *GS_FindItemByName( const char *name );
@@ -413,7 +413,6 @@ constexpr TeamColor TEAM_COLORS[] = {
 
 // teams
 const char *GS_TeamName( int team );
-const char *GS_DefaultTeamName( int team );
 int GS_TeamFromName( const char *teamname );
 bool GS_IsTeamDamage( entity_state_t *targ, entity_state_t *attacker );
 
@@ -423,7 +422,7 @@ bool GS_IsTeamDamage( entity_state_t *targ, entity_state_t *attacker );
 void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *message2 );
 void GS_TouchPushTrigger( player_state_t *playerState, entity_state_t *pusher );
 int GS_WaterLevel( entity_state_t *state, vec3_t mins, vec3_t maxs );
-void GS_BBoxForEntityState( entity_state_t *state, vec3_t mins, vec3_t maxs );
+void GS_BBoxForEntityState( const entity_state_t * state, vec3_t mins, vec3_t maxs );
 
 //===============================================================
 
@@ -508,7 +507,7 @@ static constexpr const char *gs_keyicon_names[] = {
 #define STAT_LAYOUT_TEAMTAB         ( 1 << 3 )
 #define STAT_LAYOUT_CHALLENGER      ( 1 << 4 ) // player is in challengers queue (used for ingame menu)
 #define STAT_LAYOUT_READY           ( 1 << 5 ) // player is ready (used for ingame menu)
-#define STAT_LAYOUT_SPECTEAMONLY    ( 1 << 6 )
+#define STAT_LAYOUT_VOTED           ( 1 << 6 )
 
 #define STAT_NOTSET                 -9999 // used for stats that don't have meaningful value atm.
 
@@ -552,7 +551,7 @@ typedef enum {
 enum {
 	PAIN_20,
 	PAIN_35,
-	PAIN_80,
+	PAIN_60,
 	PAIN_100,
 
 	PAIN_TOTAL
@@ -712,7 +711,6 @@ enum {
 	ET_LASERBEAM,   // for continuous beams
 
 	ET_DECAL,
-	ET_PARTICLES,
 
 	ET_HUD,
 
@@ -732,16 +730,14 @@ enum {
 // that happen constantly on the given entity.
 // An entity that has effects will be sent to the client
 // even if it has a zero index model.
-#define EF_ROTATE_AND_BOB           ( 1 << 0 )
-#define EF_CARRIER                  ( 1 << 1 )
-#define EF_TAKEDAMAGE               ( 1 << 2 )
-#define EF_TEAMCOLOR_TRANSITION     ( 1 << 3 )
-#define EF_GODMODE                  ( 1 << 4 )
-#define EF_GHOST                    ( 1 << 5 )
-#define EF_PLAYER_HIDENAME          ( 1 << 6 )
-#define EF_RACEGHOST                ( 1 << 7 )
-#define EF_OUTLINE                  ( 1 << 8 )
-#define EF_HAT                      ( 1 << 9 )
+#define EF_CARRIER                  ( 1 << 0 )
+#define EF_TAKEDAMAGE               ( 1 << 1 )
+#define EF_TEAMCOLOR_TRANSITION     ( 1 << 2 )
+#define EF_GODMODE                  ( 1 << 3 )
+#define EF_RACEGHOST                ( 1 << 4 )
+#define EF_HAT                      ( 1 << 5 )
+#define EF_WORLD_MODEL              ( 1 << 6 )
+#define EF_TEAM_SILHOUETTE          ( 1 << 7 )
 
 //===============================================================
 // gs_weapons.c

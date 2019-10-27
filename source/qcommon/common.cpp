@@ -178,13 +178,6 @@ void Com_Printf( const char *format, ... ) {
 	va_list argptr;
 	char msg[MAX_PRINTMSG];
 
-	time_t timestamp;
-	char timestamp_str[MAX_PRINTMSG];
-	struct tm *timestampptr;
-	timestamp = time( NULL );
-	timestampptr = gmtime( &timestamp );
-	strftime( timestamp_str, MAX_PRINTMSG, "%Y-%m-%dT%H:%M:%SZ ", timestampptr );
-
 	va_start( argptr, format );
 	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
@@ -196,7 +189,7 @@ void Com_Printf( const char *format, ... ) {
 			rd_flush( rd_target, rd_buffer, rd_extra );
 			*rd_buffer = 0;
 		}
-		strcat( rd_buffer, msg );
+		Q_strncatz( rd_buffer, msg, rd_buffersize );
 
 		QMutex_Unlock( com_print_mutex );
 		return;
@@ -209,7 +202,9 @@ void Com_Printf( const char *format, ... ) {
 
 	if( log_file ) {
 		if( logconsole_timestamp && logconsole_timestamp->integer ) {
-			FS_Printf( log_file, "%s", timestamp_str );
+			char timestamp[MAX_PRINTMSG];
+			Sys_FormatTime( timestamp, sizeof( timestamp ), "%Y-%m-%dT%H:%M:%SZ " );
+			FS_Printf( log_file, "%s", timestamp );
 		}
 		FS_Printf( log_file, "%s", msg );
 		if( logconsole_flush && logconsole_flush->integer ) {
@@ -544,36 +539,6 @@ void Com_FreePureList( purelist_t **purelist ) {
 
 void Key_Init( void );
 void Key_Shutdown( void );
-void SCR_EndLoadingPlaque( void );
-
-/*
-* Com_Error_f
-*
-* Just throw a fatal error to
-* test error shutdown procedures
-*/
-#ifndef PUBLIC_BUILD
-static void Com_Error_f( void ) {
-	Com_Error( ERR_FATAL, "%s", Cmd_Argv( 1 ) );
-}
-#endif
-
-/*
-* Com_Lag_f
-*/
-#ifndef PUBLIC_BUILD
-static void Com_Lag_f( void ) {
-	int msecs;
-
-	if( Cmd_Argc() != 2 || atoi( Cmd_Argv( 1 ) ) <= 0 ) {
-		Com_Printf( "Usage: %s <milliseconds>\n", Cmd_Argv( 0 ) );
-	}
-
-	msecs = atoi( Cmd_Argv( 1 ) );
-	Sys_Sleep( msecs );
-	Com_Printf( "Lagged %i milliseconds\n", msecs );
-}
-#endif
 
 /*
 * Q_malloc
@@ -618,11 +583,6 @@ void Q_free( void *buf ) {
 void Qcommon_InitCommands( void ) {
 	assert( !commands_intialized );
 
-#ifndef PUBLIC_BUILD
-	Cmd_AddCommand( "error", Com_Error_f );
-	Cmd_AddCommand( "lag", Com_Lag_f );
-#endif
-
 	if( is_dedicated_server ) {
 		Cmd_AddCommand( "quit", Com_Quit );
 	}
@@ -638,11 +598,6 @@ void Qcommon_ShutdownCommands( void ) {
 		return;
 	}
 
-#ifndef PUBLIC_BUILD
-	Cmd_RemoveCommand( "error" );
-	Cmd_RemoveCommand( "lag" );
-#endif
-
 	if( is_dedicated_server ) {
 		Cmd_RemoveCommand( "quit" );
 	}
@@ -656,11 +611,11 @@ void Qcommon_ShutdownCommands( void ) {
 void Qcommon_Init( int argc, char **argv ) {
 	ZoneScoped;
 
+	Sys_Init();
+
 	if( setjmp( abortframe ) ) {
 		Sys_Error( "Error during initialization: %s", com_errormsg );
 	}
-
-	QThreads_Init();
 
 	com_print_mutex = QMutex_Create();
 
@@ -696,11 +651,12 @@ void Qcommon_Init( int argc, char **argv ) {
 
 	FS_Init();
 
-	Cbuf_AddText( "exec default.cfg\n" );
 	if( !is_dedicated_server ) {
+		Cbuf_AddText( "exec default.cfg\n" );
 		Cbuf_AddText( "exec config.cfg\n" );
 		Cbuf_AddText( "exec autoexec.cfg\n" );
-	} else {
+	}
+	else {
 		Cbuf_AddText( "exec dedicated_autoexec.cfg\n" );
 	}
 
@@ -728,9 +684,7 @@ void Qcommon_Init( int argc, char **argv ) {
 	com_showtrace =     Cvar_Get( "com_showtrace", "0", 0 );
 
 	Cvar_Get( "gamename", APPLICATION_NOSPACES, CVAR_SERVERINFO | CVAR_READONLY );
-	versioncvar = Cvar_Get( "version", APP_VERSION " " ARCH " " BUILDSTRING, CVAR_SERVERINFO | CVAR_READONLY );
-
-	Sys_Init();
+	versioncvar = Cvar_Get( "version", APP_VERSION " " ARCH " " OSNAME, CVAR_SERVERINFO | CVAR_READONLY );
 
 	CSPRNG_Init();
 
@@ -742,22 +696,13 @@ void Qcommon_Init( int argc, char **argv ) {
 	SV_Init();
 	CL_Init();
 
-	SCR_EndLoadingPlaque();
-
 	if( !is_dedicated_server ) {
 		Cbuf_AddText( "exec autoexec_postinit.cfg\n" );
 	} else {
 		Cbuf_AddText( "exec dedicated_autoexec_postinit.cfg\n" );
 	}
 
-	// add + commands from command line
-	if( !Cbuf_AddLateCommands() ) {
-		// if the user didn't give any commands, run default action
-	} else {
-		// the user asked for something explicit
-		// so drop the loading plaque
-		SCR_EndLoadingPlaque();
-	}
+	Cbuf_AddLateCommands();
 
 	Com_Printf( "\n====== %s Initialized ======\n", APPLICATION );
 
@@ -807,7 +752,7 @@ void Qcommon_Frame( unsigned int realMsec ) {
 	FS_Frame();
 
 	if( is_dedicated_server ) {
-		char *s;
+		const char * s;
 		do {
 			s = Sys_ConsoleInput();
 			if( s ) {
@@ -856,14 +801,6 @@ void Qcommon_Frame( unsigned int realMsec ) {
 * Qcommon_Shutdown
 */
 void Qcommon_Shutdown( void ) {
-	static bool isdown = false;
-
-	if( isdown ) {
-		printf( "Recursive shutdown\n" );
-		return;
-	}
-	isdown = true;
-
 	CM_Shutdown();
 	Netchan_Shutdown();
 	NET_Shutdown();
@@ -886,6 +823,4 @@ void Qcommon_Shutdown( void ) {
 	Memory_Shutdown();
 
 	QMutex_Destroy( &com_print_mutex );
-
-	QThreads_Shutdown();
 }

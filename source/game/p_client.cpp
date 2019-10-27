@@ -146,7 +146,7 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 
 	// send an effect on the removed body
 	if( body->s.modelindex && body->s.type == ET_CORPSE ) {
-		ThrowSmallPileOfGibs( body, 10 );
+		ThrowSmallPileOfGibs( body, vec3_origin, 10 );
 	}
 
 	GClip_UnlinkEntity( body );
@@ -195,10 +195,11 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 	int mod = meansOfDeath;
 	bool gib = mod == MOD_ELECTROBOLT || mod == MOD_ROCKET || mod == MOD_GRENADE ||
 		mod == MOD_TRIGGER_HURT || mod == MOD_TELEFRAG || mod == MOD_EXPLOSIVE ||
-		( ( mod == MOD_ROCKET_SPLASH || mod == MOD_GRENADE_SPLASH ) && damage >= 40 );
+		mod == MOD_SPIKES ||
+		( ( mod == MOD_ROCKET_SPLASH || mod == MOD_GRENADE_SPLASH ) && damage >= 20 );
 
 	if( gib ) {
-		ThrowSmallPileOfGibs( body, damage );
+		ThrowSmallPileOfGibs( body, knockbackOfDeath, damage );
 
 		// reset gib impulse
 		VectorClear( body->velocity );
@@ -213,13 +214,16 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 		body->s.bodyOwner = ent->s.number; // bodyOwner is the same as modelindex2
 		body->s.teleported = true;
 
-		G_AddEvent( body, EV_DIE, rand(), true );
+		edict_t * event = G_SpawnEvent( EV_DIE, rand(), NULL );
+		event->r.svflags |= SVF_BROADCAST;
+		event->s.ownerNum = body->s.number;
 
 		// bit of a hack, if we're not in warmup, leave the body with no think. think self destructs
 		// after a timeout, but if we leave, next bomb round will call G_ResetLevel() cleaning up
-		if ( GS_MatchState() == MATCH_STATE_WARMUP ) {
+		if( GS_MatchState() == MATCH_STATE_WARMUP ) {
 			body->nextThink = level.time + 3500;
-		} else {
+		}
+		else {
 			body->think = NULL;
 		}
 	} else {   // wasn't a player, just copy it's model
@@ -510,7 +514,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 
 	// don't put spectators in the game
 	if( !ghost ) {
-		KillBox( self, MOD_TELEFRAG );
+		KillBox( self, MOD_TELEFRAG, vec3_origin );
 	}
 
 	self->s.attenuation = ATTN_NORM;
@@ -610,7 +614,7 @@ void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
 	GClip_UnlinkEntity( player );
 
 	// kill anything at the destination
-	KillBox( player, MOD_TELEFRAG );
+	KillBox( player, MOD_TELEFRAG, vec3_origin );
 
 	GClip_LinkEntity( player );
 
@@ -668,35 +672,21 @@ static void strip_highchars( char *in ) {
 * G_SanitizeUserString
 */
 static int G_SanitizeUserString( char *string, size_t size ) {
-	static char *colorless = NULL;
-	static size_t colorless_size = 0;
-	int i, c_ascii;
-
 	// life is hard, UTF-8 will have to go
 	strip_highchars( string );
 
-	COM_SanitizeColorString( va( "%s", string ), string, size, -1, COLOR_WHITE );
-
 	Q_trim( string );
-
-	if( colorless_size < strlen( string ) + 1 ) {
-		colorless_size = strlen( string ) + 1;
-
-		G_Free( colorless );
-		colorless = ( char * )G_Malloc( colorless_size );
-	}
-
-	Q_strncpyz( colorless, COM_RemoveColorTokens( string ), colorless_size );
 
 	// require at least one non-whitespace ascii char in the string
 	// (this will upset people who would like to have a name entirely in a non-latin
 	// script, but it makes damn sure you can't get an empty name by exploiting some
 	// utf-8 decoder quirk)
-	c_ascii = 0;
-	for( i = 0; colorless[i]; i++ )
-		if( colorless[i] > 32 && colorless[i] < 127 ) {
+	int c_ascii = 0;
+	for( int i = 0; string[i]; i++ ) {
+		if( string[i] > 32 && string[i] < 127 ) {
 			c_ascii++;
 		}
+	}
 
 	return c_ascii;
 }
@@ -707,11 +697,9 @@ static int G_SanitizeUserString( char *string, size_t size ) {
 static void G_SetName( edict_t *ent, const char *original_name ) {
 	const char *invalid_prefixes[] = { "console", "[team]", "[spec]", "[bot]", NULL };
 	edict_t *other;
-	char name[MAX_NAME_BYTES];
-	char colorless[MAX_NAME_BYTES];
+	char name[MAX_NAME_CHARS + 1];
 	int i, trynum, trylen;
 	int c_ascii;
-	int maxchars;
 
 	if( !ent->r.client ) {
 		return;
@@ -728,25 +716,15 @@ static void G_SetName( edict_t *ent, const char *original_name ) {
 	if( !c_ascii ) {
 		Q_strncpyz( name, "Player", sizeof( name ) );
 	}
-	Q_strncpyz( colorless, COM_RemoveColorTokens( name ), sizeof( colorless ) );
 
 	if( !( ent->r.svflags & SVF_FAKECLIENT ) ) {
 		for( i = 0; invalid_prefixes[i] != NULL; i++ ) {
-			if( !Q_strnicmp( colorless, invalid_prefixes[i], strlen( invalid_prefixes[i] ) ) ) {
+			if( !Q_strnicmp( name, invalid_prefixes[i], strlen( invalid_prefixes[i] ) ) ) {
 				Q_strncpyz( name, "Player", sizeof( name ) );
-				Q_strncpyz( colorless, COM_RemoveColorTokens( name ), sizeof( colorless ) );
 				break;
 			}
 		}
 	}
-
-	maxchars = MAX_NAME_CHARS;
-
-	// Limit the name to MAX_NAME_CHARS printable characters
-	// (non-ascii utf-8 sequences are currently counted as 2 or more each, sorry)
-	COM_SanitizeColorString( va( "%s", name ), name, sizeof( name ),
-							 maxchars, COLOR_WHITE );
-	Q_strncpyz( colorless, COM_RemoveColorTokens( name ), sizeof( colorless ) );
 
 	trynum = 1;
 	do {
@@ -757,22 +735,19 @@ static void G_SetName( edict_t *ent, const char *original_name ) {
 			}
 
 			// if nick is already in use, try with (number) appended
-			if( !Q_stricmp( colorless, COM_RemoveColorTokens( other->r.client->netname ) ) ) {
+			if( !Q_stricmp( name, other->r.client->netname ) ) {
 				if( trynum != 1 ) { // remove last try
 					name[strlen( name ) - strlen( va( "(%i)", trynum - 1 ) )] = 0;
 				}
 
 				// make sure there is enough space for the postfix
 				trylen = strlen( va( "(%i)", trynum ) );
-				if( (int)strlen( colorless ) + trylen > maxchars ) {
-					COM_SanitizeColorString( va( "%s", name ), name, sizeof( name ),
-											 maxchars - trylen, COLOR_WHITE );
-					Q_strncpyz( colorless, COM_RemoveColorTokens( name ), sizeof( colorless ) );
+				if( (int)strlen( name ) + trylen > MAX_NAME_CHARS ) {
+					name[ MAX_NAME_CHARS - trylen - 1 ] = '\0';
 				}
 
 				// add the postfix
 				Q_strncatz( name, va( "(%i)", trynum ), sizeof( name ) );
-				Q_strncpyz( colorless, COM_RemoveColorTokens( name ), sizeof( colorless ) );
 
 				// go trough all clients again
 				trynum++;
@@ -782,72 +757,6 @@ static void G_SetName( edict_t *ent, const char *original_name ) {
 	} while( i != gs.maxclients && trynum <= MAX_CLIENTS );
 
 	Q_strncpyz( ent->r.client->netname, name, sizeof( ent->r.client->netname ) );
-}
-
-/*
-* G_SetClan
-*/
-static void G_SetClan( edict_t *ent, const char *original_clan ) {
-	const char *invalid_values[] = { "console", "spec", "bot", NULL };
-	char clan[MAX_CLANNAME_BYTES];
-	char colorless[MAX_CLANNAME_BYTES];
-	int i;
-	int c_ascii;
-	int maxchars;
-
-	if( !ent->r.client ) {
-		return;
-	}
-
-	// we allow NULL to be passed for clan name
-	if( ent->r.svflags & SVF_FAKECLIENT ) {
-		original_clan = "BOT";
-	} else if( !original_clan ) {
-		original_clan = "";
-	}
-
-	Q_strncpyz( clan, original_clan, sizeof( clan ) );
-	COM_Compress( clan );
-
-	c_ascii = G_SanitizeUserString( clan, sizeof( clan ) );
-	if( !c_ascii ) {
-		clan[0] = colorless[0] = '\0';
-	} else {
-		Q_strncpyz( colorless, COM_RemoveColorTokens( clan ), sizeof( colorless ) );
-	}
-
-	if( !( ent->r.svflags & SVF_FAKECLIENT ) ) {
-		for( i = 0; invalid_values[i] != NULL; i++ ) {
-			if( !Q_strnicmp( colorless, invalid_values[i], strlen( invalid_values[i] ) ) ) {
-				clan[0] = colorless[0] = '\0';
-				break;
-			}
-		}
-	}
-
-	// clan names can not contain spaces
-	Q_chrreplace( clan, ' ', '_' );
-
-	// clan names can not start with an ampersand
-	{
-		char *t;
-		int len;
-
-		t = clan;
-		while( *t == '&' ) t++;
-		len = strlen( clan ) - ( t - clan );
-		if( clan != t ) {
-			memmove( clan, t, len + 1 );
-		}
-	}
-
-	maxchars = MAX_CLANNAME_CHARS;
-
-	// Limit the name to MAX_NAME_CHARS printable characters
-	// (non-ascii utf-8 sequences are currently counted as 2 or more each, sorry)
-	COM_SanitizeColorString( va( "%s", clan ), clan, sizeof( clan ), maxchars, COLOR_WHITE );
-
-	Q_strncpyz( ent->r.client->clanname, clan, sizeof( ent->r.client->clanname ) );
 }
 
 /*
@@ -923,9 +832,6 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 		trap_DropClient( ent, DROP_TYPE_GENERAL, "Error: Couldn't set userinfo (name)" );
 		return;
 	}
-
-	// clan tag
-	G_SetClan( ent, Info_ValueForKey( userinfo, "clan" ) );
 
 	// handedness
 	s = Info_ValueForKey( userinfo, "hand" );

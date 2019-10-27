@@ -201,30 +201,6 @@ void resetBombSites() {
 
 void misc_capture_area_indicator( Entity @ent ) {
 	@ent.think = misc_capture_area_indicator_think;
-
-	// drop to floor?
-	if( ent.spawnFlags & 1 == 0 ) {
-		Vec3 start, end, mins( -16, -16, -24 ), maxs( 16, 16, 32 );
-
-		start = end = ent.origin;
-
-		start.z += 16;
-		end.z -= 512;
-
-		Trace trace;
-		trace.doTrace( start, mins, maxs, end, ent.entNum, MASK_SOLID );
-
-		if( trace.startSolid ) {
-			G_Print( ent.classname + " at " + vec3ToString(ent.origin) + " is in a solid, removing...\n" );
-
-			ent.freeEntity();
-
-			return;
-		}
-
-		ent.origin = trace.endPos;
-	}
-
 	cBombSite( @ent, ent.target != "", defendingTeam );
 }
 
@@ -289,10 +265,14 @@ void trigger_capture_area( Entity @ent ) {
 	ent.nextThink = levelTime + 1;
 }
 
+String @vec3ToString( Vec3 vec ) {
+	 return "" + vec.x + " " + vec.y + " " + vec.z;
+}
+
 void trigger_capture_area_think( Entity @ent ) {
 	array<Entity @> @targets = ent.findTargets();
 	if( targets.empty() ) {
-		G_Print( "trigger_capture_area at " + vec3ToString(ent.origin) + " has no target, removing...\n" );
+		G_Print( "trigger_capture_area at " + vec3ToString( ent.origin ) + " has no target, removing...\n" );
 		ent.freeEntity();
 	}
 }

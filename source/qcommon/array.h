@@ -1,6 +1,6 @@
 #pragma once
 
-#include "qcommon/base.h"
+#include "qcommon/types.h"
 
 template< typename T >
 class DynamicArray {

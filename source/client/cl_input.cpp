@@ -21,28 +21,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client.h"
 
-static bool in_initialized = false;
-
 cvar_t *cl_ucmdMaxResend;
 
 cvar_t *cl_ucmdFPS;
 
 static void CL_CreateNewUserCommand( int realMsec );
-
-/*
-* CL_ClearInputState
-*/
-void CL_ClearInputState( void ) {
-	Key_ClearStates();
-
-	switch( cls.key_dest ) {
-		case key_game:
-			CL_GameModule_ClearInputState();
-			break;
-		default:
-			break;
-	}
-}
 
 /*
 * CL_UpdateGameInput
@@ -55,14 +38,8 @@ static void CL_UpdateGameInput( int frameTime ) {
 	// refresh input in cgame
 	CL_GameModule_InputFrame( frameTime );
 
-	if( cls.key_dest == key_menu ) {
-		UI_MouseSet( true, movement.absx, movement.absy, true );
-	}
-	else {
-		CL_GameModule_MouseMove( movement.relx, movement.rely );
-	}
-
 	if( cls.key_dest == key_game ) {
+		CL_GameModule_MouseMove( movement.relx, movement.rely );
 		CL_GameModule_AddViewAngles( cl.viewangles );
 	}
 }
@@ -71,6 +48,8 @@ static void CL_UpdateGameInput( int frameTime ) {
 * CL_UserInputFrame
 */
 void CL_UserInputFrame( int realMsec ) {
+	ZoneScoped;
+
 	// let the mouse activate or deactivate
 	IN_Frame();
 
@@ -88,29 +67,10 @@ void CL_UserInputFrame( int realMsec ) {
 * CL_InitInput
 */
 void CL_InitInput( void ) {
-	if( in_initialized ) {
-		return;
-	}
-
 	IN_Init();
 
 	cl_ucmdMaxResend =  Cvar_Get( "cl_ucmdMaxResend", "3", CVAR_ARCHIVE );
 	cl_ucmdFPS =        Cvar_Get( "cl_ucmdFPS", "62", CVAR_DEVELOPER );
-
-	in_initialized = true;
-}
-
-/*
-* CL_ShutdownInput
-*/
-void CL_ShutdownInput( void ) {
-	if( !in_initialized ) {
-		return;
-	}
-
-	IN_Shutdown();
-
-	in_initialized = true;
 }
 
 //===============================================================================

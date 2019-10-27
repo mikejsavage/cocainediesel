@@ -1,13 +1,23 @@
 #include "qcommon/base.h"
 #include "qcommon/fs.h"
-#include "qcommon/sys_fs.h"
 
-const char * FS_RootPath() {
-	// TODO:
-	return ".";
+#include "whereami/whereami.h"
+
+const char * FS_RootPath( TempAllocator * a ) {
+	int len = wai_getExecutablePath( NULL, 0, NULL );
+	if( len == -1 )
+		return ".";
+
+	char * buf = ALLOC_MANY( a, char, len + 1 );
+	int dirlen;
+	if( wai_getExecutablePath( buf, len, &dirlen ) == -1 )
+		return ".";
+	buf[ dirlen ] = '\0';
+
+	return buf;
 }
 
-Span< char > FS_ReadFileString( Allocator * a, const char * path ) {
+Span< char > ReadFileString( Allocator * a, const char * path ) {
 	FILE * file = fopen( path, "rb" );
 	if( file == NULL )
 		return Span< char >();
@@ -27,4 +37,15 @@ Span< char > FS_ReadFileString( Allocator * a, const char * path ) {
 	contents[ size ] = '\0';
 
 	return contents;
+}
+
+bool WriteFile( const char * path, const void * data, size_t len ) {
+	FILE * file = fopen( path, "wb" );
+	if( file == NULL )
+		return false;
+
+	size_t w = fwrite( data, 1, len, file );
+	fclose( file );
+
+	return w == len;
 }

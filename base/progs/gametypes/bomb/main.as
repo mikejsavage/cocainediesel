@@ -173,11 +173,6 @@ bool GT_Command( Client @client, const String &cmdString, const String &argsStri
 		return true;
 	}
 
-	if( cmdString == "cvarinfo" ) {
-		GENERIC_CheatVarResponse( @client, cmdString, argsString, argc );
-		return true;
-	}
-
 	return false;
 }
 
@@ -517,10 +512,7 @@ void GT_InitGametype() {
 	G_RegisterCommand( "drop" );
 	G_RegisterCommand( "carrier" );
 
-	G_RegisterCommand( "gametype" );
-
 	G_RegisterCommand( "gametypemenu" );
-	G_RegisterCommand( "gametypemenu2" );
 	G_RegisterCommand( "weapselect" );
 
 	mediaInit();

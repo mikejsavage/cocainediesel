@@ -97,31 +97,12 @@ static void G_EndFrame_UpdateChaseCam( edict_t *ent ) {
 	G_ClearPlayerStateEvents( ent->r.client );
 
 	// copy target playerState to me
+	int64_t layouts = ent->r.client->ps.stats[STAT_LAYOUTS];
 	ent->r.client->ps = targ->r.client->ps;
 
 	// fix some stats we don't want copied from the target
 	ent->r.client->ps.stats[STAT_REALTEAM] = ent->s.team;
-	ent->r.client->ps.stats[STAT_LAYOUTS] &= ~STAT_LAYOUT_SCOREBOARD;
-	ent->r.client->ps.stats[STAT_LAYOUTS] &= ~STAT_LAYOUT_CHALLENGER;
-	ent->r.client->ps.stats[STAT_LAYOUTS] &= ~STAT_LAYOUT_READY;
-	ent->r.client->ps.stats[STAT_LAYOUTS] &= ~STAT_LAYOUT_SPECTEAMONLY;
-	ent->r.client->ps.stats[STAT_LAYOUTS] &= ~STAT_LAYOUT_INSTANTRESPAWN;
-
-	if( ent->r.client->resp.chase.teamonly ) {
-		ent->r.client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_SPECTEAMONLY;
-	}
-
-	if( ent->r.client->level.showscores || GS_MatchState() >= MATCH_STATE_POSTMATCH ) {
-		ent->r.client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_SCOREBOARD; // show the scoreboard
-
-	}
-	if( GS_HasChallengers() && ent->r.client->queueTimeStamp ) {
-		ent->r.client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_CHALLENGER;
-	}
-
-	if( GS_MatchState() <= MATCH_STATE_WARMUP && level.ready[PLAYERNUM( ent )] ) {
-		ent->r.client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_READY;
-	}
+	ent->r.client->ps.stats[STAT_LAYOUTS] = layouts;
 
 	// chasecam uses PM_CHASECAM
 	ent->r.client->ps.pmove.pm_type = PM_CHASECAM;
@@ -173,7 +154,6 @@ void G_ChasePlayer( edict_t *ent, const char *name, bool teamonly, int followmod
 	gclient_t *client;
 	int targetNum = -1;
 	int oldTarget;
-	char colorlessname[MAX_NAME_BYTES];
 
 	client = ent->r.client;
 
@@ -199,9 +179,7 @@ void G_ChasePlayer( edict_t *ent, const char *name, bool teamonly, int followmod
 				continue;
 			}
 
-			Q_strncpyz( colorlessname, COM_RemoveColorTokens( e->r.client->netname ), sizeof( colorlessname ) );
-
-			if( !Q_stricmp( COM_RemoveColorTokens( name ), colorlessname ) ) {
+			if( !Q_stricmp( name, e->r.client->netname ) ) {
 				targetNum = PLAYERNUM( e );
 				break;
 			}
@@ -355,8 +333,7 @@ void Cmd_ChaseCam_f( edict_t *ent ) {
 	if( ent->s.team != TEAM_SPECTATOR ) {
 		G_Teams_JoinTeam( ent, TEAM_SPECTATOR );
 		if( !CheckFlood( ent, false ) ) { // prevent 'joined spectators' spam
-			G_PrintMsg( NULL, "%s%s joined the %s%s team.\n", ent->r.client->netname,
-						S_COLOR_WHITE, GS_TeamName( ent->s.team ), S_COLOR_WHITE );
+			G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->netname, GS_TeamName( ent->s.team ) );
 		}
 	}
 

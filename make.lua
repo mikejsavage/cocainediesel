@@ -15,7 +15,10 @@ obj_cxxflags( ".*", "-D_LIBCPP_TYPE_TRAITS" )
 
 if config == "release" then
 	obj_cxxflags( ".*", "-DPUBLIC_BUILD" )
-else
+end
+
+local env_ci = os.getenv( "CI" )
+if env_ci ~= "True" and env_ci ~= "true" then
 	obj_cxxflags( ".*", "-DTRACY_ENABLE" )
 end
 
@@ -26,6 +29,7 @@ require( "libs.meshoptimizer" )
 require( "libs.monocypher" )
 require( "libs.stb" )
 require( "libs.tracy" )
+require( "libs.whereami" )
 
 do
 	local platform_srcs
@@ -46,6 +50,7 @@ do
 			"source/unix/unix_console.cpp",
 			"source/unix/unix_fs.cpp",
 			"source/unix/unix_net.cpp",
+			"source/unix/unix_sys.cpp",
 			"source/unix/unix_threads.cpp",
 			"source/unix/unix_time.cpp",
 		}
@@ -72,6 +77,7 @@ do
 			"stb_image_write",
 			"stb_vorbis",
 			"tracy",
+			"whereami",
 		},
 
 		prebuilt_libs = {
@@ -116,6 +122,7 @@ do
 			"source/unix/unix_lib.cpp",
 			"source/unix/unix_net.cpp",
 			"source/unix/unix_server.cpp",
+			"source/unix/unix_sys.cpp",
 			"source/unix/unix_threads.cpp",
 			"source/unix/unix_time.cpp",
 		}
@@ -133,6 +140,7 @@ do
 		libs = {
 			"monocypher",
 			"tracy",
+			"whereami",
 		},
 
 		prebuilt_libs = {

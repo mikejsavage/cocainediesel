@@ -120,9 +120,3 @@ typedef enum {
 	K_MWHEELUP,
 	K_MWHEELDOWN,
 } keyNum_t;
-
-//
-// these are the special keys that should be passed to Key_CharEvent
-//
-#define KC_CTRLC 3
-#define KC_CTRLV 22

@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 #include "q_arch.h"
+#include "qcommon/types.h"
 
 #include <emmintrin.h>
 
@@ -73,19 +74,6 @@ typedef struct cplane_s {
 
 constexpr vec3_t vec3_origin = { 0, 0, 0 };
 constexpr mat3_t axis_identity = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
-
-constexpr vec4_t colorBlack  = { 0, 0, 0, 1 };
-constexpr vec4_t colorRed    = { 1, 0, 0, 1 };
-constexpr vec4_t colorGreen  = { 0, 1, 0, 1 };
-constexpr vec4_t colorBlue   = { 0, 0, 1, 1 };
-constexpr vec4_t colorYellow = { 1, 1, 0, 1 };
-constexpr vec4_t colorOrange = { 1, 0.5, 0, 1 };
-constexpr vec4_t colorMagenta = { 1, 0, 1, 1 };
-constexpr vec4_t colorCyan   = { 0, 1, 1, 1 };
-constexpr vec4_t colorWhite  = { 1, 1, 1, 1 };
-constexpr vec4_t colorLtGrey = { 0.75, 0.75, 0.75, 1 };
-constexpr vec4_t colorMdGrey = { 0.5, 0.5, 0.5, 1 };
-constexpr vec4_t colorDkGrey = { 0.25, 0.25, 0.25, 1 };
 
 constexpr vec4_t color_table[] =
 {
@@ -241,3 +229,10 @@ void Matrix3_FromAngles( const vec3_t angles, mat3_t m );
 
 float PositiveMod( float x, float y );
 double PositiveMod( double x, double y );
+
+struct RNG;
+
+Vec3 UniformSampleSphere( RNG * rng );
+Vec3 UniformSampleInsideSphere( RNG * rng );
+Vec2 UniformSampleDisk( RNG * rng );
+float SampleNormalDistribution( RNG * rng );

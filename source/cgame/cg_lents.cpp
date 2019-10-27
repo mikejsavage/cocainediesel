@@ -18,9 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-// cg_lents.c -- client side temporary entities
-
-#include "cg_local.h"
+#include "cgame/cg_local.h"
+#include "client/client.h"
 #include "client/renderer/renderer.h"
 
 #define MAX_LOCAL_ENTITIES  512
@@ -51,11 +50,8 @@ struct LocalEntity {
 	vec3_t lightcolor;
 
 	vec3_t velocity;
-	vec3_t avelocity;
 	vec3_t angles;
 	vec3_t accel;
-
-	int bounce;     //is activator and bounceability value at once
 
 	int frames;
 
@@ -204,48 +200,6 @@ static LocalEntity *CG_AllocSprite( LocalEntityType type, const vec3_t origin, f
 	VectorCopy( origin, le->ent.origin );
 
 	return le;
-}
-
-void CG_SpawnSprite( const vec3_t origin, const vec3_t velocity, const vec3_t accel,
-					 float radius, int time, int bounce, bool expandEffect, bool shrinkEffect,
-					 float r, float g, float b, float a,
-					 float light, float lr, float lg, float lb,
-					 const Material * material ) {
-	LocalEntity *le;
-	int numFrames;
-	LocalEntityType type = LE_ALPHA_FADE;
-
-	if( !radius || !material || !origin ) {
-		return;
-	}
-
-	numFrames = (int)( (float)( time * 1000 ) * 0.01f );
-	if( !numFrames ) {
-		return;
-	}
-
-	if( expandEffect && !shrinkEffect ) {
-		type = LE_SCALE_ALPHA_FADE;
-	}
-
-	if( !expandEffect && shrinkEffect ) {
-		type = LE_INVERSESCALE_ALPHA_FADE;
-	}
-
-	le = CG_AllocSprite( type, origin, radius, numFrames,
-						 r, g, b, a,
-						 light, lr, lg, lb,
-						 material );
-
-	if( velocity != NULL ) {
-		VectorCopy( velocity, le->velocity );
-	}
-	if( accel != NULL ) {
-		VectorCopy( accel, le->accel );
-	}
-
-	le->bounce = bounce;
-	le->ent.rotation = rand() % 360;
 }
 
 void CG_EBBeam( Vec3 start, Vec3 end, int team ) {
@@ -982,48 +936,6 @@ void CG_ExplosionsDust( const vec3_t pos, const vec3_t dir, float radius ) {
 	}
 }
 
-void CG_SmallPileOfGibs( const vec3_t origin, int damage, const vec3_t initialVelocity, int team ) {
-	LocalEntity *le;
-	vec3_t angles, velocity;
-
-	int time = 25;
-	int count = min( damage * 0.75, 60 );
-
-	for( int i = 0; i < count; i++ ) {
-		vec4_t color;
-
-		CG_TeamColor( team, color );
-
-		le = CG_AllocModel( LE_ALPHA_FADE, origin, vec3_origin, time + time * random(),
-							color[0], color[1], color[2], color[3],
-							0, 0, 0, 0,
-							cgs.media.modGib,
-							NULL );
-
-		// random rotation and scale variations
-		VectorSet( angles, crandom() * 360, crandom() * 360, crandom() * 360 );
-		AnglesToAxis( angles, le->ent.axis );
-		le->ent.scale = 0.5f - ( random() * 0.25 );
-
-		velocity[0] = crandom() * 0.5;
-		velocity[1] = crandom() * 0.5;
-		velocity[2] = random() * 0.5; // always have upwards
-		VectorNormalize( velocity );
-		VectorScale( velocity, min( damage * 4, 320 ), velocity );
-
-		velocity[0] += crandom() * bound( 0, damage, 150 );
-		velocity[1] += crandom() * bound( 0, damage, 150 );
-		velocity[2] += random() * bound( 0, damage, 250 );
-
-		VectorAdd( initialVelocity, velocity, le->velocity );
-
-		//friction and gravity
-		VectorSet( le->accel, -1.0f, -1.0f, -1000 );
-
-		le->bounce = 20;
-	}
-}
-
 /*
 * CG_AddLocalEntities
 */
@@ -1134,101 +1046,8 @@ void CG_AddLocalEntities( void ) {
 				break;
 		}
 
-		if( le->avelocity[0] || le->avelocity[1] || le->avelocity[2] ) {
-			VectorMA( le->angles, time, le->avelocity, le->angles );
-			AnglesToAxis( le->angles, le->ent.axis );
-		}
-
-		// apply rotational friction
-		if( le->bounce ) { // FIXME?
-			int i;
-			const float adj = 100 * 6 * time; // magic constants here
-
-			for( i = 0; i < 3; i++ ) {
-				if( le->avelocity[i] > 0.0f ) {
-					le->avelocity[i] -= adj;
-					if( le->avelocity[i] < 0.0f ) {
-						le->avelocity[i] = 0.0f;
-					}
-				} else if( le->avelocity[i] < 0.0f ) {
-					le->avelocity[i] += adj;
-					if( le->avelocity[i] > 0.0f ) {
-						le->avelocity[i] = 0.0f;
-					}
-				}
-			}
-		}
-
-		if( le->bounce ) {
-			trace_t trace;
-			vec3_t next_origin;
-
-			VectorMA( ent->origin, time, le->velocity, next_origin );
-
-			assert( le->ent.model );
-			MinMax3 bounds = le->ent.model->bounds;
-			bounds.mins *= le->ent.scale;
-			bounds.maxs *= le->ent.scale;
-
-			vec3_t qf_mins, qf_maxs;
-			VectorCopy( bounds.mins.ptr(), qf_mins );
-			VectorCopy( bounds.maxs.ptr(), qf_maxs );
-
-			CG_Trace( &trace, ent->origin, qf_mins, qf_maxs, next_origin, 0, MASK_SOLID );
-
-			// remove the particle when going out of the map
-			if( ( trace.contents & CONTENTS_NODROP ) || ( trace.surfFlags & SURF_SKY ) ) {
-				le->frames = 0;
-			} else if( trace.fraction != 1.0 ) {   // found solid
-				float dot;
-				float xyzspeed, orig_xyzspeed;
-				float bounce;
-
-				orig_xyzspeed = VectorLength( le->velocity );
-
-				// Reflect velocity
-				dot = DotProduct( le->velocity, trace.plane.normal );
-				VectorMA( le->velocity, -2.0f * dot, trace.plane.normal, le->velocity );
-
-				//put new origin in the impact point, but move it out a bit along the normal
-				VectorMA( trace.endpos, 1, trace.plane.normal, ent->origin );
-
-				// make sure we don't gain speed from bouncing off
-				bounce = 2.0f * le->bounce * 0.01f;
-				if( bounce < 1.5f ) {
-					bounce = 1.5f;
-				}
-				xyzspeed = orig_xyzspeed / bounce;
-
-				VectorNormalize( le->velocity );
-				VectorScale( le->velocity, xyzspeed, le->velocity );
-
-				//the entity has not speed enough. Stop checks
-				if( xyzspeed * time < 1.0f ) {
-					trace_t traceground;
-					vec3_t ground_origin;
-
-					//see if we have ground
-					VectorCopy( ent->origin, ground_origin );
-					ground_origin[2] += bounds.mins.z - 4;
-					CG_Trace( &traceground, ent->origin, qf_mins, qf_maxs, ground_origin, 0, MASK_SOLID );
-					if( traceground.fraction != 1.0 ) {
-						le->bounce = 0;
-						VectorClear( le->velocity );
-						VectorClear( le->accel );
-						VectorClear( le->avelocity );
-					}
-				}
-
-			} else {
-				VectorCopy( ent->origin, ent->origin2 );
-				VectorCopy( next_origin, ent->origin );
-			}
-		} else {
-			VectorCopy( ent->origin, ent->origin2 );
-			VectorMA( ent->origin, time, le->velocity, ent->origin );
-		}
-
+		VectorCopy( ent->origin, ent->origin2 );
+		VectorMA( ent->origin, time, le->velocity, ent->origin );
 		VectorMA( le->velocity, time, le->accel, le->velocity );
 
 		CG_AddEntityToScene( ent );
@@ -1250,4 +1069,109 @@ void CG_FreeLocalEntities( void ) {
 	}
 
 	CG_ClearLocalEntities();
+}
+
+struct Gib {
+	Vec3 origin;
+	Vec3 velocity;
+	float scale;
+	float lifetime;
+	int team;
+};
+
+static Gib gibs[ 512 ];
+static u32 num_gibs;
+
+void InitGibs() {
+	num_gibs = 0;
+}
+
+void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, int team ) {
+	ZoneScoped;
+
+	int count = Min2( damage * 3 / 2, 60 );
+	float player_radius = playerbox_stand_maxs[ 0 ];
+
+	for( int i = 0; i < count; i++ ) {
+		if( num_gibs == ARRAY_COUNT( gibs ) )
+			break;
+
+		Gib * gib = &gibs[ num_gibs ];
+		num_gibs++;
+
+		Vec3 dir = Vec3( UniformSampleDisk( &cls.rng ), 0.0f );
+		gib->origin = origin + dir * player_radius;
+
+		dir.z = random_float01( &cls.rng );
+		gib->velocity = velocity * 0.5f + dir * Length( velocity ) * 0.5f;
+
+		gib->scale = random_uniform_float( &cls.rng, 0.25f, 0.5f );
+		gib->lifetime = 10.0f;
+		gib->team = team;
+	}
+}
+
+void DrawGibs() {
+	ZoneScoped;
+
+	float dt = cg.frameTime * 0.001f;
+
+	const Model * model = cgs.media.modGib;
+	Vec3 gravity = Vec3( 0, 0, -GRAVITY );
+
+	for( u32 i = 0; i < num_gibs; i++ ) {
+		Gib * gib = &gibs[ i ];
+
+		Vec4 color = CG_TeamColorVec4( gib->team );
+
+		gib->velocity += gravity * dt;
+		Vec3 next_origin = gib->origin + gib->velocity * dt;
+
+		MinMax3 bounds = model->bounds * gib->scale;
+
+		vec3_t qf_mins, qf_maxs, qf_origin, qf_next_origin;
+		VectorCopy( bounds.mins.ptr(), qf_mins );
+		VectorCopy( bounds.maxs.ptr(), qf_maxs );
+		VectorCopy( gib->origin.ptr(), qf_origin );
+		VectorCopy( next_origin.ptr(), qf_next_origin );
+
+		trace_t trace;
+		CG_Trace( &trace, qf_origin, qf_mins, qf_maxs, qf_next_origin, 0, MASK_SOLID );
+
+		if( ( trace.contents & CONTENTS_NODROP ) || ( trace.surfFlags & SURF_SKY ) ) {
+			gib->lifetime = 0;
+		}
+		else if( trace.fraction != 1.0f ) {
+			gib->lifetime = 0;
+
+			ParticleEmitter emitter = { };
+			emitter.position = FromQF3( trace.endpos );
+			emitter.velocity_cone.radius = 128;
+
+			emitter.start_color = color;
+			emitter.end_color = color.xyz();
+
+			emitter.start_size = 4.0f;
+			emitter.end_size = 4.0f;
+
+			emitter.lifetime = 1.0f;
+
+			emitter.n = 64;
+
+			EmitParticles( &cgs.sparks, emitter );
+		}
+
+		gib->lifetime -= dt;
+		if( gib->lifetime < 0 ) {
+			num_gibs--;
+			i--;
+			Swap2( gib, &gibs[ num_gibs ] );
+			continue;
+		}
+
+		Mat4 transform = Mat4Translation( gib->origin ) * Mat4Scale( gib->scale );
+		DrawModel( model, transform, color );
+
+		gib->origin = next_origin;
+	}
 }

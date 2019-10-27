@@ -31,27 +31,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 //==================================================
 
-static const char *gs_teamNames[] =
-{
+static const char *gs_teamNames[] = {
 	"SPECTATOR",
 	"PLAYERS",
 	"COCAINE",
 	"DIESEL",
-	NULL
 };
 
-/*
-* GS_TeamName
-*/
 const char *GS_TeamName( int team ) {
-	if( team < 0 || team >= GS_MAX_TEAMS ) {
-		return NULL;
-	}
-	return gs.api.GetConfigString( CS_TEAM_SPECTATOR_NAME + team );
-}
-
-const char *GS_DefaultTeamName( int team ) {
-	if( team < 0 || team >= GS_MAX_TEAMS ) {
+	if( team < 0 || team >= int( ARRAY_COUNT( gs_teamNames ) ) ) {
 		return NULL;
 	}
 	return gs_teamNames[team];
@@ -61,21 +49,12 @@ const char *GS_DefaultTeamName( int team ) {
 * GS_Teams_TeamFromName
 */
 int GS_TeamFromName( const char *teamname ) {
-	const char *s;
-	int i;
-
 	if( !teamname || !teamname[0] ) {
 		return -1; // invalid
-
 	}
-	for( i = 0; i < GS_MAX_TEAMS; i++ ) {
-		s = gs_teamNames[i];
-		if( !Q_stricmp( s, teamname ) ) {
-			return i;
-		}
 
-		s = gs.api.GetConfigString( CS_TEAM_SPECTATOR_NAME + i );
-		if( s && !Q_stricmp( s, teamname ) ) {
+	for( int i = 0; i < int( ARRAY_COUNT( gs_teamNames ) ); i++ ) {
+		if( !Q_stricmp( gs_teamNames[i], teamname ) ) {
 			return i;
 		}
 	}

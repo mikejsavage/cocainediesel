@@ -187,9 +187,8 @@ void SV_Status_f( void ) {
 			Com_Printf( "%4i ", ping );
 		}
 
-		s = COM_RemoveColorTokens( cl->name );
-		Com_Printf( "%s", s );
-		l = MAX_NAME_CHARS - (int)strlen( s );
+		Com_Printf( "%s", cl->name );
+		l = MAX_NAME_CHARS - (int)strlen( cl->name );
 		for( j = 0; j < l; j++ )
 			Com_Printf( " " );
 
@@ -257,44 +256,6 @@ static void SV_KillServer_f( void ) {
 	SV_ShutdownGame( "Server was killed", false );
 }
 
-/*
-* SV_CvarCheck_f
-* Ask the client to inform us of the current value of a cvar
-*/
-static void SV_CvarCheck_f( void ) {
-	client_t *client;
-	int i;
-
-	if( !svs.initialized ) {
-		return;
-	}
-
-	if( Cmd_Argc() != 3 ) {
-		Com_Printf( "Usage: cvarcheck <userid> <cvar name>\n" );
-		return;
-	}
-
-	if( !Q_stricmp( Cmd_Argv( 1 ), "all" ) ) {
-		for( i = 0, client = svs.clients; i < sv_maxclients->integer; i++, client++ ) {
-			if( !client->state ) {
-				continue;
-			}
-
-			SV_SendServerCommand( client, "cvarinfo \"%s\"", Cmd_Argv( 2 ) );
-		}
-
-		return;
-	}
-
-	client = SV_FindPlayer( Cmd_Argv( 1 ) );
-	if( !client ) {
-		Com_Printf( "%s is not valid client id\n", Cmd_Argv( 1 ) );
-		return;
-	}
-
-	SV_SendServerCommand( client, "cvarinfo \"%s\"", Cmd_Argv( 2 ) );
-}
-
 //===========================================================
 
 /*
@@ -317,8 +278,6 @@ void SV_InitOperatorCommands( void ) {
 	Cmd_AddCommand( "serverrecordpurge", SV_Demo_Purge_f );
 
 	Cmd_AddCommand( "purelist", SV_PureList_f );
-
-	Cmd_AddCommand( "cvarcheck", SV_CvarCheck_f );
 
 	Cmd_SetCompletionFunc( "map", SV_MapComplete_f );
 	Cmd_SetCompletionFunc( "devmap", SV_MapComplete_f );
@@ -345,6 +304,4 @@ void SV_ShutdownOperatorCommands( void ) {
 	Cmd_RemoveCommand( "serverrecordpurge" );
 
 	Cmd_RemoveCommand( "purelist" );
-
-	Cmd_RemoveCommand( "cvarcheck" );
 }

@@ -297,7 +297,6 @@ void SV_InitGame( void ) {
 
 	// make sure the client is down
 	CL_Disconnect( NULL );
-	SCR_BeginLoadingPlaque();
 
 	if( svs.initialized ) {
 		// cause any connected clients to reconnect
@@ -512,7 +511,6 @@ void SV_Map( const char *level, bool devmap ) {
 		memset( svs.clients[i].gameCommands, 0, sizeof( svs.clients[i].gameCommands ) );
 	}
 
-	SCR_BeginLoadingPlaque();       // for local system
 	SV_BroadcastCommand( "changing\n" );
 	SV_SendClientMessages();
 	SV_SpawnServer( level, devmap );

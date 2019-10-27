@@ -163,7 +163,7 @@ void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 
 	}
 }
 
-void DrawTeammateModel( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices ) {
+void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices ) {
 	bool skinned = skinning_matrices.ptr != NULL;
 
 	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
@@ -175,8 +175,8 @@ void DrawTeammateModel( const Model * model, const Mat4 & transform, const Vec4 
 
 	for( u32 i = 0; i < model->num_primitives; i++ ) {
 		PipelineState pipeline;
-		pipeline.shader = &shaders.teammate_write_gbuffer_skinned;
-		pipeline.pass = frame_static.teammate_write_gbuffer_pass;
+		pipeline.shader = skinned ? &shaders.write_silhouette_gbuffer_skinned : &shaders.write_silhouette_gbuffer;
+		pipeline.pass = frame_static.write_silhouette_gbuffer_pass;
 		pipeline.write_depth = false;
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 		pipeline.set_uniform( "u_Model", model_uniforms );
@@ -215,7 +215,9 @@ static T SampleAnimationChannel( const Model::AnimationChannel< T > & channel, f
 static Vec3 LerpVec3( Vec3 a, float t, Vec3 b ) { return Lerp( a, t, b ); }
 static float LerpFloat( float a, float t, float b ) { return Lerp( a, t, b ); }
 
-Span< TRS > SampleAnimation( ArenaAllocator * a, const Model * model, float t ) {
+Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t ) {
+	ZoneScoped;
+
 	Span< TRS > local_poses = ALLOC_SPAN( a, TRS, model->num_joints );
 
 	for( u8 i = 0; i < model->num_joints; i++ ) {
@@ -254,7 +256,9 @@ static Mat4 TRSToMat4( const TRS & trs ) {
 	);
 }
 
-MatrixPalettes ComputeMatrixPalettes( ArenaAllocator * a, const Model * model, Span< TRS > local_poses ) {
+MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< TRS > local_poses ) {
+	ZoneScoped;
+
 	assert( local_poses.n == model->num_joints );
 
 	MatrixPalettes palettes;

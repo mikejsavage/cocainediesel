@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "cg_local.h"
+#include "cgame/cg_local.h"
 
 cg_static_t cgs;
 cg_state_t cg;
@@ -29,7 +29,6 @@ centity_t cg_entities[MAX_EDICTS];
 cvar_t *cg_showMiss;
 
 cvar_t *cg_hand;
-cvar_t *cg_clan;
 cvar_t *cg_handicap;
 
 cvar_t *cg_addDecals;
@@ -133,7 +132,7 @@ void CG_LocalPrint( const char *format, ... ) {
 
 	trap_PrintToLog( msg );
 
-	CG_StackChatString( &cg.chat, msg );
+	CG_AddChat( msg );
 }
 
 /*
@@ -283,13 +282,9 @@ static void CG_RegisterModels( void ) {
 
 			Q_strncpyz( cgs.weaponModels[cgs.numWeaponModels], name + 1, sizeof( cgs.weaponModels[cgs.numWeaponModels] ) );
 			cgs.numWeaponModels++;
-		} else if( name[0] == '$' ) {
-			if( !CG_LoadingItemName( name ) ) {
-				return;
-			}
-
-			// indexed pmodel
-			cgs.pModelsIndex[i] = CG_RegisterPlayerModel( name + 1 );
+		} else if( name[0] == '*' ) {
+			u64 hash = Hash64( name, strlen( name ), cgs.map->base_hash );
+			cgs.modelDraw[i] = FindModel( StringHash( hash ) );
 		} else {
 			if( !CG_LoadingItemName( name ) ) {
 				return;
@@ -303,7 +298,6 @@ static void CG_RegisterModels( void ) {
 	}
 
 	CG_RegisterMediaModels();
-	CG_RegisterBasePModel(); // never before registering the weapon models
 	CG_RegisterWeaponModels();
 
 	// precache forcemodels if defined
@@ -421,12 +415,11 @@ static void CG_RegisterClients( void ) {
 static void CG_RegisterVariables( void ) {
 	cg_showMiss =       trap_Cvar_Get( "cg_showMiss", "0", 0 );
 
-	cg_debugPlayerModels =  trap_Cvar_Get( "cg_debugPlayerModels", "0", CVAR_CHEAT | CVAR_ARCHIVE );
-	cg_debugWeaponModels =  trap_Cvar_Get( "cg_debugWeaponModels", "0", CVAR_CHEAT | CVAR_ARCHIVE );
+	cg_debugPlayerModels =  trap_Cvar_Get( "cg_debugPlayerModels", "0", CVAR_CHEAT );
+	cg_debugWeaponModels =  trap_Cvar_Get( "cg_debugWeaponModels", "0", CVAR_CHEAT );
 
 	cg_hand =           trap_Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
 	cg_handicap =       trap_Cvar_Get( "handicap", "0", CVAR_USERINFO | CVAR_ARCHIVE );
-	cg_clan =           trap_Cvar_Get( "clan", "", CVAR_USERINFO | CVAR_ARCHIVE );
 	cg_fov =        trap_Cvar_Get( "fov", "100", CVAR_ARCHIVE );
 	cg_zoomfov =    trap_Cvar_Get( "zoomfov", "75", CVAR_ARCHIVE );
 
@@ -460,7 +453,6 @@ static void CG_RegisterVariables( void ) {
 	cg_explosionsRing = trap_Cvar_Get( "cg_explosionsRing", "0", CVAR_ARCHIVE );
 	cg_explosionsDust =    trap_Cvar_Get( "cg_explosionsDust", "0", CVAR_ARCHIVE );
 	cg_outlineModels =  trap_Cvar_Get( "cg_outlineModels", "1", CVAR_ARCHIVE );
-	cg_outlineWorld =   trap_Cvar_Get( "cg_outlineWorld", "0", CVAR_CHEAT );
 	cg_outlinePlayers = trap_Cvar_Get( "cg_outlinePlayers", "1", CVAR_ARCHIVE );
 	cg_showObituaries = trap_Cvar_Get( "cg_showObituaries", va( "%i", CG_OBITUARY_HUD | CG_OBITUARY_CENTER ), CVAR_ARCHIVE );
 	cg_damageNumbers = trap_Cvar_Get( "cg_damageNumbers", "1", CVAR_ARCHIVE );
@@ -559,6 +551,14 @@ void CG_Precache( void ) {
 
 	cgs.precacheStart = cgs.precacheCount;
 	cgs.precacheStartMsec = trap_Milliseconds();
+
+	{
+		const char * name = cgs.configStrings[ CS_WORLDMODEL ];
+		const char * ext = COM_FileExtension( name );
+
+		u64 hash = Hash64( name, strlen( name ) - strlen( ext ) );
+		cgs.map = FindMapMetadata( StringHash( hash ) );
+	}
 
 	CG_RegisterModels();
 	if( cgs.precacheModelsStart < MAX_MODELS ) {
@@ -694,8 +694,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	cgs.snapFrameTime = snapFrameTime;
 
-	cgs.hasGametypeMenu = false; // this will update as soon as we receive configstrings
-
 	CG_InitInput();
 
 	CG_RegisterVariables();
@@ -719,15 +717,16 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	CG_ValidateItemList();
 
-	CG_LoadStatusBar();
+	CG_InitHUD();
 
 	CG_ClearDecals();
 	CG_ClearEffects();
 
 	InitParticles();
 	InitPersistentBeams();
+	InitGibs();
 
-	CG_InitChat( &cg.chat );
+	CG_InitChat();
 
 	// start up announcer events queue from clean
 	CG_ClearAnnouncerEvents();
@@ -745,7 +744,12 @@ void CG_Shutdown() {
 	CG_DemocamShutdown();
 	CG_UnregisterCGameCommands();
 	CG_PModelsShutdown();
+	CG_ShutdownChat();
 	CG_ShutdownInput();
+	CG_ShutdownHUD();
+	ShutdownParticles();
+
+	CG_Free( const_cast< char * >( cgs.serverName ) );
 
 	Mem_FreePool( &cg_mempool );
 }

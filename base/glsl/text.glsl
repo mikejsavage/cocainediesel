@@ -1,4 +1,6 @@
-uniform sampler2D u_Atlas;
+#include "include/uniforms.glsl"
+
+uniform sampler2D u_BaseTexture;
 
 layout( std140 ) uniform u_Text {
 	vec4 u_TextColor;
@@ -16,7 +18,7 @@ in vec4 a_Position;
 in vec2 a_TexCoord;
 
 void main() {
-	gl_Position = a_Position;
+	gl_Position = u_P * a_Position;
 	v_TexCoord = a_TexCoord;
 }
 
@@ -33,7 +35,7 @@ float LinearStep( float lo, float hi, float x ) {
 }
 
 vec4 SampleMSDF( vec2 uv, float half_pixel_size ) {
-	vec3 sample = qf_texture( u_Atlas, uv ).rgb;
+	vec3 sample = qf_texture( u_BaseTexture, uv ).rgb;
 	float d = 2.0 * Median( sample ) - 1.0; // rescale to [-1,1], positive being inside
 
 	if( u_HasBorder != 0 ) {

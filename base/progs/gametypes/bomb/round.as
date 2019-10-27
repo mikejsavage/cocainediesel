@@ -155,7 +155,8 @@ void setTeams() {
 	uint limit = cvarScoreLimit.integer;
 
 	if( limit == 0 || roundCount > ( limit - 1 ) * 2 ) {
-		// overtime starts with round 2n + 1, which is odd
+		// the first overtime round is ( limit - 1 ) * 2 + 1
+		// which is of the form 2n + 1 so is odd
 		bool odd = roundCount % 2 == 1;
 		attackingTeam = odd ? INITIAL_ATTACKERS : INITIAL_DEFENDERS;
 		defendingTeam = odd ? INITIAL_DEFENDERS : INITIAL_ATTACKERS;
@@ -236,7 +237,7 @@ void setRoundType() {
 	uint beta_score = G_GetTeam( TEAM_BETA ).stats.score;
 
 	bool match_point = alpha_score == limit - 1 || beta_score == limit - 1;
-	bool overtime = roundCount >= ( limit - 1 ) * 2;
+	bool overtime = roundCount > ( limit - 1 ) * 2;
 
 	if( overtime ) {
 		type = alpha_score == beta_score ? RoundType_Overtime : RoundType_OvertimeMatchPoint;

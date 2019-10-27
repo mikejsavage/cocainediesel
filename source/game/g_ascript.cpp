@@ -70,16 +70,15 @@ static const asEnumVal_t asConfigstringEnumVals[] =
 {
 	ASLIB_ENUM_VAL( CS_MAPNAME ),
 	ASLIB_ENUM_VAL( CS_HOSTNAME ),
-	ASLIB_ENUM_VAL( CS_STATNUMS ),
 	ASLIB_ENUM_VAL( CS_GAMETYPENAME ),
 	ASLIB_ENUM_VAL( CS_AUTORECORDSTATE ),
-	ASLIB_ENUM_VAL( CS_TEAM_ALPHA_NAME ),
-	ASLIB_ENUM_VAL( CS_TEAM_BETA_NAME ),
 	ASLIB_ENUM_VAL( CS_MAXCLIENTS ),
 	ASLIB_ENUM_VAL( CS_MAPCHECKSUM ),
-	ASLIB_ENUM_VAL( CS_MATCHNAME ),
 	ASLIB_ENUM_VAL( CS_MATCHSCORE ),
-	ASLIB_ENUM_VAL( CS_ACTIVE_CALLVOTE ),
+	ASLIB_ENUM_VAL( CS_CALLVOTE ),
+	ASLIB_ENUM_VAL( CS_CALLVOTE_REQUIRED_VOTES ),
+	ASLIB_ENUM_VAL( CS_CALLVOTE_YES_VOTES ),
+	ASLIB_ENUM_VAL( CS_CALLVOTE_NO_VOTES ),
 
 	ASLIB_ENUM_VAL( CS_MODELS ),
 	ASLIB_ENUM_VAL( CS_SOUNDS ),
@@ -93,16 +92,14 @@ static const asEnumVal_t asConfigstringEnumVals[] =
 
 static const asEnumVal_t asEffectEnumVals[] =
 {
-	ASLIB_ENUM_VAL( EF_ROTATE_AND_BOB ),
 	ASLIB_ENUM_VAL( EF_CARRIER ),
 	ASLIB_ENUM_VAL( EF_TAKEDAMAGE ),
 	ASLIB_ENUM_VAL( EF_TEAMCOLOR_TRANSITION ),
 	ASLIB_ENUM_VAL( EF_GODMODE ),
-	ASLIB_ENUM_VAL( EF_GHOST ),
-	ASLIB_ENUM_VAL( EF_PLAYER_HIDENAME ),
 	ASLIB_ENUM_VAL( EF_RACEGHOST ),
-	ASLIB_ENUM_VAL( EF_OUTLINE ),
 	ASLIB_ENUM_VAL( EF_HAT ),
+	ASLIB_ENUM_VAL( EF_WORLD_MODEL ),
+	ASLIB_ENUM_VAL( EF_TEAM_SILHOUETTE ),
 
 	ASLIB_ENUM_VAL_NULL
 };
@@ -163,7 +160,6 @@ static const asEnumVal_t asEntityTypeEnumVals[] =
 	ASLIB_ENUM_VAL( ET_PLASMA ),
 	ASLIB_ENUM_VAL( ET_LASERBEAM ),
 	ASLIB_ENUM_VAL( ET_DECAL ),
-	ASLIB_ENUM_VAL( ET_PARTICLES ),
 	ASLIB_ENUM_VAL( ET_HUD ),
 	ASLIB_ENUM_VAL( ET_LASER ),
 	ASLIB_ENUM_VAL( ET_SPIKES ),
@@ -527,32 +523,14 @@ static int objectMatch_getState( match_t *self ) {
 	return GS_MatchState();
 }
 
-static asstring_t *objectMatch_getName( match_t *self ) {
-	const char *s = trap_GetConfigString( CS_MATCHNAME );
-
-	return game.asExport->asStringFactoryBuffer( s, strlen( s ) );
-}
-
 static asstring_t *objectMatch_getScore( match_t *self ) {
 	const char *s = trap_GetConfigString( CS_MATCHSCORE );
 
 	return game.asExport->asStringFactoryBuffer( s, strlen( s ) );
 }
 
-static void objectMatch_setName( asstring_t *name, match_t *self ) {
-	char buf[MAX_CONFIGSTRING_CHARS];
-
-	COM_SanitizeColorString( name->buffer, buf, sizeof( buf ), -1, COLOR_WHITE );
-
-	trap_ConfigString( CS_MATCHNAME, buf );
-}
-
 static void objectMatch_setScore( asstring_t *name, match_t *self ) {
-	char buf[MAX_CONFIGSTRING_CHARS];
-
-	COM_SanitizeColorString( name->buffer, buf, sizeof( buf ), -1, COLOR_WHITE );
-
-	trap_ConfigString( CS_MATCHSCORE, buf );
+	trap_ConfigString( CS_MATCHSCORE, name->buffer );
 }
 
 static void objectMatch_setClockOverride( int64_t time, match_t *self ) {
@@ -580,9 +558,7 @@ static const asMethod_t match_Methods[] =
 	{ ASLIB_FUNCTION_DECL( int64, startTime, ( ) const ), asFUNCTION( objectMatch_startTime ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( int64, endTime, ( ) const ), asFUNCTION( objectMatch_endTime ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( int, getState, ( ) const ), asFUNCTION( objectMatch_getState ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( const String @, get_name, ( ) const ), asFUNCTION( objectMatch_getName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, getScore, ( ) const ), asFUNCTION( objectMatch_getScore ),  asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, set_name, ( String & in ) ), asFUNCTION( objectMatch_setName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, setScore, ( String & in ) ), asFUNCTION( objectMatch_setScore ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, setClockOverride, ( int64 milliseconds ) ), asFUNCTION( objectMatch_setClockOverride ), asCALL_CDECL_OBJLAST },
 
@@ -693,26 +669,6 @@ static asstring_t *objectTeamlist_getName( g_teamlist_t *obj ) {
 	return game.asExport->asStringFactoryBuffer( name, name ? strlen( name ) : 0 );
 }
 
-static asstring_t *objectTeamlist_getDefaultName( g_teamlist_t *obj ) {
-	const char *name = GS_DefaultTeamName( obj - teamlist );
-
-	return game.asExport->asStringFactoryBuffer( name, name ? strlen( name ) : 0 );
-}
-
-static void objectTeamlist_setName( asstring_t *str, g_teamlist_t *obj ) {
-	int team;
-	char buf[MAX_CONFIGSTRING_CHARS];
-
-	team = obj - teamlist;
-	if( team < TEAM_ALPHA || team > TEAM_BETA ) {
-		return;
-	}
-
-	COM_SanitizeColorString( str->buffer, buf, sizeof( buf ), -1, COLOR_WHITE );
-
-	trap_ConfigString( CS_TEAM_ALPHA_NAME + team - TEAM_ALPHA, buf );
-}
-
 static bool objectTeamlist_IsLocked( g_teamlist_t *obj ) {
 	return G_Teams_TeamIsLocked( obj - teamlist );
 }
@@ -749,8 +705,6 @@ static const asMethod_t teamlist_Methods[] =
 {
 	{ ASLIB_FUNCTION_DECL( Entity @, ent, ( int index ) ), asFUNCTION( objectTeamlist_GetPlayerEntity ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_name, ( ) const ), asFUNCTION( objectTeamlist_getName ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( const String @, get_defaultName, ( ) const ), asFUNCTION( objectTeamlist_getDefaultName ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, set_name, ( String & in ) ), asFUNCTION( objectTeamlist_setName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, isLocked, ( ) const ), asFUNCTION( objectTeamlist_IsLocked ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, lock, ( ) const ), asFUNCTION( objectTeamlist_Lock ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, unlock, ( ) const ), asFUNCTION( objectTeamlist_Unlock ), asCALL_CDECL_OBJLAST },
@@ -850,7 +804,6 @@ static const asProperty_t scorestats_Properties[] =
 	{ ASLIB_PROPERTY_DECL( const int, suicides ), ASLIB_FOFFSET( score_stats_t, suicides ) },
 	{ ASLIB_PROPERTY_DECL( const int, totalDamageGiven ), ASLIB_FOFFSET( score_stats_t, total_damage_given ) },
 	{ ASLIB_PROPERTY_DECL( const int, totalDamageReceived ), ASLIB_FOFFSET( score_stats_t, total_damage_received ) },
-	{ ASLIB_PROPERTY_DECL( const int, healthTaken ), ASLIB_FOFFSET( score_stats_t, health_taken ) },
 
 	ASLIB_PROPERTY_NULL
 };
@@ -914,21 +867,7 @@ static void objectGameClient_ClearPlayerStateEvents( gclient_t *self ) {
 }
 
 static asstring_t *objectGameClient_getName( gclient_t *self ) {
-	char temp[MAX_NAME_BYTES + 2];
-
-	Q_strncpyz( temp, self->netname, sizeof( temp ) );
-	Q_strncatz( temp, S_COLOR_WHITE, sizeof( temp ) );
-
-	return game.asExport->asStringFactoryBuffer( temp, strlen( temp ) );
-}
-
-static asstring_t *objectGameClient_getClanName( gclient_t *self ) {
-	char temp[MAX_CLANNAME_BYTES + 2];
-
-	Q_strncpyz( temp, self->clanname, sizeof( temp ) );
-	Q_strncatz( temp, S_COLOR_WHITE, sizeof( temp ) );
-
-	return game.asExport->asStringFactoryBuffer( temp, strlen( temp ) );
+	return game.asExport->asStringFactoryBuffer( self->netname, strlen( self->netname ) );
 }
 
 static void objectGameClient_Respawn( bool ghost, gclient_t *self ) {
@@ -1211,7 +1150,6 @@ static const asMethod_t gameclient_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, respawn, ( bool ghost ) ), asFUNCTION( objectGameClient_Respawn ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, clearPlayerStateEvents, ( ) ), asFUNCTION( objectGameClient_ClearPlayerStateEvents ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_name, ( ) const ), asFUNCTION( objectGameClient_getName ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( const String @, get_clanName, ( ) const ), asFUNCTION( objectGameClient_getClanName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( Entity @, getEnt, ( ) const ), asFUNCTION( objectGameClient_GetEntity ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( int, inventoryCount, ( int tag ) const ), asFUNCTION( objectGameClient_InventoryCount ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, inventorySetCount, ( int tag, int count ) ), asFUNCTION( objectGameClient_InventorySetCount ), asCALL_CDECL_OBJLAST },
@@ -1442,32 +1380,12 @@ static void objectGameEntity_GhostClient( edict_t *self ) {
 }
 
 static void objectGameEntity_SetupModel( asstring_t *modelstr, edict_t *self ) {
-	char *path;
-	const char *s;
-
 	if( !modelstr ) {
 		self->s.modelindex = 0;
 		return;
 	}
 
-	path = modelstr->buffer;
-	while( path[0] == '$' )
-		path++;
-	s = strstr( path, "models/players/" );
-
-	// if it's a player model
-	if( s == path ) {
-		char model[MAX_QPATH];
-
-		s += strlen( "models/players/" );
-
-		Q_snprintfz( model, sizeof( model ), "$%s", path );
-
-		self->s.modelindex = trap_ModelIndex( model );
-		return;
-	}
-
-	GClip_SetBrushModel( self, path );
+	GClip_SetBrushModel( self, modelstr->buffer );
 }
 
 static void objectGameEntity_UseTargets( edict_t *activator, edict_t *self ) {
@@ -1639,6 +1557,7 @@ static const asProperty_t gedict_Properties[] =
 	{ ASLIB_PROPERTY_DECL( int, ownerNum ), ASLIB_FOFFSET( edict_t, s.ownerNum ) },
 	{ ASLIB_PROPERTY_DECL( int, counterNum ), ASLIB_FOFFSET( edict_t, s.counterNum ) },
 	{ ASLIB_PROPERTY_DECL( int, colorRGBA ), ASLIB_FOFFSET( edict_t, s.colorRGBA ) },
+	{ ASLIB_PROPERTY_DECL( uint, silhouetteColor ), ASLIB_FOFFSET( edict_t, s.silhouetteColor ) },
 	{ ASLIB_PROPERTY_DECL( int, weapon ), ASLIB_FOFFSET( edict_t, s.weapon ) },
 	{ ASLIB_PROPERTY_DECL( bool, teleported ), ASLIB_FOFFSET( edict_t, s.teleported ) },
 	{ ASLIB_PROPERTY_DECL( uint, effects ), ASLIB_FOFFSET( edict_t, s.effects ) },
@@ -1678,19 +1597,6 @@ static const asProperty_t gedict_Properties[] =
 	{ ASLIB_PROPERTY_DECL( entPain @, pain ), ASLIB_FOFFSET( edict_t, asPainFunc ) },
 	{ ASLIB_PROPERTY_DECL( entDie @, die ), ASLIB_FOFFSET( edict_t, asDieFunc ) },
 	{ ASLIB_PROPERTY_DECL( entStop @, stop ), ASLIB_FOFFSET( edict_t, asStopFunc ) },
-
-	// specific for ET_PARTICLES
-	{ ASLIB_PROPERTY_DECL( int, particlesSpeed ), ASLIB_FOFFSET( edict_t, particlesInfo.speed ) },
-	{ ASLIB_PROPERTY_DECL( int, particlesShaderIndex ), ASLIB_FOFFSET( edict_t, particlesInfo.shaderIndex ) },
-	{ ASLIB_PROPERTY_DECL( int, particlesSpread ), ASLIB_FOFFSET( edict_t, particlesInfo.spread ) },
-	{ ASLIB_PROPERTY_DECL( int, particlesSize ), ASLIB_FOFFSET( edict_t, particlesInfo.size ) },
-	{ ASLIB_PROPERTY_DECL( int, particlesTime ), ASLIB_FOFFSET( edict_t, particlesInfo.time ) },
-	{ ASLIB_PROPERTY_DECL( int, particlesFrequency ), ASLIB_FOFFSET( edict_t, particlesInfo.frequency ) },
-	{ ASLIB_PROPERTY_DECL( bool, particlesSpherical ), ASLIB_FOFFSET( edict_t, particlesInfo.spherical ) },
-	{ ASLIB_PROPERTY_DECL( bool, particlesBounce ), ASLIB_FOFFSET( edict_t, particlesInfo.bounce ) },
-	{ ASLIB_PROPERTY_DECL( bool, particlesGravity ), ASLIB_FOFFSET( edict_t, particlesInfo.gravity ) },
-	{ ASLIB_PROPERTY_DECL( bool, particlesExpandEffect ), ASLIB_FOFFSET( edict_t, particlesInfo.expandEffect ) },
-	{ ASLIB_PROPERTY_DECL( bool, particlesShrinkEffect ), ASLIB_FOFFSET( edict_t, particlesInfo.shrinkEffect ) },
 
 	ASLIB_PROPERTY_NULL
 };
@@ -1819,10 +1725,6 @@ static asstring_t *objectGItem_getShortName( gsitem_t *self ) {
 	return game.asExport->asStringFactoryBuffer( self->shortname, self->shortname ? strlen( self->shortname ) : 0 );
 }
 
-static asstring_t *objectGItem_getColorToken( gsitem_t *self ) {
-	return game.asExport->asStringFactoryBuffer( self->color, self->color ? strlen( self->color ) : 0 );
-}
-
 static const asFuncdef_t asitem_Funcdefs[] =
 {
 	ASLIB_FUNCDEF_NULL
@@ -1837,7 +1739,6 @@ static const asMethod_t asitem_Methods[] =
 {
 	{ ASLIB_FUNCTION_DECL( const String @, get_name, ( ) const ), asFUNCTION( objectGItem_getName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_shortName, ( ) const ), asFUNCTION( objectGItem_getShortName ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( const String @, get_colorToken, ( ) const ), asFUNCTION( objectGItem_getColorToken ), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL
 };
@@ -1847,6 +1748,7 @@ static const asProperty_t asitem_Properties[] =
 	{ ASLIB_PROPERTY_DECL( const int, tag ), ASLIB_FOFFSET( gsitem_t, tag ) },
 	{ ASLIB_PROPERTY_DECL( const uint, type ), ASLIB_FOFFSET( gsitem_t, type ) },
 	{ ASLIB_PROPERTY_DECL( const int, ammoTag ), ASLIB_FOFFSET( gsitem_t, ammo_tag ) },
+	{ ASLIB_PROPERTY_DECL( const int, cost ), ASLIB_FOFFSET( gsitem_t, cost ) },
 
 	ASLIB_PROPERTY_NULL
 };
@@ -2187,57 +2089,6 @@ static void asFunc_SetConfigString( int index, asstring_t *str ) {
 		|| index == CS_MAPCHECKSUM ) {
 		G_Printf( "WARNING: ConfigString %i is write protected\n", index );
 		return;
-	}
-
-	// prevent team name exploits
-	if( index >= CS_TEAM_SPECTATOR_NAME && index < CS_TEAM_SPECTATOR_NAME + GS_MAX_TEAMS ) {
-		bool forbidden = false;
-
-		// never allow to change spectator and player teams names
-		if( index < CS_TEAM_ALPHA_NAME ) {
-			G_Printf( "WARNING: %s team name is write protected\n", GS_DefaultTeamName( index - CS_TEAM_SPECTATOR_NAME ) );
-			return;
-		}
-
-		// don't allow empty team names
-		if( !strlen( str->buffer ) ) {
-			G_Printf( "WARNING: empty team names are not allowed\n" );
-			return;
-		}
-
-		// never allow to change alpha and beta team names to a different team default name
-		if( index == CS_TEAM_ALPHA_NAME ) {
-			if( !Q_stricmp( str->buffer, GS_DefaultTeamName( TEAM_SPECTATOR ) ) ) {
-				forbidden = true;
-			}
-
-			if( !Q_stricmp( str->buffer, GS_DefaultTeamName( TEAM_PLAYERS ) ) ) {
-				forbidden = true;
-			}
-
-			if( !Q_stricmp( str->buffer, GS_DefaultTeamName( TEAM_BETA ) ) ) {
-				forbidden = true;
-			}
-		}
-
-		if( index == CS_TEAM_BETA_NAME ) {
-			if( !Q_stricmp( str->buffer, GS_DefaultTeamName( TEAM_SPECTATOR ) ) ) {
-				forbidden = true;
-			}
-
-			if( !Q_stricmp( str->buffer, GS_DefaultTeamName( TEAM_PLAYERS ) ) ) {
-				forbidden = true;
-			}
-
-			if( !Q_stricmp( str->buffer, GS_DefaultTeamName( TEAM_ALPHA ) ) ) {
-				forbidden = true;
-			}
-		}
-
-		if( forbidden ) {
-			G_Printf( "WARNING: %s team name can not be changed to %s\n", GS_DefaultTeamName( index - CS_TEAM_SPECTATOR_NAME ), str->buffer );
-			return;
-		}
 	}
 
 	trap_ConfigString( index, str->buffer );

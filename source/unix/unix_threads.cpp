@@ -30,10 +30,6 @@ struct qmutex_s {
 	pthread_mutex_t m;
 };
 
-struct qcondvar_s {
-	pthread_cond_t c;
-};
-
 int Sys_Mutex_Create( qmutex_t **mutex ) {
 	pthread_mutexattr_t mta;
 	pthread_mutexattr_init( &mta );
@@ -92,23 +88,4 @@ int Sys_Atomic_FetchAdd( volatile int *value, int add ) {
 
 bool Sys_Atomic_CAS( volatile int *value, int oldval, int newval ) {
 	return __sync_bool_compare_and_swap( value, oldval, newval );
-}
-
-int Sys_CondVar_Create( qcondvar_t **cond ) {
-	*cond = ( qcondvar_t * )Q_malloc( sizeof( qcondvar_t ) );
-	pthread_cond_init( &( *cond )->c, NULL );
-	return 0;
-}
-
-void Sys_CondVar_Destroy( qcondvar_t *cond ) {
-	pthread_cond_destroy( &cond->c );
-	Q_free( cond );
-}
-
-void Sys_CondVar_Wait( qcondvar_t *cond, qmutex_t *mutex ) {
-	pthread_cond_wait( &cond->c, &mutex->m );
-}
-
-void Sys_CondVar_Wake( qcondvar_t *cond ) {
-	pthread_cond_signal( &cond->c );
 }

@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "cg_public.h"
 #include "cg_syscalls.h"
+#include "cg_particles.h"
 
 #include "client/sound.h"
 #include "client/renderer/renderer.h"
@@ -217,7 +218,6 @@ typedef struct {
 
 typedef struct {
 	char name[MAX_QPATH];
-	char cleanname[MAX_QPATH];
 	int hand;
 	struct shader_s *icon;
 } cg_clientInfo_t;
@@ -308,8 +308,6 @@ typedef struct {
 	char configStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 	char baseConfigStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 
-	bool hasGametypeMenu;
-
 	char weaponModels[WEAP_TOTAL][MAX_QPATH];
 	int numWeaponModels;
 	weaponinfo_t *weaponInfos[WEAP_TOTAL];    // indexed list of weapon model infos
@@ -317,10 +315,9 @@ typedef struct {
 
 	cg_clientInfo_t clientInfo[MAX_CLIENTS];
 
-	const Model *modelDraw[MAX_MODELS];
+	const Model * modelDraw[MAX_MODELS];
 
-	PlayerModelMetadata *pModelsIndex[MAX_MODELS];
-	PlayerModelMetadata *basePModelInfo; //fall back replacements
+	const MapMetadata * map;
 
 	// force models
 	PlayerModelMetadata *teamModelInfo[2];
@@ -336,22 +333,11 @@ typedef struct {
 	char checkname[MAX_QPATH];
 	int precacheCount, precacheTotal, precacheStart;
 	int64_t precacheStartMsec;
+
+	ParticleSystem ions;
+	ParticleSystem sparks;
+	ParticleSystem smoke;
 } cg_static_t;
-
-typedef struct {
-	int64_t time;
-	char text[GAMECHAT_STRING_SIZE];
-} cg_gamemessage_t;
-
-typedef struct {
-	int64_t nextMsg;
-	int64_t lastMsgTime;
-	bool lastActive;
-	int64_t lastActiveChangeTime;
-	float activeFrac;
-	cg_gamemessage_t messages[GAMECHAT_STACK_SIZE];
-	int64_t lastHighlightTime;
-} cg_gamechat_t;
 
 typedef struct {
 	int64_t time;
@@ -391,8 +377,6 @@ typedef struct {
 	player_state_t predictFromPlayerState;
 
 	int lastWeapon;
-
-	mat3_t autorotateAxis;
 
 	float lerpfrac;                     // between oldframe and frame
 	float xerpTime;
@@ -438,8 +422,6 @@ typedef struct {
 
 	cg_viewweapon_t weapon;
 	cg_viewdef_t view;
-
-	cg_gamechat_t chat;
 } cg_state_t;
 
 extern cg_static_t cgs;
@@ -492,7 +474,7 @@ extern cvar_t *cg_hand;
 
 void CG_ResetClientInfos( void );
 void CG_LoadClientInfo( int client );
-void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata );
+void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata, const char * name );
 void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps, float volume, float attn );
 
 //
@@ -522,7 +504,6 @@ void CG_DrawLoading( void );
 void CG_CenterPrint( const char *str );
 
 void CG_EscapeKey( void );
-void CG_LoadStatusBar( void );
 
 bool CG_LoadingItemName( const char *str );
 
@@ -550,10 +531,12 @@ void CG_ResetBombHUD();
 //
 // cg_hud.c
 //
-void CG_SC_ResetObituaries( void );
-void CG_SC_Obituary( void );
+void CG_InitHUD();
+void CG_ShutdownHUD();
+void CG_SC_ResetObituaries();
+void CG_SC_Obituary();
 void CG_ExecuteLayoutProgram( struct cg_layoutnode_s *rootnode );
-void CG_ClearAwards( void );
+void CG_ClearAwards();
 
 //
 // cg_damage_indicator.c
@@ -598,7 +581,6 @@ extern cvar_t *cg_cartoonEffects;
 extern cvar_t *cg_explosionsRing;
 extern cvar_t *cg_explosionsDust;
 extern cvar_t *cg_outlineModels;
-extern cvar_t *cg_outlineWorld;
 extern cvar_t *cg_outlinePlayers;
 
 extern cvar_t *cg_fov;
@@ -657,7 +639,7 @@ void CG_SC_AutoRecordAction( const char *action );
 // cg_teams.c
 //
 void CG_RegisterForceModels();
-void CG_PModelForCentity( centity_t *cent, PlayerModelMetadata **pmodelinfo );
+const PlayerModelMetadata * CG_PModelForCentity( centity_t * cent );
 RGB8 CG_TeamColor( int team );
 Vec4 CG_TeamColorVec4( int team );
 void CG_TeamColor( int team, vec4_t color );
@@ -709,7 +691,6 @@ void CG_BubbleTrail( const vec3_t start, const vec3_t end, int dist );
 void CG_ProjectileTrail( centity_t *cent );
 void CG_NewBloodTrail( centity_t *cent );
 void CG_BloodDamageEffect( const vec3_t origin, const vec3_t dir, int damage, int team );
-void CG_SmallPileOfGibs( const vec3_t origin, int damage, const vec3_t initialVelocity, int team );
 void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, int team, float radius );
 void CG_GrenadeExplosionMode( const vec3_t pos, const vec3_t dir, float radius, int team );
 void CG_GenericExplosion( const vec3_t pos, const vec3_t dir, float radius );
@@ -719,16 +700,16 @@ void CG_EBImpact( const vec3_t pos, const vec3_t dir, int surfFlags, int team );
 void CG_ImpactSmokePuff( const vec3_t origin, const vec3_t dir, float radius, float alpha, int time, int speed );
 void CG_BladeImpact( const vec3_t pos, const vec3_t dir );
 void CG_PModel_SpawnTeleportEffect( centity_t * cent, MatrixPalettes temp_pose );
-void CG_SpawnSprite( const vec3_t origin, const vec3_t velocity, const vec3_t accel,
-					 float radius, int time, int bounce, bool expandEffect, bool shrinkEffect,
-					 float r, float g, float b, float a,
-					 float light, float lr, float lg, float lb, const Material * material );
 void CG_LaserGunImpact( const vec3_t pos, float radius, const vec3_t laser_dir, const vec4_t color );
 
 void CG_Dash( const entity_state_t *state );
 void CG_Explosion_Puff_2( const vec3_t pos, const vec3_t vel, int radius );
 void CG_DustCircle( const vec3_t pos, const vec3_t dir, float radius, int count );
 void CG_ExplosionsDust( const vec3_t pos, const vec3_t dir, float radius );
+
+void InitGibs();
+void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, int team );
+void DrawGibs();
 
 //
 // cg_decals.c
@@ -762,9 +743,6 @@ void CG_FlyEffect( centity_t *ent, const vec3_t origin );
 void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color );
 void CG_ImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, const Material * material );
 void CG_HighVelImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, const Material * material );
-
-void InitParticles();
-void DrawParticles();
 
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material );
 
@@ -800,10 +778,10 @@ void CG_LaserBeamEffect( centity_t *cent );
 //
 // cg_chat.cpp
 //
-void CG_InitChat( cg_gamechat_t *chat );
-void CG_StackChatString( cg_gamechat_t *chat, const char *str );
-void CG_DrawChat( cg_gamechat_t *chat, int x, int y, char *fontName, struct qfontface_s *font, int fontSize,
-				  int width, int height, int padding_x, int padding_y, vec4_t backColor, const Material * backShader );
+void CG_InitChat();
+void CG_ShutdownChat();
+void CG_AddChat( const char * str );
+void CG_DrawChat();
 
 //
 // cg_input.cpp
@@ -832,7 +810,7 @@ void CG_GetAngularMovement( vec3_t movement );
  * @param keys     output string
  * @param keysSize output string buffer size
  */
-void CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize );
+bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize );
 
 /**
  * Checks a chat message for local player nick and flashes window on a match

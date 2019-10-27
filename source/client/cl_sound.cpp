@@ -135,6 +135,7 @@ static bool S_InitAL() {
 
 static void LoadSound( const char * path, bool allow_stereo ) {
 	ZoneScoped;
+	ZoneText( path, strlen( path ) );
 
 	assert( num_sound_assets < ARRAY_COUNT( sound_assets ) );
 	SoundAsset * sfx = &sound_assets[ num_sound_assets ];
@@ -448,7 +449,7 @@ void S_StartMenuMusic() {
 	alSourcefv( music_source, AL_POSITION, vec3_origin );
 	alSourcefv( music_source, AL_VELOCITY, vec3_origin );
 	alSourcef( music_source, AL_GAIN, s_volume->value * s_musicvolume->value );
-	alSourcei( music_source, AL_SOURCE_RELATIVE, AL_FALSE );
+	alSourcei( music_source, AL_DIRECT_CHANNELS_SOFT, AL_TRUE );
 	alSourcei( music_source, AL_LOOPING, AL_TRUE );
 	alSourcei( music_source, AL_BUFFER, menu_music_asset->buffer );
 

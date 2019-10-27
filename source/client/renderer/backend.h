@@ -1,6 +1,6 @@
 #pragma once
 
-#include "qcommon/base.h"
+#include "qcommon/types.h"
 #include "qcommon/hash.h"
 
 constexpr size_t SHADER_MAX_TEXTURES = 4;
@@ -34,13 +34,14 @@ enum PrimitiveType : u8 {
 
 enum TextureFormat : u8 {
 	TextureFormat_R_U8,
-	TextureFormat_R_U8Norm,
+	TextureFormat_R_S8,
 	TextureFormat_R_U16,
 
 	TextureFormat_A_U8,
 
-	TextureFormat_RG_U8,
 	TextureFormat_RG_Half,
+
+	TextureFormat_RA_U8,
 
 	TextureFormat_RGB_U8,
 	TextureFormat_RGB_U8_sRGB,
@@ -75,6 +76,7 @@ enum VertexFormat : u8 {
 	VertexFormat_Halfx3,
 	VertexFormat_Halfx4,
 
+	VertexFormat_Floatx1,
 	VertexFormat_Floatx2,
 	VertexFormat_Floatx3,
 	VertexFormat_Floatx4,
@@ -96,6 +98,7 @@ struct IndexBuffer {
 struct Texture {
 	u32 texture;
 	u32 width, height;
+	bool msaa;
 	TextureFormat format;
 };
 
@@ -195,6 +198,12 @@ struct Mesh {
 	bool ccw_winding;
 };
 
+struct GPUParticle {
+	Vec3 position;
+	float scale;
+	RGBA8 color;
+};
+
 struct MeshConfig {
 	MeshConfig() {
 		positions = { };
@@ -273,6 +282,8 @@ struct RenderPass {
 	bool clear_depth = false;
 	float depth = 1.0f;
 
+	bool sorted = true;
+
 	Framebuffer msaa_source = { };
 };
 
@@ -295,6 +306,7 @@ void RenderBackendSubmitFrame();
 u8 AddRenderPass( const RenderPass & config );
 u8 AddRenderPass( const char * name, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
 u8 AddRenderPass( const char * name, Framebuffer target, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
+u8 AddUnsortedRenderPass( const char * name );
 void AddResolveMSAAPass( Framebuffer fb );
 
 u32 renderer_num_draw_calls();
@@ -311,6 +323,8 @@ template< typename T >
 VertexBuffer NewVertexBuffer( Span< T > data ) {
 	return NewVertexBuffer( data.ptr, data.num_bytes() );
 }
+
+VertexBuffer NewParticleVertexBuffer( u32 n );
 
 IndexBuffer NewIndexBuffer( const void * data, u32 len );
 IndexBuffer NewIndexBuffer( u32 len );
@@ -337,9 +351,10 @@ void DeleteShader( Shader shader );
 
 Mesh NewMesh( MeshConfig config );
 void DeleteMesh( const Mesh & mesh );
+void DeferDeleteMesh( const Mesh & mesh );
 
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override = 0, u32 first_index = 0 );
-void DeferDeleteMesh( const Mesh & mesh );
+void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, Texture texture, BlendFunc blend_func, u32 num_particles );
 
 void DownloadFramebuffer( void * buf );
 

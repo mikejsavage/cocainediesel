@@ -81,7 +81,6 @@ char *COM_ParseExt2( const char **data_p, bool nl, bool sq );
 #define COM_ParseExt( data_p, nl ) COM_ParseExt2( (const char **)data_p, nl, true )
 #define COM_Parse( data_p )   COM_ParseExt( data_p, true )
 
-int COM_Compress( char *data_p );
 const char *COM_RemoveJunkChars( const char *in );
 int COM_ReadColorRGBString( const char *in );
 int COM_ReadColorRGBAString( const char *in );
@@ -102,8 +101,7 @@ char *COM_ListNameForPosition( const char *namesList, int position, const char s
 #define MAX_TOKEN_CHARS             1024        // max length of an individual token
 #define MAX_CONFIGSTRING_CHARS      MAX_QPATH   // max length of a configstring string
 
-#define MAX_NAME_BYTES              65          // max length of a player name, including trailing \0
-#define MAX_NAME_CHARS              32          // max visible characters in a name (color tokens and \0 not counted)
+#define MAX_NAME_CHARS              32          // max length of a player name, including trailing \0
 
 #define MAX_CHAT_BYTES              151         // max length of a chat message, including color tokens and trailing \0
 
@@ -116,31 +114,16 @@ char *COM_ListNameForPosition( const char *namesList, int position, const char s
 // string colors
 //=============================================
 
-#define Q_COLOR_ESCAPE  '^'
-#define S_COLOR_ESCAPE  "^"
-
-#define COLOR_BLACK     '0'
-#define COLOR_RED       '1'
-#define COLOR_GREEN     '2'
-#define COLOR_YELLOW    '3'
-#define COLOR_BLUE      '4'
-#define COLOR_CYAN      '5'
-#define COLOR_MAGENTA   '6'
-#define COLOR_WHITE     '7'
-#define COLOR_ORANGE    '8'
-#define COLOR_GREY      '9'
-#define ColorIndex( c )   ( ( ( ( c ) - '0' ) < MAX_S_COLORS ) && ( ( ( c ) - '0' ) >= 0 ) ? ( ( c ) - '0' ) : 7 )
-
-#define S_COLOR_BLACK   "^0"
-#define S_COLOR_RED     "^1"
-#define S_COLOR_GREEN   "^2"
-#define S_COLOR_YELLOW  "^3"
-#define S_COLOR_BLUE    "^4"
-#define S_COLOR_CYAN    "^5"
-#define S_COLOR_MAGENTA "^6"
-#define S_COLOR_WHITE   "^7"
-#define S_COLOR_ORANGE  "^8"
-#define S_COLOR_GREY    "^9"
+#define S_COLOR_BLACK   "\x1b\x01\x01\x01\xff"
+#define S_COLOR_RED     "\x1b\xff\x01\x01\xff"
+#define S_COLOR_GREEN   "\x1b\x01\xff\x01\xff"
+#define S_COLOR_YELLOW  "\x1b\xff\xff\x01\xff"
+#define S_COLOR_BLUE    "\x1b\x01\x01\xff\xff"
+#define S_COLOR_CYAN    "\x1b\x01\xff\xff\xff"
+#define S_COLOR_MAGENTA "\x1b\xff\x01\xff\xff"
+#define S_COLOR_WHITE   "\x1b\xff\xff\xff\xff"
+#define S_COLOR_ORANGE  "\x1b\xff\x80\x01\xff"
+#define S_COLOR_GREY    "\x1b\x80\x80\x80\xff"
 
 #define COLOR_R( rgba )       ( ( rgba ) & 0xFF )
 #define COLOR_G( rgba )       ( ( ( rgba ) >> 8 ) & 0xFF )
@@ -183,27 +166,9 @@ void Q_urlencode_unsafechars( const char *src, char *dst, size_t dst_size );
  */
 size_t Q_urldecode( const char *src, char *dst, size_t dst_size );
 
-// color string functions ("^1text" etc)
-#define GRABCHAR_END    0
-#define GRABCHAR_CHAR   1
-#define GRABCHAR_COLOR  2
-int Q_GrabCharFromColorString( const char **pstr, char *c, int *colorindex );
-const char *COM_RemoveColorTokensExt( const char *str, bool draw );
-#define COM_RemoveColorTokens( in ) COM_RemoveColorTokensExt( in,false )
-int COM_SanitizeColorString( const char *str, char *buf, int bufsize, int maxprintablechars, int startcolor );
-const char *Q_ColorStringTerminator( const char *str, int finalcolor );
-int Q_ColorStrLastColor( int previous, const char *s, int maxlen );
-
 size_t Q_WCharUtf8Length( wchar_t wc );
 size_t Q_WCharToUtf8( wchar_t wc, char *dest, size_t bufsize );
 char *Q_WCharToUtf8Char( wchar_t wc );
-wchar_t Q_GrabWCharFromUtf8String( const char **pstr );
-int Q_GrabWCharFromColorString( const char **pstr, wchar_t *wc, int *colorindex );
-#define UTF8SYNC_LEFT 0
-#define UTF8SYNC_RIGHT 1
-int Q_Utf8SyncPos( const char *str, int pos, int dir );
-bool Q_IsBreakingSpace( const char *str );
-bool Q_IsBreakingSpaceChar( wchar_t c );
 
 float *tv( float x, float y, float z );
 char *vtos( float v[3] );

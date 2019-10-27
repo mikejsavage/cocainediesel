@@ -769,21 +769,17 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 }
 
 static void DrawWorld() {
-	const char * name = cgs.configStrings[ CS_WORLDMODEL ];
-	const char * ext = COM_FileExtension( name );
+	ZoneScoped;
+
 	const char * suffix = "*0";
-
-	u64 hash = Hash64( name, strlen( name ) - strlen( ext ) );
-	const MapMetadata * map = FindMapMetadata( StringHash( hash ) );
-
-	hash = Hash64( suffix, strlen( suffix ), hash );
+	u64 hash = Hash64( suffix, strlen( suffix ), cgs.map->base_hash );
 	const Model * model = FindModel( StringHash( hash ) );
 
 	for( u32 i = 0; i < model->num_primitives; i++ ) {
 		if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
 			PipelineState pipeline;
-			pipeline.pass = frame_static.world_write_gbuffer_pass;
-			pipeline.shader = &shaders.world_write_gbuffer;
+			pipeline.pass = frame_static.write_world_gbuffer_pass;
+			pipeline.shader = &shaders.write_world_gbuffer;
 			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
 
@@ -794,19 +790,17 @@ static void DrawWorld() {
 			PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
 			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
-			pipeline.set_uniform( "u_Fog", UploadUniformBlock( map->fog_strength ) );
-
-			pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
-			pipeline.set_uniform( "u_BlueNoiseTextureParams", frame_static.blue_noise_uniforms );
 
 			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 		}
 	}
 
 	{
+		bool msaa = frame_static.msaa_samples >= 1;
+
 		PipelineState pipeline;
-		pipeline.pass = frame_static.world_postprocess_gbuffer_pass;
-		pipeline.shader = &shaders.world_postprocess_gbuffer;
+		pipeline.pass = frame_static.postprocess_world_gbuffer_pass;
+		pipeline.shader = msaa ? &shaders.postprocess_world_gbuffer_msaa : &shaders.postprocess_world_gbuffer;
 
 		const Framebuffer & fb = frame_static.world_gbuffer;
 		pipeline.set_texture( "u_DepthTexture", fb.depth_texture );
@@ -825,14 +819,14 @@ static void DrawWorld() {
 		pipeline.set_texture( "u_DepthTexture", fb.depth_texture );
 		pipeline.set_texture( "u_NormalTexture", fb.normal_texture );
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-		pipeline.set_uniform( "u_Fog", UploadUniformBlock( map->fog_strength ) );
+		pipeline.set_uniform( "u_Fog", UploadUniformBlock( cgs.map->fog_strength ) );
 
 		DrawFullscreenMesh( pipeline );
 	}
 
 	{
 		PipelineState pipeline;
-		pipeline.pass = frame_static.world_add_outlines_pass;
+		pipeline.pass = frame_static.add_world_outlines_pass;
 		pipeline.shader = &shaders.standard_vertexcolors;
 		pipeline.blend_func = BlendFunc_Add;
 		pipeline.write_depth = false;
@@ -879,14 +873,16 @@ static void DrawWorld() {
 	}
 }
 
-static void DrawTeammateOutlines() {
+static void DrawSilhouettes() {
+	ZoneScoped;
+
 	{
 		PipelineState pipeline;
-		pipeline.pass = frame_static.teammate_postprocess_gbuffer_pass;
-		pipeline.shader = &shaders.teammate_postprocess_gbuffer;
+		pipeline.pass = frame_static.postprocess_silhouette_gbuffer_pass;
+		pipeline.shader = &shaders.postprocess_silhouette_gbuffer;
 
-		const Framebuffer & fb = frame_static.teammate_gbuffer;
-		pipeline.set_texture( "u_TeammateTexture", fb.albedo_texture );
+		const Framebuffer & fb = frame_static.silhouette_gbuffer;
+		pipeline.set_texture( "u_SilhouetteTexture", fb.albedo_texture );
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 
 		DrawFullscreenMesh( pipeline );
@@ -894,12 +890,13 @@ static void DrawTeammateOutlines() {
 
 	{
 		PipelineState pipeline;
-		pipeline.pass = frame_static.teammate_add_outlines_pass;
+		pipeline.pass = frame_static.add_silhouettes_pass;
 		pipeline.shader = &shaders.standard;
+		pipeline.depth_func = DepthFunc_Disabled;
 		pipeline.blend_func = BlendFunc_Blend;
 		pipeline.write_depth = false;
 
-		const Framebuffer & fb = frame_static.teammate_outlines_fb;
+		const Framebuffer & fb = frame_static.silhouette_silhouettes_fb;
 		pipeline.set_texture( "u_BaseTexture", fb.albedo_texture );
 		pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
 		pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
@@ -944,6 +941,8 @@ static void DrawTeammateOutlines() {
 * CG_RenderView
 */
 void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int64_t realTime, int64_t serverTime, unsigned extrapolationTime ) {
+	ZoneScoped;
+
 	refdef_t *rd = &cg.view.refdef;
 
 	// update time
@@ -1044,6 +1043,7 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 	}
 
 	RendererSetView( FromQF3( cg.view.origin ), FromQFAngles( cg.view.angles ), cg.view.fov_y );
+	frame_static.fog_uniforms = UploadUniformBlock( cgs.map->fog_strength );
 
 	CG_LerpEntities();  // interpolate packet entities positions
 
@@ -1054,11 +1054,12 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 	CG_ResetBombHUD();
 
 	DrawWorld();
-	DrawTeammateOutlines();
+	DrawSilhouettes();
 	CG_AddEntities();
 	CG_AddViewWeapon( &cg.weapon );
 	CG_AddLocalEntities();
 	CG_AddParticles();
+	DrawGibs();
 	DrawParticles();
 	DrawPersistentBeams();
 

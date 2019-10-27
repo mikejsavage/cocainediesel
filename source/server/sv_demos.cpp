@@ -224,7 +224,6 @@ static void SV_Demo_Stop( bool cancel, bool silent ) {
 		SV_SetDemoMetaKeyValue( "duration", va( "%u", (int)ceil( (double)svs.demo.duration / 1000.0 ) ) );
 		SV_SetDemoMetaKeyValue( "mapname", sv.configstrings[CS_MAPNAME] );
 		SV_SetDemoMetaKeyValue( "gametype", sv.configstrings[CS_GAMETYPENAME] );
-		SV_SetDemoMetaKeyValue( "matchname", sv.configstrings[CS_MATCHNAME] );
 		SV_SetDemoMetaKeyValue( "matchscore", sv.configstrings[CS_MATCHSCORE] );
 
 		SNAP_WriteDemoMetaData( svs.demo.tempname, svs.demo.meta_data, svs.demo.meta_data_realsize );

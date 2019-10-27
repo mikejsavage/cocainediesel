@@ -122,11 +122,6 @@ static unsigned int G_FindPointedPlayer( edict_t *self ) {
 */
 void G_SetClientStats( edict_t *ent ) {
 	gclient_t *client = ent->r.client;
-	int team, i;
-
-	if( ent->r.client->resp.chase.active ) { // in chasecam it copies the other player stats
-		return;
-	}
 
 	//
 	// layouts
@@ -148,6 +143,9 @@ void G_SetClientStats( edict_t *ent ) {
 	}
 	if( G_SpawnQueue_GetSystem( ent->s.team ) == SPAWNSYSTEM_INSTANT ) {
 		client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_INSTANTRESPAWN;
+	}
+	if( G_Callvotes_HasVoted( ent ) ) {
+		client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_VOTED;
 	}
 
 	//
@@ -179,17 +177,13 @@ void G_SetClientStats( edict_t *ent ) {
 	//
 	if( GS_TeamBasedGametype() ) {
 		// team based
-		i = 0;
-		for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-			client->ps.stats[STAT_TEAM_ALPHA_SCORE + i] = teamlist[team].stats.score;
-			i++;
+		for( int team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
+			client->ps.stats[STAT_TEAM_ALPHA_SCORE + team - TEAM_ALPHA] = teamlist[team].stats.score;
 		}
 	} else {
 		// not team based
-		i = 0;
-		for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-			client->ps.stats[STAT_TEAM_ALPHA_SCORE + i] = STAT_NOTSET;
-			i++;
+		for( int team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
+			client->ps.stats[STAT_TEAM_ALPHA_SCORE + team - TEAM_ALPHA] = STAT_NOTSET;
 		}
 	}
 

@@ -20,31 +20,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "g_local.h"
 
-
-void ThrowSmallPileOfGibs( edict_t *self, int damage ) {
-	vec3_t origin;
-	edict_t *event;
-	int contents;
-	int i;
-
-	contents = G_PointContents( self->s.origin );
+void ThrowSmallPileOfGibs( edict_t *self, const vec3_t knockback, int damage ) {
+	int contents = G_PointContents( self->s.origin );
 	if( contents & CONTENTS_NODROP ) {
 		return;
 	}
 
-	for( i = 0; i < 3; i++ )
-		origin[i] = self->s.origin[i];
-
+	vec3_t origin;
+	VectorCopy( self->s.origin, origin );
 	self->s.origin[2] += 4;
 
 	// clamp the damage value since events do bitwise & 0xFF on the passed param
 	damage = Clamp( 0, damage, 255 );
 
-	event = G_SpawnEvent( EV_SPOG, damage, origin );
+	edict_t * event = G_SpawnEvent( EV_SPOG, damage, origin );
 	event->s.team = self->s.team;
-	VectorCopy( self->velocity, event->s.origin2 );
+	VectorAdd( self->velocity, knockback, event->s.origin2 );
 }
-
 
 /*
 * debris
@@ -173,7 +165,7 @@ static void func_wall_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	if( self->r.solid == SOLID_NOT ) {
 		self->r.solid = SOLID_YES;
 		self->r.svflags &= ~SVF_NOCLIENT;
-		KillBox( self, MOD_CRUSH );
+		KillBox( self, MOD_CRUSH, vec3_origin );
 	} else {
 		self->r.solid = SOLID_NOT;
 		self->r.svflags |= SVF_NOCLIENT;
@@ -257,7 +249,7 @@ static void func_object_use( edict_t *self, edict_t *other, edict_t *activator )
 	self->r.solid = SOLID_YES;
 	self->r.svflags &= ~SVF_NOCLIENT;
 	self->use = NULL;
-	KillBox( self, MOD_CRUSH );
+	KillBox( self, MOD_CRUSH, vec3_origin );
 	func_object_release( self );
 }
 
@@ -408,7 +400,7 @@ static void func_explosive_spawn( edict_t *self, edict_t *other, edict_t *activa
 	self->r.solid = SOLID_YES;
 	self->r.svflags &= ~SVF_NOCLIENT;
 	self->use = NULL;
-	KillBox( self, MOD_CRUSH );
+	KillBox( self, MOD_CRUSH, vec3_origin );
 	GClip_LinkEntity( self );
 }
 
@@ -442,6 +434,7 @@ void SP_func_explosive( edict_t *self ) {
 		self->takedamage = DAMAGE_YES;
 	}
 	self->max_health = self->health;
+	self->s.effects = EF_WORLD_MODEL;
 
 	// HACK HACK HACK
 	if( st.debris1 && st.debris1[0] ) {
@@ -460,119 +453,8 @@ void SP_func_explosive( edict_t *self ) {
 //
 //========================================================
 
-void SP_misc_teleporter_dest( edict_t *ent ) {
-	//ent->s.origin[2] += 16;
-}
-
 void SP_misc_model( edict_t *ent ) {
 	G_FreeEdict( ent );
-}
-
-void SP_misc_particles_finish( edict_t *ent ) {
-	// if it has a target, look towards it
-	if( ent->target ) {
-		vec3_t dir;
-		edict_t *target = G_PickTarget( ent->target );
-		if( target ) {
-			VectorSubtract( target->s.origin, ent->s.origin, dir );
-			VecToAngles( dir, ent->s.angles );
-		}
-	}
-
-	ent->think = NULL;
-}
-
-void SP_misc_particles_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	if( self->r.svflags & SVF_NOCLIENT ) {
-		self->r.svflags &= ~SVF_NOCLIENT;
-	} else {
-		self->r.svflags |= SVF_NOCLIENT;
-	}
-
-}
-
-void SP_misc_particles( edict_t *ent ) {
-	ent->r.svflags &= ~SVF_NOCLIENT;
-	ent->r.svflags |= SVF_BROADCAST;
-	ent->r.solid = SOLID_NOT;
-	ent->s.type = ET_PARTICLES;
-
-	if( st.noise ) {
-		ent->s.sound = trap_SoundIndex( st.noise );
-		G_PureSound( st.noise );
-	}
-
-	if( st.gameteam >= TEAM_ALPHA && st.gameteam < GS_MAX_TEAMS ) {
-		ent->s.team = st.gameteam;
-	} else {
-		ent->s.team = 0;
-	}
-
-	if( ent->speed > 0 ) {
-		ent->particlesInfo.speed = ( (int)ent->speed ) & 255;
-	}
-
-	if( ent->count > 0 ) {
-		ent->particlesInfo.frequency = ent->count & 255;
-	}
-
-	if( st.shaderName ) {
-		ent->particlesInfo.shaderIndex = trap_ImageIndex( st.shaderName );
-	} else {
-		ent->particlesInfo.shaderIndex = trap_ImageIndex( "particle" );
-	}
-
-	if( st.size ) {
-		ent->particlesInfo.size = st.size & 255;
-	} else {
-		ent->particlesInfo.size = 16;
-	}
-
-	ent->particlesInfo.time = ent->delay;
-	if( !ent->particlesInfo.time ) {
-		ent->particlesInfo.time = 4;
-	}
-
-	if( ent->spawnflags & 1 ) { // SPHERICAL
-		ent->particlesInfo.spherical = true;
-	}
-
-	if( ent->spawnflags & 2 ) { // BOUNCE
-		ent->particlesInfo.bounce = true;
-	}
-
-	if( ent->spawnflags & 4 ) { // GRAVITY
-		ent->particlesInfo.gravity = true;
-	}
-
-	if( ent->spawnflags & 8 ) { // LIGHT
-		ent->s.light = COLOR_RGB( (uint8_t)( ent->color[0] * 255 ), (uint8_t)( ent->color[1] * 255 ), (uint8_t)( ent->color[2] * 255 ) );
-		if( !ent->s.light ) {
-			ent->s.light = COLOR_RGB( 255, 255, 255 );
-		}
-	}
-
-	if( ent->spawnflags & 16 ) { // EXPAND_EFFECT
-		ent->particlesInfo.expandEffect = true;
-	}
-
-	if( ent->spawnflags & 32 ) { // SHRINK_EFFECT
-		ent->particlesInfo.shrinkEffect = true;
-	}
-
-	if( ent->spawnflags & START_OFF ) { // START_OFF
-		ent->r.svflags |= SVF_NOCLIENT;
-	}
-
-	if( st.radius > 0 ) {
-		ent->particlesInfo.spread = Clamp( 0.0f, st.radius, 255.0f );
-	}
-
-	ent->think = SP_misc_particles_finish;
-	ent->nextThink = level.time + 1;
-	ent->use = SP_misc_particles_use;
-
-	GClip_LinkEntity( ent );
 }
 
 void SP_model( edict_t *ent ) {

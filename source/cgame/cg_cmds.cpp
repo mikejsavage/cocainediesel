@@ -39,28 +39,41 @@ static void CG_SC_Print( void ) {
 /*
 * CG_SC_ChatPrint
 */
-static void CG_SC_ChatPrint( void ) {
-	const bool teamonly = ( !Q_stricmp( trap_Cmd_Argv( 0 ), "tch" ) ? true : false );
-	const int who = atoi( trap_Cmd_Argv( 1 ) );
-	const char *name = ( who && who == bound( 1, who, MAX_CLIENTS ) ? cgs.clientInfo[who - 1].name : NULL );
-	const char *text = trap_Cmd_Argv( 2 );
+static void CG_SC_ChatPrint() {
+	bool teamonly = Q_stricmp( trap_Cmd_Argv( 0 ), "tch" ) == 0;
+	int who = atoi( trap_Cmd_Argv( 1 ) );
+
+	if( who < 0 || who > MAX_CLIENTS ) {
+		return;
+	}
 
 	if( cg_chatFilter->integer & ( teamonly ? 2 : 1 ) ) {
 		return;
 	}
 
-	if( !name ) {
-		CG_LocalPrint( S_COLOR_GREEN "console: %s\n", text );
-	} else if( teamonly ) {
-		CG_LocalPrint( S_COLOR_YELLOW "[%s]" S_COLOR_WHITE "%s" S_COLOR_YELLOW ": %s\n",
-					   cg.frame.playerState.stats[STAT_REALTEAM] == TEAM_SPECTATOR ? "SPEC" : "TEAM", name, text );
-	} else {
-		CG_LocalPrint( "%s" S_COLOR_GREEN ": %s\n", name, text );
+	const char * text = trap_Cmd_Argv( 2 );
+
+	if( who == 0 ) {
+		CG_LocalPrint( "Console: %s\n", text );
+		return;
 	}
 
-	// check highlight of player nick here instead of local print because its used for things like stats
-	// dont highlight for server messages
-	if( name && !cgs.demoPlaying ) {
+	const char * name = cgs.clientInfo[ who - 1 ].name;
+	int team = cg_entities[ who ].current.team;
+	RGB8 team_color = team == TEAM_SPECTATOR ? RGB8( 128, 128, 128 ) : CG_TeamColor( team );
+
+	const char * prefix = "";
+	if( teamonly ) {
+		prefix = team == TEAM_SPECTATOR ? "[SPEC] " : "[TEAM] ";
+	}
+
+	ImGuiColorToken color( team_color );
+	CG_LocalPrint( "%s%s%s%s: %s\n",
+		prefix,
+		( const char * ) ImGuiColorToken( team_color ).token, name,
+		( const char * ) ImGuiColorToken( rgba8_white ).token, text );
+
+	if( !cgs.demoPlaying ) {
 		CG_FlashChatHighlight( who - 1, text );
 	}
 }
@@ -95,11 +108,7 @@ void CG_ConfigString( int i, const char *s ) {
 	if( i == CS_AUTORECORDSTATE ) {
 		CG_SC_AutoRecordAction( cgs.configStrings[i] );
 	} else if( i >= CS_MODELS && i < CS_MODELS + MAX_MODELS ) {
-		if( cgs.configStrings[i][0] == '$' ) {  // indexed pmodel
-			cgs.pModelsIndex[i - CS_MODELS] = CG_RegisterPlayerModel( cgs.configStrings[i] + 1 );
-		} else {
-			cgs.modelDraw[i - CS_MODELS] = FindModel( cgs.configStrings[i] );
-		}
+		cgs.modelDraw[i - CS_MODELS] = FindModel( cgs.configStrings[i] );
 	} else if( i >= CS_SOUNDS && i < CS_SOUNDS + MAX_SOUNDS ) {
 		cgs.soundPrecache[i - CS_SOUNDS] = S_RegisterSound( cgs.configStrings[i] );
 	} else if( i >= CS_IMAGES && i < CS_IMAGES + MAX_IMAGES ) {
@@ -109,9 +118,6 @@ void CG_ConfigString( int i, const char *s ) {
 	} else if( i >= CS_GAMECOMMANDS && i < CS_GAMECOMMANDS + MAX_GAMECOMMANDS ) {
 		if( !cgs.demoPlaying ) {
 			trap_Cmd_AddCommand( cgs.configStrings[i], NULL );
-			if( !Q_stricmp( cgs.configStrings[i], "gametypemenu" ) ) {
-				cgs.hasGametypeMenu = true;
-			}
 		}
 	} else if( i >= CS_WEAPONDEFS && i < CS_WEAPONDEFS + MAX_WEAPONDEFS ) {
 		CG_OverrideWeapondef( i - CS_WEAPONDEFS, cgs.configStrings[i] );
@@ -125,93 +131,49 @@ static void CG_SC_Scoreboard( void ) {
 	SCR_UpdateScoreboardMessage( trap_Cmd_Argv( 1 ) );
 }
 
-/*
-* CG_SC_PrintPlayerStats
-*/
-static void CG_SC_PrintPlayerStats( const char *s, void ( *print )( const char *format, ... ), void ( *printDmg )( const char *format, ... ) ) {
-	int playerNum;
-	int i, shot_strong, hit_total, shot_total;
-	int total_damage_given, total_damage_received;
-	const gsitem_t *item;
+static void CG_SC_PlayerStats() {
+	const char * s = trap_Cmd_Argv( 1 );
 
-	playerNum = CG_ParseValue( &s );
+	int playerNum = CG_ParseValue( &s );
 	if( playerNum < 0 || playerNum >= gs.maxclients ) {
 		return;
 	}
 
-	if( !printDmg ) {
-		printDmg = print;
-	}
+	CG_LocalPrint( "Stats for %s" S_COLOR_WHITE ":\n", cgs.clientInfo[playerNum].name );
+	CG_Printf( "\nWeapon\n" );
+	CG_Printf( "    hit/shot percent\n" );
 
-	// print stats to console/file
-	printDmg( "Stats for %s" S_COLOR_WHITE ":\r\n", cgs.clientInfo[playerNum].name );
-	print( "\r\nWeapon\r\n" );
-	print( "    hit/shot percent\r\n" );
-
-	for( i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
-		item = GS_FindItemByTag( i );
+	for( int i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
+		const gsitem_t * item = GS_FindItemByTag( i );
 		assert( item );
 
-		shot_total = CG_ParseValue( &s );
-		if( shot_total < 1 ) { // only continue with registered shots
+		int shots = CG_ParseValue( &s );
+		if( shots < 1 ) { // only continue with registered shots
 			continue;
 		}
-		hit_total = CG_ParseValue( &s );
-
-		// legacy - parse shot_strong and hit_strong
-		shot_strong = CG_ParseValue( &s );
-		if( shot_strong != shot_total ) {
-			CG_ParseValue( &s );
-		}
+		int hits = CG_ParseValue( &s );
 
 		// name
-		print( "%s%2s" S_COLOR_WHITE ": ", item->color, item->shortname );
+		CG_Printf( "%s%2s" S_COLOR_WHITE ": ", ImGuiColorToken( item->color ).token, item->shortname );
 
-#define STATS_PERCENT( hit,total ) ( ( total ) == 0 ? 0 : ( ( hit ) == ( total ) ? 100 : (float)( hit ) * 100.0f / (float)( total ) ) )
+#define STATS_PERCENT( hit, total ) ( ( total ) == 0 ? 0 : ( ( hit ) == ( total ) ? 100 : (float)( hit ) * 100.0f / (float)( total ) ) )
 
 		// total
-		print( S_COLOR_GREEN "%3i" S_COLOR_WHITE "/" S_COLOR_CYAN "%3i      " S_COLOR_YELLOW "%2.1f",
-			   hit_total, shot_total, STATS_PERCENT( hit_total, shot_total ) );
-
-		print( "\r\n" );
+		CG_Printf( S_COLOR_GREEN "%3i" S_COLOR_WHITE "/" S_COLOR_CYAN "%3i      " S_COLOR_YELLOW "%2.1f\n",
+			   hits, shots, STATS_PERCENT( hits, shots ) );
 	}
 
-	print( "\r\n" );
+	CG_Printf( "\n" );
 
-	total_damage_given = CG_ParseValue( &s );
-	total_damage_received = CG_ParseValue( &s );
+	int total_damage_given = CG_ParseValue( &s );
+	int total_damage_received = CG_ParseValue( &s );
 
-	printDmg( S_COLOR_YELLOW "Damage given/received: " S_COLOR_WHITE "%i/%i " S_COLOR_YELLOW "ratio: %s%3.2f\r\n",
-			  total_damage_given, total_damage_received,
-			  ( total_damage_given > total_damage_received ? S_COLOR_GREEN : S_COLOR_RED ),
-			  STATS_PERCENT( total_damage_given, total_damage_given + total_damage_received ) );
-
-	CG_ParseValue( &s ); // health taken
+	CG_LocalPrint( S_COLOR_YELLOW "Damage given/received: " S_COLOR_WHITE "%i/%i " S_COLOR_YELLOW "ratio: %s%3.2f\n",
+		total_damage_given, total_damage_received,
+		total_damage_given > total_damage_received ? S_COLOR_GREEN : S_COLOR_RED,
+		STATS_PERCENT( total_damage_given, total_damage_given + total_damage_received ) );
 
 #undef STATS_PERCENT
-}
-
-/*
-* CG_SC_PrintStatsToFile
-*/
-static int cg_statsFileHandle;
-void CG_SC_PrintStatsToFile( const char *format, ... ) {
-	va_list argptr;
-	char msg[1024];
-
-	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
-	va_end( argptr );
-
-	trap_FS_Print( cg_statsFileHandle, msg );
-}
-
-/*
-* CG_SC_PlayerStats
-*/
-static void CG_SC_PlayerStats( void ) {
-	const char * s = trap_Cmd_Argv( 1 );
-	CG_SC_PrintPlayerStats( s, CG_Printf, CG_LocalPrint );
 }
 
 /*
@@ -222,20 +184,17 @@ static const char *CG_SC_AutoRecordName( void ) {
 	struct tm *newtime;
 	static char name[MAX_STRING_CHARS];
 	char mapname[MAX_CONFIGSTRING_CHARS];
-	const char *cleanplayername, *cleanplayername2;
+	const char *cleanplayername;
 
 	// get date from system
 	time( &long_time );
 	newtime = localtime( &long_time );
 
 	if( cg.view.POVent <= 0 ) {
-		cleanplayername2 = "";
+		cleanplayername = "";
 	} else {
-		// remove color tokens from player names (doh)
-		cleanplayername = COM_RemoveColorTokens( cgs.clientInfo[cg.view.POVent - 1].name );
-
 		// remove junk chars from player names for files
-		cleanplayername2 = COM_RemoveJunkChars( cleanplayername );
+		cleanplayername = COM_RemoveJunkChars( cgs.clientInfo[cg.view.POVent - 1].name );
 	}
 
 	// lowercase mapname
@@ -248,7 +207,7 @@ static const char *CG_SC_AutoRecordName( void ) {
 				 newtime->tm_year + 1900, newtime->tm_mon + 1, newtime->tm_mday,
 				 newtime->tm_hour, newtime->tm_min,
 				 mapname,
-				 cleanplayername2,
+				 cleanplayername,
 				 (int)brandom( 0, 9999 )
 				 );
 
@@ -372,61 +331,28 @@ static void CG_SC_DemoGet( void ) {
 }
 
 static void CG_SC_ChangeLoadout() {
-	if( trap_Cmd_Argc() != 3 )
+	int weapons[ WEAP_TOTAL ] = { };
+	size_t n = 0;
+
+	if( trap_Cmd_Argc() - 1 >= ARRAY_COUNT( weapons ) )
 		return;
 
-	UI_ShowLoadoutMenu( atoi( trap_Cmd_Argv( 1 ) ), atoi( trap_Cmd_Argv( 2 ) ) );
+	for( int i = 0; i < trap_Cmd_Argc() - 1; i++ ) {
+		int weapon = atoi( trap_Cmd_Argv( i + 1 ) );
+		if( weapon <= WEAP_NONE || weapon >= WEAP_TOTAL )
+			return;
+		weapons[ n ] = weapon;
+		n++;
+	}
+
+	UI_ShowLoadoutMenu( Span< int >( weapons, n ) );
 }
 
 static void CG_SC_SaveLoadout() {
-	if( trap_Cmd_Argc() != 3 )
-		return;
-
-	char loadout[ 32 ];
-	snprintf( loadout, sizeof( loadout ), "%s %s", trap_Cmd_Argv( 1 ), trap_Cmd_Argv( 2 ) );
-	trap_Cvar_Set( "cg_loadout", loadout );
+	trap_Cvar_Set( "cg_loadout", Cmd_Args() );
 }
 
-/*
-* CG_SC_MenuOpen
-*/
-static void CG_SC_MenuOpen_( bool modal ) {
-	char request[MAX_STRING_CHARS];
-	int i, c;
-
-	if( cgs.demoPlaying ) {
-		return;
-	}
-
-	if( trap_Cmd_Argc() < 2 ) {
-		return;
-	}
-
-	Q_strncpyz( request, va( "%s \"%s\"", modal ? "menu_modal" : "menu_open", trap_Cmd_Argv( 1 ) ), sizeof( request ) );
-	for( i = 2, c = 1; i < trap_Cmd_Argc(); i++, c++ )
-		Q_strncatz( request, va( " param%i \"%s\"", c, trap_Cmd_Argv( i ) ), sizeof( request ) );
-
-	trap_Cmd_ExecuteText( EXEC_APPEND, va( "%s\n", request ) );
-}
-
-/*
-* CG_SC_MenuOpen
-*/
-static void CG_SC_MenuOpen( void ) {
-	CG_SC_MenuOpen_( false );
-}
-
-/*
-* CG_SC_MenuModal
-*/
-static void CG_SC_MenuModal( void ) {
-	CG_SC_MenuOpen_( true );
-}
-
-/*
-* CG_AddAward
-*/
-void CG_AddAward( const char *str ) {
+void CG_AddAward( const char * str ) {
 	if( !str || !str[0] ) {
 		return;
 	}
@@ -436,21 +362,16 @@ void CG_AddAward( const char *str ) {
 	cg.award_head++;
 }
 
-/*
-* CG_SC_AddAward
-*/
-static void CG_SC_AddAward( void ) {
+static void CG_SC_AddAward() {
 	CG_AddAward( trap_Cmd_Argv( 1 ) );
 }
 
-typedef struct
-{
-	const char *name;
-	void ( *func )( void );
-} svcmd_t;
+struct ServerCommand {
+	const char * name;
+	void ( *func )();
+};
 
-static const svcmd_t cg_svcmds[] =
-{
+static const ServerCommand server_commands[] = {
 	{ "pr", CG_SC_Print },
 	{ "ch", CG_SC_ChatPrint },
 	{ "tch", CG_SC_ChatPrint },
@@ -459,33 +380,23 @@ static const svcmd_t cg_svcmds[] =
 	{ "scb", CG_SC_Scoreboard },
 	{ "plstats", CG_SC_PlayerStats },
 	{ "demoget", CG_SC_DemoGet },
-	{ "meop", CG_SC_MenuOpen },
-	{ "memo", CG_SC_MenuModal },
 	{ "aw", CG_SC_AddAward },
 	{ "changeloadout", CG_SC_ChangeLoadout },
 	{ "saveloadout", CG_SC_SaveLoadout },
-
-	{ NULL }
 };
 
-/*
-* CG_GameCommand
-*/
-void CG_GameCommand( const char *command ) {
-	char *s;
-	const svcmd_t *cmd;
-
+void CG_GameCommand( const char * command ) {
 	trap_Cmd_TokenizeString( command );
+	const char * name = trap_Cmd_Argv( 0 );
 
-	s = trap_Cmd_Argv( 0 );
-	for( cmd = cg_svcmds; cmd->name; cmd++ ) {
-		if( !strcmp( s, cmd->name ) ) {
-			cmd->func();
+	for( ServerCommand cmd : server_commands ) {
+		if( strcmp( name, cmd.name ) == 0 ) {
+			cmd.func();
 			return;
 		}
 	}
 
-	CG_Printf( "Unknown game command: %s\n", s );
+	CG_Printf( "Unknown game command: %s\n", name );
 }
 
 /*
@@ -611,7 +522,7 @@ static void CG_Cmd_Weapon_f() {
 		seen++;
 
 		if( seen == w ) {
-			const gsitem_t * item = &itemdefs[ i ];
+			const gsitem_t * item = GS_FindItemByTag( i );
 			CG_UseItem( item->name );
 		}
 	}
@@ -626,13 +537,6 @@ static void CG_Viewpos_f( void ) {
 }
 
 // ======================================================================
-
-/*
-* CG_GametypeMenuCmdAdd_f
-*/
-static void CG_GametypeMenuCmdAdd_f( void ) {
-	cgs.hasGametypeMenu = true;
-}
 
 /*
 * CG_PlayerNamesCompletionExt_f
@@ -651,14 +555,14 @@ static char **CG_PlayerNamesCompletionExt_f( const char *partial, bool teamOnly 
 		matches = (char **) CG_Malloc( sizeof( char * ) * ( gs.maxclients + 1 ) );
 		for( i = 0; i < gs.maxclients; i++ ) {
 			cg_clientInfo_t *info = cgs.clientInfo + i;
-			if( !info->cleanname[0] ) {
+			if( !info->name[0] ) {
 				continue;
 			}
 			if( teamOnly && ( cg_entities[i + 1].current.team != team ) ) {
 				continue;
 			}
-			if( !Q_strnicmp( info->cleanname, partial, partial_len ) ) {
-				matches[num_matches++] = info->cleanname;
+			if( !Q_strnicmp( info->name, partial, partial_len ) ) {
+				matches[num_matches++] = info->name;
 			}
 		}
 		matches[num_matches] = NULL;
@@ -703,9 +607,7 @@ static void CG_StatsCmdAdd_f( void ) {
 }
 
 // server commands
-static svcmd_t cg_consvcmds[] =
-{
-	{ "gametypemenu", CG_GametypeMenuCmdAdd_f },
+static const ServerCommand cg_consvcmds[] = {
 	{ "say", CG_SayCmdAdd_f },
 	{ "say_team", CG_SayTeamCmdAdd_f },
 	{ "stats", CG_StatsCmdAdd_f },
@@ -748,7 +650,7 @@ void CG_RegisterCGameCommands( void ) {
 	const cgcmd_t *cmd;
 
 	if( !cgs.demoPlaying ) {
-		const svcmd_t *svcmd;
+		const ServerCommand *svcmd;
 
 		// add game side commands
 		for( i = 0; i < MAX_GAMECOMMANDS; i++ ) {
@@ -819,8 +721,6 @@ void CG_UnregisterCGameCommands( void ) {
 
 			trap_Cmd_RemoveCommand( name );
 		}
-
-		cgs.hasGametypeMenu = false;
 	}
 
 	// remove local commands

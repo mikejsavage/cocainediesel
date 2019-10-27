@@ -27,7 +27,7 @@ const int CountdownSeconds = 4;
 const int CountdownNumSwitches = 20;
 const float CountdownInitialSwitchDelay = 0.1;
 
-const int MAX_HEALTH = 333;
+const int MAX_HEALTH = 166;
 
 int[] endMatchSounds;
 
@@ -314,19 +314,6 @@ class cDARound
 		}
 
 		GENERIC_UpdateMatchScore();
-
-		// print scores to console
-		if ( gametype.isTeamBased )
-		{
-			Team @team1 = @G_GetTeam( TEAM_ALPHA );
-			Team @team2 = @G_GetTeam( TEAM_BETA );
-
-			String sC1 = (team1.stats.score < team2.stats.score ? S_COLOR_RED : S_COLOR_GREEN);
-			String sC2 = (team2.stats.score < team1.stats.score ? S_COLOR_RED : S_COLOR_GREEN);
-
-			G_PrintMsg( null, S_COLOR_YELLOW + "Final score: " + S_COLOR_WHITE + team1.name + S_COLOR_WHITE + " vs " +
-				team2.name + S_COLOR_WHITE + " - " + match.getScore() + "\n" );
-		}
 
 		int soundIndex = endMatchSounds[random_uniform(0,endMatchSounds.size())];
 		G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, true, null );
@@ -682,12 +669,6 @@ void DA_SetUpCountdown()
 
 bool GT_Command( Client @client, const String &cmdString, const String &argsString, int argc )
 {
-	if( cmdString == "cvarinfo" )
-	{
-		GENERIC_CheatVarResponse( client, cmdString, argsString, argc );
-		return true;
-	}
-
 	return false;
 }
 
@@ -971,9 +952,6 @@ void GT_InitGametype()
 	// set spawnsystem type to instant while players join
 	for ( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ )
 		gametype.setTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
-
-	// add commands
-	G_RegisterCommand( "gametype" );
 
 	// register gladiator media pure
 	G_SoundIndex( "sounds/gladiator/fight", true );

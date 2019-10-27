@@ -957,6 +957,7 @@ static const msg_field_t ent_state_fields[] = {
 	{ ESOFS( angles[2] ), 0, 1, WIRE_ANGLE },
 
 	{ ESOFS( colorRGBA ), 32, 1, WIRE_FIXED_INT32 },
+	{ ESOFS( silhouetteColor ), 32, 1, WIRE_FIXED_INT32 },
 
 	{ ESOFS( light ), 32, 1, WIRE_FIXED_INT32 },
 };

@@ -433,17 +433,6 @@ struct cmodel_s *CG_CModelForEntity( int entNum ) {
 }
 
 /*
-* CG_EntAddBobEffect
-*/
-static void CG_EntAddBobEffect( centity_t *cent ) {
-	float scale = 0.005f + cent->current.number * 0.00001f;
-	float bob = 4 + cosf( ( cg.time + 1000 ) * scale ) * 4;
-
-	cent->ent.origin2[2] += bob;
-	cent->ent.origin[2] += bob;
-}
-
-/*
 * CG_EntAddTeamColorTransitionEffect
 */
 static void CG_EntAddTeamColorTransitionEffect( centity_t *cent ) {
@@ -478,9 +467,7 @@ static void CG_UpdateGenericEnt( centity_t *cent ) {
 
 	// set entity color based on team
 	CG_TeamColorForEntity( cent->current.number, cent->ent.shaderRGBA );
-	if( cent->effects & EF_OUTLINE ) {
-		Vector4Set( cent->outlineColor, 0, 0, 0, 255 );
-	}
+	Vector4Set( cent->outlineColor, 0, 0, 0, 255 );
 
 	// set up the model
 	int modelindex = cent->current.modelindex;
@@ -595,23 +582,47 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 		return;
 	}
 
-	// bobbing & auto-rotation
-	if( cent->effects & EF_ROTATE_AND_BOB ) {
-		CG_EntAddBobEffect( cent );
-		Matrix3_Copy( cg.autorotateAxis, cent->ent.axis );
-	}
-
 	if( cent->effects & EF_TEAMCOLOR_TRANSITION ) {
 		CG_EntAddTeamColorTransitionEffect( cent );
 	}
 
+	const Model * model = cent->ent.model;
 	Mat4 transform = FromQFAxisAndOrigin( cent->ent.axis, cent->ent.origin );
 
 	Vec4 color;
-	for( int i = 0; i < 4; i++ )
+	for( int i = 0; i < 4; i++ ) {
 		color.ptr()[ i ] = cent->ent.shaderRGBA[ i ] / 255.0f;
+	}
 
-	DrawModel( cent->ent.model, transform, color );
+	DrawModel( model, transform, color );
+
+	if( cent->current.silhouetteColor.a > 0 ) {
+		if( ( cent->current.effects & EF_TEAM_SILHOUETTE ) == 0 || cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR || cent->current.team == cg.predictedPlayerState.stats[ STAT_TEAM ] ) {
+			Vec4 silhouette_color = Vec4(
+				cent->current.silhouetteColor.r / 255.0f,
+				cent->current.silhouetteColor.g / 255.0f,
+				cent->current.silhouetteColor.b / 255.0f,
+				cent->current.silhouetteColor.a / 255.0f
+			);
+
+			DrawModelSilhouette( model, transform, silhouette_color );
+		}
+	}
+
+	if( cent->effects & EF_WORLD_MODEL ) {
+		UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
+		for( u32 i = 0; i < model->num_primitives; i++ ) {
+			if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
+				PipelineState pipeline;
+				pipeline.pass = frame_static.write_world_gbuffer_pass;
+				pipeline.shader = &shaders.write_world_gbuffer;
+				pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+				pipeline.set_uniform( "u_Model", model_uniforms );
+
+				DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+			}
+		}
+	}
 }
 
 //==========================================================================
@@ -755,137 +766,6 @@ static void CG_LerpLaserbeamEnt( centity_t *cent ) {
 }
 
 //==================================================
-// ET_PARTICLES
-//==================================================
-
-static void CG_AddParticlesEnt( centity_t *cent ) {
-	// origin = origin
-	// angles = angles
-	// sound = sound
-	// light = light color
-	// frame = speed
-	// team = RGBA
-	// modelindex = shader
-	// modelindex2 = radius (spread)
-	// effects & 0xFF = size
-	// skinNum/counterNum = time (fade in seconds);
-	// effects = spherical, bounce, gravity,
-	// weapon = frequency
-
-	vec3_t dir;
-	float speed;
-	int spriteTime;
-	int spriteRadius;
-	int mintime;
-	vec3_t accel;
-	int bounce = 0;
-	bool expandEffect = false;
-	bool shrinkEffect = false;
-	vec3_t angles;
-	int i;
-
-	// duration of each particle
-	spriteTime = cent->current.counterNum;
-	if( !spriteTime ) {
-		return;
-	}
-
-	spriteRadius = cent->current.effects & 0xFF;
-	if( !spriteRadius ) {
-		return;
-	}
-
-	if( !cent->current.weapon ) { // weapon is count per second
-		return;
-	}
-
-	mintime = 1000 / cent->current.weapon;
-
-	if( cent->localEffects[LOCALEFFECT_ROCKETTRAIL_LAST_DROP] + mintime > cg.time ) { // just reusing a define
-		return;
-	}
-
-	cent->localEffects[LOCALEFFECT_ROCKETTRAIL_LAST_DROP] = cg.time;
-
-	speed = cent->current.radius;
-
-	if( ( cent->current.effects >> 8 ) & 1 ) { // SPHERICAL DROP
-		angles[0] = brandom( 0, 360 );
-		angles[1] = brandom( 0, 360 );
-		angles[2] = brandom( 0, 360 );
-
-		AngleVectors( angles, dir, NULL, NULL );
-		VectorNormalizeFast( dir );
-		VectorScale( dir, speed, dir );
-	} else {   // DIRECTIONAL DROP
-		int spread = (unsigned)cent->current.modelindex2 * 25;
-
-		// interpolate dropping angles
-		for( i = 0; i < 3; i++ )
-			angles[i] = LerpAngle( cent->prev.angles[i], cent->current.angles[i], cg.lerpfrac );
-
-		Matrix3_FromAngles( angles, cent->ent.axis );
-
-		float alpha = float( M_PI ) * random_float11( &cls.rng );
-		float s = random_float01( &cls.rng );
-		float r = s * cosf( alpha ) * spread;
-		float u = s * sinf( alpha ) * spread;
-
-		// apply spread on the direction
-		VectorMA( vec3_origin, 1024, &cent->ent.axis[AXIS_FORWARD], dir );
-		VectorMA( dir, r, &cent->ent.axis[AXIS_RIGHT], dir );
-		VectorMA( dir, u, &cent->ent.axis[AXIS_UP], dir );
-
-		VectorNormalizeFast( dir );
-		VectorScale( dir, speed, dir );
-	}
-
-	// interpolate origin
-	for( i = 0; i < 3; i++ )
-		cent->ent.origin[i] = cent->ent.origin2[i] = cent->prev.origin[i] + cg.lerpfrac * ( cent->current.origin[i] - cent->prev.origin[i] );
-
-	if( ( cent->current.effects >> 9 ) & 1 ) { // BOUNCES ON WALLS/FLOORS
-		bounce = 35;
-	}
-
-	VectorClear( accel );
-	if( ( cent->current.effects >> 10 ) & 1 ) { // GRAVITY
-		VectorSet( accel, -0.2f, -0.2f, -175.0f );
-	}
-
-	if( ( cent->current.effects >> 11 ) & 1 ) { // EXPAND_EFFECT
-		expandEffect = true;
-	}
-
-	if( ( cent->current.effects >> 12 ) & 1 ) { // SHRINK_EFFECT
-		shrinkEffect = true;
-	}
-
-	CG_SpawnSprite( cent->ent.origin, dir, accel,
-					spriteRadius, spriteTime, bounce, expandEffect, shrinkEffect,
-					cent->ent.shaderRGBA[0] / 255.0f,
-					cent->ent.shaderRGBA[1] / 255.0f,
-					cent->ent.shaderRGBA[2] / 255.0f,
-					cent->ent.shaderRGBA[3] / 255.0f,
-					cent->current.light ? spriteRadius * 4 : 0, // light radius
-					COLOR_R( cent->current.light ) / 255.0f,
-					COLOR_G( cent->current.light ) / 255.0f,
-					COLOR_B( cent->current.light ) / 255.0f,
-					cent->ent.override_material );
-}
-
-void CG_UpdateParticlesEnt( centity_t *cent ) {
-	// set entity color based on team
-	CG_TeamColorForEntity( cent->current.number, cent->ent.shaderRGBA );
-
-	// set up the data in the old position
-	cent->ent.model = NULL;
-	cent->ent.override_material = cgs.imagePrecache[ cent->current.modelindex ];
-	VectorCopy( cent->prev.origin, cent->ent.origin );
-	VectorCopy( cent->prev.origin2, cent->ent.origin2 );
-}
-
-//==================================================
 // ET_SOUNDEVENT
 //==================================================
 
@@ -1013,15 +893,12 @@ void CG_EntityLoopSound( entity_state_t *state, float attenuation ) {
 * Add the entities to the rendering list
 */
 void CG_AddEntities( void ) {
+	ZoneScoped;
+
 	entity_state_t *state;
-	vec3_t autorotate;
 	int pnum;
 	centity_t *cent;
 	bool canLight;
-
-	// bonus items rotate at a fixed rate
-	VectorSet( autorotate, 0, ( cg.time % 3600 ) * 0.1, 0 );
-	AnglesToAxis( autorotate, cg.autorotateAxis );
 
 	for( pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
 		state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
@@ -1094,11 +971,6 @@ void CG_AddEntities( void ) {
 			case ET_SOUNDEVENT:
 				break;
 
-			case ET_PARTICLES:
-				CG_AddParticlesEnt( cent );
-				CG_EntityLoopSound( state, ATTN_STATIC );
-				break;
-
 			case ET_HUD:
 				CG_AddBombHudEntity( cent );
 				break;
@@ -1135,18 +1007,12 @@ void CG_AddEntities( void ) {
 * Interpolate the entity states positions into the entity_t structs
 */
 void CG_LerpEntities( void ) {
-	entity_state_t *state;
-	int pnum;
-	centity_t *cent;
+	ZoneScoped;
 
-	for( pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
-		int number;
-		bool spatialize;
-
-		state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
-		number = state->number;
-		cent = &cg_entities[number];
-		spatialize = true;
+	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
+		entity_state_t * state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
+		int number = state->number;
+		centity_t * cent = &cg_entities[number];
 
 		switch( cent->type ) {
 			case ET_GENERIC:
@@ -1178,9 +1044,6 @@ void CG_LerpEntities( void ) {
 			case ET_SOUNDEVENT:
 				break;
 
-			case ET_PARTICLES:
-				break;
-
 			case ET_HUD:
 				break;
 
@@ -1197,11 +1060,9 @@ void CG_LerpEntities( void ) {
 				break;
 		}
 
-		if( spatialize ) {
-			vec3_t origin, velocity;
-			CG_GetEntitySpatilization( number, origin, velocity );
-			S_UpdateEntity( number, origin, velocity );
-		}
+		vec3_t origin, velocity;
+		CG_GetEntitySpatilization( number, origin, velocity );
+		S_UpdateEntity( number, origin, velocity );
 	}
 }
 
@@ -1210,6 +1071,8 @@ void CG_LerpEntities( void ) {
 * Called at receiving a new serverframe. Sets up the model, type, etc to be drawn later on
 */
 void CG_UpdateEntities( void ) {
+	ZoneScoped;
+
 	entity_state_t *state;
 	int pnum;
 	centity_t *cent;
@@ -1258,10 +1121,6 @@ void CG_UpdateEntities( void ) {
 			case ET_SOUNDEVENT:
 				break;
 
-			case ET_PARTICLES:
-				CG_UpdateParticlesEnt( cent );
-				break;
-
 			case ET_HUD:
 				break;
 
@@ -1287,10 +1146,6 @@ void CG_UpdateEntities( void ) {
 * Called to get the sound spatialization origin and velocity
 */
 void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
-	centity_t *cent;
-	struct cmodel_s *cmodel;
-	vec3_t mins, maxs;
-
 	if( entNum < -1 || entNum >= MAX_EDICTS ) {
 		CG_Error( "CG_GetEntitySpatilization: bad entnum" );
 		return;
@@ -1307,7 +1162,7 @@ void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
 		return;
 	}
 
-	cent = &cg_entities[entNum];
+	const centity_t * cent = &cg_entities[entNum];
 
 	// normal
 	if( cent->current.solid != SOLID_BMODEL ) {
@@ -1322,7 +1177,8 @@ void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
 
 	// bmodel
 	if( origin != NULL ) {
-		cmodel = trap_CM_InlineModel( cent->current.modelindex );
+		const struct cmodel_s * cmodel = trap_CM_InlineModel( cent->current.modelindex );
+		vec3_t mins, maxs;
 		trap_CM_InlineModelBounds( cmodel, mins, maxs );
 		VectorAdd( maxs, mins, origin );
 		VectorMA( cent->ent.origin, 0.5f, origin, origin );

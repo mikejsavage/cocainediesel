@@ -7,6 +7,8 @@
 #include "client/renderer/skybox.h"
 #include "client/renderer/text.h"
 
+#include "imgui/imgui.h"
+
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
 
@@ -25,7 +27,9 @@ static char last_screenshot_date[ 256 ];
 static int same_date_count;
 
 static u32 last_viewport_width, last_viewport_height;
-static u32 last_msaa;
+static int last_msaa;
+
+static cvar_t * r_samples;
 
 static void TakeScreenshot() {
 	RGB8 * buf = ALLOC_MANY( sys_allocator, RGB8, frame_static.viewport_width * frame_static.viewport_height );
@@ -35,7 +39,7 @@ static void TakeScreenshot() {
 	char date[ 256 ];
 	Sys_FormatTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
 
-	TempAllocator temp = cls.frame_arena->temp();
+	TempAllocator temp = cls.frame_arena.temp();
 	DynamicString filename( &temp );
 	filename.append( "{}/screenshots/{}", FS_WriteDirectory(), date );
 
@@ -66,6 +70,8 @@ void InitRenderer() {
 
 	RenderBackendInit();
 
+	r_samples = Cvar_Get( "r_samples", "0", CVAR_ARCHIVE );
+
 	frame_static = { };
 	last_viewport_width = U32_MAX;
 	last_viewport_height = U32_MAX;
@@ -80,7 +86,7 @@ void InitRenderer() {
 		config.width = w;
 		config.height = h;
 		config.data = img;
-		config.format = TextureFormat_R_U8Norm; // TODO: wtf is u8norm
+		config.format = TextureFormat_R_S8;
 		blue_noise = NewTexture( config );
 
 		stbi_image_free( img );
@@ -122,8 +128,8 @@ void InitRenderer() {
 static void DeleteFramebuffers() {
 	DeleteFramebuffer( frame_static.world_gbuffer );
 	DeleteFramebuffer( frame_static.world_outlines_fb );
-	DeleteFramebuffer( frame_static.teammate_gbuffer );
-	DeleteFramebuffer( frame_static.teammate_outlines_fb );
+	DeleteFramebuffer( frame_static.silhouette_gbuffer );
+	DeleteFramebuffer( frame_static.silhouette_silhouettes_fb );
 	DeleteFramebuffer( frame_static.msaa_fb );
 }
 
@@ -242,8 +248,8 @@ static Mat4 InvertViewMatrix( const Mat4 & V ) {
 	);
 }
 
-static UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & inverse_V, const Mat4 & P, const Mat4 & inverse_P, const Vec3 & camera_pos, const Vec2 & viewport_size, float near_plane ) {
-	return UploadUniformBlock( V, inverse_V, P, inverse_P, camera_pos, viewport_size, near_plane );
+static UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & inverse_V, const Mat4 & P, const Mat4 & inverse_P, const Vec3 & camera_pos, const Vec2 & viewport_size, float near_plane, int samples ) {
+	return UploadUniformBlock( V, inverse_V, P, inverse_P, camera_pos, viewport_size, near_plane, samples );
 }
 
 static void CreateFramebuffers() {
@@ -263,6 +269,8 @@ static void CreateFramebuffers() {
 		texture_config.format = TextureFormat_Depth;
 		fb.depth_attachment = texture_config;
 
+		fb.msaa_samples = frame_static.msaa_samples;
+
 		frame_static.world_gbuffer = NewFramebuffer( fb );
 	}
 
@@ -281,11 +289,11 @@ static void CreateFramebuffers() {
 		texture_config.format = TextureFormat_RGBA_U8_sRGB;
 		fb.albedo_attachment = texture_config;
 
-		frame_static.teammate_gbuffer = NewFramebuffer( fb );
-		frame_static.teammate_outlines_fb = NewFramebuffer( fb );
+		frame_static.silhouette_gbuffer = NewFramebuffer( fb );
+		frame_static.silhouette_silhouettes_fb = NewFramebuffer( fb );
 	}
 
-	{
+	if( frame_static.msaa_samples > 1 ) {
 		FramebufferConfig fb;
 
 		texture_config.format = TextureFormat_RGB_U8_sRGB;
@@ -294,15 +302,13 @@ static void CreateFramebuffers() {
 		texture_config.format = TextureFormat_Depth;
 		fb.depth_attachment = texture_config;
 
-		fb.msaa_samples = 0;
+		fb.msaa_samples = frame_static.msaa_samples;
 
 		frame_static.msaa_fb = NewFramebuffer( fb );
 	}
 }
 
 void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
-	bool msaa = false;
-
 	HotloadShaders();
 
 	RenderBackendBeginFrame();
@@ -310,57 +316,60 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	dynamic_geometry_num_vertices = 0;
 	dynamic_geometry_num_indices = 0;
 
-	frame_static.viewport_width = viewport_width;
-	frame_static.viewport_height = viewport_height;
-	frame_static.viewport = Vec2( viewport_width, viewport_height );
+	frame_static.viewport_width = Max2( u32( 1 ), viewport_width );
+	frame_static.viewport_height = Max2( u32( 1 ), viewport_height );
+	frame_static.viewport = Vec2( frame_static.viewport_width, frame_static.viewport_height );
 	frame_static.aspect_ratio = float( viewport_width ) / float( viewport_height );
+	frame_static.msaa_samples = r_samples->integer;
 
-	if( viewport_width != last_viewport_width || viewport_height != last_viewport_height ) {
+	if( viewport_width != last_viewport_width || viewport_height != last_viewport_height || frame_static.msaa_samples != last_msaa ) {
 		CreateFramebuffers();
 		last_viewport_width = viewport_width;
 		last_viewport_height = viewport_height;
+		last_msaa = frame_static.msaa_samples;
 	}
 
-	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1 );
+	bool msaa = frame_static.msaa_samples;
+
+	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples );
 	frame_static.identity_model_uniforms = UploadModelUniforms( Mat4::Identity() );
 	frame_static.identity_material_uniforms = UploadMaterialUniforms( vec4_white, Vec2( 0 ), 0.0f );
 
 	frame_static.blue_noise_uniforms = UploadUniformBlock( Vec2( blue_noise.width, blue_noise.height ) );
 
-	frame_static.world_write_gbuffer_pass = AddRenderPass( "Write world gbuffer", frame_static.world_gbuffer, ClearColor_Do, ClearDepth_Do );
-	frame_static.world_postprocess_gbuffer_pass = AddRenderPass( "Postprocess world gbuffer", frame_static.world_outlines_fb );
+	frame_static.write_world_gbuffer_pass = AddRenderPass( "Write world gbuffer", frame_static.world_gbuffer, ClearColor_Do, ClearDepth_Do );
+	frame_static.postprocess_world_gbuffer_pass = AddRenderPass( "Postprocess world gbuffer", frame_static.world_outlines_fb );
 
 	if( msaa ) {
 		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", frame_static.msaa_fb, ClearColor_Do, ClearDepth_Do );
-		frame_static.world_add_outlines_pass = AddRenderPass( "Render world outlines", frame_static.msaa_fb );
+		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines", frame_static.msaa_fb );
 	}
 	else {
 		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", ClearColor_Do, ClearDepth_Do );
-		frame_static.world_add_outlines_pass = AddRenderPass( "Render world outlines" );
+		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines" );
 	}
 
 	frame_static.decal_pass = AddRenderPass( "Render decals" );
 
-	frame_static.teammate_write_gbuffer_pass = AddRenderPass( "Write teammate gbuffer", frame_static.teammate_gbuffer, ClearColor_Do, ClearDepth_Dont );
-	frame_static.teammate_postprocess_gbuffer_pass = AddRenderPass( "Postprocess teammate gbuffer", frame_static.teammate_outlines_fb );
-
-	frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque" );
-	frame_static.sky_pass = AddRenderPass( "Render sky" );
-	frame_static.transparent_pass = AddRenderPass( "Render transparent" );
+	frame_static.write_silhouette_gbuffer_pass = AddRenderPass( "Write silhouette gbuffer", frame_static.silhouette_gbuffer, ClearColor_Do, ClearDepth_Dont );
+	frame_static.postprocess_silhouette_gbuffer_pass = AddRenderPass( "Postprocess silhouette gbuffer", frame_static.silhouette_silhouettes_fb );
 
 	if( msaa ) {
-		frame_static.teammate_add_outlines_pass = AddRenderPass( "Render teammate outlines", frame_static.msaa_fb );
-	}
-	else {
-		frame_static.teammate_add_outlines_pass = AddRenderPass( "Render teammate outlines" );
-	}
+		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque", frame_static.msaa_fb );
+		frame_static.sky_pass = AddRenderPass( "Render sky", frame_static.msaa_fb );
+		frame_static.transparent_pass = AddRenderPass( "Render transparent", frame_static.msaa_fb );
 
-	if( msaa ) {
 		AddResolveMSAAPass( frame_static.msaa_fb );
 	}
+	else {
+		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque" );
+		frame_static.sky_pass = AddRenderPass( "Render sky" );
+		frame_static.transparent_pass = AddRenderPass( "Render transparent" );
+	}
 
+	frame_static.add_silhouettes_pass = AddRenderPass( "Render silhouettes" );
 	frame_static.blur_pass = AddRenderPass( "Blur screen" );
-	frame_static.ui_pass = AddRenderPass( "Render UI" );
+	frame_static.ui_pass = AddUnsortedRenderPass( "Render UI" );
 }
 
 void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) {
@@ -372,7 +381,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	frame_static.inverse_P = InvertPerspectiveProjection( frame_static.P );
 	frame_static.position = position;
 
-	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.inverse_V, frame_static.P, frame_static.inverse_P, position, frame_static.viewport, near_plane );
+	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.inverse_V, frame_static.P, frame_static.inverse_P, position, frame_static.viewport, near_plane, frame_static.msaa_samples );
 }
 
 void RendererSubmitFrame() {
@@ -403,59 +412,19 @@ void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh )
 	dynamic_geometry_num_indices += mesh.num_indices;
 }
 
-void Draw2DBox( u8 render_pass, float x, float y, float w, float h, Texture texture, Vec4 color ) {
-	PipelineState pipeline;
-	pipeline.pass = render_pass;
-	pipeline.shader = &shaders.standard;
-	pipeline.depth_func = DepthFunc_Disabled;
-	pipeline.write_depth = false;
-
-	if( HasAlpha( texture.format ) || color.w < 1 ) {
-		pipeline.blend_func = BlendFunc_Blend;
-	}
-
-	Mat4 transform = Mat4Translation( x, y, 0 ) * Mat4Scale( w, h, 0 );
-	pipeline.set_uniform( "u_Model", UploadModelUniforms( transform ) );
-	pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
-	pipeline.set_texture( "u_BaseTexture", texture );
-	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( texture.width, texture.height ), 0.0f ) );
-
+void Draw2DBox( float x, float y, float w, float h, Texture texture, Vec4 color ) {
 	Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
-	RGBA8 c = RGBA8( color );
-	u16 base_index = DynamicMeshBaseIndex();
+	RGBA8 rgba = RGBA8( color );
 
-	constexpr Vec3 positions[] = {
-		Vec3( 0, 0, 0 ),
-		Vec3( 1, 0, 0 ),
-		Vec3( 0, 1, 0 ),
-		Vec3( 1, 1, 0 ),
-	};
-	Vec2 uvs[] = {
-		half_pixel,
-		Vec2( 1.0f - half_pixel.x, half_pixel.y ),
-		Vec2( half_pixel.x, 1.0f - half_pixel.y ),
-		Vec2( 1.0f - half_pixel.x, 1.0f - half_pixel.y ),
-	};
-	RGBA8 colors[] = { c, c, c, c };
-
-	u16 indices[] = { 0, 2, 1, 3, 1, 2 };
-	for( u16 & idx : indices ) {
-		idx += base_index;
-	}
-
-	DynamicMesh mesh;
-	mesh.positions = positions;
-	mesh.uvs = uvs;
-	mesh.colors = colors;
-	mesh.indices = indices;
-	mesh.num_vertices = 4;
-	mesh.num_indices = 6;
-
-	DrawDynamicMesh( pipeline, mesh );
+	ImDrawList * bg = ImGui::GetBackgroundDrawList();
+	bg->PushTextureID( ImGuiShaderAndTexture( texture ) );
+	bg->PrimReserve( 6, 4 );
+	bg->PrimRectUV( Vec2( x, y ), Vec2( x + w, y + h ), half_pixel, 1.0f - half_pixel, IM_COL32( rgba.r, rgba.g, rgba.b, rgba.a ) );
+	bg->PopTextureID();
 }
 
-void Draw2DBox( u8 render_pass, float x, float y, float w, float h, const Material * material, Vec4 color ) {
-	Draw2DBox( render_pass, x, y, w, h, material->textures[ 0 ].texture, color );
+void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color ) {
+	Draw2DBox( x, y, w, h, material->textures[ 0 ].texture, color );
 }
 
 UniformBlock UploadModelUniforms( const Mat4 & M ) {

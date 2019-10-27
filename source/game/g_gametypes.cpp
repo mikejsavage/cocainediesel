@@ -52,70 +52,43 @@ static void G_Match_SetAutorecordState( const char *state ) {
 * G_Match_Autorecord_Start
 */
 void G_Match_Autorecord_Start( void ) {
-	int team, i, playerCount;
-
 	G_Match_SetAutorecordState( "start" );
 
+	if( !g_autorecord->integer )
+		return;
+
 	// do not start autorecording if all playing clients are bots
-	for( playerCount = 0, team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
-		// add our team info to the string
-		for( i = 0; i < teamlist[team].numplayers; i++ ) {
+	bool has_players = false;
+	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
+		for( int i = 0; i < teamlist[team].numplayers; i++ ) {
 			if( game.edicts[ teamlist[team].playerIndices[i] ].r.svflags & SVF_FAKECLIENT ) {
 				continue;
 			}
 
-			playerCount++;
-			break; // we only need one for this check
+			has_players = true;
+			break;
 		}
 	}
 
-	if( playerCount && g_autorecord->integer ) {
-		char datetime[17], players[MAX_STRING_CHARS];
-		time_t long_time;
-		struct tm *newtime;
+	if( !has_players )
+		return;
 
-		// date & time
-		time( &long_time );
-		newtime = localtime( &long_time );
+	char datetime[17];
+	time_t long_time;
+	struct tm *newtime;
 
-		Q_snprintfz( datetime, sizeof( datetime ), "%04d-%02d-%02d_%02d-%02d", newtime->tm_year + 1900,
-					 newtime->tm_mon + 1, newtime->tm_mday, newtime->tm_hour, newtime->tm_min );
+	// date & time
+	time( &long_time );
+	newtime = localtime( &long_time );
 
-		// list of players
-		Q_strncpyz( players, trap_GetConfigString( CS_MATCHNAME ), sizeof( players ) );
-		if( players[0] == '\0' ) {
-			if( GS_InvidualGameType() ) {
-				const char *netname;
-				edict_t *ent;
+	Q_snprintfz( datetime, sizeof( datetime ), "%04d-%02d-%02d_%02d-%02d", newtime->tm_year + 1900,
+				 newtime->tm_mon + 1, newtime->tm_mday, newtime->tm_hour, newtime->tm_min );
 
-				for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-					if( !teamlist[team].numplayers ) {
-						continue;
-					}
-					ent = game.edicts + teamlist[team].playerIndices[0];
-					netname = ent->r.client->netname;
-					Q_strncatz( players, netname, sizeof( players ) );
-					if( team != GS_MAX_TEAMS - 1 ) {
-						Q_strncatz( players, " vs ", sizeof( players ) );
-					}
-				}
-			}
-		}
+	// combine
+	Q_snprintfz( level.autorecord_name, sizeof( level.autorecord_name ), "%s_%s_auto%04i",
+				 datetime, level.mapname, (int)brandom( 1, 9999 ) );
 
-		if( players[0] != '\0' ) {
-			char *t = strstr( players, " vs " );
-			if( t ) {
-				memcpy( t, "_vs_", strlen( "_vs_" ) );
-			}
-			Q_strncpyz( players, COM_RemoveJunkChars( COM_RemoveColorTokens( players ) ), sizeof( players ) );
-		}
-
-		// combine
-		Q_snprintfz( level.autorecord_name, sizeof( level.autorecord_name ), "%s_%s%s%s_auto%04i",
-					 datetime, level.mapname, players[0] == '\0' ? "" : "_", players, (int)brandom( 1, 9999 ) );
-
-		trap_Cmd_ExecuteText( EXEC_APPEND, va( "serverrecord %s\n", level.autorecord_name ) );
-	}
+	trap_Cmd_ExecuteText( EXEC_APPEND, va( "serverrecord %s\n", level.autorecord_name ) );
 }
 
 /*
@@ -630,7 +603,7 @@ void G_Match_Ready( edict_t *ent ) {
 
 	level.ready[PLAYERNUM( ent )] = true;
 
-	G_PrintMsg( NULL, "%s%s is ready!\n", ent->r.client->netname, S_COLOR_WHITE );
+	G_PrintMsg( NULL, "%s is ready!\n", ent->r.client->netname );
 
 	G_Match_CheckReadys();
 }
@@ -656,7 +629,7 @@ void G_Match_NotReady( edict_t *ent ) {
 
 	level.ready[PLAYERNUM( ent )] = false;
 
-	G_PrintMsg( NULL, "%s%s is no longer ready.\n", ent->r.client->netname, S_COLOR_WHITE );
+	G_PrintMsg( NULL, "%s is no longer ready.\n", ent->r.client->netname );
 
 	G_Match_CheckReadys();
 }

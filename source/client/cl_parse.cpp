@@ -957,65 +957,6 @@ static void CL_ParseFrame( msg_t *msg ) {
 //========= StringCommands================
 
 /*
-* CL_Multiview_f
-*/
-static void CL_Multiview_f( void ) {
-	cls.mv = ( atoi( Cmd_Argv( 1 ) ) != 0 );
-	Com_Printf( "multiview: %i\n", cls.mv );
-}
-
-/*
-* CL_CvarInfoRequest_f
-*/
-static void CL_CvarInfoRequest_f( void ) {
-	char string[MAX_STRING_CHARS];
-	char *cvarName;
-	const char *cvarString;
-
-	if( cls.demo.playing ) {
-		return;
-	}
-
-	if( Cmd_Argc() < 1 ) {
-		return;
-	}
-
-	cvarName = Cmd_Argv( 1 );
-
-	string[0] = 0;
-	Q_strncatz( string, "cvarinfo \"", sizeof( string ) );
-
-	if( strlen( string ) + strlen( cvarName ) + 1 /*quote*/ + 1 /*space*/ >= MAX_STRING_CHARS - 1 ) {
-		CL_AddReliableCommand( "cvarinfo \"invalid\"" );
-		return;
-	}
-
-	Q_strncatz( string, cvarName, sizeof( string ) );
-	Q_strncatz( string, "\" ", sizeof( string ) );
-
-	cvarString = Cvar_String( cvarName );
-	if( !cvarString[0] ) {
-		cvarString = "not found";
-	}
-
-	if( strlen( string ) + strlen( cvarString ) + 2 /*quotes*/ >= MAX_STRING_CHARS - 1 ) {
-		if( strlen( string ) + strlen( " \"too long\"" ) < MAX_STRING_CHARS - 1 ) {
-			CL_AddReliableCommand( va( "%s\"too long\"", string ) );
-		} else {
-			CL_AddReliableCommand( "cvarinfo \"invalid\"" );
-		}
-
-		return;
-	}
-
-	Q_strncatz( string, "\"", sizeof( string ) );
-	Q_strncatz( string, cvarString, sizeof( string ) );
-	Q_strncatz( string, "\"", sizeof( string ) );
-
-	CL_AddReliableCommand( string );
-}
-
-/*
 * CL_UpdateConfigString
 */
 static void CL_UpdateConfigString( int idx, const char *s ) {
@@ -1084,8 +1025,6 @@ svcmd_t svcmds[] =
 	{ "cs", CL_ParseConfigstringCommand },
 	{ "disconnect", CL_ServerDisconnect_f },
 	{ "initdownload", CL_InitDownload_f },
-	{ "multiview", CL_Multiview_f },
-	{ "cvarinfo", CL_CvarInfoRequest_f },
 
 	{ NULL, NULL }
 };

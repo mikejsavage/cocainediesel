@@ -4,7 +4,6 @@
 #include "client/sdl/sdl_window.h"
 
 #include "imgui/imgui.h"
-#include "imgui/imgui_freetype.h"
 #include "imgui/imgui_internal.h"
 
 #include "cgame/cg_local.h"
@@ -21,6 +20,8 @@ enum MainMenuState {
 	MainMenuState_ServerBrowser,
 	MainMenuState_CreateServer,
 	MainMenuState_Settings,
+
+	MainMenuState_ParticleEditor,
 };
 
 enum GameMenuState {
@@ -56,14 +57,11 @@ static int selected_server;
 static int selected_map;
 
 static GameMenuState gamemenu_state;
-static bool is_spectating;
-static bool is_ready;
-static size_t selected_primary;
-static size_t selected_secondary;
+static constexpr int MAX_CASH = 500;
+static bool selected_weapons[ WEAP_TOTAL ];
 
 static SettingsState settings_state;
 static bool reset_video_settings;
-static int pressed_key;
 
 static void ResetServerBrowser() {
 	for( int i = 0; i < num_servers; i++ ) {
@@ -86,48 +84,18 @@ static void RefreshServerBrowser() {
 }
 
 void UI_Init() {
-	{
-		ImGuiIO & io = ImGui::GetIO();
-		io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 18.0f );
-		cls.huge_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 128.0f );
-		cls.large_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 64.0f );
-		cls.medium_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-Bold.ttf", 48.0f );
-		cls.console_font = io.Fonts->AddFontFromFileTTF( "base/fonts/Montserrat-SemiBold.ttf", 14.0f );
-		ImGuiFreeType::BuildFontAtlas( io.Fonts );
-
-		u8 * pixels;
-		int width, height;
-		io.Fonts->GetTexDataAsAlpha8( &pixels, &width, &height );
-
-		TextureConfig config;
-		config.width = width;
-		config.height = height;
-		config.data = pixels;
-		config.format = TextureFormat_A_U8;
-		Texture texture = NewTexture( config );
-		io.Fonts->TexID = ( void * ) uintptr_t( texture.texture );
-	}
-
-	{
-		ImGuiStyle & style = ImGui::GetStyle();
-		style.WindowRounding = 0;
-		style.FrameRounding = 1;
-		style.GrabRounding = 2;
-		style.FramePadding = ImVec2( 8, 8 );
-		style.FrameBorderSize = 0;
-		style.WindowPadding = ImVec2( 16, 16 );
-		style.WindowBorderSize = 0;
-		style.PopupBorderSize = 0;
-		style.Colors[ ImGuiCol_WindowBg ] = ImColor( 0x1a, 0x1a, 0x1a );
-		style.ItemSpacing.y = 8;
-	}
-
 	ResetServerBrowser();
+	InitParticleEditor();
 
 	uistate = UIState_MainMenu;
 	mainmenu_state = MainMenuState_ServerBrowser;
 
 	reset_video_settings = true;
+}
+
+void UI_Shutdown() {
+	ResetServerBrowser();
+	ShutdownParticleEditor();
 }
 
 static void SettingLabel( const char * label ) {
@@ -191,9 +159,6 @@ static void CvarSliderFloat( const char * label, const char * cvar_name, float l
 	Cvar_Set( cvar_name, buf );
 }
 
-// TODO: put this somewhere else
-void CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize );
-
 static void KeyBindButton( const char * label, const char * command ) {
 	SettingLabel( label );
 	ImGui::PushID( label );
@@ -206,12 +171,22 @@ static void KeyBindButton( const char * label, const char * command ) {
 
 	if( ImGui::BeginPopupModal( label, NULL, ImGuiWindowFlags_NoDecoration ) ) {
 		ImGui::Text( "Press a key to set a new bind, or press ESCAPE to cancel." );
-		if( pressed_key != -1 ) {
-			if( pressed_key != K_ESCAPE ) {
-				Key_SetBinding( pressed_key, command );
+
+		const ImGuiIO & io = ImGui::GetIO();
+		for( size_t i = 0; i < ARRAY_COUNT( io.KeysDown ); i++ ) {
+			if( ImGui::IsKeyPressed( i ) ) {
+				if( i != K_ESCAPE ) {
+					Key_SetBinding( i, command );
+				}
+				ImGui::CloseCurrentPopup();
 			}
+		}
+
+		if( ImGui::IsKeyReleased( K_MWHEELUP ) || ImGui::IsKeyReleased( K_MWHEELDOWN ) ) {
+			Key_SetBinding( ImGui::IsKeyReleased( K_MWHEELUP ) ? K_MWHEELUP : K_MWHEELDOWN, command );
 			ImGui::CloseCurrentPopup();
 		}
+
 		ImGui::EndPopup();
 	}
 
@@ -271,7 +246,7 @@ static void CvarTeamColorCombo( const char * label, const char * cvar_name, int 
 static void SettingsGeneral() {
 	ImGui::Text( "These settings are saved automatically" );
 
-	CvarTextbox< MAX_NAME_BYTES >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
+	CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
 	CvarSliderInt( "FOV", "fov", 60, 140, "100", CVAR_ARCHIVE );
 	CvarTeamColorCombo( "Ally color", "cg_allyColor", 0 );
 	CvarTeamColorCombo( "Enemy color", "cg_enemyColor", 1 );
@@ -343,14 +318,11 @@ static void SettingsKeys() {
 	ImGui::Text( "Specific weapons" );
 	ImGui::Separator();
 
-	KeyBindButton( "Gunblade", "use gb" );
-	// KeyBindButton( "Machine Gun", "use mg" );
-	KeyBindButton( "Disrespect Gun", "use rg" );
-	KeyBindButton( "Grenade Launcher", "use gl" );
-	KeyBindButton( "Rocket Launcher", "use rl" );
-	KeyBindButton( "Plasma Gun", "use pg" );
-	KeyBindButton( "Lasergun", "use lg" );
-	KeyBindButton( "Electrobolt", "use eb" );
+	for( int i = WEAP_NONE + 1; i < WEAP_TOTAL; i++ ) {
+		const gsitem_t * item = GS_FindItemByTag( i );
+		String< 128 > bind( "use {}", item->shortname );
+		KeyBindButton( item->name, bind.c_str() );
+	}
 
 	ImGui::EndChild();
 }
@@ -634,7 +606,13 @@ static void CreateServer() {
 static void MainMenu() {
 	ImGui::SetNextWindowPos( ImVec2() );
 	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
-	ImGui::Begin( "mainmenu", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+
+	ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus;
+	if( mainmenu_state == MainMenuState_ParticleEditor ) {
+		flags |= ImGuiWindowFlags_NoBackground;
+	}
+
+	ImGui::Begin( "mainmenu", WindowZOrder_Menu, flags );
 
 	ImVec2 window_padding = ImGui::GetStyle().WindowPadding;
 
@@ -669,16 +647,26 @@ static void MainMenu() {
 		CL_Quit();
 	}
 
+	if( cl_devtools->integer != 0 ) {
+		ImGui::SameLine( 0, 50 );
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text( "Dev tools:" );
+
+		ImGui::SameLine();
+
+		if( ImGui::Button( "Particle editor" ) ) {
+			mainmenu_state = MainMenuState_ParticleEditor;
+			ResetParticleEditor();
+		}
+	}
+
 	ImGui::Separator();
 
-	if( mainmenu_state == MainMenuState_ServerBrowser ) {
-		ServerBrowser();
-	}
-	else if( mainmenu_state == MainMenuState_CreateServer ) {
-		CreateServer();
-	}
-	else {
-		Settings();
+	switch( mainmenu_state ) {
+		case MainMenuState_ServerBrowser: ServerBrowser(); break;
+		case MainMenuState_CreateServer: CreateServer(); break;
+		case MainMenuState_Settings: Settings(); break;
+		case MainMenuState_ParticleEditor: DrawParticleEditor(); break;
 	}
 
 	ImGui::EndChild();
@@ -700,8 +688,8 @@ static void MainMenu() {
 		ImGui::PopStyleColor( 3 );
 		ImGui::PopStyleVar();
 
-		ImGuiWindowFlags flags = ( ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar ) | ImGuiWindowFlags_NoMove;
-		if( ImGui::BeginPopupModal( "Credits", NULL, flags ) ) {
+		ImGuiWindowFlags credits_flags = ( ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar ) | ImGuiWindowFlags_NoMove;
+		if( ImGui::BeginPopupModal( "Credits", NULL, credits_flags ) ) {
 			ImGui::Text( "goochie - art & programming" );
 			ImGui::Text( "MikeJS - programming" );
 			ImGui::Text( "Obani - music & fx & programming" );
@@ -735,18 +723,48 @@ static void GameMenuButton( const char * label, const char * command, bool * cli
 	}
 }
 
+static bool WeaponButton( int cash, int weapon, ImVec2 size, Vec4 * tint ) {
+	const Material * icon = cgs.media.shaderWeaponIcon[ weapon - 1 ];
+	Texture texture = icon->textures[ 0 ].texture;
+	Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
+
+	int cost = GS_FindItemByTag( weapon )->cost;
+	bool selected = selected_weapons[ weapon ];
+
+	if( !selected && cost > cash ) {
+		*tint = Vec4( 1.0f, 1.0f, 1.0f, 0.125f );
+		ImGui::Image( texture, size, half_pixel, 1.0f - half_pixel, *tint );
+		return false;
+	}
+
+	*tint = vec4_white;
+	if( !selected ) {
+		tint->w = 0.5f;
+	}
+
+	return ImGui::ImageButton( texture, size, half_pixel, 1.0f - half_pixel, 0, vec4_black, *tint );
+}
+
+
 static void GameMenu() {
+	bool spectating = cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR;
+	bool ready = false;
+
+	if( GS_MatchState() <= MATCH_STATE_WARMUP && !spectating ) {
+		ready = ( cg.predictedPlayerState.stats[ STAT_LAYOUTS ] & STAT_LAYOUT_READY ) != 0;
+	}
+
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 192 ) );
 	bool should_close = false;
 
 	if( gamemenu_state == GameMenuState_Menu ) {
 		ImGui::SetNextWindowPos( ImGui::GetIO().DisplaySize * 0.5f, 0, Vec2( 0.5f ) );
 		ImGui::SetNextWindowSize( ImVec2( 300, 0 ) );
-		ImGui::Begin( "gamemenu", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+		ImGui::Begin( "gamemenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 		ImGuiStyle & style = ImGui::GetStyle();
 		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
 
-		if( is_spectating ) {
+		if( spectating ) {
 			if( GS_TeamBasedGametype() ) {
 				ImGui::Columns( 2, NULL, false );
 				ImGui::SetColumnWidth( 0, half );
@@ -762,15 +780,16 @@ static void GameMenu() {
 			ImGui::Columns( 1 );
 		}
 		else {
-			if( ImGui::Checkbox( (is_ready ? " Ready !" : " Not ready"), &is_ready )) {
-				String< 256 > buf( "{}\n", (is_ready ? "ready" : "unready"));
+			if( ImGui::Checkbox( ready ? "Ready!" : "Not ready", &ready ) ) {
+				String< 256 > buf( "{}\n", ready ? "ready" : "unready" );
 				Cbuf_AddText( buf );
 			}
 
 			GameMenuButton( "Spectate", "spec", &should_close );
 
-			if( GS_TeamBasedGametype() )
+			if( GS_TeamBasedGametype() ) {
 				GameMenuButton( "Change loadout", "gametypemenu", &should_close );
+			}
 		}
 
 		if( ImGui::Button( "Settings", ImVec2( -1, 0 ) ) ) {
@@ -792,64 +811,224 @@ static void GameMenu() {
 		ImGui::End();
 	}
 	else if( gamemenu_state == GameMenuState_Loadout ) {
-		ImGui::SetNextWindowPos( ImGui::GetIO().DisplaySize * 0.5f, 0, Vec2( 0.5f ) );
-		ImGui::SetNextWindowSize( ImVec2( 300, 0 ) );
-		ImGui::Begin( "loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+		ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 255 ) );
+		ImGui::SetNextWindowPos( Vec2( 0, 0 ) );
+		ImGui::SetNextWindowSize( ImGui::GetIO().DisplaySize );
+		ImGui::Begin( "Loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
-		ImGui::Text( "Primary weapons" );
+		int hovered = WEAP_NONE;
+
+		int cash = MAX_CASH;
+		for( int i = 0; i < WEAP_TOTAL; i++ ) {
+			if( selected_weapons[ i ] ) {
+				cash -= GS_FindItemByTag( i )->cost;
+			}
+		}
 
 		// this has to match up with the order in player.as
 		// TODO: should make this less fragile
-		const char * primaries[]   = { "EB + RL", "RL + LG", "EB + LG" };
-		const char * secondaries[] = { "PG", "RG", "GL" };
 
-		ImGui::Columns( ARRAY_COUNT( primaries ), NULL, false );
+		Vec2 window_size = ImGui::GetWindowSize();
 
-		for( size_t i = 0; i < ARRAY_COUNT( primaries ); i++ ) {
-			int key = '1' + int( i );
-			String< 128 > buf( "{}: {}", char( key ), primaries[ i ] );
-			ImVec2 size = ImVec2( ImGui::GetColumnWidth( i ), 0 );
-			if( ImGui::Selectable( buf, i == selected_primary, 0, size ) || pressed_key == key ) {
-				selected_primary = i;
-			}
+		TempAllocator temp = cls.frame_arena.temp();
+		const Vec2 icon_size = Vec2( window_size.x * 0.1f );
+		const int desc_width = window_size.x * 0.375f;
+		int desc_height;
+		const bool bigger_font = window_size.y >= 864;
+
+		{
+			ImGui::Columns( 8, NULL, false );
+			ImGui::SetColumnWidth( 0, window_size.x * 0.075f );
+			ImGui::SetColumnWidth( 1, icon_size.x );
+			ImGui::SetColumnWidth( 2, window_size.x * 0.05f );
+			ImGui::SetColumnWidth( 3, icon_size.x );
+			ImGui::SetColumnWidth( 4, window_size.x * 0.05f );
+			ImGui::SetColumnWidth( 5, icon_size.x );
+			ImGui::SetColumnWidth( 6, window_size.x * 0.075f );
+			ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, ImGui::GetStyle().ItemSpacing.y ) );
 			ImGui::NextColumn();
-		}
 
-		ImGui::Spacing();
-		ImGui::Columns( 1 );
+			constexpr int weapon_order[] = {
+				WEAP_ELECTROBOLT, WEAP_ROCKETLAUNCHER, WEAP_LASERGUN,
+				WEAP_MACHINEGUN, WEAP_RIOTGUN, WEAP_PLASMAGUN,
+				WEAP_GRENADELAUNCHER
+			};
 
-		ImGui::Text( "Secondary weapon" );
+			// weapon grid
+			{
 
-		ImGui::Columns( ARRAY_COUNT( secondaries ), NULL, false );
+				if( bigger_font ) ImGui::PushFont( cls.medium_font );
+				for( size_t i = 0; i < ARRAY_COUNT( weapon_order ); i++ ) {
+					int weapon = weapon_order[ i ];
 
-		bool selected_with_number = false;
-		for( size_t i = 0; i < ARRAY_COUNT( secondaries ); i++ ) {
-			int key = '1' + int( i + ARRAY_COUNT( primaries ) );
-			String< 128 > buf( "{}: {}", char( key ), secondaries[ i ] );
-			ImVec2 size = ImVec2( ImGui::GetColumnWidth( i ), 0 );
-			if( ImGui::Selectable( buf, i == selected_secondary, 0, size ) || pressed_key == key ) {
-				selected_secondary = i;
-				selected_with_number = pressed_key == key;
+					Vec4 tint;
+					if( WeaponButton( cash, weapon, icon_size, &tint ) || ImGui::IsKeyPressed( '1' + i, false ) ) {
+						selected_weapons[ weapon ] = !selected_weapons[ weapon ];
+					}
+
+					if( ImGui::IsItemHovered() ) {
+						hovered = weapon;
+					}
+
+					int cost = GS_FindItemByTag( weapon )->cost;
+					RGB8 color = GS_FindItemByTag( weapon )->color;
+					ImGuiColorToken token = ImGuiColorToken( color.r * tint.x, color.g * tint.y, color.b * tint.z, 255 * tint.w );
+					ColumnCenterText( temp( "{}{}: {}", token, i + 1, GS_GetWeaponDef( weapon )->name ) );
+					ColumnCenterText( temp( "{}${}.{02}", token, cost / 100, cost % 100 ) );
+
+					if( i % 3 == 2 ) {
+						ImGui::NextColumn();
+						ImGui::NextColumn();
+					}
+				}
+
+				{
+					Texture texture = FindTexture( "gfx/hud/icons/weapon/weap_none" );
+					Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
+					ImGuiColorToken pink = ImGuiColorToken( 255, 53, 255, 64 );
+
+					ImGui::Image( texture, icon_size, half_pixel, 1.0f - half_pixel, Vec4( 1.0f, 1.0f, 1.0f, 0.25f ) );
+					ColumnCenterText( temp( "{}Dud bomb", pink ) );
+					ColumnCenterText( temp( "{}$13.37", pink ) );
+
+					ImGui::Image( texture, icon_size, half_pixel, 1.0f - half_pixel, Vec4( 1.0f, 1.0f, 1.0f, 0.25f ) );
+					desc_height = ImGui::GetCursorPosY();
+					ColumnCenterText( temp( "{}Smoke", pink ) );
+					ColumnCenterText( temp( "{}$13.37", pink ) );
+				}
+
+				if( bigger_font ) ImGui::PopFont();
+
+				if( ARRAY_COUNT( weapon_order ) % 3 != 0 ) {
+					ImGui::NextColumn();
+					ImGui::NextColumn();
+				}
 			}
+
+			ImGui::PopStyleVar();
+
+			{
+				// Weapon description
+				if( hovered != WEAP_NONE ) {
+					ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 225 ) );
+
+					const gsitem_t * item = GS_FindItemByTag( hovered );
+					const Material * icon = cgs.media.shaderWeaponIcon[ hovered - 1 ];
+					Texture texture = icon->textures[ 0 ].texture;
+					Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
+					firedef_t weap_def = GS_GetWeaponDef( hovered )->firedef;
+
+					ImGui::PushStyleVar( ImGuiStyleVar_ChildBorderSize, 4 );
+					ImGui::BeginChild( "weapondescription", ImVec2( desc_width, desc_height - ImGui::GetStyle().WindowPadding.y*2 ), true );
+					
+					ImGui::Columns( 2, NULL, false );
+					ImGui::SetColumnWidth( 0, icon_size.x * 0.5f + ImGui::GetStyle().WindowPadding.x*2 );
+
+					ImGui::Image( texture, icon_size * 0.5f, half_pixel, 1.0f - half_pixel );
+					ImGui::NextColumn();
+
+					if( bigger_font ) ImGui::PushFont( cls.big_font );
+					ImGui::Text( "%s", temp( "{}{}", ImGuiColorToken( item->color ), GS_GetWeaponDef( hovered )->name ) );
+					if( bigger_font ) ImGui::PopFont();
+					if( !bigger_font ) ImGui::PushFont( cls.console_font );
+					ImGui::TextWrapped( "%s", temp( "{}{}", ImGuiColorToken( 150, 150, 150, 255 ), item->description ) );
+					if( !bigger_font ) ImGui::PopFont();
+
+					ImGui::NextColumn();
+					ImGui::Columns( 1 );
+
+					ImGui::Separator();
+
+					int pos_y = ImGui::GetCursorPosY();
+					if( bigger_font ) ImGui::PushFont( cls.medium_font );
+					
+					const float val_spacing = ( desc_height - pos_y )*0.075f;
+					const float txt_spacing = ImGui::GetTextLineHeight() + 10;
+
+					pos_y +=  val_spacing;
+					ImGui::SetCursorPosY( pos_y );
+					ColumnCenterText( temp( "{}Type", ImGuiColorToken( 255, 200, 0, 255 ) ) );
+					ImGui::SetCursorPosY(pos_y + txt_spacing );
+					ColumnCenterText( ( weap_def.speed == 0 ? "Hitscan" : "Projectile" ) );
+
+					pos_y = ImGui::GetCursorPosY() + val_spacing;
+					ImGui::SetCursorPosY( pos_y );
+					ColumnCenterText( temp( "{}Damage", ImGuiColorToken( 255, 200, 0, 255 ) ) );
+					ImGui::SetCursorPosY( pos_y + txt_spacing );
+					ColumnCenterText( temp( "{}", int( weap_def.damage ) ) );
+
+					pos_y = ImGui::GetCursorPosY() + val_spacing;
+					ImGui::SetCursorPosY( pos_y );
+					ColumnCenterText( temp("{}Reload", ImGuiColorToken( 255, 200, 0, 255 ) ) );
+					ImGui::SetCursorPosY( pos_y + txt_spacing );
+
+					char * reload = temp( "{.1}s", weap_def.reload_time / 1000.f );
+					RemoveTrailingZeroesFloat( reload );
+					ColumnCenterText( reload );
+
+					pos_y = ImGui::GetCursorPosY() + val_spacing;
+					ImGui::SetCursorPosY( pos_y );
+					ColumnCenterText( temp( "{}Cost", ImGuiColorToken( 255, 200, 0, 255 ) ) );
+
+					int cost = GS_FindItemByTag( hovered )->cost;
+					ImGui::SetCursorPosY(pos_y + txt_spacing );
+					ColumnCenterText( temp( "${}.{02}", cost / 100, cost % 100 ) );
+
+					if( bigger_font ) ImGui::PopFont();
+					ImGui::EndChild();
+					ImGui::PopStyleVar();
+					ImGui::PopStyleColor();
+				}
+
+				ImGui::SetCursorPosY( desc_height + ImGui::GetStyle().WindowPadding.y*2 );
+				if( bigger_font ) ImGui::PushFont( cls.medium_font );
+				ImGuiColorToken c = cash == 0 ? ImGuiColorToken( 255, 255, 255, 255 ) : ImGuiColorToken( RGBA8( AttentionGettingColor() ) );
+				ImGui::Text( "%s", temp( "{}CASH: {}${}.{02}{}{}", c, S_COLOR_GREEN, cash / 100, cash % 100, c, cash == 0 ? "" : "!!!" ) );
+				if( bigger_font ) ImGui::PopFont();
+			}
+
+
+			if( bigger_font ) ImGui::PushFont( cls.large_font );
+			const int button_height = ImGui::GetTextLineHeight()*1.5f;
+
+			ImGui::SetCursorPosY( window_size.y - ImGui::GetTextLineHeight()*2 );
+			ImGui::Columns( 6, NULL, false );
+
+			ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.75f, 0.125f, 0.125f, 1.f ) );
+            ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 0.75f, 0.25f, 0.2f, 1.f ) );
+            ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.5f, 0.1f, 0.1f, 1.f ) );
+
+			if( ImGui::Button( "Clear", ImVec2( -1, button_height ) ) ) {
+				for( bool &w : selected_weapons ) {
+					w = false;
+				}
+			} ImGui::PopStyleColor( 3 );
+
 			ImGui::NextColumn();
-		}
+			ImGui::NextColumn();
 
-		ImGui::Spacing();
-		ImGui::Spacing();
-		ImGui::Columns( 1 );
+			if( ImGui::Button( "OK", ImVec2( -1, button_height ) ) || ImGui::IsKeyPressed( K_ENTER ) ) {
+				DynamicString loadout( &temp, "weapselect" );
+				for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
+					if( selected_weapons[ i ] ) {
+						loadout.append( " {}", i );
+					}
+				}
+				loadout += "\n";
 
-		if( ImGui::Button( "OK", ImVec2( -1, 0 ) ) || selected_with_number ) {
-			const char * primaries_weapselect[] = { "ebrl", "rllg", "eblg" };
-			String< 128 > buf( "weapselect {} {}\n", primaries_weapselect[ selected_primary ], secondaries[ selected_secondary ] );
-			Cbuf_AddText( buf );
-			should_close = true;
-		}
+				Cbuf_AddText( loadout.c_str() );
+				should_close = true;
+			}
 
-		if( pressed_key == K_ESCAPE || pressed_key == 'b' ) {
-			should_close = true;
+			ImGui::NextColumn();
+
+			if( ImGui::Button( "Cancel", ImVec2( -1, button_height ) ) ) {
+				should_close = true;
+			} if( bigger_font ) ImGui::PopFont();
 		}
 
 		ImGui::End();
+		ImGui::PopStyleColor();
 	}
 	else if( gamemenu_state == GameMenuState_Settings ) {
 		ImVec2 pos = ImGui::GetIO().DisplaySize;
@@ -857,14 +1036,14 @@ static void GameMenu() {
 		pos.y *= 0.5f;
 		ImGui::SetNextWindowPos( pos, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
 		ImGui::SetNextWindowSize( ImVec2( 600, 500 ) );
-		ImGui::Begin( "settings", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+		ImGui::Begin( "settings", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		Settings();
 
 		ImGui::End();
 	}
 
-	if( pressed_key == K_ESCAPE || should_close ) {
+	if( ImGui::IsKeyPressed( K_ESCAPE, false ) || should_close ) {
 		uistate = UIState_Hidden;
 		CL_SetKeyDest( key_game );
 	}
@@ -881,7 +1060,7 @@ static void DemoMenu() {
 	pos.y *= 0.8f;
 	ImGui::SetNextWindowPos( pos, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
 	ImGui::SetNextWindowSize( ImVec2( 600, 0 ) );
-	ImGui::Begin( "demomenu", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+	ImGui::Begin( "demomenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 	GameMenuButton( cls.demo.paused ? "Play" : "Pause", "demopause" );
 	GameMenuButton( "Jump +15s", "demojump +15" );
@@ -892,7 +1071,7 @@ static void DemoMenu() {
 
 	ImGui::End();
 
-	if( pressed_key == K_ESCAPE || should_close ) {
+	if( ImGui::IsKeyPressed( K_ESCAPE, false ) || should_close ) {
 		uistate = UIState_Hidden;
 		CL_SetKeyDest( key_game );
 	}
@@ -904,7 +1083,6 @@ void UI_Refresh() {
 	ZoneScoped;
 
 	if( uistate == UIState_Hidden && !Con_IsVisible() ) {
-		pressed_key = -1;
 		return;
 	}
 
@@ -915,7 +1093,7 @@ void UI_Refresh() {
 	if( uistate == UIState_Connecting ) {
 		ImGui::SetNextWindowPos( ImVec2() );
 		ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
-		ImGui::Begin( "mainmenu", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+		ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		ImGui::Text( "Connecting..." );
 
@@ -931,46 +1109,14 @@ void UI_Refresh() {
 	}
 
 	if( Con_IsVisible() ) {
-		Con_Draw( pressed_key );
+		Con_Draw();
 	}
 
 	Cbuf_Execute();
-
-	pressed_key = -1;
 }
 
-void UI_UpdateConnectScreen() {
+void UI_ShowConnectingScreen() {
 	uistate = UIState_Connecting;
-	UI_Refresh();
-}
-
-void UI_KeyEvent( bool mainContext, int key, bool down ) {
-	if( down ) {
-		pressed_key = key;
-	}
-
-	if( key != K_ESCAPE ) {
-		if( key == K_MWHEELDOWN || key == K_MWHEELUP ) {
-			if( down )
-				ImGui::GetIO().MouseWheel += key == K_MWHEELDOWN ? -1 : 1;
-		}
-		else if( key == K_LCTRL || key == K_RCTRL ) {
-			ImGui::GetIO().KeyCtrl = down;
-		}
-		else if( key == K_LSHIFT || key == K_RSHIFT ) {
-			ImGui::GetIO().KeyShift = down;
-		}
-		else if( key == K_LALT || key == K_RALT ) {
-			ImGui::GetIO().KeyAlt = down;
-		}
-		else {
-			ImGui::GetIO().KeysDown[ key ] = down;
-		}
-	}
-}
-
-void UI_CharEvent( bool mainContext, wchar_t key ) {
-	ImGui::GetIO().AddInputCharacter( key );
 }
 
 void UI_ShowMainMenu() {
@@ -980,15 +1126,19 @@ void UI_ShowMainMenu() {
 	RefreshServerBrowser();
 }
 
-void UI_ShowGameMenu( bool spectating, bool ready ) {
+void UI_ShowGameMenu() {
+	// so the menu doesn't instantly close
+	ImGui::GetIO().KeysDown[ K_ESCAPE ] = false;
+
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Menu;
-	is_spectating = spectating;
-	is_ready = ready;
 	CL_SetKeyDest( key_menu );
 }
 
 void UI_ShowDemoMenu() {
+	// so the menu doesn't instantly close
+	ImGui::GetIO().KeysDown[ K_ESCAPE ] = false;
+
 	uistate = UIState_DemoMenu;
 	CL_SetKeyDest( key_menu );
 }
@@ -1005,13 +1155,17 @@ void UI_AddToServerList( const char * address, const char *info ) {
 	}
 }
 
-void UI_MouseSet( bool mainContext, int mx, int my, bool showCursor ) {
-}
-
-void UI_ShowLoadoutMenu( int primary, int secondary ) {
+void UI_ShowLoadoutMenu( Span< int > weapons ) {
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Loadout;
-	selected_primary = primary;
-	selected_secondary = secondary;
+
+	for( bool & w : selected_weapons ) {
+		w = false;
+	}
+
+	for( int w : weapons ) {
+		selected_weapons[ w ] = true;
+	}
+
 	CL_SetKeyDest( key_menu );
 }

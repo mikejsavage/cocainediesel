@@ -7,8 +7,6 @@
 
 #include "cgltf/cgltf.h"
 
-// TODO: lots of memory leaks in error paths. fix with new asset system
-
 // like cgltf_load_buffers, but doesn't try to load URIs
 static bool LoadBinaryBuffers( cgltf_data * data ) {
 	if( data->buffers_count && data->buffers[0].data == NULL && data->buffers[0].uri == NULL && data->bin ) {
@@ -295,6 +293,7 @@ static void FixupMissingAnimationChannels( Model * model, const cgltf_skin * ski
 
 bool LoadGLTFModel( Model * model, const char * path ) {
 	ZoneScoped;
+	ZoneText( path, strlen( path ) );
 
 	Span< const u8 > data = AssetBinary( path );
 

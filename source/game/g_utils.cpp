@@ -908,14 +908,14 @@ void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, .
 		// mirror at server console
 		if( GAME_IMPORT.is_dedicated_server ) {
 			if( !who ) {
-				G_Printf( S_COLOR_GREEN "console: %s\n", msg );     // admin console
+				G_Printf( "Console: %s\n", msg );     // admin console
 			} else if( !who->r.client ) {
 				;   // wtf?
 			} else if( teamonly ) {
-				G_Printf( S_COLOR_YELLOW "[%s]" S_COLOR_WHITE "%s" S_COLOR_YELLOW ": %s\n",
+				G_Printf( "[%s] %s %s\n",
 						  who->r.client->ps.stats[STAT_TEAM] == TEAM_SPECTATOR ? "SPEC" : "TEAM", who->r.client->netname, msg );
 			} else {
-				G_Printf( "%s" S_COLOR_GREEN ": %s\n", who->r.client->netname, msg );
+				G_Printf( "%s: %s\n", who->r.client->netname, msg );
 			}
 		}
 
@@ -1118,7 +1118,7 @@ void G_LocalSound( edict_t *owner, int channel, int soundindex ) {
 * Kills all entities that would touch the proposed new positioning
 * of ent.  Ent should be unlinked before calling this!
 */
-bool KillBox( edict_t *ent, int mod ) {
+bool KillBox( edict_t *ent, int mod, const vec3_t knockback ) {
 	trace_t tr;
 	bool telefragged = false;
 
@@ -1133,7 +1133,7 @@ bool KillBox( edict_t *ent, int mod ) {
 		}
 
 		// nail it
-		G_Damage( &game.edicts[tr.ent], ent, ent, vec3_origin, vec3_origin, ent->s.origin, 100000, 0, 0, mod );
+		G_Damage( &game.edicts[tr.ent], ent, ent, knockback, vec3_origin, ent->s.origin, 100000, VectorLength( knockback ), 0, mod );
 		telefragged = true;
 
 		// if we didn't kill it, fail
@@ -1405,37 +1405,32 @@ void G_ClearPlayerStateEvents( gclient_t *client ) {
 * Returns player matching given text. It can be either number of the player or player's name.
 */
 edict_t *G_PlayerForText( const char *text ) {
-	int pnum;
-
 	if( !text || !text[0] ) {
 		return NULL;
 	}
 
-	pnum = atoi( text );
+	int pnum = atoi( text );
 
 	if( !Q_stricmp( text, va( "%i", pnum ) ) && pnum >= 0 && pnum < gs.maxclients && game.edicts[pnum + 1].r.inuse ) {
 		return &game.edicts[atoi( text ) + 1];
-	} else {
-		int i;
-		edict_t *e;
-		char colorless[MAX_INFO_VALUE];
+	}
 
-		Q_strncpyz( colorless, COM_RemoveColorTokens( text ), sizeof( colorless ) );
+	int i;
+	edict_t *e;
 
-		// check if it's a known player name
-		for( i = 0, e = game.edicts + 1; i < gs.maxclients; i++, e++ ) {
-			if( !e->r.inuse ) {
-				continue;
-			}
-
-			if( !Q_stricmp( colorless, COM_RemoveColorTokens( e->r.client->netname ) ) ) {
-				return e;
-			}
+	// check if it's a known player name
+	for( i = 0, e = game.edicts + 1; i < gs.maxclients; i++, e++ ) {
+		if( !e->r.inuse ) {
+			continue;
 		}
 
-		// nothing found
-		return NULL;
+		if( !Q_stricmp( text, e->r.client->netname ) ) {
+			return e;
+		}
 	}
+
+	// nothing found
+	return NULL;
 }
 
 /*

@@ -6,7 +6,7 @@
 
 static bool stdin_active = true;
 
-char *Sys_ConsoleInput( void ) {
+const char * Sys_ConsoleInput( void ) {
 	static char text[256];
 	int len;
 	fd_set fdset;
@@ -44,59 +44,62 @@ char *Sys_ConsoleInput( void ) {
 	return text;
 }
 
-static void Sys_AnsiColorPrint( const char *msg ) {
-	static char buffer[2096];
-	size_t length = 0;
-	static const int q3ToAnsi[ MAX_S_COLORS ] =
-	{
-		30, // COLOR_BLACK
-		31, // COLOR_RED
-		32, // COLOR_GREEN
-		33, // COLOR_YELLOW
-		34, // COLOR_BLUE
-		36, // COLOR_CYAN
-		35, // COLOR_MAGENTA
-		0   // COLOR_WHITE
-	};
-
-	while( *msg ) {
-		char c = *msg;
-		int colorindex;
-
-		int gc = Q_GrabCharFromColorString( &msg, &c, &colorindex );
-		if( gc == GRABCHAR_COLOR || ( gc == GRABCHAR_CHAR && c == '\n' ) ) {
-			// First empty the buffer
-			if( length > 0 ) {
-				buffer[length] = '\0';
-				fputs( buffer, stdout );
-				length = 0;
-			}
-
-			if( c == '\n' ) {
-				// Issue a reset and then the newline
-				fputs( "\033[0m\n", stdout );
-			} else {
-				// Print the color code
-				Q_snprintfz( buffer, sizeof( buffer ), "\033[%dm", q3ToAnsi[ colorindex ] );
-				fputs( buffer, stdout );
-			}
-		} else if( gc == GRABCHAR_END ) {
-			break;
-		} else {
-			if( length >= sizeof( buffer ) - 1 ) {
-				break;
-			}
-			buffer[length++] = c;
-		}
+static RGB8 Get256Color( u8 c ) {
+	if( c >= 232 ) {
+		u8 greyscale = 8 + 10 * ( c - 6 * 6 * 6 - 16 );
+		return RGB8( greyscale, greyscale, greyscale );
 	}
 
-	// Empty anything still left in the buffer
-	if( length > 0 ) {
-		buffer[length] = '\0';
-		fputs( buffer, stdout );
-	}
+	u8 ri = ( ( c - 16 ) / 36 ) % 6;
+	u8 gi = ( ( c - 16 ) /  6 ) % 6;
+	u8 bi = ( ( c - 16 )      ) % 6;
+
+	return RGB8( 55 + ri * 40, 55 + gi * 40, 55 + bi * 40 );
 }
 
-void Sys_ConsoleOutput( char *string ) {
-	Sys_AnsiColorPrint( string );
+static float ColorDistance( RGB8 a, RGB8 b ) {
+	float dr = float( a.r ) - float( b.r );
+	float dg = float( a.g ) - float( b.g );
+	float db = float( a.b ) - float( b.b );
+	return dr * dr + dg * dg + db * db;
+}
+
+static int Nearest256Color( RGB8 c ) {
+	u8 cube = 16 +
+		36 * ( ( u32( c.r ) + 25 ) / 51 ) +
+		6 * ( ( u32( c.g ) + 25 ) / 51 ) +
+		( ( u32( c.b ) + 25 ) / 51 );
+
+	float average = ( float( c.r ) + float( c.g ) + float( c.b ) ) / 3.0f;
+	u8 greyscale = 232 + 24 * Clamp01( Unlerp( 8.0f, average, 238.0f ) );
+
+	if( ColorDistance( Get256Color( cube ), c ) < ColorDistance( Get256Color( greyscale ), c ) )
+		return cube;
+	return greyscale;
+}
+
+void Sys_ConsoleOutput( const char * str ) {
+	printf( "\033[0m" );
+
+	const char * end = str + strlen( str );
+
+	const char * p = str;
+	const char * print_from = str;
+	while( p < end ) {
+		if( p[ 0 ] == '\033' && p[ 1 ] && p[ 2 ] && p[ 3 ] && p[ 4 ] ) {
+			const u8 * u = ( const u8 * ) p;
+			printf( "\033[38;5;%dm", Nearest256Color( RGB8( u[ 1 ], u[ 2 ], u[ 3 ] ) ) );
+			fwrite( print_from, 1, p - print_from, stdout );
+			p += 5;
+			print_from = p;
+			continue;
+		}
+		p++;
+	}
+
+	fputs( print_from, stdout );
+}
+
+void Sys_ShowErrorMessage( const char * msg ) {
+	printf( "%s\n", msg );
 }

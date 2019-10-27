@@ -40,7 +40,10 @@ const gsitem_t itemdefs[] = {
 		WEAP_GUNBLADE, // item tag, weapon model for weapons
 		IT_WEAPON,
 
-		"Gunblade", "GB", S_COLOR_WHITE,
+		"Knife", "gb",
+		RGB8( 255, 255, 255 ),
+		"Knife people in the face",
+		0,
 
 		AMMO_GUNBLADE,
 		NULL, NULL, NULL
@@ -50,7 +53,11 @@ const gsitem_t itemdefs[] = {
 		WEAP_MACHINEGUN,
 		IT_WEAPON,
 
-		"Machinegun", "MG", S_COLOR_GREY,
+		"AK-69", "mg",
+		RGB8( 254, 235, 98 ),
+		"Shoots fast direct bullets touching enemies at any range",
+		100,
+
 		AMMO_BULLETS,
 		NULL, NULL, NULL
 	},
@@ -59,7 +66,11 @@ const gsitem_t itemdefs[] = {
 		WEAP_RIOTGUN,
 		IT_WEAPON,
 
-		"Riotgun", "RG", S_COLOR_ORANGE,
+		"Shotgun", "rg",
+		RGB8( 255, 172, 30 ),
+		"Basically a shotgun",
+		100,
+
 		AMMO_SHELLS,
 		NULL, NULL, NULL
 	},
@@ -68,7 +79,11 @@ const gsitem_t itemdefs[] = {
 		WEAP_GRENADELAUNCHER,
 		IT_WEAPON,
 
-		"Grenade Launcher", "GL", S_COLOR_BLUE,
+		"Grenades", "gl",
+		RGB8( 62, 141, 255 ),
+		"Deprecated gun, enjoy it while it lasts nerds",
+		100,
+
 		AMMO_GRENADES,
 		PATH_GRENADE_MODEL,
 		NULL, NULL
@@ -78,7 +93,11 @@ const gsitem_t itemdefs[] = {
 		WEAP_ROCKETLAUNCHER,
 		IT_WEAPON,
 
-		"Rocket Launcher", "RL", S_COLOR_RED,
+		"Rockets", "rl",
+		RGB8( 255, 58, 66 ),
+		"Shoots slow moving rockets that deal damage in an area and push bodies away",
+		200,
+
 		AMMO_ROCKETS,
 		PATH_ROCKET_MODEL,
 		S_WEAPON_ROCKET_FLY,
@@ -89,7 +108,11 @@ const gsitem_t itemdefs[] = {
 		WEAP_PLASMAGUN,
 		IT_WEAPON,
 
-		"Plasmagun", "PG", S_COLOR_GREEN,
+		"Plasma", "pg",
+		RGB8( 172, 80, 255 ),
+		"Shoots fast projectiles that deal damage in an area",
+		100,
+
 		AMMO_PLASMA,
 		PATH_PLASMA_MODEL,
 		S_WEAPON_PLASMAGUN_FLY,
@@ -100,21 +123,28 @@ const gsitem_t itemdefs[] = {
 		WEAP_LASERGUN,
 		IT_WEAPON,
 
-		"Lasergun", "LG", S_COLOR_YELLOW,
+		"Laser", "lg",
+		RGB8( 82, 252, 95 ),
+		"Shoots a continuous trail doing quick but low damage at a certain range",
+		200,
+
 		AMMO_LASERS,
 		NULL,
 		S_WEAPON_LASERGUN_HUM " "
-		S_WEAPON_LASERGUN_STOP " "
-		S_WEAPON_LASERGUN_HIT_0 " " S_WEAPON_LASERGUN_HIT_1 " " S_WEAPON_LASERGUN_HIT_2,
+			S_WEAPON_LASERGUN_STOP " "
+			S_WEAPON_LASERGUN_HIT_0 " " S_WEAPON_LASERGUN_HIT_1 " " S_WEAPON_LASERGUN_HIT_2,
 		NULL
 	},
 
-	//QUAKED electrobolt
 	{
 		WEAP_ELECTROBOLT,
 		IT_WEAPON,
 
-		"Electrobolt", "EB", S_COLOR_CYAN,
+		"Railgun", "eb",
+		RGB8( 80, 243, 255 ),
+		"Shoots a direct laser hit doing pretty high damage",
+		200,
+
 		AMMO_BOLTS,
 		NULL,
 		S_WEAPON_ELECTROBOLT_HIT,

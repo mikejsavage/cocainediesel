@@ -8,7 +8,11 @@ static void SpikesDeploy( edict_t * self ) {
 	int64_t deployed_for = game.serverTime - self->s.linearMovementTimeStamp;
 
 	if( deployed_for < 1500 ) {
-		KillBox( self, MOD_SPIKES );
+		vec3_t dir;
+		AngleVectors( self->s.angles, NULL, NULL, dir );
+		vec3_t knockback;
+		VectorScale( dir, 30.0f, knockback );
+		KillBox( self, MOD_SPIKES, knockback );
 		self->nextThink = level.time + 1;
 	}
 	else {
@@ -68,5 +72,6 @@ void SP_spikes( edict_t * spikes ) {
 	VectorCopy( spikes->s.origin, base->s.origin );
 	VectorCopy( spikes->s.angles, base->s.angles );
 	base->s.modelindex = trap_ModelIndex( "models/objects/spikes/base" );
+	base->s.effects = EF_WORLD_MODEL;
 	GClip_LinkEntity( base );
 }

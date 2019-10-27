@@ -54,6 +54,7 @@ cvar_t *cl_downloads;
 cvar_t *cl_downloads_from_web;
 cvar_t *cl_downloads_from_web_timeout;
 
+cvar_t *cl_devtools;
 
 static char cl_nextString[MAX_STRING_CHARS];
 static char cl_connectChain[MAX_STRING_CHARS];
@@ -315,7 +316,6 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 	cls.connect_count = 0;
 	cls.rejected = false;
 	cls.lastPacketReceivedTime = cls.realtime; // reset the timeout limit
-	cls.mv = false;
 }
 
 /*
@@ -499,10 +499,9 @@ keydest_t CL_GetKeyDest( void ) {
 * CL_SetKeyDest
 */
 void CL_SetKeyDest( keydest_t key_dest ) {
-	if( cls.key_dest != key_dest ) {
-		CL_ClearInputState();
+	if( key_dest != cls.key_dest ) {
+		Key_ClearStates();
 		cls.key_dest = key_dest;
-		Con_SetMessageMode();
 	}
 }
 
@@ -676,14 +675,13 @@ void CL_Disconnect( const char *message ) {
 
 	cls.socket = NULL;
 	cls.reliable = false;
-	cls.mv = false;
 
 	if( cls.httpbaseurl ) {
 		Mem_Free( cls.httpbaseurl );
 		cls.httpbaseurl = NULL;
 	}
 
-	CL_RestartMedia();
+	S_StopAllSounds( false );
 
 	CL_ClearState();
 	CL_SetClientState( CA_DISCONNECTED );
@@ -712,8 +710,6 @@ void CL_Disconnect( const char *message ) {
 	}
 
 done:
-	SCR_EndLoadingPlaque(); // get rid of loading plaque
-
 	// in case we disconnect while in download phase
 	CL_FreeDownloadList();
 
@@ -1279,9 +1275,7 @@ void CL_RequestNextDownload( void ) {
 
 	if( precache_check >= CS_MODELS && precache_check < CS_MODELS + MAX_MODELS ) {
 		while( precache_check < CS_MODELS + MAX_MODELS && cl.configstrings[precache_check][0] ) {
-			if( cl.configstrings[precache_check][0] == '*' ||
-				cl.configstrings[precache_check][0] == '$' || // disable playermodel downloading for now
-				cl.configstrings[precache_check][0] == '#' ) {
+			if( cl.configstrings[precache_check][0] == '*' || cl.configstrings[precache_check][0] == '#' ) {
 				precache_check++;
 				continue;
 			}
@@ -1325,39 +1319,9 @@ void CL_RequestNextDownload( void ) {
 	}
 
 	if( precache_check == ENV_CNT ) {
-		bool restart = false;
-		bool vid_restart = false;
-		const char *restart_msg = "";
-		unsigned map_checksum;
-
-		// we're done with the download phase, so clear the list
-		CL_FreeDownloadList();
-		if( cls.pure_restart ) {
-			restart = true;
-			restart_msg = "Pure server. Restarting media...";
-		}
-		if( cls.download.successCount ) {
-			restart = true;
-			vid_restart = true;
-			restart_msg = "Files downloaded. Restarting media...";
-		}
-
-		if( restart ) {
-			Com_Printf( "%s\n", restart_msg );
-
-			if( vid_restart ) {
-				// no media is going to survive a vid_restart...
-				Cbuf_ExecuteText( EXEC_NOW, "s_restart 1\n" );
-			}
-		}
-
-		if( !vid_restart ) {
-			CL_RestartMedia();
-		}
-
 		cls.download.successCount = 0;
 
-		map_checksum = CL_LoadMap( cl.configstrings[CS_WORLDMODEL] );
+		unsigned map_checksum = CL_LoadMap( cl.configstrings[CS_WORLDMODEL] );
 		if( map_checksum != (unsigned)atoi( cl.configstrings[CS_MAPCHECKSUM] ) ) {
 			Com_Error( ERR_DROP, "Local map version differs from server: %u != '%u'",
 					   map_checksum, (unsigned)atoi( cl.configstrings[CS_MAPCHECKSUM] ) );
@@ -1486,7 +1450,7 @@ void CL_SetClientState( connstate_t state ) {
 		case CA_CONNECTING:
 			cls.cgameActive = false;
 			Con_Close();
-			UI_HideMenu();
+			UI_ShowConnectingScreen();
 			S_StopBackgroundTrack();
 			CL_SetKeyDest( key_game );
 			break;
@@ -1511,81 +1475,6 @@ void CL_SetClientState( connstate_t state ) {
 */
 connstate_t CL_GetClientState( void ) {
 	return cls.state;
-}
-
-/*
-* CL_InitMedia
-*/
-void CL_InitMedia( void ) {
-	if( cls.mediaInitialized ) {
-		return;
-	}
-	if( cls.state == CA_UNINITIALIZED ) {
-		return;
-	}
-
-	// random seed to be shared among game modules so pseudo-random stuff is in sync
-	if( cls.state != CA_CONNECTED ) {
-		srand( time( NULL ) );
-	}
-
-	cls.mediaInitialized = true;
-
-	S_StopAllSounds( true );
-
-	SCR_RegisterConsoleMedia();
-
-	// load user interface
-	CL_InitImGui();
-	UI_Init();
-
-	// check memory integrity
-	Mem_DebugCheckSentinelsGlobal();
-}
-
-/*
-* CL_ShutdownMedia
-*/
-void CL_ShutdownMedia( void ) {
-	if( !cls.mediaInitialized ) {
-		return;
-	}
-
-	cls.mediaInitialized = false;
-
-	S_StopAllSounds( true );
-
-	// shutdown cgame
-	CL_GameModule_Shutdown();
-}
-
-/*
-* CL_RestartMedia
-*/
-void CL_RestartMedia( void ) {
-	if( cls.mediaInitialized ) {
-		// shutdown cgame
-		CL_GameModule_Shutdown();
-
-		cls.mediaInitialized = false;
-	}
-
-	S_StopAllSounds( true );
-
-	// random seed to be shared among game modules so pseudo-random stuff is in sync
-	if( cls.state != CA_CONNECTED ) {
-		srand( time( NULL ) );
-	}
-
-	cls.mediaInitialized = true;
-
-	// register console font and background
-	SCR_RegisterConsoleMedia();
-
-	UI_HideMenu();
-
-	// check memory integrity
-	Mem_DebugCheckSentinelsGlobal();
 }
 
 /*
@@ -1647,6 +1536,8 @@ static void CL_InitLocal( void ) {
 	cl_downloads_from_web = Cvar_Get( "cl_downloads_from_web", "1", CVAR_ARCHIVE | CVAR_READONLY );
 	cl_downloads_from_web_timeout = Cvar_Get( "cl_downloads_from_web_timeout", "600", CVAR_ARCHIVE );
 
+	cl_devtools = Cvar_Get( "cl_devtools", "0", CVAR_ARCHIVE );
+
 	//
 	// userinfo
 	//
@@ -1657,7 +1548,6 @@ static void CL_InitLocal( void ) {
 		Cvar_Set( name->name, "Player" );
 	}
 
-	Cvar_Get( "clan", "", CVAR_USERINFO | CVAR_ARCHIVE );
 	Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
 	Cvar_Get( "handicap", "0", CVAR_USERINFO | CVAR_ARCHIVE );
 
@@ -1730,6 +1620,8 @@ static void CL_ShutdownLocal( void ) {
 * CL_AdjustServerTime - adjust delta to new frame snap timestamp
 */
 void CL_AdjustServerTime( unsigned int gameMsec ) {
+	ZoneScoped;
+
 	// hurry up if coming late (unless in demos)
 	if( !cls.demo.playing ) {
 		if( ( cl.newServerTimeDelta < cl.serverTimeDelta ) && gameMsec > 0 ) {
@@ -1813,6 +1705,8 @@ int CL_SmoothTimeDeltas( void ) {
 * CL_UpdateSnapshot - Check for pending snapshots, and fire if needed
 */
 void CL_UpdateSnapshot( void ) {
+	ZoneScoped;
+
 	snapshot_t  *snap;
 	int i;
 
@@ -1892,24 +1786,20 @@ static bool CL_MaxPacketsReached( void ) {
 	}
 
 	elapsedTime = cls.realtime - lastPacketTime;
-	if( cls.mv ) {
-		minpackettime = ( 1000.0f / 2 );
-	} else {
-		float minTime = ( 1000.0f / cl_pps->value );
+	float minTime = ( 1000.0f / cl_pps->value );
 
-		// don't let cl_pps be smaller than sv_pps
-		if( cls.state == CA_ACTIVE && !cls.demo.playing && cl.snapFrameTime ) {
-			if( (unsigned int)minTime > cl.snapFrameTime ) {
-				minTime = cl.snapFrameTime;
-			}
+	// don't let cl_pps be smaller than sv_pps
+	if( cls.state == CA_ACTIVE && !cls.demo.playing && cl.snapFrameTime ) {
+		if( (unsigned int)minTime > cl.snapFrameTime ) {
+			minTime = cl.snapFrameTime;
 		}
+	}
 
-		minpackettime = (int)minTime;
-		roundingMsec += minTime - (int)minTime;
-		if( roundingMsec >= 1.0f ) {
-			minpackettime += (int)roundingMsec;
-			roundingMsec -= (int)roundingMsec;
-		}
+	minpackettime = (int)minTime;
+	roundingMsec += minTime - (int)minTime;
+	if( roundingMsec >= 1.0f ) {
+		minpackettime += (int)roundingMsec;
+		roundingMsec -= (int)roundingMsec;
 	}
 
 	if( elapsedTime < minpackettime ) {
@@ -1975,6 +1865,8 @@ void CL_SendMessagesToServer( bool sendNow ) {
 * CL_NetFrame
 */
 static void CL_NetFrame( int realMsec, int gameMsec ) {
+	ZoneScoped;
+
 	// read packets from server
 	if( realMsec > 5000 ) { // if in the debugger last frame, don't timeout
 		cls.lastPacketReceivedTime = cls.realtime;
@@ -2005,8 +1897,8 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 void CL_Frame( int realMsec, int gameMsec ) {
 	ZoneScoped;
 
-	cls.frame_arena = cls.frame_arena == &cls.frame_arenas[ 0 ] ? &cls.frame_arenas[ 1 ] : &cls.frame_arenas[ 0 ];
-	cls.frame_arena->clear();
+	TracyPlot( "Frame arena max utilisation", cls.frame_arena.max_utilisation() );
+	cls.frame_arena.clear();
 
 	u64 entropy[ 2 ];
 	CSPRNG_Bytes( entropy, sizeof( entropy ) );
@@ -2049,7 +1941,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 		// hotload assets when the window regains focus or every 1 second when not focused
 		if( just_became_focused || ( !focused && cls.monotonicTime - last_hotload_time >= 1000 ) ) {
-			TempAllocator temp = cls.frame_arena->temp();
+			TempAllocator temp = cls.frame_arena.temp();
 			HotloadAssets( &temp );
 
 			last_hotload_time = cls.monotonicTime;
@@ -2120,7 +2012,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	}
 
 	// update audio
-	if( cls.state != CA_ACTIVE && !cls.disable_screen ) {
+	if( cls.state != CA_ACTIVE ) {
 		S_Update( vec3_origin, vec3_origin, axis_identity );
 	}
 
@@ -2225,10 +2117,10 @@ void CL_Init( void ) {
 	ZoneScoped;
 
 	constexpr size_t frame_arena_size = 1024 * 1024;
-	void * frame_arena_memory = ALLOC_SIZE( sys_allocator, frame_arena_size * 2, 16 );
-	cls.frame_arenas[ 0 ] = ArenaAllocator( frame_arena_memory, frame_arena_size );
-	cls.frame_arenas[ 1 ] = ArenaAllocator( ( u8 * ) frame_arena_memory + frame_arena_size, frame_arena_size );
-	cls.frame_arena = &cls.frame_arenas[ 0 ];
+	void * frame_arena_memory = ALLOC_SIZE( sys_allocator, frame_arena_size, 16 );
+	cls.frame_arena = ArenaAllocator( frame_arena_memory, frame_arena_size );
+
+	srand( time( NULL ) );
 
 	cls.monotonicTime = 0;
 
@@ -2239,7 +2131,7 @@ void CL_Init( void ) {
 	cl_initialized = true;
 
 	{
-		TempAllocator temp = cls.frame_arena->temp();
+		TempAllocator temp = cls.frame_arena.temp();
 		InitAssets( &temp );
 	}
 
@@ -2262,20 +2154,24 @@ void CL_Init( void ) {
 	}
 
 	SCR_InitScreen();
-	cls.disable_screen = true; // don't draw yet
 
 	CL_InitLocal();
 	CL_InitInput();
 
 	CL_InitAsyncStream();
 
-	CL_InitMedia();
+	SCR_RegisterConsoleMedia();
+
+	CL_InitImGui();
+	UI_Init();
 
 	UI_ShowMainMenu();
 
 	CL_InitServerList();
 
 	ML_Init();
+
+	Mem_DebugCheckSentinelsGlobal();
 }
 
 /*
@@ -2305,19 +2201,16 @@ void CL_Shutdown( void ) {
 		cls.servername = NULL;
 	}
 
+	UI_Shutdown();
 	CL_ShutdownImGui();
+
 	CL_GameModule_Shutdown();
 	S_Shutdown();
-	CL_ShutdownInput();
 	VID_Shutdown();
-
-	CL_ShutdownMedia();
 
 	CL_ShutdownAsyncStream();
 
 	CL_ShutdownLocal();
-
-	SCR_ShutdownScreen();
 
 	Con_Shutdown();
 
@@ -2326,5 +2219,5 @@ void CL_Shutdown( void ) {
 	cls.state = CA_UNINITIALIZED;
 	cl_initialized = false;
 
-	FREE( sys_allocator, cls.frame_arenas[ 0 ].get_memory() );
+	FREE( sys_allocator, cls.frame_arena.get_memory() );
 }

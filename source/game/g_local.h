@@ -201,6 +201,7 @@ extern level_locals_t level;
 extern spawn_temp_t st;
 
 extern int meansOfDeath;
+extern vec3_t knockbackOfDeath;
 
 #define FOFS( x ) offsetof( edict_t,x )
 #define STOFS( x ) offsetof( spawn_temp_t,x )
@@ -403,7 +404,7 @@ void G_UseItem( struct edict_s *ent, const gsitem_t *item );
 //
 #define G_LEVELPOOL_BASE_SIZE   45 * 1024 * 1024
 
-bool KillBox( edict_t *ent, int mod );
+bool KillBox( edict_t *ent, int mod, const vec3_t knockback );
 float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker );
 edict_t *G_Find( edict_t *from, size_t fieldofs, const char *match );
 edict_t *G_PickTarget( const char *targetname );
@@ -495,11 +496,10 @@ void G_FreeCallvotes( void );
 void G_CallVotes_ResetClient( int n );
 void G_CallVotes_CmdVote( edict_t *ent );
 void G_CallVotes_Think( void );
+bool G_Callvotes_HasVoted( edict_t *ent );
 void G_CallVote_Cmd( edict_t *ent );
 void G_OperatorVote_Cmd( edict_t *ent );
 void G_RegisterGametypeScriptCallvote( const char *name, const char *usage, const char *type, const char *help );
-http_response_code_t G_CallVotes_WebRequest( http_query_method_t method, const char *resource,
-											 const char *query_string, char **content, size_t *content_length );
 
 //
 // g_trigger.c
@@ -566,16 +566,13 @@ void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edi
 //
 // g_misc.c
 //
-void ThrowSmallPileOfGibs( edict_t *self, int damage );
+void ThrowSmallPileOfGibs( edict_t *self, const vec3_t knockback, int damage );
 
 void BecomeExplosion1( edict_t *self );
 
 void SP_path_corner( edict_t *self );
 
-void SP_misc_teleporter_dest( edict_t *self );
 void SP_misc_model( edict_t *ent );
-void SP_misc_particles( edict_t *ent );
-void SP_misc_video_speaker( edict_t *ent );
 
 void SP_model( edict_t *ent );
 
@@ -871,9 +868,7 @@ struct gclient_s {
 	// persistent info along all the time the client is connected
 
 	char userinfo[MAX_INFO_STRING];
-	char netname[MAX_NAME_BYTES];   // maximum name length is characters without counting color tokens
-	                                // is controlled by MAX_NAME_CHARS constant
-	char clanname[MAX_CLANNAME_BYTES];
+	char netname[MAX_NAME_CHARS + 1];
 	char ip[MAX_INFO_VALUE];
 	char socket[MAX_INFO_VALUE];
 
@@ -910,20 +905,6 @@ typedef struct snap_edict_s {
 	float damage_given;             // for hitsounds
 	float damageteam_given;
 } snap_edict_t;
-
-typedef struct {
-	int speed;
-	int shaderIndex;
-	int spread;
-	int size;
-	int time;
-	bool spherical;
-	bool bounce;
-	bool gravity;
-	bool expandEffect;
-	bool shrinkEffect;
-	int frequency;
-} particles_edict_t;
 
 struct edict_s {
 	entity_state_t s;
@@ -987,7 +968,6 @@ struct edict_s {
 	int timeDelta;              // SVF_PROJECTILE only. Used for 4D collision detection
 
 	projectileinfo_t projectileInfo;    // specific for projectiles
-	particles_edict_t particlesInfo;        // specific for ET_PARTICLES
 
 	int dmg;
 
@@ -1060,7 +1040,3 @@ static inline int PLAYERNUM( const edict_t *x ) { return x - game.edicts - 1; }
 static inline int PLAYERNUM( const gclient_t *x ) { return x - game.clients; }
 
 static inline edict_t *PLAYERENT( int x ) { return game.edicts + x + 1; }
-
-// web
-http_response_code_t G_WebRequest( http_query_method_t method, const char *resource,
-								   const char *query_string, char **content, size_t *content_length );

@@ -8,8 +8,6 @@
 
 const bool is_dedicated_server = false;
 
-void Sys_InitTime();
-
 void Sys_Sleep( unsigned int millis ) {
 	SDL_Delay( millis );
 }
@@ -22,15 +20,11 @@ void Sys_Error( const char *format, ... ) {
 	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
-	printf( "%s\n", msg );
+	Sys_ShowErrorMessage( msg );
 
 	// SDL_ShowSimpleMessageBox( SDL_MESSAGEBOX_ERROR, APPLICATION, msg, NULL );
 
 	abort();
-}
-
-void Sys_Init() {
-	Sys_InitTime();
 }
 
 void Sys_Quit() {
@@ -66,6 +60,8 @@ int main( int argc, char **argv ) {
 
 		int time;
 		{
+			ZoneScopedN( "Interframe" );
+
 			// find time spent rendering last frame
 			do {
 				newtime = Sys_Milliseconds();

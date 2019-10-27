@@ -27,10 +27,6 @@ struct qthread_s {
 	HANDLE h;
 };
 
-struct qcondvar_s {
-	CONDITION_VARIABLE c;
-};
-
 struct qmutex_s {
 	CRITICAL_SECTION h;
 };
@@ -83,22 +79,4 @@ int Sys_Atomic_FetchAdd( volatile int *value, int add ) {
 
 bool Sys_Atomic_CAS( volatile int *value, int oldval, int newval ) {
 	return InterlockedCompareExchange( (volatile LONG*)value, newval, oldval ) == oldval;
-}
-
-int Sys_CondVar_Create( qcondvar_t **cond ) {
-	*cond = ( qcondvar_t * )Q_malloc( sizeof( qcondvar_t ) );
-	InitializeConditionVariable( &( *cond )->c );
-	return 0;
-}
-
-void Sys_CondVar_Destroy( qcondvar_t *cond ) {
-	Q_free( cond );
-}
-
-void Sys_CondVar_Wait( qcondvar_t *cond, qmutex_t *mutex ) {
-	SleepConditionVariableCS( &cond->c, &mutex->h, INFINITE );
-}
-
-void Sys_CondVar_Wake( qcondvar_t *cond ) {
-	WakeConditionVariable( &cond->c );
 }

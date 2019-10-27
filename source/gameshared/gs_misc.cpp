@@ -80,17 +80,15 @@ int GS_WaterLevel( entity_state_t *state, vec3_t mins, vec3_t maxs ) {
 /*
 * GS_BBoxForEntityState
 */
-void GS_BBoxForEntityState( entity_state_t *state, vec3_t mins, vec3_t maxs ) {
-	int x, zd, zu;
-
+void GS_BBoxForEntityState( const entity_state_t * state, vec3_t mins, vec3_t maxs ) {
 	if( state->solid == SOLID_BMODEL ) {
 		// FIXME: This is wrong, we don't have access to bmodels at gameshared (simply didn't add it)
 		gs.api.Error( "GS_BBoxForEntityState: called for a brush model\n" );
 		//cmodel = trap_CM_InlineModel( state->modelindex );
 	} else {                          // encoded bbox
-		x = 8 * ( state->solid & 31 );
-		zd = 8 * ( ( state->solid >> 5 ) & 31 );
-		zu = 8 * ( ( state->solid >> 10 ) & 63 ) - 32;
+		int x = 8 * ( state->solid & 31 );
+		int zd = 8 * ( ( state->solid >> 5 ) & 31 );
+		int zu = 8 * ( ( state->solid >> 10 ) & 63 ) - 32;
 
 		mins[0] = mins[1] = -x;
 		maxs[0] = maxs[1] = x;

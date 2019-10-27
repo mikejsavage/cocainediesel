@@ -137,11 +137,9 @@ spawn_t spawns[] = {
 	{ "path_corner", SP_path_corner },
 
 	{ "trigger_teleport", SP_trigger_teleport },
-	{ "misc_teleporter_dest", SP_misc_teleporter_dest },
+	{ "misc_teleporter_dest", SP_target_position },
 
 	{ "misc_model", SP_misc_model },
-	{ "misc_particles", SP_misc_particles },
-
 	{ "model", SP_model },
 
 	{ "spikes", SP_spikes },
@@ -455,9 +453,6 @@ void G_PrecacheMedia( void ) {
 
 	//-------------------
 
-	// precache our basic player models, they are just a very few
-	trap_ModelIndex( "$models/players/bigvic" );
-
 	// FIXME: Temporarily use normal gib until the head is fixed
 	trap_ModelIndex( "models/objects/gibs/gib" );
 
@@ -685,8 +680,6 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 
 	// initialize game subsystems
 	trap_ConfigString( CS_MAPNAME, level.mapname );
-	trap_ConfigString( CS_STATNUMS, va( "%i %i %i", STAT_SCORE, STAT_HEALTH, STAT_LAST_KILLER ) );
-	trap_ConfigString( CS_MATCHNAME, "" );
 	trap_ConfigString( CS_MATCHSCORE, "" );
 
 	G_InitGameCommands();

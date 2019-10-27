@@ -184,13 +184,6 @@ void Cmd_ChasePrev_f( edict_t *ent ) {
 }
 
 /*
-* Cmd_PutAway_f
-*/
-static void Cmd_PutAway_f( edict_t *ent ) {
-	ent->r.client->level.showscores = false;
-}
-
-/*
 * Cmd_Score_f
 */
 static void Cmd_Score_f( edict_t *ent ) {
@@ -203,22 +196,6 @@ static void Cmd_Score_f( edict_t *ent ) {
 	}
 
 	ent->r.client->level.showscores = newvalue;
-}
-
-/*
-* Cmd_CvarInfo_f - Contains a cvar name and string provided by the client
-*/
-static void Cmd_CvarInfo_f( edict_t *ent ) {
-	if( trap_Cmd_Argc() < 2 ) {
-		G_PrintMsg( ent, "Cmd_CvarInfo_f: invalid argument count\n" );
-		return;
-	}
-
-	// see if the gametype script is requesting this info
-	if( !GT_asCallGameCommand( ent->r.client, "cvarinfo", trap_Cmd_Args(), trap_Cmd_Argc() - 1 ) ) {
-		// if the gametype script wasn't interested in this command, print the output to console
-		G_Printf( "%s%s's cvar '%s' is '%s%s'\n", ent->r.client->netname, S_COLOR_WHITE, trap_Cmd_Argv( 1 ), trap_Cmd_Argv( 2 ), S_COLOR_WHITE );
-	}
 }
 
 /*
@@ -801,7 +778,6 @@ char *G_StatsMessage( edict_t *ent ) {
 	}
 
 	Q_strncatz( entry, va( " %d %d", client->level.stats.total_damage_given, client->level.stats.total_damage_received ), sizeof( entry ) );
-	Q_strncatz( entry, va( " %d", client->level.stats.health_taken ), sizeof( entry ) );
 
 	// add enclosing quote
 	Q_strncatz( entry, "\"", sizeof( entry ) );
@@ -923,7 +899,6 @@ void G_InitGameCommands( void ) {
 		g_Commands[i].name[0] = 0;
 	}
 
-	G_AddCommand( "cvarinfo", Cmd_CvarInfo_f );
 	G_AddCommand( "position", Cmd_Position_f );
 	G_AddCommand( "players", Cmd_Players_f );
 	G_AddCommand( "spectators", Cmd_Spectators_f );
@@ -935,7 +910,6 @@ void G_InitGameCommands( void ) {
 	G_AddCommand( "noclip", Cmd_Noclip_f );
 	G_AddCommand( "use", Cmd_Use_f );
 	G_AddCommand( "kill", Cmd_Kill_f );
-	G_AddCommand( "putaway", Cmd_PutAway_f );
 	G_AddCommand( "chase", Cmd_ChaseCam_f );
 	G_AddCommand( "chasenext", Cmd_ChaseNext_f );
 	G_AddCommand( "chaseprev", Cmd_ChasePrev_f );
@@ -979,10 +953,8 @@ void ClientCommand( edict_t *ent ) {
 	}
 	cmd = trap_Cmd_Argv( 0 );
 
-	if( Q_stricmp( cmd, "cvarinfo" ) ) { // skip cvarinfo cmds because they are automatic responses
-		G_Client_UpdateActivity( ent->r.client ); // activity detected
+	G_Client_UpdateActivity( ent->r.client ); // activity detected
 
-	}
 	for( i = 0; i < MAX_GAMECOMMANDS; i++ ) {
 		if( !g_Commands[i].name[0] ) {
 			break;

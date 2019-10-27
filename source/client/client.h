@@ -168,8 +168,7 @@ typedef struct {
 typedef cl_demo_t demorec_t;
 
 typedef struct {
-	ArenaAllocator frame_arenas[ 2 ];
-	ArenaAllocator * frame_arena;
+	ArenaAllocator frame_arena;
 
 	RNG rng;
 
@@ -191,11 +190,6 @@ typedef struct {
 
 	// screen rendering information
 	bool cgameActive;
-	bool mediaInitialized;
-
-	unsigned int disable_screen;    // showing loading plaque between levels
-	                                // or changing rendering dlls
-	                                // if time gets > 30 seconds ahead, break it
 
 	// connection information
 	char *servername;               // name of server from original connect
@@ -206,7 +200,6 @@ typedef struct {
 
 	socket_t *socket;               // socket used by current connection
 	bool reliable;
-	bool mv;
 
 	netadr_t rconaddress;       // address where we are sending rcon messages, to ignore other print packets
 
@@ -259,6 +252,7 @@ typedef struct {
 
 	ImFont * huge_font;
 	ImFont * large_font;
+	ImFont * big_font;
 	ImFont * medium_font;
 	ImFont * console_font;
 } client_static_t;
@@ -282,6 +276,8 @@ extern cvar_t *cl_debug_timeDelta;
 extern cvar_t *cl_downloads;
 extern cvar_t *cl_downloads_from_web;
 extern cvar_t *cl_downloads_from_web_timeout;
+
+extern cvar_t *cl_devtools;
 
 // delta from this if not from a previous frame
 extern entity_state_t cl_baselines[MAX_EDICTS];
@@ -343,7 +339,6 @@ bool CL_GameModule_NewSnapshot( int pendingSnapshot );
 void CL_GameModule_RenderView();
 void CL_GameModule_GetEntitySpatilization( int entnum, vec3_t origin, vec3_t velocity );
 void CL_GameModule_InputFrame( int frameTime );
-void CL_GameModule_ClearInputState( void );
 unsigned CL_GameModule_GetButtonBits( void );
 void CL_GameModule_AddViewAngles( vec3_t viewAngles );
 void CL_GameModule_AddMovement( vec3_t movement );
@@ -368,17 +363,8 @@ void CL_ShutDownServerList( void );
 // cl_input.c
 //
 void CL_InitInput( void );
-void CL_ShutdownInput( void );
 void CL_UserInputFrame( int realMsec );
 void CL_WriteUcmdsToMessage( msg_t *msg );
-
-/**
- * Resets the input state to the same as when no input is done,
- * mainly when the current input dest can't receive events anymore.
- */
-void CL_ClearInputState( void );
-
-
 
 //
 // cl_demo.c
@@ -416,18 +402,9 @@ void CL_CheckDownloadTimeout( void );
 // cl_screen.c
 //
 void SCR_InitScreen( void );
-void SCR_ShutdownScreen( void );
 void SCR_UpdateScreen( void );
-void SCR_BeginLoadingPlaque( void );
-void SCR_EndLoadingPlaque( void );
 void SCR_DebugGraph( float value, float r, float g, float b );
 void SCR_RegisterConsoleMedia( void );
-void SCR_DrawFillRect( int x, int y, int w, int h, const vec4_t color );
-void SCR_DrawChat( int x, int y, int width, struct qfontface_s *font );
-
-void CL_InitMedia( void );
-void CL_ShutdownMedia( void );
-void CL_RestartMedia( void );
 
 void CL_AddNetgraph( void );
 

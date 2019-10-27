@@ -17,8 +17,6 @@ if %MATCH_STATE < #MATCH_STATE_PLAYTIME
 
 	if %TEAM != #TEAM_SPECTATOR
 		moveCursor 0, 17
-		setFontSize %VIDHEIGHT / 50
-		setFontStyle bold
 
 		if %READY || %MATCH_STATE == #MATCH_STATE_COUNTDOWN
 			setColor 0.32, 0.99, 0.37, 1
@@ -26,8 +24,8 @@ if %MATCH_STATE < #MATCH_STATE_PLAYTIME
 		endif
 
 		ifnot %READY || %MATCH_STATE == #MATCH_STATE_COUNTDOWN
-			setColor 1, 0.23, 0.26, 1
-			drawString "NOT READY"
+			setAttentionGettingColor
+			drawBindString "[%s] TO READY UP" "toggleready"
 		endif
 	endif
 
@@ -68,8 +66,32 @@ if %MATCH_STATE == #MATCH_STATE_PLAYTIME
 		moveCursor -50 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
 	endif
 
+	// player icons
+	setCursor #WIDTH / 2, 7
+
+	if %ALPHA_PLAYERS_TOTAL
+		setAlignment right top
+		moveCursor -90 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+
+		setColor 0.2 0.2 0.2 1
+		drawPlayerIcons #TEAM_ALPHA, %ALPHA_PLAYERS_ALIVE, %ALPHA_PLAYERS_TOTAL
+
+		moveCursor 90 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+	endif
+
+	if %BETA_PLAYERS_TOTAL
+		setAlignment left top
+		moveCursor 90 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+
+		setColor 0.2 0.2 0.2 1
+		drawPlayerIcons #TEAM_BETA, %BETA_PLAYERS_ALIVE, %BETA_PLAYERS_TOTAL
+
+		moveCursor -90 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+	endif
+
 	// match point/overtime
 	if %ROUND_TYPE != #RoundType_Normal
+		setAlignment center top
 		moveCursor 0, 26
 		setFontSize %VIDHEIGHT / 50
 		setFontStyle bold
@@ -84,33 +106,6 @@ if %MATCH_STATE == #MATCH_STATE_PLAYTIME
 			drawString "OVERTIME MATCH POINT"
 		endif
 	endif
-
-	// alive players
-	setCursor #WIDTH / 2, 7
-	setFontSize %VIDHEIGHT / 32
-	setFontStyle normal
-
-	setSpecialFontFamily "Silhouette"
-
-	if %ALPHA_PLAYERS_TOTAL
-		setAlignment right top
-		moveCursor -90 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
-
-		setColorToTeamColor #TEAM_ALPHA
-		drawStringRepeatConfigString "?" %ALPHA_PLAYERS_ALIVE
-
-		moveCursor 90 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
-	endif
-
-	if %BETA_PLAYERS_TOTAL
-		setAlignment left top
-		moveCursor 90 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
-
-		setColorToTeamColor #TEAM_BETA
-		drawStringRepeatConfigString "?" %BETA_PLAYERS_ALIVE
-	endif
-
-	setFontFamily con_fontSystem
 endif
 
 setFontBorder off

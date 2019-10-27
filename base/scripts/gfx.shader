@@ -205,7 +205,7 @@ models/weapon_hits/lasergun/hit_blastexp
 		map models/weapon_hits/lasergun/hit_blastexp
 		rgbgen entity
 		alphagen entity
-		blendfunc GL_SRC_ALPHA GL_ONE
+		blendfunc add
 		tcMod stretch sin 1 0.05 0 2.75
 	}
 }
@@ -337,29 +337,6 @@ gfx/indicators/radar_decal
 		alphamaskclampmap gfx/indicators/radar_3
 		blendFunc blend
 		tcMod rotate -3
-	}
-}
-
-gfx/misc/playerspawn
-{
-	cull none
-	{
-		clampmap gfx/misc/playerspawn
-		blendfunc blend
-		rgbgen entity
-		alphagen wave distanceramp 0 1 80 300
-	}
-}
-
-gfx/misc/playerspawnmarker
-{
-	polygonOffset
-	sort banner
-	{
-		clampmap gfx/misc/playerspawnmarker
-		blendFunc blend
-		rgbgen vertex
-		alphagen vertex
 	}
 }
 

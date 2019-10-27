@@ -59,8 +59,6 @@ typedef struct callvotetype_s
 	void ( *execute )( callvotedata_t *vote );
 	const char *( *current )( void );
 	void ( *extraHelp )( edict_t *ent );
-	http_response_code_t ( *webRequest )( http_query_method_t method, const char *resource,
-										  const char *query_string, char **content, size_t *content_length );
 	char *argument_format;
 	char *help;
 	char *argument_type;
@@ -81,69 +79,6 @@ static callvotetype_t *callvotesHeadNode = NULL;
 //==============================================
 //		Vote specifics
 //==============================================
-
-static void G_AppendString( char **pdst, const char *src, size_t *pdst_len, size_t *pdst_size ) {
-	char *dst = *pdst;
-	size_t dst_len = *pdst_len;
-	size_t dst_size = *pdst_size;
-	size_t src_len;
-
-	assert( src != NULL );
-
-	if( !dst ) {
-		dst_size = 0x1000;
-		dst_len = 0;
-		dst = ( char * )G_Malloc( dst_size );
-	}
-
-	src_len = strlen( src );
-	if( dst_len + src_len >= dst_size ) {
-		char *old_dst = dst;
-
-		dst_size = ( dst_len + src_len ) * 2;
-		dst = ( char * )G_Malloc( dst_size );
-		memcpy( dst, old_dst, dst_len );
-		dst[dst_len] = '\0';
-
-		G_Free( old_dst );
-	}
-
-	memcpy( dst + dst_len, src, src_len );
-	dst_len += src_len;
-	dst[dst_len] = '\0';
-
-	*pdst_len = dst_len;
-	*pdst_size = dst_size;
-	*pdst = dst;
-}
-
-static http_response_code_t G_PlayerlistWebRequest( http_query_method_t method, const char *resource,
-													const char *query_string, char **content, size_t *content_length ) {
-	int i;
-	char *msg = NULL;
-	size_t msg_len = 0, msg_size = 0;
-
-	if( method != HTTP_METHOD_GET && method != HTTP_METHOD_HEAD ) {
-		return HTTP_RESP_BAD_REQUEST;
-	}
-
-	for( i = 0; i < gs.maxclients; i++ ) {
-		if( trap_GetClientState( i ) >= CS_SPAWNED ) {
-			G_AppendString( &msg, va(
-								"{\n"
-								"\"value\"" " " "\"%i\"" "\n"
-								"\"name\"" " " "\"%s\"" "\n"
-								"}\n",
-								i,
-								game.clients[i].netname
-								), &msg_len, &msg_size );
-		}
-	}
-
-	*content = msg;
-	*content_length = msg_len;
-	return HTTP_RESP_OK;
-}
 
 /*
 * map
@@ -286,57 +221,6 @@ static const char *G_VoteMapCurrent( void ) {
 	return level.mapname;
 }
 
-static http_response_code_t G_VoteMapWebRequest( http_query_method_t method, const char *resource,
-												 const char *query_string, char **content, size_t *content_length ) {
-	int i;
-	char *msg = NULL;
-	size_t msg_len = 0, msg_size = 0;
-	char buffer[MAX_STRING_CHARS];
-
-	if( method != HTTP_METHOD_GET && method != HTTP_METHOD_HEAD ) {
-		return HTTP_RESP_BAD_REQUEST;
-	}
-
-	// update the maplist
-	trap_ML_Update();
-
-	if( g_enforce_map_pool->integer && strlen( g_map_pool->string ) > 2 ) {
-		char *s, *tok;
-
-		s = G_CopyString( g_map_pool->string );
-		tok = strtok( s, MAPLIST_SEPS );
-		while( tok != NULL ) {
-			G_AppendString( &msg, va(
-								"{\n"
-								"\"value\"" " " "\"%s\"" "\n"
-								"\"name\"" " " "\"%s\"" "\n"
-								"}\n",
-								tok,
-								tok
-								), &msg_len, &msg_size );
-
-			tok = strtok( NULL, MAPLIST_SEPS );
-		}
-
-		G_Free( s );
-	} else {
-		for( i = 0; trap_ML_GetMapByNum( i, buffer, sizeof( buffer ) ); i++ ) {
-			G_AppendString( &msg, va(
-								"{\n"
-								"\"value\"" " " "\"%s\"" "\n"
-								"\"name\"" " " "\"%s '%s'\"" "\n"
-								"}\n",
-								buffer,
-								buffer, buffer + strlen( buffer ) + 1
-								), &msg_len, &msg_size );
-		}
-	}
-
-	*content = msg;
-	*content_length = msg_len;
-	return HTTP_RESP_OK;
-}
-
 /*
 * nextmap
 */
@@ -446,9 +330,7 @@ static bool G_VoteAllreadyValidate( callvotedata_t *vote, bool first ) {
 }
 
 static void G_VoteAllreadyPassed( callvotedata_t *vote ) {
-	edict_t *ent;
-
-	for( ent = game.edicts + 1; PLAYERNUM( ent ) < gs.maxclients; ent++ ) {
+	for( edict_t * ent = game.edicts + 1; PLAYERNUM( ent ) < gs.maxclients; ent++ ) {
 		if( trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 			continue;
 		}
@@ -1180,14 +1062,12 @@ void G_CallVotes_ResetClient( int n ) {
 * G_CallVotes_Reset
 */
 static void G_CallVotes_Reset( bool vote_happened ) {
-	int i;
-
 	if( vote_happened && callvoteState.vote.caller && callvoteState.vote.caller->r.client ) {
 		callvoteState.vote.caller->r.client->level.callvote_when = game.realtime;
 	}
 
 	callvoteState.vote.callvote = NULL;
-	for( i = 0; i < gs.maxclients; i++ )
+	for( int i = 0; i < gs.maxclients; i++ )
 		G_CallVotes_ResetClient( i );
 	callvoteState.timeout = 0;
 
@@ -1198,14 +1078,16 @@ static void G_CallVotes_Reset( bool vote_happened ) {
 	if( callvoteState.vote.data ) {
 		G_Free( callvoteState.vote.data );
 	}
-	for( i = 0; i < callvoteState.vote.argc; i++ ) {
+	for( int i = 0; i < callvoteState.vote.argc; i++ ) {
 		if( callvoteState.vote.argv[i] ) {
 			G_Free( callvoteState.vote.argv[i] );
 		}
 	}
 
-	trap_ConfigString( CS_ACTIVE_CALLVOTE, "" );
-	trap_ConfigString( CS_ACTIVE_CALLVOTE_VOTES, "" );
+	trap_ConfigString( CS_CALLVOTE, "" );
+	trap_ConfigString( CS_CALLVOTE_REQUIRED_VOTES, "" );
+	trap_ConfigString( CS_CALLVOTE_YES_VOTES, "" );
+	trap_ConfigString( CS_CALLVOTE_NO_VOTES, "" );
 
 	memset( &callvoteState, 0, sizeof( callvoteState ) );
 }
@@ -1301,24 +1183,18 @@ static const char *G_CallVotes_String( const callvotedata_t *vote ) {
 */
 static void G_CallVotes_CheckState( void ) {
 	edict_t *ent;
-	int needvotes, yeses = 0, voters = 0, noes = 0;
-	static int64_t warntimer;
+	int yeses = 0, voters = 0, noes = 0;
 
 	if( !callvoteState.vote.callvote ) {
-		warntimer = 0;
 		return;
 	}
 
-	if( callvoteState.vote.callvote->validate != NULL &&
-		!callvoteState.vote.callvote->validate( &callvoteState.vote, false ) ) {
-		// fixme: should be vote cancelled or something
-		G_PrintMsg( NULL, "Vote is no longer valid\nVote %s%s%s canceled\n", S_COLOR_YELLOW,
-					G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE );
+	if( callvoteState.vote.callvote->validate != NULL && !callvoteState.vote.callvote->validate( &callvoteState.vote, false ) ) {
+		G_PrintMsg( NULL, "Vote %s%s%s canceled\n", S_COLOR_YELLOW, G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE );
 		G_CallVotes_Reset( true );
 		return;
 	}
 
-	//analize votation state
 	for( ent = game.edicts + 1; PLAYERNUM( ent ) < gs.maxclients; ent++ ) {
 		gclient_t *client = ent->r.client;
 
@@ -1345,11 +1221,9 @@ static void G_CallVotes_CheckState( void ) {
 		}
 	}
 
-	// passed?
-	needvotes = (int)( ( voters * g_callvote_electpercentage->value ) / 100 );
-	if( yeses > needvotes || callvoteState.vote.operatorcall ) {
-		G_PrintMsg( NULL, "Vote %s%s%s passed\n", S_COLOR_YELLOW,
-					G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE );
+	int needvotes = int( voters * g_callvote_electpercentage->value / 100.0f ) + 1;
+	if( yeses >= needvotes || callvoteState.vote.operatorcall ) {
+		G_PrintMsg( NULL, "Vote %s%s%s passed\n", S_COLOR_YELLOW, G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE );
 		if( callvoteState.vote.callvote->execute != NULL ) {
 			callvoteState.vote.callvote->execute( &callvoteState.vote );
 		}
@@ -1357,20 +1231,15 @@ static void G_CallVotes_CheckState( void ) {
 		return;
 	}
 
-	// failed?
-	if( game.realtime > callvoteState.timeout || voters - noes <= needvotes ) { // no change to pass anymore
-		G_PrintMsg( NULL, "Vote %s%s%s failed\n", S_COLOR_YELLOW,
-					G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE );
+	if( game.realtime > callvoteState.timeout || needvotes + noes > voters ) {
+		G_PrintMsg( NULL, "Vote %s%s%s failed\n", S_COLOR_YELLOW, G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE );
 		G_CallVotes_Reset( true );
 		return;
 	}
 
-	if( warntimer < game.realtime ) {
-		G_PrintMsg( NULL, "Vote in progress: %s%s%s, %i voted yes, %i voted no. %i required\n", S_COLOR_YELLOW,
-					G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE, yeses, noes,
-					needvotes + 1 );
-		warntimer = game.realtime + 5 * 1000;
-	}
+	trap_ConfigString( CS_CALLVOTE_REQUIRED_VOTES, va( "%d", needvotes ) );
+	trap_ConfigString( CS_CALLVOTE_YES_VOTES, va( "%d", yeses ) );
+	trap_ConfigString( CS_CALLVOTE_NO_VOTES, va( "%d", noes ) );
 }
 
 /*
@@ -1395,9 +1264,11 @@ void G_CallVotes_CmdVote( edict_t *ent ) {
 	vote = trap_Cmd_Argv( 1 );
 	if( !Q_stricmp( vote, "yes" ) ) {
 		vote_id = VOTED_YES;
-	} else if( !Q_stricmp( vote, "no" ) ) {
+	}
+	else if( !Q_stricmp( vote, "no" ) ) {
 		vote_id = VOTED_NO;
-	} else {
+	}
+	else {
 		G_PrintMsg( ent, "%sInvalid vote: %s%s%s. Use yes or no\n", S_COLOR_RED,
 					S_COLOR_YELLOW, vote, S_COLOR_RED );
 		return;
@@ -1419,35 +1290,6 @@ void G_CallVotes_CmdVote( edict_t *ent ) {
 }
 
 /*
-* G_CallVotes_UpdateVotesConfigString
-*
-* For clients that have already votes, sets and encodes
-* appropriate bits in the configstring.
-*/
-static void G_CallVotes_UpdateVotesConfigString( void ) {
-#define NUM_VOTEINTS ( ( MAX_CLIENTS + 31 ) / 32 )
-	int i, n;
-	int votebits[NUM_VOTEINTS];
-	char cs[MAX_CONFIGSTRING_CHARS + 1];
-
-	memset( votebits, 0, sizeof( votebits ) );
-	for( i = 0; i < gs.maxclients; i++ ) {
-		votebits[i >> 5] |= clientVoteChanges[i] == 0 ? ( 1 << ( i & 31 ) ) : 0;
-	}
-
-	// find the last bitvector that isn't 0
-	for( n = NUM_VOTEINTS; n > 0 && !votebits[n - 1]; n-- ) ;
-
-	cs[0] = cs[1] = '\0';
-	for( i = 0; i < n; i++ ) {
-		Q_strncatz( cs, va( " %x", votebits[i] ), sizeof( cs ) );
-	}
-	cs[MAX_CONFIGSTRING_CHARS] = '\0';
-
-	trap_ConfigString( CS_ACTIVE_CALLVOTE_VOTES, cs + 1 );
-}
-
-/*
 * G_CallVotes_Think
 */
 void G_CallVotes_Think( void ) {
@@ -1459,8 +1301,6 @@ void G_CallVotes_Think( void ) {
 	}
 
 	if( callvotethinktimer < game.realtime ) {
-		G_CallVotes_UpdateVotesConfigString();
-
 		G_CallVotes_CheckState();
 		callvotethinktimer = game.realtime + 1000;
 	}
@@ -1589,16 +1429,16 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 
 	ent->r.client->level.callvote_when = callvoteState.timeout;
 
-	trap_ConfigString( CS_ACTIVE_CALLVOTE, G_CallVotes_String( &callvoteState.vote ) );
+	trap_ConfigString( CS_CALLVOTE, G_CallVotes_String( &callvoteState.vote ) );
 
 	G_PrintMsg( NULL, "%s" S_COLOR_WHITE " requested to vote " S_COLOR_YELLOW "%s\n",
 				ent->r.client->netname, G_CallVotes_String( &callvoteState.vote ) );
 
-	G_PrintMsg( NULL, "Press " S_COLOR_YELLOW "F1" S_COLOR_WHITE " to " S_COLOR_YELLOW "vote yes"
-				S_COLOR_WHITE " or " S_COLOR_YELLOW "F2" S_COLOR_WHITE " to " S_COLOR_YELLOW "vote no"
-				S_COLOR_WHITE ", or cast your vote using the " S_COLOR_YELLOW "in-game menu\n" );
-
 	G_CallVotes_Think(); // make the first think
+}
+
+bool G_Callvotes_HasVoted( edict_t * ent ) {
+	return clientVoted[ PLAYERNUM( ent ) ] != VOTED_NOTHING;
 }
 
 /*
@@ -1784,7 +1624,6 @@ void G_CallVotes_Init( void ) {
 	callvote->extraHelp = G_VoteMapExtraHelp;
 	callvote->argument_format = G_LevelCopyString( "<name>" );
 	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->webRequest = G_VoteMapWebRequest;
 	callvote->help = G_LevelCopyString( "Changes map" );
 
 	callvote = G_RegisterCallvote( "nextmap" );
@@ -1865,7 +1704,6 @@ void G_CallVotes_Init( void ) {
 	callvote->extraHelp = G_VoteRemoveExtraHelp;
 	callvote->argument_format = G_LevelCopyString( "<player>" );
 	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->webRequest = G_PlayerlistWebRequest;
 	callvote->help = G_LevelCopyString( "Forces player back to spectator mode" );
 
 	callvote = G_RegisterCallvote( "kick" );
@@ -1876,7 +1714,6 @@ void G_CallVotes_Init( void ) {
 	callvote->extraHelp = G_VoteKickExtraHelp;
 	callvote->argument_format = G_LevelCopyString( "<player>" );
 	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->webRequest = G_PlayerlistWebRequest;
 	callvote->help = G_LevelCopyString( "Removes player from the server" );
 
 	callvote = G_RegisterCallvote( "kickban" );
@@ -1887,7 +1724,6 @@ void G_CallVotes_Init( void ) {
 	callvote->extraHelp = G_VoteKickBanExtraHelp;
 	callvote->argument_format = G_LevelCopyString( "<player>" );
 	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->webRequest = G_PlayerlistWebRequest;
 	callvote->help = G_LevelCopyString( "Removes player from the server and bans his IP-address for 15 minutes" );
 
 	callvote = G_RegisterCallvote( "mute" );
@@ -1898,7 +1734,6 @@ void G_CallVotes_Init( void ) {
 	callvote->extraHelp = G_VoteMuteExtraHelp;
 	callvote->argument_format = G_LevelCopyString( "<player>" );
 	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->webRequest = G_PlayerlistWebRequest;
 	callvote->help = G_LevelCopyString( "Disallows chat messages from the muted player" );
 
 	callvote = G_RegisterCallvote( "vmute" );
@@ -1909,7 +1744,6 @@ void G_CallVotes_Init( void ) {
 	callvote->extraHelp = G_VoteMuteExtraHelp;
 	callvote->argument_format = G_LevelCopyString( "<player>" );
 	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->webRequest = G_PlayerlistWebRequest;
 	callvote->help = G_LevelCopyString( "Disallows voice chat messages from the muted player" );
 
 	callvote = G_RegisterCallvote( "unmute" );
@@ -1920,7 +1754,6 @@ void G_CallVotes_Init( void ) {
 	callvote->extraHelp = G_VoteUnmuteExtraHelp;
 	callvote->argument_format = G_LevelCopyString( "<player>" );
 	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->webRequest = G_PlayerlistWebRequest;
 	callvote->help = G_LevelCopyString( "Reallows chat messages from the unmuted player" );
 
 	callvote = G_RegisterCallvote( "vunmute" );
@@ -1931,7 +1764,6 @@ void G_CallVotes_Init( void ) {
 	callvote->extraHelp = G_VoteUnmuteExtraHelp;
 	callvote->argument_format = G_LevelCopyString( "<player>" );
 	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->webRequest = G_PlayerlistWebRequest;
 	callvote->help = G_LevelCopyString( "Reallows voice chat messages from the unmuted player" );
 
 	callvote = G_RegisterCallvote( "timeout" );
@@ -1969,59 +1801,4 @@ void G_CallVotes_Init( void ) {
 	}
 
 	G_CallVotes_Reset( true );
-}
-
-/*
-* G_CallVotes_WebRequest
-*/
-http_response_code_t G_CallVotes_WebRequest( http_query_method_t method, const char *resource,
-											 const char *query_string, char **content, size_t *content_length ) {
-	char *msg = NULL;
-	size_t msg_len = 0, msg_size = 0;
-	callvotetype_t *callvote;
-
-	if( method != HTTP_METHOD_GET && method != HTTP_METHOD_HEAD ) {
-		return HTTP_RESP_BAD_REQUEST;
-	}
-
-	if( !Q_strnicmp( resource, "callvotes/", 10 ) ) {
-		// print the list of callvotes
-		for( callvote = callvotesHeadNode; callvote != NULL; callvote = callvote->next ) {
-			if( trap_Cvar_Value( va( "g_disable_vote_%s", callvote->name ) ) ) {
-				continue;
-			}
-
-			G_AppendString( &msg, va( "{\n"
-									  "\"name\"" " " "\"%s\"" "\n"
-									  "\"expected_args\"" " " "\"%i\"" "\n"
-									  "\"argument_format\"" " " "\"%s\"" "\n"
-									  "\"argument_type\"" " " "\"%s\"" "\n"
-									  "\"help\"" " " "\"%s\"" "\n"
-									  "}\n",
-									  callvote->name,
-									  callvote->expectedargs,
-									  callvote->argument_format ? callvote->argument_format : "",
-									  callvote->argument_type ? callvote->argument_type : "string",
-									  callvote->help ? callvote->help : ""
-									  ), &msg_len, &msg_size );
-		}
-
-		*content = msg;
-		*content_length = msg_len;
-		return HTTP_RESP_OK;
-	} else if( !Q_strnicmp( resource, "callvote/", 9 ) ) {
-		const char *votename = resource + 9;
-
-		// print the list of available arguments
-		for( callvote = callvotesHeadNode; callvote != NULL; callvote = callvote->next ) {
-			if( Q_stricmp( callvote->name, votename ) ) {
-				continue;
-			}
-			if( callvote->webRequest ) {
-				return callvote->webRequest( method, resource, query_string, content, content_length );
-			}
-			break;
-		}
-	}
-	return HTTP_RESP_NOT_FOUND;
 }

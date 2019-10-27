@@ -5,8 +5,6 @@
 static bool time_set = false;
 static u64 base_usec;
 
-void Sys_InitTime() { }
-
 u64 Sys_Microseconds() {
 	struct timespec ts;
 	clock_gettime( CLOCK_MONOTONIC, &ts );

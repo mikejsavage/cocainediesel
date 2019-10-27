@@ -50,8 +50,6 @@ void GENERIC_SetUpWarmup()
 		if ( team.unlock() )
 			G_PrintMsg( null, "Teams unlocked.\n" );
 	}
-
-	match.name = "";
 }
 
 void GENERIC_SetUpCountdown()
@@ -163,103 +161,6 @@ void GENERIC_SetUpEndMatch()
 }
 
 ///*****************************************************************
-/// CHECK FOR CHEAT CVARS
-///*****************************************************************
-
-bool cheatVarsListInitialized = false;
-int64 lastCheatVarRequestTime = levelTime + 30000;
-int cheackVarChecked = 0;
-
-class cCheatVar
-{
-	String name;
-	String content;
-	bool anyContent;
-}
-
-const int MAX_CHEATVAR_NAMES = 27;
-cCheatVar[] cheatVarNames( MAX_CHEATVAR_NAMES );
-
-void GENERIC_InitCheatVarsList()
-{
-	if ( cheatVarsListInitialized == true )
-		return;
-
-	//cheatVarNames[0].name = "orgy_aim_aimbot";
-	//cheatVarNames[0].anyContent = true;
-
-	cheatVarsListInitialized = true;
-}
-
-void GENERIC_RequestCheatVars()
-{
-	GENERIC_InitCheatVarsList();
-
-	if( cheatVarNames.empty() )
-		return;
-
-	if ( lastCheatVarRequestTime + 15000 > levelTime )
-		return;
-
-	lastCheatVarRequestTime = levelTime;
-
-	G_CmdExecute( "cvarcheck " + "all \"" + cheatVarNames[cheackVarChecked].name + "\"\n" );
-
-	cheackVarChecked++;
-	if ( cheackVarChecked >= MAX_CHEATVAR_NAMES || cheatVarNames[cheackVarChecked].name.len() == 0 )
-		cheackVarChecked = 0;
-}
-
-void GENERIC_CheatVarResponse( Client @client, String &cmdString, String &argsString, int argc )
-{
-	//G_Print( S_COLOR_RED + "cvarinfo response: (argc" + argc + ") " + S_COLOR_WHITE + client.name + S_COLOR_WHITE + " " + argsString + "\n" );
-
-	if ( argc < 2 )
-		return;
-
-	if ( @client == null )
-		return;
-
-	bool kick = false;
-
-	String cvarName = argsString.getToken( 0 );
-	String cvarContent = argsString.getToken( 1 );
-
-	if ( cvarContent.len() > 0 && cvarContent != "not found" )
-	{
-		// find what was the cvar
-		for ( int i = 0; i < MAX_CHEATVAR_NAMES; i++ )
-		{
-			if ( cheatVarNames[i].name == cvarName )
-			{
-				if ( cheatVarNames[i].anyContent ) // any means we kick if it exists, no matter the content
-				{
-					kick = true;
-					break;
-				}
-				else if ( cheatVarNames[i].content == cvarContent )
-				{
-					kick = true;
-					break;
-				}
-
-			}
-			else if ( cheatVarNames[i].name.len() == 0 )
-				break;
-		}
-	}
-
-	if ( kick )
-	{
-		G_PrintMsg( null, S_COLOR_RED + "WARNING: " + S_COLOR_WHITE + client.name + S_COLOR_RED + " is kickbanned cause of forbidden cvar \"" + cvarName + " " + cvarContent + "\"\n" );
-
-		G_CmdExecute( "addip \"" + client.getUserInfoKey( "ip" ) + "\" 10080\n" );
-		G_CmdExecute( "kick " + client.playerNum + "\n" );
-		return;
-	}
-}
-
-///*****************************************************************
 /// MISC UTILS (this should get its own generic file
 ///*****************************************************************
 
@@ -328,10 +229,6 @@ Entity @GENERIC_SelectBestRandomSpawnPoint( Entity @self, String &className )
 	return spawnents[ random_uniform( 0, spawnents.size() ) ];
 }
 
-///*****************************************************************
-/// SET TEAM NAMES IN TEAM BASED GAMETYPES
-///*****************************************************************
-
 void GENERIC_UpdateMatchScore()
 {
 	if ( gametype.isTeamBased )
@@ -348,81 +245,7 @@ void GENERIC_UpdateMatchScore()
 	match.setScore( "" );
 }
 
-void GENERIC_DetectTeamsAndMatchNames()
-{
-	if ( !gametype.isTeamBased )
-		return;
-
-	String matchName = "";
-	bool matchNameOk = true;
-
-	for ( int teamNo = TEAM_ALPHA; teamNo <= TEAM_BETA; teamNo++ )
-	{
-		Team @team;
-		String teamName, defaultTeamName;
-		bool multiPlayerTeams = ( gametype.maxPlayersPerTeam == 0 || gametype.maxPlayersPerTeam > 1 );
-
-		@team = @G_GetTeam( teamNo );
-		teamName = defaultTeamName = team.defaultName;
-		if ( team.numPlayers > 0 )
-		{
-			// use first player's clan name (with color chars intact)
-			String clanName = team.ent( 0 ).client.clanName;
-			String clanNameColorless = clanName.removeColorTokens();
-
-			if ( multiPlayerTeams && ( team.numPlayers > 1 ) )
-			{
-				for ( int i = 1; @team.ent( i ) != null; i++ )
-				{
-					if ( team.ent( i ).client.clanName.removeColorTokens() != clanNameColorless )
-					{
-						clanName = clanNameColorless = "";
-						break;
-					}
-				}
-			}
-
-			if ( multiPlayerTeams )
-			{
-				// set clan name as team name
-				if ( ( team.numPlayers > 1 ) && ( clanNameColorless.len() > 0 ) )
-					teamName = clanName + S_COLOR_WHITE;
-			}
-			else
-			{
-				// for individual gametypes, append clan name to player's name
-				String lastClanNameChar = "";
-				if ( clanNameColorless.len() > 0 )
-					lastClanNameChar = clanNameColorless.substr( clanNameColorless.length() - 1, 1 );
-				teamName = (lastClanNameChar.length() > 0 ? clanName + (lastClanNameChar.isAlphaNumerical() ? "/" : "") : "") + team.ent( 0 ).client.name;
-			}
-		}
-
-		if ( teamName != team.name )
-			team.name = teamName;
-
-		// match name
-		if ( matchNameOk )
-		{
-			if ( teamName != defaultTeamName )
-			{
-				matchName += (matchName.len() > 0 ? " vs " : "") + teamName;
-			}
-			else
-			{
-				matchName = "";
-				matchNameOk = false;
-			}
-		}
-	}
-
-	if ( matchName != match.name )
-		match.name = matchName;
-}
-
 void GENERIC_Think()
 {
-	GENERIC_DetectTeamsAndMatchNames();
 	GENERIC_UpdateMatchScore();
-	GENERIC_RequestCheatVars();
 }

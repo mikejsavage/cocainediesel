@@ -112,8 +112,6 @@ void CG_ScreenInit( void ) {
 	cg_showPlayerNames_barWidth =   trap_Cvar_Get( "cg_showPlayerNames_barWidth", "8", CVAR_ARCHIVE );
 
 	cg_showPressedKeys = trap_Cvar_Get( "cg_showPressedKeys", "0", CVAR_ARCHIVE );
-
-	Cmd_AddCommand( "reloadhud", CG_LoadStatusBar );
 }
 
 /*
@@ -154,7 +152,7 @@ void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color ) {
 	}
 	x = CG_HorizontalAlignForWidth( x, alignment, w );
 	y = CG_VerticalAlignForHeight( y, alignment, h );
-	Draw2DBox( frame_static.ui_pass, x, y, w, h, cgs.media.shaderNet, color );
+	Draw2DBox( x, y, w, h, cgs.media.shaderNet, color );
 }
 
 /*
@@ -165,7 +163,7 @@ void CG_ScreenCrosshairDamageUpdate( void ) {
 }
 
 static void CG_FillRect( int x, int y, int w, int h, Vec4 color ) {
-	Draw2DBox( frame_static.ui_pass, x, y, w, h, cgs.white_material, color );
+	Draw2DBox( x, y, w, h, cgs.white_material, color );
 }
 
 static Vec4 crosshair_color = vec4_white;
@@ -240,7 +238,7 @@ void CG_DrawKeyState( int x, int y, int w, int h, const char *key ) {
 		color.w = 0.5f;
 	}
 
-	Draw2DBox( frame_static.ui_pass, x, y, w, h, cgs.media.shaderKeyIcon[i], color );
+	Draw2DBox( x, y, w, h, cgs.media.shaderKeyIcon[i], color );
 }
 
 /*
@@ -368,10 +366,6 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 
 		const centity_t * cent = &cg_entities[i + 1];
 		if( cent->serverFrame != cg.frame.serverFrame ) {
-			continue;
-		}
-
-		if( cent->current.effects & EF_PLAYER_HIDENAME ) {
 			continue;
 		}
 
@@ -524,7 +518,7 @@ void CG_DrawDamageNumbers() {
 		if( dn.damage == 0 )
 			continue;
 
-		float lifetime = 750.0f + 5 * dn.damage;
+		float lifetime = Lerp( 750.0f, Clamp01( Unlerp( 0, dn.damage, MINI_OBITUARY_DAMAGE ) ), 2000.0f );
 		float frac = ( cg.time - dn.t ) / lifetime;
 		if( frac > 1 )
 			continue;
@@ -543,24 +537,21 @@ void CG_DrawDamageNumbers() {
 
 		char buf[ 16 ];
 		Vec4 color;
-		float font_size;
 		if( dn.damage == MINI_OBITUARY_DAMAGE ) {
 			Q_strncpyz( buf, dn.obituary, sizeof( buf ) );
 			color = CG_TeamColorVec4( TEAM_ENEMY );
-			font_size = cgs.textSizeSmall;
 		}
 		else {
 			Q_snprintfz( buf, sizeof( buf ), "%d", dn.damage );
 			color = vec4_white;
-			font_size = cgs.textSizeTiny;
 		}
 
-		Vec4 border_color = vec4_black;
+		float font_size = Lerp( cgs.textSizeTiny, Clamp01( Unlerp( 0, dn.damage, 60 ) ), cgs.textSizeSmall );
+
 		float alpha = 1 - max( 0, frac - 0.75f ) / 0.25f;
 		color.w *= alpha;
-		border_color.w *= alpha;
 
-		DrawText( cgs.fontMontserrat, font_size, buf, Alignment_CenterMiddle, coords.x, coords.y, color, true, border_color );
+		DrawText( cgs.fontMontserrat, font_size, buf, Alignment_CenterMiddle, coords.x, coords.y, color, true );
 	}
 }
 
@@ -614,8 +605,11 @@ void CG_AddBombHudEntity( centity_t * cent ) {
 }
 
 void CG_DrawBombHUD() {
-	int my_team = cg.predictedPlayerState.stats[STAT_REALTEAM];
-	bool show_labels = my_team != TEAM_SPECTATOR && GS_MatchState() == MATCH_STATE_PLAYTIME;
+	if( GS_MatchState() != MATCH_STATE_PLAYTIME )
+		return;
+
+	int my_team = cg.predictedPlayerState.stats[ STAT_REALTEAM ];
+	bool show_labels = my_team != TEAM_SPECTATOR;
 
 	// TODO: draw arrows when clamped
 
@@ -631,7 +625,7 @@ void CG_DrawBombHUD() {
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {
 				const char * msg = my_team == site->team ? "DEFEND" : "ATTACK";
-				coords.y -= ( cgs.fontSystemMediumSize * 3 ) / 4;
+				coords.y += ( cgs.fontSystemMediumSize * 7 ) / 8;
 				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, vec4_white, true );
 			}
 		}
@@ -641,26 +635,22 @@ void CG_DrawBombHUD() {
 		bool clamped;
 		Vec2 coords = WorldToScreenClamped( FromQF3( bomb.origin ), Vec2( cgs.fontSystemMediumSize * 2 ), &clamped );
 
-		const Material * icon = cgs.media.shaderBombIcon;
-		int icon_size = cgs.fontSystemMediumSize;
-
-		if( !clamped ) {
-			icon = cgs.media.shaderTeamMateIndicator;
-			icon_size = cgs.fontSystemMediumSize / 2;
-
+		if( clamped ) {
+			int icon_size = ( cgs.fontSystemMediumSize * frame_static.viewport_height ) / 600;
+			Draw2DBox( coords.x - icon_size / 2, coords.y - icon_size / 2, icon_size, icon_size, cgs.media.shaderBombIcon );
+		}
+		else {
 			if( show_labels ) {
 				const char * msg = "RETRIEVE";
 				if( bomb.state == BombState_Placed )
 					msg = "PLANTING";
 				else if( bomb.state == BombState_Armed )
 					msg = my_team == bomb.team ? "PROTECT" : "DEFUSE";
-				float y = coords.y - icon_size - cgs.fontSystemTinySize / 2;
+				float y = coords.y - cgs.fontSystemTinySize / 2;
 				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, y, vec4_white, true );
 			}
 		}
 
-		icon_size = ( icon_size * frame_static.viewport_height ) / 600;
-		Draw2DBox( frame_static.ui_pass, coords.x - icon_size / 2, coords.y - icon_size / 2, icon_size, icon_size, icon );
 	}
 }
 
@@ -681,14 +671,7 @@ void CG_EscapeKey( void ) {
 		return;
 	}
 
-	bool spectator = cg.predictedPlayerState.stats[STAT_REALTEAM] == TEAM_SPECTATOR;
-	bool is_ready = false;
-
-	if( GS_MatchState() <= MATCH_STATE_WARMUP && !spectator ) {
-		is_ready = ( cg.predictedPlayerState.stats[STAT_LAYOUTS] & STAT_LAYOUT_READY ) != 0;
-	}
-
-	UI_ShowGameMenu( spectator, is_ready );
+	UI_ShowGameMenu();
 }
 
 //=============================================================================
@@ -801,7 +784,7 @@ static void CG_SCRDrawViewBlend( void ) {
 	for( int i = 0; i < 4; i++ ) {
 		c.ptr()[ i ] = colorblend[ i ];
 	}
-	Draw2DBox( frame_static.ui_pass, 0, 0, frame_static.viewport_width, frame_static.viewport_height, cgs.white_material, c );
+	Draw2DBox( 0, 0, frame_static.viewport_width, frame_static.viewport_height, cgs.white_material, c );
 }
 
 
@@ -826,8 +809,6 @@ void CG_Draw2DView( void ) {
 
 	CG_SCRDrawViewBlend();
 
-	CG_DrawHUD();
-
 	scr_centertime_off -= cg.frameTime;
 	if( CG_ScoreboardShown() ) {
 		CG_DrawScoreboard();
@@ -835,6 +816,10 @@ void CG_Draw2DView( void ) {
 	else if( scr_centertime_off > 0 ) {
 		CG_DrawCenterString();
 	}
+
+	CG_DrawChat();
+
+	CG_DrawHUD();
 }
 
 /*

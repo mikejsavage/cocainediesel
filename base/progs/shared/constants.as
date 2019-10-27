@@ -16,16 +16,16 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
-const String S_COLOR_BLACK = "^0";
-const String S_COLOR_RED = "^1";
-const String S_COLOR_GREEN = "^2";
-const String S_COLOR_YELLOW = "^3";
-const String S_COLOR_BLUE = "^4";
-const String S_COLOR_CYAN = "^5";
-const String S_COLOR_MAGENTA = "^6";
-const String S_COLOR_WHITE = "^7";
-const String S_COLOR_ORANGE = "^8";
-const String S_COLOR_GREY = "^9";
+const String S_COLOR_BLACK   = "\x1b\x01\x01\x01\xff";
+const String S_COLOR_RED     = "\x1b\xff\x01\x01\xff";
+const String S_COLOR_GREEN   = "\x1b\x01\xff\x01\xff";
+const String S_COLOR_YELLOW  = "\x1b\xff\xff\x01\xff";
+const String S_COLOR_BLUE    = "\x1b\x01\x01\xff\xff";
+const String S_COLOR_CYAN    = "\x1b\x01\xff\xff\xff";
+const String S_COLOR_MAGENTA = "\x1b\xff\x01\xff\xff";
+const String S_COLOR_WHITE   = "\x1b\xff\xff\xff\xff";
+const String S_COLOR_ORANGE  = "\x1b\xff\x80\x01\xff";
+const String S_COLOR_GREY    = "\x1b\x80\x80\x80\xff";
 
 const float ATTN_NONE      = 0.0;   // full volume the entire level
 const float ATTN_DISTANT   = 0.5;   // distant sound (most likely explosions)

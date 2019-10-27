@@ -94,7 +94,7 @@ static inline struct cmodel_s *trap_CM_InlineModel( int num ) {
 	return GAME_IMPORT.CM_InlineModel( num );
 }
 
-static inline void trap_CM_InlineModelBounds( struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs ) {
+static inline void trap_CM_InlineModelBounds( const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs ) {
 	GAME_IMPORT.CM_InlineModelBounds( cmodel, mins, maxs );
 }
 
@@ -193,40 +193,8 @@ static inline int trap_FS_Write( const void *buffer, size_t len, int file ) {
 	return GAME_IMPORT.FS_Write( buffer, len, file );
 }
 
-static inline int trap_FS_Print( int file, const char *msg ) {
-	return GAME_IMPORT.FS_Print( file, msg );
-}
-
-static inline int trap_FS_Tell( int file ) {
-	return GAME_IMPORT.FS_Tell( file );
-}
-
-static inline int trap_FS_Seek( int file, int offset, int whence ) {
-	return GAME_IMPORT.FS_Seek( file, offset, whence );
-}
-
-static inline int trap_FS_Eof( int file ) {
-	return GAME_IMPORT.FS_Eof( file );
-}
-
-static inline int trap_FS_Flush( int file ) {
-	return GAME_IMPORT.FS_Flush( file );
-}
-
 static inline void trap_FS_FCloseFile( int file ) {
 	GAME_IMPORT.FS_FCloseFile( file );
-}
-
-static inline bool trap_FS_RemoveFile( const char *filename ) {
-	return GAME_IMPORT.FS_RemoveFile( filename ) == true;
-}
-
-static inline int trap_FS_GetFileList( const char *dir, const char *extension, char *buf, size_t bufsize, int start, int end ) {
-	return GAME_IMPORT.FS_GetFileList( dir, extension, buf, bufsize, start, end );
-}
-
-static inline bool trap_FS_MoveFile( const char *src, const char *dst ) {
-	return GAME_IMPORT.FS_MoveFile( src, dst ) == true;
 }
 
 static inline bool trap_ML_Update( void ) {

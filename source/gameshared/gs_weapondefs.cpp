@@ -93,7 +93,7 @@ gs_weapon_definition_t gs_weaponDefs[] =
 	},
 
 	{
-		"Machinegun",
+		"AK-69",
 		WEAP_MACHINEGUN,
 		{
 			AMMO_BULLETS,
@@ -153,7 +153,7 @@ gs_weapon_definition_t gs_weaponDefs[] =
 	},
 
 	{
-		"Grenade Launcher",
+		"Grenade",
 		WEAP_GRENADELAUNCHER,
 		{
 			AMMO_GRENADES,
@@ -183,7 +183,7 @@ gs_weapon_definition_t gs_weaponDefs[] =
 	},
 
 	{
-		"Rocket Launcher",
+		"Rocket",
 		WEAP_ROCKETLAUNCHER,
 		{
 			AMMO_ROCKETS,
@@ -213,7 +213,7 @@ gs_weapon_definition_t gs_weaponDefs[] =
 	},
 
 	{
-		"Plasmagun",
+		"Plasma",
 		WEAP_PLASMAGUN,
 		{
 			AMMO_PLASMA,
@@ -273,7 +273,7 @@ gs_weapon_definition_t gs_weaponDefs[] =
 	},
 
 	{
-		"Electrobolt",
+		"Sniper",
 		WEAP_ELECTROBOLT,
 		{
 			AMMO_BOLTS,

@@ -43,9 +43,6 @@ static void Con_ClearInput() {
 	console.history_idx = 0;
 }
 
-static void Con_MessageMode_f( void );
-static void Con_MessageMode2_f( void );
-
 void Con_Init() {
 	Con_ClearScrollback();
 	Con_ClearInput();
@@ -60,8 +57,6 @@ void Con_Init() {
 	console.mutex = QMutex_Create();
 
 	Cmd_AddCommand( "toggleconsole", Con_ToggleConsole );
-	Cmd_AddCommand( "messagemode", Con_MessageMode_f );
-	Cmd_AddCommand( "messagemode2", Con_MessageMode2_f );
 	Cmd_AddCommand( "clear", Con_ClearScrollback );
 	// Cmd_AddCommand( "condump", Con_Dump );
 }
@@ -70,8 +65,6 @@ void Con_Shutdown() {
 	QMutex_Destroy( &console.mutex );
 
 	Cmd_RemoveCommand( "toggleconsole" );
-	Cmd_RemoveCommand( "messagemode" );
-	Cmd_RemoveCommand( "messagemode2" );
 	Cmd_RemoveCommand( "clear" );
 	// Cmd_RemoveCommand( "condump" );
 }
@@ -105,8 +98,14 @@ void Con_Close() {
 	}
 }
 
-static void Con_Append( const char * str, size_t len ) {
+void Con_Print( const char * str ) {
+	if( console.mutex == NULL )
+		return;
+
+	QMutex_Lock( console.mutex );
+
 	// delete lines until we have enough space to add str
+	size_t len = strlen( str );
 	size_t trim = 0;
 	while( console.log.len() - trim + len >= CONSOLE_LOG_SIZE ) {
 		const char * newline = StrChrUTF8( console.log.c_str() + trim, '\n' );
@@ -123,46 +122,6 @@ static void Con_Append( const char * str, size_t len ) {
 
 	if( console.at_bottom )
 		console.scroll_to_bottom = true;
-}
-
-
-void Con_Print( const char * str ) {
-	if( console.mutex == NULL )
-		return;
-
-	QMutex_Lock( console.mutex );
-
-	const char * p = str;
-	const char * end = str + strlen( str );
-	while( p < end ) {
-		char token;
-		const char * before = FindNextColorToken( p, &token );
-
-		if( before == NULL ) {
-			Con_Append( p, end - p );
-			break;
-		}
-
-		Con_Append( p, before - p );
-
-		if( token == '^' ) {
-			Con_Append( "^", 1 );
-		}
-		else {
-			const vec4_t & color = color_table[ token - '0' ];
-			uint8_t r = max( 1, uint8_t( color[ 0 ] * 255.0f ) );
-			uint8_t g = max( 1, uint8_t( color[ 1 ] * 255.0f ) );
-			uint8_t b = max( 1, uint8_t( color[ 2 ] * 255.0f ) );
-			uint8_t a = max( 1, uint8_t( color[ 3 ] * 255.0f ) );
-			uint8_t escape[] = { 033, r, g, b, a };
-			Con_Append( ( const char * ) escape, sizeof( escape ) );
-		}
-
-		p = before + 2;
-	}
-
-	uint8_t white[] = { 033, 255, 255, 255, 255 };
-	Con_Append( ( const char * ) white, sizeof( white ) );
 
 	QMutex_Unlock( console.mutex );
 }
@@ -265,21 +224,25 @@ const char * NextChunkEnd( const char * str ) {
 	return NULL;
 }
 
-void Con_Draw( int pressed_key ) {
+void Con_Draw() {
 	QMutex_Lock( console.mutex );
 
+	u32 bg = IM_COL32( 27, 27, 27, 224 );
+
 	ImGui::PushFont( cls.console_font );
-	ImGui::PushStyleColor( ImGuiCol_FrameBg, IM_COL32( 27, 24, 33, 224 ) );
+	ImGui::PushStyleColor( ImGuiCol_FrameBg, bg );
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0, 0, 0, 0 ) );
 	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
 	ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 8, 4 ) );
 	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, 0 ) );
+
+	// make a fullscreen window so you can't interact with menus while console is open
 	ImGui::SetNextWindowPos( ImVec2() );
 	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
-	ImGui::Begin( "console", NULL, ImGuiWindowFlags_NoDecoration );
+	ImGui::Begin( "console", WindowZOrder_Console, ImGuiWindowFlags_NoDecoration );
 
 	{
-		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 27, 24, 33, 224 ) );
+		ImGui::PushStyleColor( ImGuiCol_ChildBg, bg );
 		ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8, 4 ) );
 		ImGui::BeginChild( "consoletext", ImVec2( 0, frame_static.viewport_height * 0.4 - ImGui::GetFrameHeightWithSpacing() - 3 ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
 		{
@@ -296,10 +259,10 @@ void Con_Draw( int pressed_key ) {
 				ImGui::SetScrollHereY( 1.0f );
 			console.scroll_to_bottom = false;
 
-			if( pressed_key == K_PGUP || pressed_key == K_PGDN ) {
+			if( ImGui::IsKeyPressed( K_PGUP ) || ImGui::IsKeyPressed( K_PGDN ) ) {
 				float scroll = ImGui::GetScrollY();
 				float page = ImGui::GetWindowSize().y - ImGui::GetTextLineHeight();
-				scroll += page * ( pressed_key == K_PGUP ? -1 : 1 );
+				scroll += page * ( ImGui::IsKeyPressed( K_PGUP ) ? -1 : 1 );
 				scroll = bound( 0.0f, scroll, ImGui::GetScrollMaxY() );
 				ImGui::SetScrollY( scroll );
 			}
@@ -345,6 +308,10 @@ void Con_Draw( int pressed_key ) {
 	ImGui::PopStyleVar( 3 );
 	ImGui::PopStyleColor( 2 );
 	ImGui::PopFont();
+
+	if( ImGui::IsKeyPressed( K_ESCAPE ) ) {
+		Con_Close();
+	}
 
 	QMutex_Unlock( console.mutex );
 }
@@ -462,546 +429,5 @@ static void TabCompletion( char * buf, int buf_size ) {
 
 	for( size_t i = 0; i < ARRAY_COUNT( completion_lists ); i++ ) {
 		Mem_TempFree( completion_lists[i] );
-	}
-}
-
-/*
- * chat stuff
- */
-
-// keep these around from previous Con_DrawChat call
-static int con_chatX, con_chatY;
-static int con_chatWidth;
-static struct qfontface_s *con_chatFont;
-
-// messagemode[2]
-static bool chat_team;
-#define     MAXCMDLINE  256
-static char chat_buffer[MAXCMDLINE];
-static int chat_prestep = 0;
-static unsigned int chat_linepos = 0;
-static unsigned int chat_bufferlen = 0;
-
-#define ctrl_is_down ( Key_IsDown( K_LCTRL ) || Key_IsDown( K_RCTRL ) )
-
-/*
-* Con_SetMessageMode
-*
-* Called from CL_SetKeyDest
-*/
-void Con_SetMessageMode( void ) {
-	bool message = ( cls.key_dest == key_message );
-
-	if( message ) {
-		Cvar_ForceSet( "con_messageMode", chat_team ? "2" : "1" );
-	} else {
-		Cvar_ForceSet( "con_messageMode", "0" );
-	}
-}
-
-/*
-* Con_MessageMode_f
-*/
-static void Con_MessageMode_f( void ) {
-	chat_team = false;
-	if( cls.state == CA_ACTIVE && !cls.demo.playing ) {
-		CL_SetKeyDest( key_message );
-	}
-}
-
-/*
-* Con_MessageMode2_f
-*/
-static void Con_MessageMode2_f( void ) {
-	chat_team = Cmd_Exists( "say_team" ); // if not, make it a normal "say: "
-	if( cls.state == CA_ACTIVE && !cls.demo.playing ) {
-		CL_SetKeyDest( key_message );
-	}
-}
-
-/*
-* Q_ColorCharCount
-*/
-static int Q_ColorCharCount( const char *s, int byteofs ) {
-	wchar_t c;
-	const char *end = s + byteofs;
-	int charcount = 0;
-
-	while( s < end ) {
-		int gc = Q_GrabWCharFromColorString( &s, &c, NULL );
-		if( gc == GRABCHAR_CHAR ) {
-			charcount++;
-		} else if( gc == GRABCHAR_COLOR ) {
-			;
-		} else if( gc == GRABCHAR_END ) {
-			break;
-		} else {
-			assert( 0 );
-		}
-	}
-
-	return charcount;
-}
-
-/*
-* Q_ColorCharOffset
-*/
-static int Q_ColorCharOffset( const char *s, int charcount ) {
-	const char *start = s;
-	wchar_t c;
-
-	while( *s && charcount ) {
-		int gc = Q_GrabWCharFromColorString( &s, &c, NULL );
-		if( gc == GRABCHAR_CHAR ) {
-			charcount--;
-		} else if( gc == GRABCHAR_COLOR ) {
-			;
-		} else if( gc == GRABCHAR_END ) {
-			break;
-		} else {
-			assert( 0 );
-		}
-	}
-
-	return s - start;
-}
-
-/*
-* Con_ChatPrompt
-*
-* Returns the prompt for the chat input
-*/
-static const char *Con_ChatPrompt( void ) {
-	if( chat_team || ctrl_is_down ) {
-		return "say (to team):";
-	} else {
-		return "say:";
-	}
-}
-
-/*
-* Con_DrawChat
-*/
-void Con_DrawChat( int x, int y, int width, struct qfontface_s *font ) {
-	return;
-}
-
-/*
-* Con_SendChatMessage
-*/
-static void Con_SendChatMessage( const char *text, bool team ) {
-	const char *cmd;
-	char buf[MAX_CHAT_BYTES], *p;
-
-	// convert double quotes to single quotes
-	Q_strncpyz( buf, text, sizeof( buf ) );
-	for( p = buf; *p; p++ )
-		if( *p == '"' ) {
-			*p = '\'';
-		}
-
-	if( team && Cmd_Exists( "say_team" ) ) {
-		cmd = "say_team";
-	} else if( Cmd_Exists( "say" ) ) {
-		cmd = "say";
-	} else {
-		cmd = "cmd say";
-	}
-
-	Cbuf_AddText( va( "%s \"%s\"\n", cmd, buf ) );
-}
-
-/*
-* Con_MessageKeyPaste
-*/
-static void Con_MessageKeyPaste( void ) {
-	char *cbd;
-	char *tok;
-	size_t i, next;
-
-	cbd = CL_GetClipboardData();
-	if( cbd ) {
-		tok = strtok( cbd, "\n\r\b" );
-
-		// only allow pasting of one line for malicious reasons
-		if( tok != NULL ) {
-			i = 0;
-			while( tok[i] ) {
-				next = Q_Utf8SyncPos( tok, i + 1, UTF8SYNC_RIGHT );
-				if( next + chat_bufferlen >= MAX_CHAT_BYTES ) {
-					break;
-				}
-				i = next;
-			}
-
-			if( i ) {
-				memmove( chat_buffer + chat_linepos + i, chat_buffer + chat_linepos, chat_bufferlen - chat_linepos + 1 );
-				memcpy( chat_buffer + chat_linepos, tok, i );
-				chat_linepos += i;
-				chat_bufferlen += i;
-			}
-
-			tok = strtok( NULL, "\n\r\b" );
-
-			if( tok != NULL ) {
-				Con_SendChatMessage( chat_buffer, chat_team );
-				chat_bufferlen = 0;
-				chat_linepos = 0;
-				chat_buffer[0] = 0;
-				CL_SetKeyDest( key_game );
-			}
-		}
-
-		CL_FreeClipboardData( cbd );
-	}
-}
-
-/*
-* Con_NumPadValue
-*/
-static int Con_NumPadValue( int key ) {
-	switch( key ) {
-		case KP_SLASH:
-			return '/';
-
-		case KP_STAR:
-			return '*';
-
-		case KP_MINUS:
-			return '-';
-
-		case KP_PLUS:
-			return '+';
-
-		case KP_HOME:
-			return '7';
-
-		case KP_UPARROW:
-			return '8';
-
-		case KP_PGUP:
-			return '9';
-
-		case KP_LEFTARROW:
-			return '4';
-
-		case KP_5:
-			return '5';
-
-		case KP_RIGHTARROW:
-			return '6';
-
-		case KP_END:
-			return '1';
-
-		case KP_DOWNARROW:
-			return '2';
-
-		case KP_PGDN:
-			return '3';
-
-		case KP_INS:
-			return '0';
-
-		case KP_DEL:
-			return '.';
-	}
-
-	return key;
-}
-
-/*
-* Con_MessageCharEvent
-*/
-void Con_MessageCharEvent( wchar_t key ) {
-	key = Con_NumPadValue( key );
-
-	switch( key ) {
-		case 12:
-			// CTRL - L : clear
-			chat_bufferlen = 0;
-			chat_linepos = 0;
-			chat_buffer[0] = '\0';
-			return;
-		case 1: // CTRL+A: jump to beginning of line (same as HOME)
-			chat_linepos = 0;
-			return;
-		case 5: // CTRL+E: jump to end of line (same as END)
-			chat_linepos = chat_bufferlen;
-			return;
-		case 22: // CTRL - V : paste
-			Con_MessageKeyPaste();
-			return;
-	}
-
-	if( key < 32 || key > 0xFFFF ) {
-		return; // non-printable
-
-	}
-	if( chat_linepos < MAX_CHAT_BYTES - 1 ) {
-		const char *utf = Q_WCharToUtf8Char( key );
-		size_t utflen = strlen( utf );
-
-		if( chat_bufferlen + utflen >= MAX_CHAT_BYTES ) {
-			return;     // won't fit
-
-		}
-		// move remainder to the right
-		memmove( chat_buffer + chat_linepos + utflen,
-				 chat_buffer + chat_linepos,
-				 strlen( chat_buffer + chat_linepos ) + 1 ); // +1 for trailing 0
-
-		// insert the char sequence
-		memcpy( chat_buffer + chat_linepos, utf, utflen );
-		chat_bufferlen += utflen;
-		chat_linepos += utflen;
-	}
-}
-
-/*
-* Con_MessageCompletion
-*/
-static void Con_MessageCompletion( const char *partial, bool teamonly ) {
-	char comp[256];
-	size_t comp_len;
-	size_t partial_len;
-	char **args;
-	const char *p;
-
-	// only complete at the end of the line
-	if( chat_linepos != chat_bufferlen ) {
-		return;
-	}
-
-	p = strrchr( chat_buffer, ' ' );
-	if( p && *( p + 1 ) ) {
-		partial = p + 1;
-	} else {
-		partial = chat_buffer;
-	}
-
-	comp[0] = '\0';
-
-	args = Cmd_CompleteBuildArgListExt( teamonly ? "say_team" : "say", partial );
-	if( args ) {
-		int i;
-
-		// check for single match
-		if( args[0] && !args[1] ) {
-			Q_strncpyz( comp, args[0], sizeof( comp ) );
-		} else if( args[0] ) {
-			char ch;
-			size_t start_pos, pos;
-
-			start_pos = strlen( partial );
-			for( pos = start_pos; pos + 1 < sizeof( comp ); pos++ ) {
-				ch = args[0][pos];
-				if( !ch ) {
-					break;
-				}
-				for( i = 1; args[i] && args[i][pos] == ch; i++ ) ;
-				if( args[i] ) {
-					break;
-				}
-			}
-			Q_strncpyz( comp, args[0], sizeof( comp ) );
-			comp[pos] = '\0';
-		}
-
-		Mem_Free( args );
-	}
-
-	comp_len = 0;
-	partial_len = strlen( partial );
-
-	if( comp[0] != '\0' ) {
-		comp_len = strlen( comp );
-
-		// add ', ' to string if completing at the beginning of the string
-		if( comp[0] && ( chat_linepos == partial_len ) && ( chat_bufferlen + comp_len + 2 < MAX_CHAT_BYTES - 1 ) ) {
-			Q_strncatz( comp, ", ", sizeof( comp ) );
-			comp_len += 2;
-		}
-	} else {
-		int c, v, a, t;
-
-		c = Cmd_CompleteCountPossible( partial );
-		v = Cvar_CompleteCountPossible( partial );
-		a = Cmd_CompleteAliasCountPossible( partial );
-		t = c + v + a;
-
-		if( t > 0 ) {
-			int i;
-			char **list[5] = { 0, 0, 0, 0, 0 };
-			const char *cmd = NULL;
-
-			if( c ) {
-				cmd = *( list[0] = Cmd_CompleteBuildList( partial ) );
-			}
-			if( v ) {
-				cmd = *( list[1] = Cvar_CompleteBuildList( partial ) );
-			}
-			if( a ) {
-				cmd = *( list[2] = Cmd_CompleteAliasBuildList( partial ) );
-			}
-
-			if( t == 1 ) {
-				comp_len = strlen( cmd );
-			} else {
-				comp_len = partial_len;
-				do {
-					for( i = 0; i < 4; i++ ) {
-						char ch = cmd[comp_len];
-						char **l = list[i];
-						if( l ) {
-							while( *l && ( *l )[comp_len] == ch )
-								l++;
-							if( *l ) {
-								break;
-							}
-						}
-					}
-					if( i == 4 ) {
-						comp_len++;
-					}
-				} while( i == 4 );
-			}
-
-			if( comp_len >= sizeof( comp ) - 1 ) {
-				comp_len = sizeof( comp ) - 1;
-			}
-
-			if( comp_len > partial_len ) {
-				memcpy( comp, cmd, comp_len );
-				comp[comp_len] = '\0';
-			}
-
-			for( i = 0; i < 4; ++i ) {
-				if( list[i] ) {
-					Mem_TempFree( list[i] );
-				}
-			}
-
-			if( t == 1 && comp_len < sizeof( comp ) - 1 ) {
-				Q_strncatz( comp, " ", sizeof( comp ) );
-				comp_len++;
-			}
-		}
-	}
-
-	if( comp_len == 0 || comp_len == partial_len || chat_bufferlen + comp_len >= MAX_CHAT_BYTES - 1 ) {
-		return;     // won't fit
-	}
-
-	chat_linepos -= partial_len;
-	chat_bufferlen -= partial_len;
-	memcpy( chat_buffer + chat_linepos, comp, comp_len + 1 );
-	chat_bufferlen += comp_len;
-	chat_linepos += comp_len;
-}
-
-/*
-* Con_MessageKeyDown
-*/
-void Con_MessageKeyDown( int key ) {
-	key = Con_NumPadValue( key );
-
-	if( key == K_ENTER || key == KP_ENTER ) {
-		if( chat_bufferlen > 0 ) {
-			Con_SendChatMessage( chat_buffer, chat_team || ctrl_is_down );
-			chat_bufferlen = 0;
-			chat_linepos = 0;
-			chat_buffer[0] = 0;
-		}
-
-		CL_SetKeyDest( key_game );
-		return;
-	}
-
-	if( key == K_HOME || key == KP_HOME ) {
-		if( !ctrl_is_down ) {
-			chat_linepos = 0;
-		}
-		return;
-	}
-
-	if( key == K_END || key == KP_END ) {
-		if( !ctrl_is_down ) {
-			chat_linepos = chat_bufferlen;
-		}
-		return;
-	}
-
-	if( ( key == K_INS || key == KP_INS ) && ( Key_IsDown( K_LSHIFT ) || Key_IsDown( K_RSHIFT ) ) ) {
-		Con_MessageKeyPaste();
-		return;
-	}
-
-	if( key == K_TAB ) {
-		Con_MessageCompletion( chat_buffer, chat_team || ctrl_is_down );
-		return;
-	}
-
-	if( key == K_LEFTARROW || key == KP_LEFTARROW ) {
-		if( chat_linepos > 0 ) {
-			int charcount;
-
-			// jump over invisible color sequences
-			charcount = Q_ColorCharCount( chat_buffer, chat_linepos );
-			chat_linepos = Q_ColorCharOffset( chat_buffer, charcount - 1 );
-		}
-		return;
-	}
-
-	if( key == K_RIGHTARROW || key == KP_RIGHTARROW ) {
-		if( chat_linepos < chat_bufferlen ) {
-			int charcount;
-
-			// jump over invisible color sequences
-			charcount = Q_ColorCharCount( chat_buffer, chat_linepos );
-			chat_linepos = Q_ColorCharOffset( chat_buffer, charcount + 1 );
-		}
-		return;
-	}
-
-	if( key == K_DEL ) {
-		char *s = chat_buffer + chat_linepos;
-		int wc = Q_GrabWCharFromUtf8String( ( const char ** )&s );
-		if( wc ) {
-			memmove( chat_buffer + chat_linepos, s, strlen( s ) + 1 );
-			chat_bufferlen -= ( s - ( chat_buffer + chat_linepos ) );
-		}
-		return;
-	}
-
-	if( key == K_BACKSPACE ) {
-		if( chat_linepos ) {
-			// skip to the end of color sequence
-			while( 1 ) {
-				char *tmp = chat_buffer + chat_linepos;
-				wchar_t c;
-				if( Q_GrabWCharFromColorString( ( const char ** )&tmp, &c, NULL ) == GRABCHAR_COLOR ) {
-					chat_linepos = tmp - chat_buffer; // advance, try again
-				} else {                                                                             // GRABCHAR_CHAR or GRABCHAR_END
-					break;
-				}
-			}
-
-			{
-				int oldpos = chat_linepos;
-				chat_linepos = Q_Utf8SyncPos( chat_buffer, chat_linepos - 1, UTF8SYNC_LEFT );
-				memmove( chat_buffer + chat_linepos, chat_buffer + oldpos, strlen( chat_buffer + oldpos ) + 1 );
-				chat_bufferlen -= ( oldpos - chat_linepos );
-			}
-		}
-		return;
-	}
-
-	if( key == K_ESCAPE ) {
-		CL_SetKeyDest( key_game );
-		chat_bufferlen = 0;
-		chat_linepos = 0;
-		chat_buffer[0] = 0;
-		return;
 	}
 }

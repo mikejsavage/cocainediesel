@@ -78,19 +78,8 @@ textures/world/bluedistortwater
 	sort underwater
 
 	{
-		map textures/world/sh/water2
-		blendFunc GL_dst_color GL_one
-		//rgbgen const 0.01 0.075 0.075
-		rgbgen const 0.1 0.175 0.175
-		tcmod scale .25 .25
-		tcmod scroll .02 .01
-	}
-
-	{
-		map textures/world/sh/water1
-		blendFunc GL_dst_color GL_one
-		rgbgen const 0.2 0.2 0.2
-		tcmod scale -.25 -.25
-		tcmod scroll .02 .02
+		map $whiteImage
+		rgbgen const 0.2 0.6 1.0
+		alphagen const 0.25
 	}
 }

@@ -17,11 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// Z_zone.c
 
 #include "qcommon.h"
-
-//#define MEMTRASH
 
 #define POOLNAMESIZE 128
 
@@ -311,10 +308,6 @@ void _Mem_Free( void *data, int musthave, int canthave, const char *filename, in
 
 	QMutex_Unlock( memMutex );
 
-#ifdef MEMTRASH
-	memset( mem, 0xBF, sizeof( memheader_t ) + mem->size + sizeof( int ) );
-#endif
-
 	free( base );
 }
 
@@ -426,9 +419,6 @@ void _Mem_FreePool( mempool_t **pool, int musthave, int canthave, const char *fi
 	*chainAddress = ( *pool )->next;
 
 	// free the pool itself
-#ifdef MEMTRASH
-	memset( *pool, 0xBF, sizeof( mempool_t ) );
-#endif
 	free( *pool );
 	*pool = NULL;
 }

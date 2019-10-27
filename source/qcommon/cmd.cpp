@@ -37,7 +37,6 @@ static bool cmd_initialized = false;
 
 static trie_t *cmd_alias_trie = NULL;
 
-static bool cmd_wait;
 static int alias_count;    // for detecting runaway loops
 
 static int Cmd_Archive( void *alias, void *ignored ) {
@@ -49,20 +48,6 @@ static int Cmd_PatternMatchesAlias( void *alias, void *pattern ) {
 	assert( alias );
 	return !pattern || Com_GlobMatch( (const char *) pattern, ( (cmd_alias_t *) alias )->name, false );
 }
-
-//=============================================================================
-
-/*
-* Cmd_Wait_f
-*
-* Causes execution of the remainder of the command buffer to be delayed until
-* next frame.  This allows commands like:
-* bind g "impulse 5 ; +attack ; wait ; -attack ; impulse 2"
-*/
-static void Cmd_Wait_f( void ) {
-	cmd_wait = true;
-}
-
 
 /*
 =============================================================================
@@ -302,13 +287,6 @@ void Cbuf_Execute( void ) {
 
 		// execute the command line
 		Cmd_ExecuteString( line );
-
-		if( cmd_wait ) {
-			// skip out while text still remains in buffer, leaving it
-			// for next frame
-			cmd_wait = false;
-			break;
-		}
 	}
 
 	Cbuf_FreeSpace();
@@ -894,19 +872,6 @@ void Cmd_SetCompletionFunc( const char *cmd_name, xcompletionf_t completion_func
 }
 
 /*
-* Cmd_VStr_f
-*/
-static void Cmd_VStr_f( void ) {
-	if( Cmd_Argc() != 2 ) {
-		Com_Printf( "vstr <variable> : execute a variable command\n" );
-	} else {
-		Cbuf_InsertText( Cvar_String( Cmd_Argv( 1 ) ) );
-	}
-}
-
-
-
-/*
 * Cmd_CompleteCountPossible
 */
 int Cmd_CompleteCountPossible( const char *partial ) {
@@ -1322,8 +1287,6 @@ void Cmd_Init( void ) {
 	Cmd_AddCommand( "unalias", Cmd_Unalias_f );
 	Cmd_AddCommand( "unaliasall", Cmd_UnaliasAll_f );
 	Cmd_AddCommand( "alias", Cmd_Alias_f );
-	Cmd_AddCommand( "wait", Cmd_Wait_f );
-	Cmd_AddCommand( "vstr", Cmd_VStr_f );
 
 	Cmd_SetCompletionFunc( "alias", Cmd_CompleteAliasBuildList );
 	Cmd_SetCompletionFunc( "aliasa", Cmd_CompleteAliasBuildList );
@@ -1349,8 +1312,6 @@ void Cmd_Shutdown( void ) {
 		Cmd_RemoveCommand( "unalias" );
 		Cmd_RemoveCommand( "unaliasall" );
 		Cmd_RemoveCommand( "alias" );
-		Cmd_RemoveCommand( "wait" );
-		Cmd_RemoveCommand( "vstr" );
 
 		// this is somewhat ugly IMO
 		for( i = 0; i < MAX_STRING_TOKENS && cmd_argv_sizes[i]; i++ ) {

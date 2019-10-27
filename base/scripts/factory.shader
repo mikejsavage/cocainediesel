@@ -34,12 +34,3 @@ textures/factory/glass_singlesided_distancebloom
 		rgbgen wave distanceramp 0 1 200 500
 	}
 }
-
-textures/factory/factory_wall_grey
-{
-	qer_editorimage textures/factory/factory_wall_grey
-
-	{
-		material textures/factory/factory_wall_grey textures/factory/factory_wall_norm
-	}
-}

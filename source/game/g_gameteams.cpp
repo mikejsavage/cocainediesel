@@ -34,12 +34,6 @@ cvar_t *g_teams_allow_uneven;
 void G_Teams_Init( void ) {
 	edict_t *ent;
 
-	// set the team names with default ones
-	trap_ConfigString( CS_TEAM_SPECTATOR_NAME, GS_DefaultTeamName( TEAM_SPECTATOR ) );
-	trap_ConfigString( CS_TEAM_PLAYERS_NAME, GS_DefaultTeamName( TEAM_PLAYERS ) );
-	trap_ConfigString( CS_TEAM_ALPHA_NAME, GS_DefaultTeamName( TEAM_ALPHA ) );
-	trap_ConfigString( CS_TEAM_BETA_NAME, GS_DefaultTeamName( TEAM_BETA ) );
-
 	g_teams_maxplayers = trap_Cvar_Get( "g_teams_maxplayers", "0", CVAR_ARCHIVE );
 	g_teams_allow_uneven = trap_Cvar_Get( "g_teams_allow_uneven", "1", CVAR_ARCHIVE );
 
@@ -331,8 +325,7 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 		}
 		if( G_Teams_JoinTeam( ent, TEAM_PLAYERS ) ) {
 			if( !silent ) {
-				G_PrintMsg( NULL, "%s%s joined the %s team.\n",
-							ent->r.client->netname, S_COLOR_WHITE, GS_TeamName( ent->s.team ) );
+				G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->netname, GS_TeamName( ent->s.team ) );
 			}
 		}
 		return true;
@@ -364,8 +357,7 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 		if( team != -1 ) {
 			if( G_Teams_JoinTeam( ent, team ) ) {
 				if( !silent ) {
-					G_PrintMsg( NULL, "%s%s joined the %s team.\n",
-								ent->r.client->netname, S_COLOR_WHITE, GS_TeamName( ent->s.team ) );
+					G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->netname, GS_TeamName( ent->s.team ) );
 				}
 				return true;
 			}
@@ -411,8 +403,7 @@ void G_Teams_Join_Cmd( edict_t *ent ) {
 			return;
 		}
 		if( G_Teams_JoinTeam( ent, team ) ) {
-			G_PrintMsg( NULL, "%s%s joined the %s%s team.\n", ent->r.client->netname, S_COLOR_WHITE,
-						GS_TeamName( ent->s.team ), S_COLOR_WHITE );
+			G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->netname, GS_TeamName( ent->s.team ) );
 			return;
 		}
 	} else {
@@ -703,26 +694,19 @@ void G_InitChallengersQueue( void ) {
 //======================================================================
 
 void G_Say_Team( edict_t *who, const char *inmsg, bool checkflood ) {
-	char *msg;
-	char msgbuf[256];
-	char outmsg[256];
-	char *p;
-	char current_color[3];
-
 	if( who->s.team != TEAM_SPECTATOR && ( !GS_TeamBasedGametype() || GS_InvidualGameType() ) ) {
 		Cmd_Say_f( who, false, true );
 		return;
 	}
 
-	if( checkflood ) {
-		if( CheckFlood( who, true ) ) {
-			return;
-		}
+	if( checkflood && CheckFlood( who, true ) ) {
+		return;
 	}
 
+	char msgbuf[256];
 	Q_strncpyz( msgbuf, inmsg, sizeof( msgbuf ) );
 
-	msg = msgbuf;
+	char * msg = msgbuf;
 	if( *msg == '\"' ) {
 		msg[strlen( msg ) - 1] = 0;
 		msg++;
@@ -730,30 +714,10 @@ void G_Say_Team( edict_t *who, const char *inmsg, bool checkflood ) {
 
 	if( who->s.team == TEAM_SPECTATOR ) {
 		// if speccing, also check for non-team flood
-		if( checkflood ) {
-			if( CheckFlood( who, false ) ) {
-				return;
-			}
-		}
-
-		G_ChatMsg( NULL, who, true, "%s", msg );
-		return;
-	}
-
-	Q_strncpyz( current_color, S_COLOR_WHITE, sizeof( current_color ) );
-
-	memset( outmsg, 0, sizeof( outmsg ) );
-
-	for( p = outmsg; *msg && (size_t)( p - outmsg ) < sizeof( outmsg ) - 3; msg++ ) {
-		if( *msg == '^' ) {
-			*p++ = *msg++;
-			*p++ = *msg;
-			Q_strncpyz( current_color, p - 2, sizeof( current_color ) );
-		} else {
-			*p++ = *msg;
+		if( checkflood && CheckFlood( who, false ) ) {
+			return;
 		}
 	}
-	*p = 0;
 
-	G_ChatMsg( NULL, who, true, "%s", outmsg );
+	G_ChatMsg( NULL, who, true, "%s", msg );
 }

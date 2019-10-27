@@ -85,15 +85,6 @@ static Mat4 EulerAnglesToMat4( float pitch, float yaw, float roll ) {
 	return m;
 }
 
-static Mat4 Mat4_Translation( float x, float y, float z ) {
-	return Mat4(
-		1, 0, 0, x,
-		0, 1, 0, y,
-		0, 0, 1, z,
-		0, 0, 0, 1
-	);
-}
-
 /*
 * CG_ParseAnimationScript
 *
@@ -165,7 +156,7 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata *metadata, char *filena
 				float roll = atof( COM_ParseExt( &ptr, false ) );
 
 				tag->joint_idx = joint_idx;
-				tag->transform = Mat4_Translation( forward, right, up ) * EulerAnglesToMat4( pitch, yaw, roll );
+				tag->transform = Mat4Translation( forward, right, up ) * EulerAnglesToMat4( pitch, yaw, roll );
 			}
 			else {
 				CG_Printf( "%s: Unknown joint name: %s\n", filename, joint_name );
@@ -236,9 +227,9 @@ static bool CG_LoadPlayerModel( PlayerModelMetadata *metadata, const char *filen
 		return false;
 	}
 
-	metadata->name = CG_CopyString( filename );
+	metadata->name_hash = Hash64( filename );
 
-	CG_RegisterPlayerSounds( metadata );
+	CG_RegisterPlayerSounds( metadata, filename );
 
 	return true;
 }
@@ -251,8 +242,9 @@ static bool CG_LoadPlayerModel( PlayerModelMetadata *metadata, const char *filen
 PlayerModelMetadata *CG_RegisterPlayerModel( const char *filename ) {
 	PlayerModelMetadata *metadata;
 
+	u64 hash = Hash64( filename );
 	for( metadata = cg_PModelInfos; metadata; metadata = metadata->next ) {
-		if( !Q_stricmp( metadata->name, filename ) ) {
+		if( hash == metadata->name_hash ) {
 			return metadata;
 		}
 	}
@@ -269,26 +261,9 @@ PlayerModelMetadata *CG_RegisterPlayerModel( const char *filename ) {
 	return metadata;
 }
 
-/*
-* CG_RegisterBasePModel
-* Default fallback replacements
-*/
-void CG_RegisterBasePModel( void ) {
-	char filename[MAX_QPATH];
-
-	// metadata
-	Q_snprintfz( filename, sizeof( filename ), "models/players/%s", DEFAULT_PLAYERMODEL );
-	cgs.basePModelInfo = CG_RegisterPlayerModel( filename );
-
-	if( !cgs.basePModelInfo ) {
-		CG_Error( "'Default Player Model'(%s): failed to load", DEFAULT_PLAYERMODEL );
-	}
-}
-
 //======================================================================
 //							tools
 //======================================================================
-
 
 /*
 * CG_GrabTag
@@ -375,6 +350,8 @@ bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result ) {
 		return true;
 	}
 
+	return false;
+
 	// it's a 3rd person model
 	pmodel = &cg_entPModels[entnum];
 	VectorCopy( pmodel->projectionSource.origin, tag_result->origin );
@@ -429,7 +406,7 @@ static float CG_OutlineScaleForDist( const entity_t * e, float maxdist, float sc
 * CG_AddColoredOutLineEffect
 */
 void CG_AddColoredOutLineEffect( entity_t *ent, int effects, uint8_t r, uint8_t g, uint8_t b, uint8_t a ) {
-	if( !cg_outlineModels->integer || !( effects & EF_OUTLINE ) ) {
+	if( !cg_outlineModels->integer ) {
 		ent->outlineHeight = 0;
 		return;
 	}
@@ -775,29 +752,16 @@ static void CG_UpdatePModelAnimations( centity_t *cent ) {
 * Called each new serverframe
 */
 void CG_UpdatePlayerModelEnt( centity_t *cent ) {
-	pmodel_t *pmodel;
-
 	// start from clean
 	memset( &cent->ent, 0, sizeof( cent->ent ) );
 	cent->ent.scale = 1.0f;
 
-	pmodel = &cg_entPModels[cent->current.number];
-	CG_PModelForCentity( cent, &pmodel->metadata );
+	pmodel_t * pmodel = &cg_entPModels[cent->current.number];
+	pmodel->metadata = CG_PModelForCentity( cent );
 
 	CG_TeamColorForEntity( cent->current.number, cent->ent.shaderRGBA );
 
 	Vector4Set( cent->outlineColor, 0, 0, 0, 255 );
-
-	if( cg_outlinePlayers->integer ) {
-		cent->effects |= EF_OUTLINE; // add EF_OUTLINE to players
-	} else {
-		cent->effects &= ~EF_OUTLINE;
-	}
-
-	// fallback
-	if( !pmodel->metadata ) {
-		pmodel->metadata = cgs.basePModelInfo;
-	}
 
 	// Spawning (teleported bit) forces nobacklerp and the interruption of EVENT_CHANNEL animations
 	if( cent->current.teleported ) {
@@ -952,14 +916,17 @@ void CG_DrawPlayer( centity_t *cent ) {
 		VectorCopy( origin, cent->ent.origin2 );
 	}
 
+	TempAllocator temp = cls.frame_arena.temp();
+
 	float lower_time, upper_time;
 	CG_GetAnimationTimes( pmodel, cg.time, &lower_time, &upper_time );
-	Span< TRS > lower = SampleAnimation( cls.frame_arena, meta->model, lower_time );
-	Span< TRS > upper = SampleAnimation( cls.frame_arena, meta->model, upper_time );
+	Span< TRS > lower = SampleAnimation( &temp, meta->model, lower_time );
+	Span< TRS > upper = SampleAnimation( &temp, meta->model, upper_time );
 	MergeLowerUpperPoses( lower, upper, meta->model, meta->upper_root_joint );
 
 	// add skeleton effects (pose is unmounted yet)
-	if( cent->current.type != ET_CORPSE ) {
+	bool corpse = cent->current.type == ET_CORPSE;
+	if( !corpse ) {
 		vec3_t tmpangles;
 		// if it's our client use the predicted angles
 		if( cg.view.playerPrediction && ISVIEWERENTITY( cent->current.number ) ) {
@@ -999,17 +966,23 @@ void CG_DrawPlayer( centity_t *cent ) {
 		}
 	}
 
-	MatrixPalettes pose = ComputeMatrixPalettes( cls.frame_arena, meta->model, lower );
+	MatrixPalettes pose = ComputeMatrixPalettes( &temp, meta->model, lower );
 
 	CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
 
 	Mat4 transform = FromQFAxisAndOrigin( cent->ent.axis, cent->ent.origin );
 
 	Vec4 color = CG_TeamColorVec4( cent->current.team );
+	if( corpse ) {
+		color *= Vec4( 0.25f, 0.25f, 0.25f, 1.0 );
+	}
+
 	DrawModel( meta->model, transform, color, pose.skinning_matrices );
 
-	if( cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR || cg.predictedPlayerState.stats[ STAT_TEAM ] == cent->current.team ) {
-		DrawTeammateModel( meta->model, transform, color, pose.skinning_matrices );
+	bool speccing = cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR;
+	bool same_team = GS_TeamBasedGametype() && cg.predictedPlayerState.stats[ STAT_TEAM ] == cent->current.team;
+	if( !corpse && ( speccing || same_team ) ) {
+		DrawModelSilhouette( meta->model, transform, color, pose.skinning_matrices );
 	}
 
 	float outline_height = CG_OutlineScaleForDist( &cent->ent, 4096, 1.0f );
@@ -1033,6 +1006,10 @@ void CG_DrawPlayer( centity_t *cent ) {
 				tag = meta->tag_head;
 			Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag );
 			DrawModel( attached_model, tag_transform, vec4_white );
+
+			if( speccing || same_team ) {
+				DrawModelSilhouette( attached_model, tag_transform, color );
+			}
 		}
 	}
 }

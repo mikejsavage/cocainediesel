@@ -30,8 +30,3 @@ void Sys_Mutex_Lock( qmutex_t *mutex );
 void Sys_Mutex_Unlock( qmutex_t *mutex );
 int Sys_Atomic_FetchAdd( volatile int *value, int add );
 bool Sys_Atomic_CAS( volatile int *value, int oldval, int newval );
-
-int Sys_CondVar_Create( qcondvar_t **pcond );
-void Sys_CondVar_Destroy( qcondvar_t *cond );
-void Sys_CondVar_Wait( qcondvar_t *cond, qmutex_t *mutex );
-void Sys_CondVar_Wake( qcondvar_t *cond );

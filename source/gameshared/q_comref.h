@@ -146,20 +146,15 @@ typedef struct {
 #define SERVER_PROTECTED_CONFIGSTRINGS 4
 
 #define CS_MAPNAME          4
-#define CS_STATNUMS         5
-#define CS_GAMETYPENAME     6
-#define CS_AUTORECORDSTATE  7
+#define CS_GAMETYPENAME     5
+#define CS_AUTORECORDSTATE  6
 
-#define CS_TEAM_SPECTATOR_NAME 8
-#define CS_TEAM_PLAYERS_NAME 9
-#define CS_TEAM_ALPHA_NAME  10
-#define CS_TEAM_BETA_NAME   11
+#define CS_MATCHSCORE       7
 
-#define CS_MATCHNAME        12
-#define CS_MATCHSCORE       13
-
-#define CS_ACTIVE_CALLVOTE  14
-#define CS_ACTIVE_CALLVOTE_VOTES 15
+#define CS_CALLVOTE 8
+#define CS_CALLVOTE_YES_VOTES 9
+#define CS_CALLVOTE_NO_VOTES 10
+#define CS_CALLVOTE_REQUIRED_VOTES 11
 
 #define CS_WORLDMODEL       30
 #define CS_MAPCHECKSUM      31      // for catching cheater maps
@@ -277,6 +272,7 @@ typedef struct entity_state_s {
 	int damage;                     // EV_BLOOD
 	int targetNum;                  // ET_EVENT specific
 	int colorRGBA;                  // ET_BEAM, ET_EVENT specific
+	RGBA8 silhouetteColor;
 	int radius;                     // ET_GLADIATOR always extended, ET_HUD type, ...
 
 	bool linearMovement;

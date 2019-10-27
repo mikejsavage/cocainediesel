@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "qcommon/string.h"
+#include "qcommon/span2d.h"
 #include "gameshared/q_shared.h"
 #include "client/client.h"
 #include "client/renderer/renderer.h"
@@ -201,7 +202,7 @@ static void Shader_Template( Material * material, const char * material_name, co
 	}
 
 	MaterialLocation location = material_locations[ idx ];
-	TempAllocator temp = cls.frame_arena->temp();
+	TempAllocator temp = cls.frame_arena.temp();
 	DynamicString original( &temp );
 	original.append_raw( location.start, location.end - location.start );
 
@@ -572,6 +573,27 @@ static void LoadBuiltinTextures() {
 
 		missing_texture = NewTexture( config );
 	}
+
+	{
+		u8 data[ 16 * 16 ];
+		Span2D< u8 > image( data, 16, 16 );
+
+		for( int y = 0; y < 16; y++ ) {
+			for( int x = 0; x < 16; x++ ) {
+				float d = Length( Vec2( x - 7.5f, y - 7.5f ) );
+				float a = Clamp01( Unlerp( 1.0f, d, 7.0f ) );
+				image( x, y ) = 255 * ( 1.0f - a );
+			}
+		}
+
+		TextureConfig config;
+		config.width = 16;
+		config.height = 16;
+		config.data = data;
+		config.format = TextureFormat_A_U8;
+
+		AddTexture( Hash64( "$particle" ), config );
+	}
 }
 
 static void LoadDiskTextures() {
@@ -581,6 +603,9 @@ static void LoadDiskTextures() {
 		const char * ext = COM_FileExtension( path );
 		if( ext == NULL || ( strcmp( ext, ".png" ) != 0 && strcmp( ext, ".jpg" ) != 0 ) )
 			continue;
+
+		ZoneScopedN( "Load texture" );
+		ZoneText( path, strlen( path ) );
 
 		assert( num_textures < ARRAY_COUNT( textures ) );
 
@@ -601,7 +626,7 @@ static void LoadDiskTextures() {
 
 		constexpr TextureFormat formats[] = {
 			TextureFormat_R_U8,
-			TextureFormat_RG_U8,
+			TextureFormat_RA_U8,
 			TextureFormat_RGB_U8_sRGB,
 			TextureFormat_RGBA_U8_sRGB,
 		};
@@ -711,7 +736,7 @@ const Material * FindMaterial( const char * name, const Material * def ) {
 }
 
 bool HasAlpha( TextureFormat format ) {
-	return format == TextureFormat_A_U8 || format == TextureFormat_RGBA_U8 || format == TextureFormat_RGBA_U8_sRGB;
+	return format == TextureFormat_A_U8 || format == TextureFormat_RA_U8 || format == TextureFormat_RGBA_U8 || format == TextureFormat_RGBA_U8_sRGB;
 }
 
 static float EvaluateWaveFunc( Wave wave ) {
@@ -743,6 +768,9 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		PipelineState pipeline;
 		pipeline.shader = &shaders.world;
 		pipeline.pass = frame_static.world_opaque_pass;
+		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
+		pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
+		pipeline.set_uniform( "u_BlueNoiseTextureParams", frame_static.blue_noise_uniforms );
 		return pipeline;
 	}
 

@@ -17,13 +17,17 @@ struct SameType< T, T > { enum { value = true }; };
 
 STATIC_ASSERT( ( SameType< u32, GLuint >::value ) );
 
-enum Attribute : GLuint {
-	Attribute_Position,
-	Attribute_Normal,
-	Attribute_TexCoord,
-	Attribute_Color,
-	Attribute_JointIndices,
-	Attribute_JointWeights,
+enum VertexAttribute : GLuint {
+	VertexAttribute_Position,
+	VertexAttribute_Normal,
+	VertexAttribute_TexCoord,
+	VertexAttribute_Color,
+	VertexAttribute_JointIndices,
+	VertexAttribute_JointWeights,
+
+	VertexAttribute_ParticlePosition,
+	VertexAttribute_ParticleScale,
+	VertexAttribute_ParticleColor,
 };
 
 static const u32 UNIFORM_BUFFER_SIZE = 64 * 1024;
@@ -33,6 +37,9 @@ struct DrawCall {
 	Mesh mesh;
 	u32 num_vertices;
 	u32 index_offset;
+
+	u32 num_instances;
+	VertexBuffer instance_data;
 };
 
 static DynamicArray< RenderPass > render_passes( NO_INIT );
@@ -92,8 +99,9 @@ static GLenum PrimitiveTypeToGL( PrimitiveType primitive_type ) {
 static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum * channels, GLenum * type ) {
 	switch( format ) {
 		case TextureFormat_R_U8:
-		case TextureFormat_R_U8Norm:
-			*internal = format == TextureFormat_R_U8 ? GL_R8 : GL_R8_SNORM;
+		case TextureFormat_R_S8:
+		case TextureFormat_A_U8:
+			*internal = format == TextureFormat_R_S8 ? GL_R8_SNORM : GL_R8;
 			*channels = GL_RED;
 			*type = GL_UNSIGNED_BYTE;
 			return;
@@ -103,13 +111,7 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 			*type = GL_UNSIGNED_SHORT;
 			return;
 
-		case TextureFormat_A_U8:
-			*internal = GL_R8;
-			*channels = GL_RED;
-			*type = GL_UNSIGNED_BYTE;
-			return;
-
-		case TextureFormat_RG_U8:
+		case TextureFormat_RA_U8:
 			*internal = GL_RG8;
 			*channels = GL_RG;
 			*type = GL_UNSIGNED_BYTE;
@@ -211,6 +213,10 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 			*num_components = 4;
 			return;
 
+		case VertexFormat_Floatx1:
+			*type = GL_FLOAT;
+			*num_components = 1;
+			return;
 		case VertexFormat_Floatx2:
 			*type = GL_FLOAT;
 			*num_components = 2;
@@ -307,6 +313,8 @@ static bool operator!=( PipelineState::Scissor a, PipelineState::Scissor b ) {
 }
 
 static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
+	TracyGpuZone( "Set pipeline state" );
+
 	if( pipeline.shader != NULL && ( prev_pipeline.shader == NULL || pipeline.shader->program != prev_pipeline.shader->program ) ) {
 		glUseProgram( pipeline.shader->program );
 	}
@@ -336,7 +344,10 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		bool found = false;
 		for( size_t j = 0; j < pipeline.num_textures; j++ ) {
 			if( pipeline.textures[ j ].name_hash == pipeline.shader->textures[ i ] ) {
-				glBindTexture( GL_TEXTURE_2D, pipeline.textures[ j ].texture.texture );
+				GLenum target = pipeline.textures[ j ].texture.msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+				GLenum other_target = pipeline.textures[ j ].texture.msaa ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
+				glBindTexture( other_target, 0 );
+				glBindTexture( target, pipeline.textures[ j ].texture.texture );
 				found = true;
 				break;
 			}
@@ -344,6 +355,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 
 		if( !found ) {
 			glBindTexture( GL_TEXTURE_2D, 0 );
+			glBindTexture( GL_TEXTURE_2D_MULTISAMPLE, 0 );
 		}
 	}
 
@@ -434,10 +446,32 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
 	if( a.pipeline.pass != b.pipeline.pass )
 		return a.pipeline.pass < b.pipeline.pass;
+	if( !render_passes[ a.pipeline.pass ].sorted )
+		return false;
 	return a.pipeline.shader < b.pipeline.shader;
 }
 
+static void SetupAttribute( GLuint index, VertexFormat format, u32 stride = 0, u32 offset = 0 ) {
+	const GLvoid * gl_offset = checked_cast< const GLvoid * >( checked_cast< uintptr_t >( offset ) );
+
+	GLenum type;
+	int num_components;
+	bool integral;
+	GLboolean normalized;
+	VertexFormatToGL( format, &type, &num_components, &integral, &normalized );
+
+	glEnableVertexAttribArray( index );
+	if( integral && !normalized )
+		glVertexAttribIPointer( index, num_components, type, stride, gl_offset );
+	else
+		glVertexAttribPointer( index, num_components, type, normalized, stride, gl_offset );
+}
+
 static void SetupRenderPass( const RenderPass & pass ) {
+	ZoneScoped;
+	ZoneText( pass.name, strlen( pass.name ) );
+	TracyGpuZone( "Setup render pass" );
+
 	if( GLAD_GL_KHR_debug != 0 ) {
 		glPushDebugGroup( GL_DEBUG_SOURCE_APPLICATION, 0, -1, pass.name );
 	}
@@ -462,7 +496,7 @@ static void SetupRenderPass( const RenderPass & pass ) {
 	clear_mask |= pass.clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
 	if( clear_mask != 0 ) {
 		PipelineState::Scissor scissor = prev_pipeline.scissor;
-		if( scissor.x != 0 && scissor.y != 0 && scissor.w != 0 && scissor.h != 0 ) {
+		if( scissor.x != 0 || scissor.y != 0 || scissor.w != 0 || scissor.h != 0 ) {
 			glDisable( GL_SCISSOR_TEST );
 			prev_pipeline.scissor = { };
 		}
@@ -484,6 +518,7 @@ static void SetupRenderPass( const RenderPass & pass ) {
 }
 
 static void SubmitDrawCall( const DrawCall & dc ) {
+	ZoneScoped;
 	TracyGpuZone( "Draw call" );
 
 	SetPipelineState( dc.pipeline, dc.mesh.ccw_winding );
@@ -491,8 +526,21 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	glBindVertexArray( dc.mesh.vao );
 	GLenum primitive = PrimitiveTypeToGL( dc.mesh.primitive_type );
 
-	if( dc.mesh.indices.ebo != 0 ) {
-		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;;
+	if( dc.num_instances != 0 ) {
+		glBindBuffer( GL_ARRAY_BUFFER, dc.instance_data.vbo );
+
+		SetupAttribute( VertexAttribute_ParticlePosition, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, position ) );
+		glVertexAttribDivisor( VertexAttribute_ParticlePosition, 1 );
+		SetupAttribute( VertexAttribute_ParticleScale, VertexFormat_Floatx1, sizeof( GPUParticle ), offsetof( GPUParticle, scale ) );
+		glVertexAttribDivisor( VertexAttribute_ParticleScale, 1 );
+		SetupAttribute( VertexAttribute_ParticleColor, VertexFormat_U8x4_Norm, sizeof( GPUParticle ), offsetof( GPUParticle, color ) );
+		glVertexAttribDivisor( VertexAttribute_ParticleColor, 1 );
+
+		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
+		glDrawElementsInstanced( primitive, dc.num_vertices, type, 0, dc.num_instances );
+	}
+	else if( dc.mesh.indices.ebo != 0 ) {
+		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
 		const void * offset = ( const void * ) uintptr_t( dc.index_offset );
 		glDrawElements( primitive, dc.num_vertices, type, offset );
 	}
@@ -510,33 +558,44 @@ static void SubmitResolveMSAA( Framebuffer fb ) {
 }
 
 void RenderBackendSubmitFrame() {
+	ZoneScoped;
+
 	assert( in_frame );
 	assert( render_passes.size() > 0 );
 	in_frame = false;
 
-	for( UBO ubo : ubos ) {
-		glBindBuffer( GL_UNIFORM_BUFFER, ubo.ubo );
-		glUnmapBuffer( GL_UNIFORM_BUFFER );
+	{
+		ZoneScopedN( "Unmap UBOs" );
+		for( UBO ubo : ubos ) {
+			glBindBuffer( GL_UNIFORM_BUFFER, ubo.ubo );
+			glUnmapBuffer( GL_UNIFORM_BUFFER );
+		}
 	}
 
-	std::stable_sort( draw_calls.begin(), draw_calls.end(), SortDrawCall );
+	{
+		ZoneScopedN( "Sort draw calls" );
+		std::stable_sort( draw_calls.begin(), draw_calls.end(), SortDrawCall );
+	}
 
 	SetupRenderPass( render_passes[ 0 ] );
 	u8 pass_idx = 0;
 
-	for( const DrawCall & dc : draw_calls ) {
-		while( dc.pipeline.pass > pass_idx ) {
-			if( GLAD_GL_KHR_debug != 0 )
-				glPopDebugGroup();
-			pass_idx++;
-			SetupRenderPass( render_passes[ pass_idx ] );
-		}
+	{
+		ZoneScopedN( "Submit draw calls" );
+		for( const DrawCall & dc : draw_calls ) {
+			while( dc.pipeline.pass > pass_idx ) {
+				if( GLAD_GL_KHR_debug != 0 )
+					glPopDebugGroup();
+				pass_idx++;
+				SetupRenderPass( render_passes[ pass_idx ] );
+			}
 
-		if( dc.pipeline.shader == NULL ) {
-			SubmitResolveMSAA( render_passes[ dc.pipeline.pass ].msaa_source );
-		}
-		else {
-			SubmitDrawCall( dc );
+			if( dc.pipeline.shader == NULL ) {
+				SubmitResolveMSAA( render_passes[ dc.pipeline.pass ].msaa_source );
+			}
+			else {
+				SubmitDrawCall( dc );
+			}
 		}
 	}
 
@@ -550,9 +609,18 @@ void RenderBackendSubmitFrame() {
 			glPopDebugGroup();
 	}
 
-	for( const Mesh & mesh : deferred_deletes ) {
-		DeleteMesh( mesh );
+	{
+		ZoneScopedN( "Deferred deletes" );
+		for( const Mesh & mesh : deferred_deletes ) {
+			DeleteMesh( mesh );
+		}
 	}
+
+	u32 ubo_bytes_used = 0;
+	for( const UBO & ubo : ubos ) {
+		ubo_bytes_used += ubo.bytes_used;
+	}
+	TracyPlot( "UBO utilisation", float( ubo_bytes_used ) / float( UNIFORM_BUFFER_SIZE * ARRAY_COUNT( ubos ) ) );
 
 	TracyGpuCollect;
 }
@@ -621,6 +689,20 @@ void DeleteVertexBuffer( VertexBuffer vb ) {
 	glDeleteBuffers( 1, &vb.vbo );
 }
 
+VertexBuffer NewParticleVertexBuffer( u32 n ) {
+	// glBufferData's length parameter is GLsizeiptr, so we need to make
+	// sure len fits in a signed 32bit int
+	u32 len = n * sizeof( GPUParticle );
+	assert( len < S32_MAX );
+
+	VertexBuffer vb;
+	glGenBuffers( 1, &vb.vbo );
+	glBindBuffer( GL_ARRAY_BUFFER, vb.vbo );
+	glBufferData( GL_ARRAY_BUFFER, len, NULL, GL_STREAM_DRAW );
+
+	return vb;
+}
+
 IndexBuffer NewIndexBuffer( const void * data, u32 len ) {
 	assert( len < S32_MAX );
 
@@ -646,56 +728,54 @@ void DeleteIndexBuffer( IndexBuffer ib ) {
 }
 
 static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
-	GLenum target = msaa_samples == 0 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
-
 	Texture texture;
 	texture.width = config.width;
 	texture.height = config.height;
+	texture.msaa = msaa_samples > 1;
 	texture.format = config.format;
 
 	glGenTextures( 1, &texture.texture );
 	// TODO: should probably update the gl state since we bind a new texture
 	// TODO: or glactivetexture 0?
+	GLenum target = msaa_samples == 0 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
 	glBindTexture( target, texture.texture );
 
 	GLenum internal_format, channels, type;
 	TextureFormatToGL( config.format, &internal_format, &channels, &type );
 
 	if( msaa_samples == 0 ) {
-		glTexParameteri( target, GL_TEXTURE_WRAP_S, TextureWrapToGL( config.wrap ) );
-		glTexParameteri( target, GL_TEXTURE_WRAP_T, TextureWrapToGL( config.wrap ) );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, TextureWrapToGL( config.wrap ) );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, TextureWrapToGL( config.wrap ) );
 
 		GLenum filter = TextureFilterToGL( config.filter );
-		glTexParameteri( target, GL_TEXTURE_MIN_FILTER, filter );
-		glTexParameteri( target, GL_TEXTURE_MAG_FILTER, filter );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter );
 
 		if( config.wrap == TextureWrap_Border ) {
-			glTexParameterfv( target, GL_TEXTURE_BORDER_COLOR, ( GLfloat * ) &config.border_color );
+			glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, ( GLfloat * ) &config.border_color );
 		}
 
 		if( channels == GL_RED ) {
 			if( config.format == TextureFormat_A_U8 ) {
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_RED );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_ONE );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_ONE );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_ONE );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED );
 			}
 			else {
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_RED );
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_G, GL_RED );
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_RED );
-				glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_ONE );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_ONE );
 			}
 		}
-		else if( channels == GL_RG ) {
-			glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_RED );
-			glTexParameteri( target, GL_TEXTURE_SWIZZLE_G, GL_RED );
-			glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_RED );
-			glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
+		else if( channels == GL_RG && config.format == TextureFormat_RA_U8 ) {
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
 		}
-	}
 
-	if( msaa_samples == 0 ) {
 		glTexImage2D( GL_TEXTURE_2D, 0, internal_format,
 			config.width, config.height, 0, channels, type, config.data );
 	}
@@ -747,7 +827,7 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 
 	u32 width = 0;
 	u32 height = 0;
-	GLenum target = config.msaa_samples == 0 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
+	GLenum target = config.msaa_samples <= 1 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
 	GLenum bufs[ 2 ] = { GL_NONE, GL_NONE };
 
 	if( config.albedo_attachment.width != 0 ) {
@@ -889,12 +969,16 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens ) {
 	glAttachShader( program, vs );
 	glAttachShader( program, fs );
 
-	glBindAttribLocation( program, Attribute_Position, "a_Position" );
-	glBindAttribLocation( program, Attribute_Normal, "a_Normal" );
-	glBindAttribLocation( program, Attribute_TexCoord, "a_TexCoord" );
-	glBindAttribLocation( program, Attribute_Color, "a_Color" );
-	glBindAttribLocation( program, Attribute_JointIndices, "a_JointIndices" );
-	glBindAttribLocation( program, Attribute_JointWeights, "a_JointWeights" );
+	glBindAttribLocation( program, VertexAttribute_Position, "a_Position" );
+	glBindAttribLocation( program, VertexAttribute_Normal, "a_Normal" );
+	glBindAttribLocation( program, VertexAttribute_TexCoord, "a_TexCoord" );
+	glBindAttribLocation( program, VertexAttribute_Color, "a_Color" );
+	glBindAttribLocation( program, VertexAttribute_JointIndices, "a_JointIndices" );
+	glBindAttribLocation( program, VertexAttribute_JointWeights, "a_JointWeights" );
+
+	glBindAttribLocation( program, VertexAttribute_ParticlePosition, "a_ParticlePosition" );
+	glBindAttribLocation( program, VertexAttribute_ParticleScale, "a_ParticleScale" );
+	glBindAttribLocation( program, VertexAttribute_ParticleColor, "a_ParticleColor" );
 
 	glBindFragDataLocation( program, 0, "f_Albedo" );
 	glBindFragDataLocation( program, 1, "f_Normal" );
@@ -931,7 +1015,7 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens ) {
 		GLenum type;
 		glGetActiveUniform( program, i, sizeof( name ), &len, &size, &type, name );
 
-		if( type == GL_SAMPLER_2D ) {
+		if( type == GL_SAMPLER_2D || type == GL_SAMPLER_2D_MULTISAMPLE ) {
 			glUniform1i( glGetUniformLocation( program, name ), num_textures );
 			shader->textures[ num_textures ] = Hash64( name, len );
 			num_textures++;
@@ -967,22 +1051,6 @@ void DeleteShader( Shader shader ) {
 	glDeleteProgram( shader.program );
 }
 
-static void SetupAttribute( GLuint index, VertexFormat format, u32 stride = 0, u32 offset = 0 ) {
-	const GLvoid * gl_offset = checked_cast< const GLvoid * >( checked_cast< uintptr_t >( offset ) );
-
-	GLenum type;
-	int num_components;
-	bool integral;
-	GLboolean normalized;
-	VertexFormatToGL( format, &type, &num_components, &integral, &normalized );
-
-	glEnableVertexAttribArray( index );
-	if( integral && !normalized )
-		glVertexAttribIPointer( index, num_components, type, stride, gl_offset );
-	else
-		glVertexAttribPointer( index, num_components, type, normalized, stride, gl_offset );
-}
-
 Mesh NewMesh( MeshConfig config ) {
 	switch( config.primitive_type ) {
 		case PrimitiveType_Triangles:
@@ -1006,31 +1074,31 @@ Mesh NewMesh( MeshConfig config ) {
 		assert( config.positions.vbo != 0 );
 
 		glBindBuffer( GL_ARRAY_BUFFER, config.positions.vbo );
-		SetupAttribute( Attribute_Position, config.positions_format );
+		SetupAttribute( VertexAttribute_Position, config.positions_format );
 
 		if( config.normals.vbo != 0 ) {
 			glBindBuffer( GL_ARRAY_BUFFER, config.normals.vbo );
-			SetupAttribute( Attribute_Normal, config.normals_format );
+			SetupAttribute( VertexAttribute_Normal, config.normals_format );
 		}
 
 		if( config.tex_coords.vbo != 0 ) {
 			glBindBuffer( GL_ARRAY_BUFFER, config.tex_coords.vbo );
-			SetupAttribute( Attribute_TexCoord, config.tex_coords_format );
+			SetupAttribute( VertexAttribute_TexCoord, config.tex_coords_format );
 		}
 
 		if( config.colors.vbo != 0 ) {
 			glBindBuffer( GL_ARRAY_BUFFER, config.colors.vbo );
-			SetupAttribute( Attribute_Color, config.colors_format );
+			SetupAttribute( VertexAttribute_Color, config.colors_format );
 		}
 
 		if( config.joints.vbo != 0 ) {
 			glBindBuffer( GL_ARRAY_BUFFER, config.joints.vbo );
-			SetupAttribute( Attribute_JointIndices, config.joints_format );
+			SetupAttribute( VertexAttribute_JointIndices, config.joints_format );
 		}
 
 		if( config.weights.vbo != 0 ) {
 			glBindBuffer( GL_ARRAY_BUFFER, config.weights.vbo );
-			SetupAttribute( Attribute_JointWeights, config.weights_format );
+			SetupAttribute( VertexAttribute_JointWeights, config.weights_format );
 		}
 	}
 	else {
@@ -1038,26 +1106,26 @@ Mesh NewMesh( MeshConfig config ) {
 
 		glBindBuffer( GL_ARRAY_BUFFER, config.unified_buffer.vbo );
 
-		SetupAttribute( Attribute_Position, config.positions_format, config.stride, config.positions_offset );
+		SetupAttribute( VertexAttribute_Position, config.positions_format, config.stride, config.positions_offset );
 
 		if( config.normals_offset != 0 ) {
-			SetupAttribute( Attribute_Normal, config.normals_format, config.stride, config.normals_offset );
+			SetupAttribute( VertexAttribute_Normal, config.normals_format, config.stride, config.normals_offset );
 		}
 
 		if( config.tex_coords_offset != 0 ) {
-			SetupAttribute( Attribute_TexCoord, config.tex_coords_format, config.stride, config.tex_coords_offset );
+			SetupAttribute( VertexAttribute_TexCoord, config.tex_coords_format, config.stride, config.tex_coords_offset );
 		}
 
 		if( config.colors_offset != 0 ) {
-			SetupAttribute( Attribute_Color, config.colors_format, config.stride, config.colors_offset );
+			SetupAttribute( VertexAttribute_Color, config.colors_format, config.stride, config.colors_offset );
 		}
 
 		if( config.joints_offset != 0 ) {
-			SetupAttribute( Attribute_JointIndices, config.joints_format, config.stride, config.joints_offset );
+			SetupAttribute( VertexAttribute_JointIndices, config.joints_format, config.stride, config.joints_offset );
 		}
 
 		if( config.weights_offset != 0 ) {
-			SetupAttribute( Attribute_JointWeights, config.weights_format, config.stride, config.weights_offset );
+			SetupAttribute( VertexAttribute_JointWeights, config.weights_format, config.stride, config.weights_offset );
 		}
 	}
 
@@ -1129,6 +1197,13 @@ u8 AddRenderPass( const char * name, ClearColor clear_color, ClearDepth clear_de
 	return AddRenderPass( name, target, clear_color, clear_depth );
 }
 
+u8 AddUnsortedRenderPass( const char * name ) {
+	RenderPass pass;
+	pass.name = name;
+	pass.sorted = false;
+	return AddRenderPass( pass );
+}
+
 void AddResolveMSAAPass( Framebuffer fb ) {
 	RenderPass pass;
 	pass.name = "Resolve MSAA";
@@ -1138,7 +1213,7 @@ void AddResolveMSAAPass( Framebuffer fb ) {
 	dummy.pass = AddRenderPass( pass );
 	dummy.shader = NULL;
 
-	DrawCall dc;
+	DrawCall dc = { };
 	dc.pipeline = dummy;
 	draw_calls.add( dc );
 }
@@ -1152,7 +1227,7 @@ void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertic
 	assert( pipeline.pass != U8_MAX );
 	assert( pipeline.shader != NULL );
 
-	DrawCall dc;
+	DrawCall dc = { };
 	dc.mesh = mesh;
 	dc.pipeline = pipeline;
 	dc.num_vertices = num_vertices_override == 0 ? mesh.num_vertices : num_vertices_override;
@@ -1160,6 +1235,28 @@ void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertic
 	draw_calls.add( dc );
 
 	num_vertices_this_frame += mesh.num_vertices;
+}
+
+void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, Texture texture, BlendFunc blend_func, u32 num_particles ) {
+	assert( in_frame );
+
+	PipelineState pipeline;
+	pipeline.pass = frame_static.transparent_pass;
+	pipeline.shader = &shaders.particle;
+	pipeline.blend_func = blend_func;
+	pipeline.write_depth = false;
+	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+	pipeline.set_texture( "u_BaseTexture", texture );
+
+	DrawCall dc = { };
+	dc.mesh = mesh;
+	dc.pipeline = pipeline;
+	dc.num_vertices = mesh.num_vertices;
+	dc.instance_data = vb;
+	dc.num_instances = num_particles;
+
+	draw_calls.add( dc );
+	num_vertices_this_frame += mesh.num_vertices * num_particles;
 }
 
 void DownloadFramebuffer( void * buf ) {

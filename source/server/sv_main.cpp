@@ -530,9 +530,6 @@ void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 		ge->ClearSnap();
 	}
 
-	// handle HTTP connections
-	SV_Web_GameFrame( ge->WebRequest );
-
 	SV_CheckPostUpdateRestart();
 }
 

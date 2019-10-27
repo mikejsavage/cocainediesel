@@ -93,10 +93,13 @@ static void UpdateParticleChunk( const ParticleSystem * ps, ParticleChunk * chun
 		chunk->velocity_y[ i ] += acceleration.y * dt;
 		chunk->velocity_z[ i ] += acceleration.z * dt;
 
-		float damping = powf( chunk->velocity_damping[ i ], dt );
-		chunk->velocity_x[ i ] *= damping;
-		chunk->velocity_y[ i ] *= damping;
-		chunk->velocity_z[ i ] *= damping;
+		float velocity = Max2( 0.0001f, Length( Vec3( chunk->velocity_x[ i ], chunk->velocity_y[ i ], chunk->velocity_z[ i ] ) ) );
+		float new_velocity = Max2( 0.0001f, velocity + chunk->dvelocity[ i ] * dt );
+		float velocity_scale = new_velocity / velocity;
+
+		chunk->velocity_x[ i ] *= velocity_scale;
+		chunk->velocity_y[ i ] *= velocity_scale;
+		chunk->velocity_z[ i ] *= velocity_scale;
 
 		chunk->position_x[ i ] += chunk->velocity_x[ i ] * dt;
 		chunk->position_y[ i ] += chunk->velocity_y[ i ] * dt;
@@ -145,7 +148,7 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 			Swap2( &chunk.velocity_y[ chunk_offset ], &swap_chunk.velocity_y[ swap_offset ] );
 			Swap2( &chunk.velocity_z[ chunk_offset ], &swap_chunk.velocity_z[ swap_offset ] );
 
-			Swap2( &chunk.velocity_damping[ chunk_offset ], &swap_chunk.velocity_damping[ swap_offset ] );
+			Swap2( &chunk.dvelocity[ chunk_offset ], &swap_chunk.dvelocity[ swap_offset ] );
 
 			Swap2( &chunk.color_r[ chunk_offset ], &swap_chunk.color_r[ swap_offset ] );
 			Swap2( &chunk.color_g[ chunk_offset ], &swap_chunk.color_g[ swap_offset ] );
@@ -195,7 +198,7 @@ void DrawParticles() {
 	DrawParticleSystem( &cgs.smoke );
 }
 
-static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float velocity_damping, Vec4 color, Vec4 dcolor, float size, float dsize ) {
+static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float dvelocity, Vec4 color, Vec4 dcolor, float size, float dsize ) {
 	if( ps->num_particles == ps->chunks.n * 4 )
 		return;
 
@@ -213,7 +216,7 @@ static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Ve
 	chunk.velocity_y[ i ] = velocity.y;
 	chunk.velocity_z[ i ] = velocity.z;
 
-	chunk.velocity_damping[ i ] = velocity_damping;
+	chunk.dvelocity[ i ] = dvelocity;
 
 	chunk.color_r[ i ] = color.x;
 	chunk.color_g[ i ] = color.y;
@@ -262,7 +265,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter & emitter, 
 
 	// TODO: separate velocity and direction
 	Vec3 velocity = emitter.velocity + UniformSampleInsideSphere( &cls.rng ) * emitter.velocity_cone.radius;
-	float velocity_damping = powf( emitter.end_velocity / emitter.velocity_cone.radius, 1.0f / lifetime );
+	float dvelocity = ( emitter.end_velocity - emitter.velocity_cone.radius ) / lifetime;
 
 	Vec4 color = emitter.start_color;
 	color.x += SampleRandomDistribution( &cls.rng, emitter.red_distribution );
@@ -276,7 +279,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter & emitter, 
 	float size = Max2( 0.0f, emitter.start_size + SampleRandomDistribution( &cls.rng, emitter.size_distribution ) );
 	float dsize = ( emitter.end_size - emitter.start_size ) / lifetime;
 
-	EmitParticle( ps, lifetime, position, velocity, velocity_damping, color, dcolor, size, dsize );
+	EmitParticle( ps, lifetime, position, velocity, dvelocity, color, dcolor, size, dsize );
 }
 
 static void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter, float dt ) {
@@ -533,7 +536,6 @@ void DrawParticleEditor() {
 
 		ImGui::SliderFloat( "Start velocity", &editor_emitter.velocity_cone.radius, 0, 1000, "%.2f" );
 		ImGui::SliderFloat( "End velocity", &editor_emitter.end_velocity, 0, 1000, "%.2f" );
-		ImGui::Text( "damping = %f", powf( editor_emitter.end_velocity / editor_emitter.velocity_cone.radius, 1.0f / editor_emitter.lifetime ) );
 
 		ImGui::Separator();
 

@@ -15,7 +15,7 @@ struct ParticleChunk {
 	alignas( 16 ) float velocity_y[ 4 ];
 	alignas( 16 ) float velocity_z[ 4 ];
 
-	alignas( 16 ) float velocity_damping[ 4 ];
+	alignas( 16 ) float dvelocity[ 4 ];
 
 	alignas( 16 ) float color_r[ 4 ];
 	alignas( 16 ) float color_g[ 4 ];

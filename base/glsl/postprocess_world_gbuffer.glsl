@@ -48,6 +48,14 @@ vec3 ViewPositionMSAA( vec2 uv, ivec2 p, int sample ) {
 	return ( view / view.w ).xyz;
 }
 
+vec3 WorldPositionMSAA( vec2 uv, ivec2 p, int sample ) {
+	float depth = texelFetch( u_DepthTexture, p, sample ).r;
+
+	vec4 clip = vec4( vec3( uv, depth ) * 2.0 - 1.0, 1.0 );
+	vec4 world = u_InverseP * clip;
+	return ( u_InverseV * ( world / world.w ) ).xyz;
+}
+
 #else
 
 vec3 ViewPosition( vec2 uv ) {
@@ -58,15 +66,23 @@ vec3 ViewPosition( vec2 uv ) {
 	return ( view / view.w ).xyz;
 }
 
+vec3 WorldPosition( vec2 uv ) {
+	float depth = qf_texture( u_DepthTexture, uv ).r;
+
+	vec4 clip = vec4( vec3( uv, depth ) * 2.0 - 1.0, 1.0 );
+	vec4 world = u_InverseP * clip;
+	return ( u_InverseV * ( world / world.w ) ).xyz;
+}
+
 #endif
 
 void main() {
 	vec2 pixel_size = 1.0 / u_ViewportSize;
 	vec2 uv = gl_FragCoord.xy / u_ViewportSize;
-	ivec2 p = ivec2( gl_FragCoord.xy );
-	vec3 camera_backward = vec3( u_V[ 0 ].z, u_V[ 1 ].z, u_V[ 2 ].z );
 
 #if MSAA
+
+	ivec2 p = ivec2( gl_FragCoord.xy );
 
 	// normal discontinuity edges
 	float normal_edgeness = 0.0;
@@ -103,7 +119,8 @@ void main() {
 
 		float dx = depth_right - depth_left;
 		float dy = depth_down - depth_up;
-		depth_edgeness += length( vec2( dx, dy ) ) - 0.05 * depth / abs( dot( normalize( camera_backward ), normal ) );
+		vec3 camera_backward = normalize( WorldPositionMSAA( uv, p, i ) - u_CameraPos );
+		depth_edgeness += length( vec2( dx, dy ) ) - 0.01 * depth / abs( dot( normalize( camera_backward ), normal ) );
 	}
 
 	depth_edgeness /= u_Samples;
@@ -136,7 +153,8 @@ void main() {
 
 	float dx = depth_right - depth_left;
 	float dy = depth_down - depth_up;
-	float depth_edgeness = length( vec2( dx, dy ) ) - 0.05 * depth / abs( dot( normalize( camera_backward ), normal ) );
+	vec3 camera_backward = normalize( WorldPosition( uv ) - u_CameraPos );
+	float depth_edgeness = length( vec2( dx, dy ) ) - 0.01 * depth / abs( dot( normalize( camera_backward ), normal ) );
 
 #endif
 

@@ -1,6 +1,8 @@
 layout( std140 ) uniform u_View {
 	mat4 u_V;
+	mat4 u_InverseV;
 	mat4 u_P;
+	mat4 u_InverseP;
 	vec3 u_CameraPos;
 	vec2 u_ViewportSize;
 	float u_NearClip;

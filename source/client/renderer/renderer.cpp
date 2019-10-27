@@ -200,6 +200,21 @@ static Mat4 PerspectiveProjection( float vertical_fov_degrees, float aspect_rati
 	);
 }
 
+static Mat4 InvertPerspectiveProjection( const Mat4 & P ) {
+	float a = P.col0.x;
+	float b = P.col1.y;
+	float c = P.col2.z;
+	float d = P.col3.z;
+	float e = P.col2.w;
+
+	return Mat4(
+		1.0f / a, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f / b, 0.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f / e,
+		0.0f, 0.0f, 1.0f / d, -c / ( d * e )
+	);
+}
+
 static Mat4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
 	float pitch = DEG2RAD( angles.pitch );
 	float sp = sinf( pitch );
@@ -221,8 +236,19 @@ static Mat4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
 	return rotation * Mat4Translation( -position );
 }
 
-static UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & P, const Vec3 & camera_pos, const Vec2 & viewport_size, float near_plane, int samples ) {
-	return UploadUniformBlock( V, P, camera_pos, viewport_size, near_plane, samples );
+static Mat4 InvertViewMatrix( const Mat4 & V, Vec3 position ) {
+	return Mat4(
+		// transpose rotation part
+		Vec4( V.row0().xyz(), 0.0f ),
+		Vec4( V.row1().xyz(), 0.0f ),
+		Vec4( V.row2().xyz(), 0.0f ),
+
+		Vec4( position, 1.0f )
+	);
+}
+
+static UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & inverse_V, const Mat4 & P, const Mat4 & inverse_P, const Vec3 & camera_pos, const Vec2 & viewport_size, float near_plane, int samples ) {
+	return UploadUniformBlock( V, inverse_V, P, inverse_P, camera_pos, viewport_size, near_plane, samples );
 }
 
 static void CreateFramebuffers() {
@@ -304,7 +330,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	bool msaa = frame_static.msaa_samples;
 
-	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples );
+	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples );
 	frame_static.identity_model_uniforms = UploadModelUniforms( Mat4::Identity() );
 	frame_static.identity_material_uniforms = UploadMaterialUniforms( vec4_white, Vec2( 0 ), 0.0f );
 
@@ -347,10 +373,12 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	float near_plane = 4.0f;
 
 	frame_static.V = ViewMatrix( position, angles );
+	frame_static.inverse_V = InvertViewMatrix( frame_static.V, position );
 	frame_static.P = PerspectiveProjection( vertical_fov, frame_static.aspect_ratio, near_plane );
+	frame_static.inverse_P = InvertPerspectiveProjection( frame_static.P );
 	frame_static.position = position;
 
-	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.P, position, frame_static.viewport, near_plane, frame_static.msaa_samples );
+	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.inverse_V, frame_static.P, frame_static.inverse_P, position, frame_static.viewport, near_plane, frame_static.msaa_samples );
 }
 
 void RendererSubmitFrame() {

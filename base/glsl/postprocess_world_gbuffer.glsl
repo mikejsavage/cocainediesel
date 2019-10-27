@@ -38,25 +38,30 @@ ivec2 ClampPixelOffset( ivec2 p, int dx, int dy ) {
 	);
 }
 
+vec3 ViewPosition( vec2 uv ) {
+	float depth = qf_texture( u_DepthTexture, uv ).r;
+
+	vec4 clip = vec4( vec3( uv, depth ) * 2.0 - 1.0, 1.0 );
+	vec4 world = u_InverseP * clip;
+	return ( world / world.w ).xyz;
+}
+
 void main() {
 	vec2 pixel_size = 1.0 / u_ViewportSize;
 	vec2 uv = gl_FragCoord.xy / u_ViewportSize;
 
-#if 0
-	float depth_left = LinearizeDepth( qf_texture( u_DepthTexture, uv + vec2( -pixel_size.x, 0.0 ) ).r, u_NearClip );
-	float depth_right = LinearizeDepth( qf_texture( u_DepthTexture, uv + vec2( +pixel_size.x, 0.0 ) ).r, u_NearClip );
-	float depth_up = LinearizeDepth( qf_texture( u_DepthTexture, uv + vec2( 0.0, -pixel_size.y ) ).r, u_NearClip );
-	float depth_down = LinearizeDepth( qf_texture( u_DepthTexture, uv + vec2( 0.0, pixel_size.y ) ).r, u_NearClip );
+	vec3 normal = DecompressNormal( qf_texture( u_NormalTexture, uv + vec2( -pixel_size.x, -pixel_size.y ) ).rg );
+	float depth_left = length( ViewPosition( uv + vec2( -pixel_size.x, 0.0 ) ) );
+	float depth_right = length( ViewPosition( uv + vec2( +pixel_size.x, 0.0 ) ) );
+	float depth = LinearizeDepth( qf_texture( u_DepthTexture, uv ).r, u_NearClip );
+	float depth_up = length( ViewPosition( uv + vec2( 0.0, -pixel_size.y ) ) );
+	float depth_down = length( ViewPosition( uv + vec2( 0.0, pixel_size.y ) ) );
 
-	vec3 normal = qf_texture( u_NormalTexture, uv ).rgb;
+	vec3 camera_backward = vec3( u_V[ 0 ].z, u_V[ 1 ].z, u_V[ 2 ].z );
 
-	vec3 camera_forward = vec3( -u_V[ 0 ].z, -u_V[ 1 ].z, -u_V[ 2 ].z );
-	float asdf = abs( dot( normal, camera_forward ) );
-	float depth_edgeness = 0.0;
-	depth_edgeness += max( 0.0, abs( depth_right - depth_left ) - mix( 15.0, 5.0, asdf ) );
-	depth_edgeness += max( 0.0, abs( depth_up - depth_down ) - mix( 15.0, 5.0, asdf ) );
-	f_Albedo = LinearTosRGB( depth_edgeness );
-#endif
+	float dx = depth_right - depth_left;
+	float dy = depth_down - depth_up;
+	float depth_edgeness = length( vec2( dx, dy ) ) - 0.05 * depth / abs( dot( normalize( camera_backward ), normal ) );
 
 #if MSAA
 
@@ -100,8 +105,7 @@ void main() {
 
 #endif
 
-	/* f_Albedo = max( depth_edgeness, normal_edgeness ); */
-	f_Albedo = LinearTosRGB( normal_edgeness );
+	f_Albedo = LinearTosRGB( max( depth_edgeness, normal_edgeness ) );
 }
 
 #endif

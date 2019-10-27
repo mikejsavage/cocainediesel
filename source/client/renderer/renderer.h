@@ -24,7 +24,8 @@ struct FrameStatic {
 	UniformBlock fog_uniforms;
 	UniformBlock blue_noise_uniforms;
 
-	Mat4 V, P;
+	Mat4 V, inverse_V;
+	Mat4 P, inverse_P;
 	Vec3 position;
 
 	Framebuffer world_gbuffer;

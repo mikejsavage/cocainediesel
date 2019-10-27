@@ -274,7 +274,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter & emitter, 
 	color.w += SampleRandomDistribution( &cls.rng, emitter.alpha_distribution );
 	color = Clamp01( color );
 
-	Vec4 dcolor = Vec4( ( emitter.end_color - emitter.start_color.xyz() ) / lifetime, -color.w / lifetime );
+	Vec4 dcolor = Vec4( emitter.end_color - emitter.start_color.xyz(), -color.w ) / lifetime;
 
 	float size = Max2( 0.0f, emitter.start_size + SampleRandomDistribution( &cls.rng, emitter.size_distribution ) );
 	float dsize = ( emitter.end_size - emitter.start_size ) / lifetime;

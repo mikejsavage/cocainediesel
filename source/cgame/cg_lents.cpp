@@ -434,7 +434,7 @@ void CG_RocketExplosionMode( const vec3_t pos, const vec3_t dir, float radius, i
 	}
 
 	// Explosion particles
-	CG_ParticleExplosionEffect( pos, dir, 1, 0.5, 0, 32 );
+	CG_ParticleExplosionEffect( FromQF3( pos ), FromQF3( dir ), FromQF3( color ) );
 
 	S_StartFixedSound( cgs.media.sfxRocketLauncherHit, pos, CHAN_AUTO, cg_volume_effects->value, ATTN_DISTANT );
 }
@@ -746,7 +746,7 @@ void CG_GrenadeExplosionMode( const vec3_t pos, const vec3_t dir, float radius, 
 	}
 
 	// Explosion particles
-	CG_ParticleExplosionEffect( pos, dir, 1, 0.5, 0, 32 );
+	CG_ParticleExplosionEffect( FromQF3( pos ), FromQF3( dir ), FromQF3( color ) );
 
 	S_StartFixedSound( cgs.media.sfxGrenadeExplosion, pos, CHAN_AUTO, cg_volume_effects->value, ATTN_DISTANT );
 }

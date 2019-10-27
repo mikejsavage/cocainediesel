@@ -516,6 +516,4 @@ void GT_InitGametype() {
 	G_RegisterCommand( "weapselect" );
 
 	mediaInit();
-
-	G_CmdExecute( "exec configs/server/gametypes/bomb.cfg silent" ); // TODO XXX FIXME
 }

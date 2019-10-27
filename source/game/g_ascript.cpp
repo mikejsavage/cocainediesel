@@ -2825,8 +2825,6 @@ static void G_asRegisterGlobalProperties( asIScriptEngine *asEngine,
 * G_InitializeGameModuleSyntax
 */
 static void G_InitializeGameModuleSyntax( asIScriptEngine *asEngine ) {
-	G_Printf( "* Initializing Game module syntax\n" );
-
 	// register global enums
 	G_asRegisterEnums( asEngine, asGameEnums, NULL );
 
@@ -2853,7 +2851,6 @@ void G_asInitGameModuleEngine( void ) {
 	G_ResetGameModuleScriptData();
 
 	// initialize the engine
-	Com_Printf( "Initializing Angel Script\n" );
 	game.asExport = QAS_GetAngelExport();
 
 	asEngine = game.asExport->asCreateEngine( &asGeneric );

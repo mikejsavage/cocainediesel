@@ -369,12 +369,6 @@ static bool NET_IP_OpenSocket( socket_t *sock, const netadr_t *address, socket_t
 		return false;
 	}
 
-	if( NET_IsAnyAddress( address ) ) {
-		Com_Printf( "Opening %s/%s socket: *:%hu\n", stype, proto, NET_GetAddressPort( address ) );
-	} else {
-		Com_Printf( "Opening %s/%s socket: %s\n", stype, proto, NET_AddressToString( address ) );
-	}
-
 	if( ( newsocket = OpenSocket( socktype, ( address->type == NA_IP6 ? true : false ) ) ) == INVALID_SOCKET ) {
 		return false;
 	}
@@ -1249,22 +1243,6 @@ bool NET_IsLocalAddress( const netadr_t *address ) {
 
 		case NA_IP6:
 			return ( memcmp( address->address.ipv6.ip, &in6addr_loopback.s6_addr, sizeof( address->address.ipv6.ip ) ) == 0 ) ? true : false;
-
-		default:
-			return false;
-	}
-}
-
-/*
-* NET_IsAnyAddress
-*/
-bool NET_IsAnyAddress( const netadr_t *address ) {
-	switch( address->type ) {
-		case NA_IP:
-			return ( *(unsigned int*)address->address.ipv4.ip == htonl( INADDR_ANY ) ? true : false );
-
-		case NA_IP6:
-			return ( memcmp( address->address.ipv6.ip, &in6addr_any.s6_addr, sizeof( address->address.ipv6.ip ) ) == 0 ) ? true : false;
 
 		default:
 			return false;

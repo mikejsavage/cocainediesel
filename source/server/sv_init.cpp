@@ -223,7 +223,6 @@ static void SV_SpawnServer( const char *server, bool devmap ) {
 	}
 	Cvar_FixCheatVars();
 
-	Com_Printf( "------- Server Initialization -------\n" );
 	Com_Printf( "SpawnServer: %s\n", server );
 
 	svs.spawncount++;   // any partially connected client will be restarted
@@ -281,8 +280,6 @@ static void SV_SpawnServer( const char *server, bool devmap ) {
 	// all precaches are complete
 	sv.state = ss_game;
 	Com_SetServerState( sv.state );
-
-	Com_Printf( "-------------------------------------\n" );
 }
 
 /*

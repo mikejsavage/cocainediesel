@@ -696,15 +696,7 @@ void Qcommon_Init( int argc, char **argv ) {
 	SV_Init();
 	CL_Init();
 
-	if( !is_dedicated_server ) {
-		Cbuf_AddText( "exec autoexec_postinit.cfg\n" );
-	} else {
-		Cbuf_AddText( "exec dedicated_autoexec_postinit.cfg\n" );
-	}
-
 	Cbuf_AddLateCommands();
-
-	Com_Printf( "\n====== %s Initialized ======\n", APPLICATION );
 
 	Cbuf_Execute();
 }

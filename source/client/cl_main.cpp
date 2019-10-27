@@ -468,27 +468,6 @@ static void CL_Rcon_f( void ) {
 }
 
 /*
-* CL_GetClipboardData
-*/
-char *CL_GetClipboardData( void ) {
-	return Sys_GetClipboardData();
-}
-
-/*
-* CL_SetClipboardData
-*/
-void CL_SetClipboardData( const char *data ) {
-	Sys_SetClipboardData( data );
-}
-
-/*
-* CL_FreeClipboardData
-*/
-void CL_FreeClipboardData( char *data ) {
-	Sys_FreeClipboardData( data );
-}
-
-/*
 * CL_GetKeyDest
 */
 keydest_t CL_GetKeyDest( void ) {

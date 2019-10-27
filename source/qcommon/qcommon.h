@@ -823,10 +823,6 @@ __declspec( noreturn ) void Sys_Error( _Printf_format_string_ const char *error,
 __declspec( noreturn ) void Sys_Quit( void );
 #endif
 
-char    *Sys_GetClipboardData( void );
-bool Sys_SetClipboardData( const char *data );
-void    Sys_FreeClipboardData( char *data );
-
 /*
 ==============================================================
 

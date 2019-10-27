@@ -65,10 +65,6 @@ static loopback_t loopbacks[2];
 static char errorstring[MAX_PRINTMSG];
 static bool net_initialized = false;
 
-#define MAX_IPS 16
-static int numIP;
-static uint8_t localIP[MAX_IPS][4];
-
 /*
 =============================================================================
 PRIVATE FUNCTIONS
@@ -90,51 +86,6 @@ static const char *GetLastErrorString( void ) {
 		case NET_ERR_UNSUPPORTED:   return "Unsupported address or protocol";
 		default:                    return "Unsupported error code";
 	}
-}
-
-/*
-* GetLocalAddress
-*/
-static void GetLocalAddress( void ) {
-	struct addrinfo hints, *hostInfo, *i;
-	char hostname[256];
-	char *p;
-	int ip;
-
-	if( gethostname( hostname, 256 ) == SOCKET_ERROR ) {
-		return;
-	}
-
-	memset( &hints, 0, sizeof( hints ) );
-	hints.ai_family = AF_INET; // AF_INET6 for IPv6
-	//hints.ai_flags = AI_NUMERICHOST;
-	if( getaddrinfo( hostname, NULL, &hints, &hostInfo ) != 0 ) {
-		return;
-	}
-	if( !hostInfo ) {
-		return;
-	}
-
-	Com_Printf( "Hostname: %s\n", hostname );
-
-	numIP = 0;
-	for( i = hostInfo; i; i = i->ai_next ) {
-		if( numIP >= MAX_IPS ) {
-			break;
-		}
-
-		ip = ntohl( ( (struct sockaddr_in *)i->ai_addr )->sin_addr.s_addr );
-		p = (char *)&ip;
-
-		localIP[numIP][0] = p[0];
-		localIP[numIP][1] = p[1];
-		localIP[numIP][2] = p[2];
-		localIP[numIP][3] = p[3];
-		Com_Printf( "IP: %i.%i.%i.%i\n", ( ip >> 24 ) & 0xff, ( ip >> 16 ) & 0xff, ( ip >> 8 ) & 0xff, ip & 0xff );
-		numIP++;
-	}
-
-	freeaddrinfo( hostInfo );
 }
 
 /*
@@ -1373,16 +1324,6 @@ bool NET_IsLANAddress( const netadr_t *address ) {
 }
 
 /*
-* NET_ShowIP
-*/
-void NET_ShowIP( void ) {
-	int i;
-
-	for( i = 0; i < numIP; i++ )
-		Com_Printf( "IP: %i.%i.%i.%i\n", localIP[i][0], localIP[i][1], localIP[i][2], localIP[i][3] );
-}
-
-/*
 * NET_ErrorString
 */
 const char *NET_ErrorString( void ) {
@@ -1712,8 +1653,6 @@ void NET_Init( void ) {
 	assert( !net_initialized );
 
 	Sys_NET_Init();
-
-	GetLocalAddress();
 
 	net_initialized = true;
 }

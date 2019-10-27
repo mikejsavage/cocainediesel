@@ -496,7 +496,6 @@ void NET_SetErrorString( _Printf_format_string_ const char *format, ... );
 #endif
 
 void        NET_SetErrorStringFromLastError( const char *function );
-void        NET_ShowIP( void );
 
 const char *NET_SocketTypeToString( socket_type_t type );
 const char *NET_SocketToString( const socket_t *socket );

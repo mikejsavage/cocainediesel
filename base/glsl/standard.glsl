@@ -1,5 +1,5 @@
-#include "include/common.glsl"
 #include "include/uniforms.glsl"
+#include "include/common.glsl"
 #include "include/skinning.glsl"
 #include "include/dither.glsl"
 #include "include/fog.glsl"

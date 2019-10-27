@@ -1,5 +1,5 @@
-#include "include/common.glsl"
 #include "include/uniforms.glsl"
+#include "include/common.glsl"
 
 qf_varying vec2 v_TexCoord;
 qf_varying vec4 v_Color;

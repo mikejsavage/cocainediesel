@@ -29,8 +29,8 @@ vec4 LinearTosRGB( vec4 linear ) {
 	return vec4( LinearTosRGB( linear.r ), LinearTosRGB( linear.g ), LinearTosRGB( linear.b ), linear.a );
 }
 
-float LinearizeDepth( float ndc, float nearclip ) {
-	return nearclip / ( 1.0 - ndc );
+float LinearizeDepth( float ndc ) {
+	return u_NearClip / ( 1.0 - ndc );
 }
 
 vec3 NormalToRGB( vec3 normal ) {

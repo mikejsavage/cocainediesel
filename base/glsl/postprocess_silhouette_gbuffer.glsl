@@ -1,5 +1,5 @@
-#include "include/common.glsl"
 #include "include/uniforms.glsl"
+#include "include/common.glsl"
 
 uniform sampler2D u_SilhouetteTexture;
 

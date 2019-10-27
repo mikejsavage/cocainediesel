@@ -236,15 +236,14 @@ static Mat4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
 	return rotation * Mat4Translation( -position );
 }
 
-static Mat4 InvertViewMatrix( const Mat4 & V ) {
+static Mat4 InvertViewMatrix( const Mat4 & V, Vec3 position ) {
 	return Mat4(
 		// transpose rotation part
 		Vec4( V.row0().xyz(), 0.0f ),
 		Vec4( V.row1().xyz(), 0.0f ),
 		Vec4( V.row2().xyz(), 0.0f ),
 
-		// negate translation part
-		Vec4( -V.col3.xyz(), 1.0f )
+		Vec4( position, 1.0f )
 	);
 }
 
@@ -376,7 +375,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	float near_plane = 4.0f;
 
 	frame_static.V = ViewMatrix( position, angles );
-	frame_static.inverse_V = InvertViewMatrix( frame_static.V );
+	frame_static.inverse_V = InvertViewMatrix( frame_static.V, position );
 	frame_static.P = PerspectiveProjection( vertical_fov, frame_static.aspect_ratio, near_plane );
 	frame_static.inverse_P = InvertPerspectiveProjection( frame_static.P );
 	frame_static.position = position;

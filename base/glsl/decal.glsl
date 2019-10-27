@@ -21,8 +21,8 @@ vec3 WorldPosition() {
 	float depth = qf_texture( u_DepthTexture, uv ).r;
 
 	vec4 clip = vec4( vec3( uv, depth ) * 2.0 - 1.0, 1.0 );
-	vec4 world = u_InverseV * u_InverseP * clip;
-	return world.xyz / world.w;
+	vec4 world = u_InverseP * clip;
+	return ( u_InverseV * ( world / world.w ) ).xyz;
 }
 
 void main() {

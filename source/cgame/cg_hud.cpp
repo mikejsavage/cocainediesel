@@ -2762,13 +2762,13 @@ static char *CG_LoadHUDFile( const char *path ) {
 
 					// Now read the file
 					if( trap_FS_Read( rec_buf[rec_lvl], len, f ) <= 0 ) {
+						if( rec_lvl > 0 ) {
+							CG_Printf( "HUD: WARNING: Read error while loading file: %s\n", rec_fn[rec_lvl] );
+						}
 						CG_Free( rec_fn[rec_lvl] );
 						CG_Free( rec_buf[rec_lvl] );
 						rec_fn[rec_lvl] = NULL;
 						rec_buf[rec_lvl] = NULL;
-						if( rec_lvl > 0 ) {
-							CG_Printf( "HUD: WARNING: Read error while loading file: %s\n", rec_fn[rec_lvl] );
-						}
 						rec_lvl--;
 					}
 					trap_FS_FCloseFile( f );

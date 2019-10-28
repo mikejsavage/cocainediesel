@@ -115,6 +115,7 @@ enum PlayerSound {
 	PlayerSound_Death,
 	PlayerSound_Jump1,
 	PlayerSound_Jump2,
+	PlayerSound_Jump3,
 	PlayerSound_Pain25,
 	PlayerSound_Pain50,
 	PlayerSound_Pain75,

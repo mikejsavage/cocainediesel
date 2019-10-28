@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static constexpr const char * PLAYER_SOUND_NAMES[] = {
 	"death",
-	"jump_1", "jump_2",
+	"jump_1", "jump_2", "jump_3",
 	"pain25", "pain50", "pain75", "pain100",
 	"wj_1", "wj_2",
 	"dash_1", "dash_2",

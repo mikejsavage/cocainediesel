@@ -196,14 +196,6 @@ static const asEnumVal_t asPMoveFeaturesVals[] =
 	ASLIB_ENUM_VAL_NULL
 };
 
-static const asEnumVal_t asItemTypeEnumVals[] =
-{
-	ASLIB_ENUM_VAL( IT_WEAPON ),
-	ASLIB_ENUM_VAL( IT_AMMO ),
-
-	ASLIB_ENUM_VAL_NULL
-};
-
 static const asEnumVal_t asWeaponTagEnumVals[] =
 {
 	ASLIB_ENUM_VAL( WEAP_NONE ),

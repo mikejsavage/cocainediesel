@@ -51,7 +51,7 @@ static void LoadAsset( const char * full_path, size_t skip ) {
 		a = &assets[ idx ];
 		FREE( sys_allocator, a->data.ptr );
 	}
-	else if( !exists ) {
+	else {
 		a = &assets[ num_assets ];
 		a->path = ALLOC_MANY( sys_allocator, char, strlen( path ) + 1 );
 		Q_strncpyz( a->path, path, strlen( path ) + 1 );

@@ -297,12 +297,10 @@ void CL_SendMessagesToServer( bool sendNow );
 void CL_RestartTimeDeltas( int newTimeDelta );
 void CL_AdjustServerTime( unsigned int gamemsec );
 
-keydest_t CL_GetKeyDest( void );              // wsw : aiwa : we need this information for graphical plugins (e.g. IRC)
 void CL_SetKeyDest( keydest_t key_dest );
 void CL_SetOldKeyDest( keydest_t key_dest );
 void CL_ResetServerCount( void );
 void CL_SetClientState( connstate_t state );
-connstate_t CL_GetClientState( void );  // wsw : aiwa : we need this information for graphical plugins (e.g. IRC)
 void CL_ClearState( void );
 void CL_ReadPackets( void );
 void CL_Disconnect_f( void );

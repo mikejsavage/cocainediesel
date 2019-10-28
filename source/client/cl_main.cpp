@@ -468,13 +468,6 @@ static void CL_Rcon_f( void ) {
 }
 
 /*
-* CL_GetKeyDest
-*/
-keydest_t CL_GetKeyDest( void ) {
-	return cls.key_dest;
-}
-
-/*
 * CL_SetKeyDest
 */
 void CL_SetKeyDest( keydest_t key_dest ) {
@@ -1450,20 +1443,6 @@ void CL_SetClientState( connstate_t state ) {
 }
 
 /*
-* CL_GetClientState
-*/
-connstate_t CL_GetClientState( void ) {
-	return cls.state;
-}
-
-/*
-* CL_ShowIP_f - wsw : jal : taken from Q3 (it only shows the ip when server was started)
-*/
-static void CL_ShowIP_f( void ) {
-	NET_ShowIP();
-}
-
-/*
 * CL_ShowServerIP_f - wsw : pb : show the ip:port of the server the client is connected to
 */
 static void CL_ShowServerIP_f( void ) {
@@ -1549,7 +1528,6 @@ static void CL_InitLocal( void ) {
 	Cmd_AddCommand( "reconnect", CL_Reconnect_f );
 	Cmd_AddCommand( "rcon", CL_Rcon_f );
 	Cmd_AddCommand( "writeconfig", CL_WriteConfig_f );
-	Cmd_AddCommand( "showip", CL_ShowIP_f ); // jal : wsw : print our ip
 	Cmd_AddCommand( "demo", CL_PlayDemo_f );
 	Cmd_AddCommand( "next", CL_SetNext_f );
 	Cmd_AddCommand( "pingserver", CL_PingServer_f );
@@ -1582,7 +1560,6 @@ static void CL_ShutdownLocal( void ) {
 	Cmd_RemoveCommand( "reconnect" );
 	Cmd_RemoveCommand( "rcon" );
 	Cmd_RemoveCommand( "writeconfig" );
-	Cmd_RemoveCommand( "showip" );
 	Cmd_RemoveCommand( "demo" );
 	Cmd_RemoveCommand( "next" );
 	Cmd_RemoveCommand( "pingserver" );

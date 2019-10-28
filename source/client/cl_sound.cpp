@@ -128,8 +128,6 @@ static bool S_InitAL() {
 		return false;
 	}
 
-	Com_Printf( "OpenAL initialized\n" );
-
 	return true;
 }
 

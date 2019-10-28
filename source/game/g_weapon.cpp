@@ -175,7 +175,10 @@ static edict_t *W_Fire_TossProjectile( edict_t *self, vec3_t start, vec3_t angle
 /*
 * W_Fire_Blade
 */
-void W_Fire_Blade( edict_t *self, int range, vec3_t start, vec3_t angles, int count, int angle, float damage, int knockback, int timeDelta ) {
+void W_Fire_Blade( edict_t *self, int range, vec3_t start, vec3_t angles,  float damage, int knockback, int timeDelta ) {
+	int traces = 6;
+	float slash_angle = 45.0f;
+
 	int mask = MASK_SHOT;
 	int dmgflags = 0;
 
@@ -183,13 +186,13 @@ void W_Fire_Blade( edict_t *self, int range, vec3_t start, vec3_t angles, int co
 		mask = MASK_SOLID;
 	}
 
-	for( int i = 0; i < count; i++ ) {
+	for( int i = 0; i < traces; i++ ) {
 		vec3_t end, dir;
 		trace_t trace;
 		vec3_t new_angles;
 
 		new_angles[0] = angles[0];
-		new_angles[1] = angles[1] + ((float)(i - count/2)/(float)(count))*angle;
+		new_angles[1] = angles[1] + Lerp( -slash_angle, float( i ) / float( traces - 1 ), slash_angle );
 		new_angles[2] = angles[2];
 
 		AngleVectors( new_angles, dir, NULL, NULL );

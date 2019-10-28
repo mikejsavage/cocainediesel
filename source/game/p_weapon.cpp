@@ -123,7 +123,7 @@ static void G_Fire_Gunblade_Knife( vec3_t origin, vec3_t angles, firedef_t *fire
 	int range = firedef->timeout;
 	float damage = firedef->damage;
 	int knockback = firedef->knockback;
-	W_Fire_Blade( owner, range, origin, angles, 6, 90, damage, knockback, timeDelta );
+	W_Fire_Blade( owner, range, origin, angles, damage, knockback, timeDelta );
 }
 
 

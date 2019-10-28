@@ -11,11 +11,11 @@ layout( std140 ) uniform u_Sky {
 
 #if VERTEX_SHADER
 
-in vec3 a_Position;
+in vec4 a_Position;
 
 void main() {
-	v_Position = a_Position;
-	gl_Position = u_P * u_V * vec4( a_Position, 0.0 );
+	v_Position = a_Position.xyz;
+	gl_Position = u_P * u_V * vec4( a_Position );
 }
 
 #else

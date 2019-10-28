@@ -93,11 +93,18 @@ do
 		rc = "source/win32/client",
 
 		gcc_extra_ldflags = "-lm -lpthread -ldl -no-pie -static-libstdc++",
-		msvc_extra_ldflags = "gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib /SUBSYSTEM:WINDOWS libs/bullet/BulletCollision.lib libs/bullet/BulletDynamics.lib libs/bullet/LinearMath.lib",
+		msvc_extra_ldflags = "gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib /SUBSYSTEM:WINDOWS"
+		-- " libs/bullet/BulletCollision.lib libs/bullet/BulletDynamics.lib libs/bullet/LinearMath.lib",
+		.. " libs/physx/LowLevelAABB_static_64.lib libs/physx/LowLevelDynamics_static_64.lib libs/physx/LowLevel_static_64.lib libs/physx/PhysXCharacterKinematic_static_64.lib libs/physx/PhysXCommon_64.lib libs/physx/PhysXCooking_64.lib libs/physx/PhysXExtensions_static_64.lib libs/physx/PhysXFoundation_64.lib libs/physx/PhysXPvdSDK_static_64.lib libs/physx/PhysXTask_static_64.lib libs/physx/PhysXVehicle_static_64.lib libs/physx/PhysX_64.lib libs/physx/SceneQuery_static_64.lib libs/physx/SimulationController_static_64.lib",
+
 	} )
 
 	obj_cxxflags( "source/client/ftlib/.+", "-I libs/freetype" )
 	obj_cxxflags( "source/client/renderer/text.cpp", "-I libs/freetype" )
+
+	obj_cxxflags( "source/client/renderer/bsp.cpp", "-I libs/physx -I libs/physx/physx" )
+	obj_cxxflags( "source/client/renderer/model.cpp", "-I libs/physx -I libs/physx/physx" )
+	obj_cxxflags( "source/cgame/cg_physics.cpp", "-I libs/physx -I libs/physx/physx" )
 end
 
 do

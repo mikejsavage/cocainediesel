@@ -7,13 +7,12 @@
 #include "qcommon/cm_local.h"
 #include "cgame/cg_local.h"
 
-#include "bullet/btBulletCollisionCommon.h"
-#include "bullet/btBulletDynamicsCommon.h"
-#include "bullet/LinearMath/btGeometryUtil.h"
+#include "physx/PxPhysicsAPI.h"
 
 #define NEW( a, T, ... ) new ( ALLOC( a, T ) ) T( __VA_ARGS__ )
 #define DELETE( a, T, p ) p->~T(); FREE( a, p )
 
+#if 0
 struct BulletDebugRenderer : public btIDebugDraw {
 	int mode;
 	DefaultColors default_colors;
@@ -96,6 +95,19 @@ btSphereShape * ball1;
 btRigidBody * body0;
 btRigidBody * body1;
 
+#endif
+
+static physx::PxDefaultAllocator allocator;
+static physx::PxDefaultErrorCallback errorCallback;
+
+static physx::PxFoundation * mFoundation;
+physx::PxPhysics * physx_physics;
+physx::PxCooking * physx_cooking;
+static physx::PxScene * mScene;
+physx::PxMaterial * physx_default_material;
+
+
+/*
 enum {
 	BODYPART_PELVIS = 0,
 	BODYPART_SPINE,
@@ -353,6 +365,7 @@ static void AddRagdoll() {
 	joints[JOINT_RIGHT_ELBOW] = hingeC;
 	dynamics_world->addConstraint(joints[JOINT_RIGHT_ELBOW], true);
 }
+*/
 
 
 static int64_t last_reset;
@@ -360,6 +373,72 @@ void InitPhysics() {
 	last_reset = cg.monotonicTime;
 	ZoneScoped;
 
+	mFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, allocator, errorCallback);
+	if(!mFoundation)
+		return; //fatalError("PxCreateFoundation failed!");
+
+	physx::PxTolerancesScale scale;
+
+	physx_physics = PxCreatePhysics(PX_PHYSICS_VERSION, *mFoundation, scale );
+	if(!physx_physics)
+		return; //fatalError("PxCreatePhysics failed!");
+
+	physx::PxCookingParams params(scale);
+	params.meshWeldTolerance = 0.001f;
+	params.meshPreprocessParams = physx::PxMeshPreprocessingFlags(physx::PxMeshPreprocessingFlag::eWELD_VERTICES);
+	physx_cooking = PxCreateCooking(PX_PHYSICS_VERSION, *mFoundation, params);
+	if(!physx_cooking)
+		return; //fatalError("PxCreateCooking failed!");
+
+	physx_default_material = physx_physics->createMaterial(0.5f, 0.5f, 0.1f);
+	if(!physx_default_material)
+		return; //fatalError("createMaterial failed!");
+
+	physx::PxSceneDesc sceneDesc(physx_physics->getTolerancesScale());
+	sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
+
+
+
+	sceneDesc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate( 2 );
+	if(!sceneDesc.cpuDispatcher)
+		return; //fatalError("PxDefaultCpuDispatcherCreate failed!");
+
+	sceneDesc.filterShader  = physx::PxDefaultSimulationFilterShader;
+
+	sceneDesc.flags |= physx::PxSceneFlag::eENABLE_PCM;
+	sceneDesc.flags |= physx::PxSceneFlag::eENABLE_STABILIZATION;
+	sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVE_ACTORS;
+	sceneDesc.sceneQueryUpdateMode = physx::PxSceneQueryUpdateMode::eBUILD_ENABLED_COMMIT_DISABLED;
+
+	mScene = physx_physics->createScene(sceneDesc);
+	if(!mScene)
+		return; //fatalError("createScene failed!");
+
+
+	mScene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 1.0f );
+	mScene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES,  1.0f);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if 0
 	collision_configuration = NEW( sys_allocator, btDefaultCollisionConfiguration );
 	collision_dispatcher = NEW( sys_allocator, btCollisionDispatcher, collision_configuration );
 	broadphase_pass = NEW( sys_allocator, btDbvtBroadphase );
@@ -452,30 +531,32 @@ void InitPhysics() {
 		dynamics_world->addConstraint( joint, true );
 	}
 
-	AddRagdoll();
+	// AddRagdoll();
 
 	{
 		const char * suffix = "*0";
 		u64 hash = Hash64( suffix, strlen( suffix ), cgs.map->base_hash );
 		const Model * model = FindModel( StringHash( hash ) );
 
-		if( model->collision_shape != NULL ) {
-			float mass = 0.0f;
-			btTransform transform;
-			transform.setIdentity();
-
-			btDefaultMotionState * myMotionState = NEW( sys_allocator, btDefaultMotionState, transform );
-			btRigidBody::btRigidBodyConstructionInfo info( mass, myMotionState, model->collision_shape );
-			btRigidBody * body = NEW( sys_allocator, btRigidBody, info );
-
-			body->setRestitution( 1.0f );
-
-			dynamics_world->addRigidBody( body );
-		}
+		// for( u32 i = 0; i < model->num_collision_shapes; i++ ) {
+		// 	float mass = 0.0f;
+		// 	btTransform startTransform;
+		// 	startTransform.setIdentity();
+                //
+		// 	btDefaultMotionState * myMotionState = NEW( sys_allocator, btDefaultMotionState, startTransform );
+		// 	btRigidBody::btRigidBodyConstructionInfo info( mass, myMotionState, model->collision_shapes[ i ] );
+		// 	btRigidBody* body = NEW( sys_allocator, btRigidBody, info );
+                //
+		// 	body->setRestitution( 1.0f );
+                //
+		// 	dynamics_world->addRigidBody( body );
+		// }
 	}
+#endif
 }
 
 void ShutdownPhysics() {
+#if 0
 	while( dynamics_world->getNumConstraints() > 0 ) {
 		btTypedConstraint * constraint = dynamics_world->getConstraint( dynamics_world->getNumConstraints() - 1 );
 		dynamics_world->removeConstraint( constraint );
@@ -500,11 +581,13 @@ void ShutdownPhysics() {
 	DELETE( sys_allocator, btBroadphaseInterface, broadphase_pass );
 	DELETE( sys_allocator, btCollisionDispatcher, collision_dispatcher );
 	DELETE( sys_allocator, btDefaultCollisionConfiguration, collision_configuration );
+#endif
 }
 
 void UpdatePhysics() {
 	ZoneScoped;
 
+#if 0
 	if( cg.monotonicTime - last_reset > 5000 ) {
 		ShutdownPhysics();
 		InitPhysics();
@@ -564,4 +647,5 @@ void UpdatePhysics() {
 	// 	btCapsuleShape * capsule = ( btCapsuleShape * ) bones[ i ].collision_shape;
 	// 	debug_renderer.drawCapsule( capsule->getRadius(), capsule->getHalfHeight(), 2, trans, btVector3( 0, 0, 0 ) );
 	// }
+#endif
 }

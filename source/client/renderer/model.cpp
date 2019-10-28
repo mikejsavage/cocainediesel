@@ -7,6 +7,8 @@
 
 #include "bullet/btBulletCollisionCommon.h"
 
+#include "physx/PxPhysicsAPI.h"
+
 constexpr u32 MAX_MODEL_ASSETS = 1024;
 constexpr u32 MAX_MAPS = 128;
 
@@ -75,15 +77,15 @@ static void DeleteModel( Model * model ) {
 	FREE( sys_allocator, model->primitives );
 	FREE( sys_allocator, model->joints );
 
-	if( model->collision_shape != NULL ) {
-		while( model->collision_shape->getNumChildShapes() > 0 ) {
-			btCollisionShape * shape = model->collision_shape->getChildShape( model->collision_shape->getNumChildShapes() - 1 );
-			model->collision_shape->removeChildShapeByIndex( model->collision_shape->getNumChildShapes() - 1 );
-			QF_DELETE( sys_allocator, btCollisionShape, shape );
-		}
-
-		QF_DELETE( sys_allocator, btCompoundShape, model->collision_shape );
-	}
+	// if( model->collision_shape != NULL ) {
+	// 	while( model->collision_shape->getNumChildShapes() > 0 ) {
+	// 		btCollisionShape * shape = model->collision_shape->getChildShape( model->collision_shape->getNumChildShapes() - 1 );
+	// 		model->collision_shape->removeChildShapeByIndex( model->collision_shape->getNumChildShapes() - 1 );
+	// 		QF_DELETE( sys_allocator, btCollisionShape, shape );
+	// 	}
+        //
+	// 	QF_DELETE( sys_allocator, btCompoundShape, model->collision_shape );
+	// }
 }
 
 void ShutdownModels() {

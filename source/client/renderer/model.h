@@ -4,7 +4,7 @@
 #include "cgame/ref.h"
 #include "client/renderer/backend.h"
 
-class btCompoundShape;
+namespace physx { class PxShape; }
 
 struct Model {
 	struct Primitive {
@@ -44,7 +44,8 @@ struct Model {
 	Primitive * primitives;
 	u32 num_primitives;
 
-	btCompoundShape * collision_shape;
+	physx::PxShape ** collision_shapes;
+	u32 num_collision_shapes;
 
 	Joint * joints;
 	u8 num_joints;

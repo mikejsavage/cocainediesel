@@ -6,10 +6,14 @@
 #include "qcommon/array.h"
 #include "qcommon/string.h"
 #include "qcommon/span2d.h"
+#include "client/client.h"
 #include "client/renderer/renderer.h"
 
 #include "bullet/btBulletCollisionCommon.h"
 #include "bullet/LinearMath/btGeometryUtil.h"
+
+#include "physx/PxPhysicsApi.h"
+#include "physx/cooking/PxCooking.h"
 
 #include "meshoptimizer/meshoptimizer.h"
 
@@ -349,6 +353,67 @@ static bool SortByMaterial( const BSPDrawCall & a, const BSPDrawCall & b ) {
 	return a.material < b.material;
 }
 
+static bool Intersect3PlanesPoint( Vec3 * p, BSPPlane plane1, BSPPlane plane2, BSPPlane plane3 ) {
+	constexpr float epsilon = 0.00001f;
+
+	Vec3 n2xn3 = Cross( plane2.normal, plane3.normal );
+	float n1_n2xn3 = Dot( plane1.normal, n2xn3 );
+
+	if( fabsf( n1_n2xn3 ) < epsilon )
+		return false;
+
+	Vec3 n3xn1 = Cross( plane3.normal, plane1.normal );
+	Vec3 n1xn2 = Cross( plane1.normal, plane2.normal );
+
+	*p = ( plane1.distance * n2xn3 + plane2.distance * n3xn1 + plane3.distance * n1xn2 ) / n1_n2xn3;
+	return true;
+}
+
+static bool PointInsideBrush( const DynamicArray< BSPPlane > & planes, Vec3 p ) {
+	constexpr float epsilon = 0.001f;
+	for( BSPPlane plane : planes ) {
+		if( Dot( p, plane.normal ) - plane.distance < epsilon ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+static void BrushConvexHull( DynamicArray< Vec3 > * hull, const DynamicArray< BSPPlane > & planes ) {
+	for( size_t i = 0; i < planes.size(); i++ ) {
+		for( size_t j = i + 1; j < planes.size(); j++ ) {
+			for( size_t k = j + 1; k < planes.size(); k++ ) {
+				Vec3 p;
+				if( !Intersect3PlanesPoint( &p, planes[ i ], planes[ j ], planes[ k ] ) )
+					continue;
+
+				if( !PointInsideBrush( planes, p ) )
+					continue;
+				
+				hull->add( p );
+			}
+		}
+	}
+}
+
+static void GetBrushPlanes( DynamicArray< BSPPlane > * planes, const BSPSpans & bsp, const BSPBrush & brush ) {
+	if( bsp.idbsp ) {
+		for( u32 j = 0; j < brush.num_brush_sides; j++ ) {
+			planes->add( bsp.planes[ bsp.brush_sides[ brush.first_brush_side + j ].plane ] );
+		}
+	}
+	else {
+		for( u32 j = 0; j < brush.num_brush_sides; j++ ) {
+			planes->add( bsp.planes[ bsp.raven_brush_sides[ brush.first_brush_side + j ].plane ] );
+		}
+	}
+}
+
+extern physx::PxPhysics * physx_physics; // TODO
+extern physx::PxCooking * physx_cooking;
+extern physx::PxMaterial * physx_default_material;
+
 static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSpans & bsp, u64 base_hash, size_t model_idx ) {
 	ZoneScoped;
 
@@ -515,9 +580,9 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 
 	model->mesh = NewMesh( mesh_config );
 
-	// bullet
+	// physx
 	{
-		ZoneScopedN( "Create bullet collision shapes" );
+		ZoneScopedN( "Create Physx collision shapes" );
 
 		u32 num_solid_brushes = 0;
 		for( u32 i = 0; i < bsp_model.num_brushes; i++ ) {
@@ -528,40 +593,36 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 		}
 
 		if( num_solid_brushes != 0 ) {
-			model->collision_shape = QF_NEW( sys_allocator, btCompoundShape, true, num_solid_brushes );
-
-			btTransform transform;
-			transform.setIdentity();
+			model->collision_shapes = ALLOC_MANY( sys_allocator, physx::PxShape *, num_solid_brushes );
 
 			for( u32 i = 0; i < bsp_model.num_brushes; i++ ) {
 				const BSPBrush & brush = bsp.brushes[ bsp_model.first_brush + i ];
 				if( ( bsp.materials[ brush.material ].contents & CONTENTS_SOLID ) == 0 )
 					continue;
 
-				btAlignedObjectArray< btVector3 > planes;
+				TempAllocator temp = cls.frame_arena.temp();
 
-				if( bsp.idbsp ) {
-					for( u32 j = 0; j < brush.num_brush_sides; j++ ) {
-						BSPPlane plane = bsp.planes[ bsp.brush_sides[ brush.first_brush_side + j ].plane ];
-						btVector3 bt_plane( plane.normal.x, plane.normal.y, plane.normal.z );
-						bt_plane[ 3 ] = -plane.distance;
-						planes.push_back( bt_plane );
-					}
-				}
-				else {
-					for( u32 j = 0; j < brush.num_brush_sides; j++ ) {
-						BSPPlane plane = bsp.planes[ bsp.raven_brush_sides[ brush.first_brush_side + j ].plane ];
-						btVector3 bt_plane( plane.normal.x, plane.normal.y, plane.normal.z );
-						bt_plane[ 3 ] = -plane.distance;
-						planes.push_back( bt_plane );
-					}
-				}
+				DynamicArray< BSPPlane > planes( &temp );
+				GetBrushPlanes( &planes, bsp, brush );
 
-				btAlignedObjectArray< btVector3 > hull_vertices;
-				btGeometryUtil::getVerticesFromPlaneEquations( planes, hull_vertices );
+				DynamicArray< Vec3 > hull( &temp );
+				BrushConvexHull( &hull, planes );
 
-				btConvexHullShape * shape = QF_NEW( sys_allocator, btConvexHullShape, &hull_vertices[ 0 ].getX(), hull_vertices.size() );
-				model->collision_shape->addChildShape( transform, shape );
+				physx::PxConvexMeshDesc convexDesc;
+				convexDesc.points.count = hull.size();;
+				convexDesc.points.stride = sizeof( Vec3 );
+				convexDesc.points.data = hull.ptr();
+				convexDesc.flags = physx::PxConvexFlag::eCOMPUTE_CONVEX | physx::PxConvexFlag::eSHIFT_VERTICES | physx::PxConvexFlag::eCHECK_ZERO_AREA_TRIANGLES;
+
+				physx::PxDefaultMemoryOutputStream buf;
+				physx::PxConvexMeshCookingResult::Enum result;
+				if(!physx_cooking->cookConvexMesh(convexDesc, buf, &result))
+					return;
+				physx::PxDefaultMemoryInputData input(buf.getData(), buf.getSize());
+				physx::PxConvexMesh* convexMesh = physx_physics->createConvexMesh(input);
+
+				model->collision_shapes[ model->num_collision_shapes ] = physx_physics->createShape( physx::PxConvexMeshGeometry( convexMesh ), *physx_default_material );
+				model->num_collision_shapes++;
 			}
 		}
 	}

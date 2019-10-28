@@ -4,9 +4,9 @@
 /source/qcommon/gitversion.h
 
 /client
-/client-asan
+/client-*
 /server
-/server-asan
+/server-*
 
 /demos
 /screenshots

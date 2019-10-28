@@ -1,53 +1,64 @@
 local lfs = require( "INTERNAL_LFS" )
 
-local configs = {
-	[ "windows" ] = {
-		bin_suffix = ".exe",
-		obj_suffix = ".obj",
-		lib_suffix = ".lib",
+local configs = { }
 
-		toolchain = "msvc",
+configs[ "windows" ] = {
+	bin_suffix = ".exe",
+	obj_suffix = ".obj",
+	lib_suffix = ".lib",
 
-		cxxflags = "/c /Oi /Gm- /nologo /DNOMINMAX /DWIN32_LEAN_AND_MEAN",
-		ldflags = "user32.lib shell32.lib advapi32.lib dbghelp.lib /NOLOGO",
-	},
+	toolchain = "msvc",
 
-	[ "windows-debug" ] = {
-		cxxflags = "/MTd /Z7",
-		ldflags = "/DEBUG",
-	},
-	[ "windows-release" ] = {
-		cxxflags = "/O2 /MT /DNDEBUG",
-		bin_prefix = "release/",
-	},
+	cxxflags = "/c /Oi /Gm- /nologo /DNOMINMAX /DWIN32_LEAN_AND_MEAN",
+	ldflags = "user32.lib shell32.lib advapi32.lib dbghelp.lib /NOLOGO",
+}
 
-	[ "linux" ] = {
-		obj_suffix = ".o",
-		lib_prefix = "lib",
-		lib_suffix = ".a",
+configs[ "windows-debug" ] = {
+	cxxflags = "/MTd /Z7",
+	ldflags = "/DEBUG",
+}
+configs[ "windows-release" ] = {
+	cxxflags = "/O2 /MT /DNDEBUG",
+	bin_prefix = "release/",
+}
+configs[ "windows-bench" ] = {
+	bin_suffix = "-bench.exe",
+	cxxflags = configs[ "windows-release" ].cxxflags,
+	ldflags = configs[ "windows-release" ].ldflags,
+	prebuilt_lib_dir = "windows-release",
+}
 
-		toolchain = "gcc",
-		cxx = "g++",
+configs[ "linux" ] = {
+	obj_suffix = ".o",
+	lib_prefix = "lib",
+	lib_suffix = ".a",
 
-		cxxflags = "-c -fdiagnostics-color",
-		ldflags = "",
-	},
+	toolchain = "gcc",
+	cxx = "g++",
 
-	[ "linux-debug" ] = {
-		cxxflags = "-O0 -ggdb3 -fno-omit-frame-pointer",
-	},
-	[ "linux-asan" ] = {
-		bin_suffix = "-asan",
-		cxxflags = "-O0 -ggdb3 -fno-omit-frame-pointer -fsanitize=address",
-		ldflags = "-fsanitize=address",
+	cxxflags = "-c -fdiagnostics-color",
+	ldflags = "",
+}
 
-		prebuilt_lib_dir = "linux-debug",
-	},
-	[ "linux-release" ] = {
-		cxxflags = "-O2 -DNDEBUG",
-		ldflags = "-s",
-		bin_prefix = "release/",
-	},
+configs[ "linux-debug" ] = {
+	cxxflags = "-O0 -ggdb3 -fno-omit-frame-pointer",
+}
+configs[ "linux-asan" ] = {
+	bin_suffix = "-asan",
+	cxxflags = configs[ "linux-debug" ].cxxflags .. " -fsanitize=address",
+	ldflags = "-fsanitize=address",
+	prebuilt_lib_dir = "linux-debug",
+}
+configs[ "linux-release" ] = {
+	cxxflags = "-O2 -DNDEBUG",
+	ldflags = "-s",
+	bin_prefix = "release/",
+}
+configs[ "linux-bench" ] = {
+	bin_suffix = "-bench",
+	cxxflags = configs[ "linux-release" ].cxxflags,
+	ldflags = configs[ "linux-release" ].ldflags,
+	prebuilt_lib_dir = "linux-release",
 }
 
 local function identify_host()

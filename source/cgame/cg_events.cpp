@@ -666,7 +666,7 @@ void CG_Event_WallJump( entity_state_t *state, int parm, int ev ) {
 }
 
 static void CG_PlayJumpSound( const entity_state_t * state ) {
-	constexpr PlayerSound sounds[] = { PlayerSound_Jump1, PlayerSound_Jump2, PlayerSound_Jump3 };
+	constexpr PlayerSound sounds[] = { PlayerSound_Jump1, PlayerSound_Jump2 };
 	CG_PlayerSound( state->number, CHAN_BODY, random_select( &cls.rng, sounds ), cg_volume_players->value, state->attenuation );
 }
 

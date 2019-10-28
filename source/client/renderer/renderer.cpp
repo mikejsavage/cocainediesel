@@ -128,8 +128,8 @@ void InitRenderer() {
 static void DeleteFramebuffers() {
 	DeleteFramebuffer( frame_static.world_gbuffer );
 	DeleteFramebuffer( frame_static.world_outlines_fb );
-	DeleteFramebuffer( frame_static.teammate_gbuffer );
-	DeleteFramebuffer( frame_static.teammate_outlines_fb );
+	DeleteFramebuffer( frame_static.silhouette_gbuffer );
+	DeleteFramebuffer( frame_static.silhouette_silhouettes_fb );
 	DeleteFramebuffer( frame_static.msaa_fb );
 }
 
@@ -200,6 +200,21 @@ static Mat4 PerspectiveProjection( float vertical_fov_degrees, float aspect_rati
 	);
 }
 
+static Mat4 InvertPerspectiveProjection( const Mat4 & P ) {
+	float a = P.col0.x;
+	float b = P.col1.y;
+	float c = P.col2.z;
+	float d = P.col3.z;
+	float e = P.col2.w;
+
+	return Mat4(
+		1.0f / a, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f / b, 0.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f / e,
+		0.0f, 0.0f, 1.0f / d, -c / ( d * e )
+	);
+}
+
 static Mat4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
 	float pitch = DEG2RAD( angles.pitch );
 	float sp = sinf( pitch );
@@ -221,8 +236,19 @@ static Mat4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
 	return rotation * Mat4Translation( -position );
 }
 
-static UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & P, const Vec3 & camera_pos, const Vec2 & viewport_size, float near_plane, int samples ) {
-	return UploadUniformBlock( V, P, camera_pos, viewport_size, near_plane, samples );
+static Mat4 InvertViewMatrix( const Mat4 & V, Vec3 position ) {
+	return Mat4(
+		// transpose rotation part
+		Vec4( V.row0().xyz(), 0.0f ),
+		Vec4( V.row1().xyz(), 0.0f ),
+		Vec4( V.row2().xyz(), 0.0f ),
+
+		Vec4( position, 1.0f )
+	);
+}
+
+static UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & inverse_V, const Mat4 & P, const Mat4 & inverse_P, const Vec3 & camera_pos, const Vec2 & viewport_size, float near_plane, int samples ) {
+	return UploadUniformBlock( V, inverse_V, P, inverse_P, camera_pos, viewport_size, near_plane, samples );
 }
 
 static void CreateFramebuffers() {
@@ -262,8 +288,8 @@ static void CreateFramebuffers() {
 		texture_config.format = TextureFormat_RGBA_U8_sRGB;
 		fb.albedo_attachment = texture_config;
 
-		frame_static.teammate_gbuffer = NewFramebuffer( fb );
-		frame_static.teammate_outlines_fb = NewFramebuffer( fb );
+		frame_static.silhouette_gbuffer = NewFramebuffer( fb );
+		frame_static.silhouette_silhouettes_fb = NewFramebuffer( fb );
 	}
 
 	if( frame_static.msaa_samples > 1 ) {
@@ -304,26 +330,26 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	bool msaa = frame_static.msaa_samples;
 
-	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples );
+	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples );
 	frame_static.identity_model_uniforms = UploadModelUniforms( Mat4::Identity() );
 	frame_static.identity_material_uniforms = UploadMaterialUniforms( vec4_white, Vec2( 0 ), 0.0f );
 
 	frame_static.blue_noise_uniforms = UploadUniformBlock( Vec2( blue_noise.width, blue_noise.height ) );
 
-	frame_static.world_write_gbuffer_pass = AddRenderPass( "Write world gbuffer", frame_static.world_gbuffer, ClearColor_Do, ClearDepth_Do );
-	frame_static.world_postprocess_gbuffer_pass = AddRenderPass( "Postprocess world gbuffer", frame_static.world_outlines_fb );
+	frame_static.write_world_gbuffer_pass = AddRenderPass( "Write world gbuffer", frame_static.world_gbuffer, ClearColor_Do, ClearDepth_Do );
+	frame_static.postprocess_world_gbuffer_pass = AddRenderPass( "Postprocess world gbuffer", frame_static.world_outlines_fb );
 
 	if( msaa ) {
 		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", frame_static.msaa_fb, ClearColor_Do, ClearDepth_Do );
-		frame_static.world_add_outlines_pass = AddRenderPass( "Render world outlines", frame_static.msaa_fb );
+		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines", frame_static.msaa_fb );
 	}
 	else {
 		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", ClearColor_Do, ClearDepth_Do );
-		frame_static.world_add_outlines_pass = AddRenderPass( "Render world outlines" );
+		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines" );
 	}
 
-	frame_static.teammate_write_gbuffer_pass = AddRenderPass( "Write teammate gbuffer", frame_static.teammate_gbuffer, ClearColor_Do, ClearDepth_Dont );
-	frame_static.teammate_postprocess_gbuffer_pass = AddRenderPass( "Postprocess teammate gbuffer", frame_static.teammate_outlines_fb );
+	frame_static.write_silhouette_gbuffer_pass = AddRenderPass( "Write silhouette gbuffer", frame_static.silhouette_gbuffer, ClearColor_Do, ClearDepth_Dont );
+	frame_static.postprocess_silhouette_gbuffer_pass = AddRenderPass( "Postprocess silhouette gbuffer", frame_static.silhouette_silhouettes_fb );
 
 	if( msaa ) {
 		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque", frame_static.msaa_fb );
@@ -338,7 +364,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		frame_static.transparent_pass = AddRenderPass( "Render transparent" );
 	}
 
-	frame_static.teammate_add_outlines_pass = AddRenderPass( "Render teammate outlines" );
+	frame_static.add_silhouettes_pass = AddRenderPass( "Render silhouettes" );
 	frame_static.blur_pass = AddRenderPass( "Blur screen" );
 	frame_static.ui_pass = AddUnsortedRenderPass( "Render UI" );
 }
@@ -347,10 +373,12 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	float near_plane = 4.0f;
 
 	frame_static.V = ViewMatrix( position, angles );
+	frame_static.inverse_V = InvertViewMatrix( frame_static.V, position );
 	frame_static.P = PerspectiveProjection( vertical_fov, frame_static.aspect_ratio, near_plane );
+	frame_static.inverse_P = InvertPerspectiveProjection( frame_static.P );
 	frame_static.position = position;
 
-	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.P, position, frame_static.viewport, near_plane, frame_static.msaa_samples );
+	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.inverse_V, frame_static.P, frame_static.inverse_P, position, frame_static.viewport, near_plane, frame_static.msaa_samples );
 }
 
 void RendererSubmitFrame() {

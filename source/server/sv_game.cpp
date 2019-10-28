@@ -53,7 +53,7 @@ static inline struct cmodel_s *PF_CM_InlineModel( int num ) {
 	return CM_InlineModel( svs.cms, num );
 }
 
-static inline void PF_CM_InlineModelBounds( struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs ) {
+static inline void PF_CM_InlineModelBounds( const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs ) {
 	CM_InlineModelBounds( svs.cms, cmodel, mins, maxs );
 }
 
@@ -475,16 +475,7 @@ void SV_InitGameProgs( void ) {
 	import.FS_FOpenFile = FS_FOpenFile;
 	import.FS_Read = FS_Read;
 	import.FS_Write = FS_Write;
-	import.FS_Print = FS_Print;
-	import.FS_Tell = FS_Tell;
-	import.FS_Seek = FS_Seek;
-	import.FS_Eof = FS_Eof;
-	import.FS_Flush = FS_Flush;
 	import.FS_FCloseFile = FS_FCloseFile;
-	import.FS_RemoveFile = FS_RemoveFile;
-	import.FS_GetFileList = FS_GetFileList;
-	import.FS_MoveFile = FS_MoveFile;
-	import.FS_RemoveDirectory = FS_RemoveDirectory;
 
 	import.Mem_Alloc = PF_MemAlloc;
 	import.Mem_Free = PF_MemFree;

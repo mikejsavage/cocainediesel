@@ -191,10 +191,6 @@ typedef struct {
 	// screen rendering information
 	bool cgameActive;
 
-	unsigned int disable_screen;    // showing loading plaque between levels
-	                                // or changing rendering dlls
-	                                // if time gets > 30 seconds ahead, break it
-
 	// connection information
 	char *servername;               // name of server from original connect
 	socket_type_t servertype;       // socket type used to connect to the server
@@ -256,6 +252,7 @@ typedef struct {
 
 	ImFont * huge_font;
 	ImFont * large_font;
+	ImFont * big_font;
 	ImFont * medium_font;
 	ImFont * console_font;
 } client_static_t;
@@ -300,15 +297,10 @@ void CL_SendMessagesToServer( bool sendNow );
 void CL_RestartTimeDeltas( int newTimeDelta );
 void CL_AdjustServerTime( unsigned int gamemsec );
 
-char *CL_GetClipboardData( void );
-void CL_SetClipboardData( const char *data );
-void CL_FreeClipboardData( char *data );
-keydest_t CL_GetKeyDest( void );              // wsw : aiwa : we need this information for graphical plugins (e.g. IRC)
 void CL_SetKeyDest( keydest_t key_dest );
 void CL_SetOldKeyDest( keydest_t key_dest );
 void CL_ResetServerCount( void );
 void CL_SetClientState( connstate_t state );
-connstate_t CL_GetClientState( void );  // wsw : aiwa : we need this information for graphical plugins (e.g. IRC)
 void CL_ClearState( void );
 void CL_ReadPackets( void );
 void CL_Disconnect_f( void );
@@ -366,7 +358,6 @@ void CL_ShutDownServerList( void );
 // cl_input.c
 //
 void CL_InitInput( void );
-void CL_ShutdownInput( void );
 void CL_UserInputFrame( int realMsec );
 void CL_WriteUcmdsToMessage( msg_t *msg );
 
@@ -407,8 +398,6 @@ void CL_CheckDownloadTimeout( void );
 //
 void SCR_InitScreen( void );
 void SCR_UpdateScreen( void );
-void SCR_BeginLoadingPlaque( void );
-void SCR_EndLoadingPlaque( void );
 void SCR_DebugGraph( float value, float r, float g, float b );
 void SCR_RegisterConsoleMedia( void );
 

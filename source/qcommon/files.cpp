@@ -772,8 +772,6 @@ static int FS_FileExists( const char *filename, bool base ) {
 	packfile_t *pakFile = NULL;
 	char tempname[FS_MAX_PATH];
 
-	assert( !FS_IsUrl( filename ) ); // WTF was this shit
-
 	if( base ) {
 		search = FS_SearchPathForBaseFile( filename, tempname, sizeof( tempname ) );
 	} else {
@@ -1427,25 +1425,6 @@ int FS_Seek( int file, int offset, int whence ) {
 }
 
 /*
-* FS_Eof
-*/
-int FS_Eof( int file ) {
-	filehandle_t *fh;
-
-	fh = FS_FileHandleForNum( file );
-	if( fh->zipEntry ) {
-		return fh->zipEntry->restReadCompressed == 0;
-	}
-	if( fh->gzstream ) {
-		return gzeof( fh->gzstream );
-	}
-	if( fh->fstream ) {
-		return fh->pakFile ? fh->offset >= fh->uncompressedSize : feof( fh->fstream );
-	}
-	return 1;
-}
-
-/*
 * FS_FFlush
 */
 int FS_Flush( int file ) {
@@ -1782,69 +1761,6 @@ bool FS_RemoveFile( const char *filename ) {
 }
 
 /*
-* _FS_CopyFile
-*/
-bool _FS_CopyFile( const char *src, const char *dst, bool base, bool absolute ) {
-	int srcnum, dstnum, length, result, l;
-	uint8_t buffer[FS_MAX_BLOCK_SIZE];
-
-	length = _FS_FOpenFile( src, &srcnum, FS_READ, base );
-	if( length == -1 ) {
-		return false;
-	}
-
-	if( absolute ) {
-		result = FS_FOpenAbsoluteFile( dst, &dstnum, FS_WRITE );
-	} else {
-		result = _FS_FOpenFile( dst, &dstnum, FS_WRITE, base );
-	}
-	if( result == -1 ) {
-		FS_FCloseFile( srcnum );
-		return false;
-	}
-
-	while( true ) {
-		l = FS_Read( buffer, sizeof( buffer ), srcnum );
-		if( !l ) {
-			break;
-		}
-		FS_Write( buffer, l, dstnum );
-		length -= l;
-	}
-
-	FS_FCloseFile( dstnum );
-	FS_FCloseFile( srcnum );
-
-	if( length != 0 ) {
-		_FS_RemoveFile( dst, base );
-		return false;
-	}
-
-	return true;
-}
-
-/*
-* FS_CopyFile
-*/
-bool FS_CopyFile( const char *src, const char *dst ) {
-	return _FS_CopyFile( src, dst, false, false );
-}
-
-/*
-* FS_CopyBaseFile
-*/
-bool FS_CopyBaseFile( const char *src, const char *dst ) {
-	return _FS_CopyFile( src, dst, true, false );
-}
-
-/*
-* FS_ExtractFile
-*/
-bool FS_ExtractFile( const char *src, const char *dst ) {
-	return _FS_CopyFile( src, dst, false, true );
-}
-
-/*
 * _FS_MoveFile
 */
 bool _FS_MoveFile( const char *src, const char *dst, bool base, const char *dir ) {
@@ -1889,50 +1805,6 @@ bool FS_MoveFile( const char *src, const char *dst ) {
 */
 bool FS_MoveBaseFile( const char *src, const char *dst ) {
 	return _FS_MoveFile( src, dst, true, FS_WriteDirectory() );
-}
-
-/*
-* FS_MoveCacheFile
-*/
-bool FS_MoveCacheFile( const char *src, const char *dst ) {
-	return _FS_MoveFile( src, dst, false, FS_CacheDirectory() );
-}
-
-/*
-* FS_RemoveAbsoluteDirectory
-*/
-bool FS_RemoveAbsoluteDirectory( const char *dirname ) {
-	if( !COM_ValidateFilename( dirname ) ) {
-		return false;
-	}
-
-	return ( Sys_FS_RemoveDirectory( dirname ) );
-}
-
-/*
-* FS_RemoveBaseDirectory
-*/
-bool FS_RemoveBaseDirectory( const char *dirname ) {
-	char temp[FS_MAX_PATH];
-
-	if( !COM_ValidateRelativeFilename( dirname ) ) {
-		return false;
-	}
-
-	return ( FS_RemoveAbsoluteDirectory( va_r( temp, sizeof( temp ), "%s/%s", FS_WriteDirectory(), dirname ) ) );
-}
-
-/*
-* FS_RemoveDirectory
-*/
-bool FS_RemoveDirectory( const char *dirname ) {
-	char temp[FS_MAX_PATH];
-
-	if( !COM_ValidateRelativeFilename( dirname ) ) {
-		return false;
-	}
-
-	return ( FS_RemoveAbsoluteDirectory( va_r( temp, sizeof( temp ), "%s/%s/%s", FS_WriteDirectory(), FS_GameDirectory(), dirname ) ) );
 }
 
 /*

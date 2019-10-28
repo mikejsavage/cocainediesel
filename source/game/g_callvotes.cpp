@@ -1183,22 +1183,18 @@ static const char *G_CallVotes_String( const callvotedata_t *vote ) {
 */
 static void G_CallVotes_CheckState( void ) {
 	edict_t *ent;
-	int needvotes, yeses = 0, voters = 0, noes = 0;
+	int yeses = 0, voters = 0, noes = 0;
 
 	if( !callvoteState.vote.callvote ) {
 		return;
 	}
 
-	if( callvoteState.vote.callvote->validate != NULL &&
-		!callvoteState.vote.callvote->validate( &callvoteState.vote, false ) ) {
-		// fixme: should be vote cancelled or something
-		G_PrintMsg( NULL, "Vote is no longer valid\nVote %s%s%s canceled\n", S_COLOR_YELLOW,
-					G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE );
+	if( callvoteState.vote.callvote->validate != NULL && !callvoteState.vote.callvote->validate( &callvoteState.vote, false ) ) {
+		G_PrintMsg( NULL, "Vote %s%s%s canceled\n", S_COLOR_YELLOW, G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE );
 		G_CallVotes_Reset( true );
 		return;
 	}
 
-	//analize votation state
 	for( ent = game.edicts + 1; PLAYERNUM( ent ) < gs.maxclients; ent++ ) {
 		gclient_t *client = ent->r.client;
 
@@ -1225,11 +1221,9 @@ static void G_CallVotes_CheckState( void ) {
 		}
 	}
 
-	// passed?
-	needvotes = (int)( ( voters * g_callvote_electpercentage->value ) / 100 );
-	if( yeses > needvotes || callvoteState.vote.operatorcall ) {
-		G_PrintMsg( NULL, "Vote %s%s%s passed\n", S_COLOR_YELLOW,
-					G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE );
+	int needvotes = int( voters * g_callvote_electpercentage->value / 100.0f ) + 1;
+	if( yeses >= needvotes || callvoteState.vote.operatorcall ) {
+		G_PrintMsg( NULL, "Vote %s%s%s passed\n", S_COLOR_YELLOW, G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE );
 		if( callvoteState.vote.callvote->execute != NULL ) {
 			callvoteState.vote.callvote->execute( &callvoteState.vote );
 		}
@@ -1237,10 +1231,8 @@ static void G_CallVotes_CheckState( void ) {
 		return;
 	}
 
-	// failed?
-	if( game.realtime > callvoteState.timeout || voters - noes <= needvotes ) { // no change to pass anymore
-		G_PrintMsg( NULL, "Vote %s%s%s failed\n", S_COLOR_YELLOW,
-					G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE );
+	if( game.realtime > callvoteState.timeout || needvotes + noes > voters ) {
+		G_PrintMsg( NULL, "Vote %s%s%s failed\n", S_COLOR_YELLOW, G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE );
 		G_CallVotes_Reset( true );
 		return;
 	}

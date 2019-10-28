@@ -433,17 +433,6 @@ struct cmodel_s *CG_CModelForEntity( int entNum ) {
 }
 
 /*
-* CG_EntAddBobEffect
-*/
-static void CG_EntAddBobEffect( centity_t *cent ) {
-	float scale = 0.005f + cent->current.number * 0.00001f;
-	float bob = 4 + cosf( ( cg.time + 1000 ) * scale ) * 4;
-
-	cent->ent.origin2[2] += bob;
-	cent->ent.origin[2] += bob;
-}
-
-/*
 * CG_EntAddTeamColorTransitionEffect
 */
 static void CG_EntAddTeamColorTransitionEffect( centity_t *cent ) {
@@ -593,12 +582,6 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 		return;
 	}
 
-	// bobbing & auto-rotation
-	if( cent->effects & EF_ROTATE_AND_BOB ) {
-		CG_EntAddBobEffect( cent );
-		Matrix3_Copy( cg.autorotateAxis, cent->ent.axis );
-	}
-
 	if( cent->effects & EF_TEAMCOLOR_TRANSITION ) {
 		CG_EntAddTeamColorTransitionEffect( cent );
 	}
@@ -607,18 +590,32 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 	Mat4 transform = FromQFAxisAndOrigin( cent->ent.axis, cent->ent.origin );
 
 	Vec4 color;
-	for( int i = 0; i < 4; i++ )
+	for( int i = 0; i < 4; i++ ) {
 		color.ptr()[ i ] = cent->ent.shaderRGBA[ i ] / 255.0f;
+	}
 
 	DrawModel( model, transform, color );
+
+	if( cent->current.silhouetteColor.a > 0 ) {
+		if( ( cent->current.effects & EF_TEAM_SILHOUETTE ) == 0 || cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR || cent->current.team == cg.predictedPlayerState.stats[ STAT_TEAM ] ) {
+			Vec4 silhouette_color = Vec4(
+				cent->current.silhouetteColor.r / 255.0f,
+				cent->current.silhouetteColor.g / 255.0f,
+				cent->current.silhouetteColor.b / 255.0f,
+				cent->current.silhouetteColor.a / 255.0f
+			);
+
+			DrawModelSilhouette( model, transform, silhouette_color );
+		}
+	}
 
 	if( cent->effects & EF_WORLD_MODEL ) {
 		UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
 		for( u32 i = 0; i < model->num_primitives; i++ ) {
 			if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
 				PipelineState pipeline;
-				pipeline.pass = frame_static.world_write_gbuffer_pass;
-				pipeline.shader = &shaders.world_write_gbuffer;
+				pipeline.pass = frame_static.write_world_gbuffer_pass;
+				pipeline.shader = &shaders.write_world_gbuffer;
 				pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 				pipeline.set_uniform( "u_Model", model_uniforms );
 
@@ -899,14 +896,9 @@ void CG_AddEntities( void ) {
 	ZoneScoped;
 
 	entity_state_t *state;
-	vec3_t autorotate;
 	int pnum;
 	centity_t *cent;
 	bool canLight;
-
-	// bonus items rotate at a fixed rate
-	VectorSet( autorotate, 0, ( cg.time % 3600 ) * 0.1, 0 );
-	AnglesToAxis( autorotate, cg.autorotateAxis );
 
 	for( pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
 		state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
@@ -1017,18 +1009,10 @@ void CG_AddEntities( void ) {
 void CG_LerpEntities( void ) {
 	ZoneScoped;
 
-	entity_state_t *state;
-	int pnum;
-	centity_t *cent;
-
-	for( pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
-		int number;
-		bool spatialize;
-
-		state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
-		number = state->number;
-		cent = &cg_entities[number];
-		spatialize = true;
+	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
+		entity_state_t * state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
+		int number = state->number;
+		centity_t * cent = &cg_entities[number];
 
 		switch( cent->type ) {
 			case ET_GENERIC:
@@ -1076,11 +1060,9 @@ void CG_LerpEntities( void ) {
 				break;
 		}
 
-		if( spatialize ) {
-			vec3_t origin, velocity;
-			CG_GetEntitySpatilization( number, origin, velocity );
-			S_UpdateEntity( number, origin, velocity );
-		}
+		vec3_t origin, velocity;
+		CG_GetEntitySpatilization( number, origin, velocity );
+		S_UpdateEntity( number, origin, velocity );
 	}
 }
 
@@ -1164,10 +1146,6 @@ void CG_UpdateEntities( void ) {
 * Called to get the sound spatialization origin and velocity
 */
 void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
-	centity_t *cent;
-	struct cmodel_s *cmodel;
-	vec3_t mins, maxs;
-
 	if( entNum < -1 || entNum >= MAX_EDICTS ) {
 		CG_Error( "CG_GetEntitySpatilization: bad entnum" );
 		return;
@@ -1184,7 +1162,7 @@ void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
 		return;
 	}
 
-	cent = &cg_entities[entNum];
+	const centity_t * cent = &cg_entities[entNum];
 
 	// normal
 	if( cent->current.solid != SOLID_BMODEL ) {
@@ -1199,7 +1177,8 @@ void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
 
 	// bmodel
 	if( origin != NULL ) {
-		cmodel = trap_CM_InlineModel( cent->current.modelindex );
+		const struct cmodel_s * cmodel = trap_CM_InlineModel( cent->current.modelindex );
+		vec3_t mins, maxs;
 		trap_CM_InlineModelBounds( cmodel, mins, maxs );
 		VectorAdd( maxs, mins, origin );
 		VectorMA( cent->ent.origin, 0.5f, origin, origin );

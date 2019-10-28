@@ -17,29 +17,10 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-enum PrimaryWeapon {
-	PrimaryWeapon_EBRL,
-	PrimaryWeapon_RLLG,
-	PrimaryWeapon_EBLG,
-}
+const int[] weap_ammo	= {  150,  15,   10,   15,   140,  180,  15  };
+const int[] ammo_type	= { AMMO_BULLETS, AMMO_SHELLS, AMMO_GRENADES, AMMO_ROCKETS, AMMO_PLASMA, AMMO_LASERS, AMMO_BOLTS };
 
-enum SecondaryWeapon {
-	SecondaryWeapon_PG,
-	SecondaryWeapon_RG,
-	SecondaryWeapon_GL,
-	SecondaryWeapon_MG,
-}
-
-String[] primaryWeaponNames = { "ebrl", "rllg", "eblg" };
-String[] secondaryWeaponNames = { "pg", "rg", "gl", "mg" };
-
-const int AMMO_EB = 15;
-const int AMMO_RL = 15;
-const int AMMO_LG = 180;
-const int AMMO_PG = 140;
-const int AMMO_RG = 15;
-const int AMMO_GL = 10;
-const int AMMO_MG = 150;
+const int MAX_CASH = 500;
 
 cPlayer@[] players( maxClients ); // array of handles
 bool playersInitialized = false;
@@ -47,8 +28,7 @@ bool playersInitialized = false;
 class cPlayer {
 	Client @client;
 
-	PrimaryWeapon weapPrimary;
-	SecondaryWeapon weapSecondary;
+	bool[] loadout( WEAP_TOTAL );
 
 	int64 lastLoadoutChangeTime; // so people can't spam change weapons during warmup
 
@@ -76,82 +56,67 @@ class cPlayer {
 
 	void giveInventory() {
 		this.client.inventoryClear();
-
 		this.client.inventoryGiveItem( WEAP_GUNBLADE );
 
-		switch( this.weapPrimary ) {
-			case PrimaryWeapon_EBRL:
-				this.client.inventoryGiveItem( WEAP_ROCKETLAUNCHER );
-				this.client.inventorySetCount( AMMO_ROCKETS, AMMO_RL );
-				this.client.inventoryGiveItem( WEAP_ELECTROBOLT );
-				this.client.inventorySetCount( AMMO_BOLTS, AMMO_EB );
-				break;
-
-			case PrimaryWeapon_RLLG:
-				this.client.inventoryGiveItem( WEAP_ROCKETLAUNCHER );
-				this.client.inventorySetCount( AMMO_ROCKETS, AMMO_RL );
-				this.client.inventoryGiveItem( WEAP_LASERGUN );
-				this.client.inventorySetCount( AMMO_LASERS, AMMO_LG );
-				break;
-
-			case PrimaryWeapon_EBLG:
-				this.client.inventoryGiveItem( WEAP_ELECTROBOLT );
-				this.client.inventorySetCount( AMMO_BOLTS, AMMO_EB );
-				this.client.inventoryGiveItem( WEAP_LASERGUN );
-				this.client.inventorySetCount( AMMO_LASERS, AMMO_LG );
-				break;
-		}
-
-		switch( this.weapSecondary ) {
-			case SecondaryWeapon_PG:
-				this.client.inventoryGiveItem( WEAP_PLASMAGUN );
-				this.client.inventorySetCount( AMMO_PLASMA, AMMO_PG );
-				break;
-
-			case SecondaryWeapon_RG:
-				this.client.inventoryGiveItem( WEAP_RIOTGUN );
-				this.client.inventorySetCount( AMMO_SHELLS, AMMO_RG );
-				break;
-
-			case SecondaryWeapon_GL:
-				this.client.inventoryGiveItem( WEAP_GRENADELAUNCHER );
-				this.client.inventorySetCount( AMMO_GRENADES, AMMO_GL );
-				break;
-
-			case SecondaryWeapon_MG:
-				this.client.inventoryGiveItem( WEAP_MACHINEGUN );
-				this.client.inventorySetCount( AMMO_BULLETS, AMMO_MG );
-				break;
+		for( int i = WEAP_MACHINEGUN; i < WEAP_TOTAL; i++ ) {
+			if( this.loadout[ i ] ) {
+				this.client.inventoryGiveItem( i );
+				this.client.inventorySetCount( ammo_type[ i - WEAP_MACHINEGUN ], weap_ammo[ i - WEAP_MACHINEGUN ] );
+			}
 		}
 
 		this.client.selectWeapon( -1 );
 	}
+
 
 	void showShop() {
 		if( this.client.team == TEAM_SPECTATOR ) {
 			return;
 		}
 
-		this.client.execGameCommand( "changeloadout " + this.weapPrimary + " " + this.weapSecondary );
+		String command = "changeloadout";
+		for( int i = 0; i < WEAP_TOTAL; i++ ) {
+			if( this.loadout[ i ] ) {
+				command += " " + i;
+			}
+		}
+		this.client.execGameCommand( command );
 	}
 
-	void setLoadout( String &loadout ) {
-		String primary = loadout.getToken( 0 );
-		String secondary = loadout.getToken( 1 );
+	void setLoadout( String &cmd ) {
+		int cash = MAX_CASH;
 
-		for( uint i = 0; i < primaryWeaponNames.length(); i++ ) {
-			if( primary == primaryWeaponNames[ i ] ) {
-				this.weapPrimary = PrimaryWeapon( i );
+		for( int i = 0; i < WEAP_TOTAL; i++ ) {
+			this.loadout[ i ] = false;
+		}
+
+		{
+			int i = 0;
+			while( true ) {
+				String token = cmd.getToken( i );
+				i++;
+				if( token == "" )
+					break;
+				int weapon = token.toInt();
+				if( weapon > WEAP_GUNBLADE && weapon < WEAP_TOTAL ) {
+					this.loadout[ weapon ] = true;
+					cash -= G_GetItem( weapon ).cost;
+				}
 			}
 		}
 
-		for( uint i = 0; i < secondaryWeaponNames.length(); i++ ) {
-			if( secondary == secondaryWeaponNames[ i ] ) {
-				this.weapSecondary = SecondaryWeapon( i );
-			}
+		if( cash < 0 ) {
+			G_PrintMsg( @this.client.getEnt(), "You are not wealthy enough\n" );
+			return;
 		}
 
-		this.client.execGameCommand( "saveloadout " + primaryWeaponNames[ this.weapPrimary ] + " " + secondaryWeaponNames[ this.weapSecondary ] );
+		String command = "saveloadout";
+		for( int i = 0; i < WEAP_TOTAL; i++ ) {
+			if( this.loadout[ i ] ) {
+				command += " " + i;
+			}
+		}
+		this.client.execGameCommand( command );
 
 		if( match.getState() == MATCH_STATE_WARMUP ) {
 			if( lastLoadoutChangeTime == -1 || levelTime - lastLoadoutChangeTime >= 1000 ) {
@@ -159,7 +124,7 @@ class cPlayer {
 				lastLoadoutChangeTime = levelTime;
 			}
 			else {
-				G_PrintMsg( @this.client.getEnt(), "Wait a second\n" );
+				G_PrintMsg( @this.client.getEnt(), "You can't change weapons so fast\n" );
 			}
 		}
 

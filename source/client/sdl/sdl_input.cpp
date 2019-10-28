@@ -10,7 +10,7 @@ extern SDL_Window * sdl_window;
 static bool warped = false;
 
 static int mx, my;
-static int rx, ry, rw;
+static int rx, ry;
 
 static bool running_in_debugger = false;
 
@@ -19,14 +19,7 @@ bool break2 = false;
 bool break3 = false;
 bool break4 = false;
 
-#if defined( __APPLE__ )
-void IN_SetMouseScalingEnabled( bool isRestore );
-#else
-void IN_SetMouseScalingEnabled( bool isRestore ) {
-}
-#endif
-
-static void mouse_motion_event( SDL_MouseMotionEvent *event ) {
+static void mouse_motion_event( const SDL_MouseMotionEvent * event ) {
 	mx = event->x;
 	my = event->y;
 
@@ -39,53 +32,61 @@ static void mouse_motion_event( SDL_MouseMotionEvent *event ) {
 	warped = false;
 }
 
-static void mouse_button_event( SDL_MouseButtonEvent *event, bool state ) {
-	Uint8 button = event->button;
-
-	if( button <= 10 ) {
-		// The engine only supports up to 8 buttons plus the mousewheel.
-		switch( button ) {
-			case SDL_BUTTON_LEFT:
-				Key_Event( K_MOUSE1, state );
-				break;
-			case SDL_BUTTON_MIDDLE:
-				Key_Event( K_MOUSE3, state );
-				break;
-			case SDL_BUTTON_RIGHT:
-				Key_Event( K_MOUSE2, state );
-				break;
-			case SDL_BUTTON_X1:
-				Key_Event( K_MOUSE4, state );
-				break;
-			case SDL_BUTTON_X2:
-				Key_Event( K_MOUSE5, state );
-				break;
-			case 6:
-				Key_Event( K_MOUSE6, state );
-				break;
-			case 7:
-				Key_Event( K_MOUSE7, state );
-				break;
-			case 8:
-				Key_Event( K_MOUSE4, state );
-				break;
-			case 9:
-				Key_Event( K_MOUSE5, state );
-				break;
-			case 10:
-				Key_Event( K_MOUSE8, state );
-				break;
-		}
-	} else {
-		Com_Printf( "sdl_input.c: Unsupported mouse button (button = %u)\n", button );
+static void mouse_button_event( const SDL_MouseButtonEvent * event, bool down ) {
+	int key = 0;
+	switch( event->button ) {
+		case SDL_BUTTON_LEFT:
+			key = K_MOUSE1;
+			break;
+		case SDL_BUTTON_MIDDLE:
+			key = K_MOUSE3;
+			break;
+		case SDL_BUTTON_RIGHT:
+			key = K_MOUSE2;
+			break;
+		case SDL_BUTTON_X1:
+			key = K_MOUSE4;
+			break;
+		case SDL_BUTTON_X2:
+			key = K_MOUSE5;
+			break;
+		case 6:
+			key = K_MOUSE6;
+			break;
+		case 7:
+			key = K_MOUSE7;
+			break;
+		case 8:
+			key = K_MOUSE4;
+			break;
+		case 9:
+			key = K_MOUSE5;
+			break;
+		case 10:
+			key = K_MOUSE8;
+			break;
 	}
+
+	if( key == 0 )
+		return;
+
+	ImGui::GetIO().KeysDown[ key ] = down;
+	Key_Event( key, down );
 }
 
-static void mouse_wheel_event( SDL_MouseWheelEvent *event ) {
-	rw = -event->y;
+static void mouse_wheel_event( const SDL_MouseWheelEvent * event ) {
 	int key = event->y > 0 ? K_MWHEELUP : K_MWHEELDOWN;
 	Key_Event( key, true );
 	Key_Event( key, false );
+
+	if( event->x != 0 ) {
+		ImGui::GetIO().MouseWheelH += event->x > 0 ? 1 : -1;
+	}
+	if( event->y != 0 ) {
+		ImGui::GetIO().MouseWheel += event->y > 0 ? 1 : -1;
+	}
+
+	ImGui::GetIO().KeysDownDuration[ key ] = 0;
 }
 
 static int TranslateSDLScancode( SDL_Scancode scancode ) {
@@ -223,12 +224,7 @@ static void key_event( const SDL_KeyboardEvent *event, bool down ) {
 	if( key == 0 )
 		return;
 
-	if( key == K_MWHEELDOWN || key == K_MWHEELUP ) {
-		if( down ) {
-			ImGui::GetIO().MouseWheel += key == K_MWHEELDOWN ? -1 : 1;
-		}
-	}
-	else if( key == K_LCTRL || key == K_RCTRL ) {
+	if( key == K_LCTRL || key == K_RCTRL ) {
 		ImGui::GetIO().KeyCtrl = down;
 	}
 	else if( key == K_LSHIFT || key == K_RSHIFT ) {
@@ -254,7 +250,6 @@ static void AppActivate( bool active ) {
 static void IN_HandleEvents( void ) {
 	rx = 0;
 	ry = 0;
-	rw = 0;
 
 	SDL_PumpEvents();
 	SDL_Event event;
@@ -334,7 +329,7 @@ static bool being_debugged() {
 }
 #endif
 
-#if _WIN32 && !defined( PUBLIC_BUILD )
+#if PLATFORM_WINDOWS && !defined( PUBLIC_BUILD )
 #define _WIN32_WINNT 0x4000
 #include <windows.h>
 
@@ -343,7 +338,7 @@ static bool being_debugged() {
 }
 #endif
 
-#if __linux__ && !defined( PUBLIC_BUILD )
+#if PLATFORM_LINUX && !defined( PUBLIC_BUILD )
 #include <sys/ptrace.h>
 #include <sys/wait.h>
 
@@ -365,6 +360,7 @@ static bool being_debugged() {
 				printf( "! echo 0 > /proc/sys/kernel/yama/ptrace_scope\n" );
 				printf( "! or\n" );
 				printf( "! sysctl kernel.yama.ptrace_scope=0\n" );
+				_exit( 0 );
 			}
 			_exit( 1 );
 		}
@@ -398,11 +394,6 @@ void IN_Init() {
 	SDL_ShowCursor( running_in_debugger ? SDL_ENABLE : SDL_DISABLE );
 
 	SDL_SetHint( SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "0" );
-}
-
-void IN_Shutdown() {
-	SDL_SetRelativeMouseMode( SDL_FALSE );
-	IN_SetMouseScalingEnabled( true );
 }
 
 void IN_Frame() {

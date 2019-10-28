@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client.h"
 
-static int scr_draw_loading;
-
 static cvar_t *scr_netgraph;
 static cvar_t *scr_timegraph;
 static cvar_t *scr_debuggraph;
@@ -132,27 +130,6 @@ void SCR_InitScreen( void ) {
 //=============================================================================
 
 /*
-* SCR_BeginLoadingPlaque
-*/
-void SCR_BeginLoadingPlaque( void ) {
-	S_StopAllSounds( true );
-
-	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
-
-	scr_draw_loading = 2;   // clear to black first
-}
-
-/*
-* SCR_EndLoadingPlaque
-*/
-void SCR_EndLoadingPlaque( void ) {
-	cls.disable_screen = 0;
-}
-
-
-//=======================================================
-
-/*
 * SCR_RegisterConsoleMedia
 */
 void SCR_RegisterConsoleMedia() {
@@ -175,39 +152,12 @@ static void SCR_RenderView() {
 * SCR_UpdateScreen
 */
 void SCR_UpdateScreen() {
-	// if the screen is disabled (loading plaque is up, or vid mode changing)
-	// do nothing at all
-	if( cls.disable_screen ) {
-		if( Sys_Milliseconds() - cls.disable_screen > 120000 ) {
-			cls.disable_screen = 0;
-			Com_Printf( "Loading plaque timed out.\n" );
-		}
-		return;
-	}
-
 	CL_ForceVsync( cls.state == CA_DISCONNECTED );
 
 	CL_ImGuiBeginFrame();
 
-	if( scr_draw_loading == 2 ) {
-		// loading plaque over APP_STARTUP_COLOR screen
-		scr_draw_loading = 0;
-		UI_UpdateConnectScreen();
-	} else if( cls.state == CA_DISCONNECTED ) {
-		UI_Refresh();
-	} else if( cls.state == CA_CONNECTING || cls.state == CA_HANDSHAKE ) {
-		UI_UpdateConnectScreen();
-	} else if( cls.state == CA_CONNECTED ) {
-		if( cls.cgameActive ) {
-			UI_UpdateConnectScreen();
-			SCR_RenderView();
-		} else {
-			UI_UpdateConnectScreen();
-		}
-	} else if( cls.state == CA_ACTIVE ) {
+	if( cls.state == CA_CONNECTED || cls.state == CA_ACTIVE ) {
 		SCR_RenderView();
-
-		UI_Refresh();
 
 		if( scr_timegraph->integer ) {
 			SCR_DebugGraph( cls.frametime * 0.3f, 1, 1, 1 );
@@ -217,6 +167,8 @@ void SCR_UpdateScreen() {
 			SCR_DrawDebugGraph();
 		}
 	}
+
+	UI_Refresh();
 
 	CL_ImGuiEndFrame();
 }

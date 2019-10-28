@@ -38,7 +38,6 @@ typedef struct {
 	int accuracy_frags[AMMO_TOTAL - AMMO_GUNBLADE];
 	int total_damage_given;
 	int total_damage_received;
-	int health_taken;
 
 	int asFactored;
 	int asRefCount;

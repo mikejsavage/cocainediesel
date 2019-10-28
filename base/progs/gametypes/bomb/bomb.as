@@ -80,6 +80,7 @@ void bombModelCreate() {
 	bombModel.solid = SOLID_TRIGGER;
 	bombModel.light = BOMB_LIGHT_INACTIVE;
 	bombModel.modelindex = modelBombModel;
+	bombModel.silhouetteColor = uint( 255 << 0 ) | uint( 255 << 8 ) | uint( 255 << 16 ) | uint( 255 << 24 );
 	@bombModel.touch = bomb_touch;
 	@bombModel.stop = bomb_stop;
 }
@@ -112,7 +113,6 @@ void bombPickUp() {
 	hide( @bombHud );
 
 	bombModel.moveType = MOVETYPE_NONE;
-	bombModel.effects &= ~EF_ROTATE_AND_BOB;
 
 	bombState = BombState_Carried;
 }
@@ -238,6 +238,7 @@ void bombPlanted() {
 	// add red dynamic light
 	bombModel.light = BOMB_LIGHT_ARMED;
 	bombModel.modelindex = modelBombModelActive;
+	bombModel.effects &= ~EF_TEAM_SILHOUETTE;
 
 	// show to defs too
 	bombDecal.svflags &= ~SVF_ONLYTEAM;
@@ -297,8 +298,9 @@ void resetBomb() {
 
 	bombModel.light = BOMB_LIGHT_INACTIVE;
 	bombModel.modelindex = modelBombModel;
+	bombModel.effects |= EF_TEAM_SILHOUETTE;
 
-	bombDecal.team = bombHud.team = attackingTeam;
+	bombModel.team = bombDecal.team = bombHud.team = attackingTeam;
 
 	bombState = BombState_Idle;
 }
@@ -565,10 +567,7 @@ void bomb_touch( Entity @ent, Entity @other, const Vec3 planeNormal, int surfFla
 
 void bomb_stop( Entity @ent ) {
 	if( bombState == BombState_Dropped ) {
-		bombModel.effects = EF_ROTATE_AND_BOB;
-
 		bombHud.origin = bombModel.origin + Vec3( 0, 0, BOMB_HUD_OFFSET );
-		bombHud.team = attackingTeam;
 		bombHud.svflags |= SVF_ONLYTEAM;
 		bombHud.radius = BombDown_Dropped;
 		show( @bombHud );

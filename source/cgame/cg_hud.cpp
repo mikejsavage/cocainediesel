@@ -769,6 +769,7 @@ static const char * prefixes[] = {
 	"CANDY",
 	"CANNON",
 	"CAPITAL",
+	"CARE",
 	"CAREFULLY ",
 	"CARDINAL",
 	"CASH",
@@ -1296,11 +1297,6 @@ static void CG_DrawAwards( int x, int y, Alignment alignment, float font_size, V
 
 		DrawText( GetHUDFont(), font_size, str, alignment, x, y + yoffset, color, border );
 	}
-}
-
-static Vec4 AttentionGettingColor() {
-	float t = sinf( cg.monotonicTime / 20.0f ) * 0.5f + 1.0f;
-	return Lerp( vec4_red, t, vec4_yellow );
 }
 
 static bool CG_LFuncDrawCallvote( struct cg_layoutnode_s *argumentnode, int numArguments ) {

@@ -24,11 +24,8 @@ if %MATCH_STATE < #MATCH_STATE_PLAYTIME
 		endif
 
 		ifnot %READY || %MATCH_STATE == #MATCH_STATE_COUNTDOWN
-			setColor 1, 0.23, 0.26, 1
-			drawString "NOT READY"
-			moveCursor 0, 10
 			setAttentionGettingColor
-			drawBindString "[%s] to ready up" "toggleready"
+			drawBindString "[%s] TO READY UP" "toggleready"
 		endif
 	endif
 
@@ -94,6 +91,7 @@ if %MATCH_STATE == #MATCH_STATE_PLAYTIME
 
 	// match point/overtime
 	if %ROUND_TYPE != #RoundType_Normal
+		setAlignment center top
 		moveCursor 0, 26
 		setFontSize %VIDHEIGHT / 50
 		setFontStyle bold

@@ -223,7 +223,6 @@ static void SV_SpawnServer( const char *server, bool devmap ) {
 	}
 	Cvar_FixCheatVars();
 
-	Com_Printf( "------- Server Initialization -------\n" );
 	Com_Printf( "SpawnServer: %s\n", server );
 
 	svs.spawncount++;   // any partially connected client will be restarted
@@ -281,8 +280,6 @@ static void SV_SpawnServer( const char *server, bool devmap ) {
 	// all precaches are complete
 	sv.state = ss_game;
 	Com_SetServerState( sv.state );
-
-	Com_Printf( "-------------------------------------\n" );
 }
 
 /*
@@ -297,7 +294,6 @@ void SV_InitGame( void ) {
 
 	// make sure the client is down
 	CL_Disconnect( NULL );
-	SCR_BeginLoadingPlaque();
 
 	if( svs.initialized ) {
 		// cause any connected clients to reconnect
@@ -512,7 +508,6 @@ void SV_Map( const char *level, bool devmap ) {
 		memset( svs.clients[i].gameCommands, 0, sizeof( svs.clients[i].gameCommands ) );
 	}
 
-	SCR_BeginLoadingPlaque();       // for local system
 	SV_BroadcastCommand( "changing\n" );
 	SV_SendClientMessages();
 	SV_SpawnServer( level, devmap );

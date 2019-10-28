@@ -680,7 +680,6 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 
 	// initialize game subsystems
 	trap_ConfigString( CS_MAPNAME, level.mapname );
-	trap_ConfigString( CS_STATNUMS, va( "%i %i %i", STAT_SCORE, STAT_HEALTH, STAT_LAST_KILLER ) );
 	trap_ConfigString( CS_MATCHSCORE, "" );
 
 	G_InitGameCommands();

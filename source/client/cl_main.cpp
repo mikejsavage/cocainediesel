@@ -468,34 +468,6 @@ static void CL_Rcon_f( void ) {
 }
 
 /*
-* CL_GetClipboardData
-*/
-char *CL_GetClipboardData( void ) {
-	return Sys_GetClipboardData();
-}
-
-/*
-* CL_SetClipboardData
-*/
-void CL_SetClipboardData( const char *data ) {
-	Sys_SetClipboardData( data );
-}
-
-/*
-* CL_FreeClipboardData
-*/
-void CL_FreeClipboardData( char *data ) {
-	Sys_FreeClipboardData( data );
-}
-
-/*
-* CL_GetKeyDest
-*/
-keydest_t CL_GetKeyDest( void ) {
-	return cls.key_dest;
-}
-
-/*
 * CL_SetKeyDest
 */
 void CL_SetKeyDest( keydest_t key_dest ) {
@@ -710,8 +682,6 @@ void CL_Disconnect( const char *message ) {
 	}
 
 done:
-	SCR_EndLoadingPlaque(); // get rid of loading plaque
-
 	// in case we disconnect while in download phase
 	CL_FreeDownloadList();
 
@@ -1454,7 +1424,7 @@ void CL_SetClientState( connstate_t state ) {
 		case CA_CONNECTING:
 			cls.cgameActive = false;
 			Con_Close();
-			UI_HideMenu();
+			UI_ShowConnectingScreen();
 			S_StopBackgroundTrack();
 			CL_SetKeyDest( key_game );
 			break;
@@ -1472,20 +1442,6 @@ void CL_SetClientState( connstate_t state ) {
 		default:
 			break;
 	}
-}
-
-/*
-* CL_GetClientState
-*/
-connstate_t CL_GetClientState( void ) {
-	return cls.state;
-}
-
-/*
-* CL_ShowIP_f - wsw : jal : taken from Q3 (it only shows the ip when server was started)
-*/
-static void CL_ShowIP_f( void ) {
-	NET_ShowIP();
 }
 
 /*
@@ -1574,7 +1530,6 @@ static void CL_InitLocal( void ) {
 	Cmd_AddCommand( "reconnect", CL_Reconnect_f );
 	Cmd_AddCommand( "rcon", CL_Rcon_f );
 	Cmd_AddCommand( "writeconfig", CL_WriteConfig_f );
-	Cmd_AddCommand( "showip", CL_ShowIP_f ); // jal : wsw : print our ip
 	Cmd_AddCommand( "demo", CL_PlayDemo_f );
 	Cmd_AddCommand( "next", CL_SetNext_f );
 	Cmd_AddCommand( "pingserver", CL_PingServer_f );
@@ -1607,7 +1562,6 @@ static void CL_ShutdownLocal( void ) {
 	Cmd_RemoveCommand( "reconnect" );
 	Cmd_RemoveCommand( "rcon" );
 	Cmd_RemoveCommand( "writeconfig" );
-	Cmd_RemoveCommand( "showip" );
 	Cmd_RemoveCommand( "demo" );
 	Cmd_RemoveCommand( "next" );
 	Cmd_RemoveCommand( "pingserver" );
@@ -2016,7 +1970,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	}
 
 	// update audio
-	if( cls.state != CA_ACTIVE && !cls.disable_screen ) {
+	if( cls.state != CA_ACTIVE ) {
 		S_Update( vec3_origin, vec3_origin, axis_identity );
 	}
 
@@ -2158,7 +2112,6 @@ void CL_Init( void ) {
 	}
 
 	SCR_InitScreen();
-	cls.disable_screen = true; // don't draw yet
 
 	CL_InitLocal();
 	CL_InitInput();
@@ -2210,7 +2163,6 @@ void CL_Shutdown( void ) {
 	CL_ShutdownImGui();
 
 	S_Shutdown();
-	CL_ShutdownInput();
 	VID_Shutdown();
 
 	CL_ShutdownAsyncStream();

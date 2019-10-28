@@ -97,7 +97,7 @@ typedef struct {
 	struct cmodel_s *( *CM_InlineModel )( int num );
 	int ( *CM_TransformedPointContents )( const vec3_t p, struct cmodel_s *cmodel, const vec3_t origin, const vec3_t angles );
 	void ( *CM_TransformedBoxTrace )( trace_t *tr, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs, struct cmodel_s *cmodel, int brushmask, const vec3_t origin, const vec3_t angles );
-	void ( *CM_InlineModelBounds )( struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs );
+	void ( *CM_InlineModelBounds )( const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs );
 	struct cmodel_s *( *CM_ModelForBBox )( vec3_t mins, vec3_t maxs );
 	struct cmodel_s *( *CM_OctagonModelForBBox )( vec3_t mins, vec3_t maxs );
 	void ( *CM_SetAreaPortalState )( int area, int otherarea, bool open );
@@ -135,16 +135,7 @@ typedef struct {
 	int ( *FS_FOpenFile )( const char *filename, int *filenum, int mode );
 	int ( *FS_Read )( void *buffer, size_t len, int file );
 	int ( *FS_Write )( const void *buffer, size_t len, int file );
-	int ( *FS_Print )( int file, const char *msg );
-	int ( *FS_Tell )( int file );
-	int ( *FS_Seek )( int file, int offset, int whence );
-	int ( *FS_Eof )( int file );
-	int ( *FS_Flush )( int file );
 	void ( *FS_FCloseFile )( int file );
-	bool ( *FS_RemoveFile )( const char *filename );
-	int ( *FS_GetFileList )( const char *dir, const char *extension, char *buf, size_t bufsize, int start, int end );
-	bool ( *FS_MoveFile )( const char *src, const char *dst );
-	bool ( *FS_RemoveDirectory )( const char *dirname );
 
 	bool ( *ML_Update )( void );
 	size_t ( *ML_GetMapByNum )( int num, char *out, size_t size );

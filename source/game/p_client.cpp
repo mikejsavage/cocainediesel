@@ -214,13 +214,16 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 		body->s.bodyOwner = ent->s.number; // bodyOwner is the same as modelindex2
 		body->s.teleported = true;
 
-		G_AddEvent( body, EV_DIE, rand(), true );
+		edict_t * event = G_SpawnEvent( EV_DIE, rand(), NULL );
+		event->r.svflags |= SVF_BROADCAST;
+		event->s.ownerNum = body->s.number;
 
 		// bit of a hack, if we're not in warmup, leave the body with no think. think self destructs
 		// after a timeout, but if we leave, next bomb round will call G_ResetLevel() cleaning up
-		if ( GS_MatchState() == MATCH_STATE_WARMUP ) {
+		if( GS_MatchState() == MATCH_STATE_WARMUP ) {
 			body->nextThink = level.time + 3500;
-		} else {
+		}
+		else {
 			body->think = NULL;
 		}
 	} else {   // wasn't a player, just copy it's model

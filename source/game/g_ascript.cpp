@@ -70,7 +70,6 @@ static const asEnumVal_t asConfigstringEnumVals[] =
 {
 	ASLIB_ENUM_VAL( CS_MAPNAME ),
 	ASLIB_ENUM_VAL( CS_HOSTNAME ),
-	ASLIB_ENUM_VAL( CS_STATNUMS ),
 	ASLIB_ENUM_VAL( CS_GAMETYPENAME ),
 	ASLIB_ENUM_VAL( CS_AUTORECORDSTATE ),
 	ASLIB_ENUM_VAL( CS_MAXCLIENTS ),
@@ -93,7 +92,6 @@ static const asEnumVal_t asConfigstringEnumVals[] =
 
 static const asEnumVal_t asEffectEnumVals[] =
 {
-	ASLIB_ENUM_VAL( EF_ROTATE_AND_BOB ),
 	ASLIB_ENUM_VAL( EF_CARRIER ),
 	ASLIB_ENUM_VAL( EF_TAKEDAMAGE ),
 	ASLIB_ENUM_VAL( EF_TEAMCOLOR_TRANSITION ),
@@ -101,6 +99,7 @@ static const asEnumVal_t asEffectEnumVals[] =
 	ASLIB_ENUM_VAL( EF_RACEGHOST ),
 	ASLIB_ENUM_VAL( EF_HAT ),
 	ASLIB_ENUM_VAL( EF_WORLD_MODEL ),
+	ASLIB_ENUM_VAL( EF_TEAM_SILHOUETTE ),
 
 	ASLIB_ENUM_VAL_NULL
 };
@@ -193,14 +192,6 @@ static const asEnumVal_t asPMoveFeaturesVals[] =
 	ASLIB_ENUM_VAL( PMFEAT_TEAMGHOST ),
 	ASLIB_ENUM_VAL( PMFEAT_ALL ),
 	ASLIB_ENUM_VAL( PMFEAT_DEFAULT ),
-
-	ASLIB_ENUM_VAL_NULL
-};
-
-static const asEnumVal_t asItemTypeEnumVals[] =
-{
-	ASLIB_ENUM_VAL( IT_WEAPON ),
-	ASLIB_ENUM_VAL( IT_AMMO ),
 
 	ASLIB_ENUM_VAL_NULL
 };
@@ -805,7 +796,6 @@ static const asProperty_t scorestats_Properties[] =
 	{ ASLIB_PROPERTY_DECL( const int, suicides ), ASLIB_FOFFSET( score_stats_t, suicides ) },
 	{ ASLIB_PROPERTY_DECL( const int, totalDamageGiven ), ASLIB_FOFFSET( score_stats_t, total_damage_given ) },
 	{ ASLIB_PROPERTY_DECL( const int, totalDamageReceived ), ASLIB_FOFFSET( score_stats_t, total_damage_received ) },
-	{ ASLIB_PROPERTY_DECL( const int, healthTaken ), ASLIB_FOFFSET( score_stats_t, health_taken ) },
 
 	ASLIB_PROPERTY_NULL
 };
@@ -1559,6 +1549,7 @@ static const asProperty_t gedict_Properties[] =
 	{ ASLIB_PROPERTY_DECL( int, ownerNum ), ASLIB_FOFFSET( edict_t, s.ownerNum ) },
 	{ ASLIB_PROPERTY_DECL( int, counterNum ), ASLIB_FOFFSET( edict_t, s.counterNum ) },
 	{ ASLIB_PROPERTY_DECL( int, colorRGBA ), ASLIB_FOFFSET( edict_t, s.colorRGBA ) },
+	{ ASLIB_PROPERTY_DECL( uint, silhouetteColor ), ASLIB_FOFFSET( edict_t, s.silhouetteColor ) },
 	{ ASLIB_PROPERTY_DECL( int, weapon ), ASLIB_FOFFSET( edict_t, s.weapon ) },
 	{ ASLIB_PROPERTY_DECL( bool, teleported ), ASLIB_FOFFSET( edict_t, s.teleported ) },
 	{ ASLIB_PROPERTY_DECL( uint, effects ), ASLIB_FOFFSET( edict_t, s.effects ) },
@@ -1726,10 +1717,6 @@ static asstring_t *objectGItem_getShortName( gsitem_t *self ) {
 	return game.asExport->asStringFactoryBuffer( self->shortname, self->shortname ? strlen( self->shortname ) : 0 );
 }
 
-static asstring_t *objectGItem_getColorToken( gsitem_t *self ) {
-	return game.asExport->asStringFactoryBuffer( self->color, self->color ? strlen( self->color ) : 0 );
-}
-
 static const asFuncdef_t asitem_Funcdefs[] =
 {
 	ASLIB_FUNCDEF_NULL
@@ -1744,7 +1731,6 @@ static const asMethod_t asitem_Methods[] =
 {
 	{ ASLIB_FUNCTION_DECL( const String @, get_name, ( ) const ), asFUNCTION( objectGItem_getName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_shortName, ( ) const ), asFUNCTION( objectGItem_getShortName ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( const String @, get_colorToken, ( ) const ), asFUNCTION( objectGItem_getColorToken ), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL
 };
@@ -1754,6 +1740,7 @@ static const asProperty_t asitem_Properties[] =
 	{ ASLIB_PROPERTY_DECL( const int, tag ), ASLIB_FOFFSET( gsitem_t, tag ) },
 	{ ASLIB_PROPERTY_DECL( const uint, type ), ASLIB_FOFFSET( gsitem_t, type ) },
 	{ ASLIB_PROPERTY_DECL( const int, ammoTag ), ASLIB_FOFFSET( gsitem_t, ammo_tag ) },
+	{ ASLIB_PROPERTY_DECL( const int, cost ), ASLIB_FOFFSET( gsitem_t, cost ) },
 
 	ASLIB_PROPERTY_NULL
 };
@@ -2830,8 +2817,6 @@ static void G_asRegisterGlobalProperties( asIScriptEngine *asEngine,
 * G_InitializeGameModuleSyntax
 */
 static void G_InitializeGameModuleSyntax( asIScriptEngine *asEngine ) {
-	G_Printf( "* Initializing Game module syntax\n" );
-
 	// register global enums
 	G_asRegisterEnums( asEngine, asGameEnums, NULL );
 
@@ -2858,7 +2843,6 @@ void G_asInitGameModuleEngine( void ) {
 	G_ResetGameModuleScriptData();
 
 	// initialize the engine
-	Com_Printf( "Initializing Angel Script\n" );
 	game.asExport = QAS_GetAngelExport();
 
 	asEngine = game.asExport->asCreateEngine( &asGeneric );

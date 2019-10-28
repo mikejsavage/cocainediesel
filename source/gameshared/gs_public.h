@@ -361,19 +361,19 @@ typedef struct gitem_s {
 	int tag;
 	itemtype_t type;
 
-	const char *name;      // for printing on pickup
-	const char *shortname; // for printing on messages
-	const char *color;     // for printing on messages
+	const char * name;      // for printing on pickup
+	const char * shortname; // for printing on messages
+	RGB8 color;
+	const char * description;
+	int cost;
 
 	int ammo_tag;          // uses this ammo, for weapons
 
 	// space separated string of stuff to precache that's not mentioned above
-	const char *precache_models;
-	const char *precache_sounds;
-	const char *precache_images;
+	const char * precache_models;
+	const char * precache_sounds;
+	const char * precache_images;
 } gsitem_t;
-
-extern const gsitem_t itemdefs[];
 
 const gsitem_t *GS_FindItemByTag( const int tag );
 const gsitem_t *GS_FindItemByName( const char *name );
@@ -730,14 +730,14 @@ enum {
 // that happen constantly on the given entity.
 // An entity that has effects will be sent to the client
 // even if it has a zero index model.
-#define EF_ROTATE_AND_BOB           ( 1 << 0 )
-#define EF_CARRIER                  ( 1 << 1 )
-#define EF_TAKEDAMAGE               ( 1 << 2 )
-#define EF_TEAMCOLOR_TRANSITION     ( 1 << 3 )
-#define EF_GODMODE                  ( 1 << 4 )
-#define EF_RACEGHOST                ( 1 << 5 )
-#define EF_HAT                      ( 1 << 6 )
-#define EF_WORLD_MODEL              ( 1 << 7 )
+#define EF_CARRIER                  ( 1 << 0 )
+#define EF_TAKEDAMAGE               ( 1 << 1 )
+#define EF_TEAMCOLOR_TRANSITION     ( 1 << 2 )
+#define EF_GODMODE                  ( 1 << 3 )
+#define EF_RACEGHOST                ( 1 << 4 )
+#define EF_HAT                      ( 1 << 5 )
+#define EF_WORLD_MODEL              ( 1 << 6 )
+#define EF_TEAM_SILHOUETTE          ( 1 << 7 )
 
 //===============================================================
 // gs_weapons.c

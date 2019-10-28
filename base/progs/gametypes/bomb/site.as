@@ -265,10 +265,14 @@ void trigger_capture_area( Entity @ent ) {
 	ent.nextThink = levelTime + 1;
 }
 
+String @vec3ToString( Vec3 vec ) {
+	 return "" + vec.x + " " + vec.y + " " + vec.z;
+}
+
 void trigger_capture_area_think( Entity @ent ) {
 	array<Entity @> @targets = ent.findTargets();
 	if( targets.empty() ) {
-		G_Print( "trigger_capture_area at " + vec3ToString(ent.origin) + " has no target, removing...\n" );
+		G_Print( "trigger_capture_area at " + vec3ToString( ent.origin ) + " has no target, removing...\n" );
 		ent.freeEntity();
 	}
 }

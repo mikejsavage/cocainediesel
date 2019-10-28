@@ -378,8 +378,6 @@ typedef struct {
 
 	int lastWeapon;
 
-	mat3_t autorotateAxis;
-
 	float lerpfrac;                     // between oldframe and frame
 	float xerpTime;
 	float oldXerpTime;
@@ -740,7 +738,7 @@ void CG_AddFragmentedDecal( vec3_t origin, vec3_t dir, float orient, float radiu
 void CG_AddParticles( void );
 void CG_ParticleEffect( const vec3_t org, const vec3_t dir, float r, float g, float b, int count );
 void CG_ParticleEffect2( const vec3_t org, const vec3_t dir, float r, float g, float b, int count );
-void CG_ParticleExplosionEffect( const vec3_t org, const vec3_t dir, float r, float g, float b, int count );
+void CG_ParticleExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color );
 void CG_FlyEffect( centity_t *ent, const vec3_t origin );
 void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color );
 void CG_ImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, const Material * material );

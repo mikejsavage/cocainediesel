@@ -7,10 +7,14 @@
 #include "imgui/imgui.h"
 
 void InitParticles() {
-	Vec3 gravity = Vec3( 0, 0, -GRAVITY );
-	cgs.ions = NewParticleSystem( sys_allocator, 8192, FindTexture( "$particle" ), Vec3( 0 ), BlendFunc_Add );
-	cgs.sparks = NewParticleSystem( sys_allocator, 8192, FindTexture( "$particle" ), gravity, BlendFunc_Blend );
-	cgs.smoke = NewParticleSystem( sys_allocator, 1024, FindTexture( "gfx/misc/cartoon_smokepuff3" ), Vec3( 0 ), BlendFunc_Add );
+	constexpr Vec3 gravity = Vec3( 0, 0, -GRAVITY );
+
+	cgs.ions = NewParticleSystem( sys_allocator, 8192, FindTexture( "$particle" ) );
+	cgs.smoke = NewParticleSystem( sys_allocator, 1024, FindTexture( "gfx/misc/cartoon_smokepuff3" ) );
+
+	cgs.sparks = NewParticleSystem( sys_allocator, 8192, FindTexture( "$particle" ) );
+	cgs.sparks.acceleration = gravity;
+	cgs.sparks.blend_func = BlendFunc_Blend;
 }
 
 void ShutdownParticles() {
@@ -19,11 +23,11 @@ void ShutdownParticles() {
 	DeleteParticleSystem( sys_allocator, cgs.smoke );
 }
 
-ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture, Vec3 acceleration, BlendFunc blend_func ) {
-	ParticleSystem ps;
+ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture ) {
+	ParticleSystem ps = { };
 	size_t num_chunks = AlignPow2( n, size_t( 4 ) ) / 4;
 	ps.chunks = ALLOC_SPAN( a, ParticleChunk, num_chunks );
-	ps.num_particles = 0;
+	ps.blend_func = BlendFunc_Add;
 
 	ps.texture = texture;
 
@@ -59,9 +63,6 @@ ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture, Vec3
 		ps.mesh = NewMesh( mesh_config );
 	}
 
-	ps.blend_func = blend_func;
-	ps.acceleration = acceleration;
-
 	return ps;
 }
 
@@ -72,17 +73,44 @@ void DeleteParticleSystem( Allocator * a, ParticleSystem ps ) {
 	DeleteMesh( ps.mesh );
 }
 
-static void UpdateParticleChunk( ParticleChunk * chunk, Vec3 acceleration, float dt ) {
+static float EvaluateEasingDerivative( EasingFunction func, float t ) {
+	switch( func ) {
+		case EasingFunction_Linear: return 1.0f;
+		case EasingFunction_Quadratic: return t < 0.5f ? 4.0f * t : -4.0f * t + 4.0f;
+		case EasingFunction_QuadraticEaseIn: return 2.0f * t;
+		case EasingFunction_QuadraticEaseOut: return -2.0f * t + 2.0f;
+	}
+
+	return 0.0f;
+}
+
+static void UpdateParticleChunk( const ParticleSystem * ps, ParticleChunk * chunk, Vec3 acceleration, float dt ) {
 	for( int i = 0; i < 4; i++ ) {
+		chunk->t[ i ] += dt;
+		float t = chunk->t[ i ] / chunk->lifetime[ i ];
+
 		chunk->velocity_x[ i ] += acceleration.x * dt;
 		chunk->velocity_y[ i ] += acceleration.y * dt;
 		chunk->velocity_z[ i ] += acceleration.z * dt;
+
+		float velocity = Max2( 0.0001f, Length( Vec3( chunk->velocity_x[ i ], chunk->velocity_y[ i ], chunk->velocity_z[ i ] ) ) );
+		float new_velocity = Max2( 0.0001f, velocity + chunk->dvelocity[ i ] * dt );
+		float velocity_scale = new_velocity / velocity;
+
+		chunk->velocity_x[ i ] *= velocity_scale;
+		chunk->velocity_y[ i ] *= velocity_scale;
+		chunk->velocity_z[ i ] *= velocity_scale;
 
 		chunk->position_x[ i ] += chunk->velocity_x[ i ] * dt;
 		chunk->position_y[ i ] += chunk->velocity_y[ i ] * dt;
 		chunk->position_z[ i ] += chunk->velocity_z[ i ] * dt;
 
-		chunk->color_a[ i ] += chunk->dalpha[ i ] * dt;
+		chunk->color_r[ i ] += EvaluateEasingDerivative( ps->color_easing, t ) * chunk->dcolor_r[ i ] * dt;
+		chunk->color_g[ i ] += EvaluateEasingDerivative( ps->color_easing, t ) * chunk->dcolor_g[ i ] * dt;
+		chunk->color_b[ i ] += EvaluateEasingDerivative( ps->color_easing, t ) * chunk->dcolor_b[ i ] * dt;
+		chunk->color_a[ i ] += EvaluateEasingDerivative( ps->color_easing, t ) * chunk->dcolor_a[ i ] * dt;
+
+		chunk->size[ i ] += EvaluateEasingDerivative( ps->size_easing, t ) * chunk->dsize[ i ] * dt;
 	}
 }
 
@@ -91,7 +119,7 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		ZoneScopedN( "Update particles" );
 		size_t active_chunks = AlignPow2( ps->num_particles, size_t( 4 ) ) / 4;
 		for( size_t i = 0; i < active_chunks; i++ ) {
-			UpdateParticleChunk( &ps->chunks[ i ], ps->acceleration, dt );
+			UpdateParticleChunk( ps, &ps->chunks[ i ], ps->acceleration, dt );
 		}
 	}
 
@@ -102,12 +130,15 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		ParticleChunk & chunk = ps->chunks[ i / 4 ];
 		size_t chunk_offset = i % 4;
 
-		if( chunk.color_a[ chunk_offset ] <= 0.0f ) {
+		if( chunk.t[ chunk_offset ] > chunk.lifetime[ chunk_offset ] ) {
 			ps->num_particles--;
 			i--;
 
 			ParticleChunk & swap_chunk = ps->chunks[ ps->num_particles / 4 ];
 			size_t swap_offset = ps->num_particles % 4;
+
+			Swap2( &chunk.t[ chunk_offset ], &swap_chunk.t[ swap_offset ] );
+			Swap2( &chunk.lifetime[ chunk_offset ], &swap_chunk.lifetime[ swap_offset ] );
 
 			Swap2( &chunk.position_x[ chunk_offset ], &swap_chunk.position_x[ swap_offset ] );
 			Swap2( &chunk.position_y[ chunk_offset ], &swap_chunk.position_y[ swap_offset ] );
@@ -117,14 +148,20 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 			Swap2( &chunk.velocity_y[ chunk_offset ], &swap_chunk.velocity_y[ swap_offset ] );
 			Swap2( &chunk.velocity_z[ chunk_offset ], &swap_chunk.velocity_z[ swap_offset ] );
 
+			Swap2( &chunk.dvelocity[ chunk_offset ], &swap_chunk.dvelocity[ swap_offset ] );
+
 			Swap2( &chunk.color_r[ chunk_offset ], &swap_chunk.color_r[ swap_offset ] );
 			Swap2( &chunk.color_g[ chunk_offset ], &swap_chunk.color_g[ swap_offset ] );
 			Swap2( &chunk.color_b[ chunk_offset ], &swap_chunk.color_b[ swap_offset ] );
 			Swap2( &chunk.color_a[ chunk_offset ], &swap_chunk.color_a[ swap_offset ] );
 
-			Swap2( &chunk.dalpha[ chunk_offset ], &swap_chunk.dalpha[ swap_offset ] );
+			Swap2( &chunk.dcolor_r[ chunk_offset ], &swap_chunk.dcolor_r[ swap_offset ] );
+			Swap2( &chunk.dcolor_g[ chunk_offset ], &swap_chunk.dcolor_g[ swap_offset ] );
+			Swap2( &chunk.dcolor_b[ chunk_offset ], &swap_chunk.dcolor_b[ swap_offset ] );
+			Swap2( &chunk.dcolor_a[ chunk_offset ], &swap_chunk.dcolor_a[ swap_offset ] );
 
 			Swap2( &chunk.size[ chunk_offset ], &swap_chunk.size[ swap_offset ] );
+			Swap2( &chunk.dsize[ chunk_offset ], &swap_chunk.dsize[ swap_offset ] );
 		}
 	}
 }
@@ -161,12 +198,15 @@ void DrawParticles() {
 	DrawParticleSystem( &cgs.smoke );
 }
 
-void EmitParticle( ParticleSystem * ps, Vec3 position, Vec3 velocity, Vec4 color, float size, float lifetime ) {
+static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float dvelocity, Vec4 color, Vec4 dcolor, float size, float dsize ) {
 	if( ps->num_particles == ps->chunks.n * 4 )
 		return;
 
 	ParticleChunk & chunk = ps->chunks[ ps->num_particles / 4 ];
 	size_t i = ps->num_particles % 4;
+
+	chunk.t[ i ] = 0.0f;
+	chunk.lifetime[ i ] = lifetime;
 
 	chunk.position_x[ i ] = position.x;
 	chunk.position_y[ i ] = position.y;
@@ -176,14 +216,20 @@ void EmitParticle( ParticleSystem * ps, Vec3 position, Vec3 velocity, Vec4 color
 	chunk.velocity_y[ i ] = velocity.y;
 	chunk.velocity_z[ i ] = velocity.z;
 
+	chunk.dvelocity[ i ] = dvelocity;
+
 	chunk.color_r[ i ] = color.x;
 	chunk.color_g[ i ] = color.y;
 	chunk.color_b[ i ] = color.z;
 	chunk.color_a[ i ] = color.w;
 
-	chunk.dalpha[ i ] = -color.w / lifetime;
+	chunk.dcolor_r[ i ] = dcolor.x;
+	chunk.dcolor_g[ i ] = dcolor.y;
+	chunk.dcolor_b[ i ] = dcolor.z;
+	chunk.dcolor_a[ i ] = dcolor.w;
 
 	chunk.size[ i ] = size;
+	chunk.dsize[ i ] = dsize;
 
 	ps->num_particles++;
 }
@@ -197,6 +243,8 @@ static float SampleRandomDistribution( RNG * rng, RandomDistribution dist ) {
 }
 
 static void EmitParticle( ParticleSystem * ps, const ParticleEmitter & emitter, float t ) {
+	float lifetime = Max2( 0.0f, emitter.lifetime + SampleRandomDistribution( &cls.rng, emitter.lifetime_distribution ) );
+
 	Vec3 position = emitter.position;
 
 	switch( emitter.position_distribution.type ) {
@@ -215,21 +263,23 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter & emitter, 
 		} break;
 	}
 
-	// TODO
+	// TODO: separate velocity and direction
 	Vec3 velocity = emitter.velocity + UniformSampleInsideSphere( &cls.rng ) * emitter.velocity_cone.radius;
+	float dvelocity = ( emitter.end_velocity - emitter.velocity_cone.radius ) / lifetime;
 
-	Vec4 color = emitter.color;
+	Vec4 color = emitter.start_color;
 	color.x += SampleRandomDistribution( &cls.rng, emitter.red_distribution );
 	color.y += SampleRandomDistribution( &cls.rng, emitter.green_distribution );
 	color.z += SampleRandomDistribution( &cls.rng, emitter.blue_distribution );
 	color.w += SampleRandomDistribution( &cls.rng, emitter.alpha_distribution );
 	color = Clamp01( color );
 
-	float size = Max2( 0.0f, emitter.size + SampleRandomDistribution( &cls.rng, emitter.size_distribution ) );
+	Vec4 dcolor = Vec4( emitter.end_color - emitter.start_color.xyz(), -color.w ) / lifetime;
 
-	float lifetime = Max2( 0.0f, emitter.lifetime + SampleRandomDistribution( &cls.rng, emitter.lifetime_distribution ) );
+	float size = Max2( 0.0f, emitter.start_size + SampleRandomDistribution( &cls.rng, emitter.size_distribution ) );
+	float dsize = ( emitter.end_size - emitter.start_size ) / lifetime;
 
-	EmitParticle( ps, position, velocity, color, size, lifetime );
+	EmitParticle( ps, lifetime, position, velocity, dvelocity, color, dcolor, size, dsize );
 }
 
 static void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter, float dt ) {
@@ -287,9 +337,9 @@ static void Serialize( SerializationBuffer * buf, ParticleEmitter & emitter ) {
 	*buf & emitter.position & emitter.position_distribution;
 	*buf & emitter.velocity & emitter.velocity_cone;
 
-	*buf & emitter.color & emitter.red_distribution & emitter.green_distribution & emitter.blue_distribution & emitter.alpha_distribution;
+	*buf & emitter.start_color & emitter.end_color & emitter.red_distribution & emitter.green_distribution & emitter.blue_distribution & emitter.alpha_distribution;
 
-	*buf & emitter.size & emitter.size_distribution;
+	*buf & emitter.start_size & emitter.end_size & emitter.size_distribution;
 
 	*buf & emitter.lifetime & emitter.lifetime_distribution;
 
@@ -311,12 +361,16 @@ void InitParticleEditor() {
 	editor_one_shot = false;
 	editor_blend = false;
 
-	editor_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( StringHash( ( const char * ) editor_texture_name ) ), Vec3( 0 ), editor_blend ? BlendFunc_Blend : BlendFunc_Add );
+	editor_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( StringHash( ( const char * ) editor_texture_name ) ) );
+	editor_ps.blend_func = editor_blend ? BlendFunc_Blend : BlendFunc_Add;
 	editor_emitter = { };
 
 	editor_emitter.velocity_cone.radius = 400.0f;
-	editor_emitter.color = vec4_white;
-	editor_emitter.size = 16.0f;
+	editor_emitter.end_velocity = 400.0f;
+	editor_emitter.start_color = vec4_white;
+	editor_emitter.end_color = vec4_white.xyz();
+	editor_emitter.start_size = 16.0f;
+	editor_emitter.end_size = 16.0f;
 	editor_emitter.lifetime = 1.0f;
 	editor_emitter.emission_rate = 1000;
 }
@@ -327,7 +381,8 @@ void ShutdownParticleEditor() {
 
 void ResetParticleEditor() {
 	DeleteParticleSystem( sys_allocator, editor_ps );
-	editor_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( StringHash( ( const char * ) editor_texture_name ) ), Vec3( 0 ), editor_blend ? BlendFunc_Blend : BlendFunc_Add );
+	editor_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( StringHash( ( const char * ) editor_texture_name ) ) );
+	editor_ps.blend_func = editor_blend ? BlendFunc_Blend : BlendFunc_Add;
 }
 
 static void RandomDistributionEditor( const char * id, RandomDistribution * dist, float range ) {
@@ -479,34 +534,37 @@ void DrawParticleEditor() {
 
 		ImGui::Separator();
 
-		ImGui::SliderFloat( "Velocity", &editor_emitter.velocity_cone.radius, 0, 1000, "%.2f" );
+		ImGui::SliderFloat( "Start velocity", &editor_emitter.velocity_cone.radius, 0, 1000, "%.2f" );
+		ImGui::SliderFloat( "End velocity", &editor_emitter.end_velocity, 0, 1000, "%.2f" );
 
 		ImGui::Separator();
 
-		ImGui::ColorEdit4( "Color", editor_emitter.color.ptr() );
+		ImGui::ColorEdit4( "Start color", editor_emitter.start_color.ptr() );
+		ImGui::ColorEdit3( "End color", editor_emitter.end_color.ptr() );
 
-		if( ImGui::TreeNodeEx( "Color randomness", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_NoAutoOpenOnLog ) ) {
+		if( ImGui::TreeNodeEx( "Start color randomness", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_NoAutoOpenOnLog ) ) {
 			ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 255, 0, 0, 255 ) );
-			RandomDistributionEditor( "r", &editor_emitter.red_distribution, editor_emitter.color.x );
+			RandomDistributionEditor( "r", &editor_emitter.red_distribution, 1.0f );
 			ImGui::PopStyleColor();
 
 			ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 0, 255, 0, 255 ) );
-			RandomDistributionEditor( "g", &editor_emitter.green_distribution, editor_emitter.color.y );
+			RandomDistributionEditor( "g", &editor_emitter.green_distribution, 1.0f );
 			ImGui::PopStyleColor();
 
 			ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 0, 0, 255, 255 ) );
-			RandomDistributionEditor( "b", &editor_emitter.blue_distribution, editor_emitter.color.z );
+			RandomDistributionEditor( "b", &editor_emitter.blue_distribution, 1.0f );
 			ImGui::PopStyleColor();
 
-			RandomDistributionEditor( "a", &editor_emitter.alpha_distribution, editor_emitter.color.w );
+			RandomDistributionEditor( "a", &editor_emitter.alpha_distribution, 1.0f );
 
 			ImGui::TreePop();
 		}
 
 		ImGui::Separator();
 
-		ImGui::SliderFloat( "Size", &editor_emitter.size, 0, 256, "%.2f" );
-		RandomDistributionEditor( "size", &editor_emitter.size_distribution, editor_emitter.size );
+		ImGui::SliderFloat( "Start size", &editor_emitter.start_size, 0, 256, "%.2f" );
+		ImGui::SliderFloat( "End size", &editor_emitter.end_size, 0, 256, "%.2f" );
+		RandomDistributionEditor( "size", &editor_emitter.size_distribution, editor_emitter.start_size );
 
 		ImGui::Separator();
 

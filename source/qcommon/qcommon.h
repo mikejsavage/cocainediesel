@@ -496,7 +496,6 @@ void NET_SetErrorString( _Printf_format_string_ const char *format, ... );
 #endif
 
 void        NET_SetErrorStringFromLastError( const char *function );
-void        NET_ShowIP( void );
 
 const char *NET_SocketTypeToString( socket_type_t type );
 const char *NET_SocketToString( const socket_t *socket );
@@ -510,7 +509,6 @@ bool    NET_CompareAddress( const netadr_t *a, const netadr_t *b );
 bool    NET_CompareBaseAddress( const netadr_t *a, const netadr_t *b );
 bool    NET_IsLANAddress( const netadr_t *address );
 bool    NET_IsLocalAddress( const netadr_t *address );
-bool    NET_IsAnyAddress( const netadr_t *address );
 void    NET_InitAddress( netadr_t *address, netadrtype_t type );
 void    NET_BroadcastAddress( netadr_t *address, int port );
 
@@ -616,9 +614,7 @@ int FS_Printf( int file, _Printf_format_string_ const char *format, ... );
 int     FS_Write( const void *buffer, size_t len, int file );
 int     FS_Tell( int file );
 int     FS_Seek( int file, int offset, int whence );
-int     FS_Eof( int file );
 int     FS_Flush( int file );
-bool    FS_IsUrl( const char *url );
 int     FS_FileNo( int file, size_t *offset );
 
 void    FS_SetCompressionLevel( int file, int level );
@@ -637,18 +633,11 @@ int     FS_GetNotifications( void );
 int     FS_RemoveNotifications( int bitmask );
 
 // util functions
-bool    FS_CopyFile( const char *src, const char *dst );
-bool    FS_CopyBaseFile( const char *src, const char *dst );
-bool    FS_ExtractFile( const char *src, const char *dst );
 bool    FS_MoveFile( const char *src, const char *dst );
 bool    FS_MoveBaseFile( const char *src, const char *dst );
-bool    FS_MoveCacheFile( const char *src, const char *dst );
 bool    FS_RemoveFile( const char *filename );
 bool    FS_RemoveBaseFile( const char *filename );
 bool    FS_RemoveAbsoluteFile( const char *filename );
-bool    FS_RemoveDirectory( const char *dirname );
-bool    FS_RemoveBaseDirectory( const char *dirname );
-bool    FS_RemoveAbsoluteDirectory( const char *dirname );
 unsigned    FS_ChecksumAbsoluteFile( const char *filename );
 unsigned    FS_ChecksumBaseFile( const char *filename, bool ignorePakChecksum );
 bool    FS_CheckPakExtension( const char *filename );
@@ -832,10 +821,6 @@ __declspec( noreturn ) void Sys_Error( _Printf_format_string_ const char *error,
 __declspec( noreturn ) void Sys_Quit( void );
 #endif
 
-char    *Sys_GetClipboardData( void );
-bool Sys_SetClipboardData( const char *data );
-void    Sys_FreeClipboardData( char *data );
-
 /*
 ==============================================================
 
@@ -851,7 +836,6 @@ void CL_Frame( int realMsec, int gameMsec );
 void CL_ParseServerMessage( msg_t *msg );
 void CL_Netchan_Transmit( msg_t *msg );
 void Con_Print( const char *text );
-void SCR_BeginLoadingPlaque( void );
 
 void SV_Init( void );
 void SV_Shutdown( const char *finalmsg );

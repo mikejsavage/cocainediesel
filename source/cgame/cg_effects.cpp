@@ -500,55 +500,59 @@ void CG_ParticleEffect2( const vec3_t org, const vec3_t dir, float r, float g, f
 /*
 * CG_ParticleExplosionEffect
 */
-void CG_ParticleExplosionEffect( const vec3_t org, const vec3_t dir, float r, float g, float b, int count ) {
+void CG_ParticleExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 	{
 		ParticleEmitter emitter = { };
-		emitter.position = FromQF3( org );
+		emitter.position = origin;
 
 		// TODO: normal
-		emitter.velocity_cone.radius = 400.0f;
+		emitter.velocity_cone.radius = 100.0f;
 		emitter.velocity_cone.theta = float( M_PI );
+		emitter.end_velocity = 100.0f;
 
-		emitter.color = Vec4( 0.25f, 0.25f, 0.25f, 0.5f );
+		emitter.start_color = Vec4( 1.0f, 0.9, 0.0f, 0.5f );
+		emitter.end_color = Vec3( 0.2f, 0.1f, 0.0f );
 		emitter.alpha_distribution.type = RandomDistributionType_Uniform;
 		emitter.alpha_distribution.uniform = 0.1f;
 
-		emitter.size = 16.0f;
+		emitter.start_size = 32.0f;
+		emitter.end_size = 32.0f;
 		emitter.size_distribution.type = RandomDistributionType_Uniform;
-		emitter.size_distribution.uniform = 2.0f;
+		emitter.size_distribution.uniform = 16.0f;
 
-		emitter.lifetime = 0.9f;
+		emitter.lifetime = 0.8f;
 		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
 		emitter.lifetime_distribution.uniform = 0.3f;
 
-		emitter.n = 64;
+		emitter.n = 32;
 
 		EmitParticles( &cgs.smoke, emitter );
 	}
 
-	int j;
-	cparticle_t *p;
-	float d;
+	{
+		ParticleEmitter emitter = { };
+		emitter.position = origin;
 
-	if( !cg_particles->integer ) {
-		return;
-	}
+		// TODO: normal
+		emitter.velocity_cone.radius = 400.0f;
+		emitter.velocity_cone.theta = float( M_PI );
+		emitter.end_velocity = 0.0f;
 
-	if( cg_numparticles + count > MAX_PARTICLES ) {
-		count = MAX_PARTICLES - cg_numparticles;
-	}
-	for( p = &particles[cg_numparticles], cg_numparticles += count; count > 0; count--, p++ ) {
-		CG_InitParticle( p, 0.75, 1, r + random() * 0.1, g + random() * 0.1, b + random() * 0.1, NULL );
+		emitter.start_color = Vec4( team_color, 1.0f );
+		emitter.end_color = team_color;
 
-		d = rand() & 31;
-		for( j = 0; j < 3; j++ ) {
-			p->org[j] = org[j] + ( ( rand() & 7 ) - 4 ) + d * dir[j];
-			p->vel[j] = crandom() * 400;
-		}
+		emitter.start_size = 16.0f;
+		emitter.end_size = 32.0f;
+		emitter.size_distribution.type = RandomDistributionType_Uniform;
+		emitter.size_distribution.uniform = 4.0f;
 
-		//p->accel[0] = p->accel[1] = 0;
-		p->accel[2] = -PARTICLE_GRAVITY;
-		p->alphavel = -1.0 / ( 0.7 + random() * 0.25 );
+		emitter.lifetime = 0.25f;
+		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
+		emitter.lifetime_distribution.uniform = 0.1f;
+
+		emitter.n = 128;
+
+		EmitParticles( &cgs.ions, emitter );
 	}
 }
 
@@ -623,7 +627,8 @@ void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color ) {
 	emitter.velocity_cone.radius = 4.0f;
 	emitter.velocity_cone.theta = 2.0f * float( M_PI );
 
-	emitter.color = color;
+	emitter.start_color = color;
+	emitter.end_color = color.xyz();
 
 	RandomDistribution color_dist;
 	color_dist.type = RandomDistributionType_Uniform;
@@ -633,7 +638,8 @@ void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color ) {
 	emitter.blue_distribution = color_dist;
 	emitter.alpha_distribution = color_dist;
 
-	emitter.size = 1.0f;
+	emitter.start_size = 1.0f;
+	emitter.end_size = 1.0f;
 	emitter.size_distribution.type = RandomDistributionType_Uniform;
 	emitter.size_distribution.uniform = 0.1f;
 

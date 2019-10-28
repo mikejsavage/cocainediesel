@@ -24,28 +24,29 @@ struct FrameStatic {
 	UniformBlock fog_uniforms;
 	UniformBlock blue_noise_uniforms;
 
-	Mat4 V, P;
+	Mat4 V, inverse_V;
+	Mat4 P, inverse_P;
 	Vec3 position;
 
 	Framebuffer world_gbuffer;
 	Framebuffer world_outlines_fb;
-	Framebuffer teammate_gbuffer;
-	Framebuffer teammate_outlines_fb;
+	Framebuffer silhouette_gbuffer;
+	Framebuffer silhouette_silhouettes_fb;
 	Framebuffer msaa_fb;
 
-	u8 world_write_gbuffer_pass;
-	u8 world_postprocess_gbuffer_pass;
+	u8 write_world_gbuffer_pass;
+	u8 postprocess_world_gbuffer_pass;
 	u8 world_opaque_pass;
-	u8 world_add_outlines_pass;
+	u8 add_world_outlines_pass;
 
-	u8 teammate_write_gbuffer_pass;
-	u8 teammate_postprocess_gbuffer_pass;
+	u8 write_silhouette_gbuffer_pass;
+	u8 postprocess_silhouette_gbuffer_pass;
 
 	u8 nonworld_opaque_pass;
 	u8 sky_pass;
 	u8 transparent_pass;
 
-	u8 teammate_add_outlines_pass;
+	u8 add_silhouettes_pass;
 
 	u8 blur_pass;
 	u8 ui_pass;

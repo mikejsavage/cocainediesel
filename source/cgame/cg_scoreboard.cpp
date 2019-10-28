@@ -131,9 +131,9 @@ static void DrawTeamScoreboard( TempAllocator & temp, const char ** cursor, int 
 	// score box
 	{
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, alpha ) );
-		ImGui::BeginChild( temp( "{}score", team ), ImVec2( 5 * line_height, slots * line_height ), false );
+		ImGui::BeginChild( temp( "{}score", team ), ImVec2( 5 * line_height, slots * line_height ) );
 		ImGui::PushFont( cls.huge_font );
-		WindowCenterText( temp( "{}", team_info.score ) );
+		WindowCenterTextXY( temp( "{}", team_info.score ) );
 		ImGui::PopFont();
 		ImGui::EndChild();
 		ImGui::PopStyleColor();
@@ -145,10 +145,10 @@ static void DrawTeamScoreboard( TempAllocator & temp, const char ** cursor, int 
 
 		// TODO: srgb?
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( color.r / 2, color.g / 2, color.b / 2, alpha ) );
-		ImGui::BeginChild( temp( "{}paddedplayers", team ), ImVec2( 0, slots * line_height ), false );
+		ImGui::BeginChild( temp( "{}paddedplayers", team ), ImVec2( 0, slots * line_height ) );
 
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( color.r * 0.75f, color.g * 0.75f, color.b * 0.75f, alpha ) );
-		ImGui::BeginChild( temp( "{}players", team ), ImVec2( 0, team_info.num_players * line_height ), false );
+		ImGui::BeginChild( temp( "{}players", team ), ImVec2( 0, team_info.num_players * line_height ) );
 
 		ImGui::Columns( 5, NULL, false );
 		ImGui::SetColumnWidth( 0, line_height );
@@ -341,7 +341,7 @@ void CG_DrawScoreboard() {
 				team_color.b *= bg_scale;
 
 				ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( team_color.r, team_color.g, team_color.b, alpha ) );
-				ImGui::BeginChild( temp( "players{}", i ), ImVec2( 0, line_height ), false );
+				ImGui::BeginChild( temp( "players{}", i ), ImVec2( 0, line_height ) );
 
 				ImGui::Columns( 5, NULL, false );
 				ImGui::SetColumnWidth( 0, line_height );

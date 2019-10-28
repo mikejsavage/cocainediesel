@@ -982,7 +982,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 	bool speccing = cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR;
 	bool same_team = GS_TeamBasedGametype() && cg.predictedPlayerState.stats[ STAT_TEAM ] == cent->current.team;
 	if( !corpse && ( speccing || same_team ) ) {
-		DrawTeammateModel( meta->model, transform, color, pose.skinning_matrices );
+		DrawModelSilhouette( meta->model, transform, color, pose.skinning_matrices );
 	}
 
 	float outline_height = CG_OutlineScaleForDist( &cent->ent, 4096, 1.0f );
@@ -1006,6 +1006,10 @@ void CG_DrawPlayer( centity_t *cent ) {
 				tag = meta->tag_head;
 			Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag );
 			DrawModel( attached_model, tag_transform, vec4_white );
+
+			if( speccing || same_team ) {
+				DrawModelSilhouette( attached_model, tag_transform, color );
+			}
 		}
 	}
 }

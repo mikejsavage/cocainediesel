@@ -539,36 +539,6 @@ void Com_FreePureList( purelist_t **purelist ) {
 
 void Key_Init( void );
 void Key_Shutdown( void );
-void SCR_EndLoadingPlaque( void );
-
-/*
-* Com_Error_f
-*
-* Just throw a fatal error to
-* test error shutdown procedures
-*/
-#ifndef PUBLIC_BUILD
-static void Com_Error_f( void ) {
-	Com_Error( ERR_FATAL, "%s", Cmd_Argv( 1 ) );
-}
-#endif
-
-/*
-* Com_Lag_f
-*/
-#ifndef PUBLIC_BUILD
-static void Com_Lag_f( void ) {
-	int msecs;
-
-	if( Cmd_Argc() != 2 || atoi( Cmd_Argv( 1 ) ) <= 0 ) {
-		Com_Printf( "Usage: %s <milliseconds>\n", Cmd_Argv( 0 ) );
-	}
-
-	msecs = atoi( Cmd_Argv( 1 ) );
-	Sys_Sleep( msecs );
-	Com_Printf( "Lagged %i milliseconds\n", msecs );
-}
-#endif
 
 /*
 * Q_malloc
@@ -613,11 +583,6 @@ void Q_free( void *buf ) {
 void Qcommon_InitCommands( void ) {
 	assert( !commands_intialized );
 
-#ifndef PUBLIC_BUILD
-	Cmd_AddCommand( "error", Com_Error_f );
-	Cmd_AddCommand( "lag", Com_Lag_f );
-#endif
-
 	if( is_dedicated_server ) {
 		Cmd_AddCommand( "quit", Com_Quit );
 	}
@@ -632,11 +597,6 @@ void Qcommon_ShutdownCommands( void ) {
 	if( !commands_intialized ) {
 		return;
 	}
-
-#ifndef PUBLIC_BUILD
-	Cmd_RemoveCommand( "error" );
-	Cmd_RemoveCommand( "lag" );
-#endif
 
 	if( is_dedicated_server ) {
 		Cmd_RemoveCommand( "quit" );
@@ -691,11 +651,12 @@ void Qcommon_Init( int argc, char **argv ) {
 
 	FS_Init();
 
-	Cbuf_AddText( "exec default.cfg\n" );
 	if( !is_dedicated_server ) {
+		Cbuf_AddText( "exec default.cfg\n" );
 		Cbuf_AddText( "exec config.cfg\n" );
 		Cbuf_AddText( "exec autoexec.cfg\n" );
-	} else {
+	}
+	else {
 		Cbuf_AddText( "exec dedicated_autoexec.cfg\n" );
 	}
 
@@ -712,7 +673,7 @@ void Qcommon_Init( int argc, char **argv ) {
 	host_speeds =       Cvar_Get( "host_speeds", "0", 0 );
 	timescale =     Cvar_Get( "timescale", "1.0", CVAR_CHEAT );
 	if( is_dedicated_server ) {
-		logconsole =        Cvar_Get( "logconsole", "wswconsole.log", CVAR_ARCHIVE );
+		logconsole =        Cvar_Get( "logconsole", "server.log", CVAR_ARCHIVE );
 	} else {
 		logconsole =        Cvar_Get( "logconsole", "", CVAR_ARCHIVE );
 	}
@@ -735,24 +696,7 @@ void Qcommon_Init( int argc, char **argv ) {
 	SV_Init();
 	CL_Init();
 
-	SCR_EndLoadingPlaque();
-
-	if( !is_dedicated_server ) {
-		Cbuf_AddText( "exec autoexec_postinit.cfg\n" );
-	} else {
-		Cbuf_AddText( "exec dedicated_autoexec_postinit.cfg\n" );
-	}
-
-	// add + commands from command line
-	if( !Cbuf_AddLateCommands() ) {
-		// if the user didn't give any commands, run default action
-	} else {
-		// the user asked for something explicit
-		// so drop the loading plaque
-		SCR_EndLoadingPlaque();
-	}
-
-	Com_Printf( "\n====== %s Initialized ======\n", APPLICATION );
+	Cbuf_AddLateCommands();
 
 	Cbuf_Execute();
 }

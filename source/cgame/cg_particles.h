@@ -4,6 +4,9 @@
 #include "client/renderer/renderer.h"
 
 struct ParticleChunk {
+	alignas( 16 ) float t[ 4 ];
+	alignas( 16 ) float lifetime[ 4 ];
+
 	alignas( 16 ) float position_x[ 4 ];
 	alignas( 16 ) float position_y[ 4 ];
 	alignas( 16 ) float position_z[ 4 ];
@@ -12,14 +15,28 @@ struct ParticleChunk {
 	alignas( 16 ) float velocity_y[ 4 ];
 	alignas( 16 ) float velocity_z[ 4 ];
 
+	alignas( 16 ) float dvelocity[ 4 ];
+
 	alignas( 16 ) float color_r[ 4 ];
 	alignas( 16 ) float color_g[ 4 ];
 	alignas( 16 ) float color_b[ 4 ];
 	alignas( 16 ) float color_a[ 4 ];
 
-	alignas( 16 ) float dalpha[ 4 ];
+	alignas( 16 ) float dcolor_r[ 4 ];
+	alignas( 16 ) float dcolor_g[ 4 ];
+	alignas( 16 ) float dcolor_b[ 4 ];
+	alignas( 16 ) float dcolor_a[ 4 ];
 
 	alignas( 16 ) float size[ 4 ];
+	alignas( 16 ) float dsize[ 4 ];
+};
+
+enum EasingFunction {
+	EasingFunction_Linear,
+	EasingFunction_Quadratic,
+	EasingFunction_Cubic,
+	EasingFunction_QuadraticEaseIn,
+	EasingFunction_QuadraticEaseOut,
 };
 
 struct ParticleSystem {
@@ -29,6 +46,9 @@ struct ParticleSystem {
 	VertexBuffer vb;
 	GPUParticle * vb_memory;
 	Mesh mesh;
+
+	EasingFunction color_easing;
+	EasingFunction size_easing;
 
 	BlendFunc blend_func;
 	Texture texture;
@@ -87,15 +107,17 @@ struct ParticleEmitter {
 	RandomDistribution3D position_distribution;
 
 	Vec3 velocity;
+	float end_velocity;
 	ConeDistribution velocity_cone;
 
-	Vec4 color;
+	Vec4 start_color;
+	Vec3 end_color;
 	RandomDistribution red_distribution;
 	RandomDistribution green_distribution;
 	RandomDistribution blue_distribution;
 	RandomDistribution alpha_distribution;
 
-	float size;
+	float start_size, end_size;
 	RandomDistribution size_distribution;
 
 	float lifetime;
@@ -108,10 +130,9 @@ struct ParticleEmitter {
 void InitParticles();
 void ShutdownParticles();
 
-ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture, Vec3 acceleration, BlendFunc blend_func );
+ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture );
 void DeleteParticleSystem( Allocator * a, ParticleSystem ps );
 
-void EmitParticle( ParticleSystem * ps, Vec3 position, Vec3 velocity, Vec4 color, float size, float lifetime );
 void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter );
 
 void DrawParticles();

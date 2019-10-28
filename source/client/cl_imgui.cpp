@@ -60,7 +60,8 @@ void CL_InitImGui() {
 		AddFontAsset( "fonts/Montserrat-SemiBold.ttf", 18.0f );
 		cls.huge_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 128.0f );
 		cls.large_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 64.0f );
-		cls.medium_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 48.0f );
+		cls.big_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 48.0f );
+		cls.medium_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 28.0f );
 		cls.console_font = AddFontAsset( "fonts/Montserrat-SemiBold.ttf", 14.0f );
 
 		ImGuiFreeType::BuildFontAtlas( io.Fonts );
@@ -220,8 +221,19 @@ void ColumnCenterText( const char * str ) {
 	ImGui::Text( "%s", str );
 }
 
-void WindowCenterText( const char * str ) {
+void ColumnRightText( const char * str ) {
+	float width = ImGui::CalcTextSize( str ).x;
+	ImGui::SetCursorPosX( ImGui::GetColumnOffset() + ImGui::GetColumnWidth() - width );
+	ImGui::Text( "%s", str );
+}
+
+void WindowCenterTextXY( const char * str ) {
 	Vec2 text_size = ImGui::CalcTextSize( str );
 	ImGui::SetCursorPos( 0.5f * ( ImGui::GetWindowSize() - text_size ) );
 	ImGui::Text( "%s", str );
+}
+
+Vec4 AttentionGettingColor() {
+	float t = sinf( cls.monotonicTime / 20.0f ) * 0.5f + 1.0f;
+	return Lerp( vec4_red, t, vec4_yellow );
 }

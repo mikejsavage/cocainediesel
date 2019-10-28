@@ -128,8 +128,6 @@ static bool S_InitAL() {
 		return false;
 	}
 
-	Com_Printf( "OpenAL initialized\n" );
-
 	return true;
 }
 
@@ -446,8 +444,6 @@ void S_StartMenuMusic() {
 	if( !initialized || menu_music_asset == NULL )
 		return;
 
-	alSourcefv( music_source, AL_POSITION, vec3_origin );
-	alSourcefv( music_source, AL_VELOCITY, vec3_origin );
 	alSourcef( music_source, AL_GAIN, s_volume->value * s_musicvolume->value );
 	alSourcei( music_source, AL_DIRECT_CHANNELS_SOFT, AL_TRUE );
 	alSourcei( music_source, AL_LOOPING, AL_TRUE );

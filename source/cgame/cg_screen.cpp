@@ -518,7 +518,7 @@ void CG_DrawDamageNumbers() {
 		if( dn.damage == 0 )
 			continue;
 
-		float lifetime = 750.0f + 5 * dn.damage;
+		float lifetime = Lerp( 750.0f, Clamp01( Unlerp( 0, dn.damage, MINI_OBITUARY_DAMAGE ) ), 2000.0f );
 		float frac = ( cg.time - dn.t ) / lifetime;
 		if( frac > 1 )
 			continue;
@@ -537,17 +537,16 @@ void CG_DrawDamageNumbers() {
 
 		char buf[ 16 ];
 		Vec4 color;
-		float font_size;
 		if( dn.damage == MINI_OBITUARY_DAMAGE ) {
 			Q_strncpyz( buf, dn.obituary, sizeof( buf ) );
 			color = CG_TeamColorVec4( TEAM_ENEMY );
-			font_size = cgs.textSizeSmall;
 		}
 		else {
 			Q_snprintfz( buf, sizeof( buf ), "%d", dn.damage );
 			color = vec4_white;
-			font_size = cgs.textSizeTiny;
 		}
+
+		float font_size = Lerp( cgs.textSizeTiny, Clamp01( Unlerp( 0, dn.damage, 60 ) ), cgs.textSizeSmall );
 
 		float alpha = 1 - max( 0, frac - 0.75f ) / 0.25f;
 		color.w *= alpha;
@@ -606,8 +605,11 @@ void CG_AddBombHudEntity( centity_t * cent ) {
 }
 
 void CG_DrawBombHUD() {
-	int my_team = cg.predictedPlayerState.stats[STAT_REALTEAM];
-	bool show_labels = my_team != TEAM_SPECTATOR && GS_MatchState() == MATCH_STATE_PLAYTIME;
+	if( GS_MatchState() != MATCH_STATE_PLAYTIME )
+		return;
+
+	int my_team = cg.predictedPlayerState.stats[ STAT_REALTEAM ];
+	bool show_labels = my_team != TEAM_SPECTATOR;
 
 	// TODO: draw arrows when clamped
 
@@ -633,26 +635,22 @@ void CG_DrawBombHUD() {
 		bool clamped;
 		Vec2 coords = WorldToScreenClamped( FromQF3( bomb.origin ), Vec2( cgs.fontSystemMediumSize * 2 ), &clamped );
 
-		const Material * icon = cgs.media.shaderBombIcon;
-		int icon_size = cgs.fontSystemMediumSize;
-
-		if( !clamped ) {
-			icon = cgs.media.shaderTeamMateIndicator;
-			icon_size = cgs.fontSystemMediumSize / 2;
-
+		if( clamped ) {
+			int icon_size = ( cgs.fontSystemMediumSize * frame_static.viewport_height ) / 600;
+			Draw2DBox( coords.x - icon_size / 2, coords.y - icon_size / 2, icon_size, icon_size, cgs.media.shaderBombIcon );
+		}
+		else {
 			if( show_labels ) {
 				const char * msg = "RETRIEVE";
 				if( bomb.state == BombState_Placed )
 					msg = "PLANTING";
 				else if( bomb.state == BombState_Armed )
 					msg = my_team == bomb.team ? "PROTECT" : "DEFUSE";
-				float y = coords.y - icon_size - cgs.fontSystemTinySize / 2;
+				float y = coords.y - cgs.fontSystemTinySize / 2;
 				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, y, vec4_white, true );
 			}
 		}
 
-		icon_size = ( icon_size * frame_static.viewport_height ) / 600;
-		Draw2DBox( coords.x - icon_size / 2, coords.y - icon_size / 2, icon_size, icon_size, icon );
 	}
 }
 
@@ -673,14 +671,7 @@ void CG_EscapeKey( void ) {
 		return;
 	}
 
-	bool spectator = cg.predictedPlayerState.stats[STAT_REALTEAM] == TEAM_SPECTATOR;
-	bool is_ready = false;
-
-	if( GS_MatchState() <= MATCH_STATE_WARMUP && !spectator ) {
-		is_ready = ( cg.predictedPlayerState.stats[STAT_LAYOUTS] & STAT_LAYOUT_READY ) != 0;
-	}
-
-	UI_ShowGameMenu( spectator, is_ready );
+	UI_ShowGameMenu();
 }
 
 //=============================================================================

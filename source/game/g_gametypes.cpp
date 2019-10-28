@@ -913,18 +913,7 @@ void G_Gametype_Init( void ) {
 
 	const char * gt = IsGladiatorMap() ? "gladiator" : "bomb";
 
-	G_Printf( "-------------------------------------\n" );
-	G_Printf( "Initalizing '%s' gametype\n", gt );
-
-	const char *configs_path = "configs/server/gametypes/";
-
 	G_InitChallengersQueue();
-
-	// print a hint for admins so they know there's a chance to execute a
-	// config here, but don't show it as an error, because it isn't
-	G_Printf( "loading %s%s.cfg\n", configs_path, gt );
-	trap_Cmd_ExecuteText( EXEC_NOW, va( "exec %s%s.cfg silent\n", configs_path, gt ) );
-	trap_Cbuf_Execute();
 
 	G_CheckCvars();
 

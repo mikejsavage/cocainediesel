@@ -468,13 +468,6 @@ static void CL_Rcon_f( void ) {
 }
 
 /*
-* CL_GetKeyDest
-*/
-keydest_t CL_GetKeyDest( void ) {
-	return cls.key_dest;
-}
-
-/*
 * CL_SetKeyDest
 */
 void CL_SetKeyDest( keydest_t key_dest ) {
@@ -1447,13 +1440,6 @@ void CL_SetClientState( connstate_t state ) {
 		default:
 			break;
 	}
-}
-
-/*
-* CL_GetClientState
-*/
-connstate_t CL_GetClientState( void ) {
-	return cls.state;
 }
 
 /*

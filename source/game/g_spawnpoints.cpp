@@ -135,7 +135,7 @@ bool G_OffsetSpawnPoint( vec3_t origin, const vec3_t box_mins, const vec3_t box_
 		if( trace.startsolid || trace.allsolid || trace.ent != -1 ) {
 			if( trace.ent == 0 ) {
 				worldfound++;
-			} else if( trace.ent < gs.maxclients ) {
+			} else if( trace.ent < server_gs.maxclients ) {
 				playersFound++;
 			}
 			continue;
@@ -174,7 +174,7 @@ bool G_OffsetSpawnPoint( vec3_t origin, const vec3_t box_mins, const vec3_t box_
 void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, vec3_t origin, vec3_t angles ) {
 	edict_t *spot = NULL;
 
-	if( GS_MatchState() >= MATCH_STATE_POSTMATCH ) {
+	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH ) {
 		spot = G_FindPostMatchCamera();
 	} else {
 		spot = GT_asCallSelectSpawnPoint( ent );
@@ -382,8 +382,8 @@ void G_SpawnQueue_ReleaseTeamQueue( int team ) {
 	bool ghost = team == TEAM_SPECTATOR;
 
 	// try to spawn them
-	for( count = 0; ( queue->start < queue->head ) && ( count < gs.maxclients ); queue->start++, count++ ) {
-		if( queue->list[queue->start % MAX_CLIENTS] <= 0 || queue->list[queue->start % MAX_CLIENTS] > gs.maxclients ) {
+	for( count = 0; ( queue->start < queue->head ) && ( count < server_gs.maxclients ); queue->start++, count++ ) {
+		if( queue->list[queue->start % MAX_CLIENTS] <= 0 || queue->list[queue->start % MAX_CLIENTS] > server_gs.maxclients ) {
 			continue;
 		}
 
@@ -409,7 +409,7 @@ void G_SpawnQueue_AddClient( edict_t *ent ) {
 		return;
 	}
 
-	if( ENTNUM( ent ) <= 0 || ENTNUM( ent ) > gs.maxclients ) {
+	if( ENTNUM( ent ) <= 0 || ENTNUM( ent ) > server_gs.maxclients ) {
 		return;
 	}
 
@@ -457,7 +457,7 @@ void G_SpawnQueue_Think( void ) {
 				if( queue->nextWaveTime > level.time ) {
 					maxCount = 0;
 				} else {
-					maxCount = ( queue->wave_maxcount < 1 ) ? gs.maxclients : queue->wave_maxcount; // max count per reinforcement wave
+					maxCount = ( queue->wave_maxcount < 1 ) ? server_gs.maxclients : queue->wave_maxcount; // max count per reinforcement wave
 					queue->nextWaveTime = level.time + ( queue->wave_time * 1000 );
 				}
 				break;
@@ -479,7 +479,7 @@ void G_SpawnQueue_Think( void ) {
 
 		// try to spawn them
 		for( count = 0; ( queue->start < queue->head ) && ( count < maxCount ); queue->start++, count++ ) {
-			if( queue->list[queue->start % MAX_CLIENTS] <= 0 || queue->list[queue->start % MAX_CLIENTS] > gs.maxclients ) {
+			if( queue->list[queue->start % MAX_CLIENTS] <= 0 || queue->list[queue->start % MAX_CLIENTS] > server_gs.maxclients ) {
 				continue;
 			}
 

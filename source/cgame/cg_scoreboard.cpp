@@ -1,5 +1,4 @@
 #include "cgame/cg_local.h"
-#include "client/client.h"
 #include "qcommon/string.h"
 
 #include "imgui/imgui.h"
@@ -29,7 +28,7 @@ bool CG_ScoreboardShown() {
 	}
 
 	if( cgs.demoPlaying || cg.frame.multipov ) {
-		return cg.showScoreboard || ( GS_MatchState() > MATCH_STATE_PLAYTIME );
+		return cg.showScoreboard || ( GS_MatchState( &client_gs ) > MATCH_STATE_PLAYTIME );
 	}
 
 	return ( cg.predictedPlayerState.stats[ STAT_LAYOUTS ] & STAT_LAYOUT_SCOREBOARD ) != 0;
@@ -66,7 +65,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, ScoreboardPlayer player,
 	int id = alive ? player.id : -( player.id + 1 );
 
 	// icon
-	bool warmup = GS_MatchState() == MATCH_STATE_WARMUP || GS_MatchState() == MATCH_STATE_COUNTDOWN;
+	bool warmup = GS_MatchState( &client_gs ) == MATCH_STATE_WARMUP || GS_MatchState( &client_gs ) == MATCH_STATE_COUNTDOWN;
 	const Material * icon = NULL;
 
 	if( warmup ) {
@@ -209,7 +208,7 @@ void CG_DrawScoreboard() {
 	float col_width = 80;
 	u8 alpha = 242;
 
-	if( GS_TeamBasedGametype() ) {
+	if( GS_TeamBasedGametype( &client_gs ) ) {
 		float score_width = 5 * ( ImGui::GetTextLineHeight() + 2 * 8 );
 
 		{

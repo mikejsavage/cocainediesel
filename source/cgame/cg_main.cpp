@@ -188,26 +188,24 @@ static const char *CG_GS_GetConfigString( int index ) {
 */
 static void CG_InitGameShared( void ) {
 	char cstring[MAX_CONFIGSTRING_CHARS];
-	int maxclients;
-	gs_module_api_t api;
-
 	trap_GetConfigString( CS_MAXCLIENTS, cstring, MAX_CONFIGSTRING_CHARS );
-	maxclients = atoi( cstring );
+	int maxclients = atoi( cstring );
 	if( maxclients < 1 || maxclients > MAX_CLIENTS ) {
 		maxclients = MAX_CLIENTS;
 	}
 
-	memset( &api, 0, sizeof( api ) );
-	api.PredictedEvent = CG_PredictedEvent;
-	api.Error = CG_Error;
-	api.Printf = CG_Printf;
-	api.Trace = CG_GS_Trace;
-	api.GetEntityState = CG_GS_GetEntityState;
-	api.PointContents = CG_GS_PointContents;
-	api.PMoveTouchTriggers = CG_Predict_TouchTriggers;
-	api.GetConfigString = CG_GS_GetConfigString;
+	client_gs = { };
+	client_gs.module = GS_MODULE_CGAME;
+	client_gs.maxclients = maxclients;
 
-	GS_InitModule( GS_MODULE_CGAME, maxclients, &api );
+	client_gs.api.PredictedEvent = CG_PredictedEvent;
+	client_gs.api.Error = CG_Error;
+	client_gs.api.Printf = CG_Printf;
+	client_gs.api.Trace = CG_GS_Trace;
+	client_gs.api.GetEntityState = CG_GS_GetEntityState;
+	client_gs.api.PointContents = CG_GS_PointContents;
+	client_gs.api.PMoveTouchTriggers = CG_Predict_TouchTriggers;
+	client_gs.api.GetConfigString = CG_GS_GetConfigString;
 }
 
 /*

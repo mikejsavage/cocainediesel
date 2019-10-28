@@ -512,7 +512,7 @@ void G_PrecacheMedia( void ) {
 	trap_SoundIndex( va( S_ANNOUNCER_SCORE_TIED_LEAD_1_to_2, 1 ) );
 	trap_SoundIndex( va( S_ANNOUNCER_SCORE_TIED_LEAD_1_to_2, 2 ) );
 
-	if( GS_TeamBasedGametype() ) {
+	if( GS_TeamBasedGametype( &server_gs ) ) {
 		trap_SoundIndex( va( S_ANNOUNCER_SCORE_TEAM_TAKEN_LEAD_1_to_2, 1 ) );
 		trap_SoundIndex( va( S_ANNOUNCER_SCORE_TEAM_TAKEN_LEAD_1_to_2, 2 ) );
 		trap_SoundIndex( va( S_ANNOUNCER_SCORE_TEAM_LOST_LEAD_1_to_2, 1 ) );
@@ -534,14 +534,14 @@ static void G_FreeEntities( void ) {
 		memset( game.edicts, 0, game.maxentities * sizeof( game.edicts[0] ) );
 	} else {
 		G_FreeEdict( world );
-		for( i = gs.maxclients + 1; i < game.maxentities; i++ ) {
+		for( i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
 			if( game.edicts[i].r.inuse ) {
 				G_FreeEdict( game.edicts + i );
 			}
 		}
 	}
 
-	game.numentities = gs.maxclients + 1;
+	game.numentities = server_gs.maxclients + 1;
 }
 
 /*
@@ -650,7 +650,7 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 	G_StringPoolInit();
 
 	memset( &level, 0, sizeof( level_locals_t ) );
-	memset( &gs.gameState, 0, sizeof( gs.gameState ) );
+	memset( &server_gs.gameState, 0, sizeof( server_gs.gameState ) );
 
 	level.time = levelTime;
 	level.gravity = g_gravity->value;
@@ -670,7 +670,7 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 	G_FreeEntities();
 
 	// link client fields on player ents
-	for( i = 0; i < gs.maxclients; i++ ) {
+	for( i = 0; i < server_gs.maxclients; i++ ) {
 		game.edicts[i + 1].s.number = i + 1;
 		game.edicts[i + 1].r.client = &game.clients[i];
 		game.edicts[i + 1].r.inuse = ( trap_GetClientState( i ) >= CS_CONNECTED ) ? true : false;
@@ -706,10 +706,8 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 }
 
 void G_ResetLevel( void ) {
-	int i;
-
 	G_FreeEdict( world );
-	for( i = gs.maxclients + 1; i < game.maxentities; i++ ) {
+	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
 		if( game.edicts[i].r.inuse ) {
 			G_FreeEdict( game.edicts + i );
 		}

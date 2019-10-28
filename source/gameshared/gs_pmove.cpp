@@ -67,8 +67,9 @@ typedef struct {
 	float dashPlayerSpeed;
 } pml_t;
 
-pmove_t *pm;
-pml_t pml;
+static pmove_t *pm;
+static pml_t pml;
+static const gs_state_t * pmove_gs;
 
 // movement parameters
 
@@ -138,7 +139,7 @@ static void PlayerTouchWall( int nbTestDir, float maxZnormal, vec3_t *normal ) {
 		}
 		min[2] = max[2] = 0;
 
-		gs.api.Trace( &trace, pml.origin, min, max, dir, pm->playerState->POVnum, pm->contentmask, 0 );
+		pmove_gs->api.Trace( &trace, pml.origin, min, max, dir, pm->playerState->POVnum, pm->contentmask, 0 );
 
 		if( trace.allsolid ) return;
 
@@ -149,7 +150,7 @@ static void PlayerTouchWall( int nbTestDir, float maxZnormal, vec3_t *normal ) {
 			continue;
 
 		if( trace.ent > 0 ) {
-			state = gs.api.GetEntityState( trace.ent, 0 );
+			state = pmove_gs->api.GetEntityState( trace.ent, 0 );
 			if( state->type == ET_PLAYER )
 				continue;
 		}
@@ -227,7 +228,7 @@ static int PM_SlideMove( void ) {
 
 	for( moves = 0; moves < maxmoves; moves++ ) {
 		VectorMA( pml.origin, remainingTime, pml.velocity, end );
-		gs.api.Trace( &trace, pml.origin, pm->mins, pm->maxs, end, pm->playerState->POVnum, pm->contentmask, 0 );
+		pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, end, pm->playerState->POVnum, pm->contentmask, 0 );
 		if( trace.allsolid ) { // trapped into a solid
 			VectorCopy( last_valid_origin, pml.origin );
 			return SLIDEMOVEFLAG_TRAPPED;
@@ -361,7 +362,7 @@ static void PM_StepSlideMove( void ) {
 	VectorCopy( start_o, up );
 	up[2] += STEPSIZE;
 
-	gs.api.Trace( &trace, up, pm->mins, pm->maxs, up, pm->playerState->POVnum, pm->contentmask, 0 );
+	pmove_gs->api.Trace( &trace, up, pm->mins, pm->maxs, up, pm->playerState->POVnum, pm->contentmask, 0 );
 	if( trace.allsolid ) {
 		return; // can't step up
 
@@ -375,7 +376,7 @@ static void PM_StepSlideMove( void ) {
 	// push down the final amount
 	VectorCopy( pml.origin, down );
 	down[2] -= STEPSIZE;
-	gs.api.Trace( &trace, pml.origin, pm->mins, pm->maxs, down, pm->playerState->POVnum, pm->contentmask, 0 );
+	pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, down, pm->playerState->POVnum, pm->contentmask, 0 );
 	if( !trace.allsolid ) {
 		VectorCopy( trace.endpos, pml.origin );
 	}
@@ -724,7 +725,7 @@ static void PM_GroundTrace( trace_t *trace ) {
 	point[1] = pml.origin[1];
 	point[2] = pml.origin[2] - 0.25;
 
-	gs.api.Trace( trace, pml.origin, pm->mins, pm->maxs, point, pm->playerState->POVnum, pm->contentmask, 0 );
+	pmove_gs->api.Trace( trace, pml.origin, pm->mins, pm->maxs, point, pm->playerState->POVnum, pm->contentmask, 0 );
 }
 
 /*
@@ -735,7 +736,7 @@ static bool PM_GoodPosition( vec3_t origin, trace_t *trace ) {
 		return true;
 	}
 
-	gs.api.Trace( trace, origin, pm->mins, pm->maxs, origin, pm->playerState->POVnum, pm->contentmask, 0 );
+	pmove_gs->api.Trace( trace, origin, pm->mins, pm->maxs, origin, pm->playerState->POVnum, pm->contentmask, 0 );
 
 	return !trace->allsolid;
 }
@@ -833,17 +834,17 @@ static void PM_CategorizePosition( void ) {
 	point[0] = pml.origin[0];
 	point[1] = pml.origin[1];
 	point[2] = pml.origin[2] + pm->mins[2] + 1;
-	cont = gs.api.PointContents( point, 0 );
+	cont = pmove_gs->api.PointContents( point, 0 );
 
 	if( cont & MASK_WATER ) {
 		pm->watertype = cont;
 		pm->waterlevel = 1;
 		point[2] = pml.origin[2] + pm->mins[2] + sample1;
-		cont = gs.api.PointContents( point, 0 );
+		cont = pmove_gs->api.PointContents( point, 0 );
 		if( cont & MASK_WATER ) {
 			pm->waterlevel = 2;
 			point[2] = pml.origin[2] + pm->mins[2] + sample2;
-			cont = gs.api.PointContents( point, 0 );
+			cont = pmove_gs->api.PointContents( point, 0 );
 			if( cont & MASK_WATER ) {
 				pm->waterlevel = 3;
 			}
@@ -895,13 +896,13 @@ static void PM_CheckJump( void ) {
 	}
 
 	if( pml.velocity[2] > 100 ) {
-		gs.api.PredictedEvent( pm->playerState->POVnum, EV_DOUBLEJUMP, 0 );
+		pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DOUBLEJUMP, 0 );
 		pml.velocity[2] += pml.jumpPlayerSpeed;
 	} else if( pml.velocity[2] > 0 ) {
-		gs.api.PredictedEvent( pm->playerState->POVnum, EV_JUMP, 0 );
+		pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_JUMP, 0 );
 		pml.velocity[2] += pml.jumpPlayerSpeed;
 	} else {
-		gs.api.PredictedEvent( pm->playerState->POVnum, EV_JUMP, 0 );
+		pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_JUMP, 0 );
 		pml.velocity[2] = pml.jumpPlayerSpeed;
 	}
 
@@ -985,14 +986,14 @@ static void PM_CheckDash( void ) {
 		// return sound events
 		if( fabs( pml.sidePush ) > 10 && fabs( pml.sidePush ) >= fabs( pml.forwardPush ) ) {
 			if( pml.sidePush > 0 ) {
-				gs.api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 2 );
+				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 2 );
 			} else {
-				gs.api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 1 );
+				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 1 );
 			}
 		} else if( pml.forwardPush < -10 ) {
-			gs.api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 3 );
+			pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 3 );
 		} else {
-			gs.api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 0 );
+			pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 0 );
 		}
 	} else if( pm->groundentity == -1 ) {
 		pm->playerState->pmove.pm_flags &= ~PMF_DASHING;
@@ -1052,7 +1053,7 @@ static void PM_CheckWallJump( void ) {
 		// don't walljump if our height is smaller than a step
 		// unless jump is pressed or the player is moving faster than dash speed and upwards
 		hspeed = VectorLengthFast( tv( pml.velocity[0], pml.velocity[1], 0 ) );
-		gs.api.Trace( &trace, pml.origin, pm->mins, pm->maxs, point, pm->playerState->POVnum, pm->contentmask, 0 );
+		pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, point, pm->playerState->POVnum, pm->contentmask, 0 );
 
 		if( pml.upPush >= 10
 			|| ( hspeed > pm->playerState->pmove.stats[PM_STAT_DASHSPEED] && pml.velocity[2] > 8 )
@@ -1094,7 +1095,7 @@ static void PM_CheckWallJump( void ) {
 				pm->playerState->pmove.stats[PM_STAT_WJTIME] = PM_WALLJUMP_TIMEDELAY;
 
 				// Create the event
-				gs.api.PredictedEvent( pm->playerState->POVnum, EV_WALLJUMP, DirToByte( normal ) );
+				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_WALLJUMP, DirToByte( normal ) );
 			}
 		}
 	} else {
@@ -1121,7 +1122,7 @@ static void PM_CheckSpecialMovement( void ) {
 	// check for ladder
 	if( !pm->skipCollision ) {
 		VectorMA( pml.origin, 1, pml.flatforward, spot );
-		gs.api.Trace( &trace, pml.origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->contentmask, 0 );
+		pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->contentmask, 0 );
 		if( ( trace.fraction < 1 ) && ( trace.surfFlags & SURF_LADDER ) ) {
 			pml.ladder = true;
 			pm->ladder = true;
@@ -1135,13 +1136,13 @@ static void PM_CheckSpecialMovement( void ) {
 
 	VectorMA( pml.origin, 30, pml.flatforward, spot );
 	spot[2] += 4;
-	cont = gs.api.PointContents( spot, 0 );
+	cont = pmove_gs->api.PointContents( spot, 0 );
 	if( !( cont & CONTENTS_SOLID ) ) {
 		return;
 	}
 
 	spot[2] += 16;
-	cont = gs.api.PointContents( spot, 0 );
+	cont = pmove_gs->api.PointContents( spot, 0 );
 	if( cont ) {
 		return;
 	}
@@ -1237,7 +1238,7 @@ static void PM_FlyMove( bool doclip ) {
 		for( i = 0; i < 3; i++ )
 			end[i] = pml.origin[i] + pml.frametime * pml.velocity[i];
 
-		gs.api.Trace( &trace, pml.origin, pm->mins, pm->maxs, end, pm->playerState->POVnum, pm->contentmask, 0 );
+		pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, end, pm->playerState->POVnum, pm->contentmask, 0 );
 
 		VectorCopy( trace.endpos, pml.origin );
 	} else {
@@ -1329,7 +1330,7 @@ static void PM_AdjustBBox( void ) {
 		wishviewheight = playerbox_stand_viewheight - ( crouchFrac * ( playerbox_stand_viewheight - playerbox_crouch_viewheight ) );
 
 		// check that the head is not blocked
-		gs.api.Trace( &trace, pml.origin, wishmins, wishmaxs, pml.origin, pm->playerState->POVnum, pm->contentmask, 0 );
+		pmove_gs->api.Trace( &trace, pml.origin, wishmins, wishmaxs, pml.origin, pm->playerState->POVnum, pm->contentmask, 0 );
 		if( trace.allsolid || trace.startsolid ) {
 			// can't do the uncrouching, let the time alone and use old position
 			VectorCopy( curmins, pm->mins );
@@ -1355,7 +1356,7 @@ static void PM_AdjustBBox( void ) {
 static void PM_UpdateDeltaAngles( void ) {
 	int i;
 
-	if( gs.module != GS_MODULE_GAME ) {
+	if( pmove_gs->module != GS_MODULE_GAME ) {
 		return;
 	}
 
@@ -1428,12 +1429,13 @@ static void PM_EndMove( void ) {
 *
 * Can be called by either the server or the client
 */
-void Pmove( pmove_t *pmove ) {
+void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 	if( !pmove->playerState ) {
 		return;
 	}
 
 	pm = pmove;
+	pmove_gs = gs;
 
 	// clear all pmove local vars
 	PM_BeginMove();
@@ -1471,21 +1473,21 @@ void Pmove( pmove_t *pmove ) {
 	switch( pm->playerState->pmove.pm_type ) {
 		case PM_FREEZE:
 		case PM_CHASECAM:
-			if( gs.module == GS_MODULE_GAME ) {
+			if( pmove_gs->module == GS_MODULE_GAME ) {
 				pm->playerState->pmove.pm_flags |= PMF_NO_PREDICTION;
 			}
 			pm->contentmask = 0;
 			break;
 
 		case PM_GIB:
-			if( gs.module == GS_MODULE_GAME ) {
+			if( pmove_gs->module == GS_MODULE_GAME ) {
 				pm->playerState->pmove.pm_flags |= PMF_NO_PREDICTION;
 			}
 			pm->contentmask = MASK_DEADSOLID;
 			break;
 
 		case PM_SPECTATOR:
-			if( gs.module == GS_MODULE_GAME ) {
+			if( pmove_gs->module == GS_MODULE_GAME ) {
 				pm->playerState->pmove.pm_flags &= ~PMF_NO_PREDICTION;
 			}
 			pm->contentmask = MASK_DEADSOLID;
@@ -1493,13 +1495,13 @@ void Pmove( pmove_t *pmove ) {
 
 		default:
 		case PM_NORMAL:
-			if( gs.module == GS_MODULE_GAME ) {
+			if( pmove_gs->module == GS_MODULE_GAME ) {
 				pm->playerState->pmove.pm_flags &= ~PMF_NO_PREDICTION;
 			}
 			if( pm->playerState->pmove.stats[PM_STAT_FEATURES] & PMFEAT_GHOSTMOVE ) {
 				pm->contentmask = MASK_DEADSOLID;
 			} else if( pm->playerState->pmove.stats[PM_STAT_FEATURES] & PMFEAT_TEAMGHOST ) {
-				int team = gs.api.GetEntityState( pm->playerState->POVnum, 0 )->team;
+				int team = pmove_gs->api.GetEntityState( pm->playerState->POVnum, 0 )->team;
 				pm->contentmask = team == TEAM_ALPHA ? MASK_ALPHAPLAYERSOLID : MASK_BETAPLAYERSOLID;
 			} else {
 				pm->contentmask = MASK_PLAYERSOLID;
@@ -1507,7 +1509,7 @@ void Pmove( pmove_t *pmove ) {
 			break;
 	}
 
-	if( !GS_MatchPaused() ) {
+	if( !GS_MatchPaused( pmove_gs ) ) {
 		// drop timing counters
 		if( pm->playerState->pmove.pm_time ) {
 			int msec;
@@ -1546,7 +1548,7 @@ void Pmove( pmove_t *pmove ) {
 	}
 
 	if( pm->playerState->pmove.pm_type != PM_NORMAL ) { // includes dead, freeze, chasecam...
-		if( !GS_MatchPaused() ) {
+		if( !GS_MatchPaused( pmove_gs ) ) {
 			PM_ClearDash();
 
 			PM_ClearWallJump();
@@ -1648,7 +1650,7 @@ void Pmove( pmove_t *pmove ) {
 	// We check the entire path between the origin before the pmove and the
 	// current origin to ensure no triggers are missed at high velocity.
 	// Note that this method assumes the movement has been linear.
-	gs.api.PMoveTouchTriggers( pm, pml.previous_origin );
+	pmove_gs->api.PMoveTouchTriggers( pm, pml.previous_origin );
 
 	PM_UpdateDeltaAngles(); // in case some trigger action has moved the view angles (like teleported).
 
@@ -1688,7 +1690,7 @@ void Pmove( pmove_t *pmove ) {
 
 		float frac = Clamp01( Unlerp( min_fall_velocity, fall_delta, max_fall_velocity ) );
 		if( frac > 0 ) {
-			gs.api.PredictedEvent( pm->playerState->POVnum, EV_FALL, frac * 255 );
+			pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_FALL, frac * 255 );
 		}
 
 		pm->playerState->pmove.pm_flags &= ~PMF_JUMPPAD_TIME;

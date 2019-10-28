@@ -25,13 +25,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "q_collision.h"
 #include "gs_public.h"
 
-// TEMP MOVE ME
-gs_state_t gs;
-
 /*
 * GS_TouchPushTrigger
 */
-void GS_TouchPushTrigger( player_state_t *playerState, entity_state_t *pusher ) {
+void GS_TouchPushTrigger( const gs_state_t * gs, player_state_t *playerState, entity_state_t *pusher ) {
 	// spectators don't use jump pads
 	if( playerState->pmove.pm_type != PM_NORMAL ) {
 		return;
@@ -43,13 +40,13 @@ void GS_TouchPushTrigger( player_state_t *playerState, entity_state_t *pusher ) 
 	playerState->pmove.pm_flags &= ~PMF_WALLJUMPCOUNT;
 	playerState->pmove.pm_flags |= PMF_JUMPPAD_TIME;
 	playerState->pmove.pm_flags &= ~PMF_ON_GROUND;
-	gs.api.PredictedEvent( playerState->POVnum, EV_JUMP_PAD, 0 );
+	gs->api.PredictedEvent( playerState->POVnum, EV_JUMP_PAD, 0 );
 }
 
 /*
 * GS_WaterLevel
 */
-int GS_WaterLevel( entity_state_t *state, vec3_t mins, vec3_t maxs ) {
+int GS_WaterLevel( const gs_state_t * gs, entity_state_t *state, vec3_t mins, vec3_t maxs ) {
 	vec3_t point;
 	int cont;
 	int waterlevel;
@@ -59,15 +56,15 @@ int GS_WaterLevel( entity_state_t *state, vec3_t mins, vec3_t maxs ) {
 	point[0] = state->origin[0];
 	point[1] = state->origin[1];
 	point[2] = state->origin[2] + mins[2] + 1;
-	cont = gs.api.PointContents( point, 0 );
+	cont = gs->api.PointContents( point, 0 );
 	if( cont & MASK_WATER ) {
 		waterlevel = 1;
 		point[2] += 26;
-		cont = gs.api.PointContents( point, 0 );
+		cont = gs->api.PointContents( point, 0 );
 		if( cont & MASK_WATER ) {
 			waterlevel = 2;
 			point[2] += 22;
-			cont = gs.api.PointContents( point, 0 );
+			cont = gs->api.PointContents( point, 0 );
 			if( cont & MASK_WATER ) {
 				waterlevel = 3;
 			}
@@ -75,26 +72,6 @@ int GS_WaterLevel( entity_state_t *state, vec3_t mins, vec3_t maxs ) {
 	}
 
 	return waterlevel;
-}
-
-/*
-* GS_BBoxForEntityState
-*/
-void GS_BBoxForEntityState( const entity_state_t * state, vec3_t mins, vec3_t maxs ) {
-	if( state->solid == SOLID_BMODEL ) {
-		// FIXME: This is wrong, we don't have access to bmodels at gameshared (simply didn't add it)
-		gs.api.Error( "GS_BBoxForEntityState: called for a brush model\n" );
-		//cmodel = trap_CM_InlineModel( state->modelindex );
-	} else {                          // encoded bbox
-		int x = 8 * ( state->solid & 31 );
-		int zd = 8 * ( ( state->solid >> 5 ) & 31 );
-		int zu = 8 * ( ( state->solid >> 10 ) & 63 ) - 32;
-
-		mins[0] = mins[1] = -x;
-		maxs[0] = maxs[1] = x;
-		mins[2] = -zd;
-		maxs[2] = zu;
-	}
 }
 
 //============================================================================
@@ -193,15 +170,4 @@ void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *me
 			strcpy( message, "was fragged by" );
 			break;
 	}
-}
-
-/*
-* GS_InitModule
-*/
-void GS_InitModule( int module, int maxClients, gs_module_api_t *api ) {
-	memset( &gs, 0, sizeof( gs_state_t ) );
-
-	gs.module = module;
-	gs.maxclients = maxClients;
-	gs.api = *api;
 }

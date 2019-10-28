@@ -19,7 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
-#include "client/client.h"
 #include "qcommon/string.h"
 
 static constexpr const char * PLAYER_SOUND_NAMES[] = {
@@ -92,7 +91,7 @@ static void CG_ParseClientInfo( cg_clientInfo_t *ci, const char *info ) {
 * Updates cached client info from the current CS_PLAYERINFOS configstring value
 */
 void CG_LoadClientInfo( int client ) {
-	assert( client >= 0 && client < gs.maxclients );
+	assert( client >= 0 && client < client_gs.maxclients );
 	CG_ParseClientInfo( &cgs.clientInfo[client], cgs.configStrings[CS_PLAYERINFOS + client] );
 }
 

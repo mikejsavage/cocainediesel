@@ -18,22 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-// cg_screen.c -- master status bar, crosshairs, hud, etc
-
-/*
-
-full screen console
-put up loading plaque
-blanked background with loading plaque
-blanked background with menu
-full screen image for quit and victory
-
-end of unit intermissions
-
-*/
-
 #include "cg_local.h"
-#include "client/client.h"
 
 cvar_t *cg_centerTime;
 cvar_t *cg_showFPS;
@@ -248,11 +233,11 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 	int64_t clocktime, startTime, duration, curtime;
 	char string[12];
 
-	if( GS_MatchState() > MATCH_STATE_PLAYTIME ) {
+	if( GS_MatchState( &client_gs ) > MATCH_STATE_PLAYTIME ) {
 		return;
 	}
 
-	if( GS_RaceGametype() ) {
+	if( GS_RaceGametype( &client_gs ) ) {
 		if( cg.predictedPlayerState.stats[STAT_TIME_SELF] != STAT_NOTSET ) {
 			clocktime = cg.predictedPlayerState.stats[STAT_TIME_SELF] * 100;
 		}
@@ -260,15 +245,15 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 			clocktime = 0;
 		}
 	}
-	else if( GS_MatchClockOverride() ) {
-		clocktime = GS_MatchClockOverride();
+	else if( GS_MatchClockOverride( &client_gs ) ) {
+		clocktime = GS_MatchClockOverride( &client_gs );
 		if( clocktime < 0 )
 			return;
 	}
 	else {
-		curtime = ( GS_MatchWaiting() || GS_MatchPaused() ) ? cg.frame.serverTime : cg.time;
-		duration = GS_MatchDuration();
-		startTime = GS_MatchStartTime();
+		curtime = ( GS_MatchWaiting( &client_gs ) || GS_MatchPaused( &client_gs ) ) ? cg.frame.serverTime : cg.time;
+		duration = GS_MatchDuration( &client_gs );
+		startTime = GS_MatchStartTime( &client_gs );
 
 		// count downwards when having a duration
 		if( duration ) {
@@ -293,7 +278,7 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 
 	// fixme?: this could have its own HUD drawing, I guess.
 
-	if( GS_RaceGametype() ) {
+	if( GS_RaceGametype( &client_gs ) ) {
 		Q_snprintfz( string, sizeof( string ), "%i:%02i.%i",
 					 minutes, ( int )seconds, ( int )( seconds * 10.0 ) % 10 );
 	}
@@ -359,7 +344,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 
 	CG_UpdatePointedNum();
 
-	for( int i = 0; i < gs.maxclients; i++ ) {
+	for( int i = 0; i < client_gs.maxclients; i++ ) {
 		if( !cgs.clientInfo[i].name[0] || ISVIEWERENTITY( i + 1 ) ) {
 			continue;
 		}
@@ -605,7 +590,7 @@ void CG_AddBombHudEntity( centity_t * cent ) {
 }
 
 void CG_DrawBombHUD() {
-	if( GS_MatchState() != MATCH_STATE_PLAYTIME )
+	if( GS_MatchState( &client_gs ) != MATCH_STATE_PLAYTIME )
 		return;
 
 	int my_team = cg.predictedPlayerState.stats[ STAT_REALTEAM ];

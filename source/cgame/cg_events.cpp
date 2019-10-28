@@ -17,8 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-#include "cg_local.h"
-#include "client/client.h"
+#include "cgame/cg_local.h"
 
 /*
 * CG_Event_WeaponBeam
@@ -150,7 +149,7 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 	sound = cgs.media.sfxLasergunHum;
 
 	// trace the beam: for tracing we use the real beam origin
-	GS_TraceLaserBeam( &trace, laserOrigin, laserAngles, range, cent->current.number, 0, _LaserImpact );
+	GS_TraceLaserBeam( &client_gs, &trace, laserOrigin, laserAngles, range, cent->current.number, 0, _LaserImpact );
 
 	// draw the beam: for drawing we use the weapon projection source (already handles the case of viewer entity)
 	if( CG_PModel_GetProjectionSource( cent->current.number, &projectsource ) ) {
@@ -338,7 +337,7 @@ static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int owner, int t
 	ViewVectors( dir, right, up );
 
 	trace_t trace;
-	trace_t * water_trace = GS_TraceBullet( &trace, origin, dir, right, up, 0, 0, range, owner, 0 );
+	trace_t * water_trace = GS_TraceBullet( &client_gs, &trace, origin, dir, right, up, 0, 0, range, owner, 0 );
 	if( water_trace ) {
 		if( !VectorCompare( water_trace->endpos, origin ) ) {
 			CG_LeadWaterSplash( water_trace );
@@ -405,7 +404,7 @@ static void CG_Fire_SunflowerPattern( vec3_t start, vec3_t dir, int ignore, int 
 		r = cosf( fi ) * hspread * sqrt( fi );
 		u = sinf( fi ) * vspread * sqrt( fi );
 
-		water_trace = GS_TraceBullet( &trace, start, dir, right, up, r, u, range, ignore, 0 );
+		water_trace = GS_TraceBullet( &client_gs, &trace, start, dir, right, up, r, u, range, ignore, 0 );
 		if( water_trace ) {
 			trace_t *tr = water_trace;
 			if( !VectorCompare( tr->endpos, start ) ) {
@@ -544,7 +543,7 @@ static void CG_StartVoiceTokenEffect( int entNum, int vsay ) {
 	}
 
 	// played as it was made by the 1st person player
-	if( GS_MatchState() >= MATCH_STATE_POSTMATCH )
+	if( GS_MatchState( &client_gs ) >= MATCH_STATE_POSTMATCH )
 		S_StartGlobalSound( sound, CHAN_AUTO, cg_volume_voicechats->value );
 	else
 		S_StartEntitySound( sound, entNum, CHAN_AUTO, cg_volume_voicechats->value, ATTN_DISTANT );
@@ -563,7 +562,7 @@ void CG_Event_Fall( const entity_state_t * state, int parm ) {
 	}
 
 	vec3_t mins, maxs;
-	GS_BBoxForEntityState( state, mins, maxs );
+	CG_BBoxForEntityState( state, mins, maxs );
 
 	vec3_t ground_position;
 	VectorCopy( state->origin, ground_position );
@@ -916,7 +915,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 				CG_ResetDamageIndicator();
 			}
 
-			if( ent->ownerNum && ent->ownerNum < gs.maxclients + 1 ) {
+			if( ent->ownerNum && ent->ownerNum < client_gs.maxclients + 1 ) {
 				cg_entities[ent->ownerNum].localEffects[LOCALEFFECT_EV_PLAYER_TELEPORT_IN] = cg.time;
 				VectorCopy( ent->origin, cg_entities[ent->ownerNum].teleportedTo );
 			}
@@ -925,7 +924,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 		case EV_PLAYER_TELEPORT_IN:
 			S_StartFixedSound( cgs.media.sfxTeleportIn, ent->origin, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 
-			if( ent->ownerNum && ent->ownerNum < gs.maxclients + 1 ) {
+			if( ent->ownerNum && ent->ownerNum < client_gs.maxclients + 1 ) {
 				cg_entities[ent->ownerNum].localEffects[LOCALEFFECT_EV_PLAYER_TELEPORT_IN] = cg.time;
 				VectorCopy( ent->origin, cg_entities[ent->ownerNum].teleportedTo );
 			}
@@ -934,7 +933,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 		case EV_PLAYER_TELEPORT_OUT:
 			S_StartFixedSound( cgs.media.sfxTeleportOut, ent->origin, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 
-			if( ent->ownerNum && ent->ownerNum < gs.maxclients + 1 ) {
+			if( ent->ownerNum && ent->ownerNum < client_gs.maxclients + 1 ) {
 				cg_entities[ent->ownerNum].localEffects[LOCALEFFECT_EV_PLAYER_TELEPORT_OUT] = cg.time;
 				VectorCopy( ent->origin, cg_entities[ent->ownerNum].teleportedFrom );
 			}

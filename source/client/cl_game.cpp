@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static cgame_export_t *cge;
 
+gs_state_t client_gs;
+
 extern "C" QF_DLL_EXPORT cgame_export_t *GetCGameAPI( void * );
 
 //======================================================================

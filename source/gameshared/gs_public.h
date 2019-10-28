@@ -120,27 +120,24 @@ typedef struct {
 	gs_module_api_t api;
 } gs_state_t;
 
-extern gs_state_t gs;
+#define GS_ShootingDisabled( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_INHIBITSHOOTING ) ? true : false )
+#define GS_HasChallengers( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_HASCHALLENGERS ) ? true : false )
+#define GS_TeamBasedGametype( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_ISTEAMBASED ) ? true : false )
+#define GS_RaceGametype( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_ISRACE ) ? true : false )
+#define GS_MatchPaused( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_PAUSED ) ? true : false )
+#define GS_MatchWaiting( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_WAITING ) ? true : false )
+#define GS_Countdown( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_COUNTDOWN ) ? true : false )
+#define GS_InfiniteAmmo( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_INFINITEAMMO ) ? true : false )
+#define GS_CanForceModels( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_CANFORCEMODELS ) ? true : false )
 
-#define GS_GamestatSetFlag( flag, b ) ( b ? ( gs.gameState.stats[GAMESTAT_FLAGS] |= flag ) : ( gs.gameState.stats[GAMESTAT_FLAGS] &= ~flag ) )
-#define GS_ShootingDisabled() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_INHIBITSHOOTING ) ? true : false )
-#define GS_HasChallengers() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_HASCHALLENGERS ) ? true : false )
-#define GS_TeamBasedGametype() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_ISTEAMBASED ) ? true : false )
-#define GS_RaceGametype() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_ISRACE ) ? true : false )
-#define GS_MatchPaused() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_PAUSED ) ? true : false )
-#define GS_MatchWaiting() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_WAITING ) ? true : false )
-#define GS_Countdown() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_COUNTDOWN ) ? true : false )
-#define GS_InfiniteAmmo() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_INFINITEAMMO ) ? true : false )
-#define GS_CanForceModels() ( ( gs.gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_CANFORCEMODELS ) ? true : false )
+#define GS_MatchState( gs ) ( ( gs )->gameState.stats[GAMESTAT_MATCHSTATE] )
+#define GS_MaxPlayersInTeam( gs ) ( ( gs )->gameState.stats[GAMESTAT_MAXPLAYERSINTEAM] )
+#define GS_IndividualGameType( gs ) ( GS_MaxPlayersInTeam( gs ) == 1 )
 
-#define GS_MatchState() ( gs.gameState.stats[GAMESTAT_MATCHSTATE] )
-#define GS_MaxPlayersInTeam() ( gs.gameState.stats[GAMESTAT_MAXPLAYERSINTEAM] )
-#define GS_InvidualGameType() ( GS_MaxPlayersInTeam() == 1 )
-
-#define GS_MatchDuration() ( gs.gameState.stats[GAMESTAT_MATCHDURATION] )
-#define GS_MatchStartTime() ( gs.gameState.stats[GAMESTAT_MATCHSTART] )
-#define GS_MatchEndTime() ( gs.gameState.stats[GAMESTAT_MATCHDURATION] ? gs.gameState.stats[GAMESTAT_MATCHSTART] + gs.gameState.stats[GAMESTAT_MATCHDURATION] : 0 )
-#define GS_MatchClockOverride() ( gs.gameState.stats[GAMESTAT_CLOCKOVERRIDE] )
+#define GS_MatchDuration( gs ) ( ( gs )->gameState.stats[GAMESTAT_MATCHDURATION] )
+#define GS_MatchStartTime( gs ) ( ( gs )->gameState.stats[GAMESTAT_MATCHSTART] )
+#define GS_MatchEndTime( gs ) ( ( gs )->gameState.stats[GAMESTAT_MATCHDURATION] ? ( gs )->gameState.stats[GAMESTAT_MATCHSTART] + ( gs )->gameState.stats[GAMESTAT_MATCHDURATION] : 0 )
+#define GS_MatchClockOverride( gs ) ( ( gs )->gameState.stats[GAMESTAT_CLOCKOVERRIDE] )
 
 //==================================================================
 
@@ -202,7 +199,7 @@ typedef struct {
 	int touchents[MAXTOUCH];
 } move_t;
 
-int GS_SlideMove( move_t *move );
+int GS_SlideMove( const gs_state_t * gs, move_t *move );
 void GS_ClipVelocity( vec3_t in, vec3_t normal, vec3_t out, float overbounce );
 
 int GS_LinearMovement( const entity_state_t *ent, int64_t time, vec3_t dest );
@@ -218,7 +215,7 @@ void GS_LinearMovementDelta( const entity_state_t *ent, int64_t oldTime, int64_t
 
 #define STEPSIZE 18
 
-void Pmove( pmove_t *pmove );
+void Pmove( const gs_state_t * gs, pmove_t *pmove );
 
 //===============================================================
 
@@ -377,9 +374,9 @@ typedef struct gitem_s {
 
 const gsitem_t *GS_FindItemByTag( const int tag );
 const gsitem_t *GS_FindItemByName( const char *name );
-const gsitem_t *GS_Cmd_UseItem( player_state_t *playerState, const char *string, int typeMask );
-const gsitem_t *GS_Cmd_NextWeapon_f( player_state_t *playerState, int predictedWeaponSwitch );
-const gsitem_t *GS_Cmd_PrevWeapon_f( player_state_t *playerState, int predictedWeaponSwitch );
+const gsitem_t *GS_Cmd_UseItem( const gs_state_t * gs, player_state_t *playerState, const char *string, int typeMask );
+const gsitem_t *GS_Cmd_NextWeapon_f( const gs_state_t * gs, player_state_t *playerState, int predictedWeaponSwitch );
+const gsitem_t *GS_Cmd_PrevWeapon_f( const gs_state_t * gs, player_state_t *playerState, int predictedWeaponSwitch );
 
 //===============================================================
 
@@ -414,15 +411,13 @@ constexpr TeamColor TEAM_COLORS[] = {
 // teams
 const char *GS_TeamName( int team );
 int GS_TeamFromName( const char *teamname );
-bool GS_IsTeamDamage( entity_state_t *targ, entity_state_t *attacker );
 
 //===============================================================
 
 // gs_misc.c
 void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *message2 );
-void GS_TouchPushTrigger( player_state_t *playerState, entity_state_t *pusher );
-int GS_WaterLevel( entity_state_t *state, vec3_t mins, vec3_t maxs );
-void GS_BBoxForEntityState( const entity_state_t * state, vec3_t mins, vec3_t maxs );
+void GS_TouchPushTrigger( const gs_state_t * gs, player_state_t *playerState, entity_state_t *pusher );
+int GS_WaterLevel( const gs_state_t * gs, entity_state_t *state, vec3_t mins, vec3_t maxs );
 
 //===============================================================
 
@@ -787,14 +782,13 @@ typedef struct {
 	firedef_t firedef;
 } gs_weapon_definition_t;
 
-void GS_InitModule( int module, int maxClients, gs_module_api_t *api );
 gs_weapon_definition_t *GS_GetWeaponDef( int weapon );
 int GS_SelectBestWeapon( player_state_t *playerState );
 bool GS_CheckAmmoInWeapon( player_state_t *playerState, int checkweapon );
 firedef_t *GS_FiredefForPlayerState( player_state_t *playerState, int checkweapon );
-int GS_ThinkPlayerWeapon( player_state_t *playerState, int buttons, int msecs, int timeDelta );
-trace_t *GS_TraceBullet( trace_t *trace, vec3_t start, vec3_t dir, vec3_t right, vec3_t up, float r, float u, int range, int ignore, int timeDelta );
-void GS_TraceLaserBeam( trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( trace_t *tr, vec3_t dir ) );
+int GS_ThinkPlayerWeapon( const gs_state_t * gs, player_state_t *playerState, int buttons, int msecs, int timeDelta );
+trace_t *GS_TraceBullet( const gs_state_t * gs, trace_t *trace, vec3_t start, vec3_t dir, vec3_t right, vec3_t up, float r, float u, int range, int ignore, int timeDelta );
+void GS_TraceLaserBeam( const gs_state_t * gs, trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( trace_t *tr, vec3_t dir ) );
 
 //===============================================================
 // gs_weapondefs.c

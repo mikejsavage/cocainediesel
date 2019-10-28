@@ -37,7 +37,7 @@ bool CG_ChaseStep( int step ) {
 		// find the playerState containing our current POV, then cycle playerStates
 		index = -1;
 		for( i = 0; i < cg.frame.numplayers; i++ ) {
-			if( cg.frame.playerStates[i].playerNum < (unsigned)gs.maxclients && cg.frame.playerStates[i].playerNum == cg.multiviewPlayerNum ) {
+			if( cg.frame.playerStates[i].playerNum < (unsigned)client_gs.maxclients && cg.frame.playerStates[i].playerNum == cg.multiviewPlayerNum ) {
 				index = i;
 				break;
 			}
@@ -86,20 +86,20 @@ static void CG_AddLocalSounds( void ) {
 	static unsigned lastSecond = 0;
 
 	// add local announces
-	if( GS_Countdown() ) {
-		if( GS_MatchDuration() ) {
+	if( GS_Countdown( &client_gs ) ) {
+		if( GS_MatchDuration( &client_gs ) ) {
 			int64_t duration, curtime;
 			unsigned remainingSeconds;
 			float seconds;
 
-			curtime = GS_MatchPaused() ? cg.frame.serverTime : cg.time;
-			duration = GS_MatchDuration();
+			curtime = GS_MatchPaused( &client_gs ) ? cg.frame.serverTime : cg.time;
+			duration = GS_MatchDuration( &client_gs );
 
-			if( duration + GS_MatchStartTime() < curtime ) {
-				duration = curtime - GS_MatchStartTime(); // avoid negative results
+			if( duration + GS_MatchStartTime( &client_gs ) < curtime ) {
+				duration = curtime - GS_MatchStartTime( &client_gs ); // avoid negative results
 
 			}
-			seconds = (float)( GS_MatchStartTime() + duration - curtime ) * 0.001f;
+			seconds = (float)( GS_MatchStartTime( &client_gs ) + duration - curtime ) * 0.001f;
 			remainingSeconds = (unsigned int)seconds;
 
 			if( remainingSeconds != lastSecond ) {
@@ -132,7 +132,7 @@ static void CG_FlashGameWindow( void ) {
 	static bool scoresSet = false;
 
 	// notify player of important match states
-	int newState = GS_MatchState();
+	int newState = GS_MatchState( &client_gs );
 	if( oldState != newState ) {
 		switch( newState ) {
 			case MATCH_STATE_COUNTDOWN:
@@ -153,7 +153,7 @@ static void CG_FlashGameWindow( void ) {
 		oldAlphaScore = cg.predictedPlayerState.stats[STAT_TEAM_ALPHA_SCORE];
 		oldBetaScore = cg.predictedPlayerState.stats[STAT_TEAM_BETA_SCORE];
 
-		flash = scoresSet && GS_TeamBasedGametype() && !GS_InvidualGameType();
+		flash = scoresSet && GS_TeamBasedGametype( &client_gs ) && !GS_IndividualGameType( &client_gs );
 		scoresSet = true;
 	}
 
@@ -238,7 +238,7 @@ static void CG_CalcViewBob( void ) {
 			trace_t trace;
 
 			cent = &cg_entities[cg.view.POVent];
-			GS_BBoxForEntityState( &cent->current, mins, maxs );
+			CG_BBoxForEntityState( &cent->current, mins, maxs );
 			maxs[2] = mins[2];
 			mins[2] -= ( 1.6f * STEPSIZE );
 
@@ -418,7 +418,7 @@ static int CG_RenderFlags( void ) {
 		}
 	}
 
-	if( GS_MatchState() >= MATCH_STATE_POSTMATCH ) {
+	if( GS_MatchState( &client_gs ) >= MATCH_STATE_POSTMATCH ) {
 		rdflags |= RDF_BLURRED;
 	}
 
@@ -691,7 +691,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 		}
 
 		// check for drawing gun
-		if( !view->thirdperson && view->POVent > 0 && view->POVent <= gs.maxclients ) {
+		if( !view->thirdperson && view->POVent > 0 && view->POVent <= client_gs.maxclients ) {
 			if( ( cg_entities[view->POVent].serverFrame == cg.frame.serverFrame ) &&
 				( cg_entities[view->POVent].current.weapon != 0 ) ) {
 				view->drawWeapon = cg_gun->integer != 0;

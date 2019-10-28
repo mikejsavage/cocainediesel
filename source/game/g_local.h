@@ -197,6 +197,7 @@ typedef struct {
 } spawn_temp_t;
 
 extern game_locals_t game;
+extern gs_state_t server_gs;
 extern level_locals_t level;
 extern spawn_temp_t st;
 
@@ -552,6 +553,7 @@ bool GClip_EntityContact( const vec3_t mins, const vec3_t maxs, edict_t *ent );
 //
 // g_combat.c
 //
+bool G_IsTeamDamage( entity_state_t *targ, entity_state_t *attacker );
 void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point, int mod );
 int G_ModToAmmo( int mod );
 void G_SplashFrac( const entity_state_t *s, const entity_shared_t *r, const vec3_t point, float maxradius, vec3_t pushdir, float *frac, bool selfdamage );
@@ -704,6 +706,7 @@ void G_Init( unsigned int seed, unsigned int framemsec );
 void G_Shutdown( void );
 void G_ExitLevel( void );
 game_state_t *G_GetGameState( void );
+void G_GamestatSetFlag( int flag, bool b );
 void G_Timeout_Reset( void );
 
 //

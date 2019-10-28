@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/gs_public.h"
 #include "ref.h"
 
+#include "client/client.h"
 #include "cg_public.h"
 #include "cg_syscalls.h"
 #include "cg_particles.h"
@@ -448,6 +449,7 @@ void CG_AddEntities( void );
 void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity );
 void CG_LerpEntities( void );
 void CG_LerpGenericEnt( centity_t *cent );
+void CG_BBoxForEntityState( const entity_state_t * state, vec3_t mins, vec3_t maxs );
 
 void CG_AddColoredOutLineEffect( entity_t *ent, int effects, uint8_t r, uint8_t g, uint8_t b, uint8_t a );
 

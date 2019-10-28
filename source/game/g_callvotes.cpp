@@ -302,14 +302,14 @@ static bool G_VoteAllreadyValidate( callvotedata_t *vote, bool first ) {
 	int notreadys = 0;
 	edict_t *ent;
 
-	if( GS_MatchState() >= MATCH_STATE_COUNTDOWN ) {
+	if( GS_MatchState( &server_gs ) >= MATCH_STATE_COUNTDOWN ) {
 		if( first ) {
 			G_PrintMsg( vote->caller, "%sThe game is not in warmup mode\n", S_COLOR_RED );
 		}
 		return false;
 	}
 
-	for( ent = game.edicts + 1; PLAYERNUM( ent ) < gs.maxclients; ent++ ) {
+	for( ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients; ent++ ) {
 		if( trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 			continue;
 		}
@@ -330,7 +330,7 @@ static bool G_VoteAllreadyValidate( callvotedata_t *vote, bool first ) {
 }
 
 static void G_VoteAllreadyPassed( callvotedata_t *vote ) {
-	for( edict_t * ent = game.edicts + 1; PLAYERNUM( ent ) < gs.maxclients; ent++ ) {
+	for( edict_t * ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients; ent++ ) {
 		if( trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 			continue;
 		}
@@ -381,7 +381,7 @@ static const char *G_VoteMaxTeamplayersCurrent( void ) {
 */
 
 static bool G_VoteLockValidate( callvotedata_t *vote, bool first ) {
-	if( GS_MatchState() > MATCH_STATE_PLAYTIME ) {
+	if( GS_MatchState( &server_gs ) > MATCH_STATE_PLAYTIME ) {
 		if( first ) {
 			G_PrintMsg( vote->caller, "%sCan't lock teams after the match\n", S_COLOR_RED );
 		}
@@ -389,7 +389,7 @@ static bool G_VoteLockValidate( callvotedata_t *vote, bool first ) {
 	}
 
 	if( level.teamlock ) {
-		if( GS_MatchState() < MATCH_STATE_COUNTDOWN && first ) {
+		if( GS_MatchState( &server_gs ) < MATCH_STATE_COUNTDOWN && first ) {
 			G_PrintMsg( vote->caller, "%sTeams are already set to be locked on match start\n", S_COLOR_RED );
 		} else if( first ) {
 			G_PrintMsg( vote->caller, "%sTeams are already locked\n", S_COLOR_RED );
@@ -406,8 +406,8 @@ static void G_VoteLockPassed( callvotedata_t *vote ) {
 	level.teamlock = true;
 
 	// if we are inside a match, update the teams state
-	if( GS_MatchState() >= MATCH_STATE_COUNTDOWN && GS_MatchState() <= MATCH_STATE_PLAYTIME ) {
-		if( GS_TeamBasedGametype() ) {
+	if( GS_MatchState( &server_gs ) >= MATCH_STATE_COUNTDOWN && GS_MatchState( &server_gs ) <= MATCH_STATE_PLAYTIME ) {
+		if( GS_TeamBasedGametype( &server_gs ) ) {
 			for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ )
 				G_Teams_LockTeam( team );
 		} else {
@@ -424,7 +424,7 @@ static void G_VoteLockPassed( callvotedata_t *vote ) {
 */
 
 static bool G_VoteUnlockValidate( callvotedata_t *vote, bool first ) {
-	if( GS_MatchState() > MATCH_STATE_PLAYTIME ) {
+	if( GS_MatchState( &server_gs ) > MATCH_STATE_PLAYTIME ) {
 		if( first ) {
 			G_PrintMsg( vote->caller, "%sCan't unlock teams after the match\n", S_COLOR_RED );
 		}
@@ -432,7 +432,7 @@ static bool G_VoteUnlockValidate( callvotedata_t *vote, bool first ) {
 	}
 
 	if( !level.teamlock ) {
-		if( GS_MatchState() < MATCH_STATE_COUNTDOWN && first ) {
+		if( GS_MatchState( &server_gs ) < MATCH_STATE_COUNTDOWN && first ) {
 			G_PrintMsg( vote->caller, "%sTeams are not set to be locked\n", S_COLOR_RED );
 		} else if( first ) {
 			G_PrintMsg( vote->caller, "%sTeams are not locked\n", S_COLOR_RED );
@@ -449,8 +449,8 @@ static void G_VoteUnlockPassed( callvotedata_t *vote ) {
 	level.teamlock = false;
 
 	// if we are inside a match, update the teams state
-	if( GS_MatchState() >= MATCH_STATE_COUNTDOWN && GS_MatchState() <= MATCH_STATE_PLAYTIME ) {
-		if( GS_TeamBasedGametype() ) {
+	if( GS_MatchState( &server_gs ) >= MATCH_STATE_COUNTDOWN && GS_MatchState( &server_gs ) <= MATCH_STATE_PLAYTIME ) {
+		if( GS_TeamBasedGametype( &server_gs ) ) {
 			for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ )
 				G_Teams_UnLockTeam( team );
 		} else {
@@ -474,12 +474,12 @@ static void G_VoteRemoveExtraHelp( edict_t *ent ) {
 	msg[0] = 0;
 	Q_strncatz( msg, "- List of players in game:\n", sizeof( msg ) );
 
-	if( GS_TeamBasedGametype() ) {
+	if( GS_TeamBasedGametype( &server_gs ) ) {
 		int team;
 
 		for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
 			Q_strncatz( msg, va( "%s:\n", GS_TeamName( team ) ), sizeof( msg ) );
-			for( i = 0, e = game.edicts + 1; i < gs.maxclients; i++, e++ ) {
+			for( i = 0, e = game.edicts + 1; i < server_gs.maxclients; i++, e++ ) {
 				if( !e->r.inuse || e->s.team != team ) {
 					continue;
 				}
@@ -488,7 +488,7 @@ static void G_VoteRemoveExtraHelp( edict_t *ent ) {
 			}
 		}
 	} else {
-		for( i = 0, e = game.edicts + 1; i < gs.maxclients; i++, e++ ) {
+		for( i = 0, e = game.edicts + 1; i < server_gs.maxclients; i++, e++ ) {
 			if( !e->r.inuse || e->s.team != TEAM_PLAYERS ) {
 				continue;
 			}
@@ -575,7 +575,7 @@ static void G_VoteKickExtraHelp( edict_t *ent ) {
 	msg[0] = 0;
 	Q_strncatz( msg, "- List of current players:\n", sizeof( msg ) );
 
-	for( i = 0, e = game.edicts + 1; i < gs.maxclients; i++, e++ ) {
+	for( i = 0, e = game.edicts + 1; i < server_gs.maxclients; i++, e++ ) {
 		if( !e->r.inuse ) {
 			continue;
 		}
@@ -658,7 +658,7 @@ static void G_VoteKickBanExtraHelp( edict_t *ent ) {
 	msg[0] = 0;
 	Q_strncatz( msg, "- List of current players:\n", sizeof( msg ) );
 
-	for( i = 0, e = game.edicts + 1; i < gs.maxclients; i++, e++ ) {
+	for( i = 0, e = game.edicts + 1; i < server_gs.maxclients; i++, e++ ) {
 		if( !e->r.inuse ) {
 			continue;
 		}
@@ -746,7 +746,7 @@ static void G_VoteMuteExtraHelp( edict_t *ent ) {
 	msg[0] = 0;
 	Q_strncatz( msg, "- List of current players:\n", sizeof( msg ) );
 
-	for( i = 0, e = game.edicts + 1; i < gs.maxclients; i++, e++ ) {
+	for( i = 0, e = game.edicts + 1; i < server_gs.maxclients; i++, e++ ) {
 		if( !e->r.inuse ) {
 			continue;
 		}
@@ -835,7 +835,7 @@ static void G_VoteUnmuteExtraHelp( edict_t *ent ) {
 	msg[0] = 0;
 	Q_strncatz( msg, "- List of current players:\n", sizeof( msg ) );
 
-	for( i = 0, e = game.edicts + 1; i < gs.maxclients; i++, e++ ) {
+	for( i = 0, e = game.edicts + 1; i < server_gs.maxclients; i++, e++ ) {
 		if( !e->r.inuse ) {
 			continue;
 		}
@@ -916,7 +916,7 @@ static void G_VoteVUnmutePassed( callvotedata_t *vote ) {
 * timeout
 */
 static bool G_VoteTimeoutValidate( callvotedata_t *vote, bool first ) {
-	if( GS_MatchPaused() && ( level.timeout.endtime - level.timeout.time ) >= 2 * TIMEIN_TIME ) {
+	if( GS_MatchPaused( &server_gs ) && ( level.timeout.endtime - level.timeout.time ) >= 2 * TIMEIN_TIME ) {
 		if( first ) {
 			G_PrintMsg( vote->caller, "%sTimeout already in progress\n", S_COLOR_RED );
 		}
@@ -927,7 +927,7 @@ static bool G_VoteTimeoutValidate( callvotedata_t *vote, bool first ) {
 }
 
 static void G_VoteTimeoutPassed( callvotedata_t *vote ) {
-	GS_GamestatSetFlag( GAMESTAT_FLAG_PAUSED, true );
+	G_GamestatSetFlag( GAMESTAT_FLAG_PAUSED, true );
 	level.timeout.caller = 0;
 	level.timeout.endtime = level.timeout.time + TIMEOUT_TIME + FRAMETIME;
 }
@@ -936,7 +936,7 @@ static void G_VoteTimeoutPassed( callvotedata_t *vote ) {
 * timein
 */
 static bool G_VoteTimeinValidate( callvotedata_t *vote, bool first ) {
-	if( !GS_MatchPaused() ) {
+	if( !GS_MatchPaused( &server_gs ) ) {
 		if( first ) {
 			G_PrintMsg( vote->caller, "%sNo timeout in progress\n", S_COLOR_RED );
 		}
@@ -1067,7 +1067,7 @@ static void G_CallVotes_Reset( bool vote_happened ) {
 	}
 
 	callvoteState.vote.callvote = NULL;
-	for( int i = 0; i < gs.maxclients; i++ )
+	for( int i = 0; i < server_gs.maxclients; i++ )
 		G_CallVotes_ResetClient( i );
 	callvoteState.timeout = 0;
 
@@ -1195,7 +1195,7 @@ static void G_CallVotes_CheckState( void ) {
 		return;
 	}
 
-	for( ent = game.edicts + 1; PLAYERNUM( ent ) < gs.maxclients; ent++ ) {
+	for( ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients; ent++ ) {
 		gclient_t *client = ent->r.client;
 
 		if( !ent->r.inuse || trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
@@ -1314,8 +1314,8 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 	const char *votename;
 	callvotetype_t *callvote;
 
-	if( !isopcall && ent->s.team == TEAM_SPECTATOR && GS_InvidualGameType()
-		&& GS_MatchState() == MATCH_STATE_PLAYTIME && !GS_MatchPaused() ) {
+	if( !isopcall && ent->s.team == TEAM_SPECTATOR && GS_IndividualGameType( &server_gs )
+		&& GS_MatchState( &server_gs ) == MATCH_STATE_PLAYTIME && !GS_MatchPaused( &server_gs ) ) {
 		int team, count;
 		edict_t *e;
 
@@ -1419,7 +1419,7 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 	}
 
 	//we're done. Proceed launching the election
-	for( i = 0; i < gs.maxclients; i++ )
+	for( i = 0; i < server_gs.maxclients; i++ )
 		G_CallVotes_ResetClient( i );
 	callvoteState.timeout = game.realtime + ( g_callvote_electtime->integer * 1000 );
 
@@ -1490,7 +1490,7 @@ void G_OperatorVote_Cmd( edict_t *ent ) {
 			return;
 		}
 
-		for( other = game.edicts + 1; PLAYERNUM( other ) < gs.maxclients; other++ ) {
+		for( other = game.edicts + 1; PLAYERNUM( other ) < server_gs.maxclients; other++ ) {
 			if( !other->r.inuse || trap_GetClientState( PLAYERNUM( other ) ) < CS_SPAWNED ) {
 				continue;
 			}

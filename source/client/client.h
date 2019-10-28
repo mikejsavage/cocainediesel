@@ -17,12 +17,13 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
  */
-// client.h -- primary header for client
+#pragma once
 
 #include "qcommon/qcommon.h"
 #include "qcommon/types.h"
 #include "qcommon/rng.h"
 #include "cgame/cg_public.h"
+#include "gameshared/gs_public.h"
 
 #include "client/renderer/renderer.h"
 #include "vid.h"
@@ -258,6 +259,7 @@ typedef struct {
 } client_static_t;
 
 extern client_static_t cls;
+extern gs_state_t client_gs;
 
 //=============================================================================
 

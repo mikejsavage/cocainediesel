@@ -42,7 +42,7 @@ void G_UpdateScoreBoardMessages( void ) {
 	scoreboard += '"';
 
 	// send to players who have scoreboard visible
-	for( int i = 0; i < gs.maxclients; i++ ) {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * ent = game.edicts + 1 + i;
 		if( !ent->r.inuse || !ent->r.client ) {
 			continue;
@@ -79,7 +79,7 @@ static unsigned int G_FindPointedPlayer( edict_t *self ) {
 	VectorSet( vieworg, self->r.client->ps.pmove.origin[0], self->r.client->ps.pmove.origin[1], self->r.client->ps.pmove.origin[2] + self->r.client->ps.viewheight );
 	AngleVectors( self->r.client->ps.viewangles, viewforward, NULL, NULL );
 
-	for( i = 0; i < gs.maxclients; i++ ) {
+	for( i = 0; i < server_gs.maxclients; i++ ) {
 		other = PLAYERENT( i );
 		if( !other->r.inuse ) {
 			continue;
@@ -129,16 +129,16 @@ void G_SetClientStats( edict_t *ent ) {
 	client->ps.stats[STAT_LAYOUTS] = 0;
 
 	// don't force scoreboard when dead during timeout
-	if( ent->r.client->level.showscores || GS_MatchState() >= MATCH_STATE_POSTMATCH ) {
+	if( ent->r.client->level.showscores || GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH ) {
 		client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_SCOREBOARD;
 	}
-	if( GS_TeamBasedGametype() && !GS_InvidualGameType() ) {
+	if( GS_TeamBasedGametype( &server_gs ) && !GS_IndividualGameType( &server_gs ) ) {
 		client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_TEAMTAB;
 	}
-	if( GS_HasChallengers() && ent->r.client->queueTimeStamp ) {
+	if( GS_HasChallengers( &server_gs ) && ent->r.client->queueTimeStamp ) {
 		client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_CHALLENGER;
 	}
-	if( GS_MatchState() <= MATCH_STATE_WARMUP && level.ready[PLAYERNUM( ent )] ) {
+	if( GS_MatchState( &server_gs ) <= MATCH_STATE_WARMUP && level.ready[PLAYERNUM( ent )] ) {
 		client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_READY;
 	}
 	if( G_SpawnQueue_GetSystem( ent->s.team ) == SPAWNSYSTEM_INSTANT ) {
@@ -175,7 +175,7 @@ void G_SetClientStats( edict_t *ent ) {
 	//
 	// Team scores
 	//
-	if( GS_TeamBasedGametype() ) {
+	if( GS_TeamBasedGametype( &server_gs ) ) {
 		// team based
 		for( int team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
 			client->ps.stats[STAT_TEAM_ALPHA_SCORE + team - TEAM_ALPHA] = teamlist[team].stats.score;
@@ -193,7 +193,7 @@ void G_SetClientStats( edict_t *ent ) {
 	// pointed player
 	client->ps.stats[STAT_POINTED_TEAMPLAYER] = 0;
 	client->ps.stats[STAT_POINTED_PLAYER] = G_FindPointedPlayer( ent );
-	if( client->ps.stats[STAT_POINTED_PLAYER] && GS_TeamBasedGametype() ) {
+	if( client->ps.stats[STAT_POINTED_PLAYER] && GS_TeamBasedGametype( &server_gs ) ) {
 		edict_t *e = &game.edicts[client->ps.stats[STAT_POINTED_PLAYER]];
 		if( e->s.team == ent->s.team ) {
 			client->ps.stats[STAT_POINTED_TEAMPLAYER] = HEALTH_TO_INT( e->health );

@@ -135,7 +135,7 @@ static void CG_SC_PlayerStats() {
 	const char * s = trap_Cmd_Argv( 1 );
 
 	int playerNum = CG_ParseValue( &s );
-	if( playerNum < 0 || playerNum >= gs.maxclients ) {
+	if( playerNum < 0 || playerNum >= client_gs.maxclients ) {
 		return;
 	}
 
@@ -421,7 +421,7 @@ void CG_UseItem( const char *name ) {
 		return;
 	}
 
-	item = GS_Cmd_UseItem( &cg.frame.playerState, name, 0 );
+	item = GS_Cmd_UseItem( &client_gs, &cg.frame.playerState, name, 0 );
 	if( item ) {
 		if( item->type & IT_WEAPON ) {
 			CG_Predict_ChangeWeapon( item->tag );
@@ -459,7 +459,7 @@ static void CG_Cmd_NextWeapon_f( void ) {
 		return;
 	}
 
-	item = GS_Cmd_NextWeapon_f( &cg.frame.playerState, cg.predictedWeaponSwitch );
+	item = GS_Cmd_NextWeapon_f( &client_gs, &cg.frame.playerState, cg.predictedWeaponSwitch );
 	if( item ) {
 		CG_Predict_ChangeWeapon( item->tag );
 		trap_Cmd_ExecuteText( EXEC_NOW, va( "cmd use %i", item->tag ) );
@@ -482,7 +482,7 @@ static void CG_Cmd_PrevWeapon_f( void ) {
 		return;
 	}
 
-	item = GS_Cmd_PrevWeapon_f( &cg.frame.playerState, cg.predictedWeaponSwitch );
+	item = GS_Cmd_PrevWeapon_f( &client_gs, &cg.frame.playerState, cg.predictedWeaponSwitch );
 	if( item ) {
 		CG_Predict_ChangeWeapon( item->tag );
 		trap_Cmd_ExecuteText( EXEC_NOW, va( "cmd use %i", item->tag ) );
@@ -501,7 +501,7 @@ static void CG_Cmd_LastWeapon_f( void ) {
 	}
 
 	if( cg.lastWeapon != WEAP_NONE && cg.lastWeapon != cg.predictedPlayerState.stats[STAT_PENDING_WEAPON] ) {
-		item = GS_Cmd_UseItem( &cg.frame.playerState, va( "%i", cg.lastWeapon ), IT_WEAPON );
+		item = GS_Cmd_UseItem( &client_gs, &cg.frame.playerState, va( "%i", cg.lastWeapon ), IT_WEAPON );
 		if( item ) {
 			if( item->type & IT_WEAPON ) {
 				CG_Predict_ChangeWeapon( item->tag );
@@ -552,8 +552,8 @@ static char **CG_PlayerNamesCompletionExt_f( const char *partial, bool teamOnly 
 	if( partial ) {
 		size_t partial_len = strlen( partial );
 
-		matches = (char **) CG_Malloc( sizeof( char * ) * ( gs.maxclients + 1 ) );
-		for( i = 0; i < gs.maxclients; i++ ) {
+		matches = (char **) CG_Malloc( sizeof( char * ) * ( client_gs.maxclients + 1 ) );
+		for( i = 0; i < client_gs.maxclients; i++ ) {
 			cg_clientInfo_t *info = cgs.clientInfo + i;
 			if( !info->name[0] ) {
 				continue;

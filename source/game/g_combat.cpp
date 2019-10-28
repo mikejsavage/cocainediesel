@@ -47,6 +47,12 @@ int G_ModToAmmo( int mod ) {
 	}
 }
 
+bool G_IsTeamDamage( entity_state_t *targ, entity_state_t *attacker ) {
+	if( !GS_TeamBasedGametype( &server_gs ) )
+		return false;
+	return targ->number != attacker->number && targ->team == attacker->team;
+}
+
 /*
 * G_CanSplashDamage
 */
@@ -150,7 +156,7 @@ void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage,
 	}
 
 	// count stats
-	if( GS_MatchState() == MATCH_STATE_PLAYTIME ) {
+	if( GS_MatchState( &server_gs ) == MATCH_STATE_PLAYTIME ) {
 		targ->r.client->level.stats.deaths++;
 		teamlist[targ->s.team].stats.deaths++;
 
@@ -274,11 +280,11 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 	client = targ->r.client;
 
 	// Cgg - race mode: players don't interact with one another
-	if( GS_RaceGametype() && attacker->r.client && targ->r.client && attacker != targ ) {
+	if( GS_RaceGametype( &server_gs ) && attacker->r.client && targ->r.client && attacker != targ ) {
 		return;
 	}
 
-	if( GS_IsTeamDamage( &targ->s, &attacker->s ) ) {
+	if( G_IsTeamDamage( &targ->s, &attacker->s ) ) {
 		return;
 	}
 
@@ -307,7 +313,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 			save = damage;
 		}
 		// never damage in timeout
-		else if( GS_MatchPaused() ) {
+		else if( GS_MatchPaused( &server_gs ) ) {
 			take = save = 0;
 		}
 		else if( attacker == targ ) {
@@ -333,7 +339,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 			}
 		}
 		// don't get damage from players in race
-		else if( ( GS_RaceGametype() ) && attacker->r.client && targ->r.client &&
+		else if( ( GS_RaceGametype( &server_gs ) ) && attacker->r.client && targ->r.client &&
 				 ( attacker->r.client != targ->r.client ) ) {
 			take = save = 0;
 		}

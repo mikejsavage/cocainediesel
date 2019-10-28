@@ -35,7 +35,7 @@ void G_PlayerAward( edict_t *ent, const char *awardMsg ) {
 	G_Gametype_ScoreEvent( ent->r.client, "award", awardMsg );
 
 	// add it to every player who's chasing this player
-	for( other = game.edicts + 1; PLAYERNUM( other ) < gs.maxclients; other++ ) {
+	for( other = game.edicts + 1; PLAYERNUM( other ) < server_gs.maxclients; other++ ) {
 		if( !other->r.client || !other->r.inuse || !other->r.client->resp.chase.active ) {
 			continue;
 		}

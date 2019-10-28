@@ -750,7 +750,7 @@ static void GameMenu() {
 	bool spectating = cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR;
 	bool ready = false;
 
-	if( GS_MatchState() <= MATCH_STATE_WARMUP && !spectating ) {
+	if( GS_MatchState( &client_gs ) <= MATCH_STATE_WARMUP && !spectating ) {
 		ready = ( cg.predictedPlayerState.stats[ STAT_LAYOUTS ] & STAT_LAYOUT_READY ) != 0;
 	}
 
@@ -765,7 +765,7 @@ static void GameMenu() {
 		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
 
 		if( spectating ) {
-			if( GS_TeamBasedGametype() ) {
+			if( GS_TeamBasedGametype( &client_gs ) ) {
 				ImGui::Columns( 2, NULL, false );
 				ImGui::SetColumnWidth( 0, half );
 				ImGui::SetColumnWidth( 1, half );
@@ -787,7 +787,7 @@ static void GameMenu() {
 
 			GameMenuButton( "Spectate", "spec", &should_close );
 
-			if( GS_TeamBasedGametype() ) {
+			if( GS_TeamBasedGametype( &client_gs ) ) {
 				GameMenuButton( "Change loadout", "gametypemenu", &should_close );
 			}
 		}

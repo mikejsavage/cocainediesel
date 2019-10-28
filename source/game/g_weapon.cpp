@@ -175,39 +175,32 @@ static edict_t *W_Fire_TossProjectile( edict_t *self, vec3_t start, vec3_t angle
 /*
 * W_Fire_Blade
 */
-void W_Fire_Blade( edict_t *self, int range, vec3_t start, vec3_t angles, float damage, int knockback, int timeDelta ) {
-	edict_t *event, *other = NULL;
-	vec3_t end;
-	trace_t trace;
+void W_Fire_Blade( edict_t *self, int range, vec3_t start, vec3_t angles, int count, int angle, float damage, int knockback, int timeDelta ) {
 	int mask = MASK_SHOT;
-	vec3_t dir;
 	int dmgflags = 0;
-
-	AngleVectors( angles, dir, NULL, NULL );
-	VectorMA( start, range, dir, end );
 
 	if( GS_RaceGametype() ) {
 		mask = MASK_SOLID;
 	}
 
-	G_Trace4D( &trace, start, NULL, NULL, end, self, mask, timeDelta );
-	if( trace.ent == -1 ) { //didn't touch anything
-		return;
-	}
+	for( int i = 0; i < count; i++ ) {
+		vec3_t end, dir;
+		trace_t trace;
+		vec3_t new_angles;
 
-	// find out what touched
-	other = &game.edicts[trace.ent];
-	if( !other->takedamage ) { // it was the world
-		// wall impact
-		VectorMA( trace.endpos, -0.02, dir, end );
-		event = G_SpawnEvent( EV_BLADE_IMPACT, 0, end );
-		event->s.ownerNum = ENTNUM( self );
-		VectorScale( trace.plane.normal, 1024, event->s.origin2 );
-		return;
-	}
+		new_angles[0] = angles[0];
+		new_angles[1] = angles[1] + ((float)(i - count/2)/(float)(count))*angle;
+		new_angles[2] = angles[2];
 
-	// it was a player
-	G_Damage( other, self, self, dir, dir, other->s.origin, damage, knockback, dmgflags, MOD_GUNBLADE );
+		AngleVectors( new_angles, dir, NULL, NULL );
+		VectorMA( start, range, dir, end );
+
+		G_Trace4D( &trace, start, NULL, NULL, end, self, mask, timeDelta );
+		if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
+			G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, damage, knockback, dmgflags, MOD_GUNBLADE );
+			break;
+		}
+	}
 }
 
 /*

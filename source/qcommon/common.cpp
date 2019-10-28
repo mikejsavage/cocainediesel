@@ -673,7 +673,7 @@ void Qcommon_Init( int argc, char **argv ) {
 	host_speeds =       Cvar_Get( "host_speeds", "0", 0 );
 	timescale =     Cvar_Get( "timescale", "1.0", CVAR_CHEAT );
 	if( is_dedicated_server ) {
-		logconsole =        Cvar_Get( "logconsole", "wswconsole.log", CVAR_ARCHIVE );
+		logconsole =        Cvar_Get( "logconsole", "server.log", CVAR_ARCHIVE );
 	} else {
 		logconsole =        Cvar_Get( "logconsole", "", CVAR_ARCHIVE );
 	}

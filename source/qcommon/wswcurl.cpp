@@ -129,23 +129,6 @@ static cvar_t *http_proxyuserpwd;
 
 ///////////////////////
 // Symbols
-static void *curlLibrary = NULL;
-
-/*
-* wswcurl_unloadlib
-*/
-static void wswcurl_unloadlib( void ) {
-	curlLibrary = NULL;
-}
-
-/*
-* wswcurl_loadlib
-*/
-static void wswcurl_loadlib( void ) {
-	wswcurl_unloadlib();
-
-	curlLibrary = (void *)1;
-}
 
 int wswcurl_formadd( wswcurl_req *req, const char *field, const char *value, ... ) {
 	va_list arg;
@@ -374,14 +357,10 @@ void wswcurl_init( void ) {
 	http_proxy = Cvar_Get( "http_proxy", "", CVAR_ARCHIVE );
 	http_proxyuserpwd = Cvar_Get( "http_proxyuserpwd", "", CVAR_ARCHIVE );
 
-	wswcurl_loadlib();
+	curl_global_init( CURL_GLOBAL_ALL );
 
-	if( curlLibrary ) {
-		curl_global_init( CURL_GLOBAL_ALL );
-
-		curldummy = curl_easy_init();
-		curlmulti = curl_multi_init();
-	}
+	curldummy = curl_easy_init();
+	curlmulti = curl_multi_init();
 
 	curldummy_mutex = QMutex_Create();
 
@@ -411,11 +390,7 @@ void wswcurl_cleanup( void ) {
 
 	QMutex_Destroy( &http_requests_mutex );
 
-	if( curlLibrary ) {
-		curl_global_cleanup();
-	}
-
-	wswcurl_unloadlib();
+	curl_global_cleanup();
 
 	Mem_FreePool( &wswcurl_mempool );
 }
@@ -538,11 +513,6 @@ wswcurl_req *wswcurl_create( const char *iface, const char *furl, ... ) {
 	va_list arg;
 	const char *proxy = http_proxy->string;
 	const char *proxy_userpwd = http_proxyuserpwd->string;
-
-	if( !curlLibrary ) {
-		Com_Printf( "!!! WARNING: external library is missing (libcurl).\n" );
-		return NULL;
-	}
 
 	// Prepare url formatting with variable arguments
 	va_start( arg, furl );

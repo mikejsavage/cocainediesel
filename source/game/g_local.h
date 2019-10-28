@@ -692,8 +692,6 @@ int G_BoxSlideMove( edict_t *ent, int contentmask, float slideBounce, float fric
 #define G_LevelFree( data ) _G_LevelFree( ( data ), __FILE__, __LINE__ )
 #define G_LevelCopyString( in ) _G_LevelCopyString( ( in ), __FILE__, __LINE__ )
 
-int G_API( void );
-
 #ifndef _MSC_VER
 void G_Error( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) ) __attribute__( ( noreturn ) );
 void G_Printf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );

@@ -27,13 +27,10 @@ game_import_t GAME_IMPORT;
 *
 * Returns a pointer to the structure with all entry points
 */
-extern "C" QF_DLL_EXPORT game_export_t * GetGameAPI( game_import_t * import )
-{
+game_export_t * GetGameAPI( game_import_t * import ) {
 	static game_export_t globals;
 
 	GAME_IMPORT = *import;
-
-	globals.API = G_API;
 
 	globals.Init = G_Init;
 	globals.Shutdown = G_Shutdown;
@@ -56,9 +53,3 @@ extern "C" QF_DLL_EXPORT game_export_t * GetGameAPI( game_import_t * import )
 
 	return &globals;
 }
-
-#if defined ( HAVE_DLLMAIN ) && !defined ( GAME_HARD_LINKED )
-int WINAPI DLLMain( void *hinstDll, unsigned long dwReason, void *reserved ) {
-	return 1;
-}
-#endif

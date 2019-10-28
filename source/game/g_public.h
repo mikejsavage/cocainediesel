@@ -18,12 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-// g_public.h -- game dll information visible to server
-
-#define GAME_API_VERSION    51
-
-//===============================================================
-
 #define MAX_ENT_CLUSTERS    16
 
 typedef struct edict_s edict_t;
@@ -166,9 +160,6 @@ typedef struct {
 // functions exported by the game subsystem
 //
 typedef struct {
-	// if API is different, the dll cannot be used
-	int ( *API )( void );
-
 	// the init function will only be called when a game starts,
 	// not each time a level is loaded.  Persistant data for clients
 	// and the server can be allocated in init
@@ -192,3 +183,5 @@ typedef struct {
 
 	game_state_t *( *GetGameState )( void );
 } game_export_t;
+
+game_export_t * GetGameAPI( game_import_t * import );

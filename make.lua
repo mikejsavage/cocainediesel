@@ -61,6 +61,7 @@ do
 		srcs = {
 			"source/cgame/*.cpp",
 			"source/client/**.cpp",
+			"source/game/**.cpp",
 			"source/gameshared/*.cpp",
 			"source/qcommon/*.cpp",
 			"source/server/sv_*.cpp",
@@ -81,6 +82,7 @@ do
 		},
 
 		prebuilt_libs = {
+			"angelscript",
 			"curl",
 			"freetype",
 			"openal",
@@ -108,7 +110,6 @@ do
 		platform_srcs = {
 			"source/win32/win_console.cpp",
 			"source/win32/win_fs.cpp",
-			"source/win32/win_lib.cpp",
 			"source/win32/win_net.cpp",
 			"source/win32/win_server.cpp",
 			"source/win32/win_threads.cpp",
@@ -119,7 +120,6 @@ do
 		platform_srcs = {
 			"source/unix/unix_console.cpp",
 			"source/unix/unix_fs.cpp",
-			"source/unix/unix_lib.cpp",
 			"source/unix/unix_net.cpp",
 			"source/unix/unix_server.cpp",
 			"source/unix/unix_sys.cpp",
@@ -131,7 +131,8 @@ do
 
 	bin( "server", {
 		srcs = {
-			"source/gameshared/q_*.cpp",
+			"source/game/**.cpp",
+			"source/gameshared/*.cpp",
 			"source/qcommon/*.cpp",
 			"source/server/*.cpp",
 			platform_srcs
@@ -144,6 +145,7 @@ do
 		},
 
 		prebuilt_libs = {
+			"angelscript",
 			"curl",
 			"zlib",
 			"zstd",
@@ -154,22 +156,6 @@ do
 		msvc_extra_ldflags = "ws2_32.lib crypt32.lib",
 	} )
 end
-
-dll( "game", {
-	srcs = {
-		"source/game/**.cpp",
-		"source/gameshared/*.cpp",
-		"source/qcommon/hash.cpp",
-		"source/qcommon/ggformat.cpp",
-		"source/qcommon/rng.cpp",
-	},
-
-	libs = { "tracy" },
-
-	prebuilt_libs = { "angelscript" },
-
-	gcc_extra_ldflags = "-no-pie -static-libstdc++",
-} )
 
 obj_cxxflags( "source/game/angelwrap/.+", "-I third-party/angelscript/sdk/angelscript/include" )
 obj_cxxflags( "source/.+_as_.+", "-I third-party/angelscript/sdk/angelscript/include" )

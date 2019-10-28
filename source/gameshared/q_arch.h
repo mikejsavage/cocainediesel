@@ -44,9 +44,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define HAVE__STRICMP
 
-#define LIB_PREFIX ""
-#define LIB_SUFFIX ".dll"
-
 #define OSNAME "Windows"
 
 #include <malloc.h>
@@ -64,9 +61,6 @@ typedef uintptr_t socket_handle_t;
 //==============================================
 
 #if defined ( __linux__ )
-
-#define LIB_PREFIX "lib"
-#define LIB_SUFFIX ".so"
 
 #define OSNAME "Linux"
 
@@ -101,11 +95,4 @@ typedef int socket_handle_t;
 #define ATTRIBUTE_MALLOC __declspec( noalias ) __declspec( restrict )
 #else
 #define ATTRIBUTE_MALLOC
-#endif
-
-// Generic helper definitions for shared library support
-#ifdef _MSC_VER
-#define QF_DLL_EXPORT __declspec( dllexport )
-#else
-#define QF_DLL_EXPORT __attribute__ ( ( visibility( "default" ) ) )
 #endif

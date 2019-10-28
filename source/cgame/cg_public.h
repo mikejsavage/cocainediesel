@@ -156,9 +156,6 @@ typedef struct {
 // functions exported by the client game subsystem
 //
 typedef struct {
-	// if API is different, the dll cannot be used
-	int ( *API )( void );
-
 	// the init function will be called at each restart
 	void ( *Init )( const char *serverName, unsigned int playerNum,
 					bool demoplaying, const char *demoName, bool pure, unsigned int snapFrameTime );
@@ -219,3 +216,5 @@ typedef struct {
 	 */
 	void ( *AddMovement )( vec3_t movement );
 } cgame_export_t;
+
+cgame_export_t *GetCGameAPI( cgame_import_t * import );

@@ -293,7 +293,6 @@ extern cvar_t *sv_uploads_demos;
 extern cvar_t *sv_uploads_demos_baseurl;
 
 extern cvar_t *sv_pure;
-extern cvar_t *sv_pure_forcemodulepk3;
 
 extern cvar_t *sv_demodir;
 

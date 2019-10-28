@@ -17,17 +17,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// sv_game.c -- interface to the game dll
 
 #include "server.h"
 #include "qcommon/version.h"
 
 game_export_t *ge;
 
-extern "C" QF_DLL_EXPORT void *GetGameAPI( void * );
-
 mempool_t *sv_gameprogspool;
-static void *module_handle;
 
 //======================================================================
 
@@ -398,7 +394,6 @@ void SV_ShutdownGameProgs( void ) {
 	// This call might still require the memory pool to be valid
 	// (for example if there are global object destructors calling G_Free()),
 	// that's why it's called before releasing the pool.
-	Com_UnloadGameLibrary( &module_handle );
 	Mem_FreePool( &sv_gameprogspool );
 	ge = NULL;
 }
@@ -425,13 +420,7 @@ static void SV_LocateEntities( struct edict_s *edicts, size_t edict_size, int nu
 * Init the game subsystem for a new map
 */
 void SV_InitGameProgs( void ) {
-	int apiversion;
 	game_import_t import;
-	game_export_t *( *builtinAPIfunc )( void * ) = NULL;
-
-#ifdef GAME_HARD_LINKED
-	builtinAPIfunc = GetGameAPI;
-#endif
 
 	// unload anything we have now
 	if( ge ) {
@@ -509,22 +498,7 @@ void SV_InitGameProgs( void ) {
 
 	import.is_dedicated_server = is_dedicated_server;
 
-	if( builtinAPIfunc ) {
-		ge = builtinAPIfunc( &import );
-	} else {
-		ge = (game_export_t *)Com_LoadGameLibrary( "game", "GetGameAPI", &module_handle, &import );
-	}
-	if( !ge ) {
-		Com_Error( ERR_DROP, "Failed to load game DLL" );
-	}
-
-	apiversion = ge->API();
-	if( apiversion != GAME_API_VERSION ) {
-		Com_UnloadGameLibrary( &module_handle );
-		Mem_FreePool( &sv_gameprogspool );
-		ge = NULL;
-		Com_Error( ERR_DROP, "Game is version %i, not %i", apiversion, GAME_API_VERSION );
-	}
+	ge = GetGameAPI( &import );
 
 	SV_SetServerConfigStrings();
 

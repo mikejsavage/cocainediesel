@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "server.h"
 
-#include "../qcommon/sys_library.h"
-
 server_constant_t svc;              // constant server info (trully persistant since sv_init)
 server_static_t svs;                // persistant server info
 server_t sv;                 // local server
@@ -156,39 +154,6 @@ static void SV_ReloadPureList( void ) {
 	int i, numpaks;
 
 	Com_FreePureList( &svs.purelist );
-
-	// game modules
-	if( sv_pure_forcemodulepk3->string[0] ) {
-		if( Q_strnicmp( COM_FileBase( sv_pure_forcemodulepk3->string ), "modules", strlen( "modules" ) ) ||
-			!FS_IsPakValid( sv_pure_forcemodulepk3->string, NULL ) ) {
-			Com_Printf( "Warning: Invalid value for sv_pure_forcemodulepk3, disabling\n" );
-			Cvar_ForceSet( "sv_pure_forcemodulepk3", "" );
-		} else {
-			SV_AddPurePak( sv_pure_forcemodulepk3->string );
-		}
-	}
-
-	if( !sv_pure_forcemodulepk3->string[0] ) {
-		char *libname;
-		int libname_size;
-
-		libname_size = strlen( LIB_PREFIX ) + strlen( "game" ) + strlen( LIB_SUFFIX ) + 1;
-		libname = ( char * ) Mem_TempMalloc( libname_size );
-		Q_snprintfz( libname, libname_size, LIB_PREFIX "game" LIB_SUFFIX );
-
-		if( !FS_PakNameForFile( libname ) ) {
-			if( sv_pure->integer ) {
-				Com_Printf( "Warning: Game module not in pk3, disabling pure mode\n" );
-				Com_Printf( "sv_pure_forcemodulepk3 can be used to force the pure system to use a different module\n" );
-				Cvar_ForceSet( "sv_pure", "0" );
-			}
-		} else {
-			SV_AddPureFile( libname );
-		}
-
-		Mem_TempFree( libname );
-		libname = NULL;
-	}
 
 	// *pure.(pk3|pak)
 	paks = NULL;

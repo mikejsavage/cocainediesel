@@ -34,7 +34,6 @@ vec3_t knockbackOfDeath;
 cvar_t *password;
 cvar_t *g_operator_password;
 cvar_t *g_select_empty;
-cvar_t *developer;
 
 cvar_t *filterban;
 
@@ -84,13 +83,6 @@ static int map_rotation_current = -1;
 static int map_rotation_count = 0;
 
 //===================================================================
-
-/*
-* G_API
-*/
-int G_API( void ) {
-	return GAME_API_VERSION;
-}
 
 /*
 * G_Error
@@ -469,30 +461,3 @@ void G_ExitLevel( void ) {
 		}
 	}
 }
-
-//======================================================================
-
-#ifndef GAME_HARD_LINKED
-// this is only here so the functions in q_shared.c and q_math.c can link
-void Sys_Error( const char *format, ... ) {
-	va_list argptr;
-	char msg[3072];
-
-	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
-	va_end( argptr );
-
-	G_Error( "%s", msg );
-}
-
-void Com_Printf( const char *format, ... ) {
-	va_list argptr;
-	char msg[3072];
-
-	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
-	va_end( argptr );
-
-	G_Printf( "%s", msg );
-}
-#endif

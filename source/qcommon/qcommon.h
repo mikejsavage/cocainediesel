@@ -295,20 +295,6 @@ enum clc_ops_e {
 /*
 ==============================================================
 
-Library
-
-Dynamic library loading
-
-==============================================================
-*/
-
-// qcommon/library.c
-void *Com_LoadGameLibrary( const char *basename, const char *apifuncname, void **handle, void *parms );
-void Com_UnloadGameLibrary( void **handle );
-
-/*
-==============================================================
-
 CMD
 
 Command text buffering and command execution

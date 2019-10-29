@@ -669,7 +669,7 @@ void InitMaterials() {
 					break;
 
 				u64 hash = HashMaterialName( material_name );
-				COM_ParseExt( &ptr, true ); // skip { TODO check
+				COM_ParseExt( &ptr, true ); // skip opening brace
 				const char * start = ptr;
 
 				u64 idx = num_materials;
@@ -686,8 +686,8 @@ void InitMaterials() {
 			}
 
 			material_locations_hashtable.clear();
-			}
 		}
+	}
 
 	missing_material = Material();
 	missing_material.textures[ 0 ].texture = missing_texture;

@@ -55,8 +55,6 @@ enum {
 	VWEAP_MAXPARTS
 };
 
-#define WEAPONINFO_MAX_FIRE_SOUNDS 4
-
 // equivalent to pmodelinfo_t. Shared by different players, etc.
 typedef struct weaponinfo_s {
 	char name[MAX_QPATH];
@@ -85,9 +83,7 @@ typedef struct weaponinfo_s {
 	int64_t barrelTime;
 	float barrelSpeed;
 
-	// sfx
-	int num_fire_sounds;
-	const SoundEffect * sound_fire[WEAPONINFO_MAX_FIRE_SOUNDS];
+	const SoundEffect * sound_fire;
 } weaponinfo_t;
 
 enum {

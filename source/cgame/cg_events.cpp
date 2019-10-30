@@ -80,7 +80,7 @@ static void _LaserImpact( trace_t *trace, vec3_t dir ) {
 
 			CG_HighVelImpactPuffParticles( trace->endpos, trace->plane.normal, 8, 0.5f, color[ 0 ], color[ 1 ], color[ 2 ], color[ 3 ], NULL );
 
-			S_StartFixedSound( cgs.media.sfxLasergunHit[rand() % 3], FromQF3( trace->endpos ), CHAN_AUTO,
+			S_StartFixedSound( cgs.media.sfxLasergunHit, FromQF3( trace->endpos ), CHAN_AUTO,
 									cg_volume_effects->value, ATTN_STATIC );
 		}
 #undef TRAILTIME
@@ -190,26 +190,20 @@ static void CG_Event_LaserBeam( const vec3_t origin, const vec3_t dir, int entNu
 * CG_FireWeaponEvent
 */
 static void CG_FireWeaponEvent( int entNum, int weapon ) {
-	float attenuation;
-	const SoundEffect * sfx = NULL;
-	weaponinfo_t *weaponInfo;
-
 	if( !weapon ) {
 		return;
 	}
 
 	// hack idle attenuation on the plasmagun to reduce sound flood on the scene
+	float attenuation;
 	if( weapon == WEAP_PLASMAGUN ) {
 		attenuation = ATTN_IDLE;
 	} else {
 		attenuation = ATTN_NORM;
 	}
 
-	weaponInfo = CG_GetWeaponInfo( weapon );
-
-	if( weaponInfo->num_fire_sounds ) {
-		sfx = weaponInfo->sound_fire[(int)brandom( 0, weaponInfo->num_fire_sounds )];
-	}
+	const weaponinfo_t * weaponInfo = CG_GetWeaponInfo( weapon );
+	const SoundEffect * sfx = weaponInfo->sound_fire;
 
 	if( sfx ) {
 		if( ISVIEWERENTITY( entNum ) ) {
@@ -349,7 +343,7 @@ static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int owner, int t
 				// flesh impact sound
 			}
 			else {
-				S_StartFixedSound( cgs.media.sfxRic[ rand() % 2 ], FromQF3( trace.endpos ), CHAN_AUTO, cg_volume_effects->value, ATTN_STATIC );
+				S_StartFixedSound( cgs.media.sfxBulletImpact, FromQF3( trace.endpos ), CHAN_AUTO, cg_volume_effects->value, ATTN_STATIC );
 
 				ParticleEmitter emitter = { };
 				emitter.position = FromQF3( trace.endpos );
@@ -963,7 +957,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 			break;
 
 		case EV_GRENADE_BOUNCE:
-			S_StartEntitySound( cgs.media.sfxGrenadeBounce[rand() & 1], ent->number, CHAN_AUTO, cg_volume_effects->value, ATTN_IDLE );
+			S_StartEntitySound( cgs.media.sfxGrenadeBounce, ent->number, CHAN_AUTO, cg_volume_effects->value, ATTN_IDLE );
 			break;
 
 		case EV_BLADE_IMPACT:

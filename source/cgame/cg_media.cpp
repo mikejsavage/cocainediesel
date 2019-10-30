@@ -21,8 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cg_local.h"
 
 void CG_RegisterMediaSounds() {
-	for( int i = 0; i < 2; i++ )
-		cgs.media.sfxRic[i] = FindSoundEffect( va( "sounds/weapons/ric%i", i + 1 ) );
+	cgs.media.sfxBulletImpact = FindSoundEffect( "sounds/weapons/bullet_impact" );
 
 	// weapon
 	for( int i = 0; i < 4; i++ )
@@ -36,15 +35,14 @@ void CG_RegisterMediaSounds() {
 	cgs.media.sfxTeleportOut = FindSoundEffect( S_TELEPORT );
 
 	// Gunblade sounds
-	for( int i = 0; i < 3; i++ ) cgs.media.sfxBladeFleshHit[i] = FindSoundEffect( va( S_WEAPON_GUNBLADE_HIT_FLESH_1_to_3, i + 1 ) );
-	for( int i = 0; i < 2; i++ ) cgs.media.sfxBladeWallHit[i] = FindSoundEffect( va( S_WEAPON_GUNBLADE_HIT_WALL_1_to_2, i + 1 ) );
+	cgs.media.sfxBladeFleshHit = FindSoundEffect( S_WEAPON_GUNBLADE_HIT_FLESH );
+	cgs.media.sfxBladeWallHit = FindSoundEffect( S_WEAPON_GUNBLADE_HIT_WALL );
 
 	// Riotgun sounds :
 	cgs.media.sfxRiotgunHit = FindSoundEffect( S_WEAPON_RIOTGUN_HIT );
 
 	// Grenade launcher sounds :
-	for( int i = 0; i < 2; i++ )
-		cgs.media.sfxGrenadeBounce[i] = FindSoundEffect( va( S_WEAPON_GRENADE_BOUNCE_1_to_2, i + 1 ) );
+	cgs.media.sfxGrenadeBounce = FindSoundEffect( S_WEAPON_GRENADE_BOUNCE );
 	cgs.media.sfxGrenadeExplosion = FindSoundEffect( S_WEAPON_GRENADE_HIT );
 
 	// Rocket launcher sounds :
@@ -56,9 +54,7 @@ void CG_RegisterMediaSounds() {
 	// Lasergun sounds
 	cgs.media.sfxLasergunHum = FindSoundEffect( S_WEAPON_LASERGUN_HUM );
 	cgs.media.sfxLasergunStop = FindSoundEffect( S_WEAPON_LASERGUN_STOP );
-	cgs.media.sfxLasergunHit[0] = FindSoundEffect( S_WEAPON_LASERGUN_HIT_0 );
-	cgs.media.sfxLasergunHit[1] = FindSoundEffect( S_WEAPON_LASERGUN_HIT_1 );
-	cgs.media.sfxLasergunHit[2] = FindSoundEffect( S_WEAPON_LASERGUN_HIT_2 );
+	cgs.media.sfxLasergunHit = FindSoundEffect( S_WEAPON_LASERGUN_HIT );
 
 	cgs.media.sfxElectroboltHit = FindSoundEffect( S_WEAPON_ELECTROBOLT_HIT );
 

@@ -125,14 +125,14 @@ typedef struct {
 	const SoundEffect * sfxTeleportOut;
 	const SoundEffect * sfxShellHit;
 
-	const SoundEffect * sfxBladeFleshHit[3];
-	const SoundEffect * sfxBladeWallHit[2];
+	const SoundEffect * sfxBladeFleshHit;
+	const SoundEffect * sfxBladeWallHit;
 
-	const SoundEffect * sfxRic[2];
+	const SoundEffect * sfxBulletImpact;
 
 	const SoundEffect * sfxRiotgunHit;
 
-	const SoundEffect * sfxGrenadeBounce[2];
+	const SoundEffect * sfxGrenadeBounce;
 	const SoundEffect * sfxGrenadeExplosion;
 
 	const SoundEffect * sfxRocketLauncherHit;
@@ -141,7 +141,7 @@ typedef struct {
 
 	const SoundEffect * sfxLasergunHum;
 	const SoundEffect * sfxLasergunStop;
-	const SoundEffect * sfxLasergunHit[3];
+	const SoundEffect * sfxLasergunHit;
 
 	const SoundEffect * sfxElectroboltHit;
 

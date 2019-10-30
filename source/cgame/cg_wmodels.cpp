@@ -181,20 +181,9 @@ static bool CG_vWeap_ParseAnimationScript( weaponinfo_t *weaponinfo, const char 
 				if( debug ) {
 					CG_Printf( "%sScript: firesound:%s", S_COLOR_BLUE, S_COLOR_WHITE );
 				}
-				if( weaponinfo->num_fire_sounds >= WEAPONINFO_MAX_FIRE_SOUNDS ) {
-					if( debug ) {
-						CG_Printf( S_COLOR_BLUE "too many firesounds defined. Max is %i" S_COLOR_WHITE "\n", WEAPONINFO_MAX_FIRE_SOUNDS );
-					}
-					break;
-				}
 
 				token = COM_ParseExt( &ptr, false );
-				if( Q_stricmp( token, "NULL" ) ) {
-					weaponinfo->sound_fire[weaponinfo->num_fire_sounds] = FindSoundEffect( token );
-					if( weaponinfo->sound_fire[weaponinfo->num_fire_sounds] != NULL ) {
-						weaponinfo->num_fire_sounds++;
-					}
-				}
+				weaponinfo->sound_fire = FindSoundEffect( token );
 				if( debug ) {
 					CG_Printf( "%s%s%s\n", S_COLOR_BLUE, token, S_COLOR_WHITE );
 				}

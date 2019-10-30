@@ -173,34 +173,53 @@ static void LoadSound( const char * path, bool allow_stereo ) {
 		return;
 	}
 
-	ALenum format = channels == 1 ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
-	ALuint buffer;
-	alGenBuffers( 1, &buffer );
-	alBufferData( buffer, format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
-	ALAssert();
-
 	u64 hash = Hash64( path, strlen( path ) - strlen( ".ogg" ) );
 
-	sounds[ num_sounds ] = buffer;
-	sounds_hashtable.add( hash, num_sounds );
-	num_sounds++;
+	u64 idx = num_sounds;
+	if( !sounds_hashtable.get( hash, &idx ) ) {
+		sounds_hashtable.add( hash, num_sounds );
+		num_sounds++;
 
-	SoundEffect sfx = { };
-	sfx.sounds[ 0 ].sounds[ 0 ] = StringHash( hash );
-	sfx.sounds[ 0 ].volume = 1;
-	sfx.sounds[ 0 ].attenuation = ATTN_NORM;
-	sfx.sounds[ 0 ].num_random_sounds = 1;
-	sfx.num_sounds = 1;
+		// add simple sound effect
+		SoundEffect sfx = { };
+		sfx.sounds[ 0 ].sounds[ 0 ] = StringHash( hash );
+		sfx.sounds[ 0 ].volume = 1;
+		sfx.sounds[ 0 ].attenuation = ATTN_NORM;
+		sfx.sounds[ 0 ].num_random_sounds = 1;
+		sfx.num_sounds = 1;
 
-	sound_effects[ num_sound_effects ] = sfx;
-	sound_effects_hashtable.add( hash, num_sound_effects );
-	num_sound_effects++;
+		sound_effects[ num_sound_effects ] = sfx;
+		sound_effects_hashtable.add( hash, num_sound_effects );
+		num_sound_effects++;
+	}
+	else {
+		S_StopAllSounds( true );
+		alDeleteBuffers( 1, &sounds[ idx ] );
+	}
+
+	ALenum format = channels == 1 ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
+	alGenBuffers( 1, &sounds[ idx ] );
+	alBufferData( sounds[ idx ], format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
+	ALAssert();
 }
 
 static void LoadSounds() {
 	ZoneScoped;
 
 	for( const char * path : AssetPaths() ) {
+		const char * ext = COM_FileExtension( path );
+		if( ext == NULL || strcmp( ext, ".ogg" ) != 0 )
+			continue;
+
+		bool stereo = strcmp( path, "sounds/music/menu_1.ogg" ) == 0;
+		LoadSound( path, stereo );
+	}
+}
+
+static void HotloadSounds() {
+	ZoneScoped;
+
+	for( const char * path : ModifiedAssetPaths() ) {
 		const char * ext = COM_FileExtension( path );
 		if( ext == NULL || strcmp( ext, ".ogg" ) != 0 )
 			continue;
@@ -311,15 +330,31 @@ static void LoadSoundEffect( const char * path ) {
 
 	u64 hash = Hash64( path, strlen( path ) - strlen( ".cdsfx" ) );
 
-	sound_effects[ num_sound_effects ] = sfx;
-	sound_effects_hashtable.add( hash, num_sound_effects );
-	num_sound_effects++;
+	u64 idx = num_sound_effects;
+	if( !sound_effects_hashtable.get( hash, &idx ) ) {
+		sound_effects_hashtable.add( hash, num_sound_effects );
+		num_sound_effects++;
+	}
+
+	sound_effects[ idx ] = sfx;
 }
 
 static void LoadSoundEffects() {
 	ZoneScoped;
 
 	for( const char * path : AssetPaths() ) {
+		const char * ext = COM_FileExtension( path );
+		if( ext == NULL || strcmp( ext, ".cdsfx" ) != 0 )
+			continue;
+
+		LoadSoundEffect( path );
+	}
+}
+
+static void HotloadSoundEffects() {
+	ZoneScoped;
+
+	for( const char * path : ModifiedAssetPaths() ) {
 		const char * ext = COM_FileExtension( path );
 		if( ext == NULL || strcmp( ext, ".cdsfx" ) != 0 )
 			continue;
@@ -464,6 +499,9 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 
 	if( !initialized )
 		return;
+
+	HotloadSounds();
+	HotloadSoundEffects();
 
 	if( s_muteinbackground->modified ) {
 		alListenerf( AL_GAIN, window_focused || s_muteinbackground->integer == 0 ? 1 : 0 );

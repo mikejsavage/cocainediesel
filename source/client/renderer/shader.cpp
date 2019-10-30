@@ -137,11 +137,9 @@ void HotloadShaders() {
 		}
 	}
 
-	if( !need_hotload )
-		return;
-
-	Com_Printf( "Reloading shaders\n" );
-	LoadShaders();
+	if( need_hotload ) {
+		LoadShaders();
+	}
 }
 
 void ShutdownShaders() {

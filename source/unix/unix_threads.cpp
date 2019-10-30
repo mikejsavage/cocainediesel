@@ -85,7 +85,3 @@ void Sys_Thread_Yield( void ) {
 int Sys_Atomic_FetchAdd( volatile int *value, int add ) {
 	return __sync_fetch_and_add( value, add );
 }
-
-bool Sys_Atomic_CAS( volatile int *value, int oldval, int newval ) {
-	return __sync_bool_compare_and_swap( value, oldval, newval );
-}

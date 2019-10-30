@@ -36,4 +36,3 @@ void QThread_Join( qthread_t *thread );
 void QThread_Yield( void );
 
 int QAtomic_FetchAdd( volatile int *value, int add );
-bool QAtomic_CAS( volatile int *value, int oldval, int newval );

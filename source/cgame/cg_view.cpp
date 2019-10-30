@@ -104,8 +104,8 @@ static void CG_AddLocalSounds( void ) {
 
 			if( remainingSeconds != lastSecond ) {
 				if( 1 + remainingSeconds < 4 ) {
-					const SoundAsset *sound = S_RegisterSound( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, 1 + remainingSeconds, 1 ) );
-					CG_AddAnnouncerEvent( sound, false );
+					const SoundEffect * sfx = FindSoundEffect( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, 1 + remainingSeconds, 1 ) );
+					CG_AddAnnouncerEvent( sfx, false );
 					CG_CenterPrint( va( "%i", remainingSeconds + 1 ) );
 				}
 
@@ -989,7 +989,7 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 
 		// trap_R_DrawStretchPic( 0, 0, frame_static.viewport_width, frame_static.viewport_height, 0, 0, 1, 1, colorBlack, cgs.shaderWhite );
 
-		S_Update( vec3_origin, vec3_origin, axis_identity );
+		S_Update( Vec3( 0 ), Vec3( 0 ), axis_identity );
 
 		return;
 	}
@@ -1060,7 +1060,7 @@ void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int
 
 	cg.oldAreabits = true;
 
-	S_Update( cg.view.origin, cg.view.velocity, cg.view.axis );
+	S_Update( FromQF3( cg.view.origin ), FromQF3( cg.view.velocity ), cg.view.axis );
 
 	CG_Draw2D();
 

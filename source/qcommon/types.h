@@ -450,4 +450,4 @@ struct RGBA8 {
 
 struct Model;
 struct Material;
-struct SoundAsset;
+struct SoundEffect;

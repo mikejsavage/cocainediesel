@@ -22,6 +22,11 @@ constexpr size_t ARRAY_COUNT( const T ( &arr )[ N ] ) {
 	return N;
 }
 
+template< typename T, typename M, size_t N >
+constexpr size_t ARRAY_COUNT( M ( T::* )[ N ] ) {
+	return N;
+}
+
 #define CONCAT_HELPER( a, b ) a##b
 #define CONCAT( a, b ) CONCAT_HELPER( a, b )
 #define COUNTER_NAME( x ) CONCAT( x, __COUNTER__ )

@@ -80,7 +80,7 @@ static void _LaserImpact( trace_t *trace, vec3_t dir ) {
 
 			CG_HighVelImpactPuffParticles( trace->endpos, trace->plane.normal, 8, 0.5f, color[ 0 ], color[ 1 ], color[ 2 ], color[ 3 ], NULL );
 
-			S_StartFixedSound( cgs.media.sfxLasergunHit[rand() % 3], trace->endpos, CHAN_AUTO,
+			S_StartFixedSound( cgs.media.sfxLasergunHit[rand() % 3], FromQF3( trace->endpos ), CHAN_AUTO,
 									cg_volume_effects->value, ATTN_STATIC );
 		}
 #undef TRAILTIME
@@ -99,7 +99,7 @@ static void _LaserImpact( trace_t *trace, vec3_t dir ) {
 }
 
 void CG_LaserBeamEffect( centity_t *cent ) {
-	const SoundAsset *sound = NULL;
+	const SoundEffect * sfx = NULL;
 	float range;
 	bool firstPerson;
 	trace_t trace;
@@ -109,12 +109,12 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 
 	if( cent->localEffects[LOCALEFFECT_LASERBEAM] <= cg.time ) {
 		if( cent->localEffects[LOCALEFFECT_LASERBEAM] ) {
-			sound = cgs.media.sfxLasergunStop;
+			sfx = cgs.media.sfxLasergunStop;
 
 			if( ISVIEWERENTITY( cent->current.number ) ) {
-				S_StartGlobalSound( sound, CHAN_AUTO, cg_volume_effects->value );
+				S_StartGlobalSound( sfx, CHAN_AUTO, cg_volume_effects->value );
 			} else {
-				S_StartEntitySound( sound, cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+				S_StartEntitySound( sfx, cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 			}
 		}
 		cent->localEffects[LOCALEFFECT_LASERBEAM] = 0;
@@ -146,7 +146,7 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 
 	range = GS_GetWeaponDef( WEAP_LASERGUN )->firedef.timeout;
 
-	sound = cgs.media.sfxLasergunHum;
+	sfx = cgs.media.sfxLasergunHum;
 
 	// trace the beam: for tracing we use the real beam origin
 	GS_TraceLaserBeam( &client_gs, &trace, laserOrigin, laserAngles, range, cent->current.number, 0, _LaserImpact );
@@ -164,9 +164,9 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 	}
 
 	if( ISVIEWERENTITY( cent->current.number ) ) {
-		S_ImmediateSound( sound, cent->current.number, cg_volume_effects->value, ATTN_NONE );
+		S_ImmediateSound( sfx, cent->current.number, cg_volume_effects->value, ATTN_NONE );
 	} else {
-		S_ImmediateSound( sound, cent->current.number, cg_volume_effects->value, ATTN_STATIC );
+		S_ImmediateSound( sfx, cent->current.number, cg_volume_effects->value, ATTN_STATIC );
 	}
 
 	laserOwner = NULL;
@@ -191,7 +191,7 @@ static void CG_Event_LaserBeam( const vec3_t origin, const vec3_t dir, int entNu
 */
 static void CG_FireWeaponEvent( int entNum, int weapon ) {
 	float attenuation;
-	const SoundAsset *sound = NULL;
+	const SoundEffect * sfx = NULL;
 	weaponinfo_t *weaponInfo;
 
 	if( !weapon ) {
@@ -207,18 +207,17 @@ static void CG_FireWeaponEvent( int entNum, int weapon ) {
 
 	weaponInfo = CG_GetWeaponInfo( weapon );
 
-	// sound
 	if( weaponInfo->num_fire_sounds ) {
-		sound = weaponInfo->sound_fire[(int)brandom( 0, weaponInfo->num_fire_sounds )];
+		sfx = weaponInfo->sound_fire[(int)brandom( 0, weaponInfo->num_fire_sounds )];
 	}
 
-	if( sound ) {
+	if( sfx ) {
 		if( ISVIEWERENTITY( entNum ) ) {
-			S_StartGlobalSound( sound, CHAN_MUZZLEFLASH, cg_volume_effects->value );
+			S_StartGlobalSound( sfx, CHAN_MUZZLEFLASH, cg_volume_effects->value );
 		} else {
 			// fixed position is better for location, but the channels are used from worldspawn
 			// and openal runs out of channels quick on cheap cards. Relative sound uses per-entity channels.
-			S_StartEntitySound( sound, entNum, CHAN_MUZZLEFLASH, cg_volume_effects->value, attenuation );
+			S_StartEntitySound( sfx, entNum, CHAN_MUZZLEFLASH, cg_volume_effects->value, attenuation );
 		}
 	}
 
@@ -350,7 +349,7 @@ static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int owner, int t
 				// flesh impact sound
 			}
 			else {
-				S_StartFixedSound( cgs.media.sfxRic[ rand() % 2 ], trace.endpos, CHAN_AUTO, cg_volume_effects->value, ATTN_STATIC );
+				S_StartFixedSound( cgs.media.sfxRic[ rand() % 2 ], FromQF3( trace.endpos ), CHAN_AUTO, cg_volume_effects->value, ATTN_STATIC );
 
 				ParticleEmitter emitter = { };
 				emitter.position = FromQF3( trace.endpos );
@@ -439,7 +438,7 @@ static void CG_Event_FireRiotgun( vec3_t origin, vec3_t dir, int owner ) {
 	CG_Trace( &trace, origin, vec3_origin, vec3_origin, end, owner, MASK_SHOT );
 
 	if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
-		S_StartFixedSound( cgs.media.sfxRiotgunHit, trace.endpos, CHAN_AUTO,
+		S_StartFixedSound( cgs.media.sfxRiotgunHit, FromQF3( trace.endpos ), CHAN_AUTO,
 			cg_volume_effects->value, ATTN_IDLE );
 	}
 }
@@ -453,7 +452,7 @@ static void CG_Event_FireRiotgun( vec3_t origin, vec3_t dir, int owner ) {
 #define CG_ANNOUNCER_EVENTS_FRAMETIME 1500 // the announcer will speak each 1.5 seconds
 typedef struct cg_announcerevent_s
 {
-	const SoundAsset *sound;
+	const SoundEffect *sound;
 } cg_announcerevent_t;
 cg_announcerevent_t cg_announcerEvents[CG_MAX_ANNOUNCER_EVENTS];
 static int cg_announcerEventsCurrent = 0;
@@ -470,7 +469,7 @@ void CG_ClearAnnouncerEvents( void ) {
 /*
 * CG_AddAnnouncerEvent
 */
-void CG_AddAnnouncerEvent( const SoundAsset *sound, bool queued ) {
+void CG_AddAnnouncerEvent( const SoundEffect *sound, bool queued ) {
 	if( !sound ) {
 		return;
 	}
@@ -501,14 +500,9 @@ void CG_ReleaseAnnouncerEvents( void ) {
 	}
 
 	if( cg_announcerEventsCurrent < cg_announcerEventsHead ) {
-		const SoundAsset *sound;
-
-		// play the event
-		sound = cg_announcerEvents[cg_announcerEventsCurrent & CG_MAX_ANNOUNCER_EVENTS_MASK].sound;
-		if( sound ) {
-			S_StartLocalSound( sound, CHAN_ANNOUNCER, cg_volume_announcer->value );
-			cg_announcerEventsDelay = CG_ANNOUNCER_EVENTS_FRAMETIME; // wait
-		}
+		const SoundEffect * sound = cg_announcerEvents[cg_announcerEventsCurrent & CG_MAX_ANNOUNCER_EVENTS_MASK].sound;
+		S_StartLocalSound( sound, CHAN_ANNOUNCER, cg_volume_announcer->value );
+		cg_announcerEventsDelay = CG_ANNOUNCER_EVENTS_FRAMETIME; // wait
 		cg_announcerEventsCurrent++;
 	} else {
 		cg_announcerEventsDelay = 0; // no wait
@@ -537,7 +531,7 @@ static void CG_StartVoiceTokenEffect( int entNum, int vsay ) {
 	cent->localEffects[LOCALEFFECT_VSAY_TIMEOUT] = cg.time + VSAY_TIMEOUT;
 
 	// play the sound
-	const SoundAsset * sound = cgs.media.sfxVSaySounds[vsay];
+	const SoundEffect * sound = cgs.media.sfxVSaySounds[vsay];
 	if( !sound ) {
 		return;
 	}
@@ -623,8 +617,7 @@ void CG_Event_Dash( entity_state_t *state, int parm ) {
 			break;
 	}
 
-	constexpr PlayerSound sounds[] = { PlayerSound_Dash1, PlayerSound_Dash2 };
-	CG_PlayerSound( state->number, CHAN_BODY, random_select( &cls.rng, sounds ), cg_volume_players->value, state->attenuation );
+	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_Dash, cg_volume_players->value, state->attenuation );
 
 	CG_Dash( state ); // Dash smoke effect
 
@@ -652,8 +645,7 @@ void CG_Event_WallJump( entity_state_t *state, int parm, int ev ) {
 		CG_PModel_AddAnimation( state->number, LEGS_WALLJUMP, 0, 0, EVENT_CHANNEL );
 	}
 
-	constexpr PlayerSound sounds[] = { PlayerSound_WallJump1, PlayerSound_WallJump2 };
-	CG_PlayerSound( state->number, CHAN_BODY, random_select( &cls.rng, sounds ), cg_volume_players->value, state->attenuation );
+	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_WallJump, cg_volume_players->value, state->attenuation );
 
 	// smoke effect
 	if( cg_cartoonEffects->integer & 1 ) {
@@ -665,8 +657,7 @@ void CG_Event_WallJump( entity_state_t *state, int parm, int ev ) {
 }
 
 static void CG_PlayJumpSound( const entity_state_t * state ) {
-	constexpr PlayerSound sounds[] = { PlayerSound_Jump1, PlayerSound_Jump2 };
-	CG_PlayerSound( state->number, CHAN_BODY, random_select( &cls.rng, sounds ), cg_volume_players->value, state->attenuation );
+	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_Jump, cg_volume_players->value, state->attenuation );
 }
 
 /*
@@ -753,7 +744,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 				if( viewer ) {
 					S_StartGlobalSound( cgs.media.sfxWeaponUp, CHAN_AUTO, cg_volume_effects->value );
 				} else {
-					S_StartFixedSound( cgs.media.sfxWeaponUp, ent->origin, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+					S_StartFixedSound( cgs.media.sfxWeaponUp, FromQF3( ent->origin ), CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 				}
 			}
 		} break;
@@ -827,7 +818,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 			if( viewer ) {
 				S_StartGlobalSound( cgs.media.sfxWeaponUpNoAmmo, CHAN_ITEM, cg_volume_effects->value );
 			} else {
-				S_StartFixedSound( cgs.media.sfxWeaponUpNoAmmo, ent->origin, CHAN_ITEM, cg_volume_effects->value, ATTN_IDLE );
+				S_StartFixedSound( cgs.media.sfxWeaponUpNoAmmo, FromQF3( ent->origin ), CHAN_ITEM, cg_volume_effects->value, ATTN_IDLE );
 			}
 			break;
 
@@ -922,7 +913,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 			break;
 
 		case EV_PLAYER_TELEPORT_IN:
-			S_StartFixedSound( cgs.media.sfxTeleportIn, ent->origin, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+			S_StartFixedSound( cgs.media.sfxTeleportIn, FromQF3( ent->origin ), CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 
 			if( ent->ownerNum && ent->ownerNum < client_gs.maxclients + 1 ) {
 				cg_entities[ent->ownerNum].localEffects[LOCALEFFECT_EV_PLAYER_TELEPORT_IN] = cg.time;
@@ -931,7 +922,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 			break;
 
 		case EV_PLAYER_TELEPORT_OUT:
-			S_StartFixedSound( cgs.media.sfxTeleportOut, ent->origin, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+			S_StartFixedSound( cgs.media.sfxTeleportOut, FromQF3( ent->origin ), CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 
 			if( ent->ownerNum && ent->ownerNum < client_gs.maxclients + 1 ) {
 				cg_entities[ent->ownerNum].localEffects[LOCALEFFECT_EV_PLAYER_TELEPORT_OUT] = cg.time;
@@ -942,7 +933,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 		case EV_PLASMA_EXPLOSION:
 			ByteToDir( parm, dir );
 			CG_PlasmaExplosion( ent->origin, dir, ent->team, (float)ent->weapon * 8.0f );
-			S_StartFixedSound( cgs.media.sfxPlasmaHit, ent->origin, CHAN_AUTO, cg_volume_effects->value, ATTN_IDLE );
+			S_StartFixedSound( cgs.media.sfxPlasmaHit, FromQF3( ent->origin ), CHAN_AUTO, cg_volume_effects->value, ATTN_IDLE );
 			CG_StartKickAnglesEffect( ent->origin, 50, ent->weapon * 8, 100 );
 			break;
 
@@ -1000,7 +991,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 		{
 			vec3_t so;
 			CG_GetEntitySpatilization( ent->number, so, NULL );
-			S_StartFixedSound( cgs.soundPrecache[parm], so, CHAN_AUTO, cg_volume_effects->value, ATTN_STATIC );
+			S_StartFixedSound( cgs.soundPrecache[parm], FromQF3( so ), CHAN_AUTO, cg_volume_effects->value, ATTN_STATIC );
 		}
 		break;
 

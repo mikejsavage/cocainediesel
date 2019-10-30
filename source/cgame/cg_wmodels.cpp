@@ -190,7 +190,7 @@ static bool CG_vWeap_ParseAnimationScript( weaponinfo_t *weaponinfo, const char 
 
 				token = COM_ParseExt( &ptr, false );
 				if( Q_stricmp( token, "NULL" ) ) {
-					weaponinfo->sound_fire[weaponinfo->num_fire_sounds] = S_RegisterSound( token );
+					weaponinfo->sound_fire[weaponinfo->num_fire_sounds] = FindSoundEffect( token );
 					if( weaponinfo->sound_fire[weaponinfo->num_fire_sounds] != NULL ) {
 						weaponinfo->num_fire_sounds++;
 					}

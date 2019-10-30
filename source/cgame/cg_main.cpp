@@ -331,7 +331,7 @@ static void CG_RegisterSounds( void ) {
 		if( !CG_LoadingItemName( name ) ) {
 			return;
 		}
-		cgs.soundPrecache[i] = S_RegisterSound( name );
+		cgs.soundPrecache[i] = FindSoundEffect( name );
 	}
 
 	if( cgs.precacheSoundsStart != MAX_SOUNDS ) {

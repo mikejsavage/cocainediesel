@@ -799,7 +799,7 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	}
 
 	if( fixed ) {
-		S_StartFixedSound( cgs.soundPrecache[soundindex], cent->current.origin, channel, 1.0f, attenuation );
+		S_StartFixedSound( cgs.soundPrecache[soundindex], FromQF3( cent->current.origin ), channel, 1.0f, attenuation );
 	} else if( ISVIEWERENTITY( owner ) ) {
 		S_StartGlobalSound( cgs.soundPrecache[soundindex], channel, 1.0f );
 	} else {
@@ -1059,7 +1059,7 @@ void CG_LerpEntities( void ) {
 
 		vec3_t origin, velocity;
 		CG_GetEntitySpatilization( number, origin, velocity );
-		S_UpdateEntity( number, origin, velocity );
+		S_UpdateEntity( number, FromQF3( origin ), FromQF3( velocity ) );
 	}
 }
 

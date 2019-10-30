@@ -393,6 +393,20 @@ Span< const char > ParseSpan( Span< const char > * cursor, ParseStopOnNewLine st
 	return token;
 }
 
+bool ParseFloat( Span< const char > str, float * x ) {
+	char buf[ 128 ];
+	if( str.n >= sizeof( buf ) )
+		return false;
+
+	memcpy( buf, str.ptr, str.n );
+	buf[ str.n ] = '\0';
+
+	char * end;
+	*x = strtof( buf, &end );
+
+	return end == buf + str.n;
+}
+
 /*
 * COM_ParseExt2_r
 *

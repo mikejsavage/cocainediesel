@@ -1969,7 +1969,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	// update audio
 	if( cls.state != CA_ACTIVE ) {
-		S_Update( vec3_origin, vec3_origin, axis_identity );
+		S_Update( Vec3( 0 ), Vec3( 0 ), axis_identity );
 	}
 
 	allRealMsec = 0;

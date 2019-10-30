@@ -147,7 +147,6 @@ typedef struct {
 #define ATTN_NORM               1       // players, weapons, etc
 #define ATTN_IDLE               2.5     // stuff around you
 #define ATTN_STATIC             5       // diminish very rapidly with distance
-#define ATTN_WHISPER            10      // must be very close to hear it
 
 // sound channels
 // channel 0 never willingly overrides

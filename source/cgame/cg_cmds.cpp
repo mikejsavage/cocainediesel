@@ -110,7 +110,7 @@ void CG_ConfigString( int i, const char *s ) {
 	} else if( i >= CS_MODELS && i < CS_MODELS + MAX_MODELS ) {
 		cgs.modelDraw[i - CS_MODELS] = FindModel( cgs.configStrings[i] );
 	} else if( i >= CS_SOUNDS && i < CS_SOUNDS + MAX_SOUNDS ) {
-		cgs.soundPrecache[i - CS_SOUNDS] = S_RegisterSound( cgs.configStrings[i] );
+		cgs.soundPrecache[i - CS_SOUNDS] = FindSoundEffect( cgs.configStrings[i] );
 	} else if( i >= CS_IMAGES && i < CS_IMAGES + MAX_IMAGES ) {
 		cgs.imagePrecache[i - CS_IMAGES] = FindMaterial( cgs.configStrings[i] );
 	} else if( i >= CS_PLAYERINFOS && i < CS_PLAYERINFOS + MAX_CLIENTS ) {

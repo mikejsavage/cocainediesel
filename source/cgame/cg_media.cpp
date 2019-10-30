@@ -22,79 +22,79 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void CG_RegisterMediaSounds() {
 	for( int i = 0; i < 2; i++ )
-		cgs.media.sfxRic[i] = S_RegisterSound( va( "sounds/weapons/ric%i", i + 1 ) );
+		cgs.media.sfxRic[i] = FindSoundEffect( va( "sounds/weapons/ric%i", i + 1 ) );
 
 	// weapon
 	for( int i = 0; i < 4; i++ )
-		cgs.media.sfxWeaponHit[i] = S_RegisterSound( va( S_WEAPON_HITS, i ) );
-	cgs.media.sfxWeaponKill = S_RegisterSound( S_WEAPON_KILL );
-	cgs.media.sfxWeaponHitTeam = S_RegisterSound( S_WEAPON_HIT_TEAM );
-	cgs.media.sfxWeaponUp = S_RegisterSound( S_WEAPON_SWITCH );
-	cgs.media.sfxWeaponUpNoAmmo = S_RegisterSound( S_WEAPON_NOAMMO );
+		cgs.media.sfxWeaponHit[i] = FindSoundEffect( va( S_WEAPON_HITS, i ) );
+	cgs.media.sfxWeaponKill = FindSoundEffect( S_WEAPON_KILL );
+	cgs.media.sfxWeaponHitTeam = FindSoundEffect( S_WEAPON_HIT_TEAM );
+	cgs.media.sfxWeaponUp = FindSoundEffect( S_WEAPON_SWITCH );
+	cgs.media.sfxWeaponUpNoAmmo = FindSoundEffect( S_WEAPON_NOAMMO );
 
-	cgs.media.sfxTeleportIn = S_RegisterSound( S_TELEPORT );
-	cgs.media.sfxTeleportOut = S_RegisterSound( S_TELEPORT );
+	cgs.media.sfxTeleportIn = FindSoundEffect( S_TELEPORT );
+	cgs.media.sfxTeleportOut = FindSoundEffect( S_TELEPORT );
 
 	// Gunblade sounds
-	for( int i = 0; i < 3; i++ ) cgs.media.sfxBladeFleshHit[i] = S_RegisterSound( va( S_WEAPON_GUNBLADE_HIT_FLESH_1_to_3, i + 1 ) );
-	for( int i = 0; i < 2; i++ ) cgs.media.sfxBladeWallHit[i] = S_RegisterSound( va( S_WEAPON_GUNBLADE_HIT_WALL_1_to_2, i + 1 ) );
+	for( int i = 0; i < 3; i++ ) cgs.media.sfxBladeFleshHit[i] = FindSoundEffect( va( S_WEAPON_GUNBLADE_HIT_FLESH_1_to_3, i + 1 ) );
+	for( int i = 0; i < 2; i++ ) cgs.media.sfxBladeWallHit[i] = FindSoundEffect( va( S_WEAPON_GUNBLADE_HIT_WALL_1_to_2, i + 1 ) );
 
 	// Riotgun sounds :
-	cgs.media.sfxRiotgunHit = S_RegisterSound( S_WEAPON_RIOTGUN_HIT );
+	cgs.media.sfxRiotgunHit = FindSoundEffect( S_WEAPON_RIOTGUN_HIT );
 
 	// Grenade launcher sounds :
 	for( int i = 0; i < 2; i++ )
-		cgs.media.sfxGrenadeBounce[i] = S_RegisterSound( va( S_WEAPON_GRENADE_BOUNCE_1_to_2, i + 1 ) );
-	cgs.media.sfxGrenadeExplosion = S_RegisterSound( S_WEAPON_GRENADE_HIT );
+		cgs.media.sfxGrenadeBounce[i] = FindSoundEffect( va( S_WEAPON_GRENADE_BOUNCE_1_to_2, i + 1 ) );
+	cgs.media.sfxGrenadeExplosion = FindSoundEffect( S_WEAPON_GRENADE_HIT );
 
 	// Rocket launcher sounds :
-	cgs.media.sfxRocketLauncherHit = S_RegisterSound( S_WEAPON_ROCKET_HIT );
+	cgs.media.sfxRocketLauncherHit = FindSoundEffect( S_WEAPON_ROCKET_HIT );
 
 	// Plasmagun sounds :
-	cgs.media.sfxPlasmaHit = S_RegisterSound( S_WEAPON_PLASMAGUN_HIT );
+	cgs.media.sfxPlasmaHit = FindSoundEffect( S_WEAPON_PLASMAGUN_HIT );
 
 	// Lasergun sounds
-	cgs.media.sfxLasergunHum = S_RegisterSound( S_WEAPON_LASERGUN_HUM );
-	cgs.media.sfxLasergunStop = S_RegisterSound( S_WEAPON_LASERGUN_STOP );
-	cgs.media.sfxLasergunHit[0] = S_RegisterSound( S_WEAPON_LASERGUN_HIT_0 );
-	cgs.media.sfxLasergunHit[1] = S_RegisterSound( S_WEAPON_LASERGUN_HIT_1 );
-	cgs.media.sfxLasergunHit[2] = S_RegisterSound( S_WEAPON_LASERGUN_HIT_2 );
+	cgs.media.sfxLasergunHum = FindSoundEffect( S_WEAPON_LASERGUN_HUM );
+	cgs.media.sfxLasergunStop = FindSoundEffect( S_WEAPON_LASERGUN_STOP );
+	cgs.media.sfxLasergunHit[0] = FindSoundEffect( S_WEAPON_LASERGUN_HIT_0 );
+	cgs.media.sfxLasergunHit[1] = FindSoundEffect( S_WEAPON_LASERGUN_HIT_1 );
+	cgs.media.sfxLasergunHit[2] = FindSoundEffect( S_WEAPON_LASERGUN_HIT_2 );
 
-	cgs.media.sfxElectroboltHit = S_RegisterSound( S_WEAPON_ELECTROBOLT_HIT );
+	cgs.media.sfxElectroboltHit = FindSoundEffect( S_WEAPON_ELECTROBOLT_HIT );
 
-	cgs.media.sfxSpikesArm = S_RegisterSound( "sounds/spikes/arm" );
-	cgs.media.sfxSpikesDeploy = S_RegisterSound( "sounds/spikes/deploy" );
-	cgs.media.sfxSpikesGlint = S_RegisterSound( "sounds/spikes/glint" );
-	cgs.media.sfxSpikesRetract = S_RegisterSound( "sounds/spikes/retract" );
+	cgs.media.sfxSpikesArm = FindSoundEffect( "sounds/spikes/arm" );
+	cgs.media.sfxSpikesDeploy = FindSoundEffect( "sounds/spikes/deploy" );
+	cgs.media.sfxSpikesGlint = FindSoundEffect( "sounds/spikes/glint" );
+	cgs.media.sfxSpikesRetract = FindSoundEffect( "sounds/spikes/retract" );
 
-	cgs.media.sfxFall = S_RegisterSound( "sounds/players/fall" );
+	cgs.media.sfxFall = FindSoundEffect( "sounds/players/fall" );
 
 	// VSAY sounds
-	cgs.media.sfxVSaySounds[VSAY_GENERIC] = S_RegisterSound( S_VSAY_GOODGAME );
-	cgs.media.sfxVSaySounds[VSAY_AFFIRMATIVE] = S_RegisterSound( S_VSAY_AFFIRMATIVE );
-	cgs.media.sfxVSaySounds[VSAY_NEGATIVE] = S_RegisterSound( S_VSAY_NEGATIVE );
-	cgs.media.sfxVSaySounds[VSAY_YES] = S_RegisterSound( S_VSAY_YES );
-	cgs.media.sfxVSaySounds[VSAY_NO] = S_RegisterSound( S_VSAY_NO );
-	cgs.media.sfxVSaySounds[VSAY_ONDEFENSE] = S_RegisterSound( S_VSAY_ONDEFENSE );
-	cgs.media.sfxVSaySounds[VSAY_ONOFFENSE] = S_RegisterSound( S_VSAY_ONOFFENSE );
-	cgs.media.sfxVSaySounds[VSAY_OOPS] = S_RegisterSound( S_VSAY_OOPS );
-	cgs.media.sfxVSaySounds[VSAY_SORRY] = S_RegisterSound( S_VSAY_SORRY );
-	cgs.media.sfxVSaySounds[VSAY_THANKS] = S_RegisterSound( S_VSAY_THANKS );
-	cgs.media.sfxVSaySounds[VSAY_NOPROBLEM] = S_RegisterSound( S_VSAY_NOPROBLEM );
-	cgs.media.sfxVSaySounds[VSAY_YEEHAA] = S_RegisterSound( S_VSAY_YEEHAA );
-	cgs.media.sfxVSaySounds[VSAY_GOODGAME] = S_RegisterSound( S_VSAY_GOODGAME );
-	cgs.media.sfxVSaySounds[VSAY_DEFEND] = S_RegisterSound( S_VSAY_DEFEND );
-	cgs.media.sfxVSaySounds[VSAY_ATTACK] = S_RegisterSound( S_VSAY_ATTACK );
-	cgs.media.sfxVSaySounds[VSAY_NEEDBACKUP] = S_RegisterSound( S_VSAY_NEEDBACKUP );
-	cgs.media.sfxVSaySounds[VSAY_BOOO] = S_RegisterSound( S_VSAY_BOOO );
-	cgs.media.sfxVSaySounds[VSAY_NEEDDEFENSE] = S_RegisterSound( S_VSAY_NEEDDEFENSE );
-	cgs.media.sfxVSaySounds[VSAY_NEEDOFFENSE] = S_RegisterSound( S_VSAY_NEEDOFFENSE );
-	cgs.media.sfxVSaySounds[VSAY_NEEDHELP] = S_RegisterSound( S_VSAY_NEEDHELP );
-	cgs.media.sfxVSaySounds[VSAY_ROGER] = S_RegisterSound( S_VSAY_ROGER );
-	cgs.media.sfxVSaySounds[VSAY_AREASECURED] = S_RegisterSound( S_VSAY_AREASECURED );
-	cgs.media.sfxVSaySounds[VSAY_BOOMSTICK] = S_RegisterSound( S_VSAY_BOOMSTICK );
-	cgs.media.sfxVSaySounds[VSAY_OK] = S_RegisterSound( S_VSAY_OK );
-	cgs.media.sfxVSaySounds[VSAY_SHUTUP] = S_RegisterSound( S_VSAY_SHUTUP );
+	cgs.media.sfxVSaySounds[VSAY_GENERIC] = FindSoundEffect( S_VSAY_GOODGAME );
+	cgs.media.sfxVSaySounds[VSAY_AFFIRMATIVE] = FindSoundEffect( S_VSAY_AFFIRMATIVE );
+	cgs.media.sfxVSaySounds[VSAY_NEGATIVE] = FindSoundEffect( S_VSAY_NEGATIVE );
+	cgs.media.sfxVSaySounds[VSAY_YES] = FindSoundEffect( S_VSAY_YES );
+	cgs.media.sfxVSaySounds[VSAY_NO] = FindSoundEffect( S_VSAY_NO );
+	cgs.media.sfxVSaySounds[VSAY_ONDEFENSE] = FindSoundEffect( S_VSAY_ONDEFENSE );
+	cgs.media.sfxVSaySounds[VSAY_ONOFFENSE] = FindSoundEffect( S_VSAY_ONOFFENSE );
+	cgs.media.sfxVSaySounds[VSAY_OOPS] = FindSoundEffect( S_VSAY_OOPS );
+	cgs.media.sfxVSaySounds[VSAY_SORRY] = FindSoundEffect( S_VSAY_SORRY );
+	cgs.media.sfxVSaySounds[VSAY_THANKS] = FindSoundEffect( S_VSAY_THANKS );
+	cgs.media.sfxVSaySounds[VSAY_NOPROBLEM] = FindSoundEffect( S_VSAY_NOPROBLEM );
+	cgs.media.sfxVSaySounds[VSAY_YEEHAA] = FindSoundEffect( S_VSAY_YEEHAA );
+	cgs.media.sfxVSaySounds[VSAY_GOODGAME] = FindSoundEffect( S_VSAY_GOODGAME );
+	cgs.media.sfxVSaySounds[VSAY_DEFEND] = FindSoundEffect( S_VSAY_DEFEND );
+	cgs.media.sfxVSaySounds[VSAY_ATTACK] = FindSoundEffect( S_VSAY_ATTACK );
+	cgs.media.sfxVSaySounds[VSAY_NEEDBACKUP] = FindSoundEffect( S_VSAY_NEEDBACKUP );
+	cgs.media.sfxVSaySounds[VSAY_BOOO] = FindSoundEffect( S_VSAY_BOOO );
+	cgs.media.sfxVSaySounds[VSAY_NEEDDEFENSE] = FindSoundEffect( S_VSAY_NEEDDEFENSE );
+	cgs.media.sfxVSaySounds[VSAY_NEEDOFFENSE] = FindSoundEffect( S_VSAY_NEEDOFFENSE );
+	cgs.media.sfxVSaySounds[VSAY_NEEDHELP] = FindSoundEffect( S_VSAY_NEEDHELP );
+	cgs.media.sfxVSaySounds[VSAY_ROGER] = FindSoundEffect( S_VSAY_ROGER );
+	cgs.media.sfxVSaySounds[VSAY_AREASECURED] = FindSoundEffect( S_VSAY_AREASECURED );
+	cgs.media.sfxVSaySounds[VSAY_BOOMSTICK] = FindSoundEffect( S_VSAY_BOOMSTICK );
+	cgs.media.sfxVSaySounds[VSAY_OK] = FindSoundEffect( S_VSAY_OK );
+	cgs.media.sfxVSaySounds[VSAY_SHUTUP] = FindSoundEffect( S_VSAY_SHUTUP );
 }
 
 void CG_RegisterMediaModels() {

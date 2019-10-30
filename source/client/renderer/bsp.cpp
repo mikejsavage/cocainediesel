@@ -224,12 +224,12 @@ static float ParseFogStrength( const BSPSpans * bsp ) {
 
 	Span< const char > cursor = bsp->entities;
 
-	if( ParseSpan( &cursor, false ) != "{" )
+	if( ParseSpan( &cursor, Parse_DontStopOnNewLine ) != "{" )
 		return default_fog_strength;
 
 	while( true ) {
-		Span< const char > key = ParseSpan( &cursor, false );
-		Span< const char > value = ParseSpan( &cursor, false );
+		Span< const char > key = ParseSpan( &cursor, Parse_DontStopOnNewLine );
+		Span< const char > value = ParseSpan( &cursor, Parse_DontStopOnNewLine );
 
 		if( key == "" || value == "" || key == "}" )
 			break;

@@ -346,7 +346,7 @@ Span< const char > ParseSpan( const char ** ptr, bool stop_on_newline ) {
 	return ParseSpan( const_cast< char ** >( ptr ), stop_on_newline );
 }
 
-Span< const char > ParseSpan( Span< const char > * cursor, bool stop_on_newline ) {
+Span< const char > ParseSpan( Span< const char > * cursor, ParseStopOnNewLine stop ) {
 	Span< const char > c = *cursor;
 
 	// skip leading whitespace
@@ -356,7 +356,7 @@ Span< const char > ParseSpan( Span< const char > * cursor, bool stop_on_newline 
 			return c;
 		}
 
-		if( c[ 0 ] == '\n' && stop_on_newline ) {
+		if( c[ 0 ] == '\n' && stop == Parse_StopOnNewLine ) {
 			*cursor = c;
 			return Span< char >();
 		}

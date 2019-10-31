@@ -97,15 +97,8 @@ btRigidBody * body1;
 
 #endif
 
-static physx::PxDefaultAllocator allocator;
-static physx::PxDefaultErrorCallback errorCallback;
-
-static physx::PxFoundation * mFoundation;
-physx::PxPhysics * physx_physics;
-physx::PxCooking * physx_cooking;
-static physx::PxScene * mScene;
-physx::PxMaterial * physx_default_material;
-
+static physx::PxDefaultCpuDispatcher * physx_dispatcher;
+static physx::PxScene * physx_scene;
 
 /*
 enum {
@@ -367,39 +360,22 @@ static void AddRagdoll() {
 }
 */
 
+extern physx::PxPhysics * physx_physics; // TODO
+extern physx::PxCooking * physx_cooking;
+extern physx::PxMaterial * physx_default_material;
+
+static physx::PxRigidDynamic * sphere;
+static physx::PxRigidStatic * map_rigid_body;
 
 static int64_t last_reset;
 void InitPhysics() {
 	last_reset = cg.monotonicTime;
 	ZoneScoped;
 
-	mFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, allocator, errorCallback);
-	if(!mFoundation)
-		return; //fatalError("PxCreateFoundation failed!");
-
-	physx::PxTolerancesScale scale;
-
-	physx_physics = PxCreatePhysics(PX_PHYSICS_VERSION, *mFoundation, scale );
-	if(!physx_physics)
-		return; //fatalError("PxCreatePhysics failed!");
-
-	physx::PxCookingParams params(scale);
-	params.meshWeldTolerance = 0.001f;
-	params.meshPreprocessParams = physx::PxMeshPreprocessingFlags(physx::PxMeshPreprocessingFlag::eWELD_VERTICES);
-	physx_cooking = PxCreateCooking(PX_PHYSICS_VERSION, *mFoundation, params);
-	if(!physx_cooking)
-		return; //fatalError("PxCreateCooking failed!");
-
-	physx_default_material = physx_physics->createMaterial(0.5f, 0.5f, 0.1f);
-	if(!physx_default_material)
-		return; //fatalError("createMaterial failed!");
-
+	physx_dispatcher = physx::PxDefaultCpuDispatcherCreate( 2 );
 	physx::PxSceneDesc sceneDesc(physx_physics->getTolerancesScale());
-	sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
-
-
-
-	sceneDesc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate( 2 );
+	sceneDesc.gravity = physx::PxVec3(0.0f, 0.0f, -GRAVITY);
+	sceneDesc.cpuDispatcher = physx_dispatcher;
 	if(!sceneDesc.cpuDispatcher)
 		return; //fatalError("PxDefaultCpuDispatcherCreate failed!");
 
@@ -410,13 +386,32 @@ void InitPhysics() {
 	sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVE_ACTORS;
 	sceneDesc.sceneQueryUpdateMode = physx::PxSceneQueryUpdateMode::eBUILD_ENABLED_COMMIT_DISABLED;
 
-	mScene = physx_physics->createScene(sceneDesc);
-	if(!mScene)
+	physx_scene = physx_physics->createScene(sceneDesc);
+	if(!physx_scene)
 		return; //fatalError("createScene failed!");
 
+	physx_scene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 1.0f );
+	physx_scene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f );
 
-	mScene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 1.0f );
-	mScene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES,  1.0f);
+	map_rigid_body = physx_physics->createRigidStatic( physx::PxTransform( physx::PxIdentity ) );
+
+	{
+		const char * suffix = "*0";
+		u64 hash = Hash64( suffix, strlen( suffix ), cgs.map->base_hash );
+		const Model * model = FindModel( StringHash( hash ) );
+
+		for( u32 i = 0; i < model->num_collision_shapes; i++ ) {
+			map_rigid_body->attachShape( *model->collision_shapes[ i ] );
+		}
+	}
+
+	physx_scene->addActor( *map_rigid_body );
+
+	physx::PxTransform t( physx::PxVec3( -215, 310, 1000 ) );
+	sphere = physx::PxCreateDynamic( *physx_physics, t, physx::PxSphereGeometry( 64 ), *physx_default_material, 10.0f );
+	sphere->setAngularDamping( 0.5f );
+	sphere->setLinearVelocity( physx::PxVec3( 0 ) );
+	physx_scene->addActor( *sphere );
 
 
 
@@ -556,6 +551,9 @@ void InitPhysics() {
 }
 
 void ShutdownPhysics() {
+	physx_scene->release();
+	physx_dispatcher->release();
+
 #if 0
 	while( dynamics_world->getNumConstraints() > 0 ) {
 		btTypedConstraint * constraint = dynamics_world->getConstraint( dynamics_world->getNumConstraints() - 1 );
@@ -586,6 +584,21 @@ void ShutdownPhysics() {
 
 void UpdatePhysics() {
 	ZoneScoped;
+
+	TempAllocator temp = cls.frame_arena.temp();
+
+	u32 scratch_size = 64 * 1024;
+	void * scratch = ALLOC_SIZE( &temp, scratch_size, 16 );
+
+	float dt = cg.frameTime / 1000.0f;
+	physx_scene->simulate( dt, NULL, scratch, scratch_size );
+	physx_scene->fetchResults( true );
+
+	physx::PxMat44 physx_transform = physx::PxMat44( sphere->getGlobalPose() );
+	Mat4 transform = bit_cast< Mat4 >( physx_transform );
+
+	const Model * model = FindModel( "models/objects/gibs/gib" );
+	DrawModel( model, transform * Mat4Scale( 12.8f ), vec4_red );
 
 #if 0
 	if( cg.monotonicTime - last_reset > 5000 ) {

@@ -2068,6 +2068,9 @@ void CL_AsyncStreamRequest( const char *url, const char **headers, int timeout, 
 
 //============================================================================
 
+void InitPhysx(); // TODO
+void ShutdownPhysx();
+
 /*
 * CL_Init
 */
@@ -2095,6 +2098,7 @@ void CL_Init( void ) {
 
 	Con_Init();
 
+	InitPhysx();
 	VID_Init();
 
 	CL_ClearState();
@@ -2164,6 +2168,7 @@ void CL_Shutdown( void ) {
 
 	S_Shutdown();
 	VID_Shutdown();
+	ShutdownPhysx();
 
 	CL_ShutdownAsyncStream();
 

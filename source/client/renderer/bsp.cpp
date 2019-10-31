@@ -372,7 +372,7 @@ static bool Intersect3PlanesPoint( Vec3 * p, BSPPlane plane1, BSPPlane plane2, B
 static bool PointInsideBrush( const DynamicArray< BSPPlane > & planes, Vec3 p ) {
 	constexpr float epsilon = 0.001f;
 	for( BSPPlane plane : planes ) {
-		if( Dot( p, plane.normal ) - plane.distance < epsilon ) {
+		if( Dot( p, plane.normal ) - plane.distance > epsilon ) {
 			return false;
 		}
 	}
@@ -381,6 +381,8 @@ static bool PointInsideBrush( const DynamicArray< BSPPlane > & planes, Vec3 p ) 
 }
 
 static void BrushConvexHull( DynamicArray< Vec3 > * hull, const DynamicArray< BSPPlane > & planes ) {
+	ZoneScoped;
+
 	for( size_t i = 0; i < planes.size(); i++ ) {
 		for( size_t j = i + 1; j < planes.size(); j++ ) {
 			for( size_t k = j + 1; k < planes.size(); k++ ) {
@@ -609,15 +611,18 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 				BrushConvexHull( &hull, planes );
 
 				physx::PxConvexMeshDesc convexDesc;
-				convexDesc.points.count = hull.size();;
+				convexDesc.points.count = hull.size();
 				convexDesc.points.stride = sizeof( Vec3 );
 				convexDesc.points.data = hull.ptr();
 				convexDesc.flags = physx::PxConvexFlag::eCOMPUTE_CONVEX | physx::PxConvexFlag::eSHIFT_VERTICES | physx::PxConvexFlag::eCHECK_ZERO_AREA_TRIANGLES;
 
 				physx::PxDefaultMemoryOutputStream buf;
 				physx::PxConvexMeshCookingResult::Enum result;
-				if(!physx_cooking->cookConvexMesh(convexDesc, buf, &result))
-					return;
+				{
+					ZoneScopedN( "PhysX cook" );
+					if( !physx_cooking->cookConvexMesh( convexDesc, buf, &result ) )
+						return;
+				}
 				physx::PxDefaultMemoryInputData input(buf.getData(), buf.getSize());
 				physx::PxConvexMesh* convexMesh = physx_physics->createConvexMesh(input);
 

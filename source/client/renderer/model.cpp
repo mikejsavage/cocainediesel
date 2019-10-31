@@ -77,15 +77,11 @@ static void DeleteModel( Model * model ) {
 	FREE( sys_allocator, model->primitives );
 	FREE( sys_allocator, model->joints );
 
-	// if( model->collision_shape != NULL ) {
-	// 	while( model->collision_shape->getNumChildShapes() > 0 ) {
-	// 		btCollisionShape * shape = model->collision_shape->getChildShape( model->collision_shape->getNumChildShapes() - 1 );
-	// 		model->collision_shape->removeChildShapeByIndex( model->collision_shape->getNumChildShapes() - 1 );
-	// 		QF_DELETE( sys_allocator, btCollisionShape, shape );
-	// 	}
-        //
-	// 	QF_DELETE( sys_allocator, btCompoundShape, model->collision_shape );
-	// }
+	for( u32 i = 0; i < model->num_collision_shapes; i++ ) {
+		model->collision_shapes[ i ]->release();
+	}
+
+	FREE( sys_allocator, model->collision_shapes );
 }
 
 void ShutdownModels() {

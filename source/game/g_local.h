@@ -171,9 +171,6 @@ typedef struct {
 // can be set from the editor, but aren't actualy present
 // in edict_t during gameplay
 typedef struct {
-	// world vars
-	float fov;
-
 	int lip;
 	int distance;
 	int height;
@@ -182,15 +179,11 @@ typedef struct {
 	const char *noise_start;
 	const char *noise_stop;
 	float pausetime;
-	const char *item;
 	const char *gravity;
 	const char *debris1, *debris2;
 
 	int gameteam;
 
-	int weight;
-	float scale;
-	const char *shaderName;
 	int size;
 
 	int rgba;

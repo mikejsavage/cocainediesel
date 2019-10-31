@@ -220,3 +220,7 @@ Vec3 UniformSampleSphere( RNG * rng );
 Vec3 UniformSampleInsideSphere( RNG * rng );
 Vec2 UniformSampleDisk( RNG * rng );
 float SampleNormalDistribution( RNG * rng );
+
+Vec3 Project( Vec3 a, Vec3 b );
+Vec3 ClosestPointOnLine( Vec3 p0, Vec3 p1, Vec3 p );
+Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p );

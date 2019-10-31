@@ -283,19 +283,14 @@ static T Order2Bezier2D( float tx, float ty, Span2D< const T > control ) {
 	return Order2Bezier( tx, a, b, c );
 }
 
-static Vec3 Project( Vec3 a, Vec3 b ) {
-	return Dot( a, b ) / Dot( b, b ) * b;
-}
-
-static float PointLineDistance( Vec3 start, Vec3 end, Vec3 p ) {
-	Vec3 proj = start + Project( p - start, end - start );
-	return Length( p - proj );
+static float PointSegmentDistance( Vec3 start, Vec3 end, Vec3 p ) {
+	return Length( p - ClosestPointOnSegment( start, end, p ) );
 }
 
 static int Order2BezierSubdivisions( Vec3 control0, Vec3 control1, Vec3 control2, float max_error, Vec3 p0, Vec3 p1, float t0, float t1 ) {
 	float midpoint_t0t1 = ( t0 + t1 ) * 0.5f;
 	Vec3 p = Order2Bezier( midpoint_t0t1, control0, control1, control2 );
-	if( PointLineDistance( p0, p1, p ) <= max_error )
+	if( PointSegmentDistance( p0, p1, p ) <= max_error )
 		return 1;
 
 	int l = Order2BezierSubdivisions( control0, control1, control2, max_error, p0, p, t0, midpoint_t0t1 );

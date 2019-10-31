@@ -242,12 +242,7 @@ static const asEnumVal_t asClientStateEnumVals[] =
 static const asEnumVal_t asSoundChannelEnumVals[] =
 {
 	ASLIB_ENUM_VAL( CHAN_AUTO ),
-	ASLIB_ENUM_VAL( CHAN_PAIN ),
-	ASLIB_ENUM_VAL( CHAN_VOICE ),
-	ASLIB_ENUM_VAL( CHAN_ITEM ),
 	ASLIB_ENUM_VAL( CHAN_BODY ),
-	ASLIB_ENUM_VAL( CHAN_MUZZLEFLASH ),
-	ASLIB_ENUM_VAL( CHAN_FIXED ),
 
 	ASLIB_ENUM_VAL_NULL
 };

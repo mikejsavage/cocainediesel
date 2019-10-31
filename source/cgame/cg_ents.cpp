@@ -882,7 +882,7 @@ void CG_EntityLoopSound( entity_state_t *state, float attenuation ) {
 		return;
 	}
 
-	S_ImmediateSound( cgs.soundPrecache[state->sound], state->number, cg_volume_effects->value, ISVIEWERENTITY( state->number ) ? ATTN_NONE : ATTN_IDLE );
+	S_ImmediateEntitySound( cgs.soundPrecache[state->sound], state->number, cg_volume_effects->value, ISVIEWERENTITY( state->number ) ? ATTN_NONE : ATTN_IDLE );
 }
 
 /*
@@ -972,10 +972,14 @@ void CG_AddEntities( void ) {
 				CG_AddBombHudEntity( cent );
 				break;
 
-			case ET_LASER:
+			case ET_LASER: {
 				CG_AddLaserEnt( cent );
-				CG_EntityLoopSound( state, ATTN_STATIC );
-				break;
+
+				const SoundEffect * sfx = cgs.soundPrecache[ state->sound ];
+				if( sfx != NULL ) {
+					S_ImmediateLineSound( sfx, state->number, FromQF3( cent->ent.origin ), FromQF3( cent->ent.origin2 ), cg_volume_effects->value, ATTN_IDLE );
+				}
+			} break;
 
 			case ET_SPIKES:
 				CG_AddGenericEnt( cent );

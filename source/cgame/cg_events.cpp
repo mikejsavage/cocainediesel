@@ -156,7 +156,9 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 		VectorCopy( projectsource.origin, laserOrigin );
 	}
 
-	DrawBeam( FromQF3( laserOrigin ), FromQF3( trace.endpos ), 16.0f, FromQF4( color ), cgs.media.shaderLGBeam );
+	Vec3 start = FromQF3( laserOrigin );
+	Vec3 end = FromQF3( trace.endpos );
+	DrawBeam( start, end, 16.0f, FromQF4( color ), cgs.media.shaderLGBeam );
 
 	// enable continuous flash on the weapon owner
 	if( cg_weaponFlashes->integer ) {
@@ -164,9 +166,9 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 	}
 
 	if( ISVIEWERENTITY( cent->current.number ) ) {
-		S_ImmediateSound( sfx, cent->current.number, cg_volume_effects->value, ATTN_NONE );
+		S_ImmediateLineSound( sfx, cent->current.number, start, end, cg_volume_effects->value, ATTN_NONE );
 	} else {
-		S_ImmediateSound( sfx, cent->current.number, cg_volume_effects->value, ATTN_STATIC );
+		S_ImmediateLineSound( sfx, cent->current.number, start, end, cg_volume_effects->value, ATTN_STATIC );
 	}
 
 	laserOwner = NULL;
@@ -207,11 +209,11 @@ static void CG_FireWeaponEvent( int entNum, int weapon ) {
 
 	if( sfx ) {
 		if( ISVIEWERENTITY( entNum ) ) {
-			S_StartGlobalSound( sfx, CHAN_MUZZLEFLASH, cg_volume_effects->value );
+			S_StartGlobalSound( sfx, CHAN_AUTO, cg_volume_effects->value );
 		} else {
 			// fixed position is better for location, but the channels are used from worldspawn
 			// and openal runs out of channels quick on cheap cards. Relative sound uses per-entity channels.
-			S_StartEntitySound( sfx, entNum, CHAN_MUZZLEFLASH, cg_volume_effects->value, attenuation );
+			S_StartEntitySound( sfx, entNum, CHAN_AUTO, cg_volume_effects->value, attenuation );
 		}
 	}
 
@@ -469,7 +471,7 @@ void CG_AddAnnouncerEvent( const SoundEffect *sound, bool queued ) {
 	}
 
 	if( !queued ) {
-		S_StartLocalSound( sound, CHAN_ANNOUNCER, cg_volume_announcer->value );
+		S_StartLocalSound( sound, CHAN_AUTO, cg_volume_announcer->value );
 		cg_announcerEventsDelay = CG_ANNOUNCER_EVENTS_FRAMETIME; // wait
 		return;
 	}
@@ -495,7 +497,7 @@ void CG_ReleaseAnnouncerEvents( void ) {
 
 	if( cg_announcerEventsCurrent < cg_announcerEventsHead ) {
 		const SoundEffect * sound = cg_announcerEvents[cg_announcerEventsCurrent & CG_MAX_ANNOUNCER_EVENTS_MASK].sound;
-		S_StartLocalSound( sound, CHAN_ANNOUNCER, cg_volume_announcer->value );
+		S_StartLocalSound( sound, CHAN_AUTO, cg_volume_announcer->value );
 		cg_announcerEventsDelay = CG_ANNOUNCER_EVENTS_FRAMETIME; // wait
 		cg_announcerEventsCurrent++;
 	} else {
@@ -570,7 +572,7 @@ void CG_Event_Fall( const entity_state_t * state, int parm ) {
 */
 static void CG_Event_Pain( entity_state_t *state, int parm ) {
 	constexpr PlayerSound sounds[] = { PlayerSound_Pain25, PlayerSound_Pain50, PlayerSound_Pain75, PlayerSound_Pain100 };
-	CG_PlayerSound( state->number, CHAN_PAIN, sounds[ parm ], cg_volume_players->value, state->attenuation );
+	CG_PlayerSound( state->number, CHAN_AUTO, sounds[ parm ], cg_volume_players->value, state->attenuation );
 	constexpr int animations[] = { TORSO_PAIN1, TORSO_PAIN2, TORSO_PAIN3 };
 	int animation = animations[ rand() % ARRAY_COUNT( animations ) ];
 	CG_PModel_AddAnimation( state->number, 0, animation, 0, EVENT_CHANNEL );
@@ -587,7 +589,7 @@ static void CG_Event_Die( int entNum, int parm ) {
 	};
 	parm %= ARRAY_COUNT( animations );
 
-	CG_PlayerSound( entNum, CHAN_PAIN, PlayerSound_Death, cg_volume_players->value, ATTN_NORM );
+	CG_PlayerSound( entNum, CHAN_AUTO, PlayerSound_Death, cg_volume_players->value, ATTN_NORM );
 	CG_PModel_AddAnimation( entNum, animations[ parm ].dead, animations[ parm ].dead, ANIM_NONE, BASE_CHANNEL );
 	CG_PModel_AddAnimation( entNum, animations[ parm ].dying, animations[ parm ].dying, ANIM_NONE, EVENT_CHANNEL );
 }
@@ -810,9 +812,9 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 
 		case EV_NOAMMOCLICK:
 			if( viewer ) {
-				S_StartGlobalSound( cgs.media.sfxWeaponUpNoAmmo, CHAN_ITEM, cg_volume_effects->value );
+				S_StartGlobalSound( cgs.media.sfxWeaponUpNoAmmo, CHAN_AUTO, cg_volume_effects->value );
 			} else {
-				S_StartFixedSound( cgs.media.sfxWeaponUpNoAmmo, FromQF3( ent->origin ), CHAN_ITEM, cg_volume_effects->value, ATTN_IDLE );
+				S_StartFixedSound( cgs.media.sfxWeaponUpNoAmmo, FromQF3( ent->origin ), CHAN_AUTO, cg_volume_effects->value, ATTN_IDLE );
 			}
 			break;
 

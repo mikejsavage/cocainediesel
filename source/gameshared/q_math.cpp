@@ -741,3 +741,17 @@ float SampleNormalDistribution( RNG * rng ) {
 	float u2 = random_float01( rng );
 	return sqrtf( -2.0f * logf( u1 ) ) * cosf( u2 * 2.0f * float( M_PI ) );
 }
+
+Vec3 Project( Vec3 a, Vec3 b ) {
+	return Dot( a, b ) / Dot( b, b ) * b;
+}
+
+Vec3 ClosestPointOnLine( Vec3 p0, Vec3 p1, Vec3 p ) {
+	return p0 + Project( p - p0, p1 - p0 );
+}
+
+Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p ) {
+	Vec3 seg = end - start;
+	float t = Dot( p - start, seg ) / Dot( seg, seg );
+	return Lerp( start, Clamp01( t ), end );
+}

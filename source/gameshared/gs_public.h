@@ -149,16 +149,10 @@ typedef struct {
 #define ATTN_STATIC             5       // diminish very rapidly with distance
 
 // sound channels
-// channel 0 never willingly overrides
-// other channels (1-7) always override a playing sound on that channel
+// CHAN_AUTO never willingly overrides
 enum {
 	CHAN_AUTO,
-	CHAN_PAIN,
-	CHAN_VOICE,
-	CHAN_ITEM,
 	CHAN_BODY,
-	CHAN_MUZZLEFLASH,
-	CHAN_ANNOUNCER,
 
 	CHAN_TOTAL,
 

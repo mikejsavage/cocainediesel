@@ -329,6 +329,9 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data ) {
 }
 
 static void LoadSoundEffect( const char * path ) {
+	ZoneScoped;
+	ZoneText( path, strlen( path ) );
+
 	Span< const char > data = AssetString( path );
 
 	SoundEffect sfx = { };

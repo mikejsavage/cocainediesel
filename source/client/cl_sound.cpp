@@ -15,19 +15,29 @@
 #define STB_VORBIS_HEADER_ONLY
 #include "stb/stb_vorbis.h"
 
-struct Sound {
-	ALuint buffer;
+struct SoundEffect {
+	struct PlaybackConfig {
+		StringHash sounds[ 4 ];
+		u8 num_random_sounds;
+
+		float delay;
+		float volume;
+		float attenuation;
+	};
+
+	PlaybackConfig sounds[ 8 ];
+	u8 num_sounds;
 };
 
-enum SoundType {
-	SoundType_Global, // plays at max volume everywhere
-	SoundType_Fixed, // plays from some point in the world
-	SoundType_Attached, // moves with an entity
-	SoundType_AttachedImmediate, // moves with an entity and loops so long as is gets touched every frame
+enum PlayingSoundType {
+	PlayingSoundType_Global, // plays at max volume everywhere
+	PlayingSoundType_Fixed, // plays from some point in the world
+	PlayingSoundType_Attached, // moves with an entity
+	PlayingSoundType_AttachedImmediate, // moves with an entity and loops so long as is gets touched every frame
 };
 
 struct PlayingSound {
-	SoundType type;
+	PlayingSoundType type;
 	const SoundEffect * sfx;
 	int64_t start_time;
 	float volume;
@@ -453,28 +463,28 @@ static void StartSound( PlayingSound * ps, u8 i ) {
 	alSourcef( source, AL_ROLLOFF_FACTOR, config.attenuation );
 
 	switch( ps->type ) {
-		case SoundType_Global:
+		case PlayingSoundType_Global:
 			alSource3f( source, AL_POSITION, 0.0f, 0.0f, 0.0f );
 			alSource3f( source, AL_VELOCITY, 0.0f, 0.0f, 0.0f );
 			alSourcei( source, AL_LOOPING, AL_FALSE );
 			alSourcei( source, AL_SOURCE_RELATIVE, AL_TRUE );
 			break;
 
-		case SoundType_Fixed:
+		case PlayingSoundType_Fixed:
 			alSourcefv( source, AL_POSITION, ps->origin.ptr() );
 			alSource3f( source, AL_VELOCITY, 0.0f, 0.0f, 0.0f );
 			alSourcei( source, AL_LOOPING, AL_FALSE );
 			alSourcei( source, AL_SOURCE_RELATIVE, AL_FALSE );
 			break;
 
-		case SoundType_Attached:
+		case PlayingSoundType_Attached:
 			alSourcefv( source, AL_POSITION, entities[ ps->ent_num ].origin.ptr() );
 			alSourcefv( source, AL_VELOCITY, entities[ ps->ent_num ].velocity.ptr() );
 			alSourcei( source, AL_LOOPING, AL_FALSE );
 			alSourcei( source, AL_SOURCE_RELATIVE, AL_FALSE );
 			break;
 
-		case SoundType_AttachedImmediate:
+		case PlayingSoundType_AttachedImmediate:
 			alSourcefv( source, AL_POSITION, entities[ ps->ent_num ].origin.ptr() );
 			alSourcefv( source, AL_VELOCITY, entities[ ps->ent_num ].velocity.ptr() );
 			alSourcei( source, AL_LOOPING, AL_TRUE );
@@ -521,7 +531,7 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 		float t = ( cls.monotonicTime - ps->start_time ) * 0.001f;
 		bool all_stopped = true;
 
-		bool not_touched = ps->type == SoundType_AttachedImmediate && !ps->touched_since_last_update;
+		bool not_touched = ps->type == PlayingSoundType_AttachedImmediate && !ps->touched_since_last_update;
 		ps->touched_since_last_update = false;
 
 		for( u8 j = 0; j < ps->sfx->num_sounds; j++ ) {
@@ -549,7 +559,7 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 
 		if( all_stopped ) {
 			// stop the current sound
-			if( ps->type == SoundType_AttachedImmediate )
+			if( ps->type == PlayingSoundType_AttachedImmediate )
 				entities[ ps->ent_num ].immediate_ps = NULL;
 
 			// remove-swap it from playing_sound_effects
@@ -558,7 +568,7 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 				Swap2( ps, &playing_sound_effects[ num_playing_sound_effects ] );
 
 				// fix up the immediate_ps pointer for the sound that got swapped in
-				if( ps->type == SoundType_AttachedImmediate )
+				if( ps->type == PlayingSoundType_AttachedImmediate )
 					entities[ ps->ent_num ].immediate_ps = ps;
 			}
 
@@ -573,7 +583,7 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 			if( s_volume->modified )
 				alSourcef( ps->sources[ j ], AL_GAIN, ps->volume * ps->sfx->sounds[ j ].volume * s_volume->value );
 
-			if( ps->type == SoundType_Attached || ps->type == SoundType_AttachedImmediate ) {
+			if( ps->type == PlayingSoundType_Attached || ps->type == PlayingSoundType_AttachedImmediate ) {
 				alSourcefv( ps->sources[ j ], AL_POSITION, entities[ ps->ent_num ].origin.ptr() );
 				alSourcefv( ps->sources[ j ], AL_VELOCITY, entities[ ps->ent_num ].velocity.ptr() );
 			}
@@ -628,7 +638,7 @@ static PlayingSound * S_FindEmptyPlayingSound( int ent_num, int channel ) {
 	return &playing_sound_effects[ num_playing_sound_effects - 1 ];
 }
 
-static bool S_StartSoundEffect( const SoundEffect * sfx, Vec3 origin, int ent_num, int channel, float volume, float attenuation, SoundType type ) {
+static bool S_StartSoundEffect( const SoundEffect * sfx, Vec3 origin, int ent_num, int channel, float volume, float attenuation, PlayingSoundType type ) {
 	if( !initialized || sfx == NULL )
 		return false;
 
@@ -648,7 +658,7 @@ static bool S_StartSoundEffect( const SoundEffect * sfx, Vec3 origin, int ent_nu
 	ps->origin = origin;
 	ps->ent_num = ent_num;
 
-	if( ps->type == SoundType_AttachedImmediate ) {
+	if( ps->type == PlayingSoundType_AttachedImmediate ) {
 		entities[ ent_num ].immediate_ps = ps;
 	}
 
@@ -656,25 +666,25 @@ static bool S_StartSoundEffect( const SoundEffect * sfx, Vec3 origin, int ent_nu
 }
 
 void S_StartFixedSound( const SoundEffect * sfx, Vec3 origin, int channel, float volume, float attenuation ) {
-	S_StartSoundEffect( sfx, origin, 0, channel, volume, attenuation, SoundType_Fixed );
+	S_StartSoundEffect( sfx, origin, 0, channel, volume, attenuation, PlayingSoundType_Fixed );
 }
 
 void S_StartEntitySound( const SoundEffect * sfx, int ent_num, int channel, float volume, float attenuation ) {
-	S_StartSoundEffect( sfx, Vec3( 0 ), ent_num, channel, volume, attenuation, SoundType_Attached );
+	S_StartSoundEffect( sfx, Vec3( 0 ), ent_num, channel, volume, attenuation, PlayingSoundType_Attached );
 }
 
 void S_StartGlobalSound( const SoundEffect * sfx, int channel, float volume ) {
-	S_StartSoundEffect( sfx, Vec3( 0 ), 0, channel, volume, 0, SoundType_Global );
+	S_StartSoundEffect( sfx, Vec3( 0 ), 0, channel, volume, 0, PlayingSoundType_Global );
 }
 
 void S_StartLocalSound( const SoundEffect * sfx, int channel, float volume ) {
-	S_StartSoundEffect( sfx, Vec3( 0 ), -1, channel, volume, 0, SoundType_Global );
+	S_StartSoundEffect( sfx, Vec3( 0 ), -1, channel, volume, 0, PlayingSoundType_Global );
 }
 
 void S_ImmediateSound( const SoundEffect * sfx, int ent_num, float volume, float attenuation ) {
 	// TODO: replace old immediate sound if sfx changed
 	if( entities[ ent_num ].immediate_ps == NULL ) {
-		bool started = S_StartSoundEffect( sfx, Vec3( 0 ), ent_num, 0, volume, attenuation, SoundType_AttachedImmediate );
+		bool started = S_StartSoundEffect( sfx, Vec3( 0 ), ent_num, 0, volume, attenuation, PlayingSoundType_AttachedImmediate );
 		if( !started )
 			return;
 	}

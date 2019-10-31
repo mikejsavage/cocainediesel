@@ -1,20 +1,6 @@
 #pragma once
 
-struct Sound;
-
-struct SoundEffect {
-	struct PlaybackConfig {
-		StringHash sounds[ 4 ];
-		u8 num_random_sounds;
-
-		float delay;
-		float volume;
-		float attenuation;
-	};
-
-	PlaybackConfig sounds[ 8 ];
-	u8 num_sounds;
-};
+struct SoundEffect;
 
 bool S_Init();
 void S_Shutdown();

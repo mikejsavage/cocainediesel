@@ -242,12 +242,7 @@ static const asEnumVal_t asClientStateEnumVals[] =
 static const asEnumVal_t asSoundChannelEnumVals[] =
 {
 	ASLIB_ENUM_VAL( CHAN_AUTO ),
-	ASLIB_ENUM_VAL( CHAN_PAIN ),
-	ASLIB_ENUM_VAL( CHAN_VOICE ),
-	ASLIB_ENUM_VAL( CHAN_ITEM ),
 	ASLIB_ENUM_VAL( CHAN_BODY ),
-	ASLIB_ENUM_VAL( CHAN_MUZZLEFLASH ),
-	ASLIB_ENUM_VAL( CHAN_FIXED ),
 
 	ASLIB_ENUM_VAL_NULL
 };
@@ -500,19 +495,19 @@ static bool objectMatch_timeLimitHit( match_t *self ) {
 }
 
 static bool objectMatch_isPaused( match_t *self ) {
-	return GS_MatchPaused();
+	return GS_MatchPaused( &server_gs );
 }
 
 static int64_t objectMatch_startTime( match_t *self ) {
-	return GS_MatchStartTime();
+	return GS_MatchStartTime( &server_gs );
 }
 
 static int64_t objectMatch_endTime( match_t *self ) {
-	return GS_MatchEndTime();
+	return GS_MatchEndTime( &server_gs );
 }
 
 static int objectMatch_getState( match_t *self ) {
-	return GS_MatchState();
+	return GS_MatchState( &server_gs );
 }
 
 static asstring_t *objectMatch_getScore( match_t *self ) {
@@ -526,7 +521,7 @@ static void objectMatch_setScore( asstring_t *name, match_t *self ) {
 }
 
 static void objectMatch_setClockOverride( int64_t time, match_t *self ) {
-	gs.gameState.stats[GAMESTAT_CLOCKOVERRIDE] = time;
+	server_gs.gameState.stats[GAMESTAT_CLOCKOVERRIDE] = time;
 }
 
 static const asFuncdef_t match_Funcdefs[] =
@@ -583,8 +578,8 @@ static void objectGametypeDescriptor_SetTeamSpawnsystem( int team, int spawnsyst
 	G_SpawnQueue_SetTeamSpawnsystem( team, spawnsystem, wave_time, wave_maxcount, spectate_team );
 }
 
-static bool objectGametypeDescriptor_isInvidualGameType( gametype_descriptor_t *self ) {
-	return GS_InvidualGameType();
+static bool objectGametypeDescriptor_isIndividualGameType( gametype_descriptor_t *self ) {
+	return GS_IndividualGameType( &server_gs );
 }
 
 static const asFuncdef_t gametypedescr_Funcdefs[] =
@@ -600,7 +595,7 @@ static const asBehavior_t gametypedescr_ObjectBehaviors[] =
 static const asMethod_t gametypedescr_Methods[] =
 {
 	{ ASLIB_FUNCTION_DECL( void, setTeamSpawnsystem, ( int team, int spawnsystem, int wave_time, int wave_maxcount, bool deadcam ) ), asFUNCTION( objectGametypeDescriptor_SetTeamSpawnsystem ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( bool, get_isInvidualGameType, ( ) const ), asFUNCTION( objectGametypeDescriptor_isInvidualGameType ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( bool, get_isIndividualGameType, ( ) const ), asFUNCTION( objectGametypeDescriptor_isIndividualGameType ), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL
 };
@@ -648,7 +643,7 @@ static edict_t *objectTeamlist_GetPlayerEntity( int index, g_teamlist_t *obj ) {
 		return NULL;
 	}
 
-	if( obj->playerIndices[index] < 1 || obj->playerIndices[index] > gs.maxclients ) {
+	if( obj->playerIndices[index] < 1 || obj->playerIndices[index] > server_gs.maxclients ) {
 		return NULL;
 	}
 
@@ -830,7 +825,7 @@ static bool objectGameClient_isReady( gclient_t *self ) {
 		return false;
 	}
 
-	return ( level.ready[self - game.clients] || GS_MatchState() == MATCH_STATE_PLAYTIME ) ? true : false;
+	return ( level.ready[self - game.clients] || GS_MatchState( &server_gs ) == MATCH_STATE_PLAYTIME ) ? true : false;
 }
 
 static bool objectGameClient_isBot( gclient_t *self ) {
@@ -838,7 +833,7 @@ static bool objectGameClient_isBot( gclient_t *self ) {
 	const edict_t *ent;
 
 	playerNum = objectGameClient_PlayerNum( self );
-	if( playerNum < 0 && playerNum >= gs.maxclients ) {
+	if( playerNum < 0 && playerNum >= server_gs.maxclients ) {
 		return false;
 	}
 
@@ -871,7 +866,7 @@ static void objectGameClient_Respawn( bool ghost, gclient_t *self ) {
 
 	playerNum = objectGameClient_PlayerNum( self );
 
-	if( playerNum >= 0 && playerNum < gs.maxclients ) {
+	if( playerNum >= 0 && playerNum < server_gs.maxclients ) {
 		G_ClientRespawn( &game.edicts[playerNum + 1], ghost );
 	}
 }
@@ -880,7 +875,7 @@ static edict_t *objectGameClient_GetEntity( gclient_t *self ) {
 	int playerNum;
 
 	playerNum = objectGameClient_PlayerNum( self );
-	if( playerNum < 0 || playerNum >= gs.maxclients ) {
+	if( playerNum < 0 || playerNum >= server_gs.maxclients ) {
 		return NULL;
 	}
 
@@ -930,7 +925,7 @@ static void objectGameClient_InventoryGiveItemExt( int index, int count, gclient
 	}
 
 	int playerNum = objectGameClient_PlayerNum( self );
-	if( playerNum < 0 || playerNum >= gs.maxclients ) {
+	if( playerNum < 0 || playerNum >= server_gs.maxclients ) {
 		return;
 	}
 
@@ -975,7 +970,7 @@ static void objectGameClient_addAward( asstring_t *msg, gclient_t *self ) {
 	}
 
 	playerNum = objectGameClient_PlayerNum( self );
-	if( playerNum < 0 || playerNum >= gs.maxclients ) {
+	if( playerNum < 0 || playerNum >= server_gs.maxclients ) {
 		return;
 	}
 
@@ -990,7 +985,7 @@ static void objectGameClient_execGameCommand( asstring_t *msg, gclient_t *self )
 	}
 
 	playerNum = objectGameClient_PlayerNum( self );
-	if( playerNum < 0 || playerNum >= gs.maxclients ) {
+	if( playerNum < 0 || playerNum >= server_gs.maxclients ) {
 		return;
 	}
 
@@ -1090,7 +1085,7 @@ static void objectGameClient_printMessage( asstring_t *str, gclient_t *self ) {
 	}
 
 	playerNum = objectGameClient_PlayerNum( self );
-	if( playerNum < 0 || playerNum >= gs.maxclients ) {
+	if( playerNum < 0 || playerNum >= server_gs.maxclients ) {
 		return;
 	}
 
@@ -1101,7 +1096,7 @@ static void objectGameClient_ChaseCam( asstring_t *str, bool teamonly, gclient_t
 	int playerNum;
 
 	playerNum = objectGameClient_PlayerNum( self );
-	if( playerNum < 0 || playerNum >= gs.maxclients ) {
+	if( playerNum < 0 || playerNum >= server_gs.maxclients ) {
 		return;
 	}
 
@@ -1112,7 +1107,7 @@ static void objectGameClient_SetChaseActive( bool active, gclient_t *self ) {
 	int playerNum;
 
 	playerNum = objectGameClient_PlayerNum( self );
-	if( playerNum < 0 || playerNum >= gs.maxclients ) {
+	if( playerNum < 0 || playerNum >= server_gs.maxclients ) {
 		return;
 	}
 
@@ -1624,11 +1619,11 @@ void objectTrace_CopyConstructor( astrace_t *other, astrace_t *self ) {
 
 static bool objectTrace_doTrace4D( asvec3_t *start, asvec3_t *mins, asvec3_t *maxs, asvec3_t *end, int ignore, int contentMask, int timeDelta, astrace_t *self ) {
 	if( !start || !end ) { // should never happen unless the coder explicitly feeds null
-		gs.api.Printf( "* WARNING: gametype plug-in script attempted to call method 'trace.doTrace' with a null vector pointer\n* Tracing skept" );
+		server_gs.api.Printf( "* WARNING: gametype plug-in script attempted to call method 'trace.doTrace' with a null vector pointer\n* Tracing skept" );
 		return false;
 	}
 
-	gs.api.Trace( &self->trace, start->v, mins ? mins->v : vec3_origin, maxs ? maxs->v : vec3_origin, end->v, ignore, contentMask, 0 );
+	server_gs.api.Trace( &self->trace, start->v, mins ? mins->v : vec3_origin, maxs ? maxs->v : vec3_origin, end->v, ignore, contentMask, 0 );
 
 	if( self->trace.startsolid || self->trace.allsolid ) {
 		return true;
@@ -1808,7 +1803,7 @@ static edict_t *asFunc_GetEntity( int entNum ) {
 }
 
 static gclient_t *asFunc_GetClient( int clientNum ) {
-	if( clientNum < 0 || clientNum >= gs.maxclients ) {
+	if( clientNum < 0 || clientNum >= server_gs.maxclients ) {
 		return NULL;
 	}
 
@@ -2138,7 +2133,7 @@ static void asFunc_G_LocalSound( gclient_t *target, int channel, int soundindex 
 	if( target && !target->asFactored ) {
 		int playerNum = target - game.clients;
 
-		if( playerNum < 0 || playerNum >= gs.maxclients ) {
+		if( playerNum < 0 || playerNum >= server_gs.maxclients ) {
 			return;
 		}
 
@@ -2157,7 +2152,7 @@ static void asFunc_G_AnnouncerSound( gclient_t *target, int soundindex, int team
 	if( target && !target->asFactored ) {
 		playerNum = target - game.clients;
 
-		if( playerNum < 0 || playerNum >= gs.maxclients ) {
+		if( playerNum < 0 || playerNum >= server_gs.maxclients ) {
 			return;
 		}
 
@@ -2167,7 +2162,7 @@ static void asFunc_G_AnnouncerSound( gclient_t *target, int soundindex, int team
 	if( ignore && !ignore->asFactored ) {
 		playerNum = ignore - game.clients;
 
-		if( playerNum >= 0 && playerNum < gs.maxclients ) {
+		if( playerNum >= 0 && playerNum < server_gs.maxclients ) {
 			passent = game.edicts + playerNum + 1;
 		}
 	}
@@ -2295,7 +2290,7 @@ static const asglobproperties_t asGlobProps[] =
 	//{ "const uint serverTime", &game.serverTime }, // I think this one isn't script business
 	{ "const int maxEntities", &game.maxentities },
 	{ "const int numEntities", &game.numentities },
-	{ "const int maxClients", &gs.maxclients },
+	{ "const int maxClients", &server_gs.maxclients },
 	{ "GametypeDesc gametype", &level.gametype },
 	{ "Match match", &level.gametype.match },
 

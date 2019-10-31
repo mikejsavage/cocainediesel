@@ -22,6 +22,11 @@ constexpr size_t ARRAY_COUNT( const T ( &arr )[ N ] ) {
 	return N;
 }
 
+template< typename T, typename M, size_t N >
+constexpr size_t ARRAY_COUNT( M ( T::* )[ N ] ) {
+	return N;
+}
+
 #define CONCAT_HELPER( a, b ) a##b
 #define CONCAT( a, b ) CONCAT_HELPER( a, b )
 #define COUNTER_NAME( x ) CONCAT( x, __COUNTER__ )
@@ -101,7 +106,7 @@ void format( FormatBuffer * fb, Span< const char > arr, const FormatOpts & opts 
 
 template< size_t N >
 bool operator==( Span< const char > span, const char ( &str )[ N ] ) {
-	return span.n == N && memcmp( span.ptr, str, N ) == 0;
+	return span.n == N - 1 && memcmp( span.ptr, str, span.n ) == 0;
 }
 
 template< size_t N > bool operator==( const char ( &str )[ N ], Span< const char > span ) { return span == str; }

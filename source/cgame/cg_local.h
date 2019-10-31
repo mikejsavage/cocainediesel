@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/gs_public.h"
 #include "ref.h"
 
+#include "client/client.h"
 #include "cg_public.h"
 #include "cg_syscalls.h"
 #include "cg_particles.h"
@@ -112,46 +113,46 @@ typedef struct {
 
 typedef struct {
 	// sounds
-	const SoundAsset * sfxWeaponUp;
-	const SoundAsset * sfxWeaponUpNoAmmo;
+	const SoundEffect * sfxWeaponUp;
+	const SoundEffect * sfxWeaponUpNoAmmo;
 
-	const SoundAsset * sfxWeaponHit[4];
-	const SoundAsset * sfxWeaponKill;
-	const SoundAsset * sfxWeaponHitTeam;
+	const SoundEffect * sfxWeaponHit[4];
+	const SoundEffect * sfxWeaponKill;
+	const SoundEffect * sfxWeaponHitTeam;
 
-	const SoundAsset * sfxItemRespawn;
-	const SoundAsset * sfxTeleportIn;
-	const SoundAsset * sfxTeleportOut;
-	const SoundAsset * sfxShellHit;
+	const SoundEffect * sfxItemRespawn;
+	const SoundEffect * sfxTeleportIn;
+	const SoundEffect * sfxTeleportOut;
+	const SoundEffect * sfxShellHit;
 
-	const SoundAsset * sfxBladeFleshHit[3];
-	const SoundAsset * sfxBladeWallHit[2];
+	const SoundEffect * sfxBladeFleshHit;
+	const SoundEffect * sfxBladeWallHit;
 
-	const SoundAsset * sfxRic[2];
+	const SoundEffect * sfxBulletImpact;
 
-	const SoundAsset * sfxRiotgunHit;
+	const SoundEffect * sfxRiotgunHit;
 
-	const SoundAsset * sfxGrenadeBounce[2];
-	const SoundAsset * sfxGrenadeExplosion;
+	const SoundEffect * sfxGrenadeBounce;
+	const SoundEffect * sfxGrenadeExplosion;
 
-	const SoundAsset * sfxRocketLauncherHit;
+	const SoundEffect * sfxRocketLauncherHit;
 
-	const SoundAsset * sfxPlasmaHit;
+	const SoundEffect * sfxPlasmaHit;
 
-	const SoundAsset * sfxLasergunHum;
-	const SoundAsset * sfxLasergunStop;
-	const SoundAsset * sfxLasergunHit[3];
+	const SoundEffect * sfxLasergunHum;
+	const SoundEffect * sfxLasergunStop;
+	const SoundEffect * sfxLasergunHit;
 
-	const SoundAsset * sfxElectroboltHit;
+	const SoundEffect * sfxElectroboltHit;
 
-	const SoundAsset * sfxVSaySounds[VSAY_TOTAL];
+	const SoundEffect * sfxVSaySounds[VSAY_TOTAL];
 
-	const SoundAsset * sfxSpikesArm;
-	const SoundAsset * sfxSpikesDeploy;
-	const SoundAsset * sfxSpikesGlint;
-	const SoundAsset * sfxSpikesRetract;
+	const SoundEffect * sfxSpikesArm;
+	const SoundEffect * sfxSpikesDeploy;
+	const SoundEffect * sfxSpikesGlint;
+	const SoundEffect * sfxSpikesRetract;
 
-	const SoundAsset * sfxFall;
+	const SoundEffect * sfxFall;
 
 	// models
 	const Model * modDash;
@@ -322,7 +323,7 @@ typedef struct {
 	// force models
 	PlayerModelMetadata *teamModelInfo[2];
 
-	const SoundAsset *soundPrecache[MAX_SOUNDS];
+	const SoundEffect *soundPrecache[MAX_SOUNDS];
 	const Material *imagePrecache[MAX_IMAGES];
 
 	int precacheModelsStart;
@@ -448,6 +449,7 @@ void CG_AddEntities( void );
 void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity );
 void CG_LerpEntities( void );
 void CG_LerpGenericEnt( centity_t *cent );
+void CG_BBoxForEntityState( const entity_state_t * state, vec3_t mins, vec3_t maxs );
 
 void CG_AddColoredOutLineEffect( entity_t *ent, int effects, uint8_t r, uint8_t g, uint8_t b, uint8_t a );
 
@@ -766,7 +768,7 @@ extern cvar_t *cg_damage_indicator_time;
 
 void CG_FireEvents( bool early );
 void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted );
-void CG_AddAnnouncerEvent( const SoundAsset *sound, bool queued );
+void CG_AddAnnouncerEvent( const SoundEffect *sound, bool queued );
 void CG_ReleaseAnnouncerEvents( void );
 void CG_ClearAnnouncerEvents( void );
 

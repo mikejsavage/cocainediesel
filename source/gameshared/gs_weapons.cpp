@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /*
 * GS_TraceBullet
 */
-trace_t *GS_TraceBullet( trace_t *trace, vec3_t start, vec3_t dir, vec3_t right, vec3_t up, float r, float u, int range, int ignore, int timeDelta ) {
+trace_t *GS_TraceBullet( const gs_state_t * gs, trace_t *trace, vec3_t start, vec3_t dir, vec3_t right, vec3_t up, float r, float u, int range, int ignore, int timeDelta ) {
 	vec3_t end;
 	bool water = false;
 	vec3_t water_start;
@@ -47,13 +47,13 @@ trace_t *GS_TraceBullet( trace_t *trace, vec3_t start, vec3_t dir, vec3_t right,
 		VectorMA( end, u, up, end );
 	}
 
-	if( gs.api.PointContents( start, timeDelta ) & MASK_WATER ) {
+	if( gs->api.PointContents( start, timeDelta ) & MASK_WATER ) {
 		water = true;
 		VectorCopy( start, water_start );
 		content_mask &= ~MASK_WATER;
 	}
 
-	gs.api.Trace( trace, start, vec3_origin, vec3_origin, end, ignore, content_mask, timeDelta );
+	gs->api.Trace( trace, start, vec3_origin, vec3_origin, end, ignore, content_mask, timeDelta );
 
 	// see if we hit water
 	if( trace->contents & MASK_WATER ) {
@@ -62,7 +62,7 @@ trace_t *GS_TraceBullet( trace_t *trace, vec3_t start, vec3_t dir, vec3_t right,
 		VectorCopy( trace->endpos, water_start );
 
 		// re-trace ignoring water this time
-		gs.api.Trace( trace, water_start, vec3_origin, vec3_origin, end, ignore, MASK_SHOT, timeDelta );
+		gs->api.Trace( trace, water_start, vec3_origin, vec3_origin, end, ignore, MASK_SHOT, timeDelta );
 
 		return &water_trace;
 	}
@@ -76,7 +76,7 @@ trace_t *GS_TraceBullet( trace_t *trace, vec3_t start, vec3_t dir, vec3_t right,
 	return NULL;
 }
 
-void GS_TraceLaserBeam( trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( trace_t *tr, vec3_t dir ) ) {
+void GS_TraceLaserBeam( const gs_state_t * gs, trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( trace_t *tr, vec3_t dir ) ) {
 	vec3_t dir, end;
 	vec3_t mins = { -0.5, -0.5, -0.5 };
 	vec3_t maxs = { 0.5, 0.5, 0.5 };
@@ -86,7 +86,7 @@ void GS_TraceLaserBeam( trace_t *trace, vec3_t origin, vec3_t angles, float rang
 
 	trace->ent = 0;
 
-	gs.api.Trace( trace, origin, mins, maxs, end, ignore, MASK_SHOT, timeDelta );
+	gs->api.Trace( trace, origin, mins, maxs, end, ignore, MASK_SHOT, timeDelta );
 	if( trace->ent != -1 && impact != NULL ) {
 		impact( trace, dir );
 	}
@@ -155,13 +155,13 @@ bool GS_CheckAmmoInWeapon( player_state_t *playerState, int checkweapon ) {
 /*
 * GS_ThinkPlayerWeapon
 */
-int GS_ThinkPlayerWeapon( player_state_t *playerState, int buttons, int msecs, int timeDelta ) {
+int GS_ThinkPlayerWeapon( const gs_state_t * gs, player_state_t *playerState, int buttons, int msecs, int timeDelta ) {
 	firedef_t *firedef;
 	bool refire = false;
 
 	assert( playerState->stats[STAT_PENDING_WEAPON] >= 0 && playerState->stats[STAT_PENDING_WEAPON] < WEAP_TOTAL );
 
-	if( GS_MatchPaused() ) {
+	if( GS_MatchPaused( gs ) ) {
 		return playerState->stats[STAT_WEAPON];
 	}
 
@@ -219,7 +219,7 @@ int GS_ThinkPlayerWeapon( player_state_t *playerState, int buttons, int msecs, i
 				playerState->stats[STAT_WEAPON_TIME] += firedef->weapondown_time;
 
 				if( firedef->weapondown_time ) {
-					gs.api.PredictedEvent( playerState->POVnum, EV_WEAPONDROP, 0 );
+					gs->api.PredictedEvent( playerState->POVnum, EV_WEAPONDROP, 0 );
 				}
 			}
 		}
@@ -243,7 +243,7 @@ int GS_ThinkPlayerWeapon( player_state_t *playerState, int buttons, int msecs, i
 		if( !had_weapon_before )
 			parm |= 1;
 
-		gs.api.PredictedEvent( playerState->POVnum, EV_WEAPONACTIVATE, parm );
+		gs->api.PredictedEvent( playerState->POVnum, EV_WEAPONACTIVATE, parm );
 	}
 
 	if( playerState->weaponState == WEAPON_STATE_ACTIVATING ) {
@@ -259,7 +259,7 @@ int GS_ThinkPlayerWeapon( player_state_t *playerState, int buttons, int msecs, i
 			goto done;
 		}
 
-		if( !GS_ShootingDisabled() ) {
+		if( !GS_ShootingDisabled( gs ) ) {
 			if( buttons & BUTTON_ATTACK ) {
 				if( GS_CheckAmmoInWeapon( playerState, playerState->stats[STAT_WEAPON] ) ) {
 					playerState->weaponState = WEAPON_STATE_FIRING;
@@ -268,7 +268,7 @@ int GS_ThinkPlayerWeapon( player_state_t *playerState, int buttons, int msecs, i
 					// player has no ammo nor clips
 					playerState->weaponState = WEAPON_STATE_NOAMMOCLICK;
 					playerState->stats[STAT_WEAPON_TIME] += NOAMMOCLICK_PENALTY;
-					gs.api.PredictedEvent( playerState->POVnum, EV_NOAMMOCLICK, 0 );
+					gs->api.PredictedEvent( playerState->POVnum, EV_NOAMMOCLICK, 0 );
 					goto done;
 				}
 			}
@@ -282,16 +282,16 @@ int GS_ThinkPlayerWeapon( player_state_t *playerState, int buttons, int msecs, i
 		playerState->weaponState = WEAPON_STATE_REFIRE;
 
 		if( refire && firedef->smooth_refire ) {
-			gs.api.PredictedEvent( playerState->POVnum, EV_SMOOTHREFIREWEAPON, parm );
+			gs->api.PredictedEvent( playerState->POVnum, EV_SMOOTHREFIREWEAPON, parm );
 		} else {
-			gs.api.PredictedEvent( playerState->POVnum, EV_FIREWEAPON, parm );
+			gs->api.PredictedEvent( playerState->POVnum, EV_FIREWEAPON, parm );
 		}
 
-		if( !GS_InfiniteAmmo() && playerState->stats[STAT_WEAPON] != WEAP_GUNBLADE ) {
+		if( !GS_InfiniteAmmo( gs ) && playerState->stats[STAT_WEAPON] != WEAP_GUNBLADE ) {
 			if( firedef->ammo_id != AMMO_NONE && firedef->usage_count ) {
 				playerState->inventory[firedef->ammo_id] -= firedef->usage_count;
 				if( playerState->inventory[firedef->ammo_id] == 0 ) {
-					gs.api.PredictedEvent( playerState->POVnum, EV_NOAMMOCLICK, 0 );
+					gs->api.PredictedEvent( playerState->POVnum, EV_NOAMMOCLICK, 0 );
 				}
 			}
 		}

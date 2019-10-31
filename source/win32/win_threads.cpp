@@ -76,7 +76,3 @@ void Sys_Thread_Yield( void ) {
 int Sys_Atomic_FetchAdd( volatile int *value, int add ) {
 	return InterlockedExchangeAdd( (volatile LONG*)value, add );
 }
-
-bool Sys_Atomic_CAS( volatile int *value, int oldval, int newval ) {
-	return InterlockedCompareExchange( (volatile LONG*)value, newval, oldval ) == oldval;
-}

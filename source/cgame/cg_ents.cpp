@@ -19,7 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cg_local.h"
-#include "client/client.h"
 
 static void CG_UpdateEntities( void );
 
@@ -77,7 +76,7 @@ static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 		return false;
 	}
 
-	if( GS_MatchPaused() ) {
+	if( GS_MatchPaused( &client_gs ) ) {
 		serverTime = cg.frame.serverTime;
 	} else {
 		serverTime = cg.time + cgs.extrapolationTime;
@@ -232,14 +231,12 @@ static void CG_NewPacketEntityState( entity_state_t *state ) {
 }
 
 int CG_LostMultiviewPOV( void ) {
-	int best, value, fallback;
-	int i, index;
+	int best = client_gs.maxclients;
+	int index = -1;
+	int fallback = -1;
 
-	best = gs.maxclients;
-	index = fallback = -1;
-
-	for( i = 0; i < cg.frame.numplayers; i++ ) {
-		value = abs( (int)cg.frame.playerStates[i].playerNum - (int)cg.multiviewPlayerNum );
+	for( int i = 0; i < cg.frame.numplayers; i++ ) {
+		int value = abs( (int)cg.frame.playerStates[i].playerNum - (int)cg.multiviewPlayerNum );
 		if( value == best && i > index ) {
 			continue;
 		}
@@ -276,7 +273,7 @@ static void CG_UpdatePlayerState( void ) {
 		// find the playerState containing our current POV, then cycle playerStates
 		index = -1;
 		for( i = 0; i < cg.frame.numplayers; i++ ) {
-			if( cg.frame.playerStates[i].playerNum < (unsigned)gs.maxclients
+			if( cg.frame.playerStates[i].playerNum < (unsigned)client_gs.maxclients
 				&& cg.frame.playerStates[i].playerNum == cg.multiviewPlayerNum ) {
 				index = i;
 				break;
@@ -334,7 +331,7 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 	}
 
 	cg.frame = *frame;
-	gs.gameState = frame->gameState;
+	client_gs.gameState = frame->gameState;
 
 	if( cg_projectileAntilagOffset->value > 1.0f || cg_projectileAntilagOffset->value < 0.0f ) {
 		trap_Cvar_ForceSet( "cg_projectileAntilagOffset", cg_projectileAntilagOffset->dvalue );
@@ -802,7 +799,7 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	}
 
 	if( fixed ) {
-		S_StartFixedSound( cgs.soundPrecache[soundindex], cent->current.origin, channel, 1.0f, attenuation );
+		S_StartFixedSound( cgs.soundPrecache[soundindex], FromQF3( cent->current.origin ), channel, 1.0f, attenuation );
 	} else if( ISVIEWERENTITY( owner ) ) {
 		S_StartGlobalSound( cgs.soundPrecache[soundindex], channel, 1.0f );
 	} else {
@@ -885,7 +882,7 @@ void CG_EntityLoopSound( entity_state_t *state, float attenuation ) {
 		return;
 	}
 
-	S_ImmediateSound( cgs.soundPrecache[state->sound], state->number, cg_volume_effects->value, ISVIEWERENTITY( state->number ) ? ATTN_NONE : ATTN_IDLE );
+	S_ImmediateEntitySound( cgs.soundPrecache[state->sound], state->number, cg_volume_effects->value, ISVIEWERENTITY( state->number ) ? ATTN_NONE : ATTN_IDLE );
 }
 
 /*
@@ -975,10 +972,14 @@ void CG_AddEntities( void ) {
 				CG_AddBombHudEntity( cent );
 				break;
 
-			case ET_LASER:
+			case ET_LASER: {
 				CG_AddLaserEnt( cent );
-				CG_EntityLoopSound( state, ATTN_STATIC );
-				break;
+
+				const SoundEffect * sfx = cgs.soundPrecache[ state->sound ];
+				if( sfx != NULL ) {
+					S_ImmediateLineSound( sfx, state->number, FromQF3( cent->ent.origin ), FromQF3( cent->ent.origin2 ), cg_volume_effects->value, ATTN_IDLE );
+				}
+			} break;
 
 			case ET_SPIKES:
 				CG_AddGenericEnt( cent );
@@ -1062,7 +1063,7 @@ void CG_LerpEntities( void ) {
 
 		vec3_t origin, velocity;
 		CG_GetEntitySpatilization( number, origin, velocity );
-		S_UpdateEntity( number, origin, velocity );
+		S_UpdateEntity( number, FromQF3( origin ), FromQF3( velocity ) );
 	}
 }
 
@@ -1185,5 +1186,23 @@ void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
 	}
 	if( velocity != NULL ) {
 		VectorCopy( cent->velocity, velocity );
+	}
+}
+
+/*
+* CG_BBoxForEntityState
+*/
+void CG_BBoxForEntityState( const entity_state_t * state, vec3_t mins, vec3_t maxs ) {
+	if( state->solid == SOLID_BMODEL ) {
+		CG_Error( "CG_BBoxForEntityState: called for a brush model\n" );
+	} else { // encoded bbox
+		int x = 8 * ( state->solid & 31 );
+		int zd = 8 * ( ( state->solid >> 5 ) & 31 );
+		int zu = 8 * ( ( state->solid >> 10 ) & 63 ) - 32;
+
+		mins[0] = mins[1] = -x;
+		maxs[0] = maxs[1] = x;
+		mins[2] = -zd;
+		maxs[2] = zu;
 	}
 }

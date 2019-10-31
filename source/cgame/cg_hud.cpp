@@ -20,7 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
-#include "client/client.h"
 
 enum { DEFAULTSCALE=0, NOSCALE, SCALEBYWIDTH, SCALEBYHEIGHT };
 
@@ -164,15 +163,15 @@ static int CG_GetFPS( const void *parameter ) {
 }
 
 static int CG_GetMatchState( const void *parameter ) {
-	return GS_MatchState();
+	return GS_MatchState( &client_gs );
 }
 
 static int CG_GetMatchDuration( const void *parameter ) {
-	return GS_MatchDuration();
+	return GS_MatchDuration( &client_gs );
 }
 
 static int CG_Paused( const void *parameter ) {
-	return GS_MatchPaused();
+	return GS_MatchPaused( &client_gs );
 }
 
 static int CG_GetZoom( const void *parameter ) {
@@ -1869,7 +1868,7 @@ static bool CG_LFuncDrawBindString( struct cg_layoutnode_s *argumentnode, int nu
 static bool CG_LFuncDrawPlayerName( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	int index = (int)CG_GetNumericArg( &argumentnode ) - 1;
 
-	if( index >= 0 && index < gs.maxclients && cgs.clientInfo[index].name[0] ) {
+	if( index >= 0 && index < client_gs.maxclients && cgs.clientInfo[index].name[0] ) {
 		DrawText( GetHUDFont(), layout_cursor_font_size, cgs.clientInfo[ index ].name, layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
 		return true;
 	}
@@ -2763,13 +2762,13 @@ static char *CG_LoadHUDFile( const char *path ) {
 
 					// Now read the file
 					if( trap_FS_Read( rec_buf[rec_lvl], len, f ) <= 0 ) {
+						if( rec_lvl > 0 ) {
+							CG_Printf( "HUD: WARNING: Read error while loading file: %s\n", rec_fn[rec_lvl] );
+						}
 						CG_Free( rec_fn[rec_lvl] );
 						CG_Free( rec_buf[rec_lvl] );
 						rec_fn[rec_lvl] = NULL;
 						rec_buf[rec_lvl] = NULL;
-						if( rec_lvl > 0 ) {
-							CG_Printf( "HUD: WARNING: Read error while loading file: %s\n", rec_fn[rec_lvl] );
-						}
 						rec_lvl--;
 					}
 					trap_FS_FCloseFile( f );

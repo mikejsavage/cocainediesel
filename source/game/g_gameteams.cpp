@@ -40,7 +40,7 @@ void G_Teams_Init( void ) {
 	//unlock all teams and clear up team lists
 	memset( teamlist, 0, sizeof( teamlist ) );
 
-	for( ent = game.edicts + 1; PLAYERNUM( ent ) < gs.maxclients; ent++ ) {
+	for( ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients; ent++ ) {
 		if( ent->r.inuse ) {
 			memset( &ent->r.client->teamstate, 0, sizeof( ent->r.client->teamstate ) );
 			memset( &ent->r.client->resp, 0, sizeof( ent->r.client->resp ) );
@@ -83,7 +83,7 @@ void G_Teams_UpdateMembersList( void ) {
 		teamlist[team].ping = 0;
 
 		//create a temp list with the clients inside this team
-		for( i = 0, ent = game.edicts + 1; i < gs.maxclients; i++, ent++ ) {
+		for( i = 0, ent = game.edicts + 1; i < server_gs.maxclients; i++, ent++ ) {
 			if( !ent->r.client || ( trap_GetClientState( PLAYERNUM( ent ) ) < CS_CONNECTED ) ) {
 				continue;
 			}
@@ -188,7 +188,7 @@ enum
 
 static bool G_Teams_CanKeepEvenTeam( int leaving, int joining ) {
 	int max = 0;
-	int min = gs.maxclients + 1;
+	int min = server_gs.maxclients + 1;
 	int numplayers;
 	int i;
 
@@ -225,17 +225,17 @@ static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
 		return ER_TEAM_OK;
 	}
 
-	if( GS_MatchState() > MATCH_STATE_PLAYTIME ) {
+	if( GS_MatchState( &server_gs ) > MATCH_STATE_PLAYTIME ) {
 		return ER_TEAM_MATCHSTATE;
 	}
 
 	// waiting for chanllengers queue to be executed
-	if( GS_HasChallengers() && game.realtime < level.spawnedTimeStamp + (int64_t)( G_CHALLENGERS_MIN_JOINTEAM_MAPTIME + game.snapFrameTime ) ) {
+	if( GS_HasChallengers( &server_gs ) && game.realtime < level.spawnedTimeStamp + (int64_t)( G_CHALLENGERS_MIN_JOINTEAM_MAPTIME + game.snapFrameTime ) ) {
 		return ER_TEAM_CHALLENGERS;
 	}
 
 	// force eveyone to go through queue so things work on map change
-	if( GS_HasChallengers() && !ent->r.client->queueTimeStamp ) {
+	if( GS_HasChallengers( &server_gs ) && !ent->r.client->queueTimeStamp ) {
 		return ER_TEAM_CHALLENGERS;
 	}
 
@@ -244,7 +244,7 @@ static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
 		return ER_TEAM_LOCKED;
 	}
 
-	if( !GS_TeamBasedGametype() ) {
+	if( !GS_TeamBasedGametype( &server_gs ) ) {
 		return team == TEAM_PLAYERS ? ER_TEAM_OK : ER_TEAM_INVALID;
 	}
 
@@ -309,14 +309,14 @@ bool G_Teams_JoinTeam( edict_t *ent, int team ) {
 * G_Teams_JoinAnyTeam - find us a team since we are too lazy to do ourselves
 */
 bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
-	int best_numplayers = gs.maxclients + 1, best_score = 999999;
+	int best_numplayers = server_gs.maxclients + 1, best_score = 999999;
 	int i, team = -1;
 	bool wasinqueue = ( ent->r.client->queueTimeStamp != 0 );
 
 	G_Teams_UpdateMembersList(); // make sure we have up-to-date data
 
 	//depending on the gametype, of course
-	if( !GS_TeamBasedGametype() ) {
+	if( !GS_TeamBasedGametype( &server_gs ) ) {
 		if( ent->s.team == TEAM_PLAYERS ) {
 			if( !silent ) {
 				G_PrintMsg( ent, "You are already in %s team\n", GS_TeamName( TEAM_PLAYERS ) );
@@ -362,13 +362,13 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 				return true;
 			}
 		}
-		if( GS_MatchState() <= MATCH_STATE_PLAYTIME && !silent ) {
+		if( GS_MatchState( &server_gs ) <= MATCH_STATE_PLAYTIME && !silent ) {
 			G_Teams_JoinChallengersQueue( ent );
 		}
 	}
 
 	// don't print message if we joined the queue
-	if( !silent && ( !GS_HasChallengers() || wasinqueue || !ent->r.client->queueTimeStamp ) ) {
+	if( !silent && ( !GS_HasChallengers( &server_gs ) || wasinqueue || !ent->r.client->queueTimeStamp ) ) {
 		G_PrintMsg( ent, "You can't join the game now\n" );
 	}
 
@@ -443,7 +443,7 @@ edict_t **G_Teams_ChallengersQueue( void ) {
 	gclient_t *cl;
 
 	// fill the challengers into array, then sort
-	for( e = game.edicts + 1; PLAYERNUM( e ) < gs.maxclients; e++ ) {
+	for( e = game.edicts + 1; PLAYERNUM( e ) < server_gs.maxclients; e++ ) {
 		if( !e->r.inuse || !e->r.client || e->s.team != TEAM_SPECTATOR ) {
 			continue;
 		}
@@ -483,11 +483,11 @@ void G_Teams_ExecuteChallengersQueue( void ) {
 	bool restartmatch = false;
 
 	// Medar fixme: this is only really makes sense, if playerlimit per team is one
-	if( GS_MatchState() == MATCH_STATE_PLAYTIME ) {
+	if( GS_MatchState( &server_gs ) == MATCH_STATE_PLAYTIME ) {
 		return;
 	}
 
-	if( !GS_HasChallengers() ) {
+	if( !GS_HasChallengers( &server_gs ) ) {
 		return;
 	}
 
@@ -517,7 +517,7 @@ void G_Teams_ExecuteChallengersQueue( void ) {
 			}
 
 			// if we successfully execute the challengers queue during the countdown, revert to warmup
-			if( GS_MatchState() == MATCH_STATE_COUNTDOWN ) {
+			if( GS_MatchState( &server_gs ) == MATCH_STATE_COUNTDOWN ) {
 				restartmatch = true;
 			}
 		}
@@ -538,7 +538,7 @@ static edict_t *G_Teams_BestScoreBelow( int maxscore ) {
 	edict_t *e, *best = NULL;
 	int bestScore = -9999999;
 
-	if( GS_TeamBasedGametype() ) {
+	if( GS_TeamBasedGametype( &server_gs ) ) {
 		for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
 			for( i = 0; i < teamlist[team].numplayers; i++ ) {
 				e = game.edicts + teamlist[team].playerIndices[i];
@@ -574,13 +574,13 @@ void G_Teams_AdvanceChallengersQueue( void ) {
 	edict_t *won, *e;
 	int START_TEAM = TEAM_PLAYERS, END_TEAM = TEAM_PLAYERS + 1;
 
-	if( !GS_HasChallengers() ) {
+	if( !GS_HasChallengers( &server_gs ) ) {
 		return;
 	}
 
 	G_Teams_UpdateMembersList();
 
-	if( GS_TeamBasedGametype() ) {
+	if( GS_TeamBasedGametype( &server_gs ) ) {
 		START_TEAM = TEAM_ALPHA;
 		END_TEAM = GS_MAX_TEAMS;
 	}
@@ -624,7 +624,7 @@ void G_Teams_AdvanceChallengersQueue( void ) {
 * G_Teams_LeaveChallengersQueue
 */
 void G_Teams_LeaveChallengersQueue( edict_t *ent ) {
-	if( !GS_HasChallengers() ) {
+	if( !GS_HasChallengers( &server_gs ) ) {
 		ent->r.client->queueTimeStamp = 0;
 		return;
 	}
@@ -647,7 +647,7 @@ void G_Teams_JoinChallengersQueue( edict_t *ent ) {
 	int pos = 0;
 	edict_t *e;
 
-	if( !GS_HasChallengers() ) {
+	if( !GS_HasChallengers( &server_gs ) ) {
 		ent->r.client->queueTimeStamp = 0;
 		return;
 	}
@@ -659,7 +659,7 @@ void G_Teams_JoinChallengersQueue( edict_t *ent ) {
 	// enter the challengers queue
 	if( !ent->r.client->queueTimeStamp ) {  // enter the line
 		ent->r.client->queueTimeStamp = game.realtime;
-		for( e = game.edicts + 1; PLAYERNUM( e ) < gs.maxclients; e++ ) {
+		for( e = game.edicts + 1; PLAYERNUM( e ) < server_gs.maxclients; e++ ) {
 			if( !e->r.inuse || !e->r.client || trap_GetClientState( PLAYERNUM( e ) ) < CS_SPAWNED ) {
 				continue;
 			}
@@ -683,7 +683,7 @@ void G_Teams_JoinChallengersQueue( edict_t *ent ) {
 void G_InitChallengersQueue( void ) {
 	int i;
 
-	for( i = 0; i < gs.maxclients; i++ )
+	for( i = 0; i < server_gs.maxclients; i++ )
 		game.clients[i].queueTimeStamp = 0;
 }
 
@@ -694,7 +694,7 @@ void G_InitChallengersQueue( void ) {
 //======================================================================
 
 void G_Say_Team( edict_t *who, const char *inmsg, bool checkflood ) {
-	if( who->s.team != TEAM_SPECTATOR && ( !GS_TeamBasedGametype() || GS_InvidualGameType() ) ) {
+	if( who->s.team != TEAM_SPECTATOR && ( !GS_TeamBasedGametype( &server_gs ) || GS_IndividualGameType( &server_gs ) ) ) {
 		Cmd_Say_f( who, false, true );
 		return;
 	}

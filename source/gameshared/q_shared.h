@@ -67,10 +67,17 @@ const char *COM_FileBase( const char *in );
 void COM_StripFilename( char *filename );
 int COM_FilePathLength( const char *in );
 
+enum ParseStopOnNewLine {
+	Parse_DontStopOnNewLine,
+	Parse_StopOnNewLine,
+};
+
 Span< char > ParseSpan( char ** ptr, bool stop_on_newline );
 Span< const char > ParseSpan( const char ** ptr, bool stop_on_newline );
 
-Span< const char > ParseSpan( Span< const char > * cursor, bool stop_on_newline );
+Span< const char > ParseSpan( Span< const char > * cursor, ParseStopOnNewLine stop );
+
+bool ParseFloat( Span< const char > str, float * x );
 
 // data is an in/out parm, returns a parsed out token
 char *COM_ParseExt2_r( char *token, size_t token_size, const char **data_p, bool nl, bool sq );

@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 * Returns true if the trigger shouldn't be activated
 */
 static bool G_TriggerWait( edict_t *ent, edict_t *other ) {
-	if( GS_RaceGametype() ) {
+	if( GS_RaceGametype( &server_gs ) ) {
 		if( other->trigger_entity == ent && other->trigger_timeout && other->trigger_timeout >= level.time ) {
 			return true;
 		}
@@ -206,7 +206,7 @@ static void trigger_push_touch( edict_t *self, edict_t *other, cplane_t *plane, 
 
 	// add an event
 	if( other->r.client ) {
-		GS_TouchPushTrigger( &other->r.client->ps, &self->s );
+		GS_TouchPushTrigger( &server_gs, &other->r.client->ps, &self->s );
 	} else {
 		// pushing of non-clients
 		if( other->movetype != MOVETYPE_BOUNCEGRENADE ) {

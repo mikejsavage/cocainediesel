@@ -171,9 +171,6 @@ typedef struct {
 // can be set from the editor, but aren't actualy present
 // in edict_t during gameplay
 typedef struct {
-	// world vars
-	float fov;
-
 	int lip;
 	int distance;
 	int height;
@@ -182,21 +179,18 @@ typedef struct {
 	const char *noise_start;
 	const char *noise_stop;
 	float pausetime;
-	const char *item;
 	const char *gravity;
 	const char *debris1, *debris2;
 
 	int gameteam;
 
-	int weight;
-	float scale;
-	const char *shaderName;
 	int size;
 
 	int rgba;
 } spawn_temp_t;
 
 extern game_locals_t game;
+extern gs_state_t server_gs;
 extern level_locals_t level;
 extern spawn_temp_t st;
 
@@ -552,6 +546,7 @@ bool GClip_EntityContact( const vec3_t mins, const vec3_t maxs, edict_t *ent );
 //
 // g_combat.c
 //
+bool G_IsTeamDamage( entity_state_t *targ, entity_state_t *attacker );
 void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point, int mod );
 int G_ModToAmmo( int mod );
 void G_SplashFrac( const entity_state_t *s, const entity_shared_t *r, const vec3_t point, float maxradius, vec3_t pushdir, float *frac, bool selfdamage );
@@ -579,7 +574,7 @@ void SP_model( edict_t *ent );
 //
 // g_weapon.c
 //
-void W_Fire_Blade( edict_t *self, int range, vec3_t start, vec3_t angles, int count, int angle, float damage, int knockback, int timeDelta );
+void W_Fire_Blade( edict_t *self, int range, vec3_t start, vec3_t angles, float damage, int knockback, int timeDelta );
 void W_Fire_MG( edict_t *self, vec3_t start, vec3_t angles, int seed, int range, int hspread, int vspread, float damage, int knockback, int timeDelta );
 void W_Fire_Riotgun( edict_t *self, vec3_t start, vec3_t angles, int range, int hspread, int vspread, int count, float damage, int knockback, int timeDelta );
 edict_t *W_Fire_Grenade( edict_t *self, vec3_t start, vec3_t angles, int speed, float damage, int minKnockback, int maxKnockback, int minDamage, float radius, int timeout, int timeDelta, bool aim_up );
@@ -690,8 +685,6 @@ int G_BoxSlideMove( edict_t *ent, int contentmask, float slideBounce, float fric
 #define G_LevelFree( data ) _G_LevelFree( ( data ), __FILE__, __LINE__ )
 #define G_LevelCopyString( in ) _G_LevelCopyString( ( in ), __FILE__, __LINE__ )
 
-int G_API( void );
-
 #ifndef _MSC_VER
 void G_Error( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) ) __attribute__( ( noreturn ) );
 void G_Printf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
@@ -704,6 +697,7 @@ void G_Init( unsigned int seed, unsigned int framemsec );
 void G_Shutdown( void );
 void G_ExitLevel( void );
 game_state_t *G_GetGameState( void );
+void G_GamestatSetFlag( int flag, bool b );
 void G_Timeout_Reset( void );
 
 //

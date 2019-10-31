@@ -79,7 +79,7 @@ static edict_t *W_Fire_LinearProjectile( edict_t *self, vec3_t start, vec3_t ang
 	projectile->movetype = MOVETYPE_LINEARPROJECTILE;
 
 	projectile->r.solid = SOLID_YES;
-	projectile->r.clipmask = ( !GS_RaceGametype() ) ? MASK_SHOT : MASK_SOLID;
+	projectile->r.clipmask = ( !GS_RaceGametype( &server_gs ) ) ? MASK_SHOT : MASK_SOLID;
 
 	projectile->r.svflags = SVF_PROJECTILE;
 
@@ -134,7 +134,7 @@ static edict_t *W_Fire_TossProjectile( edict_t *self, vec3_t start, vec3_t angle
 	projectile->movetype = MOVETYPE_BOUNCEGRENADE;
 
 	// make missile fly through players in race
-	if( GS_RaceGametype() ) {
+	if( GS_RaceGametype( &server_gs ) ) {
 		projectile->r.clipmask = MASK_SOLID;
 	} else {
 		projectile->r.clipmask = MASK_SHOT;
@@ -175,21 +175,24 @@ static edict_t *W_Fire_TossProjectile( edict_t *self, vec3_t start, vec3_t angle
 /*
 * W_Fire_Blade
 */
-void W_Fire_Blade( edict_t *self, int range, vec3_t start, vec3_t angles, int count, int angle, float damage, int knockback, int timeDelta ) {
+void W_Fire_Blade( edict_t *self, int range, vec3_t start, vec3_t angles,  float damage, int knockback, int timeDelta ) {
+	int traces = 6;
+	float slash_angle = 45.0f;
+
 	int mask = MASK_SHOT;
 	int dmgflags = 0;
 
-	if( GS_RaceGametype() ) {
+	if( GS_RaceGametype( &server_gs ) ) {
 		mask = MASK_SOLID;
 	}
 
-	for( int i = 0; i < count; i++ ) {
+	for( int i = 0; i < traces; i++ ) {
 		vec3_t end, dir;
 		trace_t trace;
 		vec3_t new_angles;
 
 		new_angles[0] = angles[0];
-		new_angles[1] = angles[1] + ((float)(i - count/2)/(float)(count))*angle;
+		new_angles[1] = angles[1] + Lerp( -slash_angle, float( i ) / float( traces - 1 ), slash_angle );
 		new_angles[2] = angles[2];
 
 		AngleVectors( new_angles, dir, NULL, NULL );
@@ -221,7 +224,7 @@ void W_Fire_MG( edict_t *self, vec3_t start, vec3_t angles, int seed, int range,
 	ViewVectors( dir, right, up );
 
 	trace_t trace;
-	GS_TraceBullet( &trace, start, dir, right, up, 0, 0, range, ENTNUM( self ), timeDelta );
+	GS_TraceBullet( &server_gs, &trace, start, dir, right, up, 0, 0, range, ENTNUM( self ), timeDelta );
 	if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
 		int dmgflags = DAMAGE_KNOCKBACK_SOFT;
 		G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, damage, knockback, dmgflags, MOD_MACHINEGUN );
@@ -241,10 +244,10 @@ static void G_Fire_SunflowerPattern( edict_t *self, vec3_t start, vec3_t dir, in
 		float u = sinf( fi ) * vspread * sqrtf( fi );
 
 		trace_t trace;
-		GS_TraceBullet( &trace, start, dir, right, up, r, u, range, ENTNUM( self ), timeDelta );
+		GS_TraceBullet( &server_gs, &trace, start, dir, right, up, r, u, range, ENTNUM( self ), timeDelta );
 		if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
 			G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, damage, kick, dflags, MOD_RIOTGUN );
-			if( !GS_IsTeamDamage( &game.edicts[trace.ent].s, &self->s ) && trace.ent <= MAX_CLIENTS ) {
+			if( !G_IsTeamDamage( &game.edicts[trace.ent].s, &self->s ) && trace.ent <= MAX_CLIENTS ) {
 				hits[trace.ent]++;
 			}
 		}
@@ -456,7 +459,7 @@ void W_Plasma_Backtrace( edict_t *ent, const vec3_t start ) {
 	vec3_t oldorigin;
 	vec3_t mins = { -2, -2, -2 }, maxs = { 2, 2, 2 };
 
-	if( GS_RaceGametype() ) {
+	if( GS_RaceGametype( &server_gs ) ) {
 		return;
 	}
 
@@ -556,7 +559,7 @@ void W_Fire_Electrobolt_FullInstant( edict_t *self, vec3_t start, vec3_t angles,
 	hit = NULL;
 
 	mask = MASK_SHOT;
-	if( GS_RaceGametype() ) {
+	if( GS_RaceGametype( &server_gs ) ) {
 		mask = MASK_SOLID;
 	}
 
@@ -607,7 +610,7 @@ void W_Fire_Electrobolt_FullInstant( edict_t *self, vec3_t start, vec3_t angles,
 			event->s.team = self->s.team;
 
 			// if we hit a teammate stop the trace
-			if( GS_IsTeamDamage( &hit->s, &self->s ) ) {
+			if( G_IsTeamDamage( &hit->s, &self->s ) ) {
 				break;
 			}
 		}
@@ -643,7 +646,7 @@ static void G_HideLaser( edict_t *ent ) {
 static void G_Laser_Think( edict_t *ent ) {
 	edict_t *owner;
 
-	if( ent->s.ownerNum < 1 || ent->s.ownerNum > gs.maxclients ) {
+	if( ent->s.ownerNum < 1 || ent->s.ownerNum > server_gs.maxclients ) {
 		G_FreeEdict( ent );
 		return;
 	}
@@ -688,7 +691,7 @@ static edict_t *_FindOrSpawnLaser( edict_t *owner, int entType ) {
 	// first of all, see if we already have a beam entity for this laser
 	laser = NULL;
 	ownerNum = ENTNUM( owner );
-	for( i = gs.maxclients + 1; i < game.maxentities; i++ ) {
+	for( i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
 		e = &game.edicts[i];
 		if( !e->r.inuse ) {
 			continue;
@@ -731,7 +734,7 @@ edict_t *W_Fire_Lasergun( edict_t *self, vec3_t start, vec3_t angles, float dama
 	laser_knockback = knockback;
 	laser_attackerNum = ENTNUM( self );
 
-	GS_TraceLaserBeam( &tr, start, angles, range, ENTNUM( self ), timeDelta, _LaserImpact );
+	GS_TraceLaserBeam( &server_gs, &tr, start, angles, range, ENTNUM( self ), timeDelta, _LaserImpact );
 
 	laser->r.svflags |= SVF_FORCEOWNER;
 	VectorCopy( start, laser->s.origin );

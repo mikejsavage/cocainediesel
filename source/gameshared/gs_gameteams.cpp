@@ -61,12 +61,3 @@ int GS_TeamFromName( const char *teamname ) {
 
 	return -1; // invalid
 }
-
-/*
-* GS_IsTeamDamage
-*/
-bool GS_IsTeamDamage( entity_state_t *targ, entity_state_t *attacker ) {
-	if( !GS_TeamBasedGametype() )
-		return false;
-	return targ->number != attacker->number && targ->team == attacker->team;
-}

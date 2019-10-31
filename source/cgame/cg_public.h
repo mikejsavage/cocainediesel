@@ -29,8 +29,6 @@ struct poly_s;
 struct cmodel_s;
 struct qfontface_s;
 
-typedef void ( *cg_fdrawchar_t )( int x, int y, int w, int h, float s1, float t1, float s2, float t2, const vec4_t color, const struct shader_s *shader );
-
 // cg_public.h -- client game dll information visible to engine
 
 //
@@ -133,32 +131,12 @@ typedef struct {
 	int ( *CM_TransformedPointContents )( const vec3_t p, struct cmodel_s *cmodel, const vec3_t origin, const vec3_t angles );
 	void ( *CM_InlineModelBounds )( const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs );
 	bool ( *CM_InPVS )( const vec3_t p1, const vec3_t p2 );
-
-	// fonts
-	struct qfontface_s *( *SCR_RegisterFont )( const char *family, int style, unsigned int size );
-	struct qfontface_s *( *SCR_RegisterSpecialFont )( const char *family, int style, unsigned int size );
-	int ( *SCR_DrawString )( int x, int y, int align, const char *str, struct qfontface_s *font, const vec4_t color );
-	size_t ( *SCR_DrawStringWidth )( int x, int y, int align, const char *str, size_t maxwidth, struct qfontface_s *font, const vec4_t color );
-	void ( *SCR_DrawClampString )( int x, int y, const char *str, int xmin, int ymin, int xmax, int ymax, struct qfontface_s *font, const vec4_t color );
-	int ( *SCR_DrawMultilineString )( int x, int y, const char *str, int halign, int maxwidth, int maxlines, struct qfontface_s *font, const vec4_t color );
-	void ( *SCR_DrawRawChar )( int x, int y, wchar_t num, struct qfontface_s *font, const vec4_t color );
-	void ( *SCR_DrawClampChar )( int x, int y, wchar_t num, int xmin, int ymin, int xmax, int ymax, struct qfontface_s *font, const vec4_t color );
-	size_t ( *SCR_FontSize )( struct qfontface_s *font );
-	size_t ( *SCR_FontHeight )( struct qfontface_s *font );
-	int ( *SCR_FontUnderline )( struct qfontface_s *font, int *thickness );
-	size_t ( *SCR_strWidth )( const char *str, struct qfontface_s *font, size_t maxlen );
-	size_t ( *SCR_StrlenForWidth )( const char *str, struct qfontface_s *font, size_t maxwidth );
-	cg_fdrawchar_t ( *SCR_SetDrawCharIntercept )( cg_fdrawchar_t intercept );
-	void ( *SCR_DrawChat )( int x, int y, int width, struct qfontface_s *font );
 } cgame_import_t;
 
 //
 // functions exported by the client game subsystem
 //
 typedef struct {
-	// if API is different, the dll cannot be used
-	int ( *API )( void );
-
 	// the init function will be called at each restart
 	void ( *Init )( const char *serverName, unsigned int playerNum,
 					bool demoplaying, const char *demoName, bool pure, unsigned int snapFrameTime );
@@ -219,3 +197,5 @@ typedef struct {
 	 */
 	void ( *AddMovement )( vec3_t movement );
 } cgame_export_t;
+
+cgame_export_t *GetCGameAPI( cgame_import_t * import );

@@ -1,22 +1,24 @@
 #pragma once
 
-struct SoundAsset;
+struct SoundEffect;
 
 bool S_Init();
 void S_Shutdown();
 
-const SoundAsset * S_RegisterSound( const char * filename );
+const SoundEffect * FindSoundEffect( StringHash name );
+const SoundEffect * FindSoundEffect( const char * name );
 
-void S_Update( const vec3_t origin, const vec3_t velocity, const mat3_t axis );
-void S_UpdateEntity( int ent_num, const vec3_t origin, const vec3_t velocity );
+void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis );
+void S_UpdateEntity( int ent_num, Vec3 origin, Vec3 velocity );
 
 void S_SetWindowFocus( bool focused );
 
-void S_StartFixedSound( const SoundAsset * sfx, const vec3_t origin, int channel, float volume, float attenuation );
-void S_StartEntitySound( const SoundAsset * sfx, int ent_num, int channel, float volume, float attenuation );
-void S_StartGlobalSound( const SoundAsset * sfx, int channel, float volume );
-void S_StartLocalSound( const SoundAsset * sfx, int channel, float volume );
-void S_ImmediateSound( const SoundAsset * sfx, int ent_num, float volume, float attenuation );
+void S_StartFixedSound( const SoundEffect * sfx, Vec3 origin, int channel, float volume, float attenuation );
+void S_StartEntitySound( const SoundEffect * sfx, int ent_num, int channel, float volume, float attenuation );
+void S_StartGlobalSound( const SoundEffect * sfx, int channel, float volume );
+void S_StartLocalSound( const SoundEffect * sfx, int channel, float volume );
+void S_ImmediateEntitySound( const SoundEffect * sfx, int ent_num, float volume, float attenuation );
+void S_ImmediateLineSound( const SoundEffect * sfx, int ent_num, Vec3 start, Vec3 end, float volume, float attenuation );
 void S_StopAllSounds( bool stopMusic );
 
 void S_StartMenuMusic();

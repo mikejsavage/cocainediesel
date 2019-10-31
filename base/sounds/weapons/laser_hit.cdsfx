@@ -1,0 +1,5 @@
+{
+	sound sounds/weapons/laser_hit0
+	sound sounds/weapons/laser_hit1
+	sound sounds/weapons/laser_hit2
+}

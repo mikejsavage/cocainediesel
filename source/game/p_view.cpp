@@ -89,7 +89,7 @@ static void G_Client_DeadView( edict_t *ent ) {
 	client = ent->r.client;
 
 	// find the body
-	for( body = game.edicts + gs.maxclients; ENTNUM( body ) < gs.maxclients + BODY_QUEUE_SIZE + 1; body++ ) {
+	for( body = game.edicts + server_gs.maxclients; ENTNUM( body ) < server_gs.maxclients + BODY_QUEUE_SIZE + 1; body++ ) {
 		if( !body->r.inuse || body->r.svflags & SVF_NOCLIENT ) {
 			continue;
 		}
@@ -141,7 +141,7 @@ void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, const vec3
 		return;
 	}
 
-	if( !client || client - game.clients < 0 || client - game.clients >= gs.maxclients ) {
+	if( !client || client - game.clients < 0 || client - game.clients >= server_gs.maxclients ) {
 		return;
 	}
 
@@ -261,7 +261,7 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 * G_SetClientEffects
 */
 static void G_SetClientEffects( edict_t *ent ) {
-	if( G_IsDead( ent ) || GS_MatchState() >= MATCH_STATE_POSTMATCH ) {
+	if( G_IsDead( ent ) || GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH ) {
 		return;
 	}
 
@@ -306,7 +306,7 @@ void G_ClientEndSnapFrame( edict_t *ent ) {
 
 	// If the end of unit layout is displayed, don't give
 	// the player any normal movement attributes
-	if( GS_MatchState() >= MATCH_STATE_POSTMATCH ) {
+	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH ) {
 		G_SetClientStats( ent );
 	} else {
 		if( G_IsDead( ent ) && !level.gametype.customDeadBodyCam ) {

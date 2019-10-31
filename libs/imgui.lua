@@ -1,6 +1,5 @@
 lib( "imgui", { "libs/imgui/*.cpp" } )
 
-obj_cxxflags( ".*", "-DIMGUI_INCLUDE_IMGUI_USER_H" )
 obj_cxxflags( "libs/imgui/imgui_freetype.cpp", "-I libs/freetype" )
 obj_cxxflags( "libs/imgui/imgui_impl_opengl3.cpp", "-DIMGUI_IMPL_OPENGL_LOADER_CUSTOM=\\\"glad/glad.h\\\"" )
 obj_cxxflags( "libs/imgui/imgui_impl_sdl.cpp", "-I libs/sdl" )

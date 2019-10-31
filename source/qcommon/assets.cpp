@@ -123,6 +123,13 @@ void HotloadAssets( TempAllocator * temp ) {
 	const char * root = FS_RootPath( temp );
 	DynamicString path( temp, "{}/base", root );
 	LoadAssetsRecursive( &path, path.length() + 1 );
+
+	if( num_modified_assets > 0 ) {
+		Com_Printf( "Hotloading:\n" );
+		for( const char * path : ModifiedAssetPaths() ) {
+			Com_Printf( "    %s\n", path );
+		}
+	}
 }
 
 void DoneHotloadingAssets() {

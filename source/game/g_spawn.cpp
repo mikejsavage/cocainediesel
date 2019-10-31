@@ -75,19 +75,12 @@ static const EntityField fields[] = {
 	{ "noise_start", STOFS( noise_start ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "noise_stop", STOFS( noise_stop ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "pausetime", STOFS( pausetime ), F_FLOAT, FFL_SPAWNTEMP },
-	{ "item", STOFS( item ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "gravity", STOFS( gravity ), F_LSTRING, FFL_SPAWNTEMP },
-	{ "fov", STOFS( fov ), F_FLOAT, FFL_SPAWNTEMP },
 	{ "gameteam", STOFS( gameteam ), F_INT, FFL_SPAWNTEMP },
-	{ "weight", STOFS( weight ), F_INT, FFL_SPAWNTEMP },
-	{ "scale", STOFS( scale ), F_FLOAT, FFL_SPAWNTEMP },
 	{ "debris1", STOFS( debris1 ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "debris2", STOFS( debris2 ), F_LSTRING, FFL_SPAWNTEMP },
-	{ "shaderName", STOFS( shaderName ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "size", STOFS( size ), F_INT, FFL_SPAWNTEMP },
 	{ "rgba", STOFS( rgba ), F_RGBA, FFL_SPAWNTEMP },
-
-	{ }
 };
 
 typedef struct
@@ -98,7 +91,7 @@ typedef struct
 
 static void SP_worldspawn( edict_t *ent );
 
-spawn_t spawns[] = {
+static spawn_t spawns[] = {
 	{ "info_player_start", SP_info_player_start },
 	{ "info_player_deathmatch", SP_info_player_deathmatch },
 
@@ -143,8 +136,6 @@ spawn_t spawns[] = {
 	{ "model", SP_model },
 
 	{ "spikes", SP_spikes },
-
-	{ NULL, NULL }
 };
 
 /*
@@ -153,8 +144,6 @@ spawn_t spawns[] = {
 * Finds the spawn function for the entity and calls it
 */
 bool G_CallSpawn( edict_t *ent ) {
-	spawn_t *s;
-
 	if( !ent->classname ) {
 		if( developer->integer ) {
 			G_Printf( "G_CallSpawn: NULL classname\n" );
@@ -163,9 +152,9 @@ bool G_CallSpawn( edict_t *ent ) {
 	}
 
 	// check normal spawn functions
-	for( s = spawns; s->name; s++ ) {
-		if( !Q_stricmp( s->name, ent->classname ) ) {
-			s->spawn( ent );
+	for( spawn_t s : spawns ) {
+		if( !Q_stricmp( s.name, ent->classname ) ) {
+			s.spawn( ent );
 			return true;
 		}
 	}
@@ -275,48 +264,46 @@ static char *ED_NewString( const char *string ) {
 * in an edict
 */
 static void ED_ParseField( char *key, char *value, edict_t *ent ) {
-	const EntityField *f;
-	uint8_t *b;
+	for( EntityField f : fields ) {
+		if( Q_stricmp( f.name, key ) != 0 )
+			continue;
 
-	for( f = fields; f->name; f++ ) {
-		if( !Q_stricmp( f->name, key ) ) {
-			// found it
-			if( f->flags & FFL_SPAWNTEMP ) {
-				b = (uint8_t *)&st;
-			} else {
-				b = (uint8_t *)ent;
-			}
-
-			switch( f->type ) {
-				case F_LSTRING:
-					*(char **)( b + f->ofs ) = ED_NewString( value );
-					break;
-				case F_INT:
-					*(int *)( b + f->ofs ) = atoi( value );
-					break;
-				case F_FLOAT:
-					*(float *)( b + f->ofs ) = atof( value );
-					break;
-				case F_ANGLE:
-					( (float *)( b + f->ofs ) )[0] = 0;
-					( (float *)( b + f->ofs ) )[1] = atof( value );
-					( (float *)( b + f->ofs ) )[2] = 0;
-					break;
-
-				case F_VECTOR: {
-					vec3_t vec;
-					sscanf( value, "%f %f %f", &vec[0], &vec[1], &vec[2] );
-					( (float *)( b + f->ofs ) )[0] = vec[0];
-					( (float *)( b + f->ofs ) )[1] = vec[1];
-					( (float *)( b + f->ofs ) )[2] = vec[2];
-				} break;
-
-				case F_RGBA: {
-					*( int * ) ( b + f->ofs ) = COM_ReadColorRGBAString( value );
-				} break;
-			}
-			return;
+		uint8_t *b;
+		if( f.flags & FFL_SPAWNTEMP ) {
+			b = (uint8_t *)&st;
+		} else {
+			b = (uint8_t *)ent;
 		}
+
+		switch( f.type ) {
+			case F_LSTRING:
+				*(char **)( b + f.ofs ) = ED_NewString( value );
+				break;
+			case F_INT:
+				*(int *)( b + f.ofs ) = atoi( value );
+				break;
+			case F_FLOAT:
+				*(float *)( b + f.ofs ) = atof( value );
+				break;
+			case F_ANGLE:
+				( (float *)( b + f.ofs ) )[0] = 0;
+				( (float *)( b + f.ofs ) )[1] = atof( value );
+				( (float *)( b + f.ofs ) )[2] = 0;
+				break;
+
+			case F_VECTOR: {
+				vec3_t vec;
+				sscanf( value, "%f %f %f", &vec[0], &vec[1], &vec[2] );
+				( (float *)( b + f.ofs ) )[0] = vec[0];
+				( (float *)( b + f.ofs ) )[1] = vec[1];
+				( (float *)( b + f.ofs ) )[2] = vec[2];
+			} break;
+
+			case F_RGBA: {
+				*( int * ) ( b + f.ofs ) = COM_ReadColorRGBAString( value );
+			} break;
+		}
+		return;
 	}
 
 	if( developer->integer ) {
@@ -512,7 +499,7 @@ void G_PrecacheMedia( void ) {
 	trap_SoundIndex( va( S_ANNOUNCER_SCORE_TIED_LEAD_1_to_2, 1 ) );
 	trap_SoundIndex( va( S_ANNOUNCER_SCORE_TIED_LEAD_1_to_2, 2 ) );
 
-	if( GS_TeamBasedGametype() ) {
+	if( GS_TeamBasedGametype( &server_gs ) ) {
 		trap_SoundIndex( va( S_ANNOUNCER_SCORE_TEAM_TAKEN_LEAD_1_to_2, 1 ) );
 		trap_SoundIndex( va( S_ANNOUNCER_SCORE_TEAM_TAKEN_LEAD_1_to_2, 2 ) );
 		trap_SoundIndex( va( S_ANNOUNCER_SCORE_TEAM_LOST_LEAD_1_to_2, 1 ) );
@@ -534,14 +521,14 @@ static void G_FreeEntities( void ) {
 		memset( game.edicts, 0, game.maxentities * sizeof( game.edicts[0] ) );
 	} else {
 		G_FreeEdict( world );
-		for( i = gs.maxclients + 1; i < game.maxentities; i++ ) {
+		for( i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
 			if( game.edicts[i].r.inuse ) {
 				G_FreeEdict( game.edicts + i );
 			}
 		}
 	}
 
-	game.numentities = gs.maxclients + 1;
+	game.numentities = server_gs.maxclients + 1;
 }
 
 /*
@@ -650,7 +637,7 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 	G_StringPoolInit();
 
 	memset( &level, 0, sizeof( level_locals_t ) );
-	memset( &gs.gameState, 0, sizeof( gs.gameState ) );
+	memset( &server_gs.gameState, 0, sizeof( server_gs.gameState ) );
 
 	level.time = levelTime;
 	level.gravity = g_gravity->value;
@@ -670,7 +657,7 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 	G_FreeEntities();
 
 	// link client fields on player ents
-	for( i = 0; i < gs.maxclients; i++ ) {
+	for( i = 0; i < server_gs.maxclients; i++ ) {
 		game.edicts[i + 1].s.number = i + 1;
 		game.edicts[i + 1].r.client = &game.clients[i];
 		game.edicts[i + 1].r.inuse = ( trap_GetClientState( i ) >= CS_CONNECTED ) ? true : false;
@@ -706,10 +693,8 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 }
 
 void G_ResetLevel( void ) {
-	int i;
-
 	G_FreeEdict( world );
-	for( i = gs.maxclients + 1; i < game.maxentities; i++ ) {
+	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
 		if( game.edicts[i].r.inuse ) {
 			G_FreeEdict( game.edicts + i );
 		}

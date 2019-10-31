@@ -631,8 +631,8 @@ edict_t *G_Spawn( void ) {
 	}
 
 	freed = NULL;
-	e = &game.edicts[gs.maxclients + 1];
-	for( i = gs.maxclients + 1; i < game.numentities; i++, e++ ) {
+	e = &game.edicts[server_gs.maxclients + 1];
+	for( i = server_gs.maxclients + 1; i < game.numentities; i++, e++ ) {
 		if( e->r.inuse ) {
 			continue;
 		}
@@ -922,7 +922,7 @@ void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, .
 		if( who && teamonly ) {
 			int i;
 
-			for( i = 0; i < gs.maxclients; i++ ) {
+			for( i = 0; i < server_gs.maxclients; i++ ) {
 				ent = game.edicts + 1 + i;
 
 				if( ent->r.inuse && ent->r.client && trap_GetClientState( i ) >= CS_CONNECTED ) {
@@ -969,7 +969,7 @@ void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) {
 
 	if( ent != NULL ) {
 		// add it to every player who's chasing this player
-		for( other = game.edicts + 1; PLAYERNUM( other ) < gs.maxclients; other++ ) {
+		for( other = game.edicts + 1; PLAYERNUM( other ) < server_gs.maxclients; other++ ) {
 			if( !other->r.client || !other->r.inuse || !other->r.client->resp.chase.active ) {
 				continue;
 			}
@@ -1411,7 +1411,7 @@ edict_t *G_PlayerForText( const char *text ) {
 
 	int pnum = atoi( text );
 
-	if( !Q_stricmp( text, va( "%i", pnum ) ) && pnum >= 0 && pnum < gs.maxclients && game.edicts[pnum + 1].r.inuse ) {
+	if( !Q_stricmp( text, va( "%i", pnum ) ) && pnum >= 0 && pnum < server_gs.maxclients && game.edicts[pnum + 1].r.inuse ) {
 		return &game.edicts[atoi( text ) + 1];
 	}
 
@@ -1419,7 +1419,7 @@ edict_t *G_PlayerForText( const char *text ) {
 	edict_t *e;
 
 	// check if it's a known player name
-	for( i = 0, e = game.edicts + 1; i < gs.maxclients; i++, e++ ) {
+	for( i = 0, e = game.edicts + 1; i < server_gs.maxclients; i++, e++ ) {
 		if( !e->r.inuse ) {
 			continue;
 		}
@@ -1453,7 +1453,7 @@ void G_AnnouncerSound( edict_t *targ, int soundindex, int team, bool queued, edi
 	} else {   // add it to all players
 		edict_t *ent;
 
-		for( ent = game.edicts + 1; PLAYERNUM( ent ) < gs.maxclients; ent++ ) {
+		for( ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients; ent++ ) {
 			if( !ent->r.inuse || trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 				continue;
 			}

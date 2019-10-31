@@ -121,7 +121,7 @@ static void target_laser_think( edict_t *self ) {
 		// hurt it if we can
 		if( ( game.edicts[tr.ent].takedamage ) && !( game.edicts[tr.ent].flags & FL_IMMUNE_LASER ) ) {
 			if( game.edicts[tr.ent].r.client && self->activator->r.client ) {
-				if( !GS_TeamBasedGametype() ||
+				if( !GS_TeamBasedGametype( &server_gs ) ||
 					game.edicts[tr.ent].s.team != self->activator->s.team ) {
 					G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 5, 0, 0, self->count );
 				}
@@ -239,7 +239,7 @@ static void SP_target_print_use( edict_t *self, edict_t *other, edict_t *activat
 	// print to team
 	if( activator->r.client && self->spawnflags & 3 ) {
 		edict_t *e;
-		for( e = game.edicts + 1; PLAYERNUM( e ) < gs.maxclients; e++ ) {
+		for( e = game.edicts + 1; PLAYERNUM( e ) < server_gs.maxclients; e++ ) {
 			if( e->r.inuse && e->s.team ) {
 				if( self->spawnflags & 1 && e->s.team == activator->s.team ) {
 					G_CenterPrintMsg( e, "%s", self->message );
@@ -252,7 +252,7 @@ static void SP_target_print_use( edict_t *self, edict_t *other, edict_t *activat
 		return;
 	}
 
-	for( int i = 1; i <= gs.maxclients; i++ ) {
+	for( int i = 1; i <= server_gs.maxclients; i++ ) {
 		edict_t *player = &game.edicts[i];
 		if( !player->r.inuse ) {
 			continue;

@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "g_local.h"
 
 game_locals_t game;
+gs_state_t server_gs;
 level_locals_t level;
 spawn_temp_t st;
 
@@ -33,7 +34,6 @@ vec3_t knockbackOfDeath;
 cvar_t *password;
 cvar_t *g_operator_password;
 cvar_t *g_select_empty;
-cvar_t *developer;
 
 cvar_t *filterban;
 
@@ -85,13 +85,6 @@ static int map_rotation_count = 0;
 //===================================================================
 
 /*
-* G_API
-*/
-int G_API( void ) {
-	return GAME_API_VERSION;
-}
-
-/*
 * G_Error
 *
 * Abort the server with a game error
@@ -140,25 +133,32 @@ static void G_GS_Trace( trace_t *tr, const vec3_t start, const vec3_t mins, cons
 * give gameshared access to some utilities
 */
 static void G_InitGameShared( void ) {
-	int maxclients;
-	gs_module_api_t api;
-
-	maxclients = atoi( trap_GetConfigString( CS_MAXCLIENTS ) );
+	int maxclients = atoi( trap_GetConfigString( CS_MAXCLIENTS ) );
 	if( maxclients < 1 || maxclients > MAX_EDICTS ) {
 		G_Error( "Invalid maxclients value %i\n", maxclients );
 	}
 
-	memset( &api, 0, sizeof( api ) );
-	api.PredictedEvent = G_PredictedEvent;
-	api.Error = G_Error;
-	api.Printf = G_Printf;
-	api.Trace = G_GS_Trace;
-	api.GetEntityState = G_GetEntityStateForDeltaTime;
-	api.PointContents = G_PointContents4D;
-	api.PMoveTouchTriggers = G_PMoveTouchTriggers;
-	api.GetConfigString = trap_GetConfigString;
+	server_gs = { };
+	server_gs.module = GS_MODULE_GAME;
+	server_gs.maxclients = maxclients;
 
-	GS_InitModule( GS_MODULE_GAME, maxclients, &api );
+	server_gs.api.PredictedEvent = G_PredictedEvent;
+	server_gs.api.Error = G_Error;
+	server_gs.api.Printf = G_Printf;
+	server_gs.api.Trace = G_GS_Trace;
+	server_gs.api.GetEntityState = G_GetEntityStateForDeltaTime;
+	server_gs.api.PointContents = G_PointContents4D;
+	server_gs.api.PMoveTouchTriggers = G_PMoveTouchTriggers;
+	server_gs.api.GetConfigString = trap_GetConfigString;
+}
+
+void G_GamestatSetFlag( int flag, bool b ) {
+	if( b ) {
+		server_gs.gameState.stats[GAMESTAT_FLAGS] |= flag;
+	}
+	else {
+		server_gs.gameState.stats[GAMESTAT_FLAGS] &= ~flag;
+	}
 }
 
 /*
@@ -257,9 +257,9 @@ void G_Init( unsigned int seed, unsigned int framemsec ) {
 	game.edicts = ( edict_t * )G_Malloc( game.maxentities * sizeof( game.edicts[0] ) );
 
 	// initialize all clients for this game
-	game.clients = ( gclient_t * )G_Malloc( gs.maxclients * sizeof( game.clients[0] ) );
+	game.clients = ( gclient_t * )G_Malloc( server_gs.maxclients * sizeof( game.clients[0] ) );
 
-	game.numentities = gs.maxclients + 1;
+	game.numentities = server_gs.maxclients + 1;
 
 	trap_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
 
@@ -443,7 +443,7 @@ void G_ExitLevel( void ) {
 	G_SnapClients();
 
 	// clear some things before going to next level
-	for( int i = 0; i < gs.maxclients; i++ ) {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t *ent = game.edicts + 1 + i;
 		if( !ent->r.inuse ) {
 			continue;
@@ -461,30 +461,3 @@ void G_ExitLevel( void ) {
 		}
 	}
 }
-
-//======================================================================
-
-#ifndef GAME_HARD_LINKED
-// this is only here so the functions in q_shared.c and q_math.c can link
-void Sys_Error( const char *format, ... ) {
-	va_list argptr;
-	char msg[3072];
-
-	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
-	va_end( argptr );
-
-	G_Error( "%s", msg );
-}
-
-void Com_Printf( const char *format, ... ) {
-	va_list argptr;
-	char msg[3072];
-
-	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
-	va_end( argptr );
-
-	G_Printf( "%s", msg );
-}
-#endif

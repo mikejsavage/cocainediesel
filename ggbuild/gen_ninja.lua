@@ -1,62 +1,64 @@
 local lfs = require( "INTERNAL_LFS" )
 
-local configs = {
-	[ "windows" ] = {
-		bin_suffix = ".exe",
-		obj_suffix = ".obj",
-		pie_obj_suffix = ".obj",
-		lib_suffix = ".lib",
-		dll_prefix = "base/",
-		dll_suffix = ".dll",
+local configs = { }
 
-		toolchain = "msvc",
+configs[ "windows" ] = {
+	bin_suffix = ".exe",
+	obj_suffix = ".obj",
+	lib_suffix = ".lib",
 
-		cxxflags = "/c /Oi /Gm- /nologo /DNOMINMAX /DWIN32_LEAN_AND_MEAN",
-		ldflags = "user32.lib shell32.lib advapi32.lib dbghelp.lib /NOLOGO",
-	},
+	toolchain = "msvc",
 
-	[ "windows-debug" ] = {
-		cxxflags = "/MTd /Z7",
-		ldflags = "/DEBUG",
-	},
-	[ "windows-release" ] = {
-		cxxflags = "/O2 /MT /DNDEBUG",
-		bin_prefix = "release/",
-		dll_prefix = "release/base/",
-	},
+	cxxflags = "/c /Oi /Gm- /nologo /DNOMINMAX /DWIN32_LEAN_AND_MEAN",
+	ldflags = "user32.lib shell32.lib advapi32.lib dbghelp.lib /NOLOGO",
+}
 
-	[ "linux" ] = {
-		obj_suffix = ".o",
-		pie_obj_suffix = ".pic.o",
-		lib_prefix = "lib",
-		lib_suffix = ".a",
-		dll_prefix = "base/lib",
-		dll_suffix = ".so",
+configs[ "windows-debug" ] = {
+	cxxflags = "/MTd /Z7",
+	ldflags = "/DEBUG",
+}
+configs[ "windows-release" ] = {
+	cxxflags = "/O2 /MT /DNDEBUG",
+	bin_prefix = "release/",
+}
+configs[ "windows-bench" ] = {
+	bin_suffix = "-bench.exe",
+	cxxflags = configs[ "windows-release" ].cxxflags,
+	ldflags = configs[ "windows-release" ].ldflags,
+	prebuilt_lib_dir = "windows-release",
+}
 
-		toolchain = "gcc",
-		cxx = "g++",
+configs[ "linux" ] = {
+	obj_suffix = ".o",
+	lib_prefix = "lib",
+	lib_suffix = ".a",
 
-		cxxflags = "-c -fdiagnostics-color",
-		pie_cxxflags = "-fPIC",
-		ldflags = "",
-	},
+	toolchain = "gcc",
+	cxx = "g++",
 
-	[ "linux-debug" ] = {
-		cxxflags = "-O0 -ggdb3 -fno-omit-frame-pointer",
-	},
-	[ "linux-asan" ] = {
-		bin_suffix = "-asan",
-		cxxflags = "-O0 -ggdb3 -fno-omit-frame-pointer -fsanitize=address",
-		ldflags = "-fsanitize=address",
+	cxxflags = "-c -fdiagnostics-color",
+	ldflags = "",
+}
 
-		prebuilt_lib_dir = "linux-debug",
-	},
-	[ "linux-release" ] = {
-		cxxflags = "-O2 -DNDEBUG",
-		ldflags = "-s",
-		bin_prefix = "release/",
-		dll_prefix = "release/base/lib",
-	},
+configs[ "linux-debug" ] = {
+	cxxflags = "-O0 -ggdb3 -fno-omit-frame-pointer",
+}
+configs[ "linux-asan" ] = {
+	bin_suffix = "-asan",
+	cxxflags = configs[ "linux-debug" ].cxxflags .. " -fsanitize=address",
+	ldflags = "-fsanitize=address",
+	prebuilt_lib_dir = "linux-debug",
+}
+configs[ "linux-release" ] = {
+	cxxflags = "-O2 -DNDEBUG",
+	ldflags = "-s",
+	bin_prefix = "release/",
+}
+configs[ "linux-bench" ] = {
+	bin_suffix = "-bench",
+	cxxflags = configs[ "linux-release" ].cxxflags,
+	ldflags = configs[ "linux-release" ].ldflags,
+	prebuilt_lib_dir = "linux-release",
 }
 
 local function identify_host()
@@ -105,15 +107,11 @@ end
 local bin_prefix = rightmost( "bin_prefix" )
 local bin_suffix = rightmost( "bin_suffix" )
 local obj_suffix = rightmost( "obj_suffix" )
-local pie_obj_suffix = rightmost( "pie_obj_suffix" )
 local lib_prefix = rightmost( "lib_prefix" )
 local lib_suffix = rightmost( "lib_suffix" )
 local prebuilt_lib_dir = rightmost( "prebuilt_lib_dir" )
 prebuilt_lib_dir = prebuilt_lib_dir == "" and OS_config or prebuilt_lib_dir
-local dll_prefix = rightmost( "dll_prefix" )
-local dll_suffix = rightmost( "dll_suffix" )
 local cxxflags = concat( "cxxflags" )
-local pie_cxxflags = concat( "pie_cxxflags" )
 local ldflags = concat( "ldflags" )
 
 toolchain = rightmost( "toolchain" )
@@ -168,7 +166,6 @@ local function printf( form, ... )
 end
 
 local objs = { }
-local pie_objs = { }
 local objs_flags = { }
 local objs_extra_flags = { }
 
@@ -177,7 +174,6 @@ local bins_flags = { }
 local bins_extra_flags = { }
 
 local libs = { }
-local dlls = { }
 
 local function glob_impl( dir, rel, res, prefix, suffix, recursive )
 	for filename in lfs.dir( dir .. rel ) do
@@ -223,14 +219,6 @@ local function add_srcs( srcs )
 	end
 end
 
-local function add_pie_srcs( srcs )
-	for _, src in ipairs( srcs ) do
-		if not pie_objs[ src ] then
-			pie_objs[ src ] = { }
-		end
-	end
-end
-
 function bin( bin_name, cfg )
 	assert( type( cfg ) == "table", "cfg should be a table" )
 	assert( type( cfg.srcs ) == "table", "cfg.srcs should be a table" )
@@ -250,22 +238,6 @@ function lib( lib_name, srcs )
 	local globbed = glob( srcs )
 	libs[ lib_name ] = globbed
 	add_srcs( globbed )
-end
-
-function dll( dll_name, cfg )
-	assert( type( cfg ) == "table", "cfg should be a table" )
-	assert( type( cfg.srcs ) == "table", "cfg.srcs should be a table" )
-	assert( not cfg.prebuilt_libs or type( cfg.prebuilt_libs ) == "table", "cfg.prebuilt_libs should be a table or nil" )
-	assert( not dlls[ dll_name ] )
-
-	dlls[ dll_name ] = cfg
-	cfg.srcs = glob( cfg.srcs )
-
-	if toolchain == "msvc" then
-		add_srcs( cfg.srcs )
-	else
-		add_pie_srcs( cfg.srcs )
-	end
 end
 
 function obj_cxxflags( pattern, flags )
@@ -310,10 +282,6 @@ rule lib
     command = lib /NOLOGO /OUT:$out $in
     description = $out
 
-rule dll
-    command = link /DLL /OUT:$out $in $ldflags $extra_ldflags
-    description = $out
-
 rule rc
     command = rc /fo$out /nologo $in_rc
     description = $in
@@ -344,10 +312,6 @@ rule bin
 
 rule lib
     command = ar rs $out $in
-    description = $out
-
-rule dll
-    command = $cpp -o $out $in $ldflags $extra_ldflags -shared
     description = $out
 ]], cxx )
 
@@ -386,54 +350,8 @@ local function write_ninja_script()
 		end
 	end
 
-	for _, flag in ipairs( objs_flags ) do
-		for name, cfg in pairs( pie_objs ) do
-			if name:match( flag.pattern ) then
-				cfg.cxxflags = flag.flags
-			end
-		end
-	end
-
-	for _, flag in ipairs( objs_extra_flags ) do
-		for name, cfg in pairs( pie_objs ) do
-			if name:match( flag.pattern ) then
-				cfg.extra_cxxflags = ( cfg.extra_cxxflags or "" ) .. " " .. flag.flags
-			end
-		end
-	end
-
-	for src_name, cfg in pairs( pie_objs ) do
-		local rule = rule_for_src( src_name )
-		printf( "build %s/%s%s: %s %s", dir, src_name, pie_obj_suffix, rule, src_name )
-		if cfg.cxxflags then
-			printf( "    cxxflags = %s", cfg.cxxflags )
-		end
-		printf( "    extra_cxxflags = %s %s", pie_cxxflags, cfg.extra_cxxflags or "" )
-	end
-
 	for lib_name, srcs in pairs( libs ) do
 		printf( "build %s/%s%s%s: lib %s", dir, lib_prefix, lib_name, lib_suffix, join( srcs, obj_suffix ) )
-	end
-
-	for dll_name, cfg in pairs( dlls ) do
-		local full_name = dll_prefix .. dll_name .. dll_suffix
-		printf( "build %s: dll %s %s %s",
-			full_name,
-			join( cfg.srcs, pie_obj_suffix ),
-			join( cfg.libs, lib_suffix, lib_prefix ),
-			joinpb( cfg.prebuilt_libs, lib_suffix, lib_prefix )
-		)
-
-		local ldflags_key = toolchain .. "_ldflags"
-		local extra_ldflags_key = toolchain .. "_extra_ldflags"
-		if cfg[ ldflags_key ] then
-			printf( "    ldflags = %s", cfg[ ldflags_key ] )
-		end
-		if cfg[ extra_ldflags_key ] then
-			printf( "    extra_ldflags = %s", cfg[ extra_ldflags_key ] )
-		end
-
-		printf( "default %s", full_name )
 	end
 
 	for bin_name, cfg in pairs( bins ) do

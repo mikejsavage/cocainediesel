@@ -1,5 +1,5 @@
 all: debug
-.PHONY: debug asan release clean
+.PHONY: debug asan bench release clean
 
 LUA = ggbuild/lua.linux
 NINJA = ggbuild/ninja.linux
@@ -18,6 +18,10 @@ asan:
 	@$(LUA) make.lua asan > build.ninja
 	@$(NINJA)
 
+bench:
+	@$(LUA) make.lua bench > build.ninja
+	@$(NINJA)
+
 release:
 	@$(LUA) make.lua release > build.ninja
 	@$(NINJA)
@@ -27,7 +31,9 @@ clean:
 	@$(NINJA) -t clean || true
 	@$(LUA) make.lua asan > build.ninja || true
 	@$(NINJA) -t clean || true
+	@$(LUA) make.lua bench > build.ninja || true
+	@$(NINJA) -t clean || true
 	@rm -f source/qcommon/gitversion.h
 	@rm -rf build release
-	@rm -f *.exp *.ilk *.ilp *.lib *.pdb game/*.exp game/*.ilk game/*.ilp game/*.pdb
+	@rm -f *.exp *.ilk *.ilp *.lib *.pdb
 	@rm -f build.ninja

@@ -15,19 +15,17 @@ See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
 */
 
 #include "cgame/cg_local.h"
-#include "client/client.h"
 #include "qcommon/string.h"
 
 static constexpr const char * PLAYER_SOUND_NAMES[] = {
 	"death",
-	"jump_1", "jump_2", "jump_3",
+	"jump",
 	"pain25", "pain50", "pain75", "pain100",
-	"wj_1", "wj_2",
-	"dash_1", "dash_2",
+	"walljump",
+	"dash",
 };
 
 STATIC_ASSERT( ARRAY_COUNT( PLAYER_SOUND_NAMES ) == PlayerSound_Count );
@@ -42,11 +40,11 @@ void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata, const char * name 
 		}
 
 		DynamicString path( &temp, "sounds/players/{}/{}", name, PLAYER_SOUND_NAMES[ i ] );
-		metadata->sounds[ i ] = S_RegisterSound( path.c_str() );
+		metadata->sounds[ i ] = FindSoundEffect( path.c_str() );
 	}
 }
 
-static const SoundAsset * GetPlayerSound( int entnum, PlayerSound ps ) {
+static const SoundEffect * GetPlayerSound( int entnum, PlayerSound ps ) {
 	if( entnum < 0 || entnum >= MAX_EDICTS ) {
 		return NULL;
 	}
@@ -57,15 +55,15 @@ void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps, float volume, f
 	bool fixed = entchannel & CHAN_FIXED ? true : false;
 	entchannel &= ~CHAN_FIXED;
 
-	const SoundAsset * sound = GetPlayerSound( entnum, ps );
+	const SoundEffect * sfx = GetPlayerSound( entnum, ps );
 	if( fixed ) {
-		S_StartFixedSound( sound, cg_entities[entnum].current.origin, entchannel, volume, attn );
+		S_StartFixedSound( sfx, FromQF3( cg_entities[entnum].current.origin ), entchannel, volume, attn );
 	}
 	else if( ISVIEWERENTITY( entnum ) ) {
-		S_StartGlobalSound( sound, entchannel, volume );
+		S_StartGlobalSound( sfx, entchannel, volume );
 	}
 	else {
-		S_StartEntitySound( sound, entnum, entchannel, volume, attn );
+		S_StartEntitySound( sfx, entnum, entchannel, volume, attn );
 	}
 }
 
@@ -92,7 +90,7 @@ static void CG_ParseClientInfo( cg_clientInfo_t *ci, const char *info ) {
 * Updates cached client info from the current CS_PLAYERINFOS configstring value
 */
 void CG_LoadClientInfo( int client ) {
-	assert( client >= 0 && client < gs.maxclients );
+	assert( client >= 0 && client < client_gs.maxclients );
 	CG_ParseClientInfo( &cgs.clientInfo[client], cgs.configStrings[CS_PLAYERINFOS + client] );
 }
 

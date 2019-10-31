@@ -174,7 +174,7 @@ void G_ChasePlayer( edict_t *ent, const char *name, bool teamonly, int followmod
 	// locate the requested target
 	if( name && name[0] ) {
 		// find it by player names
-		for( e = game.edicts + 1; PLAYERNUM( e ) < gs.maxclients; e++ ) {
+		for( e = game.edicts + 1; PLAYERNUM( e ) < server_gs.maxclients; e++ ) {
 			if( !G_Chase_IsValidTarget( ent, e, teamonly ) ) {
 				continue;
 			}
@@ -188,7 +188,7 @@ void G_ChasePlayer( edict_t *ent, const char *name, bool teamonly, int followmod
 		// didn't find it by name, try by numbers
 		if( targetNum == -1 ) {
 			i = atoi( name );
-			if( i >= 0 && i < gs.maxclients ) {
+			if( i >= 0 && i < server_gs.maxclients ) {
 				e = game.edicts + 1 + i;
 				if( G_Chase_IsValidTarget( ent, e, teamonly ) ) {
 					targetNum = PLAYERNUM( e );
@@ -202,7 +202,7 @@ void G_ChasePlayer( edict_t *ent, const char *name, bool teamonly, int followmod
 	}
 
 	// try to reuse old target if we didn't find a valid one
-	if( targetNum == -1 && oldTarget > 0 && oldTarget < gs.maxclients ) {
+	if( targetNum == -1 && oldTarget > 0 && oldTarget < server_gs.maxclients ) {
 		e = game.edicts + 1 + oldTarget;
 		if( G_Chase_IsValidTarget( ent, e, teamonly ) ) {
 			targetNum = PLAYERNUM( e );
@@ -211,7 +211,7 @@ void G_ChasePlayer( edict_t *ent, const char *name, bool teamonly, int followmod
 
 	// if we still don't have a target, just pick the first valid one
 	if( targetNum == -1 ) {
-		for( e = game.edicts + 1; PLAYERNUM( e ) < gs.maxclients; e++ ) {
+		for( e = game.edicts + 1; PLAYERNUM( e ) < server_gs.maxclients; e++ ) {
 			if( !G_Chase_IsValidTarget( ent, e, teamonly ) ) {
 				continue;
 			}
@@ -286,7 +286,7 @@ void G_ChaseStep( edict_t *ent, int step ) {
 		if( team == GS_MAX_TEAMS ) {
 			team = TEAM_PLAYERS;
 		}
-		for( j = 0; j < gs.maxclients; j++ ) {
+		for( j = 0; j < server_gs.maxclients; j++ ) {
 			// at this point step is -1 or 1
 			i += step;
 

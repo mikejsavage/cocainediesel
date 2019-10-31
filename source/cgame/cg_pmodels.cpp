@@ -29,7 +29,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // - Adding the Player model using Skeletal animation blending
 // by Jalisk0
 
-#include "client/client.h"
 #include "cg_local.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
@@ -531,7 +530,7 @@ static PlayerModelAnimationSet CG_GetBaseAnims( entity_state_t *state, const vec
 		return a;
 	}
 
-	GS_BBoxForEntityState( state, mins, maxs );
+	CG_BBoxForEntityState( state, mins, maxs );
 
 	// determine if player is at ground, for walking or falling
 	// this is not like having groundEntity, we are more generous with
@@ -539,7 +538,7 @@ static PlayerModelAnimationSet CG_GetBaseAnims( entity_state_t *state, const vec
 	point[0] = state->origin[0];
 	point[1] = state->origin[1];
 	point[2] = state->origin[2] - ( 1.6 * STEPSIZE );
-	gs.api.Trace( &trace, state->origin, mins, maxs, point, state->number, MASK_PLAYERSOLID, 0 );
+	client_gs.api.Trace( &trace, state->origin, mins, maxs, point, state->number, MASK_PLAYERSOLID, 0 );
 	if( trace.ent == -1 || ( trace.fraction < 1.0f && !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
 		moveflags |= ANIMMOVE_AIR;
 	}
@@ -550,7 +549,7 @@ static PlayerModelAnimationSet CG_GetBaseAnims( entity_state_t *state, const vec
 	}
 
 	// find out the water level
-	waterlevel = GS_WaterLevel( state, mins, maxs );
+	waterlevel = GS_WaterLevel( &client_gs, state, mins, maxs );
 	if( waterlevel >= 2 || ( waterlevel && ( moveflags & ANIMMOVE_AIR ) ) ) {
 		moveflags |= ANIMMOVE_SWIM;
 	}
@@ -980,7 +979,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 	DrawModel( meta->model, transform, color, pose.skinning_matrices );
 
 	bool speccing = cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR;
-	bool same_team = GS_TeamBasedGametype() && cg.predictedPlayerState.stats[ STAT_TEAM ] == cent->current.team;
+	bool same_team = GS_TeamBasedGametype( &client_gs ) && cg.predictedPlayerState.stats[ STAT_TEAM ] == cent->current.team;
 	if( !corpse && ( speccing || same_team ) ) {
 		DrawModelSilhouette( meta->model, transform, color, pose.skinning_matrices );
 	}

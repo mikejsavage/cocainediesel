@@ -133,12 +133,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define S_WEAPON_NOAMMO             "sounds/weapons/weapon_noammo"
 
 // weapon sounds
-#define S_WEAPON_GUNBLADE_HIT_FLESH_1_to_3    "sounds/weapons/blade_hitflsh%i"
-#define S_WEAPON_GUNBLADE_HIT_WALL_1_to_2 "sounds/weapons/blade_hitwall%i"
+#define S_WEAPON_GUNBLADE_HIT_FLESH     "sounds/weapons/blade_hit_flesh"
+#define S_WEAPON_GUNBLADE_HIT_WALL      "sounds/weapons/blade_hit_wall"
 
 #define S_WEAPON_RIOTGUN_HIT            "sounds/weapons/riotgun_strong_hit"
 
-#define S_WEAPON_GRENADE_BOUNCE_1_to_2  "sounds/weapons/gren_strong_bounce%i"
+#define S_WEAPON_GRENADE_BOUNCE         "sounds/weapons/grenade_bounce"
 #define S_WEAPON_GRENADE_HIT            "sounds/weapons/gren_strong_explosion1"
 
 #define S_WEAPON_ROCKET_FLY             "sounds/weapons/rocket_fly_strong"
@@ -149,9 +149,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define S_WEAPON_LASERGUN_HUM           "sounds/weapons/laser_strong_hum"
 #define S_WEAPON_LASERGUN_STOP          "sounds/weapons/laser_strong_stop"
-#define S_WEAPON_LASERGUN_HIT_0         "sounds/weapons/laser_hit0"
-#define S_WEAPON_LASERGUN_HIT_1         "sounds/weapons/laser_hit1"
-#define S_WEAPON_LASERGUN_HIT_2         "sounds/weapons/laser_hit2"
+#define S_WEAPON_LASERGUN_HIT           "sounds/weapons/laser_hit"
 
 #define S_WEAPON_ELECTROBOLT_HIT        "sounds/weapons/electrobolt_hit"
 

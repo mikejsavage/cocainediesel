@@ -75,22 +75,6 @@ typedef struct cplane_s {
 constexpr vec3_t vec3_origin = { 0, 0, 0 };
 constexpr mat3_t axis_identity = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 
-constexpr vec4_t color_table[] =
-{
-	{ 0.0, 0.0, 0.0, 1.0 },
-	{ 1.0, 0.0, 0.0, 1.0 },
-	{ 0.0, 1.0, 0.0, 1.0 },
-	{ 1.0, 1.0, 0.0, 1.0 },
-	{ 0.0, 0.0, 1.0, 1.0 },
-	{ 0.0, 1.0, 1.0, 1.0 },
-	{ 1.0, 0.0, 1.0, 1.0 }, // magenta
-	{ 1.0, 1.0, 1.0, 1.0 },
-	{ 1.0, 0.5, 0.0, 1.0 }, // orange
-	{ 0.5, 0.5, 0.5, 1.0 }, // grey
-};
-
-#define MAX_S_COLORS ARRAY_COUNT( color_table )
-
 constexpr double M_TWOPI = M_PI * 2.0;
 
 #define DEG2RAD( a ) ( ( a * float( M_PI ) ) / 180.0f )
@@ -236,3 +220,7 @@ Vec3 UniformSampleSphere( RNG * rng );
 Vec3 UniformSampleInsideSphere( RNG * rng );
 Vec2 UniformSampleDisk( RNG * rng );
 float SampleNormalDistribution( RNG * rng );
+
+Vec3 Project( Vec3 a, Vec3 b );
+Vec3 ClosestPointOnLine( Vec3 p0, Vec3 p1, Vec3 p );
+Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p );

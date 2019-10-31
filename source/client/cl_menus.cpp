@@ -750,8 +750,10 @@ static void GameMenu() {
 	bool spectating = cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR;
 	bool ready = false;
 
-	if( GS_MatchState() <= MATCH_STATE_WARMUP && !spectating ) {
+	if( GS_MatchState( &client_gs ) <= MATCH_STATE_WARMUP ) {
 		ready = ( cg.predictedPlayerState.stats[ STAT_LAYOUTS ] & STAT_LAYOUT_READY ) != 0;
+	} else if( GS_MatchState( &client_gs ) == MATCH_STATE_COUNTDOWN ) {
+		ready = true;
 	}
 
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 192 ) );
@@ -765,7 +767,7 @@ static void GameMenu() {
 		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
 
 		if( spectating ) {
-			if( GS_TeamBasedGametype() ) {
+			if( GS_TeamBasedGametype( &client_gs ) ) {
 				ImGui::Columns( 2, NULL, false );
 				ImGui::SetColumnWidth( 0, half );
 				ImGui::SetColumnWidth( 1, half );
@@ -780,14 +782,16 @@ static void GameMenu() {
 			ImGui::Columns( 1 );
 		}
 		else {
-			if( ImGui::Checkbox( ready ? "Ready!" : "Not ready", &ready ) ) {
-				String< 256 > buf( "{}\n", ready ? "ready" : "unready" );
-				Cbuf_AddText( buf );
+			if( GS_MatchState( &client_gs ) <= MATCH_STATE_COUNTDOWN ) {
+				if( ImGui::Checkbox( ready ? "Ready!" : "Not ready", &ready ) ) {
+					String< 256 > buf( "{}\n", "toggleready" );
+					Cbuf_AddText( buf );
+				}
 			}
 
 			GameMenuButton( "Spectate", "spec", &should_close );
 
-			if( GS_TeamBasedGametype() ) {
+			if( GS_TeamBasedGametype( &client_gs ) ) {
 				GameMenuButton( "Change loadout", "gametypemenu", &should_close );
 			}
 		}

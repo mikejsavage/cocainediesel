@@ -12,6 +12,7 @@
 #include "bullet/btBulletCollisionCommon.h"
 #include "bullet/LinearMath/btGeometryUtil.h"
 
+#include "physx/PxConfig.h"
 #include "physx/PxPhysicsApi.h"
 #include "physx/cooking/PxCooking.h"
 

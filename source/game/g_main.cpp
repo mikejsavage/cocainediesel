@@ -18,15 +18,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "g_local.h"
+#include "game/g_local.h"
 
 game_locals_t game;
 gs_state_t server_gs;
 level_locals_t level;
 spawn_temp_t st;
 
-struct mempool_s *gamepool;
-struct mempool_s *levelpool;
+mempool_s *gamepool;
 
 int meansOfDeath;
 vec3_t knockbackOfDeath;
@@ -168,6 +167,8 @@ void G_GamestatSetFlag( int flag, bool b ) {
 * only happens when a new game is started or a save game is loaded.
 */
 void G_Init( unsigned int seed, unsigned int framemsec ) {
+	gamepool = _Mem_AllocPool( NULL, "Game", MEMPOOL_GAME, __FILE__, __LINE__ );
+
 	cvar_t *g_maxentities;
 
 	G_Printf( "==== G_Init ====\n" );
@@ -297,6 +298,8 @@ void G_Shutdown( void ) {
 
 	G_Free( game.edicts );
 	G_Free( game.clients );
+
+	Mem_FreePool( &gamepool );
 }
 
 //======================================================================

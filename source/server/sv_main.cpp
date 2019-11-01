@@ -18,8 +18,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "server.h"
+#include "server/server.h"
 #include "qcommon/version.h"
+#include "qcommon/csprng.h"
 
 static bool sv_initialized = false;
 
@@ -494,6 +495,10 @@ static void SV_CheckPostUpdateRestart( void ) {
 void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 	ZoneScoped;
 
+	u64 entropy[ 2 ];
+	CSPRNG_Bytes( entropy, sizeof( entropy ) );
+	sv.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
+
 	time_before_game = time_after_game = 0;
 
 	// if server is not active, do nothing
@@ -581,8 +586,6 @@ void SV_UserinfoChanged( client_t *client ) {
 
 /*
 * SV_Init
-*
-* Only called at plat.exe startup, not for each game
 */
 void SV_Init( void ) {
 	cvar_t *sv_pps;

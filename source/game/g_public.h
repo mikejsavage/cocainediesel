@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#pragma once
+
 #define MAX_ENT_CLUSTERS    16
 
 typedef struct edict_s edict_t;
@@ -100,10 +102,6 @@ typedef struct {
 	int ( *CM_LeafCluster )( int leafnum );
 	int ( *CM_LeafArea )( int leafnum );
 	int ( *CM_LeafsInPVS )( int leafnum1, int leafnum2 );
-
-	// managed memory allocation
-	void *( *Mem_Alloc )( size_t size, const char *filename, int fileline );
-	void ( *Mem_Free )( void *data, const char *filename, int fileline );
 
 	// console variable interaction
 	cvar_t *( *Cvar_Get )( const char *name, const char *value, int flags );

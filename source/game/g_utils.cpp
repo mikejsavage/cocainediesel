@@ -263,13 +263,6 @@ char *_G_LevelCopyString( const char *in, const char *filename, int fileline ) {
 	return out;
 }
 
-/*
-* G_LevelGarbageCollect
-*/
-void G_LevelGarbageCollect( void ) {
-	//G_Z_Print( levelzone );
-}
-
 //==============================================================================
 
 #define STRINGPOOL_SIZE         1024 * 1024
@@ -357,15 +350,6 @@ const char *_G_RegisterLevelString( const char *string, const char *filename, in
 
 	return ps->buf;
 }
-
-//==============================================================================
-
-void G_ProjectSource( vec3_t point, vec3_t distance, vec3_t forward, vec3_t right, vec3_t result ) {
-	result[0] = point[0] + forward[0] * distance[0] + right[0] * distance[1];
-	result[1] = point[1] + forward[1] * distance[0] + right[1] * distance[1];
-	result[2] = point[2] + forward[2] * distance[0] + right[2] * distance[1] + distance[2];
-}
-
 
 /*
 * G_Find
@@ -554,9 +538,7 @@ void G_SetMovedir( vec3_t angles, vec3_t movedir ) {
 }
 
 char *_G_CopyString( const char *in, const char *filename, int fileline ) {
-	char *out;
-
-	out = ( char * )trap_MemAlloc( strlen( in ) + 1, filename, fileline );
+	char * out = ( char * )_Mem_AllocExt( gamepool, strlen( in ) + 1, 16, 1, 0, 0, filename, fileline );
 	strcpy( out, in );
 	return out;
 }

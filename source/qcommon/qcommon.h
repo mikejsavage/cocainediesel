@@ -706,7 +706,7 @@ struct mempool_s;
 typedef struct mempool_s mempool_t;
 
 #define MEMPOOL_TEMPORARY           1
-#define MEMPOOL_GAMEPROGS           2
+#define MEMPOOL_GAME                2
 #define MEMPOOL_USERINTERFACE       4
 #define MEMPOOL_CLIENTGAME          8
 #define MEMPOOL_SOUND               16

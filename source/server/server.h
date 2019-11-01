@@ -18,8 +18,11 @@
 
  */
 
+#pragma once
+
 #include "qcommon/qcommon.h"
-#include "game/g_public.h"
+#include "qcommon/rng.h"
+#include "game/g_local.h"
 
 //=============================================================================
 
@@ -59,21 +62,13 @@ typedef struct {
 	char configstrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 	entity_state_t baselines[MAX_EDICTS];
 
+	RNG rng;
+
 	//
 	// global variables shared between game and server
 	//
 	ginfo_t gi;
 } server_t;
-
-struct gclient_s {
-	player_state_t ps;  // communicated by server to clients
-	client_shared_t r;  // shared by both the server system and game
-};
-
-struct edict_s {
-	entity_state_t s;   // communicated by server to clients
-	entity_shared_t r;  // shared by both the server system and game
-};
 
 #define EDICT_NUM( n ) ( (edict_t *)( (uint8_t *)sv.gi.edicts + sv.gi.edict_size * ( n ) ) )
 #define NUM_FOR_EDICT( e ) ( ( (uint8_t *)( e ) - (uint8_t *)sv.gi.edicts ) / sv.gi.edict_size )

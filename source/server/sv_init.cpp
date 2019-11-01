@@ -18,7 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "server.h"
+#include "server/server.h"
+#include "qcommon/csprng.h"
 
 server_constant_t svc;              // constant server info (trully persistant since sv_init)
 server_static_t svs;                // persistant server info
@@ -196,6 +197,11 @@ static void SV_SpawnServer( const char *server, bool devmap ) {
 
 	// wipe the entire per-level structure
 	memset( &sv, 0, sizeof( sv ) );
+
+	u64 entropy[ 2 ];
+	CSPRNG_Bytes( entropy, sizeof( entropy ) );
+	sv.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
+
 	SV_ResetClientFrameCounters();
 	svs.realtime = 0;
 	svs.gametime = 0;
@@ -425,6 +431,10 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 
 	memset( &sv, 0, sizeof( sv ) );
 	Com_SetServerState( sv.state );
+
+	u64 entropy[ 2 ];
+	CSPRNG_Bytes( entropy, sizeof( entropy ) );
+	sv.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
 
 	Com_FreePureList( &svs.purelist );
 

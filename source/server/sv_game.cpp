@@ -23,8 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 game_export_t *ge;
 
-mempool_t *sv_gameprogspool;
-
 //======================================================================
 
 // PF versions of the CM functions passed to the game module
@@ -363,20 +361,6 @@ static bool PF_inPVS( const vec3_t p1, const vec3_t p2 ) {
 	return CM_InPVS( svs.cms, p1, p2 );
 }
 
-/*
-* PF_MemAlloc
-*/
-static void *PF_MemAlloc( size_t size, const char *filename, int fileline ) {
-	return _Mem_Alloc( sv_gameprogspool, size, MEMPOOL_GAMEPROGS, 0, filename, fileline );
-}
-
-/*
-* PF_MemFree
-*/
-static void PF_MemFree( void *data, const char *filename, int fileline ) {
-	_Mem_Free( data, MEMPOOL_GAMEPROGS, 0, filename, fileline );
-}
-
 //==============================================
 
 /*
@@ -391,10 +375,6 @@ void SV_ShutdownGameProgs( void ) {
 	}
 
 	ge->Shutdown();
-	// This call might still require the memory pool to be valid
-	// (for example if there are global object destructors calling G_Free()),
-	// that's why it's called before releasing the pool.
-	Mem_FreePool( &sv_gameprogspool );
 	ge = NULL;
 }
 
@@ -426,8 +406,6 @@ void SV_InitGameProgs( void ) {
 	if( ge ) {
 		SV_ShutdownGameProgs();
 	}
-
-	sv_gameprogspool = _Mem_AllocPool( NULL, "Game Progs", MEMPOOL_GAMEPROGS, __FILE__, __LINE__ );
 
 	// load a new game dll
 	import.Print = PF_dprint;
@@ -465,9 +443,6 @@ void SV_InitGameProgs( void ) {
 	import.FS_Read = FS_Read;
 	import.FS_Write = FS_Write;
 	import.FS_FCloseFile = FS_FCloseFile;
-
-	import.Mem_Alloc = PF_MemAlloc;
-	import.Mem_Free = PF_MemFree;
 
 	import.Cvar_Get = Cvar_Get;
 	import.Cvar_Set = Cvar_Set;

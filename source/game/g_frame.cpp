@@ -532,7 +532,6 @@ void G_RunFrame( unsigned int msec, int64_t serverTime ) {
 
 		G_RunClients();
 		G_RunGametype();
-		G_LevelGarbageCollect();
 		return;
 	}
 
@@ -551,6 +550,4 @@ void G_RunFrame( unsigned int msec, int64_t serverTime ) {
 	G_RunEntities();
 	G_RunGametype();
 	GClip_BackUpCollisionFrame();
-
-	G_LevelGarbageCollect();
 }

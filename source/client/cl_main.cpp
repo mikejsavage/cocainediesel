@@ -2076,6 +2076,10 @@ void CL_Init( void ) {
 	void * frame_arena_memory = ALLOC_SIZE( sys_allocator, frame_arena_size, 16 );
 	cls.frame_arena = ArenaAllocator( frame_arena_memory, frame_arena_size );
 
+	u64 entropy[ 2 ];
+	CSPRNG_Bytes( entropy, sizeof( entropy ) );
+	cls.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
+
 	srand( time( NULL ) );
 
 	cls.monotonicTime = 0;

@@ -212,9 +212,7 @@ static void CG_InitGameShared( void ) {
 * CG_CopyString
 */
 char *_CG_CopyString( const char *in, const char *filename, int fileline ) {
-	char *out;
-
-	out = ( char * )CG_Malloc( strlen( in ) + 1 );
+	char * out = ( char * )_Mem_AllocExt( cg_mempool, strlen( in ) + 1, 16, 1, 0, 0, filename, fileline );
 	strcpy( out, in );
 	return out;
 }

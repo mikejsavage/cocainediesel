@@ -293,7 +293,7 @@ MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< 
 bool FindJointByName( const Model * model, const char * name, u8 * joint_idx ) {
 	u32 hash = Hash32( name );
 	for( u8 i = 0; i < model->num_joints; i++ ) {
-		if( model->joints[ i ].name == hash ) {
+		if( model->joints[ i ].name_hash == hash ) {
 			*joint_idx = i;
 			return true;
 		}

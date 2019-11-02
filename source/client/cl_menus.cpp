@@ -22,6 +22,7 @@ enum MainMenuState {
 	MainMenuState_Settings,
 
 	MainMenuState_ParticleEditor,
+	MainMenuState_RagdollEditor,
 };
 
 enum GameMenuState {
@@ -86,9 +87,10 @@ static void RefreshServerBrowser() {
 void UI_Init() {
 	ResetServerBrowser();
 	InitParticleEditor();
+	InitRagdollEditor();
 
 	uistate = UIState_MainMenu;
-	mainmenu_state = MainMenuState_ServerBrowser;
+	mainmenu_state = MainMenuState_RagdollEditor;
 
 	reset_video_settings = true;
 }
@@ -608,7 +610,7 @@ static void MainMenu() {
 	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
 
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus;
-	if( mainmenu_state == MainMenuState_ParticleEditor ) {
+	if( mainmenu_state == MainMenuState_ParticleEditor || mainmenu_state == MainMenuState_RagdollEditor ) {
 		flags |= ImGuiWindowFlags_NoBackground;
 	}
 
@@ -648,15 +650,18 @@ static void MainMenu() {
 	}
 
 	if( cl_devtools->integer != 0 ) {
-		ImGui::SameLine( 0, 50 );
-		ImGui::AlignTextToFramePadding();
-		ImGui::Text( "Dev tools:" );
+		ImGui::SameLine();
+
+		if( DevToolButton( "Particle editor" ) ) {
+			mainmenu_state = MainMenuState_ParticleEditor;
+			ResetParticleEditor();
+		}
 
 		ImGui::SameLine();
 
-		if( ImGui::Button( "Particle editor" ) ) {
-			mainmenu_state = MainMenuState_ParticleEditor;
-			ResetParticleEditor();
+		if( DevToolButton( "Ragdoll editor" ) ) {
+			mainmenu_state = MainMenuState_RagdollEditor;
+			ResetRagdollEditor();
 		}
 	}
 
@@ -667,6 +672,7 @@ static void MainMenu() {
 		case MainMenuState_CreateServer: CreateServer(); break;
 		case MainMenuState_Settings: Settings(); break;
 		case MainMenuState_ParticleEditor: DrawParticleEditor(); break;
+		case MainMenuState_RagdollEditor: DrawRagdollEditor(); break;
 	}
 
 	ImGui::EndChild();

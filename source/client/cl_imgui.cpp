@@ -237,3 +237,12 @@ Vec4 AttentionGettingColor() {
 	float t = sinf( cls.monotonicTime / 20.0f ) * 0.5f + 1.0f;
 	return Lerp( vec4_red, t, vec4_yellow );
 }
+
+bool DevToolButton( const char * label ) {
+	ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.125f, 0.625f, 0.25f, 1.f ) );
+	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 0.25f, 0.75f, 0.25f, 1.f ) );
+	ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.25f, 0.5f, 0.25f, 1.f ) );
+	bool clicked = ImGui::Button( label );
+	ImGui::PopStyleColor( 3 );
+	return clicked;
+}

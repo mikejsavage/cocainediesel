@@ -30,3 +30,5 @@ void ColumnRightText( const char * str );
 void WindowCenterTextXY( const char * str );
 
 Vec4 AttentionGettingColor();
+
+bool DevToolButton( const char * label );

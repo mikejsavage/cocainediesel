@@ -43,7 +43,8 @@ static void LoadJoint( Model * model, const cgltf_skin * skin, const cgltf_node 
 
 	Model::Joint & joint = model->joints[ joint_idx ];
 	joint.parent = node->parent != NULL ? GetJointIdx( node->parent ) : U8_MAX;
-	joint.name = Hash32( node->name );
+	Q_strncpyz( joint.name, node->name, sizeof( joint.name ) );
+	joint.name_hash = Hash32( node->name );
 
 	cgltf_bool ok = cgltf_accessor_read_float( skin->inverse_bind_matrices, joint_idx, joint.joint_to_bind.ptr(), 16 );
 	assert( ok != 0 );

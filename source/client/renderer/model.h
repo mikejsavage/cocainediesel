@@ -26,8 +26,10 @@ struct Model {
 		u8 parent;
 		u8 next;
 
+		char name[ 32 ];
+
 		// TODO: remove this with additive animations
-		u32 name;
+		u32 name_hash;
 		u8 first_child;
 		u8 sibling;
 

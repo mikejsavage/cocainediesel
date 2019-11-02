@@ -91,25 +91,24 @@ static void AddRagdoll() {
 	bones[BODYPART_RIGHT_UPPER_ARM].capsule = physx::PxCapsuleGeometry(0.05 * scale, 0.33 * scale * 0.5f);
 	bones[BODYPART_RIGHT_LOWER_ARM].capsule = physx::PxCapsuleGeometry(0.04 * scale, 0.25 * scale * 0.5f);
 
-	physx::PxVec3 start_pos( 0, 0, -150 );
-	physx::PxTransform transform = physx::PxTransformFromSegment( start_pos, start_pos + physx::PxVec3( 0, 0, 1 ) );
+	physx::PxTransform transform = PxTransform( 0, 0, -150 );
 
 	// Setup all the rigid bodies
-	asdf( BODYPART_PELVIS, transform, 0, 0, 1.0f * scale );
-	asdf( BODYPART_SPINE, transform, 0, 0, 1.2f * scale );
-	asdf( BODYPART_HEAD, transform, 0, 0, 1.6f * scale );
-	asdf( BODYPART_LEFT_UPPER_LEG, transform, -0.18f * scale, 0, 0.65f * scale );
-	asdf( BODYPART_LEFT_LOWER_LEG, transform, -0.18f * scale, 0, 0.2f * scale );
-	asdf( BODYPART_RIGHT_UPPER_LEG, transform, 0.18f * scale, 0, 0.65f * scale );
-	asdf( BODYPART_RIGHT_LOWER_LEG, transform, 0.18f * scale, 0, 0.2f * scale );
+	asdf( BODYPART_PELVIS, transform, 1.0f * scale, 0, 0 );
+	// asdf( BODYPART_SPINE, transform, 0, 0, 1.2f * scale );
+	// asdf( BODYPART_HEAD, transform, 0, 0, 1.6f * scale );
+	asdf( BODYPART_LEFT_UPPER_LEG, transform, 0.65f * scale, -0.18f * scale, 0 );
+	asdf( BODYPART_LEFT_LOWER_LEG, transform, 0.2f * scale, -0.18f * scale, 0 );
+	asdf( BODYPART_RIGHT_UPPER_LEG, transform, 0.65f * scale, 0.18f * scale, 0 );
+	asdf( BODYPART_RIGHT_LOWER_LEG, transform, 0.2f * scale, 0.18f * scale, 0 );
 
 	physx::PxQuat left_arm_rotation = physx::PxQuat( DEG2RAD( 90 ), physx::PxVec3( 0, 1, 0 ) );
-	asdf( BODYPART_LEFT_UPPER_ARM, transform, -0.35f * scale, 0, 1.45f * scale, left_arm_rotation );
-	asdf( BODYPART_LEFT_LOWER_ARM, transform, -0.7f * scale, 0, 1.45f * scale, left_arm_rotation );
+	asdf( BODYPART_LEFT_UPPER_ARM, transform, -0.35f * scale, 1.45f * scale, 0, left_arm_rotation );
+	asdf( BODYPART_LEFT_LOWER_ARM, transform, -0.7f * scale, 1.45f * scale, 0, left_arm_rotation );
 
 	physx::PxQuat right_arm_rotation = physx::PxQuat( DEG2RAD( -90 ), physx::PxVec3( 0, 1, 0 ) );
-	asdf( BODYPART_RIGHT_UPPER_ARM, transform, 0.35f * scale, 0, 1.45f * scale, right_arm_rotation );
-	asdf( BODYPART_RIGHT_LOWER_ARM, transform, 0.7f * scale, 0, 1.45f * scale, right_arm_rotation );
+	asdf( BODYPART_RIGHT_UPPER_ARM, transform, 0.35f * scale, 1.45f * scale, 0, right_arm_rotation );
+	asdf( BODYPART_RIGHT_LOWER_ARM, transform, 0.7f * scale, 1.45f * scale, 0, right_arm_rotation );
 
 	// Now setup the constraints
 	// btHingeConstraint* hingeC;
@@ -151,15 +150,15 @@ static void AddRagdoll() {
 	// dynamics_world->addConstraint(joints[JOINT_LEFT_HIP], true);
 
 	PxSphericalJoint * left_hip =  physx::PxSphericalJointCreate( *physx_physics,
-		bones[ BODYPART_PELVIS ].actor, PxTransform( 0 , 0, 0.225 * scale ),
-		bones[ BODYPART_LEFT_UPPER_LEG ].actor, PxTransform( -0.18f * scale, 0, -0.1f * scale ) );
+		bones[ BODYPART_PELVIS ].actor, PxTransform( -0.1f * scale, -0.18f * scale, 0 ),
+		bones[ BODYPART_LEFT_UPPER_LEG ].actor, PxTransform( 0.225f * scale, 0, 0 ) );
 	left_hip->setLimitCone( PxJointLimitCone( PxPi / 2, PxPi / 6, 0.01f ) );
 	left_hip->setSphericalJointFlag( PxSphericalJointFlag::eLIMIT_ENABLED, true );
 	joints[ JOINT_LEFT_HIP ] = left_hip;
 
 	PxRevoluteJoint * left_knee =  physx::PxRevoluteJointCreate( *physx_physics,
-		bones[ BODYPART_LEFT_UPPER_LEG ].actor, PxTransform( -0.225f * scale, 0, 0, PxQuat( DEG2RAD( 90 ), physx::PxVec3( 0, 0, 1 ) ) ),
-		bones[ BODYPART_LEFT_LOWER_LEG ].actor, PxTransform( 0.185f * scale, 0, 0, PxQuat( DEG2RAD( 90 ), physx::PxVec3( 0, 0, 1 ) ) ) );
+		bones[ BODYPART_LEFT_UPPER_LEG ].actor, PxTransform( -0.225f * scale, 0, 0, PxQuat( PxPi / 2, physx::PxVec3( 0, 0, 1 ) ) ),
+		bones[ BODYPART_LEFT_LOWER_LEG ].actor, PxTransform( 0.185f * scale, 0, 0, PxQuat( PxPi / 2, physx::PxVec3( 0, 0, 1 ) ) ) );
 	left_knee->setLimit( PxJointAngularLimitPair( 0, PxPi, 0.1f ) );
 	left_knee->setRevoluteJointFlag( PxRevoluteJointFlag::eLIMIT_ENABLED, true );
 	joints[ JOINT_LEFT_KNEE ] = left_knee;
@@ -176,15 +175,15 @@ static void AddRagdoll() {
 	// dynamics_world->addConstraint(joints[JOINT_RIGHT_HIP], true);
 
 	PxSphericalJoint * right_hip =  physx::PxSphericalJointCreate( *physx_physics,
-		bones[ BODYPART_PELVIS ].actor, PxTransform( 0, 0, 0.225 * scale ),
-		bones[ BODYPART_RIGHT_UPPER_LEG ].actor, PxTransform( 0.18f * scale, 0, -0.1f * scale ) );
+		bones[ BODYPART_PELVIS ].actor, PxTransform( -0.1f * scale, 0.18f * scale, 0 ),
+		bones[ BODYPART_RIGHT_UPPER_LEG ].actor, PxTransform( 0.225f * scale, 0, 0 ) );
 	right_hip->setLimitCone( PxJointLimitCone( PxPi / 2, PxPi / 6, 0.01f ) );
 	right_hip->setSphericalJointFlag( PxSphericalJointFlag::eLIMIT_ENABLED, true );
 	joints[ JOINT_RIGHT_HIP ] = right_hip;
 
 	PxRevoluteJoint * right_knee = physx::PxRevoluteJointCreate( *physx_physics,
-		bones[ BODYPART_RIGHT_UPPER_LEG ].actor, PxTransform( -0.225f * scale, 0, 0, PxQuat( DEG2RAD( 90 ), physx::PxVec3( 0, 0, 1 ) ) ),
-		bones[ BODYPART_RIGHT_LOWER_LEG ].actor, PxTransform( 0.185f * scale, 0, 0, PxQuat( DEG2RAD( 90 ), physx::PxVec3( 0, 0, 1 ) ) ) );
+		bones[ BODYPART_RIGHT_UPPER_LEG ].actor, PxTransform( -0.225f * scale, 0, 0, PxQuat( PxPi / 2, physx::PxVec3( 0, 0, 1 ) ) ),
+		bones[ BODYPART_RIGHT_LOWER_LEG ].actor, PxTransform( 0.185f * scale, 0, 0, PxQuat( PxPi / 2, physx::PxVec3( 0, 0, 1 ) ) ) );
 	right_knee->setLimit( PxJointAngularLimitPair( 0, PxPi, 0.1f ) );
 	right_knee->setRevoluteJointFlag( PxRevoluteJointFlag::eLIMIT_ENABLED, true );
 	joints[ JOINT_RIGHT_KNEE ] = right_knee;

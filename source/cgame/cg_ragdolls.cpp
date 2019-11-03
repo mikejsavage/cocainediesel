@@ -7,6 +7,7 @@
 static RagdollConfig editor_ragdoll_config;
 static float editor_t;
 static bool editor_draw_model;
+static bool editor_simulate;
 
 void InitRagdollEditor() {
 }
@@ -17,8 +18,10 @@ void ResetRagdollEditor() {
 	editor_ragdoll_config.neck = U8_MAX;
 	editor_ragdoll_config.left_shoulder = U8_MAX;
 	editor_ragdoll_config.left_elbow = U8_MAX;
+	editor_ragdoll_config.left_wrist = U8_MAX;
 	editor_ragdoll_config.right_shoulder = U8_MAX;
 	editor_ragdoll_config.right_elbow = U8_MAX;
+	editor_ragdoll_config.right_wrist = U8_MAX;
 	editor_ragdoll_config.left_hip = U8_MAX;
 	editor_ragdoll_config.left_knee = U8_MAX;
 	editor_ragdoll_config.left_ankle = U8_MAX;
@@ -26,8 +29,25 @@ void ResetRagdollEditor() {
 	editor_ragdoll_config.right_knee = U8_MAX;
 	editor_ragdoll_config.right_ankle = U8_MAX;
 
+	editor_ragdoll_config.pelvis = 2;
+	editor_ragdoll_config.spine = 3;
+	editor_ragdoll_config.neck = 5;
+	editor_ragdoll_config.left_shoulder = 14;
+	editor_ragdoll_config.left_elbow = 15;
+	editor_ragdoll_config.left_wrist = 16;
+	editor_ragdoll_config.right_shoulder = 8;
+	editor_ragdoll_config.right_elbow = 9;
+	editor_ragdoll_config.right_wrist = 10;
+	editor_ragdoll_config.left_hip = 19;
+	editor_ragdoll_config.left_knee = 20;
+	editor_ragdoll_config.left_ankle = 21;
+	editor_ragdoll_config.right_hip = 23;
+	editor_ragdoll_config.right_knee = 24;
+	editor_ragdoll_config.right_ankle = 25;
+
 	editor_t = 5.0f;
 	editor_draw_model = true;
+	editor_simulate = false;
 }
 
 static Mat4 TransformKToSegment( Vec3 start, Vec3 end ) {
@@ -64,7 +84,10 @@ static Mat4 TransformKToSegment( Vec3 start, Vec3 end ) {
 	return translation * rotation * scale;
 }
 
-static void DrawBone( const Model * model, MatrixPalettes matrices, u8 j0, u8 j1 ) {
+static void DrawBone( const Model * model, MatrixPalettes matrices, u8 j0, u8 j1, float radius ) {
+	if( j0 == U8_MAX || j1 == U8_MAX )
+		return;
+
 	PipelineState pipeline;
 	pipeline.pass = frame_static.nonworld_opaque_pass;
 	pipeline.shader = &shaders.standard;
@@ -104,6 +127,8 @@ void DrawRagdollEditor() {
 
 	TempAllocator temp = cls.frame_arena.temp();
 
+	bool simulate_clicked = false;
+
 	ImGui::PushFont( cls.console_font );
 	ImGui::BeginChild( "Ragdoll editor", ImVec2( 300, 0 ) );
 	{
@@ -113,8 +138,10 @@ void DrawRagdollEditor() {
 			JointPicker( padpork, "Neck", &editor_ragdoll_config.neck );
 			JointPicker( padpork, "Left shoulder", &editor_ragdoll_config.left_shoulder );
 			JointPicker( padpork, "Left elbow", &editor_ragdoll_config.left_elbow );
+			JointPicker( padpork, "Left wrist", &editor_ragdoll_config.left_wrist );
 			JointPicker( padpork, "Right shoulder", &editor_ragdoll_config.right_shoulder );
 			JointPicker( padpork, "Right elbow", &editor_ragdoll_config.right_elbow );
+			JointPicker( padpork, "Right wrist", &editor_ragdoll_config.right_wrist );
 			JointPicker( padpork, "Left hip", &editor_ragdoll_config.left_hip );
 			JointPicker( padpork, "Left knee", &editor_ragdoll_config.left_knee );
 			JointPicker( padpork, "Left ankle", &editor_ragdoll_config.left_ankle );
@@ -126,20 +153,43 @@ void DrawRagdollEditor() {
 		}
 
 		if( ImGui::TreeNodeEx( "Bones", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_NoAutoOpenOnLog ) ) {
+			ImGui::SliderFloat( "Lower back radius", &editor_ragdoll_config.lower_back_radius, 0, 10 );
+			ImGui::SliderFloat( "Upper back radius", &editor_ragdoll_config.upper_back_radius, 0, 10 );
+			ImGui::SliderFloat( "Head radius", &editor_ragdoll_config.head_radius, 0, 10 );
+			ImGui::SliderFloat( "Left upper arm radius", &editor_ragdoll_config.left_upper_arm_radius, 0, 10 );
+			ImGui::SliderFloat( "Left forearm radius", &editor_ragdoll_config.left_forearm_radius, 0, 10 );
+			ImGui::SliderFloat( "Right upper arm radius", &editor_ragdoll_config.right_upper_arm_radius, 0, 10 );
+			ImGui::SliderFloat( "Right forearm radius", &editor_ragdoll_config.right_forearm_radius, 0, 10 );
+			ImGui::SliderFloat( "Left thigh radius", &editor_ragdoll_config.left_thigh_radius, 0, 10 );
+			ImGui::SliderFloat( "Left lower leg radius", &editor_ragdoll_config.left_lower_leg_radius, 0, 10 );
+			ImGui::SliderFloat( "Left foot radius", &editor_ragdoll_config.left_foot_radius, 0, 10 );
+			ImGui::SliderFloat( "Right thigh radius", &editor_ragdoll_config.right_thigh_radius, 0, 10 );
+			ImGui::SliderFloat( "Right lower leg radius", &editor_ragdoll_config.right_lower_leg_radius, 0, 10 );
+			ImGui::SliderFloat( "Right foot radius", &editor_ragdoll_config.right_foot_radius, 0, 10 );
+
 			ImGui::TreePop();
 		}
 
 		ImGui::SliderFloat( "t", &editor_t, 5, 10 );
 
 		ImGui::Checkbox( "Draw model", &editor_draw_model );
+
+		simulate_clicked = ImGui::Checkbox( "Simulate", &editor_simulate );
 	}
 	ImGui::EndChild();
 	ImGui::PopFont();
 
 	RendererSetView( Vec3( 50, -50, 40 ), EulerDegrees3( 20, 135, 0 ), 90 );
 
-	Span< TRS > sample = SampleAnimation( &temp, padpork, editor_t );
-	MatrixPalettes pose = ComputeMatrixPalettes( &temp, padpork, sample );
+	MatrixPalettes pose;
+
+	if( !editor_simulate || simulate_clicked ) {
+		Span< TRS > sample = SampleAnimation( &temp, padpork, editor_t );
+		pose = ComputeMatrixPalettes( &temp, padpork, sample );
+	}
+	else {
+		// TODO: physx
+	}
 
 	if( editor_draw_model ) {
 		RGB8 rgb = TEAM_COLORS[ 0 ].rgb;
@@ -150,11 +200,21 @@ void DrawRagdollEditor() {
 		DrawOutlinedModel( padpork, Mat4::Identity(), vec4_black, outline_height, pose.skinning_matrices );
 	}
 
-	for( u8 i = 0; i < padpork->num_joints; i++ ) {
-		const Model::Joint & joint = padpork->joints[ i ];
-		if( joint.parent == U8_MAX )
-			continue;
+	DrawBone( padpork, pose, editor_ragdoll_config.pelvis, editor_ragdoll_config.spine, editor_ragdoll_config.lower_back_radius );
+	DrawBone( padpork, pose, editor_ragdoll_config.spine, editor_ragdoll_config.neck, editor_ragdoll_config.upper_back_radius );
+	// TODO: head
 
-		DrawBone( padpork, pose, i, joint.parent );
-	}
+	DrawBone( padpork, pose, editor_ragdoll_config.left_shoulder, editor_ragdoll_config.left_elbow, editor_ragdoll_config.left_upper_arm_radius );
+	DrawBone( padpork, pose, editor_ragdoll_config.left_elbow, editor_ragdoll_config.left_wrist, editor_ragdoll_config.left_forearm_radius );
+
+	DrawBone( padpork, pose, editor_ragdoll_config.right_shoulder, editor_ragdoll_config.right_elbow, editor_ragdoll_config.right_upper_arm_radius );
+	DrawBone( padpork, pose, editor_ragdoll_config.right_elbow, editor_ragdoll_config.right_wrist, editor_ragdoll_config.right_forearm_radius );
+
+	DrawBone( padpork, pose, editor_ragdoll_config.left_hip, editor_ragdoll_config.left_knee, editor_ragdoll_config.left_thigh_radius );
+	DrawBone( padpork, pose, editor_ragdoll_config.left_knee, editor_ragdoll_config.left_ankle, editor_ragdoll_config.left_lower_leg_radius );
+	// TODO: left foot
+
+	DrawBone( padpork, pose, editor_ragdoll_config.right_hip, editor_ragdoll_config.right_knee, editor_ragdoll_config.right_thigh_radius );
+	DrawBone( padpork, pose, editor_ragdoll_config.right_knee, editor_ragdoll_config.right_ankle, editor_ragdoll_config.right_lower_leg_radius );
+	// TODO: right foot
 }

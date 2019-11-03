@@ -1,19 +1,20 @@
-#include "tracy/Tracy.hpp"
+#include "qcommon/qcommon.h"
+#include "gameshared/gs_public.h"
 
 #include "physx/PxConfig.h"
 #include "physx/PxPhysicsAPI.h"
 
 using namespace physx;
 
-static physx::PxDefaultAllocator allocator;
-static physx::PxDefaultErrorCallback errorCallback;
+static PxDefaultAllocator allocator;
+static PxDefaultErrorCallback errorCallback;
 
-static physx::PxPvd * physx_pvd;
+static PxPvd * physx_pvd;
 
-static physx::PxFoundation * physx_foundation;
-physx::PxPhysics * physx_physics;
-physx::PxCooking * physx_cooking;
-physx::PxMaterial * physx_default_material;
+static PxFoundation * physx_foundation;
+PxPhysics * physx_physics;
+PxCooking * physx_cooking;
+PxMaterial * physx_default_material;
 
 void InitPhysx() {
 	ZoneScoped;
@@ -22,11 +23,13 @@ void InitPhysx() {
 	if(!physx_foundation)
 		return; //fatalError("PxCreateFoundation failed!");
 
-	physx_pvd = physx::PxCreatePvd( *physx_foundation );
-	physx::PxPvdTransport * transport = physx::PxDefaultPvdSocketTransportCreate( "127.0.0.1", 5425, 10 );
-	physx_pvd->connect( *transport, physx::PxPvdInstrumentationFlag::eALL );
+	physx_pvd = PxCreatePvd( *physx_foundation );
+	PxPvdTransport * transport = PxDefaultPvdSocketTransportCreate( "127.0.0.1", 5425, 10 );
+	physx_pvd->connect( *transport, PxPvdInstrumentationFlag::eALL );
 
-	physx::PxTolerancesScale scale;
+	PxTolerancesScale scale;
+	scale.length = 32;
+	scale.speed = GRAVITY;
 	physx_physics = PxCreateBasePhysics(PX_PHYSICS_VERSION, *physx_foundation, scale, true, physx_pvd );
 	if(!physx_physics)
 		return; //fatalError("PxCreatePhysics failed!");
@@ -34,14 +37,14 @@ void InitPhysx() {
 	if( !PxInitExtensions( *physx_physics, physx_pvd ) )
 		return; //fatalError("PxInitExtensions failed!");
 
-	physx::PxCookingParams params(scale);
+	PxCookingParams params(scale);
 	params.meshWeldTolerance = 0.001f;
-	params.meshPreprocessParams = physx::PxMeshPreprocessingFlags(physx::PxMeshPreprocessingFlag::eWELD_VERTICES);
+	params.meshPreprocessParams = PxMeshPreprocessingFlags(PxMeshPreprocessingFlag::eWELD_VERTICES);
 	physx_cooking = PxCreateCooking(PX_PHYSICS_VERSION, *physx_foundation, params);
 	if(!physx_cooking)
 		return; //fatalError("PxCreateCooking failed!");
 
-	physx_default_material = physx_physics->createMaterial(0.5f, 0.5f, 0.9f);
+	physx_default_material = physx_physics->createMaterial( 0.5f, 0.5f, 0.1f );
 	if(!physx_default_material)
 		return; //fatalError("createMaterial failed!");
 }

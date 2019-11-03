@@ -6,16 +6,10 @@ struct RagdollConfig {
 	u8 pelvis;
 	u8 spine;
 	u8 neck;
-	u8 left_shoulder;
-	u8 left_elbow;
-	u8 right_shoulder;
-	u8 right_elbow;
-	u8 left_hip;
-	u8 left_knee;
-	u8 left_ankle;
-	u8 right_hip;
-	u8 right_knee;
-	u8 right_ankle;
+	u8 left_shoulder, left_elbow, left_wrist;
+	u8 right_shoulder, right_elbow, right_wrist;
+	u8 left_hip, left_knee, left_ankle;
+	u8 right_hip, right_knee, right_ankle;
 
 	float lower_back_radius;
 	float upper_back_radius;

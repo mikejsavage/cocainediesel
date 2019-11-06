@@ -17,26 +17,46 @@ models/weapons/riotgun/riotgun                  { template fullbright_weapon 1.0
 models/weapons/rl                               { template fullbright_weapon 1.000 0.227 0.259 }
 models/weapons/machinegun/machinegun            { template fullbright_weapon 0.250 0.250 0.250 }
 
-//flashes
-models/weapons/rl_flash1
+gfx/misc/ebbeam
 {
-	cull front
-	sort nearest
 	{
-		map models/weapons/rl_flash1
-		blendFunc GL_SRC_ALPHA GL_ONE
-		tcmod rotate 90
-		alphaGen const 0.5
+		blendfunc add
+		map gfx/misc/electro
+		rgbgen entity
+		alphagen entity
 	}
 }
 
-models/weapons/rl_flash2
+gfx/misc/lgbeam
 {
-	cull front
-	sort nearest
+	softParticle
 	{
-		map models/weapons/rl_flash2
-		blendFunc GL_SRC_ALPHA GL_ONE
-		alphaGen const 0.75
+		blendfunc add
+		map gfx/misc/laserbeam
+		rgbgen entity
+		alphagen entity
 	}
 }
+
+weapons/SMG/SMGtrail
+{
+	{
+		blendfunc add
+		map gfx/misc/laserbeam //todo
+		rgbgen entity
+		alphagen entity
+	}
+}
+
+gfx/misc/laser
+{
+	{
+		map gfx/misc/laser
+		blendfunc add
+		rgbGen const 1 0.5 0
+		alphaGen const 0.5
+		tcMod scroll 10 0
+	}
+}
+
+

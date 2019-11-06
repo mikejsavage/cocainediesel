@@ -326,6 +326,8 @@ static void CG_BulletImpact( trace_t *tr ) {
 }
 
 static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int owner, int team ) {
+	Vec4 color = CG_TeamColorVec4( team );
+
 	int range = GS_GetWeaponDef( WEAP_MACHINEGUN )->firedef.timeout;
 
 	vec3_t right, up;
@@ -350,18 +352,19 @@ static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int owner, int t
 				ParticleEmitter emitter = { };
 				emitter.position = FromQF3( trace.endpos );
 				emitter.velocity_cone.radius = 128;
+				emitter.end_velocity = 500.0f;
 
-				emitter.start_color = Vec4( 0.95f, 0.97f, 0.32f, 1.0f );
-				emitter.end_color = Vec3( 0.95f, 0.97f, 0.32f );
+				emitter.start_color = color;
+				emitter.end_color = Vec3( 0.0f );
 
 				emitter.start_size = 2.0f;
-				emitter.end_size = 2.0f;
+				emitter.end_size = 0.0f;
 
-				emitter.lifetime = 0.1f;
+				emitter.lifetime = 0.5f;
 
-				emitter.n = 16;
+				emitter.n = 24;
 
-				EmitParticles( &cgs.sparks, emitter );
+				EmitParticles( &cgs.SMGsparks, emitter );
 			}
 		}
 	}
@@ -375,9 +378,7 @@ static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int owner, int t
 		VectorCopy( origin, projection.origin );
 	}
 
-	Vec4 color = CG_TeamColorVec4( team );
-	color.w = 0.5f;
-	AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 2.0f, color, cgs.media.shaderLGBeam, 0.05f, 0.05f );
+	AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 1.0f, color, cgs.media.shaderSMGtrail, 0.2f, 0.1f );
 }
 
 /*

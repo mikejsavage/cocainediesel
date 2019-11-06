@@ -53,7 +53,7 @@ const gsitem_t itemdefs[] = {
 		WEAP_MACHINEGUN,
 		IT_WEAPON,
 
-		"AK-69", "mg",
+		"SMG", "mg",
 		RGB8( 254, 235, 98 ),
 		"Shoots fast direct bullets touching enemies at any range",
 		100,

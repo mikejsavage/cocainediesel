@@ -203,6 +203,7 @@ typedef struct {
 	const Material * shaderPlasmaMark;
 	const Material * shaderEBBeam;
 	const Material * shaderLGBeam;
+	const Material * shaderSMGtrail;
 	const Material * shaderEBImpact;
 
 	const Material * shaderPlayerShadow;
@@ -336,6 +337,7 @@ typedef struct {
 	int64_t precacheStartMsec;
 
 	ParticleSystem ions;
+	ParticleSystem SMGsparks;
 	ParticleSystem sparks;
 	ParticleSystem smoke;
 } cg_static_t;

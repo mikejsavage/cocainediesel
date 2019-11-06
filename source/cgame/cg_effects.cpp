@@ -845,6 +845,9 @@ void CG_ClearEffects( void ) {
 }
 
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material ) {
+	if( material == NULL )
+		return;
+
 	Vec3 dir = Normalize( end - start );
 	Vec3 forward = Normalize( start - frame_static.position );
 

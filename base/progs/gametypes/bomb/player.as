@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-const int[] weap_ammo	= {  150,  15,   10,   15,   140,  180,  15  };
+const int[] weap_ammo	= {  120,  18,   12,   15,   90,  150,  12  };
 const int[] ammo_type	= { AMMO_BULLETS, AMMO_SHELLS, AMMO_GRENADES, AMMO_ROCKETS, AMMO_PLASMA, AMMO_LASERS, AMMO_BOLTS };
 
 const int MAX_CASH = 500;

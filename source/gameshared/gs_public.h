@@ -356,6 +356,8 @@ typedef struct gitem_s {
 	RGB8 color;
 	const char * description;
 	int cost;
+	int capacity;
+	int clips;
 
 	int ammo_tag;          // uses this ammo, for weapons
 

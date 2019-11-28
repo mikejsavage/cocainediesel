@@ -1562,26 +1562,51 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		if( !CG_IsWeaponInList( i ) )
 			continue;
 
-		int curx = CG_HorizontalAlignForWidth( x + offx * drawn_weapons + ( selected_found ? iw*SEL_WEAP_X_OFFSET : 0.f ), alignment, total_width );
+		int curx = CG_HorizontalAlignForWidth( x + offx * drawn_weapons, alignment, total_width );
 		int cury = CG_VerticalAlignForHeight( y + offy * drawn_weapons, alignment, total_height );
 
 		int curiw = iw;
 		int curih = ih;
 
-		int ammo = cg.predictedPlayerState.inventory[ AMMO_GUNBLADE + i - WEAP_GUNBLADE ];
-
 		if( CG_IsWeaponSelected( i ) ) {
 			selected_found = true;
-			cury -= ih*SEL_WEAP_X_OFFSET;
-
-			curiw += iw*SEL_WEAP_X_OFFSET;
-			curih += ih*SEL_WEAP_X_OFFSET;
+			cury -= ih * SEL_WEAP_X_OFFSET;
 		}
 
-		Draw2DBox( curx, cury, curiw, curih, CG_GetWeaponIcon( i ) );
+		Vec4 color = Vec4( 1.0f );
+		Vec4 color_bg = Vec4( 0.5f );
+		// if ( i != WEAP_GUNBLADE ) {
+		int ammo = cg.predictedPlayerState.inventory[ AMMO_GUNBLADE + i - WEAP_GUNBLADE ];
+
+		int ammo_in_clip = 0;
+
+		
+		if ( i != WEAP_GUNBLADE ) {
+			int capacity = GS_FindItemByTag( i )->capacity;
+			int clips = GS_FindItemByTag( i )->clips;
+			int ammo_max =  clips * capacity;
+			ammo_in_clip = capacity - ((ammo_max - ammo) % capacity);
+
+			color = Vec4( 0.0f, 1.0f, 0.0f, 1.0f );
+			color_bg = Vec4( 0.0f, 0.5f, 0.0f, 1.0f );
+
+			int ammo_in_clip_pct = ( 100  * ammo_in_clip + capacity / 2) /capacity;
+			if ( ammo_in_clip_pct <= 67) {
+				color = Vec4( 1.0f, 0.5f, 0.0f, 1.0f );
+				color_bg = Vec4( 0.5f, 0.25f, 0.0f, 1.0f );
+			}
+			if ( ammo_in_clip_pct <= 34) {
+				color = Vec4( 1.0f, 0.0f, 0.0f, 1.0f );		
+				color_bg = Vec4( 0.5f, 0.0f, 0.0f, 1.0f );
+			}	
+		}
+
+		Draw2DBox( curx, cury, curiw, curih, cgs.white_material, color );
+		Draw2DBox( curx + roundf( curiw * 0.03f ), cury + roundf ( curih * 0.03f ), roundf( curiw * 0.95f ), roundf( curih * 0.95f ), cgs.white_material, color_bg );
+		Draw2DBox( curx + roundf( curiw * 0.16f ), cury + roundf ( curih * 0.16f ), roundf( curiw * 0.69f ), roundf( curiw * 0.69f ), CG_GetWeaponIcon( i ), color );
 
 		if( i != WEAP_GUNBLADE ) {
-			DrawText( GetHUDFont(), font_size + (curiw - iw)/4, va( "%i", ammo ), Alignment_LeftBottom, curx + curiw*0.15f, cury + curih*0.85f, layout_cursor_color, layout_cursor_font_border );
+			DrawText( GetHUDFont(), font_size + (curiw - iw)/4, va( "%i", ammo_in_clip ), Alignment_LeftBottom, curx + curiw*0.15f, cury + curih*0.85f, layout_cursor_color, layout_cursor_font_border );
 		}
 
 		drawn_weapons++;

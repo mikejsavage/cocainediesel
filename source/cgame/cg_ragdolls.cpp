@@ -122,6 +122,12 @@ static void JointPicker( const Model * model, const char * label, u8 * joint ) {
 	}
 }
 
+// TODO
+void InitPhysicsForRagdollEditor();
+void ShutdownPhysics();
+void UpdatePhysicsCommon( float dt );
+void AddRagdoll( const Model * model, RagdollConfig config, MatrixPalettes pose );
+
 void DrawRagdollEditor() {
 	const Model * padpork = FindModel( "models/players/padpork" );
 
@@ -183,12 +189,26 @@ void DrawRagdollEditor() {
 
 	MatrixPalettes pose;
 
-	if( !editor_simulate || simulate_clicked ) {
+	if( !editor_simulate ) {
+		if( simulate_clicked ) {
+			ShutdownPhysics();
+		}
+
 		Span< TRS > sample = SampleAnimation( &temp, padpork, editor_t );
 		pose = ComputeMatrixPalettes( &temp, padpork, sample );
 	}
 	else {
-		// TODO: physx
+		if( simulate_clicked ) {
+			Span< TRS > sample = SampleAnimation( &temp, padpork, editor_t );
+			pose = ComputeMatrixPalettes( &temp, padpork, sample );
+
+			InitPhysicsForRagdollEditor();
+			AddRagdoll( padpork, editor_ragdoll_config, pose );
+		}
+
+		UpdatePhysicsCommon( 1.0f / 60.0f );
+
+		return;
 	}
 
 	if( editor_draw_model ) {

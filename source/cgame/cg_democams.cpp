@@ -32,7 +32,7 @@ int64_t demo_time;
 
 static bool CamIsFree;
 
-#define CG_DemoCam_UpdateDemoTime() ( demo_time = cg.time - demo_initial_timestamp )
+#define CG_DemoCam_UpdateDemoTime() ( demo_time = cl.serverTime - demo_initial_timestamp )
 
 //===================================================================
 
@@ -951,7 +951,7 @@ int CG_DemoCam_FreeFly( void ) {
 
 		// run frame
 		trap_NET_GetUserCmd( trap_NET_GetCurrentUserCmdNum() - 1, &cmd );
-		cmd.msec = cg.realFrameTime;
+		cmd.msec = cls.realFrameTime;
 
 		for( i = 0; i < 3; i++ )
 			moveangles[i] = SHORT2ANGLE( cmd.angles[i] ) + SHORT2ANGLE( freecam_delta_angles[i] );
@@ -977,7 +977,7 @@ int CG_DemoCam_FreeFly( void ) {
 			wishspeed = maxspeed;
 		}
 
-		VectorMA( cam_origin, (float)cg.realFrameTime * 0.001f, wishvel, cam_origin );
+		VectorMA( cam_origin, (float)cls.realFrameTime * 0.001f, wishvel, cam_origin );
 
 		cam_POVent = 0;
 		cam_3dPerson = false;
@@ -1162,7 +1162,7 @@ static int CG_Democam_CalcView( void ) {
 				} else {
 					vec3_t center, forward;
 					struct cmodel_s *cmodel;
-					const float ft = (float)cg.frameTime * 0.001f;
+					const float ft = (float)cls.frametime * 0.001f;
 
 					// find the trackEnt origin
 					VectorLerp( cg_entities[currentcam->trackEnt].prev.origin, cg.lerpfrac, cg_entities[currentcam->trackEnt].current.origin, center );
@@ -1221,7 +1221,7 @@ bool CG_DemoCam_Update( void ) {
 	}
 
 	if( !demo_initial_timestamp && cg.frame.valid ) {
-		demo_initial_timestamp = cg.time;
+		demo_initial_timestamp = cl.serverTime;
 	}
 
 	CG_DemoCam_UpdateDemoTime();
@@ -1466,7 +1466,7 @@ static void CG_EditCam_Cmd_f( void ) {
 				return;
 			}
 			newtimestamp = currentcam->timeStamp += atoi( trap_Cmd_Argv( 2 ) );
-			if( newtimestamp + cg.time <= demo_initial_timestamp ) {
+			if( newtimestamp + cl.serverTime <= demo_initial_timestamp ) {
 				newtimestamp = 1;
 			}
 			currentcam->timeStamp = newtimestamp;

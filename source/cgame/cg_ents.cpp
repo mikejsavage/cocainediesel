@@ -79,7 +79,7 @@ static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 	if( GS_MatchPaused( &client_gs ) ) {
 		serverTime = cg.frame.serverTime;
 	} else {
-		serverTime = cg.time + cgs.extrapolationTime;
+		serverTime = cl.serverTime + cgs.extrapolationTime;
 	}
 
 	if( state->solid != SOLID_BMODEL ) {
@@ -737,7 +737,7 @@ static void CG_UpdateLaserbeamEnt( centity_t *cent ) {
 		CG_Error( "CG_UpdateLaserbeamEnt: owner is not in the snapshot\n" );
 	}
 
-	owner->localEffects[LOCALEFFECT_LASERBEAM] = cg.time + 10;
+	owner->localEffects[LOCALEFFECT_LASERBEAM] = cl.serverTime + 10;
 
 	// laser->s.origin is beam start
 	// laser->s.origin2 is beam end
@@ -759,7 +759,7 @@ static void CG_LerpLaserbeamEnt( centity_t *cent ) {
 		return;
 	}
 
-	owner->localEffects[LOCALEFFECT_LASERBEAM] = cg.time + 1;
+	owner->localEffects[LOCALEFFECT_LASERBEAM] = cl.serverTime + 1;
 }
 
 //==================================================

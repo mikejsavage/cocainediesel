@@ -561,8 +561,8 @@ void G_FreeEdict( edict_t *ed ) {
 	ed->r.svflags = SVF_NOCLIENT;
 	ed->scriptSpawned = false;
 
-	if( !evt && ( level.spawnedTimeStamp != game.realtime ) ) {
-		ed->freetime = game.realtime; // ET_EVENT or ET_SOUND don't need to wait to be reused
+	if( !evt && ( level.spawnedTimeStamp != svs.realtime ) ) {
+		ed->freetime = svs.realtime; // ET_EVENT or ET_SOUND don't need to wait to be reused
 	}
 }
 
@@ -621,7 +621,7 @@ edict_t *G_Spawn( void ) {
 
 		// the first couple seconds of server time can involve a lot of
 		// freeing and allocating, so relax the replacement policy
-		if( e->freetime < level.spawnedTimeStamp + 2000 || game.realtime > e->freetime + 500 ) {
+		if( e->freetime < level.spawnedTimeStamp + 2000 || svs.realtime > e->freetime + 500 ) {
 			G_InitEdict( e );
 			return e;
 		}

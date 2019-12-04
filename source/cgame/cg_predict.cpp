@@ -346,7 +346,7 @@ static void CG_PredictAddStep( int virtualtime, int predictiontime, float stepSi
 	int delta;
 
 	// check for stepping up before a previous step is completed
-	delta = cg.realTime - cg.predictedStepTime;
+	delta = cls.realtime - cg.predictedStepTime;
 	if( delta < PREDICTED_STEP_TIME ) {
 		oldStep = cg.predictedStep * ( (float)( PREDICTED_STEP_TIME - delta ) / (float)PREDICTED_STEP_TIME );
 	} else {
@@ -354,7 +354,7 @@ static void CG_PredictAddStep( int virtualtime, int predictiontime, float stepSi
 	}
 
 	cg.predictedStep = oldStep + stepSize;
-	cg.predictedStepTime = cg.realTime - ( predictiontime - virtualtime );
+	cg.predictedStepTime = cls.realtime - ( predictiontime - virtualtime );
 }
 
 /*
@@ -431,7 +431,7 @@ void CG_PredictMovement( void ) {
 			CG_Printf( "exceeded CMD_BACKUP\n" );
 		}
 
-		cg.predictingTimeStamp = cg.time;
+		cg.predictingTimeStamp = cl.serverTime;
 		return;
 	}
 
@@ -485,7 +485,7 @@ void CG_PredictMovement( void ) {
 				vec3_t move;
 				int64_t serverTime;
 
-				serverTime = GS_MatchPaused( &client_gs ) ? cg.frame.serverTime : cg.time + cgs.extrapolationTime;
+				serverTime = GS_MatchPaused( &client_gs ) ? cg.frame.serverTime : cl.serverTime + cgs.extrapolationTime;
 				GS_LinearMovementDelta( ent, cg.frame.serverTime, serverTime, move );
 				VectorAdd( cg.predictedPlayerState.pmove.origin, move, cg.predictedPlayerState.pmove.origin );
 			}

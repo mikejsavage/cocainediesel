@@ -198,7 +198,7 @@ bool SV_FilterPacket( char *from ) {
 
 	for( i = 0; i < numipfilters; i++ )
 		if( ( in & ipfilters[i].mask ) == ipfilters[i].compare
-			&& ( !ipfilters[i].timeout || ipfilters[i].timeout > game.serverTime ) ) {
+			&& ( !ipfilters[i].timeout || ipfilters[i].timeout > svs.gametime ) ) {
 			return true;
 		}
 
@@ -237,12 +237,12 @@ void SV_WriteIPList( void ) {
 	trap_FS_Write( string, strlen( string ), file );
 
 	for( i = 0; i < numipfilters; i++ ) {
-		if( ipfilters[i].timeout && ipfilters[i].timeout <= game.serverTime ) {
+		if( ipfilters[i].timeout && ipfilters[i].timeout <= svs.gametime ) {
 			continue;
 		}
 		*(unsigned *)b = ipfilters[i].compare;
 		if( ipfilters[i].timeout ) {
-			Q_snprintfz( string, sizeof( string ), "addip %i.%i.%i.%i %.2f\r\n", b[0], b[1], b[2], b[3], ( ipfilters[i].timeout - game.serverTime ) / ( 1000.0f * 60.0f ) );
+			Q_snprintfz( string, sizeof( string ), "addip %i.%i.%i.%i %.2f\r\n", b[0], b[1], b[2], b[3], ( ipfilters[i].timeout - svs.gametime ) / ( 1000.0f * 60.0f ) );
 		} else {
 			Q_snprintfz( string, sizeof( string ), "addip %i.%i.%i.%i\r\n", b[0], b[1], b[2], b[3] );
 		}
@@ -264,7 +264,7 @@ static void Cmd_AddIP_f( void ) {
 	}
 
 	for( i = 0; i < numipfilters; i++ )
-		if( ipfilters[i].compare == 0xffffffff || ( ipfilters[i].timeout && ipfilters[i].timeout <= game.serverTime ) ) {
+		if( ipfilters[i].compare == 0xffffffff || ( ipfilters[i].timeout && ipfilters[i].timeout <= svs.gametime ) ) {
 			break;
 		}          // free spot
 	if( i == numipfilters ) {
@@ -279,7 +279,7 @@ static void Cmd_AddIP_f( void ) {
 	if( !StringToFilter( trap_Cmd_Argv( 1 ), &ipfilters[i] ) ) {
 		ipfilters[i].compare = 0xffffffff;
 	} else if( trap_Cmd_Argc() == 3 ) {
-		ipfilters[i].timeout = game.serverTime + atof( trap_Cmd_Argv( 2 ) ) * 60 * 1000;
+		ipfilters[i].timeout = svs.gametime + atof( trap_Cmd_Argv( 2 ) ) * 60 * 1000;
 	}
 }
 
@@ -321,9 +321,9 @@ static void Cmd_ListIP_f( void ) {
 	G_Printf( "Filter list:\n" );
 	for( i = 0; i < numipfilters; i++ ) {
 		*(unsigned *)b = ipfilters[i].compare;
-		if( ipfilters[i].timeout && ipfilters[i].timeout > game.serverTime ) {
+		if( ipfilters[i].timeout && ipfilters[i].timeout > svs.gametime ) {
 			G_Printf( "%3i.%3i.%3i.%3i %.2f\n", b[0], b[1], b[2], b[3],
-					  (float)( ipfilters[i].timeout - game.serverTime ) / ( 60 * 1000.0f ) );
+					  (float)( ipfilters[i].timeout - svs.gametime ) / ( 60 * 1000.0f ) );
 		} else if( !ipfilters[i].timeout ) {
 			G_Printf( "%3i.%3i.%3i.%3i\n", b[0], b[1], b[2], b[3] );
 		}

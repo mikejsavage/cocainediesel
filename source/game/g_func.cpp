@@ -97,7 +97,7 @@ static void Move_UpdateLinearVelocity( edict_t *ent, float dist, int speed ) {
 
 	VectorCopy( ent->moveinfo.dest, ent->s.linearMovementEnd );
 	VectorCopy( ent->s.origin, ent->s.linearMovementBegin );
-	ent->s.linearMovementTimeStamp = game.serverTime - game.frametime;
+	ent->s.linearMovementTimeStamp = svs.gametime - game.frametime;
 	ent->s.linearMovementDuration = duration;
 }
 
@@ -112,7 +112,7 @@ static void Move_Done( edict_t *ent ) {
 static void Move_Watch( edict_t *ent ) {
 	int moveTime;
 
-	moveTime = game.serverTime - ent->s.linearMovementTimeStamp;
+	moveTime = svs.gametime - ent->s.linearMovementTimeStamp;
 	if( moveTime >= (int)ent->s.linearMovementDuration ) {
 		ent->think = Move_Done;
 		ent->nextThink = level.time + 1;

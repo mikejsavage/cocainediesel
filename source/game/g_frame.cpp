@@ -103,7 +103,7 @@ static void G_UpdateServerInfo( void ) {
 			timelimit = 0;
 		}
 
-		clocktime = (float)( game.serverTime - GS_MatchStartTime( &server_gs ) ) * 0.001f;
+		clocktime = (float)( svs.gametime - GS_MatchStartTime( &server_gs ) ) * 0.001f;
 
 		if( clocktime <= 0 ) {
 			mins = 0;
@@ -320,7 +320,7 @@ static int entity_sound_backup[MAX_EDICTS];
 void G_ClearSnap( void ) {
 	edict_t *ent;
 
-	game.realtime = trap_Milliseconds(); // level.time etc. might not be real time
+	svs.realtime = trap_Milliseconds(); // level.time etc. might not be real time
 
 	// clear gametype's clock override
 	server_gs.gameState.stats[GAMESTAT_CLOCKOVERRIDE] = 0;
@@ -374,7 +374,7 @@ void G_ClearSnap( void ) {
 */
 void G_SnapFrame( void ) {
 	edict_t *ent;
-	game.realtime = trap_Milliseconds(); // level.time etc. might not be real time
+	svs.realtime = trap_Milliseconds(); // level.time etc. might not be real time
 
 	//others
 	G_UpdateServerInfo();
@@ -434,15 +434,6 @@ void G_SnapFrame( void ) {
 //===================================================================
 //		WORLD FRAMES
 //===================================================================
-
-/*
-* G_UpdateFrameTime
-*/
-static void G_UpdateFrameTime( unsigned int msec ) {
-	game.frametime = msec;
-	G_Timeout_Update( msec );
-	game.realtime = trap_Milliseconds(); // level.time etc. might not be real time
-}
 
 /*
 * G_RunEntities
@@ -506,13 +497,11 @@ static void G_RunClients( void ) {
 * G_RunFrame
 * Advances the world
 */
-void G_RunFrame( unsigned int msec, int64_t serverTime ) {
+void G_RunFrame( unsigned int msec ) {
 	G_CheckCvars();
 
-	game.prevServerTime = game.serverTime;
-	game.serverTime = serverTime;
-
-	G_UpdateFrameTime( msec );
+	game.frametime = msec;
+	G_Timeout_Update( msec );
 
 	if( !g_snapStarted ) {
 		G_StartFrameSnap();
@@ -521,7 +510,7 @@ void G_RunFrame( unsigned int msec, int64_t serverTime ) {
 	G_CallVotes_Think();
 
 	if( GS_MatchPaused( &server_gs ) ) {
-		unsigned int serverTimeDelta = serverTime - game.serverTime;
+		unsigned int serverTimeDelta = svs.gametime - game.prevServerTime;
 		// freeze match clock and linear projectiles
 		server_gs.gameState.stats[GAMESTAT_MATCHSTART] += serverTimeDelta;
 		for( edict_t *ent = game.edicts + server_gs.maxclients; ENTNUM( ent ) < game.numentities; ent++ ) {
@@ -537,7 +526,7 @@ void G_RunFrame( unsigned int msec, int64_t serverTime ) {
 
 	// reset warmup clock if not enough players
 	if( GS_MatchWaiting( &server_gs ) ) {
-		server_gs.gameState.stats[GAMESTAT_MATCHSTART] = game.serverTime;
+		server_gs.gameState.stats[GAMESTAT_MATCHSTART] = svs.gametime;
 	}
 
 	level.framenum++;

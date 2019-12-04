@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "game/g_syscalls.h"
 #include "game/g_gametypes.h"
 #include "game/g_ai.h"
+#include "server/server.h"
 
 #include "angelscript/angelscript.h"
 
@@ -100,8 +101,6 @@ typedef struct {
 
 	unsigned int frametime;         // in milliseconds
 	int snapFrameTime;              // in milliseconds
-	int64_t realtime;               // actual time, set with Sys_Milliseconds every frame
-	int64_t serverTime;             // actual time in the server
 	int64_t prevServerTime;         // last frame's server time
 
 	int numBots;
@@ -695,7 +694,7 @@ void G_Timeout_Reset( void );
 // g_frame.c
 //
 void G_CheckCvars( void );
-void G_RunFrame( unsigned int msec, int64_t serverTime );
+void G_RunFrame( unsigned int msec );
 void G_SnapClients( void );
 void G_ClearSnap( void );
 void G_SnapFrame( void );
@@ -705,9 +704,9 @@ void G_SnapFrame( void );
 // g_spawn.c
 //
 bool G_CallSpawn( edict_t *ent );
-bool G_RespawnLevel( void );
+void G_RespawnLevel( void );
 void G_ResetLevel( void );
-void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTime, int64_t serverTime, int64_t realTime );
+void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTime );
 const char *G_GetEntitySpawnKey( const char *key, edict_t *self );
 
 //

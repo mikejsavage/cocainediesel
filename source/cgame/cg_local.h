@@ -343,18 +343,7 @@ typedef struct {
 } cg_static_t;
 
 typedef struct {
-	int64_t time;
-	float delay;
-
-	int64_t monotonicTime;
-
-	int64_t realTime;
-	int frameTime;
-	int realFrameTime;
 	int frameCount;
-
-	int64_t firstViewRealTime;
-	int viewFrameCount;
 
 	snapshot_t frame, oldFrame;
 	bool frameSequenceRunning;
@@ -677,7 +666,7 @@ void CG_StartKickAnglesEffect( vec3_t source, float knockback, float radius, int
 void CG_StartFallKickEffect( int bounceTime );
 void CG_ViewSmoothPredictedSteps( vec3_t vieworg );
 float CG_ViewSmoothFallKick( void );
-void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int64_t realTime, int64_t serverTime, unsigned extrapolationTime );
+void CG_RenderView( unsigned extrapolationTime );
 void CG_AddKickAngles( vec3_t viewangles );
 bool CG_ChaseStep( int step );
 bool CG_SwitchChaseCamMode( void );

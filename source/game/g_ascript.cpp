@@ -2285,9 +2285,8 @@ static const asglobproperties_t asGlobProps[] =
 {
 	{ "const int64 levelTime", &level.time },
 	{ "const uint frameTime", &game.frametime },
-	{ "const int64 realTime", &game.realtime },
+	{ "const int64 realTime", &svs.realtime },
 
-	//{ "const uint serverTime", &game.serverTime }, // I think this one isn't script business
 	{ "const int maxEntities", &game.maxentities },
 	{ "const int numEntities", &game.numentities },
 	{ "const int maxClients", &server_gs.maxclients },
@@ -2888,20 +2887,20 @@ void G_asGarbageCollect( bool force ) {
 		return;
 	}
 
-	if( lastTime > game.serverTime ) {
+	if( lastTime > svs.gametime ) {
 		force = true;
 	}
 
-	if( force || lastTime + g_asGC_interval->value * 1000 < game.serverTime ) {
+	if( force || lastTime + g_asGC_interval->value * 1000 < svs.gametime ) {
 		asEngine->GetGCStatistics( &currentSize, &totalDestroyed, &totalDetected );
 
 		if( g_asGC_stats->integer ) {
-			G_Printf( "GC: t=%" PRIi64 " size=%u destroyed=%u detected=%u\n", game.serverTime, currentSize, totalDestroyed, totalDetected );
+			G_Printf( "GC: t=%" PRIi64 " size=%u destroyed=%u detected=%u\n", svs.gametime, currentSize, totalDestroyed, totalDetected );
 		}
 
 		asEngine->GarbageCollect();
 
-		lastTime = game.serverTime;
+		lastTime = svs.gametime;
 	}
 }
 

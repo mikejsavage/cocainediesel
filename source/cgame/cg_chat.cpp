@@ -65,7 +65,7 @@ void CG_ShutdownChat() {
 
 void CG_AddChat( const char * str ) {
 	size_t idx = ( chat.history_head + chat.history_len ) % ARRAY_COUNT( chat.history );
-	chat.history[ idx ].time = cg.monotonicTime;
+	chat.history[ idx ].time = cls.monotonicTime;
 	Q_strncpyz( chat.history[ idx ].text, str, sizeof( chat.history[ idx ].text ) );
 
 	if( chat.history_len < ARRAY_COUNT( chat.history ) ) {
@@ -122,7 +122,7 @@ void CG_DrawChat() {
 		size_t idx = ( chat.history_head + i ) % ARRAY_COUNT( chat.history );
 		const ChatMessage * msg = &chat.history[ idx ];
 
-		if( chat.mode == ChatMode_None && cg.monotonicTime > msg->time + GAMECHAT_NOTIFY_TIME ) {
+		if( chat.mode == ChatMode_None && cls.monotonicTime > msg->time + GAMECHAT_NOTIFY_TIME ) {
 			continue;
 		}
 
@@ -163,7 +163,7 @@ void CG_FlashChatHighlight( const unsigned int fromIndex, const char *text ) {
 		return;
 
 	// if we've been highlighted recently, dont let people spam it..
-	bool eligible = !chat.lastHighlightTime || chat.lastHighlightTime + GAMECHAT_HIGHLIGHT_TIME < cg.realTime;
+	bool eligible = !chat.lastHighlightTime || chat.lastHighlightTime + GAMECHAT_HIGHLIGHT_TIME < cls.realtime;
 
 	// dont bother doing text match if we've been pinged recently
 	if( !eligible )
@@ -183,6 +183,6 @@ void CG_FlashChatHighlight( const unsigned int fromIndex, const char *text ) {
 	bool hadNick = strstr( msgLower, nameLower ) != NULL;
 	if( hadNick ) {
 		trap_VID_FlashWindow();
-		chat.lastHighlightTime = cg.realTime;
+		chat.lastHighlightTime = cls.realtime;
 	}
 }

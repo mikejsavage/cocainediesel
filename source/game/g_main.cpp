@@ -433,7 +433,8 @@ void G_ExitLevel( void ) {
 	const char *nextmapname = G_NextMap();
 
 	// if it's the same map see if we can restart without loading
-	if( !level.hardReset && !Q_stricmp( nextmapname, level.mapname ) && G_RespawnLevel() ) {
+	if( !level.hardReset && !Q_stricmp( nextmapname, level.mapname ) ) {
+		G_RespawnLevel();
 		loadmap = false;
 	}
 

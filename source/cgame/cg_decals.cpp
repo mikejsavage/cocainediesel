@@ -197,9 +197,9 @@ int CG_SpawnDecal( const vec3_t origin, const vec3_t dir, float orient, float ra
 	VectorScale( axis[1], radius, axis[1] );
 	VectorScale( axis[2], radius, axis[2] );
 
-	dietime = cg.time + die * 1000;
+	dietime = cl.serverTime + die * 1000;
 	fadefreq = 0.001f / min( fadetime, die );
-	fadetime = cg.time + ( die - min( fadetime, die ) ) * 1000;
+	fadetime = cl.serverTime + ( die - min( fadetime, die ) ) * 1000;
 
 	for( i = 0, fr = fragments; i < numfragments; i++, fr++ ) {
 		if( fr->numverts > MAX_DECAL_VERTS ) {
@@ -254,15 +254,15 @@ void CG_AddDecals( void ) {
 		next = dl->prev;
 
 		// it's time to DIE
-		if( dl->die <= cg.time ) {
+		if( dl->die <= cl.serverTime ) {
 			CG_FreeDecal( dl );
 			continue;
 		}
 		poly = dl->poly;
 
 		// fade out
-		if( dl->fadetime < cg.time ) {
-			fade = ( dl->die - cg.time ) * dl->fadefreq;
+		if( dl->fadetime < cl.serverTime ) {
+			fade = ( dl->die - cl.serverTime ) * dl->fadefreq;
 
 			if( dl->fadealpha ) {
 				color[0] = ( uint8_t )( dl->color[0] );

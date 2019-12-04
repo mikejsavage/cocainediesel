@@ -195,22 +195,22 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 	// Full restart
 	if( !viewweapon->baseAnimStartTime ) {
 		viewweapon->baseAnim = baseAnim;
-		viewweapon->baseAnimStartTime = cg.time;
+		viewweapon->baseAnimStartTime = cl.serverTime;
 	}
 
 	// base animation changed?
 	if( baseAnim != viewweapon->baseAnim ) {
 		viewweapon->baseAnim = baseAnim;
-		viewweapon->baseAnimStartTime = cg.time;
+		viewweapon->baseAnimStartTime = cl.serverTime;
 	}
 
 	// if a eventual animation is running override the baseAnim
 	if( viewweapon->eventAnim ) {
 		if( !viewweapon->eventAnimStartTime ) {
-			viewweapon->eventAnimStartTime = cg.time;
+			viewweapon->eventAnimStartTime = cl.serverTime;
 		}
 
-		framefrac = CG_FrameForTime( &curframe, cg.time, viewweapon->eventAnimStartTime, weaponInfo->frametime[viewweapon->eventAnim],
+		framefrac = CG_FrameForTime( &curframe, cl.serverTime, viewweapon->eventAnimStartTime, weaponInfo->frametime[viewweapon->eventAnim],
 									 weaponInfo->firstframe[viewweapon->eventAnim], weaponInfo->lastframe[viewweapon->eventAnim],
 									 weaponInfo->loopingframes[viewweapon->eventAnim], false );
 
@@ -224,7 +224,7 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 	}
 
 	// find new frame for the current animation
-	framefrac = CG_FrameForTime( &curframe, cg.time, viewweapon->baseAnimStartTime, weaponInfo->frametime[viewweapon->baseAnim],
+	framefrac = CG_FrameForTime( &curframe, cl.serverTime, viewweapon->baseAnimStartTime, weaponInfo->frametime[viewweapon->baseAnim],
 								 weaponInfo->firstframe[viewweapon->baseAnim], weaponInfo->lastframe[viewweapon->baseAnim],
 								 weaponInfo->loopingframes[viewweapon->baseAnim], true );
 
@@ -242,7 +242,7 @@ void CG_ViewWeapon_StartAnimationEvent( int newAnim ) {
 	}
 
 	cg.weapon.eventAnim = newAnim;
-	cg.weapon.eventAnimStartTime = cg.time;
+	cg.weapon.eventAnimStartTime = cl.serverTime;
 	CG_ViewWeapon_RefreshAnimation( &cg.weapon );
 }
 

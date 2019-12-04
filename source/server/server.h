@@ -199,8 +199,6 @@ typedef struct {
 	size_t meta_data_realsize;
 } server_static_demo_t;
 
-typedef server_static_demo_t demorec_t;
-
 typedef struct client_entities_s {
 	unsigned num_entities;              // maxclients->integer*UPDATE_BACKUP*MAX_PACKET_ENTITIES
 	unsigned next_entities;             // next client_entity to use

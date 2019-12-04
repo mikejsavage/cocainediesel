@@ -230,7 +230,7 @@ static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
 	}
 
 	// waiting for chanllengers queue to be executed
-	if( GS_HasChallengers( &server_gs ) && game.realtime < level.spawnedTimeStamp + (int64_t)( G_CHALLENGERS_MIN_JOINTEAM_MAPTIME + game.snapFrameTime ) ) {
+	if( GS_HasChallengers( &server_gs ) && svs.realtime < level.spawnedTimeStamp + (int64_t)( G_CHALLENGERS_MIN_JOINTEAM_MAPTIME + game.snapFrameTime ) ) {
 		return ER_TEAM_CHALLENGERS;
 	}
 
@@ -491,9 +491,9 @@ void G_Teams_ExecuteChallengersQueue( void ) {
 		return;
 	}
 
-	if( game.realtime < level.spawnedTimeStamp + G_CHALLENGERS_MIN_JOINTEAM_MAPTIME ) {
+	if( svs.realtime < level.spawnedTimeStamp + G_CHALLENGERS_MIN_JOINTEAM_MAPTIME ) {
 		static int time, lasttime;
-		time = (int)( ( G_CHALLENGERS_MIN_JOINTEAM_MAPTIME - ( game.realtime - level.spawnedTimeStamp ) ) * 0.001 );
+		time = (int)( ( G_CHALLENGERS_MIN_JOINTEAM_MAPTIME - ( svs.realtime - level.spawnedTimeStamp ) ) * 0.001 );
 		if( lasttime && time == lasttime ) {
 			return;
 		}
@@ -658,7 +658,7 @@ void G_Teams_JoinChallengersQueue( edict_t *ent ) {
 
 	// enter the challengers queue
 	if( !ent->r.client->queueTimeStamp ) {  // enter the line
-		ent->r.client->queueTimeStamp = game.realtime;
+		ent->r.client->queueTimeStamp = svs.realtime;
 		for( e = game.edicts + 1; PLAYERNUM( e ) < server_gs.maxclients; e++ ) {
 			if( !e->r.inuse || !e->r.client || trap_GetClientState( PLAYERNUM( e ) ) < CS_SPAWNED ) {
 				continue;

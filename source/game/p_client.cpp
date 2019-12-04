@@ -646,7 +646,7 @@ void ClientBegin( edict_t *ent ) {
 	client->connecting = false;
 
 	// schedule the next scoreboard update
-	client->level.scoreboard_time = game.realtime + scoreboardInterval - ( game.realtime % scoreboardInterval );
+	client->level.scoreboard_time = svs.realtime + scoreboardInterval - ( svs.realtime % scoreboardInterval );
 
 	G_ClientEndSnapFrame( ent ); // make sure all view stuff is valid
 

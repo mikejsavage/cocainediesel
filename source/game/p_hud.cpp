@@ -50,12 +50,12 @@ void G_UpdateScoreBoardMessages( void ) {
 
 		gclient_t * client = ent->r.client;
 
-		if( game.realtime <= client->level.scoreboard_time + scoreboardInterval ) {
+		if( svs.realtime <= client->level.scoreboard_time + scoreboardInterval ) {
 			continue;
 		}
 
 		if( client->ps.stats[STAT_LAYOUTS] & STAT_LAYOUT_SCOREBOARD ) {
-			client->level.scoreboard_time = game.realtime + scoreboardInterval - ( game.realtime % scoreboardInterval );
+			client->level.scoreboard_time = svs.realtime + scoreboardInterval - ( svs.realtime % scoreboardInterval );
 			trap_GameCmd( ent, scoreboard.c_str() );
 		}
 	}

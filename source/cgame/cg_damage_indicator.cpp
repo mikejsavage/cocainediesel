@@ -80,8 +80,8 @@ void CG_DamageIndicatorAdd( int damage, const vec3_t dir ) {
 	}
 
 	for( i = 0; i < 4; i++ ) {
-		if( cg.damageBlends[i] < cg.time + blends[i] ) {
-			cg.damageBlends[i] = cg.time + blends[i];
+		if( cg.damageBlends[i] < cl.serverTime + blends[i] ) {
+			cg.damageBlends[i] = cl.serverTime + blends[i];
 		}
 	}
 #undef TOP_BLEND

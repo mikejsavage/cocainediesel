@@ -644,9 +644,6 @@ void CG_Reset( void ) {
 
 	CG_ClearAwards();
 
-	cg.time = 0;
-	cg.realTime = 0;
-
 	chaseCam.key_pressed = false;
 
 	// reset prediction optimization

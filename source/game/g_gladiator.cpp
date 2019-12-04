@@ -5,7 +5,7 @@ static void SpikesRearm( edict_t * self ) {
 }
 
 static void SpikesDeploy( edict_t * self ) {
-	int64_t deployed_for = game.serverTime - self->s.linearMovementTimeStamp;
+	int64_t deployed_for = svs.gametime - self->s.linearMovementTimeStamp;
 
 	if( deployed_for < 1500 ) {
 		vec3_t dir;
@@ -33,7 +33,7 @@ static void SpikesTouched( edict_t * self, edict_t * other, cplane_t * plane, in
 	if( self->s.linearMovementTimeStamp == 0 ) {
 		self->nextThink = level.time + 1000;
 		self->think = SpikesDeploy;
-		self->s.linearMovementTimeStamp = max( 1, game.serverTime );
+		self->s.linearMovementTimeStamp = max( 1, svs.gametime );
 	}
 }
 

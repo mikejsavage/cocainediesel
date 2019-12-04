@@ -91,7 +91,7 @@ static LocalEntity *CG_AllocLocalEntity( LocalEntityType type, float r, float g,
 
 	memset( le, 0, sizeof( *le ) );
 	le->type = type;
-	le->start = cg.time;
+	le->start = cl.serverTime;
 	le->color[0] = r;
 	le->color[1] = g;
 	le->color[2] = b;
@@ -168,7 +168,7 @@ static LocalEntity *CG_AllocModel( LocalEntityType type, const vec3_t origin, co
 
 	le->ent.model = model;
 	le->ent.override_material = material;
-	le->ent.shaderTime = cg.time;
+	le->ent.shaderTime = cl.serverTime;
 	le->ent.scale = 1.0f;
 
 	VectorCopy( angles, le->angles );
@@ -192,7 +192,7 @@ static LocalEntity *CG_AllocSprite( LocalEntityType type, const vec3_t origin, f
 
 	le->ent.radius = radius;
 	le->ent.override_material = material;
-	le->ent.shaderTime = cg.time;
+	le->ent.shaderTime = cl.serverTime;
 	le->ent.scale = 1.0f;
 
 	Matrix3_Identity( le->ent.axis );
@@ -544,8 +544,8 @@ void CG_ProjectileTrail( centity_t *cent ) {
 
 	// we don't add more than one sprite each frame. If frame
 	// ratio is too slow, people will prefer having less sprites on screen
-	if( cent->localEffects[LOCALEFFECT_ROCKETFIRE_LAST_DROP] + trailTime < cg.time ) {
-		cent->localEffects[LOCALEFFECT_ROCKETFIRE_LAST_DROP] = cg.time;
+	if( cent->localEffects[LOCALEFFECT_ROCKETFIRE_LAST_DROP] + trailTime < cl.serverTime ) {
+		cent->localEffects[LOCALEFFECT_ROCKETFIRE_LAST_DROP] = cl.serverTime;
 
 		vec4_t color;
 		CG_TeamColor( cent->current.team, color );
@@ -590,8 +590,8 @@ void CG_NewBloodTrail( centity_t *cent ) {
 
 	// we don't add more than one sprite each frame. If frame
 	// ratio is too slow, people will prefer having less sprites on screen
-	if( cent->localEffects[LOCALEFFECT_BLOODTRAIL_LAST_DROP] + trailTime < cg.time ) {
-		cent->localEffects[LOCALEFFECT_BLOODTRAIL_LAST_DROP] = cg.time;
+	if( cent->localEffects[LOCALEFFECT_BLOODTRAIL_LAST_DROP] + trailTime < cl.serverTime ) {
+		cent->localEffects[LOCALEFFECT_BLOODTRAIL_LAST_DROP] = cl.serverTime;
 
 		int contents = ( CG_PointContents( cent->trailOrigin ) & CG_PointContents( cent->ent.origin ) );
 		if( contents & MASK_WATER ) {
@@ -946,13 +946,13 @@ void CG_AddLocalEntities( void ) {
 	float scale, frac, fade, time, scaleIn, fadeIn;
 	vec3_t angles;
 
-	time = (float)cg.frameTime * 0.001f;
+	time = (float)cls.frametime * 0.001f;
 
 	hnode = &cg_localents_headnode;
 	for( le = hnode->next; le != hnode; le = next ) {
 		next = le->next;
 
-		frac = ( cg.time - le->start ) * 0.01f;
+		frac = ( cl.serverTime - le->start ) * 0.01f;
 		f = Max2( 0, int( floorf( frac ) ) );
 
 		// it's time to DIE
@@ -1113,7 +1113,7 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, int team ) {
 void DrawGibs() {
 	ZoneScoped;
 
-	float dt = cg.frameTime * 0.001f;
+	float dt = cls.frametime * 0.001f;
 
 	const Model * model = cgs.media.modGib;
 	Vec3 gravity = Vec3( 0, 0, -GRAVITY );

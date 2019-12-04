@@ -151,7 +151,7 @@ static int CG_GetFPS( const void *parameter ) {
 		cg_showFPS->modified = false;
 	}
 
-	frameTimes[cg.frameCount & FPSSAMPLESMASK] = cg.realFrameTime;
+	frameTimes[cg.frameCount & FPSSAMPLESMASK] = cls.realFrameTime;
 
 	float average = 0.0f;
 	for( size_t i = 0; i < ARRAY_COUNT( frameTimes ); i++ ) {
@@ -194,8 +194,8 @@ static int CG_GetDamageIndicatorDirValue( const void *parameter ) {
 	float frac = 0;
 	int index = (intptr_t)parameter;
 
-	if( cg.damageBlends[index] > cg.time && !cg.view.thirdperson ) {
-		frac = Clamp01( ( cg.damageBlends[index] - cg.time ) / 300.0f );
+	if( cg.damageBlends[index] > cl.serverTime && !cg.view.thirdperson ) {
+		frac = Clamp01( ( cg.damageBlends[index] - cl.serverTime ) / 300.0f );
 	}
 
 	return frac * 1000;
@@ -1063,7 +1063,7 @@ void CG_SC_Obituary( void ) {
 	cg_obituaries_current = ( cg_obituaries_current + 1 ) % MAX_OBITUARIES;
 	current = &cg_obituaries[cg_obituaries_current];
 
-	current->time = cg.monotonicTime;
+	current->time = cls.monotonicTime;
 	if( victim ) {
 		Q_strncpyz( current->victim, victim->name, sizeof( current->victim ) );
 		current->victim_team = cg_entities[victimNum].current.team;
@@ -1134,7 +1134,7 @@ static void CG_DrawObituaries(
 	int num = 0;
 	int i = next;
 	do {
-		if( cg_obituaries[i].type != OBITUARY_NONE && cg.monotonicTime - cg_obituaries[i].time <= 5000 ) {
+		if( cg_obituaries[i].type != OBITUARY_NONE && cls.monotonicTime - cg_obituaries[i].time <= 5000 ) {
 			num++;
 		}
 		if( ++i >= MAX_OBITUARIES ) {
@@ -1163,7 +1163,7 @@ static void CG_DrawObituaries(
 			i = 0;
 		}
 
-		if( obr->type == OBITUARY_NONE || cg.monotonicTime - obr->time > 5000 ) {
+		if( obr->type == OBITUARY_NONE || cls.monotonicTime - obr->time > 5000 ) {
 			continue;
 		}
 
@@ -1273,7 +1273,7 @@ static void CG_DrawAwards( int x, int y, Alignment alignment, float font_size, V
 			break;
 		}
 
-		if( cg.award_times[current % MAX_AWARD_LINES] + MAX_AWARD_DISPLAYTIME < cg.time ) {
+		if( cg.award_times[current % MAX_AWARD_LINES] + MAX_AWARD_DISPLAYTIME < cl.serverTime ) {
 			break;
 		}
 

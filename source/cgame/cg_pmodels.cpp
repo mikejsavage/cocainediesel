@@ -916,7 +916,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	float lower_time, upper_time;
-	CG_GetAnimationTimes( pmodel, cg.time, &lower_time, &upper_time );
+	CG_GetAnimationTimes( pmodel, cl.serverTime, &lower_time, &upper_time );
 	Span< TRS > lower = SampleAnimation( &temp, meta->model, lower_time );
 	Span< TRS > upper = SampleAnimation( &temp, meta->model, upper_time );
 	MergeLowerUpperPoses( lower, upper, meta->model, meta->upper_root_joint );

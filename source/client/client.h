@@ -166,8 +166,6 @@ typedef struct {
 	size_t meta_data_realsize;
 } cl_demo_t;
 
-typedef cl_demo_t demorec_t;
-
 typedef struct {
 	ArenaAllocator frame_arena;
 

@@ -419,7 +419,7 @@ static bool SV_RunGameFrame( int msec ) {
 			time_before_game = Sys_Milliseconds();
 		}
 
-		ge->RunFrame( moduleTime, svs.gametime );
+		ge->RunFrame( moduleTime );
 
 		if( host_speeds->integer ) {
 			time_after_game = Sys_Milliseconds();

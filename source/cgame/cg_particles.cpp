@@ -190,7 +190,7 @@ void DrawParticleSystem( ParticleSystem * ps ) {
 }
 
 void DrawParticles() {
-	float dt = cg.frameTime / 1000.0f;
+	float dt = cls.frametime / 1000.0f;
 	UpdateParticleSystem( &cgs.ions, dt );
 	UpdateParticleSystem( &cgs.SMGsparks, dt );
 	UpdateParticleSystem( &cgs.sparks, dt );
@@ -303,7 +303,7 @@ static void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter,
 }
 
 void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter ) {
-	EmitParticles( ps, emitter, cg.frameTime / 1000.0f );
+	EmitParticles( ps, emitter, cls.frametime / 1000.0f );
 }
 
 enum ParticleEmitterVersion : u32 {

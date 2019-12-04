@@ -74,11 +74,11 @@ static void G_EndFrame_UpdateChaseCam( edict_t *ent ) {
 	targ = &game.edicts[ent->r.client->resp.chase.target];
 
 	if( !G_Chase_IsValidTarget( ent, targ, ent->r.client->resp.chase.teamonly ) ) {
-		if( game.realtime < ent->r.client->resp.chase.timeout ) { // wait for timeout
+		if( svs.realtime < ent->r.client->resp.chase.timeout ) { // wait for timeout
 			return;
 		}
 
-		ent->r.client->resp.chase.timeout = game.realtime + 1500; // update timeout
+		ent->r.client->resp.chase.timeout = svs.realtime + 1500; // update timeout
 
 		G_ChasePlayer( ent, NULL, ent->r.client->resp.chase.teamonly, ent->r.client->resp.chase.followmode );
 		targ = &game.edicts[ent->r.client->resp.chase.target];
@@ -87,7 +87,7 @@ static void G_EndFrame_UpdateChaseCam( edict_t *ent ) {
 		}
 	}
 
-	ent->r.client->resp.chase.timeout = game.realtime + 1500; // update timeout
+	ent->r.client->resp.chase.timeout = svs.realtime + 1500; // update timeout
 
 	if( targ == ent ) {
 		return;

@@ -210,7 +210,7 @@ void G_Match_LaunchState( int matchState ) {
 	G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, false );
 
 	if( matchState == MATCH_STATE_POSTMATCH ) {
-		level.finalMatchDuration = game.serverTime - GS_MatchStartTime( &server_gs );
+		level.finalMatchDuration = svs.gametime - GS_MatchStartTime( &server_gs );
 	}
 
 	switch( matchState ) {
@@ -222,7 +222,7 @@ void G_Match_LaunchState( int matchState ) {
 
 			server_gs.gameState.stats[GAMESTAT_MATCHSTATE] = MATCH_STATE_WARMUP;
 			server_gs.gameState.stats[GAMESTAT_MATCHDURATION] = (int64_t)( fabs( g_warmup_timelimit->value * 60 ) * 1000 );
-			server_gs.gameState.stats[GAMESTAT_MATCHSTART] = game.serverTime;
+			server_gs.gameState.stats[GAMESTAT_MATCHSTART] = svs.gametime;
 
 			break;
 		}
@@ -233,7 +233,7 @@ void G_Match_LaunchState( int matchState ) {
 
 			server_gs.gameState.stats[GAMESTAT_MATCHSTATE] = MATCH_STATE_COUNTDOWN;
 			server_gs.gameState.stats[GAMESTAT_MATCHDURATION] = 5000;
-			server_gs.gameState.stats[GAMESTAT_MATCHSTART] = game.serverTime;
+			server_gs.gameState.stats[GAMESTAT_MATCHSTART] = svs.gametime;
 
 			break;
 		}
@@ -247,7 +247,7 @@ void G_Match_LaunchState( int matchState ) {
 
 			server_gs.gameState.stats[GAMESTAT_MATCHSTATE] = MATCH_STATE_PLAYTIME;
 			server_gs.gameState.stats[GAMESTAT_MATCHDURATION] = 0;
-			server_gs.gameState.stats[GAMESTAT_MATCHSTART] = game.serverTime;
+			server_gs.gameState.stats[GAMESTAT_MATCHSTART] = svs.gametime;
 		}
 		break;
 
@@ -255,7 +255,7 @@ void G_Match_LaunchState( int matchState ) {
 		{
 			server_gs.gameState.stats[GAMESTAT_MATCHSTATE] = MATCH_STATE_POSTMATCH;
 			server_gs.gameState.stats[GAMESTAT_MATCHDURATION] = 4000; // postmatch time in seconds
-			server_gs.gameState.stats[GAMESTAT_MATCHSTART] = game.serverTime;
+			server_gs.gameState.stats[GAMESTAT_MATCHSTART] = svs.gametime;
 
 			G_Timeout_Reset();
 			level.teamlock = false;
@@ -274,7 +274,7 @@ void G_Match_LaunchState( int matchState ) {
 
 			server_gs.gameState.stats[GAMESTAT_MATCHSTATE] = MATCH_STATE_WAITEXIT;
 			server_gs.gameState.stats[GAMESTAT_MATCHDURATION] = 3000;
-			server_gs.gameState.stats[GAMESTAT_MATCHSTART] = game.serverTime;
+			server_gs.gameState.stats[GAMESTAT_MATCHSTART] = svs.gametime;
 
 			level.exitNow = false;
 		}
@@ -325,7 +325,7 @@ bool G_Match_ScorelimitHit( void ) {
 */
 bool G_Match_TimelimitHit( void ) {
 	// check for timelimit hit
-	if( !GS_MatchDuration( &server_gs ) || game.serverTime < GS_MatchEndTime( &server_gs ) ) {
+	if( !GS_MatchDuration( &server_gs ) || svs.gametime < GS_MatchEndTime( &server_gs ) ) {
 		return false;
 	}
 
@@ -719,7 +719,7 @@ static bool G_EachNewSecond( void ) {
 * G_CheckNumBots
 */
 static void G_CheckNumBots( void ) {
-	if( level.spawnedTimeStamp + 5000 > game.realtime ) {
+	if( level.spawnedTimeStamp + 5000 > svs.realtime ) {
 		return;
 	}
 

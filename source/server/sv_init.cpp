@@ -238,11 +238,11 @@ static void SV_SpawnServer( const char *server, bool devmap ) {
 	SV_ReloadPureList();
 
 	// load and spawn all other entities
-	ge->InitLevel( sv.mapname, CM_EntityString( svs.cms ), CM_EntityStringLen( svs.cms ), 0, svs.gametime, svs.realtime );
+	ge->InitLevel( sv.mapname, CM_EntityString( svs.cms ), CM_EntityStringLen( svs.cms ), 0 );
 
 	// run two frames to allow everything to settle
-	ge->RunFrame( svc.snapFrameTime, svs.gametime );
-	ge->RunFrame( svc.snapFrameTime, svs.gametime );
+	ge->RunFrame( svc.snapFrameTime );
+	ge->RunFrame( svc.snapFrameTime );
 
 	SV_CreateBaseline(); // create a baseline for more efficient communications
 

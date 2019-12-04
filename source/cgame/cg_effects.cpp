@@ -425,7 +425,7 @@ static void CG_ClearParticles( void ) {
 
 #define CG_InitParticle( p, s, a, r, g, b, h ) \
 	( \
-		( p )->time = cg.time, \
+		( p )->time = cl.serverTime, \
 		( p )->scale = ( s ), \
 		( p )->alpha = ( a ), \
 		( p )->color[0] = ( r ), \
@@ -684,7 +684,7 @@ static void CG_FlyParticles( const vec3_t origin, int count ) {
 	}
 
 	i = 0;
-	ltime = (float)cg.time / 1000.0;
+	ltime = (float)cl.serverTime / 1000.0;
 
 	count /= 2;
 	if( cg_numparticles + count > MAX_PARTICLES ) {
@@ -730,18 +730,18 @@ void CG_FlyEffect( centity_t *ent, const vec3_t origin ) {
 		return;
 	}
 
-	if( ent->fly_stoptime < cg.time ) {
-		starttime = cg.time;
-		ent->fly_stoptime = cg.time + 60000;
+	if( ent->fly_stoptime < cl.serverTime ) {
+		starttime = cl.serverTime;
+		ent->fly_stoptime = cl.serverTime + 60000;
 	} else {
 		starttime = ent->fly_stoptime - 60000;
 	}
 
-	n = cg.time - starttime;
+	n = cl.serverTime - starttime;
 	if( n < 20000 ) {
 		count = n * 162 / 20000.0;
 	} else {
-		n = ent->fly_stoptime - cg.time;
+		n = ent->fly_stoptime - cl.serverTime;
 		if( n < 20000 ) {
 			count = n * 162 / 20000.0;
 		} else {
@@ -775,7 +775,7 @@ void CG_AddParticles( void ) {
 	activeparticles = 0;
 
 	for( i = 0, p = particles; i < cg_numparticles; i++, p++ ) {
-		time = ( cg.time - p->time ) * 0.001f;
+		time = ( cl.serverTime - p->time ) * 0.001f;
 		alpha = alphaValues[i] = p->alpha + time * p->alphavel;
 
 		if( alpha <= 0 ) { // faded out
@@ -930,7 +930,7 @@ void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Mat
 	beam.width = width;
 	beam.color = color;
 	beam.material = material;
-	beam.spawn_time = cg.time;
+	beam.spawn_time = cl.serverTime;
 	beam.duration = duration;
 	beam.start_fade_time = duration - fade_time;
 }
@@ -940,7 +940,7 @@ void DrawPersistentBeams() {
 
 	for( size_t i = 0; i < num_persistent_beams; i++ ) {
 		PersistentBeam & beam = persistent_beams[ i ];
-		float t = ( cg.time - beam.spawn_time ) / 1000.0f;
+		float t = ( cl.serverTime - beam.spawn_time ) / 1000.0f;
 		float alpha;
 		if( beam.start_fade_time != beam.duration )
 			alpha = 1.0f - Clamp01( Unlerp( beam.start_fade_time, t, beam.duration ) );

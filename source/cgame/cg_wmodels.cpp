@@ -410,7 +410,7 @@ static void CG_AddWeaponFlashOnTag( entity_t *weapon, const weaponinfo_t *weapon
 	entity_t flash;
 	float intensity;
 
-	if( flash_time < cg.time ) {
+	if( flash_time < cl.serverTime ) {
 		return;
 	}
 	if( !weaponInfo->model[WEAPMODEL_FLASH] ) {
@@ -421,7 +421,7 @@ static void CG_AddWeaponFlashOnTag( entity_t *weapon, const weaponinfo_t *weapon
 	}
 
 	if( weaponInfo->flashFade ) {
-		intensity = (float)( flash_time - cg.time ) / (float)weaponInfo->flashTime;
+		intensity = (float)( flash_time - cl.serverTime ) / (float)weaponInfo->flashTime;
 		c = ( uint8_t )( 255 * intensity );
 	} else {
 		intensity = 1.0f;
@@ -465,10 +465,10 @@ static void CG_AddWeaponBarrelOnTag( entity_t *weapon, const weaponinfo_t *weapo
 	barrel.scale = weapon->scale;
 
 	// rotation
-	if( barrel_time > cg.time ) {
+	if( barrel_time > cl.serverTime ) {
 		float intensity;
 
-		intensity =  (float)( barrel_time - cg.time ) / (float)weaponInfo->barrelTime;
+		intensity =  (float)( barrel_time - cl.serverTime ) / (float)weaponInfo->barrelTime;
 		rotangles[2] = 360.0f * weaponInfo->barrelSpeed * intensity * intensity;
 	}
 

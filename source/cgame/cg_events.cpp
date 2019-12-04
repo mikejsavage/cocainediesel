@@ -166,7 +166,7 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 	}
 
 	if( ISVIEWERENTITY( cent->current.number ) ) {
-		S_ImmediateLineSound( sfx, cent->current.number, start, end, cg_volume_effects->value, ATTN_NONE );
+		S_ImmediateEntitySound( sfx, cent->current.number, cg_volume_effects->value, ATTN_NONE );
 	} else {
 		S_ImmediateLineSound( sfx, cent->current.number, start, end, cg_volume_effects->value, ATTN_STATIC );
 	}

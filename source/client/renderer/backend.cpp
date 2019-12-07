@@ -11,9 +11,9 @@
 #include "client/renderer/renderer.h"
 
 template< typename S, typename T >
-struct SameType { enum { value = false }; };
+struct SameType { static constexpr bool value = false; };
 template< typename T >
-struct SameType< T, T > { enum { value = true }; };
+struct SameType< T, T > { static constexpr bool value = true; };
 
 STATIC_ASSERT( ( SameType< u32, GLuint >::value ) );
 

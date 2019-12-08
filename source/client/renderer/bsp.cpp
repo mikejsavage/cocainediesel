@@ -9,9 +9,6 @@
 #include "client/client.h"
 #include "client/renderer/renderer.h"
 
-#include "bullet/btBulletCollisionCommon.h"
-#include "bullet/LinearMath/btGeometryUtil.h"
-
 #include "physx/PxConfig.h"
 #include "physx/PxPhysicsApi.h"
 #include "physx/cooking/PxCooking.h"

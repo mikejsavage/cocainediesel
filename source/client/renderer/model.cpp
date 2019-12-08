@@ -5,8 +5,6 @@
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
 
-#include "bullet/btBulletCollisionCommon.h"
-
 #include "physx/PxPhysicsAPI.h"
 
 constexpr u32 MAX_MODEL_ASSETS = 1024;

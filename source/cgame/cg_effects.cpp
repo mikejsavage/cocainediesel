@@ -504,10 +504,12 @@ void CG_ParticleExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 		ParticleEmitter emitter = { };
 		emitter.position = origin;
 
-		// TODO: normal
-		emitter.velocity_cone.radius = 100.0f;
-		emitter.velocity_cone.theta = float( M_PI );
-		emitter.end_velocity = 100.0f;
+		emitter.use_cone_direction = true;
+		emitter.direction_cone.normal = normal;
+		emitter.direction_cone.theta = 90.0f;
+
+		emitter.start_speed = 100.0f;
+		emitter.end_speed = 100.0f;
 
 		emitter.start_color = Vec4( 1.0f, 0.9, 0.0f, 0.5f );
 		emitter.end_color = Vec3( 0.2f, 0.1f, 0.0f );
@@ -532,10 +534,12 @@ void CG_ParticleExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 		ParticleEmitter emitter = { };
 		emitter.position = origin;
 
-		// TODO: normal
-		emitter.velocity_cone.radius = 400.0f;
-		emitter.velocity_cone.theta = float( M_PI );
-		emitter.end_velocity = 0.0f;
+		emitter.use_cone_direction = true;
+		emitter.direction_cone.normal = normal;
+		emitter.direction_cone.theta = 90.0f;
+
+		emitter.start_speed = 400.0f;
+		emitter.end_speed = 0.0f;
 
 		emitter.start_color = Vec4( team_color, 1.0f );
 		emitter.end_color = team_color;
@@ -623,8 +627,8 @@ void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color ) {
 	emitter.position_distribution.type = RandomDistribution3DType_Line;
 	emitter.position_distribution.line.end = end;
 
-	emitter.velocity_cone.radius = 4.0f;
-	emitter.velocity_cone.theta = 2.0f * float( M_PI );
+	emitter.start_speed = 4.0f;
+	emitter.end_speed = 0.0f;
 
 	emitter.start_color = color;
 	emitter.end_color = color.xyz();

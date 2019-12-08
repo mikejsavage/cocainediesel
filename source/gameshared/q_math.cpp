@@ -729,6 +729,14 @@ Vec3 UniformSampleInsideSphere( RNG * rng ) {
 	return p * r;
 }
 
+Vec3 UniformSampleCone( RNG * rng, float theta ) {
+	assert( theta >= 0.0f && theta <= float( M_PI ) );
+	float z = random_uniform_float( rng, cosf( theta ), 1.0f );
+	float r = sqrtf( Max2( 0.0f, 1.0f - z * z ) );
+	float phi = 2.0f * float( M_PI ) * random_float01( rng );
+	return Vec3( r * cosf( phi ), r * sinf( phi ), z );
+}
+
 Vec2 UniformSampleDisk( RNG * rng ) {
 	float theta = random_float01( rng ) * 2.0f * float( M_PI );
 	float r = sqrtf( random_float01( rng ) );
@@ -754,4 +762,39 @@ Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p ) {
 	Vec3 seg = end - start;
 	float t = Dot( p - start, seg ) / Dot( seg, seg );
 	return Lerp( start, Clamp01( t ), end );
+}
+
+Mat4 TransformKToDir( Vec3 dir ) {
+	assert( ( Length( dir ) - 1.0f ) < 0.0001f );
+
+	Vec3 K = Vec3( 0, 0, 1 );
+
+	if( fabsf( dir.z ) >= 0.9999f ) {
+		return dir.z > 0 ? Mat4::Identity() : -Mat4::Identity();
+	}
+
+	Vec3 axis = Normalize( Cross( K, dir ) );
+	float c = Dot( K, dir ) / Length( dir );
+	float s = sqrtf( 1.0f - c * c );
+
+	Mat4 rotation = Mat4(
+		c + axis.x * axis.x * ( 1.0f - c ),
+		axis.x * axis.y * ( 1.0f - c ) - axis.z * s,
+		axis.x * axis.z * ( 1.0f - c ) + axis.y * s,
+		0.0f,
+
+		axis.y * axis.x * ( 1.0f - c ) + axis.z * s,
+		c + axis.y * axis.y * ( 1.0f - c ),
+		axis.y * axis.z * ( 1.0f - c ) - axis.x * s,
+		0.0f,
+
+		axis.z * axis.x * ( 1.0f - c ) - axis.y * s,
+		axis.z * axis.y * ( 1.0f - c ) + axis.x * s,
+		c + axis.z * axis.z * ( 1.0f - c ),
+		0.0f,
+
+		0.0f, 0.0f, 0.0f, 1.0f
+	);
+
+	return rotation;
 }

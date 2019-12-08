@@ -266,9 +266,18 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter & emitter, 
 		} break;
 	}
 
-	// TODO: separate velocity and direction
-	Vec3 velocity = emitter.velocity + UniformSampleInsideSphere( &cls.rng ) * emitter.velocity_cone.radius;
-	float dvelocity = ( emitter.end_velocity - emitter.velocity_cone.radius ) / lifetime;
+	Vec3 dir;
+
+	if( emitter.use_cone_direction ) {
+		Mat4 dir_transform = TransformKToDir( emitter.direction_cone.normal );
+		dir = ( dir_transform * Vec4( UniformSampleCone( &cls.rng, DEG2RAD( emitter.direction_cone.theta ) ), 0.0f ) ).xyz();
+	}
+	else {
+		dir = UniformSampleSphere( &cls.rng );
+	}
+
+	float speed = emitter.start_speed + SampleRandomDistribution( &cls.rng, emitter.speed_distribution );
+	float dspeed = ( emitter.end_speed - emitter.start_speed ) / lifetime;
 
 	Vec4 color = emitter.start_color;
 	color.x += SampleRandomDistribution( &cls.rng, emitter.red_distribution );
@@ -282,7 +291,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter & emitter, 
 	float size = Max2( 0.0f, emitter.start_size + SampleRandomDistribution( &cls.rng, emitter.size_distribution ) );
 	float dsize = ( emitter.end_size - emitter.start_size ) / lifetime;
 
-	EmitParticle( ps, lifetime, position, velocity, dvelocity, color, dcolor, size, dsize );
+	EmitParticle( ps, lifetime, position, dir * speed, dspeed, color, dcolor, size, dsize );
 }
 
 static void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter, float dt ) {
@@ -311,7 +320,7 @@ enum ParticleEmitterVersion : u32 {
 };
 
 static void Serialize( SerializationBuffer * buf, SphereDistribution & sphere ) { *buf & sphere.radius; }
-static void Serialize( SerializationBuffer * buf, ConeDistribution & cone ) { *buf & cone.normal & cone.radius & cone.theta; }
+static void Serialize( SerializationBuffer * buf, ConeDistribution & cone ) { *buf & cone.normal & cone.theta; }
 static void Serialize( SerializationBuffer * buf, DiskDistribution & disk ) { *buf & disk.normal & disk.radius; }
 static void Serialize( SerializationBuffer * buf, LineDistribution & line ) { *buf & line.end; }
 
@@ -338,7 +347,11 @@ static void Serialize( SerializationBuffer * buf, ParticleEmitter & emitter ) {
 	*buf & version;
 
 	*buf & emitter.position & emitter.position_distribution;
-	*buf & emitter.velocity & emitter.velocity_cone;
+	*buf & emitter.use_cone_direction;
+
+	if( emitter.use_cone_direction ) {
+		*buf & emitter.direction_cone;
+	}
 
 	*buf & emitter.start_color & emitter.end_color & emitter.red_distribution & emitter.green_distribution & emitter.blue_distribution & emitter.alpha_distribution;
 
@@ -368,8 +381,10 @@ void InitParticleEditor() {
 	editor_ps.blend_func = editor_blend ? BlendFunc_Blend : BlendFunc_Add;
 	editor_emitter = { };
 
-	editor_emitter.velocity_cone.radius = 400.0f;
-	editor_emitter.end_velocity = 400.0f;
+	editor_emitter.start_speed = 400.0f;
+	editor_emitter.end_speed = 400.0f;
+	editor_emitter.direction_cone.normal = Vec3( 0, 0, 1 );
+	editor_emitter.direction_cone.theta = 90.0f;
 	editor_emitter.start_color = vec4_white;
 	editor_emitter.end_color = vec4_white.xyz();
 	editor_emitter.start_size = 16.0f;
@@ -537,8 +552,14 @@ void DrawParticleEditor() {
 
 		ImGui::Separator();
 
-		ImGui::SliderFloat( "Start velocity", &editor_emitter.velocity_cone.radius, 0, 1000, "%.2f" );
-		ImGui::SliderFloat( "End velocity", &editor_emitter.end_velocity, 0, 1000, "%.2f" );
+		ImGui::Checkbox( "Direction cone?", &editor_emitter.use_cone_direction );
+
+		if( editor_emitter.use_cone_direction ) {
+			ImGui::SliderFloat( "Angle", &editor_emitter.direction_cone.theta, 0, 180, "%.2f" );
+		}
+
+		ImGui::SliderFloat( "Start speed", &editor_emitter.start_speed, 0, 1000, "%.2f" );
+		ImGui::SliderFloat( "End speed", &editor_emitter.end_speed, 0, 1000, "%.2f" );
 
 		ImGui::Separator();
 

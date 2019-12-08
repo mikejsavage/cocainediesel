@@ -351,8 +351,13 @@ static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int owner, int t
 
 				ParticleEmitter emitter = { };
 				emitter.position = FromQF3( trace.endpos );
-				emitter.velocity_cone.radius = 128;
-				emitter.end_velocity = 500.0f;
+
+				emitter.use_cone_direction = true;
+				emitter.direction_cone.normal = FromQF3( trace.plane.normal );
+				emitter.direction_cone.theta = 90.0f;
+
+				emitter.start_speed = 128.0f;
+				emitter.end_speed = 128.0f;
 
 				emitter.start_color = color;
 				emitter.end_color = Vec3( 0.0f );

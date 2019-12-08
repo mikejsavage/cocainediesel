@@ -67,7 +67,6 @@ struct SphereDistribution {
 
 struct ConeDistribution {
 	Vec3 normal;
-	float radius;
 	float theta;
 };
 
@@ -106,9 +105,12 @@ struct ParticleEmitter {
 	Vec3 position;
 	RandomDistribution3D position_distribution;
 
-	Vec3 velocity;
-	float end_velocity;
-	ConeDistribution velocity_cone;
+	bool use_cone_direction;
+	ConeDistribution direction_cone;
+
+	float start_speed;
+	float end_speed;
+	RandomDistribution speed_distribution;
 
 	Vec4 start_color;
 	Vec3 end_color;
@@ -122,7 +124,7 @@ struct ParticleEmitter {
 
 	float lifetime;
 	RandomDistribution lifetime_distribution;
-	
+
 	float emission_rate;
 	float n;
 };

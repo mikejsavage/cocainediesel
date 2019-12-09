@@ -654,106 +654,10 @@ void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color ) {
 	float distance_between_particles = 4.0f;
 
 	float len = Length( end - start );
-	Vec3 dir = Normalize( end - start );
 
 	emitter.n = Min2( len / distance_between_particles + 1.0f, float( max_ions ) );
 
 	EmitParticles( &cgs.ions, emitter );
-}
-
-#define BEAMLENGTH      16
-
-/*
-* CG_FlyParticles
-*/
-static void CG_FlyParticles( const vec3_t origin, int count ) {
-	int i, j;
-	float angle, sp, sy, cp, cy;
-	vec3_t forward, dir;
-	float dist, ltime;
-	cparticle_t *p;
-
-	if( !cg_particles->integer ) {
-		return;
-	}
-
-	if( count > NUMVERTEXNORMALS ) {
-		count = NUMVERTEXNORMALS;
-	}
-
-	if( !avelocities[0][0] ) {
-		for( i = 0; i < NUMVERTEXNORMALS; i++ )
-			for( j = 0; j < 3; j++ )
-				avelocities[i][j] = ( rand() & 255 ) * 0.01;
-	}
-
-	i = 0;
-	ltime = (float)cl.serverTime / 1000.0;
-
-	count /= 2;
-	if( cg_numparticles + count > MAX_PARTICLES ) {
-		count = MAX_PARTICLES - cg_numparticles;
-	}
-	for( p = &particles[cg_numparticles], cg_numparticles += count; count > 0; count--, p++ ) {
-		CG_InitParticle( p, 1, 1, 0, 0, 0, NULL );
-
-		angle = ltime * avelocities[i][0];
-		sy = sin( angle );
-		cy = cos( angle );
-		angle = ltime * avelocities[i][1];
-		sp = sin( angle );
-		cp = cos( angle );
-
-		forward[0] = cp * cy;
-		forward[1] = cp * sy;
-		forward[2] = -sp;
-
-		dist = sin( ltime + i ) * 64;
-		ByteToDir( i, dir );
-		p->org[0] = origin[0] + dir[0] * dist + forward[0] * BEAMLENGTH;
-		p->org[1] = origin[1] + dir[1] * dist + forward[1] * BEAMLENGTH;
-		p->org[2] = origin[2] + dir[2] * dist + forward[2] * BEAMLENGTH;
-
-		VectorClear( p->vel );
-		VectorClear( p->accel );
-		p->alphavel = -100;
-
-		i += 2;
-	}
-}
-
-/*
-* CG_FlyEffect
-*/
-void CG_FlyEffect( centity_t *ent, const vec3_t origin ) {
-	int n;
-	int count;
-	int starttime;
-
-	if( !cg_particles->integer ) {
-		return;
-	}
-
-	if( ent->fly_stoptime < cl.serverTime ) {
-		starttime = cl.serverTime;
-		ent->fly_stoptime = cl.serverTime + 60000;
-	} else {
-		starttime = ent->fly_stoptime - 60000;
-	}
-
-	n = cl.serverTime - starttime;
-	if( n < 20000 ) {
-		count = n * 162 / 20000.0;
-	} else {
-		n = ent->fly_stoptime - cl.serverTime;
-		if( n < 20000 ) {
-			count = n * 162 / 20000.0;
-		} else {
-			count = 162;
-		}
-	}
-
-	CG_FlyParticles( origin, count );
 }
 
 /*

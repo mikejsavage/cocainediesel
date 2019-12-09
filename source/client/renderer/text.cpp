@@ -58,6 +58,7 @@ bool InitText() {
 
 void ShutdownText() {
 	for( size_t i = 0; i < num_fonts; i++ ) {
+		DeleteTexture( fonts[ i ].atlas );
 		FT_Done_Face( fonts[ i ].face );
 	}
 	FT_Done_FreeType( freetype );

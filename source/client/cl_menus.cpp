@@ -725,15 +725,14 @@ static void GameMenuButton( const char * label, const char * command, bool * cli
 
 static bool WeaponButton( int cash, int weapon, ImVec2 size, Vec4 * tint ) {
 	const Material * icon = cgs.media.shaderWeaponIcon[ weapon - 1 ];
-	Texture texture = icon->textures[ 0 ].texture;
-	Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
+	Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
 
 	int cost = GS_FindItemByTag( weapon )->cost;
 	bool selected = selected_weapons[ weapon ];
 
 	if( !selected && cost > cash ) {
 		*tint = Vec4( 1.0f, 1.0f, 1.0f, 0.125f );
-		ImGui::Image( texture, size, half_pixel, 1.0f - half_pixel, *tint );
+		ImGui::Image( icon, size, half_pixel, 1.0f - half_pixel, *tint );
 		return false;
 	}
 
@@ -742,7 +741,7 @@ static bool WeaponButton( int cash, int weapon, ImVec2 size, Vec4 * tint ) {
 		tint->w = 0.5f;
 	}
 
-	return ImGui::ImageButton( texture, size, half_pixel, 1.0f - half_pixel, 0, vec4_black, *tint );
+	return ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 0, vec4_black, *tint );
 }
 
 
@@ -887,15 +886,15 @@ static void GameMenu() {
 				}
 
 				{
-					Texture texture = FindTexture( "gfx/hud/icons/weapon/weap_none" );
-					Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
+					const Material * icon = FindMaterial( "gfx/hud/icons/weapon/weap_none" );
+					Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
 					ImGuiColorToken pink = ImGuiColorToken( 255, 53, 255, 64 );
 
-					ImGui::Image( texture, icon_size, half_pixel, 1.0f - half_pixel, Vec4( 1.0f, 1.0f, 1.0f, 0.25f ) );
+					ImGui::Image( icon, icon_size, half_pixel, 1.0f - half_pixel, Vec4( 1.0f, 1.0f, 1.0f, 0.25f ) );
 					ColumnCenterText( temp( "{}Dud bomb", pink ) );
 					ColumnCenterText( temp( "{}$13.37", pink ) );
 
-					ImGui::Image( texture, icon_size, half_pixel, 1.0f - half_pixel, Vec4( 1.0f, 1.0f, 1.0f, 0.25f ) );
+					ImGui::Image( icon, icon_size, half_pixel, 1.0f - half_pixel, Vec4( 1.0f, 1.0f, 1.0f, 0.25f ) );
 					desc_height = ImGui::GetCursorPosY();
 					ColumnCenterText( temp( "{}Smoke", pink ) );
 					ColumnCenterText( temp( "{}$13.37", pink ) );
@@ -918,17 +917,16 @@ static void GameMenu() {
 
 					const gsitem_t * item = GS_FindItemByTag( hovered );
 					const Material * icon = cgs.media.shaderWeaponIcon[ hovered - 1 ];
-					Texture texture = icon->textures[ 0 ].texture;
-					Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
+					Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
 					firedef_t weap_def = GS_GetWeaponDef( hovered )->firedef;
 
 					ImGui::PushStyleVar( ImGuiStyleVar_ChildBorderSize, 4 );
 					ImGui::BeginChild( "weapondescription", ImVec2( desc_width, desc_height - ImGui::GetStyle().WindowPadding.y*2 ), true );
-					
+
 					ImGui::Columns( 2, NULL, false );
 					ImGui::SetColumnWidth( 0, icon_size.x * 0.5f + ImGui::GetStyle().WindowPadding.x*2 );
 
-					ImGui::Image( texture, icon_size * 0.5f, half_pixel, 1.0f - half_pixel );
+					ImGui::Image( icon, icon_size * 0.5f, half_pixel, 1.0f - half_pixel );
 					ImGui::NextColumn();
 
 					if( bigger_font ) ImGui::PushFont( cls.big_font );
@@ -945,7 +943,7 @@ static void GameMenu() {
 
 					int pos_y = ImGui::GetCursorPosY();
 					if( bigger_font ) ImGui::PushFont( cls.medium_font );
-					
+
 					const float val_spacing = ( desc_height - pos_y )*0.075f;
 					const float txt_spacing = ImGui::GetTextLineHeight() + 10;
 

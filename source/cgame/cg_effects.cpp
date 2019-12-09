@@ -771,12 +771,11 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * m
 		end - width * beam_across * 0.5f,
 	};
 
-	Texture texture = material->textures[ 0 ].texture;
-	float texture_aspect_ratio = float( texture.width ) / float( texture.height );
+	float texture_aspect_ratio = float( material->texture->width ) / float( material->texture->height );
 	float beam_aspect_ratio = Length( end - start ) / width;
 	float repetitions = beam_aspect_ratio / texture_aspect_ratio;
 
-	Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
+	Vec2 half_pixel = 0.5f / Vec2( material->texture->width, material->texture->height );
 	Vec2 uvs[] = {
 		Vec2( half_pixel.x, half_pixel.y ),
 		Vec2( half_pixel.x, 1.0f - half_pixel.y ),
@@ -793,6 +792,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * m
 	}
 
 	PipelineState pipeline = MaterialToPipelineState( material, color );
+	pipeline.blend_func = BlendFunc_Add;
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
 

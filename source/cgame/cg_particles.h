@@ -51,7 +51,7 @@ struct ParticleSystem {
 	EasingFunction size_easing;
 
 	BlendFunc blend_func;
-	Texture texture;
+	const Material * material;
 	Vec3 acceleration;
 };
 
@@ -132,7 +132,7 @@ struct ParticleEmitter {
 void InitParticles();
 void ShutdownParticles();
 
-ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture );
+ParticleSystem NewParticleSystem( Allocator * a, size_t n, const Material * material );
 void DeleteParticleSystem( Allocator * a, ParticleSystem ps );
 
 void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter );

@@ -42,21 +42,8 @@ struct ColorGen {
 	Wave wave;
 };
 
-enum SamplerType {
-	SamplerType_Normal,
-	SamplerType_Clamp,
-	SamplerType_ClampAlphaMask,
-};
-
-struct TextureSampler {
-	Texture texture;
-	SamplerType sampler;
-};
-
 struct Material {
-	TextureSampler textures[ 16 ] = { };
-	u8 num_anim_frames = 0;
-	float anim_fps = 0;
+	const Texture * texture;
 
 	ColorGen rgbgen;
 	ColorGen alphagen;
@@ -71,10 +58,8 @@ struct Material {
 extern Material world_material;
 
 void InitMaterials();
+void HotloadMaterials();
 void ShutdownMaterials();
-
-Texture FindTexture( StringHash name );
-bool TryFindTexture( StringHash name, Texture * texture );
 
 const Material * FindMaterial( StringHash name, const Material * def = NULL );
 const Material * FindMaterial( const char * name, const Material * def = NULL );

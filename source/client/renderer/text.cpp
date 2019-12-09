@@ -30,6 +30,7 @@ struct Font {
 	u32 path_hash;
 	FT_Face face; // TODO: unused. might get used for kerning?
 	Texture atlas;
+	Material material;
 
 	float glyph_padding;
 	float pixel_range;
@@ -120,6 +121,7 @@ const Font * RegisterFont( const char * path ) {
 		config.format = TextureFormat_RGB_U8;
 
 		font->atlas = NewTexture( config );
+		font->material.texture = &font->atlas;
 	}
 
 	// load ttf
@@ -149,17 +151,17 @@ static void DrawText( const Font * font, float pixel_size, Span< const char > st
 
 	y += pixel_size * font->ascent;
 
-	ImGuiShaderAndTexture sat;
-	sat.shader = &shaders.text;
-	sat.texture = font->atlas;
-	sat.uniform_name = "u_Text";
-	sat.uniform_block = UploadUniformBlock(
+	ImGuiShaderAndMaterial sam;
+	sam.shader = &shaders.text;
+	sam.material = &font->material;
+	sam.uniform_name = "u_Text";
+	sam.uniform_block = UploadUniformBlock(
 		color, border_color,
 		Vec2( font->atlas.width, font->atlas.height ),
 		font->pixel_range, border ? 1 : 0 );
 
 	ImDrawList * bg = ImGui::GetBackgroundDrawList();
-	bg->PushTextureID( sat );
+	bg->PushTextureID( sam );
 
 	u32 state = 0;
 	for( size_t i = 0; i < str.n; i++ ) {

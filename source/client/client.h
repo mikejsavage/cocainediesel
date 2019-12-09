@@ -218,7 +218,7 @@ typedef struct {
 	// demo recording info must be here, so it isn't cleared on level change
 	cl_demo_t demo;
 
-	Texture whiteTexture;
+	const Material * whiteTexture;
 
 	// system font
 	qfontface_t *consoleFont;

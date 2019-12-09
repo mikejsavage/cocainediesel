@@ -85,9 +85,8 @@ static void DrawPlayerScoreboard( TempAllocator & temp, ScoreboardPlayer player,
 		float dim = ImGui::GetTextLineHeight();
 		ImGui::SetCursorPos( ImGui::GetCursorPos() - Vec2( ( dim - line_height ) * 0.5f ) );
 
-		Texture texture = icon->textures[ 0 ].texture;
-		Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
-		ImGui::Image( texture, Vec2( dim ), half_pixel, 1.0f - half_pixel, vec4_black );
+		Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
+		ImGui::Image( icon, Vec2( dim ), half_pixel, 1.0f - half_pixel, vec4_black );
 	}
 
 	ImGui::NextColumn();

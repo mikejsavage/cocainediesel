@@ -1834,10 +1834,10 @@ static bool CG_LFuncDrawPlayerIcons( struct cg_layoutnode_s *argumentnode, int n
 	int total = atoi( cgs.configStrings[ total_index ] );
 	Vec4 team_color = CG_TeamColorVec4( team );
 
-	Texture icon = FindTexture( "gfx/hud/guy" );
+	const Material * icon = FindMaterial( "gfx/hud/guy" );
 
 	float height = layout_cursor_font_size;
-	float width = float( icon.width ) / float( icon.height ) * height;
+	float width = float( icon->texture->width ) / float( icon->texture->height ) * height;
 	float padding = width * 0.25f;
 
 	float x = layout_cursor_x;

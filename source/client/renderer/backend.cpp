@@ -344,10 +344,10 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		bool found = false;
 		for( size_t j = 0; j < pipeline.num_textures; j++ ) {
 			if( pipeline.textures[ j ].name_hash == pipeline.shader->textures[ i ] ) {
-				GLenum target = pipeline.textures[ j ].texture.msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-				GLenum other_target = pipeline.textures[ j ].texture.msaa ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
+				GLenum target = pipeline.textures[ j ].texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+				GLenum other_target = pipeline.textures[ j ].texture->msaa ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
 				glBindTexture( other_target, 0 );
-				glBindTexture( target, pipeline.textures[ j ].texture.texture );
+				glBindTexture( target, pipeline.textures[ j ].texture->texture );
 				found = true;
 				break;
 			}
@@ -1237,7 +1237,7 @@ void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertic
 	num_vertices_this_frame += mesh.num_vertices;
 }
 
-void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, Texture texture, BlendFunc blend_func, u32 num_particles ) {
+void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Texture * texture, BlendFunc blend_func, u32 num_particles ) {
 	assert( in_frame );
 
 	PipelineState pipeline;

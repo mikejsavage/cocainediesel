@@ -8,11 +8,11 @@
 void InitParticles() {
 	constexpr Vec3 gravity = Vec3( 0, 0, -GRAVITY );
 
-	cgs.ions = NewParticleSystem( sys_allocator, 8192, FindTexture( "$particle" ) );
-	cgs.SMGsparks = NewParticleSystem( sys_allocator, 8192, FindTexture( "weapons/SMG/SMGsparks" ) );
+	cgs.ions = NewParticleSystem( sys_allocator, 8192, FindMaterial( "$particle" ) );
+	cgs.SMGsparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "weapons/SMG/SMGsparks" ) );
 	cgs.SMGsparks.acceleration = gravity;
-	cgs.smoke = NewParticleSystem( sys_allocator, 1024, FindTexture( "gfx/misc/cartoon_smokepuff3" ) );
-	cgs.sparks = NewParticleSystem( sys_allocator, 8192, FindTexture( "$particle" ) );
+	cgs.smoke = NewParticleSystem( sys_allocator, 1024, FindMaterial( "gfx/misc/cartoon_smokepuff3" ) );
+	cgs.sparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "$particle" ) );
 	cgs.sparks.acceleration = gravity;
 	cgs.sparks.blend_func = BlendFunc_Blend;
 }
@@ -24,13 +24,13 @@ void ShutdownParticles() {
 	DeleteParticleSystem( sys_allocator, cgs.smoke );
 }
 
-ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture ) {
+ParticleSystem NewParticleSystem( Allocator * a, size_t n, const Material * material ) {
 	ParticleSystem ps = { };
 	size_t num_chunks = AlignPow2( n, size_t( 4 ) ) / 4;
 	ps.chunks = ALLOC_SPAN( a, ParticleChunk, num_chunks );
 	ps.blend_func = BlendFunc_Add;
 
-	ps.texture = texture;
+	ps.material = material;
 
 	ps.vb = NewParticleVertexBuffer( n );
 	ps.vb_memory = ALLOC_MANY( a, GPUParticle, n );
@@ -43,7 +43,7 @@ ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture ) {
 			Vec2( 0.5f, 0.5f ),
 		};
 
-		Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
+		Vec2 half_pixel = 0.5f / Vec2( material->texture->width, material->texture->height );
 		Vec2 uvs[] = {
 			half_pixel,
 			Vec2( 1.0f - half_pixel.x, half_pixel.y ),
@@ -186,7 +186,7 @@ void DrawParticleSystem( ParticleSystem * ps ) {
 
 	WriteVertexBuffer( ps->vb, ps->vb_memory, ps->num_particles * sizeof( GPUParticle ) );
 
-	DrawInstancedParticles( ps->mesh, ps->vb, ps->texture, ps->blend_func, ps->num_particles );
+	DrawInstancedParticles( ps->mesh, ps->vb, ps->material->texture, ps->blend_func, ps->num_particles );
 }
 
 void DrawParticles() {
@@ -368,16 +368,16 @@ static void Serialize( SerializationBuffer * buf, ParticleEmitter & emitter ) {
 
 static ParticleSystem editor_ps = { };
 static ParticleEmitter editor_emitter;
-static char editor_texture_name[ 256 ];
+static char editor_material_name[ 256 ];
 static bool editor_one_shot;
 static bool editor_blend;
 
 void InitParticleEditor() {
-	strcpy( editor_texture_name, "$particle" );
+	strcpy( editor_material_name, "$particle" );
 	editor_one_shot = false;
 	editor_blend = false;
 
-	editor_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( StringHash( ( const char * ) editor_texture_name ) ) );
+	editor_ps = NewParticleSystem( sys_allocator, 8192, FindMaterial( StringHash( ( const char * ) editor_material_name ) ) );
 	editor_ps.blend_func = editor_blend ? BlendFunc_Blend : BlendFunc_Add;
 	editor_emitter = { };
 
@@ -399,7 +399,7 @@ void ShutdownParticleEditor() {
 
 void ResetParticleEditor() {
 	DeleteParticleSystem( sys_allocator, editor_ps );
-	editor_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( StringHash( ( const char * ) editor_texture_name ) ) );
+	editor_ps = NewParticleSystem( sys_allocator, 8192, FindMaterial( StringHash( ( const char * ) editor_material_name ) ) );
 	editor_ps.blend_func = editor_blend ? BlendFunc_Blend : BlendFunc_Add;
 }
 
@@ -512,7 +512,7 @@ void DrawParticleEditor() {
 
 		ImGui::Separator();
 
-		if( ImGui::InputText( "Texture", editor_texture_name, sizeof( editor_texture_name ) ) ) {
+		if( ImGui::InputText( "Material", editor_material_name, sizeof( editor_material_name ) ) ) {
 			ResetParticleEditor();
 		}
 

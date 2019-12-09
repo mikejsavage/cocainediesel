@@ -803,8 +803,8 @@ static void DrawWorld() {
 		pipeline.shader = msaa ? &shaders.postprocess_world_gbuffer_msaa : &shaders.postprocess_world_gbuffer;
 
 		const Framebuffer & fb = frame_static.world_gbuffer;
-		pipeline.set_texture( "u_DepthTexture", fb.depth_texture );
-		pipeline.set_texture( "u_NormalTexture", fb.normal_texture );
+		pipeline.set_texture( "u_DepthTexture", &fb.depth_texture );
+		pipeline.set_texture( "u_NormalTexture", &fb.normal_texture );
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 
 		DrawFullscreenMesh( pipeline );
@@ -818,7 +818,7 @@ static void DrawWorld() {
 		pipeline.write_depth = false;
 
 		const Framebuffer & fb = frame_static.world_outlines_fb;
-		pipeline.set_texture( "u_BaseTexture", fb.albedo_texture );
+		pipeline.set_texture( "u_BaseTexture", &fb.albedo_texture );
 		pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
 		pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
 		pipeline.set_uniform( "u_Material", frame_static.identity_material_uniforms );
@@ -868,7 +868,7 @@ static void DrawSilhouettes() {
 		pipeline.shader = &shaders.postprocess_silhouette_gbuffer;
 
 		const Framebuffer & fb = frame_static.silhouette_gbuffer;
-		pipeline.set_texture( "u_SilhouetteTexture", fb.albedo_texture );
+		pipeline.set_texture( "u_SilhouetteTexture", &fb.albedo_texture );
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 
 		DrawFullscreenMesh( pipeline );
@@ -883,7 +883,7 @@ static void DrawSilhouettes() {
 		pipeline.write_depth = false;
 
 		const Framebuffer & fb = frame_static.silhouette_silhouettes_fb;
-		pipeline.set_texture( "u_BaseTexture", fb.albedo_texture );
+		pipeline.set_texture( "u_BaseTexture", &fb.albedo_texture );
 		pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
 		pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
 		pipeline.set_uniform( "u_Material", frame_static.identity_material_uniforms );

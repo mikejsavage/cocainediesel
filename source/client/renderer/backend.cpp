@@ -27,6 +27,7 @@ enum VertexAttribute : GLuint {
 
 	VertexAttribute_ParticlePosition,
 	VertexAttribute_ParticleScale,
+	VertexAttribute_ParticleT,
 	VertexAttribute_ParticleColor,
 };
 
@@ -533,6 +534,8 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		glVertexAttribDivisor( VertexAttribute_ParticlePosition, 1 );
 		SetupAttribute( VertexAttribute_ParticleScale, VertexFormat_Floatx1, sizeof( GPUParticle ), offsetof( GPUParticle, scale ) );
 		glVertexAttribDivisor( VertexAttribute_ParticleScale, 1 );
+		SetupAttribute( VertexAttribute_ParticleT, VertexFormat_Floatx1, sizeof( GPUParticle ), offsetof( GPUParticle, t ) );
+		glVertexAttribDivisor( VertexAttribute_ParticleT, 1 );
 		SetupAttribute( VertexAttribute_ParticleColor, VertexFormat_U8x4_Norm, sizeof( GPUParticle ), offsetof( GPUParticle, color ) );
 		glVertexAttribDivisor( VertexAttribute_ParticleColor, 1 );
 
@@ -637,7 +640,7 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 	assert( in_frame );
 
 	UBO * ubo = NULL;
-	u32 offset;
+	u32 offset = 0;
 
 	for( size_t i = 0; i < ARRAY_COUNT( ubos ); i++ ) {
 		offset = AlignPow2( ubos[ i ].bytes_used, ubo_offset_alignment );
@@ -978,6 +981,7 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens ) {
 
 	glBindAttribLocation( program, VertexAttribute_ParticlePosition, "a_ParticlePosition" );
 	glBindAttribLocation( program, VertexAttribute_ParticleScale, "a_ParticleScale" );
+	glBindAttribLocation( program, VertexAttribute_ParticleT, "a_ParticleT" );
 	glBindAttribLocation( program, VertexAttribute_ParticleColor, "a_ParticleColor" );
 
 	glBindFragDataLocation( program, 0, "f_Albedo" );
@@ -1237,7 +1241,7 @@ void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertic
 	num_vertices_this_frame += mesh.num_vertices;
 }
 
-void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Texture * texture, BlendFunc blend_func, u32 num_particles ) {
+void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material * material, const Material * gradient, BlendFunc blend_func, u32 num_particles ) {
 	assert( in_frame );
 
 	PipelineState pipeline;
@@ -1246,7 +1250,9 @@ void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Texture *
 	pipeline.blend_func = blend_func;
 	pipeline.write_depth = false;
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.set_texture( "u_BaseTexture", texture );
+	pipeline.set_uniform( "u_GradientMaterial", UploadUniformBlock( 0.5f / gradient->texture->width ) );
+	pipeline.set_texture( "u_BaseTexture", material->texture );
+	pipeline.set_texture( "u_GradientTexture", gradient->texture );
 
 	DrawCall dc = { };
 	dc.mesh = mesh;

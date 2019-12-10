@@ -201,6 +201,7 @@ struct Mesh {
 struct GPUParticle {
 	Vec3 position;
 	float scale;
+	float t;
 	RGBA8 color;
 };
 
@@ -354,7 +355,7 @@ void DeleteMesh( const Mesh & mesh );
 void DeferDeleteMesh( const Mesh & mesh );
 
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override = 0, u32 first_index = 0 );
-void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Texture * texture, BlendFunc blend_func, u32 num_particles );
+void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material * material, const Material * gradient, BlendFunc blend_func, u32 num_particles );
 
 void DownloadFramebuffer( void * buf );
 

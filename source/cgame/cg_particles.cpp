@@ -31,6 +31,7 @@ ParticleSystem NewParticleSystem( Allocator * a, size_t n, const Material * mate
 	ps.blend_func = BlendFunc_Add;
 
 	ps.material = material;
+	ps.gradient = cgs.white_material;
 
 	ps.vb = NewParticleVertexBuffer( n );
 	ps.vb_memory = ALLOC_MANY( a, GPUParticle, n );
@@ -179,6 +180,7 @@ void DrawParticleSystem( ParticleSystem * ps ) {
 		for( int j = 0; j < 4; j++ ) {
 			ps->vb_memory[ i * 4 + j ].position = Vec3( chunk.position_x[ j ], chunk.position_y[ j ], chunk.position_z[ j ] );
 			ps->vb_memory[ i * 4 + j ].scale = chunk.size[ j ];
+			ps->vb_memory[ i * 4 + j ].t = chunk.t[ j ] / chunk.lifetime[ j ];
 			Vec4 color = Vec4( chunk.color_r[ j ], chunk.color_g[ j ], chunk.color_b[ j ], chunk.color_a[ j ] );
 			ps->vb_memory[ i * 4 + j ].color = RGBA8( color );
 		}
@@ -186,7 +188,7 @@ void DrawParticleSystem( ParticleSystem * ps ) {
 
 	WriteVertexBuffer( ps->vb, ps->vb_memory, ps->num_particles * sizeof( GPUParticle ) );
 
-	DrawInstancedParticles( ps->mesh, ps->vb, ps->material->texture, ps->blend_func, ps->num_particles );
+	DrawInstancedParticles( ps->mesh, ps->vb, ps->material, ps->gradient, ps->blend_func, ps->num_particles );
 }
 
 void DrawParticles() {
@@ -369,15 +371,18 @@ static void Serialize( SerializationBuffer * buf, ParticleEmitter & emitter ) {
 static ParticleSystem editor_ps = { };
 static ParticleEmitter editor_emitter;
 static char editor_material_name[ 256 ];
+static char editor_gradient_name[ 256 ];
 static bool editor_one_shot;
 static bool editor_blend;
 
 void InitParticleEditor() {
 	strcpy( editor_material_name, "$particle" );
+	strcpy( editor_gradient_name, "$whiteimage" );
 	editor_one_shot = false;
 	editor_blend = false;
 
 	editor_ps = NewParticleSystem( sys_allocator, 8192, FindMaterial( StringHash( ( const char * ) editor_material_name ) ) );
+	editor_ps.gradient = FindMaterial( StringHash( ( const char * ) editor_gradient_name ) );
 	editor_ps.blend_func = editor_blend ? BlendFunc_Blend : BlendFunc_Add;
 	editor_emitter = { };
 
@@ -400,6 +405,7 @@ void ShutdownParticleEditor() {
 void ResetParticleEditor() {
 	DeleteParticleSystem( sys_allocator, editor_ps );
 	editor_ps = NewParticleSystem( sys_allocator, 8192, FindMaterial( StringHash( ( const char * ) editor_material_name ) ) );
+	editor_ps.gradient = FindMaterial( StringHash( ( const char * ) editor_gradient_name ) );
 	editor_ps.blend_func = editor_blend ? BlendFunc_Blend : BlendFunc_Add;
 }
 
@@ -457,11 +463,11 @@ void DrawParticleEditor() {
 				ImGui::SetKeyboardFocusHere();
 				strcpy( name, "" );
 			}
-			bool ok = ImGui::InputText( "##loadpath", name, sizeof( name ), ImGuiInputTextFlags_EnterReturnsTrue );
+			bool do_load = ImGui::InputText( "##loadpath", name, sizeof( name ), ImGuiInputTextFlags_EnterReturnsTrue );
 			ImGui::PopItemWidth();
-			ok = ImGui::Button( "Load" ) || ok;
+			do_load = ImGui::Button( "Load" ) || do_load;
 
-			if( ok ) {
+			if( do_load ) {
 				Span< const char > data = AssetBinary( temp( "particles/{}.emitter", name ) ).cast< const char >();
 				if( data.ptr != NULL ) {
 					bool ok = Deserialize( editor_emitter, data.ptr, data.n );
@@ -513,6 +519,10 @@ void DrawParticleEditor() {
 		ImGui::Separator();
 
 		if( ImGui::InputText( "Material", editor_material_name, sizeof( editor_material_name ) ) ) {
+			ResetParticleEditor();
+		}
+
+		if( ImGui::InputText( "Gradient material", editor_gradient_name, sizeof( editor_gradient_name ) ) ) {
 			ResetParticleEditor();
 		}
 

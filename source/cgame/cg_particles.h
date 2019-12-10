@@ -52,6 +52,7 @@ struct ParticleSystem {
 
 	BlendFunc blend_func;
 	const Material * material;
+	const Material * gradient;
 	Vec3 acceleration;
 };
 

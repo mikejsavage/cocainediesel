@@ -20,7 +20,6 @@ extern "C"
 
 #include <assert.h>
 #include <stdint.h>
-#include <string.h>
 
 #include "../common/TracyAlloc.hpp"
 #include "../common/TracyForceInline.hpp"
@@ -91,7 +90,7 @@ static tracy_force_inline void* Callstack( int depth )
     return trace;
 }
 
-#elif TRACY_HAS_CALLSTACK == 3 || TRACY_HAS_CALLSTACK == 4
+#elif TRACY_HAS_CALLSTACK == 3 || TRACY_HAS_CALLSTACK == 4 || TRACY_HAS_CALLSTACK == 6
 
 static tracy_force_inline void* Callstack( int depth )
 {

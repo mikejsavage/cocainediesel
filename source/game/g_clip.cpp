@@ -748,7 +748,7 @@ typedef struct {
 /*
 * GClip_ClipMoveToEntities
 */
-/*static*/ void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
+static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
 	int i, num;
 	c4clipedict_t *touch;
 	int touchlist[MAX_EDICTS];

@@ -1,5 +1,4 @@
 #define M_PI 3.14159265358979323846
-#define M_TWOPI 6.28318530717958647692
 
 float sRGBToLinear( float srgb ) {
 	if( srgb <= 0.04045 )

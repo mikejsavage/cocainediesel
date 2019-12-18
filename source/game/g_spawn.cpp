@@ -712,7 +712,6 @@ static void SP_worldspawn( edict_t *ent ) {
 	VectorClear( ent->s.origin );
 	VectorClear( ent->s.angles );
 	GClip_SetBrushModel( ent, "*0" ); // sets mins / maxs and modelindex 1
-	G_PureModel( "*0" );
 
 	if( st.gravity ) {
 		level.gravity = atof( st.gravity );

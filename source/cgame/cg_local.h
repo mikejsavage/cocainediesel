@@ -298,7 +298,6 @@ typedef struct {
 	bool precacheDone;
 
 	bool demoPlaying;
-	bool pure;
 	unsigned snapFrameTime;
 	unsigned extrapolationTime;
 
@@ -595,7 +594,7 @@ extern cvar_t *cg_enemyForceModel;
 #define CG_Free( data ) Mem_Free( data )
 
 void CG_Init( const char *serverName, unsigned int playerNum,
-			  bool demoplaying, const char *demoName, bool pure, unsigned snapFrameTime );
+			  bool demoplaying, const char *demoName, unsigned snapFrameTime );
 void CG_Shutdown( void );
 
 #ifndef _MSC_VER

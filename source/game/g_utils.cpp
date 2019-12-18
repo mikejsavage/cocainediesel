@@ -590,9 +590,6 @@ void G_InitEdict( edict_t *e ) {
 	// clear the old state data
 	memset( &e->olds, 0, sizeof( e->olds ) );
 	memset( &e->snap, 0, sizeof( e->snap ) );
-
-	//wsw clean up the backpack counts
-	memset( e->invpak, 0, sizeof( e->invpak ) );
 }
 
 /*
@@ -717,11 +714,9 @@ void G_InitMover( edict_t *ent ) {
 	ent->r.svflags &= ~SVF_NOCLIENT;
 
 	GClip_SetBrushModel( ent, ent->model );
-	G_PureModel( ent->model );
 
 	if( ent->model2 ) {
 		ent->s.modelindex2 = trap_ModelIndex( ent->model2 );
-		G_PureModel( ent->model2 );
 	}
 
 	if( ent->light || !VectorCompare( ent->color, vec3_origin ) ) {
@@ -1462,24 +1457,6 @@ void G_AnnouncerSound( edict_t *targ, int soundindex, int team, bool queued, edi
 			G_AddPlayerStateEvent( ent->r.client, psev, soundindex );
 		}
 	}
-}
-
-/*
-* G_PureSound
-*/
-void G_PureSound( const char *sound ) {
-	assert( sound && sound[0] && strlen( sound ) < MAX_CONFIGSTRING_CHARS );
-
-	trap_PureSound( sound );
-}
-
-/*
-* G_PureModel
-*/
-void G_PureModel( const char *model ) {
-	assert( model && model[0] && strlen( model ) < MAX_CONFIGSTRING_CHARS );
-
-	trap_PureModel( model );
 }
 
 /*

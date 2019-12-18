@@ -44,8 +44,6 @@ cvar_t *sv_uploads_baseurl;
 cvar_t *sv_uploads_demos;
 cvar_t *sv_uploads_demos_baseurl;
 
-cvar_t *sv_pure;
-
 cvar_t *sv_maxclients;
 
 #ifdef HTTP_SUPPORT
@@ -462,34 +460,6 @@ static void SV_CheckDefaultMap( void ) {
 }
 
 /*
-* SV_UpdateActivity
-*/
-void SV_UpdateActivity( void ) {
-	svc.lastActivity = Sys_Milliseconds();
-}
-
-/*
-* SV_CheckPostUpdateRestart
-*/
-static void SV_CheckPostUpdateRestart( void ) {
-	// do not if there has been any activity in last 5 minutes
-	if( ( svc.lastActivity + 300000 ) > Sys_Milliseconds() ) {
-		return;
-	}
-
-	// if there are any new filesystem entries, restart
-	if( FS_GetNotifications() & FS_NOTIFY_NEWPAKS ) {
-		if( sv.state != ss_dead ) {
-			// restart the current map, SV_Map also rescans the filesystem
-			Com_Printf( "The server will now restart...\n\n" );
-
-			// start the default map if current map isn't available
-			Cbuf_ExecuteText( EXEC_APPEND, va( "map %s\n", svs.mapcmd[0] ? svs.mapcmd : sv_defaultmap->string ) );
-		}
-	}
-}
-
-/*
 * SV_Frame
 */
 void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
@@ -533,8 +503,6 @@ void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 		// clear teleport flags, etc for next frame
 		ge->ClearSnap();
 	}
-
-	SV_CheckPostUpdateRestart();
 }
 
 //============================================================================
@@ -632,15 +600,12 @@ void SV_Init( void ) {
 	sv_uploads_demos =      Cvar_Get( "sv_uploads_demos", "1", CVAR_ARCHIVE );
 	sv_uploads_demos_baseurl =  Cvar_Get( "sv_uploads_demos_baseurl", "", CVAR_ARCHIVE );
 	if( is_dedicated_server ) {
-		sv_pure =       Cvar_Get( "sv_pure", "1", CVAR_ARCHIVE | CVAR_LATCH | CVAR_SERVERINFO );
-
 #ifdef PUBLIC_BUILD
 		sv_public =     Cvar_Get( "sv_public", "1", CVAR_LATCH );
 #else
 		sv_public =     Cvar_Get( "sv_public", "0", CVAR_LATCH );
 #endif
 	} else {
-		sv_pure =       Cvar_Get( "sv_pure", "0", CVAR_ARCHIVE | CVAR_LATCH | CVAR_SERVERINFO );
 		sv_public =     Cvar_Get( "sv_public", "0", CVAR_LATCH );
 	}
 

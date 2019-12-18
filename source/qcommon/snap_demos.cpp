@@ -147,12 +147,10 @@ static void SNAP_RecordDemoMetaDataMessage( int demofile, msg_t *msg ) {
 * SNAP_BeginDemoRecording
 */
 void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned int snapFrameTime,
-							  const char *sv_name, unsigned int sv_bitflags, purelist_t *purelist, char *configstrings,
+							  const char *sv_name, unsigned int sv_bitflags, char *configstrings,
 							  entity_state_t *baselines ) {
-	unsigned int i;
 	msg_t msg;
 	uint8_t msg_buffer[MAX_MSGLEN];
-	purelist_t *purefile;
 	entity_state_t nullstate;
 	entity_state_t *base;
 
@@ -172,25 +170,8 @@ void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned in
 	MSG_WriteString( &msg, sv_name ); // level name
 	MSG_WriteUint8( &msg, sv_bitflags & ~SV_BITFLAGS_HTTP ); // sv_bitflags
 
-	// pure files
-	i = Com_CountPureListFiles( purelist );
-	if( i > (short)0x7fff ) {
-		Com_Error( ERR_DROP, "Error: Too many pure files." );
-	}
-
-	MSG_WriteInt16( &msg, i );
-
-	purefile = purelist;
-	while( purefile ) {
-		MSG_WriteString( &msg, purefile->filename );
-		MSG_WriteInt32( &msg, purefile->checksum );
-		purefile = purefile->next;
-
-		DEMO_SAFEWRITE( demofile, &msg, false );
-	}
-
 	// config strings
-	for( i = 0; i < MAX_CONFIGSTRINGS; i++ ) {
+	for( int i = 0; i < MAX_CONFIGSTRINGS; i++ ) {
 		const char *configstring = configstrings + i * MAX_CONFIGSTRING_CHARS;
 		if( configstring[0] ) {
 			MSG_WriteUint8( &msg, svc_servercs );
@@ -203,7 +184,7 @@ void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned in
 	// baselines
 	memset( &nullstate, 0, sizeof( nullstate ) );
 
-	for( i = 0; i < MAX_EDICTS; i++ ) {
+	for( int i = 0; i < MAX_EDICTS; i++ ) {
 		base = &baselines[i];
 		if( base->modelindex || base->sound || base->effects ) {
 			MSG_WriteUint8( &msg, svc_spawnbaseline );

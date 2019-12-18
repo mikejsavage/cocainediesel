@@ -156,7 +156,8 @@ static void ML_MapListCmd( void ) {
 	if( pattern ) {
 		if( !strcmp( pattern, "rebuild" ) ) {
 			Com_Printf( "Rebuilding map list...\n" );
-			ML_Restart( true );
+			ML_Shutdown();
+			ML_Init();
 			return;
 		}
 
@@ -245,27 +246,12 @@ void ML_Shutdown( void ) {
 }
 
 /*
-* ML_Restart
-* Restart map list stuff
-*/
-void ML_Restart( bool forcemaps ) {
-	ML_Shutdown();
-	FS_Rescan();
-	ML_Init();
-}
-
-/*
 * ML_Update
 */
 bool ML_Update( void ) {
-	int i, len, total, newpaks;
+	int i, len, total;
 	size_t size;
 	char *map, *maps, *filename;
-
-	newpaks = FS_Rescan();
-	if( !newpaks ) {
-		return false;
-	}
 
 	total = FS_GetFileListExt( "maps", ".bsp", NULL, &size, 0, 0 );
 	if( size ) {

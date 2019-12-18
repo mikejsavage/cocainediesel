@@ -41,7 +41,7 @@ bool Add_Ammo( gclient_t *client, const gsitem_t *item, int count, bool add_it )
 	return true;
 }
 
-bool G_PickupItem( edict_t *other, const gsitem_t *it, int flags, int count, const int *invpack ) {
+bool G_PickupItem( edict_t *other, const gsitem_t *it, int flags, int count ) {
 	if( other->r.client && G_ISGHOSTING( other ) ) {
 		return false;
 	}

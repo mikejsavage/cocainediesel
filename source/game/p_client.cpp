@@ -434,7 +434,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	memset( &self->snap, 0, sizeof( self->snap ) );
 	memset( &self->s, 0, sizeof( self->s ) );
 	memset( &self->olds, 0, sizeof( self->olds ) );
-	memset( &self->invpak, 0, sizeof( self->invpak ) );
 
 	self->s.number = self->olds.number = ENTNUM( self );
 

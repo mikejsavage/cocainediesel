@@ -96,8 +96,6 @@ typedef struct {
 	void ( *Cmd_SetCompletionFunc )( const char *cmd_name, char **( *completion_func )( const char *partial ) );
 
 	// files will be memory mapped read only
-	// the returned buffer may be part of a larger pak file,
-	// or a discrete file from anywhere in the quake search path
 	// a -1 return means the file does not exist
 	// NULL can be passed for buf to just determine existance
 	int ( *FS_FOpenFile )( const char *filename, int *filenum, int mode );
@@ -105,7 +103,6 @@ typedef struct {
 	int ( *FS_Write )( const void *buffer, size_t len, int file );
 	int ( *FS_Print )( int file, const char *msg );
 	void ( *FS_FCloseFile )( int file );
-	bool ( *FS_IsPureFile )( const char *filename );
 
 	// key bindings
 	const char *( *Key_GetBindingBuf )( int binding );
@@ -113,7 +110,7 @@ typedef struct {
 
 	void ( *GetConfigString )( int i, char *str, int size );
 	int64_t ( *Milliseconds )( void );
-	bool ( *DownloadRequest )( const char *filename, bool requestpak );
+	bool ( *DownloadRequest )( const char *filename );
 
 	void ( *NET_GetUserCmd )( int frame, usercmd_t *cmd );
 	int ( *NET_GetCurrentUserCmdNum )( void );
@@ -139,7 +136,7 @@ typedef struct {
 typedef struct {
 	// the init function will be called at each restart
 	void ( *Init )( const char *serverName, unsigned int playerNum,
-					bool demoplaying, const char *demoName, bool pure, unsigned int snapFrameTime );
+					bool demoplaying, const char *demoName, unsigned int snapFrameTime );
 
 	// "soft restarts" at demo jumps
 	void ( *Reset )( void );

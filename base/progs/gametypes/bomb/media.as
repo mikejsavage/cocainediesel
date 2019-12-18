@@ -68,25 +68,25 @@ void announceDef( Announcement announcement ) {
 }
 
 void mediaInit() {
-	modelBombModel = G_ModelIndex( "models/objects/misc/bomb_centered", true );
-	modelBombModelActive = G_ModelIndex( "models/objects/misc/bomb_centered_active", true );
-	modelBombBackpack = G_ModelIndex( "models/objects/misc/bomb", true );
+	modelBombModel = G_ModelIndex( "models/objects/misc/bomb_centered" );
+	modelBombModelActive = G_ModelIndex( "models/objects/misc/bomb_centered_active" );
+	modelBombBackpack = G_ModelIndex( "models/objects/misc/bomb" );
 
 	imgBombDecal = G_ImageIndex( "gfx/indicators/radar_decal" );
 
-	sndBeep = G_SoundIndex( "sounds/bomb/bombtimer", false );
-	sndPlantStart = G_SoundIndex( "sounds/misc/timer_bip_bip", false );
-	sndGoodGame = G_SoundIndex( "sounds/vsay/goodgame", false );
-	sndBombTaken = G_SoundIndex( "sounds/announcer/bomb/offense/taken", false );
-	sndBongo = G_SoundIndex( "sounds/announcer/bomb/bongo", false );
+	sndBeep = G_SoundIndex( "sounds/bomb/bombtimer" );
+	sndPlantStart = G_SoundIndex( "sounds/misc/timer_bip_bip" );
+	sndGoodGame = G_SoundIndex( "sounds/vsay/goodgame" );
+	sndBombTaken = G_SoundIndex( "sounds/announcer/bomb/offense/taken" );
+	sndBongo = G_SoundIndex( "sounds/announcer/bomb/bongo" );
 
-	sndAnnouncementsOff[ Announcement_Started ] = G_SoundIndex( "sounds/announcer/bomb/offense/start", false );
-	sndAnnouncementsOff[ Announcement_Armed ] = G_SoundIndex( "sounds/announcer/bomb/offense/planted", false );
-	sndAnnouncementsOff[ Announcement_Defused ] = G_SoundIndex( "sounds/announcer/bomb/offense/defused", false );
-	sndAnnouncementsOff[ Announcement_Hurry ] = G_SoundIndex( "sounds/misc/timer_bip_bip", false );
+	sndAnnouncementsOff[ Announcement_Started ] = G_SoundIndex( "sounds/announcer/bomb/offense/start" );
+	sndAnnouncementsOff[ Announcement_Armed ] = G_SoundIndex( "sounds/announcer/bomb/offense/planted" );
+	sndAnnouncementsOff[ Announcement_Defused ] = G_SoundIndex( "sounds/announcer/bomb/offense/defused" );
+	sndAnnouncementsOff[ Announcement_Hurry ] = G_SoundIndex( "sounds/misc/timer_bip_bip" );
 
-	sndAnnouncementsDef[ Announcement_Started ] = G_SoundIndex( "sounds/announcer/bomb/defense/start", false );
-	sndAnnouncementsDef[ Announcement_Armed ] = G_SoundIndex( "sounds/announcer/bomb/defense/planted", false );
-	sndAnnouncementsDef[ Announcement_Defused ] = G_SoundIndex( "sounds/announcer/bomb/defense/defused", false );
-	sndAnnouncementsDef[ Announcement_Hurry ] = G_SoundIndex( "sounds/misc/timer_bip_bip", false );
+	sndAnnouncementsDef[ Announcement_Started ] = G_SoundIndex( "sounds/announcer/bomb/defense/start" );
+	sndAnnouncementsDef[ Announcement_Armed ] = G_SoundIndex( "sounds/announcer/bomb/defense/planted" );
+	sndAnnouncementsDef[ Announcement_Defused ] = G_SoundIndex( "sounds/announcer/bomb/defense/defused" );
+	sndAnnouncementsDef[ Announcement_Hurry ] = G_SoundIndex( "sounds/misc/timer_bip_bip" );
 }

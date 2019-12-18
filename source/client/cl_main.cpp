@@ -634,11 +634,6 @@ void CL_Disconnect( const char *message ) {
 	} else {
 		CL_Disconnect_SendCommand(); // send a disconnect message to the server
 	}
-	FS_RemovePurePaks();
-
-	Com_FreePureList( &cls.purelist );
-
-	cls.sv_pure = false;
 
 	// udp is kept open all the time, for connectionless messages
 	if( cls.socket && cls.socket->type != SOCKET_UDP ) {
@@ -1129,7 +1124,6 @@ static void CL_Userinfo_f( void ) {
 static int precache_check; // for autodownload of precache items
 static int precache_spawncount;
 static int precache_tex;
-static int precache_pure;
 
 #define PLAYER_MULT 5
 
@@ -1174,61 +1168,9 @@ static unsigned int CL_LoadMap( const char *name ) {
 
 void CL_RequestNextDownload( void ) {
 	char tempname[MAX_CONFIGSTRING_CHARS + 4];
-	purelist_t *purefile;
-	int i;
 
 	if( cls.state != CA_CONNECTED ) {
 		return;
-	}
-
-	// pure list
-	if( cls.sv_pure ) {
-		// skip
-		if( !cl_downloads->integer ) {
-			precache_pure = -1;
-		}
-
-		// try downloading
-		if( precache_pure != -1 ) {
-			i = 0;
-			purefile = cls.purelist;
-			while( i < precache_pure && purefile ) {
-				purefile = purefile->next;
-				i++;
-			}
-
-			while( purefile ) {
-				precache_pure++;
-				if( !CL_CheckOrDownloadFile( purefile->filename ) ) {
-					return;
-				}
-				purefile = purefile->next;
-			}
-			precache_pure = -1;
-		}
-
-		if( precache_pure == -1 ) {
-			bool failed = false;
-			char message[MAX_STRING_CHARS];
-
-			Q_snprintfz( message, sizeof( message ), "Pure check failed:" );
-
-			purefile = cls.purelist;
-			while( purefile ) {
-				Com_DPrintf( "Adding pure file: %s\n", purefile->filename );
-				if( !FS_AddPurePak( purefile->checksum ) ) {
-					failed = true;
-					Q_strncatz( message, " ", sizeof( message ) );
-					Q_strncatz( message, purefile->filename, sizeof( message ) );
-				}
-				purefile = purefile->next;
-			}
-
-			if( failed ) {
-				Com_Error( ERR_DROP, "%s", message );
-				return;
-			}
-		}
 	}
 
 	// skip if download not allowed
@@ -1267,16 +1209,10 @@ void CL_RequestNextDownload( void ) {
 		while( precache_check < CS_SOUNDS + MAX_SOUNDS && cl.configstrings[precache_check][0] ) {
 			Q_strncpyz( tempname, cl.configstrings[precache_check++], sizeof( tempname ) );
 			if( !COM_FileExtension( tempname ) ) {
-				if( !FS_FirstExtension( tempname, SOUND_EXTENSIONS, NUM_SOUND_EXTENSIONS ) ) {
-					COM_DefaultExtension( tempname, ".wav", sizeof( tempname ) );
-					if( !CL_CheckOrDownloadFile( tempname ) ) {
-						return; // started a download
-					}
-				}
-			} else {
-				if( !CL_CheckOrDownloadFile( tempname ) ) {
-					return; // started a download
-				}
+				Q_strncatz( tempname, ".ogg", sizeof( tempname ) );
+			}
+			if( !CL_CheckOrDownloadFile( tempname ) ) {
+				return; // started a download
 			}
 		}
 		precache_check = CS_IMAGES;
@@ -1325,8 +1261,6 @@ void CL_RequestNextDownload( void ) {
 * before allowing the client into the server
 */
 void CL_Precache_f( void ) {
-	FS_RemovePurePaks();
-
 	if( cls.demo.playing ) {
 		if( !cls.demo.play_jump ) {
 			CL_LoadMap( cl.configstrings[CS_WORLDMODEL] );
@@ -1342,7 +1276,6 @@ void CL_Precache_f( void ) {
 		return;
 	}
 
-	precache_pure = 0;
 	precache_check = CS_WORLDMODEL;
 	precache_spawncount = atoi( Cmd_Argv( 1 ) );
 

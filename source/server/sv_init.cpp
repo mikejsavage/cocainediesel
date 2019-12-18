@@ -107,68 +107,6 @@ static void SV_CreateBaseline( void ) {
 }
 
 /*
-* SV_PureList_f
-*/
-void SV_PureList_f( void ) {
-	purelist_t *purefile;
-
-	Com_Printf( "Pure files:\n" );
-	purefile = svs.purelist;
-	while( purefile ) {
-		Com_Printf( "- %s (%u)\n", purefile->filename, purefile->checksum );
-		purefile = purefile->next;
-	}
-}
-
-/*
-* SV_AddPurePak
-*/
-static void SV_AddPurePak( const char *pakname ) {
-	if( !Com_FindPakInPureList( svs.purelist, pakname ) ) {
-		Com_AddPakToPureList( &svs.purelist, pakname, FS_ChecksumBaseFile( pakname, false ), NULL );
-	}
-}
-
-/*
-* SV_AddPureFile
-*/
-void SV_AddPureFile( const char *filename ) {
-	const char *pakname;
-
-	if( !filename || !strlen( filename ) ) {
-		return;
-	}
-
-	pakname = FS_PakNameForFile( filename );
-
-	if( pakname ) {
-		Com_DPrintf( "Pure file: %s (%s)\n", pakname, filename );
-		SV_AddPurePak( pakname );
-	}
-}
-
-/*
-* SV_ReloadPureList
-*/
-static void SV_ReloadPureList( void ) {
-	char **paks;
-	int i, numpaks;
-
-	Com_FreePureList( &svs.purelist );
-
-	// *pure.(pk3|pak)
-	paks = NULL;
-	numpaks = FS_GetExplicitPurePakList( &paks );
-	if( numpaks ) {
-		for( i = 0; i < numpaks; i++ ) {
-			SV_AddPurePak( paks[i] );
-			Mem_ZoneFree( paks[i] );
-		}
-		Mem_ZoneFree( paks );
-	}
-}
-
-/*
 * SV_SetServerConfigStrings
 */
 void SV_SetServerConfigStrings( void ) {
@@ -205,7 +143,6 @@ static void SV_SpawnServer( const char *server, bool devmap ) {
 	SV_ResetClientFrameCounters();
 	svs.realtime = 0;
 	svs.gametime = 0;
-	SV_UpdateActivity();
 
 	Q_strncpyz( sv.mapname, server, sizeof( sv.mapname ) );
 
@@ -233,9 +170,6 @@ static void SV_SpawnServer( const char *server, bool devmap ) {
 	// map initialization
 	sv.state = ss_loading;
 	Com_SetServerState( sv.state );
-
-	// set purelist
-	SV_ReloadPureList();
 
 	// load and spawn all other entities
 	ge->InitLevel( sv.mapname, CM_EntityString( svs.cms ), CM_EntityStringLen( svs.cms ), 0 );
@@ -435,8 +369,6 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 	u64 entropy[ 2 ];
 	CSPRNG_Bytes( entropy, sizeof( entropy ) );
 	sv.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
-
-	Com_FreePureList( &svs.purelist );
 
 	if( sv_mempool ) {
 		Mem_EmptyPool( sv_mempool );

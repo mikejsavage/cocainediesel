@@ -385,7 +385,7 @@ void G_PrecacheItems( void );
 void G_FireWeapon( edict_t *ent, int parm );
 const gsitem_t *GetItemByTag( int tag );
 bool Add_Ammo( gclient_t *client, const gsitem_t *item, int count, bool add_it );
-bool G_PickupItem( edict_t *other, const gsitem_t *it, int flags, int count, const int *invpack );
+bool G_PickupItem( edict_t *other, const gsitem_t *it, int flags, int count );
 void G_UseItem( struct edict_s *ent, const gsitem_t *item );
 
 //
@@ -448,9 +448,6 @@ edict_t *G_Sound( edict_t *owner, int channel, int soundindex, float attenuation
 edict_t *G_PositionedSound( vec3_t origin, int channel, int soundindex, float attenuation );
 void G_GlobalSound( int channel, int soundindex );
 void G_LocalSound( edict_t *owner, int channel, int soundindex );
-
-void G_PureSound( const char *sound );
-void G_PureModel( const char *model );
 
 #define G_ISGHOSTING( x ) ( ( ( x )->s.modelindex == 0 ) && ( ( x )->r.solid == SOLID_NOT ) )
 #define ISBRUSHMODEL( x ) ( ( ( x > 0 ) && ( (int)x < trap_CM_NumInlineModels() ) ) ? true : false )
@@ -1000,7 +997,6 @@ struct edict_s {
 	vec3_t color;
 
 	const gsitem_t *item;       // for bonus items
-	int invpak[AMMO_TOTAL];     // small inventory-like for dropped backpacks. Handles weapons and ammos of both types
 
 	// common data blocks
 	moveinfo_t moveinfo;        // func movers movement

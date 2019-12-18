@@ -77,8 +77,6 @@ typedef struct {
 	// they connect, and changes are sent to all connected clients.
 	void ( *ConfigString )( int num, const char *string );
 	const char *( *GetConfigString )( int num );
-	void ( *PureSound )( const char *name );
-	void ( *PureModel )( const char *name );
 
 	// the *index functions create configstrings and some internal server state
 	int ( *ModelIndex )( const char *name );
@@ -120,8 +118,6 @@ typedef struct {
 	void ( *Cmd_RemoveCommand )( const char *cmd_name );
 
 	// files will be memory mapped read only
-	// the returned buffer may be part of a larger pak file,
-	// or a discrete file from anywhere in the quake search path
 	// a -1 return means the file does not exist
 	// NULL can be passed for buf to just determine existance
 	int ( *FS_FOpenFile )( const char *filename, int *filenum, int mode );

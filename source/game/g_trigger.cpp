@@ -103,11 +103,9 @@ static void trigger_enable( edict_t *self, edict_t *other, edict_t *activator ) 
 
 void SP_trigger_multiple( edict_t *ent ) {
 	GClip_SetBrushModel( ent, ent->model );
-	G_PureModel( ent->model );
 
 	if( st.noise ) {
 		ent->noise_index = trap_SoundIndex( st.noise );
-		G_PureSound( st.noise );
 	}
 
 	// gameteam field from editor
@@ -272,7 +270,6 @@ void SP_trigger_push( edict_t *self ) {
 	if( st.noise && Q_stricmp( st.noise, "default" ) ) {
 		if( Q_stricmp( st.noise, "silent" ) ) {
 			self->moveinfo.sound_start = trap_SoundIndex( st.noise );
-			G_PureSound( st.noise );
 		}
 	} else {
 		self->moveinfo.sound_start = trap_SoundIndex( S_JUMPPAD );
@@ -369,7 +366,6 @@ void SP_trigger_hurt( edict_t *self ) {
 		self->noise_index = 0;
 	} else if( st.noise ) {
 		self->noise_index = trap_SoundIndex( st.noise );
-		G_PureSound( st.noise );
 	} else {
 		self->noise_index = 0;
 	}
@@ -495,7 +491,6 @@ void SP_trigger_teleport( edict_t *ent ) {
 
 	if( st.noise ) {
 		ent->noise_index = trap_SoundIndex( st.noise );
-		G_PureSound( st.noise );
 	}
 
 	// gameteam field from editor

@@ -261,100 +261,6 @@ static const char *PF_GetConfigString( int index ) {
 }
 
 /*
-* PF_PureSound
-*/
-static void PF_PureSound( const char *name ) {
-	const char *extension;
-	char tempname[MAX_CONFIGSTRING_CHARS];
-
-	if( sv.state != ss_loading ) {
-		return;
-	}
-
-	if( !name || !name[0] || strlen( name ) >= MAX_CONFIGSTRING_CHARS ) {
-		return;
-	}
-
-	Q_strncpyz( tempname, name, sizeof( tempname ) );
-
-	if( !COM_FileExtension( tempname ) ) {
-		extension = FS_FirstExtension( tempname, SOUND_EXTENSIONS, NUM_SOUND_EXTENSIONS );
-		if( !extension ) {
-			return;
-		}
-
-		COM_ReplaceExtension( tempname, extension, sizeof( tempname ) );
-	}
-
-	SV_AddPureFile( tempname );
-}
-
-/*
-* SV_AddPureShader
-*
-* FIXME: For now we don't parse shaders, but simply assume that it uses the same name .tga or .jpg
-*/
-static void SV_AddPureShader( const char *name ) {
-	const char *extension;
-	char tempname[MAX_CONFIGSTRING_CHARS];
-
-	if( !name || !name[0] ) {
-		return;
-	}
-
-	assert( name && name[0] && strlen( name ) < MAX_CONFIGSTRING_CHARS );
-
-	if( !Q_strnicmp( name, "textures/common/", strlen( "textures/common/" ) ) ) {
-		return;
-	}
-
-	Q_strncpyz( tempname, name, sizeof( tempname ) );
-
-	if( !COM_FileExtension( tempname ) ) {
-		extension = FS_FirstExtension( tempname, IMAGE_EXTENSIONS, NUM_IMAGE_EXTENSIONS );
-		if( !extension ) {
-			return;
-		}
-
-		COM_ReplaceExtension( tempname, extension, sizeof( tempname ) );
-	}
-
-	SV_AddPureFile( tempname );
-}
-
-/*
-* SV_AddPureBSP
-*/
-static void SV_AddPureBSP( void ) {
-	int i;
-	const char *shader;
-
-	SV_AddPureFile( sv.configstrings[CS_WORLDMODEL] );
-	for( i = 0; ( shader = CM_ShaderrefName( svs.cms, i ) ); i++ )
-		SV_AddPureShader( shader );
-}
-
-/*
-* PF_PureModel
-*/
-static void PF_PureModel( const char *name ) {
-	if( sv.state != ss_loading ) {
-		return;
-	}
-	if( !name || !name[0] || strlen( name ) >= MAX_CONFIGSTRING_CHARS ) {
-		return;
-	}
-
-	if( name[0] == '*' ) {  // inline model
-		if( !strcmp( name, "*0" ) ) {
-			SV_AddPureBSP(); // world
-		}
-	} else {
-		SV_AddPureFile( name );
-	}
-}
-
-/*
 * PF_inPVS
 */
 static bool PF_inPVS( const vec3_t p1, const vec3_t p2 ) {
@@ -436,8 +342,6 @@ void SV_InitGameProgs( void ) {
 
 	import.ConfigString = PF_ConfigString;
 	import.GetConfigString = PF_GetConfigString;
-	import.PureSound = PF_PureSound;
-	import.PureModel = PF_PureModel;
 
 	import.FS_FOpenFile = FS_FOpenFile;
 	import.FS_Read = FS_Read;

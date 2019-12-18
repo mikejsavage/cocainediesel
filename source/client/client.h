@@ -107,7 +107,6 @@ typedef struct {
 	// for request
 	char *requestname;              // file we requested from the server (NULL if none requested)
 	bool requestnext;           // whether to request next download after this, for precaching
-	bool requestpak;            // whether to only allow .pk3/.pak or only allow normal file
 	int64_t timeout;
 	int64_t timestart;
 
@@ -120,7 +119,7 @@ typedef struct {
 
 	double percent;
 	int successCount;               // so we know to restart media
-	download_list_t *list;          // list of all tried downloads, so we don't request same pk3 twice
+	download_list_t *list;          // list of all tried downloads, so we don't request same file twice
 
 	// server download
 	int filenum;
@@ -130,8 +129,6 @@ typedef struct {
 
 	// web download
 	bool web;
-	bool web_official;
-	bool web_official_only;
 	char *web_url;                  // download URL, passed by the server
 	bool web_local_http;
 
@@ -240,12 +237,6 @@ typedef struct {
 	// times when we got/sent last valid packets from/to server
 	int64_t lastPacketSentTime;
 	int64_t lastPacketReceivedTime;
-
-	// pure list
-	bool sv_pure;
-	bool pure_restart;
-
-	purelist_t *purelist;
 
 	char session[MAX_INFO_VALUE];
 
@@ -386,7 +377,7 @@ void CL_ParseServerMessage( msg_t *msg );
 void CL_FreeDownloadList( void );
 bool CL_CheckOrDownloadFile( const char *filename );
 
-bool CL_DownloadRequest( const char *filename, bool requestpak );
+bool CL_DownloadRequest( const char *filename );
 void CL_DownloadStatus_f( void );
 void CL_DownloadCancel_f( void );
 void CL_DownloadDone( void );

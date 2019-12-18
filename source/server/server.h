@@ -94,7 +94,7 @@ typedef struct {
 typedef struct {
 	char *name;
 	int file;
-	int size;               // total bytes (can't use EOF because of paks)
+	int size;               // total bytes
 	int64_t timeout;   // so we can free the file being downloaded
 	                        // if client omits sending success or failure message
 } client_download_t;
@@ -226,14 +226,11 @@ typedef struct {
 
 	server_static_demo_t demo;
 
-	purelist_t *purelist;               // pure file support
-
 	cmodel_state_t *cms;                // passed to CM-functions
 } server_static_t;
 
 typedef struct {
 	int64_t nextHeartbeat;
-	int64_t lastActivity;
 	unsigned int snapFrameTime;     // msecs between server packets
 	unsigned int gameFrameTime;     // msecs between game code executions
 	bool autostarted;
@@ -285,8 +282,6 @@ extern cvar_t *sv_uploads_baseurl;
 extern cvar_t *sv_uploads_demos;
 extern cvar_t *sv_uploads_demos_baseurl;
 
-extern cvar_t *sv_pure;
-
 extern cvar_t *sv_demodir;
 
 //===========================================================
@@ -311,8 +306,6 @@ void SV_MasterHeartbeat( void );
 void SVC_MasterInfoResponse( const socket_t *socket, const netadr_t *address );
 int SVC_FakeConnect( const char *fakeUserinfo, const char *fakeSocketType, const char *fakeIP );
 
-void SV_UpdateActivity( void );
-
 //
 // sv_oob.c
 //
@@ -326,9 +319,6 @@ void SV_UpdateMaster( void );
 void SV_InitGame( void );
 void SV_Map( const char *level, bool devmap );
 void SV_SetServerConfigStrings( void );
-
-void SV_AddPureFile( const char *filename );
-void SV_PureList_f( void );
 
 //
 // sv_phys.c

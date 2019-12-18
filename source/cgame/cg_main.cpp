@@ -656,7 +656,7 @@ void CG_Reset( void ) {
 * CG_Init
 */
 void CG_Init( const char *serverName, unsigned int playerNum,
-			  bool demoplaying, const char *demoName, bool pure,
+			  bool demoplaying, const char *demoName,
 			  unsigned snapFrameTime ) {
 	cg_mempool = _Mem_AllocPool( NULL, "CGame", MEMPOOL_CLIENTGAME, __FILE__, __LINE__ );
 
@@ -666,9 +666,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	memset( &cgs, 0, sizeof( cg_static_t ) );
 
 	memset( cg_entities, 0, sizeof( cg_entities ) );
-#ifdef PURE_CHEAT
-	CG_Printf( S_COLOR_MAGENTA "Hi, I'm an unpure bitch 7\n" );
-#endif
 
 	srand( time( NULL ) );
 
@@ -681,9 +678,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	// demo
 	cgs.demoPlaying = demoplaying;
 	cgs.demoName = demoName;
-
-	// whether to only allow pure files
-	cgs.pure = pure;
 
 	cgs.snapFrameTime = snapFrameTime;
 

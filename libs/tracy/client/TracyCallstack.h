@@ -14,11 +14,12 @@
 #    define TRACY_HAS_CALLSTACK 5
 #  endif
 #elif defined __linux
-#  if defined _GNU_SOURCE && defined __GLIBC__
-#    define TRACY_HAS_CALLSTACK 3
-#  else
-#    define TRACY_HAS_CALLSTACK 2
-#  endif
+// XXX: diesel changes
+// #  if defined _GNU_SOURCE && defined __GLIBC__
+// #    define TRACY_HAS_CALLSTACK 3
+// #  else
+// #    define TRACY_HAS_CALLSTACK 2
+// #  endif
 #elif defined __APPLE__
 #  define TRACY_HAS_CALLSTACK 4
 #elif defined BSD

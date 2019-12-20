@@ -214,12 +214,6 @@ bool Info_Validate( const char *s );
 #define MAX_GENERAL                 128         // general config strings
 
 //============================================
-// HTTP
-//============================================
-#define HTTP_CODE_OK                        200
-#define HTTP_CODE_PARTIAL_CONTENT           206
-
-//============================================
 // sound
 //============================================
 

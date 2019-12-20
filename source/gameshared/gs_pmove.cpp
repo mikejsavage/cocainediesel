@@ -216,12 +216,6 @@ static int PM_SlideMove( void ) {
 		}
 	}
 
-	// Do a shortcut in this case
-	if( pm->skipCollision ) {
-		VectorMA( pml.origin, remainingTime, pml.velocity, pml.origin );
-		return blockedmask;
-	}
-
 	VectorCopy( pml.origin, last_valid_origin );
 
 	numplanes = 0; // clean up planes count for checking
@@ -349,12 +343,6 @@ static void PM_StepSlideMove( void ) {
 	VectorCopy( pml.velocity, start_v );
 
 	blocked = PM_SlideMove();
-
-	// We have modified the origin in PM_SlideMove() in this case.
-	// No further computations are required.
-	if( pm->skipCollision ) {
-		return;
-	}
 
 	VectorCopy( pml.origin, down_o );
 	VectorCopy( pml.velocity, down_v );
@@ -714,12 +702,6 @@ static void PM_Move( void ) {
 static void PM_GroundTrace( trace_t *trace ) {
 	vec3_t point;
 
-	if( pm->skipCollision ) {
-		memset( trace, 0, sizeof( trace_t ) );
-		trace->fraction = 1.0f;
-		return;
-	}
-
 	// see if standing on something solid
 	point[0] = pml.origin[0];
 	point[1] = pml.origin[1];
@@ -1041,7 +1023,6 @@ static void PM_CheckWallJump( void ) {
 		&& ( pm->playerState->pmove.stats[PM_STAT_FEATURES] & PMFEAT_WALLJUMP ) &&
 		( !( pm->playerState->pmove.pm_flags & PMF_WALLJUMPCOUNT ) )
 		&& pm->playerState->pmove.stats[PM_STAT_WJTIME] <= 0
-		&& !pm->skipCollision
 		) {
 		trace_t trace;
 		vec3_t point;
@@ -1120,13 +1101,11 @@ static void PM_CheckSpecialMovement( void ) {
 	pml.ladder = false;
 
 	// check for ladder
-	if( !pm->skipCollision ) {
-		VectorMA( pml.origin, 1, pml.flatforward, spot );
-		pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->contentmask, 0 );
-		if( ( trace.fraction < 1 ) && ( trace.surfFlags & SURF_LADDER ) ) {
-			pml.ladder = true;
-			pm->ladder = true;
-		}
+	VectorMA( pml.origin, 1, pml.flatforward, spot );
+	pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->contentmask, 0 );
+	if( ( trace.fraction < 1 ) && ( trace.surfFlags & SURF_LADDER ) ) {
+		pml.ladder = true;
+		pm->ladder = true;
 	}
 
 	// check for water jump

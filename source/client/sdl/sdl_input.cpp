@@ -14,11 +14,6 @@ static int rx, ry;
 
 static bool running_in_debugger = false;
 
-bool break1 = false;
-bool break2 = false;
-bool break3 = false;
-bool break4 = false;
-
 static void mouse_motion_event( const SDL_MouseMotionEvent * event ) {
 	mx = event->x;
 	my = event->y;

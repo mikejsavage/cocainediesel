@@ -810,8 +810,6 @@ static void GameMenu() {
 		ImGui::NextColumn();
 
 		ImGui::Columns( 1 );
-
-		ImGui::End();
 	}
 	else if( gamemenu_state == GameMenuState_Loadout ) {
 		ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 255 ) );
@@ -997,8 +995,8 @@ static void GameMenu() {
 			ImGui::Columns( 6, NULL, false );
 
 			ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.75f, 0.125f, 0.125f, 1.f ) );
-            ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 0.75f, 0.25f, 0.2f, 1.f ) );
-            ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.5f, 0.1f, 0.1f, 1.f ) );
+			ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 0.75f, 0.25f, 0.2f, 1.f ) );
+			ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.5f, 0.1f, 0.1f, 1.f ) );
 
 			if( ImGui::Button( "Clear", ImVec2( -1, button_height ) ) ) {
 				for( bool &w : selected_weapons ) {
@@ -1029,7 +1027,6 @@ static void GameMenu() {
 			} if( bigger_font ) ImGui::PopFont();
 		}
 
-		ImGui::End();
 		ImGui::PopStyleColor();
 	}
 	else if( gamemenu_state == GameMenuState_Settings ) {
@@ -1041,14 +1038,14 @@ static void GameMenu() {
 		ImGui::Begin( "settings", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		Settings();
-
-		ImGui::End();
 	}
 
-	if( ImGui::IsKeyPressed( K_ESCAPE, false ) || should_close ) {
+	if( ( ImGui::IsWindowFocused( ImGuiFocusedFlags_RootAndChildWindows ) && ImGui::IsKeyPressed( K_ESCAPE, false ) ) || should_close ) {
 		uistate = UIState_Hidden;
 		CL_SetKeyDest( key_game );
 	}
+
+	ImGui::End();
 
 	ImGui::PopStyleColor();
 }
@@ -1071,12 +1068,12 @@ static void DemoMenu() {
 	GameMenuButton( "Disconnect to main menu", "disconnect", &should_close );
 	GameMenuButton( "Exit to desktop", "quit", &should_close );
 
-	ImGui::End();
-
-	if( ImGui::IsKeyPressed( K_ESCAPE, false ) || should_close ) {
+	if( ( ImGui::IsWindowFocused( ImGuiFocusedFlags_RootAndChildWindows ) && ImGui::IsKeyPressed( K_ESCAPE, false ) ) || should_close ) {
 		uistate = UIState_Hidden;
 		CL_SetKeyDest( key_game );
 	}
+
+	ImGui::End();
 
 	ImGui::PopStyleColor();
 }

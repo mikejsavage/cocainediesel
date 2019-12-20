@@ -304,14 +304,14 @@ void Con_Draw() {
 		ImGui::GetWindowDrawList()->AddRectFilled( top_left, bottom_right, ImGui::GetColorU32( ImGuiCol_Separator ) );
 	}
 
+	if( ImGui::IsWindowFocused( ImGuiFocusedFlags_RootAndChildWindows ) && ImGui::IsKeyPressed( K_ESCAPE, false ) ) {
+		Con_Close();
+	}
+
 	ImGui::End();
 	ImGui::PopStyleVar( 3 );
 	ImGui::PopStyleColor( 2 );
 	ImGui::PopFont();
-
-	if( ImGui::IsKeyPressed( K_ESCAPE ) ) {
-		Con_Close();
-	}
 
 	QMutex_Unlock( console.mutex );
 }

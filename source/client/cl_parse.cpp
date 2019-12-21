@@ -31,10 +31,8 @@ void CL_StopServerDownload( void );
 *
 * Request file download
 * return false if couldn't request it for some reason
-* Files with .pk3 or .pak extension have to have gamedir attached
-* Other files must not have gamedir
 */
-bool CL_DownloadRequest( const char *filename, bool requestpak ) {
+bool CL_DownloadRequest( const char *filename ) {
 	if( cls.download.requestname ) {
 		Com_Printf( "Can't download: %s. Download already in progress.\n", filename );
 		return false;
@@ -45,31 +43,16 @@ bool CL_DownloadRequest( const char *filename, bool requestpak ) {
 		return false;
 	}
 
-	if( FS_CheckPakExtension( filename ) ) {
-		if( FS_PakFileExists( filename ) ) {
-			Com_Printf( "Can't download: %s. File already exists.\n", filename );
-			return false;
-		}
+	if( FS_FOpenFile( filename, NULL, FS_READ ) != -1 ) {
+		Com_Printf( "Can't download: %s. File already exists.\n", filename );
+		return false;
+	}
 
-		if( !Q_strnicmp( COM_FileBase( filename ), "modules", strlen( "modules" ) ) ) {
-			return false;
-		}
-	} else {
-		if( FS_FOpenFile( filename, NULL, FS_READ ) != -1 ) {
-			Com_Printf( "Can't download: %s. File already exists.\n", filename );
-			return false;
-		}
-
-		if( !requestpak ) {
-			const char *extension;
-
-			// only allow demo downloads
-			extension = COM_FileExtension( filename );
-			if( !extension || Q_stricmp( extension, APP_DEMO_EXTENSION_STR ) ) {
-				Com_Printf( "Can't download, got arbitrary file type: %s\n", filename );
-				return false;
-			}
-		}
+	// only allow demo downloads
+	const char *extension = COM_FileExtension( filename );
+	if( !extension || Q_stricmp( extension, APP_DEMO_EXTENSION_STR ) ) {
+		Com_Printf( "Can't download, got arbitrary file type: %s\n", filename );
+		return false;
 	}
 
 	if( cls.socket->type == SOCKET_LOOPBACK ) {
@@ -79,11 +62,10 @@ bool CL_DownloadRequest( const char *filename, bool requestpak ) {
 
 	Com_Printf( "Asking to download: %s\n", filename );
 
-	cls.download.requestpak = requestpak;
 	cls.download.requestname = ( char * ) Mem_ZoneMalloc( sizeof( char ) * ( strlen( filename ) + 1 ) );
 	Q_strncpyz( cls.download.requestname, filename, sizeof( char ) * ( strlen( filename ) + 1 ) );
 	cls.download.timeout = Sys_Milliseconds() + 5000;
-	CL_AddReliableCommand( va( "download %i \"%s\"", requestpak, filename ) );
+	CL_AddReliableCommand( va( "download \"%s\"", filename ) );
 
 	return true;
 }
@@ -92,8 +74,6 @@ bool CL_DownloadRequest( const char *filename, bool requestpak ) {
 * CL_CheckOrDownloadFile
 *
 * Returns true if the file exists or couldn't send download request
-* Files with .pk3 or .pak extension have to have gamedir attached
-* Other files must not have gamedir
 */
 bool CL_CheckOrDownloadFile( const char *filename ) {
 	const char *ext;
@@ -111,17 +91,11 @@ bool CL_CheckOrDownloadFile( const char *filename ) {
 		return true;
 	}
 
-	if( FS_CheckPakExtension( filename ) ) {
-		if( FS_PakFileExists( filename ) ) {
-			return true;
-		}
-	} else {
-		if( FS_FOpenFile( filename, NULL, FS_READ ) != -1 ) {
-			return true;
-		}
+	if( FS_FOpenFile( filename, NULL, FS_READ ) != -1 ) {
+		return true;
 	}
 
-	if( !CL_DownloadRequest( filename, true ) ) {
+	if( !CL_DownloadRequest( filename ) ) {
 		return true;
 	}
 
@@ -143,20 +117,12 @@ static void CL_DownloadComplete( void ) {
 	cls.download.filenum = 0;
 
 	// verify checksum
-	if( FS_CheckPakExtension( cls.download.name ) ) {
-		if( !FS_IsPakValid( cls.download.tempname, &checksum ) ) {
-			Com_Printf( "Downloaded file is not a valid pack file. Removing\n" );
-			FS_RemoveBaseFile( cls.download.tempname );
-			return;
-		}
-	} else {
-		length = FS_LoadBaseFile( cls.download.tempname, NULL, NULL, 0 );
-		if( length < 0 ) {
-			Com_Printf( "Error: Couldn't load downloaded file\n" );
-			return;
-		}
-		checksum = FS_ChecksumBaseFile( cls.download.tempname, false );
+	length = FS_LoadBaseFile( cls.download.tempname, NULL, NULL, 0 );
+	if( length < 0 ) {
+		Com_Printf( "Error: Couldn't load downloaded file\n" );
+		return;
 	}
+	checksum = FS_ChecksumBaseFile( cls.download.tempname );
 
 	if( cls.download.checksum != checksum ) {
 		Com_Printf( "Downloaded file has wrong checksum. Removing: %u %u %s\n", cls.download.checksum, checksum, cls.download.tempname );
@@ -170,9 +136,7 @@ static void CL_DownloadComplete( void ) {
 	}
 
 	// Maplist hook so we also know when a new map is added
-	if( FS_CheckPakExtension( cls.download.name ) ) {
-		ML_Update();
-	}
+	ML_Update();
 
 	cls.download.successCount++;
 	cls.download.timeout = 0;
@@ -207,7 +171,6 @@ void CL_DownloadDone( void ) {
 
 	requestnext = cls.download.requestnext;
 	cls.download.requestnext = false;
-	cls.download.requestpak = false;
 	cls.download.timeout = 0;
 	cls.download.timestart = 0;
 	cls.download.offset = cls.download.baseoffset = 0;
@@ -236,7 +199,6 @@ static void CL_WebDownloadDoneCb( int status, const char *contentType, void *pri
 	bool disconnect = download.disconnect;
 	bool cancelled = download.cancelled;
 	bool success = ( download.offset == download.size ) && ( status > -1 );
-	bool try_non_official = download.web_official && !download.web_official_only;
 
 	Com_Printf( "Web download %s: %s (%i)\n", success ? "successful" : "failed", download.tempname, status );
 
@@ -254,7 +216,7 @@ static void CL_WebDownloadDoneCb( int status, const char *contentType, void *pri
 	}
 
 	// try a non-official mirror (the builtin HTTP server or a remote mirror)
-	if( !success && !cancelled && try_non_official ) {
+	if( !success && !cancelled ) {
 		int size = download.size;
 		char *filename = ZoneCopyString( download.origname );
 		unsigned checksum = download.checksum;
@@ -306,10 +268,6 @@ static size_t CL_WebDownloadReadCb( const void *buf, size_t numb, float percenta
 static void CL_InitServerDownload( const char *filename, int size, unsigned checksum, bool allow_localhttpdownload,
 								   const char *url, bool initial ) {
 	int alloc_size;
-	bool explicit_pure_download = false;
-	bool force_web_official = initial && cls.download.requestpak;
-	bool official_web_download = false;
-	bool official_web_only = false;
 	const char *baseurl;
 	download_list_t *dl;
 
@@ -353,14 +311,6 @@ static void CL_InitServerDownload( const char *filename, int size, unsigned chec
 		return;
 	}
 
-	if( FS_CheckPakExtension( filename ) != cls.download.requestpak ) {
-		const char *requested = cls.download.requestpak ? "pak" : "normal";
-		const char *got = cls.download.requestpak ? "normal" : "pak";
-		Com_Printf( "Got '%s' file after requesting '%s', not downloading\n", got, requested );
-		CL_DownloadDone();
-		return;
-	}
-
 	if( !strchr( filename, '/' ) ) {
 		Com_Printf( "Refusing to download file with no gamedir: %s\n", filename );
 		CL_DownloadDone();
@@ -380,32 +330,10 @@ static void CL_InitServerDownload( const char *filename, int size, unsigned chec
 		}
 	}
 
-	if( FS_CheckPakExtension( filename ) ) {
-		if( strchr( strchr( filename, '/' ) + 1, '/' ) ) {
-			Com_Printf( "Refusing to download pack file to subdirectory: %s\n", filename );
-			CL_DownloadDone();
-			return;
-		}
-
-		bool modules_download = !Q_strnicmp( COM_FileBase( filename ), "modules", strlen( "modules" ) );
-		if( modules_download ) {
-			CL_DownloadDone();
-			return;
-		}
-
-		if( FS_PakFileExists( filename ) ) {
-			Com_Printf( "Can't download, file already exists: %s\n", filename );
-			CL_DownloadDone();
-			return;
-		}
-
-		explicit_pure_download = FS_IsExplicitPurePak( filename );
-	} else {
-		if( strcmp( cls.download.requestname, strchr( filename, '/' ) + 1 ) ) {
-			Com_Printf( "Can't download, got different file than requested: %s\n", filename );
-			CL_DownloadDone();
-			return;
-		}
+	if( strcmp( cls.download.requestname, strchr( filename, '/' ) + 1 ) ) {
+		Com_Printf( "Can't download, got different file than requested: %s\n", filename );
+		CL_DownloadDone();
+		return;
 	}
 
 	if( initial ) {
@@ -422,23 +350,11 @@ static void CL_InitServerDownload( const char *filename, int size, unsigned chec
 		}
 	}
 
-	official_web_only = explicit_pure_download;
-	official_web_download = force_web_official || official_web_only;
-
 	alloc_size = strlen( "downloads" ) + 1 /* '/' */ + strlen( filename ) + 1;
 	cls.download.name = ( char * ) Mem_ZoneMalloc( alloc_size );
-	if( official_web_download || !cls.download.requestpak ) {
-		// it's an official pak, otherwise
-		// if we're not downloading a pak, this must be a demo so drop it into the gamedir
-		Q_snprintfz( cls.download.name, alloc_size, "%s", filename );
-	} else {
-		if( FS_DownloadsDirectory() == NULL ) {
-			Com_Printf( "Can't download, downloads directory is disabled\n" );
-			CL_DownloadDone();
-			return;
-		}
-		Q_snprintfz( cls.download.name, alloc_size, "downloads/%s", filename );
-	}
+	// it's an official pak, otherwise
+	// if we're not downloading a pak, this must be a demo so drop it into the gamedir
+	Q_snprintfz( cls.download.name, alloc_size, "%s", filename );
 
 	alloc_size = strlen( cls.download.name ) + strlen( ".tmp" ) + 1;
 	cls.download.tempname = ( char * ) Mem_ZoneMalloc( alloc_size );
@@ -446,8 +362,6 @@ static void CL_InitServerDownload( const char *filename, int size, unsigned chec
 
 	cls.download.origname = ZoneCopyString( filename );
 	cls.download.web = false;
-	cls.download.web_official = official_web_download;
-	cls.download.web_official_only = official_web_only;
 	cls.download.web_url = ZoneCopyString( url );
 	cls.download.web_local_http = allow_localhttpdownload;
 	cls.download.cancelled = false;
@@ -475,10 +389,6 @@ static void CL_InitServerDownload( const char *filename, int size, unsigned chec
 	}
 
 	baseurl = cls.httpbaseurl;
-	if( official_web_download ) {
-		CL_DownloadDone();
-		return;
-	}
 
 	if( cl_downloads_from_web->integer && allow_localhttpdownload && url && url[0] != 0 ) {
 		cls.download.web = true;
@@ -768,9 +678,8 @@ SERVER CONNECTING MESSAGES
 */
 static void CL_ParseServerData( msg_t *msg ) {
 	const char *str;
-	int i, sv_bitflags, numpure;
+	int i, sv_bitflags;
 	int http_portnum;
-	bool old_sv_pure;
 
 	Com_DPrintf( "Serverdata packet received.\n" );
 
@@ -850,34 +759,8 @@ static void CL_ParseServerData( msg_t *msg ) {
 		}
 	}
 
-	// pure list
-
-	// clean old, if necessary
-	Com_FreePureList( &cls.purelist );
-
-	// add new
-	numpure = MSG_ReadInt16( msg );
-	while( numpure > 0 ) {
-		const char *pakname = MSG_ReadString( msg );
-		const unsigned checksum = MSG_ReadInt32( msg );
-
-		Com_AddPakToPureList( &cls.purelist, pakname, checksum, NULL );
-
-		numpure--;
-	}
-
-	//assert( numpure == 0 );
-
 	// get the configstrings request
 	CL_AddReliableCommand( va( "configstrings %i 0", cl.servercount ) );
-
-	old_sv_pure = cls.sv_pure;
-	cls.sv_pure = ( sv_bitflags & SV_BITFLAGS_PURE ) != 0;
-	cls.pure_restart = cls.sv_pure && old_sv_pure == false;
-
-#ifdef PURE_CHEAT
-	cls.sv_pure = cls.pure_restart = false;
-#endif
 
 	// separate the printfs so the server message can have a color
 	Com_Printf( S_COLOR_WHITE "\n" "=====================================\n" );
@@ -915,7 +798,7 @@ static void CL_ParseFrame( msg_t *msg ) {
 
 				// write out messages to hold the startup information
 				SNAP_BeginDemoRecording( cls.demo.file, 0x10000 + cl.servercount, cl.snapFrameTime,
-										 cl.servermessage, cls.reliable ? SV_BITFLAGS_RELIABLE : 0, cls.purelist,
+										 cl.servermessage, cls.reliable ? SV_BITFLAGS_RELIABLE : 0,
 										 cl.configstrings[0], cl_baselines );
 
 				// the rest of the demo file will be individual frames

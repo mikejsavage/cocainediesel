@@ -486,7 +486,7 @@ void PlaneFromPoints( vec3_t verts[3], cplane_t *plane ) {
 /*
 * ComparePlanes
 */
-bool ComparePlanes( const vec3_t p1normal, vec_t p1dist, const vec3_t p2normal, vec_t p2dist ) {
+bool ComparePlanes( const vec3_t p1normal, float p1dist, const vec3_t p2normal, float p2dist ) {
 	if( fabs( p1normal[0] - p2normal[0] ) < PLANE_NORMAL_EPSILON
 		&& fabs( p1normal[1] - p2normal[1] ) < PLANE_NORMAL_EPSILON
 		&& fabs( p1normal[2] - p2normal[2] ) < PLANE_NORMAL_EPSILON
@@ -520,7 +520,7 @@ void SnapVector( vec3_t normal ) {
 /*
 * SnapPlane
 */
-void SnapPlane( vec3_t normal, vec_t *dist ) {
+void SnapPlane( vec3_t normal, float *dist ) {
 	SnapVector( normal );
 
 	if( fabs( *dist - Q_rint( *dist ) ) < PLANE_DIST_EPSILON ) {
@@ -557,7 +557,7 @@ bool BoundsOverlapSphere( const vec3_t mins, const vec3_t maxs, const vec3_t cen
 }
 
 void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs ) {
-	vec_t val;
+	float val;
 
 	for( int i = 0; i < 3; i++ ) {
 		val = v[i];
@@ -580,7 +580,7 @@ float RadiusFromBounds( const vec3_t mins, const vec3_t maxs ) {
 	return VectorLength( corner );
 }
 
-vec_t VectorNormalize( vec3_t v ) {
+float VectorNormalize( vec3_t v ) {
 	float length = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
 
 	if( length ) {
@@ -594,7 +594,7 @@ vec_t VectorNormalize( vec3_t v ) {
 	return length;
 }
 
-vec_t VectorNormalize2( const vec3_t v, vec3_t out ) {
+float VectorNormalize2( const vec3_t v, vec3_t out ) {
 	float length, ilength;
 
 	length = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
@@ -607,23 +607,6 @@ vec_t VectorNormalize2( const vec3_t v, vec3_t out ) {
 		out[2] = v[2] * ilength;
 	} else {
 		VectorClear( out );
-	}
-
-	return length;
-}
-
-vec_t Vector4Normalize( vec4_t v ) {
-	float length, ilength;
-
-	length = v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3];
-
-	if( length ) {
-		length = sqrtf( length ); // FIXME
-		ilength = 1.0 / length;
-		v[0] *= ilength;
-		v[1] *= ilength;
-		v[2] *= ilength;
-		v[3] *= ilength;
 	}
 
 	return length;
@@ -729,6 +712,14 @@ Vec3 UniformSampleInsideSphere( RNG * rng ) {
 	return p * r;
 }
 
+Vec3 UniformSampleCone( RNG * rng, float theta ) {
+	assert( theta >= 0.0f && theta <= float( M_PI ) );
+	float z = random_uniform_float( rng, cosf( theta ), 1.0f );
+	float r = sqrtf( Max2( 0.0f, 1.0f - z * z ) );
+	float phi = 2.0f * float( M_PI ) * random_float01( rng );
+	return Vec3( r * cosf( phi ), r * sinf( phi ), z );
+}
+
 Vec2 UniformSampleDisk( RNG * rng ) {
 	float theta = random_float01( rng ) * 2.0f * float( M_PI );
 	float r = sqrtf( random_float01( rng ) );
@@ -754,4 +745,39 @@ Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p ) {
 	Vec3 seg = end - start;
 	float t = Dot( p - start, seg ) / Dot( seg, seg );
 	return Lerp( start, Clamp01( t ), end );
+}
+
+Mat4 TransformKToDir( Vec3 dir ) {
+	assert( ( Length( dir ) - 1.0f ) < 0.0001f );
+
+	Vec3 K = Vec3( 0, 0, 1 );
+
+	if( fabsf( dir.z ) >= 0.9999f ) {
+		return dir.z > 0 ? Mat4::Identity() : -Mat4::Identity();
+	}
+
+	Vec3 axis = Normalize( Cross( K, dir ) );
+	float c = Dot( K, dir ) / Length( dir );
+	float s = sqrtf( 1.0f - c * c );
+
+	Mat4 rotation = Mat4(
+		c + axis.x * axis.x * ( 1.0f - c ),
+		axis.x * axis.y * ( 1.0f - c ) - axis.z * s,
+		axis.x * axis.z * ( 1.0f - c ) + axis.y * s,
+		0.0f,
+
+		axis.y * axis.x * ( 1.0f - c ) + axis.z * s,
+		c + axis.y * axis.y * ( 1.0f - c ),
+		axis.y * axis.z * ( 1.0f - c ) - axis.x * s,
+		0.0f,
+
+		axis.z * axis.x * ( 1.0f - c ) - axis.y * s,
+		axis.z * axis.y * ( 1.0f - c ) + axis.x * s,
+		c + axis.z * axis.z * ( 1.0f - c ),
+		0.0f,
+
+		0.0f, 0.0f, 0.0f, 1.0f
+	);
+
+	return rotation;
 }

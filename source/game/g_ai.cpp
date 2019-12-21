@@ -43,7 +43,7 @@ static edict_t * ConnectFakeClient() {
 }
 
 void AI_SpawnBot() {
-	if( level.spawnedTimeStamp + 5000 > game.realtime || !level.canSpawnEntities ) {
+	if( level.spawnedTimeStamp + 5000 > svs.realtime || !level.canSpawnEntities ) {
 		return;
 	}
 
@@ -90,7 +90,7 @@ static void AI_SpecThink( edict_t * self ) {
 	memset( &ucmd, 0, sizeof( usercmd_t ) );
 
 	// set approximate ping and show values
-	ucmd.serverTimeStamp = game.serverTime;
+	ucmd.serverTimeStamp = svs.gametime;
 	ucmd.msec = (uint8_t)game.frametime;
 
 	ClientThink( self, &ucmd, 0 );
@@ -112,7 +112,7 @@ static void AI_GameThink( edict_t * self ) {
 
 	// set approximate ping and show values
 	ucmd.msec = (uint8_t)game.frametime;
-	ucmd.serverTimeStamp = game.serverTime;
+	ucmd.serverTimeStamp = svs.gametime;
 
 	ClientThink( self, &ucmd, 0 );
 	self->nextThink = level.time + 1;

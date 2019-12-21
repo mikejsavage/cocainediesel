@@ -407,10 +407,9 @@ static void CG_AddWeaponFlashOnTag( entity_t *weapon, const weaponinfo_t *weapon
 	const char *tag_flash, int effects, int64_t flash_time ) {
 	uint8_t c;
 	orientation_t tag;
-	entity_t flash;
 	float intensity;
 
-	if( flash_time < cg.time ) {
+	if( flash_time < cl.serverTime ) {
 		return;
 	}
 	if( !weaponInfo->model[WEAPMODEL_FLASH] ) {
@@ -421,15 +420,15 @@ static void CG_AddWeaponFlashOnTag( entity_t *weapon, const weaponinfo_t *weapon
 	}
 
 	if( weaponInfo->flashFade ) {
-		intensity = (float)( flash_time - cg.time ) / (float)weaponInfo->flashTime;
+		intensity = (float)( flash_time - cl.serverTime ) / (float)weaponInfo->flashTime;
 		c = ( uint8_t )( 255 * intensity );
 	} else {
 		intensity = 1.0f;
 		c = 255;
 	}
 
-	memset( &flash, 0, sizeof( flash ) );
-	Vector4Set( flash.shaderRGBA, c, c, c, c );
+	entity_t flash = { };
+	flash.color = RGBA8( 255, 255, 255, c );
 	flash.model = weaponInfo->model[WEAPMODEL_FLASH];
 	flash.scale = weapon->scale;
 
@@ -439,8 +438,8 @@ static void CG_AddWeaponFlashOnTag( entity_t *weapon, const weaponinfo_t *weapon
 		CG_AddEntityToScene( &flash );
 	}
 
-	CG_AddLightToScene( flash.origin, weaponInfo->flashRadius * intensity,
-		weaponInfo->flashColor[0], weaponInfo->flashColor[1], weaponInfo->flashColor[2] );
+	// CG_AddLightToScene( flash.origin, weaponInfo->flashRadius * intensity,
+	// 	weaponInfo->flashColor[0], weaponInfo->flashColor[1], weaponInfo->flashColor[2] );
 }
 
 /*
@@ -450,7 +449,6 @@ static void CG_AddWeaponBarrelOnTag( entity_t *weapon, const weaponinfo_t *weapo
 	const char *tag_barrel, int effects, int64_t barrel_time ) {
 	orientation_t tag;
 	vec3_t rotangles = { 90, 0, 0 }; // hack to fix gb blade orientation
-	entity_t barrel;
 
 	if( !weaponInfo->model[WEAPMODEL_BARREL] ) {
 		return;
@@ -459,16 +457,16 @@ static void CG_AddWeaponBarrelOnTag( entity_t *weapon, const weaponinfo_t *weapo
 		return;
 	}
 
-	memset( &barrel, 0, sizeof( barrel ) );
-	Vector4Set( barrel.shaderRGBA, 255, 255, 255, weapon->shaderRGBA[3] );
+	entity_t barrel = { };
+	barrel.color = rgba8_white;
 	barrel.model = weaponInfo->model[WEAPMODEL_BARREL];
 	barrel.scale = weapon->scale;
 
 	// rotation
-	if( barrel_time > cg.time ) {
+	if( barrel_time > cl.serverTime ) {
 		float intensity;
 
-		intensity =  (float)( barrel_time - cg.time ) / (float)weaponInfo->barrelTime;
+		intensity =  (float)( barrel_time - cl.serverTime ) / (float)weaponInfo->barrelTime;
 		rotangles[2] = 360.0f * weaponInfo->barrelSpeed * intensity * intensity;
 	}
 
@@ -477,7 +475,7 @@ static void CG_AddWeaponBarrelOnTag( entity_t *weapon, const weaponinfo_t *weapo
 	// barrel requires special tagging
 	CG_PlaceRotatedModelOnTag( &barrel, weapon, &tag );
 
-	CG_AddColoredOutLineEffect( &barrel, effects, 0, 0, 0, weapon->shaderRGBA[3] );
+	CG_AddOutline( &barrel, effects, RGBA8( 0, 0, 0, weapon->color.a ) );
 
 	if( !( effects & EF_RACEGHOST ) )
 		CG_AddEntityToScene( &barrel );
@@ -496,13 +494,13 @@ void CG_AddWeaponOnTag( entity_t *ent, const orientation_t *tag, int weaponid, i
 	}
 
 	entity_t weapon = { };
-	Vector4Set( weapon.shaderRGBA, 255, 255, 255, ent->shaderRGBA[3] );
+	weapon.color = rgba8_white;
 	weapon.scale = ent->scale;
 	weapon.model = weaponInfo->model[WEAPMODEL_WEAPON];
 
 	CG_PlaceModelOnTag( &weapon, ent, tag );
 
-	CG_AddColoredOutLineEffect( &weapon, effects, 0, 0, 0, 255 );
+	CG_AddOutline( &weapon, effects, rgba8_black );
 
 	if( !( effects & EF_RACEGHOST ) ) {
 		CG_AddEntityToScene( &weapon );

@@ -214,12 +214,6 @@ bool Info_Validate( const char *s );
 #define MAX_GENERAL                 128         // general config strings
 
 //============================================
-// HTTP
-//============================================
-#define HTTP_CODE_OK                        200
-#define HTTP_CODE_PARTIAL_CONTENT           206
-
-//============================================
 // sound
 //============================================
 
@@ -231,9 +225,6 @@ bool Info_Validate( const char *s );
 float Q_GainForAttenuation( int model, float maxdistance, float refdistance, float dist, float attenuation );
 
 //=============================================
-
-constexpr const char *SOUND_EXTENSIONS[] = { ".ogg" };
-constexpr size_t NUM_SOUND_EXTENSIONS = ARRAY_COUNT( SOUND_EXTENSIONS );
 
 constexpr const char *IMAGE_EXTENSIONS[] = { ".jpg", ".png" };
 constexpr size_t NUM_IMAGE_EXTENSIONS = ARRAY_COUNT( IMAGE_EXTENSIONS );
@@ -271,7 +262,7 @@ __declspec( noreturn ) void Com_Error( com_error_code_t code, _Printf_format_str
 #define FS_READ             0
 #define FS_WRITE            1
 #define FS_APPEND           2
-#define FS_GZ               0x100   // compress on write and decompress on read automatically. doesn't work on pk3 files
+#define FS_GZ               0x100   // compress on write and decompress on read automatically
 #define FS_UPDATE           0x200
 #define FS_CACHE            0x800
 

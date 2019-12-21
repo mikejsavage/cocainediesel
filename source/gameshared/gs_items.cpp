@@ -44,6 +44,8 @@ const gsitem_t itemdefs[] = {
 		RGB8( 255, 255, 255 ),
 		"Knife people in the face",
 		0,
+		0,
+		0,
 
 		AMMO_GUNBLADE,
 		NULL, NULL, NULL
@@ -53,10 +55,12 @@ const gsitem_t itemdefs[] = {
 		WEAP_MACHINEGUN,
 		IT_WEAPON,
 
-		"AK-69", "mg",
+		"SMG", "mg",
 		RGB8( 254, 235, 98 ),
 		"Shoots fast direct bullets touching enemies at any range",
 		100,
+		30,
+		4,
 
 		AMMO_BULLETS,
 		NULL, NULL, NULL
@@ -70,6 +74,8 @@ const gsitem_t itemdefs[] = {
 		RGB8( 255, 172, 30 ),
 		"Basically a shotgun",
 		100,
+		6,
+		3,
 
 		AMMO_SHELLS,
 		NULL, NULL, NULL
@@ -83,6 +89,8 @@ const gsitem_t itemdefs[] = {
 		RGB8( 62, 141, 255 ),
 		"Deprecated gun, enjoy it while it lasts nerds",
 		100,
+		3,
+		4,
 
 		AMMO_GRENADES,
 		PATH_GRENADE_MODEL,
@@ -97,6 +105,8 @@ const gsitem_t itemdefs[] = {
 		RGB8( 255, 58, 66 ),
 		"Shoots slow moving rockets that deal damage in an area and push bodies away",
 		200,
+		5,
+		3,
 
 		AMMO_ROCKETS,
 		PATH_ROCKET_MODEL,
@@ -112,6 +122,8 @@ const gsitem_t itemdefs[] = {
 		RGB8( 172, 80, 255 ),
 		"Shoots fast projectiles that deal damage in an area",
 		100,
+		30,
+		3,
 
 		AMMO_PLASMA,
 		PATH_PLASMA_MODEL,
@@ -127,6 +139,8 @@ const gsitem_t itemdefs[] = {
 		RGB8( 82, 252, 95 ),
 		"Shoots a continuous trail doing quick but low damage at a certain range",
 		200,
+		50,
+		3,
 
 		AMMO_LASERS,
 		NULL,
@@ -142,6 +156,8 @@ const gsitem_t itemdefs[] = {
 		RGB8( 80, 243, 255 ),
 		"Shoots a direct laser hit doing pretty high damage",
 		200,
+		3,
+		4,
 
 		AMMO_BOLTS,
 		NULL,

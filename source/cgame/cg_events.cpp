@@ -60,25 +60,20 @@ void CG_WeaponBeamEffect( centity_t *cent ) {
 
 static centity_t *laserOwner = NULL;
 
-static void _LaserColor( vec4_t color ) {
-	CG_TeamColor( laserOwner->current.team, color );
-}
-
 static void _LaserImpact( trace_t *trace, vec3_t dir ) {
 	if( !trace || trace->ent < 0 ) {
 		return;
 	}
 
-	vec4_t color;
-	_LaserColor( color );
+	RGBA8 color = RGBA8( CG_TeamColor( laserOwner->current.team ) );
 
 	if( laserOwner ) {
 #define TRAILTIME ( (int)( 1000.0f / 20.0f ) ) // density as quantity per second
 
-		if( laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] + TRAILTIME < cg.time ) {
-			laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] = cg.time;
+		if( laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] + TRAILTIME < cl.serverTime ) {
+			laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] = cl.serverTime;
 
-			CG_HighVelImpactPuffParticles( trace->endpos, trace->plane.normal, 8, 0.5f, color[ 0 ], color[ 1 ], color[ 2 ], color[ 3 ], NULL );
+			// CG_HighVelImpactPuffParticles( trace->endpos, trace->plane.normal, 8, 0.5f, color[ 0 ], color[ 1 ], color[ 2 ], color[ 3 ], NULL );
 
 			S_StartFixedSound( cgs.media.sfxLasergunHit, FromQF3( trace->endpos ), CHAN_AUTO,
 									cg_volume_effects->value, ATTN_STATIC );
@@ -89,7 +84,7 @@ static void _LaserImpact( trace_t *trace, vec3_t dir ) {
 	// it's a brush model
 	if( trace->ent == 0 || !( cg_entities[trace->ent].current.effects & EF_TAKEDAMAGE ) ) {
 		CG_LaserGunImpact( trace->endpos, 15.0f, dir, color );
-		CG_AddLightToScene( trace->endpos, 100, color[ 0 ], color[ 1 ], color[ 2 ] );
+		// CG_AddLightToScene( trace->endpos, 100, color[ 0 ], color[ 1 ], color[ 2 ] );
 		return;
 	}
 
@@ -104,10 +99,9 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 	bool firstPerson;
 	trace_t trace;
 	orientation_t projectsource;
-	vec4_t color;
 	vec3_t laserOrigin, laserAngles, laserPoint;
 
-	if( cent->localEffects[LOCALEFFECT_LASERBEAM] <= cg.time ) {
+	if( cent->localEffects[LOCALEFFECT_LASERBEAM] <= cl.serverTime ) {
 		if( cent->localEffects[LOCALEFFECT_LASERBEAM] ) {
 			sfx = cgs.media.sfxLasergunStop;
 
@@ -122,7 +116,7 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 	}
 
 	laserOwner = cent;
-	_LaserColor( color );
+	Vec4 color = CG_TeamColorVec4( laserOwner->current.team );
 
 	// interpolate the positions
 	firstPerson = ISVIEWERENTITY( cent->current.number ) && !cg.view.thirdperson;
@@ -158,15 +152,15 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 
 	Vec3 start = FromQF3( laserOrigin );
 	Vec3 end = FromQF3( trace.endpos );
-	DrawBeam( start, end, 16.0f, FromQF4( color ), cgs.media.shaderLGBeam );
+	DrawBeam( start, end, 16.0f, color, cgs.media.shaderLGBeam );
 
 	// enable continuous flash on the weapon owner
 	if( cg_weaponFlashes->integer ) {
-		cg_entPModels[cent->current.number].flash_time = cg.time + CG_GetWeaponInfo( WEAP_LASERGUN )->flashTime;
+		cg_entPModels[cent->current.number].flash_time = cl.serverTime + CG_GetWeaponInfo( WEAP_LASERGUN )->flashTime;
 	}
 
 	if( ISVIEWERENTITY( cent->current.number ) ) {
-		S_ImmediateLineSound( sfx, cent->current.number, start, end, cg_volume_effects->value, ATTN_NONE );
+		S_ImmediateEntitySound( sfx, cent->current.number, cg_volume_effects->value, ATTN_NONE );
 	} else {
 		S_ImmediateLineSound( sfx, cent->current.number, start, end, cg_volume_effects->value, ATTN_STATIC );
 	}
@@ -185,7 +179,7 @@ static void CG_Event_LaserBeam( const vec3_t origin, const vec3_t dir, int entNu
 
 	VectorCopy( cent->laserOrigin, cent->laserOriginOld );
 	VectorCopy( cent->laserPoint, cent->laserPointOld );
-	cent->localEffects[LOCALEFFECT_LASERBEAM] = cg.time + timeout;
+	cent->localEffects[LOCALEFFECT_LASERBEAM] = cl.serverTime + timeout;
 }
 
 /*
@@ -221,16 +215,16 @@ static void CG_FireWeaponEvent( int entNum, int weapon ) {
 
 	if( weapon == WEAP_GUNBLADE && weaponInfo->barrelTime ) {
 		// start barrel rotation or offsetting
-		cg_entPModels[entNum].barrel_time = cg.time + weaponInfo->barrelTime;
+		cg_entPModels[entNum].barrel_time = cl.serverTime + weaponInfo->barrelTime;
 	} else {
 		// light flash
 		if( cg_weaponFlashes->integer && weaponInfo->flashTime ) {
-			cg_entPModels[entNum].flash_time = cg.time + weaponInfo->flashTime;
+			cg_entPModels[entNum].flash_time = cl.serverTime + weaponInfo->flashTime;
 		}
 
 		// start barrel rotation or offsetting
 		if( weaponInfo->barrelTime ) {
-			cg_entPModels[entNum].barrel_time = cg.time + weaponInfo->barrelTime;
+			cg_entPModels[entNum].barrel_time = cl.serverTime + weaponInfo->barrelTime;
 		}
 	}
 
@@ -274,18 +268,18 @@ static void CG_FireWeaponEvent( int entNum, int weapon ) {
 */
 static void CG_LeadWaterSplash( trace_t *tr ) {
 	int contents;
-	vec_t *dir, *pos;
+	float *dir, *pos;
 
 	contents = tr->contents;
 	pos = tr->endpos;
 	dir = tr->plane.normal;
 
 	if( contents & CONTENTS_WATER ) {
-		CG_ParticleEffect( pos, dir, 0.47f, 0.48f, 0.8f, 8 );
+		// CG_ParticleEffect( pos, dir, 0.47f, 0.48f, 0.8f, 8 );
 	} else if( contents & CONTENTS_SLIME ) {
-		CG_ParticleEffect( pos, dir, 0.0f, 1.0f, 0.0f, 8 );
+		// CG_ParticleEffect( pos, dir, 0.0f, 1.0f, 0.0f, 8 );
 	} else if( contents & CONTENTS_LAVA ) {
-		CG_ParticleEffect( pos, dir, 1.0f, 0.67f, 0.0f, 8 );
+		// CG_ParticleEffect( pos, dir, 1.0f, 0.67f, 0.0f, 8 );
 	}
 }
 
@@ -321,11 +315,13 @@ static void CG_BulletImpact( trace_t *tr ) {
 
 	// throw particles on dust
 	if( cg_particles->integer && ( tr->surfFlags & SURF_DUST ) ) {
-		CG_ParticleEffect( tr->endpos, tr->plane.normal, 0.30f, 0.30f, 0.25f, 1 );
+		// CG_ParticleEffect( tr->endpos, tr->plane.normal, 0.30f, 0.30f, 0.25f, 1 );
 	}
 }
 
 static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int owner, int team ) {
+	Vec4 color = CG_TeamColorVec4( team );
+
 	int range = GS_GetWeaponDef( WEAP_MACHINEGUN )->firedef.timeout;
 
 	vec3_t right, up;
@@ -349,19 +345,25 @@ static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int owner, int t
 
 				ParticleEmitter emitter = { };
 				emitter.position = FromQF3( trace.endpos );
-				emitter.velocity_cone.radius = 128;
 
-				emitter.start_color = Vec4( 0.95f, 0.97f, 0.32f, 1.0f );
-				emitter.end_color = Vec3( 0.95f, 0.97f, 0.32f );
+				emitter.use_cone_direction = true;
+				emitter.direction_cone.normal = FromQF3( trace.plane.normal );
+				emitter.direction_cone.theta = 90.0f;
+
+				emitter.start_speed = 128.0f;
+				emitter.end_speed = 128.0f;
+
+				emitter.start_color = color;
+				emitter.end_color = Vec3( 0.0f );
 
 				emitter.start_size = 2.0f;
-				emitter.end_size = 2.0f;
+				emitter.end_size = 0.0f;
 
-				emitter.lifetime = 0.1f;
+				emitter.lifetime = 0.5f;
 
-				emitter.n = 16;
+				emitter.n = 24;
 
-				EmitParticles( &cgs.sparks, emitter );
+				EmitParticles( &cgs.SMGsparks, emitter );
 			}
 		}
 	}
@@ -375,9 +377,7 @@ static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int owner, int t
 		VectorCopy( origin, projection.origin );
 	}
 
-	Vec4 color = CG_TeamColorVec4( team );
-	color.w = 0.5f;
-	AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 2.0f, color, cgs.media.shaderLGBeam, 0.05f, 0.05f );
+	AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 1.0f, color, cgs.media.shaderSMGtrail, 0.2f, 0.1f );
 }
 
 /*
@@ -490,7 +490,7 @@ void CG_AddAnnouncerEvent( const SoundEffect *sound, bool queued ) {
 */
 void CG_ReleaseAnnouncerEvents( void ) {
 	// see if enough time has passed
-	cg_announcerEventsDelay -= cg.realFrameTime;
+	cg_announcerEventsDelay -= cls.realFrameTime;
 	if( cg_announcerEventsDelay > 0 ) {
 		return;
 	}
@@ -520,11 +520,11 @@ static void CG_StartVoiceTokenEffect( int entNum, int vsay ) {
 
 	// ignore repeated/flooded events
 	// TODO: this should really look at how long the vsay is...
-	if( cent->localEffects[LOCALEFFECT_VSAY_TIMEOUT] > cg.time ) {
+	if( cent->localEffects[LOCALEFFECT_VSAY_TIMEOUT] > cl.serverTime ) {
 		return;
 	}
 
-	cent->localEffects[LOCALEFFECT_VSAY_TIMEOUT] = cg.time + VSAY_TIMEOUT;
+	cent->localEffects[LOCALEFFECT_VSAY_TIMEOUT] = cl.serverTime + VSAY_TIMEOUT;
 
 	// play the sound
 	const SoundEffect * sound = cgs.media.sfxVSaySounds[vsay];
@@ -873,16 +873,16 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 				count = 6;
 			}
 
-			CG_ParticleEffect( ent->origin, dir, 1.0f, 0.67f, 0.0f, count );
+			// CG_ParticleEffect( ent->origin, dir, 1.0f, 0.67f, 0.0f, count );
 			break;
 
 		case EV_LASER_SPARKS:
 			ByteToDir( parm, dir );
-			CG_ParticleEffect2( ent->origin, dir,
-								COLOR_R( ent->colorRGBA ) * ( 1.0 / 255.0 ),
-								COLOR_G( ent->colorRGBA ) * ( 1.0 / 255.0 ),
-								COLOR_B( ent->colorRGBA ) * ( 1.0 / 255.0 ),
-								ent->counterNum );
+			// CG_ParticleEffect2( ent->origin, dir,
+			// 					COLOR_R( ent->colorRGBA ) * ( 1.0 / 255.0 ),
+			// 					COLOR_G( ent->colorRGBA ) * ( 1.0 / 255.0 ),
+			// 					COLOR_B( ent->colorRGBA ) * ( 1.0 / 255.0 ),
+			// 					ent->counterNum );
 			break;
 
 		case EV_SPOG:
@@ -890,7 +890,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 			break;
 
 		case EV_ITEM_RESPAWN:
-			cg_entities[ent->number].respawnTime = cg.time;
+			cg_entities[ent->number].respawnTime = cl.serverTime;
 			S_StartEntitySound( cgs.media.sfxItemRespawn, ent->number, CHAN_AUTO,
 									   cg_volume_effects->value, ATTN_IDLE );
 			break;
@@ -898,12 +898,11 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 		case EV_PLAYER_RESPAWN:
 			if( (unsigned)ent->ownerNum == cgs.playerNum + 1 ) {
 				CG_ResetKickAngles();
-				CG_ResetColorBlend();
 				CG_ResetDamageIndicator();
 			}
 
 			if( ent->ownerNum && ent->ownerNum < client_gs.maxclients + 1 ) {
-				cg_entities[ent->ownerNum].localEffects[LOCALEFFECT_EV_PLAYER_TELEPORT_IN] = cg.time;
+				cg_entities[ent->ownerNum].localEffects[LOCALEFFECT_EV_PLAYER_TELEPORT_IN] = cl.serverTime;
 				VectorCopy( ent->origin, cg_entities[ent->ownerNum].teleportedTo );
 			}
 			break;
@@ -912,7 +911,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 			S_StartFixedSound( cgs.media.sfxTeleportIn, FromQF3( ent->origin ), CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 
 			if( ent->ownerNum && ent->ownerNum < client_gs.maxclients + 1 ) {
-				cg_entities[ent->ownerNum].localEffects[LOCALEFFECT_EV_PLAYER_TELEPORT_IN] = cg.time;
+				cg_entities[ent->ownerNum].localEffects[LOCALEFFECT_EV_PLAYER_TELEPORT_IN] = cl.serverTime;
 				VectorCopy( ent->origin, cg_entities[ent->ownerNum].teleportedTo );
 			}
 			break;
@@ -921,7 +920,7 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 			S_StartFixedSound( cgs.media.sfxTeleportOut, FromQF3( ent->origin ), CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 
 			if( ent->ownerNum && ent->ownerNum < client_gs.maxclients + 1 ) {
-				cg_entities[ent->ownerNum].localEffects[LOCALEFFECT_EV_PLAYER_TELEPORT_OUT] = cg.time;
+				cg_entities[ent->ownerNum].localEffects[LOCALEFFECT_EV_PLAYER_TELEPORT_OUT] = cl.serverTime;
 				VectorCopy( ent->origin, cg_entities[ent->ownerNum].teleportedFrom );
 			}
 			break;

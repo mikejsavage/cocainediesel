@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../qas_local.h"
 #include "addon_math.h"
 #include "qcommon/rng.h"
+#include "server/server.h"
 
 /*************************************
 * MATHS ADDON
@@ -82,22 +83,19 @@ static double asFunc_floor( double x ) {
 	return floor( x );
 }
 
-static RNG rng;
-
 static uint32_t asFunc_random_uint() {
-	return random_u32( &rng );
+	return random_u32( &sv.rng );
 }
 
 static int asFunc_random_uniform( int lo, int hi ) {
-	return random_uniform( &rng, lo, hi );
+	return random_uniform( &sv.rng, lo, hi );
 }
 
 static float asFunc_random_float01() {
-	return random_float01( &rng );
+	return random_float01( &sv.rng );
 }
 
 void PreRegisterMathAddon( asIScriptEngine *engine ) {
-	rng = new_rng();
 }
 
 void RegisterMathAddon( asIScriptEngine *engine ) {

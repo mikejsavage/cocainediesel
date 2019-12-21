@@ -18,8 +18,11 @@
 
  */
 
+#pragma once
+
 #include "qcommon/qcommon.h"
-#include "game/g_public.h"
+#include "qcommon/rng.h"
+#include "game/g_local.h"
 
 //=============================================================================
 
@@ -59,21 +62,13 @@ typedef struct {
 	char configstrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 	entity_state_t baselines[MAX_EDICTS];
 
+	RNG rng;
+
 	//
 	// global variables shared between game and server
 	//
 	ginfo_t gi;
 } server_t;
-
-struct gclient_s {
-	player_state_t ps;  // communicated by server to clients
-	client_shared_t r;  // shared by both the server system and game
-};
-
-struct edict_s {
-	entity_state_t s;   // communicated by server to clients
-	entity_shared_t r;  // shared by both the server system and game
-};
 
 #define EDICT_NUM( n ) ( (edict_t *)( (uint8_t *)sv.gi.edicts + sv.gi.edict_size * ( n ) ) )
 #define NUM_FOR_EDICT( e ) ( ( (uint8_t *)( e ) - (uint8_t *)sv.gi.edicts ) / sv.gi.edict_size )
@@ -99,7 +94,7 @@ typedef struct {
 typedef struct {
 	char *name;
 	int file;
-	int size;               // total bytes (can't use EOF because of paks)
+	int size;               // total bytes
 	int64_t timeout;   // so we can free the file being downloaded
 	                        // if client omits sending success or failure message
 } client_download_t;
@@ -204,8 +199,6 @@ typedef struct {
 	size_t meta_data_realsize;
 } server_static_demo_t;
 
-typedef server_static_demo_t demorec_t;
-
 typedef struct client_entities_s {
 	unsigned num_entities;              // maxclients->integer*UPDATE_BACKUP*MAX_PACKET_ENTITIES
 	unsigned next_entities;             // next client_entity to use
@@ -233,14 +226,11 @@ typedef struct {
 
 	server_static_demo_t demo;
 
-	purelist_t *purelist;               // pure file support
-
 	cmodel_state_t *cms;                // passed to CM-functions
 } server_static_t;
 
 typedef struct {
 	int64_t nextHeartbeat;
-	int64_t lastActivity;
 	unsigned int snapFrameTime;     // msecs between server packets
 	unsigned int gameFrameTime;     // msecs between game code executions
 	bool autostarted;
@@ -292,8 +282,6 @@ extern cvar_t *sv_uploads_baseurl;
 extern cvar_t *sv_uploads_demos;
 extern cvar_t *sv_uploads_demos_baseurl;
 
-extern cvar_t *sv_pure;
-
 extern cvar_t *sv_demodir;
 
 //===========================================================
@@ -318,8 +306,6 @@ void SV_MasterHeartbeat( void );
 void SVC_MasterInfoResponse( const socket_t *socket, const netadr_t *address );
 int SVC_FakeConnect( const char *fakeUserinfo, const char *fakeSocketType, const char *fakeIP );
 
-void SV_UpdateActivity( void );
-
 //
 // sv_oob.c
 //
@@ -333,9 +319,6 @@ void SV_UpdateMaster( void );
 void SV_InitGame( void );
 void SV_Map( const char *level, bool devmap );
 void SV_SetServerConfigStrings( void );
-
-void SV_AddPureFile( const char *filename );
-void SV_PureList_f( void );
 
 //
 // sv_phys.c

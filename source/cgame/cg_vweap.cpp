@@ -195,22 +195,22 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 	// Full restart
 	if( !viewweapon->baseAnimStartTime ) {
 		viewweapon->baseAnim = baseAnim;
-		viewweapon->baseAnimStartTime = cg.time;
+		viewweapon->baseAnimStartTime = cl.serverTime;
 	}
 
 	// base animation changed?
 	if( baseAnim != viewweapon->baseAnim ) {
 		viewweapon->baseAnim = baseAnim;
-		viewweapon->baseAnimStartTime = cg.time;
+		viewweapon->baseAnimStartTime = cl.serverTime;
 	}
 
 	// if a eventual animation is running override the baseAnim
 	if( viewweapon->eventAnim ) {
 		if( !viewweapon->eventAnimStartTime ) {
-			viewweapon->eventAnimStartTime = cg.time;
+			viewweapon->eventAnimStartTime = cl.serverTime;
 		}
 
-		framefrac = CG_FrameForTime( &curframe, cg.time, viewweapon->eventAnimStartTime, weaponInfo->frametime[viewweapon->eventAnim],
+		framefrac = CG_FrameForTime( &curframe, cl.serverTime, viewweapon->eventAnimStartTime, weaponInfo->frametime[viewweapon->eventAnim],
 									 weaponInfo->firstframe[viewweapon->eventAnim], weaponInfo->lastframe[viewweapon->eventAnim],
 									 weaponInfo->loopingframes[viewweapon->eventAnim], false );
 
@@ -224,7 +224,7 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 	}
 
 	// find new frame for the current animation
-	framefrac = CG_FrameForTime( &curframe, cg.time, viewweapon->baseAnimStartTime, weaponInfo->frametime[viewweapon->baseAnim],
+	framefrac = CG_FrameForTime( &curframe, cl.serverTime, viewweapon->baseAnimStartTime, weaponInfo->frametime[viewweapon->baseAnim],
 								 weaponInfo->firstframe[viewweapon->baseAnim], weaponInfo->lastframe[viewweapon->baseAnim],
 								 weaponInfo->loopingframes[viewweapon->baseAnim], true );
 
@@ -242,7 +242,7 @@ void CG_ViewWeapon_StartAnimationEvent( int newAnim ) {
 	}
 
 	cg.weapon.eventAnim = newAnim;
-	cg.weapon.eventAnimStartTime = cg.time;
+	cg.weapon.eventAnimStartTime = cl.serverTime;
 	CG_ViewWeapon_RefreshAnimation( &cg.weapon );
 }
 
@@ -262,7 +262,7 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	viewweapon->ent.model = weaponInfo->model[WEAPMODEL_HAND];
 	viewweapon->ent.scale = 1.0f;
 	viewweapon->ent.override_material = NULL;
-	Vector4Set( viewweapon->ent.shaderRGBA, 255, 255, 255, 255 );
+	viewweapon->ent.color = rgba8_white;
 
 	// calculate the entity position
 	VectorCopy( cg.view.origin, viewweapon->ent.origin );
@@ -340,7 +340,7 @@ void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
 	// update the other origins
 	VectorCopy( viewweapon->ent.origin, viewweapon->ent.origin2 );
 
-	CG_AddColoredOutLineEffect( &viewweapon->ent, cg.effects, 0, 0, 0, viewweapon->ent.shaderRGBA[3] );
+	CG_AddOutline( &viewweapon->ent, cg.effects, RGBA8( 0, 0, 0, viewweapon->ent.color.a ) );
 	CG_AddEntityToScene( &viewweapon->ent );
 
 	if( cg_weaponFlashes->integer == 2 ) {

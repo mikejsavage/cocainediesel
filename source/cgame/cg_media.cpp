@@ -140,6 +140,7 @@ void CG_RegisterMediaShaders() {
 
 	cgs.media.shaderEBBeam = FindMaterial( "gfx/misc/ebbeam" );
 	cgs.media.shaderLGBeam = FindMaterial( "gfx/misc/lgbeam" );
+	cgs.media.shaderSMGtrail = FindMaterial( "weapons/SMG/SMGtrail" );
 	cgs.media.shaderRocketExplosion = FindMaterial( PATH_ROCKET_EXPLOSION_SPRITE );
 	cgs.media.shaderRocketExplosionRing = FindMaterial( PATH_ROCKET_EXPLOSION_RING_SPRITE );
 	cgs.media.shaderGrenadeExplosion = FindMaterial( PATH_ROCKET_EXPLOSION_SPRITE );

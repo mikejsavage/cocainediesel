@@ -411,8 +411,6 @@ void SV_SendClientMessages( void ) {
 			continue;
 		}
 
-		SV_UpdateActivity();
-
 		if( client->state == CS_SPAWNED ) {
 			if( !SV_SendClientDatagram( client ) ) {
 				Com_Printf( "Error sending message to %s: %s\n", client->name, NET_ErrorString() );

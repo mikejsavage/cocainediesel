@@ -8,27 +8,30 @@
 void InitParticles() {
 	constexpr Vec3 gravity = Vec3( 0, 0, -GRAVITY );
 
-	cgs.ions = NewParticleSystem( sys_allocator, 8192, FindTexture( "$particle" ) );
-	cgs.smoke = NewParticleSystem( sys_allocator, 1024, FindTexture( "gfx/misc/cartoon_smokepuff3" ) );
-
-	cgs.sparks = NewParticleSystem( sys_allocator, 8192, FindTexture( "$particle" ) );
+	cgs.ions = NewParticleSystem( sys_allocator, 8192, FindMaterial( "$particle" ) );
+	cgs.SMGsparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "weapons/SMG/SMGsparks" ) );
+	cgs.SMGsparks.acceleration = gravity;
+	cgs.smoke = NewParticleSystem( sys_allocator, 1024, FindMaterial( "gfx/misc/cartoon_smokepuff3" ) );
+	cgs.sparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "$particle" ) );
 	cgs.sparks.acceleration = gravity;
 	cgs.sparks.blend_func = BlendFunc_Blend;
 }
 
 void ShutdownParticles() {
 	DeleteParticleSystem( sys_allocator, cgs.ions );
+	DeleteParticleSystem( sys_allocator, cgs.SMGsparks );
 	DeleteParticleSystem( sys_allocator, cgs.sparks );
 	DeleteParticleSystem( sys_allocator, cgs.smoke );
 }
 
-ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture ) {
+ParticleSystem NewParticleSystem( Allocator * a, size_t n, const Material * material ) {
 	ParticleSystem ps = { };
 	size_t num_chunks = AlignPow2( n, size_t( 4 ) ) / 4;
 	ps.chunks = ALLOC_SPAN( a, ParticleChunk, num_chunks );
 	ps.blend_func = BlendFunc_Add;
 
-	ps.texture = texture;
+	ps.material = material;
+	ps.gradient = cgs.white_material;
 
 	ps.vb = NewParticleVertexBuffer( n );
 	ps.vb_memory = ALLOC_MANY( a, GPUParticle, n );
@@ -41,7 +44,7 @@ ParticleSystem NewParticleSystem( Allocator * a, size_t n, Texture texture ) {
 			Vec2( 0.5f, 0.5f ),
 		};
 
-		Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
+		Vec2 half_pixel = 0.5f / Vec2( material->texture->width, material->texture->height );
 		Vec2 uvs[] = {
 			half_pixel,
 			Vec2( 1.0f - half_pixel.x, half_pixel.y ),
@@ -177,6 +180,7 @@ void DrawParticleSystem( ParticleSystem * ps ) {
 		for( int j = 0; j < 4; j++ ) {
 			ps->vb_memory[ i * 4 + j ].position = Vec3( chunk.position_x[ j ], chunk.position_y[ j ], chunk.position_z[ j ] );
 			ps->vb_memory[ i * 4 + j ].scale = chunk.size[ j ];
+			ps->vb_memory[ i * 4 + j ].t = chunk.t[ j ] / chunk.lifetime[ j ];
 			Vec4 color = Vec4( chunk.color_r[ j ], chunk.color_g[ j ], chunk.color_b[ j ], chunk.color_a[ j ] );
 			ps->vb_memory[ i * 4 + j ].color = RGBA8( color );
 		}
@@ -184,15 +188,17 @@ void DrawParticleSystem( ParticleSystem * ps ) {
 
 	WriteVertexBuffer( ps->vb, ps->vb_memory, ps->num_particles * sizeof( GPUParticle ) );
 
-	DrawInstancedParticles( ps->mesh, ps->vb, ps->texture, ps->blend_func, ps->num_particles );
+	DrawInstancedParticles( ps->mesh, ps->vb, ps->material, ps->gradient, ps->blend_func, ps->num_particles );
 }
 
 void DrawParticles() {
-	float dt = cg.frameTime / 1000.0f;
+	float dt = cls.frametime / 1000.0f;
 	UpdateParticleSystem( &cgs.ions, dt );
+	UpdateParticleSystem( &cgs.SMGsparks, dt );
 	UpdateParticleSystem( &cgs.sparks, dt );
 	UpdateParticleSystem( &cgs.smoke, dt );
 	DrawParticleSystem( &cgs.ions );
+	DrawParticleSystem( &cgs.SMGsparks );
 	DrawParticleSystem( &cgs.sparks );
 	DrawParticleSystem( &cgs.smoke );
 }
@@ -262,9 +268,18 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter & emitter, 
 		} break;
 	}
 
-	// TODO: separate velocity and direction
-	Vec3 velocity = emitter.velocity + UniformSampleInsideSphere( &cls.rng ) * emitter.velocity_cone.radius;
-	float dvelocity = ( emitter.end_velocity - emitter.velocity_cone.radius ) / lifetime;
+	Vec3 dir;
+
+	if( emitter.use_cone_direction ) {
+		Mat4 dir_transform = TransformKToDir( emitter.direction_cone.normal );
+		dir = ( dir_transform * Vec4( UniformSampleCone( &cls.rng, DEG2RAD( emitter.direction_cone.theta ) ), 0.0f ) ).xyz();
+	}
+	else {
+		dir = UniformSampleSphere( &cls.rng );
+	}
+
+	float speed = emitter.start_speed + SampleRandomDistribution( &cls.rng, emitter.speed_distribution );
+	float dspeed = ( emitter.end_speed - emitter.start_speed ) / lifetime;
 
 	Vec4 color = emitter.start_color;
 	color.x += SampleRandomDistribution( &cls.rng, emitter.red_distribution );
@@ -278,7 +293,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter & emitter, 
 	float size = Max2( 0.0f, emitter.start_size + SampleRandomDistribution( &cls.rng, emitter.size_distribution ) );
 	float dsize = ( emitter.end_size - emitter.start_size ) / lifetime;
 
-	EmitParticle( ps, lifetime, position, velocity, dvelocity, color, dcolor, size, dsize );
+	EmitParticle( ps, lifetime, position, dir * speed, dspeed, color, dcolor, size, dsize );
 }
 
 static void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter, float dt ) {
@@ -299,7 +314,7 @@ static void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter,
 }
 
 void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter ) {
-	EmitParticles( ps, emitter, cg.frameTime / 1000.0f );
+	EmitParticles( ps, emitter, cls.frametime / 1000.0f );
 }
 
 enum ParticleEmitterVersion : u32 {
@@ -307,7 +322,7 @@ enum ParticleEmitterVersion : u32 {
 };
 
 static void Serialize( SerializationBuffer * buf, SphereDistribution & sphere ) { *buf & sphere.radius; }
-static void Serialize( SerializationBuffer * buf, ConeDistribution & cone ) { *buf & cone.normal & cone.radius & cone.theta; }
+static void Serialize( SerializationBuffer * buf, ConeDistribution & cone ) { *buf & cone.normal & cone.theta; }
 static void Serialize( SerializationBuffer * buf, DiskDistribution & disk ) { *buf & disk.normal & disk.radius; }
 static void Serialize( SerializationBuffer * buf, LineDistribution & line ) { *buf & line.end; }
 
@@ -334,7 +349,11 @@ static void Serialize( SerializationBuffer * buf, ParticleEmitter & emitter ) {
 	*buf & version;
 
 	*buf & emitter.position & emitter.position_distribution;
-	*buf & emitter.velocity & emitter.velocity_cone;
+	*buf & emitter.use_cone_direction;
+
+	if( emitter.use_cone_direction ) {
+		*buf & emitter.direction_cone;
+	}
 
 	*buf & emitter.start_color & emitter.end_color & emitter.red_distribution & emitter.green_distribution & emitter.blue_distribution & emitter.alpha_distribution;
 
@@ -351,21 +370,26 @@ static void Serialize( SerializationBuffer * buf, ParticleEmitter & emitter ) {
 
 static ParticleSystem editor_ps = { };
 static ParticleEmitter editor_emitter;
-static char editor_texture_name[ 256 ];
+static char editor_material_name[ 256 ];
+static char editor_gradient_name[ 256 ];
 static bool editor_one_shot;
 static bool editor_blend;
 
 void InitParticleEditor() {
-	strcpy( editor_texture_name, "$particle" );
+	strcpy( editor_material_name, "$particle" );
+	strcpy( editor_gradient_name, "$whiteimage" );
 	editor_one_shot = false;
 	editor_blend = false;
 
-	editor_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( StringHash( ( const char * ) editor_texture_name ) ) );
+	editor_ps = NewParticleSystem( sys_allocator, 8192, FindMaterial( StringHash( ( const char * ) editor_material_name ) ) );
+	editor_ps.gradient = FindMaterial( StringHash( ( const char * ) editor_gradient_name ) );
 	editor_ps.blend_func = editor_blend ? BlendFunc_Blend : BlendFunc_Add;
 	editor_emitter = { };
 
-	editor_emitter.velocity_cone.radius = 400.0f;
-	editor_emitter.end_velocity = 400.0f;
+	editor_emitter.start_speed = 400.0f;
+	editor_emitter.end_speed = 400.0f;
+	editor_emitter.direction_cone.normal = Vec3( 0, 0, 1 );
+	editor_emitter.direction_cone.theta = 90.0f;
 	editor_emitter.start_color = vec4_white;
 	editor_emitter.end_color = vec4_white.xyz();
 	editor_emitter.start_size = 16.0f;
@@ -380,7 +404,8 @@ void ShutdownParticleEditor() {
 
 void ResetParticleEditor() {
 	DeleteParticleSystem( sys_allocator, editor_ps );
-	editor_ps = NewParticleSystem( sys_allocator, 8192, FindTexture( StringHash( ( const char * ) editor_texture_name ) ) );
+	editor_ps = NewParticleSystem( sys_allocator, 8192, FindMaterial( StringHash( ( const char * ) editor_material_name ) ) );
+	editor_ps.gradient = FindMaterial( StringHash( ( const char * ) editor_gradient_name ) );
 	editor_ps.blend_func = editor_blend ? BlendFunc_Blend : BlendFunc_Add;
 }
 
@@ -438,11 +463,11 @@ void DrawParticleEditor() {
 				ImGui::SetKeyboardFocusHere();
 				strcpy( name, "" );
 			}
-			bool ok = ImGui::InputText( "##loadpath", name, sizeof( name ), ImGuiInputTextFlags_EnterReturnsTrue );
+			bool do_load = ImGui::InputText( "##loadpath", name, sizeof( name ), ImGuiInputTextFlags_EnterReturnsTrue );
 			ImGui::PopItemWidth();
-			ok = ImGui::Button( "Load" ) || ok;
+			do_load = ImGui::Button( "Load" ) || do_load;
 
-			if( ok ) {
+			if( do_load ) {
 				Span< const char > data = AssetBinary( temp( "particles/{}.emitter", name ) ).cast< const char >();
 				if( data.ptr != NULL ) {
 					bool ok = Deserialize( editor_emitter, data.ptr, data.n );
@@ -493,7 +518,11 @@ void DrawParticleEditor() {
 
 		ImGui::Separator();
 
-		if( ImGui::InputText( "Texture", editor_texture_name, sizeof( editor_texture_name ) ) ) {
+		if( ImGui::InputText( "Material", editor_material_name, sizeof( editor_material_name ) ) ) {
+			ResetParticleEditor();
+		}
+
+		if( ImGui::InputText( "Gradient material", editor_gradient_name, sizeof( editor_gradient_name ) ) ) {
 			ResetParticleEditor();
 		}
 
@@ -533,8 +562,14 @@ void DrawParticleEditor() {
 
 		ImGui::Separator();
 
-		ImGui::SliderFloat( "Start velocity", &editor_emitter.velocity_cone.radius, 0, 1000, "%.2f" );
-		ImGui::SliderFloat( "End velocity", &editor_emitter.end_velocity, 0, 1000, "%.2f" );
+		ImGui::Checkbox( "Direction cone?", &editor_emitter.use_cone_direction );
+
+		if( editor_emitter.use_cone_direction ) {
+			ImGui::SliderFloat( "Angle", &editor_emitter.direction_cone.theta, 0, 180, "%.2f" );
+		}
+
+		ImGui::SliderFloat( "Start speed", &editor_emitter.start_speed, 0, 1000, "%.2f" );
+		ImGui::SliderFloat( "End speed", &editor_emitter.end_speed, 0, 1000, "%.2f" );
 
 		ImGui::Separator();
 

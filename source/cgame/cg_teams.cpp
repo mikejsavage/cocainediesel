@@ -89,28 +89,6 @@ Vec4 CG_TeamColorVec4( int team ) {
 	);
 }
 
-void CG_TeamColor( int team, vec4_t color ) {
-	RGB8 rgb = CG_TeamColor( team );
-	color[0] = rgb.r * ( 1.0f / 255.0f );
-	color[1] = rgb.g * ( 1.0f / 255.0f );
-	color[2] = rgb.b * ( 1.0f / 255.0f );
-	color[3] = 1.0f;
-}
-
-void CG_TeamColorForEntity( int entNum, byte_vec4_t color ) {
-	if( entNum < 1 || entNum >= MAX_EDICTS ) {
-		Vector4Set( color, 255, 255, 255, 255 );
-		return;
-	}
-
-	const centity_t * cent = &cg_entities[entNum];
-	RGB8 rgb = CG_TeamColor( cent->current.team );
-	color[0] = rgb.r;
-	color[1] = rgb.g;
-	color[2] = rgb.b;
-	color[3] = 255;
-}
-
 void CG_RegisterForceModels() {
 	CG_CheckUpdateTeamModelRegistration( true );
 	CG_CheckUpdateTeamModelRegistration( false );

@@ -929,7 +929,7 @@ static void objectGameClient_InventoryGiveItemExt( int index, int count, gclient
 		return;
 	}
 
-	G_PickupItem( PLAYERENT( playerNum ), it, 0, count, NULL );
+	G_PickupItem( PLAYERENT( playerNum ), it, 0, count );
 }
 
 static void objectGameClient_InventoryGiveItem( int index, gclient_t *self ) {
@@ -2001,42 +2001,20 @@ static int asFunc_ImageIndex( asstring_t *str ) {
 	return trap_ImageIndex( str->buffer );
 }
 
-static int asFunc_ModelIndexExt( asstring_t *str, bool pure ) {
-	int index;
-
-	if( !str || !str->buffer ) {
-		return 0;
-	}
-
-	index = trap_ModelIndex( str->buffer );
-	if( index && pure ) {
-		G_PureModel( str->buffer );
-	}
-
-	return index;
-}
-
 static int asFunc_ModelIndex( asstring_t *str ) {
-	return asFunc_ModelIndexExt( str, false );
-}
-
-static int asFunc_SoundIndexExt( asstring_t *str, bool pure ) {
-	int index;
-
 	if( !str || !str->buffer ) {
 		return 0;
 	}
 
-	index = trap_SoundIndex( str->buffer );
-	if( index && pure ) {
-		G_PureSound( str->buffer );
-	}
-
-	return index;
+	return trap_ModelIndex( str->buffer );
 }
 
 static int asFunc_SoundIndex( asstring_t *str ) {
-	return asFunc_SoundIndexExt( str, false );
+	if( !str || !str->buffer ) {
+		return 0;
+	}
+
+	return trap_SoundIndex( str->buffer );
 }
 
 static void asFunc_RegisterCommand( asstring_t *str ) {
@@ -2258,8 +2236,6 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "int G_ImageIndex( const String &in )", asFUNCTION( asFunc_ImageIndex ), NULL },
 	{ "int G_ModelIndex( const String &in )", asFUNCTION( asFunc_ModelIndex ), NULL },
 	{ "int G_SoundIndex( const String &in )", asFUNCTION( asFunc_SoundIndex ), NULL },
-	{ "int G_ModelIndex( const String &in, bool pure )", asFUNCTION( asFunc_ModelIndexExt ), NULL },
-	{ "int G_SoundIndex( const String &in, bool pure )", asFUNCTION( asFunc_SoundIndexExt ), NULL },
 	{ "void G_RegisterCommand( const String &in )", asFUNCTION( asFunc_RegisterCommand ), NULL },
 	{ "void G_RegisterCallvote( const String &in, const String &in, const String &in, const String &in )", asFUNCTION( asFunc_RegisterCallvote ), NULL },
 	{ "const String @G_ConfigString( int index )", asFUNCTION( asFunc_GetConfigString ), NULL },
@@ -2285,9 +2261,8 @@ static const asglobproperties_t asGlobProps[] =
 {
 	{ "const int64 levelTime", &level.time },
 	{ "const uint frameTime", &game.frametime },
-	{ "const int64 realTime", &game.realtime },
+	{ "const int64 realTime", &svs.realtime },
 
-	//{ "const uint serverTime", &game.serverTime }, // I think this one isn't script business
 	{ "const int maxEntities", &game.maxentities },
 	{ "const int numEntities", &game.numentities },
 	{ "const int maxClients", &server_gs.maxclients },
@@ -2888,20 +2863,20 @@ void G_asGarbageCollect( bool force ) {
 		return;
 	}
 
-	if( lastTime > game.serverTime ) {
+	if( lastTime > svs.gametime ) {
 		force = true;
 	}
 
-	if( force || lastTime + g_asGC_interval->value * 1000 < game.serverTime ) {
+	if( force || lastTime + g_asGC_interval->value * 1000 < svs.gametime ) {
 		asEngine->GetGCStatistics( &currentSize, &totalDestroyed, &totalDetected );
 
 		if( g_asGC_stats->integer ) {
-			G_Printf( "GC: t=%" PRIi64 " size=%u destroyed=%u detected=%u\n", game.serverTime, currentSize, totalDestroyed, totalDetected );
+			G_Printf( "GC: t=%" PRIi64 " size=%u destroyed=%u detected=%u\n", svs.gametime, currentSize, totalDestroyed, totalDetected );
 		}
 
 		asEngine->GarbageCollect();
 
-		lastTime = game.serverTime;
+		lastTime = svs.gametime;
 	}
 }
 

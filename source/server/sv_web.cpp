@@ -97,7 +97,6 @@ typedef struct {
 
 	int file;
 	int fileno;
-	size_t file_data_offset;
 	size_t file_send_pos;
 	char *filename;
 } sv_http_response_t;
@@ -225,7 +224,6 @@ static void SV_Web_ResetResponse( sv_http_response_t *response ) {
 		response->file = 0;
 	}
 	response->fileno = -1;
-	response->file_data_offset = 0;
 	response->file_send_pos = 0;
 
 	response->content_state = CONTENT_STATE_DEFAULT;
@@ -483,7 +481,7 @@ static int SV_Web_Send( sv_http_connection_t *con, void *sendbuf, size_t sendbuf
 /*
 * SV_Web_SendFile
 */
-static int64_t SV_Web_SendFile( sv_http_connection_t *con, int fileno, size_t fileOffset, size_t *pos, size_t count ) {
+static int64_t SV_Web_SendFile( sv_http_connection_t *con, int fileno, size_t *pos, size_t count ) {
 	int sent;
 
 	assert( pos != NULL );
@@ -491,7 +489,7 @@ static int64_t SV_Web_SendFile( sv_http_connection_t *con, int fileno, size_t fi
 		return -1;
 	}
 
-	sent = NET_SendFile( &con->socket, fileno, fileOffset + *pos, count, &con->address );
+	sent = NET_SendFile( &con->socket, fileno, *pos, count, &con->address );
 	if( sent < 0 ) {
 		Com_DPrintf( "HTTP file transmission error to %s\n", NET_AddressToString( &con->address ) );
 		con->open = false;
@@ -919,8 +917,7 @@ static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_respo
 
 			// only serve GET requests for pack and demo files
 			extension = COM_FileExtension( filename );
-			if( !extension ||
-				!( FS_CheckPakExtension( filename ) || !Q_stricmp( extension, APP_DEMO_EXTENSION_STR ) ) ) {
+			if( !extension || Q_stricmp( extension, APP_DEMO_EXTENSION_STR ) != 0 ) {
 				response->code = HTTP_RESP_FORBIDDEN;
 				return;
 			}
@@ -928,7 +925,7 @@ static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_respo
 			*content_length = FS_FOpenBaseFile( filename, &response->file, FS_READ );
 			response->fileno = -1;
 			if( response->file ) {
-				response->fileno = FS_FileNo( response->file, &response->file_data_offset );
+				response->fileno = FS_FileNo( response->file );
 			}
 			if( response->fileno == -1 ) {
 				response->code = HTTP_RESP_NOT_FOUND;
@@ -1101,7 +1098,7 @@ static size_t SV_Web_SendResponse( sv_http_connection_t *con ) {
 		while( stream->content_p < stream->content_length && sv_http_running ) {
 			if( response->file ) {
 				sendbuf_size = stream->content_length - stream->content_p;
-				sent = SV_Web_SendFile( con, response->fileno, response->file_data_offset, &response->file_send_pos, sendbuf_size );
+				sent = SV_Web_SendFile( con, response->fileno, &response->file_send_pos, sendbuf_size );
 			} else {
 				if( !stream->content ) {
 					break;

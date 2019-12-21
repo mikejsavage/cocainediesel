@@ -540,7 +540,7 @@ static void G_SpawnEntities( void ) {
 	char *token;
 	char *entities;
 
-	level.spawnedTimeStamp = game.realtime;
+	level.spawnedTimeStamp = svs.gametime;
 	level.canSpawnEntities = true;
 
 	G_InitBodyQueue(); // reserve some spots for dead player bodies
@@ -602,7 +602,7 @@ static void G_SpawnEntities( void ) {
 * Creates a server's entity / program execution context by
 * parsing textual entity definitions out of an ent file.
 */
-void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTime, int64_t serverTime, int64_t realTime ) {
+void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTime ) {
 	char *mapString = NULL;
 	char name[MAX_CONFIGSTRING_CHARS];
 	int i;
@@ -614,10 +614,6 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 	GT_asShutdownScript();
 
 	G_FreeCallvotes();
-
-	game.serverTime = serverTime;
-	game.prevServerTime = serverTime;
-	game.realtime = realTime;
 
 	GClip_ClearWorld(); // clear areas links
 
@@ -705,9 +701,8 @@ void G_ResetLevel( void ) {
 	GT_asCallSpawn();
 }
 
-bool G_RespawnLevel( void ) {
-	G_InitLevel( level.mapname, level.mapString, level.mapStrlen, level.time, game.serverTime, game.realtime );
-	return true;
+void G_RespawnLevel( void ) {
+	G_InitLevel( level.mapname, level.mapString, level.mapStrlen, level.time );
 }
 
 static void SP_worldspawn( edict_t *ent ) {
@@ -717,7 +712,6 @@ static void SP_worldspawn( edict_t *ent ) {
 	VectorClear( ent->s.origin );
 	VectorClear( ent->s.angles );
 	GClip_SetBrushModel( ent, "*0" ); // sets mins / maxs and modelindex 1
-	G_PureModel( "*0" );
 
 	if( st.gravity ) {
 		level.gravity = atof( st.gravity );

@@ -123,45 +123,43 @@ namespace ImGui
 #include "client/renderer/backend.h"
 #include "client/renderer/shader.h"
 
-struct ImGuiShaderAndTexture {
-	ImGuiShaderAndTexture() {
+struct ImGuiShaderAndMaterial {
+	ImGuiShaderAndMaterial() {
 		shader = NULL;
-		texture = { };
+		material = NULL;
 		uniform_name = { };
 		uniform_block = { };
 	}
 
-	explicit ImGuiShaderAndTexture( void * p ) : ImGuiShaderAndTexture() { }
-
-	ImGuiShaderAndTexture( Texture tex ) {
+	ImGuiShaderAndMaterial( const Material * mat ) {
 		shader = &shaders.standard_vertexcolors;
-		texture = tex;
+		material = mat;
 		uniform_name = { };
 		uniform_block = { };
 	}
 
 	explicit operator intptr_t() const {
-		return intptr_t( shader ) ^ texture.texture;
+		return intptr_t( shader ) ^ intptr_t( material );
 	}
 
 	const Shader * shader;
-	Texture texture;
+	const Material * material;
 
 	StringHash uniform_name;
 	UniformBlock uniform_block;
 };
 
-inline bool operator==( const ImGuiShaderAndTexture & a, const ImGuiShaderAndTexture & b ) {
+inline bool operator==( const ImGuiShaderAndMaterial & a, const ImGuiShaderAndMaterial & b ) {
 	return a.shader == b.shader
-		&& a.texture.texture == b.texture.texture
+		&& a.material == b.material
 		&& a.uniform_name == b.uniform_name
 		&& a.uniform_block.ubo == b.uniform_block.ubo
 		&& a.uniform_block.offset == b.uniform_block.offset
 		&& a.uniform_block.size == b.uniform_block.size;
 }
 
-inline bool operator!=( const ImGuiShaderAndTexture & a, const ImGuiShaderAndTexture & b ) {
+inline bool operator!=( const ImGuiShaderAndMaterial & a, const ImGuiShaderAndMaterial & b ) {
 	return !( a == b );
 }
 
-#define ImTextureID ImGuiShaderAndTexture
+#define ImTextureID ImGuiShaderAndMaterial

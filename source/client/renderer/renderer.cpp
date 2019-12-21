@@ -309,6 +309,7 @@ static void CreateFramebuffers() {
 
 void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadShaders();
+	HotloadMaterials();
 
 	RenderBackendBeginFrame();
 
@@ -385,8 +386,8 @@ void RendererSubmitFrame() {
 	RenderBackendSubmitFrame();
 }
 
-Texture BlueNoiseTexture() {
-	return blue_noise;
+const Texture * BlueNoiseTexture() {
+	return &blue_noise;
 }
 
 void DrawFullscreenMesh( const PipelineState & pipeline ) {
@@ -409,19 +410,15 @@ void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh )
 	dynamic_geometry_num_indices += mesh.num_indices;
 }
 
-void Draw2DBox( float x, float y, float w, float h, Texture texture, Vec4 color ) {
-	Vec2 half_pixel = 0.5f / Vec2( texture.width, texture.height );
+void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color ) {
+	Vec2 half_pixel = 0.5f / Vec2( material->texture->width, material->texture->height );
 	RGBA8 rgba = RGBA8( color );
 
 	ImDrawList * bg = ImGui::GetBackgroundDrawList();
-	bg->PushTextureID( ImGuiShaderAndTexture( texture ) );
+	bg->PushTextureID( ImGuiShaderAndMaterial( material ) );
 	bg->PrimReserve( 6, 4 );
 	bg->PrimRectUV( Vec2( x, y ), Vec2( x + w, y + h ), half_pixel, 1.0f - half_pixel, IM_COL32( rgba.r, rgba.g, rgba.b, rgba.a ) );
 	bg->PopTextureID();
-}
-
-void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color ) {
-	Draw2DBox( x, y, w, h, material->textures[ 0 ].texture, color );
 }
 
 UniformBlock UploadModelUniforms( const Mat4 & M ) {

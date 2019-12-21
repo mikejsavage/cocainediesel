@@ -1063,7 +1063,7 @@ void G_CallVotes_ResetClient( int n ) {
 */
 static void G_CallVotes_Reset( bool vote_happened ) {
 	if( vote_happened && callvoteState.vote.caller && callvoteState.vote.caller->r.client ) {
-		callvoteState.vote.caller->r.client->level.callvote_when = game.realtime;
+		callvoteState.vote.caller->r.client->level.callvote_when = svs.realtime;
 	}
 
 	callvoteState.vote.callvote = NULL;
@@ -1231,7 +1231,7 @@ static void G_CallVotes_CheckState( void ) {
 		return;
 	}
 
-	if( game.realtime > callvoteState.timeout || needvotes + noes > voters ) {
+	if( svs.realtime > callvoteState.timeout || needvotes + noes > voters ) {
 		G_PrintMsg( NULL, "Vote %s%s%s failed\n", S_COLOR_YELLOW, G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE );
 		G_CallVotes_Reset( true );
 		return;
@@ -1300,9 +1300,9 @@ void G_CallVotes_Think( void ) {
 		return;
 	}
 
-	if( callvotethinktimer < game.realtime ) {
+	if( callvotethinktimer < svs.realtime ) {
 		G_CallVotes_CheckState();
-		callvotethinktimer = game.realtime + 1000;
+		callvotethinktimer = svs.realtime + 1000;
 	}
 }
 
@@ -1388,7 +1388,7 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 	}
 
 	if( !isopcall && ent->r.client->level.callvote_when &&
-		( ent->r.client->level.callvote_when + g_callvote_cooldowntime->integer * 1000 > game.realtime ) ) {
+		( ent->r.client->level.callvote_when + g_callvote_cooldowntime->integer * 1000 > svs.realtime ) ) {
 		G_PrintMsg( ent, "%sYou can not call a vote right now\n", S_COLOR_RED );
 		return;
 	}
@@ -1421,7 +1421,7 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 	//we're done. Proceed launching the election
 	for( i = 0; i < server_gs.maxclients; i++ )
 		G_CallVotes_ResetClient( i );
-	callvoteState.timeout = game.realtime + ( g_callvote_electtime->integer * 1000 );
+	callvoteState.timeout = svs.realtime + ( g_callvote_electtime->integer * 1000 );
 
 	//caller is assumed to vote YES
 	clientVoted[PLAYERNUM( ent )] = VOTED_YES;

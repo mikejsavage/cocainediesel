@@ -128,10 +128,7 @@ static void SV_Map_f( void ) {
 		return;
 	}
 
-	if( FS_GetNotifications() & FS_NOTIFY_NEWPAKS ) {
-		FS_RemoveNotifications( FS_NOTIFY_NEWPAKS );
-		sv.state = ss_dead; // don't save current level when changing
-	} else if( !Q_stricmp( Cmd_Argv( 0 ), "map" ) || !Q_stricmp( Cmd_Argv( 0 ), "devmap" ) ) {
+	if( !Q_stricmp( Cmd_Argv( 0 ), "map" ) || !Q_stricmp( Cmd_Argv( 0 ), "devmap" ) ) {
 		sv.state = ss_dead; // don't save current level when changing
 	}
 
@@ -277,8 +274,6 @@ void SV_InitOperatorCommands( void ) {
 	Cmd_AddCommand( "serverrecordcancel", SV_Demo_Cancel_f );
 	Cmd_AddCommand( "serverrecordpurge", SV_Demo_Purge_f );
 
-	Cmd_AddCommand( "purelist", SV_PureList_f );
-
 	Cmd_SetCompletionFunc( "map", SV_MapComplete_f );
 	Cmd_SetCompletionFunc( "devmap", SV_MapComplete_f );
 	Cmd_SetCompletionFunc( "gamemap", SV_MapComplete_f );
@@ -302,6 +297,4 @@ void SV_ShutdownOperatorCommands( void ) {
 	Cmd_RemoveCommand( "serverrecordstop" );
 	Cmd_RemoveCommand( "serverrecordcancel" );
 	Cmd_RemoveCommand( "serverrecordpurge" );
-
-	Cmd_RemoveCommand( "purelist" );
 }

@@ -119,10 +119,6 @@ static inline void trap_FS_FCloseFile( int file ) {
 	CGAME_IMPORT.FS_FCloseFile( file );
 }
 
-static inline bool trap_FS_IsPureFile( const char *filename ) {
-	return CGAME_IMPORT.FS_IsPureFile( filename ) == true;
-}
-
 static inline const char *trap_Key_GetBindingBuf( int binding ) {
 	return CGAME_IMPORT.Key_GetBindingBuf( binding );
 }
@@ -139,8 +135,8 @@ static inline int64_t trap_Milliseconds( void ) {
 	return CGAME_IMPORT.Milliseconds();
 }
 
-static inline bool trap_DownloadRequest( const char *filename, bool requestpak ) {
-	return CGAME_IMPORT.DownloadRequest( filename, requestpak == true ? true : false ) == true;
+static inline bool trap_DownloadRequest( const char *filename ) {
+	return CGAME_IMPORT.DownloadRequest( filename );
 }
 
 static inline void trap_NET_GetUserCmd( int frame, usercmd_t *cmd ) {

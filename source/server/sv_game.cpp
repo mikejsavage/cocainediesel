@@ -23,8 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 game_export_t *ge;
 
-mempool_t *sv_gameprogspool;
-
 //======================================================================
 
 // PF versions of the CM functions passed to the game module
@@ -263,118 +261,10 @@ static const char *PF_GetConfigString( int index ) {
 }
 
 /*
-* PF_PureSound
-*/
-static void PF_PureSound( const char *name ) {
-	const char *extension;
-	char tempname[MAX_CONFIGSTRING_CHARS];
-
-	if( sv.state != ss_loading ) {
-		return;
-	}
-
-	if( !name || !name[0] || strlen( name ) >= MAX_CONFIGSTRING_CHARS ) {
-		return;
-	}
-
-	Q_strncpyz( tempname, name, sizeof( tempname ) );
-
-	if( !COM_FileExtension( tempname ) ) {
-		extension = FS_FirstExtension( tempname, SOUND_EXTENSIONS, NUM_SOUND_EXTENSIONS );
-		if( !extension ) {
-			return;
-		}
-
-		COM_ReplaceExtension( tempname, extension, sizeof( tempname ) );
-	}
-
-	SV_AddPureFile( tempname );
-}
-
-/*
-* SV_AddPureShader
-*
-* FIXME: For now we don't parse shaders, but simply assume that it uses the same name .tga or .jpg
-*/
-static void SV_AddPureShader( const char *name ) {
-	const char *extension;
-	char tempname[MAX_CONFIGSTRING_CHARS];
-
-	if( !name || !name[0] ) {
-		return;
-	}
-
-	assert( name && name[0] && strlen( name ) < MAX_CONFIGSTRING_CHARS );
-
-	if( !Q_strnicmp( name, "textures/common/", strlen( "textures/common/" ) ) ) {
-		return;
-	}
-
-	Q_strncpyz( tempname, name, sizeof( tempname ) );
-
-	if( !COM_FileExtension( tempname ) ) {
-		extension = FS_FirstExtension( tempname, IMAGE_EXTENSIONS, NUM_IMAGE_EXTENSIONS );
-		if( !extension ) {
-			return;
-		}
-
-		COM_ReplaceExtension( tempname, extension, sizeof( tempname ) );
-	}
-
-	SV_AddPureFile( tempname );
-}
-
-/*
-* SV_AddPureBSP
-*/
-static void SV_AddPureBSP( void ) {
-	int i;
-	const char *shader;
-
-	SV_AddPureFile( sv.configstrings[CS_WORLDMODEL] );
-	for( i = 0; ( shader = CM_ShaderrefName( svs.cms, i ) ); i++ )
-		SV_AddPureShader( shader );
-}
-
-/*
-* PF_PureModel
-*/
-static void PF_PureModel( const char *name ) {
-	if( sv.state != ss_loading ) {
-		return;
-	}
-	if( !name || !name[0] || strlen( name ) >= MAX_CONFIGSTRING_CHARS ) {
-		return;
-	}
-
-	if( name[0] == '*' ) {  // inline model
-		if( !strcmp( name, "*0" ) ) {
-			SV_AddPureBSP(); // world
-		}
-	} else {
-		SV_AddPureFile( name );
-	}
-}
-
-/*
 * PF_inPVS
 */
 static bool PF_inPVS( const vec3_t p1, const vec3_t p2 ) {
 	return CM_InPVS( svs.cms, p1, p2 );
-}
-
-/*
-* PF_MemAlloc
-*/
-static void *PF_MemAlloc( size_t size, const char *filename, int fileline ) {
-	return _Mem_Alloc( sv_gameprogspool, size, MEMPOOL_GAMEPROGS, 0, filename, fileline );
-}
-
-/*
-* PF_MemFree
-*/
-static void PF_MemFree( void *data, const char *filename, int fileline ) {
-	_Mem_Free( data, MEMPOOL_GAMEPROGS, 0, filename, fileline );
 }
 
 //==============================================
@@ -391,10 +281,6 @@ void SV_ShutdownGameProgs( void ) {
 	}
 
 	ge->Shutdown();
-	// This call might still require the memory pool to be valid
-	// (for example if there are global object destructors calling G_Free()),
-	// that's why it's called before releasing the pool.
-	Mem_FreePool( &sv_gameprogspool );
 	ge = NULL;
 }
 
@@ -427,8 +313,6 @@ void SV_InitGameProgs( void ) {
 		SV_ShutdownGameProgs();
 	}
 
-	sv_gameprogspool = _Mem_AllocPool( NULL, "Game Progs", MEMPOOL_GAMEPROGS, __FILE__, __LINE__ );
-
 	// load a new game dll
 	import.Print = PF_dprint;
 	import.Error = PF_error;
@@ -458,16 +342,11 @@ void SV_InitGameProgs( void ) {
 
 	import.ConfigString = PF_ConfigString;
 	import.GetConfigString = PF_GetConfigString;
-	import.PureSound = PF_PureSound;
-	import.PureModel = PF_PureModel;
 
 	import.FS_FOpenFile = FS_FOpenFile;
 	import.FS_Read = FS_Read;
 	import.FS_Write = FS_Write;
 	import.FS_FCloseFile = FS_FCloseFile;
-
-	import.Mem_Alloc = PF_MemAlloc;
-	import.Mem_Free = PF_MemFree;
 
 	import.Cvar_Get = Cvar_Get;
 	import.Cvar_Set = Cvar_Set;

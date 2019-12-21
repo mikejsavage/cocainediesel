@@ -89,7 +89,6 @@ static u32 num_free_sound_sources;
 static PlayingSound playing_sound_effects[ MAX_PLAYING_SOUNDS ];
 static u32 num_playing_sound_effects;
 
-static StringHash music_sound;
 static ALuint music_source;
 static bool music_playing;
 
@@ -188,6 +187,8 @@ static void LoadSound( const char * path, bool allow_stereo ) {
 
 	u64 hash = Hash64( path, strlen( path ) - strlen( ".ogg" ) );
 
+	bool restart_music = false;
+
 	u64 idx = num_sounds;
 	if( !sounds_hashtable.get( hash, &idx ) ) {
 		sounds_hashtable.add( hash, num_sounds );
@@ -206,6 +207,7 @@ static void LoadSound( const char * path, bool allow_stereo ) {
 		num_sound_effects++;
 	}
 	else {
+		restart_music = music_playing;
 		S_StopAllSounds( true );
 		alDeleteBuffers( 1, &sounds[ idx ] );
 	}
@@ -214,6 +216,10 @@ static void LoadSound( const char * path, bool allow_stereo ) {
 	alGenBuffers( 1, &sounds[ idx ] );
 	alBufferData( sounds[ idx ], format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
 	ALAssert();
+
+	if( restart_music ) {
+		S_StartMenuMusic();
+	}
 }
 
 static void LoadSounds() {
@@ -403,8 +409,6 @@ bool S_Init() {
 
 	initialized = true;
 
-	music_sound = "sounds/music/menu_1";
-
 	return true;
 }
 
@@ -415,7 +419,7 @@ void S_Shutdown() {
 	S_StopAllSounds( true );
 
 	alDeleteSources( ARRAY_COUNT( free_sound_sources ), free_sound_sources );
-	// alDeleteSources( 1, &music_source );
+	alDeleteSources( 1, &music_source );
 	alDeleteBuffers( num_sounds, sounds );
 
 	ALAssert();
@@ -589,16 +593,13 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 				alSourcef( ps->sources[ j ], AL_GAIN, ps->volume * ps->sfx->sounds[ j ].volume * s_volume->value );
 			}
 
-			switch( ps->type ) {
-				case PlayingSoundType_Entity:
-					alSourcefv( ps->sources[ j ], AL_POSITION, entities[ ps->ent_num ].origin.ptr() );
-					alSourcefv( ps->sources[ j ], AL_VELOCITY, entities[ ps->ent_num ].velocity.ptr() );
-					break;
-
-				case PlayingSoundType_Line: {
-					Vec3 p = ClosestPointOnSegment( ps->origin, ps->end, origin );
-					alSourcefv( ps->sources[ j ], AL_POSITION, p.ptr() );
-				} break;
+			if( ps->type == PlayingSoundType_Entity ) {
+				alSourcefv( ps->sources[ j ], AL_POSITION, entities[ ps->ent_num ].origin.ptr() );
+				alSourcefv( ps->sources[ j ], AL_VELOCITY, entities[ ps->ent_num ].velocity.ptr() );
+			}
+			else if( ps->type == PlayingSoundType_Line ) {
+				Vec3 p = ClosestPointOnSegment( ps->origin, ps->end, origin );
+				alSourcefv( ps->sources[ j ], AL_POSITION, p.ptr() );
 			}
 		}
 	}
@@ -680,7 +681,7 @@ void S_StartFixedSound( const SoundEffect * sfx, Vec3 origin, int channel, float
 }
 
 void S_StartEntitySound( const SoundEffect * sfx, int ent_num, int channel, float volume, float attenuation ) {
-	PlayingSound * ps = StartSoundEffect( sfx, ent_num, channel, volume, attenuation, PlayingSoundType_Entity, false );
+	StartSoundEffect( sfx, ent_num, channel, volume, attenuation, PlayingSoundType_Entity, false );
 }
 
 void S_StartGlobalSound( const SoundEffect * sfx, int channel, float volume ) {
@@ -742,21 +743,27 @@ void S_StopAllSounds( bool stop_music ) {
 }
 
 void S_StartMenuMusic() {
-	// if( !initialized || menu_music_asset == NULL )
-	// 	return;
-	//
-	// alSourcef( music_source, AL_GAIN, s_volume->value * s_musicvolume->value );
-	// alSourcei( music_source, AL_DIRECT_CHANNELS_SOFT, AL_TRUE );
-	// alSourcei( music_source, AL_LOOPING, AL_TRUE );
-	// alSourcei( music_source, AL_BUFFER, menu_music_asset->buffer );
-	//
-	// alSourcePlay( music_source );
+	if( !initialized )
+		return;
 
-	// music_playing = true;
+	ALuint buffer;
+	if( !FindSound( "sounds/music/menu_1", &buffer ) )
+		return;
+
+	alSourcef( music_source, AL_GAIN, s_volume->value * s_musicvolume->value );
+	alSourcei( music_source, AL_DIRECT_CHANNELS_SOFT, AL_TRUE );
+	alSourcei( music_source, AL_LOOPING, AL_TRUE );
+	alSourcei( music_source, AL_BUFFER, buffer );
+
+	alSourcePlay( music_source );
+
+	music_playing = true;
 }
 
 void S_StopBackgroundTrack() {
-	if( initialized && music_playing )
+	if( initialized && music_playing ) {
 		alSourceStop( music_source );
+		alSourcei( music_source, AL_BUFFER, 0 );
+	}
 	music_playing = false;
 }

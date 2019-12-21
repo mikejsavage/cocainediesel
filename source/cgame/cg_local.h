@@ -99,7 +99,6 @@ typedef struct {
 
 	vec3_t teleportedTo;
 	vec3_t teleportedFrom;
-	byte_vec4_t outlineColor;
 
 	// used for client side animation of player models
 	int lastVelocitiesFrames[4];
@@ -203,6 +202,7 @@ typedef struct {
 	const Material * shaderPlasmaMark;
 	const Material * shaderEBBeam;
 	const Material * shaderLGBeam;
+	const Material * shaderSMGtrail;
 	const Material * shaderEBImpact;
 
 	const Material * shaderPlayerShadow;
@@ -230,14 +230,6 @@ typedef struct {
 	int64_t kicktime;
 	float v_roll, v_pitch;
 } cg_kickangles_t;
-
-#define MAX_COLORBLENDS 3
-
-typedef struct {
-	int64_t timestamp;
-	int64_t blendtime;
-	float blend[4];
-} cg_viewblend_t;
 
 #define PREDICTED_STEP_TIME 150 // stairs smoothing time
 #define MAX_AWARD_LINES 3
@@ -297,7 +289,6 @@ typedef struct {
 	bool precacheDone;
 
 	bool demoPlaying;
-	bool pure;
 	unsigned snapFrameTime;
 	unsigned extrapolationTime;
 
@@ -336,23 +327,13 @@ typedef struct {
 	int64_t precacheStartMsec;
 
 	ParticleSystem ions;
+	ParticleSystem SMGsparks;
 	ParticleSystem sparks;
 	ParticleSystem smoke;
 } cg_static_t;
 
 typedef struct {
-	int64_t time;
-	float delay;
-
-	int64_t monotonicTime;
-
-	int64_t realTime;
-	int frameTime;
-	int realFrameTime;
 	int frameCount;
-
-	int64_t firstViewRealTime;
-	int viewFrameCount;
 
 	snapshot_t frame, oldFrame;
 	bool frameSequenceRunning;
@@ -408,7 +389,6 @@ typedef struct {
 	//
 
 	cg_kickangles_t kickangles[MAX_ANGLES_KICKS];
-	cg_viewblend_t colorblends[MAX_COLORBLENDS];
 	int64_t damageBlends[4];
 	int64_t fallEffectTime;
 	int64_t fallEffectRebounceTime;
@@ -451,7 +431,7 @@ void CG_LerpEntities( void );
 void CG_LerpGenericEnt( centity_t *cent );
 void CG_BBoxForEntityState( const entity_state_t * state, vec3_t mins, vec3_t maxs );
 
-void CG_AddColoredOutLineEffect( entity_t *ent, int effects, uint8_t r, uint8_t g, uint8_t b, uint8_t a );
+void CG_AddOutline( entity_t *ent, int effects, RGBA8 color );
 
 //
 // cg_draw.c
@@ -582,8 +562,6 @@ extern cvar_t *cg_cartoonEffects;
 
 extern cvar_t *cg_explosionsRing;
 extern cvar_t *cg_explosionsDust;
-extern cvar_t *cg_outlineModels;
-extern cvar_t *cg_outlinePlayers;
 
 extern cvar_t *cg_fov;
 extern cvar_t *cg_zoomfov;
@@ -604,7 +582,7 @@ extern cvar_t *cg_enemyForceModel;
 #define CG_Free( data ) Mem_Free( data )
 
 void CG_Init( const char *serverName, unsigned int playerNum,
-			  bool demoplaying, const char *demoName, bool pure, unsigned snapFrameTime );
+			  bool demoplaying, const char *demoName, unsigned snapFrameTime );
 void CG_Shutdown( void );
 
 #ifndef _MSC_VER
@@ -644,8 +622,6 @@ void CG_RegisterForceModels();
 const PlayerModelMetadata * CG_PModelForCentity( centity_t * cent );
 RGB8 CG_TeamColor( int team );
 Vec4 CG_TeamColorVec4( int team );
-void CG_TeamColor( int team, vec4_t color );
-void CG_TeamColorForEntity( int entNum, byte_vec4_t color );
 
 //
 // cg_view.c
@@ -668,14 +644,13 @@ extern cvar_t *cg_thirdPersonAngle;
 extern cvar_t *cg_thirdPersonRange;
 
 void CG_ResetKickAngles( void );
-void CG_ResetColorBlend( void );
 
 void CG_AddEntityToScene( entity_t *ent );
 void CG_StartKickAnglesEffect( vec3_t source, float knockback, float radius, int time );
 void CG_StartFallKickEffect( int bounceTime );
 void CG_ViewSmoothPredictedSteps( vec3_t vieworg );
 float CG_ViewSmoothFallKick( void );
-void CG_RenderView( int frameTime, int realFrameTime, int64_t monotonicTime, int64_t realTime, int64_t serverTime, unsigned extrapolationTime );
+void CG_RenderView( unsigned extrapolationTime );
 void CG_AddKickAngles( vec3_t viewangles );
 bool CG_ChaseStep( int step );
 bool CG_SwitchChaseCamMode( void );
@@ -688,7 +663,7 @@ void CG_ClearLocalEntities( void );
 void CG_AddLocalEntities( void );
 void CG_FreeLocalEntities( void );
 
-void CG_BulletExplosion( const vec3_t origin, const vec_t *dir, const trace_t *trace );
+void CG_BulletExplosion( const vec3_t origin, const float *dir, const trace_t *trace );
 void CG_BubbleTrail( const vec3_t start, const vec3_t end, int dist );
 void CG_ProjectileTrail( centity_t *cent );
 void CG_NewBloodTrail( centity_t *cent );
@@ -702,7 +677,7 @@ void CG_EBImpact( const vec3_t pos, const vec3_t dir, int surfFlags, int team );
 void CG_ImpactSmokePuff( const vec3_t origin, const vec3_t dir, float radius, float alpha, int time, int speed );
 void CG_BladeImpact( const vec3_t pos, const vec3_t dir );
 void CG_PModel_SpawnTeleportEffect( centity_t * cent, MatrixPalettes temp_pose );
-void CG_LaserGunImpact( const vec3_t pos, float radius, const vec3_t laser_dir, const vec4_t color );
+void CG_LaserGunImpact( const vec3_t pos, float radius, const vec3_t laser_dir, RGBA8 color );
 
 void CG_Dash( const entity_state_t *state );
 void CG_Explosion_Puff_2( const vec3_t pos, const vec3_t vel, int radius );
@@ -714,37 +689,10 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, int team );
 void DrawGibs();
 
 //
-// cg_decals.c
-//
-extern cvar_t *cg_addDecals;
-
-void CG_ClearDecals( void );
-int CG_SpawnDecal( const vec3_t origin, const vec3_t dir, float orient, float radius,
-				   float r, float g, float b, float a, float die, float fadetime, bool fadealpha, const Material * material );
-void CG_AddDecals( void );
-
-//
 // cg_effects.c
 //
-void CG_ClearEffects( void );
-
-void CG_AddLightToScene( vec3_t org, float radius, float r, float g, float b );
-void CG_AddDlights( void );
-void CG_AllocPlayerShadow( int entNum, const vec3_t origin, const vec3_t mins, const vec3_t maxs );
-void CG_AddPlayerShadows( void );
-
-void CG_ClearFragmentedDecals( void );
-void CG_AddFragmentedDecal( vec3_t origin, vec3_t dir, float orient, float radius,
-							float r, float g, float b, float a, const Material * material );
-
-void CG_AddParticles( void );
-void CG_ParticleEffect( const vec3_t org, const vec3_t dir, float r, float g, float b, int count );
-void CG_ParticleEffect2( const vec3_t org, const vec3_t dir, float r, float g, float b, int count );
 void CG_ParticleExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color );
-void CG_FlyEffect( centity_t *ent, const vec3_t origin );
 void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color );
-void CG_ImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, const Material * material );
-void CG_HighVelImpactPuffParticles( const vec3_t org, const vec3_t dir, int count, float scale, float r, float g, float b, float a, const Material * material );
 
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material );
 

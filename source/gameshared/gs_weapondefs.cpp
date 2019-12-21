@@ -93,7 +93,7 @@ gs_weapon_definition_t gs_weaponDefs[] =
 	},
 
 	{
-		"AK-69",
+		"SMG",
 		WEAP_MACHINEGUN,
 		{
 			AMMO_BULLETS,
@@ -103,12 +103,12 @@ gs_weapon_definition_t gs_weaponDefs[] =
 			//timings (in msecs)
 			WEAPONUP_FRAMETIME,             // weapon up frametime
 			WEAPONDOWN_FRAMETIME,           // weapon down frametime
-			200,                            // reload frametime
+			80,                            // reload frametime
 			6000,                           // projectile timeout
 			false,                          // smooth refire
 
 			//damages
-			10,                             // damage
+			4,                             // damage
 			0,                              // selfdamage ratio
 			40,                             // knockback
 			0,                              // splash radius

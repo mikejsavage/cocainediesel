@@ -277,53 +277,40 @@ static void Shaderpass_BlendFunc( Material * material, const char * name, const 
 	Shader_SkipLine( ptr );
 }
 
-static void Shaderpass_MapExt( Material * material, SamplerType sampler, const char ** ptr ) {
+static void Shaderpass_MapExt( Material * material, const char ** ptr ) {
 	const char * token = Shader_ParseString( ptr );
-
-	material->textures[ 0 ].texture = FindTexture( StringHash( token ) );
-	material->textures[ 0 ].sampler = sampler;
-	material->num_anim_frames = 0;
-	material->anim_fps = 0;
-}
-
-static void Shaderpass_AnimMapExt( Material * material, SamplerType sampler, const char ** ptr ) {
-	material->anim_fps = Shader_ParseFloat( ptr );
-	material->num_anim_frames = 0;
-
-	for( ;; ) {
-		const char *token = Shader_ParseString( ptr );
-		if( !token[0] ) {
-			break;
-		}
-		if( material->num_anim_frames < ARRAY_COUNT( material->textures ) ) {
-			material->textures[ material->num_anim_frames++ ].texture = FindTexture( StringHash( token ) );
-			material->textures[ material->num_anim_frames++ ].sampler = sampler;
-		}
-	}
-
-	if( material->num_anim_frames == 0 ) {
-		material->anim_fps = 0;
+	u64 idx;
+	if( textures_hashtable.get( StringHash( token ).hash, &idx ) ) {
+		material->texture = &textures[ idx ];
 	}
 }
+
+// static void Shaderpass_AnimMapExt( Material * material, SamplerType sampler, const char ** ptr ) {
+// 	material->anim_fps = Shader_ParseFloat( ptr );
+// 	material->num_anim_frames = 0;
+//
+// 	for( ;; ) {
+// 		const char *token = Shader_ParseString( ptr );
+// 		if( !token[0] ) {
+// 			break;
+// 		}
+// 		if( material->num_anim_frames < ARRAY_COUNT( material->textures ) ) {
+// 			material->textures[ material->num_anim_frames++ ].texture = FindTexture( StringHash( token ) );
+// 			material->textures[ material->num_anim_frames++ ].sampler = sampler;
+// 		}
+// 	}
+//
+// 	if( material->num_anim_frames == 0 ) {
+// 		material->anim_fps = 0;
+// 	}
+// }
 
 static void Shaderpass_Map( Material * material, const char * name, const char ** ptr ) {
-	Shaderpass_MapExt( material, SamplerType_Normal, ptr );
-}
-
-static void Shaderpass_ClampMap( Material * material, const char * name, const char ** ptr ) {
-	Shaderpass_MapExt( material, SamplerType_Clamp, ptr );
+	Shaderpass_MapExt( material, ptr );
 }
 
 static void Shaderpass_AnimMap( Material * material, const char * name, const char ** ptr ) {
-	Shaderpass_AnimMapExt( material, SamplerType_Normal, ptr );
-}
-
-static void Shaderpass_AlphaMaskClampMap( Material * material, const char * name, const char ** ptr ) {
-	Shaderpass_MapExt( material, SamplerType_ClampAlphaMask, ptr );
-}
-
-static void Shaderpass_AnimClampMap( Material * material, const char * name, const char ** ptr ) {
-	Shaderpass_AnimMapExt( material, SamplerType_Clamp, ptr );
+	// Shaderpass_AnimMapExt( material, ptr );
 }
 
 static void ColorNormalize( const vec3_t in, vec3_t out ) {
@@ -410,12 +397,12 @@ static void Shaderpass_TcMod( Material * material, const char * name, const char
 
 static const MaterialSpecKey shaderpasskeys[] = {
 	{ "alphagen", Shaderpass_AlphaGen },
-	{ "alphamaskclampmap", Shaderpass_AlphaMaskClampMap },
+	{ "alphamaskclampmap", Shaderpass_Map },
 	{ "alphatest", Shaderpass_AlphaTest },
-	{ "animclampmap", Shaderpass_AnimClampMap },
+	{ "animclampmap", Shaderpass_AnimMap },
 	{ "animmap", Shaderpass_AnimMap },
 	{ "blendfunc", Shaderpass_BlendFunc },
-	{ "clampmap", Shaderpass_ClampMap },
+	{ "clampmap", Shaderpass_Map },
 	{ "map", Shaderpass_Map },
 	{ "rgbgen", Shaderpass_RGBGen },
 	{ "tcmod", Shaderpass_TcMod },
@@ -498,20 +485,6 @@ static void ParseMaterial( Material * material, const char * name, const char **
 			break;
 		}
 	}
-
-	if( material->blend_func == BlendFunc_Disabled ) {
-		bool has_transparent_texture = false;
-		for( u8 i = 0; i < Max2( u8( 1 ), material->num_anim_frames ); i++ ) {
-			if( HasAlpha( material->textures[ i ].texture.format ) ) {
-				has_transparent_texture = true;
-				break;
-			}
-		}
-
-		if( has_transparent_texture ) {
-			material->blend_func = BlendFunc_Add;
-		}
-	}
 }
 
 static void AddTexture( u64 hash, const TextureConfig & config ) {
@@ -519,14 +492,22 @@ static void AddTexture( u64 hash, const TextureConfig & config ) {
 
 	Texture texture = NewTexture( config );
 
-	textures[ num_textures ] = texture;
-	textures_hashtable.add( hash, num_textures );
-	num_textures++;
+	u64 idx = num_textures;
+	if( !textures_hashtable.get( hash, &idx ) ) {
+		textures_hashtable.add( hash, num_textures );
 
-	materials[ num_materials ] = Material();
-	materials[ num_materials ].textures[ 0 ].texture = texture;
-	materials_hashtable.add( hash, num_materials );
-	num_materials++;
+		materials[ num_materials ] = Material();
+		materials[ num_materials ].texture = &textures[ num_textures ];
+		materials_hashtable.add( hash, num_materials );
+
+		num_textures++;
+		num_materials++;
+	}
+	else {
+		DeleteTexture( textures[ idx ] );
+	}
+
+	textures[ idx ] = texture;
 }
 
 static void LoadBuiltinTextures() {
@@ -596,49 +577,72 @@ static void LoadBuiltinTextures() {
 	}
 }
 
-static void LoadDiskTextures() {
+static void LoadTexture( const char * path ) {
 	ZoneScoped;
+	ZoneText( path, strlen( path ) );
 
-	for( const char * path : AssetPaths() ) {
-		const char * ext = COM_FileExtension( path );
-		if( ext == NULL || ( strcmp( ext, ".png" ) != 0 && strcmp( ext, ".jpg" ) != 0 ) )
-			continue;
+	assert( num_textures < ARRAY_COUNT( textures ) );
 
-		ZoneScopedN( "Load texture" );
-		ZoneText( path, strlen( path ) );
+	Span< const u8 > data = AssetBinary( path );
 
-		assert( num_textures < ARRAY_COUNT( textures ) );
-
-		Span< const u8 > data = AssetBinary( path );
-
-		int w, h, channels;
-		u8 * pixels;
-		{
-			ZoneScopedN( "stbi_load_from_memory" );
-			pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
-		}
-		defer { stbi_image_free( pixels ); };
-
-		if( pixels == NULL ) {
-			Com_Printf( S_COLOR_YELLOW "WARNING: couldn't load texture from %s\n", path );
-			continue;
-		}
-
-		constexpr TextureFormat formats[] = {
-			TextureFormat_R_U8,
-			TextureFormat_RA_U8,
-			TextureFormat_RGB_U8_sRGB,
-			TextureFormat_RGBA_U8_sRGB,
-		};
-
-		TextureConfig config;
-		config.width = checked_cast< u32 >( w );
-		config.height = checked_cast< u32 >( h );
-		config.data = pixels;
-		config.format = formats[ channels - 1 ];
-
-		AddTexture( Hash64( path, strlen( path ) - strlen( ext ) ), config );
+	int w, h, channels;
+	u8 * pixels;
+	{
+		ZoneScopedN( "stbi_load_from_memory" );
+		pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
 	}
+	defer { stbi_image_free( pixels ); };
+
+	if( pixels == NULL ) {
+		Com_Printf( S_COLOR_YELLOW "WARNING: couldn't load texture from %s\n", path );
+		return;
+	}
+
+	constexpr TextureFormat formats[] = {
+		TextureFormat_R_U8,
+		TextureFormat_RA_U8,
+		TextureFormat_RGB_U8_sRGB,
+		TextureFormat_RGBA_U8_sRGB,
+	};
+
+	TextureConfig config;
+	config.width = checked_cast< u32 >( w );
+	config.height = checked_cast< u32 >( h );
+	config.data = pixels;
+	config.format = formats[ channels - 1 ];
+
+	const char * ext = COM_FileExtension( path );
+	AddTexture( Hash64( path, strlen( path ) - strlen( ext ) ), config );
+}
+
+static void LoadMaterialFile( const char * path ) {
+	Span< const char > data = AssetString( path );
+
+	const char * ptr = data.ptr;
+	while( ptr != NULL ) {
+		const char * material_name = COM_ParseExt( &ptr, true );
+		if( strlen( material_name ) == 0 )
+			break;
+
+		u64 hash = HashMaterialName( material_name );
+		COM_ParseExt( &ptr, true ); // skip opening brace
+		const char * start = ptr;
+
+		u64 idx = num_materials;
+		if( !materials_hashtable.get( hash, &idx ) ) {
+			materials_hashtable.add( hash, idx );
+			num_materials++;
+		}
+
+		materials[ idx ] = Material();
+		materials[ idx ].texture = &missing_texture;
+		ParseMaterial( &materials[ idx ], material_name, &ptr );
+
+		material_locations[ idx ] = { start, ptr };
+		material_locations_hashtable.add( hash, idx );
+	}
+
+	material_locations_hashtable.clear();
 }
 
 void InitMaterials() {
@@ -650,7 +654,18 @@ void InitMaterials() {
 	world_material = { };
 
 	LoadBuiltinTextures();
-	LoadDiskTextures();
+
+	{
+		ZoneScopedN( "Load disk textures" );
+
+		for( const char * path : AssetPaths() ) {
+			const char * ext = COM_FileExtension( path );
+			if( ext == NULL || ( strcmp( ext, ".png" ) != 0 && strcmp( ext, ".jpg" ) != 0 ) )
+				continue;
+
+			LoadTexture( path );
+		}
+	}
 
 	{
 		ZoneScopedN( "Load materials" );
@@ -660,37 +675,32 @@ void InitMaterials() {
 			if( ext == NULL || strcmp( ext, ".shader" ) != 0 )
 				continue;
 
-			Span< const char > data = AssetString( path );
-
-			const char * ptr = data.ptr;
-			while( ptr != NULL ) {
-				const char * material_name = COM_ParseExt( &ptr, true );
-				if( strlen( material_name ) == 0 )
-					break;
-
-				u64 hash = HashMaterialName( material_name );
-				COM_ParseExt( &ptr, true ); // skip opening brace
-				const char * start = ptr;
-
-				u64 idx = num_materials;
-				if( !materials_hashtable.get( hash, &idx ) ) {
-					materials_hashtable.add( hash, idx );
-					num_materials++;
-				}
-
-				materials[ idx ] = Material();
-				ParseMaterial( &materials[ idx ], material_name, &ptr );
-
-				material_locations[ idx ] = { start, ptr };
-				material_locations_hashtable.add( hash, idx );
-			}
-
-			material_locations_hashtable.clear();
+			LoadMaterialFile( path );
 		}
 	}
 
 	missing_material = Material();
-	missing_material.textures[ 0 ].texture = missing_texture;
+	missing_material.texture = &missing_texture;
+}
+
+void HotloadMaterials() {
+	ZoneScoped;
+
+	for( const char * path : ModifiedAssetPaths() ) {
+		const char * ext = COM_FileExtension( path );
+		if( ext == NULL || ( strcmp( ext, ".png" ) != 0 && strcmp( ext, ".jpg" ) != 0 ) )
+			continue;
+
+		LoadTexture( path );
+	}
+
+	for( const char * path : ModifiedAssetPaths() ) {
+		const char * ext = COM_FileExtension( path );
+		if( ext == NULL || strcmp( ext, ".shader" ) != 0 )
+			continue;
+
+		LoadMaterialFile( path );
+	}
 }
 
 void ShutdownMaterials() {
@@ -699,21 +709,6 @@ void ShutdownMaterials() {
 	}
 
 	DeleteTexture( missing_texture );
-}
-
-bool TryFindTexture( StringHash name, Texture * texture ) {
-	u64 idx;
-	if( !textures_hashtable.get( name.hash, &idx ) )
-		return false;
-	*texture = textures[ idx ];
-	return true;
-}
-
-Texture FindTexture( StringHash name ) {
-	Texture texture;
-	if( !TryFindTexture( name, &texture ) )
-		return missing_texture;
-	return texture;
 }
 
 bool TryFindMaterial( StringHash name, const Material ** material ) {
@@ -845,8 +840,8 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		pipeline.write_depth = false;
 	}
 
-	pipeline.set_texture( "u_BaseTexture", material->textures[ 0 ].texture );
-	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( material->textures[ 0 ].texture.width, material->textures[ 0 ].texture.height ), material->alpha_cutoff, tcmod_row0, tcmod_row1 ) );
+	pipeline.set_texture( "u_BaseTexture", material->texture );
+	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( material->texture->width, material->texture->height ), material->alpha_cutoff, tcmod_row0, tcmod_row1 ) );
 
 	if( material->alpha_cutoff > 0 ) {
 		pipeline.shader = &shaders.standard_alphatest;

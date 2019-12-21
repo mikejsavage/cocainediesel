@@ -350,7 +350,7 @@ static void SV_Physics_Pusher( edict_t *ent ) {
 			part->avelocity[0] || part->avelocity[1] || part->avelocity[2] ) {
 			// object is moving
 			if( part->s.linearMovement ) {
-				GS_LinearMovement( &part->s, game.serverTime, move );
+				GS_LinearMovement( &part->s, svs.gametime, move );
 				VectorSubtract( move, part->s.origin, move );
 				VectorScale( part->avelocity, FRAMETIME, amove );
 			} else {
@@ -572,7 +572,7 @@ void SV_Physics_LinearProjectile( edict_t *ent ) {
 	mask = ( ent->r.clipmask ) ? ent->r.clipmask : MASK_SOLID;
 
 	// find its current position given the starting timeStamp
-	float endFlyTime = float( game.serverTime - ent->s.linearMovementTimeStamp ) * 0.001f;
+	float endFlyTime = float( svs.gametime - ent->s.linearMovementTimeStamp ) * 0.001f;
 	float startFlyTime = float( max( 0, game.prevServerTime - ent->s.linearMovementTimeStamp ) ) * 0.001f;
 
 	VectorMA( ent->s.linearMovementBegin, startFlyTime, ent->s.linearMovementVelocity, start );

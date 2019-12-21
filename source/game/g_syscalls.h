@@ -50,14 +50,6 @@ static inline const char *trap_GetConfigString( int num ) {
 	return GAME_IMPORT.GetConfigString( num );
 }
 
-static inline void trap_PureSound( const char *name ) {
-	GAME_IMPORT.PureSound( name );
-}
-
-static inline void trap_PureModel( const char *name ) {
-	GAME_IMPORT.PureModel( name );
-}
-
 static inline int trap_ModelIndex( const char *name ) {
 	return GAME_IMPORT.ModelIndex( name );
 }
@@ -125,14 +117,6 @@ static inline int trap_CM_LeafArea( int leafnum ) {
 }
 static inline int trap_CM_LeafsInPVS( int leafnum1, int leafnum2 ) {
 	return GAME_IMPORT.CM_LeafsInPVS( leafnum1, leafnum2 );
-}
-
-static inline ATTRIBUTE_MALLOC void *trap_MemAlloc( size_t size, const char *filename, int fileline ) {
-	return GAME_IMPORT.Mem_Alloc( size, filename, fileline );
-}
-
-static inline void trap_MemFree( void *data, const char *filename, int fileline ) {
-	GAME_IMPORT.Mem_Free( data, filename, fileline );
 }
 
 // cvars

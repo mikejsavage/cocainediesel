@@ -60,9 +60,6 @@ cvar_t *cg_projectileFireTrailAlpha;
 cvar_t *cg_bloodTrailAlpha;
 cvar_t *cg_explosionsRing;
 cvar_t *cg_explosionsDust;
-cvar_t *cg_outlineModels;
-cvar_t *cg_outlineWorld;
-cvar_t *cg_outlinePlayers;
 cvar_t *cg_fov;
 cvar_t *cg_zoomfov;
 cvar_t *cg_voiceChats;
@@ -212,9 +209,7 @@ static void CG_InitGameShared( void ) {
 * CG_CopyString
 */
 char *_CG_CopyString( const char *in, const char *filename, int fileline ) {
-	char *out;
-
-	out = ( char * )CG_Malloc( strlen( in ) + 1 );
+	char * out = ( char * )_Mem_AllocExt( cg_mempool, strlen( in ) + 1, 16, 1, 0, 0, filename, fileline );
 	strcpy( out, in );
 	return out;
 }
@@ -450,8 +445,6 @@ static void CG_RegisterVariables( void ) {
 	cg_bloodTrailAlpha =    trap_Cvar_Get( "cg_bloodTrailAlpha", "1.0", CVAR_ARCHIVE );
 	cg_explosionsRing = trap_Cvar_Get( "cg_explosionsRing", "0", CVAR_ARCHIVE );
 	cg_explosionsDust =    trap_Cvar_Get( "cg_explosionsDust", "0", CVAR_ARCHIVE );
-	cg_outlineModels =  trap_Cvar_Get( "cg_outlineModels", "1", CVAR_ARCHIVE );
-	cg_outlinePlayers = trap_Cvar_Get( "cg_outlinePlayers", "1", CVAR_ARCHIVE );
 	cg_showObituaries = trap_Cvar_Get( "cg_showObituaries", va( "%i", CG_OBITUARY_HUD | CG_OBITUARY_CENTER ), CVAR_ARCHIVE );
 	cg_damageNumbers = trap_Cvar_Get( "cg_damageNumbers", "1", CVAR_ARCHIVE );
 	cg_autoaction_demo =    trap_Cvar_Get( "cg_autoaction_demo", "0", CVAR_ARCHIVE );
@@ -628,13 +621,10 @@ void CG_Reset( void ) {
 	CG_ResetPModels();
 
 	CG_ResetKickAngles();
-	CG_ResetColorBlend();
 	CG_ResetDamageIndicator();
 
 	CG_SC_ResetObituaries();
 
-	CG_ClearDecals();
-	CG_ClearEffects();
 	CG_ClearLocalEntities();
 
 	// start up announcer events queue from clean
@@ -645,9 +635,6 @@ void CG_Reset( void ) {
 	CG_ClearPointedNum();
 
 	CG_ClearAwards();
-
-	cg.time = 0;
-	cg.realTime = 0;
 
 	chaseCam.key_pressed = false;
 
@@ -663,7 +650,7 @@ void ShutdownPhysics(); // TODO
 * CG_Init
 */
 void CG_Init( const char *serverName, unsigned int playerNum,
-			  bool demoplaying, const char *demoName, bool pure,
+			  bool demoplaying, const char *demoName,
 			  unsigned snapFrameTime ) {
 	cg_mempool = _Mem_AllocPool( NULL, "CGame", MEMPOOL_CLIENTGAME, __FILE__, __LINE__ );
 
@@ -673,9 +660,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	memset( &cgs, 0, sizeof( cg_static_t ) );
 
 	memset( cg_entities, 0, sizeof( cg_entities ) );
-#ifdef PURE_CHEAT
-	CG_Printf( S_COLOR_MAGENTA "Hi, I'm an unpure bitch 7\n" );
-#endif
 
 	srand( time( NULL ) );
 
@@ -688,9 +672,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	// demo
 	cgs.demoPlaying = demoplaying;
 	cgs.demoName = demoName;
-
-	// whether to only allow pure files
-	cgs.pure = pure;
 
 	cgs.snapFrameTime = snapFrameTime;
 
@@ -718,9 +699,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	CG_ValidateItemList();
 
 	CG_InitHUD();
-
-	CG_ClearDecals();
-	CG_ClearEffects();
 
 	InitParticles();
 	InitPersistentBeams();

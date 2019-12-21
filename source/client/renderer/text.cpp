@@ -30,6 +30,7 @@ struct Font {
 	u32 path_hash;
 	FT_Face face; // TODO: unused. might get used for kerning?
 	Texture atlas;
+	Material material;
 
 	float glyph_padding;
 	float pixel_range;
@@ -57,6 +58,7 @@ bool InitText() {
 
 void ShutdownText() {
 	for( size_t i = 0; i < num_fonts; i++ ) {
+		DeleteTexture( fonts[ i ].atlas );
 		FT_Done_Face( fonts[ i ].face );
 	}
 	FT_Done_FreeType( freetype );
@@ -120,6 +122,7 @@ const Font * RegisterFont( const char * path ) {
 		config.format = TextureFormat_RGB_U8;
 
 		font->atlas = NewTexture( config );
+		font->material.texture = &font->atlas;
 	}
 
 	// load ttf
@@ -149,17 +152,17 @@ static void DrawText( const Font * font, float pixel_size, Span< const char > st
 
 	y += pixel_size * font->ascent;
 
-	ImGuiShaderAndTexture sat;
-	sat.shader = &shaders.text;
-	sat.texture = font->atlas;
-	sat.uniform_name = "u_Text";
-	sat.uniform_block = UploadUniformBlock(
+	ImGuiShaderAndMaterial sam;
+	sam.shader = &shaders.text;
+	sam.material = &font->material;
+	sam.uniform_name = "u_Text";
+	sam.uniform_block = UploadUniformBlock(
 		color, border_color,
 		Vec2( font->atlas.width, font->atlas.height ),
 		font->pixel_range, border ? 1 : 0 );
 
 	ImDrawList * bg = ImGui::GetBackgroundDrawList();
-	bg->PushTextureID( sat );
+	bg->PushTextureID( sam );
 
 	u32 state = 0;
 	for( size_t i = 0; i < str.n; i++ ) {
@@ -175,10 +178,10 @@ static void DrawText( const Font * font, float pixel_size, Span< const char > st
 			// TODO: this is bogus. it should expand glyphs by 1 or
 			// 2 pixels to allow for border/antialiasing, up to a
 			// limit determined by font->glyph_padding
-			Vec2 mins = Vec2( x, y ) + pixel_size * ( Vec2( glyph->bounds.mins.x, -glyph->bounds.maxs.y ) - font->glyph_padding );
-			Vec2 maxs = Vec2( x, y ) + pixel_size * ( Vec2( glyph->bounds.maxs.x, -glyph->bounds.mins.y ) + font->glyph_padding );
+			Vec2 mins = Vec2( x, y ) + pixel_size * ( glyph->bounds.mins - font->glyph_padding );
+			Vec2 maxs = Vec2( x, y ) + pixel_size * ( glyph->bounds.maxs + font->glyph_padding );
 			bg->PrimReserve( 6, 4 );
-			bg->PrimRectUV( mins, maxs, Vec2( glyph->uv_bounds.mins.x, glyph->uv_bounds.maxs.y ), Vec2( glyph->uv_bounds.maxs.x, glyph->uv_bounds.mins.y ), IM_COL32_WHITE );
+			bg->PrimRectUV( mins, maxs, glyph->uv_bounds.mins, glyph->uv_bounds.maxs, IM_COL32_WHITE );
 		}
 
 		x += pixel_size * glyph->advance;

@@ -342,34 +342,13 @@ static bool NET_UDP_SendPacket( const socket_t *socket, const void *data, size_t
 */
 static bool NET_IP_OpenSocket( socket_t *sock, const netadr_t *address, socket_type_t socktype, bool server ) {
 	int newsocket;
-	const char *proto, *stype;
 
 	assert( sock && !sock->open );
 	assert( address );
+	assert( address->type == NA_IP || address->type == NA_IP6 );
+	assert( socktype == SOCKET_UDP || socktype == SOCKET_TCP );
 
-	if( address->type == NA_IP ) {
-		proto = "IP";
-	} else if( address->type == NA_IP6 ) {
-		proto = "IPv6";
-	} else {
-		NET_SetErrorString( "Invalid address type" );
-		return false;
-	}
-
-	if( socktype == SOCKET_UDP ) {
-		stype = "UDP";
-	}
-#ifdef TCP_SUPPORT
-	else if( socktype == SOCKET_TCP ) {
-		stype = "TCP";
-	}
-#endif
-	else {
-		NET_SetErrorString( "Invalid socket type" );
-		return false;
-	}
-
-	if( ( newsocket = OpenSocket( socktype, ( address->type == NA_IP6 ? true : false ) ) ) == INVALID_SOCKET ) {
+	if( ( newsocket = OpenSocket( socktype, address->type == NA_IP6 ) ) == INVALID_SOCKET ) {
 		return false;
 	}
 

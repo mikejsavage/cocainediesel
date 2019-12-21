@@ -1,10 +1,13 @@
-#include <algorithm>
 #include <stdio.h>
+#include <string.h>
 #include "TracyCallstack.hpp"
 
 #ifdef TRACY_HAS_CALLSTACK
 
 #if TRACY_HAS_CALLSTACK == 1
+#  ifndef NOMINMAX
+#    define NOMINMAX
+#  endif
 #  include <windows.h>
 #  ifdef _MSC_VER
 #    pragma warning( push )
@@ -14,7 +17,7 @@
 #  ifdef _MSC_VER
 #    pragma warning( pop )
 #  endif
-#elif TRACY_HAS_CALLSTACK == 2 || TRACY_HAS_CALLSTACK == 3
+#elif TRACY_HAS_CALLSTACK == 2 || TRACY_HAS_CALLSTACK == 3 || TRACY_HAS_CALLSTACK == 6
 #  include "../libbacktrace/backtrace.hpp"
 #  include <dlfcn.h>
 #  include <cxxabi.h>
@@ -86,7 +89,8 @@ CallstackEntryData DecodeCallstackPtr( uint64_t ptr )
     int write;
     const auto proc = GetCurrentProcess();
 #ifndef __CYGWIN__
-    const auto inlineNum = std::min<DWORD>( MaxCbTrace - 1, SymAddrIncludeInlineTrace( proc, ptr ) );
+    DWORD inlineNum = SymAddrIncludeInlineTrace( proc, ptr );
+    if( inlineNum > MaxCbTrace - 1 ) inlineNum = MaxCbTrace - 1;
     DWORD ctx = 0;
     DWORD idx;
     BOOL doInline = FALSE;
@@ -308,7 +312,7 @@ CallstackEntryData DecodeCallstackPtr( uint64_t ptr )
     return { &cb, 1 };
 }
 
-#elif TRACY_HAS_CALLSTACK == 2 || TRACY_HAS_CALLSTACK == 3
+#elif TRACY_HAS_CALLSTACK == 2 || TRACY_HAS_CALLSTACK == 3 || TRACY_HAS_CALLSTACK == 6
 
 enum { MaxCbTrace = 16 };
 

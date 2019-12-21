@@ -151,7 +151,7 @@ static int CG_GetFPS( const void *parameter ) {
 		cg_showFPS->modified = false;
 	}
 
-	frameTimes[cg.frameCount & FPSSAMPLESMASK] = cg.realFrameTime;
+	frameTimes[cg.frameCount & FPSSAMPLESMASK] = cls.realFrameTime;
 
 	float average = 0.0f;
 	for( size_t i = 0; i < ARRAY_COUNT( frameTimes ); i++ ) {
@@ -194,8 +194,8 @@ static int CG_GetDamageIndicatorDirValue( const void *parameter ) {
 	float frac = 0;
 	int index = (intptr_t)parameter;
 
-	if( cg.damageBlends[index] > cg.time && !cg.view.thirdperson ) {
-		frac = Clamp01( ( cg.damageBlends[index] - cg.time ) / 300.0f );
+	if( cg.damageBlends[index] > cl.serverTime && !cg.view.thirdperson ) {
+		frac = Clamp01( ( cg.damageBlends[index] - cl.serverTime ) / 300.0f );
 	}
 
 	return frac * 1000;
@@ -1063,7 +1063,7 @@ void CG_SC_Obituary( void ) {
 	cg_obituaries_current = ( cg_obituaries_current + 1 ) % MAX_OBITUARIES;
 	current = &cg_obituaries[cg_obituaries_current];
 
-	current->time = cg.monotonicTime;
+	current->time = cls.monotonicTime;
 	if( victim ) {
 		Q_strncpyz( current->victim, victim->name, sizeof( current->victim ) );
 		current->victim_team = cg_entities[victimNum].current.team;
@@ -1134,7 +1134,7 @@ static void CG_DrawObituaries(
 	int num = 0;
 	int i = next;
 	do {
-		if( cg_obituaries[i].type != OBITUARY_NONE && cg.monotonicTime - cg_obituaries[i].time <= 5000 ) {
+		if( cg_obituaries[i].type != OBITUARY_NONE && cls.monotonicTime - cg_obituaries[i].time <= 5000 ) {
 			num++;
 		}
 		if( ++i >= MAX_OBITUARIES ) {
@@ -1163,7 +1163,7 @@ static void CG_DrawObituaries(
 			i = 0;
 		}
 
-		if( obr->type == OBITUARY_NONE || cg.monotonicTime - obr->time > 5000 ) {
+		if( obr->type == OBITUARY_NONE || cls.monotonicTime - obr->time > 5000 ) {
 			continue;
 		}
 
@@ -1273,7 +1273,7 @@ static void CG_DrawAwards( int x, int y, Alignment alignment, float font_size, V
 			break;
 		}
 
-		if( cg.award_times[current % MAX_AWARD_LINES] + MAX_AWARD_DISPLAYTIME < cg.time ) {
+		if( cg.award_times[current % MAX_AWARD_LINES] + MAX_AWARD_DISPLAYTIME < cl.serverTime ) {
 			break;
 		}
 
@@ -1562,26 +1562,51 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		if( !CG_IsWeaponInList( i ) )
 			continue;
 
-		int curx = CG_HorizontalAlignForWidth( x + offx * drawn_weapons + ( selected_found ? iw*SEL_WEAP_X_OFFSET : 0.f ), alignment, total_width );
+		int curx = CG_HorizontalAlignForWidth( x + offx * drawn_weapons, alignment, total_width );
 		int cury = CG_VerticalAlignForHeight( y + offy * drawn_weapons, alignment, total_height );
 
 		int curiw = iw;
 		int curih = ih;
 
-		int ammo = cg.predictedPlayerState.inventory[ AMMO_GUNBLADE + i - WEAP_GUNBLADE ];
-
 		if( CG_IsWeaponSelected( i ) ) {
 			selected_found = true;
-			cury -= ih*SEL_WEAP_X_OFFSET;
-
-			curiw += iw*SEL_WEAP_X_OFFSET;
-			curih += ih*SEL_WEAP_X_OFFSET;
+			cury -= ih * SEL_WEAP_X_OFFSET;
 		}
 
-		Draw2DBox( curx, cury, curiw, curih, CG_GetWeaponIcon( i ) );
+		Vec4 color = Vec4( 1.0f );
+		Vec4 color_bg = Vec4( 0.5f );
+		// if ( i != WEAP_GUNBLADE ) {
+		int ammo = cg.predictedPlayerState.inventory[ AMMO_GUNBLADE + i - WEAP_GUNBLADE ];
+
+		int ammo_in_clip = 0;
+
+		
+		if ( i != WEAP_GUNBLADE ) {
+			int capacity = GS_FindItemByTag( i )->capacity;
+			int clips = GS_FindItemByTag( i )->clips;
+			int ammo_max =  clips * capacity;
+			ammo_in_clip = capacity - ((ammo_max - ammo) % capacity);
+
+			color = Vec4( 0.0f, 1.0f, 0.0f, 1.0f );
+			color_bg = Vec4( 0.0f, 0.5f, 0.0f, 1.0f );
+
+			int ammo_in_clip_pct = ( 100  * ammo_in_clip + capacity / 2) /capacity;
+			if ( ammo_in_clip_pct <= 67) {
+				color = Vec4( 1.0f, 0.5f, 0.0f, 1.0f );
+				color_bg = Vec4( 0.5f, 0.25f, 0.0f, 1.0f );
+			}
+			if ( ammo_in_clip_pct <= 34) {
+				color = Vec4( 1.0f, 0.0f, 0.0f, 1.0f );		
+				color_bg = Vec4( 0.5f, 0.0f, 0.0f, 1.0f );
+			}	
+		}
+
+		Draw2DBox( curx, cury, curiw, curih, cgs.white_material, color );
+		Draw2DBox( curx + roundf( curiw * 0.03f ), cury + roundf ( curih * 0.03f ), roundf( curiw * 0.95f ), roundf( curih * 0.95f ), cgs.white_material, color_bg );
+		Draw2DBox( curx + roundf( curiw * 0.16f ), cury + roundf ( curih * 0.16f ), roundf( curiw * 0.69f ), roundf( curiw * 0.69f ), CG_GetWeaponIcon( i ), color );
 
 		if( i != WEAP_GUNBLADE ) {
-			DrawText( GetHUDFont(), font_size + (curiw - iw)/4, va( "%i", ammo ), Alignment_LeftBottom, curx + curiw*0.15f, cury + curih*0.85f, layout_cursor_color, layout_cursor_font_border );
+			DrawText( GetHUDFont(), font_size + (curiw - iw)/4, va( "%i", ammo_in_clip ), Alignment_LeftBottom, curx + curiw*0.15f, cury + curih*0.85f, layout_cursor_color, layout_cursor_font_border );
 		}
 
 		drawn_weapons++;
@@ -1809,10 +1834,10 @@ static bool CG_LFuncDrawPlayerIcons( struct cg_layoutnode_s *argumentnode, int n
 	int total = atoi( cgs.configStrings[ total_index ] );
 	Vec4 team_color = CG_TeamColorVec4( team );
 
-	Texture icon = FindTexture( "gfx/hud/guy" );
+	const Material * icon = FindMaterial( "gfx/hud/guy" );
 
 	float height = layout_cursor_font_size;
-	float width = float( icon.width ) / float( icon.height ) * height;
+	float width = float( icon->texture->width ) / float( icon->texture->height ) * height;
 	float padding = width * 0.25f;
 
 	float x = layout_cursor_x;

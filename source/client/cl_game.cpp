@@ -187,7 +187,6 @@ void CL_GameModule_Init( void ) {
 	import.FS_Write = FS_Write;
 	import.FS_Print = FS_Print;
 	import.FS_FCloseFile = FS_FCloseFile;
-	import.FS_IsPureFile = FS_IsPureFile;
 
 	import.Key_GetBindingBuf = Key_GetBindingBuf;
 	import.Key_KeynumToString = Key_KeynumToString;
@@ -214,9 +213,7 @@ void CL_GameModule_Init( void ) {
 	cge = GetCGameAPI( &import );
 
 	start = Sys_Milliseconds();
-	cge->Init( cls.servername, cl.playernum,
-			   cls.demo.playing, cls.demo.playing ? cls.demo.filename : "",
-			   cls.sv_pure, cl.snapFrameTime );
+	cge->Init( cls.servername, cl.playernum, cls.demo.playing, cls.demo.playing ? cls.demo.filename : "", cl.snapFrameTime );
 
 	Com_DPrintf( "CL_GameModule_Init: %.2f seconds\n", (float)( Sys_Milliseconds() - start ) * 0.001f );
 
@@ -293,8 +290,7 @@ bool CL_GameModule_NewSnapshot( int pendingSnapshot ) {
 */
 void CL_GameModule_RenderView() {
 	if( cge && cls.cgameActive ) {
-		cge->RenderView( cls.frametime, cls.realFrameTime, cls.monotonicTime, cls.realtime, cl.serverTime,
-						 cl_extrapolate->integer && !cls.demo.playing ? cl_extrapolationTime->integer : 0 );
+		cge->RenderView( cl_extrapolate->integer && !cls.demo.playing ? cl_extrapolationTime->integer : 0 );
 	}
 }
 

@@ -31,8 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //FIXME: this use of "area" is different from the bsp file use
 //===============================================================================
 
-#define EDICT_NUM( n ) ( (edict_t *)( game.edicts + n ) )
-#define NUM_FOR_EDICT( e ) ( ENTNUM( e ) )
+#define GAME_EDICT_NUM( n ) ( (edict_t *)( game.edicts + n ) )
 
 #define AREA_GRID       128
 #define AREA_GRIDNODES  ( AREA_GRID * AREA_GRID )
@@ -86,7 +85,7 @@ void GClip_BackUpCollisionFrame( void ) {
 	// fixme: should check for any validation here?
 
 	cframe = &sv_collisionframes[sv_collisionFrameNum & CFRAME_UPDATE_MASK];
-	cframe->timestamp = game.serverTime;
+	cframe->timestamp = svs.gametime;
 	cframe->framenum = sv_collisionFrameNum;
 	sv_collisionFrameNum++;
 
@@ -172,7 +171,7 @@ static c4clipedict_t *GClip_GetClipEdictForDeltaTime( int entNum, int deltaTime 
 			break;
 		}
 
-		if( game.serverTime >= cframe->timestamp + backTime ) {
+		if( svs.gametime >= cframe->timestamp + backTime ) {
 			break;
 		}
 	}
@@ -188,19 +187,19 @@ static c4clipedict_t *GClip_GetClipEdictForDeltaTime( int entNum, int deltaTime 
 	*clipent = cframe->clipEdicts[entNum];
 
 	// if we found an older than desired backtime frame, interpolate to find a more precise position.
-	if( game.serverTime > cframe->timestamp + backTime ) {
+	if( svs.gametime > cframe->timestamp + backTime ) {
 		float lerpFrac;
 
 		if( bf == 1 ) {
 			// interpolate from 1st backed up to current
-			lerpFrac = (float)( ( game.serverTime - backTime ) - cframe->timestamp )
-					   / (float)( game.serverTime - cframe->timestamp );
+			lerpFrac = (float)( ( svs.gametime - backTime ) - cframe->timestamp )
+					   / (float)( svs.gametime - cframe->timestamp );
 			clipentNewer.r = ent->r;
 			clipentNewer.s = ent->s;
 		} else {
 			// interpolate between 2 backed up
 			c4frame_t *cframeNewer = &sv_collisionframes[( cframenum - ( bf - 1 ) ) & CFRAME_UPDATE_MASK];
-			lerpFrac = (float)( ( game.serverTime - backTime ) - cframe->timestamp )
+			lerpFrac = (float)( ( svs.gametime - backTime ) - cframe->timestamp )
 					   / (float)( cframeNewer->timestamp - cframe->timestamp );
 			clipentNewer = cframeNewer->clipEdicts[entNum];
 		}
@@ -306,8 +305,8 @@ static void GClip_LinkEntity_AreaGrid( areagrid_t *areagrid, edict_t *ent ) {
 	link_t *grid;
 	int igrid[3], igridmins[3], igridmaxs[3], gridnum, entitynumber;
 
-	entitynumber = NUM_FOR_EDICT( ent );
-	if( entitynumber <= 0 || entitynumber >= game.maxentities || EDICT_NUM( entitynumber ) != ent ) {
+	entitynumber = ENTNUM( ent );
+	if( entitynumber <= 0 || entitynumber >= game.maxentities || GAME_EDICT_NUM( entitynumber ) != ent ) {
 		Com_Printf( "GClip_LinkEntity_AreaGrid: invalid edict %p "
 					"(edicts is %p, edict compared to prog->edicts is %i)\n",
 					(void *)ent, game.edicts, entitynumber );
@@ -749,7 +748,7 @@ typedef struct {
 /*
 * GClip_ClipMoveToEntities
 */
-/*static*/ void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
+static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
 	int i, num;
 	c4clipedict_t *touch;
 	int touchlist[MAX_EDICTS];
@@ -1116,7 +1115,7 @@ int GClip_FindInRadius4D( vec3_t org, float rad, int *list, int maxcount, int ti
 	num = GClip_AreaEdicts( mins, maxs, touch, MAX_EDICTS, AREA_ALL, timeDelta );
 
 	for( i = 0; i < num; i++ ) {
-		check = EDICT_NUM( touch[i] );
+		check = GAME_EDICT_NUM( touch[i] );
 
 		// make absolute mins and maxs
 		if( !BoundsOverlapSphere( check->r.absmin, check->r.absmax, org, rad ) ) {

@@ -133,7 +133,7 @@ void SCR_InitScreen( void ) {
 * SCR_RegisterConsoleMedia
 */
 void SCR_RegisterConsoleMedia() {
-	cls.whiteTexture = FindTexture( "$whiteimage" );
+	cls.whiteTexture = FindMaterial( "$whiteimage" );
 }
 
 //============================================================================

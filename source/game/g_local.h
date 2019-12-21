@@ -17,20 +17,15 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-// g_local.h -- local definitions for game module
+#pragma once
 
-#include "gameshared/q_arch.h"
-#include "gameshared/q_math.h"
-#include "gameshared/q_shared.h"
-#include "gameshared/q_cvar.h"
-#include "gameshared/q_comref.h"
-#include "gameshared/q_collision.h"
-
+#include "qcommon/qcommon.h"
 #include "gameshared/gs_public.h"
-#include "g_public.h"
-#include "g_syscalls.h"
-#include "g_gametypes.h"
-#include "g_ai.h"
+#include "game/g_public.h"
+#include "game/g_syscalls.h"
+#include "game/g_gametypes.h"
+#include "game/g_ai.h"
+#include "server/server.h"
 
 #include "angelscript/angelscript.h"
 
@@ -106,8 +101,6 @@ typedef struct {
 
 	unsigned int frametime;         // in milliseconds
 	int snapFrameTime;              // in milliseconds
-	int64_t realtime;               // actual time, set with Sys_Milliseconds every frame
-	int64_t serverTime;             // actual time in the server
 	int64_t prevServerTime;         // last frame's server time
 
 	int numBots;
@@ -193,6 +186,8 @@ extern game_locals_t game;
 extern gs_state_t server_gs;
 extern level_locals_t level;
 extern spawn_temp_t st;
+
+extern mempool_t *gamepool;
 
 extern int meansOfDeath;
 extern vec3_t knockbackOfDeath;
@@ -390,7 +385,7 @@ void G_PrecacheItems( void );
 void G_FireWeapon( edict_t *ent, int parm );
 const gsitem_t *GetItemByTag( int tag );
 bool Add_Ammo( gclient_t *client, const gsitem_t *item, int count, bool add_it );
-bool G_PickupItem( edict_t *other, const gsitem_t *it, int flags, int count, const int *invpack );
+bool G_PickupItem( edict_t *other, const gsitem_t *it, int flags, int count );
 void G_UseItem( struct edict_s *ent, const gsitem_t *item );
 
 //
@@ -416,7 +411,6 @@ void G_LevelFreePool( void );
 void *_G_LevelMalloc( size_t size, const char *filename, int fileline );
 void _G_LevelFree( void *data, const char *filename, int fileline );
 char *_G_LevelCopyString( const char *in, const char *filename, int fileline );
-void G_LevelGarbageCollect( void );
 
 void G_StringPoolInit( void );
 const char *_G_RegisterLevelString( const char *string, const char *filename, int fileline );
@@ -426,8 +420,6 @@ char *G_AllocCreateNamesList( const char *path, const char *extension, const cha
 
 char *_G_CopyString( const char *in, const char *filename, int fileline );
 #define G_CopyString( in ) _G_CopyString( in, __FILE__, __LINE__ )
-
-void G_ProjectSource( vec3_t point, vec3_t distance, vec3_t forward, vec3_t right, vec3_t result );
 
 void G_AddEvent( edict_t *ent, int event, int parm, bool highPriority );
 edict_t *G_SpawnEvent( int event, int parm, vec3_t origin );
@@ -457,11 +449,6 @@ edict_t *G_PositionedSound( vec3_t origin, int channel, int soundindex, float at
 void G_GlobalSound( int channel, int soundindex );
 void G_LocalSound( edict_t *owner, int channel, int soundindex );
 
-void G_PureSound( const char *sound );
-void G_PureModel( const char *model );
-
-extern game_locals_t game;
-
 #define G_ISGHOSTING( x ) ( ( ( x )->s.modelindex == 0 ) && ( ( x )->r.solid == SOLID_NOT ) )
 #define ISBRUSHMODEL( x ) ( ( ( x > 0 ) && ( (int)x < trap_CM_NumInlineModels() ) ) ? true : false )
 
@@ -480,7 +467,7 @@ edict_t *G_PlayerForText( const char *text );
 
 void G_PrecacheWeapondef( int weapon, firedef_t *firedef );
 
-void G_SetBoundsForSpanEntity( edict_t *ent, vec_t size );
+void G_SetBoundsForSpanEntity( edict_t *ent, float size );
 
 //
 // g_callvotes.c
@@ -678,8 +665,8 @@ int G_BoxSlideMove( edict_t *ent, int contentmask, float slideBounce, float fric
 //
 
 // memory management
-#define G_Malloc( size ) trap_MemAlloc( size, __FILE__, __LINE__ )
-#define G_Free( mem ) trap_MemFree( mem, __FILE__, __LINE__ )
+#define G_Malloc( size ) _Mem_AllocExt( gamepool, size, 16, 1, 0, 0, __FILE__, __LINE__ )
+#define G_Free( mem ) Mem_Free( mem )
 
 #define G_LevelMalloc( size ) _G_LevelMalloc( ( size ), __FILE__, __LINE__ )
 #define G_LevelFree( data ) _G_LevelFree( ( data ), __FILE__, __LINE__ )
@@ -704,7 +691,7 @@ void G_Timeout_Reset( void );
 // g_frame.c
 //
 void G_CheckCvars( void );
-void G_RunFrame( unsigned int msec, int64_t serverTime );
+void G_RunFrame( unsigned int msec );
 void G_SnapClients( void );
 void G_ClearSnap( void );
 void G_SnapFrame( void );
@@ -714,9 +701,9 @@ void G_SnapFrame( void );
 // g_spawn.c
 //
 bool G_CallSpawn( edict_t *ent );
-bool G_RespawnLevel( void );
+void G_RespawnLevel( void );
 void G_ResetLevel( void );
-void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTime, int64_t serverTime, int64_t realTime );
+void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTime );
 const char *G_GetEntitySpawnKey( const char *key, edict_t *self );
 
 //
@@ -1010,7 +997,6 @@ struct edict_s {
 	vec3_t color;
 
 	const gsitem_t *item;       // for bonus items
-	int invpak[AMMO_TOTAL];     // small inventory-like for dropped backpacks. Handles weapons and ammos of both types
 
 	// common data blocks
 	moveinfo_t moveinfo;        // func movers movement

@@ -11,10 +11,18 @@ in vec2 a_TexCoord;
 
 in vec3 a_ParticlePosition;
 in float a_ParticleScale;
+in float a_ParticleT;
 in vec4 a_ParticleColor;
 
+uniform sampler2D u_GradientTexture;
+
+layout( std140 ) uniform u_GradientMaterial {
+	float u_GradientHalfPixel;
+};
+
 void main() {
-	v_Color = sRGBToLinear( a_ParticleColor );
+	float uv = mix( u_GradientHalfPixel, a_ParticleT, 1.0 - u_GradientHalfPixel );
+	v_Color = sRGBToLinear( a_ParticleColor ) * qf_texture( u_GradientTexture, vec2( uv, 0.5 ) );
 	v_TexCoord = a_TexCoord;
 
 	vec3 camera_right = vec3( u_V[ 0 ].x, u_V[ 1 ].x, u_V[ 2 ].x );

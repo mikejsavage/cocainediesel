@@ -24,7 +24,6 @@ void G_AssignMoverSounds( edict_t *ent, const char *start, const char *move, con
 	if( st.noise && Q_stricmp( st.noise, "default" ) ) {
 		if( Q_stricmp( st.noise, "silent" ) ) {
 			ent->moveinfo.sound_middle = trap_SoundIndex( st.noise );
-			G_PureSound( st.noise );
 		}
 	} else if( move ) {
 		ent->moveinfo.sound_middle = trap_SoundIndex( move );
@@ -33,7 +32,6 @@ void G_AssignMoverSounds( edict_t *ent, const char *start, const char *move, con
 	if( st.noise_start && Q_stricmp( st.noise_start, "default" ) ) {
 		if( Q_stricmp( st.noise_start, "silent" ) ) {
 			ent->moveinfo.sound_start = trap_SoundIndex( st.noise_start );
-			G_PureSound( st.noise_start );
 		}
 	} else if( start ) {
 		ent->moveinfo.sound_start = trap_SoundIndex( start );
@@ -42,7 +40,6 @@ void G_AssignMoverSounds( edict_t *ent, const char *start, const char *move, con
 	if( st.noise_stop && Q_stricmp( st.noise_stop, "default" ) ) {
 		if( Q_stricmp( st.noise_stop, "silent" ) ) {
 			ent->moveinfo.sound_end = trap_SoundIndex( st.noise_stop );
-			G_PureSound( st.noise_stop );
 		}
 	} else if( stop ) {
 		ent->moveinfo.sound_end = trap_SoundIndex( stop );
@@ -97,7 +94,7 @@ static void Move_UpdateLinearVelocity( edict_t *ent, float dist, int speed ) {
 
 	VectorCopy( ent->moveinfo.dest, ent->s.linearMovementEnd );
 	VectorCopy( ent->s.origin, ent->s.linearMovementBegin );
-	ent->s.linearMovementTimeStamp = game.serverTime - game.frametime;
+	ent->s.linearMovementTimeStamp = svs.gametime - game.frametime;
 	ent->s.linearMovementDuration = duration;
 }
 
@@ -112,7 +109,7 @@ static void Move_Done( edict_t *ent ) {
 static void Move_Watch( edict_t *ent ) {
 	int moveTime;
 
-	moveTime = game.serverTime - ent->s.linearMovementTimeStamp;
+	moveTime = svs.gametime - ent->s.linearMovementTimeStamp;
 	if( moveTime >= (int)ent->s.linearMovementDuration ) {
 		ent->think = Move_Done;
 		ent->nextThink = level.time + 1;
@@ -1139,7 +1136,6 @@ void SP_func_button( edict_t *ent ) {
 	if( st.noise && Q_stricmp( st.noise, "default" ) ) {
 		if( Q_stricmp( st.noise, "silent" ) != 0 ) {
 			ent->moveinfo.sound_start = trap_SoundIndex( st.noise );
-			G_PureSound( st.noise );
 		}
 	} else {
 		ent->moveinfo.sound_start = trap_SoundIndex( S_BUTTON_START );

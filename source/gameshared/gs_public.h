@@ -141,7 +141,6 @@ typedef struct {
 
 //==================================================================
 
-// S_DEFAULT_ATTENUATION_MODEL	"3"
 #define ATTN_NONE               0       // full volume the entire level
 #define ATTN_DISTANT            0.5     // distant sound (most likely explosions)
 #define ATTN_NORM               1       // players, weapons, etc
@@ -338,8 +337,6 @@ typedef enum {
 
 #define GS_MAX_ITEM_TAGS ITEMS_TOTAL
 
-#define MAX_ITEM_MODELS 2
-
 // gsitem_t->type
 // define as bitflags values so they can be masked
 typedef enum {
@@ -356,6 +353,8 @@ typedef struct gitem_s {
 	RGB8 color;
 	const char * description;
 	int cost;
+	int capacity;
+	int clips;
 
 	int ammo_tag;          // uses this ammo, for weapons
 

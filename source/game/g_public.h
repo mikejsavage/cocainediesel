@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#pragma once
+
 #define MAX_ENT_CLUSTERS    16
 
 typedef struct edict_s edict_t;
@@ -75,8 +77,6 @@ typedef struct {
 	// they connect, and changes are sent to all connected clients.
 	void ( *ConfigString )( int num, const char *string );
 	const char *( *GetConfigString )( int num );
-	void ( *PureSound )( const char *name );
-	void ( *PureModel )( const char *name );
 
 	// the *index functions create configstrings and some internal server state
 	int ( *ModelIndex )( const char *name );
@@ -101,10 +101,6 @@ typedef struct {
 	int ( *CM_LeafArea )( int leafnum );
 	int ( *CM_LeafsInPVS )( int leafnum1, int leafnum2 );
 
-	// managed memory allocation
-	void *( *Mem_Alloc )( size_t size, const char *filename, int fileline );
-	void ( *Mem_Free )( void *data, const char *filename, int fileline );
-
 	// console variable interaction
 	cvar_t *( *Cvar_Get )( const char *name, const char *value, int flags );
 	cvar_t *( *Cvar_Set )( const char *name, const char *value );
@@ -122,8 +118,6 @@ typedef struct {
 	void ( *Cmd_RemoveCommand )( const char *cmd_name );
 
 	// files will be memory mapped read only
-	// the returned buffer may be part of a larger pak file,
-	// or a discrete file from anywhere in the quake search path
 	// a -1 return means the file does not exist
 	// NULL can be passed for buf to just determine existance
 	int ( *FS_FOpenFile )( const char *filename, int *filenum, int mode );
@@ -167,7 +161,7 @@ typedef struct {
 	void ( *Shutdown )( void );
 
 	// each new level entered will cause a call to SpawnEntities
-	void ( *InitLevel )( char *mapname, char *entities, int entstrlen, int64_t levelTime, int64_t serverTime, int64_t realTime );
+	void ( *InitLevel )( char *mapname, char *entities, int entstrlen, int64_t levelTime );
 
 	bool ( *ClientConnect )( edict_t *ent, char *userinfo, bool fakeClient );
 	void ( *ClientBegin )( edict_t *ent );
@@ -177,7 +171,7 @@ typedef struct {
 	void ( *ClientCommand )( edict_t *ent );
 	void ( *ClientThink )( edict_t *ent, usercmd_t *cmd, int timeDelta );
 
-	void ( *RunFrame )( unsigned int msec, int64_t serverTime );
+	void ( *RunFrame )( unsigned int msec );
 	void ( *SnapFrame )( void );
 	void ( *ClearSnap )( void );
 

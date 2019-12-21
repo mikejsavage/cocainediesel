@@ -263,13 +263,6 @@ char *_G_LevelCopyString( const char *in, const char *filename, int fileline ) {
 	return out;
 }
 
-/*
-* G_LevelGarbageCollect
-*/
-void G_LevelGarbageCollect( void ) {
-	//G_Z_Print( levelzone );
-}
-
 //==============================================================================
 
 #define STRINGPOOL_SIZE         1024 * 1024
@@ -357,15 +350,6 @@ const char *_G_RegisterLevelString( const char *string, const char *filename, in
 
 	return ps->buf;
 }
-
-//==============================================================================
-
-void G_ProjectSource( vec3_t point, vec3_t distance, vec3_t forward, vec3_t right, vec3_t result ) {
-	result[0] = point[0] + forward[0] * distance[0] + right[0] * distance[1];
-	result[1] = point[1] + forward[1] * distance[0] + right[1] * distance[1];
-	result[2] = point[2] + forward[2] * distance[0] + right[2] * distance[1] + distance[2];
-}
-
 
 /*
 * G_Find
@@ -554,9 +538,7 @@ void G_SetMovedir( vec3_t angles, vec3_t movedir ) {
 }
 
 char *_G_CopyString( const char *in, const char *filename, int fileline ) {
-	char *out;
-
-	out = ( char * )trap_MemAlloc( strlen( in ) + 1, filename, fileline );
+	char * out = ( char * )_Mem_AllocExt( gamepool, strlen( in ) + 1, 16, 1, 0, 0, filename, fileline );
 	strcpy( out, in );
 	return out;
 }
@@ -579,8 +561,8 @@ void G_FreeEdict( edict_t *ed ) {
 	ed->r.svflags = SVF_NOCLIENT;
 	ed->scriptSpawned = false;
 
-	if( !evt && ( level.spawnedTimeStamp != game.realtime ) ) {
-		ed->freetime = game.realtime; // ET_EVENT or ET_SOUND don't need to wait to be reused
+	if( !evt && ( level.spawnedTimeStamp != svs.realtime ) ) {
+		ed->freetime = svs.realtime; // ET_EVENT or ET_SOUND don't need to wait to be reused
 	}
 }
 
@@ -608,9 +590,6 @@ void G_InitEdict( edict_t *e ) {
 	// clear the old state data
 	memset( &e->olds, 0, sizeof( e->olds ) );
 	memset( &e->snap, 0, sizeof( e->snap ) );
-
-	//wsw clean up the backpack counts
-	memset( e->invpak, 0, sizeof( e->invpak ) );
 }
 
 /*
@@ -639,7 +618,7 @@ edict_t *G_Spawn( void ) {
 
 		// the first couple seconds of server time can involve a lot of
 		// freeing and allocating, so relax the replacement policy
-		if( e->freetime < level.spawnedTimeStamp + 2000 || game.realtime > e->freetime + 500 ) {
+		if( e->freetime < level.spawnedTimeStamp + 2000 || svs.realtime > e->freetime + 500 ) {
 			G_InitEdict( e );
 			return e;
 		}
@@ -735,11 +714,9 @@ void G_InitMover( edict_t *ent ) {
 	ent->r.svflags &= ~SVF_NOCLIENT;
 
 	GClip_SetBrushModel( ent, ent->model );
-	G_PureModel( ent->model );
 
 	if( ent->model2 ) {
 		ent->s.modelindex2 = trap_ModelIndex( ent->model2 );
-		G_PureModel( ent->model2 );
 	}
 
 	if( ent->light || !VectorCompare( ent->color, vec3_origin ) ) {
@@ -1339,7 +1316,7 @@ void G_DropSpawnpointToFloor( edict_t *ent ) {
 * Set origin and origin2 and then call this before linkEntity
 * for laser entities for proper clipping against world leafs/clusters.
 */
-void G_SetBoundsForSpanEntity( edict_t *ent, vec_t size ) {
+void G_SetBoundsForSpanEntity( edict_t *ent, float size ) {
 	vec3_t sizeVec;
 
 	VectorSet( sizeVec, size, size, size );
@@ -1480,24 +1457,6 @@ void G_AnnouncerSound( edict_t *targ, int soundindex, int team, bool queued, edi
 			G_AddPlayerStateEvent( ent->r.client, psev, soundindex );
 		}
 	}
-}
-
-/*
-* G_PureSound
-*/
-void G_PureSound( const char *sound ) {
-	assert( sound && sound[0] && strlen( sound ) < MAX_CONFIGSTRING_CHARS );
-
-	trap_PureSound( sound );
-}
-
-/*
-* G_PureModel
-*/
-void G_PureModel( const char *model ) {
-	assert( model && model[0] && strlen( model ) < MAX_CONFIGSTRING_CHARS );
-
-	trap_PureModel( model );
 }
 
 /*

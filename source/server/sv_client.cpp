@@ -217,8 +217,6 @@ CLIENT COMMAND EXECUTION
 */
 static void SV_New_f( client_t *client ) {
 	int playernum;
-	unsigned int numpure;
-	purelist_t *purefile;
 	edict_t *ent;
 	int sv_bitflags = 0;
 
@@ -259,9 +257,6 @@ static void SV_New_f( client_t *client ) {
 		ent->s.number = playernum + 1;
 		client->edict = ent;
 
-		if( sv_pure->integer ) {
-			sv_bitflags |= SV_BITFLAGS_PURE;
-		}
 		if( client->reliable ) {
 			sv_bitflags |= SV_BITFLAGS_RELIABLE;
 		}
@@ -281,21 +276,6 @@ static void SV_New_f( client_t *client ) {
 		} else {
 			MSG_WriteInt16( &tmpMessage, sv_http_port->integer ); // HTTP port number
 		}
-	}
-
-	// always write purelist
-	numpure = Com_CountPureListFiles( svs.purelist );
-	if( numpure > (short)0x7fff ) {
-		Com_Error( ERR_DROP, "Error: Too many pure files." );
-	}
-
-	MSG_WriteInt16( &tmpMessage, numpure );
-
-	purefile = svs.purelist;
-	while( purefile ) {
-		MSG_WriteString( &tmpMessage, purefile->filename );
-		MSG_WriteInt32( &tmpMessage, purefile->checksum );
-		purefile = purefile->next;
 	}
 
 	SV_ClientResetCommandBuffers( client );
@@ -549,39 +529,16 @@ static void SV_DenyDownload( client_t *client, const char *reason ) {
 	SV_SendMessageToClient( client, &tmpMessage );
 }
 
-static bool SV_FilenameForDownloadRequest( const char *requestname, bool requestpak,
-										   const char **uploadname, const char **errormsg ) {
-	if( FS_CheckPakExtension( requestname ) ) {
-		if( !requestpak ) {
-			*errormsg = "Pak file requested as a non pak file";
-			return false;
-		}
-		if( FS_FOpenBaseFile( requestname, NULL, FS_READ ) == -1 ) {
-			*errormsg = "File not found";
-			return false;
-		}
+static bool SV_FilenameForDownloadRequest( const char *requestname, const char **uploadname, const char **errormsg ) {
+	if( FS_FOpenFile( requestname, NULL, FS_READ ) == -1 ) {
+		*errormsg = "File not found";
+		return false;
+	}
 
-		*uploadname = requestname;
-	} else {
-		if( FS_FOpenFile( requestname, NULL, FS_READ ) == -1 ) {
-			*errormsg = "File not found";
-			return false;
-		}
-
-		// check if file is inside a PAK
-		if( requestpak ) {
-			*uploadname = FS_PakNameForFile( requestname );
-			if( !*uploadname ) {
-				*errormsg = "File not available in pack";
-				return false;
-			}
-		} else {
-			*uploadname = FS_BaseNameForFile( requestname );
-			if( !*uploadname ) {
-				*errormsg = "File only available in pack";
-				return false;
-			}
-		}
+	*uploadname = FS_BaseNameForFile( requestname );
+	if( !*uploadname ) {
+		*errormsg = "File only available in pack";
+		return false;
 	}
 	return true;
 }
@@ -597,50 +554,24 @@ static void SV_BeginDownload_f( client_t *client ) {
 	unsigned checksum;
 	char *url;
 	const char *errormsg = NULL;
-	bool allow, requestpak;
 	bool local_http = SV_Web_Running() && sv_uploads_http->integer != 0;
 
-	requestpak = ( atoi( Cmd_Argv( 1 ) ) == 1 );
-	requestname = Cmd_Argv( 2 );
+	requestname = Cmd_Argv( 1 );
 
 	if( !requestname[0] || !COM_ValidateRelativeFilename( requestname ) ) {
 		SV_DenyDownload( client, "Invalid filename" );
 		return;
 	}
 
-	if( !SV_FilenameForDownloadRequest( requestname, requestpak, &uploadname, &errormsg ) ) {
+	if( !SV_FilenameForDownloadRequest( requestname, &uploadname, &errormsg ) ) {
 		assert( errormsg != NULL );
 		SV_DenyDownload( client, errormsg );
 		return;
 	}
 
-	if( FS_CheckPakExtension( uploadname ) ) {
-		allow = false;
-
-		// allow downloading paks from the pure list, if not spawned
-		if( client->state < CS_SPAWNED ) {
-			purelist_t *purefile;
-
-			purefile = svs.purelist;
-			while( purefile ) {
-				if( !strcmp( uploadname, purefile->filename ) ) {
-					allow = true;
-					break;
-				}
-				purefile = purefile->next;
-			}
-		}
-
-		// game module has a change to allow extra downloads
-		if( !allow && !SV_GameAllowDownload( client, requestname, uploadname ) ) {
-			SV_DenyDownload( client, "Downloading of this file is not allowed" );
-			return;
-		}
-	} else {
-		if( !SV_GameAllowDownload( client, requestname, uploadname ) ) {
-			SV_DenyDownload( client, "Downloading of this file is not allowed" );
-			return;
-		}
+	if( !SV_GameAllowDownload( client, requestname, uploadname ) ) {
+		SV_DenyDownload( client, "Downloading of this file is not allowed" );
+		return;
 	}
 
 	// we will just overwrite old download, if any
@@ -656,7 +587,7 @@ static void SV_BeginDownload_f( client_t *client ) {
 		return;
 	}
 
-	checksum = FS_ChecksumBaseFile( uploadname, false );
+	checksum = FS_ChecksumBaseFile( uploadname );
 	client->download.timeout = svs.realtime + 1000 * 60 * 60; // this is web download timeout
 
 	alloc_size = sizeof( char ) * ( strlen( uploadname ) + 1 );
@@ -665,19 +596,9 @@ static void SV_BeginDownload_f( client_t *client ) {
 
 	Com_Printf( "Offering %s to %s\n", client->download.name, client->name );
 
-	if( FS_CheckPakExtension( uploadname ) && ( local_http || sv_uploads_baseurl->string[0] != 0 ) ) {
-		// .pk3 and .pak download from the web
-		if( local_http ) {
-			goto local_download;
-		} else {
-			alloc_size = sizeof( char ) * ( strlen( sv_uploads_baseurl->string ) + 1 );
-			url = ( char * ) Mem_TempMalloc( alloc_size );
-			Q_snprintfz( url, alloc_size, "%s/", sv_uploads_baseurl->string );
-		}
-	} else if( SV_IsDemoDownloadRequest( requestname ) && ( local_http || sv_uploads_demos_baseurl->string[0] != 0 ) ) {
+	if( SV_IsDemoDownloadRequest( requestname ) && ( local_http || sv_uploads_demos_baseurl->string[0] != 0 ) ) {
 		// demo file download from the web
 		if( local_http ) {
-local_download:
 			alloc_size = sizeof( char ) * ( 6 + strlen( uploadname ) * 3 + 1 );
 			url = ( char * ) Mem_TempMalloc( alloc_size );
 			Q_snprintfz( url, alloc_size, "files/" );
@@ -955,14 +876,10 @@ void SV_ParseClientMessage( client_t *client, msg_t *msg ) {
 		return;
 	}
 
-	SV_UpdateActivity();
-
 	// only allow one move command
 	move_issued = false;
 	while( msg->readcount < msg->cursize ) {
-		int c;
-		
-		c = MSG_ReadUint8( msg );
+		int c = MSG_ReadUint8( msg );
 		switch( c ) {
 			default:
 				Com_Printf( "SV_ParseClientMessage: unknown command char\n" );

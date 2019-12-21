@@ -173,7 +173,7 @@ void * ArenaAllocator::try_reallocate( void * ptr, size_t current_size, size_t n
 }
 
 void * ArenaAllocator::try_temp_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
-	assert( ( alignment & ( alignment - 1 ) ) == 0 );
+	assert( IsPowerOf2( alignment ) );
 	u8 * aligned = ( u8 * ) ( size_t( cursor + alignment - 1 ) & ~( alignment - 1 ) );
 	if( aligned + size > top )
 		return NULL;

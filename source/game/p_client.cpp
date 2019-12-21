@@ -434,7 +434,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	memset( &self->snap, 0, sizeof( self->snap ) );
 	memset( &self->s, 0, sizeof( self->s ) );
 	memset( &self->olds, 0, sizeof( self->olds ) );
-	memset( &self->invpak, 0, sizeof( self->invpak ) );
 
 	self->s.number = self->olds.number = ENTNUM( self );
 
@@ -646,7 +645,7 @@ void ClientBegin( edict_t *ent ) {
 	client->connecting = false;
 
 	// schedule the next scoreboard update
-	client->level.scoreboard_time = game.realtime + scoreboardInterval - ( game.realtime % scoreboardInterval );
+	client->level.scoreboard_time = svs.realtime + scoreboardInterval - ( svs.realtime % scoreboardInterval );
 
 	G_ClientEndSnapFrame( ent ); // make sure all view stuff is valid
 

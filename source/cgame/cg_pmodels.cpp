@@ -215,9 +215,7 @@ static bool CG_LoadPlayerModel( PlayerModelMetadata *metadata, const char *filen
 	// load animations script
 	if( metadata->model ) {
 		Q_snprintfz( anim_filename, sizeof( anim_filename ), "%s.cfg", filename );
-		if( !cgs.pure || trap_FS_IsPureFile( anim_filename ) ) {
-			loaded_model = CG_ParseAnimationScript( metadata, anim_filename );
-		}
+		loaded_model = CG_ParseAnimationScript( metadata, anim_filename );
 	}
 
 	// clean up if failed
@@ -401,24 +399,10 @@ static float CG_OutlineScaleForDist( const entity_t * e, float maxdist, float sc
 	return 1.0f;
 }
 
-/*
-* CG_AddColoredOutLineEffect
-*/
-void CG_AddColoredOutLineEffect( entity_t *ent, int effects, uint8_t r, uint8_t g, uint8_t b, uint8_t a ) {
-	if( !cg_outlineModels->integer ) {
-		ent->outlineHeight = 0;
-		return;
-	}
-
+void CG_AddOutline( entity_t *ent, int effects, RGBA8 color ) {
 	ent->outlineHeight = CG_OutlineScaleForDist( ent, 4096, 1.0f );
-
-	if( effects & EF_GODMODE ) {
-		Vector4Set( ent->outlineColor, 255, 255, 255, a );
-	} else {
-		Vector4Set( ent->outlineColor, r, g, b, a );
-	}
+	ent->outlineColor = ( effects & EF_GODMODE ) ? RGBA8( 255, 255, 255, color.a ) : color;
 }
-
 
 //======================================================================
 //							animations
@@ -758,9 +742,7 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	pmodel_t * pmodel = &cg_entPModels[cent->current.number];
 	pmodel->metadata = CG_PModelForCentity( cent );
 
-	CG_TeamColorForEntity( cent->current.number, cent->ent.shaderRGBA );
-
-	Vector4Set( cent->outlineColor, 0, 0, 0, 255 );
+	cent->ent.color = RGBA8( CG_TeamColor( cent->current.number ) );
 
 	// Spawning (teleported bit) forces nobacklerp and the interruption of EVENT_CHANNEL animations
 	if( cent->current.teleported ) {
@@ -918,7 +900,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	float lower_time, upper_time;
-	CG_GetAnimationTimes( pmodel, cg.time, &lower_time, &upper_time );
+	CG_GetAnimationTimes( pmodel, cl.serverTime, &lower_time, &upper_time );
 	Span< TRS > lower = SampleAnimation( &temp, meta->model, lower_time );
 	Span< TRS > upper = SampleAnimation( &temp, meta->model, upper_time );
 	MergeLowerUpperPoses( lower, upper, meta->model, meta->upper_root_joint );
@@ -967,7 +949,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 
 	MatrixPalettes pose = ComputeMatrixPalettes( &temp, meta->model, lower );
 
-	CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
+	// CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
 
 	Mat4 transform = FromQFAxisAndOrigin( cent->ent.axis, cent->ent.origin );
 

@@ -211,10 +211,10 @@ static void Cmd_Position_f( edict_t *ent ) {
 	}
 
 	// flood protect
-	if( ent->r.client->teamstate.position_lastcmd + 500 > game.realtime ) {
+	if( ent->r.client->teamstate.position_lastcmd + 500 > svs.realtime ) {
 		return;
 	}
-	ent->r.client->teamstate.position_lastcmd = game.realtime;
+	ent->r.client->teamstate.position_lastcmd = svs.realtime;
 
 	action = trap_Cmd_Argv( 1 );
 
@@ -385,9 +385,9 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 
 	// old protection still active
 	if( !teamonly || g_floodprotection_team->integer ) {
-		if( game.realtime < client->level.flood_locktill ) {
+		if( svs.realtime < client->level.flood_locktill ) {
 			G_PrintMsg( ent, "You can't talk for %d more seconds\n",
-						(int)( ( client->level.flood_locktill - game.realtime ) / 1000.0f ) + 1 );
+						(int)( ( client->level.flood_locktill - svs.realtime ) / 1000.0f ) + 1 );
 			return true;
 		}
 	}
@@ -400,16 +400,16 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 				i = MAX_FLOOD_MESSAGES + i;
 			}
 
-			if( client->level.flood_team_when[i] && client->level.flood_team_when[i] <= game.realtime &&
-				( game.realtime < client->level.flood_team_when[i] + g_floodprotection_seconds->integer * 1000 ) ) {
-				client->level.flood_locktill = game.realtime + g_floodprotection_penalty->value * 1000;
+			if( client->level.flood_team_when[i] && client->level.flood_team_when[i] <= svs.realtime &&
+				( svs.realtime < client->level.flood_team_when[i] + g_floodprotection_seconds->integer * 1000 ) ) {
+				client->level.flood_locktill = svs.realtime + g_floodprotection_penalty->value * 1000;
 				G_PrintMsg( ent, "Flood protection: You can't talk for %d seconds.\n", g_floodprotection_penalty->integer );
 				return true;
 			}
 		}
 
 		client->level.flood_team_whenhead = ( client->level.flood_team_whenhead + 1 ) % MAX_FLOOD_MESSAGES;
-		client->level.flood_team_when[client->level.flood_team_whenhead] = game.realtime;
+		client->level.flood_team_when[client->level.flood_team_whenhead] = svs.realtime;
 	} else {
 		if( g_floodprotection_messages->integer && g_floodprotection_penalty->value > 0 ) {
 			i = client->level.flood_whenhead - g_floodprotection_messages->integer + 1;
@@ -417,16 +417,16 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 				i = MAX_FLOOD_MESSAGES + i;
 			}
 
-			if( client->level.flood_when[i] && client->level.flood_when[i] <= game.realtime &&
-				( game.realtime < client->level.flood_when[i] + g_floodprotection_seconds->integer * 1000 ) ) {
-				client->level.flood_locktill = game.realtime + g_floodprotection_penalty->value * 1000;
+			if( client->level.flood_when[i] && client->level.flood_when[i] <= svs.realtime &&
+				( svs.realtime < client->level.flood_when[i] + g_floodprotection_seconds->integer * 1000 ) ) {
+				client->level.flood_locktill = svs.realtime + g_floodprotection_penalty->value * 1000;
 				G_PrintMsg( ent, "Flood protection: You can't talk for %d seconds.\n", g_floodprotection_penalty->integer );
 				return true;
 			}
 		}
 
 		client->level.flood_whenhead = ( client->level.flood_whenhead + 1 ) % MAX_FLOOD_MESSAGES;
-		client->level.flood_when[client->level.flood_whenhead] = game.realtime;
+		client->level.flood_when[client->level.flood_whenhead] = svs.realtime;
 	}
 
 	return false;
@@ -584,10 +584,10 @@ static void G_vsay_f( edict_t *ent, bool team ) {
 	}
 
 	if( !( ent->r.svflags & SVF_FAKECLIENT ) ) { // ignore flood checks on bots
-		if( ent->r.client->level.last_vsay > game.realtime - 500 ) {
+		if( ent->r.client->level.last_vsay > svs.realtime - 500 ) {
 			return; // ignore silently vsays in that come in rapid succession
 		}
-		ent->r.client->level.last_vsay = game.realtime;
+		ent->r.client->level.last_vsay = svs.realtime;
 
 		if( CheckFlood( ent, false ) ) {
 			return;

@@ -13,6 +13,9 @@
 #include "imgui/imgui_internal.h"
 #include "imgui/imgui_freetype.h"
 
+static Texture atlas_texture;
+static Material atlas_material;
+
 static ImFont * AddFontAsset( StringHash path, float pixel_size ) {
 	Span< const u8 > data = AssetBinary( path );
 	ImFontConfig config;
@@ -76,8 +79,9 @@ void CL_InitImGui() {
 		config.data = pixels;
 		config.format = TextureFormat_A_U8;
 
-		Texture texture = NewTexture( config );
-		io.Fonts->TexID = ImGuiShaderAndTexture( texture );
+		atlas_texture = NewTexture( config );
+		atlas_material.texture = &atlas_texture;
+		io.Fonts->TexID = ImGuiShaderAndMaterial( &atlas_material );
 	}
 
 	{
@@ -97,7 +101,7 @@ void CL_InitImGui() {
 }
 
 void CL_ShutdownImGui() {
-	DeleteTexture( ImGui::GetIO().Fonts->TexID.texture );
+	DeleteTexture( atlas_texture );
 
 	ImGui_ImplSDL2_Shutdown();
 	ImGui::DestroyContext();
@@ -159,7 +163,7 @@ static void SubmitDrawCalls() {
 						pipeline.set_uniform( pcmd->TextureId.uniform_name, pcmd->TextureId.uniform_block );
 					}
 
-					pipeline.set_texture( "u_BaseTexture", pcmd->TextureId.texture );
+					pipeline.set_texture( "u_BaseTexture", pcmd->TextureId.material->texture );
 
 					DrawMesh( mesh, pipeline, pcmd->ElemCount, idx_buffer_offset * sizeof( u16 ) );
 				}

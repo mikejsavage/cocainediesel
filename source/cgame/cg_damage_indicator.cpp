@@ -36,7 +36,7 @@ void CG_DamageIndicatorAdd( int damage, const vec3_t dir ) {
 #define RIGHT_BLEND 1
 #define BOTTOM_BLEND 2
 #define LEFT_BLEND 3
-	float blends[4];
+	float blends[4] = { };
 	float forward, side;
 
 	if( !cg_damage_indicator->integer ) {
@@ -53,7 +53,6 @@ void CG_DamageIndicatorAdd( int damage, const vec3_t dir ) {
 		trap_Cvar_SetValue( "cg_damage_indicator_time", 0 );
 	}
 
-	Vector4Set( blends, 0, 0, 0, 0 );
 	damageTime = damage * cg_damage_indicator_time->value;
 
 	// up and down go distributed equally to all blends and assumed when no dir is given
@@ -80,8 +79,8 @@ void CG_DamageIndicatorAdd( int damage, const vec3_t dir ) {
 	}
 
 	for( i = 0; i < 4; i++ ) {
-		if( cg.damageBlends[i] < cg.time + blends[i] ) {
-			cg.damageBlends[i] = cg.time + blends[i];
+		if( cg.damageBlends[i] < cl.serverTime + blends[i] ) {
+			cg.damageBlends[i] = cl.serverTime + blends[i];
 		}
 	}
 #undef TOP_BLEND

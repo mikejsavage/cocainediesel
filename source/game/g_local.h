@@ -467,7 +467,7 @@ edict_t *G_PlayerForText( const char *text );
 
 void G_PrecacheWeapondef( int weapon, firedef_t *firedef );
 
-void G_SetBoundsForSpanEntity( edict_t *ent, vec_t size );
+void G_SetBoundsForSpanEntity( edict_t *ent, float size );
 
 //
 // g_callvotes.c

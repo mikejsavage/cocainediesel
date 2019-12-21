@@ -374,13 +374,6 @@ void CG_StartFallKickEffect( int bounceTime ) {
 	}
 }
 
-/*
-* CG_ResetColorBlend
-*/
-void CG_ResetColorBlend( void ) {
-	memset( cg.colorblends, 0, sizeof( cg.colorblends ) );
-}
-
 //============================================================================
 
 /*
@@ -1010,8 +1003,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	CG_UpdateChaseCam();
 
-	CG_ClearFragmentedDecals();
-
 	if( CG_DemoCam_Update() ) {
 		CG_SetupViewDef( &cg.view, CG_DemoCam_GetViewType() );
 	} else {
@@ -1034,14 +1025,9 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	CG_AddEntities();
 	CG_AddViewWeapon( &cg.weapon );
 	CG_AddLocalEntities();
-	CG_AddParticles();
 	DrawGibs();
 	DrawParticles();
 	DrawPersistentBeams();
-
-	CG_AddDlights();
-	CG_AddPlayerShadows();
-	CG_AddDecals();
 	DrawSkybox();
 
 	CG_AddLocalSounds();

@@ -433,21 +433,8 @@ struct cmodel_s *CG_CModelForEntity( int entNum ) {
 * CG_EntAddTeamColorTransitionEffect
 */
 static void CG_EntAddTeamColorTransitionEffect( centity_t *cent ) {
-	byte_vec4_t currentcolor;
-	vec4_t scaledcolor, newcolor;
-	const vec4_t neutralcolor = { 1.0f, 1.0f, 1.0f, 1.0f };
-
-	float f = Clamp01( (float)cent->current.counterNum / 255.0f );
-
-	CG_TeamColorForEntity( cent->current.number, currentcolor );
-
-	Vector4Scale( currentcolor, 1.0 / 255.0, scaledcolor );
-	VectorLerp( neutralcolor, f, scaledcolor, newcolor );
-
-	cent->ent.shaderRGBA[0] = uint8_t( newcolor[0] * 255 );
-	cent->ent.shaderRGBA[1] = uint8_t( newcolor[1] * 255 );
-	cent->ent.shaderRGBA[2] = uint8_t( newcolor[2] * 255 );
-	cent->ent.shaderRGBA[3] = 255;
+	float t = Clamp01( float( cent->current.counterNum ) / 255.0f );
+	cent->ent.color = RGBA8( Lerp( vec4_white, t, CG_TeamColorVec4( cent->current.team ) ) );
 }
 
 //==========================================================================
@@ -461,10 +448,7 @@ static void CG_UpdateGenericEnt( centity_t *cent ) {
 	// start from clean
 	memset( &cent->ent, 0, sizeof( cent->ent ) );
 	cent->ent.scale = 1.0f;
-
-	// set entity color based on team
-	CG_TeamColorForEntity( cent->current.number, cent->ent.shaderRGBA );
-	Vector4Set( cent->outlineColor, 0, 0, 0, 255 );
+	cent->ent.color = RGBA8( CG_TeamColor( cent->current.team ) );
 
 	// set up the model
 	int modelindex = cent->current.modelindex;
@@ -586,10 +570,12 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 	const Model * model = cent->ent.model;
 	Mat4 transform = FromQFAxisAndOrigin( cent->ent.axis, cent->ent.origin );
 
-	Vec4 color;
-	for( int i = 0; i < 4; i++ ) {
-		color.ptr()[ i ] = cent->ent.shaderRGBA[ i ] / 255.0f;
-	}
+	Vec4 color = Vec4(
+		cent->ent.color.r / 255.0f,
+		cent->ent.color.g / 255.0f,
+		cent->ent.color.b / 255.0f,
+		cent->ent.color.a / 255.0f
+	);
 
 	DrawModel( model, transform, color );
 
@@ -633,7 +619,7 @@ static void CG_AddPlayerEnt( centity_t *cent ) {
 	if( ISVIEWERENTITY( cent->current.number ) ) {
 		cg.effects = cent->effects;
 		if( !cg.view.thirdperson && cent->current.modelindex ) {
-			CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
+			// CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
 			return;
 		}
 	}
@@ -663,10 +649,10 @@ static void CG_AddDecalEnt( centity_t *cent ) {
 		CG_EntAddTeamColorTransitionEffect( cent );
 	}
 
-	CG_AddFragmentedDecal( cent->ent.origin, cent->ent.origin2,
-						   cent->ent.rotation, cent->ent.radius,
-						   cent->ent.shaderRGBA[0] * ( 1.0 / 255.0 ), cent->ent.shaderRGBA[1] * ( 1.0 / 255.0 ), cent->ent.shaderRGBA[2] * ( 1.0 / 255.0 ),
-						   cent->ent.shaderRGBA[3] * ( 1.0 / 255.0 ), cent->ent.override_material );
+	// CG_AddFragmentedDecal( cent->ent.origin, cent->ent.origin2,
+	// 					   cent->ent.rotation, cent->ent.radius,
+	// 					   cent->ent.shaderRGBA[0] * ( 1.0 / 255.0 ), cent->ent.shaderRGBA[1] * ( 1.0 / 255.0 ), cent->ent.shaderRGBA[2] * ( 1.0 / 255.0 ),
+	// 					   cent->ent.shaderRGBA[3] * ( 1.0 / 255.0 ), cent->ent.override_material );
 }
 
 /*
@@ -691,8 +677,7 @@ static void CG_LerpDecalEnt( centity_t *cent ) {
 * CG_UpdateDecalEnt
 */
 static void CG_UpdateDecalEnt( centity_t *cent ) {
-	// set entity color based on team
-	CG_TeamColorForEntity( cent->current.number, cent->ent.shaderRGBA );
+	cent->ent.color = RGBA8( CG_TeamColor( cent->current.team ) );
 
 	// set up the null model, may be potentially needed for linked model
 	cent->ent.model = NULL;
@@ -925,7 +910,7 @@ void CG_AddEntities( void ) {
 				CG_AddGenericEnt( cent );
 				CG_ProjectileTrail( cent );
 				CG_EntityLoopSound( state, ATTN_NORM );
-				CG_AddLightToScene( cent->ent.origin, 300, 0.8f, 0.6f, 0 );
+				// CG_AddLightToScene( cent->ent.origin, 300, 0.8f, 0.6f, 0 );
 				break;
 			case ET_GRENADE:
 				CG_AddGenericEnt( cent );
@@ -992,11 +977,11 @@ void CG_AddEntities( void ) {
 
 		// glow if light is set
 		if( canLight && state->light ) {
-			CG_AddLightToScene( cent->ent.origin,
-								COLOR_A( state->light ) * 4.0,
-								COLOR_R( state->light ) * ( 1.0 / 255.0 ),
-								COLOR_G( state->light ) * ( 1.0 / 255.0 ),
-								COLOR_B( state->light ) * ( 1.0 / 255.0 ) );
+			// CG_AddLightToScene( cent->ent.origin,
+			// 					COLOR_A( state->light ) * 4.0,
+			// 					COLOR_R( state->light ) * ( 1.0 / 255.0 ),
+			// 					COLOR_G( state->light ) * ( 1.0 / 255.0 ),
+			// 					COLOR_B( state->light ) * ( 1.0 / 255.0 ) );
 		}
 
 		VectorCopy( cent->ent.origin, cent->trailOrigin );

@@ -138,10 +138,10 @@ void Patch_Evaluate( int comp, const float * p, const int *numcp, const int *tes
 	}
 }
 
-void Patch_RemoveLinearColumnsRows( vec_t *verts, int comp, int *pwidth, int *pheight,
+void Patch_RemoveLinearColumnsRows( float *verts, int comp, int *pwidth, int *pheight,
 									int numattribs, uint8_t * const *attribs, const int *attribsizes ) {
 	int i, j, k, l;
-	const vec_t *v0, *v1, *v2;
+	const float *v0, *v1, *v2;
 	float len, maxLength;
 	int maxWidth = *pwidth;
 	int src, dst;
@@ -168,7 +168,7 @@ void Patch_RemoveLinearColumnsRows( vec_t *verts, int comp, int *pwidth, int *ph
 			for( i = 0; i < height; i++ ) {
 				dst = i * maxWidth + j;
 				src = dst + 1;
-				memmove( &verts[dst * comp], &verts[src * comp], ( width - j ) * sizeof( vec_t ) * comp );
+				memmove( &verts[dst * comp], &verts[src * comp], ( width - j ) * sizeof( float ) * comp );
 				for( k = 0; k < numattribs; k++ )
 					memmove( &attribs[k][dst * attribsizes[k]], &attribs[k][src * attribsizes[k]], ( width - j ) * attribsizes[k] );
 			}
@@ -197,7 +197,7 @@ void Patch_RemoveLinearColumnsRows( vec_t *verts, int comp, int *pwidth, int *ph
 				for( k = j; k < height; k++ ) {
 					src = ( k + 1 ) * maxWidth + i;
 					dst = k * maxWidth + i;
-					memcpy( &verts[dst * comp], &verts[src * comp], sizeof( vec_t ) * comp );
+					memcpy( &verts[dst * comp], &verts[src * comp], sizeof( float ) * comp );
 					for( l = 0; l < numattribs; l++ )
 						memcpy( &attribs[l][dst * attribsizes[l]], &attribs[l][src * attribsizes[l]], attribsizes[l] );
 				}
@@ -210,7 +210,7 @@ void Patch_RemoveLinearColumnsRows( vec_t *verts, int comp, int *pwidth, int *ph
 		for( i = 0; i < height; i++ ) {
 			src = i * maxWidth;
 			dst = i * width;
-			memmove( &verts[dst * comp], &verts[src * comp], width * sizeof( vec_t ) * comp );
+			memmove( &verts[dst * comp], &verts[src * comp], width * sizeof( float ) * comp );
 			for( j = 0; j < numattribs; j++ )
 				memmove( &attribs[j][dst * attribsizes[j]], &attribs[j][src * attribsizes[j]], width * attribsizes[j] );
 		}

@@ -202,7 +202,7 @@ static void CM_CreatePatch( cmodel_state_t *cms, cface_t *patch, cshaderref_t *s
 	cplane_t *brushplanes;
 
 	// find the degree of subdivision in the u and v directions
-	Patch_GetFlatness( CM_SUBDIV_LEVEL, ( vec_t * )verts[0], 3, patch_cp, flat );
+	Patch_GetFlatness( CM_SUBDIV_LEVEL, ( float * )verts[0], 3, patch_cp, flat );
 
 	step[0] = 1 << flat[0];
 	step[1] = 1 << flat[1];

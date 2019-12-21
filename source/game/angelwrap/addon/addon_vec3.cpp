@@ -69,7 +69,7 @@ static asvec3_t *objectVec3_SubAssignBehaviour( asvec3_t *other, asvec3_t *self 
 }
 
 static asvec3_t *objectVec3_MulAssignBehaviour( asvec3_t *other, asvec3_t *self ) {
-	vec_t product = DotProduct( self->v, other->v );
+	float product = DotProduct( self->v, other->v );
 
 	VectorScale( self->v, product, self->v );
 	return self;

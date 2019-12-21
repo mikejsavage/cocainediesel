@@ -333,7 +333,7 @@ static void CG_UpdatePointedNum( void ) {
 * CG_DrawPlayerNames
 */
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border ) {
-	static vec4_t alphagreen = { 0, 1, 0, 0 }, alphared = { 1, 0, 0, 0 }, alphayellow = { 1, 1, 0, 0 }, alphamagenta = { 1, 0, 1, 1 }, alphagrey = { 0.85, 0.85, 0.85, 1 };
+	// static vec4_t alphagreen = { 0, 1, 0, 0 }, alphared = { 1, 0, 0, 0 }, alphayellow = { 1, 1, 0, 0 }, alphamagenta = { 1, 0, 1, 1 }, alphagrey = { 0.85, 0.85, 0.85, 1 };
 	vec3_t dir, drawOrigin;
 	float dist, fadeFrac;
 	trace_t trace;
@@ -428,7 +428,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			int barheight = 0;
 			int barseparator = barheight * 0.333;
 
-			alphagreen[3] = alphared[3] = alphayellow[3] = alphamagenta[3] = alphagrey[3] = tmpcolor.w;
+			// alphagreen[3] = alphared[3] = alphayellow[3] = alphamagenta[3] = alphagrey[3] = tmpcolor.w;
 
 			// soften the alpha of the box color
 			tmpcolor.w *= 0.4f;
@@ -683,93 +683,32 @@ bool CG_LoadingItemName( const char *str ) {
 
 //===============================================================
 
-/*
-* CG_AddBlend - wsw
-*/
-static void CG_AddBlend( float r, float g, float b, float a, float *v_blend ) {
-	float a2, a3;
+static Vec4 CG_CalcColorBlend() {
+	int contents = CG_PointContents( cg.view.origin );
+	if( contents & CONTENTS_WATER )
+		return Vec4( 0.0f, 0.1f, 1.0f, 0.2f );
+	if( contents & CONTENTS_LAVA )
+		return Vec4( 1.0f, 0.3f, 0.0f, 0.6f );
+	if( contents & CONTENTS_SLIME )
+		return Vec4( 0.0f, 0.1f, 0.05f, 0.6f );
 
-	if( a <= 0 ) {
-		return;
-	}
-	a2 = v_blend[3] + ( 1 - v_blend[3] ) * a; // new total alpha
-	a3 = v_blend[3] / a2; // fraction of color from old
-
-	v_blend[0] = v_blend[0] * a3 + r * ( 1 - a3 );
-	v_blend[1] = v_blend[1] * a3 + g * ( 1 - a3 );
-	v_blend[2] = v_blend[2] * a3 + b * ( 1 - a3 );
-	v_blend[3] = a2;
-}
-
-/*
-* CG_CalcColorBlend - wsw
-*/
-static void CG_CalcColorBlend( float *color ) {
-	float time;
-	float uptime;
-	float delta;
-	int i, contents;
-
-	//clear old values
-	for( i = 0; i < 4; i++ )
-		color[i] = 0.0f;
-
-	// Add colorblend based on world position
-	contents = CG_PointContents( cg.view.origin );
-	if( contents & CONTENTS_WATER ) {
-		CG_AddBlend( 0.0f, 0.1f, 8.0f, 0.2f, color );
-	}
-	if( contents & CONTENTS_LAVA ) {
-		CG_AddBlend( 1.0f, 0.3f, 0.0f, 0.6f, color );
-	}
-	if( contents & CONTENTS_SLIME ) {
-		CG_AddBlend( 0.0f, 0.1f, 0.05f, 0.6f, color );
-	}
-
-	// Add colorblends from sfx
-	for( i = 0; i < MAX_COLORBLENDS; i++ ) {
-		if( cl.serverTime > cg.colorblends[i].timestamp + cg.colorblends[i].blendtime ) {
-			continue;
-		}
-
-		time = (float)( ( cg.colorblends[i].timestamp + cg.colorblends[i].blendtime ) - cl.serverTime );
-		uptime = ( (float)cg.colorblends[i].blendtime ) * 0.5f;
-		delta = 1.0f - ( fabs( time - uptime ) / uptime );
-		if( delta <= 0.0f ) {
-			continue;
-		}
-		if( delta > 1.0f ) {
-			delta = 1.0f;
-		}
-
-		CG_AddBlend( cg.colorblends[i].blend[0],
-					 cg.colorblends[i].blend[1],
-					 cg.colorblends[i].blend[2],
-					 cg.colorblends[i].blend[3] * delta,
-					 color );
-	}
+	return Vec4( 0 );
 }
 
 /*
 * CG_SCRDrawViewBlend
 */
 static void CG_SCRDrawViewBlend( void ) {
-	vec4_t colorblend;
-
 	if( !cg_showViewBlends->integer ) {
 		return;
 	}
 
-	CG_CalcColorBlend( colorblend );
-	if( colorblend[3] < 0.01f ) {
+	Vec4 color = CG_CalcColorBlend();
+	if( color.w < 0.01f ) {
 		return;
 	}
 
-	Vec4 c;
-	for( int i = 0; i < 4; i++ ) {
-		c.ptr()[ i ] = colorblend[ i ];
-	}
-	Draw2DBox( 0, 0, frame_static.viewport_width, frame_static.viewport_height, cgs.white_material, c );
+	Draw2DBox( 0, 0, frame_static.viewport_width, frame_static.viewport_height, cgs.white_material, color );
 }
 
 

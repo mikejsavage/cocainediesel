@@ -262,7 +262,7 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	viewweapon->ent.model = weaponInfo->model[WEAPMODEL_HAND];
 	viewweapon->ent.scale = 1.0f;
 	viewweapon->ent.override_material = NULL;
-	Vector4Set( viewweapon->ent.shaderRGBA, 255, 255, 255, 255 );
+	viewweapon->ent.color = rgba8_white;
 
 	// calculate the entity position
 	VectorCopy( cg.view.origin, viewweapon->ent.origin );
@@ -340,7 +340,7 @@ void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
 	// update the other origins
 	VectorCopy( viewweapon->ent.origin, viewweapon->ent.origin2 );
 
-	CG_AddColoredOutLineEffect( &viewweapon->ent, cg.effects, 0, 0, 0, viewweapon->ent.shaderRGBA[3] );
+	CG_AddOutline( &viewweapon->ent, cg.effects, RGBA8( 0, 0, 0, viewweapon->ent.color.a ) );
 	CG_AddEntityToScene( &viewweapon->ent );
 
 	if( cg_weaponFlashes->integer == 2 ) {

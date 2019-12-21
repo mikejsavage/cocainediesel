@@ -37,7 +37,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "bsp.h"
 
 inline Vec3 FromQF3( const vec3_t v ) { return Vec3( v[ 0 ], v[ 1 ], v[ 2 ] ); }
-inline Vec4 FromQF4( const vec4_t v ) { return Vec4( v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] ); }
 inline EulerDegrees3 FromQFAngles( const vec3_t v ) { return { v[ PITCH ], v[ YAW ], v[ ROLL ] }; }
 
 inline Mat4 FromQFAxisAndOrigin( const mat3_t axis, const vec3_t origin ) {

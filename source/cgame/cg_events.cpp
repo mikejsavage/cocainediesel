@@ -60,17 +60,12 @@ void CG_WeaponBeamEffect( centity_t *cent ) {
 
 static centity_t *laserOwner = NULL;
 
-static void _LaserColor( vec4_t color ) {
-	CG_TeamColor( laserOwner->current.team, color );
-}
-
 static void _LaserImpact( trace_t *trace, vec3_t dir ) {
 	if( !trace || trace->ent < 0 ) {
 		return;
 	}
 
-	vec4_t color;
-	_LaserColor( color );
+	RGBA8 color = RGBA8( CG_TeamColor( laserOwner->current.team ) );
 
 	if( laserOwner ) {
 #define TRAILTIME ( (int)( 1000.0f / 20.0f ) ) // density as quantity per second
@@ -78,7 +73,7 @@ static void _LaserImpact( trace_t *trace, vec3_t dir ) {
 		if( laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] + TRAILTIME < cl.serverTime ) {
 			laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] = cl.serverTime;
 
-			CG_HighVelImpactPuffParticles( trace->endpos, trace->plane.normal, 8, 0.5f, color[ 0 ], color[ 1 ], color[ 2 ], color[ 3 ], NULL );
+			// CG_HighVelImpactPuffParticles( trace->endpos, trace->plane.normal, 8, 0.5f, color[ 0 ], color[ 1 ], color[ 2 ], color[ 3 ], NULL );
 
 			S_StartFixedSound( cgs.media.sfxLasergunHit, FromQF3( trace->endpos ), CHAN_AUTO,
 									cg_volume_effects->value, ATTN_STATIC );
@@ -89,7 +84,7 @@ static void _LaserImpact( trace_t *trace, vec3_t dir ) {
 	// it's a brush model
 	if( trace->ent == 0 || !( cg_entities[trace->ent].current.effects & EF_TAKEDAMAGE ) ) {
 		CG_LaserGunImpact( trace->endpos, 15.0f, dir, color );
-		CG_AddLightToScene( trace->endpos, 100, color[ 0 ], color[ 1 ], color[ 2 ] );
+		// CG_AddLightToScene( trace->endpos, 100, color[ 0 ], color[ 1 ], color[ 2 ] );
 		return;
 	}
 
@@ -104,7 +99,6 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 	bool firstPerson;
 	trace_t trace;
 	orientation_t projectsource;
-	vec4_t color;
 	vec3_t laserOrigin, laserAngles, laserPoint;
 
 	if( cent->localEffects[LOCALEFFECT_LASERBEAM] <= cl.serverTime ) {
@@ -122,7 +116,7 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 	}
 
 	laserOwner = cent;
-	_LaserColor( color );
+	Vec4 color = CG_TeamColorVec4( laserOwner->current.team );
 
 	// interpolate the positions
 	firstPerson = ISVIEWERENTITY( cent->current.number ) && !cg.view.thirdperson;
@@ -158,7 +152,7 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 
 	Vec3 start = FromQF3( laserOrigin );
 	Vec3 end = FromQF3( trace.endpos );
-	DrawBeam( start, end, 16.0f, FromQF4( color ), cgs.media.shaderLGBeam );
+	DrawBeam( start, end, 16.0f, color, cgs.media.shaderLGBeam );
 
 	// enable continuous flash on the weapon owner
 	if( cg_weaponFlashes->integer ) {
@@ -274,18 +268,18 @@ static void CG_FireWeaponEvent( int entNum, int weapon ) {
 */
 static void CG_LeadWaterSplash( trace_t *tr ) {
 	int contents;
-	vec_t *dir, *pos;
+	float *dir, *pos;
 
 	contents = tr->contents;
 	pos = tr->endpos;
 	dir = tr->plane.normal;
 
 	if( contents & CONTENTS_WATER ) {
-		CG_ParticleEffect( pos, dir, 0.47f, 0.48f, 0.8f, 8 );
+		// CG_ParticleEffect( pos, dir, 0.47f, 0.48f, 0.8f, 8 );
 	} else if( contents & CONTENTS_SLIME ) {
-		CG_ParticleEffect( pos, dir, 0.0f, 1.0f, 0.0f, 8 );
+		// CG_ParticleEffect( pos, dir, 0.0f, 1.0f, 0.0f, 8 );
 	} else if( contents & CONTENTS_LAVA ) {
-		CG_ParticleEffect( pos, dir, 1.0f, 0.67f, 0.0f, 8 );
+		// CG_ParticleEffect( pos, dir, 1.0f, 0.67f, 0.0f, 8 );
 	}
 }
 
@@ -321,7 +315,7 @@ static void CG_BulletImpact( trace_t *tr ) {
 
 	// throw particles on dust
 	if( cg_particles->integer && ( tr->surfFlags & SURF_DUST ) ) {
-		CG_ParticleEffect( tr->endpos, tr->plane.normal, 0.30f, 0.30f, 0.25f, 1 );
+		// CG_ParticleEffect( tr->endpos, tr->plane.normal, 0.30f, 0.30f, 0.25f, 1 );
 	}
 }
 
@@ -879,16 +873,16 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 				count = 6;
 			}
 
-			CG_ParticleEffect( ent->origin, dir, 1.0f, 0.67f, 0.0f, count );
+			// CG_ParticleEffect( ent->origin, dir, 1.0f, 0.67f, 0.0f, count );
 			break;
 
 		case EV_LASER_SPARKS:
 			ByteToDir( parm, dir );
-			CG_ParticleEffect2( ent->origin, dir,
-								COLOR_R( ent->colorRGBA ) * ( 1.0 / 255.0 ),
-								COLOR_G( ent->colorRGBA ) * ( 1.0 / 255.0 ),
-								COLOR_B( ent->colorRGBA ) * ( 1.0 / 255.0 ),
-								ent->counterNum );
+			// CG_ParticleEffect2( ent->origin, dir,
+			// 					COLOR_R( ent->colorRGBA ) * ( 1.0 / 255.0 ),
+			// 					COLOR_G( ent->colorRGBA ) * ( 1.0 / 255.0 ),
+			// 					COLOR_B( ent->colorRGBA ) * ( 1.0 / 255.0 ),
+			// 					ent->counterNum );
 			break;
 
 		case EV_SPOG:
@@ -904,7 +898,6 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 		case EV_PLAYER_RESPAWN:
 			if( (unsigned)ent->ownerNum == cgs.playerNum + 1 ) {
 				CG_ResetKickAngles();
-				CG_ResetColorBlend();
 				CG_ResetDamageIndicator();
 			}
 

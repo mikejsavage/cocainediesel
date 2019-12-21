@@ -486,7 +486,7 @@ void PlaneFromPoints( vec3_t verts[3], cplane_t *plane ) {
 /*
 * ComparePlanes
 */
-bool ComparePlanes( const vec3_t p1normal, vec_t p1dist, const vec3_t p2normal, vec_t p2dist ) {
+bool ComparePlanes( const vec3_t p1normal, float p1dist, const vec3_t p2normal, float p2dist ) {
 	if( fabs( p1normal[0] - p2normal[0] ) < PLANE_NORMAL_EPSILON
 		&& fabs( p1normal[1] - p2normal[1] ) < PLANE_NORMAL_EPSILON
 		&& fabs( p1normal[2] - p2normal[2] ) < PLANE_NORMAL_EPSILON
@@ -520,7 +520,7 @@ void SnapVector( vec3_t normal ) {
 /*
 * SnapPlane
 */
-void SnapPlane( vec3_t normal, vec_t *dist ) {
+void SnapPlane( vec3_t normal, float *dist ) {
 	SnapVector( normal );
 
 	if( fabs( *dist - Q_rint( *dist ) ) < PLANE_DIST_EPSILON ) {
@@ -557,7 +557,7 @@ bool BoundsOverlapSphere( const vec3_t mins, const vec3_t maxs, const vec3_t cen
 }
 
 void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs ) {
-	vec_t val;
+	float val;
 
 	for( int i = 0; i < 3; i++ ) {
 		val = v[i];
@@ -580,7 +580,7 @@ float RadiusFromBounds( const vec3_t mins, const vec3_t maxs ) {
 	return VectorLength( corner );
 }
 
-vec_t VectorNormalize( vec3_t v ) {
+float VectorNormalize( vec3_t v ) {
 	float length = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
 
 	if( length ) {
@@ -594,7 +594,7 @@ vec_t VectorNormalize( vec3_t v ) {
 	return length;
 }
 
-vec_t VectorNormalize2( const vec3_t v, vec3_t out ) {
+float VectorNormalize2( const vec3_t v, vec3_t out ) {
 	float length, ilength;
 
 	length = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
@@ -607,23 +607,6 @@ vec_t VectorNormalize2( const vec3_t v, vec3_t out ) {
 		out[2] = v[2] * ilength;
 	} else {
 		VectorClear( out );
-	}
-
-	return length;
-}
-
-vec_t Vector4Normalize( vec4_t v ) {
-	float length, ilength;
-
-	length = v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3];
-
-	if( length ) {
-		length = sqrtf( length ); // FIXME
-		ilength = 1.0 / length;
-		v[0] *= ilength;
-		v[1] *= ilength;
-		v[2] *= ilength;
-		v[3] *= ilength;
 	}
 
 	return length;

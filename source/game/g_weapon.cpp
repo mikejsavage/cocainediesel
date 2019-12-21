@@ -290,7 +290,7 @@ static void W_Grenade_ExplodeDir( edict_t *ent, vec3_t normal ) {
 	int radius;
 	edict_t *event;
 	vec3_t up = { 0, 0, 1 };
-	vec_t *dir = normal ? normal : up;
+	float *dir = normal ? normal : up;
 
 	G_RadiusDamage( ent, ent->r.owner, NULL, ent->enemy, MOD_GRENADE_SPLASH );
 

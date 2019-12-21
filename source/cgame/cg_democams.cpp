@@ -635,7 +635,6 @@ static void CG_DrawEntityNumbers( void ) {
 	float zfar = 2048;
 	int i, entnum;
 	centity_t *cent;
-	vec2_t coords;
 	vec3_t dir;
 	float dist;
 	trace_t trace;

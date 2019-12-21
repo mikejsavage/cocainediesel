@@ -105,7 +105,7 @@ const float pm_wjbouncefactor = 0.3f;
 #define VectorScale2D( in, scale, out ) ( ( out )[0] = ( in )[0] * ( scale ), ( out )[1] = ( in )[1] * ( scale ) )
 #define DotProduct2D( x, y )           ( ( x )[0] * ( y )[0] + ( x )[1] * ( y )[1] )
 
-static vec_t VectorNormalize2D( vec3_t v ) { // ByMiK : normalize horizontally (don't affect Z value)
+static float VectorNormalize2D( vec3_t v ) { // ByMiK : normalize horizontally (don't affect Z value)
 	float length, ilength;
 	length = v[0] * v[0] + v[1] * v[1];
 	if( length ) {

@@ -31,23 +31,6 @@ typedef struct orientation_s {
 	vec3_t origin;
 } orientation_t;
 
-typedef struct fragment_s {
-	int firstvert;
-	int numverts;                       // can't exceed MAX_POLY_VERTS
-	vec3_t normal;
-} fragment_t;
-
-typedef struct poly_s {
-	int numverts;
-	vec4_t *verts;
-	vec4_t *normals;
-	vec2_t *stcoords;
-	byte_vec4_t *colors;
-	int numelems;
-	u16 *elems;
-	const Material * material;
-} poly_t;
-
 struct TRS {
 	Quaternion rotation;
 	Vec3 translation;
@@ -77,20 +60,14 @@ typedef struct entity_s {
 	** misc
 	*/
 	int64_t shaderTime;
-	union {
-		byte_vec4_t color;
-		uint8_t shaderRGBA[4];
-	};
+	RGBA8 color;
 
 	float scale;
 	float radius;                       // used as RT_SPRITE's radius
 	float rotation;
 
 	float outlineHeight;
-	union {
-		byte_vec4_t outlineColor;
-		uint8_t outlineRGBA[4];
-	};
+	RGBA8 outlineColor;
 } entity_t;
 
 typedef struct refdef_s {

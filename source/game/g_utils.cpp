@@ -1316,7 +1316,7 @@ void G_DropSpawnpointToFloor( edict_t *ent ) {
 * Set origin and origin2 and then call this before linkEntity
 * for laser entities for proper clipping against world leafs/clusters.
 */
-void G_SetBoundsForSpanEntity( edict_t *ent, vec_t size ) {
+void G_SetBoundsForSpanEntity( edict_t *ent, float size ) {
 	vec3_t sizeVec;
 
 	VectorSet( sizeVec, size, size, size );

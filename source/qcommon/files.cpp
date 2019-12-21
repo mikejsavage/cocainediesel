@@ -1542,10 +1542,9 @@ static void FS_TouchGamePath( searchpath_t *basepath, const char *gamedir ) {
 * FS_TouchGameDirectory
 */
 static void FS_TouchGameDirectory( const char *gamedir ) {
-	searchpath_t *old, *prev, *basepath;
+	searchpath_t *prev, *basepath;
 
 	// add for every basepath, in reverse order
-	old = fs_searchpaths;
 	prev = NULL;
 	while( prev != fs_basepaths ) {
 		basepath = fs_basepaths;

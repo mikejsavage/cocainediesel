@@ -100,7 +100,7 @@ void UpdatePhysicsCommon( float dt ) {
 }
 
 void UpdatePhysics() {
-	UpdatePhysicsCommon( cg.frameTime / 1000.0f );
+	UpdatePhysicsCommon( cls.frametime / 1000.0f );
 
 	PxMat44 physx_transform = PxMat44( sphere->getGlobalPose() );
 	Mat4 transform = bit_cast< Mat4 >( physx_transform );

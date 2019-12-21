@@ -187,7 +187,6 @@ static Ragdoll AddRagdoll( const Model * model, RagdollConfig config, MatrixPale
 	left_shoulder->setSphericalJointFlag( PxSphericalJointFlag::eLIMIT_ENABLED, true );
 	ragdoll.joints[ Joint_LeftShoulder ] = left_shoulder;
 
-	// PxTransform( PxQuat( PxPi, PxVec3( 1, 0, 0 ) )
 	PxRevoluteJoint * left_elbow = PxRevoluteJointCreate( *physx_physics,
 		ragdoll.bones[ Bone_LeftUpperArm ].actor, PxTransform( -ragdoll.bones[ Bone_LeftUpperArm ].capsule.halfHeight, 0, 0, PxQuat( PxPi / 2, PxVec3( 0, 0, 1 ) ) ) * PxTransform( PxQuat( PxPi, PxVec3( 1, 0, 0 ) ) ),
 		ragdoll.bones[ Bone_LeftForearm ].actor, PxTransform( ragdoll.bones[ Bone_LeftForearm ].capsule.halfHeight, 0, 0, PxQuat( PxPi / 2, PxVec3( 0, 0, 1 ) ) ) );
@@ -203,8 +202,8 @@ static Ragdoll AddRagdoll( const Model * model, RagdollConfig config, MatrixPale
 	ragdoll.joints[ Joint_RightShoulder ] = right_shoulder;
 
 	PxRevoluteJoint * right_elbow = PxRevoluteJointCreate( *physx_physics,
-		ragdoll.bones[ Bone_RightUpperArm ].actor, PxTransform( -ragdoll.bones[ Bone_RightUpperArm ].capsule.halfHeight, 0, 0, PxQuat( PxPi / 2, PxVec3( 0, 0, 1 ) ) ) * PxTransform( PxQuat( PxPi, PxVec3( 1, 0, 0 ) ) ),
-		ragdoll.bones[ Bone_RightForearm ].actor, PxTransform( ragdoll.bones[ Bone_RightForearm ].capsule.halfHeight, 0, 0, PxQuat( PxPi / 2, PxVec3( 0, 0, 1 ) ) ) );
+		ragdoll.bones[ Bone_RightUpperArm ].actor, PxTransform( -ragdoll.bones[ Bone_RightUpperArm ].capsule.halfHeight, 0, 0, PxQuat( PxPi, PxVec3( 1, 0, 0 ) ) ) * PxTransform( PxQuat( PxPi / 2, PxVec3( 0, 0, 1 ) ) ),
+		ragdoll.bones[ Bone_RightForearm ].actor, PxTransform( ragdoll.bones[ Bone_RightForearm ].capsule.halfHeight, 0, 0, PxQuat( PxPi, PxVec3( 1, 0, 0 ) ) ) * PxTransform( PxQuat( PxPi / 2, PxVec3( 0, 0, 1 ) ) ) );
 	right_elbow->setLimit( PxJointAngularLimitPair( 0, PxPi * 7.0f / 8.0f, 0.1f ) );
 	right_elbow->setRevoluteJointFlag( PxRevoluteJointFlag::eLIMIT_ENABLED, true );
 	ragdoll.joints[ Joint_RightElbow ] = right_elbow;
@@ -325,7 +324,7 @@ static void DrawBone( const Model * model, MatrixPalettes matrices, u8 j0, u8 j1
 	pipeline.pass = frame_static.nonworld_opaque_pass;
 	pipeline.shader = &shaders.standard;
 	pipeline.depth_func = DepthFunc_Disabled;
-	pipeline.set_texture( "u_BaseTexture", cls.whiteTexture );
+	pipeline.set_texture( "u_BaseTexture", cls.whiteTexture->texture );
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.set_uniform( "u_Material", frame_static.identity_material_uniforms );
 
@@ -524,7 +523,7 @@ void DrawRagdollEditor() {
 			editor_ragdoll = AddRagdoll( padpork, editor_ragdoll_config, pose );
 		}
 
-		UpdatePhysicsCommon( 1.0f / 60.0f );
+		UpdatePhysicsCommon( cls.frametime / 5000.0f );
 
 		Com_Printf( "%s\n", temp( "{}", editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().q ) );
 		Com_Printf( "%s\n", temp( "{}", QuaternionToEulerAngles( PhysxToDE( editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().q ) ) ) );

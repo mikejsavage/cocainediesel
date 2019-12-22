@@ -25,7 +25,7 @@
 #include <assert.h>
 
 #include "qcommon/rng.h"
-#include "gameshared/q_shared.h"
+#include "qcommon/base.h"
 #include "gameshared/q_math.h"
 
 RNG new_rng() {

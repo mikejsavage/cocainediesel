@@ -28,9 +28,9 @@
 
 struct RNG {
 	// RNG state. All values are possible.
-	uint64_t state; 
+	uint64_t state;
 	// Controls which RNG sequence (stream) is selected. Must *always* be odd.
-	uint64_t inc;   
+	uint64_t inc;
 };
 
 RNG new_rng();

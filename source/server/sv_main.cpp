@@ -461,8 +461,6 @@ void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 	CSPRNG_Bytes( entropy, sizeof( entropy ) );
 	sv.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
 
-	time_before_game = time_after_game = 0;
-
 	// if server is not active, do nothing
 	if( !svs.initialized ) {
 		SV_CheckDefaultMap();

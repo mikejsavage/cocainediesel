@@ -1,10 +1,10 @@
+#include "imgui/imgui.h"
+#include "imgui/imgui_internal.h"
+
 #include "client/client.h"
 #include "qcommon/version.h"
 #include "qcommon/string.h"
 #include "client/sdl/sdl_window.h"
-
-#include "imgui/imgui.h"
-#include "imgui/imgui_internal.h"
 
 #include "cgame/cg_local.h"
 

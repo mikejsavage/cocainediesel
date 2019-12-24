@@ -1,7 +1,7 @@
-#include "client/client.h"
-
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
+
+#include "client/client.h"
 
 #include "sdl/SDL.h"
 

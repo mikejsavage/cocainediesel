@@ -1,5 +1,10 @@
 #include <algorithm>
 
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_sdl.h"
+#include "imgui/imgui_internal.h"
+#include "imgui/imgui_freetype.h"
+
 #include "qcommon/base.h"
 #include "qcommon/assets.h"
 #include "qcommon/string.h"
@@ -7,11 +12,6 @@
 #include "client/client.h"
 #include "client/renderer/renderer.h"
 #include "client/sdl/sdl_window.h"
-
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_sdl.h"
-#include "imgui/imgui_internal.h"
-#include "imgui/imgui_freetype.h"
 
 static Texture atlas_texture;
 static Material atlas_material;

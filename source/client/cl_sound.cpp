@@ -255,7 +255,7 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data ) {
 	}
 
 	while( true ) {
-		Span< const char > opening_brace = ParseSpan( data, Parse_DontStopOnNewLine );
+		Span< const char > opening_brace = ParseToken( data, Parse_DontStopOnNewLine );
 		if( opening_brace == "" )
 			break;
 
@@ -269,8 +269,8 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data ) {
 		config->attenuation = ATTN_NORM;
 
 		while( true ) {
-			Span< const char > key = ParseSpan( data, Parse_DontStopOnNewLine );
-			Span< const char > value = ParseSpan( data, Parse_StopOnNewLine );
+			Span< const char > key = ParseToken( data, Parse_DontStopOnNewLine );
+			Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
 
 			if( key == "}" ) {
 				break;
@@ -290,13 +290,13 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data ) {
 				config->num_random_sounds++;
 			}
 			else if( key == "delay" ) {
-				if( !ParseFloat( value, &config->delay ) ) {
+				if( !SpanToFloat( value, &config->delay ) ) {
 					Com_Printf( S_COLOR_YELLOW "Argument to delay should be a number\n" );
 					return false;
 				}
 			}
 			else if( key == "volume" ) {
-				if( !ParseFloat( value, &config->volume ) ) {
+				if( !SpanToFloat( value, &config->volume ) ) {
 					Com_Printf( S_COLOR_YELLOW "Argument to volume should be a number\n" );
 					return false;
 				}

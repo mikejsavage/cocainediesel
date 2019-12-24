@@ -494,8 +494,6 @@ void CG_ScreenCrosshairDamageUpdate( void );
 
 void CG_DrawKeyState( int x, int y, int w, int h, const char *key );
 
-int CG_ParseValue( const char **s );
-
 void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float font_size, Vec4 color, bool border );
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border );
 void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color );

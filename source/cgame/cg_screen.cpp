@@ -100,29 +100,6 @@ void CG_ScreenInit( void ) {
 }
 
 /*
-* CG_ParseValue
-*/
-int CG_ParseValue( const char **s ) {
-	int index;
-	char *token;
-
-	token = COM_Parse( s );
-	if( !token[0] ) {
-		return 0;
-	}
-	if( token[0] != '%' ) {
-		return atoi( token );
-	}
-
-	index = atoi( token + 1 );
-	if( index < 0 || index >= PS_MAX_STATS ) {
-		CG_Error( "Bad stat index: %i", index );
-	}
-
-	return cg.predictedPlayerState.stats[index];
-}
-
-/*
 * CG_DrawNet
 */
 void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color ) {

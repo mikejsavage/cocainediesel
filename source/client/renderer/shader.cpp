@@ -34,7 +34,7 @@ static void BuildShaderSrcs( const char * path, const char * defines, DynamicArr
 
 		ptr = before_include + strlen( "#include" );
 
-		Span< const char > include = ParseSpan( &ptr, true );
+		Span< const char > include = ParseToken( &ptr, Parse_StopOnNewLine );
 		StringHash hash = StringHash( Hash64( include.ptr, include.n, Hash64( "glsl/" ) ) );
 
 		Span< const char > contents = AssetString( hash );
@@ -50,7 +50,7 @@ static void BuildShaderSrcs( const char * path, const char * defines, DynamicArr
 	lengths->add( -1 );
 }
 
-static void ReplaceShader( Shader * shader, Span< const char * > srcs, Span< int > lens ) { 
+static void ReplaceShader( Shader * shader, Span< const char * > srcs, Span< int > lens ) {
 	Shader new_shader;
 	if( !NewShader( &new_shader, srcs, lens ) )
 		return;

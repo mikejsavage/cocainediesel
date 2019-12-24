@@ -83,8 +83,8 @@ static const char * Shader_ParseString( const char ** ptr ) {
 	return Q_strlwr( token );
 }
 
-static Span< const char > Shader_ParseSpan( const char ** ptr ) {
-	Span< const char > span = ParseSpan( ptr, true );
+static Span< const char > Shader_ParseToken( const char ** ptr ) {
+	Span< const char > span = ParseToken( ptr, Parse_StopOnNewLine );
 	if( span.n == 0 || span[ 0 ] == '}' )
 		return Span< const char >();
 	return span;
@@ -210,7 +210,7 @@ static void Shader_Template( Material * material, const char * material_name, co
 	Span< const char > args[ MAX_ARGS ];
 	int num_args = 0;
 	while( true ) {
-		args[ num_args ] = Shader_ParseSpan( ptr );
+		args[ num_args ] = Shader_ParseToken( ptr );
 		if( args[ num_args ].n == 0 )
 			break;
 
@@ -362,7 +362,7 @@ static void Shaderpass_AlphaGen( Material * material, const char * name, const c
 	}
 	else if( !strcmp( token, "const" ) ) {
 		material->alphagen.type = ColorGenType_Constant;
-		material->alphagen.args[0] = fabs( Shader_ParseFloat( ptr ) );
+		material->alphagen.args[0] = Shader_ParseFloat( ptr );
 	}
 }
 

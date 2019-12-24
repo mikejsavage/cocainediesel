@@ -72,12 +72,14 @@ enum ParseStopOnNewLine {
 	Parse_StopOnNewLine,
 };
 
-Span< char > ParseSpan( char ** ptr, bool stop_on_newline );
-Span< const char > ParseSpan( const char ** ptr, bool stop_on_newline );
+Span< const char > ParseToken( const char ** ptr, ParseStopOnNewLine stop );
+Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine stop );
 
-Span< const char > ParseSpan( Span< const char > * cursor, ParseStopOnNewLine stop );
+int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop );
+float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine stop );
 
-bool ParseFloat( Span< const char > str, float * x );
+bool SpanToInt( Span< const char > str, int * x );
+bool SpanToFloat( Span< const char > str, float * x );
 
 bool StrEqual( Span< const char > lhs, Span< const char > rhs );
 bool StrEqual( Span< const char > lhs, const char * rhs );

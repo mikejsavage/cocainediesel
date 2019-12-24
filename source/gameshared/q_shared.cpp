@@ -18,9 +18,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "q_arch.h"
-#include "q_math.h"
-#include "q_shared.h"
+#include "gameshared/q_arch.h"
+#include "gameshared/q_math.h"
+#include "gameshared/q_shared.h"
+#include "qcommon/strtonum.h"
 
 //============================================================================
 
@@ -295,19 +296,19 @@ static bool IsWhitespace( char c ) {
 	return c == '\0' || c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }
 
-Span< char > ParseSpan( char ** ptr, bool stop_on_newline ) {
-	char * cursor = *ptr;
+Span< const char > ParseToken( const char ** ptr, ParseStopOnNewLine stop ) {
+	const char * cursor = *ptr;
 
 	// skip leading whitespace
 	while( IsWhitespace( *cursor ) ) {
 		if( *cursor == '\0' ) {
 			*ptr = NULL;
-			return Span< char >();
+			return Span< const char >( "", 0 );
 		}
 
-		if( *cursor == '\n' && stop_on_newline ) {
+		if( *cursor == '\n' && stop == Parse_StopOnNewLine ) {
 			*ptr = cursor;
-			return Span< char >();
+			return Span< const char >( "", 0 );
 		}
 
 		cursor++;
@@ -319,7 +320,7 @@ Span< char > ParseSpan( char ** ptr, bool stop_on_newline ) {
 		cursor++;
 	}
 
-	Span< char > span( cursor, 0 );
+	Span< const char > span( cursor, 0 );
 
 	if( !quoted ) {
 		while( !IsWhitespace( *cursor ) ) {
@@ -342,11 +343,7 @@ Span< char > ParseSpan( char ** ptr, bool stop_on_newline ) {
 	return span;
 }
 
-Span< const char > ParseSpan( const char ** ptr, bool stop_on_newline ) {
-	return ParseSpan( const_cast< char ** >( ptr ), stop_on_newline );
-}
-
-Span< const char > ParseSpan( Span< const char > * cursor, ParseStopOnNewLine stop ) {
+Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine stop ) {
 	Span< const char > c = *cursor;
 
 	// skip leading whitespace
@@ -358,7 +355,7 @@ Span< const char > ParseSpan( Span< const char > * cursor, ParseStopOnNewLine st
 
 		if( c[ 0 ] == '\n' && stop == Parse_StopOnNewLine ) {
 			*cursor = c;
-			return Span< char >();
+			return Span< const char >( "", 0 );
 		}
 
 		c++;
@@ -393,7 +390,33 @@ Span< const char > ParseSpan( Span< const char > * cursor, ParseStopOnNewLine st
 	return token;
 }
 
-bool ParseFloat( Span< const char > str, float * x ) {
+int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop ) {
+	Span< const char > token = ParseToken( cursor, stop );
+	int x;
+	return SpanToInt( token, &x ) ? x : def;
+}
+
+float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine stop ) {
+	Span< const char > token = ParseToken( cursor, stop );
+	float x;
+	return SpanToFloat( token, &x ) ? x : def;
+}
+
+bool SpanToInt( Span< const char > str, int * x ) {
+	char buf[ 128 ];
+	if( str.n >= sizeof( buf ) )
+		return false;
+
+	memcpy( buf, str.ptr, str.n );
+	buf[ str.n ] = '\0';
+
+	const char * err = NULL;
+	*x = strtonum( buf, INT_MIN, INT_MAX, &err );
+
+	return err == NULL;
+}
+
+bool SpanToFloat( Span< const char > str, float * x ) {
 	char buf[ 128 ];
 	if( str.n >= sizeof( buf ) )
 		return false;

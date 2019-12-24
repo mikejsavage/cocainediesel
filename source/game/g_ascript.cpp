@@ -2149,22 +2149,6 @@ static void asFunc_G_AnnouncerSound( gclient_t *target, int soundindex, int team
 	G_AnnouncerSound( ent, soundindex, team, queued, passent );
 }
 
-static asstring_t *asFunc_G_SpawnTempValue( asstring_t *key ) {
-	const char *val;
-
-	if( !key ) {
-		return game.asExport->asStringFactoryBuffer( NULL, 0 );
-	}
-
-	if( level.spawning_entity == NULL ) {
-		G_Printf( "WARNING: G_SpawnTempValue: Spawn temp values can only be grabbed during the entity spawning process\n" );
-	}
-
-	val = G_GetEntitySpawnKey( key->buffer, level.spawning_entity );
-
-	return game.asExport->asStringFactoryBuffer( val, strlen( val ) );
-}
-
 static void asFunc_FireBolt( asvec3_t *origin, asvec3_t *angles, int range, int damage, int knockback, edict_t *owner ) {
 	W_Fire_Electrobolt_FullInstant( owner, origin->v, angles->v, damage, damage, knockback, knockback, range, range, 0 );
 }
@@ -2192,7 +2176,6 @@ static void asFunc_FireBullet( asvec3_t *origin, asvec3_t *angles, int range, in
 static const asglobfuncs_t asGameGlobFuncs[] =
 {
 	{ "Entity @G_SpawnEntity( const String &in )", asFUNCTION( asFunc_G_Spawn ), NULL },
-	{ "const String @G_SpawnTempValue( const String &in )", asFUNCTION( asFunc_G_SpawnTempValue ), NULL },
 	{ "Entity @G_GetEntity( int entNum )", asFUNCTION( asFunc_GetEntity ), NULL },
 	{ "Client @G_GetClient( int clientNum )", asFUNCTION( asFunc_GetClient ), NULL },
 	{ "Team @G_GetTeam( int team )", asFUNCTION( asFunc_GetTeamlist ), NULL },

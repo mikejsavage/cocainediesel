@@ -35,11 +35,8 @@ bool CG_ScoreboardShown() {
 }
 
 static bool ParseInt( const char ** cursor, int * x ) {
-	const char * token = COM_Parse( cursor );
-	if( cursor == NULL )
-		return false;
-	*x = atoi( token );
-	return true;
+	Span< const char > token = ParseToken( cursor, Parse_DontStopOnNewLine );
+	return SpanToInt( token, x );
 }
 
 static bool ParseTeam( const char ** cursor, ScoreboardTeam * team ) {

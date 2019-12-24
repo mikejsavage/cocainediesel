@@ -881,20 +881,18 @@ void G_Gametype_SetDefaults( void ) {
 // do no validation, G_SpawnEntities will catch it
 static bool IsGladiatorMap() {
 	const char * entities = level.mapString;
-	COM_Parse( &entities ); // {
+	ParseToken( &entities, Parse_DontStopOnNewLine ); // {
 
 	while( true ) {
-		char key[ MAX_TOKEN_CHARS ];
-		COM_Parse_r( key, sizeof( key ), &entities );
+		Span< const char > key = ParseToken( &entities, Parse_DontStopOnNewLine );
+		Span< const char > value = ParseToken( &entities, Parse_DontStopOnNewLine );
 
-		char value[ MAX_TOKEN_CHARS ];
-		COM_Parse_r( value, sizeof( value ), &entities );
-
-		if( entities == NULL || strcmp( key, "}" ) == 0 )
+		if( entities == NULL || key == "}" )
 			break;
 
-		if( strcmp( key, "gametype" ) == 0 )
-			return strcmp( value, "gladiator" ) == 0;
+		if( key == "gametype" ) {
+			return value == "gladiator";
+		}
 	}
 
 	return false;

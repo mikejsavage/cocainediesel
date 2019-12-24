@@ -131,10 +131,16 @@ static void CG_SC_Scoreboard( void ) {
 	SCR_UpdateScoreboardMessage( trap_Cmd_Argv( 1 ) );
 }
 
+static int ParseIntOr0( const char ** cursor ) {
+	Span< const char > token = ParseToken( cursor, Parse_DontStopOnNewLine );
+	int x;
+	return SpanToInt( token, &x ) ? x : 0;
+}
+
 static void CG_SC_PlayerStats() {
 	const char * s = trap_Cmd_Argv( 1 );
 
-	int playerNum = CG_ParseValue( &s );
+	int playerNum = ParseIntOr0( &s );
 	if( playerNum < 0 || playerNum >= client_gs.maxclients ) {
 		return;
 	}
@@ -147,11 +153,11 @@ static void CG_SC_PlayerStats() {
 		const gsitem_t * item = GS_FindItemByTag( i );
 		assert( item );
 
-		int shots = CG_ParseValue( &s );
+		int shots = ParseIntOr0( &s );
 		if( shots < 1 ) { // only continue with registered shots
 			continue;
 		}
-		int hits = CG_ParseValue( &s );
+		int hits = ParseIntOr0( &s );
 
 		// name
 		CG_Printf( "%s%2s" S_COLOR_WHITE ": ", ImGuiColorToken( item->color ).token, item->shortname );
@@ -165,8 +171,8 @@ static void CG_SC_PlayerStats() {
 
 	CG_Printf( "\n" );
 
-	int total_damage_given = CG_ParseValue( &s );
-	int total_damage_received = CG_ParseValue( &s );
+	int total_damage_given = ParseIntOr0( &s );
+	int total_damage_received = ParseIntOr0( &s );
 
 	CG_LocalPrint( S_COLOR_YELLOW "Damage given/received: " S_COLOR_WHITE "%i/%i " S_COLOR_YELLOW "ratio: %s%3.2f\n",
 		total_damage_given, total_damage_received,

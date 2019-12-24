@@ -704,7 +704,6 @@ bool G_CallSpawn( edict_t *ent );
 void G_RespawnLevel( void );
 void G_ResetLevel( void );
 void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTime );
-const char *G_GetEntitySpawnKey( const char *key, edict_t *self );
 
 //
 // g_awards.c

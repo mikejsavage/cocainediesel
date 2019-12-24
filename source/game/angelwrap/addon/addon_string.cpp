@@ -420,20 +420,16 @@ static float objectString_toFloat( asstring_t *self ) {
 }
 
 static asstring_t *objectString_getToken( unsigned int index, asstring_t *self ) {
-	unsigned int i;
-	char *s;
-	const char *token = "";
+	const char * cursor = self->buffer;
 
-	s = self->buffer;
-
-	for( i = 0; i <= index; i++ ) {
-		token = COM_Parse( &s );
-		if( !token[0] ) { // string finished before finding the token
-			break;
-		}
+	for( unsigned int i = 0; i < index; i++ ) {
+		ParseToken( &cursor, Parse_DontStopOnNewLine );
+		if( cursor == NULL )
+			return objectString_FactoryBuffer( "", 0 );
 	}
 
-	return objectString_FactoryBuffer( token, strlen( token ) );
+	Span< const char > token = ParseToken( &cursor, Parse_DontStopOnNewLine );
+	return objectString_FactoryBuffer( token.ptr, token.n );
 }
 
 static asstring_t *objectString_Replace( const asstring_t &assearch, const asstring_t &asreplace, asstring_t *self ) {

@@ -307,7 +307,6 @@ static const reference_numeric_t cg_numeric_references[] = {
 	{ "SHOW_PRESSED_KEYS", CG_GetCvar, "cg_showPressedKeys" },
 	{ "SHOW_SPEED", CG_GetCvar, "cg_showSpeed" },
 	{ "SHOW_AWARDS", CG_GetCvar, "cg_showAwards" },
-	{ "SHOW_R_SPEEDS", CG_GetCvar, "r_speeds" },
 
 	{ "DOWNLOAD_IN_PROGRESS", CG_DownloadInProgress, NULL },
 	{ "DOWNLOAD_PERCENT", CG_GetCvar, "cl_download_percent" },

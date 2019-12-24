@@ -37,7 +37,6 @@ static bool com_quit;
 
 static jmp_buf abortframe;     // an ERR_DROP occured, exit the entire frame
 
-cvar_t *host_speeds;
 cvar_t *developer;
 cvar_t *timescale;
 cvar_t *versioncvar;
@@ -58,12 +57,6 @@ static bool demo_playing = false;
 
 struct cmodel_state_s *server_cms = NULL;
 unsigned server_map_checksum = 0;
-
-// host_speeds times
-int64_t time_before_game;
-int64_t time_after_game;
-int64_t time_before_ref;
-int64_t time_after_ref;
 
 /*
 ============================================================================
@@ -605,7 +598,6 @@ void Qcommon_Init( int argc, char **argv ) {
 
 	Qcommon_InitCommands();
 
-	host_speeds =       Cvar_Get( "host_speeds", "0", 0 );
 	timescale =     Cvar_Get( "timescale", "1.0", CVAR_CHEAT );
 	if( is_dedicated_server ) {
 		logconsole =        Cvar_Get( "logconsole", "server.log", CVAR_ARCHIVE );
@@ -693,35 +685,8 @@ void Qcommon_Frame( unsigned int realMsec ) {
 	// keep the random time dependent
 	rand();
 
-	if( host_speeds->integer ) {
-		time_before = Sys_Milliseconds();
-	}
-
 	SV_Frame( realMsec, gameMsec );
-
-	if( host_speeds->integer ) {
-		time_between = Sys_Milliseconds();
-	}
-
 	CL_Frame( realMsec, gameMsec );
-
-	if( host_speeds->integer ) {
-		time_after = Sys_Milliseconds();
-	}
-
-	if( host_speeds->integer ) {
-		int all, sv, gm, cl, rf;
-
-		all = time_after - time_before;
-		sv = time_between - time_before;
-		cl = time_after - time_between;
-		gm = time_after_game - time_before_game;
-		rf = time_after_ref - time_before_ref;
-		sv -= gm;
-		cl -= rf;
-		Com_Printf( "all:%3i sv:%3i gm:%3i cl:%3i rf:%3i\n",
-					all, sv, gm, cl, rf );
-	}
 }
 
 /*

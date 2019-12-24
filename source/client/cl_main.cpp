@@ -1888,19 +1888,12 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	VID_CheckChanges();
 
 	// update the screen
-	if( host_speeds->integer ) {
-		time_before_ref = Sys_Milliseconds();
-	}
-
 	u32 viewport_width, viewport_height;
 	VID_GetViewportSize( &viewport_width, &viewport_height );
 	RendererBeginFrame( viewport_width, viewport_height );
 
 	SCR_UpdateScreen();
 	RendererSubmitFrame();
-	if( host_speeds->integer ) {
-		time_after_ref = Sys_Milliseconds();
-	}
 
 	// update audio
 	if( cls.state != CA_ACTIVE ) {

@@ -601,7 +601,6 @@ unsigned    FS_ChecksumAbsoluteFile( const char *filename );
 unsigned    FS_ChecksumBaseFile( const char *filename );
 
 // // only for game files
-const char *FS_FirstExtension( const char *filename, const char * const * extensions, int num_extensions );
 const char *FS_BaseNameForFile( const char *filename );
 
 int         FS_GetFileList( const char *dir, const char *extension, char *buf, size_t bufsize, int start, int end );
@@ -649,14 +648,7 @@ void        Com_SetServerCM( struct cmodel_state_s *cms, unsigned checksum );
 
 extern cvar_t *developer;
 extern const bool is_dedicated_server;
-extern cvar_t *host_speeds;
 extern cvar_t *versioncvar;
-
-// host_speeds times
-extern int64_t time_before_game;
-extern int64_t time_after_game;
-extern int64_t time_before_ref;
-extern int64_t time_after_ref;
 
 /*
 ==============================================================

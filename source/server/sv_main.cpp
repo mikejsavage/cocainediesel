@@ -413,15 +413,7 @@ static bool SV_RunGameFrame( int msec ) {
 			accTime = 0;
 		}
 
-		if( host_speeds->integer ) {
-			time_before_game = Sys_Milliseconds();
-		}
-
 		ge->RunFrame( moduleTime );
-
-		if( host_speeds->integer ) {
-			time_after_game = Sys_Milliseconds();
-		}
 	}
 
 	// if we don't have to send a snapshot we are done here

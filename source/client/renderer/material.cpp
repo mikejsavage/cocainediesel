@@ -739,7 +739,7 @@ static float EvaluateWaveFunc( Wave wave ) {
 	float v = 0.0f;
 	switch( wave.type ) {
 		case WaveFunc_Sin:
-			 v = sinf( t * M_TWOPI );
+			 v = sinf( t * PI * 2.0f );
 			 break;
 
 		case WaveFunc_Triangle:

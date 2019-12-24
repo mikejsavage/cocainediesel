@@ -1140,7 +1140,7 @@ float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker ) {
 	}
 
 	if( dir[0] ) {
-		killer_yaw = RAD2DEG( atan2( dir[1], dir[0] ) );
+		killer_yaw = RAD2DEG( atan2f( dir[1], dir[0] ) );
 	} else {
 		killer_yaw = 0;
 		if( dir[1] > 0 ) {
@@ -1285,7 +1285,7 @@ void G_CategorizePosition( edict_t *ent ) {
 /*
 * G_DropSpawnpointToFloor
 */
-void G_DropSpawnpointToFloor( edict_t *ent ) {
+void G_DropSpawnpointTofloorf( edict_t *ent ) {
 	vec3_t start, end;
 	trace_t trace;
 

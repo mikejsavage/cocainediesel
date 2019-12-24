@@ -72,7 +72,7 @@ void CL_Stop_f( void ) {
 	CL_SetDemoMetaKeyValue( "hostname", cl.configstrings[CS_HOSTNAME] );
 	CL_SetDemoMetaKeyValue( "localtime", va( "%" PRIi64, (int64_t)cls.demo.localtime ) );
 	CL_SetDemoMetaKeyValue( "multipov", "0" );
-	CL_SetDemoMetaKeyValue( "duration", va( "%u", (int)ceil( (double)cls.demo.duration / 1000.0 ) ) );
+	CL_SetDemoMetaKeyValue( "duration", va( "%u", (int)ceilf( (double)cls.demo.duration / 1000.0 ) ) );
 	CL_SetDemoMetaKeyValue( "mapname", cl.configstrings[CS_MAPNAME] );
 	CL_SetDemoMetaKeyValue( "gametype", cl.configstrings[CS_GAMETYPENAME] );
 	CL_SetDemoMetaKeyValue( "matchscore", cl.configstrings[CS_MATCHSCORE] );

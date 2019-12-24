@@ -162,7 +162,7 @@ static void G_UpdateServerInfo( void ) {
 void G_CheckCvars( void ) {
 	if( g_antilag_maxtimedelta->modified ) {
 		if( g_antilag_maxtimedelta->integer < 0 ) {
-			trap_Cvar_SetValue( "g_antilag_maxtimedelta", abs( g_antilag_maxtimedelta->integer ) );
+			trap_Cvar_SetValue( "g_antilag_maxtimedelta", Abs( g_antilag_maxtimedelta->integer ) );
 		}
 		g_antilag_maxtimedelta->modified = false;
 		g_antilag_timenudge->modified = true;
@@ -180,7 +180,7 @@ void G_CheckCvars( void ) {
 	if( g_warmup_timelimit->modified ) {
 		// if we are inside timelimit period, update the endtime
 		if( GS_MatchState( &server_gs ) == MATCH_STATE_WARMUP ) {
-			server_gs.gameState.stats[GAMESTAT_MATCHDURATION] = (int64_t)fabs( 60.0f * 1000 * g_warmup_timelimit->integer );
+			server_gs.gameState.stats[GAMESTAT_MATCHDURATION] = (int64_t)Abs( 60.0f * 1000 * g_warmup_timelimit->integer );
 		}
 		g_warmup_timelimit->modified = false;
 	}

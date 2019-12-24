@@ -143,10 +143,10 @@ static c4clipedict_t *GClip_GetClipEdictForDeltaTime( int entNum, int deltaTime 
 	}
 
 	// clamp delta time inside the backed up limits
-	backTime = abs( deltaTime );
+	backTime = Abs( deltaTime );
 	if( g_antilag_maxtimedelta->integer ) {
 		if( g_antilag_maxtimedelta->integer < 0 ) {
-			trap_Cvar_SetValue( "g_antilag_maxtimedelta", abs( g_antilag_maxtimedelta->integer ) );
+			trap_Cvar_SetValue( "g_antilag_maxtimedelta", Abs( g_antilag_maxtimedelta->integer ) );
 		}
 		if( backTime > (int64_t)g_antilag_maxtimedelta->integer ) {
 			backTime = (int64_t)g_antilag_maxtimedelta->integer;
@@ -313,14 +313,14 @@ static void GClip_LinkEntity_AreaGrid( areagrid_t *areagrid, edict_t *ent ) {
 		return;
 	}
 
-	igridmins[0] = (int) floor( ( ent->r.absmin[0] + areagrid->bias[0] ) * areagrid->scale[0] );
-	igridmins[1] = (int) floor( ( ent->r.absmin[1] + areagrid->bias[1] ) * areagrid->scale[1] );
+	igridmins[0] = (int) floorf( ( ent->r.absmin[0] + areagrid->bias[0] ) * areagrid->scale[0] );
+	igridmins[1] = (int) floorf( ( ent->r.absmin[1] + areagrid->bias[1] ) * areagrid->scale[1] );
 
-	//igridmins[2] = (int) floor( (ent->r.absmin[2] + areagrid->bias[2]) * areagrid->scale[2] );
-	igridmaxs[0] = (int) floor( ( ent->r.absmax[0] + areagrid->bias[0] ) * areagrid->scale[0] ) + 1;
-	igridmaxs[1] = (int) floor( ( ent->r.absmax[1] + areagrid->bias[1] ) * areagrid->scale[1] ) + 1;
+	//igridmins[2] = (int) floorf( (ent->r.absmin[2] + areagrid->bias[2]) * areagrid->scale[2] );
+	igridmaxs[0] = (int) floorf( ( ent->r.absmax[0] + areagrid->bias[0] ) * areagrid->scale[0] ) + 1;
+	igridmaxs[1] = (int) floorf( ( ent->r.absmax[1] + areagrid->bias[1] ) * areagrid->scale[1] ) + 1;
 
-	//igridmaxs[2] = (int) floor( (ent->r.absmax[2] + areagrid->bias[2]) * areagrid->scale[2] ) + 1;
+	//igridmaxs[2] = (int) floorf( (ent->r.absmax[2] + areagrid->bias[2]) * areagrid->scale[2] ) + 1;
 	if( igridmins[0] < 0 || igridmaxs[0] > AREA_GRID
 		|| igridmins[1] < 0 || igridmaxs[1] > AREA_GRID
 		|| ( ( igridmaxs[0] - igridmins[0] ) * ( igridmaxs[1] - igridmins[1] ) ) > MAX_ENT_AREAS ) {
@@ -356,12 +356,12 @@ static int GClip_EntitiesInBox_AreaGrid( areagrid_t *areagrid, const vec3_t mins
 	// ent->priv.server->areagridmarknumber reset
 	areagrid->marknumber++;
 
-	igridmins[0] = (int) floor( ( paddedmins[0] + areagrid->bias[0] ) * areagrid->scale[0] );
-	igridmins[1] = (int) floor( ( paddedmins[1] + areagrid->bias[1] ) * areagrid->scale[1] );
+	igridmins[0] = (int) floorf( ( paddedmins[0] + areagrid->bias[0] ) * areagrid->scale[0] );
+	igridmins[1] = (int) floorf( ( paddedmins[1] + areagrid->bias[1] ) * areagrid->scale[1] );
 
 	//igridmins[2] = (int) ( (paddedmins[2] + areagrid->bias[2]) * areagrid->scale[2] );
-	igridmaxs[0] = (int) floor( ( paddedmaxs[0] + areagrid->bias[0] ) * areagrid->scale[0] ) + 1;
-	igridmaxs[1] = (int) floor( ( paddedmaxs[1] + areagrid->bias[1] ) * areagrid->scale[1] ) + 1;
+	igridmaxs[0] = (int) floorf( ( paddedmaxs[0] + areagrid->bias[0] ) * areagrid->scale[0] ) + 1;
+	igridmaxs[1] = (int) floorf( ( paddedmaxs[1] + areagrid->bias[1] ) * areagrid->scale[1] ) + 1;
 
 	//igridmaxs[2] = (int) ( (paddedmaxs[2] + areagrid->bias[2]) * areagrid->scale[2] ) + 1;
 	igridmins[0] = max( 0, igridmins[0] );

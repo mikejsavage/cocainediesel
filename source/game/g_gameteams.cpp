@@ -209,7 +209,7 @@ static bool G_Teams_CanKeepEvenTeam( int leaving, int joining ) {
 		}
 	}
 
-	return teamlist[joining].numplayers + 1 == min || abs( max - min ) <= 1;
+	return teamlist[joining].numplayers + 1 == min || Abs( max - min ) <= 1;
 }
 
 /*

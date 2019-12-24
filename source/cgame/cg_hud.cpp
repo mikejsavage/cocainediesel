@@ -19,9 +19,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#include "qcommon/base.h"
 #include "cgame/cg_local.h"
-
-enum { DEFAULTSCALE=0, NOSCALE, SCALEBYWIDTH, SCALEBYHEIGHT };
 
 static int layout_cursor_x = 400;
 static int layout_cursor_y = 300;
@@ -29,7 +28,6 @@ static int layout_cursor_width = 100;
 static int layout_cursor_height = 100;
 static Alignment layout_cursor_alignment = Alignment_LeftTop;
 static Vec4 layout_cursor_color = vec4_white;
-static vec3_t layout_cursor_rotation = { 0, 0, 0 };
 
 enum FontStyle {
 	FontStyle_Normal,
@@ -1580,7 +1578,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 
 		int ammo_in_clip = 0;
 
-		
+
 		if ( i != WEAP_GUNBLADE ) {
 			int capacity = GS_FindItemByTag( i )->capacity;
 			int clips = GS_FindItemByTag( i )->clips;
@@ -1596,9 +1594,9 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 				color_bg = Vec4( 0.5f, 0.25f, 0.0f, 1.0f );
 			}
 			if ( ammo_in_clip_pct <= 34) {
-				color = Vec4( 1.0f, 0.0f, 0.0f, 1.0f );		
+				color = Vec4( 1.0f, 0.0f, 0.0f, 1.0f );
 				color_bg = Vec4( 0.5f, 0.0f, 0.0f, 1.0f );
-			}	
+			}
 		}
 
 		Draw2DBox( curx, cury, curiw, curih, cgs.white_material, color );

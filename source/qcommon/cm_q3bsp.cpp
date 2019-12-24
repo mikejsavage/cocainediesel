@@ -72,7 +72,7 @@ static int CM_CreateFacetFromPoints( cmodel_state_t *cms, cbrush_t *facet, vec3_
 				VectorCopy( verts[( i + 2 ) % 4], v[2] );
 				PlaneFromPoints( v, &plane );
 
-				if( fabs( DotProduct( mainplane.normal, plane.normal ) ) < 0.9 ) {
+				if( Abs( DotProduct( mainplane.normal, plane.normal ) ) < 0.9 ) {
 					return 0;
 				}
 			}

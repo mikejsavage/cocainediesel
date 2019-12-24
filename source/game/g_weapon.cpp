@@ -17,43 +17,12 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-#include "g_local.h"
 
-enum {
-	PROJECTILE_TOUCH_NOT,
-	PROJECTILE_TOUCH_DIRECTHIT,
-	PROJECTILE_TOUCH_DIRECTAIRHIT,
-};
+#include "qcommon/base.h"
+#include "game/g_local.h"
 
-int G_Projectile_HitStyle( edict_t *projectile, edict_t *target ) {
-	// can't hit yourself
-	if( target == projectile->r.owner && target != world ) {
-		return PROJECTILE_TOUCH_NOT;
-	}
-
-	if( !target->takedamage || ISBRUSHMODEL( target->s.modelindex ) ) {
-		return PROJECTILE_TOUCH_DIRECTHIT;
-	}
-
-	if( target->waterlevel > 1 ) {
-		return PROJECTILE_TOUCH_DIRECTHIT;
-	}
-
-	if( !target->groundentity ) {
-		const float AIRHIT_MINHEIGHT = 64.0f;
-
-		vec3_t end;
-		VectorCopy( target->s.origin, end );
-		end[2] -= AIRHIT_MINHEIGHT;
-
-		trace_t trace;
-		G_Trace4D( &trace, target->s.origin, target->r.mins, target->r.maxs, end, target, MASK_DEADSOLID, 0 );
-		if( ( trace.ent != -1 || trace.startsolid ) && ISWALKABLEPLANE( &trace.plane ) ) {
-			return PROJECTILE_TOUCH_DIRECTAIRHIT;
-		}
-	}
-
-	return PROJECTILE_TOUCH_DIRECTHIT;
+static bool CanHit( const edict_t * projectile, const edict_t * target ) {
+	return target == world || target != projectile->r.owner;
 }
 
 static void ForgotToSetProjectileTouch( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) {
@@ -111,7 +80,7 @@ static edict_t *W_Fire_LinearProjectile( edict_t *self, vec3_t start, vec3_t ang
 	VectorCopy( projectile->velocity, projectile->s.linearMovementVelocity );
 	projectile->s.linearMovementTimeStamp = svs.gametime;
 	projectile->s.team = self->s.team;
-	projectile->s.modelindex2 = ( abs( timeDelta ) > 255 ) ? 255 : (unsigned int)abs( timeDelta );
+	projectile->s.modelindex2 = Min2( Abs( timeDelta ), 255 );
 	return projectile;
 }
 
@@ -319,8 +288,7 @@ static void W_Touch_Grenade( edict_t *ent, edict_t *other, cplane_t *plane, int 
 		return;
 	}
 
-	int hitType = G_Projectile_HitStyle( ent, other );
-	if( hitType == PROJECTILE_TOUCH_NOT ) {
+	if( !CanHit( ent, other ) ) {
 		return;
 	}
 
@@ -349,7 +317,7 @@ edict_t *W_Fire_Grenade( edict_t *self, vec3_t start, vec3_t angles, int speed, 
 	edict_t *grenade;
 
 	if( aim_up ) {
-		angles[PITCH] -= 5.0f * cos( DEG2RAD( angles[PITCH] ) ); // aim some degrees upwards from view dir
+		angles[PITCH] -= 5.0f * cosf( DEG2RAD( angles[PITCH] ) ); // aim some degrees upwards from view dir
 
 	}
 	grenade = W_Fire_TossProjectile( self, start, angles, speed, damage, minKnockback, maxKnockback, minDamage, radius, timeout, timeDelta );
@@ -379,8 +347,7 @@ static void W_Touch_Rocket( edict_t *ent, edict_t *other, cplane_t *plane, int s
 		return;
 	}
 
-	int hitType = G_Projectile_HitStyle( ent, other );
-	if( hitType == PROJECTILE_TOUCH_NOT ) {
+	if( !CanHit( ent, other ) ) {
 		return;
 	}
 
@@ -431,8 +398,7 @@ static void W_Touch_Plasma( edict_t *ent, edict_t *other, cplane_t *plane, int s
 		return;
 	}
 
-	int hitType = G_Projectile_HitStyle( ent, other );
-	if( hitType == PROJECTILE_TOUCH_NOT ) {
+	if( !CanHit( ent, other ) ) {
 		return;
 	}
 

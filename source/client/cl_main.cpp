@@ -1631,7 +1631,7 @@ void CL_UpdateSnapshot( void ) {
 
 			// if we don't have current snap (or delay is too big) don't wait to fire the pending one
 			if( ( !cls.demo.play_jump && cl.currentSnapNum <= 0 ) ||
-				( !cls.demo.playing && abs( cl.newServerTimeDelta - cl.serverTimeDelta ) > 200 ) ) {
+				( !cls.demo.playing && Abs( cl.newServerTimeDelta - cl.serverTimeDelta ) > 200 ) ) {
 				cl.serverTimeDelta = cl.newServerTimeDelta;
 			}
 		}

@@ -106,7 +106,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * m
 	Vec3 dir = Normalize( end - start );
 	Vec3 forward = Normalize( start - frame_static.position );
 
-	if( fabsf( Dot( dir, forward ) ) == 1.0f )
+	if( Abs( Dot( dir, forward ) ) == 1.0f )
 		return;
 
 	Vec3 beam_across = Normalize( Cross( -forward, dir ) );

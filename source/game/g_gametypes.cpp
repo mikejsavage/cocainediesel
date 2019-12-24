@@ -221,7 +221,7 @@ void G_Match_LaunchState( int matchState ) {
 			level.forceStart = false;
 
 			server_gs.gameState.stats[GAMESTAT_MATCHSTATE] = MATCH_STATE_WARMUP;
-			server_gs.gameState.stats[GAMESTAT_MATCHDURATION] = (int64_t)( fabs( g_warmup_timelimit->value * 60 ) * 1000 );
+			server_gs.gameState.stats[GAMESTAT_MATCHDURATION] = (int64_t)( Abs( g_warmup_timelimit->value * 60 ) * 1000 );
 			server_gs.gameState.stats[GAMESTAT_MATCHSTART] = svs.gametime;
 
 			break;

@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/base.h"
-#include "cg_local.h"
+#include "cgame/cg_local.h"
 #include "client/keys.h"
 
 static int cg_inputFrameTime;
@@ -238,7 +238,7 @@ static Vec2 Sign( Vec2 v ) {
 }
 
 static Vec2 Abs( Vec2 v ) {
-	return Vec2( fabsf( v.x ), fabsf( v.y ) );
+	return Vec2( Abs( v.x ), Abs( v.y ) );
 }
 
 static Vec2 Pow( Vec2 v, float e ) {

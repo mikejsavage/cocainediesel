@@ -510,9 +510,7 @@ void bombLookAt( Entity @ent ) {
 
 	float dist = dir.length();
 
-	dir *= 1.0 / dist; // save a sqrt? Vec3 has no /=...
-
-	Vec3 end = center + dir * ( dist + BOMB_DEAD_CAMERA_DIST );
+	Vec3 end = center + dir.normalize() * ( dist + BOMB_DEAD_CAMERA_DIST );
 
 	Trace trace;
 	bool didHit = trace.doTrace( bombOrigin, vec3Origin, vec3Origin, end, -1, MASK_SOLID );

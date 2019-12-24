@@ -17,7 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "cg_local.h"
+#include "qcommon/base.h"
+#include "cgame/cg_local.h"
 
 // Thanks to Xavatar (xavatar2004@hotmail.com) for the path spline implementation
 
@@ -1090,7 +1091,7 @@ static int CG_Democam_CalcView( void ) {
 					}
 					cam_fov = currentcam->fov;
 				} else {  // valid spline path
-#define VectorHermiteInterp( a, at, b, bt, c, v )  ( ( v )[0] = ( 2 * pow( c, 3 ) - 3 * pow( c, 2 ) + 1 ) * a[0] + ( pow( c, 3 ) - 2 * pow( c, 2 ) + c ) * 2 * at[0] + ( -2 * pow( c, 3 ) + 3 * pow( c, 2 ) ) * b[0] + ( pow( c, 3 ) - pow( c, 2 ) ) * 2 * bt[0], ( v )[1] = ( 2 * pow( c, 3 ) - 3 * pow( c, 2 ) + 1 ) * a[1] + ( pow( c, 3 ) - 2 * pow( c, 2 ) + c ) * 2 * at[1] + ( -2 * pow( c, 3 ) + 3 * pow( c, 2 ) ) * b[1] + ( pow( c, 3 ) - pow( c, 2 ) ) * 2 * bt[1], ( v )[2] = ( 2 * pow( c, 3 ) - 3 * pow( c, 2 ) + 1 ) * a[2] + ( pow( c, 3 ) - 2 * pow( c, 2 ) + c ) * 2 * at[2] + ( -2 * pow( c, 3 ) + 3 * pow( c, 2 ) ) * b[2] + ( pow( c, 3 ) - pow( c, 2 ) ) * 2 * bt[2] )
+#define VectorHermiteInterp( a, at, b, bt, c, v )  ( ( v )[0] = ( 2 * powf( c, 3 ) - 3 * powf( c, 2 ) + 1 ) * a[0] + ( powf( c, 3 ) - 2 * powf( c, 2 ) + c ) * 2 * at[0] + ( -2 * powf( c, 3 ) + 3 * powf( c, 2 ) ) * b[0] + ( powf( c, 3 ) - powf( c, 2 ) ) * 2 * bt[0], ( v )[1] = ( 2 * powf( c, 3 ) - 3 * powf( c, 2 ) + 1 ) * a[1] + ( powf( c, 3 ) - 2 * powf( c, 2 ) + c ) * 2 * at[1] + ( -2 * powf( c, 3 ) + 3 * powf( c, 2 ) ) * b[1] + ( powf( c, 3 ) - powf( c, 2 ) ) * 2 * bt[1], ( v )[2] = ( 2 * powf( c, 3 ) - 3 * powf( c, 2 ) + 1 ) * a[2] + ( powf( c, 3 ) - 2 * powf( c, 2 ) + c ) * 2 * at[2] + ( -2 * powf( c, 3 ) + 3 * powf( c, 2 ) ) * b[2] + ( powf( c, 3 ) - powf( c, 2 ) ) * 2 * bt[2] )
 
 					float lerpspline, A, B, C, n1, n2, n3;
 					cg_democam_t *previouscam = NULL;
@@ -1109,26 +1110,26 @@ static int CG_Democam_CalcView( void ) {
 					} else if( !previouscam && nextcam && secondnextcam ) {
 						n1 = nextcam->timeStamp - currentcam->timeStamp;
 						n2 = secondnextcam->timeStamp - nextcam->timeStamp;
-						A = n1 * ( n1 - n2 ) / ( pow( n1, 2 ) + n1 * n2 - n1 - n2 );
-						B = ( 2 * n1 * n2 - n1 - n2 ) / ( pow( n1, 2 ) + n1 * n2 - n1 - n2 );
+						A = n1 * ( n1 - n2 ) / ( powf( n1, 2 ) + n1 * n2 - n1 - n2 );
+						B = ( 2 * n1 * n2 - n1 - n2 ) / ( powf( n1, 2 ) + n1 * n2 - n1 - n2 );
 						lerpfrac = (float)( demo_time - currentcam->timeStamp ) / (float)( nextcam->timeStamp - currentcam->timeStamp );
-						lerpspline = A * pow( lerpfrac, 2 ) + B * lerpfrac;
+						lerpspline = A * powf( lerpfrac, 2 ) + B * lerpfrac;
 					} else if( previouscam && nextcam && !secondnextcam ) {
 						n2 = currentcam->timeStamp - previouscam->timeStamp;
 						n3 = nextcam->timeStamp - currentcam->timeStamp;
-						A = n3 * ( n2 - n3 ) / ( -n2 - n3 + n2 * n3 + pow( n3, 2 ) );
-						B = -1 / ( -n2 - n3 + n2 * n3 + pow( n3, 2 ) ) * ( n2 + n3 - 2 * pow( n3, 2 ) );
+						A = n3 * ( n2 - n3 ) / ( -n2 - n3 + n2 * n3 + powf( n3, 2 ) );
+						B = -1 / ( -n2 - n3 + n2 * n3 + powf( n3, 2 ) ) * ( n2 + n3 - 2 * powf( n3, 2 ) );
 						lerpfrac = (float)( demo_time - currentcam->timeStamp ) / (float)( nextcam->timeStamp - currentcam->timeStamp );
-						lerpspline = A * pow( lerpfrac, 2 ) + B * lerpfrac;
+						lerpspline = A * powf( lerpfrac, 2 ) + B * lerpfrac;
 					} else if( previouscam && nextcam && secondnextcam ) {
 						n1 = currentcam->timeStamp - previouscam->timeStamp;
 						n2 = nextcam->timeStamp - currentcam->timeStamp;
 						n3 = secondnextcam->timeStamp - nextcam->timeStamp;
-						A = -2 * pow( n2, 2 ) * ( -pow( n2, 2 ) + n1 * n3 ) / ( 2 * n2 * n3 + pow( n2, 3 ) * n3 - 3 * pow( n2, 2 ) * n1 + n1 * pow( n2, 3 ) + 2 * n1 * n2 - 3 * pow( n2, 2 ) * n3 - 3 * pow( n2, 3 ) + 2 * pow( n2, 2 ) + pow( n2, 4 ) + n1 * pow( n2, 2 ) * n3 - 3 * n1 * n2 * n3 + 2 * n1 * n3 );
-						B = pow( n2, 2 ) * ( -2 * n1 - 3 * pow( n2, 2 ) - n2 * n3 + 2 * n3 + 3 * n1 * n3 + n1 * n2 ) / ( 2 * n2 * n3 + pow( n2, 3 ) * n3 - 3 * pow( n2, 2 ) * n1 + n1 * pow( n2, 3 ) + 2 * n1 * n2 - 3 * pow( n2, 2 ) * n3 - 3 * pow( n2, 3 ) + 2 * pow( n2, 2 ) + pow( n2, 4 ) + n1 * pow( n2, 2 ) * n3 - 3 * n1 * n2 * n3 + 2 * n1 * n3 );
-						C = -( pow( n2, 2 ) * n1 - 2 * n1 * n2 + 3 * n1 * n2 * n3 - 2 * n1 * n3 - 2 * pow( n2, 4 ) + 3 * pow( n2, 3 ) - 2 * pow( n2, 3 ) * n3 + 5 * pow( n2, 2 ) * n3 - 2 * pow( n2, 2 ) - 2 * n2 * n3 ) / ( 2 * n2 * n3 + pow( n2, 3 ) * n3 - 3 * pow( n2, 2 ) * n1 + n1 * pow( n2, 3 ) + 2 * n1 * n2 - 3 * pow( n2, 2 ) * n3 - 3 * pow( n2, 3 ) + 2 * pow( n2, 2 ) + pow( n2, 4 ) + n1 * pow( n2, 2 ) * n3 - 3 * n1 * n2 * n3 + 2 * n1 * n3 );
+						A = -2 * powf( n2, 2 ) * ( -powf( n2, 2 ) + n1 * n3 ) / ( 2 * n2 * n3 + powf( n2, 3 ) * n3 - 3 * powf( n2, 2 ) * n1 + n1 * powf( n2, 3 ) + 2 * n1 * n2 - 3 * powf( n2, 2 ) * n3 - 3 * powf( n2, 3 ) + 2 * powf( n2, 2 ) + powf( n2, 4 ) + n1 * powf( n2, 2 ) * n3 - 3 * n1 * n2 * n3 + 2 * n1 * n3 );
+						B = powf( n2, 2 ) * ( -2 * n1 - 3 * powf( n2, 2 ) - n2 * n3 + 2 * n3 + 3 * n1 * n3 + n1 * n2 ) / ( 2 * n2 * n3 + powf( n2, 3 ) * n3 - 3 * powf( n2, 2 ) * n1 + n1 * powf( n2, 3 ) + 2 * n1 * n2 - 3 * powf( n2, 2 ) * n3 - 3 * powf( n2, 3 ) + 2 * powf( n2, 2 ) + powf( n2, 4 ) + n1 * powf( n2, 2 ) * n3 - 3 * n1 * n2 * n3 + 2 * n1 * n3 );
+						C = -( powf( n2, 2 ) * n1 - 2 * n1 * n2 + 3 * n1 * n2 * n3 - 2 * n1 * n3 - 2 * powf( n2, 4 ) + 3 * powf( n2, 3 ) - 2 * powf( n2, 3 ) * n3 + 5 * powf( n2, 2 ) * n3 - 2 * powf( n2, 2 ) - 2 * n2 * n3 ) / ( 2 * n2 * n3 + powf( n2, 3 ) * n3 - 3 * powf( n2, 2 ) * n1 + n1 * powf( n2, 3 ) + 2 * n1 * n2 - 3 * powf( n2, 2 ) * n3 - 3 * powf( n2, 3 ) + 2 * powf( n2, 2 ) + powf( n2, 4 ) + n1 * powf( n2, 2 ) * n3 - 3 * n1 * n2 * n3 + 2 * n1 * n3 );
 						lerpfrac = (float)( demo_time - currentcam->timeStamp ) / (float)( nextcam->timeStamp - currentcam->timeStamp );
-						lerpspline = A * pow( lerpfrac, 3 ) + B * pow( lerpfrac, 2 ) + C * lerpfrac;
+						lerpspline = A * powf( lerpfrac, 3 ) + B * powf( lerpfrac, 2 ) + C * lerpfrac;
 					} else {
 						lerpfrac = 0;
 						lerpspline = 0;

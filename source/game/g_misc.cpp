@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "g_local.h"
+#include "game/g_local.h"
 
 void ThrowSmallPileOfGibs( edict_t *self, const vec3_t knockback, int damage ) {
 	int contents = G_PointContents( self->s.origin );
@@ -385,7 +385,7 @@ static void func_explosive_think( edict_t *self ) {
 
 static void func_explosive_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	self->enemy = other;
-	self->count = ceil( self->health );
+	self->count = ceilf( self->health );
 
 	if( self->delay ) {
 		self->think = func_explosive_think;

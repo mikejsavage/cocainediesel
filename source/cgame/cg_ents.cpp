@@ -152,9 +152,9 @@ static void CG_NewPacketEntityState( entity_state_t *state ) {
 		VectorCopy( cent->current.origin, cent->trailOrigin );
 	} else {
 		// if it moved too much force the teleported bit
-		if(  abs( (int)( cent->current.origin[0] - state->origin[0] ) ) > 512
-			 || abs( (int)( cent->current.origin[1] - state->origin[1] ) ) > 512
-			 || abs( (int)( cent->current.origin[2] - state->origin[2] ) ) > 512 ) {
+		if( Abs( (int)( cent->current.origin[0] - state->origin[0] ) ) > 512
+			 || Abs( (int)( cent->current.origin[1] - state->origin[1] ) ) > 512
+			 || Abs( (int)( cent->current.origin[2] - state->origin[2] ) ) > 512 ) {
 			cent->serverFrame = -99;
 		}
 
@@ -236,7 +236,7 @@ int CG_LostMultiviewPOV( void ) {
 	int fallback = -1;
 
 	for( int i = 0; i < cg.frame.numplayers; i++ ) {
-		int value = abs( (int)cg.frame.playerStates[i].playerNum - (int)cg.multiviewPlayerNum );
+		int value = Abs( (int)cg.frame.playerStates[i].playerNum - (int)cg.multiviewPlayerNum );
 		if( value == best && i > index ) {
 			continue;
 		}

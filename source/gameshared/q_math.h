@@ -69,11 +69,6 @@ typedef struct cplane_s {
 constexpr vec3_t vec3_origin = { 0, 0, 0 };
 constexpr mat3_t axis_identity = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 
-constexpr double M_TWOPI = M_PI * 2.0;
-
-#define DEG2RAD( a ) ( ( a * float( M_PI ) ) / 180.0f )
-#define RAD2DEG( a ) ( ( a * 180.0f ) / float( M_PI ) )
-
 #define max( a, b ) ( ( a ) > ( b ) ? ( a ) : ( b ) )
 #define min( a, b ) ( ( a ) < ( b ) ? ( a ) : ( b ) )
 #define bound( lo, x, hi ) ( ( lo ) >= ( hi ) ? ( lo ) : ( x ) < ( lo ) ? ( lo ) : ( x ) > ( hi ) ? ( hi ) : ( x ) )
@@ -82,7 +77,7 @@ constexpr double M_TWOPI = M_PI * 2.0;
 #define brandom( a, b )    ( ( a ) + random() * ( ( b ) - ( a ) ) )                // a..b
 #define crandom()   brandom( -1, 1 )                           // -1..1
 
-inline float Q_RSqrt( float x ) {
+inline float Q_Rsqrtf( float x ) {
 	return _mm_cvtss_f32( _mm_rsqrt_ss( _mm_set_ss( x ) ) );
 }
 
@@ -96,7 +91,7 @@ float Unlerp( T lo, T x, T hi ) {
 	return float( x - lo ) / float( hi - lo );
 }
 
-#define SQRTFAST( x ) ( ( x ) * Q_RSqrt( x ) ) // jal : //The expression a * rsqrt(b) is intended as a higher performance alternative to a / sqrt(b). The two expressions are comparably accurate, but do not compute exactly the same value in every case. For example, a * rsqrt(a*a + b*b) can be just slightly greater than 1, in rare cases.
+#define SQRTFAST( x ) ( ( x ) * Q_Rsqrtf( x ) ) // jal : //The expression a * rsqrt(b) is intended as a higher performance alternative to a / sqrt(b). The two expressions are comparably accurate, but do not compute exactly the same value in every case. For example, a * rsqrt(a*a + b*b) can be just slightly greater than 1, in rare cases.
 
 #define DotProduct( x, y )     ( ( x )[0] * ( y )[0] + ( x )[1] * ( y )[1] + ( x )[2] * ( y )[2] )
 #define CrossProduct( v1, v2, cross ) ( ( cross )[0] = ( v1 )[1] * ( v2 )[2] - ( v1 )[2] * ( v2 )[1], ( cross )[1] = ( v1 )[2] * ( v2 )[0] - ( v1 )[0] * ( v2 )[2], ( cross )[2] = ( v1 )[0] * ( v2 )[1] - ( v1 )[1] * ( v2 )[0] )

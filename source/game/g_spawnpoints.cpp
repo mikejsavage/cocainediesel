@@ -22,11 +22,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/rng.h"
 
 void SP_info_player_start( edict_t *self ) {
-	G_DropSpawnpointToFloor( self );
+	G_DropSpawnpointTofloorf( self );
 }
 
 void SP_info_player_deathmatch( edict_t *self ) {
-	G_DropSpawnpointToFloor( self );
+	G_DropSpawnpointTofloorf( self );
 }
 
 void SP_post_match_camera( edict_t *ent ) { }

@@ -1,14 +1,13 @@
 #pragma once
 
 #include <errno.h>
-#define _USE_MATH_DEFINES
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "qcommon/platform.h"
 #include "qcommon/types.h"
+#include "qcommon/math.h"
 #include "qcommon/ggformat.h"
 #include "qcommon/linear_algebra.h"
 

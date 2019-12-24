@@ -188,7 +188,7 @@ void G_SetClientStats( edict_t *ent ) {
 	}
 
 	// spawn system
-	client->ps.stats[STAT_NEXT_RESPAWN] = ceil( G_SpawnQueue_NextRespawnTime( client->team ) * 0.001f );
+	client->ps.stats[STAT_NEXT_RESPAWN] = ceilf( G_SpawnQueue_NextRespawnTime( client->team ) * 0.001f );
 
 	// pointed player
 	client->ps.stats[STAT_POINTED_TEAMPLAYER] = 0;

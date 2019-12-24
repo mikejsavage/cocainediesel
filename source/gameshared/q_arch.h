@@ -24,18 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "config.h"
 
 // q_shared.h -- included first by ALL program modules
-#include <assert.h>
-#include <ctype.h>
-#include <limits.h>
-#define _USE_MATH_DEFINES
-#include <math.h>
-#include <stdio.h>
 #include <stdarg.h>
-#include <string.h>
-#include <stdlib.h>
-#include <time.h>
-#include <stdint.h>
-#include <stddef.h>
 #include <inttypes.h>
 
 //==============================================

@@ -400,7 +400,7 @@ edict_t *G_PickTarget( const char *targetname );
 void G_UseTargets( edict_t *ent, edict_t *activator );
 void G_SetMovedir( vec3_t angles, vec3_t movedir );
 void G_InitMover( edict_t *ent );
-void G_DropSpawnpointToFloor( edict_t *ent );
+void G_DropSpawnpointTofloorf( edict_t *ent );
 
 void G_InitEdict( edict_t *e );
 edict_t *G_Spawn( void );

@@ -806,7 +806,7 @@ void CG_Explosion_Puff( const vec3_t pos, float radius, int frame ) {
 	const Material * material = cgs.media.shaderSmokePuff1;
 	vec3_t local_pos;
 
-	switch( (int)floor( crandom() * 3.0f ) ) {
+	switch( (int)floorf( crandom() * 3.0f ) ) {
 		case 0:
 			material = cgs.media.shaderSmokePuff1;
 			break;
@@ -834,7 +834,7 @@ void CG_Explosion_Puff_2( const vec3_t pos, const vec3_t vel, int radius ) {
 
 	const Material * material = cgs.media.shaderSmokePuff3;
 	if( radius == 0 ) {
-		radius = (int)floor( 35.0f + crandom() * 5 );
+		radius = (int)floorf( 35.0f + crandom() * 5 );
 	}
 
 	LocalEntity * le = CG_AllocSprite( LE_PUFF_SHRINK, pos, radius, 7,
@@ -864,10 +864,10 @@ void CG_DustCircle( const vec3_t pos, const vec3_t dir, float radius, int count 
 	VectorScale( dir_per2, VectorNormalize( dir_per2 ), dir_per2 );
 
 	for( i = 0; i < count; i++ ) {
-		angle = (float)( 6.2831f / count * i );
+		angle = (float)( PI * 2.0f / count * i );
 		VectorSet( dir_temp, 0.0f, 0.0f, 0.0f );
-		VectorMA( dir_temp, sin( angle ), dir_per1, dir_temp );
-		VectorMA( dir_temp, cos( angle ), dir_per2, dir_temp );
+		VectorMA( dir_temp, sinf( angle ), dir_per1, dir_temp );
+		VectorMA( dir_temp, cosf( angle ), dir_per2, dir_temp );
 
 		//VectorScale(dir_temp, VectorNormalize(dir_temp),dir_temp );
 		VectorScale( dir_temp, crandom() * 10 + radius, dir_temp );
@@ -898,10 +898,10 @@ void CG_ExplosionsDust( const vec3_t pos, const vec3_t dir, float radius ) {
 
 	// make a circle out of the specified number (int count) of sprites
 	for( i = 0; i < count; i++ ) {
-		angle = (float)( 6.2831f / count * i );
+		angle = (float)( PI * 2.0f / count * i );
 		VectorSet( dir_temp, 0.0f, 0.0f, 0.0f );
-		VectorMA( dir_temp, sin( angle ), dir_per1, dir_temp );
-		VectorMA( dir_temp, cos( angle ), dir_per2, dir_temp );
+		VectorMA( dir_temp, sinf( angle ), dir_per1, dir_temp );
+		VectorMA( dir_temp, cosf( angle ), dir_per2, dir_temp );
 
 		//VectorScale(dir_temp, VectorNormalize(dir_temp),dir_temp );
 		VectorScale( dir_temp, crandom() * 8 + radius + 16.0f, dir_temp );
@@ -971,10 +971,10 @@ void CG_AddLocalEntities( void ) {
 				ent->scale = 0.15 * frac;
 			} else {
 				VecToAngles( &ent->axis[AXIS_RIGHT], angles );
-				ent->axis[1 * 3 + 1] += 0.005f * sin( DEG2RAD( angles[YAW] ) ); //length
-				ent->axis[1 * 3 + 0] += 0.005f * cos( DEG2RAD( angles[YAW] ) ); //length
-				ent->axis[0 * 3 + 1] += 0.008f * cos( DEG2RAD( angles[YAW] ) ); //width
-				ent->axis[0 * 3 + 0] -= 0.008f * sin( DEG2RAD( angles[YAW] ) ); //width
+				ent->axis[1 * 3 + 1] += 0.005f * sinf( DEG2RAD( angles[YAW] ) ); //length
+				ent->axis[1 * 3 + 0] += 0.005f * cosf( DEG2RAD( angles[YAW] ) ); //length
+				ent->axis[0 * 3 + 1] += 0.008f * cosf( DEG2RAD( angles[YAW] ) ); //width
+				ent->axis[0 * 3 + 0] -= 0.008f * sinf( DEG2RAD( angles[YAW] ) ); //width
 				ent->axis[2 * 3 + 2] -= 0.052f;              //height
 
 				if( ent->axis[AXIS_UP + 2] <= 0 ) {
@@ -985,7 +985,7 @@ void CG_AddLocalEntities( void ) {
 		}
 		if( le->type == LE_PUFF_SCALE ) {
 			if( le->frames - f < 4 ) {
-				ent->scale = 1.0f - 1.0f * ( frac - abs( 4 - le->frames ) ) / 4;
+				ent->scale = 1.0f - 1.0f * ( frac - Abs( 4 - le->frames ) ) / 4;
 			}
 		}
 		if( le->type == LE_PUFF_SHRINK ) {

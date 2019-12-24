@@ -396,8 +396,8 @@ static void CG_Fire_SunflowerPattern( vec3_t start, vec3_t dir, int ignore, int 
 
 	for( i = 0; i < count; i++ ) {
 		fi = i * 2.4f; //magic value creating Fibonacci numbers
-		r = cosf( fi ) * hspread * sqrt( fi );
-		u = sinf( fi ) * vspread * sqrt( fi );
+		r = cosf( fi ) * hspread * sqrtf( fi );
+		u = sinf( fi ) * vspread * sqrtf( fi );
 
 		water_trace = GS_TraceBullet( &client_gs, &trace, start, dir, right, up, r, u, range, ignore, 0 );
 		if( water_trace ) {

@@ -43,9 +43,9 @@ Vec2 WorldToScreenClamped( Vec3 v, Vec2 screen_border, bool * clamped ) {
 		res = -res;
 
 	screen_border = 1.0f - ( screen_border / frame_static.viewport );
-	if( fabsf( res.x ) > screen_border.x || fabsf( res.y ) > screen_border.y || d < 0 ) {
-		float rx = screen_border.x / fabsf( res.x );
-		float ry = screen_border.y / fabsf( res.y );
+	if( Abs( res.x ) > screen_border.x || Abs( res.y ) > screen_border.y || d < 0 ) {
+		float rx = screen_border.x / Abs( res.x );
+		float ry = screen_border.y / Abs( res.y );
 
 		res *= Min2( rx, ry );
 

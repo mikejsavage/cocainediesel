@@ -92,14 +92,14 @@ void CG_CheckPredictionError( void ) {
 	VectorSubtract( cg.frame.playerState.pmove.origin, origin, delta );
 
 	// save the prediction error for interpolation
-	if( abs( delta[0] ) > 128 || abs( delta[1] ) > 128 || abs( delta[2] ) > 128 ) {
+	if( Abs( delta[0] ) > 128 || Abs( delta[1] ) > 128 || Abs( delta[2] ) > 128 ) {
 		if( cg_showMiss->integer ) {
-			CG_Printf( "prediction miss on %" PRIi64 ": %i\n", cg.frame.serverFrame, abs( delta[0] ) + abs( delta[1] ) + abs( delta[2] ) );
+			CG_Printf( "prediction miss on %" PRIi64 ": %i\n", cg.frame.serverFrame, Abs( delta[0] ) + Abs( delta[1] ) + Abs( delta[2] ) );
 		}
 		VectorClear( cg.predictionError );          // a teleport or something
 	} else {
 		if( cg_showMiss->integer && ( delta[0] || delta[1] || delta[2] ) ) {
-			CG_Printf( "prediction miss on %" PRIi64" : %i\n", cg.frame.serverFrame, abs( delta[0] ) + abs( delta[1] ) + abs( delta[2] ) );
+			CG_Printf( "prediction miss on %" PRIi64" : %i\n", cg.frame.serverFrame, Abs( delta[0] ) + Abs( delta[1] ) + Abs( delta[2] ) );
 		}
 		VectorCopy( cg.frame.playerState.pmove.origin, cg.predictedOrigins[frame] );
 		VectorCopy( delta, cg.predictionError ); // save for error interpolation

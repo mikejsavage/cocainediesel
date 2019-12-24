@@ -501,7 +501,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 			// method taken from Darkplaces sourcecode
 			if( trace.allsolid ||
 				( ISWALKABLEPLANE( &trace.plane ) &&
-				  fabs( DotProduct( trace.plane.normal, ent->velocity ) ) < 40
+				  Abs( DotProduct( trace.plane.normal, ent->velocity ) ) < 40
 				)
 				) {
 				ent->groundentity = &game.edicts[trace.ent];

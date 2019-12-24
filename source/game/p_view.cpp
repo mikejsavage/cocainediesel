@@ -18,7 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "g_local.h"
+#include "qcommon/base.h"
+#include "game/g_local.h"
 
 float xyspeed;
 
@@ -45,8 +46,8 @@ static void G_ProjectThirdPersonView( vec3_t vieworg, vec3_t viewangles, edict_t
 	// calc exact destination
 	VectorCopy( vieworg, chase_dest );
 	r = DEG2RAD( thirdPersonAngle );
-	f = -cos( r );
-	r = -sin( r );
+	f = -cosf( r );
+	r = -sinf( r );
 	VectorMA( chase_dest, thirdPersonRange * f, v_forward, chase_dest );
 	VectorMA( chase_dest, thirdPersonRange * r, v_right, chase_dest );
 	chase_dest[2] += 8;
@@ -57,11 +58,11 @@ static void G_ProjectThirdPersonView( vec3_t vieworg, vec3_t viewangles, edict_t
 
 	// calculate pitch to look at the same spot from camera
 	VectorSubtract( trace.endpos, vieworg, stop );
-	dist = sqrt( stop[0] * stop[0] + stop[1] * stop[1] );
+	dist = sqrtf( stop[0] * stop[0] + stop[1] * stop[1] );
 	if( dist < 1 ) {
 		dist = 1;
 	}
-	viewangles[PITCH] = RAD2DEG( -atan2( stop[2], dist ) );
+	viewangles[PITCH] = RAD2DEG( -atan2f( stop[2], dist ) );
 	viewangles[YAW] -= thirdPersonAngle;
 	AngleVectors( viewangles, v_forward, v_right, v_up );
 

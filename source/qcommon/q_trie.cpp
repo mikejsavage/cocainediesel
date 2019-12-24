@@ -18,11 +18,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "../gameshared/q_arch.h"
-#include "q_trie.h"
+#include <ctype.h>
 
-#include <assert.h>
-#include <string.h>
+#include "qcommon/base.h"
+#include "q_trie.h"
 
 /* Trie structure definitions */
 

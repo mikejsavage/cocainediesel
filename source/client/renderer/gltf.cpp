@@ -229,8 +229,8 @@ static void LoadScaleChannel( const cgltf_animation_channel * chan, Model::Anima
 		float scale[ 3 ];
 		cgltf_accessor_read_float( chan->sampler->output, i, scale, 3 );
 
-		assert( fabsf( scale[ 0 ] / scale[ 1 ] - 1.0f ) < 0.001f );
-		assert( fabsf( scale[ 0 ] / scale[ 2 ] - 1.0f ) < 0.001f );
+		assert( Abs( scale[ 0 ] / scale[ 1 ] - 1.0f ) < 0.001f );
+		assert( Abs( scale[ 0 ] / scale[ 2 ] - 1.0f ) < 0.001f );
 
 		out_channel->samples[ i ] = scale[ 0 ];
 	}
@@ -283,8 +283,8 @@ static void FixupMissingAnimationChannels( Model * model, const cgltf_skin * ski
 		}
 
 		if( joint.scales.samples == NULL && node->has_scale ) {
-			assert( fabsf( node->scale[ 0 ] / node->scale[ 1 ] - 1.0f ) < 0.001f );
-			assert( fabsf( node->scale[ 0 ] / node->scale[ 2 ] - 1.0f ) < 0.001f );
+			assert( Abs( node->scale[ 0 ] / node->scale[ 1 ] - 1.0f ) < 0.001f );
+			assert( Abs( node->scale[ 0 ] / node->scale[ 2 ] - 1.0f ) < 0.001f );
 			float scale[ 1 ] = { node->scale[ 0 ] };
 			CreateSingleSampleChannel( &joint.scales, scale );
 		}

@@ -231,7 +231,7 @@ cmodel_t *CM_OctagonModelForBBox( cmodel_state_t *cms, vec3_t mins, vec3_t maxs 
 
 	a = size[1][0]; // halfx
 	b = size[1][1]; // halfy
-	d = sqrt( a * a + b * b ); // hypothenuse
+	d = sqrtf( a * a + b * b ); // hypothenuse
 
 	cosa = a / d;
 	sina = b / d;
@@ -242,8 +242,8 @@ cmodel_t *CM_OctagonModelForBBox( cmodel_state_t *cms, vec3_t mins, vec3_t maxs 
 	cosa = t;
 
 	// elleptical radius
-	d = a * b / sqrt( a * a * cosa * cosa + b * b * sina * sina );
-	//d = a * b / sqrt( a * a  + b * b ); // produces a rectangle, inscribed at middle points
+	d = a * b / sqrtf( a * a * cosa * cosa + b * b * sina * sina );
+	//d = a * b / sqrtf( a * a  + b * b ); // produces a rectangle, inscribed at middle points
 
 	// the following should match normals and signbits set in CM_InitOctagonHull
 
@@ -876,9 +876,9 @@ loc0:
 		if( tw->ispoint ) {
 			offset = 0;
 		} else {
-			offset = fabs( tw->extents[0] * plane->normal[0] ) +
-					 fabs( tw->extents[1] * plane->normal[1] ) +
-					 fabs( tw->extents[2] * plane->normal[2] );
+			offset = Abs( tw->extents[0] * plane->normal[0] ) +
+					 Abs( tw->extents[1] * plane->normal[1] ) +
+					 Abs( tw->extents[2] * plane->normal[2] );
 		}
 	}
 

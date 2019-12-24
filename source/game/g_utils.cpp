@@ -1285,7 +1285,7 @@ void G_CategorizePosition( edict_t *ent ) {
 /*
 * G_DropSpawnpointToFloor
 */
-void G_DropSpawnpointTofloorf( edict_t *ent ) {
+void G_DropSpawnpointToFloor( edict_t *ent ) {
 	vec3_t start, end;
 	trace_t trace;
 

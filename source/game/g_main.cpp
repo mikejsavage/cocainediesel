@@ -18,8 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include <time.h>
-
 #include "game/g_local.h"
 
 game_locals_t game;
@@ -174,8 +172,6 @@ void G_Init( unsigned int framemsec ) {
 	cvar_t *g_maxentities;
 
 	G_Printf( "==== G_Init ====\n" );
-
-	srand( time( NULL ) );
 
 	G_InitGameShared();
 

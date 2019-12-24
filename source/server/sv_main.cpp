@@ -459,7 +459,7 @@ void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 
 	u64 entropy[ 2 ];
 	CSPRNG_Bytes( entropy, sizeof( entropy ) );
-	sv.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
+	svs.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
 
 	// if server is not active, do nothing
 	if( !svs.initialized ) {

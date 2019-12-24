@@ -38,9 +38,6 @@ void ThrowSmallPileOfGibs( edict_t *self, const vec3_t knockback, int damage ) {
 	VectorAdd( self->velocity, knockback, event->s.origin2 );
 }
 
-/*
-* debris
-*/
 static void debris_die( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point ) {
 	G_FreeEdict( self );
 }
@@ -53,17 +50,17 @@ static void ThrowDebris( edict_t *self, int modelindex, float speed, vec3_t orig
 	VectorCopy( origin, chunk->s.origin );
 	chunk->r.svflags &= ~SVF_NOCLIENT;
 	chunk->s.modelindex = modelindex;
-	v[0] = 100 * crandom();
-	v[1] = 100 * crandom();
-	v[2] = 100 + 100 * crandom();
+	v[0] = 100 * random_float11( &svs.rng );
+	v[1] = 100 * random_float11( &svs.rng );
+	v[2] = 100 + 100 * random_float11( &svs.rng );
 	VectorMA( self->velocity, speed, v, chunk->velocity );
 	chunk->movetype = MOVETYPE_BOUNCE;
 	chunk->r.solid = SOLID_NOT;
-	chunk->avelocity[0] = random() * 600;
-	chunk->avelocity[1] = random() * 600;
-	chunk->avelocity[2] = random() * 600;
+	chunk->avelocity[0] = random_float01( &svs.rng ) * 600;
+	chunk->avelocity[1] = random_float01( &svs.rng ) * 600;
+	chunk->avelocity[2] = random_float01( &svs.rng ) * 600;
 	chunk->think = G_FreeEdict;
-	chunk->nextThink = level.time + 5000 + random() * 5000;
+	chunk->nextThink = level.time + 5000 + random_uniform( &svs.rng, 0, 5000 );
 	chunk->flags = 0;
 	chunk->classname = "debris";
 	chunk->takedamage = DAMAGE_YES;
@@ -71,7 +68,6 @@ static void ThrowDebris( edict_t *self, int modelindex, float speed, vec3_t orig
 	chunk->r.owner = self;
 	GClip_LinkEntity( chunk );
 }
-
 
 void BecomeExplosion1( edict_t *self ) {
 	int radius;
@@ -330,9 +326,9 @@ static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *
 				count = 8;
 			}
 			while( count-- ) {
-				chunkorigin[0] = origin[0] + crandom() * size[0];
-				chunkorigin[1] = origin[1] + crandom() * size[1];
-				chunkorigin[2] = origin[2] + crandom() * size[2];
+				chunkorigin[0] = origin[0] + random_float11( &svs.rng ) * size[0];
+				chunkorigin[1] = origin[1] + random_float11( &svs.rng ) * size[1];
+				chunkorigin[2] = origin[2] + random_float11( &svs.rng ) * size[2];
 				ThrowDebris( self, self->count, 1, chunkorigin );
 			}
 		}
@@ -348,9 +344,9 @@ static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *
 			count = 1;
 		}
 		while( count-- ) {
-			chunkorigin[0] = origin[0] + crandom() * size[0];
-			chunkorigin[1] = origin[1] + crandom() * size[1];
-			chunkorigin[2] = origin[2] + crandom() * size[2];
+			chunkorigin[0] = origin[0] + random_float11( &svs.rng ) * size[0];
+			chunkorigin[1] = origin[1] + random_float11( &svs.rng ) * size[1];
+			chunkorigin[2] = origin[2] + random_float11( &svs.rng ) * size[2];
 			ThrowDebris( self, self->viewheight, 2, chunkorigin );
 		}
 	}

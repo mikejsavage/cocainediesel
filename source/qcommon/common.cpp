@@ -634,7 +634,6 @@ void Qcommon_Init( int argc, char **argv ) {
 void Qcommon_Frame( unsigned int realMsec ) {
 	ZoneScoped;
 
-	int time_before = 0, time_between = 0, time_after = 0;
 	static unsigned int gameMsec;
 
 	if( com_quit ) {
@@ -681,9 +680,6 @@ void Qcommon_Frame( unsigned int realMsec ) {
 
 		Cbuf_Execute();
 	}
-
-	// keep the random time dependent
-	rand();
 
 	SV_Frame( realMsec, gameMsec );
 	CL_Frame( realMsec, gameMsec );

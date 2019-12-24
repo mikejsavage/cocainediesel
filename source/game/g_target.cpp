@@ -279,7 +279,7 @@ static void target_delay_think( edict_t *ent ) {
 }
 
 static void target_delay_use( edict_t *ent, edict_t *other, edict_t *activator ) {
-	ent->nextThink = level.time + 1000 * ( ent->wait + ent->random * crandom() );
+	ent->nextThink = level.time + 1000 * ( ent->wait + ent->random * random_float11( &svs.rng ) );
 	ent->think = target_delay_think;
 	ent->activator = activator;
 }

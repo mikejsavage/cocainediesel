@@ -138,7 +138,7 @@ static void SV_SpawnServer( const char *server, bool devmap ) {
 
 	u64 entropy[ 2 ];
 	CSPRNG_Bytes( entropy, sizeof( entropy ) );
-	sv.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
+	svs.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
 
 	SV_ResetClientFrameCounters();
 	svs.realtime = 0;
@@ -226,7 +226,7 @@ void SV_InitGame( void ) {
 		Cvar_FullSet( "sv_maxclients", va( "%i", MAX_CLIENTS ), CVAR_SERVERINFO | CVAR_LATCH, true );
 	}
 
-	svs.spawncount = rand();
+	svs.spawncount = random_uniform( &svs.rng, 0, S16_MAX );
 	svs.clients = ( client_t * ) Mem_Alloc( sv_mempool, sizeof( client_t ) * sv_maxclients->integer );
 	svs.client_entities.num_entities = sv_maxclients->integer * UPDATE_BACKUP * MAX_SNAP_ENTITIES;
 	svs.client_entities.entities = ( entity_state_t * ) Mem_Alloc( sv_mempool, sizeof( entity_state_t ) * svs.client_entities.num_entities );
@@ -368,7 +368,7 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 
 	u64 entropy[ 2 ];
 	CSPRNG_Bytes( entropy, sizeof( entropy ) );
-	sv.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
+	svs.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
 
 	if( sv_mempool ) {
 		Mem_EmptyPool( sv_mempool );

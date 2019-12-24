@@ -574,8 +574,7 @@ static void CG_Event_Pain( entity_state_t *state, int parm ) {
 	constexpr PlayerSound sounds[] = { PlayerSound_Pain25, PlayerSound_Pain50, PlayerSound_Pain75, PlayerSound_Pain100 };
 	CG_PlayerSound( state->number, CHAN_AUTO, sounds[ parm ], cg_volume_players->value, state->attenuation );
 	constexpr int animations[] = { TORSO_PAIN1, TORSO_PAIN2, TORSO_PAIN3 };
-	int animation = animations[ rand() % ARRAY_COUNT( animations ) ];
-	CG_PModel_AddAnimation( state->number, 0, animation, 0, EVENT_CHANNEL );
+	CG_PModel_AddAnimation( state->number, 0, random_select( &cls.rng, animations ), 0, EVENT_CHANNEL );
 }
 
 /*

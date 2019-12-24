@@ -65,9 +65,9 @@ static void G_Timeout_Update( unsigned int msec ) {
 			int seconds_left = (int)( ( level.timeout.endtime - level.timeout.time ) / 1000.0 + 0.5 );
 
 			if( seconds_left == ( TIMEIN_TIME * 2 ) / 1000 ) {
-				G_AnnouncerSound( NULL, trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_READY_1_to_2, ( rand() & 1 ) + 1 ) ),
+				G_AnnouncerSound( NULL, trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_READY_1_to_2, random_uniform( &svs.rng, 1, 3 ) ) ),
 								  GS_MAX_TEAMS, false, NULL );
-				countdown_set = ( rand() & 1 ) + 1;
+				countdown_set = random_uniform( &svs.rng, 1, 3 );
 			} else if( seconds_left >= 1 && seconds_left <= 3 ) {
 				G_AnnouncerSound( NULL, trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, seconds_left,
 															 countdown_set ) ), GS_MAX_TEAMS, false, NULL );

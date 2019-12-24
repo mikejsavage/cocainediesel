@@ -427,7 +427,7 @@ static int G_Teams_ChallengersQueueCmp( const edict_t **pe1, const edict_t **pe2
 	if( e2->r.client->queueTimeStamp > e1->r.client->queueTimeStamp ) {
 		return -1;
 	}
-	return rand() & 1 ? -1 : 1;
+	return random_uniform( &svs.rng, 0, 2 ) == 0 ? -1 : 1;
 }
 
 /*

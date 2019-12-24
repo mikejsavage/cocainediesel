@@ -168,19 +168,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define S_ANNOUNCER_TIMEOUT_TIMEOUT_1_to_2      "sounds/announcer/timeout/timeout%02i"
 #define S_ANNOUNCER_TIMEOUT_TIMEIN_1_to_2       "sounds/announcer/timeout/timein%02i"
 
-// score
-#define S_ANNOUNCER_SCORE_TAKEN_LEAD_1_to_2     "sounds/announcer/score/taken_lead%02i"
-#define S_ANNOUNCER_SCORE_TEAM_TAKEN_LEAD_1_to_2    "sounds/announcer/score/taken_lead%02i"
-#define S_ANNOUNCER_SCORE_LOST_LEAD_1_to_2      "sounds/announcer/score/lost_lead%02i"
-#define S_ANNOUNCER_SCORE_TEAM_LOST_LEAD_1_to_2     "sounds/announcer/score/team_lost_lead%02i"
-#define S_ANNOUNCER_SCORE_TIED_LEAD_1_to_2      "sounds/announcer/score/tied_lead%02i"
-#define S_ANNOUNCER_SCORE_TEAM_TIED_LEAD_1_to_2     "sounds/announcer/score/team_tied_lead%02i"
-#define S_ANNOUNCER_SCORE_TEAM_1_to_4_TAKEN_LEAD_1_to_2 "sounds/announcer/score/team%i_leads%02i"
-
-// UI
-#define UI_SHADER_LOADINGLOGO       "ui/baseui/gfx/logo"
-#define UI_SHADER_LOADINGBAR        "gfx/ui/loadingbar"
-
 // vsay sounds
 #define S_VSAY_AFFIRMATIVE          "sounds/vsay/affirmative"
 #define S_VSAY_NEGATIVE             "sounds/vsay/negative"

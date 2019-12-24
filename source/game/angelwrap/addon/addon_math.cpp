@@ -65,15 +65,15 @@ static float asFunc_floor( float x ) {
 }
 
 static uint32_t asFunc_random_uint() {
-	return random_u32( &sv.rng );
+	return random_u32( &svs.rng );
 }
 
 static int asFunc_random_uniform( int lo, int hi ) {
-	return random_uniform( &sv.rng, lo, hi );
+	return random_uniform( &svs.rng, lo, hi );
 }
 
 static float asFunc_random_float01() {
-	return random_float01( &sv.rng );
+	return random_float01( &svs.rng );
 }
 
 void PreRegisterMathAddon( asIScriptEngine *engine ) {

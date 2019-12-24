@@ -178,13 +178,13 @@ void W_Fire_Blade( edict_t *self, int range, vec3_t start, vec3_t angles,  float
 /*
 * W_Fire_MG
 */
-void W_Fire_MG( edict_t *self, vec3_t start, vec3_t angles, int seed, int range, int hspread, int vspread,
+void W_Fire_MG( edict_t *self, vec3_t start, vec3_t angles, int range, int hspread, int vspread,
 					float damage, int knockback, int timeDelta ) {
 	vec3_t dir;
 	AngleVectors( angles, dir, NULL, NULL );
 
 	// send the event
-	edict_t *event = G_SpawnEvent( EV_FIRE_MG, seed, start );
+	edict_t *event = G_SpawnEvent( EV_FIRE_MG, 0, start );
 	event->s.ownerNum = ENTNUM( self );
 	VectorScale( dir, 4096, event->s.origin2 ); // DirToByte is too inaccurate
 	event->s.weapon = WEAP_MACHINEGUN;

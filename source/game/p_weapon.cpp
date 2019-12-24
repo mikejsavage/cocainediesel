@@ -130,7 +130,7 @@ static void G_Fire_Gunblade_Knife( vec3_t origin, vec3_t angles, firedef_t *fire
 /*
 * G_Fire_Rocket
 */
-static edict_t *G_Fire_Rocket( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner, int seed ) {
+static edict_t *G_Fire_Rocket( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner ) {
 	int timeDelta = 0;
 	if( owner && owner->r.client ) {
 		timeDelta = owner->r.client->timeDelta;
@@ -150,7 +150,7 @@ static edict_t *G_Fire_Rocket( vec3_t origin, vec3_t angles, firedef_t *firedef,
 /*
 * G_Fire_Machinegun
 */
-static void G_Fire_Machinegun( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner, int seed ) {
+static void G_Fire_Machinegun( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner ) {
 	int timeDelta = 0;
 	if( owner && owner->r.client ) {
 		timeDelta = owner->r.client->timeDelta;
@@ -159,7 +159,7 @@ static void G_Fire_Machinegun( vec3_t origin, vec3_t angles, firedef_t *firedef,
 	int range = firedef->timeout;
 	float damage = firedef->damage;
 	int knockback = firedef->knockback;
-	W_Fire_MG( owner, origin, angles, seed, range, firedef->spread, firedef->v_spread, damage, knockback, timeDelta );
+	W_Fire_MG( owner, origin, angles, range, firedef->spread, firedef->v_spread, damage, knockback, timeDelta );
 }
 
 /*
@@ -181,7 +181,7 @@ static void G_Fire_Riotgun( vec3_t origin, vec3_t angles, firedef_t *firedef, ed
 /*
 * G_Fire_Grenade
 */
-static edict_t *G_Fire_Grenade( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner, int seed ) {
+static edict_t *G_Fire_Grenade( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner ) {
 	int timeDelta = 0;
 	if( owner && owner->r.client ) {
 		timeDelta = owner->r.client->timeDelta;
@@ -200,7 +200,7 @@ static edict_t *G_Fire_Grenade( vec3_t origin, vec3_t angles, firedef_t *firedef
 /*
 * G_Fire_Plasma
 */
-static edict_t *G_Fire_Plasma( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner, int seed ) {
+static edict_t *G_Fire_Plasma( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner ) {
 	int timeDelta = 0;
 	if( owner && owner->r.client ) {
 		timeDelta = owner->r.client->timeDelta;
@@ -219,7 +219,7 @@ static edict_t *G_Fire_Plasma( vec3_t origin, vec3_t angles, firedef_t *firedef,
 /*
 * G_Fire_Lasergun
 */
-static edict_t *G_Fire_Lasergun( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner, int seed ) {
+static edict_t *G_Fire_Lasergun( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner ) {
 	int timeDelta = 0;
 	if( owner && owner->r.client ) {
 		timeDelta = owner->r.client->timeDelta;
@@ -234,7 +234,7 @@ static edict_t *G_Fire_Lasergun( vec3_t origin, vec3_t angles, firedef_t *firede
 /*
 * G_Fire_Bolt
 */
-static void G_Fire_Bolt( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner, int seed ) {
+static void G_Fire_Bolt( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner ) {
 	int timeDelta = 0;
 	if( owner && owner->r.client ) {
 		timeDelta = owner->r.client->timeDelta;
@@ -257,7 +257,6 @@ void G_FireWeapon( edict_t *ent, int parm ) {
 	firedef_t *firedef;
 	vec3_t origin, angles;
 	vec3_t viewoffset = { 0, 0, 0 };
-	int ucmdSeed;
 
 	weapondef = GS_GetWeaponDef( ( parm >> 1 ) & 0x3f );
 	firedef = &weapondef->firedef;
@@ -266,10 +265,8 @@ void G_FireWeapon( edict_t *ent, int parm ) {
 	if( ent->r.client ) {
 		viewoffset[2] += ent->r.client->ps.viewheight;
 		VectorCopy( ent->r.client->ps.viewangles, angles );
-		ucmdSeed = ent->r.client->ucmd.serverTimeStamp & 255;
 	} else {
 		VectorCopy( ent->s.angles, angles );
-		ucmdSeed = rand() & 255;
 	}
 
 	VectorAdd( ent->s.origin, viewoffset, origin );
@@ -288,7 +285,7 @@ void G_FireWeapon( edict_t *ent, int parm ) {
 			break;
 
 		case WEAP_MACHINEGUN:
-			G_Fire_Machinegun( origin, angles, firedef, ent, ucmdSeed );
+			G_Fire_Machinegun( origin, angles, firedef, ent );
 			break;
 
 		case WEAP_RIOTGUN:
@@ -296,23 +293,23 @@ void G_FireWeapon( edict_t *ent, int parm ) {
 			break;
 
 		case WEAP_GRENADELAUNCHER:
-			projectile = G_Fire_Grenade( origin, angles, firedef, ent, ucmdSeed );
+			projectile = G_Fire_Grenade( origin, angles, firedef, ent );
 			break;
 
 		case WEAP_ROCKETLAUNCHER:
-			projectile = G_Fire_Rocket( origin, angles, firedef, ent, ucmdSeed );
+			projectile = G_Fire_Rocket( origin, angles, firedef, ent );
 			break;
 
 		case WEAP_PLASMAGUN:
-			projectile = G_Fire_Plasma( origin, angles, firedef, ent, ucmdSeed );
+			projectile = G_Fire_Plasma( origin, angles, firedef, ent );
 			break;
 
 		case WEAP_LASERGUN:
-			projectile = G_Fire_Lasergun( origin, angles, firedef, ent, ucmdSeed );
+			projectile = G_Fire_Lasergun( origin, angles, firedef, ent );
 			break;
 
 		case WEAP_ELECTROBOLT:
-			G_Fire_Bolt( origin, angles, firedef, ent, ucmdSeed );
+			G_Fire_Bolt( origin, angles, firedef, ent );
 			break;
 	}
 

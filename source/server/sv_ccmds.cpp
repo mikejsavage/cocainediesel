@@ -136,9 +136,6 @@ static void SV_Map_f( void ) {
 
 	// start up the next map
 	SV_Map( mapname, !Q_stricmp( Cmd_Argv( 0 ), "devmap" ) );
-
-	// archive server state
-	Q_strncpyz( svs.mapcmd, mapname, sizeof( svs.mapcmd ) );
 }
 
 /*

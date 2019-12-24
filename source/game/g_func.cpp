@@ -1472,7 +1472,7 @@ void SP_trigger_elevator( edict_t *self ) {
 
 void func_timer_think( edict_t *self ) {
 	G_UseTargets( self, self->activator );
-	self->nextThink = level.time + 1000 * ( self->wait + crandom() * self->random );
+	self->nextThink = level.time + 1000 * ( self->wait + random_float11( &svs.rng ) * self->random );
 }
 
 void func_timer_use( edict_t *self, edict_t *other, edict_t *activator ) {
@@ -1509,7 +1509,7 @@ void SP_func_timer( edict_t *self ) {
 
 	if( self->spawnflags & 1 ) {
 		self->nextThink = level.time + 1000 *
-						  ( 1.0 + st.pausetime + self->delay + self->wait + crandom() * self->random );
+						  ( 1.0 + st.pausetime + self->delay + self->wait + random_float11( &svs.rng ) * self->random );
 		self->activator = self;
 	}
 }

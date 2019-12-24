@@ -62,8 +62,6 @@ typedef struct {
 	char configstrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 	entity_state_t baselines[MAX_EDICTS];
 
-	RNG rng;
-
 	//
 	// global variables shared between game and server
 	//
@@ -210,11 +208,11 @@ typedef struct {
 	int64_t realtime;               // real world time - always increasing, no clamping, etc
 	int64_t gametime;               // game world time - always increasing, no clamping, etc
 
+	RNG rng;
+
 	socket_t socket_udp;
 	socket_t socket_udp6;
 	socket_t socket_loopback;
-
-	char mapcmd[MAX_TOKEN_CHARS];       // ie: *intro.cin+base
 
 	int spawncount;                     // incremented each server start
 	                                    // used to check late spawns

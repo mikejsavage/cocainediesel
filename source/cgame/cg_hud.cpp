@@ -1012,13 +1012,13 @@ static const char * prefixes[] = {
 };
 
 static const char * RandomObituary() {
-	return obituaries[ rand() % ARRAY_COUNT( obituaries ) ];
+	return random_select( &cls.rng, obituaries );
 }
 
 static const char * RandomPrefix( float p ) {
 	if( !random_p( &cls.rng, p ) )
 		return "";
-	return prefixes[ rand() % ARRAY_COUNT( prefixes ) ];
+	return random_select( &cls.rng, prefixes );
 }
 
 /*

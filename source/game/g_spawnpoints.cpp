@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "g_local.h"
+#include "game/g_local.h"
 #include "qcommon/rng.h"
 
 void SP_info_player_start( edict_t *self ) {
@@ -56,7 +56,6 @@ bool G_OffsetSpawnPoint( vec3_t origin, const vec3_t box_mins, const vec3_t box_
 	float playerbox_columnwidth;
 	int rows, columns;
 	int i, j;
-	RNG rng = new_rng( rand(), 0 );
 	int mask_spawn = MASK_PLAYERSOLID | ( CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_TELEPORTER | CONTENTS_JUMPPAD | CONTENTS_BODY | CONTENTS_NODROP );
 	int playersFound = 0, worldfound = 0, nofloorfound = 0, badclusterfound = 0;
 
@@ -91,8 +90,8 @@ bool G_OffsetSpawnPoint( vec3_t origin, const vec3_t box_mins, const vec3_t box_
 	// no, we won't just do a while, let's go safe and just check as many times as
 	// positions in the grid. If we didn't found a spawnpoint by then, we let it telefrag.
 	for( i = 0; i < ( rows * columns ); i++ ) {
-		int row = random_uniform( &rng, -rows, rows + 1 );
-		int column = random_uniform( &rng, -columns, columns + 1 );
+		int row = random_uniform( &svs.rng, -rows, rows + 1 );
+		int column = random_uniform( &svs.rng, -columns, columns + 1 );
 
 		VectorSet( virtualorigin, origin[0] + ( row * playerbox_rowwidth ),
 				   origin[1] + ( column * playerbox_columnwidth ),
@@ -251,7 +250,7 @@ void G_SpawnQueue_SetTeamSpawnsystem( int team, int spawnsystem, int wave_time, 
 
 	queue = &g_spawnQueues[team];
 	if( wave_time && wave_time != queue->wave_time ) {
-		queue->nextWaveTime = level.time + brandom( 0, wave_time * 1000 );
+		queue->nextWaveTime = level.time + random_uniform( &svs.rng, 0, wave_time * 1000 );
 	}
 
 	queue->system = spawnsystem;

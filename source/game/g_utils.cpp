@@ -424,7 +424,7 @@ edict_t *G_PickTarget( const char *targetname ) {
 		return NULL;
 	}
 
-	return choice[rand() % num_choices];
+	return choice[ random_uniform( &svs.rng, 0, num_choices ) ];
 }
 
 

@@ -204,7 +204,7 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 		// reset gib impulse
 		VectorClear( body->velocity );
 
-		body->nextThink = level.time + 3000 + random() * 3000;
+		body->nextThink = level.time + 3000 + random_float01( &svs.rng ) * 3000;
 		body->deadflag = DEAD_DEAD;
 	}
 	if( ent->s.type == ET_PLAYER ) {
@@ -214,7 +214,7 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 		body->s.bodyOwner = ent->s.number; // bodyOwner is the same as modelindex2
 		body->s.teleported = true;
 
-		edict_t * event = G_SpawnEvent( EV_DIE, rand(), NULL );
+		edict_t * event = G_SpawnEvent( EV_DIE, random_uniform( &svs.rng, 0, 256 ), NULL );
 		event->r.svflags |= SVF_BROADCAST;
 		event->s.ownerNum = body->s.number;
 
@@ -229,7 +229,7 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 	} else {   // wasn't a player, just copy it's model
 		VectorClear( body->velocity );
 		body->s.modelindex = ent->s.modelindex;
-		body->nextThink = level.time + 5000 + random() * 10000;
+		body->nextThink = level.time + 5000 + random_float01( &svs.rng ) * 10000;
 	}
 
 	GClip_LinkEntity( body );

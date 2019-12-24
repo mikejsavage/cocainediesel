@@ -442,7 +442,7 @@ static void Cmd_CoinToss_f( edict_t *ent ) {
 		return;
 	}
 
-	bool won = random_p( &sv.rng, 0.5f );
+	bool won = random_p( &svs.rng, 0.5f );
 	G_PrintMsg( NULL, "%s%s tossed a coin and %s!\n", won ? S_COLOR_GREEN : S_COLOR_RED, ent->r.client->netname, won ? "won" : "lost" );
 }
 
@@ -670,7 +670,7 @@ static void Cmd_Timeout_f( edict_t *ent ) {
 	G_PrintMsg( NULL, "%s%s called a timeout\n", ent->r.client->netname, S_COLOR_WHITE );
 
 	if( !GS_MatchPaused( &server_gs ) ) {
-		G_AnnouncerSound( NULL, trap_SoundIndex( va( S_ANNOUNCER_TIMEOUT_TIMEOUT_1_to_2, ( rand() & 1 ) + 1 ) ), GS_MAX_TEAMS, true, NULL );
+		G_AnnouncerSound( NULL, trap_SoundIndex( va( S_ANNOUNCER_TIMEOUT_TIMEOUT_1_to_2, random_uniform( &svs.rng, 1, 3 ) ) ), GS_MAX_TEAMS, true, NULL );
 	}
 
 	level.timeout.used[num]++;
@@ -716,7 +716,7 @@ static void Cmd_Timein_f( edict_t *ent ) {
 
 	level.timeout.endtime = level.timeout.time + TIMEIN_TIME + FRAMETIME;
 
-	G_AnnouncerSound( NULL, trap_SoundIndex( va( S_ANNOUNCER_TIMEOUT_TIMEIN_1_to_2, ( rand() & 1 ) + 1 ) ), GS_MAX_TEAMS, true, NULL );
+	G_AnnouncerSound( NULL, trap_SoundIndex( va( S_ANNOUNCER_TIMEOUT_TIMEIN_1_to_2, random_uniform( &svs.rng, 1, 3 ) ) ), GS_MAX_TEAMS, true, NULL );
 
 	G_PrintMsg( NULL, "%s%s called a timein\n", ent->r.client->netname, S_COLOR_WHITE );
 }

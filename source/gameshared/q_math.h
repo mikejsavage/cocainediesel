@@ -73,10 +73,6 @@ constexpr mat3_t axis_identity = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 #define min( a, b ) ( ( a ) < ( b ) ? ( a ) : ( b ) )
 #define bound( lo, x, hi ) ( ( lo ) >= ( hi ) ? ( lo ) : ( x ) < ( lo ) ? ( lo ) : ( x ) > ( hi ) ? ( hi ) : ( x ) )
 
-#define random()    ( ( rand() & 0x7fff ) / ( (float)0x7fff ) )  // 0..1
-#define brandom( a, b )    ( ( a ) + random() * ( ( b ) - ( a ) ) )                // a..b
-#define crandom()   brandom( -1, 1 )                           // -1..1
-
 inline float Q_Rsqrtf( float x ) {
 	return _mm_cvtss_f32( _mm_rsqrt_ss( _mm_set_ss( x ) ) );
 }

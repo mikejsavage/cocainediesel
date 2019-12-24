@@ -1,32 +1,26 @@
 #include "g_local.h"
 #include "../gameshared/gs_public.h"
 
-static struct {
-	const char * name;
-	const char * model;
-} botCharacters[] = {
-	{ "vic", "oldvic" },
-	{ "crizis", "oldvic" },
-	{ "jal", "oldvic" },
+static const char * bot_names[] = {
+	"vic",
+	"crizis",
+	"jal",
 
-	{ "MWAGA", "bigvic" },
+	"MWAGA",
 
-	{ "Triangel", "monada" },
+	"Triangel",
 
-	{ "Perrina", "silverclaw" },
+	"Perrina",
 
-	{ "__mute__", "padpork" },
-	{ "Slice*>", "padpork" },
+	"__mute__",
+	"Slice*>",
 };
 
 static void CreateUserInfo( char * buffer, size_t bufferSize ) {
-	// Try to avoid bad distribution, otherwise some bots are selected too often. Weights are prime numbers
-	int characterIndex = rand() % ARRAY_COUNT( botCharacters );
-
 	memset( buffer, 0, bufferSize );
 
-	Info_SetValueForKey( buffer, "name", botCharacters[characterIndex].name );
-	Info_SetValueForKey( buffer, "hand", va( "%i", (int)( random() * 2.5 ) ) );
+	Info_SetValueForKey( buffer, "name", random_select( &svs.rng, bot_names ) );
+	Info_SetValueForKey( buffer, "hand", va( "%i", random_uniform( &svs.rng, 0, 3 ) ) );
 }
 
 static edict_t * ConnectFakeClient() {
@@ -52,7 +46,7 @@ void AI_SpawnBot() {
 		return;
 
 	ent->think = NULL;
-	ent->nextThink = level.time + 500 + (unsigned)( random() * 2000 );
+	ent->nextThink = level.time + 500 + random_uniform( &svs.rng, 0, 2000 );
 	ent->classname = "bot";
 	ent->die = player_die;
 

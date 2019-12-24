@@ -131,7 +131,7 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 	for( i = 0; i < sizeof( svs.clients[0].session ) - 1; i++ ) {
 		const unsigned char symbols[65] =
 			"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-		client->session[i] = symbols[rand() % ( sizeof( symbols ) - 1 )];
+		client->session[i] = random_select( &svs.rng, symbols );
 	}
 	client->session[i] = '\0';
 

@@ -144,7 +144,7 @@ int wswcurl_formadd( wswcurl_req *req, const char *field, const char *value, ...
 	}
 
 	va_start( arg, value );
-	Q_vsnprintfz( buf, sizeof( buf ), value, arg );
+	vsnprintf( buf, sizeof( buf ), value, arg );
 	va_end( arg );
 	curl_formadd( &req->post, &req->post_last, CURLFORM_COPYNAME, field, CURLFORM_COPYCONTENTS, buf, CURLFORM_END );
 	return 0;
@@ -477,11 +477,11 @@ int wswcurl_header( wswcurl_req *req, const char *key, const char *value, ... ) 
 		return -2;
 	}
 
-	Q_snprintfz( buf, sizeof( buf ), "%s: ", key );
+	snprintf( buf, sizeof( buf ), "%s: ", key );
 	ptr = &buf[strlen( buf )];
 
 	va_start( arg, value );
-	Q_vsnprintfz( ptr, ( sizeof( buf ) - ( ptr - buf ) ), value, arg );
+	vsnprintf( ptr, ( sizeof( buf ) - ( ptr - buf ) ), value, arg );
 	va_end( arg );
 
 	req->txhead = curl_slist_append( req->txhead, buf );
@@ -516,7 +516,7 @@ wswcurl_req *wswcurl_create( const char *iface, const char *furl, ... ) {
 
 	// Prepare url formatting with variable arguments
 	va_start( arg, furl );
-	Q_vsnprintfz( url, sizeof( url ), furl, arg );
+	vsnprintf( url, sizeof( url ), furl, arg );
 	va_end( arg );
 
 	// Initialize structure

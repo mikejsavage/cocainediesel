@@ -837,7 +837,7 @@ void G_PrintMsg( edict_t *ent, const char *format, ... ) {
 	char *s, *p;
 
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	// double quotes are bad
@@ -871,7 +871,7 @@ void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, .
 	char *s, *p;
 
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	// double quotes are bad
@@ -933,7 +933,7 @@ void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) {
 	edict_t *other;
 
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	// double quotes are bad
@@ -941,7 +941,7 @@ void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) {
 	while( ( p = strchr( p, '\"' ) ) != NULL )
 		*p = '\'';
 
-	Q_snprintfz( cmd, sizeof( cmd ), "cp \"%s\"", msg );
+	snprintf( cmd, sizeof( cmd ), "cp \"%s\"", msg );
 	trap_GameCmd( ent, cmd );
 
 	if( ent != NULL ) {
@@ -1469,7 +1469,7 @@ void G_PrecacheWeapondef( int weapon, firedef_t *firedef ) {
 		return;
 	}
 
-	Q_snprintfz( cstring, sizeof( cstring ), "%i %i %u %u %u %u %i %i %i",
+	snprintf( cstring, sizeof( cstring ), "%i %i %u %u %u %u %i %i %i",
 				 firedef->usage_count,
 				 firedef->projectile_count,
 				 firedef->weaponup_time,

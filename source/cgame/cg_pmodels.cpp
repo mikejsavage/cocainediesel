@@ -187,7 +187,7 @@ static bool CG_LoadPlayerModel( PlayerModelMetadata *metadata, const char *filen
 
 	// load animations script
 	if( metadata->model ) {
-		Q_snprintfz( anim_filename, sizeof( anim_filename ), "%s.cfg", filename );
+		snprintf( anim_filename, sizeof( anim_filename ), "%s.cfg", filename );
 		loaded_model = CG_ParseAnimationScript( metadata, anim_filename );
 	}
 

@@ -95,7 +95,7 @@ void G_Error( const char *format, ... ) {
 	va_list argptr;
 
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	trap_Error( msg );
@@ -111,7 +111,7 @@ void G_Printf( const char *format, ... ) {
 	va_list argptr;
 
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	trap_Print( msg );
@@ -442,7 +442,7 @@ void G_ExitLevel( void ) {
 
 	if( loadmap ) {
 		char command[256];
-		Q_snprintfz( command, sizeof( command ), "gamemap \"%s\"\n", nextmapname );
+		snprintf( command, sizeof( command ), "gamemap \"%s\"\n", nextmapname );
 		trap_Cmd_ExecuteText( EXEC_APPEND, command );
 	}
 

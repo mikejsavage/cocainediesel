@@ -297,7 +297,7 @@ static void Cmd_PlayersExt_f( edict_t *ent, bool onlyspecs ) {
 
 			cl = clientEnt->r.client;
 
-			Q_snprintfz( line, sizeof( line ), "%3i %s" S_COLOR_WHITE "%s\n", i, cl->netname, cl->isoperator ? " op" : "" );
+			snprintf( line, sizeof( line ), "%3i %s" S_COLOR_WHITE "%s\n", i, cl->netname, cl->isoperator ? " op" : "" );
 
 			if( strlen( line ) + strlen( msg ) > sizeof( msg ) - 100 ) {
 				// can't print all of them in one packet
@@ -735,7 +735,7 @@ char *G_StatsMessage( edict_t *ent ) {
 	const gclient_t * client = ent->r.client;
 
 	// message header
-	Q_snprintfz( entry, sizeof( entry ), "%d", PLAYERNUM( ent ) );
+	snprintf( entry, sizeof( entry ), "%d", PLAYERNUM( ent ) );
 
 	for( int i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
 		const gsitem_t * item = GS_FindItemByTag( i );

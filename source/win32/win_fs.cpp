@@ -138,7 +138,7 @@ const char *Sys_FS_FindFirst( const char *path, unsigned musthave, unsigned cant
 			findpath = ( char * ) Mem_TempMalloc( findpath_size );
 		}
 
-		Q_snprintfz( findpath, findpath_size, "%s/%s%s", findbase, finame,
+		snprintf( findpath, findpath_size, "%s/%s%s", findbase, finame,
 					 ( findinfo.attrib & _A_SUBDIR ) && finame[finame_len - 1] != '/' ? "/" : "" );
 		return findpath;
 	}
@@ -176,7 +176,7 @@ const char *Sys_FS_FindNext( unsigned musthave, unsigned canthave ) {
 				findpath = ( char * ) Mem_TempMalloc( findpath_size );
 			}
 
-			Q_snprintfz( findpath, findpath_size, "%s/%s%s", findbase, finame,
+			snprintf( findpath, findpath_size, "%s/%s%s", findbase, finame,
 						 ( findinfo.attrib & _A_SUBDIR ) && finame[finame_len - 1] != '/' ? "/" : "" );
 			return findpath;
 		}

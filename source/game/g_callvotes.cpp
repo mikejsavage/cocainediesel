@@ -1172,7 +1172,7 @@ static const char *G_CallVotes_String( const callvotedata_t *vote ) {
 
 	arguments = G_CallVotes_Arguments( vote );
 	if( arguments[0] ) {
-		Q_snprintfz( string, sizeof( string ), "%s %s", vote->callvote->name, arguments );
+		snprintf( string, sizeof( string ), "%s %s", vote->callvote->name, arguments );
 		return string;
 	}
 	return vote->callvote->name;
@@ -1552,7 +1552,7 @@ static bool G_VoteFromScriptValidate( callvotedata_t *vote, bool first ) {
 		return false;
 	}
 
-	Q_snprintfz( argsString, MAX_STRING_CHARS, "\"%s\"", vote->callvote->name );
+	snprintf( argsString, MAX_STRING_CHARS, "\"%s\"", vote->callvote->name );
 	for( i = 0; i < vote->argc; i++ ) {
 		Q_strncatz( argsString, " ", MAX_STRING_CHARS );
 		Q_strncatz( argsString, va( " \"%s\"", vote->argv[i] ), MAX_STRING_CHARS );
@@ -1572,7 +1572,7 @@ static void G_VoteFromScriptPassed( callvotedata_t *vote ) {
 		return;
 	}
 
-	Q_snprintfz( argsString, MAX_STRING_CHARS, "\"%s\"", vote->callvote->name );
+	snprintf( argsString, MAX_STRING_CHARS, "\"%s\"", vote->callvote->name );
 	for( i = 0; i < vote->argc; i++ ) {
 		Q_strncatz( argsString, " ", MAX_STRING_CHARS );
 		Q_strncatz( argsString, va( " \"%s\"", vote->argv[i] ), MAX_STRING_CHARS );

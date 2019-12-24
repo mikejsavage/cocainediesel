@@ -8,7 +8,7 @@ msvc_obj_cxxflags( ".*", "/wd4244 /wd4267" ) -- silence conversion warnings beca
 msvc_obj_cxxflags( ".*", "/fp:fast /GR- /EHs-c-" )
 gcc_obj_cxxflags( ".*", "-std=c++11 -msse3 -ffast-math -fno-exceptions -fno-rtti -fno-strict-aliasing -fno-strict-overflow -fvisibility=hidden" )
 gcc_obj_cxxflags( ".*", "-Wall -Wextra -Wcast-align -Wvla -Wformat-security" ) -- -Wconversion
-gcc_obj_cxxflags( ".*", "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-implicit-fallthrough" )
+gcc_obj_cxxflags( ".*", "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-implicit-fallthrough -Wno-format-truncation" )
 gcc_obj_cxxflags( ".*", "-Werror=vla -Werror=format-security -Werror=unused-value" )
 
 obj_cxxflags( ".*", "-D_LIBCPP_TYPE_TRAITS" )

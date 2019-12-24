@@ -76,7 +76,7 @@ void G_Match_Autorecord_Start( void ) {
 	char date[ 128 ];
 	Sys_FormatTime( date, sizeof( date ), "%Y-%m-%d_%H-%M" );
 
-	Q_snprintfz( level.autorecord_name, sizeof( level.autorecord_name ), "%s_%s_auto%04i", date, level.mapname, (int)brandom( 1, 9999 ) );
+	snprintf( level.autorecord_name, sizeof( level.autorecord_name ), "%s_%s_auto%04i", date, level.mapname, (int)brandom( 1, 9999 ) );
 
 	trap_Cmd_ExecuteText( EXEC_APPEND, va( "serverrecord %s\n", level.autorecord_name ) );
 }

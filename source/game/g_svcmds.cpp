@@ -233,7 +233,7 @@ void SV_WriteIPList( void ) {
 		return;
 	}
 
-	Q_snprintfz( string, sizeof( string ), "set filterban %d\r\n", filterban->integer );
+	snprintf( string, sizeof( string ), "set filterban %d\r\n", filterban->integer );
 	trap_FS_Write( string, strlen( string ), file );
 
 	for( i = 0; i < numipfilters; i++ ) {
@@ -242,9 +242,9 @@ void SV_WriteIPList( void ) {
 		}
 		*(unsigned *)b = ipfilters[i].compare;
 		if( ipfilters[i].timeout ) {
-			Q_snprintfz( string, sizeof( string ), "addip %i.%i.%i.%i %.2f\r\n", b[0], b[1], b[2], b[3], ( ipfilters[i].timeout - svs.gametime ) / ( 1000.0f * 60.0f ) );
+			snprintf( string, sizeof( string ), "addip %i.%i.%i.%i %.2f\r\n", b[0], b[1], b[2], b[3], ( ipfilters[i].timeout - svs.gametime ) / ( 1000.0f * 60.0f ) );
 		} else {
-			Q_snprintfz( string, sizeof( string ), "addip %i.%i.%i.%i\r\n", b[0], b[1], b[2], b[3] );
+			snprintf( string, sizeof( string ), "addip %i.%i.%i.%i\r\n", b[0], b[1], b[2], b[3] );
 		}
 		trap_FS_Write( string, strlen( string ), file );
 	}

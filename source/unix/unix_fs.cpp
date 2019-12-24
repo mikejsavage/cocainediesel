@@ -61,7 +61,7 @@ static bool FS_DirentIsDir( const struct dirent64 *d, const char *base ) {
 
 	pathSize = strlen( base ) + 1 + strlen( d->d_name ) + 1;
 	path = alloca( pathSize );
-	Q_snprintfz( path, pathSize, "%s/%s", base, d->d_name );
+	snprintf( path, pathSize, "%s/%s", base, d->d_name );
 	if( stat( path, &st ) ) {
 		return false;
 	}
@@ -179,7 +179,7 @@ const char *Sys_FS_FindNext( unsigned musthave, unsigned canhave ) {
 				findpath = ( char * ) Mem_TempMalloc( findpath_size );
 			}
 
-			Q_snprintfz( findpath, findpath_size, "%s/%s%s", findbase, dname,
+			snprintf( findpath, findpath_size, "%s/%s%s", findbase, dname,
 						 dname[dname_len - 1] != '/' && FS_DirentIsDir( d, findbase ) ? "/" : "" );
 			if( CompareAttributesForPath( d, findpath, musthave, canhave ) ) {
 				return findpath;
@@ -235,7 +235,7 @@ const char *Sys_FS_GetHomeDirectory( void ) {
 #endif
 
 		if( base ) {
-			Q_snprintfz( home, sizeof( home ), "%s/%s%s-0.0", base, local, APPLICATION );
+			snprintf( home, sizeof( home ), "%s/%s%s-0.0", base, local, APPLICATION );
 		}
 	}
 
@@ -268,7 +268,7 @@ const char *Sys_FS_GetCacheDirectory( void ) {
 #endif
 
 		if( base ) {
-			Q_snprintfz( cache, sizeof( cache ), "%s/%s%s-0.0", base, local, APPLICATION );
+			snprintf( cache, sizeof( cache ), "%s/%s%s-0.0", base, local, APPLICATION );
 		}
 	}
 

@@ -313,7 +313,7 @@ void SNAP_WriteDemoMetaData( const char *filename, const char *meta_data, size_t
 	for( i = 0; filename[i]; i++ ) {
 		v = ( v + i ) * 37 + tolower( filename[i] ); // case insensitivity
 	}
-	Q_snprintfz( tmpn, sizeof( tmpn ), "%u.tmp", v );
+	snprintf( tmpn, sizeof( tmpn ), "%u.tmp", v );
 
 	if( FS_FOpenFile( tmpn, &filenum, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
 		return;

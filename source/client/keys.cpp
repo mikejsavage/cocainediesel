@@ -278,7 +278,7 @@ void Key_Event( int key, bool down ) {
 		if( kb ) {
 			if( kb[0] == '+' ) {
 				char cmd[1024];
-				Q_snprintfz( cmd, sizeof( cmd ), "%s%s %i\n", down ? "+" : "-", kb + 1, key );
+				snprintf( cmd, sizeof( cmd ), "%s%s %i\n", down ? "+" : "-", kb + 1, key );
 				Cbuf_AddText( cmd );
 			}
 			else if( down ) {

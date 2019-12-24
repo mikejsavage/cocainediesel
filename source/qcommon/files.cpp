@@ -167,7 +167,7 @@ static bool FS_SearchDirectoryForFile( searchpath_t *search, const char *filenam
 	assert( search );
 	assert( filename );
 
-	Q_snprintfz( tempname, sizeof( tempname ), "%s/%s", search->path, filename );
+	snprintf( tempname, sizeof( tempname ), "%s/%s", search->path, filename );
 
 	f = fopen( tempname, "rb" );
 	if( f ) {
@@ -447,7 +447,7 @@ static int FS_AbsoluteFileExists( const char *filename ) {
 */
 static void FS_FileModeStr( int mode, char *modestr, size_t size ) {
 	int rwa = mode & FS_RWA_MASK;
-	Q_snprintfz( modestr, size, "%sb%s",
+	snprintf( modestr, size, "%sb%s",
 				 rwa == FS_WRITE ? "w" : ( rwa == FS_APPEND ? "a" : "r" ),
 				 mode & FS_UPDATE ? "+" : "" );
 }
@@ -580,9 +580,9 @@ static int _FS_FOpenFile( const char *filename, int *filenum, int mode, bool bas
 		dir = cache ? FS_CacheDirectory() : FS_WriteDirectory();
 
 		if( base ) {
-			Q_snprintfz( tempname, sizeof( tempname ), "%s/%s", dir, filename );
+			snprintf( tempname, sizeof( tempname ), "%s/%s", dir, filename );
 		} else {
-			Q_snprintfz( tempname, sizeof( tempname ), "%s/%s/%s", dir, FS_GameDirectory(), filename );
+			snprintf( tempname, sizeof( tempname ), "%s/%s/%s", dir, FS_GameDirectory(), filename );
 		}
 		FS_CreateAbsolutePath( tempname );
 
@@ -755,7 +755,7 @@ int FS_Printf( int file, const char *format, ... ) {
 	va_list argptr;
 
 	va_start( argptr, format );
-	if( ( len = Q_vsnprintfz( msg, sizeof( msg ), format, argptr ) ) >= sizeof( msg ) - 1 ) {
+	if( ( len = vsnprintf( msg, sizeof( msg ), format, argptr ) ) >= sizeof( msg ) - 1 ) {
 		msg[sizeof( msg ) - 1] = '\0';
 		Com_Printf( "FS_Printf: Buffer overflow" );
 	}
@@ -1180,11 +1180,11 @@ static int FS_PathGetFileListExt( searchpath_t *search, const char *dir, const c
 		}
 	}
 
-	Q_snprintfz( tempname, sizeof( tempname ), "%s/%s%s*%s",
+	snprintf( tempname, sizeof( tempname ), "%s/%s%s*%s",
 				 search->path, dir, dirlen ? "/" : "", ( extension && ( extension[0] != '/' ) ) ? extension : ".*" );
 	filenames = FS_ListFiles( tempname, &numfiles, musthave, canthave );
 
-	Q_snprintfz( tempname, sizeof( tempname ), "%s%s*%s",
+	snprintf( tempname, sizeof( tempname ), "%s%s*%s",
 				 dir, dirlen ? "/" : "", ( extension && ( extension[0] != '/' ) ) ? extension : "" );
 
 	for( i = 0; i < numfiles; i++ ) {
@@ -1478,7 +1478,7 @@ const char *FS_AbsoluteNameForFile( const char *filename ) {
 		return NULL;
 	}
 
-	Q_snprintfz( absolutename, sizeof( absolutename ), "%s/%s", search->path, filename );
+	snprintf( absolutename, sizeof( absolutename ), "%s/%s", search->path, filename );
 	return absolutename;
 }
 
@@ -1496,7 +1496,7 @@ const char *FS_AbsoluteNameForBaseFile( const char *filename ) {
 		return NULL;
 	}
 
-	Q_snprintfz( absolutename, sizeof( absolutename ), "%s/%s", search->path, filename );
+	snprintf( absolutename, sizeof( absolutename ), "%s/%s", search->path, filename );
 	return absolutename;
 }
 
@@ -1532,7 +1532,7 @@ static void FS_TouchGamePath( searchpath_t *basepath, const char *gamedir ) {
 	path_size = sizeof( char ) * ( strlen( basepath->path ) + 1 + strlen( gamedir ) + 1 );
 	search->path = ( char* )FS_Malloc( path_size );
 	search->base = basepath;
-	Q_snprintfz( search->path, path_size, "%s/%s", basepath->path, gamedir );
+	snprintf( search->path, path_size, "%s/%s", basepath->path, gamedir );
 
 	search->next = fs_searchpaths;
 	fs_searchpaths = search;
@@ -1625,9 +1625,9 @@ void FS_Init( void ) {
 	fs_downloads_searchpath = NULL;
 	if( fs_usedownloadsdir->integer ) {
 		if( homedir != NULL && fs_usehomedir->integer ) {
-			Q_snprintfz( downloadsdir, sizeof( downloadsdir ), "%s/%s", homedir, "downloads" );
+			snprintf( downloadsdir, sizeof( downloadsdir ), "%s/%s", homedir, "downloads" );
 		} else {
-			Q_snprintfz( downloadsdir, sizeof( downloadsdir ), "%s", "downloads" );
+			snprintf( downloadsdir, sizeof( downloadsdir ), "%s", "downloads" );
 		}
 
 		FS_AddBasePath( downloadsdir );

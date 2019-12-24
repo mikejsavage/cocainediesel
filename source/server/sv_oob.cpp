@@ -210,9 +210,9 @@ static char *SV_LongInfoString( bool fullStatus ) {
 	}
 
 	if( bots ) {
-		Q_snprintfz( tempstr, sizeof( tempstr ), "\\bots\\%i", bots );
+		snprintf( tempstr, sizeof( tempstr ), "\\bots\\%i", bots );
 	}
-	Q_snprintfz( tempstr + strlen( tempstr ), sizeof( tempstr ) - strlen( tempstr ), "\\clients\\%i%s", count, fullStatus ? "\n" : "" );
+	snprintf( tempstr + strlen( tempstr ), sizeof( tempstr ) - strlen( tempstr ), "\\clients\\%i%s", count, fullStatus ? "\n" : "" );
 	tempstrLength = strlen( tempstr );
 	if( statusLength + tempstrLength >= sizeof( status ) ) {
 		return status; // can't hold any more
@@ -224,7 +224,7 @@ static char *SV_LongInfoString( bool fullStatus ) {
 		for( i = 0; i < sv_maxclients->integer; i++ ) {
 			cl = &svs.clients[i];
 			if( cl->state >= CS_CONNECTED ) {
-				Q_snprintfz( tempstr, sizeof( tempstr ), "%i %i \"%s\" %i\n",
+				snprintf( tempstr, sizeof( tempstr ), "%i %i \"%s\" %i\n",
 							 cl->edict->r.client->r.frags, cl->ping, cl->name, cl->edict->s.team );
 				tempstrLength = strlen( tempstr );
 				if( statusLength + tempstrLength >= sizeof( status ) ) {
@@ -271,7 +271,7 @@ static char *SV_ShortInfoString( void ) {
 	//" \377\377\377\377info\\n\\server_name\\m\\map name\\u\\clients/maxclients\\EOT "
 
 	Q_strncpyz( hostname, sv_hostname->string, sizeof( hostname ) );
-	Q_snprintfz( string, sizeof( string ),
+	snprintf( string, sizeof( string ),
 				 "\\\\n\\\\%s\\\\m\\\\%8s\\\\u\\\\%2i/%2i\\\\",
 				 hostname,
 				 sv.mapname,
@@ -282,7 +282,7 @@ static char *SV_ShortInfoString( void ) {
 	len = strlen( string );
 
 	if( Q_stricmp( FS_GameDirectory(), FS_BaseGameDirectory() ) ) {
-		Q_snprintfz( entry, sizeof( entry ), "mo\\\\%8s\\\\", FS_GameDirectory() );
+		snprintf( entry, sizeof( entry ), "mo\\\\%8s\\\\", FS_GameDirectory() );
 		if( MAX_SVCINFOSTRING_LEN - len > strlen( entry ) ) {
 			Q_strncatz( string, entry, sizeof( string ) );
 			len = strlen( string );
@@ -291,7 +291,7 @@ static char *SV_ShortInfoString( void ) {
 
 	password = Cvar_String( "password" );
 	if( password[0] != '\0' ) {
-		Q_snprintfz( entry, sizeof( entry ), "p\\\\1\\\\" );
+		snprintf( entry, sizeof( entry ), "p\\\\1\\\\" );
 		if( MAX_SVCINFOSTRING_LEN - len > strlen( entry ) ) {
 			Q_strncatz( string, entry, sizeof( string ) );
 			len = strlen( string );
@@ -299,7 +299,7 @@ static char *SV_ShortInfoString( void ) {
 	}
 
 	if( bots ) {
-		Q_snprintfz( entry, sizeof( entry ), "b\\\\%2i\\\\", bots > 99 ? 99 : bots );
+		snprintf( entry, sizeof( entry ), "b\\\\%2i\\\\", bots > 99 ? 99 : bots );
 		if( MAX_SVCINFOSTRING_LEN - len > strlen( entry ) ) {
 			Q_strncatz( string, entry, sizeof( string ) );
 			len = strlen( string );

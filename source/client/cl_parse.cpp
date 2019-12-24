@@ -356,11 +356,11 @@ static void CL_InitServerDownload( const char *filename, int size, unsigned chec
 	cls.download.name = ( char * ) Mem_ZoneMalloc( alloc_size );
 	// it's an official pak, otherwise
 	// if we're not downloading a pak, this must be a demo so drop it into the gamedir
-	Q_snprintfz( cls.download.name, alloc_size, "%s", filename );
+	snprintf( cls.download.name, alloc_size, "%s", filename );
 
 	alloc_size = strlen( cls.download.name ) + strlen( ".tmp" ) + 1;
 	cls.download.tempname = ( char * ) Mem_ZoneMalloc( alloc_size );
-	Q_snprintfz( cls.download.tempname, alloc_size, "%s.tmp", cls.download.name );
+	snprintf( cls.download.tempname, alloc_size, "%s.tmp", cls.download.name );
 
 	cls.download.origname = ZoneCopyString( filename );
 	cls.download.web = false;
@@ -421,18 +421,18 @@ static void CL_InitServerDownload( const char *filename, int size, unsigned chec
 
 		alloc_size = strlen( APP_URI_SCHEME ) + strlen( NET_AddressToString( &cls.serveraddress ) ) + 1;
 		referer = ( char * ) alloca( alloc_size );
-		Q_snprintfz( referer, alloc_size, APP_URI_SCHEME "%s", NET_AddressToString( &cls.serveraddress ) );
+		snprintf( referer, alloc_size, APP_URI_SCHEME "%s", NET_AddressToString( &cls.serveraddress ) );
 		Q_strlwr( referer );
 
 		if( allow_localhttpdownload ) {
 			alloc_size = strlen( baseurl ) + 1 + strlen( url ) + 1;
 			fullurl = ( char * ) alloca( alloc_size );
-			Q_snprintfz( fullurl, alloc_size, "%s/%s", baseurl, url );
+			snprintf( fullurl, alloc_size, "%s/%s", baseurl, url );
 		} else {
 			size_t url_len = strlen( url );
 			alloc_size = url_len + 1 + strlen( filename ) * 3 + 1;
 			fullurl = ( char * ) alloca( alloc_size );
-			Q_snprintfz( fullurl, alloc_size, "%s/", url );
+			snprintf( fullurl, alloc_size, "%s/", url );
 			Q_urlencode_unsafechars( filename, fullurl + url_len + 1, alloc_size - url_len - 1 );
 		}
 

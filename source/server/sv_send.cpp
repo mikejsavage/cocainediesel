@@ -145,7 +145,7 @@ void SV_SendServerCommand( client_t *cl, const char *format, ... ) {
 	int i;
 
 	va_start( argptr, format );
-	Q_vsnprintfz( message, sizeof( message ), format, argptr );
+	vsnprintf( message, sizeof( message ), format, argptr );
 	va_end( argptr );
 
 	if( cl != NULL ) {
@@ -230,7 +230,7 @@ void SV_BroadcastCommand( const char *format, ... ) {
 	}
 
 	va_start( argptr, format );
-	Q_vsnprintfz( string, sizeof( string ), format, argptr );
+	vsnprintf( string, sizeof( string ), format, argptr );
 	va_end( argptr );
 
 	for( i = 0, client = svs.clients; i < sv_maxclients->integer; i++, client++ ) {

@@ -232,7 +232,7 @@ void CL_PingServer_f( void ) {
 
 	pingserver->pingTimeStamp = Sys_Milliseconds();
 
-	Q_snprintfz( requestString, sizeof( requestString ), "info %i %s %s", SERVERBROWSER_PROTOCOL_VERSION,
+	snprintf( requestString, sizeof( requestString ), "info %i %s %s", SERVERBROWSER_PROTOCOL_VERSION,
 				 filter_allow_full ? "full" : "",
 				 filter_allow_empty ? "empty" : "" );
 
@@ -305,14 +305,14 @@ static void CL_ParseGetServersResponseMessage( msg_t *msg, bool extended ) {
 			case '\\':
 				MSG_ReadData( msg, addr, 4 );
 				port = ShortSwap( MSG_ReadInt16( msg ) ); // both endians need this swapped.
-				Q_snprintfz( adrString, sizeof( adrString ), "%u.%u.%u.%u:%u", addr[0], addr[1], addr[2], addr[3], port );
+				snprintf( adrString, sizeof( adrString ), "%u.%u.%u.%u:%u", addr[0], addr[1], addr[2], addr[3], port );
 				break;
 
 			case '/':
 				if( extended ) {
 					MSG_ReadData( msg, addr, 16 );
 					port = ShortSwap( MSG_ReadInt16( msg ) ); // both endians need this swapped.
-					Q_snprintfz( adrString, sizeof( adrString ), "[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]:%hu",
+					snprintf( adrString, sizeof( adrString ), "[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]:%hu",
 								 addr[ 0], addr[ 1], addr[ 2], addr[ 3], addr[ 4], addr[ 5], addr[ 6], addr[ 7],
 								 addr[ 8], addr[ 9], addr[10], addr[11], addr[12], addr[13], addr[14], addr[15],
 								 port );

@@ -522,9 +522,9 @@ static char *qasLoadScriptSection( const char *rootDir, const char *dir, const c
 		sectionName++;
 
 	if( sectionName[0] == '/' ) {
-		Q_snprintfz( filename, sizeof( filename ), "%s%s%s", rootDir, sectionName, QAS_FILE_EXTENSION );
+		snprintf( filename, sizeof( filename ), "%s%s%s", rootDir, sectionName, QAS_FILE_EXTENSION );
 	} else {
-		Q_snprintfz( filename, sizeof( filename ), "%s/%s/%s%s", rootDir, dir, sectionName, QAS_FILE_EXTENSION );
+		snprintf( filename, sizeof( filename ), "%s/%s/%s%s", rootDir, dir, sectionName, QAS_FILE_EXTENSION );
 	}
 	Q_strlwr( filename );
 
@@ -611,7 +611,7 @@ asIScriptModule *qasLoadScriptProject( asIScriptEngine *engine, const char *modu
 	char filepath[MAX_QPATH];
 	asIScriptModule *asModule;
 
-	Q_snprintfz( filepath, sizeof( filepath ), "%s/%s/%s", rootDir, dir, filename );
+	snprintf( filepath, sizeof( filepath ), "%s/%s/%s", rootDir, dir, filename );
 	COM_DefaultExtension( filepath, ext, sizeof( filepath ) );
 
 	length = trap_FS_FOpenFile( filepath, &filenum, FS_READ );

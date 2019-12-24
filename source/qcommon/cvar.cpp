@@ -343,9 +343,9 @@ cvar_t *Cvar_FullSet( const char *var_name, const char *value, cvar_flag_t flags
 void Cvar_SetValue( const char *var_name, float value ) {
 	char val[32];
 	if( value == Q_rint( value ) ) {
-		Q_snprintfz( val, sizeof( val ), "%i", Q_rint( value ) );
+		snprintf( val, sizeof( val ), "%i", Q_rint( value ) );
 	} else {
-		Q_snprintfz( val, sizeof( val ), "%f", value );
+		snprintf( val, sizeof( val ), "%f", value );
 	}
 	Cvar_Set( var_name, val );
 }
@@ -552,12 +552,12 @@ void Cvar_WriteVariables( int file ) {
 
 		if( Cvar_FlagIsSet( var->flags, CVAR_LATCH ) || Cvar_FlagIsSet( var->flags, CVAR_LATCH_VIDEO ) ) {
 			if( var->latched_string ) {
-				Q_snprintfz( buffer, sizeof( buffer ), "%s %s \"%s\"\r\n", cmd, var->name, var->latched_string );
+				snprintf( buffer, sizeof( buffer ), "%s %s \"%s\"\r\n", cmd, var->name, var->latched_string );
 			} else {
-				Q_snprintfz( buffer, sizeof( buffer ), "%s %s \"%s\"\r\n", cmd, var->name, var->string );
+				snprintf( buffer, sizeof( buffer ), "%s %s \"%s\"\r\n", cmd, var->name, var->string );
 			}
 		} else {
-			Q_snprintfz( buffer, sizeof( buffer ), "%s %s \"%s\"\r\n", cmd, var->name, var->string );
+			snprintf( buffer, sizeof( buffer ), "%s %s \"%s\"\r\n", cmd, var->name, var->string );
 		}
 		FS_Printf( file, "%s", buffer );
 	}

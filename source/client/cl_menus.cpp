@@ -154,7 +154,7 @@ static void CvarSliderFloat( const char * label, const char * cvar_name, float l
 	ImGui::SliderFloat( unique, &val, lo, hi, "%.2f" );
 
 	char buf[ 128 ];
-	Q_snprintfz( buf, sizeof( buf ), "%f", val );
+	snprintf( buf, sizeof( buf ), "%f", val );
 	RemoveTrailingZeroesFloat( buf );
 	Cvar_Set( cvar_name, buf );
 }

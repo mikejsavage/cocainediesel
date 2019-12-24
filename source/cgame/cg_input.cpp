@@ -193,7 +193,7 @@ bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize ) {
 	}
 
 	if( numKeys == 2 ) {
-		Q_snprintfz( keys, keysSize, "%s or %s", keyNames[0], keyNames[1] );
+		snprintf( keys, keysSize, "%s or %s", keyNames[0], keyNames[1] );
 	} else {
 		Q_strncpyz( keys, keyNames[0], keysSize );
 	}

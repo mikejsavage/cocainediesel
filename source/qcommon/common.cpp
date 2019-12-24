@@ -155,7 +155,7 @@ static void Com_ReopenConsoleLog( void ) {
 
 		if( FS_FOpenFile( name, &log_file, ( logconsole_append && logconsole_append->integer ? FS_APPEND : FS_WRITE ) ) == -1 ) {
 			log_file = 0;
-			Q_snprintfz( errmsg, MAX_PRINTMSG, "Couldn't open: %s\n", name );
+			snprintf( errmsg, MAX_PRINTMSG, "Couldn't open: %s\n", name );
 		}
 
 		Mem_TempFree( name );
@@ -179,7 +179,7 @@ void Com_Printf( const char *format, ... ) {
 	char msg[MAX_PRINTMSG];
 
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	QMutex_Lock( com_print_mutex );
@@ -230,7 +230,7 @@ void Com_DPrintf( const char *format, ... ) {
 
 	}
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	Com_Printf( "%s", msg );
@@ -256,7 +256,7 @@ void Com_Error( com_error_code_t code, const char *format, ... ) {
 	recursive = true;
 
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof_msg, format, argptr );
+	vsnprintf( msg, sizeof_msg, format, argptr );
 	va_end( argptr );
 
 	if( code == ERR_DROP ) {

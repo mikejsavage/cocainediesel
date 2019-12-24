@@ -193,7 +193,7 @@ static const char *CG_SC_AutoRecordName( void ) {
 	char date[ 128 ];
 	Sys_FormatTime( date, sizeof( date ), "%Y-%m-%d_%H-%M" );
 
-	Q_snprintfz( name, sizeof( name ), "%s_%s_%04i", date, cgs.configStrings[CS_MAPNAME], (int)brandom( 0, 9999 ) );
+	snprintf( name, sizeof( name ), "%s_%s_%04i", date, cgs.configStrings[CS_MAPNAME], (int)brandom( 0, 9999 ) );
 
 	return name;
 }

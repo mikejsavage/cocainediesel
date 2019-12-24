@@ -110,7 +110,7 @@ static void SV_CreateBaseline( void ) {
 * SV_SetServerConfigStrings
 */
 void SV_SetServerConfigStrings( void ) {
-	Q_snprintfz( sv.configstrings[CS_MAXCLIENTS], sizeof( sv.configstrings[0] ), "%i", sv_maxclients->integer );
+	snprintf( sv.configstrings[CS_MAXCLIENTS], sizeof( sv.configstrings[0] ), "%i", sv_maxclients->integer );
 	Q_strncpyz( sv.configstrings[CS_HOSTNAME], Cvar_String( "sv_hostname" ), sizeof( sv.configstrings[0] ) );
 }
 
@@ -150,14 +150,14 @@ static void SV_SpawnServer( const char *server, bool devmap ) {
 
 	sv.nextSnapTime = 1000;
 
-	Q_snprintfz( sv.configstrings[CS_WORLDMODEL], sizeof( sv.configstrings[CS_WORLDMODEL] ), "maps/%s.bsp", server );
+	snprintf( sv.configstrings[CS_WORLDMODEL], sizeof( sv.configstrings[CS_WORLDMODEL] ), "maps/%s.bsp", server );
 	CM_LoadMap( svs.cms, sv.configstrings[CS_WORLDMODEL], false, &checksum );
 
-	Q_snprintfz( sv.configstrings[CS_MAPCHECKSUM], sizeof( sv.configstrings[CS_MAPCHECKSUM] ), "%i", checksum );
+	snprintf( sv.configstrings[CS_MAPCHECKSUM], sizeof( sv.configstrings[CS_MAPCHECKSUM] ), "%i", checksum );
 
 	// reserve the first modelIndexes for inline models
 	for( i = 1; i < CM_NumInlineModels( svs.cms ); i++ )
-		Q_snprintfz( sv.configstrings[CS_MODELS + i], sizeof( sv.configstrings[CS_MODELS + i] ), "*%i", i );
+		snprintf( sv.configstrings[CS_MODELS + i], sizeof( sv.configstrings[CS_MODELS + i] ), "*%i", i );
 
 	// set serverinfo variable
 	Cvar_FullSet( "mapname", sv.mapname, CVAR_SERVERINFO | CVAR_READONLY, true );

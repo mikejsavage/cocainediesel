@@ -305,14 +305,14 @@ static void CG_WeaponModelUpdateRegistration( weaponinfo_t *weaponinfo, char *fi
 	for( int p = 0; p < VWEAP_MAXPARTS; p++ ) {
 		if( !weaponinfo->model[p] ) {
 			char scratch[MAX_QPATH];
-			Q_snprintfz( scratch, sizeof( scratch ), "models/weapons/%s%s.md3", filename, wmPartSufix[p] );
+			snprintf( scratch, sizeof( scratch ), "models/weapons/%s%s.md3", filename, wmPartSufix[p] );
 			weaponinfo->model[p] = FindModel( scratch );
 		}
 	}
 
 	// load animation script for the hand model
 	char scratch[MAX_QPATH];
-	Q_snprintfz( scratch, sizeof( scratch ), "models/weapons/%s.cfg", filename );
+	snprintf( scratch, sizeof( scratch ), "models/weapons/%s.cfg", filename );
 	if( !CG_vWeap_ParseAnimationScript( weaponinfo, scratch ) ) {
 		CG_CreateHandDefaultAnimations( weaponinfo );
 	}

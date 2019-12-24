@@ -2270,7 +2270,7 @@ bool G_asCallMapEntitySpawnScript( const char *classname, edict_t *ent ) {
 		return false;
 	}
 
-	Q_snprintfz( fdeclstr, sizeof( fdeclstr ), "void %s( Entity @ent )", classname );
+	snprintf( fdeclstr, sizeof( fdeclstr ), "void %s( Entity @ent )", classname );
 
 	// lookup the spawn function in gametype module first, fallback to map script
 	asSpawnModule = asEngine->GetModule( GAMETYPE_SCRIPTS_MODULE_NAME );
@@ -2894,7 +2894,7 @@ static void G_asDumpAPIToFile( const char *path ) {
 				filename = (char *) G_Malloc( filename_size );
 			}
 
-			Q_snprintfz( filename, filename_size, "%s%s.h", path, name );
+			snprintf( filename, filename_size, "%s%s.h", path, name );
 			if( trap_FS_FOpenFile( filename, &file, FS_WRITE ) == -1 ) {
 				G_Printf( "G_asDumpAPIToFile: Couldn't write %s.\n", filename );
 				return;
@@ -2902,7 +2902,7 @@ static void G_asDumpAPIToFile( const char *path ) {
 
 			// funcdefs
 			if( cDescr->funcdefs ) {
-				Q_snprintfz( string, sizeof( string ), "/* funcdefs */\r\n" );
+				snprintf( string, sizeof( string ), "/* funcdefs */\r\n" );
 				trap_FS_Write( string, strlen( string ), file );
 
 				for( j = 0;; j++ ) {
@@ -2911,23 +2911,23 @@ static void G_asDumpAPIToFile( const char *path ) {
 						break;
 					}
 
-					Q_snprintfz( string, sizeof( string ), "funcdef %s;\r\n", funcdef->declaration );
+					snprintf( string, sizeof( string ), "funcdef %s;\r\n", funcdef->declaration );
 					trap_FS_Write( string, strlen( string ), file );
 				}
 
-				Q_snprintfz( string, sizeof( string ), "\r\n" );
+				snprintf( string, sizeof( string ), "\r\n" );
 				trap_FS_Write( string, strlen( string ), file );
 			}
 
-			Q_snprintfz( string, sizeof( string ), "/**\r\n * %s\r\n */\r\n", cDescr->name );
+			snprintf( string, sizeof( string ), "/**\r\n * %s\r\n */\r\n", cDescr->name );
 			trap_FS_Write( string, strlen( string ), file );
 
-			Q_snprintfz( string, sizeof( string ), "class %s\r\n{\r\npublic:", cDescr->name );
+			snprintf( string, sizeof( string ), "class %s\r\n{\r\npublic:", cDescr->name );
 			trap_FS_Write( string, strlen( string ), file );
 
 			// object properties
 			if( cDescr->objProperties ) {
-				Q_snprintfz( string, sizeof( string ), "\r\n\t/* object properties */\r\n" );
+				snprintf( string, sizeof( string ), "\r\n\t/* object properties */\r\n" );
 				trap_FS_Write( string, strlen( string ), file );
 
 				for( j = 0;; j++ ) {
@@ -2936,14 +2936,14 @@ static void G_asDumpAPIToFile( const char *path ) {
 						break;
 					}
 
-					Q_snprintfz( string, sizeof( string ), "\t%s;\r\n", objProperty->declaration );
+					snprintf( string, sizeof( string ), "\t%s;\r\n", objProperty->declaration );
 					trap_FS_Write( string, strlen( string ), file );
 				}
 			}
 
 			// object behaviors
 			if( cDescr->objBehaviors ) {
-				Q_snprintfz( string, sizeof( string ), "\r\n\t/* object behaviors */\r\n" );
+				snprintf( string, sizeof( string ), "\r\n\t/* object behaviors */\r\n" );
 				trap_FS_Write( string, strlen( string ), file );
 
 				for( j = 0;; j++ ) {
@@ -2957,7 +2957,7 @@ static void G_asDumpAPIToFile( const char *path ) {
 						continue;
 					}
 
-					Q_snprintfz( string, sizeof( string ), "\t%s;%s\r\n", objBehavior->declaration,
+					snprintf( string, sizeof( string ), "\t%s;%s\r\n", objBehavior->declaration,
 								 ( objBehavior->behavior == asBEHAVE_FACTORY ? " /* factory */ " : "" )
 								 );
 					trap_FS_Write( string, strlen( string ), file );
@@ -2966,7 +2966,7 @@ static void G_asDumpAPIToFile( const char *path ) {
 
 			// object methods
 			if( cDescr->objMethods ) {
-				Q_snprintfz( string, sizeof( string ), "\r\n\t/* object methods */\r\n" );
+				snprintf( string, sizeof( string ), "\r\n\t/* object methods */\r\n" );
 				trap_FS_Write( string, strlen( string ), file );
 
 				for( j = 0;; j++ ) {
@@ -2975,12 +2975,12 @@ static void G_asDumpAPIToFile( const char *path ) {
 						break;
 					}
 
-					Q_snprintfz( string, sizeof( string ), "\t%s;\r\n", objMethod->declaration );
+					snprintf( string, sizeof( string ), "\t%s;\r\n", objMethod->declaration );
 					trap_FS_Write( string, strlen( string ), file );
 				}
 			}
 
-			Q_snprintfz( string, sizeof( string ), "};\r\n\r\n" );
+			snprintf( string, sizeof( string ), "};\r\n\r\n" );
 			trap_FS_Write( string, strlen( string ), file );
 
 			trap_FS_FCloseFile( file );
@@ -2999,7 +2999,7 @@ static void G_asDumpAPIToFile( const char *path ) {
 		filename = ( char * )G_Malloc( filename_size );
 	}
 
-	Q_snprintfz( filename, filename_size, "%s%s.h", path, name );
+	snprintf( filename, filename_size, "%s%s.h", path, name );
 	if( trap_FS_FOpenFile( filename, &file, FS_WRITE ) == -1 ) {
 		G_Printf( "G_asDumpAPIToFile: Couldn't write %s.\n", filename );
 		return;
@@ -3010,21 +3010,21 @@ static void G_asDumpAPIToFile( const char *path ) {
 		const asEnum_t *asEnum;
 		const asEnumVal_t *asEnumVal;
 
-		Q_snprintfz( string, sizeof( string ), "/**\r\n * %s\r\n */\r\n", "Enums" );
+		snprintf( string, sizeof( string ), "/**\r\n * %s\r\n */\r\n", "Enums" );
 		trap_FS_Write( string, strlen( string ), file );
 
 		const asEnum_t *const allEnumsLists[] = { asGameEnums };
 		for( const asEnum_t *const enumsList: allEnumsLists ) {
 			for( i = 0, asEnum = enumsList; asEnum->name != NULL; i++, asEnum++ ) {
-				Q_snprintfz( string, sizeof( string ), "typedef enum\r\n{\r\n" );
+				snprintf( string, sizeof( string ), "typedef enum\r\n{\r\n" );
 				trap_FS_Write( string, strlen( string ), file );
 
 				for( j = 0, asEnumVal = asEnum->values; asEnumVal->name != NULL; j++, asEnumVal++ ) {
-					Q_snprintfz( string, sizeof( string ), "\t%s = 0x%x,\r\n", asEnumVal->name, asEnumVal->value );
+					snprintf( string, sizeof( string ), "\t%s = 0x%x,\r\n", asEnumVal->name, asEnumVal->value );
 					trap_FS_Write( string, strlen( string ), file );
 				}
 
-				Q_snprintfz( string, sizeof( string ), "} %s;\r\n\r\n", asEnum->name );
+				snprintf( string, sizeof( string ), "} %s;\r\n\r\n", asEnum->name );
 				trap_FS_Write( string, strlen( string ), file );
 			}
 		}
@@ -3034,15 +3034,15 @@ static void G_asDumpAPIToFile( const char *path ) {
 	{
 		const asglobproperties_t *prop;
 
-		Q_snprintfz( string, sizeof( string ), "/**\r\n * %s\r\n */\r\n", "Global properties" );
+		snprintf( string, sizeof( string ), "/**\r\n * %s\r\n */\r\n", "Global properties" );
 		trap_FS_Write( string, strlen( string ), file );
 
 		for( prop = asGlobProps; prop->declaration; prop++ ) {
-			Q_snprintfz( string, sizeof( string ), "%s;\r\n", prop->declaration );
+			snprintf( string, sizeof( string ), "%s;\r\n", prop->declaration );
 			trap_FS_Write( string, strlen( string ), file );
 		}
 
-		Q_snprintfz( string, sizeof( string ), "\r\n" );
+		snprintf( string, sizeof( string ), "\r\n" );
 		trap_FS_Write( string, strlen( string ), file );
 	}
 
@@ -3050,18 +3050,18 @@ static void G_asDumpAPIToFile( const char *path ) {
 	{
 		const asglobfuncs_t *func;
 
-		Q_snprintfz( string, sizeof( string ), "/**\r\n * %s\r\n */\r\n", "Global functions" );
+		snprintf( string, sizeof( string ), "/**\r\n * %s\r\n */\r\n", "Global functions" );
 		trap_FS_Write( string, strlen( string ), file );
 
 		const asglobfuncs_t *const allFuncsList[] = { asGameGlobFuncs };
 		for( const asglobfuncs_t *funcsList: allFuncsList ) {
 			for( func = funcsList; func->declaration; func++ ) {
-				Q_snprintfz( string, sizeof( string ), "%s;\r\n", func->declaration );
+				snprintf( string, sizeof( string ), "%s;\r\n", func->declaration );
 				trap_FS_Write( string, strlen( string ), file );
 			}
 		}
 
-		Q_snprintfz( string, sizeof( string ), "\r\n" );
+		snprintf( string, sizeof( string ), "\r\n" );
 		trap_FS_Write( string, strlen( string ), file );
 	}
 
@@ -3078,6 +3078,6 @@ static void G_asDumpAPIToFile( const char *path ) {
 void G_asDumpAPI_f( void ) {
 	char path[MAX_QPATH];
 
-	Q_snprintfz( path, sizeof( path ), "AS_API/v%.g/", trap_Cvar_Value( "version" ) );
+	snprintf( path, sizeof( path ), "AS_API/v%.g/", trap_Cvar_Value( "version" ) );
 	G_asDumpAPIToFile( path );
 }

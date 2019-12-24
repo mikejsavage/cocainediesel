@@ -256,15 +256,15 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 	// fixme?: this could have its own HUD drawing, I guess.
 
 	if( GS_RaceGametype( &client_gs ) ) {
-		Q_snprintfz( string, sizeof( string ), "%i:%02i.%i",
+		snprintf( string, sizeof( string ), "%i:%02i.%i",
 					 minutes, ( int )seconds, ( int )( seconds * 10.0 ) % 10 );
 	}
 	else if( cg.predictedPlayerState.stats[STAT_NEXT_RESPAWN] ) {
 		int respawn = cg.predictedPlayerState.stats[STAT_NEXT_RESPAWN];
-		Q_snprintfz( string, sizeof( string ), "%i:%02i R:%02i", minutes, (int)seconds, respawn );
+		snprintf( string, sizeof( string ), "%i:%02i R:%02i", minutes, (int)seconds, respawn );
 	}
 	else {
-		Q_snprintfz( string, sizeof( string ), "%i:%02i", minutes, (int)seconds );
+		snprintf( string, sizeof( string ), "%i:%02i", minutes, (int)seconds );
 	}
 
 	DrawText( font, font_size, string, alignment, x, y, color, border );
@@ -504,7 +504,7 @@ void CG_DrawDamageNumbers() {
 			color = CG_TeamColorVec4( TEAM_ENEMY );
 		}
 		else {
-			Q_snprintfz( buf, sizeof( buf ), "%d", dn.damage );
+			snprintf( buf, sizeof( buf ), "%d", dn.damage );
 			color = vec4_white;
 		}
 
@@ -582,7 +582,7 @@ void CG_DrawBombHUD() {
 			Vec2 coords = WorldToScreenClamped( FromQF3( site->origin ), Vec2( cgs.fontSystemMediumSize * 2 ), &clamped );
 
 			char buf[ 4 ];
-			Q_snprintfz( buf, sizeof( buf ), "%c", site->letter );
+			snprintf( buf, sizeof( buf ), "%c", site->letter );
 			DrawText( cgs.fontMontserrat, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords.x, coords.y, vec4_white, true );
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {

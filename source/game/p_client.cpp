@@ -343,9 +343,9 @@ static void G_Client_AssignTeamSkin( edict_t *ent, char *userinfo ) {
 	}
 
 	if( usermodel ) {
-		Q_snprintfz( model, sizeof( model ), "$models/players/%s", usermodel );
+		snprintf( model, sizeof( model ), "$models/players/%s", usermodel );
 	} else {
-		Q_snprintfz( model, sizeof( model ), "$models/players/%s", DEFAULT_PLAYERMODEL );
+		snprintf( model, sizeof( model ), "$models/players/%s", DEFAULT_PLAYERMODEL );
 	}
 
 	if( !ent->deadflag ) {
@@ -944,7 +944,7 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient ) {
 	if( !fakeClient ) {
 		char message[MAX_STRING_CHARS];
 
-		Q_snprintfz( message, sizeof( message ), "%s connected", ent->r.client->netname );
+		snprintf( message, sizeof( message ), "%s connected", ent->r.client->netname );
 
 		G_PrintMsg( NULL, "%s\n", message );
 

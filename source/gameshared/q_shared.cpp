@@ -256,7 +256,7 @@ char *vtos( float v[3] ) {
 	s = str[index];
 	index = ( index + 1 ) & 7;
 
-	Q_snprintfz( s, 32, "(%+6.3f %+6.3f %+6.3f)", v[0], v[1], v[2] );
+	snprintf( s, 32, "(%+6.3f %+6.3f %+6.3f)", v[0], v[1], v[2] );
 
 	return s;
 }
@@ -270,7 +270,7 @@ char *vtos( float v[3] ) {
 char *va_r( char *dest, size_t size, const char *format, ... ) {
 	va_list argptr;
 	va_start( argptr, format );
-	Q_vsnprintfz( dest, size, format, argptr );
+	vsnprintf( dest, size, format, argptr );
 	va_end( argptr );
 	return dest;
 }
@@ -288,7 +288,7 @@ char *va( const char *format, ... ) {
 
 	str_index = ( str_index + 1 ) & 7;
 	va_start( argptr, format );
-	Q_vsnprintfz( string[str_index], sizeof( string[0] ), format, argptr );
+	vsnprintf( string[str_index], sizeof( string[0] ), format, argptr );
 	va_end( argptr );
 
 	return string[str_index];
@@ -740,35 +740,6 @@ void Q_strncatz( char *dest, const char *src, size_t size ) {
 }
 
 /*
-* Q_vsnprintfz
-*/
-int Q_vsnprintfz( char *dest, size_t size, const char *format, va_list argptr ) {
-	int len;
-
-	assert( dest );
-	assert( size );
-
-	len = vsnprintf( dest, size, format, argptr );
-	dest[size - 1] = 0;
-
-	return len;
-}
-
-/*
-* Q_snprintfz
-*/
-int Q_snprintfz( char *dest, size_t size, const char *format, ... ) {
-	int len;
-	va_list argptr;
-
-	va_start( argptr, format );
-	len = Q_vsnprintfz( dest, size, format, argptr );
-	va_end( argptr );
-
-	return len;
-}
-
-/*
 * Q_strupr
 */
 char *Q_strupr( char *s ) {
@@ -846,16 +817,6 @@ bool Q_isdigit( const char *str ) {
 		}
 	}
 	return false;
-}
-
-/*
-* Q_chrreplace
-*/
-char *Q_chrreplace( char *s, const char subj, const char repl ) {
-	char *t = s;
-	while( ( t = strchr( t, subj ) ) != NULL )
-		*t++ = repl;
-	return s;
 }
 
 void RemoveTrailingZeroesFloat( char * str ) {
@@ -1258,7 +1219,7 @@ bool Info_SetValueForKey( char *info, const char *key, const char *value ) {
 
 	Info_RemoveKey( info, key );
 
-	Q_snprintfz( pair, sizeof( pair ), "\\%s\\%s", key, value );
+	snprintf( pair, sizeof( pair ), "\\%s\\%s", key, value );
 
 	if( strlen( pair ) + strlen( info ) > MAX_INFO_STRING ) {
 		return false;

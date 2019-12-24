@@ -1004,7 +1004,7 @@ static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
 
 	con->state = HTTP_CONN_STATE_SEND;
 
-	Q_snprintfz( resp_stream->header_buf, sizeof( resp_stream->header_buf ),
+	snprintf( resp_stream->header_buf, sizeof( resp_stream->header_buf ),
 				 "%s %i %s\r\nServer: " APPLICATION "\r\n",
 				 request->http_ver, response->code, SV_Web_ResponseCodeMessage( response->code ) );
 
@@ -1020,11 +1020,11 @@ static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
 			Q_strncatz( resp_stream->header_buf, "Content-Range: bytes */*\r\n",
 						sizeof( resp_stream->header_buf ) );
 		} else {
-			Q_snprintfz( vastr, sizeof( vastr ), "Content-Range: bytes */%" PRIuPTR "\r\n", (uintptr_t)content_length );
+			snprintf( vastr, sizeof( vastr ), "Content-Range: bytes */%" PRIuPTR "\r\n", (uintptr_t)content_length );
 			Q_strncatz( resp_stream->header_buf, vastr, sizeof( resp_stream->header_buf ) );
 		}
 	} else if( response->code == HTTP_RESP_PARTIAL_CONTENT ) {
-		Q_snprintfz( vastr, sizeof( vastr ), "Content-Range: bytes %" PRIuPTR "-%" PRIuPTR "/%" PRIuPTR "\r\n",
+		snprintf( vastr, sizeof( vastr ), "Content-Range: bytes %" PRIuPTR "-%" PRIuPTR "/%" PRIuPTR "\r\n",
 					(uintptr_t)response->stream.content_range.begin, (uintptr_t)response->stream.content_range.end, (uintptr_t)content_length );
 		Q_strncatz( resp_stream->header_buf, vastr, sizeof( resp_stream->header_buf ) );
 		content_length = response->stream.content_range.end - response->stream.content_range.begin;
@@ -1035,7 +1035,7 @@ static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
 		Q_strncatz( resp_stream->header_buf, "Content-Type: text/plain\r\n",
 					sizeof( resp_stream->header_buf ) );
 
-		Q_snprintfz( err_body, sizeof( err_body ), "%i %s\n",
+		snprintf( err_body, sizeof( err_body ), "%i %s\n",
 					 response->code, SV_Web_ResponseCodeMessage( response->code ) );
 		content = err_body;
 		content_length = strlen( err_body );
@@ -1046,7 +1046,7 @@ static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
 				sizeof( resp_stream->header_buf ) );
 
 	if( response->file ) {
-		Q_snprintfz( vastr, sizeof( vastr ), "Content-Disposition: attachment; filename=\"%s\"\r\n",
+		snprintf( vastr, sizeof( vastr ), "Content-Disposition: attachment; filename=\"%s\"\r\n",
 					 COM_FileBase( response->filename ) );
 		Q_strncatz( resp_stream->header_buf, vastr, sizeof( resp_stream->header_buf ) );
 	}

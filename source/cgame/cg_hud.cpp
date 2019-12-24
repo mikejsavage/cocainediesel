@@ -1834,11 +1834,11 @@ static bool CG_LFuncDrawBindString( struct cg_layoutnode_s *argumentnode, int nu
 
 	char keys[ 128 ];
 	if( !CG_GetBoundKeysString( command, keys, sizeof( keys ) ) ) {
-		Q_snprintfz( keys, sizeof( keys ), "[%s]", command );
+		snprintf( keys, sizeof( keys ), "[%s]", command );
 	}
 
 	char buf[ 1024 ];
-	Q_snprintfz( buf, sizeof( buf ), fmt, keys );
+	snprintf( buf, sizeof( buf ), fmt, keys );
 
 	DrawText( GetHUDFont(), layout_cursor_font_size, buf, layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
 
@@ -2255,7 +2255,7 @@ static cg_layoutnode_t *CG_LayoutParseArgumentNode( const char *token ) {
 		// replace stat names by values
 		for( i = 0; cg_numeric_references[i].name != NULL; i++ ) {
 			if( !Q_stricmp( valuetok, cg_numeric_references[i].name ) ) {
-				Q_snprintfz( tmpstring, sizeof( tmpstring ), "%i", i );
+				snprintf( tmpstring, sizeof( tmpstring ), "%i", i );
 				valuetok = tmpstring;
 				break;
 			}
@@ -2272,7 +2272,7 @@ static cg_layoutnode_t *CG_LayoutParseArgumentNode( const char *token ) {
 
 		for( i = 0; cg_numeric_constants[i].name != NULL; i++ ) {
 			if( !Q_stricmp( valuetok, cg_numeric_constants[i].name ) ) {
-				Q_snprintfz( tmpstring, sizeof( tmpstring ), "%i", cg_numeric_constants[i].value );
+				snprintf( tmpstring, sizeof( tmpstring ), "%i", cg_numeric_constants[i].value );
 				valuetok = tmpstring;
 				break;
 			}
@@ -2786,14 +2786,14 @@ static char *CG_LoadHUDFile( const char *path ) {
 				rec_lvl++;
 				i = strlen( "huds/" ) + strlen( token ) + strlen( ".hud" ) + 1;
 				rec_fn[rec_lvl] = ( char * )CG_Malloc( i );
-				Q_snprintfz( rec_fn[rec_lvl], i, "huds/%s", token );
+				snprintf( rec_fn[rec_lvl], i, "huds/%s", token );
 				COM_DefaultExtension( rec_fn[rec_lvl], ".hud", i );
 				if( trap_FS_FOpenFile( rec_fn[rec_lvl], NULL, FS_READ ) < 0 ) {
 					// File doesn't exist!
 					CG_Free( rec_fn[rec_lvl] );
 					i = strlen( "huds/inc/" ) + strlen( token ) + strlen( ".hud" ) + 1;
 					rec_fn[rec_lvl] = ( char * )CG_Malloc( i );
-					Q_snprintfz( rec_fn[rec_lvl], i, "huds/inc/%s", token );
+					snprintf( rec_fn[rec_lvl], i, "huds/inc/%s", token );
 					COM_DefaultExtension( rec_fn[rec_lvl], ".hud", i );
 					if( trap_FS_FOpenFile( rec_fn[rec_lvl], NULL, FS_READ ) < 0 ) {
 						CG_Free( rec_fn[rec_lvl] );

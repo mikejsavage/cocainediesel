@@ -96,7 +96,7 @@ static asstring_t *objectString_AssignPattern( asstring_t *self, const char *pat
 	static char buf[4096];
 
 	va_start( argptr, pattern );
-	Q_vsnprintfz( buf, sizeof( buf ), pattern, argptr );
+	vsnprintf( buf, sizeof( buf ), pattern, argptr );
 	va_end( argptr );
 
 	return objectString_AssignString( self, buf, strlen( buf ) );
@@ -113,7 +113,7 @@ static asstring_t *objectString_AddAssignString( asstring_t *self, const char *s
 		self->size = size;
 		self->buffer = new char[size];
 
-		Q_snprintfz( self->buffer, size, "%s%s", tem, string );
+		snprintf( self->buffer, size, "%s%s", tem, string );
 
 		delete[] tem;
 	}
@@ -126,7 +126,7 @@ static asstring_t *objectString_AddAssignPattern( asstring_t *self, const char *
 	static char buf[4096];
 
 	va_start( argptr, pattern );
-	Q_vsnprintfz( buf, sizeof( buf ), pattern, argptr );
+	vsnprintf( buf, sizeof( buf ), pattern, argptr );
 	va_end( argptr );
 
 	return objectString_AddAssignString( self, buf, strlen( buf ) );
@@ -135,7 +135,7 @@ static asstring_t *objectString_AddAssignPattern( asstring_t *self, const char *
 static asstring_t *objectString_AddString( asstring_t *first, const char *second, size_t seclen ) {
 	asstring_t *self = objectString_FactoryBuffer( NULL, first->len + seclen );
 
-	Q_snprintfz( self->buffer, self->size, "%s%s", first->buffer, second );
+	snprintf( self->buffer, self->size, "%s%s", first->buffer, second );
 	self->len = self->size - 1;
 	return self;
 }
@@ -145,7 +145,7 @@ static asstring_t *objectString_AddPattern( asstring_t *first, const char *patte
 	static char buf[4096];
 
 	va_start( argptr, pattern );
-	Q_vsnprintfz( buf, sizeof( buf ), pattern, argptr );
+	vsnprintf( buf, sizeof( buf ), pattern, argptr );
 	va_end( argptr );
 
 	return objectString_AddString( first, buf, strlen( buf ) );

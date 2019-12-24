@@ -165,20 +165,11 @@ char *COM_ListNameForPosition( const char *namesList, int position, const char s
 void Q_strncpyz( char *dest, const char *src, size_t size );
 void Q_strncatz( char *dest, const char *src, size_t size );
 
-int Q_vsnprintfz( char *dest, size_t size, const char *format, va_list argptr );
-
-#ifndef _MSC_VER
-int Q_snprintfz( char *dest, size_t size, const char *format, ... ) __attribute__( ( format( printf, 3, 4 ) ) );
-#else
-int Q_snprintfz( char *dest, size_t size, _Printf_format_string_ const char *format, ... );
-#endif
-
 char *Q_strupr( char *s );
 char *Q_strlwr( char *s );
 const char *Q_strrstr( const char *s, const char *substr );
 bool Q_isdigit( const char *str );
 char *Q_trim( char *s );
-char *Q_chrreplace( char *s, const char subj, const char repl );
 void RemoveTrailingZeroesFloat( char * str );
 
 /**

@@ -95,7 +95,7 @@ void CG_Error( const char *format, ... ) {
 	char msg[1024];
 
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	trap_Error( msg );
@@ -109,7 +109,7 @@ void CG_Printf( const char *format, ... ) {
 	char msg[1024];
 
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	trap_Print( msg );
@@ -123,7 +123,7 @@ void CG_LocalPrint( const char *format, ... ) {
 	char msg[GAMECHAT_STRING_SIZE];
 
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	trap_PrintToLog( msg );

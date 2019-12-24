@@ -116,7 +116,7 @@ static void _Mem_Error( const char *format, ... ) {
 	char msg[1024];
 
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	Sys_Error( "%s", msg );

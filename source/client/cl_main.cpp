@@ -170,7 +170,7 @@ void CL_ServerDisconnect_f( void ) {
 
 	Com_Printf( "Connection was closed by server: %s\n", reason );
 
-	Q_snprintfz( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
+	snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
 				 DROP_REASON_CONNTERMINATED, cls.servername, type, reason );
 
 	Cbuf_ExecuteText( EXEC_NOW, menuparms );
@@ -356,7 +356,7 @@ static void CL_Connect_Cmd_f( socket_type_t socket ) {
 
 		temp_size = strlen( "demo " ) + strlen( http_scheme ) + strlen( connectstring ) + 1;
 		temp = ( char * ) Mem_TempMalloc( temp_size );
-		Q_snprintfz( temp, temp_size, "demo %s%s", http_scheme, connectstring );
+		snprintf( temp, temp_size, "demo %s%s", http_scheme, connectstring );
 
 		Cbuf_ExecuteText( EXEC_NOW, temp );
 
@@ -663,7 +663,7 @@ void CL_Disconnect( const char *message ) {
 
 	if( cl_connectChain[0] == '\0' ) {
 		if( message != NULL ) {
-			Q_snprintfz( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
+			snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
 						 ( wasconnecting ? DROP_REASON_CONNFAILED : DROP_REASON_CONNERROR ), cls.servername, DROP_TYPE_GENERAL, message );
 
 			Cbuf_ExecuteText( EXEC_NOW, menuparms );
@@ -675,7 +675,7 @@ void CL_Disconnect( const char *message ) {
 		} else {
 			s = cl_connectChain + strlen( cl_connectChain ) - 1;
 		}
-		Q_snprintfz( cl_nextString, sizeof( cl_nextString ), "connect \"%s\" \"%s\"", cl_connectChain, s + 1 );
+		snprintf( cl_nextString, sizeof( cl_nextString ), "connect \"%s\" \"%s\"", cl_connectChain, s + 1 );
 	}
 
 done:
@@ -913,7 +913,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 			Com_Printf( "Automatic reconnecting not allowed.\n" );
 
 			CL_Disconnect( NULL );
-			Q_snprintfz( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
+			snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
 						 DROP_REASON_CONNFAILED, cls.servername, cls.rejecttype, cls.rejectmessage );
 
 			Cbuf_ExecuteText( EXEC_NOW, menuparms );
@@ -1958,7 +1958,7 @@ int CL_AddSessionHttpRequestHeaders( const char *url, const char **headers ) {
 
 	if( cls.httpbaseurl && *cls.httpbaseurl ) {
 		if( !strncmp( url, cls.httpbaseurl, strlen( cls.httpbaseurl ) ) ) {
-			Q_snprintfz( pH, sizeof( pH ), "%i", cl.playernum );
+			snprintf( pH, sizeof( pH ), "%i", cl.playernum );
 
 			headers[0] = "X-Client";
 			headers[1] = pH;

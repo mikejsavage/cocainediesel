@@ -29,7 +29,7 @@ void G_PlayerAward( edict_t *ent, const char *awardMsg ) {
 		return;
 	}
 
-	Q_snprintfz( cmd, sizeof( cmd ), "aw \"%s\"", awardMsg );
+	snprintf( cmd, sizeof( cmd ), "aw \"%s\"", awardMsg );
 	trap_GameCmd( ent, cmd );
 
 	G_Gametype_ScoreEvent( ent->r.client, "award", awardMsg );

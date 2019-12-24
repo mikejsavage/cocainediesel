@@ -154,7 +154,7 @@ void SV_DropClient( client_t *drop, int type, const char *format, ... ) {
 
 	if( format ) {
 		va_start( argptr, format );
-		Q_vsnprintfz( string, sizeof( string ), format, argptr );
+		vsnprintf( string, sizeof( string ), format, argptr );
 		va_end( argptr );
 		reason = string;
 	} else {
@@ -601,12 +601,12 @@ static void SV_BeginDownload_f( client_t *client ) {
 		if( local_http ) {
 			alloc_size = sizeof( char ) * ( 6 + strlen( uploadname ) * 3 + 1 );
 			url = ( char * ) Mem_TempMalloc( alloc_size );
-			Q_snprintfz( url, alloc_size, "files/" );
+			snprintf( url, alloc_size, "files/" );
 			Q_urlencode_unsafechars( uploadname, url + 6, alloc_size - 6 );
 		} else {
 			alloc_size = sizeof( char ) * ( strlen( sv_uploads_demos_baseurl->string ) + 1 );
 			url = ( char * ) Mem_TempMalloc( alloc_size );
-			Q_snprintfz( url, alloc_size, "%s/", sv_uploads_demos_baseurl->string );
+			snprintf( url, alloc_size, "%s/", sv_uploads_demos_baseurl->string );
 		}
 	} else {
 		url = NULL;

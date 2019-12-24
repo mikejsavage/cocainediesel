@@ -35,15 +35,15 @@ SERVER COMMANDS
 * CG_SC_Print
 */
 static void CG_SC_Print( void ) {
-	CG_LocalPrint( "%s", trap_Cmd_Argv( 1 ) );
+	CG_LocalPrint( "%s", Cmd_Argv( 1 ) );
 }
 
 /*
 * CG_SC_ChatPrint
 */
 static void CG_SC_ChatPrint() {
-	bool teamonly = Q_stricmp( trap_Cmd_Argv( 0 ), "tch" ) == 0;
-	int who = atoi( trap_Cmd_Argv( 1 ) );
+	bool teamonly = Q_stricmp( Cmd_Argv( 0 ), "tch" ) == 0;
+	int who = atoi( Cmd_Argv( 1 ) );
 
 	if( who < 0 || who > MAX_CLIENTS ) {
 		return;
@@ -53,7 +53,7 @@ static void CG_SC_ChatPrint() {
 		return;
 	}
 
-	const char * text = trap_Cmd_Argv( 2 );
+	const char * text = Cmd_Argv( 2 );
 
 	if( who == 0 ) {
 		CG_LocalPrint( "Console: %s\n", text );
@@ -84,7 +84,7 @@ static void CG_SC_ChatPrint() {
 * CG_SC_CenterPrint
 */
 static void CG_SC_CenterPrint( void ) {
-	CG_CenterPrint( trap_Cmd_Argv( 1 ) );
+	CG_CenterPrint( Cmd_Argv( 1 ) );
 }
 
 /*
@@ -119,7 +119,7 @@ void CG_ConfigString( int i, const char *s ) {
 		CG_LoadClientInfo( i - CS_PLAYERINFOS );
 	} else if( i >= CS_GAMECOMMANDS && i < CS_GAMECOMMANDS + MAX_GAMECOMMANDS ) {
 		if( !cgs.demoPlaying ) {
-			trap_Cmd_AddCommand( cgs.configStrings[i], NULL );
+			Cmd_AddCommand( cgs.configStrings[i], NULL );
 		}
 	} else if( i >= CS_WEAPONDEFS && i < CS_WEAPONDEFS + MAX_WEAPONDEFS ) {
 		CG_OverrideWeapondef( i - CS_WEAPONDEFS, cgs.configStrings[i] );
@@ -130,7 +130,7 @@ void CG_ConfigString( int i, const char *s ) {
 * CG_SC_Scoreboard
 */
 static void CG_SC_Scoreboard( void ) {
-	SCR_UpdateScoreboardMessage( trap_Cmd_Argv( 1 ) );
+	SCR_UpdateScoreboardMessage( Cmd_Argv( 1 ) );
 }
 
 static int ParseIntOr0( const char ** cursor ) {
@@ -140,7 +140,7 @@ static int ParseIntOr0( const char ** cursor ) {
 }
 
 static void CG_SC_PlayerStats() {
-	const char * s = trap_Cmd_Argv( 1 );
+	const char * s = Cmd_Argv( 1 );
 
 	int playerNum = ParseIntOr0( &s );
 	if( playerNum < 0 || playerNum >= client_gs.maxclients ) {
@@ -230,27 +230,27 @@ void CG_SC_AutoRecordAction( const char *action ) {
 
 	if( !Q_stricmp( action, "start" ) ) {
 		if( cg_autoaction_demo->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
-			trap_Cmd_ExecuteText( EXEC_NOW, "stop silent" );
-			trap_Cmd_ExecuteText( EXEC_NOW, va( "record autorecord/%s silent", name ) );
+			Cbuf_ExecuteText( EXEC_NOW, "stop silent" );
+			Cbuf_ExecuteText( EXEC_NOW, va( "record autorecord/%s silent", name ) );
 			autorecording = true;
 		}
 	} else if( !Q_stricmp( action, "altstart" ) ) {
 		if( cg_autoaction_demo->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
-			trap_Cmd_ExecuteText( EXEC_NOW, va( "record autorecord/%s silent", name ) );
+			Cbuf_ExecuteText( EXEC_NOW, va( "record autorecord/%s silent", name ) );
 			autorecording = true;
 		}
 	} else if( !Q_stricmp( action, "stop" ) ) {
 		if( autorecording ) {
-			trap_Cmd_ExecuteText( EXEC_NOW, "stop silent" );
+			Cbuf_ExecuteText( EXEC_NOW, "stop silent" );
 			autorecording = false;
 		}
 
 		if( cg_autoaction_screenshot->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
-			trap_Cmd_ExecuteText( EXEC_NOW, va( "screenshot autorecord/%s silent", name ) );
+			Cbuf_ExecuteText( EXEC_NOW, va( "screenshot autorecord/%s silent", name ) );
 		}
 	} else if( !Q_stricmp( action, "cancel" ) ) {
 		if( autorecording ) {
-			trap_Cmd_ExecuteText( EXEC_NOW, "stop cancel silent" );
+			Cbuf_ExecuteText( EXEC_NOW, "stop cancel silent" );
 			autorecording = false;
 		}
 	} else if( developer->integer ) {
@@ -268,14 +268,14 @@ static void CG_Cmd_DemoGet_f( void ) {
 		return;
 	}
 
-	if( trap_Cmd_Argc() != 2 || ( atoi( trap_Cmd_Argv( 1 ) ) <= 0 && trap_Cmd_Argv( 1 )[0] != '.' ) ) {
+	if( Cmd_Argc() != 2 || ( atoi( Cmd_Argv( 1 ) ) <= 0 && Cmd_Argv( 1 )[0] != '.' ) ) {
 		CG_Printf( "Usage: demoget <number>\n" );
 		CG_Printf( "Downloads a demo from the server\n" );
 		CG_Printf( "Use the demolist command to see list of demos on the server\n" );
 		return;
 	}
 
-	trap_Cmd_ExecuteText( EXEC_NOW, va( "cmd demoget %s", trap_Cmd_Argv( 1 ) ) );
+	Cbuf_ExecuteText( EXEC_NOW, va( "cmd demoget %s", Cmd_Argv( 1 ) ) );
 
 	demo_requested = true;
 }
@@ -298,12 +298,12 @@ static void CG_SC_DemoGet( void ) {
 
 	demo_requested = false;
 
-	if( trap_Cmd_Argc() < 2 ) {
+	if( Cmd_Argc() < 2 ) {
 		CG_Printf( "No such demo found\n" );
 		return;
 	}
 
-	filename = trap_Cmd_Argv( 1 );
+	filename = Cmd_Argv( 1 );
 	extension = COM_FileExtension( filename );
 	if( !COM_ValidateRelativeFilename( filename ) ||
 		!extension || Q_stricmp( extension, APP_DEMO_EXTENSION_STR ) ) {
@@ -318,11 +318,11 @@ static void CG_SC_ChangeLoadout() {
 	int weapons[ WEAP_TOTAL ] = { };
 	size_t n = 0;
 
-	if( trap_Cmd_Argc() - 1 >= ARRAY_COUNT( weapons ) )
+	if( Cmd_Argc() - 1 >= ARRAY_COUNT( weapons ) )
 		return;
 
-	for( int i = 0; i < trap_Cmd_Argc() - 1; i++ ) {
-		int weapon = atoi( trap_Cmd_Argv( i + 1 ) );
+	for( int i = 0; i < Cmd_Argc() - 1; i++ ) {
+		int weapon = atoi( Cmd_Argv( i + 1 ) );
 		if( weapon <= WEAP_NONE || weapon >= WEAP_TOTAL )
 			return;
 		weapons[ n ] = weapon;
@@ -333,7 +333,7 @@ static void CG_SC_ChangeLoadout() {
 }
 
 static void CG_SC_SaveLoadout() {
-	trap_Cvar_Set( "cg_loadout", Cmd_Args() );
+	Cvar_Set( "cg_loadout", Cmd_Args() );
 }
 
 void CG_AddAward( const char * str ) {
@@ -347,7 +347,7 @@ void CG_AddAward( const char * str ) {
 }
 
 static void CG_SC_AddAward() {
-	CG_AddAward( trap_Cmd_Argv( 1 ) );
+	CG_AddAward( Cmd_Argv( 1 ) );
 }
 
 struct ServerCommand {
@@ -370,8 +370,8 @@ static const ServerCommand server_commands[] = {
 };
 
 void CG_GameCommand( const char * command ) {
-	trap_Cmd_TokenizeString( command );
-	const char * name = trap_Cmd_Argv( 0 );
+	Cmd_TokenizeString( command );
+	const char * name = Cmd_Argv( 0 );
 
 	for( ServerCommand cmd : server_commands ) {
 		if( strcmp( name, cmd.name ) == 0 ) {
@@ -412,7 +412,7 @@ void CG_UseItem( const char *name ) {
 			cg.lastWeapon = cg.predictedPlayerState.stats[STAT_PENDING_WEAPON];
 		}
 
-		trap_Cmd_ExecuteText( EXEC_NOW, va( "cmd use %i", item->tag ) );
+		Cbuf_ExecuteText( EXEC_NOW, va( "cmd use %i", item->tag ) );
 	}
 }
 
@@ -420,12 +420,12 @@ void CG_UseItem( const char *name ) {
 * CG_Cmd_UseItem_f
 */
 static void CG_Cmd_UseItem_f( void ) {
-	if( !trap_Cmd_Argc() ) {
+	if( !Cmd_Argc() ) {
 		CG_Printf( "Usage: 'use <item name>' or 'use <item index>'\n" );
 		return;
 	}
 
-	CG_UseItem( trap_Cmd_Args() );
+	CG_UseItem( Cmd_Args() );
 }
 
 /*
@@ -446,7 +446,7 @@ static void CG_Cmd_NextWeapon_f( void ) {
 	item = GS_Cmd_NextWeapon_f( &client_gs, &cg.frame.playerState, cg.predictedWeaponSwitch );
 	if( item ) {
 		CG_Predict_ChangeWeapon( item->tag );
-		trap_Cmd_ExecuteText( EXEC_NOW, va( "cmd use %i", item->tag ) );
+		Cbuf_ExecuteText( EXEC_NOW, va( "cmd use %i", item->tag ) );
 		cg.lastWeapon = cg.predictedPlayerState.stats[STAT_PENDING_WEAPON];
 	}
 }
@@ -469,7 +469,7 @@ static void CG_Cmd_PrevWeapon_f( void ) {
 	item = GS_Cmd_PrevWeapon_f( &client_gs, &cg.frame.playerState, cg.predictedWeaponSwitch );
 	if( item ) {
 		CG_Predict_ChangeWeapon( item->tag );
-		trap_Cmd_ExecuteText( EXEC_NOW, va( "cmd use %i", item->tag ) );
+		Cbuf_ExecuteText( EXEC_NOW, va( "cmd use %i", item->tag ) );
 		cg.lastWeapon = cg.predictedPlayerState.stats[STAT_PENDING_WEAPON];
 	}
 }
@@ -491,14 +491,14 @@ static void CG_Cmd_LastWeapon_f( void ) {
 				CG_Predict_ChangeWeapon( item->tag );
 			}
 
-			trap_Cmd_ExecuteText( EXEC_NOW, va( "cmd use %i", item->tag ) );
+			Cbuf_ExecuteText( EXEC_NOW, va( "cmd use %i", item->tag ) );
 			cg.lastWeapon = cg.predictedPlayerState.stats[STAT_PENDING_WEAPON];
 		}
 	}
 }
 
 static void CG_Cmd_Weapon_f() {
-	int w = atoi( trap_Cmd_Argv( 1 ) );
+	int w = atoi( Cmd_Argv( 1 ) );
 	int seen = 0;
 	for( int i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
 		if( cg.predictedPlayerState.inventory[ i ] == 0 )
@@ -573,21 +573,21 @@ static char **CG_TeamPlayerNamesCompletion_f( const char *partial ) {
 * CG_SayCmdAdd_f
 */
 static void CG_SayCmdAdd_f( void ) {
-	trap_Cmd_SetCompletionFunc( "say", &CG_PlayerNamesCompletion_f );
+	Cmd_SetCompletionFunc( "say", &CG_PlayerNamesCompletion_f );
 }
 
 /*
 * CG_SayTeamCmdAdd_f
 */
 static void CG_SayTeamCmdAdd_f( void ) {
-	trap_Cmd_SetCompletionFunc( "say_team", &CG_TeamPlayerNamesCompletion_f );
+	Cmd_SetCompletionFunc( "say_team", &CG_TeamPlayerNamesCompletion_f );
 }
 
 /*
 * CG_StatsCmdAdd_f
 */
 static void CG_StatsCmdAdd_f( void ) {
-	trap_Cmd_SetCompletionFunc( "stats", &CG_PlayerNamesCompletion_f );
+	Cmd_SetCompletionFunc( "stats", &CG_PlayerNamesCompletion_f );
 }
 
 // server commands
@@ -653,7 +653,7 @@ void CG_RegisterCGameCommands( void ) {
 				continue;
 			}
 
-			trap_Cmd_AddCommand( name, NULL );
+			Cmd_AddCommand( name, NULL );
 
 			// check for server commands we might want to do some special things for..
 			for( svcmd = cg_consvcmds; svcmd->name; svcmd++ ) {
@@ -672,7 +672,7 @@ void CG_RegisterCGameCommands( void ) {
 		if( cgs.demoPlaying && !cmd->allowdemo ) {
 			continue;
 		}
-		trap_Cmd_AddCommand( cmd->name, cmd->func );
+		Cmd_AddCommand( cmd->name, cmd->func );
 	}
 }
 
@@ -703,7 +703,7 @@ void CG_UnregisterCGameCommands( void ) {
 				continue;
 			}
 
-			trap_Cmd_RemoveCommand( name );
+			Cmd_RemoveCommand( name );
 		}
 	}
 
@@ -712,6 +712,6 @@ void CG_UnregisterCGameCommands( void ) {
 		if( cgs.demoPlaying && !cmd->allowdemo ) {
 			continue;
 		}
-		trap_Cmd_RemoveCommand( cmd->name );
+		Cmd_RemoveCommand( cmd->name );
 	}
 }

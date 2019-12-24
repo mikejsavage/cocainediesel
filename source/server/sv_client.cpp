@@ -649,7 +649,7 @@ static void SV_ShowServerinfo_f( client_t *client ) {
 * SV_UserinfoCommand_f
 */
 static void SV_UserinfoCommand_f( client_t *client ) {
-	char *info;
+	const char *info;
 	int64_t time;
 
 	info = Cmd_Argv( 1 );

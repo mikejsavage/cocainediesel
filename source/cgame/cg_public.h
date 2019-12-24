@@ -76,34 +76,6 @@ typedef struct {
 	void ( *Print )( const char *msg );
 	void ( *PrintToLog )( const char *msg );
 
-	// console variable interaction
-	cvar_t *( *Cvar_Get )( const char *name, const char *value, int flags );
-	cvar_t *( *Cvar_Set )( const char *name, const char *value );
-	void ( *Cvar_SetValue )( const char *name, float value );
-	cvar_t *( *Cvar_ForceSet )( const char *name, const char *value );      // will return 0 0 if not found
-	float ( *Cvar_Value )( const char *name );
-	const char *( *Cvar_String )( const char *name );
-
-	void ( *Cmd_TokenizeString )( const char *text );
-	int ( *Cmd_Argc )( void );
-	char *( *Cmd_Argv )( int arg );
-	char *( *Cmd_Args )( void );        // concatenation of all argv >= 1
-
-	void ( *Cmd_AddCommand )( const char *name, void ( *cmd )( void ) );
-	void ( *Cmd_RemoveCommand )( const char *cmd_name );
-	void ( *Cmd_ExecuteText )( int exec_when, const char *text );
-	void ( *Cmd_Execute )( void );
-	void ( *Cmd_SetCompletionFunc )( const char *cmd_name, char **( *completion_func )( const char *partial ) );
-
-	// files will be memory mapped read only
-	// a -1 return means the file does not exist
-	// NULL can be passed for buf to just determine existance
-	int ( *FS_FOpenFile )( const char *filename, int *filenum, int mode );
-	int ( *FS_Read )( void *buffer, size_t len, int file );
-	int ( *FS_Write )( const void *buffer, size_t len, int file );
-	int ( *FS_Print )( int file, const char *msg );
-	void ( *FS_FCloseFile )( int file );
-
 	// key bindings
 	const char *( *Key_GetBindingBuf )( int binding );
 	const char *( *Key_KeynumToString )( int keynum );

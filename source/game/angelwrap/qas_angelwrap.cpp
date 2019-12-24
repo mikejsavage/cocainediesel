@@ -151,7 +151,7 @@ void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool s
 		global_file += "globals.h";
 	}
 
-	if( trap_FS_FOpenFile( global_file.c_str(), &filenum, FS_WRITE ) == -1 ) {
+	if( FS_FOpenFile( global_file.c_str(), &filenum, FS_WRITE ) == -1 ) {
 		Com_Printf( "ASModule::dumpAPI: Couldn't write %s.\n", global_file.c_str() );
 		return;
 	}
@@ -163,7 +163,7 @@ void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool s
 	} else {
 		str = "/**\r\n * Enums\r\n */\r\n";
 	}
-	trap_FS_Write( str, strlen( str ), filenum );
+	FS_Write( str, strlen( str ), filenum );
 
 	int enumCount = engine->GetEnumCount();
 	for( i = 0; i < enumCount; i++ ) {
@@ -171,23 +171,23 @@ void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool s
 		const char *enumName = engine->GetEnumByIndex( i, &enumTypeId, NULL, NULL, NULL );
 
 		str = "typedef enum\r\n{\r\n";
-		trap_FS_Write( str, strlen( str ), filenum );
+		FS_Write( str, strlen( str ), filenum );
 
 		int enumValueCount = engine->GetEnumValueCount( enumTypeId );
 		for( j = 0; j < enumValueCount; j++ ) {
 			int outValue;
 			const char *valueName = engine->GetEnumValueByIndex( enumTypeId, j, &outValue );
 			str = va( "\t%s = 0x%x,\r\n", valueName, outValue );
-			trap_FS_Write( str, strlen( str ), filenum );
+			FS_Write( str, strlen( str ), filenum );
 		}
 
 		str = va( "} %s;\r\n\r\n", enumName );
-		trap_FS_Write( str, strlen( str ), filenum );
+		FS_Write( str, strlen( str ), filenum );
 	}
 
 	if( markdown ) {
 		str = "```\r\n";
-		trap_FS_Write( str, strlen( str ), filenum );
+		FS_Write( str, strlen( str ), filenum );
 	}
 
 	//
@@ -197,7 +197,7 @@ void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool s
 	} else {
 		str = "\r\n/**\r\n * Global properties\r\n */\r\n";
 	}
-	trap_FS_Write( str, strlen( str ), filenum );
+	FS_Write( str, strlen( str ), filenum );
 
 	int propertyCount = engine->GetGlobalPropertyCount();
 	for( i = 0; i < propertyCount; i++ ) {
@@ -226,13 +226,13 @@ void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool s
 					engine->GetTypeDeclaration( propertyTypeId ), propertyName );
 			}
 
-			trap_FS_Write( decl, strlen( decl ), filenum );
+			FS_Write( decl, strlen( decl ), filenum );
 		}
 	}
 
 	if( markdown ) {
 		str = "```\r\n";
-		trap_FS_Write( str, strlen( str ), filenum );
+		FS_Write( str, strlen( str ), filenum );
 	}
 
 	//
@@ -242,7 +242,7 @@ void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool s
 	} else {
 		str = "\r\n/**\r\n * Global functions\r\n */\r\n";
 	}
-	trap_FS_Write( str, strlen( str ), filenum );
+	FS_Write( str, strlen( str ), filenum );
 
 	int functionCount = engine->GetGlobalFunctionCount();
 	for( i = 0; i < functionCount; i++ ) {
@@ -258,16 +258,16 @@ void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool s
 			}
 
 			const char *decl = va( "%s;\r\n", func->GetDeclaration( false, false, true ) );
-			trap_FS_Write( decl, strlen( decl ), filenum );
+			FS_Write( decl, strlen( decl ), filenum );
 		}
 	}
 
 	if( markdown ) {
 		str = "```\r\n";
-		trap_FS_Write( str, strlen( str ), filenum );
+		FS_Write( str, strlen( str ), filenum );
 	}
 
-	trap_FS_FCloseFile( filenum );
+	FS_FCloseFile( filenum );
 	Com_Printf( "Wrote %s\n", global_file.c_str() );
 
 	// classes
@@ -299,7 +299,7 @@ void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool s
 				class_file += ".h";
 			}
 
-			if( trap_FS_FOpenFile( class_file.c_str(), &filenum, mode ) == -1 ) {
+			if( FS_FOpenFile( class_file.c_str(), &filenum, mode ) == -1 ) {
 				Com_Printf( "ASModule::dumpAPI: Couldn't write %s.\n", class_file.c_str() );
 				continue;
 			}
@@ -311,7 +311,7 @@ void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool s
 				} else {
 					str = "\r\n/**\r\n * Classes\r\n */\r\n\r\n";
 				}
-				trap_FS_Write( str, strlen( str ), filenum );
+				FS_Write( str, strlen( str ), filenum );
 
 				wroteClassesHeader = true;
 			}
@@ -321,18 +321,18 @@ void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool s
 			} else {
 				str = va( "/**\r\n * %s\r\n */\r\n", objectType->GetName() );
 			}
-			trap_FS_Write( str, strlen( str ), filenum );
+			FS_Write( str, strlen( str ), filenum );
 			str = va( "class %s\r\n{\r\npublic:", objectType->GetName() );
-			trap_FS_Write( str, strlen( str ), filenum );
+			FS_Write( str, strlen( str ), filenum );
 
 			// properties
 			str = "\r\n\t/* object properties */\r\n";
-			trap_FS_Write( str, strlen( str ), filenum );
+			FS_Write( str, strlen( str ), filenum );
 
 			int memberCount = objectType->GetPropertyCount();
 			for( j = 0; j < memberCount; j++ ) {
 				const char *decl = va( "\t%s;\r\n\r\n", objectType->GetPropertyDeclaration( j ) );
-				trap_FS_Write( decl, strlen( decl ), filenum );
+				FS_Write( decl, strlen( decl ), filenum );
 			}
 
 			// properties with accessors
@@ -353,13 +353,13 @@ void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool s
 
 					const char *typeDecl = engine->GetTypeDeclaration( method->GetReturnTypeId() );
 					const char *decl = va( "\t%s%s %s;\r\n\r\n", readOnly ? "const " : "", typeDecl, methodName + 4 );
-					trap_FS_Write( decl, strlen( decl ), filenum );
+					FS_Write( decl, strlen( decl ), filenum );
 				}
 			}
 
 			// behaviours
 			str = "\r\n\t/* object behaviors */\r\n";
-			trap_FS_Write( str, strlen( str ), filenum );
+			FS_Write( str, strlen( str ), filenum );
 
 			int behaviourCount = objectType->GetBehaviourCount();
 			for( j = 0; j < behaviourCount; j++ ) {
@@ -372,12 +372,12 @@ void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool s
 
 				const char *decl = va( "\t%s;%s\r\n\r\n", function->GetDeclaration( false, false, true ),
 					( behaviourType == asBEHAVE_FACTORY ? " /* factory */ " : "" ) );
-				trap_FS_Write( decl, strlen( decl ), filenum );
+				FS_Write( decl, strlen( decl ), filenum );
 			}
 
 			// methods
 			str = "\r\n\t/* object methods */\r\n";
-			trap_FS_Write( str, strlen( str ), filenum );
+			FS_Write( str, strlen( str ), filenum );
 
 			int methodCount = objectType->GetMethodCount();
 			for( j = 0; j < methodCount; j++ ) {
@@ -393,18 +393,18 @@ void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool s
 				}
 
 				const char *decl = va( "\t%s;\r\n\r\n", method->GetDeclaration( false, false, true ) );
-				trap_FS_Write( decl, strlen( decl ), filenum );
+				FS_Write( decl, strlen( decl ), filenum );
 			}
 
 			str = "};\r\n\r\n";
-			trap_FS_Write( str, strlen( str ), filenum );
+			FS_Write( str, strlen( str ), filenum );
 
 			if( markdown ) {
 				str = "```\r\n\r\n";
-				trap_FS_Write( str, strlen( str ), filenum );
+				FS_Write( str, strlen( str ), filenum );
 			}
 
-			trap_FS_FCloseFile( filenum );
+			FS_FCloseFile( filenum );
 
 			Com_Printf( "Wrote %s\n", class_file.c_str() );
 		}
@@ -528,7 +528,7 @@ static char *qasLoadScriptSection( const char *rootDir, const char *dir, const c
 	}
 	Q_strlwr( filename );
 
-	length = trap_FS_FOpenFile( filename, &filenum, FS_READ );
+	length = FS_FOpenFile( filename, &filenum, FS_READ );
 
 	if( length == -1 ) {
 		Com_Printf( "Couldn't find script section: '%s'\n", filename );
@@ -537,8 +537,8 @@ static char *qasLoadScriptSection( const char *rootDir, const char *dir, const c
 
 	//load the script data into memory
 	data = ( uint8_t * )qasAlloc( length + 1 );
-	trap_FS_Read( data, length, filenum );
-	trap_FS_FCloseFile( filenum );
+	FS_Read( data, length, filenum );
+	FS_FCloseFile( filenum );
 
 	return (char *)data;
 }
@@ -614,7 +614,7 @@ asIScriptModule *qasLoadScriptProject( asIScriptEngine *engine, const char *modu
 	snprintf( filepath, sizeof( filepath ), "%s/%s/%s", rootDir, dir, filename );
 	COM_DefaultExtension( filepath, ext, sizeof( filepath ) );
 
-	length = trap_FS_FOpenFile( filepath, &filenum, FS_READ );
+	length = FS_FOpenFile( filepath, &filenum, FS_READ );
 
 	if( length == -1 ) {
 		Com_Printf( "qasLoadScriptProject: Couldn't find '%s'.\n", filepath );
@@ -623,14 +623,14 @@ asIScriptModule *qasLoadScriptProject( asIScriptEngine *engine, const char *modu
 
 	if( !length ) {
 		Com_Printf( "qasLoadScriptProject: '%s' is empty.\n", filepath );
-		trap_FS_FCloseFile( filenum );
+		FS_FCloseFile( filenum );
 		return NULL;
 	}
 
 	//load the script data into memory
 	data = ( char * )qasAlloc( length + 1 );
-	trap_FS_Read( data, length, filenum );
-	trap_FS_FCloseFile( filenum );
+	FS_Read( data, length, filenum );
+	FS_FCloseFile( filenum );
 
 	// Initialize the script
 	asModule = qasBuildScriptProject( engine, moduleName, rootDir, dir, filepath, data );

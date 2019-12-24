@@ -341,9 +341,9 @@ void Cmd_ChaseCam_f( edict_t *ent ) {
 	// & 4 = objectives
 	// & 8 = fragger
 
-	const char * arg1 = trap_Cmd_Argv( 1 );
+	const char * arg1 = Cmd_Argv( 1 );
 
-	if( trap_Cmd_Argc() < 2 ) {
+	if( Cmd_Argc() < 2 ) {
 		G_ChasePlayer( ent, NULL, false, 0 );
 	} else if( !Q_stricmp( arg1, "auto" ) ) {
 		G_PrintMsg( ent, "Chasecam mode is 'auto'. It will follow the score leader when no powerup nor flag is carried.\n" );

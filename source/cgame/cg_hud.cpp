@@ -185,7 +185,7 @@ static int CG_GetVidHeight( const void *parameter ) {
 }
 
 static int CG_GetCvar( const void *parameter ) {
-	return trap_Cvar_Value( (const char *)parameter );
+	return Cvar_Value( (const char *)parameter );
 }
 
 /**
@@ -217,7 +217,7 @@ static int CG_IsActiveCallvote( const void * parameter ) {
 static int CG_DownloadInProgress( const void *parameter ) {
 	const char *str;
 
-	str = trap_Cvar_String( "cl_download_name" );
+	str = Cvar_String( "cl_download_name" );
 	if( str[0] ) {
 		return 1;
 	}
@@ -1028,9 +1028,9 @@ void CG_SC_Obituary( void ) {
 	char message[128];
 	char message2[128];
 	cg_clientInfo_t *victim, *attacker;
-	int victimNum = atoi( trap_Cmd_Argv( 1 ) );
-	int attackerNum = atoi( trap_Cmd_Argv( 2 ) );
-	int mod = atoi( trap_Cmd_Argv( 3 ) );
+	int victimNum = atoi( Cmd_Argv( 1 ) );
+	int attackerNum = atoi( Cmd_Argv( 2 ) );
+	int mod = atoi( Cmd_Argv( 3 ) );
 	obituary_t *current;
 
 	victim = &cgs.clientInfo[victimNum - 1];
@@ -2718,7 +2718,7 @@ static char *CG_LoadHUDFile( const char *path ) {
 
 			// File was OK :)
 			if( rec_fn[rec_lvl] != NULL ) {
-				len = trap_FS_FOpenFile( rec_fn[rec_lvl], &f, FS_READ );
+				len = FS_FOpenFile( rec_fn[rec_lvl], &f, FS_READ );
 				if( len > 0 ) {
 					rec_plvl = rec_lvl;
 					rec_buf[rec_lvl] = ( char * )CG_Malloc( len + 1 );
@@ -2726,7 +2726,7 @@ static char *CG_LoadHUDFile( const char *path ) {
 					rec_ptr[rec_lvl] = rec_buf[rec_lvl];
 
 					// Now read the file
-					if( trap_FS_Read( rec_buf[rec_lvl], len, f ) <= 0 ) {
+					if( FS_Read( rec_buf[rec_lvl], len, f ) <= 0 ) {
 						if( rec_lvl > 0 ) {
 							CG_Printf( "HUD: WARNING: Read error while loading file: %s\n", rec_fn[rec_lvl] );
 						}
@@ -2736,11 +2736,11 @@ static char *CG_LoadHUDFile( const char *path ) {
 						rec_buf[rec_lvl] = NULL;
 						rec_lvl--;
 					}
-					trap_FS_FCloseFile( f );
+					FS_FCloseFile( f );
 				} else {
 					if( !len ) {
 						// File was empty - still have to close
-						trap_FS_FCloseFile( f );
+						FS_FCloseFile( f );
 					} else if( rec_lvl > 0 ) {
 						CG_Printf( "HUD: WARNING: Could not include file: %s\n", rec_fn[rec_lvl] );
 					}
@@ -2787,14 +2787,14 @@ static char *CG_LoadHUDFile( const char *path ) {
 				rec_fn[rec_lvl] = ( char * )CG_Malloc( i );
 				snprintf( rec_fn[rec_lvl], i, "huds/%s", token );
 				COM_DefaultExtension( rec_fn[rec_lvl], ".hud", i );
-				if( trap_FS_FOpenFile( rec_fn[rec_lvl], NULL, FS_READ ) < 0 ) {
+				if( FS_FOpenFile( rec_fn[rec_lvl], NULL, FS_READ ) < 0 ) {
 					// File doesn't exist!
 					CG_Free( rec_fn[rec_lvl] );
 					i = strlen( "huds/inc/" ) + strlen( token ) + strlen( ".hud" ) + 1;
 					rec_fn[rec_lvl] = ( char * )CG_Malloc( i );
 					snprintf( rec_fn[rec_lvl], i, "huds/inc/%s", token );
 					COM_DefaultExtension( rec_fn[rec_lvl], ".hud", i );
-					if( trap_FS_FOpenFile( rec_fn[rec_lvl], NULL, FS_READ ) < 0 ) {
+					if( FS_FOpenFile( rec_fn[rec_lvl], NULL, FS_READ ) < 0 ) {
 						CG_Free( rec_fn[rec_lvl] );
 						rec_fn[rec_lvl] = NULL;
 						rec_lvl--;

@@ -127,7 +127,7 @@ static void ML_InitFromMaps( void ) {
 	}
 }
 
-static int ML_PatternMatchesMap( void *map, void *pattern ) {
+static int ML_PatternMatchesMap( void *map, const void *pattern ) {
 	assert( map );
 	return !pattern || Com_GlobMatch( (const char *) pattern, ( (mapinfo_t *) map )->filename, false );
 }
@@ -137,7 +137,6 @@ static int ML_PatternMatchesMap( void *map, void *pattern ) {
 * Handler for console command "maplist"
 */
 static void ML_MapListCmd( void ) {
-	char *pattern;
 	mapinfo_t *map;
 	int argc = Cmd_Argc();
 	unsigned int i;
@@ -148,7 +147,7 @@ static void ML_MapListCmd( void ) {
 		return;
 	}
 
-	pattern = ( argc == 2 ? Cmd_Argv( 1 ) : NULL );
+	const char * pattern = ( argc == 2 ? Cmd_Argv( 1 ) : NULL );
 	if( pattern && !*pattern ) {
 		pattern = NULL;
 	}

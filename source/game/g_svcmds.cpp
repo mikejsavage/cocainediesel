@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 * Cmd_ConsoleSay_f
 */
 static void Cmd_ConsoleSay_f( void ) {
-	G_ChatMsg( NULL, NULL, false, "%s", trap_Cmd_Args() );
+	G_ChatMsg( NULL, NULL, false, "%s", Cmd_Args() );
 }
 
 
@@ -34,12 +34,12 @@ static void Cmd_ConsoleSay_f( void ) {
 static void Cmd_ConsoleKick_f( void ) {
 	edict_t *ent;
 
-	if( trap_Cmd_Argc() != 2 ) {
+	if( Cmd_Argc() != 2 ) {
 		Com_Printf( "Usage: kick <id or name>\n" );
 		return;
 	}
 
-	ent = G_PlayerForText( trap_Cmd_Argv( 1 ) );
+	ent = G_PlayerForText( Cmd_Argv( 1 ) );
 	if( !ent ) {
 		Com_Printf( "No such player\n" );
 		return;
@@ -55,12 +55,12 @@ static void Cmd_ConsoleKick_f( void ) {
 static void Cmd_Match_f( void ) {
 	const char *cmd;
 
-	if( trap_Cmd_Argc() != 2 ) {
+	if( Cmd_Argc() != 2 ) {
 		Com_Printf( "Usage: match <option: restart|advance|status>\n" );
 		return;
 	}
 
-	cmd = trap_Cmd_Argv( 1 );
+	cmd = Cmd_Argv( 1 );
 	if( !Q_stricmp( cmd, "restart" ) ) {
 		level.exitNow = false;
 		level.hardReset = false;
@@ -71,7 +71,7 @@ static void Cmd_Match_f( void ) {
 		level.hardReset = true;
 		G_EndMatch();
 	} else if( !Q_stricmp( cmd, "status" ) ) {
-		trap_Cmd_ExecuteText( EXEC_APPEND, "status" );
+		Cbuf_ExecuteText( EXEC_APPEND, "status" );
 	}
 }
 
@@ -118,7 +118,7 @@ static int numipfilters;
 /*
 * StringToFilter
 */
-static bool StringToFilter( char *s, ipfilter_t *f ) {
+static bool StringToFilter( const char *s, ipfilter_t *f ) {
 	char num[128];
 	int i, j;
 	uint8_t b[4];
@@ -211,7 +211,7 @@ bool SV_FilterPacket( char *from ) {
 void SV_ReadIPList( void ) {
 	SV_ResetPacketFiltersTimeouts();
 
-	trap_Cmd_ExecuteText( EXEC_APPEND, "exec listip.cfg silent\n" );
+	Cbuf_ExecuteText( EXEC_APPEND, "exec listip.cfg silent\n" );
 }
 
 /*
@@ -228,13 +228,13 @@ void SV_WriteIPList( void ) {
 
 	//G_Printf( "Writing %s.\n", name );
 
-	if( trap_FS_FOpenFile( name, &file, FS_WRITE ) == -1 ) {
+	if( FS_FOpenFile( name, &file, FS_WRITE ) == -1 ) {
 		G_Printf( "Couldn't open %s\n", name );
 		return;
 	}
 
 	snprintf( string, sizeof( string ), "set filterban %d\r\n", filterban->integer );
-	trap_FS_Write( string, strlen( string ), file );
+	FS_Write( string, strlen( string ), file );
 
 	for( i = 0; i < numipfilters; i++ ) {
 		if( ipfilters[i].timeout && ipfilters[i].timeout <= svs.gametime ) {
@@ -246,10 +246,10 @@ void SV_WriteIPList( void ) {
 		} else {
 			snprintf( string, sizeof( string ), "addip %i.%i.%i.%i\r\n", b[0], b[1], b[2], b[3] );
 		}
-		trap_FS_Write( string, strlen( string ), file );
+		FS_Write( string, strlen( string ), file );
 	}
 
-	trap_FS_FCloseFile( file );
+	FS_FCloseFile( file );
 }
 
 /*
@@ -258,7 +258,7 @@ void SV_WriteIPList( void ) {
 static void Cmd_AddIP_f( void ) {
 	int i;
 
-	if( trap_Cmd_Argc() < 2 ) {
+	if( Cmd_Argc() < 2 ) {
 		G_Printf( "Usage: addip <ip-mask> [time-mins]\n" );
 		return;
 	}
@@ -276,10 +276,10 @@ static void Cmd_AddIP_f( void ) {
 	}
 
 	ipfilters[i].timeout = 0;
-	if( !StringToFilter( trap_Cmd_Argv( 1 ), &ipfilters[i] ) ) {
+	if( !StringToFilter( Cmd_Argv( 1 ), &ipfilters[i] ) ) {
 		ipfilters[i].compare = 0xffffffff;
-	} else if( trap_Cmd_Argc() == 3 ) {
-		ipfilters[i].timeout = svs.gametime + atof( trap_Cmd_Argv( 2 ) ) * 60 * 1000;
+	} else if( Cmd_Argc() == 3 ) {
+		ipfilters[i].timeout = svs.gametime + atof( Cmd_Argv( 2 ) ) * 60 * 1000;
 	}
 }
 
@@ -290,12 +290,12 @@ static void Cmd_RemoveIP_f( void ) {
 	ipfilter_t f;
 	int i, j;
 
-	if( trap_Cmd_Argc() < 2 ) {
+	if( Cmd_Argc() < 2 ) {
 		G_Printf( "Usage: removeip <ip-mask>\n" );
 		return;
 	}
 
-	if( !StringToFilter( trap_Cmd_Argv( 1 ), &f ) ) {
+	if( !StringToFilter( Cmd_Argv( 1 ), &f ) ) {
 		return;
 	}
 
@@ -308,7 +308,7 @@ static void Cmd_RemoveIP_f( void ) {
 			G_Printf( "Removed.\n" );
 			return;
 		}
-	G_Printf( "Didn't find %s.\n", trap_Cmd_Argv( 1 ) );
+	G_Printf( "Didn't find %s.\n", Cmd_Argv( 1 ) );
 }
 
 /*
@@ -342,20 +342,20 @@ static void Cmd_WriteIP_f( void ) {
 */
 void G_AddServerCommands( void ) {
 	if( GAME_IMPORT.is_dedicated_server ) {
-		trap_Cmd_AddCommand( "say", Cmd_ConsoleSay_f );
+		Cmd_AddCommand( "say", Cmd_ConsoleSay_f );
 	}
-	trap_Cmd_AddCommand( "kick", Cmd_ConsoleKick_f );
+	Cmd_AddCommand( "kick", Cmd_ConsoleKick_f );
 
 	// match controls
-	trap_Cmd_AddCommand( "match", Cmd_Match_f );
+	Cmd_AddCommand( "match", Cmd_Match_f );
 
 	// banning
-	trap_Cmd_AddCommand( "addip", Cmd_AddIP_f );
-	trap_Cmd_AddCommand( "removeip", Cmd_RemoveIP_f );
-	trap_Cmd_AddCommand( "listip", Cmd_ListIP_f );
-	trap_Cmd_AddCommand( "writeip", Cmd_WriteIP_f );
+	Cmd_AddCommand( "addip", Cmd_AddIP_f );
+	Cmd_AddCommand( "removeip", Cmd_RemoveIP_f );
+	Cmd_AddCommand( "listip", Cmd_ListIP_f );
+	Cmd_AddCommand( "writeip", Cmd_WriteIP_f );
 
-	trap_Cmd_AddCommand( "dumpASapi", G_asDumpAPI_f );
+	Cmd_AddCommand( "dumpASapi", G_asDumpAPI_f );
 }
 
 /*
@@ -363,18 +363,18 @@ void G_AddServerCommands( void ) {
 */
 void G_RemoveCommands( void ) {
 	if( GAME_IMPORT.is_dedicated_server ) {
-		trap_Cmd_RemoveCommand( "say" );
+		Cmd_RemoveCommand( "say" );
 	}
-	trap_Cmd_RemoveCommand( "kick" );
+	Cmd_RemoveCommand( "kick" );
 
 	// match controls
-	trap_Cmd_RemoveCommand( "match" );
+	Cmd_RemoveCommand( "match" );
 
 	// banning
-	trap_Cmd_RemoveCommand( "addip" );
-	trap_Cmd_RemoveCommand( "removeip" );
-	trap_Cmd_RemoveCommand( "listip" );
-	trap_Cmd_RemoveCommand( "writeip" );
+	Cmd_RemoveCommand( "addip" );
+	Cmd_RemoveCommand( "removeip" );
+	Cmd_RemoveCommand( "listip" );
+	Cmd_RemoveCommand( "writeip" );
 
-	trap_Cmd_RemoveCommand( "dumpASapi" );
+	Cmd_RemoveCommand( "dumpASapi" );
 }

@@ -94,8 +94,8 @@ trie_error_t Trie_FindIf(
 	const struct trie_s *trie,
 	const char *key,            // key to match
 	trie_find_mode_t mode,      // mode (exact or prefix only)
-	int ( *predicate )( void *value, void *cookie ),     // predicate function to be true
-	void *cookie,                   // the cookie passed to predicate
+	int ( *predicate )( void *value, const void *cookie ),     // predicate function to be true
+	const void *cookie,                   // the cookie passed to predicate
 	void **data                 // output parameter, data of node found
 	);
 
@@ -108,8 +108,8 @@ trie_error_t Trie_NoOfMatches(
 trie_error_t Trie_NoOfMatchesIf(
 	const struct trie_s *trie,
 	const char *prefix,         // key prefix to match
-	int ( *predicate )( void *value, void *cookie ),     // predicate function to be true
-	void *cookie,               // the cookie passed to predicate
+	int ( *predicate )( void *value, const void *cookie ),     // predicate function to be true
+	const void *cookie,               // the cookie passed to predicate
 	unsigned int *matches       // output parameter, number of matches
 	);
 
@@ -126,8 +126,8 @@ trie_error_t Trie_DumpIf(
 	const struct trie_s *trie,
 	const char *prefix,             // prefix to match
 	trie_dump_what_t what,          // what to dump
-	int ( *predicate )( void *value, void *cookie ),     // predicate function to be true
-	void *cookie,                   // the cookie passed to predicate
+	int ( *predicate )( void *value, const void *cookie ),     // predicate function to be true
+	const void *cookie,                   // the cookie passed to predicate
 	struct trie_dump_s **dump       // output parameter, deallocate with Trie_FreeDump
 	);
 

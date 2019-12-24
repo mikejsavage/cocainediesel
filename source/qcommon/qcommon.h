@@ -333,7 +333,7 @@ char        **Cmd_CompleteBuildArgList( const char *partial );
 char        **Cmd_CompleteBuildArgListExt( const char *command, const char *arguments );
 char        **Cmd_CompleteFileList( const char *partial, const char *basedir, const char *extension, bool subdirectories );
 int         Cmd_Argc( void );
-char        *Cmd_Argv( int arg );
+const char        *Cmd_Argv( int arg );
 char        *Cmd_Args( void );
 void        Cmd_TokenizeString( const char *text );
 void        Cmd_ExecuteString( const char *text );

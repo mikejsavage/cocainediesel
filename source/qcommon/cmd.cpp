@@ -39,12 +39,12 @@ static trie_t *cmd_alias_trie = NULL;
 
 static int alias_count;    // for detecting runaway loops
 
-static int Cmd_Archive( void *alias, void *ignored ) {
+static int Cmd_Archive( void *alias, const void *ignored ) {
 	assert( alias );
 	return ( (cmd_alias_t *) alias )->archive;
 }
 
-static int Cmd_PatternMatchesAlias( void *alias, void *pattern ) {
+static int Cmd_PatternMatchesAlias( void *alias, const void *pattern ) {
 	assert( alias );
 	return !pattern || Com_GlobMatch( (const char *) pattern, ( (cmd_alias_t *) alias )->name, false );
 }
@@ -315,7 +315,7 @@ void Cbuf_AddEarlyCommands( bool second_run ) {
 
 	for( i = 1; i < COM_Argc(); ++i ) {
 		s = COM_Argv( i );
-		if( !Q_strnicmp( s, "+set", 4 ) ) {
+		if( !Q_stricmp( s, "+set" ) ) {
 			if( strlen( s ) > 4 ) {
 				Cbuf_AddText( va( "\"set%s\" \"%s\" \"%s\"\n", s + 4, COM_Argv( i + 1 ), COM_Argv( i + 2 ) ) );
 			} else {
@@ -517,7 +517,7 @@ static void Cmd_Alias_f_( bool archive ) {
 	char cmd[1024];
 	int i, c;
 	size_t len;
-	char *s;
+	const char *s;
 
 	if( Cmd_Argc() == 1 ) {
 		Com_Printf( "usage: alias <name> <command>\n" );
@@ -586,7 +586,7 @@ static void Cmd_Aliasa_f( void ) {
 * Removes an alias command
 */
 static void Cmd_Unalias_f( void ) {
-	char *s;
+	const char *s;
 	cmd_alias_t *a;
 
 	if( Cmd_Argc() == 1 ) {
@@ -675,7 +675,7 @@ static char cmd_args[MAX_STRING_CHARS];
 
 static trie_t *cmd_function_trie = NULL;
 
-static int Cmd_PatternMatchesFunction( void *cmd, void *pattern ) {
+static int Cmd_PatternMatchesFunction( void *cmd, const void *pattern ) {
 	assert( cmd );
 	return !pattern || Com_GlobMatch( (const char *) pattern, ( (cmd_function_t *) cmd )->name, false );
 }
@@ -694,7 +694,7 @@ int Cmd_Argc( void ) {
 /*
 * Cmd_Argv
 */
-char *Cmd_Argv( int arg ) {
+const char *Cmd_Argv( int arg ) {
 	if( arg >= cmd_argc ) {
 		return cmd_null_string;
 	}

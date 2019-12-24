@@ -1904,12 +1904,12 @@ static bool asFunc_WriteFile( asstring_t *path, asstring_t *data ) {
 		return false;
 	}
 
-	if( trap_FS_FOpenFile( path->buffer, &filehandle, FS_WRITE ) == -1 ) {
+	if( FS_FOpenFile( path->buffer, &filehandle, FS_WRITE ) == -1 ) {
 		return false;
 	}
 
-	trap_FS_Write( data->buffer, data->len, filehandle );
-	trap_FS_FCloseFile( filehandle );
+	FS_Write( data->buffer, data->len, filehandle );
+	FS_FCloseFile( filehandle );
 
 	return true;
 }
@@ -1924,12 +1924,12 @@ static bool asFunc_AppendToFile( asstring_t *path, asstring_t *data ) {
 		return false;
 	}
 
-	if( trap_FS_FOpenFile( path->buffer, &filehandle, FS_APPEND ) == -1 ) {
+	if( FS_FOpenFile( path->buffer, &filehandle, FS_APPEND ) == -1 ) {
 		return false;
 	}
 
-	trap_FS_Write( data->buffer, data->len, filehandle );
-	trap_FS_FCloseFile( filehandle );
+	FS_Write( data->buffer, data->len, filehandle );
+	FS_FCloseFile( filehandle );
 
 	return true;
 }
@@ -1943,13 +1943,13 @@ static asstring_t *asFunc_LoadFile( asstring_t *path ) {
 		return game.asExport->asStringFactoryBuffer( NULL, 0 );
 	}
 
-	filelen = trap_FS_FOpenFile( path->buffer, &filehandle, FS_READ );
+	filelen = FS_FOpenFile( path->buffer, &filehandle, FS_READ );
 	if( filehandle && filelen > 0 ) {
 		buf = ( uint8_t * )G_Malloc( filelen + 1 );
-		filelen = trap_FS_Read( buf, filelen, filehandle );
+		filelen = FS_Read( buf, filelen, filehandle );
 	}
 
-	trap_FS_FCloseFile( filehandle );
+	FS_FCloseFile( filehandle );
 
 	if( !buf ) {
 		return game.asExport->asStringFactoryBuffer( NULL, 0 );
@@ -1966,15 +1966,15 @@ static int asFunc_FileLength( asstring_t *path ) {
 		return false;
 	}
 
-	return ( trap_FS_FOpenFile( path->buffer, NULL, FS_READ ) );
+	return ( FS_FOpenFile( path->buffer, NULL, FS_READ ) );
 }
 
-static void asFunc_Cmd_ExecuteText( asstring_t *str ) {
+static void asFunc_Cbuf_ExecuteText( asstring_t *str ) {
 	if( !str || !str->buffer || !str->buffer[0] ) {
 		return;
 	}
 
-	trap_Cmd_ExecuteText( EXEC_APPEND, str->buffer );
+	Cbuf_ExecuteText( EXEC_APPEND, str->buffer );
 }
 
 static bool asFunc_ML_FilenameExists( asstring_t *filename ) {
@@ -2207,7 +2207,7 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "bool G_AppendToFile( const String &, const String & )", asFUNCTION( asFunc_AppendToFile ), NULL },
 	{ "const String @G_LoadFile( const String & )", asFUNCTION( asFunc_LoadFile ), NULL },
 	{ "int G_FileLength( const String & )", asFUNCTION( asFunc_FileLength ), NULL },
-	{ "void G_CmdExecute( const String & )", asFUNCTION( asFunc_Cmd_ExecuteText ), NULL },
+	{ "void G_CmdExecute( const String & )", asFUNCTION( asFunc_Cbuf_ExecuteText ), NULL },
 
 	{ "void __G_CallThink( Entity @ent )", asFUNCTION( G_CallThink ), &asEntityCallThinkFuncPtr },
 	{ "void __G_CallTouch( Entity @ent, Entity @other, const Vec3 planeNormal, int surfFlags )", asFUNCTION( G_CallTouch ), &asEntityCallTouchFuncPtr },
@@ -2895,7 +2895,7 @@ static void G_asDumpAPIToFile( const char *path ) {
 			}
 
 			snprintf( filename, filename_size, "%s%s.h", path, name );
-			if( trap_FS_FOpenFile( filename, &file, FS_WRITE ) == -1 ) {
+			if( FS_FOpenFile( filename, &file, FS_WRITE ) == -1 ) {
 				G_Printf( "G_asDumpAPIToFile: Couldn't write %s.\n", filename );
 				return;
 			}
@@ -2903,7 +2903,7 @@ static void G_asDumpAPIToFile( const char *path ) {
 			// funcdefs
 			if( cDescr->funcdefs ) {
 				snprintf( string, sizeof( string ), "/* funcdefs */\r\n" );
-				trap_FS_Write( string, strlen( string ), file );
+				FS_Write( string, strlen( string ), file );
 
 				for( j = 0;; j++ ) {
 					const asFuncdef_t *funcdef = &cDescr->funcdefs[j];
@@ -2912,23 +2912,23 @@ static void G_asDumpAPIToFile( const char *path ) {
 					}
 
 					snprintf( string, sizeof( string ), "funcdef %s;\r\n", funcdef->declaration );
-					trap_FS_Write( string, strlen( string ), file );
+					FS_Write( string, strlen( string ), file );
 				}
 
 				snprintf( string, sizeof( string ), "\r\n" );
-				trap_FS_Write( string, strlen( string ), file );
+				FS_Write( string, strlen( string ), file );
 			}
 
 			snprintf( string, sizeof( string ), "/**\r\n * %s\r\n */\r\n", cDescr->name );
-			trap_FS_Write( string, strlen( string ), file );
+			FS_Write( string, strlen( string ), file );
 
 			snprintf( string, sizeof( string ), "class %s\r\n{\r\npublic:", cDescr->name );
-			trap_FS_Write( string, strlen( string ), file );
+			FS_Write( string, strlen( string ), file );
 
 			// object properties
 			if( cDescr->objProperties ) {
 				snprintf( string, sizeof( string ), "\r\n\t/* object properties */\r\n" );
-				trap_FS_Write( string, strlen( string ), file );
+				FS_Write( string, strlen( string ), file );
 
 				for( j = 0;; j++ ) {
 					const asProperty_t *objProperty = &cDescr->objProperties[j];
@@ -2937,14 +2937,14 @@ static void G_asDumpAPIToFile( const char *path ) {
 					}
 
 					snprintf( string, sizeof( string ), "\t%s;\r\n", objProperty->declaration );
-					trap_FS_Write( string, strlen( string ), file );
+					FS_Write( string, strlen( string ), file );
 				}
 			}
 
 			// object behaviors
 			if( cDescr->objBehaviors ) {
 				snprintf( string, sizeof( string ), "\r\n\t/* object behaviors */\r\n" );
-				trap_FS_Write( string, strlen( string ), file );
+				FS_Write( string, strlen( string ), file );
 
 				for( j = 0;; j++ ) {
 					const asBehavior_t *objBehavior = &cDescr->objBehaviors[j];
@@ -2960,14 +2960,14 @@ static void G_asDumpAPIToFile( const char *path ) {
 					snprintf( string, sizeof( string ), "\t%s;%s\r\n", objBehavior->declaration,
 								 ( objBehavior->behavior == asBEHAVE_FACTORY ? " /* factory */ " : "" )
 								 );
-					trap_FS_Write( string, strlen( string ), file );
+					FS_Write( string, strlen( string ), file );
 				}
 			}
 
 			// object methods
 			if( cDescr->objMethods ) {
 				snprintf( string, sizeof( string ), "\r\n\t/* object methods */\r\n" );
-				trap_FS_Write( string, strlen( string ), file );
+				FS_Write( string, strlen( string ), file );
 
 				for( j = 0;; j++ ) {
 					const asMethod_t *objMethod = &cDescr->objMethods[j];
@@ -2976,14 +2976,14 @@ static void G_asDumpAPIToFile( const char *path ) {
 					}
 
 					snprintf( string, sizeof( string ), "\t%s;\r\n", objMethod->declaration );
-					trap_FS_Write( string, strlen( string ), file );
+					FS_Write( string, strlen( string ), file );
 				}
 			}
 
 			snprintf( string, sizeof( string ), "};\r\n\r\n" );
-			trap_FS_Write( string, strlen( string ), file );
+			FS_Write( string, strlen( string ), file );
 
-			trap_FS_FCloseFile( file );
+			FS_FCloseFile( file );
 
 			G_Printf( "Wrote %s\n", filename );
 		}
@@ -3000,7 +3000,7 @@ static void G_asDumpAPIToFile( const char *path ) {
 	}
 
 	snprintf( filename, filename_size, "%s%s.h", path, name );
-	if( trap_FS_FOpenFile( filename, &file, FS_WRITE ) == -1 ) {
+	if( FS_FOpenFile( filename, &file, FS_WRITE ) == -1 ) {
 		G_Printf( "G_asDumpAPIToFile: Couldn't write %s.\n", filename );
 		return;
 	}
@@ -3011,21 +3011,21 @@ static void G_asDumpAPIToFile( const char *path ) {
 		const asEnumVal_t *asEnumVal;
 
 		snprintf( string, sizeof( string ), "/**\r\n * %s\r\n */\r\n", "Enums" );
-		trap_FS_Write( string, strlen( string ), file );
+		FS_Write( string, strlen( string ), file );
 
 		const asEnum_t *const allEnumsLists[] = { asGameEnums };
 		for( const asEnum_t *const enumsList: allEnumsLists ) {
 			for( i = 0, asEnum = enumsList; asEnum->name != NULL; i++, asEnum++ ) {
 				snprintf( string, sizeof( string ), "typedef enum\r\n{\r\n" );
-				trap_FS_Write( string, strlen( string ), file );
+				FS_Write( string, strlen( string ), file );
 
 				for( j = 0, asEnumVal = asEnum->values; asEnumVal->name != NULL; j++, asEnumVal++ ) {
 					snprintf( string, sizeof( string ), "\t%s = 0x%x,\r\n", asEnumVal->name, asEnumVal->value );
-					trap_FS_Write( string, strlen( string ), file );
+					FS_Write( string, strlen( string ), file );
 				}
 
 				snprintf( string, sizeof( string ), "} %s;\r\n\r\n", asEnum->name );
-				trap_FS_Write( string, strlen( string ), file );
+				FS_Write( string, strlen( string ), file );
 			}
 		}
 	}
@@ -3035,15 +3035,15 @@ static void G_asDumpAPIToFile( const char *path ) {
 		const asglobproperties_t *prop;
 
 		snprintf( string, sizeof( string ), "/**\r\n * %s\r\n */\r\n", "Global properties" );
-		trap_FS_Write( string, strlen( string ), file );
+		FS_Write( string, strlen( string ), file );
 
 		for( prop = asGlobProps; prop->declaration; prop++ ) {
 			snprintf( string, sizeof( string ), "%s;\r\n", prop->declaration );
-			trap_FS_Write( string, strlen( string ), file );
+			FS_Write( string, strlen( string ), file );
 		}
 
 		snprintf( string, sizeof( string ), "\r\n" );
-		trap_FS_Write( string, strlen( string ), file );
+		FS_Write( string, strlen( string ), file );
 	}
 
 	// global functions
@@ -3051,21 +3051,21 @@ static void G_asDumpAPIToFile( const char *path ) {
 		const asglobfuncs_t *func;
 
 		snprintf( string, sizeof( string ), "/**\r\n * %s\r\n */\r\n", "Global functions" );
-		trap_FS_Write( string, strlen( string ), file );
+		FS_Write( string, strlen( string ), file );
 
 		const asglobfuncs_t *const allFuncsList[] = { asGameGlobFuncs };
 		for( const asglobfuncs_t *funcsList: allFuncsList ) {
 			for( func = funcsList; func->declaration; func++ ) {
 				snprintf( string, sizeof( string ), "%s;\r\n", func->declaration );
-				trap_FS_Write( string, strlen( string ), file );
+				FS_Write( string, strlen( string ), file );
 			}
 		}
 
 		snprintf( string, sizeof( string ), "\r\n" );
-		trap_FS_Write( string, strlen( string ), file );
+		FS_Write( string, strlen( string ), file );
 	}
 
-	trap_FS_FCloseFile( file );
+	FS_FCloseFile( file );
 
 	G_Printf( "Wrote %s\n", filename );
 }
@@ -3078,6 +3078,6 @@ static void G_asDumpAPIToFile( const char *path ) {
 void G_asDumpAPI_f( void ) {
 	char path[MAX_QPATH];
 
-	snprintf( path, sizeof( path ), "AS_API/v%.g/", trap_Cvar_Value( "version" ) );
+	snprintf( path, sizeof( path ), "AS_API/v%.g/", Cvar_Value( "version" ) );
 	G_asDumpAPIToFile( path );
 }

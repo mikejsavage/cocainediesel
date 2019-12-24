@@ -164,30 +164,6 @@ void CL_GameModule_Init( void ) {
 	import.Print = CL_GameModule_Print;
 	import.PrintToLog = CL_GameModule_PrintToLog;
 
-	import.Cvar_Get = Cvar_Get;
-	import.Cvar_Set = Cvar_Set;
-	import.Cvar_SetValue = Cvar_SetValue;
-	import.Cvar_ForceSet = Cvar_ForceSet;
-	import.Cvar_String = Cvar_String;
-	import.Cvar_Value = Cvar_Value;
-
-	import.Cmd_TokenizeString = Cmd_TokenizeString;
-	import.Cmd_Argc = Cmd_Argc;
-	import.Cmd_Argv = Cmd_Argv;
-	import.Cmd_Args = Cmd_Args;
-
-	import.Cmd_AddCommand = Cmd_AddCommand;
-	import.Cmd_RemoveCommand = Cmd_RemoveCommand;
-	import.Cmd_ExecuteText = Cbuf_ExecuteText;
-	import.Cmd_Execute = Cbuf_Execute;
-	import.Cmd_SetCompletionFunc = Cmd_SetCompletionFunc;
-
-	import.FS_FOpenFile = FS_FOpenFile;
-	import.FS_Read = FS_Read;
-	import.FS_Write = FS_Write;
-	import.FS_Print = FS_Print;
-	import.FS_FCloseFile = FS_FCloseFile;
-
 	import.Key_GetBindingBuf = Key_GetBindingBuf;
 	import.Key_KeynumToString = Key_KeynumToString;
 

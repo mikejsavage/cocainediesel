@@ -75,7 +75,7 @@ static void CL_FreeServerlist( serverlist_t **serversList ) {
 /*
 * CL_ServerIsInList
 */
-static serverlist_t *CL_ServerFindInList( serverlist_t *serversList, char *adr ) {
+static serverlist_t *CL_ServerFindInList( serverlist_t *serversList, const char *adr ) {
 
 	serverlist_t *server;
 
@@ -93,7 +93,7 @@ static serverlist_t *CL_ServerFindInList( serverlist_t *serversList, char *adr )
 /*
 * CL_AddServerToList
 */
-static bool CL_AddServerToList( serverlist_t **serversList, char *adr ) {
+static bool CL_AddServerToList( serverlist_t **serversList, const char *adr ) {
 	serverlist_t *newserv;
 	netadr_t nadr;
 
@@ -155,7 +155,7 @@ void CL_ParseGetStatusResponse( const socket_t *socket, const netadr_t *address,
 */
 static void CL_QueryGetInfoMessage( const char *cmdname ) {
 	netadr_t adr;
-	char *server;
+	const char *server;
 
 	//get what master
 	server = Cmd_Argv( 1 );
@@ -201,7 +201,7 @@ void CL_QueryGetStatusMessage_f( void ) {
 * CL_PingServer_f
 */
 void CL_PingServer_f( void ) {
-	char *address_string;
+	const char *address_string;
 	char requestString[64];
 	netadr_t adr;
 	serverlist_t *pingserver;

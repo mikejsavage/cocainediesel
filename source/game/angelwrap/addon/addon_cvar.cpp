@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // CLASS: Cvar
 void objectCVar_Constructor( asstring_t *name, asstring_t *value, unsigned int flags, ascvar_t *self ) {
-	self->cvar = trap_Cvar_Get( name->buffer, value->buffer, flags );
+	self->cvar = Cvar_Get( name->buffer, value->buffer, flags );
 }
 
 void objectCVar_CopyConstructor( ascvar_t *other, ascvar_t *self ) {
@@ -37,7 +37,7 @@ static void objectCVar_Reset( ascvar_t *self ) {
 		return;
 	}
 
-	trap_Cvar_Set( self->cvar->name, self->cvar->dvalue );
+	Cvar_Set( self->cvar->name, self->cvar->dvalue );
 }
 
 static void objectCVar_setS( asstring_t *str, ascvar_t *self ) {
@@ -45,7 +45,7 @@ static void objectCVar_setS( asstring_t *str, ascvar_t *self ) {
 		return;
 	}
 
-	trap_Cvar_Set( self->cvar->name, str->buffer );
+	Cvar_Set( self->cvar->name, str->buffer );
 }
 
 static void objectCVar_setF( float value, ascvar_t *self ) {
@@ -53,7 +53,7 @@ static void objectCVar_setF( float value, ascvar_t *self ) {
 		return;
 	}
 
-	trap_Cvar_SetValue( self->cvar->name, value );
+	Cvar_SetValue( self->cvar->name, value );
 }
 
 static void objectCVar_setI( int value, ascvar_t *self ) {

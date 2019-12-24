@@ -28,15 +28,15 @@ static bool cvar_preinitialized = false;
 static trie_t *cvar_trie = NULL;
 static qmutex_t *cvar_mutex = NULL;
 
-static int Cvar_HasFlags( void *cvar, void *flags ) {
+static int Cvar_HasFlags( void *cvar, const void *flags ) {
 	assert( cvar );
-	return Cvar_FlagIsSet( ( (cvar_t *) cvar )->flags, *(cvar_flag_t *) flags );
+	return Cvar_FlagIsSet( ( (cvar_t *) cvar )->flags, *(const cvar_flag_t *) flags );
 }
 
-static int Cvar_IsLatched( void *cvar, void *flags ) {
+static int Cvar_IsLatched( void *cvar, const void *flags ) {
 	const cvar_t *const var = (cvar_t *) cvar;
 	assert( cvar );
-	return Cvar_FlagIsSet( var->flags, *(cvar_flag_t *) flags ) && var->latched_string;
+	return Cvar_FlagIsSet( var->flags, *(const cvar_flag_t *) flags ) && var->latched_string;
 }
 
 static bool Cvar_CheatsAllowed() {
@@ -49,7 +49,7 @@ static bool Cvar_CheatsAllowed() {
 #endif
 }
 
-static int Cvar_PatternMatches( void *cvar, void *pattern ) {
+static int Cvar_PatternMatches( void *cvar, const void *pattern ) {
 	return !pattern || Com_GlobMatch( (const char *) pattern, ( (cvar_t *) cvar )->name, false );
 }
 
@@ -709,7 +709,7 @@ char *Cvar_Serverinfo( void ) {
 * Cvar_NotDeveloper
 */
 #ifdef PUBLIC_BUILD
-static int Cvar_NotDeveloper( void *cvar, void *nothing ) {
+static int Cvar_NotDeveloper( void *cvar, const void *nothing ) {
 	return !Cvar_FlagIsSet( ( (cvar_t *)cvar )->flags, CVAR_DEVELOPER );
 }
 #endif

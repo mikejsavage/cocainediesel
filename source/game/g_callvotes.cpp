@@ -110,8 +110,8 @@ static void G_VoteMapExtraHelp( edict_t *ent ) {
 	for( nummaps = 0; trap_ML_GetMapByNum( nummaps, NULL, 0 ); nummaps++ )
 		;
 
-	if( trap_Cmd_Argc() > 2 ) {
-		start = atoi( trap_Cmd_Argv( 2 ) ) - 1;
+	if( Cmd_Argc() > 2 ) {
+		start = atoi( Cmd_Argv( 2 ) ) - 1;
 		if( start < 0 ) {
 			start = 0;
 		}
@@ -255,7 +255,7 @@ static bool G_VoteScorelimitValidate( callvotedata_t *vote, bool first ) {
 }
 
 static void G_VoteScorelimitPassed( callvotedata_t *vote ) {
-	trap_Cvar_Set( "g_scorelimit", va( "%i", atoi( vote->argv[0] ) ) );
+	Cvar_Set( "g_scorelimit", va( "%i", atoi( vote->argv[0] ) ) );
 }
 
 static const char *G_VoteScorelimitCurrent( void ) {
@@ -287,7 +287,7 @@ static bool G_VoteWarmupTimelimitValidate( callvotedata_t *vote, bool first ) {
 }
 
 static void G_VoteWarmupTimelimitPassed( callvotedata_t *vote ) {
-	trap_Cvar_Set( "g_warmup_timelimit", va( "%i", atoi( vote->argv[0] ) ) );
+	Cvar_Set( "g_warmup_timelimit", va( "%i", atoi( vote->argv[0] ) ) );
 }
 
 static const char *G_VoteWarmupTimelimitCurrent( void ) {
@@ -369,7 +369,7 @@ static bool G_VoteMaxTeamplayersValidate( callvotedata_t *vote, bool first ) {
 }
 
 static void G_VoteMaxTeamplayersPassed( callvotedata_t *vote ) {
-	trap_Cvar_Set( "g_teams_maxplayers", va( "%i", atoi( vote->argv[0] ) ) );
+	Cvar_Set( "g_teams_maxplayers", va( "%i", atoi( vote->argv[0] ) ) );
 }
 
 static const char *G_VoteMaxTeamplayersCurrent( void ) {
@@ -730,7 +730,7 @@ static void G_VoteKickBanPassed( callvotedata_t *vote ) {
 		return;
 	}
 
-	trap_Cmd_ExecuteText( EXEC_APPEND, va( "addip %s %i\n", ent->r.client->ip, 15 ) );
+	Cbuf_ExecuteText( EXEC_APPEND, va( "addip %s %i\n", ent->r.client->ip, 15 ) );
 	trap_DropClient( ent, DROP_TYPE_NORECONNECT, "Kicked" );
 }
 
@@ -985,7 +985,7 @@ static bool G_VoteAllowUnevenValidate( callvotedata_t *vote, bool first ) {
 }
 
 static void G_VoteAllowUnevenPassed( callvotedata_t *vote ) {
-	trap_Cvar_Set( "g_teams_allow_uneven", va( "%i", atoi( vote->argv[0] ) ) );
+	Cvar_Set( "g_teams_allow_uneven", va( "%i", atoi( vote->argv[0] ) ) );
 }
 
 static const char *G_VoteAllowUnevenCurrent( void ) {
@@ -1100,7 +1100,7 @@ static void G_CallVotes_PrintUsagesToPlayer( edict_t *ent ) {
 
 	G_PrintMsg( ent, "Available votes:\n" );
 	for( callvote = callvotesHeadNode; callvote != NULL; callvote = callvote->next ) {
-		if( trap_Cvar_Value( va( "g_disable_vote_%s", callvote->name ) ) ) {
+		if( Cvar_Value( va( "g_disable_vote_%s", callvote->name ) ) ) {
 			continue;
 		}
 
@@ -1261,7 +1261,7 @@ void G_CallVotes_CmdVote( edict_t *ent ) {
 		return;
 	}
 
-	vote = trap_Cmd_Argv( 1 );
+	vote = Cmd_Argv( 1 );
 	if( !Q_stricmp( vote, "yes" ) ) {
 		vote_id = VOTED_YES;
 	}
@@ -1348,7 +1348,7 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 		return;
 	}
 
-	votename = trap_Cmd_Argv( 1 );
+	votename = Cmd_Argv( 1 );
 	if( !votename || !votename[0] ) {
 		G_CallVotes_PrintUsagesToPlayer( ent );
 		return;
@@ -1376,13 +1376,13 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 
 	// wsw : pb : server admin can now disable a specific vote command (g_disable_vote_<vote name>)
 	// check if vote is disabled
-	if( !isopcall && trap_Cvar_Value( va( "g_disable_vote_%s", callvote->name ) ) ) {
+	if( !isopcall && Cvar_Value( va( "g_disable_vote_%s", callvote->name ) ) ) {
 		G_PrintMsg( ent, "%sCallvote %s is disabled on this server\n", S_COLOR_RED, callvote->name );
 		return;
 	}
 
 	// allow a second cvar specific for opcall
-	if( isopcall && trap_Cvar_Value( va( "g_disable_opcall_%s", callvote->name ) ) ) {
+	if( isopcall && Cvar_Value( va( "g_disable_opcall_%s", callvote->name ) ) ) {
 		G_PrintMsg( ent, "%sOpcall %s is disabled on this server\n", S_COLOR_RED, callvote->name );
 		return;
 	}
@@ -1394,18 +1394,18 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 	}
 
 	//we got a valid type. Get the parameters if any
-	if( callvote->expectedargs != trap_Cmd_Argc() - 2 ) {
+	if( callvote->expectedargs != Cmd_Argc() - 2 ) {
 		if( callvote->expectedargs != -1 &&
-			( callvote->expectedargs != -2 || trap_Cmd_Argc() - 2 > 0 ) ) {
+			( callvote->expectedargs != -2 || Cmd_Argc() - 2 > 0 ) ) {
 			// wrong number of parametres
 			G_CallVotes_PrintHelpToPlayer( ent, callvote );
 			return;
 		}
 	}
 
-	callvoteState.vote.argc = trap_Cmd_Argc() - 2;
+	callvoteState.vote.argc = Cmd_Argc() - 2;
 	for( i = 0; i < callvoteState.vote.argc; i++ )
-		callvoteState.vote.argv[i] = G_CopyString( trap_Cmd_Argv( i + 2 ) );
+		callvoteState.vote.argv[i] = G_CopyString( Cmd_Argv( i + 2 ) );
 
 	callvoteState.vote.callvote = callvote;
 	callvoteState.vote.caller = ent;
@@ -1470,15 +1470,15 @@ void G_OperatorVote_Cmd( edict_t *ent ) {
 		return;
 	}
 
-	if( !Q_stricmp( trap_Cmd_Argv( 1 ), "help" ) ) {
+	if( !Q_stricmp( Cmd_Argv( 1 ), "help" ) ) {
 		G_PrintMsg( ent, "Opcall can be used with all callvotes and the following commands:\n" );
 		G_PrintMsg( ent, "-help\n - passvote\n- cancelvote\n- putteam\n" );
 		return;
 	}
 
-	if( !Q_stricmp( trap_Cmd_Argv( 1 ), "cancelvote" ) ) {
+	if( !Q_stricmp( Cmd_Argv( 1 ), "cancelvote" ) ) {
 		forceVote = VOTED_NO;
-	} else if( !Q_stricmp( trap_Cmd_Argv( 1 ), "passvote" ) ) {
+	} else if( !Q_stricmp( Cmd_Argv( 1 ), "passvote" ) ) {
 		forceVote = VOTED_YES;
 	} else {
 		forceVote = VOTED_NOTHING;
@@ -1506,9 +1506,9 @@ void G_OperatorVote_Cmd( edict_t *ent ) {
 		return;
 	}
 
-	if( !Q_stricmp( trap_Cmd_Argv( 1 ), "putteam" ) ) {
-		char *splayer = trap_Cmd_Argv( 2 );
-		char *steam = trap_Cmd_Argv( 3 );
+	if( !Q_stricmp( Cmd_Argv( 1 ), "putteam" ) ) {
+		const char *splayer = Cmd_Argv( 2 );
+		const char *steam = Cmd_Argv( 3 );
 		edict_t *playerEnt;
 		int newTeam;
 
@@ -1608,11 +1608,11 @@ void G_RegisterGametypeScriptCallvote( const char *name, const char *usage, cons
 void G_CallVotes_Init( void ) {
 	callvotetype_t *callvote;
 
-	g_callvote_electpercentage =    trap_Cvar_Get( "g_vote_percent", "55", CVAR_ARCHIVE );
-	g_callvote_electtime =      trap_Cvar_Get( "g_vote_electtime", "20", CVAR_ARCHIVE );
-	g_callvote_enabled =        trap_Cvar_Get( "g_vote_allowed", "1", CVAR_ARCHIVE );
-	g_callvote_maxchanges =     trap_Cvar_Get( "g_vote_maxchanges", "3", CVAR_ARCHIVE );
-	g_callvote_cooldowntime =   trap_Cvar_Get( "g_vote_cooldowntime", "5", CVAR_ARCHIVE );
+	g_callvote_electpercentage =    Cvar_Get( "g_vote_percent", "55", CVAR_ARCHIVE );
+	g_callvote_electtime =      Cvar_Get( "g_vote_electtime", "20", CVAR_ARCHIVE );
+	g_callvote_enabled =        Cvar_Get( "g_vote_allowed", "1", CVAR_ARCHIVE );
+	g_callvote_maxchanges =     Cvar_Get( "g_vote_maxchanges", "3", CVAR_ARCHIVE );
+	g_callvote_cooldowntime =   Cvar_Get( "g_vote_cooldowntime", "5", CVAR_ARCHIVE );
 
 	// register all callvotes
 
@@ -1797,7 +1797,7 @@ void G_CallVotes_Init( void ) {
 
 	// wsw : pb : server admin can now disable a specific callvote command (g_disable_vote_<callvote name>)
 	for( callvote = callvotesHeadNode; callvote != NULL; callvote = callvote->next ) {
-		trap_Cvar_Get( va( "g_disable_vote_%s", callvote->name ), "0", CVAR_ARCHIVE );
+		Cvar_Get( va( "g_disable_vote_%s", callvote->name ), "0", CVAR_ARCHIVE );
 	}
 
 	G_CallVotes_Reset( true );

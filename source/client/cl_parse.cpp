@@ -879,7 +879,7 @@ static void CL_UpdateConfigString( int idx, const char *s ) {
 */
 static void CL_ParseConfigstringCommand( void ) {
 	int i, argc, idx;
-	char *s;
+	const char *s;
 
 	if( Cmd_Argc() < 3 ) {
 		return;

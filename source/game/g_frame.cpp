@@ -89,9 +89,9 @@ static void G_Timeout_Update( unsigned int msec ) {
 static void G_UpdateServerInfo( void ) {
 	// g_match_time
 	if( GS_MatchState( &server_gs ) <= MATCH_STATE_WARMUP ) {
-		trap_Cvar_ForceSet( "g_match_time", "Warmup" );
+		Cvar_ForceSet( "g_match_time", "Warmup" );
 	} else if( GS_MatchState( &server_gs ) == MATCH_STATE_COUNTDOWN ) {
-		trap_Cvar_ForceSet( "g_match_time", "Countdown" );
+		Cvar_ForceSet( "g_match_time", "Countdown" );
 	} else if( GS_MatchState( &server_gs ) == MATCH_STATE_PLAYTIME ) {
 		// partly from G_GetMatchState
 		char extra[MAX_INFO_VALUE];
@@ -119,12 +119,12 @@ static void G_UpdateServerInfo( void ) {
 		}
 
 		if( timelimit ) {
-			trap_Cvar_ForceSet( "g_match_time", va( "%02i:%02i / %02i:00%s", mins, secs, timelimit, extra ) );
+			Cvar_ForceSet( "g_match_time", va( "%02i:%02i / %02i:00%s", mins, secs, timelimit, extra ) );
 		} else {
-			trap_Cvar_ForceSet( "g_match_time", va( "%02i:%02i%s", mins, secs, extra ) );
+			Cvar_ForceSet( "g_match_time", va( "%02i:%02i%s", mins, secs, extra ) );
 		}
 	} else {
-		trap_Cvar_ForceSet( "g_match_time", "Finished" );
+		Cvar_ForceSet( "g_match_time", "Finished" );
 	}
 
 	// g_match_score
@@ -139,17 +139,17 @@ static void G_UpdateServerInfo( void ) {
 			// prevent "invalid info cvar value" flooding
 			score[0] = '\0';
 		}
-		trap_Cvar_ForceSet( "g_match_score", score );
+		Cvar_ForceSet( "g_match_score", score );
 	} else {
-		trap_Cvar_ForceSet( "g_match_score", "" );
+		Cvar_ForceSet( "g_match_score", "" );
 	}
 
 	// g_needpass
 	if( password->modified ) {
 		if( password->string && strlen( password->string ) ) {
-			trap_Cvar_ForceSet( "g_needpass", "1" );
+			Cvar_ForceSet( "g_needpass", "1" );
 		} else {
-			trap_Cvar_ForceSet( "g_needpass", "0" );
+			Cvar_ForceSet( "g_needpass", "0" );
 		}
 		password->modified = false;
 	}
@@ -162,7 +162,7 @@ static void G_UpdateServerInfo( void ) {
 void G_CheckCvars( void ) {
 	if( g_antilag_maxtimedelta->modified ) {
 		if( g_antilag_maxtimedelta->integer < 0 ) {
-			trap_Cvar_SetValue( "g_antilag_maxtimedelta", Abs( g_antilag_maxtimedelta->integer ) );
+			Cvar_SetValue( "g_antilag_maxtimedelta", Abs( g_antilag_maxtimedelta->integer ) );
 		}
 		g_antilag_maxtimedelta->modified = false;
 		g_antilag_timenudge->modified = true;
@@ -170,9 +170,9 @@ void G_CheckCvars( void ) {
 
 	if( g_antilag_timenudge->modified ) {
 		if( g_antilag_timenudge->integer > g_antilag_maxtimedelta->integer ) {
-			trap_Cvar_SetValue( "g_antilag_timenudge", g_antilag_maxtimedelta->integer );
+			Cvar_SetValue( "g_antilag_timenudge", g_antilag_maxtimedelta->integer );
 		} else if( g_antilag_timenudge->integer < -g_antilag_maxtimedelta->integer ) {
-			trap_Cvar_SetValue( "g_antilag_timenudge", -g_antilag_maxtimedelta->integer );
+			Cvar_SetValue( "g_antilag_timenudge", -g_antilag_maxtimedelta->integer );
 		}
 		g_antilag_timenudge->modified = false;
 	}

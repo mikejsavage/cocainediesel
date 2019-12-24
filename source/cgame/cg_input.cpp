@@ -55,7 +55,7 @@ static void ClearButton( Button * b ) {
 }
 
 static void KeyDown( Button * b ) {
-	const char * c = trap_Cmd_Argv( 1 );
+	const char * c = Cmd_Argv( 1 );
 	int k = -1;
 	if( c[0] ) {
 		k = atoi( c );
@@ -81,7 +81,7 @@ static void KeyDown( Button * b ) {
 }
 
 static void KeyUp( Button * b ) {
-	const char * c = trap_Cmd_Argv( 1 );
+	const char * c = Cmd_Argv( 1 );
 	if( !c[0] ) {
 		b->keys[ 0 ] = 0;
 		b->keys[ 1 ] = 0;
@@ -313,84 +313,84 @@ void CG_ClearInputState() {
 void CG_InitInput() {
 	CG_ClearInputState();
 
-	trap_Cmd_AddCommand( "+forward", IN_ForwardDown );
-	trap_Cmd_AddCommand( "-forward", IN_ForwardUp );
-	trap_Cmd_AddCommand( "+back", IN_BackDown );
-	trap_Cmd_AddCommand( "-back", IN_BackUp );
-	trap_Cmd_AddCommand( "+left", IN_LeftDown );
-	trap_Cmd_AddCommand( "-left", IN_LeftUp );
-	trap_Cmd_AddCommand( "+right", IN_RightDown );
-	trap_Cmd_AddCommand( "-right", IN_RightUp );
+	Cmd_AddCommand( "+forward", IN_ForwardDown );
+	Cmd_AddCommand( "-forward", IN_ForwardUp );
+	Cmd_AddCommand( "+back", IN_BackDown );
+	Cmd_AddCommand( "-back", IN_BackUp );
+	Cmd_AddCommand( "+left", IN_LeftDown );
+	Cmd_AddCommand( "-left", IN_LeftUp );
+	Cmd_AddCommand( "+right", IN_RightDown );
+	Cmd_AddCommand( "-right", IN_RightUp );
 
-	trap_Cmd_AddCommand( "+jump", IN_JumpDown );
-	trap_Cmd_AddCommand( "-jump", IN_JumpUp );
-	trap_Cmd_AddCommand( "+special", IN_SpecialDown );
-	trap_Cmd_AddCommand( "-special", IN_SpecialUp );
-	trap_Cmd_AddCommand( "+crouch", IN_CrouchDown );
-	trap_Cmd_AddCommand( "-crouch", IN_CrouchUp );
-	trap_Cmd_AddCommand( "+walk", IN_WalkDown );
-	trap_Cmd_AddCommand( "-walk", IN_WalkUp );
+	Cmd_AddCommand( "+jump", IN_JumpDown );
+	Cmd_AddCommand( "-jump", IN_JumpUp );
+	Cmd_AddCommand( "+special", IN_SpecialDown );
+	Cmd_AddCommand( "-special", IN_SpecialUp );
+	Cmd_AddCommand( "+crouch", IN_CrouchDown );
+	Cmd_AddCommand( "-crouch", IN_CrouchUp );
+	Cmd_AddCommand( "+walk", IN_WalkDown );
+	Cmd_AddCommand( "-walk", IN_WalkUp );
 
-	trap_Cmd_AddCommand( "+attack", IN_AttackDown );
-	trap_Cmd_AddCommand( "-attack", IN_AttackUp );
-	trap_Cmd_AddCommand( "+zoom", IN_ZoomDown );
-	trap_Cmd_AddCommand( "-zoom", IN_ZoomUp );
+	Cmd_AddCommand( "+attack", IN_AttackDown );
+	Cmd_AddCommand( "-attack", IN_AttackUp );
+	Cmd_AddCommand( "+zoom", IN_ZoomDown );
+	Cmd_AddCommand( "-zoom", IN_ZoomUp );
 
 	// legacy command names
-	trap_Cmd_AddCommand( "+moveleft", IN_LeftDown );
-	trap_Cmd_AddCommand( "-moveleft", IN_LeftUp );
-	trap_Cmd_AddCommand( "+moveright", IN_RightDown );
-	trap_Cmd_AddCommand( "-moveright", IN_RightUp );
-	trap_Cmd_AddCommand( "+moveup", IN_JumpDown );
-	trap_Cmd_AddCommand( "-moveup", IN_JumpUp );
-	trap_Cmd_AddCommand( "+movedown", IN_CrouchDown );
-	trap_Cmd_AddCommand( "-movedown", IN_CrouchUp );
-	trap_Cmd_AddCommand( "+speed", IN_WalkDown );
-	trap_Cmd_AddCommand( "-speed", IN_WalkUp );
+	Cmd_AddCommand( "+moveleft", IN_LeftDown );
+	Cmd_AddCommand( "-moveleft", IN_LeftUp );
+	Cmd_AddCommand( "+moveright", IN_RightDown );
+	Cmd_AddCommand( "-moveright", IN_RightUp );
+	Cmd_AddCommand( "+moveup", IN_JumpDown );
+	Cmd_AddCommand( "-moveup", IN_JumpUp );
+	Cmd_AddCommand( "+movedown", IN_CrouchDown );
+	Cmd_AddCommand( "-movedown", IN_CrouchUp );
+	Cmd_AddCommand( "+speed", IN_WalkDown );
+	Cmd_AddCommand( "-speed", IN_WalkUp );
 
-	sensitivity = trap_Cvar_Get( "sensitivity", "3", CVAR_ARCHIVE );
-	horizontalSensScale = trap_Cvar_Get( "horizontalsensscale", "1", CVAR_ARCHIVE );
-	zoomsens = trap_Cvar_Get( "zoomsens", "0", CVAR_ARCHIVE );
-	m_accel = trap_Cvar_Get( "m_accel", "0", CVAR_ARCHIVE );
-	m_accelStyle = trap_Cvar_Get( "m_accelStyle", "0", CVAR_ARCHIVE );
-	m_accelOffset = trap_Cvar_Get( "m_accelOffset", "0", CVAR_ARCHIVE );
-	m_accelPow = trap_Cvar_Get( "m_accelPow", "2", CVAR_ARCHIVE );
-	m_sensCap = trap_Cvar_Get( "m_sensCap", "0", CVAR_ARCHIVE );
+	sensitivity = Cvar_Get( "sensitivity", "3", CVAR_ARCHIVE );
+	horizontalSensScale = Cvar_Get( "horizontalsensscale", "1", CVAR_ARCHIVE );
+	zoomsens = Cvar_Get( "zoomsens", "0", CVAR_ARCHIVE );
+	m_accel = Cvar_Get( "m_accel", "0", CVAR_ARCHIVE );
+	m_accelStyle = Cvar_Get( "m_accelStyle", "0", CVAR_ARCHIVE );
+	m_accelOffset = Cvar_Get( "m_accelOffset", "0", CVAR_ARCHIVE );
+	m_accelPow = Cvar_Get( "m_accelPow", "2", CVAR_ARCHIVE );
+	m_sensCap = Cvar_Get( "m_sensCap", "0", CVAR_ARCHIVE );
 }
 
 void CG_ShutdownInput() {
-	trap_Cmd_RemoveCommand( "+forward" );
-	trap_Cmd_RemoveCommand( "-forward" );
-	trap_Cmd_RemoveCommand( "+back" );
-	trap_Cmd_RemoveCommand( "-back" );
-	trap_Cmd_RemoveCommand( "+left" );
-	trap_Cmd_RemoveCommand( "-left" );
-	trap_Cmd_RemoveCommand( "+right" );
-	trap_Cmd_RemoveCommand( "-right" );
+	Cmd_RemoveCommand( "+forward" );
+	Cmd_RemoveCommand( "-forward" );
+	Cmd_RemoveCommand( "+back" );
+	Cmd_RemoveCommand( "-back" );
+	Cmd_RemoveCommand( "+left" );
+	Cmd_RemoveCommand( "-left" );
+	Cmd_RemoveCommand( "+right" );
+	Cmd_RemoveCommand( "-right" );
 
-	trap_Cmd_RemoveCommand( "+jump" );
-	trap_Cmd_RemoveCommand( "-jump" );
-	trap_Cmd_RemoveCommand( "+special" );
-	trap_Cmd_RemoveCommand( "-special" );
-	trap_Cmd_RemoveCommand( "+crouch" );
-	trap_Cmd_RemoveCommand( "-crouch" );
-	trap_Cmd_RemoveCommand( "+walk" );
-	trap_Cmd_RemoveCommand( "-walk" );
+	Cmd_RemoveCommand( "+jump" );
+	Cmd_RemoveCommand( "-jump" );
+	Cmd_RemoveCommand( "+special" );
+	Cmd_RemoveCommand( "-special" );
+	Cmd_RemoveCommand( "+crouch" );
+	Cmd_RemoveCommand( "-crouch" );
+	Cmd_RemoveCommand( "+walk" );
+	Cmd_RemoveCommand( "-walk" );
 
-	trap_Cmd_RemoveCommand( "+attack" );
-	trap_Cmd_RemoveCommand( "-attack" );
-	trap_Cmd_RemoveCommand( "+zoom" );
-	trap_Cmd_RemoveCommand( "-zoom" );
+	Cmd_RemoveCommand( "+attack" );
+	Cmd_RemoveCommand( "-attack" );
+	Cmd_RemoveCommand( "+zoom" );
+	Cmd_RemoveCommand( "-zoom" );
 
 	// legacy command names
-	trap_Cmd_RemoveCommand( "+moveleft" );
-	trap_Cmd_RemoveCommand( "-moveleft" );
-	trap_Cmd_RemoveCommand( "+moveright" );
-	trap_Cmd_RemoveCommand( "-moveright" );
-	trap_Cmd_RemoveCommand( "+moveup" );
-	trap_Cmd_RemoveCommand( "-moveup" );
-	trap_Cmd_RemoveCommand( "+movedown" );
-	trap_Cmd_RemoveCommand( "-movedown" );
-	trap_Cmd_RemoveCommand( "+speed" );
-	trap_Cmd_RemoveCommand( "-speed" );
+	Cmd_RemoveCommand( "+moveleft" );
+	Cmd_RemoveCommand( "-moveleft" );
+	Cmd_RemoveCommand( "+moveright" );
+	Cmd_RemoveCommand( "-moveright" );
+	Cmd_RemoveCommand( "+moveup" );
+	Cmd_RemoveCommand( "-moveup" );
+	Cmd_RemoveCommand( "+movedown" );
+	Cmd_RemoveCommand( "-movedown" );
+	Cmd_RemoveCommand( "+speed" );
+	Cmd_RemoveCommand( "-speed" );
 }

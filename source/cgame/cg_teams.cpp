@@ -74,7 +74,7 @@ RGB8 CG_TeamColor( int team ) {
 	cvar_t * cvar = CG_IsAlly( team ) ? cg_allyColor : cg_enemyColor;
 
 	if( cvar->integer >= int( ARRAY_COUNT( TEAM_COLORS ) ) )
-		trap_Cvar_Set( cvar->name, cvar->dvalue );
+		Cvar_Set( cvar->name, cvar->dvalue );
 
 	return TEAM_COLORS[ cvar->integer ].rgb;
 }

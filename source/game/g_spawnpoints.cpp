@@ -272,9 +272,9 @@ void G_SpawnQueue_Init( void ) {
 	cvar_t *g_spawnsystem_wave_time;
 	cvar_t *g_spawnsystem_wave_maxcount;
 
-	g_spawnsystem = trap_Cvar_Get( "g_spawnsystem", va( "%i", SPAWNSYSTEM_INSTANT ), CVAR_DEVELOPER );
-	g_spawnsystem_wave_time = trap_Cvar_Get( "g_spawnsystem_wave_time", va( "%i", REINFORCEMENT_WAVE_DELAY ), CVAR_ARCHIVE );
-	g_spawnsystem_wave_maxcount = trap_Cvar_Get( "g_spawnsystem_wave_maxcount", va( "%i", REINFORCEMENT_WAVE_MAXCOUNT ), CVAR_ARCHIVE );
+	g_spawnsystem = Cvar_Get( "g_spawnsystem", va( "%i", SPAWNSYSTEM_INSTANT ), CVAR_DEVELOPER );
+	g_spawnsystem_wave_time = Cvar_Get( "g_spawnsystem_wave_time", va( "%i", REINFORCEMENT_WAVE_DELAY ), CVAR_ARCHIVE );
+	g_spawnsystem_wave_maxcount = Cvar_Get( "g_spawnsystem_wave_maxcount", va( "%i", REINFORCEMENT_WAVE_MAXCOUNT ), CVAR_ARCHIVE );
 
 	memset( g_spawnQueues, 0, sizeof( g_spawnQueues ) );
 	for( team = TEAM_SPECTATOR; team < GS_MAX_TEAMS; team++ )
@@ -282,7 +282,7 @@ void G_SpawnQueue_Init( void ) {
 
 	spawnsystem = bound( SPAWNSYSTEM_INSTANT, g_spawnsystem->integer, SPAWNSYSTEM_HOLD );
 	if( spawnsystem != g_spawnsystem->integer ) {
-		trap_Cvar_ForceSet( "g_spawnsystem", va( "%i", spawnsystem ) );
+		Cvar_ForceSet( "g_spawnsystem", va( "%i", spawnsystem ) );
 	}
 
 	for( team = TEAM_SPECTATOR; team < GS_MAX_TEAMS; team++ ) {

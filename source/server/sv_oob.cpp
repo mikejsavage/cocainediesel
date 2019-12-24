@@ -801,20 +801,16 @@ connectionless_cmd_t connectionless_cmds[] =
 */
 void SV_ConnectionlessPacket( const socket_t *socket, const netadr_t *address, msg_t *msg ) {
 	connectionless_cmd_t *cmd;
-	char *s, *c;
 
 	MSG_BeginReading( msg );
 	MSG_ReadInt32( msg );    // skip the -1 marker
 
-	s = MSG_ReadStringLine( msg );
+	const char * s = MSG_ReadStringLine( msg );
 
-	Cmd_TokenizeString( s );
-
-	c = Cmd_Argv( 0 );
-	Com_DPrintf( "Packet %s : %s\n", NET_AddressToString( address ), c );
+	Com_DPrintf( "Packet %s : %s\n", NET_AddressToString( address ), s );
 
 	for( cmd = connectionless_cmds; cmd->name; cmd++ ) {
-		if( !strcmp( c, cmd->name ) ) {
+		if( !strcmp( s, cmd->name ) ) {
 			cmd->func( socket, address );
 			return;
 		}

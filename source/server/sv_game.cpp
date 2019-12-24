@@ -343,30 +343,9 @@ void SV_InitGameProgs( void ) {
 	import.ConfigString = PF_ConfigString;
 	import.GetConfigString = PF_GetConfigString;
 
-	import.FS_FOpenFile = FS_FOpenFile;
-	import.FS_Read = FS_Read;
-	import.FS_Write = FS_Write;
-	import.FS_FCloseFile = FS_FCloseFile;
-
-	import.Cvar_Get = Cvar_Get;
-	import.Cvar_Set = Cvar_Set;
-	import.Cvar_SetValue = Cvar_SetValue;
-	import.Cvar_ForceSet = Cvar_ForceSet;
-	import.Cvar_Value = Cvar_Value;
-	import.Cvar_String = Cvar_String;
-
-	import.Cmd_Argc = Cmd_Argc;
-	import.Cmd_Argv = Cmd_Argv;
-	import.Cmd_Args = Cmd_Args;
-	import.Cmd_AddCommand = Cmd_AddCommand;
-	import.Cmd_RemoveCommand = Cmd_RemoveCommand;
-
 	import.ML_Update = ML_Update;
 	import.ML_GetMapByNum = ML_GetMapByNum;
 	import.ML_FilenameExists = ML_FilenameExists;
-
-	import.Cmd_ExecuteText = Cbuf_ExecuteText;
-	import.Cbuf_Execute = Cbuf_Execute;
 
 	import.FakeClientConnect = SVC_FakeConnect;
 	import.DropClient = PF_DropClient;

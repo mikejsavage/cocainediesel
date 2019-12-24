@@ -553,6 +553,10 @@ void SV_Init( void ) {
 
 	memset( &svc, 0, sizeof( svc ) );
 
+	u64 entropy[ 2 ];
+	CSPRNG_Bytes( entropy, sizeof( entropy ) );
+	svs.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
+
 	SV_InitOperatorCommands();
 
 	sv_mempool = Mem_AllocPool( NULL, "Server" );

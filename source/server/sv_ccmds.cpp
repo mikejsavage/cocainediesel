@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 * SV_FindPlayer
 * Helper for the functions below. It finds the client_t for the given name or id
 */
-static client_t *SV_FindPlayer( char *s ) {
+static client_t *SV_FindPlayer( const char *s ) {
 	client_t *cl;
 	client_t *player;
 	int i;
@@ -86,7 +86,7 @@ found_player:
 * gamemap: just start the map
 */
 static void SV_Map_f( void ) {
-	char *map;
+	const char *map;
 	char mapname[MAX_CONFIGSTRING_CHARS];
 	bool found = false;
 

@@ -32,33 +32,33 @@ static void CG_FixVolumeCvars( void ) {
 	}
 
 	if( cg_volume_players->value < 0.0f ) {
-		trap_Cvar_SetValue( "cg_volume_players", 0.0f );
+		Cvar_SetValue( "cg_volume_players", 0.0f );
 	} else if( cg_volume_players->value > 2.0f ) {
-		trap_Cvar_SetValue( "cg_volume_players", 2.0f );
+		Cvar_SetValue( "cg_volume_players", 2.0f );
 	}
 
 	if( cg_volume_effects->value < 0.0f ) {
-		trap_Cvar_SetValue( "cg_volume_effects", 0.0f );
+		Cvar_SetValue( "cg_volume_effects", 0.0f );
 	} else if( cg_volume_effects->value > 2.0f ) {
-		trap_Cvar_SetValue( "cg_volume_effects", 2.0f );
+		Cvar_SetValue( "cg_volume_effects", 2.0f );
 	}
 
 	if( cg_volume_announcer->value < 0.0f ) {
-		trap_Cvar_SetValue( "cg_volume_announcer", 0.0f );
+		Cvar_SetValue( "cg_volume_announcer", 0.0f );
 	} else if( cg_volume_announcer->value > 2.0f ) {
-		trap_Cvar_SetValue( "cg_volume_announcer", 2.0f );
+		Cvar_SetValue( "cg_volume_announcer", 2.0f );
 	}
 
 	if( cg_volume_voicechats->value < 0.0f ) {
-		trap_Cvar_SetValue( "cg_volume_voicechats", 0.0f );
+		Cvar_SetValue( "cg_volume_voicechats", 0.0f );
 	} else if( cg_volume_voicechats->value > 2.0f ) {
-		trap_Cvar_SetValue( "cg_volume_voicechats", 2.0f );
+		Cvar_SetValue( "cg_volume_voicechats", 2.0f );
 	}
 
 	if( cg_volume_hitsound->value < 0.0f ) {
-		trap_Cvar_SetValue( "cg_volume_hitsound", 0.0f );
+		Cvar_SetValue( "cg_volume_hitsound", 0.0f );
 	} else if( cg_volume_hitsound->value > 10.0f ) {
-		trap_Cvar_SetValue( "cg_volume_hitsound", 10.0f );
+		Cvar_SetValue( "cg_volume_hitsound", 10.0f );
 	}
 }
 
@@ -334,7 +334,7 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 	client_gs.gameState = frame->gameState;
 
 	if( cg_projectileAntilagOffset->value > 1.0f || cg_projectileAntilagOffset->value < 0.0f ) {
-		trap_Cvar_ForceSet( "cg_projectileAntilagOffset", cg_projectileAntilagOffset->dvalue );
+		Cvar_ForceSet( "cg_projectileAntilagOffset", cg_projectileAntilagOffset->dvalue );
 	}
 
 	CG_UpdatePlayerState();

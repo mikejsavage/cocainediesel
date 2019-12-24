@@ -302,9 +302,9 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 
 	if( g_inactivity_maxtime->modified ) {
 		if( g_inactivity_maxtime->value <= 0.0f ) {
-			trap_Cvar_ForceSet( "g_inactivity_maxtime", "0.0" );
+			Cvar_ForceSet( "g_inactivity_maxtime", "0.0" );
 		} else if( g_inactivity_maxtime->value < 15.0f ) {
-			trap_Cvar_ForceSet( "g_inactivity_maxtime", "15.0" );
+			Cvar_ForceSet( "g_inactivity_maxtime", "15.0" );
 		}
 
 		g_inactivity_maxtime->modified = false;

@@ -435,7 +435,7 @@ void CL_PauseDemo_f( void ) {
 void CL_DemoJump_f( void ) {
 	bool relative;
 	int time;
-	char *p;
+	const char *p;
 
 	if( !cls.demo.playing ) {
 		Com_Printf( "Can only demojump when playing a demo\n" );

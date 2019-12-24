@@ -76,27 +76,27 @@ static void CG_DrawCenterString( void ) {
 * CG_ScreenInit
 */
 void CG_ScreenInit( void ) {
-	cg_showFPS =        trap_Cvar_Get( "cg_showFPS", "0", CVAR_ARCHIVE );
-	cg_draw2D =     trap_Cvar_Get( "cg_draw2D", "1", 0 );
-	cg_centerTime =     trap_Cvar_Get( "cg_centerTime", "2.5", 0 );
+	cg_showFPS =        Cvar_Get( "cg_showFPS", "0", CVAR_ARCHIVE );
+	cg_draw2D =     Cvar_Get( "cg_draw2D", "1", 0 );
+	cg_centerTime =     Cvar_Get( "cg_centerTime", "2.5", 0 );
 
-	cg_crosshair_color =    trap_Cvar_Get( "cg_crosshair_color", "255 255 255", CVAR_ARCHIVE );
-	cg_crosshair_damage_color = trap_Cvar_Get( "cg_crosshair_damage_color", "255 0 0", CVAR_ARCHIVE );
-	cg_crosshair_size = trap_Cvar_Get( "cg_crosshair_size", "3", CVAR_ARCHIVE );
+	cg_crosshair_color =    Cvar_Get( "cg_crosshair_color", "255 255 255", CVAR_ARCHIVE );
+	cg_crosshair_damage_color = Cvar_Get( "cg_crosshair_damage_color", "255 0 0", CVAR_ARCHIVE );
+	cg_crosshair_size = Cvar_Get( "cg_crosshair_size", "3", CVAR_ARCHIVE );
 	cg_crosshair_color->modified = true;
 	cg_crosshair_damage_color->modified = true;
 
-	cg_showSpeed =      trap_Cvar_Get( "cg_showSpeed", "0", CVAR_ARCHIVE );
-	cg_showPointedPlayer =  trap_Cvar_Get( "cg_showPointedPlayer", "1", CVAR_ARCHIVE );
-	cg_showViewBlends = trap_Cvar_Get( "cg_showViewBlends", "1", CVAR_ARCHIVE );
-	cg_showAwards =     trap_Cvar_Get( "cg_showAwards", "1", CVAR_ARCHIVE );
+	cg_showSpeed =      Cvar_Get( "cg_showSpeed", "0", CVAR_ARCHIVE );
+	cg_showPointedPlayer =  Cvar_Get( "cg_showPointedPlayer", "1", CVAR_ARCHIVE );
+	cg_showViewBlends = Cvar_Get( "cg_showViewBlends", "1", CVAR_ARCHIVE );
+	cg_showAwards =     Cvar_Get( "cg_showAwards", "1", CVAR_ARCHIVE );
 
-	cg_showPlayerNames =        trap_Cvar_Get( "cg_showPlayerNames", "2", CVAR_ARCHIVE );
-	cg_showPlayerNames_alpha =  trap_Cvar_Get( "cg_showPlayerNames_alpha", "0.4", CVAR_ARCHIVE );
-	cg_showPlayerNames_zfar =   trap_Cvar_Get( "cg_showPlayerNames_zfar", "1024", CVAR_ARCHIVE );
-	cg_showPlayerNames_barWidth =   trap_Cvar_Get( "cg_showPlayerNames_barWidth", "8", CVAR_ARCHIVE );
+	cg_showPlayerNames =        Cvar_Get( "cg_showPlayerNames", "2", CVAR_ARCHIVE );
+	cg_showPlayerNames_alpha =  Cvar_Get( "cg_showPlayerNames_alpha", "0.4", CVAR_ARCHIVE );
+	cg_showPlayerNames_zfar =   Cvar_Get( "cg_showPlayerNames_zfar", "1024", CVAR_ARCHIVE );
+	cg_showPlayerNames_barWidth =   Cvar_Get( "cg_showPlayerNames_barWidth", "8", CVAR_ARCHIVE );
 
-	cg_showPressedKeys = trap_Cvar_Get( "cg_showPressedKeys", "0", CVAR_ARCHIVE );
+	cg_showPressedKeys = Cvar_Get( "cg_showPressedKeys", "0", CVAR_ARCHIVE );
 }
 
 /*
@@ -142,7 +142,7 @@ void CG_DrawCrosshair() {
 		}
 		else {
 			crosshair_color = vec4_white;
-			trap_Cvar_Set( cg_crosshair_color->name, "255 255 255" );
+			Cvar_Set( cg_crosshair_color->name, "255 255 255" );
 		}
 	}
 
@@ -154,7 +154,7 @@ void CG_DrawCrosshair() {
 		}
 		else {
 			crosshair_color = vec4_red;
-			trap_Cvar_Set( cg_crosshair_damage_color->name, "255 255 255" );
+			Cvar_Set( cg_crosshair_damage_color->name, "255 255 255" );
 		}
 	}
 

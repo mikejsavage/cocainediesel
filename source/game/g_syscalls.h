@@ -119,68 +119,6 @@ static inline int trap_CM_LeafsInPVS( int leafnum1, int leafnum2 ) {
 	return GAME_IMPORT.CM_LeafsInPVS( leafnum1, leafnum2 );
 }
 
-// cvars
-static inline cvar_t *trap_Cvar_Get( const char *name, const char *value, int flags ) {
-	return GAME_IMPORT.Cvar_Get( name, value, flags );
-}
-
-static inline cvar_t *trap_Cvar_Set( const char *name, const char *value ) {
-	return GAME_IMPORT.Cvar_Set( name, value );
-}
-
-static inline void trap_Cvar_SetValue( const char *name, float value ) {
-	GAME_IMPORT.Cvar_SetValue( name, value );
-}
-
-static inline cvar_t *trap_Cvar_ForceSet( const char *name, const char *value ) {
-	return GAME_IMPORT.Cvar_ForceSet( name, value );
-}
-
-static inline float trap_Cvar_Value( const char *name ) {
-	return GAME_IMPORT.Cvar_Value( name );
-}
-
-static inline const char *trap_Cvar_String( const char *name ) {
-	return GAME_IMPORT.Cvar_String( name );
-}
-
-static inline int trap_Cmd_Argc( void ) {
-	return GAME_IMPORT.Cmd_Argc();
-}
-
-static inline char *trap_Cmd_Argv( int arg ) {
-	return GAME_IMPORT.Cmd_Argv( arg );
-}
-
-static inline char *trap_Cmd_Args( void ) {
-	return GAME_IMPORT.Cmd_Args();
-}
-
-static inline void trap_Cmd_AddCommand( const char *name, void ( *cmd )( void ) ) {
-	GAME_IMPORT.Cmd_AddCommand( name, cmd );
-}
-
-static inline void trap_Cmd_RemoveCommand( const char *cmd_name ) {
-	GAME_IMPORT.Cmd_RemoveCommand( cmd_name );
-}
-
-// fs
-static inline int trap_FS_FOpenFile( const char *filename, int *filenum, int mode ) {
-	return GAME_IMPORT.FS_FOpenFile( filename, filenum, mode );
-}
-
-static inline int trap_FS_Read( void *buffer, size_t len, int file ) {
-	return GAME_IMPORT.FS_Read( buffer, len, file );
-}
-
-static inline int trap_FS_Write( const void *buffer, size_t len, int file ) {
-	return GAME_IMPORT.FS_Write( buffer, len, file );
-}
-
-static inline void trap_FS_FCloseFile( int file ) {
-	GAME_IMPORT.FS_FCloseFile( file );
-}
-
 static inline bool trap_ML_Update( void ) {
 	return GAME_IMPORT.ML_Update() == true;
 }
@@ -191,14 +129,6 @@ static inline bool trap_ML_FilenameExists( const char *filename ) {
 
 static inline size_t trap_ML_GetMapByNum( int num, char *out, size_t size ) {
 	return GAME_IMPORT.ML_GetMapByNum( num, out, size );
-}
-
-static inline void trap_Cmd_ExecuteText( int exec_when, const char *text ) {
-	GAME_IMPORT.Cmd_ExecuteText( exec_when, text );
-}
-
-static inline void trap_Cbuf_Execute( void ) {
-	GAME_IMPORT.Cbuf_Execute();
 }
 
 static inline int trap_FakeClientConnect( char *fakeUserinfo, char *fakeSocketType, const char *fakeIP ) {

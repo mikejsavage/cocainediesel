@@ -136,10 +136,6 @@ static void SV_SpawnServer( const char *server, bool devmap ) {
 	// wipe the entire per-level structure
 	memset( &sv, 0, sizeof( sv ) );
 
-	u64 entropy[ 2 ];
-	CSPRNG_Bytes( entropy, sizeof( entropy ) );
-	svs.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
-
 	SV_ResetClientFrameCounters();
 	svs.realtime = 0;
 	svs.gametime = 0;
@@ -366,17 +362,11 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 	memset( &sv, 0, sizeof( sv ) );
 	Com_SetServerState( sv.state );
 
-	u64 entropy[ 2 ];
-	CSPRNG_Bytes( entropy, sizeof( entropy ) );
-	svs.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
-
 	if( sv_mempool ) {
 		Mem_EmptyPool( sv_mempool );
 	}
 
 	memset( &svs, 0, sizeof( svs ) );
-
-	svs.initialized = false;
 }
 
 /*

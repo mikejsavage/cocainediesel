@@ -78,7 +78,7 @@ void G_Match_Autorecord_Start( void ) {
 
 	snprintf( level.autorecord_name, sizeof( level.autorecord_name ), "%s_%s_auto%04i", date, level.mapname, random_uniform( &svs.rng, 1, 10000 ) );
 
-	trap_Cmd_ExecuteText( EXEC_APPEND, va( "serverrecord %s\n", level.autorecord_name ) );
+	Cbuf_ExecuteText( EXEC_APPEND, va( "serverrecord %s\n", level.autorecord_name ) );
 }
 
 /*
@@ -110,11 +110,11 @@ void G_Match_Autorecord_Stop( void ) {
 
 	if( g_autorecord->integer ) {
 		// stop it
-		trap_Cmd_ExecuteText( EXEC_APPEND, "serverrecordstop 1\n" );
+		Cbuf_ExecuteText( EXEC_APPEND, "serverrecordstop 1\n" );
 
 		// check if we wanna delete some
 		if( g_autorecord_maxdemos->integer > 0 ) {
-			trap_Cmd_ExecuteText( EXEC_APPEND, va( "serverrecordpurge %i\n", g_autorecord_maxdemos->integer ) );
+			Cbuf_ExecuteText( EXEC_APPEND, va( "serverrecordpurge %i\n", g_autorecord_maxdemos->integer ) );
 		}
 	}
 }
@@ -126,7 +126,7 @@ void G_Match_Autorecord_Cancel( void ) {
 	G_Match_SetAutorecordState( "cancel" );
 
 	if( g_autorecord->integer ) {
-		trap_Cmd_ExecuteText( EXEC_APPEND, "serverrecordcancel 1\n" );
+		Cbuf_ExecuteText( EXEC_APPEND, "serverrecordcancel 1\n" );
 	}
 }
 
@@ -555,11 +555,11 @@ static void G_CheckNumBots( void ) {
 
 	// check sanity of g_numbots
 	if( g_numbots->integer < 0 ) {
-		trap_Cvar_Set( "g_numbots", "0" );
+		Cvar_Set( "g_numbots", "0" );
 	}
 
 	if( g_numbots->integer > server_gs.maxclients ) {
-		trap_Cvar_Set( "g_numbots", va( "%i", server_gs.maxclients ) );
+		Cvar_Set( "g_numbots", va( "%i", server_gs.maxclients ) );
 	}
 
 	int desiredNumBots = g_numbots->integer;
@@ -731,11 +731,11 @@ static bool IsGladiatorMap() {
 */
 void G_Gametype_Init( void ) {
 	// get the match cvars too
-	g_warmup_timelimit = trap_Cvar_Get( "g_warmup_timelimit", "5", CVAR_ARCHIVE );
-	g_match_extendedtime = trap_Cvar_Get( "g_match_extendedtime", "2", CVAR_ARCHIVE );
+	g_warmup_timelimit = Cvar_Get( "g_warmup_timelimit", "5", CVAR_ARCHIVE );
+	g_match_extendedtime = Cvar_Get( "g_match_extendedtime", "2", CVAR_ARCHIVE );
 
 	// game settings
-	g_scorelimit = trap_Cvar_Get( "g_scorelimit", "10", CVAR_ARCHIVE );
+	g_scorelimit = Cvar_Get( "g_scorelimit", "10", CVAR_ARCHIVE );
 
 	const char * gt = IsGladiatorMap() ? "gladiator" : "bomb";
 

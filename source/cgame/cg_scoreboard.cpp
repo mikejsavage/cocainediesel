@@ -388,7 +388,7 @@ void CG_ScoresOn_f() {
 		cg.showScoreboard = true;
 	}
 	else {
-		trap_Cmd_ExecuteText( EXEC_NOW, "svscore 1" );
+		Cbuf_ExecuteText( EXEC_NOW, "svscore 1" );
 	}
 }
 
@@ -397,6 +397,6 @@ void CG_ScoresOff_f() {
 		cg.showScoreboard = false;
 	}
 	else {
-		trap_Cmd_ExecuteText( EXEC_NOW, "svscore 0" );
+		Cbuf_ExecuteText( EXEC_NOW, "svscore 0" );
 	}
 }

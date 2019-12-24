@@ -796,7 +796,7 @@ void CL_Reconnect_f( void ) {
 */
 static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *address, msg_t *msg ) {
 	char *s;
-	char *c;
+	const char *c;
 
 	MSG_BeginReading( msg );
 	MSG_ReadInt32( msg ); // skip the -1

@@ -72,7 +72,7 @@ bool CG_ChaseStep( int step ) {
 	}
 	
 	if( !cgs.demoPlaying ) {
-		trap_Cmd_ExecuteText( EXEC_NOW, step > 0 ? "chasenext" : "chaseprev" );
+		Cbuf_ExecuteText( EXEC_NOW, step > 0 ? "chasenext" : "chaseprev" );
 		return true;
 	}
 
@@ -467,8 +467,8 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 	vec3_t maxs = { 4, 4, 4 };
 
 	if( !cg_thirdPersonAngle || !cg_thirdPersonRange ) {
-		cg_thirdPersonAngle = trap_Cvar_Get( "cg_thirdPersonAngle", "0", CVAR_ARCHIVE );
-		cg_thirdPersonRange = trap_Cvar_Get( "cg_thirdPersonRange", "70", CVAR_ARCHIVE );
+		cg_thirdPersonAngle = Cvar_Get( "cg_thirdPersonAngle", "0", CVAR_ARCHIVE );
+		cg_thirdPersonRange = Cvar_Get( "cg_thirdPersonRange", "70", CVAR_ARCHIVE );
 	}
 
 	// calc exact destination
@@ -550,7 +550,7 @@ bool CG_SwitchChaseCamMode( void ) {
 			if( realSpec ) {
 				if( ++chaseCam.mode >= CAM_MODES ) {
 					// if exceeds the cycle, start free fly
-					trap_Cmd_ExecuteText( EXEC_NOW, "camswitch" );
+					Cbuf_ExecuteText( EXEC_NOW, "camswitch" );
 					chaseCam.mode = 0;
 				}
 				return true;
@@ -563,7 +563,7 @@ bool CG_SwitchChaseCamMode( void ) {
 	}
 
 	if( realSpec && ( CG_DemoCam_IsFree() || cg.frame.playerState.pmove.pm_type == PM_SPECTATOR ) ) {
-		trap_Cmd_ExecuteText( EXEC_NOW, "camswitch" );
+		Cbuf_ExecuteText( EXEC_NOW, "camswitch" );
 		return true;
 	}
 
@@ -983,18 +983,18 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	if( cg_fov->modified ) {
 		if( cg_fov->value < MIN_FOV ) {
-			trap_Cvar_ForceSet( cg_fov->name, STR_TOSTR( MIN_FOV ) );
+			Cvar_ForceSet( cg_fov->name, STR_TOSTR( MIN_FOV ) );
 		} else if( cg_fov->value > MAX_FOV ) {
-			trap_Cvar_ForceSet( cg_fov->name, STR_TOSTR( MAX_FOV ) );
+			Cvar_ForceSet( cg_fov->name, STR_TOSTR( MAX_FOV ) );
 		}
 		cg_fov->modified = false;
 	}
 
 	if( cg_zoomfov->modified ) {
 		if( cg_zoomfov->value < MIN_FOV ) {
-			trap_Cvar_ForceSet( cg_zoomfov->name, STR_TOSTR( MIN_FOV ) );
+			Cvar_ForceSet( cg_zoomfov->name, STR_TOSTR( MIN_FOV ) );
 		} else if( cg_zoomfov->value > MAX_FOV ) {
-			trap_Cvar_ForceSet( cg_zoomfov->name, STR_TOSTR( MAX_FOV ) );
+			Cvar_ForceSet( cg_zoomfov->name, STR_TOSTR( MAX_FOV ) );
 		}
 		cg_zoomfov->modified = false;
 	}

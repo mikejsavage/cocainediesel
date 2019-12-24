@@ -1,6 +1,6 @@
 #pragma once
 
-#include "qcommon/base.h"
+#include "qcommon/types.h"
 
 // fnv1a
 u32 Hash32( const void * data, size_t n, u32 basis = U32( 2166136261 ) );

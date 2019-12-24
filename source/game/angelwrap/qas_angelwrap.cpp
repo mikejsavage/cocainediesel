@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "addon/addon_time.h"
 #include "addon/addon_vec3.h"
 #include "addon/addon_cvar.h"
-#include "addon/addon_stringutils.h"
 
 #include <list>
 #include <map>
@@ -115,7 +114,6 @@ asIScriptEngine *qasCreateEngine( bool *asMaxPortability ) {
 	PreRegisterTimeAddon( engine );
 	PreRegisterVec3Addon( engine );
 	PreRegisterCvarAddon( engine );
-	PreRegisterStringUtilsAddon( engine );
 
 	RegisterMathAddon( engine );
 	RegisterScriptArray( engine, true );
@@ -123,7 +121,6 @@ asIScriptEngine *qasCreateEngine( bool *asMaxPortability ) {
 	RegisterTimeAddon( engine );
 	RegisterVec3Addon( engine );
 	RegisterCvarAddon( engine );
-	RegisterStringUtilsAddon( engine );
 
 	engine->SetDefaultAccessMask( 0x1 );
 

@@ -192,10 +192,6 @@ void Q_urlencode_unsafechars( const char *src, char *dst, size_t dst_size );
  */
 size_t Q_urldecode( const char *src, char *dst, size_t dst_size );
 
-size_t Q_WCharUtf8Length( wchar_t wc );
-size_t Q_WCharToUtf8( wchar_t wc, char *dest, size_t bufsize );
-char *Q_WCharToUtf8Char( wchar_t wc );
-
 float *tv( float x, float y, float z );
 char *vtos( float v[3] );
 

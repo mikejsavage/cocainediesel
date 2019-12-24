@@ -127,8 +127,6 @@ void CG_RegisterMediaShaders() {
 	cgs.media.shaderBloodTrailPuff = FindMaterial( "gfx/misc/bloodtrail_puff" );
 	cgs.media.shaderBloodTrailLiquidPuff = FindMaterial( "gfx/misc/bloodtrailliquid_puff" );
 	cgs.media.shaderBloodImpactPuff = FindMaterial( "gfx/misc/bloodimpact_puff" );
-	cgs.media.shaderTeamMateIndicator = FindMaterial( "gfx/indicators/teammate_indicator" );
-	cgs.media.shaderTeamCarrierIndicator = FindMaterial( "gfx/indicators/teamcarrier_indicator" );
 	cgs.media.shaderBombIcon = FindMaterial( "gfx/bomb" );
 	cgs.media.shaderTeleportShellGfx = FindMaterial( "gfx/misc/teleportshell" );
 

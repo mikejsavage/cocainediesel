@@ -188,17 +188,6 @@ static int CG_GetCvar( const void *parameter ) {
 	return trap_Cvar_Value( (const char *)parameter );
 }
 
-static int CG_GetDamageIndicatorDirValue( const void *parameter ) {
-	float frac = 0;
-	int index = (intptr_t)parameter;
-
-	if( cg.damageBlends[index] > cl.serverTime && !cg.view.thirdperson ) {
-		frac = Clamp01( ( cg.damageBlends[index] - cl.serverTime ) / 300.0f );
-	}
-
-	return frac * 1000;
-}
-
 /**
  * Returns whether the weapon should be displayed in the weapon list on the HUD
  * (if the player either has the weapon ammo for it).
@@ -310,11 +299,6 @@ static const reference_numeric_t cg_numeric_references[] = {
 	{ "SCOREBOARD", CG_GetScoreboardShown, NULL },
 	{ "DEMOPLAYING", CG_IsDemoPlaying, NULL },
 	{ "CALLVOTE", CG_IsActiveCallvote, NULL },
-
-	{ "DAMAGE_INDICATOR_TOP", CG_GetDamageIndicatorDirValue, (void *)0 },
-	{ "DAMAGE_INDICATOR_RIGHT", CG_GetDamageIndicatorDirValue, (void *)1 },
-	{ "DAMAGE_INDICATOR_BOTTOM", CG_GetDamageIndicatorDirValue, (void *)2 },
-	{ "DAMAGE_INDICATOR_LEFT", CG_GetDamageIndicatorDirValue, (void *)3 },
 
 	// cvars
 	{ "SHOW_FPS", CG_GetCvar, "cg_showFPS" },
@@ -1618,33 +1602,6 @@ static bool CG_LFuncDrawPicByName( struct cg_layoutnode_s *argumentnode, int num
 	return true;
 }
 
-static bool CG_LFuncDrawSubPicByName( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_alignment, layout_cursor_width );
-	int y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_alignment, layout_cursor_height );
-
-	const Material * material = FindMaterial( CG_GetStringArg( &argumentnode ) );
-
-	float s1 = CG_GetNumericArg( &argumentnode );
-	float t1 = CG_GetNumericArg( &argumentnode );
-	float s2 = CG_GetNumericArg( &argumentnode );
-	float t2 = CG_GetNumericArg( &argumentnode );
-
-	// Draw2DBox( x, y, layout_cursor_width, layout_cursor_height, material, layout_cursor_color );
-	return true;
-}
-
-static bool CG_LFuncDrawRotatedPicByName( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_alignment, layout_cursor_width );
-	int y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_alignment, layout_cursor_height );
-
-	const Material * material = FindMaterial( CG_GetStringArg( &argumentnode ) );
-
-	float angle = CG_GetNumericArg( &argumentnode );
-
-	// trap_R_DrawRotatedStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, angle, layout_cursor_color, shader );
-	return true;
-}
-
 static float ScaleX( float x ) {
 	return x * frame_static.viewport_width / 800.0f;
 }
@@ -2146,20 +2103,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawPicByName,
 		1,
 		"Draws a pic with argument being the file path",
-	},
-
-	{
-		"drawSubPicByName",
-		CG_LFuncDrawSubPicByName,
-		5,
-		"Draws a part of a pic with arguments being the file path and the texture coordinates",
-	},
-
-	{
-		"drawRotatedPicByName",
-		CG_LFuncDrawRotatedPicByName,
-		2,
-		"Draws a pic with arguments being the file path and the rotation",
 	},
 
 	{

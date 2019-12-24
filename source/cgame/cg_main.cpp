@@ -79,9 +79,6 @@ cvar_t *cg_damageNumbers;
 cvar_t *cg_particles;
 cvar_t *cg_showClamp;
 
-cvar_t *cg_damage_indicator;
-cvar_t *cg_damage_indicator_time;
-
 cvar_t *cg_allyColor;
 cvar_t *cg_allyModel;
 cvar_t *cg_allyForceModel;
@@ -456,9 +453,6 @@ static void CG_RegisterVariables( void ) {
 
 	cg_cartoonEffects =     trap_Cvar_Get( "cg_cartoonEffects", "7", CVAR_ARCHIVE );
 
-	cg_damage_indicator =   trap_Cvar_Get( "cg_damage_indicator", "1", CVAR_ARCHIVE );
-	cg_damage_indicator_time =  trap_Cvar_Get( "cg_damage_indicator_time", "25", CVAR_ARCHIVE );
-
 	cg_voiceChats =     trap_Cvar_Get( "cg_voiceChats", "1", CVAR_ARCHIVE );
 
 	cg_projectileAntilagOffset = trap_Cvar_Get( "cg_projectileAntilagOffset", "1.0", CVAR_ARCHIVE );
@@ -623,7 +617,6 @@ void CG_Reset( void ) {
 	CG_ResetPModels();
 
 	CG_ResetKickAngles();
-	CG_ResetDamageIndicator();
 
 	CG_SC_ResetObituaries();
 

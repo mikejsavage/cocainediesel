@@ -12,7 +12,6 @@ Credz:
 if %MATCH_STATE < #MATCH_STATE_POSTMATCH
 
 include callvote
-include damage_indicator_screen
 
 include bomb_indicators
 

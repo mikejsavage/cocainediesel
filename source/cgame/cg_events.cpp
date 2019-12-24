@@ -898,7 +898,6 @@ void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted ) {
 		case EV_PLAYER_RESPAWN:
 			if( (unsigned)ent->ownerNum == cgs.playerNum + 1 ) {
 				CG_ResetKickAngles();
-				CG_ResetDamageIndicator();
 			}
 
 			if( ent->ownerNum && ent->ownerNum < client_gs.maxclients + 1 ) {
@@ -1062,22 +1061,22 @@ static void CG_FirePlayerStateEvents( void ) {
 
 			case PSEV_DAMAGE_10:
 				ByteToDir( parm, dir );
-				CG_DamageIndicatorAdd( 10, dir );
+				// CG_DamageIndicatorAdd( 10, dir );
 				break;
 
 			case PSEV_DAMAGE_20:
 				ByteToDir( parm, dir );
-				CG_DamageIndicatorAdd( 20, dir );
+				// CG_DamageIndicatorAdd( 20, dir );
 				break;
 
 			case PSEV_DAMAGE_30:
 				ByteToDir( parm, dir );
-				CG_DamageIndicatorAdd( 30, dir );
+				// CG_DamageIndicatorAdd( 30, dir );
 				break;
 
 			case PSEV_DAMAGE_40:
 				ByteToDir( parm, dir );
-				CG_DamageIndicatorAdd( 40, dir );
+				// CG_DamageIndicatorAdd( 40, dir );
 				break;
 
 			case PSEV_INDEXEDSOUND:

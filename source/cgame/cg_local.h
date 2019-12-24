@@ -187,8 +187,6 @@ typedef struct {
 	const Material * shaderBloodTrailPuff;
 	const Material * shaderBloodTrailLiquidPuff;
 	const Material * shaderBloodImpactPuff;
-	const Material * shaderTeamMateIndicator;
-	const Material * shaderTeamCarrierIndicator;
 	const Material * shaderBombIcon;
 	const Material * shaderTeleporterSmokePuff;
 	const Material * shaderBladeMark;
@@ -389,7 +387,6 @@ typedef struct {
 	//
 
 	cg_kickangles_t kickangles[MAX_ANGLES_KICKS];
-	int64_t damageBlends[4];
 	int64_t fallEffectTime;
 	int64_t fallEffectRebounceTime;
 
@@ -517,12 +514,6 @@ void CG_SC_ResetObituaries();
 void CG_SC_Obituary();
 void CG_ExecuteLayoutProgram( struct cg_layoutnode_s *rootnode );
 void CG_ClearAwards();
-
-//
-// cg_damage_indicator.c
-//
-void CG_ResetDamageIndicator( void );
-void CG_DamageIndicatorAdd( int damage, const vec3_t dir );
 
 //
 // cg_scoreboard.c
@@ -709,9 +700,6 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon );
 //
 // cg_events.c
 //
-extern cvar_t *cg_damage_indicator;
-extern cvar_t *cg_damage_indicator_time;
-
 void CG_FireEvents( bool early );
 void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted );
 void CG_AddAnnouncerEvent( const SoundEffect *sound, bool queued );

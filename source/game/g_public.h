@@ -157,7 +157,7 @@ typedef struct {
 	// the init function will only be called when a game starts,
 	// not each time a level is loaded.  Persistant data for clients
 	// and the server can be allocated in init
-	void ( *Init )( unsigned int seed, unsigned int framemsec );
+	void ( *Init )( unsigned int framemsec );
 	void ( *Shutdown )( void );
 
 	// each new level entered will cause a call to SpawnEntities

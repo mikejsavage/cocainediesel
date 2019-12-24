@@ -18,8 +18,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 // cl_parse.c  -- parse a message received from the server
+//
+#include <time.h>
 
-#include "client.h"
+#include "client/client.h"
 #include "qcommon/version.h"
 
 static void CL_InitServerDownload( const char *filename, int size, unsigned checksum, bool allow_localhttpdownload,
@@ -1064,19 +1066,6 @@ void CL_ParseServerMessage( msg_t *msg ) {
 			case svc_packetentities:
 			case svc_match:
 				Com_Error( ERR_DROP, "Out of place frame data" );
-				break;
-
-			case svc_extension:
-				ext = MSG_ReadUint8( msg );  // extension id
-				MSG_ReadUint8( msg );        // version number
-				len = MSG_ReadInt16( msg ); // command length
-
-				switch( ext ) {
-					default:
-						// unsupported
-						MSG_SkipData( msg, len );
-						break;
-				}
 				break;
 		}
 	}

@@ -680,7 +680,7 @@ __declspec( noreturn ) void G_Error( _Printf_format_string_ const char *format, 
 void G_Printf( _Printf_format_string_ const char *format, ... );
 #endif
 
-void G_Init( unsigned int seed, unsigned int framemsec );
+void G_Init( unsigned int framemsec );
 void G_Shutdown( void );
 void G_ExitLevel( void );
 game_state_t *G_GetGameState( void );

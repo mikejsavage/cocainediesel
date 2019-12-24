@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include <time.h>
+
 #include "cg_local.h"
 #include "client/ui.h"
 
@@ -186,36 +188,12 @@ static void CG_SC_PlayerStats() {
 * CG_SC_AutoRecordName
 */
 static const char *CG_SC_AutoRecordName( void ) {
-	time_t long_time;
-	struct tm *newtime;
 	static char name[MAX_STRING_CHARS];
-	char mapname[MAX_CONFIGSTRING_CHARS];
-	const char *cleanplayername;
 
-	// get date from system
-	time( &long_time );
-	newtime = localtime( &long_time );
+	char date[ 128 ];
+	Sys_FormatTime( date, sizeof( date ), "%Y-%m-%d_%H-%M" );
 
-	if( cg.view.POVent <= 0 ) {
-		cleanplayername = "";
-	} else {
-		// remove junk chars from player names for files
-		cleanplayername = COM_RemoveJunkChars( cgs.clientInfo[cg.view.POVent - 1].name );
-	}
-
-	// lowercase mapname
-	Q_strncpyz( mapname, cgs.configStrings[CS_MAPNAME], sizeof( mapname ) );
-	Q_strlwr( mapname );
-
-	// make file name
-	// duel_year-month-day_hour-min_map_player
-	Q_snprintfz( name, sizeof( name ), "%04d-%02d-%02d_%02d-%02d_%s_%s_%04i",
-				 newtime->tm_year + 1900, newtime->tm_mon + 1, newtime->tm_mday,
-				 newtime->tm_hour, newtime->tm_min,
-				 mapname,
-				 cleanplayername,
-				 (int)brandom( 0, 9999 )
-				 );
+	Q_snprintfz( name, sizeof( name ), "%s_%s_%04i", date, cgs.configStrings[CS_MAPNAME], (int)brandom( 0, 9999 ) );
 
 	return name;
 }

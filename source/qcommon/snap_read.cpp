@@ -45,7 +45,6 @@ const char * const svc_strings[256] =
 	"svc_servercs", // reliable command as unreliable for demos
 	"svc_frame",
 	"svc_demoinfo",
-	"svc_extension"
 };
 
 void _SHOWNET( msg_t *msg, const char *s, int shownet ) {

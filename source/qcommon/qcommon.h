@@ -249,7 +249,6 @@ enum svc_ops_e {
 	svc_servercs,           //tmp jalfixme : send reliable commands as unreliable
 	svc_frame,
 	svc_demoinfo,
-	svc_extension           // for future expansion
 };
 
 //==============================================

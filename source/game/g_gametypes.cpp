@@ -73,20 +73,10 @@ void G_Match_Autorecord_Start( void ) {
 	if( !has_players )
 		return;
 
-	char datetime[17];
-	time_t long_time;
-	struct tm *newtime;
+	char date[ 128 ];
+	Sys_FormatTime( date, sizeof( date ), "%Y-%m-%d_%H-%M" );
 
-	// date & time
-	time( &long_time );
-	newtime = localtime( &long_time );
-
-	Q_snprintfz( datetime, sizeof( datetime ), "%04d-%02d-%02d_%02d-%02d", newtime->tm_year + 1900,
-				 newtime->tm_mon + 1, newtime->tm_mday, newtime->tm_hour, newtime->tm_min );
-
-	// combine
-	Q_snprintfz( level.autorecord_name, sizeof( level.autorecord_name ), "%s_%s_auto%04i",
-				 datetime, level.mapname, (int)brandom( 1, 9999 ) );
+	Q_snprintfz( level.autorecord_name, sizeof( level.autorecord_name ), "%s_%s_auto%04i", date, level.mapname, (int)brandom( 1, 9999 ) );
 
 	trap_Cmd_ExecuteText( EXEC_APPEND, va( "serverrecord %s\n", level.autorecord_name ) );
 }

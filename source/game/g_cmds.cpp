@@ -433,38 +433,17 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 }
 
 static void Cmd_CoinToss_f( edict_t *ent ) {
-	bool qtails;
-	char *s;
-	char upper[MAX_STRING_CHARS];
-
 	if( GS_MatchState( &server_gs ) > MATCH_STATE_WARMUP && !GS_MatchPaused( &server_gs ) ) {
 		G_PrintMsg( ent, "You can only toss coins during warmup or timeouts\n" );
 		return;
 	}
+
 	if( CheckFlood( ent, false ) ) {
 		return;
 	}
 
-	if( trap_Cmd_Argc() < 2 || ( Q_stricmp( "heads", trap_Cmd_Argv( 1 ) ) && Q_stricmp( "tails", trap_Cmd_Argv( 1 ) ) ) ) {
-		//it isn't a valid token
-		G_PrintMsg( ent, "You have to choose heads or tails when tossing a coin\n" );
-		return;
-	}
-
-	Q_strncpyz( upper, trap_Cmd_Argv( 1 ), sizeof( upper ) );
-	s = upper;
-	while( *s ) {
-		*s = toupper( *s );
-		s++;
-	}
-
-	qtails = ( Q_stricmp( "heads", trap_Cmd_Argv( 1 ) ) != 0 ) ? true : false;
-	if( qtails == ( rand() & 1 ) ) {
-		G_PrintMsg( NULL, S_COLOR_YELLOW "COINTOSS %s: " S_COLOR_WHITE "It was %s! %s " S_COLOR_WHITE "tossed a coin and " S_COLOR_GREEN "won!\n", upper, trap_Cmd_Argv( 1 ), ent->r.client->netname );
-		return;
-	}
-
-	G_PrintMsg( NULL, S_COLOR_YELLOW "COINTOSS %s: " S_COLOR_WHITE "It was %s! %s " S_COLOR_WHITE "tossed a coin and " S_COLOR_RED "lost!\n", upper, qtails ? "heads" : "tails", ent->r.client->netname );
+	bool won = random_p( &sv.rng, 0.5f );
+	G_PrintMsg( NULL, "%s%s tossed a coin and %s!\n", won ? S_COLOR_GREEN : S_COLOR_RED, ent->r.client->netname, won ? "won" : "lost" );
 }
 
 /*

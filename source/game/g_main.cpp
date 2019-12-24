@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include <time.h>
+
 #include "game/g_local.h"
 
 game_locals_t game;
@@ -166,14 +168,14 @@ void G_GamestatSetFlag( int flag, bool b ) {
 * This will be called when the dll is first loaded, which
 * only happens when a new game is started or a save game is loaded.
 */
-void G_Init( unsigned int seed, unsigned int framemsec ) {
+void G_Init( unsigned int framemsec ) {
 	gamepool = _Mem_AllocPool( NULL, "Game", MEMPOOL_GAME, __FILE__, __LINE__ );
 
 	cvar_t *g_maxentities;
 
 	G_Printf( "==== G_Init ====\n" );
 
-	srand( seed );
+	srand( time( NULL ) );
 
 	G_InitGameShared();
 

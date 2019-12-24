@@ -381,5 +381,5 @@ void SV_InitGameProgs( void ) {
 
 	SV_SetServerConfigStrings();
 
-	ge->Init( time( NULL ), svc.snapFrameTime );
+	ge->Init( svc.snapFrameTime );
 }

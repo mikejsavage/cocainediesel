@@ -1,5 +1,4 @@
-#ifndef Q_TRIE_H
-#define Q_TRIE_H
+#pragma once
 
 /* Forward declaration of trie structures (layout hidden) */
 struct trie_s;
@@ -135,5 +134,3 @@ trie_error_t Trie_DumpIf(
 trie_error_t Trie_FreeDump(
 	struct trie_dump_s *dump        // allocated by Trie_Dump or Trie_DumpIf
 	);
-
-#endif

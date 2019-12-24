@@ -79,6 +79,23 @@ Span< const char > ParseSpan( Span< const char > * cursor, ParseStopOnNewLine st
 
 bool ParseFloat( Span< const char > str, float * x );
 
+bool StrEqual( Span< const char > lhs, Span< const char > rhs );
+bool StrEqual( Span< const char > lhs, const char * rhs );
+bool StrEqual( const char * rhs, Span< const char > lhs );
+
+bool StrCaseEqual( Span< const char > lhs, Span< const char > rhs );
+bool StrCaseEqual( Span< const char > lhs, const char * rhs );
+bool StrCaseEqual( const char * rhs, Span< const char > lhs );
+
+template< size_t N >
+bool operator==( Span< const char > span, const char ( &str )[ N ] ) {
+	return StrCaseEqual( span, Span< const char >( str, N - 1 ) );
+}
+
+template< size_t N > bool operator==( const char ( &str )[ N ], Span< const char > span ) { return span == str; }
+template< size_t N > bool operator!=( Span< const char > span, const char ( &str )[ N ] ) { return !( span == str ); }
+template< size_t N > bool operator!=( const char ( &str )[ N ], Span< const char > span ) { return !( span == str ); }
+
 // data is an in/out parm, returns a parsed out token
 char *COM_ParseExt2_r( char *token, size_t token_size, const char **data_p, bool nl, bool sq );
 #define COM_ParseExt_r( token, token_size, data_p, nl ) COM_ParseExt2_r( token, token_size, (const char **)data_p, nl, true )

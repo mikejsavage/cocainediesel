@@ -103,15 +103,6 @@ char * Allocator::operator()( const char * fmt, const Rest & ... rest ) {
 
 void format( FormatBuffer * fb, Span< const char > arr, const FormatOpts & opts );
 
-template< size_t N >
-bool operator==( Span< const char > span, const char ( &str )[ N ] ) {
-	return span.n == N - 1 && memcmp( span.ptr, str, span.n ) == 0;
-}
-
-template< size_t N > bool operator==( const char ( &str )[ N ], Span< const char > span ) { return span == str; }
-template< size_t N > bool operator!=( Span< const char > span, const char ( &str )[ N ] ) { return !( span == str ); }
-template< size_t N > bool operator!=( const char ( &str )[ N ], Span< const char > span ) { return !( span == str ); }
-
 /*
  * breaks
  */

@@ -407,6 +407,30 @@ bool ParseFloat( Span< const char > str, float * x ) {
 	return end == buf + str.n;
 }
 
+bool StrEqual( Span< const char > lhs, Span< const char > rhs ) {
+	return lhs.n == rhs.n && memcmp( lhs.ptr, rhs.ptr, lhs.n ) == 0;
+}
+
+bool StrEqual( Span< const char > lhs, const char * rhs ) {
+	return StrEqual( lhs, Span< const char >( rhs, strlen( rhs ) ) );
+}
+
+bool StrEqual( const char * rhs, Span< const char > lhs ) {
+	return StrEqual( lhs, rhs );
+}
+
+bool StrCaseEqual( Span< const char > lhs, Span< const char > rhs ) {
+	return lhs.n == rhs.n && Q_strnicmp( lhs.ptr, rhs.ptr, lhs.n ) == 0;
+}
+
+bool StrCaseEqual( Span< const char > lhs, const char * rhs ) {
+	return StrCaseEqual( lhs, Span< const char >( rhs, strlen( rhs ) ) );
+}
+
+bool StrCaseEqual( const char * rhs, Span< const char > lhs ) {
+	return StrCaseEqual( lhs, rhs );
+}
+
 /*
 * COM_ParseExt2_r
 *

@@ -206,6 +206,10 @@ void SV_InitGame( void ) {
 		Cvar_GetLatchedVars( CVAR_LATCH );
 	}
 
+	u64 entropy[ 2 ];
+	CSPRNG_Bytes( entropy, sizeof( entropy ) );
+	svs.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
+
 	svs.initialized = true;
 
 	if( sv_skilllevel->integer > 2 ) {

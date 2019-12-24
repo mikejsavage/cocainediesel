@@ -806,11 +806,13 @@ void SV_ConnectionlessPacket( const socket_t *socket, const netadr_t *address, m
 	MSG_ReadInt32( msg );    // skip the -1 marker
 
 	const char * s = MSG_ReadStringLine( msg );
+	Cmd_TokenizeString( s );
 
-	Com_DPrintf( "Packet %s : %s\n", NET_AddressToString( address ), s );
+	const char * c = Cmd_Argv( 0 );
+	Com_DPrintf( "Packet %s : %s\n", NET_AddressToString( address ), c );
 
 	for( cmd = connectionless_cmds; cmd->name; cmd++ ) {
-		if( !strcmp( s, cmd->name ) ) {
+		if( !strcmp( c, cmd->name ) ) {
 			cmd->func( socket, address );
 			return;
 		}

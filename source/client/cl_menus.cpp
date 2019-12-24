@@ -724,6 +724,11 @@ static void GameMenuButton( const char * label, const char * command, bool * cli
 }
 
 static bool WeaponButton( int cash, int weapon, ImVec2 size, Vec4 * tint ) {
+	ImGui::PushStyleColor( ImGuiCol_Button, Vec4( 0 ) );
+	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0 ) );
+	ImGui::PushStyleColor( ImGuiCol_ButtonActive, Vec4( 0 ) );
+	defer { ImGui::PopStyleColor( 3 ); };
+
 	const Material * icon = cgs.media.shaderWeaponIcon[ weapon - 1 ];
 	Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
 
@@ -741,7 +746,7 @@ static bool WeaponButton( int cash, int weapon, ImVec2 size, Vec4 * tint ) {
 		tint->w = 0.5f;
 	}
 
-	return ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 0, vec4_black, *tint );
+	return ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 0, Vec4( 0 ), *tint );
 }
 
 

@@ -138,7 +138,7 @@ static void CL_DownloadComplete( void ) {
 	}
 
 	// Maplist hook so we also know when a new map is added
-	ML_Update();
+	RefreshMapList();
 
 	cls.download.successCount++;
 	cls.download.timeout = 0;

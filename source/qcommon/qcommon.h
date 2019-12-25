@@ -315,7 +315,7 @@ then searches for a command or variable that matches the first token.
 */
 
 typedef void ( *xcommand_t )( void );
-typedef char ** ( *xcompletionf_t )( const char *partial );
+typedef const char ** ( *xcompletionf_t )( const char *partial );
 
 void        Cmd_PreInit( void );
 void        Cmd_Init( void );
@@ -326,14 +326,14 @@ bool    Cmd_Exists( const char *cmd_name );
 bool    Cmd_CheckForCommand( char *text );
 void        Cmd_WriteAliases( int file );
 int         Cmd_CompleteAliasCountPossible( const char *partial );
-char        **Cmd_CompleteAliasBuildList( const char *partial );
+const char  **Cmd_CompleteAliasBuildList( const char *partial );
 int         Cmd_CompleteCountPossible( const char *partial );
-char        **Cmd_CompleteBuildList( const char *partial );
-char        **Cmd_CompleteBuildArgList( const char *partial );
-char        **Cmd_CompleteBuildArgListExt( const char *command, const char *arguments );
-char        **Cmd_CompleteFileList( const char *partial, const char *basedir, const char *extension, bool subdirectories );
+const char  **Cmd_CompleteBuildList( const char *partial );
+const char  **Cmd_CompleteBuildArgList( const char *partial );
+const char  **Cmd_CompleteBuildArgListExt( const char *command, const char *arguments );
+const char  **Cmd_CompleteFileList( const char *partial, const char *basedir, const char *extension, bool subdirectories );
 int         Cmd_Argc( void );
-const char        *Cmd_Argv( int arg );
+const char  *Cmd_Argv( int arg );
 char        *Cmd_Args( void );
 void        Cmd_TokenizeString( const char *text );
 void        Cmd_ExecuteString( const char *text );
@@ -793,17 +793,15 @@ MAPLIST SUBSYSTEM
 
 ==============================================================
 */
-void ML_Init( void );
-void ML_Shutdown( void );
-bool ML_Update( void );
 
-size_t ML_GetMapByNum( int num, char *out, size_t size );
+void InitMapList();
+void ShutdownMapList();
 
-bool ML_FilenameExists( const char *filename );
+void RefreshMapList();
+Span< const char * > GetMapList();
+bool MapExists( const char * name );
 
-bool ML_ValidateFilename( const char *filename );
-
-char **ML_CompleteBuildList( const char *partial );
+const char ** CompleteMapName( const char * prefix );
 
 /*
 ==============================================================

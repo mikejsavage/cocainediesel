@@ -119,18 +119,6 @@ static inline int trap_CM_LeafsInPVS( int leafnum1, int leafnum2 ) {
 	return GAME_IMPORT.CM_LeafsInPVS( leafnum1, leafnum2 );
 }
 
-static inline bool trap_ML_Update( void ) {
-	return GAME_IMPORT.ML_Update() == true;
-}
-
-static inline bool trap_ML_FilenameExists( const char *filename ) {
-	return GAME_IMPORT.ML_FilenameExists( filename ) == true;
-}
-
-static inline size_t trap_ML_GetMapByNum( int num, char *out, size_t size ) {
-	return GAME_IMPORT.ML_GetMapByNum( num, out, size );
-}
-
 static inline int trap_FakeClientConnect( char *fakeUserinfo, char *fakeSocketType, const char *fakeIP ) {
 	return GAME_IMPORT.FakeClientConnect( fakeUserinfo, fakeSocketType, fakeIP );
 }

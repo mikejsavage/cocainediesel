@@ -1977,22 +1977,6 @@ static void asFunc_Cbuf_ExecuteText( asstring_t *str ) {
 	Cbuf_ExecuteText( EXEC_APPEND, str->buffer );
 }
 
-static bool asFunc_ML_FilenameExists( asstring_t *filename ) {
-	return trap_ML_FilenameExists( filename->buffer );
-}
-
-static asstring_t *asFunc_ML_GetMapByNum( int num ) {
-	char mapname[MAX_QPATH];
-	asstring_t *data;
-
-	if( !trap_ML_GetMapByNum( num, mapname, sizeof( mapname ) ) ) {
-		return NULL;
-	}
-
-	data = game.asExport->asStringFactoryBuffer( (char *)mapname, strlen( mapname ) );
-	return data;
-}
-
 static int asFunc_ImageIndex( asstring_t *str ) {
 	if( !str || !str->buffer ) {
 		return 0;
@@ -2231,9 +2215,6 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "Entity @G_FireGrenade( const Vec3 &in origin, const Vec3 &in angles, int speed, int radius, int damage, int knockback, Entity @owner )", asFUNCTION( asFunc_FireGrenade ), NULL },
 	{ "void G_FireRiotgun( const Vec3 &in origin, const Vec3 &in angles, int range, int spread, int count, int damage, int knockback, Entity @owner )", asFUNCTION( asFunc_FireRiotgun ), NULL },
 	{ "void G_FireBullet( const Vec3 &in origin, const Vec3 &in angles, int range, int spread, int damage, int knockback, Entity @owner )", asFUNCTION( asFunc_FireBullet ), NULL },
-
-	{ "bool ML_FilenameExists( String & )", asFUNCTION( asFunc_ML_FilenameExists ), NULL },
-	{ "const String @ML_GetMapByNum( int num )", asFUNCTION( asFunc_ML_GetMapByNum ), NULL },
 
 	{ NULL }
 };

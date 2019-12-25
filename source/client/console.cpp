@@ -316,8 +316,8 @@ void Con_Draw() {
 	QMutex_Unlock( console.mutex );
 }
 
-static void Con_DisplayList( char ** list ) {
-	for( int i = 0; list[ i ] != NULL; i++ ) {
+static void Con_DisplayList( const char ** list ) {
+	for( size_t i = 0; list[ i ] != NULL; i++ ) {
 		Com_Printf( "%s ", list[ i ] );
 	}
 	Com_Printf( "\n" );
@@ -347,7 +347,7 @@ static void TabCompletion( char * buf, int buf_size ) {
 	int a = Cmd_CompleteAliasCountPossible( input );
 	int ca = 0;
 
-	char ** completion_lists[ 4 ] = { };
+	const char ** completion_lists[ 4 ] = { };
 
 	const char * completion = NULL;
 
@@ -393,7 +393,7 @@ static void TabCompletion( char * buf, int buf_size ) {
 	for( size_t i = 0; i < ARRAY_COUNT( completion_lists ); i++ ) {
 		if( completion_lists[ i ] == NULL )
 			continue;
-		char ** candidate = &completion_lists[ i ][ 0 ];
+		const char ** candidate = &completion_lists[ i ][ 0 ];
 		while( *candidate != NULL ) {
 			common_prefix_len = min( common_prefix_len, CommonPrefixLength( completion, *candidate ) );
 			candidate++;

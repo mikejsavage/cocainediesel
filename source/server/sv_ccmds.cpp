@@ -86,14 +86,12 @@ found_player:
 * gamemap: just start the map
 */
 static void SV_Map_f( void ) {
-	const char *map;
-	char mapname[MAX_CONFIGSTRING_CHARS];
-	bool found = false;
-
 	if( Cmd_Argc() < 2 ) {
 		Com_Printf( "Usage: %s <map>\n", Cmd_Argv( 0 ) );
 		return;
 	}
+
+	const char * map;
 
 	// if map "<map>" is used Cmd_Args() will return the "" as well.
 	if( Cmd_Argc() == 2 ) {
@@ -104,28 +102,12 @@ static void SV_Map_f( void ) {
 
 	Com_DPrintf( "SV_GameMap(%s)\n", map );
 
-	// applies to fullnames and filenames (whereas + strlen( "maps/" ) wouldnt)
-	if( strlen( map ) >= MAX_CONFIGSTRING_CHARS ) {
-		Com_Printf( "Map name too long.\n" );
-		return;
-	}
-
-	Q_strncpyz( mapname, map, sizeof( mapname ) );
-	if( ML_ValidateFilename( mapname ) ) {
-		COM_StripExtension( mapname );
-		if( ML_FilenameExists( mapname ) ) {
-			found = true;
-		} else {
-			ML_Update();
-			if( ML_FilenameExists( mapname ) ) {
-				found = true;
-			}
+	if( !MapExists( map ) ) {
+		RefreshMapList();
+		if( !MapExists( map ) ) {
+			Com_Printf( "Couldn't find map: %s\n", map );
+			return;
 		}
-	}
-
-	if( !found ) {
-		Com_Printf( "Couldn't find map: %s\n", map );
-		return;
 	}
 
 	if( !Q_stricmp( Cmd_Argv( 0 ), "map" ) || !Q_stricmp( Cmd_Argv( 0 ), "devmap" ) ) {
@@ -135,14 +117,7 @@ static void SV_Map_f( void ) {
 	SV_UpdateMaster();
 
 	// start up the next map
-	SV_Map( mapname, !Q_stricmp( Cmd_Argv( 0 ), "devmap" ) );
-}
-
-/*
-* SV_MapComplete_f
-*/
-static char **SV_MapComplete_f( const char *partial ) {
-	return ML_CompleteBuildList( partial );
+	SV_Map( map, !Q_stricmp( Cmd_Argv( 0 ), "devmap" ) );
 }
 
 //===============================================================
@@ -271,9 +246,9 @@ void SV_InitOperatorCommands( void ) {
 	Cmd_AddCommand( "serverrecordcancel", SV_Demo_Cancel_f );
 	Cmd_AddCommand( "serverrecordpurge", SV_Demo_Purge_f );
 
-	Cmd_SetCompletionFunc( "map", SV_MapComplete_f );
-	Cmd_SetCompletionFunc( "devmap", SV_MapComplete_f );
-	Cmd_SetCompletionFunc( "gamemap", SV_MapComplete_f );
+	Cmd_SetCompletionFunc( "map", CompleteMapName );
+	Cmd_SetCompletionFunc( "devmap", CompleteMapName );
+	Cmd_SetCompletionFunc( "gamemap", CompleteMapName );
 }
 
 /*

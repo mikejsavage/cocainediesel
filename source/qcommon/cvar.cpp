@@ -734,9 +734,9 @@ int Cvar_CompleteCountPossible( const char *partial ) {
 /*
 * CVar_CompleteBuildList
 */
-char **Cvar_CompleteBuildList( const char *partial ) {
+const char **Cvar_CompleteBuildList( const char *partial ) {
 	struct trie_dump_s *dump = NULL;
-	char **buf;
+	const char **buf;
 	unsigned int i;
 
 	assert( cvar_trie );
@@ -747,7 +747,7 @@ char **Cvar_CompleteBuildList( const char *partial ) {
 	Trie_Dump( cvar_trie, partial, TRIE_DUMP_VALUES, &dump );
 #endif
 	QMutex_Unlock( cvar_mutex );
-	buf = (char **) Mem_TempMalloc( sizeof( char * ) * ( dump->size + 1 ) );
+	buf = (const char **) Mem_TempMalloc( sizeof( char * ) * ( dump->size + 1 ) );
 	for( i = 0; i < dump->size; ++i )
 		buf[i] = ( ( cvar_t * ) dump->key_value_vector[i].value )->name;
 	buf[dump->size] = NULL;
@@ -758,16 +758,16 @@ char **Cvar_CompleteBuildList( const char *partial ) {
 /*
 * Cvar_CompleteBuildListWithFlag
 */
-char **Cvar_CompleteBuildListWithFlag( const char *partial, cvar_flag_t flag ) {
+const char **Cvar_CompleteBuildListWithFlag( const char *partial, cvar_flag_t flag ) {
 	struct trie_dump_s *dump = NULL;
-	char **buf;
+	const char **buf;
 	unsigned int i;
 
 	assert( cvar_trie );
 	QMutex_Lock( cvar_mutex );
 	Trie_DumpIf( cvar_trie, partial, TRIE_DUMP_VALUES, Cvar_HasFlags, &flag, &dump );
 	QMutex_Unlock( cvar_mutex );
-	buf = (char **) Mem_TempMalloc( sizeof( char * ) * ( dump->size + 1 ) );
+	buf = (const char **) Mem_TempMalloc( sizeof( char * ) * ( dump->size + 1 ) );
 	for( i = 0; i < dump->size; ++i )
 		buf[i] = ( ( cvar_t * ) dump->key_value_vector[i].value )->name;
 	buf[dump->size] = NULL;
@@ -778,14 +778,14 @@ char **Cvar_CompleteBuildListWithFlag( const char *partial, cvar_flag_t flag ) {
 /*
 * Cvar_CompleteBuildListUser
 */
-char **Cvar_CompleteBuildListUser( const char *partial ) {
+const char **Cvar_CompleteBuildListUser( const char *partial ) {
 	return Cvar_CompleteBuildListWithFlag( partial, CVAR_USERINFO );
 }
 
 /*
 * Cvar_CompleteBuildListServer
 */
-char **Cvar_CompleteBuildListServer( const char *partial ) {
+const char **Cvar_CompleteBuildListServer( const char *partial ) {
 	return Cvar_CompleteBuildListWithFlag( partial, CVAR_SERVERINFO );
 }
 

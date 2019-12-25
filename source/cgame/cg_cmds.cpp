@@ -527,16 +527,16 @@ static void CG_Viewpos_f( void ) {
 *
 * Helper function
 */
-static char **CG_PlayerNamesCompletionExt_f( const char *partial, bool teamOnly ) {
+static const char **CG_PlayerNamesCompletionExt_f( const char *partial, bool teamOnly ) {
 	int i;
 	int team = cg_entities[cgs.playerNum + 1].current.team;
-	char **matches = NULL;
+	const char **matches = NULL;
 	int num_matches = 0;
 
 	if( partial ) {
 		size_t partial_len = strlen( partial );
 
-		matches = (char **) CG_Malloc( sizeof( char * ) * ( client_gs.maxclients + 1 ) );
+		matches = (const char **) CG_Malloc( sizeof( char * ) * ( client_gs.maxclients + 1 ) );
 		for( i = 0; i < client_gs.maxclients; i++ ) {
 			cg_clientInfo_t *info = cgs.clientInfo + i;
 			if( !info->name[0] ) {
@@ -558,14 +558,14 @@ static char **CG_PlayerNamesCompletionExt_f( const char *partial, bool teamOnly 
 /*
 * CG_PlayerNamesCompletion_f
 */
-static char **CG_PlayerNamesCompletion_f( const char *partial ) {
+static const char **CG_PlayerNamesCompletion_f( const char *partial ) {
 	return CG_PlayerNamesCompletionExt_f( partial, false );
 }
 
 /*
 * CG_TeamPlayerNamesCompletion_f
 */
-static char **CG_TeamPlayerNamesCompletion_f( const char *partial ) {
+static const char **CG_TeamPlayerNamesCompletion_f( const char *partial ) {
 	return CG_PlayerNamesCompletionExt_f( partial, true );
 }
 

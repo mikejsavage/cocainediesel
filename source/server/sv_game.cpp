@@ -343,10 +343,6 @@ void SV_InitGameProgs( void ) {
 	import.ConfigString = PF_ConfigString;
 	import.GetConfigString = PF_GetConfigString;
 
-	import.ML_Update = ML_Update;
-	import.ML_GetMapByNum = ML_GetMapByNum;
-	import.ML_FilenameExists = ML_FilenameExists;
-
 	import.FakeClientConnect = SVC_FakeConnect;
 	import.DropClient = PF_DropClient;
 	import.GetClientState = PF_GetClientState;

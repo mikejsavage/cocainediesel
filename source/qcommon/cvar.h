@@ -53,7 +53,7 @@ int     Cvar_Integer( const char *var_name );
 void        Cmd_WriteAliases( int file );
 cvar_t      *Cvar_Find( const char *var_name );
 int     Cvar_CompleteCountPossible( const char *partial );
-char **Cvar_CompleteBuildList( const char *partial );
+const char **Cvar_CompleteBuildList( const char *partial );
 char *Cvar_TabComplete( const char *partial );
 void        Cvar_GetLatchedVars( cvar_flag_t flags );
 void        Cvar_FixCheatVars( void );

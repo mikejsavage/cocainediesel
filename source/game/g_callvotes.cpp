@@ -87,14 +87,11 @@ static callvotetype_t *callvotesHeadNode = NULL;
 #define MAPLIST_SEPS " ,"
 
 static void G_VoteMapExtraHelp( edict_t *ent ) {
-	char *s;
-	char buffer[MAX_STRING_CHARS];
 	char message[MAX_STRING_CHARS / 4 * 3];    // use buffer to send only one print message
-	int nummaps, i, start;
+	int start;
 	size_t length, msglength;
 
-	// update the maplist
-	trap_ML_Update();
+	RefreshMapList();
 
 	if( g_enforce_map_pool->integer && strlen( g_map_pool->string ) > 2 ) {
 		G_PrintMsg( ent, "Maps available [map pool enforced]:\n %s\n", g_map_pool->string );
@@ -107,8 +104,7 @@ static void G_VoteMapExtraHelp( edict_t *ent ) {
 	memset( message, 0, sizeof( message ) );
 	strcpy( message, "- Available maps:" );
 
-	for( nummaps = 0; trap_ML_GetMapByNum( nummaps, NULL, 0 ); nummaps++ )
-		;
+	Span< const char * > maps = GetMapList();
 
 	if( Cmd_Argc() > 2 ) {
 		start = atoi( Cmd_Argv( 2 ) ) - 1;
@@ -119,20 +115,20 @@ static void G_VoteMapExtraHelp( edict_t *ent ) {
 		start = 0;
 	}
 
-	i = start;
+	int i = start;
 	msglength = strlen( message );
-	while( trap_ML_GetMapByNum( i, buffer, sizeof( buffer ) ) ) {
-		i++;
-		s = buffer;
-		length = strlen( s );
+
+	while( i < maps.n ) {
+		length = strlen( maps[ i ] );
 		if( msglength + length + 3 >= sizeof( message ) ) {
 			break;
 		}
 
 		strcat( message, " " );
-		strcat( message, s );
+		strcat( message, maps[ i ] );
 
 		msglength += length + 1;
+		i++;
 	}
 
 	if( i == start ) {
@@ -141,7 +137,7 @@ static void G_VoteMapExtraHelp( edict_t *ent ) {
 
 	G_PrintMsg( ent, "%s\n", message );
 
-	if( i < nummaps ) {
+	if( i < maps.n ) {
 		G_PrintMsg( ent, "Type 'callvote map %i' for more maps\n", i + 1 );
 	}
 }
@@ -174,7 +170,7 @@ static bool G_VoteMapValidate( callvotedata_t *data, bool first ) {
 		return false;
 	}
 
-	if( trap_ML_FilenameExists( mapname ) ) {
+	if( MapExists( mapname ) ) {
 		// check if valid map is in map pool when on
 		if( g_enforce_map_pool->integer ) {
 			char *s, *tok;

@@ -2053,8 +2053,6 @@ void CL_Init( void ) {
 
 	CL_InitServerList();
 
-	ML_Init();
-
 	Mem_DebugCheckSentinelsGlobal();
 }
 
@@ -2071,7 +2069,6 @@ void CL_Shutdown( void ) {
 
 	S_StopAllSounds( true );
 
-	ML_Shutdown();
 	CL_ShutDownServerList();
 
 	CL_WriteConfiguration( "config.cfg" );

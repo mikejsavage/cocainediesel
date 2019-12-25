@@ -54,7 +54,7 @@ static UIState uistate;
 
 static MainMenuState mainmenu_state;
 static int selected_server;
-static int selected_map;
+static size_t selected_map;
 
 static GameMenuState gamemenu_state;
 static constexpr int MAX_CASH = 500;
@@ -572,17 +572,13 @@ static void CreateServer() {
 
 	{
 		SettingLabel( "Map" );
-		char selectedmapname[ 128 ];
-		ML_GetMapByNum( selected_map, selectedmapname, sizeof( selectedmapname ) );
+
+		Span< const char * > maps = GetMapList();
 
 		ImGui::PushItemWidth( 200 );
-		if( ImGui::BeginCombo( "##map", selectedmapname ) ) {
-			for( int i = 0; true; i++ ) {
-				char mapname[ 128 ];
-				if( ML_GetMapByNum( i, mapname, sizeof( mapname ) ) == 0 )
-					break;
-
-				if( ImGui::Selectable( mapname, i == selected_map ) )
+		if( ImGui::BeginCombo( "##map", maps[ selected_map ] ) ) {
+			for( size_t i = 0; i < maps.n; i++ ) {
+				if( ImGui::Selectable( maps[ i ], i == selected_map ) )
 					selected_map = i;
 				if( i == selected_map )
 					ImGui::SetItemDefaultFocus();
@@ -595,9 +591,9 @@ static void CreateServer() {
 	CvarCheckbox( "Public", "sv_public", "0", CVAR_LATCH );
 
 	if( ImGui::Button( "Create server" ) ) {
-		char mapname[ 128 ];
-		if( ML_GetMapByNum( selected_map, mapname, sizeof( mapname ) ) != 0 ) {
-			String< 256 > buf( "map \"{}\"\n", mapname );
+		Span< const char * > maps = GetMapList();
+		if( selected_map < maps.n ) {
+			String< 256 > buf( "map \"{}\"\n", maps[ selected_map ] );
 			Cbuf_AddText( buf );
 		}
 	}

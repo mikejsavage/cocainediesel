@@ -384,7 +384,7 @@ static void CL_StartDemo( const char *demoname, bool pause_on_stop ) {
 /*
 * CL_DemoComplete
 */
-char **CL_DemoComplete( const char *partial ) {
+const char **CL_DemoComplete( const char *partial ) {
 	return Cmd_CompleteFileList( partial, "demos", APP_DEMO_EXTENSION_STR, true );
 }
 

@@ -633,6 +633,15 @@ __declspec( noreturn ) void Com_Error( com_error_code_t code, _Printf_format_str
 __declspec( noreturn ) void Com_Quit( void );
 #endif
 
+template< typename... Rest >
+void Com_GGPrintNL( const char * fmt, const Rest & ... rest ) {
+	char buf[ 4096 ];
+	ggformat( buf, sizeof( buf ), fmt, rest... );
+	Com_Printf( "%s", buf );
+}
+
+#define Com_GGPrint( fmt, ... ) Com_GGPrintNL( fmt "\n", #__VA_ARGS__ )
+
 void        Com_DeferQuit( void );
 
 int         Com_ClientState( void );        // this should have just been a cvar...

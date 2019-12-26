@@ -94,12 +94,12 @@ void CG_CheckPredictionError( void ) {
 	// save the prediction error for interpolation
 	if( Abs( delta[0] ) > 128 || Abs( delta[1] ) > 128 || Abs( delta[2] ) > 128 ) {
 		if( cg_showMiss->integer ) {
-			CG_Printf( "prediction miss on %" PRIi64 ": %i\n", cg.frame.serverFrame, Abs( delta[0] ) + Abs( delta[1] ) + Abs( delta[2] ) );
+			Com_Printf( "prediction miss on %" PRIi64 ": %i\n", cg.frame.serverFrame, Abs( delta[0] ) + Abs( delta[1] ) + Abs( delta[2] ) );
 		}
 		VectorClear( cg.predictionError );          // a teleport or something
 	} else {
 		if( cg_showMiss->integer && ( delta[0] || delta[1] || delta[2] ) ) {
-			CG_Printf( "prediction miss on %" PRIi64" : %i\n", cg.frame.serverFrame, Abs( delta[0] ) + Abs( delta[1] ) + Abs( delta[2] ) );
+			Com_Printf( "prediction miss on %" PRIi64" : %i\n", cg.frame.serverFrame, Abs( delta[0] ) + Abs( delta[1] ) + Abs( delta[2] ) );
 		}
 		VectorCopy( cg.frame.playerState.pmove.origin, cg.predictedOrigins[frame] );
 		VectorCopy( delta, cg.predictionError ); // save for error interpolation
@@ -186,7 +186,7 @@ static bool CG_ClipEntityContact( const vec3_t origin, const vec3_t mins, const 
 	// convert the box to compare to absolute coordinates
 	VectorAdd( origin, mins, absmins );
 	VectorAdd( origin, maxs, absmaxs );
-	trap_CM_TransformedBoxTrace( &tr, vec3_origin, vec3_origin, absmins, absmaxs, cmodel, MASK_ALL, entorigin, entangles );
+	CM_TransformedBoxTrace( cl.cms, &tr, vec3_origin, vec3_origin, absmins, absmaxs, cmodel, MASK_ALL, entorigin, entangles );
 	return tr.startsolid == true || tr.allsolid == true;
 }
 
@@ -248,7 +248,7 @@ static void CG_ClipMoveToEntities( const vec3_t start, const vec3_t mins, const 
 		}
 
 		if( ent->solid == SOLID_BMODEL ) { // special value for bmodel
-			cmodel = trap_CM_InlineModel( ent->modelindex );
+			cmodel = CM_InlineModel( cl.cms, ent->modelindex );
 			if( !cmodel ) {
 				continue;
 			}
@@ -274,13 +274,13 @@ static void CG_ClipMoveToEntities( const vec3_t start, const vec3_t mins, const 
 			VectorClear( angles ); // boxes don't rotate
 
 			if( ent->type == ET_PLAYER || ent->type == ET_CORPSE ) {
-				cmodel = trap_CM_OctagonModelForBBox( bmins, bmaxs );
+				cmodel = CM_OctagonModelForBBox( cl.cms, bmins, bmaxs );
 			} else {
-				cmodel = trap_CM_ModelForBBox( bmins, bmaxs );
+				cmodel = CM_ModelForBBox( cl.cms, bmins, bmaxs );
 			}
 		}
 
-		trap_CM_TransformedBoxTrace( &trace, (float *)start, (float *)end, (float *)mins, (float *)maxs, cmodel, contentmask, origin, angles );
+		CM_TransformedBoxTrace( cl.cms, &trace, (float *)start, (float *)end, (float *)mins, (float *)maxs, cmodel, contentmask, origin, angles );
 		if( trace.allsolid || trace.fraction < tr->fraction ) {
 			trace.ent = ent->number;
 			*tr = trace;
@@ -299,7 +299,7 @@ static void CG_ClipMoveToEntities( const vec3_t start, const vec3_t mins, const 
 */
 void CG_Trace( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask ) {
 	// check against world
-	trap_CM_TransformedBoxTrace( t, start, end, mins, maxs, NULL, contentmask, NULL, NULL );
+	CM_TransformedBoxTrace( cl.cms, t, start, end, mins, maxs, NULL, contentmask, NULL, NULL );
 	t->ent = t->fraction < 1.0 ? 0 : -1; // world entity is 0
 	if( t->fraction == 0 ) {
 		return; // blocked by the world
@@ -318,7 +318,7 @@ int CG_PointContents( const vec3_t point ) {
 	struct cmodel_s *cmodel;
 	int contents;
 
-	contents = trap_CM_TransformedPointContents( (float *)point, NULL, NULL, NULL );
+	contents = CM_TransformedPointContents( cl.cms, (float *)point, NULL, NULL, NULL );
 
 	for( i = 0; i < cg_numSolids; i++ ) {
 		ent = cg_solidList[i];
@@ -326,9 +326,9 @@ int CG_PointContents( const vec3_t point ) {
 			continue;
 		}
 
-		cmodel = trap_CM_InlineModel( ent->modelindex );
+		cmodel = CM_InlineModel( cl.cms, ent->modelindex );
 		if( cmodel ) {
-			contents |= trap_CM_TransformedPointContents( (float *)point, cmodel, ent->origin, ent->angles );
+			contents |= CM_TransformedPointContents( cl.cms, (float *)point, cmodel, ent->origin, ent->angles );
 		}
 	}
 
@@ -428,7 +428,7 @@ void CG_PredictMovement( void ) {
 	// if we are too far out of date, just freeze
 	if( ucmdHead - ucmdExecuted >= CMD_BACKUP ) {
 		if( cg_showMiss->integer ) {
-			CG_Printf( "exceeded CMD_BACKUP\n" );
+			Com_Printf( "exceeded CMD_BACKUP\n" );
 		}
 
 		cg.predictingTimeStamp = cl.serverTime;

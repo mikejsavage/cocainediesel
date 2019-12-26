@@ -199,7 +199,7 @@ void target_laser_start( edict_t *self ) {
 			ent = G_Find( NULL, FOFS( targetname ), self->target );
 			if( !ent ) {
 				if( developer->integer ) {
-					G_Printf( "%s at %s: %s is a bad target\n", self->classname, vtos( self->s.origin ), self->target );
+					Com_Printf( "%s at %s: %s is a bad target\n", self->classname, vtos( self->s.origin ), self->target );
 				}
 			}
 			self->enemy = ent;
@@ -317,7 +317,7 @@ static void target_teleporter_use( edict_t *self, edict_t *other, edict_t *activ
 	dest = G_Find( NULL, FOFS( targetname ), self->target );
 	if( !dest ) {
 		if( developer->integer ) {
-			G_Printf( "Couldn't find destination.\n" );
+			Com_Printf( "Couldn't find destination.\n" );
 		}
 		return;
 	}
@@ -330,7 +330,7 @@ void SP_target_teleporter( edict_t *self ) {
 
 	if( !self->targetname ) {
 		if( developer->integer ) {
-			G_Printf( "untargeted %s at %s\n", self->classname, vtos( self->s.origin ) );
+			Com_Printf( "untargeted %s at %s\n", self->classname, vtos( self->s.origin ) );
 		}
 	}
 

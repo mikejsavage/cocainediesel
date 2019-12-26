@@ -460,8 +460,8 @@ void GClip_ClearWorld( void ) {
 	vec3_t world_mins, world_maxs;
 	struct cmodel_s *world_model;
 
-	world_model = trap_CM_InlineModel( 0 );
-	trap_CM_InlineModelBounds( world_model, world_mins, world_maxs );
+	world_model = CM_InlineModel( svs.cms, 0 );
+	CM_InlineModelBounds( svs.cms, world_model, world_mins, world_maxs );
 
 	GClip_Init_AreaGrid( &g_areagrid, world_mins, world_maxs );
 }
@@ -566,20 +566,20 @@ void GClip_LinkEntity( edict_t *ent ) {
 	ent->r.areanum = ent->r.areanum2 = -1;
 
 	// get all leafs, including solids
-	num_leafs = trap_CM_BoxLeafnums( ent->r.absmin, ent->r.absmax,
+	num_leafs = CM_BoxLeafnums( svs.cms, ent->r.absmin, ent->r.absmax,
 									 leafs, MAX_TOTAL_ENT_LEAFS, &topnode );
 
 	// set areas
 	for( i = 0; i < num_leafs; i++ ) {
-		clusters[i] = trap_CM_LeafCluster( leafs[i] );
-		area = trap_CM_LeafArea( leafs[i] );
+		clusters[i] = CM_LeafCluster( svs.cms, leafs[i] );
+		area = CM_LeafArea( svs.cms, leafs[i] );
 		if( area > -1 ) {
 			// doors may legally straggle two areas,
 			// but nothing should ever need more than that
 			if( ent->r.areanum > -1 && ent->r.areanum != area ) {
 				if( ent->r.areanum2 > -1 && ent->r.areanum2 != area ) {
 					if( developer->integer ) {
-						G_Printf( "Object %s touching 3 areas at %f %f %f\n",
+						Com_Printf( "Object %s touching 3 areas at %f %f %f\n",
 								  ( ent->classname ? ent->classname : "" ),
 								  ent->r.absmin[0], ent->r.absmin[1], ent->r.absmin[2] );
 					}
@@ -643,7 +643,7 @@ void GClip_SetAreaPortalState( edict_t *ent, bool open ) {
 	}
 
 	// change areaportal's state
-	trap_CM_SetAreaPortalState( ent->r.areanum, ent->r.areanum2, open );
+	CM_SetAreaPortalState( svs.cms, ent->r.areanum, ent->r.areanum2, open );
 }
 
 
@@ -677,9 +677,9 @@ static struct cmodel_s *GClip_CollisionModelForEntity( entity_state_t *s, entity
 
 	if( ISBRUSHMODEL( s->modelindex ) ) {
 		// explicit hulls in the BSP model
-		model = trap_CM_InlineModel( s->modelindex );
+		model = CM_InlineModel( svs.cms, s->modelindex );
 		if( !model ) {
-			G_Error( "MOVETYPE_PUSH with a non bsp model" );
+			Com_Error( ERR_DROP, "MOVETYPE_PUSH with a non bsp model" );
 		}
 
 		return model;
@@ -687,9 +687,9 @@ static struct cmodel_s *GClip_CollisionModelForEntity( entity_state_t *s, entity
 
 	// create a temp hull from bounding box sizes
 	if( s->type == ET_PLAYER || s->type == ET_CORPSE ) {
-		return trap_CM_OctagonModelForBBox( r->mins, r->maxs );
+		return CM_OctagonModelForBBox( svs.cms, r->mins, r->maxs );
 	} else {
-		return trap_CM_ModelForBBox( r->mins, r->maxs );
+		return CM_ModelForBBox( svs.cms, r->mins, r->maxs );
 	}
 }
 
@@ -707,7 +707,7 @@ static int GClip_PointContents( const vec3_t p, int timeDelta ) {
 	struct cmodel_s *cmodel;
 
 	// get base contents from world
-	contents = trap_CM_TransformedPointContents( p, NULL, NULL, NULL );
+	contents = CM_TransformedPointContents( svs.cms, p, NULL, NULL, NULL );
 
 	// or in contents from all the other entities
 	num = GClip_AreaEdicts( p, p, touch, MAX_EDICTS, AREA_SOLID, timeDelta );
@@ -718,7 +718,7 @@ static int GClip_PointContents( const vec3_t p, int timeDelta ) {
 		// might intersect, so do an exact clip
 		cmodel = GClip_CollisionModelForEntity( &clipEnt->s, &clipEnt->r );
 
-		c2 = trap_CM_TransformedPointContents( p, cmodel, clipEnt->s.origin, clipEnt->s.angles );
+		c2 = CM_TransformedPointContents( svs.cms, p, cmodel, clipEnt->s.origin, clipEnt->s.angles );
 		contents |= c2;
 	}
 
@@ -803,7 +803,7 @@ static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
 			angles = vec3_origin; // boxes don't rotate
 
 		}
-		trap_CM_TransformedBoxTrace( &trace, clip->start, clip->end,
+		CM_TransformedBoxTrace( svs.cms, &trace, clip->start, clip->end,
 									 clip->mins, clip->maxs, cmodel, clip->contentmask,
 									 touch->s.origin, angles );
 
@@ -876,7 +876,7 @@ static void GClip_Trace( trace_t *tr, const vec3_t start, const vec3_t mins, con
 		tr->ent = -1;
 	} else {
 		// clip to world
-		trap_CM_TransformedBoxTrace( tr, start, end, mins, maxs, NULL, contentmask, NULL, NULL );
+		CM_TransformedBoxTrace( svs.cms, tr, start, end, mins, maxs, NULL, contentmask, NULL, NULL );
 		tr->ent = tr->fraction < 1.0 ? world->s.number : -1;
 		if( tr->fraction == 0 ) {
 			return; // blocked by the world
@@ -924,7 +924,7 @@ void GClip_SetBrushModel( edict_t *ent, const char *name ) {
 	struct cmodel_s *cmodel;
 
 	if( !name ) {
-		G_Error( "GClip_SetBrushModel: NULL model in '%s'",
+		Com_Error( ERR_DROP, "GClip_SetBrushModel: NULL model in '%s'",
 				 ent->classname ? ent->classname : "no classname" );
 		return;
 	}
@@ -944,16 +944,16 @@ void GClip_SetBrushModel( edict_t *ent, const char *name ) {
 	// world model is special
 	if( !strcmp( name, "*0" ) ) {
 		ent->s.modelindex = 0;
-		cmodel = trap_CM_InlineModel( 0 );
-		trap_CM_InlineModelBounds( cmodel, ent->r.mins, ent->r.maxs );
+		cmodel = CM_InlineModel( svs.cms, 0 );
+		CM_InlineModelBounds( svs.cms, cmodel, ent->r.mins, ent->r.maxs );
 		return;
 	}
 
 	// brush model
 	ent->s.modelindex = trap_ModelIndex( name );
 	assert( ent->s.modelindex == (unsigned int)atoi( name + 1 ) );
-	cmodel = trap_CM_InlineModel( ent->s.modelindex );
-	trap_CM_InlineModelBounds( cmodel, ent->r.mins, ent->r.maxs );
+	cmodel = CM_InlineModel( svs.cms, ent->s.modelindex );
+	CM_InlineModelBounds( svs.cms, cmodel, ent->r.mins, ent->r.maxs );
 	GClip_LinkEntity( ent );
 }
 
@@ -972,12 +972,12 @@ bool GClip_EntityContact( const vec3_t mins, const vec3_t maxs, edict_t *ent ) {
 	}
 
 	if( ISBRUSHMODEL( ent->s.modelindex ) ) {
-		model = trap_CM_InlineModel( ent->s.modelindex );
+		model = CM_InlineModel( svs.cms, ent->s.modelindex );
 		if( !model ) {
-			G_Error( "MOVETYPE_PUSH with a non bsp model" );
+			Com_Error( ERR_DROP, "MOVETYPE_PUSH with a non bsp model" );
 		}
 
-		trap_CM_TransformedBoxTrace( &tr, vec3_origin, vec3_origin, mins, maxs, model,
+		CM_TransformedBoxTrace( svs.cms, &tr, vec3_origin, vec3_origin, mins, maxs, model,
 									 MASK_ALL, ent->s.origin, ent->s.angles );
 
 		return tr.startsolid || tr.allsolid ? true : false;

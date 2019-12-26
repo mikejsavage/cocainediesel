@@ -833,7 +833,7 @@ void G_AddCommand( const char *name, gamecommandfunc_t callback ) {
 
 	for( i = 0; blacklist[i] != NULL; i++ ) {
 		if( !Q_stricmp( blacklist[i], temp ) ) {
-			G_Printf( "WARNING: G_AddCommand: command name '%s' is write protected\n", temp );
+			Com_Printf( "WARNING: G_AddCommand: command name '%s' is write protected\n", temp );
 			return;
 		}
 	}
@@ -853,7 +853,7 @@ void G_AddCommand( const char *name, gamecommandfunc_t callback ) {
 	}
 
 	if( i == MAX_GAMECOMMANDS ) {
-		G_Error( "G_AddCommand: Couldn't find a free g_Commands spot for the new command. (increase MAX_GAMECOMMANDS)\n" );
+		Com_Error( ERR_DROP, "G_AddCommand: Couldn't find a free g_Commands spot for the new command. (increase MAX_GAMECOMMANDS)\n" );
 		return;
 	}
 

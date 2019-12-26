@@ -25,14 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // shared callbacks
 
 typedef struct {
-#ifndef _MSC_VER
-	void ( *Printf )( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-	void ( *Error )( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) ) __attribute__( ( noreturn ) );
-#else
-	void ( *Printf )( _Printf_format_string_ const char *format, ... );
-	void ( *Error )( _Printf_format_string_ const char *format, ... );
-#endif
-
 	void ( *Trace )( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask, int timeDelta );
 	entity_state_t *( *GetEntityState )( int entNum, int deltaTime );
 	int ( *PointContents )( const vec3_t point, int timeDelta );

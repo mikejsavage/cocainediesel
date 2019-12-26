@@ -86,34 +86,6 @@ cvar_t *cg_enemyModel;
 cvar_t *cg_enemyForceModel;
 
 /*
-* CG_Error
-*/
-void CG_Error( const char *format, ... ) {
-	va_list argptr;
-	char msg[1024];
-
-	va_start( argptr, format );
-	vsnprintf( msg, sizeof( msg ), format, argptr );
-	va_end( argptr );
-
-	trap_Error( msg );
-}
-
-/*
-* CG_Printf
-*/
-void CG_Printf( const char *format, ... ) {
-	va_list argptr;
-	char msg[1024];
-
-	va_start( argptr, format );
-	vsnprintf( msg, sizeof( msg ), format, argptr );
-	va_end( argptr );
-
-	trap_Print( msg );
-}
-
-/*
 * CG_LocalPrint
 */
 void CG_LocalPrint( const char *format, ... ) {
@@ -124,7 +96,7 @@ void CG_LocalPrint( const char *format, ... ) {
 	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
-	trap_PrintToLog( msg );
+	Con_Print( msg );
 
 	CG_AddChat( msg );
 }
@@ -193,8 +165,6 @@ static void CG_InitGameShared( void ) {
 	client_gs.maxclients = maxclients;
 
 	client_gs.api.PredictedEvent = CG_PredictedEvent;
-	client_gs.api.Error = CG_Error;
-	client_gs.api.Printf = CG_Printf;
 	client_gs.api.Trace = CG_GS_Trace;
 	client_gs.api.GetEntityState = CG_GS_GetEntityState;
 	client_gs.api.PointContents = CG_GS_PointContents;
@@ -492,7 +462,7 @@ void CG_OverrideWeapondef( int index, const char *cstring ) {
 
 	weapondef = GS_GetWeaponDef( weapon );
 	if( !weapondef ) {
-		CG_Error( "CG_OverrideWeapondef: Invalid weapon index\n" );
+		Com_Error( ERR_DROP, "CG_OverrideWeapondef: Invalid weapon index\n" );
 	}
 
 	firedef = &weapondef->firedef;
@@ -510,7 +480,7 @@ void CG_OverrideWeapondef( int index, const char *cstring ) {
 				);
 
 	if( i != 9 ) {
-		CG_Error( "CG_OverrideWeapondef: Bad configstring: %s \"%s\" (%i)\n", weapondef->name, cstring, i );
+		Com_Error( ERR_DROP, "CG_OverrideWeapondef: Bad configstring: %s \"%s\" (%i)\n", weapondef->name, cstring, i );
 	}
 }
 
@@ -535,7 +505,7 @@ void CG_Precache( void ) {
 	}
 
 	cgs.precacheStart = cgs.precacheCount;
-	cgs.precacheStartMsec = trap_Milliseconds();
+	cgs.precacheStartMsec = Sys_Milliseconds();
 
 	{
 		const char * name = cgs.configStrings[ CS_WORLDMODEL ];

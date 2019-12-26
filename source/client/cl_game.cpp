@@ -68,33 +68,6 @@ static inline bool CL_GameModule_CM_InPVS( const vec3_t p1, const vec3_t p2 ) {
 
 //======================================================================
 
-#ifndef _MSC_VER
-static void CL_GameModule_Error( const char *msg ) __attribute__( ( noreturn ) );
-#else
-__declspec( noreturn ) static void CL_GameModule_Error( const char *msg );
-#endif
-
-/*
-* CL_GameModule_Error
-*/
-static void CL_GameModule_Error( const char *msg ) {
-	Com_Error( ERR_DROP, "%s", msg );
-}
-
-/*
-* CL_GameModule_Print
-*/
-static void CL_GameModule_Print( const char *msg ) {
-	Com_Printf( "%s", msg );
-}
-
-/*
-* CL_GameModule_PrintToLog
-*/
-static void CL_GameModule_PrintToLog( const char *msg ) {
-	Con_Print( msg );
-}
-
 /*
 * CL_GameModule_GetConfigString
 */
@@ -152,7 +125,6 @@ static void CL_GameModule_NET_GetCurrentState( int64_t *incomingAcknowledged, in
 * CL_GameModule_Init
 */
 void CL_GameModule_Init( void ) {
-	int64_t start;
 	cgame_import_t import;
 
 	// stop all playing sounds
@@ -160,15 +132,7 @@ void CL_GameModule_Init( void ) {
 
 	CL_GameModule_Shutdown();
 
-	import.Error = CL_GameModule_Error;
-	import.Print = CL_GameModule_Print;
-	import.PrintToLog = CL_GameModule_PrintToLog;
-
-	import.Key_GetBindingBuf = Key_GetBindingBuf;
-	import.Key_KeynumToString = Key_KeynumToString;
-
 	import.GetConfigString = CL_GameModule_GetConfigString;
-	import.Milliseconds = Sys_Milliseconds;
 	import.DownloadRequest = CL_DownloadRequest;
 
 	import.NET_GetUserCmd = CL_GameModule_NET_GetUserCmd;
@@ -177,21 +141,9 @@ void CL_GameModule_Init( void ) {
 
 	import.VID_FlashWindow = VID_FlashWindow;
 
-	import.CM_NumInlineModels = CL_GameModule_CM_NumInlineModels;
-	import.CM_InlineModel = CL_GameModule_CM_InlineModel;
-	import.CM_TransformedBoxTrace = CL_GameModule_CM_TransformedBoxTrace;
-	import.CM_TransformedPointContents = CL_GameModule_CM_TransformedPointContents;
-	import.CM_ModelForBBox = CL_GameModule_CM_ModelForBBox;
-	import.CM_OctagonModelForBBox = CL_GameModule_CM_OctagonModelForBBox;
-	import.CM_InlineModelBounds = CL_GameModule_CM_InlineModelBounds;
-	import.CM_InPVS = CL_GameModule_CM_InPVS;
-
 	cge = GetCGameAPI( &import );
 
-	start = Sys_Milliseconds();
 	cge->Init( cls.servername, cl.playernum, cls.demo.playing, cls.demo.playing ? cls.demo.filename : "", cl.snapFrameTime );
-
-	Com_DPrintf( "CL_GameModule_Init: %.2f seconds\n", (float)( Sys_Milliseconds() - start ) * 0.001f );
 
 	cls.cgameActive = true;
 }

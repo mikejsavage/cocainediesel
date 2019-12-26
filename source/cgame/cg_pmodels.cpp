@@ -85,7 +85,7 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata * metadata, const char 
 
 	Span< const char > cursor = AssetString( filename );
 	if( cursor.ptr == NULL ) {
-		CG_Printf( "Couldn't find animation script: %s\n", filename );
+		Com_Printf( "Couldn't find animation script: %s\n", filename );
 		return false;
 	}
 
@@ -132,14 +132,14 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata * metadata, const char 
 			}
 			else {
 				String< 64 > meh( "{}", joint_name );
-				CG_Printf( "%s: Unknown joint name: %s\n", filename, meh.c_str() );
+				Com_Printf( "%s: Unknown joint name: %s\n", filename, meh.c_str() );
 				for( int i = 0; i < 7; i++ )
 					ParseToken( &cursor, Parse_StopOnNewLine );
 			}
 		}
 		else if( cmd == "clip" ) {
 			if( num_clips == PMODEL_TOTAL_ANIMATIONS ) {
-				CG_Printf( "%s: Too many animations\n", filename );
+				Com_Printf( "%s: Too many animations\n", filename );
 				break;
 			}
 
@@ -158,12 +158,12 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata * metadata, const char 
 		}
 		else {
 			String< 64 > meh( "{}", cmd );
-			CG_Printf( "%s: unrecognized cmd: %s\n", filename, meh.c_str() );
+			Com_Printf( "%s: unrecognized cmd: %s\n", filename, meh.c_str() );
 		}
 	}
 
 	if( num_clips < PMODEL_TOTAL_ANIMATIONS ) {
-		CG_Printf( "%s: Not enough animations (%i)\n", filename, num_clips );
+		Com_Printf( "%s: Not enough animations (%i)\n", filename, num_clips );
 		return false;
 	}
 
@@ -933,9 +933,8 @@ void CG_DrawPlayer( centity_t *cent ) {
 
 	DrawModel( meta->model, transform, color, pose.skinning_matrices );
 
-	bool speccing = cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR;
 	bool same_team = GS_TeamBasedGametype( &client_gs ) && cg.predictedPlayerState.stats[ STAT_TEAM ] == cent->current.team;
-	if( !corpse && ( speccing || same_team ) ) {
+	if( !corpse && ( ISREALSPECTATOR() || same_team ) ) {
 		DrawModelSilhouette( meta->model, transform, color, pose.skinning_matrices );
 	}
 
@@ -961,7 +960,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 			Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag );
 			DrawModel( attached_model, tag_transform, vec4_white );
 
-			if( speccing || same_team ) {
+			if( ISREALSPECTATOR() || same_team ) {
 				DrawModelSilhouette( attached_model, tag_transform, color );
 			}
 		}

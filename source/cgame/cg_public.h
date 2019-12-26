@@ -65,23 +65,7 @@ typedef struct snapshot_s {
 // functions provided by the main engine
 //
 typedef struct {
-	// drops to console a client game error
-#ifndef _MSC_VER
-	void ( *Error )( const char *msg ) __attribute__( ( noreturn ) );
-#else
-	void ( *Error )( const char *msg );
-#endif
-
-	// console messages
-	void ( *Print )( const char *msg );
-	void ( *PrintToLog )( const char *msg );
-
-	// key bindings
-	const char *( *Key_GetBindingBuf )( int binding );
-	const char *( *Key_KeynumToString )( int keynum );
-
 	void ( *GetConfigString )( int i, char *str, int size );
-	int64_t ( *Milliseconds )( void );
 	bool ( *DownloadRequest )( const char *filename );
 
 	void ( *NET_GetUserCmd )( int frame, usercmd_t *cmd );
@@ -90,16 +74,6 @@ typedef struct {
 
 	// refresh system
 	void ( *VID_FlashWindow )();
-
-	// collision detection
-	int ( *CM_NumInlineModels )( void );
-	struct cmodel_s *( *CM_InlineModel )( int num );
-	struct cmodel_s *( *CM_ModelForBBox )( vec3_t mins, vec3_t maxs );
-	struct cmodel_s *( *CM_OctagonModelForBBox )( vec3_t mins, vec3_t maxs );
-	void ( *CM_TransformedBoxTrace )( trace_t *tr, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs, struct cmodel_s *cmodel, int brushmask, const vec3_t origin, const vec3_t angles );
-	int ( *CM_TransformedPointContents )( const vec3_t p, struct cmodel_s *cmodel, const vec3_t origin, const vec3_t angles );
-	void ( *CM_InlineModelBounds )( const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs );
-	bool ( *CM_InPVS )( const vec3_t p1, const vec3_t p2 );
 } cgame_import_t;
 
 //

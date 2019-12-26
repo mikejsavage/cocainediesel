@@ -91,20 +91,20 @@ static void G_Z_Free( void *ptr, const char *filename, int fileline ) {
 	memzone_t *zone;
 
 	if( !ptr ) {
-		G_Error( "G_Z_Free: NULL pointer" );
+		Com_Error( ERR_DROP, "G_Z_Free: NULL pointer" );
 	}
 
 	block = (memblock_t *) ( (uint8_t *)ptr - sizeof( memblock_t ) );
 	if( block->id != ZONEID ) {
-		G_Error( "G_Z_Free: freed a pointer without ZONEID (file %s at line %i)", filename, fileline );
+		Com_Error( ERR_DROP, "G_Z_Free: freed a pointer without ZONEID (file %s at line %i)", filename, fileline );
 	}
 	if( block->tag == 0 ) {
-		G_Error( "G_Z_Free: freed a freed pointer (file %s at line %i)", filename, fileline );
+		Com_Error( ERR_DROP, "G_Z_Free: freed a freed pointer (file %s at line %i)", filename, fileline );
 	}
 
 	// check the memory trash tester
 	if( *(int *)( (uint8_t *)block + block->size - 4 ) != ZONEID ) {
-		G_Error( "G_Z_Free: memory block wrote past end" );
+		Com_Error( ERR_DROP, "G_Z_Free: memory block wrote past end" );
 	}
 
 	zone = levelzone;
@@ -146,7 +146,7 @@ static void *G_Z_TagMalloc( int size, int tag, const char *filename, int filelin
 	memzone_t *zone;
 
 	if( !tag ) {
-		G_Error( "G_Z_TagMalloc: tried to use a 0 tag (file %s at line %i)", filename, fileline );
+		Com_Error( ERR_DROP, "G_Z_TagMalloc: tried to use a 0 tag (file %s at line %i)", filename, fileline );
 	}
 
 	//
@@ -209,7 +209,7 @@ static void *G_Z_Malloc( int size, const char *filename, int fileline ) {
 
 	buf = G_Z_TagMalloc( size, TAG_LEVEL, filename, fileline );
 	if( !buf ) {
-		G_Error( "G_Z_Malloc: failed on allocation of %i bytes", size );
+		Com_Error( ERR_DROP, "G_Z_Malloc: failed on allocation of %i bytes", size );
 	}
 	memset( buf, 0, size );
 
@@ -325,7 +325,7 @@ const char *_G_RegisterLevelString( const char *string, const char *filename, in
 
 	size = strlen( string ) + 1;
 	if( sizeof( *ps ) + size > STRINGPOOL_SIZE ) {
-		G_Error( "G_RegisterLevelString: out of memory (str:%s at %s:%i)\n", string, filename, fileline );
+		Com_Error( ERR_DROP, "G_RegisterLevelString: out of memory (str:%s at %s:%i)\n", string, filename, fileline );
 		return NULL;
 	}
 
@@ -404,7 +404,7 @@ edict_t *G_PickTarget( const char *targetname ) {
 	edict_t *choice[MAXCHOICES];
 
 	if( !targetname ) {
-		G_Printf( "G_PickTarget called with NULL targetname\n" );
+		Com_Printf( "G_PickTarget called with NULL targetname\n" );
 		return NULL;
 	}
 
@@ -420,7 +420,7 @@ edict_t *G_PickTarget( const char *targetname ) {
 	}
 
 	if( !num_choices ) {
-		G_Printf( "G_PickTarget: target %s not found\n", targetname );
+		Com_Printf( "G_PickTarget: target %s not found\n", targetname );
 		return NULL;
 	}
 
@@ -462,7 +462,7 @@ void G_UseTargets( edict_t *ent, edict_t *activator ) {
 		t->think = Think_Delay;
 		t->activator = activator;
 		if( !activator ) {
-			G_Printf( "Think_Delay with no activator\n" );
+			Com_Printf( "Think_Delay with no activator\n" );
 		}
 		t->message = ent->message;
 		t->target = ent->target;
@@ -492,13 +492,13 @@ void G_UseTargets( edict_t *ent, edict_t *activator ) {
 		while( ( t = G_Find( t, FOFS( targetname ), ent->killtarget ) ) ) {
 			G_FreeEdict( t );
 			if( !ent->r.inuse ) {
-				G_Printf( "entity was removed while using killtargets\n" );
+				Com_Printf( "entity was removed while using killtargets\n" );
 				return;
 			}
 		}
 	}
 
-	//	G_Printf ("TARGET: activating %s\n", ent->target);
+	//	Com_Printf ("TARGET: activating %s\n", ent->target);
 
 	//
 	// fire targets
@@ -507,12 +507,12 @@ void G_UseTargets( edict_t *ent, edict_t *activator ) {
 		t = NULL;
 		while( ( t = G_Find( t, FOFS( targetname ), ent->target ) ) ) {
 			if( t == ent ) {
-				G_Printf( "WARNING: Entity used itself.\n" );
+				Com_Printf( "WARNING: Entity used itself.\n" );
 			} else {
 				G_CallUse( t, ent, activator );
 			}
 			if( !ent->r.inuse ) {
-				G_Printf( "entity was removed while using targets\n" );
+				Com_Printf( "entity was removed while using targets\n" );
 				return;
 			}
 		}
@@ -606,7 +606,7 @@ edict_t *G_Spawn( void ) {
 	edict_t *e, *freed;
 
 	if( !level.canSpawnEntities ) {
-		G_Printf( "WARNING: Spawning entity before map entities have been spawned\n" );
+		Com_Printf( "WARNING: Spawning entity before map entities have been spawned\n" );
 	}
 
 	freed = NULL;
@@ -635,7 +635,7 @@ edict_t *G_Spawn( void ) {
 			G_InitEdict( freed );
 			return freed;
 		}
-		G_Error( "G_Spawn: no free edicts" );
+		Com_Error( ERR_DROP, "G_Spawn: no free edicts" );
 	}
 
 	game.numentities++;
@@ -762,7 +762,7 @@ void G_CallThink( edict_t *ent ) {
 	} else if( ent->scriptSpawned && ent->asThinkFunc ) {
 		G_asCallMapEntityThink( ent );
 	} else if( developer->integer ) {
-		G_Printf( "NULL ent->think in %s\n", ent->classname ? ent->classname : va( "'no classname. Entity type is %i", ent->s.type ) );
+		Com_Printf( "NULL ent->think in %s\n", ent->classname ? ent->classname : va( "'no classname. Entity type is %i", ent->s.type ) );
 	}
 }
 
@@ -850,7 +850,7 @@ void G_PrintMsg( edict_t *ent, const char *format, ... ) {
 	if( !ent ) {
 		// mirror at server console
 		if( GAME_IMPORT.is_dedicated_server ) {
-			G_Printf( "%s", msg );
+			Com_Printf( "%s", msg );
 		}
 		trap_GameCmd( NULL, s );
 	} else {
@@ -885,14 +885,14 @@ void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, .
 		// mirror at server console
 		if( GAME_IMPORT.is_dedicated_server ) {
 			if( !who ) {
-				G_Printf( "Console: %s\n", msg );     // admin console
+				Com_Printf( "Console: %s\n", msg );     // admin console
 			} else if( !who->r.client ) {
 				;   // wtf?
 			} else if( teamonly ) {
-				G_Printf( "[%s] %s %s\n",
+				Com_Printf( "[%s] %s %s\n",
 						  who->r.client->ps.stats[STAT_TEAM] == TEAM_SPECTATOR ? "SPEC" : "TEAM", who->r.client->netname, msg );
 			} else {
-				G_Printf( "%s: %s\n", who->r.client->netname, msg );
+				Com_Printf( "%s: %s\n", who->r.client->netname, msg );
 			}
 		}
 
@@ -1296,7 +1296,7 @@ void G_DropSpawnpointToFloor( edict_t *ent ) {
 
 	G_Trace( &trace, start, playerbox_stand_mins, playerbox_stand_maxs, end, ent, MASK_PLAYERSOLID );
 	if( trace.startsolid || trace.allsolid ) {
-		G_Printf( "Warning: %s %s spawns inside solid. Inhibited\n", ent->classname, vtos( ent->s.origin ) );
+		Com_Printf( "Warning: %s %s spawns inside solid. Inhibited\n", ent->classname, vtos( ent->s.origin ) );
 		G_FreeEdict( ent );
 		return;
 	}

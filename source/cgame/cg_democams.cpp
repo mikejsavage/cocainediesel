@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/base.h"
+#include "qcommon/qcommon.h"
 #include "cgame/cg_local.h"
 
 // Thanks to Xavatar (xavatar2004@hotmail.com) for the path spline implementation
@@ -135,7 +136,7 @@ static cg_democam_t *CG_Democam_RegisterCam( int type ) {
 	cam = cg_cams_headnode;
 	while( cam != NULL ) {
 		if( cam->timeStamp == demo_time ) { // a cam exists with the very same timestamp
-			CG_Printf( "warning: There was a cam with the same timestamp, it's being replaced\n" );
+			Com_Printf( "warning: There was a cam with the same timestamp, it's being replaced\n" );
 			break;
 		}
 		cam = cam->next;
@@ -246,7 +247,7 @@ static cg_subtitle_t *CG_Democam_RegisterSubtitle( void ) {
 	sub = cg_subs_headnode;
 	while( sub != NULL ) {
 		if( sub->timeStamp == demo_time ) { // a subtitle exists with the very same timestamp
-			CG_Printf( "warning: There was a subtitle with the same timestamp, it's being replaced\n" );
+			Com_Printf( "warning: There was a subtitle with the same timestamp, it's being replaced\n" );
 			break;
 		}
 		sub = sub->next;
@@ -459,7 +460,7 @@ bool CG_LoadRecamScriptFile( char *filename ) {
 	cg_democam_t *cam = NULL;
 
 	if( !filename ) {
-		CG_Printf( "CG_LoadRecamScriptFile: no filename\n" );
+		Com_Printf( "CG_LoadRecamScriptFile: no filename\n" );
 		return false;
 	}
 
@@ -537,7 +538,7 @@ bool CG_LoadRecamScriptFile( char *filename ) {
 					cam->fov = atoi( token );
 					break;
 				default:
-					CG_Error( "CG_LoadRecamScriptFile: bad switch\n" );
+					Com_Error( ERR_DROP, "CG_LoadRecamScriptFile: bad switch\n" );
 			}
 
 			linecount++;
@@ -549,7 +550,7 @@ bool CG_LoadRecamScriptFile( char *filename ) {
 
 	CG_Free( buf );
 	if( linecount != 0 ) {
-		CG_Printf( "CG_LoadRecamScriptFile: Invalid script. Ignored\n" );
+		Com_Printf( "CG_LoadRecamScriptFile: Invalid script. Ignored\n" );
 		CG_Democam_FreeCams();
 		CG_Democam_FreeSubtitles();
 		return false;
@@ -569,7 +570,7 @@ void CG_SaveRecamScriptFile( const char *filename ) {
 	char str[256];
 
 	if( !cg_cams_headnode && !cg_subs_headnode ) {
-		CG_Printf( "CG_SaveRecamScriptFile: no cameras nor subtitles to save\n" );
+		Com_Printf( "CG_SaveRecamScriptFile: no cameras nor subtitles to save\n" );
 		return;
 	}
 
@@ -581,7 +582,7 @@ void CG_SaveRecamScriptFile( const char *filename ) {
 	}
 
 	if( FS_FOpenFile( filename, &filehandle, FS_WRITE ) == -1 ) {
-		CG_Printf( "CG_SaveRecamScriptFile: Couldn't create the file %s\n", demoscriptname );
+		Com_Printf( "CG_SaveRecamScriptFile: Couldn't create the file %s\n", demoscriptname );
 		return;
 	}
 
@@ -624,7 +625,7 @@ void CG_SaveRecamScriptFile( const char *filename ) {
 	}
 
 	FS_FCloseFile( filehandle );
-	CG_Printf( "cam file saved\n" );
+	Com_Printf( "cam file saved\n" );
 }
 
 //===================================================================
@@ -879,7 +880,7 @@ bool CG_DemoCam_LookAt( int trackEnt, vec3_t vieworg, vec3_t viewangles ) {
 	// if having a bounding box, look to its center
 	if( ( cmodel = CG_CModelForEntity( trackEnt ) ) != NULL ) {
 		vec3_t mins, maxs;
-		trap_CM_InlineModelBounds( cmodel, mins, maxs );
+		CM_InlineModelBounds( cl.cms, cmodel, mins, maxs );
 		for( i = 0; i < 3; i++ )
 			origin[i] += ( mins[i] + maxs[i] );
 	}
@@ -1059,7 +1060,7 @@ static int CG_Democam_CalcView( void ) {
 				VectorCopy( cam_origin, v );
 
 				if( !nextcam || nextcam->type == DEMOCAM_FIRSTPERSON || nextcam->type == DEMOCAM_THIRDPERSON ) {
-					CG_Printf( "Warning: CG_DemoCam: path_linear cam without a valid next cam\n" );
+					Com_Printf( "Warning: CG_DemoCam: path_linear cam without a valid next cam\n" );
 					VectorCopy( currentcam->origin, cam_origin );
 					if( !CG_DemoCam_LookAt( currentcam->trackEnt, cam_origin, cam_angles ) ) {
 						VectorCopy( currentcam->angles, cam_angles );
@@ -1084,7 +1085,7 @@ static int CG_Democam_CalcView( void ) {
 				VectorCopy( cam_origin, v );
 
 				if( !nextcam || nextcam->type == DEMOCAM_FIRSTPERSON || nextcam->type == DEMOCAM_THIRDPERSON ) {
-					CG_Printf( "Warning: CG_DemoCam: path_spline cam without a valid next cam\n" );
+					Com_Printf( "Warning: CG_DemoCam: path_spline cam without a valid next cam\n" );
 					VectorCopy( currentcam->origin, cam_origin );
 					if( !CG_DemoCam_LookAt( currentcam->trackEnt, cam_origin, cam_angles ) ) {
 						VectorCopy( currentcam->angles, cam_angles );
@@ -1155,7 +1156,7 @@ static int CG_Democam_CalcView( void ) {
 				VectorCopy( cam_origin, v );
 
 				if( !currentcam->trackEnt || currentcam->trackEnt >= MAX_EDICTS ) {
-					CG_Printf( "Warning: CG_DemoCam: orbital cam needs a track entity set\n" );
+					Com_Printf( "Warning: CG_DemoCam: orbital cam needs a track entity set\n" );
 					VectorCopy( currentcam->origin, cam_origin );
 					VectorClear( cam_angles );
 					VectorClear( cam_velocity );
@@ -1170,7 +1171,7 @@ static int CG_Democam_CalcView( void ) {
 					// if having a bounding box, look to its center
 					if( ( cmodel = CG_CModelForEntity( currentcam->trackEnt ) ) != NULL ) {
 						vec3_t mins, maxs;
-						trap_CM_InlineModelBounds( cmodel, mins, maxs );
+						CM_InlineModelBounds( cl.cms, cmodel, mins, maxs );
 						for( i = 0; i < 3; i++ )
 							center[i] += ( mins[i] + maxs[i] );
 					}
@@ -1267,7 +1268,7 @@ static void CG_DemoFreeFly_Cmd_f( void ) {
 	}
 
 	VectorClear( cam_velocity );
-	CG_Printf( "demo cam mode %s\n", CamIsFree ? "Free Fly" : "Preview" );
+	Com_Printf( "demo cam mode %s\n", CamIsFree ? "Free Fly" : "Preview" );
 }
 
 /*
@@ -1285,7 +1286,7 @@ static void CG_AddSub_Cmd_f( void ) {
 
 	sub = CG_Democam_RegisterSubtitle();
 	if( !sub ) {
-		CG_Printf( "DemoCam Error: Failed to allocate the subtitle\n" );
+		Com_Printf( "DemoCam Error: Failed to allocate the subtitle\n" );
 		return;
 	}
 
@@ -1315,7 +1316,7 @@ static void CG_AddPrint_Cmd_f( void ) {
 
 	sub = CG_Democam_RegisterSubtitle();
 	if( !sub ) {
-		CG_Printf( "DemoCam Error: Failed to allocate the subtitle\n" );
+		Com_Printf( "DemoCam Error: Failed to allocate the subtitle\n" );
 		return;
 	}
 
@@ -1360,7 +1361,7 @@ static void CG_AddCam_Cmd_f( void ) {
 		if( type != -1 ) {
 			// valid. Register and return
 			if( CG_Democam_RegisterCam( type ) != NULL ) {
-				CG_Printf( "cam added\n" );
+				Com_Printf( "cam added\n" );
 
 				// update current cam
 				CG_Democam_ExecutePathAnalysis();
@@ -1372,10 +1373,10 @@ static void CG_AddCam_Cmd_f( void ) {
 	}
 
 	// print help
-	CG_Printf( " : Usage: AddCam <type>\n" );
-	CG_Printf( " : Available types:\n" );
+	Com_Printf( " : Usage: AddCam <type>\n" );
+	Com_Printf( " : Available types:\n" );
 	for( i = 0; cam_TypeNames[i] != NULL; i++ )
-		CG_Printf( " : %s\n", cam_TypeNames[i] );
+		Com_Printf( " : %s\n", cam_TypeNames[i] );
 }
 
 /*
@@ -1383,7 +1384,7 @@ static void CG_AddCam_Cmd_f( void ) {
 */
 static void CG_DeleteCam_Cmd_f( void ) {
 	if( !currentcam ) {
-		CG_Printf( "DeleteCam: No current cam to delete\n" );
+		Com_Printf( "DeleteCam: No current cam to delete\n" );
 		return;
 	}
 
@@ -1396,7 +1397,7 @@ static void CG_DeleteCam_Cmd_f( void ) {
 	CG_Democam_ExecutePathAnalysis();
 	currentcam = CG_Democam_FindCurrent( demo_time );
 	nextcam = CG_Democam_FindNext( demo_time );
-	CG_Printf( "cam deleted\n" );
+	Com_Printf( "cam deleted\n" );
 }
 
 /*
@@ -1407,7 +1408,7 @@ static void CG_EditCam_Cmd_f( void ) {
 
 	currentcam = CG_Democam_FindCurrent( demo_time );
 	if( !currentcam ) {
-		CG_Printf( "Editcam: no current cam\n" );
+		Com_Printf( "Editcam: no current cam\n" );
 		return;
 	}
 
@@ -1415,7 +1416,7 @@ static void CG_EditCam_Cmd_f( void ) {
 		if( !Q_stricmp( Cmd_Argv( 1 ), "type" ) ) {
 			int type, i;
 			if( Cmd_Argc() < 3 ) { // not enough parameters, print help
-				CG_Printf( "Usage: EditCam type <type name>\n" );
+				Com_Printf( "Usage: EditCam type <type name>\n" );
 				return;
 			}
 
@@ -1431,38 +1432,38 @@ static void CG_EditCam_Cmd_f( void ) {
 			if( type != -1 ) {
 				// valid. Register and return
 				currentcam->type = type;
-				CG_Printf( "cam edited\n" );
+				Com_Printf( "cam edited\n" );
 				CG_Democam_ExecutePathAnalysis();
 				return;
 			} else {
-				CG_Printf( "invalid type name\n" );
+				Com_Printf( "invalid type name\n" );
 			}
 		}
 		if( !Q_stricmp( Cmd_Argv( 1 ), "track" ) ) {
 			if( Cmd_Argc() < 3 ) {
 				// not enough parameters, print help
-				CG_Printf( "Usage: EditCam track <entity number> ( 0 for no tracking )\n" );
+				Com_Printf( "Usage: EditCam track <entity number> ( 0 for no tracking )\n" );
 				return;
 			}
 			currentcam->trackEnt = atoi( Cmd_Argv( 2 ) );
-			CG_Printf( "cam edited\n" );
+			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
 		} else if( !Q_stricmp( Cmd_Argv( 1 ), "fov" ) ) {
 			if( Cmd_Argc() < 3 ) {
 				// not enough parameters, print help
-				CG_Printf( "Usage: EditCam fov <value>\n" );
+				Com_Printf( "Usage: EditCam fov <value>\n" );
 				return;
 			}
 			currentcam->fov = atoi( Cmd_Argv( 2 ) );
-			CG_Printf( "cam edited\n" );
+			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
 		} else if( !Q_stricmp( Cmd_Argv( 1 ), "timeOffset" ) ) {
 			int64_t newtimestamp;
 			if( Cmd_Argc() < 3 ) {
 				// not enough parameters, print help
-				CG_Printf( "Usage: EditCam timeOffset <value>\n" );
+				Com_Printf( "Usage: EditCam timeOffset <value>\n" );
 				return;
 			}
 			newtimestamp = currentcam->timeStamp += atoi( Cmd_Argv( 2 ) );
@@ -1472,65 +1473,65 @@ static void CG_EditCam_Cmd_f( void ) {
 			currentcam->timeStamp = newtimestamp;
 			currentcam = CG_Democam_FindCurrent( demo_time );
 			nextcam = CG_Democam_FindNext( demo_time );
-			CG_Printf( "cam edited\n" );
+			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
 		} else if( !Q_stricmp( Cmd_Argv( 1 ), "origin" ) ) {
 			VectorCopy( cg.view.origin, currentcam->origin );
 			cam_orbital_radius = 0;
-			CG_Printf( "cam edited\n" );
+			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
 		} else if( !Q_stricmp( Cmd_Argv( 1 ), "angles" ) ) {
 			VectorCopy( cg.view.angles, currentcam->angles );
-			CG_Printf( "cam edited\n" );
+			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
 		} else if( !Q_stricmp( Cmd_Argv( 1 ), "pitch" ) ) {
 			if( Cmd_Argc() < 3 ) {
 				// not enough parameters, print help
-				CG_Printf( "Usage: EditCam pitch <value>\n" );
+				Com_Printf( "Usage: EditCam pitch <value>\n" );
 				return;
 			}
 			currentcam->angles[PITCH] = atof( Cmd_Argv( 2 ) );
-			CG_Printf( "cam edited\n" );
+			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
 		} else if( !Q_stricmp( Cmd_Argv( 1 ), "yaw" ) ) {
 			if( Cmd_Argc() < 3 ) {
 				// not enough parameters, print help
-				CG_Printf( "Usage: EditCam yaw <value>\n" );
+				Com_Printf( "Usage: EditCam yaw <value>\n" );
 				return;
 			}
 			currentcam->angles[YAW] = atof( Cmd_Argv( 2 ) );
-			CG_Printf( "cam edited\n" );
+			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
 		} else if( !Q_stricmp( Cmd_Argv( 1 ), "roll" ) ) {
 			if( Cmd_Argc() < 3 ) {
 				// not enough parameters, print help
-				CG_Printf( "Usage: EditCam roll <value>\n" );
+				Com_Printf( "Usage: EditCam roll <value>\n" );
 				return;
 			}
 			currentcam->angles[ROLL] = atof( Cmd_Argv( 2 ) );
-			CG_Printf( "cam edited\n" );
+			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
 		}
 	}
 
 	// print help
-	CG_Printf( " : Usage: EditCam <command>\n" );
-	CG_Printf( " : Available commands:\n" );
-	CG_Printf( " : type <type name>\n" );
-	CG_Printf( " : track <entity number> ( 0 for no track )\n" );
-	CG_Printf( " : fov <value> ( only for not player views )\n" );
-	CG_Printf( " : timeOffset <value> ( + or - milliseconds to be added to camera timestamp )\n" );
-	CG_Printf( " : origin ( changes cam to current origin )\n" );
-	CG_Printf( " : angles ( changes cam to current angles )\n" );
-	CG_Printf( " : pitch <value> ( assigns pitch angle to current cam )\n" );
-	CG_Printf( " : yaw <value> ( assigns yaw angle to current cam )\n" );
-	CG_Printf( " : roll <value> ( assigns roll angle to current cam )\n" );
+	Com_Printf( " : Usage: EditCam <command>\n" );
+	Com_Printf( " : Available commands:\n" );
+	Com_Printf( " : type <type name>\n" );
+	Com_Printf( " : track <entity number> ( 0 for no track )\n" );
+	Com_Printf( " : fov <value> ( only for not player views )\n" );
+	Com_Printf( " : timeOffset <value> ( + or - milliseconds to be added to camera timestamp )\n" );
+	Com_Printf( " : origin ( changes cam to current origin )\n" );
+	Com_Printf( " : angles ( changes cam to current angles )\n" );
+	Com_Printf( " : pitch <value> ( assigns pitch angle to current cam )\n" );
+	Com_Printf( " : yaw <value> ( assigns yaw angle to current cam )\n" );
+	Com_Printf( " : roll <value> ( assigns roll angle to current cam )\n" );
 }
 
 /*
@@ -1564,7 +1565,7 @@ void CG_Democam_ImportCams_f( void ) {
 	char *customName;
 
 	if( Cmd_Argc() < 2 ) {
-		CG_Printf( "Usage: importcams <filename> (relative to demos directory)\n" );
+		Com_Printf( "Usage: importcams <filename> (relative to demos directory)\n" );
 		return;
 	}
 
@@ -1574,9 +1575,9 @@ void CG_Democam_ImportCams_f( void ) {
 	snprintf( customName, name_size, "demos/%s", Cmd_Argv( 1 ) );
 	COM_ReplaceExtension( customName, ".cam", name_size );
 	if( CG_LoadRecamScriptFile( customName ) ) {
-		CG_Printf( "cam script imported\n" );
+		Com_Printf( "cam script imported\n" );
 	} else {
-		CG_Printf( "CG_Democam_ImportCams_f: no valid file found\n" );
+		Com_Printf( "CG_Democam_ImportCams_f: no valid file found\n" );
 	}
 }
 
@@ -1612,7 +1613,7 @@ static void CG_DemoEditMode_Cmd_f( void ) {
 		democam_editing_mode = !democam_editing_mode;
 	}
 
-	CG_Printf( "demo cam editing mode %s\n", democam_editing_mode ? "on" : "off" );
+	Com_Printf( "demo cam editing mode %s\n", democam_editing_mode ? "on" : "off" );
 	if( democam_editing_mode ) {
 		Cmd_AddCommand( "addcam", CG_AddCam_Cmd_f );
 		Cmd_AddCommand( "deletecam", CG_DeleteCam_Cmd_f );
@@ -1643,7 +1644,7 @@ void CG_DemocamInit( void ) {
 	}
 
 	if( !*cgs.demoName ) {
-		CG_Error( "CG_DemocamInit: no demo name string\n" );
+		Com_Error( ERR_DROP, "CG_DemocamInit: no demo name string\n" );
 	}
 
 	// see if there is any script for this demo, and load it
@@ -1652,7 +1653,7 @@ void CG_DemocamInit( void ) {
 	snprintf( demoscriptname, name_size, "%s", cgs.demoName );
 	COM_ReplaceExtension( demoscriptname, ".cam", name_size );
 
-	CG_Printf( "cam: %s\n", demoscriptname );
+	Com_Printf( "cam: %s\n", demoscriptname );
 
 	// add console commands
 	Cmd_AddCommand( "demoEditMode", CG_DemoEditMode_Cmd_f );
@@ -1660,7 +1661,7 @@ void CG_DemocamInit( void ) {
 	Cmd_AddCommand( "camswitch", CG_CamSwitch_Cmd_f );
 
 	if( CG_LoadRecamScriptFile( demoscriptname ) ) {
-		CG_Printf( "Loaded demo cam script\n" );
+		Com_Printf( "Loaded demo cam script\n" );
 	}
 
 	// check for a sound stream file

@@ -208,7 +208,6 @@ void Com_Printf( const char *format, ... ) {
 	QMutex_Unlock( com_print_mutex );
 }
 
-
 /*
 * Com_DPrintf
 *

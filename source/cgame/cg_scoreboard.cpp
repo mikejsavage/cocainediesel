@@ -69,7 +69,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, ScoreboardPlayer player,
 		icon = player.state != 0 ? cgs.media.shaderReady : NULL;
 	}
 	else {
-		bool carrier = player.state != 0 && ( cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR || cg_entities[ id + 1 ].current.team == cg.predictedPlayerState.stats[ STAT_TEAM ] );
+		bool carrier = player.state != 0 && ( ISREALSPECTATOR() || cg_entities[ id + 1 ].current.team == cg.predictedPlayerState.stats[ STAT_TEAM ] );
 		if( alive ) {
 			icon = carrier ? cgs.media.shaderBombIcon : cgs.media.shaderAlive;
 		}

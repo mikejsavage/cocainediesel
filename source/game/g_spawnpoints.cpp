@@ -108,9 +108,9 @@ bool G_OffsetSpawnPoint( vec3_t origin, const vec3_t box_mins, const vec3_t box_
 
 		// check if valid cluster
 		cluster = -1; // fix a warning
-		num_leafs = trap_CM_BoxLeafnums( absmins, absmaxs, leafs, 8, NULL );
+		num_leafs = CM_BoxLeafnums( svs.cms, absmins, absmaxs, leafs, 8, NULL );
 		for( j = 0; j < num_leafs; j++ ) {
-			cluster = trap_CM_LeafCluster( leafs[j] );
+			cluster = CM_LeafCluster( svs.cms, leafs[j] );
 			if( cluster == -1 ) {
 				break;
 			}
@@ -123,7 +123,7 @@ bool G_OffsetSpawnPoint( vec3_t origin, const vec3_t box_mins, const vec3_t box_
 
 		// one more trace is needed, only checking if some part of the world is on the
 		// way from spawnpoint to the virtual position
-		trap_CM_TransformedBoxTrace( &trace, origin, virtualorigin, box_mins, box_maxs, NULL, MASK_PLAYERSOLID, NULL, NULL );
+		CM_TransformedBoxTrace( svs.cms, &trace, origin, virtualorigin, box_mins, box_maxs, NULL, MASK_PLAYERSOLID, NULL, NULL );
 		if( trace.fraction != 1.0f ) {
 			continue;
 		}
@@ -160,7 +160,7 @@ bool G_OffsetSpawnPoint( vec3_t origin, const vec3_t box_mins, const vec3_t box_
 		return true;
 	}
 
-	//G_Printf( "Warning: couldn't find a safe spawnpoint (blocked by players:%i world:%i nofloor:%i badcluster:%i)\n", playersFound, worldfound, nofloorfound, badclusterfound );
+	//Com_Printf( "Warning: couldn't find a safe spawnpoint (blocked by players:%i world:%i nofloor:%i badcluster:%i)\n", playersFound, worldfound, nofloorfound, badclusterfound );
 	return false;
 }
 

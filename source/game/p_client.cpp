@@ -37,13 +37,13 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 		if( attacker != self ) { // regular death message
 			self->enemy = attacker;
 			if( GAME_IMPORT.is_dedicated_server ) {
-				G_Printf( "%s %s %s%s\n", self->r.client->netname, message,
+				Com_Printf( "%s %s %s%s\n", self->r.client->netname, message,
 						  attacker->r.client->netname, message2 );
 			}
 		} else {      // suicide
 			self->enemy = NULL;
 			if( GAME_IMPORT.is_dedicated_server ) {
-				G_Printf( "%s %s\n", self->r.client->netname, message );
+				Com_Printf( "%s %s\n", self->r.client->netname, message );
 			}
 		}
 
@@ -51,7 +51,7 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 	} else {      // wrong place, suicide, etc.
 		self->enemy = NULL;
 		if( GAME_IMPORT.is_dedicated_server ) {
-			G_Printf( "%s %s\n", self->r.client->netname, message );
+			Com_Printf( "%s %s\n", self->r.client->netname, message );
 		}
 
 		G_Obituary( self, ( attacker == self ) ? self : world, mod );
@@ -948,7 +948,7 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient ) {
 
 		G_PrintMsg( NULL, "%s\n", message );
 
-		G_Printf( "%s connected from %s\n", ent->r.client->netname, ent->r.client->ip );
+		Com_Printf( "%s connected from %s\n", ent->r.client->netname, ent->r.client->ip );
 	}
 
 	// let the gametype scripts know this client just connected

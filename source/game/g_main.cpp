@@ -81,40 +81,6 @@ static char **map_rotation_p = NULL;
 static int map_rotation_current = -1;
 static int map_rotation_count = 0;
 
-//===================================================================
-
-/*
-* G_Error
-*
-* Abort the server with a game error
-*/
-void G_Error( const char *format, ... ) {
-	char msg[1024];
-	va_list argptr;
-
-	va_start( argptr, format );
-	vsnprintf( msg, sizeof( msg ), format, argptr );
-	va_end( argptr );
-
-	trap_Error( msg );
-}
-
-/*
-* G_Printf
-*
-* Debug print to server console
-*/
-void G_Printf( const char *format, ... ) {
-	char msg[1024];
-	va_list argptr;
-
-	va_start( argptr, format );
-	vsnprintf( msg, sizeof( msg ), format, argptr );
-	va_end( argptr );
-
-	trap_Print( msg );
-}
-
 /*
 * G_GS_Trace - Used only for gameshared linking
 */
@@ -134,7 +100,7 @@ static void G_GS_Trace( trace_t *tr, const vec3_t start, const vec3_t mins, cons
 static void G_InitGameShared( void ) {
 	int maxclients = atoi( trap_GetConfigString( CS_MAXCLIENTS ) );
 	if( maxclients < 1 || maxclients > MAX_EDICTS ) {
-		G_Error( "Invalid maxclients value %i\n", maxclients );
+		Com_Error( ERR_DROP, "Invalid maxclients value %i\n", maxclients );
 	}
 
 	server_gs = { };
@@ -142,8 +108,6 @@ static void G_InitGameShared( void ) {
 	server_gs.maxclients = maxclients;
 
 	server_gs.api.PredictedEvent = G_PredictedEvent;
-	server_gs.api.Error = G_Error;
-	server_gs.api.Printf = G_Printf;
 	server_gs.api.Trace = G_GS_Trace;
 	server_gs.api.GetEntityState = G_GetEntityStateForDeltaTime;
 	server_gs.api.PointContents = G_PointContents4D;
@@ -171,7 +135,7 @@ void G_Init( unsigned int framemsec ) {
 
 	cvar_t *g_maxentities;
 
-	G_Printf( "==== G_Init ====\n" );
+	Com_Printf( "==== G_Init ====\n" );
 
 	G_InitGameShared();
 
@@ -273,7 +237,7 @@ void G_Init( unsigned int framemsec ) {
 * G_Shutdown
 */
 void G_Shutdown( void ) {
-	G_Printf( "==== G_Shutdown ====\n" );
+	Com_Printf( "==== G_Shutdown ====\n" );
 
 	GT_asCallShutdown();
 

@@ -19,7 +19,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "g_local.h"
+#include "game/g_local.h"
 
 /*
 * G_Timeout_Reset
@@ -320,7 +320,7 @@ static int entity_sound_backup[MAX_EDICTS];
 void G_ClearSnap( void ) {
 	edict_t *ent;
 
-	svs.realtime = trap_Milliseconds(); // level.time etc. might not be real time
+	svs.realtime = Sys_Milliseconds(); // level.time etc. might not be real time
 
 	// clear gametype's clock override
 	server_gs.gameState.stats[GAMESTAT_CLOCKOVERRIDE] = 0;
@@ -374,7 +374,7 @@ void G_ClearSnap( void ) {
 */
 void G_SnapFrame( void ) {
 	edict_t *ent;
-	svs.realtime = trap_Milliseconds(); // level.time etc. might not be real time
+	svs.realtime = Sys_Milliseconds(); // level.time etc. might not be real time
 
 	//others
 	G_UpdateServerInfo();
@@ -393,7 +393,7 @@ void G_SnapFrame( void ) {
 	for( ent = &game.edicts[0]; ENTNUM( ent ) < game.numentities; ent++ ) {
 		if( ent->s.number != ENTNUM( ent ) ) {
 			if( developer->integer ) {
-				G_Printf( "fixing ent->s.number (etype:%i, classname:%s)\n", ent->s.type, ent->classname ? ent->classname : "noclassname" );
+				Com_Printf( "fixing ent->s.number (etype:%i, classname:%s)\n", ent->s.type, ent->classname ? ent->classname : "noclassname" );
 			}
 			ent->s.number = ENTNUM( ent );
 		}
@@ -405,14 +405,14 @@ void G_SnapFrame( void ) {
 			continue;
 		} else if( ent->s.type >= ET_TOTAL_TYPES || ent->s.type < 0 ) {
 			if( developer->integer ) {
-				G_Printf( "'G_SnapFrame': Inhibiting invalid entity type %i\n", ent->s.type );
+				Com_Printf( "'G_SnapFrame': Inhibiting invalid entity type %i\n", ent->s.type );
 			}
 			ent->r.svflags |= SVF_NOCLIENT;
 			continue;
 		} else if( !( ent->r.svflags & SVF_NOCLIENT ) && !ent->s.modelindex && !ent->s.effects
 				   && !ent->s.sound && !ISEVENTENTITY( &ent->s ) && !ent->s.light && !ent->r.client && ent->s.type != ET_HUD ) {
 			if( developer->integer ) {
-				G_Printf( "'G_SnapFrame': fixing missing SVF_NOCLIENT flag (no effect)\n" );
+				Com_Printf( "'G_SnapFrame': fixing missing SVF_NOCLIENT flag (no effect)\n" );
 			}
 			ent->r.svflags |= SVF_NOCLIENT;
 			continue;

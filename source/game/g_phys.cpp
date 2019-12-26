@@ -364,7 +364,7 @@ static void SV_Physics_Pusher( edict_t *ent ) {
 		}
 	}
 	if( pushed_p > &pushed[MAX_EDICTS] ) {
-		G_Error( "pushed_p > &pushed[MAX_EDICTS], memory corrupted" );
+		Com_Error( ERR_DROP, "pushed_p > &pushed[MAX_EDICTS], memory corrupted" );
 	}
 
 	if( part ) {
@@ -616,7 +616,7 @@ void G_RunEntity( edict_t *ent ) {
 	}
 
 	if( ent->timeDelta && !( ent->r.svflags & SVF_PROJECTILE ) ) {
-		G_Printf( "Warning: G_RunEntity 'Fixing timeDelta on non projectile entity\n" );
+		Com_Printf( "Warning: G_RunEntity 'Fixing timeDelta on non projectile entity\n" );
 		ent->timeDelta = 0;
 	}
 
@@ -653,6 +653,6 @@ void G_RunEntity( edict_t *ent ) {
 			SV_Physics_LinearProjectile( ent );
 			break;
 		default:
-			G_Error( "SV_Physics: bad movetype %i", (int)ent->movetype );
+			Com_Error( ERR_DROP, "SV_Physics: bad movetype %i", (int)ent->movetype );
 	}
 }

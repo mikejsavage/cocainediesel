@@ -407,8 +407,8 @@ extern cg_state_t cg;
 
 extern mempool_t *cg_mempool;
 
-#define ISVIEWERENTITY( entNum )  ( ( cg.predictedPlayerState.POVnum > 0 ) && ( (int)cg.predictedPlayerState.POVnum == entNum ) && ( cg.view.type == VIEWDEF_PLAYERVIEW ) )
-#define ISBRUSHMODEL( x ) ( ( ( x > 0 ) && ( (int)x < trap_CM_NumInlineModels() ) ) ? true : false )
+#define ISVIEWERENTITY( entNum )  ( cg.predictedPlayerState.POVnum > 0 && (int)cg.predictedPlayerState.POVnum == ( entNum ) && cg.view.type == VIEWDEF_PLAYERVIEW )
+#define ISBRUSHMODEL( x ) ( ( x > 0 ) && ( (int)x < CM_NumInlineModels( cl.cms ) ) )
 
 #define ISREALSPECTATOR()       ( cg.frame.playerState.stats[STAT_REALTEAM] == TEAM_SPECTATOR )
 
@@ -575,13 +575,9 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 void CG_Shutdown( void );
 
 #ifndef _MSC_VER
-void CG_Printf( const char *format, ... ) __attribute( ( format( printf, 1, 2 ) ) );
 void CG_LocalPrint( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-void CG_Error( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) ) __attribute__( ( noreturn ) );
 #else
-void CG_Printf( _Printf_format_string_ const char *format, ... );
 void CG_LocalPrint( _Printf_format_string_ const char *format, ... );
-void CG_Error( _Printf_format_string_ const char *format, ... );
 #endif
 
 void CG_Reset( void );

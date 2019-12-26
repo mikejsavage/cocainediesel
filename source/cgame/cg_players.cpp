@@ -75,7 +75,7 @@ static void CG_ParseClientInfo( cg_clientInfo_t *ci, const char *info ) {
 	assert( info );
 
 	if( !Info_Validate( info ) ) {
-		CG_Error( "Invalid client info" );
+		Com_Error( ERR_DROP, "Invalid client info" );
 	}
 
 	char *s = Info_ValueForKey( info, "name" );

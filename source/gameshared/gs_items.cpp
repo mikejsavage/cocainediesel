@@ -249,7 +249,7 @@ const gsitem_t *GS_Cmd_UseItem( const gs_state_t * gs, player_state_t *playerSta
 	// we don't have this item in the inventory
 	if( !playerState->inventory[item->tag] ) {
 		if( gs->module == GS_MODULE_CGAME && !( item->type & IT_WEAPON ) ) {
-			gs->api.Printf( "Item %s is not in inventory\n", item->name );
+			Com_Printf( "Item %s is not in inventory\n", item->name );
 		}
 		return NULL;
 	}

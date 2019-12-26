@@ -131,7 +131,7 @@ static bool StringToFilter( const char *s, ipfilter_t *f ) {
 
 	for( i = 0; i < 4; i++ ) {
 		if( *s < '0' || *s > '9' ) {
-			G_Printf( "Bad filter address: %s\n", s );
+			Com_Printf( "Bad filter address: %s\n", s );
 			return false;
 		}
 
@@ -226,10 +226,10 @@ void SV_WriteIPList( void ) {
 
 	Q_strncpyz( name, "listip.cfg", sizeof( name ) );
 
-	//G_Printf( "Writing %s.\n", name );
+	//Com_Printf( "Writing %s.\n", name );
 
 	if( FS_FOpenFile( name, &file, FS_WRITE ) == -1 ) {
-		G_Printf( "Couldn't open %s\n", name );
+		Com_Printf( "Couldn't open %s\n", name );
 		return;
 	}
 
@@ -259,7 +259,7 @@ static void Cmd_AddIP_f( void ) {
 	int i;
 
 	if( Cmd_Argc() < 2 ) {
-		G_Printf( "Usage: addip <ip-mask> [time-mins]\n" );
+		Com_Printf( "Usage: addip <ip-mask> [time-mins]\n" );
 		return;
 	}
 
@@ -269,7 +269,7 @@ static void Cmd_AddIP_f( void ) {
 		}          // free spot
 	if( i == numipfilters ) {
 		if( numipfilters == MAX_IPFILTERS ) {
-			G_Printf( "IP filter list is full\n" );
+			Com_Printf( "IP filter list is full\n" );
 			return;
 		}
 		numipfilters++;
@@ -291,7 +291,7 @@ static void Cmd_RemoveIP_f( void ) {
 	int i, j;
 
 	if( Cmd_Argc() < 2 ) {
-		G_Printf( "Usage: removeip <ip-mask>\n" );
+		Com_Printf( "Usage: removeip <ip-mask>\n" );
 		return;
 	}
 
@@ -305,10 +305,10 @@ static void Cmd_RemoveIP_f( void ) {
 			for( j = i + 1; j < numipfilters; j++ )
 				ipfilters[j - 1] = ipfilters[j];
 			numipfilters--;
-			G_Printf( "Removed.\n" );
+			Com_Printf( "Removed.\n" );
 			return;
 		}
-	G_Printf( "Didn't find %s.\n", Cmd_Argv( 1 ) );
+	Com_Printf( "Didn't find %s.\n", Cmd_Argv( 1 ) );
 }
 
 /*
@@ -318,14 +318,14 @@ static void Cmd_ListIP_f( void ) {
 	int i;
 	uint8_t b[4];
 
-	G_Printf( "Filter list:\n" );
+	Com_Printf( "Filter list:\n" );
 	for( i = 0; i < numipfilters; i++ ) {
 		*(unsigned *)b = ipfilters[i].compare;
 		if( ipfilters[i].timeout && ipfilters[i].timeout > svs.gametime ) {
-			G_Printf( "%3i.%3i.%3i.%3i %.2f\n", b[0], b[1], b[2], b[3],
+			Com_Printf( "%3i.%3i.%3i.%3i %.2f\n", b[0], b[1], b[2], b[3],
 					  (float)( ipfilters[i].timeout - svs.gametime ) / ( 60 * 1000.0f ) );
 		} else if( !ipfilters[i].timeout ) {
-			G_Printf( "%3i.%3i.%3i.%3i\n", b[0], b[1], b[2], b[3] );
+			Com_Printf( "%3i.%3i.%3i.%3i\n", b[0], b[1], b[2], b[3] );
 		}
 	}
 }

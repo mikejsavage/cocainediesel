@@ -415,7 +415,7 @@ static void trigger_gravity_touch( edict_t *self, edict_t *other, cplane_t *plan
 void SP_trigger_gravity( edict_t *self ) {
 	if( st.gravity == 0 ) {
 		if( developer->integer ) {
-			G_Printf( "trigger_gravity without gravity set at %s\n", vtos( self->s.origin ) );
+			Com_Printf( "trigger_gravity without gravity set at %s\n", vtos( self->s.origin ) );
 		}
 		G_FreeEdict( self );
 		return;
@@ -457,7 +457,7 @@ static void TeleporterTouch( edict_t *self, edict_t *other, cplane_t *plane, int
 	dest = G_Find( NULL, FOFS( targetname ), self->target );
 	if( !dest ) {
 		if( developer->integer ) {
-			G_Printf( "Couldn't find destination.\n" );
+			Com_Printf( "Couldn't find destination.\n" );
 		}
 		return;
 	}
@@ -483,7 +483,7 @@ static void TeleporterTouch( edict_t *self, edict_t *other, cplane_t *plane, int
 void SP_trigger_teleport( edict_t *ent ) {
 	if( !ent->target ) {
 		if( developer->integer ) {
-			G_Printf( "teleporter without a target.\n" );
+			Com_Printf( "teleporter without a target.\n" );
 		}
 		G_FreeEdict( ent );
 		return;

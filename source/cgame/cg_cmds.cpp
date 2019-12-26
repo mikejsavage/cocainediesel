@@ -96,11 +96,11 @@ void CG_ConfigString( int i, const char *s ) {
 	// wsw : jal : warn if configstring overflow
 	len = strlen( s );
 	if( len >= MAX_CONFIGSTRING_CHARS ) {
-		CG_Printf( "%sWARNING:%s Configstring %i overflowed\n", S_COLOR_YELLOW, S_COLOR_WHITE, i );
+		Com_Printf( "%sWARNING:%s Configstring %i overflowed\n", S_COLOR_YELLOW, S_COLOR_WHITE, i );
 	}
 
 	if( i < 0 || i >= MAX_CONFIGSTRINGS ) {
-		CG_Error( "configstring > MAX_CONFIGSTRINGS" );
+		Com_Error( ERR_DROP, "configstring > MAX_CONFIGSTRINGS" );
 		return;
 	}
 
@@ -148,8 +148,8 @@ static void CG_SC_PlayerStats() {
 	}
 
 	CG_LocalPrint( "Stats for %s" S_COLOR_WHITE ":\n", cgs.clientInfo[playerNum].name );
-	CG_Printf( "\nWeapon\n" );
-	CG_Printf( "    hit/shot percent\n" );
+	Com_Printf( "\nWeapon\n" );
+	Com_Printf( "    hit/shot percent\n" );
 
 	for( int i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
 		const gsitem_t * item = GS_FindItemByTag( i );
@@ -162,16 +162,16 @@ static void CG_SC_PlayerStats() {
 		int hits = ParseIntOr0( &s );
 
 		// name
-		CG_Printf( "%s%2s" S_COLOR_WHITE ": ", ImGuiColorToken( item->color ).token, item->shortname );
+		Com_Printf( "%s%2s" S_COLOR_WHITE ": ", ImGuiColorToken( item->color ).token, item->shortname );
 
 #define STATS_PERCENT( hit, total ) ( ( total ) == 0 ? 0 : ( ( hit ) == ( total ) ? 100 : (float)( hit ) * 100.0f / (float)( total ) ) )
 
 		// total
-		CG_Printf( S_COLOR_GREEN "%3i" S_COLOR_WHITE "/" S_COLOR_CYAN "%3i      " S_COLOR_YELLOW "%2.1f\n",
+		Com_Printf( S_COLOR_GREEN "%3i" S_COLOR_WHITE "/" S_COLOR_CYAN "%3i      " S_COLOR_YELLOW "%2.1f\n",
 			   hits, shots, STATS_PERCENT( hits, shots ) );
 	}
 
-	CG_Printf( "\n" );
+	Com_Printf( "\n" );
 
 	int total_damage_given = ParseIntOr0( &s );
 	int total_damage_received = ParseIntOr0( &s );
@@ -254,7 +254,7 @@ void CG_SC_AutoRecordAction( const char *action ) {
 			autorecording = false;
 		}
 	} else if( developer->integer ) {
-		CG_Printf( "CG_SC_AutoRecordAction: Unknown action: %s\n", action );
+		Com_Printf( "CG_SC_AutoRecordAction: Unknown action: %s\n", action );
 	}
 }
 
@@ -264,14 +264,14 @@ void CG_SC_AutoRecordAction( const char *action ) {
 static bool demo_requested = false;
 static void CG_Cmd_DemoGet_f( void ) {
 	if( demo_requested ) {
-		CG_Printf( "Already requesting a demo\n" );
+		Com_Printf( "Already requesting a demo\n" );
 		return;
 	}
 
 	if( Cmd_Argc() != 2 || ( atoi( Cmd_Argv( 1 ) ) <= 0 && Cmd_Argv( 1 )[0] != '.' ) ) {
-		CG_Printf( "Usage: demoget <number>\n" );
-		CG_Printf( "Downloads a demo from the server\n" );
-		CG_Printf( "Use the demolist command to see list of demos on the server\n" );
+		Com_Printf( "Usage: demoget <number>\n" );
+		Com_Printf( "Downloads a demo from the server\n" );
+		Com_Printf( "Use the demolist command to see list of demos on the server\n" );
 		return;
 	}
 
@@ -292,14 +292,14 @@ static void CG_SC_DemoGet( void ) {
 	}
 
 	if( !demo_requested ) {
-		CG_Printf( "Warning: demoget when not requested, ignored\n" );
+		Com_Printf( "Warning: demoget when not requested, ignored\n" );
 		return;
 	}
 
 	demo_requested = false;
 
 	if( Cmd_Argc() < 2 ) {
-		CG_Printf( "No such demo found\n" );
+		Com_Printf( "No such demo found\n" );
 		return;
 	}
 
@@ -307,7 +307,7 @@ static void CG_SC_DemoGet( void ) {
 	extension = COM_FileExtension( filename );
 	if( !COM_ValidateRelativeFilename( filename ) ||
 		!extension || Q_stricmp( extension, APP_DEMO_EXTENSION_STR ) ) {
-		CG_Printf( "Warning: demoget: Invalid filename, ignored\n" );
+		Com_Printf( "Warning: demoget: Invalid filename, ignored\n" );
 		return;
 	}
 
@@ -380,7 +380,7 @@ void CG_GameCommand( const char * command ) {
 		}
 	}
 
-	CG_Printf( "Unknown game command: %s\n", name );
+	Com_Printf( "Unknown game command: %s\n", name );
 }
 
 /*
@@ -421,7 +421,7 @@ void CG_UseItem( const char *name ) {
 */
 static void CG_Cmd_UseItem_f( void ) {
 	if( !Cmd_Argc() ) {
-		CG_Printf( "Usage: 'use <item name>' or 'use <item index>'\n" );
+		Com_Printf( "Usage: 'use <item name>' or 'use <item index>'\n" );
 		return;
 	}
 
@@ -516,8 +516,8 @@ static void CG_Cmd_Weapon_f() {
 * CG_Viewpos_f
 */
 static void CG_Viewpos_f( void ) {
-	CG_Printf( "\"origin\" \"%i %i %i\"\n", (int)cg.view.origin[0], (int)cg.view.origin[1], (int)cg.view.origin[2] );
-	CG_Printf( "\"angles\" \"%i %i %i\"\n", (int)cg.view.angles[0], (int)cg.view.angles[1], (int)cg.view.angles[2] );
+	Com_Printf( "\"origin\" \"%i %i %i\"\n", (int)cg.view.origin[0], (int)cg.view.origin[1], (int)cg.view.origin[2] );
+	Com_Printf( "\"angles\" \"%i %i %i\"\n", (int)cg.view.angles[0], (int)cg.view.angles[1], (int)cg.view.angles[2] );
 }
 
 // ======================================================================

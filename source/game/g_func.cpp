@@ -840,7 +840,7 @@ void SP_func_door_rotating( edict_t *ent ) {
 
 	if( !st.distance ) {
 		if( developer->integer ) {
-			G_Printf( "%s at %s with no distance set\n", ent->classname, vtos( ent->s.origin ) );
+			Com_Printf( "%s at %s with no distance set\n", ent->classname, vtos( ent->s.origin ) );
 		}
 		st.distance = 90;
 	}
@@ -1257,14 +1257,14 @@ void train_next( edict_t *self ) {
 	first = true;
 again:
 	if( !self->target ) {
-		//		G_Printf ("train_next: no next target\n");
+		//		Com_Printf ("train_next: no next target\n");
 		return;
 	}
 
 	ent = G_PickTarget( self->target );
 	if( !ent ) {
 		if( developer->integer ) {
-			G_Printf( "train_next: bad target %s\n", self->target );
+			Com_Printf( "train_next: bad target %s\n", self->target );
 		}
 		return;
 	}
@@ -1275,7 +1275,7 @@ again:
 	if( ent->spawnflags & 1 ) {
 		if( !first ) {
 			if( developer->integer ) {
-				G_Printf( "connected teleport path_corners, see %s at %s\n", ent->classname, vtos( ent->s.origin ) );
+				Com_Printf( "connected teleport path_corners, see %s at %s\n", ent->classname, vtos( ent->s.origin ) );
 			}
 
 			return;
@@ -1326,7 +1326,7 @@ static void func_train_find( edict_t *self ) {
 
 	if( !self->target ) {
 		if( developer->integer ) {
-			G_Printf( "train_find: no target\n" );
+			Com_Printf( "train_find: no target\n" );
 		}
 		return;
 	}
@@ -1334,7 +1334,7 @@ static void func_train_find( edict_t *self ) {
 	ent = G_PickTarget( self->target );
 	if( !ent ) {
 		if( developer->integer ) {
-			G_Printf( "train_find: target %s not found\n", self->target );
+			Com_Printf( "train_find: target %s not found\n", self->target );
 		}
 		return;
 	}
@@ -1407,7 +1407,7 @@ void SP_func_train( edict_t *self ) {
 		self->think = func_train_find;
 	} else {
 		if( developer->integer ) {
-			G_Printf( "func_train without a target at %s\n", vtos( self->r.absmin ) );
+			Com_Printf( "func_train without a target at %s\n", vtos( self->r.absmin ) );
 		}
 	}
 }
@@ -1416,13 +1416,13 @@ static void trigger_elevator_use( edict_t *self, edict_t *other, edict_t *activa
 	edict_t *target;
 
 	if( self->movetarget->nextThink ) {
-		//		G_Printf( "elevator busy\n" );
+		//		Com_Printf( "elevator busy\n" );
 		return;
 	}
 
 	if( !other->pathtarget ) {
 		if( developer->integer ) {
-			G_Printf( "elevator used with no pathtarget\n" );
+			Com_Printf( "elevator used with no pathtarget\n" );
 		}
 		return;
 	}
@@ -1430,7 +1430,7 @@ static void trigger_elevator_use( edict_t *self, edict_t *other, edict_t *activa
 	target = G_PickTarget( other->pathtarget );
 	if( !target ) {
 		if( developer->integer ) {
-			G_Printf( "elevator used with bad pathtarget: %s\n", other->pathtarget );
+			Com_Printf( "elevator used with bad pathtarget: %s\n", other->pathtarget );
 		}
 		return;
 	}
@@ -1442,20 +1442,20 @@ static void trigger_elevator_use( edict_t *self, edict_t *other, edict_t *activa
 static void trigger_elevator_init( edict_t *self ) {
 	if( !self->target ) {
 		if( developer->integer ) {
-			G_Printf( "trigger_elevator has no target\n" );
+			Com_Printf( "trigger_elevator has no target\n" );
 		}
 		return;
 	}
 	self->movetarget = G_PickTarget( self->target );
 	if( !self->movetarget ) {
 		if( developer->integer ) {
-			G_Printf( "trigger_elevator unable to find target %s\n", self->target );
+			Com_Printf( "trigger_elevator unable to find target %s\n", self->target );
 		}
 		return;
 	}
 	if( Q_stricmp( self->movetarget->classname, "func_train" ) ) {
 		if( developer->integer ) {
-			G_Printf( "trigger_elevator target %s is not a train\n", self->target );
+			Com_Printf( "trigger_elevator target %s is not a train\n", self->target );
 		}
 		return;
 	}
@@ -1503,7 +1503,7 @@ void SP_func_timer( edict_t *self ) {
 	if( self->random >= self->wait ) {
 		self->random = self->wait - 0.1;
 		if( developer->integer ) {
-			G_Printf( "func_timer at %s has random >= wait\n", vtos( self->s.origin ) );
+			Com_Printf( "func_timer at %s has random >= wait\n", vtos( self->s.origin ) );
 		}
 	}
 

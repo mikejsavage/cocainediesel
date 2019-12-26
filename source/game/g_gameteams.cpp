@@ -217,7 +217,7 @@ static bool G_Teams_CanKeepEvenTeam( int leaving, int joining ) {
 */
 static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
 	if( team < 0 || team >= GS_MAX_TEAMS ) {
-		G_Printf( "WARNING: 'G_GameTypes_CanJoinTeam' parsing a unrecognized team value\n" );
+		Com_Printf( "WARNING: 'G_GameTypes_CanJoinTeam' parsing a unrecognized team value\n" );
 		return ER_TEAM_INVALID;
 	}
 

@@ -651,7 +651,7 @@ void CG_DrawLoading( void ) {
 * Stop accepting new precaches after the timelimit for this frame has been reached.
 */
 bool CG_LoadingItemName( const char *str ) {
-	if( cgs.precacheCount > cgs.precacheStart && ( trap_Milliseconds() > cgs.precacheStartMsec + 33 ) ) {
+	if( cgs.precacheCount > cgs.precacheStart && ( Sys_Milliseconds() > cgs.precacheStartMsec + 33 ) ) {
 		return false;
 	}
 	cgs.precacheCount++;

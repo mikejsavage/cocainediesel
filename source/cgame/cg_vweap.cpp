@@ -229,7 +229,7 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 								 weaponInfo->loopingframes[viewweapon->baseAnim], true );
 
 	if( curframe < 0 ) {
-		CG_Error( "CG_ViewWeapon_UpdateAnimation(2): Base Animation without a defined loop.\n" );
+		Com_Error( ERR_DROP, "CG_ViewWeapon_UpdateAnimation(2): Base Animation without a defined loop.\n" );
 	}
 }
 

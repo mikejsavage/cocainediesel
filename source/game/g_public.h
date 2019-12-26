@@ -58,16 +58,6 @@ typedef struct {
 // functions provided by the main engine
 //
 typedef struct {
-	// special messages
-	void ( *Print )( const char *msg );
-
-	// aborts server with a game error
-#ifndef _MSC_VER
-	void ( *Error )( const char *msg ) __attribute__( ( noreturn ) );
-#else
-	void ( *Error )( const char *msg );
-#endif
-
 	// server commands sent to clients
 	void ( *GameCmd )( edict_t *ent, const char *cmd );
 
@@ -82,28 +72,6 @@ typedef struct {
 	int ( *ModelIndex )( const char *name );
 	int ( *SoundIndex )( const char *name );
 	int ( *ImageIndex )( const char *name );
-
-	int64_t ( *Milliseconds )( void );
-
-	bool ( *inPVS )( const vec3_t p1, const vec3_t p2 );
-
-	int ( *CM_NumInlineModels )( void );
-	struct cmodel_s *( *CM_InlineModel )( int num );
-	int ( *CM_TransformedPointContents )( const vec3_t p, struct cmodel_s *cmodel, const vec3_t origin, const vec3_t angles );
-	void ( *CM_TransformedBoxTrace )( trace_t *tr, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs, struct cmodel_s *cmodel, int brushmask, const vec3_t origin, const vec3_t angles );
-	void ( *CM_InlineModelBounds )( const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs );
-	struct cmodel_s *( *CM_ModelForBBox )( vec3_t mins, vec3_t maxs );
-	struct cmodel_s *( *CM_OctagonModelForBBox )( vec3_t mins, vec3_t maxs );
-	void ( *CM_SetAreaPortalState )( int area, int otherarea, bool open );
-	bool ( *CM_AreasConnected )( int area1, int area2 );
-	int ( *CM_BoxLeafnums )( vec3_t mins, vec3_t maxs, int *list, int listsize, int *topnode );
-	int ( *CM_LeafCluster )( int leafnum );
-	int ( *CM_LeafArea )( int leafnum );
-	int ( *CM_LeafsInPVS )( int leafnum1, int leafnum2 );
-
-	// add commands to the server console as if they were typed in for map changing, etc
-	void ( *Cbuf_ExecuteText )( int exec_when, const char *text );
-	void ( *Cbuf_Execute )( void );
 
 	// a fake client connection, ClientConnect is called afterwords
 	// with fakeClient set to true

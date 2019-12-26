@@ -146,7 +146,7 @@ static spawn_t spawns[] = {
 bool G_CallSpawn( edict_t *ent ) {
 	if( !ent->classname ) {
 		if( developer->integer ) {
-			G_Printf( "G_CallSpawn: NULL classname\n" );
+			Com_Printf( "G_CallSpawn: NULL classname\n" );
 		}
 		return false;
 	}
@@ -165,7 +165,7 @@ bool G_CallSpawn( edict_t *ent ) {
 	}
 
 	if( sv_cheats->integer || developer->integer ) { // mappers load their maps with devmap
-		G_Printf( "%s doesn't have a spawn function\n", ent->classname );
+		Com_Printf( "%s doesn't have a spawn function\n", ent->classname );
 	}
 
 	return false;
@@ -196,7 +196,7 @@ const char *G_GetEntitySpawnKey( const char *key, edict_t *self ) {
 			}
 
 			if( !data ) {
-				G_Error( "G_GetEntitySpawnKey: EOF without closing brace" );
+				Com_Error( ERR_DROP, "G_GetEntitySpawnKey: EOF without closing brace" );
 			}
 
 			Q_strncpyz( keyname, com_token, sizeof( keyname ) );
@@ -204,11 +204,11 @@ const char *G_GetEntitySpawnKey( const char *key, edict_t *self ) {
 			// parse value
 			com_token = COM_Parse( &data );
 			if( !data ) {
-				G_Error( "G_GetEntitySpawnKey: EOF without closing brace" );
+				Com_Error( ERR_DROP, "G_GetEntitySpawnKey: EOF without closing brace" );
 			}
 
 			if( com_token[0] == '}' ) {
-				G_Error( "G_GetEntitySpawnKey: closing brace without data" );
+				Com_Error( ERR_DROP, "G_GetEntitySpawnKey: closing brace without data" );
 			}
 
 			// key names with a leading underscore are used for utility comments and are immediately discarded
@@ -307,7 +307,7 @@ static void ED_ParseField( char *key, char *value, edict_t *ent ) {
 	}
 
 	if( developer->integer ) {
-		G_Printf( "%s is not a field\n", key );
+		Com_Printf( "%s is not a field\n", key );
 	}
 }
 
@@ -334,7 +334,7 @@ static char *ED_ParseEdict( char *data, edict_t *ent ) {
 			break;
 		}
 		if( !data ) {
-			G_Error( "ED_ParseEntity: EOF without closing brace" );
+			Com_Error( ERR_DROP, "ED_ParseEntity: EOF without closing brace" );
 		}
 
 		Q_strncpyz( keyname, com_token, sizeof( keyname ) );
@@ -342,11 +342,11 @@ static char *ED_ParseEdict( char *data, edict_t *ent ) {
 		// parse value
 		com_token = COM_Parse( &data );
 		if( !data ) {
-			G_Error( "ED_ParseEntity: EOF without closing brace" );
+			Com_Error( ERR_DROP, "ED_ParseEntity: EOF without closing brace" );
 		}
 
 		if( com_token[0] == '}' ) {
-			G_Error( "ED_ParseEntity: closing brace without data" );
+			Com_Error( ERR_DROP, "ED_ParseEntity: closing brace without data" );
 		}
 
 		init = true;
@@ -417,7 +417,7 @@ static void G_FindTeams( void ) {
 	}
 
 	if( developer->integer ) {
-		G_Printf( "%i teams with %i entities\n", c, c2 );
+		Com_Printf( "%i teams with %i entities\n", c, c2 );
 	}
 }
 
@@ -541,7 +541,7 @@ static void G_SpawnEntities( void ) {
 			break;
 		}
 		if( token[0] != '{' ) {
-			G_Error( "G_SpawnMapEntities: found %s when expecting {", token );
+			Com_Error( ERR_DROP, "G_SpawnMapEntities: found %s when expecting {", token );
 		}
 
 		if( !ent ) {
@@ -599,7 +599,7 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 	GClip_ClearWorld(); // clear areas links
 
 	if( !entities ) {
-		G_Error( "G_SpawnLevel: NULL entities string\n" );
+		Com_Error( ERR_DROP, "G_SpawnLevel: NULL entities string\n" );
 	}
 
 	// make a copy of the raw entities string so it's not freed with the pool

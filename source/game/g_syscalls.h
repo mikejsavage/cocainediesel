@@ -24,20 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 extern game_import_t GAME_IMPORT;
 
-static inline void trap_Print( const char *msg ) {
-	GAME_IMPORT.Print( msg );
-}
-
-#ifndef _MSC_VER
-static inline void trap_Error( const char *msg ) __attribute__( ( noreturn ) );
-#else
-__declspec( noreturn ) static inline void trap_Error( const char *msg );
-#endif
-
-static inline void trap_Error( const char *msg ) {
-	GAME_IMPORT.Error( msg );
-}
-
 static inline void trap_GameCmd( struct edict_s *ent, const char *cmd ) {
 	GAME_IMPORT.GameCmd( ent, cmd );
 }
@@ -60,63 +46,6 @@ static inline int trap_SoundIndex( const char *name ) {
 
 static inline int trap_ImageIndex( const char *name ) {
 	return GAME_IMPORT.ImageIndex( name );
-}
-
-static inline int64_t trap_Milliseconds( void ) {
-	return GAME_IMPORT.Milliseconds();
-}
-
-static inline bool trap_inPVS( const vec3_t p1, const vec3_t p2 ) {
-	return GAME_IMPORT.inPVS( p1, p2 ) == true;
-}
-
-static inline int trap_CM_TransformedPointContents( const vec3_t p, struct cmodel_s *cmodel, const vec3_t origin, const vec3_t angles ) {
-	return GAME_IMPORT.CM_TransformedPointContents( p, cmodel, origin, angles );
-}
-
-static inline void trap_CM_TransformedBoxTrace( trace_t *tr, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs, struct cmodel_s *cmodel, int brushmask, const vec3_t origin, const vec3_t angles ) {
-	GAME_IMPORT.CM_TransformedBoxTrace( tr, start, end, mins, maxs, cmodel, brushmask, origin, angles );
-}
-
-static inline int trap_CM_NumInlineModels( void ) {
-	return GAME_IMPORT.CM_NumInlineModels();
-}
-
-static inline struct cmodel_s *trap_CM_InlineModel( int num ) {
-	return GAME_IMPORT.CM_InlineModel( num );
-}
-
-static inline void trap_CM_InlineModelBounds( const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs ) {
-	GAME_IMPORT.CM_InlineModelBounds( cmodel, mins, maxs );
-}
-
-static inline struct cmodel_s *trap_CM_ModelForBBox( vec3_t mins, vec3_t maxs ) {
-	return GAME_IMPORT.CM_ModelForBBox( mins, maxs );
-}
-
-static inline struct cmodel_s *trap_CM_OctagonModelForBBox( vec3_t mins, vec3_t maxs ) {
-	return GAME_IMPORT.CM_OctagonModelForBBox( mins, maxs );
-}
-
-static inline void trap_CM_SetAreaPortalState( int area, int otherarea, bool open ) {
-	GAME_IMPORT.CM_SetAreaPortalState( area, otherarea, open == true ? true : false );
-}
-
-static inline bool trap_CM_AreasConnected( int area1, int area2 ) {
-	return GAME_IMPORT.CM_AreasConnected( area1, area2 ) == true;
-}
-
-static inline int trap_CM_BoxLeafnums( vec3_t mins, vec3_t maxs, int *list, int listsize, int *topnode ) {
-	return GAME_IMPORT.CM_BoxLeafnums( mins, maxs, list, listsize, topnode );
-}
-static inline int trap_CM_LeafCluster( int leafnum ) {
-	return GAME_IMPORT.CM_LeafCluster( leafnum );
-}
-static inline int trap_CM_LeafArea( int leafnum ) {
-	return GAME_IMPORT.CM_LeafArea( leafnum );
-}
-static inline int trap_CM_LeafsInPVS( int leafnum1, int leafnum2 ) {
-	return GAME_IMPORT.CM_LeafsInPVS( leafnum1, leafnum2 );
 }
 
 static inline int trap_FakeClientConnect( char *fakeUserinfo, char *fakeSocketType, const char *fakeIP ) {

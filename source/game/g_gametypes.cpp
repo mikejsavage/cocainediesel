@@ -746,7 +746,7 @@ void G_Gametype_Init( void ) {
 	G_Gametype_SetDefaults();
 
 	if( !GT_asLoadScript( gt ) ) {
-		G_Error( "Failed to load %s", gt );
+		Com_Error( ERR_DROP, "Failed to load %s", gt );
 	}
 
 	trap_ConfigString( CS_GAMETYPENAME, gt );

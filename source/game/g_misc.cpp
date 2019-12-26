@@ -135,7 +135,7 @@ static void path_corner_touch( edict_t *self, edict_t *other, cplane_t *plane, i
 void SP_path_corner( edict_t *self ) {
 	if( !self->targetname ) {
 		if( developer->integer ) {
-			G_Printf( "path_corner with no targetname at %s\n", vtos( self->s.origin ) );
+			Com_Printf( "path_corner with no targetname at %s\n", vtos( self->s.origin ) );
 		}
 		G_FreeEdict( self );
 		return;
@@ -186,7 +186,7 @@ void SP_func_wall( edict_t *self ) {
 
 	// it must be TRIGGER_SPAWN
 	if( !( self->spawnflags & 1 ) ) {
-		//		G_Printf ("func_wall missing TRIGGER_SPAWN\n");
+		//		Com_Printf ("func_wall missing TRIGGER_SPAWN\n");
 		self->spawnflags |= 1;
 	}
 
@@ -194,7 +194,7 @@ void SP_func_wall( edict_t *self ) {
 	if( self->spawnflags & 4 ) {
 		if( !( self->spawnflags & 2 ) ) {
 			if( developer->integer ) {
-				G_Printf( "func_wall START_ON without TOGGLE\n" );
+				Com_Printf( "func_wall START_ON without TOGGLE\n" );
 			}
 			self->spawnflags |= 2;
 		}

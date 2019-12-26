@@ -56,7 +56,7 @@ bool CG_ChaseStep( int step ) {
 					checkPlayer = 0;
 				}
 
-				if( ( checkPlayer != index ) && cg.frame.playerStates[checkPlayer].stats[STAT_REALTEAM] == TEAM_SPECTATOR ) {
+				if( checkPlayer != index && ISREALSPECTATOR() ) {
 					continue;
 				}
 				break;
@@ -70,7 +70,7 @@ bool CG_ChaseStep( int step ) {
 		cg.multiviewPlayerNum = cg.frame.playerStates[checkPlayer].playerNum;
 		return true;
 	}
-	
+
 	if( !cgs.demoPlaying ) {
 		Cbuf_ExecuteText( EXEC_NOW, step > 0 ? "chasenext" : "chaseprev" );
 		return true;
@@ -180,7 +180,7 @@ void CG_AddKickAngles( vec3_t viewangles ) {
 		uptime = ( (float)cg.kickangles[i].kicktime ) * 0.5f;
 		delta = 1.0f - ( Abs( time - uptime ) / uptime );
 
-		//CG_Printf("Kick Delta:%f\n", delta );
+		//Com_Printf("Kick Delta:%f\n", delta );
 		if( delta > 1.0f ) {
 			delta = 1.0f;
 		}
@@ -702,7 +702,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 	} else if( view->type == VIEWDEF_DEMOCAM ) {
 		CG_DemoCam_GetViewDef( view );
 	} else {
-		CG_Error( "CG_SetupView: Invalid view type %i\n", view->type );
+		Com_Error( ERR_DROP, "CG_SetupView: Invalid view type %i\n", view->type );
 	}
 
 	//
@@ -963,9 +963,9 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	if( cg_showClamp->integer ) {
 		if( cg.lerpfrac > 1.0f ) {
-			CG_Printf( "high clamp %f\n", cg.lerpfrac );
+			Com_Printf( "high clamp %f\n", cg.lerpfrac );
 		} else if( cg.lerpfrac < 0.0f ) {
-			CG_Printf( "low clamp  %f\n", cg.lerpfrac );
+			Com_Printf( "low clamp  %f\n", cg.lerpfrac );
 		}
 	}
 

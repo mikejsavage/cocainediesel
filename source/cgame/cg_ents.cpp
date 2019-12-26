@@ -18,7 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "cg_local.h"
+#include "qcommon/qcommon.h"
+#include "cgame/cg_local.h"
 
 static void CG_UpdateEntities( void );
 
@@ -409,7 +410,7 @@ struct cmodel_s *CG_CModelForEntity( int entNum ) {
 
 	// find the cmodel
 	if( cent->current.solid == SOLID_BMODEL ) { // special value for bmodel
-		cmodel = trap_CM_InlineModel( cent->current.modelindex );
+		cmodel = CM_InlineModel( cl.cms, cent->current.modelindex );
 	} else if( cent->current.solid ) {   // encoded bbox
 		x = 8 * ( cent->current.solid & 31 );
 		zd = 8 * ( ( cent->current.solid >> 5 ) & 31 );
@@ -420,9 +421,9 @@ struct cmodel_s *CG_CModelForEntity( int entNum ) {
 		bmins[2] = -zd;
 		bmaxs[2] = zu;
 		if( cent->type == ET_PLAYER || cent->type == ET_CORPSE ) {
-			cmodel = trap_CM_OctagonModelForBBox( bmins, bmaxs );
+			cmodel = CM_OctagonModelForBBox( cl.cms, bmins, bmaxs );
 		} else {
-			cmodel = trap_CM_ModelForBBox( bmins, bmaxs );
+			cmodel = CM_ModelForBBox( cl.cms, bmins, bmaxs );
 		}
 	}
 
@@ -580,7 +581,7 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 	DrawModel( model, transform, color );
 
 	if( cent->current.silhouetteColor.a > 0 ) {
-		if( ( cent->current.effects & EF_TEAM_SILHOUETTE ) == 0 || cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR || cent->current.team == cg.predictedPlayerState.stats[ STAT_TEAM ] ) {
+		if( ( cent->current.effects & EF_TEAM_SILHOUETTE ) == 0 || ISREALSPECTATOR() || cent->current.team == cg.predictedPlayerState.stats[ STAT_TEAM ] ) {
 			Vec4 silhouette_color = Vec4(
 				cent->current.silhouetteColor.r / 255.0f,
 				cent->current.silhouetteColor.g / 255.0f,
@@ -719,7 +720,7 @@ static void CG_UpdateLaserbeamEnt( centity_t *cent ) {
 
 	owner = &cg_entities[cent->current.ownerNum];
 	if( owner->serverFrame != cg.frame.serverFrame ) {
-		CG_Error( "CG_UpdateLaserbeamEnt: owner is not in the snapshot\n" );
+		Com_Error( ERR_DROP, "CG_UpdateLaserbeamEnt: owner is not in the snapshot\n" );
 	}
 
 	owner->localEffects[LOCALEFFECT_LASERBEAM] = cl.serverTime + 10;
@@ -771,7 +772,7 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 
 	if( owner ) {
 		if( owner < 0 || owner >= MAX_EDICTS ) {
-			CG_Printf( "CG_SoundEntityNewState: bad owner number" );
+			Com_Printf( "CG_SoundEntityNewState: bad owner number" );
 			return;
 		}
 		if( cg_entities[owner].serverFrame != cg.frame.serverFrame ) {
@@ -971,7 +972,7 @@ void CG_AddEntities( void ) {
 				break;
 
 			default:
-				CG_Error( "CG_AddEntities: unknown entity type" );
+				Com_Error( ERR_DROP, "CG_AddEntities: unknown entity type" );
 				break;
 		}
 
@@ -1042,7 +1043,7 @@ void CG_LerpEntities( void ) {
 				break;
 
 			default:
-				CG_Error( "CG_LerpEntities: unknown entity type" );
+				Com_Error( ERR_DROP, "CG_LerpEntities: unknown entity type" );
 				break;
 		}
 
@@ -1118,7 +1119,7 @@ void CG_UpdateEntities( void ) {
 				break;
 
 			default:
-				CG_Error( "CG_UpdateEntities: unknown entity type %i", cent->type );
+				Com_Error( ERR_DROP, "CG_UpdateEntities: unknown entity type %i", cent->type );
 				break;
 		}
 	}
@@ -1133,7 +1134,7 @@ void CG_UpdateEntities( void ) {
 */
 void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
 	if( entNum < -1 || entNum >= MAX_EDICTS ) {
-		CG_Error( "CG_GetEntitySpatilization: bad entnum" );
+		Com_Error( ERR_DROP, "CG_GetEntitySpatilization: bad entnum" );
 		return;
 	}
 
@@ -1163,9 +1164,9 @@ void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
 
 	// bmodel
 	if( origin != NULL ) {
-		const struct cmodel_s * cmodel = trap_CM_InlineModel( cent->current.modelindex );
+		const struct cmodel_s * cmodel = CM_InlineModel( cl.cms, cent->current.modelindex );
 		vec3_t mins, maxs;
-		trap_CM_InlineModelBounds( cmodel, mins, maxs );
+		CM_InlineModelBounds( cl.cms, cmodel, mins, maxs );
 		VectorAdd( maxs, mins, origin );
 		VectorMA( cent->ent.origin, 0.5f, origin, origin );
 	}
@@ -1179,7 +1180,7 @@ void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
 */
 void CG_BBoxForEntityState( const entity_state_t * state, vec3_t mins, vec3_t maxs ) {
 	if( state->solid == SOLID_BMODEL ) {
-		CG_Error( "CG_BBoxForEntityState: called for a brush model\n" );
+		Com_Error( ERR_DROP, "CG_BBoxForEntityState: called for a brush model\n" );
 	} else { // encoded bbox
 		int x = 8 * ( state->solid & 31 );
 		int zd = 8 * ( ( state->solid >> 5 ) & 31 );

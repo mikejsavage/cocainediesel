@@ -18,12 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "q_arch.h"
-#include "q_math.h"
-#include "q_shared.h"
-#include "q_comref.h"
-#include "q_collision.h"
-#include "gs_public.h"
+#include "qcommon/qcommon.h"
+#include "gameshared/gs_public.h"
 
 #define STOP_EPSILON    0.1
 
@@ -170,7 +166,7 @@ static void GS_AddClippingPlane( const gs_state_t * gs, move_t *move, const vec3
 	}
 
 	if( move->numClipPlanes + 1 == MAX_SLIDEMOVE_CLIP_PLANES ) {
-		gs->api.Error( "GS_AddTouchPlane: MAX_SLIDEMOVE_CLIP_PLANES reached\n" );
+		Com_Error( ERR_DROP, "GS_AddTouchPlane: MAX_SLIDEMOVE_CLIP_PLANES reached\n" );
 	}
 
 	// add the plane
@@ -272,7 +268,7 @@ int GS_SlideMove( const gs_state_t * gs, move_t *move ) {
 
 		// if it didn't touch anything the move should be completed
 		if( move->remainingTime > 0.0f ) {
-			gs->api.Printf( "slidemove finished with remaining time\n" );
+			Com_Printf( "slidemove finished with remaining time\n" );
 			move->remainingTime = 0.0f;
 		}
 

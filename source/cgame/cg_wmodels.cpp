@@ -92,7 +92,7 @@ static bool CG_vWeap_ParseAnimationScript( weaponinfo_t *weaponinfo, const char 
 	}
 
 	if( debug ) {
-		CG_Printf( "%sLoading weapon animation script:%s%s\n", S_COLOR_BLUE, filename, S_COLOR_WHITE );
+		Com_Printf( "%sLoading weapon animation script:%s%s\n", S_COLOR_BLUE, filename, S_COLOR_WHITE );
 	}
 
 	memset( anim_data, 0, sizeof( anim_data ) );
@@ -109,7 +109,7 @@ static bool CG_vWeap_ParseAnimationScript( weaponinfo_t *weaponinfo, const char 
 		if( *token < '0' || *token > '9' ) {
 			if( !Q_stricmp( token, "barrel" ) ) {
 				if( debug ) {
-					CG_Printf( "%sScript: barrel:%s", S_COLOR_BLUE, S_COLOR_WHITE );
+					Com_Printf( "%sScript: barrel:%s", S_COLOR_BLUE, S_COLOR_WHITE );
 				}
 
 				// time
@@ -120,11 +120,11 @@ static bool CG_vWeap_ParseAnimationScript( weaponinfo_t *weaponinfo, const char 
 				weaponinfo->barrelSpeed = atof( COM_ParseExt( &ptr, false ) );
 
 				if( debug ) {
-					CG_Printf( "%s time:%" PRIi64 ", speed:%.2f%s\n", S_COLOR_BLUE, weaponinfo->barrelTime, weaponinfo->barrelSpeed, S_COLOR_WHITE );
+					Com_Printf( "%s time:%" PRIi64 ", speed:%.2f%s\n", S_COLOR_BLUE, weaponinfo->barrelTime, weaponinfo->barrelSpeed, S_COLOR_WHITE );
 				}
 			} else if( !Q_stricmp( token, "flash" ) ) {
 				if( debug ) {
-					CG_Printf( "%sScript: flash:%s", S_COLOR_BLUE, S_COLOR_WHITE );
+					Com_Printf( "%sScript: flash:%s", S_COLOR_BLUE, S_COLOR_WHITE );
 				}
 
 				// time
@@ -142,11 +142,11 @@ static bool CG_vWeap_ParseAnimationScript( weaponinfo_t *weaponinfo, const char 
 				}
 
 				if( debug ) {
-					CG_Printf( "%s time:%i, radius:%i, fade:%s%s\n", S_COLOR_BLUE, (int)weaponinfo->flashTime, (int)weaponinfo->flashRadius, weaponinfo->flashFade ? "YES" : "NO", S_COLOR_WHITE );
+					Com_Printf( "%s time:%i, radius:%i, fade:%s%s\n", S_COLOR_BLUE, (int)weaponinfo->flashTime, (int)weaponinfo->flashRadius, weaponinfo->flashFade ? "YES" : "NO", S_COLOR_WHITE );
 				}
 			} else if( !Q_stricmp( token, "flashColor" ) ) {
 				if( debug ) {
-					CG_Printf( "%sScript: flashColor:%s", S_COLOR_BLUE, S_COLOR_WHITE );
+					Com_Printf( "%sScript: flashColor:%s", S_COLOR_BLUE, S_COLOR_WHITE );
 				}
 
 				weaponinfo->flashColor[0] = atof( token = COM_ParseExt( &ptr, false ) );
@@ -154,13 +154,13 @@ static bool CG_vWeap_ParseAnimationScript( weaponinfo_t *weaponinfo, const char 
 				weaponinfo->flashColor[2] = atof( token = COM_ParseExt( &ptr, false ) );
 
 				if( debug ) {
-					CG_Printf( "%s%f %f %f%s\n", S_COLOR_BLUE,
+					Com_Printf( "%s%f %f %f%s\n", S_COLOR_BLUE,
 							   weaponinfo->flashColor[0], weaponinfo->flashColor[1], weaponinfo->flashColor[2],
 							   S_COLOR_WHITE );
 				}
 			} else if( !Q_stricmp( token, "handOffset" ) ) {
 				if( debug ) {
-					CG_Printf( "%sScript: handPosition:%s", S_COLOR_BLUE, S_COLOR_WHITE );
+					Com_Printf( "%sScript: handPosition:%s", S_COLOR_BLUE, S_COLOR_WHITE );
 				}
 
 				weaponinfo->handpositionOrigin[FORWARD] = atof( COM_ParseExt( &ptr, false ) );
@@ -171,7 +171,7 @@ static bool CG_vWeap_ParseAnimationScript( weaponinfo_t *weaponinfo, const char 
 				weaponinfo->handpositionAngles[ROLL] = atof( COM_ParseExt( &ptr, false ) );
 
 				if( debug ) {
-					CG_Printf( "%s%f %f %f %f %f %f%s\n", S_COLOR_BLUE,
+					Com_Printf( "%s%f %f %f %f %f %f%s\n", S_COLOR_BLUE,
 							   weaponinfo->handpositionOrigin[0], weaponinfo->handpositionOrigin[1], weaponinfo->handpositionOrigin[2],
 							   weaponinfo->handpositionAngles[0], weaponinfo->handpositionAngles[1], weaponinfo->handpositionAngles[2],
 							   S_COLOR_WHITE );
@@ -179,32 +179,32 @@ static bool CG_vWeap_ParseAnimationScript( weaponinfo_t *weaponinfo, const char 
 
 			} else if( !Q_stricmp( token, "firesound" ) ) {
 				if( debug ) {
-					CG_Printf( "%sScript: firesound:%s", S_COLOR_BLUE, S_COLOR_WHITE );
+					Com_Printf( "%sScript: firesound:%s", S_COLOR_BLUE, S_COLOR_WHITE );
 				}
 
 				token = COM_ParseExt( &ptr, false );
 				weaponinfo->sound_fire = FindSoundEffect( token );
 				if( debug ) {
-					CG_Printf( "%s%s%s\n", S_COLOR_BLUE, token, S_COLOR_WHITE );
+					Com_Printf( "%s%s%s\n", S_COLOR_BLUE, token, S_COLOR_WHITE );
 				}
 			} else if( token[0] && debug ) {
-				CG_Printf( "%signored: %s%s\n", S_COLOR_YELLOW, token, S_COLOR_WHITE );
+				Com_Printf( "%signored: %s%s\n", S_COLOR_YELLOW, token, S_COLOR_WHITE );
 			}
 		} else {
 			//frame & animation values
 			i = (int)atoi( token );
 			if( debug ) {
 				if( rounder == 0 ) {
-					CG_Printf( "%sScript: %s", S_COLOR_BLUE, S_COLOR_WHITE );
+					Com_Printf( "%sScript: %s", S_COLOR_BLUE, S_COLOR_WHITE );
 				}
-				CG_Printf( "%s%i - %s", S_COLOR_BLUE, i, S_COLOR_WHITE );
+				Com_Printf( "%s%i - %s", S_COLOR_BLUE, i, S_COLOR_WHITE );
 			}
 			anim_data[rounder][counter] = i;
 			rounder++;
 			if( rounder > 3 ) {
 				rounder = 0;
 				if( debug ) {
-					CG_Printf( "%s anim: %i%s\n", S_COLOR_BLUE, counter, S_COLOR_WHITE );
+					Com_Printf( "%s anim: %i%s\n", S_COLOR_BLUE, counter, S_COLOR_WHITE );
 				}
 				counter++;
 				if( counter == VWEAP_MAXANIMS ) {
@@ -217,7 +217,7 @@ static bool CG_vWeap_ParseAnimationScript( weaponinfo_t *weaponinfo, const char 
 	CG_Free( buf );
 
 	if( counter < VWEAP_MAXANIMS ) {
-		CG_Printf( "%sERROR: incomplete WEAPON script: %s - Using default%s\n", S_COLOR_YELLOW, filename, S_COLOR_WHITE );
+		Com_Printf( "%sERROR: incomplete WEAPON script: %s - Using default%s\n", S_COLOR_YELLOW, filename, S_COLOR_WHITE );
 		return false;
 	}
 
@@ -329,7 +329,7 @@ static void CG_WeaponModelUpdateRegistration( weaponinfo_t *weaponinfo, char *fi
 	CG_ComputeWeaponInfoTags( weaponinfo );
 
 	if( cg_debugWeaponModels->integer ) {
-		CG_Printf( "%sWEAPmodel: Loaded successful%s\n", S_COLOR_BLUE, S_COLOR_WHITE );
+		Com_Printf( "%sWEAPmodel: Loaded successful%s\n", S_COLOR_BLUE, S_COLOR_WHITE );
 	}
 
 	Q_strncpyz( weaponinfo->name, filename, sizeof( weaponinfo->name ) );
@@ -373,7 +373,7 @@ struct weaponinfo_s *CG_CreateWeaponZeroModel( char *filename ) {
 	}
 
 	if( cg_debugWeaponModels->integer ) {
-		CG_Printf( "%sWEAPmodel: Failed to load generic weapon. Creating a fake one%s\n", S_COLOR_YELLOW, S_COLOR_WHITE );
+		Com_Printf( "%sWEAPmodel: Failed to load generic weapon. Creating a fake one%s\n", S_COLOR_YELLOW, S_COLOR_WHITE );
 	}
 
 	CG_CreateHandDefaultAnimations( weaponinfo );

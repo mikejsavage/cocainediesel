@@ -449,8 +449,8 @@ edict_t *G_PositionedSound( vec3_t origin, int channel, int soundindex, float at
 void G_GlobalSound( int channel, int soundindex );
 void G_LocalSound( edict_t *owner, int channel, int soundindex );
 
-#define G_ISGHOSTING( x ) ( ( ( x )->s.modelindex == 0 ) && ( ( x )->r.solid == SOLID_NOT ) )
-#define ISBRUSHMODEL( x ) ( ( ( x > 0 ) && ( (int)x < trap_CM_NumInlineModels() ) ) ? true : false )
+#define G_ISGHOSTING( x ) ( ( x )->s.modelindex == 0 && ( x )->r.solid == SOLID_NOT )
+#define ISBRUSHMODEL( x ) ( ( x > 0 ) && ( (int)x < CM_NumInlineModels( svs.cms ) ) )
 
 void G_TeleportEffect( edict_t *ent, bool in );
 void G_RespawnEffect( edict_t *ent );
@@ -671,14 +671,6 @@ int G_BoxSlideMove( edict_t *ent, int contentmask, float slideBounce, float fric
 #define G_LevelMalloc( size ) _G_LevelMalloc( ( size ), __FILE__, __LINE__ )
 #define G_LevelFree( data ) _G_LevelFree( ( data ), __FILE__, __LINE__ )
 #define G_LevelCopyString( in ) _G_LevelCopyString( ( in ), __FILE__, __LINE__ )
-
-#ifndef _MSC_VER
-void G_Error( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) ) __attribute__( ( noreturn ) );
-void G_Printf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-#else
-__declspec( noreturn ) void G_Error( _Printf_format_string_ const char *format, ... );
-void G_Printf( _Printf_format_string_ const char *format, ... );
-#endif
 
 void G_Init( unsigned int framemsec );
 void G_Shutdown( void );

@@ -158,58 +158,6 @@ static void PF_GameCmd( edict_t *ent, const char *cmd ) {
 }
 
 /*
-* PF_dprint
-*
-* Debug print to server console
-*/
-static void PF_dprint( const char *msg ) {
-	char copy[MAX_PRINTMSG], *end = copy + sizeof( copy );
-	char *out = copy;
-	const char *in = msg;
-
-	if( !msg ) {
-		return;
-	}
-
-	// don't allow control chars except for \n
-	for( ; *in && out < end - 1; in++ ) {
-		if( ( unsigned char )*in >= ' ' || *in == '\n' ) {
-			*out++ = *in;
-		}
-	}
-	*out = '\0';
-
-	Com_Printf( "%s", copy );
-}
-
-#ifndef _MSC_VER
-static void PF_error( const char *msg ) __attribute__( ( noreturn ) );
-#else
-__declspec( noreturn ) static void PF_error( const char *msg );
-#endif
-
-/*
-* PF_error
-*
-* Abort the server with a game error
-*/
-static void PF_error( const char *msg ) {
-	char copy[MAX_PRINTMSG];
-
-	if( !msg ) {
-		Com_Error( ERR_DROP, "Game Error: unknown error" );
-	}
-
-	// mask off high bits and colored strings
-	size_t i;
-	for( i = 0; i < sizeof( copy ) - 1 && msg[i]; i++ )
-		copy[i] = msg[i] & 127;
-	copy[i] = 0;
-
-	Com_Error( ERR_DROP, "Game Error: %s", copy );
-}
-
-/*
 * PF_Configstring
 */
 static void PF_ConfigString( int index, const char *val ) {
@@ -260,13 +208,6 @@ static const char *PF_GetConfigString( int index ) {
 	return sv.configstrings[ index ];
 }
 
-/*
-* PF_inPVS
-*/
-static bool PF_inPVS( const vec3_t p1, const vec3_t p2 ) {
-	return CM_InPVS( svs.cms, p1, p2 );
-}
-
 //==============================================
 
 /*
@@ -314,27 +255,7 @@ void SV_InitGameProgs( void ) {
 	}
 
 	// load a new game dll
-	import.Print = PF_dprint;
-	import.Error = PF_error;
 	import.GameCmd = PF_GameCmd;
-
-	import.inPVS = PF_inPVS;
-
-	import.CM_TransformedPointContents = PF_CM_TransformedPointContents;
-	import.CM_TransformedBoxTrace = PF_CM_TransformedBoxTrace;
-	import.CM_NumInlineModels = PF_CM_NumInlineModels;
-	import.CM_InlineModel = PF_CM_InlineModel;
-	import.CM_InlineModelBounds = PF_CM_InlineModelBounds;
-	import.CM_ModelForBBox = PF_CM_ModelForBBox;
-	import.CM_OctagonModelForBBox = PF_CM_OctagonModelForBBox;
-	import.CM_AreasConnected = PF_CM_AreasConnected;
-	import.CM_SetAreaPortalState = PF_CM_SetAreaPortalState;
-	import.CM_BoxLeafnums = PF_CM_BoxLeafnums;
-	import.CM_LeafCluster = PF_CM_LeafCluster;
-	import.CM_LeafArea = PF_CM_LeafArea;
-	import.CM_LeafsInPVS = PF_CM_LeafsInPVS;
-
-	import.Milliseconds = Sys_Milliseconds;
 
 	import.ModelIndex = SV_ModelIndex;
 	import.SoundIndex = SV_SoundIndex;

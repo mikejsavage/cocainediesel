@@ -995,9 +995,9 @@ static void objectGameClient_execGameCommand( asstring_t *msg, gclient_t *self )
 static void objectGameClient_setHUDStat( int stat, int value, gclient_t *self ) {
 	if( !ISGAMETYPESTAT( stat ) ) {
 		if( stat > 0 && stat < GS_GAMETYPE_STATS_START ) {
-			G_Printf( "* WARNING: stat %i is write protected\n", stat );
+			Com_Printf( "* WARNING: stat %i is write protected\n", stat );
 		} else {
-			G_Printf( "* WARNING: %i is not a valid stat\n", stat );
+			Com_Printf( "* WARNING: %i is not a valid stat\n", stat );
 		}
 		return;
 	}
@@ -1007,7 +1007,7 @@ static void objectGameClient_setHUDStat( int stat, int value, gclient_t *self ) 
 
 static int objectGameClient_getHUDStat( int stat, gclient_t *self ) {
 	if( stat < 0 && stat >= MAX_STATS ) {
-		G_Printf( "* WARNING: stat %i is out of range\n", stat );
+		Com_Printf( "* WARNING: stat %i is out of range\n", stat );
 		return 0;
 	}
 
@@ -1619,7 +1619,7 @@ void objectTrace_CopyConstructor( astrace_t *other, astrace_t *self ) {
 
 static bool objectTrace_doTrace4D( asvec3_t *start, asvec3_t *mins, asvec3_t *maxs, asvec3_t *end, int ignore, int contentMask, int timeDelta, astrace_t *self ) {
 	if( !start || !end ) { // should never happen unless the coder explicitly feeds null
-		server_gs.api.Printf( "* WARNING: gametype plug-in script attempted to call method 'trace.doTrace' with a null vector pointer\n* Tracing skept" );
+		Com_Printf( "* WARNING: gametype plug-in script attempted to call method 'trace.doTrace' with a null vector pointer\n* Tracing skept" );
 		return false;
 	}
 
@@ -1776,7 +1776,7 @@ static edict_t *asFunc_G_Spawn( asstring_t *classname ) {
 	edict_t *ent;
 
 	if( !level.canSpawnEntities ) {
-		G_Printf( "* WARNING: Spawning entities is disallowed during initialization. Returning null object\n" );
+		Com_Printf( "* WARNING: Spawning entities is disallowed during initialization. Returning null object\n" );
 		return NULL;
 	}
 
@@ -1847,7 +1847,7 @@ static void asFunc_Print( const asstring_t *str ) {
 		return;
 	}
 
-	G_Printf( "%s", str->buffer );
+	Com_Printf( "%s", str->buffer );
 }
 
 static void asFunc_PrintMsg( edict_t *ent, asstring_t *str ) {
@@ -1867,7 +1867,7 @@ static void asFunc_CenterPrintMsg( edict_t *ent, asstring_t *str ) {
 }
 
 static void asFunc_Error( const asstring_t *str ) {
-	G_Error( "%s", str && str->buffer ? str->buffer : "" );
+	Com_Error( ERR_DROP, "%s", str && str->buffer ? str->buffer : "" );
 }
 
 static void asFunc_G_Sound( edict_t *owner, int channel, int soundindex, float attenuation ) {
@@ -1891,7 +1891,7 @@ static int asFunc_PointContents( asvec3_t *vec ) {
 }
 
 static bool asFunc_InPVS( asvec3_t *origin1, asvec3_t *origin2 ) {
-	return trap_inPVS( origin1->v, origin2->v );
+	return CM_InPVS( svs.cms, origin1->v, origin2->v );
 }
 
 static bool asFunc_WriteFile( asstring_t *path, asstring_t *data ) {
@@ -2036,7 +2036,7 @@ static void asFunc_SetConfigString( int index, asstring_t *str ) {
 		|| index == CS_MAXCLIENTS
 		|| index == CS_WORLDMODEL
 		|| index == CS_MAPCHECKSUM ) {
-		G_Printf( "WARNING: ConfigString %i is write protected\n", index );
+		Com_Printf( "WARNING: ConfigString %i is write protected\n", index );
 		return;
 	}
 
@@ -2178,7 +2178,7 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "void G_Print( const String &in )", asFUNCTION( asFunc_Print ), NULL },
 	{ "void G_PrintMsg( Entity @, const String &in )", asFUNCTION( asFunc_PrintMsg ), NULL },
 	{ "void G_CenterPrintMsg( Entity @, const String &in )", asFUNCTION( asFunc_CenterPrintMsg ), NULL },
-	{ "void G_Error( const String &in )", asFUNCTION( asFunc_Error ), NULL },
+	{ "void Com_Error( const String &in )", asFUNCTION( asFunc_Error ), NULL },
 	{ "void G_Sound( Entity @, int channel, int soundindex, float attenuation )", asFUNCTION( asFunc_G_Sound ), NULL },
 	{ "void G_PositionedSound( const Vec3 &in, int channel, int soundindex, float attenuation )", asFUNCTION( asFunc_PositionedSound ), NULL },
 	{ "void G_GlobalSound( int channel, int soundindex )", asFUNCTION( asFunc_G_GlobalSound ), NULL },
@@ -2781,12 +2781,12 @@ void G_asInitGameModuleEngine( void ) {
 
 	asEngine = game.asExport->asCreateEngine( &asGeneric );
 	if( !asEngine ) {
-		G_Printf( "* Couldn't initialize angelscript.\n" );
+		Com_Printf( "* Couldn't initialize angelscript.\n" );
 		return;
 	}
 
 	if( asGeneric ) {
-		G_Printf( "* Generic calling convention detected, aborting.\n" );
+		Com_Printf( "* Generic calling convention detected, aborting.\n" );
 		G_asShutdownGameModuleEngine();
 		return;
 	}
@@ -2835,7 +2835,7 @@ void G_asGarbageCollect( bool force ) {
 		asEngine->GetGCStatistics( &currentSize, &totalDestroyed, &totalDetected );
 
 		if( g_asGC_stats->integer ) {
-			G_Printf( "GC: t=%" PRIi64 " size=%u destroyed=%u detected=%u\n", svs.gametime, currentSize, totalDestroyed, totalDetected );
+			Com_Printf( "GC: t=%" PRIi64 " size=%u destroyed=%u detected=%u\n", svs.gametime, currentSize, totalDestroyed, totalDetected );
 		}
 
 		asEngine->GarbageCollect();
@@ -2877,7 +2877,7 @@ static void G_asDumpAPIToFile( const char *path ) {
 
 			snprintf( filename, filename_size, "%s%s.h", path, name );
 			if( FS_FOpenFile( filename, &file, FS_WRITE ) == -1 ) {
-				G_Printf( "G_asDumpAPIToFile: Couldn't write %s.\n", filename );
+				Com_Printf( "G_asDumpAPIToFile: Couldn't write %s.\n", filename );
 				return;
 			}
 
@@ -2966,7 +2966,7 @@ static void G_asDumpAPIToFile( const char *path ) {
 
 			FS_FCloseFile( file );
 
-			G_Printf( "Wrote %s\n", filename );
+			Com_Printf( "Wrote %s\n", filename );
 		}
 	}
 
@@ -2982,7 +2982,7 @@ static void G_asDumpAPIToFile( const char *path ) {
 
 	snprintf( filename, filename_size, "%s%s.h", path, name );
 	if( FS_FOpenFile( filename, &file, FS_WRITE ) == -1 ) {
-		G_Printf( "G_asDumpAPIToFile: Couldn't write %s.\n", filename );
+		Com_Printf( "G_asDumpAPIToFile: Couldn't write %s.\n", filename );
 		return;
 	}
 
@@ -3048,7 +3048,7 @@ static void G_asDumpAPIToFile( const char *path ) {
 
 	FS_FCloseFile( file );
 
-	G_Printf( "Wrote %s\n", filename );
+	Com_Printf( "Wrote %s\n", filename );
 }
 
 /*

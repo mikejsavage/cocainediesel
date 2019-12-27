@@ -650,7 +650,7 @@ void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
 
 	float scale = 0.04f;
 
-	if( ( speed = VectorLengthFast( hvelocity ) ) * scale > 1.0f ) {
+	if( ( speed = VectorLength( hvelocity ) ) * scale > 1.0f ) {
 		AnglesToAxis( tv( 0, cent->current.angles[YAW], 0 ), axis );
 
 		float front = scale * DotProduct( hvelocity, &axis[AXIS_FORWARD] );

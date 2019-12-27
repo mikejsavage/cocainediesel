@@ -209,7 +209,7 @@ void CG_ImpactSmokePuff( const vec3_t origin, const vec3_t dir, float radius, fl
 		return;
 	}
 
-	if( DistanceFast( origin, cg.view.origin ) * cg.view.fracDistFOV > SMOKEPUFF_MAXVIEWDIST ) {
+	if( Distance( origin, cg.view.origin ) * cg.view.fracDistFOV > SMOKEPUFF_MAXVIEWDIST ) {
 		return;
 	}
 

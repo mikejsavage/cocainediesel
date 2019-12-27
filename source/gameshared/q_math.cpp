@@ -72,17 +72,6 @@ void ByteToDir( int b, vec3_t dir ) {
 
 //============================================================================
 
-void OrthonormalBasis( const vec3_t forward, vec3_t right, vec3_t up ) {
-	float d;
-
-	// this rotate and negate guarantees a vector not colinear with the original
-	VectorSet( right, forward[2], -forward[0], forward[1] );
-	d = DotProduct( right, forward );
-	VectorMA( right, -d, forward, right );
-	VectorNormalize( right );
-	CrossProduct( right, forward, up );
-}
-
 void ViewVectors( const vec3_t forward, vec3_t right, vec3_t up ) {
 	vec3_t world_up = { 0, 0, 1 };
 
@@ -90,37 +79,6 @@ void ViewVectors( const vec3_t forward, vec3_t right, vec3_t up ) {
 	VectorNormalize( right );
 	CrossProduct( right, forward, up );
 	VectorNormalize( up );
-}
-
-void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees ) {
-	float t0, t1;
-	float c, s;
-	vec3_t vr, vu, vf;
-
-	s = DEG2RAD( degrees );
-	c = cosf( s );
-	s = sinf( s );
-
-	VectorCopy( dir, vf );
-	OrthonormalBasis( vf, vr, vu );
-
-	t0 = vr[0] * c + vu[0] * -s;
-	t1 = vr[0] * s + vu[0] *  c;
-	dst[0] = ( t0 * vr[0] + t1 * vu[0] + vf[0] * vf[0] ) * point[0]
-			 + ( t0 * vr[1] + t1 * vu[1] + vf[0] * vf[1] ) * point[1]
-			 + ( t0 * vr[2] + t1 * vu[2] + vf[0] * vf[2] ) * point[2];
-
-	t0 = vr[1] * c + vu[1] * -s;
-	t1 = vr[1] * s + vu[1] *  c;
-	dst[1] = ( t0 * vr[0] + t1 * vu[0] + vf[1] * vf[0] ) * point[0]
-			 + ( t0 * vr[1] + t1 * vu[1] + vf[1] * vf[1] ) * point[1]
-			 + ( t0 * vr[2] + t1 * vu[2] + vf[1] * vf[2] ) * point[2];
-
-	t0 = vr[2] * c + vu[2] * -s;
-	t1 = vr[2] * s + vu[2] *  c;
-	dst[2] = ( t0 * vr[0] + t1 * vu[0] + vf[2] * vf[0] ) * point[0]
-			 + ( t0 * vr[1] + t1 * vu[1] + vf[2] * vf[1] ) * point[1]
-			 + ( t0 * vr[2] + t1 * vu[2] + vf[2] * vf[2] ) * point[2];
 }
 
 void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up ) {
@@ -191,14 +149,6 @@ void VecToAngles( const vec3_t vec, vec3_t angles ) {
 void AnglesToAxis( const vec3_t angles, mat3_t axis ) {
 	AngleVectors( angles, &axis[0], &axis[3], &axis[6] );
 	VectorInverse( &axis[3] );
-}
-
-// similar to MakeNormalVectors but for rotational matrices
-// (FIXME: weird, what's the diff between this and MakeNormalVectors?)
-void NormalVectorToAxis( const vec3_t forward, mat3_t axis ) {
-	VectorCopy( forward, &axis[AXIS_FORWARD] );
-	PerpendicularVector( &axis[AXIS_RIGHT], &axis[AXIS_FORWARD] );
-	CrossProduct( &axis[AXIS_FORWARD], &axis[AXIS_RIGHT], &axis[AXIS_UP] );
 }
 
 void BuildBoxPoints( vec3_t p[8], const vec3_t org, const vec3_t mins, const vec3_t maxs ) {
@@ -611,16 +561,6 @@ float VectorNormalize2( const vec3_t v, vec3_t out ) {
 	}
 
 	return length;
-}
-
-// fast vector normalize routine that does not check to make sure
-// that length != 0, nor does it return length, uses rsqrt approximation
-void VectorNormalizeFast( vec3_t v ) {
-	float ilength = Q_Rsqrtf( DotProduct( v, v ) );
-
-	v[0] *= ilength;
-	v[1] *= ilength;
-	v[2] *= ilength;
 }
 
 //============================================================================

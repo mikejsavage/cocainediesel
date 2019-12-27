@@ -951,7 +951,7 @@ static void PM_CheckDash( void ) {
 			VectorCopy( pml.flatforward, dashdir );
 		}
 
-		VectorNormalizeFast( dashdir );
+		VectorNormalize( dashdir );
 
 		actual_velocity = VectorNormalize2D( pml.velocity );
 		if( actual_velocity <= pml.dashPlayerSpeed ) {
@@ -1033,7 +1033,7 @@ static void PM_CheckWallJump( void ) {
 
 		// don't walljump if our height is smaller than a step
 		// unless jump is pressed or the player is moving faster than dash speed and upwards
-		hspeed = VectorLengthFast( tv( pml.velocity[0], pml.velocity[1], 0 ) );
+		hspeed = VectorLength( tv( pml.velocity[0], pml.velocity[1], 0 ) );
 		pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, point, pm->playerState->POVnum, pm->contentmask, 0 );
 
 		if( pml.upPush >= 10

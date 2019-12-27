@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 static void CG_Event_WeaponBeam( vec3_t origin, vec3_t dir, int ownerNum ) {
 	vec3_t end;
-	VectorNormalizeFast( dir );
+	VectorNormalize( dir );
 	VectorMA( origin, ELECTROBOLT_RANGE, dir, end );
 
 	centity_t * owner = &cg_entities[ ownerNum ];
@@ -669,7 +669,7 @@ void CG_Event_Jump( entity_state_t *state, int parm ) {
 	CG_PlayJumpSound( state );
 
 	centity_t *cent = &cg_entities[state->number];
-	int xyspeedcheck = SQRTFAST( cent->animVelocity[0] * cent->animVelocity[0] + cent->animVelocity[1] * cent->animVelocity[1] );
+	float xyspeedcheck = VectorLength( tv( cent->animVelocity[0], cent->animVelocity[1], 0 ) );
 	if( xyspeedcheck < 100 ) { // the player is jumping on the same place, not running
 		CG_PModel_AddAnimation( state->number, LEGS_JUMP_NEUTRAL, 0, 0, EVENT_CHANNEL );
 	} else {
@@ -679,7 +679,7 @@ void CG_Event_Jump( entity_state_t *state, int parm ) {
 		movedir[0] = cent->animVelocity[0];
 		movedir[1] = cent->animVelocity[1];
 		movedir[2] = 0;
-		VectorNormalizeFast( movedir );
+		VectorNormalize( movedir );
 
 		Matrix3_FromAngles( tv( 0, cent->current.angles[YAW], 0 ), viewaxis );
 

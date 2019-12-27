@@ -105,7 +105,7 @@ static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 			maxBackOffset = ( PROJECTILE_PRESTEP - MIN_DRAWDISTANCE_THIRDPERSON );
 		}
 
-		if( DistanceFast( state->origin2, state->origin ) > maxBackOffset ) {
+		if( Distance( state->origin2, state->origin ) > maxBackOffset ) {
 			return false;
 		}
 	}

@@ -559,7 +559,7 @@ void W_Fire_Electrobolt_FullInstant( edict_t *self, vec3_t start, vec3_t angles,
 		if( ( hit != self ) && ( hit->takedamage ) ) {
 			float frac, damage, knockback, dist;
 
-			dist = DistanceFast( tr.endpos, start );
+			dist = Distance( tr.endpos, start );
 			if( dist <= FULL_DAMAGE_RANGE ) {
 				frac = 0.0f;
 			} else {

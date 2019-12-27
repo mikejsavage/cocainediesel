@@ -73,10 +73,6 @@ constexpr mat3_t axis_identity = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 #define min( a, b ) ( ( a ) < ( b ) ? ( a ) : ( b ) )
 #define bound( lo, x, hi ) ( ( lo ) >= ( hi ) ? ( lo ) : ( x ) < ( lo ) ? ( lo ) : ( x ) > ( hi ) ? ( hi ) : ( x ) )
 
-inline float Q_Rsqrtf( float x ) {
-	return _mm_cvtss_f32( _mm_rsqrt_ss( _mm_set_ss( x ) ) );
-}
-
 template< typename T >
 T Lerp( T a, float t, T b ) {
 	return a * ( 1.0f - t ) + b * t;
@@ -86,8 +82,6 @@ template< typename T >
 float Unlerp( T lo, T x, T hi ) {
 	return float( x - lo ) / float( hi - lo );
 }
-
-#define SQRTFAST( x ) ( ( x ) * Q_Rsqrtf( x ) ) // jal : //The expression a * rsqrt(b) is intended as a higher performance alternative to a / sqrt(b). The two expressions are comparably accurate, but do not compute exactly the same value in every case. For example, a * rsqrt(a*a + b*b) can be just slightly greater than 1, in rare cases.
 
 #define DotProduct( x, y )     ( ( x )[0] * ( y )[0] + ( x )[1] * ( y )[1] + ( x )[2] * ( y )[2] )
 #define CrossProduct( v1, v2, cross ) ( ( cross )[0] = ( v1 )[1] * ( v2 )[2] - ( v1 )[2] * ( v2 )[1], ( cross )[1] = ( v1 )[2] * ( v2 )[0] - ( v1 )[0] * ( v2 )[2], ( cross )[2] = ( v1 )[0] * ( v2 )[1] - ( v1 )[1] * ( v2 )[0] )
@@ -112,15 +106,11 @@ float Unlerp( T lo, T x, T hi ) {
 #define DistanceSquared( v1, v2 ) ( ( ( v1 )[0] - ( v2 )[0] ) * ( ( v1 )[0] - ( v2 )[0] ) + ( ( v1 )[1] - ( v2 )[1] ) * ( ( v1 )[1] - ( v2 )[1] ) + ( ( v1 )[2] - ( v2 )[2] ) * ( ( v1 )[2] - ( v2 )[2] ) )
 #define Distance( v1, v2 ) ( sqrtf( DistanceSquared( v1, v2 ) ) )
 
-#define VectorLengthFast( v )     ( SQRTFAST( DotProduct( ( v ), ( v ) ) ) )  // jal :  //The expression a * rsqrt(b) is intended as a higher performance alternative to a / sqrt(b). The two expressions are comparably accurate, but do not compute exactly the same value in every case. For example, a * rsqrt(a*a + b*b) can be just slightly greater than 1, in rare cases.
-#define DistanceFast( v1, v2 )     ( SQRTFAST( DistanceSquared( v1, v2 ) ) )  // jal :  //The expression a * rsqrt(b) is intended as a higher performance alternative to a / sqrt(b). The two expressions are comparably accurate, but do not compute exactly the same value in every case. For example, a * rsqrt(a*a + b*b) can be just slightly greater than 1, in rare cases.
-
 #define Vector2Set( v, x, y )     ( ( v )[0] = ( x ), ( v )[1] = ( y ) )
 #define Vector2Copy( a, b )    ( ( b )[0] = ( a )[0], ( b )[1] = ( a )[1] )
 
 float VectorNormalize( vec3_t v );       // returns vector length
 float VectorNormalize2( const vec3_t v, vec3_t out );
-void  VectorNormalizeFast( vec3_t v );
 
 void ClearBounds( vec3_t mins, vec3_t maxs );
 void CopyBounds( const vec3_t inmins, const vec3_t inmaxs, vec3_t outmins, vec3_t outmaxs );
@@ -133,7 +123,6 @@ bool BoundsOverlapSphere( const vec3_t mins, const vec3_t maxs, const vec3_t cen
 int DirToByte( vec3_t dir );
 void ByteToDir( int b, vec3_t dir );
 
-void OrthonormalBasis( const vec3_t forward, vec3_t right, vec3_t up );
 void ViewVectors( const vec3_t forward, vec3_t right, vec3_t up );
 void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up );
 int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const struct cplane_s *plane );
@@ -143,7 +132,6 @@ float AngleNormalize180( float angle );
 float AngleDelta( float angle1, float angle2 );
 void VecToAngles( const vec3_t vec, vec3_t angles );
 void AnglesToAxis( const vec3_t angles, mat3_t axis );
-void NormalVectorToAxis( const vec3_t forward, mat3_t axis );
 void BuildBoxPoints( vec3_t p[8], const vec3_t org, const vec3_t mins, const vec3_t maxs );
 
 float WidescreenFov( float fov );
@@ -177,7 +165,6 @@ void SnapPlane( vec3_t normal, float *dist );
 	  BoxOnPlaneSide( ( emins ), ( emaxs ), ( p ) ) )
 
 void PerpendicularVector( vec3_t dst, const vec3_t src );
-void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );
 void ProjectPointOntoPlane( vec3_t dst, const vec3_t p, const vec3_t normal );
 void ProjectPointOntoVector( const vec3_t point, const vec3_t vStart, const vec3_t vDir, vec3_t vProj );
 

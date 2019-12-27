@@ -587,7 +587,7 @@ void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
 	VectorCopy( client->old_pmove.velocity, velocity );
 
 	velocity[2] = 0; // ignore vertical velocity
-	speed = VectorLengthFast( velocity );
+	speed = VectorLength( velocity );
 
 	AnglesToAxis( dest->s.angles, axis );
 	VectorScale( &axis[AXIS_FORWARD], speed, client->ps.pmove.velocity );

@@ -11,33 +11,32 @@ Credz:
 
 if %MATCH_STATE < #MATCH_STATE_POSTMATCH
 
-include callvote
+#include callvote
 
-include bomb_indicators
+#include bomb_indicators
 
-include topinfo
+#include topinfo
 
-include health
-include weaponlist
+#include health
+#include weaponlist
 
-include obituaries
+#include obituaries
 
-include drop_and_shop
-include bomb_progress
+#include drop_and_shop
+#include bomb_progress
 
-include chasing
+#include chasing
 
-include speed
-include fps
-include download
-include net
-include damage_numbers
-include pointing
-include keystate
+#include speed
+#include fps
+#include download
+#include net
+#include damage_numbers
+#include pointing
+#include keystate
 
-include crosshair
+#include crosshair
 
 endif //if %MATCH_STATE < #MATCH_STATE_POSTMATCH
 
-include awards
-include chat
+#include awards

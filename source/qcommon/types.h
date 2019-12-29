@@ -149,6 +149,13 @@ constexpr bool IsPowerOf2( T x ) {
 }
 
 template< typename T >
+void Swap2( T * a, T * b ) {
+	T t = *a;
+	*a = *b;
+	*b = t;
+}
+
+template< typename T >
 constexpr T Min2( const T & a, const T & b ) {
 	return a < b ? a : b;
 }

@@ -39,13 +39,6 @@ inline To bit_cast( const From & from ) {
 }
 
 template< typename T >
-void Swap2( T * a, T * b ) {
-	T t = *a;
-	*a = *b;
-	*b = t;
-}
-
-template< typename T >
 constexpr T Max3( const T & a, const T & b, const T & c ) {
 	return Max2( Max2( a, b ), c );
 }

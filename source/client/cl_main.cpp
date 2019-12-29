@@ -324,7 +324,6 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 static void CL_Connect_Cmd_f( socket_type_t socket ) {
 	netadr_t serveraddress;
 	char *servername, password[64];
-	const char *extension;
 	char *connectstring, *connectstring_base;
 	const char *tmp;
 	const char *serverchain;
@@ -342,8 +341,7 @@ static void CL_Connect_Cmd_f( socket_type_t socket ) {
 		connectstring += strlen( APP_URI_SCHEME );
 	}
 
-	extension = COM_FileExtension( connectstring );
-	if( extension && !Q_stricmp( extension, APP_DEMO_EXTENSION_STR ) ) {
+	if( FileExtension( connectstring ) == APP_DEMO_EXTENSION_STR ) {
 		char *temp;
 		size_t temp_size;
 		const char *http_scheme = "http://";
@@ -1208,7 +1206,7 @@ void CL_RequestNextDownload( void ) {
 		}
 		while( precache_check < CS_SOUNDS + MAX_SOUNDS && cl.configstrings[precache_check][0] ) {
 			Q_strncpyz( tempname, cl.configstrings[precache_check++], sizeof( tempname ) );
-			if( !COM_FileExtension( tempname ) ) {
+			if( FileExtension( tempname ).n == 0 ) {
 				Q_strncatz( tempname, ".ogg", sizeof( tempname ) );
 			}
 			if( !CL_CheckOrDownloadFile( tempname ) ) {

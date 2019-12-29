@@ -284,8 +284,6 @@ static void CG_Cmd_DemoGet_f( void ) {
 * CG_SC_DemoGet
 */
 static void CG_SC_DemoGet( void ) {
-	const char *filename, *extension;
-
 	if( cgs.demoPlaying ) {
 		// ignore download commands coming from demo files
 		return;
@@ -303,10 +301,9 @@ static void CG_SC_DemoGet( void ) {
 		return;
 	}
 
-	filename = Cmd_Argv( 1 );
-	extension = COM_FileExtension( filename );
-	if( !COM_ValidateRelativeFilename( filename ) ||
-		!extension || Q_stricmp( extension, APP_DEMO_EXTENSION_STR ) ) {
+	const char * filename = Cmd_Argv( 1 );
+	Span< const char > extension = FileExtension( filename );
+	if( !COM_ValidateRelativeFilename( filename ) || extension != APP_DEMO_EXTENSION_STR ) {
 		Com_Printf( "Warning: demoget: Invalid filename, ignored\n" );
 		return;
 	}

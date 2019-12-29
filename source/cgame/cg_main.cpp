@@ -509,9 +509,9 @@ void CG_Precache( void ) {
 
 	{
 		const char * name = cgs.configStrings[ CS_WORLDMODEL ];
-		const char * ext = COM_FileExtension( name );
+		Span< const char > ext = FileExtension( name );
 
-		u64 hash = Hash64( name, strlen( name ) - strlen( ext ) );
+		u64 hash = Hash64( name, strlen( name ) - ext.n );
 		cgs.map = FindMapMetadata( StringHash( hash ) );
 	}
 

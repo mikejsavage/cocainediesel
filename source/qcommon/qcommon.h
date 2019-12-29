@@ -233,10 +233,6 @@ void _SHOWNET( msg_t *msg, const char *s, int shownet );
 // server to client
 //
 enum svc_ops_e {
-	svc_bad,
-
-	// the rest are private to the client and server
-	svc_nop,
 	svc_servercmd,          // [string] string
 	svc_serverdata,         // [int] protocol ...
 	svc_spawnbaseline,

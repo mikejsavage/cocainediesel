@@ -226,12 +226,11 @@ static void LoadSounds() {
 	ZoneScoped;
 
 	for( const char * path : AssetPaths() ) {
-		const char * ext = COM_FileExtension( path );
-		if( ext == NULL || strcmp( ext, ".ogg" ) != 0 )
-			continue;
-
-		bool stereo = strcmp( path, "sounds/music/menu_1.ogg" ) == 0;
-		LoadSound( path, stereo );
+		Span< const char > ext = FileExtension( path );
+		if( FileExtension( path ) == ".ogg" ) {
+			bool stereo = strcmp( path, "sounds/music/menu_1.ogg" ) == 0;
+			LoadSound( path, stereo );
+		}
 	}
 }
 
@@ -239,12 +238,10 @@ static void HotloadSounds() {
 	ZoneScoped;
 
 	for( const char * path : ModifiedAssetPaths() ) {
-		const char * ext = COM_FileExtension( path );
-		if( ext == NULL || strcmp( ext, ".ogg" ) != 0 )
-			continue;
-
-		bool stereo = strcmp( path, "sounds/music/menu_1.ogg" ) == 0;
-		LoadSound( path, stereo );
+		if( FileExtension( path ) == ".ogg" ) {
+			bool stereo = strcmp( path, "sounds/music/menu_1.ogg" ) == 0;
+			LoadSound( path, stereo );
+		}
 	}
 }
 
@@ -364,11 +361,9 @@ static void LoadSoundEffects() {
 	ZoneScoped;
 
 	for( const char * path : AssetPaths() ) {
-		const char * ext = COM_FileExtension( path );
-		if( ext == NULL || strcmp( ext, ".cdsfx" ) != 0 )
-			continue;
-
-		LoadSoundEffect( path );
+		if( FileExtension( path ) == ".cdsfx" ) {
+			LoadSoundEffect( path );
+		}
 	}
 }
 
@@ -376,11 +371,9 @@ static void HotloadSoundEffects() {
 	ZoneScoped;
 
 	for( const char * path : ModifiedAssetPaths() ) {
-		const char * ext = COM_FileExtension( path );
-		if( ext == NULL || strcmp( ext, ".cdsfx" ) != 0 )
-			continue;
-
-		LoadSoundEffect( path );
+		if( FileExtension( path ) == ".cdsfx" ) {
+			LoadSoundEffect( path );
+		}
 	}
 }
 

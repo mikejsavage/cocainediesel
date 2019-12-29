@@ -36,8 +36,8 @@ void RefreshMapList() {
 		if( dir )
 			continue;
 
-		const char * ext = COM_FileExtension( name );
-		if( strcmp( ext, ".bsp" ) != 0 )
+		Span< const char > ext = FileExtension( name );
+		if( ext != ".bsp" )
 			continue;
 
 		size_t len = strlen( name ) - strlen( ".bsp" );

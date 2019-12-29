@@ -31,8 +31,6 @@ UTILITY FUNCTIONS
 
 const char * const svc_strings[256] =
 {
-	"svc_bad",
-	"svc_nop",
 	"svc_servercmd",
 	"svc_serverdata",
 	"svc_spawnbaseline",

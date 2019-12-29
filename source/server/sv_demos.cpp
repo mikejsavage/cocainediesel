@@ -529,7 +529,6 @@ void SV_DemoGet_f( client_t *client ) {
 * SV_IsDemoDownloadRequest
 */
 bool SV_IsDemoDownloadRequest( const char *request ) {
-	const char *ext;
 	const char *demoDir = SV_DEMO_DIR;
 	const size_t demoDirLen = strlen( demoDir );
 
@@ -546,8 +545,7 @@ bool SV_IsDemoDownloadRequest( const char *request ) {
 		return false;
 	}
 
-	ext = COM_FileExtension( request );
-	if( !ext || Q_stricmp( ext, APP_DEMO_EXTENSION_STR ) ) {
+	if( FileExtension( request ) != APP_DEMO_EXTENSION_STR ) {
 		// wrong extension
 		return false;
 	}

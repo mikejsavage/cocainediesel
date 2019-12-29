@@ -99,21 +99,6 @@ void COM_StripExtension( char *filename ) {
 }
 
 /*
-* COM_FileExtension
-*/
-const char *COM_FileExtension( const char *filename ) {
-	const char *src, *last;
-
-	last = strrchr( filename, '/' );
-	src = strrchr( last ? last : filename, '.' );
-	if( src && *( src + 1 ) ) {
-		return src;
-	}
-
-	return NULL;
-}
-
-/*
 * COM_DefaultExtension
 * If path doesn't have extension, appends one to it
 * If there is no room for it overwrites the end of the path
@@ -186,22 +171,6 @@ void COM_StripFilename( char *filename ) {
 	}
 
 	*p = 0;
-}
-
-/*
-* COM_FilePathLength
-*
-* Returns the length from start of string to the character before last /
-*/
-int COM_FilePathLength( const char *in ) {
-	const char *s;
-
-	s = strrchr( in, '/' );
-	if( !s ) {
-		s = in;
-	}
-
-	return s - in;
 }
 
 //============================================================================
@@ -454,6 +423,12 @@ bool StrCaseEqual( Span< const char > lhs, const char * rhs ) {
 
 bool StrCaseEqual( const char * rhs, Span< const char > lhs ) {
 	return StrCaseEqual( lhs, rhs );
+}
+
+Span< const char > FileExtension( const char * path ) {
+	const char * filename = strrchr( path, '/' );
+	const char * ext = strchr( filename == NULL ? path : filename, '.' );
+	return Span< const char >( ext, strlen( ext ) );
 }
 
 /*

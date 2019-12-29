@@ -51,8 +51,7 @@ bool CL_DownloadRequest( const char *filename ) {
 	}
 
 	// only allow demo downloads
-	const char *extension = COM_FileExtension( filename );
-	if( !extension || Q_stricmp( extension, APP_DEMO_EXTENSION_STR ) ) {
+	if( FileExtension( filename ) != APP_DEMO_EXTENSION_STR ) {
 		Com_Printf( "Can't download, got arbitrary file type: %s\n", filename );
 		return false;
 	}
@@ -78,8 +77,6 @@ bool CL_DownloadRequest( const char *filename ) {
 * Returns true if the file exists or couldn't send download request
 */
 bool CL_CheckOrDownloadFile( const char *filename ) {
-	const char *ext;
-
 	if( !cl_downloads->integer ) {
 		return true;
 	}
@@ -88,8 +85,7 @@ bool CL_CheckOrDownloadFile( const char *filename ) {
 		return true;
 	}
 
-	ext = COM_FileExtension( filename );
-	if( !ext ) {
+	if( FileExtension( filename ).n == 0 ) {
 		return true;
 	}
 
@@ -964,7 +960,6 @@ void CL_ParseServerMessage( msg_t *msg ) {
 	// parse the message
 	while( msg->readcount < msg->cursize ) {
 		int cmd;
-		int ext, len;
 		size_t meta_data_maxsize;
 
 		cmd = MSG_ReadUint8( msg );
@@ -984,10 +979,6 @@ void CL_ParseServerMessage( msg_t *msg ) {
 		switch( cmd ) {
 			default:
 				Com_Error( ERR_DROP, "CL_ParseServerMessage: Illegible server message" );
-				break;
-
-			case svc_nop:
-				// Com_Printf( "svc_nop\n" );
 				break;
 
 			case svc_servercmd:

@@ -60,12 +60,10 @@ char *COM_SanitizeFilePath( char *filename );
 bool COM_ValidateFilename( const char *filename );
 bool COM_ValidateRelativeFilename( const char *filename );
 void COM_StripExtension( char *filename );
-const char *COM_FileExtension( const char *in );
 void COM_DefaultExtension( char *path, const char *extension, size_t size );
 void COM_ReplaceExtension( char *path, const char *extension, size_t size );
 const char *COM_FileBase( const char *in );
 void COM_StripFilename( char *filename );
-int COM_FilePathLength( const char *in );
 
 enum ParseStopOnNewLine {
 	Parse_DontStopOnNewLine,
@@ -97,6 +95,8 @@ bool operator==( Span< const char > span, const char ( &str )[ N ] ) {
 template< size_t N > bool operator==( const char ( &str )[ N ], Span< const char > span ) { return span == str; }
 template< size_t N > bool operator!=( Span< const char > span, const char ( &str )[ N ] ) { return !( span == str ); }
 template< size_t N > bool operator!=( const char ( &str )[ N ], Span< const char > span ) { return !( span == str ); }
+
+Span< const char > FileExtension( const char * path );
 
 // data is an in/out parm, returns a parsed out token
 char *COM_ParseExt2_r( char *token, size_t token_size, const char **data_p, bool nl, bool sq );

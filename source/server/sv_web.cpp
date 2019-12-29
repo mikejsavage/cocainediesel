@@ -903,7 +903,7 @@ static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_respo
 	if( !resource ) {
 		response->code = HTTP_RESP_BAD_REQUEST;
 	} else if( !Q_strnicmp( resource, "files/", 6 ) ) {
-		const char *filename, *extension;
+		const char *filename;
 
 		filename = resource + 6;
 		response->filename = ZoneCopyString( filename );
@@ -915,9 +915,8 @@ static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_respo
 				return;
 			}
 
-			// only serve GET requests for pack and demo files
-			extension = COM_FileExtension( filename );
-			if( !extension || Q_stricmp( extension, APP_DEMO_EXTENSION_STR ) != 0 ) {
+			// only serve GET requests for demo files
+			if( FileExtension( filename ) != APP_DEMO_EXTENSION_STR ) {
 				response->code = HTTP_RESP_FORBIDDEN;
 				return;
 			}

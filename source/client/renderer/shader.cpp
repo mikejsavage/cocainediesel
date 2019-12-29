@@ -130,8 +130,7 @@ void InitShaders() {
 void HotloadShaders() {
 	bool need_hotload = false;
 	for( const char * path : ModifiedAssetPaths() ) {
-		const char * ext = COM_FileExtension( path );
-		if( ext != NULL && strcmp( ext, ".glsl" ) == 0 ) {
+		if( FileExtension( path ) == ".glsl" ) {
 			need_hotload = true;
 			break;
 		}

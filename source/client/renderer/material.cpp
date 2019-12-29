@@ -611,8 +611,8 @@ static void LoadTexture( const char * path ) {
 	config.data = pixels;
 	config.format = formats[ channels - 1 ];
 
-	const char * ext = COM_FileExtension( path );
-	AddTexture( Hash64( path, strlen( path ) - strlen( ext ) ), config );
+	Span< const char > ext = FileExtension( path );
+	AddTexture( Hash64( path, strlen( path ) - ext.n ), config );
 }
 
 static void LoadMaterialFile( const char * path ) {
@@ -659,11 +659,10 @@ void InitMaterials() {
 		ZoneScopedN( "Load disk textures" );
 
 		for( const char * path : AssetPaths() ) {
-			const char * ext = COM_FileExtension( path );
-			if( ext == NULL || ( strcmp( ext, ".png" ) != 0 && strcmp( ext, ".jpg" ) != 0 ) )
-				continue;
-
-			LoadTexture( path );
+			Span< const char > ext = FileExtension( path );
+			if( ext == ".png" || ext == ".jpg" ) {
+				LoadTexture( path );
+			}
 		}
 	}
 
@@ -671,11 +670,9 @@ void InitMaterials() {
 		ZoneScopedN( "Load materials" );
 
 		for( const char * path : AssetPaths() ) {
-			const char * ext = COM_FileExtension( path );
-			if( ext == NULL || strcmp( ext, ".shader" ) != 0 )
-				continue;
-
-			LoadMaterialFile( path );
+			if( FileExtension( path ) == ".shader" ) {
+				LoadMaterialFile( path );
+			}
 		}
 	}
 
@@ -687,19 +684,16 @@ void HotloadMaterials() {
 	ZoneScoped;
 
 	for( const char * path : ModifiedAssetPaths() ) {
-		const char * ext = COM_FileExtension( path );
-		if( ext == NULL || ( strcmp( ext, ".png" ) != 0 && strcmp( ext, ".jpg" ) != 0 ) )
-			continue;
-
-		LoadTexture( path );
+		Span< const char > ext = FileExtension( path );
+		if( ext == ".png" || ext == ".jpg" ) {
+			LoadTexture( path );
+		}
 	}
 
 	for( const char * path : ModifiedAssetPaths() ) {
-		const char * ext = COM_FileExtension( path );
-		if( ext == NULL || strcmp( ext, ".shader" ) != 0 )
-			continue;
-
-		LoadMaterialFile( path );
+		if( FileExtension( path ) == ".shader" ) {
+			LoadMaterialFile( path );
+		}
 	}
 }
 

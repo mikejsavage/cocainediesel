@@ -23,28 +23,23 @@ void InitModels() {
 	num_maps = 0;
 
 	for( const char * path : AssetPaths() ) {
-		const char * ext = COM_FileExtension( path );
-		if( ext == NULL )
-			continue;
-
-		bool gltf = strcmp( ext, ".glb" ) == 0;
-		bool bsp = strcmp( ext, ".bsp" ) == 0;
-		if( !gltf && !bsp )
-			continue;
-
-		if( gltf ) {
-			if( !LoadGLTFModel( &models[ num_models ], path ) )
-				continue;
-			models_hashtable.add( Hash64( path, strlen( path ) - strlen( ext ) ), num_models );
-			num_models++;
-		}
-		else if( bsp ) {
+		Span< const char > ext = FileExtension( path );
+		if( ext == ".bsp" ) {
 			if( !LoadBSPMap( &maps[ num_maps ], path ) )
 				continue;
-			maps_hashtable.add( Hash64( path, strlen( path ) - strlen( ext ) ), num_maps );
+			maps_hashtable.add( Hash64( path, strlen( path ) - ext.n ), num_maps );
 			num_maps++;
 		}
+	}
 
+	for( const char * path : AssetPaths() ) {
+		Span< const char > ext = FileExtension( path );
+		if( ext == ".glb" ) {
+			if( !LoadGLTFModel( &models[ num_models ], path ) )
+				continue;
+			models_hashtable.add( Hash64( path, strlen( path ) - ext.n ), num_models );
+			num_models++;
+		}
 	}
 }
 

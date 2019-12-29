@@ -535,8 +535,8 @@ bool LoadBSPMap( MapMetadata * map, const char * path ) {
 		}
 	}
 
-	const char * ext = COM_FileExtension( path );
-	u64 base_hash = Hash64( path, strlen( path ) - strlen( ext ) );
+	Span< const char > ext = FileExtension( path );
+	u64 base_hash = Hash64( path, strlen( path ) - ext.n );
 	for( size_t i = 0; i < bsp.models.n; i++ ) {
 		LoadBSPModel( vertices, bsp, base_hash, i );
 	}

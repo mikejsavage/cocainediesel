@@ -428,7 +428,7 @@ bool StrCaseEqual( const char * rhs, Span< const char > lhs ) {
 Span< const char > FileExtension( const char * path ) {
 	const char * filename = strrchr( path, '/' );
 	const char * ext = strchr( filename == NULL ? path : filename, '.' );
-	return Span< const char >( ext, strlen( ext ) );
+	return Span< const char >( ext, ext == NULL ? 0 : strlen( ext ) );
 }
 
 /*

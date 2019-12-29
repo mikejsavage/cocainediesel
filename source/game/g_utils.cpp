@@ -582,7 +582,7 @@ void G_InitEdict( edict_t *e ) {
 	e->s.attenuation = ATTN_NORM;
 	e->s.number = ENTNUM( e );
 
-	G_asResetEntityBehaviors( e );
+	G_asClearEntityBehaviors( e );
 
 	// mark all entities to not be sent by default
 	e->r.svflags = SVF_NOCLIENT | (e->r.svflags & SVF_FAKECLIENT);

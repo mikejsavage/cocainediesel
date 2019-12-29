@@ -1206,13 +1206,6 @@ static const asClassDescriptor_t asGameClientDescriptor =
 //=======================================================================
 
 // CLASS: Entity
-static asIScriptFunction *asEntityCallThinkFuncPtr = NULL;
-static asIScriptFunction *asEntityCallTouchFuncPtr = NULL;
-static asIScriptFunction *asEntityCallUseFuncPtr = NULL;
-static asIScriptFunction *asEntityCallStopFuncPtr = NULL;
-static asIScriptFunction *asEntityCallPainFuncPtr = NULL;
-static asIScriptFunction *asEntityCallDieFuncPtr = NULL;
-
 static asvec3_t objectGameEntity_GetVelocity( edict_t *obj ) {
 	asvec3_t velocity;
 
@@ -1789,8 +1782,6 @@ static edict_t *asFunc_G_Spawn( asstring_t *classname ) {
 	ent->scriptSpawned = true;
 	ent->asScriptModule = game.asEngine->GetModule( game.asExport->asGetActiveContext()->GetFunction( 0 )->GetModuleName() );
 
-	G_asClearEntityBehaviors( ent );
-
 	return ent;
 }
 
@@ -1892,81 +1883,6 @@ static int asFunc_PointContents( asvec3_t *vec ) {
 
 static bool asFunc_InPVS( asvec3_t *origin1, asvec3_t *origin2 ) {
 	return CM_InPVS( svs.cms, origin1->v, origin2->v );
-}
-
-static bool asFunc_WriteFile( asstring_t *path, asstring_t *data ) {
-	int filehandle;
-
-	if( !path || !path->len ) {
-		return false;
-	}
-	if( !data || !data->buffer ) {
-		return false;
-	}
-
-	if( FS_FOpenFile( path->buffer, &filehandle, FS_WRITE ) == -1 ) {
-		return false;
-	}
-
-	FS_Write( data->buffer, data->len, filehandle );
-	FS_FCloseFile( filehandle );
-
-	return true;
-}
-
-static bool asFunc_AppendToFile( asstring_t *path, asstring_t *data ) {
-	int filehandle;
-
-	if( !path || !path->len ) {
-		return false;
-	}
-	if( !data || !data->buffer ) {
-		return false;
-	}
-
-	if( FS_FOpenFile( path->buffer, &filehandle, FS_APPEND ) == -1 ) {
-		return false;
-	}
-
-	FS_Write( data->buffer, data->len, filehandle );
-	FS_FCloseFile( filehandle );
-
-	return true;
-}
-
-static asstring_t *asFunc_LoadFile( asstring_t *path ) {
-	int filelen, filehandle;
-	uint8_t *buf = NULL;
-	asstring_t *data;
-
-	if( !path || !path->len ) {
-		return game.asExport->asStringFactoryBuffer( NULL, 0 );
-	}
-
-	filelen = FS_FOpenFile( path->buffer, &filehandle, FS_READ );
-	if( filehandle && filelen > 0 ) {
-		buf = ( uint8_t * )G_Malloc( filelen + 1 );
-		filelen = FS_Read( buf, filelen, filehandle );
-	}
-
-	FS_FCloseFile( filehandle );
-
-	if( !buf ) {
-		return game.asExport->asStringFactoryBuffer( NULL, 0 );
-	}
-
-	data = game.asExport->asStringFactoryBuffer( (char *)buf, filelen );
-	G_Free( buf );
-
-	return data;
-}
-
-static int asFunc_FileLength( asstring_t *path ) {
-	if( !path || !path->len ) {
-		return false;
-	}
-
-	return ( FS_FOpenFile( path->buffer, NULL, FS_READ ) );
 }
 
 static void asFunc_Cbuf_ExecuteText( asstring_t *str ) {
@@ -2187,18 +2103,7 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "int G_DirToByte( const Vec3 &in origin )", asFUNCTION( asFunc_DirToByte ), NULL },
 	{ "int G_PointContents( const Vec3 &in origin )", asFUNCTION( asFunc_PointContents ), NULL },
 	{ "bool G_InPVS( const Vec3 &in origin1, const Vec3 &in origin2 )", asFUNCTION( asFunc_InPVS ), NULL },
-	{ "bool G_WriteFile( const String &, const String & )", asFUNCTION( asFunc_WriteFile ), NULL },
-	{ "bool G_AppendToFile( const String &, const String & )", asFUNCTION( asFunc_AppendToFile ), NULL },
-	{ "const String @G_LoadFile( const String & )", asFUNCTION( asFunc_LoadFile ), NULL },
-	{ "int G_FileLength( const String & )", asFUNCTION( asFunc_FileLength ), NULL },
 	{ "void G_CmdExecute( const String & )", asFUNCTION( asFunc_Cbuf_ExecuteText ), NULL },
-
-	{ "void __G_CallThink( Entity @ent )", asFUNCTION( G_CallThink ), &asEntityCallThinkFuncPtr },
-	{ "void __G_CallTouch( Entity @ent, Entity @other, const Vec3 planeNormal, int surfFlags )", asFUNCTION( G_CallTouch ), &asEntityCallTouchFuncPtr },
-	{ "void __G_CallUse( Entity @ent, Entity @other, Entity @activator )", asFUNCTION( G_CallUse ), &asEntityCallUseFuncPtr },
-	{ "void __G_CallStop( Entity @ent )", asFUNCTION( G_CallStop ), &asEntityCallStopFuncPtr },
-	{ "void __G_CallPain( Entity @ent, Entity @other, float kick, float damage )", asFUNCTION( G_CallPain ), &asEntityCallPainFuncPtr },
-	{ "void __G_CallDie( Entity @ent, Entity @inflicter, Entity @attacker )", asFUNCTION( G_CallDie ), &asEntityCallDieFuncPtr },
 
 	{ "int G_ImageIndex( const String &in )", asFUNCTION( asFunc_ImageIndex ), NULL },
 	{ "int G_ModelIndex( const String &in )", asFUNCTION( asFunc_ModelIndex ), NULL },
@@ -2270,7 +2175,6 @@ bool G_asCallMapEntitySpawnScript( const char *classname, edict_t *ent ) {
 	ent->asSpawnFunc = asSpawnFunc;
 	ent->asScriptModule = asSpawnModule;
 	ent->scriptSpawned = true;
-	G_asClearEntityBehaviors( ent );
 
 	// call the spawn function
 	asContext = game.asExport->asAcquireContext( asEngine );
@@ -2294,18 +2198,6 @@ bool G_asCallMapEntitySpawnScript( const char *classname, edict_t *ent ) {
 	// check the inuse flag because the entity might have been removed at the spawn
 	ent->scriptSpawned = ent->r.inuse;
 	return true;
-}
-
-/*
-* G_asResetEntityBehaviors
-*/
-void G_asResetEntityBehaviors( edict_t *ent ) {
-	ent->asThinkFunc = asEntityCallThinkFuncPtr;
-	ent->asTouchFunc = asEntityCallTouchFuncPtr;
-	ent->asUseFunc = asEntityCallUseFuncPtr;
-	ent->asStopFunc = asEntityCallStopFuncPtr;
-	ent->asPainFunc = asEntityCallPainFuncPtr;
-	ent->asDieFunc = asEntityCallDieFuncPtr;
 }
 
 /*
@@ -2541,13 +2433,6 @@ asIScriptModule *G_LoadGameScript( const char *moduleName, const char *dir, cons
 */
 static void G_ResetGameModuleScriptData( void ) {
 	game.asEngine = NULL;
-
-	asEntityCallThinkFuncPtr = NULL;
-	asEntityCallTouchFuncPtr = NULL;
-	asEntityCallUseFuncPtr = NULL;
-	asEntityCallStopFuncPtr = NULL;
-	asEntityCallPainFuncPtr = NULL;
-	asEntityCallDieFuncPtr = NULL;
 }
 
 /*

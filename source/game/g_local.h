@@ -342,7 +342,6 @@ void G_asCallMapEntityUse( edict_t *ent, edict_t *other, edict_t *activator );
 void G_asCallMapEntityPain( edict_t *ent, edict_t *other, float kick, float damage );
 void G_asCallMapEntityDie( edict_t *ent, edict_t *inflicter, edict_t *attacker, int damage, const vec3_t point );
 void G_asCallMapEntityStop( edict_t *ent );
-void G_asResetEntityBehaviors( edict_t *ent );
 void G_asClearEntityBehaviors( edict_t *ent );
 void G_asReleaseEntityBehaviors( edict_t *ent );
 

@@ -1287,24 +1287,19 @@ void CL_Precache_f( void ) {
 */
 static void CL_WriteConfiguration( const char *name ) {
 	int file;
-
 	if( FS_FOpenFile( name, &file, FS_WRITE ) == -1 ) {
 		Com_Printf( "Couldn't write %s.\n", name );
 		return;
 	}
 
-	FS_Printf( file, "\r\n// key bindings\r\n" );
+	FS_Printf( file, "// key bindings\r\n" );
 	Key_WriteBindings( file );
 
 	FS_Printf( file, "\r\n// variables\r\n" );
 	Cvar_WriteVariables( file );
 
-	FS_Printf( file, "\r\n// aliases\r\n" );
-	Cmd_WriteAliases( file );
-
 	FS_FCloseFile( file );
 }
-
 
 /*
 * CL_WriteConfig_f

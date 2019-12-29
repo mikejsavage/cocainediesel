@@ -630,29 +630,6 @@ static void Cmd_UnaliasAll_f( void ) {
 }
 
 /*
-* Cmd_WriteAliases
-*
-* Write lines containing "aliasa alias value" for all aliases
-* with the archive flag set to true
-*/
-void Cmd_WriteAliases( int file ) {
-	struct trie_dump_s *dump = NULL;
-	unsigned int i;
-
-	// Vic: Why on earth this line was written _below_ aliases?
-	// It was kinda dumb, I think 'cause it undid everything above
-	FS_Printf( file, "unaliasall\r\n" );
-
-	assert( cmd_alias_trie );
-	Trie_DumpIf( cmd_alias_trie, "", TRIE_DUMP_VALUES, Cmd_Archive, NULL, &dump );
-	for( i = 0; i < dump->size; ++i ) {
-		cmd_alias_t *const a = (cmd_alias_t *) dump->key_value_vector[i].value;
-		FS_Printf( file, "aliasa %s \"%s\"\r\n", a->name, a->value );
-	}
-	Trie_FreeDump( dump );
-}
-
-/*
 =============================================================================
 
 COMMAND EXECUTION

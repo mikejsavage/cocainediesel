@@ -320,7 +320,6 @@ void        Cmd_AddCommand( const char *cmd_name, xcommand_t function );
 void        Cmd_RemoveCommand( const char *cmd_name );
 bool    Cmd_Exists( const char *cmd_name );
 bool    Cmd_CheckForCommand( char *text );
-void        Cmd_WriteAliases( int file );
 int         Cmd_CompleteAliasCountPossible( const char *partial );
 const char  **Cmd_CompleteAliasBuildList( const char *partial );
 int         Cmd_CompleteCountPossible( const char *partial );

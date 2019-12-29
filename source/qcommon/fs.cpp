@@ -26,17 +26,17 @@ Span< char > ReadFileString( Allocator * a, const char * path ) {
 	size_t size = ftell( file );
 	fseek( file, 0, SEEK_SET );
 
-	Span< char > contents = ALLOC_SPAN( a, char, size + 1 );
-	size_t r = fread( contents.ptr, 1, size, file );
+	char * contents = ( char * ) ALLOC_SIZE( a, size + 1, 16 );
+	size_t r = fread( contents, 1, size, file );
 	fclose( file );
 	if( r != size ) {
-		FREE( a, contents.ptr );
+		FREE( a, contents );
 		return Span< char >();
 	}
 
 	contents[ size ] = '\0';
 
-	return contents;
+	return Span< char >( contents, size + 1 );
 }
 
 bool WriteFile( const char * path, const void * data, size_t len ) {

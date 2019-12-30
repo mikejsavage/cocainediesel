@@ -58,8 +58,14 @@ uint64_t random_u64( RNG * rng ) {
 	return hi | random_u32( rng );
 }
 
-// http://www.rng-random.org/posts/bounded-rands.html
 int random_uniform( RNG * rng, int lo, int hi ) {
+	uint32_t range = uint32_t( hi ) - uint32_t( lo );
+	uint32_t x = random_u32( rng );
+	return lo + int( ( uint64_t( x ) * range ) >> 32 );
+}
+
+// http://www.rng-random.org/posts/bounded-rands.html
+int random_uniform_exact( RNG * rng, int lo, int hi ) {
 	assert( lo <= hi );
 	uint32_t range = uint32_t( hi ) - uint32_t( lo );
 	uint32_t x = random_u32( rng );

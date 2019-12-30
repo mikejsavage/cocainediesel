@@ -268,7 +268,6 @@ typedef struct entity_state_s {
 	int eventParms[2];
 
 	int counterNum;                 // ET_GENERIC
-	int itemNum;                    // for ET_ITEM
 	int damage;                     // EV_BLOOD
 	int targetNum;                  // ET_EVENT specific
 	int colorRGBA;                  // ET_BEAM, ET_EVENT specific

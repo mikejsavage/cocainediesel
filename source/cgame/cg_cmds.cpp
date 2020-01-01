@@ -147,7 +147,7 @@ static void CG_SC_PlayerStats() {
 		return;
 	}
 
-	CG_LocalPrint( "Stats for %s" S_COLOR_WHITE ":\n", cgs.clientInfo[playerNum].name );
+	Com_Printf( "Stats for %s" S_COLOR_WHITE ":\n", cgs.clientInfo[playerNum].name );
 	Com_Printf( "\nWeapon\n" );
 	Com_Printf( "    hit/shot percent\n" );
 
@@ -176,7 +176,7 @@ static void CG_SC_PlayerStats() {
 	int total_damage_given = ParseIntOr0( &s );
 	int total_damage_received = ParseIntOr0( &s );
 
-	CG_LocalPrint( S_COLOR_YELLOW "Damage given/received: " S_COLOR_WHITE "%i/%i " S_COLOR_YELLOW "ratio: %s%3.2f\n",
+	Com_Printf( S_COLOR_YELLOW "Damage given/received: " S_COLOR_WHITE "%i/%i " S_COLOR_YELLOW "ratio: %s%3.2f\n",
 		total_damage_given, total_damage_received,
 		total_damage_given > total_damage_received ? S_COLOR_GREEN : S_COLOR_RED,
 		STATS_PERCENT( total_damage_given, total_damage_given + total_damage_received ) );

@@ -89,20 +89,6 @@ void G_Match_Autorecord_AltStart( void ) {
 }
 
 /*
-* G_Match_Autorecord_Stats
-*/
-void G_Match_Autorecord_Stats( void ) {
-	edict_t *ent;
-
-	for( ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients; ent++ ) {
-		if( !ent->r.inuse || ent->s.team == TEAM_SPECTATOR || ( ent->r.svflags & SVF_FAKECLIENT ) ) {
-			continue;
-		}
-		trap_GameCmd( ent, va( "plstats \"%s\"", G_StatsMessage( ent ) ) );
-	}
-}
-
-/*
 * G_Match_Autorecord_Stop
 */
 void G_Match_Autorecord_Stop( void ) {
@@ -250,8 +236,6 @@ void G_Match_LaunchState( int matchState ) {
 			G_Timeout_Reset();
 			level.teamlock = false;
 			level.forceExit = false;
-
-			G_Match_Autorecord_Stats();
 		}
 		break;
 

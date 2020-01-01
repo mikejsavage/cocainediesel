@@ -605,7 +605,7 @@ void SV_Init( void ) {
 
 	sv_iplimit = Cvar_Get( "sv_iplimit", "3", CVAR_ARCHIVE );
 
-	sv_defaultmap =         Cvar_Get( "sv_defaultmap", "dust", CVAR_ARCHIVE );
+	sv_defaultmap =         Cvar_Get( "sv_defaultmap", "carfentanil", CVAR_ARCHIVE );
 	sv_reconnectlimit =     Cvar_Get( "sv_reconnectlimit", "3", CVAR_ARCHIVE );
 	sv_maxclients =         Cvar_Get( "sv_maxclients", "16", CVAR_ARCHIVE | CVAR_SERVERINFO | CVAR_LATCH );
 

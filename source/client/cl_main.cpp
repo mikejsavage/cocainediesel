@@ -249,10 +249,6 @@ static void CL_CheckForResend( void ) {
 	}
 
 	if( cls.state == CA_CONNECTING && cls.reliable ) {
-		if( realtime - cls.connect_time < 3000 ) {
-			return;
-		}
-
 		if( realtime - cls.connect_time < 10000 ) {
 			return;
 		}

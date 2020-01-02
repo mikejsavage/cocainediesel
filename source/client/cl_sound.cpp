@@ -226,7 +226,6 @@ static void LoadSounds() {
 	ZoneScoped;
 
 	for( const char * path : AssetPaths() ) {
-		Span< const char > ext = FileExtension( path );
 		if( FileExtension( path ) == ".ogg" ) {
 			bool stereo = strcmp( path, "sounds/music/menu_1.ogg" ) == 0;
 			LoadSound( path, stereo );

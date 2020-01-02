@@ -31,10 +31,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/q_comref.h"
 #include "gameshared/q_collision.h"
 
-#include "application.h"
-#include "qfiles.h"
-#include "cmodel.h"
-#include "bsp.h"
+#include "qcommon/application.h"
+#include "qcommon/qfiles.h"
+#include "qcommon/cmodel.h"
+#include "qcommon/bsp.h"
+#include "qcommon/strtonum.h"
 
 inline Vec3 FromQF3( const vec3_t v ) { return Vec3( v[ 0 ], v[ 1 ], v[ 2 ] ); }
 inline EulerDegrees3 FromQFAngles( const vec3_t v ) { return { v[ PITCH ], v[ YAW ], v[ ROLL ] }; }

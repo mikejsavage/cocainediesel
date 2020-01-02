@@ -19,7 +19,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "g_local.h"
+#include "game/g_local.h"
 
 //===================================================================
 
@@ -88,8 +88,6 @@ static callvotetype_t *callvotesHeadNode = NULL;
 
 static void G_VoteMapExtraHelp( edict_t *ent ) {
 	char message[MAX_STRING_CHARS / 4 * 3];    // use buffer to send only one print message
-	int start;
-	size_t length, msglength;
 
 	RefreshMapList();
 
@@ -106,20 +104,16 @@ static void G_VoteMapExtraHelp( edict_t *ent ) {
 
 	Span< const char * > maps = GetMapList();
 
+	unsigned int start = 0;
 	if( Cmd_Argc() > 2 ) {
-		start = atoi( Cmd_Argv( 2 ) ) - 1;
-		if( start < 0 ) {
-			start = 0;
-		}
-	} else {
-		start = 0;
+		start = strtonum( Cmd_Argv( 2 ), 0, INT_MAX, NULL );
 	}
 
-	int i = start;
-	msglength = strlen( message );
+	unsigned int i = start;
+	size_t msglength = strlen( message );
 
 	while( i < maps.n ) {
-		length = strlen( maps[ i ] );
+		size_t length = strlen( maps[ i ] );
 		if( msglength + length + 3 >= sizeof( message ) ) {
 			break;
 		}

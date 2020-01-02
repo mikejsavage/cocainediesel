@@ -20,13 +20,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-// global preprocessor defines
-#include "config.h"
+#include "gameshared/config.h"
 
-// q_shared.h -- included first by ALL program modules
 #include <stdarg.h>
 #include <ctype.h>
 #include <inttypes.h>
+
+#define ARCH "x86_64"
 
 //==============================================
 
@@ -45,8 +45,6 @@ typedef unsigned long ioctl_param_t;
 typedef uintptr_t socket_handle_t;
 
 #endif
-
-#define ARCH "x86_64"
 
 //==============================================
 

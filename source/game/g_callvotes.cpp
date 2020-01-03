@@ -106,7 +106,7 @@ static void G_VoteMapExtraHelp( edict_t *ent ) {
 
 	unsigned int start = 0;
 	if( Cmd_Argc() > 2 ) {
-		start = strtonum( Cmd_Argv( 2 ), 0, INT_MAX, NULL );
+		start = strtonum( Cmd_Argv( 2 ), 0, S32_MAX, NULL );
 	}
 
 	unsigned int i = start;

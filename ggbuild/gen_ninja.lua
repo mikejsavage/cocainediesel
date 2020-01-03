@@ -300,12 +300,6 @@ rule cpp
     description = $in
     deps = gcc
 
-rule m
-    command = $cpp -MD -MF $out.d $mflags $extra_mflags -c -o $out $in
-    depfile = $out.d
-    description = $in
-    deps = gcc
-
 rule bin
     command = $cpp -o $out $in $ldflags $extra_ldflags
     description = $out

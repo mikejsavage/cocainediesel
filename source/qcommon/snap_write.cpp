@@ -226,47 +226,6 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *ms
 }
 
 /*
-* SNAP_RelayMultiPOVCommands
-*/
-static void SNAP_RelayMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *msg, int numcmds, gcommand_t *commands, const char *commandsData ) {
-	int i, index;
-	int first_index, last_index;
-	gcommand_t *gcmd;
-	const char *command;
-
-	first_index = Max2( 0, numcmds - MAX_RELIABLE_COMMANDS );
-	last_index = Min2( numcmds, first_index + MAX_RELIABLE_COMMANDS );
-
-	for( index = first_index, gcmd = commands + index; index < last_index; index++, gcmd++ ) {
-		command = commandsData + gcmd->commandOffset;
-
-		// do not allow the message buffer to overflow (can happen on flood updates)
-		if( msg->cursize + strlen( command ) + 512 > msg->maxsize ) {
-			continue;
-		}
-
-		MSG_WriteInt16( msg, 0 );
-		MSG_WriteString( msg, command );
-
-		if( gcmd->all ) {
-			MSG_WriteUint8( msg, 0 );
-		} else {
-			int maxtarget, bytes;
-
-			maxtarget = 0;
-			for( i = 0; i < MAX_CLIENTS; i++ )
-				if( gcmd->targets[i >> 3] & ( 1 << ( i & 7 ) ) ) {
-					maxtarget = i + 1;
-				}
-
-			bytes = ( maxtarget + 7 ) / 8;
-			MSG_WriteUint8( msg, bytes );
-			MSG_WriteData( msg, gcmd->targets, bytes );
-		}
-	}
-}
-
-/*
 * SNAP_WriteFrameSnapToClient
 */
 void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int64_t frameNum, int64_t gameTime,
@@ -332,11 +291,7 @@ void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int
 	// add game comands
 	MSG_WriteUint8( msg, svc_gamecommands );
 	if( frame->multipov ) {
-		if( frame->relay ) {
-			SNAP_RelayMultiPOVCommands( gi, client, msg, numcmds, commands, commandsData );
-		} else {
-			SNAP_WriteMultiPOVCommands( gi, client, msg, frameNum );
-		}
+		SNAP_WriteMultiPOVCommands( gi, client, msg, frameNum );
 	} else {
 		for( i = client->gameCommandCurrent - MAX_RELIABLE_COMMANDS + 1; i <= client->gameCommandCurrent; i++ ) {
 			index = i & ( MAX_RELIABLE_COMMANDS - 1 );
@@ -378,7 +333,7 @@ void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int
 	MSG_WriteUint8( msg, 0 );
 
 	// delta encode the entities
-	SNAP_EmitPacketEntities( gi, oldframe, frame, msg, baselines, client_entities ? client_entities->entities : NULL, client_entities ? client_entities->num_entities : 0 );
+	SNAP_EmitPacketEntities( gi, oldframe, frame, msg, baselines, client_entities->entities, client_entities->num_entities );
 
 	// write length into reserved space
 	length = msg->cursize - pos - 2;
@@ -691,7 +646,7 @@ static void SNAP_BuildSnapEntitiesList( cmodel_state_t *cms, ginfo_t *gi, edict_
 void SNAP_BuildClientFrameSnap( cmodel_state_t *cms, ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
 								client_t *client,
 								game_state_t *gameState, client_entities_t *client_entities,
-								bool relay, mempool_t *mempool ) {
+								mempool_t *mempool ) {
 	int e, i, ne;
 	vec3_t org;
 	edict_t *ent, *clent;
@@ -719,7 +674,6 @@ void SNAP_BuildClientFrameSnap( cmodel_state_t *cms, ginfo_t *gi, int64_t frameN
 	frame = &client->snapShots[frameNum & UPDATE_MASK];
 	frame->sentTimeStamp = timeStamp;
 	frame->UcmdExecuted = client->UcmdExecuted;
-	frame->relay = relay;
 
 	if( client->mv ) {
 		frame->multipov = true;

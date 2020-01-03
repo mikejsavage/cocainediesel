@@ -165,8 +165,8 @@ static void DrawText( const Font * font, float pixel_size, Span< const char > st
 	bg->PushTextureID( sam );
 
 	u32 state = 0;
+	u32 c = 0;
 	for( size_t i = 0; i < str.n; i++ ) {
-		u32 c = 0;
 		if( DecodeUTF8( &state, &c, str[ i ] ) != 0 )
 			continue;
 		if( c > 255 )
@@ -205,10 +205,10 @@ MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
 	MinMax1 y_extents = MinMax1::Empty();
 
 	u32 state = 0;
+	u32 c = 0;
 	const Glyph * glyph = NULL;
 
 	for( const char * p = str; *p != '\0'; p++ ) {
-		u32 c = 0;
 		if( DecodeUTF8( &state, &c, *p ) != 0 )
 			continue;
 		if( c > 255 )

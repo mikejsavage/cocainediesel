@@ -64,8 +64,8 @@ uint32_t DecodeUTF8( uint32_t * state, uint32_t * codep, char byte ) {
 
 const char * StrChrUTF8( const char * str, uint32_t needle ) {
 	uint32_t state = 0;
+	uint32_t c = 0;
 	for( const char * p = str; *p != '\0'; p++ ) {
-		uint32_t c;
 		if( DecodeUTF8( &state, &c, *p ) != 0 )
 			continue;
 		if( c == needle )

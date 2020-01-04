@@ -10,7 +10,7 @@ union FP32 {
 	float f;
 };
 
-uint16_t Com_FloatToHalf(float x) {
+uint16_t FloatToHalf(float x) {
 	FP32 f;
 	f.f = x;
 	FP32 f32infty = { 255 << 23 };
@@ -42,7 +42,7 @@ uint16_t Com_FloatToHalf(float x) {
 	return o;
 }
 
-float Com_HalfToFloat(uint16_t h) {
+float HalfToFloat(uint16_t h) {
 	constexpr FP32 magic = { 113 << 23 };
 	constexpr uint32_t shifted_exp = 0x7c00 << 13;
 	FP32 o;

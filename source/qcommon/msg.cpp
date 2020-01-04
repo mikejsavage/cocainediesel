@@ -257,6 +257,26 @@ static void DeltaUnsignedLEB128( DeltaBuffer * buf, T & x, const T & baseline ) 
 	}
 }
 
+static void DeltaHalf( DeltaBuffer * buf, float & x, const float & baseline ) {
+	u16 half_x = FloatToHalf( x );
+	u16 half_baseline = FloatToHalf( baseline );
+	Delta( buf, half_x, half_baseline );
+	x = HalfToFloat( half_x );
+}
+
+static void DeltaAngle( DeltaBuffer * buf, float & x, const float & baseline ) {
+	u16 angle16 = AngleNormalize360( x ) / 360.0f * U16_MAX;
+	u16 baseline16 = AngleNormalize360( baseline ) / 360.0f * U16_MAX;
+	Delta( buf, angle16, baseline16 );
+	x = angle16 / float( U16_MAX ) * 360.0f;
+}
+
+static void DeltaAngle( DeltaBuffer * buf, vec3_t & v, const vec3_t & baseline ) {
+	DeltaAngle( buf, v[ 0 ], baseline[ 0 ] );
+	DeltaAngle( buf, v[ 1 ], baseline[ 1 ] );
+	DeltaAngle( buf, v[ 2 ], baseline[ 2 ] );
+}
+
 //==================================================
 // WRITE FUNCTIONS
 //==================================================
@@ -331,20 +351,6 @@ void MSG_WriteIntBase128( msg_t *msg, int64_t c ) {
 	// use Zig-zag encoding for signed integers for more efficient storage
 	uint64_t cc = (uint64_t)(c << 1) ^ (uint64_t)(c >> 63);
 	MSG_WriteUintBase128( msg, cc );
-}
-
-void MSG_WriteFloat( msg_t *msg, float f ) {
-	union {
-		float f;
-		int l;
-	} dat;
-
-	dat.f = f;
-	MSG_WriteInt32( msg, dat.l );
-}
-
-void MSG_WriteHalfFloat( msg_t *msg, float f ) {
-	MSG_WriteUint16( msg, Com_FloatToHalf( f ) );
 }
 
 void MSG_WriteString( msg_t *msg, const char *s ) {
@@ -453,23 +459,6 @@ int64_t MSG_ReadIntBase128( msg_t *msg ) {
 	return (int64_t)(c >> 1) ^ (-(int64_t)(c & 1));
 }
 
-float MSG_ReadFloat( msg_t *msg ) {
-	union {
-		float f;
-		int l;
-	} dat;
-
-	dat.l = MSG_ReadInt32( msg );
-	if( msg->readcount > msg->cursize ) {
-		dat.f = -1;
-	}
-	return dat.f;
-}
-
-float MSG_ReadHalfFloat( msg_t *msg ) {
-	return Com_HalfToFloat( MSG_ReadUint16( msg ) );
-}
-
 void MSG_ReadData( msg_t *msg, void *data, size_t length ) {
 	unsigned int i;
 
@@ -523,7 +512,7 @@ static void Delta( DeltaBuffer * buf, entity_state_t & ent, const entity_state_t
 	Delta( buf, ent.eventParms[ 0 ], baseline.eventParms[ 0 ] );
 
 	Delta( buf, ent.origin, baseline.origin );
-	Delta( buf, ent.angles, baseline.angles ); // TODO
+	DeltaAngle( buf, ent.angles, baseline.angles );
 
 	Delta( buf, ent.teleported, baseline.teleported );
 
@@ -536,7 +525,7 @@ static void Delta( DeltaBuffer * buf, entity_state_t & ent, const entity_state_t
 	Delta( buf, ent.targetNum, baseline.targetNum );
 	Delta( buf, ent.sound, baseline.sound );
 	Delta( buf, ent.modelindex2, baseline.modelindex2 );
-	Delta( buf, ent.attenuation, baseline.attenuation );
+	DeltaHalf( buf, ent.attenuation, baseline.attenuation );
 	Delta( buf, ent.counterNum, baseline.counterNum );
 	Delta( buf, ent.bodyOwner, baseline.bodyOwner );
 	Delta( buf, ent.channel, baseline.channel );
@@ -774,7 +763,7 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 
 	Delta( buf, pmove.pm_flags, baseline.pm_flags );
 
-	Delta( buf, pmove.delta_angles, baseline.delta_angles ); // TODO
+	Delta( buf, pmove.delta_angles, baseline.delta_angles );
 
 	Delta( buf, pmove.gravity, baseline.gravity );
 
@@ -787,16 +776,16 @@ static void Delta( DeltaBuffer * buf, player_state_t & player, const player_stat
 	Delta( buf, player.event, baseline.event );
 	Delta( buf, player.eventParm, baseline.eventParm );
 
-	Delta( buf, player.viewangles, baseline.viewangles ); // TODO
+	DeltaAngle( buf, player.viewangles, baseline.viewangles );
 
 	Delta( buf, player.weaponState, baseline.weaponState );
 
-	Delta( buf, player.fov, baseline.fov );
+	DeltaHalf( buf, player.fov, baseline.fov );
 
 	Delta( buf, player.POVnum, baseline.POVnum );
 	Delta( buf, player.playerNum, baseline.playerNum );
 
-	Delta( buf, player.viewheight, baseline.viewheight );
+	DeltaHalf( buf, player.viewheight, baseline.viewheight );
 
 	Delta( buf, player.plrkeys, baseline.plrkeys );
 

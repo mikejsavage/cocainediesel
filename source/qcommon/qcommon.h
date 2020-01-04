@@ -634,7 +634,7 @@ void Com_GGPrintNL( const char * fmt, const Rest & ... rest ) {
 	Com_Printf( "%s", buf );
 }
 
-#define Com_GGPrint( fmt, ... ) Com_GGPrintNL( fmt "\n", #__VA_ARGS__ )
+#define Com_GGPrint( fmt, ... ) Com_GGPrintNL( fmt "\n", ##__VA_ARGS__ )
 
 void        Com_DeferQuit( void );
 

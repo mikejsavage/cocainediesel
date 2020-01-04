@@ -681,7 +681,6 @@ void G_Gametype_SetDefaults( void ) {
 	level.gametype.matchAbortDisabled = false;
 	level.gametype.shootingDisabled = false;
 	level.gametype.infiniteAmmo = false;
-	level.gametype.canForceModels = true;
 	level.gametype.customDeadBodyCam = false;
 	level.gametype.removeInactivePlayers = true;
 	level.gametype.selfDamage = true;

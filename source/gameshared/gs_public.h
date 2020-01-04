@@ -99,7 +99,6 @@ enum {
 #define GAMESTAT_FLAG_COUNTDOWN ( 1 << 6LL )
 #define GAMESTAT_FLAG_SELFDAMAGE ( 1 << 7LL )
 #define GAMESTAT_FLAG_INFINITEAMMO ( 1 << 8LL )
-#define GAMESTAT_FLAG_CANFORCEMODELS ( 1 << 9LL )
 
 typedef struct {
 	int module;
@@ -116,7 +115,6 @@ typedef struct {
 #define GS_MatchWaiting( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_WAITING ) ? true : false )
 #define GS_Countdown( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_COUNTDOWN ) ? true : false )
 #define GS_InfiniteAmmo( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_INFINITEAMMO ) ? true : false )
-#define GS_CanForceModels( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_CANFORCEMODELS ) ? true : false )
 
 #define GS_MatchState( gs ) ( ( gs )->gameState.stats[GAMESTAT_MATCHSTATE] )
 #define GS_MaxPlayersInTeam( gs ) ( ( gs )->gameState.stats[GAMESTAT_MAXPLAYERSINTEAM] )

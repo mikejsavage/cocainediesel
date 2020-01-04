@@ -196,7 +196,6 @@ void G_CheckCvars( void ) {
 	G_GamestatSetFlag( GAMESTAT_FLAG_COUNTDOWN, level.gametype.countdownEnabled );
 	G_GamestatSetFlag( GAMESTAT_FLAG_INHIBITSHOOTING, level.gametype.shootingDisabled );
 	G_GamestatSetFlag( GAMESTAT_FLAG_INFINITEAMMO, level.gametype.infiniteAmmo );
-	G_GamestatSetFlag( GAMESTAT_FLAG_CANFORCEMODELS, level.gametype.canForceModels );
 
 	server_gs.gameState.stats[GAMESTAT_MAXPLAYERSINTEAM] = Clamp( 0, level.gametype.maxPlayersPerTeam, 255 );
 

@@ -254,8 +254,6 @@ enum svc_ops_e {
 // client to server
 //
 enum clc_ops_e {
-	clc_bad,
-	clc_nop,
 	clc_move,               // [[usercmd_t]
 	clc_svcack,
 	clc_clientcommand,      // [string] message

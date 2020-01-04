@@ -886,13 +886,9 @@ void SV_ParseClientMessage( client_t *client, msg_t *msg ) {
 				SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: Unknown command char" );
 				return;
 
-			case clc_nop:
-				break;
-
 			case clc_move: {
 				if( move_issued ) {
 					return; // someone is trying to cheat...
-
 				}
 				move_issued = true;
 				SV_ParseMoveCommand( client, msg );

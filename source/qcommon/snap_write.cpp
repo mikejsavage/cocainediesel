@@ -94,13 +94,13 @@ static void SNAP_EmitPacketEntities( ginfo_t *gi, client_snapshot_t *from, clien
 
 		if( newnum > oldnum ) {
 			// the old entity isn't present in the new message
-			MSG_WriteDeltaEntity( msg, oldent, NULL, false );
+			MSG_WriteEntityNumber( msg, oldnum, true );
 			oldindex++;
 			continue;
 		}
 	}
 
-	MSG_WriteInt16( msg, 0 ); // end of packetentities
+	MSG_WriteEntityNumber( msg, 0, false ); // end of packetentities
 }
 
 /*

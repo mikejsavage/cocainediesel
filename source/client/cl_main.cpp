@@ -1014,8 +1014,8 @@ static bool CL_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
 * CL_ReadPackets
 */
 void CL_ReadPackets( void ) {
-	static msg_t msg;
-	static uint8_t msgData[MAX_MSGLEN];
+	msg_t msg;
+	uint8_t msgData[MAX_MSGLEN];
 	int ret;
 	socket_t *socket;
 	netadr_t address;

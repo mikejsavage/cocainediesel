@@ -180,7 +180,7 @@ void G_CheckCvars( void ) {
 	if( g_warmup_timelimit->modified ) {
 		// if we are inside timelimit period, update the endtime
 		if( GS_MatchState( &server_gs ) == MATCH_STATE_WARMUP ) {
-			server_gs.gameState.stats[GAMESTAT_MATCHDURATION] = (int64_t)Abs( 60.0f * 1000 * g_warmup_timelimit->integer );
+			server_gs.gameState.match_duration = (int64_t)Abs( 60.0f * 1000 * g_warmup_timelimit->integer );
 		}
 		g_warmup_timelimit->modified = false;
 	}
@@ -197,7 +197,7 @@ void G_CheckCvars( void ) {
 	G_GamestatSetFlag( GAMESTAT_FLAG_INHIBITSHOOTING, level.gametype.shootingDisabled );
 	G_GamestatSetFlag( GAMESTAT_FLAG_INFINITEAMMO, level.gametype.infiniteAmmo );
 
-	server_gs.gameState.stats[GAMESTAT_MAXPLAYERSINTEAM] = Clamp( 0, level.gametype.maxPlayersPerTeam, 255 );
+	server_gs.gameState.max_team_players = Clamp( 0, level.gametype.maxPlayersPerTeam, 255 );
 
 }
 
@@ -322,7 +322,7 @@ void G_ClearSnap( void ) {
 	svs.realtime = Sys_Milliseconds(); // level.time etc. might not be real time
 
 	// clear gametype's clock override
-	server_gs.gameState.stats[GAMESTAT_CLOCKOVERRIDE] = 0;
+	server_gs.gameState.clock_override = 0;
 
 	// clear all events in the snap
 	for( ent = &game.edicts[0]; ENTNUM( ent ) < game.numentities; ent++ ) {
@@ -511,7 +511,7 @@ void G_RunFrame( unsigned int msec ) {
 	if( GS_MatchPaused( &server_gs ) ) {
 		unsigned int serverTimeDelta = svs.gametime - game.prevServerTime;
 		// freeze match clock and linear projectiles
-		server_gs.gameState.stats[GAMESTAT_MATCHSTART] += serverTimeDelta;
+		server_gs.gameState.match_start += serverTimeDelta;
 		for( edict_t *ent = game.edicts + server_gs.maxclients; ENTNUM( ent ) < game.numentities; ent++ ) {
 			if( ent->s.linearMovement ) {
 				ent->s.linearMovementTimeStamp += serverTimeDelta;
@@ -525,7 +525,7 @@ void G_RunFrame( unsigned int msec ) {
 
 	// reset warmup clock if not enough players
 	if( GS_MatchWaiting( &server_gs ) ) {
-		server_gs.gameState.stats[GAMESTAT_MATCHSTART] = svs.gametime;
+		server_gs.gameState.match_start = svs.gametime;
 	}
 
 	level.framenum++;

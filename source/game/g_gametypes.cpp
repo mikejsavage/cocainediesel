@@ -196,9 +196,9 @@ void G_Match_LaunchState( int matchState ) {
 			advance_queue = false;
 			level.forceStart = false;
 
-			server_gs.gameState.stats[GAMESTAT_MATCHSTATE] = MATCH_STATE_WARMUP;
-			server_gs.gameState.stats[GAMESTAT_MATCHDURATION] = (int64_t)( Abs( g_warmup_timelimit->value * 60 ) * 1000 );
-			server_gs.gameState.stats[GAMESTAT_MATCHSTART] = svs.gametime;
+			server_gs.gameState.match_state = MATCH_STATE_WARMUP;
+			server_gs.gameState.match_duration = (int64_t)( Abs( g_warmup_timelimit->value * 60 ) * 1000 );
+			server_gs.gameState.match_start = svs.gametime;
 
 			break;
 		}
@@ -207,9 +207,9 @@ void G_Match_LaunchState( int matchState ) {
 		{
 			advance_queue = true;
 
-			server_gs.gameState.stats[GAMESTAT_MATCHSTATE] = MATCH_STATE_COUNTDOWN;
-			server_gs.gameState.stats[GAMESTAT_MATCHDURATION] = 5000;
-			server_gs.gameState.stats[GAMESTAT_MATCHSTART] = svs.gametime;
+			server_gs.gameState.match_state = MATCH_STATE_COUNTDOWN;
+			server_gs.gameState.match_duration = 5000;
+			server_gs.gameState.match_start = svs.gametime;
 
 			break;
 		}
@@ -221,17 +221,17 @@ void G_Match_LaunchState( int matchState ) {
 			advance_queue = true; // shouldn't be needed here
 			level.forceStart = false;
 
-			server_gs.gameState.stats[GAMESTAT_MATCHSTATE] = MATCH_STATE_PLAYTIME;
-			server_gs.gameState.stats[GAMESTAT_MATCHDURATION] = 0;
-			server_gs.gameState.stats[GAMESTAT_MATCHSTART] = svs.gametime;
+			server_gs.gameState.match_state = MATCH_STATE_PLAYTIME;
+			server_gs.gameState.match_duration = 0;
+			server_gs.gameState.match_start = svs.gametime;
 		}
 		break;
 
 		case MATCH_STATE_POSTMATCH:
 		{
-			server_gs.gameState.stats[GAMESTAT_MATCHSTATE] = MATCH_STATE_POSTMATCH;
-			server_gs.gameState.stats[GAMESTAT_MATCHDURATION] = 4000; // postmatch time in seconds
-			server_gs.gameState.stats[GAMESTAT_MATCHSTART] = svs.gametime;
+			server_gs.gameState.match_state = MATCH_STATE_POSTMATCH;
+			server_gs.gameState.match_duration = 4000; // postmatch time in seconds
+			server_gs.gameState.match_start = svs.gametime;
 
 			G_Timeout_Reset();
 			level.teamlock = false;
@@ -246,9 +246,9 @@ void G_Match_LaunchState( int matchState ) {
 				advance_queue = true;
 			}
 
-			server_gs.gameState.stats[GAMESTAT_MATCHSTATE] = MATCH_STATE_WAITEXIT;
-			server_gs.gameState.stats[GAMESTAT_MATCHDURATION] = 3000;
-			server_gs.gameState.stats[GAMESTAT_MATCHSTART] = svs.gametime;
+			server_gs.gameState.match_state = MATCH_STATE_WAITEXIT;
+			server_gs.gameState.match_duration = 3000;
+			server_gs.gameState.match_start = svs.gametime;
 
 			level.exitNow = false;
 		}

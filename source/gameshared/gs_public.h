@@ -65,7 +65,7 @@ constexpr int playerbox_gib_viewheight = 8;
 
 //==================================================================
 
-enum {
+enum MatchState {
 	MATCH_STATE_NONE,
 	MATCH_STATE_WARMUP,
 	MATCH_STATE_COUNTDOWN,
@@ -79,15 +79,6 @@ enum {
 enum {
 	GS_MODULE_GAME = 1,
 	GS_MODULE_CGAME,
-};
-
-enum {
-	GAMESTAT_FLAGS,
-	GAMESTAT_MATCHSTATE,
-	GAMESTAT_MATCHSTART,
-	GAMESTAT_MATCHDURATION,
-	GAMESTAT_CLOCKOVERRIDE,
-	GAMESTAT_MAXPLAYERSINTEAM,
 };
 
 #define GAMESTAT_FLAG_PAUSED ( 1 << 0LL )
@@ -107,23 +98,23 @@ typedef struct {
 	gs_module_api_t api;
 } gs_state_t;
 
-#define GS_ShootingDisabled( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_INHIBITSHOOTING ) ? true : false )
-#define GS_HasChallengers( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_HASCHALLENGERS ) ? true : false )
-#define GS_TeamBasedGametype( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_ISTEAMBASED ) ? true : false )
-#define GS_RaceGametype( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_ISRACE ) ? true : false )
-#define GS_MatchPaused( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_PAUSED ) ? true : false )
-#define GS_MatchWaiting( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_WAITING ) ? true : false )
-#define GS_Countdown( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_COUNTDOWN ) ? true : false )
-#define GS_InfiniteAmmo( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_INFINITEAMMO ) ? true : false )
+#define GS_ShootingDisabled( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_INHIBITSHOOTING ) != 0 )
+#define GS_HasChallengers( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_HASCHALLENGERS ) != 0 )
+#define GS_TeamBasedGametype( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_ISTEAMBASED ) != 0 )
+#define GS_RaceGametype( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_ISRACE ) != 0 )
+#define GS_MatchPaused( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_PAUSED ) != 0 )
+#define GS_MatchWaiting( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_WAITING ) != 0 )
+#define GS_Countdown( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_COUNTDOWN ) != 0 )
+#define GS_InfiniteAmmo( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_INFINITEAMMO ) != 0 )
 
-#define GS_MatchState( gs ) ( ( gs )->gameState.stats[GAMESTAT_MATCHSTATE] )
-#define GS_MaxPlayersInTeam( gs ) ( ( gs )->gameState.stats[GAMESTAT_MAXPLAYERSINTEAM] )
+#define GS_MatchState( gs ) ( ( gs )->gameState.match_state )
+#define GS_MaxPlayersInTeam( gs ) ( ( gs )->gameState.max_team_players )
 #define GS_IndividualGameType( gs ) ( GS_MaxPlayersInTeam( gs ) == 1 )
 
-#define GS_MatchDuration( gs ) ( ( gs )->gameState.stats[GAMESTAT_MATCHDURATION] )
-#define GS_MatchStartTime( gs ) ( ( gs )->gameState.stats[GAMESTAT_MATCHSTART] )
-#define GS_MatchEndTime( gs ) ( ( gs )->gameState.stats[GAMESTAT_MATCHDURATION] ? ( gs )->gameState.stats[GAMESTAT_MATCHSTART] + ( gs )->gameState.stats[GAMESTAT_MATCHDURATION] : 0 )
-#define GS_MatchClockOverride( gs ) ( ( gs )->gameState.stats[GAMESTAT_CLOCKOVERRIDE] )
+#define GS_MatchDuration( gs ) ( ( gs )->gameState.match_duration )
+#define GS_MatchStartTime( gs ) ( ( gs )->gameState.match_start )
+#define GS_MatchEndTime( gs ) ( ( gs )->gameState.match_duration ? ( gs )->gameState.match_start + ( gs )->gameState.match_duration : 0 )
+#define GS_MatchClockOverride( gs ) ( ( gs )->gameState.clock_override )
 
 //==================================================================
 

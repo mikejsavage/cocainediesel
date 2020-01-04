@@ -81,13 +81,6 @@ typedef struct {
 	bool compressed;
 } msg_t;
 
-typedef struct msg_field_s {
-	int offset;
-	int bits;
-	int count;
-	wireType_t encoding;
-} msg_field_t;
-
 // msg.c
 void MSG_Init( msg_t *buf, uint8_t *data, size_t length );
 void MSG_Clear( msg_t *buf );
@@ -112,13 +105,11 @@ void MSG_WriteIntBase128( msg_t *msg, int64_t c );
 void MSG_WriteFloat( msg_t *sb, float f );
 void MSG_WriteHalfFloat( msg_t *sb, float f );
 void MSG_WriteString( msg_t *sb, const char *s );
-#define MSG_WriteAngle16( sb, f ) ( MSG_WriteInt16( ( sb ), ANGLE2SHORT( ( f ) ) ) )
 void MSG_WriteDeltaUsercmd( msg_t *sb, const struct usercmd_s *from, struct usercmd_s *cmd );
+void MSG_WriteEntityNumber( msg_t *msg, int number, bool remove );
 void MSG_WriteDeltaEntity( msg_t *msg, const struct entity_state_s *from, const struct entity_state_s *to, bool force );
 void MSG_WriteDeltaPlayerState( msg_t *msg, const player_state_t *ops, const player_state_t *ps );
 void MSG_WriteDeltaGameState( msg_t *msg, const game_state_t *from, const game_state_t *to );
-void MSG_WriteDir( msg_t *sb, vec3_t vector );
-void MSG_WriteDeltaStruct( msg_t *msg, const void *from, const void *to, const msg_field_t *fields, size_t numFields );
 
 void MSG_BeginReading( msg_t *sb );
 int MSG_ReadInt8( msg_t *msg );
@@ -133,15 +124,12 @@ float MSG_ReadFloat( msg_t *sb );
 float MSG_ReadHalfFloat( msg_t *sb );
 char *MSG_ReadString( msg_t *sb );
 char *MSG_ReadStringLine( msg_t *sb );
-#define MSG_ReadAngle16( sb ) ( SHORT2ANGLE( MSG_ReadInt16( ( sb ) ) ) )
 void MSG_ReadDeltaUsercmd( msg_t *sb, const struct usercmd_s *from, struct usercmd_s *cmd );
-int MSG_ReadEntityNumber( msg_t *msg, bool *remove, unsigned *byteMask );
-void MSG_ReadDeltaEntity( msg_t *msg, const entity_state_t *from, entity_state_t *to, int number, unsigned byteMask );
+int MSG_ReadEntityNumber( msg_t *msg, bool *remove );
+void MSG_ReadDeltaEntity( msg_t *msg, const entity_state_t *from, entity_state_t *to, int number );
 void MSG_ReadDeltaPlayerState( msg_t *msg, const player_state_t *ops, player_state_t *ps );
 void MSG_ReadDeltaGameState( msg_t *msg, const game_state_t *from, game_state_t *to );
-void MSG_ReadDir( msg_t *sb, vec3_t vector );
 void MSG_ReadData( msg_t *sb, void *buffer, size_t length );
-void MSG_ReadDeltaStruct( msg_t *msg, const void *from, void *to, size_t size, const msg_field_t *fields, size_t numFields );
 
 //============================================================================
 

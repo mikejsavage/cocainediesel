@@ -117,10 +117,10 @@ static void G_InitGameShared( void ) {
 
 void G_GamestatSetFlag( int flag, bool b ) {
 	if( b ) {
-		server_gs.gameState.stats[GAMESTAT_FLAGS] |= flag;
+		server_gs.gameState.flags |= flag;
 	}
 	else {
-		server_gs.gameState.stats[GAMESTAT_FLAGS] &= ~flag;
+		server_gs.gameState.flags &= ~flag;
 	}
 }
 

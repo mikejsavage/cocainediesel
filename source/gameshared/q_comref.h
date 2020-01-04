@@ -214,27 +214,6 @@ typedef enum {
 
 //==============================================
 
-// primitive encoding types for network messages
-
-typedef enum {
-	WIRE_BOOL,					// a of value of 'true' is represented by a single bit in the header
-
-	WIRE_FIXED_INT8,				// 8-bit integer
-	WIRE_FIXED_INT16,			// 16-bit integer
-	WIRE_FIXED_INT32,			// 32-bit integer
-	WIRE_FIXED_INT64,			// 64-bit integer
-
-	WIRE_FLOAT,					// 32-bit floating point value
-	WIRE_HALF_FLOAT,				// 16-bit floating point value
-
-	WIRE_ANGLE,					// 32-bit float angle value, normalized to [0..360], transmitted at half-precision
-
-	WIRE_BASE128,				// base-128 encoded unsigned integer
-	WIRE_UBASE128				// base-128 encoded signed integer
-} wireType_t;
-
-//==============================================
-
 typedef struct entity_state_s {
 	int number;                         // edict index
 
@@ -354,10 +333,13 @@ typedef enum {
 
 //==============================================
 
-#define MAX_GAME_STATS  64
-
 typedef struct {
-	int64_t stats[MAX_GAME_STATS];
+	u32 flags;
+	int match_state;
+	int64_t match_start;
+	int64_t match_duration;
+	int64_t clock_override;
+	u8 max_team_players;
 } game_state_t;
 
 //==============================================

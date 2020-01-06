@@ -92,7 +92,6 @@ int MSG_SkipData( msg_t *sb, size_t length );
 //============================================================================
 
 struct usercmd_s;
-struct entity_state_s;
 
 void MSG_WriteInt8( msg_t *sb, int c );
 void MSG_WriteUint8( msg_t *sb, int c );
@@ -103,11 +102,11 @@ void MSG_WriteInt64( msg_t *sb, int64_t c );
 void MSG_WriteUintBase128( msg_t *msg, uint64_t c );
 void MSG_WriteIntBase128( msg_t *msg, int64_t c );
 void MSG_WriteString( msg_t *sb, const char *s );
-void MSG_WriteDeltaUsercmd( msg_t *sb, const struct usercmd_s *from, struct usercmd_s *cmd );
-void MSG_WriteEntityNumber( msg_t *msg, int number, bool remove );
-void MSG_WriteDeltaEntity( msg_t *msg, const struct entity_state_s *from, const struct entity_state_s *to, bool force );
-void MSG_WriteDeltaPlayerState( msg_t *msg, const player_state_t *ops, const player_state_t *ps );
-void MSG_WriteDeltaGameState( msg_t *msg, const game_state_t *from, const game_state_t *to );
+void MSG_WriteDeltaUsercmd( msg_t * msg, const usercmd_s * baseline , const usercmd_s * cmd );
+void MSG_WriteEntityNumber( msg_t * msg, int number, bool remove );
+void MSG_WriteDeltaEntity( msg_t * msg, const entity_state_t * baseline, const entity_state_t * ent, bool force );
+void MSG_WriteDeltaPlayerState( msg_t * msg, const player_state_t * baseline, const player_state_t * player );
+void MSG_WriteDeltaGameState( msg_t * msg, const game_state_t * baseline, const game_state_t * state );
 
 void MSG_BeginReading( msg_t *sb );
 int MSG_ReadInt8( msg_t *msg );
@@ -120,11 +119,11 @@ uint64_t MSG_ReadUintBase128( msg_t *msg );
 int64_t MSG_ReadIntBase128( msg_t *msg );
 char *MSG_ReadString( msg_t *sb );
 char *MSG_ReadStringLine( msg_t *sb );
-void MSG_ReadDeltaUsercmd( msg_t *sb, const struct usercmd_s *from, struct usercmd_s *cmd );
-int MSG_ReadEntityNumber( msg_t *msg, bool *remove );
-void MSG_ReadDeltaEntity( msg_t *msg, const entity_state_t *from, entity_state_t *to, int number );
-void MSG_ReadDeltaPlayerState( msg_t *msg, const player_state_t *ops, player_state_t *ps );
-void MSG_ReadDeltaGameState( msg_t *msg, const game_state_t *from, game_state_t *to );
+void MSG_ReadDeltaUsercmd( msg_t * msg, const usercmd_s * baseline, usercmd_s * cmd );
+int MSG_ReadEntityNumber( msg_t * msg, bool * remove );
+void MSG_ReadDeltaEntity( msg_t * msg, const entity_state_t * baseline, entity_state_t * ent );
+void MSG_ReadDeltaPlayerState( msg_t * msg, const player_state_t * baseline, player_state_t * player );
+void MSG_ReadDeltaGameState( msg_t * msg, const game_state_t * baseline, game_state_t * state );
 void MSG_ReadData( msg_t *sb, void *buffer, size_t length );
 
 //============================================================================

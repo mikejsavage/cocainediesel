@@ -79,11 +79,10 @@ static void SNAP_ParsePlayerstate( msg_t *msg, const player_state_t *oldstate, p
 * Parses deltas from the given base and adds the resulting entity to the current frame
 */
 static void SNAP_ParseDeltaEntity( msg_t *msg, snapshot_t *frame, int newnum, entity_state_t *old ) {
-	entity_state_t *state;
-
-	state = &frame->parsedEntities[frame->numEntities & ( MAX_PARSE_ENTITIES - 1 )];
+	entity_state_t * state = &frame->parsedEntities[frame->numEntities & ( MAX_PARSE_ENTITIES - 1 )];
 	frame->numEntities++;
-	MSG_ReadDeltaEntity( msg, old, state, newnum );
+	MSG_ReadDeltaEntity( msg, old, state );
+	state->number = newnum;
 }
 
 /*
@@ -96,7 +95,8 @@ void SNAP_ParseBaseline( msg_t *msg, entity_state_t *baselines ) {
 
 	if( !remove ) {
 		entity_state_t nullstate = { };
-		MSG_ReadDeltaEntity( msg, &nullstate, &baselines[newnum], newnum );
+		MSG_ReadDeltaEntity( msg, &nullstate, &baselines[newnum] );
+		baselines[ newnum ].number = newnum;
 	}
 }
 

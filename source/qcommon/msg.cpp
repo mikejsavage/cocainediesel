@@ -17,19 +17,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// msg.c -- Message IO functions
+
 #include "qcommon/qcommon.h"
 #include "qcommon/half_float.h"
 #include "qcommon/serialization.h"
 
-/*
-==============================================================================
-
-MESSAGE IO FUNCTIONS
-
-Handles byte ordering and avoids alignment errors
-==============================================================================
-*/
 #define MAX_MSG_STRING_CHARS    2048
 
 void MSG_Init( msg_t *msg, uint8_t *data, size_t length ) {
@@ -624,11 +616,11 @@ int MSG_ReadEntityNumber( msg_t *msg, bool *remove ) {
 	return number >> 1;
 }
 
-void MSG_WriteDeltaEntity( msg_t *msg, const entity_state_t *from, const entity_state_t *to, bool force ) {
+void MSG_WriteDeltaEntity( msg_t * msg, const entity_state_t * baseline, const entity_state_t * ent, bool force ) {
 	u8 buf[ MAX_MSGLEN ];
 	DeltaBuffer delta = DeltaWriter( buf, sizeof( buf ) );
 
-	Delta( &delta, *const_cast< entity_state_t * >( to ), *from );
+	Delta( &delta, *const_cast< entity_state_t * >( ent ), * baseline );
 
 	bool changed = false;
 	for( u8 x : delta.field_mask ) {
@@ -642,21 +634,13 @@ void MSG_WriteDeltaEntity( msg_t *msg, const entity_state_t *from, const entity_
 		return;
 	}
 
-	MSG_WriteEntityNumber( msg, to->number, false );
+	MSG_WriteEntityNumber( msg, ent->number, false );
 	MSG_WriteDeltaBuffer( msg, delta );
 }
 
-/*
-* MSG_ReadDeltaEntity
-*
-* Can go from either a baseline or a previous packet_entity
-*/
-void MSG_ReadDeltaEntity( msg_t *msg, const entity_state_t *from, entity_state_t *to, int number ) {
+void MSG_ReadDeltaEntity( msg_t * msg, const entity_state_t * baseline, entity_state_t * ent ) {
 	DeltaBuffer delta = MSG_StartReadingDeltaBuffer( msg );
-
-	to->number = number;
-	Delta( &delta, *to, *from );
-
+	Delta( &delta, *ent, *baseline );
 	MSG_FinishReadingDeltaBuffer( msg, delta );
 }
 
@@ -684,21 +668,21 @@ static void Delta( DeltaBuffer * buf, usercmd_t & cmd, const usercmd_t & baselin
 	Delta( buf, cmd.buttons, baseline.buttons );
 }
 
-void MSG_WriteDeltaUsercmd( msg_t * msg, const usercmd_t * from, usercmd_t * to ) {
+void MSG_WriteDeltaUsercmd( msg_t * msg, const usercmd_t * baseline, const usercmd_t * cmd ) {
 	u8 buf[ MAX_MSGLEN ];
 	DeltaBuffer delta = DeltaWriter( buf, sizeof( buf ) );
 
-	Delta( &delta, *const_cast< usercmd_t * >( to ), *from );
+	Delta( &delta, *const_cast< usercmd_t * >( cmd ), *baseline );
 
 	MSG_WriteDeltaBuffer( msg, delta );
-	MSG_WriteIntBase128( msg, to->serverTimeStamp );
+	MSG_WriteIntBase128( msg, cmd->serverTimeStamp );
 }
 
-void MSG_ReadDeltaUsercmd( msg_t * msg, const usercmd_t * from, usercmd_t * to ) {
+void MSG_ReadDeltaUsercmd( msg_t * msg, const usercmd_t * baseline, usercmd_t * cmd ) {
 	DeltaBuffer delta = MSG_StartReadingDeltaBuffer( msg );
-	Delta( &delta, *to, *from );
+	Delta( &delta, *cmd, *baseline );
 	MSG_FinishReadingDeltaBuffer( msg, delta );
-	to->serverTimeStamp = MSG_ReadIntBase128( msg );
+	cmd->serverTimeStamp = MSG_ReadIntBase128( msg );
 }
 
 //==================================================
@@ -794,28 +778,28 @@ static void Delta( DeltaBuffer * buf, player_state_t & player, const player_stat
 	Delta( buf, player.inventory, baseline.inventory );
 }
 
-void MSG_WriteDeltaPlayerState( msg_t * msg, const player_state_t * from, const player_state_t * to ) {
+void MSG_WriteDeltaPlayerState( msg_t * msg, const player_state_t * baseline, const player_state_t * player ) {
 	static player_state_t dummy;
-	if( from == NULL ) {
-		from = &dummy;
+	if( baseline == NULL ) {
+		baseline = &dummy;
 	}
 
 	u8 buf[ MAX_MSGLEN ];
 	DeltaBuffer delta = DeltaWriter( buf, sizeof( buf ) );
 
-	Delta( &delta, *const_cast< player_state_t * >( to ), *from );
+	Delta( &delta, *const_cast< player_state_t * >( player ), *baseline );
 
 	MSG_WriteDeltaBuffer( msg, delta );
 }
 
-void MSG_ReadDeltaPlayerState( msg_t * msg, const player_state_t * from, player_state_t * to ) {
+void MSG_ReadDeltaPlayerState( msg_t * msg, const player_state_t * baseline, player_state_t * player ) {
 	static player_state_t dummy;
-	if( from == NULL ) {
-		from = &dummy;
+	if( baseline == NULL ) {
+		baseline = &dummy;
 	}
 
 	DeltaBuffer delta = MSG_StartReadingDeltaBuffer( msg );
-	Delta( &delta, *to, *from );
+	Delta( &delta, *player, *baseline );
 	MSG_FinishReadingDeltaBuffer( msg, delta );
 }
 
@@ -832,27 +816,27 @@ static void Delta( DeltaBuffer * buf, game_state_t & state, const game_state_t &
 	Delta( buf, state.max_team_players, baseline.max_team_players );
 }
 
-void MSG_WriteDeltaGameState( msg_t * msg, const game_state_t * from, const game_state_t * to ) {
+void MSG_WriteDeltaGameState( msg_t * msg, const game_state_t * baseline, const game_state_t * state ) {
 	static game_state_t dummy;
-	if( from == NULL ) {
-		from = &dummy;
+	if( baseline == NULL ) {
+		baseline = &dummy;
 	}
 
 	u8 buf[ MAX_MSGLEN ];
 	DeltaBuffer delta = DeltaWriter( buf, sizeof( buf ) );
 
-	Delta( &delta, *const_cast< game_state_t * >( to ), *from );
+	Delta( &delta, *const_cast< game_state_t * >( state ), *baseline );
 
 	MSG_WriteDeltaBuffer( msg, delta );
 }
 
-void MSG_ReadDeltaGameState( msg_t * msg, const game_state_t * from, game_state_t * to ) {
+void MSG_ReadDeltaGameState( msg_t * msg, const game_state_t * baseline, game_state_t * state ) {
 	static game_state_t dummy;
-	if( from == NULL ) {
-		from = &dummy;
+	if( baseline == NULL ) {
+		baseline = &dummy;
 	}
 
 	DeltaBuffer delta = MSG_StartReadingDeltaBuffer( msg );
-	Delta( &delta, *to, *from );
+	Delta( &delta, *state, *baseline );
 	MSG_FinishReadingDeltaBuffer( msg, delta );
 }

@@ -101,7 +101,7 @@ void GENERIC_SetUpMatch()
 	for ( i = TEAM_PLAYERS; i < GS_MAX_TEAMS; i++ )
 	{
 		@team = @G_GetTeam( i );
-		team.stats.clear();
+		team.score = 0;
 
 		// respawn all clients inside the playing teams
 		for ( j = 0; @team.ent( j ) != null; j++ )
@@ -149,8 +149,8 @@ void GENERIC_SetUpEndMatch()
 		Team @team1 = @G_GetTeam( TEAM_ALPHA );
 		Team @team2 = @G_GetTeam( TEAM_BETA );
 
-		String sC1 = (team1.stats.score < team2.stats.score ? S_COLOR_RED : S_COLOR_GREEN);
-		String sC2 = (team2.stats.score < team1.stats.score ? S_COLOR_RED : S_COLOR_GREEN);
+		String sC1 = (team1.score < team2.score ? S_COLOR_RED : S_COLOR_GREEN);
+		String sC2 = (team2.score < team1.score ? S_COLOR_RED : S_COLOR_GREEN);
 
 		G_PrintMsg( null, S_COLOR_YELLOW + "Final score: " + S_COLOR_WHITE + team1.name + S_COLOR_WHITE + " vs " +
 			team2.name + S_COLOR_WHITE + " - " + match.getScore() + "\n" );
@@ -236,7 +236,7 @@ void GENERIC_UpdateMatchScore()
 		Team @team1 = @G_GetTeam( TEAM_ALPHA );
 		Team @team2 = @G_GetTeam( TEAM_BETA );
 
-		String score = team1.stats.score + " : " + team2.stats.score;
+		String score = team1.score + " : " + team2.score;
 
 		match.setScore( score );
 		return;

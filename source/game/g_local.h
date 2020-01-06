@@ -534,7 +534,6 @@ bool GClip_EntityContact( const vec3_t mins, const vec3_t maxs, edict_t *ent );
 //
 bool G_IsTeamDamage( entity_state_t *targ, entity_state_t *attacker );
 void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point, int mod );
-int G_ModToAmmo( int mod );
 void G_SplashFrac( const entity_state_t *s, const entity_shared_t *r, const vec3_t point, float maxradius, vec3_t pushdir, float *frac, bool selfdamage );
 void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_t pushdir, const vec3_t dmgdir, const vec3_t point, float damage, float knockback, int dflags, int mod );
 void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edict_t *ignore, int mod );

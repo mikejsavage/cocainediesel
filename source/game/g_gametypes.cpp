@@ -284,7 +284,7 @@ bool G_Match_ScorelimitHit( void ) {
 			int team;
 
 			for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-				if( teamlist[team].stats.score >= g_scorelimit->integer ) {
+				if( teamlist[team].score >= g_scorelimit->integer ) {
 					return true;
 				}
 			}

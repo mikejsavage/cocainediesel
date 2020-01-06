@@ -178,7 +178,7 @@ void G_SetClientStats( edict_t *ent ) {
 	if( GS_TeamBasedGametype( &server_gs ) ) {
 		// team based
 		for( int team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-			client->ps.stats[STAT_TEAM_ALPHA_SCORE + team - TEAM_ALPHA] = teamlist[team].stats.score;
+			client->ps.stats[STAT_TEAM_ALPHA_SCORE + team - TEAM_ALPHA] = teamlist[team].score;
 		}
 	} else {
 		// not team based

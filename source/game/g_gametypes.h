@@ -86,7 +86,7 @@ typedef struct {
 typedef struct {
 	int playerIndices[MAX_CLIENTS];
 	int numplayers;
-	score_stats_t stats;
+	int score;
 	int ping;
 	bool locked;
 

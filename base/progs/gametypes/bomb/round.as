@@ -177,7 +177,7 @@ void newGame() {
 
 		Team @team = @G_GetTeam( t );
 
-		team.stats.clear();
+		team.score = 0;
 
 		for( int i = 0; @team.ent( i ) != null; i++ ) {
 			team.ent( i ).client.stats.clear();
@@ -201,7 +201,7 @@ void roundWonBy( int winner ) {
 
 	Team @teamWinner = @G_GetTeam( winner );
 
-	teamWinner.stats.addScore( 1 );
+	teamWinner.score += 1;
 
 	for( int i = 0; @teamWinner.ent( i ) != null; i++ ) {
 		Entity @ent = @teamWinner.ent( i );
@@ -225,7 +225,7 @@ void endGame() {
 }
 
 bool scoreLimitHit() {
-	return match.scoreLimitHit() && abs( G_GetTeam( TEAM_ALPHA ).stats.score - G_GetTeam( TEAM_BETA ).stats.score ) > 1;
+	return match.scoreLimitHit() && abs( G_GetTeam( TEAM_ALPHA ).score - G_GetTeam( TEAM_BETA ).score ) > 1;
 }
 
 void setRoundType() {
@@ -233,8 +233,8 @@ void setRoundType() {
 
 	uint limit = cvarScoreLimit.integer;
 
-	uint alpha_score = G_GetTeam( TEAM_ALPHA ).stats.score;
-	uint beta_score = G_GetTeam( TEAM_BETA ).stats.score;
+	uint alpha_score = G_GetTeam( TEAM_ALPHA ).score;
+	uint beta_score = G_GetTeam( TEAM_BETA ).score;
 
 	bool match_point = alpha_score == limit - 1 || beta_score == limit - 1;
 	bool overtime = roundCount > ( limit - 1 ) * 2;

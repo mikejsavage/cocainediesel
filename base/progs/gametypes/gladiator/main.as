@@ -265,7 +265,7 @@ class cDARound
 		for ( int i = TEAM_PLAYERS; i < GS_MAX_TEAMS; i++ )
 		{
 			@team = @G_GetTeam( i );
-			team.stats.clear();
+			team.score = 0;
 
 			// respawn all clients inside the playing teams
 			for ( int j = 0; @team.ent( j ) != null; j++ )

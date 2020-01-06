@@ -667,16 +667,6 @@ static bool objectTeamlist_Unlock( g_teamlist_t *obj ) {
 	return ( obj ? G_Teams_UnLockTeam( obj - teamlist ) : false );
 }
 
-static int objectTeamlist_getTeamIndex( g_teamlist_t *obj ) {
-	int index = ( obj - teamlist );
-
-	if( index < 0 || index >= GS_MAX_TEAMS ) {
-		return -1;
-	}
-
-	return index;
-}
-
 static const asFuncdef_t teamlist_Funcdefs[] =
 {
 	ASLIB_FUNCDEF_NULL
@@ -694,14 +684,13 @@ static const asMethod_t teamlist_Methods[] =
 	{ ASLIB_FUNCTION_DECL( bool, isLocked, ( ) const ), asFUNCTION( objectTeamlist_IsLocked ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, lock, ( ) const ), asFUNCTION( objectTeamlist_Lock ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, unlock, ( ) const ), asFUNCTION( objectTeamlist_Unlock ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( int, team, ( ) const ), asFUNCTION( objectTeamlist_getTeamIndex ), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL
 };
 
 static const asProperty_t teamlist_Properties[] =
 {
-	{ ASLIB_PROPERTY_DECL( Stats, stats ), ASLIB_FOFFSET( g_teamlist_t, stats ) },
+	{ ASLIB_PROPERTY_DECL( int, score ), ASLIB_FOFFSET( g_teamlist_t, score ) },
 	{ ASLIB_PROPERTY_DECL( const int, numPlayers ), ASLIB_FOFFSET( g_teamlist_t, numplayers ) },
 	{ ASLIB_PROPERTY_DECL( const int, ping ), ASLIB_FOFFSET( g_teamlist_t, ping ) },
 

@@ -212,7 +212,7 @@ String @teamScoreboardMessage( int t ) {
 			+ " " + state;
 	}
 
-	return team.stats.score + " " + team.numPlayers + players;
+	return team.score + " " + team.numPlayers + players;
 }
 
 String @GT_ScoreboardMessage() {

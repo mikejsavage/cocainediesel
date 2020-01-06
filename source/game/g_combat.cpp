@@ -18,14 +18,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-// g_combat.c
+#include "game/g_local.h"
 
-#include "g_local.h"
-
-/*
-*
-*/
-int G_ModToAmmo( int mod ) {
+static int G_ModToAmmo( int mod ) {
 	if( mod == MOD_GUNBLADE ) {
 		return AMMO_GUNBLADE;
 	} else if( mod == MOD_MACHINEGUN ) {
@@ -125,13 +120,6 @@ static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, cplane_t *plan
 	if( trace.fraction >= 1.0 - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 		return true;
 	}
-/*
-    VectorCopy( targ->s.origin, dest );
-    origin[2] += 9;
-    G_Trace4D( &trace, origin, vec3_origin, vec3_origin, targ->s.origin, inflictor, solidmask, inflictor->timeDelta );
-    if( trace.fraction >= 1.0-SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) )
-        return true;
-*/
 
 	return false;
 }
@@ -158,14 +146,11 @@ void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage,
 	// count stats
 	if( GS_MatchState( &server_gs ) == MATCH_STATE_PLAYTIME ) {
 		targ->r.client->level.stats.deaths++;
-		teamlist[targ->s.team].stats.deaths++;
 
 		if( !attacker || !attacker->r.client || attacker == targ || attacker == world ) {
-		targ->r.client->level.stats.suicides++;
-			teamlist[targ->s.team].stats.suicides++;
+			targ->r.client->level.stats.suicides++;
 		} else {
 			attacker->r.client->level.stats.frags++;
-			teamlist[attacker->s.team].stats.frags++;
 		}
 	}
 
@@ -353,7 +338,6 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 	// adding damage given/received to stats
 	if( statDmg && attacker->r.client && !targ->deadflag && targ->movetype != MOVETYPE_PUSH && targ->s.type != ET_CORPSE ) {
 		attacker->r.client->level.stats.total_damage_given += take;
-		teamlist[attacker->s.team].stats.total_damage_given += take;
 
 		// RG calls G_Damage for every bullet, so we accumulate damage
 		// in G_Fire_SunflowerPattern and show one number there instead
@@ -369,7 +353,6 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 
 	if( statDmg && client ) {
 		client->level.stats.total_damage_received += take;
-		teamlist[targ->s.team].stats.total_damage_received += take;
 	}
 
 	// accumulate received damage for snapshot effects
@@ -407,8 +390,6 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 	if( statDmg && G_ModToAmmo( mod ) != AMMO_NONE && client && attacker->r.client ) {
 		attacker->r.client->level.stats.accuracy_hits[G_ModToAmmo( mod ) - AMMO_GUNBLADE]++;
 		attacker->r.client->level.stats.accuracy_damage[G_ModToAmmo( mod ) - AMMO_GUNBLADE] += damage;
-		teamlist[attacker->s.team].stats.accuracy_hits[G_ModToAmmo( mod ) - AMMO_GUNBLADE]++;
-		teamlist[attacker->s.team].stats.accuracy_damage[G_ModToAmmo( mod ) - AMMO_GUNBLADE] += damage;
 	}
 
 	// accumulate given damage for hit sounds

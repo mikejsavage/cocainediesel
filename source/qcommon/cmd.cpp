@@ -39,11 +39,6 @@ static trie_t *cmd_alias_trie = NULL;
 
 static int alias_count;    // for detecting runaway loops
 
-static int Cmd_Archive( void *alias, const void *ignored ) {
-	assert( alias );
-	return ( (cmd_alias_t *) alias )->archive;
-}
-
 static int Cmd_PatternMatchesAlias( void *alias, const void *pattern ) {
 	assert( alias );
 	return !pattern || Com_GlobMatch( (const char *) pattern, ( (cmd_alias_t *) alias )->name, false );

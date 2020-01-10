@@ -338,7 +338,7 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 				continue;
 			}
 
-			if( team == -1 || teamlist[i].numplayers < best_numplayers || teamlist[i].numplayers == best_numplayers && teamlist[i].score < best_score ) {
+			if( team == -1 || teamlist[i].numplayers < best_numplayers || ( teamlist[i].numplayers == best_numplayers && teamlist[i].score < best_score ) ) {
 				best_numplayers = teamlist[i].numplayers;
 				best_score = teamlist[i].score;
 				team = i;

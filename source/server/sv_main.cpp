@@ -297,8 +297,8 @@ static void SV_CheckTimeouts( void ) {
 			continue;
 		}
 
-		if( ( cl->state != CS_FREE && cl->state != CS_ZOMBIE ) &&
-			( cl->lastPacketReceivedTime + 1000 * sv_timeout->value < svs.realtime ) ) {
+		if( cl->state != CS_FREE && cl->state != CS_ZOMBIE &&
+			cl->lastPacketReceivedTime + 1000 * sv_timeout->value < svs.realtime ) {
 			SV_DropClient( cl, DROP_TYPE_GENERAL, "%s", "Error: Connection timed out" );
 			cl->state = CS_FREE; // don't bother with zombie state
 			if( cl->socket.open ) {

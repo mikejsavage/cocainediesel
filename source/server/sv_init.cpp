@@ -137,7 +137,7 @@ static void SV_SpawnServer( const char *server, bool devmap ) {
 	memset( &sv, 0, sizeof( sv ) );
 
 	SV_ResetClientFrameCounters();
-	svs.realtime = 0;
+	svs.realtime = Sys_Milliseconds();
 	svs.gametime = 0;
 
 	Q_strncpyz( sv.mapname, server, sizeof( sv.mapname ) );

@@ -17,9 +17,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-const int[] weap_ammo	= {  120,  18,   12,   15,   90,  150,  12  };
-const int[] ammo_type	= { AMMO_BULLETS, AMMO_SHELLS, AMMO_GRENADES, AMMO_ROCKETS, AMMO_PLASMA, AMMO_LASERS, AMMO_BOLTS };
-
 const int MAX_CASH = 500;
 
 cPlayer@[] players( maxClients ); // array of handles
@@ -28,7 +25,7 @@ bool playersInitialized = false;
 class cPlayer {
 	Client @client;
 
-	bool[] loadout( WEAP_TOTAL );
+	bool[] loadout( Weapon_Count );
 
 	int64 lastLoadoutChangeTime; // so people can't spam change weapons during warmup
 
@@ -56,12 +53,11 @@ class cPlayer {
 
 	void giveInventory() {
 		this.client.inventoryClear();
-		this.client.inventoryGiveItem( WEAP_GUNBLADE );
+		this.client.giveWeapon( Weapon_Knife, true );
 
-		for( int i = WEAP_MACHINEGUN; i < WEAP_TOTAL; i++ ) {
+		for( WeaponType i = Weapon_MachineGun; i < Weapon_Count; i++ ) {
 			if( this.loadout[ i ] ) {
-				this.client.inventoryGiveItem( i );
-				this.client.inventorySetCount( ammo_type[ i - WEAP_MACHINEGUN ], weap_ammo[ i - WEAP_MACHINEGUN ] );
+				this.client.giveWeapon( i, true );
 			}
 		}
 
@@ -75,7 +71,7 @@ class cPlayer {
 		}
 
 		String command = "changeloadout";
-		for( int i = 0; i < WEAP_TOTAL; i++ ) {
+		for( int i = 0; i < Weapon_Count; i++ ) {
 			if( this.loadout[ i ] ) {
 				command += " " + i;
 			}
@@ -86,7 +82,7 @@ class cPlayer {
 	void setLoadout( String &cmd ) {
 		int cash = MAX_CASH;
 
-		for( int i = 0; i < WEAP_TOTAL; i++ ) {
+		for( int i = 0; i < Weapon_Count; i++ ) {
 			this.loadout[ i ] = false;
 		}
 
@@ -98,9 +94,9 @@ class cPlayer {
 				if( token == "" )
 					break;
 				int weapon = token.toInt();
-				if( weapon > WEAP_GUNBLADE && weapon < WEAP_TOTAL ) {
+				if( weapon >= 0 && weapon < Weapon_Count ) {
 					this.loadout[ weapon ] = true;
-					cash -= G_GetItem( weapon ).cost;
+					cash -= WeaponCost( WeaponType( weapon ) );
 				}
 			}
 		}
@@ -111,7 +107,7 @@ class cPlayer {
 		}
 
 		String command = "saveloadout";
-		for( int i = 0; i < WEAP_TOTAL; i++ ) {
+		for( int i = 0; i < Weapon_Count; i++ ) {
 			if( this.loadout[ i ] ) {
 				command += " " + i;
 			}

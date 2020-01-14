@@ -214,15 +214,7 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 		return;
 	}
 
-	if( GS_RaceGametype( &client_gs ) ) {
-		if( cg.predictedPlayerState.stats[STAT_TIME_SELF] != STAT_NOTSET ) {
-			clocktime = cg.predictedPlayerState.stats[STAT_TIME_SELF] * 100;
-		}
-		else {
-			clocktime = 0;
-		}
-	}
-	else if( GS_MatchClockOverride( &client_gs ) ) {
+	if( GS_MatchClockOverride( &client_gs ) ) {
 		clocktime = GS_MatchClockOverride( &client_gs );
 		if( clocktime < 0 )
 			return;
@@ -253,19 +245,7 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 	int minutes = (int)( seconds / 60 );
 	seconds -= minutes * 60;
 
-	// fixme?: this could have its own HUD drawing, I guess.
-
-	if( GS_RaceGametype( &client_gs ) ) {
-		snprintf( string, sizeof( string ), "%i:%02i.%i",
-					 minutes, ( int )seconds, ( int )( seconds * 10.0 ) % 10 );
-	}
-	else if( cg.predictedPlayerState.stats[STAT_NEXT_RESPAWN] ) {
-		int respawn = cg.predictedPlayerState.stats[STAT_NEXT_RESPAWN];
-		snprintf( string, sizeof( string ), "%i:%02i R:%02i", minutes, (int)seconds, respawn );
-	}
-	else {
-		snprintf( string, sizeof( string ), "%i:%02i", minutes, (int)seconds );
-	}
+	snprintf( string, sizeof( string ), "%i:%02i", minutes, (int)seconds );
 
 	DrawText( font, font_size, string, alignment, x, y, color, border );
 }
@@ -289,10 +269,10 @@ static void CG_UpdatePointedNum( void ) {
 		return;
 	}
 
-	if( cg.predictedPlayerState.stats[STAT_POINTED_PLAYER] ) {
-		cg.pointedNum = cg.predictedPlayerState.stats[STAT_POINTED_PLAYER];
+	if( cg.predictedPlayerState.pointed_player ) {
+		cg.pointedNum = cg.predictedPlayerState.pointed_player;
 		cg.pointRemoveTime = cl.serverTime + 150;
-		cg.pointedHealth = cg.predictedPlayerState.stats[STAT_POINTED_TEAMPLAYER];
+		cg.pointedHealth = cg.predictedPlayerState.pointed_health;
 	}
 
 	if( cg.pointRemoveTime <= cl.serverTime ) {
@@ -300,7 +280,7 @@ static void CG_UpdatePointedNum( void ) {
 	}
 
 	if( cg.pointedNum ) {
-		if( cg_entities[cg.pointedNum].current.team != cg.predictedPlayerState.stats[STAT_TEAM] ) {
+		if( cg_entities[cg.pointedNum].current.team != cg.predictedPlayerState.team ) {
 			CG_ClearPointedNum();
 		}
 	}
@@ -336,7 +316,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			continue;
 		}
 
-		if( ( cg_showPlayerNames->integer == 2 ) && ( cent->current.team != cg.predictedPlayerState.stats[STAT_TEAM] ) ) {
+		if( cg_showPlayerNames->integer == 2 && cent->current.team != cg.predictedPlayerState.team ) {
 			continue;
 		}
 
@@ -455,7 +435,7 @@ void CG_InitDamageNumbers() {
 	}
 }
 
-void CG_AddDamageNumber( entity_state_t * ent ) {
+void CG_AddDamageNumber( SyncEntityState * ent ) {
 	if( !cg_damageNumbers->integer && ent->damage != MINI_OBITUARY_DAMAGE )
 		return;
 
@@ -570,7 +550,7 @@ void CG_DrawBombHUD() {
 	if( GS_MatchState( &client_gs ) != MATCH_STATE_PLAYTIME )
 		return;
 
-	int my_team = cg.predictedPlayerState.stats[ STAT_REALTEAM ];
+	int my_team = cg.predictedPlayerState.real_team;
 	bool show_labels = my_team != TEAM_SPECTATOR;
 
 	// TODO: draw arrows when clamped

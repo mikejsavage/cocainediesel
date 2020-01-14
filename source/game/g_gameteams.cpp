@@ -309,7 +309,8 @@ bool G_Teams_JoinTeam( edict_t *ent, int team ) {
 * G_Teams_JoinAnyTeam - find us a team since we are too lazy to do ourselves
 */
 bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
-	int best_numplayers = server_gs.maxclients + 1, best_score = 999999;
+	int best_numplayers = server_gs.maxclients + 1;
+	u8 best_score;
 	int i, team = -1;
 	bool wasinqueue = ( ent->r.client->queueTimeStamp != 0 );
 
@@ -329,18 +330,17 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 			}
 		}
 		return true;
-
 	} else {   //team based
-
 		//find the available team with smaller player count or worse score
 		for( i = TEAM_ALPHA; i < GS_MAX_TEAMS; i++ ) {
 			if( G_GameTypes_DenyJoinTeam( ent, i ) ) {
 				continue;
 			}
 
-			if( team == -1 || teamlist[i].numplayers < best_numplayers || ( teamlist[i].numplayers == best_numplayers && teamlist[i].score < best_score ) ) {
+			u8 team_score = i == TEAM_ALPHA ? server_gs.gameState.bomb.alpha_score : server_gs.gameState.bomb.beta_score;
+			if( team == -1 || teamlist[i].numplayers < best_numplayers || ( teamlist[i].numplayers == best_numplayers && team_score < best_score ) ) {
 				best_numplayers = teamlist[i].numplayers;
-				best_score = teamlist[i].score;
+				best_score = team_score;
 				team = i;
 			}
 		}

@@ -216,8 +216,6 @@ bool Info_Validate( const char *s );
 #define MAX_MODELS                  1024        // these are sent over the net as shorts
 #define MAX_SOUNDS                  1024        // so they cannot be blindly increased
 #define MAX_IMAGES                  256
-#define MAX_ITEMS                   64          // 16x4
-#define MAX_GENERAL                 128         // general config strings
 
 //============================================
 // sound

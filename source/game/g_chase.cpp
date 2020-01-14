@@ -97,12 +97,17 @@ static void G_EndFrame_UpdateChaseCam( edict_t *ent ) {
 	G_ClearPlayerStateEvents( ent->r.client );
 
 	// copy target playerState to me
-	int64_t layouts = ent->r.client->ps.stats[STAT_LAYOUTS];
+	bool ready = ent->r.client->ps.ready;
+	bool show_scoreboard = ent->r.client->ps.show_scoreboard;
+	bool voted = ent->r.client->ps.voted;
+
 	ent->r.client->ps = targ->r.client->ps;
 
 	// fix some stats we don't want copied from the target
-	ent->r.client->ps.stats[STAT_REALTEAM] = ent->s.team;
-	ent->r.client->ps.stats[STAT_LAYOUTS] = layouts;
+	ent->r.client->ps.ready = ready;
+	ent->r.client->ps.show_scoreboard = show_scoreboard;
+	ent->r.client->ps.voted = voted;
+	ent->r.client->ps.real_team = ent->s.team;
 
 	// chasecam uses PM_CHASECAM
 	ent->r.client->ps.pmove.pm_type = PM_CHASECAM;

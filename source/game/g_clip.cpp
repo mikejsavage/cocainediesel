@@ -57,11 +57,11 @@ typedef struct
 
 static areagrid_t g_areagrid;
 
-#define CFRAME_UPDATE_BACKUP    64  // copies of entity_state_t to keep buffered (1 second of backup at 62 fps).
+#define CFRAME_UPDATE_BACKUP    64  // copies of SyncEntityState to keep buffered (1 second of backup at 62 fps).
 #define CFRAME_UPDATE_MASK  ( CFRAME_UPDATE_BACKUP - 1 )
 
 typedef struct c4clipedict_s {
-	entity_state_t s;
+	SyncEntityState s;
 	entity_shared_t r;
 } c4clipedict_t;
 
@@ -672,7 +672,7 @@ int GClip_AreaEdicts( const vec3_t mins, const vec3_t maxs,
 * Returns a collision model that can be used for testing or clipping an
 * object of mins/maxs size.
 */
-static struct cmodel_s *GClip_CollisionModelForEntity( entity_state_t *s, entity_shared_t *r ) {
+static struct cmodel_s *GClip_CollisionModelForEntity( SyncEntityState *s, entity_shared_t *r ) {
 	struct cmodel_s *model;
 
 	if( ISBRUSHMODEL( s->modelindex ) ) {
@@ -1145,7 +1145,7 @@ void G_SplashFrac4D( const edict_t *ent, vec3_t hitpoint, float maxradius, vec3_
 	G_SplashFrac( &clipEnt->s, &clipEnt->r, hitpoint, maxradius, pushdir, frac, selfdamage );
 }
 
-entity_state_t *G_GetEntityStateForDeltaTime( int entNum, int deltaTime ) {
+SyncEntityState *G_GetEntityStateForDeltaTime( int entNum, int deltaTime ) {
 	c4clipedict_t *clipEnt;
 
 	if( entNum == -1 ) {

@@ -148,11 +148,11 @@ static void SNAP_RecordDemoMetaDataMessage( int demofile, msg_t *msg ) {
 */
 void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned int snapFrameTime,
 							  const char *sv_name, unsigned int sv_bitflags, char *configstrings,
-							  entity_state_t *baselines ) {
+							  SyncEntityState *baselines ) {
 	msg_t msg;
 	uint8_t msg_buffer[MAX_MSGLEN];
-	entity_state_t nullstate;
-	entity_state_t *base;
+	SyncEntityState nullstate;
+	SyncEntityState *base;
 
 	MSG_Init( &msg, msg_buffer, sizeof( msg_buffer ) );
 

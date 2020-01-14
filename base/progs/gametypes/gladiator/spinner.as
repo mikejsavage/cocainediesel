@@ -6,7 +6,7 @@ float currentDelay;
 const float CountdownSwitchScale = float( pow( double( CountdownSeconds ) / double( CountdownInitialSwitchDelay ), 1.0 / CountdownNumSwitches ) );
 
 void DoSpinner() {
-	randWeap = random_uniform( WEAP_GUNBLADE + 1, WEAP_ELECTROBOLT );
+	randWeap = random_uniform( 0, Weapon_Count );
 	spinnerStartTime = levelTime;
 	switchesSoFar = 0;
 	currentDelay = CountdownInitialSwitchDelay;
@@ -14,9 +14,8 @@ void DoSpinner() {
 	Team @team = @G_GetTeam( TEAM_PLAYERS );
 	for( int j = 0; @team.ent( j ) != null; j++ ) {
 		Entity @ent = @team.ent( j );
-		for( int i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
-			ent.client.inventoryGiveItem( i );
-			ent.client.inventorySetCount( AMMO_GUNBLADE + ( i - WEAP_GUNBLADE ), 66 );
+		for( int i = 0; i < Weapon_Count; i++ ) {
+			ent.client.giveWeapon( WeaponType( i ), true );
 		}
 		ent.client.pmoveFeatures = ent.client.pmoveFeatures & ~PMFEAT_WEAPONSWITCH;
 		ent.client.selectWeapon( randWeap );
@@ -34,16 +33,15 @@ void spinner_think( Entity@ self ) {
 		Entity @ent = @team.ent( j );
 		Client @client = @ent.client;
 		int curr = client.pendingWeapon + 1;
-		if( curr > WEAP_ELECTROBOLT )
-			curr = WEAP_GUNBLADE + 1;
+		if( curr == Weapon_Count )
+			curr = Weapon_Knife;
 
 		if( last ) {
-			for( int i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
+			for( int i = 0; i < Weapon_Count; i++ ) {
 				if( i == curr )
 					continue;
-				if( i != WEAP_GUNBLADE )
-					client.inventorySetCount( i, 0 );
-				client.inventorySetCount( AMMO_GUNBLADE + ( i - WEAP_GUNBLADE ), 0 );
+				if( i != Weapon_Knife )
+					client.giveWeapon( WeaponType( i ), false );
 			}
 			client.pmoveFeatures = ent.client.pmoveFeatures | PMFEAT_WEAPONSWITCH;
 		}

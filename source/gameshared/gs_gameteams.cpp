@@ -17,19 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "q_arch.h"
-#include "q_math.h"
-#include "q_shared.h"
-#include "q_comref.h"
-#include "q_collision.h"
-
-#include "gs_public.h"
-
-//==================================================
-//
-//		TEAMS
-//
-//==================================================
+#include "qcommon/base.h"
+#include "gameshared/q_arch.h"
 
 static const char *gs_teamNames[] = {
 	"SPECTATOR",
@@ -45,9 +34,6 @@ const char *GS_TeamName( int team ) {
 	return gs_teamNames[team];
 }
 
-/*
-* GS_Teams_TeamFromName
-*/
 int GS_TeamFromName( const char *teamname ) {
 	if( !teamname || !teamname[0] ) {
 		return -1; // invalid

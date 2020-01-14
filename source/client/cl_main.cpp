@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/version.h"
 #include "qcommon/hash.h"
 #include "qcommon/csprng.h"
+#include "gameshared/gs_public.h"
 
 cvar_t *rcon_client_password;
 cvar_t *rcon_address;
@@ -62,7 +63,7 @@ static char cl_connectChain[MAX_STRING_CHARS];
 client_static_t cls;
 client_state_t cl;
 
-entity_state_t cl_baselines[MAX_EDICTS];
+SyncEntityState cl_baselines[MAX_EDICTS];
 
 static bool cl_initialized = false;
 
@@ -1889,6 +1890,8 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	allRealMsec = 0;
 	allGameMsec = 0;
+
+	VectorCopy( cl.viewangles, cl.prevviewangles );
 
 	cls.framecount++;
 

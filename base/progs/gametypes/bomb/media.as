@@ -45,11 +45,6 @@ enum Announcement {
 	Announcement_Count,
 }
 
-const uint MSG_ALIVE_ALPHA = CS_GENERAL;
-const uint MSG_ALIVE_BETA = CS_GENERAL + 1;
-const uint MSG_TOTAL_ALPHA = CS_GENERAL + 2;
-const uint MSG_TOTAL_BETA = CS_GENERAL + 3;
-
 void announce( Announcement announcement ) {
 	announceOff( announcement );
 	announceDef( announcement );

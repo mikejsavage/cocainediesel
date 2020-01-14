@@ -339,8 +339,8 @@ static void SV_Configstrings_f( client_t *client ) {
 */
 static void SV_Baselines_f( client_t *client ) {
 	int start;
-	entity_state_t nullstate;
-	entity_state_t *base;
+	SyncEntityState nullstate;
+	SyncEntityState *base;
 
 	Com_DPrintf( "Baselines() from %s\n", client->name );
 

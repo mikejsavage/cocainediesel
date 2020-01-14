@@ -20,18 +20,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include "gs_qrespath.h"
-
-// shared callbacks
-
-typedef struct {
-	void ( *Trace )( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask, int timeDelta );
-	entity_state_t *( *GetEntityState )( int entNum, int deltaTime );
-	int ( *PointContents )( const vec3_t point, int timeDelta );
-	void ( *PredictedEvent )( int entNum, int ev, int parm );
-	void ( *PMoveTouchTriggers )( pmove_t *pm, vec3_t previous_origin );
-	const char *( *GetConfigString )( int index );
-} gs_module_api_t;
+#include "gameshared/gs_qrespath.h"
+#include "gameshared/q_comref.h"
+#include "gameshared/q_collision.h"
+#include "gameshared/q_math.h"
 
 //===============================================================
 //		WARSOW player AAboxes sizes
@@ -76,6 +68,46 @@ enum MatchState {
 	MATCH_STATE_TOTAL
 };
 
+typedef u8 WeaponType;
+enum WeaponType_ : WeaponType {
+	Weapon_Knife,
+	Weapon_MachineGun,
+	Weapon_Shotgun,
+	Weapon_GrenadeLauncher,
+	Weapon_RocketLauncher,
+	Weapon_Plasma,
+	Weapon_Laser,
+	Weapon_Railgun,
+
+	Weapon_Count
+};
+
+enum ItemType {
+	Item_Bomb,
+	Item_FakeBomb,
+
+	Item_Count
+};
+
+typedef u8 RoundType;
+enum RoundType_ {
+	RoundType_Normal,
+	RoundType_MatchPoint,
+	RoundType_Overtime,
+	RoundType_OvertimeMatchPoint,
+};
+
+enum BombDown {
+	BombDown_Dropped,
+	BombDown_Planting,
+};
+
+enum BombProgress {
+	BombProgress_Nothing,
+	BombProgress_Planting,
+	BombProgress_Defusing,
+};
+
 enum {
 	GS_MODULE_GAME = 1,
 	GS_MODULE_CGAME,
@@ -89,12 +121,229 @@ enum {
 #define GAMESTAT_FLAG_ISRACE ( 1 << 5LL )
 #define GAMESTAT_FLAG_COUNTDOWN ( 1 << 6LL )
 #define GAMESTAT_FLAG_SELFDAMAGE ( 1 << 7LL )
-#define GAMESTAT_FLAG_INFINITEAMMO ( 1 << 8LL )
+
+struct SyncBombGameState {
+	u8 alpha_score;
+	u8 beta_score;
+	u8 alpha_players_alive;
+	u8 alpha_players_total;
+	u8 beta_players_alive;
+	u8 beta_players_total;
+};
+
+struct SyncGameState {
+	u16 flags;
+	int match_state;
+	int64_t match_start;
+	int64_t match_duration;
+	int64_t clock_override;
+	RoundType round_type;
+	u8 max_team_players;
+
+	SyncBombGameState bomb;
+};
+
+struct SyncEntityState {
+	int number;                         // edict index
+
+	unsigned int svflags;
+
+	int type;                           // ET_GENERIC, ET_BEAM, etc
+
+	// for client side prediction, 8*(bits 0-4) is x/y radius
+	// 8*(bits 5-9) is z down distance, 8(bits10-15) is z up
+	// GClip_LinkEntity sets this properly
+	int solid;
+
+	vec3_t origin;
+	vec3_t angles;
+	vec3_t origin2;                 // ET_BEAM, ET_EVENT specific
+
+	unsigned int modelindex;
+	unsigned int modelindex2;
+
+	int bodyOwner;                  // ET_PLAYER specific, for dead bodies
+	int channel;                    // ET_SOUNDEVENT
+
+	int ownerNum;                   // ET_EVENT specific
+
+	unsigned int effects;
+
+	// impulse events -- muzzle flashes, footsteps, etc
+	// events only go out for a single frame, they
+	// are automatically cleared each frame
+	int events[2];
+	int eventParms[2];
+
+	int counterNum;                 // ET_GENERIC
+	int damage;                     // EV_BLOOD
+	int targetNum;                  // ET_EVENT specific
+	int colorRGBA;                  // ET_BEAM, ET_EVENT specific
+	RGBA8 silhouetteColor;
+	int radius;                     // ET_GLADIATOR always extended, ET_HUD type, ...
+
+	bool linearMovement;
+	vec3_t linearMovementVelocity;      // this is transmitted instead of origin when linearProjectile is true
+	vec3_t linearMovementEnd;           // the end movement point for brush models
+	vec3_t linearMovementBegin;			// the starting movement point for brush models
+	unsigned int linearMovementDuration;
+	int64_t linearMovementTimeStamp;
+
+	float attenuation;                  // should be <= 255/16.0 as this is sent as byte
+
+	// server will use this for sound culling in case
+	// the entity has an event attached to it (along with
+	// PVS culling)
+
+	int weapon;                         // WEAP_ for players
+	bool teleported;
+
+	int sound;                          // for looping sounds, to guarantee shutoff
+
+	int light;							// constant light glow
+
+	int team;                           // team in the game
+};
+
+// SyncPlayerState is the information needed in addition to pmove_state_t
+// to rendered a view.  There will only be 10 SyncPlayerState sent each second,
+// but the number of pmove_state_t changes will be relative to client
+// frame rates
+#define PS_MAX_STATS 64
+#define MAX_PM_STATS 16
+
+enum {
+	PM_STAT_FEATURES,
+	PM_STAT_NOUSERCONTROL,
+	PM_STAT_KNOCKBACK,
+	PM_STAT_CROUCHTIME,
+	PM_STAT_ZOOMTIME,
+	PM_STAT_DASHTIME,
+	PM_STAT_WJTIME,
+	PM_STAT_MAXSPEED,
+	PM_STAT_JUMPSPEED,
+	PM_STAT_DASHSPEED,
+};
+
+typedef struct {
+	int pm_type;
+
+	float origin[3];
+	float velocity[3];
+
+	int pm_flags;               // ducked, jump_held, etc
+	int pm_time;                // each unit = 8 ms
+	short stats[MAX_PM_STATS];  // Kurim : timers for knockback, doublejump, walljump
+	int gravity;
+	short delta_angles[3];      // add to command angles to get view direction
+	                            // changed by spawns, rotating objects, and teleporters
+} pmove_state_t;
+
+struct SyncPlayerState {
+	pmove_state_t pmove;        // for prediction
+
+	// these fields do not need to be communicated bit-precise
+
+	vec3_t viewangles;          // for fixed views
+
+	int event[2], eventParm[2];
+	unsigned int POVnum;        // entity number of the player in POV
+	unsigned int playerNum;     // client number
+	float viewheight;
+	float fov;                  // horizontal field of view (unused)
+
+	// BitArray items;
+	//
+	// struct GrenadeInfo { short count; };
+	// struct RechargableCloakingDeviceInfo { float energy; };
+	//
+	// WeaponInfo weapons[ Weapon_Count ];
+
+	struct WeaponInfo {
+		bool owned;
+		int ammo;
+	};
+
+	WeaponInfo weapons[ Weapon_Count ];
+	bool items[ Item_Count ];
+
+	uint32_t plrkeys;           // infos on the pressed keys of chased player (self if not chasing)
+
+	bool show_scoreboard;
+	bool ready;
+	bool voted;
+	bool can_change_loadout;
+	bool carrying_bomb;
+	bool can_plant;
+
+	s16 health;
+
+	uint8_t weapon_state;
+	WeaponType weapon;
+	WeaponType pending_weapon;
+	s16 weapon_time;
+
+	int team;
+	int real_team;
+
+	u8 progress_type; // enum ProgressType
+	s16 progress;
+
+	int last_killer;
+	int pointed_player;
+	int pointed_health;
+};
+
+// usercmd_t is sent to the server each client frame
+typedef struct usercmd_s {
+	uint8_t msec;
+	uint32_t buttons;
+	int64_t serverTimeStamp;
+	int16_t angles[3];
+	int8_t forwardmove, sidemove, upmove;
+} usercmd_t;
+
+#define MAXTOUCH    32
+
+typedef struct {
+	// state (in / out)
+	SyncPlayerState *playerState;
+
+	// command (in)
+	usercmd_t cmd;
+
+	// results (out)
+	int numtouch;
+	int touchents[MAXTOUCH];
+	float step;                 // used for smoothing the player view
+
+	vec3_t mins, maxs;          // bounding box size
+
+	int groundentity;
+	cplane_t groundplane;       // valid if groundentity >= 0
+	int groundsurfFlags;        // valid if groundentity >= 0
+	int groundcontents;         // valid if groundentity >= 0
+	int watertype;
+	int waterlevel;
+
+	int contentmask;
+
+	bool ladder;
+} pmove_t;
+
+typedef struct {
+	void ( *Trace )( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask, int timeDelta );
+	SyncEntityState *( *GetEntityState )( int entNum, int deltaTime );
+	int ( *PointContents )( const vec3_t point, int timeDelta );
+	void ( *PredictedEvent )( int entNum, int ev, int parm );
+	void ( *PMoveTouchTriggers )( pmove_t *pm, vec3_t previous_origin );
+	const char *( *GetConfigString )( int index );
+} gs_module_api_t;
 
 typedef struct {
 	int module;
 	int maxclients;
-	game_state_t gameState;
+	SyncGameState gameState;
 	gs_module_api_t api;
 } gs_state_t;
 
@@ -105,7 +354,6 @@ typedef struct {
 #define GS_MatchPaused( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_PAUSED ) != 0 )
 #define GS_MatchWaiting( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_WAITING ) != 0 )
 #define GS_Countdown( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_COUNTDOWN ) != 0 )
-#define GS_InfiniteAmmo( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_INFINITEAMMO ) != 0 )
 
 #define GS_MatchState( gs ) ( ( gs )->gameState.match_state )
 #define GS_MaxPlayersInTeam( gs ) ( ( gs )->gameState.max_team_players )
@@ -171,8 +419,8 @@ typedef struct {
 int GS_SlideMove( const gs_state_t * gs, move_t *move );
 void GS_ClipVelocity( vec3_t in, vec3_t normal, vec3_t out, float overbounce );
 
-int GS_LinearMovement( const entity_state_t *ent, int64_t time, vec3_t dest );
-void GS_LinearMovementDelta( const entity_state_t *ent, int64_t oldTime, int64_t curTime, vec3_t dest );
+int GS_LinearMovement( const SyncEntityState *ent, int64_t time, vec3_t dest );
+void GS_LinearMovementDelta( const SyncEntityState *ent, int64_t oldTime, int64_t curTime, vec3_t dest );
 
 //==============================================================
 //
@@ -188,93 +436,6 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove );
 
 //===============================================================
 
-//==================
-//SPLITMODELS
-//==================
-
-// The parts must be listed in draw order
-enum {
-	LOWER = 0,
-	UPPER,
-	HEAD,
-
-	PMODEL_PARTS
-};
-
-// -Torso DEATH frames and Legs DEATH frames must be the same.
-
-// ANIMATIONS
-
-enum {
-	ANIM_NONE,
-	BOTH_DEATH1,      //Death animation
-	BOTH_DEAD1,       //corpse on the ground
-	BOTH_DEATH2,
-	BOTH_DEAD2,
-	BOTH_DEATH3,
-	BOTH_DEAD3,
-
-	LEGS_STAND_IDLE,
-	LEGS_WALK_FORWARD,
-	LEGS_WALK_BACK,
-	LEGS_WALK_LEFT,
-	LEGS_WALK_RIGHT,
-
-	LEGS_RUN_FORWARD,
-	LEGS_RUN_BACK,
-	LEGS_RUN_LEFT,
-	LEGS_RUN_RIGHT,
-
-	LEGS_JUMP_LEG1,
-	LEGS_JUMP_LEG2,
-	LEGS_JUMP_NEUTRAL,
-	LEGS_LAND,
-
-	LEGS_CROUCH_IDLE,
-	LEGS_CROUCH_WALK,
-
-	LEGS_SWIM_FORWARD,
-	LEGS_SWIM_NEUTRAL,
-
-	LEGS_WALLJUMP,
-	LEGS_WALLJUMP_LEFT,
-	LEGS_WALLJUMP_RIGHT,
-	LEGS_WALLJUMP_BACK,
-
-	LEGS_DASH,
-	LEGS_DASH_LEFT,
-	LEGS_DASH_RIGHT,
-	LEGS_DASH_BACK,
-
-	TORSO_HOLD_BLADE,
-	TORSO_HOLD_PISTOL,
-	TORSO_HOLD_LIGHTWEAPON,
-	TORSO_HOLD_HEAVYWEAPON,
-	TORSO_HOLD_AIMWEAPON,
-
-	TORSO_SHOOT_BLADE,
-	TORSO_SHOOT_PISTOL,
-	TORSO_SHOOT_LIGHTWEAPON,
-	TORSO_SHOOT_HEAVYWEAPON,
-	TORSO_SHOOT_AIMWEAPON,
-
-	TORSO_WEAPON_SWITCHOUT,
-	TORSO_WEAPON_SWITCHIN,
-
-	TORSO_DROPHOLD,
-	TORSO_DROP,
-
-	TORSO_SWIM,
-
-	TORSO_PAIN1,
-	TORSO_PAIN2,
-	TORSO_PAIN3,
-
-	PMODEL_TOTAL_ANIMATIONS,
-};
-
-//===============================================================
-
 #define HEALTH_TO_INT( x )    ( ( x ) < 1.0f ? (int)ceilf( ( x ) ) : (int)floorf( ( x ) + 0.5f ) )
 
 // gs_items - shared items definitions
@@ -282,72 +443,25 @@ enum {
 //==================
 //	ITEM TAGS
 //==================
-// max weapons allowed by the net protocol are 128
-typedef enum {
-	WEAP_NONE = 0,
-	WEAP_GUNBLADE,
-	WEAP_MACHINEGUN,
-	WEAP_RIOTGUN,
-	WEAP_GRENADELAUNCHER,
-	WEAP_ROCKETLAUNCHER,
-	WEAP_PLASMAGUN,
-	WEAP_LASERGUN,
-	WEAP_ELECTROBOLT,
 
-	WEAP_TOTAL
-} weapon_tag_t;
+struct Item {
+	ItemType type;
 
-typedef enum {
-	AMMO_NONE = 0,
-	AMMO_GUNBLADE = WEAP_TOTAL,
-	AMMO_BULLETS,
-	AMMO_SHELLS,
-	AMMO_GRENADES,
-	AMMO_ROCKETS,
-	AMMO_PLASMA,
-	AMMO_LASERS,
-	AMMO_BOLTS,
-
-	AMMO_TOTAL,
-	ITEMS_TOTAL = AMMO_TOTAL,
-} ammo_tag_t;
-
-#define GS_MAX_ITEM_TAGS ITEMS_TOTAL
-
-// gsitem_t->type
-// define as bitflags values so they can be masked
-typedef enum {
-	IT_WEAPON = 1,
-	IT_AMMO = 2,
-} itemtype_t;
-
-typedef struct gitem_s {
-	int tag;
-	itemtype_t type;
-
-	const char * name;      // for printing on pickup
-	const char * shortname; // for printing on messages
+	const char * name;
+	const char * short_name;
 	RGB8 color;
 	const char * description;
 	int cost;
-	int capacity;
-	int clips;
+};
 
-	int ammo_tag;          // uses this ammo, for weapons
+const Item *GS_FindItemByName( const char *name );
+const Item *GS_Cmd_UseItem( const gs_state_t * gs, SyncPlayerState *playerState, const char *string, int typeMask );
+const Item *GS_Cmd_NextWeapon_f( const gs_state_t * gs, SyncPlayerState *playerState, int predictedWeaponSwitch );
+const Item *GS_Cmd_PrevWeapon_f( const gs_state_t * gs, SyncPlayerState *playerState, int predictedWeaponSwitch );
 
-	// space separated string of stuff to precache that's not mentioned above
-	const char * precache_models;
-	const char * precache_sounds;
-	const char * precache_images;
-} gsitem_t;
-
-const gsitem_t *GS_FindItemByTag( const int tag );
-const gsitem_t *GS_FindItemByName( const char *name );
-const gsitem_t *GS_Cmd_UseItem( const gs_state_t * gs, player_state_t *playerState, const char *string, int typeMask );
-const gsitem_t *GS_Cmd_NextWeapon_f( const gs_state_t * gs, player_state_t *playerState, int predictedWeaponSwitch );
-const gsitem_t *GS_Cmd_PrevWeapon_f( const gs_state_t * gs, player_state_t *playerState, int predictedWeaponSwitch );
-
-//===============================================================
+const Item * GS_FindItemByType( ItemType type );
+const Item * GS_FindItemByName( const char * name );
+bool GS_CanEquip( const SyncPlayerState * player, WeaponType weapon );
 
 //===================
 //	GAMETYPES
@@ -385,8 +499,8 @@ int GS_TeamFromName( const char *teamname );
 
 // gs_misc.c
 void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *message2 );
-void GS_TouchPushTrigger( const gs_state_t * gs, player_state_t *playerState, entity_state_t *pusher );
-int GS_WaterLevel( const gs_state_t * gs, entity_state_t *state, vec3_t mins, vec3_t maxs );
+void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState *playerState, SyncEntityState *pusher );
+int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, vec3_t mins, vec3_t maxs );
 
 //===============================================================
 
@@ -404,54 +518,6 @@ int GS_WaterLevel( const gs_state_t * gs, entity_state_t *state, vec3_t mins, ve
 #define PMFEAT_ALL              ( 0xFFFF )
 #define PMFEAT_DEFAULT          ( PMFEAT_ALL & ~PMFEAT_GHOSTMOVE & ~PMFEAT_TEAMGHOST )
 
-enum {
-	STAT_LAYOUTS = 0,
-	STAT_HEALTH,
-	STAT_WEAPON,
-	STAT_WEAPON_TIME,
-	STAT_PENDING_WEAPON,
-
-	STAT_SCORE,
-	STAT_TEAM,
-	STAT_REALTEAM,
-	STAT_NEXT_RESPAWN,
-
-	STAT_POINTED_PLAYER,
-	STAT_POINTED_TEAMPLAYER,
-
-	STAT_TEAM_ALPHA_SCORE,
-	STAT_TEAM_BETA_SCORE,
-
-	STAT_LAST_KILLER,
-
-	// the stats below this point are set by the gametype scripts
-	GS_GAMETYPE_STATS_START = 32,
-
-	STAT_PROGRESS = GS_GAMETYPE_STATS_START,
-	STAT_PROGRESS_TYPE,
-
-	STAT_ROUND_TYPE,
-
-	STAT_CARRYING_BOMB,
-	STAT_CAN_PLANT_BOMB,
-	STAT_CAN_CHANGE_LOADOUT,
-
-	STAT_ALPHA_PLAYERS_ALIVE,
-	STAT_ALPHA_PLAYERS_TOTAL,
-	STAT_BETA_PLAYERS_ALIVE,
-	STAT_BETA_PLAYERS_TOTAL,
-
-	STAT_TIME_SELF,
-	STAT_TIME_BEST,
-	STAT_TIME_RECORD,
-	STAT_TIME_ALPHA,
-	STAT_TIME_BETA,
-
-	GS_GAMETYPE_STATS_END = PS_MAX_STATS,
-
-	MAX_STATS = PS_MAX_STATS, // 64
-};
-
 #define ISGAMETYPESTAT( x ) ( ( x >= GS_GAMETYPE_STATS_START ) && ( x < GS_GAMETYPE_STATS_END ) )
 
 static constexpr const char *gs_keyicon_names[] = {
@@ -464,16 +530,6 @@ static constexpr const char *gs_keyicon_names[] = {
 	"crouch",
 	"special"
 };
-
-// STAT_LAYOUTS flag bits meanings
-#define STAT_LAYOUT_INSTANTRESPAWN  ( 1 << 1 )
-#define STAT_LAYOUT_SCOREBOARD      ( 1 << 2 )
-#define STAT_LAYOUT_TEAMTAB         ( 1 << 3 )
-#define STAT_LAYOUT_CHALLENGER      ( 1 << 4 ) // player is in challengers queue (used for ingame menu)
-#define STAT_LAYOUT_READY           ( 1 << 5 ) // player is ready (used for ingame menu)
-#define STAT_LAYOUT_VOTED           ( 1 << 6 )
-
-#define STAT_NOTSET                 -9999 // used for stats that don't have meaningful value atm.
 
 //===============================================================
 
@@ -552,7 +608,7 @@ enum {
 	VSAY_TOTAL = 128
 };
 
-// entity_state_t->event values
+// SyncEntityState->event values
 #define PREDICTABLE_EVENTS_MAX 32
 typedef enum {
 	EV_NONE,
@@ -640,27 +696,11 @@ typedef enum {
 	PSEV_MAX_EVENTS = 0xFF
 } playerstate_event_t;
 
-enum RoundType {
-	RoundType_Normal,
-	RoundType_MatchPoint,
-	RoundType_Overtime,
-	RoundType_OvertimeMatchPoint,
-};
-
-enum BombDown {
-	BombDown_Dropped,
-	BombDown_Planting,
-};
-
-enum BombProgress {
-	BombProgress_Nothing,
-	BombProgress_Planting,
-	BombProgress_Defusing,
-};
-
 //===============================================================
 
-// entity_state_t->type values
+#define EVENT_ENTITIES_START    96 // entity types above this index will get event treatment
+
+// SyncEntityState->type values
 enum {
 	ET_GENERIC,
 	ET_PLAYER,
@@ -689,7 +729,7 @@ enum {
 	MAX_ENTITY_TYPES = 128
 };
 
-// entity_state_t->effects
+// SyncEntityState->effects
 // Effects are things handled on the client side (lights, particles, frame animations)
 // that happen constantly on the given entity.
 // An entity that has effects will be sent to the client
@@ -710,27 +750,33 @@ enum {
 	WEAPON_STATE_READY,
 	WEAPON_STATE_ACTIVATING,
 	WEAPON_STATE_DROPPING,
-	WEAPON_STATE_POWERING,
-	WEAPON_STATE_COOLDOWN,
-	WEAPON_STATE_FIRING,
-	WEAPON_STATE_NOAMMOCLICK,
-	WEAPON_STATE_REFIRE,        // projectile loading
+	WEAPON_STATE_REFIRE,
+	WEAPON_STATE_RELOADING,
 };
 
-typedef struct firedef_s {
-	//ammo def
-	int ammo_id;
-	int usage_count;
-	int projectile_count;
+struct WeaponDef {
+	const char * name;
+	const char * short_name;
 
-	// timings
+	RGB8 color;
+	const char * description;
+	int cost;
+
+	const char * precache_models;
+	const char * precache_sounds;
+	const char * precache_images;
+
+	int projectile_count;
+	int clip_size;
+	unsigned int reload_time;
+
 	unsigned int weaponup_time;
 	unsigned int weapondown_time;
-	unsigned int reload_time;
-	unsigned int timeout;
+	unsigned int refire_time;
+	unsigned int range;
+	float recoil;
 	bool smooth_refire;
 
-	// damages
 	float damage;
 	float selfdamage;
 	int knockback;
@@ -738,28 +784,12 @@ typedef struct firedef_s {
 	int mindamage;
 	int minknockback;
 
-	// projectile def
 	int speed;
-	int spread;     // horizontal spread
-	int v_spread;   // vertical spread
-} firedef_t;
+	int spread;
+};
 
-typedef struct {
-	const char *name;
-	int weapon_id;
-
-	firedef_t firedef;
-} gs_weapon_definition_t;
-
-gs_weapon_definition_t *GS_GetWeaponDef( int weapon );
-int GS_SelectBestWeapon( player_state_t *playerState );
-bool GS_CheckAmmoInWeapon( player_state_t *playerState, int checkweapon );
-firedef_t *GS_FiredefForPlayerState( player_state_t *playerState, int checkweapon );
-int GS_ThinkPlayerWeapon( const gs_state_t * gs, player_state_t *playerState, int buttons, int msecs, int timeDelta );
+const WeaponDef * GS_GetWeaponDef( WeaponType weapon );
+WeaponType GS_SelectBestWeapon( const SyncPlayerState * player );
+int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState *playerState, int buttons, int msecs, int timeDelta );
 trace_t *GS_TraceBullet( const gs_state_t * gs, trace_t *trace, vec3_t start, vec3_t dir, vec3_t right, vec3_t up, float r, float u, int range, int ignore, int timeDelta );
 void GS_TraceLaserBeam( const gs_state_t * gs, trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( trace_t *tr, vec3_t dir ) );
-
-//===============================================================
-// gs_weapondefs.c
-
-extern firedef_t ammoFireDefs[];

@@ -148,14 +148,14 @@ void CG_RegisterMediaShaders() {
 
 	cgs.media.shaderRaceGhostEffect = FindMaterial( "gfx/raceghost" );
 
-	cgs.media.shaderWeaponIcon[WEAP_GUNBLADE - 1] = FindMaterial( PATH_GUNBLADE_ICON );
-	cgs.media.shaderWeaponIcon[WEAP_MACHINEGUN - 1] = FindMaterial( PATH_MACHINEGUN_ICON );
-	cgs.media.shaderWeaponIcon[WEAP_RIOTGUN - 1] = FindMaterial( PATH_RIOTGUN_ICON );
-	cgs.media.shaderWeaponIcon[WEAP_GRENADELAUNCHER - 1] = FindMaterial( PATH_GRENADELAUNCHER_ICON );
-	cgs.media.shaderWeaponIcon[WEAP_ROCKETLAUNCHER - 1] = FindMaterial( PATH_ROCKETLAUNCHER_ICON );
-	cgs.media.shaderWeaponIcon[WEAP_PLASMAGUN - 1] = FindMaterial( PATH_PLASMAGUN_ICON );
-	cgs.media.shaderWeaponIcon[WEAP_LASERGUN - 1] = FindMaterial( PATH_LASERGUN_ICON );
-	cgs.media.shaderWeaponIcon[WEAP_ELECTROBOLT - 1] = FindMaterial( PATH_ELECTROBOLT_ICON );
+	cgs.media.shaderWeaponIcon[ Weapon_Knife ] = FindMaterial( PATH_GUNBLADE_ICON );
+	cgs.media.shaderWeaponIcon[ Weapon_MachineGun ] = FindMaterial( PATH_MACHINEGUN_ICON );
+	cgs.media.shaderWeaponIcon[ Weapon_Shotgun ] = FindMaterial( PATH_RIOTGUN_ICON );
+	cgs.media.shaderWeaponIcon[ Weapon_GrenadeLauncher ] = FindMaterial( PATH_GRENADELAUNCHER_ICON );
+	cgs.media.shaderWeaponIcon[ Weapon_RocketLauncher ] = FindMaterial( PATH_ROCKETLAUNCHER_ICON );
+	cgs.media.shaderWeaponIcon[ Weapon_Plasma ] = FindMaterial( PATH_PLASMAGUN_ICON );
+	cgs.media.shaderWeaponIcon[ Weapon_Laser ] = FindMaterial( PATH_LASERGUN_ICON );
+	cgs.media.shaderWeaponIcon[ Weapon_Railgun ] = FindMaterial( PATH_ELECTROBOLT_ICON );
 
 	cgs.media.shaderKeyIcon[KEYICON_FORWARD] = FindMaterial( PATH_KEYICON_FORWARD );
 	cgs.media.shaderKeyIcon[KEYICON_BACKWARD] = FindMaterial( PATH_KEYICON_BACKWARD );

@@ -19,13 +19,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "cg_local.h"
+#include "cgame/cg_local.h"
 
 static bool CG_IsAlly( int team ) {
 	if( team == TEAM_ALLY || team == TEAM_ENEMY )
 		return team == TEAM_ALLY;
 
-	int myteam = cg.predictedPlayerState.stats[STAT_TEAM];
+	int myteam = cg.predictedPlayerState.team;
 	if( myteam == TEAM_SPECTATOR )
 		return team == TEAM_ALPHA;
 	if( myteam == TEAM_PLAYERS )

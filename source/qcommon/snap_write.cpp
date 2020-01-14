@@ -38,10 +38,10 @@ Encode a client frame onto the network channel
 /*
 * SNAP_EmitPacketEntities
 *
-* Writes a delta update of an entity_state_t list to the message.
+* Writes a delta update of an SyncEntityState list to the message.
 */
-static void SNAP_EmitPacketEntities( ginfo_t *gi, client_snapshot_t *from, client_snapshot_t *to, msg_t *msg, entity_state_t *baselines, entity_state_t *client_entities, int num_client_entities ) {
-	entity_state_t *oldent, *newent;
+static void SNAP_EmitPacketEntities( ginfo_t *gi, client_snapshot_t *from, client_snapshot_t *to, msg_t *msg, SyncEntityState *baselines, SyncEntityState *client_entities, int num_client_entities ) {
+	SyncEntityState *oldent, *newent;
 	int oldindex, newindex;
 	int oldnum, newnum;
 	int from_num_entities;
@@ -114,7 +114,7 @@ static void SNAP_WriteDeltaGameStateToClient( client_snapshot_t *from, client_sn
 /*
 * SNAP_WritePlayerstateToClient
 */
-static void SNAP_WritePlayerstateToClient( msg_t *msg, const player_state_t *ops, player_state_t *ps ) {
+static void SNAP_WritePlayerstateToClient( msg_t *msg, const SyncPlayerState *ops, SyncPlayerState *ps ) {
 	MSG_WriteUint8( msg, svc_playerinfo );
 	MSG_WriteDeltaPlayerState( msg, ops, ps );
 }
@@ -229,8 +229,7 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *ms
 * SNAP_WriteFrameSnapToClient
 */
 void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int64_t frameNum, int64_t gameTime,
-								  entity_state_t *baselines, client_entities_t *client_entities,
-								  int numcmds, gcommand_t *commands, const char *commandsData ) {
+								  SyncEntityState *baselines, client_entities_t *client_entities ) {
 	client_snapshot_t *frame, *oldframe;
 	int flags, i, index, pos, length;
 
@@ -645,13 +644,13 @@ static void SNAP_BuildSnapEntitiesList( cmodel_state_t *cms, ginfo_t *gi, edict_
 */
 void SNAP_BuildClientFrameSnap( cmodel_state_t *cms, ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
 								client_t *client,
-								game_state_t *gameState, client_entities_t *client_entities,
+								SyncGameState *gameState, client_entities_t *client_entities,
 								mempool_t *mempool ) {
 	int e, i, ne;
 	vec3_t org;
 	edict_t *ent, *clent;
 	client_snapshot_t *frame;
-	entity_state_t *state;
+	SyncEntityState *state;
 	int numplayers, numareas;
 	snapshotEntityNumbers_t entsList;
 
@@ -696,7 +695,7 @@ void SNAP_BuildClientFrameSnap( cmodel_state_t *cms, ginfo_t *gi, int64_t frameN
 		frame->areabits = (uint8_t*)Mem_Alloc( mempool, numareas );
 	}
 
-	// grab the current player_state_t
+	// grab the current SyncPlayerState
 	if( frame->multipov ) {
 		frame->numplayers = 0;
 		for( i = 0; i < gi->max_clients; i++ ) {
@@ -715,7 +714,7 @@ void SNAP_BuildClientFrameSnap( cmodel_state_t *cms, ginfo_t *gi, int64_t frameN
 			frame->ps = NULL;
 		}
 
-		frame->ps = ( player_state_t* )Mem_Alloc( mempool, sizeof( player_state_t ) * frame->numplayers );
+		frame->ps = ( SyncPlayerState* )Mem_Alloc( mempool, sizeof( SyncPlayerState ) * frame->numplayers );
 		frame->ps_size = frame->numplayers;
 	}
 

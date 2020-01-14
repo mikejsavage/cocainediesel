@@ -67,6 +67,7 @@ typedef struct {
 	// the server sends a delta each frame which is added to the locally
 	// tracked view angles to account for standing on rotating objects,
 	// and teleport direction changes
+	vec3_t prevviewangles;
 	vec3_t viewangles;
 
 	int serverTimeDeltas[MAX_TIMEDELTAS_BACKUP];
@@ -271,7 +272,7 @@ extern cvar_t *cl_downloads_from_web_timeout;
 extern cvar_t *cl_devtools;
 
 // delta from this if not from a previous frame
-extern entity_state_t cl_baselines[MAX_EDICTS];
+extern SyncEntityState cl_baselines[MAX_EDICTS];
 
 //=============================================================================
 
@@ -328,7 +329,7 @@ void CL_GameModule_InputFrame( int frameTime );
 unsigned CL_GameModule_GetButtonBits( void );
 void CL_GameModule_AddViewAngles( vec3_t viewAngles );
 void CL_GameModule_AddMovement( vec3_t movement );
-void CL_GameModule_MouseMove( int dx, int dy );
+void CL_GameModule_MouseMove( int frameTime, int dx, int dy );
 
 //
 // cl_serverlist.c

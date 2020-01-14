@@ -385,12 +385,13 @@ void G_GhostClient( edict_t *ent ) {
 	ent->viewheight = 0;
 	ent->takedamage = DAMAGE_NO;
 
-	// clear inventory
-	memset( ent->r.client->ps.inventory, 0, sizeof( ent->r.client->ps.inventory ) );
+	memset( ent->r.client->ps.weapons, 0, sizeof( ent->r.client->ps.weapons ) );
+	memset( ent->r.client->ps.items, 0, sizeof( ent->r.client->ps.items ) );
 
-	ent->r.client->ps.stats[STAT_WEAPON] = ent->r.client->ps.stats[STAT_PENDING_WEAPON] = WEAP_NONE;
-	ent->r.client->ps.weaponState = WEAPON_STATE_READY;
-	ent->r.client->ps.stats[STAT_WEAPON_TIME] = 0;
+	ent->r.client->ps.weapon = Weapon_Count;
+	ent->r.client->ps.pending_weapon = Weapon_Count;
+	ent->r.client->ps.weapon_state = WEAPON_STATE_READY;
+	ent->r.client->ps.weapon_time = 0;
 
 	GClip_LinkEntity( ent );
 }
@@ -524,13 +525,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	client->ps.pmove.pm_flags = PMF_TIME_TELEPORT;
 	client->ps.pmove.pm_time = 14;
 	client->ps.pmove.stats[PM_STAT_NOUSERCONTROL] = CLIENT_RESPAWN_FREEZE_DELAY;
-
-	// set race stats to invisible
-	client->ps.stats[STAT_TIME_SELF] = STAT_NOTSET;
-	client->ps.stats[STAT_TIME_BEST] = STAT_NOTSET;
-	client->ps.stats[STAT_TIME_RECORD] = STAT_NOTSET;
-	client->ps.stats[STAT_TIME_ALPHA] = STAT_NOTSET;
-	client->ps.stats[STAT_TIME_BETA] = STAT_NOTSET;
 
 	G_UseTargets( spawnpoint, self );
 

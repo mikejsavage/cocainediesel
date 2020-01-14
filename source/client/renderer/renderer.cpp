@@ -412,12 +412,19 @@ void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh )
 
 void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color ) {
 	Vec2 half_pixel = 0.5f / Vec2( material->texture->width, material->texture->height );
+	Draw2DBoxUV( x, y, w, h, half_pixel, 1.0f - half_pixel, material, color );
+}
+
+void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, const Material * material, Vec4 color ) {
+	if( w <= 0.0f || h <= 0.0f )
+		return;
+
 	RGBA8 rgba = RGBA8( color );
 
 	ImDrawList * bg = ImGui::GetBackgroundDrawList();
 	bg->PushTextureID( ImGuiShaderAndMaterial( material ) );
 	bg->PrimReserve( 6, 4 );
-	bg->PrimRectUV( Vec2( x, y ), Vec2( x + w, y + h ), half_pixel, 1.0f - half_pixel, IM_COL32( rgba.r, rgba.g, rgba.b, rgba.a ) );
+	bg->PrimRectUV( Vec2( x, y ), Vec2( x + w, y + h ), topleft_uv, bottomright_uv, IM_COL32( rgba.r, rgba.g, rgba.b, rgba.a ) );
 	bg->PopTextureID();
 }
 

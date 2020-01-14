@@ -178,7 +178,7 @@ void W_Fire_Blade( edict_t *self, int range, vec3_t start, vec3_t angles,  float
 /*
 * W_Fire_MG
 */
-void W_Fire_MG( edict_t *self, vec3_t start, vec3_t angles, int range, int hspread, int vspread,
+void W_Fire_MG( edict_t *self, vec3_t start, vec3_t angles, int range, int spread,
 					float damage, int knockback, int timeDelta ) {
 	vec3_t dir;
 	AngleVectors( angles, dir, NULL, NULL );
@@ -187,7 +187,7 @@ void W_Fire_MG( edict_t *self, vec3_t start, vec3_t angles, int range, int hspre
 	edict_t *event = G_SpawnEvent( EV_FIRE_MG, 0, start );
 	event->s.ownerNum = ENTNUM( self );
 	VectorScale( dir, 4096, event->s.origin2 ); // DirToByte is too inaccurate
-	event->s.weapon = WEAP_MACHINEGUN;
+	event->s.weapon = Weapon_MachineGun;
 
 	vec3_t right, up;
 	ViewVectors( dir, right, up );
@@ -202,15 +202,15 @@ void W_Fire_MG( edict_t *self, vec3_t start, vec3_t angles, int range, int hspre
 
 // Sunflower spiral with Fibonacci numbers
 static void G_Fire_SunflowerPattern( edict_t *self, vec3_t start, vec3_t dir, int count,
-									 int hspread, int vspread, int range, float damage, int kick, int dflags, int timeDelta ) {
+									 int spread, int range, float damage, int kick, int dflags, int timeDelta ) {
 	vec3_t right, up;
 	ViewVectors( dir, right, up );
 
 	int hits[MAX_CLIENTS + 1] = { };
 	for( int i = 0; i < count; i++ ) {
 		float fi = i * 2.4f; //magic value creating Fibonacci numbers
-		float r = cosf( fi ) * hspread * sqrtf( fi );
-		float u = sinf( fi ) * vspread * sqrtf( fi );
+		float r = cosf( fi ) * spread * sqrtf( fi );
+		float u = sinf( fi ) * spread * sqrtf( fi );
 
 		trace_t trace;
 		GS_TraceBullet( &server_gs, &trace, start, dir, right, up, r, u, range, ENTNUM( self ), timeDelta );
@@ -233,7 +233,7 @@ static void G_Fire_SunflowerPattern( edict_t *self, vec3_t start, vec3_t dir, in
 	}
 }
 
-void W_Fire_Riotgun( edict_t *self, vec3_t start, vec3_t angles, int range, int hspread, int vspread,
+void W_Fire_Riotgun( edict_t *self, vec3_t start, vec3_t angles, int range, int spread,
 					 int count, float damage, int knockback, int timeDelta ) {
 	vec3_t dir;
 	edict_t *event;
@@ -245,9 +245,9 @@ void W_Fire_Riotgun( edict_t *self, vec3_t start, vec3_t angles, int range, int 
 	event = G_SpawnEvent( EV_FIRE_RIOTGUN, 0, start );
 	event->s.ownerNum = ENTNUM( self );
 	VectorScale( dir, 4096, event->s.origin2 ); // DirToByte is too inaccurate
-	event->s.weapon = WEAP_RIOTGUN;
+	event->s.weapon = Weapon_Shotgun;
 
-	G_Fire_SunflowerPattern( self, start, dir, count, hspread, vspread,
+	G_Fire_SunflowerPattern( self, start, dir, count, spread,
 		range, damage, knockback, dmgflags, timeDelta );
 }
 
@@ -314,13 +314,11 @@ static void W_Touch_Grenade( edict_t *ent, edict_t *other, cplane_t *plane, int 
 edict_t *W_Fire_Grenade( edict_t *self, vec3_t start, vec3_t angles, int speed, float damage,
 						 int minKnockback, int maxKnockback, int minDamage, float radius,
 						 int timeout, int timeDelta, bool aim_up ) {
-	edict_t *grenade;
-
 	if( aim_up ) {
 		angles[PITCH] -= 5.0f * cosf( DEG2RAD( angles[PITCH] ) ); // aim some degrees upwards from view dir
-
 	}
-	grenade = W_Fire_TossProjectile( self, start, angles, speed, damage, minKnockback, maxKnockback, minDamage, radius, timeout, timeDelta );
+
+	edict_t * grenade = W_Fire_TossProjectile( self, start, angles, speed, damage, minKnockback, maxKnockback, minDamage, radius, timeout, timeDelta );
 	VectorClear( grenade->s.angles );
 	grenade->s.type = ET_GRENADE;
 	grenade->movetype = MOVETYPE_BOUNCEGRENADE;
@@ -490,9 +488,7 @@ static void W_AutoTouch_Plasma( edict_t *ent, edict_t *other, cplane_t *plane, i
 * W_Fire_Plasma
 */
 edict_t *W_Fire_Plasma( edict_t *self, vec3_t start, vec3_t angles, float damage, int minKnockback, int maxKnockback, int minDamage, int radius, int speed, int timeout, int timeDelta ) {
-	edict_t *plasma;
-
-	plasma = W_Fire_LinearProjectile( self, start, angles, speed, damage, minKnockback, maxKnockback, minDamage, radius, timeout, timeDelta );
+	edict_t * plasma = W_Fire_LinearProjectile( self, start, angles, speed, damage, minKnockback, maxKnockback, minDamage, radius, timeout, timeDelta );
 	plasma->s.type = ET_PLASMA;
 	plasma->classname = "plasma";
 
@@ -504,38 +500,23 @@ edict_t *W_Fire_Plasma( edict_t *self, vec3_t start, vec3_t angles, float damage
 	plasma->s.modelindex = trap_ModelIndex( PATH_PLASMA_MODEL );
 	plasma->s.sound = trap_SoundIndex( S_WEAPON_PLASMAGUN_FLY );
 	plasma->s.attenuation = ATTN_STATIC;
+
 	return plasma;
 }
 
-void W_Fire_Electrobolt_FullInstant( edict_t *self, vec3_t start, vec3_t angles, float maxdamage, float mindamage, int maxknockback, int minknockback, int range, int minDamageRange, int timeDelta ) {
+void W_Fire_Electrobolt( edict_t *self, vec3_t start, vec3_t angles, float damage, int knockback, int range, int timeDelta ) {
 	vec3_t from, end, dir;
-	trace_t tr;
-	edict_t *ignore, *event, *hit;
-	int hit_movetype;
-	int mask;
-	int dmgflags = 0;
-
-#define FULL_DAMAGE_RANGE g_projectile_prestep->value
 
 	AngleVectors( angles, dir, NULL, NULL );
 	VectorMA( start, range, dir, end );
 	VectorCopy( start, from );
 
-	ignore = self;
-	hit = NULL;
+	edict_t * ignore = self;
 
-	mask = MASK_SHOT;
-	if( GS_RaceGametype( &server_gs ) ) {
-		mask = MASK_SOLID;
-	}
-
-	mindamage = Min2( mindamage, maxdamage );
-	minknockback = Min2( minknockback, maxknockback );
-	minDamageRange = bound( FULL_DAMAGE_RANGE + 1, minDamageRange, range );
-
+	trace_t tr;
 	tr.ent = -1;
 	while( ignore ) {
-		G_Trace4D( &tr, from, NULL, NULL, end, ignore, mask, timeDelta );
+		G_Trace4D( &tr, from, NULL, NULL, end, ignore, MASK_SHOT, timeDelta );
 
 		VectorCopy( tr.endpos, from );
 		ignore = NULL;
@@ -545,8 +526,8 @@ void W_Fire_Electrobolt_FullInstant( edict_t *self, vec3_t start, vec3_t angles,
 		}
 
 		// some entity was touched
-		hit = &game.edicts[tr.ent];
-		hit_movetype = hit->movetype; // backup the original movetype as the entity may "die"
+		edict_t * hit = &game.edicts[tr.ent];
+		int hit_movetype = hit->movetype; // backup the original movetype as the entity may "die"
 		if( hit == world ) { // stop dead if hit the world
 			break;
 		}
@@ -556,23 +537,11 @@ void W_Fire_Electrobolt_FullInstant( edict_t *self, vec3_t start, vec3_t angles,
 			ignore = hit;
 		}
 
-		if( ( hit != self ) && ( hit->takedamage ) ) {
-			float frac, damage, knockback, dist;
-
-			dist = Distance( tr.endpos, start );
-			if( dist <= FULL_DAMAGE_RANGE ) {
-				frac = 0.0f;
-			} else {
-				frac = Clamp01( ( dist - FULL_DAMAGE_RANGE ) / float( minDamageRange - FULL_DAMAGE_RANGE ) );
-			}
-
-			damage = maxdamage - ( ( maxdamage - mindamage ) * frac );
-			knockback = maxknockback - ( ( maxknockback - minknockback ) * frac );
-
-			G_Damage( hit, self, self, dir, dir, tr.endpos, damage, knockback, dmgflags, MOD_ELECTROBOLT );
+		if( hit != self && hit->takedamage ) {
+			G_Damage( hit, self, self, dir, dir, tr.endpos, damage, knockback, 0, MOD_ELECTROBOLT );
 
 			// spawn a impact event on each damaged ent
-			event = G_SpawnEvent( EV_BOLT_EXPLOSION, DirToByte( tr.plane.normal ), tr.endpos );
+			edict_t * event = G_SpawnEvent( EV_BOLT_EXPLOSION, DirToByte( tr.plane.normal ), tr.endpos );
 			event->s.team = self->s.team;
 
 			// if we hit a teammate stop the trace
@@ -587,10 +556,8 @@ void W_Fire_Electrobolt_FullInstant( edict_t *self, vec3_t start, vec3_t angles,
 	}
 
 	// send the weapon fire effect
-	event = G_SpawnEvent( EV_ELECTROTRAIL, ENTNUM( self ), start );
-	VectorScale( dir, 1024, event->s.origin2 );
-
-#undef FULL_DAMAGE_RANGE
+	edict_t * fire_event = G_SpawnEvent( EV_ELECTROTRAIL, ENTNUM( self ), start );
+	VectorCopy( dir, fire_event->s.origin2 );
 }
 
 /*
@@ -619,9 +586,9 @@ static void G_Laser_Think( edict_t *ent ) {
 
 	owner = &game.edicts[ent->s.ownerNum];
 
-	if( G_ISGHOSTING( owner ) || owner->s.weapon != WEAP_LASERGUN ||
+	if( G_ISGHOSTING( owner ) || owner->s.weapon != Weapon_Laser ||
 		trap_GetClientState( PLAYERNUM( owner ) ) < CS_SPAWNED ||
-		owner->r.client->ps.weaponState != WEAPON_STATE_REFIRE ) {
+		owner->r.client->ps.weapon_state != WEAPON_STATE_REFIRE ) {
 		G_HideLaser( ent );
 		return;
 	}

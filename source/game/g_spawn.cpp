@@ -429,14 +429,14 @@ void G_PrecacheMedia( void ) {
 	// THIS ORDER MUST MATCH THE DEFINES IN gs_public.h
 	// you can add more, max 255
 
-	trap_ModelIndex( "#gunblade/gunblade" );      // WEAP_GUNBLADE
-	trap_ModelIndex( "#machinegun/machinegun" );    // WEAP_MACHINEGUN
-	trap_ModelIndex( "#riotgun/riotgun" );        // WEAP_RIOTGUN
-	trap_ModelIndex( "#glauncher/glauncher" );    // WEAP_GRENADELAUNCHER
-	trap_ModelIndex( "#rl" );    // WEAP_ROCKETLAUNCHER
-	trap_ModelIndex( "#plasmagun/plasmagun" );    // WEAP_PLASMAGUN
-	trap_ModelIndex( "#lg" );      // WEAP_LASERGUN
-	trap_ModelIndex( "#electrobolt/electrobolt" ); // WEAP_ELECTROBOLT
+	trap_ModelIndex( "#gunblade/gunblade" );      // Weapon_Knife
+	trap_ModelIndex( "#machinegun/machinegun" );    // Weapon_MachineGun
+	trap_ModelIndex( "#riotgun/riotgun" );        // Weapon_Shotgun
+	trap_ModelIndex( "#glauncher/glauncher" );    // Weapon_GrenadeLauncher
+	trap_ModelIndex( "#rl" );    // Weapon_RocketLauncher
+	trap_ModelIndex( "#plasmagun/plasmagun" );    // Weapon_Plasma
+	trap_ModelIndex( "#lg" );      // Weapon_Laser
+	trap_ModelIndex( "#electrobolt/electrobolt" ); // Weapon_Railgun
 
 	//-------------------
 
@@ -653,7 +653,6 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 
 	G_Gametype_Init();
 
-	G_PrecacheItems(); // set configstrings for items (gametype must be initialized)
 	G_PrecacheMedia();
 	G_PrecacheGameCommands(); // adding commands after this point won't update them to the client
 

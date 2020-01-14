@@ -22,8 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 #include "client/keys.h"
 
-static int cg_inputFrameTime;
-
 /*
  * keyboard
  */
@@ -45,6 +43,7 @@ static Button button_crouch;
 static Button button_walk;
 
 static Button button_attack;
+static Button button_reload;
 static Button button_zoom;
 
 static void ClearButton( Button * b ) {
@@ -125,11 +124,13 @@ static void IN_WalkUp() { KeyUp( &button_walk ); }
 
 static void IN_AttackDown() { KeyDown( &button_attack ); }
 static void IN_AttackUp() { KeyUp( &button_attack ); }
+static void IN_ReloadDown() { KeyDown( &button_reload ); }
+static void IN_ReloadUp() { KeyUp( &button_reload ); }
 static void IN_ZoomDown() { KeyDown( &button_zoom ); }
 static void IN_ZoomUp() { KeyUp( &button_zoom ); }
 
 unsigned int CG_GetButtonBits() {
-	unsigned int buttons = BUTTON_NONE;
+	unsigned int buttons = 0;
 
 	if( button_attack.down || button_attack.edge ) {
 		buttons |= BUTTON_ATTACK;
@@ -139,6 +140,11 @@ unsigned int CG_GetButtonBits() {
 	if( button_special.down || button_special.edge ) {
 		buttons |= BUTTON_SPECIAL;
 		button_special.edge = false;
+	}
+
+	if( button_reload.down || button_reload.edge ) {
+		buttons |= BUTTON_RELOAD;
+		button_reload.edge = false;
 	}
 
 	if( button_zoom.down ) {
@@ -245,16 +251,16 @@ static Vec2 Pow( Vec2 v, float e ) {
 	return Vec2( powf( v.x, e ), powf( v.y, e ) );
 }
 
-void CG_MouseMove( int mx, int my ) {
+void CG_MouseMove( int frameTime, int mx, int my ) {
 	Vec2 m( mx, my );
 
 	float sens = sensitivity->value;
 
-	if( m_accel->value != 0.0f && cg_inputFrameTime != 0 ) {
+	if( m_accel->value != 0.0f && frameTime != 0 ) {
 		// QuakeLive-style mouse acceleration, ported from ioquake3
 		// original patch by Gabriel Schnoering and TTimo
 		if( m_accelStyle->integer == 1 ) {
-			Vec2 base = Abs( m ) / float( cg_inputFrameTime );
+			Vec2 base = Abs( m ) / float( frameTime );
 			Vec2 power = Pow( base / m_accelOffset->value, m_accel->value );
 			m += Sign( m ) * power * m_accelOffset->value;
 		} else if( m_accelStyle->integer == 2 ) {
@@ -264,14 +270,14 @@ void CG_MouseMove( int mx, int my ) {
 			float accelPow = Max2( m_accelPow->value, 1.0f );
 			float accelOffset = Max2( m_accelOffset->value, 0.0f );
 
-			float rate = Max2( Length( m ) / float( cg_inputFrameTime ) - accelOffset, 0.0f );
+			float rate = Max2( Length( m ) / float( frameTime ) - accelOffset, 0.0f );
 			sens += powf( rate * m_accel->value, accelPow - 1.0f );
 
 			if( m_sensCap->value > 0 ) {
 				sens = Min2( sens, m_sensCap->value );
 			}
 		} else {
-			float rate = Length( m ) / float( cg_inputFrameTime );
+			float rate = Length( m ) / float( frameTime );
 			sens += rate * m_accel->value;
 		}
 	}
@@ -287,13 +293,7 @@ void CG_AddViewAngles( vec3_t viewAngles ) {
 	viewAngles[ PITCH ] += 0.022f * mouse_movement.y;
 }
 
-void CG_InputFrame( int frameTime ) {
-	cg_inputFrameTime = frameTime;
-}
-
 void CG_ClearInputState() {
-	cg_inputFrameTime = 0;
-
 	ClearButton( &button_forward );
 	ClearButton( &button_back );
 	ClearButton( &button_left );
@@ -333,6 +333,8 @@ void CG_InitInput() {
 
 	Cmd_AddCommand( "+attack", IN_AttackDown );
 	Cmd_AddCommand( "-attack", IN_AttackUp );
+	Cmd_AddCommand( "+reload", IN_ReloadDown );
+	Cmd_AddCommand( "-reload", IN_ReloadUp );
 	Cmd_AddCommand( "+zoom", IN_ZoomDown );
 	Cmd_AddCommand( "-zoom", IN_ZoomUp );
 
@@ -379,6 +381,8 @@ void CG_ShutdownInput() {
 
 	Cmd_RemoveCommand( "+attack" );
 	Cmd_RemoveCommand( "-attack" );
+	Cmd_RemoveCommand( "+reload" );
+	Cmd_RemoveCommand( "-reload" );
 	Cmd_RemoveCommand( "+zoom" );
 	Cmd_RemoveCommand( "-zoom" );
 

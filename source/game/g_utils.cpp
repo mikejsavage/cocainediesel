@@ -578,7 +578,7 @@ void G_InitEdict( edict_t *e ) {
 	e->timeStamp = 0;
 	e->scriptSpawned = false;
 
-	memset( &e->s, 0, sizeof( entity_state_t ) );
+	memset( &e->s, 0, sizeof( SyncEntityState ) );
 	e->s.attenuation = ATTN_NORM;
 	e->s.number = ENTNUM( e );
 
@@ -890,7 +890,7 @@ void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, .
 				;   // wtf?
 			} else if( teamonly ) {
 				Com_Printf( "[%s] %s %s\n",
-						  who->r.client->ps.stats[STAT_TEAM] == TEAM_SPECTATOR ? "SPEC" : "TEAM", who->r.client->netname, msg );
+						  who->r.client->ps.team == TEAM_SPECTATOR ? "SPEC" : "TEAM", who->r.client->netname, msg );
 			} else {
 				Com_Printf( "%s: %s\n", who->r.client->netname, msg );
 			}
@@ -1351,7 +1351,7 @@ void G_ReleaseClientPSEvent( gclient_t *client ) {
 
 /*
 * G_AddPlayerStateEvent
-* This event is only sent to this client inside its player_state_t.
+* This event is only sent to this client inside its SyncPlayerState.
 */
 void G_AddPlayerStateEvent( gclient_t *client, int event, int parm ) {
 	int eventdata;
@@ -1457,29 +1457,4 @@ void G_AnnouncerSound( edict_t *targ, int soundindex, int team, bool queued, edi
 			G_AddPlayerStateEvent( ent->r.client, psev, soundindex );
 		}
 	}
-}
-
-/*
-* G_PrecacheWeapondef
-*/
-void G_PrecacheWeapondef( int weapon, firedef_t *firedef ) {
-	char cstring[MAX_CONFIGSTRING_CHARS];
-
-	if( !firedef ) {
-		return;
-	}
-
-	snprintf( cstring, sizeof( cstring ), "%i %i %u %u %u %u %i %i %i",
-				 firedef->usage_count,
-				 firedef->projectile_count,
-				 firedef->weaponup_time,
-				 firedef->weapondown_time,
-				 firedef->reload_time,
-				 firedef->timeout,
-				 firedef->speed,
-				 firedef->spread,
-				 firedef->v_spread
-				 );
-
-	trap_ConfigString( CS_WEAPONDEFS + weapon, cstring );
 }

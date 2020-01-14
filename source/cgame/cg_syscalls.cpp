@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "cg_local.h"
+#include "cgame/cg_local.h"
 
 cgame_import_t CGAME_IMPORT;
 
@@ -46,8 +46,6 @@ cgame_export_t * GetCGameAPI( cgame_import_t * import ) {
 	globals.RenderView = CG_RenderView;
 
 	globals.NewFrameSnapshot = CG_NewFrameSnap;
-
-	globals.InputFrame = CG_InputFrame;
 
 	globals.GetButtonBits = CG_GetButtonBits;
 	globals.MouseMove = CG_MouseMove;

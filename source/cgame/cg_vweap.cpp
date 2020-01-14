@@ -17,12 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-
-// - Adding the View Weapon to the scene
-
-
-#include "cg_local.h"
-
+#include "cgame/cg_local.h"
 
 /*
 * CG_ViewWeapon_UpdateProjectionSource
@@ -30,7 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static void CG_ViewWeapon_UpdateProjectionSource( const vec3_t hand_origin, const mat3_t hand_axis, const vec3_t weap_origin, const mat3_t weap_axis ) {
 	orientation_t *tag_result = &cg.weapon.projectionSource;
 	orientation_t tag_weapon;
-	weaponinfo_t *weaponInfo;
 
 	VectorCopy( vec3_origin, tag_weapon.origin );
 	Matrix3_Copy( axis_identity, tag_weapon.axis );
@@ -40,7 +34,7 @@ static void CG_ViewWeapon_UpdateProjectionSource( const vec3_t hand_origin, cons
 				  hand_origin, hand_axis,
 				  weap_origin, weap_axis );
 
-	weaponInfo = CG_GetWeaponInfo( cg.weapon.weapon );
+	const weaponinfo_t * weaponInfo = cgs.weaponInfos[ cg.weapon.weapon ];
 
 	// move to projectionSource tag
 	if( weaponInfo ) {
@@ -97,11 +91,11 @@ static void CG_ViewWeapon_AddAngleEffects( vec3_t angles ) {
 /*
 * CG_ViewWeapon_baseanimFromWeaponState
 */
-static int CG_ViewWeapon_baseanimFromWeaponState( int weaponState ) {
-	if( weaponState == WEAPON_STATE_ACTIVATING )
+static int CG_ViewWeapon_baseanimFromWeaponState( int weapon_state ) {
+	if( weapon_state == WEAPON_STATE_ACTIVATING )
 		return WEAPANIM_WEAPONUP;
 
-	if( weaponState == WEAPON_STATE_DROPPING )
+	if( weapon_state == WEAPON_STATE_DROPPING )
 		return WEAPANIM_WEAPDOWN;
 
 	return cg_gunbob->integer ? WEAPANIM_STANDBY : WEAPANIM_NOANIM;
@@ -166,13 +160,12 @@ static float CG_FrameForTime( int *frame, int64_t curTime, int64_t startTimeStam
 */
 void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 	int baseAnim;
-	weaponinfo_t *weaponInfo;
 	int curframe = 0;
 	float framefrac;
 
 	// if the pov changed, or weapon changed, force restart
 	if( viewweapon->POVnum != cg.predictedPlayerState.POVnum ||
-		viewweapon->weapon != cg.predictedPlayerState.stats[STAT_WEAPON] ) {
+		viewweapon->weapon != cg.predictedPlayerState.weapon ) {
 		viewweapon->eventAnim = 0;
 		viewweapon->eventAnimStartTime = 0;
 		viewweapon->baseAnim = 0;
@@ -180,17 +173,17 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 	}
 
 	viewweapon->POVnum = cg.predictedPlayerState.POVnum;
-	viewweapon->weapon = cg.predictedPlayerState.stats[STAT_WEAPON];
+	viewweapon->weapon = cg.predictedPlayerState.weapon;
 
 	// hack cause of missing animation config
-	if( viewweapon->weapon == WEAP_NONE ) {
+	if( viewweapon->weapon == Weapon_Count ) {
 		viewweapon->eventAnim = 0;
 		viewweapon->eventAnimStartTime = 0;
 		return;
 	}
 
-	baseAnim = CG_ViewWeapon_baseanimFromWeaponState( cg.predictedPlayerState.weaponState );
-	weaponInfo = CG_GetWeaponInfo( viewweapon->weapon );
+	baseAnim = CG_ViewWeapon_baseanimFromWeaponState( cg.predictedPlayerState.weapon_state );
+	const weaponinfo_t * weaponInfo = cgs.weaponInfos[ viewweapon->weapon ];
 
 	// Full restart
 	if( !viewweapon->baseAnimStartTime ) {
@@ -251,14 +244,13 @@ void CG_ViewWeapon_StartAnimationEvent( int newAnim ) {
 */
 void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	orientation_t tag;
-	weaponinfo_t *weaponInfo;
 	vec3_t gunAngles;
 	vec3_t gunOffset;
 	float handOffset;
 
 	CG_ViewWeapon_RefreshAnimation( viewweapon );
 
-	weaponInfo = CG_GetWeaponInfo( viewweapon->weapon );
+	const weaponinfo_t * weaponInfo = cgs.weaponInfos[ viewweapon->weapon ];
 	viewweapon->ent.model = weaponInfo->model[WEAPMODEL_HAND];
 	viewweapon->ent.scale = 1.0f;
 	viewweapon->ent.override_material = NULL;
@@ -332,7 +324,7 @@ void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
 	orientation_t tag;
 	int64_t flash_time = 0;
 
-	if( !cg.view.drawWeapon || viewweapon->weapon == WEAP_NONE ) {
+	if( !cg.view.drawWeapon || viewweapon->weapon == Weapon_Count ) {
 		return;
 	}
 

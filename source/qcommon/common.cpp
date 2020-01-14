@@ -193,6 +193,8 @@ void Com_Printf( const char *format, ... ) {
 
 	Con_Print( msg );
 
+	TracyMessage( msg, strlen( msg ) );
+
 	if( log_file ) {
 		if( logconsole_timestamp && logconsole_timestamp->integer ) {
 			char timestamp[MAX_PRINTMSG];

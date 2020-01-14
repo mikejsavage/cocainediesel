@@ -223,15 +223,6 @@ void CL_GameModule_RenderView() {
 }
 
 /*
-* CL_GameModule_InputFrame
-*/
-void CL_GameModule_InputFrame( int frameTime ) {
-	if( cge ) {
-		cge->InputFrame( frameTime );
-	}
-}
-
-/*
 * CL_GameModule_GetButtonBits
 */
 unsigned CL_GameModule_GetButtonBits( void ) {
@@ -262,8 +253,8 @@ void CL_GameModule_AddMovement( vec3_t movement ) {
 /*
 * CL_GameModule_MouseMove
 */
-void CL_GameModule_MouseMove( int dx, int dy ) {
+void CL_GameModule_MouseMove( int frameTime, int dx, int dy ) {
 	if( cge ) {
-		cge->MouseMove( dx, dy );
+		cge->MouseMove( frameTime, dx, dy );
 	}
 }

@@ -17,7 +17,6 @@ extern "C" float fmodf( float, float );
 extern "C" double fmod( double, double );
 extern "C" float floorf( float );
 extern "C" float ceilf( float );
-extern "C" float roundf( float );
 
 constexpr float PI = 3.14159265358979323846f;
 

@@ -49,7 +49,5 @@ game_export_t * GetGameAPI( game_import_t * import ) {
 	globals.SnapFrame = G_SnapFrame;
 	globals.ClearSnap = G_ClearSnap;
 
-	globals.GetGameState = G_GetGameState;
-
 	return &globals;
 }

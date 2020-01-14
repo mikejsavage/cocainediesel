@@ -35,13 +35,6 @@ cvar_t *g_scorelimit;
 //==========================================================
 
 /*
-* G_GetGameState
-*/
-game_state_t *G_GetGameState( void ) {
-	return &server_gs.gameState;
-}
-
-/*
 * G_Match_SetAutorecordState
 */
 static void G_Match_SetAutorecordState( const char *state ) {
@@ -281,13 +274,9 @@ bool G_Match_ScorelimitHit( void ) {
 				}
 			}
 		} else {
-			int team;
-
-			for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-				if( teamlist[team].score >= g_scorelimit->integer ) {
-					return true;
-				}
-			}
+			u8 high_score = Max2( server_gs.gameState.bomb.alpha_score, server_gs.gameState.bomb.beta_score );
+			if( int( high_score ) >= g_scorelimit->integer )
+				return true;
 		}
 	}
 
@@ -680,7 +669,6 @@ void G_Gametype_SetDefaults( void ) {
 	level.gametype.countdownEnabled = false;
 	level.gametype.matchAbortDisabled = false;
 	level.gametype.shootingDisabled = false;
-	level.gametype.infiniteAmmo = false;
 	level.gametype.customDeadBodyCam = false;
 	level.gametype.removeInactivePlayers = true;
 	level.gametype.selfDamage = true;

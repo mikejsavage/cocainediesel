@@ -18,9 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-// g_weapon.c
-
-#include "g_local.h"
+#include "game/g_local.h"
 
 void SV_Physics_LinearProjectile( edict_t *ent );
 
@@ -29,30 +27,6 @@ void SV_Physics_LinearProjectile( edict_t *ent );
 #ifdef PLASMAHACK
 void W_Plasma_Backtrace( edict_t *ent, const vec3_t start );
 #endif
-
-/*
-* Use_Weapon
-*/
-void Use_Weapon( edict_t *ent, const gsitem_t *item ) {
-	// invalid weapon item
-	if( item->tag < WEAP_NONE || item->tag >= WEAP_TOTAL ) {
-		return;
-	}
-
-	// see if we're already changing to it
-	if( ent->r.client->ps.stats[STAT_PENDING_WEAPON] == item->tag ) {
-		return;
-	}
-
-	// change to this weapon when down
-	ent->r.client->ps.stats[STAT_PENDING_WEAPON] = item->tag;
-}
-
-//======================================================================
-//
-// WEAPON FIRING
-//
-//======================================================================
 
 /*
 * G_ProjectileDistancePrestep
@@ -111,214 +85,120 @@ static void G_ProjectileDistancePrestep( edict_t *projectile, float distance ) {
 #endif
 }
 
-/*
-* G_Fire_Gunblade_Knife
-*/
-static void G_Fire_Gunblade_Knife( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner ) {
-	int timeDelta = 0;
-	if( owner && owner->r.client ) {
-		timeDelta = owner->r.client->timeDelta;
-	}
-
-	int range = firedef->timeout;
-	float damage = firedef->damage;
-	int knockback = firedef->knockback;
-	W_Fire_Blade( owner, range, origin, angles, damage, knockback, timeDelta );
+static void G_Fire_Gunblade_Knife( vec3_t origin, vec3_t angles, edict_t *owner, int timeDelta ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_Knife );
+	W_Fire_Blade( owner, def->range, origin, angles, def->damage, def->knockback, timeDelta );
 }
 
-
-/*
-* G_Fire_Rocket
-*/
-static edict_t *G_Fire_Rocket( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner ) {
-	int timeDelta = 0;
-	if( owner && owner->r.client ) {
-		timeDelta = owner->r.client->timeDelta;
-	}
-
-	int speed = firedef->speed;
-	float damage = firedef->damage;
-	int knockback = firedef->knockback;
-	int minDamage = firedef->mindamage;
-	int minKnockback = firedef->minknockback;
-	int radius = firedef->splash_radius;
-
-	return W_Fire_Rocket( owner, origin, angles, speed, damage, minKnockback, knockback, minDamage,
-		radius, firedef->timeout, timeDelta );
+static edict_t *G_Fire_Rocket( vec3_t origin, vec3_t angles, edict_t *owner, int timeDelta ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_RocketLauncher );
+	return W_Fire_Rocket( owner, origin, angles, def->speed, def->damage,
+		def->minknockback, def->knockback, def->mindamage,
+		def->splash_radius, def->range, timeDelta );
 }
 
-/*
-* G_Fire_Machinegun
-*/
-static void G_Fire_Machinegun( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner ) {
-	int timeDelta = 0;
-	if( owner && owner->r.client ) {
-		timeDelta = owner->r.client->timeDelta;
-	}
-
-	int range = firedef->timeout;
-	float damage = firedef->damage;
-	int knockback = firedef->knockback;
-	W_Fire_MG( owner, origin, angles, range, firedef->spread, firedef->v_spread, damage, knockback, timeDelta );
+static void G_Fire_Machinegun( vec3_t origin, vec3_t angles, edict_t *owner, int timeDelta ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_MachineGun );
+	W_Fire_MG( owner, origin, angles, def->range, def->spread, def->damage, def->knockback, timeDelta );
 }
 
-/*
-* G_Fire_Riotgun
-*/
-static void G_Fire_Riotgun( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner ) {
-	int timeDelta = 0;
-	if( owner && owner->r.client ) {
-		timeDelta = owner->r.client->timeDelta;
-	}
-
-	int range = firedef->timeout;
-	float damage = firedef->damage;
-	int knockback = firedef->knockback;
-	W_Fire_Riotgun( owner, origin, angles, range, firedef->spread, firedef->v_spread,
-		firedef->projectile_count, damage, knockback, timeDelta );
+static void G_Fire_Riotgun( vec3_t origin, vec3_t angles, edict_t *owner, int timeDelta ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_Shotgun );
+	W_Fire_Riotgun( owner, origin, angles, def->range, def->spread,
+		def->projectile_count, def->damage, def->knockback, timeDelta );
 }
 
-/*
-* G_Fire_Grenade
-*/
-static edict_t *G_Fire_Grenade( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner ) {
-	int timeDelta = 0;
-	if( owner && owner->r.client ) {
-		timeDelta = owner->r.client->timeDelta;
-	}
-
-	int speed = firedef->speed;
-	float damage = firedef->damage;
-	int knockback = firedef->knockback;
-	int minDamage = firedef->mindamage;
-	int minKnockback = firedef->minknockback;
-	int radius = firedef->splash_radius;
-	return W_Fire_Grenade( owner, origin, angles, speed, damage, minKnockback, knockback,
-		minDamage, radius, firedef->timeout, timeDelta, true );
+static edict_t *G_Fire_Grenade( vec3_t origin, vec3_t angles, edict_t *owner, int timeDelta ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_GrenadeLauncher );
+	return W_Fire_Grenade( owner, origin, angles, def->speed, def->damage,
+		def->minknockback, def->knockback, def->mindamage,
+		def->splash_radius, def->range, timeDelta, true );
 }
 
-/*
-* G_Fire_Plasma
-*/
-static edict_t *G_Fire_Plasma( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner ) {
-	int timeDelta = 0;
-	if( owner && owner->r.client ) {
-		timeDelta = owner->r.client->timeDelta;
-	}
-
-	int speed = firedef->speed;
-	float damage = firedef->damage;
-	int knockback = firedef->knockback;
-	int minDamage = firedef->mindamage;
-	int minKnockback = firedef->minknockback;
-	int radius = firedef->splash_radius;
-	return W_Fire_Plasma( owner, origin, angles, damage, minKnockback, knockback, minDamage, radius,
-		speed, firedef->timeout, timeDelta );
+static edict_t *G_Fire_Plasma( vec3_t origin, vec3_t angles, edict_t *owner, int timeDelta ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_Plasma );
+	return W_Fire_Plasma( owner, origin, angles, def->damage,
+		def->minknockback, def->knockback, def->mindamage,
+		def->splash_radius, def->speed, def->range, timeDelta );
 }
 
-/*
-* G_Fire_Lasergun
-*/
-static edict_t *G_Fire_Lasergun( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner ) {
-	int timeDelta = 0;
-	if( owner && owner->r.client ) {
-		timeDelta = owner->r.client->timeDelta;
-	}
-
-	int range = firedef->timeout;
-	float damage = firedef->damage;
-	int knockback = firedef->knockback;
-	return W_Fire_Lasergun( owner, origin, angles, damage, knockback, range, timeDelta );
+static edict_t *G_Fire_Lasergun( vec3_t origin, vec3_t angles, edict_t *owner, int timeDelta ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_Laser );
+	return W_Fire_Lasergun( owner, origin, angles, def->damage, def->knockback, def->range, timeDelta );
 }
 
-/*
-* G_Fire_Bolt
-*/
-static void G_Fire_Bolt( vec3_t origin, vec3_t angles, firedef_t *firedef, edict_t *owner ) {
-	int timeDelta = 0;
-	if( owner && owner->r.client ) {
-		timeDelta = owner->r.client->timeDelta;
-	}
-
-	int minDamageRange = firedef->timeout;
-	float maxdamage = firedef->damage;
-	int mindamage = firedef->mindamage;
-	int maxknockback = firedef->knockback;
-	int minknockback = firedef->minknockback;
-	W_Fire_Electrobolt_FullInstant( owner, origin, angles, maxdamage, mindamage,
-		maxknockback, minknockback, ELECTROBOLT_RANGE, minDamageRange, timeDelta );
+static void G_Fire_Bolt( vec3_t origin, vec3_t angles, edict_t *owner, int timeDelta ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_Railgun );
+	W_Fire_Electrobolt( owner, origin, angles, def->damage,
+		def->knockback, def->range, timeDelta );
 }
 
 /*
 * G_FireWeapon
 */
 void G_FireWeapon( edict_t *ent, int parm ) {
-	gs_weapon_definition_t *weapondef;
-	firedef_t *firedef;
 	vec3_t origin, angles;
 	vec3_t viewoffset = { 0, 0, 0 };
-
-	weapondef = GS_GetWeaponDef( ( parm >> 1 ) & 0x3f );
-	firedef = &weapondef->firedef;
+	int timeDelta = 0;
 
 	// find this shot projection source
-	if( ent->r.client ) {
+	if( ent->r.client != NULL ) {
 		viewoffset[2] += ent->r.client->ps.viewheight;
+		timeDelta = ent->r.client->timeDelta;
 		VectorCopy( ent->r.client->ps.viewangles, angles );
-	} else {
+	}
+	else {
 		VectorCopy( ent->s.angles, angles );
 	}
 
 	VectorAdd( ent->s.origin, viewoffset, origin );
 
 	// shoot
+	edict_t * projectile = NULL;
 
-	edict_t *projectile = NULL;
-
-	switch( weapondef->weapon_id ) {
+	switch( parm ) {
 		default:
-		case WEAP_NONE:
+			return;
+
+		case Weapon_Knife:
+			G_Fire_Gunblade_Knife( origin, angles, ent, timeDelta );
 			break;
 
-		case WEAP_GUNBLADE:
-			G_Fire_Gunblade_Knife( origin, angles, firedef, ent );
+		case Weapon_MachineGun:
+			G_Fire_Machinegun( origin, angles, ent, timeDelta );
 			break;
 
-		case WEAP_MACHINEGUN:
-			G_Fire_Machinegun( origin, angles, firedef, ent );
+		case Weapon_Shotgun:
+			G_Fire_Riotgun( origin, angles, ent, timeDelta );
 			break;
 
-		case WEAP_RIOTGUN:
-			G_Fire_Riotgun( origin, angles, firedef, ent );
+		case Weapon_GrenadeLauncher:
+			projectile = G_Fire_Grenade( origin, angles, ent, timeDelta );
 			break;
 
-		case WEAP_GRENADELAUNCHER:
-			projectile = G_Fire_Grenade( origin, angles, firedef, ent );
+		case Weapon_RocketLauncher:
+			projectile = G_Fire_Rocket( origin, angles, ent, timeDelta );
 			break;
 
-		case WEAP_ROCKETLAUNCHER:
-			projectile = G_Fire_Rocket( origin, angles, firedef, ent );
+		case Weapon_Plasma:
+			projectile = G_Fire_Plasma( origin, angles, ent, timeDelta );
 			break;
 
-		case WEAP_PLASMAGUN:
-			projectile = G_Fire_Plasma( origin, angles, firedef, ent );
+		case Weapon_Laser:
+			projectile = G_Fire_Lasergun( origin, angles, ent, timeDelta );
 			break;
 
-		case WEAP_LASERGUN:
-			projectile = G_Fire_Lasergun( origin, angles, firedef, ent );
-			break;
-
-		case WEAP_ELECTROBOLT:
-			G_Fire_Bolt( origin, angles, firedef, ent );
+		case Weapon_Railgun:
+			G_Fire_Bolt( origin, angles, ent, timeDelta );
 			break;
 	}
 
 	// add stats
-	if( ent->r.client && weapondef->weapon_id != WEAP_NONE ) {
-		ent->r.client->level.stats.accuracy_shots[firedef->ammo_id - AMMO_GUNBLADE] += firedef->projectile_count;
+	if( ent->r.client != NULL ) {
+		ent->r.client->level.stats.accuracy_shots[ parm ] += GS_GetWeaponDef( parm )->projectile_count;
 	}
 
-	if( projectile ) {
+	if( projectile != NULL ) {
 		G_ProjectileDistancePrestep( projectile, g_projectile_prestep->value );
 		if( projectile->s.linearMovement )
 			VectorCopy( projectile->s.origin, projectile->s.linearMovementBegin );

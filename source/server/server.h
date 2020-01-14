@@ -60,7 +60,7 @@ typedef struct {
 	char mapname[MAX_QPATH];               // map name
 
 	char configstrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
-	entity_state_t baselines[MAX_EDICTS];
+	SyncEntityState baselines[MAX_EDICTS];
 
 	//
 	// global variables shared between game and server
@@ -80,12 +80,12 @@ typedef struct {
 	uint8_t *areabits;                  // portalarea visibility bits
 	int numplayers;
 	int ps_size;
-	player_state_t *ps;                 // [numplayers]
+	SyncPlayerState *ps;                 // [numplayers]
 	int num_entities;
 	int first_entity;                   // into the circular sv.client_entities[]
 	int64_t sentTimeStamp;         // time at what this frame snap was sent to the clients
 	unsigned int UcmdExecuted;
-	game_state_t gameState;
+	SyncGameState gameState;
 } client_snapshot_t;
 
 typedef struct {
@@ -199,7 +199,7 @@ typedef struct {
 typedef struct client_entities_s {
 	unsigned num_entities;              // maxclients->integer*UPDATE_BACKUP*MAX_PACKET_ENTITIES
 	unsigned next_entities;             // next client_entity to use
-	entity_state_t *entities;           // [num_entities]
+	SyncEntityState *entities;           // [num_entities]
 } client_entities_t;
 
 typedef struct {

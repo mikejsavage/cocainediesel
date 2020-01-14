@@ -35,6 +35,14 @@ struct qfontface_s;
 // structs and variables shared with the main engine
 //
 
+#define MAX_PARSE_GAMECOMMANDS  256
+
+typedef struct {
+	bool all;
+	uint8_t targets[MAX_CLIENTS / 8];
+	size_t commandOffset;           // offset of the data in gamecommandsData
+} gcommand_t;
+
 #define MAX_PARSE_ENTITIES  1024
 typedef struct snapshot_s {
 	bool valid;             // cleared if delta parsing was invalid
@@ -48,11 +56,11 @@ typedef struct snapshot_s {
 	size_t areabytes;
 	uint8_t *areabits;             // portalarea visibility bits
 	int numplayers;
-	player_state_t playerState;
-	player_state_t playerStates[MAX_CLIENTS];
+	SyncPlayerState playerState;
+	SyncPlayerState playerStates[MAX_CLIENTS];
 	int numEntities;
-	entity_state_t parsedEntities[MAX_PARSE_ENTITIES];
-	game_state_t gameState;
+	SyncEntityState parsedEntities[MAX_PARSE_ENTITIES];
+	SyncGameState gameState;
 	int numgamecommands;
 	gcommand_t gamecommands[MAX_PARSE_GAMECOMMANDS];
 	char gamecommandsData[( MAX_STRING_CHARS / 16 ) * MAX_PARSE_GAMECOMMANDS];
@@ -102,19 +110,12 @@ typedef struct {
 	bool ( *NewFrameSnapshot )( snapshot_t *newSnapshot, snapshot_t *currentSnapshot );
 
 	/**
-	 * Updates input-related parts of cgame every frame.
-	 *
-	 * @param frametime real frame time
-	 */
-	void ( *InputFrame )( int frameTime );
-
-	/**
 	* Transmits accumulated mouse movement event for the current frame.
 	*
 	* @param dx horizontal mouse movement
 	* @param dy vertical mouse movement
 	*/
-	void ( *MouseMove )( int dx, int dy );
+	void ( *MouseMove )( int frameTime, int dx, int dy );
 
 	/**
 	 * Gets input command buttons added by cgame.

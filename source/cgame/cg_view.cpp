@@ -128,7 +128,7 @@ static void CG_AddLocalSounds( void ) {
 static void CG_FlashGameWindow( void ) {
 	static int oldState = -1;
 	bool flash = false;
-	static int oldAlphaScore, oldBetaScore;
+	static u8 oldAlphaScore, oldBetaScore;
 	static bool scoresSet = false;
 
 	// notify player of important match states
@@ -149,9 +149,9 @@ static void CG_FlashGameWindow( void ) {
 
 	// notify player of teams scoring in team-based gametypes
 	if( !scoresSet ||
-		( oldAlphaScore != cg.predictedPlayerState.stats[STAT_TEAM_ALPHA_SCORE] || oldBetaScore != cg.predictedPlayerState.stats[STAT_TEAM_BETA_SCORE] ) ) {
-		oldAlphaScore = cg.predictedPlayerState.stats[STAT_TEAM_ALPHA_SCORE];
-		oldBetaScore = cg.predictedPlayerState.stats[STAT_TEAM_BETA_SCORE];
+		( oldAlphaScore != client_gs.gameState.bomb.alpha_score || oldBetaScore != client_gs.gameState.bomb.beta_score ) ) {
+		oldAlphaScore = client_gs.gameState.bomb.alpha_score;
+		oldBetaScore = client_gs.gameState.bomb.beta_score;
 
 		flash = scoresSet && GS_TeamBasedGametype( &client_gs ) && !GS_IndividualGameType( &client_gs );
 		scoresSet = true;
@@ -421,9 +421,9 @@ static int CG_RenderFlags( void ) {
 /*
 * CG_InterpolatePlayerState
 */
-static void CG_InterpolatePlayerState( player_state_t *playerState ) {
+static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 	int i;
-	player_state_t *ps, *ops;
+	SyncPlayerState *ps, *ops;
 	bool teleported;
 
 	ps = &cg.frame.playerState;
@@ -723,6 +723,30 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 				view->angles[i] = cg.predictedPlayerState.viewangles[i];
 			}
 
+			// recoil
+			if( cg.recoiling ) {
+				cg.recoil_initial_pitch += Min2( 0.0f, cl.viewangles[ PITCH ] - cl.prevviewangles[ PITCH ] );
+
+				if( cg.recoil == 0.0f ) {
+					float d = cg.recoil_initial_pitch - cl.viewangles[ PITCH ];
+					if( d <= 0.0f ) {
+						cg.recoiling = false;
+					}
+					else {
+						constexpr float reset_degrees_per_second = 80.0f;
+						cl.viewangles[ PITCH ] += Min2( reset_degrees_per_second * cls.frametime * 0.001f, d );
+					}
+				}
+				else {
+					float kick = cg.recoil * 20.0f * cls.frametime * 0.001f;
+					cl.viewangles[ PITCH ] -= kick;
+					cg.recoil -= kick;
+					if( cg.recoil < 0.1f ) {
+						cg.recoil = 0.0f;
+					}
+				}
+			}
+
 			CG_ViewSmoothPredictedSteps( view->origin ); // smooth out stair climbing
 		} else {
 			cg.predictingTimeStamp = cl.serverTime;
@@ -757,7 +781,8 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 	}
 
 	if( !view->playerPrediction ) {
-		cg.predictedWeaponSwitch = 0;
+		cg.predictedWeaponSwitch = Weapon_Count;
+		cg.recoiling = false;
 	}
 }
 
@@ -915,6 +940,8 @@ static void DrawSilhouettes() {
 		DrawDynamicMesh( pipeline, mesh );
 	}
 }
+
+#include <cmath>
 
 /*
 * CG_RenderView

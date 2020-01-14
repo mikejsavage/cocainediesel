@@ -20,29 +20,25 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 
-static int G_ModToAmmo( int mod ) {
-	if( mod == MOD_GUNBLADE ) {
-		return AMMO_GUNBLADE;
-	} else if( mod == MOD_MACHINEGUN ) {
-		return AMMO_BULLETS;
-	} else if( mod == MOD_RIOTGUN ) {
-		return AMMO_SHELLS;
-	} else if( mod == MOD_GRENADE || mod == MOD_GRENADE_SPLASH ) {
-		return AMMO_GRENADES;
-	} else if( mod == MOD_ROCKET || mod == MOD_ROCKET_SPLASH ) {
-		return AMMO_ROCKETS;
-	} else if( mod == MOD_PLASMA || mod == MOD_PLASMA_SPLASH ) {
-		return AMMO_PLASMA;
-	} else if( mod == MOD_ELECTROBOLT ) {
-		return AMMO_BOLTS;
-	} else if( mod == MOD_LASERGUN ) {
-		return AMMO_LASERS;
-	} else {
-		return AMMO_NONE;
+static int G_MODToWeapon( int mod ) {
+	switch( mod ) {
+		case MOD_GUNBLADE: return Weapon_Knife;
+		case MOD_MACHINEGUN: return Weapon_MachineGun;
+		case MOD_RIOTGUN: return Weapon_Shotgun;
+		case MOD_GRENADE:
+		case MOD_GRENADE_SPLASH: return Weapon_GrenadeLauncher;
+		case MOD_ROCKET:
+		case MOD_ROCKET_SPLASH: return Weapon_RocketLauncher;
+		case MOD_PLASMA:
+		case MOD_PLASMA_SPLASH: return Weapon_Plasma;
+		case MOD_ELECTROBOLT: return Weapon_Railgun;
+		case MOD_LASERGUN: return Weapon_Laser;
 	}
+
+	return Weapon_Count;
 }
 
-bool G_IsTeamDamage( entity_state_t *targ, entity_state_t *attacker ) {
+bool G_IsTeamDamage( SyncEntityState *targ, SyncEntityState *attacker ) {
 	if( !GS_TeamBasedGametype( &server_gs ) )
 		return false;
 	return targ->number != attacker->number && targ->team == attacker->team;
@@ -303,30 +299,12 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 		}
 		else if( attacker == targ ) {
 			if( level.gametype.selfDamage ) {
-				switch( mod ) {
-				case MOD_PLASMA_SPLASH:
-					take = damage * GS_GetWeaponDef( WEAP_PLASMAGUN )->firedef.selfdamage;
-					break;
-				case MOD_GRENADE_SPLASH:
-					take = damage * GS_GetWeaponDef( WEAP_GRENADELAUNCHER )->firedef.selfdamage;
-					break;
-				case MOD_ROCKET_SPLASH:
-					take = damage * GS_GetWeaponDef( WEAP_ROCKETLAUNCHER )->firedef.selfdamage;
-					break;
-				default:
-					take = damage * 0.75f;
-					break;
-				}
+				take = damage * GS_GetWeaponDef( G_MODToWeapon( mod ) )->selfdamage;
 				save = damage - take;
 			}
 			else {
 				take = save = 0;
 			}
-		}
-		// don't get damage from players in race
-		else if( ( GS_RaceGametype( &server_gs ) ) && attacker->r.client && targ->r.client &&
-				 ( attacker->r.client != targ->r.client ) ) {
-			take = save = 0;
 		}
 	}
 
@@ -387,9 +365,9 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 	targ->health = targ->health - take;
 
 	// add damage done to stats
-	if( statDmg && G_ModToAmmo( mod ) != AMMO_NONE && client && attacker->r.client ) {
-		attacker->r.client->level.stats.accuracy_hits[G_ModToAmmo( mod ) - AMMO_GUNBLADE]++;
-		attacker->r.client->level.stats.accuracy_damage[G_ModToAmmo( mod ) - AMMO_GUNBLADE] += damage;
+	if( statDmg && G_MODToWeapon( mod ) != Weapon_Count && client && attacker->r.client ) {
+		attacker->r.client->level.stats.accuracy_hits[ G_MODToWeapon( mod ) ]++;
+		attacker->r.client->level.stats.accuracy_damage[ G_MODToWeapon( mod ) ] += damage;
 	}
 
 	// accumulate given damage for hit sounds
@@ -418,7 +396,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 /*
 * G_SplashFrac
 */
-void G_SplashFrac( const entity_state_t *s, const entity_shared_t *r, const vec3_t point, float maxradius, vec3_t pushdir, float *frac, bool selfdamage ) {
+void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, const vec3_t point, float maxradius, vec3_t pushdir, float *frac, bool selfdamage ) {
 	const vec3_t & origin = s->origin;
 	const vec3_t & mins = r->mins;
 	const vec3_t & maxs = r->maxs;

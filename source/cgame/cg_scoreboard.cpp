@@ -28,10 +28,10 @@ bool CG_ScoreboardShown() {
 	}
 
 	if( cgs.demoPlaying || cg.frame.multipov ) {
-		return cg.showScoreboard || ( GS_MatchState( &client_gs ) > MATCH_STATE_PLAYTIME );
+		return cg.showScoreboard || ( GS_MatchState( &client_gs ) >= MATCH_STATE_POSTMATCH );
 	}
 
-	return ( cg.predictedPlayerState.stats[ STAT_LAYOUTS ] & STAT_LAYOUT_SCOREBOARD ) != 0;
+	return cg.predictedPlayerState.show_scoreboard;
 }
 
 static bool ParseInt( const char ** cursor, int * x ) {
@@ -69,7 +69,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, ScoreboardPlayer player,
 		icon = player.state != 0 ? cgs.media.shaderReady : NULL;
 	}
 	else {
-		bool carrier = player.state != 0 && ( ISREALSPECTATOR() || cg_entities[ id + 1 ].current.team == cg.predictedPlayerState.stats[ STAT_TEAM ] );
+		bool carrier = player.state != 0 && ( ISREALSPECTATOR() || cg_entities[ id + 1 ].current.team == cg.predictedPlayerState.team );
 		if( alive ) {
 			icon = carrier ? cgs.media.shaderBombIcon : cgs.media.shaderAlive;
 		}

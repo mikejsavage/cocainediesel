@@ -21,10 +21,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 
 static int cg_numSolids;
-static entity_state_t *cg_solidList[MAX_PARSE_ENTITIES];
+static SyncEntityState *cg_solidList[MAX_PARSE_ENTITIES];
 
 static int cg_numTriggers;
-static entity_state_t *cg_triggersList[MAX_PARSE_ENTITIES];
+static SyncEntityState *cg_triggersList[MAX_PARSE_ENTITIES];
 static bool cg_triggersListTriggered[MAX_PARSE_ENTITIES];
 
 static bool ucmdReady = false;
@@ -38,10 +38,10 @@ void CG_PredictedEvent( int entNum, int ev, int parm ) {
 	}
 
 	// ignore this action if it has already been predicted (the unclosed ucmd has timestamp zero)
-	if( ucmdReady && ( cg.predictingTimeStamp > cg.predictedEventTimes[ev] ) ) {
+	if( ucmdReady && cg.predictingTimeStamp > cg.predictedEventTimes[ev] ) {
 		// inhibit the fire event when there is a weapon change predicted
 		if( ev == EV_FIREWEAPON ) {
-			if( cg.predictedWeaponSwitch && ( cg.predictedWeaponSwitch != cg.predictedPlayerState.stats[STAT_PENDING_WEAPON] ) ) {
+			if( cg.predictedWeaponSwitch != Weapon_Count && cg.predictedWeaponSwitch != cg.predictedPlayerState.pending_weapon ) {
 				return;
 			}
 		}
@@ -54,9 +54,9 @@ void CG_PredictedEvent( int entNum, int ev, int parm ) {
 /*
 * CG_Predict_ChangeWeapon
 */
-void CG_Predict_ChangeWeapon( int new_weapon ) {
+void CG_Predict_ChangeWeapon( WeaponType weapon ) {
 	if( cg.view.playerPrediction ) {
-		cg.predictedWeaponSwitch = new_weapon;
+		cg.predictedWeaponSwitch = weapon;
 	}
 }
 
@@ -79,7 +79,7 @@ void CG_CheckPredictionError( void ) {
 	VectorCopy( cg.predictedOrigins[frame], origin );
 
 	if( cg.predictedGroundEntity != -1 ) {
-		entity_state_t *ent = &cg_entities[cg.predictedGroundEntity].current;
+		SyncEntityState *ent = &cg_entities[cg.predictedGroundEntity].current;
 		if( ent->solid == SOLID_BMODEL ) {
 			if( ent->linearMovement ) {
 				vec3_t move;
@@ -114,7 +114,7 @@ void CG_BuildSolidList( void ) {
 	cg_numTriggers = 0;
 
 	for( int i = 0; i < cg.frame.numEntities; i++ ) {
-		const entity_state_t * ent = &cg.frame.parsedEntities[i & ( MAX_PARSE_ENTITIES - 1 )];
+		const SyncEntityState * ent = &cg.frame.parsedEntities[i & ( MAX_PARSE_ENTITIES - 1 )];
 		if( ISEVENTENTITY( ent ) ) {
 			continue;
 		}
@@ -195,7 +195,7 @@ static bool CG_ClipEntityContact( const vec3_t origin, const vec3_t mins, const 
 */
 void CG_Predict_TouchTriggers( pmove_t *pm, vec3_t previous_origin ) {
 	int i;
-	entity_state_t *state;
+	SyncEntityState *state;
 
 	// fixme: more accurate check for being able to touch or not
 	if( pm->playerState->pmove.pm_type != PM_NORMAL ) {
@@ -223,7 +223,7 @@ static void CG_ClipMoveToEntities( const vec3_t start, const vec3_t mins, const 
 	int i, x, zd, zu;
 	trace_t trace;
 	vec3_t origin, angles;
-	entity_state_t *ent;
+	SyncEntityState *ent;
 	struct cmodel_s *cmodel;
 	vec3_t bmins, bmaxs;
 	int64_t serverTime = cg.frame.serverTime;
@@ -314,7 +314,7 @@ void CG_Trace( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t m
 */
 int CG_PointContents( const vec3_t point ) {
 	int i;
-	entity_state_t *ent;
+	SyncEntityState *ent;
 	struct cmodel_s *cmodel;
 	int contents;
 
@@ -478,7 +478,7 @@ void CG_PredictMovement( void ) {
 
 	// compensate for ground entity movement
 	if( pm.groundentity != -1 ) {
-		entity_state_t *ent = &cg_entities[pm.groundentity].current;
+		SyncEntityState *ent = &cg_entities[pm.groundentity].current;
 
 		if( ent->solid == SOLID_BMODEL ) {
 			if( ent->linearMovement ) {

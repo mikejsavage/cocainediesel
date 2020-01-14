@@ -184,7 +184,7 @@ typedef struct {
 
 
 typedef struct shaderref_s {
-	char name[MAX_QPATH];
+	char name[64];
 	int flags;
 	int contents;
 } dshaderref_t;

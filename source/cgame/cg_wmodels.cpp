@@ -18,25 +18,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-/*
-==========================================================================
+#include "cgame/cg_local.h"
 
-- SPLITMODELS -
-
-==========================================================================
-*/
-
-// - Adding the weapon models in split pieces
-// by Jalisk0
-
-#include "cg_local.h"
-
-
-//======================================================================
-//						weaponinfo Registering
-//======================================================================
-
-static weaponinfo_t cg_pWeaponModelInfos[WEAP_TOTAL];
+static weaponinfo_t cg_pWeaponModelInfos[ Weapon_Count + 1 ];
 
 static const char *wmPartSufix[] = { "", "_flash", "_hand", "_barrel", NULL };
 
@@ -338,7 +322,7 @@ static void CG_WeaponModelUpdateRegistration( weaponinfo_t *weaponinfo, char *fi
 /*
 * CG_RegisterWeaponModel
 */
-struct weaponinfo_s *CG_RegisterWeaponModel( char *cgs_name, int weaponTag ) {
+struct weaponinfo_s *CG_RegisterWeaponModel( char *cgs_name, WeaponType weaponTag ) {
 	char filename[MAX_QPATH];
 	Q_strncpyz( filename, cgs_name, sizeof( filename ) );
 	COM_StripExtension( filename );
@@ -364,10 +348,8 @@ struct weaponinfo_s *CG_RegisterWeaponModel( char *cgs_name, int weaponTag ) {
 * as a replacement, so, weapon 0 will have the animation script
 * even if the registration failed
 */
-struct weaponinfo_s *CG_CreateWeaponZeroModel( char *filename ) {
-	COM_StripExtension( filename );
-
-	weaponinfo_t * weaponinfo = &cg_pWeaponModelInfos[ 0 ];
+struct weaponinfo_s *CG_CreateWeaponZeroModel() {
+	weaponinfo_t * weaponinfo = &cg_pWeaponModelInfos[ Weapon_Count ];
 	if( weaponinfo->inuse ) {
 		return weaponinfo;
 	}
@@ -379,7 +361,7 @@ struct weaponinfo_s *CG_CreateWeaponZeroModel( char *filename ) {
 	CG_CreateHandDefaultAnimations( weaponinfo );
 	weaponinfo->inuse = true;
 
-	Q_strncpyz( weaponinfo->name, filename, sizeof( weaponinfo->name ) );
+	Q_strncpyz( weaponinfo->name, "", sizeof( weaponinfo->name ) );
 
 	return weaponinfo; //no checks
 }
@@ -388,17 +370,6 @@ struct weaponinfo_s *CG_CreateWeaponZeroModel( char *filename ) {
 //======================================================================
 //							weapons
 //======================================================================
-
-/*
-* CG_GetWeaponInfo
-*/
-struct weaponinfo_s *CG_GetWeaponInfo( int weapon ) {
-	if( weapon < 0 || ( weapon >= WEAP_TOTAL ) ) {
-		weapon = WEAP_NONE;
-	}
-
-	return cgs.weaponInfos[weapon] ? cgs.weaponInfos[weapon] : cgs.weaponInfos[WEAP_NONE];
-}
 
 /*
 * CG_AddWeaponFlashOnTag
@@ -488,10 +459,7 @@ static void CG_AddWeaponBarrelOnTag( entity_t *weapon, const weaponinfo_t *weapo
 */
 void CG_AddWeaponOnTag( entity_t *ent, const orientation_t *tag, int weaponid, int effects,
 	orientation_t *projectionSource, int64_t flash_time, int64_t barrel_time ) {
-	const weaponinfo_t * weaponInfo = CG_GetWeaponInfo( weaponid );
-	if( !weaponInfo ) {
-		return;
-	}
+	const weaponinfo_t * weaponInfo = cgs.weaponInfos[ weaponid ];
 
 	entity_t weapon = { };
 	weapon.color = rgba8_white;

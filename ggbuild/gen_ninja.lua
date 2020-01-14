@@ -37,7 +37,7 @@ configs[ "linux" ] = {
 	cxx = "g++",
 
 	cxxflags = "-c -fdiagnostics-color",
-	ldflags = "",
+	ldflags = "-fuse-ld=gold",
 }
 
 configs[ "linux-debug" ] = {

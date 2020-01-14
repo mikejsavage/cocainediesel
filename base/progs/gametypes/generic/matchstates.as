@@ -98,10 +98,12 @@ void GENERIC_SetUpMatch()
 
 	// clear player stats and scores, team scores and respawn clients in team lists
 
+	match.alphaScore = 0;
+	match.betaScore = 0;
+
 	for ( i = TEAM_PLAYERS; i < GS_MAX_TEAMS; i++ )
 	{
 		@team = @G_GetTeam( i );
-		team.score = 0;
 
 		// respawn all clients inside the playing teams
 		for ( j = 0; @team.ent( j ) != null; j++ )
@@ -146,14 +148,7 @@ void GENERIC_SetUpEndMatch()
 	// print scores to console
 	if ( gametype.isTeamBased )
 	{
-		Team @team1 = @G_GetTeam( TEAM_ALPHA );
-		Team @team2 = @G_GetTeam( TEAM_BETA );
-
-		String sC1 = (team1.score < team2.score ? S_COLOR_RED : S_COLOR_GREEN);
-		String sC2 = (team2.score < team1.score ? S_COLOR_RED : S_COLOR_GREEN);
-
-		G_PrintMsg( null, S_COLOR_YELLOW + "Final score: " + S_COLOR_WHITE + team1.name + S_COLOR_WHITE + " vs " +
-			team2.name + S_COLOR_WHITE + " - " + match.getScore() + "\n" );
+		G_PrintMsg( null, S_COLOR_YELLOW + "Final score: " + match.getScore() + "\n" );
 	}
 
 	int soundIndex = G_SoundIndex( "sounds/announcer/postmatch/game_over0" + random_uniform( 1, 3 ) );
@@ -231,14 +226,8 @@ Entity @GENERIC_SelectBestRandomSpawnPoint( Entity @self, String &className )
 
 void GENERIC_UpdateMatchScore()
 {
-	if ( gametype.isTeamBased )
-	{
-		Team @team1 = @G_GetTeam( TEAM_ALPHA );
-		Team @team2 = @G_GetTeam( TEAM_BETA );
-
-		String score = team1.score + " : " + team2.score;
-
-		match.setScore( score );
+	if( gametype.isTeamBased ) {
+		match.setScore( match.alphaScore + " : " + match.betaScore );
 		return;
 	}
 

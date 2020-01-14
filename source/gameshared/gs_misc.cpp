@@ -18,17 +18,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "q_arch.h"
-#include "q_math.h"
-#include "q_shared.h"
-#include "q_comref.h"
-#include "q_collision.h"
-#include "gs_public.h"
+#include "gameshared/q_arch.h"
+#include "gameshared/q_math.h"
+#include "gameshared/q_shared.h"
+#include "gameshared/q_collision.h"
+#include "gameshared/gs_public.h"
 
 /*
 * GS_TouchPushTrigger
 */
-void GS_TouchPushTrigger( const gs_state_t * gs, player_state_t *playerState, entity_state_t *pusher ) {
+void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState *playerState, SyncEntityState *pusher ) {
 	// spectators don't use jump pads
 	if( playerState->pmove.pm_type != PM_NORMAL ) {
 		return;
@@ -46,7 +45,7 @@ void GS_TouchPushTrigger( const gs_state_t * gs, player_state_t *playerState, en
 /*
 * GS_WaterLevel
 */
-int GS_WaterLevel( const gs_state_t * gs, entity_state_t *state, vec3_t mins, vec3_t maxs ) {
+int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, vec3_t mins, vec3_t maxs ) {
 	vec3_t point;
 	int cont;
 	int waterlevel;

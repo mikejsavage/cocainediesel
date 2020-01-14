@@ -45,9 +45,6 @@ uint roundCount;
 int attackingTeam;
 int defendingTeam;
 
-uint alphaAliveAtStart;
-uint betaAliveAtStart;
-
 bool attackersHurried;
 bool defendersHurried;
 
@@ -75,7 +72,7 @@ void playerKilled( Entity @victim, Entity @attacker, Entity @inflictor ) {
 
 		player.killsThisRound++;
 
-		int required_for_bongo = attacker.team == TEAM_ALPHA ? betaAliveAtStart : alphaAliveAtStart;
+		int required_for_bongo = attacker.team == TEAM_ALPHA ? match.betaPlayersTotal : match.alphaPlayersTotal;
 		if( required_for_bongo >= 3 && player.killsThisRound == required_for_bongo ) {
 			player.client.addAward( S_COLOR_YELLOW + "King of Bongo!" );
 
@@ -177,8 +174,6 @@ void newGame() {
 
 		Team @team = @G_GetTeam( t );
 
-		team.score = 0;
-
 		for( int i = 0; @team.ent( i ) != null; i++ ) {
 			team.ent( i ).client.stats.clear();
 		}
@@ -201,7 +196,12 @@ void roundWonBy( int winner ) {
 
 	Team @teamWinner = @G_GetTeam( winner );
 
-	teamWinner.score += 1;
+	if( winner == TEAM_ALPHA ) {
+		match.alphaScore++;
+	}
+	else {
+		match.betaScore++;
+	}
 
 	for( int i = 0; @teamWinner.ent( i ) != null; i++ ) {
 		Entity @ent = @teamWinner.ent( i );
@@ -225,7 +225,7 @@ void endGame() {
 }
 
 bool scoreLimitHit() {
-	return match.scoreLimitHit() && abs( G_GetTeam( TEAM_ALPHA ).score - G_GetTeam( TEAM_BETA ).score ) > 1;
+	return match.scoreLimitHit() && abs( int( match.alphaScore ) - int( match.betaScore ) ) > 1;
 }
 
 void setRoundType() {
@@ -233,14 +233,11 @@ void setRoundType() {
 
 	uint limit = cvarScoreLimit.integer;
 
-	uint alpha_score = G_GetTeam( TEAM_ALPHA ).score;
-	uint beta_score = G_GetTeam( TEAM_BETA ).score;
-
-	bool match_point = alpha_score == limit - 1 || beta_score == limit - 1;
+	bool match_point = match.alphaScore == limit - 1 || match.betaScore == limit - 1;
 	bool overtime = roundCount > ( limit - 1 ) * 2;
 
 	if( overtime ) {
-		type = alpha_score == beta_score ? RoundType_Overtime : RoundType_OvertimeMatchPoint;
+		type = match.alphaScore == match.betaScore ? RoundType_Overtime : RoundType_OvertimeMatchPoint;
 	}
 	else if( match_point ) {
 		type = RoundType_MatchPoint;
@@ -251,7 +248,7 @@ void setRoundType() {
 
 		for( int i = 0; @team.ent( i ) != null; i++ ) {
 			Client @client = @team.ent( i ).client;
-			client.setHUDStat( STAT_ROUND_TYPE, int( type ) );
+			match.roundType = type;
 		}
 	}
 }
@@ -364,8 +361,8 @@ void roundThink() {
 			}
 		}
 
-		alphaAliveAtStart = playersAliveOnTeam( TEAM_ALPHA );
-		betaAliveAtStart = playersAliveOnTeam( TEAM_BETA );
+		match.alphaPlayersTotal = playersAliveOnTeam( TEAM_ALPHA );
+		match.betaPlayersTotal = playersAliveOnTeam( TEAM_BETA );
 
 		last_time = roundStateEndTime - levelTime + int( cvarRoundTime.value * 1000.0f );
 		match.setClockOverride( last_time );

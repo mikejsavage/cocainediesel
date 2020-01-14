@@ -18,8 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "qcommon.h"
-#include "snap_read.h"
+#include "qcommon/qcommon.h"
+#include "cgame/cg_public.h"
 
 /*
 =========================================================================
@@ -69,7 +69,7 @@ static void SNAP_ParseDeltaGameState( msg_t *msg, snapshot_t *oldframe, snapshot
 /*
 * SNAP_ParsePlayerstate
 */
-static void SNAP_ParsePlayerstate( msg_t *msg, const player_state_t *oldstate, player_state_t *state ) {
+static void SNAP_ParsePlayerstate( msg_t *msg, const SyncPlayerState *oldstate, SyncPlayerState *state ) {
 	MSG_ReadDeltaPlayerState( msg, oldstate, state );
 }
 
@@ -78,8 +78,8 @@ static void SNAP_ParsePlayerstate( msg_t *msg, const player_state_t *oldstate, p
 *
 * Parses deltas from the given base and adds the resulting entity to the current frame
 */
-static void SNAP_ParseDeltaEntity( msg_t *msg, snapshot_t *frame, int newnum, entity_state_t *old ) {
-	entity_state_t * state = &frame->parsedEntities[frame->numEntities & ( MAX_PARSE_ENTITIES - 1 )];
+static void SNAP_ParseDeltaEntity( msg_t *msg, snapshot_t *frame, int newnum, SyncEntityState *old ) {
+	SyncEntityState * state = &frame->parsedEntities[frame->numEntities & ( MAX_PARSE_ENTITIES - 1 )];
 	frame->numEntities++;
 	MSG_ReadDeltaEntity( msg, old, state );
 	state->number = newnum;
@@ -88,13 +88,13 @@ static void SNAP_ParseDeltaEntity( msg_t *msg, snapshot_t *frame, int newnum, en
 /*
 * SNAP_ParseBaseline
 */
-void SNAP_ParseBaseline( msg_t *msg, entity_state_t *baselines ) {
+void SNAP_ParseBaseline( msg_t *msg, SyncEntityState *baselines ) {
 	bool remove;
 	int newnum = MSG_ReadEntityNumber( msg, &remove );
 	assert( !remove );
 
 	if( !remove ) {
-		entity_state_t nullstate = { };
+		SyncEntityState nullstate = { };
 		MSG_ReadDeltaEntity( msg, &nullstate, &baselines[newnum] );
 		baselines[ newnum ].number = newnum;
 	}
@@ -106,10 +106,10 @@ void SNAP_ParseBaseline( msg_t *msg, entity_state_t *baselines ) {
 * An svc_packetentities has just been parsed, deal with the
 * rest of the data stream.
 */
-static void SNAP_ParsePacketEntities( msg_t *msg, snapshot_t *oldframe, snapshot_t *newframe, entity_state_t *baselines, int shownet ) {
+static void SNAP_ParsePacketEntities( msg_t *msg, snapshot_t *oldframe, snapshot_t *newframe, SyncEntityState *baselines, int shownet ) {
 	int newnum;
 	bool remove;
-	entity_state_t *oldstate = NULL;
+	SyncEntityState *oldstate = NULL;
 	int oldindex, oldnum;
 
 	newframe->numEntities = 0;
@@ -234,7 +234,7 @@ static void SNAP_ParsePacketEntities( msg_t *msg, snapshot_t *oldframe, snapshot
 /*
 * SNAP_ParseFrameHeader
 */
-static snapshot_t *SNAP_ParseFrameHeader( msg_t *msg, snapshot_t *newframe, snapshot_t *backup, bool skipBody ) {
+static snapshot_t *SNAP_ParseFrameHeader( msg_t *msg, snapshot_t *newframe, snapshot_t *backup ) {
 	int len, pos;
 	int areabytes;
 	uint8_t *areabits;
@@ -293,30 +293,16 @@ static snapshot_t *SNAP_ParseFrameHeader( msg_t *msg, snapshot_t *newframe, snap
 			} else {
 				newframe->valid = true; // valid delta parse
 			}
-		} else {
-			newframe->valid = skipBody;
 		}
-	}
-
-	if( skipBody ) {
-		MSG_SkipData( msg, len - ( msg->readcount - pos ) );
 	}
 
 	return newframe;
 }
 
 /*
-* SNAP_SkipFrame
-*/
-void SNAP_SkipFrame( msg_t *msg, snapshot_t *header ) {
-	static snapshot_t frame;
-	SNAP_ParseFrameHeader( msg, header ? header : &frame, NULL, true );
-}
-
-/*
 * SNAP_ParseFrame
 */
-snapshot_t *SNAP_ParseFrame( msg_t *msg, snapshot_t *lastFrame, snapshot_t *backup, entity_state_t *baselines, int showNet ) {
+snapshot_t *SNAP_ParseFrame( msg_t *msg, snapshot_t *lastFrame, snapshot_t *backup, SyncEntityState *baselines, int showNet ) {
 	size_t len;
 	snapshot_t  *deltaframe;
 	int numplayers;
@@ -326,7 +312,7 @@ snapshot_t *SNAP_ParseFrame( msg_t *msg, snapshot_t *lastFrame, snapshot_t *back
 	snapshot_t  *newframe;
 
 	// read header
-	newframe = SNAP_ParseFrameHeader( msg, NULL, backup, false );
+	newframe = SNAP_ParseFrameHeader( msg, NULL, backup );
 	deltaframe = NULL;
 
 	if( showNet == 3 ) {

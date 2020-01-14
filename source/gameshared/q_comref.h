@@ -20,16 +20,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include "q_arch.h"
+#include "gameshared/q_arch.h"
 
 //
 // button bits
 //
-#define BUTTON_NONE                 0
 #define BUTTON_ATTACK               1
 #define BUTTON_WALK                 2
 #define BUTTON_SPECIAL              4
 #define BUTTON_ZOOM                 8
+#define BUTTON_RELOAD               16
 
 enum {
 	KEYICON_FORWARD = 0,
@@ -46,32 +46,6 @@ enum {
 // user command communications
 #define CMD_BACKUP  64  // allow a lot of command backups for very fast systems
 #define CMD_MASK    ( CMD_BACKUP - 1 )
-
-// usercmd_t is sent to the server each client frame
-typedef struct usercmd_s {
-	uint8_t msec;
-	uint32_t buttons;
-	int64_t serverTimeStamp;
-	int16_t angles[3];
-	int8_t forwardmove, sidemove, upmove;
-} usercmd_t;
-
-#define MAX_PM_STATS 16
-
-enum {
-	PM_STAT_FEATURES,
-	PM_STAT_NOUSERCONTROL,
-	PM_STAT_KNOCKBACK,
-	PM_STAT_CROUCHTIME,
-	PM_STAT_ZOOMTIME,
-	PM_STAT_DASHTIME,
-	PM_STAT_WJTIME,
-	PM_STAT_MAXSPEED,
-	PM_STAT_JUMPSPEED,
-	PM_STAT_DASHSPEED,
-
-	PM_STAT_SIZE = MAX_PM_STATS
-};
 
 // pmove_state_t is the information necessary for client side movement
 // prediction
@@ -99,41 +73,13 @@ typedef enum {
 #define PMF_DOUBLEJUMPED    ( 1 << 9 )  // DJ stat flag
 #define PMF_JUMPPAD_TIME    ( 1 << 10 ) // temporarily disables fall damage
 
-typedef struct {
-	int pm_type;
-
-	float origin[3];
-	float velocity[3];
-
-	int pm_flags;               // ducked, jump_held, etc
-	int pm_time;                // each unit = 8 ms
-	short stats[PM_STAT_SIZE];  // Kurim : timers for knockback, doublejump, walljump
-	int gravity;
-	short delta_angles[3];      // add to command angles to get view direction
-	                            // changed by spawns, rotating objects, and teleporters
-} pmove_state_t;
-
-#define MAXTOUCH    32
-
-
-//==========================================================
-//
-//  ELEMENTS COMMUNICATED ACROSS THE NET
-//
-//==========================================================
-
-
 // note that Q_rint was causing problems here
 // (spawn looking straight up\down at delta_angles wrapping)
 
 #define ANGLE2SHORT( x )    ( (int)( ( x ) * 65536 / 360 ) & 65535 )
 #define SHORT2ANGLE( x )    ( ( x ) * ( 360.0 / 65536 ) )
 
-#define ANGLE2BYTE( x )     ( (int)( ( x ) * 256 / 360 ) & 255 )
-#define BYTE2ANGLE( x )     ( ( x ) * ( 360.0 / 256 ) )
-
 #define MAX_GAMECOMMANDS    256     // command names for command completion
-#define MAX_WEAPONDEFS      MAX_ITEMS
 
 //
 // config strings are a general means of communication from
@@ -165,10 +111,7 @@ typedef struct {
 #define CS_IMAGES           ( CS_SOUNDS + MAX_SOUNDS )
 #define CS_PLAYERINFOS      ( CS_IMAGES + MAX_IMAGES )
 #define CS_GAMECOMMANDS     ( CS_PLAYERINFOS + MAX_CLIENTS )
-#define CS_WEAPONDEFS       ( CS_GAMECOMMANDS + MAX_GAMECOMMANDS )
-#define CS_GENERAL          ( CS_WEAPONDEFS + MAX_WEAPONDEFS )
-
-#define MAX_CONFIGSTRINGS   ( CS_GENERAL + MAX_GENERAL )
+#define MAX_CONFIGSTRINGS   ( CS_GAMECOMMANDS + MAX_GAMECOMMANDS )
 
 //==============================================
 
@@ -178,7 +121,7 @@ constexpr const char * MASTER_SERVERS[] = { "dpmaster.deathmask.net", "ghdigital
 #define LAN_SERVER_PINGING_TIMEOUT          20
 #define DEFAULT_PLAYERMODEL                 "bigvic"
 
-// entity_state_t is the information conveyed from the server
+// SyncEntityState is the information conveyed from the server
 // in an update message about entities that the client will
 // need to render in some way
 
@@ -205,76 +148,11 @@ typedef enum {
 
 #define SOLID_BMODEL    31  // special value for bmodel
 
-// entity_state_t->event values
+// SyncEntityState->event values
 // entity events are for effects that take place relative
 // to an existing entities origin. Very network efficient.
 
-#define EVENT_ENTITIES_START    96 // entity types above this index will get event treatment
-#define ISEVENTENTITY( x ) ( ( (entity_state_t *)x )->type >= EVENT_ENTITIES_START )
-
-//==============================================
-
-typedef struct entity_state_s {
-	int number;                         // edict index
-
-	unsigned int svflags;
-
-	int type;                           // ET_GENERIC, ET_BEAM, etc
-
-	// for client side prediction, 8*(bits 0-4) is x/y radius
-	// 8*(bits 5-9) is z down distance, 8(bits10-15) is z up
-	// GClip_LinkEntity sets this properly
-	int solid;
-
-	vec3_t origin;
-	vec3_t angles;
-	vec3_t origin2;                 // ET_BEAM, ET_EVENT specific
-
-	unsigned int modelindex;
-	unsigned int modelindex2;
-
-	int bodyOwner;                  // ET_PLAYER specific, for dead bodies
-	int channel;                    // ET_SOUNDEVENT
-
-	int ownerNum;                   // ET_EVENT specific
-
-	unsigned int effects;
-
-	// impulse events -- muzzle flashes, footsteps, etc
-	// events only go out for a single frame, they
-	// are automatically cleared each frame
-	int events[2];
-	int eventParms[2];
-
-	int counterNum;                 // ET_GENERIC
-	int damage;                     // EV_BLOOD
-	int targetNum;                  // ET_EVENT specific
-	int colorRGBA;                  // ET_BEAM, ET_EVENT specific
-	RGBA8 silhouetteColor;
-	int radius;                     // ET_GLADIATOR always extended, ET_HUD type, ...
-
-	bool linearMovement;
-	vec3_t linearMovementVelocity;      // this is transmitted instead of origin when linearProjectile is true
-	vec3_t linearMovementEnd;           // the end movement point for brush models
-	vec3_t linearMovementBegin;			// the starting movement point for brush models
-	unsigned int linearMovementDuration;
-	int64_t linearMovementTimeStamp;
-
-	float attenuation;                  // should be <= 255/16.0 as this is sent as byte
-
-	// server will use this for sound culling in case
-	// the entity has an event attached to it (along with
-	// PVS culling)
-
-	int weapon;                         // WEAP_ for players
-	bool teleported;
-
-	int sound;                          // for looping sounds, to guarantee shutoff
-
-	int light;							// constant light glow
-
-	int team;                           // team in the game
-} entity_state_t;
+#define ISEVENTENTITY( x ) ( ( (SyncEntityState *)x )->type >= EVENT_ENTITIES_START )
 
 //==============================================
 
@@ -330,77 +208,3 @@ typedef enum {
 	HTTP_RESP_REQUESTED_RANGE_NOT_SATISFIABLE = 416,
 	HTTP_RESP_SERVICE_UNAVAILABLE = 503,
 } http_response_code_t;
-
-//==============================================
-
-typedef struct {
-	u32 flags;
-	int match_state;
-	int64_t match_start;
-	int64_t match_duration;
-	int64_t clock_override;
-	u8 max_team_players;
-} game_state_t;
-
-//==============================================
-
-#define MAX_PARSE_GAMECOMMANDS  256
-
-typedef struct {
-	bool all;
-	uint8_t targets[MAX_CLIENTS / 8];
-	size_t commandOffset;           // offset of the data in gamecommandsData
-} gcommand_t;
-
-//==============================================
-
-// player_state_t is the information needed in addition to pmove_state_t
-// to rendered a view.  There will only be 10 player_state_t sent each second,
-// but the number of pmove_state_t changes will be relative to client
-// frame rates
-#define PS_MAX_STATS            64
-
-typedef struct {
-	pmove_state_t pmove;        // for prediction
-
-	// these fields do not need to be communicated bit-precise
-
-	vec3_t viewangles;          // for fixed views
-
-	int event[2], eventParm[2];
-	unsigned int POVnum;        // entity number of the player in POV
-	unsigned int playerNum;     // client number
-	float viewheight;
-	float fov;                  // horizontal field of view (unused)
-
-	int inventory[MAX_ITEMS];
-	short stats[PS_MAX_STATS];  // fast status bar updates
-	uint32_t plrkeys;           // infos on the pressed keys of chased player (self if not chasing)
-	uint8_t weaponState;
-} player_state_t;
-
-typedef struct {
-	// state (in / out)
-	player_state_t *playerState;
-
-	// command (in)
-	usercmd_t cmd;
-
-	// results (out)
-	int numtouch;
-	int touchents[MAXTOUCH];
-	float step;                 // used for smoothing the player view
-
-	vec3_t mins, maxs;          // bounding box size
-
-	int groundentity;
-	cplane_t groundplane;       // valid if groundentity >= 0
-	int groundsurfFlags;        // valid if groundentity >= 0
-	int groundcontents;         // valid if groundentity >= 0
-	int watertype;
-	int waterlevel;
-
-	int contentmask;
-
-	bool ladder;
-} pmove_t;

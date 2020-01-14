@@ -45,43 +45,33 @@ if %MATCH_STATE == #MATCH_STATE_PLAYTIME
 	moveCursor 0, 3
 	drawClock
 
-	// scores
-	setFontStyle bold
-
-	if %TEAM_ALPHA_SCORE != #NOTSET
+	if %TEAMBASED
+		// scores
+		setFontStyle bold
 		moveCursor -50 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
 
 		setColorToTeamColor #TEAM_ALPHA
-		drawStringNum %TEAM_ALPHA_SCORE
+		drawStringNum %ALPHA_SCORE
 
-		moveCursor 50 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
-	endif
-
-	if %TEAM_BETA_SCORE != #NOTSET
-		moveCursor 50 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+		moveCursor 100 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
 
 		setColorToTeamColor #TEAM_BETA
-		drawStringNum %TEAM_BETA_SCORE
+		drawStringNum %BETA_SCORE
 
 		moveCursor -50 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
-	endif
 
-	// player icons
-	setCursor #WIDTH / 2, 7
+		// player icons
+		setCursor #WIDTH / 2, 7
 
-	if %ALPHA_PLAYERS_TOTAL
 		setAlignment right top
 		moveCursor -90 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
 
 		setColor 0.2 0.2 0.2 1
 		drawPlayerIcons #TEAM_ALPHA, %ALPHA_PLAYERS_ALIVE, %ALPHA_PLAYERS_TOTAL
 
-		moveCursor 90 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
-	endif
+		moveCursor 180 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
 
-	if %BETA_PLAYERS_TOTAL
 		setAlignment left top
-		moveCursor 90 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
 
 		setColor 0.2 0.2 0.2 1
 		drawPlayerIcons #TEAM_BETA, %BETA_PLAYERS_ALIVE, %BETA_PLAYERS_TOTAL

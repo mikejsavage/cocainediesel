@@ -1633,7 +1633,6 @@ static void CG_DemoEditMode_Cmd_f( void ) {
 */
 void CG_DemocamInit( void ) {
 	int name_size;
-	bool hassoundstream = false;
 
 	democam_editing_mode = false;
 	demo_time = 0;
@@ -1662,24 +1661,6 @@ void CG_DemocamInit( void ) {
 
 	if( CG_LoadRecamScriptFile( demoscriptname ) ) {
 		Com_Printf( "Loaded demo cam script\n" );
-	}
-
-	// check for a sound stream file
-	cgs.demoAudioStream = ( char * )CG_Malloc( name_size );
-	snprintf( cgs.demoAudioStream, name_size, "%s", cgs.demoName );
-	COM_ReplaceExtension( cgs.demoAudioStream, ".wav", name_size );
-	if( FS_FOpenFile( cgs.demoAudioStream, NULL, FS_READ ) != -1 ) {
-		hassoundstream = true;
-	} else {
-		COM_ReplaceExtension( cgs.demoAudioStream, ".ogg", name_size );
-		if( FS_FOpenFile( cgs.demoAudioStream, NULL, FS_READ ) != -1 ) {
-			hassoundstream = true;
-		}
-	}
-
-	if( !hassoundstream ) {
-		CG_Free( cgs.demoAudioStream );
-		cgs.demoAudioStream = NULL;
 	}
 }
 

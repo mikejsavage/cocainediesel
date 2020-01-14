@@ -764,7 +764,7 @@ void CG_GenericExplosion( const vec3_t pos, const vec3_t dir, float radius ) {
 	S_StartFixedSound( cgs.media.sfxRocketLauncherHit, FromQF3( pos ), CHAN_AUTO, cg_volume_effects->value, ATTN_DISTANT );
 }
 
-void CG_Dash( const entity_state_t *state ) {
+void CG_Dash( const SyncEntityState *state ) {
 	LocalEntity *le;
 	vec3_t pos, dvect, angle = { 0, 0, 0 };
 

@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-#include "g_local.h"
+#include "game/g_local.h"
 
 /*
 * G_Teleport
@@ -146,17 +146,14 @@ static void Cmd_GameOperator_f( edict_t *ent ) {
 * Cmd_Use_f
 * Use an inventory item
 */
-static void Cmd_Use_f( edict_t *ent ) {
-	const gsitem_t *it;
+static void Cmd_Use_f( edict_t * ent ) {
+	const char * name = Cmd_Args();
 
-	assert( ent && ent->r.client );
-
-	it = GS_Cmd_UseItem( &server_gs, &ent->r.client->ps, Cmd_Args(), 0 );
-	if( !it ) {
-		return;
+	const char * err = NULL;
+	int num = strtonum( name, 0, Weapon_Count, &err );
+	if( err == NULL && GS_CanEquip( &ent->r.client->ps, num ) ) {
+		ent->r.client->ps.pending_weapon = num;
 	}
-
-	G_UseItem( ent, it );
 }
 
 /*
@@ -737,17 +734,9 @@ char *G_StatsMessage( edict_t *ent ) {
 	// message header
 	snprintf( entry, sizeof( entry ), "%d", PLAYERNUM( ent ) );
 
-	for( int i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
-		const gsitem_t * item = GS_FindItemByTag( i );
-		assert( item );
-
-		int hit = 0;
-		int shot = 0;
-
-		if( item->ammo_tag != AMMO_NONE ) {
-			hit = client->level.stats.accuracy_hits[item->ammo_tag - AMMO_GUNBLADE];
-			shot = client->level.stats.accuracy_shots[item->ammo_tag - AMMO_GUNBLADE];
-		}
+	for( int i = 0; i < Weapon_Count; i++ ) {
+		int hit = client->level.stats.accuracy_hits[ i ];
+		int shot = client->level.stats.accuracy_shots[ i ];
 
 		Q_strncatz( entry, va( " %d", shot ), sizeof( entry ) );
 		if( shot < 1 ) {
@@ -871,12 +860,7 @@ void G_AddCommand( const char *name, gamecommandfunc_t callback ) {
 * G_InitGameCommands
 */
 void G_InitGameCommands( void ) {
-	int i;
-
-	for( i = 0; i < MAX_GAMECOMMANDS; i++ ) {
-		g_Commands[i].func = NULL;
-		g_Commands[i].name[0] = 0;
-	}
+	memset( g_Commands, 0, sizeof( g_Commands ) );
 
 	G_AddCommand( "position", Cmd_Position_f );
 	G_AddCommand( "players", Cmd_Players_f );

@@ -499,7 +499,7 @@ char *MSG_ReadStringLine( msg_t *msg ) {
 // DELTA ENTITIES
 //==================================================
 
-static void Delta( DeltaBuffer * buf, entity_state_t & ent, const entity_state_t & baseline ) {
+static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntityState & baseline ) {
 	Delta( buf, ent.events[ 0 ], baseline.events[ 0 ] );
 	Delta( buf, ent.eventParms[ 0 ], baseline.eventParms[ 0 ] );
 
@@ -616,11 +616,11 @@ int MSG_ReadEntityNumber( msg_t *msg, bool *remove ) {
 	return number >> 1;
 }
 
-void MSG_WriteDeltaEntity( msg_t * msg, const entity_state_t * baseline, const entity_state_t * ent, bool force ) {
+void MSG_WriteDeltaEntity( msg_t * msg, const SyncEntityState * baseline, const SyncEntityState * ent, bool force ) {
 	u8 buf[ MAX_MSGLEN ];
 	DeltaBuffer delta = DeltaWriter( buf, sizeof( buf ) );
 
-	Delta( &delta, *const_cast< entity_state_t * >( ent ), * baseline );
+	Delta( &delta, *const_cast< SyncEntityState * >( ent ), * baseline );
 
 	bool changed = false;
 	for( u8 x : delta.field_mask ) {
@@ -638,7 +638,7 @@ void MSG_WriteDeltaEntity( msg_t * msg, const entity_state_t * baseline, const e
 	MSG_WriteDeltaBuffer( msg, delta );
 }
 
-void MSG_ReadDeltaEntity( msg_t * msg, const entity_state_t * baseline, entity_state_t * ent ) {
+void MSG_ReadDeltaEntity( msg_t * msg, const SyncEntityState * baseline, SyncEntityState * ent ) {
 	DeltaBuffer delta = MSG_StartReadingDeltaBuffer( msg );
 	Delta( &delta, *ent, *baseline );
 	MSG_FinishReadingDeltaBuffer( msg, delta );
@@ -720,7 +720,7 @@ void MSG_ReadDeltaUsercmd( msg_t * msg, const usercmd_t * baseline, usercmd_t * 
 //
 // 	{ PSOFS( pmove.gravity ), 32, 1, WIRE_UBASE128 },
 //
-// 	{ PSOFS( weaponState ), 8, 1, WIRE_FIXED_INT8 },
+// 	{ PSOFS( weapon_state ), 8, 1, WIRE_FIXED_INT8 },
 //
 // 	{ PSOFS( fov ), 0, 1, WIRE_HALF_FLOAT },
 //
@@ -754,7 +754,12 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 	Delta( buf, pmove.stats, baseline.stats );
 }
 
-static void Delta( DeltaBuffer * buf, player_state_t & player, const player_state_t & baseline ) {
+static void Delta( DeltaBuffer * buf, SyncPlayerState::WeaponInfo & weapon, const SyncPlayerState::WeaponInfo & baseline ) {
+	Delta( buf, weapon.owned, baseline.owned );
+	Delta( buf, weapon.ammo, baseline.ammo );
+}
+
+static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayerState & baseline ) {
 	Delta( buf, player.pmove, baseline.pmove );
 
 	Delta( buf, player.event, baseline.event );
@@ -762,7 +767,7 @@ static void Delta( DeltaBuffer * buf, player_state_t & player, const player_stat
 
 	DeltaAngle( buf, player.viewangles, baseline.viewangles );
 
-	Delta( buf, player.weaponState, baseline.weaponState );
+	Delta( buf, player.weapon_state, baseline.weapon_state );
 
 	DeltaHalf( buf, player.fov, baseline.fov );
 
@@ -773,13 +778,35 @@ static void Delta( DeltaBuffer * buf, player_state_t & player, const player_stat
 
 	Delta( buf, player.plrkeys, baseline.plrkeys );
 
-	Delta( buf, player.stats, baseline.stats );
+	Delta( buf, player.weapons, baseline.weapons );
+	Delta( buf, player.items, baseline.items );
 
-	Delta( buf, player.inventory, baseline.inventory );
+	Delta( buf, player.show_scoreboard, baseline.show_scoreboard );
+	Delta( buf, player.ready, baseline.ready );
+	Delta( buf, player.voted, baseline.voted );
+	Delta( buf, player.can_change_loadout, baseline.can_change_loadout );
+	Delta( buf, player.can_plant, baseline.can_plant );
+	Delta( buf, player.carrying_bomb, baseline.carrying_bomb );
+
+	Delta( buf, player.health, baseline.health );
+
+	Delta( buf, player.weapon, baseline.weapon );
+	Delta( buf, player.pending_weapon, baseline.pending_weapon );
+	Delta( buf, player.weapon_time, baseline.weapon_time );
+
+	Delta( buf, player.team, baseline.team );
+	Delta( buf, player.real_team, baseline.real_team );
+
+	Delta( buf, player.progress_type, baseline.progress_type );
+	Delta( buf, player.progress, baseline.progress );
+
+	Delta( buf, player.last_killer, baseline.last_killer );
+	Delta( buf, player.pointed_player, baseline.pointed_player );
+	Delta( buf, player.pointed_health, baseline.pointed_health );
 }
 
-void MSG_WriteDeltaPlayerState( msg_t * msg, const player_state_t * baseline, const player_state_t * player ) {
-	static player_state_t dummy;
+void MSG_WriteDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, const SyncPlayerState * player ) {
+	static SyncPlayerState dummy;
 	if( baseline == NULL ) {
 		baseline = &dummy;
 	}
@@ -787,13 +814,13 @@ void MSG_WriteDeltaPlayerState( msg_t * msg, const player_state_t * baseline, co
 	u8 buf[ MAX_MSGLEN ];
 	DeltaBuffer delta = DeltaWriter( buf, sizeof( buf ) );
 
-	Delta( &delta, *const_cast< player_state_t * >( player ), *baseline );
+	Delta( &delta, *const_cast< SyncPlayerState * >( player ), *baseline );
 
 	MSG_WriteDeltaBuffer( msg, delta );
 }
 
-void MSG_ReadDeltaPlayerState( msg_t * msg, const player_state_t * baseline, player_state_t * player ) {
-	static player_state_t dummy;
+void MSG_ReadDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, SyncPlayerState * player ) {
+	static SyncPlayerState dummy;
 	if( baseline == NULL ) {
 		baseline = &dummy;
 	}
@@ -807,17 +834,28 @@ void MSG_ReadDeltaPlayerState( msg_t * msg, const player_state_t * baseline, pla
 // DELTA GAME STATES
 //==================================================
 
-static void Delta( DeltaBuffer * buf, game_state_t & state, const game_state_t & baseline ) {
+static void Delta( DeltaBuffer * buf, SyncBombGameState & bomb, const SyncBombGameState & baseline ) {
+	Delta( buf, bomb.alpha_score, baseline.alpha_score );
+	Delta( buf, bomb.beta_score, baseline.beta_score );
+	Delta( buf, bomb.alpha_players_alive, baseline.alpha_players_alive );
+	Delta( buf, bomb.alpha_players_total, baseline.alpha_players_total );
+	Delta( buf, bomb.beta_players_alive, baseline.beta_players_alive );
+	Delta( buf, bomb.beta_players_total, baseline.beta_players_total );
+}
+
+static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState & baseline ) {
 	Delta( buf, state.flags, baseline.flags );
 	Delta( buf, state.match_state, baseline.match_state );
 	Delta( buf, state.match_start, baseline.match_start );
 	Delta( buf, state.match_duration, baseline.match_duration );
 	Delta( buf, state.clock_override, baseline.clock_override );
+	Delta( buf, state.round_type, baseline.round_type );
 	Delta( buf, state.max_team_players, baseline.max_team_players );
+	Delta( buf, state.bomb, baseline.bomb );
 }
 
-void MSG_WriteDeltaGameState( msg_t * msg, const game_state_t * baseline, const game_state_t * state ) {
-	static game_state_t dummy;
+void MSG_WriteDeltaGameState( msg_t * msg, const SyncGameState * baseline, const SyncGameState * state ) {
+	static SyncGameState dummy;
 	if( baseline == NULL ) {
 		baseline = &dummy;
 	}
@@ -825,13 +863,13 @@ void MSG_WriteDeltaGameState( msg_t * msg, const game_state_t * baseline, const 
 	u8 buf[ MAX_MSGLEN ];
 	DeltaBuffer delta = DeltaWriter( buf, sizeof( buf ) );
 
-	Delta( &delta, *const_cast< game_state_t * >( state ), *baseline );
+	Delta( &delta, *const_cast< SyncGameState * >( state ), *baseline );
 
 	MSG_WriteDeltaBuffer( msg, delta );
 }
 
-void MSG_ReadDeltaGameState( msg_t * msg, const game_state_t * baseline, game_state_t * state ) {
-	static game_state_t dummy;
+void MSG_ReadDeltaGameState( msg_t * msg, const SyncGameState * baseline, SyncGameState * state ) {
+	static SyncGameState dummy;
 	if( baseline == NULL ) {
 		baseline = &dummy;
 	}

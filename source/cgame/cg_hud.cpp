@@ -61,7 +61,7 @@ typedef struct
 } constant_numeric_t;
 
 static const constant_numeric_t cg_numeric_constants[] = {
-	{ "NOTSET", STAT_NOTSET },
+	{ "NOTSET", 9999 },
 
 	// teams
 	{ "TEAM_SPECTATOR", TEAM_SPECTATOR },
@@ -83,14 +83,14 @@ static const constant_numeric_t cg_numeric_constants[] = {
 	{ "MATCH_STATE_WAITEXIT", MATCH_STATE_WAITEXIT },
 
 	// weapon
-	{ "WEAP_GUNBLADE", WEAP_GUNBLADE },
-	{ "WEAP_MACHINEGUN", WEAP_MACHINEGUN },
-	{ "WEAP_RIOTGUN", WEAP_RIOTGUN },
-	{ "WEAP_GRENADELAUNCHER", WEAP_GRENADELAUNCHER },
-	{ "WEAP_ROCKETLAUNCHER", WEAP_ROCKETLAUNCHER },
-	{ "WEAP_PLASMAGUN", WEAP_PLASMAGUN },
-	{ "WEAP_LASERGUN", WEAP_LASERGUN },
-	{ "WEAP_ELECTROBOLT", WEAP_ELECTROBOLT },
+	{ "Weapon_Knife", Weapon_Knife },
+	{ "Weapon_MachineGun", Weapon_MachineGun },
+	{ "Weapon_Shotgun", Weapon_Shotgun },
+	{ "Weapon_GrenadeLauncher", Weapon_GrenadeLauncher },
+	{ "Weapon_RocketLauncher", Weapon_RocketLauncher },
+	{ "Weapon_Plasma", Weapon_Plasma },
+	{ "Weapon_Laser", Weapon_Laser },
+	{ "Weapon_Railgun", Weapon_Railgun },
 
 	{ "CS_CALLVOTE", CS_CALLVOTE },
 	{ "CS_CALLVOTE_REQUIRED_VOTES", CS_CALLVOTE_REQUIRED_VOTES },
@@ -111,18 +111,28 @@ static const constant_numeric_t cg_numeric_constants[] = {
 
 //=============================================================================
 
-static int CG_GetStatValue( const void *parameter ) {
-	assert( (intptr_t)parameter >= 0 && (intptr_t)parameter < MAX_STATS );
-
-	return cg.predictedPlayerState.stats[(intptr_t)parameter];
+static int CG_Int( const void * p ) {
+	return *( const int * ) p;
 }
 
-static int CG_GetLayoutStatFlag( const void *parameter ) {
-	return ( cg.predictedPlayerState.stats[STAT_LAYOUTS] & (intptr_t)parameter ) ? 1 : 0;
+static int CG_U8( const void * p ) {
+	return *( const u8 * ) p;
+}
+
+static int CG_S16( const void * p ) {
+	return *( const u8 * ) p;
+}
+
+static int CG_Bool( const void * p ) {
+	return *( const bool * ) p ? 1 : 0;
 }
 
 static int CG_GetPOVnum( const void *parameter ) {
-	return ( cg.predictedPlayerState.POVnum != cgs.playerNum + 1 ) ? cg.predictedPlayerState.POVnum : STAT_NOTSET;
+	return cg.predictedPlayerState.POVnum != cgs.playerNum + 1 ? cg.predictedPlayerState.POVnum : 9999;
+}
+
+static int CG_IsTeamBased( const void *parameter ) {
+	return GS_TeamBasedGametype( &client_gs ) ? 1 : 0;
 }
 
 static float _getspeed( void ) {
@@ -190,24 +200,6 @@ static int CG_GetCvar( const void *parameter ) {
 	return Cvar_Value( (const char *)parameter );
 }
 
-/**
- * Returns whether the weapon should be displayed in the weapon list on the HUD
- * (if the player either has the weapon ammo for it).
- *
- * @param weapon weapon item ID
- * @return whether to display the weapon
- */
-static bool CG_IsWeaponInList( int weapon ) {
-	bool hasWeapon = cg.predictedPlayerState.inventory[weapon] != 0;
-	bool hasAmmo = cg.predictedPlayerState.inventory[weapon - WEAP_GUNBLADE + AMMO_GUNBLADE];
-
-	if( weapon == WEAP_GUNBLADE ) { // gunblade always has 1 ammo when it's strong, but the player doesn't necessarily have it
-		return hasWeapon;
-	}
-
-	return hasWeapon || hasAmmo;
-}
-
 static int CG_IsDemoPlaying( const void *parameter ) {
 	return cgs.demoPlaying ? 1 : 0;
 }
@@ -226,24 +218,6 @@ static int CG_DownloadInProgress( const void *parameter ) {
 	return 0;
 }
 
-// ch : backport some of racesow hud elements
-/*********************************************************************************
-lm: edit for race mod,
-    adds bunch of vars to the hud.
-
-*********************************************************************************/
-
-//lm: for readability
-enum race_index {
-	mouse_x,
-	mouse_y,
-	jumpspeed,
-	move_an,
-	diff_an,
-	strafe_an,
-	max_index
-};
-
 static int CG_GetScoreboardShown( const void *parameter ) {
 	return CG_ScoreboardShown() ? 1 : 0;
 }
@@ -257,35 +231,29 @@ typedef struct
 
 static const reference_numeric_t cg_numeric_references[] = {
 	// stats
-	{ "HEALTH", CG_GetStatValue, (void *)STAT_HEALTH },
-	{ "WEAPON_ITEM", CG_GetStatValue, (void *)STAT_WEAPON },
-	{ "PENDING_WEAPON", CG_GetStatValue, (void *)STAT_PENDING_WEAPON },
+	{ "HEALTH", CG_S16, &cg.predictedPlayerState.health },
+	{ "WEAPON_ITEM", CG_U8, &cg.predictedPlayerState.weapon },
 
-	{ "READY", CG_GetLayoutStatFlag, (void *)STAT_LAYOUT_READY },
+	{ "READY", CG_Bool, &cg.predictedPlayerState.ready },
 
-	{ "SCORE", CG_GetStatValue, (void *)STAT_SCORE },
-	{ "TEAM", CG_GetStatValue, (void *)STAT_TEAM },
-	{ "RESPAWN_TIME", CG_GetStatValue, (void *)STAT_NEXT_RESPAWN },
+	{ "TEAM", CG_Int, &cg.predictedPlayerState.team },
 
-	{ "POINTED_PLAYER", CG_GetStatValue, (void *)STAT_POINTED_PLAYER },
-	{ "POINTED_TEAMPLAYER", CG_GetStatValue, (void *)STAT_POINTED_TEAMPLAYER },
+	{ "TEAMBASED", CG_IsTeamBased, NULL },
+	{ "ALPHA_SCORE", CG_U8, &client_gs.gameState.bomb.alpha_score },
+	{ "ALPHA_PLAYERS_ALIVE", CG_U8, &client_gs.gameState.bomb.alpha_players_alive },
+	{ "ALPHA_PLAYERS_TOTAL", CG_U8, &client_gs.gameState.bomb.alpha_players_total },
+	{ "BETA_SCORE", CG_U8, &client_gs.gameState.bomb.beta_score },
+	{ "BETA_PLAYERS_ALIVE", CG_U8, &client_gs.gameState.bomb.beta_players_alive },
+	{ "BETA_PLAYERS_TOTAL", CG_U8, &client_gs.gameState.bomb.beta_players_total },
 
-	{ "TEAM_ALPHA_SCORE", CG_GetStatValue, (void *)STAT_TEAM_ALPHA_SCORE },
-	{ "TEAM_BETA_SCORE", CG_GetStatValue, (void *)STAT_TEAM_BETA_SCORE },
+	{ "PROGRESS", CG_S16, &cg.predictedPlayerState.progress },
+	{ "PROGRESS_TYPE", CG_U8, &cg.predictedPlayerState.progress_type },
 
-	{ "PROGRESS", CG_GetStatValue, (void *)STAT_PROGRESS },
-	{ "PROGRESS_TYPE", CG_GetStatValue, (void *)STAT_PROGRESS_TYPE },
+	{ "ROUND_TYPE", CG_U8, &client_gs.gameState.round_type },
 
-	{ "ROUND_TYPE", CG_GetStatValue, (void *)STAT_ROUND_TYPE },
-
-	{ "CARRYING_BOMB", CG_GetStatValue, (void *)STAT_CARRYING_BOMB },
-	{ "CAN_PLANT_BOMB", CG_GetStatValue, (void *)STAT_CAN_PLANT_BOMB },
-	{ "CAN_CHANGE_LOADOUT", CG_GetStatValue, (void *)STAT_CAN_CHANGE_LOADOUT },
-
-	{ "ALPHA_PLAYERS_ALIVE", CG_GetStatValue, (void *)STAT_ALPHA_PLAYERS_ALIVE },
-	{ "ALPHA_PLAYERS_TOTAL", CG_GetStatValue, (void *)STAT_ALPHA_PLAYERS_TOTAL },
-	{ "BETA_PLAYERS_ALIVE", CG_GetStatValue, (void *)STAT_BETA_PLAYERS_ALIVE },
-	{ "BETA_PLAYERS_TOTAL", CG_GetStatValue, (void *)STAT_BETA_PLAYERS_TOTAL },
+	{ "CARRYING_BOMB", CG_Bool, &cg.predictedPlayerState.carrying_bomb },
+	{ "CAN_PLANT_BOMB", CG_Bool, &cg.predictedPlayerState.can_plant },
+	{ "CAN_CHANGE_LOADOUT", CG_Bool, &cg.predictedPlayerState.can_change_loadout },
 
 	// other
 	{ "CHASING", CG_GetPOVnum, NULL },
@@ -1090,7 +1058,7 @@ void CG_SC_Obituary( void ) {
 }
 
 static const Material * CG_GetWeaponIcon( int weapon ) {
-	return cgs.media.shaderWeaponIcon[ weapon - WEAP_GUNBLADE ];
+	return cgs.media.shaderWeaponIcon[ weapon ];
 }
 
 static void CG_DrawObituaries(
@@ -1161,34 +1129,34 @@ static void CG_DrawObituaries(
 		const Material *pic;
 		switch( obr->mod ) {
 			case MOD_GUNBLADE:
-				pic = CG_GetWeaponIcon( WEAP_GUNBLADE );
+				pic = CG_GetWeaponIcon( Weapon_Knife );
 				break;
 			case MOD_MACHINEGUN:
-				pic = CG_GetWeaponIcon( WEAP_MACHINEGUN );
+				pic = CG_GetWeaponIcon( Weapon_MachineGun );
 				break;
 			case MOD_RIOTGUN:
-				pic = CG_GetWeaponIcon( WEAP_RIOTGUN );
+				pic = CG_GetWeaponIcon( Weapon_Shotgun );
 				break;
 			case MOD_GRENADE:
 			case MOD_GRENADE_SPLASH:
-				pic = CG_GetWeaponIcon( WEAP_GRENADELAUNCHER );
+				pic = CG_GetWeaponIcon( Weapon_GrenadeLauncher );
 				break;
 			case MOD_ROCKET:
 			case MOD_ROCKET_SPLASH:
-				pic = CG_GetWeaponIcon( WEAP_ROCKETLAUNCHER );
+				pic = CG_GetWeaponIcon( Weapon_RocketLauncher );
 				break;
 			case MOD_PLASMA:
 			case MOD_PLASMA_SPLASH:
-				pic = CG_GetWeaponIcon( WEAP_PLASMAGUN );
+				pic = CG_GetWeaponIcon( Weapon_Plasma );
 				break;
 			case MOD_ELECTROBOLT:
-				pic = CG_GetWeaponIcon( WEAP_ELECTROBOLT );
+				pic = CG_GetWeaponIcon( Weapon_Railgun );
 				break;
 			case MOD_LASERGUN:
-				pic = CG_GetWeaponIcon( WEAP_LASERGUN );
+				pic = CG_GetWeaponIcon( Weapon_Laser );
 				break;
 			default:
-				pic = CG_GetWeaponIcon( WEAP_GUNBLADE ); // FIXME
+				pic = CG_GetWeaponIcon( Weapon_Knife ); // FIXME
 				break;
 		}
 
@@ -1298,7 +1266,7 @@ static bool CG_LFuncDrawCallvote( struct cg_layoutnode_s *argumentnode, int numA
 	const char * yeses = cgs.configStrings[ CS_CALLVOTE_YES_VOTES ];
 	const char * required = cgs.configStrings[ CS_CALLVOTE_REQUIRED_VOTES ];
 
-	bool voted = cg.predictedPlayerState.stats[ STAT_LAYOUTS ] & STAT_LAYOUT_VOTED;
+	bool voted = cg.predictedPlayerState.voted;
 	float padding = layout_cursor_font_size * 0.5f;
 
 	if( !voted ) {
@@ -1520,19 +1488,19 @@ enum {
 //=============================================================================
 
 static bool CG_IsWeaponSelected( int weapon ) {
-	if( cg.view.playerPrediction && cg.predictedWeaponSwitch && cg.predictedWeaponSwitch != cg.predictedPlayerState.stats[STAT_PENDING_WEAPON] ) {
+	if( cg.view.playerPrediction && cg.predictedWeaponSwitch != Weapon_Count && cg.predictedWeaponSwitch != cg.predictedPlayerState.pending_weapon ) {
 		return weapon == cg.predictedWeaponSwitch;
 	}
 
-	return weapon == cg.predictedPlayerState.stats[STAT_PENDING_WEAPON];
+	return weapon == cg.predictedPlayerState.pending_weapon;
 }
 
 constexpr float SEL_WEAP_X_OFFSET = 0.25f;
 
 static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih, Alignment alignment, float font_size ) {
 	int num_weapons = 0;
-	for( int i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
-		if( CG_IsWeaponInList( i ) ) {
+	for( int i = 0; i < Weapon_Count; i++ ) {
+		if( cg.predictedPlayerState.weapons[ i ].owned ) {
 			num_weapons++;
 		}
 	}
@@ -1542,57 +1510,71 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 	int total_width = max( 0, num_weapons * offx - padx );
 	int total_height = max( 0, num_weapons * offy - pady );
 
+	int border = iw * 0.03f;
+	int padding = iw * 0.1f;
+	int innerw = iw - border * 2;
+	int innerh = ih - border * 2;
+	int iconw = iw - border * 2 - padding * 2;
+	int iconh = ih - border * 2 - padding * 2;
+
 	int drawn_weapons = 0;
-	bool selected_found = false;
-	for( int i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
-		if( !CG_IsWeaponInList( i ) )
+	for( int i = 0; i < Weapon_Count; i++ ) {
+		if( !cg.predictedPlayerState.weapons[ i ].owned )
 			continue;
 
 		int curx = CG_HorizontalAlignForWidth( x + offx * drawn_weapons, alignment, total_width );
 		int cury = CG_VerticalAlignForHeight( y + offy * drawn_weapons, alignment, total_height );
 
-		int curiw = iw;
-		int curih = ih;
-
 		if( CG_IsWeaponSelected( i ) ) {
-			selected_found = true;
 			cury -= ih * SEL_WEAP_X_OFFSET;
 		}
 
 		Vec4 color = Vec4( 1.0f );
-		Vec4 color_bg = Vec4( 0.5f );
-		// if ( i != WEAP_GUNBLADE ) {
-		int ammo = cg.predictedPlayerState.inventory[ AMMO_GUNBLADE + i - WEAP_GUNBLADE ];
 
-		int ammo_in_clip = 0;
+		int ammo = cg.predictedPlayerState.weapons[ i ].ammo;
+		const WeaponDef * def = GS_GetWeaponDef( i );
+		float ammo_frac = 1.0f;
 
-
-		if ( i != WEAP_GUNBLADE ) {
-			int capacity = GS_FindItemByTag( i )->capacity;
-			int clips = GS_FindItemByTag( i )->clips;
-			int ammo_max =  clips * capacity;
-			ammo_in_clip = capacity - ((ammo_max - ammo) % capacity);
-
-			color = Vec4( 0.0f, 1.0f, 0.0f, 1.0f );
-			color_bg = Vec4( 0.0f, 0.5f, 0.0f, 1.0f );
-
-			int ammo_in_clip_pct = ( 100  * ammo_in_clip + capacity / 2) /capacity;
-			if ( ammo_in_clip_pct <= 67) {
-				color = Vec4( 1.0f, 0.5f, 0.0f, 1.0f );
-				color_bg = Vec4( 0.5f, 0.25f, 0.0f, 1.0f );
+		if( def->clip_size != 0 ) {
+			if( i == cg.predictedPlayerState.weapon && cg.predictedPlayerState.weapon_state == WEAPON_STATE_RELOADING ) {
+				ammo_frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->reload_time );
 			}
-			if ( ammo_in_clip_pct <= 34) {
-				color = Vec4( 1.0f, 0.0f, 0.0f, 1.0f );
-				color_bg = Vec4( 0.5f, 0.0f, 0.0f, 1.0f );
+			else {
+				color = Vec4( 0.0f, 1.0f, 0.0f, 1.0f );
+				ammo_frac = float( ammo ) / float( def->clip_size );
 			}
 		}
 
-		Draw2DBox( curx, cury, curiw, curih, cgs.white_material, color );
-		Draw2DBox( curx + roundf( curiw * 0.03f ), cury + roundf ( curih * 0.03f ), roundf( curiw * 0.95f ), roundf( curih * 0.95f ), cgs.white_material, color_bg );
-		Draw2DBox( curx + roundf( curiw * 0.16f ), cury + roundf ( curih * 0.16f ), roundf( curiw * 0.69f ), roundf( curiw * 0.69f ), CG_GetWeaponIcon( i ), color );
+		if( ammo_frac < 0.5f ) {
+			color = Lerp( vec4_red, Unlerp( 0.0f, ammo_frac, 0.5f ), vec4_yellow );
+		}
+		else {
+			color = Lerp( vec4_yellow, Unlerp( 0.5f, ammo_frac, 1.0f ), vec4_green );
+		}
 
-		if( i != WEAP_GUNBLADE ) {
-			DrawText( GetHUDFont(), font_size + (curiw - iw)/4, va( "%i", ammo_in_clip ), Alignment_LeftBottom, curx + curiw*0.15f, cury + curih*0.85f, layout_cursor_color, layout_cursor_font_border );
+		Vec4 color_bg = Vec4( color.xyz() / 2.0f, 1.0f );
+
+		const Material * icon = cgs.media.shaderWeaponIcon[ i ];
+
+		if( ammo_frac < 1.0f ) {
+			Draw2DBox( curx, cury, iw, ih, cgs.white_material, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ) );
+			Draw2DBox( curx + border, cury + border, innerw, innerh, cgs.white_material, Vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
+			Draw2DBox( curx + border + padding, cury + border + padding, iconw, iconh, icon, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ) );
+		}
+
+		Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
+
+		Draw2DBox( curx, cury + ih * ( 1.0f - ammo_frac ), iw, ih * ammo_frac, cgs.white_material, color );
+		Draw2DBox( curx + border, cury + ih * ( 1.0f - ammo_frac ) + border, innerw, ih * ammo_frac - border * 2, cgs.white_material, color_bg );
+
+		float asdf = Max2( ih * ( 1.0f - ammo_frac ), float( padding ) ) - padding;
+		Draw2DBoxUV( curx + border + padding, cury + border + padding + asdf,
+			iconw, iconh - asdf,
+			Vec2( half_pixel.x, Lerp( half_pixel.y, asdf / iconh, 1.0f - half_pixel.y ) ), 1.0f - half_pixel,
+			CG_GetWeaponIcon( i ), color );
+
+		if( def->clip_size != 0 ) {
+			DrawText( GetHUDFont(), font_size, va( "%i", ammo ), Alignment_LeftBottom, curx + iw*0.15f, cury + ih*0.85f, layout_cursor_color, layout_cursor_font_border );
 		}
 
 		drawn_weapons++;
@@ -1781,16 +1763,9 @@ static bool CG_LFuncDrawBombIndicators( struct cg_layoutnode_s *argumentnode, in
 
 static bool CG_LFuncDrawPlayerIcons( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	int team = int( CG_GetNumericArg( &argumentnode ) );
-	int alive_index = int( CG_GetNumericArg( &argumentnode ) );
-	int total_index = int( CG_GetNumericArg( &argumentnode ) );
+	int alive = int( CG_GetNumericArg( &argumentnode ) );
+	int total = int( CG_GetNumericArg( &argumentnode ) );
 
-	if( total_index < 0 || alive_index < 0 || total_index >= MAX_CONFIGSTRINGS || alive_index >= MAX_CONFIGSTRINGS ) {
-		Com_Printf( "WARNING 'CG_LFuncDrawPlayerIcons' configstring out of range" );
-		return false;
-	}
-
-	int alive = atoi( cgs.configStrings[ alive_index ] );
-	int total = atoi( cgs.configStrings[ total_index ] );
 	Vec4 team_color = CG_TeamColorVec4( team );
 
 	const Material * icon = FindMaterial( "gfx/hud/guy" );
@@ -1861,28 +1836,22 @@ static bool CG_LFuncDrawPlayerName( struct cg_layoutnode_s *argumentnode, int nu
 }
 
 static bool CG_LFuncDrawNumeric( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int value = (int)CG_GetNumericArg( &argumentnode );
+	int value = CG_GetNumericArg( &argumentnode );
 	DrawText( GetHUDFont(), layout_cursor_font_size, va( "%i", value ), layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
 	return true;
 }
 
-static void CG_LFuncsWeaponIcons( struct cg_layoutnode_s *argumentnode ) {
-	int offx, offy, w, h;
-
-	offx = (int)( CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800 );
-	offy = (int)( CG_GetNumericArg( &argumentnode ) * frame_static.viewport_height / 600 );
-	w = (int)( CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800 );
-	h = (int)( CG_GetNumericArg( &argumentnode ) * frame_static.viewport_height / 600 );
+static bool CG_LFuncDrawWeaponIcons( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+	int offx = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800;
+	int offy = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_height / 600;
+	int w = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800;
+	int h = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_height / 600;
 	float font_size = CG_GetNumericArg( &argumentnode );
 
 	CG_DrawWeaponIcons( layout_cursor_x, layout_cursor_y, offx, offy, w, h, layout_cursor_alignment, font_size );
-}
 
-static bool CG_LFuncDrawWeaponIcons( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	CG_LFuncsWeaponIcons( argumentnode );
 	return true;
 }
-
 
 static bool CG_LFuncDrawCrossHair( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	CG_DrawCrosshair();
@@ -1908,7 +1877,6 @@ static bool CG_LFuncIf( struct cg_layoutnode_s *argumentnode, int numArguments )
 static bool CG_LFuncIfNot( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	return (int)CG_GetNumericArg( &argumentnode ) == 0;
 }
-
 
 typedef struct cg_layoutcommand_s
 {

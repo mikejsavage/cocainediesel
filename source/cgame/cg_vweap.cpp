@@ -164,8 +164,7 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 	float framefrac;
 
 	// if the pov changed, or weapon changed, force restart
-	if( viewweapon->POVnum != cg.predictedPlayerState.POVnum ||
-		viewweapon->weapon != cg.predictedPlayerState.weapon ) {
+	if( viewweapon->POVnum != cg.predictedPlayerState.POVnum || viewweapon->weapon != cg.predictedPlayerState.weapon ) {
 		viewweapon->eventAnim = 0;
 		viewweapon->eventAnimStartTime = 0;
 		viewweapon->baseAnim = 0;

@@ -39,24 +39,8 @@ void CG_PredictedEvent( int entNum, int ev, int parm ) {
 
 	// ignore this action if it has already been predicted (the unclosed ucmd has timestamp zero)
 	if( ucmdReady && cg.predictingTimeStamp > cg.predictedEventTimes[ev] ) {
-		// inhibit the fire event when there is a weapon change predicted
-		if( ev == EV_FIREWEAPON ) {
-			if( cg.predictedWeaponSwitch != Weapon_Count && cg.predictedWeaponSwitch != cg.predictedPlayerState.pending_weapon ) {
-				return;
-			}
-		}
-
 		cg.predictedEventTimes[ev] = cg.predictingTimeStamp;
 		CG_EntityEvent( &cg_entities[entNum].current, ev, parm, true );
-	}
-}
-
-/*
-* CG_Predict_ChangeWeapon
-*/
-void CG_Predict_ChangeWeapon( WeaponType weapon ) {
-	if( cg.view.playerPrediction ) {
-		cg.predictedWeaponSwitch = weapon;
 	}
 }
 

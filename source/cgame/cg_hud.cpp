@@ -1488,10 +1488,6 @@ enum {
 //=============================================================================
 
 static bool CG_IsWeaponSelected( int weapon ) {
-	if( cg.view.playerPrediction && cg.predictedWeaponSwitch != Weapon_Count && cg.predictedWeaponSwitch != cg.predictedPlayerState.pending_weapon ) {
-		return weapon == cg.predictedWeaponSwitch;
-	}
-
 	return weapon == cg.predictedPlayerState.pending_weapon;
 }
 

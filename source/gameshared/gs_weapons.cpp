@@ -258,3 +258,7 @@ int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int b
 
 	return player->weapon;
 }
+
+bool GS_CanEquip( const SyncPlayerState * player, WeaponType weapon ) {
+	return ( player->pmove.stats[ PM_STAT_FEATURES ] & PMFEAT_WEAPONSWITCH ) != 0 && player->weapons[ weapon ].owned;
+}

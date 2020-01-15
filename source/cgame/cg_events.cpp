@@ -706,22 +706,17 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, int parm, bool predicted ) {
 	}
 
 	switch( ev ) {
-		case EV_NONE:
 		default:
 			break;
 
 		//  PREDICTABLE EVENTS
 
 		case EV_WEAPONACTIVATE: {
-			int weapon = parm >> 1;
+			WeaponType weapon = parm >> 1;
 			bool silent = ( parm & 1 ) != 0;
 			if( predicted ) {
 				cg_entities[ent->number].current.weapon = weapon;
 				CG_ViewWeapon_RefreshAnimation( &cg.weapon );
-			}
-
-			if( viewer ) {
-				cg.predictedWeaponSwitch = Weapon_Count;
 			}
 
 			// reset weapon animation timers

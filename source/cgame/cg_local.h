@@ -346,7 +346,6 @@ typedef struct {
 	int64_t predictedEventTimes[PREDICTABLE_EVENTS_MAX];
 	vec3_t predictionError;
 	SyncPlayerState predictedPlayerState;     // current in use, predicted or interpolated
-	WeaponType predictedWeaponSwitch;              // inhibit shooting prediction while a weapon change is expected
 	int predictedGroundEntity;
 
 	// prediction optimization (don't run all ucmds in not needed)
@@ -464,7 +463,6 @@ void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps, float volume, f
 extern cvar_t *cg_showMiss;
 
 void CG_PredictedEvent( int entNum, int ev, int parm );
-void CG_Predict_ChangeWeapon( WeaponType new_weapon );
 void CG_PredictMovement( void );
 void CG_CheckPredictionError( void );
 void CG_BuildSolidList( void );

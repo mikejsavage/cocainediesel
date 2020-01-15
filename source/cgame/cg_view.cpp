@@ -781,7 +781,6 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 	}
 
 	if( !view->playerPrediction ) {
-		cg.predictedWeaponSwitch = Weapon_Count;
 		cg.recoiling = false;
 	}
 }

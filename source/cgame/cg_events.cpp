@@ -255,7 +255,7 @@ static void CG_FireWeaponEvent( int entNum, int weapon ) {
 	}
 
 	// recoil
-	if( cg.view.playerPrediction ) {
+	if( ISVIEWERENTITY( entNum ) && cg.view.playerPrediction ) {
 		if( !cg.recoiling ) {
 			cg.recoil_initial_pitch = cl.viewangles[ PITCH ];
 			cg.recoiling = true;

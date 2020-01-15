@@ -249,7 +249,7 @@ int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int b
 					}
 				}
 			}
-			else if( ( buttons & BUTTON_RELOAD ) && def->clip_size != 0 ) {
+			else if( ( buttons & BUTTON_RELOAD ) && def->clip_size != 0 && player->weapons[ player->weapon ].ammo < def->clip_size ) {
 				player->weapon_time = def->reload_time;
 				player->weapon_state = WEAPON_STATE_RELOADING;
 			}

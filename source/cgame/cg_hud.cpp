@@ -246,7 +246,7 @@ static const reference_numeric_t cg_numeric_references[] = {
 	{ "BETA_PLAYERS_ALIVE", CG_U8, &client_gs.gameState.bomb.beta_players_alive },
 	{ "BETA_PLAYERS_TOTAL", CG_U8, &client_gs.gameState.bomb.beta_players_total },
 
-	{ "PROGRESS", CG_S16, &cg.predictedPlayerState.progress },
+	{ "PROGRESS", CG_U8, &cg.predictedPlayerState.progress },
 	{ "PROGRESS_TYPE", CG_U8, &cg.predictedPlayerState.progress_type },
 
 	{ "ROUND_TYPE", CG_U8, &client_gs.gameState.round_type },

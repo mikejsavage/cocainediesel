@@ -1038,8 +1038,8 @@ static const asProperty_t gameclient_Properties[] =
 	{ ASLIB_PROPERTY_DECL( bool, carryingBomb ), offsetof( gclient_t, ps.carrying_bomb ) },
 	{ ASLIB_PROPERTY_DECL( bool, canPlant ), offsetof( gclient_t, ps.can_plant ) },
 	{ ASLIB_PROPERTY_DECL( int64, lastActivity ), offsetof( gclient_t, level.last_activity ) },
-	{ ASLIB_PROPERTY_DECL( BombProgress, progressType ), offsetof( gclient_t, ps.progress_type ) },
-	{ ASLIB_PROPERTY_DECL( int16, progress ), offsetof( gclient_t, ps.progress ) },
+	{ ASLIB_PROPERTY_DECL( uint8, progressType ), offsetof( gclient_t, ps.progress_type ) },
+	{ ASLIB_PROPERTY_DECL( uint8, progress ), offsetof( gclient_t, ps.progress ) },
 	{ ASLIB_PROPERTY_DECL( const int64, uCmdTimeStamp ), offsetof( gclient_t, ucmd.serverTimeStamp ) },
 
 	ASLIB_PROPERTY_NULL

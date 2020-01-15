@@ -286,8 +286,8 @@ struct SyncPlayerState {
 	int team;
 	int real_team;
 
-	u8 progress_type; // enum ProgressType
-	s16 progress;
+	u8 progress_type; // enum BombProgress
+	u8 progress;
 
 	int last_killer;
 	int pointed_player;

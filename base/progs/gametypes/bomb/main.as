@@ -100,26 +100,21 @@ float min( float a, float b ) {
 }
 
 void setTeamProgress( int teamNum, int percent, BombProgress type ) {
-	for( int t = TEAM_ALPHA; t < GS_MAX_TEAMS; t++ ) {
-		Team @team = @G_GetTeam( t );
+	Team @team = @G_GetTeam( teamNum );
 
-		for( int i = 0; @team.ent( i ) != null; i++ ) {
-			Entity @ent = @team.ent( i );
+	for( int i = 0; @team.ent( i ) != null; i++ ) {
+		Entity @ent = @team.ent( i );
 
-			if( ent.team != teamNum )
-				continue;
+		Client @client = @ent.client;
 
-			Client @client = @ent.client;
-
-			if( ent.isGhosting() ) {
-				client.progress = 0;
-				client.progressType = BombProgress_Nothing;
-				continue;
-			}
-
-			client.progress = percent;
-			client.progressType = type;
+		if( ent.isGhosting() ) {
+			client.progress = 0;
+			client.progressType = BombProgress_Nothing;
+			continue;
 		}
+
+		client.progress = percent;
+		client.progressType = type;
 	}
 }
 

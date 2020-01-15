@@ -213,7 +213,7 @@ int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int b
 			return player->weapon;
 		}
 
-		if( player->weapons[ player->weapon ].ammo == 0 ) {
+		if( def->clip_size != 0 && player->weapons[ player->weapon ].ammo == 0 ) {
 			player->weapon_time = def->reload_time;
 			player->weapon_state = WEAPON_STATE_RELOADING;
 		}
@@ -249,7 +249,7 @@ int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int b
 					}
 				}
 			}
-			else if( buttons & BUTTON_RELOAD ) {
+			else if( ( buttons & BUTTON_RELOAD ) && def->clip_size != 0 ) {
 				player->weapon_time = def->reload_time;
 				player->weapon_state = WEAPON_STATE_RELOADING;
 			}

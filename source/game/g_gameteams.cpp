@@ -51,7 +51,6 @@ void G_Teams_Init( void ) {
 			ent->r.client->resp.timeStamp = level.time;
 		}
 	}
-
 }
 
 static int G_Teams_CompareMembers( const void *a, const void *b ) {

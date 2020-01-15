@@ -64,16 +64,7 @@ static u64 HashMaterialName( const char * name ) {
 	// skip leading /
 	while( *name == '/' )
 		name++;
-
-	// hash lowercase name
-	u64 hash = Hash64( "" );
-	size_t len = strlen( name );
-	for( size_t i = 0; i < len; i++ ) {
-		char lower = tolower( name[ i ] );
-		hash = Hash64( &lower, 1, hash );
-	}
-
-	return hash;
+	return Hash64( name );
 }
 
 static const char * Shader_ParseString( const char ** ptr ) {

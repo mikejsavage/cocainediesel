@@ -483,9 +483,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	if( ghost ) {
 		self->r.solid = SOLID_NOT;
 		self->movetype = MOVETYPE_NOCLIP;
-		if( self->s.team == TEAM_SPECTATOR ) {
-			self->r.svflags |= SVF_NOCLIENT;
-		}
 	} else {
 		self->r.solid = SOLID_YES;
 		self->movetype = MOVETYPE_PLAYER;

@@ -120,7 +120,7 @@ static int CG_U8( const void * p ) {
 }
 
 static int CG_S16( const void * p ) {
-	return *( const u8 * ) p;
+	return *( const s16 * ) p;
 }
 
 static int CG_Bool( const void * p ) {

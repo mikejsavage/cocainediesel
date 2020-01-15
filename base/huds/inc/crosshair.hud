@@ -1,5 +1,3 @@
 if %SCOREBOARD == 0
-	if %WEAPON_ITEM
-		drawCrosshair
-	endif
+	drawCrosshair
 endif

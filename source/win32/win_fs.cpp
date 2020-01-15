@@ -325,6 +325,9 @@ ListDirHandle BeginListDir( const char * path ) {
 
 	String< MAX_PATH > path_and_wildcard( "{}/*", path );
 	handle.handle = FindFirstFileA( path_and_wildcard.c_str(), handle.ffd );
+	if( handle.handle == INVALID_HANDLE_VALUE ) {
+		handle.handle = NULL;
+	}
 
 	return ImplToOpaque( handle );
 }

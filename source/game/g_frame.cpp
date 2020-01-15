@@ -525,4 +525,6 @@ void G_RunFrame( unsigned int msec ) {
 	G_RunEntities();
 	G_RunGametype();
 	GClip_BackUpCollisionFrame();
+
+	game.prevServerTime = svs.gametime;
 }

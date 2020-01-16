@@ -51,7 +51,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 		1,                              // projectiles fired each shot
 		30, // clip size
-		1500, // reload time
+		2250, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
@@ -84,14 +84,14 @@ const WeaponDef gs_weaponDefs[] = {
 
 		20,                             // projectiles fired each shot
 		6, // clip size
-		1500, // reload time
+		2750, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
 		1000,                           // refire time
 		8192,                           // projectile timeout / projectile range for instant weapons
-		20,                              // recoil
+		5,                              // recoil
 		false,                          // smooth refire
 
 		//damages
@@ -118,7 +118,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 		1,                              // projectiles fired each shot
 		3, // clip size
-		1500, // reload time
+		2750, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
@@ -153,7 +153,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 		1,                              // projectiles fired each shot
 		5, // clip size
-		1500, // reload time
+		2750, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
@@ -188,7 +188,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 		1,                              // projectiles fired each shot
 		30, // clip size
-		1500, // reload time
+		2250, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
@@ -223,7 +223,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 		1,                              // projectiles fired each shot
 		50, // clip size
-		1500, // reload time
+		2250, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
@@ -257,8 +257,8 @@ const WeaponDef gs_weaponDefs[] = {
 		NULL,
 
 		1,                              // projectiles fired each shot
-		3, // clip size
-		1500, // reload time
+		4, // clip size
+		3000, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time

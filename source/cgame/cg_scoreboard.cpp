@@ -363,6 +363,7 @@ void CG_DrawScoreboard() {
 	ImGui::Dummy( ImVec2( 0, separator_height ) );
 
 	ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, alpha ) );
+	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8, 0 ) );
 	ImGui::BeginChild( "spectators", ImVec2( 0, separator_height ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
 
 	{
@@ -380,6 +381,7 @@ void CG_DrawScoreboard() {
 	}
 
 	ImGui::EndChild();
+	ImGui::PopStyleVar();
 	ImGui::PopStyleColor();
 }
 

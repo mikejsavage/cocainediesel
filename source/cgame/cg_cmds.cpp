@@ -385,36 +385,35 @@ CGAME COMMANDS
 ==========================================================================
 */
 
-/*
-* CG_UseItem
-*/
-void CG_UseItem( const char * name ) {
+static void SwitchWeapon( WeaponType weapon ) {
 	if( !cg.frame.valid || cgs.demoPlaying ) {
 		return;
 	}
 
-	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
-		const WeaponDef * weapon = GS_GetWeaponDef( i );
-		if( ( Q_stricmp( weapon->name, name ) == 0 || Q_stricmp( weapon->short_name, name ) == 0 ) && GS_CanEquip( &cg.predictedPlayerState, i ) ) {
-			cg.lastWeapon = cg.predictedPlayerState.pending_weapon;
-			Cbuf_ExecuteText( EXEC_NOW, va( "cmd use %i", i ) );
-		}
-	}
+	cg.lastWeapon = cg.predictedPlayerState.pending_weapon;
+	cg.predictedPlayerState.pending_weapon = weapon;
+	Cbuf_ExecuteText( EXEC_NOW, va( "cmd use %i", weapon ) );
 }
 
-/*
-* CG_Cmd_UseItem_f
-*/
 static void CG_Cmd_UseItem_f( void ) {
 	if( !Cmd_Argc() ) {
 		Com_Printf( "Usage: 'use <item name>' or 'use <item index>'\n" );
 		return;
 	}
 
-	CG_UseItem( Cmd_Args() );
+	const char * name = Cmd_Args();
+	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
+		const WeaponDef * weapon = GS_GetWeaponDef( i );
+		if( ( Q_stricmp( weapon->name, name ) == 0 || Q_stricmp( weapon->short_name, name ) == 0 ) && GS_CanEquip( &cg.predictedPlayerState, i ) ) {
+			SwitchWeapon( i );
+		}
+	}
 }
 
 static WeaponType CG_UseWeaponStep( const SyncPlayerState * playerState, bool next, WeaponType predicted_equipped_weapon ) {
+	if( predicted_equipped_weapon == Weapon_Count )
+		return Weapon_Count;
+
 	int weapon = predicted_equipped_weapon;
 	while( true ) {
 		weapon = ( weapon + ( next ? 1 : -1 ) ) % Weapon_Count;
@@ -438,10 +437,6 @@ static WeaponType CG_UseWeaponStep( const SyncPlayerState * playerState, bool ne
 * CG_Cmd_NextWeapon_f
 */
 static void CG_Cmd_NextWeapon_f( void ) {
-	if( !cg.frame.valid ) {
-		return;
-	}
-
 	if( cgs.demoPlaying || cg.predictedPlayerState.pmove.pm_type == PM_CHASECAM ) {
 		CG_ChaseStep( 1 );
 		return;
@@ -449,19 +444,11 @@ static void CG_Cmd_NextWeapon_f( void ) {
 
 	WeaponType weapon = CG_UseWeaponStep( &cg.frame.playerState, true, cg.predictedPlayerState.pending_weapon );
 	if( weapon != Weapon_Count ) {
-		Cbuf_ExecuteText( EXEC_NOW, va( "cmd use %i", weapon ) );
-		cg.lastWeapon = cg.predictedPlayerState.pending_weapon;
+		SwitchWeapon( weapon );
 	}
 }
 
-/*
-* CG_Cmd_PrevWeapon_f
-*/
 static void CG_Cmd_PrevWeapon_f( void ) {
-	if( !cg.frame.valid ) {
-		return;
-	}
-
 	if( cgs.demoPlaying || cg.predictedPlayerState.pmove.pm_type == PM_CHASECAM ) {
 		CG_ChaseStep( -1 );
 		return;
@@ -469,22 +456,13 @@ static void CG_Cmd_PrevWeapon_f( void ) {
 
 	WeaponType weapon = CG_UseWeaponStep( &cg.frame.playerState, false, cg.predictedPlayerState.pending_weapon );
 	if( weapon != Weapon_Count ) {
-		Cbuf_ExecuteText( EXEC_NOW, va( "cmd use %i", weapon ) );
-		cg.lastWeapon = cg.predictedPlayerState.pending_weapon;
+		SwitchWeapon( weapon );
 	}
 }
 
-/*
-* CG_Cmd_PrevWeapon_f
-*/
 static void CG_Cmd_LastWeapon_f( void ) {
-	if( !cg.frame.valid || cgs.demoPlaying ) {
-		return;
-	}
-
-	if( cg.lastWeapon != Weapon_Count && cg.lastWeapon != cg.predictedPlayerState.pending_weapon && GS_CanEquip( &cg.predictedPlayerState, cg.lastWeapon ) ) {
-		Cbuf_ExecuteText( EXEC_NOW, va( "cmd use %i", cg.lastWeapon ) );
-		cg.lastWeapon = cg.predictedPlayerState.pending_weapon;
+	if( cg.lastWeapon != Weapon_Count && cg.lastWeapon != cg.predictedPlayerState.pending_weapon ) {
+		SwitchWeapon( cg.lastWeapon );
 	}
 }
 
@@ -497,8 +475,7 @@ static void CG_Cmd_Weapon_f() {
 		seen++;
 
 		if( seen == w ) {
-			const WeaponDef * def = GS_GetWeaponDef( i );
-			CG_UseItem( def->name );
+			SwitchWeapon( i );
 		}
 	}
 }

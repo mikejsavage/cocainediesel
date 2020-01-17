@@ -70,8 +70,7 @@ static u64 HashMaterialName( const char * name ) {
 static const char * Shader_ParseString( const char ** ptr ) {
 	if( **ptr == '\0' || **ptr == '}' )
 		return "";
-	char * token = COM_ParseExt( ptr, false );
-	return Q_strlwr( token );
+	return COM_ParseExt( ptr, false );
 }
 
 static Span< const char > Shader_ParseToken( const char ** ptr ) {

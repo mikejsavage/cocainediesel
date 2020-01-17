@@ -519,7 +519,6 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.modelindex2, baseline.modelindex2 );
 	DeltaHalf( buf, ent.attenuation, baseline.attenuation );
 	Delta( buf, ent.counterNum, baseline.counterNum );
-	Delta( buf, ent.bodyOwner, baseline.bodyOwner );
 	Delta( buf, ent.channel, baseline.channel );
 	Delta( buf, ent.events[ 1 ], baseline.events[ 1 ] );
 	Delta( buf, ent.eventParms[ 1 ], baseline.eventParms[ 1 ] );
@@ -567,7 +566,6 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 // 	{ ESOFS( modelindex2 ), 32, 1, WIRE_FIXED_INT8 },
 // 	{ ESOFS( attenuation ), 0, 1, WIRE_HALF_FLOAT },
 // 	{ ESOFS( counterNum ), 32, 1, WIRE_BASE128 },
-// 	{ ESOFS( bodyOwner ), 32, 1, WIRE_UBASE128 },
 // 	{ ESOFS( channel ), 32, 1, WIRE_FIXED_INT8 },
 // 	{ ESOFS( events[1] ), 32, 1, WIRE_UBASE128 },
 // 	{ ESOFS( eventParms[1] ), 32, 1, WIRE_BASE128 },

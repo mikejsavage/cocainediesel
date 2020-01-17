@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "g_local.h"
+#include "game/g_local.h"
 
 enum EntityFieldType {
 	F_INT,
@@ -523,8 +523,6 @@ static void G_SpawnEntities( void ) {
 
 	level.spawnedTimeStamp = svs.gametime;
 	level.canSpawnEntities = true;
-
-	G_InitBodyQueue(); // reserve some spots for dead player bodies
 
 	entities = level.mapString;
 	level.map_parsed_ents[0] = 0;

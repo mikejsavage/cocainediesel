@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "g_local.h"
+#include "game/g_local.h"
 
 #define PLAYER_MASS 200
 
@@ -63,98 +63,16 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 // DEAD BODIES
 //=======================================================
 
-/*
-* G_Client_UnlinkBodies
-*/
-static void G_Client_UnlinkBodies( edict_t *ent ) {
-	edict_t *body;
-	int i;
+static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
+	assert( ent->s.type == ET_PLAYER );
 
-	// find bodies linked to us
-	body = &game.edicts[server_gs.maxclients + 1];
-	for( i = 0; i < BODY_QUEUE_SIZE; body++, i++ ) {
-		if( !body->r.inuse ) {
-			continue;
-		}
-
-		if( body->activator == ent ) {
-			// this is our body
-			body->activator = NULL;
-		}
-	}
-}
-
-/*
-* InitBodyQue
-*/
-void G_InitBodyQueue( void ) {
-	int i;
-	edict_t *ent;
-
-	level.body_que = 0;
-	for( i = 0; i < BODY_QUEUE_SIZE; i++ ) {
-		ent = G_Spawn();
-		ent->classname = "bodyque";
-	}
-}
-
-/*
-* body_think
-*/
-static void body_think( edict_t *self ) {
-	self->health = -1;
-
-	// disallow interaction with the world.
-	self->takedamage = DAMAGE_NO;
-	self->r.solid = SOLID_NOT;
-	self->s.sound = 0;
-	self->flags |= FL_NO_KNOCKBACK;
-	self->s.type = ET_GENERIC;
-	self->r.svflags &= ~SVF_CORPSE;
-	self->r.svflags |= SVF_NOCLIENT;
-	self->s.modelindex = 0;
-	self->s.modelindex2 = 0;
-	VectorClear( self->velocity );
-	VectorClear( self->avelocity );
-	self->movetype = MOVETYPE_NONE;
-	self->think = NULL;
-
-	GClip_UnlinkEntity( self );
-}
-
-/*
-* CopyToBodyQue
-*/
-static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
-	edict_t *body;
-	int contents;
-
-	if( GS_RaceGametype( &server_gs ) ) {
-		return NULL;
-	}
-
-	contents = G_PointContents( ent->s.origin );
+	int contents = G_PointContents( ent->s.origin );
 	if( contents & CONTENTS_NODROP ) {
 		return NULL;
 	}
 
-	G_Client_UnlinkBodies( ent );
+	edict_t * body = G_Spawn();
 
-	// grab a body que and cycle to the next one
-	body = &game.edicts[server_gs.maxclients + level.body_que + 1];
-	level.body_que = ( level.body_que + 1 ) % BODY_QUEUE_SIZE;
-
-	// send an effect on the removed body
-	if( body->s.modelindex && body->s.type == ET_CORPSE ) {
-		ThrowSmallPileOfGibs( body, vec3_origin, 10 );
-	}
-
-	GClip_UnlinkEntity( body );
-
-	memset( body, 0, sizeof( edict_t ) ); //clean up garbage
-
-	//init body edict
-	G_InitEdict( body );
 	body->classname = "body";
 	body->health = ent->health;
 	body->mass = ent->mass;
@@ -173,7 +91,7 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 	body->s.angles[PITCH] = 0;
 	body->s.angles[ROLL] = 0;
 	body->s.angles[YAW] = ent->s.angles[YAW];
-	body->s.modelindex2 = 0; // <-  is bodyOwner when in ET_CORPSE, but not in ET_GENERIC or ET_PLAYER
+	body->s.modelindex2 = 0;
 	body->s.weapon = 0;
 
 	//copy player position and box size
@@ -190,7 +108,7 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 	body->r.solid = SOLID_NOT;
 	body->takedamage = DAMAGE_NO;
 	body->movetype = MOVETYPE_TOSS;
-	body->think = body_think; // body self destruction countdown
+	body->think = G_FreeEdict; // body self destruction countdown
 
 	int mod = meansOfDeath;
 	bool gib = mod == MOD_ELECTROBOLT || mod == MOD_ROCKET || mod == MOD_GRENADE ||
@@ -207,29 +125,26 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 		body->nextThink = level.time + 3000 + random_float01( &svs.rng ) * 3000;
 		body->deadflag = DEAD_DEAD;
 	}
-	if( ent->s.type == ET_PLAYER ) {
-		// copy the model
-		body->s.type = ET_CORPSE;
-		body->s.modelindex = ent->s.modelindex;
-		body->s.bodyOwner = ent->s.number; // bodyOwner is the same as modelindex2
-		body->s.teleported = true;
 
-		edict_t * event = G_SpawnEvent( EV_DIE, random_uniform( &svs.rng, 0, 256 ), NULL );
-		event->r.svflags |= SVF_BROADCAST;
-		event->s.ownerNum = body->s.number;
+	// copy the model
+	body->s.type = ET_CORPSE;
+	body->s.modelindex = ent->s.modelindex;
+	body->s.teleported = true;
+	body->s.ownerNum = ent->s.number;
 
-		// bit of a hack, if we're not in warmup, leave the body with no think. think self destructs
-		// after a timeout, but if we leave, next bomb round will call G_ResetLevel() cleaning up
-		if( GS_MatchState( &server_gs ) == MATCH_STATE_WARMUP ) {
-			body->nextThink = level.time + 3500;
-		}
-		else {
-			body->think = NULL;
-		}
-	} else {   // wasn't a player, just copy it's model
-		VectorClear( body->velocity );
-		body->s.modelindex = ent->s.modelindex;
-		body->nextThink = level.time + 5000 + random_float01( &svs.rng ) * 10000;
+	edict_t * event = G_SpawnEvent( EV_DIE, random_uniform( &svs.rng, 0, 256 ), NULL );
+	event->r.svflags |= SVF_BROADCAST;
+	event->s.ownerNum = body->s.number;
+
+	ent->s.ownerNum = body->s.number;
+
+	// bit of a hack, if we're not in warmup, leave the body with no think. think self destructs
+	// after a timeout, but if we leave, next bomb round will call G_ResetLevel() cleaning up
+	if( GS_MatchState( &server_gs ) == MATCH_STATE_WARMUP ) {
+		body->nextThink = level.time + 3500;
+	}
+	else {
+		body->think = NULL;
 	}
 
 	GClip_LinkEntity( body );
@@ -256,8 +171,8 @@ void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage
 	// player death
 	ClientObituary( ent, inflictor, attacker );
 
-	// create a body
-	CopyToBodyQue( ent, attacker, damage );
+	// create a corpse
+	CreateCorpse( ent, attacker, damage );
 	ent->enemy = NULL;
 
 	ent->s.angles[YAW] = ent->r.client->ps.viewangles[YAW] = LookAtKillerYAW( ent, inflictor, attacker );

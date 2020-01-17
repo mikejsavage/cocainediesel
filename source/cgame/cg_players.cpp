@@ -45,14 +45,18 @@ void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata, const char * name 
 }
 
 static const SoundEffect * GetPlayerSound( int entnum, PlayerSound ps ) {
-	if( entnum < 0 || entnum >= MAX_EDICTS ) {
+	if( entnum < 0 || entnum >= ARRAY_COUNT( cg_entPModels ) ) {
+		return NULL;
+	}
+	if( cg_entPModels[ entnum ].metadata == NULL ) {
+		Com_Printf( "Player model metadata is null\n" );
 		return NULL;
 	}
 	return cg_entPModels[ entnum ].metadata->sounds[ ps ];
 }
 
 void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps, float volume, float attn ) {
-	bool fixed = entchannel & CHAN_FIXED ? true : false;
+	bool fixed = ( entchannel & CHAN_FIXED ) ? true : false;
 	entchannel &= ~CHAN_FIXED;
 
 	const SoundEffect * sfx = GetPlayerSound( entnum, ps );

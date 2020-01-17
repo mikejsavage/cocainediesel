@@ -52,7 +52,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define FRAMETIME ( (float)game.frametime * 0.001f )
 
-#define BODY_QUEUE_SIZE     8
 #define MAX_FLOOD_MESSAGES 32
 
 typedef enum {
@@ -153,7 +152,6 @@ typedef struct {
 
 	edict_t *current_entity;    // entity running from G_RunFrame
 	edict_t *spawning_entity;   // entity being spawned from G_InitLevel
-	int body_que;               // dead bodies
 
 	timeout_t timeout;
 	float gravity;
@@ -571,7 +569,6 @@ void G_EndServerFrames_UpdateChaseCam( void );
 //
 // g_client.c
 //
-void G_InitBodyQueue( void );
 void ClientUserinfoChanged( edict_t *ent, char *userinfo );
 void G_Client_UpdateActivity( gclient_t *client );
 void G_Client_InactivityRemove( gclient_t *client );

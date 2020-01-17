@@ -466,38 +466,13 @@ void G_Match_RemoveProjectiles( edict_t *owner ) {
 * G_Match_FreeBodyQueue
 */
 void G_Match_FreeBodyQueue( void ) {
-	edict_t *ent;
-	int i;
-
-	ent = &game.edicts[server_gs.maxclients + 1];
-	for( i = 0; i < BODY_QUEUE_SIZE; ent++, i++ ) {
-		if( !ent->r.inuse ) {
-			continue;
-		}
-
-		if( ent->classname && !Q_stricmp( ent->classname, "body" ) ) {
-			GClip_UnlinkEntity( ent );
-
-			ent->deadflag = DEAD_NO;
-			ent->movetype = MOVETYPE_NONE;
-			ent->r.solid = SOLID_NOT;
-			ent->r.svflags = SVF_NOCLIENT;
-
-			ent->s.type = ET_GENERIC;
-			ent->s.modelindex = 0;
-			ent->s.sound = 0;
-			ent->s.effects = 0;
-
-			ent->takedamage = DAMAGE_NO;
-			ent->flags |= FL_NO_KNOCKBACK;
-
-			GClip_LinkEntity( ent );
+	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
+		edict_t * ent = &game.edicts[ i ];
+		if( ent->r.inuse && ent->s.type == ET_CORPSE ) {
+			G_FreeEdict( ent );
 		}
 	}
-
-	level.body_que = 0;
 }
-
 
 //======================================================
 //		Game types
@@ -669,7 +644,6 @@ void G_Gametype_SetDefaults( void ) {
 	level.gametype.countdownEnabled = false;
 	level.gametype.matchAbortDisabled = false;
 	level.gametype.shootingDisabled = false;
-	level.gametype.customDeadBodyCam = false;
 	level.gametype.removeInactivePlayers = true;
 	level.gametype.selfDamage = true;
 

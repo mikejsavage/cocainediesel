@@ -83,21 +83,8 @@ static void G_ProjectThirdPersonView( vec3_t vieworg, vec3_t viewangles, edict_t
 * G_Client_DeadView
 */
 static void G_Client_DeadView( edict_t *ent ) {
-	edict_t *body;
-	gclient_t *client;
-	trace_t trace;
-
-	client = ent->r.client;
-
-	// find the body
-	for( body = game.edicts + server_gs.maxclients; ENTNUM( body ) < server_gs.maxclients + BODY_QUEUE_SIZE + 1; body++ ) {
-		if( !body->r.inuse || body->r.svflags & SVF_NOCLIENT ) {
-			continue;
-		}
-		if( body->activator == ent ) { // this is our body
-			break;
-		}
-	}
+	gclient_t * client = ent->r.client;
+	edict_t * body = &game.edicts[ ent->s.ownerNum ];
 
 	if( body->activator != ent ) { // ran all the list and didn't find our body
 		return;
@@ -111,6 +98,7 @@ static void G_Client_DeadView( edict_t *ent ) {
 
 	// see if our killer is still in view
 	if( body->enemy && ( body->enemy != ent ) ) {
+		trace_t trace;
 		G_Trace( &trace, ent->s.origin, vec3_origin, vec3_origin, body->enemy->s.origin, body, MASK_OPAQUE );
 		if( trace.fraction != 1.0f ) {
 			body->enemy = NULL;
@@ -310,7 +298,7 @@ void G_ClientEndSnapFrame( edict_t *ent ) {
 	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH ) {
 		G_SetClientStats( ent );
 	} else {
-		if( G_IsDead( ent ) && !level.gametype.customDeadBodyCam ) {
+		if( G_IsDead( ent ) ) {
 			G_Client_DeadView( ent );
 		}
 

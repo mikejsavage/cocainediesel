@@ -162,7 +162,6 @@ struct SyncEntityState {
 	unsigned int modelindex;
 	unsigned int modelindex2;
 
-	int bodyOwner;                  // ET_PLAYER specific, for dead bodies
 	int channel;                    // ET_SOUNDEVENT
 
 	int ownerNum;                   // ET_EVENT specific

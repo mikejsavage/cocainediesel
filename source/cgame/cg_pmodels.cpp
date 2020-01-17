@@ -843,7 +843,7 @@ static orientation_t Mat4ToOrientation( const Mat4 & m ) {
 }
 
 void CG_DrawPlayer( centity_t *cent ) {
-	pmodel_t * pmodel = &cg_entPModels[cent->current.number];
+	pmodel_t * pmodel = &cg_entPModels[ cent->current.number ];
 	const PlayerModelMetadata * meta = pmodel->metadata;
 
 	// if viewer model, and casting shadows, offset the entity to predicted player position

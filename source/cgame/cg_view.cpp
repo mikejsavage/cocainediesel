@@ -723,8 +723,10 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 				view->angles[i] = cg.predictedPlayerState.viewangles[i];
 			}
 
-			// recoil
 			if( cg.recoiling ) {
+				constexpr float up_mult = 30.0f;
+				constexpr float down_mult = 5.0f;
+
 				cg.recoil_initial_pitch += Min2( 0.0f, cl.viewangles[ PITCH ] - cl.prevviewangles[ PITCH ] );
 
 				if( cg.recoil == 0.0f ) {
@@ -733,12 +735,12 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 						cg.recoiling = false;
 					}
 					else {
-						constexpr float reset_degrees_per_second = 80.0f;
-						cl.viewangles[ PITCH ] += Min2( reset_degrees_per_second * cls.frametime * 0.001f, d );
+						float downkick = d * down_mult * cls.frametime * 0.001f;
+						cl.viewangles[ PITCH ] += Min2( downkick, d );
 					}
 				}
 				else {
-					float kick = cg.recoil * 20.0f * cls.frametime * 0.001f;
+					float kick = cg.recoil * up_mult * cls.frametime * 0.001f;
 					cl.viewangles[ PITCH ] -= kick;
 					cg.recoil -= kick;
 					if( cg.recoil < 0.1f ) {

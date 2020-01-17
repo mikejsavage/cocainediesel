@@ -254,12 +254,13 @@ void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage
 	ent->r.client->teamstate.last_killer = attacker;
 
 	// player death
-	ent->s.angles[YAW] = ent->r.client->ps.viewangles[YAW] = LookAtKillerYAW( ent, inflictor, attacker );
 	ClientObituary( ent, inflictor, attacker );
 
 	// create a body
 	CopyToBodyQue( ent, attacker, damage );
 	ent->enemy = NULL;
+
+	ent->s.angles[YAW] = ent->r.client->ps.viewangles[YAW] = LookAtKillerYAW( ent, inflictor, attacker );
 
 	// go ghost (also resets snap)
 	G_GhostClient( ent );

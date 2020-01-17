@@ -752,7 +752,7 @@ static void GameMenu() {
 	bool ready = false;
 
 	if( GS_MatchState( &client_gs ) <= MATCH_STATE_WARMUP ) {
-		ready = ( cg.predictedPlayerState.ready ) != 0;
+		ready = cg.predictedPlayerState.ready;
 	} else if( GS_MatchState( &client_gs ) == MATCH_STATE_COUNTDOWN ) {
 		ready = true;
 	}

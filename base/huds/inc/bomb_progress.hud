@@ -12,24 +12,25 @@ if %PROGRESS
 
 	// fill coloured bar
 	setAlignment left middle
-	setColorToTeamColor #TEAM_ALLY
-	setSize %PROGRESS * 2, 18
-	if %PROGRESS < 0
-		setColorToTeamColor #TEAM_ENEMY
-		setSize %PROGRESS * -2, 18
+	if %PROGRESS_TYPE == #BombProgress_Planting
+		setColor 0.25 + %PROGRESS / 150, 0.25 - %PROGRESS / 400, 0, 1
 	endif
+	if %PROGRESS_TYPE == #BombProgress_Defusing
+		setColor 0.25 - %PROGRESS / 400, 0.25 + %PROGRESS / 400, 0.25 + %PROGRESS / 150, 1
+	endif
+	setSize %PROGRESS * 2, 18
 	drawPicByName $whiteimage
 
 	// draw bomb icon
 	setColor 1, 1, 1, 1
-	moveCursor 5 * 1.333 * %VIDHEIGHT / %VIDWIDTH, -1
+	moveCursor 5 * 1.333 * %VIDHEIGHT / %VIDWIDTH, -0.5
 	setAlignment left middle
 	setSize 20 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 20
 	drawPicByName gfx/bomb
 
 	// draw Planting/Defusing
 	setColor 1, 1, 1, 1
-	moveCursor 19 * 1.333 * %VIDHEIGHT / %VIDWIDTH, -1
+	moveCursor 24 * 1.333 * %VIDHEIGHT / %VIDWIDTH, -1.5
 	setAlignment left middle
 	setFontStyle bold
 	if %PROGRESS_TYPE == #BombProgress_Planting

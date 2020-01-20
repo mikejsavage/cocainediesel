@@ -251,37 +251,10 @@ const char *Sys_FS_GetCacheDirectory( void ) {
 }
 
 /*
-* Sys_FS_LockFile
-*/
-void *Sys_FS_LockFile( const char *path ) {
-	HANDLE handle;
-
-	handle = CreateFile( path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL );
-	if( handle == INVALID_HANDLE_VALUE ) {
-		return NULL;
-	}
-	return (void *)handle;
-}
-
-/*
-* Sys_FS_UnlockFile
-*/
-void Sys_FS_UnlockFile( void *handle ) {
-	CloseHandle( (HANDLE)handle );
-}
-
-/*
 * Sys_FS_CreateDirectory
 */
 bool Sys_FS_CreateDirectory( const char *path ) {
 	return ( !_mkdir( path ) );
-}
-
-/*
-* Sys_FS_RemoveDirectory
-*/
-bool Sys_FS_RemoveDirectory( const char *path ) {
-	return ( !_rmdir( path ) );
 }
 
 /*

@@ -279,30 +279,10 @@ const char *Sys_FS_GetCacheDirectory( void ) {
 }
 
 /*
-* Sys_FS_LockFile
-*/
-void *Sys_FS_LockFile( const char *path ) {
-	return (void *)1; // return non-NULL pointer
-}
-
-/*
-* Sys_FS_UnlockFile
-*/
-void Sys_FS_UnlockFile( void *handle ) {
-}
-
-/*
 * Sys_FS_CreateDirectory
 */
 bool Sys_FS_CreateDirectory( const char *path ) {
 	return ( !mkdir( path, 0777 ) );
-}
-
-/*
-* Sys_FS_RemoveDirectory
-*/
-bool Sys_FS_RemoveDirectory( const char *path ) {
-	return ( !rmdir( path ) );
 }
 
 /*

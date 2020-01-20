@@ -19,7 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/assets.h"
-#include "qcommon/string.h"
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
@@ -131,8 +130,7 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata * metadata, const char 
 				tag->transform = Mat4Translation( forward, right, up ) * EulerAnglesToMat4( pitch, yaw, roll );
 			}
 			else {
-				String< 64 > meh( "{}", joint_name );
-				Com_Printf( "%s: Unknown joint name: %s\n", filename, meh.c_str() );
+				Com_GGPrint( "{}: Unknown joint name: {}", filename, joint_name );
 				for( int i = 0; i < 7; i++ )
 					ParseToken( &cursor, Parse_StopOnNewLine );
 			}
@@ -157,8 +155,7 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata * metadata, const char 
 			num_clips++;
 		}
 		else {
-			String< 64 > meh( "{}", cmd );
-			Com_Printf( "%s: unrecognized cmd: %s\n", filename, meh.c_str() );
+			Com_GGPrint( "{}: unrecognized cmd: {}", filename, cmd );
 		}
 	}
 

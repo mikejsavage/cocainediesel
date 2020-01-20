@@ -20,7 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client/client.h"
 #include "client/renderer/renderer.h"
-#include "qcommon/string.h"
 #include "sdl/sdl_window.h"
 
 static cvar_t *vid_mode;
@@ -91,8 +90,8 @@ static bool ParseWindowMode( const char * str, WindowMode * mode ) {
 
 static void UpdateVidModeCvar() {
 	WindowMode mode = VID_GetWindowMode();
-	String< 128 > buf( "{}", mode );
-	Cvar_Set( vid_mode->name, buf.c_str() );
+	TempAllocator temp = cls.frame_arena.temp();
+	Cvar_Set( vid_mode->name, temp( "{}", mode ) );
 	vid_mode->modified = false;
 }
 

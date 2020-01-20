@@ -23,10 +23,6 @@ public:
 		format( fmt, rest... );
 	}
 
-	operator const char *() const {
-		return buf;
-	}
-
 	void clear() {
 		buf[ 0 ] = '\0';
 		length = 0;

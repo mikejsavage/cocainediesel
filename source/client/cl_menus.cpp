@@ -73,11 +73,12 @@ static void ResetServerBrowser() {
 }
 
 static void RefreshServerBrowser() {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	ResetServerBrowser();
 
 	for( const char * masterserver : MASTER_SERVERS ) {
-		String< 256 > buf( "requestservers global {} {} full empty\n", masterserver, APPLICATION_NOSPACES );
-		Cbuf_AddText( buf );
+		Cbuf_AddText( temp( "requestservers global {} {} full empty\n", masterserver, APPLICATION_NOSPACES ) );
 	}
 
 	Cbuf_AddText( "requestservers local full empty\n" );
@@ -106,6 +107,8 @@ static void SettingLabel( const char * label ) {
 
 template< size_t maxlen >
 static void CvarTextbox( const char * label, const char * cvar_name, const char * def, cvar_flag_t flags ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	SettingLabel( label );
 
 	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
@@ -113,18 +116,20 @@ static void CvarTextbox( const char * label, const char * cvar_name, const char 
 	char buf[ maxlen + 1 ];
 	Q_strncpyz( buf, cvar->string, sizeof( buf ) );
 
-	String< 128 > unique( "##{}", cvar_name );
+	const char * unique = temp( "##{}", cvar_name );
 	ImGui::InputText( unique, buf, sizeof( buf ) );
 
 	Cvar_Set( cvar_name, buf );
 }
 
 static void CvarCheckbox( const char * label, const char * cvar_name, const char * def, cvar_flag_t flags ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	SettingLabel( label );
 
 	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
 
-	String< 128 > unique( "##{}", cvar_name );
+	const char * unique = temp( "##{}", cvar_name );
 	bool val = cvar->integer != 0;
 	ImGui::Checkbox( unique, &val );
 
@@ -132,24 +137,27 @@ static void CvarCheckbox( const char * label, const char * cvar_name, const char
 }
 
 static void CvarSliderInt( const char * label, const char * cvar_name, int lo, int hi, const char * def, cvar_flag_t flags, const char * format = NULL ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	SettingLabel( label );
 
 	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
 
-	String< 128 > unique( "##{}", cvar_name );
+	const char * unique = temp( "##{}", cvar_name );
 	int val = cvar->integer;
 	ImGui::SliderInt( unique, &val, lo, hi, format );
 
-	String< 128 > buf( "{}", val );
-	Cvar_Set( cvar_name, buf );
+	Cvar_Set( cvar_name, temp( "{}", val ) );
 }
 
 static void CvarSliderFloat( const char * label, const char * cvar_name, float lo, float hi, const char * def, cvar_flag_t flags ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	SettingLabel( label );
 
 	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
 
-	String< 128 > unique( "##{}", cvar_name );
+	const char * unique = temp( "##{}", cvar_name );
 	float val = cvar->value;
 	ImGui::SliderFloat( unique, &val, lo, hi, "%.2f" );
 
@@ -160,6 +168,8 @@ static void CvarSliderFloat( const char * label, const char * cvar_name, float l
 }
 
 static void KeyBindButton( const char * label, const char * command ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	SettingLabel( label );
 	ImGui::PushID( label );
 
@@ -211,13 +221,14 @@ static bool SelectableColor( const char * label, RGB8 rgb, bool selected ) {
 }
 
 static void CvarTeamColorCombo( const char * label, const char * cvar_name, int def ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	SettingLabel( label );
 	ImGui::PushItemWidth( 100 );
 
-	String< 16 > def_str( "{}", def );
-	cvar_t * cvar = Cvar_Get( cvar_name, def_str, CVAR_ARCHIVE );
+	cvar_t * cvar = Cvar_Get( cvar_name, temp( "{}", def ), CVAR_ARCHIVE );
 
-	String< 128 > unique( "##{}", cvar_name );
+	const char * unique = temp( "##{}", cvar_name );
 
 	int selected = cvar->integer;
 	if( selected >= int( ARRAY_COUNT( TEAM_COLORS ) ) )
@@ -239,8 +250,7 @@ static void CvarTeamColorCombo( const char * label, const char * cvar_name, int 
 	}
 	ImGui::PopItemWidth();
 
-	String< 16 > buf( "{}", selected );
-	Cvar_Set( cvar_name, buf );
+	Cvar_Set( cvar_name, temp( "{}", selected ) );
 }
 
 static void SettingsGeneral() {
@@ -262,6 +272,8 @@ static void SettingsMouse() {
 }
 
 static void SettingsKeys() {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	ImGui::Text( "These settings are saved automatically" );
 
 	ImGui::BeginChild( "binds" );
@@ -300,6 +312,8 @@ static void SettingsKeys() {
 	KeyBindButton( "Weapon 2", "weapon 2" );
 	KeyBindButton( "Weapon 3", "weapon 3" );
 	KeyBindButton( "Weapon 4", "weapon 4" );
+	KeyBindButton( "Weapon 5", "weapon 5" );
+	KeyBindButton( "Weapon 6", "weapon 6" );
 	KeyBindButton( "Next weapon", "weapnext" );
 	KeyBindButton( "Previous weapon", "weapprev" );
 	KeyBindButton( "Last weapon", "weaplast" );
@@ -321,8 +335,7 @@ static void SettingsKeys() {
 
 	for( int i = 0; i < Weapon_Count; i++ ) {
 		const WeaponDef * weapon = GS_GetWeaponDef( i );
-		String< 128 > bind( "use {}", weapon->short_name );
-		KeyBindButton( weapon->name, bind.c_str() );
+		KeyBindButton( weapon->name, temp( "use {}", weapon->short_name ) );
 	}
 
 	ImGui::EndChild();
@@ -339,6 +352,8 @@ static const char * FullscreenModeToString( FullScreenMode mode ) {
 
 static void SettingsVideo() {
 	static WindowMode mode;
+
+	TempAllocator temp = cls.frame_arena.temp();
 
 	if( reset_video_settings ) {
 		mode = VID_GetWindowMode();
@@ -376,15 +391,12 @@ static void SettingsVideo() {
 			mode.video_mode = VID_GetVideoMode( 0 );
 		}
 
-		String< 128 > preview( "{}", mode.video_mode );
-
-		if( ImGui::BeginCombo( "##resolution", preview ) ) {
+		if( ImGui::BeginCombo( "##resolution", temp( "{}", mode.video_mode ) ) ) {
 			for( int i = 0; i < VID_GetNumVideoModes(); i++ ) {
 				VideoMode video_mode = VID_GetVideoMode( i );
 
-				String< 128 > buf( "{}", video_mode );
 				bool is_selected = mode.video_mode.width == video_mode.width && mode.video_mode.height == video_mode.height && mode.video_mode.frequency == video_mode.frequency;
-				if( ImGui::Selectable( buf, is_selected ) ) {
+				if( ImGui::Selectable( temp( "{}", video_mode ), is_selected ) ) {
 					mode.video_mode = video_mode;
 				}
 			}
@@ -394,8 +406,7 @@ static void SettingsVideo() {
 	}
 
 	if( ImGui::Button( "Apply mode changes" ) ) {
-		String< 128 > buf( "{}", mode );
-		Cvar_Set( "vid_mode", buf );
+		Cvar_Set( "vid_mode", temp( "{}", mode ) );
 	}
 
 	ImGui::SameLine();
@@ -413,22 +424,15 @@ static void SettingsVideo() {
 		cvar_t * cvar = Cvar_Get( "r_samples", "0", CVAR_ARCHIVE );
 		int samples = cvar->integer;
 
-		String< 16 > current_samples;
-		if( samples == 0 )
-			current_samples.format( "Off" );
-		else
-			current_samples.format( "{}x", samples );
-
 		ImGui::PushItemWidth( 100 );
-		if( ImGui::BeginCombo( "##r_samples", current_samples ) ) {
+		if( ImGui::BeginCombo( "##r_samples", samples == 0 ? "Off" : temp( "{}x", samples ) ) ) {
 			if( ImGui::Selectable( "Off", samples == 0 ) )
 				samples = 0;
 			if( samples == 0 )
 				ImGui::SetItemDefaultFocus();
 
 			for( int i = 2; i <= 16; i *= 2 ) {
-				String< 16 > buf( "{}x", i );
-				if( ImGui::Selectable( buf, i == samples ) )
+				if( ImGui::Selectable( temp( "{}x", i ), i == samples ) )
 					samples = i;
 				if( i == samples )
 					ImGui::SetItemDefaultFocus();
@@ -438,8 +442,7 @@ static void SettingsVideo() {
 		}
 		ImGui::PopItemWidth();
 
-		String< 16 > buf( "{}", samples );
-		Cvar_Set( "r_samples", buf );
+		Cvar_Set( "r_samples", temp( "{}", samples ) );
 	}
 
 	CvarCheckbox( "Vsync", "vid_vsync", "0", CVAR_ARCHIVE );
@@ -452,13 +455,10 @@ static void SettingsVideo() {
 		cvar_t * cvar = Cvar_Get( "cl_maxfps", "250", CVAR_ARCHIVE );
 		int maxfps = cvar->integer;
 
-		String< 16 > current( "{}", maxfps );
-
 		ImGui::PushItemWidth( 100 );
-		if( ImGui::BeginCombo( "##cl_maxfps", current ) ) {
+		if( ImGui::BeginCombo( "##cl_maxfps", temp( "{}", maxfps ) ) ) {
 			for( int value : values ) {
-				String< 16 > buf( "{}", value );
-				if( ImGui::Selectable( buf, maxfps == value ) )
+				if( ImGui::Selectable( temp( "{}", value ), maxfps == value ) )
 					maxfps = value;
 				if( value == maxfps )
 					ImGui::SetItemDefaultFocus();
@@ -468,8 +468,7 @@ static void SettingsVideo() {
 		}
 		ImGui::PopItemWidth();
 
-		String< 16 > buf( "{}", maxfps );
-		Cvar_Set( "cl_maxfps", buf );
+		Cvar_Set( "cl_maxfps", temp( "{}", maxfps ) );
 	}
 }
 
@@ -524,6 +523,8 @@ static void Settings() {
 }
 
 static void ServerBrowser() {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	if( ImGui::Button( "Refresh" ) ) {
 		RefreshServerBrowser();
 	}
@@ -538,8 +539,7 @@ static void ServerBrowser() {
 	for( int i = 0; i < num_servers; i++ ) {
 		if( ImGui::Selectable( servers[ i ].address, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
 			if( ImGui::IsMouseDoubleClicked( 0 ) ) {
-				String< 256 > buf( "connect \"{}\"\n", servers[ i ].address );
-				Cbuf_AddText( buf );
+				Cbuf_AddText( temp( "connect \"{}\"\n", servers[ i ].address ) );
 			}
 			selected_server = i;
 		}
@@ -553,6 +553,8 @@ static void ServerBrowser() {
 }
 
 static void CreateServer() {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	CvarTextbox< 128 >( "Server name", "sv_hostname", APPLICATION " server", CVAR_SERVERINFO | CVAR_ARCHIVE );
 
 	{
@@ -567,8 +569,7 @@ static void CreateServer() {
 		maxclients = max( maxclients, 1 );
 		maxclients = min( maxclients, 64 );
 
-		String< 128 > buf( "{}", maxclients );
-		Cvar_Set( "sv_maxclients", buf );
+		Cvar_Set( "sv_maxclients", temp( "{}", maxclients ) );
 	}
 
 	{
@@ -594,8 +595,7 @@ static void CreateServer() {
 	if( ImGui::Button( "Create server" ) ) {
 		Span< const char * > maps = GetMapList();
 		if( selected_map < maps.n ) {
-			String< 256 > buf( "map \"{}\"\n", maps[ selected_map ] );
-			Cbuf_AddText( buf );
+			Cbuf_AddText( temp( "map \"{}\"\n", maps[ selected_map ] ) );
 		}
 	}
 }
@@ -706,6 +706,8 @@ static void MainMenu() {
 }
 
 static void GameMenuButton( const char * label, const char * command, bool * clicked = NULL, int column = -1 ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	ImVec2 size = ImVec2( -1, 0 );
 	if( column != -1 ) {
 		ImGuiStyle & style = ImGui::GetStyle();
@@ -713,8 +715,7 @@ static void GameMenuButton( const char * label, const char * command, bool * cli
 	}
 
 	if( ImGui::Button( label, size ) ) {
-		String< 256 > buf( "{}\n", command );
-		Cbuf_AddText( buf );
+		Cbuf_AddText( temp( "{}\n", command ) );
 		if( clicked != NULL )
 			*clicked = true;
 	}
@@ -785,8 +786,7 @@ static void GameMenu() {
 		else {
 			if( GS_MatchState( &client_gs ) <= MATCH_STATE_COUNTDOWN ) {
 				if( ImGui::Checkbox( ready ? "Ready!" : "Not ready", &ready ) ) {
-					String< 256 > buf( "{}\n", "toggleready" );
-					Cbuf_AddText( buf );
+					Cbuf_AddText( "toggleready\n" );
 				}
 			}
 

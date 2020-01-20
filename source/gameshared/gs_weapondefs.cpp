@@ -51,18 +51,18 @@ const WeaponDef gs_weaponDefs[] = {
 
 		1,                              // projectiles fired each shot
 		30, // clip size
-		2250, // reload time
+		1000, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		80,                             // refire time
+		70,                             // refire time
 		6000,                           // projectile timeout
-		2.0f,                           // recoil
+		2.5f,                           // recoil
 		false,                          // smooth refire
 
 		//damages
-		5,                              // damage
+		7,                              // damage
 		0,                              // selfdamage ratio
 		16,                             // knockback
 		0,                              // splash radius
@@ -82,16 +82,16 @@ const WeaponDef gs_weaponDefs[] = {
 
 		NULL, NULL, NULL,
 
-		20,                             // projectiles fired each shot
-		6, // clip size
-		2750, // reload time
+		25,                             // projectiles fired each shot
+		5, // clip size
+		1500, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
 		1000,                           // refire time
 		8192,                           // projectile timeout / projectile range for instant weapons
-		5,                              // recoil
+		20.0f,                              // recoil
 		false,                          // smooth refire
 
 		//damages
@@ -104,7 +104,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 		//projectile def
 		INSTANT,                        // speed
-		80,                             // spread
+		40,                             // spread
 	},
 
 	{
@@ -118,13 +118,13 @@ const WeaponDef gs_weaponDefs[] = {
 
 		1,                              // projectiles fired each shot
 		3, // clip size
-		2750, // reload time
+		1000, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		800,                            // refire time
-		1250,                           // projectile timeout
+		1000,                            // refire time
+		2000,                           // projectile timeout
 		0,                              // recoil
 		false,                          // smooth refire
 
@@ -132,9 +132,9 @@ const WeaponDef gs_weaponDefs[] = {
 		40,                             // damage
 		0.75f,                          // selfdamage ratio
 		100,                            // knockback
-		125,                            // splash radius
-		7,                              // splash minimum damage
-		35,                             // splash minimum knockback
+		120,                            // splash radius
+		10,                              // splash minimum damage
+		50,                             // splash minimum knockback
 
 		//projectile def
 		1000,                           // speed
@@ -152,8 +152,8 @@ const WeaponDef gs_weaponDefs[] = {
 		NULL,
 
 		1,                              // projectiles fired each shot
-		5, // clip size
-		2750, // reload time
+		4, // clip size
+		1000, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
@@ -168,11 +168,11 @@ const WeaponDef gs_weaponDefs[] = {
 		0.75f,                          // selfdamage ratio
 		100,                            // knockback
 		120,                            // splash radius
-		7,                              // splash minimum damage
-		45,                             // splash minimum knockback
+		10,                              // splash minimum damage
+		50,                             // splash minimum knockback
 
 		//projectile def
-		1250,                           // speed
+		1350,                           // speed
 		0,                              // spread
 	},
 
@@ -188,19 +188,19 @@ const WeaponDef gs_weaponDefs[] = {
 
 		1,                              // projectiles fired each shot
 		30, // clip size
-		2250, // reload time
+		1000, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
 		100,                            // refire time
-		5000,                           // projectile timeout
-		0,                              // recoil
+		10000,                           // projectile timeout
+		0.25f,                              // recoil
 		false,                          // smooth refire
 
 		//damages
 		8,                              // damage
-		0.2f,                           // selfdamage ratio
+		0,                           // selfdamage ratio
 		22,                             // knockback
 		45,                             // splash radius
 		4,                              // splash minimum damage
@@ -223,7 +223,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 		1,                              // projectiles fired each shot
 		50, // clip size
-		2250, // reload time
+		1000, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
@@ -257,8 +257,8 @@ const WeaponDef gs_weaponDefs[] = {
 		NULL,
 
 		1,                              // projectiles fired each shot
-		4, // clip size
-		3000, // reload time
+		3, // clip size
+		1000, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
@@ -271,7 +271,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//damages
 		35,                             // damage
 		0,                              // selfdamage ratio
-		80,                             // knockback
+		100,                             // knockback
 		0,                              // splash radius
 		0,                              // minimum damage
 		0,                              // minimum knockback

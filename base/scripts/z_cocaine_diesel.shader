@@ -1,7 +1,7 @@
 models/objects/gibs/gib
 {
 	{
-		map $whiteImage
+		map $whiteimage
 		rgbGen entity
 	}
 }

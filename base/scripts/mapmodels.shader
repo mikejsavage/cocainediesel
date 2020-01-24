@@ -25,7 +25,7 @@ lambert1
 	}
 
 	{
-		map $whiteImage
+		map $whiteimage
 		rgbgen const 0.75 0.75 0.75
 		blendFunc filter
 	}

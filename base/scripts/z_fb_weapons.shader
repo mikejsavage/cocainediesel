@@ -1,7 +1,7 @@
 fullbright_weapon
 {
 	{
-		map $whiteImage
+		map $whiteimage
 		rgbGen const $1 $2 $3
 	}
 }

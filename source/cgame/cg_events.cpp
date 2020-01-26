@@ -94,21 +94,16 @@ static void _LaserImpact( trace_t *trace, vec3_t dir ) {
 }
 
 void CG_LaserBeamEffect( centity_t *cent ) {
-	const SoundEffect * sfx = NULL;
-	float range;
-	bool firstPerson;
 	trace_t trace;
 	orientation_t projectsource;
 	vec3_t laserOrigin, laserAngles, laserPoint;
 
 	if( cent->localEffects[LOCALEFFECT_LASERBEAM] <= cl.serverTime ) {
 		if( cent->localEffects[LOCALEFFECT_LASERBEAM] ) {
-			sfx = cgs.media.sfxLasergunStop;
-
 			if( ISVIEWERENTITY( cent->current.number ) ) {
-				S_StartGlobalSound( sfx, CHAN_AUTO, cg_volume_effects->value );
+				S_StartGlobalSound( cgs.media.sfxLasergunStop, CHAN_AUTO, cg_volume_effects->value );
 			} else {
-				S_StartEntitySound( sfx, cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+				S_StartEntitySound( cgs.media.sfxLasergunStop, cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
 			}
 		}
 		cent->localEffects[LOCALEFFECT_LASERBEAM] = 0;
@@ -119,7 +114,7 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 	Vec4 color = CG_TeamColorVec4( laserOwner->current.team );
 
 	// interpolate the positions
-	firstPerson = ISVIEWERENTITY( cent->current.number ) && !cg.view.thirdperson;
+	bool firstPerson = ISVIEWERENTITY( cent->current.number ) && !cg.view.thirdperson;
 
 	if( firstPerson ) {
 		VectorCopy( cg.predictedPlayerState.pmove.origin, laserOrigin );
@@ -138,11 +133,8 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 		VecToAngles( dir, laserAngles );
 	}
 
-	range = GS_GetWeaponDef( Weapon_Laser )->range;
-
-	sfx = cgs.media.sfxLasergunHum;
-
 	// trace the beam: for tracing we use the real beam origin
+	float range = GS_GetWeaponDef( Weapon_Laser )->range;
 	GS_TraceLaserBeam( &client_gs, &trace, laserOrigin, laserAngles, range, cent->current.number, 0, _LaserImpact );
 
 	// draw the beam: for drawing we use the weapon projection source (already handles the case of viewer entity)
@@ -159,10 +151,12 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 		cg_entPModels[cent->current.number].flash_time = cl.serverTime + cgs.weaponInfos[ Weapon_Laser ]->flashTime;
 	}
 
+	S_ImmediateEntitySound( cgs.media.sfxLasergunHum, cent->current.number, cg_volume_effects->value, ATTN_NONE );
+
 	if( ISVIEWERENTITY( cent->current.number ) ) {
-		S_ImmediateEntitySound( sfx, cent->current.number, cg_volume_effects->value, ATTN_NONE );
+		S_ImmediateEntitySound( FindSoundEffect( "sounds/gladiator/laser_hum" ), cent->current.number, cg_volume_effects->value, ATTN_NONE );
 	} else {
-		S_ImmediateLineSound( sfx, cent->current.number, start, end, cg_volume_effects->value, ATTN_STATIC );
+		S_ImmediateLineSound( FindSoundEffect( "sounds/gladiator/laser_hum" ), cent->current.number, start, end, cg_volume_effects->value, ATTN_STATIC );
 	}
 
 	laserOwner = NULL;

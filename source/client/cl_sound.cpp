@@ -17,7 +17,7 @@
 
 struct SoundEffect {
 	struct PlaybackConfig {
-		StringHash sounds[ 4 ];
+		StringHash sounds[ 8 ];
 		u8 num_random_sounds;
 
 		float delay;

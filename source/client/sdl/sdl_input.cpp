@@ -387,8 +387,6 @@ void IN_Init() {
 	running_in_debugger = being_debugged();
 
 	SDL_ShowCursor( running_in_debugger ? SDL_ENABLE : SDL_DISABLE );
-
-	SDL_SetHint( SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "0" );
 }
 
 void IN_Frame() {

@@ -1,0 +1,8 @@
+{
+	volume 0.2
+	sound sounds/weapons/rocket_fly1
+}
+{
+	volume 0.7
+	sound sounds/weapons/rocket_fly_extra1
+}

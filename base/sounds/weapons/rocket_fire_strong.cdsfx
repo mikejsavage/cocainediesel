@@ -1,0 +1,10 @@
+{
+	volume 0.4
+
+	sound sounds/weapons/rocket_fire1
+}
+{
+	volume 0.6
+	sound sounds/weapons/rocket_pressure1
+	sound sounds/weapons/rocket_pressure2
+}

@@ -290,7 +290,6 @@ static void CG_WeaponModelUpdateRegistration( weaponinfo_t *weaponinfo, const ch
 	}
 
 	weaponinfo->sound_fire = FindSoundEffect( temp( "weapons/{}/fire", filename ) );
-	Com_Printf( "load model %s %p\n", filename, weaponinfo->sound_fire );
 
 	// load failed
 	if( !weaponinfo->model[WEAPMODEL_HAND] ) {

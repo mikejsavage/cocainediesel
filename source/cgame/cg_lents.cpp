@@ -1128,6 +1128,7 @@ void DrawGibs() {
 
 			emitter.use_cone_direction = true;
 			emitter.direction_cone.normal = FromQF3( trace.plane.normal );
+			emitter.direction_cone.theta = 90.0f;
 
 			emitter.start_speed = 128.0f;
 			emitter.end_speed = 128.0f;
@@ -1146,7 +1147,7 @@ void DrawGibs() {
 		}
 
 		gib->lifetime -= dt;
-		if( gib->lifetime < 0 ) {
+		if( gib->lifetime <= 0 ) {
 			num_gibs--;
 			i--;
 			Swap2( gib, &gibs[ num_gibs ] );

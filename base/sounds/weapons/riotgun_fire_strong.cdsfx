@@ -1,0 +1,8 @@
+{
+	sound sounds/weapons/shotgun_fire
+}
+{
+	delay 0.65
+	volume 0.5
+	sound sounds/weapons/shotgun_reload2
+}

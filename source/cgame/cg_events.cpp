@@ -372,16 +372,22 @@ static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int owner, int t
 		VectorCopy( origin, projection.origin );
 	}
 
-	AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 1.0f, color, cgs.media.shaderSMGtrail, 0.2f, 0.1f );
+	AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 1.0f, color, cgs.media.shaderTracer, 0.2f, 0.1f );
 }
 
 /*
 * CG_Fire_SunflowerPattern
 */
-static void CG_Fire_SunflowerPattern( vec3_t start, vec3_t dir, int ignore, int count,
+static void CG_Fire_SunflowerPattern( vec3_t start, vec3_t dir, int owner, int team, int count,
 									  int spread, int range, void ( *impact )( trace_t *tr ) ) {
+	Vec4 color = CG_TeamColorVec4( team );
 	vec3_t right, up;
 	ViewVectors( dir, right, up );
+
+	orientation_t projection;
+	if( !CG_PModel_GetProjectionSource( owner, &projection ) ) {
+		VectorCopy( start, projection.origin );
+	}
 
 	for( int i = 0; i < count; i++ ) {
 		float fi = i * 2.4f; //magic value creating Fibonacci numbers
@@ -389,7 +395,7 @@ static void CG_Fire_SunflowerPattern( vec3_t start, vec3_t dir, int ignore, int 
 		float u = sinf( fi ) * spread * sqrtf( fi );
 
 		trace_t trace;
-		trace_t * water_trace = GS_TraceBullet( &client_gs, &trace, start, dir, right, up, r, u, range, ignore, 0 );
+		trace_t * water_trace = GS_TraceBullet( &client_gs, &trace, start, dir, right, up, r, u, range, owner, 0 );
 		if( water_trace ) {
 			trace_t *tr = water_trace;
 			if( !VectorCompare( tr->endpos, start ) ) {
@@ -401,6 +407,8 @@ static void CG_Fire_SunflowerPattern( vec3_t start, vec3_t dir, int ignore, int 
 			impact( &trace );
 		}
 
+		AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 1.0f, color, cgs.media.shaderTracer, 0.2f, 0.1f );
+
 		if( water_trace ) {
 			CG_LeadBubbleTrail( &trace, water_trace->endpos );
 		}
@@ -410,10 +418,10 @@ static void CG_Fire_SunflowerPattern( vec3_t start, vec3_t dir, int ignore, int 
 /*
 * CG_Event_FireRiotgun
 */
-static void CG_Event_FireRiotgun( vec3_t origin, vec3_t dir, int owner ) {
+static void CG_Event_FireRiotgun( vec3_t origin, vec3_t dir, int owner, int team ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_Shotgun );
 
-	CG_Fire_SunflowerPattern( origin, dir, owner, def->projectile_count, def->spread, def->range, CG_BulletImpact );
+	CG_Fire_SunflowerPattern( origin, dir, owner, team, def->projectile_count, def->spread, def->range, CG_BulletImpact );
 
 	// spawn a single sound at the impact
 	vec3_t end;
@@ -765,7 +773,7 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, int parm, bool predicted ) {
 					CG_Event_WeaponBeam( origin, dir, ent->number );
 				}
 				else if( parm == Weapon_Shotgun ) {
-					CG_Event_FireRiotgun( origin, dir, ent->number );
+					CG_Event_FireRiotgun( origin, dir, ent->number, ent->team );
 				}
 				else if( parm == Weapon_Laser ) {
 					CG_Event_LaserBeam( origin, dir, ent->number );
@@ -789,7 +797,7 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, int parm, bool predicted ) {
 			if( ISVIEWERENTITY( ent->ownerNum ) && ev < PREDICTABLE_EVENTS_MAX && predicted != cg.view.playerPrediction ) {
 				return;
 			}
-			CG_Event_FireRiotgun( ent->origin, ent->origin2, ent->ownerNum );
+			CG_Event_FireRiotgun( ent->origin, ent->origin2, ent->ownerNum, ent->team );
 			break;
 
 		case EV_NOAMMOCLICK:

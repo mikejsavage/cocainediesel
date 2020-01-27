@@ -569,7 +569,6 @@ enum {
 
 // vsay tokens list
 enum {
-	VSAY_GENERIC,
 	VSAY_AFFIRMATIVE,
 	VSAY_NEGATIVE,
 	VSAY_YES,
@@ -595,7 +594,15 @@ enum {
 	VSAY_BOOMSTICK,
 	VSAY_OK,
 
-	VSAY_TOTAL = 128
+	Vsay_Cya,
+	Vsay_GetGood,
+	Vsay_HitTheShowers,
+	Vsay_Lads,
+	Vsay_ShitSon,
+	Vsay_TrashSmash,
+	Vsay_WowYourTerrible,
+
+	VSAY_TOTAL
 };
 
 // SyncEntityState->event values

@@ -535,6 +535,13 @@ static const g_vsays_t g_vsays[] = {
 	{ "boomstick", VSAY_BOOMSTICK },
 	{ "ok", VSAY_OK },
 	{ "shutup", VSAY_SHUTUP },
+	{ "cya", Vsay_Cya },
+	{ "getgood", Vsay_GetGood },
+	{ "hittheshowers", Vsay_HitTheShowers },
+	{ "lads", Vsay_Lads },
+	{ "shitson", Vsay_ShitSon },
+	{ "trashsmash", Vsay_TrashSmash },
+	{ "wowyourterrible", Vsay_WowYourTerrible },
 
 	{ NULL, 0 }
 };

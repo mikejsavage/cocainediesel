@@ -35,7 +35,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define CG_OBITUARY_HUD     1
 #define CG_OBITUARY_CENTER  2
-#define CG_OBITUARY_CONSOLE 4
 
 #define ITEM_RESPAWN_TIME   1000
 
@@ -200,7 +199,7 @@ typedef struct {
 	const Material * shaderPlasmaMark;
 	const Material * shaderEBBeam;
 	const Material * shaderLGBeam;
-	const Material * shaderSMGtrail;
+	const Material * shaderTracer;
 	const Material * shaderEBImpact;
 
 	const Material * shaderPlayerShadow;
@@ -296,8 +295,6 @@ typedef struct {
 	char configStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 	char baseConfigStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 
-	char weaponModels[ Weapon_Count ][MAX_QPATH];
-	int numWeaponModels;
 	weaponinfo_t *weaponInfos[ Weapon_Count + 1 ];
 	orientation_t weaponItemTag;
 
@@ -561,11 +558,9 @@ extern cvar_t *cg_chatFilter;
 
 extern cvar_t *cg_allyColor;
 extern cvar_t *cg_allyModel;
-extern cvar_t *cg_allyForceModel;
 
 extern cvar_t *cg_enemyColor;
 extern cvar_t *cg_enemyModel;
-extern cvar_t *cg_enemyForceModel;
 
 #define CG_Malloc( size ) _Mem_AllocExt( cg_mempool, size, 16, 1, 0, 0, __FILE__, __LINE__ );
 #define CG_Free( data ) Mem_Free( data )

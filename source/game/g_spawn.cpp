@@ -426,21 +426,6 @@ void G_PrecacheMedia( void ) {
 	// MODELS
 	//
 
-	// THIS ORDER MUST MATCH THE DEFINES IN gs_public.h
-	// you can add more, max 255
-
-	trap_ModelIndex( "#gunblade/gunblade" );      // Weapon_Knife
-	trap_ModelIndex( "#machinegun/machinegun" );    // Weapon_MachineGun
-	trap_ModelIndex( "#riotgun/riotgun" );        // Weapon_Shotgun
-	trap_ModelIndex( "#glauncher/glauncher" );    // Weapon_GrenadeLauncher
-	trap_ModelIndex( "#rl" );    // Weapon_RocketLauncher
-	trap_ModelIndex( "#plasmagun/plasmagun" );    // Weapon_Plasma
-	trap_ModelIndex( "#lg" );      // Weapon_Laser
-	trap_ModelIndex( "#electrobolt/electrobolt" ); // Weapon_Railgun
-
-	//-------------------
-
-	// FIXME: Temporarily use normal gib until the head is fixed
 	trap_ModelIndex( "models/objects/gibs/gib" );
 
 	//
@@ -462,8 +447,6 @@ void G_PrecacheMedia( void ) {
 	trap_SoundIndex( S_WORLD_UNDERLAVA );
 
 	trap_SoundIndex( S_HIT_WATER );
-
-	trap_SoundIndex( S_WEAPON_NOAMMO );
 
 	// announcer
 

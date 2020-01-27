@@ -325,7 +325,6 @@ void CG_BubbleTrail( const vec3_t start, const vec3_t end, int dist ) {
 void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, int team, float radius ) {
 	LocalEntity *le;
 	vec3_t angles;
-	float model_radius = PLASMA_EXPLOSION_MODEL_RADIUS;
 
 	VecToAngles( dir, angles );
 
@@ -336,7 +335,7 @@ void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, int team, float rad
 						150, 0, 0.75, 0,
 						cgs.media.modPlasmaExplosion,
 						NULL );
-	le->ent.scale = radius / model_radius;
+	le->ent.scale = radius;
 
 	// CG_ImpactPuffParticles( pos, dir, 15, 0.75f, color[0], color[1], color[2], color[3], NULL );
 

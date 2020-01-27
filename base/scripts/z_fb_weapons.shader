@@ -51,32 +51,32 @@ models/weapons/machinegun/machinegun
 	template fullbright_weapon 0.250 0.250 0.250
 }
 
-gfx/misc/ebbeam
+weapons/eb/beam
 {
 	{
 		blendfunc add
-		map gfx/misc/electro
+		map weapons/eb/beam
 		rgbgen entity
 		alphagen entity
 	}
 }
 
-gfx/misc/lgbeam
+weapons/lg/beam
 {
 	softParticle
 	{
 		blendfunc add
-		map gfx/misc/laserbeam
+		map weapons/lg/beam
 		rgbgen entity
 		alphagen entity
 	}
 }
 
-weapons/SMG/SMGtrail
+weapons/tracer
 {
 	{
 		blendfunc add
-		map gfx/misc/laserbeam //todo
+		map weapons/tracer
 		rgbgen entity
 		alphagen entity
 	}

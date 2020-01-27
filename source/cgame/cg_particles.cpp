@@ -9,7 +9,7 @@ void InitParticles() {
 	constexpr Vec3 gravity = Vec3( 0, 0, -GRAVITY );
 
 	cgs.ions = NewParticleSystem( sys_allocator, 8192, FindMaterial( "$particle" ) );
-	cgs.SMGsparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "weapons/SMG/SMGsparks" ) );
+	cgs.SMGsparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "weapons/mg/spark" ) );
 	cgs.SMGsparks.acceleration = gravity;
 	cgs.smoke = NewParticleSystem( sys_allocator, 1024, FindMaterial( "gfx/misc/cartoon_smokepuff3" ) );
 	cgs.sparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "$particle" ) );

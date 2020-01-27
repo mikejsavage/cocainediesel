@@ -21,49 +21,49 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cg_local.h"
 
 void CG_RegisterMediaSounds() {
-	cgs.media.sfxBulletImpact = FindSoundEffect( "sounds/weapons/bullet_impact" );
+	cgs.media.sfxBulletImpact = FindSoundEffect( "weapons/bullet_impact" );
 
 	// weapon
 	for( int i = 0; i < 4; i++ )
 		cgs.media.sfxWeaponHit[i] = FindSoundEffect( va( S_WEAPON_HITS, i ) );
 	cgs.media.sfxWeaponKill = FindSoundEffect( S_WEAPON_KILL );
 	cgs.media.sfxWeaponHitTeam = FindSoundEffect( S_WEAPON_HIT_TEAM );
-	cgs.media.sfxWeaponUp = FindSoundEffect( S_WEAPON_SWITCH );
-	cgs.media.sfxWeaponUpNoAmmo = FindSoundEffect( S_WEAPON_NOAMMO );
+	cgs.media.sfxWeaponUp = FindSoundEffect( "weapons/switch" );
+	cgs.media.sfxWeaponUpNoAmmo = FindSoundEffect( "weapons/noammo" );
 
 	cgs.media.sfxTeleportIn = FindSoundEffect( S_TELEPORT );
 	cgs.media.sfxTeleportOut = FindSoundEffect( S_TELEPORT );
 
 	// Gunblade sounds
-	cgs.media.sfxBladeFleshHit = FindSoundEffect( S_WEAPON_GUNBLADE_HIT_FLESH );
-	cgs.media.sfxBladeWallHit = FindSoundEffect( S_WEAPON_GUNBLADE_HIT_WALL );
+	cgs.media.sfxBladeFleshHit = FindSoundEffect( "weapons/gb/hit_player" );
+	cgs.media.sfxBladeWallHit = FindSoundEffect( "weapons/gb/hit_wall" );
 
 	// Riotgun sounds :
-	cgs.media.sfxRiotgunHit = FindSoundEffect( S_WEAPON_RIOTGUN_HIT );
+	cgs.media.sfxRiotgunHit = FindSoundEffect( "weapons/rg/hit" );
 
 	// Grenade launcher sounds :
-	cgs.media.sfxGrenadeBounce = FindSoundEffect( S_WEAPON_GRENADE_BOUNCE );
-	cgs.media.sfxGrenadeExplosion = FindSoundEffect( S_WEAPON_GRENADE_HIT );
+	cgs.media.sfxGrenadeBounce = FindSoundEffect( "weapons/gl/bounce" );
+	cgs.media.sfxGrenadeExplosion = FindSoundEffect( "weapons/gl/explode" );
 
 	// Rocket launcher sounds :
-	cgs.media.sfxRocketLauncherHit = FindSoundEffect( S_WEAPON_ROCKET_HIT );
+	cgs.media.sfxRocketLauncherHit = FindSoundEffect( "weapons/rl/explode" );
 
 	// Plasmagun sounds :
-	cgs.media.sfxPlasmaHit = FindSoundEffect( S_WEAPON_PLASMAGUN_HIT );
+	cgs.media.sfxPlasmaHit = FindSoundEffect( "weapons/pg/explode" );
 
 	// Lasergun sounds
-	cgs.media.sfxLasergunHum = FindSoundEffect( S_WEAPON_LASERGUN_HUM );
-	cgs.media.sfxLasergunStop = FindSoundEffect( S_WEAPON_LASERGUN_STOP );
-	cgs.media.sfxLasergunHit = FindSoundEffect( S_WEAPON_LASERGUN_HIT );
+	cgs.media.sfxLasergunHum = FindSoundEffect( "weapons/lg/hum" );
+	cgs.media.sfxLasergunStop = FindSoundEffect( "weapons/lg/stop" );
+	cgs.media.sfxLasergunHit = FindSoundEffect( "weapons/lg/hit" );
 
-	cgs.media.sfxElectroboltHit = FindSoundEffect( S_WEAPON_ELECTROBOLT_HIT );
+	cgs.media.sfxElectroboltHit = FindSoundEffect( "weapons/rg/hit" );
 
 	cgs.media.sfxSpikesArm = FindSoundEffect( "sounds/spikes/arm" );
 	cgs.media.sfxSpikesDeploy = FindSoundEffect( "sounds/spikes/deploy" );
 	cgs.media.sfxSpikesGlint = FindSoundEffect( "sounds/spikes/glint" );
 	cgs.media.sfxSpikesRetract = FindSoundEffect( "sounds/spikes/retract" );
 
-	cgs.media.sfxFall = FindSoundEffect( "sounds/players/fall" );
+	cgs.media.sfxFall = FindSoundEffect( "players/fall" );
 
 	// VSAY sounds
 	cgs.media.sfxVSaySounds[VSAY_AFFIRMATIVE] = FindSoundEffect( S_VSAY_AFFIRMATIVE );
@@ -100,19 +100,21 @@ void CG_RegisterMediaSounds() {
 }
 
 void CG_RegisterMediaModels() {
-	cgs.media.modPlasmaExplosion = FindModel( PATH_PLASMA_EXPLOSION_MODEL );
+	cgs.media.modPlasmaExplosion = FindModel( "weapons/pg/impact" );
 
 	cgs.media.modDash = FindModel( "models/effects/dash_burst" );
 
-	cgs.media.modBulletExplode = FindModel( PATH_BULLET_EXPLOSION_MODEL );
-	cgs.media.modElectroBoltWallHit = FindModel( PATH_ELECTROBLAST_IMPACT_MODEL );
-	cgs.media.modLasergunWallExplo = FindModel( PATH_LASERGUN_IMPACT_MODEL );
-	cgs.media.modBladeWallHit = FindModel( PATH_GUNBLADEBLAST_IMPACT_MODEL );
+	cgs.media.modBulletExplode = FindModel( "weapons/mg/impact" );
+	cgs.media.modElectroBoltWallHit = FindModel( "weapons/eb/impact" );
+	cgs.media.modLasergunWallExplo = FindModel( "weapons/lg/impact" );
+	cgs.media.modBladeWallHit = FindModel( "weapons/gb/impact" );
 
 	cgs.media.modGib = FindModel( "models/objects/gibs/gib" );
 }
 
 void CG_RegisterMediaShaders() {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	cgs.media.shaderParticle = FindMaterial( "particle" );
 
 	cgs.media.shaderNet = FindMaterial( "gfx/hud/net" );
@@ -142,26 +144,21 @@ void CG_RegisterMediaShaders() {
 	cgs.media.shaderPlasmaMark = FindMaterial( "gfx/decals/d_plasma_hit" );
 	cgs.media.shaderEBImpact = FindMaterial( "gfx/decals/ebimpact" );
 
-	cgs.media.shaderEBBeam = FindMaterial( "gfx/misc/ebbeam" );
-	cgs.media.shaderLGBeam = FindMaterial( "gfx/misc/lgbeam" );
-	cgs.media.shaderSMGtrail = FindMaterial( "weapons/SMG/SMGtrail" );
-	cgs.media.shaderRocketExplosion = FindMaterial( PATH_ROCKET_EXPLOSION_SPRITE );
-	cgs.media.shaderRocketExplosionRing = FindMaterial( PATH_ROCKET_EXPLOSION_RING_SPRITE );
-	cgs.media.shaderGrenadeExplosion = FindMaterial( PATH_ROCKET_EXPLOSION_SPRITE );
-	cgs.media.shaderGrenadeExplosionRing = FindMaterial( PATH_ROCKET_EXPLOSION_RING_SPRITE );
+	cgs.media.shaderEBBeam = FindMaterial( "weapons/eb/beam" );
+	cgs.media.shaderLGBeam = FindMaterial( "weapons/lg/beam" );
+	cgs.media.shaderTracer = FindMaterial( "weapons/tracer" );
+	cgs.media.shaderRocketExplosion = FindMaterial( "weapons/rl/explosion" );
+	cgs.media.shaderRocketExplosionRing = FindMaterial( "weapons/rl/explosion_ring" );
+	cgs.media.shaderGrenadeExplosion = FindMaterial( "weapons/gl/explosion" );
+	cgs.media.shaderGrenadeExplosionRing = FindMaterial( "weapons/gl/explosion_ring" );
 
 	cgs.media.shaderLaser = FindMaterial( "gfx/misc/laser" );
 
 	cgs.media.shaderRaceGhostEffect = FindMaterial( "gfx/raceghost" );
 
-	cgs.media.shaderWeaponIcon[ Weapon_Knife ] = FindMaterial( PATH_GUNBLADE_ICON );
-	cgs.media.shaderWeaponIcon[ Weapon_MachineGun ] = FindMaterial( PATH_MACHINEGUN_ICON );
-	cgs.media.shaderWeaponIcon[ Weapon_Shotgun ] = FindMaterial( PATH_RIOTGUN_ICON );
-	cgs.media.shaderWeaponIcon[ Weapon_GrenadeLauncher ] = FindMaterial( PATH_GRENADELAUNCHER_ICON );
-	cgs.media.shaderWeaponIcon[ Weapon_RocketLauncher ] = FindMaterial( PATH_ROCKETLAUNCHER_ICON );
-	cgs.media.shaderWeaponIcon[ Weapon_Plasma ] = FindMaterial( PATH_PLASMAGUN_ICON );
-	cgs.media.shaderWeaponIcon[ Weapon_Laser ] = FindMaterial( PATH_LASERGUN_ICON );
-	cgs.media.shaderWeaponIcon[ Weapon_Railgun ] = FindMaterial( PATH_ELECTROBOLT_ICON );
+	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
+		cgs.media.shaderWeaponIcon[ i ] = FindMaterial( temp( "weapons/{}/icon", GS_GetWeaponDef( i )->short_name ) );
+	}
 
 	cgs.media.shaderKeyIcon[KEYICON_FORWARD] = FindMaterial( PATH_KEYICON_FORWARD );
 	cgs.media.shaderKeyIcon[KEYICON_BACKWARD] = FindMaterial( PATH_KEYICON_BACKWARD );

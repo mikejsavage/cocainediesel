@@ -1,0 +1,8 @@
+{
+	volume 0.2
+	sound weapons/rl/trail1
+}
+{
+	volume 0.7
+	sound weapons/rl/trail_extra1
+}

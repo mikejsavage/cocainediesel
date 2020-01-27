@@ -33,32 +33,28 @@ static bool CG_IsAlly( int team ) {
 	return team == myteam;
 }
 
-static void CG_RegisterForceModel( cvar_t *modelCvar, cvar_t *modelForceCvar, PlayerModelMetadata **model ) {
-	if( !modelCvar->modified && !modelForceCvar->modified )
+static void CG_RegisterForceModel( cvar_t *modelCvar, PlayerModelMetadata **model ) {
+	if( !modelCvar->modified )
 		return;
 	modelCvar->modified = false;
-	modelForceCvar->modified = false;
 
 	*model = NULL;
 
-	if( modelForceCvar->integer ) {
-		const char * name = modelCvar->string;
-		PlayerModelMetadata * new_model = CG_RegisterPlayerModel( va( "models/players/%s", name ) );
-		if( new_model == NULL ) {
-			name = modelCvar->dvalue;
-			new_model = CG_RegisterPlayerModel( va( "models/players/%s", name ) );
-		}
+	const char * name = modelCvar->string;
+	PlayerModelMetadata * new_model = CG_RegisterPlayerModel( va( "players/%s", name ) );
+	if( new_model == NULL ) {
+		name = modelCvar->dvalue;
+		new_model = CG_RegisterPlayerModel( va( "players/%s", name ) );
+	}
 
-		if( new_model != NULL ) {
-			*model = new_model;
-		}
+	if( new_model != NULL ) {
+		*model = new_model;
 	}
 }
 
 static void CG_CheckUpdateTeamModelRegistration( bool ally ) {
 	cvar_t * modelCvar = ally ? cg_allyModel : cg_enemyModel;
-	cvar_t * modelForceCvar = ally ? cg_allyForceModel : cg_enemyForceModel;
-	CG_RegisterForceModel( modelCvar, modelForceCvar, &cgs.teamModelInfo[ int( ally ) ] );
+	CG_RegisterForceModel( modelCvar, &cgs.teamModelInfo[ int( ally ) ] );
 }
 
 const PlayerModelMetadata * CG_PModelForCentity( centity_t * cent ) {

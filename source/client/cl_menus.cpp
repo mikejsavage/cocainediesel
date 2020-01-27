@@ -886,7 +886,7 @@ static void GameMenu() {
 				}
 
 				{
-					const Material * icon = FindMaterial( "gfx/hud/icons/weapon/weap_none" );
+					const Material * icon = FindMaterial( "weapons/weap_none" );
 					Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
 					ImGuiColorToken pink = ImGuiColorToken( 255, 53, 255, 64 );
 

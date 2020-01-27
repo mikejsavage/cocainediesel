@@ -759,10 +759,6 @@ struct WeaponDef {
 	const char * description;
 	int cost;
 
-	const char * precache_models;
-	const char * precache_sounds;
-	const char * precache_images;
-
 	int projectile_count;
 	int clip_size;
 	unsigned int reload_time;

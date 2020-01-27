@@ -1,0 +1,7 @@
+{
+	volume 0.1
+	sound players/bigvic/jump_1
+	sound players/bigvic/jump_2
+	sound players/bigvic/jump_3
+	sound players/bigvic/jump_4
+}

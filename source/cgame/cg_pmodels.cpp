@@ -177,15 +177,15 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata * metadata, const char 
 static bool CG_LoadPlayerModel( PlayerModelMetadata *metadata, const char *filename ) {
 	ZoneScoped;
 
-	bool loaded_model = false;
-	char anim_filename[MAX_QPATH];
+	TempAllocator temp = cls.frame_arena.temp();
 
-	metadata->model = FindModel( filename );
+	bool loaded_model = false;
+
+	metadata->model = FindModel( temp( "{}/model", filename ) );
 
 	// load animations script
 	if( metadata->model ) {
-		snprintf( anim_filename, sizeof( anim_filename ), "%s.cfg", filename );
-		loaded_model = CG_ParseAnimationScript( metadata, anim_filename );
+		loaded_model = CG_ParseAnimationScript( metadata, temp( "{}/model.cfg", filename ) );
 	}
 
 	// clean up if failed

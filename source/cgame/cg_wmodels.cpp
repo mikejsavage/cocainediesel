@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static weaponinfo_t cg_pWeaponModelInfos[ Weapon_Count + 1 ];
 
-static const char *wmPartSufix[] = { "", "_flash", "_hand", "_barrel", NULL };
+static const char *wmPartSufix[] = { "model", "flash", "hand", "barrel", NULL };
 
 /*
 * CG_vWeap_ParseAnimationScript
@@ -161,16 +161,6 @@ static bool CG_vWeap_ParseAnimationScript( weaponinfo_t *weaponinfo, const char 
 							   S_COLOR_WHITE );
 				}
 
-			} else if( !Q_stricmp( token, "firesound" ) ) {
-				if( debug ) {
-					Com_Printf( "%sScript: firesound:%s", S_COLOR_BLUE, S_COLOR_WHITE );
-				}
-
-				token = COM_ParseExt( &ptr, false );
-				weaponinfo->sound_fire = FindSoundEffect( token );
-				if( debug ) {
-					Com_Printf( "%s%s%s\n", S_COLOR_BLUE, token, S_COLOR_WHITE );
-				}
 			} else if( token[0] && debug ) {
 				Com_Printf( "%signored: %s%s\n", S_COLOR_YELLOW, token, S_COLOR_WHITE );
 			}
@@ -285,25 +275,25 @@ static void CG_ComputeWeaponInfoTags( weaponinfo_t *weaponinfo ) {
 /*
 * CG_WeaponModelUpdateRegistration
 */
-static void CG_WeaponModelUpdateRegistration( weaponinfo_t *weaponinfo, char *filename ) {
+static void CG_WeaponModelUpdateRegistration( weaponinfo_t *weaponinfo, const char *filename ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	for( int p = 0; p < VWEAP_MAXPARTS; p++ ) {
 		if( !weaponinfo->model[p] ) {
-			char scratch[MAX_QPATH];
-			snprintf( scratch, sizeof( scratch ), "models/weapons/%s%s.md3", filename, wmPartSufix[p] );
-			weaponinfo->model[p] = FindModel( scratch );
+			weaponinfo->model[p] = FindModel( temp( "weapons/{}/{}", filename, wmPartSufix[ p ] ) );
 		}
 	}
 
 	// load animation script for the hand model
-	char scratch[MAX_QPATH];
-	snprintf( scratch, sizeof( scratch ), "models/weapons/%s.cfg", filename );
-	if( !CG_vWeap_ParseAnimationScript( weaponinfo, scratch ) ) {
+	if( !CG_vWeap_ParseAnimationScript( weaponinfo, temp( "weapons/{}/model.cfg", filename ) ) ) {
 		CG_CreateHandDefaultAnimations( weaponinfo );
 	}
 
+	weaponinfo->sound_fire = FindSoundEffect( temp( "weapons/{}/fire", filename ) );
+	Com_Printf( "load model %s %p\n", filename, weaponinfo->sound_fire );
+
 	// load failed
 	if( !weaponinfo->model[WEAPMODEL_HAND] ) {
-		weaponinfo->name[0] = 0;
 		for( int p = 0; p < VWEAP_MAXPARTS; p++ )
 			weaponinfo->model[p] = NULL;
 		return;
@@ -315,14 +305,12 @@ static void CG_WeaponModelUpdateRegistration( weaponinfo_t *weaponinfo, char *fi
 	if( cg_debugWeaponModels->integer ) {
 		Com_Printf( "%sWEAPmodel: Loaded successful%s\n", S_COLOR_BLUE, S_COLOR_WHITE );
 	}
-
-	Q_strncpyz( weaponinfo->name, filename, sizeof( weaponinfo->name ) );
 }
 
 /*
 * CG_RegisterWeaponModel
 */
-struct weaponinfo_s *CG_RegisterWeaponModel( char *cgs_name, WeaponType weaponTag ) {
+struct weaponinfo_s *CG_RegisterWeaponModel( const char *cgs_name, WeaponType weaponTag ) {
 	char filename[MAX_QPATH];
 	Q_strncpyz( filename, cgs_name, sizeof( filename ) );
 	COM_StripExtension( filename );
@@ -360,8 +348,6 @@ struct weaponinfo_s *CG_CreateWeaponZeroModel() {
 
 	CG_CreateHandDefaultAnimations( weaponinfo );
 	weaponinfo->inuse = true;
-
-	Q_strncpyz( weaponinfo->name, "", sizeof( weaponinfo->name ) );
 
 	return weaponinfo; //no checks
 }

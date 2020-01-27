@@ -79,11 +79,9 @@ cvar_t *cg_showClamp;
 
 cvar_t *cg_allyColor;
 cvar_t *cg_allyModel;
-cvar_t *cg_allyForceModel;
 
 cvar_t *cg_enemyColor;
 cvar_t *cg_enemyModel;
-cvar_t *cg_enemyForceModel;
 
 /*
 * CG_LocalPrint
@@ -185,8 +183,8 @@ char *_CG_CopyString( const char *in, const char *filename, int fileline ) {
 * CG_RegisterWeaponModels
 */
 static void CG_RegisterWeaponModels( void ) {
-	for( WeaponType i = 0; i < cgs.numWeaponModels; i++ ) {
-		cgs.weaponInfos[i] = CG_RegisterWeaponModel( cgs.weaponModels[i], i );
+	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
+		cgs.weaponInfos[i] = CG_RegisterWeaponModel( GS_GetWeaponDef( i )->short_name, i );
 	}
 
 	cgs.weaponInfos[ Weapon_Count ] = CG_CreateWeaponZeroModel();
@@ -211,7 +209,6 @@ static void CG_RegisterModels( void ) {
 			}
 		}
 
-		cgs.numWeaponModels = 0;
 		cgs.precacheModelsStart = 1;
 	}
 
@@ -225,16 +222,7 @@ static void CG_RegisterModels( void ) {
 
 		cgs.precacheModelsStart = i;
 
-		if( name[0] == '#' ) {
-			assert( cgs.numWeaponModels < Weapon_Count );
-
-			if( !CG_LoadingItemName( name ) ) {
-				return;
-			}
-
-			Q_strncpyz( cgs.weaponModels[cgs.numWeaponModels], name + 1, sizeof( cgs.weaponModels[cgs.numWeaponModels] ) );
-			cgs.numWeaponModels++;
-		} else if( name[0] == '*' ) {
+		if( name[0] == '*' ) {
 			u64 hash = Hash64( name, strlen( name ), cgs.map->base_hash );
 			cgs.modelDraw[i] = FindModel( StringHash( hash ) );
 		} else {
@@ -424,15 +412,11 @@ static void CG_RegisterVariables( void ) {
 
 	cg_allyColor = Cvar_Get( "cg_allyColor", "0", CVAR_ARCHIVE );
 	cg_allyModel = Cvar_Get( "cg_allyModel", "bigvic", CVAR_ARCHIVE );
-	cg_allyForceModel = Cvar_Get( "cg_allyForceModel", "1", CVAR_ARCHIVE | CVAR_READONLY );
 	cg_allyModel->modified = true;
-	cg_allyForceModel->modified = true;
 
 	cg_enemyColor = Cvar_Get( "cg_enemyColor", "1", CVAR_ARCHIVE );
 	cg_enemyModel = Cvar_Get( "cg_enemyModel", "padpork", CVAR_ARCHIVE );
-	cg_enemyForceModel = Cvar_Get( "cg_enemyForceModel", "1", CVAR_ARCHIVE | CVAR_READONLY );
 	cg_enemyModel->modified = true;
-	cg_enemyForceModel->modified = true;
 
 	Cvar_Get( "cg_loadout", "", CVAR_ARCHIVE | CVAR_USERINFO );
 }

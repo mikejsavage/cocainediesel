@@ -470,7 +470,6 @@ void G_UseTargets( edict_t *ent, edict_t *activator ) {
 		return;
 	}
 
-
 	//
 	// print the message
 	//
@@ -479,8 +478,6 @@ void G_UseTargets( edict_t *ent, edict_t *activator ) {
 
 		if( ent->noise_index ) {
 			G_Sound( activator, CHAN_AUTO, ent->noise_index, ATTN_NORM );
-		} else {
-			G_Sound( activator, CHAN_AUTO, trap_SoundIndex( S_WORLD_MESSAGE ), ATTN_NORM );
 		}
 	}
 

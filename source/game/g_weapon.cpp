@@ -329,7 +329,7 @@ edict_t *W_Fire_Grenade( edict_t *self, vec3_t start, vec3_t angles, int speed, 
 	grenade->enemy = NULL;
 	VectorSet( grenade->avelocity, 300, 300, 300 );
 
-	grenade->s.modelindex = trap_ModelIndex( PATH_GRENADE_MODEL );
+	grenade->s.modelindex = trap_ModelIndex( "weapons/gl/grenade" );
 
 	GClip_LinkEntity( grenade );
 
@@ -377,8 +377,8 @@ edict_t *W_Fire_Rocket( edict_t *self, vec3_t start, vec3_t angles, int speed, f
 	rocket = W_Fire_LinearProjectile( self, start, angles, speed, damage, minKnockback, maxKnockback, minDamage, radius, timeout, timeDelta );
 
 	rocket->s.type = ET_ROCKET; //rocket trail sfx
-	rocket->s.modelindex = trap_ModelIndex( PATH_ROCKET_MODEL );
-	rocket->s.sound = trap_SoundIndex( S_WEAPON_ROCKET_FLY );
+	rocket->s.modelindex = trap_ModelIndex( "weapons/rl/rocket" );
+	rocket->s.sound = trap_SoundIndex( "weapons/rl/trail" );
 	rocket->s.attenuation = ATTN_STATIC;
 	rocket->touch = W_Touch_Rocket;
 	rocket->think = G_FreeEdict;
@@ -497,8 +497,8 @@ edict_t *W_Fire_Plasma( edict_t *self, vec3_t start, vec3_t angles, float damage
 	plasma->nextThink = level.time + 1;
 	plasma->timeout = level.time + timeout;
 
-	plasma->s.modelindex = trap_ModelIndex( PATH_PLASMA_MODEL );
-	plasma->s.sound = trap_SoundIndex( S_WEAPON_PLASMAGUN_FLY );
+	plasma->s.modelindex = trap_ModelIndex( "weapons/pg/cell" );
+	plasma->s.sound = trap_SoundIndex( "weapons/pg/trail" );
 	plasma->s.attenuation = ATTN_STATIC;
 
 	return plasma;

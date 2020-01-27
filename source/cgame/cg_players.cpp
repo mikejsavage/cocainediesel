@@ -39,7 +39,7 @@ void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata, const char * name 
 			name = p + 1;
 		}
 
-		DynamicString path( &temp, "sounds/players/{}/{}", name, PLAYER_SOUND_NAMES[ i ] );
+		DynamicString path( &temp, "players/{}/{}", name, PLAYER_SOUND_NAMES[ i ] );
 		metadata->sounds[ i ] = FindSoundEffect( path.c_str() );
 	}
 }

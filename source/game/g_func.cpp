@@ -712,20 +712,6 @@ static void door_killed( edict_t *self, edict_t *inflictor, edict_t *attacker, i
 	}
 }
 
-static void door_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
-	if( !other->r.client ) {
-		return;
-	}
-	if( level.time < self->timeStamp + 5000 ) {
-		return;
-	}
-
-	self->timeStamp = level.time;
-
-	G_CenterPrintMsg( other, "%s", self->message );
-	G_Sound( other, CHAN_AUTO, trap_SoundIndex( S_WORLD_MESSAGE ), ATTN_NORM );
-}
-
 void SP_func_door( edict_t *ent ) {
 	vec3_t abs_movedir;
 
@@ -790,9 +776,6 @@ void SP_func_door( edict_t *ent ) {
 		ent->max_health = ent->health;
 		ent->takedamage = DAMAGE_YES;
 		ent->die = door_killed;
-	} else if( ent->targetname && ent->message ) {
-		trap_SoundIndex( S_WORLD_MESSAGE ); // precache
-		ent->touch = door_touch;
 	}
 
 	ent->moveinfo.speed = ent->speed;
@@ -876,11 +859,6 @@ void SP_func_door_rotating( edict_t *ent ) {
 		ent->takedamage = DAMAGE_YES;
 		ent->die = door_killed;
 		ent->max_health = ent->health;
-	}
-
-	if( ent->targetname && ent->message ) {
-		trap_SoundIndex( S_WORLD_MESSAGE ); // precache
-		ent->touch = door_touch;
 	}
 
 	ent->moveinfo.state = STATE_BOTTOM;

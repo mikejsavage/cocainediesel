@@ -14,8 +14,6 @@ const WeaponDef gs_weaponDefs[] = {
 		"Knife people in the face",
 		0,
 
-		NULL, NULL, NULL,
-
 		0,                              // projectiles fired each shot
 		0, // clip size
 		0, // reload time
@@ -46,8 +44,6 @@ const WeaponDef gs_weaponDefs[] = {
 		RGB8( 254, 235, 98 ),
 		"Shoots fast direct bullets touching enemies at any range",
 		100,
-
-		NULL, NULL, NULL,
 
 		1,                              // projectiles fired each shot
 		30, // clip size
@@ -80,8 +76,6 @@ const WeaponDef gs_weaponDefs[] = {
 		"Basically a shotgun",
 		100,
 
-		NULL, NULL, NULL,
-
 		25,                             // projectiles fired each shot
 		5, // clip size
 		2250, // reload time
@@ -112,9 +106,6 @@ const WeaponDef gs_weaponDefs[] = {
 		RGB8( 62, 141, 255 ),
 		"Deprecated gun, enjoy it while it lasts nerds",
 		100,
-
-		PATH_GRENADE_MODEL,
-		NULL, NULL,
 
 		1,                              // projectiles fired each shot
 		3, // clip size
@@ -147,10 +138,6 @@ const WeaponDef gs_weaponDefs[] = {
 		"Shoots slow moving rockets that deal damage in an area and push bodies away",
 		200,
 
-		PATH_ROCKET_MODEL,
-		S_WEAPON_ROCKET_FLY,
-		NULL,
-
 		1,                              // projectiles fired each shot
 		4, // clip size
 		1500, // reload time
@@ -181,10 +168,6 @@ const WeaponDef gs_weaponDefs[] = {
 		RGB8( 172, 80, 255 ),
 		"Shoots fast projectiles that deal damage in an area",
 		100,
-
-		PATH_PLASMA_MODEL,
-		S_WEAPON_PLASMAGUN_FLY,
-		NULL,
 
 		1,                              // projectiles fired each shot
 		30, // clip size
@@ -217,10 +200,6 @@ const WeaponDef gs_weaponDefs[] = {
 		"Shoots a continuous trail doing quick but low damage at a certain range",
 		200,
 
-		NULL,
-		S_WEAPON_LASERGUN_HUM " " S_WEAPON_LASERGUN_STOP " " S_WEAPON_LASERGUN_HIT,
-		NULL,
-
 		1,                              // projectiles fired each shot
 		50, // clip size
 		1000, // reload time
@@ -251,10 +230,6 @@ const WeaponDef gs_weaponDefs[] = {
 		RGB8( 80, 243, 255 ),
 		"Shoots a direct laser hit doing pretty high damage",
 		200,
-
-		NULL,
-		S_WEAPON_ELECTROBOLT_HIT,
-		NULL,
 
 		1,                              // projectiles fired each shot
 		3, // clip size

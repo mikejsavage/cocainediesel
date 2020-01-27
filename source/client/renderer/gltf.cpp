@@ -194,7 +194,7 @@ static void LoadNode( Model * model, const cgltf_node * node, bool animated ) {
 	primitive->first_index = 0;
 	primitive->num_vertices = 0;
 
-	const char * material_name = prim.material != NULL ? prim.material->name : "***r_notexture***";
+	const char * material_name = prim.material != NULL ? prim.material->name : "";
 	primitive->material = FindMaterial( material_name );
 }
 

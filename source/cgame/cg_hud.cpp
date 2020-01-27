@@ -998,8 +998,6 @@ static const char * RandomPrefix( float p ) {
 * CG_SC_Obituary
 */
 void CG_SC_Obituary( void ) {
-	char message[128];
-	char message2[128];
 	cg_clientInfo_t *victim, *attacker;
 	int victimNum = atoi( Cmd_Argv( 1 ) );
 	int attackerNum = atoi( Cmd_Argv( 2 ) );
@@ -1028,14 +1026,9 @@ void CG_SC_Obituary( void ) {
 	}
 	current->mod = mod;
 
-	GS_Obituary( victim, attacker, mod, message, message2 );
-
 	if( attackerNum ) {
 		if( victimNum != attackerNum ) {
 			current->type = OBITUARY_NORMAL;
-			if( cg_showObituaries->integer & CG_OBITUARY_CONSOLE ) {
-				CG_LocalPrint( "%s %s %s%s\n", victim->name, message, attacker->name, message2 );
-			}
 
 			if( ISVIEWERENTITY( attackerNum ) && ( cg_showObituaries->integer & CG_OBITUARY_CENTER ) ) {
 				char name[MAX_NAME_CHARS + 1];
@@ -1045,15 +1038,9 @@ void CG_SC_Obituary( void ) {
 			}
 		} else {   // suicide
 			current->type = OBITUARY_SUICIDE;
-			if( cg_showObituaries->integer & CG_OBITUARY_CONSOLE ) {
-				CG_LocalPrint( "%s %s\n", victim->name, message );
-			}
 		}
 	} else {   // world accidents
 		current->type = OBITUARY_ACCIDENT;
-		if( cg_showObituaries->integer & CG_OBITUARY_CONSOLE ) {
-			CG_LocalPrint( "%s %s\n", victim->name, message );
-		}
 	}
 }
 

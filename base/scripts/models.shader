@@ -41,15 +41,6 @@ models/weapons/plasmagun/plasmagun_fx
 	}
 }
 
-models/weapons/rlauncher/rlauncher_fx
-{
-	cull disable
-	{
-		map models/weapons/rlauncher/rlauncher_fx
-		blendFunc add
-		rgbGen wave sin 0.5 0.5 0 0.5
-	}
-}
 models/weapons/lg_fx
 {
 	cull disable
@@ -65,110 +56,9 @@ models/weapons/lg_fx
 	}
 }
 
-//---------------------
-//WEAPON PROJECTILES
-//---------------------
-
-models/objects/projectile/glauncher/grenadegradstrong
-{
-	cull disable
-	{
-		map models/objects/projectile/glauncher/grenadegradstrong
-		blendFunc add
-		rgbGen wave triangle .07 .1 0 5
-		tcmod scroll 0.2 0
-	}
-}
-
-models/objects/projectile/glauncher/grenadestrong
-{
-	{
-		map models/objects/projectile/glauncher/grenadestrong
-	}
-}
-
-models/objects/projectile/glauncher/grenadestrong_flare
-{
-	//deformVertexes autosprite
-	cull none
-	{
-		map models/objects/projectile/glauncher/grenadestrong_flare
-		blendFunc blend
-	}
-}
-
-models/objects/projectile/rlauncher/rocket_strong
-{
-	sort additive
-	cull disable
-	{
-		map models/objects/projectile/rlauncher/rocket_strong
-		blendFunc add
-		rgbGen entity
-		tcmod rotate -360
-	}
-}
-
-models/objects/projectile/rlauncher/rocket_flare_2
-{
-	sort additive
-	cull disable
-	{
-		map models/objects/projectile/rlauncher/rocket_flare_2
-		blendFunc add
-		rgbGen wave triangle .1 .1 0 1
-		tcmod scroll 3.2 0
-	}
-}
-
-models/objects/projectile/rlauncher/rocketgradstrong
-{
-	cull disable
-	{
-		map models/objects/projectile/rlauncher/rocketgradstrong
-		blendFunc add
-		rgbGen wave triangle .01 .15 0 20
-		tcmod scroll 0.2 0
-	}
-}
-
-models/objects/projectile/lasergun/laserbeam
-{
-	nomipmaps
-	cull none
-	deformVertexes autosprite2
-	{
-		map models/objects/projectile/lasergun/laserbeam
-		blendFunc add
-		tcMod scroll 6 0
-	}
-}
-
-//-----------------------------------------
-
 //-----------------
 //FLASH WEAPONS
 //-----------------
-
-//models/v_weapons/electrobolt/f_electro
-//models/v_weapons/plasmagun/f_plasma
-//models/v_weapons/lasergun/f_laser
-//models/v_weapons/rlauncher/f_rlaunch
-//models/v_weapons/glauncher/f_glaunch
-//models/v_weapons/riotgun/f_riot
-
-models/v_weapons/generic/f_generic
-{
-	sort nearest
-	cull disable
-	softParticle
-	{
-		map models/weapons/generic/f_generic
-		rgbgen entity
-		tcmod rotate 90
-		blendFunc add
-	}
-}
 
 models/weapons/plasmagun/f_plasma
 {
@@ -195,45 +85,6 @@ models/weapons/plasmagun/f_plasma_2
 	}
 }
 
-models/weapons/glauncher/f_glaunch
-{
-	sort nearest
-	cull disable
-	softParticle
-	{
-		map models/weapons/glauncher/f_glaunch
-		rgbgen entity
-		blendFunc add
-	}
-	{
-		map models/weapons/glauncher/f_glaunch_spark
-		rgbgen entity
-		tcMod stretch sawtooth .65 .3 0 8
-		blendFunc add
-	}
-}
-models/weapons/glauncher/f_glaunch_2
-{
-	sort nearest
-	cull disable
-	softParticle
-	{
-		map models/weapons/glauncher/f_glaunch_2
-		rgbgen entity
-		blendfunc add
-	}
-}
-models/weapons/glauncher/f_glaunch_3
-{
-	sort nearest
-	cull disable
-	softParticle
-	{
-		map models/weapons/glauncher/f_glaunch_2
-		rgbgen entity
-		blendfunc add
-	}
-}
 models/weapons/riotgun/f_riot
 {
 	sort nearest
@@ -300,32 +151,6 @@ models/weapons/gunblade/f_gunblade_2
 		map models/weapons/gunblade/f_gunblade_2
 		rgbgen entity
 		blendfunc add
-	}
-}
-
-models/weapons/rlauncher/f_rlaunch
-{
-	sort nearest
-	cull disable
-	softParticle
-	{
-		map models/weapons/rlauncher/f_rlaunch
-		rgbgen entity
-		//tcmod rotate 90
-		blendFunc add
-	}
-}
-
-models/weapons/rlauncher/f_rlaunch_2
-{
-	sort nearest
-	cull disable
-	//deformVertexes autosprite2
-	softParticle
-	{
-		map models/weapons/rlauncher/f_rlaunch_2
-		rgbgen entity
-		blendFunc add
 	}
 }
 

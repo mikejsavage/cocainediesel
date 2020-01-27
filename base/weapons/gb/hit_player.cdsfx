@@ -1,0 +1,5 @@
+{
+	sound weapons/gb/hit_player1
+	sound weapons/gb/hit_player2
+	sound weapons/gb/hit_player3
+}

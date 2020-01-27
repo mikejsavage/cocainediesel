@@ -60,12 +60,38 @@ void CG_WeaponBeamEffect( centity_t *cent ) {
 
 static centity_t *laserOwner = NULL;
 
-static void _LaserImpact( trace_t *trace, vec3_t dir ) {
+static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles ) {
+	CG_BulletExplosion( trace->endpos, NULL, trace );
+
+	ParticleEmitter emitter = { };
+	emitter.position = FromQF3( trace->endpos );
+
+	emitter.use_cone_direction = true;
+	emitter.direction_cone.normal = FromQF3( trace->plane.normal );
+	emitter.direction_cone.theta = 90.0f;
+
+	emitter.start_speed = 128.0f;
+	emitter.end_speed = 128.0f;
+
+	emitter.start_color = color;
+	emitter.end_color = Vec3( 0.0f );
+
+	emitter.start_size = 2.0f;
+	emitter.end_size = 0.0f;
+
+	emitter.lifetime = 0.5f;
+
+	emitter.n = num_particles;
+
+	EmitParticles( &cgs.bullet_sparks, emitter );
+}
+
+static void _LaserImpact( const trace_t *trace, const vec3_t dir ) {
 	if( !trace || trace->ent < 0 ) {
 		return;
 	}
 
-	RGBA8 color = RGBA8( CG_TeamColor( laserOwner->current.team ) );
+	Vec4 color = CG_TeamColorVec4( laserOwner->current.team );
 
 	if( laserOwner ) {
 #define TRAILTIME ( (int)( 1000.0f / 20.0f ) ) // density as quantity per second
@@ -83,8 +109,9 @@ static void _LaserImpact( trace_t *trace, vec3_t dir ) {
 
 	// it's a brush model
 	if( trace->ent == 0 || !( cg_entities[trace->ent].current.effects & EF_TAKEDAMAGE ) ) {
-		CG_LaserGunImpact( trace->endpos, 15.0f, dir, color );
+		CG_LaserGunImpact( trace->endpos, 15.0f, dir, RGBA8( color ) );
 		// CG_AddLightToScene( trace->endpos, 100, color[ 0 ], color[ 1 ], color[ 2 ] );
+		BulletImpact( trace, color, 1 );
 		return;
 	}
 
@@ -301,19 +328,6 @@ static void CG_LeadBubbleTrail( trace_t *tr, vec3_t water_start ) {
 	CG_BubbleTrail( water_start, tr->endpos, 32 );
 }
 
-/*
-* CG_BulletImpact
-*/
-static void CG_BulletImpact( trace_t *tr ) {
-	// bullet impact
-	CG_BulletExplosion( tr->endpos, NULL, tr );
-
-	// throw particles on dust
-	if( cg_particles->integer && ( tr->surfFlags & SURF_DUST ) ) {
-		// CG_ParticleEffect( tr->endpos, tr->plane.normal, 0.30f, 0.30f, 0.25f, 1 );
-	}
-}
-
 static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int owner, int team ) {
 	Vec4 color = CG_TeamColorVec4( team );
 
@@ -336,29 +350,8 @@ static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int owner, int t
 				// flesh impact sound
 			}
 			else {
+				BulletImpact( &trace, color, 24 );
 				S_StartFixedSound( cgs.media.sfxBulletImpact, FromQF3( trace.endpos ), CHAN_AUTO, cg_volume_effects->value, ATTN_STATIC );
-
-				ParticleEmitter emitter = { };
-				emitter.position = FromQF3( trace.endpos );
-
-				emitter.use_cone_direction = true;
-				emitter.direction_cone.normal = FromQF3( trace.plane.normal );
-				emitter.direction_cone.theta = 90.0f;
-
-				emitter.start_speed = 128.0f;
-				emitter.end_speed = 128.0f;
-
-				emitter.start_color = color;
-				emitter.end_color = Vec3( 0.0f );
-
-				emitter.start_size = 2.0f;
-				emitter.end_size = 0.0f;
-
-				emitter.lifetime = 0.5f;
-
-				emitter.n = 24;
-
-				EmitParticles( &cgs.SMGsparks, emitter );
 			}
 		}
 	}
@@ -378,8 +371,7 @@ static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int owner, int t
 /*
 * CG_Fire_SunflowerPattern
 */
-static void CG_Fire_SunflowerPattern( vec3_t start, vec3_t dir, int owner, int team, int count,
-									  int spread, int range, void ( *impact )( trace_t *tr ) ) {
+static void CG_Fire_SunflowerPattern( vec3_t start, vec3_t dir, int owner, int team, int count, int spread, int range ) {
 	Vec4 color = CG_TeamColorVec4( team );
 	vec3_t right, up;
 	ViewVectors( dir, right, up );
@@ -404,7 +396,7 @@ static void CG_Fire_SunflowerPattern( vec3_t start, vec3_t dir, int owner, int t
 		}
 
 		if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
-			impact( &trace );
+			BulletImpact( &trace, color, 4 );
 		}
 
 		AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 1.0f, color, cgs.media.shaderTracer, 0.2f, 0.1f );
@@ -421,7 +413,7 @@ static void CG_Fire_SunflowerPattern( vec3_t start, vec3_t dir, int owner, int t
 static void CG_Event_FireRiotgun( vec3_t origin, vec3_t dir, int owner, int team ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_Shotgun );
 
-	CG_Fire_SunflowerPattern( origin, dir, owner, team, def->projectile_count, def->spread, def->range, CG_BulletImpact );
+	CG_Fire_SunflowerPattern( origin, dir, owner, team, def->projectile_count, def->spread, def->range );
 
 	// spawn a single sound at the impact
 	vec3_t end;

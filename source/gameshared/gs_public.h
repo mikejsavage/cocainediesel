@@ -785,5 +785,5 @@ const WeaponDef * GS_GetWeaponDef( WeaponType weapon );
 WeaponType GS_SelectBestWeapon( const SyncPlayerState * player );
 int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState *playerState, int buttons, int msecs, int timeDelta );
 trace_t *GS_TraceBullet( const gs_state_t * gs, trace_t *trace, vec3_t start, vec3_t dir, vec3_t right, vec3_t up, float r, float u, int range, int ignore, int timeDelta );
-void GS_TraceLaserBeam( const gs_state_t * gs, trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( trace_t *tr, vec3_t dir ) );
+void GS_TraceLaserBeam( const gs_state_t * gs, trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t *tr, const vec3_t dir ) );
 bool GS_CanEquip( const SyncPlayerState * player, WeaponType weapon );

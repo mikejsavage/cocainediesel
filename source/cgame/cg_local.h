@@ -320,7 +320,7 @@ typedef struct {
 	int64_t precacheStartMsec;
 
 	ParticleSystem ions;
-	ParticleSystem SMGsparks;
+	ParticleSystem bullet_sparks;
 	ParticleSystem sparks;
 	ParticleSystem smoke;
 } cg_static_t;

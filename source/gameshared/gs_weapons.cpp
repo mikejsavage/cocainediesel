@@ -73,7 +73,7 @@ trace_t *GS_TraceBullet( const gs_state_t * gs, trace_t *trace, vec3_t start, ve
 	return NULL;
 }
 
-void GS_TraceLaserBeam( const gs_state_t * gs, trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( trace_t *tr, vec3_t dir ) ) {
+void GS_TraceLaserBeam( const gs_state_t * gs, trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t *tr, const vec3_t dir ) ) {
 	vec3_t dir, end;
 	vec3_t mins = { -0.5, -0.5, -0.5 };
 	vec3_t maxs = { 0.5, 0.5, 0.5 };

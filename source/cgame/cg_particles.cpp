@@ -9,8 +9,8 @@ void InitParticles() {
 	constexpr Vec3 gravity = Vec3( 0, 0, -GRAVITY );
 
 	cgs.ions = NewParticleSystem( sys_allocator, 8192, FindMaterial( "$particle" ) );
-	cgs.SMGsparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "weapons/mg/spark" ) );
-	cgs.SMGsparks.acceleration = gravity;
+	cgs.bullet_sparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "weapons/mg/spark" ) );
+	cgs.bullet_sparks.acceleration = gravity;
 	cgs.smoke = NewParticleSystem( sys_allocator, 1024, FindMaterial( "gfx/misc/cartoon_smokepuff3" ) );
 	cgs.sparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "$particle" ) );
 	cgs.sparks.acceleration = gravity;
@@ -19,7 +19,7 @@ void InitParticles() {
 
 void ShutdownParticles() {
 	DeleteParticleSystem( sys_allocator, cgs.ions );
-	DeleteParticleSystem( sys_allocator, cgs.SMGsparks );
+	DeleteParticleSystem( sys_allocator, cgs.bullet_sparks );
 	DeleteParticleSystem( sys_allocator, cgs.sparks );
 	DeleteParticleSystem( sys_allocator, cgs.smoke );
 }
@@ -194,11 +194,11 @@ void DrawParticleSystem( ParticleSystem * ps ) {
 void DrawParticles() {
 	float dt = cls.frametime / 1000.0f;
 	UpdateParticleSystem( &cgs.ions, dt );
-	UpdateParticleSystem( &cgs.SMGsparks, dt );
+	UpdateParticleSystem( &cgs.bullet_sparks, dt );
 	UpdateParticleSystem( &cgs.sparks, dt );
 	UpdateParticleSystem( &cgs.smoke, dt );
 	DrawParticleSystem( &cgs.ions );
-	DrawParticleSystem( &cgs.SMGsparks );
+	DrawParticleSystem( &cgs.bullet_sparks );
 	DrawParticleSystem( &cgs.sparks );
 	DrawParticleSystem( &cgs.smoke );
 }

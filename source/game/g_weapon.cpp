@@ -600,7 +600,7 @@ static float laser_damage;
 static int laser_knockback;
 static int laser_attackerNum;
 
-static void _LaserImpact( trace_t *trace, vec3_t dir ) {
+static void _LaserImpact( const trace_t *trace, const vec3_t dir ) {
 	edict_t *attacker;
 
 	if( !trace || trace->ent <= 0 ) {

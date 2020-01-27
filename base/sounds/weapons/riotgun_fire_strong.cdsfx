@@ -1,5 +1,8 @@
 {
-	sound sounds/weapons/shotgun_fire
+	sound sounds/weapons/shotgun_fire1
+	sound sounds/weapons/shotgun_fire2
+	sound sounds/weapons/shotgun_fire3
+	sound sounds/weapons/shotgun_fire4
 }
 {
 	delay 0.65

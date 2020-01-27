@@ -84,7 +84,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 		25,                             // projectiles fired each shot
 		5, // clip size
-		2000, // reload time
+		2250, // reload time
 
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
@@ -125,7 +125,7 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		1750,                            // refire time
 		2000,                           // projectile timeout
-		0,                              // recoil
+		25.0f,                              // recoil
 		false,                          // smooth refire
 
 		//damages
@@ -160,7 +160,7 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		1000,                           // refire time
 		10000,                          // projectile timeout
-		0,                              // recoil
+		10.0f,                              // recoil
 		false,                          // smooth refire
 
 		//damages
@@ -195,7 +195,7 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		100,                            // refire time
 		10000,                           // projectile timeout
-		0.25f,                              // recoil
+		1.5f,                              // recoil
 		false,                          // smooth refire
 
 		//damages
@@ -263,9 +263,9 @@ const WeaponDef gs_weaponDefs[] = {
 		//timings (in msecs)
 		WEAPONUP_TIME,                  // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		1250,                           // refire time
+		1500,                           // refire time
 		ELECTROBOLT_RANGE,              // range
-		0,                              // recoil
+		15.0f,                              // recoil
 		false,                          // smooth refire
 
 		//damages

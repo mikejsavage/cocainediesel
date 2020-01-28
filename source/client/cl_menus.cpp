@@ -278,64 +278,83 @@ static void SettingsKeys() {
 
 	ImGui::BeginChild( "binds" );
 
-	ImGui::Separator();
-	ImGui::Text( "Movement" );
-	ImGui::Separator();
+	if( ImGui::BeginTabBar("##binds", ImGuiTabBarFlags_None ) ) {
+		if( ImGui::BeginTabItem( "Game" ) ) {
+			ImGui::Separator();
+			ImGui::Text( "Movement" );
+			ImGui::Separator();
 
-	KeyBindButton( "Forward", "+forward" );
-	KeyBindButton( "Back", "+back" );
-	KeyBindButton( "Left", "+left" );
-	KeyBindButton( "Right", "+right" );
-	KeyBindButton( "Jump", "+jump" );
-	KeyBindButton( "Dash/walljump", "+special" );
-	KeyBindButton( "Crouch", "+crouch" );
-	KeyBindButton( "Walk", "+walk" );
+			KeyBindButton( "Forward", "+forward" );
+			KeyBindButton( "Back", "+back" );
+			KeyBindButton( "Left", "+left" );
+			KeyBindButton( "Right", "+right" );
+			KeyBindButton( "Jump", "+jump" );
+			KeyBindButton( "Dash/walljump", "+special" );
+			KeyBindButton( "Crouch", "+crouch" );
+			KeyBindButton( "Walk", "+walk" );
 
-	ImGui::Separator();
-	ImGui::Text( "Actions" );
-	ImGui::Separator();
+			ImGui::Separator();
+			ImGui::Text( "Actions" );
+			ImGui::Separator();
 
-	KeyBindButton( "Attack", "+attack" );
-	KeyBindButton( "Reload", "+reload" );
-	KeyBindButton( "Drop bomb", "drop" );
-	KeyBindButton( "Shop", "gametypemenu" );
-	KeyBindButton( "Scoreboard", "+scores" );
-	KeyBindButton( "Chat", "messagemode" );
-	KeyBindButton( "Team chat", "messagemode2" );
-	KeyBindButton( "Zoom", "+zoom" );
+			KeyBindButton( "Attack", "+attack" );
+			KeyBindButton( "Reload", "+reload" );
+			KeyBindButton( "Zoom", "+zoom" );
+			KeyBindButton( "Drop bomb", "drop" );
+			KeyBindButton( "Shop", "gametypemenu" );
+			KeyBindButton( "Scoreboard", "+scores" );
+			KeyBindButton( "Chat", "messagemode" );
+			KeyBindButton( "Team chat", "messagemode2" );
 
-	ImGui::Separator();
-	ImGui::Text( "Weapons" );
-	ImGui::Separator();
+			ImGui::EndTabItem();
+		}
 
-	KeyBindButton( "Weapon 1", "weapon 1" );
-	KeyBindButton( "Weapon 2", "weapon 2" );
-	KeyBindButton( "Weapon 3", "weapon 3" );
-	KeyBindButton( "Weapon 4", "weapon 4" );
-	KeyBindButton( "Weapon 5", "weapon 5" );
-	KeyBindButton( "Weapon 6", "weapon 6" );
-	KeyBindButton( "Next weapon", "weapnext" );
-	KeyBindButton( "Previous weapon", "weapprev" );
-	KeyBindButton( "Last weapon", "weaplast" );
 
-	ImGui::Separator();
-	ImGui::Text( "Voice lines" );
-	ImGui::Separator();
+		if( ImGui::BeginTabItem( "Weapons" ) ) {
+			KeyBindButton( "Next weapon", "weapnext" );
+			KeyBindButton( "Previous weapon", "weapprev" );
 
-	KeyBindButton( "Yes", "vsay yes" );
-	KeyBindButton( "No", "vsay no" );
-	KeyBindButton( "Thanks", "vsay thanks" );
-	KeyBindButton( "Good game", "vsay goodgame" );
-	KeyBindButton( "Boomstick", "vsay boomstick" );
-	KeyBindButton( "Shut up", "vsay shutup" );
+			ImGui::Separator();
 
-	ImGui::Separator();
-	ImGui::Text( "Specific weapons" );
-	ImGui::Separator();
+			KeyBindButton( "Weapon 1", "weapon 1" );
+			KeyBindButton( "Weapon 2", "weapon 2" );
+			KeyBindButton( "Weapon 3", "weapon 3" );
+			KeyBindButton( "Weapon 4", "weapon 4" );
+			KeyBindButton( "Weapon 5", "weapon 5" );
+			KeyBindButton( "Weapon 6", "weapon 6" );
 
-	for( int i = 0; i < Weapon_Count; i++ ) {
-		const WeaponDef * weapon = GS_GetWeaponDef( i );
-		KeyBindButton( weapon->name, temp( "use {}", weapon->short_name ) );
+			ImGui::Separator();
+			ImGui::Text( "Specific weapons" );
+			ImGui::Separator();
+
+			for( int i = 0; i < Weapon_Count; i++ ) {
+				const WeaponDef * weapon = GS_GetWeaponDef( i );
+				KeyBindButton( weapon->name, temp( "use {}", weapon->short_name ) );
+			}
+
+			ImGui::EndTabItem();
+		}
+
+
+		if( ImGui::BeginTabItem( "Voice lines" ) ) {
+			KeyBindButton( "Yes", "vsay yes" );
+			KeyBindButton( "No", "vsay no" );
+			KeyBindButton( "Thanks", "vsay thanks" );
+			KeyBindButton( "Good game", "vsay goodgame" );
+			KeyBindButton( "Boomstick", "vsay boomstick" );
+			KeyBindButton( "Shut up", "vsay shutup" );
+			KeyBindButton( "Cya", "vsay cya" );
+			KeyBindButton( "Get good", "vsay getgood" );
+			KeyBindButton( "Hit the showers", "vsay hittheshowers" );
+			KeyBindButton( "Lads", "vsay lads" );
+			KeyBindButton( "Shit son", "vsay shitson" );
+			KeyBindButton( "Trash smash", "vsay trashsmash" );
+			KeyBindButton( "Wow your terrible", "vsay wowyourterrible" );
+
+			ImGui::EndTabItem();
+		}
+
+		ImGui::EndTabBar();
 	}
 
 	ImGui::EndChild();

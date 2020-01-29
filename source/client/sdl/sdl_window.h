@@ -21,6 +21,16 @@ struct WindowMode {
 	int monitor;
 	int x, y;
 	FullScreenMode fullscreen;
+
+	bool operator==( const WindowMode & right ) {
+		return ( ( ( right.video_mode.width == this->video_mode.width && //On borderless it happends that the values aren't equal for the checks we use... And videomode shouldn't matter anyway
+				     right.video_mode.height == this->video_mode.height &&
+				     right.video_mode.frequency == this->video_mode.frequency ) ||
+				   this->fullscreen == FullScreenMode_FullscreenBorderless ) &&
+				 right.monitor == this->monitor &&
+				 right.x == this->x && right.y == this->y &&
+				 right.fullscreen == this->fullscreen );
+	}
 };
 
 enum VsyncEnabled {

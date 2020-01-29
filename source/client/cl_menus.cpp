@@ -36,8 +36,7 @@ enum DemoMenuState {
 
 enum SettingsState {
 	SettingsState_General,
-	SettingsState_Mouse,
-	SettingsState_Keys,
+	SettingsState_Controls,
 	SettingsState_Video,
 	SettingsState_Audio,
 };
@@ -254,8 +253,6 @@ static void CvarTeamColorCombo( const char * label, const char * cvar_name, int 
 }
 
 static void SettingsGeneral() {
-	ImGui::Text( "These settings are saved automatically" );
-
 	CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
 	CvarSliderInt( "FOV", "fov", 60, 140, "100", CVAR_ARCHIVE );
 	CvarTeamColorCombo( "Ally color", "cg_allyColor", 0 );
@@ -263,18 +260,9 @@ static void SettingsGeneral() {
 	CvarCheckbox( "Show FPS", "cg_showFPS", "0", CVAR_ARCHIVE );
 }
 
-static void SettingsMouse() {
-	ImGui::Text( "These settings are saved automatically" );
 
-	CvarSliderFloat( "Sensitivity", "sensitivity", 1.0f, 10.0f, "3", CVAR_ARCHIVE );
-	CvarSliderFloat( "Horizontal sensitivity", "horizontalsensscale", 0.5f, 2.0f, "1", CVAR_ARCHIVE );
-	CvarSliderFloat( "Acceleration", "m_accel", 0.0f, 1.0f, "0", CVAR_ARCHIVE );
-}
-
-static void SettingsKeys() {
+static void SettingsControls() {
 	TempAllocator temp = cls.frame_arena.temp();
-
-	ImGui::Text( "These settings are saved automatically" );
 
 	ImGui::BeginChild( "binds" );
 
@@ -335,6 +323,14 @@ static void SettingsKeys() {
 			ImGui::EndTabItem();
 		}
 
+
+		if( ImGui::BeginTabItem( "Mouse" ) ) {
+			CvarSliderFloat( "Sensitivity", "sensitivity", 1.0f, 10.0f, "3", CVAR_ARCHIVE );
+			CvarSliderFloat( "Horizontal sensitivity", "horizontalsensscale", 0.5f, 2.0f, "1", CVAR_ARCHIVE );
+			CvarSliderFloat( "Acceleration", "m_accel", 0.0f, 1.0f, "0", CVAR_ARCHIVE );
+
+			ImGui::EndTabItem();
+		}
 
 		if( ImGui::BeginTabItem( "Voice lines" ) ) {
 			KeyBindButton( "Yes", "vsay yes" );
@@ -424,18 +420,24 @@ static void SettingsVideo() {
 		ImGui::PopItemWidth();
 	}
 
-	if( ImGui::Button( "Apply mode changes" ) ) {
-		Cvar_Set( "vid_mode", temp( "{}", mode ) );
-	}
+	if( !( mode == VID_GetWindowMode() ) ) {
 
-	ImGui::SameLine();
-	if( ImGui::Button( "Discard mode changes" ) ) {
-		reset_video_settings = true;
+		if( ImGui::Button( "Apply" ) ) {
+			Cvar_Set( "vid_mode", temp( "{}", mode ) );
+			reset_video_settings = true;
+		}
+
+		ImGui::SameLine();
+
+		ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.75f, 0.125f, 0.125f, 1.f ) );
+		ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 0.75f, 0.25f, 0.2f, 1.f ) );
+		ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.5f, 0.1f, 0.1f, 1.f ) );
+		if( ImGui::Button( "Discard" ) ) {
+			reset_video_settings = true;
+		} ImGui::PopStyleColor( 3 );
 	}
 
 	ImGui::Separator();
-
-	ImGui::Text( "These settings are saved automatically" );
 
 	{
 		SettingLabel( "Anti-aliasing" );
@@ -492,8 +494,6 @@ static void SettingsVideo() {
 }
 
 static void SettingsAudio() {
-	ImGui::Text( "These settings are saved automatically" );
-
 	CvarSliderFloat( "Master volume", "s_volume", 0.0f, 1.0f, "1", CVAR_ARCHIVE );
 	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f, "1", CVAR_ARCHIVE );
 	CvarCheckbox( "Mute when alt-tabbed", "s_muteinbackground", "1", CVAR_ARCHIVE );
@@ -506,14 +506,8 @@ static void Settings() {
 
 	ImGui::SameLine();
 
-	if( ImGui::Button( "MOUSE" ) ) {
-		settings_state = SettingsState_Mouse;
-	}
-
-	ImGui::SameLine();
-
-	if( ImGui::Button( "KEYS" ) ) {
-		settings_state = SettingsState_Keys;
+	if( ImGui::Button( "CONTROLS" ) ) {
+		settings_state = SettingsState_Controls;
 	}
 
 	ImGui::SameLine();
@@ -531,10 +525,8 @@ static void Settings() {
 
 	if( settings_state == SettingsState_General )
 		SettingsGeneral();
-	else if( settings_state == SettingsState_Mouse )
-		SettingsMouse();
-	else if( settings_state == SettingsState_Keys )
-		SettingsKeys();
+	else if( settings_state == SettingsState_Controls )
+		SettingsControls();
 	else if( settings_state == SettingsState_Video )
 		SettingsVideo();
 	else if( settings_state == SettingsState_Audio )

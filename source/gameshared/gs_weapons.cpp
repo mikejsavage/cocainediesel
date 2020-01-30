@@ -213,18 +213,17 @@ int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int b
 			return player->weapon;
 		}
 
-		if( def->clip_size != 0 && player->weapons[ player->weapon ].ammo == 0 ) {
-			player->weapon_time = def->reload_time;
-			player->weapon_state = WEAPON_STATE_RELOADING;
-		}
-		else {
-			player->weapon_state = WEAPON_STATE_READY;
-		}
+		player->weapon_state = WEAPON_STATE_READY;
 	}
 
 	if( player->weapon_state == WEAPON_STATE_READY ) {
 		if( player->weapon_time > 0 ) {
 			return player->weapon;
+		}
+
+		if( def->clip_size != 0 && player->weapons[ player->weapon ].ammo == 0 ) {
+			player->weapon_time = def->reload_time;
+			player->weapon_state = WEAPON_STATE_RELOADING;
 		}
 
 		if( !GS_ShootingDisabled( gs ) ) {
@@ -243,8 +242,6 @@ int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int b
 						player->weapons[ player->weapon ].ammo--;
 						if( player->weapons[ player->weapon ].ammo == 0 ) {
 							gs->api.PredictedEvent( player->POVnum, EV_NOAMMOCLICK, 0 );
-							player->weapon_time = def->reload_time;
-							player->weapon_state = WEAPON_STATE_RELOADING;
 						}
 					}
 				}

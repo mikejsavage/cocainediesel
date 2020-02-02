@@ -1,7 +1,7 @@
 #include "include/uniforms.glsl"
 #include "include/common.glsl"
 
-qf_varying vec3 v_Normal;
+v2f vec3 v_Normal;
 
 #if VERTEX_SHADER
 

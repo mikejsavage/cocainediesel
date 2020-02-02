@@ -1,8 +1,8 @@
 #include "include/uniforms.glsl"
 #include "include/common.glsl"
 
-qf_varying vec2 v_TexCoord;
-qf_varying vec4 v_Color;
+v2f vec2 v_TexCoord;
+v2f vec4 v_Color;
 
 #if VERTEX_SHADER
 
@@ -22,7 +22,7 @@ layout( std140 ) uniform u_GradientMaterial {
 
 void main() {
 	float uv = mix( u_GradientHalfPixel, a_ParticleT, 1.0 - u_GradientHalfPixel );
-	v_Color = sRGBToLinear( a_ParticleColor ) * qf_texture( u_GradientTexture, vec2( uv, 0.5 ) );
+	v_Color = sRGBToLinear( a_ParticleColor ) * texture( u_GradientTexture, vec2( uv, 0.5 ) );
 	v_TexCoord = a_TexCoord;
 
 	vec3 camera_right = vec3( u_V[ 0 ].x, u_V[ 1 ].x, u_V[ 2 ].x );
@@ -43,7 +43,7 @@ out vec4 f_Albedo;
 
 void main() {
 	// TODO: soft particles
-	f_Albedo = LinearTosRGB( qf_texture( u_BaseTexture, v_TexCoord ) * v_Color );
+	f_Albedo = LinearTosRGB( texture( u_BaseTexture, v_TexCoord ) * v_Color );
 }
 
 #endif

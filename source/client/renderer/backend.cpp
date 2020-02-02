@@ -895,12 +895,11 @@ void DeleteFramebuffer( Framebuffer fb ) {
 
 static const char * VERTEX_SHADER_PRELUDE =
 	"#define VERTEX_SHADER 1\n"
-	"#define qf_attribute in\n"
-	"#define qf_varying out\n";
+	"#define v2f out\n";
 
 static const char * FRAGMENT_SHADER_PRELUDE =
 	"#define FRAGMENT_SHADER 1\n"
-	"#define qf_varying in\n";
+	"#define v2f in\n";
 
 static GLuint CompileShader( GLenum type, Span< const char * > srcs, Span< int > lens ) {
 	const char * full_srcs[ 32 ];
@@ -912,10 +911,6 @@ static GLuint CompileShader( GLenum type, Span< const char * > srcs, Span< int >
 	n++;
 
 	full_srcs[ n ] = type == GL_VERTEX_SHADER ? VERTEX_SHADER_PRELUDE : FRAGMENT_SHADER_PRELUDE;
-	full_lens[ n ] = -1;
-	n++;
-
-	full_srcs[ n ] = "#define qf_texture texture\n";
 	full_lens[ n ] = -1;
 	n++;
 

@@ -71,20 +71,20 @@ void main() {
 	vec2 pixel_up = vec2( 0.0, pixel_size.y );
 
 	// normal discontinuity edges
-	vec3 normal = DecompressNormal( qf_texture( u_NormalTexture, uv ).rg );
-	float normal_right = dot( DecompressNormal( qf_texture( u_NormalTexture, uv + pixel_right ).rg ), normal );
-	float normal_left =  dot( DecompressNormal( qf_texture( u_NormalTexture, uv - pixel_right ).rg ), normal );
-	float normal_up =    dot( DecompressNormal( qf_texture( u_NormalTexture, uv + pixel_up ).rg ), normal );
-	float normal_down =  dot( DecompressNormal( qf_texture( u_NormalTexture, uv - pixel_up ).rg ), normal );
+	vec3 normal = DecompressNormal( texture( u_NormalTexture, uv ).rg );
+	float normal_right = dot( DecompressNormal( texture( u_NormalTexture, uv + pixel_right ).rg ), normal );
+	float normal_left =  dot( DecompressNormal( texture( u_NormalTexture, uv - pixel_right ).rg ), normal );
+	float normal_up =    dot( DecompressNormal( texture( u_NormalTexture, uv + pixel_up ).rg ), normal );
+	float normal_down =  dot( DecompressNormal( texture( u_NormalTexture, uv - pixel_up ).rg ), normal );
 
 	float normal_edgeness = MagicKernel( normal_right, normal_left, normal_up, normal_down, 0.0, -0.05 );
 
 	// depth discontinuity edges
-	float depth = LinearizeDepth( qf_texture( u_DepthTexture, uv ).r );
-	float depth_right = depth - LinearizeDepth( qf_texture( u_DepthTexture, uv + pixel_right ).r );
-	float depth_left =  depth - LinearizeDepth( qf_texture( u_DepthTexture, uv - pixel_right ).r );
-	float depth_up =    depth - LinearizeDepth( qf_texture( u_DepthTexture, uv + pixel_up ).r );
-	float depth_down =  depth - LinearizeDepth( qf_texture( u_DepthTexture, uv - pixel_up ).r );
+	float depth = LinearizeDepth( texture( u_DepthTexture, uv ).r );
+	float depth_right = depth - LinearizeDepth( texture( u_DepthTexture, uv + pixel_right ).r );
+	float depth_left =  depth - LinearizeDepth( texture( u_DepthTexture, uv - pixel_right ).r );
+	float depth_up =    depth - LinearizeDepth( texture( u_DepthTexture, uv + pixel_up ).r );
+	float depth_down =  depth - LinearizeDepth( texture( u_DepthTexture, uv - pixel_up ).r );
 
 	float depth_edgeness = MagicKernel( depth_right, depth_left, depth_up, depth_down, -0.2, 0.0 );
 

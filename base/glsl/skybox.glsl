@@ -2,7 +2,7 @@
 #include "include/common.glsl"
 #include "include/dither.glsl"
 
-qf_varying vec3 v_Position;
+v2f vec3 v_Position;
 
 layout( std140 ) uniform u_Sky {
 	vec3 u_EquatorColor;

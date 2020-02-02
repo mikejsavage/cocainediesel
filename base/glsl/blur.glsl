@@ -3,7 +3,7 @@
 
 uniform sampler2D u_BaseTexture;
 
-qf_varying vec2 v_TexCoord;
+v2f vec2 v_TexCoord;
 
 #if VERTEX_SHADER
 
@@ -22,7 +22,7 @@ void main() {
 out vec4 f_Albedo;
 
 void main() {
-	float alpha = qf_texture( u_BaseTexture, v_TexCoord ).a;
+	float alpha = texture( u_BaseTexture, v_TexCoord ).a;
 	// TODO: chec last param
 	f_Albedo = vec4( KawaseBlurFilter( u_BaseTexture, v_TexCoord, u_TextureSize, 1.0 / u_TextureSize.x ), alpha );
 }

@@ -10,7 +10,7 @@ layout( std140 ) uniform u_Text {
 	int u_HasBorder;
 };
 
-qf_varying vec2 v_TexCoord;
+v2f vec2 v_TexCoord;
 
 #if VERTEX_SHADER
 
@@ -35,7 +35,7 @@ float LinearStep( float lo, float hi, float x ) {
 }
 
 vec4 SampleMSDF( vec2 uv, float half_pixel_size ) {
-	vec3 sample = qf_texture( u_BaseTexture, uv ).rgb;
+	vec3 sample = texture( u_BaseTexture, uv ).rgb;
 	float d = 2.0 * Median( sample ) - 1.0; // rescale to [-1,1], positive being inside
 
 	if( u_HasBorder != 0 ) {

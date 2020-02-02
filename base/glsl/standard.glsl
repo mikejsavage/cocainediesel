@@ -4,15 +4,15 @@
 #include "include/dither.glsl"
 #include "include/fog.glsl"
 
-qf_varying vec3 v_Position;
-qf_varying vec2 v_TexCoord;
+v2f vec3 v_Position;
+v2f vec2 v_TexCoord;
 
 #if VERTEX_COLORS
-qf_varying vec4 v_Color;
+v2f vec4 v_Color;
 #endif
 
 #if APPLY_SOFT_PARTICLE
-qf_varying float v_Depth;
+v2f float v_Depth;
 #endif
 
 #if VERTEX_SHADER
@@ -72,7 +72,7 @@ void main() {
 	color *= v_Color;
 #endif
 
-	vec4 diffuse = qf_texture( u_BaseTexture, v_TexCoord ) * color;
+	vec4 diffuse = texture( u_BaseTexture, v_TexCoord ) * color;
 #endif
 
 #if ALPHA_TEST

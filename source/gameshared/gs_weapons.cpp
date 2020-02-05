@@ -122,7 +122,7 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 		return player->weapon;
 	}
 
-	if( player->pmove.stats[PM_STAT_NOUSERCONTROL] > 0 ) {
+	if( player->pmove.no_control_time > 0 ) {
 		buttons = 0;
 	}
 
@@ -252,5 +252,5 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 }
 
 bool GS_CanEquip( const SyncPlayerState * player, WeaponType weapon ) {
-	return ( player->pmove.stats[ PM_STAT_FEATURES ] & PMFEAT_WEAPONSWITCH ) != 0 && player->weapons[ weapon ].owned;
+	return ( player->pmove.features & PMFEAT_WEAPONSWITCH ) != 0 && player->weapons[ weapon ].owned;
 }

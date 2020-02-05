@@ -226,34 +226,30 @@ struct SyncEntityState {
 // to rendered a view.  There will only be 10 SyncPlayerState sent each second,
 // but the number of pmove_state_t changes will be relative to client
 // frame rates
-#define PS_MAX_STATS 64
-#define MAX_PM_STATS 16
-
-enum {
-	PM_STAT_FEATURES,
-	PM_STAT_NOUSERCONTROL,
-	PM_STAT_KNOCKBACK,
-	PM_STAT_CROUCHTIME,
-	PM_STAT_ZOOMTIME,
-	PM_STAT_DASHTIME,
-	PM_STAT_WJTIME,
-	PM_STAT_MAXSPEED,
-	PM_STAT_JUMPSPEED,
-	PM_STAT_DASHSPEED,
-};
-
 typedef struct {
 	int pm_type;
 
 	float origin[3];
 	float velocity[3];
-
-	int pm_flags;               // ducked, jump_held, etc
-	int pm_time;                // each unit = 8 ms
-	short stats[MAX_PM_STATS];  // Kurim : timers for knockback, doublejump, walljump
-	int gravity;
 	short delta_angles[3];      // add to command angles to get view direction
 	                            // changed by spawns, rotating objects, and teleporters
+
+	int pm_flags;               // ducked, jump_held, etc
+	int pm_time;
+
+	u16 features;
+
+	s16 no_control_time;
+	s16 knockback_time;
+	s16 crouch_time;
+	s16 zoom_time;
+	s16 dash_time;
+	s16 walljump_time;
+
+	s16 max_speed;
+	s16 jump_speed;
+	s16 dash_speed;
+	s16 gravity;
 } pmove_state_t;
 
 struct SyncPlayerState {

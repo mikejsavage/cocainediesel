@@ -871,52 +871,8 @@ static void objectGameClient_execGameCommand( asstring_t *msg, gclient_t *self )
 	trap_GameCmd( PLAYERENT( playerNum ), msg->buffer );
 }
 
-static void objectGameClient_setPMoveFeatures( unsigned int bitmask, gclient_t *self ) {
-	self->ps.pmove.stats[PM_STAT_FEATURES] = ( bitmask & PMFEAT_ALL );
-}
-
-static unsigned int objectGameClient_getPMoveFeatures( gclient_t *self ) {
-	return self->ps.pmove.stats[PM_STAT_FEATURES];
-}
-
 static unsigned int objectGameClient_getPressedKeys( gclient_t *self ) {
 	return self->ps.plrkeys;
-}
-
-static void objectGameClient_setPMoveMaxSpeed( float speed, gclient_t *self ) {
-	if( speed < 0.0f ) {
-		self->ps.pmove.stats[PM_STAT_MAXSPEED] = (short)DEFAULT_PLAYERSPEED;
-	} else {
-		self->ps.pmove.stats[PM_STAT_MAXSPEED] = ( (int)speed & 0xFFFF );
-	}
-}
-
-static float objectGameClient_getPMoveMaxSpeed( gclient_t *self ) {
-	return self->ps.pmove.stats[PM_STAT_MAXSPEED];
-}
-
-static void objectGameClient_setPMoveJumpSpeed( float speed, gclient_t *self ) {
-	if( speed < 0.0f ) {
-		self->ps.pmove.stats[PM_STAT_JUMPSPEED] = (short)DEFAULT_JUMPSPEED;
-	} else {
-		self->ps.pmove.stats[PM_STAT_JUMPSPEED] = ( (int)speed & 0xFFFF );
-	}
-}
-
-static float objectGameClient_getPMoveJumpSpeed( gclient_t *self ) {
-	return self->ps.pmove.stats[PM_STAT_JUMPSPEED];
-}
-
-static void objectGameClient_setPMoveDashSpeed( float speed, gclient_t *self ) {
-	if( speed < 0.0f ) {
-		self->ps.pmove.stats[PM_STAT_DASHSPEED] = (short)DEFAULT_DASHSPEED;
-	} else {
-		self->ps.pmove.stats[PM_STAT_DASHSPEED] = ( (int)speed & 0xFFFF );
-	}
-}
-
-static float objectGameClient_getPMoveDashSpeed( gclient_t *self ) {
-	return self->ps.pmove.stats[PM_STAT_DASHSPEED];
 }
 
 static asstring_t *objectGameClient_getUserInfoKey( asstring_t *key, gclient_t *self ) {
@@ -1000,15 +956,7 @@ static const asMethod_t gameclient_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, selectWeapon, ( int tag ) ), asFUNCTION( objectGameClient_SelectWeapon ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, addAward, ( const String &in ) ), asFUNCTION( objectGameClient_addAward ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, execGameCommand, ( const String &in ) ), asFUNCTION( objectGameClient_execGameCommand ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, set_pmoveFeatures, ( uint bitmask ) ), asFUNCTION( objectGameClient_setPMoveFeatures ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, set_pmoveMaxSpeed, ( float speed ) ), asFUNCTION( objectGameClient_setPMoveMaxSpeed ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, set_pmoveJumpSpeed, ( float speed ) ), asFUNCTION( objectGameClient_setPMoveJumpSpeed ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, set_pmoveDashSpeed, ( float speed ) ), asFUNCTION( objectGameClient_setPMoveDashSpeed ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( uint, get_pmoveFeatures, ( ) const ), asFUNCTION( objectGameClient_getPMoveFeatures ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( uint, get_pressedKeys, ( ) const ), asFUNCTION( objectGameClient_getPressedKeys ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( float, get_pmoveMaxSpeed, ( ) const ), asFUNCTION( objectGameClient_getPMoveMaxSpeed ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( float, get_pmoveJumpSpeed, ( ) const ), asFUNCTION( objectGameClient_getPMoveJumpSpeed ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( float, get_pmoveDashSpeed, ( ) const ), asFUNCTION( objectGameClient_getPMoveDashSpeed ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, getUserInfoKey, ( const String &in ) const ), asFUNCTION( objectGameClient_getUserInfoKey ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, printMessage, ( const String &in ) ), asFUNCTION( objectGameClient_printMessage ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, chaseCam, ( const String @, bool teamOnly ) ), asFUNCTION( objectGameClient_ChaseCam ), asCALL_CDECL_OBJLAST },
@@ -1042,6 +990,10 @@ static const asProperty_t gameclient_Properties[] =
 	{ ASLIB_PROPERTY_DECL( uint8, progressType ), offsetof( gclient_t, ps.progress_type ) },
 	{ ASLIB_PROPERTY_DECL( uint8, progress ), offsetof( gclient_t, ps.progress ) },
 	{ ASLIB_PROPERTY_DECL( const int64, uCmdTimeStamp ), offsetof( gclient_t, ucmd.serverTimeStamp ) },
+	{ ASLIB_PROPERTY_DECL( uint16, pmoveFeatures ), offsetof( gclient_t, ps.pmove.features ) },
+	{ ASLIB_PROPERTY_DECL( int16, pmoveMaxSpeed ), offsetof( gclient_t, ps.pmove.max_speed ) },
+	{ ASLIB_PROPERTY_DECL( int16, pmoveJumpSpeed ), offsetof( gclient_t, ps.pmove.jump_speed ) },
+	{ ASLIB_PROPERTY_DECL( int16, pmoveDashSpeed ), offsetof( gclient_t, ps.pmove.dash_speed ) },
 
 	ASLIB_PROPERTY_NULL
 };

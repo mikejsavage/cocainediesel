@@ -203,11 +203,11 @@ static float CG_CalcViewFov( void ) {
 	fov = cg_fov->value;
 	zoomfov = cg_zoomfov->value;
 
-	if( !cg.predictedPlayerState.pmove.stats[PM_STAT_ZOOMTIME] ) {
+	if( cg.predictedPlayerState.pmove.zoom_time == 0 ) {
 		return fov;
 	}
 
-	frac = (float)cg.predictedPlayerState.pmove.stats[PM_STAT_ZOOMTIME] / (float)ZOOMTIME;
+	frac = float( cg.predictedPlayerState.pmove.zoom_time ) / float( ZOOMTIME );
 	return fov - ( fov - zoomfov ) * frac;
 }
 
@@ -244,7 +244,7 @@ static void CG_CalcViewBob( void ) {
 
 			CG_Trace( &trace, cg.predictedPlayerState.pmove.origin, mins, maxs, cg.predictedPlayerState.pmove.origin, cg.view.POVent, MASK_PLAYERSOLID );
 			if( trace.startsolid || trace.allsolid ) {
-				if( cg.predictedPlayerState.pmove.stats[PM_STAT_CROUCHTIME] ) {
+				if( cg.predictedPlayerState.pmove.crouch_time != 0 ) {
 					bobScale = 1.5f;
 				} else {
 					bobScale = 2.5f;
@@ -451,7 +451,7 @@ static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 	// interpolate fov and viewheight
 	if( !teleported ) {
 		playerState->viewheight = ops->viewheight + cg.lerpfrac * ( ps->viewheight - ops->viewheight );
-		playerState->pmove.stats[PM_STAT_ZOOMTIME] = ops->pmove.stats[PM_STAT_ZOOMTIME] + cg.lerpfrac * ( ps->pmove.stats[PM_STAT_ZOOMTIME] - ops->pmove.stats[PM_STAT_ZOOMTIME] );
+		playerState->pmove.zoom_time = Lerp( ops->pmove.zoom_time, cg.lerpfrac, ps->pmove.zoom_time );
 	}
 }
 

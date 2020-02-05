@@ -224,7 +224,7 @@ static void G_KnockBackPush( edict_t *targ, edict_t *attacker, const vec3_t base
 	dir[ 2 ] *= VERTICAL_KNOCKBACK_SCALE;
 
 	if( targ->r.client && targ != attacker && !( dflags & DAMAGE_KNOCKBACK_SOFT ) ) {
-		targ->r.client->ps.pmove.stats[PM_STAT_KNOCKBACK] = Clamp( 100, 3 * knockback, 250 );
+		targ->r.client->ps.pmove.knockback_time = Clamp( 100, 3 * knockback, 250 );
 	}
 
 	VectorMA( targ->velocity, push, dir, targ->velocity );

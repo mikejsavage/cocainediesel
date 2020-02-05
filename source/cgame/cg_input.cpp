@@ -223,7 +223,7 @@ static cvar_t *m_sensCap;
 static Vec2 mouse_movement;
 
 float CG_GetSensitivityScale( float sens, float zoomSens ) {
-	if( !cgs.demoPlaying && sens && ( cg.predictedPlayerState.pmove.stats[PM_STAT_ZOOMTIME] > 0 ) ) {
+	if( !cgs.demoPlaying && sens && cg.predictedPlayerState.pmove.zoom_time > 0 ) {
 		if( zoomSens ) {
 			return zoomSens / sens;
 		}

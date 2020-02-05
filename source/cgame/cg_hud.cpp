@@ -175,7 +175,7 @@ static int CG_Paused( const void *parameter ) {
 }
 
 static int CG_GetZoom( const void *parameter ) {
-	return ( !cg.view.thirdperson && ( cg.predictedPlayerState.pmove.stats[PM_STAT_ZOOMTIME] != 0 ) );
+	return !cg.view.thirdperson && cg.predictedPlayerState.pmove.zoom_time != 0;
 }
 
 static int CG_GetVidWidth( const void *parameter ) {

@@ -392,9 +392,9 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	client->ps.POVnum = ENTNUM( self );
 
 	// set movement info
-	client->ps.pmove.stats[PM_STAT_MAXSPEED] = (short)DEFAULT_PLAYERSPEED;
-	client->ps.pmove.stats[PM_STAT_JUMPSPEED] = (short)DEFAULT_JUMPSPEED;
-	client->ps.pmove.stats[PM_STAT_DASHSPEED] = (short)DEFAULT_DASHSPEED;
+	client->ps.pmove.max_speed = DEFAULT_PLAYERSPEED;
+	client->ps.pmove.jump_speed = DEFAULT_JUMPSPEED;
+	client->ps.pmove.dash_speed = DEFAULT_DASHSPEED;
 
 	if( ghost ) {
 		self->r.solid = SOLID_NOT;
@@ -402,7 +402,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	} else {
 		self->r.solid = SOLID_YES;
 		self->movetype = MOVETYPE_PLAYER;
-		client->ps.pmove.stats[PM_STAT_FEATURES] = static_cast<unsigned short>( PMFEAT_DEFAULT );
+		client->ps.pmove.features = PMFEAT_DEFAULT;
 	}
 
 	ClientUserinfoChanged( self, client->userinfo );
@@ -437,7 +437,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	// hold in place briefly
 	client->ps.pmove.pm_flags = PMF_TIME_TELEPORT;
 	client->ps.pmove.pm_time = 14;
-	client->ps.pmove.stats[PM_STAT_NOUSERCONTROL] = CLIENT_RESPAWN_FREEZE_DELAY;
+	client->ps.pmove.no_control_time = CLIENT_RESPAWN_FREEZE_DELAY;
 
 	G_UseTargets( spawnpoint, self );
 
@@ -1127,7 +1127,7 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 		if( ent->deathTimeStamp + g_respawn_delay_min->integer <= level.time ) {
 			client->resp.snap.buttons |= ucmd->buttons;
 		}
-	} else if( client->ps.pmove.stats[PM_STAT_NOUSERCONTROL] <= 0 ) {
+	} else if( client->ps.pmove.no_control_time <= 0 ) {
 		client->resp.snap.buttons |= ucmd->buttons;
 	}
 

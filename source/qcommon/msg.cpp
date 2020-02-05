@@ -740,16 +740,24 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 
 	Delta( buf, pmove.origin, baseline.origin );
 	Delta( buf, pmove.velocity, baseline.velocity );
-
-	Delta( buf, pmove.pm_time, baseline.pm_time );
-
-	Delta( buf, pmove.pm_flags, baseline.pm_flags );
-
 	Delta( buf, pmove.delta_angles, baseline.delta_angles );
 
-	Delta( buf, pmove.gravity, baseline.gravity );
+	Delta( buf, pmove.pm_time, baseline.pm_time );
+	Delta( buf, pmove.pm_flags, baseline.pm_flags );
 
-	Delta( buf, pmove.stats, baseline.stats );
+	Delta( buf, pmove.features, baseline.features );
+
+	Delta( buf, pmove.no_control_time, baseline.no_control_time );
+	Delta( buf, pmove.knockback_time, baseline.knockback_time );
+	Delta( buf, pmove.crouch_time, baseline.crouch_time );
+	Delta( buf, pmove.zoom_time, baseline.zoom_time );
+	Delta( buf, pmove.dash_time, baseline.dash_time );
+	Delta( buf, pmove.walljump_time, baseline.walljump_time );
+
+	Delta( buf, pmove.max_speed, baseline.max_speed );
+	Delta( buf, pmove.jump_speed, baseline.jump_speed );
+	Delta( buf, pmove.dash_speed, baseline.dash_speed );
+	Delta( buf, pmove.gravity, baseline.gravity );
 }
 
 static void Delta( DeltaBuffer * buf, SyncPlayerState::WeaponInfo & weapon, const SyncPlayerState::WeaponInfo & baseline ) {

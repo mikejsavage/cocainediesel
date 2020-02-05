@@ -431,7 +431,7 @@ static void PM_Friction( void ) {
 	// apply ground friction
 	if( ( ( ( ( pm->groundentity != -1 ) && !( pml.groundsurfFlags & SURF_SLICK ) ) )
 		  && ( pm->waterlevel < 2 ) ) || pml.ladder ) {
-		if( pm->playerState->pmove.stats[PM_STAT_KNOCKBACK] <= 0 ) {
+		if( pm->playerState->pmove.knockback_time <= 0 ) {
 			friction = pm_friction;
 			control = speed < pm_decelerate ? pm_decelerate : speed;
 			drop += control * friction * pml.frametime;
@@ -606,9 +606,9 @@ static void PM_Move( void ) {
 
 	// clamp to server defined max speed
 
-	if( pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] ) {
+	if( pm->playerState->pmove.crouch_time ) {
 		maxspeed = pml.maxCrouchedSpeed;
-	} else if( ( pm->cmd.buttons & BUTTON_WALK ) && ( pm->playerState->pmove.stats[PM_STAT_FEATURES] & PMFEAT_WALK ) ) {
+	} else if( ( pm->cmd.buttons & BUTTON_WALK ) && ( pm->playerState->pmove.features & PMFEAT_WALK ) ) {
 		maxspeed = pml.maxWalkSpeed;
 	} else {
 		maxspeed = pml.maxPlayerSpeed;
@@ -665,7 +665,7 @@ static void PM_Move( void ) {
 		wishspeed2 = wishspeed;
 		if( DotProduct( pml.velocity, wishdir ) < 0
 			&& !( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING )
-			&& ( pm->playerState->pmove.stats[PM_STAT_KNOCKBACK] <= 0 ) ) {
+			&& ( pm->playerState->pmove.knockback_time <= 0 ) ) {
 			accel = pm_airdecelerate;
 		} else {
 			accel = pm_airaccelerate;
@@ -674,7 +674,7 @@ static void PM_Move( void ) {
 		if( ( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING ) ) {
 			accel = 0; // no stopmove while walljumping
 		}
-		if( ( smove > 0 || smove < 0 ) && !fmove && ( pm->playerState->pmove.stats[PM_STAT_KNOCKBACK] <= 0 ) ) {
+		if( ( smove > 0 || smove < 0 ) && !fmove && ( pm->playerState->pmove.knockback_time <= 0 ) ) {
 			if( wishspeed > pm_wishspeed ) {
 				wishspeed = pm_wishspeed;
 			}
@@ -683,7 +683,7 @@ static void PM_Move( void ) {
 
 		// Air control
 		PM_Accelerate( wishdir, wishspeed, accel );
-		if( pm_aircontrol && !( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING ) && ( pm->playerState->pmove.stats[PM_STAT_KNOCKBACK] <= 0 ) ) { // no air ctrl while wjing
+		if( pm_aircontrol && !( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING ) && ( pm->playerState->pmove.knockback_time <= 0 ) ) { // no air ctrl while wjing
 			PM_Aircontrol( wishdir, wishspeed2 );
 		}
 
@@ -835,13 +835,13 @@ static void PM_CategorizePosition( void ) {
 
 static void PM_ClearDash( void ) {
 	pm->playerState->pmove.pm_flags &= ~PMF_DASHING;
-	pm->playerState->pmove.stats[PM_STAT_DASHTIME] = 0;
+	pm->playerState->pmove.dash_time = 0;
 }
 
 static void PM_ClearWallJump( void ) {
 	pm->playerState->pmove.pm_flags &= ~PMF_WALLJUMPING;
 	pm->playerState->pmove.pm_flags &= ~PMF_WALLJUMPCOUNT;
-	pm->playerState->pmove.stats[PM_STAT_WJTIME] = 0;
+	pm->playerState->pmove.walljump_time = 0;
 }
 
 /*
@@ -865,7 +865,7 @@ static void PM_CheckJump( void ) {
 		return;
 	}
 
-	if( !( pm->playerState->pmove.stats[PM_STAT_FEATURES] & PMFEAT_JUMP ) ) {
+	if( !( pm->playerState->pmove.features & PMFEAT_JUMP ) ) {
 		return;
 	}
 
@@ -909,16 +909,16 @@ static void PM_CheckDash( void ) {
 		return;
 	}
 
-	if( pm->playerState->pmove.stats[PM_STAT_DASHTIME] > 0 ) {
+	if( pm->playerState->pmove.dash_time > 0 ) {
 		return;
 	}
 
-	if( pm->playerState->pmove.stats[PM_STAT_KNOCKBACK] > 0 ) { // can not start a new dash during knockback time
+	if( pm->playerState->pmove.knockback_time > 0 ) { // can not start a new dash during knockback time
 		return;
 	}
 
 	if( ( pm->cmd.buttons & BUTTON_SPECIAL ) && pm->groundentity != -1
-		&& ( pm->playerState->pmove.stats[PM_STAT_FEATURES] & PMFEAT_DASH ) ) {
+		&& ( pm->playerState->pmove.features & PMFEAT_DASH ) ) {
 		if( pm->playerState->pmove.pm_flags & PMF_SPECIAL_HELD ) {
 			return;
 		}
@@ -962,7 +962,7 @@ static void PM_CheckDash( void ) {
 		VectorCopy( dashdir, pml.velocity );
 		pml.velocity[2] = upspeed;
 
-		pm->playerState->pmove.stats[PM_STAT_DASHTIME] = PM_DASHJUMP_TIMEDELAY;
+		pm->playerState->pmove.dash_time = PM_DASHJUMP_TIMEDELAY;
 
 		// return sound events
 		if( Abs( pml.sidePush ) > 10 && Abs( pml.sidePush ) >= Abs( pml.forwardPush ) ) {
@@ -1001,7 +1001,7 @@ static void PM_CheckWallJump( void ) {
 		pm->playerState->pmove.pm_flags &= ~PMF_WALLJUMPING;
 	}
 
-	if( pm->playerState->pmove.stats[PM_STAT_WJTIME] <= 0 ) { // reset the wj count after wj delay
+	if( pm->playerState->pmove.walljump_time <= 0 ) { // reset the wj count after wj delay
 		pm->playerState->pmove.pm_flags &= ~PMF_WALLJUMPCOUNT;
 	}
 
@@ -1010,8 +1010,7 @@ static void PM_CheckWallJump( void ) {
 	}
 
 	// don't walljump in the first 100 milliseconds of a dash jump
-	if( pm->playerState->pmove.pm_flags & PMF_DASHING
-		&& ( pm->playerState->pmove.stats[PM_STAT_DASHTIME] > ( PM_DASHJUMP_TIMEDELAY - 100 ) ) ) {
+	if( pm->playerState->pmove.pm_flags & PMF_DASHING && pm->playerState->pmove.dash_time > PM_DASHJUMP_TIMEDELAY - 100 ) {
 		return;
 	}
 
@@ -1019,9 +1018,9 @@ static void PM_CheckWallJump( void ) {
 	// markthis
 
 	if( pm->groundentity == -1 && ( pm->cmd.buttons & BUTTON_SPECIAL )
-		&& ( pm->playerState->pmove.stats[PM_STAT_FEATURES] & PMFEAT_WALLJUMP ) &&
+		&& ( pm->playerState->pmove.features & PMFEAT_WALLJUMP ) &&
 		( !( pm->playerState->pmove.pm_flags & PMF_WALLJUMPCOUNT ) )
-		&& pm->playerState->pmove.stats[PM_STAT_WJTIME] <= 0
+		&& pm->playerState->pmove.walljump_time <= 0
 		) {
 		trace_t trace;
 		vec3_t point;
@@ -1036,7 +1035,7 @@ static void PM_CheckWallJump( void ) {
 		pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, point, pm->playerState->POVnum, pm->contentmask, 0 );
 
 		if( pml.upPush >= 10
-			|| ( hspeed > pm->playerState->pmove.stats[PM_STAT_DASHSPEED] && pml.velocity[2] > 8 )
+			|| ( hspeed > pm->playerState->pmove.dash_speed && pml.velocity[2] > 8 )
 			|| ( trace.fraction == 1 ) || ( !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
 			VectorClear( normal );
 			PlayerTouchWall( 12, 0.3f, &normal );
@@ -1072,7 +1071,7 @@ static void PM_CheckWallJump( void ) {
 
 				pm->playerState->pmove.pm_flags |= PMF_WALLJUMPCOUNT;
 
-				pm->playerState->pmove.stats[PM_STAT_WJTIME] = PM_WALLJUMP_TIMEDELAY;
+				pm->playerState->pmove.walljump_time = PM_WALLJUMP_TIMEDELAY;
 
 				// Create the event
 				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_WALLJUMP, DirToByte( normal ) );
@@ -1227,14 +1226,14 @@ static void PM_FlyMove( bool doclip ) {
 
 static void PM_CheckZoom( void ) {
 	if( pm->playerState->pmove.pm_type != PM_NORMAL ) {
-		pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] = 0;
+		pm->playerState->pmove.zoom_time = 0;
 		return;
 	}
 
-	if( ( pm->cmd.buttons & BUTTON_ZOOM ) && ( pm->playerState->pmove.stats[PM_STAT_FEATURES] & PMFEAT_ZOOM ) ) {
-		pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] = Clamp( 0, pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] + pm->cmd.msec, ZOOMTIME );
-	} else if( pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] > 0 ) {
-		pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] = Max2( 0, pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] - pm->cmd.msec );
+	if( ( pm->cmd.buttons & BUTTON_ZOOM ) && ( pm->playerState->pmove.features & PMFEAT_ZOOM ) ) {
+		pm->playerState->pmove.zoom_time = Clamp( 0, pm->playerState->pmove.zoom_time + pm->cmd.msec, ZOOMTIME );
+	} else if( pm->playerState->pmove.zoom_time > 0 ) {
+		pm->playerState->pmove.zoom_time = Max2( 0, pm->playerState->pmove.zoom_time - pm->cmd.msec );
 	}
 }
 
@@ -1248,7 +1247,7 @@ static void PM_AdjustBBox( void ) {
 	trace_t trace;
 
 	if( pm->playerState->pmove.pm_type == PM_GIB ) {
-		pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] = 0;
+		pm->playerState->pmove.crouch_time = 0;
 		VectorCopy( playerbox_gib_maxs, pm->maxs );
 		VectorCopy( playerbox_gib_mins, pm->mins );
 		pm->playerState->viewheight = playerbox_gib_viewheight;
@@ -1256,23 +1255,23 @@ static void PM_AdjustBBox( void ) {
 	}
 
 	if( pm->playerState->pmove.pm_type >= PM_FREEZE ) {
-		pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] = 0;
+		pm->playerState->pmove.crouch_time = 0;
 		pm->playerState->viewheight = 0;
 		return;
 	}
 
 	if( pm->playerState->pmove.pm_type == PM_SPECTATOR ) {
-		pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] = 0;
+		pm->playerState->pmove.crouch_time = 0;
 		pm->playerState->viewheight = playerbox_stand_viewheight;
 	}
 
-	if( pml.upPush < 0 && ( pm->playerState->pmove.stats[PM_STAT_FEATURES] & PMFEAT_CROUCH ) &&
-		pm->playerState->pmove.stats[PM_STAT_WJTIME] < ( PM_WALLJUMP_TIMEDELAY - PM_SPECIAL_CROUCH_INHIBIT ) &&
-		pm->playerState->pmove.stats[PM_STAT_DASHTIME] < ( PM_DASHJUMP_TIMEDELAY - PM_SPECIAL_CROUCH_INHIBIT ) &&
+	if( pml.upPush < 0 && ( pm->playerState->pmove.features & PMFEAT_CROUCH ) &&
+		pm->playerState->pmove.walljump_time < ( PM_WALLJUMP_TIMEDELAY - PM_SPECIAL_CROUCH_INHIBIT ) &&
+		pm->playerState->pmove.dash_time < ( PM_DASHJUMP_TIMEDELAY - PM_SPECIAL_CROUCH_INHIBIT ) &&
 		( pm->playerState->pmove.pm_flags & PMF_ON_GROUND ) ) {
-		pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] = bound( 0, pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] + pm->cmd.msec, CROUCHTIME );
+		pm->playerState->pmove.crouch_time = bound( 0, pm->playerState->pmove.crouch_time + pm->cmd.msec, CROUCHTIME );
 
-		crouchFrac = (float)pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] / (float)CROUCHTIME;
+		crouchFrac = (float)pm->playerState->pmove.crouch_time / (float)CROUCHTIME;
 		VectorLerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins, pm->mins );
 		VectorLerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs, pm->maxs );
 		pm->playerState->viewheight = playerbox_stand_viewheight - ( crouchFrac * ( playerbox_stand_viewheight - playerbox_crouch_viewheight ) );
@@ -1282,13 +1281,13 @@ static void PM_AdjustBBox( void ) {
 	}
 
 	// it's crouched, but not pressing the crouch button anymore, try to stand up
-	if( pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] != 0 ) {
+	if( pm->playerState->pmove.crouch_time != 0 ) {
 		vec3_t curmins, curmaxs, wishmins, wishmaxs;
 		float curviewheight, wishviewheight;
 		int newcrouchtime;
 
 		// find the current size
-		crouchFrac = (float)pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] / (float)CROUCHTIME;
+		crouchFrac = (float)pm->playerState->pmove.crouch_time / (float)CROUCHTIME;
 		VectorLerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins, curmins );
 		VectorLerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs, curmaxs );
 		curviewheight = playerbox_stand_viewheight - ( crouchFrac * ( playerbox_stand_viewheight - playerbox_crouch_viewheight ) );
@@ -1301,7 +1300,7 @@ static void PM_AdjustBBox( void ) {
 		}
 
 		// find the desired size
-		newcrouchtime = Clamp( 0, pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] - pm->cmd.msec, CROUCHTIME );
+		newcrouchtime = Clamp( 0, pm->playerState->pmove.crouch_time - pm->cmd.msec, CROUCHTIME );
 		crouchFrac = (float)newcrouchtime / (float)CROUCHTIME;
 		VectorLerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins, wishmins );
 		VectorLerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs, wishmaxs );
@@ -1318,7 +1317,7 @@ static void PM_AdjustBBox( void ) {
 		}
 
 		// can do the uncrouching, use new position and update the time
-		pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] = newcrouchtime;
+		pm->playerState->pmove.crouch_time = newcrouchtime;
 		VectorCopy( wishmins, pm->mins );
 		VectorCopy( wishmaxs, pm->maxs );
 		pm->playerState->viewheight = wishviewheight;
@@ -1422,17 +1421,17 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 	pml.frametime = pm->cmd.msec * 0.001;
 
-	pml.maxPlayerSpeed = pm->playerState->pmove.stats[PM_STAT_MAXSPEED];
+	pml.maxPlayerSpeed = pm->playerState->pmove.max_speed;
 	if( pml.maxPlayerSpeed < 0 ) {
 		pml.maxPlayerSpeed = DEFAULT_PLAYERSPEED;
 	}
 
-	pml.jumpPlayerSpeed = (float)pm->playerState->pmove.stats[PM_STAT_JUMPSPEED] * GRAVITY_COMPENSATE;
+	pml.jumpPlayerSpeed = (float)pm->playerState->pmove.jump_speed * GRAVITY_COMPENSATE;
 	if( pml.jumpPlayerSpeed < 0 ) {
 		pml.jumpPlayerSpeed = DEFAULT_JUMPSPEED * GRAVITY_COMPENSATE;
 	}
 
-	pml.dashPlayerSpeed = pm->playerState->pmove.stats[PM_STAT_DASHSPEED];
+	pml.dashPlayerSpeed = pm->playerState->pmove.dash_speed;
 	if( pml.dashPlayerSpeed < 0 ) {
 		pml.dashPlayerSpeed = DEFAULT_DASHSPEED;
 	}
@@ -1476,9 +1475,9 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 			if( pmove_gs->module == GS_MODULE_GAME ) {
 				pm->playerState->pmove.pm_flags &= ~PMF_NO_PREDICTION;
 			}
-			if( pm->playerState->pmove.stats[PM_STAT_FEATURES] & PMFEAT_GHOSTMOVE ) {
+			if( pm->playerState->pmove.features & PMFEAT_GHOSTMOVE ) {
 				pm->contentmask = MASK_DEADSOLID;
-			} else if( pm->playerState->pmove.stats[PM_STAT_FEATURES] & PMFEAT_TEAMGHOST ) {
+			} else if( pm->playerState->pmove.features & PMFEAT_TEAMGHOST ) {
 				int team = pmove_gs->api.GetEntityState( pm->playerState->POVnum, 0 )->team;
 				pm->contentmask = team == TEAM_ALPHA ? MASK_ALPHAPLAYERSOLID : MASK_BETAPLAYERSOLID;
 			} else {
@@ -1506,19 +1505,19 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 		pmove_state_t & pmove = pm->playerState->pmove;
 
-		pmove.stats[PM_STAT_NOUSERCONTROL] = Max2( 0, pmove.stats[PM_STAT_NOUSERCONTROL] - pm->cmd.msec );
-		pmove.stats[PM_STAT_KNOCKBACK] = Max2( 0, pmove.stats[PM_STAT_KNOCKBACK] - pm->cmd.msec );
-		pmove.stats[PM_STAT_DASHTIME] = Max2( 0, pmove.stats[PM_STAT_DASHTIME] - pm->cmd.msec );
-		pmove.stats[PM_STAT_WJTIME] = Max2( 0, pmove.stats[PM_STAT_WJTIME] - pm->cmd.msec );
-		// PM_STAT_CROUCHTIME is handled at PM_AdjustBBox
-		// PM_STAT_ZOOMTIME is handled at PM_CheckZoom
+		pmove.no_control_time = Max2( 0, pmove.no_control_time - pm->cmd.msec );
+		pmove.knockback_time = Max2( 0, pmove.knockback_time - pm->cmd.msec );
+		pmove.dash_time = Max2( 0, pmove.dash_time - pm->cmd.msec );
+		pmove.walljump_time = Max2( 0, pmove.walljump_time - pm->cmd.msec );
+		// crouch_time is handled at PM_AdjustBBox
+		// zoom_time is handled at PM_CheckZoom
 	}
 
 	pml.forwardPush = pm->cmd.forwardmove * SPEEDKEY / 127.0f;
 	pml.sidePush = pm->cmd.sidemove * SPEEDKEY / 127.0f;
 	pml.upPush = pm->cmd.upmove * SPEEDKEY / 127.0f;
 
-	if( pm->playerState->pmove.stats[PM_STAT_NOUSERCONTROL] > 0 ) {
+	if( pm->playerState->pmove.no_control_time > 0 ) {
 		pml.forwardPush = 0;
 		pml.sidePush = 0;
 		pml.upPush = 0;
@@ -1531,9 +1530,9 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 			PM_ClearWallJump();
 
-			pm->playerState->pmove.stats[PM_STAT_KNOCKBACK] = 0;
-			pm->playerState->pmove.stats[PM_STAT_CROUCHTIME] = 0;
-			pm->playerState->pmove.stats[PM_STAT_ZOOMTIME] = 0;
+			pm->playerState->pmove.knockback_time = 0;
+			pm->playerState->pmove.crouch_time = 0;
+			pm->playerState->pmove.zoom_time = 0;
 			pm->playerState->pmove.pm_flags &= ~( PMF_JUMPPAD_TIME | PMF_DOUBLEJUMPED | PMF_TIME_WATERJUMP | PMF_TIME_LAND | PMF_TIME_TELEPORT | PMF_SPECIAL_HELD );
 
 			PM_AdjustBBox();
@@ -1640,11 +1639,11 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 	if( pm->groundentity != -1 ) { // remove wall-jump and dash bits when touching ground
 		// always keep the dash flag 50 msecs at least (to prevent being removed at the start of the dash)
-		if( pm->playerState->pmove.stats[PM_STAT_DASHTIME] < ( PM_DASHJUMP_TIMEDELAY - 50 ) ) {
+		if( pm->playerState->pmove.dash_time < PM_DASHJUMP_TIMEDELAY - 50 ) {
 			pm->playerState->pmove.pm_flags &= ~PMF_DASHING;
 		}
 
-		if( pm->playerState->pmove.stats[PM_STAT_WJTIME] < ( PM_WALLJUMP_TIMEDELAY - 50 ) ) {
+		if( pm->playerState->pmove.walljump_time < PM_WALLJUMP_TIMEDELAY - 50 ) {
 			PM_ClearWallJump();
 		}
 	}

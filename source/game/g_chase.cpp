@@ -397,9 +397,9 @@ void G_SpectatorMode( edict_t *ent ) {
 		G_Chase_SetChaseActive( ent, false );
 
 		// reset movement speeds
-		ent->r.client->ps.pmove.stats[PM_STAT_MAXSPEED] = DEFAULT_PLAYERSPEED;
-		ent->r.client->ps.pmove.stats[PM_STAT_JUMPSPEED] = DEFAULT_JUMPSPEED;
-		ent->r.client->ps.pmove.stats[PM_STAT_DASHSPEED] = DEFAULT_DASHSPEED;
+		ent->r.client->ps.pmove.max_speed = DEFAULT_PLAYERSPEED;
+		ent->r.client->ps.pmove.jump_speed = DEFAULT_JUMPSPEED;
+		ent->r.client->ps.pmove.dash_speed = DEFAULT_DASHSPEED;
 	}
 
 	ent->movetype = MOVETYPE_NOCLIP;

@@ -1,9 +1,11 @@
 {
+	attenuation distant
 	sound weapons/rg/fire1
 	sound weapons/rg/fire2
 	sound weapons/rg/fire3
 	sound weapons/rg/fire4
 }
+
 {
 	delay 0.65
 	volume 0.5

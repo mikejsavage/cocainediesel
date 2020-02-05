@@ -1,4 +1,5 @@
 {
+	attenuation idle
 	sound sounds/tbag/tbag1
 	sound sounds/tbag/tbag2
 	sound sounds/tbag/tbag3

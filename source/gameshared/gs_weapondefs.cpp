@@ -4,10 +4,10 @@
 
 #define INSTANT 0
 
-#define WEAPONDOWN_TIME 0
-#define WEAPONUP_TIME_FAST 200
-#define WEAPONUP_TIME_NORMAL 400
-#define WEAPONUP_TIME_SLOW 800
+#define WEAPONDOWN_TIME 50
+#define WEAPONUP_TIME_FAST 150
+#define WEAPONUP_TIME_NORMAL 350
+#define WEAPONUP_TIME_SLOW 750
 
 const WeaponDef gs_weaponDefs[] = {
 	{

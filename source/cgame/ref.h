@@ -69,16 +69,3 @@ typedef struct entity_s {
 	float outlineHeight;
 	RGBA8 outlineColor;
 } entity_t;
-
-typedef struct refdef_s {
-	int x, y, width, height;            // viewport, in virtual screen coordinates
-	int scissor_x, scissor_y, scissor_width, scissor_height;
-	int ortho_x, ortho_y;
-	float fov_x, fov_y;
-	vec3_t vieworg;
-	mat3_t viewaxis;
-	int64_t time;                       // time is used for timing offsets
-	int rdflags;                        // RDF_UNDERWATER, etc
-	uint8_t *areabits;                  // if not NULL, only areas with set bits will be drawn
-	float minLight;                     // minimum value of ambient lighting applied to RF_MINLIGHT entities
-} refdef_t;

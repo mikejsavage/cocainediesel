@@ -21,15 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 struct orientation_s;
-struct shader_s;
-struct fragment_s;
 struct entity_s;
-struct refdef_s;
-struct poly_s;
 struct cmodel_s;
-struct qfontface_s;
-
-// cg_public.h -- client game dll information visible to engine
 
 //
 // structs and variables shared with the main engine

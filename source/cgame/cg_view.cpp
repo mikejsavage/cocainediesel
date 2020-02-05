@@ -608,52 +608,6 @@ static void CG_UpdateChaseCam( void ) {
 }
 
 /*
-* CG_SetupRefDef
-*/
-#define WAVE_AMPLITUDE  0.015   // [0..1]
-#define WAVE_FREQUENCY  0.6     // [0..1]
-static void CG_SetupRefDef( cg_viewdef_t *view, refdef_t *rd ) {
-	memset( rd, 0, sizeof( *rd ) );
-
-	// view rectangle size
-	rd->x = 0;
-	rd->y = 0;
-	rd->width = frame_static.viewport_width;
-	rd->height = frame_static.viewport_height;
-
-	rd->scissor_x = 0;
-	rd->scissor_y = 0;
-	rd->scissor_width = frame_static.viewport_width;
-	rd->scissor_height = frame_static.viewport_height;
-
-	rd->fov_x = view->fov_x;
-	rd->fov_y = view->fov_y;
-
-	rd->time = cl.serverTime;
-	rd->areabits = cg.frame.areabits;
-
-	rd->minLight = 0.3f;
-
-	VectorCopy( cg.view.origin, rd->vieworg );
-	Matrix3_Copy( cg.view.axis, rd->viewaxis );
-	VectorInverse( &rd->viewaxis[AXIS_RIGHT] );
-
-	VectorCopy( view->origin, rd->vieworg );
-
-	AnglesToAxis( view->angles, rd->viewaxis );
-
-	rd->rdflags = CG_RenderFlags();
-
-	// warp if underwater
-	if( rd->rdflags & RDF_UNDERWATER ) {
-		float phase = rd->time * 0.001f * WAVE_FREQUENCY * 2.0f * PI;
-		float v = WAVE_AMPLITUDE * ( sinf( phase ) - 1.0f ) + 1;
-		rd->fov_x *= v;
-		rd->fov_y *= v;
-	}
-}
-
-/*
 * CG_SetupViewDef
 */
 static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
@@ -952,8 +906,6 @@ float global_maxdist = 8000.0f;
 void CG_RenderView( unsigned extrapolationTime ) {
 	ZoneScoped;
 
-	refdef_t *rd = &cg.view.refdef;
-
 	cg.frameCount++;
 
 	if( !cgs.precacheDone || !cg.frame.valid ) {
@@ -1061,8 +1013,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	DrawSkybox();
 
 	CG_AddLocalSounds();
-
-	CG_SetupRefDef( &cg.view, rd );
 
 	cg.oldAreabits = true;
 

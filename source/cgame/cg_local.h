@@ -253,7 +253,6 @@ typedef struct {
 	vec3_t angles;
 	mat3_t axis;
 	vec3_t velocity;
-	refdef_t refdef;
 } cg_viewdef_t;
 
 #include "cg_democams.h"

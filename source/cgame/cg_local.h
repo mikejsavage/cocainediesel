@@ -152,6 +152,8 @@ typedef struct {
 
 	const SoundEffect * sfxFall;
 
+	const SoundEffect * sfxTbag;
+
 	// models
 	const Model * modDash;
 	const Model * modGib;

@@ -978,6 +978,10 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, int parm, bool predicted ) {
 			CG_StartVoiceTokenEffect( ent->ownerNum, parm );
 			break;
 
+		case EV_TBAG:
+			S_StartFixedSound( cgs.media.sfxTbag, FromQF3( ent->origin ), CHAN_AUTO, parm / 255.0f, ATTN_IDLE );
+			break;
+
 		case EV_DAMAGE:
 			CG_AddDamageNumber( ent );
 			break;

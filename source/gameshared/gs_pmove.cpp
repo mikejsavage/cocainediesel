@@ -24,9 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/q_collision.h"
 #include "gameshared/gs_public.h"
 
-//===============================================================
-//		WARSOW player AAboxes sizes
-
 #define SPEEDKEY    500.0f
 
 #define PM_DASHJUMP_TIMEDELAY 1000 // delay in milliseconds
@@ -34,6 +31,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PM_SPECIAL_CROUCH_INHIBIT 400
 #define PM_AIRCONTROL_BOUNCE_DELAY 200
 #define PM_OVERBOUNCE       1.01f
+
+static constexpr s16 MAX_TBAG_TIME = 2000;
+static constexpr s16 TBAG_THRESHOLD = 1000;
+static constexpr s16 TBAG_AMOUNT_PER_CROUCH = 500;
 
 //===============================================================
 
@@ -1269,6 +1270,16 @@ static void PM_AdjustBBox( void ) {
 		pm->playerState->pmove.walljump_time < ( PM_WALLJUMP_TIMEDELAY - PM_SPECIAL_CROUCH_INHIBIT ) &&
 		pm->playerState->pmove.dash_time < ( PM_DASHJUMP_TIMEDELAY - PM_SPECIAL_CROUCH_INHIBIT ) &&
 		( pm->playerState->pmove.pm_flags & PMF_ON_GROUND ) ) {
+
+		if( pm->playerState->pmove.crouch_time == 0 ) {
+			pm->playerState->pmove.tbag_time = Min2( pm->playerState->pmove.tbag_time + TBAG_AMOUNT_PER_CROUCH, int( MAX_TBAG_TIME ) );
+
+			if( pm->playerState->pmove.tbag_time >= TBAG_THRESHOLD ) {
+				float frac = Unlerp( TBAG_THRESHOLD, pm->playerState->pmove.tbag_time, MAX_TBAG_TIME );
+				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_TBAG, frac * 255 );
+			}
+		}
+
 		pm->playerState->pmove.crouch_time = bound( 0, pm->playerState->pmove.crouch_time + pm->cmd.msec, CROUCHTIME );
 
 		crouchFrac = (float)pm->playerState->pmove.crouch_time / (float)CROUCHTIME;
@@ -1509,6 +1520,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 		pmove.knockback_time = Max2( 0, pmove.knockback_time - pm->cmd.msec );
 		pmove.dash_time = Max2( 0, pmove.dash_time - pm->cmd.msec );
 		pmove.walljump_time = Max2( 0, pmove.walljump_time - pm->cmd.msec );
+		pmove.tbag_time = Max2( 0, pmove.tbag_time - pm->cmd.msec );
 		// crouch_time is handled at PM_AdjustBBox
 		// zoom_time is handled at PM_CheckZoom
 	}
@@ -1532,6 +1544,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 			pm->playerState->pmove.knockback_time = 0;
 			pm->playerState->pmove.crouch_time = 0;
+			pm->playerState->pmove.tbag_time = 0;
 			pm->playerState->pmove.zoom_time = 0;
 			pm->playerState->pmove.pm_flags &= ~( PMF_JUMPPAD_TIME | PMF_DOUBLEJUMPED | PMF_TIME_WATERJUMP | PMF_TIME_LAND | PMF_TIME_TELEPORT | PMF_SPECIAL_HELD );
 

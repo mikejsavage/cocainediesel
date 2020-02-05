@@ -242,6 +242,7 @@ typedef struct {
 	s16 no_control_time;
 	s16 knockback_time;
 	s16 crouch_time;
+	s16 tbag_time;
 	s16 zoom_time;
 	s16 dash_time;
 	s16 walljump_time;
@@ -671,6 +672,8 @@ typedef enum {
 	EV_SPARKS,
 
 	EV_VSAY,
+
+	EV_TBAG,
 
 	EV_LASER_SPARKS,
 

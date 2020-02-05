@@ -65,6 +65,8 @@ void CG_RegisterMediaSounds() {
 
 	cgs.media.sfxFall = FindSoundEffect( "players/fall" );
 
+	cgs.media.sfxTbag = FindSoundEffect( "sounds/tbag/tbag" );
+
 	// VSAY sounds
 	cgs.media.sfxVSaySounds[VSAY_AFFIRMATIVE] = FindSoundEffect( S_VSAY_AFFIRMATIVE );
 	cgs.media.sfxVSaySounds[VSAY_NEGATIVE] = FindSoundEffect( S_VSAY_NEGATIVE );

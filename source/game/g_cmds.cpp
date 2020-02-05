@@ -493,15 +493,35 @@ void Cmd_Say_f( edict_t *ent, bool arg0, bool checkflood ) {
 /*
 * Cmd_SayCmd_f
 */
-static void Cmd_SayCmd_f( edict_t *ent ) {
+static void Cmd_SayCmd_f( edict_t * ent ) {
+	if( !G_ISGHOSTING( ent ) ) {
+		edict_t * event = G_PositionedSound( ent->s.origin, CHAN_AUTO, trap_SoundIndex( "sounds/typewriter/return" ), ATTN_IDLE );
+		event->s.ownerNum = ent->s.number;
+		event->s.svflags |= SVF_NEVEROWNER;
+	}
 	Cmd_Say_f( ent, false, true );
 }
 
 /*
 * Cmd_SayTeam_f
 */
-static void Cmd_SayTeam_f( edict_t *ent ) {
+static void Cmd_SayTeam_f( edict_t * ent ) {
+	if( !G_ISGHOSTING( ent ) ) {
+		edict_t * event = G_PositionedSound( ent->s.origin, CHAN_AUTO, trap_SoundIndex( "sounds/typewriter/return" ), ATTN_IDLE );
+		event->s.ownerNum = ent->s.number;
+		event->s.svflags |= SVF_NEVEROWNER;
+	}
 	G_Say_Team( ent, Cmd_Args(), true );
+}
+
+static void Cmd_Clack_f( edict_t * ent ) {
+	bool space = Q_stricmp( Cmd_Argv( 0 ), "typewriterspace" ) == 0;
+	if( !G_ISGHOSTING( ent ) ) {
+		int idx = trap_SoundIndex( space ? "sounds/typewriter/space" : "sounds/typewriter/clack" );
+		edict_t * event = G_PositionedSound( ent->s.origin, CHAN_AUTO, idx, ATTN_IDLE );
+		event->s.ownerNum = ent->s.number;
+		event->s.svflags |= SVF_NEVEROWNER;
+	}
 }
 
 typedef struct
@@ -905,6 +925,9 @@ void G_InitGameCommands( void ) {
 	G_AddCommand( "notready", G_Match_NotReady );
 	G_AddCommand( "toggleready", G_Match_ToggleReady );
 	G_AddCommand( "join", Cmd_Join_f );
+
+	G_AddCommand( "typewriterclack", Cmd_Clack_f );
+	G_AddCommand( "typewriterspace", Cmd_Clack_f );
 
 	G_AddCommand( "vsay", G_vsay_Cmd );
 	G_AddCommand( "vsay_team", G_Teams_vsay_Cmd );

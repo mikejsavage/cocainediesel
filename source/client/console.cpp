@@ -129,38 +129,36 @@ void Con_Print( const char * str ) {
 static void TabCompletion( char * buf, int buf_size );
 
 static int InputCallback( ImGuiInputTextCallbackData * data ) {
-	if( data->EventChar == 0 ) {
-		bool dirty = false;
+	bool dirty = false;
 
-		if( data->EventKey == ImGuiKey_Tab ) {
-			TabCompletion( data->Buf, data->BufSize );
+	if( data->EventKey == ImGuiKey_Tab ) {
+		TabCompletion( data->Buf, data->BufSize );
+		dirty = true;
+	}
+	else if( data->EventKey == ImGuiKey_UpArrow || data->EventKey == ImGuiKey_DownArrow ) {
+		if( data->EventKey == ImGuiKey_UpArrow && console.history_idx < console.history_count ) {
+			console.history_idx++;
 			dirty = true;
 		}
-		else if( data->EventKey == ImGuiKey_UpArrow || data->EventKey == ImGuiKey_DownArrow ) {
-			if( data->EventKey == ImGuiKey_UpArrow && console.history_idx < console.history_count ) {
-				console.history_idx++;
-				dirty = true;
-			}
-			if( data->EventKey == ImGuiKey_DownArrow && console.history_idx > 0 ) {
-				console.history_idx--;
-				dirty = true;
-			}
-			if( dirty ) {
-				if( console.history_idx == 0 ) {
-					data->Buf[ 0 ] = '\0';
-				}
-				else {
-					size_t idx = ( console.history_head + console.history_count - console.history_idx ) % ARRAY_COUNT( console.input_history );
-					strcpy( data->Buf, console.input_history[ idx ].cmd );
-				}
-			}
+		if( data->EventKey == ImGuiKey_DownArrow && console.history_idx > 0 ) {
+			console.history_idx--;
+			dirty = true;
 		}
-
 		if( dirty ) {
-			data->BufDirty = true;
-			data->BufTextLen = strlen( data->Buf );
-			data->CursorPos = strlen( data->Buf );
+			if( console.history_idx == 0 ) {
+				data->Buf[ 0 ] = '\0';
+			}
+			else {
+				size_t idx = ( console.history_head + console.history_count - console.history_idx ) % ARRAY_COUNT( console.input_history );
+				strcpy( data->Buf, console.input_history[ idx ].cmd );
+			}
 		}
+	}
+
+	if( dirty ) {
+		data->BufDirty = true;
+		data->BufTextLen = strlen( data->Buf );
+		data->CursorPos = strlen( data->Buf );
 	}
 
 	return 0;
@@ -279,7 +277,6 @@ void Con_Draw() {
 		ImGui::PopStyleVar();
 
 		ImGuiInputTextFlags input_flags = 0;
-		input_flags |= ImGuiInputTextFlags_CallbackCharFilter;
 		input_flags |= ImGuiInputTextFlags_CallbackCompletion;
 		input_flags |= ImGuiInputTextFlags_CallbackHistory;
 		input_flags |= ImGuiInputTextFlags_EnterReturnsTrue;

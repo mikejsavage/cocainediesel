@@ -497,6 +497,10 @@ static bool SNAP_SnapCullEntity( cmodel_state_t *cms, edict_t *ent, edict_t *cle
 		return true;
 	}
 
+	if( ( ent->r.svflags & SVF_NEVEROWNER ) && ( clent && ent->s.ownerNum == clent->s.number ) ) {
+		return true;
+	}
+
 	if( ent->r.svflags & SVF_BROADCAST ) { // send to everyone
 		return false;
 	}
@@ -508,6 +512,7 @@ static bool SNAP_SnapCullEntity( cmodel_state_t *cms, edict_t *ent, edict_t *cle
 	if( ent->r.areanum < 0 ) {
 		return true;
 	}
+
 	if( viewarea >= 0 ) {
 		// this is the same as CM_AreasConnected but portal's visibility included
 		areabits = frame->areabits + viewarea * CM_AreaRowSize( cms );
@@ -526,6 +531,7 @@ static bool SNAP_SnapCullEntity( cmodel_state_t *cms, edict_t *ent, edict_t *cle
 	if( ent->r.svflags & SVF_SOUNDCULL ) {
 		snd_cull_only = true;
 	}
+
 	// if not a sound entity but the entity is only a sound
 	else if( !ent->s.modelindex && !ent->s.events[0] && !ent->s.light && !ent->s.effects && ent->s.sound ) {
 		snd_cull_only = true;
@@ -541,6 +547,7 @@ static bool SNAP_SnapCullEntity( cmodel_state_t *cms, edict_t *ent, edict_t *cle
 	if( snd_cull_only && snd_culled ) {
 		return true;
 	}
+
 	return snd_culled && SNAP_PVSCullEntity( cms, fatpvs, ent );    // cull by PVS
 }
 

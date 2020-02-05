@@ -1029,7 +1029,7 @@ edict_t *G_Sound( edict_t *owner, int channel, int soundindex, float attenuation
 /*
 * G_PositionedSound
 */
-edict_t *G_PositionedSound( vec3_t origin, int channel, int soundindex, float attenuation ) {
+edict_t *G_PositionedSound( const vec3_t origin, int channel, int soundindex, float attenuation ) {
 	edict_t *ent;
 
 	if( !soundindex ) {

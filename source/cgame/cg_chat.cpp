@@ -94,9 +94,23 @@ static void SendChat() {
 
 		const char * cmd = chat.mode == ChatMode_SayTeam && Cmd_Exists( "say_team" ) ? "say_team" : "say";
 		Cbuf_AddText( temp( "{} \"{}\"\n", cmd, chat.input ) );
+
+		S_StartGlobalSound( FindSoundEffect( "sounds/typewriter/return" ), CHAN_AUTO, 1.0f );
 	}
 
 	CloseChat();
+}
+
+static int InputCallback( ImGuiInputTextCallbackData * data ) {
+	if( data->EventChar == ' ' ) {
+		S_StartGlobalSound( FindSoundEffect( "sounds/typewriter/space" ), CHAN_AUTO, 1.0f );
+		Cbuf_AddText( "cmd typewriterspace\n" );
+	}
+	else {
+		S_StartGlobalSound( FindSoundEffect( "sounds/typewriter/clack" ), CHAN_AUTO, 1.0f );
+		Cbuf_AddText( "cmd typewriterclack\n" );
+	}
+	return 0;
 }
 
 void CG_DrawChat() {
@@ -139,9 +153,13 @@ void CG_DrawChat() {
 
 		ImGui::PushStyleColor( ImGuiCol_FrameBg, IM_COL32( color.r, color.g, color.b, 50 ) );
 
+		ImGuiInputTextFlags input_flags = 0;
+		input_flags |= ImGuiInputTextFlags_CallbackCharFilter;
+		input_flags |= ImGuiInputTextFlags_EnterReturnsTrue;
+
 		ImGui::PushItemWidth( ImGui::GetWindowWidth() );
 		ImGui::SetKeyboardFocusHere();
-		bool enter = ImGui::InputText( "##chatinput", chat.input, sizeof( chat.input ), ImGuiInputTextFlags_EnterReturnsTrue );
+		bool enter = ImGui::InputText( "##chatinput", chat.input, sizeof( chat.input ), input_flags, InputCallback );
 
 		if( enter ) {
 			SendChat();

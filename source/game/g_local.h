@@ -431,7 +431,7 @@ void G_CenterPrintMsg( edict_t *ent, _Printf_format_string_ const char *format, 
 void G_Obituary( edict_t *victim, edict_t *attacker, int mod );
 
 edict_t *G_Sound( edict_t *owner, int channel, int soundindex, float attenuation );
-edict_t *G_PositionedSound( vec3_t origin, int channel, int soundindex, float attenuation );
+edict_t *G_PositionedSound( const vec3_t origin, int channel, int soundindex, float attenuation );
 void G_GlobalSound( int channel, int soundindex );
 void G_LocalSound( edict_t *owner, int channel, int soundindex );
 

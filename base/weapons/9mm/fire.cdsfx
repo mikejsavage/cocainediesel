@@ -1,7 +1,7 @@
 {
-	sound weapons/pistol/fire1
-	sound weapons/pistol/fire2
-	sound weapons/pistol/fire3
-	sound weapons/pistol/fire4
-	sound weapons/pistol/fire5
+	sound weapons/9mm/fire1
+	sound weapons/9mm/fire2
+	sound weapons/9mm/fire3
+	sound weapons/9mm/fire4
+	sound weapons/9mm/fire5
 }

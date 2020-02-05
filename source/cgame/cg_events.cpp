@@ -234,7 +234,7 @@ static void CG_Event_LaserBeam( const vec3_t origin, const vec3_t dir, int entNu
 */
 static void CG_FireWeaponEvent( int entNum, int weapon ) {
 	const weaponinfo_t * weaponInfo = cgs.weaponInfos[ weapon ];
-	const SoundEffect * sfx = weaponInfo->sound_fire;
+	const SoundEffect * sfx = weaponInfo->fire_sound;
 
 	if( sfx ) {
 		if( ISVIEWERENTITY( entNum ) ) {
@@ -716,7 +716,7 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, int parm, bool predicted ) {
 	bool viewer = ISVIEWERENTITY( ent->number );
 	int count = 0;
 
-	if( viewer && ( ev < PREDICTABLE_EVENTS_MAX ) && ( predicted != cg.view.playerPrediction ) ) {
+	if( viewer && ev < PREDICTABLE_EVENTS_MAX && predicted != cg.view.playerPrediction ) {
 		return;
 	}
 
@@ -730,21 +730,23 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, int parm, bool predicted ) {
 			WeaponType weapon = parm >> 1;
 			bool silent = ( parm & 1 ) != 0;
 			if( predicted ) {
-				cg_entities[ent->number].current.weapon = weapon;
+				cg_entities[ ent->number ].current.weapon = weapon;
 				CG_ViewWeapon_RefreshAnimation( &cg.weapon );
 			}
 
 			// reset weapon animation timers
-			cg_entPModels[ent->number].flash_time = 0;
-			cg_entPModels[ent->number].barrel_time = 0;
+			cg_entPModels[ ent->number ].flash_time = 0;
+			cg_entPModels[ ent->number ].barrel_time = 0;
 
 			if( !silent ) {
 				CG_PModel_AddAnimation( ent->number, 0, TORSO_WEAPON_SWITCHIN, 0, EVENT_CHANNEL );
 
+				const SoundEffect * sfx = cgs.weaponInfos[ weapon ]->up_sound;
 				if( viewer ) {
-					S_StartGlobalSound( cgs.media.sfxWeaponUp, CHAN_AUTO, 1.0f );
-				} else {
-					S_StartFixedSound( cgs.media.sfxWeaponUp, FromQF3( ent->origin ), CHAN_AUTO, 1.0f );
+					S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f );
+				}
+				else {
+					S_StartFixedSound( sfx, FromQF3( ent->origin ), CHAN_AUTO, 1.0f );
 				}
 			}
 		} break;

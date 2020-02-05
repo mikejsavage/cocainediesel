@@ -158,7 +158,8 @@ typedef struct weaponinfo_s {
 	int64_t barrelTime;
 	float barrelSpeed;
 
-	const SoundEffect * sound_fire;
+	const SoundEffect * fire_sound;
+	const SoundEffect * up_sound;
 } weaponinfo_t;
 
 enum {

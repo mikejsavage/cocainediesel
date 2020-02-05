@@ -289,7 +289,8 @@ static void CG_WeaponModelUpdateRegistration( weaponinfo_t *weaponinfo, const ch
 		CG_CreateHandDefaultAnimations( weaponinfo );
 	}
 
-	weaponinfo->sound_fire = FindSoundEffect( temp( "weapons/{}/fire", filename ) );
+	weaponinfo->fire_sound = FindSoundEffect( temp( "weapons/{}/fire", filename ) );
+	weaponinfo->up_sound = FindSoundEffect( temp( "weapons/{}/up", filename ) );
 
 	// load failed
 	if( !weaponinfo->model[WEAPMODEL_HAND] ) {

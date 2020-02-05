@@ -138,6 +138,7 @@ typedef struct {
 	const SoundEffect * sfxPlasmaHit;
 
 	const SoundEffect * sfxLasergunHum;
+	const SoundEffect * sfxLasergunBeam;
 	const SoundEffect * sfxLasergunStop;
 	const SoundEffect * sfxLasergunHit;
 

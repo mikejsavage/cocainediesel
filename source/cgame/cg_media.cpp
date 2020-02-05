@@ -53,6 +53,7 @@ void CG_RegisterMediaSounds() {
 
 	// Lasergun sounds
 	cgs.media.sfxLasergunHum = FindSoundEffect( "weapons/lg/hum" );
+	cgs.media.sfxLasergunBeam = FindSoundEffect( "weapons/lg/beam" );
 	cgs.media.sfxLasergunStop = FindSoundEffect( "weapons/lg/stop" );
 	cgs.media.sfxLasergunHit = FindSoundEffect( "weapons/lg/hit" );
 

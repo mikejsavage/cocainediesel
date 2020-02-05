@@ -1040,11 +1040,11 @@ void CG_SC_Obituary( void ) {
 	RNG rng = new_rng( entropy, 0 );
 
 	current->time = cls.monotonicTime;
-	if( victim ) {
+	if( victim != NULL ) {
 		Q_strncpyz( current->victim, victim->name, sizeof( current->victim ) );
 		current->victim_team = cg_entities[victimNum].current.team;
 	}
-	if( attacker ) {
+	if( attacker != NULL ) {
 		Q_strncpyz( current->attacker, attacker->name, sizeof( current->attacker ) );
 		current->attacker_team = cg_entities[attackerNum].current.team;
 	}
@@ -1054,16 +1054,35 @@ void CG_SC_Obituary( void ) {
 		if( victimNum != attackerNum ) {
 			current->type = OBITUARY_NORMAL;
 
+			TempAllocator temp = cls.frame_arena.temp();
+			const char * obituary = temp( "{}{}{}", RandomPrefix( &rng, 0.05f ), RandomPrefix( &rng, 0.5f ), RandomObituary( &rng ) );
+
+			char attacker_name[ MAX_NAME_CHARS + 1 ];
+			Q_strncpyz( attacker_name, attacker->name, sizeof( attacker_name ) );
+			Q_strupr( attacker_name );
+
+			char victim_name[ MAX_NAME_CHARS + 1 ];
+			Q_strncpyz( victim_name, victim->name, sizeof( victim_name ) );
+			Q_strupr( victim_name );
+
+			RGB8 attacker_color = CG_TeamColor( current->attacker_team );
+			RGB8 victim_color = CG_TeamColor( current->victim_team );
+
 			if( ISVIEWERENTITY( attackerNum ) && ( cg_showObituaries->integer & CG_OBITUARY_CENTER ) ) {
-				char name[MAX_NAME_CHARS + 1];
-				Q_strncpyz( name, victim->name, sizeof( name ) );
-				Q_strupr( name );
-				CG_CenterPrint( va( "YOU %s%s%s %s", RandomPrefix( &rng, 0.05f ), RandomPrefix( &rng, 0.5f ), RandomObituary( &rng ), name ) );
+				CG_CenterPrint( temp( "YOU {} {}", obituary, victim_name ) );
 			}
-		} else {   // suicide
+
+			CG_AddChat( temp( "{}{} {}{} {}{}",
+				ImGuiColorToken( attacker_color ), attacker_name,
+				ImGuiColorToken( 255, 234, 0, 255 ), obituary,
+				ImGuiColorToken( victim_color ), victim_name
+			) );
+		}
+		else {   // suicide
 			current->type = OBITUARY_SUICIDE;
 		}
-	} else {   // world accidents
+	}
+	else {   // world accidents
 		current->type = OBITUARY_ACCIDENT;
 	}
 }

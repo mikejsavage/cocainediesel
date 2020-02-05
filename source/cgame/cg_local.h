@@ -219,7 +219,6 @@ typedef struct {
 typedef struct {
 	char name[MAX_QPATH];
 	int hand;
-	struct shader_s *icon;
 } cg_clientInfo_t;
 
 #define MAX_ANGLES_KICKS 3

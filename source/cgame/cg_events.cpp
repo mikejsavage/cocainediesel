@@ -760,8 +760,6 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, int parm, bool predicted ) {
 				cg_entities[ent->number].current.weapon = parm;
 			}
 
-			CG_FireWeaponEvent( ent->number, parm );
-
 			int num;
 			WeaponType weapon;
 			vec3_t origin, angles;
@@ -778,6 +776,8 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, int parm, bool predicted ) {
 				VectorCopy( ent->origin, origin );
 				VectorCopy( ent->origin2, angles );
 			}
+
+			CG_FireWeaponEvent( num, weapon );
 
 			AngleVectors( angles, dir, NULL, NULL );
 

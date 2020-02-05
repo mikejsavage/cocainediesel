@@ -393,7 +393,9 @@ static void CG_Event_FireBullet( const vec3_t origin, const vec3_t dir, WeaponTy
 		VectorCopy( origin, projection.origin );
 	}
 
-	AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 1.0f, color, cgs.media.shaderTracer, 0.2f, 0.1f );
+	if( weapon != Weapon_Pistol ) {
+		AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 1.0f, color, cgs.media.shaderTracer, 0.2f, 0.1f );
+	}
 }
 
 /*

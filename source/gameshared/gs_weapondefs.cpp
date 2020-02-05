@@ -5,9 +5,9 @@
 #define INSTANT 0
 
 #define WEAPONDOWN_TIME 0
-#define WEAPONUP_TIME_FAST 150
-#define WEAPONUP_TIME_NORMAL 300
-#define WEAPONUP_TIME_SLOW 600
+#define WEAPONUP_TIME_FAST 200
+#define WEAPONUP_TIME_NORMAL 400
+#define WEAPONUP_TIME_SLOW 800
 
 const WeaponDef gs_weaponDefs[] = {
 	{
@@ -60,7 +60,7 @@ const WeaponDef gs_weaponDefs[] = {
 		FiringMode_SemiAuto,
 
 		//damages
-		10,                              // damage
+		12,                              // damage
 		0,                              // selfdamage ratio
 		20,                             // knockback
 		0,                              // splash radius

@@ -454,7 +454,7 @@ extern cvar_t *cg_hand;
 void CG_ResetClientInfos( void );
 void CG_LoadClientInfo( int client );
 void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata, const char * name );
-void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps, float volume, float attn );
+void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps );
 
 //
 // cg_predict.c
@@ -537,10 +537,7 @@ extern cvar_t *cg_volume_hitsound;    // hit sound volume
 extern cvar_t *cg_autoaction_demo;
 extern cvar_t *cg_autoaction_screenshot;
 extern cvar_t *cg_autoaction_spectator;
-extern cvar_t *cg_volume_players; // players sound volume
-extern cvar_t *cg_volume_effects; // world sound volume
 extern cvar_t *cg_volume_announcer; // announcer sounds volume
-extern cvar_t *cg_volume_voicechats; //vsays volume
 extern cvar_t *cg_projectileFireTrail;
 extern cvar_t *cg_bloodTrail;
 extern cvar_t *cg_showBloodTrail;

@@ -49,10 +49,8 @@ cvar_t *cg_gunbob;
 
 cvar_t *cg_handOffset;
 cvar_t *cg_gun_fov;
-cvar_t *cg_volume_players;
-cvar_t *cg_volume_effects;
 cvar_t *cg_volume_announcer;
-cvar_t *cg_volume_voicechats;
+cvar_t *cg_volume_hitsound;
 cvar_t *cg_projectileFireTrail;
 cvar_t *cg_bloodTrail;
 cvar_t *cg_showBloodTrail;
@@ -68,7 +66,6 @@ cvar_t *cg_chatFilter;
 
 cvar_t *cg_cartoonEffects;
 
-cvar_t *cg_volume_hitsound;
 cvar_t *cg_autoaction_demo;
 cvar_t *cg_autoaction_screenshot;
 cvar_t *cg_autoaction_spectator;
@@ -380,11 +377,8 @@ static void CG_RegisterVariables( void ) {
 	cg_weaponFlashes =  Cvar_Get( "cg_weaponFlashes", "2", CVAR_ARCHIVE );
 
 	// wsw
-	cg_volume_players = Cvar_Get( "cg_volume_players", "1.0", CVAR_ARCHIVE );
-	cg_volume_effects = Cvar_Get( "cg_volume_effects", "1.0", CVAR_ARCHIVE );
 	cg_volume_announcer =   Cvar_Get( "cg_volume_announcer", "1.0", CVAR_ARCHIVE );
 	cg_volume_hitsound =    Cvar_Get( "cg_volume_hitsound", "1.0", CVAR_ARCHIVE );
-	cg_volume_voicechats =  Cvar_Get( "cg_volume_voicechats", "1.0", CVAR_ARCHIVE );
 	cg_handOffset =     Cvar_Get( "cg_handOffset", "5", CVAR_ARCHIVE );
 	cg_projectileFireTrail =    Cvar_Get( "cg_projectileFireTrail", "140", CVAR_ARCHIVE );
 	cg_bloodTrail =     Cvar_Get( "cg_bloodTrail", "10", CVAR_ARCHIVE );

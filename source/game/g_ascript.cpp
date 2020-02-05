@@ -1373,7 +1373,6 @@ static const asProperty_t gedict_Properties[] =
 	{ ASLIB_PROPERTY_DECL( float, delay ), offsetof( edict_t, delay ) },
 	{ ASLIB_PROPERTY_DECL( float, random ), offsetof( edict_t, random ) },
 	{ ASLIB_PROPERTY_DECL( int, waterLevel ), offsetof( edict_t, waterlevel ) },
-	{ ASLIB_PROPERTY_DECL( float, attenuation ), offsetof( edict_t, attenuation ) },
 	{ ASLIB_PROPERTY_DECL( int, mass ), offsetof( edict_t, mass ) },
 	{ ASLIB_PROPERTY_DECL( int64, timeStamp ), offsetof( edict_t, timeStamp ) },
 
@@ -1605,8 +1604,8 @@ static void asFunc_Error( const asstring_t *str ) {
 	Com_Error( ERR_DROP, "%s", str && str->buffer ? str->buffer : "" );
 }
 
-static void asFunc_G_Sound( edict_t *owner, int channel, int soundindex, float attenuation ) {
-	G_Sound( owner, channel, soundindex, attenuation );
+static void asFunc_G_Sound( edict_t *owner, int channel, int soundindex ) {
+	G_Sound( owner, channel, soundindex );
 }
 
 static int asFunc_DirToByte( asvec3_t *vec ) {
@@ -1737,12 +1736,12 @@ static int asFunc_WeaponCost( WeaponType weapon ) {
 	return GS_GetWeaponDef( weapon )->cost;
 }
 
-static void asFunc_PositionedSound( asvec3_t *origin, int channel, int soundindex, float attenuation ) {
+static void asFunc_PositionedSound( asvec3_t *origin, int channel, int soundindex ) {
 	if( !origin ) {
 		return;
 	}
 
-	G_PositionedSound( origin->v, channel, soundindex, attenuation );
+	G_PositionedSound( origin->v, channel, soundindex );
 }
 
 static void asFunc_G_GlobalSound( int channel, int soundindex ) {
@@ -1839,8 +1838,8 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "void G_PrintMsg( Entity @, const String &in )", asFUNCTION( asFunc_PrintMsg ), NULL },
 	{ "void G_CenterPrintMsg( Entity @, const String &in )", asFUNCTION( asFunc_CenterPrintMsg ), NULL },
 	{ "void Com_Error( const String &in )", asFUNCTION( asFunc_Error ), NULL },
-	{ "void G_Sound( Entity @, int channel, int soundindex, float attenuation )", asFUNCTION( asFunc_G_Sound ), NULL },
-	{ "void G_PositionedSound( const Vec3 &in, int channel, int soundindex, float attenuation )", asFUNCTION( asFunc_PositionedSound ), NULL },
+	{ "void G_Sound( Entity @, int channel, int soundindex )", asFUNCTION( asFunc_G_Sound ), NULL },
+	{ "void G_PositionedSound( const Vec3 &in, int channel, int soundindex )", asFUNCTION( asFunc_PositionedSound ), NULL },
 	{ "void G_GlobalSound( int channel, int soundindex )", asFUNCTION( asFunc_G_GlobalSound ), NULL },
 	{ "void G_LocalSound( Client @, int channel, int soundIndex )", asFUNCTION( asFunc_G_LocalSound ), NULL },
 	{ "void G_AnnouncerSound( Client @, int soundIndex, int team, bool queued, Client @ )", asFUNCTION( asFunc_G_AnnouncerSound ), NULL },

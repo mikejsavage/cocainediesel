@@ -32,28 +32,10 @@ static void CG_FixVolumeCvars( void ) {
 		return;
 	}
 
-	if( cg_volume_players->value < 0.0f ) {
-		Cvar_SetValue( "cg_volume_players", 0.0f );
-	} else if( cg_volume_players->value > 2.0f ) {
-		Cvar_SetValue( "cg_volume_players", 2.0f );
-	}
-
-	if( cg_volume_effects->value < 0.0f ) {
-		Cvar_SetValue( "cg_volume_effects", 0.0f );
-	} else if( cg_volume_effects->value > 2.0f ) {
-		Cvar_SetValue( "cg_volume_effects", 2.0f );
-	}
-
 	if( cg_volume_announcer->value < 0.0f ) {
 		Cvar_SetValue( "cg_volume_announcer", 0.0f );
 	} else if( cg_volume_announcer->value > 2.0f ) {
 		Cvar_SetValue( "cg_volume_announcer", 2.0f );
-	}
-
-	if( cg_volume_voicechats->value < 0.0f ) {
-		Cvar_SetValue( "cg_volume_voicechats", 0.0f );
-	} else if( cg_volume_voicechats->value > 2.0f ) {
-		Cvar_SetValue( "cg_volume_voicechats", 2.0f );
 	}
 
 	if( cg_volume_hitsound->value < 0.0f ) {
@@ -753,19 +735,14 @@ static void CG_LerpLaserbeamEnt( centity_t *cent ) {
 //==================================================
 
 void CG_SoundEntityNewState( centity_t *cent ) {
-	int channel, soundindex, owner;
-	float attenuation;
-	bool fixed;
+	int soundindex = cent->current.sound;
+	int owner = cent->current.ownerNum;
+	int channel = cent->current.channel & ~CHAN_FIXED;
+	bool fixed = ( cent->current.channel & CHAN_FIXED ) != 0;
 
-	soundindex = cent->current.sound;
-	owner = cent->current.ownerNum;
-	channel = cent->current.channel & ~CHAN_FIXED;
-	fixed = ( cent->current.channel & CHAN_FIXED ) ? true : false;
-	attenuation = cent->current.attenuation;
-
-	if( attenuation == ATTN_NONE ) {
+	if( cent->current.svflags & SVF_BROADCAST ) {
 		if( cgs.soundPrecache[soundindex] ) {
-			S_StartGlobalSound( cgs.soundPrecache[soundindex], channel & ~CHAN_FIXED, 1.0f );
+			S_StartGlobalSound( cgs.soundPrecache[soundindex], channel, 1.0f );
 		}
 		return;
 	}
@@ -785,11 +762,11 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	}
 
 	if( fixed ) {
-		S_StartFixedSound( cgs.soundPrecache[soundindex], FromQF3( cent->current.origin ), channel, 1.0f, attenuation );
+		S_StartFixedSound( cgs.soundPrecache[soundindex], FromQF3( cent->current.origin ), channel, 1.0f );
 	} else if( ISVIEWERENTITY( owner ) ) {
 		S_StartGlobalSound( cgs.soundPrecache[soundindex], channel, 1.0f );
 	} else {
-		S_StartEntitySound( cgs.soundPrecache[soundindex], owner, channel, 1.0f, attenuation );
+		S_StartEntitySound( cgs.soundPrecache[soundindex], owner, channel, 1.0f );
 	}
 }
 
@@ -846,16 +823,16 @@ static void CG_UpdateSpikes( centity_t *cent ) {
 	int64_t delta = cg.frame.serverTime - cent->current.linearMovementTimeStamp;
 
 	if( old_delta < 0 && delta >= 0 ) {
-		S_StartEntitySound( cgs.media.sfxSpikesArm, cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+		S_StartEntitySound( cgs.media.sfxSpikesArm, cent->current.number, CHAN_AUTO, 1.0f );
 	}
 	else if( old_delta < 1000 && delta >= 1000 ) {
-		S_StartEntitySound( cgs.media.sfxSpikesDeploy, cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+		S_StartEntitySound( cgs.media.sfxSpikesDeploy, cent->current.number, CHAN_AUTO, 1.0f );
 	}
 	else if( old_delta < 1050 && delta >= 1050 ) {
-		S_StartEntitySound( cgs.media.sfxSpikesGlint, cent->current.number, CHAN_AUTO, cg_volume_effects->value * 0.05f, ATTN_NORM );
+		S_StartEntitySound( cgs.media.sfxSpikesGlint, cent->current.number, CHAN_AUTO, 1.0f );
 	}
 	else if( old_delta < 1500 && delta >= 1500 ) {
-		S_StartEntitySound( cgs.media.sfxSpikesRetract, cent->current.number, CHAN_AUTO, cg_volume_effects->value, ATTN_NORM );
+		S_StartEntitySound( cgs.media.sfxSpikesRetract, cent->current.number, CHAN_AUTO, 1.0f );
 	}
 }
 
@@ -863,12 +840,12 @@ static void CG_UpdateSpikes( centity_t *cent ) {
 //		PACKET ENTITIES
 //==========================================================================
 
-void CG_EntityLoopSound( SyncEntityState *state, float attenuation ) {
+void CG_EntityLoopSound( SyncEntityState * state ) {
 	if( !state->sound ) {
 		return;
 	}
 
-	S_ImmediateEntitySound( cgs.soundPrecache[state->sound], state->number, cg_volume_effects->value, ISVIEWERENTITY( state->number ) ? ATTN_NONE : ATTN_IDLE );
+	S_ImmediateEntitySound( cgs.soundPrecache[state->sound], state->number, 1.0f );
 }
 
 /*
@@ -898,35 +875,35 @@ void CG_AddEntities( void ) {
 		switch( cent->type ) {
 			case ET_GENERIC:
 				CG_AddGenericEnt( cent );
-				CG_EntityLoopSound( state, ATTN_STATIC );
+				CG_EntityLoopSound( state );
 				canLight = true;
 				break;
 			case ET_GIB:
 				CG_AddGenericEnt( cent );
-				CG_EntityLoopSound( state, ATTN_STATIC );
+				CG_EntityLoopSound( state );
 				canLight = true;
 				break;
 
 			case ET_ROCKET:
 				CG_AddGenericEnt( cent );
 				CG_ProjectileTrail( cent );
-				CG_EntityLoopSound( state, ATTN_NORM );
+				CG_EntityLoopSound( state );
 				// CG_AddLightToScene( cent->ent.origin, 300, 0.8f, 0.6f, 0 );
 				break;
 			case ET_GRENADE:
 				CG_AddGenericEnt( cent );
-				CG_EntityLoopSound( state, ATTN_STATIC );
+				CG_EntityLoopSound( state );
 				CG_ProjectileTrail( cent );
 				canLight = true;
 				break;
 			case ET_PLASMA:
 				CG_AddGenericEnt( cent );
-				CG_EntityLoopSound( state, ATTN_STATIC );
+				CG_EntityLoopSound( state );
 				break;
 
 			case ET_PLAYER:
 				CG_AddPlayerEnt( cent );
-				CG_EntityLoopSound( state, ATTN_IDLE );
+				CG_EntityLoopSound( state );
 				CG_LaserBeamEffect( cent );
 				CG_WeaponBeamEffect( cent );
 				canLight = true;
@@ -934,7 +911,7 @@ void CG_AddEntities( void ) {
 
 			case ET_CORPSE:
 				CG_AddPlayerEnt( cent );
-				CG_EntityLoopSound( state, ATTN_IDLE );
+				CG_EntityLoopSound( state );
 				canLight = true;
 				break;
 
@@ -943,11 +920,11 @@ void CG_AddEntities( void ) {
 
 			case ET_DECAL:
 				CG_AddDecalEnt( cent );
-				CG_EntityLoopSound( state, ATTN_STATIC );
+				CG_EntityLoopSound( state );
 				break;
 
 			case ET_PUSH_TRIGGER:
-				CG_EntityLoopSound( state, ATTN_STATIC );
+				CG_EntityLoopSound( state );
 				break;
 
 			case ET_EVENT:
@@ -963,7 +940,7 @@ void CG_AddEntities( void ) {
 
 				const SoundEffect * sfx = cgs.soundPrecache[ state->sound ];
 				if( sfx != NULL ) {
-					S_ImmediateLineSound( sfx, state->number, FromQF3( cent->ent.origin ), FromQF3( cent->ent.origin2 ), cg_volume_effects->value, ATTN_IDLE );
+					S_ImmediateLineSound( sfx, state->number, FromQF3( cent->ent.origin ), FromQF3( cent->ent.origin2 ), 1.0f );
 				}
 			} break;
 

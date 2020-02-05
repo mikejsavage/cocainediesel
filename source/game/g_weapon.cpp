@@ -360,7 +360,6 @@ edict_t * W_Fire_Rocket( edict_t * self, vec3_t start, vec3_t angles, int speed,
 	rocket->s.type = ET_ROCKET; //rocket trail sfx
 	rocket->s.modelindex = trap_ModelIndex( "weapons/rl/rocket" );
 	rocket->s.sound = trap_SoundIndex( "weapons/rl/trail" );
-	rocket->s.attenuation = ATTN_STATIC;
 	rocket->touch = W_Touch_Rocket;
 	rocket->think = G_FreeEdict;
 	rocket->classname = "rocket";
@@ -480,7 +479,6 @@ edict_t * W_Fire_Plasma( edict_t * self, vec3_t start, vec3_t angles, float dama
 
 	plasma->s.modelindex = trap_ModelIndex( "weapons/pg/cell" );
 	plasma->s.sound = trap_SoundIndex( "weapons/pg/trail" );
-	plasma->s.attenuation = ATTN_STATIC;
 
 	return plasma;
 }

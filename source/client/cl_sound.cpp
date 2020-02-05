@@ -652,7 +652,7 @@ static PlayingSound * S_FindEmptyPlayingSound( int ent_num, int channel ) {
 	return &playing_sound_effects[ num_playing_sound_effects - 1 ];
 }
 
-static PlayingSound * StartSoundEffect( const SoundEffect * sfx, int ent_num, int channel, float volume, float attenuation, PlayingSoundType type, bool immediate ) {
+static PlayingSound * StartSoundEffect( const SoundEffect * sfx, int ent_num, int channel, float volume, PlayingSoundType type, bool immediate ) {
 	if( !initialized || sfx == NULL )
 		return NULL;
 
@@ -675,29 +675,29 @@ static PlayingSound * StartSoundEffect( const SoundEffect * sfx, int ent_num, in
 	return ps;
 }
 
-void S_StartFixedSound( const SoundEffect * sfx, Vec3 origin, int channel, float volume, float attenuation ) {
-	PlayingSound * ps = StartSoundEffect( sfx, 0, channel, volume, attenuation, PlayingSoundType_Position, false );
+void S_StartFixedSound( const SoundEffect * sfx, Vec3 origin, int channel, float volume ) {
+	PlayingSound * ps = StartSoundEffect( sfx, 0, channel, volume, PlayingSoundType_Position, false );
 	if( ps == NULL )
 		return;
 	ps->origin = origin;
 }
 
-void S_StartEntitySound( const SoundEffect * sfx, int ent_num, int channel, float volume, float attenuation ) {
-	StartSoundEffect( sfx, ent_num, channel, volume, attenuation, PlayingSoundType_Entity, false );
+void S_StartEntitySound( const SoundEffect * sfx, int ent_num, int channel, float volume ) {
+	StartSoundEffect( sfx, ent_num, channel, volume, PlayingSoundType_Entity, false );
 }
 
 void S_StartGlobalSound( const SoundEffect * sfx, int channel, float volume ) {
-	StartSoundEffect( sfx, 0, channel, volume, ATTN_NONE, PlayingSoundType_Global, false );
+	StartSoundEffect( sfx, 0, channel, volume, PlayingSoundType_Global, false );
 }
 
 void S_StartLocalSound( const SoundEffect * sfx, int channel, float volume ) {
-	StartSoundEffect( sfx, -1, channel, volume, ATTN_NONE, PlayingSoundType_Global, false );
+	StartSoundEffect( sfx, -1, channel, volume, PlayingSoundType_Global, false );
 }
 
-static PlayingSound * StartImmediateSound( const SoundEffect * sfx, int ent_num, float volume, float attenuation, PlayingSoundType type ) {
+static PlayingSound * StartImmediateSound( const SoundEffect * sfx, int ent_num, float volume, PlayingSoundType type ) {
 	// TODO: replace old immediate sound if sfx changed
 	if( entities[ ent_num ].immediate_ps == NULL ) {
-		entities[ ent_num ].immediate_ps = StartSoundEffect( sfx, ent_num, CHAN_AUTO, volume, attenuation, type, true );
+		entities[ ent_num ].immediate_ps = StartSoundEffect( sfx, ent_num, CHAN_AUTO, volume, type, true );
 	}
 
 	if( entities[ ent_num ].immediate_ps != NULL ) {
@@ -707,12 +707,12 @@ static PlayingSound * StartImmediateSound( const SoundEffect * sfx, int ent_num,
 	return entities[ ent_num ].immediate_ps;
 }
 
-void S_ImmediateEntitySound( const SoundEffect * sfx, int ent_num, float volume, float attenuation ) {
-	StartImmediateSound( sfx, ent_num, volume, attenuation, PlayingSoundType_Entity );
+void S_ImmediateEntitySound( const SoundEffect * sfx, int ent_num, float volume ) {
+	StartImmediateSound( sfx, ent_num, volume, PlayingSoundType_Entity );
 }
 
-void S_ImmediateLineSound( const SoundEffect * sfx, int ent_num, Vec3 start, Vec3 end, float volume, float attenuation ) {
-	PlayingSound * ps = StartImmediateSound( sfx, ent_num, volume, attenuation, PlayingSoundType_Line );
+void S_ImmediateLineSound( const SoundEffect * sfx, int ent_num, Vec3 start, Vec3 end, float volume ) {
+	PlayingSound * ps = StartImmediateSound( sfx, ent_num, volume, PlayingSoundType_Line );
 	if( ps == NULL )
 		return;
 

@@ -63,7 +63,6 @@ static const EntityField fields[] = {
 	{ "mangle", FOFS( s.angles ), F_VECTOR },
 	{ "angle", FOFS( s.angles ), F_ANGLE },
 	{ "mass", FOFS( mass ), F_INT },
-	{ "attenuation", FOFS( attenuation ), F_FLOAT },
 	{ "random", FOFS( random ), F_FLOAT },
 
 	// temp spawn vars -- only valid when the spawn function is called

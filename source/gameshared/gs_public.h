@@ -206,8 +206,6 @@ struct SyncEntityState {
 	unsigned int linearMovementDuration;
 	int64_t linearMovementTimeStamp;
 
-	float attenuation;                  // should be <= 255/16.0 as this is sent as byte
-
 	// server will use this for sound culling in case
 	// the entity has an event attached to it (along with
 	// PVS culling)

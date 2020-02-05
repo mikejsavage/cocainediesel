@@ -438,39 +438,28 @@ static void SNAP_SortSnapList( snapshotEntityNumbers_t *entsList ) {
 /*
 * SNAP_GainForAttenuation
 */
-static float SNAP_GainForAttenuation( float dist, float attenuation ) {
+static float SNAP_GainForAttenuation( float dist ) {
 	int model = S_DEFAULT_ATTENUATION_MODEL;
 	float maxdistance = S_DEFAULT_ATTENUATION_MAXDISTANCE;
 	float refdistance = S_DEFAULT_ATTENUATION_REFDISTANCE;
 
-	return Q_GainForAttenuation( model, maxdistance, refdistance, dist, attenuation );
+	return Q_GainForAttenuation( model, maxdistance, refdistance, dist, ATTN_DISTANT );
 }
 
 /*
 * SNAP_SnapCullSoundEntity
 */
-static bool SNAP_SnapCullSoundEntity( cmodel_state_t *cms, edict_t *ent, const vec3_t listener_origin, 
-									float attenuation ) {
-	float gain, dist;
-
-	if( !attenuation ) {
-		return false;
-	}
-
+static bool SNAP_SnapCullSoundEntity( cmodel_state_t *cms, edict_t *ent, const vec3_t listener_origin ) {
 	// extend the influence sphere cause the player could be moving
-	dist = Distance( ent->s.origin, listener_origin ) - 128;
-	gain = SNAP_GainForAttenuation( dist < 0 ? 0 : dist, attenuation );
-	if( gain > 0.05 ) { // curved attenuations can keep barely audible sounds for long distances
-		return false;
-	}
-
-	return true;
+	float dist = Distance( ent->s.origin, listener_origin ) - 128;
+	float gain = SNAP_GainForAttenuation( dist < 0 ? 0 : dist );
+	return gain > 0.05f;
 }
 
 /*
 * SNAP_SnapCullEntity
 */
-static bool SNAP_SnapCullEntity( cmodel_state_t *cms, edict_t *ent, edict_t *clent, client_snapshot_t *frame, 
+static bool SNAP_SnapCullEntity( cmodel_state_t *cms, edict_t *ent, edict_t *clent, client_snapshot_t *frame,
 								const vec3_t vieworg, int viewarea, uint8_t *fatpvs ) {
 	uint8_t *areabits;
 	bool snd_cull_only;
@@ -540,7 +529,7 @@ static bool SNAP_SnapCullEntity( cmodel_state_t *cms, edict_t *ent, edict_t *cle
 	// PVS culling alone may not be used on pure sounds, entities with
 	// events and regular entities emitting sounds
 	if( snd_cull_only || ent->s.events[0] || ent->s.sound ) {
-		snd_culled = SNAP_SnapCullSoundEntity( cms, ent, vieworg, ent->s.attenuation );
+		snd_culled = SNAP_SnapCullSoundEntity( cms, ent, vieworg );
 	}
 
 	// pure sound emitters don't use PVS culling at all
@@ -554,7 +543,7 @@ static bool SNAP_SnapCullEntity( cmodel_state_t *cms, edict_t *ent, edict_t *cle
 /*
 * SNAP_AddEntitiesVisibleAtOrigin
 */
-static void SNAP_AddEntitiesVisibleAtOrigin( cmodel_state_t *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg, 
+static void SNAP_AddEntitiesVisibleAtOrigin( cmodel_state_t *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg,
 											int viewarea, client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
 	int entNum;
 	edict_t *ent;
@@ -608,7 +597,7 @@ static void SNAP_AddEntitiesVisibleAtOrigin( cmodel_state_t *cms, ginfo_t *gi, e
 /*
 * SNAP_BuildSnapEntitiesList
 */
-static void SNAP_BuildSnapEntitiesList( cmodel_state_t *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg, 
+static void SNAP_BuildSnapEntitiesList( cmodel_state_t *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg,
 										client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
 	int entNum;
 	int leafnum, clientarea;

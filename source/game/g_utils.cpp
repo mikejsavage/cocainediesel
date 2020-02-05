@@ -477,7 +477,7 @@ void G_UseTargets( edict_t *ent, edict_t *activator ) {
 		G_CenterPrintMsg( activator, "%s", ent->message );
 
 		if( ent->noise_index ) {
-			G_Sound( activator, CHAN_AUTO, ent->noise_index, ATTN_NORM );
+			G_Sound( activator, CHAN_AUTO, ent->noise_index );
 		}
 	}
 
@@ -576,7 +576,6 @@ void G_InitEdict( edict_t *e ) {
 	e->scriptSpawned = false;
 
 	memset( &e->s, 0, sizeof( SyncEntityState ) );
-	e->s.attenuation = ATTN_NORM;
 	e->s.number = ENTNUM( e );
 
 	G_asClearEntityBehaviors( e );
@@ -971,18 +970,11 @@ void G_Obituary( edict_t * victim, edict_t * attacker, int mod ) {
 /*
 * _G_SpawnSound
 */
-static edict_t *_G_SpawnSound( int channel, int soundindex, float attenuation ) {
-	edict_t *ent;
-
-	if( attenuation <= 0.0f ) {
-		attenuation = ATTN_NONE;
-	}
-
-	ent = G_Spawn();
+static edict_t *_G_SpawnSound( int channel, int soundindex ) {
+	edict_t * ent = G_Spawn();
 	ent->r.svflags &= ~SVF_NOCLIENT;
 	ent->r.svflags |= SVF_SOUNDCULL;
 	ent->s.type = ET_SOUNDEVENT;
-	ent->s.attenuation = attenuation;
 	ent->s.channel = channel;
 	ent->s.sound = soundindex;
 
@@ -992,32 +984,24 @@ static edict_t *_G_SpawnSound( int channel, int soundindex, float attenuation ) 
 /*
 * G_Sound
 */
-edict_t *G_Sound( edict_t *owner, int channel, int soundindex, float attenuation ) {
-	edict_t *ent;
-
+edict_t *G_Sound( edict_t *owner, int channel, int soundindex ) {
 	if( !soundindex ) {
 		return NULL;
 	}
 
-	if( owner == NULL || owner == world ) {
-		attenuation = ATTN_NONE;
-	} else if( ISEVENTENTITY( &owner->s ) ) {
+	if( ISEVENTENTITY( &owner->s ) ) {
 		return NULL; // event entities can't be owner of sound entities
-
 	}
-	ent = _G_SpawnSound( channel, soundindex, attenuation );
-	if( attenuation != ATTN_NONE ) {
-		assert( owner );
-		ent->s.ownerNum = owner->s.number;
 
-		if( owner->s.solid != SOLID_BMODEL ) {
-			VectorCopy( owner->s.origin, ent->s.origin );
-		} else {
-			VectorAdd( owner->r.mins, owner->r.maxs, ent->s.origin );
-			VectorMA( owner->s.origin, 0.5f, ent->s.origin, ent->s.origin );
-		}
-	} else {
-		ent->r.svflags |= SVF_BROADCAST;
+	edict_t * ent = _G_SpawnSound( channel, soundindex );
+	ent->s.ownerNum = owner->s.number;
+
+	if( owner->s.solid != SOLID_BMODEL ) {
+		VectorCopy( owner->s.origin, ent->s.origin );
+	}
+	else {
+		VectorAdd( owner->r.mins, owner->r.maxs, ent->s.origin );
+		VectorMA( owner->s.origin, 0.5f, ent->s.origin, ent->s.origin );
 	}
 
 	GClip_LinkEntity( ent );
@@ -1027,23 +1011,17 @@ edict_t *G_Sound( edict_t *owner, int channel, int soundindex, float attenuation
 /*
 * G_PositionedSound
 */
-edict_t *G_PositionedSound( const vec3_t origin, int channel, int soundindex, float attenuation ) {
-	edict_t *ent;
-
+edict_t *G_PositionedSound( const vec3_t origin, int channel, int soundindex ) {
 	if( !soundindex ) {
 		return NULL;
 	}
 
-	if( origin == NULL ) {
-		attenuation = ATTN_NONE;
-	}
-
-	ent = _G_SpawnSound( channel, soundindex, attenuation );
-	if( attenuation != ATTN_NONE ) {
-		assert( origin );
+	edict_t * ent = _G_SpawnSound( channel, soundindex );
+	if( origin != NULL ) {
 		ent->s.channel |= CHAN_FIXED;
 		VectorCopy( origin, ent->s.origin );
-	} else {
+	}
+	else {
 		ent->r.svflags |= SVF_BROADCAST;
 	}
 
@@ -1055,23 +1033,22 @@ edict_t *G_PositionedSound( const vec3_t origin, int channel, int soundindex, fl
 * G_GlobalSound
 */
 void G_GlobalSound( int channel, int soundindex ) {
-	G_PositionedSound( NULL, channel, soundindex, ATTN_NONE );
+	G_PositionedSound( NULL, channel, soundindex );
 }
 
 /*
 * G_LocalSound
 */
 void G_LocalSound( edict_t *owner, int channel, int soundindex ) {
-	edict_t *ent;
-
 	if( !soundindex ) {
 		return;
 	}
+
 	if( ISEVENTENTITY( &owner->s ) ) {
 		return; // event entities can't be owner of sound entities
 	}
 
-	ent = _G_SpawnSound( channel, soundindex, ATTN_NONE );
+	edict_t * ent = _G_SpawnSound( channel, soundindex );
 	ent->s.ownerNum = ENTNUM( owner );
 	ent->r.svflags |= SVF_ONLYOWNER | SVF_BROADCAST;
 

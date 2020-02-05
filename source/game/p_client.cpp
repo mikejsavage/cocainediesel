@@ -429,8 +429,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		KillBox( self, MOD_TELEFRAG, vec3_origin );
 	}
 
-	self->s.attenuation = ATTN_NORM;
-
 	self->s.teleported = true;
 
 	// hold in place briefly

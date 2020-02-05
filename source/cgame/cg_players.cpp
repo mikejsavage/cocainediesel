@@ -55,19 +55,19 @@ static const SoundEffect * GetPlayerSound( int entnum, PlayerSound ps ) {
 	return cg_entPModels[ entnum ].metadata->sounds[ ps ];
 }
 
-void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps, float volume, float attn ) {
-	bool fixed = ( entchannel & CHAN_FIXED ) ? true : false;
+void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps ) {
+	bool fixed = ( entchannel & CHAN_FIXED ) != 0;
 	entchannel &= ~CHAN_FIXED;
 
 	const SoundEffect * sfx = GetPlayerSound( entnum, ps );
 	if( fixed ) {
-		S_StartFixedSound( sfx, FromQF3( cg_entities[entnum].current.origin ), entchannel, volume, attn );
+		S_StartFixedSound( sfx, FromQF3( cg_entities[entnum].current.origin ), entchannel, 1.0f );
 	}
 	else if( ISVIEWERENTITY( entnum ) ) {
-		S_StartGlobalSound( sfx, entchannel, volume );
+		S_StartGlobalSound( sfx, entchannel, 1.0f );
 	}
 	else {
-		S_StartEntitySound( sfx, entnum, entchannel, volume, attn );
+		S_StartEntitySound( sfx, entnum, entchannel, 1.0f );
 	}
 }
 

@@ -517,7 +517,6 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.targetNum, baseline.targetNum );
 	Delta( buf, ent.sound, baseline.sound );
 	Delta( buf, ent.modelindex2, baseline.modelindex2 );
-	DeltaHalf( buf, ent.attenuation, baseline.attenuation );
 	Delta( buf, ent.counterNum, baseline.counterNum );
 	Delta( buf, ent.channel, baseline.channel );
 	Delta( buf, ent.events[ 1 ], baseline.events[ 1 ] );

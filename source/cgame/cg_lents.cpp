@@ -370,7 +370,7 @@ void CG_EBImpact( const vec3_t pos, const vec3_t dir, int surfFlags, int team ) 
 
 	// CG_ImpactPuffParticles( pos, dir, 15, 0.75f, color[0], color[1], color[2], color[3], NULL );
 
-	S_StartFixedSound( cgs.media.sfxElectroboltHit, FromQF3( pos ), CHAN_AUTO, cg_volume_effects->value, ATTN_STATIC );
+	S_StartFixedSound( cgs.media.sfxElectroboltHit, FromQF3( pos ), CHAN_AUTO, 1.0f );
 }
 
 /*
@@ -418,7 +418,7 @@ void CG_RocketExplosionMode( const vec3_t pos, const vec3_t dir, float radius, i
 	// Explosion particles
 	CG_ParticleExplosionEffect( FromQF3( pos ), FromQF3( dir ), color.xyz() );
 
-	S_StartFixedSound( cgs.media.sfxRocketLauncherHit, FromQF3( pos ), CHAN_AUTO, cg_volume_effects->value, ATTN_DISTANT );
+	S_StartFixedSound( cgs.media.sfxRocketLauncherHit, FromQF3( pos ), CHAN_AUTO, 1.0f );
 }
 
 /*
@@ -452,15 +452,13 @@ void CG_BladeImpact( const vec3_t pos, const vec3_t dir ) {
 		le->ent.rotation = random_float01( &cls.rng ) * 360;
 		le->ent.scale = 1.0f;
 
-		S_StartFixedSound( cgs.media.sfxBladeFleshHit, FromQF3( pos ), CHAN_AUTO,
-								cg_volume_effects->value, ATTN_NORM );
+		S_StartFixedSound( cgs.media.sfxBladeFleshHit, FromQF3( pos ), CHAN_AUTO, 1.0f );
 	} else if( trace.surfFlags & SURF_DUST ) {
 		// throw particles on dust
 		// CG_ParticleEffect( trace.endpos, trace.plane.normal, 0.30f, 0.30f, 0.25f, 30 );
 
 		//fixme? would need a dust sound
-		S_StartFixedSound( cgs.media.sfxBladeWallHit, FromQF3( pos ), CHAN_AUTO,
-								cg_volume_effects->value, ATTN_NORM );
+		S_StartFixedSound( cgs.media.sfxBladeWallHit, FromQF3( pos ), CHAN_AUTO, 1.0f );
 	} else {
 		le = CG_AllocModel( LE_ALPHA_FADE, pos, angles, 3, //3 frames for weak
 							vec4_white,
@@ -471,8 +469,7 @@ void CG_BladeImpact( const vec3_t pos, const vec3_t dir ) {
 
 		// CG_ParticleEffect( trace.endpos, trace.plane.normal, 0.30f, 0.30f, 0.25f, 15 );
 
-		S_StartFixedSound( cgs.media.sfxBladeWallHit, FromQF3( pos ), CHAN_AUTO,
-								cg_volume_effects->value, ATTN_NORM );
+		S_StartFixedSound( cgs.media.sfxBladeWallHit, FromQF3( pos ), CHAN_AUTO, 1.0f );
 		if( !( trace.surfFlags & SURF_NOMARKS ) ) {
 			// CG_SpawnDecal( pos, dir, random_float01( &cls.rng ) * 45, 8, 1, 1, 1, 1, 10, 1, false, cgs.media.shaderBladeMark );
 		}
@@ -726,7 +723,7 @@ void CG_GrenadeExplosionMode( const vec3_t pos, const vec3_t dir, float radius, 
 	// Explosion particles
 	CG_ParticleExplosionEffect( FromQF3( pos ), FromQF3( dir ), color.xyz() );
 
-	S_StartFixedSound( cgs.media.sfxGrenadeExplosion, FromQF3( pos ), CHAN_AUTO, cg_volume_effects->value, ATTN_DISTANT );
+	S_StartFixedSound( cgs.media.sfxGrenadeExplosion, FromQF3( pos ), CHAN_AUTO, 1.0f );
 }
 
 /*
@@ -760,7 +757,7 @@ void CG_GenericExplosion( const vec3_t pos, const vec3_t dir, float radius ) {
 	le->ent.rotation = random_float01( &cls.rng ) * 360;
 
 	// use the rocket explosion sounds
-	S_StartFixedSound( cgs.media.sfxRocketLauncherHit, FromQF3( pos ), CHAN_AUTO, cg_volume_effects->value, ATTN_DISTANT );
+	S_StartFixedSound( cgs.media.sfxRocketLauncherHit, FromQF3( pos ), CHAN_AUTO, 1.0f );
 }
 
 void CG_Dash( const SyncEntityState *state ) {

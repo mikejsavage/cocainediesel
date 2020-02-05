@@ -27,11 +27,4 @@ const String S_COLOR_WHITE   = "\x1b\xff\xff\xff\xff";
 const String S_COLOR_ORANGE  = "\x1b\xff\x80\x01\xff";
 const String S_COLOR_GREY    = "\x1b\x80\x80\x80\xff";
 
-const float ATTN_NONE      = 0.0;   // full volume the entire level
-const float ATTN_DISTANT   = 0.5;   // distant sound (most likely explosions)
-const float ATTN_NORM      = 0.875; // players, weapons, etc
-const float ATTN_IDLE      = 2.5;   // stuff around you
-const float ATTN_STATIC    = 5.0;   // diminish very rapidly with distance
-const float ATTN_FOOTSTEPS = 10.0;  // must be very close to hear it
-
 const Vec3 vec3Origin( 0.0f );

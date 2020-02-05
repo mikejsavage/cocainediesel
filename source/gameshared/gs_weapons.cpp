@@ -158,10 +158,7 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 		if( player->weapon_state == WeaponState_Ready || player->weapon_state == WeaponState_SwitchingIn || player->weapon_state == WeaponState_Reloading ) {
 			player->weapon_state = WeaponState_SwitchingOut;
 			player->weapon_time = def->weapondown_time;
-
-			if( def->weapondown_time ) {
-				gs->api.PredictedEvent( player->POVnum, EV_WEAPONDROP, 0 );
-			}
+			gs->api.PredictedEvent( player->POVnum, EV_WEAPONDROP, 0 );
 		}
 	}
 

@@ -1,4 +1,5 @@
 {
+	attenuation idle
 	sound weapons/ric1
 	sound weapons/ric2
 }

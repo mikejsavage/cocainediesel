@@ -194,7 +194,7 @@ void W_Fire_Bullet( edict_t * self, vec3_t start, vec3_t angles, int timeDelta, 
 
 // Sunflower spiral with Fibonacci numbers
 static void G_Fire_SunflowerPattern( edict_t * self, vec3_t start, vec3_t dir, int count,
-									 int spread, int range, float damage, int kick, int dflags, int timeDelta ) {
+									 int spread, int range, float damage, int kick, int timeDelta ) {
 	vec3_t right, up;
 	ViewVectors( dir, right, up );
 
@@ -207,7 +207,7 @@ static void G_Fire_SunflowerPattern( edict_t * self, vec3_t start, vec3_t dir, i
 		trace_t trace;
 		GS_TraceBullet( &server_gs, &trace, start, dir, right, up, r, u, range, ENTNUM( self ), timeDelta );
 		if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
-			G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, damage, kick, dflags, MOD_RIOTGUN );
+			G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, damage, kick, 0, MOD_RIOTGUN );
 			if( !G_IsTeamDamage( &game.edicts[trace.ent].s, &self->s ) && trace.ent <= MAX_CLIENTS ) {
 				hits[trace.ent]++;
 			}
@@ -228,12 +228,8 @@ static void G_Fire_SunflowerPattern( edict_t * self, vec3_t start, vec3_t dir, i
 void W_Fire_Riotgun( edict_t * self, vec3_t start, vec3_t angles, int range, int spread,
 					 int count, float damage, int knockback, int timeDelta ) {
 	vec3_t dir;
-	edict_t *event;
-	int dmgflags = 0;
-
 	AngleVectors( angles, dir, NULL, NULL );
-
-	G_Fire_SunflowerPattern( self, start, dir, count, spread, range, damage, knockback, dmgflags, timeDelta );
+	G_Fire_SunflowerPattern( self, start, dir, count, spread, range, damage, knockback, timeDelta );
 }
 
 /*

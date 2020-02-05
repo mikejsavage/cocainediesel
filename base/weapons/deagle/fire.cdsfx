@@ -1,4 +1,5 @@
 {
+	attenuation distant
 	volume 0.65
 	sound weapons/deagle/fire1
 	sound weapons/deagle/fire2

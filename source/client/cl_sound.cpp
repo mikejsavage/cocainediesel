@@ -217,6 +217,8 @@ static void LoadSound( const char * path ) {
 	alBufferData( sounds[ idx ].buf, format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
 	ALAssert();
 
+	sounds[ idx ].mono = channels == 1;
+
 	if( restart_music ) {
 		S_StartMenuMusic();
 	}

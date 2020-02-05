@@ -1012,36 +1012,32 @@ static const char * prefixes[] = {
 	"WONDER",
 };
 
-static const char * RandomObituary() {
-	return random_select( &cls.rng, obituaries );
+static const char * RandomObituary( RNG * rng ) {
+	return random_select( rng, obituaries );
 }
 
-static const char * RandomPrefix( float p ) {
-	if( !random_p( &cls.rng, p ) )
+static const char * RandomPrefix( RNG * rng, float p ) {
+	if( !random_p( rng, p ) )
 		return "";
-	return random_select( &cls.rng, prefixes );
+	return random_select( rng, prefixes );
 }
 
 /*
 * CG_SC_Obituary
 */
 void CG_SC_Obituary( void ) {
-	cg_clientInfo_t *victim, *attacker;
 	int victimNum = atoi( Cmd_Argv( 1 ) );
 	int attackerNum = atoi( Cmd_Argv( 2 ) );
 	int mod = atoi( Cmd_Argv( 3 ) );
-	obituary_t *current;
+	u64 entropy = strtonum( Cmd_Argv( 4 ), S64_MIN, S64_MAX, NULL );
 
-	victim = &cgs.clientInfo[victimNum - 1];
-
-	if( attackerNum ) {
-		attacker = &cgs.clientInfo[attackerNum - 1];
-	} else {
-		attacker = NULL;
-	}
+	cg_clientInfo_t * victim = &cgs.clientInfo[ victimNum - 1 ];
+	cg_clientInfo_t * attacker = attackerNum == 0 ? NULL : &cgs.clientInfo[ attackerNum - 1 ];
 
 	cg_obituaries_current = ( cg_obituaries_current + 1 ) % MAX_OBITUARIES;
-	current = &cg_obituaries[cg_obituaries_current];
+	obituary_t * current = &cg_obituaries[cg_obituaries_current];
+
+	RNG rng = new_rng( entropy, 0 );
 
 	current->time = cls.monotonicTime;
 	if( victim ) {
@@ -1062,7 +1058,7 @@ void CG_SC_Obituary( void ) {
 				char name[MAX_NAME_CHARS + 1];
 				Q_strncpyz( name, victim->name, sizeof( name ) );
 				Q_strupr( name );
-				CG_CenterPrint( va( "YOU %s%s%s %s", RandomPrefix( 0.05f ), RandomPrefix( 0.5f ), RandomObituary(), name ) );
+				CG_CenterPrint( va( "YOU %s%s%s %s", RandomPrefix( &rng, 0.05f ), RandomPrefix( &rng, 0.5f ), RandomObituary( &rng ), name ) );
 			}
 		} else {   // suicide
 			current->type = OBITUARY_SUICIDE;

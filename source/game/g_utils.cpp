@@ -960,10 +960,8 @@ void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) {
 *
 * Prints death message to all clients
 */
-void G_Obituary( edict_t *victim, edict_t *attacker, int mod ) {
-	if( victim && attacker ) {
-		trap_GameCmd( NULL, va( "obry %i %i %i", (int)(victim - game.edicts), (int)(attacker - game.edicts), mod ) );
-	}
+void G_Obituary( edict_t * victim, edict_t * attacker, int mod ) {
+	trap_GameCmd( NULL, va( "obry %i %i %i %" PRIi64, ENTNUM( victim ), ENTNUM( attacker ), mod, random_u64( &svs.rng ) ) );
 }
 
 //==================================================

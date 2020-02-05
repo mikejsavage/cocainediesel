@@ -672,7 +672,7 @@ void G_AddEvent( edict_t *ent, int event, int parm, bool highPriority ) {
 /*
 * G_SpawnEvent
 */
-edict_t *G_SpawnEvent( int event, int parm, vec3_t origin ) {
+edict_t *G_SpawnEvent( int event, int parm, const vec3_t origin ) {
 	edict_t *ent;
 
 	ent = G_Spawn();

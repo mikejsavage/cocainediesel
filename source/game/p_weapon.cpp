@@ -97,11 +97,6 @@ static edict_t *G_Fire_Rocket( vec3_t origin, vec3_t angles, edict_t *owner, int
 		def->splash_radius, def->range, timeDelta );
 }
 
-static void G_Fire_Machinegun( vec3_t origin, vec3_t angles, edict_t *owner, int timeDelta ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_MachineGun );
-	W_Fire_MG( owner, origin, angles, def->range, def->spread, def->damage, def->knockback, timeDelta );
-}
-
 static void G_Fire_Riotgun( vec3_t origin, vec3_t angles, edict_t *owner, int timeDelta ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_Shotgun );
 	W_Fire_Riotgun( owner, origin, angles, def->range, def->spread,
@@ -164,8 +159,16 @@ void G_FireWeapon( edict_t *ent, int parm ) {
 			G_Fire_Gunblade_Knife( origin, angles, ent, timeDelta );
 			break;
 
+		case Weapon_Pistol:
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Pistol, MOD_PISTOL );
+			break;
+
 		case Weapon_MachineGun:
-			G_Fire_Machinegun( origin, angles, ent, timeDelta );
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_MachineGun, MOD_MACHINEGUN );
+			break;
+
+		case Weapon_Deagle:
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Deagle, MOD_DEAGLE );
 			break;
 
 		case Weapon_Shotgun:

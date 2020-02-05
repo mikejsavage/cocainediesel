@@ -23,7 +23,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static int G_MODToWeapon( int mod ) {
 	switch( mod ) {
 		case MOD_GUNBLADE: return Weapon_Knife;
+		case MOD_PISTOL: return Weapon_Pistol;
 		case MOD_MACHINEGUN: return Weapon_MachineGun;
+		case MOD_DEAGLE: return Weapon_Deagle;
 		case MOD_RIOTGUN: return Weapon_Shotgun;
 		case MOD_GRENADE:
 		case MOD_GRENADE_SPLASH: return Weapon_GrenadeLauncher;

@@ -863,9 +863,15 @@ static void GameMenu() {
 			ImGui::NextColumn();
 
 			constexpr WeaponType weapon_order[] = {
-				Weapon_Railgun, Weapon_RocketLauncher, Weapon_Laser,
-				Weapon_MachineGun, Weapon_Shotgun, Weapon_Plasma,
-				Weapon_GrenadeLauncher
+				Weapon_Railgun,
+				Weapon_RocketLauncher,
+				Weapon_Laser,
+				Weapon_Deagle,
+				Weapon_MachineGun,
+				Weapon_Shotgun,
+				Weapon_Plasma,
+				Weapon_GrenadeLauncher,
+				Weapon_Pistol,
 			};
 
 			// weapon grid

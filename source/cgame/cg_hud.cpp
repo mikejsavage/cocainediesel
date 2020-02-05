@@ -82,16 +82,6 @@ static const constant_numeric_t cg_numeric_constants[] = {
 	{ "MATCH_STATE_POSTMATCH", MATCH_STATE_POSTMATCH },
 	{ "MATCH_STATE_WAITEXIT", MATCH_STATE_WAITEXIT },
 
-	// weapon
-	{ "Weapon_Knife", Weapon_Knife },
-	{ "Weapon_MachineGun", Weapon_MachineGun },
-	{ "Weapon_Shotgun", Weapon_Shotgun },
-	{ "Weapon_GrenadeLauncher", Weapon_GrenadeLauncher },
-	{ "Weapon_RocketLauncher", Weapon_RocketLauncher },
-	{ "Weapon_Plasma", Weapon_Plasma },
-	{ "Weapon_Laser", Weapon_Laser },
-	{ "Weapon_Railgun", Weapon_Railgun },
-
 	{ "CS_CALLVOTE", CS_CALLVOTE },
 	{ "CS_CALLVOTE_REQUIRED_VOTES", CS_CALLVOTE_REQUIRED_VOTES },
 	{ "CS_CALLVOTE_YES_VOTES", CS_CALLVOTE_YES_VOTES },
@@ -1512,11 +1502,7 @@ enum {
 // Commands' Functions
 //=============================================================================
 
-static bool CG_IsWeaponSelected( int weapon ) {
-	return weapon == cg.predictedPlayerState.pending_weapon;
-}
-
-constexpr float SEL_WEAP_X_OFFSET = 0.25f;
+static constexpr float SEL_WEAP_Y_OFFSET = 0.25f;
 
 static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih, Alignment alignment, float font_size ) {
 	int num_weapons = 0;
@@ -1546,8 +1532,8 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		int curx = CG_HorizontalAlignForWidth( x + offx * drawn_weapons, alignment, total_width );
 		int cury = CG_VerticalAlignForHeight( y + offy * drawn_weapons, alignment, total_height );
 
-		if( CG_IsWeaponSelected( i ) ) {
-			cury -= ih * SEL_WEAP_X_OFFSET;
+		if( i == cg.predictedPlayerState.pending_weapon ) {
+			cury -= ih * SEL_WEAP_Y_OFFSET;
 		}
 
 		Vec4 color = Vec4( 1.0f );

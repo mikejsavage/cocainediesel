@@ -40,6 +40,37 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
+		"Pistol", "pistol",
+		RGB8( 254, 235, 98 ),
+		"Pew pew pew",
+		100,
+
+		1,                              // projectiles fired each shot
+		16, // clip size
+		1500, // reload time
+
+		//timings (in msecs)
+		WEAPONUP_TIME,                  // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		100,                             // refire time
+		6000,                           // projectile timeout
+		2.0f,                           // recoil
+		FiringMode_SemiAuto,
+
+		//damages
+		10,                              // damage
+		0,                              // selfdamage ratio
+		15,                             // knockback
+		0,                              // splash radius
+		0,                              // splash minimum damage
+		0,                              // splash minimum knockback
+
+		//projectile def
+		INSTANT,                        // speed
+		0,                              // spread
+	},
+
+	{
 		"SMG", "mg",
 		RGB8( 254, 235, 98 ),
 		"Shoots fast direct bullets touching enemies at any range",
@@ -61,6 +92,37 @@ const WeaponDef gs_weaponDefs[] = {
 		7,                              // damage
 		0,                              // selfdamage ratio
 		15,                             // knockback
+		0,                              // splash radius
+		0,                              // splash minimum damage
+		0,                              // splash minimum knockback
+
+		//projectile def
+		INSTANT,                        // speed
+		0,                              // spread
+	},
+
+	{
+		"Deagle", "deagle",
+		RGB8( 254, 235, 98 ),
+		"Bang bang",
+		200,
+
+		1,                              // projectiles fired each shot
+		8, // clip size
+		2000, // reload time
+
+		//timings (in msecs)
+		WEAPONUP_TIME,                  // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		250,                             // refire time
+		6000,                           // projectile timeout
+		25.0f,                           // recoil
+		FiringMode_SemiAuto,
+
+		//damages
+		40,                              // damage
+		0,                              // selfdamage ratio
+		30,                             // knockback
 		0,                              // splash radius
 		0,                              // splash minimum damage
 		0,                              // splash minimum knockback

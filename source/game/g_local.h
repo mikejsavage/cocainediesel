@@ -408,7 +408,7 @@ char *_G_CopyString( const char *in, const char *filename, int fileline );
 #define G_CopyString( in ) _G_CopyString( in, __FILE__, __LINE__ )
 
 void G_AddEvent( edict_t *ent, int event, int parm, bool highPriority );
-edict_t *G_SpawnEvent( int event, int parm, vec3_t origin );
+edict_t *G_SpawnEvent( int event, int parm, const vec3_t origin );
 void G_MorphEntityIntoEvent( edict_t *ent, int event, int parm );
 
 void G_CallThink( edict_t *ent );
@@ -544,14 +544,14 @@ void SP_model( edict_t *ent );
 //
 // g_weapon.c
 //
-void W_Fire_Blade( edict_t *self, int range, vec3_t start, vec3_t angles, float damage, int knockback, int timeDelta );
-void W_Fire_MG( edict_t *self, vec3_t start, vec3_t angles, int range, int spread, float damage, int knockback, int timeDelta );
-void W_Fire_Riotgun( edict_t *self, vec3_t start, vec3_t angles, int range, int spread, int count, float damage, int knockback, int timeDelta );
-edict_t *W_Fire_Grenade( edict_t *self, vec3_t start, vec3_t angles, int speed, float damage, int minKnockback, int maxKnockback, int minDamage, float radius, int timeout, int timeDelta, bool aim_up );
-edict_t *W_Fire_Rocket( edict_t *self, vec3_t start, vec3_t angles, int speed, float damage, int minKnockback, int maxKnockback, int minDamage, int radius, int timeout, int timeDelta );
-edict_t *W_Fire_Plasma( edict_t *self, vec3_t start, vec3_t angles, float damage, int minKnockback, int maxKnockback, int minDamage, int radius, int speed, int timeout, int timeDelta );
-void W_Fire_Electrobolt( edict_t *self, vec3_t start, vec3_t angles, float damage, int knockback, int range, int timeDelta );
-edict_t *W_Fire_Lasergun( edict_t *self, vec3_t start, vec3_t angles, float damage, int knockback, int range, int timeDelta );
+void W_Fire_Blade( edict_t * self, int range, vec3_t start, vec3_t angles, float damage, int knockback, int timeDelta );
+void W_Fire_Bullet( edict_t * self, vec3_t start, vec3_t angles, int timeDelta, WeaponType weapon, int mod );
+void W_Fire_Riotgun( edict_t * self, vec3_t start, vec3_t angles, int range, int spread, int count, float damage, int knockback, int timeDelta );
+edict_t * W_Fire_Grenade( edict_t * self, vec3_t start, vec3_t angles, int speed, float damage, int minKnockback, int maxKnockback, int minDamage, float radius, int timeout, int timeDelta, bool aim_up );
+edict_t * W_Fire_Rocket( edict_t * self, vec3_t start, vec3_t angles, int speed, float damage, int minKnockback, int maxKnockback, int minDamage, int radius, int timeout, int timeDelta );
+edict_t * W_Fire_Plasma( edict_t * self, vec3_t start, vec3_t angles, float damage, int minKnockback, int maxKnockback, int minDamage, int radius, int speed, int timeout, int timeDelta );
+void W_Fire_Electrobolt( edict_t * self, vec3_t start, vec3_t angles, float damage, int knockback, int range, int timeDelta );
+edict_t * W_Fire_Lasergun( edict_t * self, vec3_t start, vec3_t angles, float damage, int knockback, int range, int timeDelta );
 
 void G_FireWeapon( edict_t *ent, int parm );
 

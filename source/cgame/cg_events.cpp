@@ -250,7 +250,9 @@ static void CG_FireWeaponEvent( int entNum, int weapon ) {
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_BLADE, 0, EVENT_CHANNEL );
 			break;
 
+		case Weapon_Pistol:
 		case Weapon_Laser:
+		case Weapon_Deagle:
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_PISTOL, 0, EVENT_CHANNEL );
 			break;
 

@@ -71,7 +71,9 @@ enum MatchState {
 typedef u8 WeaponType;
 enum WeaponType_ : WeaponType {
 	Weapon_Knife,
+	Weapon_Pistol,
 	Weapon_MachineGun,
+	Weapon_Deagle,
 	Weapon_Shotgun,
 	Weapon_GrenadeLauncher,
 	Weapon_RocketLauncher,
@@ -544,7 +546,9 @@ static constexpr const char *gs_keyicon_names[] = {
 
 typedef enum {
 	MOD_GUNBLADE = 36,
+	MOD_PISTOL,
 	MOD_MACHINEGUN,
+	MOD_DEAGLE,
 	MOD_RIOTGUN,
 	MOD_GRENADE,
 	MOD_ROCKET,
@@ -791,7 +795,7 @@ struct WeaponDef {
 
 const WeaponDef * GS_GetWeaponDef( WeaponType weapon );
 WeaponType GS_SelectBestWeapon( const SyncPlayerState * player );
-int GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState *playerState, int buttons, int msecs, int timeDelta );
-trace_t *GS_TraceBullet( const gs_state_t * gs, trace_t *trace, vec3_t start, vec3_t dir, vec3_t right, vec3_t up, float r, float u, int range, int ignore, int timeDelta );
-void GS_TraceLaserBeam( const gs_state_t * gs, trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t *tr, const vec3_t dir ) );
+WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int buttons, int msecs, int timeDelta );
+trace_t * GS_TraceBullet( const gs_state_t * gs, trace_t * trace, const vec3_t start, const vec3_t dir, const vec3_t right, const vec3_t up, float r, float u, int range, int ignore, int timeDelta );
+void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, const vec3_t origin, const vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * tr, const vec3_t dir ) );
 bool GS_CanEquip( const SyncPlayerState * player, WeaponType weapon );

@@ -55,9 +55,9 @@ class cPlayer {
 		this.client.inventoryClear();
 		this.client.giveWeapon( Weapon_Knife, true );
 
-		for( WeaponType i = Weapon_MachineGun; i < Weapon_Count; i++ ) {
+		for( int i = 0; i < Weapon_Count; i++ ) {
 			if( this.loadout[ i ] ) {
-				this.client.giveWeapon( i, true );
+				this.client.giveWeapon( WeaponType( i ), true );
 			}
 		}
 

@@ -177,7 +177,9 @@ static const asEnumVal_t asPMoveFeaturesVals[] =
 static const asEnumVal_t asWeaponTypeEnumVals[] =
 {
 	ASLIB_ENUM_VAL( Weapon_Knife ),
+	ASLIB_ENUM_VAL( Weapon_Pistol ),
 	ASLIB_ENUM_VAL( Weapon_MachineGun ),
+	ASLIB_ENUM_VAL( Weapon_Deagle ),
 	ASLIB_ENUM_VAL( Weapon_Shotgun ),
 	ASLIB_ENUM_VAL( Weapon_GrenadeLauncher ),
 	ASLIB_ENUM_VAL( Weapon_RocketLauncher ),
@@ -1864,10 +1866,6 @@ static void asFunc_FireRiotgun( asvec3_t *origin, asvec3_t *angles, int range, i
 	W_Fire_Riotgun( owner, origin->v, angles->v, range, spread, count, damage, knockback, 0 );
 }
 
-static void asFunc_FireBullet( asvec3_t *origin, asvec3_t *angles, int range, int spread, int damage, int knockback, edict_t *owner ) {
-	W_Fire_MG( owner, origin->v, angles->v, range, spread, damage, knockback, 0 );
-}
-
 static const asglobfuncs_t asGameGlobFuncs[] =
 {
 	{ "Entity @G_SpawnEntity( const String &in )", asFUNCTION( asFunc_G_Spawn ), NULL },
@@ -1914,7 +1912,6 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "Entity @G_FireRocket( const Vec3 &in origin, const Vec3 &in angles, int speed, int radius, int damage, int knockback, Entity @owner )", asFUNCTION( asFunc_FireRocket ), NULL },
 	{ "Entity @G_FireGrenade( const Vec3 &in origin, const Vec3 &in angles, int speed, int radius, int damage, int knockback, Entity @owner )", asFUNCTION( asFunc_FireGrenade ), NULL },
 	{ "void G_FireRiotgun( const Vec3 &in origin, const Vec3 &in angles, int range, int spread, int count, int damage, int knockback, Entity @owner )", asFUNCTION( asFunc_FireRiotgun ), NULL },
-	{ "void G_FireBullet( const Vec3 &in origin, const Vec3 &in angles, int range, int spread, int damage, int knockback, Entity @owner )", asFUNCTION( asFunc_FireBullet ), NULL },
 
 	{ NULL }
 };

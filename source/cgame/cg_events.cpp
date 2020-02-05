@@ -204,7 +204,7 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 		cg_entPModels[cent->current.number].flash_time = cl.serverTime + cgs.weaponInfos[ Weapon_Laser ]->flashTime;
 	}
 
-	// S_ImmediateEntitySound( cgs.media.sfxLasergunHum, cent->current.number, cg_volume_effects->value, ATTN_NONE );
+	S_ImmediateEntitySound( cgs.media.sfxLasergunHum, cent->current.number, cg_volume_effects->value, ATTN_NONE );
 
 	if( ISVIEWERENTITY( cent->current.number ) ) {
 		S_ImmediateEntitySound( cgs.media.sfxLasergunBeam, cent->current.number, cg_volume_effects->value, ATTN_NONE );

@@ -27,12 +27,9 @@ static int G_MODToWeapon( int mod ) {
 		case MOD_MACHINEGUN: return Weapon_MachineGun;
 		case MOD_DEAGLE: return Weapon_Deagle;
 		case MOD_RIOTGUN: return Weapon_Shotgun;
-		case MOD_GRENADE:
-		case MOD_GRENADE_SPLASH: return Weapon_GrenadeLauncher;
-		case MOD_ROCKET:
-		case MOD_ROCKET_SPLASH: return Weapon_RocketLauncher;
-		case MOD_PLASMA:
-		case MOD_PLASMA_SPLASH: return Weapon_Plasma;
+		case MOD_GRENADE: return Weapon_GrenadeLauncher;
+		case MOD_ROCKET: return Weapon_RocketLauncher;
+		case MOD_PLASMA: return Weapon_Plasma;
 		case MOD_ELECTROBOLT: return Weapon_Railgun;
 		case MOD_LASERGUN: return Weapon_Laser;
 	}

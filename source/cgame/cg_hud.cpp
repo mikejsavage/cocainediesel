@@ -1155,15 +1155,12 @@ static void CG_DrawObituaries(
 				pic = CG_GetWeaponIcon( Weapon_Shotgun );
 				break;
 			case MOD_GRENADE:
-			case MOD_GRENADE_SPLASH:
 				pic = CG_GetWeaponIcon( Weapon_GrenadeLauncher );
 				break;
 			case MOD_ROCKET:
-			case MOD_ROCKET_SPLASH:
 				pic = CG_GetWeaponIcon( Weapon_RocketLauncher );
 				break;
 			case MOD_PLASMA:
-			case MOD_PLASMA_SPLASH:
 				pic = CG_GetWeaponIcon( Weapon_Plasma );
 				break;
 			case MOD_ELECTROBOLT:

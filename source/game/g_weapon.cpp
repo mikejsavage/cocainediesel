@@ -246,7 +246,7 @@ static void W_Grenade_ExplodeDir( edict_t *ent, vec3_t normal ) {
 	vec3_t up = { 0, 0, 1 };
 	float *dir = normal ? normal : up;
 
-	G_RadiusDamage( ent, ent->r.owner, NULL, ent->enemy, MOD_GRENADE_SPLASH );
+	G_RadiusDamage( ent, ent->r.owner, NULL, ent->enemy, MOD_GRENADE );
 
 	radius = ( ( ent->projectileInfo.radius * 1 / 8 ) > 127 ) ? 127 : ( ent->projectileInfo.radius * 1 / 8 );
 	VectorMA( ent->s.origin, -0.02, ent->velocity, origin );
@@ -340,7 +340,7 @@ static void W_Touch_Rocket( edict_t *ent, edict_t *other, cplane_t *plane, int s
 		G_Damage( other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, MOD_ROCKET );
 	}
 
-	G_RadiusDamage( ent, ent->r.owner, plane, other, MOD_ROCKET_SPLASH );
+	G_RadiusDamage( ent, ent->r.owner, plane, other, MOD_ROCKET );
 
 	// spawn the explosion
 	vec3_t explosion_origin;
@@ -391,7 +391,7 @@ static void W_Touch_Plasma( edict_t *ent, edict_t *other, cplane_t *plane, int s
 		G_Damage( other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, DAMAGE_KNOCKBACK_SOFT, MOD_PLASMA );
 	}
 
-	G_RadiusDamage( ent, ent->r.owner, plane, other, MOD_PLASMA_SPLASH );
+	G_RadiusDamage( ent, ent->r.owner, plane, other, MOD_PLASMA );
 
 	edict_t *event = G_SpawnEvent( EV_PLASMA_EXPLOSION, DirToByte( plane ? plane->normal : NULL ), ent->s.origin );
 	event->s.weapon = min( ent->projectileInfo.radius / 8, 127 );

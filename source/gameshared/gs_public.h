@@ -537,13 +537,9 @@ static constexpr const char *gs_keyicon_names[] = {
 	"special"
 };
 
-//===============================================================
-
-// means of death
-#define MOD_UNKNOWN 0
-
-typedef enum {
-	MOD_GUNBLADE = 36,
+enum MeansOfDeath {
+	MOD_UNKNOWN,
+	MOD_GUNBLADE,
 	MOD_PISTOL,
 	MOD_MACHINEGUN,
 	MOD_DEAGLE,
@@ -553,9 +549,6 @@ typedef enum {
 	MOD_PLASMA,
 	MOD_ELECTROBOLT,
 	MOD_LASERGUN,
-	MOD_GRENADE_SPLASH,
-	MOD_ROCKET_SPLASH,
-	MOD_PLASMA_SPLASH,
 
 	MOD_SLIME,
 	MOD_LAVA,
@@ -568,9 +561,7 @@ typedef enum {
 
 	MOD_LASER,
 	MOD_SPIKES,
-} mod_damage_t;
-
-//===============================================================
+};
 
 //
 // events, event parms

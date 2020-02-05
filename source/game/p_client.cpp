@@ -54,7 +54,7 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 			Com_Printf( "%s %s\n", self->r.client->netname, message );
 		}
 
-		G_Obituary( self, ( attacker == self ) ? self : world, mod );
+		G_Obituary( self, attacker == self ? self : world, mod );
 	}
 }
 
@@ -111,10 +111,9 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	body->think = G_FreeEdict; // body self destruction countdown
 
 	int mod = meansOfDeath;
-	bool gib = mod == MOD_ELECTROBOLT || mod == MOD_ROCKET || mod == MOD_GRENADE ||
-		mod == MOD_TRIGGER_HURT || mod == MOD_TELEFRAG || mod == MOD_EXPLOSIVE ||
-		mod == MOD_SPIKES ||
-		( ( mod == MOD_ROCKET_SPLASH || mod == MOD_GRENADE_SPLASH ) && damage >= 20 );
+	bool gib = mod == MOD_ELECTROBOLT || mod == MOD_TRIGGER_HURT || mod == MOD_TELEFRAG
+		|| mod == MOD_EXPLOSIVE || mod == MOD_SPIKES ||
+		( ( mod == MOD_ROCKET || mod == MOD_GRENADE ) && damage >= 20 );
 
 	if( gib ) {
 		ThrowSmallPileOfGibs( body, knockbackOfDeath, damage );

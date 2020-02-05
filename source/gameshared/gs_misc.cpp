@@ -151,19 +151,6 @@ void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *me
 			strcpy( message, "was cut by" );
 			strcpy( message2, "'s lasergun" );
 			break;
-		case MOD_GRENADE_SPLASH:
-			strcpy( message, "didn't see" );
-			strcpy( message2, "'s grenade" );
-			break;
-		case MOD_ROCKET_SPLASH:
-			strcpy( message, "almost dodged" );
-			strcpy( message2, "'s rocket" );
-			break;
-
-		case MOD_PLASMA_SPLASH:
-			strcpy( message, "was melted by" );
-			strcpy( message2, "'s plasmagun" );
-			break;
 
 		default:
 			strcpy( message, "was fragged by" );

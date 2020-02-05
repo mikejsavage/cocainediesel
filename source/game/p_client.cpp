@@ -918,11 +918,6 @@ void G_PredictedEvent( int entNum, int ev, int parm ) {
 			G_FireWeapon( ent, parm );
 			break; // don't send the event
 
-		case EV_FIREWEAPON:
-			G_FireWeapon( ent, parm );
-			G_AddEvent( ent, ev, parm, true );
-			break;
-
 		case EV_WEAPONACTIVATE:
 			ent->s.weapon = parm;
 			G_AddEvent( ent, ev, parm, true );
@@ -932,6 +927,21 @@ void G_PredictedEvent( int entNum, int ev, int parm ) {
 			G_AddEvent( ent, ev, parm, true );
 			break;
 	}
+}
+
+void G_PredictedFireWeapon( int entNum, WeaponType weapon ) {
+	edict_t * ent = &game.edicts[ entNum ];
+	G_FireWeapon( ent, weapon );
+
+	vec3_t start;
+	VectorCopy( ent->s.origin, start );
+	start[ 2 ] += ent->r.client->ps.viewheight;
+
+	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, 0, start );
+	event->s.ownerNum = entNum;
+	VectorCopy( ent->r.client->ps.viewangles, event->s.origin2 ); // DirToByte is too inaccurate
+	event->s.weapon = weapon;
+	event->s.team = ent->s.team;
 }
 
 /*

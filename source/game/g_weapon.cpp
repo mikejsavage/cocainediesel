@@ -181,12 +181,6 @@ void W_Fire_Bullet( edict_t * self, vec3_t start, vec3_t angles, int timeDelta, 
 	vec3_t dir;
 	AngleVectors( angles, dir, NULL, NULL );
 
-	// send the event
-	edict_t * event = G_SpawnEvent( EV_FIRE_MG, 0, start );
-	event->s.ownerNum = ENTNUM( self );
-	VectorScale( dir, 4096, event->s.origin2 ); // DirToByte is too inaccurate
-	event->s.weapon = weapon;
-
 	vec3_t right, up;
 	ViewVectors( dir, right, up );
 
@@ -238,12 +232,6 @@ void W_Fire_Riotgun( edict_t * self, vec3_t start, vec3_t angles, int range, int
 	int dmgflags = 0;
 
 	AngleVectors( angles, dir, NULL, NULL );
-
-	// send the event
-	event = G_SpawnEvent( EV_FIRE_RIOTGUN, 0, start );
-	event->s.ownerNum = ENTNUM( self );
-	VectorScale( dir, 4096, event->s.origin2 ); // DirToByte is too inaccurate
-	event->s.weapon = Weapon_Shotgun;
 
 	G_Fire_SunflowerPattern( self, start, dir, count, spread, range, damage, knockback, dmgflags, timeDelta );
 }
@@ -551,10 +539,6 @@ void W_Fire_Electrobolt( edict_t * self, vec3_t start, vec3_t angles, float dama
 			break;
 		}
 	}
-
-	// send the weapon fire effect
-	edict_t * fire_event = G_SpawnEvent( EV_ELECTROTRAIL, ENTNUM( self ), start );
-	VectorCopy( dir, fire_event->s.origin2 );
 }
 
 /*

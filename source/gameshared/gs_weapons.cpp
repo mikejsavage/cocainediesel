@@ -230,7 +230,7 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 					if( refire && def->mode == FiringMode_Smooth ) {
 						gs->api.PredictedEvent( player->POVnum, EV_SMOOTHREFIREWEAPON, player->weapon );
 					} else {
-						gs->api.PredictedEvent( player->POVnum, EV_FIREWEAPON, player->weapon );
+						gs->api.PredictedFireWeapon( player->POVnum, player->weapon );
 					}
 
 					if( def->clip_size > 0 ) {

@@ -44,6 +44,10 @@ void CG_PredictedEvent( int entNum, int ev, int parm ) {
 	}
 }
 
+void CG_PredictedFireWeapon( int entNum, WeaponType weapon ) {
+	CG_PredictedEvent( entNum, EV_FIREWEAPON, weapon );
+}
+
 /*
 * CG_CheckPredictionError
 */

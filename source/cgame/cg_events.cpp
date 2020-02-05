@@ -330,10 +330,10 @@ static void CG_LeadBubbleTrail( trace_t *tr, vec3_t water_start ) {
 	CG_BubbleTrail( water_start, tr->endpos, 32 );
 }
 
-static void CG_Event_FireMachinegun( vec3_t origin, vec3_t dir, int owner, int team ) {
+static void CG_Event_FireBullet( const vec3_t origin, const vec3_t dir, WeaponType weapon, int owner, int team ) {
 	Vec4 color = CG_TeamColorVec4( team );
 
-	int range = GS_GetWeaponDef( Weapon_MachineGun )->range;
+	int range = GS_GetWeaponDef( weapon )->range;
 
 	vec3_t right, up;
 	ViewVectors( dir, right, up );
@@ -751,48 +751,49 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, int parm, bool predicted ) {
 			if( parm < 0 || parm >= Weapon_Count )
 				return;
 
+			// check the owner for predicted case
+			if( ISVIEWERENTITY( ent->ownerNum ) && ev < PREDICTABLE_EVENTS_MAX && predicted != cg.view.playerPrediction ) {
+				return;
+			}
+
 			if( predicted ) {
 				cg_entities[ent->number].current.weapon = parm;
 			}
 
 			CG_FireWeaponEvent( ent->number, parm );
 
+			int num;
+			WeaponType weapon;
+			vec3_t origin, angles;
 			if( predicted ) {
-				vec3_t origin;
+				num = ent->number;
+				weapon = parm;
 				VectorCopy( cg.predictedPlayerState.pmove.origin, origin );
-				origin[2] += cg.predictedPlayerState.viewheight;
-				AngleVectors( cg.predictedPlayerState.viewangles, dir, NULL, NULL );
+				origin[ 2 ] += cg.predictedPlayerState.viewheight;
+				VectorCopy( cg.predictedPlayerState.viewangles, angles );
+			}
+			else {
+				num = ent->ownerNum;
+				weapon = ent->weapon;
+				VectorCopy( ent->origin, origin );
+				VectorCopy( ent->origin2, angles );
+			}
 
-				if( parm == Weapon_Railgun ) {
-					CG_Event_WeaponBeam( origin, dir, ent->number );
-				}
-				else if( parm == Weapon_Shotgun ) {
-					CG_Event_FireRiotgun( origin, dir, ent->number, ent->team );
-				}
-				else if( parm == Weapon_Laser ) {
-					CG_Event_LaserBeam( origin, dir, ent->number );
-				}
-				else if( parm == Weapon_MachineGun ) {
-					CG_Event_FireMachinegun( origin, dir, ent->number, ent->team );
-				}
+			AngleVectors( angles, dir, NULL, NULL );
+
+			if( weapon == Weapon_Railgun ) {
+				CG_Event_WeaponBeam( origin, dir, num );
+			}
+			else if( weapon == Weapon_Shotgun ) {
+				CG_Event_FireRiotgun( origin, dir, num, ent->team );
+			}
+			else if( weapon == Weapon_Laser ) {
+				CG_Event_LaserBeam( origin, dir, num );
+			}
+			else if( weapon == Weapon_Pistol || weapon == Weapon_MachineGun || weapon == Weapon_Deagle ) {
+				CG_Event_FireBullet( origin, dir, weapon, num, ent->team );
 			}
 		} break;
-
-		case EV_ELECTROTRAIL:
-			// check the owner for predicted case
-			if( ISVIEWERENTITY( parm ) && ev < PREDICTABLE_EVENTS_MAX && predicted != cg.view.playerPrediction ) {
-				return;
-			}
-			CG_Event_WeaponBeam( ent->origin, ent->origin2, parm );
-			break;
-
-		case EV_FIRE_RIOTGUN:
-			// check the owner for predicted case
-			if( ISVIEWERENTITY( ent->ownerNum ) && ev < PREDICTABLE_EVENTS_MAX && predicted != cg.view.playerPrediction ) {
-				return;
-			}
-			CG_Event_FireRiotgun( ent->origin, ent->origin2, ent->ownerNum, ent->team );
-			break;
 
 		case EV_NOAMMOCLICK:
 			if( viewer ) {

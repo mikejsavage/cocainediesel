@@ -353,6 +353,7 @@ typedef struct {
 	SyncEntityState *( *GetEntityState )( int entNum, int deltaTime );
 	int ( *PointContents )( const vec3_t point, int timeDelta );
 	void ( *PredictedEvent )( int entNum, int ev, int parm );
+	void ( *PredictedFireWeapon )( int entNum, WeaponType weapon );
 	void ( *PMoveTouchTriggers )( pmove_t *pm, vec3_t previous_origin );
 	const char *( *GetConfigString )( int index );
 } gs_module_api_t;
@@ -634,9 +635,6 @@ typedef enum {
 
 	EV_WEAPONACTIVATE,
 	EV_FIREWEAPON,
-	EV_ELECTROTRAIL,
-	EV_FIRE_RIOTGUN,
-	EV_FIRE_MG,
 	EV_SMOOTHREFIREWEAPON,
 	EV_NOAMMOCLICK,
 

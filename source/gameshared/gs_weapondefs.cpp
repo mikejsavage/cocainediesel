@@ -19,7 +19,8 @@ const WeaponDef gs_weaponDefs[] = {
 		0, // reload time
 
 		//timings (in msecs)->
- 
+		WEAPONUP_TIME,                  // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
 		500,                            // refire time
 		70,                             // projectile timeout  / projectile range for instant weapons
 		0,                              // recoil

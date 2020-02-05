@@ -825,7 +825,7 @@ static void objectGameClient_InventoryClear( gclient_t *self ) {
 
 	self->ps.weapon = Weapon_Count;
 	self->ps.pending_weapon = Weapon_Count;
-	self->ps.weapon_state = WEAPON_STATE_READY;
+	self->ps.weapon_state = WeaponState_Ready;
 }
 
 static void objectGameClient_SelectWeapon( int index, gclient_t *self ) {

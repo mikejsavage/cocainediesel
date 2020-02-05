@@ -24,7 +24,7 @@ const WeaponDef gs_weaponDefs[] = {
 		500,                            // refire time
 		70,                             // projectile timeout  / projectile range for instant weapons
 		0,                              // recoil
-		false,                          // smooth refire
+		FiringMode_Auto,
 
 		//damages
 		25,                             // damage
@@ -55,7 +55,7 @@ const WeaponDef gs_weaponDefs[] = {
 		75,                             // refire time
 		6000,                           // projectile timeout
 		2.75f,                           // recoil
-		false,                          // smooth refire
+		FiringMode_Auto,
 
 		//damages
 		7,                              // damage
@@ -86,7 +86,7 @@ const WeaponDef gs_weaponDefs[] = {
 		1400,                           // refire time
 		8192,                           // projectile timeout / projectile range for instant weapons
 		25.0f,                              // recoil
-		false,                          // smooth refire
+		FiringMode_Auto,
 
 		//damages
 		2,                              // damage
@@ -117,7 +117,7 @@ const WeaponDef gs_weaponDefs[] = {
 		1750,                            // refire time
 		2000,                           // projectile timeout
 		25.0f,                              // recoil
-		false,                          // smooth refire
+		FiringMode_Auto,
 
 		//damages
 		40,                             // damage
@@ -148,7 +148,7 @@ const WeaponDef gs_weaponDefs[] = {
 		1000,                           // refire time
 		10000,                          // projectile timeout
 		10.0f,                              // recoil
-		false,                          // smooth refire
+		FiringMode_Auto,
 
 		//damages
 		45,                             // damage
@@ -179,7 +179,7 @@ const WeaponDef gs_weaponDefs[] = {
 		100,                            // refire time
 		10000,                           // projectile timeout
 		1.5f,                              // recoil
-		false,                          // smooth refire
+		FiringMode_Auto,
 
 		//damages
 		8,                              // damage
@@ -210,7 +210,7 @@ const WeaponDef gs_weaponDefs[] = {
 		50,                             // refire time
 		800,                            // projectile timeout / projectile range for instant weapons
 		0,                              // recoil
-		true,                           // smooth refire
+		FiringMode_Smooth,
 
 		//damages
 		5,                              // damage
@@ -241,7 +241,7 @@ const WeaponDef gs_weaponDefs[] = {
 		1500,                           // refire time
 		ELECTROBOLT_RANGE,              // range
 		15.0f,                              // recoil
-		false,                          // smooth refire
+		FiringMode_Auto,
 
 		//damages
 		35,                             // damage

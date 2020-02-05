@@ -92,10 +92,10 @@ static void CG_ViewWeapon_AddAngleEffects( vec3_t angles ) {
 * CG_ViewWeapon_baseanimFromWeaponState
 */
 static int CG_ViewWeapon_baseanimFromWeaponState( int weapon_state ) {
-	if( weapon_state == WEAPON_STATE_ACTIVATING )
+	if( weapon_state == WeaponState_SwitchingIn )
 		return WEAPANIM_WEAPONUP;
 
-	if( weapon_state == WEAPON_STATE_DROPPING )
+	if( weapon_state == WeaponState_SwitchingOut )
 		return WEAPANIM_WEAPDOWN;
 
 	return cg_gunbob->integer ? WEAPANIM_STANDBY : WEAPANIM_NOANIM;

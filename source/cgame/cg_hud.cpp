@@ -1557,7 +1557,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		float ammo_frac = 1.0f;
 
 		if( def->clip_size != 0 ) {
-			if( i == cg.predictedPlayerState.weapon && cg.predictedPlayerState.weapon_state == WEAPON_STATE_RELOADING ) {
+			if( i == cg.predictedPlayerState.weapon && cg.predictedPlayerState.weapon_state == WeaponState_Reloading ) {
 				ammo_frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->reload_time );
 			}
 			else {

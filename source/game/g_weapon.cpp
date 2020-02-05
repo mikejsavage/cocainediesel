@@ -588,7 +588,7 @@ static void G_Laser_Think( edict_t *ent ) {
 
 	if( G_ISGHOSTING( owner ) || owner->s.weapon != Weapon_Laser ||
 		trap_GetClientState( PLAYERNUM( owner ) ) < CS_SPAWNED ||
-		owner->r.client->ps.weapon_state != WEAPON_STATE_REFIRE ) {
+		owner->r.client->ps.weapon_state != WeaponState_Firing ) {
 		G_HideLaser( ent );
 		return;
 	}

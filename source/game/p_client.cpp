@@ -306,7 +306,7 @@ void G_GhostClient( edict_t *ent ) {
 
 	ent->r.client->ps.weapon = Weapon_Count;
 	ent->r.client->ps.pending_weapon = Weapon_Count;
-	ent->r.client->ps.weapon_state = WEAPON_STATE_READY;
+	ent->r.client->ps.weapon_state = WeaponState_Ready;
 	ent->r.client->ps.weapon_time = 0;
 
 	GClip_LinkEntity( ent );

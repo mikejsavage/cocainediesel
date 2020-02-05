@@ -82,6 +82,22 @@ enum WeaponType_ : WeaponType {
 	Weapon_Count
 };
 
+typedef u8 WeaponState;
+enum WeaponState_ : WeaponState {
+	WeaponState_Ready,
+	WeaponState_SwitchingIn,
+	WeaponState_SwitchingOut,
+	WeaponState_Firing,
+	WeaponState_FiringSemiAuto,
+	WeaponState_Reloading,
+};
+
+enum FiringMode {
+	FiringMode_Auto,
+	FiringMode_Smooth,
+	FiringMode_SemiAuto,
+};
+
 enum ItemType {
 	Item_Bomb,
 	Item_FakeBomb,
@@ -277,7 +293,7 @@ struct SyncPlayerState {
 
 	s16 health;
 
-	uint8_t weapon_state;
+	WeaponState weapon_state;
 	WeaponType weapon;
 	WeaponType pending_weapon;
 	s16 weapon_time;
@@ -743,14 +759,6 @@ enum {
 //===============================================================
 // gs_weapons.c
 
-enum {
-	WEAPON_STATE_READY,
-	WEAPON_STATE_ACTIVATING,
-	WEAPON_STATE_DROPPING,
-	WEAPON_STATE_REFIRE,
-	WEAPON_STATE_RELOADING,
-};
-
 struct WeaponDef {
 	const char * name;
 	const char * short_name;
@@ -768,7 +776,7 @@ struct WeaponDef {
 	unsigned int refire_time;
 	unsigned int range;
 	float recoil;
-	bool smooth_refire;
+	FiringMode mode;
 
 	float damage;
 	float selfdamage;

@@ -1,4 +1,7 @@
 {
+	volume 0.8
 	sound players/padpork/jump_1
 	sound players/padpork/jump_2
+	sound players/padpork/jump_3
+	sound players/padpork/jump_4
 }

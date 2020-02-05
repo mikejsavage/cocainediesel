@@ -63,27 +63,53 @@ static centity_t *laserOwner = NULL;
 static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles ) {
 	CG_BulletExplosion( trace->endpos, NULL, trace );
 
-	ParticleEmitter emitter = { };
-	emitter.position = FromQF3( trace->endpos );
+	float num_yellow_particles = num_particles / 4.0f;
 
-	emitter.use_cone_direction = true;
-	emitter.direction_cone.normal = FromQF3( trace->plane.normal );
-	emitter.direction_cone.theta = 90.0f;
+	{
+		ParticleEmitter emitter = { };
+		emitter.position = FromQF3( trace->endpos );
 
-	emitter.start_speed = 128.0f;
-	emitter.end_speed = 128.0f;
+		emitter.use_cone_direction = true;
+		emitter.direction_cone.normal = FromQF3( trace->plane.normal );
+		emitter.direction_cone.theta = 90.0f;
 
-	emitter.start_color = color;
-	emitter.end_color = Vec3( 0.0f );
+		emitter.start_speed = 128.0f;
+		emitter.end_speed = 128.0f;
 
-	emitter.start_size = 2.0f;
-	emitter.end_size = 0.0f;
+		emitter.start_color = color;
 
-	emitter.lifetime = 0.5f;
+		emitter.start_size = 2.0f;
+		emitter.end_size = 0.0f;
 
-	emitter.n = num_particles;
+		emitter.lifetime = 0.5f;
 
-	EmitParticles( &cgs.bullet_sparks, emitter );
+		emitter.n = num_particles - num_yellow_particles;
+
+		EmitParticles( &cgs.bullet_sparks, emitter );
+	}
+
+	{
+		ParticleEmitter emitter = { };
+		emitter.position = FromQF3( trace->endpos );
+
+		emitter.use_cone_direction = true;
+		emitter.direction_cone.normal = FromQF3( trace->plane.normal );
+		emitter.direction_cone.theta = 90.0f;
+
+		emitter.start_speed = 128.0f;
+		emitter.end_speed = 128.0f;
+
+		emitter.start_color = Vec4( 1.0f, 0.9, 0.0f, 0.5f );
+
+		emitter.start_size = 2.0f;
+		emitter.end_size = 0.0f;
+
+		emitter.lifetime = 0.5f;
+
+		emitter.n = num_yellow_particles;
+
+		EmitParticles( &cgs.bullet_sparks, emitter );
+	}
 }
 
 static void _LaserImpact( const trace_t *trace, const vec3_t dir ) {

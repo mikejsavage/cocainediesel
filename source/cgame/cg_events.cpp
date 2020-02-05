@@ -818,9 +818,10 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, int parm, bool predicted ) {
 
 		case EV_NOAMMOCLICK:
 			if( viewer ) {
-				S_StartGlobalSound( cgs.media.sfxWeaponUpNoAmmo, CHAN_AUTO, 1.0f );
-			} else {
-				S_StartFixedSound( cgs.media.sfxWeaponUpNoAmmo, FromQF3( ent->origin ), CHAN_AUTO, 1.0f );
+				S_StartGlobalSound( cgs.media.sfxWeaponNoAmmo, CHAN_AUTO, 1.0f );
+			}
+			else {
+				S_StartFixedSound( cgs.media.sfxWeaponNoAmmo, FromQF3( ent->origin ), CHAN_AUTO, 1.0f );
 			}
 			break;
 

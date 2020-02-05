@@ -111,8 +111,7 @@ typedef struct {
 
 typedef struct {
 	// sounds
-	const SoundEffect * sfxWeaponUp;
-	const SoundEffect * sfxWeaponUpNoAmmo;
+	const SoundEffect * sfxWeaponNoAmmo;
 
 	const SoundEffect * sfxWeaponHit[4];
 	const SoundEffect * sfxWeaponKill;

@@ -926,7 +926,7 @@ static void GameMenu() {
 				if( hovered != Weapon_Count ) {
 					ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 225 ) );
 
-					const Material * icon = cgs.media.shaderWeaponIcon[ hovered - 1 ];
+					const Material * icon = cgs.media.shaderWeaponIcon[ hovered ];
 					Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
 					const WeaponDef * weapon = GS_GetWeaponDef( hovered );
 

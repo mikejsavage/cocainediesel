@@ -178,7 +178,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//timings (in msecs)
 		WEAPONUP_TIME_NORMAL,                  // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		1750,                            // refire time
+		1000,                            // refire time
 		2000,                           // projectile timeout
 		25.0f,                              // recoil
 		FiringMode_Auto,

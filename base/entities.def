@@ -13,24 +13,18 @@ target : Point at a target entity to make the camera look at it
 
 /*QUAKED info_player_deathmatch (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
 Gladiator spawn point
--------- KEYS --------
-target : this can point at a target_give entity for respawn freebies.
 -------- SPAWNFLAGS --------
 SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.
 */
 
-/*QUAKED team_CTF_alphaspawn (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
-Alpha team respawning position for CTF games. This is where Alpha team players respawn after they get fragged.
--------- KEYS --------
-target : this can point at a target_give entity for respawn freebies.
+/*QUAKED spawn_offense (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
+Spawnpoint for attackers in bomb
 -------- SPAWNFLAGS --------
 SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.
 */
 
-/*QUAKED team_CTF_betaspawn (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
-Beta team respawning position for CTF games. This is where Beta team players respawn after they get fragged.
--------- KEYS --------
-target : this can point at a target_give entity for respawn freebies.
+/*QUAKED spawn_defense (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
+Spawnpoint for defenders in bomb
 -------- SPAWNFLAGS --------
 SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.
 */

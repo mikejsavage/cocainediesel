@@ -112,14 +112,14 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * m
 	// "phone wire anti-aliasing"
 	// we should really do this in the shader so it's accurate across the whole beam.
 	// scale width by 4 because our beam textures have their own fade to transparent at the edges.
-	float pixel_scale = tanf( 0.5f * DEG2RAD( cg.view.fov_x ) ) / frame_static.viewport.y;
+	float pixel_scale = tanf( 0.5f * DEG2RAD( cg.view.fov_y ) ) / frame_static.viewport.y;
 	Mat4 VP = frame_static.P * frame_static.V;
 
 	float start_w = ( VP * Vec4( start, 1.0f ) ).w;
-	float start_width = Max2( width, 4.0f * start_w * pixel_scale );
+	float start_width = Max2( width, 8.0f * start_w * pixel_scale );
 
 	float end_w = ( VP * Vec4( end, 1.0f ) ).w;
-	float end_width = Max2( width, 4.0f * end_w * pixel_scale );
+	float end_width = Max2( width, 8.0f * end_w * pixel_scale );
 
 	Vec3 positions[] = {
 		start + start_width * beam_across * 0.5f,

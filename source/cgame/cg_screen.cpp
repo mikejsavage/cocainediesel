@@ -493,7 +493,7 @@ void CG_DrawDamageNumbers() {
 		float alpha = 1 - max( 0, frac - 0.75f ) / 0.25f;
 		color.w *= alpha;
 
-		DrawText( cgs.fontMontserrat, font_size, buf, Alignment_CenterMiddle, coords.x, coords.y, color, true );
+		DrawText( cgs.fontMontserrat, font_size, buf, Alignment_CenterBottom, coords.x, coords.y, color, true );
 	}
 }
 

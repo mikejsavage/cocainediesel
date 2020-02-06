@@ -12,7 +12,7 @@ void CG_ParticleExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 		emitter.start_speed = 1000.0f;
 		emitter.end_speed = 1000.0f;
 
-		emitter.start_color = Vec3( 1.0f, 1.0f, 0.0f );
+		emitter.start_color = Vec4( 1.0f, 1.0f, 0.0f, 1.0f );
 		emitter.end_color = Vec3( 1.0f, 1.0f, 0.0f );
 
 		emitter.start_size = 4.0f;

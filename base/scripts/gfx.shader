@@ -34,26 +34,6 @@ flareShader
 	}
 }
 
-gfx/misc/ctf_flare
-{
-	cull none
-	entityMergable		// allow all the sprites to be merged together
-	softParticle
-	{
-		clampmap gfx/misc/ctf_flare_a
-		blendFunc blend
-		//rgbGen	vertex
-		alphaGen	vertex
-		tcMod rotate 3
-	}
-	{
-		clampmap gfx/misc/ctf_flare_b
-		blendFunc add
-		rgbGen	vertex
-		alphaGen	vertex
-		tcMod rotate 10
-	}
-}
 
 alphaBlendedPuff_Template
 {
@@ -255,18 +235,6 @@ gfx/rocket_explosion
 	}
 }
 
-gfx/rocket_explosion_ring
-{
-	cull disable
-	softParticle
-	{
-		Clampmap gfx/misc/rlexplo_ring
-		rgbGen entitycolorwave 1 1 1 Inversesawtooth 0 1 0 4
-		blendfunc add
-		tcMod stretch sawtooth .75 .5 0 4
-	}
-}
-
 gfx/grenade_explosion
 {
 	cull disable
@@ -280,63 +248,6 @@ gfx/grenade_explosion
 		animmap 8 gfx/misc/rlexplo2 gfx/misc/rlexplo3 gfx/misc/rlexplo4 gfx/misc/rlexplo5 gfx/misc/rlexplo6 gfx/misc/rlexplo7 gfx/misc/rlexplo8 $blackimage
 		rgbGen entitycolorwave 1 1 1 sawtooth 0 1 0 8
 		blendfunc add
-	}
-}
-
-gfx/grenade_explosion_ring
-{
-	cull disable
-	softParticle
-	{
-		Clampmap gfx/misc/rlexplo_ring
-		rgbGen entitycolorwave 1 1 1 Inversesawtooth 0 1 0 4
-		blendfunc add
-		tcMod stretch sawtooth .75 .5 0 4
-	}
-}
-
-gfx/misc/waterBubble
-{
-	entityMergable		// allow all the sprites to be merged together
-	{
-		map gfx/misc/waterBubble
-		rgbGen vertex
-		alphaGen vertex
-		blendFunc blend
-	}
-}
-
-gfx/raceghost
-{
-	{
-		map gfx/powerups/warshell
-		blendfunc add
-		alphagen vertex
-		rgbgen entity
-	}
-}
-
-gfx/indicators/radar_decal
-{
-	polygonOffset
-
-	{
-		alphamaskclampmap gfx/indicators/radar_1
-		blendFunc blend
-		rgbgen vertex
-		alphagen vertex
-	}
-
-	{
-		alphamaskclampmap gfx/indicators/radar_2
-		blendFunc blend
-		tcMod rotate 6
-	}
-
-	{
-		alphamaskclampmap gfx/indicators/radar_3
-		blendFunc blend
-		tcMod rotate -3
 	}
 }
 

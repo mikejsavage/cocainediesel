@@ -9,26 +9,24 @@ void CG_ParticleExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 		emitter.direction_cone.normal = normal;
 		emitter.direction_cone.theta = 90.0f;
 
-		emitter.start_speed = 100.0f;
-		emitter.end_speed = 100.0f;
+		emitter.start_speed = 1000.0f;
+		emitter.end_speed = 1000.0f;
 
-		emitter.start_color = Vec4( 1.0f, 0.9, 0.0f, 0.5f );
-		emitter.end_color = Vec3( 0.2f, 0.1f, 0.0f );
-		emitter.alpha_distribution.type = RandomDistributionType_Uniform;
-		emitter.alpha_distribution.uniform = 0.1f;
+		emitter.start_color = Vec3( 1.0f, 1.0f, 0.0f );
+		emitter.end_color = Vec3( 1.0f, 1.0f, 0.0f );
 
-		emitter.start_size = 32.0f;
-		emitter.end_size = 32.0f;
+		emitter.start_size = 4.0f;
+		emitter.end_size = 0.0f;
 		emitter.size_distribution.type = RandomDistributionType_Uniform;
-		emitter.size_distribution.uniform = 16.0f;
+		emitter.size_distribution.uniform = 4.0f;
 
-		emitter.lifetime = 0.8f;
+		emitter.lifetime = 0.1f;
 		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-		emitter.lifetime_distribution.uniform = 0.3f;
+		emitter.lifetime_distribution.uniform = 0.2f;
 
-		emitter.n = 32;
+		emitter.n = 128;
 
-		EmitParticles( &cgs.smoke, emitter );
+		EmitParticles( &cgs.sparks, emitter );
 	}
 
 	{

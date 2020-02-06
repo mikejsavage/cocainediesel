@@ -11,7 +11,6 @@ void InitParticles() {
 	cgs.ions = NewParticleSystem( sys_allocator, 8192, FindMaterial( "$particle" ) );
 	cgs.bullet_sparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "weapons/mg/spark" ) );
 	cgs.bullet_sparks.acceleration = gravity;
-	cgs.smoke = NewParticleSystem( sys_allocator, 1024, FindMaterial( "gfx/misc/cartoon_smokepuff3" ) );
 	cgs.sparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "$particle" ) );
 	cgs.sparks.acceleration = gravity;
 	cgs.sparks.blend_func = BlendFunc_Blend;
@@ -21,7 +20,6 @@ void ShutdownParticles() {
 	DeleteParticleSystem( sys_allocator, cgs.ions );
 	DeleteParticleSystem( sys_allocator, cgs.bullet_sparks );
 	DeleteParticleSystem( sys_allocator, cgs.sparks );
-	DeleteParticleSystem( sys_allocator, cgs.smoke );
 }
 
 ParticleSystem NewParticleSystem( Allocator * a, size_t n, const Material * material ) {
@@ -196,11 +194,9 @@ void DrawParticles() {
 	UpdateParticleSystem( &cgs.ions, dt );
 	UpdateParticleSystem( &cgs.bullet_sparks, dt );
 	UpdateParticleSystem( &cgs.sparks, dt );
-	UpdateParticleSystem( &cgs.smoke, dt );
 	DrawParticleSystem( &cgs.ions );
 	DrawParticleSystem( &cgs.bullet_sparks );
 	DrawParticleSystem( &cgs.sparks );
-	DrawParticleSystem( &cgs.smoke );
 }
 
 static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float dvelocity, Vec4 color, Vec4 dcolor, float size, float dsize ) {

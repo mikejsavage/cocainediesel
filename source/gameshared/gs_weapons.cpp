@@ -134,6 +134,15 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 
 	const WeaponDef * def = GS_GetWeaponDef( player->weapon );
 
+	if( player->weapon_state == WeaponState_FiringSemiAuto ) {
+		if( ( buttons & BUTTON_ATTACK ) == 0 ) {
+			player->weapon_state = WeaponState_Firing;
+		}
+		else if( player->weapon_time > 0 ) {
+			return player->weapon;
+		}
+	}
+
 	// during cool-down time it can shoot again or go into reload time
 	if( player->weapon_state == WeaponState_Firing ) {
 		if( player->weapon_time > 0 ) {
@@ -141,14 +150,6 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 		}
 
 		refire = true;
-
-		player->weapon_state = def->mode == FiringMode_SemiAuto ? WeaponState_FiringSemiAuto : WeaponState_Ready;
-	}
-
-	if( player->weapon_state == WeaponState_FiringSemiAuto ) {
-		if( ( buttons & BUTTON_ATTACK ) != 0 ) {
-			return player->weapon;
-		}
 
 		player->weapon_state = WeaponState_Ready;
 	}
@@ -222,11 +223,12 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 			if( buttons & BUTTON_ATTACK ) {
 				if( GS_CheckAmmoInWeapon( player, player->weapon ) ) {
 					player->weapon_time = def->refire_time;
-					player->weapon_state = WeaponState_Firing;
+					player->weapon_state = def->mode == FiringMode_SemiAuto ? WeaponState_FiringSemiAuto : WeaponState_Firing;
 
 					if( refire && def->mode == FiringMode_Smooth ) {
 						gs->api.PredictedEvent( player->POVnum, EV_SMOOTHREFIREWEAPON, player->weapon );
-					} else {
+					}
+					else {
 						gs->api.PredictedFireWeapon( player->POVnum, player->weapon );
 					}
 

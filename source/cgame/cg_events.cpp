@@ -112,6 +112,32 @@ static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles )
 	}
 }
 
+static void WallbangImpact( const trace_t * trace, int num_particles ) {
+	if( ( trace->contents & CONTENTS_WALLBANGABLE ) == 0 )
+		return;
+
+	ParticleEmitter emitter = { };
+	emitter.position = FromQF3( trace->endpos );
+
+	emitter.use_cone_direction = true;
+	emitter.direction_cone.normal = FromQF3( trace->plane.normal );
+	emitter.direction_cone.theta = 90.0f;
+
+	emitter.start_speed = 128.0f;
+	emitter.end_speed = 128.0f;
+
+	emitter.start_color = Vec4( 1.0f, 0.9, 0.0f, 0.5f );
+
+	emitter.start_size = 2.0f;
+	emitter.end_size = 0.0f;
+
+	emitter.lifetime = 0.5f;
+
+	emitter.n = num_particles;
+
+	EmitParticles( &cgs.bullet_sparks, emitter );
+}
+
 static void _LaserImpact( const trace_t *trace, const vec3_t dir ) {
 	if( !trace || trace->ent < 0 ) {
 		return;
@@ -356,28 +382,19 @@ static void CG_Event_FireBullet( const vec3_t origin, const vec3_t dir, WeaponTy
 	vec3_t right, up;
 	ViewVectors( dir, right, up );
 
-	trace_t trace;
-	trace_t * water_trace = GS_TraceBullet( &client_gs, &trace, origin, dir, right, up, 0, 0, range, owner, 0 );
-	if( water_trace ) {
-		if( !VectorCompare( water_trace->endpos, origin ) ) {
-			CG_LeadWaterSplash( water_trace );
-		}
-	}
+	trace_t trace, wallbang;
+	GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, 0, 0, range, owner, 0 );
 
 	if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
-		if( !water_trace ) {
-			if( trace.surfFlags & SURF_FLESH || ( trace.ent > 0 && cg_entities[trace.ent].current.type == ET_PLAYER ) ) {
-				// flesh impact sound
-			}
-			else {
-				BulletImpact( &trace, color, 24 );
-				S_StartFixedSound( cgs.media.sfxBulletImpact, FromQF3( trace.endpos ), CHAN_AUTO, 1.0f );
-			}
+		if( trace.surfFlags & SURF_FLESH || ( trace.ent > 0 && cg_entities[trace.ent].current.type == ET_PLAYER ) ) {
+			// flesh impact sound
 		}
-	}
+		else {
+			BulletImpact( &trace, color, 24 );
+			S_StartFixedSound( cgs.media.sfxBulletImpact, FromQF3( trace.endpos ), CHAN_AUTO, 1.0f );
+		}
 
-	if( water_trace ) {
-		CG_LeadBubbleTrail( &trace, water_trace->endpos );
+		WallbangImpact( &wallbang, 12 );
 	}
 
 	orientation_t projection;
@@ -408,24 +425,16 @@ static void CG_Fire_SunflowerPattern( vec3_t start, vec3_t dir, int owner, int t
 		float r = cosf( fi ) * spread * sqrtf( fi );
 		float u = sinf( fi ) * spread * sqrtf( fi );
 
-		trace_t trace;
-		trace_t * water_trace = GS_TraceBullet( &client_gs, &trace, start, dir, right, up, r, u, range, owner, 0 );
-		if( water_trace ) {
-			trace_t *tr = water_trace;
-			if( !VectorCompare( tr->endpos, start ) ) {
-				CG_LeadWaterSplash( tr );
-			}
-		}
+		trace_t trace, wallbang;
+		GS_TraceBullet( &client_gs, &trace, &wallbang, start, dir, right, up, r, u, range, owner, 0 );
 
 		if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
 			BulletImpact( &trace, color, 4 );
 		}
 
-		AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 1.0f, color, cgs.media.shaderTracer, 0.2f, 0.1f );
+		WallbangImpact( &wallbang, 2 );
 
-		if( water_trace ) {
-			CG_LeadBubbleTrail( &trace, water_trace->endpos );
-		}
+		AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 1.0f, color, cgs.media.shaderTracer, 0.2f, 0.1f );
 	}
 }
 

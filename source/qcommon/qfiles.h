@@ -118,39 +118,6 @@ typedef struct {
 } dplane_t;
 
 
-// contents flags are separate bits
-// a given brush can contribute multiple content bits
-// multiple brushes can be in a single leaf
-
-// these definitions also need to be in q_shared.h!
-
-// lower bits are stronger, and will eat weaker brushes completely
-#define CONTENTS_SOLID      1       // an eye is never valid in a solid
-#define CONTENTS_LAVA       8
-#define CONTENTS_SLIME      16
-#define CONTENTS_WATER      32
-
-#define CONTENTS_AREAPORTAL 0x8000
-
-#define CONTENTS_PLAYERCLIP 0x10000
-#define CONTENTS_MONSTERCLIP    0x20000
-
-// bot specific contents types
-#define CONTENTS_TELEPORTER 0x40000
-#define CONTENTS_JUMPPAD    0x80000
-#define CONTENTS_CLUSTERPORTAL  0x100000
-#define CONTENTS_DONOTENTER 0x200000
-
-#define CONTENTS_ORIGIN     0x1000000   // removed before bsping an entity
-
-#define CONTENTS_BODY       0x2000000   // should never be on a brush, only in game
-#define CONTENTS_CORPSE     0x4000000
-#define CONTENTS_DETAIL     0x8000000   // brushes not used for the bsp
-#define CONTENTS_STRUCTURAL 0x10000000  // brushes used for the bsp
-#define CONTENTS_TRANSLUCENT    0x20000000  // don't consume surface fragments inside
-#define CONTENTS_TRIGGER    0x40000000
-#define CONTENTS_NODROP     0x80000000  // don't leave bodies or items (death fog, lava)
-
 #define SURF_NODAMAGE     0x1         // never give falling damage
 #define SURF_SLICK        0x2         // effects game physics
 #define SURF_SKY          0x4         // lighting from environment map

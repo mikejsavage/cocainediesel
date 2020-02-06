@@ -431,6 +431,12 @@ Span< const char > FileExtension( const char * path ) {
 	return Span< const char >( ext, ext == NULL ? 0 : strlen( ext ) );
 }
 
+Span< const char > BaseName( const char * path ) {
+	const char * filename = strrchr( path, '/' );
+	filename = filename == NULL ? path : filename + 1;
+	return Span< const char >( filename, strlen( filename ) );
+}
+
 /*
 * COM_ParseExt2_r
 *

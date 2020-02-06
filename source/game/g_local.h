@@ -307,7 +307,6 @@ void SP_func_door_rotating( edict_t *ent );
 void SP_func_train( edict_t *ent );
 void SP_func_timer( edict_t *self );
 void SP_func_wall( edict_t *self );
-void SP_func_object( edict_t *self );
 void SP_func_explosive( edict_t *self );
 void SP_func_static( edict_t *ent );
 

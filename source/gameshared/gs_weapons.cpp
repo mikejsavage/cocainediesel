@@ -24,50 +24,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/q_collision.h"
 #include "gameshared/gs_public.h"
 
-trace_t * GS_TraceBullet( const gs_state_t * gs, trace_t * trace, const vec3_t start, const vec3_t dir, const vec3_t right, const vec3_t up, float r, float u, int range, int ignore, int timeDelta ) {
+void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, const vec3_t start, const vec3_t dir, const vec3_t right, const vec3_t up, float r, float u, int range, int ignore, int timeDelta ) {
 	vec3_t end;
-	bool water = false;
-	vec3_t water_start;
-	int content_mask = MASK_SHOT | MASK_WATER;
-	static trace_t water_trace;
-
-	assert( trace );
-
 	VectorMA( start, range, dir, end );
-	if( r ) {
-		VectorMA( end, r, right, end );
+	VectorMA( end, r, right, end );
+	VectorMA( end, u, up, end );
+
+	gs->api.Trace( trace, start, vec3_origin, vec3_origin, end, ignore, MASK_WALLBANG, timeDelta );
+
+	if( wallbang_trace != NULL ) {
+		gs->api.Trace( wallbang_trace, start, vec3_origin, vec3_origin, trace->endpos, ignore, MASK_SHOT, timeDelta );
 	}
-	if( u ) {
-		VectorMA( end, u, up, end );
-	}
-
-	if( gs->api.PointContents( start, timeDelta ) & MASK_WATER ) {
-		water = true;
-		VectorCopy( start, water_start );
-		content_mask &= ~MASK_WATER;
-	}
-
-	gs->api.Trace( trace, start, vec3_origin, vec3_origin, end, ignore, content_mask, timeDelta );
-
-	// see if we hit water
-	if( trace->contents & MASK_WATER ) {
-		water_trace = *trace;
-
-		VectorCopy( trace->endpos, water_start );
-
-		// re-trace ignoring water this time
-		gs->api.Trace( trace, water_start, vec3_origin, vec3_origin, end, ignore, MASK_SHOT, timeDelta );
-
-		return &water_trace;
-	}
-
-	if( water ) {
-		water_trace = *trace;
-		VectorCopy( water_start, water_trace.endpos );
-		return &water_trace;
-	}
-
-	return NULL;
 }
 
 void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, const vec3_t origin, const vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * tr, const vec3_t dir ) ) {

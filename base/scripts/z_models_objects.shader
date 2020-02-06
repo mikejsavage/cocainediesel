@@ -20,7 +20,6 @@ models/objects/jumppad_top
 models/objects/spikes_base
 {
 	cull front
-	fog
 	{
 		map $whiteimage
 		rgbGen const 0.05 0.05 0.05
@@ -30,7 +29,6 @@ models/objects/spikes_base
 models/objects/spikes_top
 {
 	cull front
-	fog
 	{
 		map $whiteimage
 		rgbGen const 1 0.35 0

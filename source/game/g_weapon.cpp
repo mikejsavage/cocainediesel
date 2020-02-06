@@ -179,44 +179,53 @@ void W_Fire_Bullet( edict_t * self, vec3_t start, vec3_t angles, int timeDelta, 
 	vec3_t right, up;
 	ViewVectors( dir, right, up );
 
-	trace_t trace;
-	GS_TraceBullet( &server_gs, &trace, start, dir, right, up, 0, 0, def->range, ENTNUM( self ), timeDelta );
+	trace_t trace, wallbang;
+	GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, 0, 0, def->range, ENTNUM( self ), timeDelta );
 	if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
+		float damage = def->damage;
+		float knockback = def->knockback;
+		if( wallbang.contents & CONTENTS_WALLBANGABLE ) {
+			damage *= 0.5f;
+			knockback *= 0.5f;
+		}
+
 		int dmgflags = DAMAGE_KNOCKBACK_SOFT;
-		G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, def->damage, def->knockback, dmgflags, mod );
+		G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, damage, knockback, dmgflags, mod );
 	}
 }
 
 // Sunflower spiral with Fibonacci numbers
 static void G_Fire_SunflowerPattern( edict_t * self, vec3_t start, vec3_t dir, int count,
-									 int spread, int range, float damage, int kick, int timeDelta ) {
+									 int spread, int range, float damage, float kick, int timeDelta ) {
 	vec3_t right, up;
 	ViewVectors( dir, right, up );
 
-	int hits[MAX_CLIENTS + 1] = { };
+	float damage_dealt[MAX_CLIENTS + 1] = { };
 	for( int i = 0; i < count; i++ ) {
 		float fi = i * 2.4f; //magic value creating Fibonacci numbers
 		float r = cosf( fi ) * spread * sqrtf( fi );
 		float u = sinf( fi ) * spread * sqrtf( fi );
 
-		trace_t trace;
-		GS_TraceBullet( &server_gs, &trace, start, dir, right, up, r, u, range, ENTNUM( self ), timeDelta );
+		trace_t trace, wallbang;
+		GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, r, u, range, ENTNUM( self ), timeDelta );
 		if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
-			G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, damage, kick, 0, MOD_RIOTGUN );
+			float scale = ( wallbang.contents & CONTENTS_WALLBANGABLE ) ? 0.5f : 1.0f;
+			G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, damage * scale, kick * scale, 0, MOD_RIOTGUN );
+
 			if( !G_IsTeamDamage( &game.edicts[trace.ent].s, &self->s ) && trace.ent <= MAX_CLIENTS ) {
-				hits[trace.ent]++;
+				damage_dealt[trace.ent] += damage * scale;
 			}
 		}
 	}
 
 	for( int i = 1; i <= MAX_CLIENTS; i++ ) {
-		if( hits[i] == 0 )
+		if( damage_dealt[i] == 0 )
 			continue;
 		edict_t * target = &game.edicts[i];
 		edict_t * ev = G_SpawnEvent( EV_DAMAGE, 0, target->s.origin );
 		ev->r.svflags |= SVF_ONLYOWNER;
 		ev->s.ownerNum = ENTNUM( self );
-		ev->s.damage = HEALTH_TO_INT( hits[i] * damage );
+		ev->s.damage = HEALTH_TO_INT( damage_dealt[i] );
 	}
 }
 

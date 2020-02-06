@@ -221,68 +221,6 @@ void SP_func_static( edict_t *ent ) {
 
 //===========================================================
 
-static void func_object_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
-	// only squash thing we fall on top of
-	if( !plane ) {
-		return;
-	}
-	if( plane->normal[2] < 1.0 ) {
-		return;
-	}
-	if( other->takedamage == DAMAGE_NO ) {
-		return;
-	}
-
-	G_Damage( other, self, self, vec3_origin, vec3_origin, self->s.origin, self->dmg, 1, 0, MOD_CRUSH );
-}
-
-static void func_object_release( edict_t *self ) {
-	self->movetype = MOVETYPE_TOSS;
-	self->touch = func_object_touch;
-}
-
-static void func_object_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	self->r.solid = SOLID_YES;
-	self->r.svflags &= ~SVF_NOCLIENT;
-	self->use = NULL;
-	KillBox( self, MOD_CRUSH, vec3_origin );
-	func_object_release( self );
-}
-
-void SP_func_object( edict_t *self ) {
-	G_InitMover( self );
-
-	self->r.mins[0] += 1;
-	self->r.mins[1] += 1;
-	self->r.mins[2] += 1;
-	self->r.maxs[0] -= 1;
-	self->r.maxs[1] -= 1;
-	self->r.maxs[2] -= 1;
-
-	if( !self->dmg ) {
-		self->dmg = 100;
-	}
-
-	if( self->spawnflags == 0 ) {
-		self->r.solid = SOLID_YES;
-		self->movetype = MOVETYPE_PUSH;
-		self->think = func_object_release;
-		self->nextThink = level.time + self->wait * 1000;
-		self->r.svflags &= ~SVF_NOCLIENT;
-	} else {
-		self->r.solid = SOLID_NOT;
-		self->movetype = MOVETYPE_PUSH;
-		self->use = func_object_use;
-		self->r.svflags |= SVF_NOCLIENT;
-	}
-
-	self->r.clipmask = MASK_MONSTERSOLID;
-
-	GClip_LinkEntity( self );
-}
-
-//===========================================================
-
 static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point ) {
 	vec3_t origin, bakorigin;
 	vec3_t chunkorigin;

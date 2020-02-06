@@ -105,7 +105,6 @@ static spawn_t spawns[] = {
 	{ "func_train", SP_func_train },
 	{ "func_timer", SP_func_timer },
 	{ "func_wall", SP_func_wall },
-	{ "func_object", SP_func_object },
 	{ "func_explosive", SP_func_explosive },
 	{ "func_static", SP_func_static },
 

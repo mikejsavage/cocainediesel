@@ -660,7 +660,7 @@ void InitMaterials() {
 		ZoneScopedN( "Load materials" );
 
 		for( const char * path : AssetPaths() ) {
-			if( FileExtension( path ) == ".shader" ) {
+			if( FileExtension( path ) == ".shader" && BaseName( path ) != "editor.shader" ) {
 				LoadMaterialFile( path );
 			}
 		}
@@ -681,7 +681,7 @@ void HotloadMaterials() {
 	}
 
 	for( const char * path : ModifiedAssetPaths() ) {
-		if( FileExtension( path ) == ".shader" ) {
+		if( FileExtension( path ) == ".shader" && BaseName( path ) != "editor.shader" ) {
 			LoadMaterialFile( path );
 		}
 	}

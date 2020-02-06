@@ -370,7 +370,7 @@ static const char * obituaries[] = {
 	"CREAMED",
 	"CRIPPLED",
 	"CRUSHED",
-	"CU IN 2 WEEKS'D"
+	"CU IN 2 WEEKS'D",
 	"CULLED",
 	"CULTIVATED",
 	"CURED",

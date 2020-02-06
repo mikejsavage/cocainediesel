@@ -506,7 +506,7 @@ static const char * obituaries[] = {
 	"LET GO",
 	"LIKED",
 	"LIQUIDATED",
-	"LIT,"
+	"LIT",
 	"LIVESTREAMED",
 	"LOGGED",
 	"LOOPED",

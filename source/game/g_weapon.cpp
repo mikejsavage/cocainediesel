@@ -89,10 +89,9 @@ static edict_t * W_Fire_LinearProjectile( edict_t * self, vec3_t start, vec3_t a
 */
 static edict_t * W_Fire_TossProjectile( edict_t * self, vec3_t start, vec3_t angles, int speed,
 									   float damage, int minKnockback, int maxKnockback, int minDamage, int radius, int timeout, int timeDelta ) {
-	edict_t *projectile;
 	vec3_t dir;
 
-	projectile = G_Spawn();
+	edict_t * projectile = G_Spawn();
 	VectorCopy( start, projectile->s.origin );
 	VectorCopy( start, projectile->olds.origin );
 
@@ -114,14 +113,10 @@ static edict_t * W_Fire_TossProjectile( edict_t * self, vec3_t start, vec3_t ang
 	VectorClear( projectile->r.mins );
 	VectorClear( projectile->r.maxs );
 
-	//projectile->s.modelindex = trap_ModelIndex ("models/objects/projectile/plasmagun/proj_plasmagun2.md3");
-	projectile->s.modelindex = 0;
 	projectile->r.owner = self;
 	projectile->touch = ForgotToSetProjectileTouch;
 	projectile->nextThink = level.time + timeout;
 	projectile->think = G_FreeEdict;
-	projectile->classname = NULL; // should be replaced after calling this func.
-	projectile->s.sound = 0;
 	projectile->timeStamp = level.time;
 	projectile->timeDelta = timeDelta;
 	projectile->s.team = self->s.team;
@@ -304,13 +299,12 @@ edict_t * W_Fire_Grenade( edict_t * self, vec3_t start, vec3_t angles, int speed
 	grenade->s.type = ET_GRENADE;
 	grenade->movetype = MOVETYPE_BOUNCEGRENADE;
 	grenade->touch = W_Touch_Grenade;
-	grenade->use = NULL;
 	grenade->think = W_Grenade_Explode;
 	grenade->classname = "grenade";
-	grenade->enemy = NULL;
 	VectorSet( grenade->avelocity, 300, 300, 300 );
 
 	grenade->s.modelindex = trap_ModelIndex( "weapons/gl/grenade" );
+	grenade->s.sound = trap_SoundIndex( "weapons/pg/trail" );
 
 	GClip_LinkEntity( grenade );
 

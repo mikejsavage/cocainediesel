@@ -452,7 +452,7 @@ static void SettingsVideo() {
 			if( samples == 0 )
 				ImGui::SetItemDefaultFocus();
 
-			for( int i = 2; i <= 16; i *= 2 ) {
+			for( int i = 2; i <= 8; i *= 2 ) {
 				if( ImGui::Selectable( temp( "{}x", i ), i == samples ) )
 					samples = i;
 				if( i == samples )
@@ -462,6 +462,10 @@ static void SettingsVideo() {
 			ImGui::EndCombo();
 		}
 		ImGui::PopItemWidth();
+
+		ImGui::SameLine();
+
+		ImGui::Text( "%sAnti-Aliasing is really costy for your frame rate", S_COLOR_RED );
 
 		Cvar_Set( "r_samples", temp( "{}", samples ) );
 	}

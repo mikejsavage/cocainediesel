@@ -19,24 +19,8 @@ target : this can point at a target_give entity for respawn freebies.
 SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.
 */
 
-/*QUAKED team_CTF_alphaplayer (1 .2 0) (-16 -16 -24) (16 16 40) SUSPENDED
-Initial Alpha team spawning position for CTF games. This is where players spawn when they join the Alpha team.
--------- KEYS --------
-target : this can point at a target_give entity for respawn freebies.
--------- SPAWNFLAGS --------
-SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.
-*/
-
 /*QUAKED team_CTF_alphaspawn (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
 Alpha team respawning position for CTF games. This is where Alpha team players respawn after they get fragged.
--------- KEYS --------
-target : this can point at a target_give entity for respawn freebies.
--------- SPAWNFLAGS --------
-SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.
-*/
-
-/*QUAKED team_CTF_betaplayer (1 .2 0) (-16 -16 -24) (16 16 40) SUSPENDED
-Initial Beta team spawning position for CTF games. This is where players spawn when they join the Beta team.
 -------- KEYS --------
 target : this can point at a target_give entity for respawn freebies.
 -------- SPAWNFLAGS --------

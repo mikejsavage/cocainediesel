@@ -313,7 +313,7 @@ edict_t * W_Fire_Grenade( edict_t * self, vec3_t start, vec3_t angles, int speed
 	VectorSet( grenade->avelocity, 300, 300, 300 );
 
 	grenade->s.modelindex = trap_ModelIndex( "weapons/gl/grenade" );
-	grenade->s.sound = trap_SoundIndex( "weapons/pg/trail" );
+	grenade->s.sound = trap_SoundIndex( "weapons/gl/trail" );
 
 	GClip_LinkEntity( grenade );
 

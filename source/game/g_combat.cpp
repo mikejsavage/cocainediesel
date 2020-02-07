@@ -32,6 +32,7 @@ static int G_MODToWeapon( int mod ) {
 		case MOD_PLASMA: return Weapon_Plasma;
 		case MOD_ELECTROBOLT: return Weapon_Railgun;
 		case MOD_LASERGUN: return Weapon_Laser;
+		case MOD_SNIPER: return Weapon_Sniper;
 	}
 
 	return Weapon_Count;

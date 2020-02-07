@@ -312,6 +312,7 @@ static void CG_FireWeaponEvent( int entNum, int weapon ) {
 			break;
 
 		case Weapon_Railgun:
+		case Weapon_Sniper:
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_AIMWEAPON, 0, EVENT_CHANNEL );
 			break;
 	}
@@ -820,7 +821,7 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, int parm, bool predicted ) {
 			else if( weapon == Weapon_Laser ) {
 				CG_Event_LaserBeam( origin, dir, num );
 			}
-			else if( weapon == Weapon_Pistol || weapon == Weapon_MachineGun || weapon == Weapon_Deagle ) {
+			else if( weapon == Weapon_Pistol || weapon == Weapon_MachineGun || weapon == Weapon_Deagle || weapon == Weapon_Sniper ) {
 				CG_Event_FireBullet( origin, dir, weapon, num, ent->team );
 			}
 		} break;

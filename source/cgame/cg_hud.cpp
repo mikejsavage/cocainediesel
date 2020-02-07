@@ -1188,6 +1188,9 @@ static void CG_DrawObituaries(
 			case MOD_LASERGUN:
 				pic = CG_GetWeaponIcon( Weapon_Laser );
 				break;
+			case MOD_SNIPER:
+				pic = CG_GetWeaponIcon( Weapon_Sniper );
+				break;
 			default:
 				pic = CG_GetWeaponIcon( Weapon_Knife ); // FIXME
 				break;

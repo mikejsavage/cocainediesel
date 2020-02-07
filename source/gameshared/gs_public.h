@@ -80,6 +80,7 @@ enum WeaponType_ : WeaponType {
 	Weapon_Plasma,
 	Weapon_Laser,
 	Weapon_Railgun,
+	Weapon_Sniper,
 
 	Weapon_Count
 };
@@ -547,6 +548,7 @@ enum MeansOfDeath {
 	MOD_PLASMA,
 	MOD_ELECTROBOLT,
 	MOD_LASERGUN,
+	MOD_SNIPER,
 
 	MOD_SLIME,
 	MOD_LAVA,

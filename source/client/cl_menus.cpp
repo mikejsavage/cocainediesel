@@ -855,11 +855,13 @@ static void GameMenu() {
 		const bool bigger_font = window_size.y >= 864;
 
 		{
-			ImGui::Columns( 8, NULL, false );
+			ImGui::Columns( 10, NULL, false );
 			ImGui::SetColumnWidth( 0, window_size.x * 0.075f );
 			ImGui::SetColumnWidth( 1, icon_size.x );
 			ImGui::SetColumnWidth( 2, window_size.x * 0.05f );
 			ImGui::SetColumnWidth( 3, icon_size.x );
+			ImGui::SetColumnWidth( 4, window_size.x * 0.05f );
+			ImGui::SetColumnWidth( 5, icon_size.x );
 			ImGui::SetColumnWidth( 4, window_size.x * 0.05f );
 			ImGui::SetColumnWidth( 5, icon_size.x );
 			ImGui::SetColumnWidth( 6, window_size.x * 0.075f );
@@ -870,6 +872,7 @@ static void GameMenu() {
 				Weapon_Railgun,
 				Weapon_RocketLauncher,
 				Weapon_Laser,
+				Weapon_Sniper,
 				Weapon_Deagle,
 				Weapon_MachineGun,
 				Weapon_Shotgun,

@@ -191,6 +191,10 @@ void G_FireWeapon( edict_t *ent, int parm ) {
 			projectile = G_Fire_Lasergun( origin, angles, ent, timeDelta );
 			break;
 
+		case Weapon_Sniper:
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Sniper, MOD_SNIPER );
+			break;
+
 		case Weapon_Railgun:
 			G_Fire_Bolt( origin, angles, ent, timeDelta );
 			break;

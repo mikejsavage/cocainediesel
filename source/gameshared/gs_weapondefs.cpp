@@ -8,6 +8,7 @@
 #define WEAPONUP_TIME_FAST 150
 #define WEAPONUP_TIME_NORMAL 350
 #define WEAPONUP_TIME_SLOW 750
+#define WEAPONUP_TIME_VERY_SLOW 1000
 
 const WeaponDef gs_weaponDefs[] = {
 	{
@@ -311,6 +312,37 @@ const WeaponDef gs_weaponDefs[] = {
 		40,                             // damage
 		0,                              // selfdamage ratio
 		100,                             // knockback
+		0,                              // splash radius
+		0,                              // minimum damage
+		0,                              // minimum knockback
+
+		//projectile def
+		INSTANT,                        // speed
+		0,                              // spread
+	},
+
+	{
+		"Sniper", "sniper",
+		RGB8( 80, 243, 255 ),
+		"Boom boom",
+		200,
+
+		1,                              // projectiles fired each shot
+		1, // clip size
+		2000, // reload time
+
+		//timings (in msecs)
+		WEAPONUP_TIME_VERY_SLOW,                  // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		50,                           // refire time
+		ELECTROBOLT_RANGE,              // range
+		40.0f,                              // recoil
+		FiringMode_Auto,
+
+		//damages
+		60,                             // damage
+		0,                              // selfdamage ratio
+		200,                             // knockback
 		0,                              // splash radius
 		0,                              // minimum damage
 		0,                              // minimum knockback

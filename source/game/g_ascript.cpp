@@ -186,6 +186,7 @@ static const asEnumVal_t asWeaponTypeEnumVals[] =
 	ASLIB_ENUM_VAL( Weapon_Plasma ),
 	ASLIB_ENUM_VAL( Weapon_Laser ),
 	ASLIB_ENUM_VAL( Weapon_Railgun ),
+	ASLIB_ENUM_VAL( Weapon_Sniper ),
 
 	ASLIB_ENUM_VAL( Weapon_Count ),
 

@@ -130,6 +130,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	body->s.modelindex = ent->s.modelindex;
 	body->s.teleported = true;
 	body->s.ownerNum = ent->s.number;
+	body->r.svflags |= SVF_BROADCAST;
 
 	edict_t * event = G_SpawnEvent( EV_DIE, random_uniform( &svs.rng, 0, 256 ), NULL );
 	event->r.svflags |= SVF_BROADCAST;

@@ -840,12 +840,12 @@ static void CG_UpdateSpikes( centity_t *cent ) {
 //		PACKET ENTITIES
 //==========================================================================
 
-void CG_EntityLoopSound( SyncEntityState * state ) {
+void CG_EntityLoopSound( centity_t * cent, SyncEntityState * state ) {
 	if( !state->sound ) {
 		return;
 	}
 
-	S_ImmediateEntitySound( cgs.soundPrecache[state->sound], state->number, 1.0f );
+	cent->sound = S_ImmediateEntitySound( cgs.soundPrecache[state->sound], state->number, 1.0f, cent->sound );
 }
 
 /*
@@ -875,35 +875,35 @@ void CG_AddEntities( void ) {
 		switch( cent->type ) {
 			case ET_GENERIC:
 				CG_AddGenericEnt( cent );
-				CG_EntityLoopSound( state );
+				CG_EntityLoopSound( cent, state );
 				canLight = true;
 				break;
 			case ET_GIB:
 				CG_AddGenericEnt( cent );
-				CG_EntityLoopSound( state );
+				CG_EntityLoopSound( cent, state );
 				canLight = true;
 				break;
 
 			case ET_ROCKET:
 				CG_AddGenericEnt( cent );
 				CG_ProjectileTrail( cent );
-				CG_EntityLoopSound( state );
+				CG_EntityLoopSound( cent, state );
 				// CG_AddLightToScene( cent->ent.origin, 300, 0.8f, 0.6f, 0 );
 				break;
 			case ET_GRENADE:
 				CG_AddGenericEnt( cent );
-				CG_EntityLoopSound( state );
+				CG_EntityLoopSound( cent, state );
 				CG_ProjectileTrail( cent );
 				canLight = true;
 				break;
 			case ET_PLASMA:
 				CG_AddGenericEnt( cent );
-				CG_EntityLoopSound( state );
+				CG_EntityLoopSound( cent, state );
 				break;
 
 			case ET_PLAYER:
 				CG_AddPlayerEnt( cent );
-				CG_EntityLoopSound( state );
+				CG_EntityLoopSound( cent, state );
 				CG_LaserBeamEffect( cent );
 				CG_WeaponBeamEffect( cent );
 				canLight = true;
@@ -911,7 +911,7 @@ void CG_AddEntities( void ) {
 
 			case ET_CORPSE:
 				CG_AddPlayerEnt( cent );
-				CG_EntityLoopSound( state );
+				CG_EntityLoopSound( cent, state );
 				canLight = true;
 				break;
 
@@ -920,11 +920,11 @@ void CG_AddEntities( void ) {
 
 			case ET_DECAL:
 				CG_AddDecalEnt( cent );
-				CG_EntityLoopSound( state );
+				CG_EntityLoopSound( cent, state );
 				break;
 
 			case ET_PUSH_TRIGGER:
-				CG_EntityLoopSound( state );
+				CG_EntityLoopSound( cent, state );
 				break;
 
 			case ET_EVENT:
@@ -940,7 +940,7 @@ void CG_AddEntities( void ) {
 
 				const SoundEffect * sfx = cgs.soundPrecache[ state->sound ];
 				if( sfx != NULL ) {
-					S_ImmediateLineSound( sfx, state->number, FromQF3( cent->ent.origin ), FromQF3( cent->ent.origin2 ), 1.0f );
+					cent->sound = S_ImmediateLineSound( sfx, FromQF3( cent->ent.origin ), FromQF3( cent->ent.origin2 ), 1.0f, cent->sound );
 				}
 			} break;
 

@@ -65,6 +65,15 @@ public:
 		return false;
 	}
 
+	bool update( u64 key, u64 value ) {
+		u64 i;
+		if( !find( hash_key( key ), &i ) )
+			return false;
+
+		entries[ i ].value = value;
+		return true;
+	}
+
 	bool get( u64 key, u64 * value ) const {
 		u64 i;
 		if( !find( hash_key( key ), &i ) )
@@ -104,10 +113,6 @@ private:
 	static u64 is_deleted( u64 key ) {
 		return ( key & DeletedBit ) != 0;
 	}
-
-	// u64 hash_key( u64 key ) const {
-	// 	return Hash64( key ) & ~DeletedBit;
-	// }
 
 	u64 hash_key( u64 key ) const {
 		return key & ~DeletedBit;

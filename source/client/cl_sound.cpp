@@ -49,7 +49,7 @@ struct PlayingSound {
 	int channel;
 	float volume;
 
-	bool immediate;
+	ImmediateSoundHandle immediate_handle;
 	bool touched_since_last_update;
 
 	Vec3 origin;
@@ -63,7 +63,6 @@ struct PlayingSound {
 struct EntitySound {
 	Vec3 origin;
 	Vec3 velocity;
-	PlayingSound * immediate_ps;
 };
 
 static ALCdevice * al_device;
@@ -93,6 +92,9 @@ static u32 num_free_sound_sources;
 
 static PlayingSound playing_sound_effects[ MAX_PLAYING_SOUNDS ];
 static u32 num_playing_sound_effects;
+
+static Hashtable< MAX_PLAYING_SOUNDS * 2 > immediate_sounds_hashtable;
+static u64 immediate_sounds_autoinc;
 
 static ALuint music_source;
 static bool music_playing;
@@ -382,6 +384,7 @@ bool S_Init() {
 	num_sounds = 0;
 	num_sound_effects = 0;
 	num_playing_sound_effects = 0;
+	immediate_sounds_autoinc = 1;
 	music_playing = false;
 	window_focused = true;
 	initialized = false;
@@ -497,7 +500,7 @@ static void StartSound( PlayingSound * ps, u8 i ) {
 			break;
 	}
 
-	alSourcei( source, AL_LOOPING, ps->immediate ? AL_TRUE : AL_FALSE );
+	alSourcei( source, AL_LOOPING, ps->immediate_handle.x == 0 ? AL_FALSE : AL_TRUE );
 
 	alSourcePlay( source );
 	ALAssert();
@@ -538,7 +541,7 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 		float t = ( cls.monotonicTime - ps->start_time ) * 0.001f;
 		bool all_stopped = true;
 
-		bool not_touched = ps->immediate && !ps->touched_since_last_update;
+		bool not_touched = ps->immediate_handle.x != 0 && !ps->touched_since_last_update;
 		ps->touched_since_last_update = false;
 
 		for( u8 j = 0; j < ps->sfx->num_sounds; j++ ) {
@@ -565,9 +568,9 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 		}
 
 		if( all_stopped ) {
-			// stop the current sound
-			if( ps->immediate ) {
-				entities[ ps->ent_num ].immediate_ps = NULL;
+			if( ps->immediate_handle.x != 0 ) {
+				bool ok = immediate_sounds_hashtable.remove( ps->immediate_handle.x );
+				assert( ok );
 			}
 
 			// remove-swap it from playing_sound_effects
@@ -575,9 +578,9 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 			if( ps != &playing_sound_effects[ num_playing_sound_effects ] ) {
 				Swap2( ps, &playing_sound_effects[ num_playing_sound_effects ] );
 
-				// fix up the immediate_ps pointer for the sound that got swapped in
-				if( ps->immediate ) {
-					entities[ ps->ent_num ].immediate_ps = ps;
+				if( ps->immediate_handle.x != 0 ) {
+					bool ok = immediate_sounds_hashtable.update( ps->immediate_handle.x, ps - playing_sound_effects );
+					assert( ok );
 				}
 			}
 
@@ -630,9 +633,9 @@ void S_SetWindowFocus( bool focused ) {
 	alListenerf( AL_GAIN, window_focused || s_muteinbackground->integer == 0 ? 1 : 0 );
 }
 
-static PlayingSound * S_FindEmptyPlayingSound( int ent_num, int channel ) {
+static PlayingSound * FindEmptyPlayingSound( int ent_num, int channel ) {
 	if( channel != 0 ) {
-		for( size_t i = 0; i < num_playing_sound_effects; i++ ) {
+		for( u32 i = 0; i < num_playing_sound_effects; i++ ) {
 			PlayingSound * ps = &playing_sound_effects[ i ];
 			if( ps->ent_num == ent_num && ps->channel == channel ) {
 				for( u8 j = 0; j < ps->sfx->num_sounds; j++ ) {
@@ -652,11 +655,11 @@ static PlayingSound * S_FindEmptyPlayingSound( int ent_num, int channel ) {
 	return &playing_sound_effects[ num_playing_sound_effects - 1 ];
 }
 
-static PlayingSound * StartSoundEffect( const SoundEffect * sfx, int ent_num, int channel, float volume, PlayingSoundType type, bool immediate ) {
+static PlayingSound * StartSoundEffect( const SoundEffect * sfx, int ent_num, int channel, float volume, PlayingSoundType type ) {
 	if( !initialized || sfx == NULL )
 		return NULL;
 
-	PlayingSound * ps = S_FindEmptyPlayingSound( ent_num, channel );
+	PlayingSound * ps = FindEmptyPlayingSound( ent_num, channel );
 	if( ps == NULL ) {
 		Com_Printf( S_COLOR_YELLOW "Too many playing sound effects!" );
 		return NULL;
@@ -669,55 +672,74 @@ static PlayingSound * StartSoundEffect( const SoundEffect * sfx, int ent_num, in
 	ps->ent_num = ent_num;
 	ps->channel = channel;
 	ps->volume = volume;
-	ps->immediate = immediate;
 	ps->touched_since_last_update = true;
 
 	return ps;
 }
 
 void S_StartFixedSound( const SoundEffect * sfx, Vec3 origin, int channel, float volume ) {
-	PlayingSound * ps = StartSoundEffect( sfx, 0, channel, volume, PlayingSoundType_Position, false );
+	PlayingSound * ps = StartSoundEffect( sfx, 0, channel, volume, PlayingSoundType_Position );
 	if( ps == NULL )
 		return;
 	ps->origin = origin;
 }
 
 void S_StartEntitySound( const SoundEffect * sfx, int ent_num, int channel, float volume ) {
-	StartSoundEffect( sfx, ent_num, channel, volume, PlayingSoundType_Entity, false );
+	StartSoundEffect( sfx, ent_num, channel, volume, PlayingSoundType_Entity );
 }
 
 void S_StartGlobalSound( const SoundEffect * sfx, int channel, float volume ) {
-	StartSoundEffect( sfx, 0, channel, volume, PlayingSoundType_Global, false );
+	StartSoundEffect( sfx, 0, channel, volume, PlayingSoundType_Global );
 }
 
 void S_StartLocalSound( const SoundEffect * sfx, int channel, float volume ) {
-	StartSoundEffect( sfx, -1, channel, volume, PlayingSoundType_Global, false );
+	StartSoundEffect( sfx, -1, channel, volume, PlayingSoundType_Global );
 }
 
-static PlayingSound * StartImmediateSound( const SoundEffect * sfx, int ent_num, float volume, PlayingSoundType type ) {
-	// TODO: replace old immediate sound if sfx changed
-	if( entities[ ent_num ].immediate_ps == NULL ) {
-		entities[ ent_num ].immediate_ps = StartSoundEffect( sfx, ent_num, CHAN_AUTO, volume, type, true );
+static ImmediateSoundHandle StartImmediateSound( const SoundEffect * sfx, int ent_num, float volume, PlayingSoundType type, ImmediateSoundHandle handle ) {
+	u64 idx;
+	if( handle.x != 0 && immediate_sounds_hashtable.get( handle.x, &idx ) ) {
+		playing_sound_effects[ idx ].touched_since_last_update = true;
+	}
+	else {
+		handle = { Hash64( immediate_sounds_autoinc ) };
+		immediate_sounds_autoinc++;
+
+		if( immediate_sounds_autoinc == 0 ) {
+			immediate_sounds_autoinc++;
+		}
+
+		PlayingSound * ps = StartSoundEffect( sfx, ent_num, CHAN_AUTO, volume, type );
+		if( ps == NULL )
+			return { };
+
+		ps->immediate_handle = handle;
+		idx = ps - playing_sound_effects;
+
+		immediate_sounds_hashtable.add( handle.x, idx );
 	}
 
-	if( entities[ ent_num ].immediate_ps != NULL ) {
-		entities[ ent_num ].immediate_ps->touched_since_last_update = true;
-	}
-
-	return entities[ ent_num ].immediate_ps;
+	return handle;
 }
 
-void S_ImmediateEntitySound( const SoundEffect * sfx, int ent_num, float volume ) {
-	StartImmediateSound( sfx, ent_num, volume, PlayingSoundType_Entity );
+ImmediateSoundHandle S_ImmediateEntitySound( const SoundEffect * sfx, int ent_num, float volume, ImmediateSoundHandle handle ) {
+	return StartImmediateSound( sfx, ent_num, volume, PlayingSoundType_Entity, handle );
 }
 
-void S_ImmediateLineSound( const SoundEffect * sfx, int ent_num, Vec3 start, Vec3 end, float volume ) {
-	PlayingSound * ps = StartImmediateSound( sfx, ent_num, volume, PlayingSoundType_Line );
-	if( ps == NULL )
-		return;
+ImmediateSoundHandle S_ImmediateLineSound( const SoundEffect * sfx, Vec3 start, Vec3 end, float volume, ImmediateSoundHandle handle ) {
+	handle = StartImmediateSound( sfx, -1, volume, PlayingSoundType_Line, handle );
+	if( handle.x == 0 )
+		return handle;
 
-	entities[ ent_num ].immediate_ps->origin = start;
-	entities[ ent_num ].immediate_ps->end = end;
+	u64 idx;
+	bool ok = immediate_sounds_hashtable.get( handle.x, &idx );
+	assert( ok );
+
+	PlayingSound * ps = &playing_sound_effects[ idx ];
+	ps->origin = start;
+	ps->end = end;
+
+	return handle;
 }
 
 void S_StopAllSounds( bool stop_music ) {
@@ -739,9 +761,7 @@ void S_StopAllSounds( bool stop_music ) {
 		S_StopBackgroundTrack();
 	}
 
-	for( EntitySound & e : entities ) {
-		e.immediate_ps = NULL;
-	}
+	immediate_sounds_hashtable.clear();
 }
 
 void S_StartMenuMusic() {

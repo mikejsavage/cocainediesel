@@ -81,6 +81,7 @@ typedef struct {
 	vec3_t microSmoothOrigin2;
 
 	// effects
+	ImmediateSoundHandle sound;
 	vec3_t trailOrigin;         // for particle trails
 
 	// local effects from events timers
@@ -91,6 +92,7 @@ typedef struct {
 	vec3_t laserPoint;
 	vec3_t laserOriginOld;
 	vec3_t laserPointOld;
+	ImmediateSoundHandle lg_beam_sound;
 
 	bool linearProjectileCanDraw;
 	vec3_t linearProjectileViewerSource;

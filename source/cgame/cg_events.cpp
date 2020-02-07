@@ -229,13 +229,13 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 		cg_entPModels[cent->current.number].flash_time = cl.serverTime + cgs.weaponInfos[ Weapon_Laser ]->flashTime;
 	}
 
-	S_ImmediateEntitySound( cgs.media.sfxLasergunHum, cent->current.number, 1.0f );
+	cent->sound = S_ImmediateEntitySound( cgs.media.sfxLasergunHum, cent->current.number, 1.0f, cent->sound );
 
 	if( ISVIEWERENTITY( cent->current.number ) ) {
-		S_ImmediateEntitySound( cgs.media.sfxLasergunBeam, cent->current.number, 1.0f );
+		cent->lg_beam_sound = S_ImmediateEntitySound( cgs.media.sfxLasergunBeam, cent->current.number, 1.0f, cent->lg_beam_sound );
 	}
 	else {
-		S_ImmediateLineSound( cgs.media.sfxLasergunBeam, cent->current.number, start, end, 1.0f );
+		cent->lg_beam_sound = S_ImmediateLineSound( cgs.media.sfxLasergunBeam, start, end, 1.0f, cent->lg_beam_sound );
 	}
 
 	laserOwner = NULL;

@@ -9,6 +9,8 @@ u64 Hash64( const void * data, size_t n, u64 basis = U64( 14695981039346656037 )
 u32 Hash32( const char * str );
 u64 Hash64( const char * str );
 
+u64 Hash64( u64 x );
+
 template< typename T >
 u32 Hash32( Span< const T > data ) {
 	return Hash32( data.ptr, data.num_bytes() );

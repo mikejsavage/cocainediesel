@@ -453,7 +453,7 @@ static bool SNAP_SnapCullSoundEntity( cmodel_state_t *cms, edict_t *ent, const v
 	// extend the influence sphere cause the player could be moving
 	float dist = Distance( ent->s.origin, listener_origin ) - 128;
 	float gain = SNAP_GainForAttenuation( dist < 0 ? 0 : dist );
-	return gain > 0.05f;
+	return gain <= 0.05f;
 }
 
 /*

@@ -880,7 +880,7 @@ static const char * prefixes[] = {
 	"MONKEY",
 	"MONSTER",
 	"MONUMENTAL",
-	"MOST FROLICKINGLY "
+	"MOST FROLICKINGLY ",
 	"MOUTH",
 	"MVP",
 	"MWAGA",
@@ -922,7 +922,7 @@ static const char * prefixes[] = {
 	"Rn",
 	"ROBOT",
 	"ROCK",
-	"ROCK 'n' ROLL "
+	"ROCK 'n' ROLL ",
 	"ROFL",
 	"ROLEX",
 	"ROOSTER",

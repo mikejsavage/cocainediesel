@@ -81,6 +81,7 @@ void bombModelCreate() {
 	bombModel.light = BOMB_LIGHT_INACTIVE;
 	bombModel.modelindex = modelBombModel;
 	bombModel.silhouetteColor = uint( 255 << 0 ) | uint( 255 << 8 ) | uint( 255 << 16 ) | uint( 255 << 24 );
+	bombModel.svflags |= SVF_BROADCAST;
 	@bombModel.touch = bomb_touch;
 	@bombModel.stop = bomb_stop;
 }

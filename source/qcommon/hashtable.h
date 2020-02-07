@@ -116,7 +116,9 @@ private:
 	bool find( u64 key, u64 * idx ) const {
 		assert( key != EmptyKey );
 
-		u64 i = hash_key( key ) % N;
+		key = hash_key( key );
+
+		u64 i = key % N;
 		u64 dist = 0;
 
 		for( ;; ) {

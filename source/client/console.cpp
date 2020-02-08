@@ -301,7 +301,7 @@ void Con_Draw() {
 		ImGui::GetWindowDrawList()->AddRectFilled( top_left, bottom_right, ImGui::GetColorU32( ImGuiCol_Separator ) );
 	}
 
-	if( ImGui::IsWindowFocused( ImGuiFocusedFlags_RootAndChildWindows ) && ImGui::IsKeyPressed( K_ESCAPE, false ) ) {
+	if( ImGui::CloseKey( K_ESCAPE ) ) {
 		Con_Close();
 	}
 

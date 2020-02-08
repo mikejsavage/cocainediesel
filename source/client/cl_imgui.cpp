@@ -201,6 +201,10 @@ namespace ImGui {
 		ImGui::Begin( name, NULL, flags );
 		ImGui::GetCurrentWindow()->BeginOrderWithinContext = z_order;
 	}
+
+	bool CloseKey( int key ) {
+		return ImGui::IsWindowFocused( ImGuiFocusedFlags_RootAndChildWindows ) && ImGui::IsKeyPressed( key, false );
+	}
 }
 
 ImGuiColorToken::ImGuiColorToken( u8 r, u8 g, u8 b, u8 a ) {

@@ -236,6 +236,7 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 }
 
 void RenderBackendInit() {
+	ZoneScoped;
 	TracyGpuContext;
 
 	render_passes.init( sys_allocator );

@@ -99,6 +99,8 @@ static void gl_debug_output_callback_amd(
 }
 
 static bool InitGL() {
+	ZoneScoped;
+
 	int flags = SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG;
 #if PUBLIC_BUILD
 	flags |= SDL_GL_CONTEXT_NO_ERROR;

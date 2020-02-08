@@ -8,6 +8,9 @@
 Shaders shaders;
 
 static void BuildShaderSrcs( const char * path, const char * defines, DynamicArray< const char * > * srcs, DynamicArray< int > * lengths ) {
+	ZoneScoped;
+	ZoneText( path, strlen( path ) );
+
 	srcs->clear();
 	lengths->clear();
 
@@ -51,6 +54,8 @@ static void BuildShaderSrcs( const char * path, const char * defines, DynamicArr
 }
 
 static void ReplaceShader( Shader * shader, Span< const char * > srcs, Span< int > lens ) {
+	ZoneScoped;
+
 	Shader new_shader;
 	if( !NewShader( &new_shader, srcs, lens ) )
 		return;
@@ -60,6 +65,8 @@ static void ReplaceShader( Shader * shader, Span< const char * > srcs, Span< int
 }
 
 static void LoadShaders() {
+	ZoneScoped;
+
 	TempAllocator temp = cls.frame_arena.temp();
 	DynamicArray< const char * > srcs( &temp );
 	DynamicArray< int > lengths( &temp );

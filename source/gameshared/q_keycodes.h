@@ -71,11 +71,6 @@ typedef enum {
 	K_HOME,
 	K_END,
 
-	K_WIN,
-	K_MENU,
-	K_COMMAND,      // Mac - different keycode from K_WIN
-	K_OPTION,       // Mac - different keycode from K_ALT
-
 	//
 	// Keypad stuff..
 	//

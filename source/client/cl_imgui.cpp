@@ -1,7 +1,7 @@
 #include <algorithm>
 
 #include "imgui/imgui.h"
-#include "imgui/imgui_impl_sdl.h"
+#include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_internal.h"
 #include "imgui/imgui_freetype.h"
 
@@ -11,7 +11,6 @@
 #include "qcommon/utf8.h"
 #include "client/client.h"
 #include "client/renderer/renderer.h"
-#include "client/sdl/sdl_window.h"
 
 static Texture atlas_texture;
 static Material atlas_material;
@@ -26,10 +25,13 @@ static ImFont * AddFontAsset( StringHash path, float pixel_size ) {
 	return ImGui::GetIO().Fonts->AddFont( &config );
 }
 
+struct GLFWwindow;
+extern GLFWwindow * window;
+
 void CL_InitImGui() {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGui_ImplSDL2_InitForOpenGL( sdl_window, NULL );
+	ImGui_ImplGlfw_InitForOpenGL( window, NULL );
 
 	ImGuiIO & io = ImGui::GetIO();
 
@@ -103,7 +105,7 @@ void CL_InitImGui() {
 void CL_ShutdownImGui() {
 	DeleteTexture( atlas_texture );
 
-	ImGui_ImplSDL2_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 }
 
@@ -176,7 +178,7 @@ static void SubmitDrawCalls() {
 void CL_ImGuiBeginFrame() {
 	ZoneScoped;
 
-	ImGui_ImplSDL2_NewFrame( sdl_window );
+	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 }
 

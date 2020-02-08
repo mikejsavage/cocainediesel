@@ -82,10 +82,6 @@ void Sys_Error( const char *format, ... ) {
 	_exit( 1 );
 }
 
-void Sys_Sleep( unsigned int millis ) {
-	usleep( millis * 1000 );
-}
-
 int main( int argc, char **argv ) {
 	unsigned int oldtime, newtime, time;
 

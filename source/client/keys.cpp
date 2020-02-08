@@ -75,12 +75,6 @@ static const keyname_t keynames[] = {
 	{ "HOME", K_HOME },
 	{ "END", K_END },
 
-	{ "WINKEY", K_WIN },
-	{ "POPUPMENU", K_MENU },
-
-	{ "COMMAND", K_COMMAND },
-	{ "OPTION", K_OPTION },
-
 	{ "MOUSE1", K_MOUSE1 },
 	{ "MOUSE2", K_MOUSE2 },
 	{ "MOUSE3", K_MOUSE3 },

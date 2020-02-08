@@ -34,6 +34,7 @@ configs[ "linux" ] = {
 	lib_suffix = ".a",
 
 	toolchain = "gcc",
+	cc = "gcc",
 	cxx = "g++",
 
 	cxxflags = "-c -fdiagnostics-color",
@@ -304,7 +305,7 @@ rule bin
 rule lib
     command = ar rs $out $in
     description = $out
-]], cxx )
+]] )
 
 end
 

@@ -28,7 +28,6 @@
 #include "client/renderer/renderer.h"
 #include "vid.h"
 #include "ui.h"
-#include "input.h"
 #include "keys.h"
 #include "console.h"
 #include "sound.h"
@@ -329,7 +328,7 @@ void CL_GameModule_InputFrame( int frameTime );
 unsigned CL_GameModule_GetButtonBits( void );
 void CL_GameModule_AddViewAngles( vec3_t viewAngles );
 void CL_GameModule_AddMovement( vec3_t movement );
-void CL_GameModule_MouseMove( int frameTime, int dx, int dy );
+void CL_GameModule_MouseMove( int frameTime, Vec2 m );
 
 //
 // cl_serverlist.c

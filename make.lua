@@ -41,6 +41,7 @@ do
 			"source/win32/win_net.cpp",
 			"source/win32/win_threads.cpp",
 			"source/win32/win_time.cpp",
+			"source/win32/win_sys.cpp",
 		}
 		platform_libs = { }
 	else
@@ -83,8 +84,8 @@ do
 			"angelscript",
 			"curl",
 			"freetype",
+			"glfw3",
 			"openal",
-			"sdl",
 			"zlib",
 			"zstd",
 			platform_libs
@@ -92,11 +93,10 @@ do
 
 		rc = "source/win32/client",
 
-		gcc_extra_ldflags = "-lm -lpthread -ldl -no-pie -static-libstdc++",
+		gcc_extra_ldflags = "-lm -lpthread -ldl -lX11 -no-pie -static-libstdc++",
 		msvc_extra_ldflags = "gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib /SUBSYSTEM:WINDOWS",
 	} )
 
-	obj_cxxflags( "source/client/ftlib/.+", "-I libs/freetype" )
 	obj_cxxflags( "source/client/renderer/text.cpp", "-I libs/freetype" )
 end
 

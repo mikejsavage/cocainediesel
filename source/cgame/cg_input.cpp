@@ -251,8 +251,7 @@ static Vec2 Pow( Vec2 v, float e ) {
 	return Vec2( powf( v.x, e ), powf( v.y, e ) );
 }
 
-void CG_MouseMove( int frameTime, int mx, int my ) {
-	Vec2 m( mx, my );
+void CG_MouseMove( int frameTime, Vec2 m ) {
 
 	float sens = sensitivity->value;
 

@@ -32,10 +32,10 @@ static void CL_CreateNewUserCommand( int realMsec );
 * Notifies cgame of new frame, refreshes input timings, coordinates and angles
 */
 static void CL_UpdateGameInput( int frameTime ) {
-	MouseMovement movement = IN_GetMouseMovement();
+	Vec2 movement = GetMouseMovement();
 
 	if( cls.key_dest == key_game ) {
-		CL_GameModule_MouseMove( frameTime, movement.relx, movement.rely );
+		CL_GameModule_MouseMove( frameTime, movement );
 		CL_GameModule_AddViewAngles( cl.viewangles );
 	}
 }
@@ -46,8 +46,7 @@ static void CL_UpdateGameInput( int frameTime ) {
 void CL_UserInputFrame( int realMsec ) {
 	ZoneScoped;
 
-	// let the mouse activate or deactivate
-	IN_Frame();
+	GlfwInputFrame();
 
 	// refresh mouse angles and movement velocity
 	CL_UpdateGameInput( realMsec );
@@ -63,8 +62,6 @@ void CL_UserInputFrame( int realMsec ) {
 * CL_InitInput
 */
 void CL_InitInput( void ) {
-	IN_Init();
-
 	cl_ucmdMaxResend =  Cvar_Get( "cl_ucmdMaxResend", "3", CVAR_ARCHIVE );
 	cl_ucmdFPS =        Cvar_Get( "cl_ucmdFPS", "62", CVAR_DEVELOPER );
 }

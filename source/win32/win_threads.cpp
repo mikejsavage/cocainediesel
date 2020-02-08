@@ -69,10 +69,6 @@ void Sys_Thread_Join( qthread_t *thread ) {
 	free( thread );
 }
 
-void Sys_Thread_Yield( void ) {
-	Sys_Sleep( 0 );
-}
-
 int Sys_Atomic_FetchAdd( volatile int *value, int add ) {
 	return InterlockedExchangeAdd( (volatile LONG*)value, add );
 }

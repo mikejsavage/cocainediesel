@@ -84,13 +84,6 @@ void QThread_Join( qthread_t *thread ) {
 }
 
 /*
-* QThread_Yield
-*/
-void QThread_Yield( void ) {
-	Sys_Thread_Yield();
-}
-
-/*
 * QAtomic_FetchAdd
 */
 int QAtomic_FetchAdd( volatile int *value, int add ) {

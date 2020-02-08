@@ -1,4 +1,5 @@
 #include <time.h>
+#include <unistd.h>
 
 #include "qcommon/types.h"
 
@@ -21,6 +22,10 @@ u64 Sys_Microseconds() {
 
 s64 Sys_Milliseconds() {
 	return Sys_Microseconds() / 1000;
+}
+
+void Sys_Sleep( unsigned int millis ) {
+	usleep( millis * 1000 );
 }
 
 bool Sys_FormatTime( char * buf, size_t buf_size, const char * fmt ) {

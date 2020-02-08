@@ -4,9 +4,11 @@
 #include "client/client.h"
 #include "qcommon/version.h"
 #include "qcommon/string.h"
-#include "client/sdl/sdl_window.h"
 
 #include "cgame/cg_local.h"
+
+#define GLFW_INCLUDE_NONE
+#include "glfw3/GLFW/glfw3.h"
 
 enum UIState {
 	UIState_Hidden,
@@ -106,8 +108,6 @@ static void SettingLabel( const char * label ) {
 
 template< size_t maxlen >
 static void CvarTextbox( const char * label, const char * cvar_name, const char * def, cvar_flag_t flags ) {
-	TempAllocator temp = cls.frame_arena.temp();
-
 	SettingLabel( label );
 
 	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
@@ -115,22 +115,22 @@ static void CvarTextbox( const char * label, const char * cvar_name, const char 
 	char buf[ maxlen + 1 ];
 	Q_strncpyz( buf, cvar->string, sizeof( buf ) );
 
-	const char * unique = temp( "##{}", cvar_name );
-	ImGui::InputText( unique, buf, sizeof( buf ) );
+	ImGui::PushID( cvar_name );
+	ImGui::InputText( "", buf, sizeof( buf ) );
+	ImGui::PopID();
 
 	Cvar_Set( cvar_name, buf );
 }
 
 static void CvarCheckbox( const char * label, const char * cvar_name, const char * def, cvar_flag_t flags ) {
-	TempAllocator temp = cls.frame_arena.temp();
-
 	SettingLabel( label );
 
 	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
 
-	const char * unique = temp( "##{}", cvar_name );
 	bool val = cvar->integer != 0;
-	ImGui::Checkbox( unique, &val );
+	ImGui::PushID( cvar_name );
+	ImGui::Checkbox( "", &val );
+	ImGui::PopID();
 
 	Cvar_Set( cvar_name, val ? "1" : "0" );
 }
@@ -142,9 +142,10 @@ static void CvarSliderInt( const char * label, const char * cvar_name, int lo, i
 
 	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
 
-	const char * unique = temp( "##{}", cvar_name );
 	int val = cvar->integer;
-	ImGui::SliderInt( unique, &val, lo, hi, format );
+	ImGui::PushID( cvar_name );
+	ImGui::SliderInt( "", &val, lo, hi, format );
+	ImGui::PopID();
 
 	Cvar_Set( cvar_name, temp( "{}", val ) );
 }
@@ -156,19 +157,17 @@ static void CvarSliderFloat( const char * label, const char * cvar_name, float l
 
 	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
 
-	const char * unique = temp( "##{}", cvar_name );
 	float val = cvar->value;
-	ImGui::SliderFloat( unique, &val, lo, hi, "%.2f" );
+	ImGui::PushID( cvar_name );
+	ImGui::SliderFloat( "", &val, lo, hi, "%.2f" );
+	ImGui::PopID();
 
-	char buf[ 128 ];
-	snprintf( buf, sizeof( buf ), "%f", val );
+	char * buf = temp( "{}", val );
 	RemoveTrailingZeroesFloat( buf );
 	Cvar_Set( cvar_name, buf );
 }
 
 static void KeyBindButton( const char * label, const char * command ) {
-	TempAllocator temp = cls.frame_arena.temp();
-
 	SettingLabel( label );
 	ImGui::PushID( label );
 
@@ -224,16 +223,15 @@ static void CvarTeamColorCombo( const char * label, const char * cvar_name, int 
 
 	SettingLabel( label );
 	ImGui::PushItemWidth( 100 );
+	ImGui::PushID( cvar_name );
 
 	cvar_t * cvar = Cvar_Get( cvar_name, temp( "{}", def ), CVAR_ARCHIVE );
-
-	const char * unique = temp( "##{}", cvar_name );
 
 	int selected = cvar->integer;
 	if( selected >= int( ARRAY_COUNT( TEAM_COLORS ) ) )
 		selected = def;
 
-	if( ImGui::BeginCombo( unique, TEAM_COLORS[ selected ].name ) ) {
+	if( ImGui::BeginCombo( "", TEAM_COLORS[ selected ].name ) ) {
 		ImGui::Columns( 2, cvar_name, false );
 		ImGui::SetColumnWidth( 0, 0 );
 
@@ -247,6 +245,7 @@ static void CvarTeamColorCombo( const char * label, const char * cvar_name, int 
 		ImGui::EndCombo();
 		ImGui::Columns( 1 );
 	}
+	ImGui::PopID();
 	ImGui::PopItemWidth();
 
 	Cvar_Set( cvar_name, temp( "{}", selected ) );
@@ -356,73 +355,83 @@ static void SettingsControls() {
 	ImGui::EndChild();
 }
 
-static const char * FullscreenModeToString( FullScreenMode mode ) {
-	switch( mode ) {
-		case FullScreenMode_Windowed: return "Windowed";
-		case FullScreenMode_FullscreenBorderless: return "Borderless";
-		case FullScreenMode_Fullscreen: return "Fullscreen";
-	}
-	return NULL;
-}
-
 static void SettingsVideo() {
 	static WindowMode mode;
 
 	TempAllocator temp = cls.frame_arena.temp();
 
 	if( reset_video_settings ) {
-		mode = VID_GetWindowMode();
+		mode = GetWindowMode();
 		reset_video_settings = false;
 	}
 
-	SettingLabel( "Window mode" );
-	ImGui::PushItemWidth( 200 );
-	if( ImGui::BeginCombo( "##fullscreen", FullscreenModeToString( mode.fullscreen ) ) ) {
-		if( ImGui::Selectable( FullscreenModeToString( FullScreenMode_Windowed ), mode.fullscreen == FullScreenMode_Windowed ) ) {
-			mode.fullscreen = FullScreenMode_Windowed;
-		}
-		if( ImGui::Selectable( FullscreenModeToString( FullScreenMode_FullscreenBorderless ), mode.fullscreen == FullScreenMode_FullscreenBorderless ) ) {
-			mode.fullscreen = FullScreenMode_FullscreenBorderless;
-		}
-		if( ImGui::Selectable( FullscreenModeToString( FullScreenMode_Fullscreen ), mode.fullscreen == FullScreenMode_Fullscreen ) ) {
-			mode.fullscreen = FullScreenMode_Fullscreen;
-		}
-		ImGui::EndCombo();
-	}
+	SettingLabel( "Fullscreen" );
+	ImGui::Checkbox( "##fullscreen", &mode.fullscreen );
 
-	if( mode.fullscreen == FullScreenMode_Windowed ) {
+	if( !mode.fullscreen ) {
 		mode.video_mode.frequency = 0;
 	}
-	else if( mode.fullscreen == FullScreenMode_FullscreenBorderless ) {
-		mode.video_mode.width = 0;
-		mode.video_mode.height = 0;
-		mode.video_mode.frequency = 0;
-	}
-	else if( mode.fullscreen == FullScreenMode_Fullscreen ) {
-		SettingLabel( "Resolution" );
+	else if( mode.fullscreen ) {
+		ImGui::PushItemWidth( 400 );
+
+		SettingLabel( "Monitor" );
+
+		int num_monitors;
+		GLFWmonitor ** monitors = glfwGetMonitors( &num_monitors );
+
+		if( ImGui::BeginCombo( "##monitor", glfwGetMonitorName( monitors[ mode.monitor ] ) ) ) {
+			for( int i = 0; i < num_monitors; i++ ) {
+				ImGui::PushID( i );
+				if( ImGui::Selectable( glfwGetMonitorName( monitors[ i ] ), mode.monitor == i ) ) {
+					mode.monitor = i;
+				}
+				ImGui::PopID();
+			}
+			ImGui::EndCombo();
+		}
+
+		ImGui::PopItemWidth();
 		ImGui::PushItemWidth( 200 );
 
+		SettingLabel( "Resolution" );
+
 		if( mode.video_mode.frequency == 0 ) {
-			mode.video_mode = VID_GetVideoMode( 0 );
+			mode.video_mode = GetVideoMode( mode.monitor );
 		}
 
 		if( ImGui::BeginCombo( "##resolution", temp( "{}", mode.video_mode ) ) ) {
-			for( int i = 0; i < VID_GetNumVideoModes(); i++ ) {
-				VideoMode video_mode = VID_GetVideoMode( i );
+			int num_modes;
+			const GLFWvidmode * modes = glfwGetVideoModes( monitors[ mode.monitor ], &num_modes );
 
-				bool is_selected = mode.video_mode.width == video_mode.width && mode.video_mode.height == video_mode.height && mode.video_mode.frequency == video_mode.frequency;
-				if( ImGui::Selectable( temp( "{}", video_mode ), is_selected ) ) {
-					mode.video_mode = video_mode;
+			for( int i = 0; i < num_modes; i++ ) {
+				int idx = num_modes - i - 1;
+
+				VideoMode m = { };
+				m.width = modes[ idx ].width;
+				m.height = modes[ idx ].height;
+				m.frequency = modes[ idx ].refreshRate;
+
+				bool is_selected = mode.video_mode.width == m.width && mode.video_mode.height == m.height && mode.video_mode.frequency == m.frequency;
+				if( ImGui::Selectable( temp( "{}", m ), is_selected ) ) {
+					mode.video_mode = m;
 				}
 			}
 			ImGui::EndCombo();
 		}
+
 		ImGui::PopItemWidth();
 	}
 
-	if( !( mode == VID_GetWindowMode() ) ) {
+	if( mode != GetWindowMode() ) {
+		if( ImGui::Button( "Apply changes" ) ) {
+			if( !mode.fullscreen ) {
+				const GLFWvidmode * primary_mode = glfwGetVideoMode( glfwGetPrimaryMonitor() );
+				mode.video_mode.width = primary_mode->width * 0.8f;
+				mode.video_mode.height = primary_mode->height * 0.8f;
+				mode.x = -1;
+				mode.y = -1;
+			}
 
-		if( ImGui::Button( "Apply" ) ) {
 			Cvar_Set( "vid_mode", temp( "{}", mode ) );
 			reset_video_settings = true;
 		}
@@ -432,9 +441,10 @@ static void SettingsVideo() {
 		ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.75f, 0.125f, 0.125f, 1.f ) );
 		ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 0.75f, 0.25f, 0.2f, 1.f ) );
 		ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.5f, 0.1f, 0.1f, 1.f ) );
-		if( ImGui::Button( "Discard" ) ) {
+		if( ImGui::Button( "Discard changes" ) ) {
 			reset_video_settings = true;
-		} ImGui::PopStyleColor( 3 );
+		}
+		ImGui::PopStyleColor( 3 );
 	}
 
 	ImGui::Separator();
@@ -463,9 +473,10 @@ static void SettingsVideo() {
 		}
 		ImGui::PopItemWidth();
 
-		ImGui::SameLine();
-
-		ImGui::Text( "%sAnti-Aliasing is really costy for your frame rate", S_COLOR_RED );
+		if( samples > 1 ) {
+			ImGui::SameLine();
+			ImGui::Text( S_COLOR_RED "Enabling anti-aliasing can cause significant FPS drops!" );
+		}
 
 		Cvar_Set( "r_samples", temp( "{}", samples ) );
 	}

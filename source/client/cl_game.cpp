@@ -139,7 +139,7 @@ void CL_GameModule_Init( void ) {
 	import.NET_GetCurrentUserCmdNum = CL_GameModule_NET_GetCurrentUserCmdNum;
 	import.NET_GetCurrentState = CL_GameModule_NET_GetCurrentState;
 
-	import.VID_FlashWindow = VID_FlashWindow;
+	import.VID_FlashWindow = FlashWindow;
 
 	cge = GetCGameAPI( &import );
 
@@ -253,8 +253,8 @@ void CL_GameModule_AddMovement( vec3_t movement ) {
 /*
 * CL_GameModule_MouseMove
 */
-void CL_GameModule_MouseMove( int frameTime, int dx, int dy ) {
+void CL_GameModule_MouseMove( int frameTime, Vec2 d ) {
 	if( cge ) {
-		cge->MouseMove( frameTime, dx, dy );
+		cge->MouseMove( frameTime, d );
 	}
 }

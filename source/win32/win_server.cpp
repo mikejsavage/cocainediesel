@@ -30,10 +30,6 @@ void Sys_Quit() {
 	exit( 0 );
 }
 
-void Sys_Sleep( unsigned int millis ) {
-	Sleep( millis );
-}
-
 void Sys_Init() {
 	SetConsoleOutputCP( CP_UTF8 );
 	Sys_InitTime();
@@ -47,7 +43,7 @@ int main( int argc, char ** argv ) {
 	oldtime = Sys_Milliseconds();
 
 	while( 1 ) {
-		Sleep( 1 );
+		Sys_Sleep( 1 );
 
 		do {
 			newtime = Sys_Milliseconds();

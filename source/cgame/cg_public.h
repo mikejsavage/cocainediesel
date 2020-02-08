@@ -102,13 +102,7 @@ typedef struct {
 
 	bool ( *NewFrameSnapshot )( snapshot_t *newSnapshot, snapshot_t *currentSnapshot );
 
-	/**
-	* Transmits accumulated mouse movement event for the current frame.
-	*
-	* @param dx horizontal mouse movement
-	* @param dy vertical mouse movement
-	*/
-	void ( *MouseMove )( int frameTime, int dx, int dy );
+	void ( *MouseMove )( int frameTime, Vec2 m );
 
 	/**
 	 * Gets input command buttons added by cgame.

@@ -523,10 +523,7 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 	HotloadSounds();
 	HotloadSoundEffects();
 
-	if( s_muteinbackground->modified ) {
-		alListenerf( AL_GAIN, window_focused || s_muteinbackground->integer == 0 ? 1 : 0 );
-		s_muteinbackground->modified = false;
-	}
+	alListenerf( AL_GAIN, IsWindowFocused() || s_muteinbackground->integer == 0 ? 1 : 0 );
 
 	float orientation[ 6 ];
 	VectorCopy( &axis[ AXIS_FORWARD ], &orientation[ 0 ] );
@@ -623,14 +620,6 @@ void S_UpdateEntity( int ent_num, Vec3 origin, Vec3 velocity ) {
 
 	entities[ ent_num ].origin  = origin;
 	entities[ ent_num ].velocity = velocity;
-}
-
-void S_SetWindowFocus( bool focused ) {
-	if( !initialized )
-		return;
-
-	window_focused = focused;
-	alListenerf( AL_GAIN, window_focused || s_muteinbackground->integer == 0 ? 1 : 0 );
 }
 
 static PlayingSound * FindEmptyPlayingSound( int ent_num, int channel ) {

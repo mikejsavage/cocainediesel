@@ -715,7 +715,7 @@ void CG_DrawChat();
 void CG_InitInput( void );
 void CG_ShutdownInput( void );
 void CG_ClearInputState( void );
-void CG_MouseMove( int frameTime, int mx, int my );
+void CG_MouseMove( int frameTime, Vec2 m );
 float CG_GetSensitivityScale( float sens, float zoomSens );
 unsigned int CG_GetButtonBits( void );
 void CG_AddViewAngles( vec3_t viewAngles );

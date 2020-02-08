@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "client/client.h"
 #include "client/renderer/renderer.h"
-#include "client/sdl/sdl_window.h"
 #include "qcommon/assets.h"
 #include "qcommon/asyncstream.h"
 #include "qcommon/version.h"
@@ -1815,7 +1814,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 		static s64 last_hotload_time = 0;
 		static bool last_focused = true;
 
-		bool focused = VID_AppIsActive();
+		bool focused = IsWindowFocused();
 		bool just_became_focused = focused && !last_focused;
 
 		// hotload assets when the window regains focus or every 1 second when not focused
@@ -1841,7 +1840,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 		if( cl_maxfps->integer < absMinFps ) {
 			Cvar_ForceSet( "cl_maxfps", va( "%i", absMinFps ) );
 		}
-		maxFps = VID_AppIsActive() ? cl_maxfps->value : absMinFps;
+		maxFps = IsWindowFocused() ? cl_maxfps->value : absMinFps;
 		minMsec = max( ( 1000.0f / maxFps ), 1 );
 		roundingMsec += max( ( 1000.0f / maxFps ), 1.0f ) - minMsec;
 	} else {
@@ -1857,7 +1856,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	if( allRealMsec + extraMsec < minMsec ) {
 		// let CPU sleep while minimized
-		bool sleep = cls.state == CA_DISCONNECTED || !VID_AppIsActive() || VID_AppIsMinimized(); // FIXME: not sure about listen server here..
+		bool sleep = cls.state == CA_DISCONNECTED || !IsWindowFocused();
 
 		if( sleep && minMsec - extraMsec > 1 ) {
 			Sys_Sleep( minMsec - extraMsec - 1 );
@@ -1876,8 +1875,8 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	VID_CheckChanges();
 
 	// update the screen
-	u32 viewport_width, viewport_height;
-	VID_GetViewportSize( &viewport_width, &viewport_height );
+	int viewport_width, viewport_height;
+	GetFramebufferSize( &viewport_width, &viewport_height );
 	RendererBeginFrame( viewport_width, viewport_height );
 
 	SCR_UpdateScreen();
@@ -1895,7 +1894,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	cls.framecount++;
 
-	VID_Swap();
+	SwapBuffers();
 }
 
 //============================================================================
@@ -2014,6 +2013,10 @@ void CL_Init( void ) {
 	Con_Init();
 
 	VID_Init();
+
+	if( !S_Init() ) {
+		Com_Printf( S_COLOR_RED "Couldn't initialise audio engine\n" );
+	}
 
 	CL_ClearState();
 

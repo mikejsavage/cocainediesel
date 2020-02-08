@@ -739,6 +739,8 @@ bool Sys_FormatTime( char * buf, size_t buf_size, const char * fmt );
 const char * Sys_ConsoleInput();
 void Sys_ConsoleOutput( const char * string );
 
+bool Sys_BeingDebugged();
+
 #ifndef _MSC_VER
 void Sys_Error( const char *error, ... ) __attribute__( ( format( printf, 1, 2 ) ) ) __attribute__( ( noreturn ) );
 void Sys_Quit( void ) __attribute__( ( noreturn ) );

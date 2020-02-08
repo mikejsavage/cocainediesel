@@ -172,9 +172,12 @@ void VID_WindowInit( WindowMode mode ) {
 		mode.y = SDL_WINDOWPOS_CENTERED;
 	}
 
-	sdl_window = SDL_CreateWindow( "Cocaine Diesel", mode.x, mode.y, mode.video_mode.width, mode.video_mode.height, flags );
-	if( sdl_window == NULL ) {
-		Sys_Error( "Couldn't create window: \"%s\"", SDL_GetError() );
+	{
+		ZoneScopedN( "SDL_CreateWindow" );
+		sdl_window = SDL_CreateWindow( "Cocaine Diesel", mode.x, mode.y, mode.video_mode.width, mode.video_mode.height, flags );
+		if( sdl_window == NULL ) {
+			Sys_Error( "Couldn't create window: \"%s\"", SDL_GetError() );
+		}
 	}
 
 	if( mode.fullscreen != FullScreenMode_Windowed ) {

@@ -460,7 +460,7 @@ void CG_DrawDamageNumbers() {
 		if( dn.damage == 0 )
 			continue;
 
-		float lifetime = Lerp( 750.0f, Clamp01( Unlerp( 0, dn.damage, MINI_OBITUARY_DAMAGE ) ), 2000.0f );
+		float lifetime = Lerp( 750.0f, Unlerp01( 0, dn.damage, MINI_OBITUARY_DAMAGE ), 2000.0f );
 		float frac = ( cl.serverTime - dn.t ) / lifetime;
 		if( frac > 1 )
 			continue;
@@ -488,7 +488,7 @@ void CG_DrawDamageNumbers() {
 			color = vec4_white;
 		}
 
-		float font_size = Lerp( cgs.textSizeTiny, Clamp01( Unlerp( 0, dn.damage, 60 ) ), cgs.textSizeSmall );
+		float font_size = Lerp( cgs.textSizeTiny, Unlerp01( 0, dn.damage, 60 ), cgs.textSizeSmall );
 
 		float alpha = 1 - max( 0, frac - 0.75f ) / 0.25f;
 		color.w *= alpha;
@@ -698,9 +698,8 @@ void CG_Draw2DView( void ) {
 		CG_DrawCenterString();
 	}
 
-	CG_DrawChat();
-
 	CG_DrawHUD();
+	CG_DrawChat();
 }
 
 /*

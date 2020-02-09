@@ -791,8 +791,6 @@ typedef struct {
 	vec3_t position_origin;
 	vec3_t position_angles;
 	int64_t position_lastcmd;
-
-	edict_t *last_killer;
 } client_teamreset_t;
 
 struct gclient_s {

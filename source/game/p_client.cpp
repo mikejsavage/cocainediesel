@@ -166,8 +166,6 @@ void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage
 
 	ent->r.solid = SOLID_NOT;
 
-	ent->r.client->teamstate.last_killer = attacker;
-
 	// player death
 	ClientObituary( ent, inflictor, attacker );
 

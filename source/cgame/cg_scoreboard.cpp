@@ -182,7 +182,7 @@ void CG_DrawScoreboard() {
 	const char * cursor = scoreboard_string;
 
 	const ImGuiIO & io = ImGui::GetIO();
-	float width_frac = Lerp( 0.8f, Clamp01( Unlerp( 1024.0f, io.DisplaySize.x, 1920.0f ) ), 0.6f );
+	float width_frac = Lerp( 0.8f, Unlerp01( 1024.0f, io.DisplaySize.x, 1920.0f ), 0.6f );
 	Vec2 size = io.DisplaySize * Vec2( width_frac, 0.8f );
 
 	ImGuiWindowFlags basic_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoInputs;

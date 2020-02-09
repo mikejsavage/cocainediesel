@@ -117,7 +117,7 @@ void CG_DrawChat() {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	const ImGuiIO & io = ImGui::GetIO();
-	float width_frac = Lerp( 0.5f, Clamp01( Unlerp( 1024.0f, io.DisplaySize.x, 1920.0f ) ), 0.25f );
+	float width_frac = Lerp( 0.5f, Unlerp01( 1024.0f, io.DisplaySize.x, 1920.0f ), 0.25f );
 	Vec2 size = io.DisplaySize * Vec2( width_frac, 0.25f );
 
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground;

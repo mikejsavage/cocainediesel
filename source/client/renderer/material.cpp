@@ -552,7 +552,7 @@ static void LoadBuiltinTextures() {
 		for( int y = 0; y < 16; y++ ) {
 			for( int x = 0; x < 16; x++ ) {
 				float d = Length( Vec2( x - 7.5f, y - 7.5f ) );
-				float a = Clamp01( Unlerp( 1.0f, d, 7.0f ) );
+				float a = Unlerp01( 1.0f, d, 7.0f );
 				image( x, y ) = 255 * ( 1.0f - a );
 			}
 		}

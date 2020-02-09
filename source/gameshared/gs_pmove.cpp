@@ -1678,7 +1678,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 			fall_delta *= 0.5;
 		}
 
-		float frac = Clamp01( Unlerp( min_fall_velocity, fall_delta, max_fall_velocity ) );
+		float frac = Unlerp01( min_fall_velocity, fall_delta, max_fall_velocity );
 		if( frac > 0 ) {
 			pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_FALL, frac * 255 );
 		}

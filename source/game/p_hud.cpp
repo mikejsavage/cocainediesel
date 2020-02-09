@@ -141,10 +141,4 @@ void G_SetClientStats( edict_t * ent ) {
 			ps->pointed_health = HEALTH_TO_INT( e->health );
 		}
 	}
-
-	ps->last_killer = 0;
-	if( client->teamstate.last_killer ) {
-		edict_t * attacker = client->teamstate.last_killer;
-		ps->last_killer = attacker->r.client ? ENTNUM( attacker ) : 0;
-	}
 }

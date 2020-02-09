@@ -302,7 +302,6 @@ struct SyncPlayerState {
 	u8 progress_type; // enum BombProgress
 	u8 progress;
 
-	int last_killer;
 	int pointed_player;
 	int pointed_health;
 };

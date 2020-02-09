@@ -293,12 +293,18 @@ typedef struct obituary_s {
 static obituary_t cg_obituaries[MAX_OBITUARIES];
 static int cg_obituaries_current = -1;
 
+struct {
+	s64 time;
+	u64 entropy;
+} self_obituary;
+
 /*
 * CG_SC_ResetObituaries
 */
 void CG_SC_ResetObituaries( void ) {
 	memset( cg_obituaries, 0, sizeof( cg_obituaries ) );
 	cg_obituaries_current = -1;
+	self_obituary = { };
 }
 
 static const char * obituaries[] = {
@@ -1050,6 +1056,10 @@ void CG_SC_Obituary( void ) {
 	}
 	current->mod = mod;
 
+	if( cg.view.playerPrediction && ISVIEWERENTITY( victimNum ) ) {
+		self_obituary.entropy = 0;
+	}
+
 	if( attackerNum ) {
 		if( victimNum != attackerNum ) {
 			current->type = OBITUARY_NORMAL;
@@ -1077,6 +1087,11 @@ void CG_SC_Obituary( void ) {
 				ImGuiColorToken( 255, 234, 0, 255 ), obituary,
 				ImGuiColorToken( victim_color ), victim_name
 			) );
+
+			if( cg.view.playerPrediction && ISVIEWERENTITY( victimNum ) ) {
+				self_obituary.time = cls.monotonicTime;
+				self_obituary.entropy = entropy;
+			}
 		}
 		else {   // suicide
 			current->type = OBITUARY_SUICIDE;
@@ -1237,6 +1252,29 @@ static void CG_DrawObituaries(
 
 		yoffset += line_height;
 	} while( i != next );
+
+	if( cg.predictedPlayerState.health <= 0 && cg.predictedPlayerState.team != TEAM_SPECTATOR ) {
+		if( self_obituary.entropy != 0 ) {
+			float h = 128.0f;
+			float yy = frame_static.viewport.y * 0.5f - h * 0.5f;
+
+			float t = float( cls.monotonicTime - self_obituary.time ) / 1000.0f;
+
+			Draw2DBox( 0, yy, frame_static.viewport.x, h, cls.whiteTexture, Vec4( 0, 0, 0, Min2( 0.5f, t * 0.5f ) ) );
+
+			if( t >= 1.0f ) {
+				RNG rng = new_rng( self_obituary.entropy, 0 );
+
+				TempAllocator temp = cls.frame_arena.temp();
+				const char * obituary = temp( "{}{}{}", RandomPrefix( &rng, 0.05f ), RandomPrefix( &rng, 0.5f ), RandomObituary( &rng ) );
+
+				float size = Lerp( h * 0.5f, Unlerp01( 1.0f, t, 3.0f ), h * 0.75f );
+				Vec4 color = CG_TeamColorVec4( TEAM_ENEMY );
+				color.w = Unlerp01( 1.0f, t, 2.0f );
+				DrawText( cgs.fontMontserrat, size, obituary, Alignment_CenterMiddle, frame_static.viewport.x * 0.5f, frame_static.viewport.y * 0.5f, color );
+			}
+		}
+	}
 }
 
 //=============================================================================

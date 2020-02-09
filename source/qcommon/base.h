@@ -57,6 +57,21 @@ inline Vec4 Clamp01( Vec4 v ) {
 	return Vec4( Clamp01( v.x ), Clamp01( v.y ), Clamp01( v.z ), Clamp01( v.w ) );
 }
 
+template< typename T >
+T Lerp( T a, float t, T b ) {
+	return a * ( 1.0f - t ) + b * t;
+}
+
+template< typename T >
+float Unlerp( T lo, T x, T hi ) {
+	return float( x - lo ) / float( hi - lo );
+}
+
+template< typename T >
+float Unlerp01( T lo, T x, T hi ) {
+	return Clamp01( Unlerp( lo, x, hi ) );
+}
+
 /*
  * defer
  */

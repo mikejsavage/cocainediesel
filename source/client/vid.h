@@ -5,11 +5,17 @@ struct VideoMode {
 	int frequency;
 };
 
+enum FullscreenMode {
+	FullscreenMode_Windowed,
+	FullscreenMode_Borderless,
+	FullscreenMode_Fullscreen,
+};
+
 struct WindowMode {
 	VideoMode video_mode;
 	int monitor;
 	int x, y;
-	bool fullscreen;
+	FullscreenMode fullscreen;
 };
 
 void format( FormatBuffer * fb, VideoMode mode, const FormatOpts & opts );

@@ -364,6 +364,15 @@ static void SettingsControls() {
 	ImGui::EndChild();
 }
 
+static const char * FullscreenModeToString( FullscreenMode mode ) {
+	switch( mode ) {
+		case FullscreenMode_Windowed: return "Windowed";
+		case FullscreenMode_Borderless: return "Borderless";
+		case FullscreenMode_Fullscreen: return "Fullscreen";
+	}
+	return NULL;
+}
+
 static void SettingsVideo() {
 	static WindowMode mode;
 
@@ -374,61 +383,80 @@ static void SettingsVideo() {
 		reset_video_settings = false;
 	}
 
-	SettingLabel( "Fullscreen" );
-	ImGui::Checkbox( "##fullscreen", &mode.fullscreen );
+	SettingLabel( "Window mode" );
+	ImGui::PushItemWidth( 200 );
 
-	if( !mode.fullscreen ) {
+	if( ImGui::BeginCombo( "##fullscreen", FullscreenModeToString( mode.fullscreen ) ) ) {
+		if( ImGui::Selectable( FullscreenModeToString( FullscreenMode_Windowed ), mode.fullscreen == FullscreenMode_Windowed ) ) {
+			mode.fullscreen = FullscreenMode_Windowed;
+		}
+		if( ImGui::Selectable( FullscreenModeToString( FullscreenMode_Borderless ), mode.fullscreen == FullscreenMode_Borderless ) ) {
+			mode.fullscreen = FullscreenMode_Borderless;
+		}
+		if( ImGui::Selectable( FullscreenModeToString( FullscreenMode_Fullscreen ), mode.fullscreen == FullscreenMode_Fullscreen ) ) {
+			mode.fullscreen = FullscreenMode_Fullscreen;
+		}
+		ImGui::EndCombo();
+	}
+
+	ImGui::PopItemWidth();
+
+	if( mode.fullscreen != FullscreenMode_Fullscreen ) {
 		mode.video_mode.frequency = 0;
 	}
-	else if( mode.fullscreen ) {
-		ImGui::PushItemWidth( 400 );
 
-		SettingLabel( "Monitor" );
-
+	if( mode.fullscreen != FullscreenMode_Windowed ) {
 		int num_monitors;
 		GLFWmonitor ** monitors = glfwGetMonitors( &num_monitors );
 
-		if( ImGui::BeginCombo( "##monitor", glfwGetMonitorName( monitors[ mode.monitor ] ) ) ) {
-			for( int i = 0; i < num_monitors; i++ ) {
-				ImGui::PushID( i );
-				if( ImGui::Selectable( glfwGetMonitorName( monitors[ i ] ), mode.monitor == i ) ) {
-					mode.monitor = i;
+		if( num_monitors > 1 ) {
+			SettingLabel( "Monitor" );
+			ImGui::PushItemWidth( 400 );
+
+			if( ImGui::BeginCombo( "##monitor", glfwGetMonitorName( monitors[ mode.monitor ] ) ) ) {
+				for( int i = 0; i < num_monitors; i++ ) {
+					ImGui::PushID( i );
+					if( ImGui::Selectable( glfwGetMonitorName( monitors[ i ] ), mode.monitor == i ) ) {
+						mode.monitor = i;
+					}
+					ImGui::PopID();
 				}
-				ImGui::PopID();
+				ImGui::EndCombo();
 			}
-			ImGui::EndCombo();
+
+			ImGui::PopItemWidth();
 		}
 
-		ImGui::PopItemWidth();
-		ImGui::PushItemWidth( 200 );
+		if( mode.fullscreen == FullscreenMode_Fullscreen ) {
+			SettingLabel( "Resolution" );
+			ImGui::PushItemWidth( 200 );
 
-		SettingLabel( "Resolution" );
+			if( mode.video_mode.frequency == 0 ) {
+				mode.video_mode = GetVideoMode( mode.monitor );
+			}
 
-		if( mode.video_mode.frequency == 0 ) {
-			mode.video_mode = GetVideoMode( mode.monitor );
-		}
+			if( ImGui::BeginCombo( "##resolution", temp( "{}", mode.video_mode ) ) ) {
+				int num_modes;
+				const GLFWvidmode * modes = glfwGetVideoModes( monitors[ mode.monitor ], &num_modes );
 
-		if( ImGui::BeginCombo( "##resolution", temp( "{}", mode.video_mode ) ) ) {
-			int num_modes;
-			const GLFWvidmode * modes = glfwGetVideoModes( monitors[ mode.monitor ], &num_modes );
+				for( int i = 0; i < num_modes; i++ ) {
+					int idx = num_modes - i - 1;
 
-			for( int i = 0; i < num_modes; i++ ) {
-				int idx = num_modes - i - 1;
+					VideoMode m = { };
+					m.width = modes[ idx ].width;
+					m.height = modes[ idx ].height;
+					m.frequency = modes[ idx ].refreshRate;
 
-				VideoMode m = { };
-				m.width = modes[ idx ].width;
-				m.height = modes[ idx ].height;
-				m.frequency = modes[ idx ].refreshRate;
-
-				bool is_selected = mode.video_mode.width == m.width && mode.video_mode.height == m.height && mode.video_mode.frequency == m.frequency;
-				if( ImGui::Selectable( temp( "{}", m ), is_selected ) ) {
-					mode.video_mode = m;
+					bool is_selected = mode.video_mode.width == m.width && mode.video_mode.height == m.height && mode.video_mode.frequency == m.frequency;
+					if( ImGui::Selectable( temp( "{}", m ), is_selected ) ) {
+						mode.video_mode = m;
+					}
 				}
+				ImGui::EndCombo();
 			}
-			ImGui::EndCombo();
-		}
 
-		ImGui::PopItemWidth();
+			ImGui::PopItemWidth();
+		}
 	}
 
 	if( mode != GetWindowMode() ) {

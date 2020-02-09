@@ -32,7 +32,7 @@ static bool ParseWindowMode( const char * str, WindowMode * mode ) {
 	{
 		int comps = sscanf( str, "%dx%d", &mode->video_mode.width, &mode->video_mode.height );
 		if( comps == 2 ) {
-			mode->fullscreen = false;
+			mode->fullscreen = FullscreenMode_Windowed;
 			mode->x = -1;
 			mode->y = -1;
 			return true;
@@ -43,7 +43,16 @@ static bool ParseWindowMode( const char * str, WindowMode * mode ) {
 	{
 		int comps = sscanf( str, "W %dx%d %dx%d", &mode->video_mode.width, &mode->video_mode.height, &mode->x, &mode->y );
 		if( comps == 4 ) {
-			mode->fullscreen = false;
+			mode->fullscreen = FullscreenMode_Windowed;
+			return true;
+		}
+	}
+
+	// borderless
+	{
+		int comps = sscanf( str, "B %d", &mode->monitor );
+		if( comps == 1 ) {
+			mode->fullscreen = FullscreenMode_Borderless;
 			return true;
 		}
 	}
@@ -52,7 +61,7 @@ static bool ParseWindowMode( const char * str, WindowMode * mode ) {
 	{
 		int comps = sscanf( str, "F %d %dx%d %dHz", &mode->monitor, &mode->video_mode.width, &mode->video_mode.height, &mode->video_mode.frequency );
 		if( comps == 4 ) {
-			mode->fullscreen = true;
+			mode->fullscreen = FullscreenMode_Fullscreen;
 			return true;
 		}
 	}
@@ -65,11 +74,18 @@ void format( FormatBuffer * fb, VideoMode mode, const FormatOpts & opts ) {
 }
 
 void format( FormatBuffer * fb, WindowMode mode, const FormatOpts & opts ) {
-	if( mode.fullscreen ) {
-		ggformat_impl( fb, "F {} {}x{} {}Hz", mode.monitor, mode.video_mode.width, mode.video_mode.height, mode.video_mode.frequency );
-	}
-	else {
-		ggformat_impl( fb, "W {}x{} {}x{}", mode.video_mode.width, mode.video_mode.height, mode.x, mode.y );
+	switch( mode.fullscreen ) {
+		case FullscreenMode_Windowed:
+			ggformat_impl( fb, "W {}x{} {}x{}", mode.video_mode.width, mode.video_mode.height, mode.x, mode.y );
+			break;
+
+		case FullscreenMode_Borderless:
+			ggformat_impl( fb, "B {}", mode.monitor );
+			break;
+
+		case FullscreenMode_Fullscreen:
+			ggformat_impl( fb, "F {} {}x{} {}Hz", mode.monitor, mode.video_mode.width, mode.video_mode.height, mode.video_mode.frequency );
+			break;
 	}
 }
 
@@ -78,10 +94,14 @@ bool operator!=( WindowMode lhs, WindowMode rhs ) {
 		return true;
 
 	if( lhs.fullscreen ) {
-		return lhs.video_mode.frequency != rhs.video_mode.frequency || lhs.monitor != rhs.monitor;
+		if( lhs.video_mode.frequency != rhs.video_mode.frequency || lhs.monitor != rhs.monitor ) {
+			return true;
+		}
 	}
 	else {
-		return lhs.x != rhs.x;
+		if( lhs.x != rhs.x ) {
+			return true;
+		}
 	}
 
 	return lhs.video_mode.width != rhs.video_mode.width || lhs.video_mode.height != rhs.video_mode.height;
@@ -128,9 +148,7 @@ void VID_Init() {
 	if( !ParseWindowMode( vid_mode->string, &mode ) ) {
 		mode = { };
 		mode.video_mode = GetVideoMode( mode.monitor );
-		mode.fullscreen = true;
-		mode.x = -1;
-		mode.y = -1;
+		mode.fullscreen = FullscreenMode_Fullscreen;
 	}
 
 	CreateWindow( mode );

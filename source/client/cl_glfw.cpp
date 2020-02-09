@@ -364,11 +364,29 @@ static GLFWmonitor * GetMonitorByIdx( int i ) {
 	return i < num_monitors ? monitors[ i ] : monitors[ 0 ];
 }
 
+static WindowMode CompleteWindowMode( WindowMode mode ) {
+	if( mode.fullscreen == FullscreenMode_Windowed ) {
+		if( mode.x == -1 && mode.y == -1 ) {
+			const GLFWvidmode * primary_mode = glfwGetVideoMode( glfwGetPrimaryMonitor() );
+			mode.x = primary_mode->width / 2 - mode.video_mode.width / 2;
+			mode.y = primary_mode->height / 2 - mode.video_mode.height / 2;
+		}
+	}
+	else if( mode.fullscreen == FullscreenMode_Borderless ) {
+		GLFWmonitor * monitor = GetMonitorByIdx( mode.monitor );
+
+		const GLFWvidmode * monitor_mode = glfwGetVideoMode( monitor );
+		mode.video_mode.width = monitor_mode->width;
+		mode.video_mode.height = monitor_mode->height;
+
+		glfwGetMonitorPos( monitor, &mode.x, &mode.y );
+	}
+
+	return mode;
+}
+
 void CreateWindow( WindowMode mode ) {
 	ZoneScoped;
-
-	glfwWindowHint( GLFW_RESIZABLE, GLFW_TRUE );
-	glfwWindowHint( GLFW_AUTO_ICONIFY, GLFW_FALSE );
 
 	glfwWindowHint( GLFW_CLIENT_API, GLFW_OPENGL_API );
 	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
@@ -382,10 +400,24 @@ void CreateWindow( WindowMode mode ) {
 	glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE );
 #endif
 
-	GLFWmonitor * monitor = mode.fullscreen ? GetMonitorByIdx( mode.monitor ) : NULL;
-	glfwWindowHint( GLFW_REFRESH_RATE, mode.video_mode.frequency );
+	glfwWindowHint( GLFW_RESIZABLE, GLFW_TRUE );
 
-	window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, APPLICATION, monitor, NULL );
+	mode = CompleteWindowMode( mode );
+
+	if( mode.fullscreen == FullscreenMode_Windowed ) {
+		window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, APPLICATION, NULL, NULL );
+		glfwSetWindowPos( window, mode.x, mode.y );
+	}
+	else if( mode.fullscreen == FullscreenMode_Borderless ) {
+		glfwWindowHint( GLFW_DECORATED, GLFW_FALSE );
+		window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, APPLICATION, NULL, NULL );
+		glfwSetWindowPos( window, mode.x, mode.y );
+	}
+	else if( mode.fullscreen == FullscreenMode_Fullscreen ) {
+		glfwWindowHint( GLFW_REFRESH_RATE, mode.video_mode.frequency );
+		GLFWmonitor * monitor = GetMonitorByIdx( mode.monitor );
+		window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, APPLICATION, monitor, NULL );
+	}
 
 	if( window == NULL ) {
 		Com_Error( ERR_FATAL, "glfwCreateWindow" );
@@ -406,10 +438,6 @@ void CreateWindow( WindowMode mode ) {
 	glfwSetScrollCallback( window, OnScroll );
 	glfwSetKeyCallback( window, OnKeyPressed );
 	glfwSetCharCallback( window, OnCharTyped );
-
-	if( !mode.fullscreen ) {
-		glfwSetWindowPos( window, mode.x, mode.y );
-	}
 
 	glfwMakeContextCurrent( window );
 
@@ -464,30 +492,54 @@ VideoMode GetVideoMode( int monitor ) {
 WindowMode GetWindowMode() {
 	WindowMode mode = { };
 
-	GLFWmonitor * monitor = glfwGetWindowMonitor( window );
-	mode.fullscreen = monitor != NULL;
-
 	glfwGetWindowPos( window, &mode.x, &mode.y );
 	glfwGetWindowSize( window, &mode.video_mode.width, &mode.video_mode.height );
 
+	GLFWmonitor * monitor = glfwGetWindowMonitor( window );
 	if( monitor != NULL ) {
 		const GLFWvidmode * monitor_mode = glfwGetVideoMode( monitor );
+		mode.fullscreen = FullscreenMode_Fullscreen;
 		mode.video_mode.frequency = monitor_mode->refreshRate;
 		mode.monitor = int( uintptr_t( glfwGetMonitorUserPointer( monitor ) ) );
+	}
+	else {
+		bool borderless = glfwGetWindowAttrib( window, GLFW_DECORATED ) == GLFW_FALSE;
+		mode.fullscreen = borderless ? FullscreenMode_Borderless : FullscreenMode_Windowed;
+
+		if( borderless ) {
+			int num_monitors;
+			GLFWmonitor ** monitors = glfwGetMonitors( &num_monitors );
+
+			for( int i = 0; i < num_monitors; i++ ) {
+				int x, y;
+				glfwGetMonitorPos( monitors[ i ], &x, &y );
+
+				if( x == mode.x && y == mode.y ) {
+					mode.monitor = i;
+					break;
+				}
+			}
+		}
 	}
 
 	return mode;
 }
 
 void SetWindowMode( WindowMode mode ) {
-	if( mode.x == -1 && mode.y == -1 ) {
-		const GLFWvidmode * primary_mode = glfwGetVideoMode( glfwGetPrimaryMonitor() );
-		mode.x = primary_mode->width / 2 - mode.video_mode.width / 2;
-		mode.y = primary_mode->height / 2 - mode.video_mode.height / 2;
-	}
+	mode = CompleteWindowMode( mode );
 
-	GLFWmonitor * monitor = mode.fullscreen ? GetMonitorByIdx( mode.monitor ) : NULL;
-	glfwSetWindowMonitor( window, monitor, mode.x, mode.y, mode.video_mode.width, mode.video_mode.height, mode.video_mode.frequency );
+	if( mode.fullscreen == FullscreenMode_Windowed ) {
+		glfwSetWindowAttrib( window, GLFW_DECORATED, GLFW_TRUE );
+		glfwSetWindowMonitor( window, NULL, mode.x, mode.y, mode.video_mode.width, mode.video_mode.height, 0 );
+	}
+	else if( mode.fullscreen == FullscreenMode_Borderless ) {
+		glfwSetWindowAttrib( window, GLFW_DECORATED, GLFW_FALSE );
+		glfwSetWindowMonitor( window, NULL, mode.x, mode.y, mode.video_mode.width, mode.video_mode.height, 0 );
+	}
+	else {
+		GLFWmonitor * monitor = GetMonitorByIdx( mode.monitor );
+		glfwSetWindowMonitor( window, monitor, mode.x, mode.y, mode.video_mode.width, mode.video_mode.height, mode.video_mode.frequency );
+	}
 }
 
 void EnableVSync( bool enabled ) {

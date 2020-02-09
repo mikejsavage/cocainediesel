@@ -739,6 +739,8 @@ bool Sys_FormatTime( char * buf, size_t buf_size, const char * fmt );
 const char * Sys_ConsoleInput();
 void Sys_ConsoleOutput( const char * string );
 
+bool Sys_OpenInWebBrowser( const char * url );
+
 bool Sys_BeingDebugged();
 
 #ifndef _MSC_VER

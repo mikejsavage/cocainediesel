@@ -40,7 +40,6 @@ cvar_t *g_maxvelocity;
 cvar_t *g_gravity;
 
 cvar_t *sv_cheats;
-cvar_t *sv_mm_enable;
 
 cvar_t *g_maplist;
 cvar_t *g_maprotation;
@@ -156,7 +155,6 @@ void G_Init( unsigned int framemsec ) {
 
 	// latched vars
 	sv_cheats = Cvar_Get( "sv_cheats", "0", CVAR_SERVERINFO | CVAR_LATCH );
-	sv_mm_enable = Cvar_Get( "sv_mm_enable", "0", CVAR_ARCHIVE | CVAR_NOSET | CVAR_SERVERINFO );
 
 	password = Cvar_Get( "password", "", CVAR_USERINFO );
 	password->modified = true; // force an update of g_needpass in G_UpdateServerInfo

@@ -41,11 +41,11 @@ do
 			"source/win32/win_net.cpp",
 			"source/win32/win_threads.cpp",
 			"source/win32/win_time.cpp",
-			"source/win32/win_sys.cpp",
 		}
 		platform_libs = { }
 	else
 		platform_srcs = {
+			"source/unix/unix_client.cpp",
 			"source/unix/unix_console.cpp",
 			"source/unix/unix_fs.cpp",
 			"source/unix/unix_net.cpp",

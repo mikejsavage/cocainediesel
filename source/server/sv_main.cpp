@@ -70,7 +70,6 @@ cvar_t *sv_iplimit;
 cvar_t *sv_reconnectlimit; // minimum seconds between connect messages
 
 cvar_t *sv_masterservers;
-cvar_t *sv_skilllevel;
 
 // wsw : debug netcode
 cvar_t *sv_debug_serverCmd;
@@ -620,16 +619,6 @@ void SV_Init( void ) {
 	if( sv_demodir->string[0] && Com_GlobMatch( "*[^0-9a-zA-Z_@]*", sv_demodir->string, false ) ) {
 		Com_Printf( "Invalid demo prefix string: %s\n", sv_demodir->string );
 		Cvar_ForceSet( "sv_demodir", "" );
-	}
-
-	// wsw : jal : cap client's exceding server rules
-	sv_skilllevel =         Cvar_Get( "sv_skilllevel", "2", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_LATCH );
-
-	if( sv_skilllevel->integer > 2 ) {
-		Cvar_ForceSet( "sv_skilllevel", "2" );
-	}
-	if( sv_skilllevel->integer < 0 ) {
-		Cvar_ForceSet( "sv_skilllevel", "0" );
 	}
 
 	sv_masterservers =          Cvar_Get( "masterservers", DEFAULT_MASTER_SERVERS_IPS, CVAR_LATCH );

@@ -262,7 +262,6 @@ extern cvar_t *sv_http_upstream_ip;
 extern cvar_t *sv_http_upstream_realip_header;
 #endif
 
-extern cvar_t *sv_skilllevel;
 extern cvar_t *sv_maxclients;
 
 extern cvar_t *sv_showRcon;

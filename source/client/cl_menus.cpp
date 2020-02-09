@@ -45,7 +45,12 @@ enum SettingsState {
 
 struct Server {
 	const char * address;
-	const char * info;
+
+	const char * name;
+	const char * map;
+	int ping;
+	int num_players;
+	int max_players;
 };
 
 static Server servers[ 1024 ];
@@ -67,8 +72,12 @@ static bool reset_video_settings;
 static void ResetServerBrowser() {
 	for( int i = 0; i < num_servers; i++ ) {
 		free( const_cast< char * >( servers[ i ].address ) );
-		free( const_cast< char * >( servers[ i ].info ) );
+		free( const_cast< char * >( servers[ i ].name ) );
+		free( const_cast< char * >( servers[ i ].map ) );
 	}
+
+	memset( servers, 0, sizeof( servers ) );
+
 	num_servers = 0;
 	selected_server = -1;
 }
@@ -551,27 +560,51 @@ static void Settings() {
 static void ServerBrowser() {
 	TempAllocator temp = cls.frame_arena.temp();
 
+	ImGui::Text( "This game is very pre-alpha so there are probably 0 players online. Join the Discord to find games!" );
+	if( ImGui::Button( "discord.gg/5ZbV4mF" ) ) {
+		Sys_OpenInWebBrowser( "https://discord.gg/5ZbV4mF" );
+	}
+	ImGui::Separator();
+
 	if( ImGui::Button( "Refresh" ) ) {
 		RefreshServerBrowser();
 	}
 
 	ImGui::BeginChild( "servers" );
-	ImGui::Columns( 2, "serverbrowser", false );
-	ImGui::SetColumnWidth( 0, 200 );
-	ImGui::Text( "Address" );
+	ImGui::Columns( 4, "serverbrowser", false );
+
+	ImGui::Text( "Server" );
 	ImGui::NextColumn();
-	ImGui::Text( "Info" );
+	ImGui::Text( "Map" );
 	ImGui::NextColumn();
+	ImGui::Text( "Players" );
+	ImGui::NextColumn();
+	ImGui::Text( "Ping" );
+	ImGui::NextColumn();
+
 	for( int i = 0; i < num_servers; i++ ) {
-		if( ImGui::Selectable( servers[ i ].address, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
+		const char * name = servers[ i ].name != NULL ? servers[ i ].name : servers[ i ].address;
+		if( ImGui::Selectable( name, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
 			if( ImGui::IsMouseDoubleClicked( 0 ) ) {
 				Cbuf_AddText( temp( "connect \"{}\"\n", servers[ i ].address ) );
 			}
 			selected_server = i;
 		}
 		ImGui::NextColumn();
-		ImGui::Text( "%s", servers[ i ].info );
-		ImGui::NextColumn();
+
+		if( servers[ i ].name == NULL ) {
+			ImGui::NextColumn();
+			ImGui::NextColumn();
+			ImGui::NextColumn();
+		}
+		else {
+			ImGui::Text( "%s", servers[ i ].map );
+			ImGui::NextColumn();
+			ImGui::Text( "%d/%d", servers[ i ].num_players, servers[ i ].max_players );
+			ImGui::NextColumn();
+			ImGui::Text( "%d", servers[ i ].ping );
+			ImGui::NextColumn();
+		}
 	}
 
 	ImGui::Columns( 1 );
@@ -1181,11 +1214,30 @@ void UI_HideMenu() {
 	uistate = UIState_Hidden;
 }
 
-void UI_AddToServerList( const char * address, const char *info ) {
+void UI_AddToServerList( const char * address, const char * info ) {
+	for( int i = 0; i < num_servers; i++ ) {
+		if( strcmp( address, servers[ i ].address ) == 0 ) {
+			char name[ 128 ];
+			char map[ 32 ];
+			int parsed = sscanf( info, "\\\\ping\\\\%d\\\\n\\\\%127[^\\]\\\\m\\\\ %31[^\\]\\\\u\\\\%d/%d\\\\EOT", &servers[ i ].ping, name, map, &servers[ i ].num_players, &servers[ i ].max_players );
+
+			if( parsed == 5 ) {
+				servers[ i ].name = strdup( name );
+				servers[ i ].map = strdup( map );
+			}
+
+			return;
+		}
+	}
+
 	if( size_t( num_servers ) < ARRAY_COUNT( servers ) ) {
 		servers[ num_servers ].address = strdup( address );
-		servers[ num_servers ].info = strdup( info );
 		num_servers++;
+
+		if( strcmp( info, "\\\\EOT" ) == 0 ) {
+			TempAllocator temp = cls.frame_arena.temp();
+			Cbuf_AddText( temp( "pingserver {}\n", address ) );
+		}
 	}
 }
 

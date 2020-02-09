@@ -212,13 +212,6 @@ void SV_InitGame( void ) {
 
 	svs.initialized = true;
 
-	if( sv_skilllevel->integer > 2 ) {
-		Cvar_ForceSet( "sv_skilllevel", "2" );
-	}
-	if( sv_skilllevel->integer < 0 ) {
-		Cvar_ForceSet( "sv_skilllevel", "0" );
-	}
-
 	// init clients
 	if( sv_maxclients->integer < 1 ) {
 		Cvar_FullSet( "sv_maxclients", "8", CVAR_SERVERINFO | CVAR_LATCH, true );

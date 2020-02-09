@@ -15,7 +15,6 @@ bool Sys_OpenInWebBrowser( const char * url ) {
 		return true;
 
 	execlp( "xdg-open", "xdg-open", url, ( char * ) 0 );
-	FATAL( "execlp" );
 
 	return false;
 }

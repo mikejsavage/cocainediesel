@@ -560,7 +560,7 @@ static void Settings() {
 static void ServerBrowser() {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	ImGui::Text( "This game is very pre-alpha so there are probably 0 players online. Join the Discord to find games!" );
+	ImGui::TextWrapped( "This game is very pre-alpha so there are probably 0 players online. Join the Discord to find games!" );
 	if( ImGui::Button( "discord.gg/5ZbV4mF" ) ) {
 		Sys_OpenInWebBrowser( "https://discord.gg/5ZbV4mF" );
 	}

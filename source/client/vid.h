@@ -1,5 +1,7 @@
 #include "qcommon/types.h"
 
+extern cvar_t * vid_mode;
+
 struct VideoMode {
 	int width, height;
 	int frequency;

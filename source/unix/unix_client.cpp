@@ -6,6 +6,9 @@
 #include <stdio.h>
 #include <unistd.h>
 
+struct GLFWwindow;
+void Sys_ReallyGoBorderless( GLFWwindow * window, bool borderless ) { }
+
 bool Sys_OpenInWebBrowser( const char * url ) {
 	int child = fork();
 	if( child == -1 )

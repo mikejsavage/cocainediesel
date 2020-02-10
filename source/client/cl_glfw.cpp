@@ -122,9 +122,6 @@ static void gl_debug_output_callback_amd(
 	gl_debug_output_callback( GL_DONT_CARE, type, id, severity, length, message, _ );
 }
 
-// TODO
-extern cvar_t * vid_mode;
-
 static void UpdateVidModeCvar() {
 	TempAllocator temp = cls.frame_arena.temp();
 	Cvar_Set( "vid_mode", temp( "{}", GetWindowMode() ) );
@@ -364,6 +361,8 @@ static GLFWmonitor * GetMonitorByIdx( int i ) {
 	return i < num_monitors ? monitors[ i ] : monitors[ 0 ];
 }
 
+void Sys_ReallyGoBorderless( GLFWwindow * window, bool borderless );
+
 static WindowMode CompleteWindowMode( WindowMode mode ) {
 	if( mode.fullscreen == FullscreenMode_Windowed ) {
 		if( mode.x == -1 && mode.y == -1 ) {
@@ -406,12 +405,10 @@ void CreateWindow( WindowMode mode ) {
 
 	if( mode.fullscreen == FullscreenMode_Windowed ) {
 		window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, APPLICATION, NULL, NULL );
-		glfwSetWindowPos( window, mode.x, mode.y );
 	}
 	else if( mode.fullscreen == FullscreenMode_Borderless ) {
-		glfwWindowHint( GLFW_DECORATED, GLFW_FALSE );
+		// in borderless we start windowed and then change to borderless to work around a GLFW bug
 		window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, APPLICATION, NULL, NULL );
-		glfwSetWindowPos( window, mode.x, mode.y );
 	}
 	else if( mode.fullscreen == FullscreenMode_Fullscreen ) {
 		glfwWindowHint( GLFW_REFRESH_RATE, mode.video_mode.frequency );
@@ -421,6 +418,14 @@ void CreateWindow( WindowMode mode ) {
 
 	if( window == NULL ) {
 		Com_Error( ERR_FATAL, "glfwCreateWindow" );
+	}
+
+	if( mode.fullscreen == FullscreenMode_Windowed ) {
+		glfwSetWindowPos( window, mode.x, mode.y );
+	}
+	else if( mode.fullscreen == FullscreenMode_Borderless ) {
+		glfwSwapBuffers( window );
+		SetWindowMode( mode );
 	}
 
 	GLFWimage icon;
@@ -529,15 +534,18 @@ void SetWindowMode( WindowMode mode ) {
 	mode = CompleteWindowMode( mode );
 
 	if( mode.fullscreen == FullscreenMode_Windowed ) {
+		Sys_ReallyGoBorderless( window, false );
 		glfwSetWindowAttrib( window, GLFW_DECORATED, GLFW_TRUE );
 		glfwSetWindowMonitor( window, NULL, mode.x, mode.y, mode.video_mode.width, mode.video_mode.height, 0 );
 	}
 	else if( mode.fullscreen == FullscreenMode_Borderless ) {
 		glfwSetWindowAttrib( window, GLFW_DECORATED, GLFW_FALSE );
 		glfwSetWindowMonitor( window, NULL, mode.x, mode.y, mode.video_mode.width, mode.video_mode.height, 0 );
+		Sys_ReallyGoBorderless( window, true );
 	}
 	else {
 		GLFWmonitor * monitor = GetMonitorByIdx( mode.monitor );
+		Sys_ReallyGoBorderless( window, false );
 		glfwSetWindowMonitor( window, monitor, mode.x, mode.y, mode.video_mode.width, mode.video_mode.height, mode.video_mode.frequency );
 	}
 }

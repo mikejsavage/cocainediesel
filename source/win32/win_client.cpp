@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <shellapi.h>
 
+#include "qcommon/qcommon.h"
 #include "glfw3/GLFW/glfw3.h"
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include "glfw3/GLFW/glfw3native.h"
@@ -28,12 +29,43 @@ bool Sys_BeingDebugged() {
 
 void Sys_ReallyGoBorderless( GLFWwindow * window, bool borderless ) {
 	HWND handle = glfwGetWin32Window( window );
+
 	DWORD style = GetWindowLongW( handle, GWL_STYLE );
-	if( borderless )
-		style |= WS_POPUPWINDOW;
-	else
-		style &= ~WS_POPUPWINDOW;
+	DWORD exstyle = GetWindowLongW( handle, GWL_EXSTYLE );
+
+	Com_GGPrint( "{b} style   ", style );
+	Com_GGPrint( "{b} caption ", DWORD(WS_CAPTION) );
+	Com_GGPrint( "{b} sysmenu ", DWORD(WS_SYSMENU) );
+	Com_GGPrint( "{b} thickfr ", DWORD(WS_THICKFRAME) );
+	Com_GGPrint( "{b} minbox  ", DWORD(WS_MINIMIZEBOX) );
+	Com_GGPrint( "{b} maxbox  ", DWORD(WS_MAXIMIZEBOX) );
+	Com_GGPrint( "-----" );
+
+	Com_GGPrint( "{b} exstyle ", style );
+	Com_GGPrint( "{b} dlgmodf ", DWORD(WS_EX_DLGMODALFRAME) );
+	Com_GGPrint( "{b} composi ", DWORD(WS_EX_COMPOSITED) );
+	Com_GGPrint( "{b} windowe ", DWORD(WS_EX_WINDOWEDGE) );
+	Com_GGPrint( "{b} cliente ", DWORD(WS_EX_CLIENTEDGE) );
+	Com_GGPrint( "{b} layered ", DWORD(WS_EX_LAYERED) );
+	Com_GGPrint( "{b} statice ", DWORD(WS_EX_STATICEDGE) );
+	Com_GGPrint( "{b} toolwin ", DWORD(WS_EX_TOOLWINDOW) );
+	Com_GGPrint( "{b} appwind ", DWORD(WS_EX_APPWINDOW) );
+	Com_GGPrint( "-----" );
+
+	DWORD flags = WS_SYSMENU | WS_MINIMIZEBOX;
+	DWORD exflags = WS_EX_LAYERED | WS_EX_STATICEDGE;
+
+	if( borderless ) {
+		style |= flags;
+		exstyle |= exflags;
+	}
+	else {
+		style &= ~flags;
+		exstyle &= ~exflags;
+	}
+
 	SetWindowLongW( handle, GWL_STYLE, style );
+	SetWindowLongW( handle, GWL_EXSTYLE, exstyle );
 }
 
 bool Sys_OpenInWebBrowser( const char * url ) {

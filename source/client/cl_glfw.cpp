@@ -533,21 +533,24 @@ WindowMode GetWindowMode() {
 void SetWindowMode( WindowMode mode ) {
 	mode = CompleteWindowMode( mode );
 
+		Sys_ReallyGoBorderless( window, true );
 	if( mode.fullscreen == FullscreenMode_Windowed ) {
-		Sys_ReallyGoBorderless( window, false );
+		// Sys_ReallyGoBorderless( window, false );
 		glfwSetWindowAttrib( window, GLFW_DECORATED, GLFW_TRUE );
 		glfwSetWindowMonitor( window, NULL, mode.x, mode.y, mode.video_mode.width, mode.video_mode.height, 0 );
 	}
 	else if( mode.fullscreen == FullscreenMode_Borderless ) {
 		glfwSetWindowAttrib( window, GLFW_DECORATED, GLFW_FALSE );
 		glfwSetWindowMonitor( window, NULL, mode.x, mode.y, mode.video_mode.width, mode.video_mode.height, 0 );
-		Sys_ReallyGoBorderless( window, true );
+		// Sys_ReallyGoBorderless( window, true );
 	}
 	else {
 		GLFWmonitor * monitor = GetMonitorByIdx( mode.monitor );
-		Sys_ReallyGoBorderless( window, false );
+		// Sys_ReallyGoBorderless( window, false );
 		glfwSetWindowMonitor( window, monitor, mode.x, mode.y, mode.video_mode.width, mode.video_mode.height, mode.video_mode.frequency );
 	}
+		Sys_ReallyGoBorderless( window, true );
+		Com_Printf( "\n\n" );
 }
 
 void EnableVSync( bool enabled ) {

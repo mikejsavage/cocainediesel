@@ -45,6 +45,8 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 			if( GAME_IMPORT.is_dedicated_server ) {
 				Com_Printf( "%s %s\n", self->r.client->netname, message );
 			}
+
+			G_PositionedSound( self->s.origin, CHAN_AUTO, trap_SoundIndex( "sounds/trombone/sad" ) );
 		}
 
 		G_Obituary( self, attacker, mod );
@@ -53,6 +55,8 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 		if( GAME_IMPORT.is_dedicated_server ) {
 			Com_Printf( "%s %s\n", self->r.client->netname, message );
 		}
+
+		G_PositionedSound( self->s.origin, CHAN_AUTO, trap_SoundIndex( "sounds/trombone/sad" ) );
 
 		G_Obituary( self, attacker == self ? self : world, mod );
 	}

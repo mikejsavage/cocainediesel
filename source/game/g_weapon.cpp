@@ -184,10 +184,6 @@ void W_Fire_Bullet( edict_t * self, vec3_t start, vec3_t angles, int timeDelta, 
 	if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
 		float damage = def->damage;
 		float knockback = def->knockback;
-		if( wallbang.contents & CONTENTS_WALLBANGABLE ) {
-			damage *= 0.5f;
-			knockback *= 0.5f;
-		}
 
 		int dmgflags = DAMAGE_KNOCKBACK_SOFT;
 		G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, damage, knockback, dmgflags, mod );
@@ -209,11 +205,10 @@ static void G_Fire_SunflowerPattern( edict_t * self, vec3_t start, vec3_t dir, i
 		trace_t trace, wallbang;
 		GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, r, u, range, ENTNUM( self ), timeDelta );
 		if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
-			float scale = ( wallbang.contents & CONTENTS_WALLBANGABLE ) ? 0.5f : 1.0f;
-			G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, damage * scale, kick * scale, 0, MOD_RIOTGUN );
+			G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, damage, kick, 0, MOD_RIOTGUN );
 
 			if( !G_IsTeamDamage( &game.edicts[trace.ent].s, &self->s ) && trace.ent <= MAX_CLIENTS ) {
-				damage_dealt[trace.ent] += damage * scale;
+				damage_dealt[trace.ent] += damage;
 			}
 		}
 	}
@@ -498,7 +493,7 @@ void W_Fire_Electrobolt( edict_t * self, vec3_t start, vec3_t angles, float dama
 	trace_t tr;
 	tr.ent = -1;
 	while( ignore ) {
-		G_Trace4D( &tr, from, NULL, NULL, end, ignore, MASK_SHOT, timeDelta );
+		G_Trace4D( &tr, from, NULL, NULL, end, ignore, MASK_WALLBANG, timeDelta );
 
 		VectorCopy( tr.endpos, from );
 		ignore = NULL;

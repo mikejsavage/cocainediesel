@@ -31,7 +31,7 @@ static void CG_Event_WeaponBeam( vec3_t origin, vec3_t dir, int ownerNum ) {
 
 	// retrace to spawn wall impact
 	trace_t trace;
-	CG_Trace( &trace, origin, vec3_origin, vec3_origin, end, cg.view.POVent, MASK_SOLID );
+	CG_Trace( &trace, origin, vec3_origin, vec3_origin, end, cg.view.POVent, MASK_WALLBANG );
 	if( trace.ent != -1 ) {
 		CG_EBImpact( trace.endpos, trace.plane.normal, trace.surfFlags, owner->current.team );
 	}

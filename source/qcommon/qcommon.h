@@ -18,8 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-// qcommon.h -- definitions common between client and server, but not game.dll
-
 #pragma once
 
 #include "tracy/Tracy.hpp"
@@ -34,7 +32,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/application.h"
 #include "qcommon/qfiles.h"
 #include "qcommon/cmodel.h"
-#include "qcommon/bsp.h"
 #include "qcommon/strtonum.h"
 
 inline Vec3 FromQF3( const vec3_t v ) { return Vec3( v[ 0 ], v[ 1 ], v[ 2 ] ); }
@@ -68,7 +65,6 @@ struct snapshot_s;
 
 struct ginfo_s;
 struct client_s;
-struct cmodel_state_s;
 struct client_entities_s;
 
 //============================================================================
@@ -139,7 +135,7 @@ struct snapshot_s *SNAP_ParseFrame( msg_t *msg, struct snapshot_s *lastFrame, st
 void SNAP_WriteFrameSnapToClient( struct ginfo_s *gi, struct client_s *client, msg_t *msg, int64_t frameNum, int64_t gameTime,
 	SyncEntityState *baselines, struct client_entities_s *client_entities );
 
-void SNAP_BuildClientFrameSnap( struct cmodel_state_s *cms, struct ginfo_s *gi, int64_t frameNum, int64_t timeStamp,
+void SNAP_BuildClientFrameSnap( CollisionModel *cms, struct ginfo_s *gi, int64_t frameNum, int64_t timeStamp,
 								struct client_s *client,
 								SyncGameState *gameState, struct client_entities_s *client_entities,
 								struct mempool_s *mempool );
@@ -627,8 +623,6 @@ void        Com_SetDemoPlaying( bool state );
 
 int         Com_ServerState( void );        // this should have just been a cvar...
 void        Com_SetServerState( int state );
-struct cmodel_state_s *Com_ServerCM( unsigned *checksum );
-void        Com_SetServerCM( struct cmodel_state_s *cms, unsigned checksum );
 
 extern cvar_t *developer;
 extern const bool is_dedicated_server;
@@ -647,13 +641,7 @@ typedef struct mempool_s mempool_t;
 
 #define MEMPOOL_TEMPORARY           1
 #define MEMPOOL_GAME                2
-#define MEMPOOL_USERINTERFACE       4
-#define MEMPOOL_CLIENTGAME          8
-#define MEMPOOL_SOUND               16
-#define MEMPOOL_DB                  32
-#define MEMPOOL_ANGELSCRIPT         64
-#define MEMPOOL_CINMODULE           128
-#define MEMPOOL_REFMODULE           256
+#define MEMPOOL_CLIENTGAME          4
 
 void Memory_Init( void );
 void Memory_InitCommands( void );

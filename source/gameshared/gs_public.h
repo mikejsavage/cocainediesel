@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
+#include "qcommon/hash.h"
 #include "gameshared/gs_qrespath.h"
 #include "gameshared/q_comref.h"
 #include "gameshared/q_collision.h"
@@ -159,7 +160,15 @@ struct SyncGameState {
 	RoundType round_type;
 	u8 max_team_players;
 
+	StringHash map;
+	u32 map_checksum;
+
 	SyncBombGameState bomb;
+};
+
+struct SyncEvent {
+	u64 parm;
+	s8 type;
 };
 
 struct SyncEntityState {
@@ -178,8 +187,8 @@ struct SyncEntityState {
 	vec3_t angles;
 	vec3_t origin2;                 // ET_BEAM, ET_EVENT specific
 
-	unsigned int modelindex;
-	unsigned int modelindex2;
+	StringHash model;
+	StringHash model2;
 
 	int channel;                    // ET_SOUNDEVENT
 
@@ -190,8 +199,7 @@ struct SyncEntityState {
 	// impulse events -- muzzle flashes, footsteps, etc
 	// events only go out for a single frame, they
 	// are automatically cleared each frame
-	int events[2];
-	int eventParms[2];
+	SyncEvent events[ 2 ];
 
 	int counterNum;                 // ET_GENERIC
 	int damage;                     // EV_BLOOD
@@ -206,6 +214,7 @@ struct SyncEntityState {
 	vec3_t linearMovementBegin;			// the starting movement point for brush models
 	unsigned int linearMovementDuration;
 	int64_t linearMovementTimeStamp;
+	int linearMovementTimeDelta;
 
 	// server will use this for sound culling in case
 	// the entity has an event attached to it (along with
@@ -214,7 +223,7 @@ struct SyncEntityState {
 	WeaponType weapon;                  // WEAP_ for players
 	bool teleported;
 
-	int sound;                          // for looping sounds, to guarantee shutoff
+	StringHash sound;                          // for looping sounds, to guarantee shutoff
 
 	int light;							// constant light glow
 
@@ -259,7 +268,7 @@ struct SyncPlayerState {
 
 	vec3_t viewangles;          // for fixed views
 
-	int event[2], eventParm[2];
+	SyncEvent events[ 2 ];
 	unsigned int POVnum;        // entity number of the player in POV
 	unsigned int playerNum;     // client number
 	float viewheight;
@@ -347,7 +356,7 @@ typedef struct {
 	void ( *Trace )( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask, int timeDelta );
 	SyncEntityState *( *GetEntityState )( int entNum, int deltaTime );
 	int ( *PointContents )( const vec3_t point, int timeDelta );
-	void ( *PredictedEvent )( int entNum, int ev, int parm );
+	void ( *PredictedEvent )( int entNum, int ev, u64 parm );
 	void ( *PredictedFireWeapon )( int entNum, WeaponType weapon );
 	void ( *PMoveTouchTriggers )( pmove_t *pm, vec3_t previous_origin );
 	const char *( *GetConfigString )( int index );
@@ -560,6 +569,7 @@ enum MeansOfDeath {
 
 	MOD_LASER,
 	MOD_SPIKES,
+	MOD_VOID,
 };
 
 //
@@ -709,16 +719,14 @@ enum {
 	ET_GENERIC,
 	ET_PLAYER,
 	ET_CORPSE,
+	ET_GHOST,
 	ET_PUSH_TRIGGER,
 
-	ET_GIB,         // leave a trail
 	ET_ROCKET,      // redlight + trail
 	ET_GRENADE,
 	ET_PLASMA,
 
 	ET_LASERBEAM,   // for continuous beams
-
-	ET_DECAL,
 
 	ET_HUD,
 

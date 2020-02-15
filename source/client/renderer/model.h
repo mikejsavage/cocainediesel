@@ -47,30 +47,18 @@ struct Model {
 	u8 root_joint;
 };
 
-struct MapMetadata {
-	u64 base_hash;
-
-	u32 num_models;
-
-	float fog_strength;
-
-	Span< u8 > pvs;
-	u32 cluster_size;
-};
-
 void InitModels();
 void ShutdownModels();
 
 const Model * FindModel( StringHash name );
 const Model * FindModel( const char * name );
 
-const MapMetadata * FindMapMetadata( StringHash name );
-const MapMetadata * FindMapMetadata( const char * name );
-
 Model * NewModel( u64 hash );
 
 bool LoadGLTFModel( Model * model, const char * path );
-bool LoadBSPMap( MapMetadata * map, const char * path );
+
+struct Map;
+bool LoadBSPRenderData( Map * map, const char * path, u64 base_hash, Span< const u8 > data );
 
 void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline );
 void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices = Span< const Mat4 >() );

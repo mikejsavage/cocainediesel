@@ -55,7 +55,6 @@ typedef enum {
 	PM_SPECTATOR,
 
 	// no acceleration or turning
-	PM_GIB,         // different bounding box
 	PM_FREEZE,
 	PM_CHASECAM     // same as freeze, but so client knows it's in chasecam
 } pmtype_t;
@@ -91,25 +90,17 @@ typedef enum {
 
 #define SERVER_PROTECTED_CONFIGSTRINGS 4
 
-#define CS_MAPNAME          4
-#define CS_GAMETYPENAME     5
-#define CS_AUTORECORDSTATE  6
+#define CS_AUTORECORDSTATE  4
 
-#define CS_MATCHSCORE       7
+#define CS_MATCHSCORE       5
 
-#define CS_CALLVOTE 8
-#define CS_CALLVOTE_YES_VOTES 9
-#define CS_CALLVOTE_NO_VOTES 10
-#define CS_CALLVOTE_REQUIRED_VOTES 11
-
-#define CS_WORLDMODEL       30
-#define CS_MAPCHECKSUM      31      // for catching cheater maps
+#define CS_CALLVOTE 6
+#define CS_CALLVOTE_YES_VOTES 7
+#define CS_CALLVOTE_NO_VOTES 8
+#define CS_CALLVOTE_REQUIRED_VOTES 9
 
 //precache stuff begins here
-#define CS_MODELS           32
-#define CS_SOUNDS           ( CS_MODELS + MAX_MODELS )
-#define CS_IMAGES           ( CS_SOUNDS + MAX_SOUNDS )
-#define CS_PLAYERINFOS      ( CS_IMAGES + MAX_IMAGES )
+#define CS_PLAYERINFOS      32
 #define CS_GAMECOMMANDS     ( CS_PLAYERINFOS + MAX_CLIENTS )
 #define MAX_CONFIGSTRINGS   ( CS_GAMECOMMANDS + MAX_GAMECOMMANDS )
 

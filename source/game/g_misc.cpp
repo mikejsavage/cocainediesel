@@ -38,37 +38,6 @@ void ThrowSmallPileOfGibs( edict_t *self, const vec3_t knockback, int damage ) {
 	VectorAdd( self->velocity, knockback, event->s.origin2 );
 }
 
-static void debris_die( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point ) {
-	G_FreeEdict( self );
-}
-
-static void ThrowDebris( edict_t *self, int modelindex, float speed, vec3_t origin ) {
-	edict_t *chunk;
-	vec3_t v;
-
-	chunk = G_Spawn();
-	VectorCopy( origin, chunk->s.origin );
-	chunk->r.svflags &= ~SVF_NOCLIENT;
-	chunk->s.modelindex = modelindex;
-	v[0] = 100 * random_float11( &svs.rng );
-	v[1] = 100 * random_float11( &svs.rng );
-	v[2] = 100 + 100 * random_float11( &svs.rng );
-	VectorMA( self->velocity, speed, v, chunk->velocity );
-	chunk->movetype = MOVETYPE_BOUNCE;
-	chunk->r.solid = SOLID_NOT;
-	chunk->avelocity[0] = random_float01( &svs.rng ) * 600;
-	chunk->avelocity[1] = random_float01( &svs.rng ) * 600;
-	chunk->avelocity[2] = random_float01( &svs.rng ) * 600;
-	chunk->think = G_FreeEdict;
-	chunk->nextThink = level.time + 5000 + random_uniform( &svs.rng, 0, 5000 );
-	chunk->flags = 0;
-	chunk->classname = "debris";
-	chunk->takedamage = DAMAGE_YES;
-	chunk->die = debris_die;
-	chunk->r.owner = self;
-	GClip_LinkEntity( chunk );
-}
-
 void BecomeExplosion1( edict_t *self ) {
 	int radius;
 
@@ -223,9 +192,7 @@ void SP_func_static( edict_t *ent ) {
 
 static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point ) {
 	vec3_t origin, bakorigin;
-	vec3_t chunkorigin;
 	vec3_t size;
-	int count;
 	int mass;
 
 	// do not explode unless visible
@@ -254,39 +221,6 @@ static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *
 	mass = self->projectileInfo.radius * 0.75;
 	if( !mass ) {
 		mass = 75;
-	}
-
-	// big chunks
-	if( self->count > 0 ) {
-		if( mass >= 100 ) {
-			count = mass / 100;
-			if( count > 8 ) {
-				count = 8;
-			}
-			while( count-- ) {
-				chunkorigin[0] = origin[0] + random_float11( &svs.rng ) * size[0];
-				chunkorigin[1] = origin[1] + random_float11( &svs.rng ) * size[1];
-				chunkorigin[2] = origin[2] + random_float11( &svs.rng ) * size[2];
-				ThrowDebris( self, self->count, 1, chunkorigin );
-			}
-		}
-	}
-
-	// small chunks
-	if( self->viewheight > 0 ) {
-		count = mass / 25;
-		if( count > 16 ) {
-			count = 16;
-		}
-		if( count < 1 ) {
-			count = 1;
-		}
-		while( count-- ) {
-			chunkorigin[0] = origin[0] + random_float11( &svs.rng ) * size[0];
-			chunkorigin[1] = origin[1] + random_float11( &svs.rng ) * size[1];
-			chunkorigin[2] = origin[2] + random_float11( &svs.rng ) * size[2];
-			ThrowDebris( self, self->viewheight, 2, chunkorigin );
-		}
 	}
 
 	G_UseTargets( self, attacker );
@@ -370,14 +304,6 @@ void SP_func_explosive( edict_t *self ) {
 	self->max_health = self->health;
 	self->s.effects = EF_WORLD_MODEL;
 
-	// HACK HACK HACK
-	if( st.debris1 && st.debris1[0] ) {
-		self->count = trap_ModelIndex( st.debris1 );
-	}
-	if( st.debris2 && st.debris2[0] ) {
-		self->viewheight = trap_ModelIndex( st.debris2 );
-	}
-
 	GClip_LinkEntity( self );
 }
 
@@ -393,6 +319,5 @@ void SP_misc_model( edict_t *ent ) {
 
 void SP_model( edict_t *ent ) {
 	ent->r.svflags &= ~SVF_NOCLIENT;
-	ent->s.modelindex = trap_ModelIndex( ent->model );
 	GClip_LinkEntity( ent );
 }

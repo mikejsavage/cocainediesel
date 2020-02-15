@@ -53,15 +53,15 @@ typedef struct
 
 typedef struct callvotetype_s
 {
-	char *name;
+	const char *name;
 	int expectedargs;               // -1 = any amount, -2 = any amount except 0
 	bool ( *validate )( callvotedata_t *data, bool first );
 	void ( *execute )( callvotedata_t *vote );
 	const char *( *current )( void );
 	void ( *extraHelp )( edict_t *ent );
-	char *argument_format;
-	char *help;
-	char *argument_type;
+	const char *argument_format;
+	const char *help;
+	const char *argument_type;
 	struct callvotetype_s *next;
 } callvotetype_t;
 
@@ -986,10 +986,9 @@ static const char *G_VoteAllowUnevenCurrent( void ) {
 	}
 }
 
-//================================================
-//
-//================================================
-
+//===================================================================
+// Common functions
+//===================================================================
 
 callvotetype_t *G_RegisterCallvote( const char *name ) {
 	callvotetype_t *callvote;
@@ -1001,41 +1000,14 @@ callvotetype_t *G_RegisterCallvote( const char *name ) {
 	}
 
 	// create a new callvote
-	callvote = ( callvotetype_t * )G_LevelMalloc( sizeof( callvotetype_t ) );
+	callvote = ( callvotetype_t * )G_Malloc( sizeof( callvotetype_t ) );
 	memset( callvote, 0, sizeof( callvotetype_t ) );
 	callvote->next = callvotesHeadNode;
 	callvotesHeadNode = callvote;
 
-	callvote->name = G_LevelCopyString( name );
+	callvote->name = name;
 	return callvote;
 }
-
-void G_FreeCallvotes( void ) {
-	callvotetype_t *callvote;
-
-	while( callvotesHeadNode ) {
-		callvote = callvotesHeadNode->next;
-
-		if( callvotesHeadNode->name ) {
-			G_LevelFree( callvotesHeadNode->name );
-		}
-		if( callvotesHeadNode->argument_format ) {
-			G_LevelFree( callvotesHeadNode->argument_format );
-		}
-		if( callvotesHeadNode->help ) {
-			G_LevelFree( callvotesHeadNode->help );
-		}
-
-		G_LevelFree( callvotesHeadNode );
-		callvotesHeadNode = callvote;
-	}
-
-	callvotesHeadNode = NULL;
-}
-
-//===================================================================
-// Common functions
-//===================================================================
 
 /*
 * G_CallVotes_ResetClient
@@ -1080,6 +1052,21 @@ static void G_CallVotes_Reset( bool vote_happened ) {
 	trap_ConfigString( CS_CALLVOTE_NO_VOTES, "" );
 
 	memset( &callvoteState, 0, sizeof( callvoteState ) );
+}
+
+void G_FreeCallvotes( void ) {
+	callvotetype_t *callvote;
+
+	while( callvotesHeadNode ) {
+		callvote = callvotesHeadNode->next;
+
+		G_Free( callvotesHeadNode );
+		callvotesHeadNode = callvote;
+	}
+
+	callvotesHeadNode = NULL;
+
+	G_CallVotes_Reset( false );
 }
 
 /*
@@ -1572,27 +1559,6 @@ static void G_VoteFromScriptPassed( callvotedata_t *vote ) {
 }
 
 /*
-* G_RegisterGametypeScriptCallvote
-*/
-void G_RegisterGametypeScriptCallvote( const char *name, const char *usage, const char *type, const char *help ) {
-	callvotetype_t *vote;
-
-	if( !name ) {
-		return;
-	}
-
-	vote = G_RegisterCallvote( name );
-	vote->expectedargs = 1;
-	vote->validate = G_VoteFromScriptValidate;
-	vote->execute = G_VoteFromScriptPassed;
-	vote->current = NULL;
-	vote->extraHelp = NULL;
-	vote->argument_format = usage ? G_LevelCopyString( usage ) : NULL;
-	vote->argument_type = type ? G_LevelCopyString( type ) : NULL;
-	vote->help = help ? G_LevelCopyString( va( "%s", help ) ) : NULL;
-}
-
-/*
 * G_CallVotes_Init
 */
 void G_CallVotes_Init( void ) {
@@ -1612,9 +1578,9 @@ void G_CallVotes_Init( void ) {
 	callvote->execute = G_VoteMapPassed;
 	callvote->current = G_VoteMapCurrent;
 	callvote->extraHelp = G_VoteMapExtraHelp;
-	callvote->argument_format = G_LevelCopyString( "<name>" );
-	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->help = G_LevelCopyString( "Changes map" );
+	callvote->argument_format = "<name>";
+	callvote->argument_type = "option";
+	callvote->help = "Changes map";
 
 	callvote = G_RegisterCallvote( "nextmap" );
 	callvote->expectedargs = 0;
@@ -1624,7 +1590,7 @@ void G_CallVotes_Init( void ) {
 	callvote->extraHelp = NULL;
 	callvote->argument_format = NULL;
 	callvote->argument_type = NULL;
-	callvote->help = G_LevelCopyString( "Jumps to the next map" );
+	callvote->help = "Jumps to the next map";
 
 	callvote = G_RegisterCallvote( "scorelimit" );
 	callvote->expectedargs = 1;
@@ -1632,9 +1598,9 @@ void G_CallVotes_Init( void ) {
 	callvote->execute = G_VoteScorelimitPassed;
 	callvote->current = G_VoteScorelimitCurrent;
 	callvote->extraHelp = NULL;
-	callvote->argument_format = G_LevelCopyString( "<number>" );
-	callvote->argument_type = G_LevelCopyString( "integer" );
-	callvote->help = G_LevelCopyString( "Sets the number of frags or caps needed to win the match\nSpecify 0 to disable" );
+	callvote->argument_format = "<number>";
+	callvote->argument_type = "integer";
+	callvote->help = "Sets the number of frags or caps needed to win the match\nSpecify 0 to disable";
 
 	callvote = G_RegisterCallvote( "warmup_timelimit" );
 	callvote->expectedargs = 1;
@@ -1642,9 +1608,9 @@ void G_CallVotes_Init( void ) {
 	callvote->execute = G_VoteWarmupTimelimitPassed;
 	callvote->current = G_VoteWarmupTimelimitCurrent;
 	callvote->extraHelp = NULL;
-	callvote->argument_format = G_LevelCopyString( "<minutes>" );
-	callvote->argument_type = G_LevelCopyString( "integer" );
-	callvote->help = G_LevelCopyString( "Sets the number of minutes after which the warmup ends\nSpecify 0 to disable" );
+	callvote->argument_format = "<minutes>";
+	callvote->argument_type = "integer";
+	callvote->help = "Sets the number of minutes after which the warmup ends\nSpecify 0 to disable";
 
 	callvote = G_RegisterCallvote( "maxteamplayers" );
 	callvote->expectedargs = 1;
@@ -1652,9 +1618,9 @@ void G_CallVotes_Init( void ) {
 	callvote->execute = G_VoteMaxTeamplayersPassed;
 	callvote->current = G_VoteMaxTeamplayersCurrent;
 	callvote->extraHelp = NULL;
-	callvote->argument_format = G_LevelCopyString( "<number>" );
-	callvote->argument_type = G_LevelCopyString( "integer" );
-	callvote->help = G_LevelCopyString( "Sets the maximum number of players in one team" );
+	callvote->argument_format = "<number>";
+	callvote->argument_type = "integer";
+	callvote->help = "Sets the maximum number of players in one team";
 
 	callvote = G_RegisterCallvote( "lock" );
 	callvote->expectedargs = 0;
@@ -1664,7 +1630,7 @@ void G_CallVotes_Init( void ) {
 	callvote->extraHelp = NULL;
 	callvote->argument_format = NULL;
 	callvote->argument_type = NULL;
-	callvote->help = G_LevelCopyString( "Locks teams to disallow players joining in mid-game" );
+	callvote->help = "Locks teams to disallow players joining in mid-game";
 
 	callvote = G_RegisterCallvote( "unlock" );
 	callvote->expectedargs = 0;
@@ -1674,7 +1640,7 @@ void G_CallVotes_Init( void ) {
 	callvote->extraHelp = NULL;
 	callvote->argument_format = NULL;
 	callvote->argument_type = NULL;
-	callvote->help = G_LevelCopyString( "Unlocks teams to allow players joining in mid-game" );
+	callvote->help = "Unlocks teams to allow players joining in mid-game";
 
 	callvote = G_RegisterCallvote( "allready" );
 	callvote->expectedargs = 0;
@@ -1684,7 +1650,7 @@ void G_CallVotes_Init( void ) {
 	callvote->extraHelp = NULL;
 	callvote->argument_format = NULL;
 	callvote->argument_type = NULL;
-	callvote->help = G_LevelCopyString( "Sets all players as ready so the match can start" );
+	callvote->help = "Sets all players as ready so the match can start";
 
 	callvote = G_RegisterCallvote( "remove" );
 	callvote->expectedargs = 1;
@@ -1692,9 +1658,9 @@ void G_CallVotes_Init( void ) {
 	callvote->execute = G_VoteRemovePassed;
 	callvote->current = NULL;
 	callvote->extraHelp = G_VoteRemoveExtraHelp;
-	callvote->argument_format = G_LevelCopyString( "<player>" );
-	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->help = G_LevelCopyString( "Forces player back to spectator mode" );
+	callvote->argument_format = "<player>";
+	callvote->argument_type = "option";
+	callvote->help = "Forces player back to spectator mode";
 
 	callvote = G_RegisterCallvote( "kick" );
 	callvote->expectedargs = 1;
@@ -1702,9 +1668,9 @@ void G_CallVotes_Init( void ) {
 	callvote->execute = G_VoteKickPassed;
 	callvote->current = NULL;
 	callvote->extraHelp = G_VoteKickExtraHelp;
-	callvote->argument_format = G_LevelCopyString( "<player>" );
-	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->help = G_LevelCopyString( "Removes player from the server" );
+	callvote->argument_format = "<player>";
+	callvote->argument_type = "option";
+	callvote->help = "Removes player from the server";
 
 	callvote = G_RegisterCallvote( "kickban" );
 	callvote->expectedargs = 1;
@@ -1712,9 +1678,9 @@ void G_CallVotes_Init( void ) {
 	callvote->execute = G_VoteKickBanPassed;
 	callvote->current = NULL;
 	callvote->extraHelp = G_VoteKickBanExtraHelp;
-	callvote->argument_format = G_LevelCopyString( "<player>" );
-	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->help = G_LevelCopyString( "Removes player from the server and bans his IP-address for 15 minutes" );
+	callvote->argument_format = "<player>";
+	callvote->argument_type = "option";
+	callvote->help = "Removes player from the server and bans his IP-address for 15 minutes";
 
 	callvote = G_RegisterCallvote( "mute" );
 	callvote->expectedargs = 1;
@@ -1722,9 +1688,9 @@ void G_CallVotes_Init( void ) {
 	callvote->execute = G_VoteMutePassed;
 	callvote->current = NULL;
 	callvote->extraHelp = G_VoteMuteExtraHelp;
-	callvote->argument_format = G_LevelCopyString( "<player>" );
-	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->help = G_LevelCopyString( "Disallows chat messages from the muted player" );
+	callvote->argument_format = "<player>";
+	callvote->argument_type = "option";
+	callvote->help = "Disallows chat messages from the muted player";
 
 	callvote = G_RegisterCallvote( "vmute" );
 	callvote->expectedargs = 1;
@@ -1732,9 +1698,9 @@ void G_CallVotes_Init( void ) {
 	callvote->execute = G_VoteVMutePassed;
 	callvote->current = NULL;
 	callvote->extraHelp = G_VoteMuteExtraHelp;
-	callvote->argument_format = G_LevelCopyString( "<player>" );
-	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->help = G_LevelCopyString( "Disallows voice chat messages from the muted player" );
+	callvote->argument_format = "<player>";
+	callvote->argument_type = "option";
+	callvote->help = "Disallows voice chat messages from the muted player";
 
 	callvote = G_RegisterCallvote( "unmute" );
 	callvote->expectedargs = 1;
@@ -1742,9 +1708,9 @@ void G_CallVotes_Init( void ) {
 	callvote->execute = G_VoteUnmutePassed;
 	callvote->current = NULL;
 	callvote->extraHelp = G_VoteUnmuteExtraHelp;
-	callvote->argument_format = G_LevelCopyString( "<player>" );
-	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->help = G_LevelCopyString( "Reallows chat messages from the unmuted player" );
+	callvote->argument_format = "<player>";
+	callvote->argument_type = "option";
+	callvote->help = "Reallows chat messages from the unmuted player";
 
 	callvote = G_RegisterCallvote( "vunmute" );
 	callvote->expectedargs = 1;
@@ -1752,9 +1718,9 @@ void G_CallVotes_Init( void ) {
 	callvote->execute = G_VoteVUnmutePassed;
 	callvote->current = NULL;
 	callvote->extraHelp = G_VoteUnmuteExtraHelp;
-	callvote->argument_format = G_LevelCopyString( "<player>" );
-	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->help = G_LevelCopyString( "Reallows voice chat messages from the unmuted player" );
+	callvote->argument_format = "<player>";
+	callvote->argument_type = "option";
+	callvote->help = "Reallows voice chat messages from the unmuted player";
 
 	callvote = G_RegisterCallvote( "timeout" );
 	callvote->expectedargs = 0;
@@ -1764,7 +1730,7 @@ void G_CallVotes_Init( void ) {
 	callvote->extraHelp = NULL;
 	callvote->argument_format = NULL;
 	callvote->argument_type = NULL;
-	callvote->help = G_LevelCopyString( "Pauses the game" );
+	callvote->help = "Pauses the game";
 
 	callvote = G_RegisterCallvote( "timein" );
 	callvote->expectedargs = 0;
@@ -1774,7 +1740,7 @@ void G_CallVotes_Init( void ) {
 	callvote->extraHelp = NULL;
 	callvote->argument_format = NULL;
 	callvote->argument_type = NULL;
-	callvote->help = G_LevelCopyString( "Resumes the game if in timeout" );
+	callvote->help = "Resumes the game if in timeout";
 
 	callvote = G_RegisterCallvote( "allow_uneven" );
 	callvote->expectedargs = 1;
@@ -1782,8 +1748,8 @@ void G_CallVotes_Init( void ) {
 	callvote->execute = G_VoteAllowUnevenPassed;
 	callvote->current = G_VoteAllowUnevenCurrent;
 	callvote->extraHelp = NULL;
-	callvote->argument_format = G_LevelCopyString( "<1 or 0>" );
-	callvote->argument_type = G_LevelCopyString( "bool" );
+	callvote->argument_format = "<1 or 0>";
+	callvote->argument_type = "bool";
 
 	// wsw : pb : server admin can now disable a specific callvote command (g_disable_vote_<callvote name>)
 	for( callvote = callvotesHeadNode; callvote != NULL; callvote = callvote->next ) {

@@ -693,6 +693,4 @@ void G_Gametype_Init( void ) {
 	if( !GT_asLoadScript( gt ) ) {
 		Com_Error( ERR_DROP, "Failed to load %s", gt );
 	}
-
-	trap_ConfigString( CS_GAMETYPENAME, gt );
 }

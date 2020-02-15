@@ -34,14 +34,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #define IDBSPHEADER     "IBSP"
-#define RBSPHEADER      "RBSP"
 #define QFBSPHEADER     "FBSP"
-constexpr const uint8_t COMPRESSED_BSP_MAGIC[] = { 0x28, 0xb5, 0x2f, 0xfd };
-
-#define Q3BSPVERSION        46
-#define RTCWBSPVERSION      47
-#define RBSPVERSION     1
-#define QFBSPVERSION        1
 
 #define MAX_MAP_LEAFS       0x20000
 
@@ -138,9 +131,6 @@ typedef struct {
 #define SURF_NODLIGHT     0x20000     // never add dynamic lights
 #define SURF_DUST         0x40000     // leave a dust trail when walking on this surface
 #define SURF_NOWALLJUMP   0x80000     // can not perform walljumps on this surface
-
-#define SURF_FBSP_START   0x40000     // FBSP specific extensions to BSP
-
 
 typedef struct {
 	int planenum;

@@ -123,7 +123,7 @@ bool G_OffsetSpawnPoint( vec3_t origin, const vec3_t box_mins, const vec3_t box_
 
 		// one more trace is needed, only checking if some part of the world is on the
 		// way from spawnpoint to the virtual position
-		CM_TransformedBoxTrace( svs.cms, &trace, origin, virtualorigin, box_mins, box_maxs, NULL, MASK_PLAYERSOLID, NULL, NULL );
+		CM_TransformedBoxTrace( CM_Server, svs.cms, &trace, origin, virtualorigin, box_mins, box_maxs, NULL, MASK_PLAYERSOLID, NULL, NULL );
 		if( trace.fraction != 1.0f ) {
 			continue;
 		}

@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-#include "g_local.h"
+#include "game/g_local.h"
 
 static void target_explosion_explode( edict_t *self ) {
 	float save;
@@ -182,26 +182,23 @@ static void target_laser_use( edict_t *self, edict_t *other, edict_t *activator 
 }
 
 void target_laser_start( edict_t *self ) {
-	edict_t *ent;
-
 	self->movetype = MOVETYPE_NONE;
 	self->r.solid = SOLID_NOT;
 	self->s.type = ET_LASER;
-	self->s.modelindex = 1; // must be non-zero
 	self->r.svflags = 0;
 	self->s.radius = st.size > 0 ? st.size : 8;
 	self->s.colorRGBA = st.rgba != 0 ? st.rgba : COLOR_RGBA( 220, 0, 0, 76 );
-	self->s.sound = trap_SoundIndex( "sounds/gladiator/laser_hum" );
+	self->s.sound = "sounds/gladiator/laser_hum";
 
 	if( !self->enemy ) {
 		if( self->target ) {
-			ent = G_Find( NULL, FOFS( targetname ), self->target );
-			if( !ent ) {
+			edict_t * target = G_Find( NULL, FOFS( targetname ), self->target );
+			if( !target ) {
 				if( developer->integer ) {
 					Com_Printf( "%s at %s: %s is a bad target\n", self->classname, vtos( self->s.origin ), self->target );
 				}
 			}
-			self->enemy = ent;
+			self->enemy = target;
 		} else {
 			G_SetMovedir( self->s.angles, self->moveinfo.movedir );
 		}

@@ -71,7 +71,7 @@ class cBombSite
 
 		@this.indicator = @ent;
 
-		this.indicator.modelindex = 0;
+		this.indicator.model = 0;
 		this.indicator.solid = SOLID_TRIGGER;
 		this.indicator.nextThink = levelTime + 1;
 		this.indicator.team = 0;
@@ -136,7 +136,6 @@ class cBombSite
 
 		if( t >= EXPLOSION_COMEDIC_DELAY ) {
 			hide( @bombModel );
-			hide( @bombDecal );
 		}
 
 		if( !this.useExplosionPoints ) {
@@ -256,7 +255,7 @@ void misc_capture_area_indicator_think( Entity @ent ) {
 void trigger_capture_area( Entity @ent ) {
 	@ent.think = trigger_capture_area_think;
 	@ent.touch = trigger_capture_area_touch;
-	ent.setupModel( ent.model ); // set up the brush model
+	ent.setupModel(); // set up the brush model
 	ent.solid = SOLID_TRIGGER;
 	ent.linkEntity();
 

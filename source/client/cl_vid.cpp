@@ -153,10 +153,6 @@ void VID_Init() {
 
 	CreateWindow( mode );
 	UpdateVidModeCvar();
-
-	InitRenderer();
-
-	CL_SetKeyDest( key_menu );
 }
 
 void CL_ForceVsync( bool force ) {
@@ -164,9 +160,4 @@ void CL_ForceVsync( bool force ) {
 		force_vsync = force;
 		vid_vsync->modified = true;
 	}
-}
-
-void VID_Shutdown() {
-	ShutdownRenderer();
-	DestroyWindow();
 }

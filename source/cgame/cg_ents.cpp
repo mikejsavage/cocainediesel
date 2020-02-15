@@ -69,14 +69,14 @@ static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 		// add a time offset to counter antilag visualization
 		if( !cgs.demoPlaying && cg_projectileAntilagOffset->value > 0.0f &&
 			!ISVIEWERENTITY( state->ownerNum ) && ( cgs.playerNum + 1 != cg.predictedPlayerState.POVnum ) ) {
-			serverTime += state->modelindex2 * cg_projectileAntilagOffset->value;
+			serverTime += state->linearMovementTimeDelta * cg_projectileAntilagOffset->value;
 		}
 	}
 
 	moveTime = GS_LinearMovement( state, serverTime, origin );
 	VectorCopy( origin, state->origin );
 
-	if( ( moveTime < 0 ) && ( state->solid != SOLID_BMODEL ) ) {
+	if( moveTime < 0 && state->solid != SOLID_BMODEL ) {
 		// when flyTime is negative don't offset it backwards more than PROJECTILE_PRESTEP value
 		// FIXME: is this still valid?
 		float maxBackOffset;
@@ -142,9 +142,7 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 		}
 
 		// some data changes will force no lerping
-		if( state->modelindex != cent->current.modelindex
-			|| state->teleported
-			|| state->linearMovement != cent->current.linearMovement ) {
+		if( state->model != cent->current.model || state->teleported || state->linearMovement != cent->current.linearMovement ) {
 			cent->serverFrame = -99;
 		}
 
@@ -202,12 +200,12 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 		}
 
 		if( ( cent->current.type == ET_GENERIC || cent->current.type == ET_PLAYER
-			  || cent->current.type == ET_GIB || cent->current.type == ET_GRENADE
+			  || cent->current.type == ET_GRENADE
 			  || cent->current.type == ET_CORPSE ) ) {
 			cent->canExtrapolate = true;
 		}
 
-		if( ISBRUSHMODEL( cent->current.modelindex ) ) { // disable extrapolation on movers
+		if( CM_IsBrushModel( CM_Client, cent->current.model ) != NULL ) { // disable extrapolation on movers
 			cent->canExtrapolate = false;
 		}
 	}
@@ -325,12 +323,6 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 	for( i = 0; i < frame->numEntities; i++ )
 		CG_NewPacketEntityState( &frame->parsedEntities[i & ( MAX_PARSE_ENTITIES - 1 )] );
 
-	if( lerpframe && ( memcmp( cg.oldFrame.areabits, cg.frame.areabits, cg.frame.areabytes ) == 0 ) ) {
-		cg.oldAreabits = true;
-	} else {
-		cg.oldAreabits = false;
-	}
-
 	if( !cgs.precacheDone || !cg.frame.valid ) {
 		return false;
 	}
@@ -392,7 +384,7 @@ struct cmodel_s *CG_CModelForEntity( int entNum ) {
 
 	// find the cmodel
 	if( cent->current.solid == SOLID_BMODEL ) { // special value for bmodel
-		cmodel = CM_InlineModel( cl.cms, cent->current.modelindex );
+		cmodel = CM_FindCModel( CM_Client, cent->current.model );
 	} else if( cent->current.solid ) {   // encoded bbox
 		x = 8 * ( cent->current.solid & 31 );
 		zd = 8 * ( ( cent->current.solid >> 5 ) & 31 );
@@ -434,10 +426,7 @@ static void CG_UpdateGenericEnt( centity_t *cent ) {
 	cent->ent.color = RGBA8( CG_TeamColor( cent->current.team ) );
 
 	// set up the model
-	int modelindex = cent->current.modelindex;
-	if( modelindex > 0 && modelindex < MAX_MODELS ) {
-		cent->ent.model = cgs.modelDraw[modelindex];
-	}
+	cent->ent.model = FindModel( cent->current.model );
 }
 
 /*
@@ -601,74 +590,18 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 static void CG_AddPlayerEnt( centity_t *cent ) {
 	if( ISVIEWERENTITY( cent->current.number ) ) {
 		cg.effects = cent->effects;
-		if( !cg.view.thirdperson && cent->current.modelindex ) {
+		if( !cg.view.thirdperson ) {
 			// CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
 			return;
 		}
 	}
 
 	// if set to invisible, skip
-	if( !cent->current.modelindex || cent->current.team == TEAM_SPECTATOR ) {
+	if( cent->current.team == TEAM_SPECTATOR ) { // TODO remove?
 		return;
 	}
 
 	CG_DrawPlayer( cent );
-}
-
-//==========================================================================
-//		ET_DECAL
-//==========================================================================
-
-/*
-* CG_AddDecalEnt
-*/
-static void CG_AddDecalEnt( centity_t *cent ) {
-	// if set to invisible, skip
-	if( !cent->current.modelindex ) {
-		return;
-	}
-
-	if( cent->effects & EF_TEAMCOLOR_TRANSITION ) {
-		CG_EntAddTeamColorTransitionEffect( cent );
-	}
-
-	// CG_AddFragmentedDecal( cent->ent.origin, cent->ent.origin2,
-	// 					   cent->ent.rotation, cent->ent.radius,
-	// 					   cent->ent.shaderRGBA[0] * ( 1.0 / 255.0 ), cent->ent.shaderRGBA[1] * ( 1.0 / 255.0 ), cent->ent.shaderRGBA[2] * ( 1.0 / 255.0 ),
-	// 					   cent->ent.shaderRGBA[3] * ( 1.0 / 255.0 ), cent->ent.override_material );
-}
-
-/*
-* CG_LerpDecalEnt
-*/
-static void CG_LerpDecalEnt( centity_t *cent ) {
-	int i;
-	float a1, a2;
-
-	// interpolate origin
-	for( i = 0; i < 3; i++ )
-		cent->ent.origin[i] = cent->prev.origin[i] + cg.lerpfrac * ( cent->current.origin[i] - cent->prev.origin[i] );
-
-	cent->ent.radius = Lerp( cent->prev.radius, cg.lerpfrac, cent->current.radius );
-
-	a1 = cent->prev.modelindex2 / 255.0 * 360;
-	a2 = cent->current.modelindex2 / 255.0 * 360;
-	cent->ent.rotation = LerpAngle( a1, a2, cg.lerpfrac );
-}
-
-/*
-* CG_UpdateDecalEnt
-*/
-static void CG_UpdateDecalEnt( centity_t *cent ) {
-	cent->ent.color = RGBA8( CG_TeamColor( cent->current.team ) );
-
-	// set up the null model, may be potentially needed for linked model
-	cent->ent.model = NULL;
-	cent->ent.override_material = cgs.imagePrecache[ cent->current.modelindex ];
-	cent->ent.radius = cent->prev.radius;
-	cent->ent.rotation = cent->prev.modelindex2 / 255.0 * 360;
-	VectorCopy( cent->prev.origin, cent->ent.origin );
-	VectorCopy( cent->prev.origin2, cent->ent.origin2 );
 }
 
 //==========================================================================
@@ -735,15 +668,14 @@ static void CG_LerpLaserbeamEnt( centity_t *cent ) {
 //==================================================
 
 void CG_SoundEntityNewState( centity_t *cent ) {
-	int soundindex = cent->current.sound;
 	int owner = cent->current.ownerNum;
 	int channel = cent->current.channel & ~CHAN_FIXED;
 	bool fixed = ( cent->current.channel & CHAN_FIXED ) != 0;
 
+	const SoundEffect * sfx = FindSoundEffect( cent->current.sound );
+
 	if( cent->current.svflags & SVF_BROADCAST ) {
-		if( cgs.soundPrecache[soundindex] ) {
-			S_StartGlobalSound( cgs.soundPrecache[soundindex], channel, 1.0f );
-		}
+		S_StartGlobalSound( sfx, channel, 1.0f );
 		return;
 	}
 
@@ -762,11 +694,13 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	}
 
 	if( fixed ) {
-		S_StartFixedSound( cgs.soundPrecache[soundindex], FromQF3( cent->current.origin ), channel, 1.0f );
-	} else if( ISVIEWERENTITY( owner ) ) {
-		S_StartGlobalSound( cgs.soundPrecache[soundindex], channel, 1.0f );
-	} else {
-		S_StartEntitySound( cgs.soundPrecache[soundindex], owner, channel, 1.0f );
+		S_StartFixedSound( sfx, FromQF3( cent->current.origin ), channel, 1.0f );
+	}
+	else if( ISVIEWERENTITY( owner ) ) {
+		S_StartGlobalSound( sfx, channel, 1.0f );
+	}
+	else {
+		S_StartEntitySound( sfx, owner, channel, 1.0f );
 	}
 }
 
@@ -841,11 +775,7 @@ static void CG_UpdateSpikes( centity_t *cent ) {
 //==========================================================================
 
 void CG_EntityLoopSound( centity_t * cent, SyncEntityState * state ) {
-	if( !state->sound ) {
-		return;
-	}
-
-	cent->sound = S_ImmediateEntitySound( cgs.soundPrecache[state->sound], state->number, 1.0f, cent->sound );
+	cent->sound = S_ImmediateEntitySound( FindSoundEffect( state->sound ), state->number, 1.0f, cent->sound );
 }
 
 /*
@@ -874,11 +804,6 @@ void CG_AddEntities( void ) {
 
 		switch( cent->type ) {
 			case ET_GENERIC:
-				CG_AddGenericEnt( cent );
-				CG_EntityLoopSound( cent, state );
-				canLight = true;
-				break;
-			case ET_GIB:
 				CG_AddGenericEnt( cent );
 				CG_EntityLoopSound( cent, state );
 				canLight = true;
@@ -915,12 +840,10 @@ void CG_AddEntities( void ) {
 				canLight = true;
 				break;
 
-			case ET_LASERBEAM:
+			case ET_GHOST:
 				break;
 
-			case ET_DECAL:
-				CG_AddDecalEnt( cent );
-				CG_EntityLoopSound( cent, state );
+			case ET_LASERBEAM:
 				break;
 
 			case ET_PUSH_TRIGGER:
@@ -937,11 +860,7 @@ void CG_AddEntities( void ) {
 
 			case ET_LASER: {
 				CG_AddLaserEnt( cent );
-
-				const SoundEffect * sfx = cgs.soundPrecache[ state->sound ];
-				if( sfx != NULL ) {
-					cent->sound = S_ImmediateLineSound( sfx, FromQF3( cent->ent.origin ), FromQF3( cent->ent.origin2 ), 1.0f, cent->sound );
-				}
+				cent->sound = S_ImmediateLineSound( FindSoundEffect( state->sound ), FromQF3( cent->ent.origin ), FromQF3( cent->ent.origin2 ), 1.0f, cent->sound );
 			} break;
 
 			case ET_SPIKES:
@@ -980,21 +899,17 @@ void CG_LerpEntities( void ) {
 
 		switch( cent->type ) {
 			case ET_GENERIC:
-			case ET_GIB:
 			case ET_ROCKET:
 			case ET_PLASMA:
 			case ET_GRENADE:
 			case ET_PLAYER:
 			case ET_CORPSE:
+			case ET_GHOST:
 				if( state->linearMovement ) {
 					CG_ExtrapolateLinearProjectile( cent );
 				} else {
 					CG_LerpGenericEnt( cent );
 				}
-				break;
-
-			case ET_DECAL:
-				CG_LerpDecalEnt( cent );
 				break;
 
 			case ET_LASERBEAM:
@@ -1051,12 +966,6 @@ void CG_UpdateEntities( void ) {
 			case ET_GENERIC:
 				CG_UpdateGenericEnt( cent );
 				break;
-			case ET_GIB:
-				CG_UpdateGenericEnt( cent );
-
-				// set the gib model ignoring the modelindex one
-				cent->ent.model = cgs.media.modGib;
-				break;
 
 			// projectiles with linear trajectories
 			case ET_ROCKET:
@@ -1070,12 +979,11 @@ void CG_UpdateEntities( void ) {
 				CG_UpdatePlayerModelEnt( cent );
 				break;
 
-			case ET_LASERBEAM:
-				CG_UpdateLaserbeamEnt( cent );
+			case ET_GHOST:
 				break;
 
-			case ET_DECAL:
-				CG_UpdateDecalEnt( cent );
+			case ET_LASERBEAM:
+				CG_UpdateLaserbeamEnt( cent );
 				break;
 
 			case ET_PUSH_TRIGGER:
@@ -1141,7 +1049,7 @@ void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
 
 	// bmodel
 	if( origin != NULL ) {
-		const struct cmodel_s * cmodel = CM_InlineModel( cl.cms, cent->current.modelindex );
+		const cmodel_t * cmodel = CM_FindCModel( CM_Client, cent->current.model );
 		vec3_t mins, maxs;
 		CM_InlineModelBounds( cl.cms, cmodel, mins, maxs );
 		VectorAdd( maxs, mins, origin );

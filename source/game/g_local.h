@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 #include "qcommon/qcommon.h"
+#include "qcommon/hash.h"
 #include "gameshared/gs_public.h"
 #include "game/g_public.h"
 #include "game/g_syscalls.h"
@@ -166,12 +167,11 @@ typedef struct {
 	int distance;
 	int height;
 	float radius;
-	const char *noise;
-	const char *noise_start;
-	const char *noise_stop;
+	StringHash noise;
+	StringHash noise_start;
+	StringHash noise_stop;
 	float pausetime;
 	const char *gravity;
-	const char *debris1, *debris2;
 
 	int gameteam;
 
@@ -297,8 +297,6 @@ void SP_post_match_camera( edict_t *ent );
 //
 // g_func.c
 //
-void G_AssignMoverSounds( edict_t *ent, const char *start, const char *move, const char *stop );
-
 void SP_func_plat( edict_t *ent );
 void SP_func_rotating( edict_t *ent );
 void SP_func_button( edict_t *ent );
@@ -406,9 +404,9 @@ char *G_AllocCreateNamesList( const char *path, const char *extension, const cha
 char *_G_CopyString( const char *in, const char *filename, int fileline );
 #define G_CopyString( in ) _G_CopyString( in, __FILE__, __LINE__ )
 
-void G_AddEvent( edict_t *ent, int event, int parm, bool highPriority );
-edict_t *G_SpawnEvent( int event, int parm, const vec3_t origin );
-void G_MorphEntityIntoEvent( edict_t *ent, int event, int parm );
+void G_AddEvent( edict_t *ent, int event, u64 parm, bool highPriority );
+edict_t *G_SpawnEvent( int event, u64 parm, const vec3_t origin );
+void G_MorphEntityIntoEvent( edict_t *ent, int event, u64 parm );
 
 void G_CallThink( edict_t *ent );
 void G_CallTouch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags );
@@ -429,13 +427,12 @@ void G_CenterPrintMsg( edict_t *ent, _Printf_format_string_ const char *format, 
 
 void G_Obituary( edict_t *victim, edict_t *attacker, int mod );
 
-edict_t *G_Sound( edict_t *owner, int channel, int soundindex );
-edict_t *G_PositionedSound( const vec3_t origin, int channel, int soundindex );
-void G_GlobalSound( int channel, int soundindex );
-void G_LocalSound( edict_t *owner, int channel, int soundindex );
+edict_t *G_Sound( edict_t *owner, int channel, StringHash sound );
+edict_t *G_PositionedSound( const vec3_t origin, int channel, StringHash sound );
+void G_GlobalSound( int channel, StringHash sound );
+void G_LocalSound( edict_t *owner, int channel, StringHash sound );
 
-#define G_ISGHOSTING( x ) ( ( x )->s.modelindex == 0 && ( x )->r.solid == SOLID_NOT )
-#define ISBRUSHMODEL( x ) ( ( x > 0 ) && ( (int)x < CM_NumInlineModels( svs.cms ) ) )
+#define G_ISGHOSTING( x ) ( ( x )->r.solid == SOLID_NOT )
 
 void G_TeleportEffect( edict_t *ent, bool in );
 void G_RespawnEffect( edict_t *ent );
@@ -443,11 +440,11 @@ int G_SolidMaskForEnt( edict_t *ent );
 void G_CheckGround( edict_t *ent );
 void G_CategorizePosition( edict_t *ent );
 void G_ReleaseClientPSEvent( gclient_t *client );
-void G_AddPlayerStateEvent( gclient_t *client, int event, int parm );
+void G_AddPlayerStateEvent( gclient_t *client, int event, u64 parm );
 void G_ClearPlayerStateEvents( gclient_t *client );
 
 // announcer events
-void G_AnnouncerSound( edict_t *targ, int soundindex, int team, bool queued, edict_t *ignore );
+void G_AnnouncerSound( edict_t *targ, StringHash sound, int team, bool queued, edict_t *ignore );
 edict_t *G_PlayerForText( const char *text );
 
 void G_SetBoundsForSpanEntity( edict_t *ent, float size );
@@ -463,7 +460,6 @@ void G_CallVotes_Think( void );
 bool G_Callvotes_HasVoted( edict_t *ent );
 void G_CallVote_Cmd( edict_t *ent );
 void G_OperatorVote_Cmd( edict_t *ent );
-void G_RegisterGametypeScriptCallvote( const char *name, const char *usage, const char *type, const char *help );
 
 //
 // g_trigger.c
@@ -496,7 +492,7 @@ void GClip_BackUpCollisionFrame( void );
 int GClip_FindInRadius4D( vec3_t org, float rad, int *list, int maxcount, int timeDelta );
 void G_SplashFrac4D( const edict_t *ent, vec3_t hitpoint, float maxradius, vec3_t pushdir, float *frac, int timeDelta, bool selfdamage );
 void GClip_ClearWorld( void );
-void GClip_SetBrushModel( edict_t *ent, const char *name );
+void GClip_SetBrushModel( edict_t * ent );
 void GClip_SetAreaPortalState( edict_t *ent, bool open );
 void GClip_LinkEntity( edict_t *ent );
 void GClip_UnlinkEntity( edict_t *ent );
@@ -552,7 +548,7 @@ edict_t * W_Fire_Plasma( edict_t * self, vec3_t start, vec3_t angles, float dama
 void W_Fire_Electrobolt( edict_t * self, vec3_t start, vec3_t angles, float damage, int knockback, int range, int timeDelta );
 edict_t * W_Fire_Lasergun( edict_t * self, vec3_t start, vec3_t angles, float damage, int knockback, int range, int timeDelta );
 
-void G_FireWeapon( edict_t *ent, int parm );
+void G_FireWeapon( edict_t *ent, u64 parm );
 
 //
 // g_chasecam	//newgametypes
@@ -582,7 +578,7 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient );
 void ClientDisconnect( edict_t *ent, const char *reason );
 void ClientBegin( edict_t *ent );
 void ClientCommand( edict_t *ent );
-void G_PredictedEvent( int entNum, int ev, int parm );
+void G_PredictedEvent( int entNum, int ev, u64 parm );
 void G_PredictedFireWeapon( int entNum, WeaponType weapon );
 void G_TeleportPlayer( edict_t *player, edict_t *dest );
 bool G_PlayerCanTeleport( edict_t *player );
@@ -676,7 +672,8 @@ void G_SnapFrame( void );
 bool G_CallSpawn( edict_t *ent );
 void G_RespawnLevel( void );
 void G_ResetLevel( void );
-void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTime );
+void G_InitLevel( const char *mapname, const char *entities, int entstrlen, int64_t levelTime );
+void G_ChangeLevel( const char * name );
 
 //
 // g_awards.c
@@ -711,9 +708,9 @@ typedef struct {
 	vec3_t end_origin;
 	vec3_t end_angles;
 
-	int sound_start;
-	int sound_middle;
-	int sound_end;
+	StringHash sound_start;
+	StringHash sound_middle;
+	StringHash sound_end;
 
 	vec3_t movedir;  // direction defined in the bsp
 
@@ -753,8 +750,7 @@ typedef struct {
 
 	int64_t timeStamp; // last time it was reset
 
-	// SyncPlayerState event
-	int events[MAX_CLIENT_EVENTS];
+	SyncEvent events[MAX_CLIENT_EVENTS];
 	unsigned int eventsCurrent;
 	unsigned int eventsHead;
 
@@ -876,8 +872,6 @@ struct edict_s {
 	int movetype;
 	int flags;
 
-	const char *model;
-	const char *model2;
 	int64_t freetime;          // time when the object was freed
 
 	int numEvents;
@@ -950,7 +944,7 @@ struct edict_s {
 	int groundentity_linkcount;
 	edict_t *teamchain;
 	edict_t *teammaster;
-	int noise_index;
+	StringHash sound;
 
 	// timing variables
 	float wait;

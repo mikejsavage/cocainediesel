@@ -54,14 +54,14 @@ static void qasMessageCallback( const asSMessageInfo *msg ) {
 
 	switch( msg->type ) {
 		case asMSGTYPE_ERROR:
-			msg_type = S_COLOR_RED "ERROR: ";
+			msg_type = "ERROR: ";
 			break;
 		case asMSGTYPE_WARNING:
-			msg_type = S_COLOR_YELLOW "WARNING: ";
+			msg_type = "WARNING: ";
 			break;
 		case asMSGTYPE_INFORMATION:
 		default:
-			msg_type = S_COLOR_CYAN "ANGELSCRIPT: ";
+			msg_type = "ANGELSCRIPT: ";
 			break;
 	}
 

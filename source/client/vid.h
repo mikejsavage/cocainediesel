@@ -24,7 +24,6 @@ void format( FormatBuffer * fb, WindowMode mode, const FormatOpts & opts );
 bool operator!=( WindowMode lhs, WindowMode rhs );
 
 void VID_Init();
-void VID_Shutdown();
 
 void CreateWindow( WindowMode mode );
 void DestroyWindow();

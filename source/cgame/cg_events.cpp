@@ -566,7 +566,7 @@ static void CG_StartVoiceTokenEffect( int entNum, int vsay ) {
 /*
 * CG_Event_Fall
 */
-void CG_Event_Fall( const SyncEntityState * state, int parm ) {
+void CG_Event_Fall( const SyncEntityState * state, u64 parm ) {
 	if( ISVIEWERENTITY( state->number ) ) {
 		CG_StartFallKickEffect( ( parm + 5 ) * 10 );
 	}
@@ -578,7 +578,10 @@ void CG_Event_Fall( const SyncEntityState * state, int parm ) {
 	VectorCopy( state->origin, ground_position );
 	ground_position[ 2 ] += mins[ 2 ];
 
-	float volume = Max2(( parm - 40 ) * ( 1.0f / 300.0f ), 0.f);
+	if( parm < 40 )
+		return;
+
+	float volume = ( parm - 40 ) / 300.0f;
 	if( ISVIEWERENTITY( state->number ) ) {
 		S_StartLocalSound( cgs.media.sfxFall, CHAN_AUTO, volume );
 	}
@@ -590,8 +593,11 @@ void CG_Event_Fall( const SyncEntityState * state, int parm ) {
 /*
 * CG_Event_Pain
 */
-static void CG_Event_Pain( SyncEntityState *state, int parm ) {
+static void CG_Event_Pain( SyncEntityState *state, u64 parm ) {
 	constexpr PlayerSound sounds[] = { PlayerSound_Pain25, PlayerSound_Pain50, PlayerSound_Pain75, PlayerSound_Pain100 };
+	if( parm >= ARRAY_COUNT( sounds ) )
+		return;
+
 	CG_PlayerSound( state->number, CHAN_AUTO, sounds[ parm ] );
 	constexpr int animations[] = { TORSO_PAIN1, TORSO_PAIN2, TORSO_PAIN3 };
 	CG_PModel_AddAnimation( state->number, 0, random_select( &cls.rng, animations ), 0, EVENT_CHANNEL );
@@ -600,7 +606,7 @@ static void CG_Event_Pain( SyncEntityState *state, int parm ) {
 /*
 * CG_Event_Die
 */
-static void CG_Event_Die( int entNum, int parm ) {
+static void CG_Event_Die( int entNum, u64 parm ) {
 	constexpr struct { int dead, dying; } animations[] = {
 		{ BOTH_DEAD1, BOTH_DEATH1 },
 		{ BOTH_DEAD2, BOTH_DEATH2 },
@@ -616,24 +622,13 @@ static void CG_Event_Die( int entNum, int parm ) {
 /*
 * CG_Event_Dash
 */
-void CG_Event_Dash( SyncEntityState *state, int parm ) {
-	switch( parm ) {
-		case 0: // dash front
-			CG_PModel_AddAnimation( state->number, LEGS_DASH, 0, 0, EVENT_CHANNEL );
-			break;
-		case 1: // dash left
-			CG_PModel_AddAnimation( state->number, LEGS_DASH_LEFT, 0, 0, EVENT_CHANNEL );
-			break;
-		case 2: // dash right
-			CG_PModel_AddAnimation( state->number, LEGS_DASH_RIGHT, 0, 0, EVENT_CHANNEL );
-			break;
-		case 3: // dash back
-			CG_PModel_AddAnimation( state->number, LEGS_DASH_BACK, 0, 0, EVENT_CHANNEL );
-			break;
-	}
+void CG_Event_Dash( SyncEntityState *state, u64 parm ) {
+	constexpr int animations[] = { LEGS_DASH, LEGS_DASH_LEFT, LEGS_DASH_RIGHT, LEGS_DASH_BACK };
+	if( parm >= ARRAY_COUNT( animations ) )
+		return;
 
+	CG_PModel_AddAnimation( state->number, animations[ parm ], 0, 0, EVENT_CHANNEL );
 	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_Dash );
-
 	CG_Dash( state ); // Dash smoke effect
 
 	// since most dash animations jump with right leg, reset the jump to start with left leg after a dash
@@ -643,7 +638,7 @@ void CG_Event_Dash( SyncEntityState *state, int parm ) {
 /*
 * CG_Event_WallJump
 */
-void CG_Event_WallJump( SyncEntityState *state, int parm, int ev ) {
+void CG_Event_WallJump( SyncEntityState *state, u64 parm, int ev ) {
 	vec3_t normal, forward, right;
 
 	ByteToDir( parm, normal );
@@ -678,14 +673,14 @@ static void CG_PlayJumpSound( const SyncEntityState * state ) {
 /*
 * CG_Event_DoubleJump
 */
-void CG_Event_DoubleJump( SyncEntityState *state, int parm ) {
+static void CG_Event_DoubleJump( SyncEntityState * state ) {
 	CG_PlayJumpSound( state );
 }
 
 /*
 * CG_Event_Jump
 */
-void CG_Event_Jump( SyncEntityState *state, int parm ) {
+static void CG_Event_Jump( SyncEntityState * state ) {
 	CG_PlayJumpSound( state );
 
 	centity_t *cent = &cg_entities[state->number];
@@ -721,7 +716,7 @@ void CG_Event_Jump( SyncEntityState *state, int parm ) {
 /*
 * CG_EntityEvent
 */
-void CG_EntityEvent( SyncEntityState *ent, int ev, int parm, bool predicted ) {
+void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 	vec3_t dir;
 	bool viewer = ISVIEWERENTITY( ent->number );
 	int count = 0;
@@ -844,11 +839,11 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, int parm, bool predicted ) {
 			break;
 
 		case EV_DOUBLEJUMP:
-			CG_Event_DoubleJump( ent, parm );
+			CG_Event_DoubleJump( ent );
 			break;
 
 		case EV_JUMP:
-			CG_Event_Jump( ent, parm );
+			CG_Event_Jump( ent );
 			break;
 
 		case EV_JUMP_PAD:
@@ -1001,7 +996,7 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, int parm, bool predicted ) {
 		{
 			vec3_t so;
 			CG_GetEntitySpatilization( ent->number, so, NULL );
-			S_StartFixedSound( cgs.soundPrecache[parm], FromQF3( so ), CHAN_AUTO, 1.0f );
+			S_StartFixedSound( FindSoundEffect( StringHash( parm ) ), FromQF3( so ), CHAN_AUTO, 1.0f );
 		}
 		break;
 
@@ -1039,8 +1034,8 @@ static void CG_FireEntityEvents( bool early ) {
 		}
 
 		for( j = 0; j < 2; j++ ) {
-			if( early == ISEARLYEVENT( state->events[j] ) ) {
-				CG_EntityEvent( state, state->events[j], state->eventParms[j], false );
+			if( early == ISEARLYEVENT( state->events[j].type ) ) {
+				CG_EntityEvent( state, state->events[j].type, state->events[j].parm, false );
 			}
 		}
 	}
@@ -1051,19 +1046,16 @@ static void CG_FireEntityEvents( bool early ) {
 * This events are only received by this client, and only affect it.
 */
 static void CG_FirePlayerStateEvents( void ) {
-	unsigned int event, parm, count;
 	vec3_t dir;
 
 	if( cg.view.POVent != (int)cg.frame.playerState.POVnum ) {
 		return;
 	}
 
-	for( count = 0; count < 2; count++ ) {
-		// first byte is event number, second is parm
-		event = cg.frame.playerState.event[count] & 127;
-		parm = cg.frame.playerState.eventParm[count] & 0xFF;
+	for( int count = 0; count < 2; count++ ) {
+		u64 parm = cg.frame.playerState.events[ count ].parm;
 
-		switch( event ) {
+		switch( cg.frame.playerState.events[ count ].type ) {
 			case PSEV_HIT:
 				if( parm > 6 ) {
 					break;
@@ -1100,17 +1092,15 @@ static void CG_FirePlayerStateEvents( void ) {
 				break;
 
 			case PSEV_INDEXEDSOUND:
-				if( cgs.soundPrecache[parm] ) {
-					S_StartGlobalSound( cgs.soundPrecache[parm], CHAN_AUTO, 1.0f );
-				}
+				S_StartGlobalSound( FindSoundEffect( StringHash( parm ) ), CHAN_AUTO, 1.0f );
 				break;
 
 			case PSEV_ANNOUNCER:
-				CG_AddAnnouncerEvent( cgs.soundPrecache[parm], false );
+				CG_AddAnnouncerEvent( FindSoundEffect( StringHash( parm ) ), false );
 				break;
 
 			case PSEV_ANNOUNCER_QUEUED:
-				CG_AddAnnouncerEvent( cgs.soundPrecache[parm], true );
+				CG_AddAnnouncerEvent( FindSoundEffect( StringHash( parm ) ), true );
 				break;
 
 			default:

@@ -320,8 +320,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			continue;
 		}
 
-		if( !cent->current.modelindex || !cent->current.solid ||
-			cent->current.solid == SOLID_BMODEL || cent->current.team == TEAM_SPECTATOR ) {
+		if( !cent->current.solid || cent->current.solid == SOLID_BMODEL || cent->current.team == TEAM_SPECTATOR ) {
 			continue;
 		}
 
@@ -615,30 +614,6 @@ void CG_EscapeKey( void ) {
 
 	UI_ShowGameMenu();
 }
-
-//=============================================================================
-
-/*
-* CG_DrawLoading
-*/
-void CG_DrawLoading( void ) {
-}
-
-/*
-* CG_LoadingItemName
-*
-* Allow at least one item per frame to be precached.
-* Stop accepting new precaches after the timelimit for this frame has been reached.
-*/
-bool CG_LoadingItemName( const char *str ) {
-	if( cgs.precacheCount > cgs.precacheStart && ( Sys_Milliseconds() > cgs.precacheStartMsec + 33 ) ) {
-		return false;
-	}
-	cgs.precacheCount++;
-	return true;
-}
-
-//===============================================================
 
 static Vec4 CG_CalcColorBlend() {
 	int contents = CG_PointContents( cg.view.origin );

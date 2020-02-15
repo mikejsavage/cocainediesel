@@ -1247,14 +1247,6 @@ static void PM_AdjustBBox( void ) {
 	float crouchFrac;
 	trace_t trace;
 
-	if( pm->playerState->pmove.pm_type == PM_GIB ) {
-		pm->playerState->pmove.crouch_time = 0;
-		VectorCopy( playerbox_gib_maxs, pm->maxs );
-		VectorCopy( playerbox_gib_mins, pm->mins );
-		pm->playerState->viewheight = playerbox_gib_viewheight;
-		return;
-	}
-
 	if( pm->playerState->pmove.pm_type >= PM_FREEZE ) {
 		pm->playerState->pmove.crouch_time = 0;
 		pm->playerState->viewheight = 0;
@@ -1465,13 +1457,6 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 				pm->playerState->pmove.pm_flags |= PMF_NO_PREDICTION;
 			}
 			pm->contentmask = 0;
-			break;
-
-		case PM_GIB:
-			if( pmove_gs->module == GS_MODULE_GAME ) {
-				pm->playerState->pmove.pm_flags |= PMF_NO_PREDICTION;
-			}
-			pm->contentmask = MASK_DEADSOLID;
 			break;
 
 		case PM_SPECTATOR:

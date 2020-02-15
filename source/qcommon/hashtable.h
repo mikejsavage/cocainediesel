@@ -119,7 +119,8 @@ private:
 	}
 
 	bool find( u64 key, u64 * idx ) const {
-		assert( key != EmptyKey );
+		if( key == EmptyKey )
+			return false;
 
 		key = hash_key( key );
 

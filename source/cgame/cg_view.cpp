@@ -290,7 +290,7 @@ void CG_StartKickAnglesEffect( vec3_t source, float knockback, float radius, int
 	}
 
 	// not if dead
-	if( cg_entities[cg.view.POVent].current.type == ET_CORPSE || cg_entities[cg.view.POVent].current.type == ET_GIB ) {
+	if( cg_entities[cg.view.POVent].current.type == ET_CORPSE ) {
 		return;
 	}
 
@@ -712,7 +712,7 @@ static void DrawWorld() {
 	ZoneScoped;
 
 	const char * suffix = "*0";
-	u64 hash = Hash64( suffix, strlen( suffix ), cgs.map->base_hash );
+	u64 hash = Hash64( suffix, strlen( suffix ), cl.map->base_hash );
 	const Model * model = FindModel( StringHash( hash ) );
 
 	for( u32 i = 0; i < model->num_primitives; i++ ) {
@@ -877,7 +877,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	if( !cgs.precacheDone || !cg.frame.valid ) {
 		CG_Precache();
-		CG_DrawLoading();
 		return;
 	}
 
@@ -920,16 +919,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	cg.lerpfrac = Clamp01( cg.lerpfrac );
 
-	if( !cgs.configStrings[CS_WORLDMODEL][0] ) {
-		CG_AddLocalSounds();
-
-		// trap_R_DrawStretchPic( 0, 0, frame_static.viewport_width, frame_static.viewport_height, 0, 0, 1, 1, colorBlack, cgs.shaderWhite );
-
-		S_Update( Vec3( 0 ), Vec3( 0 ), axis_identity );
-
-		return;
-	}
-
 	if( cg_fov->modified ) {
 		if( cg_fov->value < MIN_FOV ) {
 			Cvar_ForceSet( cg_fov->name, STR_TOSTR( MIN_FOV ) );
@@ -959,7 +948,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	}
 
 	RendererSetView( FromQF3( cg.view.origin ), FromQFAngles( cg.view.angles ), cg.view.fov_y );
-	frame_static.fog_uniforms = UploadUniformBlock( cgs.map->fog_strength );
+	frame_static.fog_uniforms = UploadUniformBlock( cl.map->fog_strength );
 
 	CG_LerpEntities();  // interpolate packet entities positions
 
@@ -980,8 +969,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	DrawSkybox();
 
 	CG_AddLocalSounds();
-
-	cg.oldAreabits = true;
 
 	S_Update( FromQF3( cg.view.origin ), FromQF3( cg.view.velocity ), cg.view.axis );
 

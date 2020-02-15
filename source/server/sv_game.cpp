@@ -31,20 +31,12 @@ game_export_t *ge;
 //======================================================================
 
 static inline int PF_CM_TransformedPointContents( const vec3_t p, struct cmodel_s *cmodel, const vec3_t origin, const vec3_t angles ) {
-	return CM_TransformedPointContents( svs.cms, p, cmodel, origin, angles );
+	return CM_TransformedPointContents( CM_Server, svs.cms, p, cmodel, origin, angles );
 }
 
 static inline void PF_CM_TransformedBoxTrace( trace_t *tr, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs,
 											  struct cmodel_s *cmodel, int brushmask, const vec3_t origin, const vec3_t angles ) {
-	CM_TransformedBoxTrace( svs.cms, tr, start, end, mins, maxs, cmodel, brushmask, origin, angles );
-}
-
-static inline int PF_CM_NumInlineModels( void ) {
-	return CM_NumInlineModels( svs.cms );
-}
-
-static inline struct cmodel_s *PF_CM_InlineModel( int num ) {
-	return CM_InlineModel( svs.cms, num );
+	CM_TransformedBoxTrace( CM_Server, svs.cms, tr, start, end, mins, maxs, cmodel, brushmask, origin, angles );
 }
 
 static inline void PF_CM_InlineModelBounds( const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs ) {
@@ -256,10 +248,6 @@ void SV_InitGameProgs( void ) {
 
 	// load a new game dll
 	import.GameCmd = PF_GameCmd;
-
-	import.ModelIndex = SV_ModelIndex;
-	import.SoundIndex = SV_SoundIndex;
-	import.ImageIndex = SV_ImageIndex;
 
 	import.ConfigString = PF_ConfigString;
 	import.GetConfigString = PF_GetConfigString;

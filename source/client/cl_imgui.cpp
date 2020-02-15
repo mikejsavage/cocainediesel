@@ -124,7 +124,6 @@ static void SubmitDrawCalls() {
 	ImVec2 pos = draw_data->DisplayPos;
 	for( int n = 0; n < draw_data->CmdListsCount; n++ ) {
 		const ImDrawList * cmd_list = draw_data->CmdLists[ n ];
-		u16 idx_buffer_offset = 0;
 
 		MeshConfig config;
 		config.unified_buffer = NewVertexBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof( ImDrawVert ) );
@@ -167,10 +166,9 @@ static void SubmitDrawCalls() {
 
 					pipeline.set_texture( "u_BaseTexture", pcmd->TextureId.material->texture );
 
-					DrawMesh( mesh, pipeline, pcmd->ElemCount, idx_buffer_offset * sizeof( u16 ) );
+					DrawMesh( mesh, pipeline, pcmd->ElemCount, pcmd->IdxOffset * sizeof( ImDrawIdx ) );
 				}
 			}
-			idx_buffer_offset += pcmd->ElemCount;
 		}
 	}
 }

@@ -131,7 +131,7 @@ static void G_Fire_Bolt( vec3_t origin, vec3_t angles, edict_t *owner, int timeD
 /*
 * G_FireWeapon
 */
-void G_FireWeapon( edict_t *ent, int parm ) {
+void G_FireWeapon( edict_t *ent, u64 parm ) {
 	vec3_t origin, angles;
 	vec3_t viewoffset = { 0, 0, 0 };
 	int timeDelta = 0;

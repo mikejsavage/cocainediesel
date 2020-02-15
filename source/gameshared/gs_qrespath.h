@@ -50,21 +50,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define S_JUMPPAD       "sounds/world/jumppad"
 #define S_LAUNCHPAD     "sounds/world/launchpad"
 
-#define S_PLAT_START    NULL
+#define S_PLAT_START    EMPTY_HASH
 #define S_PLAT_MOVE     "sounds/movers/elevator_move"
-#define S_PLAT_STOP     NULL
+#define S_PLAT_STOP     EMPTY_HASH
 
 #define S_DOOR_START    "sounds/movers/door_start"
-#define S_DOOR_MOVE     NULL
+#define S_DOOR_MOVE     EMPTY_HASH
 #define S_DOOR_STOP     "sounds/movers/door_stop"
 
 #define S_DOOR_ROTATING_START   "sounds/movers/door_start"
-#define S_DOOR_ROTATING_MOVE    NULL
+#define S_DOOR_ROTATING_MOVE    EMPTY_HASH
 #define S_DOOR_ROTATING_STOP    "sounds/movers/door_stop"
 
-#define S_FUNC_ROTATING_START   NULL
-#define S_FUNC_ROTATING_MOVE    NULL
-#define S_FUNC_ROTATING_STOP    NULL
+#define S_FUNC_ROTATING_START   EMPTY_HASH
+#define S_FUNC_ROTATING_MOVE    EMPTY_HASH
+#define S_FUNC_ROTATING_STOP    EMPTY_HASH
 
 #define S_BUTTON_START      "sounds/movers/button"
 

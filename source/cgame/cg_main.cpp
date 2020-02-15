@@ -192,92 +192,15 @@ static void CG_RegisterWeaponModels( void ) {
 * CG_RegisterModels
 */
 static void CG_RegisterModels( void ) {
-	int i;
-	const char *name;
-
-	if( cgs.precacheModelsStart == MAX_MODELS ) {
-		return;
-	}
-
-	if( cgs.precacheModelsStart == 0 ) {
-		name = cgs.configStrings[CS_WORLDMODEL];
-		if( name[0] ) {
-			if( !CG_LoadingItemName( name ) ) {
-				return;
-			}
-		}
-
-		cgs.precacheModelsStart = 1;
-	}
-
-	for( i = cgs.precacheModelsStart; i < MAX_MODELS; i++ ) {
-		name = cgs.configStrings[CS_MODELS + i];
-
-		if( !name[0] ) {
-			cgs.precacheModelsStart = MAX_MODELS;
-			break;
-		}
-
-		cgs.precacheModelsStart = i;
-
-		if( name[0] == '*' ) {
-			u64 hash = Hash64( name, strlen( name ), cgs.map->base_hash );
-			cgs.modelDraw[i] = FindModel( StringHash( hash ) );
-		} else {
-			if( !CG_LoadingItemName( name ) ) {
-				return;
-			}
-			cgs.modelDraw[i] = FindModel( name );
-		}
-	}
-
-	if( cgs.precacheModelsStart != MAX_MODELS ) {
-		return;
-	}
-
 	CG_RegisterMediaModels();
 	CG_RegisterWeaponModels();
-
-	// precache forcemodels if defined
-	CG_RegisterForceModels();
-
-	// create a tag to offset the weapon models when seen in the world as items
-	VectorSet( cgs.weaponItemTag.origin, 0, 0, 0 );
-	Matrix3_Copy( axis_identity, cgs.weaponItemTag.axis );
-	VectorMA( cgs.weaponItemTag.origin, -14, &cgs.weaponItemTag.axis[AXIS_FORWARD], cgs.weaponItemTag.origin );
+	CG_RegisterPlayerModels();
 }
 
 /*
 * CG_RegisterSounds
 */
 static void CG_RegisterSounds( void ) {
-	if( cgs.precacheSoundsStart == MAX_SOUNDS ) {
-		return;
-	}
-
-	if( !cgs.precacheSoundsStart ) {
-		cgs.precacheSoundsStart = 1;
-	}
-
-	for( int i = cgs.precacheSoundsStart; i < MAX_SOUNDS; i++ ) {
-		const char *name = cgs.configStrings[CS_SOUNDS + i];
-		if( !name[0] ) {
-			cgs.precacheSoundsStart = MAX_SOUNDS;
-			break;
-		}
-
-		cgs.precacheSoundsStart = i;
-
-		if( !CG_LoadingItemName( name ) ) {
-			return;
-		}
-		cgs.soundPrecache[i] = FindSoundEffect( name );
-	}
-
-	if( cgs.precacheSoundsStart != MAX_SOUNDS ) {
-		return;
-	}
-
 	CG_RegisterMediaSounds();
 }
 
@@ -285,37 +208,6 @@ static void CG_RegisterSounds( void ) {
 * CG_RegisterShaders
 */
 static void CG_RegisterShaders( void ) {
-	int i;
-	const char *name;
-
-	if( cgs.precacheShadersStart == MAX_IMAGES ) {
-		return;
-	}
-
-	if( !cgs.precacheShadersStart ) {
-		cgs.precacheShadersStart = 1;
-	}
-
-	for( i = cgs.precacheShadersStart; i < MAX_IMAGES; i++ ) {
-		name = cgs.configStrings[CS_IMAGES + i];
-		if( !name[0] ) {
-			cgs.precacheShadersStart = MAX_IMAGES;
-			break;
-		}
-
-		cgs.precacheShadersStart = i;
-
-		if( !CG_LoadingItemName( name ) ) {
-			return;
-		}
-
-		cgs.imagePrecache[i] = FindMaterial( name );
-	}
-
-	if( cgs.precacheShadersStart != MAX_IMAGES ) {
-		return;
-	}
-
 	CG_RegisterMediaShaders();
 }
 
@@ -323,28 +215,12 @@ static void CG_RegisterShaders( void ) {
 * CG_RegisterClients
 */
 static void CG_RegisterClients( void ) {
-	int i;
-	const char *name;
-
-	if( cgs.precacheClientsStart == MAX_CLIENTS ) {
-		return;
-	}
-
-	for( i = cgs.precacheClientsStart; i < MAX_CLIENTS; i++ ) {
-		name = cgs.configStrings[CS_PLAYERINFOS + i];
-		cgs.precacheClientsStart = i;
-
-		if( !name[0] ) {
+	for( int i = 0; i < MAX_CLIENTS; i++ ) {
+		const char * name = cgs.configStrings[CS_PLAYERINFOS + i];
+		if( !name[0] )
 			continue;
-		}
-		if( !CG_LoadingItemName( name ) ) {
-			return;
-		}
-
 		CG_LoadClientInfo( i );
 	}
-
-	cgs.precacheClientsStart = MAX_CLIENTS;
 }
 
 /*
@@ -424,36 +300,10 @@ void CG_Precache( void ) {
 		return;
 	}
 
-	cgs.precacheStart = cgs.precacheCount;
-	cgs.precacheStartMsec = Sys_Milliseconds();
-
-	{
-		const char * name = cgs.configStrings[ CS_WORLDMODEL ];
-		Span< const char > ext = FileExtension( name );
-
-		u64 hash = Hash64( name, strlen( name ) - ext.n );
-		cgs.map = FindMapMetadata( StringHash( hash ) );
-	}
-
 	CG_RegisterModels();
-	if( cgs.precacheModelsStart < MAX_MODELS ) {
-		return;
-	}
-
 	CG_RegisterSounds();
-	if( cgs.precacheSoundsStart < MAX_SOUNDS ) {
-		return;
-	}
-
 	CG_RegisterShaders();
-	if( cgs.precacheShadersStart < MAX_IMAGES ) {
-		return;
-	}
-
 	CG_RegisterClients();
-	if( cgs.precacheClientsStart < MAX_CLIENTS ) {
-		return;
-	}
 
 	cgs.precacheDone = true;
 }
@@ -462,30 +312,8 @@ void CG_Precache( void ) {
 * CG_RegisterConfigStrings
 */
 static void CG_RegisterConfigStrings( void ) {
-	int i;
-	const char *cs;
-
-	cgs.precacheCount = cgs.precacheTotal = 0;
-
-	for( i = 0; i < MAX_CONFIGSTRINGS; i++ ) {
+	for( int i = 0; i < MAX_CONFIGSTRINGS; i++ ) {
 		trap_GetConfigString( i, cgs.configStrings[i], MAX_CONFIGSTRING_CHARS );
-
-		cs = cgs.configStrings[i];
-		if( !cs[0] ) {
-			continue;
-		}
-
-		if( i == CS_WORLDMODEL ) {
-			cgs.precacheTotal++;
-		} else if( i >= CS_MODELS && i < CS_MODELS + MAX_MODELS ) {
-			cgs.precacheTotal++;
-		} else if( i >= CS_SOUNDS && i < CS_SOUNDS + MAX_SOUNDS ) {
-			cgs.precacheTotal++;
-		} else if( i >= CS_IMAGES && i < CS_IMAGES + MAX_IMAGES ) {
-			cgs.precacheTotal++;
-		} else if( i >= CS_PLAYERINFOS && i < CS_PLAYERINFOS + MAX_CLIENTS ) {
-			cgs.precacheTotal++;
-		}
 	}
 
 	// backup initial configstrings for CG_Reset

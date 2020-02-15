@@ -217,10 +217,11 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *ms
 				}
 			}
 
-			for( i = 0; i < maxtarget; i++ )
+			for( i = 0; i < maxtarget; i++ ) {
 				if( targets[i >> 3] & ( 1 << ( i & 7 ) ) ) {
 					positions[i]++;
 				}
+			}
 		}
 	} while( command );
 }
@@ -231,7 +232,7 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *ms
 void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int64_t frameNum, int64_t gameTime,
 								  SyncEntityState *baselines, client_entities_t *client_entities ) {
 	client_snapshot_t *frame, *oldframe;
-	int flags, i, index, pos, length;
+	int flags, i, index;
 
 	// this is the frame we are creating
 	frame = &client->snapShots[frameNum & UPDATE_MASK];
@@ -266,9 +267,6 @@ void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int
 	}
 
 	MSG_WriteUint8( msg, svc_frame );
-
-	pos = msg->cursize;
-	MSG_WriteInt16( msg, 0 );       // we will write length here
 
 	MSG_WriteIntBase128( msg, gameTime ); // serverTimeStamp
 	MSG_WriteUintBase128( msg, frameNum );
@@ -315,10 +313,6 @@ void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int
 	}
 	MSG_WriteInt16( msg, -1 );
 
-	// send over the areabits
-	MSG_WriteUint8( msg, frame->areabytes );
-	MSG_WriteData( msg, frame->areabits, frame->areabytes );
-
 	SNAP_WriteDeltaGameStateToClient( oldframe, frame, msg );
 
 	// delta encode the playerstate
@@ -333,12 +327,6 @@ void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int
 
 	// delta encode the entities
 	SNAP_EmitPacketEntities( gi, oldframe, frame, msg, baselines, client_entities->entities, client_entities->num_entities );
-
-	// write length into reserved space
-	length = msg->cursize - pos - 2;
-	msg->cursize = pos;
-	MSG_WriteInt16( msg, length );
-	msg->cursize += length;
 
 	client->lastSentFrameNum = frameNum;
 }
@@ -357,7 +345,7 @@ Build a client frame structure
 * The client will interpolate the view position,
 * so we can't use a single PVS point
 */
-static void SNAP_FatPVS( cmodel_state_t *cms, const vec3_t org, uint8_t *fatpvs ) {
+static void SNAP_FatPVS( CollisionModel *cms, const vec3_t org, uint8_t *fatpvs ) {
 	memset( fatpvs, 0, CM_ClusterRowSize( cms ) );
 	CM_MergePVS( cms, org, fatpvs );
 }
@@ -365,7 +353,7 @@ static void SNAP_FatPVS( cmodel_state_t *cms, const vec3_t org, uint8_t *fatpvs 
 /*
 * SNAP_BitsCullEntity
 */
-static bool SNAP_BitsCullEntity( cmodel_state_t *cms, edict_t *ent, uint8_t *bits, int max_clusters ) {
+static bool SNAP_BitsCullEntity( CollisionModel *cms, edict_t *ent, uint8_t *bits, int max_clusters ) {
 	int i, l;
 
 	// too many leafs for individual check, go by headnode
@@ -449,7 +437,7 @@ static float SNAP_GainForAttenuation( float dist ) {
 /*
 * SNAP_SnapCullSoundEntity
 */
-static bool SNAP_SnapCullSoundEntity( cmodel_state_t *cms, edict_t *ent, const vec3_t listener_origin ) {
+static bool SNAP_SnapCullSoundEntity( CollisionModel *cms, edict_t *ent, const vec3_t listener_origin ) {
 	// extend the influence sphere cause the player could be moving
 	float dist = Distance( ent->s.origin, listener_origin ) - 128;
 	float gain = SNAP_GainForAttenuation( dist < 0 ? 0 : dist );
@@ -459,7 +447,7 @@ static bool SNAP_SnapCullSoundEntity( cmodel_state_t *cms, edict_t *ent, const v
 /*
 * SNAP_SnapCullEntity
 */
-static bool SNAP_SnapCullEntity( cmodel_state_t *cms, edict_t *ent, edict_t *clent, client_snapshot_t *frame,
+static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *clent, client_snapshot_t *frame,
 								const vec3_t vieworg, int viewarea, uint8_t *fatpvs ) {
 	uint8_t *areabits;
 	bool snd_cull_only;
@@ -522,13 +510,13 @@ static bool SNAP_SnapCullEntity( cmodel_state_t *cms, edict_t *ent, edict_t *cle
 	}
 
 	// if not a sound entity but the entity is only a sound
-	else if( !ent->s.modelindex && !ent->s.events[0] && !ent->s.light && !ent->s.effects && ent->s.sound ) {
+	else if( ent->s.model == EMPTY_HASH && !ent->s.events[0].type && !ent->s.light && !ent->s.effects && ent->s.sound != EMPTY_HASH ) {
 		snd_cull_only = true;
 	}
 
 	// PVS culling alone may not be used on pure sounds, entities with
 	// events and regular entities emitting sounds
-	if( snd_cull_only || ent->s.events[0] || ent->s.sound ) {
+	if( snd_cull_only || ent->s.events[0].type || ent->s.sound != EMPTY_HASH ) {
 		snd_culled = SNAP_SnapCullSoundEntity( cms, ent, vieworg );
 	}
 
@@ -543,7 +531,7 @@ static bool SNAP_SnapCullEntity( cmodel_state_t *cms, edict_t *ent, edict_t *cle
 /*
 * SNAP_AddEntitiesVisibleAtOrigin
 */
-static void SNAP_AddEntitiesVisibleAtOrigin( cmodel_state_t *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg,
+static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg,
 											int viewarea, client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
 	int entNum;
 	edict_t *ent;
@@ -597,7 +585,7 @@ static void SNAP_AddEntitiesVisibleAtOrigin( cmodel_state_t *cms, ginfo_t *gi, e
 /*
 * SNAP_BuildSnapEntitiesList
 */
-static void SNAP_BuildSnapEntitiesList( cmodel_state_t *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg,
+static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg,
 										client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
 	int entNum;
 	int leafnum, clientarea;
@@ -638,7 +626,7 @@ static void SNAP_BuildSnapEntitiesList( cmodel_state_t *cms, ginfo_t *gi, edict_
 * Decides which entities are going to be visible to the client, and
 * copies off the playerstat and areabits.
 */
-void SNAP_BuildClientFrameSnap( cmodel_state_t *cms, ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
+void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
 								client_t *client,
 								SyncGameState *gameState, client_entities_t *client_entities,
 								mempool_t *mempool ) {

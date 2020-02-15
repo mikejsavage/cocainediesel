@@ -27,14 +27,37 @@ const int CountdownSeconds = 4;
 const int CountdownNumSwitches = 20;
 const float CountdownInitialSwitchDelay = 0.1;
 
-const int MAX_HEALTH = 166;
+uint64[] endMatchSounds;
 
-int[] endMatchSounds;
-
-int crownModel;
+uint64 crownModel;
 
 int max( int a, int b ) {
 	return a > b ? a : b;
+}
+
+const String[] maps = {
+	"gladiator/001",
+	"gladiator/002",
+	"gladiator/003",
+	"gladiator/004",
+	"gladiator/005",
+	"gladiator/006",
+	"gladiator/007",
+	"gladiator/008",
+	"gladiator/009",
+	"gladiator/010",
+	"gladiator/011",
+	"gladiator/012",
+	"gladiator/013",
+	"gladiator/014",
+	"gladiator/015",
+};
+
+Entity @ last_spawn;
+
+void PickRandomArena() {
+	G_ChangeLevel( maps[ random_uniform( 0, maps.size() ) ] );
+	@last_spawn = null;
 }
 
 class cDARound {
@@ -274,14 +297,11 @@ class cDARound {
 
 		GENERIC_UpdateMatchScore();
 
-		int soundIndex = endMatchSounds[random_uniform(0,endMatchSounds.size())];
-		G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, true, null );
+		G_AnnouncerSound( null, endMatchSounds[random_uniform(0,endMatchSounds.size())], GS_MAX_TEAMS, true, null );
 	}
 
 	void newRound() {
-		G_RemoveDeadBodies();
-		G_RemoveAllProjectiles();
-		G_ResetLevel();
+		PickRandomArena();
 
 		this.newRoundState( DA_ROUNDSTATE_PREROUND );
 		this.numRounds++;
@@ -337,11 +357,11 @@ class cDARound {
 						if( this.isChallenger( ent.client ) ) {
 							ent.client.respawn( false );
 							if( ent.client.stats.score == topscore ) {
-								ent.modelindex2 = crownModel;
+								ent.model2 = crownModel;
 								ent.effects |= EF_HAT;
 							}
 							else {
-								ent.modelindex2 = 0;
+								ent.model2 = 0;
 								ent.effects &= ~EF_HAT;
 							}
 						}
@@ -351,8 +371,6 @@ class cDARound {
 							ent.client.chaseActive = true;
 						}
 					}
-
-					selected_spawn = false;
 
 					DoSpinner();
 
@@ -388,14 +406,12 @@ class cDARound {
 					gametype.removeInactivePlayers = true;
 					this.countDown = 0;
 					this.roundStateEndTime = 0;
-					int soundIndex = G_SoundIndex( "sounds/gladiator/fight" );
-					G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, false, null );
+					G_AnnouncerSound( null, Hash64( "sounds/gladiator/fight" ), GS_MAX_TEAMS, false, null );
 					G_CenterPrintMsg( null, 'FIGHT!');
 				}
 				break;
 
 			case DA_ROUNDSTATE_ROUNDFINISHED:
-
 				gametype.shootingDisabled = false;
 				this.roundStateEndTime = levelTime + 1500;
 				this.countDown = 0;
@@ -414,17 +430,11 @@ class cDARound {
 
 					// if we didn't find a winner, it was a draw round
 					if( @winner == null ) {
-						int soundIndex;
 						this.roundAnnouncementPrint( S_COLOR_WHITE + "Wow your terrible" );
-
-						soundIndex = G_SoundIndex( "sounds/gladiator/wowyourterrible" );
-						G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, false, null );
+						G_AnnouncerSound( null, Hash64( "sounds/gladiator/wowyourterrible" ), GS_MAX_TEAMS, false, null );
 					}
 					else {
-						int soundIndex;
-
-						soundIndex = G_SoundIndex( "sounds/gladiator/score" );
-						G_AnnouncerSound( winner, soundIndex, GS_MAX_TEAMS, true, loser );
+						G_AnnouncerSound( winner, Hash64( "sounds/gladiator/score" ), GS_MAX_TEAMS, true, loser );
 
 						winner.stats.addScore( 1 );
 					}
@@ -467,8 +477,7 @@ class cDARound {
 					this.countDown = remainingSeconds;
 
 					if( this.countDown <= 3 ) {
-						int soundIndex = G_SoundIndex( "sounds/gladiator/countdown_" + this.countDown );
-						G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, false, null );
+						G_AnnouncerSound( null, Hash64( "sounds/gladiator/countdown_" + this.countDown ), GS_MAX_TEAMS, false, null );
 					}
 					G_CenterPrintMsg( null, String( this.countDown ) );
 				}
@@ -508,14 +517,14 @@ class cDARound {
 			this.addLoser( target.client );
 
 			Vec3 vel = target.velocity;
-			if( vel.z < -1600 && target.health < MAX_HEALTH ) {
-				G_GlobalSound( CHAN_AUTO, G_SoundIndex( "sounds/gladiator/smackdown" ) );
+			if( vel.z < -1600 && target.health < 100 ) {
+				G_GlobalSound( CHAN_AUTO, Hash64( "sounds/gladiator/smackdown" ) );
 			}
 		}
 
 		if( this.state == DA_ROUNDSTATE_PREROUND ) {
 			target.client.stats.addScore( -1 );
-			G_LocalSound( target.client, CHAN_AUTO, G_SoundIndex( "sounds/gladiator/ouch" ) );
+			G_LocalSound( target.client, CHAN_AUTO, Hash64( "sounds/gladiator/ouch" ) );
 		}
 
 		if( @attacker == null || @attacker.client == null )
@@ -583,60 +592,24 @@ void DA_SetUpCountdown() {
 		G_PrintMsg( null, "Teams locked.\n" );
 
 	// Countdowns should be made entirely client side, because we now can
-
-	int soundIndex = G_SoundIndex( "sounds/gladiator/let_the_games_begin" );
-	G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, false, null );
+	G_AnnouncerSound( null, Hash64( "sounds/gladiator/let_the_games_begin" ), GS_MAX_TEAMS, false, null );
 }
-
-///*****************************************************************
-/// MODULE SCRIPT CALLS
-///*****************************************************************
 
 bool GT_Command( Client @client, const String &cmdString, const String &argsString, int argc ) {
 	return false;
 }
 
-// select a spawning point for a player
-Entity @last_spawnposition;
-bool selected_spawn = false;
-Entity@[] gladiator_rooms;
-Entity @GT_SelectSpawnPoint( Entity @self ) {
-	/*if( match.getState() != MATCH_STATE_PLAYTIME )
-	  return GENERIC_SelectBestRandomSpawnPoint( self, "info_player_deathmatch" );*/
+void spawn_gladiator( Entity @ent ) { }
 
+Entity @GT_SelectSpawnPoint( Entity @self ) {
 	if( self.isGhosting() )
 		return null;
-
-	Team @enemyTeam;
-	Entity @enemy;
-	Entity @room;
-	Entity@[] spawnents;
-	Entity@[] rooms;
-
-	if( !selected_spawn || @last_spawnposition == null ) {
-		selected_spawn = true;
-
-		//get random room
-		@room = @gladiator_rooms[random_uniform(0, gladiator_rooms.size())];
-
-		//get first spawnpoint from room
-		spawnents = room.findTargets();
-		if( spawnents.size() == 0 )
-			return null; // hmm? bad/old map
-		@last_spawnposition = @spawnents[0];
-	}
-	else {
-		spawnents = last_spawnposition.findTargets();
-		if( spawnents.size() > 0 ) {
-			@last_spawnposition = @spawnents[0];
-		}
-		else {
-			selected_spawn = false;
-			return GT_SelectSpawnPoint(self); // reached the end of spawnpoint chain
-		}
-	}
-
-	return @last_spawnposition;
+	Entity @ spawn = G_Find( @last_spawn, "spawn_gladiator" );
+	if( @spawn == null )
+		@spawn = G_Find( null, "spawn_gladiator" );
+	@last_spawn = @spawn;
+	if( @spawn == null ) G_Print( "null spawn btw\n" );
+	return spawn;
 }
 
 String @playerScoreboardMessage( Client @client ) {
@@ -719,10 +692,7 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
 	if( ent.isGhosting() )
 		return;
 
-	if( match.getState() == MATCH_STATE_PLAYTIME ) {
-		ent.client.getEnt().health = MAX_HEALTH;
-	}
-	else {
+	if( match.getState() != MATCH_STATE_PLAYTIME ) {
 		for( int i = 0; i < Weapon_Count; i++ ) {
 			ent.client.giveWeapon( WeaponType( i ), true );
 		}
@@ -790,27 +760,6 @@ void GT_Shutdown() {
 // The map entities have just been spawned. The level is initialized for
 // playing, but nothing has yet started.
 void GT_SpawnGametype() {
-	if( gladiator_rooms.size() > 0 )
-		return;
-
-	Entity@[] rooms = G_FindByClassname( "target_connectroom" );
-	for( uint i = 0; i < rooms.size(); i++ ) {
-		Entity@ ent = rooms[i];
-		uint k = 0;
-		do {
-			Entity@[] spawnents = ent.findTargets();
-			if( spawnents.size() == 0 )
-				break;
-			for( uint j = 0; j < spawnents.size(); j++ ) {
-				@ent = @spawnents[j];
-			}
-			k++;
-		} while( true );
-
-		if( k >= 4 ) {
-			gladiator_rooms.push_back(rooms[i]);
-		}
-	}
 }
 
 // Important: This function is called before any entity is spawned, and
@@ -840,39 +789,24 @@ void GT_InitGametype() {
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ )
 		gametype.setTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
 
-	// register gladiator media pure
-	G_SoundIndex( "sounds/gladiator/fight" );
-	G_SoundIndex( "sounds/gladiator/score" );
-	G_SoundIndex( "sounds/gladiator/urrekt" );
-	G_SoundIndex( "sounds/gladiator/ready" );
-	G_SoundIndex( "sounds/gladiator/countdown_1" );
-	G_SoundIndex( "sounds/gladiator/countdown_2" );
-	G_SoundIndex( "sounds/gladiator/countdown_3" );
-	G_SoundIndex( "sounds/gladiator/let_the_games_begin" );
-	G_SoundIndex( "sounds/gladiator/you_both_suck" );
-	G_SoundIndex( "sounds/gladiator/oh_no" );
-	G_SoundIndex( "sounds/gladiator/its_a_tie" );
-	G_SoundIndex( "sounds/gladiator/the_king_is_back" );
-	G_SoundIndex( "sounds/gladiator/fall_scream" );
-	G_SoundIndex( "sounds/gladiator/wowyourterrible" );
-	G_SoundIndex( "sounds/gladiator/smackdown" );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/perrina_sucks_dicks" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/hashtagpuffdarcrybaby" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/callmemaybe" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/mikecabbage" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/rihanna" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/zorg" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/shazam" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/sanic" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/rlop" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/puffdarquote" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/magnets" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/howdoyoufeel" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/fuckoff" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/fluffle" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/drillbit" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/demo" ) );
 
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/perrina_sucks_dicks" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/hashtagpuffdarcrybaby" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/callmemaybe" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/mikecabbage" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/rihanna" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/zorg" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/shazam" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/sanic" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/rlop" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/puffdarquote" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/magnets" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/howdoyoufeel" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/fuckoff" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/fluffle" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/drillbit" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/demo" ) );
+	crownModel = Hash64( "models/objects/crown" );
 
-	crownModel = G_ModelIndex( "models/objects/crown" );
+	PickRandomArena();
 }

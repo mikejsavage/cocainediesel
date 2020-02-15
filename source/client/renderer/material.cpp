@@ -480,6 +480,8 @@ static void ParseMaterial( Material * material, const char * name, const char **
 static void AddTexture( u64 hash, const TextureConfig & config ) {
 	ZoneScoped;
 
+	assert( num_textures < ARRAY_COUNT( textures ) );
+
 	Texture texture = NewTexture( config );
 
 	u64 idx = num_textures;
@@ -570,8 +572,6 @@ static void LoadBuiltinTextures() {
 static void LoadTexture( const char * path ) {
 	ZoneScoped;
 	ZoneText( path, strlen( path ) );
-
-	assert( num_textures < ARRAY_COUNT( textures ) );
 
 	Span< const u8 > data = AssetBinary( path );
 

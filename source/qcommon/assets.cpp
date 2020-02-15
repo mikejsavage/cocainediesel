@@ -109,8 +109,8 @@ void InitAssets( TempAllocator * temp ) {
 	assets_hashtable.clear();
 
 	const char * root = FS_RootPath( temp );
-	DynamicString path( temp, "{}/base", root );
-	LoadAssetsRecursive( &path, path.length() + 1 );
+	DynamicString base( temp, "{}/base", root );
+	LoadAssetsRecursive( &base, base.length() + 1 );
 
 	num_modified_assets = 0;
 }
@@ -121,8 +121,8 @@ void HotloadAssets( TempAllocator * temp ) {
 	num_modified_assets = 0;
 
 	const char * root = FS_RootPath( temp );
-	DynamicString path( temp, "{}/base", root );
-	LoadAssetsRecursive( &path, path.length() + 1 );
+	DynamicString base( temp, "{}/base", root );
+	LoadAssetsRecursive( &base, base.length() + 1 );
 
 	if( num_modified_assets > 0 ) {
 		Com_Printf( "Hotloading:\n" );

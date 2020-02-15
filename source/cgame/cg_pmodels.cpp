@@ -949,18 +949,16 @@ void CG_DrawPlayer( centity_t *cent ) {
 	}
 
 	// add backpack/hat
-	if( cent->current.modelindex2 ) {
-		const Model * attached_model = cgs.modelDraw[ cent->current.modelindex2 ];
-		if( attached_model != NULL ) {
-			PlayerModelMetadata::Tag tag = meta->tag_backpack;
-			if( cent->current.effects & EF_HAT )
-				tag = meta->tag_head;
-			Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag );
-			DrawModel( attached_model, tag_transform, vec4_white );
+	const Model * attached_model = FindModel( cent->current.model2 );
+	if( attached_model != NULL ) {
+		PlayerModelMetadata::Tag tag = meta->tag_backpack;
+		if( cent->current.effects & EF_HAT )
+			tag = meta->tag_head;
+		Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag );
+		DrawModel( attached_model, tag_transform, vec4_white );
 
-			if( ISREALSPECTATOR() || same_team ) {
-				DrawModelSilhouette( attached_model, tag_transform, color );
-			}
+		if( ISREALSPECTATOR() || same_team ) {
+			DrawModelSilhouette( attached_model, tag_transform, color );
 		}
 	}
 }

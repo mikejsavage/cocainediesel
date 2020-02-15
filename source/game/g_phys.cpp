@@ -18,9 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-// g_phys.c
-
-#include "g_local.h"
+#include "game/g_local.h"
 
 //================================================================================
 
@@ -542,9 +540,9 @@ static void SV_Physics_Toss( edict_t *ent ) {
 	}
 
 	if( !wasinwater && isinwater ) {
-		G_PositionedSound( old_origin, CHAN_AUTO, trap_SoundIndex( S_HIT_WATER ) );
+		G_PositionedSound( old_origin, CHAN_AUTO, S_HIT_WATER );
 	} else if( wasinwater && !isinwater ) {
-		G_PositionedSound( ent->s.origin, CHAN_AUTO, trap_SoundIndex( S_HIT_WATER ) );
+		G_PositionedSound( ent->s.origin, CHAN_AUTO, S_HIT_WATER );
 	}
 
 	// move teamslaves
@@ -592,9 +590,9 @@ void SV_Physics_LinearProjectile( edict_t *ent ) {
 	ent->waterlevel = ( G_PointContents4D( ent->s.origin, ent->timeDelta ) & MASK_WATER ) ? true : false;
 
 	if( !old_waterLevel && ent->waterlevel ) {
-		G_PositionedSound( start, CHAN_AUTO, trap_SoundIndex( S_HIT_WATER ) );
+		G_PositionedSound( start, CHAN_AUTO, S_HIT_WATER );
 	} else if( old_waterLevel && !ent->waterlevel ) {
-		G_PositionedSound( ent->s.origin, CHAN_AUTO, trap_SoundIndex( S_HIT_WATER ) );
+		G_PositionedSound( ent->s.origin, CHAN_AUTO, S_HIT_WATER );
 	}
 }
 

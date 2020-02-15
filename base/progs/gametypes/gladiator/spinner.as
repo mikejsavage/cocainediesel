@@ -34,7 +34,7 @@ void spinner_think( Entity@ self ) {
 		Client @client = @ent.client;
 		int curr = client.pendingWeapon + 1;
 		if( curr == Weapon_Count )
-			curr = Weapon_Knife;
+			curr = 0;
 
 		if( last ) {
 			for( int i = 0; i < Weapon_Count; i++ ) {

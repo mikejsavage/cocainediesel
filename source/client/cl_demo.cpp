@@ -17,9 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// cl_demo.c  -- demo recording
 
-#include "client.h"
+#include "client/client.h"
 
 static void CL_PauseDemo( bool paused );
 
@@ -73,8 +72,7 @@ void CL_Stop_f( void ) {
 	CL_SetDemoMetaKeyValue( "localtime", va( "%" PRIi64, (int64_t)cls.demo.localtime ) );
 	CL_SetDemoMetaKeyValue( "multipov", "0" );
 	CL_SetDemoMetaKeyValue( "duration", va( "%u", (int)ceilf( (double)cls.demo.duration / 1000.0 ) ) );
-	CL_SetDemoMetaKeyValue( "mapname", cl.configstrings[CS_MAPNAME] );
-	CL_SetDemoMetaKeyValue( "gametype", cl.configstrings[CS_GAMETYPENAME] );
+	CL_SetDemoMetaKeyValue( "mapname", cl.map->name );
 	CL_SetDemoMetaKeyValue( "matchscore", cl.configstrings[CS_MATCHSCORE] );
 
 	FS_FCloseFile( cls.demo.file );

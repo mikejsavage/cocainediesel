@@ -109,12 +109,6 @@ void CG_ConfigString( int i, const char *s ) {
 	// do something apropriate
 	if( i == CS_AUTORECORDSTATE ) {
 		CG_SC_AutoRecordAction( cgs.configStrings[i] );
-	} else if( i >= CS_MODELS && i < CS_MODELS + MAX_MODELS ) {
-		cgs.modelDraw[i - CS_MODELS] = FindModel( cgs.configStrings[i] );
-	} else if( i >= CS_SOUNDS && i < CS_SOUNDS + MAX_SOUNDS ) {
-		cgs.soundPrecache[i - CS_SOUNDS] = FindSoundEffect( cgs.configStrings[i] );
-	} else if( i >= CS_IMAGES && i < CS_IMAGES + MAX_IMAGES ) {
-		cgs.imagePrecache[i - CS_IMAGES] = FindMaterial( cgs.configStrings[i] );
 	} else if( i >= CS_PLAYERINFOS && i < CS_PLAYERINFOS + MAX_CLIENTS ) {
 		CG_LoadClientInfo( i - CS_PLAYERINFOS );
 	} else if( i >= CS_GAMECOMMANDS && i < CS_GAMECOMMANDS + MAX_GAMECOMMANDS ) {
@@ -190,7 +184,7 @@ static const char *CG_SC_AutoRecordName( void ) {
 	char date[ 128 ];
 	Sys_FormatTime( date, sizeof( date ), "%Y-%m-%d_%H-%M" );
 
-	snprintf( name, sizeof( name ), "%s_%s_%04i", date, cgs.configStrings[CS_MAPNAME], random_uniform( &cls.rng, 0, 10000 ) );
+	snprintf( name, sizeof( name ), "%s_%s_%04i", date, cl.map->name, random_uniform( &cls.rng, 0, 10000 ) );
 
 	return name;
 }

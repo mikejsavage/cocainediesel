@@ -68,11 +68,6 @@ typedef struct {
 	void ( *ConfigString )( int num, const char *string );
 	const char *( *GetConfigString )( int num );
 
-	// the *index functions create configstrings and some internal server state
-	int ( *ModelIndex )( const char *name );
-	int ( *SoundIndex )( const char *name );
-	int ( *ImageIndex )( const char *name );
-
 	// a fake client connection, ClientConnect is called afterwords
 	// with fakeClient set to true
 	int ( *FakeClientConnect )( const char *fakeUserinfo, const char *fakeSocketType, const char *fakeIP );
@@ -101,7 +96,7 @@ typedef struct {
 	void ( *Shutdown )( void );
 
 	// each new level entered will cause a call to SpawnEntities
-	void ( *InitLevel )( char *mapname, char *entities, int entstrlen, int64_t levelTime );
+	void ( *InitLevel )( const char *mapname, const char *entities, int entstrlen, int64_t levelTime );
 
 	bool ( *ClientConnect )( edict_t *ent, char *userinfo, bool fakeClient );
 	void ( *ClientBegin )( edict_t *ent );

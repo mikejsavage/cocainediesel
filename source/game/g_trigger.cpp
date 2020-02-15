@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "g_local.h"
+#include "game/g_local.h"
 
 /*
 * G_TriggerWait
@@ -49,7 +49,7 @@ static bool G_TriggerWait( edict_t *ent, edict_t *other ) {
 static void InitTrigger( edict_t *self ) {
 	self->r.solid = SOLID_TRIGGER;
 	self->movetype = MOVETYPE_NONE;
-	GClip_SetBrushModel( self, self->model );
+	GClip_SetBrushModel( self );
 	self->r.svflags = SVF_NOCLIENT;
 }
 
@@ -102,10 +102,10 @@ static void trigger_enable( edict_t *self, edict_t *other, edict_t *activator ) 
 }
 
 void SP_trigger_multiple( edict_t *ent ) {
-	GClip_SetBrushModel( ent, ent->model );
+	GClip_SetBrushModel( ent );
 
-	if( st.noise ) {
-		ent->noise_index = trap_SoundIndex( st.noise );
+	if( st.noise != EMPTY_HASH ) {
+		ent->sound = st.noise;
 	}
 
 	// gameteam field from editor
@@ -170,11 +170,7 @@ static void G_JumpPadSound( edict_t *ent ) {
 	vec3_t org;
 	edict_t *sound;
 
-	if( !ent->s.modelindex ) {
-		return;
-	}
-
-	if( !ent->moveinfo.sound_start ) {
+	if( ent->moveinfo.sound_start == EMPTY_HASH ) {
 		return;
 	}
 
@@ -267,13 +263,7 @@ static void trigger_push_setup( edict_t *self ) {
 void SP_trigger_push( edict_t *self ) {
 	InitTrigger( self );
 
-	if( st.noise && Q_stricmp( st.noise, "default" ) ) {
-		if( Q_stricmp( st.noise, "silent" ) ) {
-			self->moveinfo.sound_start = trap_SoundIndex( st.noise );
-		}
-	} else {
-		self->moveinfo.sound_start = trap_SoundIndex( S_JUMPPAD );
-	}
+	self->moveinfo.sound_start = st.noise != EMPTY_HASH ? st.noise : S_JUMPPAD;
 
 	// gameteam field from editor
 	if( st.gameteam >= TEAM_SPECTATOR && st.gameteam < GS_MAX_TEAMS ) {
@@ -342,13 +332,13 @@ static void hurt_touch( edict_t *self, edict_t *other, cplane_t *plane, int surf
 
 	if( self->spawnflags & ( 32 | 64 ) ) { // KILL, FALL
 		// play the death sound
-		if( self->noise_index ) {
-			G_Sound( other, CHAN_AUTO | CHAN_FIXED, self->noise_index );
+		if( self->sound != EMPTY_HASH ) {
+			G_Sound( other, CHAN_AUTO | CHAN_FIXED, self->sound );
 			other->pain_debounce_time = level.time + 25;
 		}
-	} else if( !( self->spawnflags & 4 ) && self->noise_index ) {
+	} else if( !( self->spawnflags & 4 ) && self->sound != EMPTY_HASH ) {
 		if( (int)( level.time * 0.001 ) & 1 ) {
-			G_Sound( other, CHAN_AUTO | CHAN_FIXED, self->noise_index );
+			G_Sound( other, CHAN_AUTO | CHAN_FIXED, self->sound );
 		}
 	}
 
@@ -362,13 +352,7 @@ void SP_trigger_hurt( edict_t *self ) {
 		self->spawnflags |= 32;
 	}
 
-	if( self->spawnflags & 4 ) { // SILENT
-		self->noise_index = 0;
-	} else if( st.noise ) {
-		self->noise_index = trap_SoundIndex( st.noise );
-	} else {
-		self->noise_index = 0;
-	}
+	self->sound = st.noise;
 
 	// gameteam field from editor
 	if( st.gameteam >= TEAM_SPECTATOR && st.gameteam < GS_MAX_TEAMS ) {
@@ -463,10 +447,10 @@ static void TeleporterTouch( edict_t *self, edict_t *other, cplane_t *plane, int
 	}
 
 	// play custom sound if any (played from the teleporter entrance)
-	if( self->noise_index ) {
+	if( self->sound != EMPTY_HASH ) {
 		vec3_t org;
 
-		if( self->s.modelindex ) {
+		if( self->s.model != EMPTY_HASH ) {
 			org[0] = self->s.origin[0] + 0.5 * ( self->r.mins[0] + self->r.maxs[0] );
 			org[1] = self->s.origin[1] + 0.5 * ( self->r.mins[1] + self->r.maxs[1] );
 			org[2] = self->s.origin[2] + 0.5 * ( self->r.mins[2] + self->r.maxs[2] );
@@ -474,7 +458,7 @@ static void TeleporterTouch( edict_t *self, edict_t *other, cplane_t *plane, int
 			VectorCopy( self->s.origin, org );
 		}
 
-		G_PositionedSound( org, CHAN_AUTO, self->noise_index );
+		G_PositionedSound( org, CHAN_AUTO, self->sound );
 	}
 
 	G_TeleportPlayer( other, dest );
@@ -489,9 +473,7 @@ void SP_trigger_teleport( edict_t *ent ) {
 		return;
 	}
 
-	if( st.noise ) {
-		ent->noise_index = trap_SoundIndex( st.noise );
-	}
+	ent->sound = st.noise;
 
 	// gameteam field from editor
 	if( st.gameteam >= TEAM_SPECTATOR && st.gameteam < GS_MAX_TEAMS ) {
@@ -501,5 +483,6 @@ void SP_trigger_teleport( edict_t *ent ) {
 	}
 
 	InitTrigger( ent );
+	GClip_LinkEntity( ent );
 	ent->touch = TeleporterTouch;
 }

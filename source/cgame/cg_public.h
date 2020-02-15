@@ -46,8 +46,6 @@ typedef struct snapshot_s {
 	bool allentities;
 	bool multipov;
 	int64_t deltaFrameNum;
-	size_t areabytes;
-	uint8_t *areabits;             // portalarea visibility bits
 	int numplayers;
 	SyncPlayerState playerState;
 	SyncPlayerState playerStates[MAX_CLIENTS];

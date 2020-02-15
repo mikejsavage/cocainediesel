@@ -82,10 +82,3 @@ qthread_t *QThread_Create( void *( *routine )( void* ), void *param ) {
 void QThread_Join( qthread_t *thread ) {
 	Sys_Thread_Join( thread );
 }
-
-/*
-* QAtomic_FetchAdd
-*/
-int QAtomic_FetchAdd( volatile int *value, int add ) {
-	return Sys_Atomic_FetchAdd( value, add );
-}

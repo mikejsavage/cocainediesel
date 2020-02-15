@@ -17,20 +17,19 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// cm_q3bsp.c -- Q3 BSP model loading
 
-#include "qcommon.h"
-#include "cm_local.h"
-#include "patch.h"
-
-#include "zstd/zstd.h"
+#include "qcommon/qcommon.h"
+#include "qcommon/hash.h"
+#include "qcommon/string.h"
+#include "qcommon/cm_local.h"
+#include "qcommon/patch.h"
 
 #define MAX_FACET_PLANES 32
 
 /*
 * CM_CreateFacetFromPoints
 */
-static int CM_CreateFacetFromPoints( cmodel_state_t *cms, cbrush_t *facet, vec3_t *verts, int numverts, cshaderref_t *shaderref, cplane_t *brushplanes ) {
+static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, vec3_t *verts, int numverts, cshaderref_t *shaderref, cplane_t *brushplanes ) {
 	int i, j;
 	int axis, dir;
 	vec3_t normal;
@@ -190,7 +189,7 @@ static int CM_CreateFacetFromPoints( cmodel_state_t *cms, cbrush_t *facet, vec3_
 /*
 * CM_CreatePatch
 */
-static void CM_CreatePatch( cmodel_state_t *cms, cface_t *patch, cshaderref_t *shaderref, vec3_t *verts, int *patch_cp ) {
+static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, cshaderref_t *shaderref, vec3_t *verts, int *patch_cp ) {
 	int step[2], size[2], flat[2];
 	vec3_t *patchpoints;
 	int i, j, k,u, v;
@@ -216,7 +215,7 @@ static void CM_CreatePatch( cmodel_state_t *cms, cface_t *patch, cshaderref_t *s
 	Patch_Evaluate( 3, verts[0], patch_cp, step, patchpoints[0], 0 );
 	Patch_RemoveLinearColumnsRows( patchpoints[0], 3, &size[0], &size[1], 0, NULL, NULL );
 
-	data = ( uint8_t * ) Mem_Alloc( cms->mempool, size[0] * size[1] * sizeof( vec3_t ) +
+	data = ( uint8_t * ) Mem_Alloc( cmap_mempool, size[0] * size[1] * sizeof( vec3_t ) +
 					  ( size[0] - 1 ) * ( size[1] - 1 ) * 2 * ( sizeof( cbrush_t ) + 32 * sizeof( cplane_t ) ) );
 
 	points = ( vec3_t * )data; data += size[0] * size[1] * sizeof( vec3_t );
@@ -269,7 +268,7 @@ static void CM_CreatePatch( cmodel_state_t *cms, cface_t *patch, cshaderref_t *s
 	if( patch->numfacets ) {
 		uint8_t *fdata;
 
-		fdata = ( uint8_t * ) Mem_Alloc( cms->mempool, patch->numfacets * sizeof( cbrush_t ) + totalsides * ( sizeof( cbrushside_t ) + sizeof( cplane_t ) ) );
+		fdata = ( uint8_t * ) Mem_Alloc( cmap_mempool, patch->numfacets * sizeof( cbrush_t ) + totalsides * ( sizeof( cbrushside_t ) + sizeof( cplane_t ) ) );
 
 		patch->facets = ( cbrush_t * )fdata; fdata += patch->numfacets * sizeof( cbrush_t );
 		memcpy( patch->facets, facets, patch->numfacets * sizeof( cbrush_t ) );
@@ -309,7 +308,7 @@ MAP LOADING
 /*
 * CMod_LoadSurfaces
 */
-static void CMod_LoadSurfaces( cmodel_state_t *cms, lump_t *l ) {
+static void CMod_LoadSurfaces( CollisionModel *cms, lump_t *l ) {
 	int i;
 	int count;
 	char *buffer;
@@ -326,7 +325,7 @@ static void CMod_LoadSurfaces( cmodel_state_t *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "CMod_LoadSurfaces: map with no shaders" );
 	}
 
-	out = cms->map_shaderrefs = ( cshaderref_t * ) Mem_Alloc( cms->mempool, count * sizeof( *out ) );
+	out = cms->map_shaderrefs = ( cshaderref_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
 	cms->numshaderrefs = count;
 
 	buffer = NULL;
@@ -339,7 +338,7 @@ static void CMod_LoadSurfaces( cmodel_state_t *cms, lump_t *l ) {
 			if( buffer ) {
 				buffer = ( char * ) Mem_Realloc( buffer, bufSize );
 			} else {
-				buffer = ( char * ) Mem_Alloc( cms->mempool, bufSize );
+				buffer = ( char * ) Mem_Alloc( cmap_mempool, bufSize );
 			}
 		}
 
@@ -352,18 +351,12 @@ static void CMod_LoadSurfaces( cmodel_state_t *cms, lump_t *l ) {
 
 	for( i = 0; i < count; i++ )
 		cms->map_shaderrefs[i].name = buffer + ( size_t )( ( void * )cms->map_shaderrefs[i].name );
-
-	// For non-FBSP maps (i.e. Q3, RTCW), unset FBSP-specific surface flags
-	if( strcmp( cms->cmap_bspFormat->header, QFBSPHEADER ) ) {
-		for( i = 0; i < count; i++ )
-			cms->map_shaderrefs[i].flags &= SURF_FBSP_START - 1;
-	}
 }
 
 /*
 * CMod_LoadVertexes
 */
-static void CMod_LoadVertexes( cmodel_state_t *cms, lump_t *l ) {
+static void CMod_LoadVertexes( CollisionModel *cms, lump_t *l ) {
 	int i;
 	int count;
 	dvertex_t *in;
@@ -378,7 +371,7 @@ static void CMod_LoadVertexes( cmodel_state_t *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no vertexes" );
 	}
 
-	out = cms->map_verts = ( vec3_t * ) Mem_Alloc( cms->mempool, count * sizeof( *out ) );
+	out = cms->map_verts = ( vec3_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
 	cms->numvertexes = count;
 
 	for( i = 0; i < count; i++, in++ ) {
@@ -391,7 +384,7 @@ static void CMod_LoadVertexes( cmodel_state_t *cms, lump_t *l ) {
 /*
 * CMod_LoadVertexes_RBSP
 */
-static void CMod_LoadVertexes_RBSP( cmodel_state_t *cms, lump_t *l ) {
+static void CMod_LoadVertexes_RBSP( CollisionModel *cms, lump_t *l ) {
 	int i;
 	int count;
 	rdvertex_t *in;
@@ -406,7 +399,7 @@ static void CMod_LoadVertexes_RBSP( cmodel_state_t *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no vertexes" );
 	}
 
-	out = cms->map_verts = ( vec3_t * ) Mem_Alloc( cms->mempool, count * sizeof( *out ) );
+	out = cms->map_verts = ( vec3_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
 	cms->numvertexes = count;
 
 	for( i = 0; i < count; i++, in++ ) {
@@ -419,7 +412,7 @@ static void CMod_LoadVertexes_RBSP( cmodel_state_t *cms, lump_t *l ) {
 /*
 * CMod_LoadFace
 */
-static inline void CMod_LoadFace( cmodel_state_t *cms, cface_t *out, int shadernum, int firstvert, int numverts, int *patch_cp ) {
+static inline void CMod_LoadFace( CollisionModel *cms, cface_t *out, int shadernum, int firstvert, int numverts, int *patch_cp ) {
 	cshaderref_t *shaderref;
 
 	shadernum = LittleLong( shadernum );
@@ -449,7 +442,7 @@ static inline void CMod_LoadFace( cmodel_state_t *cms, cface_t *out, int shadern
 /*
 * CMod_LoadFaces
 */
-static void CMod_LoadFaces( cmodel_state_t *cms, lump_t *l ) {
+static void CMod_LoadFaces( CollisionModel *cms, lump_t *l ) {
 	int i, count;
 	dface_t *in;
 	cface_t *out;
@@ -463,7 +456,7 @@ static void CMod_LoadFaces( cmodel_state_t *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no faces" );
 	}
 
-	out = cms->map_faces = ( cface_t * ) Mem_Alloc( cms->mempool, count * sizeof( *out ) );
+	out = cms->map_faces = ( cface_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
 	cms->numfaces = count;
 
 	for( i = 0; i < count; i++, in++, out++ ) {
@@ -480,7 +473,7 @@ static void CMod_LoadFaces( cmodel_state_t *cms, lump_t *l ) {
 /*
 * CMod_LoadFaces_RBSP
 */
-static void CMod_LoadFaces_RBSP( cmodel_state_t *cms, lump_t *l ) {
+static void CMod_LoadFaces_RBSP( CollisionModel *cms, lump_t *l ) {
 	int i, count;
 	rdface_t *in;
 	cface_t *out;
@@ -494,7 +487,7 @@ static void CMod_LoadFaces_RBSP( cmodel_state_t *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no faces" );
 	}
 
-	out = cms->map_faces = ( cface_t * ) Mem_Alloc( cms->mempool, count * sizeof( *out ) );
+	out = cms->map_faces = ( cface_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
 	cms->numfaces = count;
 
 	for( i = 0; i < count; i++, in++, out++ ) {
@@ -511,50 +504,49 @@ static void CMod_LoadFaces_RBSP( cmodel_state_t *cms, lump_t *l ) {
 /*
 * CMod_LoadSubmodels
 */
-static void CMod_LoadSubmodels( cmodel_state_t *cms, lump_t *l ) {
-	int i, j;
-	int count;
-	dmodel_t *in;
-	cmodel_t *out;
-
-	in = ( dmodel_t * )( cms->cmod_base + l->fileofs );
+static void CMod_LoadSubmodels( CModelServerOrClient soc, CollisionModel *cms, lump_t *l ) {
+	const dmodel_t * in = ( dmodel_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Com_Error( ERR_DROP, "CMod_LoadSubmodels: funny lump size" );
 	}
-	count = l->filelen / sizeof( *in );
+	int count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
 		Com_Error( ERR_DROP, "Map with no models" );
 	}
 
-	out = cms->map_cmodels = ( cmodel_t * ) Mem_Alloc( cms->mempool, count * sizeof( *out ) );
-	cms->numcmodels = count;
+	cms->num_models = count;
 
-	for( i = 0; i < count; i++, in++, out++ ) {
-		out->faces = cms->map_faces;
-		out->nummarkfaces = LittleLong( in->numfaces );
-		out->markfaces = ( int * ) Mem_Alloc( cms->mempool, out->nummarkfaces * sizeof( *out->markfaces ) );
+	for( int i = 0; i < count; i++, in++ ) {
+		String< 16 > suffix( "*{}", i );
+		u64 hash = Hash64( suffix.c_str(), suffix.len(), cms->base_hash );
 
-		out->brushes = cms->map_brushes;
-		out->nummarkbrushes = LittleLong( in->numbrushes );
-		out->markbrushes = ( int * ) Mem_Alloc( cms->mempool, out->nummarkbrushes * sizeof( *out->markbrushes ) );
+		cmodel_t * model = CM_NewCModel( soc, hash );
 
-		if( out->nummarkfaces ) {
+		model->faces = cms->map_faces;
+		model->nummarkfaces = LittleLong( in->numfaces );
+		model->markfaces = ( int * ) Mem_Alloc( cmap_mempool, model->nummarkfaces * sizeof( *model->markfaces ) );
+
+		model->brushes = cms->map_brushes;
+		model->nummarkbrushes = LittleLong( in->numbrushes );
+		model->markbrushes = ( int * ) Mem_Alloc( cmap_mempool, model->nummarkbrushes * sizeof( *model->markbrushes ) );
+
+		if( model->nummarkfaces ) {
 			int firstface = LittleLong( in->firstface );
-			for( j = 0; j < out->nummarkfaces; j++ )
-				out->markfaces[j] = firstface + j;
+			for( int j = 0; j < model->nummarkfaces; j++ )
+				model->markfaces[j] = firstface + j;
 		}
 
-		if( out->nummarkbrushes ) {
+		if( model->nummarkbrushes ) {
 			int firstbrush = LittleLong( in->firstbrush );
-			for( j = 0; j < out->nummarkbrushes; j++ ) {
-				out->markbrushes[j] = firstbrush + j;
+			for( int j = 0; j < model->nummarkbrushes; j++ ) {
+				model->markbrushes[j] = firstbrush + j;
 			}
 		}
 
-		for( j = 0; j < 3; j++ ) {
+		for( int j = 0; j < 3; j++ ) {
 			// spread the mins / maxs by a pixel
-			out->mins[j] = LittleFloat( in->mins[j] ) - 1;
-			out->maxs[j] = LittleFloat( in->maxs[j] ) + 1;
+			model->mins[j] = LittleFloat( in->mins[j] ) - 1;
+			model->maxs[j] = LittleFloat( in->maxs[j] ) + 1;
 		}
 	}
 }
@@ -562,7 +554,7 @@ static void CMod_LoadSubmodels( cmodel_state_t *cms, lump_t *l ) {
 /*
 * CMod_LoadNodes
 */
-static void CMod_LoadNodes( cmodel_state_t *cms, lump_t *l ) {
+static void CMod_LoadNodes( CollisionModel *cms, lump_t *l ) {
 	int i;
 	int count;
 	dnode_t *in;
@@ -577,7 +569,7 @@ static void CMod_LoadNodes( cmodel_state_t *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map has no nodes" );
 	}
 
-	out = cms->map_nodes = ( cnode_t * ) Mem_Alloc( cms->mempool, count * sizeof( *out ) );
+	out = cms->map_nodes = ( cnode_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
 	cms->numnodes = count;
 
 	for( i = 0; i < 3; i++ ) {
@@ -595,7 +587,7 @@ static void CMod_LoadNodes( cmodel_state_t *cms, lump_t *l ) {
 /*
 * CMod_LoadMarkFaces
 */
-static void CMod_LoadMarkFaces( cmodel_state_t *cms, lump_t *l ) {
+static void CMod_LoadMarkFaces( CollisionModel *cms, lump_t *l ) {
 	int i, j;
 	int count;
 	int *out;
@@ -610,7 +602,7 @@ static void CMod_LoadMarkFaces( cmodel_state_t *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no leaffaces" );
 	}
 
-	out = cms->map_markfaces = ( int * ) Mem_Alloc( cms->mempool, count * sizeof( *out ) );
+	out = cms->map_markfaces = ( int * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
 	cms->nummarkfaces = count;
 
 	for( i = 0; i < count; i++ ) {
@@ -625,7 +617,7 @@ static void CMod_LoadMarkFaces( cmodel_state_t *cms, lump_t *l ) {
 /*
 * CMod_LoadLeafs
 */
-static void CMod_LoadLeafs( cmodel_state_t *cms, lump_t *l ) {
+static void CMod_LoadLeafs( CollisionModel *cms, lump_t *l ) {
 	int i, j, k;
 	int count;
 	cleaf_t *out;
@@ -640,7 +632,7 @@ static void CMod_LoadLeafs( cmodel_state_t *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no leafs" );
 	}
 
-	out = cms->map_leafs = ( cleaf_t * ) Mem_Alloc( cms->mempool, count * sizeof( *out ) );
+	out = cms->map_leafs = ( cleaf_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
 	cms->numleafs = count;
 
 	for( i = 0; i < count; i++, in++, out++ ) {
@@ -683,7 +675,7 @@ static void CMod_LoadLeafs( cmodel_state_t *cms, lump_t *l ) {
 /*
 * CMod_LoadPlanes
 */
-static void CMod_LoadPlanes( cmodel_state_t *cms, lump_t *l ) {
+static void CMod_LoadPlanes( CollisionModel *cms, lump_t *l ) {
 	int i, j;
 	int count;
 	cplane_t *out;
@@ -698,7 +690,7 @@ static void CMod_LoadPlanes( cmodel_state_t *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no planes" );
 	}
 
-	out = cms->map_planes = ( cplane_t * ) Mem_Alloc( cms->mempool, count * sizeof( *out ) );
+	out = cms->map_planes = ( cplane_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
 	cms->numplanes = count;
 
 	for( i = 0; i < count; i++, in++, out++ ) {
@@ -722,7 +714,7 @@ static void CMod_LoadPlanes( cmodel_state_t *cms, lump_t *l ) {
 /*
 * CMod_LoadMarkBrushes
 */
-static void CMod_LoadMarkBrushes( cmodel_state_t *cms, lump_t *l ) {
+static void CMod_LoadMarkBrushes( CollisionModel *cms, lump_t *l ) {
 	int i;
 	int count;
 	int *out;
@@ -737,7 +729,7 @@ static void CMod_LoadMarkBrushes( cmodel_state_t *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no leafbrushes" );
 	}
 
-	out = cms->map_markbrushes = ( int * ) Mem_Alloc( cms->mempool, count * sizeof( *out ) );
+	out = cms->map_markbrushes = ( int * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
 	cms->nummarkbrushes = count;
 
 	for( i = 0; i < count; i++, in++ )
@@ -747,7 +739,7 @@ static void CMod_LoadMarkBrushes( cmodel_state_t *cms, lump_t *l ) {
 /*
 * CMod_LoadBrushSides
 */
-static void CMod_LoadBrushSides( cmodel_state_t *cms, lump_t *l ) {
+static void CMod_LoadBrushSides( CollisionModel *cms, lump_t *l ) {
 	int i, j;
 	int count;
 	cbrushside_t *out;
@@ -762,7 +754,7 @@ static void CMod_LoadBrushSides( cmodel_state_t *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no brushsides" );
 	}
 
-	out = cms->map_brushsides = ( cbrushside_t * ) Mem_Alloc( cms->mempool, count * sizeof( *out ) );
+	out = cms->map_brushsides = ( cbrushside_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
 	cms->numbrushsides = count;
 
 	for( i = 0; i < count; i++, in++, out++ ) {
@@ -780,7 +772,7 @@ static void CMod_LoadBrushSides( cmodel_state_t *cms, lump_t *l ) {
 /*
 * CMod_LoadBrushSides_RBSP
 */
-static void CMod_LoadBrushSides_RBSP( cmodel_state_t *cms, lump_t *l ) {
+static void CMod_LoadBrushSides_RBSP( CollisionModel *cms, lump_t *l ) {
 	int i, j;
 	int count;
 	cbrushside_t *out;
@@ -795,7 +787,7 @@ static void CMod_LoadBrushSides_RBSP( cmodel_state_t *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no brushsides" );
 	}
 
-	out = cms->map_brushsides = ( cbrushside_t * ) Mem_Alloc( cms->mempool, count * sizeof( *out ) );
+	out = cms->map_brushsides = ( cbrushside_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
 	cms->numbrushsides = count;
 
 	for( i = 0; i < count; i++, in++, out++ ) {
@@ -813,7 +805,7 @@ static void CMod_LoadBrushSides_RBSP( cmodel_state_t *cms, lump_t *l ) {
 /*
 * CMod_LoadBrushes
 */
-static void CMod_LoadBrushes( cmodel_state_t *cms, lump_t *l ) {
+static void CMod_LoadBrushes( CollisionModel *cms, lump_t *l ) {
 	int i;
 	int count;
 	dbrush_t *in;
@@ -829,7 +821,7 @@ static void CMod_LoadBrushes( cmodel_state_t *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no brushes" );
 	}
 
-	out = cms->map_brushes = ( cbrush_t * ) Mem_Alloc( cms->mempool, count * sizeof( *out ) );
+	out = cms->map_brushes = ( cbrush_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
 	cms->numbrushes = count;
 
 	for( i = 0; i < count; i++, out++, in++ ) {
@@ -844,14 +836,14 @@ static void CMod_LoadBrushes( cmodel_state_t *cms, lump_t *l ) {
 /*
 * CMod_LoadVisibility
 */
-static void CMod_LoadVisibility( cmodel_state_t *cms, lump_t *l ) {
+static void CMod_LoadVisibility( CollisionModel *cms, lump_t *l ) {
 	cms->map_visdatasize = l->filelen;
 	if( !cms->map_visdatasize ) {
 		cms->map_pvs = NULL;
 		return;
 	}
 
-	cms->map_pvs = ( dvis_t * ) Mem_Alloc( cms->mempool, cms->map_visdatasize );
+	cms->map_pvs = ( dvis_t * ) Mem_Alloc( cmap_mempool, cms->map_visdatasize );
 	memcpy( cms->map_pvs, cms->cmod_base + l->fileofs, cms->map_visdatasize );
 
 	cms->map_pvs->numclusters = LittleLong( cms->map_pvs->numclusters );
@@ -861,75 +853,58 @@ static void CMod_LoadVisibility( cmodel_state_t *cms, lump_t *l ) {
 /*
 * CMod_LoadEntityString
 */
-static void CMod_LoadEntityString( cmodel_state_t *cms, lump_t *l ) {
+static void CMod_LoadEntityString( CollisionModel *cms, lump_t *l ) {
 	cms->numentitychars = l->filelen;
 	if( !l->filelen ) {
 		return;
 	}
 
-	cms->map_entitystring = ( char * ) Mem_Alloc( cms->mempool, cms->numentitychars );
+	cms->map_entitystring = ( char * ) Mem_Alloc( cmap_mempool, cms->numentitychars );
 	memcpy( cms->map_entitystring, cms->cmod_base + l->fileofs, l->filelen );
 }
 
 /*
 * CM_LoadQ3BrushModel
 */
-void CM_LoadQ3BrushModel( cmodel_state_t *cms, void *buf, int bufsize, const bspFormatDesc_t *format ) {
+void CM_LoadQ3BrushModel( CModelServerOrClient soc, CollisionModel * cms, Span< const u8 > data ) {
 	dheader_t header;
+	memcpy( &header, data.ptr, sizeof( header ) );
 
-	cms->cmap_bspFormat = format;
+	cms->checksum = Hash32( data );
 
-	header = *(dheader_t *)buf;
 	for( size_t i = 0; i < sizeof( dheader_t ) / 4; i++ )
 		( (int *)&header )[i] = LittleLong( ( (int *)&header )[i] );
-	cms->cmod_base = ( uint8_t * )buf;
+	cms->cmod_base = data.ptr;
+
+	bool idbsp = memcmp( &header.ident, IDBSPHEADER, sizeof( header.ident ) ) == 0;
 
 	// load into heap
 	CMod_LoadSurfaces( cms, &header.lumps[LUMP_SHADERREFS] );
 	CMod_LoadPlanes( cms, &header.lumps[LUMP_PLANES] );
-	if( cms->cmap_bspFormat->flags & BSP_RAVEN ) {
-		CMod_LoadBrushSides_RBSP( cms, &header.lumps[LUMP_BRUSHSIDES] );
-	} else {
+	if( idbsp ) {
 		CMod_LoadBrushSides( cms, &header.lumps[LUMP_BRUSHSIDES] );
+	}
+	else {
+		CMod_LoadBrushSides_RBSP( cms, &header.lumps[LUMP_BRUSHSIDES] );
 	}
 	CMod_LoadBrushes( cms, &header.lumps[LUMP_BRUSHES] );
 	CMod_LoadMarkBrushes( cms, &header.lumps[LUMP_LEAFBRUSHES] );
-	if( cms->cmap_bspFormat->flags & BSP_RAVEN ) {
-		CMod_LoadVertexes_RBSP( cms, &header.lumps[LUMP_VERTEXES] );
-		CMod_LoadFaces_RBSP( cms, &header.lumps[LUMP_FACES] );
-	} else {
+	if( idbsp ) {
 		CMod_LoadVertexes( cms, &header.lumps[LUMP_VERTEXES] );
 		CMod_LoadFaces( cms, &header.lumps[LUMP_FACES] );
+	}
+	else {
+		CMod_LoadVertexes_RBSP( cms, &header.lumps[LUMP_VERTEXES] );
+		CMod_LoadFaces_RBSP( cms, &header.lumps[LUMP_FACES] );
 	}
 	CMod_LoadMarkFaces( cms, &header.lumps[LUMP_LEAFFACES] );
 	CMod_LoadLeafs( cms, &header.lumps[LUMP_LEAFS] );
 	CMod_LoadNodes( cms, &header.lumps[LUMP_NODES] );
-	CMod_LoadSubmodels( cms, &header.lumps[LUMP_MODELS] );
+	CMod_LoadSubmodels( soc, cms, &header.lumps[LUMP_MODELS] );
 	CMod_LoadVisibility( cms, &header.lumps[LUMP_VISIBILITY] );
 	CMod_LoadEntityString( cms, &header.lumps[LUMP_ENTITIES] );
 
 	if( cms->numvertexes ) {
 		Mem_Free( cms->map_verts );
 	}
-}
-
-void CM_LoadCompressedBSP( cmodel_state_t *cms, void *compressed, int compressed_size, const bspFormatDesc_t *format ) {
-	unsigned long long const decompressed_size = ZSTD_getDecompressedSize( compressed, compressed_size );
-	if( decompressed_size == ZSTD_CONTENTSIZE_ERROR || decompressed_size == ZSTD_CONTENTSIZE_UNKNOWN ) {
-		Com_Error( ERR_DROP, "Corrupt BSP" );
-	}
-
-	void * decompressed = Mem_Alloc( cms->mempool, decompressed_size );
-	const size_t r = ZSTD_decompress( decompressed, decompressed_size, compressed, compressed_size );
-
-	if( r != decompressed_size ) {
-		Com_Error( ERR_DROP, "Failed to decompress BSP: %s", ZSTD_getErrorName( r ) );
-	}
-
-	int version;
-	memcpy( &version, ( const char * ) decompressed + 4, sizeof( version ) );
-	const bspFormatDesc_t *bsp_format = Q_FindBSPFormat( q3BSPFormats, ( const char * ) decompressed, version ); 
-	CM_LoadQ3BrushModel( cms, decompressed, decompressed_size, bsp_format );
-
-	Mem_Free( decompressed );
 }

@@ -653,7 +653,7 @@ static void CG_DrawEntityNumbers( void ) {
 			continue;
 		}
 
-		if( !cent->current.modelindex ) {
+		if( cent->current.model == EMPTY_HASH ) {
 			continue;
 		}
 

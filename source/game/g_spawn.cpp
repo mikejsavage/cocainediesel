@@ -18,12 +18,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include "qcommon/compression.h"
 #include "game/g_local.h"
 
 enum EntityFieldType {
 	F_INT,
 	F_FLOAT,
 	F_LSTRING,      // string on disk, pointer in memory, TAG_LEVEL
+	F_HASH,
+	F_MODELHASH,
 	F_VECTOR,
 	F_ANGLE,
 	F_RGBA,
@@ -41,8 +44,8 @@ struct EntityField {
 static const EntityField fields[] = {
 	{ "classname", FOFS( classname ), F_LSTRING },
 	{ "origin", FOFS( s.origin ), F_VECTOR },
-	{ "model", FOFS( model ), F_LSTRING },
-	{ "model2", FOFS( model2 ), F_LSTRING },
+	{ "model", FOFS( s.model ), F_MODELHASH },
+	{ "model2", FOFS( s.model2 ), F_MODELHASH },
 	{ "spawnflags", FOFS( spawnflags ), F_INT },
 	{ "speed", FOFS( speed ), F_FLOAT },
 	{ "target", FOFS( target ), F_LSTRING },
@@ -70,14 +73,12 @@ static const EntityField fields[] = {
 	{ "distance", STOFS( distance ), F_INT, FFL_SPAWNTEMP },
 	{ "radius", STOFS( radius ), F_FLOAT, FFL_SPAWNTEMP },
 	{ "height", STOFS( height ), F_INT, FFL_SPAWNTEMP },
-	{ "noise", STOFS( noise ), F_LSTRING, FFL_SPAWNTEMP },
-	{ "noise_start", STOFS( noise_start ), F_LSTRING, FFL_SPAWNTEMP },
-	{ "noise_stop", STOFS( noise_stop ), F_LSTRING, FFL_SPAWNTEMP },
+	{ "noise", STOFS( noise ), F_HASH, FFL_SPAWNTEMP },
+	{ "noise_start", STOFS( noise_start ), F_HASH, FFL_SPAWNTEMP },
+	{ "noise_stop", STOFS( noise_stop ), F_HASH, FFL_SPAWNTEMP },
 	{ "pausetime", STOFS( pausetime ), F_FLOAT, FFL_SPAWNTEMP },
 	{ "gravity", STOFS( gravity ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "gameteam", STOFS( gameteam ), F_INT, FFL_SPAWNTEMP },
-	{ "debris1", STOFS( debris1 ), F_LSTRING, FFL_SPAWNTEMP },
-	{ "debris2", STOFS( debris2 ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "size", STOFS( size ), F_INT, FFL_SPAWNTEMP },
 	{ "rgba", STOFS( rgba ), F_RGBA, FFL_SPAWNTEMP },
 };
@@ -277,6 +278,17 @@ static void ED_ParseField( char *key, char *value, edict_t *ent ) {
 			case F_LSTRING:
 				*(char **)( b + f.ofs ) = ED_NewString( value );
 				break;
+			case F_HASH:
+				*(StringHash *)( b + f.ofs ) = StringHash( value );
+				break;
+			case F_MODELHASH:
+				if( value[ 0 ] == '*' ) {
+					*(StringHash *)( b + f.ofs ) = StringHash( Hash64( value, strlen( value ), svs.cms->base_hash ) );
+				}
+				else {
+					*(StringHash *)( b + f.ofs ) = StringHash( value );
+				}
+				break;
 			case F_INT:
 				*(int *)( b + f.ofs ) = atoi( value );
 				break;
@@ -419,60 +431,6 @@ static void G_FindTeams( void ) {
 	}
 }
 
-void G_PrecacheMedia( void ) {
-	//
-	// MODELS
-	//
-
-	trap_ModelIndex( "models/objects/gibs/gib" );
-
-	//
-	// SOUNDS
-	//
-
-	// jalfixme : most of these sounds can be played from the clients
-
-	trap_SoundIndex( S_WORLD_WATER_IN );    // feet hitting water
-	trap_SoundIndex( S_WORLD_WATER_OUT );       // feet leaving water
-	trap_SoundIndex( S_WORLD_UNDERWATER );
-
-	trap_SoundIndex( S_WORLD_SLIME_IN );
-	trap_SoundIndex( S_WORLD_SLIME_OUT );
-	trap_SoundIndex( S_WORLD_UNDERSLIME );
-
-	trap_SoundIndex( S_WORLD_LAVA_IN );
-	trap_SoundIndex( S_WORLD_LAVA_OUT );
-	trap_SoundIndex( S_WORLD_UNDERLAVA );
-
-	trap_SoundIndex( S_HIT_WATER );
-
-	// announcer
-
-	// countdown
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_GET_READY_TO_FIGHT_1_to_2, 1 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_GET_READY_TO_FIGHT_1_to_2, 2 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_READY_1_to_2, 1 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_READY_1_to_2, 2 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, 1, 1 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, 2, 1 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, 3, 1 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, 1, 2 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, 2, 2 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, 3, 2 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_FIGHT_1_to_2, 1 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_FIGHT_1_to_2, 2 ) );
-
-	// postmatch
-	trap_SoundIndex( va( S_ANNOUNCER_POSTMATCH_GAMEOVER_1_to_2, 1 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_POSTMATCH_GAMEOVER_1_to_2, 2 ) );
-
-	// timeout
-	trap_SoundIndex( va( S_ANNOUNCER_TIMEOUT_TIMEOUT_1_to_2, 1 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_TIMEOUT_TIMEOUT_1_to_2, 2 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_TIMEOUT_TIMEIN_1_to_2, 1 ) );
-	trap_SoundIndex( va( S_ANNOUNCER_TIMEOUT_TIMEIN_1_to_2, 2 ) );
-}
-
 /*
 * G_FreeEntities
 */
@@ -562,18 +520,12 @@ static void G_SpawnEntities( void ) {
 * Creates a server's entity / program execution context by
 * parsing textual entity definitions out of an ent file.
 */
-void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTime ) {
-	char *mapString = NULL;
-	char name[MAX_CONFIGSTRING_CHARS];
-	int i;
-
+void G_InitLevel( const char *mapname, const char *entities, int entstrlen, int64_t levelTime ) {
 	G_asGarbageCollect( true );
 
 	GT_asCallShutdown();
 
 	GT_asShutdownScript();
-
-	G_FreeCallvotes();
 
 	GClip_ClearWorld(); // clear areas links
 
@@ -581,10 +533,17 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 		Com_Error( ERR_DROP, "G_SpawnLevel: NULL entities string\n" );
 	}
 
+	memset( &level, 0, sizeof( level_locals_t ) );
+	memset( &server_gs.gameState, 0, sizeof( server_gs.gameState ) );
+
+	char path[ MAX_CONFIGSTRING_CHARS ];
+	snprintf( path, sizeof( path ), "maps/%s", mapname );
+	server_gs.gameState.map = StringHash( path );
+	server_gs.gameState.map_checksum = svs.cms->checksum;
+
 	// make a copy of the raw entities string so it's not freed with the pool
-	mapString = ( char * )G_Malloc( entstrlen + 1 );
-	memcpy( mapString, entities, entstrlen );
-	Q_strncpyz( name, mapname, sizeof( name ) );
+	char * mapString = ( char * )G_Malloc( entstrlen + 1 );
+	strcpy( mapString, entities );
 
 	// clear old data
 
@@ -592,28 +551,24 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 
 	G_StringPoolInit();
 
-	memset( &level, 0, sizeof( level_locals_t ) );
-	memset( &server_gs.gameState, 0, sizeof( server_gs.gameState ) );
-
 	level.time = levelTime;
 	level.gravity = g_gravity->value;
 
 	// get the strings back
-	Q_strncpyz( level.mapname, name, sizeof( level.mapname ) );
+	Q_strncpyz( level.mapname, mapname, sizeof( level.mapname ) );
 	level.mapString = ( char * )G_LevelMalloc( entstrlen + 1 );
 	level.mapStrlen = entstrlen;
-	memcpy( level.mapString, mapString, entstrlen );
+	strcpy( level.mapString, entities );
 	G_Free( mapString );
 	mapString = NULL;
 
 	// make a copy of the raw entities string for parsing
 	level.map_parsed_ents = ( char * )G_LevelMalloc( entstrlen + 1 );
-	level.map_parsed_ents[0] = 0;
 
 	G_FreeEntities();
 
 	// link client fields on player ents
-	for( i = 0; i < server_gs.maxclients; i++ ) {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		game.edicts[i + 1].s.number = i + 1;
 		game.edicts[i + 1].r.client = &game.clients[i];
 		game.edicts[i + 1].r.inuse = ( trap_GetClientState( i ) >= CS_CONNECTED ) ? true : false;
@@ -622,7 +577,6 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 	}
 
 	// initialize game subsystems
-	trap_ConfigString( CS_MAPNAME, level.mapname );
 	trap_ConfigString( CS_MATCHSCORE, "" );
 
 	G_InitGameCommands();
@@ -632,7 +586,6 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTim
 
 	G_Gametype_Init();
 
-	G_PrecacheMedia();
 	G_PrecacheGameCommands(); // adding commands after this point won't update them to the client
 
 	// start spawning entities
@@ -664,13 +617,66 @@ void G_RespawnLevel( void ) {
 	G_InitLevel( level.mapname, level.mapString, level.mapStrlen, level.time );
 }
 
+void G_ChangeLevel( const char * name ) {
+	if( svs.cms != NULL ) {
+		CM_Free( CM_Server, svs.cms );
+	}
+
+	Q_strncpyz( sv.mapname, name, sizeof( sv.mapname ) );
+
+	char path[ MAX_CONFIGSTRING_CHARS ];
+	snprintf( path, sizeof( path ), "maps/%s.bsp", name );
+
+	u8 * buf;
+	int length = FS_LoadFile( path, ( void ** ) &buf, NULL, 0 );
+	if( buf == NULL ) {
+		Com_Error( ERR_FATAL, "Couldn't load %s", path );
+	}
+
+	Span< const u8 > compressed = Span< const u8 >( buf, length );
+	Span< u8 > decompressed;
+	defer { FREE( sys_allocator, decompressed.ptr ); };
+	bool ok = Decompress( path, sys_allocator, compressed, &decompressed );
+	if( !ok ) {
+		Com_Error( ERR_FATAL, "Couldn't decompress %s", path );
+	}
+
+	Span< const u8 > data = decompressed.ptr == NULL ? compressed : decompressed;
+	u64 base_hash = Hash64( path, strlen( path ) - strlen( ".bsp" ) );
+	svs.cms = CM_LoadMap( CM_Server, data, base_hash );
+
+	server_gs.gameState.map = StringHash( base_hash );
+	server_gs.gameState.map_checksum = svs.cms->checksum;
+}
+
+void G_Aasdf() {
+	int len = CM_EntityStringLen( svs.cms );
+
+	G_LevelInitPool( strlen( sv.mapname ) + 1 + ( len + 1 ) * 2 + G_LEVELPOOL_BASE_SIZE );
+	G_StringPoolInit();
+
+	Q_strncpyz( level.mapname, sv.mapname, sizeof( level.mapname ) );
+
+	level.mapString = ( char * )G_LevelMalloc( len + 1 );
+	level.mapStrlen = len;
+
+	strcpy( level.mapString, CM_EntityString( svs.cms ) );
+
+	level.map_parsed_ents = ( char * )G_LevelMalloc( len + 1 );
+
+	G_ResetLevel();
+}
+
 static void SP_worldspawn( edict_t *ent ) {
 	ent->movetype = MOVETYPE_PUSH;
 	ent->r.solid = SOLID_YES;
 	ent->r.inuse = true;       // since the world doesn't use G_Spawn()
 	VectorClear( ent->s.origin );
 	VectorClear( ent->s.angles );
-	GClip_SetBrushModel( ent, "*0" ); // sets mins / maxs and modelindex 1
+
+	const char * model_name = "*0";
+	ent->s.model = StringHash( Hash64( model_name, strlen( model_name ), svs.cms->base_hash ) );
+	GClip_SetBrushModel( ent );
 
 	if( st.gravity ) {
 		level.gravity = atof( st.gravity );

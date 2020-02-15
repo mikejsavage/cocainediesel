@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "client.h"
+#include "client/client.h"
 
 static cvar_t *scr_netgraph;
 static cvar_t *scr_timegraph;
@@ -142,8 +142,13 @@ void SCR_RegisterConsoleMedia() {
 * SCR_RenderView
 */
 static void SCR_RenderView() {
-	// frame is not valid until we load the CM data
-	if( cl.cms != NULL ) {
+	cl.map = FindMap( client_gs.gameState.map );
+	if( cl.map != NULL ) {
+		cl.cms = cl.map->cms;
+		if( cl.cms->checksum != client_gs.gameState.map_checksum ) {
+			Com_Error( ERR_DROP, "Local map version differs from server: %u != '%u'", cl.cms->checksum, client_gs.gameState.map_checksum );
+		}
+
 		CL_GameModule_RenderView();
 	}
 }

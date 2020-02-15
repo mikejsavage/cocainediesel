@@ -161,7 +161,7 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 		player->weapon_state = WeaponState_SwitchingIn;
 		player->weapon_time = def->weaponup_time;
 
-		int parm = player->weapon << 1;
+		u64 parm = player->weapon << 1;
 		if( !had_weapon_before )
 			parm |= 1;
 

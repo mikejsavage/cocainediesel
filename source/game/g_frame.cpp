@@ -66,11 +66,11 @@ static void G_Timeout_Update( unsigned int msec ) {
 			int seconds_left = (int)( ( level.timeout.endtime - level.timeout.time ) / 1000.0 + 0.5 );
 
 			if( seconds_left == ( TIMEIN_TIME * 2 ) / 1000 ) {
-				G_AnnouncerSound( NULL, trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_READY_1_to_2, random_uniform( &svs.rng, 1, 3 ) ) ),
+				G_AnnouncerSound( NULL, StringHash( va( S_ANNOUNCER_COUNTDOWN_READY_1_to_2, random_uniform( &svs.rng, 1, 3 ) ) ),
 								  GS_MAX_TEAMS, false, NULL );
 				countdown_set = random_uniform( &svs.rng, 1, 3 );
 			} else if( seconds_left >= 1 && seconds_left <= 3 ) {
-				G_AnnouncerSound( NULL, trap_SoundIndex( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, seconds_left,
+				G_AnnouncerSound( NULL, StringHash( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, seconds_left,
 															 countdown_set ) ), GS_MAX_TEAMS, false, NULL );
 			}
 
@@ -303,7 +303,7 @@ static void G_StartFrameSnap( void ) {
 }
 
 // backup entitiy sounds in timeout
-static int entity_sound_backup[MAX_EDICTS];
+static StringHash entity_sound_backup[MAX_EDICTS];
 
 /*
 * G_ClearSnap
@@ -326,8 +326,7 @@ void G_ClearSnap( void ) {
 		}
 
 		// events only last for a single message
-		ent->s.events[0] = ent->s.events[1] = 0;
-		ent->s.eventParms[0] = ent->s.eventParms[1] = 0;
+		memset( ent->s.events, 0, sizeof( ent->s.events ) );
 		ent->numEvents = 0;
 		ent->eventPriority[0] = ent->eventPriority[1] = false;
 		ent->s.teleported = false; // remove teleported bit.
@@ -395,13 +394,6 @@ void G_SnapFrame( void ) {
 			}
 			ent->r.svflags |= SVF_NOCLIENT;
 			continue;
-		} else if( !( ent->r.svflags & SVF_NOCLIENT ) && !ent->s.modelindex && !ent->s.effects
-				   && !ent->s.sound && !ISEVENTENTITY( &ent->s ) && !ent->s.light && !ent->r.client && ent->s.type != ET_HUD ) {
-			if( developer->integer ) {
-				Com_Printf( "'G_SnapFrame': fixing missing SVF_NOCLIENT flag (no effect)\n" );
-			}
-			ent->r.svflags |= SVF_NOCLIENT;
-			continue;
 		}
 
 		ent->s.effects &= ~EF_TAKEDAMAGE;
@@ -412,7 +404,7 @@ void G_SnapFrame( void ) {
 		if( GS_MatchPaused( &server_gs ) ) {
 			// when in timeout, we don't send entity sounds
 			entity_sound_backup[ENTNUM( ent )] = ent->s.sound;
-			ent->s.sound = 0;
+			ent->s.sound = EMPTY_HASH;
 		}
 	}
 }
@@ -483,6 +475,7 @@ static void G_RunClients( void ) {
 * G_RunFrame
 * Advances the world
 */
+void G_Aasdf();
 void G_RunFrame( unsigned int msec ) {
 	G_CheckCvars();
 

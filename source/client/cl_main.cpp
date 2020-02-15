@@ -507,14 +507,6 @@ void CL_ResetServerCount( void ) {
 * CL_ClearState
 */
 void CL_ClearState( void ) {
-	if( cl.cms ) {
-		CM_ReleaseReference( cl.cms );
-	}
-
-	if( cl.frames_areabits ) {
-		Mem_Free( cl.frames_areabits );
-	}
-
 	// wipe the entire cl structure
 	memset( &cl, 0, sizeof( client_state_t ) );
 	memset( cl_baselines, 0, sizeof( cl_baselines ) );
@@ -1115,135 +1107,19 @@ static void CL_Userinfo_f( void ) {
 	Info_Print( Cvar_Userinfo() );
 }
 
-static int precache_check; // for autodownload of precache items
 static int precache_spawncount;
-static int precache_tex;
-
-#define PLAYER_MULT 5
-
-// ENV_CNT is map load
-#define ENV_CNT ( CS_PLAYERINFOS + MAX_CLIENTS * PLAYER_MULT )
-#define TEXTURE_CNT ( ENV_CNT + 1 )
-
-static unsigned int CL_LoadMap( const char *name ) {
-	int i;
-	int areas;
-
-	unsigned int map_checksum;
-
-	assert( !cl.cms );
-
-	// if local server is running, share the collision model,
-	// increasing the ref counter
-	if( Com_ServerState() ) {
-		cl.cms = Com_ServerCM( &map_checksum );
-	} else {
-		cl.cms = CM_New( NULL );
-		CM_LoadMap( cl.cms, name, true, &map_checksum );
-	}
-
-	assert( cl.cms );
-
-	// allocate memory for areabits
-	areas = CM_NumAreas( cl.cms );
-	areas *= CM_AreaRowSize( cl.cms );
-
-	cl.frames_areabits = ( uint8_t * ) Mem_ZoneMalloc( UPDATE_BACKUP * areas );
-	for( i = 0; i < UPDATE_BACKUP; i++ ) {
-		cl.snapShots[i].areabytes = areas;
-		cl.snapShots[i].areabits = cl.frames_areabits + i * areas;
-	}
-
-	// check memory integrity
-	Mem_DebugCheckSentinelsGlobal();
-
-	return map_checksum;
-}
 
 void CL_RequestNextDownload( void ) {
-	char tempname[MAX_CONFIGSTRING_CHARS + 4];
-
 	if( cls.state != CA_CONNECTED ) {
 		return;
 	}
 
-	// skip if download not allowed
-	if( !cl_downloads->integer && precache_check < ENV_CNT ) {
-		precache_check = ENV_CNT;
+	if( cl_downloads->integer ) {
+		// if( !CL_CheckOrDownloadFile( cl.configstrings[CS_WORLDMODEL] ) ) {
+		// 	return; // started a download
+		// }
 	}
 
-	//ZOID
-	if( precache_check == CS_WORLDMODEL ) { // confirm map
-		precache_check = CS_MODELS; // 0 isn't used
-
-		if( !CL_CheckOrDownloadFile( cl.configstrings[CS_WORLDMODEL] ) ) {
-			return; // started a download
-		}
-	}
-
-	if( precache_check >= CS_MODELS && precache_check < CS_MODELS + MAX_MODELS ) {
-		while( precache_check < CS_MODELS + MAX_MODELS && cl.configstrings[precache_check][0] ) {
-			if( cl.configstrings[precache_check][0] == '*' || cl.configstrings[precache_check][0] == '#' ) {
-				precache_check++;
-				continue;
-			}
-
-			if( !CL_CheckOrDownloadFile( cl.configstrings[precache_check++] ) ) {
-				return; // started a download
-			}
-		}
-		precache_check = CS_SOUNDS;
-	}
-
-	if( precache_check >= CS_SOUNDS && precache_check < CS_SOUNDS + MAX_SOUNDS ) {
-		if( precache_check == CS_SOUNDS ) {
-			precache_check++; // zero is blank
-
-		}
-		while( precache_check < CS_SOUNDS + MAX_SOUNDS && cl.configstrings[precache_check][0] ) {
-			Q_strncpyz( tempname, cl.configstrings[precache_check++], sizeof( tempname ) );
-			if( FileExtension( tempname ).n == 0 ) {
-				Q_strncatz( tempname, ".ogg", sizeof( tempname ) );
-			}
-			if( !CL_CheckOrDownloadFile( tempname ) ) {
-				return; // started a download
-			}
-		}
-		precache_check = CS_IMAGES;
-	}
-	if( precache_check >= CS_IMAGES && precache_check < CS_IMAGES + MAX_IMAGES ) {
-		if( precache_check == CS_IMAGES ) {
-			precache_check++; // zero is blank
-
-		}
-		// precache phase completed
-		precache_check = ENV_CNT;
-	}
-
-	if( precache_check == ENV_CNT ) {
-		cls.download.successCount = 0;
-
-		unsigned map_checksum = CL_LoadMap( cl.configstrings[CS_WORLDMODEL] );
-		if( map_checksum != (unsigned)atoi( cl.configstrings[CS_MAPCHECKSUM] ) ) {
-			Com_Error( ERR_DROP, "Local map version differs from server: %u != '%u'",
-					   map_checksum, (unsigned)atoi( cl.configstrings[CS_MAPCHECKSUM] ) );
-			return;
-		}
-
-		precache_check = TEXTURE_CNT;
-	}
-
-	if( precache_check == TEXTURE_CNT ) {
-		precache_check = TEXTURE_CNT + 1;
-		precache_tex = 0;
-	}
-
-	// confirm existance of textures, download any that don't exist
-	if( precache_check == TEXTURE_CNT + 1 ) {
-		precache_check = TEXTURE_CNT + 999;
-	}
-
-	// load client game module
 	CL_GameModule_Init();
 	CL_AddReliableCommand( va( "begin %i\n", precache_spawncount ) );
 }
@@ -1257,8 +1133,6 @@ void CL_RequestNextDownload( void ) {
 void CL_Precache_f( void ) {
 	if( cls.demo.playing ) {
 		if( !cls.demo.play_jump ) {
-			CL_LoadMap( cl.configstrings[CS_WORLDMODEL] );
-
 			CL_GameModule_Init();
 		} else {
 			CL_GameModule_Reset();
@@ -1270,7 +1144,6 @@ void CL_Precache_f( void ) {
 		return;
 	}
 
-	precache_check = CS_WORLDMODEL;
 	precache_spawncount = atoi( Cmd_Argv( 1 ) );
 
 	CL_RequestNextDownload();
@@ -2014,6 +1887,9 @@ void CL_Init( void ) {
 
 	VID_Init();
 
+	InitRenderer();
+	InitMaps();
+
 	if( !S_Init() ) {
 		Com_Printf( S_COLOR_RED "Couldn't initialise audio engine\n" );
 	}
@@ -2082,7 +1958,9 @@ void CL_Shutdown( void ) {
 
 	CL_GameModule_Shutdown();
 	S_Shutdown();
-	VID_Shutdown();
+	ShutdownMaps();
+	ShutdownRenderer();
+	DestroyWindow();
 
 	CL_ShutdownAsyncStream();
 

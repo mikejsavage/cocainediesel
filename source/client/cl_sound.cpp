@@ -686,6 +686,9 @@ void S_StartLocalSound( const SoundEffect * sfx, int channel, float volume ) {
 }
 
 static ImmediateSoundHandle StartImmediateSound( const SoundEffect * sfx, int ent_num, float volume, PlayingSoundType type, ImmediateSoundHandle handle ) {
+	if( sfx == NULL )
+		return { };
+
 	u64 idx;
 	if( handle.x != 0 && immediate_sounds_hashtable.get( handle.x, &idx ) ) {
 		playing_sound_effects[ idx ].touched_since_last_update = true;

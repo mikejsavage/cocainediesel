@@ -7,9 +7,9 @@
 #include "qcommon/string.h"
 #include "qcommon/span2d.h"
 #include "client/renderer/renderer.h"
+#include "client/maps.h"
 
 #include "meshoptimizer/meshoptimizer.h"
-#include "zstd/zstd.h"
 
 enum BSPLump {
 	BSPLump_Entities,
@@ -140,9 +140,6 @@ struct BSPSpans {
 	Span< const BSPFace > faces;
 	Span< const RavenBSPFace > raven_faces;
 
-	Span< const u8 > pvs;
-	u32 cluster_size;
-
 	bool idbsp;
 };
 
@@ -158,31 +155,6 @@ static bool ParseLump( Span< T > * span, Span< const u8 > data, BSPLump lump ) {
 		return false;
 
 	*span = ( data + location.offset ).slice( 0, location.length ).cast< const T >();
-	return true;
-}
-
-static bool ParsePVS( BSPSpans * bsp, Span< const u8 > data ) {
-	const BSPHeader * header = ( const BSPHeader * ) data.ptr;
-	BSPLumpLocation location = header->lumps[ BSPLump_Visibility ];
-
-	if( location.length == 0 ) {
-		bsp->pvs = Span< const u8 >();
-		bsp->cluster_size = 0;
-		return true;
-	}
-
-	if( location.offset + location.length > data.n )
-		return false;
-
-	const BSPVisbilityHeader * vis_header = ( const BSPVisbilityHeader * ) ( data.ptr + location.offset );
-
-	u32 pvs_size = vis_header->num_clusters * vis_header->cluster_size;
-	if( location.length != sizeof( BSPVisbilityHeader ) + pvs_size )
-		return false;
-
-	bsp->pvs = Span< const u8 >( ( const u8 * ) ( vis_header + 1 ), pvs_size );
-	bsp->cluster_size = vis_header->cluster_size;
-
 	return true;
 }
 
@@ -211,8 +183,6 @@ static bool ParseBSP( BSPSpans * bsp, Span< const u8 > data ) {
 		ok = ok && ParseLump( &bsp->raven_vertices, data, BSPLump_Vertices );
 		ok = ok && ParseLump( &bsp->raven_faces, data, BSPLump_Faces );
 	}
-
-	ok = ok && ParsePVS( bsp, data );
 
 	return ok;
 }
@@ -477,39 +447,12 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 	model->mesh = NewMesh( mesh_config );
 }
 
-bool LoadBSPMap( MapMetadata * map, const char * path ) {
+bool LoadBSPRenderData( Map * map, const char * path, u64 base_hash, Span< const u8 > data ) {
 	ZoneScoped;
 	ZoneText( path, strlen( path ) );
 
-	StringHash hash = StringHash( path );
-	Span< const u8 > compressed = AssetBinary( hash );
-	Span< u8 > decompressed;
-	defer { FREE( sys_allocator, decompressed.ptr ); };
-
-	if( compressed.n < 4 )
-		return false;
-
-	u32 zstd_magic = ZSTD_MAGICNUMBER;
-	if( memcmp( compressed.ptr, &zstd_magic, sizeof( zstd_magic ) ) == 0 ) {
-		unsigned long long const decompressed_size = ZSTD_getDecompressedSize( compressed.ptr, compressed.n );
-		if( decompressed_size == ZSTD_CONTENTSIZE_ERROR || decompressed_size == ZSTD_CONTENTSIZE_UNKNOWN ) {
-			// ri.Com_Error( ERR_DROP, "Corrupt BSP" );
-			return false;
-		}
-
-		decompressed = ALLOC_SPAN( sys_allocator, u8, decompressed_size );
-		{
-			ZoneScopedN( "ZSTD_decompress" );
-			size_t r = ZSTD_decompress( decompressed.ptr, decompressed.n, compressed.ptr, compressed.n );
-			if( r != decompressed_size ) {
-				// ri.Com_Error( ERR_DROP, "Failed to decompress BSP: %s", ZSTD_getErrorName( r ) );
-				return false;
-			}
-		}
-	}
-
 	BSPSpans bsp;
-	if( !ParseBSP( &bsp, decompressed.ptr == NULL ? compressed : decompressed ) )
+	if( !ParseBSP( &bsp, data ) )
 		return false;
 
 	// create common vertex data
@@ -535,22 +478,12 @@ bool LoadBSPMap( MapMetadata * map, const char * path ) {
 		}
 	}
 
-	Span< const char > ext = FileExtension( path );
-	u64 base_hash = Hash64( path, strlen( path ) - ext.n );
 	for( size_t i = 0; i < bsp.models.n; i++ ) {
 		LoadBSPModel( vertices, bsp, base_hash, i );
 	}
 
 	map->base_hash = base_hash;
 	map->num_models = bsp.models.n;
-	if( bsp.pvs.ptr != NULL ) {
-		map->pvs = ALLOC_SPAN( sys_allocator, u8, bsp.pvs.n );
-		memcpy( map->pvs.ptr, bsp.pvs.ptr, bsp.pvs.num_bytes() );
-	}
-	else {
-		map->pvs = Span< u8 >();
-	}
-	map->cluster_size = bsp.cluster_size;
 	map->fog_strength = ParseFogStrength( &bsp );
 
 	return true;

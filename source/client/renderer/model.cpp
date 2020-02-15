@@ -6,31 +6,15 @@
 #include "client/renderer/model.h"
 
 constexpr u32 MAX_MODEL_ASSETS = 1024;
-constexpr u32 MAX_MAPS = 128;
 
 static Model models[ MAX_MODEL_ASSETS ];
 static u32 num_models;
 static Hashtable< MAX_MODEL_ASSETS * 2 > models_hashtable;
 
-static MapMetadata maps[ MAX_MAPS ];
-static u32 num_maps;
-static Hashtable< MAX_MAPS * 2 > maps_hashtable;
-
 void InitModels() {
 	ZoneScoped;
 
 	num_models = 0;
-	num_maps = 0;
-
-	for( const char * path : AssetPaths() ) {
-		Span< const char > ext = FileExtension( path );
-		if( ext == ".bsp" ) {
-			if( !LoadBSPMap( &maps[ num_maps ], path ) )
-				continue;
-			maps_hashtable.add( Hash64( path, strlen( path ) - ext.n ), num_maps );
-			num_maps++;
-		}
-	}
 
 	for( const char * path : AssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
@@ -73,10 +57,6 @@ void ShutdownModels() {
 	for( u32 i = 0; i < num_models; i++ ) {
 		DeleteModel( &models[ i ] );
 	}
-
-	for( u32 i = 0; i < num_maps; i++ ) {
-		FREE( sys_allocator, maps[ i ].pvs.ptr );
-	}
 }
 
 const Model * FindModel( StringHash name ) {
@@ -88,17 +68,6 @@ const Model * FindModel( StringHash name ) {
 
 const Model * FindModel( const char * name ) {
 	return FindModel( StringHash( name ) );
-}
-
-const MapMetadata * FindMapMetadata( StringHash name ) {
-	u64 idx;
-	if( !maps_hashtable.get( name.hash, &idx ) )
-		return NULL;
-	return &maps[ idx ];
-}
-
-const MapMetadata * FindMapMetadata( const char * name ) {
-	return FindMapMetadata( StringHash( name ) );
 }
 
 void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline ) {

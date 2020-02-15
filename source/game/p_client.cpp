@@ -46,7 +46,7 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 				Com_Printf( "%s %s\n", self->r.client->netname, message );
 			}
 
-			G_PositionedSound( self->s.origin, CHAN_AUTO, trap_SoundIndex( "sounds/trombone/sad" ) );
+			G_PositionedSound( self->s.origin, CHAN_AUTO, "sounds/trombone/sad" );
 		}
 
 		G_Obituary( self, attacker, mod );
@@ -56,7 +56,7 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 			Com_Printf( "%s %s\n", self->r.client->netname, message );
 		}
 
-		G_PositionedSound( self->s.origin, CHAN_AUTO, trap_SoundIndex( "sounds/trombone/sad" ) );
+		G_PositionedSound( self->s.origin, CHAN_AUTO, "sounds/trombone/sad" );
 
 		G_Obituary( self, attacker == self ? self : world, mod );
 	}
@@ -78,25 +78,19 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	edict_t * body = G_Spawn();
 
 	body->classname = "body";
+	body->s.type = ET_CORPSE;
 	body->health = ent->health;
 	body->mass = ent->mass;
 	body->r.owner = ent->r.owner;
-	body->s.type = ent->s.type;
 	body->s.team = ent->s.team;
-	body->s.effects = 0;
-	body->r.svflags = SVF_CORPSE;
-	body->r.svflags &= ~SVF_NOCLIENT;
+	body->r.svflags = SVF_CORPSE | SVF_BROADCAST;
 	body->activator = ent;
 	if( g_deadbody_followkiller->integer ) {
 		body->enemy = attacker;
 	}
 
 	//use flat yaw
-	body->s.angles[PITCH] = 0;
-	body->s.angles[ROLL] = 0;
 	body->s.angles[YAW] = ent->s.angles[YAW];
-	body->s.modelindex2 = 0;
-	body->s.weapon = 0;
 
 	//copy player position and box size
 	VectorCopy( ent->s.origin, body->s.origin );
@@ -114,6 +108,9 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	body->movetype = MOVETYPE_TOSS;
 	body->think = G_FreeEdict; // body self destruction countdown
 
+	body->s.teleported = true;
+	body->s.ownerNum = ent->s.number;
+
 	int mod = meansOfDeath;
 	bool gib = mod == MOD_ELECTROBOLT || mod == MOD_TRIGGER_HURT || mod == MOD_TELEFRAG
 		|| mod == MOD_EXPLOSIVE || mod == MOD_SPIKES ||
@@ -129,14 +126,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 		body->deadflag = DEAD_DEAD;
 	}
 
-	// copy the model
-	body->s.type = ET_CORPSE;
-	body->s.modelindex = ent->s.modelindex;
-	body->s.teleported = true;
-	body->s.ownerNum = ent->s.number;
-	body->r.svflags |= SVF_BROADCAST;
-
-	edict_t * event = G_SpawnEvent( EV_DIE, random_uniform( &svs.rng, 0, 256 ), NULL );
+	edict_t * event = G_SpawnEvent( EV_DIE, random_u64( &svs.rng ), NULL );
 	event->r.svflags |= SVF_BROADCAST;
 	event->s.ownerNum = body->s.number;
 
@@ -166,7 +156,7 @@ void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage
 
 	ent->s.angles[0] = 0;
 	ent->s.angles[2] = 0;
-	ent->s.sound = 0;
+	ent->s.sound = EMPTY_HASH;
 
 	ent->r.solid = SOLID_NOT;
 
@@ -250,27 +240,6 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 	}
 }
 
-static void G_Client_AssignTeamSkin( edict_t *ent, char *userinfo ) {
-	char model[MAX_QPATH];
-	const char *usermodel;
-
-	// index player model
-	usermodel = Info_ValueForKey( userinfo, "model" );
-	if( !usermodel || !usermodel[0] || !COM_ValidateRelativeFilename( usermodel ) || strchr( usermodel, '/' ) ) {
-		usermodel = NULL;
-	}
-
-	if( usermodel ) {
-		snprintf( model, sizeof( model ), "$models/players/%s", usermodel );
-	} else {
-		snprintf( model, sizeof( model ), "$models/players/%s", DEFAULT_PLAYERMODEL );
-	}
-
-	if( !ent->deadflag ) {
-		ent->s.modelindex = trap_ModelIndex( model );
-	}
-}
-
 /*
 * G_ClientClearStats
 */
@@ -295,10 +264,10 @@ void G_GhostClient( edict_t *ent ) {
 	ent->r.client->resp.old_waterlevel = 0;
 	ent->r.client->resp.old_watertype = 0;
 
-	ent->s.modelindex = ent->s.modelindex2 = 0;
+	ent->s.type = ET_GHOST;
 	ent->s.effects = 0;
 	ent->s.weapon = 0;
-	ent->s.sound = 0;
+	ent->s.sound = EMPTY_HASH;
 	ent->s.light = 0;
 	ent->viewheight = 0;
 	ent->takedamage = DAMAGE_NO;
@@ -760,10 +729,6 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 		}
 	}
 
-	if( !G_ISGHOSTING( ent ) && trap_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
-		G_Client_AssignTeamSkin( ent, userinfo );
-	}
-
 	// save off the userinfo in case we want to check something later
 	Q_strncpyz( cl->userinfo, userinfo, sizeof( cl->userinfo ) );
 
@@ -836,7 +801,6 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient ) {
 	// they can connect
 
 	G_InitEdict( ent );
-	ent->s.modelindex = 0;
 	ent->r.solid = SOLID_NOT;
 	ent->r.client = game.clients + PLAYERNUM( ent );
 	ent->r.svflags = ( SVF_NOCLIENT | ( fakeClient ? SVF_FAKECLIENT : 0 ) );
@@ -911,7 +875,7 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 /*
 * G_PredictedEvent
 */
-void G_PredictedEvent( int entNum, int ev, int parm ) {
+void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 	edict_t *ent = &game.edicts[entNum];
 	switch( ev ) {
 		case EV_SMOOTHREFIREWEAPON: // update the firing
@@ -1062,8 +1026,6 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH || GS_MatchPaused( &server_gs )
 		|| ( ent->movetype != MOVETYPE_PLAYER && ent->movetype != MOVETYPE_NOCLIP ) ) {
 		client->ps.pmove.pm_type = PM_FREEZE;
-	} else if( ent->s.type == ET_GIB ) {
-		client->ps.pmove.pm_type = PM_GIB;
 	} else if( ent->movetype == MOVETYPE_NOCLIP ) {
 		client->ps.pmove.pm_type = PM_SPECTATOR;
 	} else {
@@ -1118,6 +1080,10 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 			}
 			// player can't touch projectiles, only projectiles can touch the player
 			G_CallTouch( other, ent, NULL, 0 );
+		}
+
+		if( ent->s.origin[ 2 ] <= -1024 ) {
+			G_Damage( ent, world, world, vec3_origin, vec3_origin, ent->s.origin, 1337, 0, 0, MOD_VOID );
 		}
 	}
 

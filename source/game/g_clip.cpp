@@ -457,10 +457,9 @@ static int GClip_EntitiesInBox_AreaGrid( areagrid_t *areagrid, const vec3_t mins
 * called after the world model has been loaded, before linking any entities
 */
 void GClip_ClearWorld( void ) {
-	vec3_t world_mins, world_maxs;
-	struct cmodel_s *world_model;
+	cmodel_t * world_model = CM_FindCModel( CM_Server, StringHash( svs.cms->world_hash ) );
 
-	world_model = CM_InlineModel( svs.cms, 0 );
+	vec3_t world_mins, world_maxs;
 	CM_InlineModelBounds( svs.cms, world_model, world_mins, world_maxs );
 
 	GClip_Init_AreaGrid( &g_areagrid, world_mins, world_maxs );
@@ -511,7 +510,7 @@ void GClip_LinkEntity( edict_t *ent ) {
 
 	if( ent->r.solid == SOLID_NOT || ( ent->r.svflags & SVF_PROJECTILE ) ) {
 		ent->s.solid = 0;
-	} else if( ISBRUSHMODEL( ent->s.modelindex ) ) {
+	} else if( CM_IsBrushModel( CM_Server, ent->s.model ) ) {
 		// the only predicted SOLID_TRIGGER entity is ET_PUSH_TRIGGER
 		if( ent->r.solid != SOLID_TRIGGER || ent->s.type == ET_PUSH_TRIGGER ) {
 			ent->s.solid = SOLID_BMODEL;
@@ -536,8 +535,7 @@ void GClip_LinkEntity( edict_t *ent ) {
 	}
 
 	// set the abs box
-	if( ISBRUSHMODEL( ent->s.modelindex ) &&
-		( ent->s.angles[0] || ent->s.angles[1] || ent->s.angles[2] ) ) {
+	if( CM_IsBrushModel( CM_Server, ent->s.model ) && ( ent->s.angles[0] || ent->s.angles[1] || ent->s.angles[2] ) ) {
 		// expand for rotation
 		float radius;
 
@@ -673,15 +671,8 @@ int GClip_AreaEdicts( const vec3_t mins, const vec3_t maxs,
 * object of mins/maxs size.
 */
 static struct cmodel_s *GClip_CollisionModelForEntity( SyncEntityState *s, entity_shared_t *r ) {
-	struct cmodel_s *model;
-
-	if( ISBRUSHMODEL( s->modelindex ) ) {
-		// explicit hulls in the BSP model
-		model = CM_InlineModel( svs.cms, s->modelindex );
-		if( !model ) {
-			Com_Error( ERR_DROP, "MOVETYPE_PUSH with a non bsp model" );
-		}
-
+	cmodel_t * model = CM_TryFindCModel( CM_Server, s->model );
+	if( model != NULL ) {
 		return model;
 	}
 
@@ -707,7 +698,7 @@ static int GClip_PointContents( const vec3_t p, int timeDelta ) {
 	struct cmodel_s *cmodel;
 
 	// get base contents from world
-	contents = CM_TransformedPointContents( svs.cms, p, NULL, NULL, NULL );
+	contents = CM_TransformedPointContents( CM_Server, svs.cms, p, NULL, NULL, NULL );
 
 	// or in contents from all the other entities
 	num = GClip_AreaEdicts( p, p, touch, MAX_EDICTS, AREA_SOLID, timeDelta );
@@ -718,7 +709,7 @@ static int GClip_PointContents( const vec3_t p, int timeDelta ) {
 		// might intersect, so do an exact clip
 		cmodel = GClip_CollisionModelForEntity( &clipEnt->s, &clipEnt->r );
 
-		c2 = CM_TransformedPointContents( svs.cms, p, cmodel, clipEnt->s.origin, clipEnt->s.angles );
+		c2 = CM_TransformedPointContents( CM_Server, svs.cms, p, cmodel, clipEnt->s.origin, clipEnt->s.angles );
 		contents |= c2;
 	}
 
@@ -797,13 +788,13 @@ static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
 		// might intersect, so do an exact clip
 		cmodel = GClip_CollisionModelForEntity( &touch->s, &touch->r );
 
-		if( ISBRUSHMODEL( touch->s.modelindex ) ) {
+		if( CM_IsBrushModel( CM_Server, touch->s.model ) ) {
 			angles = touch->s.angles;
 		} else {
 			angles = vec3_origin; // boxes don't rotate
 
 		}
-		CM_TransformedBoxTrace( svs.cms, &trace, clip->start, clip->end,
+		CM_TransformedBoxTrace( CM_Server, svs.cms, &trace, clip->start, clip->end,
 									 clip->mins, clip->maxs, cmodel, clip->contentmask,
 									 touch->s.origin, angles );
 
@@ -876,7 +867,7 @@ static void GClip_Trace( trace_t *tr, const vec3_t start, const vec3_t mins, con
 		tr->ent = -1;
 	} else {
 		// clip to world
-		CM_TransformedBoxTrace( svs.cms, tr, start, end, mins, maxs, NULL, contentmask, NULL, NULL );
+		CM_TransformedBoxTrace( CM_Server, svs.cms, tr, start, end, mins, maxs, NULL, contentmask, NULL, NULL );
 		tr->ent = tr->fraction < 1.0 ? world->s.number : -1;
 		if( tr->fraction == 0 ) {
 			return; // blocked by the world
@@ -920,50 +911,17 @@ void G_Trace4D( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3_t
 *
 * Also sets mins and maxs for inline bmodels
 */
-void GClip_SetBrushModel( edict_t *ent, const char *name ) {
-	struct cmodel_s *cmodel;
-
-	if( !name ) {
-		Com_Error( ERR_DROP, "GClip_SetBrushModel: NULL model in '%s'",
-				 ent->classname ? ent->classname : "no classname" );
-		return;
-	}
-
-	if( !name[0] ) {
-		ent->s.modelindex = 0;
-		return;
-	}
-
-	if( name[0] != '*' ) {
-		ent->s.modelindex = trap_ModelIndex( name );
-		return;
-	}
-
-	// if it is an inline model, get the size information for it
-
-	// world model is special
-	if( !strcmp( name, "*0" ) ) {
-		ent->s.modelindex = 0;
-		cmodel = CM_InlineModel( svs.cms, 0 );
+void GClip_SetBrushModel( edict_t * ent ) {
+	cmodel_t * cmodel = CM_TryFindCModel( CM_Server, ent->s.model );
+	if( cmodel != NULL ) {
 		CM_InlineModelBounds( svs.cms, cmodel, ent->r.mins, ent->r.maxs );
-		return;
 	}
-
-	// brush model
-	ent->s.modelindex = trap_ModelIndex( name );
-	assert( ent->s.modelindex == (unsigned int)atoi( name + 1 ) );
-	cmodel = CM_InlineModel( svs.cms, ent->s.modelindex );
-	CM_InlineModelBounds( svs.cms, cmodel, ent->r.mins, ent->r.maxs );
-	GClip_LinkEntity( ent );
 }
 
 /*
 * GClip_EntityContact
 */
 bool GClip_EntityContact( const vec3_t mins, const vec3_t maxs, edict_t *ent ) {
-	trace_t tr;
-	struct cmodel_s *model;
-
 	if( !mins ) {
 		mins = vec3_origin;
 	}
@@ -971,19 +929,16 @@ bool GClip_EntityContact( const vec3_t mins, const vec3_t maxs, edict_t *ent ) {
 		maxs = vec3_origin;
 	}
 
-	if( ISBRUSHMODEL( ent->s.modelindex ) ) {
-		model = CM_InlineModel( svs.cms, ent->s.modelindex );
-		if( !model ) {
-			Com_Error( ERR_DROP, "MOVETYPE_PUSH with a non bsp model" );
-		}
-
-		CM_TransformedBoxTrace( svs.cms, &tr, vec3_origin, vec3_origin, mins, maxs, model,
+	cmodel_t * model = CM_TryFindCModel( CM_Server, ent->s.model );
+	if( model != NULL ) {
+		trace_t tr;
+		CM_TransformedBoxTrace( CM_Server, svs.cms, &tr, vec3_origin, vec3_origin, mins, maxs, model,
 									 MASK_ALL, ent->s.origin, ent->s.angles );
 
 		return tr.startsolid || tr.allsolid ? true : false;
 	}
 
-	return ( BoundsOverlap( mins, maxs, ent->r.absmin, ent->r.absmax ) ) == true;
+	return BoundsOverlap( mins, maxs, ent->r.absmin, ent->r.absmax );
 }
 
 

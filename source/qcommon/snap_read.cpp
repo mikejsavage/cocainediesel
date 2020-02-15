@@ -235,14 +235,11 @@ static void SNAP_ParsePacketEntities( msg_t *msg, snapshot_t *oldframe, snapshot
 * SNAP_ParseFrameHeader
 */
 static snapshot_t *SNAP_ParseFrameHeader( msg_t *msg, snapshot_t *newframe, snapshot_t *backup ) {
-	int len, pos;
-	int areabytes;
-	uint8_t *areabits;
+	int pos;
 	int64_t serverTime;
 	int flags, snapNum;
 
 	// get total length
-	len = MSG_ReadInt16( msg );
 	pos = msg->readcount;
 
 	// get the snapshot id
@@ -253,11 +250,7 @@ static snapshot_t *SNAP_ParseFrameHeader( msg_t *msg, snapshot_t *newframe, snap
 		newframe = &backup[snapNum & UPDATE_MASK];
 	}
 
-	areabytes = newframe->areabytes;
-	areabits = newframe->areabits;
 	memset( newframe, 0, sizeof( snapshot_t ) );
-	newframe->areabytes = areabytes;
-	newframe->areabits = areabits;
 
 	newframe->serverTime = serverTime;
 	newframe->serverFrame = snapNum;
@@ -303,7 +296,6 @@ static snapshot_t *SNAP_ParseFrameHeader( msg_t *msg, snapshot_t *newframe, snap
 * SNAP_ParseFrame
 */
 snapshot_t *SNAP_ParseFrame( msg_t *msg, snapshot_t *lastFrame, snapshot_t *backup, SyncEntityState *baselines, int showNet ) {
-	size_t len;
 	snapshot_t  *deltaframe;
 	int numplayers;
 	char *text;
@@ -370,14 +362,6 @@ snapshot_t *SNAP_ParseFrame( msg_t *msg, snapshot_t *lastFrame, snapshot_t *back
 			MSG_SkipData( msg, numtargets );
 		}
 	}
-
-	// read areabits
-	len = (size_t)MSG_ReadUint8( msg );
-	if( len > newframe->areabytes ) {
-		Com_Error( ERR_DROP, "Invalid areabits size: %" PRIuPTR " > %" PRIuPTR, (uintptr_t)len, (uintptr_t)newframe->areabytes );
-	}
-	memset( newframe->areabits, 0, newframe->areabytes );
-	MSG_ReadData( msg, newframe->areabits, len );
 
 	// read match info
 	cmd = MSG_ReadUint8( msg );

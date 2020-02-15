@@ -18,23 +18,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 // MODELS
-int modelBombModel;
-int modelBombModelActive;
-int modelBombBackpack;
-int modelIndicator;
+uint64 modelBombModel;
+uint64 modelBombModelActive;
+uint64 modelBombBackpack;
+uint64 modelIndicator;
 
 // SPRITES ETC
-int imgBombDecal;
+uint64 imgBombDecal;
 
 // SOUNDS
-int sndBeep;
-int sndPlantStart;
-int sndGoodGame;
-int sndBombTaken;
-int sndBongo;
+uint64 sndBeep;
+uint64 sndPlantStart;
+uint64 sndGoodGame;
+uint64 sndBombTaken;
+uint64 sndBongo;
 
-int[] sndAnnouncementsOff( Announcement_Count );
-int[] sndAnnouncementsDef( Announcement_Count );
+uint64[] sndAnnouncementsOff( Announcement_Count );
+uint64[] sndAnnouncementsDef( Announcement_Count );
 
 enum Announcement {
 	Announcement_Started,
@@ -51,37 +51,31 @@ void announce( Announcement announcement ) {
 }
 
 void announceOff( Announcement announcement ) {
-	if( sndAnnouncementsOff[announcement] != 0 ) {
-		G_AnnouncerSound( null, sndAnnouncementsOff[announcement], attackingTeam, true, null );
-	}
+	G_AnnouncerSound( null, sndAnnouncementsOff[ announcement ], attackingTeam, true, null );
 }
 
 void announceDef( Announcement announcement ) {
-	if( sndAnnouncementsDef[announcement] != 0 ) {
-		G_AnnouncerSound( null, sndAnnouncementsDef[announcement], defendingTeam, true, null );
-	}
+	G_AnnouncerSound( null, sndAnnouncementsDef[ announcement ], defendingTeam, true, null );
 }
 
 void mediaInit() {
-	modelBombModel = G_ModelIndex( "models/objects/misc/bomb_centered" );
-	modelBombModelActive = G_ModelIndex( "models/objects/misc/bomb_centered_active" );
-	modelBombBackpack = G_ModelIndex( "models/objects/misc/bomb" );
+	modelBombModel = Hash64( "models/objects/misc/bomb_centered" );
+	modelBombModelActive = Hash64( "models/objects/misc/bomb_centered_active" );
+	modelBombBackpack = Hash64( "models/objects/misc/bomb" );
 
-	imgBombDecal = G_ImageIndex( "gfx/indicators/radar_decal" );
+	sndBeep = Hash64( "sounds/bomb/bombtimer" );
+	sndPlantStart = Hash64( "sounds/misc/timer_bip_bip" );
+	sndGoodGame = Hash64( "sounds/vsay/goodgame" );
+	sndBombTaken = Hash64( "sounds/announcer/bomb/offense/taken" );
+	sndBongo = Hash64( "sounds/announcer/bomb/bongo" );
 
-	sndBeep = G_SoundIndex( "sounds/bomb/bombtimer" );
-	sndPlantStart = G_SoundIndex( "sounds/misc/timer_bip_bip" );
-	sndGoodGame = G_SoundIndex( "sounds/vsay/goodgame" );
-	sndBombTaken = G_SoundIndex( "sounds/announcer/bomb/offense/taken" );
-	sndBongo = G_SoundIndex( "sounds/announcer/bomb/bongo" );
+	sndAnnouncementsOff[ Announcement_Started ] = Hash64( "sounds/announcer/bomb/offense/start" );
+	sndAnnouncementsOff[ Announcement_Armed ] = Hash64( "sounds/announcer/bomb/offense/planted" );
+	sndAnnouncementsOff[ Announcement_Defused ] = Hash64( "sounds/announcer/bomb/offense/defused" );
+	sndAnnouncementsOff[ Announcement_Hurry ] = Hash64( "sounds/misc/timer_bip_bip" );
 
-	sndAnnouncementsOff[ Announcement_Started ] = G_SoundIndex( "sounds/announcer/bomb/offense/start" );
-	sndAnnouncementsOff[ Announcement_Armed ] = G_SoundIndex( "sounds/announcer/bomb/offense/planted" );
-	sndAnnouncementsOff[ Announcement_Defused ] = G_SoundIndex( "sounds/announcer/bomb/offense/defused" );
-	sndAnnouncementsOff[ Announcement_Hurry ] = G_SoundIndex( "sounds/misc/timer_bip_bip" );
-
-	sndAnnouncementsDef[ Announcement_Started ] = G_SoundIndex( "sounds/announcer/bomb/defense/start" );
-	sndAnnouncementsDef[ Announcement_Armed ] = G_SoundIndex( "sounds/announcer/bomb/defense/planted" );
-	sndAnnouncementsDef[ Announcement_Defused ] = G_SoundIndex( "sounds/announcer/bomb/defense/defused" );
-	sndAnnouncementsDef[ Announcement_Hurry ] = G_SoundIndex( "sounds/misc/timer_bip_bip" );
+	sndAnnouncementsDef[ Announcement_Started ] = Hash64( "sounds/announcer/bomb/defense/start" );
+	sndAnnouncementsDef[ Announcement_Armed ] = Hash64( "sounds/announcer/bomb/defense/planted" );
+	sndAnnouncementsDef[ Announcement_Defused ] = Hash64( "sounds/announcer/bomb/defense/defused" );
+	sndAnnouncementsDef[ Announcement_Hurry ] = Hash64( "sounds/misc/timer_bip_bip" );
 }

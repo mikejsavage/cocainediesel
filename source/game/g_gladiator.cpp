@@ -60,7 +60,7 @@ void SP_spikes( edict_t * spikes ) {
 		spikes->r.maxs[ i ] = max( mins[ i ], maxs[ i ] );
 	}
 
-	spikes->s.modelindex = trap_ModelIndex( "models/objects/spikes/spikes" );
+	spikes->s.model = "models/objects/spikes/spikes";
 	spikes->s.type = ET_SPIKES;
 
 	spikes->touch = SpikesTouched;
@@ -71,7 +71,7 @@ void SP_spikes( edict_t * spikes ) {
 	base->r.svflags &= ~SVF_NOCLIENT;
 	VectorCopy( spikes->s.origin, base->s.origin );
 	VectorCopy( spikes->s.angles, base->s.angles );
-	base->s.modelindex = trap_ModelIndex( "models/objects/spikes/base" );
+	base->s.model = "models/objects/spikes/base";
 	base->s.effects = EF_WORLD_MODEL;
 	GClip_LinkEntity( base );
 }

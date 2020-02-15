@@ -198,6 +198,10 @@ static void Delta( DeltaBuffer * buf, bool & b, bool baseline ) {
 	}
 }
 
+static void Delta( DeltaBuffer * buf, StringHash & hash, StringHash baseline ) {
+	DeltaFundamental( buf, hash.hash, baseline.hash );
+}
+
 template< typename T, size_t N >
 void Delta( DeltaBuffer * buf, T ( &arr )[ N ], const T ( &baseline )[ N ] ) {
 	for( size_t i = 0; i < N; i++ ) {
@@ -499,9 +503,13 @@ char *MSG_ReadStringLine( msg_t *msg ) {
 // DELTA ENTITIES
 //==================================================
 
+static void Delta( DeltaBuffer * buf, SyncEvent & event, const SyncEvent & baseline ) {
+	Delta( buf, event.parm, baseline.parm );
+	Delta( buf, event.type, baseline.type );
+}
+
 static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntityState & baseline ) {
-	Delta( buf, ent.events[ 0 ], baseline.events[ 0 ] );
-	Delta( buf, ent.eventParms[ 0 ], baseline.eventParms[ 0 ] );
+	Delta( buf, ent.events, baseline.events );
 
 	Delta( buf, ent.origin, baseline.origin );
 	DeltaAngle( buf, ent.angles, baseline.angles );
@@ -510,17 +518,15 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 
 	Delta( buf, ent.type, baseline.type );
 	Delta( buf, ent.solid, baseline.solid );
-	Delta( buf, ent.modelindex, baseline.modelindex );
+	Delta( buf, ent.model, baseline.model );
 	Delta( buf, ent.svflags, baseline.svflags );
 	Delta( buf, ent.effects, baseline.effects );
 	Delta( buf, ent.ownerNum, baseline.ownerNum );
 	Delta( buf, ent.targetNum, baseline.targetNum );
 	Delta( buf, ent.sound, baseline.sound );
-	Delta( buf, ent.modelindex2, baseline.modelindex2 );
+	Delta( buf, ent.model2, baseline.model2 );
 	Delta( buf, ent.counterNum, baseline.counterNum );
 	Delta( buf, ent.channel, baseline.channel );
-	Delta( buf, ent.events[ 1 ], baseline.events[ 1 ] );
-	Delta( buf, ent.eventParms[ 1 ], baseline.eventParms[ 1 ] );
 	Delta( buf, ent.weapon, baseline.weapon );
 	Delta( buf, ent.damage, baseline.damage );
 	Delta( buf, ent.radius, baseline.radius );
@@ -534,6 +540,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.linearMovementVelocity, baseline.linearMovementVelocity );
 	Delta( buf, ent.linearMovementBegin, baseline.linearMovementBegin );
 	Delta( buf, ent.linearMovementEnd, baseline.linearMovementEnd );
+	Delta( buf, ent.linearMovementTimeDelta, baseline.linearMovementTimeDelta );
 
 	Delta( buf, ent.colorRGBA, baseline.colorRGBA );
 	Delta( buf, ent.silhouetteColor, baseline.silhouetteColor );
@@ -767,8 +774,7 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState::WeaponInfo & weapon, cons
 static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayerState & baseline ) {
 	Delta( buf, player.pmove, baseline.pmove );
 
-	Delta( buf, player.event, baseline.event );
-	Delta( buf, player.eventParm, baseline.eventParm );
+	Delta( buf, player.events, baseline.events );
 
 	DeltaAngle( buf, player.viewangles, baseline.viewangles );
 
@@ -855,6 +861,8 @@ static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState
 	Delta( buf, state.clock_override, baseline.clock_override );
 	Delta( buf, state.round_type, baseline.round_type );
 	Delta( buf, state.max_team_players, baseline.max_team_players );
+	Delta( buf, state.map, baseline.map );
+	Delta( buf, state.map_checksum, baseline.map_checksum );
 	Delta( buf, state.bomb, baseline.bomb );
 }
 

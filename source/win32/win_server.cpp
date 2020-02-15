@@ -58,5 +58,5 @@ int main( int argc, char ** argv ) {
 		Qcommon_Frame( time );
 	}
 
-	return TRUE;
+	return 0;
 }

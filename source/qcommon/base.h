@@ -104,6 +104,8 @@ char * Allocator::operator()( const char * fmt, const Rest & ... rest ) {
 	return buf;
 }
 
+char * CopyString( Allocator * a, const char * str );
+
 /*
  * Span< const char >
  */

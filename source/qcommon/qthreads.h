@@ -33,5 +33,3 @@ void QMutex_Unlock( qmutex_t *mutex );
 
 qthread_t *QThread_Create( void *( *routine )( void* ), void *param );
 void QThread_Join( qthread_t *thread );
-
-int QAtomic_FetchAdd( volatile int *value, int add );

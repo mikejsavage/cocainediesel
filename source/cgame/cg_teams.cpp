@@ -33,7 +33,7 @@ static bool CG_IsAlly( int team ) {
 	return team == myteam;
 }
 
-static void CG_RegisterForceModel( cvar_t *modelCvar, PlayerModelMetadata **model ) {
+static void CG_RegisterPlayerModel( cvar_t *modelCvar, PlayerModelMetadata **model ) {
 	if( !modelCvar->modified )
 		return;
 	modelCvar->modified = false;
@@ -54,7 +54,7 @@ static void CG_RegisterForceModel( cvar_t *modelCvar, PlayerModelMetadata **mode
 
 static void CG_CheckUpdateTeamModelRegistration( bool ally ) {
 	cvar_t * modelCvar = ally ? cg_allyModel : cg_enemyModel;
-	CG_RegisterForceModel( modelCvar, &cgs.teamModelInfo[ int( ally ) ] );
+	CG_RegisterPlayerModel( modelCvar, &cgs.teamModelInfo[ int( ally ) ] );
 }
 
 const PlayerModelMetadata * CG_PModelForCentity( centity_t * cent ) {
@@ -85,7 +85,7 @@ Vec4 CG_TeamColorVec4( int team ) {
 	);
 }
 
-void CG_RegisterForceModels() {
+void CG_RegisterPlayerModels() {
 	CG_CheckUpdateTeamModelRegistration( true );
 	CG_CheckUpdateTeamModelRegistration( false );
 }

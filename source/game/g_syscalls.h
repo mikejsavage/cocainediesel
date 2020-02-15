@@ -36,18 +36,6 @@ static inline const char *trap_GetConfigString( int num ) {
 	return GAME_IMPORT.GetConfigString( num );
 }
 
-static inline int trap_ModelIndex( const char *name ) {
-	return GAME_IMPORT.ModelIndex( name );
-}
-
-static inline int trap_SoundIndex( const char *name ) {
-	return GAME_IMPORT.SoundIndex( name );
-}
-
-static inline int trap_ImageIndex( const char *name ) {
-	return GAME_IMPORT.ImageIndex( name );
-}
-
 static inline int trap_FakeClientConnect( char *fakeUserinfo, char *fakeSocketType, const char *fakeIP ) {
 	return GAME_IMPORT.FakeClientConnect( fakeUserinfo, fakeSocketType, fakeIP );
 }

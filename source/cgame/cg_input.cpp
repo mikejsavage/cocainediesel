@@ -168,23 +168,16 @@ bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize ) {
 	int key;
 	const char *bind;
 	int numKeys = 0;
-	const char *keyNames[2];
-	char charKeys[2][2];
-
-	memset( charKeys, 0, sizeof( charKeys ) );
-
+	char keyNames[2][32];
+	
 	for( key = 0; key < 256; key++ ) {
 		bind = Key_GetBindingBuf( key );
 		if( !bind || Q_stricmp( bind, cmd ) ) {
 			continue;
 		}
 
-		if( key >= 'a' && key <= 'z' ) {
-			charKeys[numKeys][0] = key - ( 'a' - 'A' );
-			keyNames[numKeys] = charKeys[numKeys];
-		} else {
-			keyNames[numKeys] = Key_KeynumToString( key );
-		}
+		// dont use Key_KeynumToString value directly, it's mutated. it handles ascii fast path for us too
+		strcpy(keyNames[numKeys] , Key_KeynumToString( key ));
 
 		if( keyNames[numKeys] != NULL ) {
 			numKeys++;
@@ -195,7 +188,7 @@ bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize ) {
 	}
 
 	if( !numKeys ) {
-		keyNames[0] = "UNBOUND";
+		strcpy(keyNames[0], "UNBOUND");
 	}
 
 	if( numKeys == 2 ) {

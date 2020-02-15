@@ -4,10 +4,6 @@
 
 v2f vec3 v_Position;
 
-layout( std140 ) uniform u_Sky {
-	vec3 u_EquatorColor;
-	vec3 u_PoleColor;
-};
 
 #if VERTEX_SHADER
 
@@ -20,6 +16,10 @@ void main() {
 
 #else
 
+layout( std140 ) uniform u_Time {
+	float u_T;
+};
+
 out vec3 f_Albedo;
 
 vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
@@ -28,7 +28,7 @@ float snoise(vec2 v){
   const vec4 C = vec4(0.211324865405187, 0.366025403784439,
            -0.577350269189626, 0.024390243902439);
   vec2 i  = floor(v + dot(v, C.yy) );
-  vec2 x0 = v -   i + dot(i, C.xx);
+  vec2 x0 = v -   i + dot(i, C.xx) + sin( u_T ) * 0.375;
   vec2 i1;
   i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
   vec4 x12 = x0.xyxy + C.xxzz;
@@ -56,7 +56,7 @@ void main() {
 	float elevation = acos( normal_pos.z ) / ( M_PI * 0.5 );
 	float latitude = atan( v_Position.y, v_Position.x );
 
-	float r = elevation * 2.0;
+	float r = elevation * 2.0 * ( 1 - cos( u_T ) * 0.125 );
 	vec2 movement = vec2( distance( vec3( 10000.0 ), u_CameraPos ) * 0.0005 );
 	float n = snoise( vec2( sin( latitude ), cos( latitude ) ) * r + movement );
 	n += snoise( vec2( sin( latitude ), cos( latitude ) ) * r * 4.0 + movement * 0.5 ) * 1.0;

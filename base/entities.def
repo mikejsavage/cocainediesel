@@ -11,22 +11,28 @@ angles : View angles, pitch/yaw/roll
 target : Point at a target entity to make the camera look at it
 */
 
-/*QUAKED info_player_deathmatch (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
+/*QUAKED spawn_gladiator (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
 Gladiator spawn point
+-------- KEYS --------
+angles : View angles, pitch/yaw/roll
 -------- SPAWNFLAGS --------
-SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.
+SUSPENDED : don't drop the spawn to the floor
 */
 
-/*QUAKED spawn_offense (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
-Spawnpoint for attackers in bomb
+/*QUAKED spawn_bomb_attacking (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
+Bomb attacker spawn point
+-------- KEYS --------
+angles : View angles, pitch/yaw/roll
 -------- SPAWNFLAGS --------
-SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.
+SUSPENDED : don't drop the spawn to the floor
 */
 
-/*QUAKED spawn_defense (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
-Spawnpoint for defenders in bomb
+/*QUAKED spawn_bomb_defending (1 .1 .25) (-16 -16 -24) (16 16 40) SUSPENDED
+Bomb defending spawn point
+-------- KEYS --------
+angles : View angles, pitch/yaw/roll
 -------- SPAWNFLAGS --------
-SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.
+SUSPENDED : don't drop the spawn to the floor
 */
 
 /*QUAKED func_group (0 .5 .8) ?

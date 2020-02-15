@@ -203,18 +203,18 @@ void dropSpawnToFloor( Entity @ent, int team ) {
 	ent.origin = trace.endPos + trace.planeNormal;
 }
 
+void spawn_bomb_attacking( Entity @ent ) {
+	dropSpawnToFloor( ent, attackingTeam );
+}
+
+void spawn_bomb_defending( Entity @ent ) {
+	dropSpawnToFloor( ent, attackingTeam );
+}
+
 void team_CTF_alphaspawn( Entity @ent ) {
 	dropSpawnToFloor( ent, defendingTeam );
 }
 
 void team_CTF_betaspawn( Entity @ent ) {
-	dropSpawnToFloor( ent, attackingTeam );
-}
-
-void spawn_offense( Entity @ent ) {
-	dropSpawnToFloor( ent, attackingTeam );
-}
-
-void spawn_defense( Entity @ent ) {
 	dropSpawnToFloor( ent, attackingTeam );
 }

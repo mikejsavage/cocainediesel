@@ -11,6 +11,9 @@
 /demos
 /screenshots
 
+.vs/
+.vscode/
+
 *.exe
 *.exp
 *.ilk

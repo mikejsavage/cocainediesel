@@ -1648,8 +1648,8 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		// weapon slot binds start from index 1, use drawn_weapons for actual loadout index
 		char wep_bind[ 32 ];
 		
-		// UNBOUND can look real stupid so bump size down a bit in case someone is scrolling
-		const float bind_font_size = font_size * 0.45f;
+		// UNBOUND can look real stupid so bump size down a bit in case someone is scrolling. this still doesnt fit
+		const float bind_font_size = font_size * 0.8f;
 
 		// first try the weapon specific bind
 		if( !CG_GetBoundKeysString( va("use %s", def->short_name), wep_bind, sizeof( wep_bind ) ) ) {

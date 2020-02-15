@@ -1644,6 +1644,14 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		}
 
 		drawn_weapons++;
+
+		// weapon slot binds start from index 1, use drawn_weapons for actual loadout index
+		char wep_bind[ 32 ];
+		
+		// UNBOUND can look real stupid so bump size down a bit in case someone is scrolling
+		const float bind_font_size = font_size * 0.60f;
+		CG_GetBoundKeysString( va("weapon %i", drawn_weapons), wep_bind, sizeof( wep_bind ) );
+		DrawText( GetHUDFont(), bind_font_size, wep_bind, Alignment_CenterMiddle, curx + iw*0.50f, cury + ih*0.15f, layout_cursor_color, layout_cursor_font_border );
 	}
 }
 

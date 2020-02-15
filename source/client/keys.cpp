@@ -110,6 +110,7 @@ static const keyname_t keynames[] = {
 	{ "PAUSE", K_PAUSE },
 
 	{ "SEMICOLON", ';' }, // because a raw semicolon separates commands
+	{ nullptr, 0 }
 };
 
 int Key_StringToKeynum( const char *str ) {

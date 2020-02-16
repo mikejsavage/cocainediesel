@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include "qcommon/base.h"
 #include "qcommon/compression.h"
 #include "game/g_local.h"
 
@@ -521,6 +522,8 @@ static void G_SpawnEntities( void ) {
 * parsing textual entity definitions out of an ent file.
 */
 void G_InitLevel( const char *mapname, const char *entities, int entstrlen, int64_t levelTime ) {
+	TempAllocator temp = svs.frame_arena.temp();
+
 	G_asGarbageCollect( true );
 
 	GT_asCallShutdown();
@@ -536,14 +539,12 @@ void G_InitLevel( const char *mapname, const char *entities, int entstrlen, int6
 	memset( &level, 0, sizeof( level_locals_t ) );
 	memset( &server_gs.gameState, 0, sizeof( server_gs.gameState ) );
 
-	char path[ MAX_CONFIGSTRING_CHARS ];
-	snprintf( path, sizeof( path ), "maps/%s", mapname );
+	const char * path = temp( "maps/{}", mapname );
 	server_gs.gameState.map = StringHash( path );
 	server_gs.gameState.map_checksum = svs.cms->checksum;
 
-	// make a copy of the raw entities string so it's not freed with the pool
-	char * mapString = ( char * )G_Malloc( entstrlen + 1 );
-	strcpy( mapString, entities );
+	// make a copy of the raw entities string so it's not freed in G_LevelInitPool
+	char * mapString = CopyString( &temp, entities );
 
 	// clear old data
 
@@ -558,9 +559,7 @@ void G_InitLevel( const char *mapname, const char *entities, int entstrlen, int6
 	Q_strncpyz( level.mapname, mapname, sizeof( level.mapname ) );
 	level.mapString = ( char * )G_LevelMalloc( entstrlen + 1 );
 	level.mapStrlen = entstrlen;
-	strcpy( level.mapString, entities );
-	G_Free( mapString );
-	mapString = NULL;
+	strcpy( level.mapString, mapString );
 
 	// make a copy of the raw entities string for parsing
 	level.map_parsed_ents = ( char * )G_LevelMalloc( entstrlen + 1 );
@@ -618,15 +617,15 @@ void G_RespawnLevel( void ) {
 }
 
 void G_ChangeLevel( const char * name ) {
+	TempAllocator temp = svs.frame_arena.temp();
+
 	if( svs.cms != NULL ) {
 		CM_Free( CM_Server, svs.cms );
 	}
 
 	Q_strncpyz( sv.mapname, name, sizeof( sv.mapname ) );
 
-	char path[ MAX_CONFIGSTRING_CHARS ];
-	snprintf( path, sizeof( path ), "maps/%s.bsp", name );
-
+	const char * path = temp( "maps/{}.bsp", name );
 	u8 * buf;
 	int length = FS_LoadFile( path, ( void ** ) &buf, NULL, 0 );
 	if( buf == NULL ) {

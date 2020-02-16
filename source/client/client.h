@@ -82,7 +82,6 @@ typedef struct {
 	int servercount;        // server identification for prespawns
 	int playernum;
 
-	char servermessage[MAX_STRING_CHARS];
 	char configstrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 } client_state_t;
 

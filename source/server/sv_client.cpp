@@ -245,9 +245,6 @@ static void SV_New_f( client_t *client ) {
 	playernum = client - svs.clients;
 	MSG_WriteInt16( &tmpMessage, playernum );
 
-	// send full levelname
-	MSG_WriteString( &tmpMessage, sv.mapname );
-
 	//
 	// game server
 	//

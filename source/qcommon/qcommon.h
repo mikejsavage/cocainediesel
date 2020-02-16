@@ -145,8 +145,7 @@ void SNAP_FreeClientFrames( struct client_s *client );
 void SNAP_RecordDemoMessage( int demofile, msg_t *msg, int offset );
 int SNAP_ReadDemoMessage( int demofile, msg_t *msg );
 void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned int snapFrameTime,
-							  const char *sv_name, unsigned int sv_bitflags,
-							  char *configstrings, SyncEntityState *baselines );
+	unsigned int sv_bitflags, char *configstrings, SyncEntityState *baselines );
 void SNAP_StopDemoRecording( int demofile );
 void SNAP_WriteDemoMetaData( const char *filename, const char *meta_data, size_t meta_data_realsize );
 size_t SNAP_ClearDemoMeta( char *meta_data, size_t meta_data_max_size );

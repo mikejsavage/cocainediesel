@@ -147,8 +147,7 @@ static void SNAP_RecordDemoMetaDataMessage( int demofile, msg_t *msg ) {
 * SNAP_BeginDemoRecording
 */
 void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned int snapFrameTime,
-							  const char *sv_name, unsigned int sv_bitflags, char *configstrings,
-							  SyncEntityState *baselines ) {
+		unsigned int sv_bitflags, char *configstrings, SyncEntityState *baselines ) {
 	msg_t msg;
 	uint8_t msg_buffer[MAX_MSGLEN];
 	SyncEntityState nullstate;
@@ -167,7 +166,6 @@ void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned in
 	MSG_WriteInt16( &msg, (unsigned short)snapFrameTime );
 	MSG_WriteString( &msg, FS_BaseGameDirectory() );
 	MSG_WriteInt16( &msg, -1 ); // playernum
-	MSG_WriteString( &msg, sv_name ); // level name
 	MSG_WriteUint8( &msg, sv_bitflags & ~SV_BITFLAGS_HTTP ); // sv_bitflags
 
 	// config strings

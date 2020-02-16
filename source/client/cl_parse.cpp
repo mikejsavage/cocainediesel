@@ -716,9 +716,6 @@ static void CL_ParseServerData( msg_t *msg ) {
 	// parse player entity number
 	cl.playernum = MSG_ReadInt16( msg );
 
-	// get the full level name
-	Q_strncpyz( cl.servermessage, MSG_ReadString( msg ), sizeof( cl.servermessage ) );
-
 	sv_bitflags = MSG_ReadUint8( msg );
 
 	if( cls.demo.playing ) {
@@ -759,10 +756,6 @@ static void CL_ParseServerData( msg_t *msg ) {
 
 	// get the configstrings request
 	CL_AddReliableCommand( va( "configstrings %i 0", cl.servercount ) );
-
-	// separate the printfs so the server message can have a color
-	Com_Printf( S_COLOR_WHITE "\n" "=====================================\n" );
-	Com_Printf( S_COLOR_WHITE "%s\n\n", cl.servermessage );
 }
 
 /*
@@ -796,7 +789,7 @@ static void CL_ParseFrame( msg_t *msg ) {
 
 				// write out messages to hold the startup information
 				SNAP_BeginDemoRecording( cls.demo.file, 0x10000 + cl.servercount, cl.snapFrameTime,
-										 cl.servermessage, cls.reliable ? SV_BITFLAGS_RELIABLE : 0,
+										 cls.reliable ? SV_BITFLAGS_RELIABLE : 0,
 										 cl.configstrings[0], cl_baselines );
 
 				// the rest of the demo file will be individual frames

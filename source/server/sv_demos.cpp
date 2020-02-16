@@ -45,8 +45,7 @@ static void SV_Demo_WriteStartMessages( void ) {
 	// clear demo meta data, we'll write some keys later
 	svs.demo.meta_data_realsize = SNAP_ClearDemoMeta( svs.demo.meta_data, sizeof( svs.demo.meta_data ) );
 
-	SNAP_BeginDemoRecording( svs.demo.file, svs.spawncount, svc.snapFrameTime, sv.mapname, SV_BITFLAGS_RELIABLE,
-		sv.configstrings[0], sv.baselines );
+	SNAP_BeginDemoRecording( svs.demo.file, svs.spawncount, svc.snapFrameTime, SV_BITFLAGS_RELIABLE, sv.configstrings[0], sv.baselines );
 }
 
 /*

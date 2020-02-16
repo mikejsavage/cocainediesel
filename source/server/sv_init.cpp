@@ -284,7 +284,8 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 		svs.cms = NULL;
 	}
 
-	Com_SetServerState( sv.state );
+	Com_SetServerState( ss_dead );
+	svs.initialized = false;
 
 	if( sv_mempool ) {
 		Mem_EmptyPool( sv_mempool );

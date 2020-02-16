@@ -27,8 +27,12 @@ bool CG_ScoreboardShown() {
 		return false;
 	}
 
+	if( GS_MatchState( &client_gs ) > MATCH_STATE_PLAYTIME ) {
+		return true;
+	}
+
 	if( cgs.demoPlaying || cg.frame.multipov ) {
-		return cg.showScoreboard || ( GS_MatchState( &client_gs ) >= MATCH_STATE_POSTMATCH );
+		return cg.showScoreboard;
 	}
 
 	return cg.predictedPlayerState.show_scoreboard;

@@ -50,7 +50,7 @@ const String[] maps = {
 	"gladiator/012",
 	"gladiator/013",
 	"gladiator/014",
-	"gladiator/015",
+	"gladiator/015"
 };
 
 Entity @ last_spawn;

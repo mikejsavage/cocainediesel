@@ -207,6 +207,8 @@ typedef struct {
 	int64_t realtime;               // real world time - always increasing, no clamping, etc
 	int64_t gametime;               // game world time - always increasing, no clamping, etc
 
+	ArenaAllocator frame_arena;
+
 	RNG rng;
 
 	socket_t socket_udp;

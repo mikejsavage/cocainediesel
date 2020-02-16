@@ -456,6 +456,9 @@ static void SV_CheckDefaultMap( void ) {
 void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 	ZoneScoped;
 
+	TracyPlot( "Server frame arena max utilisation", svs.frame_arena.max_utilisation() );
+	svs.frame_arena.clear();
+
 	u64 entropy[ 2 ];
 	CSPRNG_Bytes( entropy, sizeof( entropy ) );
 	svs.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
@@ -550,7 +553,13 @@ void SV_Init( void ) {
 
 	assert( !sv_initialized );
 
+	memset( &sv, 0, sizeof( sv ) );
+	memset( &svs, 0, sizeof( svs ) );
 	memset( &svc, 0, sizeof( svc ) );
+
+	constexpr size_t frame_arena_size = 1024 * 1024; // 1MB
+	void * frame_arena_memory = ALLOC_SIZE( sys_allocator, frame_arena_size, 16 );
+	svs.frame_arena = ArenaAllocator( frame_arena_memory, frame_arena_size );
 
 	u64 entropy[ 2 ];
 	CSPRNG_Bytes( entropy, sizeof( entropy ) );
@@ -675,4 +684,6 @@ void SV_Shutdown( const char *finalmsg ) {
 	SV_ShutdownOperatorCommands();
 
 	Mem_FreePool( &sv_mempool );
+
+	FREE( sys_allocator, svs.frame_arena.get_memory() );
 }

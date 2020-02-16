@@ -284,14 +284,11 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 		svs.cms = NULL;
 	}
 
-	memset( &sv, 0, sizeof( sv ) );
 	Com_SetServerState( sv.state );
 
 	if( sv_mempool ) {
 		Mem_EmptyPool( sv_mempool );
 	}
-
-	memset( &svs, 0, sizeof( svs ) );
 }
 
 /*

@@ -687,7 +687,7 @@ void S_StartLocalSound( const SoundEffect * sfx, int channel, float volume ) {
 
 static ImmediateSoundHandle StartImmediateSound( const SoundEffect * sfx, int ent_num, float volume, PlayingSoundType type, ImmediateSoundHandle handle ) {
 	if( sfx == NULL )
-		return { };
+		return handle;
 
 	u64 idx;
 	if( handle.x != 0 && immediate_sounds_hashtable.get( handle.x, &idx ) ) {
@@ -703,7 +703,7 @@ static ImmediateSoundHandle StartImmediateSound( const SoundEffect * sfx, int en
 
 		PlayingSound * ps = StartSoundEffect( sfx, ent_num, CHAN_AUTO, volume, type );
 		if( ps == NULL )
-			return { };
+			return handle;
 
 		ps->immediate_handle = handle;
 		idx = ps - playing_sound_effects;

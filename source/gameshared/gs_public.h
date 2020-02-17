@@ -612,6 +612,7 @@ enum {
 	VSAY_BOOMSTICK,
 	VSAY_OK,
 
+	Vsay_Bruh,
 	Vsay_Cya,
 	Vsay_GetGood,
 	Vsay_HitTheShowers,

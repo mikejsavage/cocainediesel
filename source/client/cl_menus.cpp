@@ -347,6 +347,7 @@ static void SettingsControls() {
 			KeyBindButton( "Good game", "vsay goodgame" );
 			KeyBindButton( "Boomstick", "vsay boomstick" );
 			KeyBindButton( "Shut up", "vsay shutup" );
+			KeyBindButton( "Bruh", "vsay bruh" );
 			KeyBindButton( "Cya", "vsay cya" );
 			KeyBindButton( "Get good", "vsay getgood" );
 			KeyBindButton( "Hit the showers", "vsay hittheshowers" );

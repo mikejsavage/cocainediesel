@@ -92,6 +92,7 @@ void CG_RegisterMediaSounds() {
 	cgs.media.sfxVSaySounds[VSAY_BOOMSTICK] = FindSoundEffect( S_VSAY_BOOMSTICK );
 	cgs.media.sfxVSaySounds[VSAY_OK] = FindSoundEffect( S_VSAY_OK );
 	cgs.media.sfxVSaySounds[VSAY_SHUTUP] = FindSoundEffect( S_VSAY_SHUTUP );
+	cgs.media.sfxVSaySounds[ Vsay_Bruh ] = FindSoundEffect( "sounds/vsay/bruh" );
 	cgs.media.sfxVSaySounds[ Vsay_Cya ] = FindSoundEffect( "sounds/vsay/cya" );
 	cgs.media.sfxVSaySounds[ Vsay_GetGood ] = FindSoundEffect( "sounds/vsay/getgood" );
 	cgs.media.sfxVSaySounds[ Vsay_HitTheShowers ] = FindSoundEffect( "sounds/vsay/hittheshowers" );

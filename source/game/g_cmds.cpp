@@ -555,6 +555,7 @@ static const g_vsays_t g_vsays[] = {
 	{ "boomstick", VSAY_BOOMSTICK },
 	{ "ok", VSAY_OK },
 	{ "shutup", VSAY_SHUTUP },
+	{ "bruh", Vsay_Bruh },
 	{ "cya", Vsay_Cya },
 	{ "getgood", Vsay_GetGood },
 	{ "hittheshowers", Vsay_HitTheShowers },

@@ -650,7 +650,7 @@ static PlayingSound * StartSoundEffect( const SoundEffect * sfx, int ent_num, in
 
 	PlayingSound * ps = FindEmptyPlayingSound( ent_num, channel );
 	if( ps == NULL ) {
-		Com_Printf( S_COLOR_YELLOW "Too many playing sound effects!" );
+		Com_Printf( S_COLOR_YELLOW "Too many playing sound effects!\n" );
 		return NULL;
 	}
 

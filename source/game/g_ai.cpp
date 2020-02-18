@@ -14,6 +14,11 @@ static const char * bot_names[] = {
 
 	"__mute__",
 	"Slice*>",
+
+	// twitch subs
+	"ne0ns0up",
+	"hvaholic",
+	"catman1900",
 };
 
 static void CreateUserInfo( char * buffer, size_t bufferSize ) {

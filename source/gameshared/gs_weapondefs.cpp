@@ -123,7 +123,7 @@ const WeaponDef gs_weaponDefs[] = {
 		FiringMode_SemiAuto,
 
 		//damages
-		24,                              // damage
+		25,                              // damage
 		0,                              // selfdamage ratio
 		30,                             // knockback
 		0,                              // splash radius

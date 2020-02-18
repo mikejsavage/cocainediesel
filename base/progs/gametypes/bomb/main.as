@@ -171,9 +171,16 @@ bool GT_Command( Client @client, const String &cmdString, const String &argsStri
 	return false;
 }
 
+void spawn_gladiator( Entity @ent ) { }
+
 Entity @GT_SelectSpawnPoint( Entity @self ) {
+	// loading individual gladiator arenas loads bomb gt, so prioritise gladi spawns
+	Entity @gladi_spawn = GENERIC_SelectBestRandomSpawnPoint( @self, "spawn_gladiator" );
+	if( @gladi_spawn )
+		return gladi_spawn;
+
 	if( self.team == attackingTeam ) {
-		Entity @spawn = GENERIC_SelectBestRandomSpawnPoint( @self, "spawn_offense" );
+		Entity @spawn = GENERIC_SelectBestRandomSpawnPoint( @self, "spawn_bomb_attacking" );
 		if( @spawn != null )
 			return spawn;
 		return GENERIC_SelectBestRandomSpawnPoint( @self, "team_CTF_betaspawn" );

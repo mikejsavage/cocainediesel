@@ -184,7 +184,7 @@ cPlayer @playerFromClient( Client @client ) {
 	return @player;
 }
 
-void dropSpawnToFloor( Entity @ent, int team ) {
+void dropSpawnToFloor( Entity @ent ) {
 	Vec3 mins( -16, -16, -24 ), maxs( 16, 16, 40 );
 
 	Vec3 start = ent.origin + Vec3( 0, 0, 16 );
@@ -204,17 +204,17 @@ void dropSpawnToFloor( Entity @ent, int team ) {
 }
 
 void spawn_bomb_attacking( Entity @ent ) {
-	dropSpawnToFloor( ent, attackingTeam );
+	dropSpawnToFloor( ent );
 }
 
 void spawn_bomb_defending( Entity @ent ) {
-	dropSpawnToFloor( ent, attackingTeam );
+	dropSpawnToFloor( ent );
 }
 
 void team_CTF_alphaspawn( Entity @ent ) {
-	dropSpawnToFloor( ent, defendingTeam );
+	dropSpawnToFloor( ent );
 }
 
 void team_CTF_betaspawn( Entity @ent ) {
-	dropSpawnToFloor( ent, attackingTeam );
+	dropSpawnToFloor( ent );
 }

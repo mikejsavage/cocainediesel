@@ -176,7 +176,7 @@ void spawn_gladiator( Entity @ent ) { }
 Entity @GT_SelectSpawnPoint( Entity @self ) {
 	// loading individual gladiator arenas loads bomb gt, so prioritise gladi spawns
 	Entity @gladi_spawn = GENERIC_SelectBestRandomSpawnPoint( @self, "spawn_gladiator" );
-	if( @gladi_spawn )
+	if( @gladi_spawn != null )
 		return gladi_spawn;
 
 	if( self.team == attackingTeam ) {

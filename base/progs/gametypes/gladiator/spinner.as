@@ -57,12 +57,12 @@ void spinner_think( Entity@ self ) {
 		Entity @ent = @team.ent( j );
 		
 		ent.client.inventoryClear();
-		ent.cclient.giveWeapon( WeaponType( lastWeap1 ), true );
-		ent.cclient.giveWeapon( WeaponType( lastWeap2 ), true );
-		ent.cclient.selectWeapon( -1 );
+		ent.client.giveWeapon( WeaponType( lastWeap1 ), true );
+		ent.client.giveWeapon( WeaponType( lastWeap2 ), true );
+		ent.client.selectWeapon( -1 );
 
 		if( last ) {
-			client.pmoveFeatures = ent.client.pmoveFeatures | PMFEAT_WEAPONSWITCH;
+			ent.client.pmoveFeatures = ent.client.pmoveFeatures | PMFEAT_WEAPONSWITCH;
 		}
 	}
 

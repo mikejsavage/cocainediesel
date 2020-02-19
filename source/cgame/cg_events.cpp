@@ -774,7 +774,7 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_FIREWEAPON: {
-			if( parm < 0 || parm >= Weapon_Count )
+			if( parm >= Weapon_Count )
 				return;
 
 			// check the owner for predicted case

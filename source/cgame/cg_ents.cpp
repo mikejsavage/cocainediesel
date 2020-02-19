@@ -205,7 +205,7 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 			cent->canExtrapolate = true;
 		}
 
-		if( CM_IsBrushModel( CM_Client, cent->current.model ) != NULL ) { // disable extrapolation on movers
+		if( CM_IsBrushModel( CM_Client, cent->current.model ) ) { // disable extrapolation on movers
 			cent->canExtrapolate = false;
 		}
 	}

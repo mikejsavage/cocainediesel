@@ -1519,46 +1519,6 @@ void G_OperatorVote_Cmd( edict_t *ent ) {
 }
 
 /*
-* G_VoteFromScriptValidate
-*/
-static bool G_VoteFromScriptValidate( callvotedata_t *vote, bool first ) {
-	char argsString[MAX_STRING_CHARS];
-	int i;
-
-	if( !vote || !vote->callvote || !vote->caller ) {
-		return false;
-	}
-
-	snprintf( argsString, MAX_STRING_CHARS, "\"%s\"", vote->callvote->name );
-	for( i = 0; i < vote->argc; i++ ) {
-		Q_strncatz( argsString, " ", MAX_STRING_CHARS );
-		Q_strncatz( argsString, va( " \"%s\"", vote->argv[i] ), MAX_STRING_CHARS );
-	}
-
-	return GT_asCallGameCommand( vote->caller->r.client, "callvotevalidate", argsString, vote->argc + 1 );
-}
-
-/*
-* G_VoteFromScriptPassed
-*/
-static void G_VoteFromScriptPassed( callvotedata_t *vote ) {
-	char argsString[MAX_STRING_CHARS];
-	int i;
-
-	if( !vote || !vote->callvote || !vote->caller ) {
-		return;
-	}
-
-	snprintf( argsString, MAX_STRING_CHARS, "\"%s\"", vote->callvote->name );
-	for( i = 0; i < vote->argc; i++ ) {
-		Q_strncatz( argsString, " ", MAX_STRING_CHARS );
-		Q_strncatz( argsString, va( " \"%s\"", vote->argv[i] ), MAX_STRING_CHARS );
-	}
-
-	GT_asCallGameCommand( vote->caller->r.client, "callvotepassed", argsString, vote->argc + 1 );
-}
-
-/*
 * G_CallVotes_Init
 */
 void G_CallVotes_Init( void ) {

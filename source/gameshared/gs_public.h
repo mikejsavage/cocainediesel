@@ -53,8 +53,9 @@ constexpr int playerbox_gib_viewheight = 8;
 #define PROJECTILE_PRESTEP 100
 #define ELECTROBOLT_RANGE 9001
 
-#define MIN_FOV             60
-#define MAX_FOV             140
+#define MIN_FOV             100
+#define MAX_FOV             120
+#define ZOOM_FOV            40
 
 //==================================================================
 

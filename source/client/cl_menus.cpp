@@ -261,8 +261,10 @@ static void CvarTeamColorCombo( const char * label, const char * cvar_name, int 
 }
 
 static void SettingsGeneral() {
+	TempAllocator temp = cls.frame_arena.temp();
+	
 	CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
-	CvarSliderInt( "FOV", "fov", 60, 140, "100", CVAR_ARCHIVE );
+	CvarSliderInt( "FOV", "fov", MIN_FOV, MAX_FOV, temp( "{}", MIN_FOV ), CVAR_ARCHIVE );
 	CvarTeamColorCombo( "Ally color", "cg_allyColor", 0 );
 	CvarTeamColorCombo( "Enemy color", "cg_enemyColor", 1 );
 	CvarCheckbox( "Show FPS", "cg_showFPS", "0", CVAR_ARCHIVE );

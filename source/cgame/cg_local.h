@@ -529,7 +529,6 @@ extern cvar_t *cg_explosionsRing;
 extern cvar_t *cg_explosionsDust;
 
 extern cvar_t *cg_fov;
-extern cvar_t *cg_zoomfov;
 extern cvar_t *cg_particles;
 extern cvar_t *cg_voiceChats;
 extern cvar_t *cg_projectileAntilagOffset;

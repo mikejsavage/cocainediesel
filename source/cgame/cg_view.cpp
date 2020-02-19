@@ -201,7 +201,7 @@ static float CG_CalcViewFov( void ) {
 	float fov, zoomfov;
 
 	fov = cg_fov->value;
-	zoomfov = cg_zoomfov->value;
+	zoomfov = ZOOM_FOV;
 
 	if( cg.predictedPlayerState.pmove.zoom_time == 0 ) {
 		return fov;
@@ -926,15 +926,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 			Cvar_ForceSet( cg_fov->name, STR_TOSTR( MAX_FOV ) );
 		}
 		cg_fov->modified = false;
-	}
-
-	if( cg_zoomfov->modified ) {
-		if( cg_zoomfov->value < MIN_FOV ) {
-			Cvar_ForceSet( cg_zoomfov->name, STR_TOSTR( MIN_FOV ) );
-		} else if( cg_zoomfov->value > MAX_FOV ) {
-			Cvar_ForceSet( cg_zoomfov->name, STR_TOSTR( MAX_FOV ) );
-		}
-		cg_zoomfov->modified = false;
 	}
 
 	CG_FlashGameWindow(); // notify player of important game events

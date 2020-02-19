@@ -59,7 +59,6 @@ cvar_t *cg_bloodTrailAlpha;
 cvar_t *cg_explosionsRing;
 cvar_t *cg_explosionsDust;
 cvar_t *cg_fov;
-cvar_t *cg_zoomfov;
 cvar_t *cg_voiceChats;
 cvar_t *cg_projectileAntilagOffset;
 cvar_t *cg_chatFilter;
@@ -235,7 +234,6 @@ static void CG_RegisterVariables( void ) {
 	cg_hand =           Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
 	cg_handicap =       Cvar_Get( "handicap", "0", CVAR_USERINFO | CVAR_ARCHIVE );
 	cg_fov =        Cvar_Get( "fov", "100", CVAR_ARCHIVE );
-	cg_zoomfov =    Cvar_Get( "zoomfov", "75", CVAR_ARCHIVE );
 
 	cg_addDecals =      Cvar_Get( "cg_decals", "1", CVAR_ARCHIVE );
 

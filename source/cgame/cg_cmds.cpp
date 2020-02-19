@@ -384,7 +384,6 @@ static void SwitchWeapon( WeaponType weapon ) {
 		return;
 	}
 
-	cg.lastWeapon = cg.predictedPlayerState.pending_weapon;
 	cg.predictedPlayerState.pending_weapon = weapon;
 	Cbuf_ExecuteText( EXEC_NOW, va( "cmd use %i", weapon ) );
 }
@@ -451,12 +450,6 @@ static void CG_Cmd_PrevWeapon_f( void ) {
 	WeaponType weapon = CG_UseWeaponStep( &cg.frame.playerState, false, cg.predictedPlayerState.pending_weapon );
 	if( weapon != Weapon_Count ) {
 		SwitchWeapon( weapon );
-	}
-}
-
-static void CG_Cmd_LastWeapon_f( void ) {
-	if( cg.lastWeapon != Weapon_Count && cg.lastWeapon != cg.predictedPlayerState.pending_weapon ) {
-		SwitchWeapon( cg.lastWeapon );
 	}
 }
 
@@ -578,7 +571,6 @@ static const cgcmd_t cgcmds[] =
 	{ "use", CG_Cmd_UseItem_f, false },
 	{ "weapnext", CG_Cmd_NextWeapon_f, false },
 	{ "weapprev", CG_Cmd_PrevWeapon_f, false },
-	{ "weaplast", CG_Cmd_LastWeapon_f, false },
 	{ "weapon", CG_Cmd_Weapon_f, false },
 	{ "viewpos", CG_Viewpos_f, true },
 	{ "players", NULL, false },

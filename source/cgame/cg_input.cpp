@@ -126,7 +126,11 @@ static void IN_AttackDown() { KeyDown( &button_attack ); }
 static void IN_AttackUp() { KeyUp( &button_attack ); }
 static void IN_ReloadDown() { KeyDown( &button_reload ); }
 static void IN_ReloadUp() { KeyUp( &button_reload ); }
-static void IN_ZoomDown() { KeyDown( &button_zoom ); }
+static void IN_ZoomDown() {
+	if( cg.predictedPlayerState.pending_weapon == Weapon_Sniper || cg.predictedPlayerState.pending_weapon == Weapon_Railgun ) {
+		KeyDown( &button_zoom );
+	}
+}
 static void IN_ZoomUp() { KeyUp( &button_zoom ); }
 
 unsigned int CG_GetButtonBits() {

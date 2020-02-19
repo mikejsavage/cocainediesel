@@ -60,6 +60,7 @@ void PickRandomArena() {
 	@last_spawn = null;
 }
 
+
 class cDARound {
 	int state;
 	int numRounds;
@@ -693,9 +694,15 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
 		return;
 
 	if( match.getState() != MATCH_STATE_PLAYTIME ) {
-		for( int i = 0; i < Weapon_Count; i++ ) {
-			ent.client.giveWeapon( WeaponType( i ), true );
+		int weap1 = random_uniform( 0, Weapon_Count );
+		int weap2 = weap1;
+
+		while( weap1 == weap2 ) {
+			weap2 = random_uniform( 0, Weapon_Count );
 		}
+
+		ent.client.giveWeapon( WeaponType( weap1 ), true );
+		ent.client.giveWeapon( WeaponType( weap2 ), true );
 		ent.client.selectWeapon( -1 );
 		ent.respawnEffect();
 	}

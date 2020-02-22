@@ -946,6 +946,7 @@ static void GameMenu() {
 				Weapon_RocketLauncher,
 				Weapon_Laser,
 				Weapon_Sniper,
+				Weapon_AssaultRifle,
 				Weapon_Deagle,
 				Weapon_MachineGun,
 				Weapon_Shotgun,
@@ -989,11 +990,6 @@ static void GameMenu() {
 
 					ImGui::Image( icon, icon_size, half_pixel, 1.0f - half_pixel, Vec4( 1.0f, 1.0f, 1.0f, 0.25f ) );
 					ColumnCenterText( temp( "{}Dud bomb", pink ) );
-					ColumnCenterText( temp( "{}$13.37", pink ) );
-
-					ImGui::Image( icon, icon_size, half_pixel, 1.0f - half_pixel, Vec4( 1.0f, 1.0f, 1.0f, 0.25f ) );
-					desc_height = ImGui::GetCursorPosY();
-					ColumnCenterText( temp( "{}Smoke", pink ) );
 					ColumnCenterText( temp( "{}$13.37", pink ) );
 				}
 

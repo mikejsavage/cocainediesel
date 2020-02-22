@@ -1254,6 +1254,9 @@ static void CG_DrawObituaries(
 			case MOD_RIOTGUN:
 				pic = CG_GetWeaponIcon( Weapon_Shotgun );
 				break;
+			case MOD_ASSAULTRIFLE:
+				pic = CG_GetWeaponIcon( Weapon_AssaultRifle );
+				break;
 			case MOD_GRENADE:
 				pic = CG_GetWeaponIcon( Weapon_GrenadeLauncher );
 				break;

@@ -172,6 +172,10 @@ void G_FireWeapon( edict_t *ent, u64 parm ) {
 			G_Fire_Riotgun( origin, angles, ent, timeDelta );
 			break;
 
+		case Weapon_AssaultRifle:
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_AssaultRifle, MOD_ASSAULTRIFLE );
+			break;
+
 		case Weapon_GrenadeLauncher:
 			projectile = G_Fire_Grenade( origin, angles, ent, timeDelta );
 			break;

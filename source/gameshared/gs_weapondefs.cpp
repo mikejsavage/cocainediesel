@@ -182,6 +182,40 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
+		"Assault Rifle", "ar",
+		RGB8( 254, 235, 98 ),
+		"Dakka dakka",
+		100,
+
+		1,                              // projectiles fired each shot
+		20, // clip size
+		2000, // reload time
+
+		//timings (in msecs)
+		WEAPONUP_TIME_NORMAL,           // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		100,                            // refire time
+		HITSCAN_RANGE,                  // projectile timeout
+		3.0f,                           // recoil
+		FiringMode_Auto,
+
+		60.0f,                          // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
+		//damages
+		12,                             // damage
+		0,                              // selfdamage ratio
+		15,                             // knockback
+		0,                              // splash radius
+		0,                              // splash minimum damage
+		0,                              // splash minimum knockback
+
+		//projectile def
+		INSTANT,                        // speed
+		0,                              // spread
+	},
+
+	{
 		"Grenades", "gl",
 		RGB8( 62, 141, 255 ),
 		"Deprecated gun, enjoy it while it lasts nerds",

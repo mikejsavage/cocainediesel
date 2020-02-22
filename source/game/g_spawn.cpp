@@ -545,7 +545,7 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	G_StringPoolInit();
 
 	level.time = levelTime;
-	level.gravity = g_gravity->value;
+	level.gravity = GRAVITY;
 
 	// get the strings back
 	level.mapString = ( char * )G_LevelMalloc( entstrlen + 1 );

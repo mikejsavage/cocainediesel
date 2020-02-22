@@ -37,7 +37,6 @@ cvar_t *g_select_empty;
 cvar_t *filterban;
 
 cvar_t *g_maxvelocity;
-cvar_t *g_gravity;
 
 cvar_t *sv_cheats;
 
@@ -150,7 +149,6 @@ void G_Init( unsigned int framemsec ) {
 		Cvar_SetValue( "g_maxvelocity", 20 );
 	}
 
-	g_gravity = Cvar_Get( "g_gravity", va( "%i", GRAVITY ), 0 );
 	developer = Cvar_Get( "developer", "0", 0 );
 
 	// latched vars

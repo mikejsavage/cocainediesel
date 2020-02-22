@@ -198,7 +198,6 @@ extern cvar_t *developer;
 
 extern cvar_t *filterban;
 
-extern cvar_t *g_gravity;
 extern cvar_t *g_maxvelocity;
 
 extern cvar_t *sv_cheats;

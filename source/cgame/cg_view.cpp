@@ -196,19 +196,14 @@ void CG_AddKickAngles( vec3_t viewangles ) {
 /*
 * CG_CalcViewFov
 */
-static float CG_CalcViewFov( void ) {
-	float frac;
-	float fov, zoomfov;
+float CG_CalcViewFov() {
+	WeaponType weapon = cg.predictedPlayerState.weapon;
+	if( weapon == Weapon_Count )
+		return cg_fov->value;
 
-	fov = cg_fov->value;
-	zoomfov = ZOOM_FOV;
-
-	if( cg.predictedPlayerState.pmove.zoom_time == 0 ) {
-		return fov;
-	}
-
-	frac = float( cg.predictedPlayerState.pmove.zoom_time ) / float( ZOOMTIME );
-	return fov - ( fov - zoomfov ) * frac;
+	float zoom_fov = GS_GetWeaponDef( weapon )->zoom_fov;
+	float frac = float( cg.predictedPlayerState.zoom_time ) / float( ZOOMTIME );
+	return Lerp( cg_fov->value, frac, float( zoom_fov ) );
 }
 
 /*
@@ -389,16 +384,12 @@ void CG_AddEntityToScene( entity_t * ent ) {
 * CG_InterpolatePlayerState
 */
 static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
-	int i;
-	SyncPlayerState *ps, *ops;
-	bool teleported;
-
-	ps = &cg.frame.playerState;
-	ops = &cg.oldFrame.playerState;
+	const SyncPlayerState * ps = &cg.frame.playerState;
+	const SyncPlayerState * ops = &cg.oldFrame.playerState;
 
 	*playerState = *ps;
 
-	teleported = ( ps->pmove.pm_flags & PMF_TIME_TELEPORT ) ? true : false;
+	bool teleported = ( ps->pmove.pm_flags & PMF_TIME_TELEPORT ) != 0;
 
 	if( Abs( (int)( ops->pmove.origin[0] - ps->pmove.origin[0] ) ) > 256
 		|| Abs( (int)( ops->pmove.origin[1] - ps->pmove.origin[1] ) ) > 256
@@ -408,17 +399,17 @@ static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 
 	// if the player entity was teleported this frame use the final position
 	if( !teleported ) {
-		for( i = 0; i < 3; i++ ) {
-			playerState->pmove.origin[i] = ops->pmove.origin[i] + cg.lerpfrac * ( ps->pmove.origin[i] - ops->pmove.origin[i] );
-			playerState->pmove.velocity[i] = ops->pmove.velocity[i] + cg.lerpfrac * ( ps->pmove.velocity[i] - ops->pmove.velocity[i] );
+		for( int i = 0; i < 3; i++ ) {
+			playerState->pmove.origin[i] = Lerp( ops->pmove.origin[i], cg.lerpfrac, ps->pmove.origin[i] );
+			playerState->pmove.velocity[i] = Lerp( ops->pmove.velocity[i], cg.lerpfrac, ps->pmove.velocity[i] );
 			playerState->viewangles[i] = LerpAngle( ops->viewangles[i], ps->viewangles[i], cg.lerpfrac );
 		}
 	}
 
 	// interpolate fov and viewheight
 	if( !teleported ) {
-		playerState->viewheight = ops->viewheight + cg.lerpfrac * ( ps->viewheight - ops->viewheight );
-		playerState->pmove.zoom_time = Lerp( ops->pmove.zoom_time, cg.lerpfrac, ps->pmove.zoom_time );
+		playerState->viewheight = Lerp( ops->viewheight, cg.lerpfrac, ps->viewheight );
+		playerState->zoom_time = Lerp( ops->zoom_time, cg.lerpfrac, ps->zoom_time );
 	}
 }
 

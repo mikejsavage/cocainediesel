@@ -56,3 +56,7 @@ vec3 DecompressNormal( vec2 oct ) {
 	n.y += n.y >= 0.0 ? -t : t;
 	return normalize( n );
 }
+
+float Unlerp( float lo, float x, float hi ) {
+	return ( x - lo ) / ( hi - lo );
+}

@@ -160,6 +160,8 @@ typedef struct weaponinfo_s {
 
 	const SoundEffect * fire_sound;
 	const SoundEffect * up_sound;
+	const SoundEffect * zoom_in_sound;
+	const SoundEffect * zoom_out_sound;
 } weaponinfo_t;
 
 enum {

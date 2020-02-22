@@ -291,6 +291,8 @@ static void CG_WeaponModelUpdateRegistration( weaponinfo_t *weaponinfo, const ch
 
 	weaponinfo->fire_sound = FindSoundEffect( temp( "weapons/{}/fire", filename ) );
 	weaponinfo->up_sound = FindSoundEffect( temp( "weapons/{}/up", filename ) );
+	weaponinfo->zoom_in_sound = FindSoundEffect( temp( "weapons/{}/zoom_in", filename ) );
+	weaponinfo->zoom_out_sound = FindSoundEffect( temp( "weapons/{}/zoom_out", filename ) );
 
 	// load failed
 	if( !weaponinfo->model[WEAPMODEL_HAND] ) {

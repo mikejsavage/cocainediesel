@@ -51,11 +51,10 @@ constexpr int playerbox_gib_viewheight = 8;
 #define DEFAULT_JUMPSPEED 280.0f
 #define DEFAULT_DASHSPEED 450.0f
 #define PROJECTILE_PRESTEP 100
-#define ELECTROBOLT_RANGE 9001
+#define HITSCAN_RANGE 9001
 
 #define MIN_FOV             100
 #define MAX_FOV             120
-#define ZOOM_FOV            40
 
 //==================================================================
 
@@ -252,7 +251,6 @@ typedef struct {
 	s16 knockback_time;
 	s16 crouch_time;
 	s16 tbag_time;
-	s16 zoom_time;
 	s16 dash_time;
 	s16 walljump_time;
 
@@ -305,6 +303,7 @@ struct SyncPlayerState {
 	WeaponType weapon;
 	WeaponType pending_weapon;
 	s16 weapon_time;
+	s16 zoom_time;
 
 	int team;
 	int real_team;
@@ -525,10 +524,9 @@ int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, vec3_t mins, v
 #define PMFEAT_JUMP             ( 1 << 2 )
 #define PMFEAT_DASH             ( 1 << 3 )
 #define PMFEAT_WALLJUMP         ( 1 << 4 )
-#define PMFEAT_ZOOM             ( 1 << 5 )
-#define PMFEAT_GHOSTMOVE        ( 1 << 6 )
-#define PMFEAT_WEAPONSWITCH     ( 1 << 7 )
-#define PMFEAT_TEAMGHOST        ( 1 << 8 )
+#define PMFEAT_GHOSTMOVE        ( 1 << 5 )
+#define PMFEAT_WEAPONSWITCH     ( 1 << 6 )
+#define PMFEAT_TEAMGHOST        ( 1 << 7 )
 
 #define PMFEAT_ALL              ( 0xFFFF )
 #define PMFEAT_DEFAULT          ( PMFEAT_ALL & ~PMFEAT_GHOSTMOVE & ~PMFEAT_TEAMGHOST )
@@ -637,6 +635,8 @@ typedef enum {
 	EV_FIREWEAPON,
 	EV_SMOOTHREFIREWEAPON,
 	EV_NOAMMOCLICK,
+	EV_ZOOM_IN,
+	EV_ZOOM_OUT,
 
 	EV_DASH,
 
@@ -780,6 +780,9 @@ struct WeaponDef {
 	unsigned int range;
 	float recoil;
 	FiringMode mode;
+
+	float zoom_fov;
+	float zoom_spread;
 
 	float damage;
 	float selfdamage;

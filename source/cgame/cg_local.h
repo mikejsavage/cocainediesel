@@ -458,7 +458,6 @@ extern cvar_t *cg_showAwards;
 
 void CG_ScreenInit( void );
 void CG_Draw2D( void );
-void CG_DrawHUD( void );
 void CG_CenterPrint( const char *str );
 
 void CG_EscapeKey( void );
@@ -604,6 +603,7 @@ void CG_StartKickAnglesEffect( vec3_t source, float knockback, float radius, int
 void CG_StartFallKickEffect( int bounceTime );
 void CG_ViewSmoothPredictedSteps( vec3_t vieworg );
 float CG_ViewSmoothFallKick( void );
+float CG_CalcViewFov();
 void CG_RenderView( unsigned extrapolationTime );
 void CG_AddKickAngles( vec3_t viewangles );
 bool CG_ChaseStep( int step );

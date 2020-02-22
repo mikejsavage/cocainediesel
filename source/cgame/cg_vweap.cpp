@@ -299,7 +299,7 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	// finish
 	AnglesToAxis( gunAngles, viewweapon->ent.axis );
 
-	if( cg_gun_fov->integer && cg.predictedPlayerState.pmove.zoom_time == 0 ) {
+	if( cg_gun_fov->integer && cg.predictedPlayerState.zoom_time == 0 ) {
 		float gun_fov_y = WidescreenFov( bound( 20, cg_gun_fov->value, 160 ) );
 		float gun_fov_x = CalcHorizontalFov( gun_fov_y, frame_static.viewport_width, frame_static.viewport_height );
 

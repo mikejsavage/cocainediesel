@@ -177,8 +177,17 @@ void W_Fire_Bullet( edict_t * self, vec3_t start, vec3_t angles, int timeDelta, 
 	vec3_t right, up;
 	ViewVectors( dir, right, up );
 
+	float x_spread = 0.0f;
+	float y_spread = 0.0f;
+	if( self->r.client != NULL && self->r.client->ps.zoom_time < ZOOMTIME ) {
+		float frac = 1.0f - float( self->r.client->ps.zoom_time ) / float( ZOOMTIME );
+		float spread = frac * def->range * atanf( DEG2RAD( def->zoom_spread ) );
+		x_spread = random_float11( &svs.rng ) * spread;
+		y_spread = random_float11( &svs.rng ) * spread;
+	}
+
 	trace_t trace, wallbang;
-	GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, 0, 0, def->range, ENTNUM( self ), timeDelta );
+	GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, x_spread, x_spread, def->range, ENTNUM( self ), timeDelta );
 	if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
 		float damage = def->damage;
 		float knockback = def->knockback;

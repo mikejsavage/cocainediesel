@@ -25,7 +25,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static void CG_Event_WeaponBeam( vec3_t origin, vec3_t dir, int ownerNum ) {
 	vec3_t end;
 	VectorNormalize( dir );
-	VectorMA( origin, ELECTROBOLT_RANGE, dir, end );
+	float range = GS_GetWeaponDef( Weapon_Railgun )->range;
+	VectorMA( origin, range, dir, end );
 
 	centity_t * owner = &cg_entities[ ownerNum ];
 
@@ -258,7 +259,7 @@ static void CG_Event_LaserBeam( const vec3_t origin, const vec3_t dir, int entNu
 /*
 * CG_FireWeaponEvent
 */
-static void CG_FireWeaponEvent( int entNum, int weapon ) {
+static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 	const weaponinfo_t * weaponInfo = cgs.weaponInfos[ weapon ];
 	const SoundEffect * sfx = weaponInfo->fire_sound;
 
@@ -787,37 +788,34 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			}
 
 			int num;
-			WeaponType weapon;
 			vec3_t origin, angles;
 			if( predicted ) {
 				num = ent->number;
-				weapon = parm;
 				VectorCopy( cg.predictedPlayerState.pmove.origin, origin );
 				origin[ 2 ] += cg.predictedPlayerState.viewheight;
 				VectorCopy( cg.predictedPlayerState.viewangles, angles );
 			}
 			else {
 				num = ent->ownerNum;
-				weapon = ent->weapon;
 				VectorCopy( ent->origin, origin );
 				VectorCopy( ent->origin2, angles );
 			}
 
-			CG_FireWeaponEvent( num, weapon );
+			CG_FireWeaponEvent( num, parm );
 
 			AngleVectors( angles, dir, NULL, NULL );
 
-			if( weapon == Weapon_Railgun ) {
+			if( parm == Weapon_Railgun ) {
 				CG_Event_WeaponBeam( origin, dir, num );
 			}
-			else if( weapon == Weapon_Shotgun ) {
+			else if( parm == Weapon_Shotgun ) {
 				CG_Event_FireRiotgun( origin, dir, num, ent->team );
 			}
-			else if( weapon == Weapon_Laser ) {
+			else if( parm == Weapon_Laser ) {
 				CG_Event_LaserBeam( origin, dir, num );
 			}
-			else if( weapon == Weapon_Pistol || weapon == Weapon_MachineGun || weapon == Weapon_Deagle || weapon == Weapon_Sniper ) {
-				CG_Event_FireBullet( origin, dir, weapon, num, ent->team );
+			else if( parm == Weapon_Pistol || parm == Weapon_MachineGun || parm == Weapon_Deagle ) {
+				CG_Event_FireBullet( origin, dir, parm, num, ent->team );
 			}
 		} break;
 
@@ -829,6 +827,22 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 				S_StartFixedSound( cgs.media.sfxWeaponNoAmmo, FromQF3( ent->origin ), CHAN_AUTO, 1.0f );
 			}
 			break;
+
+		case EV_ZOOM_IN:
+		case EV_ZOOM_OUT: {
+			if( parm >= Weapon_Count )
+				return;
+
+			const weaponinfo_t * weapon = cgs.weaponInfos[ parm ];
+			const SoundEffect * sfx = ev == EV_ZOOM_IN ? weapon->zoom_in_sound : weapon->zoom_out_sound;
+
+			if( viewer ) {
+				S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f );
+			}
+			else {
+				S_StartFixedSound( sfx, FromQF3( ent->origin ), CHAN_AUTO, 1.0f );
+			}
+		} break;
 
 		case EV_DASH:
 			CG_Event_Dash( ent, parm );

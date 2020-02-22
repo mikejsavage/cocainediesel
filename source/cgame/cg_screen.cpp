@@ -117,9 +117,6 @@ void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color ) {
 	Draw2DBox( x, y, w, h, cgs.media.shaderNet, color );
 }
 
-/*
-* CG_DrawCrosshair
-*/
 void CG_ScreenCrosshairDamageUpdate( void ) {
 	scr_damagetime = cls.monotonicTime;
 }
@@ -132,6 +129,9 @@ static Vec4 crosshair_color = vec4_white;
 static Vec4 crosshair_damage_color = vec4_red;
 
 void CG_DrawCrosshair() {
+	if( cg.predictedPlayerState.weapon == Weapon_Sniper && cg.predictedPlayerState.zoom_time > 0 )
+		return;
+
 	float s = 1.0f / 255.0f;
 
 	if( cg_crosshair_color->modified ) {
@@ -643,14 +643,15 @@ static void CG_SCRDrawViewBlend( void ) {
 	Draw2DBox( 0, 0, frame_static.viewport_width, frame_static.viewport_height, cgs.white_material, color );
 }
 
-
-//=======================================================
-
-/*
-* CG_DrawHUD
-*/
-void CG_DrawHUD() {
-	CG_ExecuteLayoutProgram( cg.statusBar );
+static void CG_DrawScope() {
+	if( cg.predictedPlayerState.weapon == Weapon_Sniper && cg.predictedPlayerState.zoom_time > 0 ) {
+		PipelineState pipeline;
+		pipeline.pass = frame_static.ui_pass;
+		pipeline.shader = &shaders.scope;
+		pipeline.blend_func = BlendFunc_Blend;
+		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+		DrawFullscreenMesh( pipeline );
+	}
 }
 
 /*
@@ -673,7 +674,8 @@ void CG_Draw2DView( void ) {
 		CG_DrawCenterString();
 	}
 
-	CG_DrawHUD();
+	CG_DrawScope();
+	CG_ExecuteLayoutProgram( cg.statusBar );
 	CG_DrawChat();
 }
 

@@ -22,17 +22,20 @@ const WeaponDef gs_weaponDefs[] = {
 		0, // reload time
 
 		//timings (in msecs)->
-		WEAPONUP_TIME_FAST,                  // weapon up time
+		WEAPONUP_TIME_FAST,             // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
 		500,                            // refire time
-		70,                             // projectile timeout  / projectile range for instant weapons
+		70,                             // projectile timeout / projectile range for instant weapons
 		0,                              // recoil
 		FiringMode_Auto,
+
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
 
 		//damages
 		25,                             // damage
 		0,                              // selfdamage ratio
-		0,                             // knockback
+		0,                              // knockback
 		0,                              // splash radius
 		0,                              // splash minimum damage
 		0,                              // splash minimum knockback
@@ -53,15 +56,18 @@ const WeaponDef gs_weaponDefs[] = {
 		1000, // reload time
 
 		//timings (in msecs)
-		WEAPONUP_TIME_FAST,                  // weapon up time
+		WEAPONUP_TIME_FAST,             // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		100,                             // refire time
-		6000,                           // projectile timeout
+		100,                            // refire time
+		HITSCAN_RANGE,                  // projectile timeout
 		2.5f,                           // recoil
 		FiringMode_SemiAuto,
 
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
 		//damages
-		12,                              // damage
+		12,                             // damage
 		0,                              // selfdamage ratio
 		20,                             // knockback
 		0,                              // splash radius
@@ -80,16 +86,19 @@ const WeaponDef gs_weaponDefs[] = {
 		100,
 
 		1,                              // projectiles fired each shot
-		30, // clip size
+		25, // clip size
 		1500, // reload time
 
 		//timings (in msecs)
-		WEAPONUP_TIME_NORMAL,                  // weapon up time
+		WEAPONUP_TIME_NORMAL,           // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
 		75,                             // refire time
-		6000,                           // projectile timeout
-		2.75f,                           // recoil
+		HITSCAN_RANGE,                  // projectile timeout
+		2.75f,                          // recoil
 		FiringMode_Auto,
+
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
 
 		//damages
 		10,                              // damage
@@ -115,15 +124,18 @@ const WeaponDef gs_weaponDefs[] = {
 		2000, // reload time
 
 		//timings (in msecs)
-		WEAPONUP_TIME_NORMAL,                  // weapon up time
+		WEAPONUP_TIME_NORMAL,           // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		400,                             // refire time
-		6000,                           // projectile timeout
-		25.0f,                           // recoil
+		400,                            // refire time
+		HITSCAN_RANGE,                  // projectile timeout
+		25.0f,                          // recoil
 		FiringMode_SemiAuto,
 
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
 		//damages
-		25,                              // damage
+		25,                             // damage
 		0,                              // selfdamage ratio
 		30,                             // knockback
 		0,                              // splash radius
@@ -146,12 +158,15 @@ const WeaponDef gs_weaponDefs[] = {
 		2250, // reload time
 
 		//timings (in msecs)
-		WEAPONUP_TIME_SLOW,                  // weapon up time
+		WEAPONUP_TIME_SLOW,             // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
 		1400,                           // refire time
-		8192,                           // projectile timeout / projectile range for instant weapons
-		25.0f,                              // recoil
+		HITSCAN_RANGE,                  // projectile timeout / projectile range for instant weapons
+		25.0f,                          // recoil
 		FiringMode_Auto,
+
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
 
 		//damages
 		2,                              // damage
@@ -177,19 +192,22 @@ const WeaponDef gs_weaponDefs[] = {
 		2000, // reload time
 
 		//timings (in msecs)
-		WEAPONUP_TIME_NORMAL,                  // weapon up time
+		WEAPONUP_TIME_NORMAL,           // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		1000,                            // refire time
+		1000,                           // refire time
 		2000,                           // projectile timeout
-		25.0f,                              // recoil
+		25.0f,                          // recoil
 		FiringMode_Auto,
+
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
 
 		//damages
 		40,                             // damage
 		0.75f,                          // selfdamage ratio
 		100,                            // knockback
 		120,                            // splash radius
-		10,                              // splash minimum damage
+		10,                             // splash minimum damage
 		50,                             // splash minimum knockback
 
 		//projectile def
@@ -208,19 +226,22 @@ const WeaponDef gs_weaponDefs[] = {
 		1500, // reload time
 
 		//timings (in msecs)
-		WEAPONUP_TIME_SLOW,                  // weapon up time
+		WEAPONUP_TIME_SLOW,             // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
 		1000,                           // refire time
 		10000,                          // projectile timeout
-		10.0f,                              // recoil
+		10.0f,                          // recoil
 		FiringMode_Auto,
+
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
 
 		//damages
 		45,                             // damage
 		0.75f,                          // selfdamage ratio
 		100,                            // knockback
 		120,                            // splash radius
-		10,                              // splash minimum damage
+		10,                             // splash minimum damage
 		50,                             // splash minimum knockback
 
 		//projectile def
@@ -239,16 +260,19 @@ const WeaponDef gs_weaponDefs[] = {
 		1500, // reload time
 
 		//timings (in msecs)
-		WEAPONUP_TIME_NORMAL,                  // weapon up time
+		WEAPONUP_TIME_NORMAL,           // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
 		100,                            // refire time
-		10000,                           // projectile timeout
-		1.5f,                              // recoil
+		10000,                          // projectile timeout
+		1.5f,                           // recoil
 		FiringMode_Auto,
+
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
 
 		//damages
 		8,                              // damage
-		0,                           // selfdamage ratio
+		0,                              // selfdamage ratio
 		22,                             // knockback
 		45,                             // splash radius
 		4,                              // splash minimum damage
@@ -270,12 +294,15 @@ const WeaponDef gs_weaponDefs[] = {
 		1000, // reload time
 
 		//timings (in msecs)
-		WEAPONUP_TIME_FAST,                  // weapon up time
+		WEAPONUP_TIME_FAST,             // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
 		50,                             // refire time
 		800,                            // projectile timeout / projectile range for instant weapons
 		0,                              // recoil
 		FiringMode_Smooth,
+
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
 
 		//damages
 		5,                              // damage
@@ -301,17 +328,20 @@ const WeaponDef gs_weaponDefs[] = {
 		2250, // reload time
 
 		//timings (in msecs)
-		WEAPONUP_TIME_SLOW,                  // weapon up time
+		WEAPONUP_TIME_SLOW,             // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
 		1000,                           // refire time
-		ELECTROBOLT_RANGE,              // range
-		15.0f,                              // recoil
+		HITSCAN_RANGE,                  // range
+		15.0f,                          // recoil
 		FiringMode_Auto,
+
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
 
 		//damages
 		40,                             // damage
 		0,                              // selfdamage ratio
-		100,                             // knockback
+		100,                            // knockback
 		0,                              // splash radius
 		0,                              // minimum damage
 		0,                              // minimum knockback
@@ -332,17 +362,20 @@ const WeaponDef gs_weaponDefs[] = {
 		2000, // reload time
 
 		//timings (in msecs)
-		WEAPONUP_TIME_VERY_SLOW,                  // weapon up time
+		WEAPONUP_TIME_VERY_SLOW,        // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		50,                           // refire time
-		ELECTROBOLT_RANGE,              // range
-		40.0f,                              // recoil
+		50,                             // refire time
+		HITSCAN_RANGE,                  // range
+		40.0f,                          // recoil
 		FiringMode_Auto,
+
+		40.0f,                          // zoom fov
+		30.0f,                          // !zoom inaccuracy
 
 		//damages
 		60,                             // damage
 		0,                              // selfdamage ratio
-		200,                             // knockback
+		100,                            // knockback
 		0,                              // splash radius
 		0,                              // minimum damage
 		0,                              // minimum knockback

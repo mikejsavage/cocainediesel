@@ -25,6 +25,8 @@ struct Shaders {
 	Shader outline;
 	Shader outline_skinned;
 
+	Shader scope;
+
 	Shader particle;
 
 	Shader skybox;

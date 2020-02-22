@@ -44,7 +44,6 @@ static Button button_walk;
 
 static Button button_attack;
 static Button button_reload;
-static Button button_zoom;
 
 static void ClearButton( Button * b ) {
 	b->keys[ 0 ] = 0;
@@ -126,12 +125,6 @@ static void IN_AttackDown() { KeyDown( &button_attack ); }
 static void IN_AttackUp() { KeyUp( &button_attack ); }
 static void IN_ReloadDown() { KeyDown( &button_reload ); }
 static void IN_ReloadUp() { KeyUp( &button_reload ); }
-static void IN_ZoomDown() {
-	if( cg.predictedPlayerState.pending_weapon == Weapon_Sniper || cg.predictedPlayerState.pending_weapon == Weapon_Railgun ) {
-		KeyDown( &button_zoom );
-	}
-}
-static void IN_ZoomUp() { KeyUp( &button_zoom ); }
 
 unsigned int CG_GetButtonBits() {
 	unsigned int buttons = 0;
@@ -149,10 +142,6 @@ unsigned int CG_GetButtonBits() {
 	if( button_reload.down || button_reload.edge ) {
 		buttons |= BUTTON_RELOAD;
 		button_reload.edge = false;
-	}
-
-	if( button_zoom.down ) {
-		buttons |= BUTTON_ZOOM;
 	}
 
 	if( button_walk.down ) {
@@ -173,7 +162,7 @@ bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize ) {
 	const char *bind;
 	int numKeys = 0;
 	char keyNames[2][32];
-	
+
 	for( key = 0; key < 256; key++ ) {
 		bind = Key_GetBindingBuf( key );
 		if( !bind || Q_stricmp( bind, cmd ) ) {
@@ -220,12 +209,12 @@ static cvar_t *m_sensCap;
 static Vec2 mouse_movement;
 
 float CG_GetSensitivityScale( float sens, float zoomSens ) {
-	if( !cgs.demoPlaying && sens && cg.predictedPlayerState.pmove.zoom_time > 0 ) {
+	if( !cgs.demoPlaying && sens && cg.predictedPlayerState.zoom_time > 0 ) {
 		if( zoomSens ) {
 			return zoomSens / sens;
 		}
 
-		return ZOOM_FOV / cg_fov->value;
+		return CG_CalcViewFov() / cg_fov->value;
 	}
 
 	return 1.0f;
@@ -301,7 +290,6 @@ void CG_ClearInputState() {
 	ClearButton( &button_walk );
 
 	ClearButton( &button_attack );
-	ClearButton( &button_zoom );
 
 	mouse_movement = Vec2( 0 );
 }
@@ -331,8 +319,6 @@ void CG_InitInput() {
 	Cmd_AddCommand( "-attack", IN_AttackUp );
 	Cmd_AddCommand( "+reload", IN_ReloadDown );
 	Cmd_AddCommand( "-reload", IN_ReloadUp );
-	Cmd_AddCommand( "+zoom", IN_ZoomDown );
-	Cmd_AddCommand( "-zoom", IN_ZoomUp );
 
 	// legacy command names
 	Cmd_AddCommand( "+moveleft", IN_LeftDown );
@@ -379,8 +365,6 @@ void CG_ShutdownInput() {
 	Cmd_RemoveCommand( "-attack" );
 	Cmd_RemoveCommand( "+reload" );
 	Cmd_RemoveCommand( "-reload" );
-	Cmd_RemoveCommand( "+zoom" );
-	Cmd_RemoveCommand( "-zoom" );
 
 	// legacy command names
 	Cmd_RemoveCommand( "+moveleft" );

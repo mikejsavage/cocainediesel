@@ -119,6 +119,9 @@ static void LoadShaders() {
 	BuildShaderSrcs( "glsl/outline.glsl", "#define SKINNED 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.outline_skinned, srcs.span(), lengths.span() );
 
+	BuildShaderSrcs( "glsl/scope.glsl", NULL, &srcs, &lengths );
+	ReplaceShader( &shaders.scope, srcs.span(), lengths.span() );
+
 	BuildShaderSrcs( "glsl/particle.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.particle, srcs.span(), lengths.span() );
 

@@ -28,8 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define BUTTON_ATTACK               1
 #define BUTTON_WALK                 2
 #define BUTTON_SPECIAL              4
-#define BUTTON_ZOOM                 8
-#define BUTTON_RELOAD               16
+#define BUTTON_RELOAD               8
 
 enum {
 	KEYICON_FORWARD = 0,

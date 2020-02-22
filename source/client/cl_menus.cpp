@@ -262,14 +262,13 @@ static void CvarTeamColorCombo( const char * label, const char * cvar_name, int 
 
 static void SettingsGeneral() {
 	TempAllocator temp = cls.frame_arena.temp();
-	
+
 	CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
 	CvarSliderInt( "FOV", "fov", MIN_FOV, MAX_FOV, temp( "{}", MIN_FOV ), CVAR_ARCHIVE );
 	CvarTeamColorCombo( "Ally color", "cg_allyColor", 0 );
 	CvarTeamColorCombo( "Enemy color", "cg_enemyColor", 1 );
 	CvarCheckbox( "Show FPS", "cg_showFPS", "0", CVAR_ARCHIVE );
 }
-
 
 static void SettingsControls() {
 	TempAllocator temp = cls.frame_arena.temp();
@@ -287,7 +286,7 @@ static void SettingsControls() {
 			KeyBindButton( "Left", "+left" );
 			KeyBindButton( "Right", "+right" );
 			KeyBindButton( "Jump", "+jump" );
-			KeyBindButton( "Dash/walljump", "+special" );
+			KeyBindButton( "Dash/walljump/zoom", "+special" );
 			KeyBindButton( "Crouch", "+crouch" );
 			KeyBindButton( "Walk", "+walk" );
 
@@ -297,7 +296,6 @@ static void SettingsControls() {
 
 			KeyBindButton( "Attack", "+attack" );
 			KeyBindButton( "Reload", "+reload" );
-			KeyBindButton( "Zoom", "+zoom" );
 			KeyBindButton( "Drop bomb", "drop" );
 			KeyBindButton( "Shop", "gametypemenu" );
 			KeyBindButton( "Scoreboard", "+scores" );

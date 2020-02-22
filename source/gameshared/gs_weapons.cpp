@@ -86,6 +86,7 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 		player->pending_weapon = Weapon_Count;
 		player->weapon = Weapon_Count;
 		player->weapon_time = 0;
+		player->zoom_time = 0;
 		return player->weapon;
 	}
 
@@ -100,6 +101,24 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 	player->weapon_time = Max2( 0, player->weapon_time - msecs );
 
 	const WeaponDef * def = GS_GetWeaponDef( player->weapon );
+
+	s16 last_zoom_time = player->zoom_time;
+	bool can_zoom = player->weapon_state == WeaponState_Ready
+		|| player->weapon_state == WeaponState_Firing
+		|| player->weapon_state == WeaponState_FiringSemiAuto;
+
+	if( can_zoom && def->zoom_fov != 0 && ( buttons & BUTTON_SPECIAL ) != 0 ) {
+		player->zoom_time = Min2( player->zoom_time + msecs, ZOOMTIME );
+		if( last_zoom_time == 0 ) {
+			gs->api.PredictedEvent( player->POVnum, EV_ZOOM_IN, player->weapon );
+		}
+	}
+	else {
+		player->zoom_time = Max2( 0, player->zoom_time - msecs );
+		if( player->zoom_time == 0 && last_zoom_time != 0 ) {
+			gs->api.PredictedEvent( player->POVnum, EV_ZOOM_OUT, player->weapon );
+		}
+	}
 
 	if( player->weapon_state == WeaponState_FiringSemiAuto ) {
 		if( ( buttons & BUTTON_ATTACK ) == 0 ) {

@@ -902,10 +902,9 @@ void G_PredictedFireWeapon( int entNum, WeaponType weapon ) {
 	VectorCopy( ent->s.origin, start );
 	start[ 2 ] += ent->r.client->ps.viewheight;
 
-	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, 0, start );
+	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, weapon, start );
 	event->s.ownerNum = entNum;
 	VectorCopy( ent->r.client->ps.viewangles, event->s.origin2 ); // DirToByte is too inaccurate
-	event->s.weapon = weapon;
 	event->s.team = ent->s.team;
 }
 

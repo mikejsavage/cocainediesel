@@ -174,10 +174,6 @@ static int CG_Paused( const void *parameter ) {
 	return GS_MatchPaused( &client_gs );
 }
 
-static int CG_GetZoom( const void *parameter ) {
-	return !cg.view.thirdperson && cg.predictedPlayerState.pmove.zoom_time != 0;
-}
-
 static int CG_GetVidWidth( const void *parameter ) {
 	return frame_static.viewport_width;
 }
@@ -253,7 +249,6 @@ static const reference_numeric_t cg_numeric_references[] = {
 	{ "MATCH_STATE", CG_GetMatchState, NULL },
 	{ "MATCH_DURATION", CG_GetMatchDuration, NULL },
 	{ "PAUSED", CG_Paused, NULL },
-	{ "ZOOM", CG_GetZoom, NULL },
 	{ "VIDWIDTH", CG_GetVidWidth, NULL },
 	{ "VIDHEIGHT", CG_GetVidHeight, NULL },
 	{ "SCOREBOARD", CG_GetScoreboardShown, NULL },
@@ -1268,11 +1263,11 @@ static void CG_DrawObituaries(
 			case MOD_PLASMA:
 				pic = CG_GetWeaponIcon( Weapon_Plasma );
 				break;
-			case MOD_ELECTROBOLT:
-				pic = CG_GetWeaponIcon( Weapon_Railgun );
-				break;
 			case MOD_LASERGUN:
 				pic = CG_GetWeaponIcon( Weapon_Laser );
+				break;
+			case MOD_ELECTROBOLT:
+				pic = CG_GetWeaponIcon( Weapon_Railgun );
 				break;
 			case MOD_SNIPER:
 				pic = CG_GetWeaponIcon( Weapon_Sniper );

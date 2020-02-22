@@ -756,7 +756,6 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 	Delta( buf, pmove.no_control_time, baseline.no_control_time );
 	Delta( buf, pmove.knockback_time, baseline.knockback_time );
 	Delta( buf, pmove.crouch_time, baseline.crouch_time );
-	Delta( buf, pmove.zoom_time, baseline.zoom_time );
 	Delta( buf, pmove.dash_time, baseline.dash_time );
 	Delta( buf, pmove.walljump_time, baseline.walljump_time );
 
@@ -804,6 +803,7 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 	Delta( buf, player.weapon, baseline.weapon );
 	Delta( buf, player.pending_weapon, baseline.pending_weapon );
 	Delta( buf, player.weapon_time, baseline.weapon_time );
+	Delta( buf, player.zoom_time, baseline.zoom_time );
 
 	Delta( buf, player.team, baseline.team );
 	Delta( buf, player.real_team, baseline.real_team );

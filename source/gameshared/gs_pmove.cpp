@@ -1225,19 +1225,6 @@ static void PM_FlyMove( bool doclip ) {
 	}
 }
 
-static void PM_CheckZoom( void ) {
-	if( pm->playerState->pmove.pm_type != PM_NORMAL ) {
-		pm->playerState->pmove.zoom_time = 0;
-		return;
-	}
-
-	if( ( pm->cmd.buttons & BUTTON_ZOOM ) && ( pm->playerState->pmove.features & PMFEAT_ZOOM ) ) {
-		pm->playerState->pmove.zoom_time = Clamp( 0, pm->playerState->pmove.zoom_time + pm->cmd.msec, ZOOMTIME );
-	} else if( pm->playerState->pmove.zoom_time > 0 ) {
-		pm->playerState->pmove.zoom_time = Max2( 0, pm->playerState->pmove.zoom_time - pm->cmd.msec );
-	}
-}
-
 /*
 * PM_AdjustBBox
 *
@@ -1507,7 +1494,6 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 		pmove.walljump_time = Max2( 0, pmove.walljump_time - pm->cmd.msec );
 		pmove.tbag_time = Max2( 0, pmove.tbag_time - pm->cmd.msec );
 		// crouch_time is handled at PM_AdjustBBox
-		// zoom_time is handled at PM_CheckZoom
 	}
 
 	pml.forwardPush = pm->cmd.forwardmove * SPEEDKEY / 127.0f;
@@ -1530,7 +1516,6 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 			pm->playerState->pmove.knockback_time = 0;
 			pm->playerState->pmove.crouch_time = 0;
 			pm->playerState->pmove.tbag_time = 0;
-			pm->playerState->pmove.zoom_time = 0;
 			pm->playerState->pmove.pm_flags &= ~( PMF_JUMPPAD_TIME | PMF_DOUBLEJUMPED | PMF_TIME_WATERJUMP | PMF_TIME_LAND | PMF_TIME_TELEPORT | PMF_SPECIAL_HELD );
 
 			PM_AdjustBBox();
@@ -1554,8 +1539,6 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 	// set mins, maxs, viewheight amd fov
 	PM_AdjustBBox();
-
-	PM_CheckZoom();
 
 	// set groundentity, watertype, and waterlevel
 	PM_CategorizePosition();
@@ -1581,9 +1564,10 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 		// Keep this order !
 		PM_CheckJump();
 
-		PM_CheckDash();
-
-		PM_CheckWallJump();
+		if( pm->playerState->weapon == Weapon_Count || !GS_GetWeaponDef( pm->playerState->weapon )->zoom_fov != 0 ) {
+			PM_CheckDash();
+			PM_CheckWallJump();
+		}
 
 		PM_Friction();
 

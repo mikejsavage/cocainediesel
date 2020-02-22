@@ -332,7 +332,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->s.team = client->team;
 
 	self->deadflag = DEAD_NO;
-	self->s.type = ET_PLAYER;
 	self->groundentity = NULL;
 	self->takedamage = DAMAGE_AIM;
 	self->die = player_die;
@@ -368,9 +367,11 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	client->ps.pmove.dash_speed = DEFAULT_DASHSPEED;
 
 	if( ghost ) {
+		self->s.type = ET_GHOST;
 		self->r.solid = SOLID_NOT;
 		self->movetype = MOVETYPE_NOCLIP;
 	} else {
+		self->s.type = ET_PLAYER;
 		self->r.solid = SOLID_YES;
 		self->movetype = MOVETYPE_PLAYER;
 		client->ps.pmove.features = PMFEAT_DEFAULT;

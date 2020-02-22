@@ -475,7 +475,6 @@ static void G_RunClients( void ) {
 * G_RunFrame
 * Advances the world
 */
-void G_Aasdf();
 void G_RunFrame( unsigned int msec ) {
 	G_CheckCvars();
 

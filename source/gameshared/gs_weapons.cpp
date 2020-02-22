@@ -123,7 +123,7 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 
 	// there is a weapon to be changed
 	if( player->weapon != player->pending_weapon ) {
-		if( player->weapon_state == WeaponState_Ready || player->weapon_state == WeaponState_SwitchingIn || player->weapon_state == WeaponState_Reloading ) {
+		if( player->weapon_state == WeaponState_Ready || player->weapon_state == WeaponState_SwitchingIn || player->weapon_state == WeaponState_Reloading || ( player->weapon_state == WeaponState_FiringSemiAuto && player->weapon_time == 0 ) ) {
 			player->weapon_state = WeaponState_SwitchingOut;
 			player->weapon_time = def->weapondown_time;
 			gs->api.PredictedEvent( player->POVnum, EV_WEAPONDROP, 0 );

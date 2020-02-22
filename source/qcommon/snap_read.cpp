@@ -235,12 +235,8 @@ static void SNAP_ParsePacketEntities( msg_t *msg, snapshot_t *oldframe, snapshot
 * SNAP_ParseFrameHeader
 */
 static snapshot_t *SNAP_ParseFrameHeader( msg_t *msg, snapshot_t *newframe, snapshot_t *backup ) {
-	int pos;
 	int64_t serverTime;
 	int flags, snapNum;
-
-	// get total length
-	pos = msg->readcount;
 
 	// get the snapshot id
 	serverTime = MSG_ReadIntBase128( msg );

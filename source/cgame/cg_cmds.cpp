@@ -303,6 +303,9 @@ static void CG_SC_DemoGet( void ) {
 }
 
 static void CG_SC_ChangeLoadout() {
+	if( cgs.demoPlaying )
+		return;
+
 	int weapons[ Weapon_Count ] = { };
 	size_t n = 0;
 

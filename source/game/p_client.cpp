@@ -1140,19 +1140,7 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 	if( trap_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
 		// if the spawnsystem doesn't require to click
 		if( G_SpawnQueue_GetSystem( ent->s.team ) != SPAWNSYSTEM_INSTANT ) {
-			int minDelay = g_respawn_delay_min->integer;
-
-			// waves system must wait for at least 500 msecs (to see the death, but very short for selfkilling tactics).
-			if( G_SpawnQueue_GetSystem( ent->s.team ) == SPAWNSYSTEM_WAVES ) {
-				minDelay = ( g_respawn_delay_min->integer < 500 ) ? 500 : g_respawn_delay_min->integer;
-			}
-
-			// hold system must wait for at least 1000 msecs (to see the death properly)
-			if( G_SpawnQueue_GetSystem( ent->s.team ) == SPAWNSYSTEM_HOLD ) {
-				minDelay = ( g_respawn_delay_min->integer < 1300 ) ? 1300 : g_respawn_delay_min->integer;
-			}
-
-			if( level.time >= ent->deathTimeStamp + minDelay ) {
+			if( level.time >= ent->deathTimeStamp + 3000 ) {
 				G_SpawnQueue_AddClient( ent );
 			}
 		}
@@ -1163,7 +1151,7 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 			}
 		}
 		// didn't click, but too much time passed
-		else if( g_respawn_delay_max->integer && ( level.time > ent->deathTimeStamp + g_respawn_delay_max->integer ) ) {
+		else if( g_respawn_delay_max->integer && level.time > ent->deathTimeStamp + g_respawn_delay_max->integer ) {
 			G_SpawnQueue_AddClient( ent );
 		}
 	}

@@ -34,24 +34,12 @@ server_t sv;                 // local server
 * baseline will be transmitted
 */
 static void SV_CreateBaseline( void ) {
-	edict_t *svent;
-	int entnum;
-
-	for( entnum = 1; entnum < sv.gi.num_edicts; entnum++ ) {
-		svent = EDICT_NUM( entnum );
-
+	for( int entnum = 1; entnum < sv.gi.num_edicts; entnum++ ) {
+		edict_t * svent = EDICT_NUM( entnum );
 		if( !svent->r.inuse ) {
 			continue;
 		}
-		if( svent->s.model == EMPTY_HASH && svent->s.sound == EMPTY_HASH && !svent->s.effects ) {
-			continue;
-		}
 
-		svent->s.number = entnum;
-
-		//
-		// take current state as baseline
-		//
 		sv.baselines[entnum] = svent->s;
 	}
 }

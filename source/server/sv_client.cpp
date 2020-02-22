@@ -365,7 +365,7 @@ static void SV_Baselines_f( client_t *client ) {
 
 	while( tmpMessage.cursize < FRAGMENT_SIZE * 3 && start < MAX_EDICTS ) {
 		base = &sv.baselines[start];
-		if( base->model != EMPTY_HASH || base->sound != EMPTY_HASH || base->effects ) {
+		if( base->number != 0 ) {
 			MSG_WriteUint8( &tmpMessage, svc_spawnbaseline );
 			MSG_WriteDeltaEntity( &tmpMessage, &nullstate, base, true );
 		}

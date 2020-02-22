@@ -119,7 +119,8 @@ void CG_BuildSolidList( void ) {
 				case ET_SPIKES:
 					break;
 
-				case ET_PUSH_TRIGGER:
+				case ET_JUMPPAD:
+				case ET_PAINKILLER_JUMPPAD:
 					cg_triggersList[cg_numTriggers++] = &cg_entities[ ent->number ].current;
 					break;
 
@@ -181,18 +182,15 @@ static bool CG_ClipEntityContact( const vec3_t origin, const vec3_t mins, const 
 * CG_Predict_TouchTriggers
 */
 void CG_Predict_TouchTriggers( pmove_t *pm, vec3_t previous_origin ) {
-	int i;
-	SyncEntityState *state;
-
 	// fixme: more accurate check for being able to touch or not
 	if( pm->playerState->pmove.pm_type != PM_NORMAL ) {
 		return;
 	}
 
-	for( i = 0; i < cg_numTriggers; i++ ) {
-		state = cg_triggersList[i];
+	for( int i = 0; i < cg_numTriggers; i++ ) {
+		const SyncEntityState * state = cg_triggersList[i];
 
-		if( state->type == ET_PUSH_TRIGGER ) {
+		if( state->type == ET_JUMPPAD || state->type == ET_PAINKILLER_JUMPPAD ) {
 			if( !cg_triggersListTriggered[i] ) {
 				if( CG_ClipEntityContact( pm->playerState->pmove.origin, pm->mins, pm->maxs, state->number ) ) {
 					GS_TouchPushTrigger( &client_gs, pm->playerState, state );

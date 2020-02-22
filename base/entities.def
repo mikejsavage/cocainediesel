@@ -242,16 +242,18 @@ Automatic trigger. It will fire the entities it targets as soon as it spawns in 
 target : fire entities with this targetname.
 */
 
-/*QUAKED trigger_push (.5 .5 .5) ? PUSH_ONCE
-This is used to create jump pads and launch ramps. It MUST point to a target_position or info_notnull entity to work.
+/*QUAKED trigger_push (.5 .5 .5) ? PAINKILLER
+Jumppad trigger brush.
 -------- KEYS --------
 target : this points to the target_position to which the player will jump.
 noise : override default noise ("silent" doesn't make any noise)
 wait : time before it can be triggered again.
 -------- SPAWNFLAGS --------
-PUSH_ONCE : &1 only push when touched the first time
+PAINKILLER : &1 player keeps sideways momentum
 -------- NOTES --------
-To make a jump pad or launch ramp, place the target_position/info_notnull entity at the highest point of the jump and target it with this entity.
+To make a jump pad or launch ramp, place the target_position entity at the highest point of the jump and target it with this entity.
+
+If the target is horizontally aligned with the trigger the player's velocity will be set to reach the target after one second.
 */
 
 /*QUAKED trigger_multiple (.5 .5 .5) ? MONSTER NOT_PLAYER TRIGGERED

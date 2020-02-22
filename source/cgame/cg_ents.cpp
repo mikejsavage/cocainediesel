@@ -846,7 +846,8 @@ void CG_AddEntities( void ) {
 			case ET_LASERBEAM:
 				break;
 
-			case ET_PUSH_TRIGGER:
+			case ET_JUMPPAD:
+			case ET_PAINKILLER_JUMPPAD:
 				CG_EntityLoopSound( cent, state );
 				break;
 
@@ -916,7 +917,8 @@ void CG_LerpEntities( void ) {
 				CG_LerpLaserbeamEnt( cent );
 				break;
 
-			case ET_PUSH_TRIGGER:
+			case ET_JUMPPAD:
+			case ET_PAINKILLER_JUMPPAD:
 				break;
 
 			case ET_EVENT:
@@ -986,7 +988,8 @@ void CG_UpdateEntities( void ) {
 				CG_UpdateLaserbeamEnt( cent );
 				break;
 
-			case ET_PUSH_TRIGGER:
+			case ET_JUMPPAD:
+			case ET_PAINKILLER_JUMPPAD:
 				break;
 
 			case ET_EVENT:

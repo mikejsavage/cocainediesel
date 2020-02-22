@@ -18,22 +18,34 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "gameshared/q_arch.h"
-#include "gameshared/q_math.h"
-#include "gameshared/q_shared.h"
-#include "gameshared/q_collision.h"
-#include "gameshared/gs_public.h"
+#include "qcommon/qcommon.h"
 
-/*
-* GS_TouchPushTrigger
-*/
-void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState *playerState, SyncEntityState *pusher ) {
+void GS_EvaluateJumppad( const SyncEntityState * jumppad, vec3_t velocity ) {
+	if( jumppad->type == ET_PAINKILLER_JUMPPAD ) {
+		Vec3 v = FromQF3( velocity );
+		Vec3 p = FromQF3( jumppad->origin2 );
+
+		Vec3 v_par = Project( v, p );
+		Vec3 v_per = v - v_par;
+
+		Vec3 new_v = v_per + p;
+
+		velocity[ 0 ] = new_v.x;
+		velocity[ 1 ] = new_v.y;
+		velocity[ 2 ] = new_v.z;
+	}
+	else {
+		VectorCopy( jumppad->origin2, velocity );
+	}
+}
+
+void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, const SyncEntityState * pusher ) {
 	// spectators don't use jump pads
 	if( playerState->pmove.pm_type != PM_NORMAL ) {
 		return;
 	}
 
-	VectorCopy( pusher->origin2, playerState->pmove.velocity );
+	GS_EvaluateJumppad( pusher, playerState->pmove.velocity );
 
 	// reset walljump counter
 	playerState->pmove.pm_flags &= ~PMF_WALLJUMPCOUNT;

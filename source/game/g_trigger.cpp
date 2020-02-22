@@ -167,26 +167,18 @@ void SP_trigger_always( edict_t *ent ) {
 //==============================================================================
 
 static void G_JumpPadSound( edict_t *ent ) {
-	vec3_t org;
-	edict_t *sound;
-
 	if( ent->moveinfo.sound_start == EMPTY_HASH ) {
 		return;
 	}
 
+	vec3_t org;
 	org[0] = ent->s.origin[0] + 0.5 * ( ent->r.mins[0] + ent->r.maxs[0] );
 	org[1] = ent->s.origin[1] + 0.5 * ( ent->r.mins[1] + ent->r.maxs[1] );
 	org[2] = ent->s.origin[2] + 0.5 * ( ent->r.mins[2] + ent->r.maxs[2] );
 
-	sound = G_PositionedSound( org, CHAN_AUTO, ent->moveinfo.sound_start );
-	if( sound && sound->r.areanum < 0 ) {
-		// HACK: jumppad sounds may get trapped inside solid or go outside level bounds and get culled
-		// so forcefully place them into legal space
-		sound->r.areanum = ent->r.areanum < 0 ? ent->r.areanum2 : ent->r.areanum;
-	}
+	G_PositionedSound( org, CHAN_AUTO, ent->moveinfo.sound_start );
 }
 
-#define PUSH_ONCE   1
 #define MIN_TRIGGER_PUSH_REBOUNCE_TIME 100
 
 static void trigger_push_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
@@ -201,63 +193,46 @@ static void trigger_push_touch( edict_t *self, edict_t *other, cplane_t *plane, 
 	// add an event
 	if( other->r.client ) {
 		GS_TouchPushTrigger( &server_gs, &other->r.client->ps, &self->s );
-	} else {
+	}
+	else {
 		// pushing of non-clients
 		if( other->movetype != MOVETYPE_BOUNCEGRENADE ) {
 			return;
 		}
 
-		VectorCopy( self->s.origin2, other->velocity );
+		GS_EvaluateJumppad( &self->s, other->velocity );
 	}
 
-	// game timers for fall damage
 	G_JumpPadSound( self ); // play jump pad sound
-
-	// self removal
-	if( self->spawnflags & PUSH_ONCE ) {
-		self->touch = NULL;
-		self->nextThink = level.time + 1;
-		self->think = G_FreeEdict;
-	}
 }
 
 static void trigger_push_setup( edict_t *self ) {
-	vec3_t origin, velocity;
-	float height, time;
-	float dist;
-	edict_t *target;
-
-	if( !self->target ) {
-		vec3_t movedir;
-
-		G_SetMovedir( self->s.angles, movedir );
-		VectorScale( movedir, ( self->speed ? self->speed : 1000 ) * 10, self->s.origin2 );
-		return;
-	}
-
-	target = G_PickTarget( self->target );
-	if( !target ) {
+	edict_t * target = G_PickTarget( self->target );
+	self->target_ent = target;
+	if( target == NULL ) {
 		G_FreeEdict( self );
 		return;
 	}
-	self->target_ent = target;
 
+	vec3_t origin;
 	VectorAdd( self->r.absmin, self->r.absmax, origin );
 	VectorScale( origin, 0.5, origin );
 
-	height = target->s.origin[2] - origin[2];
-	time = sqrtf( height / ( 0.5f * level.gravity ) );
-	if( !time ) {
-		G_FreeEdict( self );
-		return;
-	}
-
+	vec3_t velocity;
 	VectorSubtract( target->s.origin, origin, velocity );
-	velocity[2] = 0;
-	dist = VectorNormalize( velocity );
-	VectorScale( velocity, dist / time, velocity );
-	velocity[2] = time * level.gravity;
-	VectorCopy( velocity, self->s.origin2 );
+
+	float height = target->s.origin[2] - origin[2];
+	float time = sqrtf( height / ( 0.5f * level.gravity ) );
+	if( time != 0 ) {
+		velocity[2] = 0;
+		float dist = VectorNormalize( velocity );
+		VectorScale( velocity, dist / time, velocity );
+		velocity[2] = time * level.gravity;
+		VectorCopy( velocity, self->s.origin2 );
+	}
+	else {
+		VectorCopy( velocity, self->s.origin2 );
+	}
 }
 
 void SP_trigger_push( edict_t *self ) {
@@ -276,8 +251,8 @@ void SP_trigger_push( edict_t *self ) {
 	self->think = trigger_push_setup;
 	self->nextThink = level.time + 1;
 	self->r.svflags &= ~SVF_NOCLIENT;
-	self->s.type = ET_PUSH_TRIGGER;
-	GClip_LinkEntity( self ); // ET_PUSH_TRIGGER gets exceptions at linking so it's added for prediction
+	self->s.type = ( self->spawnflags & 1 ) ? ET_PAINKILLER_JUMPPAD : ET_JUMPPAD;
+	GClip_LinkEntity( self );
 	self->timeStamp = level.time;
 	if( !self->wait ) {
 		self->wait = MIN_TRIGGER_PUSH_REBOUNCE_TIME * 0.001f;

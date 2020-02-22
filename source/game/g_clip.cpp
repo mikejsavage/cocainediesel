@@ -511,8 +511,8 @@ void GClip_LinkEntity( edict_t *ent ) {
 	if( ent->r.solid == SOLID_NOT || ( ent->r.svflags & SVF_PROJECTILE ) ) {
 		ent->s.solid = 0;
 	} else if( CM_IsBrushModel( CM_Server, ent->s.model ) ) {
-		// the only predicted SOLID_TRIGGER entity is ET_PUSH_TRIGGER
-		if( ent->r.solid != SOLID_TRIGGER || ent->s.type == ET_PUSH_TRIGGER ) {
+		// the only predicted SOLID_TRIGGER entity is jumppads
+		if( ent->r.solid != SOLID_TRIGGER || ent->s.type == ET_JUMPPAD || ent->s.type == ET_PAINKILLER_JUMPPAD ) {
 			ent->s.solid = SOLID_BMODEL;
 		} else {
 			ent->s.solid = 0;

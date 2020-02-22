@@ -513,7 +513,8 @@ int GS_TeamFromName( const char *teamname );
 
 // gs_misc.c
 void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *message2 );
-void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState *playerState, SyncEntityState *pusher );
+void GS_EvaluateJumppad( const SyncEntityState * jumppad, vec3_t velocity );
+void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, const SyncEntityState * pusher );
 int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, vec3_t mins, vec3_t maxs );
 
 //===============================================================
@@ -722,7 +723,8 @@ enum {
 	ET_PLAYER,
 	ET_CORPSE,
 	ET_GHOST,
-	ET_PUSH_TRIGGER,
+	ET_JUMPPAD,
+	ET_PAINKILLER_JUMPPAD,
 
 	ET_ROCKET,      // redlight + trail
 	ET_GRENADE,

@@ -125,7 +125,6 @@ typedef struct {
 	int64_t spawnedTimeStamp; // time when map was restarted
 	int64_t finalMatchDuration;
 
-	char mapname[MAX_CONFIGSTRING_CHARS];
 	char callvote_map[MAX_CONFIGSTRING_CHARS];
 	char autorecord_name[128];
 
@@ -672,8 +671,8 @@ void G_SnapFrame( void );
 bool G_CallSpawn( edict_t *ent );
 void G_RespawnLevel( void );
 void G_ResetLevel( void );
-void G_InitLevel( const char *mapname, const char *entities, int entstrlen, int64_t levelTime );
-void G_ChangeLevel( const char * name );
+void G_InitLevel( const char *mapname, int64_t levelTime );
+void G_LoadMap( const char * name );
 
 //
 // g_awards.c

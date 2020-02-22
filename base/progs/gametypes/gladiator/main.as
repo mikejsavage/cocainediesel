@@ -56,7 +56,7 @@ const String[] maps = {
 Entity @ last_spawn;
 
 void PickRandomArena() {
-	G_ChangeLevel( maps[ random_uniform( 0, maps.size() ) ] );
+	G_LoadMap( maps[ random_uniform( 0, maps.size() ) ] );
 	@last_spawn = null;
 }
 

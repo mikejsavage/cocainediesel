@@ -96,7 +96,7 @@ typedef struct {
 	void ( *Shutdown )( void );
 
 	// each new level entered will cause a call to SpawnEntities
-	void ( *InitLevel )( const char *mapname, const char *entities, int entstrlen, int64_t levelTime );
+	void ( *InitLevel )( const char *mapname, int64_t levelTime );
 
 	bool ( *ClientConnect )( edict_t *ent, char *userinfo, bool fakeClient );
 	void ( *ClientBegin )( edict_t *ent );

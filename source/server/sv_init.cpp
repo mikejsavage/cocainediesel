@@ -91,7 +91,7 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 
 	sv.nextSnapTime = 1000;
 
-	G_ChangeLevel( mapname );
+	G_LoadMap( mapname );
 
 	// set serverinfo variable
 	Cvar_FullSet( "mapname", sv.mapname, CVAR_SERVERINFO | CVAR_READONLY, true );
@@ -106,7 +106,7 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 	Com_SetServerState( sv.state );
 
 	// load and spawn all other entities
-	ge->InitLevel( sv.mapname, CM_EntityString( svs.cms ), CM_EntityStringLen( svs.cms ), 0 );
+	ge->InitLevel( sv.mapname, 0 );
 
 	// run two frames to allow everything to settle
 	ge->RunFrame( svc.snapFrameTime );

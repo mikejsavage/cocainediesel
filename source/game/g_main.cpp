@@ -306,7 +306,7 @@ static void G_UpdateMapRotation( void ) {
 			} else if( thiswhitespace && !lastwhitespace && !found && start ) {
 				found = true;
 				for( i = 0; start + i < p; i++ ) {
-					if( tolower( start[i] ) != tolower( level.mapname[i] ) ) {
+					if( tolower( start[i] ) != tolower( sv.mapname[i] ) ) {
 						found = false;
 					}
 				}
@@ -376,11 +376,11 @@ static const char *G_NextMap( void ) {
 
 	if( !( *g_maplist->string ) || g_maplist->string[0] == '\0' || g_maprotation->integer == 0 ) {
 		// same map again
-		return level.mapname;
+		return sv.mapname;
 	}
 
 	const char *next = G_MapRotationNormal();
-	return next ? next : level.mapname;
+	return next ? next : sv.mapname;
 }
 
 /*
@@ -394,7 +394,7 @@ void G_ExitLevel( void ) {
 	const char *nextmapname = G_NextMap();
 
 	// if it's the same map see if we can restart without loading
-	if( !level.hardReset && !Q_stricmp( nextmapname, level.mapname ) ) {
+	if( !level.hardReset && !Q_stricmp( nextmapname, sv.mapname ) ) {
 		G_RespawnLevel();
 		loadmap = false;
 	}

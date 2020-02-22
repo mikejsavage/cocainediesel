@@ -154,7 +154,7 @@ static bool G_VoteMapValidate( callvotedata_t *data, bool first ) {
 	Q_strncpyz( mapname, data->argv[0], sizeof( mapname ) );
 	COM_SanitizeFilePath( mapname );
 
-	if( !Q_stricmp( level.mapname, mapname ) ) {
+	if( !Q_stricmp( sv.mapname, mapname ) ) {
 		G_PrintMsg( data->caller, "%sYou are already on that map\n", S_COLOR_RED );
 		return false;
 	}
@@ -208,7 +208,7 @@ static void G_VoteMapPassed( callvotedata_t *vote ) {
 }
 
 static const char *G_VoteMapCurrent( void ) {
-	return level.mapname;
+	return sv.mapname;
 }
 
 /*

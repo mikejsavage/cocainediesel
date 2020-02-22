@@ -1680,8 +1680,8 @@ static edict_t *asFunc_G_Find( edict_t * last, asstring_t * str ) {
 }
 
 void G_Aasdf(); // TODO
-static void asFunc_G_ChangeLevel( asstring_t *str ) {
-	G_ChangeLevel( str->buffer );
+static void asFunc_G_LoadMap( asstring_t *str ) {
+	G_LoadMap( str->buffer );
 	G_Aasdf();
 }
 
@@ -1779,7 +1779,7 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "array<Entity @> @G_FindByClassname( const String &in )", asFUNCTION( asFunc_G_FindByClassname ), NULL },
 	{ "Entity @G_Find( Entity @last, const String &in )", asFUNCTION( asFunc_G_Find ), NULL },
 
-	{ "void G_ChangeLevel( const String &name )", asFUNCTION( asFunc_G_ChangeLevel ), NULL },
+	{ "void G_LoadMap( const String &name )", asFUNCTION( asFunc_G_LoadMap ), NULL },
 
 	{ "int WeaponCost( WeaponType )", asFUNCTION( asFunc_WeaponCost ), NULL },
 

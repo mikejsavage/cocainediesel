@@ -521,7 +521,7 @@ static void G_SpawnEntities( void ) {
 * Creates a server's entity / program execution context by
 * parsing textual entity definitions out of an ent file.
 */
-void G_InitLevel( const char *mapname, const char *entities, int entstrlen, int64_t levelTime ) {
+void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	TempAllocator temp = svs.frame_arena.temp();
 
 	G_asGarbageCollect( true );
@@ -532,10 +532,6 @@ void G_InitLevel( const char *mapname, const char *entities, int entstrlen, int6
 
 	GClip_ClearWorld(); // clear areas links
 
-	if( !entities ) {
-		Com_Error( ERR_DROP, "G_SpawnLevel: NULL entities string\n" );
-	}
-
 	memset( &level, 0, sizeof( level_locals_t ) );
 	memset( &server_gs.gameState, 0, sizeof( server_gs.gameState ) );
 
@@ -543,23 +539,18 @@ void G_InitLevel( const char *mapname, const char *entities, int entstrlen, int6
 	server_gs.gameState.map = StringHash( path );
 	server_gs.gameState.map_checksum = svs.cms->checksum;
 
-	// make a copy of the raw entities string so it's not freed in G_LevelInitPool
-	char * mapString = CopyString( &temp, entities );
-
 	// clear old data
-
+	int entstrlen = CM_EntityStringLen( svs.cms );
 	G_LevelInitPool( strlen( mapname ) + 1 + ( entstrlen + 1 ) * 2 + G_LEVELPOOL_BASE_SIZE );
-
 	G_StringPoolInit();
 
 	level.time = levelTime;
 	level.gravity = g_gravity->value;
 
 	// get the strings back
-	Q_strncpyz( level.mapname, mapname, sizeof( level.mapname ) );
 	level.mapString = ( char * )G_LevelMalloc( entstrlen + 1 );
 	level.mapStrlen = entstrlen;
-	strcpy( level.mapString, mapString );
+	strcpy( level.mapString, CM_EntityString( svs.cms ) );
 
 	// make a copy of the raw entities string for parsing
 	level.map_parsed_ents = ( char * )G_LevelMalloc( entstrlen + 1 );
@@ -612,11 +603,11 @@ void G_ResetLevel( void ) {
 	GT_asCallSpawn();
 }
 
-void G_RespawnLevel( void ) {
-	G_InitLevel( level.mapname, level.mapString, level.mapStrlen, level.time );
+void G_RespawnLevel() {
+	G_InitLevel( sv.mapname, level.time );
 }
 
-void G_ChangeLevel( const char * name ) {
+void G_LoadMap( const char * name ) {
 	TempAllocator temp = svs.frame_arena.temp();
 
 	if( svs.cms != NULL ) {
@@ -648,13 +639,13 @@ void G_ChangeLevel( const char * name ) {
 	server_gs.gameState.map_checksum = svs.cms->checksum;
 }
 
+// TODO: game module init is a mess and I'm not sure how to clean this up
 void G_Aasdf() {
-	int len = CM_EntityStringLen( svs.cms );
+	GClip_ClearWorld(); // clear areas links
 
+	int len = CM_EntityStringLen( svs.cms );
 	G_LevelInitPool( strlen( sv.mapname ) + 1 + ( len + 1 ) * 2 + G_LEVELPOOL_BASE_SIZE );
 	G_StringPoolInit();
-
-	Q_strncpyz( level.mapname, sv.mapname, sizeof( level.mapname ) );
 
 	level.mapString = ( char * )G_LevelMalloc( len + 1 );
 	level.mapStrlen = len;

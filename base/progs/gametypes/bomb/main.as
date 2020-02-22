@@ -186,7 +186,7 @@ Entity @GT_SelectSpawnPoint( Entity @self ) {
 		return GENERIC_SelectBestRandomSpawnPoint( @self, "team_CTF_betaspawn" );
 	}
 
-	Entity @spawn = GENERIC_SelectBestRandomSpawnPoint( @self, "spawn_defense" );
+	Entity @spawn = GENERIC_SelectBestRandomSpawnPoint( @self, "spawn_bomb_defending" );
 	if( @spawn != null )
 		return spawn;
 	return GENERIC_SelectBestRandomSpawnPoint( @self, "team_CTF_alphaspawn" );

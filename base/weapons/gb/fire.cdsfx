@@ -1,5 +1,5 @@
 {
-	sound weapons/gb/fire1
-	sound weapons/gb/fire2
-	sound weapons/gb/fire3
+	sound ./fire1
+	sound ./fire2
+	sound ./fire3
 }

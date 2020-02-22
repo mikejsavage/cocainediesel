@@ -1,8 +1,8 @@
 {
 	attenuation distant
 	volume 0.65
-	sound weapons/deagle/fire1
-	sound weapons/deagle/fire2
-	sound weapons/deagle/fire3
-	sound weapons/deagle/fire4
+	sound ./fire1
+	sound ./fire2
+	sound ./fire3
+	sound ./fire4
 }

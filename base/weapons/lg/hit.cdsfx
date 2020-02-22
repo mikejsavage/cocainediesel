@@ -1,5 +1,5 @@
 {
-	sound weapons/lg/hit1
-	sound weapons/lg/hit2
-	sound weapons/lg/hit3
+	sound ./hit1
+	sound ./hit2
+	sound ./hit3
 }

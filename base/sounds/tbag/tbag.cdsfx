@@ -1,9 +1,9 @@
 {
 	attenuation idle
-	sound sounds/tbag/tbag1
-	sound sounds/tbag/tbag2
-	sound sounds/tbag/tbag3
-	sound sounds/tbag/tbag4
-	sound sounds/tbag/tbag5
-	sound sounds/tbag/tbag6
+	sound ./tbag1
+	sound ./tbag2
+	sound ./tbag3
+	sound ./tbag4
+	sound ./tbag5
+	sound ./tbag6
 }

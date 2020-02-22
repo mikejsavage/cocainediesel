@@ -98,6 +98,7 @@ template< size_t N > bool operator!=( const char ( &str )[ N ], Span< const char
 
 Span< const char > FileExtension( const char * path );
 Span< const char > BaseName( const char * path );
+Span< const char > BasePath( const char * path );
 
 // data is an in/out parm, returns a parsed out token
 char *COM_ParseExt2_r( char *token, size_t token_size, const char **data_p, bool nl, bool sq );

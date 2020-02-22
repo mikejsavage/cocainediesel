@@ -1,7 +1,7 @@
 {
-	sound weapons/9mm/fire1
-	sound weapons/9mm/fire2
-	sound weapons/9mm/fire3
-	sound weapons/9mm/fire4
-	sound weapons/9mm/fire5
+	sound ./fire1
+	sound ./fire2
+	sound ./fire3
+	sound ./fire4
+	sound ./fire5
 }

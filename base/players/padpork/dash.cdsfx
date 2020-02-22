@@ -1,4 +1,4 @@
 {
-	sound players/padpork/dash_1
-	sound players/padpork/dash_2
+	sound ./dash_1
+	sound ./dash_2
 }

@@ -1,4 +1,4 @@
 {
-	sound players/bigvic/dash_1
-	sound players/bigvic/dash_2
+	sound ./dash_1
+	sound ./dash_2
 }

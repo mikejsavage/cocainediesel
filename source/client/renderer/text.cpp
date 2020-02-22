@@ -193,11 +193,11 @@ static void DrawText( const Font * font, float pixel_size, Span< const char > st
 
 void DrawText( const Font * font, float pixel_size, const char * str, float x, float y, Vec4 color, bool border ) {
 	Vec4 border_color = Vec4( 0, 0, 0, color.w );
-	DrawText( font, pixel_size, Span< const char >( str, strlen( str ) ), x, y, color, border, border_color );
+	DrawText( font, pixel_size, MakeSpan( str ), x, y, color, border, border_color );
 }
 
 void DrawText( const Font * font, float pixel_size, const char * str, float x, float y, Vec4 color, Vec4 border_color ) {
-	DrawText( font, pixel_size, Span< const char >( str, strlen( str ) ), x, y, color, true, border_color );
+	DrawText( font, pixel_size, MakeSpan( str ), x, y, color, true, border_color );
 }
 
 MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
@@ -247,7 +247,7 @@ static void DrawText( const Font * font, float pixel_size, const char * str, Ali
 		y += ( bounds.maxs.y - bounds.mins.y ) / 2.0f;
 	}
 
-	DrawText( font, pixel_size, Span< const char >( str, strlen( str ) ), x, y, color, border, border_color );
+	DrawText( font, pixel_size, MakeSpan( str ), x, y, color, border, border_color );
 }
 
 void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, Vec4 color, bool border ) {

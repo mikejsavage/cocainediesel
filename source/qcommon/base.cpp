@@ -19,3 +19,7 @@ char * CopyString( Allocator * a, const char * str ) {
 	strcpy( copy, str );
 	return copy;
 }
+
+Span< const char > MakeSpan( const char * str ) {
+	return Span< const char >( str, strlen( str ) );
+}

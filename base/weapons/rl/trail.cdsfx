@@ -1,8 +1,8 @@
 {
 	volume 0.2
-	sound weapons/rl/trail1
+	sound ./trail1
 }
 {
 	volume 0.7
-	sound weapons/rl/trail_extra1
+	sound ./trail_extra1
 }

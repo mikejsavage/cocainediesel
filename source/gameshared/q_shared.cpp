@@ -274,12 +274,12 @@ Span< const char > ParseToken( const char ** ptr, ParseStopOnNewLine stop ) {
 	while( IsWhitespace( *cursor ) ) {
 		if( *cursor == '\0' ) {
 			*ptr = NULL;
-			return Span< const char >( "", 0 );
+			return MakeSpan( "" );
 		}
 
 		if( *cursor == '\n' && stop == Parse_StopOnNewLine ) {
 			*ptr = cursor;
-			return Span< const char >( "", 0 );
+			return MakeSpan( "" );
 		}
 
 		cursor++;
@@ -326,7 +326,7 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 
 		if( c[ 0 ] == '\n' && stop == Parse_StopOnNewLine ) {
 			*cursor = c;
-			return Span< const char >( "", 0 );
+			return MakeSpan( "" );
 		}
 
 		c++;
@@ -406,7 +406,7 @@ bool StrEqual( Span< const char > lhs, Span< const char > rhs ) {
 }
 
 bool StrEqual( Span< const char > lhs, const char * rhs ) {
-	return StrEqual( lhs, Span< const char >( rhs, strlen( rhs ) ) );
+	return StrEqual( lhs, MakeSpan( rhs ) );
 }
 
 bool StrEqual( const char * rhs, Span< const char > lhs ) {
@@ -418,7 +418,7 @@ bool StrCaseEqual( Span< const char > lhs, Span< const char > rhs ) {
 }
 
 bool StrCaseEqual( Span< const char > lhs, const char * rhs ) {
-	return StrCaseEqual( lhs, Span< const char >( rhs, strlen( rhs ) ) );
+	return StrCaseEqual( lhs, MakeSpan( rhs ) );
 }
 
 bool StrCaseEqual( const char * rhs, Span< const char > lhs ) {
@@ -428,13 +428,18 @@ bool StrCaseEqual( const char * rhs, Span< const char > lhs ) {
 Span< const char > FileExtension( const char * path ) {
 	const char * filename = strrchr( path, '/' );
 	const char * ext = strchr( filename == NULL ? path : filename, '.' );
-	return Span< const char >( ext, ext == NULL ? 0 : strlen( ext ) );
+	return ext == NULL ? Span< const char >() : MakeSpan( ext );
 }
 
 Span< const char > BaseName( const char * path ) {
 	const char * filename = strrchr( path, '/' );
 	filename = filename == NULL ? path : filename + 1;
-	return Span< const char >( filename, strlen( filename ) );
+	return MakeSpan( filename );
+}
+
+Span< const char > BasePath( const char * path ) {
+	const char * slash = strrchr( path, '/' );
+	return slash == NULL ? MakeSpan( path ) : Span< const char >( path, slash - path );
 }
 
 /*

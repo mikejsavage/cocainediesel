@@ -1,10 +1,10 @@
 {
-	sound sounds/typewriter/clack1
-	sound sounds/typewriter/clack2
-	sound sounds/typewriter/clack3
-	sound sounds/typewriter/clack4
-	sound sounds/typewriter/clack5
-	sound sounds/typewriter/clack6
-	sound sounds/typewriter/clack7
-	sound sounds/typewriter/clack8
+	sound ./clack1
+	sound ./clack2
+	sound ./clack3
+	sound ./clack4
+	sound ./clack5
+	sound ./clack6
+	sound ./clack7
+	sound ./clack8
 }

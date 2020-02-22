@@ -1,7 +1,7 @@
 {
 	volume 0.8
-	sound players/bigvic/jump_1
-	sound players/bigvic/jump_2
-	sound players/bigvic/jump_3
-	sound players/bigvic/jump_4
+	sound ./jump_1
+	sound ./jump_2
+	sound ./jump_3
+	sound ./jump_4
 }

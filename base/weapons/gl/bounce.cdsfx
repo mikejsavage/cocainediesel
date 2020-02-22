@@ -1,4 +1,4 @@
 {
-	sound weapons/gl/bounce1
-	sound weapons/gl/bounce2
+	sound ./bounce1
+	sound ./bounce2
 }

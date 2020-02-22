@@ -110,6 +110,7 @@ char * CopyString( Allocator * a, const char * str );
  * Span< const char >
  */
 
+Span< const char > MakeSpan( const char * str );
 void format( FormatBuffer * fb, Span< const char > arr, const FormatOpts & opts );
 
 /*

@@ -1,4 +1,4 @@
 {
-	sound players/padpork/wj_1
-	sound players/padpork/wj_2
+	sound ./wj_1
+	sound ./wj_2
 }

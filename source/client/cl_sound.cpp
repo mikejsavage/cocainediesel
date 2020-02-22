@@ -246,7 +246,7 @@ static void HotloadSounds() {
 	}
 }
 
-static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data ) {
+static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, u64 base_hash ) {
 	if( sfx->num_sounds == ARRAY_COUNT( sfx->sounds ) ) {
 		Com_Printf( S_COLOR_YELLOW "SFX with too many sections\n" );
 		return false;
@@ -284,7 +284,13 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data ) {
 					Com_Printf( S_COLOR_YELLOW "SFX with too many random sounds\n" );
 					return false;
 				}
-				config->sounds[ config->num_random_sounds ] = StringHash( Hash64( value.ptr, value.n ) );
+				if( value[ 0 ] == '.' ) {
+					value++;
+					config->sounds[ config->num_random_sounds ] = StringHash( Hash64( value.ptr, value.n, base_hash ) );
+				}
+				else {
+					config->sounds[ config->num_random_sounds ] = StringHash( Hash64( value.ptr, value.n ) );
+				}
 				config->num_random_sounds++;
 			}
 			else if( key == "delay" ) {
@@ -339,10 +345,11 @@ static void LoadSoundEffect( const char * path ) {
 	ZoneText( path, strlen( path ) );
 
 	Span< const char > data = AssetString( path );
+	u64 base_hash = Hash64( BasePath( path ) );
 
 	SoundEffect sfx = { };
 
-	if( !ParseSoundEffect( &sfx, &data ) ) {
+	if( !ParseSoundEffect( &sfx, &data, base_hash ) ) {
 		Com_Printf( S_COLOR_YELLOW "Couldn't load %s\n", path );
 		return;
 	}

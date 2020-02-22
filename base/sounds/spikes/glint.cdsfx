@@ -1,4 +1,4 @@
 {
 	volume 0.05
-	sound sounds/gladiator/glint1
+	sound ./glint1
 }

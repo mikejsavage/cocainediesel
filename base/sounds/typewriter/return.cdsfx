@@ -1,4 +1,4 @@
 {
-	sound sounds/typewriter/return1
-	sound sounds/typewriter/return2
+	sound ./return1
+	sound ./return2
 }

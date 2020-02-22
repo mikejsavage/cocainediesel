@@ -1,5 +1,5 @@
 {
 	attenuation distant
-	sound weapons/gl/explode1
-	sound weapons/gl/explode2
+	sound ./explode1
+	sound ./explode2
 }

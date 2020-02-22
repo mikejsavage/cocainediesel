@@ -445,28 +445,27 @@ const SoundEffect * FindSoundEffect( const char * name ) {
 	return FindSoundEffect( StringHash( name ) );
 }
 
-static void StartSound( PlayingSound * ps, u8 i ) {
+static bool StartSound( PlayingSound * ps, u8 i ) {
 	SoundEffect::PlaybackConfig config = ps->sfx->sounds[ i ];
 
 	int idx = random_uniform( &cls.rng, 0, config.num_random_sounds );
 	Sound sound;
 	if( !FindSound( config.sounds[ idx ], &sound ) )
-		return;
+		return false;
 
 	if( num_free_sound_sources == 0 ) {
 		Com_Printf( S_COLOR_YELLOW "Too many playing sounds!\n" );
-		return;
+		return false;
 	}
 
 	if( !sound.mono && ps->type != PlayingSoundType_Global ) {
 		Com_Printf( S_COLOR_YELLOW "Positioned sounds must be mono!\n" );
-		return;
+		return false;
 	}
 
 	num_free_sound_sources--;
 	ALuint source = free_sound_sources[ num_free_sound_sources ];
 	ps->sources[ i ] = source;
-	ps->started[ i ] = true;
 
 	alSourcei( source, AL_BUFFER, sound.buf );
 	alSourcef( source, AL_GAIN, ps->volume * config.volume * s_volume->value );
@@ -504,6 +503,8 @@ static void StartSound( PlayingSound * ps, u8 i ) {
 
 	alSourcePlay( source );
 	ALAssert();
+
+	return true;
 }
 
 static void StopSound( PlayingSound * ps, u8 i ) {
@@ -560,7 +561,10 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 			all_stopped = false;
 
 			if( t >= ps->sfx->sounds[ j ].delay ) {
-				StartSound( ps, j );
+				ps->started[ j ] = true;
+				if( !StartSound( ps, j ) ) {
+					ps->stopped[ j ] = true;
+				}
 			}
 		}
 

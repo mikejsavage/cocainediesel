@@ -101,7 +101,7 @@ const WeaponDef gs_weaponDefs[] = {
 		0.0f,                           // !zoom inaccuracy
 
 		//damages
-		10,                              // damage
+		9,                              // damage
 		0,                              // selfdamage ratio
 		15,                             // knockback
 		0,                              // splash radius

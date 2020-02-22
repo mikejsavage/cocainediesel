@@ -3,16 +3,8 @@
 #include "qcommon/types.h"
 #include "qcommon/hashtable.h"
 
-template< typename T >
-class HashmapBase {
-public:
-	virtual T * add( u64 key ) = 0;
-	virtual T * get( u64 key ) = 0;
-	virtual bool remove( u64 key ) = 0;
-};
-
 template< typename T, size_t N >
-class Hashmap final : public HashmapBase< T > {
+class Hashmap {
 	Hashtable< N * 2 > ht;
 	u64 keys[ N ];
 

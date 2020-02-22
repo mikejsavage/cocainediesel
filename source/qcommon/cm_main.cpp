@@ -30,9 +30,9 @@ mempool_t *cmap_mempool;
 static cvar_t *cm_noAreas;
 
 static Hashmap< cmodel_t, 4096 > client_cmodels;
-static Hashmap< cmodel_t, 256 > server_cmodels;
+static Hashmap< cmodel_t, 4096 > server_cmodels;
 
-HashmapBase< cmodel_t > * GetCModels( CModelServerOrClient soc ) {
+static Hashmap< cmodel_t, 4096 > * GetCModels( CModelServerOrClient soc ) {
 	if( soc == CM_Client )
 		return &client_cmodels;
 	return &server_cmodels;

@@ -120,7 +120,7 @@ int Key_StringToKeynum( const char *str ) {
 		return -1;
 	}
 	if( !str[1] ) {
-		return (int)(unsigned char)str[0];
+		return tolower( (unsigned char)str[0] );
 	}
 
 	for( kn = keynames; kn->name; kn++ ) {
@@ -135,7 +135,7 @@ const char *Key_KeynumToString( int keynum ) {
 	static char tinystr[2];
 
 	if( keynum > 32 && keynum < 127 ) { // printable ascii
-		tinystr[0] = keynum;
+		tinystr[0] = toupper( keynum );
 		tinystr[1] = 0;
 		return tinystr;
 	}

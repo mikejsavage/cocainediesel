@@ -79,9 +79,6 @@ cvar_t *cg_allyModel;
 cvar_t *cg_enemyColor;
 cvar_t *cg_enemyModel;
 
-/*
-* CG_LocalPrint
-*/
 void CG_LocalPrint( const char *format, ... ) {
 	va_list argptr;
 	char msg[GAMECHAT_STRING_SIZE];
@@ -95,25 +92,16 @@ void CG_LocalPrint( const char *format, ... ) {
 	CG_AddChat( msg );
 }
 
-/*
-* CG_GS_Trace
-*/
 static void CG_GS_Trace( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask, int timeDelta ) {
 	assert( !timeDelta );
 	CG_Trace( t, start, mins, maxs, end, ignore, contentmask );
 }
 
-/*
-* CG_GS_PointContents
-*/
 static int CG_GS_PointContents( const vec3_t point, int timeDelta ) {
 	assert( !timeDelta );
 	return CG_PointContents( point );
 }
 
-/*
-* CG_GS_GetEntityState
-*/
 static SyncEntityState *CG_GS_GetEntityState( int entNum, int deltaTime ) {
 	centity_t *cent;
 
@@ -130,9 +118,6 @@ static SyncEntityState *CG_GS_GetEntityState( int entNum, int deltaTime ) {
 	return &cent->current;
 }
 
-/*
-* CG_GS_GetConfigString
-*/
 static const char *CG_GS_GetConfigString( int index ) {
 	if( index < 0 || index >= MAX_CONFIGSTRINGS ) {
 		return NULL;
@@ -141,11 +126,6 @@ static const char *CG_GS_GetConfigString( int index ) {
 	return cgs.configStrings[ index ];
 }
 
-/*
-* CG_InitGameShared
-*
-* Give gameshared access to some utilities
-*/
 static void CG_InitGameShared( void ) {
 	char cstring[MAX_CONFIGSTRING_CHARS];
 	trap_GetConfigString( CS_MAXCLIENTS, cstring, MAX_CONFIGSTRING_CHARS );
@@ -167,18 +147,12 @@ static void CG_InitGameShared( void ) {
 	client_gs.api.GetConfigString = CG_GS_GetConfigString;
 }
 
-/*
-* CG_CopyString
-*/
 char *_CG_CopyString( const char *in, const char *filename, int fileline ) {
 	char * out = ( char * )_Mem_AllocExt( cg_mempool, strlen( in ) + 1, 16, 1, 0, 0, filename, fileline );
 	strcpy( out, in );
 	return out;
 }
 
-/*
-* CG_RegisterWeaponModels
-*/
 static void CG_RegisterWeaponModels( void ) {
 	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
 		cgs.weaponInfos[i] = CG_RegisterWeaponModel( GS_GetWeaponDef( i )->short_name, i );
@@ -187,32 +161,6 @@ static void CG_RegisterWeaponModels( void ) {
 	cgs.weaponInfos[ Weapon_Count ] = CG_CreateWeaponZeroModel();
 }
 
-/*
-* CG_RegisterModels
-*/
-static void CG_RegisterModels( void ) {
-	CG_RegisterMediaModels();
-	CG_RegisterWeaponModels();
-	CG_RegisterPlayerModels();
-}
-
-/*
-* CG_RegisterSounds
-*/
-static void CG_RegisterSounds( void ) {
-	CG_RegisterMediaSounds();
-}
-
-/*
-* CG_RegisterShaders
-*/
-static void CG_RegisterShaders( void ) {
-	CG_RegisterMediaShaders();
-}
-
-/*
-* CG_RegisterClients
-*/
 static void CG_RegisterClients( void ) {
 	for( int i = 0; i < MAX_CLIENTS; i++ ) {
 		const char * name = cgs.configStrings[CS_PLAYERINFOS + i];
@@ -222,9 +170,6 @@ static void CG_RegisterClients( void ) {
 	}
 }
 
-/*
-* CG_RegisterVariables
-*/
 static void CG_RegisterVariables( void ) {
 	cg_showMiss =       Cvar_Get( "cg_showMiss", "0", 0 );
 
@@ -290,25 +235,22 @@ static void CG_RegisterVariables( void ) {
 	Cvar_Get( "cg_loadout", "", CVAR_ARCHIVE | CVAR_USERINFO );
 }
 
-/*
-* CG_Precache
-*/
 void CG_Precache( void ) {
 	if( cgs.precacheDone ) {
 		return;
 	}
 
-	CG_RegisterModels();
-	CG_RegisterSounds();
-	CG_RegisterShaders();
+	CG_RegisterMediaModels();
+	CG_RegisterWeaponModels();
+	CG_RegisterPlayerModels();
+	CG_RegisterMediaSounds();
+	CG_RegisterMediaSounds();
+	CG_RegisterMediaShaders();
 	CG_RegisterClients();
 
 	cgs.precacheDone = true;
 }
 
-/*
-* CG_RegisterConfigStrings
-*/
 static void CG_RegisterConfigStrings( void ) {
 	for( int i = 0; i < MAX_CONFIGSTRINGS; i++ ) {
 		trap_GetConfigString( i, cgs.configStrings[i], MAX_CONFIGSTRING_CHARS );
@@ -320,9 +262,6 @@ static void CG_RegisterConfigStrings( void ) {
 	CG_SC_AutoRecordAction( cgs.configStrings[CS_AUTORECORDSTATE] );
 }
 
-/*
-* CG_Reset
-*/
 void CG_Reset( void ) {
 	memcpy( &cgs.configStrings[0][0], &cgs.baseConfigStrings[0][0], MAX_CONFIGSTRINGS*MAX_CONFIGSTRING_CHARS );
 
@@ -353,9 +292,10 @@ void CG_Reset( void ) {
 	memset( cg_entities, 0, sizeof( cg_entities ) );
 }
 
-/*
-* CG_Init
-*/
+static void PrintMap() {
+	Com_Printf( "Current map: %s\n", cl.map == NULL ? "null" : cl.map->name );
+}
+
 void CG_Init( const char *serverName, unsigned int playerNum,
 			  bool demoplaying, const char *demoName,
 			  unsigned snapFrameTime ) {
@@ -418,6 +358,8 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	CG_ConfigString( CS_AUTORECORDSTATE, cgs.configStrings[CS_AUTORECORDSTATE] );
 
 	CG_DemocamInit();
+
+	Cmd_AddCommand( "printmap", PrintMap );
 }
 
 void CG_Shutdown() {
@@ -433,4 +375,6 @@ void CG_Shutdown() {
 	CG_Free( const_cast< char * >( cgs.serverName ) );
 
 	Mem_FreePool( &cg_mempool );
+
+	Cmd_RemoveCommand( "printmap" );
 }

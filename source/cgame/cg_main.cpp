@@ -71,7 +71,7 @@ cvar_t *cg_enemyModel;
 
 void CG_LocalPrint( const char *format, ... ) {
 	va_list argptr;
-	char msg[GAMECHAT_STRING_SIZE];
+	char msg[ 1024 ];
 
 	va_start( argptr, format );
 	vsnprintf( msg, sizeof( msg ), format, argptr );

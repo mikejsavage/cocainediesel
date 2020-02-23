@@ -914,11 +914,6 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			SpawnGibs( FromQF3( ent->origin ), FromQF3( ent->origin2 ), parm, ent->team );
 			break;
 
-		case EV_ITEM_RESPAWN:
-			cg_entities[ent->number].respawnTime = cl.serverTime;
-			S_StartEntitySound( cgs.media.sfxItemRespawn, ent->number, CHAN_AUTO, 1.0f );
-			break;
-
 		case EV_PLAYER_RESPAWN:
 			if( (unsigned)ent->ownerNum == cgs.playerNum + 1 ) {
 				CG_ResetKickAngles();

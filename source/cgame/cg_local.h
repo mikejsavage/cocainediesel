@@ -17,31 +17,21 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-// cg_local.h -- local definitions for client game module
-
 #include "qcommon/types.h"
 #include "qcommon/qcommon.h"
 #include "gameshared/gs_public.h"
-#include "ref.h"
+#include "cgame/ref.h"
 
 #include "client/client.h"
-#include "cg_public.h"
-#include "cg_syscalls.h"
-#include "cg_particles.h"
+#include "cgame/cg_public.h"
+#include "cgame/cg_syscalls.h"
+#include "cgame/cg_particles.h"
 
 #include "client/sound.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/text.h"
 
-#define CG_OBITUARY_HUD     1
-#define CG_OBITUARY_CENTER  2
-
-#define ITEM_RESPAWN_TIME   1000
-
 #define VSAY_TIMEOUT 2500
-
-#define GAMECHAT_STRING_SIZE    1024
-#define GAMECHAT_STACK_SIZE     20
 
 enum {
 	LOCALEFFECT_EV_PLAYER_TELEPORT_IN,

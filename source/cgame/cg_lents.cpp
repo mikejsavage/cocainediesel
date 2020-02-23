@@ -477,14 +477,12 @@ void CG_LaserGunImpact( const vec3_t pos, float radius, const vec3_t laser_dir, 
 	// trap_R_AddEntityToScene( &ent );
 }
 
-static float projectileFireTrailAlpha = 0.45f;
-
 /*
 * CG_ProjectileTrail
 */
 void CG_ProjectileTrail( centity_t *cent ) {
 	float radius = 8;
-	float alpha = Clamp01( projectileFireTrailAlpha );
+	float alpha = 0.45f;
 
 	// didn't move
 	vec3_t vec;
@@ -496,7 +494,7 @@ void CG_ProjectileTrail( centity_t *cent ) {
 	const Material * material = cgs.media.shaderRocketFireTrailPuff;
 
 	// density is found by quantity per second
-	int trailTime = int( 1000.0f / projectileFireTrailAlpha );
+	int trailTime = int( 1000.0f / alpha );
 	if( trailTime < 1 ) {
 		trailTime = 1;
 	}
@@ -516,8 +514,6 @@ void CG_ProjectileTrail( centity_t *cent ) {
 	}
 }
 
-static int bloodTrail = 10;
-
 /*
 * CG_NewBloodTrail
 */
@@ -534,15 +530,9 @@ void CG_NewBloodTrail( centity_t *cent ) {
 		return;
 	}
 
-	// density is found by quantity per second
-	int trailTime = (int)( 1000.0f / bloodTrail );
-	if( trailTime < 1 ) {
-		trailTime = 1;
-	}
-
 	// we don't add more than one sprite each frame. If frame
 	// ratio is too slow, people will prefer having less sprites on screen
-	if( cent->localEffects[LOCALEFFECT_BLOODTRAIL_LAST_DROP] + trailTime < cl.serverTime ) {
+	if( cent->localEffects[LOCALEFFECT_BLOODTRAIL_LAST_DROP] + 100 < cl.serverTime ) {
 		cent->localEffects[LOCALEFFECT_BLOODTRAIL_LAST_DROP] = cl.serverTime;
 
 		int contents = ( CG_PointContents( cent->trailOrigin ) & CG_PointContents( cent->ent.origin ) );

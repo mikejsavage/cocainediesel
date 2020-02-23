@@ -43,20 +43,29 @@ const String[] maps = {
 	"gladiator/005",
 	"gladiator/006",
 	"gladiator/007",
-	"gladiator/008",
+	// "gladiator/008",
 	"gladiator/009",
 	"gladiator/010",
 	"gladiator/011",
 	"gladiator/012",
 	"gladiator/013",
 	"gladiator/014",
-	"gladiator/015"
+	"gladiator/015",
+	"gladiator/016",
+	"gladiator/017",
+	"gladiator/018",
+	"gladiator/019",
+	"gladiator/020",
+
+	// angelscript doesn't like trailing commas in arrays, so explicitly
+	// add an empty element and trim it out to make editing a bit easier
+	""
 };
 
 Entity @ last_spawn;
 
 void PickRandomArena() {
-	G_LoadMap( maps[ random_uniform( 0, maps.size() ) ] );
+	G_LoadMap( maps[ random_uniform( 0, maps.size() - 1 ) ] );
 	@last_spawn = null;
 }
 

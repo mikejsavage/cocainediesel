@@ -72,7 +72,7 @@ void CG_AddChat( const char * str ) {
 		chat.history_len++;
 	}
 	else {
-		chat.history_head = ( chat.history_head + 1 ) % GAMECHAT_STACK_SIZE;
+		chat.history_head = ( chat.history_head + 1 ) % CHAT_HISTORY_SIZE;
 	}
 }
 

@@ -194,7 +194,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//timings (in msecs)
 		WEAPONUP_TIME_NORMAL,           // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		100,                            // refire time
+		150,                            // refire time
 		HITSCAN_RANGE,                  // projectile timeout
 		3.0f,                           // recoil
 		FiringMode_Auto,
@@ -203,7 +203,7 @@ const WeaponDef gs_weaponDefs[] = {
 		0.0f,                           // !zoom inaccuracy
 
 		//damages
-		12,                             // damage
+		15,                             // damage
 		0,                              // selfdamage ratio
 		15,                             // knockback
 		0,                              // splash radius

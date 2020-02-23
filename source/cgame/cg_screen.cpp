@@ -435,9 +435,6 @@ void CG_InitDamageNumbers() {
 }
 
 void CG_AddDamageNumber( SyncEntityState * ent ) {
-	if( ent->damage != MINI_OBITUARY_DAMAGE )
-		return;
-
 	DamageNumber * dn = &damage_numbers[ damage_numbers_head ];
 
 	dn->t = cl.serverTime;

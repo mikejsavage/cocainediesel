@@ -262,6 +262,7 @@ static const reference_numeric_t cg_numeric_references[] = {
 	{ "SHOW_PRESSED_KEYS", CG_GetCvar, "cg_showPressedKeys" },
 	{ "SHOW_SPEED", CG_GetCvar, "cg_showSpeed" },
 	{ "SHOW_AWARDS", CG_GetCvar, "cg_showAwards" },
+	{ "SHOW_TUTORIAL", CG_GetCvar, "cg_tutorial" },
 
 	{ "DOWNLOAD_IN_PROGRESS", CG_DownloadInProgress, NULL },
 	{ "DOWNLOAD_PERCENT", CG_GetCvar, "cl_download_percent" },
@@ -1721,11 +1722,13 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		const float bind_font_size = font_size * 0.8f;
 
 		// first try the weapon specific bind
-		if( !CG_GetBoundKeysString( va("use %s", def->short_name), wep_bind, sizeof( wep_bind ) ) ) {
-			CG_GetBoundKeysString( va("weapon %i", drawn_weapons), wep_bind, sizeof( wep_bind ) );
-		}
+		if( cg_tutorial->integer ) {
+			if( !CG_GetBoundKeysString( va("use %s", def->short_name), wep_bind, sizeof( wep_bind ) ) ) {
+				CG_GetBoundKeysString( va("weapon %i", drawn_weapons), wep_bind, sizeof( wep_bind ) );
+			}
 
-		DrawText( GetHUDFont(), bind_font_size, wep_bind, Alignment_CenterMiddle, curx + iw*0.50f, cury + ih*0.15f, layout_cursor_color, layout_cursor_font_border );
+			DrawText( GetHUDFont(), bind_font_size, wep_bind, Alignment_CenterMiddle, curx + iw*0.50f, cury + ih*0.15f, layout_cursor_color, layout_cursor_font_border );
+		}
 	}
 }
 

@@ -4,20 +4,24 @@ setSize 200, 18
 setFontSize %VIDHEIGHT / 40
 setFontBorder on
 
-if %CARRYING_BOMB
-	setColor 1, 1, 1, 1
-	drawBindString "Press %s to drop the bomb" "drop"
-	moveCursor 0, -32
+if %SHOW_TUTORIAL
+
+	if %CARRYING_BOMB
+		setColor 1, 1, 1, 1
+		drawBindString "Press %s to drop the bomb" "drop"
+		moveCursor 0, -32
+	endif
+
+	if %CAN_CHANGE_LOADOUT
+		setColor 1, 1, 1, 1
+		drawBindString "Press %s to change loadout" "gametypemenu"
+	endif
+
 endif
 
 if %CAN_PLANT_BOMB
 	setColor 1, 1, 1, 1
 	drawBindString "Press %s to plant" "+crouch"
-endif
-
-if %CAN_CHANGE_LOADOUT
-	setColor 1, 1, 1, 1
-	drawBindString "Press %s to change loadout" "gametypemenu"
 endif
 
 setFontBorder off

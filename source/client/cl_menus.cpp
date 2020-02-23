@@ -267,6 +267,11 @@ static void SettingsGeneral() {
 	CvarSliderInt( "FOV", "fov", MIN_FOV, MAX_FOV, temp( "{}", MIN_FOV ), CVAR_ARCHIVE );
 	CvarTeamColorCombo( "Ally color", "cg_allyColor", 0 );
 	CvarTeamColorCombo( "Enemy color", "cg_enemyColor", 1 );
+
+	CvarCheckbox( "Tutorial mode", "cg_tutorial", "1", CVAR_ARCHIVE );
+	ImGui::SameLine();
+	ImGui::Text( "Adds helpful info to the HUD" );
+
 	CvarCheckbox( "Show FPS", "cg_showFPS", "0", CVAR_ARCHIVE );
 }
 
@@ -519,8 +524,6 @@ static void SettingsVideo() {
 		Cvar_Set( "r_samples", temp( "{}", samples ) );
 	}
 
-	CvarCheckbox( "Vsync", "vid_vsync", "0", CVAR_ARCHIVE );
-
 	{
 		SettingLabel( "Max FPS" );
 
@@ -544,6 +547,8 @@ static void SettingsVideo() {
 
 		Cvar_Set( "cl_maxfps", temp( "{}", maxfps ) );
 	}
+
+	CvarCheckbox( "Vsync", "vid_vsync", "0", CVAR_ARCHIVE );
 }
 
 static void SettingsAudio() {

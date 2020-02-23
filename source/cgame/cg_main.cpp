@@ -51,27 +51,16 @@ cvar_t *cg_handOffset;
 cvar_t *cg_gun_fov;
 cvar_t *cg_volume_announcer;
 cvar_t *cg_volume_hitsound;
-cvar_t *cg_projectileFireTrail;
-cvar_t *cg_bloodTrail;
-cvar_t *cg_showBloodTrail;
-cvar_t *cg_projectileFireTrailAlpha;
-cvar_t *cg_bloodTrailAlpha;
-cvar_t *cg_explosionsRing;
-cvar_t *cg_explosionsDust;
 cvar_t *cg_fov;
 cvar_t *cg_voiceChats;
 cvar_t *cg_projectileAntilagOffset;
 cvar_t *cg_chatFilter;
 
 cvar_t *cg_tutorial;
-cvar_t *cg_cartoonEffects;
 
 cvar_t *cg_autoaction_demo;
 cvar_t *cg_autoaction_screenshot;
 cvar_t *cg_autoaction_spectator;
-cvar_t *cg_showObituaries;
-cvar_t *cg_damageNumbers;
-cvar_t *cg_particles;
 cvar_t *cg_showClamp;
 
 cvar_t *cg_allyColor;
@@ -202,21 +191,9 @@ static void CG_RegisterVariables( void ) {
 	cg_volume_announcer =   Cvar_Get( "cg_volume_announcer", "1.0", CVAR_ARCHIVE );
 	cg_volume_hitsound =    Cvar_Get( "cg_volume_hitsound", "1.0", CVAR_ARCHIVE );
 	cg_handOffset =     Cvar_Get( "cg_handOffset", "5", CVAR_ARCHIVE );
-	cg_projectileFireTrail =    Cvar_Get( "cg_projectileFireTrail", "140", CVAR_ARCHIVE );
-	cg_bloodTrail =     Cvar_Get( "cg_bloodTrail", "10", CVAR_ARCHIVE );
-	cg_showBloodTrail = Cvar_Get( "cg_showBloodTrail", "1", CVAR_ARCHIVE );
-	cg_projectileFireTrailAlpha =   Cvar_Get( "cg_projectileFireTrailAlpha", "0.45", CVAR_ARCHIVE );
-	cg_bloodTrailAlpha =    Cvar_Get( "cg_bloodTrailAlpha", "1.0", CVAR_ARCHIVE );
-	cg_explosionsRing = Cvar_Get( "cg_explosionsRing", "0", CVAR_ARCHIVE );
-	cg_explosionsDust =    Cvar_Get( "cg_explosionsDust", "0", CVAR_ARCHIVE );
-	cg_showObituaries = Cvar_Get( "cg_showObituaries", va( "%i", CG_OBITUARY_HUD | CG_OBITUARY_CENTER ), CVAR_ARCHIVE );
-	cg_damageNumbers = Cvar_Get( "cg_damageNumbers", "1", CVAR_ARCHIVE );
 	cg_autoaction_demo =    Cvar_Get( "cg_autoaction_demo", "0", CVAR_ARCHIVE );
 	cg_autoaction_screenshot =  Cvar_Get( "cg_autoaction_screenshot", "0", CVAR_ARCHIVE );
 	cg_autoaction_spectator = Cvar_Get( "cg_autoaction_spectator", "0", CVAR_ARCHIVE );
-	cg_particles =      Cvar_Get( "cg_particles", "1", CVAR_ARCHIVE );
-
-	cg_cartoonEffects =     Cvar_Get( "cg_cartoonEffects", "7", CVAR_ARCHIVE );
 
 	cg_voiceChats =     Cvar_Get( "cg_voiceChats", "1", CVAR_ARCHIVE );
 

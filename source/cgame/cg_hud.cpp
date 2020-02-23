@@ -257,7 +257,6 @@ static const reference_numeric_t cg_numeric_references[] = {
 
 	// cvars
 	{ "SHOW_FPS", CG_GetCvar, "cg_showFPS" },
-	{ "SHOW_OBITUARIES", CG_GetCvar, "cg_showObituaries" },
 	{ "SHOW_POINTED_PLAYER", CG_GetCvar, "cg_showPointedPlayer" },
 	{ "SHOW_PRESSED_KEYS", CG_GetCvar, "cg_showPressedKeys" },
 	{ "SHOW_SPEED", CG_GetCvar, "cg_showSpeed" },
@@ -1145,7 +1144,7 @@ void CG_SC_Obituary( void ) {
 			RGB8 attacker_color = CG_TeamColor( current->attacker_team );
 			RGB8 victim_color = CG_TeamColor( current->victim_team );
 
-			if( ISVIEWERENTITY( attackerNum ) && ( cg_showObituaries->integer & CG_OBITUARY_CENTER ) ) {
+			if( ISVIEWERENTITY( attackerNum ) ) {
 				CG_CenterPrint( temp( "YOU {} {}", obituary, victim_name ) );
 			}
 
@@ -1178,10 +1177,6 @@ static void CG_DrawObituaries(
 	int internal_align, unsigned int icon_size
 ) {
 	const int icon_padding = 4;
-
-	if( !( cg_showObituaries->integer & CG_OBITUARY_HUD ) ) {
-		return;
-	}
 
 	unsigned line_height = Max3( 1u, unsigned( layout_cursor_font_size ), icon_size );
 	int num_max = height / line_height;

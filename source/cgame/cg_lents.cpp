@@ -273,7 +273,7 @@ void CG_BulletExplosion( const vec3_t pos, const float *dir, const trace_t *trac
 							NULL );
 		le->ent.rotation = random_float01( &cls.rng ) * 360;
 		le->ent.scale = 1.0f;
-	} else if( cg_particles->integer && ( tr->surfFlags & SURF_DUST ) ) {
+	} else if( tr->surfFlags & SURF_DUST ) {
 		// throw particles on dust
 		CG_ImpactSmokePuff( tr->endpos, tr->plane.normal, 4, 0.6f, 6, 8 );
 	} else {
@@ -284,9 +284,7 @@ void CG_BulletExplosion( const vec3_t pos, const float *dir, const trace_t *trac
 							NULL );
 		le->ent.rotation = random_float01( &cls.rng ) * 360;
 		le->ent.scale = 1.0f;
-		if( cg_particles->integer ) {
-			CG_ImpactSmokePuff( tr->endpos, tr->plane.normal, 2, 0.6f, 6, 8 );
-		}
+		CG_ImpactSmokePuff( tr->endpos, tr->plane.normal, 2, 0.6f, 6, 8 );
 
 		if( !( tr->surfFlags & SURF_NOMARKS ) ) {
 			// CG_SpawnDecal( pos, local_dir, random_float01( &cls.rng ) * 360, 8, 1, 1, 1, 1, 10, 1, false, cgs.media.shaderBulletMark );
@@ -398,23 +396,6 @@ void CG_RocketExplosionMode( const vec3_t pos, const vec3_t dir, float radius, i
 	VectorAdd( le->velocity, vec, le->velocity );
 	le->ent.rotation = random_float01( &cls.rng ) * 360;
 
-	if( cg_explosionsRing->integer ) {
-		// explosion ring sprite
-		vec3_t origin;
-		VectorMA( pos, radius * 0.20f, dir, origin );
-		le = CG_AllocSprite( LE_ALPHA_FADE, origin, radius, 3,
-			color,
-			0, 0, 0, 0, // no dlight
-			cgs.media.shaderRocketExplosionRing );
-
-		le->ent.rotation = random_float01( &cls.rng ) * 360;
-	}
-
-	if( cg_explosionsDust->integer == 1 ) {
-		// dust ring parallel to the contact surface
-		CG_ExplosionsDust( pos, dir, radius );
-	}
-
 	// Explosion particles
 	CG_ParticleExplosionEffect( FromQF3( pos ), FromQF3( dir ), color.xyz() );
 
@@ -496,16 +477,14 @@ void CG_LaserGunImpact( const vec3_t pos, float radius, const vec3_t laser_dir, 
 	// trap_R_AddEntityToScene( &ent );
 }
 
+static float projectileFireTrailAlpha = 0.45f;
 
 /*
 * CG_ProjectileTrail
 */
 void CG_ProjectileTrail( centity_t *cent ) {
-	if( !cg_projectileFireTrail->integer )
-		return;
-
 	float radius = 8;
-	float alpha = Clamp01( cg_projectileFireTrailAlpha->value );
+	float alpha = Clamp01( projectileFireTrailAlpha );
 
 	// didn't move
 	vec3_t vec;
@@ -517,7 +496,7 @@ void CG_ProjectileTrail( centity_t *cent ) {
 	const Material * material = cgs.media.shaderRocketFireTrailPuff;
 
 	// density is found by quantity per second
-	int trailTime = int( 1000.0f / cg_projectileFireTrail->value );
+	int trailTime = int( 1000.0f / projectileFireTrailAlpha );
 	if( trailTime < 1 ) {
 		trailTime = 1;
 	}
@@ -537,21 +516,15 @@ void CG_ProjectileTrail( centity_t *cent ) {
 	}
 }
 
+static int bloodTrail = 10;
+
 /*
 * CG_NewBloodTrail
 */
 void CG_NewBloodTrail( centity_t *cent ) {
 	float radius = 2.5f;
-	float alpha = Clamp01( cg_bloodTrailAlpha->value );
+	float alpha = 1.0f;
 	const Material * material = cgs.media.shaderBloodTrailPuff;
-
-	if( !cg_showBloodTrail->integer ) {
-		return;
-	}
-
-	if( !cg_bloodTrail->integer ) {
-		return;
-	}
 
 	// didn't move
 	vec3_t vec;
@@ -562,7 +535,7 @@ void CG_NewBloodTrail( centity_t *cent ) {
 	}
 
 	// density is found by quantity per second
-	int trailTime = (int)( 1000.0f / cg_bloodTrail->value );
+	int trailTime = (int)( 1000.0f / bloodTrail );
 	if( trailTime < 1 ) {
 		trailTime = 1;
 	}
@@ -576,7 +549,7 @@ void CG_NewBloodTrail( centity_t *cent ) {
 		if( contents & MASK_WATER ) {
 			material = cgs.media.shaderBloodTrailLiquidPuff;
 			radius = 4 + random_float11( &cls.rng );
-			alpha *= 0.5f;
+			alpha = 0.5f;
 		}
 
 		LocalEntity * le = CG_AllocSprite( LE_SCALE_ALPHA_FADE, cent->trailOrigin, radius, 8,
@@ -592,25 +565,18 @@ void CG_NewBloodTrail( centity_t *cent ) {
 * CG_BloodDamageEffect
 */
 void CG_BloodDamageEffect( const vec3_t origin, const vec3_t dir, int damage, int team ) {
-	float radius = 5.0f, alpha = cg_bloodTrailAlpha->value;
+	float radius = 5.0f, alpha = 1.0f;
 	int time = 8;
 	const Material * material = cgs.media.shaderBloodImpactPuff;
 	vec3_t local_dir;
 
-	if( !cg_showBloodTrail->integer ) {
-		return;
-	}
-
-	if( !cg_bloodTrail->integer ) {
-		return;
-	}
 
 	int count = Clamp( 1, int( damage * 0.25f ), 10 );
 
 	if( CG_PointContents( origin ) & MASK_WATER ) {
 		material = cgs.media.shaderBloodTrailLiquidPuff;
 		radius += ( 1 + random_float11( &cls.rng ) );
-		alpha = 0.5f * cg_bloodTrailAlpha->value;
+		alpha = 0.5f;
 	}
 
 	if( !VectorLength( dir ) ) {
@@ -704,22 +670,6 @@ void CG_GrenadeExplosionMode( const vec3_t pos, const vec3_t dir, float radius, 
 	VectorAdd( le->velocity, vec, le->velocity );
 	le->ent.rotation = random_float01( &cls.rng ) * 360;
 
-	// explosion ring sprite
-	if( cg_explosionsRing->integer ) {
-		VectorMA( pos, radius * 0.25f, dir, origin );
-		le = CG_AllocSprite( LE_ALPHA_FADE, origin, radius, 3,
-			color,
-			0, 0, 0, 0, // no dlight
-			cgs.media.shaderGrenadeExplosionRing );
-
-		le->ent.rotation = random_float01( &cls.rng ) * 360;
-	}
-
-	if( cg_explosionsDust->integer == 1 ) {
-		// dust ring parallel to the contact surface
-		CG_ExplosionsDust( pos, dir, radius );
-	}
-
 	// Explosion particles
 	CG_ParticleExplosionEffect( FromQF3( pos ), FromQF3( dir ), color.xyz() );
 
@@ -763,10 +713,6 @@ void CG_GenericExplosion( const vec3_t pos, const vec3_t dir, float radius ) {
 void CG_Dash( const SyncEntityState *state ) {
 	LocalEntity *le;
 	vec3_t pos, dvect, angle = { 0, 0, 0 };
-
-	if( !( cg_cartoonEffects->integer & 4 ) ) {
-		return;
-	}
 
 	// KoFFiE: Calculate angle based on relative position of the previous origin state of the player entity
 	VectorSubtract( state->origin, cg_entities[state->number].prev.origin, dvect );
@@ -871,45 +817,6 @@ void CG_DustCircle( const vec3_t pos, const vec3_t dir, float radius, int count 
 	}
 }
 
-void CG_ExplosionsDust( const vec3_t pos, const vec3_t dir, float radius ) {
-	const int count = 32; /* Number of sprites used to create the circle */
-	LocalEntity *le;
-	const Material * material = cgs.media.shaderSmokePuff3;
-
-	vec3_t dir_per1;
-	vec3_t dir_per2;
-	vec3_t dir_temp = { 0.0f, 0.0f, 0.0f };
-	int i;
-	float angle;
-
-	if( CG_PointContents( pos ) & MASK_WATER ) {
-		return; // no smoke under water :)
-
-	}
-	PerpendicularVector( dir_per2, dir );
-	CrossProduct( dir, dir_per2, dir_per1 );
-
-	//VectorScale( dir_per1, VectorNormalize( dir_per1 ), dir_per1 );
-	//VectorScale( dir_per2, VectorNormalize( dir_per2 ), dir_per2 );
-
-	// make a circle out of the specified number (int count) of sprites
-	for( i = 0; i < count; i++ ) {
-		angle = (float)( PI * 2.0f / count * i );
-		VectorSet( dir_temp, 0.0f, 0.0f, 0.0f );
-		VectorMA( dir_temp, sinf( angle ), dir_per1, dir_temp );
-		VectorMA( dir_temp, cosf( angle ), dir_per2, dir_temp );
-
-		//VectorScale(dir_temp, VectorNormalize(dir_temp),dir_temp );
-		VectorScale( dir_temp, random_float11( &cls.rng ) * 8 + radius + 16.0f, dir_temp );
-
-		// make the sprite smaller & alpha'd
-		le = CG_AllocSprite( LE_ALPHA_FADE, pos, 10, 10,
-							 vec4_white,
-							 0, 0, 0, 0,
-							 material );
-		VectorCopy( dir_temp, le->velocity );
-	}
-}
 
 /*
 * CG_AddLocalEntities

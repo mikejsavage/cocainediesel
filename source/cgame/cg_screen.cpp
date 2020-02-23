@@ -435,7 +435,7 @@ void CG_InitDamageNumbers() {
 }
 
 void CG_AddDamageNumber( SyncEntityState * ent ) {
-	if( !cg_damageNumbers->integer && ent->damage != MINI_OBITUARY_DAMAGE )
+	if( ent->damage != MINI_OBITUARY_DAMAGE )
 		return;
 
 	DamageNumber * dn = &damage_numbers[ damage_numbers_head ];

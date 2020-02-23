@@ -659,13 +659,11 @@ void CG_Event_WallJump( SyncEntityState *state, u64 parm, int ev ) {
 
 	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_WallJump );
 
-	// smoke effect
-	if( cg_cartoonEffects->integer & 1 ) {
-		vec3_t pos;
-		VectorCopy( state->origin, pos );
-		pos[2] += 15;
-		CG_DustCircle( pos, normal, 65, 12 );
-	}
+	
+	vec3_t pos;
+	VectorCopy( state->origin, pos );
+	pos[2] += 15;
+	CG_DustCircle( pos, normal, 65, 12 );
 }
 
 static void CG_PlayJumpSound( const SyncEntityState * state ) {
@@ -991,9 +989,6 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_BLOOD:
-			if( cg_showBloodTrail->integer == 2 && ISVIEWERENTITY( ent->ownerNum ) ) {
-				break;
-			}
 			ByteToDir( parm, dir );
 			CG_BloodDamageEffect( ent->origin, dir, ent->damage, ent->team );
 			break;

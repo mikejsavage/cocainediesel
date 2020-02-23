@@ -508,26 +508,13 @@ extern cvar_t *cg_showClamp;
 extern cvar_t *cg_tutorial;
 
 // wsw
-extern cvar_t *cg_showObituaries;
-extern cvar_t *cg_damageNumbers;
 extern cvar_t *cg_volume_hitsound;    // hit sound volume
+extern cvar_t *cg_volume_announcer; // announcer sounds volume
 extern cvar_t *cg_autoaction_demo;
 extern cvar_t *cg_autoaction_screenshot;
 extern cvar_t *cg_autoaction_spectator;
-extern cvar_t *cg_volume_announcer; // announcer sounds volume
-extern cvar_t *cg_projectileFireTrail;
-extern cvar_t *cg_bloodTrail;
-extern cvar_t *cg_showBloodTrail;
-extern cvar_t *cg_projectileFireTrailAlpha;
-extern cvar_t *cg_bloodTrailAlpha;
-
-extern cvar_t *cg_cartoonEffects;
-
-extern cvar_t *cg_explosionsRing;
-extern cvar_t *cg_explosionsDust;
 
 extern cvar_t *cg_fov;
-extern cvar_t *cg_particles;
 extern cvar_t *cg_voiceChats;
 extern cvar_t *cg_projectileAntilagOffset;
 extern cvar_t *cg_chatFilter;

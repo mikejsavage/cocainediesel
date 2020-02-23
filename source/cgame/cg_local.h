@@ -495,7 +495,7 @@ bool CG_ScoreboardShown();
 //
 extern cvar_t *developer;
 extern cvar_t *cg_showClamp;
-extern cvar_t *cg_tutorial;
+extern cvar_t *cg_showHotkeys;
 
 // wsw
 extern cvar_t *cg_volume_hitsound;    // hit sound volume

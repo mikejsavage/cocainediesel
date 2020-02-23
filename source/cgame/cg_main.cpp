@@ -56,7 +56,7 @@ cvar_t *cg_voiceChats;
 cvar_t *cg_projectileAntilagOffset;
 cvar_t *cg_chatFilter;
 
-cvar_t *cg_tutorial;
+cvar_t *cg_showHotkeys;
 
 cvar_t *cg_autoaction_demo;
 cvar_t *cg_autoaction_screenshot;
@@ -166,7 +166,7 @@ static void CG_RegisterVariables( void ) {
 	cg_debugPlayerModels =  Cvar_Get( "cg_debugPlayerModels", "0", CVAR_CHEAT );
 	cg_debugWeaponModels =  Cvar_Get( "cg_debugWeaponModels", "0", CVAR_CHEAT );
 
-	cg_tutorial = Cvar_Get( "cg_tutorial", "1", CVAR_ARCHIVE );
+	cg_showHotkeys = Cvar_Get( "cg_showHotkeys", "1", CVAR_ARCHIVE );
 
 	cg_hand =           Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
 	cg_handicap =       Cvar_Get( "handicap", "0", CVAR_USERINFO | CVAR_ARCHIVE );

@@ -268,10 +268,7 @@ static void SettingsGeneral() {
 	CvarTeamColorCombo( "Ally color", "cg_allyColor", 0 );
 	CvarTeamColorCombo( "Enemy color", "cg_enemyColor", 1 );
 
-	CvarCheckbox( "Tutorial mode", "cg_tutorial", "1", CVAR_ARCHIVE );
-	ImGui::SameLine();
-	ImGui::Text( "Adds helpful info to the HUD" );
-
+	CvarCheckbox( "Show hotkeys", "cg_showHotkeys", "1", CVAR_ARCHIVE );
 	CvarCheckbox( "Show FPS", "cg_showFPS", "0", CVAR_ARCHIVE );
 }
 

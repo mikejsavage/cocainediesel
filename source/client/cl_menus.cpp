@@ -993,6 +993,8 @@ static void GameMenu() {
 					ImGui::Image( icon, icon_size, half_pixel, 1.0f - half_pixel, Vec4( 1.0f, 1.0f, 1.0f, 0.25f ) );
 					ColumnCenterText( temp( "{}Dud bomb", pink ) );
 					ColumnCenterText( temp( "{}$13.37", pink ) );
+
+					desc_height = ImGui::GetCursorPosY();
 				}
 
 				if( bigger_font ) ImGui::PopFont();

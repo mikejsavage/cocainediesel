@@ -709,6 +709,7 @@ static const char * obituaries[] = {
 };
 
 static const char * prefixes[] = {
+	"#",
 	"420",
 	"69",
 	"666",

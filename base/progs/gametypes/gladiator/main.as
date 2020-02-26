@@ -55,7 +55,7 @@ const String[] maps = {
 	"gladiator/017",
 	"gladiator/018",
 	"gladiator/019",
-	"gladiator/020",
+	// "gladiator/020",
 
 	// angelscript doesn't like trailing commas in arrays, so explicitly
 	// add an empty element and trim it out to make editing a bit easier

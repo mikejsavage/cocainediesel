@@ -645,7 +645,9 @@ static void CG_DrawScope() {
 		PipelineState pipeline;
 		pipeline.pass = frame_static.ui_pass;
 		pipeline.shader = &shaders.scope;
+		pipeline.depth_func = DepthFunc_Disabled;
 		pipeline.blend_func = BlendFunc_Blend;
+		pipeline.write_depth = false;
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 		DrawFullscreenMesh( pipeline );
 	}

@@ -159,6 +159,16 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 				return player->weapon;
 			}
 		}
+		else if( def->staged_reloading ) {
+			player->weapons[ player->weapon ].ammo++;
+
+			if( player->weapons[ player->weapon ].ammo == def->clip_size ) {
+				player->weapon_state = WeaponState_Ready;
+			}
+			else {
+				player->weapon_time = def->reload_time;
+			}
+		}
 		else {
 			player->weapons[ player->weapon ].ammo = def->clip_size;
 			player->weapon_state = WeaponState_Ready;

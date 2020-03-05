@@ -774,6 +774,7 @@ struct WeaponDef {
 	int projectile_count;
 	int clip_size;
 	unsigned int reload_time;
+	bool staged_reloading;
 
 	unsigned int weaponup_time;
 	unsigned int weapondown_time;

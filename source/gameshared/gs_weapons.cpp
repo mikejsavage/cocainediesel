@@ -67,7 +67,7 @@ static bool GS_CheckAmmoInWeapon( const SyncPlayerState * player, WeaponType wea
 	return def->clip_size == 0 || player->weapons[ weapon ].ammo > 0;
 }
 
-WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, int buttons, int msecs, int timeDelta ) {
+WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, const usercmd_t * cmd, int timeDelta ) {
 	bool refire = false;
 
 	assert( player->pending_weapon <= Weapon_Count );
@@ -90,17 +90,19 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 		return player->weapon;
 	}
 
-	if( player->pmove.no_control_time > 0 ) {
-		buttons = 0;
-	}
+	int buttons = player->pmove.no_control_time > 0 ? 0 : cmd->buttons;
 
-	if( !msecs ) {
+	if( cmd->msec == 0 ) {
 		return player->weapon;
 	}
 
-	player->weapon_time = Max2( 0, player->weapon_time - msecs );
+	player->weapon_time = Max2( 0, player->weapon_time - cmd->msec );
 
 	const WeaponDef * def = GS_GetWeaponDef( player->weapon );
+
+	if( cmd->weaponSwitch != 0 && GS_CanEquip( player, cmd->weaponSwitch - 1 ) ) {
+		player->pending_weapon = cmd->weaponSwitch - 1;
+	}
 
 	s16 last_zoom_time = player->zoom_time;
 	bool can_zoom = player->weapon_state == WeaponState_Ready
@@ -108,13 +110,13 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 		|| player->weapon_state == WeaponState_FiringSemiAuto;
 
 	if( can_zoom && def->zoom_fov != 0 && ( buttons & BUTTON_SPECIAL ) != 0 ) {
-		player->zoom_time = Min2( player->zoom_time + msecs, ZOOMTIME );
+		player->zoom_time = Min2( player->zoom_time + cmd->msec, ZOOMTIME );
 		if( last_zoom_time == 0 ) {
 			gs->api.PredictedEvent( player->POVnum, EV_ZOOM_IN, player->weapon );
 		}
 	}
 	else {
-		player->zoom_time = Max2( 0, player->zoom_time - msecs );
+		player->zoom_time = Max2( 0, player->zoom_time - cmd->msec );
 		if( player->zoom_time == 0 && last_zoom_time != 0 ) {
 			gs->api.PredictedEvent( player->POVnum, EV_ZOOM_OUT, player->weapon );
 		}

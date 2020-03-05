@@ -143,20 +143,6 @@ static void Cmd_GameOperator_f( edict_t *ent ) {
 }
 
 /*
-* Cmd_Use_f
-* Use an inventory item
-*/
-static void Cmd_Use_f( edict_t * ent ) {
-	const char * name = Cmd_Args();
-
-	const char * err = NULL;
-	int num = strtonum( name, 0, Weapon_Count, &err );
-	if( err == NULL && GS_CanEquip( &ent->r.client->ps, num ) ) {
-		ent->r.client->ps.pending_weapon = num;
-	}
-}
-
-/*
 * Cmd_Kill_f
 */
 static void Cmd_Kill_f( edict_t *ent ) {
@@ -899,7 +885,6 @@ void G_InitGameCommands( void ) {
 	G_AddCommand( "svscore", Cmd_Score_f );
 	G_AddCommand( "god", Cmd_God_f );
 	G_AddCommand( "noclip", Cmd_Noclip_f );
-	G_AddCommand( "use", Cmd_Use_f );
 	G_AddCommand( "kill", Cmd_Kill_f );
 	G_AddCommand( "chase", Cmd_ChaseCam_f );
 	G_AddCommand( "chasenext", Cmd_ChaseNext_f );

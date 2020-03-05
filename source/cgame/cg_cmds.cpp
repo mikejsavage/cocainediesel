@@ -383,12 +383,7 @@ CGAME COMMANDS
 */
 
 static void SwitchWeapon( WeaponType weapon ) {
-	if( !cg.frame.valid || cgs.demoPlaying ) {
-		return;
-	}
-
-	cg.predictedPlayerState.pending_weapon = weapon;
-	Cbuf_ExecuteText( EXEC_NOW, va( "cmd use %i", weapon ) );
+	cl.weaponSwitch = weapon + 1;
 }
 
 static void CG_Cmd_UseItem_f( void ) {
@@ -429,10 +424,7 @@ static WeaponType CG_UseWeaponStep( const SyncPlayerState * playerState, bool ne
 	return Weapon_Count;
 }
 
-/*
-* CG_Cmd_NextWeapon_f
-*/
-static void CG_Cmd_NextWeapon_f( void ) {
+static void CG_Cmd_NextWeapon_f() {
 	if( cgs.demoPlaying || cg.predictedPlayerState.pmove.pm_type == PM_CHASECAM ) {
 		CG_ChaseStep( 1 );
 		return;
@@ -444,7 +436,7 @@ static void CG_Cmd_NextWeapon_f( void ) {
 	}
 }
 
-static void CG_Cmd_PrevWeapon_f( void ) {
+static void CG_Cmd_PrevWeapon_f() {
 	if( cgs.demoPlaying || cg.predictedPlayerState.pmove.pm_type == PM_CHASECAM ) {
 		CG_ChaseStep( -1 );
 		return;

@@ -670,6 +670,7 @@ static void Delta( DeltaBuffer * buf, usercmd_t & cmd, const usercmd_t & baselin
 	Delta( buf, cmd.sidemove, baseline.sidemove );
 	Delta( buf, cmd.upmove, baseline.upmove );
 	Delta( buf, cmd.buttons, baseline.buttons );
+	Delta( buf, cmd.weaponSwitch, baseline.weaponSwitch );
 }
 
 void MSG_WriteDeltaUsercmd( msg_t * msg, const usercmd_t * baseline, const usercmd_t * cmd ) {

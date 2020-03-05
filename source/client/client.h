@@ -53,6 +53,8 @@ typedef struct {
 	usercmd_t cmds[CMD_BACKUP];     // each mesage will send several old cmds
 	int cmd_time[CMD_BACKUP];       // time sent, for calculating pings
 
+	WeaponType weaponSwitch;
+
 	int receivedSnapNum;
 	int pendingSnapNum;
 	int currentSnapNum;

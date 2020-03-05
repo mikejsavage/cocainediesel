@@ -238,7 +238,6 @@ static Vec2 Pow( Vec2 v, float e ) {
 }
 
 void CG_MouseMove( int frameTime, Vec2 m ) {
-
 	float sens = sensitivity->value;
 
 	if( m_accel->value != 0.0f && frameTime != 0 ) {

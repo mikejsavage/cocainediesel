@@ -436,7 +436,7 @@ void CG_PredictMovement( void ) {
 		predictedSteps[frame] = pm.step;
 
 		if( ucmdReady ) { // hmm fixme: the wip command may not be run enough time to get proper key presses
-			cg_entities[cg.predictedPlayerState.POVnum].current.weapon = GS_ThinkPlayerWeapon( &client_gs, &cg.predictedPlayerState, pm.cmd.buttons, pm.cmd.msec, 0 );
+			cg_entities[cg.predictedPlayerState.POVnum].current.weapon = GS_ThinkPlayerWeapon( &client_gs, &cg.predictedPlayerState, &pm.cmd, 0 );
 		}
 
 		// save for debug checking

@@ -190,7 +190,7 @@ const WeaponDef gs_weaponDefs[] = {
 		"Assault Rifle", "ar",
 		RGB8( 254, 235, 98 ),
 		"Dakka dakka",
-		100,
+		200,
 
 		1,                              // projectiles fired each shot
 		20, // clip size

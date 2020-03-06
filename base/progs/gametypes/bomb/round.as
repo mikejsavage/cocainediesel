@@ -495,7 +495,7 @@ void enableMovement() {
 
 			client.pmoveMaxSpeed = -1;
 			client.pmoveDashSpeed = -1;
-			client.pmoveFeatures = client.pmoveFeatures | PMFEAT_JUMP | PMFEAT_DASH | PMFEAT_WALLJUMP;
+			client.pmoveFeatures = client.pmoveFeatures | PMFEAT_JUMP | PMFEAT_SPECIAL;
 		}
 	}
 }
@@ -503,7 +503,7 @@ void enableMovement() {
 void disableMovementFor( Client @client ) {
 	client.pmoveMaxSpeed = 100;
 	client.pmoveDashSpeed = 0;
-	client.pmoveFeatures = client.pmoveFeatures & ~( PMFEAT_JUMP | PMFEAT_DASH | PMFEAT_WALLJUMP );
+	client.pmoveFeatures = client.pmoveFeatures & ~( PMFEAT_JUMP | PMFEAT_SPECIAL );
 }
 
 void disableMovement() {

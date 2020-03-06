@@ -105,9 +105,10 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 	}
 
 	s16 last_zoom_time = player->zoom_time;
-	bool can_zoom = player->weapon_state == WeaponState_Ready
-		|| player->weapon_state == WeaponState_Firing
-		|| player->weapon_state == WeaponState_FiringSemiAuto;
+	bool can_zoom = ( player->weapon_state == WeaponState_Ready
+			|| player->weapon_state == WeaponState_Firing
+			|| player->weapon_state == WeaponState_FiringSemiAuto )
+		&& ( player->pmove.features & PMFEAT_SCOPE );
 
 	if( can_zoom && def->zoom_fov != 0 && ( buttons & BUTTON_SPECIAL ) != 0 ) {
 		player->zoom_time = Min2( player->zoom_time + cmd->msec, ZOOMTIME );

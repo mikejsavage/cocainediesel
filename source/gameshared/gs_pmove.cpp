@@ -919,7 +919,7 @@ static void PM_CheckDash( void ) {
 	}
 
 	if( ( pm->cmd.buttons & BUTTON_SPECIAL ) && pm->groundentity != -1
-		&& ( pm->playerState->pmove.features & PMFEAT_DASH ) ) {
+		&& ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) ) {
 		if( pm->playerState->pmove.pm_flags & PMF_SPECIAL_HELD ) {
 			return;
 		}
@@ -1019,7 +1019,7 @@ static void PM_CheckWallJump( void ) {
 	// markthis
 
 	if( pm->groundentity == -1 && ( pm->cmd.buttons & BUTTON_SPECIAL )
-		&& ( pm->playerState->pmove.features & PMFEAT_WALLJUMP ) &&
+		&& ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) &&
 		( !( pm->playerState->pmove.pm_flags & PMF_WALLJUMPCOUNT ) )
 		&& pm->playerState->pmove.walljump_time <= 0
 		) {
@@ -1564,7 +1564,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 		// Keep this order !
 		PM_CheckJump();
 
-		if( pm->playerState->weapon == Weapon_Count || !GS_GetWeaponDef( pm->playerState->weapon )->zoom_fov != 0 ) {
+		if( pm->playerState->weapon == Weapon_Count || !( GS_GetWeaponDef( pm->playerState->weapon )->zoom_fov != 0 && pm->playerState->pmove.features & PMFEAT_SCOPE ) ) {
 			PM_CheckDash();
 			PM_CheckWallJump();
 		}

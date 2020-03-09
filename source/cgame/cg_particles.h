@@ -140,8 +140,11 @@ void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter );
 
 void DrawParticles();
 
-void InitParticleEditor();
+void InitParticleMenuEffect();
 void ShutdownParticleEditor();
 
+void ResetParticleMenuEffect();
 void ResetParticleEditor();
+
+void DrawParticleMenuEffect();
 void DrawParticleEditor();

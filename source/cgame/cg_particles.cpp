@@ -364,45 +364,109 @@ static void Serialize( SerializationBuffer * buf, ParticleEmitter & emitter ) {
  * particle editor
  */
 
-static ParticleSystem editor_ps = { };
-static ParticleEmitter editor_emitter;
-static char editor_material_name[ 256 ];
-static char editor_gradient_name[ 256 ];
-static bool editor_one_shot;
-static bool editor_blend;
+static ParticleSystem menu_ps = { };
+static ParticleEmitter menu_emitter;
+static char menu_material_name[ 256 ];
+static char menu_gradient_name[ 256 ];
+static bool menu_one_shot;
+static bool menu_blend;
 
-void InitParticleEditor() {
-	strcpy( editor_material_name, "$particle" );
-	strcpy( editor_gradient_name, "$whiteimage" );
-	editor_one_shot = false;
-	editor_blend = false;
 
-	editor_ps = NewParticleSystem( sys_allocator, 8192, FindMaterial( StringHash( ( const char * ) editor_material_name ) ) );
-	editor_ps.gradient = FindMaterial( StringHash( ( const char * ) editor_gradient_name ) );
-	editor_ps.blend_func = editor_blend ? BlendFunc_Blend : BlendFunc_Add;
-	editor_emitter = { };
+void InitParticleMenuEffect() {
+	strcpy( menu_material_name, "$particle" );
+	strcpy( menu_gradient_name, "$whiteimage" );
+	menu_one_shot = false;
+	menu_blend = false;
 
-	editor_emitter.start_speed = 400.0f;
-	editor_emitter.end_speed = 400.0f;
-	editor_emitter.direction_cone.normal = Vec3( 0, 0, 1 );
-	editor_emitter.direction_cone.theta = 90.0f;
-	editor_emitter.start_color = vec4_white;
-	editor_emitter.end_color = vec4_white.xyz();
-	editor_emitter.start_size = 16.0f;
-	editor_emitter.end_size = 16.0f;
-	editor_emitter.lifetime = 1.0f;
-	editor_emitter.emission_rate = 1000;
+	menu_ps = NewParticleSystem( sys_allocator, 8192, FindMaterial( StringHash( ( const char * ) menu_material_name ) ) );
+	menu_ps.gradient = FindMaterial( StringHash( ( const char * ) menu_gradient_name ) );
+	menu_ps.blend_func = menu_blend ? BlendFunc_Blend : BlendFunc_Add;
+	menu_emitter = { };
+
+	menu_emitter.position_distribution.sphere.radius = 600.0f;
+
+	menu_emitter.start_speed = 1.0f;
+	menu_emitter.end_speed = 25.0f;
+	menu_emitter.direction_cone.normal = Vec3( 0, 0, 1 );
+	menu_emitter.direction_cone.theta = 90.0f;
+	menu_emitter.start_color = vec4_black;
+	menu_emitter.start_color.w = 1.0f;
+	menu_emitter.end_color = vec4_black.xyz();
+
+	menu_emitter.red_distribution.uniform = 0.325f;
+	menu_emitter.green_distribution.uniform = 0.325f;
+	menu_emitter.blue_distribution.uniform = 0.325f;
+
+
+	menu_emitter.start_size = 0.0f;
+	menu_emitter.end_size = 20.0f;
+	menu_emitter.lifetime = 10.0f;
+	menu_emitter.emission_rate = 500.0f;
 }
 
 void ShutdownParticleEditor() {
-	DeleteParticleSystem( sys_allocator, editor_ps );
+	DeleteParticleSystem( sys_allocator, menu_ps );
+}
+
+void ResetParticleMenuEffect() {
+	DeleteParticleSystem( sys_allocator, menu_ps );
+
+	strcpy( menu_material_name, "$particle" );
+	strcpy( menu_gradient_name, "$whiteimage" );
+	menu_one_shot = false;
+	menu_blend = false;
+
+	menu_ps = NewParticleSystem( sys_allocator, 8192, FindMaterial( StringHash( ( const char * ) menu_material_name ) ) );
+	menu_ps.gradient = FindMaterial( StringHash( ( const char * ) menu_gradient_name ) );
+	menu_ps.blend_func = menu_blend ? BlendFunc_Blend : BlendFunc_Add;
+	menu_emitter = { };
+
+	menu_emitter.position_distribution.type = RandomDistribution3DType( 1 );
+	menu_emitter.position_distribution.disk.radius = 750.0f;
+
+	menu_emitter.start_speed = 5.0f;
+	menu_emitter.end_speed = 100.0f;
+	menu_emitter.direction_cone.normal = Vec3( 0, 0, 1 );
+	menu_emitter.direction_cone.theta = 90.0f;
+	menu_emitter.start_color = vec4_black;
+	menu_emitter.start_color.w = 0.5f;
+	menu_emitter.end_color = vec4_black.xyz();
+
+	menu_emitter.red_distribution.uniform = 0.325f;
+	menu_emitter.green_distribution.uniform = 0.325f;
+	menu_emitter.blue_distribution.uniform = 0.325f;
+
+
+	menu_emitter.start_size = 0.0f;
+	menu_emitter.end_size = 20.0f;
+	menu_emitter.lifetime = 10.0f;
+	menu_emitter.emission_rate = 500;
 }
 
 void ResetParticleEditor() {
-	DeleteParticleSystem( sys_allocator, editor_ps );
-	editor_ps = NewParticleSystem( sys_allocator, 8192, FindMaterial( StringHash( ( const char * ) editor_material_name ) ) );
-	editor_ps.gradient = FindMaterial( StringHash( ( const char * ) editor_gradient_name ) );
-	editor_ps.blend_func = editor_blend ? BlendFunc_Blend : BlendFunc_Add;
+	DeleteParticleSystem( sys_allocator, menu_ps );
+
+	strcpy( menu_material_name, "$particle" );
+	strcpy( menu_gradient_name, "$whiteimage" );
+	menu_one_shot = false;
+	menu_blend = false;
+
+	menu_ps = NewParticleSystem( sys_allocator, 8192, FindMaterial( StringHash( ( const char * ) menu_material_name ) ) );
+	menu_ps.gradient = FindMaterial( StringHash( ( const char * ) menu_gradient_name ) );
+	menu_ps.blend_func = menu_blend ? BlendFunc_Blend : BlendFunc_Add;
+
+	menu_emitter = { };
+
+	menu_emitter.start_speed = 400.0f;
+	menu_emitter.end_speed = 400.0f;
+	menu_emitter.direction_cone.normal = Vec3( 0, 0, 1 );
+	menu_emitter.direction_cone.theta = 90.0f;
+	menu_emitter.start_color = vec4_white;
+	menu_emitter.end_color = vec4_white.xyz();
+	menu_emitter.start_size = 16.0f;
+	menu_emitter.end_size = 16.0f;
+	menu_emitter.lifetime = 1.0f;
+	menu_emitter.emission_rate = 500;
 }
 
 static void RandomDistributionEditor( const char * id, RandomDistribution * dist, float range ) {
@@ -431,6 +495,19 @@ static void RandomDistributionEditor( const char * id, RandomDistribution * dist
 			break;
 	}
 }
+
+
+void DrawParticleMenuEffect() {
+	RendererSetView( Vec3( -400, 0, 400 ), EulerDegrees3( 45, 0, 0 ), 90 );
+
+	float dt = cls.frametime / 1000.0f;
+
+	EmitParticles( &menu_ps, menu_emitter, dt );
+	UpdateParticleSystem( &menu_ps, dt );
+	DrawParticleSystem( &menu_ps );
+}
+
+
 
 void DrawParticleEditor() {
 	TempAllocator temp = cls.frame_arena.temp();
@@ -466,7 +543,7 @@ void DrawParticleEditor() {
 			if( do_load ) {
 				Span< const char > data = AssetBinary( temp( "particles/{}.emitter", name ) ).cast< const char >();
 				if( data.ptr != NULL ) {
-					bool ok = Deserialize( editor_emitter, data.ptr, data.n );
+					bool ok = Deserialize( menu_emitter, data.ptr, data.n );
 					assert( ok );
 				}
 
@@ -495,7 +572,7 @@ void DrawParticleEditor() {
 			if( ok ) {
 				char buf[ 1024 ];
 				SerializationBuffer sb( SerializationMode_Serializing, buf, sizeof( buf ) );
-				sb & editor_emitter;
+				sb & menu_emitter;
 				assert( !sb.error );
 				// TODO: writefile can fail
 				WriteFile( temp( "base/particles/{}.emitter", name ), buf, sb.cursor - buf );
@@ -514,104 +591,104 @@ void DrawParticleEditor() {
 
 		ImGui::Separator();
 
-		if( ImGui::InputText( "Material", editor_material_name, sizeof( editor_material_name ) ) ) {
+		if( ImGui::InputText( "Material", menu_material_name, sizeof( menu_material_name ) ) ) {
 			ResetParticleEditor();
 		}
 
-		if( ImGui::InputText( "Gradient material", editor_gradient_name, sizeof( editor_gradient_name ) ) ) {
+		if( ImGui::InputText( "Gradient material", menu_gradient_name, sizeof( menu_gradient_name ) ) ) {
 			ResetParticleEditor();
 		}
 
-		ImGui::Checkbox( "Blend", &editor_blend );
-		editor_ps.blend_func = editor_blend ? BlendFunc_Blend : BlendFunc_Add;
+		ImGui::Checkbox( "Blend", &menu_blend );
+		menu_ps.blend_func = menu_blend ? BlendFunc_Blend : BlendFunc_Add;
 
 		ImGui::Separator();
 
 		constexpr const char * position_distribution_names[] = { "Sphere", "Disk", "Line" };
-		if( ImGui::BeginCombo( "Position distribution", position_distribution_names[ editor_emitter.position_distribution.type ] ) ) {
+		if( ImGui::BeginCombo( "Position distribution", position_distribution_names[ menu_emitter.position_distribution.type ] ) ) {
 			for( int i = 0; i < 3; i++ ) {
-				if( ImGui::Selectable( position_distribution_names[ i ], i == editor_emitter.position_distribution.type ) )
-					editor_emitter.position_distribution.type = RandomDistribution3DType( i );
-				if( i == editor_emitter.position_distribution.type )
+				if( ImGui::Selectable( position_distribution_names[ i ], i == menu_emitter.position_distribution.type ) )
+					menu_emitter.position_distribution.type = RandomDistribution3DType( i );
+				if( i == menu_emitter.position_distribution.type )
 					ImGui::SetItemDefaultFocus();
 			}
 
 			ImGui::EndCombo();
 		}
 
-		editor_emitter.position = Vec3( 0 );
+		menu_emitter.position = Vec3( 0 );
 
-		switch( editor_emitter.position_distribution.type ) {
+		switch( menu_emitter.position_distribution.type ) {
 			case RandomDistribution3DType_Sphere:
-				ImGui::SliderFloat( "Radius", &editor_emitter.position_distribution.sphere.radius, 0, 100, "%.2f" );
+				ImGui::SliderFloat( "Radius", &menu_emitter.position_distribution.sphere.radius, 0, 100, "%.2f" );
 				break;
 
 			case RandomDistribution3DType_Disk:
-				ImGui::SliderFloat( "Radius", &editor_emitter.position_distribution.disk.radius, 0, 100, "%.2f" );
+				ImGui::SliderFloat( "Radius", &menu_emitter.position_distribution.disk.radius, 0, 100, "%.2f" );
 				break;
 
 			case RandomDistribution3DType_Line:
-				editor_emitter.position = Vec3( 0, -300, 0 );
-				editor_emitter.position_distribution.line.end = Vec3( 0, 300, 0 );
+				menu_emitter.position = Vec3( 0, -300, 0 );
+				menu_emitter.position_distribution.line.end = Vec3( 0, 300, 0 );
 				break;
 		}
 
 		ImGui::Separator();
 
-		ImGui::Checkbox( "Direction cone?", &editor_emitter.use_cone_direction );
+		ImGui::Checkbox( "Direction cone?", &menu_emitter.use_cone_direction );
 
-		if( editor_emitter.use_cone_direction ) {
-			ImGui::SliderFloat( "Angle", &editor_emitter.direction_cone.theta, 0, 180, "%.2f" );
+		if( menu_emitter.use_cone_direction ) {
+			ImGui::SliderFloat( "Angle", &menu_emitter.direction_cone.theta, 0, 180, "%.2f" );
 		}
 
-		ImGui::SliderFloat( "Start speed", &editor_emitter.start_speed, 0, 1000, "%.2f" );
-		ImGui::SliderFloat( "End speed", &editor_emitter.end_speed, 0, 1000, "%.2f" );
+		ImGui::SliderFloat( "Start speed", &menu_emitter.start_speed, 0, 1000, "%.2f" );
+		ImGui::SliderFloat( "End speed", &menu_emitter.end_speed, 0, 1000, "%.2f" );
 
 		ImGui::Separator();
 
-		ImGui::ColorEdit4( "Start color", editor_emitter.start_color.ptr() );
-		ImGui::ColorEdit3( "End color", editor_emitter.end_color.ptr() );
+		ImGui::ColorEdit4( "Start color", menu_emitter.start_color.ptr() );
+		ImGui::ColorEdit3( "End color", menu_emitter.end_color.ptr() );
 
 		if( ImGui::TreeNodeEx( "Start color randomness", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_NoAutoOpenOnLog ) ) {
 			ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 255, 0, 0, 255 ) );
-			RandomDistributionEditor( "r", &editor_emitter.red_distribution, 1.0f );
+			RandomDistributionEditor( "r", &menu_emitter.red_distribution, 1.0f );
 			ImGui::PopStyleColor();
 
 			ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 0, 255, 0, 255 ) );
-			RandomDistributionEditor( "g", &editor_emitter.green_distribution, 1.0f );
+			RandomDistributionEditor( "g", &menu_emitter.green_distribution, 1.0f );
 			ImGui::PopStyleColor();
 
 			ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 0, 0, 255, 255 ) );
-			RandomDistributionEditor( "b", &editor_emitter.blue_distribution, 1.0f );
+			RandomDistributionEditor( "b", &menu_emitter.blue_distribution, 1.0f );
 			ImGui::PopStyleColor();
 
-			RandomDistributionEditor( "a", &editor_emitter.alpha_distribution, 1.0f );
+			RandomDistributionEditor( "a", &menu_emitter.alpha_distribution, 1.0f );
 
 			ImGui::TreePop();
 		}
 
 		ImGui::Separator();
 
-		ImGui::SliderFloat( "Start size", &editor_emitter.start_size, 0, 256, "%.2f" );
-		ImGui::SliderFloat( "End size", &editor_emitter.end_size, 0, 256, "%.2f" );
-		RandomDistributionEditor( "size", &editor_emitter.size_distribution, editor_emitter.start_size );
+		ImGui::SliderFloat( "Start size", &menu_emitter.start_size, 0, 256, "%.2f" );
+		ImGui::SliderFloat( "End size", &menu_emitter.end_size, 0, 256, "%.2f" );
+		RandomDistributionEditor( "size", &menu_emitter.size_distribution, menu_emitter.start_size );
 
 		ImGui::Separator();
 
-		ImGui::SliderFloat( "Lifetime", &editor_emitter.lifetime, 0, 10, "%.2f" );
-		RandomDistributionEditor( "lifetime", &editor_emitter.lifetime_distribution, editor_emitter.lifetime );
+		ImGui::SliderFloat( "Lifetime", &menu_emitter.lifetime, 0, 10, "%.2f" );
+		RandomDistributionEditor( "lifetime", &menu_emitter.lifetime_distribution, menu_emitter.lifetime );
 
 		ImGui::Separator();
 
-		ImGui::Checkbox( "One shot mode", &editor_one_shot );
+		ImGui::Checkbox( "One shot mode", &menu_one_shot );
 
-		if( editor_one_shot ) {
-			ImGui::SliderFloat( "Particle count", &editor_emitter.n, 0, 500, "%.2f" );
-			editor_emitter.emission_rate = 0;
+		if( menu_one_shot ) {
+			ImGui::SliderFloat( "Particle count", &menu_emitter.n, 0, 500, "%.2f" );
+			menu_emitter.emission_rate = 0;
 			emit = ImGui::Button( "Go" );
 		}
 		else {
-			ImGui::SliderFloat( "Emission rate", &editor_emitter.emission_rate, 0, 500, "%.2f" );
+			ImGui::SliderFloat( "Emission rate", &menu_emitter.emission_rate, 0, 500, "%.2f" );
 		}
 	}
 	ImGui::EndChild();
@@ -621,10 +698,10 @@ void DrawParticleEditor() {
 
 	float dt = cls.frametime / 1000.0f;
 
-	if( !editor_one_shot || emit || editor_ps.num_particles == 0 ) {
-		EmitParticles( &editor_ps, editor_emitter, dt );
+	if( !menu_one_shot || emit || menu_ps.num_particles == 0 ) {
+		EmitParticles( &menu_ps, menu_emitter, dt );
 	}
 
-	UpdateParticleSystem( &editor_ps, dt );
-	DrawParticleSystem( &editor_ps );
+	UpdateParticleSystem( &menu_ps, dt );
+	DrawParticleSystem( &menu_ps );
 }

@@ -96,7 +96,7 @@ static void RefreshServerBrowser() {
 
 void UI_Init() {
 	ResetServerBrowser();
-	InitParticleEditor();
+	InitParticleMenuEffect();
 
 	uistate = UIState_MainMenu;
 	mainmenu_state = MainMenuState_ServerBrowser;
@@ -694,10 +694,8 @@ static void MainMenu() {
 	ImGui::SetNextWindowPos( ImVec2() );
 	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
 
-	ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus;
-	if( mainmenu_state == MainMenuState_ParticleEditor ) {
-		flags |= ImGuiWindowFlags_NoBackground;
-	}
+	bool parteditor_wason = mainmenu_state == MainMenuState_ParticleEditor;
+	ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground;
 
 	ImGui::Begin( "mainmenu", WindowZOrder_Menu, flags );
 
@@ -747,7 +745,15 @@ static void MainMenu() {
 		}
 	}
 
+	if( parteditor_wason && mainmenu_state != MainMenuState_ParticleEditor ) {
+		ResetParticleMenuEffect();
+	}
+
 	ImGui::Separator();
+
+	if( mainmenu_state != MainMenuState_ParticleEditor ) {
+		DrawParticleMenuEffect();
+	}
 
 	switch( mainmenu_state ) {
 		case MainMenuState_ServerBrowser: ServerBrowser(); break;

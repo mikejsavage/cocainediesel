@@ -129,7 +129,7 @@ static Vec4 crosshair_color = vec4_white;
 static Vec4 crosshair_damage_color = vec4_red;
 
 void CG_DrawCrosshair() {
-	if( cg.predictedPlayerState.weapon == Weapon_Sniper && cg.predictedPlayerState.zoom_time > 0 )
+	if( cg.predictedPlayerState.health <= 0 || ( cg.predictedPlayerState.weapon == Weapon_Sniper && cg.predictedPlayerState.zoom_time > 0 ) )
 		return;
 
 	float s = 1.0f / 255.0f;
@@ -365,49 +365,6 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 		}
 
 		DrawText( font, font_size, cgs.clientInfo[i].name, Alignment_CenterBottom, coords.x, coords.y, tmpcolor, border );
-
-		// if not the pointed player we are done
-		if( cent->current.number != cg.pointedNum ) {
-			continue;
-		}
-
-		int pointed_health = cg.pointedHealth / 2;
-		if( cg.pointedHealth == 1 )
-			pointed_health = 1;
-
-		// pointed player hasn't a health value to be drawn, so skip adding the bars
-		if( pointed_health && cg_showPlayerNames_barWidth->integer > 0 ) {
-			int x, y;
-			// int barwidth = trap_SCR_strWidth( "_", font, 0 ) * cg_showPlayerNames_barWidth->integer; // size of 8 characters
-			// int barheight = trap_SCR_FontHeight( font ) * 0.25; // quarter of a character height
-			int barwidth = 0;
-			int barheight = 0;
-			int barseparator = barheight * 0.333;
-
-			// alphagreen[3] = alphared[3] = alphayellow[3] = alphamagenta[3] = alphagrey[3] = tmpcolor.w;
-
-			// soften the alpha of the box color
-			tmpcolor.w *= 0.4f;
-
-			// we have to align first, then draw as left top, cause we want the bar to grow from left to right
-			x = CG_HorizontalAlignForWidth( coords.x, Alignment_CenterTop, barwidth );
-			y = CG_VerticalAlignForHeight( coords.y, Alignment_CenterTop, barheight );
-
-			y += barseparator;
-
-			// draw the background box
-			// CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight + 2 * barseparator, 100, 100, tmpcolor, NULL );
-			//
-			// y += barseparator;
-			//
-			// if( pointed_health <= 33 ) {
-			// 	CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight, pointed_health, 100, alphared, NULL );
-			// } else if( pointed_health <= 66 ) {
-			// 	CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight, pointed_health, 100, alphayellow, NULL );
-			// } else {
-			// 	CG_DrawHUDRect( x, y, ALIGN_LEFT_TOP, barwidth, barheight, pointed_health, 100, alphagreen, NULL );
-			// }
-		}
 	}
 }
 

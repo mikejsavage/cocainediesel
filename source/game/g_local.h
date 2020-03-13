@@ -231,6 +231,7 @@ extern cvar_t *g_antilag_maxtimedelta;
 
 extern cvar_t *g_teams_maxplayers;
 extern cvar_t *g_teams_allow_uneven;
+extern cvar_t *g_teams_autojoin;
 
 extern cvar_t *g_autorecord;
 extern cvar_t *g_autorecord_maxdemos;

@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 cvar_t *g_teams_maxplayers;
 cvar_t *g_teams_allow_uneven;
+cvar_t *g_teams_autojoin;
 
 /*
 * G_Teams_Init
@@ -36,6 +37,7 @@ void G_Teams_Init( void ) {
 
 	g_teams_maxplayers = Cvar_Get( "g_teams_maxplayers", "0", CVAR_ARCHIVE );
 	g_teams_allow_uneven = Cvar_Get( "g_teams_allow_uneven", "1", CVAR_ARCHIVE );
+	g_teams_autojoin = Cvar_Get( "g_teams_autojoin", "1", CVAR_ARCHIVE );
 
 	//unlock all teams and clear up team lists
 	memset( teamlist, 0, sizeof( teamlist ) );
@@ -44,6 +46,7 @@ void G_Teams_Init( void ) {
 		if( ent->r.inuse ) {
 			memset( &ent->r.client->teamstate, 0, sizeof( ent->r.client->teamstate ) );
 			memset( &ent->r.client->resp, 0, sizeof( ent->r.client->resp ) );
+
 			ent->s.team = ent->r.client->team = TEAM_SPECTATOR;
 			G_GhostClient( ent );
 			ent->movetype = MOVETYPE_NOCLIP; // allow freefly

@@ -514,7 +514,11 @@ void ClientBegin( edict_t *ent ) {
 	G_Client_UpdateActivity( client ); // activity detected
 
 	client->team = TEAM_SPECTATOR;
-	G_ClientRespawn( ent, true ); // respawn as ghost
+	if( g_teams_autojoin->integer ) {
+		G_Teams_JoinAnyTeam( ent, true ); // auto respawn in a team
+	} else {
+		G_ClientRespawn( ent, true ); // respawn as ghost
+	}
 	ent->movetype = MOVETYPE_NOCLIP; // allow freefly
 
 	G_PrintMsg( NULL, "%s entered the game\n", client->netname );

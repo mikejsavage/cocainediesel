@@ -64,6 +64,7 @@ typedef struct {
 	float maxWalkSpeed;
 	float maxCrouchedSpeed;
 	float jumpPlayerSpeed;
+	float jumpPlayerSpeedWater;
 	float dashPlayerSpeed;
 } pml_t;
 
@@ -78,8 +79,8 @@ static const gs_state_t * pmove_gs;
 #define DEFAULT_LADDERSPEED 250.0f
 
 const float pm_friction = 8; //  ( initially 6 )
-const float pm_waterfriction = 1;
-const float pm_wateraccelerate = 10; // user intended acceleration when swimming ( initially 6 )
+const float pm_waterfriction = 60;
+const float pm_wateraccelerate = 6; // user intended acceleration when swimming ( initially 6 )
 
 const float pm_accelerate = 12; // user intended acceleration when on ground or fly movement ( initially 10 )
 const float pm_decelerate = 12; // user intended deceleration when on ground
@@ -430,18 +431,12 @@ static void PM_Friction( void ) {
 	drop = 0;
 
 	// apply ground friction
-	if( ( ( ( ( pm->groundentity != -1 ) && !( pml.groundsurfFlags & SURF_SLICK ) ) )
-		  && ( pm->waterlevel < 2 ) ) || pml.ladder ) {
+	if( ( ( pm->groundentity != -1 ) && !( pml.groundsurfFlags & SURF_SLICK ) ) || pml.ladder ) {
 		if( pm->playerState->pmove.knockback_time <= 0 ) {
 			friction = pm_friction;
 			control = speed < pm_decelerate ? pm_decelerate : speed;
 			drop += control * friction * pml.frametime;
 		}
-	}
-
-	// apply water friction
-	if( ( pm->waterlevel >= 2 ) && !pml.ladder ) {
-		drop += speed * pm_waterfriction * pm->waterlevel * pml.frametime;
 	}
 
 	// scale the velocity
@@ -557,11 +552,7 @@ static void PM_WaterMove( void ) {
 	for( i = 0; i < 3; i++ )
 		wishvel[i] = pml.forward[i] * pml.forwardPush + pml.right[i] * pml.sidePush;
 
-	if( !pml.forwardPush && !pml.sidePush && !pml.upPush ) {
-		wishvel[2] -= 60; // drift towards bottom
-	} else {
-		wishvel[2] += pml.upPush;
-	}
+	wishvel[2] -= pm_waterfriction;
 
 	PM_AddCurrents( wishvel );
 
@@ -857,11 +848,6 @@ static void PM_CheckJump( void ) {
 		return;
 	}
 
-	if( pm->waterlevel >= 2 ) { // swimming, not jumping
-		pm->groundentity = -1;
-		return;
-	}
-
 	if( pm->groundentity == -1 ) {
 		return;
 	}
@@ -877,15 +863,17 @@ static void PM_CheckJump( void ) {
 		GS_ClipVelocity( pml.velocity, pml.groundplane.normal, pml.velocity, PM_OVERBOUNCE );
 	}
 
+	float jumpSpeed = ( pm->waterlevel >= 2 ? pml.jumpPlayerSpeedWater : pml.jumpPlayerSpeed );
+
 	if( pml.velocity[2] > 100 ) {
 		pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DOUBLEJUMP, 0 );
-		pml.velocity[2] += pml.jumpPlayerSpeed;
+		pml.velocity[2] += jumpSpeed;
 	} else if( pml.velocity[2] > 0 ) {
 		pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_JUMP, 0 );
-		pml.velocity[2] += pml.jumpPlayerSpeed;
+		pml.velocity[2] += jumpSpeed;
 	} else {
 		pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_JUMP, 0 );
-		pml.velocity[2] = pml.jumpPlayerSpeed;
+		pml.velocity[2] = jumpSpeed;
 	}
 
 	// remove wj count
@@ -1417,6 +1405,8 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 	}
 
 	pml.jumpPlayerSpeed = (float)pm->playerState->pmove.jump_speed * GRAVITY_COMPENSATE;
+	pml.jumpPlayerSpeedWater = pml.jumpPlayerSpeed * 2;
+
 	if( pml.jumpPlayerSpeed < 0 ) {
 		pml.jumpPlayerSpeed = DEFAULT_JUMPSPEED * GRAVITY_COMPENSATE;
 	}

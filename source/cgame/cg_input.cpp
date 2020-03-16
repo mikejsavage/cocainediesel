@@ -206,7 +206,7 @@ bool CG_GetBoundKeycode( const char *cmd, int keys[ 2 ] ) {
 			continue;
 		}
 
-		keys[ numKeys ] = Key_StringToKeynum( Key_KeynumToString( key ) );
+		keys[ numKeys ] = key;
 		numKeys++;
 
 		if( numKeys == 2 ) {

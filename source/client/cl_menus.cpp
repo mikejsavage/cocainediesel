@@ -844,7 +844,9 @@ static bool WeaponButton( int cash, WeaponType weapon, ImVec2 size, Vec4 * tint 
 		tint->w = 0.5f;
 	}
 
-	return ( ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 0, Vec4( 0 ), *tint ) || ImGui::IsKeyPressed( CG_GetBoundKeycode( va( "use %s", weap_def->short_name ) ), false ) );
+	int weaponBinds[ 2 ] = { -1, -1 };
+	CG_GetBoundKeycode( va( "use %s", weap_def->short_name ), weaponBinds );
+	return ( ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 0, Vec4( 0 ), *tint ) || ImGui::IsKeyPressed( weaponBinds[ 0 ], false ) || ImGui::IsKeyPressed( weaponBinds[ 1 ], false ) );
 }
 
 

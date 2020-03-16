@@ -195,8 +195,10 @@ bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize ) {
 
 
 
-int CG_GetBoundKeycode( const char *cmd ) {
+bool CG_GetBoundKeycode( const char *cmd, int keys[ 2 ] ) {
 	const char *bind;
+	int numKeys = 0;
+
 
 	for( int key = 0; key < 256; key++ ) {
 		bind = Key_GetBindingBuf( key );
@@ -204,10 +206,15 @@ int CG_GetBoundKeycode( const char *cmd ) {
 			continue;
 		}
 
-		return Key_StringToKeynum( Key_KeynumToString( key ) );
+		keys[ numKeys ] = Key_StringToKeynum( Key_KeynumToString( key ) );
+		numKeys++;
+
+		if( numKeys == 2 ) {
+			break;
+		}
 	}
 
-	return -1;
+	return numKeys > 0;
 }
 
 /*

@@ -689,6 +689,7 @@ void CG_GetAngularMovement( vec3_t movement );
  * @param keysSize output string buffer size
  */
 bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize );
+int CG_GetBoundKeycode( const char *cmd );
 
 /**
  * Checks a chat message for local player nick and flashes window on a match

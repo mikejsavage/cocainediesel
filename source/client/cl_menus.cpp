@@ -275,6 +275,8 @@ static void SettingsGeneral() {
 static void SettingsControls() {
 	TempAllocator temp = cls.frame_arena.temp();
 
+	static bool advweap_keys = false;
+
 	ImGui::BeginChild( "binds" );
 
 	if( ImGui::BeginTabBar("##binds", ImGuiTabBarFlags_None ) ) {
@@ -321,16 +323,18 @@ static void SettingsControls() {
 			KeyBindButton( "Weapon 5", "weapon 5" );
 			KeyBindButton( "Weapon 6", "weapon 6" );
 
-			ImGui::Separator();
-			ImGui::Text( "Specific weapons" );
-			ImGui::Separator();
+			ImGui::Checkbox( "Advanced weapon keys", &advweap_keys );
 
-			for( int i = 0; i < Weapon_Count; i++ ) {
-				const WeaponDef * weapon = GS_GetWeaponDef( i );
-				KeyBindButton( weapon->name, temp( "use {}", weapon->short_name ) );
+			if( advweap_keys ) {
+				for( int i = 0; i < Weapon_Count; i++ ) {
+					const WeaponDef * weapon = GS_GetWeaponDef( i );
+					KeyBindButton( weapon->name, temp( "use {}", weapon->short_name ) );
+				}
 			}
 
 			ImGui::EndTabItem();
+		} else {
+			advweap_keys = false;
 		}
 
 
@@ -826,10 +830,10 @@ static bool WeaponButton( int cash, WeaponType weapon, ImVec2 size, Vec4 * tint 
 	const Material * icon = cgs.media.shaderWeaponIcon[ weapon ];
 	Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
 
-	int cost = GS_GetWeaponDef( weapon )->cost;
+	const WeaponDef * weap_def = GS_GetWeaponDef( weapon );
 	bool selected = selected_weapons[ weapon ];
 
-	if( !selected && cost > cash ) {
+	if( !selected && weap_def->cost > cash ) {
 		*tint = Vec4( 1.0f, 1.0f, 1.0f, 0.125f );
 		ImGui::Image( icon, size, half_pixel, 1.0f - half_pixel, *tint );
 		return false;
@@ -840,7 +844,7 @@ static bool WeaponButton( int cash, WeaponType weapon, ImVec2 size, Vec4 * tint 
 		tint->w = 0.5f;
 	}
 
-	return ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 0, Vec4( 0 ), *tint );
+	return ( ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 0, Vec4( 0 ), *tint ) || ImGui::IsKeyPressed( CG_GetBoundKeycode( va( "use %s", weap_def->short_name ) ), false ) );
 }
 
 
@@ -971,7 +975,7 @@ static void GameMenu() {
 					WeaponType weapon = weapon_order[ i ];
 
 					Vec4 tint;
-					if( WeaponButton( cash, weapon, icon_size, &tint ) || ImGui::IsKeyPressed( '1' + i, false ) ) {
+					if( WeaponButton( cash, weapon, icon_size, &tint ) ) {
 						selected_weapons[ weapon ] = !selected_weapons[ weapon ];
 					}
 

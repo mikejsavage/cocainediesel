@@ -193,6 +193,23 @@ bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize ) {
 	return numKeys > 0;
 }
 
+
+
+int CG_GetBoundKeycode( const char *cmd ) {
+	const char *bind;
+
+	for( int key = 0; key < 256; key++ ) {
+		bind = Key_GetBindingBuf( key );
+		if( !bind || Q_stricmp( bind, cmd ) ) {
+			continue;
+		}
+
+		return Key_StringToKeynum( Key_KeynumToString( key ) );
+	}
+
+	return -1;
+}
+
 /*
  * mouse
  */

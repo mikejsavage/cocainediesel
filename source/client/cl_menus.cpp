@@ -709,13 +709,12 @@ static void MainMenu() {
 
 	ImGui::BeginChild( "mainmenubody", ImVec2( 0, -ImGui::GetFrameHeightWithSpacing() + window_padding.y ) );
 
-	ImGui::SetCursorPosX( 2 );
 	ImGui::PushFont( cls.large_font );
-	const char * name = "CORONA DIESEL";
-	for( int i = 0; name[ i ]; i++ ) {
+	const char * name = "CORONADIESEL";
+	for( size_t i = 0; i < strlen( name ); i++ ) {
 		ImGui::SameLine();
-		ImGui::SetCursorPosX( ImGui::GetCursorPosX() + sinf( cls.monotonicTime / 160.0f + i*0.5f )*4 );
-		ImGui::Text( "%s%c", temp( "{}", ImGuiColorToken( 255, 100 + i*10, 100 + i*10, 255 ) ), name[ i ] );
+		ImGui::SetCursorPosX( ImGui::GetCursorPosX() + 3 + sinf( cls.monotonicTime / 500.0f + i*0.5f )*8 );
+		ImGui::Text( "%s%c", temp( "{}", ImGuiColorToken( 255, 100 + i*10, 50 + i*15, 255 ) ), name[ i ] );
 	}
 	ImGui::PopFont();
 

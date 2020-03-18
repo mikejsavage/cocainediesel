@@ -695,6 +695,8 @@ static void CreateServer() {
 }
 
 static void MainMenu() {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	ImGui::SetNextWindowPos( ImVec2() );
 	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
 
@@ -707,9 +709,14 @@ static void MainMenu() {
 
 	ImGui::BeginChild( "mainmenubody", ImVec2( 0, -ImGui::GetFrameHeightWithSpacing() + window_padding.y ) );
 
-	ImGui::SetCursorPosX( 2 + 2 * sinf( cls.monotonicTime / 20.0f ) );
+	ImGui::SetCursorPosX( 2 );
 	ImGui::PushFont( cls.large_font );
-	ImGui::Text( "COCAINE DIESEL" );
+	const char * name = "CORONA DIESEL";
+	for( int i = 0; name[ i ]; i++ ) {
+		ImGui::SameLine();
+		ImGui::SetCursorPosX( ImGui::GetCursorPosX() + sinf( cls.monotonicTime / 160.0f + i*0.5f )*4 );
+		ImGui::Text( "%s%c", temp( "{}", ImGuiColorToken( 255, 100 + i*10, 100 + i*10, 255 ) ), name[ i ] );
+	}
 	ImGui::PopFont();
 
 	if( ImGui::Button( "PLAY" ) ) {
@@ -876,7 +883,7 @@ static void GameMenu() {
 				ImGui::SetColumnWidth( 0, half );
 				ImGui::SetColumnWidth( 1, half );
 
-				GameMenuButton( "Join Cocaine", "join cocaine", &should_close, 0 );
+				GameMenuButton( "Join Corona", "join cocaine", &should_close, 0 );
 				ImGui::NextColumn();
 				GameMenuButton( "Join Diesel", "join diesel", &should_close, 1 );
 				ImGui::NextColumn();
@@ -1103,9 +1110,9 @@ static void GameMenu() {
 			ImGui::SetCursorPosY( window_size.y - ImGui::GetTextLineHeight()*2 );
 			ImGui::Columns( 6, NULL, false );
 
-			ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.75f, 0.125f, 0.125f, 1.f ) );
-			ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 0.75f, 0.25f, 0.2f, 1.f ) );
-			ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.5f, 0.1f, 0.1f, 1.f ) );
+			ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.25f, 0.f, 0.f, 1.f ) );
+			ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 0.25f, 0.125f, 0.075f, 1.f ) );
+			ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.125f, 0.075f, 0.075f, 1.f ) );
 
 			if( ImGui::Button( "Clear", ImVec2( -1, button_height ) ) ) {
 				for( bool &w : selected_weapons ) {

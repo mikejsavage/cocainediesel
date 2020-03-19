@@ -1172,7 +1172,7 @@ static void objectGameEntity_sustainDamage( edict_t *inflictor, edict_t *attacke
 			  damage, knockback, 0, mod >= 0 ? mod : 0 );
 }
 
-static void objectGameEntity_splashDamage( edict_t *attacker, int radius, float damage, float knockback, int mod, edict_t *self ) {
+static void objectGameEntity_splashDamage( edict_t *attacker, int radius, float damage, float knockback, edict_t *self ) {
 	if( radius < 1 ) {
 		return;
 	}

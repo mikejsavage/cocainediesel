@@ -373,6 +373,9 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, u64 
 				else if( value == "idle" ) {
 					config->attenuation = ATTN_IDLE;
 				}
+				else if( value == "static" ) {
+					config->attenuation = ATTN_STATIC;
+				}
 				else {
 					Com_Printf( S_COLOR_YELLOW "Bad attenuation value\n" );
 					return false;
@@ -740,6 +743,14 @@ void S_StartGlobalSound( const SoundEffect * sfx, int channel, float volume ) {
 
 void S_StartLocalSound( const SoundEffect * sfx, int channel, float volume ) {
 	StartSoundEffect( sfx, -1, channel, volume, PlayingSoundType_Global );
+}
+
+void S_StartLineSound( const SoundEffect * sfx, Vec3 start, Vec3 end, int channel, float volume ) {
+	PlayingSound * ps = StartSoundEffect( sfx, -1, channel, volume, PlayingSoundType_Line );
+	if( ps == NULL )
+		return;
+	ps->origin = start;
+	ps->end = end;
 }
 
 static ImmediateSoundHandle StartImmediateSound( const SoundEffect * sfx, int ent_num, float volume, PlayingSoundType type, ImmediateSoundHandle handle ) {

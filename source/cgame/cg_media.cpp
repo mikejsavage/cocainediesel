@@ -18,10 +18,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "cg_local.h"
+#include "cgame/cg_local.h"
 
 void CG_RegisterMediaSounds() {
 	cgs.media.sfxBulletImpact = FindSoundEffect( "weapons/bullet_impact" );
+	cgs.media.sfxBulletWhizz = FindSoundEffect( "weapons/bullet_whizz" );
 
 	// weapon
 	for( int i = 0; i < 4; i++ )

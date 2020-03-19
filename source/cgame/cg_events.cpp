@@ -395,6 +395,10 @@ static void CG_Event_FireBullet( const vec3_t origin, const vec3_t dir, WeaponTy
 		else {
 			BulletImpact( &trace, color, 24 );
 			S_StartFixedSound( cgs.media.sfxBulletImpact, FromQF3( trace.endpos ), CHAN_AUTO, 1.0f );
+
+			if( !ISVIEWERENTITY( owner ) ) {
+				S_StartLineSound( cgs.media.sfxBulletWhizz, FromQF3( origin ), FromQF3( trace.endpos ), CHAN_AUTO, 1.0f );
+			}
 		}
 
 		WallbangImpact( &wallbang, 12 );

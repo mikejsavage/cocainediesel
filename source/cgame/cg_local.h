@@ -118,6 +118,7 @@ typedef struct {
 	const SoundEffect * sfxBladeWallHit;
 
 	const SoundEffect * sfxBulletImpact;
+	const SoundEffect * sfxBulletWhizz;
 
 	const SoundEffect * sfxRiotgunHit;
 

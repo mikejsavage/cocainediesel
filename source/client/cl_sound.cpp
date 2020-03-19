@@ -821,6 +821,9 @@ void S_StartMenuMusic() {
 	if( !FindSound( "sounds/music/menu_1", &sound ) )
 		return;
 
+	if( music_playing )
+		return;
+
 	CheckedALSource( music_source, AL_GAIN, s_volume->value * s_musicvolume->value );
 	CheckedALSource( music_source, AL_DIRECT_CHANNELS_SOFT, AL_TRUE );
 	CheckedALSource( music_source, AL_LOOPING, AL_TRUE );

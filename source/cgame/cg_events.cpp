@@ -61,18 +61,18 @@ void CG_WeaponBeamEffect( centity_t *cent ) {
 
 static centity_t *laserOwner = NULL;
 
-static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles ) {
-	CG_BulletExplosion( trace->endpos, NULL, trace );
-
+static void BulletSparks( Vec3 pos, Vec3 normal, Vec4 color, int num_particles ) {
 	float num_yellow_particles = num_particles / 4.0f;
 
 	{
 		ParticleEmitter emitter = { };
-		emitter.position = FromQF3( trace->endpos );
+		emitter.position = pos;
 
-		emitter.use_cone_direction = true;
-		emitter.direction_cone.normal = FromQF3( trace->plane.normal );
-		emitter.direction_cone.theta = 90.0f;
+		if( Length( normal ) == 0.0f ) {
+			emitter.use_cone_direction = true;
+			emitter.direction_cone.normal = normal;
+			emitter.direction_cone.theta = 90.0f;
+		}
 
 		emitter.start_speed = 128.0f;
 		emitter.end_speed = 128.0f;
@@ -91,11 +91,13 @@ static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles )
 
 	{
 		ParticleEmitter emitter = { };
-		emitter.position = FromQF3( trace->endpos );
+		emitter.position = pos;
 
-		emitter.use_cone_direction = true;
-		emitter.direction_cone.normal = FromQF3( trace->plane.normal );
-		emitter.direction_cone.theta = 90.0f;
+		if( Length( normal ) == 0.0f ) {
+			emitter.use_cone_direction = true;
+			emitter.direction_cone.normal = normal;
+			emitter.direction_cone.theta = 90.0f;
+		}
 
 		emitter.start_speed = 128.0f;
 		emitter.end_speed = 128.0f;
@@ -111,6 +113,11 @@ static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles )
 
 		EmitParticles( &cgs.bullet_sparks, emitter );
 	}
+}
+
+static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles ) {
+	CG_BulletExplosion( trace->endpos, NULL, trace );
+	BulletSparks( FromQF3( trace->endpos ), FromQF3( trace->plane.normal ), color, num_particles );
 }
 
 static void WallbangImpact( const trace_t * trace, int num_particles ) {
@@ -315,6 +322,7 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 
 		case Weapon_Railgun:
 		case Weapon_Sniper:
+		case Weapon_Rifle:
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_AIMWEAPON, 0, EVENT_CHANNEL );
 			break;
 	}
@@ -951,7 +959,6 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			ByteToDir( parm, dir );
 			CG_PlasmaExplosion( ent->origin, dir, ent->team, (float)ent->weapon * 8.0f );
 			S_StartFixedSound( cgs.media.sfxPlasmaHit, FromQF3( ent->origin ), CHAN_AUTO, 1.0f );
-			CG_StartKickAnglesEffect( ent->origin, 50, ent->weapon * 8, 100 );
 			break;
 
 		case EV_BOLT_EXPLOSION:
@@ -969,14 +976,12 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 				CG_GrenadeExplosionMode( ent->origin, vec3_origin, (float)ent->weapon * 8.0f, ent->team );
 			}
 
-			CG_StartKickAnglesEffect( ent->origin, 135, ent->weapon * 8, 325 );
 			break;
 
 		case EV_ROCKET_EXPLOSION:
 			ByteToDir( parm, dir );
 			CG_RocketExplosionMode( ent->origin, dir, (float)ent->weapon * 8.0f, ent->team );
 
-			CG_StartKickAnglesEffect( ent->origin, 135, ent->weapon * 8, 300 );
 			break;
 
 		case EV_GRENADE_BOUNCE:
@@ -985,6 +990,12 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_BLADE_IMPACT:
 			CG_BladeImpact( ent->origin, ent->origin2 );
+			break;
+
+		case EV_RIFLEBULLET_IMPACT:
+			ByteToDir( parm, dir );
+			BulletSparks( FromQF3( ent->origin ), FromQF3( dir ), CG_TeamColorVec4( ent->team ), 24 );
+			S_StartFixedSound( cgs.media.sfxBulletImpact, FromQF3( ent->origin ), CHAN_AUTO, 1.0f );
 			break;
 
 		case EV_BLOOD:

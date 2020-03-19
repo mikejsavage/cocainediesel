@@ -546,6 +546,7 @@ edict_t * W_Fire_Rocket( edict_t * self, vec3_t start, vec3_t angles, int speed,
 edict_t * W_Fire_Plasma( edict_t * self, vec3_t start, vec3_t angles, float damage, int minKnockback, int maxKnockback, int minDamage, int radius, int speed, int timeout, int timeDelta );
 void W_Fire_Electrobolt( edict_t * self, vec3_t start, vec3_t angles, float damage, int knockback, int range, int timeDelta );
 edict_t * W_Fire_Lasergun( edict_t * self, vec3_t start, vec3_t angles, float damage, int knockback, int range, int timeDelta );
+edict_t * W_Fire_RifleBullet( edict_t * self, vec3_t start, vec3_t angles, int speed, float damage, int minKnockback, int maxKnockback, int minDamage, float radius, int timeout, int timeDelta );
 
 void G_FireWeapon( edict_t *ent, u64 parm );
 

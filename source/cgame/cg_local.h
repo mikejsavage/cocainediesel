@@ -578,7 +578,6 @@ extern cvar_t *cg_thirdPersonRange;
 void CG_ResetKickAngles( void );
 
 void CG_AddEntityToScene( entity_t *ent );
-void CG_StartKickAnglesEffect( vec3_t source, float knockback, float radius, int time );
 void CG_StartFallKickEffect( int bounceTime );
 void CG_ViewSmoothPredictedSteps( vec3_t vieworg );
 float CG_ViewSmoothFallKick( void );

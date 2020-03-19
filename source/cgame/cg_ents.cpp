@@ -785,14 +785,9 @@ void CG_EntityLoopSound( centity_t * cent, SyncEntityState * state ) {
 void CG_AddEntities( void ) {
 	ZoneScoped;
 
-	SyncEntityState *state;
-	int pnum;
-	centity_t *cent;
-	bool canLight;
-
-	for( pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
-		state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
-		cent = &cg_entities[state->number];
+	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
+		SyncEntityState * state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
+		centity_t * cent = &cg_entities[state->number];
 
 		if( cent->current.linearMovement ) {
 			if( !cent->linearProjectileCanDraw ) {
@@ -800,28 +795,27 @@ void CG_AddEntities( void ) {
 			}
 		}
 
-		canLight = !state->linearMovement;
-
 		switch( cent->type ) {
 			case ET_GENERIC:
 				CG_AddGenericEnt( cent );
 				CG_EntityLoopSound( cent, state );
-				canLight = true;
 				break;
 
 			case ET_ROCKET:
 				CG_AddGenericEnt( cent );
 				CG_ProjectileTrail( cent );
 				CG_EntityLoopSound( cent, state );
-				// CG_AddLightToScene( cent->ent.origin, 300, 0.8f, 0.6f, 0 );
 				break;
 			case ET_GRENADE:
 				CG_AddGenericEnt( cent );
 				CG_EntityLoopSound( cent, state );
 				CG_ProjectileTrail( cent );
-				canLight = true;
 				break;
 			case ET_PLASMA:
+				CG_AddGenericEnt( cent );
+				CG_EntityLoopSound( cent, state );
+				break;
+			case ET_RIFLEBULLET:
 				CG_AddGenericEnt( cent );
 				CG_EntityLoopSound( cent, state );
 				break;
@@ -831,13 +825,11 @@ void CG_AddEntities( void ) {
 				CG_EntityLoopSound( cent, state );
 				CG_LaserBeamEffect( cent );
 				CG_WeaponBeamEffect( cent );
-				canLight = true;
 				break;
 
 			case ET_CORPSE:
 				CG_AddPlayerEnt( cent );
 				CG_EntityLoopSound( cent, state );
-				canLight = true;
 				break;
 
 			case ET_GHOST:
@@ -873,15 +865,6 @@ void CG_AddEntities( void ) {
 				break;
 		}
 
-		// glow if light is set
-		if( canLight && state->light ) {
-			// CG_AddLightToScene( cent->ent.origin,
-			// 					COLOR_A( state->light ) * 4.0,
-			// 					COLOR_R( state->light ) * ( 1.0 / 255.0 ),
-			// 					COLOR_G( state->light ) * ( 1.0 / 255.0 ),
-			// 					COLOR_B( state->light ) * ( 1.0 / 255.0 ) );
-		}
-
 		VectorCopy( cent->ent.origin, cent->trailOrigin );
 	}
 }
@@ -903,6 +886,7 @@ void CG_LerpEntities( void ) {
 			case ET_ROCKET:
 			case ET_PLASMA:
 			case ET_GRENADE:
+			case ET_RIFLEBULLET:
 			case ET_PLAYER:
 			case ET_CORPSE:
 			case ET_GHOST:
@@ -954,13 +938,9 @@ void CG_LerpEntities( void ) {
 void CG_UpdateEntities( void ) {
 	ZoneScoped;
 
-	SyncEntityState *state;
-	int pnum;
-	centity_t *cent;
-
-	for( pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
-		state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
-		cent = &cg_entities[state->number];
+	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
+		SyncEntityState * state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
+		centity_t * cent = &cg_entities[state->number];
 		cent->type = state->type;
 		cent->effects = state->effects;
 
@@ -973,6 +953,7 @@ void CG_UpdateEntities( void ) {
 			case ET_ROCKET:
 			case ET_PLASMA:
 			case ET_GRENADE:
+			case ET_RIFLEBULLET:
 				CG_UpdateGenericEnt( cent );
 				break;
 

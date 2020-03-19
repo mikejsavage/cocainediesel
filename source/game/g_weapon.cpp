@@ -648,3 +648,39 @@ edict_t * W_Fire_Lasergun( edict_t * self, vec3_t start, vec3_t angles, float da
 
 	return laser;
 }
+
+static void W_Touch_RifleBullet( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) {
+	if( surfFlags & SURF_NOIMPACT ) {
+		G_FreeEdict( ent );
+		return;
+	}
+
+	if( !CanHit( ent, other ) ) {
+		return;
+	}
+
+	if( other->takedamage ) {
+		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, MOD_RIFLE );
+	}
+
+	edict_t * event = G_SpawnEvent( EV_RIFLEBULLET_IMPACT, DirToByte( plane ? plane->normal : NULL ), ent->s.origin );
+	event->s.team = ent->s.team;
+
+	G_FreeEdict( ent );
+}
+
+edict_t * W_Fire_RifleBullet( edict_t * self, vec3_t start, vec3_t angles, int speed, float damage,
+						 int minKnockback, int maxKnockback, int minDamage, float radius,
+						 int timeout, int timeDelta ) {
+	edict_t * bullet = W_Fire_LinearProjectile( self, start, angles, speed, damage, minKnockback, maxKnockback, minDamage, radius, timeout, timeDelta );
+	bullet->s.type = ET_RIFLEBULLET;
+	bullet->touch = W_Touch_RifleBullet;
+	bullet->classname = "riflebullet";
+
+	bullet->s.model = "weapons/rifle/bullet";
+	bullet->s.sound = "weapons/bullet_whizz";
+
+	GClip_LinkEntity( bullet );
+
+	return bullet;
+}

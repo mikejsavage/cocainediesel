@@ -20,25 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 
-static int G_MODToWeapon( int mod ) {
-	switch( mod ) {
-		case MOD_GUNBLADE: return Weapon_Knife;
-		case MOD_PISTOL: return Weapon_Pistol;
-		case MOD_MACHINEGUN: return Weapon_MachineGun;
-		case MOD_DEAGLE: return Weapon_Deagle;
-		case MOD_RIOTGUN: return Weapon_Shotgun;
-		case MOD_ASSAULTRIFLE: return Weapon_AssaultRifle;
-		case MOD_GRENADE: return Weapon_GrenadeLauncher;
-		case MOD_ROCKET: return Weapon_RocketLauncher;
-		case MOD_PLASMA: return Weapon_Plasma;
-		case MOD_ELECTROBOLT: return Weapon_Railgun;
-		case MOD_LASERGUN: return Weapon_Laser;
-		case MOD_SNIPER: return Weapon_Sniper;
-	}
-
-	return Weapon_Count;
-}
-
 bool G_IsTeamDamage( SyncEntityState *targ, SyncEntityState *attacker ) {
 	if( !GS_TeamBasedGametype( &server_gs ) )
 		return false;
@@ -300,7 +281,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 		}
 		else if( attacker == targ ) {
 			if( level.gametype.selfDamage ) {
-				take = damage * GS_GetWeaponDef( G_MODToWeapon( mod ) )->selfdamage;
+				take = damage * GS_GetWeaponDef( MODToWeapon( mod ) )->selfdamage;
 				save = damage - take;
 			}
 			else {
@@ -366,9 +347,9 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 	targ->health = targ->health - take;
 
 	// add damage done to stats
-	if( statDmg && G_MODToWeapon( mod ) != Weapon_Count && client && attacker->r.client ) {
-		attacker->r.client->level.stats.accuracy_hits[ G_MODToWeapon( mod ) ]++;
-		attacker->r.client->level.stats.accuracy_damage[ G_MODToWeapon( mod ) ] += damage;
+	if( statDmg && MODToWeapon( mod ) != Weapon_Count && client && attacker->r.client ) {
+		attacker->r.client->level.stats.accuracy_hits[ MODToWeapon( mod ) ]++;
+		attacker->r.client->level.stats.accuracy_damage[ MODToWeapon( mod ) ] += damage;
 	}
 
 	// accumulate given damage for hit sounds

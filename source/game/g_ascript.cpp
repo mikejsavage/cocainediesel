@@ -179,6 +179,7 @@ static const asEnumVal_t asWeaponTypeEnumVals[] =
 	ASLIB_ENUM_VAL( Weapon_Laser ),
 	ASLIB_ENUM_VAL( Weapon_Railgun ),
 	ASLIB_ENUM_VAL( Weapon_Sniper ),
+	ASLIB_ENUM_VAL( Weapon_Rifle ),
 
 	ASLIB_ENUM_VAL( Weapon_Count ),
 
@@ -295,36 +296,6 @@ static const asEnumVal_t asSVFlagEnumVals[] =
 	ASLIB_ENUM_VAL_NULL
 };
 
-static const asEnumVal_t asMeaningsOfDeathEnumVals[] =
-{
-	ASLIB_ENUM_VAL( MOD_UNKNOWN ),
-	ASLIB_ENUM_VAL( MOD_GUNBLADE ),
-	ASLIB_ENUM_VAL( MOD_PISTOL ),
-	ASLIB_ENUM_VAL( MOD_MACHINEGUN ),
-	ASLIB_ENUM_VAL( MOD_DEAGLE ),
-	ASLIB_ENUM_VAL( MOD_RIOTGUN ),
-	ASLIB_ENUM_VAL( MOD_GRENADE ),
-	ASLIB_ENUM_VAL( MOD_ROCKET ),
-	ASLIB_ENUM_VAL( MOD_PLASMA ),
-	ASLIB_ENUM_VAL( MOD_ELECTROBOLT ),
-	ASLIB_ENUM_VAL( MOD_LASERGUN ),
-
-	ASLIB_ENUM_VAL( MOD_SLIME ),
-	ASLIB_ENUM_VAL( MOD_LAVA ),
-	ASLIB_ENUM_VAL( MOD_CRUSH ),
-	ASLIB_ENUM_VAL( MOD_TELEFRAG ),
-	ASLIB_ENUM_VAL( MOD_SUICIDE ),
-	ASLIB_ENUM_VAL( MOD_EXPLOSIVE ),
-
-	ASLIB_ENUM_VAL( MOD_TRIGGER_HURT ),
-
-	ASLIB_ENUM_VAL( MOD_LASER ),
-	ASLIB_ENUM_VAL( MOD_SPIKES ),
-	ASLIB_ENUM_VAL( MOD_VOID ),
-
-	ASLIB_ENUM_VAL_NULL
-};
-
 static const asEnumVal_t asKeyiconEnumVals[] =
 {
 	ASLIB_ENUM_VAL( KEYICON_FORWARD ),
@@ -402,7 +373,6 @@ static const asEnum_t asGameEnums[] =
 	{ "contents_e", asContentsEnumVals },
 	{ "surfaceflags_e", asSurfFlagEnumVals },
 	{ "serverflags_e", asSVFlagEnumVals },
-	{ "meaningsofdeath_e", asMeaningsOfDeathEnumVals },
 	{ "keyicon_e", asKeyiconEnumVals },
 
 	{ "axis_e", asAxisEnumVals },
@@ -1213,7 +1183,7 @@ static void objectGameEntity_splashDamage( edict_t *attacker, int radius, float 
 	self->projectileInfo.minKnockback = 1;
 	self->projectileInfo.radius = radius;
 
-	G_RadiusDamage( self, attacker, NULL, self, mod >= 0 ? mod : 0 );
+	G_RadiusDamage( self, attacker, NULL, self, MOD_EXPLOSIVE );
 }
 
 static void objectGameEntity_explosionEffect( int radius, edict_t *self ) {
@@ -1298,7 +1268,7 @@ static const asMethod_t gedict_Methods[] =
 	{ ASLIB_FUNCTION_DECL( array<Entity @> @, findTargeting, ( ) const ), asFUNCTION( objectGameEntity_findTargeting ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, useTargets, ( const Entity @activator ) ), asFUNCTION( objectGameEntity_UseTargets ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, sustainDamage, ( Entity @inflicter, Entity @attacker, const Vec3 &in dir, float damage, float knockback, int mod ) ), asFUNCTION( objectGameEntity_sustainDamage ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, splashDamage, ( Entity @attacker, int radius, float damage, float knockback, int mod ) ), asFUNCTION( objectGameEntity_splashDamage ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, splashDamage, ( Entity @attacker, int radius, float damage, float knockback ) ), asFUNCTION( objectGameEntity_splashDamage ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, explosionEffect, ( int radius ) ), asFUNCTION( objectGameEntity_explosionEffect ), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL

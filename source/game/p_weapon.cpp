@@ -128,6 +128,13 @@ static void G_Fire_Bolt( vec3_t origin, vec3_t angles, edict_t *owner, int timeD
 		def->knockback, def->range, timeDelta );
 }
 
+static edict_t *G_Fire_RifleBullet( vec3_t origin, vec3_t angles, edict_t *owner, int timeDelta ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_Rifle );
+	return W_Fire_RifleBullet( owner, origin, angles, def->speed, def->damage,
+		def->minknockback, def->knockback, def->mindamage,
+		def->splash_radius, def->range, timeDelta );
+}
+
 void G_FireWeapon( edict_t *ent, u64 parm ) {
 	vec3_t origin, angles;
 	vec3_t viewoffset = { 0, 0, 0 };
@@ -198,6 +205,10 @@ void G_FireWeapon( edict_t *ent, u64 parm ) {
 
 		case Weapon_Railgun:
 			G_Fire_Bolt( origin, angles, ent, timeDelta );
+			break;
+
+		case Weapon_Rifle:
+			G_Fire_RifleBullet( origin, angles, ent, timeDelta );
 			break;
 	}
 

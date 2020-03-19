@@ -963,6 +963,7 @@ static void GameMenu() {
 				Weapon_Plasma,
 				Weapon_GrenadeLauncher,
 				Weapon_Pistol,
+				Weapon_Rifle,
 			};
 
 			// weapon grid
@@ -982,8 +983,7 @@ static void GameMenu() {
 					}
 
 					int cost = GS_GetWeaponDef( weapon )->cost;
-					RGB8 color = GS_GetWeaponDef( weapon )->color;
-					ImGuiColorToken token = ImGuiColorToken( color.r * tint.x, color.g * tint.y, color.b * tint.z, 255 * tint.w );
+					ImGuiColorToken token = ImGuiColorToken( 255 * tint.x, 255 * tint.y, 255 * tint.z, 255 * tint.w );
 					ColumnCenterText( temp( "{}{}: {}", token, i + 1, GS_GetWeaponDef( weapon )->name ) );
 					ColumnCenterText( temp( "{}${}.{02}", token, cost / 100, cost % 100 ) );
 
@@ -1034,7 +1034,7 @@ static void GameMenu() {
 					ImGui::NextColumn();
 
 					if( bigger_font ) ImGui::PushFont( cls.big_font );
-					ImGui::Text( "%s", temp( "{}{}", ImGuiColorToken( weapon->color ), weapon->name ) );
+					ImGui::Text( "%s", weapon->name );
 					if( bigger_font ) ImGui::PopFont();
 					if( !bigger_font ) ImGui::PushFont( cls.console_font );
 					ImGui::TextWrapped( "%s", temp( "{}{}", ImGuiColorToken( 150, 150, 150, 255 ), weapon->description ) );
@@ -1210,7 +1210,7 @@ void UI_Refresh() {
 		if( mainmenu_state != MainMenuState_ParticleEditor ) {
 			DrawParticleMenuEffect();
 		}
-		
+
 		const char * connecting = "Connecting...";
 		ImGui::SetNextWindowPos( ImVec2() );
 		ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );

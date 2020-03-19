@@ -1238,48 +1238,11 @@ static void CG_DrawObituaries(
 			continue;
 		}
 
-		const Material *pic;
-		switch( obr->mod ) {
-			case MOD_GUNBLADE:
-				pic = CG_GetWeaponIcon( Weapon_Knife );
-				break;
-			case MOD_PISTOL:
-				pic = CG_GetWeaponIcon( Weapon_Pistol );
-				break;
-			case MOD_MACHINEGUN:
-				pic = CG_GetWeaponIcon( Weapon_MachineGun );
-				break;
-			case MOD_DEAGLE:
-				pic = CG_GetWeaponIcon( Weapon_Deagle );
-				break;
-			case MOD_RIOTGUN:
-				pic = CG_GetWeaponIcon( Weapon_Shotgun );
-				break;
-			case MOD_ASSAULTRIFLE:
-				pic = CG_GetWeaponIcon( Weapon_AssaultRifle );
-				break;
-			case MOD_GRENADE:
-				pic = CG_GetWeaponIcon( Weapon_GrenadeLauncher );
-				break;
-			case MOD_ROCKET:
-				pic = CG_GetWeaponIcon( Weapon_RocketLauncher );
-				break;
-			case MOD_PLASMA:
-				pic = CG_GetWeaponIcon( Weapon_Plasma );
-				break;
-			case MOD_LASERGUN:
-				pic = CG_GetWeaponIcon( Weapon_Laser );
-				break;
-			case MOD_ELECTROBOLT:
-				pic = CG_GetWeaponIcon( Weapon_Railgun );
-				break;
-			case MOD_SNIPER:
-				pic = CG_GetWeaponIcon( Weapon_Sniper );
-				break;
-			default:
-				pic = CG_GetWeaponIcon( Weapon_Knife ); // FIXME
-				break;
-		}
+		WeaponType weapon = MODToWeapon( obr->mod );
+		if( weapon == Weapon_Count )
+			weapon = Weapon_Knife;
+
+		const Material *pic = CG_GetWeaponIcon( weapon );
 
 		float attacker_width = TextBounds( font, layout_cursor_font_size, obr->attacker ).maxs.x;
 		float victim_width = TextBounds( font, layout_cursor_font_size, obr->victim ).maxs.x;

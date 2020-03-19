@@ -1218,7 +1218,6 @@ void CL_SetClientState( connstate_t state ) {
 			cls.cgameActive = false;
 			Con_Close();
 			UI_ShowConnectingScreen();
-			S_StopBackgroundTrack();
 			CL_SetKeyDest( key_game );
 			break;
 		case CA_CONNECTED:
@@ -1230,6 +1229,7 @@ void CL_SetClientState( connstate_t state ) {
 			cl_connectChain[0] = '\0';
 			Con_Close();
 			UI_HideMenu();
+			S_StopBackgroundTrack();
 			CL_SetKeyDest( key_game );
 			break;
 		default:

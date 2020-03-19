@@ -755,10 +755,6 @@ static void MainMenu() {
 
 	ImGui::Separator();
 
-	if( mainmenu_state != MainMenuState_ParticleEditor ) {
-		DrawParticleMenuEffect();
-	}
-
 	switch( mainmenu_state ) {
 		case MainMenuState_ServerBrowser: ServerBrowser(); break;
 		case MainMenuState_CreateServer: CreateServer(); break;
@@ -1194,26 +1190,34 @@ void UI_Refresh() {
 		return;
 	}
 
-	if( uistate == UIState_MainMenu ) {
-		MainMenu();
-	}
-
-	if( uistate == UIState_Connecting ) {
-		ImGui::SetNextWindowPos( ImVec2() );
-		ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
-		ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
-
-		ImGui::Text( "Connecting..." );
-
-		ImGui::End();
-	}
-
 	if( uistate == UIState_GameMenu ) {
 		GameMenu();
 	}
 
-	if( uistate == UIState_DemoMenu ) {
+	else if( uistate == UIState_DemoMenu ) {
 		DemoMenu();
+	} else {
+		if( uistate == UIState_MainMenu ) {
+			MainMenu();
+		}
+
+		if( uistate == UIState_Connecting ) {
+			const char * connecting = "Connecting...";
+			ImGui::SetNextWindowPos( ImVec2() );
+			ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
+			ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+
+			ImGui::PushFont( cls.large_font );
+			ImGui::SetCursorPos( ( ImGui::GetWindowSize() - ImGui::CalcTextSize( connecting ) )/2 );
+			ImGui::Text( "%s", connecting );
+			ImGui::PopFont();
+
+			ImGui::End();
+		}
+
+		if( mainmenu_state != MainMenuState_ParticleEditor ) {
+			DrawParticleMenuEffect();
+		}
 	}
 
 	if( Con_IsVisible() ) {

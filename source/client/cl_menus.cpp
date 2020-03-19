@@ -1194,31 +1194,36 @@ void UI_Refresh() {
 		GameMenu();
 	}
 
-	else if( uistate == UIState_DemoMenu ) {
+	if( uistate == UIState_DemoMenu ) {
 		DemoMenu();
-	} else {
-		if( uistate == UIState_MainMenu ) {
-			MainMenu();
-		}
+	}
 
-		if( uistate == UIState_Connecting ) {
-			const char * connecting = "Connecting...";
-			ImGui::SetNextWindowPos( ImVec2() );
-			ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
-			ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
-
-			ImGui::PushFont( cls.large_font );
-			ImGui::SetCursorPos( ( ImGui::GetWindowSize() - ImGui::CalcTextSize( connecting ) )/2 );
-			ImGui::Text( "%s", connecting );
-			ImGui::PopFont();
-
-			ImGui::End();
-		}
-
+	if( uistate == UIState_MainMenu ) {
 		if( mainmenu_state != MainMenuState_ParticleEditor ) {
 			DrawParticleMenuEffect();
 		}
+
+		MainMenu();
 	}
+
+	if( uistate == UIState_Connecting ) {
+		if( mainmenu_state != MainMenuState_ParticleEditor ) {
+			DrawParticleMenuEffect();
+		}
+		
+		const char * connecting = "Connecting...";
+		ImGui::SetNextWindowPos( ImVec2() );
+		ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
+		ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+
+		ImGui::PushFont( cls.large_font );
+		ImGui::SetCursorPos( ( ImGui::GetWindowSize() - ImGui::CalcTextSize( connecting ) )/2 );
+		ImGui::Text( "%s", connecting );
+		ImGui::PopFont();
+
+		ImGui::End();
+	}
+
 
 	if( Con_IsVisible() ) {
 		Con_Draw();

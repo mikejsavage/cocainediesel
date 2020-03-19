@@ -681,15 +681,8 @@ void CG_AddMovement( vec3_t movement );
 */
 void CG_GetAngularMovement( vec3_t movement );
 
-/**
- * Gets up to two bound keys for a command.
- *
- * @param cmd      console command to get binds for
- * @param keys     output string
- * @param keysSize output string buffer size
- */
 bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize );
-bool CG_GetBoundKeycode( const char *cmd, int keys[ 2 ] );
+int CG_GetBoundKeycodes( const char *cmd, int keys[ 2 ] );
 
 /**
  * Checks a chat message for local player nick and flashes window on a match

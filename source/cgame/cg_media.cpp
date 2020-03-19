@@ -101,6 +101,8 @@ void CG_RegisterMediaSounds() {
 	cgs.media.sfxVSaySounds[ Vsay_ShitSon ] = FindSoundEffect( "sounds/vsay/shitson" );
 	cgs.media.sfxVSaySounds[ Vsay_TrashSmash ] = FindSoundEffect( "sounds/vsay/trashsmash" );
 	cgs.media.sfxVSaySounds[ Vsay_WowYourTerrible ] = FindSoundEffect( "sounds/vsay/wowyourterrible" );
+	cgs.media.sfxVSaySounds[ Vsay_Acne ] = FindSoundEffect( "sounds/vsay/acne" );
+	cgs.media.sfxVSaySounds[ Vsay_Valley ] = FindSoundEffect( "sounds/vsay/valley" );
 }
 
 void CG_RegisterMediaModels() {

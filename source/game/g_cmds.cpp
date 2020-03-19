@@ -549,6 +549,8 @@ static const g_vsays_t g_vsays[] = {
 	{ "shitson", Vsay_ShitSon },
 	{ "trashsmash", Vsay_TrashSmash },
 	{ "wowyourterrible", Vsay_WowYourTerrible },
+	{ "acne", Vsay_Acne },
+	{ "valley", Vsay_Valley },
 
 	{ NULL, 0 }
 };

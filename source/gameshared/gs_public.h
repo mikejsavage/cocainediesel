@@ -625,6 +625,8 @@ enum {
 	Vsay_ShitSon,
 	Vsay_TrashSmash,
 	Vsay_WowYourTerrible,
+	Vsay_Acne,
+	Vsay_Valley,
 
 	VSAY_TOTAL
 };

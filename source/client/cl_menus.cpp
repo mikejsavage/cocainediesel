@@ -711,10 +711,15 @@ static void MainMenu() {
 
 	ImGui::PushFont( cls.large_font );
 	const char * name = "CORONADIESEL";
+	const int break_time = 1000;
 	for( size_t i = 0; i < strlen( name ); i++ ) {
 		ImGui::SameLine();
-		ImGui::SetCursorPosX( ImGui::GetCursorPosX() + 3 + sinf( cls.monotonicTime / 500.0f + i*0.5f )*8 );
-		ImGui::Text( "%s%c", temp( "{}", ImGuiColorToken( 255, 100 + i*10, 50 + i*15, 255 ) ), name[ i ] );
+		if( cls.monotonicTime < break_time ) {
+			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + frame_static.viewport_width * max( 0, ( 1000 - cls.monotonicTime ) )/1000.f );
+		} else {
+			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + max( 0, sinf( ( cls.monotonicTime - break_time ) / 500.0f + i*0.5f )*8 ) );
+		}
+		ImGui::Text( "%s%c", temp( "{}", ImGuiColorToken( 220, 180 + i*2, 100 + i*4, 255 ) ), name[ i ] );
 	}
 	ImGui::PopFont();
 

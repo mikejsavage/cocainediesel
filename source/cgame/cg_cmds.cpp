@@ -401,7 +401,7 @@ static void CG_Cmd_UseItem_f( void ) {
 	}
 }
 
-static WeaponType CG_UseWeaponStep( const SyncPlayerState * playerState, bool next, WeaponType predicted_equipped_weapon ) {
+static WeaponType CG_UseWeaponStep( SyncPlayerState * playerState, bool next, WeaponType predicted_equipped_weapon ) {
 	if( predicted_equipped_weapon == Weapon_Count )
 		return Weapon_Count;
 

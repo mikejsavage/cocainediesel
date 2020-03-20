@@ -73,7 +73,7 @@ void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, const vec3_t ori
 	}
 }
 
-const SyncPlayerState::WeaponInfo * GS_FindWeapon( const SyncPlayerState * player, WeaponType weapon ) {
+SyncPlayerState::WeaponInfo * GS_FindWeapon( SyncPlayerState * player, WeaponType weapon ) {
 	for( int i = 0; i < MAX_WEAPONS; i++ ) {
 		if( player->weapons[ i ].weap == weapon )
 			return &player->weapons[ i ];
@@ -83,10 +83,10 @@ const SyncPlayerState::WeaponInfo * GS_FindWeapon( const SyncPlayerState * playe
 }
 
 int GS_SelectBestWeapon( const SyncPlayerState * player ) {
-	return ( player->num_weapons > 0 ? 0 : Weapon_Count );
+	return ( player->num_weapons > 0 ? 0 : Weapon_None );
 }
 
-static bool GS_CheckAmmoInWeapon( const SyncPlayerState * player, WeaponType weapon ) {
+static bool GS_CheckAmmoInWeapon( SyncPlayerState * player, WeaponType weapon ) {
 	const WeaponDef * def = GS_GetWeaponDef( weapon );
 
 	const SyncPlayerState::WeaponInfo * found_weapon = GS_FindWeapon( player, weapon );
@@ -181,7 +181,7 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 		}
 	}
 
-	const SyncPlayerState::WeaponInfo * held_weapon = GS_FindWeapon( player, player->weapon );
+	SyncPlayerState::WeaponInfo * held_weapon = GS_FindWeapon( player, player->weapon );
 
 	if( player->weapon_state == WeaponState_Reloading ) {
 		if( player->weapon_time > 0 ) {
@@ -280,7 +280,7 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 	return player->weapon;
 }
 
-bool GS_CanEquip( const SyncPlayerState * player, WeaponType weapon ) {
+bool GS_CanEquip( SyncPlayerState * player, WeaponType weapon ) {
 	if( GS_FindWeapon( player, weapon ) != NULL )
 		return ( player->pmove.features & PMFEAT_WEAPONSWITCH );
 

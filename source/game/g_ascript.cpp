@@ -782,11 +782,18 @@ static void objectGameClient_GiveWeapon( WeaponType weapon, bool give, gclient_t
 		return;
 	}
 
-	SyncPlayerState ps = PLAYERENT( playerNum )->r.client->ps;
+	SyncPlayerState * ps = &PLAYERENT( playerNum )->r.client->ps;
 
-	ps.weapons[ ps.num_weapons ].weap = ( give ? weapon : Weapon_None );
-	ps.weapons[ ps.num_weapons ].ammo = GS_GetWeaponDef( weapon )->clip_size;
-	ps.num_weapons++;
+	if( give ) {
+		if( ps->weapons[ ps->num_weapons ].weap != weapon ) {
+			ps->weapons[ ps->num_weapons ].weap = weapon;
+			ps->weapons[ ps->num_weapons ].ammo = GS_GetWeaponDef( weapon )->clip_size;
+			ps->num_weapons++;
+		}
+	} else if( ps->weapons[ ps->num_weapons ].weap == weapon ) {
+		ps->weapons[ ps->num_weapons ].weap = Weapon_None;
+		ps->num_weapons--;
+	}
 }
 
 static void objectGameClient_InventoryClear( gclient_t *self ) {

@@ -12,6 +12,40 @@
 
 const WeaponDef gs_weaponDefs[] = {
 	{
+		"", "", //Weapon_None
+		"",
+		0,
+
+		0,                              // projectiles fired each shot
+		0,                              // clip size
+		0,                              // reload time
+		false,                          // staged reloading
+
+		//timings (in msecs)->
+		WEAPONUP_TIME_FAST,             // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		0,                            // refire time
+		0,                             // projectile timeout / projectile range for instant weapons
+		0,                              // recoil
+		FiringMode_Auto,
+
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
+		//damages
+		0,                             // damage
+		0,                              // selfdamage ratio
+		0,                              // knockback
+		0,                              // splash radius
+		0,                              // splash minimum damage
+		0,                              // splash minimum knockback
+
+		//projectile def
+		INSTANT,                        // speed
+		0,                              // spread
+	},
+
+	{
 		"Knife", "gb",
 		"Knife people in the face",
 		0,

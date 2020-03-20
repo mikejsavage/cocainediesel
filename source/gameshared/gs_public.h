@@ -69,8 +69,13 @@ enum MatchState {
 	MATCH_STATE_TOTAL
 };
 
+
+#define MAX_WEAPONS 6
+
 typedef u8 WeaponType;
 enum WeaponType_ : WeaponType {
+	Weapon_None,
+
 	Weapon_Knife,
 	Weapon_Pistol,
 	Weapon_MachineGun,
@@ -283,12 +288,13 @@ struct SyncPlayerState {
 	// WeaponInfo weapons[ Weapon_Count ];
 
 	struct WeaponInfo {
-		bool owned;
+		WeaponType weap;
 		int ammo;
 	};
 
-	WeaponInfo weapons[ Weapon_Count ];
+	WeaponInfo weapons[ MAX_WEAPONS ];
 	bool items[ Item_Count ];
+	int num_weapons;
 
 	uint32_t plrkeys;           // infos on the pressed keys of chased player (self if not chasing)
 
@@ -804,8 +810,9 @@ struct WeaponDef {
 };
 
 const WeaponDef * GS_GetWeaponDef( WeaponType weapon );
+const SyncPlayerState::WeaponInfo * GS_FindWeapon( const SyncPlayerState * player, WeaponType weapon );
 WeaponType MODToWeapon( int mod );
-WeaponType GS_SelectBestWeapon( const SyncPlayerState * player );
+int GS_SelectBestWeapon( const SyncPlayerState * player );
 WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, const usercmd_t * cmd, int timeDelta );
 void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, const vec3_t start, const vec3_t dir, const vec3_t right, const vec3_t up, float r, float u, int range, int ignore, int timeDelta );
 void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, const vec3_t origin, const vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * tr, const vec3_t dir ) );

@@ -306,7 +306,7 @@ static void CG_SC_ChangeLoadout() {
 	if( cgs.demoPlaying )
 		return;
 
-	int weapons[ Weapon_Count ] = { };
+	int weapons[ MAX_WEAPONS ] = { };
 	size_t n = 0;
 
 	if( Cmd_Argc() - 1 >= ARRAY_COUNT( weapons ) )
@@ -405,19 +405,30 @@ static WeaponType CG_UseWeaponStep( const SyncPlayerState * playerState, bool ne
 	if( predicted_equipped_weapon == Weapon_Count )
 		return Weapon_Count;
 
-	int weapon = predicted_equipped_weapon;
-	while( true ) {
-		weapon = ( weapon + ( next ? 1 : -1 ) ) % Weapon_Count;
+	int weapon, basis_weapon;
+	for( basis_weapon = 0; basis_weapon < MAX_WEAPONS; basis_weapon++ ) { //find the basis weapon
+		if( playerState->weapons[ basis_weapon ].weap == predicted_equipped_weapon ) {
+			weapon = basis_weapon;
+			break;
+		}
+	}
+
+	int num_weapons = playerState->num_weapons;
+
+	while( true ) { //do the switch
+		weapon = ( weapon + ( next ? 1 : -1 ) ) % num_weapons;
 		if( weapon < 0 ) {
-			weapon += Weapon_Count;
+			weapon = num_weapons - 1;
+		} else if( weapon == num_weapons ) {
+			weapon = 0;
 		}
 
-		if( weapon == predicted_equipped_weapon ) {
+		if( weapon == basis_weapon ) {
 			break;
 		}
 
-		if( GS_CanEquip( playerState, weapon ) ) {
-			return weapon;
+		if( GS_CanEquip( playerState, playerState->weapons[ weapon ].weap ) ) {
+			return playerState->weapons[ weapon ].weap;
 		}
 	}
 
@@ -452,7 +463,7 @@ static void CG_Cmd_Weapon_f() {
 	int w = atoi( Cmd_Argv( 1 ) );
 	int seen = 0;
 	for( WeaponType i = Weapon_Knife; i < Weapon_Count; i++ ) {
-		if( !cg.predictedPlayerState.weapons[ i ].owned )
+		if( cg.predictedPlayerState.weapons[ i ].weap == Weapon_None )
 			continue;
 		seen++;
 

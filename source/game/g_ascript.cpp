@@ -782,8 +782,11 @@ static void objectGameClient_GiveWeapon( WeaponType weapon, bool give, gclient_t
 		return;
 	}
 
-	PLAYERENT( playerNum )->r.client->ps.weapons[ weapon ].owned = give;
-	PLAYERENT( playerNum )->r.client->ps.weapons[ weapon ].ammo = GS_GetWeaponDef( weapon )->clip_size;
+	SyncPlayerState ps = PLAYERENT( playerNum )->r.client->ps;
+
+	ps.weapons[ ps.num_weapons ].weap = ( give ? weapon : Weapon_None );
+	ps.weapons[ ps.num_weapons ].ammo = GS_GetWeaponDef( weapon )->clip_size;
+	ps.num_weapons++;
 }
 
 static void objectGameClient_InventoryClear( gclient_t *self ) {
@@ -792,6 +795,7 @@ static void objectGameClient_InventoryClear( gclient_t *self ) {
 	self->ps.weapon = Weapon_Count;
 	self->ps.pending_weapon = Weapon_Count;
 	self->ps.weapon_state = WeaponState_Ready;
+	self->ps.num_weapons = 0;
 }
 
 static void objectGameClient_SelectWeapon( int index, gclient_t *self ) {
@@ -800,8 +804,8 @@ static void objectGameClient_SelectWeapon( int index, gclient_t *self ) {
 		return;
 	}
 
-	if( self->ps.weapons[ index ].owned ) {
-		self->ps.pending_weapon = index;
+	if( self->ps.weapons[ index ].weap != Weapon_None ) {
+		self->ps.pending_weapon = self->ps.weapons[ index ].weap;
 	}
 }
 

@@ -828,7 +828,7 @@ static int SelectedWeaponIndex( WeaponType weapon ) {
 	return -1;
 }
 
-static bool WeaponButton( int cash, WeaponType weapon, ImVec2 size, Vec4 * tint ) {
+static bool WeaponButton( int cash, WeaponType weapon, ImVec2 size, Vec4 * tint, bool selected ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, Vec4( 0 ) );
 	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0 ) );
 	ImGui::PushStyleColor( ImGuiCol_ButtonActive, Vec4( 0 ) );
@@ -838,7 +838,6 @@ static bool WeaponButton( int cash, WeaponType weapon, ImVec2 size, Vec4 * tint 
 	Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
 
 	const WeaponDef * weap_def = GS_GetWeaponDef( weapon );
-	bool selected = SelectedWeaponIndex( weapon ) != -1;
 
 	if( !selected && weap_def->cost > cash ) {
 		*tint = Vec4( 1.0f, 1.0f, 1.0f, 0.125f );
@@ -983,8 +982,8 @@ static void GameMenu() {
 					WeaponType weapon = weapon_order[ i ];
 
 					Vec4 tint;
-					if( WeaponButton( cash, weapon, icon_size, &tint ) ) {
-						int weap_pos = SelectedWeaponIndex( weapon );
+					int weap_pos = SelectedWeaponIndex( weapon );
+					if( WeaponButton( cash, weapon, icon_size, &tint, weap_pos != -1 ) ) {
 						if( weap_pos == -1 ) {
 							selected_weapons[ num_weapons ] = weapon;
 							num_weapons++;
@@ -1009,7 +1008,10 @@ static void GameMenu() {
 
 					int cost = GS_GetWeaponDef( weapon )->cost;
 					ImGuiColorToken token = ImGuiColorToken( 255 * tint.x, 255 * tint.y, 255 * tint.z, 255 * tint.w );
-					ColumnCenterText( temp( "{}{}: {}", token, i + 1, GS_GetWeaponDef( weapon )->name ) );
+					if( weap_pos != -1 )
+						ColumnCenterText( temp( "{}{}: {}", token, weap_pos + 2, GS_GetWeaponDef( weapon )->name ) );
+					else
+						ColumnCenterText( temp( "{}{}", token, GS_GetWeaponDef( weapon )->name ) );
 					ColumnCenterText( temp( "{}${}.{02}", token, cost / 100, cost % 100 ) );
 
 					if( i % 3 == 2 ) {
@@ -1018,7 +1020,7 @@ static void GameMenu() {
 					}
 				}
 
-				{
+				/*{
 					const Material * icon = FindMaterial( "weapons/weap_none" );
 					Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
 					ImGuiColorToken pink = ImGuiColorToken( 255, 53, 255, 64 );
@@ -1028,7 +1030,7 @@ static void GameMenu() {
 					ColumnCenterText( temp( "{}$13.37", pink ) );
 
 					desc_height = ImGui::GetCursorPosY();
-				}
+				}*/
 
 				if( bigger_font ) ImGui::PopFont();
 

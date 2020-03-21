@@ -167,6 +167,8 @@ static const asEnumVal_t asPMoveFeaturesVals[] =
 
 static const asEnumVal_t asWeaponTypeEnumVals[] =
 {
+	ASLIB_ENUM_VAL( Weapon_None ),
+
 	ASLIB_ENUM_VAL( Weapon_Knife ),
 	ASLIB_ENUM_VAL( Weapon_Pistol ),
 	ASLIB_ENUM_VAL( Weapon_MachineGun ),

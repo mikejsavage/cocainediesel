@@ -64,7 +64,8 @@ static size_t selected_map;
 
 static GameMenuState gamemenu_state;
 static constexpr int MAX_CASH = 500;
-static bool selected_weapons[ Weapon_Count ];
+static WeaponType selected_weapons[ MAX_WEAPONS ];
+static int num_weapons = 0;
 
 static SettingsState settings_state;
 static bool reset_video_settings;
@@ -817,6 +818,16 @@ static void GameMenuButton( const char * label, const char * command, bool * cli
 	}
 }
 
+static int SelectedWeaponIndex( WeaponType weapon ) {
+	for( int i = 0; i < MAX_WEAPONS; i++ ) {
+		if( selected_weapons[ i ] == weapon ) {
+			return i;
+		}
+	}
+	
+	return -1;
+}
+
 static bool WeaponButton( int cash, WeaponType weapon, ImVec2 size, Vec4 * tint ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, Vec4( 0 ) );
 	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0 ) );
@@ -827,7 +838,7 @@ static bool WeaponButton( int cash, WeaponType weapon, ImVec2 size, Vec4 * tint 
 	Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
 
 	const WeaponDef * weap_def = GS_GetWeaponDef( weapon );
-	bool selected = selected_weapons[ weapon ];
+	bool selected = SelectedWeaponIndex( weapon ) != -1;
 
 	if( !selected && weap_def->cost > cash ) {
 		*tint = Vec4( 1.0f, 1.0f, 1.0f, 0.125f );
@@ -920,10 +931,8 @@ static void GameMenu() {
 		int hovered = Weapon_Count;
 
 		int cash = MAX_CASH;
-		for( WeaponType i = 0; i < Weapon_Count; i++ ) {
-			if( selected_weapons[ i ] ) {
-				cash -= GS_GetWeaponDef( i )->cost;
-			}
+		for( int i = 0; i < MAX_WEAPONS; i++ ) {
+			cash -= GS_GetWeaponDef( selected_weapons[ i ] )->cost;
 		}
 
 		// this has to match up with the order in player.as
@@ -975,7 +984,23 @@ static void GameMenu() {
 
 					Vec4 tint;
 					if( WeaponButton( cash, weapon, icon_size, &tint ) ) {
-						selected_weapons[ weapon ] = !selected_weapons[ weapon ];
+						int weap_pos = SelectedWeaponIndex( weapon );
+						if( weap_pos == -1 ) {
+							selected_weapons[ num_weapons ] = weapon;
+							num_weapons++;
+						} else {
+							num_weapons--;
+
+							if( weap_pos == MAX_WEAPONS - 1 ) {
+								selected_weapons[ weap_pos ] = Weapon_None;
+							} else {
+								for( int i = weap_pos; i < num_weapons; i++ ) {
+									selected_weapons[ i ] = selected_weapons[ i + 1 ];
+								}
+								selected_weapons[ num_weapons ] = Weapon_None;
+							}
+
+						}
 					}
 
 					if( ImGui::IsItemHovered() ) {
@@ -1104,9 +1129,11 @@ static void GameMenu() {
 			ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.5f, 0.1f, 0.1f, 1.f ) );
 
 			if( ImGui::Button( "Clear", ImVec2( -1, button_height ) ) ) {
-				for( bool &w : selected_weapons ) {
-					w = false;
+				for( WeaponType &w : selected_weapons ) {
+					w = Weapon_None;
 				}
+
+				num_weapons = 0;
 			} ImGui::PopStyleColor( 3 );
 
 			ImGui::NextColumn();
@@ -1115,8 +1142,8 @@ static void GameMenu() {
 			if( ImGui::Button( "OK", ImVec2( -1, button_height ) ) || ImGui::CloseKey( K_ENTER ) ) {
 				DynamicString loadout( &temp, "weapselect" );
 				for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
-					if( selected_weapons[ i ] ) {
-						loadout.append( " {}", i );
+					if( selected_weapons[ i ] != Weapon_None ) {
+						loadout.append( " {}", selected_weapons[ i ] );
 					}
 				}
 				loadout += "\n";
@@ -1295,12 +1322,14 @@ void UI_ShowLoadoutMenu( Span< int > weapons ) {
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Loadout;
 
-	for( bool & w : selected_weapons ) {
-		w = false;
+	for( WeaponType & w : selected_weapons ) {
+		w = Weapon_None;
 	}
 
+	num_weapons = 0;
 	for( int w : weapons ) {
-		selected_weapons[ w ] = true;
+		selected_weapons[ num_weapons ] = w;
+		num_weapons++;
 	}
 
 	CL_SetKeyDest( key_menu );

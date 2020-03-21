@@ -460,17 +460,10 @@ static void CG_Cmd_PrevWeapon_f() {
 }
 
 static void CG_Cmd_Weapon_f() {
-	int w = atoi( Cmd_Argv( 1 ) );
-	int seen = 0;
-	for( WeaponType i = Weapon_Knife; i < Weapon_Count; i++ ) {
-		if( cg.predictedPlayerState.weapons[ i ].weap == Weapon_None )
-			continue;
-		seen++;
-
-		if( seen == w ) {
-			SwitchWeapon( i );
-		}
-	}
+	WeaponType weap = cg.predictedPlayerState.weapons[ atoi( Cmd_Argv( 1 ) ) - 1 ].weap;
+	
+	if( weap != Weapon_None )
+		SwitchWeapon( weap );
 }
 
 /*

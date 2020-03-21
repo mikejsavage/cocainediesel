@@ -546,7 +546,7 @@ static void CG_StartVoiceTokenEffect( int entNum, int vsay ) {
 	if( !cg_voiceChats->integer ) {
 		return;
 	}
-	if( vsay < 0 || vsay >= VSAY_TOTAL ) {
+	if( vsay < 0 || vsay >= Vsay_Total ) {
 		return;
 	}
 

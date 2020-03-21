@@ -592,30 +592,11 @@ enum {
 
 // vsay tokens list
 enum {
-	VSAY_AFFIRMATIVE,
-	VSAY_NEGATIVE,
-	VSAY_YES,
-	VSAY_NO,
-	VSAY_ONDEFENSE,
-	VSAY_ONOFFENSE,
-	VSAY_OOPS,
-	VSAY_SORRY,
-	VSAY_THANKS,
-	VSAY_NOPROBLEM,
-	VSAY_YEEHAA,
-	VSAY_GOODGAME,
-	VSAY_DEFEND,
-	VSAY_ATTACK,
-	VSAY_NEEDBACKUP,
-	VSAY_BOOO,
-	VSAY_NEEDDEFENSE,
-	VSAY_NEEDOFFENSE,
-	VSAY_NEEDHELP,
-	VSAY_ROGER,
-	VSAY_AREASECURED,
-	VSAY_SHUTUP,
-	VSAY_BOOMSTICK,
-	VSAY_OK,
+	Vsay_Sorry,
+	Vsay_Thanks,
+	Vsay_GoodGame,
+	Vsay_ShutUp,
+	Vsay_BoomStick,
 
 	Vsay_Bruh,
 	Vsay_Cya,
@@ -628,7 +609,7 @@ enum {
 	Vsay_Acne,
 	Vsay_Valley,
 
-	VSAY_TOTAL
+	Vsay_Total
 };
 
 // SyncEntityState->event values

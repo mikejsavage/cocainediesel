@@ -136,7 +136,7 @@ typedef struct {
 
 	const SoundEffect * sfxElectroboltHit;
 
-	const SoundEffect * sfxVSaySounds[VSAY_TOTAL];
+	const SoundEffect * sfxVSaySounds[ Vsay_Total ];
 
 	const SoundEffect * sfxSpikesArm;
 	const SoundEffect * sfxSpikesDeploy;

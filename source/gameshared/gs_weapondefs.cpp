@@ -51,8 +51,8 @@ const WeaponDef gs_weaponDefs[] = {
 		100,
 
 		1,                              // projectiles fired each shot
-		15, // clip size
-		1000, // reload time
+		15,                             // clip size
+		1000,                           // reload time
 		false,                          // staged reloading
 
 		//timings (in msecs)
@@ -85,8 +85,8 @@ const WeaponDef gs_weaponDefs[] = {
 		100,
 
 		1,                              // projectiles fired each shot
-		25, // clip size
-		1500, // reload time
+		25,                             // clip size
+		1500,                           // reload time
 		false,                          // staged reloading
 
 		//timings (in msecs)
@@ -119,8 +119,8 @@ const WeaponDef gs_weaponDefs[] = {
 		200,
 
 		1,                              // projectiles fired each shot
-		8, // clip size
-		2000, // reload time
+		8,                              // clip size
+		2000,                           // reload time
 		false,                          // staged reloading
 
 		//timings (in msecs)
@@ -153,8 +153,8 @@ const WeaponDef gs_weaponDefs[] = {
 		100,
 
 		25,                             // projectiles fired each shot
-		5, // clip size
-		1500, // reload time
+		5,                              // clip size
+		600,                            // reload time
 		true,                           // staged reloading
 
 		//timings (in msecs)
@@ -187,8 +187,8 @@ const WeaponDef gs_weaponDefs[] = {
 		200,
 
 		1,                              // projectiles fired each shot
-		20, // clip size
-		2000, // reload time
+		20,                             // clip size
+		2000,                           // reload time
 		false,                          // staged reloading
 
 		//timings (in msecs)
@@ -222,7 +222,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 		1,                              // projectiles fired each shot
 		3,                              // clip size
-		2000,                           // reload time
+		750,                            // reload time
 		true,                           // staged reloading
 
 		//timings (in msecs)
@@ -256,7 +256,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 		1,                              // projectiles fired each shot
 		4,                              // clip size
-		600,                           // reload time
+		600,                            // reload time
 		true,                           // staged reloading
 
 		//timings (in msecs)
@@ -289,8 +289,8 @@ const WeaponDef gs_weaponDefs[] = {
 		100,
 
 		1,                              // projectiles fired each shot
-		30, // clip size
-		1500, // reload time
+		30,                             // clip size
+		1500,                           // reload time
 		false,                          // staged reloading
 
 		//timings (in msecs)
@@ -357,8 +357,8 @@ const WeaponDef gs_weaponDefs[] = {
 		200,
 
 		1,                              // projectiles fired each shot
-		3, // clip size
-		2250, // reload time
+		3,                              // clip size
+		2250,                           // reload time
 		false,                          // staged reloading
 
 		//timings (in msecs)

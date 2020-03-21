@@ -48,6 +48,7 @@ struct Model {
 };
 
 void InitModels();
+void HotloadModels();
 void ShutdownModels();
 
 const Model * FindModel( StringHash name );

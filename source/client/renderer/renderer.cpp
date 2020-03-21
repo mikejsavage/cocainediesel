@@ -310,6 +310,7 @@ static void CreateFramebuffers() {
 void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadShaders();
 	HotloadMaterials();
+	HotloadModels();
 
 	RenderBackendBeginFrame();
 

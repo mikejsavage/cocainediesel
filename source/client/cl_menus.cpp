@@ -69,6 +69,12 @@ static bool selected_weapons[ Weapon_Count ];
 static SettingsState settings_state;
 static bool reset_video_settings;
 
+static void PushButtonColor( ImVec4 color ) {
+	ImGui::PushStyleColor( ImGuiCol_Button, color );
+	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( color.x + 0.125f, color.y + 0.125f, color.z + 0.125f, color.w ) );
+	ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( color.x - 0.125f, color.y - 0.125f, color.z - 0.125f, color.w ) );
+}
+
 static void ResetServerBrowser() {
 	for( int i = 0; i < num_servers; i++ ) {
 		free( const_cast< char * >( servers[ i ].address ) );
@@ -276,15 +282,12 @@ static void SettingsControls() {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	static bool advweap_keys = false;
+	static bool voice_keys = false;
 
 	ImGui::BeginChild( "binds" );
 
 	if( ImGui::BeginTabBar("##binds", ImGuiTabBarFlags_None ) ) {
 		if( ImGui::BeginTabItem( "Game" ) ) {
-			ImGui::Separator();
-			ImGui::Text( "Movement" );
-			ImGui::Separator();
-
 			KeyBindButton( "Forward", "+forward" );
 			KeyBindButton( "Back", "+back" );
 			KeyBindButton( "Left", "+left" );
@@ -294,17 +297,11 @@ static void SettingsControls() {
 			KeyBindButton( "Crouch", "+crouch" );
 			KeyBindButton( "Walk", "+walk" );
 
-			ImGui::Separator();
-			ImGui::Text( "Actions" );
-			ImGui::Separator();
-
 			KeyBindButton( "Attack", "+attack" );
 			KeyBindButton( "Reload", "+reload" );
 			KeyBindButton( "Drop bomb", "drop" );
 			KeyBindButton( "Shop", "gametypemenu" );
 			KeyBindButton( "Scoreboard", "+scores" );
-			KeyBindButton( "Chat", "messagemode" );
-			KeyBindButton( "Team chat", "messagemode2" );
 
 			ImGui::EndTabItem();
 		}
@@ -346,22 +343,34 @@ static void SettingsControls() {
 			ImGui::EndTabItem();
 		}
 
-		if( ImGui::BeginTabItem( "Voice lines" ) ) {
-			KeyBindButton( "Sorry", "vsay sorry" );
-			KeyBindButton( "Thanks", "vsay thanks" );
-			KeyBindButton( "Good game", "vsay goodgame" );
-			KeyBindButton( "Boomstick", "vsay boomstick" );
-			KeyBindButton( "Shut up", "vsay shutup" );
-			KeyBindButton( "Bruh", "vsay bruh" );
-			KeyBindButton( "Cya", "vsay cya" );
-			KeyBindButton( "Get good", "vsay getgood" );
-			KeyBindButton( "Hit the showers", "vsay hittheshowers" );
-			KeyBindButton( "Lads", "vsay lads" );
-			KeyBindButton( "Shit son", "vsay shitson" );
-			KeyBindButton( "Trash smash", "vsay trashsmash" );
-			KeyBindButton( "Wow your terrible", "vsay wowyourterrible" );
-			KeyBindButton( "Acne", "vsay acne" );
-			KeyBindButton( "Valley", "vsay valley" );
+		if( ImGui::BeginTabItem( "Communication" ) ) {
+
+			KeyBindButton( "Chat", "messagemode" );
+			KeyBindButton( "Team chat", "messagemode2" );
+
+			ImGui::Separator();
+
+			ImGui::Checkbox( "Voice Lines", &voice_keys );
+
+			if( voice_keys ) {
+				KeyBindButton( "Sorry", "vsay sorry" );
+				KeyBindButton( "Thanks", "vsay thanks" );
+				KeyBindButton( "Good game", "vsay goodgame" );
+				KeyBindButton( "Boomstick", "vsay boomstick" );
+				KeyBindButton( "Shut up", "vsay shutup" );
+				KeyBindButton( "Bruh", "vsay bruh" );
+				KeyBindButton( "Cya", "vsay cya" );
+				KeyBindButton( "Get good", "vsay getgood" );
+				KeyBindButton( "Hit the showers", "vsay hittheshowers" );
+				KeyBindButton( "Lads", "vsay lads" );
+				KeyBindButton( "Shit son", "vsay shitson" );
+				KeyBindButton( "Trash smash", "vsay trashsmash" );
+				KeyBindButton( "Wow your terrible", "vsay wowyourterrible" );
+				KeyBindButton( "Acne", "vsay acne" );
+				KeyBindButton( "Valley", "vsay valley" );
+			} else {
+				voice_keys = false;
+			}
 
 			ImGui::EndTabItem();
 		}
@@ -483,9 +492,7 @@ static void SettingsVideo() {
 
 		ImGui::SameLine();
 
-		ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.75f, 0.125f, 0.125f, 1.f ) );
-		ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 0.75f, 0.25f, 0.2f, 1.f ) );
-		ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.5f, 0.1f, 0.1f, 1.f ) );
+		PushButtonColor( ImVec4( 0.5f, 0.125f, 0.f, 0.75f ) );
 		if( ImGui::Button( "Discard changes" ) ) {
 			reset_video_settings = true;
 		}
@@ -596,15 +603,21 @@ static void Settings() {
 static void ServerBrowser() {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	ImGui::TextWrapped( "This game is very pre-alpha so there are probably 0 players online. Join the Discord to find games!" );
 	if( ImGui::Button( "discord.gg/5ZbV4mF" ) ) {
 		Sys_OpenInWebBrowser( "https://discord.gg/5ZbV4mF" );
 	}
+	ImGui::SameLine();
+	ImGui::TextWrapped( "This game is very pre-alpha so there are probably 0 players online. Join the Discord to find games!" );
 	ImGui::Separator();
 
+	char server_filter[ 256 ] = { };
 	if( ImGui::Button( "Refresh" ) ) {
 		RefreshServerBrowser();
 	}
+	ImGui::AlignTextToFramePadding();
+	ImGui::SameLine(); ImGui::Text( "Search");
+	ImGui::SameLine(); ImGui::InputText( "", server_filter, sizeof( server_filter ) );
+
 
 	ImGui::BeginChild( "servers" );
 	ImGui::Columns( 4, "serverbrowser", false );
@@ -620,26 +633,28 @@ static void ServerBrowser() {
 
 	for( int i = 0; i < num_servers; i++ ) {
 		const char * name = servers[ i ].name != NULL ? servers[ i ].name : servers[ i ].address;
-		if( ImGui::Selectable( name, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
-			if( ImGui::IsMouseDoubleClicked( 0 ) ) {
-				Cbuf_AddText( temp( "connect \"{}\"\n", servers[ i ].address ) );
+		if( strstr( name, server_filter ) != NULL ) {
+			if( ImGui::Selectable( name, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
+				if( ImGui::IsMouseDoubleClicked( 0 ) ) {
+					Cbuf_AddText( temp( "connect \"{}\"\n", servers[ i ].address ) );
+				}
+				selected_server = i;
 			}
-			selected_server = i;
-		}
-		ImGui::NextColumn();
+			ImGui::NextColumn();
 
-		if( servers[ i ].name == NULL ) {
-			ImGui::NextColumn();
-			ImGui::NextColumn();
-			ImGui::NextColumn();
-		}
-		else {
-			ImGui::Text( "%s", servers[ i ].map );
-			ImGui::NextColumn();
-			ImGui::Text( "%d/%d", servers[ i ].num_players, servers[ i ].max_players );
-			ImGui::NextColumn();
-			ImGui::Text( "%d", servers[ i ].ping );
-			ImGui::NextColumn();
+			if( servers[ i ].name == NULL ) {
+				ImGui::NextColumn();
+				ImGui::NextColumn();
+				ImGui::NextColumn();
+			}
+			else {
+				ImGui::Text( "%s", servers[ i ].map );
+				ImGui::NextColumn();
+				ImGui::Text( "%d/%d", servers[ i ].num_players, servers[ i ].max_players );
+				ImGui::NextColumn();
+				ImGui::Text( "%d", servers[ i ].ping );
+				ImGui::NextColumn();
+			}
 		}
 	}
 
@@ -713,7 +728,7 @@ static void MainMenu() {
 	ImGui::Text( "COCAINE DIESEL" );
 	ImGui::PopFont();
 
-	if( ImGui::Button( "PLAY" ) ) {
+	if( ImGui::Button( "FIND SERVERS" ) ) {
 		mainmenu_state = MainMenuState_ServerBrowser;
 	}
 
@@ -733,9 +748,10 @@ static void MainMenu() {
 
 	ImGui::SameLine();
 
+	PushButtonColor( ImVec4( 0.625f, 0.125f, 0.f, 0.75f ) );
 	if( ImGui::Button( "QUIT" ) ) {
 		CL_Quit();
-	}
+	} ImGui::PopStyleColor( 3 );
 
 	if( cl_devtools->integer != 0 ) {
 		ImGui::SameLine( 0, 50 );
@@ -873,9 +889,16 @@ static void GameMenu() {
 				ImGui::SetColumnWidth( 0, half );
 				ImGui::SetColumnWidth( 1, half );
 
+				PushButtonColor( CG_TeamColorVec4( TEAM_ALPHA ) * 0.5f );
 				GameMenuButton( "Join Cocaine", "join cocaine", &should_close, 0 );
+				ImGui::PopStyleColor( 3 );
+
 				ImGui::NextColumn();
+
+				PushButtonColor( CG_TeamColorVec4( TEAM_BETA ) * 0.5f );
 				GameMenuButton( "Join Diesel", "join diesel", &should_close, 1 );
+				ImGui::PopStyleColor( 3 );
+
 				ImGui::NextColumn();
 			} else {
 				GameMenuButton( "Join Game", "join", &should_close );
@@ -888,6 +911,12 @@ static void GameMenu() {
 					Cbuf_AddText( "toggleready\n" );
 				}
 			}
+
+
+			PushButtonColor( CG_TeamColorVec4( TEAM_ENEMY ) * 0.5f );
+			GameMenuButton( "Switch team", "join", &should_close );
+			ImGui::PopStyleColor( 3 );
+
 
 			GameMenuButton( "Spectate", "spec", &should_close );
 
@@ -1100,9 +1129,7 @@ static void GameMenu() {
 			ImGui::SetCursorPosY( window_size.y - ImGui::GetTextLineHeight()*2 );
 			ImGui::Columns( 6, NULL, false );
 
-			ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.75f, 0.125f, 0.125f, 1.f ) );
-			ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 0.75f, 0.25f, 0.2f, 1.f ) );
-			ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.5f, 0.1f, 0.1f, 1.f ) );
+			PushButtonColor( ImVec4( 0.75f, 0.125f, 0.125f, 1.f ) );
 
 			if( ImGui::Button( "Clear", ImVec2( -1, button_height ) ) ) {
 				for( bool &w : selected_weapons ) {

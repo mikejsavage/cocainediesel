@@ -347,8 +347,7 @@ static void SettingsControls() {
 		}
 
 		if( ImGui::BeginTabItem( "Voice lines" ) ) {
-			KeyBindButton( "Yes", "vsay yes" );
-			KeyBindButton( "No", "vsay no" );
+			KeyBindButton( "Sorry", "vsay sorry" );
 			KeyBindButton( "Thanks", "vsay thanks" );
 			KeyBindButton( "Good game", "vsay goodgame" );
 			KeyBindButton( "Boomstick", "vsay boomstick" );
@@ -361,6 +360,8 @@ static void SettingsControls() {
 			KeyBindButton( "Shit son", "vsay shitson" );
 			KeyBindButton( "Trash smash", "vsay trashsmash" );
 			KeyBindButton( "Wow your terrible", "vsay wowyourterrible" );
+			KeyBindButton( "Acne", "vsay acne" );
+			KeyBindButton( "Valley", "vsay valley" );
 
 			ImGui::EndTabItem();
 		}

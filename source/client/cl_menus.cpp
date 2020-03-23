@@ -69,6 +69,12 @@ static bool selected_weapons[ Weapon_Count ];
 static SettingsState settings_state;
 static bool reset_video_settings;
 
+static void PushButtonColor( ImVec4 color ) {
+	ImGui::PushStyleColor( ImGuiCol_Button, color );
+	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( color.x + 0.125f, color.y + 0.125f, color.z + 0.125f, color.w ) );
+	ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( color.x - 0.125f, color.y - 0.125f, color.z - 0.125f, color.w ) );
+}
+
 static void ResetServerBrowser() {
 	for( int i = 0; i < num_servers; i++ ) {
 		free( const_cast< char * >( servers[ i ].address ) );
@@ -1114,10 +1120,7 @@ static void GameMenu() {
 			ImGui::SetCursorPosY( window_size.y - ImGui::GetTextLineHeight()*2 );
 			ImGui::Columns( 6, NULL, false );
 
-			ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.25f, 0.f, 0.f, 1.f ) );
-			ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 0.25f, 0.125f, 0.075f, 1.f ) );
-			ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.125f, 0.075f, 0.075f, 1.f ) );
-
+			PushButtonColor( ImVec4( 0.25f, 0.f, 0.f, 1.f ) );
 			if( ImGui::Button( "Clear", ImVec2( -1, button_height ) ) ) {
 				for( bool &w : selected_weapons ) {
 					w = false;

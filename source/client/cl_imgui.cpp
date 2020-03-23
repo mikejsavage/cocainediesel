@@ -97,12 +97,12 @@ void CL_InitImGui() {
 		style.WindowBorderSize = 0;
 		style.PopupBorderSize = 0;
 		style.Colors[ ImGuiCol_Button ] = ImVec4( 0.5f, 0.125f, 0.125f, 1.f );
-		style.Colors[ ImGuiCol_ButtonHovered ] = ImVec4( 0.5f, 0.25f, 0.2f, 1.f );
-		style.Colors[ ImGuiCol_ButtonActive ] = ImVec4( 0.5f, 0.125f, 0.125f, 1.f );
+		style.Colors[ ImGuiCol_ButtonHovered ] = ImVec4( 0.5f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_ButtonActive ] = ImVec4( 0.375f, 0.125f, 0.125f, 1.f );
 
 		style.Colors[ ImGuiCol_Tab ] = ImVec4( 0.5f, 0.125f, 0.125f, 1.f );
 		style.Colors[ ImGuiCol_TabHovered ] = ImVec4( 0.5f, 0.25f, 0.2f, 1.f );
-		style.Colors[ ImGuiCol_TabActive ] = ImVec4( 0.5f, 0.125f, 0.125f, 1.f );
+		style.Colors[ ImGuiCol_TabActive ] = ImVec4( 0.375f, 0.125f, 0.125f, 1.f );
 		style.Colors[ ImGuiCol_TabUnfocused ] = ImVec4( 0.375f, 0.25f, 0.25f, 1.f );
 		style.Colors[ ImGuiCol_TabUnfocusedActive ] = ImVec4( 0.375f, 0.25f, 0.25f, 1.f );
 
@@ -116,9 +116,13 @@ void CL_InitImGui() {
 		style.Colors[ ImGuiCol_ScrollbarBg ] = ImVec4( 0.5f, 0.125f, 0.125f, 0.5f );
 		style.Colors[ ImGuiCol_ScrollbarGrab ] = ImVec4( 0.75f, 0.25f, 0.25f, 1.f );
 		style.Colors[ ImGuiCol_ScrollbarGrabHovered ] = ImVec4( 0.75f, 0.5f, 0.5f, 1.f );
-		style.Colors[ ImGuiCol_ScrollbarGrabActive ] = ImVec4( 0.75f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_ScrollbarGrabActive ] = ImVec4( 0.5f, 0.25f, 0.25f, 1.f );
 
 		style.Colors[ ImGuiCol_CheckMark ] = ImVec4( 0.f, 1.f, 0.25f, 1.f );
+
+		style.Colors[ ImGuiCol_Header ] = ImVec4( 0.5f, 0.125f, 0.125f, 1.f );
+		style.Colors[ ImGuiCol_HeaderHovered ] = ImVec4( 0.625f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_HeaderActive ] = ImVec4( 0.375f, 0.125f, 0.125f, 1.f );
 
 		style.Colors[ ImGuiCol_WindowBg ] = ImColor( 0x1a, 0x1a, 0x1a );
 		style.ItemSpacing.y = 8;

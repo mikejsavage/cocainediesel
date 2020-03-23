@@ -158,51 +158,28 @@ void CG_AddMovement( vec3_t movement ) {
 }
 
 bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize ) {
-	int key;
-	const char *bind;
-	int numKeys = 0;
-	char keyNames[2][32];
+	int keyCodes[ 2 ];
+	int numKeys = CG_GetBoundKeycodes( cmd, keyCodes );
 
-	for( key = 0; key < 256; key++ ) {
-		bind = Key_GetBindingBuf( key );
-		if( !bind || Q_stricmp( bind, cmd ) ) {
-			continue;
-		}
-
-		// dont use Key_KeynumToString value directly, it's mutated. it handles ascii fast path for us too
-		strcpy(keyNames[numKeys] , Key_KeynumToString( key ));
-
-		if( keyNames[numKeys] != NULL ) {
-			numKeys++;
-			if( numKeys == 2 ) {
-				break;
-			}
-		}
+	if( numKeys == 0 ) {
+		Q_strncpyz( keys, "UNBOUND", keysSize );
 	}
-
-	if( !numKeys ) {
-		strcpy(keyNames[0], "UNBOUND");
+	else if( numKeys == 1 ) {
+		Q_strncpyz( keys, Key_KeynumToString( keyCodes[ 0 ] ), keysSize );
 	}
-
-	if( numKeys == 2 ) {
-		snprintf( keys, keysSize, "%s or %s", keyNames[0], keyNames[1] );
-	} else {
-		Q_strncpyz( keys, keyNames[0], keysSize );
+	else {
+		snprintf( keys, keysSize, "%s or %s", Key_KeynumToString( keyCodes[ 0 ] ), Key_KeynumToString( keyCodes[ 1 ] ) );
 	}
 
 	return numKeys > 0;
 }
 
-
-
-bool CG_GetBoundKeycode( const char *cmd, int keys[ 2 ] ) {
-	const char *bind;
+int CG_GetBoundKeycodes( const char *cmd, int keys[ 2 ] ) {
 	int numKeys = 0;
 
-
 	for( int key = 0; key < 256; key++ ) {
-		bind = Key_GetBindingBuf( key );
-		if( !bind || Q_stricmp( bind, cmd ) ) {
+		const char * bind = Key_GetBindingBuf( key );
+		if( bind == NULL || Q_stricmp( bind, cmd ) != 0 ) {
 			continue;
 		}
 
@@ -214,7 +191,7 @@ bool CG_GetBoundKeycode( const char *cmd, int keys[ 2 ] ) {
 		}
 	}
 
-	return numKeys > 0;
+	return numKeys;
 }
 
 /*

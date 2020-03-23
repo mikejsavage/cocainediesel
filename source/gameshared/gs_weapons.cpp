@@ -24,6 +24,26 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/q_collision.h"
 #include "gameshared/gs_public.h"
 
+WeaponType MODToWeapon( int mod ) {
+	switch( mod ) {
+		case MOD_GUNBLADE: return Weapon_Knife;
+		case MOD_PISTOL: return Weapon_Pistol;
+		case MOD_MACHINEGUN: return Weapon_MachineGun;
+		case MOD_DEAGLE: return Weapon_Deagle;
+		case MOD_RIOTGUN: return Weapon_Shotgun;
+		case MOD_ASSAULTRIFLE: return Weapon_AssaultRifle;
+		case MOD_GRENADE: return Weapon_GrenadeLauncher;
+		case MOD_ROCKET: return Weapon_RocketLauncher;
+		case MOD_PLASMA: return Weapon_Plasma;
+		case MOD_ELECTROBOLT: return Weapon_Railgun;
+		case MOD_LASERGUN: return Weapon_Laser;
+		case MOD_SNIPER: return Weapon_Sniper;
+		case MOD_RIFLE: return Weapon_Rifle;
+	}
+
+	return Weapon_Count;
+}
+
 void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, const vec3_t start, const vec3_t dir, const vec3_t right, const vec3_t up, float r, float u, int range, int ignore, int timeDelta ) {
 	vec3_t end;
 	VectorMA( start, range, dir, end );

@@ -27,13 +27,6 @@ void InitModels() {
 	}
 }
 
-Model * NewModel( u64 hash ) {
-	Model * model = &models[ num_models ];
-	models_hashtable.add( hash, num_models );
-	num_models++;
-	return model;
-}
-
 static void DeleteModel( Model * model ) {
 	for( u32 i = 0; i < model->num_primitives; i++ ) {
 		if( model->primitives[ i ].num_vertices == 0 ) {
@@ -53,10 +46,43 @@ static void DeleteModel( Model * model ) {
 	FREE( sys_allocator, model->joints );
 }
 
+void HotloadModels() {
+	ZoneScoped;
+
+	for( const char * path : ModifiedAssetPaths() ) {
+		Span< const char > ext = FileExtension( path );
+		if( ext != ".glb" )
+			continue;
+
+		Model model;
+		if( !LoadGLTFModel( &model, path ) )
+			continue;
+
+		u64 hash = Hash64( path, strlen( path ) - ext.n );
+		u64 idx = num_models;
+		if( models_hashtable.get( hash, &idx ) ) {
+			DeleteModel( &models[ idx ] );
+		}
+		else {
+			models_hashtable.add( hash, num_models );
+			num_models++;
+		}
+
+		models[ idx ] = model;
+	}
+}
+
 void ShutdownModels() {
 	for( u32 i = 0; i < num_models; i++ ) {
 		DeleteModel( &models[ i ] );
 	}
+}
+
+Model * NewModel( u64 hash ) {
+	Model * model = &models[ num_models ];
+	models_hashtable.add( hash, num_models );
+	num_models++;
+	return model;
 }
 
 const Model * FindModel( StringHash name ) {

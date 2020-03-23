@@ -153,7 +153,7 @@ static void CG_SC_PlayerStats() {
 		int hits = ParseIntOr0( &s );
 
 		// name
-		Com_Printf( "%s%2s" S_COLOR_WHITE ": ", ImGuiColorToken( weapon->color ).token, weapon->short_name );
+		Com_Printf( S_COLOR_WHITE "%2s: ", weapon->short_name );
 
 #define STATS_PERCENT( hit, total ) ( ( total ) == 0 ? 0 : ( ( hit ) == ( total ) ? 100 : (float)( hit ) * 100.0f / (float)( total ) ) )
 

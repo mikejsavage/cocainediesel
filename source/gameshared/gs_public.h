@@ -83,6 +83,7 @@ enum WeaponType_ : WeaponType {
 	Weapon_Laser,
 	Weapon_Railgun,
 	Weapon_Sniper,
+	Weapon_Rifle,
 
 	Weapon_Count
 };
@@ -560,6 +561,7 @@ enum MeansOfDeath {
 	MOD_ELECTROBOLT,
 	MOD_LASERGUN,
 	MOD_SNIPER,
+	MOD_RIFLE,
 
 	MOD_SLIME,
 	MOD_LAVA,
@@ -590,30 +592,11 @@ enum {
 
 // vsay tokens list
 enum {
-	VSAY_AFFIRMATIVE,
-	VSAY_NEGATIVE,
-	VSAY_YES,
-	VSAY_NO,
-	VSAY_ONDEFENSE,
-	VSAY_ONOFFENSE,
-	VSAY_OOPS,
-	VSAY_SORRY,
-	VSAY_THANKS,
-	VSAY_NOPROBLEM,
-	VSAY_YEEHAA,
-	VSAY_GOODGAME,
-	VSAY_DEFEND,
-	VSAY_ATTACK,
-	VSAY_NEEDBACKUP,
-	VSAY_BOOO,
-	VSAY_NEEDDEFENSE,
-	VSAY_NEEDOFFENSE,
-	VSAY_NEEDHELP,
-	VSAY_ROGER,
-	VSAY_AREASECURED,
-	VSAY_SHUTUP,
-	VSAY_BOOMSTICK,
-	VSAY_OK,
+	Vsay_Sorry,
+	Vsay_Thanks,
+	Vsay_GoodGame,
+	Vsay_ShutUp,
+	Vsay_BoomStick,
 
 	Vsay_Bruh,
 	Vsay_Cya,
@@ -623,8 +606,10 @@ enum {
 	Vsay_ShitSon,
 	Vsay_TrashSmash,
 	Vsay_WowYourTerrible,
+	Vsay_Acne,
+	Vsay_Valley,
 
-	VSAY_TOTAL
+	Vsay_Total
 };
 
 // SyncEntityState->event values
@@ -670,6 +655,7 @@ typedef enum {
 	EV_ROCKET_EXPLOSION,
 	EV_PLASMA_EXPLOSION,
 	EV_BOLT_EXPLOSION,
+	EV_RIFLEBULLET_IMPACT,
 
 	EV_EXPLOSION1,
 	EV_EXPLOSION2,
@@ -731,6 +717,7 @@ enum {
 	ET_ROCKET,      // redlight + trail
 	ET_GRENADE,
 	ET_PLASMA,
+	ET_RIFLEBULLET,
 
 	ET_LASERBEAM,   // for continuous beams
 
@@ -768,7 +755,6 @@ struct WeaponDef {
 	const char * name;
 	const char * short_name;
 
-	RGB8 color;
 	const char * description;
 	int cost;
 
@@ -799,6 +785,7 @@ struct WeaponDef {
 };
 
 const WeaponDef * GS_GetWeaponDef( WeaponType weapon );
+WeaponType MODToWeapon( int mod );
 WeaponType GS_SelectBestWeapon( const SyncPlayerState * player );
 WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, const usercmd_t * cmd, int timeDelta );
 void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, const vec3_t start, const vec3_t dir, const vec3_t right, const vec3_t up, float r, float u, int range, int ignore, int timeDelta );

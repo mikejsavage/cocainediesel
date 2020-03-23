@@ -281,16 +281,10 @@ static void SettingsGeneral() {
 static void SettingsControls() {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	static bool advweap_keys = false;
-
 	ImGui::BeginChild( "binds" );
 
 	if( ImGui::BeginTabBar("##binds", ImGuiTabBarFlags_None ) ) {
 		if( ImGui::BeginTabItem( "Game" ) ) {
-			ImGui::Separator();
-			ImGui::Text( "Movement" );
-			ImGui::Separator();
-
 			KeyBindButton( "Forward", "+forward" );
 			KeyBindButton( "Back", "+back" );
 			KeyBindButton( "Left", "+left" );
@@ -300,17 +294,11 @@ static void SettingsControls() {
 			KeyBindButton( "Crouch", "+crouch" );
 			KeyBindButton( "Walk", "+walk" );
 
-			ImGui::Separator();
-			ImGui::Text( "Actions" );
-			ImGui::Separator();
-
 			KeyBindButton( "Attack", "+attack" );
 			KeyBindButton( "Reload", "+reload" );
 			KeyBindButton( "Drop bomb", "drop" );
 			KeyBindButton( "Shop", "gametypemenu" );
 			KeyBindButton( "Scoreboard", "+scores" );
-			KeyBindButton( "Chat", "messagemode" );
-			KeyBindButton( "Team chat", "messagemode2" );
 
 			ImGui::EndTabItem();
 		}
@@ -329,18 +317,15 @@ static void SettingsControls() {
 			KeyBindButton( "Weapon 5", "weapon 5" );
 			KeyBindButton( "Weapon 6", "weapon 6" );
 
-			ImGui::Checkbox( "Advanced weapon keys", &advweap_keys );
-
-			if( advweap_keys ) {
+			ImGui::BeginChild( "weapon", ImVec2( 400, -1 ) );
+			if( ImGui::CollapsingHeader( "Advanced weapon keys" ) ) {
 				for( int i = 0; i < Weapon_Count; i++ ) {
 					const WeaponDef * weapon = GS_GetWeaponDef( i );
 					KeyBindButton( weapon->name, temp( "use {}", weapon->short_name ) );
 				}
-			}
+			} ImGui::EndChild();
 
 			ImGui::EndTabItem();
-		} else {
-			advweap_keys = false;
 		}
 
 
@@ -352,21 +337,29 @@ static void SettingsControls() {
 			ImGui::EndTabItem();
 		}
 
-		if( ImGui::BeginTabItem( "Voice lines" ) ) {
-			KeyBindButton( "Yes", "vsay yes" );
-			KeyBindButton( "No", "vsay no" );
-			KeyBindButton( "Thanks", "vsay thanks" );
-			KeyBindButton( "Good game", "vsay goodgame" );
-			KeyBindButton( "Boomstick", "vsay boomstick" );
-			KeyBindButton( "Shut up", "vsay shutup" );
-			KeyBindButton( "Bruh", "vsay bruh" );
-			KeyBindButton( "Cya", "vsay cya" );
-			KeyBindButton( "Get good", "vsay getgood" );
-			KeyBindButton( "Hit the showers", "vsay hittheshowers" );
-			KeyBindButton( "Lads", "vsay lads" );
-			KeyBindButton( "Shit son", "vsay shitson" );
-			KeyBindButton( "Trash smash", "vsay trashsmash" );
-			KeyBindButton( "Wow your terrible", "vsay wowyourterrible" );
+		if( ImGui::BeginTabItem( "Communication" ) ) {
+
+			KeyBindButton( "Chat", "messagemode" );
+			KeyBindButton( "Team chat", "messagemode2" );
+
+			ImGui::BeginChild( "voice lines", ImVec2( 400, -1 ) );
+			if( ImGui::CollapsingHeader( "Voice Lines" ) ) {
+				KeyBindButton( "Sorry", "vsay sorry" );
+				KeyBindButton( "Thanks", "vsay thanks" );
+				KeyBindButton( "Good game", "vsay goodgame" );
+				KeyBindButton( "Boomstick", "vsay boomstick" );
+				KeyBindButton( "Shut up", "vsay shutup" );
+				KeyBindButton( "Bruh", "vsay bruh" );
+				KeyBindButton( "Cya", "vsay cya" );
+				KeyBindButton( "Get good", "vsay getgood" );
+				KeyBindButton( "Hit the showers", "vsay hittheshowers" );
+				KeyBindButton( "Lads", "vsay lads" );
+				KeyBindButton( "Shit son", "vsay shitson" );
+				KeyBindButton( "Trash smash", "vsay trashsmash" );
+				KeyBindButton( "Wow your terrible", "vsay wowyourterrible" );
+				KeyBindButton( "Acne", "vsay acne" );
+				KeyBindButton( "Valley", "vsay valley" );
+			} ImGui::EndChild();
 
 			ImGui::EndTabItem();
 		}
@@ -488,9 +481,7 @@ static void SettingsVideo() {
 
 		ImGui::SameLine();
 
-		ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.75f, 0.125f, 0.125f, 1.f ) );
-		ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 0.75f, 0.25f, 0.2f, 1.f ) );
-		ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.5f, 0.1f, 0.1f, 1.f ) );
+		PushButtonColor( ImVec4( 0.5f, 0.125f, 0.f, 0.75f ) );
 		if( ImGui::Button( "Discard changes" ) ) {
 			reset_video_settings = true;
 		}
@@ -601,15 +592,21 @@ static void Settings() {
 static void ServerBrowser() {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	ImGui::TextWrapped( "This game is very pre-alpha so there are probably 0 players online. Join the Discord to find games!" );
 	if( ImGui::Button( "discord.gg/5ZbV4mF" ) ) {
 		Sys_OpenInWebBrowser( "https://discord.gg/5ZbV4mF" );
 	}
+	ImGui::SameLine();
+	ImGui::TextWrapped( "This game is very pre-alpha so there are probably 0 players online. Join the Discord to find games!" );
 	ImGui::Separator();
 
+	char server_filter[ 256 ] = { };
 	if( ImGui::Button( "Refresh" ) ) {
 		RefreshServerBrowser();
 	}
+	ImGui::AlignTextToFramePadding();
+	ImGui::SameLine(); ImGui::Text( "Search");
+	ImGui::SameLine(); ImGui::InputText( "", server_filter, sizeof( server_filter ) );
+
 
 	ImGui::BeginChild( "servers" );
 	ImGui::Columns( 4, "serverbrowser", false );
@@ -625,26 +622,28 @@ static void ServerBrowser() {
 
 	for( int i = 0; i < num_servers; i++ ) {
 		const char * name = servers[ i ].name != NULL ? servers[ i ].name : servers[ i ].address;
-		if( ImGui::Selectable( name, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
-			if( ImGui::IsMouseDoubleClicked( 0 ) ) {
-				Cbuf_AddText( temp( "connect \"{}\"\n", servers[ i ].address ) );
+		if( strstr( name, server_filter ) != NULL ) {
+			if( ImGui::Selectable( name, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
+				if( ImGui::IsMouseDoubleClicked( 0 ) ) {
+					Cbuf_AddText( temp( "connect \"{}\"\n", servers[ i ].address ) );
+				}
+				selected_server = i;
 			}
-			selected_server = i;
-		}
-		ImGui::NextColumn();
+			ImGui::NextColumn();
 
-		if( servers[ i ].name == NULL ) {
-			ImGui::NextColumn();
-			ImGui::NextColumn();
-			ImGui::NextColumn();
-		}
-		else {
-			ImGui::Text( "%s", servers[ i ].map );
-			ImGui::NextColumn();
-			ImGui::Text( "%d/%d", servers[ i ].num_players, servers[ i ].max_players );
-			ImGui::NextColumn();
-			ImGui::Text( "%d", servers[ i ].ping );
-			ImGui::NextColumn();
+			if( servers[ i ].name == NULL ) {
+				ImGui::NextColumn();
+				ImGui::NextColumn();
+				ImGui::NextColumn();
+			}
+			else {
+				ImGui::Text( "%s", servers[ i ].map );
+				ImGui::NextColumn();
+				ImGui::Text( "%d/%d", servers[ i ].num_players, servers[ i ].max_players );
+				ImGui::NextColumn();
+				ImGui::Text( "%d", servers[ i ].ping );
+				ImGui::NextColumn();
+			}
 		}
 	}
 
@@ -729,7 +728,7 @@ static void MainMenu() {
 	}
 	ImGui::PopFont();
 
-	if( ImGui::Button( "PLAY" ) ) {
+	if( ImGui::Button( "FIND SERVERS" ) ) {
 		mainmenu_state = MainMenuState_ServerBrowser;
 	}
 
@@ -749,9 +748,10 @@ static void MainMenu() {
 
 	ImGui::SameLine();
 
+	PushButtonColor( ImVec4( 0.625f, 0.125f, 0.f, 0.75f ) );
 	if( ImGui::Button( "QUIT" ) ) {
 		CL_Quit();
-	}
+	} ImGui::PopStyleColor( 3 );
 
 	if( cl_devtools->integer != 0 ) {
 		ImGui::SameLine( 0, 50 );
@@ -771,10 +771,6 @@ static void MainMenu() {
 	}
 
 	ImGui::Separator();
-
-	if( mainmenu_state != MainMenuState_ParticleEditor ) {
-		DrawParticleMenuEffect();
-	}
 
 	switch( mainmenu_state ) {
 		case MainMenuState_ServerBrowser: ServerBrowser(); break;
@@ -862,8 +858,8 @@ static bool WeaponButton( int cash, WeaponType weapon, ImVec2 size, Vec4 * tint 
 	}
 
 	int weaponBinds[ 2 ] = { -1, -1 };
-	CG_GetBoundKeycode( va( "use %s", weap_def->short_name ), weaponBinds );
-	return ( ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 0, Vec4( 0 ), *tint ) || ImGui::IsKeyPressed( weaponBinds[ 0 ], false ) || ImGui::IsKeyPressed( weaponBinds[ 1 ], false ) );
+	CG_GetBoundKeycodes( va( "use %s", weap_def->short_name ), weaponBinds );
+	return ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 0, Vec4( 0 ), *tint ) || ImGui::IsKeyPressed( weaponBinds[ 0 ], false ) || ImGui::IsKeyPressed( weaponBinds[ 1 ], false );
 }
 
 
@@ -893,9 +889,17 @@ static void GameMenu() {
 				ImGui::SetColumnWidth( 0, half );
 				ImGui::SetColumnWidth( 1, half );
 
+
+				PushButtonColor( CG_TeamColorVec4( TEAM_ALPHA ) * 0.5f );
 				GameMenuButton( "Join Corona", "join cocaine", &should_close, 0 );
+				ImGui::PopStyleColor( 3 );
+
 				ImGui::NextColumn();
+
+				PushButtonColor( CG_TeamColorVec4( TEAM_BETA ) * 0.5f );
 				GameMenuButton( "Join Diesel", "join diesel", &should_close, 1 );
+				ImGui::PopStyleColor( 3 );
+
 				ImGui::NextColumn();
 			} else {
 				GameMenuButton( "Join Game", "join", &should_close );
@@ -908,6 +912,12 @@ static void GameMenu() {
 					Cbuf_AddText( "toggleready\n" );
 				}
 			}
+
+
+			PushButtonColor( CG_TeamColorVec4( TEAM_ENEMY ) * 0.5f );
+			GameMenuButton( "Switch team", "join", &should_close );
+			ImGui::PopStyleColor( 3 );
+
 
 			GameMenuButton( "Spectate", "spec", &should_close );
 
@@ -984,6 +994,7 @@ static void GameMenu() {
 				Weapon_Plasma,
 				Weapon_GrenadeLauncher,
 				Weapon_Pistol,
+				Weapon_Rifle,
 			};
 
 			// weapon grid
@@ -1003,8 +1014,7 @@ static void GameMenu() {
 					}
 
 					int cost = GS_GetWeaponDef( weapon )->cost;
-					RGB8 color = GS_GetWeaponDef( weapon )->color;
-					ImGuiColorToken token = ImGuiColorToken( color.r * tint.x, color.g * tint.y, color.b * tint.z, 255 * tint.w );
+					ImGuiColorToken token = ImGuiColorToken( 255 * tint.x, 255 * tint.y, 255 * tint.z, 255 * tint.w );
 					ColumnCenterText( temp( "{}{}: {}", token, i + 1, GS_GetWeaponDef( weapon )->name ) );
 					ColumnCenterText( temp( "{}${}.{02}", token, cost / 100, cost % 100 ) );
 
@@ -1055,7 +1065,7 @@ static void GameMenu() {
 					ImGui::NextColumn();
 
 					if( bigger_font ) ImGui::PushFont( cls.big_font );
-					ImGui::Text( "%s", temp( "{}{}", ImGuiColorToken( weapon->color ), weapon->name ) );
+					ImGui::Text( "%s", weapon->name );
 					if( bigger_font ) ImGui::PopFont();
 					if( !bigger_font ) ImGui::PushFont( cls.console_font );
 					ImGui::TextWrapped( "%s", temp( "{}{}", ImGuiColorToken( 150, 150, 150, 255 ), weapon->description ) );
@@ -1208,20 +1218,6 @@ void UI_Refresh() {
 		return;
 	}
 
-	if( uistate == UIState_MainMenu ) {
-		MainMenu();
-	}
-
-	if( uistate == UIState_Connecting ) {
-		ImGui::SetNextWindowPos( ImVec2() );
-		ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
-		ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
-
-		ImGui::Text( "Connecting..." );
-
-		ImGui::End();
-	}
-
 	if( uistate == UIState_GameMenu ) {
 		GameMenu();
 	}
@@ -1229,6 +1225,33 @@ void UI_Refresh() {
 	if( uistate == UIState_DemoMenu ) {
 		DemoMenu();
 	}
+
+	if( uistate == UIState_MainMenu ) {
+		if( mainmenu_state != MainMenuState_ParticleEditor ) {
+			DrawParticleMenuEffect();
+		}
+
+		MainMenu();
+	}
+
+	if( uistate == UIState_Connecting ) {
+		if( mainmenu_state != MainMenuState_ParticleEditor ) {
+			DrawParticleMenuEffect();
+		}
+
+		const char * connecting = "Connecting...";
+		ImGui::SetNextWindowPos( ImVec2() );
+		ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
+		ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+
+		ImGui::PushFont( cls.large_font );
+		ImGui::SetCursorPos( ( ImGui::GetWindowSize() - ImGui::CalcTextSize( connecting ) )/2 );
+		ImGui::Text( "%s", connecting );
+		ImGui::PopFont();
+
+		ImGui::End();
+	}
+
 
 	if( Con_IsVisible() ) {
 		Con_Draw();

@@ -18,10 +18,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "cg_local.h"
+#include "cgame/cg_local.h"
 
 void CG_RegisterMediaSounds() {
 	cgs.media.sfxBulletImpact = FindSoundEffect( "weapons/bullet_impact" );
+	cgs.media.sfxBulletWhizz = FindSoundEffect( "weapons/bullet_whizz" );
 
 	// weapon
 	for( int i = 0; i < 4; i++ )
@@ -68,30 +69,11 @@ void CG_RegisterMediaSounds() {
 	cgs.media.sfxTbag = FindSoundEffect( "sounds/tbag/tbag" );
 
 	// VSAY sounds
-	cgs.media.sfxVSaySounds[VSAY_AFFIRMATIVE] = FindSoundEffect( S_VSAY_AFFIRMATIVE );
-	cgs.media.sfxVSaySounds[VSAY_NEGATIVE] = FindSoundEffect( S_VSAY_NEGATIVE );
-	cgs.media.sfxVSaySounds[VSAY_YES] = FindSoundEffect( S_VSAY_YES );
-	cgs.media.sfxVSaySounds[VSAY_NO] = FindSoundEffect( S_VSAY_NO );
-	cgs.media.sfxVSaySounds[VSAY_ONDEFENSE] = FindSoundEffect( S_VSAY_ONDEFENSE );
-	cgs.media.sfxVSaySounds[VSAY_ONOFFENSE] = FindSoundEffect( S_VSAY_ONOFFENSE );
-	cgs.media.sfxVSaySounds[VSAY_OOPS] = FindSoundEffect( S_VSAY_OOPS );
-	cgs.media.sfxVSaySounds[VSAY_SORRY] = FindSoundEffect( S_VSAY_SORRY );
-	cgs.media.sfxVSaySounds[VSAY_THANKS] = FindSoundEffect( S_VSAY_THANKS );
-	cgs.media.sfxVSaySounds[VSAY_NOPROBLEM] = FindSoundEffect( S_VSAY_NOPROBLEM );
-	cgs.media.sfxVSaySounds[VSAY_YEEHAA] = FindSoundEffect( S_VSAY_YEEHAA );
-	cgs.media.sfxVSaySounds[VSAY_GOODGAME] = FindSoundEffect( S_VSAY_GOODGAME );
-	cgs.media.sfxVSaySounds[VSAY_DEFEND] = FindSoundEffect( S_VSAY_DEFEND );
-	cgs.media.sfxVSaySounds[VSAY_ATTACK] = FindSoundEffect( S_VSAY_ATTACK );
-	cgs.media.sfxVSaySounds[VSAY_NEEDBACKUP] = FindSoundEffect( S_VSAY_NEEDBACKUP );
-	cgs.media.sfxVSaySounds[VSAY_BOOO] = FindSoundEffect( S_VSAY_BOOO );
-	cgs.media.sfxVSaySounds[VSAY_NEEDDEFENSE] = FindSoundEffect( S_VSAY_NEEDDEFENSE );
-	cgs.media.sfxVSaySounds[VSAY_NEEDOFFENSE] = FindSoundEffect( S_VSAY_NEEDOFFENSE );
-	cgs.media.sfxVSaySounds[VSAY_NEEDHELP] = FindSoundEffect( S_VSAY_NEEDHELP );
-	cgs.media.sfxVSaySounds[VSAY_ROGER] = FindSoundEffect( S_VSAY_ROGER );
-	cgs.media.sfxVSaySounds[VSAY_AREASECURED] = FindSoundEffect( S_VSAY_AREASECURED );
-	cgs.media.sfxVSaySounds[VSAY_BOOMSTICK] = FindSoundEffect( S_VSAY_BOOMSTICK );
-	cgs.media.sfxVSaySounds[VSAY_OK] = FindSoundEffect( S_VSAY_OK );
-	cgs.media.sfxVSaySounds[VSAY_SHUTUP] = FindSoundEffect( S_VSAY_SHUTUP );
+	cgs.media.sfxVSaySounds[ Vsay_Sorry ] = FindSoundEffect( "sounds/vsay/sorry" );
+	cgs.media.sfxVSaySounds[ Vsay_Thanks ] = FindSoundEffect( "sounds/vsay/thanks" );
+	cgs.media.sfxVSaySounds[ Vsay_GoodGame ] = FindSoundEffect( "sounds/vsay/goodgame" );
+	cgs.media.sfxVSaySounds[ Vsay_BoomStick ] = FindSoundEffect( "sounds/vsay/boomstick" );
+	cgs.media.sfxVSaySounds[ Vsay_ShutUp ] = FindSoundEffect( "sounds/vsay/shutup" );
 	cgs.media.sfxVSaySounds[ Vsay_Bruh ] = FindSoundEffect( "sounds/vsay/bruh" );
 	cgs.media.sfxVSaySounds[ Vsay_Cya ] = FindSoundEffect( "sounds/vsay/cya" );
 	cgs.media.sfxVSaySounds[ Vsay_GetGood ] = FindSoundEffect( "sounds/vsay/getgood" );
@@ -100,6 +82,8 @@ void CG_RegisterMediaSounds() {
 	cgs.media.sfxVSaySounds[ Vsay_ShitSon ] = FindSoundEffect( "sounds/vsay/shitson" );
 	cgs.media.sfxVSaySounds[ Vsay_TrashSmash ] = FindSoundEffect( "sounds/vsay/trashsmash" );
 	cgs.media.sfxVSaySounds[ Vsay_WowYourTerrible ] = FindSoundEffect( "sounds/vsay/wowyourterrible" );
+	cgs.media.sfxVSaySounds[ Vsay_Acne ] = FindSoundEffect( "sounds/vsay/acne" );
+	cgs.media.sfxVSaySounds[ Vsay_Valley ] = FindSoundEffect( "sounds/vsay/valley" );
 }
 
 void CG_RegisterMediaModels() {

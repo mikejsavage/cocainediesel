@@ -22,7 +22,7 @@ struct Sound {
 
 struct SoundEffect {
 	struct PlaybackConfig {
-		StringHash sounds[ 8 ];
+		StringHash sounds[ 128 ];
 		u8 num_random_sounds;
 
 		float delay;
@@ -122,11 +122,66 @@ const char *S_ErrorMessage( ALenum error ) {
 	}
 }
 
-static void ALAssert() {
+static void CheckALErrors() {
 	ALenum err = alGetError();
 	if( err != AL_NO_ERROR ) {
 		Sys_Error( "%s", S_ErrorMessage( err ) );
 	}
+}
+
+static void CheckedALListener( ALenum param, float x ) {
+	alListenerf( param, x );
+	CheckALErrors();
+}
+
+static void CheckedALListener( ALenum param, Vec3 v ) {
+	alListenerfv( param, v.ptr() );
+	CheckALErrors();
+}
+
+static void CheckedALListener( ALenum param, const mat3_t m ) {
+	float forward_and_up[ 6 ];
+	VectorCopy( &m[ AXIS_FORWARD ], &forward_and_up[ 0 ] );
+	VectorCopy( &m[ AXIS_UP ], &forward_and_up[ 3 ] );
+	alListenerfv( param, forward_and_up );
+	CheckALErrors();
+}
+
+static ALint CheckedALGetSource( ALuint source, ALenum param ) {
+	ALint res;
+	alGetSourcei( source, param, &res );
+	CheckALErrors();
+	return res;
+}
+
+static void CheckedALSource( ALuint source, ALenum param, ALint x ) {
+	alSourcei( source, param, x );
+	CheckALErrors();
+}
+
+static void CheckedALSource( ALuint source, ALenum param, ALuint x ) {
+	alSourcei( source, param, x );
+	CheckALErrors();
+}
+
+static void CheckedALSource( ALuint source, ALenum param, float x ) {
+	alSourcef( source, param, x );
+	CheckALErrors();
+}
+
+static void CheckedALSource( ALuint source, ALenum param, Vec3 v ) {
+	alSourcefv( source, param, v.ptr() );
+	CheckALErrors();
+}
+
+static void CheckedALSourcePlay( ALuint source ) {
+	alSourcePlay( source );
+	CheckALErrors();
+}
+
+static void CheckedALSourceStop( ALuint source ) {
+	alSourceStop( source );
+	CheckALErrors();
 }
 
 static bool S_InitAL() {
@@ -217,7 +272,7 @@ static void LoadSound( const char * path ) {
 	ALenum format = channels == 1 ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
 	alGenBuffers( 1, &sounds[ idx ].buf );
 	alBufferData( sounds[ idx ].buf, format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
-	ALAssert();
+	CheckALErrors();
 
 	sounds[ idx ].mono = channels == 1;
 
@@ -317,6 +372,9 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, u64 
 				}
 				else if( value == "idle" ) {
 					config->attenuation = ATTN_IDLE;
+				}
+				else if( value == "static" ) {
+					config->attenuation = ATTN_STATIC;
 				}
 				else {
 					Com_Printf( S_COLOR_YELLOW "Bad attenuation value\n" );
@@ -427,7 +485,7 @@ void S_Shutdown() {
 		alDeleteBuffers( 1, &sounds[ i ].buf );
 	}
 
-	ALAssert();
+	CheckALErrors();
 
 	alcDestroyContext( al_context );
 	alcCloseDevice( al_device );
@@ -474,49 +532,47 @@ static bool StartSound( PlayingSound * ps, u8 i ) {
 	ALuint source = free_sound_sources[ num_free_sound_sources ];
 	ps->sources[ i ] = source;
 
-	alSourcei( source, AL_BUFFER, sound.buf );
-	alSourcef( source, AL_GAIN, ps->volume * config.volume * s_volume->value );
-	alSourcef( source, AL_REFERENCE_DISTANCE, S_DEFAULT_ATTENUATION_REFDISTANCE );
-	alSourcef( source, AL_MAX_DISTANCE, S_DEFAULT_ATTENUATION_MAXDISTANCE );
-	alSourcef( source, AL_ROLLOFF_FACTOR, config.attenuation );
+	CheckedALSource( source, AL_BUFFER, sound.buf );
+	CheckedALSource( source, AL_GAIN, ps->volume * config.volume * s_volume->value );
+	CheckedALSource( source, AL_REFERENCE_DISTANCE, S_DEFAULT_ATTENUATION_REFDISTANCE );
+	CheckedALSource( source, AL_MAX_DISTANCE, S_DEFAULT_ATTENUATION_MAXDISTANCE );
+	CheckedALSource( source, AL_ROLLOFF_FACTOR, config.attenuation );
 
 	switch( ps->type ) {
 		case PlayingSoundType_Global:
-			alSource3f( source, AL_POSITION, 0.0f, 0.0f, 0.0f );
-			alSource3f( source, AL_VELOCITY, 0.0f, 0.0f, 0.0f );
-			alSourcei( source, AL_SOURCE_RELATIVE, AL_TRUE );
+			CheckedALSource( source, AL_POSITION, Vec3( 0.0f ) );
+			CheckedALSource( source, AL_VELOCITY, Vec3( 0.0f ) );
+			CheckedALSource( source, AL_SOURCE_RELATIVE, AL_TRUE );
 			break;
 
 		case PlayingSoundType_Position:
-			alSourcefv( source, AL_POSITION, ps->origin.ptr() );
-			alSource3f( source, AL_VELOCITY, 0.0f, 0.0f, 0.0f );
-			alSourcei( source, AL_SOURCE_RELATIVE, AL_FALSE );
+			CheckedALSource( source, AL_POSITION, ps->origin );
+			CheckedALSource( source, AL_VELOCITY, Vec3( 0.0f ) );
+			CheckedALSource( source, AL_SOURCE_RELATIVE, AL_FALSE );
 			break;
 
 		case PlayingSoundType_Entity:
-			alSourcefv( source, AL_POSITION, entities[ ps->ent_num ].origin.ptr() );
-			alSourcefv( source, AL_VELOCITY, entities[ ps->ent_num ].velocity.ptr() );
-			alSourcei( source, AL_SOURCE_RELATIVE, AL_FALSE );
+			CheckedALSource( source, AL_POSITION, entities[ ps->ent_num ].origin );
+			CheckedALSource( source, AL_VELOCITY, entities[ ps->ent_num ].velocity );
+			CheckedALSource( source, AL_SOURCE_RELATIVE, AL_FALSE );
 			break;
 
 		case PlayingSoundType_Line:
-			alSourcefv( source, AL_POSITION, ps->origin.ptr() );
-			alSource3f( source, AL_VELOCITY, 0.0f, 0.0f, 0.0f ); // TODO
-			alSourcei( source, AL_SOURCE_RELATIVE, AL_FALSE );
+			CheckedALSource( source, AL_POSITION, ps->origin );
+			CheckedALSource( source, AL_VELOCITY, Vec3( 0.0f ) ); // TODO
+			CheckedALSource( source, AL_SOURCE_RELATIVE, AL_FALSE );
 			break;
 	}
 
-	alSourcei( source, AL_LOOPING, ps->immediate_handle.x == 0 ? AL_FALSE : AL_TRUE );
-
-	alSourcePlay( source );
-	ALAssert();
+	CheckedALSource( source, AL_LOOPING, ps->immediate_handle.x == 0 ? AL_FALSE : AL_TRUE );
+	CheckedALSourcePlay( source );
 
 	return true;
 }
 
 static void StopSound( PlayingSound * ps, u8 i ) {
-	alSourceStop( ps->sources[ i ] );
-	alSourcei( ps->sources[ i ], AL_BUFFER, 0 );
+	CheckedALSourceStop( ps->sources[ i ] );
+	CheckedALSource( ps->sources[ i ], AL_BUFFER, 0 );
 	free_sound_sources[ num_free_sound_sources ] = ps->sources[ i ];
 	num_free_sound_sources++;
 	ps->stopped[ i ] = true;
@@ -531,15 +587,11 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 	HotloadSounds();
 	HotloadSoundEffects();
 
-	alListenerf( AL_GAIN, IsWindowFocused() || s_muteinbackground->integer == 0 ? 1 : 0 );
+	CheckedALListener( AL_GAIN, IsWindowFocused() || s_muteinbackground->integer == 0 ? 1 : 0 );
 
-	float orientation[ 6 ];
-	VectorCopy( &axis[ AXIS_FORWARD ], &orientation[ 0 ] );
-	VectorCopy( &axis[ AXIS_UP ], &orientation[ 3 ] );
-
-	alListenerfv( AL_POSITION, origin.ptr() );
-	alListenerfv( AL_VELOCITY, velocity.ptr() );
-	alListenerfv( AL_ORIENTATION, orientation );
+	CheckedALListener( AL_POSITION, origin );
+	CheckedALListener( AL_VELOCITY, velocity );
+	CheckedALListener( AL_ORIENTATION, axis );
 
 	for( size_t i = 0; i < num_playing_sound_effects; i++ ) {
 		PlayingSound * ps = &playing_sound_effects[ i ];
@@ -554,8 +606,7 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 				if( ps->stopped[ j ] )
 					continue;
 
-				ALint state;
-				alGetSourcei( ps->sources[ j ], AL_SOURCE_STATE, &state );
+				ALint state = CheckedALGetSource( ps->sources[ j ], AL_SOURCE_STATE );;
 				if( not_touched || state == AL_STOPPED ) {
 					StopSound( ps, j );
 				}
@@ -601,28 +652,26 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 				continue;
 
 			if( s_volume->modified ) {
-				alSourcef( ps->sources[ j ], AL_GAIN, ps->volume * ps->sfx->sounds[ j ].volume * s_volume->value );
+				CheckedALSource( ps->sources[ j ], AL_GAIN, ps->volume * ps->sfx->sounds[ j ].volume * s_volume->value );
 			}
 
 			if( ps->type == PlayingSoundType_Entity ) {
-				alSourcefv( ps->sources[ j ], AL_POSITION, entities[ ps->ent_num ].origin.ptr() );
-				alSourcefv( ps->sources[ j ], AL_VELOCITY, entities[ ps->ent_num ].velocity.ptr() );
+				CheckedALSource( ps->sources[ j ], AL_POSITION, entities[ ps->ent_num ].origin );
+				CheckedALSource( ps->sources[ j ], AL_VELOCITY, entities[ ps->ent_num ].velocity );
 			}
 			else if( ps->type == PlayingSoundType_Line ) {
 				Vec3 p = ClosestPointOnSegment( ps->origin, ps->end, origin );
-				alSourcefv( ps->sources[ j ], AL_POSITION, p.ptr() );
+				CheckedALSource( ps->sources[ j ], AL_POSITION, p );
 			}
 		}
 	}
 
 	if( ( s_volume->modified || s_musicvolume->modified ) && music_playing ) {
-		alSourcef( music_source, AL_GAIN, s_volume->value * s_musicvolume->value );
+		CheckedALSource( music_source, AL_GAIN, s_volume->value * s_musicvolume->value );
 	}
 
 	s_volume->modified = false;
 	s_musicvolume->modified = false;
-
-	ALAssert();
 }
 
 void S_UpdateEntity( int ent_num, Vec3 origin, Vec3 velocity ) {
@@ -694,6 +743,14 @@ void S_StartGlobalSound( const SoundEffect * sfx, int channel, float volume ) {
 
 void S_StartLocalSound( const SoundEffect * sfx, int channel, float volume ) {
 	StartSoundEffect( sfx, -1, channel, volume, PlayingSoundType_Global );
+}
+
+void S_StartLineSound( const SoundEffect * sfx, Vec3 start, Vec3 end, int channel, float volume ) {
+	PlayingSound * ps = StartSoundEffect( sfx, -1, channel, volume, PlayingSoundType_Line );
+	if( ps == NULL )
+		return;
+	ps->origin = start;
+	ps->end = end;
 }
 
 static ImmediateSoundHandle StartImmediateSound( const SoundEffect * sfx, int ent_num, float volume, PlayingSoundType type, ImmediateSoundHandle handle ) {
@@ -775,20 +832,23 @@ void S_StartMenuMusic() {
 	if( !FindSound( "sounds/music/menu_1", &sound ) )
 		return;
 
-	alSourcef( music_source, AL_GAIN, s_volume->value * s_musicvolume->value );
-	alSourcei( music_source, AL_DIRECT_CHANNELS_SOFT, AL_TRUE );
-	alSourcei( music_source, AL_LOOPING, AL_TRUE );
-	alSourcei( music_source, AL_BUFFER, sound.buf );
+	if( music_playing )
+		return;
 
-	alSourcePlay( music_source );
+	CheckedALSource( music_source, AL_GAIN, s_volume->value * s_musicvolume->value );
+	CheckedALSource( music_source, AL_DIRECT_CHANNELS_SOFT, AL_TRUE );
+	CheckedALSource( music_source, AL_LOOPING, AL_TRUE );
+	CheckedALSource( music_source, AL_BUFFER, sound.buf );
+
+	CheckedALSourcePlay( music_source );
 
 	music_playing = true;
 }
 
 void S_StopBackgroundTrack() {
 	if( initialized && music_playing ) {
-		alSourceStop( music_source );
-		alSourcei( music_source, AL_BUFFER, 0 );
+		CheckedALSourceStop( music_source );
+		CheckedALSource( music_source, AL_BUFFER, 0 );
 	}
 	music_playing = false;
 }

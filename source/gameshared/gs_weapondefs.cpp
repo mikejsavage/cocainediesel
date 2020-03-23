@@ -13,7 +13,6 @@
 const WeaponDef gs_weaponDefs[] = {
 	{
 		"Knife", "gb",
-		RGB8( 255, 255, 255 ),
 		"Knife people in the face",
 		0,
 
@@ -48,13 +47,12 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"9mm", "9mm",
-		RGB8( 254, 235, 98 ),
 		"Pew pew pew",
 		100,
 
 		1,                              // projectiles fired each shot
-		15, // clip size
-		1000, // reload time
+		15,                             // clip size
+		1000,                           // reload time
 		false,                          // staged reloading
 
 		//timings (in msecs)
@@ -83,13 +81,12 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"SMG", "mg",
-		RGB8( 254, 235, 98 ),
 		"Shoots fast direct bullets touching enemies at any range",
 		100,
 
 		1,                              // projectiles fired each shot
-		25, // clip size
-		1500, // reload time
+		25,                             // clip size
+		1500,                           // reload time
 		false,                          // staged reloading
 
 		//timings (in msecs)
@@ -118,13 +115,12 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Deagle", "deagle",
-		RGB8( 254, 235, 98 ),
 		"Bang bang",
 		200,
 
 		1,                              // projectiles fired each shot
-		8, // clip size
-		2000, // reload time
+		8,                              // clip size
+		2000,                           // reload time
 		false,                          // staged reloading
 
 		//timings (in msecs)
@@ -153,13 +149,12 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Shotgun", "rg",
-		RGB8( 255, 172, 30 ),
 		"Basically a shotgun",
 		100,
 
 		25,                             // projectiles fired each shot
-		5, // clip size
-		1500, // reload time
+		5,                              // clip size
+		600,                            // reload time
 		true,                           // staged reloading
 
 		//timings (in msecs)
@@ -188,13 +183,12 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Assault Rifle", "ar",
-		RGB8( 254, 235, 98 ),
 		"Dakka dakka",
 		200,
 
 		1,                              // projectiles fired each shot
-		20, // clip size
-		2000, // reload time
+		20,                             // clip size
+		2000,                           // reload time
 		false,                          // staged reloading
 
 		//timings (in msecs)
@@ -209,7 +203,7 @@ const WeaponDef gs_weaponDefs[] = {
 		0.0f,                           // !zoom inaccuracy
 
 		//damages
-		15,                             // damage
+		12,                             // damage
 		0,                              // selfdamage ratio
 		15,                             // knockback
 		0,                              // splash radius
@@ -223,13 +217,12 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Grenades", "gl",
-		RGB8( 62, 141, 255 ),
 		"Deprecated gun, enjoy it while it lasts nerds",
 		100,
 
 		1,                              // projectiles fired each shot
 		3,                              // clip size
-		2000,                           // reload time
+		750,                            // reload time
 		true,                           // staged reloading
 
 		//timings (in msecs)
@@ -258,13 +251,12 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Rockets", "rl",
-		RGB8( 255, 58, 66 ),
 		"Shoots slow moving rockets that deal damage in an area and push bodies away",
 		200,
 
 		1,                              // projectiles fired each shot
 		4,                              // clip size
-		600,                           // reload time
+		600,                            // reload time
 		true,                           // staged reloading
 
 		//timings (in msecs)
@@ -293,13 +285,12 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Plasma", "pg",
-		RGB8( 172, 80, 255 ),
 		"Shoots fast projectiles that deal damage in an area",
 		100,
 
 		1,                              // projectiles fired each shot
-		30, // clip size
-		1500, // reload time
+		30,                             // clip size
+		1500,                           // reload time
 		false,                          // staged reloading
 
 		//timings (in msecs)
@@ -328,7 +319,6 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Laser", "lg",
-		RGB8( 82, 252, 95 ),
 		"Shoots a continuous trail doing quick but low damage at a certain range",
 		200,
 
@@ -363,13 +353,12 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Railgun", "eb",
-		RGB8( 80, 243, 255 ),
 		"Shoots a direct laser hit doing pretty high damage",
 		200,
 
 		1,                              // projectiles fired each shot
-		3, // clip size
-		2250, // reload time
+		3,                              // clip size
+		2250,                           // reload time
 		false,                          // staged reloading
 
 		//timings (in msecs)
@@ -398,13 +387,12 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Sniper", "sniper",
-		RGB8( 80, 243, 255 ),
 		"Boom boom",
 		200,
 
 		1,                              // projectiles fired each shot
-		1, // clip size
-		2000, // reload time
+		1,                              // clip size
+		2000,                           // reload time
 		false,                          // staged reloading
 
 		//timings (in msecs)
@@ -428,6 +416,40 @@ const WeaponDef gs_weaponDefs[] = {
 
 		//projectile def
 		INSTANT,                        // speed
+		0,                              // spread
+	},
+
+	{
+		"Rifle", "rifle",
+		"Goochie gun",
+		200,
+
+		1,                              // projectiles fired each shot
+		5,                              // clip size
+		2000,                           // reload time
+		false,                          // staged reloading
+
+		//timings (in msecs)
+		WEAPONUP_TIME_VERY_SLOW,        // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		750,                            // refire time
+		10000,                          // range
+		10.0f,                          // recoil
+		FiringMode_SemiAuto,
+
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
+		//damages
+		40,                             // damage
+		0,                              // selfdamage ratio
+		50,                             // knockback
+		0,                              // splash radius
+		0,                              // minimum damage
+		0,                              // minimum knockback
+
+		//projectile def
+		5000,                           // speed
 		0,                              // spread
 	},
 };

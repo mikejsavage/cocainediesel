@@ -700,6 +700,8 @@ static void CreateServer() {
 }
 
 static void MainMenu() {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	ImGui::SetNextWindowPos( ImVec2() );
 	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
 
@@ -712,9 +714,18 @@ static void MainMenu() {
 
 	ImGui::BeginChild( "mainmenubody", ImVec2( 0, -ImGui::GetFrameHeightWithSpacing() + window_padding.y ) );
 
-	ImGui::SetCursorPosX( 2 + 2 * sinf( cls.monotonicTime / 20.0f ) );
 	ImGui::PushFont( cls.large_font );
-	ImGui::Text( "COCAINE DIESEL" );
+	const char * name = "CORONADIESEL";
+	const int break_time = 1000;
+	for( size_t i = 0; i < strlen( name ); i++ ) {
+		ImGui::SameLine();
+		if( cls.monotonicTime < break_time ) {
+			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + frame_static.viewport_width * max( 0, ( 1000 - cls.monotonicTime ) )/1000.f );
+		} else {
+			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + max( 0, sinf( ( cls.monotonicTime - break_time ) / 500.0f + i*0.5f )*8 ) );
+		}
+		ImGui::Text( "%s%c", temp( "{}", ImGuiColorToken( 220, 180 + i*2, 100 + i*4, 255 ) ), name[ i ] );
+	}
 	ImGui::PopFont();
 
 	if( ImGui::Button( "FIND SERVERS" ) ) {
@@ -878,8 +889,9 @@ static void GameMenu() {
 				ImGui::SetColumnWidth( 0, half );
 				ImGui::SetColumnWidth( 1, half );
 
+
 				PushButtonColor( CG_TeamColorVec4( TEAM_ALPHA ) * 0.5f );
-				GameMenuButton( "Join Cocaine", "join cocaine", &should_close, 0 );
+				GameMenuButton( "Join Corona", "join cocaine", &should_close, 0 );
 				ImGui::PopStyleColor( 3 );
 
 				ImGui::NextColumn();
@@ -1118,8 +1130,7 @@ static void GameMenu() {
 			ImGui::SetCursorPosY( window_size.y - ImGui::GetTextLineHeight()*2 );
 			ImGui::Columns( 6, NULL, false );
 
-			PushButtonColor( ImVec4( 0.75f, 0.125f, 0.125f, 1.f ) );
-
+			PushButtonColor( ImVec4( 0.25f, 0.f, 0.f, 1.f ) );
 			if( ImGui::Button( "Clear", ImVec2( -1, button_height ) ) ) {
 				for( bool &w : selected_weapons ) {
 					w = false;

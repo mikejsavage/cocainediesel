@@ -281,9 +281,6 @@ static void SettingsGeneral() {
 static void SettingsControls() {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	static bool advweap_keys = false;
-	static bool voice_keys = false;
-
 	ImGui::BeginChild( "binds" );
 
 	if( ImGui::BeginTabBar("##binds", ImGuiTabBarFlags_None ) ) {
@@ -320,18 +317,15 @@ static void SettingsControls() {
 			KeyBindButton( "Weapon 5", "weapon 5" );
 			KeyBindButton( "Weapon 6", "weapon 6" );
 
-			ImGui::Checkbox( "Advanced weapon keys", &advweap_keys );
-
-			if( advweap_keys ) {
+			ImGui::BeginChild( "weapon", ImVec2( 400, -1 ) );
+			if( ImGui::CollapsingHeader( "Advanced weapon keys" ) ) {
 				for( int i = 0; i < Weapon_Count; i++ ) {
 					const WeaponDef * weapon = GS_GetWeaponDef( i );
 					KeyBindButton( weapon->name, temp( "use {}", weapon->short_name ) );
 				}
-			}
+			} ImGui::EndChild();
 
 			ImGui::EndTabItem();
-		} else {
-			advweap_keys = false;
 		}
 
 
@@ -348,11 +342,8 @@ static void SettingsControls() {
 			KeyBindButton( "Chat", "messagemode" );
 			KeyBindButton( "Team chat", "messagemode2" );
 
-			ImGui::Separator();
-
-			ImGui::Checkbox( "Voice Lines", &voice_keys );
-
-			if( voice_keys ) {
+			ImGui::BeginChild( "voice lines", ImVec2( 400, -1 ) );
+			if( ImGui::CollapsingHeader( "Voice Lines" ) ) {
 				KeyBindButton( "Sorry", "vsay sorry" );
 				KeyBindButton( "Thanks", "vsay thanks" );
 				KeyBindButton( "Good game", "vsay goodgame" );
@@ -368,9 +359,7 @@ static void SettingsControls() {
 				KeyBindButton( "Wow your terrible", "vsay wowyourterrible" );
 				KeyBindButton( "Acne", "vsay acne" );
 				KeyBindButton( "Valley", "vsay valley" );
-			} else {
-				voice_keys = false;
-			}
+			} ImGui::EndChild();
 
 			ImGui::EndTabItem();
 		}

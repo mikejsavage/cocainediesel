@@ -748,7 +748,7 @@ static void MainMenu() {
 
 	ImGui::SameLine();
 
-	PushButtonColor( ImVec4( 0.625f, 0.125f, 0.f, 0.75f ) );
+	PushButtonColor( ImVec4( 0.375f, 0.f, 0.f, 0.75f ) );
 	if( ImGui::Button( "QUIT" ) ) {
 		CL_Quit();
 	} ImGui::PopStyleColor( 3 );
@@ -882,9 +882,10 @@ static void GameMenu() {
 		ImGui::Begin( "gamemenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 		ImGuiStyle & style = ImGui::GetStyle();
 		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
+		bool team_based = GS_TeamBasedGametype( &client_gs );
 
 		if( spectating ) {
-			if( GS_TeamBasedGametype( &client_gs ) ) {
+			if( team_based ) {
 				ImGui::Columns( 2, NULL, false );
 				ImGui::SetColumnWidth( 0, half );
 				ImGui::SetColumnWidth( 1, half );
@@ -914,14 +915,16 @@ static void GameMenu() {
 			}
 
 
-			PushButtonColor( CG_TeamColorVec4( TEAM_ENEMY ) * 0.5f );
-			GameMenuButton( "Switch team", "join", &should_close );
-			ImGui::PopStyleColor( 3 );
+			if( team_based ) {
+				PushButtonColor( CG_TeamColorVec4( TEAM_ENEMY ) * 0.5f );
+				GameMenuButton( "Switch team", "join", &should_close );
+				ImGui::PopStyleColor( 3 );
+			}
 
 
 			GameMenuButton( "Spectate", "spec", &should_close );
 
-			if( GS_TeamBasedGametype( &client_gs ) ) {
+			if( team_based ) {
 				GameMenuButton( "Change loadout", "gametypemenu", &should_close );
 			}
 		}
@@ -1130,7 +1133,7 @@ static void GameMenu() {
 			ImGui::SetCursorPosY( window_size.y - ImGui::GetTextLineHeight()*2 );
 			ImGui::Columns( 6, NULL, false );
 
-			PushButtonColor( ImVec4( 0.25f, 0.f, 0.f, 1.f ) );
+			PushButtonColor( ImVec4( 0.375f, 0.125f, 0.125f, 0.75f ) );
 			if( ImGui::Button( "Clear", ImVec2( -1, button_height ) ) ) {
 				for( bool &w : selected_weapons ) {
 					w = false;

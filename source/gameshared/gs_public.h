@@ -344,9 +344,6 @@ typedef struct {
 	vec3_t mins, maxs;          // bounding box size
 
 	int groundentity;
-	cplane_t groundplane;       // valid if groundentity >= 0
-	int groundsurfFlags;        // valid if groundentity >= 0
-	int groundcontents;         // valid if groundentity >= 0
 	int watertype;
 	int waterlevel;
 

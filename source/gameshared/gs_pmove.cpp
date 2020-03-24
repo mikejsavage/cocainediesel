@@ -200,7 +200,7 @@ static void PM_AddTouchEnt( int entNum ) {
 
 static int PM_SlideMove( void ) {
 	vec3_t end, dir;
-	vec3_t last_valid_origin;
+	vec3_t old_velocity, last_valid_origin;
 	float value;
 	vec3_t planes[MAX_CLIP_PLANES];
 	int numplanes = 0;
@@ -210,14 +210,15 @@ static int PM_SlideMove( void ) {
 	float remainingTime = pml.frametime;
 	int blockedmask = 0;
 
+	VectorCopy( pml.velocity, old_velocity );
+	VectorCopy( pml.origin, last_valid_origin );
+
 	if( pm->groundentity != -1 ) { // clip velocity to ground, no need to wait
 		// if the ground is not horizontal (a ramp) clipping will slow the player down
 		if( pml.groundplane.normal[2] == 1.0f && pml.velocity[2] < 0.0f ) {
 			pml.velocity[2] = 0.0f;
 		}
 	}
-
-	VectorCopy( pml.origin, last_valid_origin );
 
 	numplanes = 0; // clean up planes count for checking
 
@@ -320,6 +321,10 @@ static int PM_SlideMove( void ) {
 				}
 			}
 		}
+	}
+
+	if( pm->playerState->pmove.pm_time ) {
+		VectorCopy( old_velocity, pml.velocity );
 	}
 
 	return blockedmask;
@@ -746,11 +751,6 @@ static void PM_UnstickPosition( trace_t *trace ) {
 * PM_CategorizePosition
 */
 static void PM_CategorizePosition( void ) {
-	vec3_t point;
-	int cont;
-	int sample1;
-	int sample2;
-
 	if( pml.velocity[2] > 180 ) { // !!ZOID changed from 100 to 180 (ramp accel)
 		pm->playerState->pmove.pm_flags &= ~PMF_ON_GROUND;
 		pm->groundentity = -1;
@@ -774,9 +774,6 @@ static void PM_CategorizePosition( void ) {
 			pm->playerState->pmove.pm_flags &= ~PMF_ON_GROUND;
 		} else {
 			pm->groundentity = trace.ent;
-			pm->groundplane = trace.plane;
-			pm->groundsurfFlags = trace.surfFlags;
-			pm->groundcontents = trace.contents;
 
 			// hitting solid ground will end a waterjump
 			if( pm->playerState->pmove.pm_flags & PMF_TIME_WATERJUMP ) {
@@ -801,13 +798,14 @@ static void PM_CategorizePosition( void ) {
 	pm->waterlevel = 0;
 	pm->watertype = 0;
 
-	sample2 = pm->playerState->viewheight - pm->mins[2];
-	sample1 = sample2 / 2;
+	int sample2 = pm->playerState->viewheight - pm->mins[2];
+	int sample1 = sample2 / 2;
 
+	vec3_t point;
 	point[0] = pml.origin[0];
 	point[1] = pml.origin[1];
 	point[2] = pml.origin[2] + pm->mins[2] + 1;
-	cont = pmove_gs->api.PointContents( point, 0 );
+	int cont = pmove_gs->api.PointContents( point, 0 );
 
 	if( cont & MASK_WATER ) {
 		pm->watertype = cont;

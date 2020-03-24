@@ -47,7 +47,6 @@ class cPlayer {
 
 		this.arms = 0;
 		this.defuses = 0;
-		this.num_weapons = 0;
 
 		this.dueToSpawn = false;
 

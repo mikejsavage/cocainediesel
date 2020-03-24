@@ -812,7 +812,7 @@ struct WeaponDef {
 const WeaponDef * GS_GetWeaponDef( WeaponType weapon );
 SyncPlayerState::WeaponInfo * GS_FindWeapon( SyncPlayerState * player, WeaponType weapon );
 WeaponType MODToWeapon( int mod );
-int GS_SelectBestWeapon( const SyncPlayerState * player );
+WeaponType GS_SelectBestWeapon( const SyncPlayerState * player );
 WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, const usercmd_t * cmd, int timeDelta );
 void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, const vec3_t start, const vec3_t dir, const vec3_t right, const vec3_t up, float r, float u, int range, int ignore, int timeDelta );
 void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, const vec3_t origin, const vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * tr, const vec3_t dir ) );

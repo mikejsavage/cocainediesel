@@ -82,8 +82,8 @@ SyncPlayerState::WeaponInfo * GS_FindWeapon( SyncPlayerState * player, WeaponTyp
 	return NULL;
 }
 
-int GS_SelectBestWeapon( const SyncPlayerState * player ) {
-	return ( player->num_weapons > 0 ? 0 : Weapon_None );
+WeaponType GS_SelectBestWeapon( const SyncPlayerState * player ) {
+	return ( player->num_weapons > 0 ? player->weapons[ 0 ].weap : Weapon_None );
 }
 
 static bool GS_CheckAmmoInWeapon( SyncPlayerState * player, WeaponType weapon ) {

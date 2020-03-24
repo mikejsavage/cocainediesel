@@ -272,12 +272,8 @@ static void G_SnapEntities() {
 					if( ent->s.type == ET_PLAYER && !G_IsDead( ent ) ) {
 						// play an apropriate pain sound
 						if( level.time >= ent->pain_debounce_time ) {
-							if( ent->health <= 20 ) {
+							if( ent->health <= 25 ) {
 								G_AddEvent( ent, EV_PAIN, PAIN_20, true );
-							} else if( ent->health <= 35 ) {
-								G_AddEvent( ent, EV_PAIN, PAIN_35, true );
-							} else if( ent->health <= 60 ) {
-								G_AddEvent( ent, EV_PAIN, PAIN_60, true );
 							} else {
 								G_AddEvent( ent, EV_PAIN, PAIN_100, true );
 							}

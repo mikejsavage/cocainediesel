@@ -306,7 +306,7 @@ static void CG_SC_ChangeLoadout() {
 	if( cgs.demoPlaying )
 		return;
 
-	int weapons[ MAX_WEAPONS ] = { };
+	int weapons[ Weapon_Count ] = { };
 	size_t n = 0;
 
 	if( Cmd_Argc() - 1 >= ARRAY_COUNT( weapons ) )
@@ -314,7 +314,7 @@ static void CG_SC_ChangeLoadout() {
 
 	for( int i = 0; i < Cmd_Argc() - 1; i++ ) {
 		int weapon = atoi( Cmd_Argv( i + 1 ) );
-		if( weapon < 0 || weapon >= Weapon_Count )
+		if( weapon <= Weapon_None || weapon >= Weapon_Count )
 			return;
 		weapons[ n ] = weapon;
 		n++;
@@ -383,7 +383,7 @@ CGAME COMMANDS
 */
 
 static void SwitchWeapon( WeaponType weapon ) {
-	cl.weaponSwitch = weapon + 1;
+	cl.weaponSwitch = weapon;
 }
 
 static void CG_Cmd_UseItem_f( void ) {
@@ -401,19 +401,19 @@ static void CG_Cmd_UseItem_f( void ) {
 	}
 }
 
-static WeaponType CG_UseWeaponStep( SyncPlayerState * playerState, bool next, WeaponType predicted_equipped_weapon ) {
+static WeaponType CG_UseWeaponStep( SyncPlayerState * ps, bool next, WeaponType predicted_equipped_weapon ) {
 	if( predicted_equipped_weapon == Weapon_Count )
 		return Weapon_Count;
 
 	int weapon, basis_weapon;
-	for( basis_weapon = 0; basis_weapon < MAX_WEAPONS; basis_weapon++ ) { //find the basis weapon
-		if( playerState->weapons[ basis_weapon ].weap == predicted_equipped_weapon ) {
+	for( basis_weapon = 0; basis_weapon < ARRAY_COUNT( ps->weapons ); basis_weapon++ ) { //find the basis weapon
+		if( ps->weapons[ basis_weapon ].weapon == predicted_equipped_weapon ) {
 			weapon = basis_weapon;
 			break;
 		}
 	}
 
-	int num_weapons = playerState->num_weapons;
+	int num_weapons = 1; // TODO
 
 	while( true ) { //do the switch
 		weapon = ( weapon + ( next ? 1 : -1 ) ) % num_weapons;
@@ -427,8 +427,8 @@ static WeaponType CG_UseWeaponStep( SyncPlayerState * playerState, bool next, We
 			break;
 		}
 
-		if( GS_CanEquip( playerState, playerState->weapons[ weapon ].weap ) ) {
-			return playerState->weapons[ weapon ].weap;
+		if( GS_CanEquip( ps, ps->weapons[ weapon ].weapon ) ) {
+			return ps->weapons[ weapon ].weapon;
 		}
 	}
 
@@ -460,10 +460,11 @@ static void CG_Cmd_PrevWeapon_f() {
 }
 
 static void CG_Cmd_Weapon_f() {
-	WeaponType weap = cg.predictedPlayerState.weapons[ atoi( Cmd_Argv( 1 ) ) - 1 ].weap;
-	
-	if( weap != Weapon_None )
+	WeaponType weap = cg.predictedPlayerState.weapons[ atoi( Cmd_Argv( 1 ) ) - 1 ].weapon;
+
+	if( weap != Weapon_None ) {
 		SwitchWeapon( weap );
+	}
 }
 
 /*

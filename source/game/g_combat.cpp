@@ -347,7 +347,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 	targ->health = targ->health - take;
 
 	// add damage done to stats
-	if( statDmg && MODToWeapon( mod ) != Weapon_Count && client && attacker->r.client ) {
+	if( statDmg && MODToWeapon( mod ) != Weapon_None && client && attacker->r.client ) {
 		attacker->r.client->level.stats.accuracy_hits[ MODToWeapon( mod ) ]++;
 		attacker->r.client->level.stats.accuracy_damage[ MODToWeapon( mod ) ] += damage;
 	}

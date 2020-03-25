@@ -144,11 +144,10 @@ char *_CG_CopyString( const char *in, const char *filename, int fileline ) {
 }
 
 static void CG_RegisterWeaponModels( void ) {
-	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
+	cgs.weaponInfos[ Weapon_None ] = CG_CreateWeaponZeroModel();
+	for( WeaponType i = Weapon_None + 1; i < Weapon_Count; i++ ) {
 		cgs.weaponInfos[i] = CG_RegisterWeaponModel( GS_GetWeaponDef( i )->short_name, i );
 	}
-
-	cgs.weaponInfos[ Weapon_Count ] = CG_CreateWeaponZeroModel();
 }
 
 static void CG_RegisterClients( void ) {

@@ -774,8 +774,8 @@ static edict_t *objectGameClient_GetEntity( gclient_t *self ) {
 	return PLAYERENT( playerNum );
 }
 
-static void objectGameClient_GiveWeapon( WeaponType weapon, bool give, gclient_t *self ) {
-	if( weapon >= Weapon_Count ) {
+static void objectGameClient_GiveWeapon( WeaponType weapon, gclient_t * self ) {
+	if( weapon <= Weapon_None || weapon >= Weapon_Count ) {
 		return;
 	}
 
@@ -786,46 +786,40 @@ static void objectGameClient_GiveWeapon( WeaponType weapon, bool give, gclient_t
 
 	SyncPlayerState * ps = &PLAYERENT( playerNum )->r.client->ps;
 
-	if( give ) {
-		if( ps->weapons[ ps->num_weapons ].weap != weapon ) {
-			ps->weapons[ ps->num_weapons ].weap = weapon;
-			ps->weapons[ ps->num_weapons ].ammo = GS_GetWeaponDef( weapon )->clip_size;
-			ps->num_weapons++;
+	for( size_t i = 0; i < ARRAY_COUNT( ps->weapons ); i++ ) {
+		if( ps->weapons[ i ].weapon == weapon || ps->weapons[ i ].weapon == Weapon_None ) {
+			ps->weapons[ i ].weapon = weapon;
+			ps->weapons[ i ].ammo = GS_GetWeaponDef( weapon )->clip_size;
+			break;
 		}
-	} else if( ps->weapons[ ps->num_weapons ].weap == weapon ) {
-		ps->weapons[ ps->num_weapons ].weap = Weapon_None;
-		ps->num_weapons--;
 	}
 }
 
 static void objectGameClient_InventoryClear( gclient_t *self ) {
 	memset( self->ps.weapons, 0, sizeof( self->ps.weapons ) );
 
-	self->ps.weapon = Weapon_Count;
-	self->ps.pending_weapon = Weapon_Count;
+	self->ps.weapon = Weapon_None;
+	self->ps.pending_weapon = Weapon_None;
 	self->ps.weapon_state = WeaponState_Ready;
-	self->ps.num_weapons = 0;
 }
 
 static void objectGameClient_SelectWeapon( int index, gclient_t *self ) {
-	if( index < 0 || index >= Weapon_Count ) {
+	if( index == Weapon_None ) {
 		self->ps.pending_weapon = GS_SelectBestWeapon( &self->ps );
 		return;
 	}
 
-	if( self->ps.weapons[ index ].weap != Weapon_None ) {
-		self->ps.pending_weapon = self->ps.weapons[ index ].weap;
+	if( self->ps.weapons[ index ].weapon != Weapon_None ) {
+		self->ps.pending_weapon = self->ps.weapons[ index ].weapon;
 	}
 }
 
 static void objectGameClient_addAward( asstring_t *msg, gclient_t *self ) {
-	int playerNum;
-
 	if( !msg ) {
 		return;
 	}
 
-	playerNum = objectGameClient_PlayerNum( self );
+	int playerNum = objectGameClient_PlayerNum( self );
 	if( playerNum < 0 || playerNum >= server_gs.maxclients ) {
 		return;
 	}
@@ -928,7 +922,7 @@ static const asMethod_t gameclient_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, clearPlayerStateEvents, ( ) ), asFUNCTION( objectGameClient_ClearPlayerStateEvents ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_name, ( ) const ), asFUNCTION( objectGameClient_getName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( Entity @, getEnt, ( ) const ), asFUNCTION( objectGameClient_GetEntity ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, giveWeapon, ( WeaponType weapon, bool give ) ), asFUNCTION( objectGameClient_GiveWeapon ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, giveWeapon, ( WeaponType weapon ) ), asFUNCTION( objectGameClient_GiveWeapon ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, inventoryClear, ( ) ), asFUNCTION( objectGameClient_InventoryClear ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, selectWeapon, ( int tag ) ), asFUNCTION( objectGameClient_SelectWeapon ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, addAward, ( const String &in ) ), asFUNCTION( objectGameClient_addAward ), asCALL_CDECL_OBJLAST },

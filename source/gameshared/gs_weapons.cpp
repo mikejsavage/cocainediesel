@@ -41,7 +41,7 @@ WeaponType MODToWeapon( int mod ) {
 		case MOD_RIFLE: return Weapon_Rifle;
 	}
 
-	return Weapon_Count;
+	return Weapon_None;
 }
 
 void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, const vec3_t start, const vec3_t dir, const vec3_t right, const vec3_t up, float r, float u, int range, int ignore, int timeDelta ) {
@@ -74,16 +74,20 @@ void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, const vec3_t ori
 }
 
 SyncPlayerState::WeaponInfo * GS_FindWeapon( SyncPlayerState * player, WeaponType weapon ) {
-	for( int i = 0; i < MAX_WEAPONS; i++ ) {
-		if( player->weapons[ i ].weap == weapon )
+	for( size_t i = 0; i < ARRAY_COUNT( player->weapons ); i++ ) {
+		if( player->weapons[ i ].weapon == weapon ) {
 			return &player->weapons[ i ];
+		}
 	}
 
 	return NULL;
 }
 
 WeaponType GS_SelectBestWeapon( const SyncPlayerState * player ) {
-	return ( player->num_weapons > 0 ? player->weapons[ 0 ].weap : Weapon_None );
+	if( player->weapons[ 0 ].weapon == Weapon_Knife && player->weapons[ 1 ].weapon != Weapon_None ) {
+		return player->weapons[ 1 ].weapon;
+	}
+	return player->weapons[ 0 ].weapon;
 }
 
 static bool GS_CheckAmmoInWeapon( SyncPlayerState * player, WeaponType weapon ) {
@@ -99,21 +103,21 @@ static bool GS_CheckAmmoInWeapon( SyncPlayerState * player, WeaponType weapon ) 
 WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, const usercmd_t * cmd, int timeDelta ) {
 	bool refire = false;
 
-	assert( player->pending_weapon <= Weapon_Count );
+	assert( player->pending_weapon < Weapon_Count );
 
 	if( GS_MatchPaused( gs ) ) {
 		return player->weapon;
 	}
 
-	if( player->weapon == Weapon_Count ) {
+	if( player->weapon == Weapon_None ) {
 		player->weapon = player->pending_weapon;
 		return player->weapon;
 	}
 
 	if( player->pmove.pm_type != PM_NORMAL ) {
 		player->weapon_state = WeaponState_Ready;
-		player->pending_weapon = Weapon_Count;
-		player->weapon = Weapon_Count;
+		player->pending_weapon = Weapon_None;
+		player->weapon = Weapon_None;
 		player->weapon_time = 0;
 		player->zoom_time = 0;
 		return player->weapon;
@@ -129,8 +133,8 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 
 	const WeaponDef * def = GS_GetWeaponDef( player->weapon );
 
-	if( cmd->weaponSwitch != 0 && GS_CanEquip( player, cmd->weaponSwitch - 1 ) ) {
-		player->pending_weapon = cmd->weaponSwitch - 1;
+	if( cmd->weaponSwitch != Weapon_None && GS_CanEquip( player, cmd->weaponSwitch ) ) {
+		player->pending_weapon = cmd->weaponSwitch;
 	}
 
 	s16 last_zoom_time = player->zoom_time;
@@ -181,7 +185,7 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 		}
 	}
 
-	SyncPlayerState::WeaponInfo * held_weapon = GS_FindWeapon( player, player->weapon );
+	SyncPlayerState::WeaponInfo * selected_weapon = GS_FindWeapon( player, player->weapon );
 
 	if( player->weapon_state == WeaponState_Reloading ) {
 		if( player->weapon_time > 0 ) {
@@ -190,13 +194,13 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 				player->weapon_state = WeaponState_Ready;
 			}
 			else {
-				return held_weapon->weap;
+				return selected_weapon->weapon;
 			}
 		}
 		else if( def->staged_reloading ) {
-			held_weapon->ammo++;
+			selected_weapon->ammo++;
 
-			if( held_weapon->ammo == def->clip_size ) {
+			if( selected_weapon->ammo == def->clip_size ) {
 				player->weapon_state = WeaponState_Ready;
 			}
 			else {
@@ -204,7 +208,7 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 			}
 		}
 		else {
-			held_weapon->ammo = def->clip_size;
+			selected_weapon->ammo = def->clip_size;
 			player->weapon_state = WeaponState_Ready;
 			gs->api.PredictedEvent( player->POVnum, EV_WEAPONACTIVATE, player->weapon << 1 );
 		}
@@ -216,7 +220,7 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 			return player->weapon;
 		}
 
-		bool had_weapon_before = player->weapon != Weapon_Count;
+		bool had_weapon_before = player->weapon != Weapon_None;
 		player->weapon = player->pending_weapon;
 
 		// update the firedef
@@ -244,7 +248,7 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 			return player->weapon;
 		}
 
-		if( def->clip_size != 0 && held_weapon->ammo == 0 ) {
+		if( def->clip_size != 0 && selected_weapon->ammo == 0 ) {
 			player->weapon_time = def->reload_time;
 			player->weapon_state = WeaponState_Reloading;
 		}
@@ -263,14 +267,14 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 					}
 
 					if( def->clip_size > 0 ) {
-						held_weapon->ammo--;
-						if( held_weapon->ammo == 0 ) {
+						selected_weapon->ammo--;
+						if( selected_weapon->ammo == 0 ) {
 							gs->api.PredictedEvent( player->POVnum, EV_NOAMMOCLICK, 0 );
 						}
 					}
 				}
 			}
-			else if( ( buttons & BUTTON_RELOAD ) && def->clip_size != 0 && held_weapon->ammo < def->clip_size ) {
+			else if( ( buttons & BUTTON_RELOAD ) && def->clip_size != 0 && selected_weapon->ammo < def->clip_size ) {
 				player->weapon_time = def->reload_time;
 				player->weapon_state = WeaponState_Reloading;
 			}

@@ -69,9 +69,6 @@ enum MatchState {
 	MATCH_STATE_TOTAL
 };
 
-
-#define MAX_WEAPONS 6
-
 typedef u8 WeaponType;
 enum WeaponType_ : WeaponType {
 	Weapon_None,
@@ -288,13 +285,12 @@ struct SyncPlayerState {
 	// WeaponInfo weapons[ Weapon_Count ];
 
 	struct WeaponInfo {
-		WeaponType weap;
+		WeaponType weapon;
 		int ammo;
 	};
 
-	WeaponInfo weapons[ MAX_WEAPONS ];
+	WeaponInfo weapons[ Weapon_Count - 1 ];
 	bool items[ Item_Count ];
-	int num_weapons;
 
 	uint32_t plrkeys;           // infos on the pressed keys of chased player (self if not chasing)
 

@@ -1554,7 +1554,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 		// Keep this order !
 		PM_CheckJump();
 
-		if( pm->playerState->weapon == Weapon_Count || !( GS_GetWeaponDef( pm->playerState->weapon )->zoom_fov != 0 && pm->playerState->pmove.features & PMFEAT_SCOPE ) ) {
+		if( GS_GetWeaponDef( pm->playerState->weapon )->zoom_fov == 0 || ( pm->playerState->pmove.features & PMFEAT_SCOPE ) == 0 ) {
 			PM_CheckDash();
 			PM_CheckWallJump();
 		}

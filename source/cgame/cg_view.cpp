@@ -198,7 +198,7 @@ void CG_AddKickAngles( vec3_t viewangles ) {
 */
 float CG_CalcViewFov() {
 	WeaponType weapon = cg.predictedPlayerState.weapon;
-	if( weapon == Weapon_Count )
+	if( weapon == Weapon_None )
 		return cg_fov->value;
 
 	float zoom_fov = GS_GetWeaponDef( weapon )->zoom_fov;

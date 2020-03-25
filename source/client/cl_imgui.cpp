@@ -99,7 +99,6 @@ void CL_InitImGui() {
 		style.Colors[ ImGuiCol_WindowBg ] = ImColor( 0x1a, 0x1a, 0x1a );
 		style.ItemSpacing.y = 8;
 	}
-
 }
 
 void CL_ShutdownImGui() {

@@ -24,8 +24,8 @@ void DoSpinner() {
 		Entity @ent = @team.ent( j );
 
 		ent.client.inventoryClear();
-		ent.client.giveWeapon( WeaponType( lastWeap1 ), true );
-		ent.client.giveWeapon( WeaponType( lastWeap2 ), true );
+		ent.client.giveWeapon( WeaponType( lastWeap1 ) );
+		ent.client.giveWeapon( WeaponType( lastWeap2 ) );
 		ent.client.pmoveFeatures = ent.client.pmoveFeatures & ~( PMFEAT_WEAPONSWITCH | PMFEAT_SCOPE );
 		ent.client.selectWeapon( -1 );
 	}
@@ -55,10 +55,10 @@ void spinner_think( Entity@ self ) {
 
 	for( int j = 0; @team.ent( j ) != null; j++ ) {
 		Entity @ent = @team.ent( j );
-		
+
 		ent.client.inventoryClear();
-		ent.client.giveWeapon( WeaponType( lastWeap1 ), true );
-		ent.client.giveWeapon( WeaponType( lastWeap2 ), true );
+		ent.client.giveWeapon( WeaponType( lastWeap1 ) );
+		ent.client.giveWeapon( WeaponType( lastWeap2 ) );
 		ent.client.selectWeapon( -1 );
 
 		if( last ) {

@@ -275,8 +275,8 @@ void G_GhostClient( edict_t *ent ) {
 	memset( ent->r.client->ps.weapons, 0, sizeof( ent->r.client->ps.weapons ) );
 	memset( ent->r.client->ps.items, 0, sizeof( ent->r.client->ps.items ) );
 
-	ent->r.client->ps.weapon = Weapon_Count;
-	ent->r.client->ps.pending_weapon = Weapon_Count;
+	ent->r.client->ps.weapon = Weapon_None;
+	ent->r.client->ps.pending_weapon = Weapon_None;
 	ent->r.client->ps.weapon_state = WeaponState_Ready;
 	ent->r.client->ps.weapon_time = 0;
 

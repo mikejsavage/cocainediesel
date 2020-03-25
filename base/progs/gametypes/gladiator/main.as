@@ -710,8 +710,8 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
 			weap2 = random_uniform( 0, Weapon_Count );
 		}
 
-		ent.client.giveWeapon( WeaponType( weap1 ), true );
-		ent.client.giveWeapon( WeaponType( weap2 ), true );
+		ent.client.giveWeapon( WeaponType( weap1 ) );
+		ent.client.giveWeapon( WeaponType( weap2 ) );
 		ent.client.selectWeapon( -1 );
 		ent.respawnEffect();
 	}

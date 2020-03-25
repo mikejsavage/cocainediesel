@@ -1239,7 +1239,7 @@ static void CG_DrawObituaries(
 		}
 
 		WeaponType weapon = MODToWeapon( obr->mod );
-		if( weapon == Weapon_Count )
+		if( weapon == Weapon_None )
 			weapon = Weapon_Knife;
 
 		const Material *pic = CG_GetWeaponIcon( weapon );
@@ -1597,12 +1597,19 @@ enum {
 static constexpr float SEL_WEAP_Y_OFFSET = 0.25f;
 
 static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih, Alignment alignment, float font_size ) {
-	const SyncPlayerState ps = cg.predictedPlayerState;
+	const SyncPlayerState * ps = &cg.predictedPlayerState;
+
+	int num_weapons = 0;
+	for( size_t i = 0; i < ARRAY_COUNT( ps->weapons ); i++ ) {
+		if( ps->weapons[ i ].weapon != Weapon_None ) {
+			num_weapons++;
+		}
+	}
 
 	int padx = offx - iw;
 	int pady = offy - ih;
-	int total_width = max( 0, ps.num_weapons * offx - padx );
-	int total_height = max( 0, ps.num_weapons * offy - pady );
+	int total_width = max( 0, num_weapons * offx - padx );
+	int total_height = max( 0, num_weapons * offy - pady );
 
 	int border = iw * 0.03f;
 	int padding = iw * 0.1f;
@@ -1611,15 +1618,15 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 	int iconw = iw - border * 2 - padding * 2;
 	int iconh = ih - border * 2 - padding * 2;
 
-	for( int i = 0; i < ps.num_weapons; i++ ) {
+	for( int i = 0; i < num_weapons; i++ ) {
 		int curx = CG_HorizontalAlignForWidth( x + offx * i, alignment, total_width );
 		int cury = CG_VerticalAlignForHeight( y + offy * i, alignment, total_height );
 
-		int weap = ps.weapons[ i ].weap;
-		int ammo = ps.weapons[ i ].ammo;
+		WeaponType weap = ps->weapons[ i ].weapon;
+		int ammo = ps->weapons[ i ].ammo;
 		const WeaponDef * def = GS_GetWeaponDef( weap );
 
-		if( weap == ps.pending_weapon ) {
+		if( weap == ps->pending_weapon ) {
 			cury -= ih * SEL_WEAP_Y_OFFSET;
 		}
 
@@ -1627,8 +1634,8 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		float ammo_frac = 1.0f;
 
 		if( def->clip_size != 0 ) {
-			if( weap == ps.weapon && ps.weapon_state == WeaponState_Reloading ) {
-				ammo_frac = 1.0f - float( ps.weapon_time ) / float( def->reload_time );
+			if( weap == ps->weapon && ps->weapon_state == WeaponState_Reloading ) {
+				ammo_frac = 1.0f - float( ps->weapon_time ) / float( def->reload_time );
 			}
 			else {
 				color = Vec4( 0.0f, 1.0f, 0.0f, 1.0f );
@@ -1669,18 +1676,18 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		}
 
 		// weapon slot binds start from index 1, use drawn_weapons for actual loadout index
-		char wep_bind[ 32 ];
+		char bind[ 32 ];
 
 		// UNBOUND can look real stupid so bump size down a bit in case someone is scrolling. this still doesnt fit
 		const float bind_font_size = font_size * 0.8f;
 
 		// first try the weapon specific bind
 		if( cg_showHotkeys->integer ) {
-			if( !CG_GetBoundKeysString( va( "use %s", def->short_name ), wep_bind, sizeof( wep_bind ) ) ) {
-				CG_GetBoundKeysString( va( "weapon %i", i + 1 ), wep_bind, sizeof( wep_bind ) );
+			if( !CG_GetBoundKeysString( va( "use %s", def->short_name ), bind, sizeof( bind ) ) ) {
+				CG_GetBoundKeysString( va( "weapon %i", i + 1 ), bind, sizeof( bind ) );
 			}
 
-			DrawText( GetHUDFont(), bind_font_size, wep_bind, Alignment_CenterMiddle, curx + iw*0.50f, cury + ih*0.15f, layout_cursor_color, layout_cursor_font_border );
+			DrawText( GetHUDFont(), bind_font_size, bind, Alignment_CenterMiddle, curx + iw*0.50f, cury + ih*0.15f, layout_cursor_color, layout_cursor_font_border );
 		}
 	}
 }

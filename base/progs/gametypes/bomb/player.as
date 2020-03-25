@@ -18,7 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 const int MAX_CASH = 500;
-const int MAX_WEAPON = 6;
 
 cPlayer@[] players( maxClients ); // array of handles
 bool playersInitialized = false;
@@ -26,7 +25,7 @@ bool playersInitialized = false;
 class cPlayer {
 	Client @client;
 
-	uint[] loadout( MAX_WEAPON );
+	uint[] loadout( Weapon_Count - 1 );
 	int num_weapons;
 
 	int64 lastLoadoutChangeTime; // so people can't spam change weapons during warmup
@@ -55,13 +54,13 @@ class cPlayer {
 
 	void giveInventory() {
 		this.client.inventoryClear();
-		this.client.giveWeapon( Weapon_Knife, true );
+		this.client.giveWeapon( Weapon_Knife );
 
 		for( int i = 0; i < this.num_weapons; i++ ) {
-			this.client.giveWeapon( WeaponType( this.loadout[ i ] ), true );
+			this.client.giveWeapon( WeaponType( this.loadout[ i ] ) );
 		}
 
-		this.client.selectWeapon( -1 );
+		this.client.selectWeapon( Weapon_None );
 	}
 
 
@@ -80,7 +79,7 @@ class cPlayer {
 	void setLoadout( String &cmd ) {
 		int cash = MAX_CASH;
 
-		for( int i = 0; i < MAX_WEAPON; i++ ) {
+		for( uint i = 0; i < this.loadout.length(); i++ ) {
 			this.loadout[ i ] = Weapon_None;
 		}
 
@@ -94,7 +93,7 @@ class cPlayer {
 				if( token == "" )
 					break;
 				int weapon = token.toInt();
-				if( weapon >= 0 && weapon < Weapon_Count ) {
+				if( weapon > Weapon_None && weapon < Weapon_Count && weapon != Weapon_Knife ) {
 					this.loadout[ this.num_weapons ] = weapon;
 					cash -= WeaponCost( WeaponType( weapon ) );
 					this.num_weapons++;

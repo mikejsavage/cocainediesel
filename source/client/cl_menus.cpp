@@ -828,7 +828,7 @@ static int SelectedWeaponIndex( WeaponType weapon ) {
 	return -1;
 }
 
-static bool WeaponButton( int cash, WeaponType weapon, ImVec2 size, Vec4 * tint, bool selected ) {
+static bool WeaponButton( int cash, WeaponType weapon, ImVec2 size, Vec4 * tint, const WeaponDef * weap_def, bool selected ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, Vec4( 0 ) );
 	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0 ) );
 	ImGui::PushStyleColor( ImGuiCol_ButtonActive, Vec4( 0 ) );
@@ -836,8 +836,6 @@ static bool WeaponButton( int cash, WeaponType weapon, ImVec2 size, Vec4 * tint,
 
 	const Material * icon = cgs.media.shaderWeaponIcon[ weapon ];
 	Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
-
-	const WeaponDef * weap_def = GS_GetWeaponDef( weapon );
 
 	if( !selected && weap_def->cost > cash ) {
 		*tint = Vec4( 1.0f, 1.0f, 1.0f, 0.125f );
@@ -940,11 +938,13 @@ static void GameMenu() {
 		Vec2 window_size = ImGui::GetWindowSize();
 
 		TempAllocator temp = cls.frame_arena.temp();
-		const Vec2 icon_size = Vec2( window_size.x * 0.1f );
+		const Vec2 icon_size = Vec2( window_size.x * 0.09f );
 		const int desc_width = window_size.x * 0.375f;
 		int desc_height = 0;
 		const bool bigger_font = window_size.y >= 864;
 		const int num_columns = 10;
+
+		size_t dragged = 0;
 
 		{
 			ImGui::Columns( num_columns, NULL, false );
@@ -982,29 +982,25 @@ static void GameMenu() {
 					WeaponType weapon = weapon_order[ i ];
 
 					Vec4 tint;
+					const WeaponDef * weap_def = GS_GetWeaponDef( weapon );
 					int weap_pos = SelectedWeaponIndex( weapon );
-					if( WeaponButton( cash, weapon, icon_size, &tint, weap_pos != -1 ) ) {
-						if( weap_pos == -1 ) {
-							selected_weapons[ num_weapons ] = weapon;
-							num_weapons++;
-						} else {
-							num_weapons--;
-
-							if( weap_pos == MAX_WEAPONS - 1 ) {
-								selected_weapons[ weap_pos ] = Weapon_None;
-							} else {
-								for( int i = weap_pos; i < num_weapons; i++ ) {
-									selected_weapons[ i ] = selected_weapons[ i + 1 ];
-								}
-								selected_weapons[ num_weapons ] = Weapon_None;
-							}
-
-						}
+					if( WeaponButton( cash, weapon, icon_size, &tint, weap_def, weap_pos != -1 ) && weap_pos != -1 ) {
+						selected_weapons[ weap_pos ] = Weapon_None;
+						num_weapons--;
 					}
-
+					
 					if( ImGui::IsItemHovered() ) {
 						hovered = weapon;
 					}
+
+					if( weap_def->cost <= cash && weap_pos == -1 && ImGui::BeginDragDropSource( ImGuiDragDropFlags_None ) ) {
+						dragged = i;
+	                    ImGui::SetDragDropPayload( "DRAG_N_DROP", &dragged, sizeof( size_t ) );    // Set payload to carry the index of our item (could be anything)
+	                    const Material * icon = cgs.media.shaderWeaponIcon[ weapon ];
+						Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
+	                    ImGui::Image( icon, icon_size * 0.5f, half_pixel, 1.0f - half_pixel );
+	                    ImGui::EndDragDropSource();
+	                }
 
 					int cost = GS_GetWeaponDef( weapon )->cost;
 					ImGuiColorToken token = ImGuiColorToken( 255 * tint.x, 255 * tint.y, 255 * tint.z, 255 * tint.w );
@@ -1118,14 +1114,17 @@ static void GameMenu() {
 			} ImGui::SetColumnWidth( slots * 2, window_size.x * 0.1f );
 
 
-			if( bigger_font ) ImGui::PushFont( cls.medium_font );
-
 			Vec4 tint;
 			ImGui::NextColumn();
 			int empty = 0;
 			for( int i = 0; i < slots; i++ ) {
+				ImGui::PushID( i );
+
 				if( selected_weapons[ i ] != Weapon_None ) {
-					WeaponButton( 0.0f, selected_weapons[ i ], icon_size, &tint, true );
+					if( WeaponButton( MAX_CASH, selected_weapons[ i ], icon_size, &tint, GS_GetWeaponDef( selected_weapons[ i ] ), true ) ) {
+						selected_weapons[ i ] = Weapon_None;
+						num_weapons--;
+					}
 					ColumnCenterText( temp( "{}{}: {}", ImGuiColorToken( 255 , 255 , 255 , 255 ), i + 2 - empty, GS_GetWeaponDef( selected_weapons[ i ] )->name ) );
 				} else {
 					const Material * icon = FindMaterial( "weapons/weap_none" );
@@ -1133,11 +1132,24 @@ static void GameMenu() {
 					ImGui::Image( icon, icon_size, half_pixel, 1.0f - half_pixel, Vec4( 1.0f, 1.0f, 1.0f, 0.125f ) );
 					empty++;
 				}
+
+				if( ImGui::BeginDragDropTarget() ) {
+					if( const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( "DRAG_N_DROP" ) ) {
+						IM_ASSERT( payload->DataSize == sizeof( size_t ) );
+						size_t payload_n = *(const size_t *)payload->Data;
+						if( selected_weapons[ i ] == Weapon_None ) {
+							num_weapons++;
+						}
+						selected_weapons[ i ] = weapon_order[ payload_n ];
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+
+                ImGui::PopID();
+
 				ImGui::NextColumn();
 				ImGui::NextColumn();
 			}
-
-			if( bigger_font ) ImGui::PopFont();
 
 
 			if( ImGui::CloseKey( K_ESCAPE ) ) {

@@ -827,7 +827,7 @@ static int SelectedWeaponIndex( WeaponType weapon ) {
 	return -1;
 }
 
-static void WeaponButton( int cash, WeaponType weapon, ImVec2 size ) {
+static void WeaponButton( int cash, WeaponType weapon, ImVec2 size, TempAllocator temp ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
 	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, vec4_black );
 	ImGui::PushStyleColor( ImGuiCol_ButtonActive, vec4_black );
@@ -847,6 +847,20 @@ static void WeaponButton( int cash, WeaponType weapon, ImVec2 size ) {
 	if( !selected && GS_GetWeaponDef( weapon )->cost > cash ) {
 		ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 5, vec4_black, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ) );
 		ImGui::SameLine();
+		
+		if( ImGui::IsItemHovered( ImGuiHoveredFlags_AllowWhenBlockedByPopup ) ) {
+			ImGui::BeginTooltip();
+		
+			ImGui::Text( "%s", temp( "{}Type : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), def->speed == 0 ? "Hitscan" : "Projectile" ) );
+			ImGui::Text( "%s", temp( "{}Damage : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), int( def->damage ) ) );
+			char * reload = temp( "{.1}s", def->refire_time / 1000.f );
+			RemoveTrailingZeroesFloat( reload );
+			ImGui::Text( "%s", temp( "{}Reload : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), reload ) );
+			ImGui::Text( "%s", temp( "{}Cost : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), def->cost ) );
+
+			ImGui::EndTooltip();
+		}
+
 		ImGui::Dummy( Vec2( 16, 0 ) );
 		ImGui::SameLine();
 		return;
@@ -875,6 +889,20 @@ static void WeaponButton( int cash, WeaponType weapon, ImVec2 size ) {
 				}
 			}
 		}
+	}
+
+
+	if( ImGui::IsItemHovered( ImGuiHoveredFlags_AllowWhenBlockedByPopup ) ) {
+		ImGui::BeginTooltip();
+		
+		ImGui::Text( "%s", temp( "{}Type : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), def->speed == 0 ? "Hitscan" : "Projectile" ) );
+		ImGui::Text( "%s", temp( "{}Damage : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), int( def->damage ) ) );
+		char * reload = temp( "{.1}s", def->refire_time / 1000.f );
+		RemoveTrailingZeroesFloat( reload );
+		ImGui::Text( "%s", temp( "{}Reload : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), reload ) );
+		ImGui::Text( "%s", temp( "{}Cost : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), def->cost ) );
+
+		ImGui::EndTooltip();
 	}
 
 	ImGui::SameLine();
@@ -956,12 +984,15 @@ static void GameMenu() {
 		ImGui::SetNextWindowSize( ImGui::GetIO().DisplaySize );
 		ImGui::Begin( "Loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
+		const int max_weapons = 5;
+
 		int cash = MAX_CASH;
 		for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
 			cash -= GS_GetWeaponDef( selected_weapons[ i ] )->cost;
 		}
 
 		const Vec2 icon_size = Vec2( 64 );
+		TempAllocator temp = cls.frame_arena.temp();
 
 		ImGui::Columns( 2, NULL, false );
 		ImGui::SetColumnWidth( 0, 300 );
@@ -976,7 +1007,7 @@ static void GameMenu() {
 			for( WeaponType i = 0; i < Weapon_Count; i++ ) {
 				const WeaponDef * def = GS_GetWeaponDef( i );
 				if( def->cost == 200 ) {
-					WeaponButton( cash, i, icon_size );
+					WeaponButton( cash, i, icon_size, temp );
 				}
 			}
 
@@ -993,7 +1024,7 @@ static void GameMenu() {
 			for( WeaponType i = 0; i < Weapon_Count; i++ ) {
 				const WeaponDef * def = GS_GetWeaponDef( i );
 				if( def->cost == 100 ) {
-					WeaponButton( cash, i, icon_size );
+					WeaponButton( cash, i, icon_size, temp );
 				}
 			}
 
@@ -1016,13 +1047,17 @@ static void GameMenu() {
 			ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0 );
 			defer { ImGui::PopStyleVar( 2 ); };
 
-			for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
-				if( selected_weapons[ i ] == Weapon_None )
-					break;
+			for( size_t i = 0; i < max_weapons; i++ ) {
+				if( selected_weapons[ i ] == Weapon_None ) {
+					const Material * icon = FindMaterial( "weapons/weap_none" );
+					Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
+					ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, vec4_black );
+				} else {
+					const Material * icon = cgs.media.shaderWeaponIcon[ selected_weapons[ i ] ];
+					Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
+					ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, vec4_black );
+				}
 
-				const Material * icon = cgs.media.shaderWeaponIcon[ selected_weapons[ i ] ];
-				Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
-				ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, vec4_black );
 				ImGui::SameLine();
 				ImGui::Dummy( Vec2( 16, 0 ) );
 				ImGui::SameLine();
@@ -1033,7 +1068,7 @@ static void GameMenu() {
 
 		ImGui::EndColumns();
 
-		TempAllocator temp = cls.frame_arena.temp();
+
 		ImGuiColorToken c = cash == 0 ? ImGuiColorToken( 255, 255, 255, 255 ) : ImGuiColorToken( RGBA8( AttentionGettingColor() ) );
 		ImGui::Text( "%s", temp( "{}CASH: {}${}.{02}{}{}", c, S_COLOR_GREEN, cash / 100, cash % 100, c, cash == 0 ? "" : "!!!" ) );
 

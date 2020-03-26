@@ -827,7 +827,24 @@ static int SelectedWeaponIndex( WeaponType weapon ) {
 	return -1;
 }
 
-static void WeaponButton( int cash, WeaponType weapon, ImVec2 size, TempAllocator temp ) {
+
+static void WeaponTooltip( const WeaponDef * def, TempAllocator temp ) {
+	if( ImGui::IsItemHovered() ) {
+		ImGui::BeginTooltip();
+			
+		ImGui::Text( "%s", temp( "{}Type : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), def->speed == 0 ? "Hitscan" : "Projectile" ) );
+		ImGui::Text( "%s", temp( "{}Damage : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), int( def->damage ) ) );
+		char * reload = temp( "{.1}s", def->refire_time / 1000.f );
+		RemoveTrailingZeroesFloat( reload );
+		ImGui::Text( "%s", temp( "{}Reload : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), reload ) );
+		ImGui::Text( "%s", temp( "{}Cost : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), def->cost ) );
+
+		ImGui::EndTooltip();
+	}
+}
+
+
+static void WeaponButton( int cash, WeaponType weapon, ImVec2 size, TempAllocator temp, WeaponType * dragged ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
 	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, vec4_black );
 	ImGui::PushStyleColor( ImGuiCol_ButtonActive, vec4_black );
@@ -848,18 +865,7 @@ static void WeaponButton( int cash, WeaponType weapon, ImVec2 size, TempAllocato
 		ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 5, vec4_black, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ) );
 		ImGui::SameLine();
 		
-		if( ImGui::IsItemHovered( ImGuiHoveredFlags_AllowWhenBlockedByPopup ) ) {
-			ImGui::BeginTooltip();
-		
-			ImGui::Text( "%s", temp( "{}Type : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), def->speed == 0 ? "Hitscan" : "Projectile" ) );
-			ImGui::Text( "%s", temp( "{}Damage : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), int( def->damage ) ) );
-			char * reload = temp( "{.1}s", def->refire_time / 1000.f );
-			RemoveTrailingZeroesFloat( reload );
-			ImGui::Text( "%s", temp( "{}Reload : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), reload ) );
-			ImGui::Text( "%s", temp( "{}Cost : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), def->cost ) );
-
-			ImGui::EndTooltip();
-		}
+		WeaponTooltip( def, temp );
 
 		ImGui::Dummy( Vec2( 16, 0 ) );
 		ImGui::SameLine();
@@ -872,9 +878,12 @@ static void WeaponButton( int cash, WeaponType weapon, ImVec2 size, TempAllocato
 
 	int weaponBinds[ 2 ] = { -1, -1 };
 	CG_GetBoundKeycodes( va( "use %s", def->short_name ), weaponBinds );
-	bool clicked = ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 5, vec4_black, color );
 
-	if( clicked || ImGui::IsKeyPressed( weaponBinds[ 0 ], false ) || ImGui::IsKeyPressed( weaponBinds[ 1 ], false ) ) {
+	if( ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 5, vec4_black, color ) && selected ) {
+		selected_weapons[ idx ] = Weapon_None;
+	}
+
+	if( ImGui::IsKeyPressed( weaponBinds[ 0 ], false ) || ImGui::IsKeyPressed( weaponBinds[ 1 ], false ) ) {
 		if( selected ) {
 			selected_weapons[ idx ] = Weapon_None;
 			for( size_t i = idx; i < ARRAY_COUNT( selected_weapons ) - 1; i++ ) {
@@ -889,21 +898,15 @@ static void WeaponButton( int cash, WeaponType weapon, ImVec2 size, TempAllocato
 				}
 			}
 		}
+	} else if( ImGui::BeginDragDropSource( ImGuiDragDropFlags_None ) ) {
+		*dragged = weapon;
+		ImGui::SetDragDropPayload( "DRAG_N_DROP", dragged, sizeof( WeaponType ) );    // Set payload to carry the index of our item (could be anything)
+	    ImGui::Image( icon, size, half_pixel, 1.0f - half_pixel );
+	    ImGui::EndDragDropSource();
 	}
 
+	WeaponTooltip( def, temp );
 
-	if( ImGui::IsItemHovered( ImGuiHoveredFlags_AllowWhenBlockedByPopup ) ) {
-		ImGui::BeginTooltip();
-		
-		ImGui::Text( "%s", temp( "{}Type : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), def->speed == 0 ? "Hitscan" : "Projectile" ) );
-		ImGui::Text( "%s", temp( "{}Damage : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), int( def->damage ) ) );
-		char * reload = temp( "{.1}s", def->refire_time / 1000.f );
-		RemoveTrailingZeroesFloat( reload );
-		ImGui::Text( "%s", temp( "{}Reload : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), reload ) );
-		ImGui::Text( "%s", temp( "{}Cost : {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), def->cost ) );
-
-		ImGui::EndTooltip();
-	}
 
 	ImGui::SameLine();
 	ImGui::Dummy( Vec2( 16, 0 ) );
@@ -985,6 +988,7 @@ static void GameMenu() {
 		ImGui::Begin( "Loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		const int max_weapons = 5;
+		WeaponType dragged = Weapon_None;
 
 		int cash = MAX_CASH;
 		for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
@@ -1007,7 +1011,7 @@ static void GameMenu() {
 			for( WeaponType i = 0; i < Weapon_Count; i++ ) {
 				const WeaponDef * def = GS_GetWeaponDef( i );
 				if( def->cost == 200 ) {
-					WeaponButton( cash, i, icon_size, temp );
+					WeaponButton( cash, i, icon_size, temp, &dragged );
 				}
 			}
 
@@ -1024,7 +1028,7 @@ static void GameMenu() {
 			for( WeaponType i = 0; i < Weapon_Count; i++ ) {
 				const WeaponDef * def = GS_GetWeaponDef( i );
 				if( def->cost == 100 ) {
-					WeaponButton( cash, i, icon_size, temp );
+					WeaponButton( cash, i, icon_size, temp, &dragged );
 				}
 			}
 
@@ -1056,7 +1060,30 @@ static void GameMenu() {
 					const Material * icon = cgs.media.shaderWeaponIcon[ selected_weapons[ i ] ];
 					Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
 					ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, vec4_black );
+
+					if( ImGui::BeginDragDropSource( ImGuiDragDropFlags_None ) ) {
+						dragged = selected_weapons[ i ];
+						ImGui::SetDragDropPayload( "DRAG_N_DROP", &dragged, sizeof( WeaponType ) );    // Set payload to carry the index of our item (could be anything)
+					    ImGui::Image( icon, icon_size, half_pixel, 1.0f - half_pixel );
+					    ImGui::EndDragDropSource();
+					}
+
+					WeaponTooltip( GS_GetWeaponDef( selected_weapons[ i ] ), temp );
 				}
+
+				if( ImGui::BeginDragDropTarget() ) {
+					if( const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( "DRAG_N_DROP" ) ) {
+						IM_ASSERT( payload->DataSize == sizeof( WeaponType ) );
+						WeaponType weap = *(const size_t *)payload->Data;
+						int pos = SelectedWeaponIndex( weap );
+
+						if( pos != -1 ) {
+							selected_weapons[ pos ] = selected_weapons[ i ];
+						}
+
+						selected_weapons[ i ] = weap;
+                    }
+                }
 
 				ImGui::SameLine();
 				ImGui::Dummy( Vec2( 16, 0 ) );

@@ -64,6 +64,7 @@ static size_t selected_map;
 
 static GameMenuState gamemenu_state;
 static constexpr int MAX_CASH = 500;
+static constexpr int max_weapons = 5;
 static WeaponType selected_weapons[ Weapon_Count - 1 ];
 
 static SettingsState settings_state;
@@ -880,7 +881,9 @@ static void WeaponButton( int cash, WeaponType weapon, ImVec2 size, TempAllocato
 	CG_GetBoundKeycodes( va( "use %s", def->short_name ), weaponBinds );
 
 	if( ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 5, vec4_black, color ) && selected ) {
-		selected_weapons[ idx ] = Weapon_None;
+		for( size_t i = idx; i < max_weapons - 1; i++ ) {
+			selected_weapons[ i ] = selected_weapons[ i + 1 ];
+		} selected_weapons[ max_weapons - 1 ] = Weapon_None;
 	}
 
 	if( ImGui::IsKeyPressed( weaponBinds[ 0 ], false ) || ImGui::IsKeyPressed( weaponBinds[ 1 ], false ) ) {
@@ -898,15 +901,16 @@ static void WeaponButton( int cash, WeaponType weapon, ImVec2 size, TempAllocato
 				}
 			}
 		}
-	} else if( ImGui::BeginDragDropSource( ImGuiDragDropFlags_None ) ) {
-		*dragged = weapon;
-		ImGui::SetDragDropPayload( "DRAG_N_DROP", dragged, sizeof( WeaponType ) );    // Set payload to carry the index of our item (could be anything)
-	    ImGui::Image( icon, size, half_pixel, 1.0f - half_pixel );
-	    ImGui::EndDragDropSource();
+	} else if( !selected ) {
+		if( ImGui::BeginDragDropSource( ImGuiDragDropFlags_None ) ) {
+			*dragged = weapon;
+			ImGui::SetDragDropPayload( "DRAG_N_DROP", dragged, sizeof( WeaponType ) );    // Set payload to carry the index of our item (could be anything)
+		    ImGui::Image( icon, size, half_pixel, 1.0f - half_pixel );
+		    ImGui::EndDragDropSource();
+		}
 	}
 
 	WeaponTooltip( def, temp );
-
 
 	ImGui::SameLine();
 	ImGui::Dummy( Vec2( 16, 0 ) );
@@ -981,13 +985,13 @@ static void GameMenu() {
 		ImGui::Columns( 1 );
 	}
 	else if( gamemenu_state == GameMenuState_Loadout ) {
+		ImVec2 displaySize = ImGui::GetIO().DisplaySize;
 		ImGui::PushFont( cls.medium_font );
 		ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 255 ) );
 		ImGui::SetNextWindowPos( Vec2( 0, 0 ) );
-		ImGui::SetNextWindowSize( ImGui::GetIO().DisplaySize );
+		ImGui::SetNextWindowSize( displaySize );
 		ImGui::Begin( "Loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
-		const int max_weapons = 5;
 		WeaponType dragged = Weapon_None;
 
 		int cash = MAX_CASH;
@@ -995,17 +999,15 @@ static void GameMenu() {
 			cash -= GS_GetWeaponDef( selected_weapons[ i ] )->cost;
 		}
 
-		const Vec2 icon_size = Vec2( 64 );
+		const Vec2 icon_size = Vec2( displaySize.x*0.075f );
 		TempAllocator temp = cls.frame_arena.temp();
 
 		ImGui::Columns( 2, NULL, false );
 		ImGui::SetColumnWidth( 0, 300 );
 
 		{
-			ImGui::Text( "Primaries ($2.00):" );
-			for( int i = 0; i < 10; i++ ) {
-				ImGui::Spacing();
-			}
+			ImGui::Text( "Primaries ($2.00)" );
+			ImGui::Dummy( ImVec2( 0, icon_size.y*1.5f ) );
 			ImGui::NextColumn();
 
 			for( WeaponType i = 0; i < Weapon_Count; i++ ) {
@@ -1019,10 +1021,8 @@ static void GameMenu() {
 		}
 
 		{
-			ImGui::Text( "Secondaries ($1.00):" );
-			for( int i = 0; i < 15; i++ ) {
-				ImGui::Spacing();
-			}
+			ImGui::Text( "Secondaries ($1.00)" );
+			ImGui::Dummy( ImVec2( 0, icon_size.y*1.5f ) );
 			ImGui::NextColumn();
 
 			for( WeaponType i = 0; i < Weapon_Count; i++ ) {
@@ -1036,10 +1036,8 @@ static void GameMenu() {
 		}
 
 		{
-			ImGui::Text( "Selected:" );
-			for( int i = 0; i < 15; i++ ) {
-				ImGui::Spacing();
-			}
+			ImGui::Text( "Selected" );
+			ImGui::Dummy( ImVec2( 0, icon_size.y*1.5f ) );
 			ImGui::NextColumn();
 
 			ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
@@ -1051,8 +1049,13 @@ static void GameMenu() {
 			ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0 );
 			defer { ImGui::PopStyleVar( 2 ); };
 
+			size_t found = 0;
+
 			for( size_t i = 0; i < max_weapons; i++ ) {
 				if( selected_weapons[ i ] == Weapon_None ) {
+					if( cash < 100 || i > found )
+						break;
+
 					const Material * icon = FindMaterial( "weapons/weap_none" );
 					Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
 					ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, vec4_black );
@@ -1068,13 +1071,15 @@ static void GameMenu() {
 					    ImGui::EndDragDropSource();
 					}
 
+					found++;
+
 					WeaponTooltip( GS_GetWeaponDef( selected_weapons[ i ] ), temp );
 				}
 
 				if( ImGui::BeginDragDropTarget() ) {
 					if( const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( "DRAG_N_DROP" ) ) {
 						IM_ASSERT( payload->DataSize == sizeof( WeaponType ) );
-						WeaponType weap = *(const size_t *)payload->Data;
+						WeaponType weap = *(const WeaponType *)payload->Data;
 						int pos = SelectedWeaponIndex( weap );
 
 						if( pos != -1 ) {
@@ -1082,6 +1087,12 @@ static void GameMenu() {
 						}
 
 						selected_weapons[ i ] = weap;
+
+						if( selected_weapons[ pos ] == Weapon_None ) {
+							for( size_t j = pos; j < max_weapons - 1; j++ ) {
+								selected_weapons[ j ] = selected_weapons[ j + 1 ];
+							} selected_weapons[ max_weapons - 1 ] = Weapon_None;
+						}
                     }
                 }
 
@@ -1091,13 +1102,29 @@ static void GameMenu() {
 			}
 
 			ImGui::NextColumn();
+			ImGui::NextColumn();
+
+			for( size_t i = 0; i < max_weapons; i++ ) {
+				const char * num = temp( "{}{}", selected_weapons[ i ] == Weapon_None ? ImGuiColorToken( 255, 255, 255, 50 ) : ImGuiColorToken( 255, 255, 255, 255 ), i + 2 );
+				int space = ( icon_size.x - ImGui::CalcTextSize( num ).x )/2;;
+				
+				ImGui::Dummy( ImVec2( space, 0 ) );
+				ImGui::SameLine();
+				ImGui::Text( "%s", num );
+
+				ImGui::SameLine();
+				ImGui::Dummy( ImVec2( space + 16, 0 ) );
+				ImGui::SameLine();
+			}
 		}
+
+		ImGui::NextColumn();
 
 		ImGui::EndColumns();
 
 
 		ImGuiColorToken c = cash == 0 ? ImGuiColorToken( 255, 255, 255, 255 ) : ImGuiColorToken( RGBA8( AttentionGettingColor() ) );
-		ImGui::Text( "%s", temp( "{}CASH: {}${}.{02}{}{}", c, S_COLOR_GREEN, cash / 100, cash % 100, c, cash == 0 ? "" : "!!!" ) );
+		ImGui::Text( "%s", temp( "{}CASH TO SPEND: {}${}.{02}{}{}", c, S_COLOR_GREEN, cash / 100, cash % 100, c, cash == 0 ? "" : "!!!" ) );
 
 		if( ImGui::CloseKey( K_ESCAPE ) ) {
 			DynamicString loadout( &temp, "weapselect" );

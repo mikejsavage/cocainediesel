@@ -405,30 +405,28 @@ static WeaponType CG_UseWeaponStep( SyncPlayerState * ps, bool next, WeaponType 
 	if( predicted_equipped_weapon == Weapon_Count )
 		return Weapon_Count;
 
-	int weapon, basis_weapon;
-	for( basis_weapon = 0; basis_weapon < ARRAY_COUNT( ps->weapons ); basis_weapon++ ) { //find the basis weapon
-		if( ps->weapons[ basis_weapon ].weapon == predicted_equipped_weapon ) {
-			weapon = basis_weapon;
+	size_t num_weapons = ARRAY_COUNT( ps->weapons );
+	
+	int weapon;
+	for( weapon = 0; weapon < num_weapons; weapon++ ) { //find the basis weapon
+		if( ps->weapons[ weapon ].weapon == predicted_equipped_weapon ) {
 			break;
 		}
 	}
 
-	int num_weapons = 1; // TODO
+	int step = ( next ? 1 : -1 );
+	weapon += step;
 
-	while( true ) { //do the switch
-		weapon = ( weapon + ( next ? 1 : -1 ) ) % num_weapons;
-		if( weapon < 0 ) {
-			weapon = num_weapons - 1;
-		} else if( weapon == num_weapons ) {
-			weapon = 0;
+	int end = ( next ? num_weapons : -1 );
+	for( int i = weapon; i != end; i += step ) {
+		if( ps->weapons[ i ].weapon != Weapon_None ) {
+			return ps->weapons[ i ].weapon;
 		}
+	}
 
-		if( weapon == basis_weapon ) {
-			break;
-		}
-
-		if( GS_CanEquip( ps, ps->weapons[ weapon ].weapon ) ) {
-			return ps->weapons[ weapon ].weapon;
+	for( int i = ( next ? 0 : num_weapons - 1 ); i != end; i+= step ) {
+		if( ps->weapons[ i ].weapon != Weapon_None ) {
+			return ps->weapons[ i ].weapon;
 		}
 	}
 

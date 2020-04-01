@@ -804,7 +804,7 @@ static void objectGameClient_InventoryClear( gclient_t *self ) {
 }
 
 static void objectGameClient_SelectWeapon( int index, gclient_t *self ) {
-	if( index == Weapon_None ) {
+	if( index == -1 ) {
 		self->ps.pending_weapon = GS_SelectBestWeapon( &self->ps );
 		return;
 	}

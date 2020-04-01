@@ -8,13 +8,6 @@ float currentDelay;
 const float CountdownSwitchScale = float( pow( double( CountdownSeconds ) / double( CountdownInitialSwitchDelay ), 1.0 / CountdownNumSwitches ) );
 
 void DoSpinner() {
-	lastWeap1 = random_uniform( 0, Weapon_Count );
-	lastWeap2 = lastWeap1;
-
-	while( lastWeap1 == lastWeap2 ) {
-		lastWeap2 = random_uniform( 0, Weapon_Count );
-	}
-
 	spinnerStartTime = levelTime;
 	switchesSoFar = 0;
 	currentDelay = CountdownInitialSwitchDelay;
@@ -24,10 +17,7 @@ void DoSpinner() {
 		Entity @ent = @team.ent( j );
 
 		ent.client.inventoryClear();
-		ent.client.giveWeapon( WeaponType( lastWeap1 ) );
-		ent.client.giveWeapon( WeaponType( lastWeap2 ) );
 		ent.client.pmoveFeatures = ent.client.pmoveFeatures & ~( PMFEAT_WEAPONSWITCH | PMFEAT_SCOPE );
-		ent.client.selectWeapon( -1 );
 	}
 
 	Entity@ spinner = @G_SpawnEntity( "spinner" );
@@ -39,15 +29,21 @@ void spinner_think( Entity@ self ) {
 	bool last = switchesSoFar == CountdownNumSwitches + 1;
 	Team @team = @G_GetTeam( TEAM_PLAYERS );
 
-	int tmp1 = lastWeap1;
-	int tmp2 = lastWeap2;
+	int tmp1 = random_uniform( 0, Weapon_Count );
+	int tmp2 = random_uniform( 0, Weapon_Count );
 
-	while( tmp1 == lastWeap1 || tmp1 == lastWeap2 ) {
-		tmp1 = random_uniform( 0, Weapon_Count );
+	if( tmp1 == lastWeap1 || tmp1 == lastWeap2 ) {
+		tmp1++;
+		if( tmp1 == Weapon_Count  ) {
+			tmp1 = Weapon_Knife;
+		}
 	}
 
-	while( tmp2 == lastWeap1 || tmp2 == lastWeap2 || tmp2 == tmp1 ) {
-		tmp2 = random_uniform( 0, Weapon_Count );
+	if( tmp2 == lastWeap1 || tmp2 == lastWeap2 ) {
+		tmp2++;
+		if( tmp2 == Weapon_Count  ) {
+			tmp2 = Weapon_Knife;
+		}
 	}
 
 	lastWeap1 = tmp1;
@@ -59,10 +55,10 @@ void spinner_think( Entity@ self ) {
 		ent.client.inventoryClear();
 		ent.client.giveWeapon( WeaponType( lastWeap1 ) );
 		ent.client.giveWeapon( WeaponType( lastWeap2 ) );
-		ent.client.selectWeapon( -1 );
 
 		if( last ) {
 			ent.client.pmoveFeatures = ent.client.pmoveFeatures | PMFEAT_WEAPONSWITCH | PMFEAT_SCOPE;
+			ent.client.selectWeapon( -1 );
 		}
 	}
 

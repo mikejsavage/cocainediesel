@@ -25,8 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void asemptyfunc( void ) {}
 
-//=======================================================================
-
 static const asEnumVal_t asSpawnSystemEnumVals[] =
 {
 	ASLIB_ENUM_VAL( SPAWNSYSTEM_INSTANT ),
@@ -167,6 +165,8 @@ static const asEnumVal_t asPMoveFeaturesVals[] =
 
 static const asEnumVal_t asWeaponTypeEnumVals[] =
 {
+	ASLIB_ENUM_VAL( Weapon_None ),
+
 	ASLIB_ENUM_VAL( Weapon_Knife ),
 	ASLIB_ENUM_VAL( Weapon_Pistol ),
 	ASLIB_ENUM_VAL( Weapon_MachineGun ),
@@ -347,8 +347,6 @@ static const asEnumVal_t asRoundTypeEnumVals[] =
 	ASLIB_ENUM_VAL_NULL
 };
 
-//=======================================================================
-
 static const asEnum_t asGameEnums[] =
 {
 	{ "spawnsystem_e", asSpawnSystemEnumVals },
@@ -384,16 +382,12 @@ static const asEnum_t asGameEnums[] =
 	ASLIB_ENUM_VAL_NULL
 };
 
-//=======================================================================
-
 static asIObjectType *asEntityArrayType() {
 	asIScriptContext *ctx = game.asExport->asGetActiveContext();
 	asIScriptEngine *engine = ctx->GetEngine();
 	asIObjectType *ot = engine->GetObjectTypeById( engine->GetTypeIdByDecl( "array<Entity @>" ) );
 	return ot;
 }
-
-//=======================================================================
 
 // CLASS: Match
 
@@ -502,8 +496,6 @@ static const asClassDescriptor_t asMatchClassDescriptor =
 	NULL, NULL                  /* string factory hack */
 };
 
-//=======================================================================
-
 // CLASS: GametypeDesc
 
 static void objectGametypeDescriptor_SetTeamSpawnsystem( int team, int spawnsystem, int wave_time, int wave_maxcount, bool spectate_team, gametype_descriptor_t *self ) {
@@ -563,8 +555,6 @@ static const asClassDescriptor_t asGametypeClassDescriptor =
 
 	NULL, NULL                      /* string factory hack */
 };
-
-//=======================================================================
 
 // CLASS: Team
 static edict_t *objectTeamlist_GetPlayerEntity( int index, g_teamlist_t *obj ) {
@@ -639,8 +629,6 @@ static const asClassDescriptor_t asTeamListClassDescriptor =
 	NULL, NULL                  /* string factory hack */
 };
 
-//=======================================================================
-
 // CLASS: Stats
 static void objectScoreStats_Clear( score_stats_t *obj ) {
 	memset( obj, 0, sizeof( *obj ) );
@@ -697,10 +685,6 @@ static const asClassDescriptor_t asScoreStatsClassDescriptor =
 
 	NULL, NULL                  /* string factory hack */
 };
-
-
-
-//=======================================================================
 
 // CLASS: Client
 static int objectGameClient_PlayerNum( gclient_t *self ) {
@@ -772,8 +756,8 @@ static edict_t *objectGameClient_GetEntity( gclient_t *self ) {
 	return PLAYERENT( playerNum );
 }
 
-static void objectGameClient_GiveWeapon( WeaponType weapon, bool give, gclient_t *self ) {
-	if( weapon >= Weapon_Count ) {
+static void objectGameClient_GiveWeapon( WeaponType weapon, gclient_t * self ) {
+	if( weapon <= Weapon_None || weapon >= Weapon_Count ) {
 		return;
 	}
 
@@ -782,37 +766,37 @@ static void objectGameClient_GiveWeapon( WeaponType weapon, bool give, gclient_t
 		return;
 	}
 
-	PLAYERENT( playerNum )->r.client->ps.weapons[ weapon ].owned = give;
-	PLAYERENT( playerNum )->r.client->ps.weapons[ weapon ].ammo = GS_GetWeaponDef( weapon )->clip_size;
+	SyncPlayerState * ps = &PLAYERENT( playerNum )->r.client->ps;
+
+	for( size_t i = 0; i < ARRAY_COUNT( ps->weapons ); i++ ) {
+		if( ps->weapons[ i ].weapon == weapon || ps->weapons[ i ].weapon == Weapon_None ) {
+			ps->weapons[ i ].weapon = weapon;
+			ps->weapons[ i ].ammo = GS_GetWeaponDef( weapon )->clip_size;
+			break;
+		}
+	}
 }
 
 static void objectGameClient_InventoryClear( gclient_t *self ) {
 	memset( self->ps.weapons, 0, sizeof( self->ps.weapons ) );
 
-	self->ps.weapon = Weapon_Count;
-	self->ps.pending_weapon = Weapon_Count;
+	self->ps.weapon = Weapon_None;
+	self->ps.pending_weapon = Weapon_None;
 	self->ps.weapon_state = WeaponState_Ready;
 }
 
 static void objectGameClient_SelectWeapon( int index, gclient_t *self ) {
-	if( index < 0 || index >= Weapon_Count ) {
-		self->ps.pending_weapon = GS_SelectBestWeapon( &self->ps );
-		return;
-	}
-
-	if( self->ps.weapons[ index ].owned ) {
-		self->ps.pending_weapon = index;
+	if( self->ps.weapons[ index ].weapon != Weapon_None ) {
+		self->ps.pending_weapon = self->ps.weapons[ index ].weapon;
 	}
 }
 
 static void objectGameClient_addAward( asstring_t *msg, gclient_t *self ) {
-	int playerNum;
-
 	if( !msg ) {
 		return;
 	}
 
-	playerNum = objectGameClient_PlayerNum( self );
+	int playerNum = objectGameClient_PlayerNum( self );
 	if( playerNum < 0 || playerNum >= server_gs.maxclients ) {
 		return;
 	}
@@ -915,7 +899,7 @@ static const asMethod_t gameclient_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, clearPlayerStateEvents, ( ) ), asFUNCTION( objectGameClient_ClearPlayerStateEvents ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_name, ( ) const ), asFUNCTION( objectGameClient_getName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( Entity @, getEnt, ( ) const ), asFUNCTION( objectGameClient_GetEntity ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, giveWeapon, ( WeaponType weapon, bool give ) ), asFUNCTION( objectGameClient_GiveWeapon ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, giveWeapon, ( WeaponType weapon ) ), asFUNCTION( objectGameClient_GiveWeapon ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, inventoryClear, ( ) ), asFUNCTION( objectGameClient_InventoryClear ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, selectWeapon, ( int tag ) ), asFUNCTION( objectGameClient_SelectWeapon ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, addAward, ( const String &in ) ), asFUNCTION( objectGameClient_addAward ), asCALL_CDECL_OBJLAST },
@@ -974,8 +958,6 @@ static const asClassDescriptor_t asGameClientDescriptor =
 
 	NULL, NULL                  /* string factory hack */
 };
-
-//=======================================================================
 
 // CLASS: Entity
 static asvec3_t objectGameEntity_GetVelocity( edict_t *obj ) {
@@ -1344,8 +1326,6 @@ static const asClassDescriptor_t asGameEntityClassDescriptor =
 	NULL, NULL                  /* string factory hack */
 };
 
-//=======================================================================
-
 // CLASS: Trace
 typedef struct
 {
@@ -1444,8 +1424,6 @@ static const asClassDescriptor_t asTraceClassDescriptor =
 	NULL, NULL                  /* string factory hack */
 };
 
-//=======================================================================
-
 static const asClassDescriptor_t * const asGameClassesDescriptors[] =
 {
 	&asMatchClassDescriptor,
@@ -1458,8 +1436,6 @@ static const asClassDescriptor_t * const asGameClassesDescriptors[] =
 
 	NULL
 };
-
-//=======================================================================
 
 static edict_t *asFunc_G_Spawn( asstring_t *classname ) {
 	edict_t *ent;
@@ -1791,8 +1767,6 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ NULL }
 };
 
-// ============================================================================
-
 static const asglobproperties_t asGlobProps[] =
 {
 	{ "const int64 levelTime", &level.time },
@@ -1807,8 +1781,6 @@ static const asglobproperties_t asGlobProps[] =
 
 	{ NULL }
 };
-
-// ==========================================================================================
 
 // map entity spawning
 bool G_asCallMapEntitySpawnScript( const char *classname, edict_t *ent ) {
@@ -2075,8 +2047,6 @@ void G_asCallMapEntityStop( edict_t *ent ) {
 		GT_asShutdownScript();
 	}
 }
-
-// ======================================================================================
 
 /*
 * G_ExecutionErrorReport

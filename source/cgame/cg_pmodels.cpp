@@ -944,7 +944,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 	CG_PModel_SpawnTeleportEffect( cent, pose );
 
 	// add weapon model
-	if( cent->current.weapon != Weapon_Count ) {
+	if( cent->current.weapon != Weapon_None ) {
 		orientation_t tag_weapon = Mat4ToOrientation( TransformTag( meta->model, transform, pose, meta->tag_weapon ) );
 		CG_AddWeaponOnTag( &cent->ent, &tag_weapon, cent->current.weapon, cent->effects,
 			&pmodel->projectionSource, pmodel->flash_time, pmodel->barrel_time );

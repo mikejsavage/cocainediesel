@@ -11,6 +11,8 @@
 #define WEAPONUP_TIME_VERY_SLOW 1000
 
 const WeaponDef gs_weaponDefs[] = {
+	{ "", "", "" },
+
 	{
 		"Knife", "gb",
 		"Knife people in the face",

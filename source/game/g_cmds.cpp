@@ -731,7 +731,7 @@ char *G_StatsMessage( edict_t *ent ) {
 	// message header
 	snprintf( entry, sizeof( entry ), "%d", PLAYERNUM( ent ) );
 
-	for( int i = 0; i < Weapon_Count; i++ ) {
+	for( WeaponType i = Weapon_None + 1; i < Weapon_Count; i++ ) {
 		int hit = client->level.stats.accuracy_hits[ i ];
 		int shot = client->level.stats.accuracy_shots[ i ];
 

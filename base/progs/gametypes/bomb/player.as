@@ -25,7 +25,8 @@ bool playersInitialized = false;
 class cPlayer {
 	Client @client;
 
-	bool[] loadout( Weapon_Count );
+	uint[] loadout( Weapon_Count - 1 );
+	int num_weapons;
 
 	int64 lastLoadoutChangeTime; // so people can't spam change weapons during warmup
 
@@ -53,17 +54,15 @@ class cPlayer {
 
 	void giveInventory() {
 		this.client.inventoryClear();
-		this.client.giveWeapon( Weapon_Knife, true );
+		this.client.giveWeapon( Weapon_Knife );
 
-		for( int i = 0; i < Weapon_Count; i++ ) {
-			if( this.loadout[ i ] ) {
-				this.client.giveWeapon( WeaponType( i ), true );
-			}
+		for( int i = 0; i < this.num_weapons; i++ ) {
+			this.client.giveWeapon( WeaponType( this.loadout[ i ] ) );
 		}
 
-		this.client.selectWeapon( -1 );
+		this.client.selectWeapon( 0 );
+		this.client.selectWeapon( 1 );
 	}
-
 
 	void showShop() {
 		if( this.client.team == TEAM_SPECTATOR ) {
@@ -71,10 +70,8 @@ class cPlayer {
 		}
 
 		String command = "changeloadout";
-		for( int i = 0; i < Weapon_Count; i++ ) {
-			if( this.loadout[ i ] ) {
-				command += " " + i;
-			}
+		for( int i = 0; i < this.num_weapons; i++ ) {
+			command += " " + this.loadout[ i ];
 		}
 		this.client.execGameCommand( command );
 	}
@@ -82,9 +79,11 @@ class cPlayer {
 	void setLoadout( String &cmd ) {
 		int cash = MAX_CASH;
 
-		for( int i = 0; i < Weapon_Count; i++ ) {
-			this.loadout[ i ] = false;
+		for( uint i = 0; i < this.loadout.length(); i++ ) {
+			this.loadout[ i ] = Weapon_None;
 		}
+
+		this.num_weapons = 0;
 
 		{
 			int i = 0;
@@ -94,9 +93,10 @@ class cPlayer {
 				if( token == "" )
 					break;
 				int weapon = token.toInt();
-				if( weapon >= 0 && weapon < Weapon_Count ) {
-					this.loadout[ weapon ] = true;
+				if( weapon > Weapon_None && weapon < Weapon_Count && weapon != Weapon_Knife ) {
+					this.loadout[ this.num_weapons ] = weapon;
 					cash -= WeaponCost( WeaponType( weapon ) );
+					this.num_weapons++;
 				}
 			}
 		}
@@ -107,10 +107,8 @@ class cPlayer {
 		}
 
 		String command = "saveloadout";
-		for( int i = 0; i < Weapon_Count; i++ ) {
-			if( this.loadout[ i ] ) {
-				command += " " + i;
-			}
+		for( int i = 0; i < this.num_weapons; i++ ) {
+			command += " " + this.loadout[ i ];
 		}
 		this.client.execGameCommand( command );
 

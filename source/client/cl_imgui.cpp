@@ -230,7 +230,7 @@ namespace ImGui {
 		ImGui::GetCurrentWindow()->BeginOrderWithinContext = z_order;
 	}
 
-	bool CloseKey( int key ) {
+	bool Hotkey( int key ) {
 		return ImGui::IsWindowFocused( ImGuiFocusedFlags_RootAndChildWindows ) && ImGui::IsKeyPressed( key, false );
 	}
 }

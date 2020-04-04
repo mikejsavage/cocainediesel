@@ -314,7 +314,7 @@ static void CG_SC_ChangeLoadout() {
 
 	for( int i = 0; i < Cmd_Argc() - 1; i++ ) {
 		int weapon = atoi( Cmd_Argv( i + 1 ) );
-		if( weapon < 0 || weapon >= Weapon_Count )
+		if( weapon <= Weapon_None || weapon >= Weapon_Count )
 			return;
 		weapons[ n ] = weapon;
 		n++;
@@ -383,7 +383,7 @@ CGAME COMMANDS
 */
 
 static void SwitchWeapon( WeaponType weapon ) {
-	cl.weaponSwitch = weapon + 1;
+	cl.weaponSwitch = weapon;
 }
 
 static void CG_Cmd_UseItem_f( void ) {
@@ -401,23 +401,32 @@ static void CG_Cmd_UseItem_f( void ) {
 	}
 }
 
-static WeaponType CG_UseWeaponStep( const SyncPlayerState * playerState, bool next, WeaponType predicted_equipped_weapon ) {
+static WeaponType CG_UseWeaponStep( SyncPlayerState * ps, bool next, WeaponType predicted_equipped_weapon ) {
 	if( predicted_equipped_weapon == Weapon_Count )
 		return Weapon_Count;
 
-	int weapon = predicted_equipped_weapon;
-	while( true ) {
-		weapon = ( weapon + ( next ? 1 : -1 ) ) % Weapon_Count;
-		if( weapon < 0 ) {
-			weapon += Weapon_Count;
-		}
-
-		if( weapon == predicted_equipped_weapon ) {
+	size_t num_weapons = ARRAY_COUNT( ps->weapons );
+	
+	int weapon;
+	for( weapon = 0; weapon < num_weapons; weapon++ ) { //find the basis weapon
+		if( ps->weapons[ weapon ].weapon == predicted_equipped_weapon ) {
 			break;
 		}
+	}
 
-		if( GS_CanEquip( playerState, weapon ) ) {
-			return weapon;
+	int step = ( next ? 1 : -1 );
+	weapon += step;
+
+	int end = ( next ? num_weapons : -1 );
+	for( int i = weapon; i != end; i += step ) {
+		if( ps->weapons[ i ].weapon != Weapon_None ) {
+			return ps->weapons[ i ].weapon;
+		}
+	}
+
+	for( int i = ( next ? 0 : num_weapons - 1 ); i != end; i+= step ) {
+		if( ps->weapons[ i ].weapon != Weapon_None ) {
+			return ps->weapons[ i ].weapon;
 		}
 	}
 
@@ -449,16 +458,10 @@ static void CG_Cmd_PrevWeapon_f() {
 }
 
 static void CG_Cmd_Weapon_f() {
-	int w = atoi( Cmd_Argv( 1 ) );
-	int seen = 0;
-	for( WeaponType i = Weapon_Knife; i < Weapon_Count; i++ ) {
-		if( !cg.predictedPlayerState.weapons[ i ].owned )
-			continue;
-		seen++;
+	WeaponType weap = cg.predictedPlayerState.weapons[ atoi( Cmd_Argv( 1 ) ) - 1 ].weapon;
 
-		if( seen == w ) {
-			SwitchWeapon( i );
-		}
+	if( weap != Weapon_None ) {
+		SwitchWeapon( weap );
 	}
 }
 

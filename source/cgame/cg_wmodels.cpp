@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "cgame/cg_local.h"
 
-static weaponinfo_t cg_pWeaponModelInfos[ Weapon_Count + 1 ];
+static weaponinfo_t cg_pWeaponModelInfos[ Weapon_Count ];
 
 static const char *wmPartSufix[] = { "model", "flash", "hand", "barrel", NULL };
 
@@ -339,7 +339,7 @@ struct weaponinfo_s *CG_RegisterWeaponModel( const char *cgs_name, WeaponType we
 * even if the registration failed
 */
 struct weaponinfo_s *CG_CreateWeaponZeroModel() {
-	weaponinfo_t * weaponinfo = &cg_pWeaponModelInfos[ Weapon_Count ];
+	weaponinfo_t * weaponinfo = &cg_pWeaponModelInfos[ Weapon_None ];
 	if( weaponinfo->inuse ) {
 		return weaponinfo;
 	}

@@ -786,7 +786,7 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_FIREWEAPON: {
-			if( parm >= Weapon_Count )
+			if( parm <= Weapon_None || parm >= Weapon_Count )
 				return;
 
 			// check the owner for predicted case
@@ -841,7 +841,7 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_ZOOM_IN:
 		case EV_ZOOM_OUT: {
-			if( parm >= Weapon_Count )
+			if( parm <= Weapon_None || parm >= Weapon_Count )
 				return;
 
 			const weaponinfo_t * weapon = cgs.weaponInfos[ parm ];

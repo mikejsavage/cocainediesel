@@ -222,7 +222,8 @@ static void CG_CalcViewBob( void ) {
 	bobScale = 0;
 	if( cg.xyspeed < 5 ) {
 		cg.oldBobTime = 0;  // start at beginning of cycle again
-	} else if( cg_gunbob->integer ) {
+	}
+	else if( cg_gunbob->integer ) {
 		if( !ISVIEWERENTITY( cg.view.POVent ) ) {
 			bobScale = 0.0f;
 		} else if( CG_PointContents( cg.view.origin ) & MASK_WATER ) {
@@ -508,9 +509,8 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 
 		// check for drawing gun
 		if( !view->thirdperson && view->POVent > 0 && view->POVent <= client_gs.maxclients ) {
-			if( ( cg_entities[view->POVent].serverFrame == cg.frame.serverFrame ) &&
-				( cg_entities[view->POVent].current.weapon != 0 ) ) {
-				view->drawWeapon = cg_gun->integer != 0;
+			if( cg_entities[view->POVent].serverFrame == cg.frame.serverFrame && cg_entities[view->POVent].current.weapon != Weapon_Count ) {
+				view->drawWeapon = true;
 			}
 		}
 

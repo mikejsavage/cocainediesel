@@ -127,6 +127,19 @@ void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color,
 	}
 }
 
+void DrawViewWeapon( const Model * model, const Mat4 & transform ) {
+	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
+
+	for( u32 i = 0; i < model->num_primitives; i++ ) {
+		PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material, vec4_white, false );
+		pipeline.view_weapon_depth_hack = true;
+		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+		pipeline.set_uniform( "u_Model", model_uniforms );
+
+		DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+	}
+}
+
 void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, Span< const Mat4 > skinning_matrices ) {
 	bool skinned = skinning_matrices.ptr != NULL;
 

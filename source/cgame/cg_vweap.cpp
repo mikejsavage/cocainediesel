@@ -34,7 +34,7 @@ static void CG_ViewWeapon_UpdateProjectionSource( const vec3_t hand_origin, cons
 				  hand_origin, hand_axis,
 				  weap_origin, weap_axis );
 
-	const weaponinfo_t * weaponInfo = cgs.weaponInfos[ cg.weapon.weapon ];
+	const WeaponModelMetadata * weaponInfo = cgs.weaponInfos[ cg.weapon.weapon ];
 
 	// move to projectionSource tag
 	if( weaponInfo ) {
@@ -57,11 +57,13 @@ static void CG_ViewWeapon_UpdateProjectionSource( const vec3_t hand_origin, cons
 * CG_ViewWeapon_AddAngleEffects
 */
 static void CG_ViewWeapon_AddAngleEffects( vec3_t angles ) {
-	if( !cg.view.drawWeapon ) {
-		return;
+	if( cg.predictedPlayerState.weapon_state == WeaponState_Firing || cg.predictedPlayerState.weapon_state == WeaponState_FiringSemiAuto ) {
+		const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapon );
+		float frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->refire_time );
+		angles[ PITCH ] -= def->refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 	}
 
-	if( cg_gun->integer && cg_gunbob->integer ) {
+	if( cg_gunbob->integer ) {
 		// gun angles from bobbing
 		if( cg.bobCycle & 1 ) {
 			angles[ROLL] -= cg.xyspeed * cg.bobFracSin * 0.012;
@@ -182,7 +184,7 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 	}
 
 	baseAnim = CG_ViewWeapon_baseanimFromWeaponState( cg.predictedPlayerState.weapon_state );
-	const weaponinfo_t * weaponInfo = cgs.weaponInfos[ viewweapon->weapon ];
+	const WeaponModelMetadata * weaponInfo = cgs.weaponInfos[ viewweapon->weapon ];
 
 	// Full restart
 	if( !viewweapon->baseAnimStartTime ) {
@@ -242,15 +244,14 @@ void CG_ViewWeapon_StartAnimationEvent( int newAnim ) {
 * CG_CalcViewWeapon
 */
 void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
-	orientation_t tag;
 	vec3_t gunAngles;
 	vec3_t gunOffset;
 	float handOffset;
 
 	CG_ViewWeapon_RefreshAnimation( viewweapon );
 
-	const weaponinfo_t * weaponInfo = cgs.weaponInfos[ viewweapon->weapon ];
-	viewweapon->ent.model = weaponInfo->model[WEAPMODEL_HAND];
+	const WeaponModelMetadata * weaponInfo = cgs.weaponInfos[ viewweapon->weapon ];
+	viewweapon->ent.model = weaponInfo->model;
 	viewweapon->ent.scale = 1.0f;
 	viewweapon->ent.override_material = NULL;
 	viewweapon->ent.color = rgba8_white;
@@ -284,7 +285,7 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	}
 
 	gunOffset[RIGHT] += handOffset;
-	if( cg_gun->integer && cg_gunbob->integer ) {
+	if( cg_gunbob->integer ) {
 		gunOffset[UP] += CG_ViewSmoothFallKick();
 	}
 
@@ -308,21 +309,13 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 		VectorScale( &viewweapon->ent.axis[AXIS_FORWARD], fracWeapFOV, &viewweapon->ent.axis[AXIS_FORWARD] );
 	}
 
-	// if the player doesn't want to view the weapon we still have to build the projection source
-	if( CG_GrabTag( &tag, &viewweapon->ent, "tag_weapon" ) ) {
-		CG_ViewWeapon_UpdateProjectionSource( viewweapon->ent.origin, viewweapon->ent.axis, tag.origin, tag.axis );
-	} else {
-		CG_ViewWeapon_UpdateProjectionSource( viewweapon->ent.origin, viewweapon->ent.axis, vec3_origin, axis_identity );
-	}
+	CG_ViewWeapon_UpdateProjectionSource( viewweapon->ent.origin, viewweapon->ent.axis, vec3_origin, axis_identity );
 }
 
 /*
 * CG_AddViewWeapon
 */
 void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
-	orientation_t tag;
-	int64_t flash_time = 0;
-
 	if( !cg.view.drawWeapon || viewweapon->weapon == Weapon_None ) {
 		return;
 	}
@@ -333,13 +326,7 @@ void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
 	CG_AddOutline( &viewweapon->ent, cg.effects, RGBA8( 0, 0, 0, viewweapon->ent.color.a ) );
 	CG_AddEntityToScene( &viewweapon->ent );
 
-	if( cg_weaponFlashes->integer == 2 ) {
-		flash_time = cg_entPModels[viewweapon->POVnum].flash_time;
-	}
-
 	// add attached weapon
-	if( CG_GrabTag( &tag, &viewweapon->ent, "tag_weapon" ) ) {
-		CG_AddWeaponOnTag( &viewweapon->ent, &tag, viewweapon->weapon, cg.effects, NULL, flash_time,
-			cg_entPModels[viewweapon->POVnum].barrel_time );
-	}
+	Mat4 transform = FromQFAxisAndOrigin( viewweapon->ent.axis, viewweapon->ent.origin );
+	CG_AddWeaponOnTag( &viewweapon->ent, transform, viewweapon->weapon, cg.effects, NULL );
 }

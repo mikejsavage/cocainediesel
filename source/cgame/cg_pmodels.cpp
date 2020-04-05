@@ -42,7 +42,6 @@ void CG_PModelsShutdown() {
 
 void CG_ResetPModels( void ) {
 	for( int i = 0; i < MAX_EDICTS; i++ ) {
-		cg_entPModels[i].flash_time = cg_entPModels[i].barrel_time = 0;
 		memset( &cg_entPModels[i].animState, 0, sizeof( pmodel_animationstate_t ) );
 	}
 	memset( &cg.weapon, 0, sizeof( cg.weapon ) );
@@ -231,42 +230,6 @@ PlayerModelMetadata *CG_RegisterPlayerModel( const char *filename ) {
 //======================================================================
 //							tools
 //======================================================================
-
-/*
-* CG_GrabTag
-*/
-bool CG_GrabTag( orientation_t *tag, entity_t *ent, const char *tagname ) {
-	return false;
-}
-
-/*
-* CG_PlaceRotatedModelOnTag
-*/
-void CG_PlaceRotatedModelOnTag( entity_t *ent, entity_t *dest, orientation_t *tag ) {
-	mat3_t tmpAxis;
-
-	VectorCopy( dest->origin, ent->origin );
-
-	for( int i = 0; i < 3; i++ )
-		VectorMA( ent->origin, tag->origin[i] * ent->scale, &dest->axis[i * 3], ent->origin );
-
-	VectorCopy( ent->origin, ent->origin2 );
-	Matrix3_Multiply( ent->axis, tag->axis, tmpAxis );
-	Matrix3_Multiply( tmpAxis, dest->axis, ent->axis );
-}
-
-/*
-* CG_PlaceModelOnTag
-*/
-void CG_PlaceModelOnTag( entity_t *ent, entity_t *dest, const orientation_t *tag ) {
-	VectorCopy( dest->origin, ent->origin );
-
-	for( int i = 0; i < 3; i++ )
-		VectorMA( ent->origin, tag->origin[i] * ent->scale, &dest->axis[i * 3], ent->origin );
-
-	VectorCopy( ent->origin, ent->origin2 );
-	Matrix3_Multiply( tag->axis, dest->axis, ent->axis );
-}
 
 /*
 * CG_MoveToTag
@@ -945,9 +908,8 @@ void CG_DrawPlayer( centity_t *cent ) {
 
 	// add weapon model
 	if( cent->current.weapon != Weapon_None ) {
-		orientation_t tag_weapon = Mat4ToOrientation( TransformTag( meta->model, transform, pose, meta->tag_weapon ) );
-		CG_AddWeaponOnTag( &cent->ent, &tag_weapon, cent->current.weapon, cent->effects,
-			&pmodel->projectionSource, pmodel->flash_time, pmodel->barrel_time );
+		Mat4 tag_transform = TransformTag( meta->model, transform, pose, meta->tag_weapon );
+		CG_AddWeaponOnTag( &cent->ent, tag_transform, cent->current.weapon, cent->effects, &pmodel->projectionSource );
 	}
 
 	// add backpack/hat

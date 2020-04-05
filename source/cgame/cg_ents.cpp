@@ -159,10 +159,6 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 				memset( cent->lastVelocitiesFrames, 0, sizeof( cent->lastVelocitiesFrames ) );
 				CG_PModel_ClearEventAnimations( state->number );
 				memset( &cg_entPModels[state->number].animState, 0, sizeof( cg_entPModels[state->number].animState ) );
-
-				// reset the weapon animation timers for new players
-				cg_entPModels[state->number].flash_time = 0;
-				cg_entPModels[state->number].barrel_time = 0;
 			}
 		} else {   // shuffle the last state to previous
 			cent->prev = cent->current;

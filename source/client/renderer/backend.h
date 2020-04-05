@@ -153,7 +153,7 @@ struct PipelineState {
 	CullFace cull_face = CullFace_Back;
 	Scissor scissor = { };
 	bool write_depth = true;
-	bool disable_color_writes = false;
+	bool view_weapon_depth_hack = false;
 	bool wireframe = false;
 
 	void set_uniform( StringHash name, UniformBlock block ) {

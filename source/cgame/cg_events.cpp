@@ -232,11 +232,6 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 	Vec3 end = FromQF3( trace.endpos );
 	DrawBeam( start, end, 16.0f, color, cgs.media.shaderLGBeam );
 
-	// enable continuous flash on the weapon owner
-	if( cg_weaponFlashes->integer ) {
-		cg_entPModels[cent->current.number].flash_time = cl.serverTime + cgs.weaponInfos[ Weapon_Laser ]->flashTime;
-	}
-
 	cent->sound = S_ImmediateEntitySound( cgs.media.sfxLasergunHum, cent->current.number, 1.0f, cent->sound );
 
 	if( ISVIEWERENTITY( cent->current.number ) ) {
@@ -267,7 +262,7 @@ static void CG_Event_LaserBeam( const vec3_t origin, const vec3_t dir, int entNu
 * CG_FireWeaponEvent
 */
 static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
-	const weaponinfo_t * weaponInfo = cgs.weaponInfos[ weapon ];
+	const WeaponModelMetadata * weaponInfo = cgs.weaponInfos[ weapon ];
 	const SoundEffect * sfx = weaponInfo->fire_sound;
 
 	if( sfx ) {
@@ -277,22 +272,6 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 			// fixed position is better for location, but the channels are used from worldspawn
 			// and openal runs out of channels quick on cheap cards. Relative sound uses per-entity channels.
 			S_StartEntitySound( sfx, entNum, CHAN_AUTO, 1.0f );
-		}
-	}
-
-	// flash and barrel effects
-	if( weapon == Weapon_Knife && weaponInfo->barrelTime ) {
-		// start barrel rotation or offsetting
-		cg_entPModels[entNum].barrel_time = cl.serverTime + weaponInfo->barrelTime;
-	} else {
-		// light flash
-		if( cg_weaponFlashes->integer && weaponInfo->flashTime ) {
-			cg_entPModels[entNum].flash_time = cl.serverTime + weaponInfo->flashTime;
-		}
-
-		// start barrel rotation or offsetting
-		if( weaponInfo->barrelTime ) {
-			cg_entPModels[entNum].barrel_time = cl.serverTime + weaponInfo->barrelTime;
 		}
 	}
 
@@ -329,7 +308,7 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 
 	// add animation to the view weapon model
 	if( ISVIEWERENTITY( entNum ) && !cg.view.thirdperson ) {
-		CG_ViewWeapon_StartAnimationEvent( weapon == Weapon_Knife ? WEAPANIM_ATTACK_WEAK : WEAPANIM_ATTACK_STRONG );
+		CG_ViewWeapon_StartAnimationEvent( WEAPANIM_ATTACK );
 	}
 
 	// recoil
@@ -751,10 +730,6 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 				CG_ViewWeapon_RefreshAnimation( &cg.weapon );
 			}
 
-			// reset weapon animation timers
-			cg_entPModels[ ent->number ].flash_time = 0;
-			cg_entPModels[ ent->number ].barrel_time = 0;
-
 			if( !silent ) {
 				CG_PModel_AddAnimation( ent->number, 0, TORSO_WEAPON_SWITCHIN, 0, EVENT_CHANNEL );
 
@@ -844,7 +819,7 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			if( parm <= Weapon_None || parm >= Weapon_Count )
 				return;
 
-			const weaponinfo_t * weapon = cgs.weaponInfos[ parm ];
+			const WeaponModelMetadata * weapon = cgs.weaponInfos[ parm ];
 			const SoundEffect * sfx = ev == EV_ZOOM_IN ? weapon->zoom_in_sound : weapon->zoom_out_sound;
 
 			if( viewer ) {

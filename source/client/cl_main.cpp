@@ -1767,6 +1767,9 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	cls.framecount++;
 
+	if( !Con_IsVisible() )
+		NoesisFrame( viewport_width, viewport_height );
+
 	SwapBuffers();
 }
 
@@ -1920,6 +1923,8 @@ void CL_Init( void ) {
 	CL_InitImGui();
 	UI_Init();
 
+	InitNoesis();
+
 	UI_ShowMainMenu();
 
 	CL_InitServerList();
@@ -1954,6 +1959,7 @@ void CL_Shutdown( void ) {
 	}
 
 	UI_Shutdown();
+	ShutdownNoesis();
 	CL_ShutdownImGui();
 
 	CL_GameModule_Shutdown();

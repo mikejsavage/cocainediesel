@@ -94,10 +94,12 @@ do
 		rc = "source/win32/client",
 
 		gcc_extra_ldflags = "-lm -lpthread -ldl -lX11 -no-pie -static-libstdc++",
-		msvc_extra_ldflags = "gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib /SUBSYSTEM:WINDOWS",
+		msvc_extra_ldflags = "gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib /SUBSYSTEM:WINDOWS libs/noesis/windows-release/Noesis.lib libs/noesis/windows-release/NoesisApp.lib",
 	} )
 
 	obj_cxxflags( "source/client/renderer/text.cpp", "-I libs/freetype" )
+	obj_cxxflags( "source/client/cl_noesis.cpp", "-I libs/noesis" )
+	obj_cxxflags( "source/client/cl_glfw.cpp", "-I libs/noesis" )
 end
 
 do

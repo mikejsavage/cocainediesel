@@ -9,9 +9,14 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
+#define NS_STATIC_LIBRARY
+#include "noesis/NsGui/IView.h"
+
 #include "stb/stb_image.h"
 
 GLFWwindow * window = NULL;
+
+extern Noesis::IView * _view;
 
 static bool running_in_debugger = false;
 const bool is_dedicated_server = false;
@@ -154,29 +159,37 @@ static void OnWindowResized( GLFWwindow *, int w, int h ) {
 	if( IsWindowFocused() ) {
 		UpdateVidModeCvar();
 	}
+
+	_view->SetSize( w, h );
 }
 
 static void OnMouseClicked( GLFWwindow *, int button, int action, int mods ) {
 	int key;
+	Noesis::MouseButton noesis = Noesis::MouseButton_Count;
 	switch( button ) {
 		case GLFW_MOUSE_BUTTON_LEFT:
 			key = K_MOUSE1;
+			noesis = Noesis::MouseButton_Left;
 			break;
 
 		case GLFW_MOUSE_BUTTON_RIGHT:
 			key = K_MOUSE2;
+			noesis = Noesis::MouseButton_Right;
 			break;
 
 		case GLFW_MOUSE_BUTTON_MIDDLE:
 			key = K_MOUSE3;
+			noesis = Noesis::MouseButton_Middle;
 			break;
 
 		case GLFW_MOUSE_BUTTON_4:
 			key = K_MOUSE4;
+			noesis = Noesis::MouseButton_XButton1;
 			break;
 
 		case GLFW_MOUSE_BUTTON_5:
 			key = K_MOUSE5;
+			noesis = Noesis::MouseButton_XButton2;
 			break;
 
 		case GLFW_MOUSE_BUTTON_6:
@@ -194,6 +207,18 @@ static void OnMouseClicked( GLFWwindow *, int button, int action, int mods ) {
 	bool down = action == GLFW_PRESS;
 	ImGui::GetIO().KeysDown[ key ] = down;
 	Key_Event( key, down );
+
+	if( noesis != Noesis::MouseButton_Count ) {
+		double x, y;
+		glfwGetCursorPos( window, &x, &y );
+
+		if( down ) {
+			_view->MouseButtonDown( x, y, noesis );
+		}
+		else {
+			_view->MouseButtonUp( x, y, noesis );
+		}
+	}
 }
 
 static void OnScroll( GLFWwindow *, double x, double y ) {
@@ -206,6 +231,11 @@ static void OnScroll( GLFWwindow *, double x, double y ) {
 
 	ImGui::GetIO().MouseWheelH += x;
 	ImGui::GetIO().MouseWheel += y;
+
+	double mx, my;
+	glfwGetCursorPos( window, &mx, &my );
+	_view->MouseWheel( mx, my, y );
+	_view->MouseHWheel( mx, my, x );
 }
 
 static int TranslateGLFWKey( int glfw ) {
@@ -352,6 +382,8 @@ static void OnKeyPressed( GLFWwindow *, int glfw_key, int scancode, int action, 
 
 static void OnCharTyped( GLFWwindow *, unsigned int codepoint ) {
 	ImGui::GetIO().AddInputCharacter( codepoint );
+
+	_view->Char( codepoint );
 }
 
 static void OnGlfwError( int code, const char * message ) {
@@ -386,8 +418,6 @@ static WindowMode CompleteWindowMode( WindowMode mode ) {
 }
 
 void CreateWindow( WindowMode mode ) {
-	ZoneScoped;
-
 	glfwWindowHint( GLFW_CLIENT_API, GLFW_OPENGL_API );
 	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
 	glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE );
@@ -572,6 +602,8 @@ void GlfwInputFrame() {
 		}
 	}
 
+	gui_active = true;
+
 	if( gui_active ) {
 		glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
 	}
@@ -588,6 +620,10 @@ void GlfwInputFrame() {
 	break2 = glfwGetKey( window, GLFW_KEY_F2 );
 	break3 = glfwGetKey( window, GLFW_KEY_F3 );
 	break4 = glfwGetKey( window, GLFW_KEY_F4 );
+
+	double x, y;
+	glfwGetCursorPos( window, &x, &y );
+	_view->MouseMove( x, y );
 }
 
 void SwapBuffers() {

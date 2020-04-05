@@ -1181,10 +1181,10 @@ void UI_Refresh() {
 
 	if( uistate == UIState_MainMenu ) {
 		if( mainmenu_state != MainMenuState_ParticleEditor ) {
-			DrawParticleMenuEffect();
+			// DrawParticleMenuEffect();
 		}
 
-		MainMenu();
+		// MainMenu();
 	}
 
 	if( uistate == UIState_Connecting ) {

@@ -312,9 +312,6 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	CG_ViewWeapon_UpdateProjectionSource( viewweapon->ent.origin, viewweapon->ent.axis, vec3_origin, axis_identity );
 }
 
-/*
-* CG_AddViewWeapon
-*/
 void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
 	if( !cg.view.drawWeapon || viewweapon->weapon == Weapon_None ) {
 		return;
@@ -327,6 +324,8 @@ void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
 	CG_AddEntityToScene( &viewweapon->ent );
 
 	// add attached weapon
+	const Model * model = cgs.weaponInfos[ viewweapon->weapon ]->model;
 	Mat4 transform = FromQFAxisAndOrigin( viewweapon->ent.axis, viewweapon->ent.origin );
-	CG_AddWeaponOnTag( &viewweapon->ent, transform, viewweapon->weapon, cg.effects, NULL );
+	DrawViewWeapon( model, transform );
+	// DrawOutlinedViewWeapon( model, transform, vec4_black, 0.25f );
 }

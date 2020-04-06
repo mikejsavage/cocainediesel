@@ -253,7 +253,6 @@ void CG_PModel_ClearEventAnimations( int entNum );
 void CG_WModelsInit();
 WeaponModelMetadata *CG_CreateWeaponZeroModel();
 WeaponModelMetadata *CG_RegisterWeaponModel( const char *cgs_name, WeaponType weaponTag );
-void CG_AddWeaponOnTag( entity_t *ent, const Mat4 & transform, int weapon, int effects, orientation_t *projectionSource );
 
 //=================================================
 //				VIEW WEAPON

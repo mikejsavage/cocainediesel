@@ -229,34 +229,6 @@ WeaponModelMetadata * CG_CreateWeaponZeroModel() {
 	return weaponinfo; //no checks
 }
 
-/*
-* CG_AddWeaponOnTag
-*
-* Add weapon model(s) positioned at the tag
-*/
-void CG_AddWeaponOnTag( entity_t *ent, const Mat4 & transform, int weaponid, int effects, orientation_t *projectionSource ) {
-	const WeaponModelMetadata * weaponInfo = cgs.weaponInfos[ weaponid ];
-	if( weaponInfo->model == NULL )
-		return;
-
-	if( projectionSource == NULL ) {
-		DrawViewWeapon( weaponInfo->model, transform );
-	}
-	else {
-		DrawModel( weaponInfo->model, transform, vec4_white );
-	}
-
-	// update projection source
-	// if( projectionSource != NULL ) {
-	// 	VectorCopy( vec3_origin, projectionSource->origin );
-	// 	Matrix3_Copy( axis_identity, projectionSource->axis );
-	// 	CG_MoveToTag( projectionSource->origin, projectionSource->axis,
-	// 				  weapon.origin, weapon.axis,
-	// 				  weaponInfo->tag_projectionsource.origin,
-	// 				  weaponInfo->tag_projectionsource.axis );
-	// }
-}
-
 void CG_WModelsInit() {
 	memset( &cg_pWeaponModelInfos, 0, sizeof( cg_pWeaponModelInfos ) );
 }

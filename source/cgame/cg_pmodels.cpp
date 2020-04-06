@@ -908,8 +908,13 @@ void CG_DrawPlayer( centity_t *cent ) {
 
 	// add weapon model
 	if( cent->current.weapon != Weapon_None ) {
-		Mat4 tag_transform = TransformTag( meta->model, transform, pose, meta->tag_weapon );
-		CG_AddWeaponOnTag( &cent->ent, tag_transform, cent->current.weapon, cent->effects, &pmodel->projectionSource );
+		const Model * weapon_model = cgs.weaponInfos[ cent->current.weapon ]->model;
+		if( weapon_model != NULL ) {
+			Mat4 tag_transform = TransformTag( weapon_model, transform, pose, meta->tag_weapon );
+
+			DrawModel( weapon_model, tag_transform, vec4_white );
+			DrawOutlinedModel( weapon_model, tag_transform, vec4_black, outline_height );
+		}
 	}
 
 	// add backpack/hat

@@ -762,16 +762,15 @@ static ImmediateSoundHandle StartImmediateSound( const SoundEffect * sfx, int en
 		playing_sound_effects[ idx ].touched_since_last_update = true;
 	}
 	else {
-		handle = { Hash64( immediate_sounds_autoinc ) };
-		immediate_sounds_autoinc++;
-
-		if( immediate_sounds_autoinc == 0 ) {
-			immediate_sounds_autoinc++;
-		}
-
 		PlayingSound * ps = StartSoundEffect( sfx, ent_num, CHAN_AUTO, volume, type );
 		if( ps == NULL )
 			return handle;
+
+		handle = { Hash64( immediate_sounds_autoinc ) };
+
+		immediate_sounds_autoinc++;
+		if( immediate_sounds_autoinc == 0 )
+			immediate_sounds_autoinc++;
 
 		ps->immediate_handle = handle;
 		idx = ps - playing_sound_effects;

@@ -259,7 +259,8 @@ WeaponModelMetadata *CG_RegisterWeaponModel( const char *cgs_name, WeaponType we
 //=================================================
 
 typedef struct {
-	entity_t ent;
+	mat3_t axis;
+	vec3_t origin;
 
 	unsigned int POVnum;
 	int weapon;

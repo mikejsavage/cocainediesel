@@ -332,11 +332,6 @@ static float CG_OutlineScaleForDist( const entity_t * e, float maxdist, float sc
 	return 1.0f;
 }
 
-void CG_AddOutline( entity_t *ent, int effects, RGBA8 color ) {
-	ent->outlineHeight = CG_OutlineScaleForDist( ent, 4096, 1.0f );
-	ent->outlineColor = ( effects & EF_GODMODE ) ? RGBA8( 255, 255, 255, color.a ) : color;
-}
-
 //======================================================================
 //							animations
 //======================================================================

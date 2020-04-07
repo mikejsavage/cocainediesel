@@ -397,8 +397,6 @@ void CG_LerpEntities( void );
 void CG_LerpGenericEnt( centity_t *cent );
 void CG_BBoxForEntityState( const SyncEntityState * state, vec3_t mins, vec3_t maxs );
 
-void CG_AddOutline( entity_t *ent, int effects, RGBA8 color );
-
 //
 // cg_draw.c
 //

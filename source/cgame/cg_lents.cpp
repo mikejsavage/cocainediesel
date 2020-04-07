@@ -157,8 +157,6 @@ static LocalEntity *CG_AllocModel( LocalEntityType type, const vec3_t origin, co
 	le->lightcolor[2] = lb;
 
 	le->ent.model = model;
-	le->ent.override_material = material;
-	le->ent.shaderTime = cl.serverTime;
 	le->ent.scale = 1.0f;
 
 	VectorCopy( angles, le->angles );
@@ -181,8 +179,6 @@ static LocalEntity *CG_AllocSprite( LocalEntityType type, const vec3_t origin, f
 	le->lightcolor[2] = lb;
 
 	le->ent.radius = radius;
-	le->ent.override_material = material;
-	le->ent.shaderTime = cl.serverTime;
 	le->ent.scale = 1.0f;
 
 	Matrix3_Identity( le->ent.axis );

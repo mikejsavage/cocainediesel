@@ -251,13 +251,9 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	CG_ViewWeapon_RefreshAnimation( viewweapon );
 
 	const WeaponModelMetadata * weaponInfo = cgs.weaponInfos[ viewweapon->weapon ];
-	viewweapon->ent.model = weaponInfo->model;
-	viewweapon->ent.scale = 1.0f;
-	viewweapon->ent.override_material = NULL;
-	viewweapon->ent.color = rgba8_white;
 
 	// calculate the entity position
-	VectorCopy( cg.view.origin, viewweapon->ent.origin );
+	VectorCopy( cg.view.origin, viewweapon->origin );
 
 	// weapon config offsets
 	VectorAdd( weaponInfo->handpositionAngles, cg.predictedPlayerState.viewangles, gunAngles );
@@ -290,15 +286,15 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	}
 
 	// apply the offsets
-	VectorMA( viewweapon->ent.origin, gunOffset[FORWARD], &cg.view.axis[AXIS_FORWARD], viewweapon->ent.origin );
-	VectorMA( viewweapon->ent.origin, gunOffset[RIGHT], &cg.view.axis[AXIS_RIGHT], viewweapon->ent.origin );
-	VectorMA( viewweapon->ent.origin, gunOffset[UP], &cg.view.axis[AXIS_UP], viewweapon->ent.origin );
+	VectorMA( viewweapon->origin, gunOffset[FORWARD], &cg.view.axis[AXIS_FORWARD], viewweapon->origin );
+	VectorMA( viewweapon->origin, gunOffset[RIGHT], &cg.view.axis[AXIS_RIGHT], viewweapon->origin );
+	VectorMA( viewweapon->origin, gunOffset[UP], &cg.view.axis[AXIS_UP], viewweapon->origin );
 
 	// add angles effects
 	CG_ViewWeapon_AddAngleEffects( gunAngles );
 
 	// finish
-	AnglesToAxis( gunAngles, viewweapon->ent.axis );
+	AnglesToAxis( gunAngles, viewweapon->axis );
 
 	if( cg_gun_fov->integer && cg.predictedPlayerState.zoom_time == 0 ) {
 		float gun_fov_y = WidescreenFov( bound( 20, cg_gun_fov->value, 160 ) );
@@ -306,10 +302,10 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 
 		float fracWeapFOV = tanf( DEG2RAD( gun_fov_x ) * 0.5f ) / cg.view.fracDistFOV;
 
-		VectorScale( &viewweapon->ent.axis[AXIS_FORWARD], fracWeapFOV, &viewweapon->ent.axis[AXIS_FORWARD] );
+		VectorScale( &viewweapon->axis[AXIS_FORWARD], fracWeapFOV, &viewweapon->axis[AXIS_FORWARD] );
 	}
 
-	CG_ViewWeapon_UpdateProjectionSource( viewweapon->ent.origin, viewweapon->ent.axis, vec3_origin, axis_identity );
+	CG_ViewWeapon_UpdateProjectionSource( viewweapon->origin, viewweapon->axis, vec3_origin, axis_identity );
 }
 
 void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
@@ -317,15 +313,8 @@ void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
 		return;
 	}
 
-	// update the other origins
-	VectorCopy( viewweapon->ent.origin, viewweapon->ent.origin2 );
-
-	CG_AddOutline( &viewweapon->ent, cg.effects, RGBA8( 0, 0, 0, viewweapon->ent.color.a ) );
-	CG_AddEntityToScene( &viewweapon->ent );
-
-	// add attached weapon
 	const Model * model = cgs.weaponInfos[ viewweapon->weapon ]->model;
-	Mat4 transform = FromQFAxisAndOrigin( viewweapon->ent.axis, viewweapon->ent.origin );
+	Mat4 transform = FromQFAxisAndOrigin( viewweapon->axis, viewweapon->origin );
 	DrawViewWeapon( model, transform );
 	// DrawOutlinedViewWeapon( model, transform, vec4_black, 0.25f );
 }

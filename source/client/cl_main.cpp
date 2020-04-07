@@ -1706,21 +1706,15 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	CL_UserInputFrame( realMsec );
 	CL_NetFrame( realMsec, gameMsec );
 
-	if( cl_maxfps->integer > 0 && !cls.demo.playing ) {
-		const int absMinFps = 24;
+	const int absMinFps = 24;
 
-		// do not allow setting cl_maxfps to very low values to prevent cheating
-		if( cl_maxfps->integer < absMinFps ) {
-			Cvar_ForceSet( "cl_maxfps", va( "%i", absMinFps ) );
-		}
-		maxFps = IsWindowFocused() ? cl_maxfps->value : absMinFps;
-		minMsec = max( ( 1000.0f / maxFps ), 1 );
-		roundingMsec += max( ( 1000.0f / maxFps ), 1.0f ) - minMsec;
-	} else {
-		maxFps = 10000.0f;
-		minMsec = 1;
-		roundingMsec = 0;
+	// do not allow setting cl_maxfps to very low values to prevent cheating
+	if( cl_maxfps->integer < absMinFps ) {
+		Cvar_ForceSet( "cl_maxfps", va( "%i", absMinFps ) );
 	}
+	maxFps = IsWindowFocused() ? cl_maxfps->value : absMinFps;
+	minMsec = max( ( 1000.0f / maxFps ), 1 );
+	roundingMsec += max( ( 1000.0f / maxFps ), 1.0f ) - minMsec;
 
 	if( roundingMsec >= 1.0f ) {
 		minMsec += (int)roundingMsec;

@@ -92,9 +92,10 @@ static void Shader_ParseVector( const char ** ptr, float * v, unsigned int size 
 	}
 }
 
-// TODO: should stop on }
 static void Shader_SkipLine( const char ** ptr ) {
 	while( ptr ) {
+		if( **ptr == '}' )
+			return;
 		const char * token = COM_ParseExt( ptr, false );
 		if( strlen( token ) == 0 )
 			return;
@@ -238,32 +239,8 @@ static void Shaderpass_MapExt( Material * material, const char ** ptr ) {
 	}
 }
 
-// static void Shaderpass_AnimMapExt( Material * material, SamplerType sampler, const char ** ptr ) {
-// 	material->anim_fps = Shader_ParseFloat( ptr );
-// 	material->num_anim_frames = 0;
-//
-// 	for( ;; ) {
-// 		const char *token = Shader_ParseString( ptr );
-// 		if( !token[0] ) {
-// 			break;
-// 		}
-// 		if( material->num_anim_frames < ARRAY_COUNT( material->textures ) ) {
-// 			material->textures[ material->num_anim_frames++ ].texture = FindTexture( StringHash( token ) );
-// 			material->textures[ material->num_anim_frames++ ].sampler = sampler;
-// 		}
-// 	}
-//
-// 	if( material->num_anim_frames == 0 ) {
-// 		material->anim_fps = 0;
-// 	}
-// }
-
 static void Shaderpass_Map( Material * material, const char * name, const char ** ptr ) {
 	Shaderpass_MapExt( material, ptr );
-}
-
-static void Shaderpass_AnimMap( Material * material, const char * name, const char ** ptr ) {
-	// Shaderpass_AnimMapExt( material, ptr );
 }
 
 static void ColorNormalize( const vec3_t in, vec3_t out ) {
@@ -352,8 +329,6 @@ static const MaterialSpecKey shaderpasskeys[] = {
 	{ "alphagen", Shaderpass_AlphaGen },
 	{ "alphamaskclampmap", Shaderpass_Map },
 	{ "alphatest", Shaderpass_AlphaTest },
-	{ "animclampmap", Shaderpass_AnimMap },
-	{ "animmap", Shaderpass_AnimMap },
 	{ "blendfunc", Shaderpass_BlendFunc },
 	{ "clampmap", Shaderpass_Map },
 	{ "map", Shaderpass_Map },

@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/span2d.h"
 #include "gameshared/q_shared.h"
 #include "client/client.h"
+#include "client/threadpool.h"
 #include "client/renderer/renderer.h"
 
 #include "stb/stb_image.h"
@@ -420,8 +421,6 @@ static void AddTexture( u64 hash, const TextureConfig & config ) {
 
 	assert( num_textures < ARRAY_COUNT( textures ) );
 
-	Texture texture = NewTexture( config );
-
 	u64 idx = num_textures;
 	if( !textures_hashtable.get( hash, &idx ) ) {
 		textures_hashtable.add( hash, num_textures );
@@ -437,7 +436,7 @@ static void AddTexture( u64 hash, const TextureConfig & config ) {
 		DeleteTexture( textures[ idx ] );
 	}
 
-	textures[ idx ] = texture;
+	textures[ idx ] = NewTexture( config );
 }
 
 static void LoadBuiltinTextures() {
@@ -507,19 +506,9 @@ static void LoadBuiltinTextures() {
 	}
 }
 
-static void LoadTexture( const char * path ) {
+static void LoadTexture( const char * path, u8 * pixels, int w, int h, int channels ) {
 	ZoneScoped;
 	ZoneText( path, strlen( path ) );
-
-	Span< const u8 > data = AssetBinary( path );
-
-	int w, h, channels;
-	u8 * pixels;
-	{
-		ZoneScopedN( "stbi_load_from_memory" );
-		pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
-	}
-	defer { stbi_image_free( pixels ); };
 
 	if( pixels == NULL ) {
 		Com_Printf( S_COLOR_YELLOW "WARNING: couldn't load texture from %s\n", path );
@@ -541,6 +530,8 @@ static void LoadTexture( const char * path ) {
 
 	Span< const char > ext = FileExtension( path );
 	AddTexture( Hash64( path, strlen( path ) - ext.n ), config );
+
+	stbi_image_free( pixels );
 }
 
 static void LoadMaterialFile( const char * path ) {
@@ -573,6 +564,28 @@ static void LoadMaterialFile( const char * path ) {
 	material_locations_hashtable.clear();
 }
 
+struct DecodeTextureJob {
+	struct {
+		const char * path;
+		Span< const u8 > data;
+	} in;
+
+	struct {
+		int width, height;
+		int channels;
+		u8 * pixels;
+	} out;
+};
+
+static void DecodeTextureWorker( TempAllocator * temp, void * data ) {
+	DecodeTextureJob * job = ( DecodeTextureJob * ) data;
+
+	ZoneScoped;
+	ZoneText( job->in.path, strlen( job->in.path ) );
+
+	job->out.pixels = stbi_load_from_memory( job->in.data.ptr, job->in.data.num_bytes(), &job->out.width, &job->out.height, &job->out.channels, 0 );
+}
+
 void InitMaterials() {
 	ZoneScoped;
 
@@ -586,11 +599,30 @@ void InitMaterials() {
 	{
 		ZoneScopedN( "Load disk textures" );
 
-		for( const char * path : AssetPaths() ) {
-			Span< const char > ext = FileExtension( path );
-			if( ext == ".png" || ext == ".jpg" ) {
-				LoadTexture( path );
+		DynamicArray< DecodeTextureJob > jobs( sys_allocator );
+		{
+			ZoneScopedN( "Build job list" );
+
+			for( const char * path : AssetPaths() ) {
+				Span< const char > ext = FileExtension( path );
+				if( ext == ".png" || ext == ".jpg" ) {
+					DecodeTextureJob job;
+					job.in.path = path;
+					job.in.data = AssetBinary( path );
+
+					jobs.add( job );
+				}
 			}
+
+			std::sort( jobs.begin(), jobs.end(), []( const DecodeTextureJob & a, const DecodeTextureJob & b ) {
+				return a.in.data.n > b.in.data.n;
+			} );
+		}
+
+		ParallelFor( DecodeTextureWorker, jobs.span() );
+
+		for( DecodeTextureJob job : jobs ) {
+			LoadTexture( job.in.path, job.out.pixels, job.out.width, job.out.height, job.out.channels );
 		}
 	}
 
@@ -614,7 +646,16 @@ void HotloadMaterials() {
 	for( const char * path : ModifiedAssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
 		if( ext == ".png" || ext == ".jpg" ) {
-			LoadTexture( path );
+			Span< const u8 > data = AssetBinary( path );
+
+			int w, h, channels;
+			u8 * pixels;
+			{
+				ZoneScopedN( "stbi_load_from_memory" );
+				pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
+			}
+
+			LoadTexture( path, pixels, w, h, channels );
 		}
 	}
 

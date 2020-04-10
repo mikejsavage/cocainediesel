@@ -1,12 +1,6 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-
-#if COMPIER_GCCORCLANG
-#include <sanitizer/asan_interface.h>
-#else
-#define ASAN_POISON_MEMORY_REGION( mem, size )
-#define ASAN_UNPOISON_MEMORY_REGION( mem, size )
-#endif
+#include "qcommon/asan.h"
 
 void * Allocator::allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
 	void * p = try_allocate( size, alignment, func, file, line );
@@ -141,6 +135,7 @@ TempAllocator::TempAllocator( const TempAllocator & other ) {
 TempAllocator::~TempAllocator() {
 	arena->cursor = old_cursor;
 	arena->num_temp_allocators--;
+	ASAN_POISON_MEMORY_REGION( arena->cursor, arena->top - arena->cursor );
 }
 
 void * TempAllocator::try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {

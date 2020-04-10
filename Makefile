@@ -1,5 +1,5 @@
 all: debug
-.PHONY: debug asan bench release clean
+.PHONY: debug asan tsan bench release clean
 
 LUA = ggbuild/lua.linux
 NINJA = ggbuild/ninja.linux
@@ -18,6 +18,10 @@ asan:
 	@$(LUA) make.lua asan > build.ninja
 	@$(NINJA)
 
+tsan:
+	@$(LUA) make.lua tsan > build.ninja
+	@$(NINJA)
+
 bench:
 	@$(LUA) make.lua bench > build.ninja
 	@$(NINJA)
@@ -30,6 +34,8 @@ clean:
 	@$(LUA) make.lua debug > build.ninja
 	@$(NINJA) -t clean || true
 	@$(LUA) make.lua asan > build.ninja || true
+	@$(NINJA) -t clean || true
+	@$(LUA) make.lua tsan > build.ninja || true
 	@$(NINJA) -t clean || true
 	@$(LUA) make.lua bench > build.ninja || true
 	@$(NINJA) -t clean || true

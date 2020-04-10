@@ -50,6 +50,12 @@ configs[ "linux-asan" ] = {
 	ldflags = "-fsanitize=address",
 	prebuilt_lib_dir = "linux-debug",
 }
+configs[ "linux-tsan" ] = {
+	bin_suffix = "-tsan",
+	cxxflags = configs[ "linux-debug" ].cxxflags .. " -fsanitize=thread",
+	ldflags = "-fsanitize=thread",
+	prebuilt_lib_dir = "linux-debug",
+}
 configs[ "linux-release" ] = {
 	cxxflags = "-O2 -DNDEBUG",
 	ldflags = "-s",

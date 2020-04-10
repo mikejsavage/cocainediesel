@@ -31,7 +31,7 @@ uint64 sndBeep;
 uint64 sndPlantStart;
 uint64 sndGoodGame;
 uint64 sndBombTaken;
-uint64 sndBongo;
+uint64 sndAce;
 
 uint64[] sndAnnouncementsOff( Announcement_Count );
 uint64[] sndAnnouncementsDef( Announcement_Count );
@@ -67,7 +67,7 @@ void mediaInit() {
 	sndPlantStart = Hash64( "sounds/misc/timer_bip_bip" );
 	sndGoodGame = Hash64( "sounds/vsay/goodgame" );
 	sndBombTaken = Hash64( "sounds/announcer/bomb/offense/taken" );
-	sndBongo = Hash64( "sounds/announcer/bomb/bongo" );
+	sndAce = Hash64( "sounds/announcer/bomb/bongo" );
 
 	sndAnnouncementsOff[ Announcement_Started ] = Hash64( "sounds/announcer/bomb/offense/start" );
 	sndAnnouncementsOff[ Announcement_Armed ] = Hash64( "sounds/announcer/bomb/offense/planted" );

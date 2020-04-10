@@ -72,13 +72,9 @@ void playerKilled( Entity @victim, Entity @attacker, Entity @inflictor ) {
 
 		player.killsThisRound++;
 
-		int required_for_bongo = attacker.team == TEAM_ALPHA ? match.betaPlayersTotal : match.alphaPlayersTotal;
-		if( required_for_bongo >= 3 && player.killsThisRound == required_for_bongo ) {
-			player.client.addAward( S_COLOR_YELLOW + "King of Bongo!" );
-
-			G_AnnouncerSound( null, sndBongo, GS_MAX_TEAMS, true, null );
-
-			G_CenterPrintMsg( null, player.client.name + " is the King of Bongo!" );
+		int required_for_ace = attacker.team == TEAM_ALPHA ? match.betaPlayersTotal : match.alphaPlayersTotal;
+		if( required_for_ace >= 3 && player.killsThisRound == required_for_ace ) {
+			G_AnnouncerSound( null, sndAce, GS_MAX_TEAMS, true, null );
 		}
 	}
 

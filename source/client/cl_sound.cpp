@@ -2,9 +2,11 @@
 #include "qcommon/qcommon.h"
 #include "qcommon/assets.h"
 #include "qcommon/hash.h"
+#include "qcommon/array.h"
 #include "qcommon/hashtable.h"
 #include "client/client.h"
 #include "client/sound.h"
+#include "client/threadpool.h"
 #include "gameshared/gs_public.h"
 
 #define AL_LIBTYPE_STATIC
@@ -221,26 +223,37 @@ static bool S_InitAL() {
 	return true;
 }
 
-static void LoadSound( const char * path ) {
+struct DecodeSoundJob {
+	struct {
+		const char * path;
+		Span< const u8 > ogg;
+	} in;
+
+	struct {
+		int channels;
+		int sample_rate;
+		int num_samples;
+		s16 * samples;
+	} out;
+};
+
+static void DecodeSoundWorker( TempAllocator * temp, void * data ) {
+	DecodeSoundJob * job = ( DecodeSoundJob * ) data;
+
+	ZoneScoped;
+	ZoneText( job->in.path, strlen( job->in.path ) );
+
+	job->out.num_samples = stb_vorbis_decode_memory( job->in.ogg.ptr, job->in.ogg.num_bytes(), &job->out.channels, &job->out.sample_rate, &job->out.samples );
+}
+
+static void LoadSound( const char * path, int num_samples, int channels, int sample_rate, s16 * samples ) {
 	ZoneScoped;
 	ZoneText( path, strlen( path ) );
 
-	assert( num_sounds < ARRAY_COUNT( sounds ) );
-
-	Span< const u8 > ogg = AssetBinary( path );
-
-	int channels, sample_rate, num_samples;
-	s16 * samples;
-	{
-		ZoneScopedN( "stb_vorbis_decode_memory" );
-		num_samples = stb_vorbis_decode_memory( ogg.ptr, ogg.num_bytes(), &channels, &sample_rate, &samples );
-	}
 	if( num_samples == -1 ) {
 		Com_Printf( S_COLOR_RED "Couldn't decode sound %s\n", path );
 		return;
 	}
-
-	defer { free( samples ); };
 
 	u64 hash = Hash64( path, strlen( path ) - strlen( ".ogg" ) );
 
@@ -248,6 +261,9 @@ static void LoadSound( const char * path ) {
 
 	u64 idx = num_sounds;
 	if( !sounds_hashtable.get( hash, &idx ) ) {
+		assert( num_sounds < ARRAY_COUNT( sounds ) );
+		assert( num_sound_effects < ARRAY_COUNT( sound_effects ) );
+
 		sounds_hashtable.add( hash, num_sounds );
 		num_sounds++;
 
@@ -274,20 +290,41 @@ static void LoadSound( const char * path ) {
 	alBufferData( sounds[ idx ].buf, format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
 	CheckALErrors();
 
-	sounds[ idx ].mono = channels == 1;
+	sounds[ num_sounds ].mono = channels == 1;
 
 	if( restart_music ) {
 		S_StartMenuMusic();
 	}
+
+	free( samples );
 }
 
 static void LoadSounds() {
 	ZoneScoped;
 
-	for( const char * path : AssetPaths() ) {
-		if( FileExtension( path ) == ".ogg" ) {
-			LoadSound( path );
+	DynamicArray< DecodeSoundJob > jobs( sys_allocator );
+	{
+		ZoneScopedN( "Build job list" );
+
+		for( const char * path : AssetPaths() ) {
+			if( FileExtension( path ) == ".ogg" ) {
+				DecodeSoundJob job;
+				job.in.path = path;
+				job.in.ogg = AssetBinary( path );
+
+				jobs.add( job );
+			}
 		}
+
+		std::sort( jobs.begin(), jobs.end(), []( const DecodeSoundJob & a, const DecodeSoundJob & b ) {
+			return a.in.ogg.n > b.in.ogg.n;
+		} );
+	}
+
+	ParallelFor( DecodeSoundWorker, jobs.span() );
+
+	for( DecodeSoundJob job : jobs ) {
+		LoadSound( job.in.path, job.out.num_samples, job.out.channels, job.out.sample_rate, job.out.samples );
 	}
 }
 
@@ -296,7 +333,16 @@ static void HotloadSounds() {
 
 	for( const char * path : ModifiedAssetPaths() ) {
 		if( FileExtension( path ) == ".ogg" ) {
-			LoadSound( path );
+			Span< const u8 > ogg = AssetBinary( path );
+
+			int num_samples, channels, sample_rate;
+			s16 * samples;
+			{
+				ZoneScopedN( "stb_vorbis_decode_memory" );
+				num_samples = stb_vorbis_decode_memory( ogg.ptr, ogg.num_bytes(), &channels, &sample_rate, &samples );
+			}
+
+			LoadSound( path, num_samples, channels, sample_rate, samples );
 		}
 	}
 }

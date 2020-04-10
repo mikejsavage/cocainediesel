@@ -1,6 +1,7 @@
 #include "client/client.h"
 #include "qcommon/string.h"
 #include "qcommon/utf8.h"
+#include "qcommon/threads.h"
 
 #include "imgui/imgui.h"
 
@@ -29,7 +30,7 @@ struct Console {
 	size_t history_count;
 	size_t history_idx;
 
-	qmutex_t * mutex = NULL;
+	Mutex * mutex = NULL;
 };
 
 static Console console;
@@ -54,7 +55,7 @@ void Con_Init() {
 	console.history_head = 0;
 	console.history_count = 0;
 
-	console.mutex = QMutex_Create();
+	console.mutex = NewMutex();
 
 	Cmd_AddCommand( "toggleconsole", Con_ToggleConsole );
 	Cmd_AddCommand( "clear", Con_ClearScrollback );
@@ -62,7 +63,7 @@ void Con_Init() {
 }
 
 void Con_Shutdown() {
-	QMutex_Destroy( &console.mutex );
+	DeleteMutex( console.mutex );
 
 	Cmd_RemoveCommand( "toggleconsole" );
 	Cmd_RemoveCommand( "clear" );
@@ -98,11 +99,15 @@ void Con_Close() {
 	}
 }
 
+static void Con_PrintNoLock( const char * str ) {
+}
+
 void Con_Print( const char * str ) {
 	if( console.mutex == NULL )
 		return;
 
-	QMutex_Lock( console.mutex );
+	Lock( console.mutex );
+	defer { Unlock( console.mutex ); };
 
 	// delete lines until we have enough space to add str
 	size_t len = strlen( str );
@@ -122,8 +127,6 @@ void Con_Print( const char * str ) {
 
 	if( console.at_bottom )
 		console.scroll_to_bottom = true;
-
-	QMutex_Unlock( console.mutex );
 }
 
 static void TabCompletion( char * buf, int buf_size );
@@ -202,9 +205,11 @@ static void Con_Execute() {
 		}
 	}
 
-	Com_Printf( "> %s\n", console.input );
-
 	Con_ClearInput();
+
+	Unlock( console.mutex );
+	Com_Printf( "> %s\n", console.input );
+	Lock( console.mutex );
 }
 
 // break str into small chunks so we can print them individually because the
@@ -223,7 +228,8 @@ const char * NextChunkEnd( const char * str ) {
 }
 
 void Con_Draw() {
-	QMutex_Lock( console.mutex );
+	Lock( console.mutex );
+	defer { Unlock( console.mutex ); };
 
 	u32 bg = IM_COL32( 27, 27, 27, 224 );
 
@@ -309,8 +315,6 @@ void Con_Draw() {
 	ImGui::PopStyleVar( 3 );
 	ImGui::PopStyleColor( 2 );
 	ImGui::PopFont();
-
-	QMutex_Unlock( console.mutex );
 }
 
 static void Con_DisplayList( const char ** list ) {

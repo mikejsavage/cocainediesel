@@ -18,9 +18,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-// sv_web.c -- builtin HTTP server
 #include "server.h"
 #include "qcommon/q_trie.h"
+#include "qcommon/threads.h"
 
 #ifdef HTTP_SUPPORT
 
@@ -141,10 +141,10 @@ static netadr_t sv_web_upstream_addr;
 static uint64_t sv_http_request_autoicr;
 
 static trie_t *sv_http_clients = NULL;
-static qmutex_t *sv_http_clients_mutex = NULL;
+static Mutex *sv_http_clients_mutex = NULL;
 
-static qthread_t *sv_http_thread = NULL;
-static void *SV_Web_ThreadProc( void *param );
+static Thread *sv_http_thread = NULL;
+static void SV_Web_ThreadProc( void *param );
 
 // ============================================================================
 
@@ -335,9 +335,9 @@ bool SV_Web_AddGameClient( const char *session, int clientNum, const netadr_t *n
 	client->clientNum = clientNum;
 	client->remoteAddress = *netAdr;
 
-	QMutex_Lock( sv_http_clients_mutex );
+	Lock( sv_http_clients_mutex );
 	trie_error = Trie_Insert( sv_http_clients, client->session, (void *)client );
-	QMutex_Unlock( sv_http_clients_mutex );
+	Unlock( sv_http_clients_mutex );
 
 	if( trie_error != TRIE_OK ) {
 		Mem_ZoneFree( client );
@@ -358,9 +358,9 @@ void SV_Web_RemoveGameClient( const char *session ) {
 		return;
 	}
 
-	QMutex_Lock( sv_http_clients_mutex );
+	Lock( sv_http_clients_mutex );
 	trie_error = Trie_Remove( sv_http_clients, session, (void **)&client );
-	QMutex_Unlock( sv_http_clients_mutex );
+	Unlock( sv_http_clients_mutex );
 
 	if( trie_error != TRIE_OK ) {
 		return;
@@ -383,9 +383,9 @@ static bool SV_Web_FindGameClientBySession( const char *session, int clientNum )
 		return false;
 	}
 
-	QMutex_Lock( sv_http_clients_mutex );
+	Lock( sv_http_clients_mutex );
 	trie_error = Trie_Find( sv_http_clients, session, TRIE_EXACT_MATCH, (void **)&client );
-	QMutex_Unlock( sv_http_clients_mutex );
+	Unlock( sv_http_clients_mutex );
 
 	if( trie_error != TRIE_OK ) {
 		return false;
@@ -407,9 +407,9 @@ static bool SV_Web_FindGameClientByAddress( const netadr_t *netadr ) {
 	struct trie_dump_s *dump;
 	bool valid_address;
 
-	QMutex_Lock( sv_http_clients_mutex );
+	Lock( sv_http_clients_mutex );
 	Trie_Dump( sv_http_clients, "", TRIE_DUMP_VALUES, &dump );
-	QMutex_Unlock( sv_http_clients_mutex );
+	Unlock( sv_http_clients_mutex );
 
 	valid_address = false;
 	for( i = 0; i < dump->size; i++ ) {
@@ -1265,8 +1265,8 @@ void SV_Web_Init( void ) {
 	sv_http_running = true;
 
 	Trie_Create( TRIE_CASE_SENSITIVE, &sv_http_clients );
-	sv_http_clients_mutex = QMutex_Create();
-	sv_http_thread = QThread_Create( SV_Web_ThreadProc, NULL );
+	sv_http_clients_mutex = NewMutex();
+	sv_http_thread = NewThread( SV_Web_ThreadProc );
 }
 
 /*
@@ -1383,13 +1383,12 @@ bool SV_Web_Running( void ) {
 /*
 * SV_Web_ThreadProc
 */
-static void *SV_Web_ThreadProc( void *param ) {
+static void SV_Web_ThreadProc( void *param ) {
 	while( sv_http_running ) {
 		SV_Web_Frame();
 	}
 
 	SV_Web_ShutdownConnections();
-	return NULL;
 }
 
 /*
@@ -1401,7 +1400,7 @@ void SV_Web_Shutdown( void ) {
 	}
 
 	sv_http_running = false;
-	QThread_Join( sv_http_thread );
+	JoinThread( sv_http_thread );
 
 	NET_CloseSocket( &sv_socket_http );
 	NET_CloseSocket( &sv_socket_http6 );

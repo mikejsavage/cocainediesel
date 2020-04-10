@@ -777,12 +777,3 @@ Span< const char * > GetMapList();
 bool MapExists( const char * name );
 
 const char ** CompleteMapName( const char * prefix );
-
-/*
-==============================================================
-
-MULTITHREADING
-
-==============================================================
-*/
-#include "qthreads.h"

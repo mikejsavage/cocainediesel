@@ -18,8 +18,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "qcommon.h"
+#include "qcommon/qcommon.h"
 #include "qcommon/hash.h"
+#include "qcommon/threads.h"
 
 #include "sys_fs.h"
 
@@ -74,7 +75,7 @@ static cvar_t *fs_basegame;
 
 static searchpath_t *fs_basepaths = NULL;       // directories without gamedirs
 static searchpath_t *fs_searchpaths = NULL;     // game search directories
-static qmutex_t *fs_searchpaths_mutex;
+static Mutex *fs_searchpaths_mutex;
 
 static searchpath_t *fs_base_searchpaths;       // same as above, but without extra gamedirs
 static searchpath_t *fs_root_searchpath;        // base path directory
@@ -92,7 +93,7 @@ static mempool_t *fs_mempool;
 
 static filehandle_t fs_filehandles[FS_MAX_HANDLES];
 static filehandle_t fs_filehandles_headnode, *fs_free_filehandles;
-static qmutex_t *fs_fh_mutex;
+static Mutex *fs_fh_mutex;
 
 static bool fs_initialized = false;
 
@@ -222,8 +223,8 @@ static searchpath_t *FS_SearchPathForFile( const char *filename, char *path, siz
 	}
 
 	// search through the path, one element at a time
-	QMutex_Lock( fs_searchpaths_mutex );
-	defer { QMutex_Unlock( fs_searchpaths_mutex ); };
+	Lock( fs_searchpaths_mutex );
+	defer { Unlock( fs_searchpaths_mutex ); };
 	search = fs_searchpaths;
 	while( search ) {
 		if( FS_SearchDirectoryForFile( search, filename, path, path_size ) ) {
@@ -271,10 +272,10 @@ static searchpath_t *FS_SearchPathForBaseFile( const char *filename, char *path,
 static int FS_OpenFileHandle( void ) {
 	filehandle_t *fh;
 
-	QMutex_Lock( fs_fh_mutex );
+	Lock( fs_fh_mutex );
 
 	if( !fs_free_filehandles ) {
-		QMutex_Unlock( fs_fh_mutex );
+		Unlock( fs_fh_mutex );
 		Sys_Error( "FS_OpenFileHandle: no free file handles" );
 	}
 
@@ -288,7 +289,7 @@ static int FS_OpenFileHandle( void ) {
 	fh->next->prev = fh;
 	fh->prev->next = fh;
 
-	QMutex_Unlock( fs_fh_mutex );
+	Unlock( fs_fh_mutex );
 
 	return ( fh - fs_filehandles ) + 1;
 }
@@ -320,7 +321,7 @@ static inline int FS_FileNumForHandle( filehandle_t *fh ) {
 * FS_CloseFileHandle
 */
 static void FS_CloseFileHandle( filehandle_t *fh ) {
-	QMutex_Lock( fs_fh_mutex );
+	Lock( fs_fh_mutex );
 
 	// remove from linked open list
 	fh->prev->next = fh->next;
@@ -330,7 +331,7 @@ static void FS_CloseFileHandle( filehandle_t *fh ) {
 	fh->next = fs_free_filehandles;
 	fs_free_filehandles = fh;
 
-	QMutex_Unlock( fs_fh_mutex );
+	Unlock( fs_fh_mutex );
 }
 
 /*
@@ -1219,7 +1220,7 @@ static int FS_GetFileListExt_( const char *dir, const char *extension, char *buf
 
 	files = fs_searchfiles;
 	if( !useCache ) {
-		QMutex_Lock( fs_searchpaths_mutex );
+		Lock( fs_searchpaths_mutex );
 
 		search = fs_searchpaths;
 		while( search ) {
@@ -1253,7 +1254,7 @@ static int FS_GetFileListExt_( const char *dir, const char *extension, char *buf
 			search = search->next;
 		}
 
-		QMutex_Unlock( fs_searchpaths_mutex );
+		Unlock( fs_searchpaths_mutex );
 
 		qsort( files, allfound, sizeof( searchfile_t ), ( int ( * )( const void *, const void * ) )FS_SortFilesCmp );
 
@@ -1524,8 +1525,8 @@ void FS_Init( void ) {
 
 	assert( !fs_initialized );
 
-	fs_fh_mutex = QMutex_Create();
-	fs_searchpaths_mutex = QMutex_Create();
+	fs_fh_mutex = NewMutex();
+	fs_searchpaths_mutex = NewMutex();
 
 	fs_mempool = Mem_AllocPool( NULL, "Filesystem" );
 
@@ -1628,7 +1629,7 @@ void FS_Shutdown( void ) {
 	FS_Free( fs_searchfiles );
 	fs_numsearchfiles = 0;
 
-	QMutex_Lock( fs_searchpaths_mutex );
+	Lock( fs_searchpaths_mutex );
 
 	while( fs_searchpaths ) {
 		search = fs_searchpaths;
@@ -1638,7 +1639,7 @@ void FS_Shutdown( void ) {
 		FS_Free( search );
 	}
 
-	QMutex_Unlock( fs_searchpaths_mutex );
+	Unlock( fs_searchpaths_mutex );
 
 	while( fs_basepaths ) {
 		search = fs_basepaths;
@@ -1650,8 +1651,8 @@ void FS_Shutdown( void ) {
 
 	Mem_FreePool( &fs_mempool );
 
-	QMutex_Destroy( &fs_fh_mutex );
-	QMutex_Destroy( &fs_searchpaths_mutex );
+	DeleteMutex( fs_fh_mutex );
+	DeleteMutex( fs_searchpaths_mutex );
 
 	fs_initialized = false;
 }

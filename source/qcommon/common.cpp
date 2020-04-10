@@ -17,13 +17,14 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// common.c -- misc functions used in client and server
-#include "qcommon.h"
+#include "qcommon/qcommon.h"
 #include "qcommon/glob.h"
 #include "qcommon/csprng.h"
+#include "qcommon/threads.h"
+#include "qcommon/version.h"
+#include "qcommon/wswcurl.h"
+
 #include <setjmp.h>
-#include "version.h"
-#include "wswcurl.h"
 
 #define MAX_NUM_ARGVS   50
 
@@ -47,7 +48,7 @@ static cvar_t *logconsole_flush;
 static cvar_t *logconsole_timestamp;
 static cvar_t *com_showtrace;
 
-static qmutex_t *com_print_mutex;
+static Mutex *com_print_mutex;
 
 static int log_file = 0;
 
@@ -75,7 +76,7 @@ void Com_BeginRedirect( int target, char *buffer, int buffersize,
 		return;
 	}
 
-	QMutex_Lock( com_print_mutex );
+	Lock( com_print_mutex );
 
 	rd_target = target;
 	rd_buffer = buffer;
@@ -84,9 +85,13 @@ void Com_BeginRedirect( int target, char *buffer, int buffersize,
 	rd_extra = extra;
 
 	*rd_buffer = 0;
+
+	Unlock( com_print_mutex );
 }
 
 void Com_EndRedirect( void ) {
+	Lock( com_print_mutex );
+
 	rd_flush( rd_target, rd_buffer, rd_extra );
 
 	rd_target = 0;
@@ -95,7 +100,7 @@ void Com_EndRedirect( void ) {
 	rd_flush = NULL;
 	rd_extra = NULL;
 
-	QMutex_Unlock( com_print_mutex );
+	Unlock( com_print_mutex );
 }
 
 void Com_DeferConsoleLogReopen( void ) {
@@ -110,7 +115,7 @@ static void Com_CloseConsoleLog( bool lock, bool shutdown ) {
 	}
 
 	if( lock ) {
-		QMutex_Lock( com_print_mutex );
+		Lock( com_print_mutex );
 	}
 
 	if( log_file ) {
@@ -123,14 +128,14 @@ static void Com_CloseConsoleLog( bool lock, bool shutdown ) {
 	}
 
 	if( lock ) {
-		QMutex_Unlock( com_print_mutex );
+		Unlock( com_print_mutex );
 	}
 }
 
 static void Com_ReopenConsoleLog( void ) {
 	char errmsg[MAX_PRINTMSG] = { 0 };
 
-	QMutex_Lock( com_print_mutex );
+	Lock( com_print_mutex );
 
 	Com_CloseConsoleLog( false, false );
 
@@ -151,7 +156,7 @@ static void Com_ReopenConsoleLog( void ) {
 		Mem_TempFree( name );
 	}
 
-	QMutex_Unlock( com_print_mutex );
+	Unlock( com_print_mutex );
 
 	if( errmsg[0] ) {
 		Com_Printf( "%s", errmsg );
@@ -172,7 +177,8 @@ void Com_Printf( const char *format, ... ) {
 	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
-	QMutex_Lock( com_print_mutex );
+	Lock( com_print_mutex );
+	defer { Unlock( com_print_mutex ); };
 
 	if( rd_target ) {
 		if( (int)( strlen( msg ) + strlen( rd_buffer ) ) > ( rd_buffersize - 1 ) ) {
@@ -180,8 +186,6 @@ void Com_Printf( const char *format, ... ) {
 			*rd_buffer = 0;
 		}
 		Q_strncatz( rd_buffer, msg, rd_buffersize );
-
-		QMutex_Unlock( com_print_mutex );
 		return;
 	}
 
@@ -203,8 +207,6 @@ void Com_Printf( const char *format, ... ) {
 			FS_Flush( log_file ); // force it to save every time
 		}
 	}
-
-	QMutex_Unlock( com_print_mutex );
 }
 
 /*
@@ -530,7 +532,7 @@ void Qcommon_Init( int argc, char **argv ) {
 		Sys_Error( "Error during initialization: %s", com_errormsg );
 	}
 
-	com_print_mutex = QMutex_Create();
+	com_print_mutex = NewMutex();
 
 	// initialize memory manager
 	Memory_Init();
@@ -689,5 +691,5 @@ void Qcommon_Shutdown( void ) {
 	Cbuf_Shutdown();
 	Memory_Shutdown();
 
-	QMutex_Destroy( &com_print_mutex );
+	DeleteMutex( com_print_mutex );
 }

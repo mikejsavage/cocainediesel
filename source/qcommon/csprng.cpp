@@ -1,10 +1,11 @@
 #include "qcommon/base.h"
 #include "qcommon/ggentropy.h"
 #include "qcommon/qcommon.h"
+#include "qcommon/threads.h"
 
 #include "monocypher/monocypher.h"
 
-static qmutex_t * mtx;
+static Mutex * mtx;
 static crypto_chacha_ctx chacha;
 static int64_t time_of_last_stir;
 static size_t bytes_since_stir;
@@ -15,7 +16,7 @@ void CSPRNG_Init() {
 	if( !ok )
 		Com_Error( ERR_FATAL, "ggentropy" );
 
-	mtx = QMutex_Create();
+	mtx = NewMutex();
 
 	time_of_last_stir = Sys_Milliseconds();
 	bytes_since_stir = 0;
@@ -24,7 +25,7 @@ void CSPRNG_Init() {
 }
 
 void CSPRNG_Shutdown() {
-	QMutex_Destroy( &mtx );
+	DeleteMutex( mtx );
 }
 
 static void Stir() {
@@ -51,12 +52,12 @@ static void Stir() {
 }
 
 void CSPRNG_Bytes( void * buf, size_t n ) {
-	QMutex_Lock( mtx );
+	Lock( mtx );
 
 	Stir();
 	bytes_since_stir += n;
 
 	crypto_chacha20_stream( &chacha, ( u8 * ) buf, n );
 
-	QMutex_Unlock( mtx );
+	Unlock( mtx );
 }

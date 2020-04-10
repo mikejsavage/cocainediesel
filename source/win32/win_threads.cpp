@@ -1,72 +1,100 @@
-/*
-Copyright (C) 2013 Victor Luchits
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-
+#include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-#include "qcommon/sys_threads.h"
-#include "winquake.h"
+
+#include <windows.h>
 #include <process.h>
 
-struct qthread_s {
-	HANDLE h;
+struct Thread { HANDLE handle; };
+struct Mutex { SRWLOCK lock; };
+struct Semaphore { HANDLE handle; };
+
+struct ThreadStartData {
+	void ( *callback )( void * );
+	void * data;
 };
 
-struct qmutex_s {
-	CRITICAL_SECTION h;
-};
+static DWORD WINAPI ThreadWrapper( void * data ) {
+	ThreadStartData * tsd = ( ThreadStartData * ) data;
+	tsd->callback( tsd->data );
+	delete tsd;
 
-int Sys_Mutex_Create( qmutex_t **mutex ) {
-	*mutex = ( qmutex_t * )Q_malloc( sizeof( qmutex_t ) );
-	InitializeCriticalSection( &( *mutex )->h );
 	return 0;
 }
 
-void Sys_Mutex_Destroy( qmutex_t *mutex ) {
-	DeleteCriticalSection( &mutex->h );
-	Q_free( mutex );
-}
+Thread * NewThread( void ( *callback )( void * ), void * data ) {
+	// can't use sys_allocator because serverlist leaks its threads
+	ThreadStartData * tsd = new ThreadStartData;
+	tsd->callback = callback;
+	tsd->data = data;
 
-void Sys_Mutex_Lock( qmutex_t *mutex ) {
-	EnterCriticalSection( &mutex->h );
-}
-
-void Sys_Mutex_Unlock( qmutex_t *mutex ) {
-	LeaveCriticalSection( &mutex->h );
-}
-
-int Sys_Thread_Create( qthread_t **thread, void *( *routine )( void* ), void *param ) {
-	unsigned threadID;
-	HANDLE h = (HANDLE)_beginthreadex( NULL, 0, ( unsigned( WINAPI * ) ( void * ) )routine, param, 0, &threadID );
-	if( h == NULL ) {
-		return GetLastError();
+	DWORD id;
+	HANDLE handle = CreateThread( 0, 0, ThreadWrapper, tsd, 0, &id );
+	if( handle == NULL ) {
+		Com_Error( ERR_FATAL, "CreateThread" );
 	}
 
-	*thread = ( qthread_t * )Q_malloc( sizeof( qthread_t ) );
-	( *thread )->h = h;
-
-	return 0;
+	// can't use sys_allocator because serverlist leaks its threads
+	Thread * thread = new Thread;
+	thread->handle = handle;
+	return thread;
 }
 
-void Sys_Thread_Join( qthread_t *thread ) {
-	WaitForSingleObject( thread->h, INFINITE );
-	CloseHandle( thread->h );
-	free( thread );
+void JoinThread( Thread * thread ) {
+	WaitForSingleObject( thread->handle, INFINITE );
+	CloseHandle( thread->handle );
+	delete thread;
+}
+
+Mutex * NewMutex() {
+	// can't use sys_allocator because sys_allocator itself calls NewMutex
+	Mutex * mutex = new Mutex;
+	InitializeSRWLock( &mutex->lock );
+	return mutex;
+}
+
+void DeleteMutex( Mutex * mutex ) {
+	delete mutex;
+}
+
+void Lock( Mutex * mutex ) {
+	AcquireSRWLockExclusive( &mutex->lock );
+}
+
+void Unlock( Mutex * mutex ) {
+	ReleaseSRWLockExclusive( &mutex->lock );
+}
+
+Semaphore * NewSemaphore() {
+	LONG max = 8192; // needs to be at least as big as thread pool size TODO
+	HANDLE handle = CreateSemaphoreA( NULL, 0, max, NULL );
+	if( handle == NULL ) {
+		Com_Error( ERR_FATAL, "CreateSemaphoreA" );
+	}
+
+	Semaphore * sem = ALLOC( sys_allocator, Semaphore );
+	sem->handle = handle;
+	return sem;
+}
+
+void DeleteSemaphore( Semaphore * sem ) {
+	CloseHandle( sem->handle );
+	FREE( sys_allocator, sem );
+}
+
+void Signal( Semaphore * sem, int n ) {
+	if( ReleaseSemaphore( sem->handle, n, NULL ) == 0 ) {
+		Com_Error( ERR_FATAL, "ReleaseSemaphore" );
+	}
+}
+
+void Wait( Semaphore * sem ) {
+	WaitForSingleObject( sem->handle, INFINITE );
+}
+
+u32 GetCoreCount() {
+	SYSTEM_INFO info;
+	GetSystemInfo( &info );
+	return info.dwNumberOfProcessors;
 }
 
 int Sys_Atomic_FetchAdd( volatile int *value, int add ) {

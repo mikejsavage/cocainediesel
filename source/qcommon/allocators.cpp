@@ -36,7 +36,7 @@ struct AllocationTracker {
 
 #else
 
-#include "qcommon/qthreads.h"
+#include "qcommon/threads.h"
 #undef min
 #undef max
 #include <unordered_map>
@@ -51,10 +51,10 @@ struct AllocationTracker {
 	};
 
 	std::unordered_map< void *, AllocInfo > allocations;
-	qmutex_t * mutex;
+	Mutex * mutex;
 
 	AllocationTracker() {
-		mutex = QMutex_Create();
+		mutex = NewMutex();
 	}
 
 	~AllocationTracker() {
@@ -63,24 +63,24 @@ struct AllocationTracker {
 			Com_Printf( "Leaked allocation in '%s' (%s:%d)\n", info.func, info.file, info.line );
 		}
 		assert( allocations.empty() );
-		QMutex_Destroy( &mutex );
+		DeleteMutex( mutex );
 	}
 
 	void track( void * ptr, const char * func, const char * file, int line ) {
 		if( ptr == NULL )
 			return;
-		QMutex_Lock( mutex );
+		Lock( mutex );
 		allocations[ ptr ] = { func, file, line };
-		QMutex_Unlock( mutex );
+		Unlock( mutex );
 	}
 
 	void untrack( void * ptr, const char * func, const char * file, int line ) {
 		if( ptr == NULL )
 			return;
-		QMutex_Lock( mutex );
+		Lock( mutex );
 		if( allocations.erase( ptr ) == 0 )
 			Sys_Error( "Stray free in '%s' (%s:%d)", func, file, line );
-		QMutex_Unlock( mutex );
+		Unlock( mutex );
 	};
 };
 

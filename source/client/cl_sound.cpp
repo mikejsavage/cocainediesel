@@ -1,3 +1,5 @@
+#include <algorithm> // std::sort
+
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/assets.h"

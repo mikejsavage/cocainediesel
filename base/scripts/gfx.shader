@@ -217,40 +217,6 @@ models/weapon_hits/glauncher/hit_glauncher
 	}
 }
 
-// Rocket Explosion
-
-gfx/rocket_explosion
-{
-	cull disable
-	softParticle
-	{
-		animmap 8 gfx/misc/rlexplo1  gfx/misc/rlexplo2 gfx/misc/rlexplo3 gfx/misc/rlexplo4 gfx/misc/rlexplo5 gfx/misc/rlexplo6 gfx/misc/rlexplo7 gfx/misc/rlexplo8
-		rgbGen entitycolorwave 1 1 1 inversesawtooth 0 1 0 8
-		blendfunc add
-	}
-	{
-		animmap 8 gfx/misc/rlexplo2 gfx/misc/rlexplo3 gfx/misc/rlexplo4 gfx/misc/rlexplo5 gfx/misc/rlexplo6 gfx/misc/rlexplo7 gfx/misc/rlexplo8 $blackimage
-		rgbGen entitycolorwave 1 1 1 sawtooth 0 1 0 8
-		blendfunc add
-	}
-}
-
-gfx/grenade_explosion
-{
-	cull disable
-	softParticle
-	{
-		animmap 8 gfx/misc/rlexplo1  gfx/misc/rlexplo2 gfx/misc/rlexplo3 gfx/misc/rlexplo4 gfx/misc/rlexplo5 gfx/misc/rlexplo6 gfx/misc/rlexplo7 gfx/misc/rlexplo8
-		rgbGen entitycolorwave 1 1 1 inversesawtooth 0 1 0 8
-		blendfunc add
-	}
-	{
-		animmap 8 gfx/misc/rlexplo2 gfx/misc/rlexplo3 gfx/misc/rlexplo4 gfx/misc/rlexplo5 gfx/misc/rlexplo6 gfx/misc/rlexplo7 gfx/misc/rlexplo8 $blackimage
-		rgbGen entitycolorwave 1 1 1 sawtooth 0 1 0 8
-		blendfunc add
-	}
-}
-
 gfx/misc/teleportshell
 {
 	cull front

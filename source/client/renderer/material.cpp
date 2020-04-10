@@ -87,45 +87,8 @@ static float Shader_ParseFloat( const char ** ptr ) {
 }
 
 static void Shader_ParseVector( const char ** ptr, float * v, unsigned int size ) {
-	unsigned int i;
-	bool bracket;
-
-	if( !size ) {
-		return;
-	}
-	if( size == 1 ) {
-		Shader_ParseFloat( ptr );
-		return;
-	}
-
-	const char *token = Shader_ParseString( ptr );
-	if( !strcmp( token, "(" ) ) {
-		bracket = true;
-		token = Shader_ParseString( ptr );
-	} else if( token[0] == '(' ) {
-		bracket = true;
-		token = &token[1];
-	} else {
-		bracket = false;
-	}
-
-	v[0] = atof( token );
-	for( i = 1; i < size - 1; i++ )
+	for( unsigned int i = 0; i < size; i++ ) {
 		v[i] = Shader_ParseFloat( ptr );
-
-	token = Shader_ParseString( ptr );
-	if( !token[0] ) {
-		v[i] = 0;
-	} else if( token[strlen( token ) - 1] == ')' ) {
-		char buf[ 128 ];
-		Q_strncpyz( buf, token, sizeof( buf ) );
-		buf[ strlen( buf ) - 1 ] = '\0';
-		v[i] = atof( buf );
-	} else {
-		v[i] = atof( token );
-		if( bracket ) {
-			Shader_ParseString( ptr );
-		}
 	}
 }
 

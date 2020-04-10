@@ -782,26 +782,6 @@ static Mat4 TransformTag( const Model * model, const Mat4 & transform, const Mat
 	return transform * model->transform * pose.joint_poses[ tag.joint_idx ] * tag.transform;
 }
 
-static orientation_t Mat4ToOrientation( const Mat4 & m ) {
-	orientation_t o;
-
-	o.axis[ 0 ] = m.col0.x;
-	o.axis[ 1 ] = m.col0.y;
-	o.axis[ 2 ] = m.col0.z;
-	o.axis[ 3 ] = m.col1.x;
-	o.axis[ 4 ] = m.col1.y;
-	o.axis[ 5 ] = m.col1.z;
-	o.axis[ 6 ] = m.col2.x;
-	o.axis[ 7 ] = m.col2.y;
-	o.axis[ 8 ] = m.col2.z;
-
-	o.origin[ 0 ] = m.col3.x;
-	o.origin[ 1 ] = m.col3.y;
-	o.origin[ 2 ] = m.col3.z;
-
-	return o;
-}
-
 void CG_DrawPlayer( centity_t *cent ) {
 	pmodel_t * pmodel = &cg_entPModels[ cent->current.number ];
 	const PlayerModelMetadata * meta = pmodel->metadata;

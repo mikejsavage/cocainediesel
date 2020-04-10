@@ -25,12 +25,4 @@ textures/factory/glass_singlesided_distancebloom
 		tcGen environment
 		blendFunc gl_one gl_one
 	}
-
-	{
-		map textures/factory/glass
-		tcGen environment
-		blendFunc gl_one gl_one
-		//blendFunc GL_ONE GL_ONE_MINUS_SRC_COLOR
-		rgbgen wave distanceramp 0 1 200 500
-	}
 }

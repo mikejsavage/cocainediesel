@@ -230,53 +230,6 @@ textures/lights/blacktrim01_1000
 	}
 }
 
-textures/lights/tech
-{
-	qer_editorimage textures/lights/tech
-	surfaceparm nomarks
-	surfaceparm nodlight
-	q3map_forcemeta
-	q3map_lightmapSampleSize 128
-
-	{
-		map $lightmap
-		rgbGen identity
-	}
-	{
-		map textures/lights/tech
-		blendfunc filter
-	}
-	{
-		map textures/lights/tech.blend
-		blendfunc add
-	}
-}
-
-textures/lights/tech_1000
-{
-	qer_editorimage textures/lights/tech
-	q3map_lightimage   textures/lights/tech
-	q3map_surfacelight 1000
-	q3map_lightsubdivide 128
-	surfaceparm nomarks
-	surfaceparm nodlight
-	q3map_forcemeta
-	q3map_lightmapSampleSize 128
-
-	{
-		map $lightmap
-		rgbGen identity
-	}
-	{
-		map textures/lights/tech
-		blendfunc filter
-	}
-	{
-		map textures/lights/tech.blend
-		blendfunc add
-	}
-}
-
 textures/lights/square_light_tile
 {
 	qer_editorimage textures/lights/square_light_tile
@@ -408,51 +361,6 @@ textures/lights/bright2_2500
 	}
 }
 
-textures/lights/turqs2
-{
-	qer_editorimage textures/lights/turqs2
-	surfaceparm nomarks
-	surfaceparm nodlight
-	q3map_forcemeta
-
-	{
-		map $lightmap
-		blendFunc filter
-	}
-
-	{
-		map textures/lights/turqs2.blend
-		alphaGen wave sin 0.75 0.25 0.75 1.5
-		blendFunc blend
-	}
-}
-
-textures/lights/turqs2_1000
-{
-	qer_editorimage textures/lights/turqs2
-	q3map_lightimage textures/lights/turqs2.blend
-	q3map_surfacelight 1000
-	surfaceparm nomarks
-	surfaceparm nodlight
-	q3map_forcemeta
-
-	{
-		map textures/lights/turqs2
-		blendFunc blend
-	}
-
-	{
-		map $lightmap
-		blendFunc filter
-	}
-
-	{
-		map textures/lights/turqs2.blend
-		alphaGen wave sin 0.75 0.25 0.75 1.5
-		blendFunc blend
-	}
-}
-
 textures/lights/oc3
 {
 	qer_editorimage textures/lights/oc3
@@ -495,55 +403,5 @@ textures/lights/oc3_10000
 
 	{
 		map textures/lights/oc3
-	}
-}
-
-textures/lights/strip
-{
-	qer_editorimage textures/lights/strip.blend
-	q3map_lightimage textures/lights/strip.blend
-	q3map_surfacelight 100
-	q3map_lightsubdivide 128
-	surfaceparm nomarks
-	surfaceparm nodlight
-	q3map_forcemeta
-
-	{
-		map $lightmap
-	}
-
-	{
-		map textures/lights/strip
-		blendFunc filter
-	}
-
-	{
-		map textures/lights/strip.blend
-		blendFunc blend
-	}
-}
-
-textures/lights/stripred
-{
-	qer_editorimage textures/lights/stripred.blend
-	q3map_lightimage textures/lights/stripred.blend
-	q3map_surfacelight 100
-	q3map_lightsubdivide 128
-	surfaceparm nomarks
-	surfaceparm nodlight
-	q3map_forcemeta
-
-	{
-		map $lightmap
-	}
-
-	{
-		map textures/lights/strip
-		blendFunc filter
-	}
-
-	{
-		map textures/lights/stripred.blend
-		blendFunc blend
 	}
 }

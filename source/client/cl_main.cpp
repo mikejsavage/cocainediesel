@@ -1870,16 +1870,17 @@ void CL_Init( void ) {
 
 	cl_initialized = true;
 
-	{
-		TempAllocator temp = cls.frame_arena.temp();
-		InitAssets( &temp );
-	}
-
 	Con_Init();
 
 	InitThreadPool();
 
+	ThreadPoolDo( []( TempAllocator * temp, void * data ) {
+		InitAssets( temp );
+	} );
+
 	VID_Init();
+
+	ThreadPoolFinish();
 
 	InitRenderer();
 	InitMaps();

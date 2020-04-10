@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/base.h"
 #include "client/client.h"
+#include "client/threadpool.h"
 #include "client/renderer/renderer.h"
 #include "qcommon/assets.h"
 #include "qcommon/asyncstream.h"
@@ -67,9 +68,6 @@ SyncEntityState cl_baselines[MAX_EDICTS];
 static bool cl_initialized = false;
 
 static async_stream_module_t *cl_async_stream;
-
-//======================================================================
-
 
 /*
 =======================================================================
@@ -1879,6 +1877,8 @@ void CL_Init( void ) {
 
 	Con_Init();
 
+	InitThreadPool();
+
 	VID_Init();
 
 	InitRenderer();
@@ -1959,6 +1959,8 @@ void CL_Shutdown( void ) {
 	CL_ShutdownAsyncStream();
 
 	CL_ShutdownLocal();
+
+	ShutdownThreadPool();
 
 	Con_Shutdown();
 

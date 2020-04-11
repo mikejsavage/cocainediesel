@@ -59,7 +59,7 @@ Model * NewModel( u64 hash );
 bool LoadGLTFModel( Model * model, const char * path );
 
 struct Map;
-bool LoadBSPRenderData( Map * map, const char * path, u64 base_hash, Span< const u8 > data );
+bool LoadBSPRenderData( Map * map, u64 base_hash, Span< const u8 > data );
 
 void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline );
 void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices = Span< const Mat4 >() );

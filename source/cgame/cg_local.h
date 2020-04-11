@@ -347,8 +347,8 @@ typedef struct {
 	float xyspeed;
 
 	bool recoiling;
-	float recoil;
-	float recoil_initial_pitch;
+	vec3_t recoil;
+	vec3_t recoil_initial_pitch;
 
 	float oldBobTime;
 	int bobCycle;                   // odd cycles are right foot going forward
@@ -533,8 +533,6 @@ char *_CG_CopyString( const char *in, const char *filename, int fileline );
 void CG_RegisterCGameCommands( void );
 void CG_UnregisterCGameCommands( void );
 void CG_AddAward( const char *str );
-
-void CG_StartBackgroundTrack( void );
 
 //
 // cg_svcmds.c

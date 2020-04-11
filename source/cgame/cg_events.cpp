@@ -314,10 +314,15 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 	// recoil
 	if( ISVIEWERENTITY( entNum ) && cg.view.playerPrediction ) {
 		if( !cg.recoiling ) {
-			cg.recoil_initial_pitch = cl.viewangles[ PITCH ];
+			cg.recoil_initial_pitch[ PITCH ] = cl.viewangles[ PITCH ];
+			cg.recoil_initial_pitch[ YAW ] = cl.viewangles[ YAW ];
 			cg.recoiling = true;
 		}
-		cg.recoil += GS_GetWeaponDef( weapon )->recoil;
+
+		const WeaponDef * weap = GS_GetWeaponDef( weapon );
+		float rand = random_float11( &cls.rng ) * weap->recoil_rand + 1.f - weap->recoil_rand;
+		cg.recoil[ PITCH ] += weap->v_recoil * rand;
+		cg.recoil[ YAW ] += weap->h_recoil * rand * ( random_uniform( &cls.rng, 0, 2 ) * 2 - 1 );
 	}
 }
 

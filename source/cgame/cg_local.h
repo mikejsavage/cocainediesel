@@ -351,6 +351,7 @@ typedef struct {
 	bool recoiling;
 	float recoil[ RECOIL_AXES ];
 	float recoil_initial_pitch[ RECOIL_AXES ];
+	int recoil_sign[ RECOIL_AXES ];
 
 	float oldBobTime;
 	int bobCycle;                   // odd cycles are right foot going forward

@@ -31,8 +31,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/qfiles.h"
 #include "qcommon/strtonum.h"
 
-#include "tracy/Tracy.hpp"
-
 inline Vec3 FromQF3( const vec3_t v ) { return Vec3( v[ 0 ], v[ 1 ], v[ 2 ] ); }
 inline EulerDegrees3 FromQFAngles( const vec3_t v ) { return { v[ PITCH ], v[ YAW ], v[ ROLL ] }; }
 

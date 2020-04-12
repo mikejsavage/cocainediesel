@@ -109,7 +109,7 @@ bool BoundsOverlap( const vec3_t mins1, const vec3_t maxs1, const vec3_t mins2, 
 bool BoundsOverlapSphere( const vec3_t mins, const vec3_t maxs, const vec3_t centre, float radius );
 
 #define NUMVERTEXNORMALS    162
-int DirToByte( vec3_t dir );
+int DirToByte( const vec3_t dir );
 void ByteToDir( int b, vec3_t dir );
 
 void ViewVectors( const vec3_t forward, vec3_t right, vec3_t up );

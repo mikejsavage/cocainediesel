@@ -170,7 +170,7 @@ void CG_DrawChat() {
 
 	ImGui::End();
 
-	if( ImGui::IsKeyPressed( K_ESCAPE ) ) {
+	if( ImGui::Hotkey( K_ESCAPE ) ) {
 		CloseChat();
 	}
 }

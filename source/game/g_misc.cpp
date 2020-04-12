@@ -275,8 +275,8 @@ static void func_explosive_spawn( edict_t *self, edict_t *other, edict_t *activa
 void SP_func_explosive( edict_t *self ) {
 	G_InitMover( self );
 
-	self->projectileInfo.maxDamage = max( self->dmg, 1 );
-	self->projectileInfo.minDamage = min( self->dmg, 1 );
+	self->projectileInfo.maxDamage = Max2( self->dmg, 1 );
+	self->projectileInfo.minDamage = Min2( self->dmg, 1 );
 	self->projectileInfo.maxKnockback = self->projectileInfo.maxDamage;
 	self->projectileInfo.minKnockback = self->projectileInfo.minDamage;
 	self->projectileInfo.radius = st.radius;

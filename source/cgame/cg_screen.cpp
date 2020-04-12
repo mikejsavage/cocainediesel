@@ -453,7 +453,7 @@ void CG_DrawDamageNumbers() {
 
 		float font_size = Lerp( cgs.textSizeTiny, Unlerp01( 0, dn.damage, 60 ), cgs.textSizeSmall );
 
-		float alpha = 1 - max( 0, frac - 0.75f ) / 0.25f;
+		float alpha = 1 - Max2( 0.0f, frac - 0.75f ) / 0.25f;
 		color.w *= alpha;
 
 		DrawText( cgs.fontMontserrat, font_size, buf, Alignment_CenterBottom, coords.x, coords.y, color, true );

@@ -76,7 +76,6 @@ typedef struct {
 	bool multipov;
 	int clientarea;
 	int numareas;
-	int areabytes;
 	uint8_t *areabits;                  // portalarea visibility bits
 	int numplayers;
 	int ps_size;

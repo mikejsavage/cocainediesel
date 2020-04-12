@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "server/server.h"
+#include "qcommon/cmodel.h"
 #include "qcommon/version.h"
 
 game_export_t *ge;
@@ -230,7 +231,7 @@ static void SV_LocateEntities( struct edict_s *edicts, size_t edict_size, int nu
 	sv.gi.edict_size = edict_size;
 	sv.gi.num_edicts = num_edicts;
 	sv.gi.max_edicts = max_edicts;
-	sv.gi.max_clients = min( num_edicts, sv_maxclients->integer );
+	sv.gi.max_clients = Min2( num_edicts, sv_maxclients->integer );
 }
 
 /*

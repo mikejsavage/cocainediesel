@@ -703,16 +703,13 @@ void SP_func_door( edict_t *ent ) {
 	ent->use = door_use;
 
 	if( !ent->speed ) {
-		ent->speed = 600;
+		ent->speed = 1500;
 	}
 	if( !ent->wait ) {
 		ent->wait = 2;
 	}
 	if( !st.lip ) {
 		st.lip = 8;
-	}
-	if( !ent->dmg ) {
-		ent->dmg = 2;
 	}
 
 	if( ent->health < 0 ) {

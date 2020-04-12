@@ -1608,8 +1608,8 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 
 	int padx = offx - iw;
 	int pady = offy - ih;
-	int total_width = max( 0, num_weapons * offx - padx );
-	int total_height = max( 0, num_weapons * offy - pady );
+	int total_width = Max2( 0, num_weapons * offx - padx );
+	int total_height = Max2( 0, num_weapons * offy - pady );
 
 	int border = iw * 0.03f;
 	int padding = iw * 0.1f;

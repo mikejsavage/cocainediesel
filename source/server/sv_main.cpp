@@ -372,7 +372,7 @@ static bool SV_RunGameFrame( int msec ) {
 
 	// if there aren't pending packets to be sent, we can sleep
 	if( is_dedicated_server && !sentFragments && !refreshSnapshot ) {
-		int sleeptime = min( WORLDFRAMETIME - ( accTime + 1 ), sv.nextSnapTime - ( svs.gametime + 1 ) );
+		int sleeptime = Min2( WORLDFRAMETIME - ( accTime + 1 ), sv.nextSnapTime - ( svs.gametime + 1 ) );
 
 		if( sleeptime > 0 ) {
 			socket_t *sockets[] = { &svs.socket_udp, &svs.socket_udp6 };

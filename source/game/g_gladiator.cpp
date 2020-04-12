@@ -33,7 +33,7 @@ static void SpikesTouched( edict_t * self, edict_t * other, cplane_t * plane, in
 	if( self->s.linearMovementTimeStamp == 0 ) {
 		self->nextThink = level.time + 1000;
 		self->think = SpikesDeploy;
-		self->s.linearMovementTimeStamp = max( 1, svs.gametime );
+		self->s.linearMovementTimeStamp = Max2( s64( 1 ), svs.gametime );
 	}
 }
 
@@ -56,8 +56,8 @@ void SP_spikes( edict_t * spikes ) {
 	VectorMA( maxs, 64, right, maxs );
 
 	for( int i = 0; i < 3; i++ ) {
-		spikes->r.mins[ i ] = min( mins[ i ], maxs[ i ] );
-		spikes->r.maxs[ i ] = max( mins[ i ], maxs[ i ] );
+		spikes->r.mins[ i ] = Min2( mins[ i ], maxs[ i ] );
+		spikes->r.maxs[ i ] = Max2( mins[ i ], maxs[ i ] );
 	}
 
 	spikes->s.model = "models/objects/spikes/spikes";

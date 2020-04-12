@@ -387,7 +387,7 @@ void SV_DemoList_f( client_t *client ) {
 	numdemos = FS_GetFileList( SV_DEMO_DIR, APP_DEMO_EXTENSION_STR, NULL, 0, 0, 0 );
 	if( numdemos ) {
 		if( start < 0 ) {
-			start = max( 0, numdemos - DEMOS_PER_VIEW );
+			start = Max2( 0, numdemos - DEMOS_PER_VIEW );
 		} else if( start > numdemos - 1 ) {
 			start = numdemos - 1;
 		}

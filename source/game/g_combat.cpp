@@ -407,7 +407,7 @@ void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, const vec
 	float refdistance = innerradius;
 
 	maxradius -= refdistance;
-	distance = max( distance - refdistance, 0 );
+	distance = Max2( distance - refdistance, 0.0f );
 
 	if( frac != NULL ) {
 		// soft sin curve
@@ -439,13 +439,6 @@ void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, const vec
 * G_RadiusDamage
 */
 void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edict_t *ignore, int mod ) {
-	int i, numtouch;
-	int touch[MAX_EDICTS];
-	edict_t *ent = NULL;
-	float frac, damage, knockback;
-	vec3_t pushDir;
-	int timeDelta;
-
 	assert( inflictor );
 
 	float maxdamage = inflictor->projectileInfo.maxDamage;
@@ -461,24 +454,29 @@ void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edi
 	mindamage = Min2( mindamage, maxdamage );
 	minknockback = Min2( minknockback, maxknockback );
 
-	numtouch = GClip_FindInRadius4D( inflictor->s.origin, radius, touch, MAX_EDICTS, inflictor->timeDelta );
-	for( i = 0; i < numtouch; i++ ) {
-		ent = game.edicts + touch[i];
+	int touch[MAX_EDICTS];
+	int numtouch = GClip_FindInRadius4D( inflictor->s.origin, radius, touch, MAX_EDICTS, inflictor->timeDelta );
+
+	for( int i = 0; i < numtouch; i++ ) {
+		edict_t * ent = game.edicts + touch[i];
 		if( ent == ignore || !ent->takedamage ) {
 			continue;
 		}
 
+		int timeDelta;
 		if( ent == attacker && ent->r.client ) {
 			timeDelta = 0;
 		} else {
 			timeDelta = inflictor->timeDelta;
 		}
 
+		float frac;
+		vec3_t pushDir;
 		bool is_selfdamage = inflictor->r.client != NULL && attacker == inflictor;
 		G_SplashFrac4D( ent, inflictor->s.origin, radius, pushDir, &frac, timeDelta, is_selfdamage );
 
-		damage = max( 0, mindamage + ( ( maxdamage - mindamage ) * frac ) );
-		knockback = max( 0, minknockback + ( ( maxknockback - minknockback ) * frac ) );
+		float damage = Max2( 0.0f, mindamage + ( ( maxdamage - mindamage ) * frac ) );
+		float knockback = Max2( 0.0f, minknockback + ( ( maxknockback - minknockback ) * frac ) );
 
 		if( knockback < 1.0f ) {
 			knockback = 0.0f;

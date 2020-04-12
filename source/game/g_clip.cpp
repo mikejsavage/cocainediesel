@@ -17,7 +17,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-#include "g_local.h"
+
+#include "game/g_local.h"
+#include "qcommon/cmodel.h"
 
 //
 // g_clip.c - entity contact detection. (high level object sorting to reduce interaction tests)
@@ -248,9 +250,9 @@ static void GClip_Init_AreaGrid( areagrid_t *areagrid, const vec3_t world_mins, 
 	}
 
 	// choose either the world box size, or a larger box to ensure the grid isn't too fine
-	areagrid->size[0] = max( world_maxs[0] - world_mins[0], AREA_GRID * AREA_GRIDMINSIZE );
-	areagrid->size[1] = max( world_maxs[1] - world_mins[1], AREA_GRID * AREA_GRIDMINSIZE );
-	areagrid->size[2] = max( world_maxs[2] - world_mins[2], AREA_GRID * AREA_GRIDMINSIZE );
+	areagrid->size[0] = Max2( world_maxs[0] - world_mins[0], AREA_GRID * AREA_GRIDMINSIZE );
+	areagrid->size[1] = Max2( world_maxs[1] - world_mins[1], AREA_GRID * AREA_GRIDMINSIZE );
+	areagrid->size[2] = Max2( world_maxs[2] - world_mins[2], AREA_GRID * AREA_GRIDMINSIZE );
 
 	// figure out the corners of such a box, centered at the center of the world box
 	areagrid->mins[0] = ( world_mins[0] + world_maxs[0] - areagrid->size[0] ) * 0.5f;
@@ -364,12 +366,12 @@ static int GClip_EntitiesInBox_AreaGrid( areagrid_t *areagrid, const vec3_t mins
 	igridmaxs[1] = (int) floorf( ( paddedmaxs[1] + areagrid->bias[1] ) * areagrid->scale[1] ) + 1;
 
 	//igridmaxs[2] = (int) ( (paddedmaxs[2] + areagrid->bias[2]) * areagrid->scale[2] ) + 1;
-	igridmins[0] = max( 0, igridmins[0] );
-	igridmins[1] = max( 0, igridmins[1] );
+	igridmins[0] = Max2( 0, igridmins[0] );
+	igridmins[1] = Max2( 0, igridmins[1] );
 
 	//igridmins[2] = max( 0, igridmins[2] );
-	igridmaxs[0] = min( AREA_GRID, igridmaxs[0] );
-	igridmaxs[1] = min( AREA_GRID, igridmaxs[1] );
+	igridmaxs[0] = Min2( AREA_GRID, igridmaxs[0] );
+	igridmaxs[1] = Min2( AREA_GRID, igridmaxs[1] );
 
 	//igridmaxs[2] = min( AREA_GRID, igridmaxs[2] );
 
@@ -656,12 +658,10 @@ void GClip_SetAreaPortalState( edict_t *ent, bool open ) {
 */
 int GClip_AreaEdicts( const vec3_t mins, const vec3_t maxs,
 					  int *list, int maxcount, int areatype, int timeDelta ) {
-	int count;
-
-	count = GClip_EntitiesInBox_AreaGrid( &g_areagrid, mins, maxs,
+	int count = GClip_EntitiesInBox_AreaGrid( &g_areagrid, mins, maxs,
 										  list, maxcount, areatype, timeDelta );
 
-	return min( count, maxcount );
+	return Min2( count, maxcount );
 }
 
 /*

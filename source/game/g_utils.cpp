@@ -719,7 +719,7 @@ void G_InitMover( edict_t *ent ) {
 		}
 
 		i /= 4;
-		i = min( i, 255 );
+		i = Min2( i, 255 );
 
 		r = ent->color[0];
 		if( r <= 1.0 ) {

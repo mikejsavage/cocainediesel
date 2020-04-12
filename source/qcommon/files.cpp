@@ -1232,7 +1232,7 @@ static int FS_GetFileListExt_( const char *dir, const char *extension, char *buf
 				}
 			}
 
-			limit = maxFiles ? min( fs_numsearchfiles, maxFiles ) : fs_numsearchfiles;
+			limit = maxFiles ? Min2( fs_numsearchfiles, maxFiles ) : fs_numsearchfiles;
 			found = FS_PathGetFileListExt( search, dir, extension, files + allfound,
 										   fs_numsearchfiles - allfound );
 

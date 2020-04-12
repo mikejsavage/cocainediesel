@@ -99,9 +99,6 @@ void Con_Close() {
 	}
 }
 
-static void Con_PrintNoLock( const char * str ) {
-}
-
 void Con_Print( const char * str ) {
 	if( console.mutex == NULL )
 		return;
@@ -325,7 +322,7 @@ static void Con_DisplayList( const char ** list ) {
 }
 
 static size_t CommonPrefixLength( const char * a, const char * b ) {
-	size_t n = min( strlen( a ), strlen( b ) );
+	size_t n = Min2( strlen( a ), strlen( b ) );
 	size_t len = 0;
 	for( size_t i = 0; i < n; i++ ) {
 		if( a[ i ] != b[ i ] )
@@ -396,7 +393,7 @@ static void TabCompletion( char * buf, int buf_size ) {
 			continue;
 		const char ** candidate = &completion_lists[ i ][ 0 ];
 		while( *candidate != NULL ) {
-			common_prefix_len = min( common_prefix_len, CommonPrefixLength( completion, *candidate ) );
+			common_prefix_len = Min2( common_prefix_len, CommonPrefixLength( completion, *candidate ) );
 			candidate++;
 		}
 	}
@@ -422,7 +419,7 @@ static void TabCompletion( char * buf, int buf_size ) {
 	}
 
 	if( completion != NULL ) {
-		size_t to_copy = min( common_prefix_len + 1, buf_size - ( input - console.input ) );
+		size_t to_copy = qmin( common_prefix_len + 1, buf_size - ( input - console.input ) );
 		Q_strncpyz( input, completion, to_copy );
 		if( total_candidates == 1 )
 			Q_strncatz( buf, " ", buf_size );

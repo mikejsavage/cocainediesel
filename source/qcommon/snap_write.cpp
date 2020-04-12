@@ -18,7 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "qcommon.h"
+#include "qcommon/qcommon.h"
+#include "qcommon/cmodel.h"
 #include "server/server.h"
 
 #undef EDICT_NUM
@@ -598,7 +599,7 @@ static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, ginfo_t *gi, edict_
 	clientarea = CM_LeafArea( cms, leafnum );
 
 	frame->clientarea = clientarea;
-	frame->areabytes = CM_WriteAreaBits( cms, frame->areabits );
+	CM_WriteAreaBits( cms, frame->areabits );
 
 	// always add the client entity
 	if( clent ) {

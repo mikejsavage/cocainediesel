@@ -69,8 +69,8 @@ typedef struct cplane_s {
 constexpr vec3_t vec3_origin = { 0, 0, 0 };
 constexpr mat3_t axis_identity = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 
-#define max( a, b ) ( ( a ) > ( b ) ? ( a ) : ( b ) )
-#define min( a, b ) ( ( a ) < ( b ) ? ( a ) : ( b ) )
+#define qmax( a, b ) ( ( a ) > ( b ) ? ( a ) : ( b ) )
+#define qmin( a, b ) ( ( a ) < ( b ) ? ( a ) : ( b ) )
 #define bound( lo, x, hi ) ( ( lo ) >= ( hi ) ? ( lo ) : ( x ) < ( lo ) ? ( lo ) : ( x ) > ( hi ) ? ( hi ) : ( x ) )
 
 #define DotProduct( x, y )     ( ( x )[0] * ( y )[0] + ( x )[1] * ( y )[1] + ( x )[2] * ( y )[2] )

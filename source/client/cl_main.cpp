@@ -356,7 +356,7 @@ static void CL_Connect_Cmd_f( socket_type_t socket ) {
 	}
 
 	if( ( tmp = Q_strrstr( connectstring, "@" ) ) != NULL ) {
-		Q_strncpyz( password, connectstring, min( sizeof( password ),( tmp - connectstring + 1 ) ) );
+		Q_strncpyz( password, connectstring, qmin( sizeof( password ), tmp - connectstring + 1 ) );
 		Cvar_Set( "password", password );
 		connectstring += ( tmp - connectstring ) + 1;
 	}
@@ -1430,7 +1430,7 @@ int CL_SmoothTimeDeltas( void ) {
 		return cl.serverTimeDeltas[cl.currentSnapNum & MASK_TIMEDELTAS_BACKUP];
 	}
 
-	i = cl.receivedSnapNum - min( MAX_TIMEDELTAS_BACKUP, 8 );
+	i = cl.receivedSnapNum - Min2( MAX_TIMEDELTAS_BACKUP, 8 );
 	if( i < 0 ) {
 		i = 0;
 	}
@@ -1711,8 +1711,8 @@ void CL_Frame( int realMsec, int gameMsec ) {
 		Cvar_ForceSet( "cl_maxfps", va( "%i", absMinFps ) );
 	}
 	maxFps = IsWindowFocused() ? cl_maxfps->value : absMinFps;
-	minMsec = max( ( 1000.0f / maxFps ), 1 );
-	roundingMsec += max( ( 1000.0f / maxFps ), 1.0f ) - minMsec;
+	minMsec = Max2( 1000.0f / maxFps, 1.0f );
+	roundingMsec += Max2( 1000.0f / maxFps, 1.0f ) - minMsec;
 
 	if( roundingMsec >= 1.0f ) {
 		minMsec += (int)roundingMsec;

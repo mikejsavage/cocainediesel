@@ -1545,10 +1545,6 @@ static int asFunc_PointContents( asvec3_t *vec ) {
 	return G_PointContents( vec->v );
 }
 
-static bool asFunc_InPVS( asvec3_t *origin1, asvec3_t *origin2 ) {
-	return CM_InPVS( svs.cms, origin1->v, origin2->v );
-}
-
 static void asFunc_Cbuf_ExecuteText( asstring_t *str ) {
 	if( !str || !str->buffer || !str->buffer[0] ) {
 		return;
@@ -1748,7 +1744,6 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "void G_AnnouncerSound( Client @, uint64 sound, int team, bool queued, Client @ )", asFUNCTION( asFunc_G_AnnouncerSound ), NULL },
 	{ "int G_DirToByte( const Vec3 &in origin )", asFUNCTION( asFunc_DirToByte ), NULL },
 	{ "int G_PointContents( const Vec3 &in origin )", asFUNCTION( asFunc_PointContents ), NULL },
-	{ "bool G_InPVS( const Vec3 &in origin1, const Vec3 &in origin2 )", asFUNCTION( asFunc_InPVS ), NULL },
 	{ "void G_CmdExecute( const String & )", asFUNCTION( asFunc_Cbuf_ExecuteText ), NULL },
 
 	{ "void G_RegisterCommand( const String &in )", asFUNCTION( asFunc_RegisterCommand ), NULL },

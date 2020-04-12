@@ -54,11 +54,13 @@ public:
 	void resize( size_t new_size ) {
 		if( new_size < n ) {
 			n = new_size;
+			ASAN_POISON_MEMORY_REGION( elems + n * sizeof( T ), ( capacity - n ) * sizeof( T ) );
 			return;
 		}
 
 		if( new_size <= capacity ) {
 			n = new_size;
+			ASAN_UNPOISON_MEMORY_REGION( elems, n * sizeof( T ) );
 			return;
 		}
 

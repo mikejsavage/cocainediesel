@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/base.h"
 #include "qcommon/compression.h"
+#include "qcommon/cmodel.h"
 #include "game/g_local.h"
 
 enum EntityFieldType {

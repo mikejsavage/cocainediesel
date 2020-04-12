@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/base.h"
+#include "qcommon/cmodel.h"
 #include "game/g_local.h"
 
 static bool CanHit( const edict_t * projectile, const edict_t * target ) {
@@ -64,9 +65,9 @@ static edict_t * W_Fire_LinearProjectile( edict_t * self, vec3_t start, vec3_t a
 	projectile->timeStamp = level.time;
 	projectile->timeDelta = timeDelta;
 
-	projectile->projectileInfo.minDamage = min( minDamage, damage );
+	projectile->projectileInfo.minDamage = Min2( float( minDamage ), damage );
 	projectile->projectileInfo.maxDamage = damage;
-	projectile->projectileInfo.minKnockback = min( minKnockback, maxKnockback );
+	projectile->projectileInfo.minKnockback = Min2( minKnockback, maxKnockback );
 	projectile->projectileInfo.maxKnockback = maxKnockback;
 	projectile->projectileInfo.radius = radius;
 
@@ -119,9 +120,9 @@ static edict_t * W_Fire_TossProjectile( edict_t * self, vec3_t start, vec3_t ang
 	projectile->timeDelta = timeDelta;
 	projectile->s.team = self->s.team;
 
-	projectile->projectileInfo.minDamage = min( minDamage, damage );
+	projectile->projectileInfo.minDamage = Min2( float( minDamage ), damage );
 	projectile->projectileInfo.maxDamage = damage;
-	projectile->projectileInfo.minKnockback = min( minKnockback, maxKnockback );
+	projectile->projectileInfo.minKnockback = Min2( minKnockback, maxKnockback );
 	projectile->projectileInfo.maxKnockback = maxKnockback;
 	projectile->projectileInfo.radius = radius;
 
@@ -348,7 +349,7 @@ static void W_Touch_Rocket( edict_t *ent, edict_t *other, cplane_t *plane, int s
 	VectorMA( ent->s.origin, -0.02, ent->velocity, explosion_origin );
 
 	edict_t *event = G_SpawnEvent( EV_ROCKET_EXPLOSION, DirToByte( plane ? plane->normal : NULL ), explosion_origin );
-	event->s.weapon = min( ent->projectileInfo.radius / 8, 255 );
+	event->s.weapon = Min2( ent->projectileInfo.radius / 8, 255 );
 	event->s.team = ent->s.team;
 
 	G_FreeEdict( ent );
@@ -392,7 +393,7 @@ static void W_Touch_Plasma( edict_t *ent, edict_t *other, cplane_t *plane, int s
 	G_RadiusDamage( ent, ent->r.owner, plane, other, MOD_PLASMA );
 
 	edict_t *event = G_SpawnEvent( EV_PLASMA_EXPLOSION, DirToByte( plane ? plane->normal : NULL ), ent->s.origin );
-	event->s.weapon = min( ent->projectileInfo.radius / 8, 127 );
+	event->s.weapon = Min2( ent->projectileInfo.radius / 8, 127 );
 	event->s.team = ent->s.team;
 
 	G_FreeEdict( ent );

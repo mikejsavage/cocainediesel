@@ -571,7 +571,7 @@ void SV_Physics_LinearProjectile( edict_t *ent ) {
 
 	// find its current position given the starting timeStamp
 	float endFlyTime = float( svs.gametime - ent->s.linearMovementTimeStamp ) * 0.001f;
-	float startFlyTime = float( max( 0, game.prevServerTime - ent->s.linearMovementTimeStamp ) ) * 0.001f;
+	float startFlyTime = float( Max2( s64( 0 ), game.prevServerTime - ent->s.linearMovementTimeStamp ) ) * 0.001f;
 
 	VectorMA( ent->s.linearMovementBegin, startFlyTime, ent->s.linearMovementVelocity, start );
 	VectorMA( ent->s.linearMovementBegin, endFlyTime, ent->s.linearMovementVelocity, end );

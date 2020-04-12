@@ -58,18 +58,18 @@ void Patch_GetFlatness( float maxflat, const float *points, int comp, const int 
 			p = v * patch_cp[0] + u;
 
 			i = Patch_FlatnessTest( maxflat2, &points[p * comp], &points[( p + 1 ) * comp], &points[( p + 2 ) * comp] );
-			flat[0] = max( flat[0], i );
+			flat[0] = Max2( flat[0], i );
 			i = Patch_FlatnessTest( maxflat2, &points[( p + patch_cp[0] ) * comp], &points[( p + patch_cp[0] + 1 ) * comp], &points[( p + patch_cp[0] + 2 ) * comp] );
-			flat[0] = max( flat[0], i );
+			flat[0] = Max2( flat[0], i );
 			i = Patch_FlatnessTest( maxflat2, &points[( p + 2 * patch_cp[0] ) * comp], &points[( p + 2 * patch_cp[0] + 1 ) * comp], &points[( p + 2 * patch_cp[0] + 2 ) * comp] );
-			flat[0] = max( flat[0], i );
+			flat[0] = Max2( flat[0], i );
 
 			i = Patch_FlatnessTest( maxflat2, &points[p * comp], &points[( p + patch_cp[0] ) * comp], &points[( p + 2 * patch_cp[0] ) * comp] );
-			flat[1] = max( flat[1], i );
+			flat[1] = Max2( flat[1], i );
 			i = Patch_FlatnessTest( maxflat2, &points[( p + 1 ) * comp], &points[( p + patch_cp[0] + 1 ) * comp], &points[( p + 2 * patch_cp[0] + 1 ) * comp] );
-			flat[1] = max( flat[1], i );
+			flat[1] = Max2( flat[1], i );
 			i = Patch_FlatnessTest( maxflat2, &points[( p + 2 ) * comp], &points[( p + patch_cp[0] + 2 ) * comp], &points[( p + 2 * patch_cp[0] + 2 ) * comp] );
-			flat[1] = max( flat[1], i );
+			flat[1] = Max2( flat[1], i );
 		}
 	}
 }

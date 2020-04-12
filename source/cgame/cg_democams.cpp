@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
+#include "qcommon/cmodel.h"
 #include "cgame/cg_local.h"
 
 // Thanks to Xavatar (xavatar2004@hotmail.com) for the path spline implementation
@@ -641,7 +642,7 @@ static void CG_DrawEntityNumbers( void ) {
 	float dist;
 	trace_t trace;
 	vec3_t eorigin;
-	int shadowOffset = max( 1, frame_static.viewport_height / 600 );
+	// int shadowOffset = Max2( 1, frame_static.viewport_height / 600 );
 
 	for( i = 0; i < cg.frame.numEntities; i++ ) {
 		entnum = cg.frame.parsedEntities[i & ( MAX_PARSE_ENTITIES - 1 )].number;

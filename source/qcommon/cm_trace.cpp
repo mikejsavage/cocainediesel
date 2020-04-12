@@ -17,10 +17,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// cmodel_trace.c
 
-#include "qcommon.h"
-#include "cm_local.h"
+#include "qcommon/qcommon.h"
+#include "qcommon/cm_local.h"
 
 typedef struct {
 	int leaf_topnode;
@@ -182,7 +181,7 @@ void CM_InitOctagonHull( CollisionModel *cms ) {
 *
 * To keep everything totally uniform, bounding boxes are turned into inline models
 */
-cmodel_t *CM_ModelForBBox( CollisionModel *cms, vec3_t mins, vec3_t maxs ) {
+cmodel_t *CM_ModelForBBox( CollisionModel *cms, const vec3_t mins, const vec3_t maxs ) {
 	cms->box_brushsides[0].plane.dist = maxs[0];
 	cms->box_brushsides[1].plane.dist = -mins[0];
 	cms->box_brushsides[2].plane.dist = maxs[1];
@@ -202,7 +201,7 @@ cmodel_t *CM_ModelForBBox( CollisionModel *cms, vec3_t mins, vec3_t maxs ) {
 * Same as CM_ModelForBBox with 4 additional planes at corners.
 * Internally offset to be symmetric on all sides.
 */
-cmodel_t *CM_OctagonModelForBBox( CollisionModel *cms, vec3_t mins, vec3_t maxs ) {
+cmodel_t *CM_OctagonModelForBBox( CollisionModel *cms, const vec3_t mins, const vec3_t maxs ) {
 	int i;
 	float a, b, d, t;
 	float sina, cosa;
@@ -261,7 +260,7 @@ cmodel_t *CM_OctagonModelForBBox( CollisionModel *cms, vec3_t mins, vec3_t maxs 
 /*
 * CM_PointLeafnum
 */
-int CM_PointLeafnum( CollisionModel *cms, const vec3_t p ) {
+int CM_PointLeafnum( const CollisionModel *cms, const vec3_t p ) {
 	int num = 0;
 	cnode_t *node;
 

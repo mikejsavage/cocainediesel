@@ -664,8 +664,7 @@ static void CreateServer() {
 		ImGui::InputInt( "##sv_maxclients", &maxclients );
 		ImGui::PopItemWidth();
 
-		maxclients = max( maxclients, 1 );
-		maxclients = min( maxclients, 64 );
+		maxclients = Clamp( 1, maxclients, 64 );
 
 		Cvar_Set( "sv_maxclients", temp( "{}", maxclients ) );
 	}
@@ -719,9 +718,9 @@ static void MainMenu() {
 	for( size_t i = 0; i < strlen( name ); i++ ) {
 		ImGui::SameLine();
 		if( cls.monotonicTime < break_time ) {
-			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + frame_static.viewport_width * max( 0, ( 1000 - cls.monotonicTime ) )/1000.f );
+			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + frame_static.viewport_width * Max2( s64( 0 ), ( 1000 - cls.monotonicTime ) ) /1000.f );
 		} else {
-			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + max( 0, sinf( ( cls.monotonicTime - break_time ) / 500.0f + i*0.5f )*8 ) );
+			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + Max2( 0.0f, sinf( ( cls.monotonicTime - break_time ) / 500.0f + i*0.5f )*8 ) );
 		}
 		ImGui::Text( "%s%c", temp( "{}", ImGuiColorToken( 220, 180 + i*2, 100 + i*4, 255 ) ), name[ i ] );
 	}

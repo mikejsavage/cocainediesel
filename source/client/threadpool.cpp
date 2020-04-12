@@ -1,5 +1,4 @@
 #include "qcommon/base.h"
-#include "qcommon/qcommon.h" // TODO: delete min/max macros and add tracy to base
 #include "qcommon/threads.h"
 #include "client/client.h"
 #include "client/threadpool.h"

@@ -18,6 +18,10 @@
 
  */
 
+#include "gameshared/q_math.h"
+#include "gameshared/q_collision.h"
+#include "qcommon/hash.h"
+
 #define MAX_CM_LEAFS        ( MAX_MAP_LEAFS )
 
 typedef struct {
@@ -185,15 +189,14 @@ struct cmodel_s * CM_TryFindCModel( CModelServerOrClient soc, StringHash hash );
 
 bool CM_IsBrushModel( CModelServerOrClient soc, StringHash hash );
 
-int CM_NumClusters( CollisionModel *cms );
-int CM_NumAreas( CollisionModel *cms );
-char *CM_EntityString( CollisionModel *cms );
-int CM_EntityStringLen( CollisionModel *cms );
-const char *CM_ShaderrefName( CollisionModel *cms, int ref );
+int CM_NumClusters( const CollisionModel *cms );
+int CM_NumAreas( const CollisionModel *cms );
+char *CM_EntityString( const CollisionModel *cms );
+int CM_EntityStringLen( const CollisionModel *cms );
 
 // creates a clipping hull for an arbitrary bounding box
-struct cmodel_s *CM_ModelForBBox( CollisionModel *cms, vec3_t mins, vec3_t maxs );
-struct cmodel_s *CM_OctagonModelForBBox( CollisionModel *cms, vec3_t mins, vec3_t maxs );
+struct cmodel_s *CM_ModelForBBox( CollisionModel *cms, const vec3_t mins, const vec3_t maxs );
+struct cmodel_s *CM_OctagonModelForBBox( CollisionModel *cms, const vec3_t mins, const vec3_t maxs );
 void CM_InlineModelBounds( const CollisionModel *cms, const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs );
 
 // returns an ORed contents mask
@@ -202,33 +205,28 @@ int CM_TransformedPointContents( CModelServerOrClient soc, CollisionModel * cms,
 void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, trace_t * tr, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs,
 							 struct cmodel_s *cmodel, int brushmask, const vec3_t origin, const vec3_t angles );
 
-int CM_ClusterRowSize( CollisionModel *cms );
-int CM_AreaRowSize( CollisionModel *cms );
-int CM_PointLeafnum( CollisionModel *cms, const vec3_t p );
+int CM_ClusterRowSize( const CollisionModel *cms );
+int CM_AreaRowSize( const CollisionModel *cms );
+int CM_PointLeafnum( const CollisionModel *cms, const vec3_t p );
 
 // call with topnode set to the headnode, returns with topnode
 // set to the first node that splits the box
 int CM_BoxLeafnums( CollisionModel *cms, vec3_t mins, vec3_t maxs, int *list, int listsize, int *topnode );
 
-int CM_LeafCluster( CollisionModel *cms, int leafnum );
-int CM_LeafArea( CollisionModel *cms, int leafnum );
+int CM_LeafCluster( const CollisionModel *cms, int leafnum );
+int CM_LeafArea( const CollisionModel *cms, int leafnum );
 
 void CM_SetAreaPortalState( CollisionModel *cms, int area1, int area2, bool open );
-bool CM_AreasConnected( CollisionModel *cms, int area1, int area2 );
+bool CM_AreasConnected( const CollisionModel *cms, int area1, int area2 );
 
-int CM_WriteAreaBits( CollisionModel *cms, uint8_t *buffer );
-void CM_ReadAreaBits( CollisionModel *cms, uint8_t *buffer );
+void CM_WriteAreaBits( CollisionModel *cms, uint8_t *buffer );
 bool CM_HeadnodeVisible( CollisionModel *cms, int headnode, uint8_t *visbits );
 
-void CM_WritePortalState( CollisionModel *cms, int file );
-void CM_ReadPortalState( CollisionModel *cms, int file );
-
 void CM_MergePVS( CollisionModel *cms, const vec3_t org, uint8_t *out );
-int CM_MergeVisSets( CollisionModel *cms, const vec3_t org, uint8_t *pvs, uint8_t *areabits );
 
-bool CM_InPVS( CollisionModel *cms, const vec3_t p1, const vec3_t p2 );
+bool CM_InPVS( const CollisionModel *cms, const vec3_t p1, const vec3_t p2 );
 
-bool CM_LeafsInPVS( CollisionModel *cms, int leafnum1, int leafnum2 );
+bool CM_LeafsInPVS( const CollisionModel *cms, int leafnum1, int leafnum2 );
 
 void CM_Init( void );
 void CM_Shutdown( void );

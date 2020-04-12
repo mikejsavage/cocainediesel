@@ -384,8 +384,8 @@ size_t SNAP_ReadDemoMetaData( int demofile, char *meta_data, size_t meta_data_si
 	meta_data_realsize = LittleLong( meta_data_realsize );
 	meta_data_fullsize = LittleLong( meta_data_fullsize );
 
-	FS_Read( ( void * )meta_data, min( meta_data_size, meta_data_realsize ), demofile );
-	meta_data[min( meta_data_realsize, meta_data_size - 1 )] = '\0'; // termination \0
+	FS_Read( ( void * )meta_data, qmin( meta_data_size, meta_data_realsize ), demofile );
+	meta_data[qmin( meta_data_realsize, meta_data_size - 1 )] = '\0'; // termination \0
 
 	return meta_data_realsize;
 }

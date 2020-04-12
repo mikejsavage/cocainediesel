@@ -11,6 +11,8 @@
 #include "qcommon/ggformat.h"
 #include "qcommon/linear_algebra.h"
 
+#include "tracy/Tracy.hpp"
+
 /*
  * helpers
  */

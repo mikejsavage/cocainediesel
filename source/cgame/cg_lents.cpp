@@ -585,7 +585,7 @@ void CG_BloodDamageEffect( const vec3_t origin, const vec3_t dir, int damage, in
 				   -local_dir[0] * 5 + random_float11( &cls.rng ) * 5,
 				   -local_dir[1] * 5 + random_float11( &cls.rng ) * 5,
 				   -local_dir[2] * 5 + random_float11( &cls.rng ) * 5 + 3 );
-		VectorMA( local_dir, min( 6, count ), le->velocity, le->velocity );
+		VectorMA( local_dir, Min2( 6, count ), le->velocity, le->velocity );
 	}
 }
 
@@ -890,24 +890,24 @@ void CG_AddLocalEntities( void ) {
 			case LE_NO_FADE:
 				break;
 			case LE_RGB_FADE:
-				fade = min( fade, fadeIn );
+				fade = Min2( fade, fadeIn );
 				ent->color.r = ( uint8_t )( fade * le->color.x );
 				ent->color.g = ( uint8_t )( fade * le->color.y );
 				ent->color.b = ( uint8_t )( fade * le->color.z );
 				break;
 			case LE_SCALE_ALPHA_FADE:
-				fade = min( fade, fadeIn );
+				fade = Min2( fade, fadeIn );
 				ent->scale = 1.0f + 1.0f / scale;
-				ent->scale = min( ent->scale, 5.0f );
+				ent->scale = Min2( ent->scale, 5.0f );
 				ent->color.a = ( uint8_t )( fade * le->color.w );
 				break;
 			case LE_INVERSESCALE_ALPHA_FADE:
-				fade = min( fade, fadeIn );
+				fade = Min2( fade, fadeIn );
 				ent->scale = Clamp( 0.1f, scale + 0.1f, 1.0f );
 				ent->color.a = ( uint8_t )( fade * le->color.w );
 				break;
 			case LE_ALPHA_FADE:
-				fade = min( fade, fadeIn );
+				fade = Min2( fade, fadeIn );
 				ent->color.a = ( uint8_t )( fade * le->color.w );
 				break;
 			default:

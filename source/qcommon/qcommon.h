@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include "tracy/Tracy.hpp"
-
 #include "gameshared/q_arch.h"
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
@@ -31,8 +29,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/application.h"
 #include "qcommon/qfiles.h"
-#include "qcommon/cmodel.h"
 #include "qcommon/strtonum.h"
+
+#include "tracy/Tracy.hpp"
 
 inline Vec3 FromQF3( const vec3_t v ) { return Vec3( v[ 0 ], v[ 1 ], v[ 2 ] ); }
 inline EulerDegrees3 FromQFAngles( const vec3_t v ) { return { v[ PITCH ], v[ YAW ], v[ ROLL ] }; }
@@ -66,6 +65,8 @@ struct snapshot_s;
 struct ginfo_s;
 struct client_s;
 struct client_entities_s;
+
+struct CollisionModel;
 
 //============================================================================
 

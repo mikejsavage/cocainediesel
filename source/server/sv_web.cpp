@@ -991,7 +991,7 @@ static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
 			// Content-Range header values
 			response->file_send_pos = FS_Tell( response->file );
 			response->stream.content_range.begin = response->file_send_pos;
-			response->stream.content_range.end = min( (int)content_length, response->stream.content_range.end );
+			response->stream.content_range.end = qmin( content_length, response->stream.content_range.end );
 			response->code = HTTP_RESP_PARTIAL_CONTENT;
 		}
 

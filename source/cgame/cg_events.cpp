@@ -324,9 +324,6 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 		rand += ( rand > 0 ? 1.f - weap->recoil_rand : weap->recoil_rand - 1.f );
 		cg.recoil[ 0 ] += weap->v_recoil * abs( rand );
 		cg.recoil[ 1 ] += weap->h_recoil * rand;
-
-		cg.recoil_sign[ 0 ] = cg.recoil[ 0 ] > 0 ? 1 : -1;
-		cg.recoil_sign[ 1 ] = cg.recoil[ 1 ] > 0 ? 1 : -1;
 	}
 }
 

@@ -28,6 +28,7 @@ require( "libs.monocypher" )
 require( "libs.stb" )
 require( "libs.tracy" )
 require( "libs.whereami" )
+require( "libs.zstd" )
 
 do
 	local platform_srcs
@@ -78,6 +79,7 @@ do
 			"stb_vorbis",
 			"tracy",
 			"whereami",
+			"zstd",
 		},
 
 		prebuilt_libs = {
@@ -87,7 +89,6 @@ do
 			"glfw3",
 			"openal",
 			"zlib",
-			"zstd",
 			platform_libs
 		},
 
@@ -140,13 +141,13 @@ do
 			"monocypher",
 			"tracy",
 			"whereami",
+			"zstd",
 		},
 
 		prebuilt_libs = {
 			"angelscript",
 			"curl",
 			"zlib",
-			"zstd",
 			platform_libs
 		},
 

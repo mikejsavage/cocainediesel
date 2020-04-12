@@ -549,18 +549,18 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 			if( cg.recoiling ) {
 				constexpr float up_mult = 30.0f;
 				constexpr float down_mult = 5.0f;
+				constexpr int num_axis = 2;
 
-				//Shouldn't break if we change PITCH/YAW
-				int axes[ RECOIL_AXES ] = { PITCH, YAW };
+				int axes[ num_axis ] = { PITCH, YAW };
 
 				cg.recoiling = false;
 
-				for( int i = 0; i < RECOIL_AXES; i++ ) {
+				for( int i = 0; i < num_axis; i++ ) {
 					int axis = axes[ i ];
-					cg.recoil_initial_pitch[ i ] += Min2( 0.0f, cl.viewangles[ axis ] - cl.prevviewangles[ axis ] );
+					cg.recoil_initial_pitch[ axis ] += Min2( 0.0f, cl.viewangles[ axis ] - cl.prevviewangles[ axis ] );
 
 					if( cg.recoil[ axis ] == 0.0f ) {
-						float d = cg.recoil_initial_pitch[ i ] - cl.viewangles[ axis ];
+						float d = cg.recoil_initial_pitch[ axis ] - cl.viewangles[ axis ];
 						if( d <= 0.0f ) {
 							break;
 						}
@@ -570,11 +570,11 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 						}
 					}
 					else {
-						float kick = cg.recoil[ i ] * up_mult * cls.frametime * 0.001f;
+						float kick = cg.recoil[ axis ] * up_mult * cls.frametime * 0.001f;
 						cl.viewangles[ axis ] -= kick;
-						cg.recoil[ i ] -= kick;
-						if( cg.recoil[ i ] < 0.1f ) {
-							cg.recoil[ i ] = 0.0f;
+						cg.recoil[ axis ] -= kick;
+						if( cg.recoil[ axis ] < 0.1f ) {
+							cg.recoil[ axis ] = 0.0f;
 						}
 					}
 

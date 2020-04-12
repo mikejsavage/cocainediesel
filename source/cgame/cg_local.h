@@ -302,8 +302,6 @@ typedef struct {
 	ParticleSystem smoke;
 } cg_static_t;
 
-#define RECOIL_AXES 2
-
 typedef struct {
 	int frameCount;
 
@@ -349,8 +347,8 @@ typedef struct {
 	float xyspeed;
 
 	bool recoiling;
-	float recoil[ RECOIL_AXES ];
-	float recoil_initial_pitch[ RECOIL_AXES ];
+	vec3_t recoil;
+	vec3_t recoil_initial_pitch;
 
 	float oldBobTime;
 	int bobCycle;                   // odd cycles are right foot going forward

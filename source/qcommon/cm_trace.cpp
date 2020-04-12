@@ -33,9 +33,7 @@ typedef struct {
 	int contents;
 	int checkcount;
 
-#ifdef TRACEVICFIX
 	float realfraction;
-#endif
 
 	vec3_t extents;
 
@@ -44,6 +42,8 @@ typedef struct {
 	vec3_t startmins, startmaxs;
 	vec3_t endmins, endmaxs;
 	vec3_t absmins, absmaxs;
+
+	CollisionModel * cms;
 
 	trace_t *trace;
 
@@ -478,45 +478,32 @@ BOX TRACING
 ===============================================================================
 */
 
-//#define TRACEVICFIX
-
 // 1/32 epsilon to keep floating point happy
 #define DIST_EPSILON    ( 1.0f / 32.0f )
-#ifdef TRACEVICFIX
-#define FRAC_EPSILON    ( 1.0f / 1024.0f )
-#endif
-#define RADIUS_EPSILON      1.0f
 
 /*
 * CM_ClipBoxToBrush
 */
-static void CM_ClipBoxToBrush( CollisionModel *cms, traceWork_t *tw, const cbrush_t *brush ) {
-	int i;
-	const cplane_t *p, *clipplane;
-	float enterfrac, leavefrac;
-#ifdef TRACEVICFIX
-	float enterdist = 0, move = 1;
-#endif
-	float d1, d2, f;
-	bool getout, startout;
-	const cbrushside_t *side, *leadside;
-
+static void CM_ClipBoxToBrush( traceWork_t *tw, const cbrush_t *brush ) {
 	if( !brush->numsides ) {
 		return;
 	}
 
-	enterfrac = -1;
-	leavefrac = 1;
-	clipplane = NULL;
+	float enterfrac = -1.0f;
+	float leavefrac = 1.0f;
+	float enterfrac2 = -1.0f;
 
-	getout = false;
-	startout = false;
-	leadside = NULL;
-	side = brush->brushsides;
+	const cplane_t * clipplane = NULL;
 
-	for( i = 0; i < brush->numsides; i++, side++ ) {
-		p = &side->plane;
+	bool getout = false;
+	bool startout = false;
+	const cbrushside_t * leadside = NULL;
+	const cbrushside_t * side = brush->brushsides;
 
+	for( int i = 0; i < brush->numsides; i++, side++ ) {
+		const cplane_t * p = &side->plane;
+
+		float d1, d2;
 		// push the plane out apropriately for mins/maxs
 		if( p->type < 3 ) {
 			d1 = tw->startmins[p->type] - p->dist;
@@ -573,20 +560,20 @@ static void CM_ClipBoxToBrush( CollisionModel *cms, traceWork_t *tw, const cbrus
 		if( d1 > 0 && d2 >= d1 ) {
 			return;
 		}
+
 		if( d1 <= 0 && d2 <= 0 ) {
 			continue;
 		}
-#ifdef TRACEVICFIX
+
 		// crosses face
-		f = d1 - d2;
+		float f = d1 - d2;
 		if( f > 0 ) {       // enter
 			f = d1 / f;
 			if( f > enterfrac ) {
-				enterdist = d1;
-				move = d1 - d2;
 				enterfrac = f;
 				clipplane = p;
 				leadside = side;
+				enterfrac2 = ( d1 - DIST_EPSILON ) / ( d1 - d2 ); // nudged fraction
 			}
 		} else if( f < 0 ) {   // leave
 			f = d1 / f;
@@ -594,23 +581,6 @@ static void CM_ClipBoxToBrush( CollisionModel *cms, traceWork_t *tw, const cbrus
 				leavefrac = f;
 			}
 		}
-#else
-		// crosses face
-		f = d1 - d2;
-		if( f > 0 ) {   // enter
-			f = ( d1 - DIST_EPSILON ) / f;
-			if( f > enterfrac ) {
-				enterfrac = f;
-				clipplane = p;
-				leadside = side;
-			}
-		} else if( f < 0 ) {   // leave
-			f = ( d1 + DIST_EPSILON ) / f;
-			if( f < leavefrac ) {
-				leavefrac = f;
-			}
-		}
-#endif
 	}
 
 	if( !startout ) {
@@ -618,57 +588,40 @@ static void CM_ClipBoxToBrush( CollisionModel *cms, traceWork_t *tw, const cbrus
 		tw->trace->startsolid = true;
 		tw->contents = brush->contents;
 		if( !getout ) {
+			tw->realfraction = 0;
 			tw->trace->allsolid = true;
 			tw->trace->fraction = 0;
 		}
 		return;
 	}
-#ifdef TRACEVICFIX
-	if( enterfrac - FRAC_EPSILON <= leavefrac ) {
-		if( enterfrac > -1 && enterfrac < tw->realfraction ) {
-			if( enterfrac < 0 ) {
-				enterfrac = 0;
-			}
+
+	if( enterfrac <= -1 || enterfrac > leavefrac ) {
+		return;
+	}
+
+	// check if this will reduce the collision time range
+	if( enterfrac < tw->realfraction ) {
+		if( enterfrac2 < tw->trace->fraction ) {
 			tw->realfraction = enterfrac;
 			tw->trace->plane = *clipplane;
 			tw->trace->surfFlags = leadside->surfFlags;
 			tw->trace->contents = brush->contents;
-			tw->trace->fraction = ( enterdist - DIST_EPSILON ) / move;
-			if( tw->trace->fraction < 0 ) {
-				tw->trace->fraction = 0;
-			}
+			tw->trace->fraction = enterfrac2;
 		}
 	}
-#else
-	if( enterfrac - ( 1.0f / 1024.0f ) <= leavefrac ) {
-		if( enterfrac > -1 && enterfrac < tw->trace->fraction ) {
-			if( enterfrac < 0 ) {
-				enterfrac = 0;
-			}
-			tw->trace->fraction = enterfrac;
-			tw->trace->plane = *clipplane;
-			tw->trace->surfFlags = leadside->surfFlags;
-			tw->trace->contents = brush->contents;
-		}
-	}
-#endif
 }
 
 /*
 * CM_TestBoxInBrush
 */
-static void CM_TestBoxInBrush( CollisionModel *cms, traceWork_t *tw, const cbrush_t *brush ) {
-	int i;
-	const cplane_t *p;
-	const cbrushside_t *side;
-
+static void CM_TestBoxInBrush( traceWork_t *tw, const cbrush_t *brush ) {
 	if( !brush->numsides ) {
 		return;
 	}
 
-	side = brush->brushsides;
-	for( i = 0; i < brush->numsides; i++, side++ ) {
-		p = &side->plane;
+	const cbrushside_t * side = brush->brushsides;
+	for( int i = 0; i < brush->numsides; i++, side++ ) {
+		const cplane_t * p = &side->plane;
 
 		// push the plane out appropriately for mins/maxs
 		// if completely in front of face, no intersection
@@ -734,8 +687,8 @@ static void CM_TestBoxInBrush( CollisionModel *cms, traceWork_t *tw, const cbrus
 /*
 * CM_CollideBox
 */
-static void CM_CollideBox( CollisionModel *cms, traceWork_t *tw, const int *markbrushes, int nummarkbrushes,
-	const int *markfaces, int nummarkfaces, void ( *func )( CollisionModel *cms, traceWork_t *, const cbrush_t *b ) ) {
+static void CM_CollideBox( traceWork_t *tw, const int *markbrushes, int nummarkbrushes,
+	const int *markfaces, int nummarkfaces, void ( *func )( traceWork_t *, const cbrush_t *b ) ) {
 	int i, j;
 	const cbrush_t *brushes = tw->brushes;
 	const cface_t *faces = tw->faces;
@@ -757,7 +710,7 @@ static void CM_CollideBox( CollisionModel *cms, traceWork_t *tw, const int *mark
 		if( !BoundsOverlap( b->mins, b->maxs, tw->absmins, tw->absmaxs ) ) {
 			continue;
 		}
-		func( cms, tw, b );
+		func( tw, b );
 		if( !tw->trace->fraction ) {
 			return;
 		}
@@ -789,7 +742,7 @@ static void CM_CollideBox( CollisionModel *cms, traceWork_t *tw, const int *mark
 			if( !BoundsOverlap( facet->mins, facet->maxs, tw->absmins, tw->absmaxs ) ) {
 				continue;
 			}
-			func( cms, tw, facet );
+			func( tw, facet );
 			if( !tw->trace->fraction ) {
 				return;
 			}
@@ -800,24 +753,22 @@ static void CM_CollideBox( CollisionModel *cms, traceWork_t *tw, const int *mark
 /*
 * CM_ClipBox
 */
-static inline void CM_ClipBox( CollisionModel *cms, traceWork_t *tw,
-	const int *markbrushes, int nummarkbrushes, const int *markfaces, int nummarkfaces ) {
-	CM_CollideBox( cms, tw, markbrushes, nummarkbrushes, markfaces, nummarkfaces, CM_ClipBoxToBrush );
+static inline void CM_ClipBox( traceWork_t *tw, const int *markbrushes, int nummarkbrushes, const int *markfaces, int nummarkfaces ) {
+	CM_CollideBox( tw, markbrushes, nummarkbrushes, markfaces, nummarkfaces, CM_ClipBoxToBrush );
 }
 
 /*
 * CM_TestBox
 */
-static inline void CM_TestBox( CollisionModel *cms, traceWork_t *tw,
-	const int *markbrushes, int nummarkbrushes, const int *markfaces, int nummarkfaces ) {
-	CM_CollideBox( cms, tw,  markbrushes, nummarkbrushes, markfaces, nummarkfaces, CM_TestBoxInBrush );
+static inline void CM_TestBox( traceWork_t *tw, const int *markbrushes, int nummarkbrushes, const int *markfaces, int nummarkfaces ) {
+	CM_CollideBox( tw, markbrushes, nummarkbrushes, markfaces, nummarkfaces, CM_TestBoxInBrush );
 }
 
 /*
 * CM_RecursiveHullCheck
 */
-static void CM_RecursiveHullCheck( CollisionModel *cms, traceWork_t *tw, int num,
-	float p1f, float p2f, const vec3_t p1, const vec3_t p2 ) {
+static void CM_RecursiveHullCheck( traceWork_t *tw, int num, float p1f, float p2f, const vec3_t p1, const vec3_t p2 ) {
+	const CollisionModel *cms = tw->cms;
 	const cnode_t *node;
 	const cplane_t *plane;
 	int side;
@@ -827,15 +778,9 @@ static void CM_RecursiveHullCheck( CollisionModel *cms, traceWork_t *tw, int num
 	vec3_t mid;
 
 loc0:
-#ifdef TRACEVICFIX
 	if( tw->realfraction <= p1f ) {
 		return; // already hit something nearer
 	}
-#else
-	if( tw->trace->fraction <= p1f ) {
-		return; // already hit something nearer
-	}
-#endif
 
 	// if < 0, we are in a leaf node
 	if( num < 0 ) {
@@ -843,7 +788,7 @@ loc0:
 
 		leaf = &cms->map_leafs[-1 - num];
 		if( leaf->contents & tw->contents ) {
-			CM_ClipBox( cms, tw, leaf->markbrushes, leaf->nummarkbrushes, leaf->markfaces, leaf->nummarkfaces );
+			CM_ClipBox( tw, leaf->markbrushes, leaf->nummarkbrushes, leaf->markfaces, leaf->nummarkfaces );
 		}
 		return;
 	}
@@ -866,8 +811,8 @@ loc0:
 			offset = 0;
 		} else {
 			offset = Abs( tw->extents[0] * plane->normal[0] ) +
-					 Abs( tw->extents[1] * plane->normal[1] ) +
-					 Abs( tw->extents[2] * plane->normal[2] );
+				Abs( tw->extents[1] * plane->normal[1] ) +
+				Abs( tw->extents[2] * plane->normal[2] );
 		}
 	}
 
@@ -885,23 +830,13 @@ loc0:
 	if( t1 < t2 ) {
 		idist = 1.0 / ( t1 - t2 );
 		side = 1;
-#ifdef TRACEVICFIX
 		frac2 = ( t1 + offset ) * idist;
 		frac = ( t1 - offset ) * idist;
-#else
-		frac2 = ( t1 + offset + DIST_EPSILON ) * idist;
-		frac = ( t1 - offset + DIST_EPSILON ) * idist;
-#endif
 	} else if( t1 > t2 ) {
 		idist = 1.0 / ( t1 - t2 );
 		side = 0;
-#ifdef TRACEVICFIX
 		frac2 = ( t1 - offset ) * idist;
 		frac = ( t1 + offset ) * idist;
-#else
-		frac2 = ( t1 - offset - DIST_EPSILON ) * idist;
-		frac = ( t1 + offset + DIST_EPSILON ) * idist;
-#endif
 	} else {
 		side = 0;
 		frac = 1;
@@ -913,14 +848,14 @@ loc0:
 	midf = p1f + ( p2f - p1f ) * frac;
 	VectorLerp( p1, frac, p2, mid );
 
-	CM_RecursiveHullCheck( cms, tw, node->children[side], p1f, midf, p1, mid );
+	CM_RecursiveHullCheck( tw, node->children[side], p1f, midf, p1, mid );
 
 	// go past the node
 	frac2 = Clamp01( frac2 );
 	midf = p1f + ( p2f - p1f ) * frac2;
 	VectorLerp( p1, frac2, p2, mid );
 
-	CM_RecursiveHullCheck( cms, tw, node->children[side ^ 1], midf, p2f, mid, p2 );
+	CM_RecursiveHullCheck( tw, node->children[side ^ 1], midf, p2f, mid, p2 );
 }
 
 //======================================================================
@@ -932,15 +867,11 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 	const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs,
 	cmodel_t *cmodel, const vec3_t origin, int brushmask ) {
 
-	bool notworld = cmodel->hash != cms->world_hash;
+	bool world = cmodel->hash == cms->world_hash;
 
 	// fill in a default trace
 	memset( tr, 0, sizeof( *tr ) );
-#ifdef TRACEVICFIX
-	tr->fraction = tw->realfraction = 1;
-#else
 	tr->fraction = 1;
-#endif
 
 	if( !cms->numnodes ) { // map not loaded
 		return;
@@ -949,9 +880,12 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 	cms->checkcount++;  // for multi-check avoidance
 
 	memset( tw, 0, sizeof( *tw ) );
+	// the epsilon considers blockers with realfraction == 1 and nudged fraction < 1
+	tw->realfraction = 1 + DIST_EPSILON;
 	tw->checkcount = cms->checkcount;
 	tw->trace = tr;
 	tw->contents = brushmask;
+	tw->cms = cms;
 	VectorCopy( start, tw->start );
 	VectorCopy( end, tw->end );
 	VectorCopy( mins, tw->mins );
@@ -996,11 +930,7 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 		int topnode;
 		cleaf_t *leaf;
 
-		if( notworld ) {
-			if( BoundsOverlap( cmodel->mins, cmodel->maxs, tw->absmins, tw->absmaxs ) ) {
-				CM_TestBox( cms, tw, cmodel->markbrushes, cmodel->nummarkbrushes, cmodel->markfaces, cmodel->nummarkfaces );
-			}
-		} else {
+		if( world ) {
 			for( i = 0; i < 3; i++ ) {
 				c1[i] = start[i] + mins[i] - 1;
 				c2[i] = start[i] + maxs[i] + 1;
@@ -1011,11 +941,16 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 				leaf = &cms->map_leafs[leafs[i]];
 
 				if( leaf->contents & brushmask ) {
-					CM_TestBox( cms, tw, leaf->markbrushes, leaf->nummarkbrushes, leaf->markfaces, leaf->nummarkfaces );
+					CM_TestBox( tw, leaf->markbrushes, leaf->nummarkbrushes, leaf->markfaces, leaf->nummarkfaces );
 					if( tr->allsolid ) {
 						break;
 					}
 				}
+			}
+		}
+		else {
+			if( BoundsOverlap( cmodel->mins, cmodel->maxs, tw->absmins, tw->absmaxs ) ) {
+				CM_TestBox( tw, cmodel->markbrushes, cmodel->nummarkbrushes, cmodel->markfaces, cmodel->nummarkfaces );
 			}
 		}
 
@@ -1032,33 +967,23 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 	} else {
 		tw->ispoint = false;
 		VectorSet( tw->extents,
-				   -mins[0] > maxs[0] ? -mins[0] : maxs[0],
-				   -mins[1] > maxs[1] ? -mins[1] : maxs[1],
-				   -mins[2] > maxs[2] ? -mins[2] : maxs[2] );
+			-mins[0] > maxs[0] ? -mins[0] : maxs[0],
+			-mins[1] > maxs[1] ? -mins[1] : maxs[1],
+			-mins[2] > maxs[2] ? -mins[2] : maxs[2] );
 	}
 
 	//
 	// general sweeping through world
 	//
-	if( !notworld ) {
-		CM_RecursiveHullCheck( cms, tw, 0, 0, 1, start, end );
-	} else if( BoundsOverlap( cmodel->mins, cmodel->maxs, tw->absmins, tw->absmaxs ) ) {
-		CM_ClipBox( cms, tw, cmodel->markbrushes, cmodel->nummarkbrushes, cmodel->markfaces, cmodel->nummarkfaces );
+	if( world ) {
+		CM_RecursiveHullCheck( tw, 0, 0, 1, start, end );
+	}
+	else if( BoundsOverlap( cmodel->mins, cmodel->maxs, tw->absmins, tw->absmaxs ) ) {
+		CM_ClipBox( tw, cmodel->markbrushes, cmodel->nummarkbrushes, cmodel->markfaces, cmodel->nummarkfaces );
 	}
 
-#ifdef TRACEVICFIX
-	clamp( tr->fraction, 0, 1 );
-#endif
-	if( tr->fraction == 1 ) {
-		VectorCopy( end, tr->endpos );
-	} else {
-		VectorLerp( start, tr->fraction, end, tr->endpos );
-#ifdef TRACE_NOAXIAL
-		if( PlaneTypeForNormal( tr->plane.normal ) == PLANE_NONAXIAL ) {
-			VectorMA( tr->endpos, TRACE_NOAXIAL_SAFETY_OFFSET, tr->plane.normal, tr->endpos );
-		}
-#endif
-	}
+	tr->fraction = Clamp01( tr->fraction );
+	VectorLerp( start, tr->fraction, end, tr->endpos );
 }
 
 /*
@@ -1110,11 +1035,7 @@ void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, tra
 	// in this case, the orientation of vector would be ( normalize(origin-start), cross(x,z), up )
 
 	// rotate start and end into the models frame of reference
-	if( ( angles[0] || angles[1] || angles[2] )
-#ifndef CM_ALLOW_ROTATED_BBOXES
-		&& !cmodel->builtin
-#endif
-		) {
+	if( ( angles[0] || angles[1] || angles[2] ) && !cmodel->builtin ) {
 		rotated = true;
 	} else {
 		rotated = false;
@@ -1141,14 +1062,5 @@ void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, tra
 		Matrix3_TransformVector( axis, temp, tr->plane.normal );
 	}
 
-	if( tr->fraction == 1 ) {
-		VectorCopy( end, tr->endpos );
-	} else {
-		VectorLerp( start, tr->fraction, end, tr->endpos );
-#ifdef TRACE_NOAXIAL
-		if( PlaneTypeForNormal( tr->plane.normal ) == PLANE_NONAXIAL ) {
-			VectorMA( tr->endpos, TRACE_NOAXIAL_SAFETY_OFFSET, tr->plane.normal, tr->endpos );
-		}
-#endif
-	}
+	VectorLerp( start, tr->fraction, end, tr->endpos );
 }

@@ -7,7 +7,6 @@
 
 // TODO: revamp key_dest garbage
 // TODO: finish cleaning up old stuff
-// TODO: check if mutex is really needed
 
 static constexpr size_t CONSOLE_LOG_SIZE = 1000 * 1000; // 1MB
 static constexpr size_t CONSOLE_INPUT_SIZE = 1024;
@@ -18,6 +17,7 @@ struct HistoryEntry {
 
 struct Console {
 	String< CONSOLE_LOG_SIZE > log;
+	Mutex * log_mutex = NULL;
 
 	char input[ CONSOLE_INPUT_SIZE ];
 
@@ -29,13 +29,14 @@ struct Console {
 	size_t history_head;
 	size_t history_count;
 	size_t history_idx;
-
-	Mutex * mutex = NULL;
 };
 
 static Console console;
 
 static void Con_ClearScrollback() {
+	Lock( console.log_mutex );
+	defer { Unlock( console.log_mutex ); };
+
 	console.log.clear();
 }
 
@@ -45,6 +46,8 @@ static void Con_ClearInput() {
 }
 
 void Con_Init() {
+	console.log_mutex = NewMutex();
+
 	Con_ClearScrollback();
 	Con_ClearInput();
 
@@ -55,15 +58,13 @@ void Con_Init() {
 	console.history_head = 0;
 	console.history_count = 0;
 
-	console.mutex = NewMutex();
-
 	Cmd_AddCommand( "toggleconsole", Con_ToggleConsole );
 	Cmd_AddCommand( "clear", Con_ClearScrollback );
 	// Cmd_AddCommand( "condump", Con_Dump );
 }
 
 void Con_Shutdown() {
-	DeleteMutex( console.mutex );
+	DeleteMutex( console.log_mutex );
 
 	Cmd_RemoveCommand( "toggleconsole" );
 	Cmd_RemoveCommand( "clear" );
@@ -100,11 +101,11 @@ void Con_Close() {
 }
 
 void Con_Print( const char * str ) {
-	if( console.mutex == NULL )
+	if( console.log_mutex == NULL )
 		return;
 
-	Lock( console.mutex );
-	defer { Unlock( console.mutex ); };
+	Lock( console.log_mutex );
+	defer { Unlock( console.log_mutex ); };
 
 	// delete lines until we have enough space to add str
 	size_t len = strlen( str );
@@ -204,9 +205,7 @@ static void Con_Execute() {
 
 	Con_ClearInput();
 
-	Unlock( console.mutex );
 	Com_Printf( "> %s\n", console.input );
-	Lock( console.mutex );
 }
 
 // break str into small chunks so we can print them individually because the
@@ -225,9 +224,6 @@ const char * NextChunkEnd( const char * str ) {
 }
 
 void Con_Draw() {
-	Lock( console.mutex );
-	defer { Unlock( console.mutex ); };
-
 	u32 bg = IM_COL32( 27, 27, 27, 224 );
 
 	ImGui::PushFont( cls.console_font );
@@ -247,6 +243,9 @@ void Con_Draw() {
 		ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8, 4 ) );
 		ImGui::BeginChild( "consoletext", ImVec2( 0, frame_static.viewport_height * 0.4 - ImGui::GetFrameHeightWithSpacing() - 3 ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
 		{
+			Lock( console.log_mutex );
+			defer { Unlock( console.log_mutex ); };
+
 			ImGui::PushTextWrapPos( 0 );
 			const char * p = console.log.c_str();
 			while( p != NULL ) {

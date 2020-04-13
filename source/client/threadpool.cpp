@@ -26,7 +26,9 @@ static Worker workers[ 32 ];
 static u32 num_workers;
 
 static void ThreadPoolWorker( void * data ) {
+#if TRACY_ENABLE
 	tracy::SetThreadName( "Thread pool worker" );
+#endif
 
 	ArenaAllocator * arena = ( ArenaAllocator * ) data;
 

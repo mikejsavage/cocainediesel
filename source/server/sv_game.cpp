@@ -24,60 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 game_export_t *ge;
 
-//======================================================================
-
-// PF versions of the CM functions passed to the game module
-// they only add svs.cms as the first parameter
-
-//======================================================================
-
-static inline int PF_CM_TransformedPointContents( const vec3_t p, struct cmodel_s *cmodel, const vec3_t origin, const vec3_t angles ) {
-	return CM_TransformedPointContents( CM_Server, svs.cms, p, cmodel, origin, angles );
-}
-
-static inline void PF_CM_TransformedBoxTrace( trace_t *tr, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs,
-											  struct cmodel_s *cmodel, int brushmask, const vec3_t origin, const vec3_t angles ) {
-	CM_TransformedBoxTrace( CM_Server, svs.cms, tr, start, end, mins, maxs, cmodel, brushmask, origin, angles );
-}
-
-static inline void PF_CM_InlineModelBounds( const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs ) {
-	CM_InlineModelBounds( svs.cms, cmodel, mins, maxs );
-}
-
-static inline struct cmodel_s *PF_CM_ModelForBBox( vec3_t mins, vec3_t maxs ) {
-	return CM_ModelForBBox( svs.cms, mins, maxs );
-}
-
-static inline struct cmodel_s *PF_CM_OctagonModelForBBox( vec3_t mins, vec3_t maxs ) {
-	return CM_OctagonModelForBBox( svs.cms, mins, maxs );
-}
-
-static inline bool PF_CM_AreasConnected( int area1, int area2 ) {
-	return CM_AreasConnected( svs.cms, area1, area2 );
-}
-
-static inline void PF_CM_SetAreaPortalState( int area, int otherarea, bool open ) {
-	CM_SetAreaPortalState( svs.cms, area, otherarea, open );
-}
-
-static inline int PF_CM_BoxLeafnums( vec3_t mins, vec3_t maxs, int *list, int listsize, int *topnode ) {
-	return CM_BoxLeafnums( svs.cms, mins, maxs, list, listsize, topnode );
-}
-
-static inline int PF_CM_LeafCluster( int leafnum ) {
-	return CM_LeafCluster( svs.cms, leafnum );
-}
-
-static inline int PF_CM_LeafArea( int leafnum ) {
-	return CM_LeafArea( svs.cms, leafnum );
-}
-
-static inline int PF_CM_LeafsInPVS( int leafnum1, int leafnum2 ) {
-	return CM_LeafsInPVS( svs.cms, leafnum1, leafnum2 );
-}
-
-//======================================================================
-
 /*
 * PF_DropClient
 */

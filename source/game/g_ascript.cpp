@@ -1405,8 +1405,6 @@ static const asProperty_t astrace_Properties[] =
 	{ ASLIB_PROPERTY_DECL( const int, contents ), offsetof( astrace_t, trace.contents ) },
 	{ ASLIB_PROPERTY_DECL( const int, entNum ), offsetof( astrace_t, trace.ent ) },
 	{ ASLIB_PROPERTY_DECL( const float, planeDist ), offsetof( astrace_t, trace.plane.dist ) },
-	{ ASLIB_PROPERTY_DECL( const int16, planeType ), offsetof( astrace_t, trace.plane.type ) },
-	{ ASLIB_PROPERTY_DECL( const int16, planeSignBits ), offsetof( astrace_t, trace.plane.signbits ) },
 
 	ASLIB_PROPERTY_NULL
 };

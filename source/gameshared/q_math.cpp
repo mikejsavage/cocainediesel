@@ -445,131 +445,6 @@ float CalcHorizontalFov( float fov_y, float width, float height ) {
 }
 
 /*
-* BoxOnPlaneSide
-*
-* Returns 1, 2, or 1 + 2
-*/
-int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const struct cplane_s *p ) {
-	float dist1, dist2;
-	int sides;
-
-	// general case
-	switch( p->signbits ) {
-		case 0:
-			dist1 = p->normal[0] * emaxs[0] + p->normal[1] * emaxs[1] + p->normal[2] * emaxs[2];
-			dist2 = p->normal[0] * emins[0] + p->normal[1] * emins[1] + p->normal[2] * emins[2];
-			break;
-		case 1:
-			dist1 = p->normal[0] * emins[0] + p->normal[1] * emaxs[1] + p->normal[2] * emaxs[2];
-			dist2 = p->normal[0] * emaxs[0] + p->normal[1] * emins[1] + p->normal[2] * emins[2];
-			break;
-		case 2:
-			dist1 = p->normal[0] * emaxs[0] + p->normal[1] * emins[1] + p->normal[2] * emaxs[2];
-			dist2 = p->normal[0] * emins[0] + p->normal[1] * emaxs[1] + p->normal[2] * emins[2];
-			break;
-		case 3:
-			dist1 = p->normal[0] * emins[0] + p->normal[1] * emins[1] + p->normal[2] * emaxs[2];
-			dist2 = p->normal[0] * emaxs[0] + p->normal[1] * emaxs[1] + p->normal[2] * emins[2];
-			break;
-		case 4:
-			dist1 = p->normal[0] * emaxs[0] + p->normal[1] * emaxs[1] + p->normal[2] * emins[2];
-			dist2 = p->normal[0] * emins[0] + p->normal[1] * emins[1] + p->normal[2] * emaxs[2];
-			break;
-		case 5:
-			dist1 = p->normal[0] * emins[0] + p->normal[1] * emaxs[1] + p->normal[2] * emins[2];
-			dist2 = p->normal[0] * emaxs[0] + p->normal[1] * emins[1] + p->normal[2] * emaxs[2];
-			break;
-		case 6:
-			dist1 = p->normal[0] * emaxs[0] + p->normal[1] * emins[1] + p->normal[2] * emins[2];
-			dist2 = p->normal[0] * emins[0] + p->normal[1] * emaxs[1] + p->normal[2] * emaxs[2];
-			break;
-		case 7:
-			dist1 = p->normal[0] * emins[0] + p->normal[1] * emins[1] + p->normal[2] * emins[2];
-			dist2 = p->normal[0] * emaxs[0] + p->normal[1] * emaxs[1] + p->normal[2] * emaxs[2];
-			break;
-		default:
-			dist1 = dist2 = 0; // shut up compiler
-			assert( 0 );
-			break;
-	}
-
-	sides = 0;
-	if( dist1 >= p->dist ) {
-		sides = 1;
-	}
-	if( dist2 < p->dist ) {
-		sides |= 2;
-	}
-
-	return sides;
-}
-
-/*
-* SignbitsForPlane
-*/
-int SignbitsForPlane( const cplane_t *out ) {
-	int bits, j;
-
-	// for fast box on planeside test
-
-	bits = 0;
-	for( j = 0; j < 3; j++ ) {
-		if( out->normal[j] < 0 ) {
-			bits |= 1 << j;
-		}
-	}
-	return bits;
-}
-
-/*
-* PlaneTypeForNormal
-*/
-int PlaneTypeForNormal( const vec3_t normal ) {
-	// NOTE: should these have an epsilon around 1.0?
-	if( normal[0] >= 1.0 ) {
-		return PLANE_X;
-	}
-	if( normal[1] >= 1.0 ) {
-		return PLANE_Y;
-	}
-	if( normal[2] >= 1.0 ) {
-		return PLANE_Z;
-	}
-
-	return PLANE_NONAXIAL;
-}
-
-/*
-* CategorizePlane
-*
-* A slightly more complex version of SignbitsForPlane and PlaneTypeForNormal,
-* which also tries to fix possible floating point glitches (like -0.00000 cases)
-*/
-void CategorizePlane( cplane_t *plane ) {
-	int i;
-
-	plane->signbits = 0;
-	plane->type = PLANE_NONAXIAL;
-	for( i = 0; i < 3; i++ ) {
-		if( plane->normal[i] < 0 ) {
-			plane->signbits |= 1 << i;
-			if( plane->normal[i] == -1.0f ) {
-				plane->signbits = ( 1 << i );
-				VectorClear( plane->normal );
-				plane->normal[i] = -1.0f;
-				break;
-			}
-		} else if( plane->normal[i] == 1.0f ) {
-			plane->type = i;
-			plane->signbits = 0;
-			VectorClear( plane->normal );
-			plane->normal[i] = 1.0f;
-			break;
-		}
-	}
-}
-
-/*
 * PlaneFromPoints
 */
 void PlaneFromPoints( vec3_t verts[3], cplane_t *plane ) {
@@ -580,7 +455,6 @@ void PlaneFromPoints( vec3_t verts[3], cplane_t *plane ) {
 	CrossProduct( v2, v1, plane->normal );
 	VectorNormalize( plane->normal );
 	plane->dist = DotProduct( verts[0], plane->normal );
-	plane->type = PLANE_NONAXIAL;
 }
 
 #define PLANE_NORMAL_EPSILON    0.00001
@@ -604,9 +478,7 @@ bool ComparePlanes( const vec3_t p1normal, float p1dist, const vec3_t p2normal, 
 * SnapVector
 */
 void SnapVector( vec3_t normal ) {
-	int i;
-
-	for( i = 0; i < 3; i++ ) {
+	for( int i = 0; i < 3; i++ ) {
 		if( Abs( normal[i] - 1 ) < PLANE_NORMAL_EPSILON ) {
 			VectorClear( normal );
 			normal[i] = 1;

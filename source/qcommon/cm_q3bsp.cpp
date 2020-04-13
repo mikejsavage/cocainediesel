@@ -280,7 +280,6 @@ static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, cshaderref_t *s
 			for( j = 0, s = facet->brushsides; j < facet->numsides; j++, s++ ) {
 				s->plane = brushplanes[k++];
 				SnapPlane( s->plane.normal, &s->plane.dist );
-				CategorizePlane( &s->plane );
 				s->surfFlags = shaderref->flags;
 			}
 		}
@@ -676,35 +675,21 @@ static void CMod_LoadLeafs( CollisionModel *cms, lump_t *l ) {
 * CMod_LoadPlanes
 */
 static void CMod_LoadPlanes( CollisionModel *cms, lump_t *l ) {
-	int i, j;
-	int count;
-	cplane_t *out;
-	dplane_t *in;
-
-	in = ( dplane_t * )( cms->cmod_base + l->fileofs );
+	dplane_t * in = ( dplane_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Com_Error( ERR_DROP, "CMod_LoadPlanes: funny lump size" );
 	}
-	count = l->filelen / sizeof( *in );
+	int count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
 		Com_Error( ERR_DROP, "Map with no planes" );
 	}
 
-	out = cms->map_planes = ( cplane_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
+	cplane_t * out = cms->map_planes = ( cplane_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
 	cms->numplanes = count;
 
-	for( i = 0; i < count; i++, in++, out++ ) {
-		out->signbits = 0;
-		out->type = PLANE_NONAXIAL;
-
-		for( j = 0; j < 3; j++ ) {
+	for( int i = 0; i < count; i++, in++, out++ ) {
+		for( int j = 0; j < 3; j++ ) {
 			out->normal[j] = LittleFloat( in->normal[j] );
-			if( out->normal[j] < 0 ) {
-				out->signbits |= ( 1 << j );
-			}
-			if( out->normal[j] == 1.0f ) {
-				out->type = j;
-			}
 		}
 
 		out->dist = LittleFloat( in->dist );
@@ -740,32 +725,26 @@ static void CMod_LoadMarkBrushes( CollisionModel *cms, lump_t *l ) {
 * CMod_LoadBrushSides
 */
 static void CMod_LoadBrushSides( CollisionModel *cms, lump_t *l ) {
-	int i, j;
-	int count;
-	cbrushside_t *out;
-	dbrushside_t *in;
-
-	in = ( dbrushside_t * )( cms->cmod_base + l->fileofs );
+	dbrushside_t * in = ( dbrushside_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Com_Error( ERR_DROP, "CMod_LoadBrushSides: funny lump size" );
 	}
-	count = l->filelen / sizeof( *in );
+	int count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
 		Com_Error( ERR_DROP, "Map with no brushsides" );
 	}
 
-	out = cms->map_brushsides = ( cbrushside_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
+	cbrushside_t * out = cms->map_brushsides = ( cbrushside_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
 	cms->numbrushsides = count;
 
-	for( i = 0; i < count; i++, in++, out++ ) {
+	for( int i = 0; i < count; i++, in++, out++ ) {
 		cplane_t *plane = cms->map_planes + LittleLong( in->planenum );
-		j = LittleLong( in->shadernum );
+		int j = LittleLong( in->shadernum );
 		if( j >= cms->numshaderrefs ) {
 			Com_Error( ERR_DROP, "Bad brushside texinfo" );
 		}
 		out->plane = *plane;
 		out->surfFlags = cms->map_shaderrefs[j].flags;
-		CategorizePlane( &out->plane );
 	}
 }
 
@@ -798,7 +777,6 @@ static void CMod_LoadBrushSides_RBSP( CollisionModel *cms, lump_t *l ) {
 		}
 		out->plane = *plane;
 		out->surfFlags = cms->map_shaderrefs[j].flags;
-		CategorizePlane( &out->plane );
 	}
 }
 

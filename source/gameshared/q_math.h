@@ -52,18 +52,10 @@ enum {
 typedef float vec3_t[3];
 typedef float mat3_t[9];
 
-// 0-2 are axial planes
-#define PLANE_X     0
-#define PLANE_Y     1
-#define PLANE_Z     2
-#define PLANE_NONAXIAL  3
-
 // cplane_t structure
 typedef struct cplane_s {
 	vec3_t normal;
 	float dist;
-	short type;                 // for fast side tests
-	short signbits;             // signx + (signy<<1) + (signz<<1)
 } cplane_t;
 
 constexpr vec3_t vec3_origin = { 0, 0, 0 };
@@ -75,7 +67,7 @@ constexpr mat3_t axis_identity = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 #define DotProduct( x, y )     ( ( x )[0] * ( y )[0] + ( x )[1] * ( y )[1] + ( x )[2] * ( y )[2] )
 #define CrossProduct( v1, v2, cross ) ( ( cross )[0] = ( v1 )[1] * ( v2 )[2] - ( v1 )[2] * ( v2 )[1], ( cross )[1] = ( v1 )[2] * ( v2 )[0] - ( v1 )[0] * ( v2 )[2], ( cross )[2] = ( v1 )[0] * ( v2 )[1] - ( v1 )[1] * ( v2 )[0] )
 
-#define PlaneDiff( point, plane ) ( ( ( plane )->type < 3 ? ( point )[( plane )->type] : DotProduct( ( point ), ( plane )->normal ) ) - ( plane )->dist )
+#define PlaneDiff( point, plane ) ( DotProduct( ( point ), ( plane )->normal ) - ( plane )->dist )
 
 #define VectorSubtract( a, b, c )   ( ( c )[0] = ( a )[0] - ( b )[0], ( c )[1] = ( a )[1] - ( b )[1], ( c )[2] = ( a )[2] - ( b )[2] )
 #define VectorAdd( a, b, c )        ( ( c )[0] = ( a )[0] + ( b )[0], ( c )[1] = ( a )[1] + ( b )[1], ( c )[2] = ( a )[2] + ( b )[2] )
@@ -114,7 +106,6 @@ void ByteToDir( int b, vec3_t dir );
 
 void ViewVectors( const vec3_t forward, vec3_t right, vec3_t up );
 void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up );
-int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const struct cplane_s *plane );
 float LerpAngle( float a1, float a2, const float frac );
 float AngleNormalize360( float angle );
 float AngleNormalize180( float angle );
@@ -128,30 +119,12 @@ float CalcHorizontalFov( float fov_y, float width, float height );
 
 #define Q_rint( x ) ( ( x ) < 0 ? ( (int)( ( x ) - 0.5f ) ) : ( (int)( ( x ) + 0.5f ) ) )
 
-int SignbitsForPlane( const cplane_t *out );
-int PlaneTypeForNormal( const vec3_t normal );
 void CategorizePlane( cplane_t *plane );
 void PlaneFromPoints( vec3_t verts[3], cplane_t *plane );
 
 bool ComparePlanes( const vec3_t p1normal, float p1dist, const vec3_t p2normal, float p2dist );
 void SnapVector( vec3_t normal );
 void SnapPlane( vec3_t normal, float *dist );
-
-#define BOX_ON_PLANE_SIDE( emins, emaxs, p )  \
-	( ( ( p )->type < 3 ) ?                       \
-	  (                                       \
-		  ( ( p )->dist <= ( emins )[( p )->type] ) ?  \
-		  1                               \
-		  :                                   \
-		  (                                   \
-			  ( ( p )->dist >= ( emaxs )[( p )->type] ) ? \
-			  2                           \
-			  :                               \
-			  3                           \
-		  )                                   \
-	  )                                       \
-	  :                                       \
-	  BoxOnPlaneSide( ( emins ), ( emaxs ), ( p ) ) )
 
 void PerpendicularVector( vec3_t dst, const vec3_t src );
 void ProjectPointOntoPlane( vec3_t dst, const vec3_t p, const vec3_t normal );

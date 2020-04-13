@@ -38,7 +38,6 @@ typedef struct {
 
 	int num_clusters;           // if -1, use headnode instead
 	int clusternums[MAX_ENT_CLUSTERS];
-	int leafnums[MAX_ENT_CLUSTERS];
 	int headnode;               // unused if num_clusters != -1
 	int areanum, areanum2;
 

@@ -485,8 +485,7 @@ void GClip_UnlinkEntity( edict_t *ent ) {
 * Needs to be called any time an entity changes origin, mins, maxs,
 * or solid.  Automatically unlinks if needed.
 * sets ent->v.absmin and ent->v.absmax
-* sets ent->leafnums[] for pvs determination even if the entity
-* is not solid
+* sets ent->clusternums[] for pvs determination even if the entity is not solid
 */
 #define MAX_TOTAL_ENT_LEAFS 128
 void GClip_LinkEntity( edict_t *ent ) {
@@ -613,7 +612,6 @@ void GClip_LinkEntity( edict_t *ent ) {
 					break;
 				}
 				ent->r.clusternums[ent->r.num_clusters] = clusters[i];
-				ent->r.leafnums[ent->r.num_clusters] = leafs[i];
 				ent->r.num_clusters++;
 			}
 		}

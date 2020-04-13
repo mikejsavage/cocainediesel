@@ -87,9 +87,6 @@ constexpr mat3_t axis_identity = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 #define DistanceSquared( v1, v2 ) ( ( ( v1 )[0] - ( v2 )[0] ) * ( ( v1 )[0] - ( v2 )[0] ) + ( ( v1 )[1] - ( v2 )[1] ) * ( ( v1 )[1] - ( v2 )[1] ) + ( ( v1 )[2] - ( v2 )[2] ) * ( ( v1 )[2] - ( v2 )[2] ) )
 #define Distance( v1, v2 ) ( sqrtf( DistanceSquared( v1, v2 ) ) )
 
-#define Vector2Set( v, x, y )     ( ( v )[0] = ( x ), ( v )[1] = ( y ) )
-#define Vector2Copy( a, b )    ( ( b )[0] = ( a )[0], ( b )[1] = ( a )[1] )
-
 float VectorNormalize( vec3_t v );       // returns vector length
 float VectorNormalize2( const vec3_t v, vec3_t out );
 
@@ -119,7 +116,6 @@ float CalcHorizontalFov( float fov_y, float width, float height );
 
 #define Q_rint( x ) ( ( x ) < 0 ? ( (int)( ( x ) - 0.5f ) ) : ( (int)( ( x ) + 0.5f ) ) )
 
-void CategorizePlane( cplane_t *plane );
 void PlaneFromPoints( vec3_t verts[3], cplane_t *plane );
 
 bool ComparePlanes( const vec3_t p1normal, float p1dist, const vec3_t p2normal, float p2dist );

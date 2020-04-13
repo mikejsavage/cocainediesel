@@ -188,7 +188,7 @@ void W_Fire_Bullet( edict_t * self, vec3_t start, vec3_t angles, int timeDelta, 
 	}
 
 	trace_t trace, wallbang;
-	GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, x_spread, x_spread, def->range, ENTNUM( self ), timeDelta );
+	GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, x_spread, y_spread, def->range, ENTNUM( self ), timeDelta );
 	if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
 		float damage = def->damage;
 		float knockback = def->knockback;

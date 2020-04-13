@@ -549,36 +549,26 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 			if( cg.recoiling ) {
 				constexpr float up_mult = 30.0f;
 				constexpr float down_mult = 5.0f;
-				constexpr int num_axis = 2;
 
-				int axes[ num_axis ] = { PITCH, YAW };
+				cg.recoil_initial_pitch += Min2( 0.0f, cl.viewangles[ PITCH ] - cl.prevviewangles[ PITCH ] );
 
-				cg.recoiling = false;
-
-				for( int i = 0; i < num_axis; i++ ) {
-					int axis = axes[ i ];
-					cg.recoil_initial_pitch[ axis ] += Min2( 0.0f, cl.viewangles[ axis ] - cl.prevviewangles[ axis ] );
-
-					if( cg.recoil[ axis ] == 0.0f ) {
-						float d = cg.recoil_initial_pitch[ axis ] - cl.viewangles[ axis ];
-						if( d <= 0.0f ) {
-							break;
-						}
-						else {
-							float downkick = d * down_mult * cls.frametime * 0.001f;
-							cl.viewangles[ axis ] += Min2( downkick, d );
-						}
+				if( cg.recoil == 0.0f ) {
+					float d = cg.recoil_initial_pitch - cl.viewangles[ PITCH ];
+					if( d <= 0.0f ) {
+						cg.recoiling = false;
 					}
 					else {
-						float kick = cg.recoil[ axis ] * up_mult * cls.frametime * 0.001f;
-						cl.viewangles[ axis ] -= kick;
-						cg.recoil[ axis ] -= kick;
-						if( cg.recoil[ axis ] < 0.1f ) {
-							cg.recoil[ axis ] = 0.0f;
-						}
+						float downkick = d * down_mult * cls.frametime * 0.001f;
+						cl.viewangles[ PITCH ] += Min2( downkick, d );
 					}
-
-					cg.recoiling = true;
+				}
+				else {
+					float kick = cg.recoil * up_mult * cls.frametime * 0.001f;
+					cl.viewangles[ PITCH ] -= kick;
+					cg.recoil -= kick;
+					if( cg.recoil < 0.1f ) {
+						cg.recoil = 0.0f;
+					}
 				}
 			}
 

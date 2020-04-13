@@ -559,10 +559,10 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 					int axis = axes[ i ];
 
 					float corrected = cl.viewangles[ axis ] - cl.prevviewangles[ axis ];
-                    if( corrected < 0.0f || axis == PITCH )
-                        cg.recoil_initial_pitch[ i ] += Min2( 0.0f, corrected );
-                    else
-                        cg.recoil_initial_pitch[ i ] += Max2( 0.0f, corrected );
+					if( corrected < 0.0f || axis == PITCH )
+						cg.recoil_initial_pitch[ i ] += Min2( 0.0f, corrected );
+					else
+						cg.recoil_initial_pitch[ i ] += Max2( 0.0f, corrected );
 
 
 					if( cg.recoil[ i ] == 0.0f ) {

@@ -322,11 +322,11 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 		const WeaponDef * weap = GS_GetWeaponDef( weapon );
 		float rand = random_float11( &cls.rng ) * weap->recoil_rand;
 		rand += ( rand > 0 ? 1.f - weap->recoil_rand : weap->recoil_rand - 1.f );
-		cg.recoil[ 0 ] += weap->v_recoil * ( rand > 0 ? rand : -rand );
+		cg.recoil[ 0 ] += weap->v_recoil * ( rand >= 0 ? rand : -rand );
 		cg.recoil[ 1 ] += weap->h_recoil * rand;
 
-		cg.recoil_sign[ 0 ] = cg.recoil[ 0 ] > 0 ? 1 : -1;
-		cg.recoil_sign[ 1 ] = cg.recoil[ 1 ] > 0 ? 1 : -1;
+		cg.recoil_sign[ 0 ] = cg.recoil[ 0 ] >= 0 ? 1 : -1;
+		cg.recoil_sign[ 1 ] = cg.recoil[ 1 ] >= 0 ? 1 : -1;
 	}
 }
 

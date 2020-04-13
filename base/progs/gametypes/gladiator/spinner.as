@@ -29,8 +29,8 @@ void spinner_think( Entity@ self ) {
 
 	int weapon1 = random_uniform( Weapon_None + 1, Weapon_Count );
 	int weapon2 = random_uniform( Weapon_None + 1, Weapon_Count - 1 );
-	if( weapon1 >= weapon2 )
-		tmp2++;
+	if( weapon2 >= weapon1 )
+		weapon2++;
 
 	for( int j = 0; @team.ent( j ) != null; j++ ) {
 		Entity @ent = @team.ent( j );

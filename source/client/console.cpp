@@ -203,9 +203,9 @@ static void Con_Execute() {
 		}
 	}
 
-	Con_ClearInput();
-
 	Com_Printf( "> %s\n", console.input );
+
+	Con_ClearInput();
 }
 
 // break str into small chunks so we can print them individually because the

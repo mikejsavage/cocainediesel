@@ -248,7 +248,7 @@ static void DecodeSoundWorker( TempAllocator * temp, void * data ) {
 	job->out.num_samples = stb_vorbis_decode_memory( job->in.ogg.ptr, job->in.ogg.num_bytes(), &job->out.channels, &job->out.sample_rate, &job->out.samples );
 }
 
-static void LoadSound( const char * path, int num_samples, int channels, int sample_rate, s16 * samples ) {
+static void AddSound( const char * path, int num_samples, int channels, int sample_rate, s16 * samples ) {
 	ZoneScoped;
 	ZoneText( path, strlen( path ) );
 
@@ -292,7 +292,7 @@ static void LoadSound( const char * path, int num_samples, int channels, int sam
 	alBufferData( sounds[ idx ].buf, format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
 	CheckALErrors();
 
-	sounds[ num_sounds ].mono = channels == 1;
+	sounds[ idx ].mono = channels == 1;
 
 	if( restart_music ) {
 		S_StartMenuMusic();
@@ -326,7 +326,7 @@ static void LoadSounds() {
 	ParallelFor( DecodeSoundWorker, jobs.span() );
 
 	for( DecodeSoundJob job : jobs ) {
-		LoadSound( job.in.path, job.out.num_samples, job.out.channels, job.out.sample_rate, job.out.samples );
+		AddSound( job.in.path, job.out.num_samples, job.out.channels, job.out.sample_rate, job.out.samples );
 	}
 }
 
@@ -344,7 +344,7 @@ static void HotloadSounds() {
 				num_samples = stb_vorbis_decode_memory( ogg.ptr, ogg.num_bytes(), &channels, &sample_rate, &samples );
 			}
 
-			LoadSound( path, num_samples, channels, sample_rate, samples );
+			AddSound( path, num_samples, channels, sample_rate, samples );
 		}
 	}
 }

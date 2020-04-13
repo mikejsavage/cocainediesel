@@ -546,10 +546,11 @@ void CM_MergePVS( CollisionModel *cms, const vec3_t org, uint8_t *out ) {
 
 	// or in all the other leaf bits
 	for( i = 0; i < count; i++ ) {
-		for( j = 0; j < i; j++ )
+		for( j = 0; j < i; j++ ) {
 			if( leafs[i] == leafs[j] ) {
 				break;
 			}
+		}
 		if( j != i ) {
 			continue; // already have the cluster we want
 		}
@@ -579,33 +580,6 @@ int CM_MergeVisSets( CollisionModel *cms, const vec3_t org, uint8_t *pvs, uint8_
 	}
 
 	return CM_AreaRowSize( cms ); // areabytes
-}
-
-/*
-* CM_InPVS
-*
-* Also checks portalareas so that doors block sight
-*/
-bool CM_InPVS( const CollisionModel *cms, const vec3_t p1, const vec3_t p2 ) {
-	int leafnum1 = CM_PointLeafnum( cms, p1 );
-	int leafnum2 = CM_PointLeafnum( cms, p2 );
-
-	int cluster1 = CM_LeafCluster( cms, leafnum1 );
-	int area1 = CM_LeafArea( cms, leafnum1 );
-	const uint8_t * mask = CM_ClusterPVS( cms, cluster1 );
-
-	int cluster2 = CM_LeafCluster( cms, leafnum2 );
-	int area2 = CM_LeafArea( cms, leafnum2 );
-
-	if( ( !( mask[cluster2 >> 3] & ( 1 << ( cluster2 & 7 ) ) ) ) ) {
-		return false;
-	}
-
-	if( !CM_AreasConnected( cms, area1, area2 ) ) {
-		return false; // a door blocks sight
-	}
-
-	return true;
 }
 
 /*

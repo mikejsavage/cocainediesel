@@ -27,40 +27,6 @@ static cgame_export_t *cge;
 
 gs_state_t client_gs;
 
-//======================================================================
-
-// CL_GameModule versions of the CM functions passed to the game module
-// they only add sv.cms as the first parameter
-
-//======================================================================
-
-static inline int CL_GameModule_CM_TransformedPointContents( const vec3_t p, struct cmodel_s *cmodel, const vec3_t origin, const vec3_t angles ) {
-	return CM_TransformedPointContents( CM_Client, cl.cms, p, cmodel, origin, angles );
-}
-
-static inline void CL_GameModule_CM_TransformedBoxTrace( trace_t *tr, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs,
-														 struct cmodel_s *cmodel, int brushmask, const vec3_t origin, const vec3_t angles ) {
-	CM_TransformedBoxTrace( CM_Client, cl.cms, tr, start, end, mins, maxs, cmodel, brushmask, origin, angles );
-}
-
-static inline void CL_GameModule_CM_InlineModelBounds( const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs ) {
-	CM_InlineModelBounds( cl.cms, cmodel, mins, maxs );
-}
-
-static inline struct cmodel_s *CL_GameModule_CM_ModelForBBox( vec3_t mins, vec3_t maxs ) {
-	return CM_ModelForBBox( cl.cms, mins, maxs );
-}
-
-static inline struct cmodel_s *CL_GameModule_CM_OctagonModelForBBox( vec3_t mins, vec3_t maxs ) {
-	return CM_OctagonModelForBBox( cl.cms, mins, maxs );
-}
-
-static inline bool CL_GameModule_CM_InPVS( const vec3_t p1, const vec3_t p2 ) {
-	return CM_InPVS( cl.cms, p1, p2 );
-}
-
-//======================================================================
-
 /*
 * CL_GameModule_GetConfigString
 */

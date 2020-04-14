@@ -85,56 +85,6 @@ static void G_ProjectileDistancePrestep( edict_t *projectile, float distance ) {
 #endif
 }
 
-static void G_Fire_Gunblade_Knife( vec3_t origin, vec3_t angles, edict_t *owner, int timeDelta ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Knife );
-	W_Fire_Blade( owner, def->range, origin, angles, def->damage, def->knockback, timeDelta );
-}
-
-static edict_t *G_Fire_Rocket( vec3_t origin, vec3_t angles, edict_t *owner, int timeDelta ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_RocketLauncher );
-	return W_Fire_Rocket( owner, origin, angles, def->speed, def->damage,
-		def->minknockback, def->knockback, def->mindamage,
-		def->splash_radius, def->range, timeDelta );
-}
-
-static void G_Fire_Riotgun( vec3_t origin, vec3_t angles, edict_t *owner, int timeDelta ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Shotgun );
-	W_Fire_Riotgun( owner, origin, angles, def->range, def->spread,
-		def->projectile_count, def->damage, def->knockback, timeDelta );
-}
-
-static edict_t *G_Fire_Grenade( vec3_t origin, vec3_t angles, edict_t *owner, int timeDelta ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_GrenadeLauncher );
-	return W_Fire_Grenade( owner, origin, angles, def->speed, def->damage,
-		def->minknockback, def->knockback, def->mindamage,
-		def->splash_radius, def->range, timeDelta, true );
-}
-
-static edict_t *G_Fire_Plasma( vec3_t origin, vec3_t angles, edict_t *owner, int timeDelta ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Plasma );
-	return W_Fire_Plasma( owner, origin, angles, def->damage,
-		def->minknockback, def->knockback, def->mindamage,
-		def->splash_radius, def->speed, def->range, timeDelta );
-}
-
-static edict_t *G_Fire_Lasergun( vec3_t origin, vec3_t angles, edict_t *owner, int timeDelta ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Laser );
-	return W_Fire_Lasergun( owner, origin, angles, def->damage, def->knockback, def->range, timeDelta );
-}
-
-static void G_Fire_Bolt( vec3_t origin, vec3_t angles, edict_t *owner, int timeDelta ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Railgun );
-	W_Fire_Electrobolt( owner, origin, angles, def->damage,
-		def->knockback, def->range, timeDelta );
-}
-
-static edict_t *G_Fire_RifleBullet( vec3_t origin, vec3_t angles, edict_t *owner, int timeDelta ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Rifle );
-	return W_Fire_RifleBullet( owner, origin, angles, def->speed, def->damage,
-		def->minknockback, def->knockback, def->mindamage,
-		def->splash_radius, def->range, timeDelta );
-}
-
 void G_FireWeapon( edict_t *ent, u64 parm ) {
 	vec3_t origin, angles;
 	vec3_t viewoffset = { 0, 0, 0 };
@@ -160,7 +110,7 @@ void G_FireWeapon( edict_t *ent, u64 parm ) {
 			return;
 
 		case Weapon_Knife:
-			G_Fire_Gunblade_Knife( origin, angles, ent, timeDelta );
+			W_Fire_Blade( ent, origin, angles, timeDelta );
 			break;
 
 		case Weapon_Pistol:
@@ -176,7 +126,7 @@ void G_FireWeapon( edict_t *ent, u64 parm ) {
 			break;
 
 		case Weapon_Shotgun:
-			G_Fire_Riotgun( origin, angles, ent, timeDelta );
+			W_Fire_Shotgun( ent, origin, angles, timeDelta );
 			break;
 
 		case Weapon_AssaultRifle:
@@ -184,19 +134,19 @@ void G_FireWeapon( edict_t *ent, u64 parm ) {
 			break;
 
 		case Weapon_GrenadeLauncher:
-			projectile = G_Fire_Grenade( origin, angles, ent, timeDelta );
+			projectile = W_Fire_Grenade( ent, origin, angles, timeDelta, true );
 			break;
 
 		case Weapon_RocketLauncher:
-			projectile = G_Fire_Rocket( origin, angles, ent, timeDelta );
+			projectile = W_Fire_Rocket( ent, origin, angles, timeDelta );
 			break;
 
 		case Weapon_Plasma:
-			projectile = G_Fire_Plasma( origin, angles, ent, timeDelta );
+			projectile = W_Fire_Plasma( ent, origin, angles, timeDelta );
 			break;
 
 		case Weapon_Laser:
-			projectile = G_Fire_Lasergun( origin, angles, ent, timeDelta );
+			projectile = W_Fire_Lasergun( ent, origin, angles, timeDelta );
 			break;
 
 		case Weapon_Sniper:
@@ -204,11 +154,11 @@ void G_FireWeapon( edict_t *ent, u64 parm ) {
 			break;
 
 		case Weapon_Railgun:
-			G_Fire_Bolt( origin, angles, ent, timeDelta );
+			W_Fire_Railgun( ent, origin, angles, timeDelta );
 			break;
 
 		case Weapon_Rifle:
-			G_Fire_RifleBullet( origin, angles, ent, timeDelta );
+			W_Fire_RifleBullet( ent, origin, angles, timeDelta );
 			break;
 	}
 

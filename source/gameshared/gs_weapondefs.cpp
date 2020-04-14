@@ -18,7 +18,7 @@ const WeaponDef gs_weaponDefs[] = {
 		"Knife people in the face",
 		0,
 
-		0,                              // projectiles fired each shot
+		6,                              // projectiles fired each shot
 		0,                              // clip size
 		0,                              // reload time
 		false,                          // staged reloading
@@ -44,7 +44,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 		//projectile def
 		INSTANT,                        // speed
-		0,                              // spread
+		45,                             // spread
 	},
 
 	{

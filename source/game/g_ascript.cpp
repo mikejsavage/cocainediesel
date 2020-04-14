@@ -1690,24 +1690,24 @@ static void asFunc_G_AnnouncerSound( gclient_t *target, u64 sound, int team, boo
 	G_AnnouncerSound( ent, StringHash( sound ), team, queued, passent );
 }
 
-static void asFunc_FireBolt( asvec3_t *origin, asvec3_t *angles, int range, int damage, int knockback, edict_t *owner ) {
-	W_Fire_Electrobolt( owner, origin->v, angles->v, damage, knockback, range, 0 );
+static void asFunc_FireRailgun( edict_t *owner, asvec3_t *origin, asvec3_t *angles ) {
+	W_Fire_Railgun( owner, origin->v, angles->v, 0 );
 }
 
-static edict_t *asFunc_FirePlasma( asvec3_t *origin, asvec3_t *angles, int speed, int radius, int damage, int knockback, edict_t *owner ) {
-	return W_Fire_Plasma( owner, origin->v, angles->v, damage, 1, knockback, 1, radius, speed, 5000, 0 );
+static edict_t *asFunc_FirePlasma( edict_t *owner, asvec3_t *origin, asvec3_t *angles ) {
+	return W_Fire_Plasma( owner, origin->v, angles->v, 0 );
 }
 
-static edict_t *asFunc_FireRocket( asvec3_t *origin, asvec3_t *angles, int speed, int radius, int damage, int knockback, edict_t *owner ) {
-	return W_Fire_Rocket( owner, origin->v, angles->v, speed, damage, 1, knockback, 1, radius, 5000, 0 );
+static edict_t *asFunc_FireRocket( edict_t *owner, asvec3_t *origin, asvec3_t *angles ) {
+	return W_Fire_Rocket( owner, origin->v, angles->v, 0 );
 }
 
-static edict_t *asFunc_FireGrenade( asvec3_t *origin, asvec3_t *angles, int speed, int radius, int damage, int knockback, edict_t *owner ) {
-	return W_Fire_Grenade( owner, origin->v, angles->v, speed, damage, 1, knockback, 1, radius, 5000, 0, false );
+static edict_t *asFunc_FireGrenade( edict_t *owner, asvec3_t *origin, asvec3_t *angles ) {
+	return W_Fire_Grenade( owner, origin->v, angles->v, 0, false );
 }
 
-static void asFunc_FireRiotgun( asvec3_t *origin, asvec3_t *angles, int range, int spread, int count, int damage, int knockback, edict_t *owner ) {
-	W_Fire_Riotgun( owner, origin->v, angles->v, range, spread, count, damage, knockback, 0 );
+static void asFunc_FireShotgun( edict_t *owner, asvec3_t *origin, asvec3_t *angles ) {
+	W_Fire_Shotgun( owner, origin->v, angles->v, 0 );
 }
 
 static const asglobfuncs_t asGameGlobFuncs[] =
@@ -1751,11 +1751,11 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "uint64 Hash64( const String &in )", asFUNCTION( asFunc_Hash64 ), NULL },
 
 	// projectile firing
-	{ "void G_FireBolt( const Vec3 &in origin, const Vec3 &in angles, int range, int damage, int knockback, Entity @owner )",asFUNCTION( asFunc_FireBolt ), NULL },
-	{ "Entity @G_FirePlasma( const Vec3 &in origin, const Vec3 &in angles, int speed, int radius, int damage, int knockback, Entity @owner )", asFUNCTION( asFunc_FirePlasma ), NULL },
-	{ "Entity @G_FireRocket( const Vec3 &in origin, const Vec3 &in angles, int speed, int radius, int damage, int knockback, Entity @owner )", asFUNCTION( asFunc_FireRocket ), NULL },
-	{ "Entity @G_FireGrenade( const Vec3 &in origin, const Vec3 &in angles, int speed, int radius, int damage, int knockback, Entity @owner )", asFUNCTION( asFunc_FireGrenade ), NULL },
-	{ "void G_FireRiotgun( const Vec3 &in origin, const Vec3 &in angles, int range, int spread, int count, int damage, int knockback, Entity @owner )", asFUNCTION( asFunc_FireRiotgun ), NULL },
+	{ "void W_Fire_Railgun( const Vec3 &in origin, const Vec3 &in angles, int range, int damage, int knockback, Entity @owner )",asFUNCTION( asFunc_FireRailgun ), NULL },
+	{ "Entity @W_Fire_Plasma( Entity @owner, const Vec3 &in origin, const Vec3 &in angles )", asFUNCTION( asFunc_FirePlasma ), NULL },
+	{ "Entity @W_Fire_Rocket( Entity @owner, const Vec3 &in origin, const Vec3 &in angles )", asFUNCTION( asFunc_FireRocket ), NULL },
+	{ "Entity @W_Fire_Grenade( Entity @owner, const Vec3 &in origin, const Vec3 &in angles )", asFUNCTION( asFunc_FireGrenade ), NULL },
+	{ "void W_Fire_Riotgun( Entity @owner, const Vec3 &in origin, const Vec3 &in angles )", asFUNCTION( asFunc_FireShotgun ), NULL },
 
 	{ NULL }
 };

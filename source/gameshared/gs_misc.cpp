@@ -139,7 +139,7 @@ void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *me
 			strcpy( message, "was penetrated by" );
 			strcpy( message2, "'s machinegun" );
 			break;
-		case MOD_RIOTGUN:
+		case MOD_SHOTGUN:
 			strcpy( message, "was shredded by" );
 			strcpy( message2, "'s riotgun" );
 			break;
@@ -152,10 +152,11 @@ void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *me
 			strcpy( message2, "'s rocket" );
 			break;
 		case MOD_PLASMA:
+		case MOD_BUBBLEGUN:
 			strcpy( message, "was melted by" );
 			strcpy( message2, "'s plasmagun" );
 			break;
-		case MOD_ELECTROBOLT:
+		case MOD_RAILGUN:
 			strcpy( message, "was bolted by" );
 			strcpy( message2, "'s electrobolt" );
 			break;

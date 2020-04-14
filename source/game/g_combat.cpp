@@ -300,8 +300,8 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 		attacker->r.client->level.stats.total_damage_given += take;
 
 		// RG calls G_Damage for every bullet, so we accumulate damage
-		// in G_Fire_SunflowerPattern and show one number there instead
-		if( mod != MOD_RIOTGUN ) {
+		// in W_Fire_Shotgun and show one number there instead
+		if( mod != MOD_SHOTGUN ) {
 			edict_t * ev = G_SpawnEvent( EV_DAMAGE, 0, targ->s.origin );
 			ev->r.svflags |= SVF_ONLYOWNER;
 			ev->s.ownerNum = ENTNUM( attacker );

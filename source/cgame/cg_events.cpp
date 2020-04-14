@@ -290,6 +290,7 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 		case Weapon_MachineGun:
 		case Weapon_Shotgun:
 		case Weapon_Plasma:
+		case Weapon_BubbleGun:
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_LIGHTWEAPON, 0, EVENT_CHANNEL );
 			break;
 
@@ -402,25 +403,28 @@ static void CG_Event_FireBullet( const vec3_t origin, const vec3_t dir, WeaponTy
 }
 
 /*
-* CG_Fire_SunflowerPattern
+* CG_Event_FireShotgun
 */
-static void CG_Fire_SunflowerPattern( vec3_t start, vec3_t dir, int owner, int team, int count, int spread, int range ) {
+static void CG_Event_FireShotgun( vec3_t origin, vec3_t dir, int owner, int team ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_Shotgun );
+
 	Vec4 color = CG_TeamColorVec4( team );
 	vec3_t right, up;
 	ViewVectors( dir, right, up );
 
 	orientation_t projection;
 	if( !CG_PModel_GetProjectionSource( owner, &projection ) ) {
-		VectorCopy( start, projection.origin );
+		VectorCopy( origin, projection.origin );
 	}
 
-	for( int i = 0; i < count; i++ ) {
+	//Sunflower pattern
+	for( int i = 0; i < def->projectile_count; i++ ) {
 		float fi = i * 2.4f; //magic value creating Fibonacci numbers
-		float r = cosf( fi ) * spread * sqrtf( fi );
-		float u = sinf( fi ) * spread * sqrtf( fi );
+		float r = cosf( fi ) * def->spread * sqrtf( fi );
+		float u = sinf( fi ) * def->spread * sqrtf( fi );
 
 		trace_t trace, wallbang;
-		GS_TraceBullet( &client_gs, &trace, &wallbang, start, dir, right, up, r, u, range, owner, 0 );
+		GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, r, u, def->range, owner, 0 );
 
 		if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
 			BulletImpact( &trace, color, 4 );
@@ -430,15 +434,6 @@ static void CG_Fire_SunflowerPattern( vec3_t start, vec3_t dir, int owner, int t
 
 		AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 1.0f, color, cgs.media.shaderTracer, 0.2f, 0.1f );
 	}
-}
-
-/*
-* CG_Event_FireRiotgun
-*/
-static void CG_Event_FireRiotgun( vec3_t origin, vec3_t dir, int owner, int team ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Shotgun );
-
-	CG_Fire_SunflowerPattern( origin, dir, owner, team, def->projectile_count, def->spread, def->range );
 
 	// spawn a single sound at the impact
 	vec3_t end;
@@ -795,7 +790,7 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 				CG_Event_WeaponBeam( origin, dir, num );
 			}
 			else if( parm == Weapon_Shotgun ) {
-				CG_Event_FireRiotgun( origin, dir, num, ent->team );
+				CG_Event_FireShotgun( origin, dir, num, ent->team );
 			}
 			else if( parm == Weapon_Laser ) {
 				CG_Event_LaserBeam( origin, dir, num );

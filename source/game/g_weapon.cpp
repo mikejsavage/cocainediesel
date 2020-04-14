@@ -199,6 +199,9 @@ void W_Fire_Blade( edict_t * self, vec3_t start, vec3_t angles, int timeDelta ) 
 	}
 }
 
+/*
+* W_Fire_Bullet
+*/
 void W_Fire_Bullet( edict_t * self, vec3_t start, vec3_t angles, int timeDelta, WeaponType weapon, int mod ) {
 	const WeaponDef * def = GS_GetWeaponDef( weapon );
 
@@ -225,47 +228,45 @@ void W_Fire_Bullet( edict_t * self, vec3_t start, vec3_t angles, int timeDelta, 
 	}
 }
 
-// Sunflower spiral with Fibonacci numbers
-static void G_Fire_SunflowerPattern( edict_t * self, vec3_t start, vec3_t dir, int count,
-									 float spread, int range, float damage, float kick, int timeDelta ) {
-	vec3_t right, up;
-	ViewVectors( dir, right, up );
-
-	float damage_dealt[MAX_CLIENTS + 1] = { };
-	for( int i = 0; i < count; i++ ) {
-		float fi = i * 2.4f; //magic value creating Fibonacci numbers
-		float r = cosf( fi ) * spread * sqrtf( fi );
-		float u = sinf( fi ) * spread * sqrtf( fi );
-
-		trace_t trace, wallbang;
-		GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, r, u, range, ENTNUM( self ), timeDelta );
-		if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
-			G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, damage, kick, 0, MOD_RIOTGUN );
-
-			if( !G_IsTeamDamage( &game.edicts[trace.ent].s, &self->s ) && trace.ent <= MAX_CLIENTS ) {
-				damage_dealt[trace.ent] += damage;
-			}
-		}
-	}
-
-	for( int i = 1; i <= MAX_CLIENTS; i++ ) {
-		if( damage_dealt[i] == 0 )
-			continue;
-		edict_t * target = &game.edicts[i];
-		edict_t * ev = G_SpawnEvent( EV_DAMAGE, 0, target->s.origin );
-		ev->r.svflags |= SVF_ONLYOWNER;
-		ev->s.ownerNum = ENTNUM( self );
-		ev->s.damage = HEALTH_TO_INT( damage_dealt[i] );
-	}
-}
-
+/*
+* W_Fire_Shotgun
+*/
 void W_Fire_Shotgun( edict_t * self, vec3_t start, vec3_t angles, int timeDelta ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_Shotgun );
 
 	vec3_t dir;
 	AngleVectors( angles, dir, NULL, NULL );
-	G_Fire_SunflowerPattern( self, start, dir, def->projectile_count, def->spread,
-		def->range, def->damage, def->knockback, timeDelta );
+
+	vec3_t right, up;
+	ViewVectors( dir, right, up );
+
+	//Sunflower pattern
+	float damage_dealt[ MAX_CLIENTS + 1 ] = { };
+	for( int i = 0; i < def->projectile_count; i++ ) {
+		float fi = i * 2.4f; //magic value creating Fibonacci numbers
+		float r = cosf( fi ) * def->spread * sqrtf( fi );
+		float u = sinf( fi ) * def->spread * sqrtf( fi );
+
+		trace_t trace, wallbang;
+		GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, r, u, def->range, ENTNUM( self ), timeDelta );
+		if( trace.ent != -1 && game.edicts[ trace.ent ].takedamage ) {
+			G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, def->damage, def->knockback, 0, MOD_SHOTGUN );
+
+			if( !G_IsTeamDamage( &game.edicts[ trace.ent ].s, &self->s ) && trace.ent <= MAX_CLIENTS ) {
+				damage_dealt[ trace.ent ] += def->damage;
+			}
+		}
+	}
+
+	for( int i = 1; i <= MAX_CLIENTS; i++ ) {
+		if( damage_dealt[ i ] == 0 )
+			continue;
+		edict_t * target = &game.edicts[ i ];
+		edict_t * ev = G_SpawnEvent( EV_DAMAGE, 0, target->s.origin );
+		ev->r.svflags |= SVF_ONLYOWNER;
+		ev->s.ownerNum = ENTNUM( self );
+		ev->s.damage = HEALTH_TO_INT( damage_dealt[ i ] );
+	}
 }
 
 /*
@@ -510,6 +511,28 @@ edict_t * W_Fire_Plasma( edict_t * self, vec3_t start, vec3_t angles, int timeDe
 	return plasma;
 }
 
+/*
+* W_Fire_BubbleGun
+*/
+edict_t * W_Fire_BubbleGun( edict_t * self, vec3_t start, vec3_t angles, int timeDelta ) {
+	edict_t * plasma = W_Fire_LinearProjectile( self, start, angles, timeDelta, Weapon_BubbleGun );
+	plasma->s.type = ET_PLASMA;
+	plasma->classname = "plasma";
+
+	plasma->think = W_Think_Plasma;
+	plasma->touch = W_AutoTouch_Plasma;
+
+	plasma->nextThink = level.time + 1;
+
+	plasma->s.model = "weapons/pg/cell";
+	plasma->s.sound = "weapons/pg/trail";
+
+	return plasma;
+}
+
+/*
+* W_Fire_Railgun
+*/
 void W_Fire_Railgun( edict_t * self, vec3_t start, vec3_t angles, int timeDelta ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_Railgun );
 
@@ -546,7 +569,7 @@ void W_Fire_Railgun( edict_t * self, vec3_t start, vec3_t angles, int timeDelta 
 		}
 
 		if( hit != self && hit->takedamage ) {
-			G_Damage( hit, self, self, dir, dir, tr.endpos, def->damage, def->knockback, 0, MOD_ELECTROBOLT );
+			G_Damage( hit, self, self, dir, dir, tr.endpos, def->damage, def->knockback, 0, MOD_RAILGUN );
 
 			// spawn a impact event on each damaged ent
 			edict_t * event = G_SpawnEvent( EV_BOLT_EXPLOSION, DirToByte( tr.plane.normal ), tr.endpos );
@@ -701,6 +724,9 @@ static void W_Touch_RifleBullet( edict_t *ent, edict_t *other, cplane_t *plane, 
 	G_FreeEdict( ent );
 }
 
+/*
+* W_Fire_RifleBullet
+*/
 edict_t * W_Fire_RifleBullet( edict_t * self, vec3_t start, vec3_t angles, int timeDelta ) {
 	edict_t * bullet = W_Fire_LinearProjectile( self, start, angles, timeDelta, Weapon_Rifle );
 	bullet->s.type = ET_RIFLEBULLET;

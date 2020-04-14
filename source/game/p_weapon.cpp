@@ -145,6 +145,10 @@ void G_FireWeapon( edict_t *ent, u64 parm ) {
 			projectile = W_Fire_Plasma( ent, origin, angles, timeDelta );
 			break;
 
+		case Weapon_BubbleGun:
+			projectile = W_Fire_BubbleGun( ent, origin, angles, timeDelta );
+			break;
+
 		case Weapon_Laser:
 			projectile = W_Fire_Lasergun( ent, origin, angles, timeDelta );
 			break;

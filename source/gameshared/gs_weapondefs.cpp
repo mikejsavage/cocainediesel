@@ -320,6 +320,40 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
+		"BubbleGun", "bg",
+		"Shoots slow projectiles that deal damage in an area",
+		100,
+
+		1,                              // projectiles fired each shot
+		4,                              // clip size
+		2000,                           // reload time
+		false,                          // staged reloading
+
+		//timings (in msecs)
+		WEAPONUP_TIME_NORMAL,           // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		500,                            // refire time
+		10000,                          // projectile timeout
+		1.0f,                           // recoil
+		FiringMode_Auto,
+
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
+		//damages
+		12,                             // damage
+		0,                              // selfdamage ratio
+		50,                             // knockback
+		100,                            // splash radius
+		1,                              // splash minimum damage
+		1,                              // splash minimum knockback
+
+		//projectile def
+		400,                            // speed
+		40.0f,                          // spread
+	},
+
+	{
 		"Laser", "lg",
 		"Shoots a continuous trail doing quick but low damage at a certain range",
 		200,

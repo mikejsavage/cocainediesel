@@ -30,12 +30,13 @@ WeaponType MODToWeapon( int mod ) {
 		case MOD_PISTOL: return Weapon_Pistol;
 		case MOD_MACHINEGUN: return Weapon_MachineGun;
 		case MOD_DEAGLE: return Weapon_Deagle;
-		case MOD_RIOTGUN: return Weapon_Shotgun;
+		case MOD_SHOTGUN: return Weapon_Shotgun;
 		case MOD_ASSAULTRIFLE: return Weapon_AssaultRifle;
 		case MOD_GRENADE: return Weapon_GrenadeLauncher;
 		case MOD_ROCKET: return Weapon_RocketLauncher;
 		case MOD_PLASMA: return Weapon_Plasma;
-		case MOD_ELECTROBOLT: return Weapon_Railgun;
+		case MOD_BUBBLEGUN: return Weapon_BubbleGun;
+		case MOD_RAILGUN: return Weapon_Railgun;
 		case MOD_LASERGUN: return Weapon_Laser;
 		case MOD_SNIPER: return Weapon_Sniper;
 		case MOD_RIFLE: return Weapon_Rifle;

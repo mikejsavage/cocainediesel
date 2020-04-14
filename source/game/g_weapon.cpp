@@ -43,8 +43,21 @@ static edict_t * W_Fire_LinearProjectile( edict_t * self, vec3_t start, vec3_t a
 	VectorCopy( start, projectile->s.origin );
 	VectorCopy( start, projectile->olds.origin );
 
-	VectorCopy( angles, projectile->s.angles );
-	AngleVectors( angles, dir, NULL, NULL );
+	if( def->spread != 0.0f ) {
+		vec3_t spread;
+
+		VectorCopy( angles, spread );
+
+		spread[ PITCH ] += random_float11( &svs.rng ) * def->spread;
+		spread[ YAW ] += random_float11( &svs.rng ) * def->spread;
+
+		VectorCopy( spread, projectile->s.angles );
+		AngleVectors( spread, dir, NULL, NULL );
+	} else {
+		VectorCopy( angles, projectile->s.angles );
+		AngleVectors( angles, dir, NULL, NULL );
+	}
+
 	VectorScale( dir, def->speed, projectile->velocity );
 
 	projectile->movetype = MOVETYPE_LINEARPROJECTILE;
@@ -62,6 +75,7 @@ static edict_t * W_Fire_LinearProjectile( edict_t * self, vec3_t start, vec3_t a
 	projectile->touch = ForgotToSetProjectileTouch;
 	projectile->nextThink = level.time + def->range;
 	projectile->think = G_FreeEdict;
+	projectile->timeout = level.time + def->range;
 	projectile->classname = NULL; // should be replaced after calling this func.
 	projectile->timeStamp = level.time;
 	projectile->timeDelta = timeDelta;
@@ -96,8 +110,20 @@ static edict_t * W_Fire_TossProjectile( edict_t * self, vec3_t start, vec3_t ang
 	VectorCopy( start, projectile->s.origin );
 	VectorCopy( start, projectile->olds.origin );
 
-	VectorCopy( angles, projectile->s.angles );
-	AngleVectors( angles, dir, NULL, NULL );
+	if( def->spread != 0.0f ) {
+		vec3_t spread;
+
+		VectorCopy( angles, spread );
+
+		spread[ PITCH ] += random_float11( &svs.rng ) * def->spread;
+		spread[ YAW ] += random_float11( &svs.rng ) * def->spread;
+
+		AngleVectors( spread, dir, NULL, NULL );
+	} else {
+		VectorCopy( angles, projectile->s.angles );
+		AngleVectors( angles, dir, NULL, NULL );
+	}
+
 	VectorScale( dir, def->speed, projectile->velocity );
 
 	projectile->movetype = MOVETYPE_BOUNCEGRENADE;
@@ -201,7 +227,7 @@ void W_Fire_Bullet( edict_t * self, vec3_t start, vec3_t angles, int timeDelta, 
 
 // Sunflower spiral with Fibonacci numbers
 static void G_Fire_SunflowerPattern( edict_t * self, vec3_t start, vec3_t dir, int count,
-									 int spread, int range, float damage, float kick, int timeDelta ) {
+									 float spread, int range, float damage, float kick, int timeDelta ) {
 	vec3_t right, up;
 	ViewVectors( dir, right, up );
 
@@ -469,16 +495,14 @@ static void W_AutoTouch_Plasma( edict_t *ent, edict_t *other, cplane_t *plane, i
 * W_Fire_Plasma
 */
 edict_t * W_Fire_Plasma( edict_t * self, vec3_t start, vec3_t angles, int timeDelta ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Plasma );
-
 	edict_t * plasma = W_Fire_LinearProjectile( self, start, angles, timeDelta, Weapon_Plasma );
 	plasma->s.type = ET_PLASMA;
 	plasma->classname = "plasma";
 
 	plasma->think = W_Think_Plasma;
 	plasma->touch = W_AutoTouch_Plasma;
+
 	plasma->nextThink = level.time + 1;
-	plasma->timeout = level.time + def->range;
 
 	plasma->s.model = "weapons/pg/cell";
 	plasma->s.sound = "weapons/pg/trail";

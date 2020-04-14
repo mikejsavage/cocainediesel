@@ -780,7 +780,7 @@ struct WeaponDef {
 	int minknockback;
 
 	int speed;
-	int spread;
+	float spread;
 };
 
 const WeaponDef * GS_GetWeaponDef( WeaponType weapon );

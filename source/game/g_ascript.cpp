@@ -1690,26 +1690,6 @@ static void asFunc_G_AnnouncerSound( gclient_t *target, u64 sound, int team, boo
 	G_AnnouncerSound( ent, StringHash( sound ), team, queued, passent );
 }
 
-static void asFunc_FireRailgun( edict_t *owner, asvec3_t *origin, asvec3_t *angles ) {
-	W_Fire_Railgun( owner, origin->v, angles->v, 0 );
-}
-
-static edict_t *asFunc_FirePlasma( edict_t *owner, asvec3_t *origin, asvec3_t *angles ) {
-	return W_Fire_Plasma( owner, origin->v, angles->v, 0 );
-}
-
-static edict_t *asFunc_FireRocket( edict_t *owner, asvec3_t *origin, asvec3_t *angles ) {
-	return W_Fire_Rocket( owner, origin->v, angles->v, 0 );
-}
-
-static edict_t *asFunc_FireGrenade( edict_t *owner, asvec3_t *origin, asvec3_t *angles ) {
-	return W_Fire_Grenade( owner, origin->v, angles->v, 0, false );
-}
-
-static void asFunc_FireShotgun( edict_t *owner, asvec3_t *origin, asvec3_t *angles ) {
-	W_Fire_Shotgun( owner, origin->v, angles->v, 0 );
-}
-
 static const asglobfuncs_t asGameGlobFuncs[] =
 {
 	{ "Entity @G_SpawnEntity( const String &in )", asFUNCTION( asFunc_G_Spawn ), NULL },
@@ -1749,13 +1729,6 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "void G_ConfigString( int index, const String &in )", asFUNCTION( asFunc_SetConfigString ), NULL },
 
 	{ "uint64 Hash64( const String &in )", asFUNCTION( asFunc_Hash64 ), NULL },
-
-	// projectile firing
-	{ "void W_Fire_Railgun( const Vec3 &in origin, const Vec3 &in angles, int range, int damage, int knockback, Entity @owner )",asFUNCTION( asFunc_FireRailgun ), NULL },
-	{ "Entity @W_Fire_Plasma( Entity @owner, const Vec3 &in origin, const Vec3 &in angles )", asFUNCTION( asFunc_FirePlasma ), NULL },
-	{ "Entity @W_Fire_Rocket( Entity @owner, const Vec3 &in origin, const Vec3 &in angles )", asFUNCTION( asFunc_FireRocket ), NULL },
-	{ "Entity @W_Fire_Grenade( Entity @owner, const Vec3 &in origin, const Vec3 &in angles )", asFUNCTION( asFunc_FireGrenade ), NULL },
-	{ "void W_Fire_Riotgun( Entity @owner, const Vec3 &in origin, const Vec3 &in angles )", asFUNCTION( asFunc_FireShotgun ), NULL },
 
 	{ NULL }
 };

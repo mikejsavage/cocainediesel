@@ -325,14 +325,14 @@ const WeaponDef gs_weaponDefs[] = {
 		100,
 
 		1,                              // projectiles fired each shot
-		4,                              // clip size
+		10,                             // clip size
 		2000,                           // reload time
 		false,                          // staged reloading
 
 		//timings (in msecs)
 		WEAPONUP_TIME_NORMAL,           // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		500,                            // refire time
+		20,                            // refire time
 		10000,                          // projectile timeout
 		1.0f,                           // recoil
 		FiringMode_Auto,
@@ -350,7 +350,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 		//projectile def
 		400,                            // speed
-		40.0f,                          // spread
+		3.0f,                          // spread
 	},
 
 	{

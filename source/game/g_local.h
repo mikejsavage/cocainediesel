@@ -541,13 +541,13 @@ void SP_model( edict_t *ent );
 void W_Fire_Blade( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
 void W_Fire_Bullet( edict_t * self, vec3_t start, vec3_t angles, int timeDelta, WeaponType weapon, int mod );
 void W_Fire_Shotgun( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
-edict_t * W_Fire_Grenade( edict_t * self, vec3_t start, vec3_t angles, int timeDelta, bool aim_up );
-edict_t * W_Fire_Rocket( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
-edict_t * W_Fire_Plasma( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
-edict_t * W_Fire_BubbleGun( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
+void W_Fire_Grenade( edict_t * self, vec3_t start, vec3_t angles, int timeDelta, bool aim_up );
+void W_Fire_Rocket( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
+void W_Fire_Plasma( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
+void W_Fire_BubbleGun( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
 void W_Fire_Railgun( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
-edict_t * W_Fire_Lasergun( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
-edict_t * W_Fire_RifleBullet( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
+void W_Fire_Lasergun( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
+void W_Fire_RifleBullet( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
 
 void G_FireWeapon( edict_t *ent, u64 parm );
 

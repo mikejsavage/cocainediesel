@@ -306,7 +306,6 @@ typedef struct {
 	int frameCount;
 
 	snapshot_t frame, oldFrame;
-	bool frameSequenceRunning;
 	bool fireEvents;
 	bool firstFrame;
 

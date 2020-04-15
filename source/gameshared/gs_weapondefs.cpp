@@ -350,7 +350,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 		//projectile def
 		400,                            // speed
-		0.125f,                           // spread
+		2.0f,                         // spread
 	},
 
 	{

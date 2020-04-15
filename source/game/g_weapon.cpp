@@ -32,17 +32,8 @@ static void ForgotToSetProjectileTouch( edict_t *ent, edict_t *other, cplane_t *
 	assert( false );
 }
 
-static void W_Touch_Plasma( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) {
-	if( surfFlags & SURF_NOIMPACT ) {
-		G_FreeEdict( ent );
-		return;
-	}
-
-	if( !CanHit( ent, other ) ) {
-		return;
-	}
-
-	if( other->takedamage ) {
+static void W_Explode_Plasma( edict_t *ent, edict_t *other, cplane_t *plane ) {
+	if( other != NULL && other->takedamage ) {
 		vec3_t push_dir;
 		G_SplashFrac4D( other, ent->s.origin, ent->projectileInfo.radius, push_dir, NULL, ent->timeDelta, false );
 		G_Damage( other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, DAMAGE_KNOCKBACK_SOFT, MOD_PLASMA );
@@ -55,6 +46,19 @@ static void W_Touch_Plasma( edict_t *ent, edict_t *other, cplane_t *plane, int s
 	event->s.team = ent->s.team;
 
 	G_FreeEdict( ent );
+}
+
+static void W_Touch_Plasma( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) {
+	if( surfFlags & SURF_NOIMPACT ) {
+		G_FreeEdict( ent );
+		return;
+	}
+
+	if( !CanHit( ent, other ) ) {
+		return;
+	}
+
+	W_Explode_Plasma( ent, other, plane );
 }
 
 static void W_Plasma_Backtrace( edict_t *ent, const vec3_t start ) {
@@ -95,7 +99,10 @@ static void W_Think_Plasma( edict_t *ent ) {
 	vec3_t start;
 
 	if( ent->timeout < level.time ) {
-		G_FreeEdict( ent );
+		if( ent->s.type == ET_BUBBLE )
+			W_Explode_Plasma( ent, NULL, NULL );
+		else
+			G_FreeEdict( ent );
 		return;
 	}
 
@@ -165,7 +172,7 @@ static void G_ProjectileDistancePrestep( edict_t *projectile, float distance ) {
 #endif
 }
 
-static edict_t * FireProjectile( edict_t * owner, const vec3_t start, const vec3_t angles, int timeDelta, WeaponType weapon, EdictTouchCallback touch ) {
+static edict_t * FireProjectile( edict_t * owner, const vec3_t start, const vec3_t angles, int timeDelta, WeaponType weapon, EdictTouchCallback touch, float custom_spread_x=0.0f, float custom_spread_y=0.0f ) {
 	const WeaponDef * def = GS_GetWeaponDef( weapon );
 
 	edict_t * projectile = G_Spawn();
@@ -175,7 +182,10 @@ static edict_t * FireProjectile( edict_t * owner, const vec3_t start, const vec3
 	vec3_t new_angles;
 	VectorCopy( angles, new_angles );
 
-	if( def->spread != 0.0f ) {
+	if( custom_spread_x != 0.0f || custom_spread_y != 0.0f  ) {
+		new_angles[ PITCH ] += custom_spread_x;
+		new_angles[ YAW ] += custom_spread_y;
+	} else if( def->spread != 0.0f ) {
 		new_angles[ PITCH ] += random_float11( &svs.rng ) * def->spread;
 		new_angles[ YAW ] += random_float11( &svs.rng ) * def->spread;
 	}
@@ -216,8 +226,8 @@ static edict_t * FireProjectile( edict_t * owner, const vec3_t start, const vec3
 	return projectile;
 }
 
-static edict_t * FireLinearProjectile( edict_t * owner, const vec3_t start, const vec3_t angles, int timeDelta, WeaponType weapon, EdictTouchCallback touch ) {
-	edict_t * projectile = FireProjectile( owner, start, angles, timeDelta, weapon, touch );
+static edict_t * FireLinearProjectile( edict_t * owner, const vec3_t start, const vec3_t angles, int timeDelta, WeaponType weapon, EdictTouchCallback touch, float custom_spread_x=0.0f, float custom_spread_y=0.0f ) {
+	edict_t * projectile = FireProjectile( owner, start, angles, timeDelta, weapon, touch, custom_spread_x, custom_spread_y );
 
 	projectile->movetype = MOVETYPE_LINEARPROJECTILE;
 	projectile->s.linearMovement = true;
@@ -457,7 +467,6 @@ void W_Fire_BubbleGun( edict_t * self, vec3_t start, vec3_t angles, int timeDelt
 
 			spread[ YAW ] += 90;
 			spread[ PITCH ] += angle;
-			spread[ ROLL ] += angles[ PITCH ];
 
 			AngleVectors( spread, dir, NULL, NULL );
 			VectorScale( dir, bubble_spacing, dir );
@@ -465,7 +474,7 @@ void W_Fire_BubbleGun( edict_t * self, vec3_t start, vec3_t angles, int timeDelt
 			VectorAdd( pos, dir, pos );
 		}
 
-		edict_t * bubble = FireLinearProjectile( self, pos, angles, timeDelta, Weapon_BubbleGun, W_AutoTouch_Plasma );
+		edict_t * bubble = FireLinearProjectile( self, pos, angles, timeDelta, Weapon_BubbleGun, W_AutoTouch_Plasma, odd ? 0.05f : ( def->spread * sinf( DEG2RAD( angle ) ) ), odd ? 0.05f : ( def->spread * cosf( DEG2RAD( angle ) ) ) );
 
 		bubble->classname = "bubble";
 		bubble->s.type = ET_BUBBLE;

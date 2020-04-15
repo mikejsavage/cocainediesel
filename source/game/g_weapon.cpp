@@ -572,27 +572,58 @@ void W_Fire_Plasma( edict_t * self, vec3_t start, vec3_t angles, int timeDelta )
 	plasma->s.sound = "weapons/pg/trail";
 
 	G_ProjectileDistancePrestep( plasma, g_projectile_prestep->value );
-	VectorCopy( plasma->s.origin, plasma->s.linearMovementBegin );;
+	VectorCopy( plasma->s.origin, plasma->s.linearMovementBegin );
 }
 
 /*
 * W_Fire_BubbleGun
 */
 void W_Fire_BubbleGun( edict_t * self, vec3_t start, vec3_t angles, int timeDelta ) {
-	edict_t * plasma = W_Fire_LinearProjectile( self, start, angles, timeDelta, Weapon_BubbleGun );
-	plasma->s.type = ET_PLASMA;
-	plasma->classname = "plasma";
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_BubbleGun );
+	constexpr int bubble_spacing = 30;
 
-	plasma->think = W_Think_Plasma;
-	plasma->touch = W_AutoTouch_Plasma;
+	vec3_t spread;
 
-	plasma->nextThink = level.time + 1;
+	vec3_t dir;
+	vec3_t pos;
 
-	plasma->s.model = "weapons/pg/cell";
-	plasma->s.sound = "weapons/pg/trail";
+	bool odd = def->projectile_count % 2 == 1 && def->projectile_count > 1;
+	float step = ( odd ? 360 / ( def->projectile_count - 1 ) : 360 / def->projectile_count ) ;
 
-	G_ProjectileDistancePrestep( plasma, g_projectile_prestep->value );
-	VectorCopy( plasma->s.origin, plasma->s.linearMovementBegin );
+	for( float angle = 0; angle < 360; angle += step ) {
+		VectorCopy( start, pos );
+		if( !odd ) { //if not even, do one in the center
+			VectorCopy( angles, spread );
+
+			spread[ YAW ] += 90;
+			spread[ PITCH ] += angle;
+
+			AngleVectors( spread, dir, NULL, NULL );
+			VectorScale( dir, bubble_spacing, dir );
+
+			VectorAdd( pos, dir, pos );
+		}
+
+		edict_t * bubble = W_Fire_LinearProjectile( self, pos, angles, timeDelta, Weapon_BubbleGun );
+		bubble->s.type = ET_PLASMA;
+		bubble->classname = "plasma";
+
+		bubble->think = W_Think_Plasma;
+		bubble->touch = W_AutoTouch_Plasma;
+
+		bubble->nextThink = level.time + 1;
+
+		bubble->s.model = "weapons/pg/cell";
+		bubble->s.sound = "weapons/pg/trail";
+
+		G_ProjectileDistancePrestep( bubble, g_projectile_prestep->value );
+		VectorCopy( bubble->s.origin, bubble->s.linearMovementBegin );
+
+		if( odd ) {
+			angle -= step;
+			odd = false;
+		}
+	}
 }
 
 /*

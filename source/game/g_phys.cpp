@@ -554,7 +554,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 
 //============================================================================
 
-void SV_Physics_LinearProjectile( edict_t *ent ) {
+static void SV_Physics_LinearProjectile( edict_t *ent ) {
 	vec3_t start, end;
 	int mask;
 	trace_t trace;

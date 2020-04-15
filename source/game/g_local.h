@@ -538,17 +538,6 @@ void SP_model( edict_t *ent );
 //
 // g_weapon.c
 //
-void W_Fire_Blade( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
-void W_Fire_Bullet( edict_t * self, vec3_t start, vec3_t angles, int timeDelta, WeaponType weapon, int mod );
-void W_Fire_Shotgun( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
-void W_Fire_Grenade( edict_t * self, vec3_t start, vec3_t angles, int timeDelta, bool aim_up );
-void W_Fire_Rocket( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
-void W_Fire_Plasma( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
-void W_Fire_BubbleGun( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
-void W_Fire_Railgun( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
-void W_Fire_Lasergun( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
-void W_Fire_RifleBullet( edict_t * self, vec3_t start, vec3_t angles, int timeDelta );
-
 void G_FireWeapon( edict_t *ent, u64 parm );
 
 //
@@ -854,6 +843,8 @@ typedef struct snap_edict_s {
 	float damageteam_given;
 } snap_edict_t;
 
+using EdictTouchCallback = void ( * )( edict_t * self, edict_t * other, cplane_t * plane, int surfFlags );
+
 struct edict_s {
 	SyncEntityState s;
 	entity_shared_t r;
@@ -889,7 +880,7 @@ struct edict_s {
 	int64_t nextThink;
 
 	void ( *think )( edict_t *self );
-	void ( *touch )( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags );
+	EdictTouchCallback touch;
 	void ( *use )( edict_t *self, edict_t *other, edict_t *activator );
 	void ( *pain )( edict_t *self, edict_t *other, float kick, int damage );
 	void ( *die )( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point );

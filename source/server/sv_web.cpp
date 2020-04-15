@@ -125,8 +125,6 @@ typedef struct {
 	netadr_t remoteAddress;
 } http_game_client_t;
 
-typedef unsigned (*queueCmdHandler_t)( const void * );
-
 static bool sv_http_initialized = false;
 static volatile bool sv_http_running = false;
 

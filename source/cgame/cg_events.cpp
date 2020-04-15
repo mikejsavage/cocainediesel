@@ -930,6 +930,11 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			CG_PlasmaExplosion( ent->origin, dir, ent->team, (float)ent->weapon * 8.0f );
 			S_StartFixedSound( cgs.media.sfxPlasmaHit, FromQF3( ent->origin ), CHAN_AUTO, 1.0f );
 			break;
+		case EV_BUBBLE_EXPLOSION:
+			ByteToDir( parm, dir );
+			CG_PlasmaExplosion( ent->origin, dir, ent->team, (float)ent->weapon * 8.0f );
+			S_StartFixedSound( cgs.media.sfxBubbleHit[ random_uniform( &cls.rng, 0, 2 ) ], FromQF3( ent->origin ), CHAN_AUTO, 1.0f );
+			break;
 
 		case EV_BOLT_EXPLOSION:
 			ByteToDir( parm, dir );

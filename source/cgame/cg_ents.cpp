@@ -808,6 +808,7 @@ void CG_AddEntities( void ) {
 				CG_ProjectileTrail( cent );
 				break;
 			case ET_PLASMA:
+			case ET_BUBBLE:
 				CG_AddGenericEnt( cent );
 				CG_EntityLoopSound( cent, state );
 				break;
@@ -881,6 +882,7 @@ void CG_LerpEntities( void ) {
 			case ET_GENERIC:
 			case ET_ROCKET:
 			case ET_PLASMA:
+			case ET_BUBBLE:
 			case ET_GRENADE:
 			case ET_RIFLEBULLET:
 			case ET_PLAYER:
@@ -948,6 +950,7 @@ void CG_UpdateEntities( void ) {
 			// projectiles with linear trajectories
 			case ET_ROCKET:
 			case ET_PLASMA:
+			case ET_BUBBLE:
 			case ET_GRENADE:
 			case ET_RIFLEBULLET:
 				CG_UpdateGenericEnt( cent );

@@ -26,7 +26,7 @@ void CG_RegisterMediaSounds() {
 
 	// weapon
 	for( int i = 0; i < 4; i++ )
-		cgs.media.sfxWeaponHit[i] = FindSoundEffect( va( S_WEAPON_HITS, i ) );
+		cgs.media.sfxWeaponHit[ i ] = FindSoundEffect( va( S_WEAPON_HITS, i ) );
 	cgs.media.sfxWeaponKill = FindSoundEffect( S_WEAPON_KILL );
 	cgs.media.sfxWeaponHitTeam = FindSoundEffect( S_WEAPON_HIT_TEAM );
 	cgs.media.sfxWeaponNoAmmo = FindSoundEffect( "weapons/noammo" );
@@ -50,6 +50,8 @@ void CG_RegisterMediaSounds() {
 
 	// Plasmagun sounds :
 	cgs.media.sfxPlasmaHit = FindSoundEffect( "weapons/pg/explode" );
+	cgs.media.sfxBubbleHit[ 0 ] = FindSoundEffect( "weapons/bg/explode1" );
+	cgs.media.sfxBubbleHit[ 1 ] = FindSoundEffect( "weapons/bg/explode2" );
 
 	// Lasergun sounds
 	cgs.media.sfxLasergunHum = FindSoundEffect( "weapons/lg/hum" );

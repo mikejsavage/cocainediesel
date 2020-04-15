@@ -56,7 +56,7 @@ static void W_Touch_Plasma( edict_t *ent, edict_t *other, cplane_t *plane, int s
 
 	G_RadiusDamage( ent, ent->r.owner, plane, other, MOD_PLASMA );
 
-	edict_t *event = G_SpawnEvent( EV_PLASMA_EXPLOSION, DirToByte( plane ? plane->normal : NULL ), ent->s.origin );
+	edict_t *event = G_SpawnEvent( ent->s.type == ET_PLASMA ? EV_PLASMA_EXPLOSION : EV_BUBBLE_EXPLOSION, DirToByte( plane ? plane->normal : NULL ), ent->s.origin );
 	event->s.weapon = Min2( ent->projectileInfo.radius / 8, 127 );
 	event->s.team = ent->s.team;
 
@@ -500,10 +500,6 @@ void W_Fire_Grenade( edict_t * self, vec3_t start, vec3_t angles, int timeDelta,
 
 	grenade->s.model = "weapons/gl/grenade";
 	// grenade->s.sound = "weapons/gl/trail";
-
-	GClip_LinkEntity( grenade );
-
-	G_ProjectileDistancePrestep( grenade, g_projectile_prestep->value );
 }
 
 /*
@@ -582,6 +578,8 @@ void W_Fire_BubbleGun( edict_t * self, vec3_t start, vec3_t angles, int timeDelt
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_BubbleGun );
 	constexpr int bubble_spacing = 30;
 
+	TempAllocator temp = svs.frame_arena.temp();
+
 	vec3_t spread;
 
 	vec3_t dir;
@@ -597,6 +595,7 @@ void W_Fire_BubbleGun( edict_t * self, vec3_t start, vec3_t angles, int timeDelt
 
 			spread[ YAW ] += 90;
 			spread[ PITCH ] += angle;
+			spread[ ROLL ] += angles[ PITCH ];
 
 			AngleVectors( spread, dir, NULL, NULL );
 			VectorScale( dir, bubble_spacing, dir );
@@ -605,16 +604,16 @@ void W_Fire_BubbleGun( edict_t * self, vec3_t start, vec3_t angles, int timeDelt
 		}
 
 		edict_t * bubble = W_Fire_LinearProjectile( self, pos, angles, timeDelta, Weapon_BubbleGun );
-		bubble->s.type = ET_PLASMA;
-		bubble->classname = "plasma";
+		bubble->s.type = ET_BUBBLE;
+		bubble->classname = "bubble";
 
 		bubble->think = W_Think_Plasma;
 		bubble->touch = W_AutoTouch_Plasma;
 
 		bubble->nextThink = level.time + 1;
 
-		bubble->s.model = "weapons/pg/cell";
-		bubble->s.sound = "weapons/pg/trail";
+		bubble->s.model = "weapons/bg/cell";
+		bubble->s.sound = StringHash( temp( "weapons/bg/trail{}", random_uniform( &svs.rng, 1, 4 ) ) );
 
 		G_ProjectileDistancePrestep( bubble, g_projectile_prestep->value );
 		VectorCopy( bubble->s.origin, bubble->s.linearMovementBegin );

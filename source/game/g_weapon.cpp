@@ -452,7 +452,9 @@ static void W_Fire_Plasma( edict_t * self, vec3_t start, vec3_t angles, int time
 
 void W_Fire_BubbleGun( edict_t * self, vec3_t start, vec3_t angles, int timeDelta ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_BubbleGun );
-	constexpr int bubble_spacing = 30;
+	constexpr int bubble_spacing = 25;
+	constexpr float rot_factor = 90;
+	float rot = 0;
 
 	bool odd = def->projectile_count % 2 == 1 && def->projectile_count > 1;
 	float step = odd ? 360 / ( def->projectile_count - 1 ) : 360 / def->projectile_count;
@@ -474,7 +476,9 @@ void W_Fire_BubbleGun( edict_t * self, vec3_t start, vec3_t angles, int timeDelt
 			VectorAdd( pos, dir, pos );
 		}
 
-		edict_t * bubble = FireLinearProjectile( self, pos, angles, timeDelta, Weapon_BubbleGun, W_AutoTouch_Plasma, odd ? 0.05f : ( def->spread * sinf( DEG2RAD( angle ) ) ), odd ? 0.05f : ( def->spread * cosf( DEG2RAD( angle ) ) ) );
+		rot = angle + rot_factor;
+
+		edict_t * bubble = FireLinearProjectile( self, pos, angles, timeDelta, Weapon_BubbleGun, W_AutoTouch_Plasma, odd ? 0.05f : ( def->spread * sinf( DEG2RAD( rot ) ) ), odd ? 0.05f : ( def->spread * cosf( DEG2RAD( rot ) ) ) );
 
 		bubble->classname = "bubble";
 		bubble->s.type = ET_BUBBLE;

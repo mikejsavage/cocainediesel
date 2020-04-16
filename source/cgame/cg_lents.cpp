@@ -315,22 +315,29 @@ void CG_BubbleTrail( const vec3_t start, const vec3_t end, int dist ) {
 /*
 * CG_PlasmaExplosion
 */
-void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, Vec4 team_color, float radius ) {
+void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, Vec4 team_color ) {
 	// CG_ImpactPuffParticles( pos, dir, 15, 0.75f, color[0], color[1], color[2], color[3], NULL );
 
 	// CG_SpawnDecal( pos, dir, random_float01( &cls.rng ) * 360, 16,
 	// 			   color[0], color[1], color[2], color[3],
 	// 			   4, 1, true,
 	// 			   cgs.media.shaderPlasmaMark );
+	CG_ParticlePlasmaExplosionEffect( FromQF3( pos ), FromQF3( dir ), team_color.xyz() );
+
+	S_StartFixedSound( cgs.media.sfxPlasmaHit, FromQF3( pos ), CHAN_AUTO, 1.0f );
 }
 
-void CG_BubbleExplosion( const vec3_t pos, const vec3_t dir, Vec4 team_color, float radius ) {
+void CG_BubbleExplosion( const vec3_t pos, Vec4 team_color ) {
 	// CG_ImpactPuffParticles( pos, dir, 15, 0.75f, color[0], color[1], color[2], color[3], NULL );
 
 	// CG_SpawnDecal( pos, dir, random_float01( &cls.rng ) * 360, 16,
 	// 			   color[0], color[1], color[2], color[3],
 	// 			   4, 1, true,
 	// 			   cgs.media.shaderPlasmaMark );
+
+	CG_ParticleBubbleExplosionEffect( FromQF3( pos ), team_color.xyz() );
+
+	S_StartFixedSound( cgs.media.sfxBubbleHit[ random_uniform( &cls.rng, 0, 2 ) ], FromQF3( pos ), CHAN_AUTO, 1.0f );
 }
 
 void CG_EBImpact( const vec3_t pos, const vec3_t dir, int surfFlags, Vec4 team_color ) {
@@ -360,11 +367,11 @@ void CG_EBImpact( const vec3_t pos, const vec3_t dir, int surfFlags, Vec4 team_c
 /*
 * CG_RocketExplosionMode
 */
-void CG_RocketExplosionMode( const vec3_t pos, const vec3_t dir, float radius, Vec4 team_color ) {
+void CG_RocketExplosionMode( const vec3_t pos, const vec3_t dir, Vec4 team_color ) {
 	// CG_SpawnDecal( pos, dir, random_float01( &cls.rng ) * 360, radius * 0.5, 1, 1, 1, 1, 10, 1, false, cgs.media.shaderExplosionMark );
 	
 	// Explosion particles
-	CG_ParticleExplosionEffect( FromQF3( pos ), FromQF3( dir ), team_color.xyz() );
+	CG_ParticleRocketExplosionEffect( FromQF3( pos ), FromQF3( dir ), team_color.xyz() );
 
 	S_StartFixedSound( cgs.media.sfxRocketLauncherHit, FromQF3( pos ), CHAN_AUTO, 1.0f );
 }
@@ -427,7 +434,7 @@ void CG_BladeImpact( const vec3_t pos, const vec3_t dir ) {
 /*
 * CG_LasertGunImpact
 */
-void CG_LaserGunImpact( const vec3_t pos, float radius, const vec3_t laser_dir, RGBA8 color ) {
+void CG_LaserGunImpact( const vec3_t pos, const vec3_t laser_dir, RGBA8 color ) {
 	entity_t ent;
 	vec3_t ndir;
 	vec3_t angles;
@@ -599,11 +606,11 @@ void CG_PModel_SpawnTeleportEffect( centity_t * cent, MatrixPalettes temp_pose )
 /*
 * CG_GrenadeExplosionMode
 */
-void CG_GrenadeExplosionMode( const vec3_t pos, const vec3_t dir, float radius, Vec4 team_color ) {
+void CG_GrenadeExplosionMode( const vec3_t pos, const vec3_t dir, Vec4 team_color ) {
 	// CG_SpawnDecal( pos, decaldir, random_float01( &cls.rng ) * 360, radius * 0.5, 1, 1, 1, 1, 10, 1, false, cgs.media.shaderExplosionMark );
 
 	// Explosion particles
-	CG_ParticleExplosionEffect( FromQF3( pos ), FromQF3( dir ), team_color.xyz() );
+	CG_ParticleRocketExplosionEffect( FromQF3( pos ), FromQF3( dir ), team_color.xyz() );
 
 	S_StartFixedSound( cgs.media.sfxGrenadeExplosion, FromQF3( pos ), CHAN_AUTO, 1.0f );
 }
@@ -729,7 +736,6 @@ void CG_DustCircle( const vec3_t pos, const vec3_t dir, float radius, int count 
 
 	if( CG_PointContents( pos ) & MASK_WATER ) {
 		return; // no smoke under water :)
-
 	}
 	PerpendicularVector( dir_per2, dir );
 	CrossProduct( dir, dir_per2, dir_per1 );

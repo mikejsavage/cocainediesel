@@ -1,6 +1,6 @@
 #include "cgame/cg_local.h"
 
-void CG_ParticleExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color ) {
+void CG_ParticleRocketExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 	{
 		ParticleEmitter emitter = { };
 		emitter.position = origin;
@@ -9,20 +9,20 @@ void CG_ParticleExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 		emitter.direction_cone.normal = normal;
 		emitter.direction_cone.theta = 90.0f;
 
-		emitter.start_speed = 1000.0f;
-		emitter.end_speed = 1000.0f;
+		emitter.start_speed = 500.0f;
+		emitter.end_speed = 0.0f;
 
-		emitter.start_color = Vec4( 1.0f, 1.0f, 0.0f, 1.0f );
-		emitter.end_color = Vec3( 1.0f, 1.0f, 0.0f );
+		emitter.start_color = Vec4( team_color.z, team_color.y, team_color.x, 1.0f );
+		emitter.end_color = Vec3( team_color.z, team_color.y, team_color.x );
 
-		emitter.start_size = 4.0f;
+		emitter.start_size = 6.0f;
 		emitter.end_size = 0.0f;
 		emitter.size_distribution.type = RandomDistributionType_Uniform;
-		emitter.size_distribution.uniform = 4.0f;
+		emitter.size_distribution.uniform = 6.0f;
 
 		emitter.lifetime = 0.1f;
 		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-		emitter.lifetime_distribution.uniform = 0.2f;
+		emitter.lifetime_distribution.uniform = 0.375f;
 
 		emitter.n = 128;
 
@@ -56,6 +56,61 @@ void CG_ParticleExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 
 		EmitParticles( &cgs.ions, emitter );
 	}
+}
+
+void CG_ParticlePlasmaExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color ) {
+	ParticleEmitter emitter = { };
+	emitter.position = origin;
+
+	emitter.use_cone_direction = true;
+	emitter.direction_cone.normal = normal;
+	emitter.direction_cone.theta = 90.0f;
+
+	emitter.start_speed = 125.0f;
+	emitter.end_speed = 25.0f;
+
+	emitter.start_color = Vec4( team_color, 0.5f );
+	emitter.end_color = team_color;
+
+	emitter.start_size = 32.0f;
+	emitter.end_size = 32.0f;
+	emitter.size_distribution.type = RandomDistributionType_Uniform;
+	emitter.size_distribution.uniform = 8.0f;
+
+	emitter.lifetime = 0.15f;
+	emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
+	emitter.lifetime_distribution.uniform = 0.1f;
+
+	emitter.n = 8;
+
+	EmitParticles( &cgs.sparks, emitter );
+}
+
+void CG_ParticleBubbleExplosionEffect( Vec3 origin, Vec3 team_color ) {
+	ParticleEmitter emitter = { };
+	emitter.position = origin;
+
+	emitter.start_speed = 200.0f;
+	emitter.end_speed = 0.0f;
+
+	emitter.start_color = Vec4( team_color, 1.0f );
+	emitter.end_color = team_color;
+
+	emitter.start_size = 1.5f;
+	emitter.end_size = 0.0f;
+	emitter.size_distribution.type = RandomDistributionType_Uniform;
+	emitter.size_distribution.uniform = 1.5f;
+
+	emitter.lifetime = 0.5f;
+	emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
+	emitter.lifetime_distribution.uniform = 0.5f;
+
+	emitter.red_distribution.uniform = 0.5f;
+	emitter.blue_distribution.uniform = 0.5f;
+
+	emitter.n = 64;
+
+	EmitParticles( &cgs.sparks, emitter );
 }
 
 void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color ) {

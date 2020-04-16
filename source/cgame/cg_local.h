@@ -596,21 +596,21 @@ void CG_BubbleTrail( const vec3_t start, const vec3_t end, int dist );
 void CG_ProjectileTrail( centity_t *cent );
 void CG_NewBloodTrail( centity_t *cent );
 void CG_BloodDamageEffect( const vec3_t origin, const vec3_t dir, int damage, Vec4 team_color );
-void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, Vec4 team_color, float radius );
-void CG_GrenadeExplosionMode( const vec3_t pos, const vec3_t dir, float radius, Vec4 team_color );
+void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, Vec4 team_color );
+void CG_BubbleExplosion( const vec3_t pos, Vec4 team_color );
+void CG_GrenadeExplosionMode( const vec3_t pos, const vec3_t dir, Vec4 team_color );
 void CG_GenericExplosion( const vec3_t pos, const vec3_t dir, float radius );
-void CG_RocketExplosionMode( const vec3_t pos, const vec3_t dir, float radius, Vec4 team_color );
+void CG_RocketExplosionMode( const vec3_t pos, const vec3_t dir, Vec4 team_color );
 void CG_EBBeam( Vec3 start, Vec3 end, Vec4 team_color );
 void CG_EBImpact( const vec3_t pos, const vec3_t dir, int surfFlags, Vec4 team_color );
 void CG_ImpactSmokePuff( const vec3_t origin, const vec3_t dir, float radius, float alpha, int time, int speed );
 void CG_BladeImpact( const vec3_t pos, const vec3_t dir );
 void CG_PModel_SpawnTeleportEffect( centity_t * cent, MatrixPalettes temp_pose );
-void CG_LaserGunImpact( const vec3_t pos, float radius, const vec3_t laser_dir, RGBA8 color );
+void CG_LaserGunImpact( const vec3_t pos, const vec3_t laser_dir, RGBA8 color );
 
 void CG_Dash( const SyncEntityState *state );
 void CG_Explosion_Puff_2( const vec3_t pos, const vec3_t vel, int radius );
 void CG_DustCircle( const vec3_t pos, const vec3_t dir, float radius, int count );
-void CG_ExplosionsDust( const vec3_t pos, const vec3_t dir, float radius );
 
 void InitGibs();
 void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 team_color );
@@ -619,7 +619,9 @@ void DrawGibs();
 //
 // cg_effects.c
 //
-void CG_ParticleExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color );
+void CG_ParticleRocketExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color );
+void CG_ParticlePlasmaExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color );
+void CG_ParticleBubbleExplosionEffect( Vec3 origin, Vec3 team_color );
 void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color );
 
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material );

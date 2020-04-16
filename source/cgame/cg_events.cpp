@@ -168,7 +168,7 @@ static void _LaserImpact( const trace_t *trace, const vec3_t dir ) {
 
 	// it's a brush model
 	if( trace->ent == 0 || !( cg_entities[trace->ent].current.effects & EF_TAKEDAMAGE ) ) {
-		CG_LaserGunImpact( trace->endpos, 15.0f, dir, RGBA8( team_color ) );
+		CG_LaserGunImpact( trace->endpos, dir, RGBA8( team_color ) );
 		// CG_AddLightToScene( trace->endpos, 100, color[ 0 ], color[ 1 ], color[ 2 ] );
 		BulletImpact( trace, team_color, 1 );
 		return;
@@ -926,13 +926,10 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_PLASMA_EXPLOSION:
 			ByteToDir( parm, dir );
-			CG_PlasmaExplosion( ent->origin, dir, team_color, (float)ent->weapon * 8.0f );
-			S_StartFixedSound( cgs.media.sfxPlasmaHit, FromQF3( ent->origin ), CHAN_AUTO, 1.0f );
+			CG_PlasmaExplosion( ent->origin, dir, team_color );
 			break;
 		case EV_BUBBLE_EXPLOSION:
-			ByteToDir( parm, dir );
-			CG_PlasmaExplosion( ent->origin, dir, team_color, (float)ent->weapon * 8.0f );
-			S_StartFixedSound( cgs.media.sfxBubbleHit[ random_uniform( &cls.rng, 0, 2 ) ], FromQF3( ent->origin ), CHAN_AUTO, 1.0f );
+			CG_BubbleExplosion( ent->origin, team_color );
 			break;
 
 		case EV_BOLT_EXPLOSION:
@@ -944,17 +941,17 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			if( parm ) {
 				// we have a direction
 				ByteToDir( parm, dir );
-				CG_GrenadeExplosionMode( ent->origin, dir, (float)ent->weapon * 8.0f, team_color );
+				CG_GrenadeExplosionMode( ent->origin, dir, team_color );
 			} else {
 				// no direction
-				CG_GrenadeExplosionMode( ent->origin, vec3_origin, (float)ent->weapon * 8.0f, team_color );
+				CG_GrenadeExplosionMode( ent->origin, vec3_origin, team_color );
 			}
 
 			break;
 
 		case EV_ROCKET_EXPLOSION:
 			ByteToDir( parm, dir );
-			CG_RocketExplosionMode( ent->origin, dir, (float)ent->weapon * 8.0f, team_color );
+			CG_RocketExplosionMode( ent->origin, dir, team_color );
 
 			break;
 

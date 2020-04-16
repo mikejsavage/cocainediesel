@@ -39,7 +39,7 @@ static void W_Explode_Plasma( edict_t *ent, edict_t *other, cplane_t *plane ) {
 		G_Damage( other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, DAMAGE_KNOCKBACK_SOFT, MOD_PLASMA );
 	}
 
-	G_RadiusDamage( ent, ent->r.owner, plane, other, MOD_PLASMA );
+	G_RadiusDamage( ent, ent->r.owner, plane, other, ent->s.type == ET_PLASMA ? MOD_PLASMA : MOD_BUBBLEGUN );
 
 	edict_t *event = G_SpawnEvent( ent->s.type == ET_PLASMA ? EV_PLASMA_EXPLOSION : EV_BUBBLE_EXPLOSION, DirToByte( plane ? plane->normal : NULL ), ent->s.origin );
 	event->s.weapon = Min2( ent->projectileInfo.radius / 8, 127 );
@@ -88,9 +88,9 @@ static void W_Plasma_Backtrace( edict_t *ent, const vec3_t start ) {
 		} else {
 			break;
 		}
-	} while( ent->r.inuse && ent->s.type == ET_PLASMA && !VectorCompare( ent->s.origin, oldorigin ) );
+	} while( ent->r.inuse && !VectorCompare( ent->s.origin, oldorigin ) );
 
-	if( ent->r.inuse && ent->s.type == ET_PLASMA ) {
+	if( ent->r.inuse ) {
 		VectorCopy( oldorigin, ent->s.origin );
 	}
 }
@@ -166,7 +166,7 @@ static void G_ProjectileDistancePrestep( edict_t *projectile, float distance ) {
 
 	// ffs : hack for the plasmagun
 #ifdef PLASMAHACK
-	if( projectile->s.type == ET_PLASMA ) {
+	if( projectile->s.type == ET_PLASMA || projectile->s.type == ET_BUBBLE ) {
 		W_Plasma_Backtrace( projectile, plasma_hack_start );
 	}
 #endif

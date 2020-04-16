@@ -34,7 +34,7 @@ static void CG_Event_WeaponBeam( vec3_t origin, vec3_t dir, int ownerNum ) {
 	trace_t trace;
 	CG_Trace( &trace, origin, vec3_origin, vec3_origin, end, cg.view.POVent, MASK_WALLBANG );
 	if( trace.ent != -1 ) {
-		CG_EBImpact( trace.endpos, trace.plane.normal, trace.surfFlags, owner->current.team );
+		CG_EBImpact( trace.endpos, trace.plane.normal, trace.surfFlags, CG_TeamColorVec4( owner->current.team ) );
 	}
 
 	// when it's predicted we have to delay the drawing until the view weapon is calculated
@@ -54,7 +54,7 @@ void CG_WeaponBeamEffect( centity_t *cent ) {
 		VectorCopy( cent->laserOrigin, projection.origin );
 	}
 
-	CG_EBBeam( FromQF3( projection.origin ), FromQF3( cent->laserPoint ), cent->current.team );
+	CG_EBBeam( FromQF3( projection.origin ), FromQF3( cent->laserPoint ), CG_TeamColorVec4( cent->current.team ) );
 
 	cent->localEffects[LOCALEFFECT_EV_WEAPONBEAM] = 0;
 }
@@ -151,7 +151,7 @@ static void _LaserImpact( const trace_t *trace, const vec3_t dir ) {
 		return;
 	}
 
-	Vec4 color = CG_TeamColorVec4( laserOwner->current.team );
+	Vec4 team_color = CG_TeamColorVec4( laserOwner->current.team );
 
 	if( laserOwner ) {
 #define TRAILTIME ( (int)( 1000.0f / 20.0f ) ) // density as quantity per second
@@ -168,9 +168,9 @@ static void _LaserImpact( const trace_t *trace, const vec3_t dir ) {
 
 	// it's a brush model
 	if( trace->ent == 0 || !( cg_entities[trace->ent].current.effects & EF_TAKEDAMAGE ) ) {
-		CG_LaserGunImpact( trace->endpos, 15.0f, dir, RGBA8( color ) );
+		CG_LaserGunImpact( trace->endpos, 15.0f, dir, RGBA8( team_color ) );
 		// CG_AddLightToScene( trace->endpos, 100, color[ 0 ], color[ 1 ], color[ 2 ] );
-		BulletImpact( trace, color, 1 );
+		BulletImpact( trace, team_color, 1 );
 		return;
 	}
 
@@ -365,9 +365,7 @@ static void CG_LeadBubbleTrail( trace_t *tr, vec3_t water_start ) {
 	CG_BubbleTrail( water_start, tr->endpos, 32 );
 }
 
-static void CG_Event_FireBullet( const vec3_t origin, const vec3_t dir, WeaponType weapon, int owner, int team ) {
-	Vec4 color = CG_TeamColorVec4( team );
-
+static void CG_Event_FireBullet( const vec3_t origin, const vec3_t dir, WeaponType weapon, int owner, Vec4 team_color ) {
 	int range = GS_GetWeaponDef( weapon )->range;
 
 	vec3_t right, up;
@@ -381,7 +379,7 @@ static void CG_Event_FireBullet( const vec3_t origin, const vec3_t dir, WeaponTy
 			// flesh impact sound
 		}
 		else {
-			BulletImpact( &trace, color, 24 );
+			BulletImpact( &trace, team_color, 24 );
 			S_StartFixedSound( cgs.media.sfxBulletImpact, FromQF3( trace.endpos ), CHAN_AUTO, 1.0f );
 
 			if( !ISVIEWERENTITY( owner ) ) {
@@ -398,17 +396,16 @@ static void CG_Event_FireBullet( const vec3_t origin, const vec3_t dir, WeaponTy
 	}
 
 	if( weapon != Weapon_Pistol ) {
-		AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 1.0f, color, cgs.media.shaderTracer, 0.2f, 0.1f );
+		AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 1.0f, team_color, cgs.media.shaderTracer, 0.2f, 0.1f );
 	}
 }
 
 /*
 * CG_Event_FireShotgun
 */
-static void CG_Event_FireShotgun( vec3_t origin, vec3_t dir, int owner, int team ) {
+static void CG_Event_FireShotgun( vec3_t origin, vec3_t dir, int owner, Vec4 team_color ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_Shotgun );
 
-	Vec4 color = CG_TeamColorVec4( team );
 	vec3_t right, up;
 	ViewVectors( dir, right, up );
 
@@ -427,12 +424,12 @@ static void CG_Event_FireShotgun( vec3_t origin, vec3_t dir, int owner, int team
 		GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, r, u, def->range, owner, 0 );
 
 		if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
-			BulletImpact( &trace, color, 4 );
+			BulletImpact( &trace, team_color, 4 );
 		}
 
 		WallbangImpact( &wallbang, 2 );
 
-		AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 1.0f, color, cgs.media.shaderTracer, 0.2f, 0.1f );
+		AddPersistentBeam( FromQF3( projection.origin ), FromQF3( trace.endpos ), 1.0f, team_color, cgs.media.shaderTracer, 0.2f, 0.1f );
 	}
 
 	// spawn a single sound at the impact
@@ -711,6 +708,8 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 		return;
 	}
 
+	Vec4 team_color = CG_TeamColorVec4( ent->team );
+
 	switch( ev ) {
 		default:
 			break;
@@ -790,13 +789,13 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 				CG_Event_WeaponBeam( origin, dir, num );
 			}
 			else if( parm == Weapon_Shotgun ) {
-				CG_Event_FireShotgun( origin, dir, num, ent->team );
+				CG_Event_FireShotgun( origin, dir, num, team_color );
 			}
 			else if( parm == Weapon_Laser ) {
 				CG_Event_LaserBeam( origin, dir, num );
 			}
 			else if( parm == Weapon_Pistol || parm == Weapon_MachineGun || parm == Weapon_Deagle || parm == Weapon_AssaultRifle ) {
-				CG_Event_FireBullet( origin, dir, parm, num, ent->team );
+				CG_Event_FireBullet( origin, dir, parm, num, team_color );
 			}
 		} break;
 
@@ -893,7 +892,7 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_SPOG:
-			SpawnGibs( FromQF3( ent->origin ), FromQF3( ent->origin2 ), parm, ent->team );
+			SpawnGibs( FromQF3( ent->origin ), FromQF3( ent->origin2 ), parm, team_color );
 			break;
 
 		case EV_PLAYER_RESPAWN:
@@ -927,35 +926,35 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_PLASMA_EXPLOSION:
 			ByteToDir( parm, dir );
-			CG_PlasmaExplosion( ent->origin, dir, ent->team, (float)ent->weapon * 8.0f );
+			CG_PlasmaExplosion( ent->origin, dir, team_color, (float)ent->weapon * 8.0f );
 			S_StartFixedSound( cgs.media.sfxPlasmaHit, FromQF3( ent->origin ), CHAN_AUTO, 1.0f );
 			break;
 		case EV_BUBBLE_EXPLOSION:
 			ByteToDir( parm, dir );
-			CG_PlasmaExplosion( ent->origin, dir, ent->team, (float)ent->weapon * 8.0f );
+			CG_PlasmaExplosion( ent->origin, dir, team_color, (float)ent->weapon * 8.0f );
 			S_StartFixedSound( cgs.media.sfxBubbleHit[ random_uniform( &cls.rng, 0, 2 ) ], FromQF3( ent->origin ), CHAN_AUTO, 1.0f );
 			break;
 
 		case EV_BOLT_EXPLOSION:
 			ByteToDir( parm, dir );
-			CG_EBImpact( ent->origin, dir, 0, ent->team );
+			CG_EBImpact( ent->origin, dir, 0, team_color );
 			break;
 
 		case EV_GRENADE_EXPLOSION:
 			if( parm ) {
 				// we have a direction
 				ByteToDir( parm, dir );
-				CG_GrenadeExplosionMode( ent->origin, dir, (float)ent->weapon * 8.0f, ent->team );
+				CG_GrenadeExplosionMode( ent->origin, dir, (float)ent->weapon * 8.0f, team_color );
 			} else {
 				// no direction
-				CG_GrenadeExplosionMode( ent->origin, vec3_origin, (float)ent->weapon * 8.0f, ent->team );
+				CG_GrenadeExplosionMode( ent->origin, vec3_origin, (float)ent->weapon * 8.0f, team_color );
 			}
 
 			break;
 
 		case EV_ROCKET_EXPLOSION:
 			ByteToDir( parm, dir );
-			CG_RocketExplosionMode( ent->origin, dir, (float)ent->weapon * 8.0f, ent->team );
+			CG_RocketExplosionMode( ent->origin, dir, (float)ent->weapon * 8.0f, team_color );
 
 			break;
 
@@ -969,13 +968,13 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_RIFLEBULLET_IMPACT:
 			ByteToDir( parm, dir );
-			BulletSparks( FromQF3( ent->origin ), FromQF3( dir ), CG_TeamColorVec4( ent->team ), 24 );
+			BulletSparks( FromQF3( ent->origin ), FromQF3( dir ), team_color, 24 );
 			S_StartFixedSound( cgs.media.sfxBulletImpact, FromQF3( ent->origin ), CHAN_AUTO, 1.0f );
 			break;
 
 		case EV_BLOOD:
 			ByteToDir( parm, dir );
-			CG_BloodDamageEffect( ent->origin, dir, ent->damage, ent->team );
+			CG_BloodDamageEffect( ent->origin, dir, ent->damage, team_color );
 			break;
 
 		// func movers

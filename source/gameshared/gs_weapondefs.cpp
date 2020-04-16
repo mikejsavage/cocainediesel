@@ -333,7 +333,7 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONUP_TIME_NORMAL,           // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
 		600,                            // refire time
-		3000,                          // projectile timeout
+		3000,                           // projectile timeout
 		4.0f,                           // recoil
 		FiringMode_Auto,
 
@@ -343,14 +343,14 @@ const WeaponDef gs_weaponDefs[] = {
 		//damages
 		6,                              // damage
 		0,                              // selfdamage ratio
-		10,                             // knockback
-		60,                             // splash radius
-		1,                              // splash minimum damage
-		1,                              // splash minimum knockback
+		5,                              // knockback
+		80,                             // splash radius
+		3,                              // splash minimum damage
+		4,                              // splash minimum knockback
 
 		//projectile def
 		400,                            // speed
-		2.0f,                         // spread
+		2.0f,                           // spread
 	},
 
 	{

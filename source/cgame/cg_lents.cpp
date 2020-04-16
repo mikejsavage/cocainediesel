@@ -337,7 +337,7 @@ void CG_BubbleExplosion( const vec3_t pos, Vec4 team_color ) {
 
 	CG_ParticleBubbleExplosionEffect( FromQF3( pos ), team_color.xyz() );
 
-	S_StartFixedSound( cgs.media.sfxBubbleHit[ random_uniform( &cls.rng, 0, 2 ) ], FromQF3( pos ), CHAN_AUTO, 1.0f );
+	S_StartFixedSound( cgs.media.sfxBubbleHit, FromQF3( pos ), CHAN_AUTO, 1.0f );
 }
 
 void CG_EBImpact( const vec3_t pos, const vec3_t dir, int surfFlags, Vec4 team_color ) {

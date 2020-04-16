@@ -50,8 +50,7 @@ void CG_RegisterMediaSounds() {
 
 	// Plasmagun sounds :
 	cgs.media.sfxPlasmaHit = FindSoundEffect( "weapons/pg/explode" );
-	cgs.media.sfxBubbleHit[ 0 ] = FindSoundEffect( "weapons/bg/explode1" );
-	cgs.media.sfxBubbleHit[ 1 ] = FindSoundEffect( "weapons/bg/explode2" );
+	cgs.media.sfxBubbleHit = FindSoundEffect( "weapons/bg/explode" );
 
 	// Lasergun sounds
 	cgs.media.sfxLasergunHum = FindSoundEffect( "weapons/lg/hum" );

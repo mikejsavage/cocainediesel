@@ -258,6 +258,9 @@ void CG_Reset( void ) {
 
 	CG_ClearAwards();
 
+	CG_InitDamageNumbers();
+	InitPersistentBeams();
+
 	chaseCam.key_pressed = false;
 
 	// reset prediction optimization

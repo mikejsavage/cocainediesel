@@ -412,36 +412,11 @@ enum {
 
 #define ISWALKABLEPLANE( x ) ( ( (cplane_t *)x )->normal[2] >= 0.7 )
 
-// box slide movement code (not used for player)
-#define MAX_SLIDEMOVE_CLIP_PLANES   16
-
 #define SLIDEMOVE_PLANEINTERACT_EPSILON 0.05
-#define SLIDEMOVEFLAG_PLANE_TOUCHED 16
 #define SLIDEMOVEFLAG_WALL_BLOCKED  8
 #define SLIDEMOVEFLAG_TRAPPED       4
 #define SLIDEMOVEFLAG_BLOCKED       2   // it was blocked at some point, doesn't mean it didn't slide along the blocking object
-#define SLIDEMOVEFLAG_MOVED     1
 
-typedef struct {
-	vec3_t velocity;
-	vec3_t origin;
-	vec3_t mins, maxs;
-	float remainingTime;
-
-	vec3_t gravityDir;
-	float slideBounce;
-	int groundEntity;
-
-	int passent, contentmask;
-
-	int numClipPlanes;
-	vec3_t clipPlaneNormals[MAX_SLIDEMOVE_CLIP_PLANES];
-
-	int numtouch;
-	int touchents[MAXTOUCH];
-} move_t;
-
-int GS_SlideMove( const gs_state_t * gs, move_t *move );
 void GS_ClipVelocity( vec3_t in, vec3_t normal, vec3_t out, float overbounce );
 
 int GS_LinearMovement( const SyncEntityState *ent, int64_t time, vec3_t dest );

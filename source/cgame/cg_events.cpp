@@ -1011,11 +1011,15 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 * CG_FireEvents
 */
 static void CG_FireEntityEvents( bool early ) {
-	int pnum, j;
-	SyncEntityState *state;
+	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
+		SyncEntityState * state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
 
-	for( pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
-		state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
+		if( cgs.demoPlaying ) {
+			if( ( state->svflags & SVF_ONLYTEAM ) && cg.predictedPlayerState.team != state->team )
+				continue;
+			if( ( state->svflags & SVF_ONLYOWNER ) && cg.predictedPlayerState.POVnum != state->ownerNum )
+				continue;
+		}
 
 		if( state->type == ET_SOUNDEVENT ) {
 			if( early ) {
@@ -1024,7 +1028,7 @@ static void CG_FireEntityEvents( bool early ) {
 			continue;
 		}
 
-		for( j = 0; j < 2; j++ ) {
+		for( int j = 0; j < 2; j++ ) {
 			if( early == ISEARLYEVENT( state->events[j].type ) ) {
 				CG_EntityEvent( state, state->events[j].type, state->events[j].parm, false );
 			}

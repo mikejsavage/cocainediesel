@@ -938,6 +938,14 @@ void CG_UpdateEntities( void ) {
 
 	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
 		SyncEntityState * state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
+
+		if( cgs.demoPlaying ) {
+			if( ( state->svflags & SVF_ONLYTEAM ) && cg.predictedPlayerState.team != state->team )
+				continue;
+			if( ( state->svflags & SVF_ONLYOWNER ) && cg.predictedPlayerState.POVnum != state->ownerNum )
+				continue;
+		}
+
 		centity_t * cent = &cg_entities[state->number];
 		cent->type = state->type;
 		cent->effects = state->effects;

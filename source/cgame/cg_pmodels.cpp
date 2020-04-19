@@ -460,7 +460,7 @@ static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, const ve
 	}
 
 	// crouching : fixme? : it assumes the entity is using the player box sizes
-	if( VectorCompare( maxs, playerbox_crouch_maxs ) ) {
+	if( !VectorCompare( maxs, playerbox_stand_maxs ) ) {
 		moveflags |= ANIMMOVE_DUCK;
 	}
 

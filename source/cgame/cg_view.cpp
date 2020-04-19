@@ -197,13 +197,15 @@ void CG_AddKickAngles( vec3_t viewangles ) {
 * CG_CalcViewFov
 */
 float CG_CalcViewFov() {
+	float hardcoded_fov = 107.9f; // TODO: temp hardcoded fov
+
 	WeaponType weapon = cg.predictedPlayerState.weapon;
 	if( weapon == Weapon_None )
-		return cg_fov->value;
+		return hardcoded_fov;
 
 	float zoom_fov = GS_GetWeaponDef( weapon )->zoom_fov;
 	float frac = float( cg.predictedPlayerState.zoom_time ) / float( ZOOMTIME );
-	return Lerp( cg_fov->value, frac, float( zoom_fov ) );
+	return Lerp( hardcoded_fov, frac, float( zoom_fov ) );
 }
 
 /*

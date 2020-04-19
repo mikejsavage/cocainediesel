@@ -10,7 +10,8 @@ weapons/bg/cell
 {
 	cull disable
 	{
-		map $whiteimage
-		rgbGen const 1 1 1
+		blendFunc add
+		map weapons/bg/cell
+		rgbgen entity
 	}
 }

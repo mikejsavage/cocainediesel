@@ -343,13 +343,13 @@ const WeaponDef gs_weaponDefs[] = {
 		//damages
 		6,                              // damage
 		0,                              // selfdamage ratio
-		5,                              // knockback
+		7,                              // knockback
 		80,                             // splash radius
-		3,                              // splash minimum damage
-		4,                              // splash minimum knockback
+		4,                              // splash minimum damage
+		6,                              // splash minimum knockback
 
 		//projectile def
-		400,                            // speed
+		300,                            // speed
 		0.05f,                          // spread
 	},
 
@@ -393,8 +393,8 @@ const WeaponDef gs_weaponDefs[] = {
 		200,
 
 		1,                              // projectiles fired each shot
-		4,                              // clip size
-		700,                            // reload time
+		5,                              // clip size
+		600,                            // reload time
 		true,                           // staged reloading
 
 		//timings (in msecs)

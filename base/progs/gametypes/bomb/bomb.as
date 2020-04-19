@@ -90,7 +90,7 @@ void bombInit() {
 
 	// don't set ~SVF_NOCLIENT yet
 	@bombHud = @G_SpawnEntity( "hud_bomb" );
-	bombHud.type = ET_HUD;
+	bombHud.type = ET_BOMB;
 	bombHud.solid = SOLID_NOT;
 	bombHud.svflags |= SVF_BROADCAST;
 

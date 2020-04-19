@@ -464,7 +464,8 @@ void CG_InitDamageNumbers();
 void CG_AddDamageNumber( SyncEntityState * ent );
 void CG_DrawDamageNumbers();
 
-void CG_AddBombHudEntity( centity_t * cent );
+void CG_AddBomb( centity_t * cent );
+void CG_AddBombSite( centity_t * cent );
 void CG_DrawBombHUD();
 void CG_ResetBombHUD();
 

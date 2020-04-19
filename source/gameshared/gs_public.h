@@ -211,7 +211,7 @@ struct SyncEntityState {
 	int targetNum;                  // ET_EVENT specific
 	int colorRGBA;                  // ET_BEAM, ET_EVENT specific
 	RGBA8 silhouetteColor;
-	int radius;                     // ET_GLADIATOR always extended, ET_HUD type, ...
+	int radius;                     // ET_GLADIATOR always extended, ET_BOMB state, ...
 
 	bool linearMovement;
 	vec3_t linearMovementVelocity;      // this is transmitted instead of origin when linearProjectile is true
@@ -724,7 +724,8 @@ enum {
 
 	ET_LASERBEAM,   // for continuous beams
 
-	ET_HUD,
+	ET_BOMB,
+	ET_BOMB_SITE,
 
 	ET_LASER,
 	ET_SPIKES,

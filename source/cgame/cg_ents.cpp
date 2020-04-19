@@ -101,9 +101,7 @@ static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 * CG_NewPacketEntityState
 */
 static void CG_NewPacketEntityState( SyncEntityState *state ) {
-	centity_t *cent;
-
-	cent = &cg_entities[state->number];
+	centity_t * cent = &cg_entities[state->number];
 
 	VectorClear( cent->prevVelocity );
 	cent->canExtrapolatePrev = false;
@@ -297,8 +295,6 @@ static void CG_UpdatePlayerState( void ) {
 * a new frame snap has been received from the server
 */
 bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
-	int i;
-
 	assert( frame );
 
 	if( lerpframe ) {
@@ -316,8 +312,9 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 
 	CG_UpdatePlayerState();
 
-	for( i = 0; i < frame->numEntities; i++ )
+	for( int i = 0; i < frame->numEntities; i++ ) {
 		CG_NewPacketEntityState( &frame->parsedEntities[i & ( MAX_PARSE_ENTITIES - 1 )] );
+	}
 
 	if( !cgs.precacheDone || !cg.frame.valid ) {
 		return false;
@@ -333,7 +330,7 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 	cg.predictFrom = 0; // force the prediction to be restarted from the new snapshot
 	cg.fireEvents = true;
 
-	for( i = 0; i < cg.frame.numgamecommands; i++ ) {
+	for( int i = 0; i < cg.frame.numgamecommands; i++ ) {
 		int target = cg.frame.playerState.POVnum - 1;
 		if( cg.frame.gamecommands[i].all || cg.frame.gamecommands[i].targets[target >> 3] & ( 1 << ( target & 7 ) ) ) {
 			CG_GameCommand( cg.frame.gamecommandsData + cg.frame.gamecommands[i].commandOffset );
@@ -844,14 +841,17 @@ void CG_AddEntities( void ) {
 			case ET_SOUNDEVENT:
 				break;
 
-			case ET_HUD:
-				CG_AddBombHudEntity( cent );
+			case ET_BOMB:
+				CG_AddBomb( cent );
 				break;
 
-			case ET_LASER: {
+			case ET_BOMB_SITE:
+				CG_AddBombSite( cent );
+				break;
+
+			case ET_LASER:
 				CG_AddLaserEnt( cent );
 				cent->sound = S_ImmediateLineSound( FindSoundEffect( state->sound ), FromQF3( cent->ent.origin ), FromQF3( cent->ent.origin2 ), 1.0f, cent->sound );
-			} break;
 
 			case ET_SPIKES:
 				CG_AddGenericEnt( cent );
@@ -907,7 +907,8 @@ void CG_LerpEntities( void ) {
 			case ET_SOUNDEVENT:
 				break;
 
-			case ET_HUD:
+			case ET_BOMB:
+			case ET_BOMB_SITE:
 				break;
 
 			case ET_LASER:
@@ -984,7 +985,8 @@ void CG_UpdateEntities( void ) {
 			case ET_SOUNDEVENT:
 				break;
 
-			case ET_HUD:
+			case ET_BOMB:
+			case ET_BOMB_SITE:
 				break;
 
 			case ET_LASER:

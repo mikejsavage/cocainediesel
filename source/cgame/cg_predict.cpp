@@ -103,7 +103,7 @@ void CG_BuildSolidList( void ) {
 	cg_numTriggers = 0;
 
 	for( int i = 0; i < cg.frame.numEntities; i++ ) {
-		const SyncEntityState * ent = &cg.frame.parsedEntities[i & ( MAX_PARSE_ENTITIES - 1 )];
+		const SyncEntityState * ent = &cg.frame.parsedEntities[ i ];
 		if( ISEVENTENTITY( ent ) ) {
 			continue;
 		}
@@ -115,7 +115,8 @@ void CG_BuildSolidList( void ) {
 				case ET_GRENADE:
 				case ET_PLASMA:
 				case ET_LASERBEAM:
-				case ET_HUD:
+				case ET_BOMB:
+				case ET_BOMB_SITE:
 				case ET_LASER:
 				case ET_SPIKES:
 					break;

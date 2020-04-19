@@ -463,7 +463,7 @@ void CG_DrawDamageNumbers() {
 //=============================================================================
 
 struct BombSite {
-	vec3_t origin;
+	Vec3 origin;
 	int team;
 	char letter;
 };
@@ -471,13 +471,13 @@ struct BombSite {
 enum BombState {
 	BombState_None,
 	BombState_Dropped,
-	BombState_Placed,
-	BombState_Armed,
+	BombState_Planting,
+	BombState_Planted,
 };
 
 struct Bomb {
 	BombState state;
-	vec3_t origin;
+	Vec3 origin;
 	int team;
 };
 
@@ -485,35 +485,34 @@ static BombSite bomb_sites[ 26 ];
 static size_t num_bomb_sites;
 static Bomb bomb;
 
-void CG_AddBombHudEntity( centity_t * cent ) {
-	if( cent->current.counterNum != 0 ) {
-		assert( num_bomb_sites < ARRAY_COUNT( bomb_sites ) );
-
-		BombSite * site = &bomb_sites[ num_bomb_sites ];
-		VectorCopy( cent->current.origin, site->origin );
-		site->team = cent->current.team;
-		site->letter = cent->current.counterNum;
-
-		num_bomb_sites++;
+void CG_AddBomb( centity_t * cent ) {
+	if( cent->current.svflags & SVF_ONLYTEAM ) {
+		bomb.state = cent->current.radius == BombDown_Dropped ? BombState_Dropped : BombState_Planting;
 	}
 	else {
-		if( cent->current.svflags & SVF_ONLYTEAM ) {
-			bomb.state = cent->current.radius == BombDown_Dropped ? BombState_Dropped : BombState_Placed;
-		}
-		else {
-			bomb.state = BombState_Armed;
-		}
-
-		bomb.team = cent->current.team;
-		VectorCopy( cent->current.origin, bomb.origin );
+		bomb.state = BombState_Planted;
 	}
+
+	bomb.team = cent->current.team;
+	bomb.origin = FromQF3( cent->current.origin );
+}
+
+void CG_AddBombSite( centity_t * cent ) {
+	assert( num_bomb_sites < ARRAY_COUNT( bomb_sites ) );
+
+	BombSite * site = &bomb_sites[ num_bomb_sites ];
+	site->origin = FromQF3( cent->current.origin );
+	site->team = cent->current.team;
+	site->letter = cent->current.counterNum;
+
+	num_bomb_sites++;
 }
 
 void CG_DrawBombHUD() {
-	if( GS_MatchState( &client_gs ) != MATCH_STATE_PLAYTIME )
+	if( GS_MatchState( &client_gs ) <= MATCH_STATE_PLAYTIME )
 		return;
 
-	int my_team = cg.predictedPlayerState.real_team;
+	int my_team = cg.predictedPlayerState.team;
 	bool show_labels = my_team != TEAM_SPECTATOR;
 
 	// TODO: draw arrows when clamped
@@ -522,7 +521,7 @@ void CG_DrawBombHUD() {
 		for( size_t i = 0; i < num_bomb_sites; i++ ) {
 			const BombSite * site = &bomb_sites[ i ];
 			bool clamped;
-			Vec2 coords = WorldToScreenClamped( FromQF3( site->origin ), Vec2( cgs.fontSystemMediumSize * 2 ), &clamped );
+			Vec2 coords = WorldToScreenClamped( site->origin, Vec2( cgs.fontSystemMediumSize * 2 ), &clamped );
 
 			char buf[ 4 ];
 			snprintf( buf, sizeof( buf ), "%c", site->letter );
@@ -538,7 +537,7 @@ void CG_DrawBombHUD() {
 
 	if( bomb.state != BombState_None ) {
 		bool clamped;
-		Vec2 coords = WorldToScreenClamped( FromQF3( bomb.origin ), Vec2( cgs.fontSystemMediumSize * 2 ), &clamped );
+		Vec2 coords = WorldToScreenClamped( bomb.origin, Vec2( cgs.fontSystemMediumSize * 2 ), &clamped );
 
 		if( clamped ) {
 			int icon_size = ( cgs.fontSystemMediumSize * frame_static.viewport_height ) / 600;
@@ -547,9 +546,9 @@ void CG_DrawBombHUD() {
 		else {
 			if( show_labels ) {
 				const char * msg = "RETRIEVE";
-				if( bomb.state == BombState_Placed )
+				if( bomb.state == BombState_Planting )
 					msg = "PLANTING";
-				else if( bomb.state == BombState_Armed )
+				else if( bomb.state == BombState_Planted )
 					msg = my_team == bomb.team ? "PROTECT" : "DEFUSE";
 				float y = coords.y - cgs.fontSystemTinySize / 2;
 				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, y, vec4_white, true );
@@ -563,7 +562,6 @@ void CG_ResetBombHUD() {
 	num_bomb_sites = 0;
 	bomb.state = BombState_None;
 }
-
 
 //=============================================================================
 

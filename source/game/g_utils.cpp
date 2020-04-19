@@ -670,9 +670,7 @@ void G_AddEvent( edict_t *ent, int event, u64 parm, bool highPriority ) {
 * G_SpawnEvent
 */
 edict_t *G_SpawnEvent( int event, u64 parm, const vec3_t origin ) {
-	edict_t *ent;
-
-	ent = G_Spawn();
+	edict_t * ent = G_Spawn();
 	ent->s.type = ET_EVENT;
 	ent->r.solid = SOLID_NOT;
 	ent->r.svflags &= ~SVF_NOCLIENT;

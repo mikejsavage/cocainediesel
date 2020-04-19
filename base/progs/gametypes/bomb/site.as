@@ -83,7 +83,7 @@ class cBombSite
 		this.letter[0] += siteCount++;
 
 		@this.hud = @G_SpawnEntity( "hud_bomb_site" );
-		this.hud.type = ET_HUD;
+		this.hud.type = ET_BOMB_SITE;
 		this.hud.solid = SOLID_NOT;
 		this.hud.origin = origin;
 		this.hud.team = team;

@@ -121,14 +121,6 @@ static void W_AutoTouch_Plasma( edict_t *ent, edict_t *other, cplane_t *plane, i
 }
 
 static void G_ProjectileDistancePrestep( edict_t *projectile, float distance ) {
-	float speed;
-	vec3_t dir, dest;
-	int mask, i;
-	trace_t trace;
-#ifdef PLASMAHACK
-	vec3_t plasma_hack_start;
-#endif
-
 	assert( projectile->movetype == MOVETYPE_TOSS
 		|| projectile->movetype == MOVETYPE_LINEARPROJECTILE
 		|| projectile->movetype == MOVETYPE_BOUNCE
@@ -138,21 +130,27 @@ static void G_ProjectileDistancePrestep( edict_t *projectile, float distance ) {
 		return;
 	}
 
-	if( ( speed = VectorNormalize2( projectile->velocity, dir ) ) == 0.0f ) {
+	vec3_t dir;
+	float speed = VectorNormalize2( projectile->velocity, dir );
+	if( speed == 0.0f ) {
 		return;
 	}
 
-	mask = ( projectile->r.clipmask ) ? projectile->r.clipmask : MASK_SHOT; // race trick should come set up inside clipmask
+	int mask = projectile->r.clipmask;
 
 #ifdef PLASMAHACK
+	vec3_t plasma_hack_start;
 	VectorCopy( projectile->s.origin, plasma_hack_start );
 #endif
 
+	vec3_t dest;
 	VectorMA( projectile->s.origin, distance, dir, dest );
+
+	trace_t trace;
 	G_Trace4D( &trace, projectile->s.origin, projectile->r.mins, projectile->r.maxs, dest, projectile->r.owner, mask, projectile->timeDelta );
 
-	for( i = 0; i < 3; i++ )
-		projectile->s.origin[i] = projectile->olds.origin[i] = trace.endpos[i];
+	VectorCopy( trace.endpos, projectile->s.origin );
+	VectorCopy( trace.endpos, projectile->olds.origin );
 
 	GClip_LinkEntity( projectile );
 	SV_Impact( projectile, &trace );
@@ -172,7 +170,13 @@ static void G_ProjectileDistancePrestep( edict_t *projectile, float distance ) {
 #endif
 }
 
-static edict_t * FireProjectile( edict_t * owner, const vec3_t start, const vec3_t angles, int timeDelta, WeaponType weapon, EdictTouchCallback touch, int event_type, float custom_spread_x=0.0f, float custom_spread_y=0.0f ) {
+static edict_t * FireProjectile(
+		edict_t * owner,
+		const vec3_t start, const vec3_t angles,
+		int timeDelta,
+		WeaponType weapon, EdictTouchCallback touch, int event_type, int clipmask,
+		float custom_spread_x = 0.0f, float custom_spread_y = 0.0f
+) {
 	const WeaponDef * def = GS_GetWeaponDef( weapon );
 
 	edict_t * projectile = G_Spawn();
@@ -185,7 +189,8 @@ static edict_t * FireProjectile( edict_t * owner, const vec3_t start, const vec3
 	if( custom_spread_x != 0.0f || custom_spread_y != 0.0f  ) {
 		new_angles[ PITCH ] += custom_spread_x;
 		new_angles[ YAW ] += custom_spread_y;
-	} else if( def->spread != 0.0f ) {
+	}
+	else if( def->spread != 0.0f ) {
 		new_angles[ PITCH ] += random_float11( &svs.rng ) * def->spread;
 		new_angles[ YAW ] += random_float11( &svs.rng ) * def->spread;
 	}
@@ -200,7 +205,7 @@ static edict_t * FireProjectile( edict_t * owner, const vec3_t start, const vec3
 	projectile->movetype = MOVETYPE_LINEARPROJECTILE;
 
 	projectile->r.solid = SOLID_YES;
-	projectile->r.clipmask = ( !GS_RaceGametype( &server_gs ) ) ? MASK_SHOT : MASK_SOLID;
+	projectile->r.clipmask = !GS_RaceGametype( &server_gs ) ? clipmask : MASK_SOLID;
 	projectile->r.svflags = SVF_PROJECTILE;
 
 	VectorClear( projectile->r.mins );
@@ -227,8 +232,14 @@ static edict_t * FireProjectile( edict_t * owner, const vec3_t start, const vec3
 	return projectile;
 }
 
-static edict_t * FireLinearProjectile( edict_t * owner, const vec3_t start, const vec3_t angles, int timeDelta, WeaponType weapon, EdictTouchCallback touch, int event_type, float custom_spread_x=0.0f, float custom_spread_y=0.0f ) {
-	edict_t * projectile = FireProjectile( owner, start, angles, timeDelta, weapon, touch, event_type, custom_spread_x, custom_spread_y );
+static edict_t * FireLinearProjectile(
+		edict_t * owner,
+		const vec3_t start, const vec3_t angles,
+		int timeDelta,
+		WeaponType weapon, EdictTouchCallback touch, int event_type, int clipmask,
+		float custom_spread_x = 0.0f, float custom_spread_y = 0.0f
+) {
+	edict_t * projectile = FireProjectile( owner, start, angles, timeDelta, weapon, touch, event_type, clipmask, custom_spread_x, custom_spread_y );
 
 	projectile->movetype = MOVETYPE_LINEARPROJECTILE;
 	projectile->s.linearMovement = true;
@@ -390,7 +401,7 @@ static void W_Fire_Grenade( edict_t * self, vec3_t start, vec3_t angles, int tim
 		angles[PITCH] -= 5.0f * cosf( DEG2RAD( angles[PITCH] ) ); // aim some degrees upwards from view dir
 	}
 
-	edict_t * grenade = FireProjectile( self, start, angles, timeDelta, Weapon_GrenadeLauncher, W_Touch_Grenade, ET_GRENADE );
+	edict_t * grenade = FireProjectile( self, start, angles, timeDelta, Weapon_GrenadeLauncher, W_Touch_Grenade, ET_GRENADE, MASK_SHOT );
 
 	grenade->classname = "grenade";
 	grenade->movetype = MOVETYPE_BOUNCEGRENADE;
@@ -433,7 +444,7 @@ static void W_Touch_Rocket( edict_t *ent, edict_t *other, cplane_t *plane, int s
 }
 
 static void W_Fire_Rocket( edict_t * self, vec3_t start, vec3_t angles, int timeDelta ) {
-	edict_t * rocket = FireLinearProjectile( self, start, angles, timeDelta, Weapon_RocketLauncher, W_Touch_Rocket, ET_ROCKET );
+	edict_t * rocket = FireLinearProjectile( self, start, angles, timeDelta, Weapon_RocketLauncher, W_Touch_Rocket, ET_ROCKET, MASK_SHOT );
 
 	rocket->classname = "rocket";
 	rocket->s.model = "weapons/rl/rocket";
@@ -441,7 +452,7 @@ static void W_Fire_Rocket( edict_t * self, vec3_t start, vec3_t angles, int time
 }
 
 static void W_Fire_Plasma( edict_t * self, vec3_t start, vec3_t angles, int timeDelta ) {
-	edict_t * plasma = FireLinearProjectile( self, start, angles, timeDelta, Weapon_Plasma, W_AutoTouch_Plasma, ET_PLASMA );
+	edict_t * plasma = FireLinearProjectile( self, start, angles, timeDelta, Weapon_Plasma, W_AutoTouch_Plasma, ET_PLASMA, MASK_SHOT );
 
 	plasma->classname = "plasma";
 	plasma->s.model = "weapons/pg/cell";
@@ -476,7 +487,7 @@ void W_Fire_BubbleGun( edict_t * self, vec3_t start, vec3_t angles, int timeDelt
 
 		rot = angle + rot_factor;
 
-		edict_t * bubble = FireLinearProjectile( self, pos, angles, timeDelta, Weapon_BubbleGun, W_AutoTouch_Plasma, ET_BUBBLE, odd ? 0.05f : ( def->spread * sinf( DEG2RAD( rot ) ) ), odd ? 0.05f : ( def->spread * cosf( DEG2RAD( rot ) ) ) );
+		edict_t * bubble = FireLinearProjectile( self, pos, angles, timeDelta, Weapon_BubbleGun, W_AutoTouch_Plasma, ET_BUBBLE, MASK_SHOT, odd ? 0.05f : ( def->spread * sinf( DEG2RAD( rot ) ) ), odd ? 0.05f : ( def->spread * cosf( DEG2RAD( rot ) ) ) );
 
 		bubble->classname = "bubble";
 		bubble->s.model = "weapons/bg/cell";
@@ -673,7 +684,7 @@ static void W_Touch_RifleBullet( edict_t *ent, edict_t *other, cplane_t *plane, 
 }
 
 void W_Fire_RifleBullet( edict_t * self, vec3_t start, vec3_t angles, int timeDelta ) {
-	edict_t * bullet = FireLinearProjectile( self, start, angles, timeDelta, Weapon_Rifle, W_Touch_RifleBullet, ET_RIFLEBULLET );
+	edict_t * bullet = FireLinearProjectile( self, start, angles, timeDelta, Weapon_Rifle, W_Touch_RifleBullet, ET_RIFLEBULLET, MASK_WALLBANG );
 
 	bullet->classname = "riflebullet";
 	bullet->s.model = "weapons/rifle/bullet";

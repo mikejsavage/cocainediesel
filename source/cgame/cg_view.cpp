@@ -465,10 +465,14 @@ static void CG_UpdateChaseCam( void ) {
 	}
 
 	int chaseStep = 0;
-	if( cmd.upmove > 0 || cmd.sidemove > 0 || ( cmd.buttons & BUTTON_SPECIAL ) ) {
-		chaseStep = 1;
-	} else if( cmd.upmove < 0 || cmd.sidemove < 0 ) {
-		chaseStep = -1;
+
+	if( cg.view.type == VIEWDEF_PLAYERVIEW ) {
+		if( cmd.upmove > 0 || cmd.sidemove > 0 || ( cmd.buttons & BUTTON_SPECIAL ) ) {
+			chaseStep = 1;
+		}
+		else if( cmd.upmove < 0 || cmd.sidemove < 0 ) {
+			chaseStep = -1;
+		}
 	}
 
 	if( chaseStep != 0 ) {

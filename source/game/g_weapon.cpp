@@ -28,10 +28,6 @@ static bool CanHit( const edict_t * projectile, const edict_t * target ) {
 	return target == world || target != projectile->r.owner;
 }
 
-static void ForgotToSetProjectileTouch( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) {
-	assert( false );
-}
-
 static void W_Explode_Plasma( edict_t *ent, edict_t *other, cplane_t *plane ) {
 	if( other != NULL && other->takedamage ) {
 		vec3_t push_dir;

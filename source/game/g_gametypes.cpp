@@ -606,6 +606,8 @@ void G_Gametype_ScoreEvent( gclient_t *client, const char *score_event, const ch
 * G_RunGametype
 */
 void G_RunGametype( void ) {
+	ZoneScoped;
+
 	G_Teams_ExecuteChallengersQueue();
 	G_Teams_UpdateMembersList();
 	G_Match_CheckStateAbort();

@@ -52,6 +52,8 @@ static void SV_Demo_WriteStartMessages( void ) {
 * SV_Demo_WriteSnap
 */
 void SV_Demo_WriteSnap( void ) {
+	ZoneScoped;
+
 	int i;
 	msg_t msg;
 	uint8_t msg_buffer[MAX_MSGLEN];

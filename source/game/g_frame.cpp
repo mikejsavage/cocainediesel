@@ -199,8 +199,6 @@ void G_CheckCvars( void ) {
 //		SNAP FRAMES
 //===================================================================
 
-static bool g_snapStarted = false;
-
 /*
 * G_SnapClients
 */
@@ -290,14 +288,6 @@ static void G_SnapEntities() {
 	}
 }
 
-/*
-* G_StartFrameSnap
-* a snap was just sent, set up for new one
-*/
-static void G_StartFrameSnap( void ) {
-	g_snapStarted = true;
-}
-
 // backup entitiy sounds in timeout
 static StringHash entity_sound_backup[MAX_EDICTS];
 
@@ -345,8 +335,6 @@ void G_ClearSnap( void ) {
 			memset( &ent->r.client->resp.snap, 0, sizeof( ent->r.client->resp.snap ) );
 		}
 	}
-
-	g_snapStarted = false;
 }
 
 /*
@@ -415,6 +403,8 @@ void G_SnapFrame( void ) {
 * even the world and clients get a chance to think
 */
 static void G_RunEntities( void ) {
+	ZoneScoped;
+
 	edict_t *ent;
 
 	for( ent = &game.edicts[0]; ENTNUM( ent ) < game.numentities; ent++ ) {
@@ -451,6 +441,8 @@ static void G_RunEntities( void ) {
 * G_RunClients
 */
 static void G_RunClients( void ) {
+	ZoneScoped;
+
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t *ent = game.edicts + 1 + i;
 		if( !ent->r.inuse ) {
@@ -472,14 +464,12 @@ static void G_RunClients( void ) {
 * Advances the world
 */
 void G_RunFrame( unsigned int msec ) {
+	ZoneScoped;
+
 	G_CheckCvars();
 
 	game.frametime = msec;
 	G_Timeout_Update( msec );
-
-	if( !g_snapStarted ) {
-		G_StartFrameSnap();
-	}
 
 	G_CallVotes_Think();
 

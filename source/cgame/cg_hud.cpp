@@ -574,6 +574,7 @@ static const char * obituaries[] = {
 	"PUT DOWN",
 	"PYONGYANGED",
 	"QUASHED",
+	"QUENCHED",
 	"RAISED",
 	"RAMMED",
 	"RAZED",

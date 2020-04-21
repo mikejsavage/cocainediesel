@@ -74,7 +74,7 @@ void playerKilled( Entity @victim, Entity @attacker, Entity @inflictor ) {
 
 		int required_for_ace = attacker.team == TEAM_ALPHA ? match.betaPlayersTotal : match.alphaPlayersTotal;
 		if( required_for_ace >= 3 && player.killsThisRound == required_for_ace ) {
-			G_AnnouncerSound( null, sndAce, GS_MAX_TEAMS, true, null );
+			G_AnnouncerSound( null, sndAce, GS_MAX_TEAMS, false, null );
 		}
 	}
 
@@ -98,48 +98,16 @@ void checkPlayersAlive( int team ) {
 		return;
 	}
 
-	int teamOther   = otherTeam( team );
-	uint aliveOther = playersAliveOnTeam( teamOther );
+	int other = otherTeam( team );
+	uint aliveOther = playersAliveOnTeam( other );
 
 	if( alive == 1 ) {
 		if( aliveOther == 1 ) {
-			G_PrintMsg( null, "1v1! Good luck!\n" );
-
-			firstAliveOnTeam( attackingTeam ).addAward( "1v1! Good luck!" );
-			firstAliveOnTeam( defendingTeam ).addAward( "1v1! Good luck!" );
+			G_AnnouncerSound( null, snd1v1, GS_MAX_TEAMS, false, null );
 		}
-		else if( aliveOther != 0 ) {
-			oneVsMsg( team, aliveOther );
-		}
-
-		return;
-	}
-
-	if( aliveOther == 1 ) {
-		// we know alive != 0 && alive != 1
-		oneVsMsg( teamOther, alive );
-	}
-}
-
-void oneVsMsg( int teamNum, uint enemies ) {
-	Client @survivor = @firstAliveOnTeam( teamNum );
-
-	if( @survivor == null ) {
-		assert( false, "round.as oneVsMsg: @survivor == null" );
-
-		return;
-	}
-
-	survivor.addAward( "1v" + enemies + "! You're on your own!" );
-
-	if( enemies == 1 ) {
-		G_PrintMsg( null, "1v1! Good luck!" );
-	}
-	else {
-		Team @team = @G_GetTeam( teamNum );
-
-		for( int i = 0; @team.ent( i ) != null; i++ ) {
-			G_PrintMsg( @team.ent( i ), "1v" + enemies + "! " + survivor.name + " is on their own!\n" );
+		else {
+			G_AnnouncerSound( null, snd1vx, team, false, null );
+			G_AnnouncerSound( null, sndxv1, other, false, null );
 		}
 	}
 }
@@ -299,7 +267,7 @@ void roundNewState( uint state ) {
 
 			enableMovement();
 
-			announce( Announcement_Started );
+			announce( Announcement_RoundStarted );
 
 			break;
 
@@ -402,8 +370,7 @@ void roundThink() {
 			last_time = -1;
 
 			if( !defendersHurried && levelTime + BOMB_HURRYUP_TIME >= bombActionTime ) {
-				announceDef( Announcement_Hurry );
-
+				G_AnnouncerSound( null, sndHurry, defendingTeam, true, null );
 				defendersHurried = true;
 			}
 		}
@@ -411,8 +378,7 @@ void roundThink() {
 			last_time = roundStateEndTime - levelTime;
 
 			if( !attackersHurried && levelTime + BOMB_HURRYUP_TIME >= roundStateEndTime ) {
-				announceOff( Announcement_Hurry );
-
+				G_AnnouncerSound( null, sndHurry, attackingTeam, true, null );
 				attackersHurried = true;
 			}
 		}

@@ -229,7 +229,7 @@ void bombPlanted() {
 	// show to defs too
 	bombHud.svflags &= ~SVF_ONLYTEAM;
 
-	announce( Announcement_Armed );
+	announce( Announcement_Planted );
 
 	G_CenterPrintMsg( null, "Bomb planted at " + bombSite.letter + "!" );
 

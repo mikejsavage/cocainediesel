@@ -381,15 +381,6 @@ static void SV_Physics_Pusher( edict_t *ent ) {
 	}
 }
 
-//==================================================================
-
-/*
-* SV_Physics_None
-* only think
-*/
-static void SV_Physics_None( edict_t *ent ) {
-}
-
 //==============================================================================
 //
 //TOSS / BOUNCE
@@ -628,10 +619,7 @@ void G_RunEntity( edict_t *ent ) {
 	switch( (int)ent->movetype ) {
 		case MOVETYPE_NONE:
 		case MOVETYPE_NOCLIP: // only used for clients, that use pmove
-			SV_Physics_None( ent );
-			break;
 		case MOVETYPE_PLAYER:
-			SV_Physics_None( ent );
 			break;
 		case MOVETYPE_PUSH:
 		case MOVETYPE_STOP:

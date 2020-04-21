@@ -721,19 +721,6 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 		cl->hand = bound( atoi( s ), 0, 2 );
 	}
 
-	// handicap
-	s = Info_ValueForKey( userinfo, "handicap" );
-	if( s ) {
-		i = atoi( s );
-
-		if( i > 90 || i < 0 ) {
-			G_PrintMsg( ent, "Handicap must be defined in the [0-90] range.\n" );
-			cl->handicap = 0;
-		} else {
-			cl->handicap = i;
-		}
-	}
-
 	// save off the userinfo in case we want to check something later
 	Q_strncpyz( cl->userinfo, userinfo, sizeof( cl->userinfo ) );
 

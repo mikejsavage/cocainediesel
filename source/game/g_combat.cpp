@@ -252,18 +252,10 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 	}
 
 	// dont count self-damage cause it just adds the same to both stats
-	bool statDmg = ( attacker != targ ) && ( mod != MOD_TELEFRAG );
+	bool statDmg = attacker != targ && mod != MOD_TELEFRAG;
 
 	// push
 	G_KnockBackPush( targ, attacker, pushdir, knockback, dflags );
-
-	// apply handicap on the damage given
-	if( statDmg && attacker->r.client ) {
-		// handicap is a percentage value
-		if( attacker->r.client->handicap != 0 ) {
-			damage *= 1.0 - ( attacker->r.client->handicap * 0.01f );
-		}
-	}
 
 	float take = damage;
 	float save = 0;

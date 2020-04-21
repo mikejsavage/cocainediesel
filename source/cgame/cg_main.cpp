@@ -29,7 +29,6 @@ centity_t cg_entities[MAX_EDICTS];
 cvar_t *cg_showMiss;
 
 cvar_t *cg_hand;
-cvar_t *cg_handicap;
 
 cvar_t *cg_addDecals;
 
@@ -165,7 +164,6 @@ static void CG_RegisterVariables( void ) {
 	cg_showHotkeys = Cvar_Get( "cg_showHotkeys", "1", CVAR_ARCHIVE );
 
 	cg_hand =           Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
-	cg_handicap =       Cvar_Get( "handicap", "0", CVAR_USERINFO | CVAR_ARCHIVE );
 	cg_fov =        Cvar_Get( "fov", "100", CVAR_ARCHIVE );
 
 	cg_addDecals =      Cvar_Get( "cg_decals", "1", CVAR_ARCHIVE );

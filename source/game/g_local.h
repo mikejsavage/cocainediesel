@@ -943,7 +943,7 @@ struct edict_s {
 	float random;
 
 	int watertype;
-	bool waterlevel;
+	int waterlevel;
 
 	int style;                  // also used as areaportal number
 

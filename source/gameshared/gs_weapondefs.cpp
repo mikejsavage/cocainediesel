@@ -201,7 +201,7 @@ const WeaponDef gs_weaponDefs[] = {
 		3.5f,                           // recoil
 		FiringMode_Auto,
 
-		60.0f,                          // zoom fov
+		0.0f,                           // zoom fov
 		0.0f,                           // !zoom inaccuracy
 
 		//damages

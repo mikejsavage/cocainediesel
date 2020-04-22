@@ -78,6 +78,10 @@ static void SV_RunThink( edict_t *ent ) {
 
 	ent->nextThink = 0;
 
+	if( ISEVENTENTITY( &ent->s ) ) { // events do not think
+		return;
+	}
+
 	G_CallThink( ent );
 }
 
@@ -142,12 +146,16 @@ retry:
 		SV_Impact( ent, &trace );
 
 		// if the pushed entity went away and the pusher is still there
-		if( !game.edicts[trace.ent].r.inuse && ent->movetype == MOVETYPE_PUSH ) {
+		if( !game.edicts[trace.ent].r.inuse && ent->movetype == MOVETYPE_PUSH && ent->r.inuse ) {
 			// move the pusher back and try again
 			VectorCopy( start, ent->s.origin );
 			GClip_LinkEntity( ent );
 			goto retry;
 		}
+	}
+
+	if( ent->r.inuse ) {
+		GClip_TouchTriggers( ent );
 	}
 
 	GClip_TouchTriggers( ent );
@@ -459,6 +467,10 @@ static void SV_Physics_Toss( edict_t *ent ) {
 	// move origin
 	VectorScale( ent->velocity, FRAMETIME, move );
 
+	if( !ent->r.inuse ) {
+		return;
+	}
+
 	trace = SV_PushEntity( ent, move );
 
 	if( trace.fraction < 1.0f ) {
@@ -587,6 +599,10 @@ void G_RunEntity( edict_t *ent ) {
 	if( ent->timeDelta && !( ent->r.svflags & SVF_PROJECTILE ) ) {
 		Com_Printf( "Warning: G_RunEntity 'Fixing timeDelta on non projectile entity\n" );
 		ent->timeDelta = 0;
+	}
+
+	if( ISEVENTENTITY( &ent->s ) ) { // events do not think
+		return;
 	}
 
 	// only team captains decide the think, and they make think their team members when they do

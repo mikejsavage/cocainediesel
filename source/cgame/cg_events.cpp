@@ -654,13 +654,6 @@ static void CG_PlayJumpSound( const SyncEntityState * state ) {
 }
 
 /*
-* CG_Event_DoubleJump
-*/
-static void CG_Event_DoubleJump( SyncEntityState * state ) {
-	CG_PlayJumpSound( state );
-}
-
-/*
 * CG_Event_Jump
 */
 static void CG_Event_Jump( SyncEntityState * state ) {

@@ -703,15 +703,11 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
 		return;
 
 	if( match.getState() != MATCH_STATE_PLAYTIME ) {
-		int weap1 = random_uniform( 0, Weapon_Count );
-		int weap2 = random_uniform( 0, Weapon_Count );
+		int weap1 = random_uniform( Weapon_None + 1, Weapon_Count );
+		int weap2 = random_uniform( Weapon_None + 1, Weapon_Count - 1 );
 
-		if( weap1 == weap2 ) {
+		if( weap2 >= weap1 )
 			weap2++;
-			if( weap2 == Weapon_Count  ) {
-				weap2 = Weapon_Knife;
-			}
-		}
 
 		ent.client.giveWeapon( WeaponType( weap1 ) );
 		ent.client.giveWeapon( WeaponType( weap2 ) );

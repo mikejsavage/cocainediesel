@@ -610,7 +610,6 @@ typedef enum {
 	EV_DASH,
 
 	EV_WALLJUMP,
-	EV_DOUBLEJUMP,
 	EV_JUMP,
 	EV_JUMP_PAD,
 	EV_FALL,

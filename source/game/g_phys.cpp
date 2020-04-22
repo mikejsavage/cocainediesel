@@ -78,10 +78,6 @@ static void SV_RunThink( edict_t *ent ) {
 
 	ent->nextThink = 0;
 
-	if( ISEVENTENTITY( &ent->s ) ) { // events do not think
-		return;
-	}
-
 	G_CallThink( ent );
 }
 
@@ -146,7 +142,7 @@ retry:
 		SV_Impact( ent, &trace );
 
 		// if the pushed entity went away and the pusher is still there
-		if( !game.edicts[trace.ent].r.inuse && ent->movetype == MOVETYPE_PUSH && ent->r.inuse ) {
+		if( !game.edicts[trace.ent].r.inuse && ent->movetype == MOVETYPE_PUSH ) {
 			// move the pusher back and try again
 			VectorCopy( start, ent->s.origin );
 			GClip_LinkEntity( ent );
@@ -154,9 +150,7 @@ retry:
 		}
 	}
 
-	if( ent->r.inuse ) {
-		GClip_TouchTriggers( ent );
-	}
+	GClip_TouchTriggers( ent );
 
 	return trace;
 }
@@ -466,9 +460,6 @@ static void SV_Physics_Toss( edict_t *ent ) {
 	VectorScale( ent->velocity, FRAMETIME, move );
 
 	trace = SV_PushEntity( ent, move );
-	if( !ent->r.inuse ) {
-		return;
-	}
 
 	if( trace.fraction < 1.0f ) {
 		if( ent->movetype == MOVETYPE_BOUNCE ) {
@@ -514,9 +505,9 @@ static void SV_Physics_Toss( edict_t *ent ) {
 	}
 
 	// check for water transition
-	wasinwater = ( ent->watertype & MASK_WATER ) ? true : false;
+	wasinwater = ent->watertype & MASK_WATER;
 	ent->watertype = G_PointContents( ent->s.origin );
-	isinwater = ent->watertype & MASK_WATER ? true : false;
+	isinwater = ent->watertype & MASK_WATER;
 
 	// never allow items in CONTENTS_NODROP
 	if( ent->item && ( ent->watertype & CONTENTS_NODROP ) ) {
@@ -524,11 +515,8 @@ static void SV_Physics_Toss( edict_t *ent ) {
 		return;
 	}
 
-	if( isinwater ) {
-		ent->waterlevel = 1;
-	} else {
-		ent->waterlevel = 0;
-	}
+	ent->waterlevel = isinwater;
+
 
 	if( !wasinwater && isinwater ) {
 		G_PositionedSound( old_origin, CHAN_AUTO, S_HIT_WATER );
@@ -549,14 +537,14 @@ static void SV_Physics_LinearProjectile( edict_t *ent ) {
 	vec3_t start, end;
 	int mask;
 	trace_t trace;
-	int old_waterLevel;
+	bool wasinwater;
 
 	// if not a team captain movement will be handled elsewhere
 	if( ent->flags & FL_TEAMSLAVE ) {
 		return;
 	}
 
-	old_waterLevel = ent->waterlevel;
+	wasinwater = ent->waterlevel;
 
 	mask = ( ent->r.clipmask ) ? ent->r.clipmask : MASK_SOLID;
 
@@ -572,17 +560,13 @@ static void SV_Physics_LinearProjectile( edict_t *ent ) {
 	GClip_LinkEntity( ent );
 	SV_Impact( ent, &trace );
 
-	if( !ent->r.inuse ) { // the projectile may be freed if touched something
-		return;
-	}
-
 	GClip_TouchTriggers( ent );
 	ent->groundentity = NULL; // projectiles never have ground entity
-	ent->waterlevel = ( G_PointContents4D( ent->s.origin, ent->timeDelta ) & MASK_WATER ) ? true : false;
+	ent->waterlevel = G_PointContents( ent->s.origin ) & MASK_WATER;
 
-	if( !old_waterLevel && ent->waterlevel ) {
+	if( !wasinwater && ent->waterlevel ) {
 		G_PositionedSound( start, CHAN_AUTO, S_HIT_WATER );
-	} else if( old_waterLevel && !ent->waterlevel ) {
+	} else if( wasinwater && !ent->waterlevel ) {
 		G_PositionedSound( ent->s.origin, CHAN_AUTO, S_HIT_WATER );
 	}
 }
@@ -597,10 +581,6 @@ void G_RunEntity( edict_t *ent ) {
 	edict_t *part;
 
 	if( !level.canSpawnEntities ) { // don't try to think before map entities are spawned
-		return;
-	}
-
-	if( ISEVENTENTITY( &ent->s ) ) { // events do not think
 		return;
 	}
 

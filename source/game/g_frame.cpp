@@ -413,7 +413,6 @@ static void G_RunEntities( void ) {
 		}
 		if( ISEVENTENTITY( &ent->s ) ) {
 			continue; // events do not think
-
 		}
 		level.current_entity = ent;
 

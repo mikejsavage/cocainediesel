@@ -170,10 +170,8 @@ static edict_t * FireProjectile(
 		edict_t * owner,
 		const vec3_t start, const vec3_t angles,
 		int timeDelta,
-		WeaponType weapon, EdictTouchCallback touch, int event_type, int clipmask
+		const WeaponDef * def, EdictTouchCallback touch, int event_type, int clipmask
 ) {
-	const WeaponDef * def = GS_GetWeaponDef( weapon );
-
 	edict_t * projectile = G_Spawn();
 	VectorCopy( start, projectile->s.origin );
 	VectorCopy( start, projectile->olds.origin );
@@ -218,9 +216,9 @@ static edict_t * FireLinearProjectile(
 		edict_t * owner,
 		const vec3_t start, const vec3_t angles,
 		int timeDelta,
-		WeaponType weapon, EdictTouchCallback touch, int event_type, int clipmask
+		const WeaponDef * def, EdictTouchCallback touch, int event_type, int clipmask
 ) {
-	edict_t * projectile = FireProjectile( owner, start, angles, timeDelta, weapon, touch, event_type, clipmask );
+	edict_t * projectile = FireProjectile( owner, start, angles, timeDelta, def, touch, event_type, clipmask );
 
 	projectile->movetype = MOVETYPE_LINEARPROJECTILE;
 	projectile->s.linearMovement = true;
@@ -378,7 +376,7 @@ static void W_Fire_Grenade( edict_t * self, const vec3_t start, const vec3_t ang
 		new_angles[PITCH] -= 5.0f * cosf( DEG2RAD( new_angles[PITCH] ) ); // aim some degrees upwards from view dir
 	}
 
-	edict_t * grenade = FireProjectile( self, start, new_angles, timeDelta, Weapon_GrenadeLauncher, W_Touch_Grenade, ET_GRENADE, MASK_SHOT );
+	edict_t * grenade = FireProjectile( self, start, new_angles, timeDelta, GS_GetWeaponDef( Weapon_GrenadeLauncher ), W_Touch_Grenade, ET_GRENADE, MASK_SHOT );
 
 	grenade->classname = "grenade";
 	grenade->movetype = MOVETYPE_BOUNCEGRENADE;
@@ -421,7 +419,7 @@ static void W_Touch_Rocket( edict_t *ent, edict_t *other, cplane_t *plane, int s
 }
 
 static void W_Fire_Rocket( edict_t * self, const vec3_t start, const vec3_t angles, int timeDelta ) {
-	edict_t * rocket = FireLinearProjectile( self, start, angles, timeDelta, Weapon_RocketLauncher, W_Touch_Rocket, ET_ROCKET, MASK_SHOT );
+	edict_t * rocket = FireLinearProjectile( self, start, angles, timeDelta, GS_GetWeaponDef( Weapon_RocketLauncher ), W_Touch_Rocket, ET_ROCKET, MASK_SHOT );
 
 	rocket->classname = "rocket";
 	rocket->s.model = "weapons/rl/rocket";
@@ -429,15 +427,15 @@ static void W_Fire_Rocket( edict_t * self, const vec3_t start, const vec3_t angl
 }
 
 static void W_Fire_Plasma( edict_t * self, const vec3_t start, const vec3_t angles, int timeDelta ) {
-	edict_t * plasma = FireLinearProjectile( self, start, angles, timeDelta, Weapon_Plasma, W_AutoTouch_Plasma, ET_PLASMA, MASK_SHOT );
+	edict_t * plasma = FireLinearProjectile( self, start, angles, timeDelta, GS_GetWeaponDef( Weapon_Plasma ), W_AutoTouch_Plasma, ET_PLASMA, MASK_SHOT );
 
 	plasma->classname = "plasma";
 	plasma->s.model = "weapons/pg/cell";
 	plasma->s.sound = "weapons/pg/trail";
 }
 
-static void FireBubble( edict_t * owner, const vec3_t start, const vec3_t angles, int timeDelta ) {
-	edict_t * bubble = FireLinearProjectile( owner, start, angles, timeDelta, Weapon_BubbleGun, W_AutoTouch_Plasma, ET_BUBBLE, MASK_SHOT );
+static void FireBubble( edict_t * owner, const vec3_t start, const vec3_t angles, const WeaponDef * def, int timeDelta ) {
+	edict_t * bubble = FireLinearProjectile( owner, start, angles, timeDelta, def, W_AutoTouch_Plasma, ET_BUBBLE, MASK_SHOT );
 
 	bubble->classname = "bubble";
 	bubble->s.model = "weapons/bg/cell";
@@ -449,13 +447,13 @@ static void FireBubble( edict_t * owner, const vec3_t start, const vec3_t angles
 
 void W_Fire_BubbleGun( edict_t * self, const vec3_t start, const vec3_t angles, int timeDelta ) {
 	constexpr int bubble_spacing = 25;
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_BubbleGun );
 
 	vec3_t dir, right, up;
 	AngleVectors( angles, dir, right, up );
 
-	FireBubble( self, start, angles, timeDelta );
+	FireBubble( self, start, angles, def, timeDelta );
 
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_BubbleGun );
 	int n = def->projectile_count - 1;
 	float base_angle = random_float01( &svs.rng ) * 2.0f * PI;
 
@@ -475,7 +473,7 @@ void W_Fire_BubbleGun( edict_t * self, const vec3_t start, const vec3_t angles, 
 
 		vec3_t new_angles;
 		VecToAngles( new_dir, new_angles );
-		FireBubble( self, pos, new_angles, timeDelta );
+		FireBubble( self, pos, new_angles, def, timeDelta );
 	}
 }
 
@@ -660,7 +658,7 @@ static void W_Touch_RifleBullet( edict_t *ent, edict_t *other, cplane_t *plane, 
 }
 
 void W_Fire_RifleBullet( edict_t * self, const vec3_t start, const vec3_t angles, int timeDelta ) {
-	edict_t * bullet = FireLinearProjectile( self, start, angles, timeDelta, Weapon_Rifle, W_Touch_RifleBullet, ET_RIFLEBULLET, MASK_WALLBANG );
+	edict_t * bullet = FireLinearProjectile( self, start, angles, timeDelta, GS_GetWeaponDef( Weapon_Rifle ), W_Touch_RifleBullet, ET_RIFLEBULLET, MASK_WALLBANG );
 
 	bullet->classname = "riflebullet";
 	bullet->s.model = "weapons/rifle/bullet";

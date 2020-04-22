@@ -79,8 +79,8 @@ static const gs_state_t * pmove_gs;
 #define DEFAULT_LADDERSPEED 250.0f
 
 const float pm_friction = 8; //  ( initially 6 )
-const float pm_waterfriction = 60;
-const float pm_wateraccelerate = 6; // user intended acceleration when swimming ( initially 6 )
+const float pm_waterfriction = 16;
+const float pm_wateraccelerate = 12; // user intended acceleration when swimming ( initially 6 )
 
 const float pm_accelerate = 12; // user intended acceleration when on ground or fly movement ( initially 10 )
 const float pm_decelerate = 12; // user intended deceleration when on ground
@@ -569,7 +569,6 @@ static void PM_WaterMove( void ) {
 		VectorScale( wishvel, wishspeed, wishvel );
 		wishspeed = pml.maxPlayerSpeed;
 	}
-	wishspeed *= 0.5;
 
 	PM_Accelerate( wishdir, wishspeed, pm_wateraccelerate );
 	PM_StepSlideMove();
@@ -861,18 +860,14 @@ static void PM_CheckJump( void ) {
 		GS_ClipVelocity( pml.velocity, pml.groundplane.normal, pml.velocity, PM_OVERBOUNCE );
 	}
 
+
 	float jumpSpeed = ( pm->waterlevel >= 2 ? pml.jumpPlayerSpeedWater : pml.jumpPlayerSpeed );
 
-	if( pml.velocity[2] > 100 ) {
-		pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DOUBLEJUMP, 0 );
-		pml.velocity[2] += jumpSpeed;
-	} else if( pml.velocity[2] > 0 ) {
-		pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_JUMP, 0 );
-		pml.velocity[2] += jumpSpeed;
-	} else {
-		pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_JUMP, 0 );
+	pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_JUMP, 0 );
+	if( pml.velocity[2] > 0 )
+		pml.velocity[2] = jumpSpeed + pml.velocity[2];
+	else
 		pml.velocity[2] = jumpSpeed;
-	}
 
 	// remove wj count
 	pm->playerState->pmove.pm_flags &= ~PMF_JUMPPAD_TIME;
@@ -888,7 +883,9 @@ static void PM_CheckDash( void ) {
 	float upspeed;
 	vec3_t dashdir;
 
-	if( !( pm->cmd.buttons & BUTTON_SPECIAL ) ) {
+	bool pressed = pm->cmd.buttons & BUTTON_SPECIAL;
+
+	if( !pressed ) {
 		pm->playerState->pmove.pm_flags &= ~PMF_SPECIAL_HELD;
 	}
 
@@ -904,8 +901,7 @@ static void PM_CheckDash( void ) {
 		return;
 	}
 
-	if( ( pm->cmd.buttons & BUTTON_SPECIAL ) && pm->groundentity != -1
-		&& ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) ) {
+	if( pm->groundentity != -1 && pressed && ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) ) {
 		if( pm->playerState->pmove.pm_flags & PMF_SPECIAL_HELD ) {
 			return;
 		}
@@ -922,11 +918,10 @@ static void PM_CheckDash( void ) {
 			GS_ClipVelocity( pml.velocity, pml.groundplane.normal, pml.velocity, PM_OVERBOUNCE );
 		}
 
-		if( pml.velocity[2] <= 0.0f ) {
+		if( pml.velocity[2] <= 0.0f )
 			upspeed = pm_dashupspeed;
-		} else {
+		else
 			upspeed = pm_dashupspeed + pml.velocity[2];
-		}
 
 		// ch : we should do explicit forwardPush here, and ignore sidePush ?
 		VectorMA( vec3_origin, pml.forwardPush, pml.flatforward, dashdir );
@@ -935,16 +930,17 @@ static void PM_CheckDash( void ) {
 
 		if( VectorLength( dashdir ) < 0.01f ) { // if not moving, dash like a "forward dash"
 			VectorCopy( pml.flatforward, dashdir );
+			pml.forwardPush = pml.dashPlayerSpeed;
 		}
 
 		VectorNormalize( dashdir );
 
 		actual_velocity = VectorNormalize2D( pml.velocity );
-		if( actual_velocity <= pml.dashPlayerSpeed ) {
+		if( actual_velocity <= pml.dashPlayerSpeed )
 			VectorScale( dashdir, pml.dashPlayerSpeed, dashdir );
-		} else {
+		else
 			VectorScale( dashdir, actual_velocity, dashdir );
-		}
+		
 
 		VectorCopy( dashdir, pml.velocity );
 		pml.velocity[2] = upspeed;
@@ -952,17 +948,11 @@ static void PM_CheckDash( void ) {
 		pm->playerState->pmove.dash_time = PM_DASHJUMP_TIMEDELAY;
 
 		// return sound events
-		if( Abs( pml.sidePush ) > 10 && Abs( pml.sidePush ) >= Abs( pml.forwardPush ) ) {
-			if( pml.sidePush > 0 ) {
-				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 2 );
-			} else {
-				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 1 );
-			}
-		} else if( pml.forwardPush < -10 ) {
-			pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 3 );
-		} else {
-			pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 0 );
-		}
+		if( Abs( pml.sidePush ) >= Abs( pml.forwardPush ) ) {
+			if( pml.sidePush > 0 ) 			pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 2 );
+			else 							pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 1 );
+		} else if( pml.forwardPush < 0 ) 	pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 3 );
+		else								pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 0 );
 	} else if( pm->groundentity == -1 ) {
 		pm->playerState->pmove.pm_flags &= ~PMF_DASHING;
 	}
@@ -975,7 +965,9 @@ static void PM_CheckWallJump( void ) {
 	vec3_t normal;
 	float hspeed;
 
-	if( !( pm->cmd.buttons & BUTTON_SPECIAL ) ) {
+	bool pressed = pm->cmd.buttons & BUTTON_SPECIAL;
+
+	if( !pressed ) {
 		pm->playerState->pmove.pm_flags &= ~PMF_SPECIAL_HELD;
 	}
 
@@ -1004,11 +996,11 @@ static void PM_CheckWallJump( void ) {
 
 	// markthis
 
-	if( pm->groundentity == -1 && ( pm->cmd.buttons & BUTTON_SPECIAL )
-		&& ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) &&
-		( !( pm->playerState->pmove.pm_flags & PMF_WALLJUMPCOUNT ) )
-		&& pm->playerState->pmove.walljump_time <= 0
-		) {
+	if( pm->groundentity == -1 && pressed &&
+		( pm->playerState->pmove.features & PMFEAT_SPECIAL ) &&
+		( !( pm->playerState->pmove.pm_flags & PMF_WALLJUMPCOUNT ) ) &&
+		pm->playerState->pmove.walljump_time <= 0 )
+	{
 		trace_t trace;
 		vec3_t point;
 

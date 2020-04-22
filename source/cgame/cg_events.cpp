@@ -832,10 +832,6 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			CG_Event_WallJump( ent, parm, ev );
 			break;
 
-		case EV_DOUBLEJUMP:
-			CG_Event_DoubleJump( ent );
-			break;
-
 		case EV_JUMP:
 			CG_Event_Jump( ent );
 			break;

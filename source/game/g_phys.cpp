@@ -333,52 +333,40 @@ static bool SV_Push( edict_t *pusher, vec3_t move, vec3_t amove ) {
 * push all box objects
 */
 static void SV_Physics_Pusher( edict_t *ent ) {
-	vec3_t move, amove;
-	edict_t *part, *mover;
-
-	// if not a team captain, so movement will be handled elsewhere
-	if( ent->flags & FL_TEAMSLAVE ) {
-		return;
-	}
-
-	// make sure all team slaves can move before commiting
-	// any moves or calling any think functions
-	// if the move is blocked, all moved objects will be backed out
 	pushed_p = pushed;
-	for( part = ent; part; part = part->teamchain ) {
-		if( part->velocity[0] || part->velocity[1] || part->velocity[2] ||
-			part->avelocity[0] || part->avelocity[1] || part->avelocity[2] ) {
-			// object is moving
-			if( part->s.linearMovement ) {
-				GS_LinearMovement( &part->s, svs.gametime, move );
-				VectorSubtract( move, part->s.origin, move );
-				VectorScale( part->avelocity, FRAMETIME, amove );
-			} else {
-				VectorScale( part->velocity, FRAMETIME, move );
-				VectorScale( part->avelocity, FRAMETIME, amove );
-			}
 
-			if( !SV_Push( part, move, amove ) ) {
-				break; // move was blocked
-			}
+	bool blocked = false;
+
+	if( ent->velocity[0] || ent->velocity[1] || ent->velocity[2] || ent->avelocity[0] || ent->avelocity[1] || ent->avelocity[2] ) {
+		vec3_t move, amove;
+
+		if( ent->s.linearMovement ) {
+			GS_LinearMovement( &ent->s, svs.gametime, move );
+			VectorSubtract( move, ent->s.origin, move );
+			VectorScale( ent->avelocity, FRAMETIME, amove );
 		}
+		else {
+			VectorScale( ent->velocity, FRAMETIME, move );
+			VectorScale( ent->avelocity, FRAMETIME, amove );
+		}
+
+		blocked = !SV_Push( ent, move, amove );
 	}
+
 	if( pushed_p > &pushed[MAX_EDICTS] ) {
 		Com_Error( ERR_DROP, "pushed_p > &pushed[MAX_EDICTS], memory corrupted" );
 	}
 
-	if( part ) {
+	if( blocked ) {
 		// the move failed, bump all nextthink times and back out moves
-		for( mover = ent; mover; mover = mover->teamchain ) {
-			if( mover->nextThink > 0 ) {
-				mover->nextThink += game.frametime;
-			}
+		if( ent->nextThink > 0 ) {
+			ent->nextThink += game.frametime;
 		}
 
 		// if the pusher has a "blocked" function, call it
 		// otherwise, just stay in place until the obstacle is gone
-		if( part->moveinfo.blocked ) {
-			part->moveinfo.blocked( part, obstacle );
+		if( ent->moveinfo.blocked ) {
+			ent->moveinfo.blocked( ent, obstacle );
 		}
 	}
 }
@@ -400,16 +388,10 @@ static void SV_Physics_Toss( edict_t *ent ) {
 	trace_t trace;
 	vec3_t move;
 	float backoff;
-	edict_t *slave;
 	bool wasinwater;
 	bool isinwater;
 	vec3_t old_origin;
 	float oldSpeed;
-
-	// if not a team captain, so movement will be handled elsewhere
-	if( ent->flags & FL_TEAMSLAVE ) {
-		return;
-	}
 
 	// refresh the ground entity
 	if( ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ) {
@@ -536,11 +518,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 		G_PositionedSound( ent->s.origin, CHAN_AUTO, S_HIT_WATER );
 	}
 
-	// move teamslaves
-	for( slave = ent->teamchain; slave; slave = slave->teamchain ) {
-		VectorCopy( ent->s.origin, slave->s.origin );
-		GClip_LinkEntity( slave );
-	}
+	GClip_LinkEntity( ent );
 }
 
 //============================================================================
@@ -550,11 +528,6 @@ static void SV_Physics_LinearProjectile( edict_t *ent ) {
 	int mask;
 	trace_t trace;
 	bool wasinwater;
-
-	// if not a team captain movement will be handled elsewhere
-	if( ent->flags & FL_TEAMSLAVE ) {
-		return;
-	}
 
 	wasinwater = ent->waterlevel;
 
@@ -590,8 +563,6 @@ static void SV_Physics_LinearProjectile( edict_t *ent ) {
 *
 */
 void G_RunEntity( edict_t *ent ) {
-	edict_t *part;
-
 	if( !level.canSpawnEntities ) { // don't try to think before map entities are spawned
 		return;
 	}
@@ -601,16 +572,7 @@ void G_RunEntity( edict_t *ent ) {
 		ent->timeDelta = 0;
 	}
 
-	if( ISEVENTENTITY( &ent->s ) ) { // events do not think
-		return;
-	}
-
-	// only team captains decide the think, and they make think their team members when they do
-	if( !( ent->flags & FL_TEAMSLAVE ) ) {
-		for( part = ent; part; part = part->teamchain ) {
-			SV_RunThink( part );
-		}
-	}
+	SV_RunThink( ent );
 
 	switch( (int)ent->movetype ) {
 		case MOVETYPE_NONE:

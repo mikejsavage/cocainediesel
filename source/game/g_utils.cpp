@@ -1166,12 +1166,6 @@ void G_CheckGround( edict_t *ent ) {
 	vec3_t point;
 	trace_t trace;
 
-	if( ent->flags & ( FL_SWIM | FL_FLY ) ) {
-		ent->groundentity = NULL;
-		ent->groundentity_linkcount = 0;
-		return;
-	}
-
 	if( ent->r.client && ent->velocity[2] > 180 ) {
 		ent->groundentity = NULL;
 		ent->groundentity_linkcount = 0;

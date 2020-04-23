@@ -119,7 +119,7 @@ static void target_laser_think( edict_t *self ) {
 		}
 
 		// hurt it if we can
-		if( ( game.edicts[tr.ent].takedamage ) && !( game.edicts[tr.ent].flags & FL_IMMUNE_LASER ) ) {
+		if( game.edicts[tr.ent].takedamage ) {
 			if( game.edicts[tr.ent].r.client && self->activator->r.client ) {
 				if( !GS_TeamBasedGametype( &server_gs ) ||
 					game.edicts[tr.ent].s.team != self->activator->s.team ) {

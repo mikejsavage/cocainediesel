@@ -38,18 +38,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define CLIENT_RESPAWN_FREEZE_DELAY 300
 
 // edict->flags
-#define FL_FLY              0x00000001
-#define FL_SWIM             0x00000002  // implied immunity to drowining
-#define FL_IMMUNE_LASER     0x00000004
-#define FL_INWATER          0x00000008
-#define FL_GODMODE          0x00000010
-#define FL_NOTARGET         0x00000020
-#define FL_IMMUNE_SLIME     0x00000040
-#define FL_IMMUNE_LAVA      0x00000080
-#define FL_PARTIALGROUND    0x00000100  // not all corners are valid
-#define FL_WATERJUMP        0x00000200  // player jumping out of water
-#define FL_TEAMSLAVE        0x00000400  // not the first on the team
-#define FL_NO_KNOCKBACK     0x00000800
+#define FL_GODMODE          0x00000001
+#define FL_NO_KNOCKBACK     0x00000002
 
 #define FRAMETIME ( (float)game.frametime * 0.001f )
 
@@ -933,8 +923,6 @@ struct edict_s {
 	edict_t *activator;
 	edict_t *groundentity;
 	int groundentity_linkcount;
-	edict_t *teamchain;
-	edict_t *teammaster;
 	StringHash sound;
 
 	// timing variables

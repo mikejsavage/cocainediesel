@@ -211,8 +211,6 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 		} else if( ent->watertype & CONTENTS_WATER ) {
 			G_Sound( ent, CHAN_AUTO, S_WORLD_WATER_IN );
 		}
-
-		ent->flags |= FL_INWATER;
 	}
 
 	//
@@ -226,8 +224,6 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 		} else if( old_watertype & CONTENTS_WATER ) {
 			G_Sound( ent, CHAN_AUTO, S_WORLD_WATER_OUT );
 		}
-
-		ent->flags &= ~FL_INWATER;
 	}
 
 	//

@@ -120,7 +120,7 @@ static void Move_Calc( edict_t *ent, vec3_t dest, void ( *func )( edict_t * ) ) 
 	ent->moveinfo.endfunc = func;
 	Move_UpdateLinearVelocity( ent, 0, 0 );
 
-	if( level.current_entity == ( ( ent->flags & FL_TEAMSLAVE ) ? ent->teammaster : ent ) ) {
+	if( level.current_entity == ent ) {
 		Move_Begin( ent );
 	} else {
 		ent->nextThink = level.time + 1;
@@ -202,7 +202,7 @@ static void AngleMove_Calc( edict_t *ent, vec3_t destangles, void ( *func )( edi
 	VectorCopy( destangles, ent->moveinfo.destangles );
 	ent->moveinfo.endfunc = func;
 
-	if( level.current_entity == ( ( ent->flags & FL_TEAMSLAVE ) ? ent->teammaster : ent ) ) {
+	if( level.current_entity == ent ) {
 		AngleMove_Begin( ent );
 	} else {
 		ent->nextThink = level.time + 1;
@@ -226,12 +226,10 @@ static void AngleMove_Calc( edict_t *ent, vec3_t destangles, void ( *func )( edi
 static void plat_go_down( edict_t *ent );
 
 static void plat_hit_top( edict_t *ent ) {
-	if( !( ent->flags & FL_TEAMSLAVE ) ) {
-		if( ent->moveinfo.sound_end != EMPTY_HASH ) {
-			G_AddEvent( ent, EV_PLAT_HIT_TOP, ent->moveinfo.sound_end.hash, true );
-		}
-		ent->s.sound = EMPTY_HASH;
+	if( ent->moveinfo.sound_end != EMPTY_HASH ) {
+		G_AddEvent( ent, EV_PLAT_HIT_TOP, ent->moveinfo.sound_end.hash, true );
 	}
+	ent->s.sound = EMPTY_HASH;
 	ent->moveinfo.state = STATE_TOP;
 
 	ent->think = plat_go_down;
@@ -239,34 +237,27 @@ static void plat_hit_top( edict_t *ent ) {
 }
 
 static void plat_hit_bottom( edict_t *ent ) {
-	if( !( ent->flags & FL_TEAMSLAVE ) ) {
-		if( ent->moveinfo.sound_end != EMPTY_HASH ) {
-			G_AddEvent( ent, EV_PLAT_HIT_BOTTOM, ent->moveinfo.sound_end.hash, true );
-		}
-		ent->s.sound = EMPTY_HASH;
+	if( ent->moveinfo.sound_end != EMPTY_HASH ) {
+		G_AddEvent( ent, EV_PLAT_HIT_BOTTOM, ent->moveinfo.sound_end.hash, true );
 	}
+	ent->s.sound = EMPTY_HASH;
 	ent->moveinfo.state = STATE_BOTTOM;
 }
 
 void plat_go_down( edict_t *ent ) {
-	if( !( ent->flags & FL_TEAMSLAVE ) ) {
-		if( ent->moveinfo.sound_start != EMPTY_HASH ) {
-			G_AddEvent( ent, EV_PLAT_START_MOVING, ent->moveinfo.sound_start.hash, true );
-		}
-		ent->s.sound = ent->moveinfo.sound_middle;
+	if( ent->moveinfo.sound_start != EMPTY_HASH ) {
+		G_AddEvent( ent, EV_PLAT_START_MOVING, ent->moveinfo.sound_start.hash, true );
 	}
-
+	ent->s.sound = ent->moveinfo.sound_middle;
 	ent->moveinfo.state = STATE_DOWN;
 	Move_Calc( ent, ent->moveinfo.end_origin, plat_hit_bottom );
 }
 
 static void plat_go_up( edict_t *ent ) {
-	if( !( ent->flags & FL_TEAMSLAVE ) ) {
-		if( ent->moveinfo.sound_start != EMPTY_HASH ) {
-			G_AddEvent( ent, EV_PLAT_START_MOVING, ent->moveinfo.sound_start.hash, true );
-		}
-		ent->s.sound = ent->moveinfo.sound_middle;
+	if( ent->moveinfo.sound_start != EMPTY_HASH ) {
+		G_AddEvent( ent, EV_PLAT_START_MOVING, ent->moveinfo.sound_start.hash, true );
 	}
+	ent->s.sound = ent->moveinfo.sound_middle;
 	ent->moveinfo.state = STATE_UP;
 	Move_Calc( ent, ent->moveinfo.start_origin, plat_hit_top );
 }
@@ -435,10 +426,6 @@ void SP_func_plat( edict_t *ent ) {
 static void door_use_areaportals( edict_t *self, bool open ) {
 	int iopen = open ? 1 : 0;
 
-	if( self->flags & FL_TEAMSLAVE ) {
-		return; // only the team master does this
-	}
-
 	// make sure we don't open the same areaportal twice
 	if( self->style == iopen ) {
 		return;
@@ -451,12 +438,10 @@ static void door_use_areaportals( edict_t *self, bool open ) {
 static void door_go_down( edict_t *self );
 
 static void door_hit_top( edict_t *self ) {
-	if( !( self->flags & FL_TEAMSLAVE ) ) {
-		if( self->moveinfo.sound_end != EMPTY_HASH ) {
-			G_AddEvent( self, EV_DOOR_HIT_TOP, self->moveinfo.sound_end.hash, true );
-		}
-		self->s.sound = EMPTY_HASH;
+	if( self->moveinfo.sound_end != EMPTY_HASH ) {
+		G_AddEvent( self, EV_DOOR_HIT_TOP, self->moveinfo.sound_end.hash, true );
 	}
+	self->s.sound = EMPTY_HASH;
 	self->moveinfo.state = STATE_TOP;
 	if( self->spawnflags & DOOR_TOGGLE ) {
 		return;
@@ -468,23 +453,20 @@ static void door_hit_top( edict_t *self ) {
 }
 
 static void door_hit_bottom( edict_t *self ) {
-	if( !( self->flags & FL_TEAMSLAVE ) ) {
-		if( self->moveinfo.sound_end != EMPTY_HASH ) {
-			G_AddEvent( self, EV_DOOR_HIT_BOTTOM, self->moveinfo.sound_end.hash, true );
-		}
-		self->s.sound = EMPTY_HASH;
+	if( self->moveinfo.sound_end != EMPTY_HASH ) {
+		G_AddEvent( self, EV_DOOR_HIT_BOTTOM, self->moveinfo.sound_end.hash, true );
 	}
+	self->s.sound = EMPTY_HASH;
 	self->moveinfo.state = STATE_BOTTOM;
 	door_use_areaportals( self, false );
 }
 
 void door_go_down( edict_t *self ) {
-	if( !( self->flags & FL_TEAMSLAVE ) ) {
-		if( self->moveinfo.sound_start != EMPTY_HASH ) {
-			G_AddEvent( self, EV_DOOR_START_MOVING, self->moveinfo.sound_start.hash, true );
-		}
-		self->s.sound = self->moveinfo.sound_middle;
+	if( self->moveinfo.sound_start != EMPTY_HASH ) {
+		G_AddEvent( self, EV_DOOR_START_MOVING, self->moveinfo.sound_start.hash, true );
 	}
+	self->s.sound = self->moveinfo.sound_middle;
+
 	if( self->max_health ) {
 		self->deadflag = DEAD_NO;
 		self->takedamage = DAMAGE_YES;
@@ -511,12 +493,10 @@ static void door_go_up( edict_t *self, edict_t *activator ) {
 		return;
 	}
 
-	if( !( self->flags & FL_TEAMSLAVE ) ) {
-		if( self->moveinfo.sound_start != EMPTY_HASH ) {
-			G_AddEvent( self, EV_DOOR_START_MOVING, self->moveinfo.sound_start.hash, true );
-		}
-		self->s.sound = self->moveinfo.sound_middle;
+	if( self->moveinfo.sound_start != EMPTY_HASH ) {
+		G_AddEvent( self, EV_DOOR_START_MOVING, self->moveinfo.sound_start.hash, true );
 	}
+	self->s.sound = self->moveinfo.sound_middle;
 
 	self->moveinfo.state = STATE_UP;
 	if( !Q_stricmp( self->classname, "func_door_rotating" ) ) {
@@ -530,30 +510,18 @@ static void door_go_up( edict_t *self, edict_t *activator ) {
 }
 
 static void door_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	edict_t *ent;
-
-	if( self->flags & FL_TEAMSLAVE ) {
-		return;
-	}
-
 	if( self->spawnflags & DOOR_TOGGLE ) {
 		if( self->moveinfo.state == STATE_UP || self->moveinfo.state == STATE_TOP ) {
-			// trigger all paired doors
-			for( ent = self; ent; ent = ent->teamchain ) {
-				ent->message = NULL;
-				ent->touch = NULL;
-				door_go_down( ent );
-			}
+			self->message = NULL;
+			self->touch = NULL;
+			door_go_down( self );
 			return;
 		}
 	}
 
-	// trigger all paired doors
-	for( ent = self; ent; ent = ent->teamchain ) {
-		ent->message = NULL;
-		ent->touch = NULL;
-		door_go_up( ent, activator );
-	}
+	self->message = NULL;
+	self->touch = NULL;
+	door_go_up( self, activator );
 }
 
 static void Touch_DoorTrigger( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
@@ -574,52 +542,13 @@ static void Touch_DoorTrigger( edict_t *self, edict_t *other, cplane_t *plane, i
 	door_use( self->r.owner, other, other );
 }
 
-static void Think_CalcMoveSpeed( edict_t *self ) {
-	edict_t *ent;
-	float min;
-	float time;
-	float newspeed;
-	float dist;
-
-	if( self->flags & FL_TEAMSLAVE ) {
-		return; // only the team master does this
-
-	}
-
-	// find the smallest distance any member of the team will be moving
-	min = Abs( self->moveinfo.distance );
-	for( ent = self->teamchain; ent; ent = ent->teamchain ) {
-		dist = Abs( ent->moveinfo.distance );
-		if( dist < min ) {
-			min = dist;
-		}
-	}
-
-	time = min / self->moveinfo.speed;
-
-	// adjust speeds so they will all complete at the same time
-	for( ent = self; ent; ent = ent->teamchain ) {
-		newspeed = Abs( ent->moveinfo.distance ) / time;
-		ent->moveinfo.speed = newspeed;
-	}
-}
-
 static void Think_SpawnDoorTrigger( edict_t *ent ) {
 	edict_t *other;
 	vec3_t mins, maxs;
 	float expand_size = 80;     // was 60
 
-	if( ent->flags & FL_TEAMSLAVE ) {
-		return; // only the team leader spawns a trigger
-
-	}
 	VectorCopy( ent->r.absmin, mins );
 	VectorCopy( ent->r.absmax, maxs );
-
-	for( other = ent->teamchain; other; other = other->teamchain ) {
-		AddPointToBounds( other->r.absmin, mins, maxs );
-		AddPointToBounds( other->r.absmax, mins, maxs );
-	}
 
 	// expand
 	mins[0] -= expand_size;
@@ -638,13 +567,9 @@ static void Think_SpawnDoorTrigger( edict_t *ent ) {
 	GClip_LinkEntity( other );
 
 	door_use_areaportals( ent, ( ent->spawnflags & DOOR_START_OPEN ) != 0 );
-
-	Think_CalcMoveSpeed( ent );
 }
 
 static void door_blocked( edict_t *self, edict_t *other ) {
-	edict_t *ent;
-
 	if( !other->r.client ) {
 		// give it a chance to go away on its own terms (like gibs)
 		G_Damage( other, self, self, vec3_origin, vec3_origin, other->s.origin, 100000, 1, 0, MOD_CRUSH );
@@ -662,32 +587,25 @@ static void door_blocked( edict_t *self, edict_t *other ) {
 		return;
 	}
 
-
 	// if a door has a negative wait, it would never come back if blocked,
 	// so let it just squash the object to death real fast
 	if( self->moveinfo.wait >= 0 ) {
 		if( self->moveinfo.state == STATE_DOWN ) {
-			for( ent = self->teammaster; ent; ent = ent->teamchain )
-				door_go_up( ent, ent->activator );
+			door_go_up( self, self->activator );
 		} else {
-			for( ent = self->teammaster; ent; ent = ent->teamchain )
-				door_go_down( ent );
+			door_go_down( self );
 		}
 	}
 }
 
 static void door_killed( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point ) {
-	edict_t *ent;
-
-	for( ent = self->teammaster; ent; ent = ent->teamchain ) {
-		ent->health = ent->max_health;
-		if( ent->spawnflags & DOOR_DIE_ONCE ) {
-			ent->takedamage = DAMAGE_NO;
-		}
+	self->health = self->max_health;
+	if( self->spawnflags & DOOR_DIE_ONCE ) {
+		self->takedamage = DAMAGE_NO;
 	}
 
 	if( !self->s.team || self->s.team == attacker->s.team || self->s.team == inflictor->s.team ) {
-		door_use( self->teammaster, attacker, attacker );
+		door_use( self, attacker, attacker );
 	}
 }
 
@@ -759,20 +677,13 @@ void SP_func_door( edict_t *ent ) {
 	VectorCopy( ent->s.angles, ent->moveinfo.start_angles );
 	VectorCopy( ent->s.angles, ent->moveinfo.end_angles );
 
-	// to simplify logic elsewhere, make non-teamed doors into a team of one
-	if( !ent->team ) {
-		ent->teammaster = ent;
-	}
-
 	GClip_LinkEntity( ent );
 
 	ent->style = -1;
 	door_use_areaportals( ent, ( ent->spawnflags & DOOR_START_OPEN ) != 0 );
 
-	ent->nextThink = level.time + 1;
-	if( ent->targetname ) {
-		ent->think = Think_CalcMoveSpeed;
-	} else {
+	if( !ent->targetname ) {
+		ent->nextThink = level.time + 1;
 		ent->think = Think_SpawnDoorTrigger;
 	}
 }
@@ -843,17 +754,10 @@ void SP_func_door_rotating( edict_t *ent ) {
 	VectorCopy( ent->s.origin, ent->moveinfo.start_origin );
 	VectorCopy( ent->s.origin, ent->moveinfo.end_origin );
 
-	// to simplify logic elsewhere, make non-teamed doors into a team of one
-	if( !ent->team ) {
-		ent->teammaster = ent;
-	}
-
 	GClip_LinkEntity( ent );
 
-	ent->nextThink = level.time + 1;
-	if( ent->health || ent->targetname ) {
-		ent->think = Think_CalcMoveSpeed;
-	} else {
+	if( !ent->targetname ) {
+		ent->nextThink = level.time + 1;
 		ent->think = Think_SpawnDoorTrigger;
 	}
 }
@@ -1051,7 +955,7 @@ static void button_fire( edict_t *self ) {
 	}
 
 	self->moveinfo.state = STATE_UP;
-	if( self->moveinfo.sound_start != EMPTY_HASH && !( self->flags & FL_TEAMSLAVE ) ) {
+	if( self->moveinfo.sound_start != EMPTY_HASH ) {
 		G_AddEvent( self, EV_BUTTON_FIRE, self->moveinfo.sound_start.hash, true );
 	}
 	Move_Calc( self, self->moveinfo.end_origin, button_wait );
@@ -1185,12 +1089,10 @@ static void train_wait( edict_t *self ) {
 			self->nextThink = 0;
 		}
 
-		if( !( self->flags & FL_TEAMSLAVE ) ) {
-			if( self->moveinfo.sound_end != EMPTY_HASH ) {
-				G_AddEvent( self, EV_TRAIN_STOP, self->moveinfo.sound_end.hash, true );
-			}
-			self->s.sound = EMPTY_HASH;
+		if( self->moveinfo.sound_end != EMPTY_HASH ) {
+			G_AddEvent( self, EV_TRAIN_STOP, self->moveinfo.sound_end.hash, true );
 		}
+		self->s.sound = EMPTY_HASH;
 	} else {
 		train_next( self );
 	}
@@ -1240,12 +1142,10 @@ again:
 	self->moveinfo.wait = ent->wait;
 	self->target_ent = ent;
 
-	if( !( self->flags & FL_TEAMSLAVE ) ) {
-		if( self->moveinfo.sound_start != EMPTY_HASH ) {
-			G_AddEvent( self, EV_TRAIN_START, self->moveinfo.sound_start.hash, true );
-		}
-		self->s.sound = self->moveinfo.sound_middle;
+	if( self->moveinfo.sound_start != EMPTY_HASH ) {
+		G_AddEvent( self, EV_TRAIN_START, self->moveinfo.sound_start.hash, true );
 	}
+	self->s.sound = self->moveinfo.sound_middle;
 
 	VectorSubtract( ent->s.origin, self->r.mins, dest );
 	self->moveinfo.state = STATE_TOP;

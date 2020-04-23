@@ -380,60 +380,6 @@ static char *ED_ParseEdict( char *data, edict_t *ent ) {
 }
 
 /*
-* G_FindTeams
-*
-* Chain together all entities with a matching team field.
-*
-* All but the first will have the FL_TEAMSLAVE flag set.
-* All but the last will have the teamchain field set to the next one
-*/
-static void G_FindTeams( void ) {
-	edict_t *e, *e2, *chain;
-	int i, j;
-	int c, c2;
-
-	c = 0;
-	c2 = 0;
-	for( i = 1, e = game.edicts + i; i < game.numentities; i++, e++ ) {
-		if( !e->r.inuse ) {
-			continue;
-		}
-		if( !e->team ) {
-			continue;
-		}
-		if( e->flags & FL_TEAMSLAVE ) {
-			continue;
-		}
-		chain = e;
-		e->teammaster = e;
-		c++;
-		c2++;
-		for( j = i + 1, e2 = e + 1; j < game.numentities; j++, e2++ ) {
-			if( !e2->r.inuse ) {
-				continue;
-			}
-			if( !e2->team ) {
-				continue;
-			}
-			if( e2->flags & FL_TEAMSLAVE ) {
-				continue;
-			}
-			if( !strcmp( e->team, e2->team ) ) {
-				c2++;
-				chain->teamchain = e2;
-				e2->teammaster = e;
-				chain = e2;
-				e2->flags |= FL_TEAMSLAVE;
-			}
-		}
-	}
-
-	if( developer->integer ) {
-		Com_Printf( "%i teams with %i entities\n", c, c2 );
-	}
-}
-
-/*
 * G_FreeEntities
 */
 static void G_FreeEntities( void ) {
@@ -509,8 +455,6 @@ static void G_SpawnEntities( void ) {
 	// is the parsing string sane?
 	assert( level.map_parsed_len < level.mapStrlen );
 	level.map_parsed_ents[level.map_parsed_len] = 0;
-
-	G_FindTeams();
 
 	// make sure server got the edicts data
 	trap_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );

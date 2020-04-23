@@ -873,7 +873,8 @@ void CG_DrawPlayer( centity_t *cent ) {
 	DrawModel( meta->model, transform, color, pose.skinning_matrices );
 
 	bool same_team = GS_TeamBasedGametype( &client_gs ) && cg.predictedPlayerState.team == cent->current.team;
-	if( !corpse && ( ISREALSPECTATOR() || same_team ) ) {
+	bool draw_silhouette = ISREALSPECTATOR() || same_team;
+	if( !corpse && draw_silhouette ) {
 		DrawModelSilhouette( meta->model, transform, color, pose.skinning_matrices );
 	}
 
@@ -889,7 +890,10 @@ void CG_DrawPlayer( centity_t *cent ) {
 			Mat4 tag_transform = TransformTag( weapon_model, transform, pose, meta->tag_weapon );
 
 			DrawModel( weapon_model, tag_transform, vec4_white );
-			DrawOutlinedModel( weapon_model, tag_transform, vec4_black, outline_height );
+
+			if( draw_silhouette ) {
+				DrawModelSilhouette( weapon_model, tag_transform, color );
+			}
 		}
 	}
 
@@ -902,7 +906,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 		Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag );
 		DrawModel( attached_model, tag_transform, vec4_white );
 
-		if( ISREALSPECTATOR() || same_team ) {
+		if( draw_silhouette ) {
 			DrawModelSilhouette( attached_model, tag_transform, color );
 		}
 	}

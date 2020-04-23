@@ -158,8 +158,6 @@ retry:
 		GClip_TouchTriggers( ent );
 	}
 
-	GClip_TouchTriggers( ent );
-
 	return trace;
 }
 

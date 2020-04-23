@@ -662,7 +662,7 @@ static void DrawWorld() {
 		PipelineState pipeline;
 		pipeline.pass = frame_static.add_world_outlines_pass;
 		pipeline.shader = &shaders.standard_vertexcolors;
-		pipeline.blend_func = BlendFunc_Add;
+		pipeline.blend_func = BlendFunc_Blend;
 		pipeline.write_depth = false;
 
 		const Framebuffer & fb = frame_static.world_outlines_fb;
@@ -686,7 +686,7 @@ static void DrawWorld() {
 			Vec2( 1.0f - half_pixel.x, half_pixel.y ),
 		};
 
-		constexpr RGBA8 gray = RGBA8( 100, 100, 100, 255 );
+		constexpr RGBA8 gray = RGBA8( 0, 0, 0, 255 );
 		constexpr RGBA8 colors[] = { gray, gray, gray, gray };
 
 		u16 base_index = DynamicMeshBaseIndex();

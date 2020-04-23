@@ -276,7 +276,7 @@ static void CreateFramebuffers() {
 	{
 		FramebufferConfig fb;
 
-		texture_config.format = TextureFormat_R_U8;
+		texture_config.format = TextureFormat_A_U8;
 		fb.albedo_attachment = texture_config;
 
 		frame_static.world_outlines_fb = NewFramebuffer( fb );

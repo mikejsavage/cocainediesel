@@ -64,7 +64,7 @@ uniform sampler2D u_DepthTexture;
 
 void main() {
 #if APPLY_DRAWFLAT
-	vec4 diffuse = vec4( 0.35, 0.35, 0.35, 1.0 );
+	vec4 diffuse = vec4( 0.25, 0.25, 0.25, 1.0 );
 #else
 	vec4 color = sRGBToLinear( u_MaterialColor );
 

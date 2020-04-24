@@ -686,7 +686,7 @@ static void DrawWorld() {
 			Vec2( 1.0f - half_pixel.x, half_pixel.y ),
 		};
 
-		constexpr RGBA8 gray = RGBA8( 50, 50, 50, 255 );
+		constexpr RGBA8 gray = RGBA8( 30, 30, 30, 255 );
 		constexpr RGBA8 colors[] = { gray, gray, gray, gray };
 
 		u16 base_index = DynamicMeshBaseIndex();

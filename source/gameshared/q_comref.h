@@ -117,7 +117,6 @@ constexpr const char * MASTER_SERVERS[] = { "dpmaster.deathmask.net", "ghdigital
 
 // edict->svflags
 #define SVF_NOCLIENT            0x00000001      // don't send entity to clients, even if it has effects
-#define SVF_PORTAL              0x00000002      // merge PVS at old_origin
 #define SVF_TRANSMITORIGIN2     0x00000008      // always send old_origin (beams, etc)
 #define SVF_SOUNDCULL           0x00000010      // distance culling
 #define SVF_FAKECLIENT          0x00000020      // do not try to send anything to this client

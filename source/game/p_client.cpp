@@ -671,8 +671,6 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	char oldname[MAX_INFO_VALUE];
 	gclient_t *cl;
 
-	int i;
-
 	assert( ent && ent->r.client );
 	assert( userinfo && Info_Validate( userinfo ) );
 

@@ -354,9 +354,7 @@ static void SNAP_FatPVS( CollisionModel *cms, const vec3_t org, uint8_t *fatpvs 
 /*
 * SNAP_BitsCullEntity
 */
-static bool SNAP_BitsCullEntity( CollisionModel *cms, edict_t *ent, uint8_t *bits, int max_clusters ) {
-	int i, l;
-
+static bool SNAP_PVSCullEntity( CollisionModel *cms, edict_t *ent, uint8_t *bits ) {
 	// too many leafs for individual check, go by headnode
 	if( ent->r.num_clusters == -1 ) {
 		if( !CM_HeadnodeVisible( cms, ent->r.headnode, bits ) ) {
@@ -366,8 +364,8 @@ static bool SNAP_BitsCullEntity( CollisionModel *cms, edict_t *ent, uint8_t *bit
 	}
 
 	// check individual leafs
-	for( i = 0; i < max_clusters; i++ ) {
-		l = ent->r.clusternums[i];
+	for( int i = 0; i < ent->r.num_clusters; i++ ) {
+		int l = ent->r.clusternums[i];
 		if( bits[l >> 3] & ( 1 << ( l & 7 ) ) ) {
 			return false;
 		}
@@ -375,8 +373,6 @@ static bool SNAP_BitsCullEntity( CollisionModel *cms, edict_t *ent, uint8_t *bit
 
 	return true;    // not visible/audible
 }
-
-#define SNAP_PVSCullEntity( cms,fatpvs,ent ) SNAP_BitsCullEntity( cms,ent,fatpvs,ent->r.num_clusters )
 
 //=====================================================================
 
@@ -522,7 +518,7 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 		return true;
 	}
 
-	return snd_culled && SNAP_PVSCullEntity( cms, fatpvs, ent );    // cull by PVS
+	return snd_culled && SNAP_PVSCullEntity( cms, ent, fatpvs );    // cull by PVS
 }
 
 /*
@@ -564,14 +560,6 @@ static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, e
 			} else {
 				Com_Printf( "FIXING ENT->S.OWNERNUM: %i %i!!!\n", ent->s.type, ent->s.ownerNum );
 				ent->s.ownerNum = 0;
-			}
-		}
-
-		if( ent->r.svflags & SVF_PORTAL ) {
-			// if it's a portal entity and not a mirror,
-			// recursively add everything from its camera positiom
-			if( !VectorCompare( ent->s.origin, ent->s.origin2 ) ) {
-				SNAP_AddEntitiesVisibleAtOrigin( cms, gi, clent, ent->s.origin2, ent->r.areanum, frame, entList );
 			}
 		}
 	}

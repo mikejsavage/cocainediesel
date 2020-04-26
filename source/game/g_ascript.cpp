@@ -282,7 +282,6 @@ static const asEnumVal_t asSurfFlagEnumVals[] =
 static const asEnumVal_t asSVFlagEnumVals[] =
 {
 	ASLIB_ENUM_VAL( SVF_NOCLIENT ),
-	ASLIB_ENUM_VAL( SVF_PORTAL ),
 	ASLIB_ENUM_VAL( SVF_TRANSMITORIGIN2 ),
 	ASLIB_ENUM_VAL( SVF_SOUNDCULL ),
 	ASLIB_ENUM_VAL( SVF_FAKECLIENT ),

@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/q_shared.h"
 #include "gameshared/q_collision.h"
 #include "gameshared/gs_public.h"
+#include "qcommon/qfiles.h"
 
 #define SPEEDKEY    500.0f
 

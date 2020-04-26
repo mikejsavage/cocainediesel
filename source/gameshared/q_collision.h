@@ -20,15 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include "q_arch.h"
-#include "q_math.h"
-#include "qcommon/qfiles.h"
-
-//==============================================================
-//
-//COLLISION DETECTION
-//
-//==============================================================
+#include "gameshared/q_arch.h"
+#include "gameshared/q_math.h"
 
 // lower bits are stronger, and will eat weaker brushes completely
 #define CONTENTS_SOLID          1           // an eye is never valid in a solid

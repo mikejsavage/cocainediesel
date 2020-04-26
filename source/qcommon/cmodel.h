@@ -20,6 +20,7 @@
 
 #include "gameshared/q_math.h"
 #include "gameshared/q_collision.h"
+#include "qcommon/qfiles.h"
 #include "qcommon/hash.h"
 
 #define MAX_CM_LEAFS        ( MAX_MAP_LEAFS )

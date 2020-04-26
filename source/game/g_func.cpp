@@ -420,9 +420,6 @@ void SP_func_plat( edict_t *ent ) {
 #define DOOR_X_AXIS         64
 #define DOOR_Y_AXIS         128
 
-//wsw
-#define DOOR_DIE_ONCE       1024 // auto set when health is > 0
-
 static void door_use_areaportals( edict_t *self, bool open ) {
 	int iopen = open ? 1 : 0;
 
@@ -598,17 +595,6 @@ static void door_blocked( edict_t *self, edict_t *other ) {
 	}
 }
 
-static void door_killed( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point ) {
-	self->health = self->max_health;
-	if( self->spawnflags & DOOR_DIE_ONCE ) {
-		self->takedamage = DAMAGE_NO;
-	}
-
-	if( !self->s.team || self->s.team == attacker->s.team || self->s.team == inflictor->s.team ) {
-		door_use( self, attacker, attacker );
-	}
-}
-
 void SP_func_door( edict_t *ent ) {
 	vec3_t abs_movedir;
 
@@ -630,14 +616,6 @@ void SP_func_door( edict_t *ent ) {
 		st.lip = 8;
 	}
 
-	if( ent->health < 0 ) {
-		ent->health = 0;
-	} else if( !ent->health ) {
-		ent->health = 1;
-	} else {
-		ent->spawnflags |= DOOR_DIE_ONCE; // not used by the editor
-
-	}
 	if( st.gameteam ) {
 		if( st.gameteam >= TEAM_SPECTATOR && st.gameteam < GS_MAX_TEAMS ) {
 			ent->s.team = st.gameteam;
@@ -665,12 +643,6 @@ void SP_func_door( edict_t *ent ) {
 	}
 
 	ent->moveinfo.state = STATE_BOTTOM;
-
-	if( ent->health ) {
-		ent->max_health = ent->health;
-		ent->takedamage = DAMAGE_YES;
-		ent->die = door_killed;
-	}
 
 	ent->moveinfo.speed = ent->speed;
 	ent->moveinfo.wait = ent->wait;
@@ -740,12 +712,6 @@ void SP_func_door_rotating( edict_t *ent ) {
 		VectorCopy( ent->moveinfo.start_angles, ent->moveinfo.end_angles );
 		VectorCopy( ent->s.angles, ent->moveinfo.start_angles );
 		VectorNegate( ent->moveinfo.movedir, ent->moveinfo.movedir );
-	}
-
-	if( ent->health ) {
-		ent->takedamage = DAMAGE_YES;
-		ent->die = door_killed;
-		ent->max_health = ent->health;
 	}
 
 	ent->moveinfo.state = STATE_BOTTOM;

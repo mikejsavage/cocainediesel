@@ -491,6 +491,10 @@ static void HotloadSoundEffects() {
 	}
 }
 
+static void PlaySoundCmd() {
+	S_StartLocalSound( FindSoundEffect( Cmd_Argv( 1 ) ), CHAN_AUTO, 1.0f );
+}
+
 bool S_Init() {
 	ZoneScoped;
 
@@ -515,6 +519,8 @@ bool S_Init() {
 	LoadSounds();
 	LoadSoundEffects();
 
+	Cmd_AddCommand( "playsound", PlaySoundCmd );
+
 	initialized = true;
 
 	return true;
@@ -525,6 +531,8 @@ void S_Shutdown() {
 		return;
 
 	S_StopAllSounds( true );
+
+	Cmd_RemoveCommand( "playsound" );
 
 	alDeleteSources( ARRAY_COUNT( free_sound_sources ), free_sound_sources );
 	alDeleteSources( 1, &music_source );

@@ -642,7 +642,7 @@ typedef struct cmd_function_s {
 static int cmd_argc;
 static char *cmd_argv[MAX_STRING_TOKENS];
 static size_t cmd_argv_sizes[MAX_STRING_TOKENS];
-static char cmd_null_string[ 1 ] = { '\0' };
+static char cmd_null_string[] = "";
 static char cmd_args[MAX_STRING_CHARS];
 
 static trie_t *cmd_function_trie = NULL;

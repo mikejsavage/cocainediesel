@@ -39,7 +39,7 @@ constexpr int playerbox_stand_viewheight = 30;
 // constexpr int playerbox_crouch_viewheight = 12;
 
 constexpr vec3_t playerbox_crouch_mins = { -16, -16, -24 };
-constexpr vec3_t playerbox_crouch_maxs = { 16, 16, 40 };
+constexpr vec3_t playerbox_crouch_maxs = { 16, 16, 39 };
 constexpr int playerbox_crouch_viewheight = 30;
 
 constexpr vec3_t playerbox_gib_mins = { -16, -16, 0 };

@@ -460,9 +460,9 @@ static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, const ve
 	}
 
 	// crouching : fixme? : it assumes the entity is using the player box sizes
-	if( !VectorCompare( maxs, playerbox_stand_maxs ) ) {
-		moveflags |= ANIMMOVE_DUCK;
-	}
+	// if( !VectorCompare( maxs, playerbox_stand_maxs ) ) {
+	// 	moveflags |= ANIMMOVE_DUCK;
+	// }
 
 	// find out the water level
 	waterlevel = GS_WaterLevel( &client_gs, state, mins, maxs );

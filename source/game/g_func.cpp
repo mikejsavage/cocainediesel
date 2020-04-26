@@ -485,7 +485,7 @@ static void door_go_up( edict_t *self, edict_t *activator ) {
 	}
 	if( self->moveinfo.state == STATE_TOP ) { // reset top wait time
 		if( self->moveinfo.wait >= 0 ) {
-			self->nextThink = level.time + ( self->moveinfo.wait * 1000 );
+			self->nextThink = level.time + self->moveinfo.wait * 1000;
 		}
 		return;
 	}
@@ -531,11 +531,7 @@ static void Touch_DoorTrigger( edict_t *self, edict_t *other, cplane_t *plane, i
 	if( ( !other->r.client ) ) {
 		return;
 	}
-	if( level.time < self->timeStamp + 1000 ) {
-		return;
-	}
 
-	self->timeStamp = level.time;
 	door_use( self->r.owner, other, other );
 }
 

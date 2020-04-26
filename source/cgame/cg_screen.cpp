@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "cg_local.h"
+#include "cgame/cg_local.h"
 
 cvar_t *cg_centerTime;
 cvar_t *cg_showFPS;
@@ -509,11 +509,11 @@ void CG_AddBombSite( centity_t * cent ) {
 }
 
 void CG_DrawBombHUD() {
-	if( GS_MatchState( &client_gs ) <= MATCH_STATE_PLAYTIME )
+	if( GS_MatchState( &client_gs ) > MATCH_STATE_PLAYTIME )
 		return;
 
 	int my_team = cg.predictedPlayerState.team;
-	bool show_labels = my_team != TEAM_SPECTATOR;
+	bool show_labels = my_team != TEAM_SPECTATOR && GS_MatchState( &client_gs ) == MATCH_STATE_PLAYTIME;
 
 	// TODO: draw arrows when clamped
 

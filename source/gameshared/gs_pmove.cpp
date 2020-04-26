@@ -77,7 +77,7 @@ static const gs_state_t * pmove_gs;
 
 #define DEFAULT_WALKSPEED 160.0f
 #define DEFAULT_CROUCHEDSPEED 100.0f
-#define DEFAULT_LADDERSPEED 250.0f
+#define DEFAULT_LADDERSPEED 300.0f
 
 const float pm_friction = 8; //  ( initially 6 )
 const float pm_waterfriction = 16;
@@ -526,15 +526,16 @@ static void PM_AddCurrents( vec3_t wishvel ) {
 	//
 
 	if( pml.ladder && Abs( pml.velocity[2] ) <= DEFAULT_LADDERSPEED ) {
-		if( ( pm->playerState->viewangles[PITCH] <= -15 ) && ( pml.forwardPush > 0 ) ) {
+		if( pml.forwardPush > 0 ) {
+			wishvel[2] = Lerp( -float( DEFAULT_LADDERSPEED ), Unlerp01( 15.0f, pm->playerState->viewangles[PITCH], -15.0f ), float( DEFAULT_LADDERSPEED ) );
+		}
+		else if( pml.upPush > 0 ) {
 			wishvel[2] = DEFAULT_LADDERSPEED;
-		} else if( ( pm->playerState->viewangles[PITCH] >= 15 ) && ( pml.forwardPush > 0 ) ) {
+		}
+		else if( pml.upPush < 0 ) {
 			wishvel[2] = -DEFAULT_LADDERSPEED;
-		} else if( pml.upPush > 0 ) {
-			wishvel[2] = DEFAULT_LADDERSPEED;
-		} else if( pml.upPush < 0 ) {
-			wishvel[2] = -DEFAULT_LADDERSPEED;
-		} else {
+		}
+		else {
 			wishvel[2] = 0;
 		}
 
@@ -1300,14 +1301,13 @@ static void PM_AdjustBBox( void ) {
 }
 
 static void PM_UpdateDeltaAngles( void ) {
-	int i;
-
 	if( pmove_gs->module != GS_MODULE_GAME ) {
 		return;
 	}
 
-	for( i = 0; i < 3; i++ )
+	for( int i = 0; i < 3; i++ ) {
 		pm->playerState->pmove.delta_angles[i] = ANGLE2SHORT( pm->playerState->viewangles[i] ) - pm->cmd.angles[i];
+	}
 }
 
 /*
@@ -1315,11 +1315,8 @@ static void PM_UpdateDeltaAngles( void ) {
 *
 */
 static void PM_ApplyMouseAnglesClamp( void ) {
-	int i;
-	short temp;
-
-	for( i = 0; i < 3; i++ ) {
-		temp = pm->cmd.angles[i] + pm->playerState->pmove.delta_angles[i];
+	for( int i = 0; i < 3; i++ ) {
+		short temp = pm->cmd.angles[i] + pm->playerState->pmove.delta_angles[i];
 		if( i == PITCH ) {
 			// don't let the player look up or down more than 90 degrees
 			if( temp > (short)ANGLE2SHORT( 90 ) - 1 ) {

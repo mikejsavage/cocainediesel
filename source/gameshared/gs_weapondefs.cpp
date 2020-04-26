@@ -309,7 +309,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//damages
 		5,                              // damage
 		0,                              // selfdamage ratio
-		30,                             // knockback
+		20,                             // knockback
 		45,                             // splash radius
 		4,                              // splash minimum damage
 		1,                              // splash minimum knockback

@@ -324,17 +324,17 @@ const WeaponDef gs_weaponDefs[] = {
 		"Shoots slow projectiles that deal damage in an area",
 		100,
 
-		7,                              // projectiles fired each shot
-		5,                              // clip size
+		3,                              // projectiles fired each shot
+		20,                             // clip size
 		2000,                           // reload time
 		false,                          // staged reloading
 
 		//timings (in msecs)
 		WEAPONUP_TIME_NORMAL,           // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		600,                            // refire time
+		100,                            // refire time
 		3000,                           // projectile timeout
-		4.0f,                           // recoil
+		3.0f,                           // recoil
 		FiringMode_Auto,
 
 		0.0f,                           // zoom fov
@@ -349,8 +349,8 @@ const WeaponDef gs_weaponDefs[] = {
 		6,                              // splash minimum knockback
 
 		//projectile def
-		300,                            // speed
-		0.05f,                          // spread
+		600,                            // speed
+		0,                              // spread
 	},
 
 	{

@@ -47,6 +47,7 @@ int defendingTeam;
 
 bool attackersHurried;
 bool defendersHurried;
+bool was1vx;
 
 void playerKilled( Entity @victim, Entity @attacker, Entity @inflictor ) {
 	// this happens if you kill a corpse or something...
@@ -103,11 +104,14 @@ void checkPlayersAlive( int team ) {
 
 	if( alive == 1 ) {
 		if( aliveOther == 1 ) {
-			G_AnnouncerSound( null, snd1v1, GS_MAX_TEAMS, false, null );
+			if( was1vx ) {
+				G_AnnouncerSound( null, snd1v1, GS_MAX_TEAMS, false, null );
+			}
 		}
-		else {
+		else if( aliveOther >= 3 ) {
 			G_AnnouncerSound( null, snd1vx, team, false, null );
 			G_AnnouncerSound( null, sndxv1, other, false, null );
+			was1vx = true;
 		}
 	}
 }
@@ -240,7 +244,9 @@ void roundNewState( uint state ) {
 			gametype.shootingDisabled = true;
 			gametype.removeInactivePlayers = false;
 
-			attackersHurried = defendersHurried = false;
+			attackersHurried = false;
+			defendersHurried = false;
+			was1vx = false;
 
 			resetBombSites();
 

@@ -1,4 +1,5 @@
 {
+	weaponclip 0x2000
 	wallbangable 0x4000
 }
 

@@ -17,12 +17,15 @@ if %MATCH_STATE < #MATCH_STATE_POSTMATCH
 
 #include topinfo
 
-#include health
+if %TEAM != #TEAM_SPECTATOR
+	#include health
+
+	#include drop_and_shop
+endif
+
 #include weaponlist
 
 #include obituaries
-
-#include drop_and_shop
 
 #include bomb_progress
 

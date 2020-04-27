@@ -848,6 +848,7 @@ static void WeaponTooltip( const WeaponDef * def ) {
 
 		TempAllocator temp = cls.frame_arena.temp();
 
+		ImGui::Text( "%s", temp( "{}Weapon: {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), def->name ) );
 		ImGui::Text( "%s", temp( "{}Type: {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), def->speed == 0 ? "Hitscan" : "Projectile" ) );
 		ImGui::Text( "%s", temp( "{}Damage: {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), int( def->damage ) ) );
 		char * reload = temp( "{.1}s", def->refire_time / 1000.f );

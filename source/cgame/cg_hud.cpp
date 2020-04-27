@@ -1603,6 +1603,9 @@ static constexpr float SEL_WEAP_Y_OFFSET = 0.25f;
 
 static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih, Alignment alignment, float font_size ) {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
+	static constexpr Vec4 light_gray = Vec4( 0.5, 0.5, 0.5, 1.0 );
+	static constexpr Vec4 dark_gray = Vec4( 0.2, 0.2, 0.2, 1.0 );
+
 
 	int num_weapons = 0;
 	for( size_t i = 0; i < ARRAY_COUNT( ps->weapons ); i++ ) {
@@ -1631,10 +1634,6 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		int ammo = ps->weapons[ i ].ammo;
 		const WeaponDef * def = GS_GetWeaponDef( weap );
 
-		if( weap == ps->pending_weapon ) {
-			cury -= ih * SEL_WEAP_Y_OFFSET;
-		}
-
 		Vec4 color = Vec4( 1.0f );
 		float ammo_frac = 1.0f;
 
@@ -1659,15 +1658,17 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 
 		const Material * icon = cgs.media.shaderWeaponIcon[ weap ];
 
+		int offset = ( weap == ps->pending_weapon ? border : 0 );
+
 		if( ammo_frac < 1.0f ) {
-			Draw2DBox( curx, cury, iw, ih, cgs.white_material, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ) );
-			Draw2DBox( curx + border, cury + border, innerw, innerh, cgs.white_material, Vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
-			Draw2DBox( curx + border + padding, cury + border + padding, iconw, iconh, icon, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ) );
+			Draw2DBox( curx - offset, cury - offset, iw + offset * 2, ih + offset * 2, cgs.white_material, light_gray );
+			Draw2DBox( curx + border, cury + border, innerw, innerh, cgs.white_material, dark_gray );
+			Draw2DBox( curx + border + padding, cury + border + padding, iconw, iconh, icon, light_gray );
 		}
 
 		Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
 
-		Draw2DBox( curx, cury + ih * ( 1.0f - ammo_frac ), iw, ih * ammo_frac, cgs.white_material, color );
+		Draw2DBox( curx - offset, cury + ih * ( 1.0f - ammo_frac ) - offset, iw + offset * 2, ih * ammo_frac + offset * 2, cgs.white_material, color );
 		Draw2DBox( curx + border, cury + ih * ( 1.0f - ammo_frac ) + border, innerw, ih * ammo_frac - border * 2, cgs.white_material, color_bg );
 
 		float asdf = Max2( ih * ( 1.0f - ammo_frac ), float( padding ) ) - padding;
@@ -1692,7 +1693,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 				CG_GetBoundKeysString( va( "weapon %i", i + 1 ), bind, sizeof( bind ) );
 			}
 
-			DrawText( GetHUDFont(), bind_font_size, bind, Alignment_CenterMiddle, curx + iw*0.50f, cury + ih*0.15f, layout_cursor_color, layout_cursor_font_border );
+			DrawText( GetHUDFont(), bind_font_size, bind, Alignment_CenterMiddle, curx + iw*0.50f, cury - ih*0.2f, layout_cursor_color, layout_cursor_font_border );
 		}
 	}
 }

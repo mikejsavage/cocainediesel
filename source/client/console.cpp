@@ -123,8 +123,9 @@ void Con_Print( const char * str ) {
 	console.log.remove( 0, trim );
 	console.log.append_raw( str, len );
 
-	if( console.at_bottom )
+	if( console.at_bottom ) {
 		console.scroll_to_bottom = true;
+	}
 }
 
 static void TabCompletion( char * buf, int buf_size );
@@ -255,9 +256,10 @@ void Con_Draw() {
 			}
 			ImGui::PopTextWrapPos();
 
-			if( console.scroll_to_bottom )
+			if( console.scroll_to_bottom ) {
 				ImGui::SetScrollHereY( 1.0f );
-			console.scroll_to_bottom = false;
+				console.scroll_to_bottom = false;
+			}
 
 			if( ImGui::IsKeyPressed( K_PGUP ) || ImGui::IsKeyPressed( K_PGDN ) ) {
 				float scroll = ImGui::GetScrollY();

@@ -1605,6 +1605,8 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
 	static constexpr Vec4 light_gray = Vec4( 0.5, 0.5, 0.5, 1.0 );
 	static constexpr Vec4 dark_gray = Vec4( 0.2, 0.2, 0.2, 1.0 );
+	static constexpr Vec4 color_ammo_max = Vec4( 1.0, 0.8, 0.15, 1.0 );
+	static constexpr Vec4 color_ammo_min = Vec4( 1.0, 0.22, 0.38, 1.0 );
 
 
 	int num_weapons = 0;
@@ -1619,8 +1621,10 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 	int total_width = Max2( 0, num_weapons * offx - padx );
 	int total_height = Max2( 0, num_weapons * offy - pady );
 
-	int border = iw * 0.03f;
+	int border = iw * 0.04f;
+	int border_sel = border * 0.25f;
 	int padding = iw * 0.1f;
+	int pad_sel = border * 2; 
 	int innerw = iw - border * 2;
 	int innerh = ih - border * 2;
 	int iconw = iw - border * 2 - padding * 2;
@@ -1647,45 +1651,44 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 			}
 		}
 
-		if( ammo_frac < 0.5f ) {
-			color = Lerp( vec4_red, Unlerp( 0.0f, ammo_frac, 0.5f ), vec4_yellow );
-		}
-		else {
-			color = Lerp( vec4_yellow, Unlerp( 0.5f, ammo_frac, 1.0f ), vec4_green );
-		}
+		color = Lerp( color_ammo_min, Unlerp( 0.0f, ammo_frac, 1.0f ), color_ammo_max );
 
-		Vec4 color_bg = Vec4( color.xyz() / 2.0f, 1.0f );
+		Vec4 color_bg = Vec4( color.xyz() * 0.625f, 1.0f );
 
 		const Material * icon = cgs.media.shaderWeaponIcon[ weap ];
 
-		int offset = ( weap == ps->pending_weapon ? border : 0 );
+		bool selected = weap == ps->pending_weapon;
+		int offset = ( selected ? border_sel : 0 );
+		int pady_sel = ( selected ? pad_sel : 0 );
 
 		if( ammo_frac < 1.0f ) {
-			Draw2DBox( curx - offset, cury - offset, iw + offset * 2, ih + offset * 2, cgs.white_material, light_gray );
-			Draw2DBox( curx + border, cury + border, innerw, innerh, cgs.white_material, dark_gray );
-			Draw2DBox( curx + border + padding, cury + border + padding, iconw, iconh, icon, light_gray );
+			Draw2DBox( curx - offset, cury - offset - pady_sel, iw + offset * 2, ih + offset * 2, cgs.white_material, light_gray );
+			Draw2DBox( curx + border, cury + border - pady_sel, innerw, innerh, cgs.white_material, dark_gray );
+			Draw2DBox( curx + border + padding, cury + border + padding - pady_sel, iconw, iconh, icon, light_gray );
 		}
 
 		Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
 
-		Draw2DBox( curx - offset, cury + ih * ( 1.0f - ammo_frac ) - offset, iw + offset * 2, ih * ammo_frac + offset * 2, cgs.white_material, color );
-		Draw2DBox( curx + border, cury + ih * ( 1.0f - ammo_frac ) + border, innerw, ih * ammo_frac - border * 2, cgs.white_material, color_bg );
+		if( def->clip_size == 0 || ammo_frac != 0  ) {
+			Draw2DBox( curx - offset, cury + ih * ( 1.0f - ammo_frac ) - offset - pady_sel, iw + offset * 2, ih * ammo_frac + offset * 2, cgs.white_material, color );
+			Draw2DBox( curx + border, cury + ih * ( 1.0f - ammo_frac ) + border - pady_sel, innerw, ih * ammo_frac - border * 2, cgs.white_material, color_bg );
+		}
 
 		float asdf = Max2( ih * ( 1.0f - ammo_frac ), float( padding ) ) - padding;
-		Draw2DBoxUV( curx + border + padding, cury + border + padding + asdf,
+		Draw2DBoxUV( curx + border + padding, cury + border + padding + asdf - pady_sel,
 			iconw, iconh - asdf,
 			Vec2( half_pixel.x, Lerp( half_pixel.y, asdf / iconh, 1.0f - half_pixel.y ) ), 1.0f - half_pixel,
 			CG_GetWeaponIcon( weap ), color );
 
 		if( def->clip_size != 0 ) {
-			DrawText( GetHUDFont(), font_size, va( "%i", ammo ), Alignment_LeftBottom, curx + iw*0.15f, cury + ih*0.85f, layout_cursor_color, layout_cursor_font_border );
+			DrawText( GetHUDFont(), font_size, va( "%i", ammo ), Alignment_CenterMiddle, curx + iw*0.5f, cury + ih * 1.175f - pady_sel, color, layout_cursor_font_border );
 		}
 
 		// weapon slot binds start from index 1, use drawn_weapons for actual loadout index
 		char bind[ 32 ];
 
 		// UNBOUND can look real stupid so bump size down a bit in case someone is scrolling. this still doesnt fit
-		const float bind_font_size = font_size * 0.8f;
+		const float bind_font_size = font_size * 0.75f;
 
 		// first try the weapon specific bind
 		if( cg_showHotkeys->integer ) {
@@ -1693,7 +1696,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 				CG_GetBoundKeysString( va( "weapon %i", i + 1 ), bind, sizeof( bind ) );
 			}
 
-			DrawText( GetHUDFont(), bind_font_size, bind, Alignment_CenterMiddle, curx + iw*0.50f, cury - ih*0.2f, layout_cursor_color, layout_cursor_font_border );
+			DrawText( GetHUDFont(), bind_font_size, bind, Alignment_CenterMiddle, curx + iw*0.5f, cury - ih*0.2f - pady_sel, layout_cursor_color, layout_cursor_font_border );
 		}
 	}
 }

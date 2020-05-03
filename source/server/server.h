@@ -74,7 +74,6 @@ typedef struct {
 typedef struct {
 	bool allentities;
 	bool multipov;
-	int clientarea;
 	int numareas;
 	uint8_t *areabits;                  // portalarea visibility bits
 	int numplayers;

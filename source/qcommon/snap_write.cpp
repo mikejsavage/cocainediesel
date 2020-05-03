@@ -580,7 +580,6 @@ static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, ginfo_t *gi, edict_
 	leafnum = CM_PointLeafnum( cms, vieworg );
 	clientarea = CM_LeafArea( cms, leafnum );
 
-	frame->clientarea = clientarea;
 	CM_WriteAreaBits( cms, frame->areabits );
 
 	// always add the client entity

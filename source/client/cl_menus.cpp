@@ -30,6 +30,7 @@ enum GameMenuState {
 	GameMenuState_Menu,
 	GameMenuState_Loadout,
 	GameMenuState_Settings,
+	GameMenuState_Votemap,
 };
 
 enum DemoMenuState {
@@ -60,7 +61,6 @@ static UIState uistate;
 
 static MainMenuState mainmenu_state;
 static int selected_server;
-static size_t selected_map;
 
 static GameMenuState gamemenu_state;
 static constexpr int MAX_CASH = 500;
@@ -264,6 +264,25 @@ static void CvarTeamColorCombo( const char * label, const char * cvar_name, int 
 	ImGui::PopItemWidth();
 
 	Cvar_Set( cvar_name, temp( "{}", selected ) );
+}
+
+static const char * SelectableMapList() {
+	Span< const char * > maps = GetMapList();
+	static size_t selected_map = 0;
+
+	ImGui::PushItemWidth( 200 );
+	if( ImGui::BeginCombo( "##map", maps[ selected_map ] ) ) {
+		for( size_t i = 0; i < maps.n; i++ ) {
+			if( ImGui::Selectable( maps[ i ], i == selected_map ) )
+				selected_map = i;
+			if( i == selected_map )
+				ImGui::SetItemDefaultFocus();
+		}
+		ImGui::EndCombo();
+	}
+	ImGui::PopItemWidth();
+
+	return ( selected_map < maps.n ? maps[ selected_map ] : "" );
 }
 
 static void SettingsGeneral() {
@@ -669,31 +688,15 @@ static void CreateServer() {
 		Cvar_Set( "sv_maxclients", temp( "{}", maxclients ) );
 	}
 
-	{
-		SettingLabel( "Map" );
 
-		Span< const char * > maps = GetMapList();
+	SettingLabel( "Map" );
 
-		ImGui::PushItemWidth( 200 );
-		if( ImGui::BeginCombo( "##map", maps[ selected_map ] ) ) {
-			for( size_t i = 0; i < maps.n; i++ ) {
-				if( ImGui::Selectable( maps[ i ], i == selected_map ) )
-					selected_map = i;
-				if( i == selected_map )
-					ImGui::SetItemDefaultFocus();
-			}
-			ImGui::EndCombo();
-		}
-		ImGui::PopItemWidth();
-	}
+	const char * map_name = SelectableMapList();
 
 	CvarCheckbox( "Public", "sv_public", "0", CVAR_LATCH );
 
 	if( ImGui::Button( "Create server" ) ) {
-		Span< const char * > maps = GetMapList();
-		if( selected_map < maps.n ) {
-			Cbuf_AddText( temp( "map \"{}\"\n", maps[ selected_map ] ) );
-		}
+		Cbuf_AddText( temp( "map \"{}\"\n", map_name ) );
 	}
 }
 
@@ -734,7 +737,6 @@ static void MainMenu() {
 
 	if( ImGui::Button( "CREATE SERVER" ) ) {
 		mainmenu_state = MainMenuState_CreateServer;
-		selected_map = 0;
 	}
 
 	ImGui::SameLine();
@@ -979,6 +981,10 @@ static void GameMenu() {
 			}
 		}
 
+		if( ImGui::Button( "Change map", ImVec2( -1, 0 ) ) ) {
+			gamemenu_state = GameMenuState_Votemap;
+		}
+
 		if( ImGui::Button( "Settings", ImVec2( -1, 0 ) ) ) {
 			gamemenu_state = GameMenuState_Settings;
 			settings_state = SettingsState_General;
@@ -1114,6 +1120,19 @@ static void GameMenu() {
 
 		ImGui::PopStyleColor();
 		ImGui::PopFont();
+	}
+	else if( gamemenu_state == GameMenuState_Votemap ) {
+		TempAllocator temp = cls.frame_arena.temp();
+
+		ImVec2 pos = ImGui::GetIO().DisplaySize;
+		pos.x *= 0.5f;
+		pos.y *= 0.5f;
+		ImGui::SetNextWindowPos( pos, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
+		ImGui::Begin( "votemap", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+
+		const char * map_name = SelectableMapList();
+
+		GameMenuButton( "Start vote", temp( "callvote map {}", map_name ), &should_close );
 	}
 	else if( gamemenu_state == GameMenuState_Settings ) {
 		ImVec2 pos = ImGui::GetIO().DisplaySize;

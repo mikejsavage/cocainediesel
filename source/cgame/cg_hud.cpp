@@ -20,8 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/base.h"
-#include "qcommon/assets.h"
 #include "qcommon/string.h"
+#include "client/assets.h"
 #include "cgame/cg_local.h"
 
 static int layout_cursor_x = 400;

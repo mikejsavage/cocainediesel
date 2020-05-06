@@ -1,9 +1,9 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-#include "qcommon/assets.h"
 #include "qcommon/cmodel.h"
 #include "qcommon/compression.h"
 #include "qcommon/hashtable.h"
+#include "client/assets.h"
 #include "client/maps.h"
 #include "client/renderer/model.h"
 

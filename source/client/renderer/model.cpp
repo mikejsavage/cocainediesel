@@ -1,7 +1,7 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-#include "qcommon/assets.h"
 #include "qcommon/hashtable.h"
+#include "client/assets.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
 

@@ -2,11 +2,11 @@
 
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-#include "qcommon/assets.h"
 #include "qcommon/hash.h"
 #include "qcommon/array.h"
 #include "qcommon/hashtable.h"
 #include "client/client.h"
+#include "client/assets.h"
 #include "client/sound.h"
 #include "client/threadpool.h"
 #include "gameshared/gs_public.h"

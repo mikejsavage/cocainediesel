@@ -3,11 +3,11 @@
 
 #include "qcommon/qcommon.h"
 #include "qcommon/base.h"
-#include "qcommon/assets.h"
 #include "qcommon/fs.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "qcommon/string.h"
+#include "client/assets.h"
 
 struct Asset {
 	char * path;

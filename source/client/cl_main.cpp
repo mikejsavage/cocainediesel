@@ -20,9 +20,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/base.h"
 #include "client/client.h"
+#include "client/assets.h"
 #include "client/threadpool.h"
 #include "client/renderer/renderer.h"
-#include "qcommon/assets.h"
 #include "qcommon/asyncstream.h"
 #include "qcommon/version.h"
 #include "qcommon/hash.h"

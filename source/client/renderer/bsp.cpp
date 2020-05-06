@@ -2,10 +2,10 @@
 
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-#include "qcommon/assets.h"
 #include "qcommon/array.h"
 #include "qcommon/string.h"
 #include "qcommon/span2d.h"
+#include "client/assets.h"
 #include "client/renderer/renderer.h"
 #include "client/maps.h"
 

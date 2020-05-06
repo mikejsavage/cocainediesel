@@ -1,6 +1,5 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-#include "qcommon/assets.h"
 #include "qcommon/array.h"
 #include "qcommon/string.h"
 #include "qcommon/utf8.h"
@@ -10,6 +9,7 @@
 #include "client/renderer/renderer.h"
 #include "client/renderer/text.h"
 #include "client/client.h"
+#include "client/assets.h"
 
 #include "imgui/imgui.h"
 

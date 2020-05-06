@@ -18,8 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "qcommon/assets.h"
 #include "cgame/cg_local.h"
+#include "client/assets.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
 

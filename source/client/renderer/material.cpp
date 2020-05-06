@@ -22,13 +22,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <algorithm> // std::sort
 
 #include "qcommon/base.h"
-#include "qcommon/assets.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "qcommon/string.h"
 #include "qcommon/span2d.h"
 #include "gameshared/q_shared.h"
 #include "client/client.h"
+#include "client/assets.h"
 #include "client/threadpool.h"
 #include "client/renderer/renderer.h"
 

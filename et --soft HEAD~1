@@ -1,0 +1,289 @@
+[33mcommit a6b1997b761eb7cf49368e036c5c5551364fd230[m
+Author: ahacheers <ahacheers@gmail.com>
+Date:   Thu Apr 30 08:12:57 2020 +0200
+
+    remove vsays
+
+[33mcommit 5220141a55eacba30726d2c67792759a8fe066bd[m
+Author: ObaniGemini <robin@pi-et-ro.net>
+Date:   Tue Apr 28 17:03:57 2020 +0200
+
+    goochie's hud concepts cause I actually care
+
+[33mcommit 97d04e7ad7ee3878418e46c43a017303dd6c0680[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Mon Apr 27 22:24:18 2020 +0300
+
+    Fix chat scrolling and escape to close chat
+
+[33mcommit 599e7065fcc376e3efed0ff451393a0d2216fde4[m
+Author: ObaniGemini <robin@pi-et-ro.net>
+Date:   Mon Apr 27 20:00:32 2020 +0200
+
+    lil spec hud fix
+
+[33mcommit 98ec2279960c2c9571721729826daf9180a36861[m
+Author: ahacheers <ahacheers@gmail.com>
+Date:   Mon Apr 27 20:09:28 2020 +0200
+
+    carfentanil fixes
+
+[33mcommit f4f881c6008838b804b49ec0db58628da9b4fc1e[m
+Author: ahacheers <ahacheers@gmail.com>
+Date:   Mon Apr 27 20:02:41 2020 +0200
+
+    krach update
+
+[33mcommit d1e82c7e61046235a4127e1519d9433581ce942a[m
+Author: ObaniGemini <robin@pi-et-ro.net>
+Date:   Mon Apr 27 18:22:08 2020 +0200
+
+    little hud stuff
+
+[33mcommit f44dcdf36e2cf5c751d95fc59bf754aa62cfb79a[m
+Author: ahacheers <ahacheers@gmail.com>
+Date:   Mon Apr 27 16:31:36 2020 +0200
+
+    dark desaturated knife
+
+[33mcommit b34ee43e86a320de0a710331b27582c95eda78ed[m
+Author: ahacheers <ahacheers@gmail.com>
+Date:   Mon Apr 27 16:22:34 2020 +0200
+
+    dark desaturated ww2 weapons
+
+[33mcommit b1bc24c9033e7873845b9b72550516bcb1fa712d[m
+Author: ahacheers <ahacheers@gmail.com>
+Date:   Mon Apr 27 13:51:18 2020 +0200
+
+    krach update
+
+[33mcommit decf1e89c4dd5549b033660c70436d565e414d9e[m
+Author: ahacheers <ahacheers@gmail.com>
+Date:   Mon Apr 27 11:40:50 2020 +0200
+
+    krach update
+
+[33mcommit 0498816aca01a408a874d1333cdc77f9a6f2b1f1[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Sun Apr 26 22:10:29 2020 +0300
+
+    Add krach
+
+[33mcommit b344bf15f42b2bf61e8785b2948a8045157cdc5f[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Sun Apr 26 21:57:36 2020 +0300
+
+    Ladder tweaks
+
+[33mcommit 15fa8324f156ee2137145c7d20f9b42add613e5e[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Sun Apr 26 21:54:07 2020 +0300
+
+    Little header cleanup
+
+[33mcommit fac3b57c134a68a815c8717f8e517f31079e8d30[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Sun Apr 26 21:46:23 2020 +0300
+
+    Fix planting
+
+[33mcommit d08348cd877b1a66e985169a2f306aecc1d935b1[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Sun Apr 26 21:41:27 2020 +0300
+
+    Fix automatic door triggers not holding the door open
+
+[33mcommit de716049ae6d1fcf2ae6c3ca4a5aff5ee2440970[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Sun Apr 26 21:36:01 2020 +0300
+
+    Add weaponclip surfaceparm and add door texture
+
+[33mcommit f4db6e4c8570be22d2d5ea3ab555940dab46d4c3[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Sun Apr 26 21:12:25 2020 +0300
+
+    Dead code
+
+[33mcommit 7f64883b848d746dc8d525e3c5810ea18a224cbe[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Sun Apr 26 21:12:19 2020 +0300
+
+    Remove shooting doors to open them
+
+[33mcommit 6af00a16dfbd8b19e66722175101bc53580e39f8[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Sun Apr 26 21:11:47 2020 +0300
+
+    Fix site indicators
+
+[33mcommit d6320737ddc2e099d6c9bdb9ab7069bdc4bb4fae[m
+Author: ahacheers <ahacheers@gmail.com>
+Date:   Sun Apr 26 20:43:54 2020 +0200
+
+    explosions
+
+[33mcommit 51d52ae0ccbefc86c20802c39fda97a016ba048b[m
+Author: ObaniGemini <robin@pi-et-ro.net>
+Date:   Sun Apr 26 20:26:23 2020 +0200
+
+    nerf bubblegun dmg
+
+[33mcommit 6f2c2a673ba3e9bcac1c69f82a9b2c0d21c14f0e[m
+Author: ObaniGemini <robin@pi-et-ro.net>
+Date:   Sun Apr 26 19:58:33 2020 +0200
+
+    lower kb on pg and less hear hurting door and pg sounds
+
+[33mcommit 799bea202c93b455755c0b3933b77a3092a8fb87[m
+Author: ObaniGemini <robin@pi-et-ro.net>
+Date:   Sun Apr 26 19:31:28 2020 +0200
+
+    goochie's bubblegun
+
+[33mcommit 0fd0b0aa00e58b8865c3b3969f780232faa24c26[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Sun Apr 26 18:01:39 2020 +0300
+
+    Add 1v1 etc sounds, only play when more than 1v3
+
+[33mcommit 248615aa91640e07e137e2d6cb3e7f44ab5331fd[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Sun Apr 26 18:00:37 2020 +0300
+
+    Add playsound command
+
+[33mcommit 0ccafc382e1b10fbc991cf00a2c4219cf2582d83[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Fri Apr 24 10:47:29 2020 +0300
+
+    Not like this
+
+[33mcommit f6535d6b75aad3c0563b7b8fddec8d62dd44da69[m
+Author: ObaniGemini <robin@pi-et-ro.net>
+Date:   Fri Apr 24 03:50:44 2020 +0200
+
+    goochie's greyscale and buff dither
+
+[33mcommit 6d3421a02ae7a6dbab86b8e8497a26c791df4d2a[m
+Author: ObaniGemini <robin@pi-et-ro.net>
+Date:   Fri Apr 24 03:04:29 2020 +0200
+
+    Better team colors
+
+[33mcommit 45e89de0f9cd35ec12700204ebcf5a348b2a550b[m
+Author: ObaniGemini <robin@pi-et-ro.net>
+Date:   Fri Apr 24 02:43:38 2020 +0200
+
+    better greyscales
+
+[33mcommit 21de7fc6047def5482fb3c196687c837aed2f97d[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Fri Apr 24 00:28:51 2020 +0300
+
+    Palette swap
+
+[33mcommit c13a3f8c86fea51f4cd3b241d164781cf5074279[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Fri Apr 24 00:28:42 2020 +0300
+
+    Really draw weapon silhouettes
+
+[33mcommit 0ce933e90dd09abf9053f68ce2c27b2c23b8b72d[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Fri Apr 24 00:04:16 2020 +0300
+
+    Missed this with the revert
+
+[33mcommit 4536fcce3cc6728df6d566a2c04d167f28d52614[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Fri Apr 24 00:01:14 2020 +0300
+
+    Remove teamchains and some other dead ent flags
+
+[33mcommit ba5ebc3d0399e86f24ddac64fbf8c1423703f881[m
+Author: ObaniGemini <robin@pi-et-ro.net>
+Date:   Thu Apr 23 00:32:17 2020 +0200
+
+    lil fix
+
+[33mcommit 644b0177c5b47b505965852d90bb2531336443b9[m
+Author: ObaniGemini <robin@pi-et-ro.net>
+Date:   Wed Apr 22 23:31:54 2020 +0200
+
+    trashfix and soundfix
+
+[33mcommit 480eff818c0503c3e9f8067f4318b0c5c6ab5d95[m
+Author: ObaniGemini <robin@pi-et-ro.net>
+Date:   Wed Apr 22 20:39:59 2020 +0200
+
+    Little cleanups, less laggy bubblegun, buff watermove
+
+[33mcommit 721f7530665d321af2ad775933ab3670ba0463db[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Wed Apr 22 01:36:07 2020 +0300
+
+    Delete handicap and dead code
+
+[33mcommit 8857d4a8b9d7c0bea00fa3aaf23ab0ffdff14eb2[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Wed Apr 22 01:33:18 2020 +0300
+
+    Tracy some server stuff
+
+[33mcommit bb3ca26050c1fafb1c07b8b7ecd98407b6152604[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Wed Apr 22 01:18:29 2020 +0300
+
+    Remove 1v1 etc text, play sounds instead
+
+[33mcommit 679361692f839fe87c7e1ef67b0d4c8a5f204365[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Tue Apr 21 22:41:43 2020 +0300
+
+    QUENCHED
+
+[33mcommit 8bf451f30f55144ace1b4112eeaf76ad68ba7d2e[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Tue Apr 21 00:51:00 2020 +0300
+
+    Dead code
+
+[33mcommit 6ffa839ec101b658adc51802c91f89570ff04fd8[m
+Author: ObaniGemini <robin@pi-et-ro.net>
+Date:   Mon Apr 20 01:18:16 2020 +0200
+
+    Enhance bubblegun, buff rail
+
+[33mcommit 05060f8a074604af11eb54f77d03b6f9dc3e1b24[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Mon Apr 20 01:59:19 2020 +0300
+
+    Nuke levelshots
+
+[33mcommit db846a9e451a33b496cd100af69365dac16f0675[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Mon Apr 20 01:14:55 2020 +0300
+
+    Dead code
+
+[33mcommit eff84d77a1e10fc41353417d5e45a9765d5c111c[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Mon Apr 20 00:53:24 2020 +0300
+
+    RnS
+
+[33mcommit d5a30474f7327cab4c992020050537aeac236844[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Sun Apr 19 23:22:31 2020 +0300
+
+    Fix gimbal lock in W_Fire_BubbleGun
+
+[33mcommit 829d561ef612a121894d119972eb675960d1e0b7[m
+Author: Michael Savage <mikejsavage@gmail.com>
+Date:   Sun Apr 19 22:31:39 2020 +0300
+
+    Try crouchless and hardcoded FOV
+
+[33mcommit 5bd97dd2516766048711f033aba0a

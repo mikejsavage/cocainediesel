@@ -1743,6 +1743,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 	static constexpr Vec4 color_ammo_max = Vec4( 1.0, 0.8, 0.15, 1.0 );
 	static constexpr Vec4 color_ammo_min = Vec4( 1.0, 0.22, 0.38, 1.0 );
 
+	const SyncEntityState * es = &cg_entities[ ps->POVnum ].current;
 
 	int num_weapons = 0;
 	for( size_t i = 0; i < ARRAY_COUNT( ps->weapons ); i++ ) {
@@ -1751,23 +1752,36 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		}
 	}
 
+	int bomb = ( es->effects & EF_CARRIER ) != 0 ? 1 : 0;
+
 	int padx = offx - iw;
 	int pady = offy - ih;
-	int total_width = Max2( 0, num_weapons * offx - padx );
-	int total_height = Max2( 0, num_weapons * offy - pady );
+	int total_width = Max2( 0, ( num_weapons + bomb ) * offx - padx );
+	int total_height = Max2( 0, ( num_weapons + bomb ) * offy - pady );
 
 	int border = iw * 0.04f;
 	int border_sel = border * 0.25f;
 	int padding = iw * 0.1f;
-	int pad_sel = border * 2; 
+	int pad_sel = border * 2;
 	int innerw = iw - border * 2;
 	int innerh = ih - border * 2;
 	int iconw = iw - border * 2 - padding * 2;
 	int iconh = ih - border * 2 - padding * 2;
 
+	if( bomb != 0 ) {
+		int curx = CG_HorizontalAlignForWidth( x, alignment, total_width );
+		int cury = CG_VerticalAlignForHeight( y, alignment, total_height );
+
+		Draw2DBox( curx, cury, iw, ih, cgs.white_material, light_gray );
+		Draw2DBox( curx + border, cury + border, innerw, innerh, cgs.white_material, dark_gray );
+
+		Vec4 color = ps->can_plant ? AttentionGettingColor() : light_gray;
+		Draw2DBox( curx + border + padding, cury + border + padding, iconw, iconh, cgs.media.shaderBombIcon, color );
+	}
+
 	for( int i = 0; i < num_weapons; i++ ) {
-		int curx = CG_HorizontalAlignForWidth( x + offx * i, alignment, total_width );
-		int cury = CG_VerticalAlignForHeight( y + offy * i, alignment, total_height );
+		int curx = CG_HorizontalAlignForWidth( x + offx * ( i + bomb ), alignment, total_width );
+		int cury = CG_VerticalAlignForHeight( y + offy * ( i + bomb ), alignment, total_height );
 
 		WeaponType weap = ps->weapons[ i ].weapon;
 		int ammo = ps->weapons[ i ].ammo;
@@ -1804,7 +1818,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 
 		Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
 
-		if( def->clip_size == 0 || ammo_frac != 0  ) {
+		if( def->clip_size == 0 || ammo_frac != 0 ) {
 			Draw2DBox( curx - offset, cury + ih * ( 1.0f - ammo_frac ) - offset - pady_sel, iw + offset * 2, ih * ammo_frac + offset * 2, cgs.white_material, color );
 			Draw2DBox( curx + border, cury + ih * ( 1.0f - ammo_frac ) + border - pady_sel, innerw, ih * ammo_frac - border * 2, cgs.white_material, color_bg );
 		}

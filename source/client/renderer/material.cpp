@@ -579,15 +579,6 @@ struct DecodeTextureJob {
 	} out;
 };
 
-static void DecodeTextureWorker( TempAllocator * temp, void * data ) {
-	DecodeTextureJob * job = ( DecodeTextureJob * ) data;
-
-	ZoneScoped;
-	ZoneText( job->in.path, strlen( job->in.path ) );
-
-	job->out.pixels = stbi_load_from_memory( job->in.data.ptr, job->in.data.num_bytes(), &job->out.width, &job->out.height, &job->out.channels, 0 );
-}
-
 void InitMaterials() {
 	ZoneScoped;
 
@@ -621,7 +612,14 @@ void InitMaterials() {
 			} );
 		}
 
-		ParallelFor( DecodeTextureWorker, jobs.span() );
+		ParallelFor( jobs.span(), []( TempAllocator * temp, void * data ) {
+			DecodeTextureJob * job = ( DecodeTextureJob * ) data;
+
+			ZoneScoped;
+			ZoneText( job->in.path, strlen( job->in.path ) );
+
+			job->out.pixels = stbi_load_from_memory( job->in.data.ptr, job->in.data.num_bytes(), &job->out.width, &job->out.height, &job->out.channels, 0 );
+		} );
 
 		for( DecodeTextureJob job : jobs ) {
 			LoadTexture( job.in.path, job.out.pixels, job.out.width, job.out.height, job.out.channels );

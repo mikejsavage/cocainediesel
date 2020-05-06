@@ -8,10 +8,10 @@ void InitThreadPool();
 void ShutdownThreadPool();
 
 void ThreadPoolDo( JobCallback callback, void * data = NULL );
-void ParallelFor( JobCallback callback, void * datum, size_t n, size_t stride );
+void ParallelFor( void * datum, size_t n, size_t stride, JobCallback callback );
 void ThreadPoolFinish();
 
 template< typename T >
-void ParallelFor( JobCallback callback, Span< T > datum ) {
-	ParallelFor( callback, datum.ptr, datum.n, sizeof( T ) );
+void ParallelFor( Span< T > datum, JobCallback callback ) {
+	ParallelFor( datum.ptr, datum.n, sizeof( T ), callback );
 }

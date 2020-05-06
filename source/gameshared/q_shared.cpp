@@ -269,6 +269,9 @@ static bool IsWhitespace( char c ) {
 
 Span< const char > ParseToken( const char ** ptr, ParseStopOnNewLine stop ) {
 	const char * cursor = *ptr;
+	if( cursor == NULL ) {
+		return MakeSpan( "" );
+	}
 
 	// skip leading whitespace
 	while( IsWhitespace( *cursor ) ) {

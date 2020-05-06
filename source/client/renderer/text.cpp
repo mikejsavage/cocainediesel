@@ -33,7 +33,7 @@ struct Font {
 	Material material;
 
 	float glyph_padding;
-	float pixel_range;
+	float dSDF_dTexel;
 	float ascent;
 
 	Glyph glyphs[ 256 ];
@@ -65,7 +65,7 @@ void ShutdownText() {
 }
 
 static void Serialize( SerializationBuffer * buf, Font & font ) {
-	*buf & font.glyph_padding & font.pixel_range & font.ascent;
+	*buf & font.glyph_padding & font.dSDF_dTexel & font.ascent;
 	for( Glyph & glyph : font.glyphs ) {
 		*buf & glyph.bounds & glyph.uv_bounds & glyph.advance;
 	}
@@ -159,7 +159,7 @@ static void DrawText( const Font * font, float pixel_size, Span< const char > st
 	sam.uniform_block = UploadUniformBlock(
 		color, border_color,
 		Vec2( font->atlas.width, font->atlas.height ),
-		font->pixel_range, border ? 1 : 0 );
+		font->dSDF_dTexel, border ? 1 : 0 );
 
 	ImDrawList * bg = ImGui::GetBackgroundDrawList();
 	bg->PushTextureID( sam );

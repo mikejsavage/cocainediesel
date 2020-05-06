@@ -65,7 +65,7 @@ void Unlock( Mutex * mutex ) {
 }
 
 Semaphore * NewSemaphore() {
-	LONG max = 8192; // needs to be at least as big as thread pool size TODO
+	LONG max = 8192;
 	HANDLE handle = CreateSemaphoreA( NULL, 0, max, NULL );
 	if( handle == NULL ) {
 		Com_Error( ERR_FATAL, "CreateSemaphoreA" );
@@ -83,7 +83,10 @@ void DeleteSemaphore( Semaphore * sem ) {
 
 void Signal( Semaphore * sem, int n ) {
 	if( ReleaseSemaphore( sem->handle, n, NULL ) == 0 ) {
-		Com_Error( ERR_FATAL, "ReleaseSemaphore" );
+		DWORD error = GetLastError();
+		if( error != ERROR_TOO_MANY_POSTS ) {
+			Com_Error( ERR_FATAL, "ReleaseSemaphore" );
+		}
 	}
 }
 

@@ -1826,13 +1826,11 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		const float bind_font_size = font_size * 0.75f;
 
 		// first try the weapon specific bind
-		if( cg_showHotkeys->integer ) {
-			if( !CG_GetBoundKeysString( va( "use %s", def->short_name ), bind, sizeof( bind ) ) ) {
-				CG_GetBoundKeysString( va( "weapon %i", i + 1 ), bind, sizeof( bind ) );
-			}
-
-			DrawText( GetHUDFont(), bind_font_size, bind, Alignment_CenterMiddle, curx + iw*0.5f, cury - ih*0.2f - pady_sel, layout_cursor_color, layout_cursor_font_border );
+		if( !CG_GetBoundKeysString( va( "use %s", def->short_name ), bind, sizeof( bind ) ) ) {
+			CG_GetBoundKeysString( va( "weapon %i", i + 1 ), bind, sizeof( bind ) );
 		}
+
+		DrawText( GetHUDFont(), bind_font_size, bind, Alignment_CenterMiddle, curx + iw*0.5f, cury - ih*0.2f - pady_sel, layout_cursor_color, layout_cursor_font_border );
 	}
 }
 

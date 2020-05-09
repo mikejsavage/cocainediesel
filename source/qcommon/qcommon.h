@@ -611,6 +611,13 @@ void Com_GGPrintNL( const char * fmt, const Rest & ... rest ) {
 
 #define Com_GGPrint( fmt, ... ) Com_GGPrintNL( fmt "\n", ##__VA_ARGS__ )
 
+template< typename... Rest >
+void Com_GGError( com_error_code_t code, const char * fmt, const Rest & ... rest ) {
+	char buf[ 4096 ];
+	ggformat( buf, sizeof( buf ), fmt, rest... );
+	Com_Error( code, "%s", buf );
+}
+
 void        Com_DeferQuit( void );
 
 int         Com_ClientState( void );        // this should have just been a cvar...

@@ -281,7 +281,7 @@ void roundNewState( uint state ) {
 			roundCheckEndTime = true;
 			roundStateEndTime = levelTime + 1500; // magic numbers are awesome
 
-			gametype.shootingDisabled = true;
+			gametype.shootingDisabled = false;
 
 			break;
 

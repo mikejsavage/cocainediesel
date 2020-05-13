@@ -106,10 +106,8 @@ static void DrawPlayerScoreboard( TempAllocator & temp, ScoreboardPlayer player,
 	ImGui::AlignTextToFramePadding();
 	ColumnCenterText( temp( "{}", player.kills ) );
 	ImGui::NextColumn();
-
 	ImGui::AlignTextToFramePadding();
-	ImGuiColorToken color( Min2( 255, player.ping ), 0, 0, 255 );
-	ColumnCenterText( temp( "{}{}", color, player.ping ) );
+	ColumnCenterText( temp( "{}", player.ping ) );
 	ImGui::NextColumn();
 }
 

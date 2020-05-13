@@ -540,8 +540,6 @@ static const g_vsays_t g_vsays[] = {
 * G_vsay_f
 */
 static void G_vsay_f( edict_t *ent, bool team ) {
-	edict_t *event = NULL;
-	const g_vsays_t *vsay;
 	const char *msg = Cmd_Argv( 1 );
 
 	if( ent->r.client && ( ent->r.client->muted & 2 ) ) {
@@ -567,41 +565,40 @@ static void G_vsay_f( edict_t *ent, bool team ) {
 		}
 	}
 
-	for( vsay = g_vsays; vsay->name; vsay++ ) {
-		if( !Q_stricmp( msg, vsay->name ) ) {
-			event = G_SpawnEvent( EV_VSAY, vsay->id, NULL );
-			break;
-		}
-	}
+	for( const g_vsays_t * vsay = g_vsays; vsay->name; vsay++ ) {
+		if( Q_stricmp( msg, vsay->name ) != 0 )
+			continue;
 
-	if( event ) {
+		u32 entropy = random_u32( &svs.rng );
+		u64 parm = vsay->id | ( entropy << 16 );
+
+		edict_t * event = G_SpawnEvent( EV_VSAY, parm, NULL );
 		event->r.svflags |= SVF_BROADCAST; // force sending even when not in PVS
 		event->s.ownerNum = ent->s.number;
+
 		if( team ) {
 			event->s.team = ent->s.team;
-			event->r.svflags |= SVF_ONLYTEAM; // send only to clients with the same ->s.team value
+			event->r.svflags |= SVF_ONLYTEAM;
 		}
+
 		return;
 	}
 
 	// unknown token, print help
-	{
-		char string[MAX_STRING_CHARS];
+	char string[MAX_STRING_CHARS];
 
-		// print information
-		string[0] = 0;
-		if( msg && msg[0] != '\0' ) {
-			Q_strncatz( string, va( "%sUnknown vsay token%s \"%s\"\n", S_COLOR_YELLOW, S_COLOR_WHITE, msg ), sizeof( string ) );
-		}
-		Q_strncatz( string, va( "%svsays:%s\n", S_COLOR_YELLOW, S_COLOR_WHITE ), sizeof( string ) );
-		for( vsay = g_vsays; vsay->name; vsay++ ) {
-			if( strlen( vsay->name ) + strlen( string ) < sizeof( string ) - 6 ) {
-				Q_strncatz( string, va( "%s ", vsay->name ), sizeof( string ) );
-			}
-		}
-		Q_strncatz( string, "\n", sizeof( string ) );
-		G_PrintMsg( ent, "%s", string );
+	string[0] = 0;
+	if( msg && msg[0] != '\0' ) {
+		Q_strncatz( string, va( "%sUnknown vsay token%s \"%s\"\n", S_COLOR_YELLOW, S_COLOR_WHITE, msg ), sizeof( string ) );
 	}
+	Q_strncatz( string, va( "%svsays:%s\n", S_COLOR_YELLOW, S_COLOR_WHITE ), sizeof( string ) );
+	for( const g_vsays_t * vsay = g_vsays; vsay->name; vsay++ ) {
+		if( strlen( vsay->name ) + strlen( string ) < sizeof( string ) - 6 ) {
+			Q_strncatz( string, va( "%s ", vsay->name ), sizeof( string ) );
+		}
+	}
+	Q_strncatz( string, "\n", sizeof( string ) );
+	G_PrintMsg( ent, "%s", string );
 }
 
 /*

@@ -18,9 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include <time.h>
-
-#include "cg_local.h"
+#include "cgame/cg_local.h"
 #include "client/ui.h"
 
 /*

@@ -513,15 +513,19 @@ void CG_ReleaseAnnouncerEvents( void ) {
 /*
 * CG_StartVoiceTokenEffect
 */
-static void CG_StartVoiceTokenEffect( int entNum, int vsay ) {
+static void CG_StartVoiceTokenEffect( int entNum, u64 parm ) {
 	if( !cg_voiceChats->integer ) {
 		return;
 	}
-	if( vsay < 0 || vsay >= Vsay_Total ) {
+
+	u32 vsay = parm & ( U16_MAX - 1 );
+	u32 entropy = parm >> 16;
+
+	if( vsay >= Vsay_Total ) {
 		return;
 	}
 
-	centity_t *cent = &cg_entities[entNum];
+	centity_t * cent = &cg_entities[entNum];
 
 	// ignore repeated/flooded events
 	// TODO: this should really look at how long the vsay is...
@@ -539,9 +543,9 @@ static void CG_StartVoiceTokenEffect( int entNum, int vsay ) {
 
 	// played as it was made by the 1st person player
 	if( GS_MatchState( &client_gs ) >= MATCH_STATE_POSTMATCH )
-		S_StartGlobalSound( sound, CHAN_AUTO, 1.0f );
+		S_StartGlobalSound( sound, CHAN_AUTO, 1.0f, entropy );
 	else
-		S_StartEntitySound( sound, entNum, CHAN_AUTO, 1.0f );
+		S_StartEntitySound( sound, entNum, CHAN_AUTO, 1.0f, entropy );
 }
 
 //==================================================================

@@ -53,6 +53,9 @@ struct PlayingSound {
 	int channel;
 	float volume;
 
+	u32 entropy;
+	bool has_entropy;
+
 	ImmediateSoundHandle immediate_handle;
 	bool touched_since_last_update;
 
@@ -567,7 +570,15 @@ const SoundEffect * FindSoundEffect( const char * name ) {
 static bool StartSound( PlayingSound * ps, u8 i ) {
 	SoundEffect::PlaybackConfig config = ps->sfx->sounds[ i ];
 
-	int idx = random_uniform( &cls.rng, 0, config.num_random_sounds );
+	int idx;
+	if( !ps->has_entropy ) {
+		idx = random_uniform( &cls.rng, 0, config.num_random_sounds );
+	}
+	else {
+		RNG rng = new_rng( ps->entropy, 0 );
+		idx = random_uniform( &rng, 0, config.num_random_sounds );
+	}
+
 	Sound sound;
 	if( !FindSound( config.sounds[ idx ], &sound ) )
 		return false;
@@ -791,8 +802,24 @@ void S_StartEntitySound( const SoundEffect * sfx, int ent_num, int channel, floa
 	StartSoundEffect( sfx, ent_num, channel, volume, PlayingSoundType_Entity );
 }
 
+void S_StartEntitySound( const SoundEffect * sfx, int ent_num, int channel, float volume, u32 sfx_entropy ) {
+	PlayingSound * ps = StartSoundEffect( sfx, ent_num, channel, volume, PlayingSoundType_Entity );
+	if( ps == NULL )
+		return;
+	ps->entropy = sfx_entropy;
+	ps->has_entropy = true;
+}
+
 void S_StartGlobalSound( const SoundEffect * sfx, int channel, float volume ) {
 	StartSoundEffect( sfx, 0, channel, volume, PlayingSoundType_Global );
+}
+
+void S_StartGlobalSound( const SoundEffect * sfx, int channel, float volume, u32 sfx_entropy ) {
+	PlayingSound * ps = StartSoundEffect( sfx, 0, channel, volume, PlayingSoundType_Global );
+	if( ps == NULL )
+		return;
+	ps->entropy = sfx_entropy;
+	ps->has_entropy = true;
 }
 
 void S_StartLocalSound( const SoundEffect * sfx, int channel, float volume ) {

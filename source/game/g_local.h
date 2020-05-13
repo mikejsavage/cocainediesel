@@ -490,6 +490,8 @@ void G_PMoveTouchTriggers( pmove_t *pm, vec3_t previous_origin );
 SyncEntityState *G_GetEntityStateForDeltaTime( int entNum, int deltaTime );
 int GClip_FindInRadius( vec3_t org, float rad, int *list, int maxcount );
 
+bool IsHeadshot( int entNum, Vec3 hit, int timeDelta );
+
 // BoxEdicts() can return a list of either solid or trigger entities
 // FIXME: eliminate AREA_ distinction?
 #define AREA_ALL       -1
@@ -510,7 +512,8 @@ void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edi
 // damage flags
 #define DAMAGE_RADIUS 0x00000001  // damage was indirect
 #define DAMAGE_NO_PROTECTION 0x00000002
-#define DAMAGE_KNOCKBACK_SOFT 0x00000040
+#define DAMAGE_KNOCKBACK_SOFT 0x00000004
+#define DAMAGE_HEADSHOT 0x00000008
 
 //
 // g_misc.c

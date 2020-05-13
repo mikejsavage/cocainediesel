@@ -21,11 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "game/g_local.h"
 #include "qcommon/cmodel.h"
 
-//
-// g_clip.c - entity contact detection. (high level object sorting to reduce interaction tests)
-//
-
-
 //===============================================================================
 //
 //ENTITY AREA CHECKING
@@ -899,6 +894,14 @@ void G_Trace( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3_t m
 void G_Trace4D( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3_t maxs,
 				const vec3_t end, edict_t *passedict, int contentmask, int timeDelta ) {
 	GClip_Trace( tr, start, mins, maxs, end, passedict, contentmask, timeDelta );
+}
+
+bool IsHeadshot( int entNum, Vec3 hit, int timeDelta ) {
+	const c4clipedict_t * clip = GClip_GetClipEdictForDeltaTime( entNum, timeDelta );
+
+	Vec3 max = FromQF3( clip->r.absmax );
+
+	return max.z - hit.z <= 16.0f;
 }
 
 //===========================================================================

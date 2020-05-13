@@ -262,7 +262,7 @@ static void G_SnapEntities() {
 
 				if( ent->s.type == ET_PLAYER || ent->s.type == ET_CORPSE ) {
 					edict_t * event = G_SpawnEvent( EV_BLOOD, DirToByte( dir ), origin );
-					event->s.damage = HEALTH_TO_INT( damage );
+					// event->s.damage = HEALTH_TO_INT( damage );
 					event->s.ownerNum = i; // set owner
 					event->s.team = ent->s.team;
 
@@ -281,7 +281,7 @@ static void G_SnapEntities() {
 					}
 				} else {
 					edict_t * event = G_SpawnEvent( EV_SPARKS, DirToByte( dir ), origin );
-					event->s.damage = HEALTH_TO_INT( damage );
+					// event->s.damage = HEALTH_TO_INT( damage );
 				}
 			}
 		}

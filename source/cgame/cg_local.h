@@ -148,6 +148,8 @@ typedef struct {
 
 	const SoundEffect * sfxTbag;
 
+	const SoundEffect * sfxHeadshot;
+
 	// models
 	const Model * modDash;
 	const Model * modGib;
@@ -461,7 +463,7 @@ void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color );
 void CG_ClearPointedNum( void );
 
 void CG_InitDamageNumbers();
-void CG_AddDamageNumber( SyncEntityState * ent );
+void CG_AddDamageNumber( SyncEntityState * ent, u64 parm );
 void CG_DrawDamageNumbers();
 
 void CG_AddBomb( centity_t * cent );

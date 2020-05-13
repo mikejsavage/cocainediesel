@@ -389,6 +389,7 @@ struct DamageNumber {
 	int64_t t;
 	const char * obituary;
 	int damage;
+	bool headshot;
 };
 
 static DamageNumber damage_numbers[ 16 ];
@@ -401,11 +402,12 @@ void CG_InitDamageNumbers() {
 	}
 }
 
-void CG_AddDamageNumber( SyncEntityState * ent ) {
+void CG_AddDamageNumber( SyncEntityState * ent, u64 parm ) {
 	DamageNumber * dn = &damage_numbers[ damage_numbers_head ];
 
 	dn->t = cl.serverTime;
-	dn->damage = ent->damage;
+	dn->damage = parm >> 1;
+	dn->headshot = ( parm & 1 ) != 0;
 	dn->drift = random_float11( &cls.rng );
 	dn->obituary = random_select( &cls.rng, mini_obituaries );
 
@@ -448,7 +450,7 @@ void CG_DrawDamageNumbers() {
 		}
 		else {
 			snprintf( buf, sizeof( buf ), "%d", dn.damage );
-			color = vec4_white;
+			color = dn.headshot ? AttentionGettingColor() : vec4_white;
 		}
 
 		float font_size = Lerp( cgs.textSizeTiny, Unlerp01( 0, dn.damage, 60 ), cgs.textSizeSmall );

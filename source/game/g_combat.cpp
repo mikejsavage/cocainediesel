@@ -291,13 +291,18 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 	if( statDmg && attacker->r.client && !targ->deadflag && targ->movetype != MOVETYPE_PUSH && targ->s.type != ET_CORPSE ) {
 		attacker->r.client->level.stats.total_damage_given += take;
 
-		// RG calls G_Damage for every bullet, so we accumulate damage
+		// shotgun calls G_Damage for every bullet, so we accumulate damage
 		// in W_Fire_Shotgun and show one number there instead
 		if( mod != MOD_SHOTGUN ) {
-			edict_t * ev = G_SpawnEvent( EV_DAMAGE, 0, targ->s.origin );
+			u64 parm = HEALTH_TO_INT( take ) << 1;
+			if( dflags & DAMAGE_HEADSHOT ) {
+				parm |= 1;
+				G_SpawnEvent( EV_HEADSHOT, 0, targ->s.origin );
+			}
+
+			edict_t * ev = G_SpawnEvent( EV_DAMAGE, parm, targ->s.origin );
 			ev->r.svflags |= SVF_ONLYOWNER;
 			ev->s.ownerNum = ENTNUM( attacker );
-			ev->s.damage = HEALTH_TO_INT( take );
 		}
 	}
 
@@ -355,10 +360,9 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_
 		}
 
 		if( targ->s.type != ET_CORPSE && attacker != targ ) {
-			edict_t * killed = G_SpawnEvent( EV_DAMAGE, 0, targ->s.origin );
+			edict_t * killed = G_SpawnEvent( EV_DAMAGE, 255 << 1, targ->s.origin );
 			killed->r.svflags |= SVF_ONLYOWNER;
 			killed->s.ownerNum = ENTNUM( attacker );
-			killed->s.damage = 255;
 		}
 
 		G_Killed( targ, inflictor, attacker, HEALTH_TO_INT( take ), point, mod );

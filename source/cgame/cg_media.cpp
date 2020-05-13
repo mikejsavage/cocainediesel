@@ -69,6 +69,8 @@ void CG_RegisterMediaSounds() {
 
 	cgs.media.sfxTbag = FindSoundEffect( "sounds/tbag/tbag" );
 
+	cgs.media.sfxHeadshot = FindSoundEffect( "sounds/headshot/headshot" );
+
 	// VSAY sounds
 	cgs.media.sfxVSaySounds[ Vsay_Sorry ] = FindSoundEffect( "sounds/vsay/sorry" );
 	cgs.media.sfxVSaySounds[ Vsay_Thanks ] = FindSoundEffect( "sounds/vsay/thanks" );

@@ -866,11 +866,11 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_SPARKS:
 			ByteToDir( parm, dir );
-			if( ent->damage > 0 ) {
-				count = Clamp( 1, int( ent->damage * 0.25f ), 10 );
-			} else {
-				count = 6;
-			}
+			// if( ent->damage > 0 ) {
+			// 	count = Clamp( 1, int( ent->damage * 0.25f ), 10 );
+			// } else {
+			// 	count = 6;
+			// }
 
 			// CG_ParticleEffect( ent->origin, dir, 1.0f, 0.67f, 0.0f, count );
 			break;
@@ -964,7 +964,7 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_BLOOD:
 			ByteToDir( parm, dir );
-			CG_BloodDamageEffect( ent->origin, dir, ent->damage, team_color );
+			// CG_BloodDamageEffect( ent->origin, dir, ent->damage, team_color );
 			break;
 
 		// func movers
@@ -993,7 +993,11 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_DAMAGE:
-			CG_AddDamageNumber( ent );
+			CG_AddDamageNumber( ent, parm );
+			break;
+
+		case EV_HEADSHOT:
+			S_StartFixedSound( cgs.media.sfxHeadshot, FromQF3( ent->origin ), CHAN_AUTO, 1.0f );
 			break;
 	}
 }
@@ -1077,10 +1081,6 @@ static void CG_FirePlayerStateEvents( void ) {
 			case PSEV_DAMAGE_40:
 				ByteToDir( parm, dir );
 				// CG_DamageIndicatorAdd( 40, dir );
-				break;
-
-			case PSEV_INDEXEDSOUND:
-				S_StartGlobalSound( FindSoundEffect( StringHash( parm ) ), CHAN_AUTO, 1.0f );
 				break;
 
 			case PSEV_ANNOUNCER:

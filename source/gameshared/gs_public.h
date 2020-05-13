@@ -212,7 +212,6 @@ struct SyncEntityState {
 	SyncEvent events[ 2 ];
 
 	int counterNum;                 // ET_GENERIC
-	int damage;                     // EV_BLOOD
 	int targetNum;                  // ET_EVENT specific
 	int colorRGBA;                  // ET_BEAM, ET_EVENT specific
 	RGBA8 silhouetteColor;
@@ -664,6 +663,7 @@ typedef enum {
 	EV_TRAIN_START,
 
 	EV_DAMAGE,
+	EV_HEADSHOT,
 
 	MAX_EVENTS = 128
 } entity_event_t;
@@ -675,7 +675,6 @@ typedef enum {
 	PSEV_DAMAGE_20,
 	PSEV_DAMAGE_30,
 	PSEV_DAMAGE_40,
-	PSEV_INDEXEDSOUND,
 	PSEV_ANNOUNCER,
 	PSEV_ANNOUNCER_QUEUED,
 

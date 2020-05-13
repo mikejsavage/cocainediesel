@@ -282,6 +282,11 @@ static void W_Fire_Bullet( edict_t * self, const vec3_t start, const vec3_t angl
 	GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, x_spread, y_spread, def->range, ENTNUM( self ), timeDelta );
 	if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
 		int dmgflags = DAMAGE_KNOCKBACK_SOFT;
+
+		if( IsHeadshot( trace.ent, FromQF3( trace.endpos ), timeDelta ) ) {
+			dmgflags |= DAMAGE_HEADSHOT;
+		}
+
 		G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, def->damage, def->knockback, dmgflags, mod );
 	}
 }
@@ -314,10 +319,9 @@ static void W_Fire_Shotgun( edict_t * self, const vec3_t start, const vec3_t ang
 		if( damage_dealt[ i ] == 0 )
 			continue;
 		edict_t * target = &game.edicts[ i ];
-		edict_t * ev = G_SpawnEvent( EV_DAMAGE, 0, target->s.origin );
+		edict_t * ev = G_SpawnEvent( EV_DAMAGE, HEALTH_TO_INT( damage_dealt[ 0 ] ) << 1, target->s.origin );
 		ev->r.svflags |= SVF_ONLYOWNER;
 		ev->s.ownerNum = ENTNUM( self );
-		ev->s.damage = HEALTH_TO_INT( damage_dealt[ i ] );
 	}
 }
 

@@ -56,8 +56,6 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 			Com_Printf( "%s %s\n", self->r.client->netname, message );
 		}
 
-		G_PositionedSound( self->s.origin, CHAN_AUTO, "sounds/trombone/sad" );
-
 		G_Obituary( self, attacker == self ? self : world, mod );
 	}
 }

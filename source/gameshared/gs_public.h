@@ -583,11 +583,14 @@ enum {
 	Vsay_GetGood,
 	Vsay_HitTheShowers,
 	Vsay_Lads,
+	Vsay_SheDoesntEvenGoHere,
 	Vsay_ShitSon,
 	Vsay_TrashSmash,
+	Vsay_WhatTheShit,
 	Vsay_WowYourTerrible,
 	Vsay_Acne,
 	Vsay_Valley,
+	Vsay_Mike,
 
 	Vsay_Total
 };

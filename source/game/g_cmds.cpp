@@ -527,11 +527,14 @@ static const g_vsays_t g_vsays[] = {
 	{ "getgood", Vsay_GetGood },
 	{ "hittheshowers", Vsay_HitTheShowers },
 	{ "lads", Vsay_Lads },
+	{ "shedoesnteven", Vsay_SheDoesntEvenGoHere },
 	{ "shitson", Vsay_ShitSon },
 	{ "trashsmash", Vsay_TrashSmash },
+	{ "whattheshit", Vsay_WhatTheShit },
 	{ "wowyourterrible", Vsay_WowYourTerrible },
 	{ "acne", Vsay_Acne },
 	{ "valley", Vsay_Valley },
+	{ "mike", Vsay_Mike },
 
 	{ NULL, 0 }
 };
@@ -569,8 +572,8 @@ static void G_vsay_f( edict_t *ent, bool team ) {
 		if( Q_stricmp( msg, vsay->name ) != 0 )
 			continue;
 
-		u32 entropy = random_u32( &svs.rng );
-		u64 parm = vsay->id | ( entropy << 16 );
+		u64 entropy = random_u32( &svs.rng );
+		u64 parm = u64( vsay->id ) | ( entropy << 16 );
 
 		edict_t * event = G_SpawnEvent( EV_VSAY, parm, NULL );
 		event->r.svflags |= SVF_BROADCAST; // force sending even when not in PVS

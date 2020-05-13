@@ -372,11 +372,14 @@ static void SettingsControls() {
 				KeyBindButton( "Get good", "vsay getgood" );
 				KeyBindButton( "Hit the showers", "vsay hittheshowers" );
 				KeyBindButton( "Lads", "vsay lads" );
+				KeyBindButton( "She doesn't even", "vsay shedoesnteven" );
 				KeyBindButton( "Shit son", "vsay shitson" );
 				KeyBindButton( "Trash smash", "vsay trashsmash" );
+				KeyBindButton( "What the shit", "vsay whattheshit" );
 				KeyBindButton( "Wow your terrible", "vsay wowyourterrible" );
 				KeyBindButton( "Acne", "vsay acne" );
 				KeyBindButton( "Valley", "vsay valley" );
+				KeyBindButton( "Mike", "vsay mike" );
 			} ImGui::EndChild();
 
 			ImGui::EndTabItem();

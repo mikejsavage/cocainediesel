@@ -518,7 +518,7 @@ static void CG_StartVoiceTokenEffect( int entNum, u64 parm ) {
 		return;
 	}
 
-	u32 vsay = parm & ( U16_MAX - 1 );
+	u32 vsay = parm & 0xffff;
 	u32 entropy = parm >> 16;
 
 	if( vsay >= Vsay_Total ) {

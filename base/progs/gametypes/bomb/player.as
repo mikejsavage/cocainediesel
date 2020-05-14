@@ -113,7 +113,7 @@ class cPlayer {
 		this.client.execGameCommand( command );
 
 		if( match.getState() == MATCH_STATE_WARMUP ) {
-			if( lastLoadoutChangeTime == -1 || levelTime - lastLoadoutChangeTime >= 1000 ) {
+			if( lastLoadoutChangeTime == -1 || levelTime - lastLoadoutChangeTime >= 100 ) {
 				giveInventory();
 				lastLoadoutChangeTime = levelTime;
 			}

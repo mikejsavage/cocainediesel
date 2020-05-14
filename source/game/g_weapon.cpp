@@ -319,7 +319,7 @@ static void W_Fire_Shotgun( edict_t * self, const vec3_t start, const vec3_t ang
 		if( damage_dealt[ i ] == 0 )
 			continue;
 		edict_t * target = &game.edicts[ i ];
-		edict_t * ev = G_SpawnEvent( EV_DAMAGE, HEALTH_TO_INT( damage_dealt[ 0 ] ) << 1, target->s.origin );
+		edict_t * ev = G_SpawnEvent( EV_DAMAGE, HEALTH_TO_INT( damage_dealt[ i ] ) << 1, target->s.origin );
 		ev->r.svflags |= SVF_ONLYOWNER;
 		ev->s.ownerNum = ENTNUM( self );
 	}
@@ -517,7 +517,14 @@ static void W_Fire_Railgun( edict_t * self, const vec3_t start, const vec3_t ang
 		}
 
 		if( hit != self && hit->takedamage ) {
-			G_Damage( hit, self, self, dir, dir, tr.endpos, def->damage, def->knockback, 0, MOD_RAILGUN );
+			int dmgflags = DAMAGE_KNOCKBACK_SOFT;
+
+			if( IsHeadshot( tr.ent, FromQF3( tr.endpos ), timeDelta ) ) {
+				dmgflags |= DAMAGE_HEADSHOT;
+			}
+
+			G_Damage( hit, self, self, dir, dir, tr.endpos, def->damage, def->knockback, dmgflags, MOD_RAILGUN );
+
 
 			// spawn a impact event on each damaged ent
 			edict_t * event = G_SpawnEvent( EV_BOLT_EXPLOSION, DirToByte( tr.plane.normal ), tr.endpos );

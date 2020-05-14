@@ -864,6 +864,23 @@ static void WeaponTooltip( const WeaponDef * def ) {
 	}
 }
 
+
+static void SendLoadout() {
+	TempAllocator temp = cls.frame_arena.temp();
+	
+	DynamicString loadout( &temp, "weapselect" );
+
+	for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
+		if( selected_weapons[ i ] == Weapon_None )
+			break;
+		loadout.append( " {}", selected_weapons[ i ] );
+	}
+	loadout += "\n";
+
+	Cbuf_AddText( loadout.c_str() );
+}
+
+
 static void WeaponButton( int cash, WeaponType weapon, ImVec2 size ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
 	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0.1f, 0.1f, 0.1f, 1.0f ) );
@@ -913,8 +930,12 @@ static void WeaponButton( int cash, WeaponType weapon, ImVec2 size ) {
 				}
 			}
 		}
+
+		SendLoadout();
 	}
 }
+
+
 
 static void GameMenu() {
 	bool spectating = cg.predictedPlayerState.real_team == TEAM_SPECTATOR;
@@ -1096,6 +1117,8 @@ static void GameMenu() {
 						memcpy( &dragged, payload->Data, sizeof( dragged ) );
 
 						Swap2( &selected_weapons[ dragged ], &selected_weapons[ i ] );
+
+						SendLoadout();
 					}
 
 					ImGui::EndDragDropTarget();
@@ -1107,17 +1130,10 @@ static void GameMenu() {
 			}
 		}
 
-		if( ImGui::Hotkey( K_ESCAPE ) ) {
-			DynamicString loadout( &temp, "weapselect" );
+		int loadoutKeys[ 2 ] = { };
+		CG_GetBoundKeycodes( "gametypemenu", loadoutKeys );
 
-			for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
-				if( selected_weapons[ i ] == Weapon_None )
-					break;
-				loadout.append( " {}", selected_weapons[ i ] );
-			}
-			loadout += "\n";
-
-			Cbuf_AddText( loadout.c_str() );
+		if( ImGui::Hotkey( K_ESCAPE ) || ImGui::Hotkey( loadoutKeys[ 0 ] ) || ImGui::Hotkey( loadoutKeys[ 1 ] ) ) {
 			should_close = true;
 		}
 

@@ -11,11 +11,10 @@
 #define WEAPONUP_TIME_VERY_SLOW 1000
 
 const WeaponDef gs_weaponDefs[] = {
-	{ "", "", "" },
+	{ "", "" },
 
 	{
 		"Knife", "gb",
-		"Knife people in the face",
 		0,
 
 		6,                              // projectiles fired each shot
@@ -49,7 +48,6 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"9mm", "9mm",
-		"Pew pew pew",
 		100,
 
 		1,                              // projectiles fired each shot
@@ -83,7 +81,6 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"SMG", "mg",
-		"Shoots fast direct bullets touching enemies at any range",
 		100,
 
 		1,                              // projectiles fired each shot
@@ -117,7 +114,6 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Deagle", "deagle",
-		"Bang bang",
 		200,
 
 		1,                              // projectiles fired each shot
@@ -151,7 +147,6 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Shotgun", "rg",
-		"Basically a shotgun",
 		100,
 
 		25,                             // projectiles fired each shot
@@ -185,7 +180,6 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Assault Rifle", "ar",
-		"Dakka dakka",
 		200,
 
 		1,                              // projectiles fired each shot
@@ -219,7 +213,6 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Grenades", "gl",
-		"Deprecated gun, enjoy it while it lasts nerds",
 		100,
 
 		1,                              // projectiles fired each shot
@@ -253,7 +246,6 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Rockets", "rl",
-		"Shoots slow moving rockets that deal damage in an area and push bodies away",
 		200,
 
 		1,                              // projectiles fired each shot
@@ -287,7 +279,6 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Plasma", "pg",
-		"Shoots fast projectiles that deal damage in an area",
 		100,
 
 		1,                              // projectiles fired each shot
@@ -321,7 +312,6 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"BubbleGun", "bg",
-		"Shoots slow projectiles that deal damage in an area",
 		100,
 
 		3,                              // projectiles fired each shot
@@ -355,7 +345,6 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Laser", "lg",
-		"Shoots a continuous trail doing quick but low damage at a certain range",
 		200,
 
 		1,                              // projectiles fired each shot
@@ -389,7 +378,6 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Railgun", "eb",
-		"Shoots a direct laser hit doing pretty high damage",
 		200,
 
 		1,                              // projectiles fired each shot
@@ -411,7 +399,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//damages
 		25,                             // damage
 		0,                              // selfdamage ratio
-		100,                            // knockback
+		50,                             // knockback
 		0,                              // splash radius
 		0,                              // minimum damage
 		0,                              // minimum knockback
@@ -423,7 +411,6 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Sniper", "sniper",
-		"Boom boom",
 		200,
 
 		1,                              // projectiles fired each shot
@@ -457,7 +444,6 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Rifle", "rifle",
-		"Goochie gun",
 		200,
 
 		1,                              // projectiles fired each shot

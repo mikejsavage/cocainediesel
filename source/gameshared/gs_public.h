@@ -740,7 +740,6 @@ struct WeaponDef {
 	const char * name;
 	const char * short_name;
 
-	const char * description;
 	int cost;
 
 	int projectile_count;

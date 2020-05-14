@@ -454,38 +454,33 @@ void CG_LaserGunImpact( const vec3_t pos, const vec3_t laser_dir, RGBA8 color ) 
 /*
 * CG_ProjectileTrail
 */
-void CG_ProjectileTrail( centity_t *cent ) {
-	float radius = 8;
-	float alpha = 0.45f;
-
-	// didn't move
+void CG_ProjectileTrail( const centity_t * cent ) {
 	vec3_t vec;
 	VectorSubtract( cent->ent.origin, cent->trailOrigin, vec );
 	float len = VectorNormalize( vec );
-	if( len == 0 )
+	if( VectorLength( vec ) == 0 )
 		return;
 
-	const Material * material = cgs.media.shaderRocketFireTrailPuff;
+	ParticleEmitter emitter = { };
 
-	// density is found by quantity per second
-	int trailTime = int( 1000.0f / alpha );
-	if( trailTime < 1 ) {
-		trailTime = 1;
-	}
+	emitter.position = FromQF3( cent->ent.origin );
+	emitter.position_distribution.type = RandomDistribution3DType_Line;
+	emitter.position_distribution.line.end = FromQF3( cent->trailOrigin );
 
-	// we don't add more than one sprite each frame. If frame
-	// ratio is too slow, people will prefer having less sprites on screen
-	if( cent->localEffects[LOCALEFFECT_ROCKETFIRE_LAST_DROP] + trailTime < cl.serverTime ) {
-		cent->localEffects[LOCALEFFECT_ROCKETFIRE_LAST_DROP] = cl.serverTime;
+	emitter.start_speed = 5.0f;
+	emitter.end_speed = 5.0f;
 
-		Vec4 color = CG_TeamColorVec4( cent->current.team );
-		LocalEntity * le = CG_AllocSprite( LE_INVERSESCALE_ALPHA_FADE, cent->trailOrigin, radius, 4,
-							 Vec4( color.xyz(), alpha ),
-							 0, 0, 0, 0,
-							 material );
-		VectorSet( le->velocity, -vec[0] * 10 + random_float11( &cls.rng ) * 5, -vec[1] * 10 + random_float11( &cls.rng ) * 5, -vec[2] * 10 + random_float11( &cls.rng ) * 5 );
-		le->ent.rotation = random_float01( &cls.rng ) * 360;
-	}
+	emitter.start_color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 0.5f );
+	emitter.end_color = Lerp( emitter.start_color.xyz(), 0.2f, Vec3( 1.0f ) );
+
+	emitter.start_size = 8.0f;
+	emitter.end_size = 16.0f;
+
+	emitter.lifetime = 0.25f;
+
+	emitter.emission_rate = 128.0f;
+
+	EmitParticles( &cgs.ions, emitter );
 }
 
 /*

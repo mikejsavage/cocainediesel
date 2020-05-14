@@ -596,7 +596,7 @@ void CG_FreeLocalEntities( void );
 
 void CG_BulletExplosion( const vec3_t origin, const float *dir, const trace_t *trace );
 void CG_BubbleTrail( const vec3_t start, const vec3_t end, int dist );
-void CG_ProjectileTrail( centity_t *cent );
+void CG_ProjectileTrail( const centity_t * cent );
 void CG_NewBloodTrail( centity_t *cent );
 void CG_BloodDamageEffect( const vec3_t origin, const vec3_t dir, int damage, Vec4 team_color );
 void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, Vec4 team_color );

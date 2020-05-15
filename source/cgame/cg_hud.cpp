@@ -1074,6 +1074,7 @@ static const char * prefixes[] = {
 	"NERD",
 	"NETFLIX & ",
 	"NICELY ",
+	"NOVEL CORONA",
 	"NUT",
 	"OBAMA",
 	"OMEGA",

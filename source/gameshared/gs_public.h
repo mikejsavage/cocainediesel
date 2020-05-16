@@ -58,9 +58,6 @@ constexpr int playerbox_gib_viewheight = 8;
 #define PROJECTILE_PRESTEP 100
 #define HITSCAN_RANGE 9001
 
-#define MIN_FOV             100
-#define MAX_FOV             120
-
 //==================================================================
 
 enum MatchState {
@@ -472,18 +469,6 @@ enum {
 
 	TEAM_ALLY,
 	TEAM_ENEMY,
-};
-
-struct TeamColor {
-	const char * name;
-	RGB8 rgb;
-};
-
-constexpr TeamColor TEAM_COLORS[] = {
-	{ "Blue", RGB8( 0, 140, 220 ) },
-	{ "Red", RGB8( 200, 20, 40 ) },
-	{ "Green", RGB8( 50, 200, 90 ) },
-	{ "Yellow", RGB8( 210, 170, 0 ) },
 };
 
 // teams

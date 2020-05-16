@@ -233,39 +233,6 @@ static bool SelectableColor( const char * label, RGB8 rgb, bool selected ) {
 	return clicked;
 }
 
-static void CvarTeamColorCombo( const char * label, const char * cvar_name, int def ) {
-	TempAllocator temp = cls.frame_arena.temp();
-
-	SettingLabel( label );
-	ImGui::PushItemWidth( 100 );
-	ImGui::PushID( cvar_name );
-
-	cvar_t * cvar = Cvar_Get( cvar_name, temp( "{}", def ), CVAR_ARCHIVE );
-
-	int selected = cvar->integer;
-	if( selected >= int( ARRAY_COUNT( TEAM_COLORS ) ) )
-		selected = def;
-
-	if( ImGui::BeginCombo( "", TEAM_COLORS[ selected ].name ) ) {
-		ImGui::Columns( 2, cvar_name, false );
-		ImGui::SetColumnWidth( 0, 0 );
-
-		for( int i = 0; i < int( ARRAY_COUNT( TEAM_COLORS ) ); i++ ) {
-			if( SelectableColor( TEAM_COLORS[ i ].name, TEAM_COLORS[ i ].rgb, i == selected ) )
-				selected = i;
-			if( i == selected )
-				ImGui::SetItemDefaultFocus();
-		}
-
-		ImGui::EndCombo();
-		ImGui::Columns( 1 );
-	}
-	ImGui::PopID();
-	ImGui::PopItemWidth();
-
-	Cvar_Set( cvar_name, temp( "{}", selected ) );
-}
-
 static const char * SelectableMapList() {
 	Span< const char * > maps = GetMapList();
 	static size_t selected_map = 0;
@@ -289,9 +256,6 @@ static void SettingsGeneral() {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
-	CvarSliderInt( "FOV", "fov", MIN_FOV, MAX_FOV, temp( "{}", MIN_FOV ), CVAR_ARCHIVE );
-	CvarTeamColorCombo( "Ally color", "cg_allyColor", 0 );
-	CvarTeamColorCombo( "Enemy color", "cg_enemyColor", 1 );
 
 	CvarCheckbox( "Show hotkeys", "cg_showHotkeys", "1", CVAR_ARCHIVE );
 	CvarCheckbox( "Show FPS", "cg_showFPS", "0", CVAR_ARCHIVE );

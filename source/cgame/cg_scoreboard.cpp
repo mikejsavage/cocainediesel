@@ -329,7 +329,7 @@ void CG_DrawScoreboard() {
 				if( !ParsePlayer( &cursor, &player ) )
 					break;
 
-				RGB8 team_color = TEAM_COLORS[ i % ARRAY_COUNT( TEAM_COLORS ) ].rgb;
+				RGB8 team_color = TEAM_COLORS[ i % ARRAY_COUNT( TEAM_COLORS ) ];
 				bool alive = player.id >= 0;
 
 				float bg_scale = alive ? 0.75f : 0.5f;

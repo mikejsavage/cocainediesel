@@ -929,7 +929,7 @@ float CG_DemoCam_GetOrientation( vec3_t origin, vec3_t angles, vec3_t velocity )
 	VectorCopy( cam_velocity, velocity );
 
 	if( !currentcam || !currentcam->fov ) {
-		return bound( MIN_FOV, cg_fov->value, MAX_FOV );
+		return FOV;
 	}
 
 	return cam_fov;

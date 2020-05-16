@@ -215,7 +215,7 @@ float CG_GetSensitivityScale( float sens, float zoomSens ) {
 			return zoomSens / sens;
 		}
 
-		return CG_CalcViewFov() / cg_fov->value;
+		return CG_CalcViewFov() / FOV;
 	}
 
 	return 1.0f;

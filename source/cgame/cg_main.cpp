@@ -47,7 +47,6 @@ cvar_t *cg_handOffset;
 cvar_t *cg_gun_fov;
 cvar_t *cg_volume_announcer;
 cvar_t *cg_volume_hitsound;
-cvar_t *cg_fov;
 cvar_t *cg_voiceChats;
 cvar_t *cg_projectileAntilagOffset;
 cvar_t *cg_chatFilter;
@@ -59,10 +58,7 @@ cvar_t *cg_autoaction_screenshot;
 cvar_t *cg_autoaction_spectator;
 cvar_t *cg_showClamp;
 
-cvar_t *cg_allyColor;
 cvar_t *cg_allyModel;
-
-cvar_t *cg_enemyColor;
 cvar_t *cg_enemyModel;
 
 void CG_LocalPrint( const char *format, ... ) {
@@ -164,7 +160,6 @@ static void CG_RegisterVariables( void ) {
 	cg_showHotkeys = Cvar_Get( "cg_showHotkeys", "1", CVAR_ARCHIVE );
 
 	cg_hand =           Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
-	cg_fov =        Cvar_Get( "fov", "100", CVAR_ARCHIVE );
 
 	cg_addDecals =      Cvar_Get( "cg_decals", "1", CVAR_ARCHIVE );
 
@@ -196,11 +191,9 @@ static void CG_RegisterVariables( void ) {
 	// developer cvars
 	cg_showClamp = Cvar_Get( "cg_showClamp", "0", CVAR_DEVELOPER );
 
-	cg_allyColor = Cvar_Get( "cg_allyColor", "0", CVAR_ARCHIVE );
 	cg_allyModel = Cvar_Get( "cg_allyModel", "bigvic", CVAR_ARCHIVE );
 	cg_allyModel->modified = true;
 
-	cg_enemyColor = Cvar_Get( "cg_enemyColor", "1", CVAR_ARCHIVE );
 	cg_enemyModel = Cvar_Get( "cg_enemyModel", "padpork", CVAR_ARCHIVE );
 	cg_enemyModel->modified = true;
 

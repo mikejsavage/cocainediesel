@@ -33,6 +33,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define VSAY_TIMEOUT 2500
 
+constexpr float FOV = 107.9f; // chosen to upset everyone equally
+
+constexpr RGB8 TEAM_COLORS[] = {
+	RGB8( 0, 140, 220 ),
+	RGB8( 200, 20, 40 ),
+	RGB8( 50, 200, 90 ),
+	RGB8( 210, 170, 0 ),
+};
+
 enum {
 	LOCALEFFECT_EV_PLAYER_TELEPORT_IN,
 	LOCALEFFECT_EV_PLAYER_TELEPORT_OUT,
@@ -504,15 +513,11 @@ extern cvar_t *cg_autoaction_demo;
 extern cvar_t *cg_autoaction_screenshot;
 extern cvar_t *cg_autoaction_spectator;
 
-extern cvar_t *cg_fov;
 extern cvar_t *cg_voiceChats;
 extern cvar_t *cg_projectileAntilagOffset;
 extern cvar_t *cg_chatFilter;
 
-extern cvar_t *cg_allyColor;
 extern cvar_t *cg_allyModel;
-
-extern cvar_t *cg_enemyColor;
 extern cvar_t *cg_enemyModel;
 
 #define CG_Malloc( size ) _Mem_AllocExt( cg_mempool, size, 16, 1, 0, 0, __FILE__, __LINE__ );

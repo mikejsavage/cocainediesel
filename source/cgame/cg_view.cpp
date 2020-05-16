@@ -827,15 +827,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	cg.lerpfrac = Clamp01( cg.lerpfrac );
 
-	if( cg_fov->modified ) {
-		if( cg_fov->value < MIN_FOV ) {
-			Cvar_ForceSet( cg_fov->name, STR_TOSTR( MIN_FOV ) );
-		} else if( cg_fov->value > MAX_FOV ) {
-			Cvar_ForceSet( cg_fov->name, STR_TOSTR( MAX_FOV ) );
-		}
-		cg_fov->modified = false;
-	}
-
 	CG_FlashGameWindow(); // notify player of important game events
 
 	CG_UpdateChaseCam();

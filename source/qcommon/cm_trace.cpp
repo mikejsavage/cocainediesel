@@ -471,6 +471,8 @@ BOX TRACING
 #define DIST_EPSILON    ( 1.0f / 32.0f )
 
 static void CM_ClipBoxToBrush( traceWork_t *tw, const cbrush_t *brush ) {
+	ZoneScoped;
+
 	if( !brush->numsides ) {
 		return;
 	}
@@ -565,6 +567,8 @@ static void CM_ClipBoxToBrush( traceWork_t *tw, const cbrush_t *brush ) {
 }
 
 static void CM_TestBoxInBrush( traceWork_t *tw, const cbrush_t *brush ) {
+	ZoneScoped;
+
 	if( !brush->numsides ) {
 		return;
 	}
@@ -593,6 +597,8 @@ static void CM_TestBoxInBrush( traceWork_t *tw, const cbrush_t *brush ) {
 }
 
 static void CM_CollideBox( traceWork_t *tw, const int *markbrushes, int nummarkbrushes, const int *markfaces, int nummarkfaces, void ( *func )( traceWork_t *, const cbrush_t *b ) ) {
+	ZoneScoped;
+
 	const cbrush_t *brushes = tw->brushes;
 	const cface_t *faces = tw->faces;
 	int checkcount = tw->checkcount;
@@ -662,6 +668,8 @@ static inline void CM_TestBox( traceWork_t *tw, const int *markbrushes, int numm
 }
 
 static void CM_RecursiveHullCheck( traceWork_t *tw, int num, float p1f, float p2f, const vec3_t p1, const vec3_t p2 ) {
+	ZoneScoped;
+
 	const CollisionModel *cms = tw->cms;
 	const cnode_t *node;
 	const cplane_t *plane;
@@ -750,6 +758,8 @@ loc0:
 static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 	const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs,
 	cmodel_t *cmodel, const vec3_t origin, int brushmask ) {
+
+	ZoneScoped;
 
 	bool world = cmodel->hash == cms->world_hash;
 
@@ -875,6 +885,8 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 */
 void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, trace_t * tr, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs,
 							 cmodel_t *cmodel, int brushmask, const vec3_t origin, const vec3_t angles ) {
+	ZoneScoped;
+
 	vec3_t start_l, end_l;
 	vec3_t a, temp;
 	mat3_t axis;

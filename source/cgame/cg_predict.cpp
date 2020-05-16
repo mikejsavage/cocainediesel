@@ -283,6 +283,8 @@ static void CG_ClipMoveToEntities( const vec3_t start, const vec3_t mins, const 
 * CG_Trace
 */
 void CG_Trace( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask ) {
+	ZoneScoped;
+
 	// check against world
 	CM_TransformedBoxTrace( CM_Client, cl.cms, t, start, end, mins, maxs, NULL, contentmask, NULL, NULL );
 	t->ent = t->fraction < 1.0 ? 0 : -1; // world entity is 0

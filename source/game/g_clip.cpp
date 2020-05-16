@@ -733,6 +733,8 @@ typedef struct {
 * GClip_ClipMoveToEntities
 */
 static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
+	ZoneScoped;
+
 	int i, num;
 	c4clipedict_t *touch;
 	int touchlist[MAX_EDICTS];
@@ -841,6 +843,8 @@ static void GClip_TraceBounds( const vec3_t start, const vec3_t mins, const vec3
 */
 static void GClip_Trace( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3_t maxs,
 						 const vec3_t end, edict_t *passedict, int contentmask, int timeDelta ) {
+	ZoneScoped;
+
 	moveclip_t clip;
 
 	if( !tr ) {

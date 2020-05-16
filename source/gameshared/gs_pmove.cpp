@@ -200,6 +200,8 @@ static void PM_AddTouchEnt( int entNum ) {
 
 
 static int PM_SlideMove( void ) {
+	ZoneScoped;
+
 	vec3_t end, dir;
 	vec3_t old_velocity, last_valid_origin;
 	float value;
@@ -581,6 +583,8 @@ static void PM_WaterMove( void ) {
 *
 */
 static void PM_Move( void ) {
+	ZoneScoped;
+
 	int i;
 	vec3_t wishvel;
 	float fmove, smove;
@@ -1373,6 +1377,8 @@ static void PM_EndMove( void ) {
 * Can be called by either the server or the client
 */
 void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
+	ZoneScoped;
+
 	if( !pmove->playerState ) {
 		return;
 	}

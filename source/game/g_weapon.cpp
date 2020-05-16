@@ -517,8 +517,7 @@ static void W_Fire_Railgun( edict_t * self, const vec3_t start, const vec3_t ang
 		}
 
 		if( hit != self && hit->takedamage ) {
-			int dmgflags = DAMAGE_KNOCKBACK_SOFT;
-
+			int dmgflags = 0;
 			if( IsHeadshot( tr.ent, FromQF3( tr.endpos ), timeDelta ) ) {
 				dmgflags |= DAMAGE_HEADSHOT;
 			}

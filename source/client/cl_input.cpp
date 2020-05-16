@@ -84,9 +84,9 @@ static void CL_RefreshUcmd( usercmd_t *ucmd, int msec, bool ready ) {
 		vec3_t movement = { 0.0f, 0.0f, 0.0f };
 		CL_GameModule_AddMovement( movement );
 
-		ucmd->sidemove = bound( -127, (int)(movement[0] * 127.0f), 127 );
-		ucmd->forwardmove = bound( -127, (int)(movement[1] * 127.0f), 127 );
-		ucmd->upmove = bound( -127, (int)(movement[2] * 127.0f), 127 );
+		ucmd->sidemove = Clamp( -127, (int)(movement[0] * 127.0f), 127 );
+		ucmd->forwardmove = Clamp( -127, (int)(movement[1] * 127.0f), 127 );
+		ucmd->upmove = Clamp( -127, (int)(movement[2] * 127.0f), 127 );
 
 		ucmd->buttons |= CL_GameModule_GetButtonBits();
 

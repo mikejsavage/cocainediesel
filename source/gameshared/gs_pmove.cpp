@@ -1243,7 +1243,7 @@ static void PM_AdjustBBox( void ) {
 			}
 		}
 
-		pm->playerState->pmove.crouch_time = bound( 0, pm->playerState->pmove.crouch_time + pm->cmd.msec, CROUCHTIME );
+		pm->playerState->pmove.crouch_time = Clamp( 0, pm->playerState->pmove.crouch_time + pm->cmd.msec, CROUCHTIME );
 
 		crouchFrac = (float)pm->playerState->pmove.crouch_time / (float)CROUCHTIME;
 		VectorLerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins, pm->mins );

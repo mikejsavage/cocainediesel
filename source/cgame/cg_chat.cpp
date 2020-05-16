@@ -154,7 +154,7 @@ void CG_DrawChat() {
 		float scroll = ImGui::GetScrollY();
 		float page = ImGui::GetWindowSize().y - ImGui::GetTextLineHeight();
 		scroll += page * ( ImGui::IsKeyPressed( K_PGUP ) ? -1 : 1 );
-		scroll = bound( 0.0f, scroll, ImGui::GetScrollMaxY() );
+		scroll = Clamp( 0.0f, scroll, ImGui::GetScrollMaxY() );
 		ImGui::SetScrollY( scroll );
 	}
 

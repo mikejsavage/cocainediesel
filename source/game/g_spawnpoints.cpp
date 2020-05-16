@@ -281,7 +281,7 @@ void G_SpawnQueue_Init( void ) {
 	for( team = TEAM_SPECTATOR; team < GS_MAX_TEAMS; team++ )
 		memset( &g_spawnQueues[team].list, -1, sizeof( g_spawnQueues[team].list ) );
 
-	spawnsystem = bound( SPAWNSYSTEM_INSTANT, g_spawnsystem->integer, SPAWNSYSTEM_HOLD );
+	spawnsystem = Clamp( int( SPAWNSYSTEM_INSTANT ), g_spawnsystem->integer, int( SPAWNSYSTEM_HOLD ) );
 	if( spawnsystem != g_spawnsystem->integer ) {
 		Cvar_ForceSet( "g_spawnsystem", va( "%i", spawnsystem ) );
 	}

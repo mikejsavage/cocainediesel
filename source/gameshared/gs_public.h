@@ -323,11 +323,11 @@ struct SyncPlayerState {
 
 // usercmd_t is sent to the server each client frame
 typedef struct usercmd_s {
-	uint8_t msec;
-	uint32_t buttons;
-	int64_t serverTimeStamp;
-	int16_t angles[3];
-	int8_t forwardmove, sidemove, upmove;
+	u8 msec;
+	u32 buttons;
+	s64 serverTimeStamp;
+	s16 angles[3];
+	s8 forwardmove, sidemove, upmove;
 	WeaponType weaponSwitch;
 } usercmd_t;
 

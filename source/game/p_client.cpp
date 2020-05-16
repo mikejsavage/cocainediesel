@@ -714,7 +714,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	if( !s ) {
 		cl->hand = 2;
 	} else {
-		cl->hand = bound( atoi( s ), 0, 2 );
+		cl->hand = Clamp( atoi( s ), 0, 2 );
 	}
 
 	// save off the userinfo in case we want to check something later

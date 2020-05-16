@@ -779,8 +779,7 @@ void CG_AddLocalEntities( void ) {
 		}
 
 		if( le->frames > 1 ) {
-			scale = 1.0f - frac / ( le->frames - 1 );
-			scale = bound( 0.0f, scale, 1.0f );
+			scale = Clamp01( 1.0f - frac / ( le->frames - 1 ) );
 			fade = scale * 255.0f;
 
 			// quick fade in, if time enough

@@ -811,18 +811,14 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 	// check for position test special case
 	//
 	if( start == end ) {
-		int leafs[1024];
-		int i, numleafs;
-		Vec3 c1, c2;
-		cleaf_t *leaf;
-
 		if( world ) {
-			c1 = start + mins - Vec3( 1.0f );
-			c2 = start + maxs + Vec3( 1.0f );
+			Vec3 c1 = start + mins - Vec3( 1.0f );
+			Vec3 c2 = start + maxs + Vec3( 1.0f );
 
-			numleafs = CM_BoxLeafnums( cms, c1, c2, leafs, 1024, NULL );
-			for( i = 0; i < numleafs; i++ ) {
-				leaf = &cms->map_leafs[leafs[i]];
+			int leafs[ 1024 ];
+			int numleafs = CM_BoxLeafnums( cms, c1, c2, leafs, 1024, NULL );
+			for( int i = 0; i < numleafs; i++ ) {
+				cleaf_t * leaf = &cms->map_leafs[leafs[i]];
 
 				if( leaf->contents & brushmask ) {
 					CM_TestBox( tw, leaf->markbrushes, leaf->nummarkbrushes, leaf->markfaces, leaf->nummarkfaces );

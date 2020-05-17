@@ -116,13 +116,22 @@ Span< const char > MakeSpan( const char * str );
 void format( FormatBuffer * fb, Span< const char > arr, const FormatOpts & opts );
 
 /*
- * breaks
+ * debug stuff
  */
 
 extern bool break1;
 extern bool break2;
 extern bool break3;
 extern bool break4;
+
+void EnableFPE();
+void DisableFPE();
+
+#if PUBLIC_BUILD
+#define DisableFPEScoped
+#else
+#define DisableFPEScoped DisableFPE(); defer { EnableFPE(); }
+#endif
 
 /*
  * colors

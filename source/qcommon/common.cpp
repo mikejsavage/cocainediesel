@@ -528,6 +528,10 @@ void Qcommon_ShutdownCommands( void ) {
 void Qcommon_Init( int argc, char **argv ) {
 	ZoneScoped;
 
+#if !PUBLIC_BUILD
+	EnableFPE();
+#endif
+
 	Sys_Init();
 
 	if( setjmp( abortframe ) ) {

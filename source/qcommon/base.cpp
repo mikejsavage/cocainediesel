@@ -1,5 +1,7 @@
 #include "qcommon/base.h"
 
+#include <fenv.h>
+
 bool break1 = false;
 bool break2 = false;
 bool break3 = false;
@@ -22,4 +24,12 @@ char * CopyString( Allocator * a, const char * str ) {
 
 Span< const char > MakeSpan( const char * str ) {
 	return Span< const char >( str, strlen( str ) );
+}
+
+void EnableFPE() {
+	feenableexcept( FE_INVALID );
+}
+
+void DisableFPE() {
+	fedisableexcept( FE_INVALID );
 }

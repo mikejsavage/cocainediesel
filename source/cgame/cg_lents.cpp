@@ -664,33 +664,33 @@ void CG_Explosion_Puff_2( Vec3 pos, Vec3 vel, int radius ) {
 }
 
 void CG_DustCircle( Vec3 pos, Vec3 dir, float radius, int count ) {
-	Vec3 dir_per1;
-	Vec3 dir_per2;
-	Vec3 dir_temp = { 0.0f, 0.0f, 0.0f };
-	int i;
-	float angle;
-
-	if( CG_PointContents( pos ) & MASK_WATER ) {
-		return; // no smoke under water :)
-	}
+	// Vec3 dir_per1;
+	// Vec3 dir_per2;
+	// Vec3 dir_temp = { 0.0f, 0.0f, 0.0f };
+	// int i;
+	// float angle;
+	//
+	// if( CG_PointContents( pos ) & MASK_WATER ) {
+	// 	return; // no smoke under water :)
+	// }
 	// PerpendicularVector( &dir_per2, dir );
-	dir_per1 = Cross( dir, dir_per2 );
-
-	dir_per1 *= Length( dir_per1 );
-	dir_per2 *= Length( dir_per2 );
-	Normalize( dir_per1 );
-	Normalize( dir_per2 );
-
-	for( i = 0; i < count; i++ ) {
-		angle = (float)( PI * 2.0f / count * i );
-		dir_temp = Vec3( 0.0f, 0.0f, 0.0f );
-		dir_temp = dir_temp + dir_per1 * ( sinf( angle ) );
-		dir_temp = dir_temp + dir_per2 * ( cosf( angle ) );
-
-		//dir_temp = dir_temp * ( dir_temp) = Normalize( dir_temp) );
-		dir_temp = dir_temp * ( random_float11( &cls.rng ) * 10 + radius );
-		CG_Explosion_Puff_2( pos, dir_temp, 10 );
-	}
+	// dir_per1 = Cross( dir, dir_per2 );
+	//
+	// dir_per1 *= Length( dir_per1 );
+	// dir_per2 *= Length( dir_per2 );
+	// Normalize( dir_per1 );
+	// Normalize( dir_per2 );
+	//
+	// for( i = 0; i < count; i++ ) {
+	// 	angle = (float)( PI * 2.0f / count * i );
+	// 	dir_temp = Vec3( 0.0f, 0.0f, 0.0f );
+	// 	dir_temp = dir_temp + dir_per1 * ( sinf( angle ) );
+	// 	dir_temp = dir_temp + dir_per2 * ( cosf( angle ) );
+	//
+	// 	//dir_temp = dir_temp * ( dir_temp) = Normalize( dir_temp) );
+	// 	dir_temp = dir_temp * ( random_float11( &cls.rng ) * 10 + radius );
+	// 	CG_Explosion_Puff_2( pos, dir_temp, 10 );
+	// }
 }
 
 

@@ -20,8 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/base.h"
-#include "qcommon/assets.h"
 #include "qcommon/string.h"
+#include "client/assets.h"
 #include "cgame/cg_local.h"
 
 static int layout_cursor_x = 400;
@@ -125,20 +125,12 @@ static int CG_IsTeamBased( const void *parameter ) {
 	return GS_TeamBasedGametype( &client_gs ) ? 1 : 0;
 }
 
-static float _getspeed( void ) {
-	vec3_t hvel;
-
-	VectorSet( hvel, cg.predictedPlayerState.pmove.velocity[0], cg.predictedPlayerState.pmove.velocity[1], 0 );
-
-	return VectorLength( hvel );
-}
-
 static int CG_GetSpeed( const void *parameter ) {
-	return (int)_getspeed();
+	return Length( cg.predictedPlayerState.pmove.velocity.xy() );
 }
 
 static int CG_GetSpeedVertical( const void *parameter ) {
-	return cg.predictedPlayerState.pmove.velocity[2];
+	return cg.predictedPlayerState.pmove.velocity.z;
 }
 
 static int CG_GetFPS( const void *parameter ) {
@@ -307,13 +299,16 @@ static const char * obituaries[] = {
 	"ABOLISHED",
 	"ABUSED",
 	"AIRED OUT",
+	"AMPUTATED",
 	"ANALYZED",
 	"ANNIHILATED",
 	"ATOMIZED",
 	"AXED",
 	"BAKED",
+	"BALANCED",
 	"BALLED",
 	"BANGED",
+	"BANISHED",
 	"BANKED",
 	"BANNED",
 	"BARFED ON",
@@ -321,49 +316,64 @@ static const char * obituaries[] = {
 	"BATTERED",
 	"BBQED",
 	"BEAMED",
+	"BEAT",
 	"BEAUTIFIED",
 	"BELITTLED",
-	"BENT",
 	"BENT OVER",
+	"BENT",
 	"BIGGED ON",
 	"BINNED",
 	"BLASTED",
 	"BLAZED",
+	"BLED",
 	"BLEMISHED",
+	"BLENDED",
 	"BLESSED",
+	"BLEW UP",
+	"BLINDSIDED",
 	"BLOCKED",
 	"BODYBAGGED",
+	"BOILED",
 	"BOMBED",
 	"BONKED",
 	"BOUGHT",
-	"BROKE",
 	"BROKE UP WITH",
+	"BROKE",
 	"BROWN BAGGED",
 	"BRUTALIZED",
-	"BURIED",
 	"BUMMED",
 	"BUMPED",
+	"BUMPED OFF",
+	"BURIED",
 	"BURNED",
 	"BUTTERED",
-	"CALCULATED",
 	"CAKED",
+	"CALCULATED",
 	"CANCELED",
 	"CANNED",
 	"CAPPED",
 	"CARAMELIZED",
 	"CARBONATED",
+	"CARVED",
 	"CASHED OUT",
+	"CHALLENGED",
 	"CHARRED",
 	"CHEATED ON",
 	"CHECKED",
 	"CHECKMATED",
 	"CHEESED",
+	"CHEWED",
+	"CHEWED ON",
+	"CHILLED OFF",
 	"CLAPPED",
+	"CLEANED",
+	"CLEANSED",
 	"CLUBBED",
 	"CODEXED",
 	"COMBED",
 	"COMBO-ED",
 	"COMPACTED",
+	"COMPLETED",
 	"CONSUMED",
 	"COOKED",
 	"CORRECTED",
@@ -373,7 +383,9 @@ static const char * obituaries[] = {
 	"CRASHED",
 	"CREAMED",
 	"CRIPPLED",
+	"CRITICIZED",
 	"CROPPED",
+	"CRUCIFIED",
 	"CRUSHED",
 	"CU IN 2 WEEKS'D",
 	"CULLED",
@@ -382,6 +394,7 @@ static const char * obituaries[] = {
 	"CURED",
 	"CURTAILED",
 	"CUT",
+	"CUT OUT",
 	"DARTED",
 	"DEBUGGED",
 	"DECAPITATED",
@@ -405,30 +418,38 @@ static const char * obituaries[] = {
 	"DEPOSITED",
 	"DESINTEGRATED",
 	"DESTROYED",
+	"DETACHED",
 	"DEVASTATED",
+	"DEVOURED",
 	"DID",
 	"DIGITALIZED",
 	"DIMINISHED",
 	"DIPPED",
 	"DISASSEMBLED",
+	"DISCARDED",
 	"DISCIPLINED",
+	"DISCREDITED",
 	"DISFIGURED",
 	"DISJOINTED",
+	"DISLIKED",
+	"DISLODGED",
 	"DISMANTLED",
 	"DISMISSED",
-	"DISLIKED",
 	"DISPATCHED",
 	"DISPERSED",
 	"DISPLACED",
 	"DISSOLVED",
 	"DISTORTED",
+	"DISTURBED",
 	"DIVORCED",
 	"DONATED",
+	"DONATED TO",
 	"DOWNGRADED",
 	"DOWNVOTED",
 	"DRENCHED",
-	"DRILLED",
+	"DRESSED",
 	"DRILLED INTO",
+	"DRILLED",
 	"DROVE",
 	"DUMPED ON",
 	"DUMPED",
@@ -438,37 +459,47 @@ static const char * obituaries[] = {
 	"EGGED",
 	"EJECTED",
 	"ELABORATED ON",
+	"ELEVATED",
 	"ELIMINATED",
 	"EMANCIPATED",
 	"EMBARRASSED",
 	"EMBRACED",
-	"ENDED",
 	"ENCODED",
+	"ENDED",
 	"ERADICATED",
 	"ERASED",
+	"EVENED OUT",
 	"EXCHANGED",
 	"EXECUTED",
 	"EXERCISED",
+	"EXPELLED",
+	"EXPORTED",
 	"EXTERMINATED",
 	"EXTINCTED",
 	"EXTRAPOLATED",
+	"EXTRACTED",
 	"FACED",
 	"FADED",
-	"FARTED",
+	"FARTED ON",
 	"FILED",
 	"FILLED",
+	"FINALIZED",
 	"FINANCED",
+	"FINISHED",
 	"FIRED",
 	"FISTED",
 	"FIXED",
 	"FLAT EARTHED",
+	"FLATTENED",
 	"FLEXED ON",
 	"FLUSHED",
 	"FOLDED",
 	"FOLLOWED",
+	"FORCED",
 	"FORCEPUSHED",
 	"FORKED",
 	"FORMATTED",
+	"FOUGHT",
 	"FRAGGED",
 	"FREED",
 	"FRIED",
@@ -476,26 +507,34 @@ static const char * obituaries[] = {
 	"FUCKED",
 	"GAGGED",
 	"GARFUNKELED",
+	"GARGLED",
+	"GARGLED WITH",
 	"GERRYMANDERED",
 	"GHOSTED",
+	"GIBBED",
 	"GLAZED",
+	"GOT RID OF",
 	"GRATED",
 	"GRAVEDUG",
 	"GRILLED",
 	"GUTTED",
 	"HACKED",
+	"HARASSED",
 	"HARMED",
-	"HURLED",
-	"HURT",
+	"HARVESTED",
+	"HATED ON",
 	"HOLED",
 	"HOSED",
 	"HUMILIATED",
 	"HUMPED",
+	"HURLED",
+	"HURT",
 	"ICED",
 	"IGNITED",
 	"IGNORED",
 	"IMPAIRED",
 	"IMPREGNATED",
+	"INGESTED",
 	"INJURED",
 	"INSIDE JOBBED",
 	"INSTRUCTED",
@@ -504,17 +543,22 @@ static const char * obituaries[] = {
 	"JAMMED",
 	"JERKED",
 	"KICKED",
+	"KILLED",
 	"KINDLED",
 	"KISSED",
 	"KNOCKED",
+	"KNOCKED THE STUFFING OUT OF",
 	"LAGGED",
 	"LAID",
+	"LAMBASTED",
+	"LAMINATED",
 	"LANDED ON",
 	"LANDFILLED",
 	"LARDED",
 	"LECTURED",
 	"LEFT CLICKED ON",
 	"LET GO",
+	"LEVELLED",
 	"LIKED",
 	"LIQUIDATED",
 	"LIT",
@@ -528,12 +572,15 @@ static const char * obituaries[] = {
 	"MASSAGED",
 	"MATED WITH",
 	"MAULED",
+	"MELTED",
 	"MESSAGED",
 	"MIXED",
 	"MOBBED",
 	"MOONWALKED ON",
+	"MOPPED UP",
 	"MUNCHED",
 	"MURDERED",
+	"MURKED",
 	"MUTILATED",
 	"NAILED",
 	"NEUTRALIZED",
@@ -544,6 +591,7 @@ static const char * obituaries[] = {
 	"NULLIFIED",
 	"NURTURED",
 	"OBLITERATED",
+	"OFFED",
 	"ORNAMENTED",
 	"OUTRAGED",
 	"OWNED",
@@ -570,17 +618,19 @@ static const char * obituaries[] = {
 	"POUNDED",
 	"PULVERIZED",
 	"PUMPED",
+	"PUMMELLED",
 	"PURGED",
+	"PUSHED",
 	"PUT DOWN",
 	"PYONGYANGED",
 	"QUASHED",
+	"QUENCHED",
 	"RAISED",
 	"RAMMED",
 	"RAZED",
 	"REAMED",
 	"REBASED",
 	"REBUKED",
-	"REPRIMANDED",
 	"RECYCLED",
 	"REDESIGNED",
 	"REDUCED",
@@ -590,15 +640,20 @@ static const char * obituaries[] = {
 	"REGULATED",
 	"REHABILITATED",
 	"REJECTED",
+	"REKT",
 	"RELEASED",
 	"RELEGATED",
 	"REMOVED",
 	"RENDERED",
+	"REPRIMANDED",
 	"RESPECTED",
 	"RESTRICTED",
 	"RETURNED",
+	"REVERSED",
 	"REVERSED INTO",
 	"REVISED",
+	"RINSED",
+	"ROASTED",
 	"RODE",
 	"ROLLED",
 	"ROOTED",
@@ -609,10 +664,13 @@ static const char * obituaries[] = {
 	"SAMPLED",
 	"SANDED",
 	"SAUCED",
+	"SCARRED",
+	"SCATTERED",
 	"SCISSORED",
 	"SCORCHED",
 	"SCREWED",
 	"SCUTTLED",
+	"SEPARATED",
 	"SERVED",
 	"SEVERED",
 	"SHAFTED",
@@ -622,15 +680,19 @@ static const char * obituaries[] = {
 	"SHARPENED",
 	"SHATTERED",
 	"SHAVED",
+	"SHED",
 	"SHELVED",
+	"SHIPPED",
 	"SHITTED ON",
 	"SHOT",
 	"SHUFFLED",
 	"SIMBA'D",
 	"SKEWERED",
 	"SKIMMED",
+	"SLABBED",
 	"SLAMMED",
 	"SLAPPED",
+	"SLATED",
 	"SLAUGHTERED",
 	"SLICED",
 	"SMACKED",
@@ -640,34 +702,47 @@ static const char * obituaries[] = {
 	"SNAKED",
 	"SNAPPED",
 	"SNITCHED ON",
+	"SNOOPED"
 	"SNUBBED",
 	"SOCKED",
 	"SOLD",
 	"SPANKED",
+	"SPAYED",
 	"SPLASHED",
+	"SPLATTERED",
 	"SPLIT",
 	"SPOILED",
 	"SPRAYED",
 	"SPREAD",
+	"SPRINKLED",
 	"SQUASHED",
 	"SQUEEZED",
 	"STABBED",
 	"STAMPED OUT",
+	"STEAMED",
 	"STEAMROLLED",
 	"STEPPED",
+	"STEPPED ON",
+	"STERILIZED",
 	"STIFFED",
+	"STIRRED",
+	"STIR-FRIED",
 	"STOMPED",
 	"STONED",
 	"STREAMED",
+	"STRUCK",
+	"STRUCK OUT",
+	"STUCK IT TO",
 	"STUFFED",
 	"STYLED ON",
 	"SUBDUCTED",
 	"SUBSCRIBED TO",
 	"SUNK",
 	"SUSPENDED",
+	"SWALLOWED",
 	"SWAMPED",
-	"SWIPED",
 	"SWIPED LEFT ON",
+	"SWIPED",
 	"SWIRLED",
 	"SYNTHETIZED",
 	"TAPPED",
@@ -675,12 +750,17 @@ static const char * obituaries[] = {
 	"TATTOOED",
 	"TERMINATED",
 	"TOILET STORED",
+	"TOOK DOWN",
+	"TOOK OUT",
 	"TOPPLED",
+	"TORE DOWN",
 	"TORPEDOED",
 	"TOSSED",
 	"TRAINED",
+	"TRAPPED",
 	"TRASHED",
 	"TRIMMED",
+	"TRIPPED",
 	"TROLLED",
 	"TRUMPED",
 	"TRUNCATED",
@@ -688,7 +768,9 @@ static const char * obituaries[] = {
 	"TWIRLED",
 	"TWISTED",
 	"UNFOLLOWED",
+	"UNINSTALLED",
 	"UNLOCKED",
+	"UNSUBSCRIBED FROM",
 	"UNTANGLED",
 	"UPSET",
 	"VANDALIZED",
@@ -702,22 +784,26 @@ static const char * obituaries[] = {
 	"WEEDED OUT",
 	"WHACKED",
 	"WHIPPED",
+	"WHISKED",
 	"WIPED OUT",
 	"WITHDREW",
 	"WITNESSED",
+	"WORE DOWN",
+	"WORE OUT",
 	"WRECKED",
 };
 
 static const char * prefixes[] = {
 	"#",
 	"420",
-	"69",
 	"666",
+	"69",
 	"AIR",
 	"ALPHA",
 	"AMERICA",
 	"ANTI",
 	"APE",
+	"AREA51",
 	"ASS",
 	"ASTRO",
 	"BACK",
@@ -741,7 +827,9 @@ static const char * prefixes[] = {
 	"BOLLYWOOD",
 	"BOMB",
 	"BONUS",
+	"BOOB",
 	"BOOM",
+	"BOOMER",
 	"BOOST",
 	"BOOT",
 	"BOOTY",
@@ -764,12 +852,14 @@ static const char * prefixes[] = {
 	"CASH",
 	"CASINO",
 	"CASSEROLE",
-	"CHAOS",
+	"CHAIN",
 	"CHAMPION",
+	"CHAOS",
+	"CHASSEUR DE ",
 	"CHECK",
 	"CHEDDAR",
-	"CHEESE",
 	"CHEERFULLY ",
+	"CHEESE",
 	"CHICKEN",
 	"CHIN",
 	"CHINA",
@@ -784,22 +874,24 @@ static const char * prefixes[] = {
 	"COCK",
 	"CODE",
 	"CODEX",
+	"COLOSSAL",
 	"COMBO",
 	"COMMERCIAL",
-	"COLOSSAL",
+	"CON",
 	"CORN",
 	"CORONA",
 	"COUNTER",
 	"COVID-",
 	"CRAB",
 	"CREAM",
-	"CHASSEUR DE ",
 	"CRINGE",
 	"CRUELLY ",
 	"CRUNK",
 	"CUM",
 	"CUMIN",
 	"CUNT",
+	"DAMP",
+	"DANK",
 	"DARK",
 	"DEEP",
 	"DEEPLY ",
@@ -814,10 +906,12 @@ static const char * prefixes[] = {
 	"DONKEY",
 	"DOUBLE",
 	"DOWNSTAIRS",
+	"DRILL",
 	"DRONE",
 	"DUMB",
 	"DUMP",
 	"DUNK",
+	"DWARF",
 	"DYNAMITE",
 	"EARLY",
 	"EASILY ",
@@ -826,9 +920,10 @@ static const char * prefixes[] = {
 	"ELON",
 	"ENERGY",
 	"ETHERNET",
-	"EYE",
 	"EXPERTLY",
+	"EYE",
 	"FACE",
+	"FAKE NEWS ",
 	"FAME",
 	"FAMILY",
 	"FART",
@@ -838,9 +933,11 @@ static const char * prefixes[] = {
 	"FETUS",
 	"FIELD",
 	"FINGER",
+	"FIRE",
 	"FISH",
 	"FLAT",
 	"FLEX",
+	"FOOL",
 	"FOOT",
 	"FORCE",
 	"FREEMIUM",
@@ -866,21 +963,26 @@ static const char * prefixes[] = {
 	"GNU/",
 	"GOB",
 	"GOD",
+	"GOT ",
 	"GOOD",
 	"GOOF",
+	"GORILLA",
 	"GRAVE",
 	"GRIME",
+	"GUT",
 	"HACK",
 	"HAM",
+	"HAMMER",
 	"HAND",
 	"HAPPY",
 	"HARAMBE",
 	"HARD",
 	"HEAD",
+	"HELL",
 	"HERO",
 	"HOLE",
-	"HOLY",
 	"HOLLYWOOD",
+	"HOLY",
 	"HOOD",
 	"HOOLIGAN",
 	"HORROR",
@@ -890,6 +992,7 @@ static const char * prefixes[] = {
 	"INDUSTRIAL",
 	"INSECT",
 	"INSIDE",
+	"INSTA",
 	"JAIL",
 	"JAM",
 	"JIMMY",
@@ -913,8 +1016,8 @@ static const char * prefixes[] = {
 	"LAD",
 	"LASER",
 	"LATE",
-	"LEMON",
 	"LEMMING",
+	"LEMON",
 	"LIBROCKET",
 	"LICK",
 	"LITERALLY ",
@@ -923,41 +1026,52 @@ static const char * prefixes[] = {
 	"LUBE",
 	"MACHINE",
 	"MADLY ",
+	"MALLET",
 	"MAMMOTH",
 	"MASTER",
-	"Mc",
+	"MAY HAVE ",
 	"MEAT",
 	"MEGA",
+	"MEMBER",
 	"MERCY",
 	"MERRILY ",
 	"META",
 	"METAL",
+	"MIDGET",
 	"MILDLY ",
 	"MILLENNIUM",
+	"MIND",
 	"MINT",
 	"MISSILE",
 	"MOBILE",
+	"MOIST",
+	"MOLD",
 	"MOLLY",
 	"MONEY",
 	"MONKEY",
 	"MONSTER",
 	"MONUMENTAL",
-	"MOST FROLICKINGLY ",
 	"MOOD",
+	"MOST FROLICKINGLY ",
+	"MOST PROBABLY ",
 	"MOUTH",
 	"MOVIE",
 	"MVP",
 	"MWAGA",
+	"Mc",
 	"NASTY",
 	"NEAT",
 	"NEATLY ",
+	"NECKBEARD",
 	"NERD",
 	"NETFLIX & ",
 	"NICELY ",
+	"NOVEL CORONA",
 	"NUT",
 	"OBAMA",
 	"OMEGA",
 	"OPEN-SOURCE ",
+	"ORGASM",
 	"OUT",
 	"PANTY",
 	"PAPRIKASH",
@@ -972,26 +1086,34 @@ static const char * prefixes[] = {
 	"PIPE",
 	"PLANTER",
 	"PLATINUM",
+	"PONY",
 	"POOP",
+	"POOR",
 	"POWER",
 	"PRANK",
+	"PREMIUM",
+	"PRICK",
+	"PRIME",
 	"PRISON",
+	"PROBABLY",
 	"PROUD",
+	"PUFF",
 	"PUMPKIN",
 	"PUSSY",
 	"QFUSION",
+	"QUALITY",
 	"QUICK",
 	"RAGE",
+	"RAKE",
 	"RAM",
 	"RAMBO",
 	"RAPIDLY ",
 	"RAVE",
 	"RAZOR",
 	"RESPECT",
-	"Rn",
 	"ROBOT",
-	"ROCK",
 	"ROCK 'n' ROLL ",
+	"ROCK",
 	"ROFL",
 	"ROLEX",
 	"ROOSTER",
@@ -1000,36 +1122,44 @@ static const char * prefixes[] = {
 	"ROYAL",
 	"RUSSIA",
 	"RUTHLESSLY ",
+	"Rn",
 	"SACK",
-	"SALMON",
 	"SAD",
+	"SAFE SPACE",
+	"SALMON",
 	"SALT",
-	"SASSY",
 	"SANDWICH",
 	"SARS-CoV-",
+	"SASSY",
 	"SAUCE",
 	"SAUSAGE",
+	"SCAM",
+	"SCREW",
 	"SERIOUSLY ",
 	"SHAME",
 	"SHART",
+	"SHEEP",
 	"SHIT",
 	"SHORT",
 	"SIDE",
 	"SILLY",
+	"SIN",
 	"SKILL",
 	"SKULL",
-	"SMACK",
-	"SMILE",
 	"SLAM",
 	"SLEEP",
 	"SLICE",
 	"SLOW",
 	"SLUT",
+	"SMACK",
 	"SMACKDOWN",
 	"SMELLY",
+	"SMILE",
 	"SMOOTH",
 	"SMOOTHLY ",
 	"SNAP",
+	"SNOWFLAKE",
+	"SOAK",
 	"SOCK",
 	"SOFT",
 	"SOFTLY ",
@@ -1039,12 +1169,15 @@ static const char * prefixes[] = {
 	"SPACE",
 	"SPEED",
 	"SPICE",
+	"SPIRIT",
 	"SPORTSMANSHIP",
+	"SPRAY",
 	"STACK",
 	"STAR",
 	"STEAM",
 	"SUGAR",
 	"SUPER",
+	"SURELY",
 	"SWEETHEART",
 	"SWINDLE",
 	"SWOLE",
@@ -1055,38 +1188,44 @@ static const char * prefixes[] = {
 	"TESLA",
 	"TIGHT",
 	"TINDER",
+	"TIT",
 	"TITTY",
 	"TOILET",
 	"TOP",
 	"TRAP",
 	"TRASH",
+	"TRICKSTER",
 	"TRIPLE",
 	"TROLL",
-	"TRUMP",
 	"TRULY ",
+	"TRUMP",
 	"TURBO",
 	"TURKEY",
 	"ULTIMATE",
 	"ULTRA",
+	"UNIVERSAL",
 	"UNIVERSITY",
 	"UTTERLY ",
-	"UNIVERSAL",
 	"VASTLY",
 	"VEGAN",
 	"VIOLENTLY ",
 	"VITAMIN",
 	"WANG",
 	"WASTE",
+	"WEENIE",
 	"WEINER",
-	"WICKEDLY ",
-	"WILLY",
+	"WET",
 	"WHIP",
+	"WHITE",
+	"WICKEDLY ",
+	"WIDLY ",
 	"WIFE",
 	"WILD",
-	"WIDLY ",
+	"WILLY",
 	"WISHFULLY ",
-	"WEENIE",
 	"WONDER",
+	"ZOOM",
+	"ZOOMER",
 };
 
 static const char * RandomObituary( RNG * rng ) {
@@ -1598,6 +1737,12 @@ static constexpr float SEL_WEAP_Y_OFFSET = 0.25f;
 
 static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih, Alignment alignment, float font_size ) {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
+	static constexpr Vec4 light_gray = Vec4( 0.5, 0.5, 0.5, 1.0 );
+	static constexpr Vec4 dark_gray = Vec4( 0.2, 0.2, 0.2, 1.0 );
+	static constexpr Vec4 color_ammo_max = Vec4( 1.0, 0.8, 0.15, 1.0 );
+	static constexpr Vec4 color_ammo_min = Vec4( 1.0, 0.22, 0.38, 1.0 );
+
+	const SyncEntityState * es = &cg_entities[ ps->POVnum ].current;
 
 	int num_weapons = 0;
 	for( size_t i = 0; i < ARRAY_COUNT( ps->weapons ); i++ ) {
@@ -1606,29 +1751,40 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		}
 	}
 
+	int bomb = ( es->effects & EF_CARRIER ) != 0 ? 1 : 0;
+
 	int padx = offx - iw;
 	int pady = offy - ih;
-	int total_width = max( 0, num_weapons * offx - padx );
-	int total_height = max( 0, num_weapons * offy - pady );
+	int total_width = Max2( 0, ( num_weapons + bomb ) * offx - padx );
+	int total_height = Max2( 0, ( num_weapons + bomb ) * offy - pady );
 
-	int border = iw * 0.03f;
+	int border = iw * 0.04f;
+	int border_sel = border * 0.25f;
 	int padding = iw * 0.1f;
+	int pad_sel = border * 2;
 	int innerw = iw - border * 2;
 	int innerh = ih - border * 2;
 	int iconw = iw - border * 2 - padding * 2;
 	int iconh = ih - border * 2 - padding * 2;
 
+	if( bomb != 0 ) {
+		int curx = CG_HorizontalAlignForWidth( x, alignment, total_width );
+		int cury = CG_VerticalAlignForHeight( y, alignment, total_height );
+
+		Draw2DBox( curx, cury, iw, ih, cgs.white_material, light_gray );
+		Draw2DBox( curx + border, cury + border, innerw, innerh, cgs.white_material, dark_gray );
+
+		Vec4 color = ps->can_plant ? AttentionGettingColor() : light_gray;
+		Draw2DBox( curx + border + padding, cury + border + padding, iconw, iconh, cgs.media.shaderBombIcon, color );
+	}
+
 	for( int i = 0; i < num_weapons; i++ ) {
-		int curx = CG_HorizontalAlignForWidth( x + offx * i, alignment, total_width );
-		int cury = CG_VerticalAlignForHeight( y + offy * i, alignment, total_height );
+		int curx = CG_HorizontalAlignForWidth( x + offx * ( i + bomb ), alignment, total_width );
+		int cury = CG_VerticalAlignForHeight( y + offy * ( i + bomb ), alignment, total_height );
 
 		WeaponType weap = ps->weapons[ i ].weapon;
 		int ammo = ps->weapons[ i ].ammo;
 		const WeaponDef * def = GS_GetWeaponDef( weap );
-
-		if( weap == ps->pending_weapon ) {
-			cury -= ih * SEL_WEAP_Y_OFFSET;
-		}
 
 		Vec4 color = Vec4( 1.0f );
 		float ammo_frac = 1.0f;
@@ -1643,52 +1799,51 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 			}
 		}
 
-		if( ammo_frac < 0.5f ) {
-			color = Lerp( vec4_red, Unlerp( 0.0f, ammo_frac, 0.5f ), vec4_yellow );
-		}
-		else {
-			color = Lerp( vec4_yellow, Unlerp( 0.5f, ammo_frac, 1.0f ), vec4_green );
-		}
+		color = Lerp( color_ammo_min, Unlerp( 0.0f, ammo_frac, 1.0f ), color_ammo_max );
 
-		Vec4 color_bg = Vec4( color.xyz() / 2.0f, 1.0f );
+		Vec4 color_bg = Vec4( color.xyz() * 0.625f, 1.0f );
 
 		const Material * icon = cgs.media.shaderWeaponIcon[ weap ];
 
+		bool selected = weap == ps->pending_weapon;
+		int offset = ( selected ? border_sel : 0 );
+		int pady_sel = ( selected ? pad_sel : 0 );
+
 		if( ammo_frac < 1.0f ) {
-			Draw2DBox( curx, cury, iw, ih, cgs.white_material, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ) );
-			Draw2DBox( curx + border, cury + border, innerw, innerh, cgs.white_material, Vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
-			Draw2DBox( curx + border + padding, cury + border + padding, iconw, iconh, icon, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ) );
+			Draw2DBox( curx - offset, cury - offset - pady_sel, iw + offset * 2, ih + offset * 2, cgs.white_material, light_gray );
+			Draw2DBox( curx + border, cury + border - pady_sel, innerw, innerh, cgs.white_material, dark_gray );
+			Draw2DBox( curx + border + padding, cury + border + padding - pady_sel, iconw, iconh, icon, light_gray );
 		}
 
 		Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
 
-		Draw2DBox( curx, cury + ih * ( 1.0f - ammo_frac ), iw, ih * ammo_frac, cgs.white_material, color );
-		Draw2DBox( curx + border, cury + ih * ( 1.0f - ammo_frac ) + border, innerw, ih * ammo_frac - border * 2, cgs.white_material, color_bg );
+		if( def->clip_size == 0 || ammo_frac != 0 ) {
+			Draw2DBox( curx - offset, cury + ih * ( 1.0f - ammo_frac ) - offset - pady_sel, iw + offset * 2, ih * ammo_frac + offset * 2, cgs.white_material, color );
+			Draw2DBox( curx + border, cury + ih * ( 1.0f - ammo_frac ) + border - pady_sel, innerw, ih * ammo_frac - border * 2, cgs.white_material, color_bg );
+		}
 
 		float asdf = Max2( ih * ( 1.0f - ammo_frac ), float( padding ) ) - padding;
-		Draw2DBoxUV( curx + border + padding, cury + border + padding + asdf,
+		Draw2DBoxUV( curx + border + padding, cury + border + padding + asdf - pady_sel,
 			iconw, iconh - asdf,
 			Vec2( half_pixel.x, Lerp( half_pixel.y, asdf / iconh, 1.0f - half_pixel.y ) ), 1.0f - half_pixel,
 			CG_GetWeaponIcon( weap ), color );
 
 		if( def->clip_size != 0 ) {
-			DrawText( GetHUDFont(), font_size, va( "%i", ammo ), Alignment_LeftBottom, curx + iw*0.15f, cury + ih*0.85f, layout_cursor_color, layout_cursor_font_border );
+			DrawText( GetHUDFont(), font_size, va( "%i", ammo ), Alignment_CenterMiddle, curx + iw*0.5f, cury + ih * 1.175f - pady_sel, color, layout_cursor_font_border );
 		}
 
 		// weapon slot binds start from index 1, use drawn_weapons for actual loadout index
 		char bind[ 32 ];
 
 		// UNBOUND can look real stupid so bump size down a bit in case someone is scrolling. this still doesnt fit
-		const float bind_font_size = font_size * 0.8f;
+		const float bind_font_size = font_size * 0.75f;
 
 		// first try the weapon specific bind
-		if( cg_showHotkeys->integer ) {
-			if( !CG_GetBoundKeysString( va( "use %s", def->short_name ), bind, sizeof( bind ) ) ) {
-				CG_GetBoundKeysString( va( "weapon %i", i + 1 ), bind, sizeof( bind ) );
-			}
-
-			DrawText( GetHUDFont(), bind_font_size, bind, Alignment_CenterMiddle, curx + iw*0.50f, cury + ih*0.15f, layout_cursor_color, layout_cursor_font_border );
+		if( !CG_GetBoundKeysString( va( "use %s", def->short_name ), bind, sizeof( bind ) ) ) {
+			CG_GetBoundKeysString( va( "weapon %i", i + 1 ), bind, sizeof( bind ) );
 		}
+
+		DrawText( GetHUDFont(), bind_font_size, bind, Alignment_CenterMiddle, curx + iw*0.5f, cury - ih*0.2f - pady_sel, layout_cursor_color, layout_cursor_font_border );
 	}
 }
 
@@ -1736,7 +1891,7 @@ static bool CG_LFuncSize( struct cg_layoutnode_s *argumentnode, int numArguments
 
 static bool CG_LFuncColor( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	for( int i = 0; i < 4; i++ ) {
-		layout_cursor_color.ptr()[ i ] = Clamp01( CG_GetNumericArg( &argumentnode ) );
+		layout_cursor_color[ i ] = Clamp01( CG_GetNumericArg( &argumentnode ) );
 	}
 	return true;
 }

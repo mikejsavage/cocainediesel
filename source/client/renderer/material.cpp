@@ -19,14 +19,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include <algorithm> // std::sort
+
 #include "qcommon/base.h"
-#include "qcommon/assets.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "qcommon/string.h"
 #include "qcommon/span2d.h"
 #include "gameshared/q_shared.h"
 #include "client/client.h"
+#include "client/assets.h"
+#include "client/threadpool.h"
 #include "client/renderer/renderer.h"
 
 #include "stb/stb_image.h"
@@ -87,51 +90,15 @@ static float Shader_ParseFloat( const char ** ptr ) {
 }
 
 static void Shader_ParseVector( const char ** ptr, float * v, unsigned int size ) {
-	unsigned int i;
-	bool bracket;
-
-	if( !size ) {
-		return;
-	}
-	if( size == 1 ) {
-		Shader_ParseFloat( ptr );
-		return;
-	}
-
-	const char *token = Shader_ParseString( ptr );
-	if( !strcmp( token, "(" ) ) {
-		bracket = true;
-		token = Shader_ParseString( ptr );
-	} else if( token[0] == '(' ) {
-		bracket = true;
-		token = &token[1];
-	} else {
-		bracket = false;
-	}
-
-	v[0] = atof( token );
-	for( i = 1; i < size - 1; i++ )
+	for( unsigned int i = 0; i < size; i++ ) {
 		v[i] = Shader_ParseFloat( ptr );
-
-	token = Shader_ParseString( ptr );
-	if( !token[0] ) {
-		v[i] = 0;
-	} else if( token[strlen( token ) - 1] == ')' ) {
-		char buf[ 128 ];
-		Q_strncpyz( buf, token, sizeof( buf ) );
-		buf[ strlen( buf ) - 1 ] = '\0';
-		v[i] = atof( buf );
-	} else {
-		v[i] = atof( token );
-		if( bracket ) {
-			Shader_ParseString( ptr );
-		}
 	}
 }
 
-// TODO: should stop on }
 static void Shader_SkipLine( const char ** ptr ) {
 	while( ptr ) {
+		if( **ptr == '}' )
+			return;
 		const char * token = COM_ParseExt( ptr, false );
 		if( strlen( token ) == 0 )
 			return;
@@ -275,43 +242,13 @@ static void Shaderpass_MapExt( Material * material, const char ** ptr ) {
 	}
 }
 
-// static void Shaderpass_AnimMapExt( Material * material, SamplerType sampler, const char ** ptr ) {
-// 	material->anim_fps = Shader_ParseFloat( ptr );
-// 	material->num_anim_frames = 0;
-//
-// 	for( ;; ) {
-// 		const char *token = Shader_ParseString( ptr );
-// 		if( !token[0] ) {
-// 			break;
-// 		}
-// 		if( material->num_anim_frames < ARRAY_COUNT( material->textures ) ) {
-// 			material->textures[ material->num_anim_frames++ ].texture = FindTexture( StringHash( token ) );
-// 			material->textures[ material->num_anim_frames++ ].sampler = sampler;
-// 		}
-// 	}
-//
-// 	if( material->num_anim_frames == 0 ) {
-// 		material->anim_fps = 0;
-// 	}
-// }
-
 static void Shaderpass_Map( Material * material, const char * name, const char ** ptr ) {
 	Shaderpass_MapExt( material, ptr );
 }
 
-static void Shaderpass_AnimMap( Material * material, const char * name, const char ** ptr ) {
-	// Shaderpass_AnimMapExt( material, ptr );
-}
-
-static void ColorNormalize( const vec3_t in, vec3_t out ) {
-	float f = Max2( Max2( in[0], in[1] ), in[2] );
-
-	if( f > 1.0f ) {
-		f = 1.0f / f;
-		VectorScale( in, f, out );
-	} else {
-		VectorCopy( in, out );
-	}
+static Vec3 NormalizeColor( Vec3 color ) {
+	float f = Max2( Max2( color.x, color.y ), color.z );
+	return f > 1.0f ? color / f : color;
 }
 
 static void Shaderpass_RGBGen( Material * material, const char * name, const char ** ptr ) {
@@ -335,9 +272,12 @@ static void Shaderpass_RGBGen( Material * material, const char * name, const cha
 	}
 	else if( !strcmp( token, "const" ) ) {
 		material->rgbgen.type = ColorGenType_Constant;
-		vec3_t color;
-		Shader_ParseVector( ptr, color, 3 );
-		ColorNormalize( color, material->rgbgen.args );
+		Vec3 color;
+		Shader_ParseVector( ptr, color.ptr(), 3 );
+		color = NormalizeColor( color );
+		material->rgbgen.args[ 0 ] = color.x;
+		material->rgbgen.args[ 1 ] = color.y;
+		material->rgbgen.args[ 2 ] = color.z;
 	}
 }
 
@@ -389,8 +329,6 @@ static const MaterialSpecKey shaderpasskeys[] = {
 	{ "alphagen", Shaderpass_AlphaGen },
 	{ "alphamaskclampmap", Shaderpass_Map },
 	{ "alphatest", Shaderpass_AlphaTest },
-	{ "animclampmap", Shaderpass_AnimMap },
-	{ "animmap", Shaderpass_AnimMap },
 	{ "blendfunc", Shaderpass_BlendFunc },
 	{ "clampmap", Shaderpass_Map },
 	{ "map", Shaderpass_Map },
@@ -482,8 +420,6 @@ static void AddTexture( u64 hash, const TextureConfig & config ) {
 
 	assert( num_textures < ARRAY_COUNT( textures ) );
 
-	Texture texture = NewTexture( config );
-
 	u64 idx = num_textures;
 	if( !textures_hashtable.get( hash, &idx ) ) {
 		textures_hashtable.add( hash, num_textures );
@@ -499,7 +435,7 @@ static void AddTexture( u64 hash, const TextureConfig & config ) {
 		DeleteTexture( textures[ idx ] );
 	}
 
-	textures[ idx ] = texture;
+	textures[ idx ] = NewTexture( config );
 }
 
 static void LoadBuiltinTextures() {
@@ -569,19 +505,9 @@ static void LoadBuiltinTextures() {
 	}
 }
 
-static void LoadTexture( const char * path ) {
+static void LoadTexture( const char * path, u8 * pixels, int w, int h, int channels ) {
 	ZoneScoped;
 	ZoneText( path, strlen( path ) );
-
-	Span< const u8 > data = AssetBinary( path );
-
-	int w, h, channels;
-	u8 * pixels;
-	{
-		ZoneScopedN( "stbi_load_from_memory" );
-		pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
-	}
-	defer { stbi_image_free( pixels ); };
 
 	if( pixels == NULL ) {
 		Com_Printf( S_COLOR_YELLOW "WARNING: couldn't load texture from %s\n", path );
@@ -603,6 +529,8 @@ static void LoadTexture( const char * path ) {
 
 	Span< const char > ext = FileExtension( path );
 	AddTexture( Hash64( path, strlen( path ) - ext.n ), config );
+
+	stbi_image_free( pixels );
 }
 
 static void LoadMaterialFile( const char * path ) {
@@ -635,6 +563,19 @@ static void LoadMaterialFile( const char * path ) {
 	material_locations_hashtable.clear();
 }
 
+struct DecodeTextureJob {
+	struct {
+		const char * path;
+		Span< const u8 > data;
+	} in;
+
+	struct {
+		int width, height;
+		int channels;
+		u8 * pixels;
+	} out;
+};
+
 void InitMaterials() {
 	ZoneScoped;
 
@@ -648,11 +589,37 @@ void InitMaterials() {
 	{
 		ZoneScopedN( "Load disk textures" );
 
-		for( const char * path : AssetPaths() ) {
-			Span< const char > ext = FileExtension( path );
-			if( ext == ".png" || ext == ".jpg" ) {
-				LoadTexture( path );
+		DynamicArray< DecodeTextureJob > jobs( sys_allocator );
+		{
+			ZoneScopedN( "Build job list" );
+
+			for( const char * path : AssetPaths() ) {
+				Span< const char > ext = FileExtension( path );
+				if( ext == ".png" || ext == ".jpg" ) {
+					DecodeTextureJob job;
+					job.in.path = path;
+					job.in.data = AssetBinary( path );
+
+					jobs.add( job );
+				}
 			}
+
+			std::sort( jobs.begin(), jobs.end(), []( const DecodeTextureJob & a, const DecodeTextureJob & b ) {
+				return a.in.data.n > b.in.data.n;
+			} );
+		}
+
+		ParallelFor( jobs.span(), []( TempAllocator * temp, void * data ) {
+			DecodeTextureJob * job = ( DecodeTextureJob * ) data;
+
+			ZoneScoped;
+			ZoneText( job->in.path, strlen( job->in.path ) );
+
+			job->out.pixels = stbi_load_from_memory( job->in.data.ptr, job->in.data.num_bytes(), &job->out.width, &job->out.height, &job->out.channels, 0 );
+		} );
+
+		for( DecodeTextureJob job : jobs ) {
+			LoadTexture( job.in.path, job.out.pixels, job.out.width, job.out.height, job.out.channels );
 		}
 	}
 
@@ -676,7 +643,16 @@ void HotloadMaterials() {
 	for( const char * path : ModifiedAssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
 		if( ext == ".png" || ext == ".jpg" ) {
-			LoadTexture( path );
+			Span< const u8 > data = AssetBinary( path );
+
+			int w, h, channels;
+			u8 * pixels;
+			{
+				ZoneScopedN( "stbi_load_from_memory" );
+				pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
+			}
+
+			LoadTexture( path, pixels, w, h, channels );
 		}
 	}
 

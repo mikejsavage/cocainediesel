@@ -66,3 +66,10 @@ textures/editor/wallbangable
 	surfaceparm nonsolid
 	surfaceparm wallbangable
 }
+
+textures/editor/door
+{
+	qer_editorimage textures/editor/trigger
+	surfaceparm nonsolid
+	surfaceparm weaponclip
+}

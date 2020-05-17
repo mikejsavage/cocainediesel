@@ -17,6 +17,7 @@
 #include <time.h>
 #include "wswcurl.h"
 #include "qcommon.h"
+#include "qcommon/threads.h"
 
 #define CURL_STATICLIB
 #include "curl/curl.h"
@@ -116,13 +117,13 @@ static time_t wswcurl_now( void );
 // Local variables
 static wswcurl_req *http_requests = NULL; // Linked list of active requests
 static wswcurl_req *http_requests_hnode; // The item node in the list
-static qmutex_t *http_requests_mutex = NULL;
+static Mutex *http_requests_mutex = NULL;
 static CURLM *curlmulti = NULL;     // Curl MULTI handle
 static int curlmulti_num_handles = 0;
 
 static struct mempool_s *wswcurl_mempool;
 static CURL *curldummy = NULL;
-static qmutex_t *curldummy_mutex = NULL;
+static Mutex *curldummy_mutex = NULL;
 
 static cvar_t *http_proxy;
 static cvar_t *http_proxyuserpwd;
@@ -206,9 +207,9 @@ void wswcurl_urlencode( const char *src, char *dst, size_t size ) {
 		return;
 	}
 
-	QMutex_Lock( curldummy_mutex );
+	Lock( curldummy_mutex );
 	curl_esc = curl_easy_escape( curldummy, src, 0 );
-	QMutex_Unlock( curldummy_mutex );
+	Unlock( curldummy_mutex );
 
 	Q_strncpyz( dst, curl_esc, size );
 	curl_free( curl_esc );
@@ -228,9 +229,9 @@ size_t wswcurl_urldecode( const char *src, char *dst, size_t size ) {
 		return 0;
 	}
 
-	QMutex_Lock( curldummy_mutex );
+	Lock( curldummy_mutex );
 	curl_unesc = curl_easy_unescape( curldummy, src, 0, &unesc_len );
-	QMutex_Unlock( curldummy_mutex );
+	Unlock( curldummy_mutex );
 
 	Q_strncpyz( dst, curl_unesc, size );
 	curl_free( curl_unesc );
@@ -362,9 +363,8 @@ void wswcurl_init( void ) {
 	curldummy = curl_easy_init();
 	curlmulti = curl_multi_init();
 
-	curldummy_mutex = QMutex_Create();
-
-	http_requests_mutex = QMutex_Create();
+	curldummy_mutex = NewMutex();
+	http_requests_mutex = NewMutex();
 }
 
 void wswcurl_cleanup( void ) {
@@ -386,9 +386,8 @@ void wswcurl_cleanup( void ) {
 		curlmulti = NULL;
 	}
 
-	QMutex_Destroy( &curldummy_mutex );
-
-	QMutex_Destroy( &http_requests_mutex );
+	DeleteMutex( curldummy_mutex );
+	DeleteMutex( http_requests_mutex );
 
 	curl_global_cleanup();
 
@@ -407,7 +406,7 @@ int wswcurl_perform() {
 
 	// process requests in FIFO manner
 
-	QMutex_Lock( http_requests_mutex );
+	Lock( http_requests_mutex );
 
 	// check for timed out requests and requests that need to be paused
 	r = http_requests_hnode;
@@ -455,7 +454,7 @@ int wswcurl_perform() {
 		r = next;
 	}
 
-	QMutex_Unlock( http_requests_mutex );
+	Unlock( http_requests_mutex );
 
 	//CURLDBG(("CURL BEFORE MULTI_PERFORM\n"));
 	while( curl_multi_perform( curlmulti, &ret ) == CURLM_CALL_MULTI_PERFORM ) {
@@ -566,7 +565,7 @@ wswcurl_req *wswcurl_create( const char *iface, const char *furl, ... ) {
 	wswcurl_set_timeout( retreq, WTIMEOUT );
 
 	// link
-	QMutex_Lock( http_requests_mutex );
+	Lock( http_requests_mutex );
 
 	retreq->prev = NULL;
 	retreq->next = http_requests;
@@ -579,7 +578,7 @@ wswcurl_req *wswcurl_create( const char *iface, const char *furl, ... ) {
 
 	CURLDBG( ( va( "   CURL CREATE %s\n", url ) ) );
 
-	QMutex_Unlock( http_requests_mutex );
+	Unlock( http_requests_mutex );
 
 	return retreq;
 }
@@ -640,7 +639,7 @@ void wswcurl_delete( wswcurl_req *req ) {
 	}
 
 	// remove from list
-	QMutex_Lock( http_requests_mutex );
+	Lock( http_requests_mutex );
 
 	if( req->curl ) {
 		if( curlmulti && req->status && req->status != WSTATUS_QUEUED ) {
@@ -664,7 +663,7 @@ void wswcurl_delete( wswcurl_req *req ) {
 		req->next->prev = req->prev;
 	}
 
-	QMutex_Unlock( http_requests_mutex );
+	Unlock( http_requests_mutex );
 
 	WFREE( req );
 }

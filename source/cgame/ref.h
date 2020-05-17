@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 typedef struct orientation_s {
 	mat3_t axis;
-	vec3_t origin;
+	Vec3 origin;
 } orientation_t;
 
 struct TRS {
@@ -45,27 +45,12 @@ struct MatrixPalettes {
 typedef struct entity_s {
 	const Model * model;
 
-	/*
-	** most recent data
-	*/
 	mat3_t axis;
-	vec3_t origin, origin2;
+	Vec3 origin, origin2;
 
-	/*
-	** texturing
-	*/
-	const Material * override_material; // NULL for inline skin
-
-	/*
-	** misc
-	*/
-	int64_t shaderTime;
 	RGBA8 color;
 
 	float scale;
 	float radius;                       // used as RT_SPRITE's radius
 	float rotation;
-
-	float outlineHeight;
-	RGBA8 outlineColor;
 } entity_t;

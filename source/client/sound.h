@@ -19,7 +19,9 @@ void S_UpdateEntity( int ent_num, Vec3 origin, Vec3 velocity );
 
 void S_StartFixedSound( const SoundEffect * sfx, Vec3 origin, int channel, float volume );
 void S_StartEntitySound( const SoundEffect * sfx, int ent_num, int channel, float volume );
+void S_StartEntitySound( const SoundEffect * sfx, int ent_num, int channel, float volume, u32 sfx_entropy );
 void S_StartGlobalSound( const SoundEffect * sfx, int channel, float volume );
+void S_StartGlobalSound( const SoundEffect * sfx, int channel, float volume, u32 sfx_entropy );
 void S_StartLocalSound( const SoundEffect * sfx, int channel, float volume );
 void S_StartLineSound( const SoundEffect * sfx, Vec3 start, Vec3 end, int channel, float volume );
 

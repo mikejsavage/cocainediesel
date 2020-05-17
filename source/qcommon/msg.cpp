@@ -209,6 +209,12 @@ void Delta( DeltaBuffer * buf, T ( &arr )[ N ], const T ( &baseline )[ N ] ) {
 	}
 }
 
+static void Delta( DeltaBuffer * buf, Vec3 & v, const Vec3 & baseline ) {
+	for( int i = 0; i < 3; i++ ) {
+		Delta( buf, v[ i ], baseline[ i ] );
+	}
+}
+
 static void Delta( DeltaBuffer * buf, RGBA8 & rgba, const RGBA8 & baseline ) {
 	Delta( buf, rgba.r, baseline.r );
 	Delta( buf, rgba.g, baseline.b );
@@ -267,10 +273,10 @@ static void DeltaAngle( DeltaBuffer * buf, float & x, const float & baseline ) {
 	x = angle16 / float( U16_MAX ) * 360.0f;
 }
 
-static void DeltaAngle( DeltaBuffer * buf, vec3_t & v, const vec3_t & baseline ) {
-	DeltaAngle( buf, v[ 0 ], baseline[ 0 ] );
-	DeltaAngle( buf, v[ 1 ], baseline[ 1 ] );
-	DeltaAngle( buf, v[ 2 ], baseline[ 2 ] );
+static void DeltaAngle( DeltaBuffer * buf, Vec3 & v, const Vec3 & baseline ) {
+	for( int i = 0; i < 3; i++ ) {
+		DeltaAngle( buf, v[ i ], baseline[ i ] );
+	}
 }
 
 //==================================================
@@ -528,7 +534,6 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.counterNum, baseline.counterNum );
 	Delta( buf, ent.channel, baseline.channel );
 	Delta( buf, ent.weapon, baseline.weapon );
-	Delta( buf, ent.damage, baseline.damage );
 	Delta( buf, ent.radius, baseline.radius );
 	Delta( buf, ent.team, baseline.team );
 

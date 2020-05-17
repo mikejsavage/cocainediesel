@@ -18,8 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "qcommon/qcommon.h"
 #include "cgame/cg_local.h"
+#include "qcommon/cmodel.h"
 
 static void CG_UpdateEntities( void );
 
@@ -46,19 +46,16 @@ static void CG_FixVolumeCvars( void ) {
 }
 
 static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
-	vec3_t origin;
-	SyncEntityState *state;
-	int moveTime;
-	int64_t serverTime;
-#define MIN_DRAWDISTANCE_FIRSTPERSON 86
-#define MIN_DRAWDISTANCE_THIRDPERSON 52
+	constexpr int MIN_DRAWDISTANCE_FIRSTPERSON = 86;
+	constexpr int MIN_DRAWDISTANCE_THIRDPERSON = 52;
 
-	state = &cent->current;
+	SyncEntityState * state = &cent->current;
 
 	if( !state->linearMovement ) {
 		return false;
 	}
 
+	int64_t serverTime;
 	if( GS_MatchPaused( &client_gs ) ) {
 		serverTime = cg.frame.serverTime;
 	} else {
@@ -73,8 +70,9 @@ static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 		}
 	}
 
-	moveTime = GS_LinearMovement( state, serverTime, origin );
-	VectorCopy( origin, state->origin );
+	Vec3 origin;
+	int moveTime = GS_LinearMovement( state, serverTime, &origin );
+	state->origin = origin;
 
 	if( moveTime < 0 && state->solid != SOLID_BMODEL ) {
 		// when flyTime is negative don't offset it backwards more than PROJECTILE_PRESTEP value
@@ -82,30 +80,26 @@ static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 		float maxBackOffset;
 
 		if( ISVIEWERENTITY( state->ownerNum ) ) {
-			maxBackOffset = ( PROJECTILE_PRESTEP - MIN_DRAWDISTANCE_FIRSTPERSON );
+			maxBackOffset = PROJECTILE_PRESTEP - MIN_DRAWDISTANCE_FIRSTPERSON;
 		} else {
-			maxBackOffset = ( PROJECTILE_PRESTEP - MIN_DRAWDISTANCE_THIRDPERSON );
+			maxBackOffset = PROJECTILE_PRESTEP - MIN_DRAWDISTANCE_THIRDPERSON;
 		}
 
-		if( Distance( state->origin2, state->origin ) > maxBackOffset ) {
+		if( Length( state->origin - state->origin2 ) > maxBackOffset ) {
 			return false;
 		}
 	}
 
 	return true;
-#undef MIN_DRAWDISTANCE_FIRSTPERSON
-#undef MIN_DRAWDISTANCE_THIRDPERSON
 }
 
 /*
 * CG_NewPacketEntityState
 */
 static void CG_NewPacketEntityState( SyncEntityState *state ) {
-	centity_t *cent;
+	centity_t * cent = &cg_entities[state->number];
 
-	cent = &cg_entities[state->number];
-
-	VectorClear( cent->prevVelocity );
+	cent->prevVelocity = Vec3( 0.0f );
 	cent->canExtrapolatePrev = false;
 
 	if( ISEVENTENTITY( state ) ) {
@@ -113,7 +107,7 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 		cent->current = *state;
 		cent->serverFrame = cg.frame.serverFrame;
 
-		VectorClear( cent->velocity );
+		cent->velocity = Vec3( 0.0f );
 		cent->canExtrapolate = false;
 	} else if( state->linearMovement ) {
 		if( cent->serverFrame != cg.oldFrame.serverFrame || state->teleported ||
@@ -126,18 +120,18 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 		cent->current = *state;
 		cent->serverFrame = cg.frame.serverFrame;
 
-		VectorClear( cent->velocity );
+		cent->velocity = Vec3( 0.0f );
 		cent->canExtrapolate = false;
 
 		cent->linearProjectileCanDraw = CG_UpdateLinearProjectilePosition( cent );
 
-		VectorCopy( cent->current.linearMovementVelocity, cent->velocity );
-		VectorCopy( cent->current.origin, cent->trailOrigin );
+		cent->velocity = cent->current.linearMovementVelocity;
+		cent->trailOrigin = cent->current.origin;
 	} else {
 		// if it moved too much force the teleported bit
-		if( Abs( (int)( cent->current.origin[0] - state->origin[0] ) ) > 512
-			 || Abs( (int)( cent->current.origin[1] - state->origin[1] ) ) > 512
-			 || Abs( (int)( cent->current.origin[2] - state->origin[2] ) ) > 512 ) {
+		if( Abs( cent->current.origin.x - state->origin.x ) > 512
+			 || Abs( cent->current.origin.y - state->origin.y ) > 512
+			 || Abs( cent->current.origin.z - state->origin.z ) > 512 ) {
 			cent->serverFrame = -99;
 		}
 
@@ -159,10 +153,6 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 				memset( cent->lastVelocitiesFrames, 0, sizeof( cent->lastVelocitiesFrames ) );
 				CG_PModel_ClearEventAnimations( state->number );
 				memset( &cg_entPModels[state->number].animState, 0, sizeof( cg_entPModels[state->number].animState ) );
-
-				// reset the weapon animation timers for new players
-				cg_entPModels[state->number].flash_time = 0;
-				cg_entPModels[state->number].barrel_time = 0;
 			}
 		} else {   // shuffle the last state to previous
 			cent->prev = cent->current;
@@ -173,30 +163,28 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 		}
 
 		cent->current = *state;
-		VectorCopy( state->origin, cent->trailOrigin );
-		VectorCopy( cent->velocity, cent->prevVelocity );
+		cent->trailOrigin = state->origin;
+		cent->prevVelocity = cent->velocity;
 
-		//VectorCopy( cent->extrapolatedOrigin, cent->prevExtrapolatedOrigin );
 		cent->canExtrapolatePrev = cent->canExtrapolate;
 		cent->canExtrapolate = false;
-		VectorClear( cent->velocity );
+		cent->velocity = Vec3( 0.0f );
 		cent->serverFrame = cg.frame.serverFrame;
 
 		// set up velocities for this entity
 		if( cgs.extrapolationTime &&
 			( cent->current.type == ET_PLAYER || cent->current.type == ET_CORPSE ) ) {
-			VectorCopy( cent->current.origin2, cent->velocity );
-			VectorCopy( cent->prev.origin2, cent->prevVelocity );
+			cent->velocity = cent->current.origin2;
+			cent->prevVelocity = cent->prev.origin2;
 			cent->canExtrapolate = cent->canExtrapolatePrev = true;
-		} else if( !VectorCompare( cent->prev.origin, cent->current.origin ) ) {
+		} else if( cent->prev.origin != cent->current.origin ) {
 			float snapTime = ( cg.frame.serverTime - cg.oldFrame.serverTime );
 
 			if( !snapTime ) {
 				snapTime = cgs.snapFrameTime;
 			}
 
-			VectorSubtract( cent->current.origin, cent->prev.origin, cent->velocity );
-			VectorScale( cent->velocity, 1000.0f / snapTime, cent->velocity );
+			cent->velocity = ( cent->current.origin - cent->prev.origin ) * 1000.0f / snapTime;
 		}
 
 		if( ( cent->current.type == ET_GENERIC || cent->current.type == ET_PLAYER
@@ -301,8 +289,6 @@ static void CG_UpdatePlayerState( void ) {
 * a new frame snap has been received from the server
 */
 bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
-	int i;
-
 	assert( frame );
 
 	if( lerpframe ) {
@@ -320,8 +306,9 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 
 	CG_UpdatePlayerState();
 
-	for( i = 0; i < frame->numEntities; i++ )
+	for( int i = 0; i < frame->numEntities; i++ ) {
 		CG_NewPacketEntityState( &frame->parsedEntities[i & ( MAX_PARSE_ENTITIES - 1 )] );
+	}
 
 	if( !cgs.precacheDone || !cg.frame.valid ) {
 		return false;
@@ -337,7 +324,7 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 	cg.predictFrom = 0; // force the prediction to be restarted from the new snapshot
 	cg.fireEvents = true;
 
-	for( i = 0; i < cg.frame.numgamecommands; i++ ) {
+	for( int i = 0; i < cg.frame.numgamecommands; i++ ) {
 		int target = cg.frame.playerState.POVnum - 1;
 		if( cg.frame.gamecommands[i].all || cg.frame.gamecommands[i].targets[target >> 3] & ( 1 << ( target & 7 ) ) ) {
 			CG_GameCommand( cg.frame.gamecommandsData + cg.frame.gamecommands[i].commandOffset );
@@ -367,16 +354,13 @@ ADD INTERPOLATED ENTITIES TO RENDERING LIST
 *  get the collision model for the given entity, no matter if box or brush-model.
 */
 struct cmodel_s *CG_CModelForEntity( int entNum ) {
-	int x, zd, zu;
-	centity_t *cent;
 	struct cmodel_s *cmodel = NULL;
-	vec3_t bmins, bmaxs;
 
 	if( entNum < 0 || entNum >= MAX_EDICTS ) {
 		return NULL;
 	}
 
-	cent = &cg_entities[entNum];
+	centity_t * cent = &cg_entities[entNum];
 
 	if( cent->serverFrame != cg.frame.serverFrame ) { // not present in current frame
 		return NULL;
@@ -385,15 +369,14 @@ struct cmodel_s *CG_CModelForEntity( int entNum ) {
 	// find the cmodel
 	if( cent->current.solid == SOLID_BMODEL ) { // special value for bmodel
 		cmodel = CM_FindCModel( CM_Client, cent->current.model );
-	} else if( cent->current.solid ) {   // encoded bbox
-		x = 8 * ( cent->current.solid & 31 );
-		zd = 8 * ( ( cent->current.solid >> 5 ) & 31 );
-		zu = 8 * ( ( cent->current.solid >> 10 ) & 63 ) - 32;
+	}
+	else if( cent->current.solid ) {   // encoded bbox
+		int x = 8 * ( cent->current.solid & 31 );
+		int zd = 8 * ( ( cent->current.solid >> 5 ) & 31 );
+		int zu = 8 * ( ( cent->current.solid >> 10 ) & 63 ) - 32;
 
-		bmins[0] = bmins[1] = -x;
-		bmaxs[0] = bmaxs[1] = x;
-		bmins[2] = -zd;
-		bmaxs[2] = zu;
+		Vec3 bmins = Vec3( -x, -x, -zd );
+		Vec3 bmaxs = Vec3( x, x, zu );
 		if( cent->type == ET_PLAYER || cent->type == ET_CORPSE ) {
 			cmodel = CM_OctagonModelForBBox( cl.cms, bmins, bmaxs );
 		} else {
@@ -435,8 +418,8 @@ static void CG_UpdateGenericEnt( centity_t *cent ) {
 void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
 	cent->linearProjectileCanDraw = CG_UpdateLinearProjectilePosition( cent );
 
-	for( int i = 0; i < 3; i++ )
-		cent->ent.origin[i] = cent->ent.origin2[i] = cent->current.origin[i];
+	cent->ent.origin = cent->current.origin;
+	cent->ent.origin2 = cent->current.origin;
 
 	AnglesToAxis( cent->current.angles, cent->ent.axis );
 }
@@ -445,80 +428,71 @@ void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
 * CG_LerpGenericEnt
 */
 void CG_LerpGenericEnt( centity_t *cent ) {
-	int i;
-	vec3_t ent_angles = { 0, 0, 0 };
+	Vec3 ent_angles = Vec3( 0, 0, 0 );
 
 	if( ISVIEWERENTITY( cent->current.number ) || cg.view.POVent == cent->current.number ) {
-		VectorCopy( cg.predictedPlayerState.viewangles, ent_angles );
+		ent_angles = cg.predictedPlayerState.viewangles;
 	} else {
 		// interpolate angles
-		for( i = 0; i < 3; i++ )
-			ent_angles[i] = LerpAngle( cent->prev.angles[i], cent->current.angles[i], cg.lerpfrac );
+		ent_angles = LerpAngles( cent->prev.angles, cg.lerpfrac, cent->current.angles );
 	}
 
-	if( ent_angles[0] || ent_angles[1] || ent_angles[2] ) {
+	if( ent_angles.x || ent_angles.y || ent_angles.z ) {
 		AnglesToAxis( ent_angles, cent->ent.axis );
 	} else {
 		Matrix3_Copy( axis_identity, cent->ent.axis );
 	}
 
 	if( ISVIEWERENTITY( cent->current.number ) || cg.view.POVent == cent->current.number ) {
-		VectorCopy( cg.predictedPlayerState.pmove.origin, cent->ent.origin );
-		VectorCopy( cent->ent.origin, cent->ent.origin2 );
+		cent->ent.origin = cg.predictedPlayerState.pmove.origin;
+		cent->ent.origin2 = cent->ent.origin;
 	} else {
 		if( cgs.extrapolationTime && cent->canExtrapolate ) { // extrapolation
-			vec3_t origin, xorigin1, xorigin2;
+			Vec3 origin, xorigin1, xorigin2;
 
 			float lerpfrac = Clamp01( cg.lerpfrac );
 
 			// extrapolation with half-snapshot smoothing
 			if( cg.xerpTime >= 0 || !cent->canExtrapolatePrev ) {
-				VectorMA( cent->current.origin, cg.xerpTime, cent->velocity, xorigin1 );
+				xorigin1 = cent->current.origin + cent->velocity * cg.xerpTime;
 			} else {
-				VectorMA( cent->current.origin, cg.xerpTime, cent->velocity, xorigin1 );
+				xorigin1 = cent->current.origin + cent->velocity * cg.xerpTime;
 				if( cent->canExtrapolatePrev ) {
-					vec3_t oldPosition;
-
-					VectorMA( cent->prev.origin, cg.oldXerpTime, cent->prevVelocity, oldPosition );
-					VectorLerp( oldPosition, cg.xerpSmoothFrac, xorigin1, xorigin1 );
+					Vec3 oldPosition = cent->prev.origin + cent->prevVelocity * cg.oldXerpTime;
+					xorigin1 = Lerp( oldPosition, cg.xerpSmoothFrac, xorigin1 );
 				}
 			}
 
 
 			// extrapolation with full-snapshot smoothing
-			VectorMA( cent->current.origin, cg.xerpTime, cent->velocity, xorigin2 );
+			xorigin2 = cent->current.origin + cent->velocity * cg.xerpTime;
 			if( cent->canExtrapolatePrev ) {
-				vec3_t oldPosition;
-
-				VectorMA( cent->prev.origin, cg.oldXerpTime, cent->prevVelocity, oldPosition );
-				VectorLerp( oldPosition, lerpfrac, xorigin2, xorigin2 );
+				Vec3 oldPosition = cent->prev.origin + cent->prevVelocity * cg.oldXerpTime;
+				xorigin2 = Lerp( oldPosition, lerpfrac, xorigin2 );
 			}
 
-			VectorLerp( xorigin1, 0.5f, xorigin2, origin );
+			origin = Lerp( xorigin1, 0.5f, xorigin2 );
 
 			if( cent->microSmooth == 2 ) {
-				vec3_t oldsmoothorigin;
-
-				VectorLerp( cent->microSmoothOrigin2, 0.65f, cent->microSmoothOrigin, oldsmoothorigin );
-				VectorLerp( origin, 0.5f, oldsmoothorigin, cent->ent.origin );
+				Vec3 oldsmoothorigin = Lerp( cent->microSmoothOrigin2, 0.65f, cent->microSmoothOrigin );
+				cent->ent.origin = Lerp( origin, 0.5f, oldsmoothorigin );
 			} else if( cent->microSmooth == 1 ) {
-				VectorLerp( origin, 0.5f, cent->microSmoothOrigin, cent->ent.origin );
+				cent->ent.origin = Lerp( origin, 0.5f, cent->microSmoothOrigin );
 			} else {
-				VectorCopy( origin, cent->ent.origin );
+				cent->ent.origin = origin;
 			}
 
 			if( cent->microSmooth ) {
-				VectorCopy( cent->microSmoothOrigin, cent->microSmoothOrigin2 );
+				cent->microSmoothOrigin2 = Vec3( cent->microSmoothOrigin );
 			}
 
-			VectorCopy( origin, cent->microSmoothOrigin );
+			cent->microSmoothOrigin = origin;
 			cent->microSmooth = Min2( 2, cent->microSmooth + 1 );
 
-			VectorCopy( cent->ent.origin, cent->ent.origin2 );
+			cent->ent.origin2 = cent->ent.origin;
 		} else {   // plain interpolation
-			for( i = 0; i < 3; i++ )
-				cent->ent.origin[i] = cent->ent.origin2[i] = cent->prev.origin[i] + cg.lerpfrac *
-															 ( cent->current.origin[i] - cent->prev.origin[i] );
+			cent->ent.origin = cent->prev.origin + cg.lerpfrac * ( cent->current.origin - cent->prev.origin );
+			cent->ent.origin2 = cent->ent.origin;
 		}
 	}
 }
@@ -540,7 +514,7 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 	}
 
 	const Model * model = cent->ent.model;
-	Mat4 transform = FromQFAxisAndOrigin( cent->ent.axis, cent->ent.origin );
+	Mat4 transform = FromAxisAndOrigin( cent->ent.axis, cent->ent.origin );
 
 	Vec4 color = Vec4(
 		cent->ent.color.r / 255.0f,
@@ -609,14 +583,12 @@ static void CG_AddPlayerEnt( centity_t *cent ) {
 //==========================================================================
 
 static void CG_LerpLaser( centity_t *cent ) {
-	for( int i = 0; i < 3; i++ ) {
-		cent->ent.origin[i] = Lerp( cent->prev.origin[i], cg.lerpfrac, cent->current.origin[i] );
-		cent->ent.origin2[i] = Lerp( cent->prev.origin2[i], cg.lerpfrac, cent->current.origin2[i] );
-	}
+	cent->ent.origin = Lerp( cent->prev.origin, cg.lerpfrac, cent->current.origin );
+	cent->ent.origin2 = Lerp( cent->prev.origin2, cg.lerpfrac, cent->current.origin2 );
 }
 
 static void CG_AddLaserEnt( centity_t *cent ) {
-	DrawBeam( FromQF3( cent->ent.origin ), FromQF3( cent->ent.origin2 ), cent->current.radius, vec4_white, cgs.media.shaderLaser );
+	DrawBeam( cent->ent.origin, cent->ent.origin2, cent->current.radius, vec4_white, cgs.media.shaderLaser );
 }
 
 //==========================================================================
@@ -643,11 +615,11 @@ static void CG_UpdateLaserbeamEnt( centity_t *cent ) {
 	// laser->s.origin is beam start
 	// laser->s.origin2 is beam end
 
-	VectorCopy( cent->prev.origin, owner->laserOriginOld );
-	VectorCopy( cent->prev.origin2, owner->laserPointOld );
+	owner->laserOriginOld = cent->prev.origin;
+	owner->laserPointOld = cent->prev.origin2;
 
-	VectorCopy( cent->current.origin, owner->laserOrigin );
-	VectorCopy( cent->current.origin2, owner->laserPoint );
+	owner->laserOrigin = cent->current.origin;
+	owner->laserPoint = cent->current.origin2;
 }
 
 /*
@@ -694,7 +666,7 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	}
 
 	if( fixed ) {
-		S_StartFixedSound( sfx, FromQF3( cent->current.origin ), channel, 1.0f );
+		S_StartFixedSound( sfx, cent->current.origin, channel, 1.0f );
 	}
 	else if( ISVIEWERENTITY( owner ) ) {
 		S_StartGlobalSound( sfx, channel, 1.0f );
@@ -739,12 +711,12 @@ static void CG_LerpSpikes( centity_t *cent ) {
 		}
 	}
 
-	vec3_t up;
-	AngleVectors( cent->current.angles, NULL, NULL, up );
+	Vec3 up;
+	AngleVectors( cent->current.angles, NULL, NULL, &up );
 
 	AnglesToAxis( cent->current.angles, cent->ent.axis );
-	VectorMA( cent->current.origin, position, up, cent->ent.origin );
-	VectorCopy( cent->ent.origin, cent->ent.origin2 );
+	cent->ent.origin = cent->current.origin + up * position;
+	cent->ent.origin2 = Vec3( cent->ent.origin );
 }
 
 static void CG_UpdateSpikes( centity_t *cent ) {
@@ -812,6 +784,7 @@ void CG_AddEntities( void ) {
 				CG_ProjectileTrail( cent );
 				break;
 			case ET_PLASMA:
+			case ET_BUBBLE:
 				CG_AddGenericEnt( cent );
 				CG_EntityLoopSound( cent, state );
 				break;
@@ -847,14 +820,17 @@ void CG_AddEntities( void ) {
 			case ET_SOUNDEVENT:
 				break;
 
-			case ET_HUD:
-				CG_AddBombHudEntity( cent );
+			case ET_BOMB:
+				CG_AddBomb( cent );
 				break;
 
-			case ET_LASER: {
+			case ET_BOMB_SITE:
+				CG_AddBombSite( cent );
+				break;
+
+			case ET_LASER:
 				CG_AddLaserEnt( cent );
-				cent->sound = S_ImmediateLineSound( FindSoundEffect( state->sound ), FromQF3( cent->ent.origin ), FromQF3( cent->ent.origin2 ), 1.0f, cent->sound );
-			} break;
+				cent->sound = S_ImmediateLineSound( FindSoundEffect( state->sound ), cent->ent.origin, cent->ent.origin2, 1.0f, cent->sound );
 
 			case ET_SPIKES:
 				CG_AddGenericEnt( cent );
@@ -865,7 +841,7 @@ void CG_AddEntities( void ) {
 				break;
 		}
 
-		VectorCopy( cent->ent.origin, cent->trailOrigin );
+		cent->trailOrigin = cent->ent.origin;
 	}
 }
 
@@ -885,6 +861,7 @@ void CG_LerpEntities( void ) {
 			case ET_GENERIC:
 			case ET_ROCKET:
 			case ET_PLASMA:
+			case ET_BUBBLE:
 			case ET_GRENADE:
 			case ET_RIFLEBULLET:
 			case ET_PLAYER:
@@ -909,7 +886,8 @@ void CG_LerpEntities( void ) {
 			case ET_SOUNDEVENT:
 				break;
 
-			case ET_HUD:
+			case ET_BOMB:
+			case ET_BOMB_SITE:
 				break;
 
 			case ET_LASER:
@@ -925,9 +903,9 @@ void CG_LerpEntities( void ) {
 				break;
 		}
 
-		vec3_t origin, velocity;
-		CG_GetEntitySpatilization( number, origin, velocity );
-		S_UpdateEntity( number, FromQF3( origin ), FromQF3( velocity ) );
+		Vec3 origin, velocity;
+		CG_GetEntitySpatilization( number, &origin, &velocity );
+		S_UpdateEntity( number, origin, velocity );
 	}
 }
 
@@ -940,6 +918,14 @@ void CG_UpdateEntities( void ) {
 
 	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
 		SyncEntityState * state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
+
+		if( cgs.demoPlaying ) {
+			if( ( state->svflags & SVF_ONLYTEAM ) && cg.predictedPlayerState.team != state->team )
+				continue;
+			if( ( state->svflags & SVF_ONLYOWNER ) && cg.predictedPlayerState.POVnum != state->ownerNum )
+				continue;
+		}
+
 		centity_t * cent = &cg_entities[state->number];
 		cent->type = state->type;
 		cent->effects = state->effects;
@@ -952,6 +938,7 @@ void CG_UpdateEntities( void ) {
 			// projectiles with linear trajectories
 			case ET_ROCKET:
 			case ET_PLASMA:
+			case ET_BUBBLE:
 			case ET_GRENADE:
 			case ET_RIFLEBULLET:
 				CG_UpdateGenericEnt( cent );
@@ -977,7 +964,8 @@ void CG_UpdateEntities( void ) {
 			case ET_SOUNDEVENT:
 				break;
 
-			case ET_HUD:
+			case ET_BOMB:
+			case ET_BOMB_SITE:
 				break;
 
 			case ET_LASER:
@@ -1001,7 +989,7 @@ void CG_UpdateEntities( void ) {
 *
 * Called to get the sound spatialization origin and velocity
 */
-void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
+void CG_GetEntitySpatilization( int entNum, Vec3 * origin, Vec3 * velocity ) {
 	if( entNum < -1 || entNum >= MAX_EDICTS ) {
 		Com_Error( ERR_DROP, "CG_GetEntitySpatilization: bad entnum" );
 		return;
@@ -1010,10 +998,10 @@ void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
 	// hack for client side floatcam
 	if( entNum == -1 ) {
 		if( origin != NULL ) {
-			VectorCopy( cg.frame.playerState.pmove.origin, origin );
+			*origin = cg.frame.playerState.pmove.origin;
 		}
 		if( velocity != NULL ) {
-			VectorCopy( cg.frame.playerState.pmove.velocity, velocity );
+			*velocity = cg.frame.playerState.pmove.velocity;
 		}
 		return;
 	}
@@ -1023,10 +1011,10 @@ void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
 	// normal
 	if( cent->current.solid != SOLID_BMODEL ) {
 		if( origin != NULL ) {
-			VectorCopy( cent->ent.origin, origin );
+			*origin = cent->ent.origin;
 		}
 		if( velocity != NULL ) {
-			VectorCopy( cent->velocity, velocity );
+			*velocity = cent->velocity;
 		}
 		return;
 	}
@@ -1034,20 +1022,20 @@ void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
 	// bmodel
 	if( origin != NULL ) {
 		const cmodel_t * cmodel = CM_FindCModel( CM_Client, cent->current.model );
-		vec3_t mins, maxs;
-		CM_InlineModelBounds( cl.cms, cmodel, mins, maxs );
-		VectorAdd( maxs, mins, origin );
-		VectorMA( cent->ent.origin, 0.5f, origin, origin );
+		Vec3 mins, maxs;
+		CM_InlineModelBounds( cl.cms, cmodel, &mins, &maxs );
+		*origin = maxs + mins;
+		*origin = cent->ent.origin + *origin * ( 0.5f );
 	}
 	if( velocity != NULL ) {
-		VectorCopy( cent->velocity, velocity );
+		*velocity = cent->velocity;
 	}
 }
 
 /*
 * CG_BBoxForEntityState
 */
-void CG_BBoxForEntityState( const SyncEntityState * state, vec3_t mins, vec3_t maxs ) {
+void CG_BBoxForEntityState( const SyncEntityState * state, Vec3 * mins, Vec3 * maxs ) {
 	if( state->solid == SOLID_BMODEL ) {
 		Com_Error( ERR_DROP, "CG_BBoxForEntityState: called for a brush model\n" );
 	} else { // encoded bbox
@@ -1055,9 +1043,7 @@ void CG_BBoxForEntityState( const SyncEntityState * state, vec3_t mins, vec3_t m
 		int zd = 8 * ( ( state->solid >> 5 ) & 31 );
 		int zu = 8 * ( ( state->solid >> 10 ) & 63 ) - 32;
 
-		mins[0] = mins[1] = -x;
-		maxs[0] = maxs[1] = x;
-		mins[2] = -zd;
-		maxs[2] = zu;
+		*mins = Vec3( -x, -x, -zd );
+		*maxs = Vec3( x, x, zu );
 	}
 }

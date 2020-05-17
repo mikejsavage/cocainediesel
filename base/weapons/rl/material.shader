@@ -29,24 +29,3 @@ models/objects/projectile/rlauncher/rocket_flare_2
 		tcmod scroll 3.2 0
 	}
 }
-
-models/weapons/rlauncher/f_rlaunch
-{
-	cull disable
-	{
-		map models/weapons/rlauncher/f_rlaunch
-		rgbgen entity
-		//tcmod rotate 90
-		blendFunc add
-	}
-}
-
-models/weapons/rlauncher/f_rlaunch_2
-{
-	cull disable
-	{
-		map models/weapons/rlauncher/f_rlaunch_2
-		rgbgen entity
-		blendFunc add
-	}
-}

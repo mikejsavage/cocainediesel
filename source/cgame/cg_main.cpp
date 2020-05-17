@@ -29,17 +29,13 @@ centity_t cg_entities[MAX_EDICTS];
 cvar_t *cg_showMiss;
 
 cvar_t *cg_hand;
-cvar_t *cg_handicap;
 
 cvar_t *cg_addDecals;
-
-cvar_t *cg_gun;
 
 cvar_t *cg_thirdPerson;
 cvar_t *cg_thirdPersonAngle;
 cvar_t *cg_thirdPersonRange;
 
-cvar_t *cg_weaponFlashes;
 cvar_t *cg_gunx;
 cvar_t *cg_guny;
 cvar_t *cg_gunz;
@@ -51,7 +47,6 @@ cvar_t *cg_handOffset;
 cvar_t *cg_gun_fov;
 cvar_t *cg_volume_announcer;
 cvar_t *cg_volume_hitsound;
-cvar_t *cg_fov;
 cvar_t *cg_voiceChats;
 cvar_t *cg_projectileAntilagOffset;
 cvar_t *cg_chatFilter;
@@ -63,10 +58,7 @@ cvar_t *cg_autoaction_screenshot;
 cvar_t *cg_autoaction_spectator;
 cvar_t *cg_showClamp;
 
-cvar_t *cg_allyColor;
 cvar_t *cg_allyModel;
-
-cvar_t *cg_enemyColor;
 cvar_t *cg_enemyModel;
 
 void CG_LocalPrint( const char *format, ... ) {
@@ -82,12 +74,12 @@ void CG_LocalPrint( const char *format, ... ) {
 	CG_AddChat( msg );
 }
 
-static void CG_GS_Trace( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask, int timeDelta ) {
+static void CG_GS_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, int timeDelta ) {
 	assert( !timeDelta );
 	CG_Trace( t, start, mins, maxs, end, ignore, contentmask );
 }
 
-static int CG_GS_PointContents( const vec3_t point, int timeDelta ) {
+static int CG_GS_PointContents( Vec3 point, int timeDelta ) {
 	assert( !timeDelta );
 	return CG_PointContents( point );
 }
@@ -168,8 +160,6 @@ static void CG_RegisterVariables( void ) {
 	cg_showHotkeys = Cvar_Get( "cg_showHotkeys", "1", CVAR_ARCHIVE );
 
 	cg_hand =           Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
-	cg_handicap =       Cvar_Get( "handicap", "0", CVAR_USERINFO | CVAR_ARCHIVE );
-	cg_fov =        Cvar_Get( "fov", "100", CVAR_ARCHIVE );
 
 	cg_addDecals =      Cvar_Get( "cg_decals", "1", CVAR_ARCHIVE );
 
@@ -177,14 +167,12 @@ static void CG_RegisterVariables( void ) {
 	cg_thirdPersonAngle =   Cvar_Get( "cg_thirdPersonAngle", "0", 0 );
 	cg_thirdPersonRange =   Cvar_Get( "cg_thirdPersonRange", "90", 0 );
 
-	cg_gun =        Cvar_Get( "cg_gun", "1", CVAR_ARCHIVE );
-	cg_gunx =       Cvar_Get( "cg_gunx", "0", CVAR_ARCHIVE );
-	cg_guny =       Cvar_Get( "cg_guny", "0", CVAR_ARCHIVE );
-	cg_gunz =       Cvar_Get( "cg_gunz", "0", CVAR_ARCHIVE );
+	cg_gunx =       Cvar_Get( "cg_gunx", "5", CVAR_CHEAT );
+	cg_guny =       Cvar_Get( "cg_guny", "-10", CVAR_CHEAT );
+	cg_gunz =       Cvar_Get( "cg_gunz", "5", CVAR_CHEAT );
 	cg_gunbob =     Cvar_Get( "cg_gunbob", "1", CVAR_ARCHIVE );
 
 	cg_gun_fov =        Cvar_Get( "cg_gun_fov", "75", CVAR_ARCHIVE );
-	cg_weaponFlashes =  Cvar_Get( "cg_weaponFlashes", "2", CVAR_ARCHIVE );
 
 	// wsw
 	cg_volume_announcer =   Cvar_Get( "cg_volume_announcer", "1.0", CVAR_ARCHIVE );
@@ -203,11 +191,9 @@ static void CG_RegisterVariables( void ) {
 	// developer cvars
 	cg_showClamp = Cvar_Get( "cg_showClamp", "0", CVAR_DEVELOPER );
 
-	cg_allyColor = Cvar_Get( "cg_allyColor", "0", CVAR_ARCHIVE );
 	cg_allyModel = Cvar_Get( "cg_allyModel", "bigvic", CVAR_ARCHIVE );
 	cg_allyModel->modified = true;
 
-	cg_enemyColor = Cvar_Get( "cg_enemyColor", "1", CVAR_ARCHIVE );
 	cg_enemyModel = Cvar_Get( "cg_enemyModel", "padpork", CVAR_ARCHIVE );
 	cg_enemyModel->modified = true;
 
@@ -262,6 +248,9 @@ void CG_Reset( void ) {
 	CG_ClearPointedNum();
 
 	CG_ClearAwards();
+
+	CG_InitDamageNumbers();
+	InitPersistentBeams();
 
 	chaseCam.key_pressed = false;
 

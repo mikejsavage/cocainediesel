@@ -24,97 +24,83 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // CLASS: Vec3
 void objectVec3_DefaultConstructor( asvec3_t *self ) {
-	self->v[0] = self->v[1] = self->v[2] = 0;
+	self->v = Vec3( 0.0f );
 }
 
 void objectVec3_Constructor3F( float x, float y, float z, asvec3_t *self ) {
-	self->v[0] = x;
-	self->v[1] = y;
-	self->v[2] = z;
+	self->v = Vec3( x, y, z );
 }
 
 void objectVec3_Constructor1F( float v, asvec3_t *self ) {
-	self->v[0] = self->v[1] = self->v[2] = v;
+	self->v = Vec3( v );
 }
 
 void objectVec3_CopyConstructor( asvec3_t *other, asvec3_t *self ) {
-	self->v[0] = other->v[0];
-	self->v[1] = other->v[1];
-	self->v[2] = other->v[2];
+	self->v = other->v;
 }
 
 static asvec3_t *objectVec3_AssignBehaviour( asvec3_t *other, asvec3_t *self ) {
-	VectorCopy( other->v, self->v );
+	self->v = other->v;
 	return self;
 }
 
 static asvec3_t *objectVec3_AssignBehaviourD( float other, asvec3_t *self ) {
-	VectorSet( self->v, other, other, other );
+	self->v = Vec3( other, other, other );
 	return self;
 }
 
 static asvec3_t *objectVec3_AssignBehaviourI( int other, asvec3_t *self ) {
-	VectorSet( self->v, other, other, other );
+	self->v = Vec3( other, other, other );
 	return self;
 }
 
 static asvec3_t *objectVec3_AddAssignBehaviour( asvec3_t *other, asvec3_t *self ) {
-	VectorAdd( self->v, other->v, self->v );
+	self->v += other->v;
 	return self;
 }
 
 static asvec3_t *objectVec3_SubAssignBehaviour( asvec3_t *other, asvec3_t *self ) {
-	VectorSubtract( self->v, other->v, self->v );
-	return self;
-}
-
-static asvec3_t *objectVec3_MulAssignBehaviour( asvec3_t *other, asvec3_t *self ) {
-	float product = DotProduct( self->v, other->v );
-
-	VectorScale( self->v, product, self->v );
+	self->v -= other->v;
 	return self;
 }
 
 static asvec3_t *objectVec3_XORAssignBehaviour( asvec3_t *other, asvec3_t *self ) {
-	vec3_t product;
-
-	CrossProduct( self->v, other->v, product );
-	VectorCopy( product, self->v );
+	self->v = Cross( self->v, other->v );
 	return self;
 }
 
 static asvec3_t *objectVec3_MulAssignBehaviourI( int other, asvec3_t *self ) {
-	VectorScale( self->v, other, self->v );
+	self->v *= other;
 	return self;
 }
 
 static asvec3_t *objectVec3_MulAssignBehaviourD( float other, asvec3_t *self ) {
-	VectorScale( self->v, other, self->v );
+	self->v *= other;
 	return self;
 }
 
 static asvec3_t objectVec3_AddBehaviour( asvec3_t *first, asvec3_t *second ) {
 	asvec3_t vec;
 
-	VectorAdd( first->v, second->v, vec.v );
+	vec.v = first->v + second->v;
 	return vec;
 }
 
 static asvec3_t objectVec3_SubtractBehaviour( asvec3_t *first, asvec3_t *second ) {
 	asvec3_t vec;
 
-	VectorSubtract( first->v, second->v, vec.v );
+	vec.v = first->v - second->v;
 	return vec;
 }
 
 static float objectVec3_MultiplyBehaviour( asvec3_t *first, asvec3_t *second ) {
-	return DotProduct( first->v, second->v );
+	return Dot( first->v, second->v );
 }
 
 static asvec3_t objectVec3_MultiplyBehaviourVD( asvec3_t *first, float second ) {
 	asvec3_t vec;
 
-	VectorScale( first->v, second, vec.v );
+	vec.v = first->v * second;
 	return vec;
 }
 
@@ -125,7 +111,7 @@ static asvec3_t objectVec3_MultiplyBehaviourDV( float first, asvec3_t *second ) 
 static asvec3_t objectVec3_MultiplyBehaviourVI( asvec3_t *first, int second ) {
 	asvec3_t vec;
 
-	VectorScale( first->v, second, vec.v );
+	vec.v = first->v * second;
 	return vec;
 }
 
@@ -136,46 +122,41 @@ static asvec3_t objectVec3_MultiplyBehaviourIV( int first, asvec3_t *second ) {
 static asvec3_t objectVec3_XORBehaviour( asvec3_t *first, asvec3_t *second ) {
 	asvec3_t vec;
 
-	CrossProduct( first->v, second->v, vec.v );
+	vec.v = Cross( first->v, second->v );
 	return vec;
 }
 
 static bool objectVec3_EqualBehaviour( asvec3_t *first, asvec3_t *second ) {
-	return VectorCompare( first->v, second->v );
+	return first->v == second->v;
 }
 
 static void objectVec3_Set( float x, float y, float z, asvec3_t *vec ) {
-	VectorSet( vec->v, x, y, z );
+	vec->v = Vec3( x, y, z );
 }
 
 static float objectVec3_Length( const asvec3_t *vec ) {
-	return VectorLength( vec->v );
+	return Length( vec->v );
 }
 
 static float objectVec3_Normalize( asvec3_t *vec ) {
-	return VectorNormalize( vec->v );
+	float len = Length( vec->v );
+	vec->v = Normalize( vec->v );
+	return len;
 }
 
 static float objectVec3_Distance( asvec3_t *other, asvec3_t *self ) {
-	return Distance( self->v, other->v );
+	return Length( other->v - self->v );
 }
 
 static void objectVec3_AngleVectors( asvec3_t *f, asvec3_t *r, asvec3_t *u, asvec3_t *self ) {
-	AngleVectors( self->v, f->v, r->v, u->v );
+	AngleVectors( self->v, &f->v, &r->v, &u->v );
 }
 
 static asvec3_t objectVec3_VecToAngles( asvec3_t *self ) {
 	asvec3_t angles;
 
-	VecToAngles( self->v, angles.v );
+	angles.v = VecToAngles( self->v );
 	return angles;
-}
-
-static asvec3_t objectVec3_Perpendicular( asvec3_t *self ) {
-	asvec3_t dst;
-
-	PerpendicularVector( dst.v, self->v );
-	return dst;
 }
 
 static float *objectVec3_Index( unsigned index, asvec3_t *self ) {
@@ -215,7 +196,6 @@ void RegisterVec3Addon( asIScriptEngine *engine ) {
 	r = engine->RegisterObjectMethod( "Vec3", "Vec3 &opAssign(float)", asFUNCTION( objectVec3_AssignBehaviourD ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
 	r = engine->RegisterObjectMethod( "Vec3", "Vec3 &opAddAssign(Vec3 &in)", asFUNCTION( objectVec3_AddAssignBehaviour ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
 	r = engine->RegisterObjectMethod( "Vec3", "Vec3 &opSubAssign(Vec3 &in)", asFUNCTION( objectVec3_SubAssignBehaviour ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
-	r = engine->RegisterObjectMethod( "Vec3", "Vec3 &opMulAssign(Vec3 &in)", asFUNCTION( objectVec3_MulAssignBehaviour ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
 	r = engine->RegisterObjectMethod( "Vec3", "Vec3 &opXorAssign(Vec3 &in)", asFUNCTION( objectVec3_XORAssignBehaviour ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
 	r = engine->RegisterObjectMethod( "Vec3", "Vec3 &opMulAssign(int)", asFUNCTION( objectVec3_MulAssignBehaviourI ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
 	r = engine->RegisterObjectMethod( "Vec3", "Vec3 &opMulAssign(float)", asFUNCTION( objectVec3_MulAssignBehaviourD ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
@@ -239,14 +219,13 @@ void RegisterVec3Addon( asIScriptEngine *engine ) {
 	r = engine->RegisterObjectMethod( "Vec3", "float distance(const Vec3 &in) const", asFUNCTION( objectVec3_Distance ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
 	r = engine->RegisterObjectMethod( "Vec3", "void angleVectors(Vec3 &out, Vec3 &out, Vec3 &out) const", asFUNCTION( objectVec3_AngleVectors ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
 	r = engine->RegisterObjectMethod( "Vec3", "Vec3 toAngles() const", asFUNCTION( objectVec3_VecToAngles ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
-	r = engine->RegisterObjectMethod( "Vec3", "Vec3 perpendicular() const", asFUNCTION( objectVec3_Perpendicular ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
 	r = engine->RegisterObjectMethod( "Vec3", "float &opIndex(uint)", asFUNCTION( objectVec3_Index ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
 	r = engine->RegisterObjectMethod( "Vec3", "const float &opIndex(uint) const", asFUNCTION( objectVec3_Index ), asCALL_CDECL_OBJLAST ); assert( r >= 0 );
 
 	// properties
-	r = engine->RegisterObjectProperty( "Vec3", "float x", asOFFSET( asvec3_t, v[0] ) ); assert( r >= 0 );
-	r = engine->RegisterObjectProperty( "Vec3", "float y", asOFFSET( asvec3_t, v[1] ) ); assert( r >= 0 );
-	r = engine->RegisterObjectProperty( "Vec3", "float z", asOFFSET( asvec3_t, v[2] ) ); assert( r >= 0 );
+	r = engine->RegisterObjectProperty( "Vec3", "float x", asOFFSET( asvec3_t, v.x ) ); assert( r >= 0 );
+	r = engine->RegisterObjectProperty( "Vec3", "float y", asOFFSET( asvec3_t, v.y ) ); assert( r >= 0 );
+	r = engine->RegisterObjectProperty( "Vec3", "float z", asOFFSET( asvec3_t, v.z ) ); assert( r >= 0 );
 
 	(void)sizeof( r ); // hush the compiler
 }

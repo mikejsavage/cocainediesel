@@ -2,10 +2,10 @@
 
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-#include "qcommon/assets.h"
 #include "qcommon/array.h"
 #include "qcommon/string.h"
 #include "qcommon/span2d.h"
+#include "client/assets.h"
 #include "client/renderer/renderer.h"
 #include "client/maps.h"
 
@@ -190,7 +190,7 @@ static bool ParseBSP( BSPSpans * bsp, Span< const u8 > data ) {
 static float ParseFogStrength( const BSPSpans * bsp ) {
 	ZoneScoped;
 
-	float default_fog_strength = 0.000015f;
+	float default_fog_strength = 0.0004f;
 
 	Span< const char > cursor = bsp->entities;
 
@@ -232,7 +232,7 @@ struct BSPModelVertex {
 	Vec2 uv;
 };
 
-BSPModelVertex Lerp( const BSPModelVertex & a, float t, const BSPModelVertex & b ) {
+static BSPModelVertex Lerp( const BSPModelVertex & a, float t, const BSPModelVertex & b ) {
 	BSPModelVertex res;
 	res.position = Lerp( a.position, t, b.position );
 	res.normal = Normalize( Lerp( a.normal, t, b.normal ) );
@@ -447,9 +447,8 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 	model->mesh = NewMesh( mesh_config );
 }
 
-bool LoadBSPRenderData( Map * map, const char * path, u64 base_hash, Span< const u8 > data ) {
+bool LoadBSPRenderData( Map * map, u64 base_hash, Span< const u8 > data ) {
 	ZoneScoped;
-	ZoneText( path, strlen( path ) );
 
 	BSPSpans bsp;
 	if( !ParseBSP( &bsp, data ) )

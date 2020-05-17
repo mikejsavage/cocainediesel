@@ -493,8 +493,8 @@ size_t CL_ReadDemoMetaData( const char *demopath, char *meta_data, size_t meta_d
 	if( cls.demo.playing && !Q_stricmp( cls.demo.name, servername ) && cls.demo.meta_data_realsize > 0 ) {
 		if( meta_data && meta_data_size ) {
 			meta_data_realsize = cls.demo.meta_data_realsize;
-			memcpy( meta_data, cls.demo.meta_data, min( meta_data_size, cls.demo.meta_data_realsize ) );
-			meta_data[min( meta_data_size - 1, cls.demo.meta_data_realsize )] = '\0';
+			memcpy( meta_data, cls.demo.meta_data, Min2( meta_data_size, cls.demo.meta_data_realsize ) );
+			meta_data[Min2( meta_data_size - 1, cls.demo.meta_data_realsize )] = '\0';
 		}
 	} else {
 		char *name;

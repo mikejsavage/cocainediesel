@@ -1,0 +1,5 @@
+{
+	attenuation static
+	volume 0.1
+	sound sounds/gladiator/laser_hum
+}

@@ -18,7 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "qcommon.h"
+#include "qcommon/qcommon.h"
+#include "qcommon/cmodel.h"
 #include "server/server.h"
 
 #undef EDICT_NUM
@@ -345,7 +346,7 @@ Build a client frame structure
 * The client will interpolate the view position,
 * so we can't use a single PVS point
 */
-static void SNAP_FatPVS( CollisionModel *cms, const vec3_t org, uint8_t *fatpvs ) {
+static void SNAP_FatPVS( CollisionModel *cms, Vec3 org, uint8_t *fatpvs ) {
 	memset( fatpvs, 0, CM_ClusterRowSize( cms ) );
 	CM_MergePVS( cms, org, fatpvs );
 }
@@ -353,9 +354,7 @@ static void SNAP_FatPVS( CollisionModel *cms, const vec3_t org, uint8_t *fatpvs 
 /*
 * SNAP_BitsCullEntity
 */
-static bool SNAP_BitsCullEntity( CollisionModel *cms, edict_t *ent, uint8_t *bits, int max_clusters ) {
-	int i, l;
-
+static bool SNAP_PVSCullEntity( CollisionModel *cms, edict_t *ent, uint8_t *bits ) {
 	// too many leafs for individual check, go by headnode
 	if( ent->r.num_clusters == -1 ) {
 		if( !CM_HeadnodeVisible( cms, ent->r.headnode, bits ) ) {
@@ -365,8 +364,8 @@ static bool SNAP_BitsCullEntity( CollisionModel *cms, edict_t *ent, uint8_t *bit
 	}
 
 	// check individual leafs
-	for( i = 0; i < max_clusters; i++ ) {
-		l = ent->r.clusternums[i];
+	for( int i = 0; i < ent->r.num_clusters; i++ ) {
+		int l = ent->r.clusternums[i];
 		if( bits[l >> 3] & ( 1 << ( l & 7 ) ) ) {
 			return false;
 		}
@@ -374,8 +373,6 @@ static bool SNAP_BitsCullEntity( CollisionModel *cms, edict_t *ent, uint8_t *bit
 
 	return true;    // not visible/audible
 }
-
-#define SNAP_PVSCullEntity( cms,fatpvs,ent ) SNAP_BitsCullEntity( cms,ent,fatpvs,ent->r.num_clusters )
 
 //=====================================================================
 
@@ -437,9 +434,9 @@ static float SNAP_GainForAttenuation( float dist ) {
 /*
 * SNAP_SnapCullSoundEntity
 */
-static bool SNAP_SnapCullSoundEntity( CollisionModel *cms, edict_t *ent, const vec3_t listener_origin ) {
+static bool SNAP_SnapCullSoundEntity( CollisionModel *cms, edict_t *ent, Vec3 listener_origin ) {
 	// extend the influence sphere cause the player could be moving
-	float dist = Distance( ent->s.origin, listener_origin ) - 128;
+	float dist = Length( listener_origin - ent->s.origin ) - 128;
 	float gain = SNAP_GainForAttenuation( dist < 0 ? 0 : dist );
 	return gain <= 0.05f;
 }
@@ -448,11 +445,7 @@ static bool SNAP_SnapCullSoundEntity( CollisionModel *cms, edict_t *ent, const v
 * SNAP_SnapCullEntity
 */
 static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *clent, client_snapshot_t *frame,
-								const vec3_t vieworg, int viewarea, uint8_t *fatpvs ) {
-	uint8_t *areabits;
-	bool snd_cull_only;
-	bool snd_culled;
-
+								Vec3 vieworg, int viewarea, uint8_t *fatpvs ) {
 	// filters: this entity has been disabled for comunication
 	if( ent->r.svflags & SVF_NOCLIENT ) {
 		return true;
@@ -492,7 +485,7 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 
 	if( viewarea >= 0 ) {
 		// this is the same as CM_AreasConnected but portal's visibility included
-		areabits = frame->areabits + viewarea * CM_AreaRowSize( cms );
+		uint8_t * areabits = frame->areabits + viewarea * CM_AreaRowSize( cms );
 		if( !( areabits[ent->r.areanum >> 3] & ( 1 << ( ent->r.areanum & 7 ) ) ) ) {
 			// doors can legally straddle two areas, so we may need to check another one
 			if( ent->r.areanum2 < 0 || !( areabits[ent->r.areanum2 >> 3] & ( 1 << ( ent->r.areanum2 & 7 ) ) ) ) {
@@ -501,8 +494,8 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 		}
 	}
 
-	snd_cull_only = false;
-	snd_culled = true;
+	bool snd_cull_only = false;
+	bool snd_culled = true;
 
 	// sound entities culling
 	if( ent->r.svflags & SVF_SOUNDCULL ) {
@@ -525,13 +518,13 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 		return true;
 	}
 
-	return snd_culled && SNAP_PVSCullEntity( cms, fatpvs, ent );    // cull by PVS
+	return snd_culled && SNAP_PVSCullEntity( cms, ent, fatpvs );    // cull by PVS
 }
 
 /*
 * SNAP_AddEntitiesVisibleAtOrigin
 */
-static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg,
+static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, edict_t *clent, Vec3 vieworg,
 											int viewarea, client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
 	int entNum;
 	edict_t *ent;
@@ -550,11 +543,9 @@ static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, e
 			ent->s.number = entNum;
 		}
 
-		if( !frame->allentities ) {
-			// always add the client entity, even if SVF_NOCLIENT
-			if( ( ent != clent ) && SNAP_SnapCullEntity( cms, ent, clent, frame, vieworg, viewarea, pvs ) ) {
-				continue;
-			}
+		// always add the client entity, even if SVF_NOCLIENT
+		if( ent != clent && SNAP_SnapCullEntity( cms, ent, clent, frame, vieworg, viewarea, pvs ) ) {
+			continue;
 		}
 
 		// add it
@@ -571,21 +562,13 @@ static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, e
 				ent->s.ownerNum = 0;
 			}
 		}
-
-		if( ent->r.svflags & SVF_PORTAL ) {
-			// if it's a portal entity and not a mirror,
-			// recursively add everything from its camera positiom
-			if( !VectorCompare( ent->s.origin, ent->s.origin2 ) ) {
-				SNAP_AddEntitiesVisibleAtOrigin( cms, gi, clent, ent->s.origin2, ent->r.areanum, frame, entList );
-			}
-		}
 	}
 }
 
 /*
 * SNAP_BuildSnapEntitiesList
 */
-static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg,
+static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, ginfo_t *gi, edict_t *clent, Vec3 vieworg,
 										client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
 	int entNum;
 	int leafnum, clientarea;
@@ -597,8 +580,7 @@ static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, ginfo_t *gi, edict_
 	leafnum = CM_PointLeafnum( cms, vieworg );
 	clientarea = CM_LeafArea( cms, leafnum );
 
-	frame->clientarea = clientarea;
-	frame->areabytes = CM_WriteAreaBits( cms, frame->areabits );
+	CM_WriteAreaBits( cms, frame->areabits );
 
 	// always add the client entity
 	if( clent ) {
@@ -631,7 +613,7 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 								SyncGameState *gameState, client_entities_t *client_entities,
 								mempool_t *mempool ) {
 	int e, i, ne;
-	vec3_t org;
+	Vec3 org;
 	edict_t *ent, *clent;
 	client_snapshot_t *frame;
 	SyncEntityState *state;
@@ -646,11 +628,11 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 
 	}
 	if( clent ) {
-		VectorCopy( clent->s.origin, org );
-		org[2] += clent->r.client->ps.viewheight;
+		org = clent->s.origin;
+		org.z += clent->r.client->ps.viewheight;
 	} else {
 		assert( client->mv );
-		VectorClear( org );
+		org = Vec3( 0.0f );
 	}
 
 	// this is the frame we are creating

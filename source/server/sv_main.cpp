@@ -153,6 +153,8 @@ static bool SV_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
 * SV_ReadPackets
 */
 static void SV_ReadPackets( void ) {
+	ZoneScoped;
+
 	int i, ret;
 	client_t *cl;
 	int game_port;
@@ -273,6 +275,8 @@ static void SV_ReadPackets( void ) {
 * if necessary
 */
 static void SV_CheckTimeouts( void ) {
+	ZoneScoped;
+
 	client_t *cl;
 	int i;
 
@@ -321,6 +325,8 @@ static void SV_CheckTimeouts( void ) {
 * Applies latched userinfo updates if the timeout is over.
 */
 static void SV_CheckLatchedUserinfoChanges( void ) {
+	ZoneScoped;
+
 	client_t *cl;
 	int i;
 	int64_t time = Sys_Milliseconds();
@@ -347,6 +353,8 @@ static void SV_CheckLatchedUserinfoChanges( void ) {
 * SV_RunGameFrame
 */
 static bool SV_RunGameFrame( int msec ) {
+	ZoneScoped;
+
 	static int64_t accTime = 0;
 	bool refreshSnapshot;
 	bool refreshGameModule;
@@ -372,7 +380,7 @@ static bool SV_RunGameFrame( int msec ) {
 
 	// if there aren't pending packets to be sent, we can sleep
 	if( is_dedicated_server && !sentFragments && !refreshSnapshot ) {
-		int sleeptime = min( WORLDFRAMETIME - ( accTime + 1 ), sv.nextSnapTime - ( svs.gametime + 1 ) );
+		int sleeptime = Min2( WORLDFRAMETIME - ( accTime + 1 ), sv.nextSnapTime - ( svs.gametime + 1 ) );
 
 		if( sleeptime > 0 ) {
 			socket_t *sockets[] = { &svs.socket_udp, &svs.socket_udp6 };

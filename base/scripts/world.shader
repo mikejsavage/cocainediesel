@@ -36,7 +36,7 @@ textures/world/bluewater
 	{
 		map textures/colors/blue
 		blendfunc add
-		rgbGen const ( 0.227451 0.227451 0.227451 )
+		rgbGen const 0.227451 0.227451 0.227451
 	}
 }
 

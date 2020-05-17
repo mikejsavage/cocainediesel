@@ -28,6 +28,7 @@ require( "libs.monocypher" )
 require( "libs.stb" )
 require( "libs.tracy" )
 require( "libs.whereami" )
+require( "libs.zstd" )
 
 do
 	local platform_srcs
@@ -39,6 +40,7 @@ do
 			"source/win32/win_console.cpp",
 			"source/win32/win_fs.cpp",
 			"source/win32/win_net.cpp",
+			"source/win32/win_sys.cpp",
 			"source/win32/win_threads.cpp",
 			"source/win32/win_time.cpp",
 		}
@@ -78,6 +80,7 @@ do
 			"stb_vorbis",
 			"tracy",
 			"whereami",
+			"zstd",
 		},
 
 		prebuilt_libs = {
@@ -87,7 +90,6 @@ do
 			"glfw3",
 			"openal",
 			"zlib",
-			"zstd",
 			platform_libs
 		},
 
@@ -112,6 +114,7 @@ do
 			"source/win32/win_fs.cpp",
 			"source/win32/win_net.cpp",
 			"source/win32/win_server.cpp",
+			"source/win32/win_sys.cpp",
 			"source/win32/win_threads.cpp",
 			"source/win32/win_time.cpp",
 		}
@@ -142,13 +145,13 @@ do
 			"monocypher",
 			"tracy",
 			"whereami",
+			"zstd",
 		},
 
 		prebuilt_libs = {
 			"angelscript",
 			"curl",
 			"zlib",
-			"zstd",
 			platform_libs
 		},
 

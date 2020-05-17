@@ -67,12 +67,7 @@ RGB8 CG_TeamColor( int team ) {
 	if( team == TEAM_PLAYERS )
 		return RGB8( 255, 255, 255 );
 
-	cvar_t * cvar = CG_IsAlly( team ) ? cg_allyColor : cg_enemyColor;
-
-	if( cvar->integer >= int( ARRAY_COUNT( TEAM_COLORS ) ) )
-		Cvar_Set( cvar->name, cvar->dvalue );
-
-	return TEAM_COLORS[ cvar->integer ].rgb;
+	return CG_IsAlly( team ) ? TEAM_COLORS[ 0 ] : TEAM_COLORS[ 1 ];
 }
 
 Vec4 CG_TeamColorVec4( int team ) {

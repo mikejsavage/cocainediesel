@@ -199,8 +199,6 @@ void G_CheckCvars( void ) {
 //		SNAP FRAMES
 //===================================================================
 
-static bool g_snapStarted = false;
-
 /*
 * G_SnapClients
 */
@@ -237,7 +235,7 @@ static void G_SnapEntities() {
 		if( ent->s.type == ET_PLAYER || ent->s.type == ET_CORPSE ) {
 			// this is pretty hackish
 			if( !G_ISGHOSTING( ent ) ) {
-				VectorCopy( ent->velocity, ent->s.origin2 );
+				ent->s.origin2 = ent->velocity;
 			}
 		}
 
@@ -257,14 +255,12 @@ static void G_SnapEntities() {
 			if( ent->snap.damage_taken && !( ent->flags & FL_GODMODE ) && HEALTH_TO_INT( ent->health ) > 0 ) {
 				float damage = Min2( ent->snap.damage_taken, 120.0f );
 
-				vec3_t dir, origin;
-				VectorCopy( ent->snap.damage_dir, dir );
-				VectorNormalize( dir );
-				VectorAdd( ent->s.origin, ent->snap.damage_at, origin );
+				Vec3 dir = Normalize( ent->snap.damage_dir );
+				Vec3 origin = ent->s.origin + ent->snap.damage_at;
 
 				if( ent->s.type == ET_PLAYER || ent->s.type == ET_CORPSE ) {
-					edict_t * event = G_SpawnEvent( EV_BLOOD, DirToByte( dir ), origin );
-					event->s.damage = HEALTH_TO_INT( damage );
+					edict_t * event = G_SpawnEvent( EV_BLOOD, DirToByte( dir ), &origin );
+					// event->s.damage = HEALTH_TO_INT( damage );
 					event->s.ownerNum = i; // set owner
 					event->s.team = ent->s.team;
 
@@ -282,20 +278,12 @@ static void G_SnapEntities() {
 						}
 					}
 				} else {
-					edict_t * event = G_SpawnEvent( EV_SPARKS, DirToByte( dir ), origin );
-					event->s.damage = HEALTH_TO_INT( damage );
+					edict_t * event = G_SpawnEvent( EV_SPARKS, DirToByte( dir ), &origin );
+					// event->s.damage = HEALTH_TO_INT( damage );
 				}
 			}
 		}
 	}
-}
-
-/*
-* G_StartFrameSnap
-* a snap was just sent, set up for new one
-*/
-static void G_StartFrameSnap( void ) {
-	g_snapStarted = true;
 }
 
 // backup entitiy sounds in timeout
@@ -345,8 +333,6 @@ void G_ClearSnap( void ) {
 			memset( &ent->r.client->resp.snap, 0, sizeof( ent->r.client->resp.snap ) );
 		}
 	}
-
-	g_snapStarted = false;
 }
 
 /*
@@ -415,6 +401,8 @@ void G_SnapFrame( void ) {
 * even the world and clients get a chance to think
 */
 static void G_RunEntities( void ) {
+	ZoneScoped;
+
 	edict_t *ent;
 
 	for( ent = &game.edicts[0]; ENTNUM( ent ) < game.numentities; ent++ ) {
@@ -423,7 +411,6 @@ static void G_RunEntities( void ) {
 		}
 		if( ISEVENTENTITY( &ent->s ) ) {
 			continue; // events do not think
-
 		}
 		level.current_entity = ent;
 
@@ -451,6 +438,8 @@ static void G_RunEntities( void ) {
 * G_RunClients
 */
 static void G_RunClients( void ) {
+	ZoneScoped;
+
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t *ent = game.edicts + 1 + i;
 		if( !ent->r.inuse ) {
@@ -472,14 +461,12 @@ static void G_RunClients( void ) {
 * Advances the world
 */
 void G_RunFrame( unsigned int msec ) {
+	ZoneScoped;
+
 	G_CheckCvars();
 
 	game.frametime = msec;
 	G_Timeout_Update( msec );
-
-	if( !g_snapStarted ) {
-		G_StartFrameSnap();
-	}
 
 	G_CallVotes_Think();
 

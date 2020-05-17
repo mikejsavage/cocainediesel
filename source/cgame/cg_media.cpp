@@ -26,7 +26,7 @@ void CG_RegisterMediaSounds() {
 
 	// weapon
 	for( int i = 0; i < 4; i++ )
-		cgs.media.sfxWeaponHit[i] = FindSoundEffect( va( S_WEAPON_HITS, i ) );
+		cgs.media.sfxWeaponHit[ i ] = FindSoundEffect( va( S_WEAPON_HITS, i ) );
 	cgs.media.sfxWeaponKill = FindSoundEffect( S_WEAPON_KILL );
 	cgs.media.sfxWeaponHitTeam = FindSoundEffect( S_WEAPON_HIT_TEAM );
 	cgs.media.sfxWeaponNoAmmo = FindSoundEffect( "weapons/noammo" );
@@ -50,6 +50,7 @@ void CG_RegisterMediaSounds() {
 
 	// Plasmagun sounds :
 	cgs.media.sfxPlasmaHit = FindSoundEffect( "weapons/pg/explode" );
+	cgs.media.sfxBubbleHit = FindSoundEffect( "weapons/bg/explode" );
 
 	// Lasergun sounds
 	cgs.media.sfxLasergunHum = FindSoundEffect( "weapons/lg/hum" );
@@ -68,6 +69,8 @@ void CG_RegisterMediaSounds() {
 
 	cgs.media.sfxTbag = FindSoundEffect( "sounds/tbag/tbag" );
 
+	cgs.media.sfxHeadshot = FindSoundEffect( "sounds/headshot/headshot" );
+
 	// VSAY sounds
 	cgs.media.sfxVSaySounds[ Vsay_Sorry ] = FindSoundEffect( "sounds/vsay/sorry" );
 	cgs.media.sfxVSaySounds[ Vsay_Thanks ] = FindSoundEffect( "sounds/vsay/thanks" );
@@ -79,11 +82,14 @@ void CG_RegisterMediaSounds() {
 	cgs.media.sfxVSaySounds[ Vsay_GetGood ] = FindSoundEffect( "sounds/vsay/getgood" );
 	cgs.media.sfxVSaySounds[ Vsay_HitTheShowers ] = FindSoundEffect( "sounds/vsay/hittheshowers" );
 	cgs.media.sfxVSaySounds[ Vsay_Lads ] = FindSoundEffect( "sounds/vsay/lads" );
+	cgs.media.sfxVSaySounds[ Vsay_SheDoesntEvenGoHere ] = FindSoundEffect( "sounds/vsay/shedoesntevengohere" );
 	cgs.media.sfxVSaySounds[ Vsay_ShitSon ] = FindSoundEffect( "sounds/vsay/shitson" );
 	cgs.media.sfxVSaySounds[ Vsay_TrashSmash ] = FindSoundEffect( "sounds/vsay/trashsmash" );
+	cgs.media.sfxVSaySounds[ Vsay_WhatTheShit ] = FindSoundEffect( "sounds/vsay/whattheshit" );
 	cgs.media.sfxVSaySounds[ Vsay_WowYourTerrible ] = FindSoundEffect( "sounds/vsay/wowyourterrible" );
 	cgs.media.sfxVSaySounds[ Vsay_Acne ] = FindSoundEffect( "sounds/vsay/acne" );
 	cgs.media.sfxVSaySounds[ Vsay_Valley ] = FindSoundEffect( "sounds/vsay/valley" );
+	cgs.media.sfxVSaySounds[ Vsay_Mike ] = FindSoundEffect( "sounds/vsay/mike" );
 }
 
 void CG_RegisterMediaModels() {

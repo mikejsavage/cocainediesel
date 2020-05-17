@@ -171,10 +171,7 @@ static void G_JumpPadSound( edict_t *ent ) {
 		return;
 	}
 
-	vec3_t org;
-	org[0] = ent->s.origin[0] + 0.5 * ( ent->r.mins[0] + ent->r.maxs[0] );
-	org[1] = ent->s.origin[1] + 0.5 * ( ent->r.mins[1] + ent->r.maxs[1] );
-	org[2] = ent->s.origin[2] + 0.5 * ( ent->r.mins[2] + ent->r.maxs[2] );
+	Vec3 org = ent->s.origin + 0.5f * ( ent->r.mins + ent->r.maxs );
 
 	G_PositionedSound( org, CHAN_AUTO, ent->moveinfo.sound_start );
 }
@@ -214,24 +211,21 @@ static void trigger_push_setup( edict_t *self ) {
 		return;
 	}
 
-	vec3_t origin;
-	VectorAdd( self->r.absmin, self->r.absmax, origin );
-	VectorScale( origin, 0.5, origin );
+	Vec3 origin = ( self->r.absmin + self->r.absmax ) * 0.5f;
+	Vec3 velocity = target->s.origin - origin;
 
-	vec3_t velocity;
-	VectorSubtract( target->s.origin, origin, velocity );
-
-	float height = target->s.origin[2] - origin[2];
+	float height = target->s.origin.z - origin.z;
 	float time = sqrtf( height / ( 0.5f * level.gravity ) );
 	if( time != 0 ) {
-		velocity[2] = 0;
-		float dist = VectorNormalize( velocity );
-		VectorScale( velocity, dist / time, velocity );
-		velocity[2] = time * level.gravity;
-		VectorCopy( velocity, self->s.origin2 );
+		velocity.z = 0;
+		float dist = Length( velocity );
+		velocity = Normalize( velocity );
+		velocity = velocity * ( dist / time );
+		velocity.z = time * level.gravity;
+		self->s.origin2 = velocity;
 	}
 	else {
-		VectorCopy( velocity, self->s.origin2 );
+		self->s.origin2 = velocity;
 	}
 }
 
@@ -317,7 +311,7 @@ static void hurt_touch( edict_t *self, edict_t *other, cplane_t *plane, int surf
 		}
 	}
 
-	G_Damage( other, self, world, vec3_origin, vec3_origin, other->s.origin, damage, damage, dflags, MOD_TRIGGER_HURT );
+	G_Damage( other, self, world, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, damage, damage, dflags, MOD_TRIGGER_HURT );
 }
 
 void SP_trigger_hurt( edict_t *self ) {
@@ -374,7 +368,7 @@ static void trigger_gravity_touch( edict_t *self, edict_t *other, cplane_t *plan
 void SP_trigger_gravity( edict_t *self ) {
 	if( st.gravity == 0 ) {
 		if( developer->integer ) {
-			Com_Printf( "trigger_gravity without gravity set at %s\n", vtos( self->s.origin ) );
+			Com_GGPrint( "trigger_gravity without gravity set at {}", self->s.origin );
 		}
 		G_FreeEdict( self );
 		return;
@@ -423,14 +417,12 @@ static void TeleporterTouch( edict_t *self, edict_t *other, cplane_t *plane, int
 
 	// play custom sound if any (played from the teleporter entrance)
 	if( self->sound != EMPTY_HASH ) {
-		vec3_t org;
+		Vec3 org;
 
 		if( self->s.model != EMPTY_HASH ) {
-			org[0] = self->s.origin[0] + 0.5 * ( self->r.mins[0] + self->r.maxs[0] );
-			org[1] = self->s.origin[1] + 0.5 * ( self->r.mins[1] + self->r.maxs[1] );
-			org[2] = self->s.origin[2] + 0.5 * ( self->r.mins[2] + self->r.maxs[2] );
+			org = self->s.origin + 0.5f * ( self->r.mins + self->r.maxs );
 		} else {
-			VectorCopy( self->s.origin, org );
+			org = self->s.origin;
 		}
 
 		G_PositionedSound( org, CHAN_AUTO, self->sound );

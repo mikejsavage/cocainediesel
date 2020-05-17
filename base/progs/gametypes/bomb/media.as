@@ -31,30 +31,26 @@ uint64 sndBeep;
 uint64 sndPlantStart;
 uint64 sndGoodGame;
 uint64 sndBombTaken;
-uint64 sndBongo;
+uint64 sndAce;
+uint64 sndHurry;
 
-uint64[] sndAnnouncementsOff( Announcement_Count );
-uint64[] sndAnnouncementsDef( Announcement_Count );
+uint64 snd1v1;
+uint64 snd1vx;
+uint64 sndxv1;
 
 enum Announcement {
-	Announcement_Started,
-	Announcement_Armed,
+	Announcement_RoundStarted,
+	Announcement_Planted,
 	Announcement_Defused,
-	Announcement_Hurry,
 
 	Announcement_Count,
 }
 
+uint64[] sndAnnouncementsOff( Announcement_Count );
+uint64[] sndAnnouncementsDef( Announcement_Count );
+
 void announce( Announcement announcement ) {
-	announceOff( announcement );
-	announceDef( announcement );
-}
-
-void announceOff( Announcement announcement ) {
 	G_AnnouncerSound( null, sndAnnouncementsOff[ announcement ], attackingTeam, true, null );
-}
-
-void announceDef( Announcement announcement ) {
 	G_AnnouncerSound( null, sndAnnouncementsDef[ announcement ], defendingTeam, true, null );
 }
 
@@ -67,15 +63,18 @@ void mediaInit() {
 	sndPlantStart = Hash64( "sounds/misc/timer_bip_bip" );
 	sndGoodGame = Hash64( "sounds/vsay/goodgame" );
 	sndBombTaken = Hash64( "sounds/announcer/bomb/offense/taken" );
-	sndBongo = Hash64( "sounds/announcer/bomb/bongo" );
+	sndAce = Hash64( "sounds/announcer/bomb/bongo" );
+	sndHurry = Hash64( "sounds/misc/timer_bip_bip" );
 
-	sndAnnouncementsOff[ Announcement_Started ] = Hash64( "sounds/announcer/bomb/offense/start" );
-	sndAnnouncementsOff[ Announcement_Armed ] = Hash64( "sounds/announcer/bomb/offense/planted" );
+	snd1v1 = Hash64( "sounds/announcer/bomb/1v1" );
+	snd1vx = Hash64( "sounds/announcer/bomb/1vx" );
+	sndxv1 = Hash64( "sounds/announcer/bomb/xv1" );
+
+	sndAnnouncementsOff[ Announcement_RoundStarted ] = Hash64( "sounds/announcer/bomb/offense/start" );
+	sndAnnouncementsOff[ Announcement_Planted ] = Hash64( "sounds/announcer/bomb/offense/planted" );
 	sndAnnouncementsOff[ Announcement_Defused ] = Hash64( "sounds/announcer/bomb/offense/defused" );
-	sndAnnouncementsOff[ Announcement_Hurry ] = Hash64( "sounds/misc/timer_bip_bip" );
 
-	sndAnnouncementsDef[ Announcement_Started ] = Hash64( "sounds/announcer/bomb/defense/start" );
-	sndAnnouncementsDef[ Announcement_Armed ] = Hash64( "sounds/announcer/bomb/defense/planted" );
+	sndAnnouncementsDef[ Announcement_RoundStarted ] = Hash64( "sounds/announcer/bomb/defense/start" );
+	sndAnnouncementsDef[ Announcement_Planted ] = Hash64( "sounds/announcer/bomb/defense/planted" );
 	sndAnnouncementsDef[ Announcement_Defused ] = Hash64( "sounds/announcer/bomb/defense/defused" );
-	sndAnnouncementsDef[ Announcement_Hurry ] = Hash64( "sounds/misc/timer_bip_bip" );
 }

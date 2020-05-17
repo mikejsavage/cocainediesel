@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "client/client.h"
+#include "qcommon/cmodel.h"
 
 static cvar_t *scr_netgraph;
 static cvar_t *scr_timegraph;

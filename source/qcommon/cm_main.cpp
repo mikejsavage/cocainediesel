@@ -156,7 +156,7 @@ static void CM_Clear( CModelServerOrClient soc, CollisionModel * cms ) {
 
 	CM_FreeCheckCounts( cms );
 
-	ClearBounds( cms->world_mins, cms->world_maxs );
+	ClearBounds( &cms->world_mins, &cms->world_maxs );
 }
 
 /*
@@ -233,44 +233,34 @@ bool CM_IsBrushModel( CModelServerOrClient soc, StringHash hash ) {
 /*
 * CM_InlineModelBounds
 */
-void CM_InlineModelBounds( const CollisionModel *cms, const cmodel_t *cmodel, vec3_t mins, vec3_t maxs ) {
+void CM_InlineModelBounds( const CollisionModel *cms, const cmodel_t *cmodel, Vec3 * mins, Vec3 * maxs ) {
 	if( cmodel->hash == cms->world_hash ) {
-		VectorCopy( cms->world_mins, mins );
-		VectorCopy( cms->world_maxs, maxs );
+		*mins = cms->world_mins;
+		*maxs = cms->world_maxs;
 	} else {
-		VectorCopy( cmodel->mins, mins );
-		VectorCopy( cmodel->maxs, maxs );
+		*mins = cmodel->mins;
+		*maxs = cmodel->maxs;
 	}
-}
-
-/*
-* CM_ShaderrefName
-*/
-const char *CM_ShaderrefName( CollisionModel *cms, int ref ) {
-	if( ref < 0 || ref >= cms->numshaderrefs ) {
-		return NULL;
-	}
-	return cms->map_shaderrefs[ref].name;
 }
 
 /*
 * CM_EntityStringLen
 */
-int CM_EntityStringLen( CollisionModel *cms ) {
+int CM_EntityStringLen( const CollisionModel *cms ) {
 	return cms->numentitychars;
 }
 
 /*
 * CM_EntityString
 */
-char *CM_EntityString( CollisionModel *cms ) {
+char *CM_EntityString( const CollisionModel *cms ) {
 	return cms->map_entitystring;
 }
 
 /*
 * CM_LeafCluster
 */
-int CM_LeafCluster( CollisionModel *cms, int leafnum ) {
+int CM_LeafCluster( const CollisionModel *cms, int leafnum ) {
 	if( leafnum < 0 || leafnum >= cms->numleafs ) {
 		Com_Error( ERR_DROP, "CM_LeafCluster: bad number" );
 	}
@@ -280,23 +270,11 @@ int CM_LeafCluster( CollisionModel *cms, int leafnum ) {
 /*
 * CM_LeafArea
 */
-int CM_LeafArea( CollisionModel *cms, int leafnum ) {
+int CM_LeafArea( const CollisionModel *cms, int leafnum ) {
 	if( leafnum < 0 || leafnum >= cms->numleafs ) {
 		Com_Error( ERR_DROP, "CM_LeafArea: bad number" );
 	}
 	return cms->map_leafs[leafnum].area;
-}
-
-/*
-* CM_BoundBrush
-*/
-void CM_BoundBrush( cbrush_t *brush ) {
-	int i;
-
-	for( i = 0; i < 3; i++ ) {
-		brush->mins[i] = -brush->brushsides[i * 2 + 0].plane.dist;
-		brush->maxs[i] = +brush->brushsides[i * 2 + 1].plane.dist;
-	}
 }
 
 /*
@@ -310,48 +288,48 @@ PVS
 /*
 * CM_ClusterRowSize
 */
-int CM_ClusterRowSize( CollisionModel *cms ) {
+int CM_ClusterRowSize( const CollisionModel *cms ) {
 	return cms->map_pvs ? cms->map_pvs->rowsize : MAX_CM_LEAFS / 8;
 }
 
 /*
 * CM_ClusterRowLongs
 */
-static int CM_ClusterRowLongs( CollisionModel *cms ) {
+static int CM_ClusterRowLongs( const CollisionModel *cms ) {
 	return cms->map_pvs ? ( cms->map_pvs->rowsize + 3 ) / 4 : MAX_CM_LEAFS / 32;
 }
 
 /*
 * CM_NumClusters
 */
-int CM_NumClusters( CollisionModel *cms ) {
+int CM_NumClusters( const CollisionModel *cms ) {
 	return cms->map_pvs ? cms->map_pvs->numclusters : 0;
 }
 
 /*
 * CM_ClusterPVS
 */
-static inline uint8_t *CM_ClusterPVS( CollisionModel *cms, int cluster ) {
-	dvis_t *vis = cms->map_pvs;
+static inline const uint8_t *CM_ClusterPVS( const CollisionModel *cms, int cluster ) {
+	const dvis_t *vis = cms->map_pvs;
 
 	if( cluster == -1 || !vis ) {
 		return cms->nullrow;
 	}
 
-	return ( uint8_t * )vis->data + cluster * vis->rowsize;
+	return ( const uint8_t * )vis->data + cluster * vis->rowsize;
 }
 
 /*
 * CM_NumAreas
 */
-int CM_NumAreas( CollisionModel *cms ) {
+int CM_NumAreas( const CollisionModel *cms ) {
 	return cms->numareas;
 }
 
 /*
 * CM_AreaRowSize
 */
-int CM_AreaRowSize( CollisionModel *cms ) {
+int CM_AreaRowSize( const CollisionModel *cms ) {
 	return ( cms->numareas + 7 ) / 8;
 }
 
@@ -441,7 +419,7 @@ void CM_SetAreaPortalState( CollisionModel *cms, int area1, int area2, bool open
 /*
 * CM_AreasConnected
 */
-bool CM_AreasConnected( CollisionModel *cms, int area1, int area2 ) {
+bool CM_AreasConnected( const CollisionModel *cms, int area1, int area2 ) {
 	if( cm_noAreas->integer ) {
 		return true;
 	}
@@ -485,83 +463,21 @@ static int CM_MergeAreaBits( CollisionModel *cms, uint8_t *buffer, int area ) {
 /*
 * CM_WriteAreaBits
 */
-int CM_WriteAreaBits( CollisionModel *cms, uint8_t *buffer ) {
-	int i;
-	int rowsize, bytes;
-
-	rowsize = CM_AreaRowSize( cms );
-	bytes = rowsize * cms->numareas;
+void CM_WriteAreaBits( CollisionModel *cms, uint8_t *buffer ) {
+	int rowsize = CM_AreaRowSize( cms );
+	int bytes = rowsize * cms->numareas;
 
 	if( cm_noAreas->integer ) {
 		// for debugging, send everything
 		memset( buffer, 255, bytes );
 	} else {
-		uint8_t *row;
-
 		memset( buffer, 0, bytes );
 
-		for( i = 0; i < cms->numareas; i++ ) {
-			row = buffer + i * rowsize;
+		for( int i = 0; i < cms->numareas; i++ ) {
+			uint8_t * row = buffer + i * rowsize;
 			CM_MergeAreaBits( cms, row, i );
 		}
 	}
-
-	return bytes;
-}
-
-/*
-* CM_ReadAreaBits
-*/
-void CM_ReadAreaBits( CollisionModel *cms, uint8_t *buffer ) {
-	int i, j;
-	int rowsize;
-
-	memset( cms->map_areaportals, 0, cms->numareas * cms->numareas * sizeof( *cms->map_areaportals ) );
-
-	rowsize = CM_AreaRowSize( cms );
-	for( i = 0; i < cms->numareas; i++ ) {
-		uint8_t *row;
-
-		row = buffer + i * rowsize;
-		for( j = 0; j < cms->numareas; j++ ) {
-			if( row[j >> 3] & ( 1 << ( j & 7 ) ) ) {
-				cms->map_areaportals[i * cms->numareas + j] = 1;
-			}
-		}
-	}
-
-	CM_FloodAreaConnections( cms );
-}
-
-/*
-* CM_WritePortalState
-* Writes the portal state to a savegame file
-*/
-void CM_WritePortalState( CollisionModel *cms, int file ) {
-	int i, j, t;
-
-	for( i = 0; i < cms->numareas; i++ ) {
-		for( j = 0; j < cms->numareas; j++ ) {
-			t = LittleLong( cms->map_areaportals[i * cms->numareas + j] );
-			FS_Write( &t, sizeof( t ), file );
-		}
-	}
-}
-
-/*
-* CM_ReadPortalState
-* Reads the portal state from a savegame file
-* and recalculates the area connections
-*/
-void CM_ReadPortalState( CollisionModel *cms, int file ) {
-	int i;
-
-	FS_Read( &cms->map_areaportals, cms->numareas * cms->numareas * sizeof( *cms->map_areaportals ), file );
-
-	for( i = 0; i < cms->numareas * cms->numareas; i++ )
-		cms->map_areaportals[i] = LittleLong( cms->map_areaportals[i] );
-
-	CM_FloodAreaConnections( cms );
 }
 
 /*
@@ -596,17 +512,15 @@ bool CM_HeadnodeVisible( CollisionModel *cms, int nodenum, uint8_t *visbits ) {
 * CM_MergePVS
 * Merge PVS at origin into out
 */
-void CM_MergePVS( CollisionModel *cms, const vec3_t org, uint8_t *out ) {
+void CM_MergePVS( CollisionModel *cms, Vec3 org, uint8_t *out ) {
 	int leafs[128];
 	int i, j, count;
 	int longs;
-	uint8_t *src;
-	vec3_t mins, maxs;
+	const uint8_t *src;
+	Vec3 mins, maxs;
 
-	for( i = 0; i < 3; i++ ) {
-		mins[i] = org[i] - 9;
-		maxs[i] = org[i] + 9;
-	}
+	mins = org - Vec3( 9.0f );
+	maxs = org + Vec3( 9.0f );
 
 	count = CM_BoxLeafnums( cms, mins, maxs, leafs, sizeof( leafs ) / sizeof( int ), NULL );
 	if( count < 1 ) {
@@ -620,10 +534,11 @@ void CM_MergePVS( CollisionModel *cms, const vec3_t org, uint8_t *out ) {
 
 	// or in all the other leaf bits
 	for( i = 0; i < count; i++ ) {
-		for( j = 0; j < i; j++ )
+		for( j = 0; j < i; j++ ) {
 			if( leafs[i] == leafs[j] ) {
 				break;
 			}
+		}
 		if( j != i ) {
 			continue; // already have the cluster we want
 		}
@@ -636,7 +551,7 @@ void CM_MergePVS( CollisionModel *cms, const vec3_t org, uint8_t *out ) {
 /*
 * CM_MergeVisSets
 */
-int CM_MergeVisSets( CollisionModel *cms, const vec3_t org, uint8_t *pvs, uint8_t *areabits ) {
+int CM_MergeVisSets( CollisionModel *cms, Vec3 org, uint8_t *pvs, uint8_t *areabits ) {
 	int area;
 
 	assert( pvs || areabits );
@@ -653,43 +568,6 @@ int CM_MergeVisSets( CollisionModel *cms, const vec3_t org, uint8_t *pvs, uint8_
 	}
 
 	return CM_AreaRowSize( cms ); // areabytes
-}
-
-/*
-* CM_InPVS
-*
-* Also checks portalareas so that doors block sight
-*/
-bool CM_InPVS( CollisionModel *cms, const vec3_t p1, const vec3_t p2 ) {
-	int leafnum1, leafnum2;
-
-	leafnum1 = CM_PointLeafnum( cms, p1 );
-	leafnum2 = CM_PointLeafnum( cms, p2 );
-
-	return CM_LeafsInPVS( cms, leafnum1, leafnum2 );
-}
-
-bool CM_LeafsInPVS( CollisionModel *cms, int leafnum1, int leafnum2 ) {
-	int cluster;
-	int area1, area2;
-	uint8_t *mask;
-
-	cluster = CM_LeafCluster( cms, leafnum1 );
-	area1 = CM_LeafArea( cms, leafnum1 );
-	mask = CM_ClusterPVS( cms, cluster );
-
-	cluster = CM_LeafCluster( cms, leafnum2 );
-	area2 = CM_LeafArea( cms, leafnum2 );
-
-	if( ( !( mask[cluster >> 3] & ( 1 << ( cluster & 7 ) ) ) ) ) {
-		return false;
-	}
-
-	if( !CM_AreasConnected( cms, area1, area2 ) ) {
-		return false; // a door blocks sight
-
-	}
-	return true;
 }
 
 /*

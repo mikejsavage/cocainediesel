@@ -30,9 +30,9 @@ typedef struct asstring_s {
 	int asRefCount;
 } asstring_t;
 
-typedef struct asvec3_s {
-	vec3_t v;
-} asvec3_t;
+struct asvec3_t {
+	Vec3 v;
+};
 
 class CScriptArrayInterface
 {

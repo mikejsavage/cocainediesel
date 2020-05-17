@@ -20,22 +20,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 
-void ThrowSmallPileOfGibs( edict_t *self, const vec3_t knockback, int damage ) {
+void ThrowSmallPileOfGibs( edict_t *self, Vec3 knockback, int damage ) {
 	int contents = G_PointContents( self->s.origin );
 	if( contents & CONTENTS_NODROP ) {
 		return;
 	}
 
-	vec3_t origin;
-	VectorCopy( self->s.origin, origin );
-	self->s.origin[2] += 4;
+	Vec3 origin = self->s.origin;
+	self->s.origin.z += 4;
 
 	// clamp the damage value since events do bitwise & 0xFF on the passed param
 	damage = Clamp( 0, damage, 255 );
 
-	edict_t * event = G_SpawnEvent( EV_SPOG, damage, origin );
+	edict_t * event = G_SpawnEvent( EV_SPOG, damage, &origin );
 	event->s.team = self->s.team;
-	VectorAdd( self->velocity, knockback, event->s.origin2 );
+	event->s.origin2 = self->velocity + knockback;
 }
 
 void BecomeExplosion1( edict_t *self ) {
@@ -62,7 +61,7 @@ void BecomeExplosion1( edict_t *self ) {
 }
 
 static void path_corner_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
-	vec3_t v;
+	Vec3 v;
 	edict_t *next;
 
 	if( other->movetarget != self ) {
@@ -88,23 +87,23 @@ static void path_corner_touch( edict_t *self, edict_t *other, cplane_t *plane, i
 	}
 
 	if( next && ( next->spawnflags & 1 ) ) {
-		VectorCopy( next->s.origin, v );
-		v[2] += next->r.mins[2];
-		v[2] -= other->r.mins[2];
-		VectorCopy( v, other->s.origin );
+		v = next->s.origin;
+		v.z += next->r.mins.z;
+		v.z -= other->r.mins.z;
+		other->s.origin = v;
 		next = G_PickTarget( next->target );
 		other->s.teleported = true;
 	}
 
 	other->movetarget = next;
 
-	VectorSubtract( other->movetarget->s.origin, other->s.origin, v );
+	v = other->movetarget->s.origin - other->s.origin;
 }
 
 void SP_path_corner( edict_t *self ) {
 	if( !self->targetname ) {
 		if( developer->integer ) {
-			Com_Printf( "path_corner with no targetname at %s\n", vtos( self->s.origin ) );
+			Com_GGPrint( "path_corner with no targetname at {}", self->s.origin );
 		}
 		G_FreeEdict( self );
 		return;
@@ -112,8 +111,8 @@ void SP_path_corner( edict_t *self ) {
 
 	self->r.solid = SOLID_TRIGGER;
 	self->touch = path_corner_touch;
-	VectorSet( self->r.mins, -8, -8, -8 );
-	VectorSet( self->r.maxs, 8, 8, 8 );
+	self->r.mins = Vec3( -8.0f );
+	self->r.maxs = Vec3( 8.0f );
 	self->r.svflags |= SVF_NOCLIENT;
 	GClip_LinkEntity( self );
 }
@@ -130,7 +129,7 @@ static void func_wall_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	if( self->r.solid == SOLID_NOT ) {
 		self->r.solid = SOLID_YES;
 		self->r.svflags &= ~SVF_NOCLIENT;
-		KillBox( self, MOD_CRUSH, vec3_origin );
+		KillBox( self, MOD_CRUSH, Vec3( 0.0f ) );
 	} else {
 		self->r.solid = SOLID_NOT;
 		self->r.svflags |= SVF_NOCLIENT;
@@ -190,11 +189,7 @@ void SP_func_static( edict_t *ent ) {
 
 //===========================================================
 
-static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point ) {
-	vec3_t origin, bakorigin;
-	vec3_t size;
-	int mass;
-
+static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point ) {
 	// do not explode unless visible
 	if( self->r.svflags & SVF_NOCLIENT ) {
 		return;
@@ -203,22 +198,22 @@ static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *
 	self->takedamage = DAMAGE_NO;
 
 	// bmodel origins are (0 0 0), we need to adjust that here
-	VectorCopy( self->s.origin, bakorigin );
-	VectorScale( self->r.size, 0.5, size );
-	VectorAdd( self->r.absmin, size, origin );
-	VectorCopy( origin, self->s.origin );
+	Vec3 bakorigin = self->s.origin;
+	Vec3 size = self->r.size * 0.5f;
+	Vec3 origin = self->r.absmin + size;
+	self->s.origin = origin;
 
 	if( self->projectileInfo.maxDamage ) {
 		G_RadiusDamage( self, attacker, NULL, NULL, MOD_EXPLOSIVE );
 	}
 
-	VectorSubtract( self->s.origin, inflictor->s.origin, self->velocity );
-	VectorNormalize( self->velocity );
-	VectorScale( self->velocity, 150, self->velocity );
+	self->velocity = self->s.origin - inflictor->s.origin;
+	self->velocity = Normalize( self->velocity );
+	self->velocity = self->velocity * 150.0f;
 
 	// start chunks towards the center
-	VectorScale( size, 0.5, size );
-	mass = self->projectileInfo.radius * 0.75;
+	size = size * 0.5f;
+	int mass = self->projectileInfo.radius * 0.75f;
 	if( !mass ) {
 		mass = 75;
 	}
@@ -229,7 +224,7 @@ static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *
 		edict_t *explosion;
 
 		explosion = G_Spawn();
-		VectorCopy( self->s.origin, explosion->s.origin );
+		explosion->s.origin = self->s.origin;
 		explosion->projectileInfo = self->projectileInfo;
 		BecomeExplosion1( explosion );
 	}
@@ -242,13 +237,13 @@ static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *
 	self->health = self->max_health;
 	self->r.solid = SOLID_NOT;
 	self->r.svflags |= SVF_NOCLIENT;
-	VectorCopy( bakorigin, self->s.origin );
-	VectorClear( self->velocity );
+	self->s.origin = bakorigin;
+	self->velocity = Vec3( 0.0f );
 	GClip_LinkEntity( self );
 }
 
 static void func_explosive_think( edict_t *self ) {
-	func_explosive_explode( self, self, self->enemy, self->count, vec3_origin );
+	func_explosive_explode( self, self, self->enemy, self->count, Vec3( 0.0f ) );
 }
 
 static void func_explosive_use( edict_t *self, edict_t *other, edict_t *activator ) {
@@ -261,22 +256,22 @@ static void func_explosive_use( edict_t *self, edict_t *other, edict_t *activato
 		return;
 	}
 
-	func_explosive_explode( self, self, other, self->count, vec3_origin );
+	func_explosive_explode( self, self, other, self->count, Vec3( 0.0f ) );
 }
 
 static void func_explosive_spawn( edict_t *self, edict_t *other, edict_t *activator ) {
 	self->r.solid = SOLID_YES;
 	self->r.svflags &= ~SVF_NOCLIENT;
 	self->use = NULL;
-	KillBox( self, MOD_CRUSH, vec3_origin );
+	KillBox( self, MOD_CRUSH, Vec3( 0.0f ) );
 	GClip_LinkEntity( self );
 }
 
 void SP_func_explosive( edict_t *self ) {
 	G_InitMover( self );
 
-	self->projectileInfo.maxDamage = max( self->dmg, 1 );
-	self->projectileInfo.minDamage = min( self->dmg, 1 );
+	self->projectileInfo.maxDamage = Max2( self->dmg, 1 );
+	self->projectileInfo.minDamage = Min2( self->dmg, 1 );
 	self->projectileInfo.maxKnockback = self->projectileInfo.maxDamage;
 	self->projectileInfo.minKnockback = self->projectileInfo.minDamage;
 	self->projectileInfo.radius = st.radius;

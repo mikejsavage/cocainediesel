@@ -114,28 +114,18 @@ enum {
 enum {
 	WEAPANIM_NOANIM,
 	WEAPANIM_STANDBY,
-	WEAPANIM_ATTACK_WEAK,
-	WEAPANIM_ATTACK_STRONG,
+	WEAPANIM_ATTACK,
 	WEAPANIM_WEAPDOWN,
 	WEAPANIM_WEAPONUP,
 
 	VWEAP_MAXANIMS
 };
 
-enum {
-	WEAPMODEL_WEAPON,
-	WEAPMODEL_FLASH,
-	WEAPMODEL_HAND,
-	WEAPMODEL_BARREL,
-
-	VWEAP_MAXPARTS
-};
-
 // equivalent to pmodelinfo_t. Shared by different players, etc.
-typedef struct weaponinfo_s {
+struct WeaponModelMetadata {
 	bool inuse;
 
-	const Model *model[VWEAP_MAXPARTS]; // one weapon consists of several models
+	const Model * model;
 
 	int firstframe[VWEAP_MAXANIMS];         // animation script
 	int lastframe[VWEAP_MAXANIMS];
@@ -145,24 +135,14 @@ typedef struct weaponinfo_s {
 	orientation_t tag_projectionsource;
 
 	// handOffset
-	vec3_t handpositionOrigin;
-	vec3_t handpositionAngles;
-
-	// flash
-	int64_t flashTime;
-	bool flashFade;
-	float flashRadius;
-	vec3_t flashColor;
-
-	// barrel
-	int64_t barrelTime;
-	float barrelSpeed;
+	Vec3 handpositionOrigin;
+	Vec3 handpositionAngles;
 
 	const SoundEffect * fire_sound;
 	const SoundEffect * up_sound;
 	const SoundEffect * zoom_in_sound;
 	const SoundEffect * zoom_out_sound;
-} weaponinfo_t;
+};
 
 enum {
 	BASE_CHANNEL,
@@ -235,14 +215,11 @@ typedef struct {
 	// dynamic
 	pmodel_animationstate_t animState;
 
-	vec3_t angles[PMODEL_PARTS];                // for rotations
-	vec3_t oldangles[PMODEL_PARTS];             // for rotations
+	Vec3 angles[PMODEL_PARTS];                // for rotations
+	Vec3 oldangles[PMODEL_PARTS];             // for rotations
 
 	// effects
 	orientation_t projectionSource;     // for projectiles
-	// weapon. Not sure about keeping it here
-	int64_t flash_time;
-	int64_t barrel_time;
 } pmodel_t;
 
 extern pmodel_t cg_entPModels[MAX_EDICTS];      //a pmodel handle for each cg_entity
@@ -252,14 +229,11 @@ extern pmodel_t cg_entPModels[MAX_EDICTS];      //a pmodel handle for each cg_en
 //
 
 //utils
-bool CG_GrabTag( orientation_t *tag, entity_t *ent, const char *tagname );
-void CG_PlaceModelOnTag( entity_t *ent, entity_t *dest, const orientation_t *tag );
-void CG_PlaceRotatedModelOnTag( entity_t *ent, entity_t *dest, orientation_t *tag );
-void CG_MoveToTag( vec3_t move_origin,
+void CG_MoveToTag( Vec3 * move_origin,
 				   mat3_t move_axis,
-				   const vec3_t space_origin,
+				   Vec3 space_origin,
 				   const mat3_t space_axis,
-				   const vec3_t tag_origin,
+				   Vec3 tag_origin,
 				   const mat3_t tag_axis );
 
 //pmodels
@@ -277,17 +251,16 @@ void CG_PModel_ClearEventAnimations( int entNum );
 // cg_wmodels.c
 //
 void CG_WModelsInit();
-struct weaponinfo_s *CG_CreateWeaponZeroModel();
-struct weaponinfo_s *CG_RegisterWeaponModel( const char *cgs_name, WeaponType weaponTag );
-void CG_AddWeaponOnTag( entity_t *ent, const orientation_t *tag, int weapon, int effects,
-	orientation_t *projectionSource, int64_t flash_time, int64_t barrel_time );
+WeaponModelMetadata *CG_CreateWeaponZeroModel();
+WeaponModelMetadata *CG_RegisterWeaponModel( const char *cgs_name, WeaponType weaponTag );
 
 //=================================================
 //				VIEW WEAPON
 //=================================================
 
 typedef struct {
-	entity_t ent;
+	mat3_t axis;
+	Vec3 origin;
 
 	unsigned int POVnum;
 	int weapon;

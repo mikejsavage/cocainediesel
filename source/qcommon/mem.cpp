@@ -18,7 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "qcommon.h"
+#include "qcommon/qcommon.h"
+#include "qcommon/threads.h"
 
 #define POOLNAMESIZE 128
 
@@ -106,7 +107,7 @@ mempool_t *tempMemPool;
 // only for zone
 mempool_t *zoneMemPool;
 
-static qmutex_t *memMutex;
+static Mutex *memMutex;
 
 static bool memory_initialized = false;
 static bool commands_initialized = false;
@@ -152,7 +153,7 @@ ATTRIBUTE_MALLOC void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t align
 		Com_DPrintf( "Mem_Alloc: pool %s, file %s:%i, size %" PRIuPTR " bytes\n", pool->name, filename, fileline, (uintptr_t)size );
 	}
 
-	QMutex_Lock( memMutex );
+	Lock( memMutex );
 
 	pool->totalsize += size;
 	realsize = sizeof( memheader_t ) + size + alignment + sizeof( int );
@@ -185,7 +186,7 @@ ATTRIBUTE_MALLOC void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t align
 		mem->next->prev = mem;
 	}
 
-	QMutex_Unlock( memMutex );
+	Unlock( memMutex );
 
 	if( z ) {
 		memset( (void *)( (uint8_t *) mem + sizeof( memheader_t ) ), 0, mem->size );
@@ -284,7 +285,7 @@ void _Mem_Free( void *data, int musthave, int canthave, const char *filename, in
 			pool->name, mem->filename, mem->fileline, filename, fileline, (uintptr_t)mem->size );
 	}
 
-	QMutex_Lock( memMutex );
+	Lock( memMutex );
 
 	// unlink memheader from doubly linked list
 	if( ( mem->prev ? mem->prev->next != mem : pool->chain != mem ) || ( mem->next && mem->next->prev != mem ) ) {
@@ -306,7 +307,7 @@ void _Mem_Free( void *data, int musthave, int canthave, const char *filename, in
 	base = mem->baseaddress;
 	pool->realsize -= mem->realsize;
 
-	QMutex_Unlock( memMutex );
+	Unlock( memMutex );
 
 	free( base );
 }
@@ -668,7 +669,7 @@ static void MemStats_f( void ) {
 void Memory_Init( void ) {
 	assert( !memory_initialized );
 
-	memMutex = QMutex_Create();
+	memMutex = NewMutex();
 
 	zoneMemPool = Mem_AllocPool( NULL, "Zone" );
 	tempMemPool = Mem_AllocTempPool( "Temporary Memory" );
@@ -720,7 +721,7 @@ void Memory_Shutdown( void ) {
 		Mem_FreePool( &pool );
 	}
 
-	QMutex_Destroy( &memMutex );
+	DeleteMutex( memMutex );
 
 	memory_initialized = false;
 }

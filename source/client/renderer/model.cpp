@@ -1,7 +1,7 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-#include "qcommon/assets.h"
 #include "qcommon/hashtable.h"
+#include "client/assets.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
 
@@ -122,6 +122,37 @@ void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color,
 		if( skinned ) {
 			pipeline.set_uniform( "u_Pose", pose_uniforms );
 		}
+
+		DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+	}
+}
+
+void DrawViewWeapon( const Model * model, const Mat4 & transform ) {
+	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
+
+	for( u32 i = 0; i < model->num_primitives; i++ ) {
+		PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material, vec4_white, false );
+		pipeline.view_weapon_depth_hack = true;
+		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+		pipeline.set_uniform( "u_Model", model_uniforms );
+
+		DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+	}
+}
+
+void DrawOutlinedViewWeapon( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height ) {
+	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
+	UniformBlock outline_uniforms = UploadUniformBlock( color, outline_height );
+
+	for( u32 i = 0; i < model->num_primitives; i++ ) {
+		PipelineState pipeline;
+		pipeline.shader = &shaders.outline;
+		pipeline.pass = frame_static.nonworld_opaque_pass;
+		pipeline.cull_face = CullFace_Front;
+		pipeline.view_weapon_depth_hack = true;
+		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+		pipeline.set_uniform( "u_Model", model_uniforms );
+		pipeline.set_uniform( "u_Outline", outline_uniforms );
 
 		DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 	}

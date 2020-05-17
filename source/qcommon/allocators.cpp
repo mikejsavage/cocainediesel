@@ -1,12 +1,6 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-
-#if COMPIER_GCCORCLANG
-#include <sanitizer/asan_interface.h>
-#else
-#define ASAN_POISON_MEMORY_REGION( mem, size )
-#define ASAN_UNPOISON_MEMORY_REGION( mem, size )
-#endif
+#include "qcommon/asan.h"
 
 void * Allocator::allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
 	void * p = try_allocate( size, alignment, func, file, line );
@@ -36,7 +30,7 @@ struct AllocationTracker {
 
 #else
 
-#include "qcommon/qthreads.h"
+#include "qcommon/threads.h"
 #undef min
 #undef max
 #include <unordered_map>
@@ -51,10 +45,10 @@ struct AllocationTracker {
 	};
 
 	std::unordered_map< void *, AllocInfo > allocations;
-	qmutex_t * mutex;
+	Mutex * mutex;
 
 	AllocationTracker() {
-		mutex = QMutex_Create();
+		mutex = NewMutex();
 	}
 
 	~AllocationTracker() {
@@ -63,24 +57,24 @@ struct AllocationTracker {
 			Com_Printf( "Leaked allocation in '%s' (%s:%d)\n", info.func, info.file, info.line );
 		}
 		assert( allocations.empty() );
-		QMutex_Destroy( &mutex );
+		DeleteMutex( mutex );
 	}
 
 	void track( void * ptr, const char * func, const char * file, int line ) {
 		if( ptr == NULL )
 			return;
-		QMutex_Lock( mutex );
+		Lock( mutex );
 		allocations[ ptr ] = { func, file, line };
-		QMutex_Unlock( mutex );
+		Unlock( mutex );
 	}
 
 	void untrack( void * ptr, const char * func, const char * file, int line ) {
 		if( ptr == NULL )
 			return;
-		QMutex_Lock( mutex );
+		Lock( mutex );
 		if( allocations.erase( ptr ) == 0 )
 			Sys_Error( "Stray free in '%s' (%s:%d)", func, file, line );
-		QMutex_Unlock( mutex );
+		Unlock( mutex );
 	};
 };
 
@@ -141,6 +135,7 @@ TempAllocator::TempAllocator( const TempAllocator & other ) {
 TempAllocator::~TempAllocator() {
 	arena->cursor = old_cursor;
 	arena->num_temp_allocators--;
+	ASAN_POISON_MEMORY_REGION( arena->cursor, arena->top - arena->cursor );
 }
 
 void * TempAllocator::try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {

@@ -92,9 +92,9 @@ typedef struct {
 
 	void ( *EscapeKey )( void );
 
-	void ( *GetEntitySpatilization )( int entNum, vec3_t origin, vec3_t velocity );
+	void ( *GetEntitySpatilization )( int entNum, Vec3 * origin, Vec3 * velocity );
 
-	void ( *Trace )( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passent, int contentmask );
+	void ( *Trace )( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int passent, int contentmask );
 
 	void ( *RenderView )( unsigned extrapolationTime );
 
@@ -109,22 +109,6 @@ typedef struct {
 	 * @return BUTTON_ bitfield with the pressed or simulated actions
 	 */
 	unsigned int ( *GetButtonBits )( void );
-
-	/**
-	 * Adds input view rotation.
-	 * May be called multiple times in a frame.
-	 *
-	 * @param viewAngles view angles to modify
-	 */
-	void ( *AddViewAngles )( vec3_t viewAngles );
-
-	/**
-	 * Adds player movement.
-	 * May be called multiple times in a frame.
-	 *
-	 * @param movement movement vector to modify
-	 */
-	void ( *AddMovement )( vec3_t movement );
 } cgame_export_t;
 
 cgame_export_t *GetCGameAPI( cgame_import_t * import );

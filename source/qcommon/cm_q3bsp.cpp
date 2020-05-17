@@ -26,16 +26,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MAX_FACET_PLANES 32
 
-/*
-* CM_CreateFacetFromPoints
-*/
-static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, vec3_t *verts, int numverts, cshaderref_t *shaderref, cplane_t *brushplanes ) {
-	int i, j;
-	int axis, dir;
-	vec3_t normal;
-	float d, dist;
+static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 *verts, int numverts, cshaderref_t *shaderref, cplane_t *brushplanes ) {
+	Vec3 normal;
+	float dist;
 	cplane_t mainplane;
-	vec3_t vec, vec2;
+	Vec3 vec, vec2;
 	int numbrushplanes;
 
 	// set default values for brush
@@ -45,53 +40,37 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, vec3_
 
 	// these bounds are default for the facet, and are not valid
 	// however only bogus facets that are not collidable anyway would use these bounds
-	ClearBounds( facet->mins, facet->maxs );
+	ClearBounds( &facet->mins, &facet->maxs );
 
 	// calculate plane for this triangle
-	PlaneFromPoints( verts, &mainplane );
-	if( ComparePlanes( mainplane.normal, mainplane.dist, vec3_origin, 0 ) ) {
+	if( !PlaneFromPoints( verts, &mainplane ) ) {
 		return 0;
 	}
 
 	// test a quad case
 	if( numverts > 3 ) {
-		d = DotProduct( verts[3], mainplane.normal ) - mainplane.dist;
-		if( d < -0.1 || d > 0.1 ) {
+		float d = Dot( verts[3], mainplane.normal ) - mainplane.dist;
+		if( d < -0.1f || d > 0.1f ) {
 			return 0;
-		}
-
-		if( 0 ) {
-			vec3_t v[3];
-			cplane_t plane;
-
-			// try different combinations of planes
-			for( i = 1; i < 4; i++ ) {
-				VectorCopy( verts[i], v[0] );
-				VectorCopy( verts[( i + 1 ) % 4], v[1] );
-				VectorCopy( verts[( i + 2 ) % 4], v[2] );
-				PlaneFromPoints( v, &plane );
-
-				if( Abs( DotProduct( mainplane.normal, plane.normal ) ) < 0.9 ) {
-					return 0;
-				}
-			}
 		}
 	}
 
 	numbrushplanes = 0;
 
 	// add front plane
-	SnapPlane( mainplane.normal, &mainplane.dist );
-	VectorCopy( mainplane.normal, brushplanes[numbrushplanes].normal );
+	SnapPlane( &mainplane.normal, &mainplane.dist );
+	brushplanes[numbrushplanes].normal = mainplane.normal;
 	brushplanes[numbrushplanes].dist = mainplane.dist; numbrushplanes++;
 
 	// calculate mins & maxs
-	for( i = 0; i < numverts; i++ )
-		AddPointToBounds( verts[i], facet->mins, facet->maxs );
+	for( int i = 0; i < numverts; i++ ) {
+		AddPointToBounds( verts[i], &facet->mins, &facet->maxs );
+	}
 
 	// add the axial planes
-	for( axis = 0; axis < 3; axis++ ) {
-		for( dir = -1; dir <= 1; dir += 2 ) {
+	for( int axis = 0; axis < 3; axis++ ) {
+		for( int dir = -1; dir <= 1; dir += 2 ) {
+			int i;
 			for( i = 0; i < numbrushplanes; i++ ) {
 				if( brushplanes[i].normal[axis] == dir ) {
 					break;
@@ -99,7 +78,7 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, vec3_
 			}
 
 			if( i == numbrushplanes ) {
-				VectorClear( normal );
+				normal = Vec3( 0.0f );
 				normal[axis] = dir;
 				if( dir == 1 ) {
 					dist = facet->maxs[axis];
@@ -107,22 +86,23 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, vec3_
 					dist = -facet->mins[axis];
 				}
 
-				VectorCopy( normal, brushplanes[numbrushplanes].normal );
+				brushplanes[numbrushplanes].normal = normal;
 				brushplanes[numbrushplanes].dist = dist; numbrushplanes++;
 			}
 		}
 	}
 
 	// add the edge bevels
-	for( i = 0; i < numverts; i++ ) {
-		j = ( i + 1 ) % numverts;
+	for( int i = 0; i < numverts; i++ ) {
+		int j = ( i + 1 ) % numverts;
 
-		VectorSubtract( verts[i], verts[j], vec );
-		if( VectorNormalize( vec ) < 0.5 ) {
+		vec = verts[i] - verts[j];
+		if( Length( vec ) < 0.5 ) {
 			continue;
 		}
+		vec = Normalize( vec );
 
-		SnapVector( vec );
+		SnapVector( &vec );
 		for( j = 0; j < 3; j++ ) {
 			if( vec[j] == 1 || vec[j] == -1 ) {
 				break; // axial
@@ -133,16 +113,17 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, vec3_
 
 		}
 		// try the six possible slanted axials from this edge
-		for( axis = 0; axis < 3; axis++ ) {
-			for( dir = -1; dir <= 1; dir += 2 ) {
+		for( int axis = 0; axis < 3; axis++ ) {
+			for( int dir = -1; dir <= 1; dir += 2 ) {
 				// construct a plane
-				VectorClear( vec2 );
+				vec2 = Vec3( 0.0f );
 				vec2[axis] = dir;
-				CrossProduct( vec, vec2, normal );
-				if( VectorNormalize( normal ) < 0.5 ) {
+				normal = Cross( vec, vec2 );
+				if( Length( normal ) < 0.5f ) {
 					continue;
 				}
-				dist = DotProduct( verts[i], normal );
+				normal = Normalize( normal );
+				dist = Dot( verts[i], normal );
 
 				for( j = 0; j < numbrushplanes; j++ ) {
 					// if this plane has already been used, skip it
@@ -157,8 +138,8 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, vec3_
 				// if all other points are behind this plane, it is a proper edge bevel
 				for( j = 0; j < numverts; j++ ) {
 					if( j != i ) {
-						d = DotProduct( verts[j], normal ) - dist;
-						if( d > 0.1 ) {
+						float d = Dot( verts[j], normal ) - dist;
+						if( d > 0.1f ) {
 							break; // point in front: this plane isn't part of the outer hull
 						}
 					}
@@ -168,7 +149,7 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, vec3_
 				}
 
 				// add this plane
-				VectorCopy( normal, brushplanes[numbrushplanes].normal );
+				brushplanes[numbrushplanes].normal = normal;
 				brushplanes[numbrushplanes].dist = dist; numbrushplanes++;
 				if( numbrushplanes == MAX_FACET_PLANES ) {
 					break;
@@ -178,30 +159,17 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, vec3_
 	}
 
 	// spread facet mins/maxs by a unit
-	for( i = 0; i < 3; i++ ) {
-		facet->mins[i] -= 1.0f;
-		facet->maxs[i] += 1.0f;
-	}
+	facet->mins -= Vec3( 1.0f );
+	facet->maxs += Vec3( 1.0f );
 
 	return ( facet->numsides = numbrushplanes );
 }
 
-/*
-* CM_CreatePatch
-*/
-static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, cshaderref_t *shaderref, vec3_t *verts, int *patch_cp ) {
+static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, cshaderref_t *shaderref, Vec3 *verts, int *patch_cp ) {
 	int step[2], size[2], flat[2];
-	vec3_t *patchpoints;
-	int i, j, k,u, v;
-	int numsides, totalsides;
-	cbrush_t *facets, *facet;
-	vec3_t *points;
-	vec3_t tverts[4];
-	uint8_t *data;
-	cplane_t *brushplanes;
 
 	// find the degree of subdivision in the u and v directions
-	Patch_GetFlatness( CM_SUBDIV_LEVEL, ( float * )verts[0], 3, patch_cp, flat );
+	Patch_GetFlatness( CM_SUBDIV_LEVEL, verts, 1, patch_cp, flat );
 
 	step[0] = 1 << flat[0];
 	step[1] = 1 << flat[1];
@@ -211,50 +179,51 @@ static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, cshaderref_t *s
 		return;
 	}
 
-	patchpoints = ( vec3_t * ) Mem_TempMalloc( size[0] * size[1] * sizeof( vec3_t ) );
-	Patch_Evaluate( 3, verts[0], patch_cp, step, patchpoints[0], 0 );
-	Patch_RemoveLinearColumnsRows( patchpoints[0], 3, &size[0], &size[1], 0, NULL, NULL );
+	Vec3 * points = ALLOC_MANY( sys_allocator, Vec3, size[ 0 ] * size[ 1 ] );
+	Patch_Evaluate( 1, &verts[0], patch_cp, step, points, 0 );
+	Patch_RemoveLinearColumnsRows( points, 1, &size[0], &size[1], 0, NULL, NULL );
 
-	data = ( uint8_t * ) Mem_Alloc( cmap_mempool, size[0] * size[1] * sizeof( vec3_t ) +
-					  ( size[0] - 1 ) * ( size[1] - 1 ) * 2 * ( sizeof( cbrush_t ) + 32 * sizeof( cplane_t ) ) );
+	cbrush_t * facets = ALLOC_MANY( sys_allocator, cbrush_t, ( size[0] - 1 ) * ( size[1] - 1 ) * 2 );
+	cplane_t * brushplanes = ALLOC_MANY( sys_allocator, cplane_t, ( size[0] - 1 ) * ( size[1] - 1 ) * 2 * MAX_FACET_PLANES );
 
-	points = ( vec3_t * )data; data += size[0] * size[1] * sizeof( vec3_t );
-	facets = ( cbrush_t * )data; data += ( size[0] - 1 ) * ( size[1] - 1 ) * 2 * sizeof( cbrush_t );
-	brushplanes = ( cplane_t * )data; data += ( size[0] - 1 ) * ( size[1] - 1 ) * 2 * MAX_FACET_PLANES * sizeof( cplane_t );
+	defer {
+		FREE( sys_allocator, points );
+		FREE( sys_allocator, facets );
+		FREE( sys_allocator, brushplanes );
+	};
 
-	// fill in
-	memcpy( points, patchpoints, size[0] * size[1] * sizeof( vec3_t ) );
-	Mem_TempFree( patchpoints );
-
-	totalsides = 0;
+	int totalsides = 0;
 	patch->numfacets = 0;
 	patch->facets = NULL;
-	ClearBounds( patch->mins, patch->maxs );
+	ClearBounds( &patch->mins, &patch->maxs );
 
 	// create a set of facets
-	for( v = 0; v < size[1] - 1; v++ ) {
-		for( u = 0; u < size[0] - 1; u++ ) {
-			i = v * size[0] + u;
-			VectorCopy( points[i], tverts[0] );
-			VectorCopy( points[i + size[0]], tverts[1] );
-			VectorCopy( points[i + size[0] + 1], tverts[2] );
-			VectorCopy( points[i + 1], tverts[3] );
+	for( int v = 0; v < size[1] - 1; v++ ) {
+		for( int u = 0; u < size[0] - 1; u++ ) {
+			int i = v * size[0] + u;
 
-			for( i = 0; i < 4; i++ )
-				AddPointToBounds( tverts[i], patch->mins, patch->maxs );
+			Vec3 tverts[4];
+			tverts[0] = points[i];
+			tverts[1] = points[i + size[0]];
+			tverts[2] = points[i + size[0] + 1];
+			tverts[3] = points[i + 1];
+
+			for( i = 0; i < 4; i++ ) {
+				AddPointToBounds( tverts[i], &patch->mins, &patch->maxs );
+			}
 
 			// try to create one facet from a quad
-			numsides = CM_CreateFacetFromPoints( cms, &facets[patch->numfacets], tverts, 4, shaderref, brushplanes + totalsides );
+			int numsides = CM_CreateFacetFromPoints( cms, &facets[patch->numfacets], tverts, 4, shaderref, brushplanes + totalsides );
 			if( !numsides ) { // create two facets from triangles
-				VectorCopy( tverts[3], tverts[2] );
+				tverts[2] = tverts[3];
 				numsides = CM_CreateFacetFromPoints( cms, &facets[patch->numfacets], tverts, 3, shaderref, brushplanes + totalsides );
 				if( numsides ) {
 					totalsides += numsides;
 					patch->numfacets++;
 				}
 
-				VectorCopy( tverts[2], tverts[0] );
-				VectorCopy( points[v * size[0] + u + size[0] + 1], tverts[2] );
+				tverts[0] = tverts[2];
+				tverts[2] = points[v * size[0] + u + size[0] + 1];
 				numsides = CM_CreateFacetFromPoints( cms, &facets[patch->numfacets], tverts, 3, shaderref, brushplanes + totalsides );
 			}
 
@@ -266,48 +235,32 @@ static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, cshaderref_t *s
 	}
 
 	if( patch->numfacets ) {
-		uint8_t *fdata;
-
-		fdata = ( uint8_t * ) Mem_Alloc( cmap_mempool, patch->numfacets * sizeof( cbrush_t ) + totalsides * ( sizeof( cbrushside_t ) + sizeof( cplane_t ) ) );
+		uint8_t * fdata = ( uint8_t * ) Mem_Alloc( cmap_mempool, patch->numfacets * sizeof( cbrush_t ) + totalsides * ( sizeof( cbrushside_t ) + sizeof( cplane_t ) ) );
 
 		patch->facets = ( cbrush_t * )fdata; fdata += patch->numfacets * sizeof( cbrush_t );
 		memcpy( patch->facets, facets, patch->numfacets * sizeof( cbrush_t ) );
-		for( i = 0, k = 0, facet = patch->facets; i < patch->numfacets; i++, facet++ ) {
-			cbrushside_t *s;
+
+		int k = 0;
+		for( int i = 0; i < patch->numfacets; i++ ) {
+			cbrush_t * facet = &patch->facets[ i ];
 
 			facet->brushsides = ( cbrushside_t * )fdata; fdata += facet->numsides * sizeof( cbrushside_t );
 
-			for( j = 0, s = facet->brushsides; j < facet->numsides; j++, s++ ) {
+			for( int j = 0; j < facet->numsides; j++ ) {
+				cbrushside_t * s = &facet->brushsides[ j ];
 				s->plane = brushplanes[k++];
-				SnapPlane( s->plane.normal, &s->plane.dist );
-				CategorizePlane( &s->plane );
+				SnapPlane( &s->plane.normal, &s->plane.dist );
 				s->surfFlags = shaderref->flags;
 			}
 		}
 
 		patch->contents = shaderref->contents;
 
-		for( i = 0; i < 3; i++ ) {
-			// spread the mins / maxs by a pixel
-			patch->mins[i] -= 1;
-			patch->maxs[i] += 1;
-		}
+		patch->mins -= Vec3( 1.0f );
+		patch->mins += Vec3( 1.0f );
 	}
-
-	Mem_Free( points );
 }
 
-/*
-===============================================================================
-
-MAP LOADING
-
-===============================================================================
-*/
-
-/*
-* CMod_LoadSurfaces
-*/
 static void CMod_LoadSurfaces( CollisionModel *cms, lump_t *l ) {
 	int i;
 	int count;
@@ -353,14 +306,11 @@ static void CMod_LoadSurfaces( CollisionModel *cms, lump_t *l ) {
 		cms->map_shaderrefs[i].name = buffer + ( size_t )( ( void * )cms->map_shaderrefs[i].name );
 }
 
-/*
-* CMod_LoadVertexes
-*/
 static void CMod_LoadVertexes( CollisionModel *cms, lump_t *l ) {
 	int i;
 	int count;
 	dvertex_t *in;
-	vec3_t *out;
+	Vec3 *out;
 
 	in = ( dvertex_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
@@ -371,24 +321,21 @@ static void CMod_LoadVertexes( CollisionModel *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no vertexes" );
 	}
 
-	out = cms->map_verts = ( vec3_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
+	out = cms->map_verts = ( Vec3 * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
 	cms->numvertexes = count;
 
 	for( i = 0; i < count; i++, in++ ) {
-		out[i][0] = LittleFloat( in->point[0] );
-		out[i][1] = LittleFloat( in->point[1] );
-		out[i][2] = LittleFloat( in->point[2] );
+		out[i].x = LittleFloat( in->point[0] );
+		out[i].y = LittleFloat( in->point[1] );
+		out[i].z = LittleFloat( in->point[2] );
 	}
 }
 
-/*
-* CMod_LoadVertexes_RBSP
-*/
 static void CMod_LoadVertexes_RBSP( CollisionModel *cms, lump_t *l ) {
 	int i;
 	int count;
 	rdvertex_t *in;
-	vec3_t *out;
+	Vec3 *out;
 
 	in = ( rdvertex_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
@@ -399,19 +346,16 @@ static void CMod_LoadVertexes_RBSP( CollisionModel *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no vertexes" );
 	}
 
-	out = cms->map_verts = ( vec3_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
+	out = cms->map_verts = ( Vec3 * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
 	cms->numvertexes = count;
 
 	for( i = 0; i < count; i++, in++ ) {
-		out[i][0] = LittleFloat( in->point[0] );
-		out[i][1] = LittleFloat( in->point[1] );
-		out[i][2] = LittleFloat( in->point[2] );
+		out[i].x = LittleFloat( in->point[0] );
+		out[i].y = LittleFloat( in->point[1] );
+		out[i].z = LittleFloat( in->point[2] );
 	}
 }
 
-/*
-* CMod_LoadFace
-*/
 static inline void CMod_LoadFace( CollisionModel *cms, cface_t *out, int shadernum, int firstvert, int numverts, int *patch_cp ) {
 	cshaderref_t *shaderref;
 
@@ -439,9 +383,6 @@ static inline void CMod_LoadFace( CollisionModel *cms, cface_t *out, int shadern
 	CM_CreatePatch( cms, out, shaderref, cms->map_verts + firstvert, patch_cp );
 }
 
-/*
-* CMod_LoadFaces
-*/
 static void CMod_LoadFaces( CollisionModel *cms, lump_t *l ) {
 	int i, count;
 	dface_t *in;
@@ -470,9 +411,6 @@ static void CMod_LoadFaces( CollisionModel *cms, lump_t *l ) {
 	}
 }
 
-/*
-* CMod_LoadFaces_RBSP
-*/
 static void CMod_LoadFaces_RBSP( CollisionModel *cms, lump_t *l ) {
 	int i, count;
 	rdface_t *in;
@@ -501,9 +439,6 @@ static void CMod_LoadFaces_RBSP( CollisionModel *cms, lump_t *l ) {
 	}
 }
 
-/*
-* CMod_LoadSubmodels
-*/
 static void CMod_LoadSubmodels( CModelServerOrClient soc, CollisionModel *cms, lump_t *l ) {
 	const dmodel_t * in = ( dmodel_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
@@ -522,6 +457,7 @@ static void CMod_LoadSubmodels( CModelServerOrClient soc, CollisionModel *cms, l
 
 		cmodel_t * model = CM_NewCModel( soc, hash );
 
+		model->hash = hash;
 		model->faces = cms->map_faces;
 		model->nummarkfaces = LittleLong( in->numfaces );
 		model->markfaces = ( int * ) Mem_Alloc( cmap_mempool, model->nummarkfaces * sizeof( *model->markfaces ) );
@@ -551,9 +487,6 @@ static void CMod_LoadSubmodels( CModelServerOrClient soc, CollisionModel *cms, l
 	}
 }
 
-/*
-* CMod_LoadNodes
-*/
 static void CMod_LoadNodes( CollisionModel *cms, lump_t *l ) {
 	int i;
 	int count;
@@ -584,9 +517,6 @@ static void CMod_LoadNodes( CollisionModel *cms, lump_t *l ) {
 	}
 }
 
-/*
-* CMod_LoadMarkFaces
-*/
 static void CMod_LoadMarkFaces( CollisionModel *cms, lump_t *l ) {
 	int i, j;
 	int count;
@@ -614,9 +544,6 @@ static void CMod_LoadMarkFaces( CollisionModel *cms, lump_t *l ) {
 	}
 }
 
-/*
-* CMod_LoadLeafs
-*/
 static void CMod_LoadLeafs( CollisionModel *cms, lump_t *l ) {
 	int i, j, k;
 	int count;
@@ -672,48 +599,28 @@ static void CMod_LoadLeafs( CollisionModel *cms, lump_t *l ) {
 	}
 }
 
-/*
-* CMod_LoadPlanes
-*/
 static void CMod_LoadPlanes( CollisionModel *cms, lump_t *l ) {
-	int i, j;
-	int count;
-	cplane_t *out;
-	dplane_t *in;
-
-	in = ( dplane_t * )( cms->cmod_base + l->fileofs );
+	dplane_t * in = ( dplane_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Com_Error( ERR_DROP, "CMod_LoadPlanes: funny lump size" );
 	}
-	count = l->filelen / sizeof( *in );
+	int count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
 		Com_Error( ERR_DROP, "Map with no planes" );
 	}
 
-	out = cms->map_planes = ( cplane_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
+	cplane_t * out = cms->map_planes = ( cplane_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
 	cms->numplanes = count;
 
-	for( i = 0; i < count; i++, in++, out++ ) {
-		out->signbits = 0;
-		out->type = PLANE_NONAXIAL;
-
-		for( j = 0; j < 3; j++ ) {
+	for( int i = 0; i < count; i++, in++, out++ ) {
+		for( int j = 0; j < 3; j++ ) {
 			out->normal[j] = LittleFloat( in->normal[j] );
-			if( out->normal[j] < 0 ) {
-				out->signbits |= ( 1 << j );
-			}
-			if( out->normal[j] == 1.0f ) {
-				out->type = j;
-			}
 		}
 
 		out->dist = LittleFloat( in->dist );
 	}
 }
 
-/*
-* CMod_LoadMarkBrushes
-*/
 static void CMod_LoadMarkBrushes( CollisionModel *cms, lump_t *l ) {
 	int i;
 	int count;
@@ -736,42 +643,30 @@ static void CMod_LoadMarkBrushes( CollisionModel *cms, lump_t *l ) {
 		out[i] = LittleLong( *in );
 }
 
-/*
-* CMod_LoadBrushSides
-*/
 static void CMod_LoadBrushSides( CollisionModel *cms, lump_t *l ) {
-	int i, j;
-	int count;
-	cbrushside_t *out;
-	dbrushside_t *in;
-
-	in = ( dbrushside_t * )( cms->cmod_base + l->fileofs );
+	dbrushside_t * in = ( dbrushside_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Com_Error( ERR_DROP, "CMod_LoadBrushSides: funny lump size" );
 	}
-	count = l->filelen / sizeof( *in );
+	int count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
 		Com_Error( ERR_DROP, "Map with no brushsides" );
 	}
 
-	out = cms->map_brushsides = ( cbrushside_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
+	cbrushside_t * out = cms->map_brushsides = ( cbrushside_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
 	cms->numbrushsides = count;
 
-	for( i = 0; i < count; i++, in++, out++ ) {
+	for( int i = 0; i < count; i++, in++, out++ ) {
 		cplane_t *plane = cms->map_planes + LittleLong( in->planenum );
-		j = LittleLong( in->shadernum );
+		int j = LittleLong( in->shadernum );
 		if( j >= cms->numshaderrefs ) {
 			Com_Error( ERR_DROP, "Bad brushside texinfo" );
 		}
 		out->plane = *plane;
 		out->surfFlags = cms->map_shaderrefs[j].flags;
-		CategorizePlane( &out->plane );
 	}
 }
 
-/*
-* CMod_LoadBrushSides_RBSP
-*/
 static void CMod_LoadBrushSides_RBSP( CollisionModel *cms, lump_t *l ) {
 	int i, j;
 	int count;
@@ -798,13 +693,16 @@ static void CMod_LoadBrushSides_RBSP( CollisionModel *cms, lump_t *l ) {
 		}
 		out->plane = *plane;
 		out->surfFlags = cms->map_shaderrefs[j].flags;
-		CategorizePlane( &out->plane );
 	}
 }
 
-/*
-* CMod_LoadBrushes
-*/
+static void CM_BoundBrush( cbrush_t *brush ) {
+	for( int i = 0; i < 3; i++ ) {
+		brush->mins[i] = -brush->brushsides[i * 2 + 0].plane.dist;
+		brush->maxs[i] = +brush->brushsides[i * 2 + 1].plane.dist;
+	}
+}
+
 static void CMod_LoadBrushes( CollisionModel *cms, lump_t *l ) {
 	int i;
 	int count;
@@ -833,9 +731,6 @@ static void CMod_LoadBrushes( CollisionModel *cms, lump_t *l ) {
 	}
 }
 
-/*
-* CMod_LoadVisibility
-*/
 static void CMod_LoadVisibility( CollisionModel *cms, lump_t *l ) {
 	cms->map_visdatasize = l->filelen;
 	if( !cms->map_visdatasize ) {
@@ -850,9 +745,6 @@ static void CMod_LoadVisibility( CollisionModel *cms, lump_t *l ) {
 	cms->map_pvs->rowsize = LittleLong( cms->map_pvs->rowsize );
 }
 
-/*
-* CMod_LoadEntityString
-*/
 static void CMod_LoadEntityString( CollisionModel *cms, lump_t *l ) {
 	cms->numentitychars = l->filelen;
 	if( !l->filelen ) {
@@ -863,9 +755,6 @@ static void CMod_LoadEntityString( CollisionModel *cms, lump_t *l ) {
 	memcpy( cms->map_entitystring, cms->cmod_base + l->fileofs, l->filelen );
 }
 
-/*
-* CM_LoadQ3BrushModel
-*/
 void CM_LoadQ3BrushModel( CModelServerOrClient soc, CollisionModel * cms, Span< const u8 > data ) {
 	dheader_t header;
 	memcpy( &header, data.ptr, sizeof( header ) );

@@ -64,23 +64,22 @@ void G_UpdateScoreBoardMessages( void ) {
 //=======================================================================
 
 static unsigned int G_FindPointedPlayer( edict_t *self ) {
-	trace_t trace;
-	int i, j, bestNum = 0;
-	vec3_t boxpoints[8];
-	float value, dist, value_best = 0.90f;   // if nothing better is found, print nothing
-	edict_t *other;
-	vec3_t vieworg, dir, viewforward;
+	int best = 0;
+	float value_best = 0.90f;
 
 	if( G_IsDead( self ) ) {
 		return 0;
 	}
 
 	// we can't handle the thirdperson modifications in server side :/
-	VectorSet( vieworg, self->r.client->ps.pmove.origin[0], self->r.client->ps.pmove.origin[1], self->r.client->ps.pmove.origin[2] + self->r.client->ps.viewheight );
-	AngleVectors( self->r.client->ps.viewangles, viewforward, NULL, NULL );
+	Vec3 vieworg = self->r.client->ps.pmove.origin;
+	vieworg.z += self->r.client->ps.viewheight;
 
-	for( i = 0; i < server_gs.maxclients; i++ ) {
-		other = PLAYERENT( i );
+	Vec3 viewforward;
+	AngleVectors( self->r.client->ps.viewangles, &viewforward, NULL, NULL );
+
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
+		edict_t * other = PLAYERENT( i );
 		if( !other->r.inuse ) {
 			continue;
 		}
@@ -94,27 +93,30 @@ static unsigned int G_FindPointedPlayer( edict_t *self ) {
 			continue;
 		}
 
-		VectorSubtract( other->s.origin, self->s.origin, dir );
-		dist = VectorNormalize2( dir, dir );
+		Vec3 dir = other->s.origin - self->s.origin;
+		float dist = Length( dir );
+		dir = Normalize( dir );
 		if( dist > 1000 ) {
 			continue;
 		}
 
-		value = DotProduct( dir, viewforward );
+		float value = Dot( dir, viewforward );
 
 		if( value > value_best ) {
-			BuildBoxPoints( boxpoints, other->s.origin, tv( 4, 4, 4 ), tv( 4, 4, 4 ) );
-			for( j = 0; j < 8; j++ ) {
-				G_Trace( &trace, vieworg, vec3_origin, vec3_origin, boxpoints[j], self, MASK_SHOT | MASK_OPAQUE );
+			Vec3 boxpoints[8];
+			BuildBoxPoints( boxpoints, other->s.origin, Vec3( 4.0f ), Vec3( 4.0f ) );
+			for( int j = 0; j < 8; j++ ) {
+				trace_t trace;
+				G_Trace( &trace, vieworg, Vec3( 0.0f ), Vec3( 0.0f ), boxpoints[j], self, MASK_SHOT | MASK_OPAQUE );
 				if( trace.ent && trace.ent == ENTNUM( other ) ) {
 					value_best = value;
-					bestNum = ENTNUM( other );
+					best = ENTNUM( other );
 				}
 			}
 		}
 	}
 
-	return bestNum;
+	return best;
 }
 
 /*

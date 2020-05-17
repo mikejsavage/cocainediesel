@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/base.h"
 #include "qcommon/compression.h"
+#include "qcommon/cmodel.h"
 #include "game/g_local.h"
 
 enum EntityFieldType {
@@ -297,17 +298,13 @@ static void ED_ParseField( char *key, char *value, edict_t *ent ) {
 				*(float *)( b + f.ofs ) = atof( value );
 				break;
 			case F_ANGLE:
-				( (float *)( b + f.ofs ) )[0] = 0;
-				( (float *)( b + f.ofs ) )[1] = atof( value );
-				( (float *)( b + f.ofs ) )[2] = 0;
+				*(Vec3 *)( b + f.ofs ) = Vec3( 0.0f, atof( value ), 0.0f );
 				break;
 
 			case F_VECTOR: {
-				vec3_t vec;
-				sscanf( value, "%f %f %f", &vec[0], &vec[1], &vec[2] );
-				( (float *)( b + f.ofs ) )[0] = vec[0];
-				( (float *)( b + f.ofs ) )[1] = vec[1];
-				( (float *)( b + f.ofs ) )[2] = vec[2];
+				Vec3 vec;
+				sscanf( value, "%f %f %f", &vec.x, &vec.y, &vec.z );
+				*(Vec3 *)( b + f.ofs ) = vec;
 			} break;
 
 			case F_RGBA: {
@@ -376,60 +373,6 @@ static char *ED_ParseEdict( char *data, edict_t *ent ) {
 	}
 
 	return data;
-}
-
-/*
-* G_FindTeams
-*
-* Chain together all entities with a matching team field.
-*
-* All but the first will have the FL_TEAMSLAVE flag set.
-* All but the last will have the teamchain field set to the next one
-*/
-static void G_FindTeams( void ) {
-	edict_t *e, *e2, *chain;
-	int i, j;
-	int c, c2;
-
-	c = 0;
-	c2 = 0;
-	for( i = 1, e = game.edicts + i; i < game.numentities; i++, e++ ) {
-		if( !e->r.inuse ) {
-			continue;
-		}
-		if( !e->team ) {
-			continue;
-		}
-		if( e->flags & FL_TEAMSLAVE ) {
-			continue;
-		}
-		chain = e;
-		e->teammaster = e;
-		c++;
-		c2++;
-		for( j = i + 1, e2 = e + 1; j < game.numentities; j++, e2++ ) {
-			if( !e2->r.inuse ) {
-				continue;
-			}
-			if( !e2->team ) {
-				continue;
-			}
-			if( e2->flags & FL_TEAMSLAVE ) {
-				continue;
-			}
-			if( !strcmp( e->team, e2->team ) ) {
-				c2++;
-				chain->teamchain = e2;
-				e2->teammaster = e;
-				chain = e2;
-				e2->flags |= FL_TEAMSLAVE;
-			}
-		}
-	}
-
-	if( developer->integer ) {
-		Com_Printf( "%i teams with %i entities\n", c, c2 );
-	}
 }
 
 /*
@@ -508,8 +451,6 @@ static void G_SpawnEntities( void ) {
 	// is the parsing string sane?
 	assert( level.map_parsed_len < level.mapStrlen );
 	level.map_parsed_ents[level.map_parsed_len] = 0;
-
-	G_FindTeams();
 
 	// make sure server got the edicts data
 	trap_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
@@ -661,8 +602,8 @@ static void SP_worldspawn( edict_t *ent ) {
 	ent->movetype = MOVETYPE_PUSH;
 	ent->r.solid = SOLID_YES;
 	ent->r.inuse = true;       // since the world doesn't use G_Spawn()
-	VectorClear( ent->s.origin );
-	VectorClear( ent->s.angles );
+	ent->s.origin = Vec3( 0.0f );
+	ent->s.angles = Vec3( 0.0f );
 
 	const char * model_name = "*0";
 	ent->s.model = StringHash( Hash64( model_name, strlen( model_name ), svs.cms->base_hash ) );

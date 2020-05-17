@@ -642,7 +642,7 @@ typedef struct cmd_function_s {
 static int cmd_argc;
 static char *cmd_argv[MAX_STRING_TOKENS];
 static size_t cmd_argv_sizes[MAX_STRING_TOKENS];
-static char cmd_null_string[ 1 ] = { '\0' };
+static char cmd_null_string[] = "";
 static char cmd_args[MAX_STRING_CHARS];
 
 static trie_t *cmd_function_trie = NULL;
@@ -740,7 +740,7 @@ void Cmd_TokenizeString( const char *text ) {
 		if( cmd_argc < MAX_STRING_TOKENS ) {
 			size_t size = strlen( com_token ) + 1;
 			if( cmd_argv_sizes[cmd_argc] < size ) {
-				cmd_argv_sizes[cmd_argc] = min( size + 64, MAX_TOKEN_CHARS );
+				cmd_argv_sizes[cmd_argc] = Min2( size + 64, size_t( MAX_TOKEN_CHARS ) );
 				if( cmd_argv[cmd_argc] ) {
 					Mem_ZoneFree( cmd_argv[cmd_argc] );
 				}
@@ -958,7 +958,7 @@ const char **Cmd_CompleteFileList( const char *partial, const char *basedir, con
 		if( dir[0] ) {
 			Q_strncatz( dir, "/", sizeof( dir ) );
 		}
-		Q_strncpyz( subdir, partial, min( p - partial, sizeof( subdir ) ) );
+		Q_strncpyz( subdir, partial, qmin( p - partial, sizeof( subdir ) ) );
 		for( subdir_len = strlen( subdir ); subdir[subdir_len - 1] == '/'; subdir_len-- ) subdir[subdir_len - 1] = '\0';
 		Q_strncatz( dir, subdir, sizeof( dir ) );
 		Q_strncatz( subdir, "/", sizeof( subdir ) );

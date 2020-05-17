@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include "tracy/Tracy.hpp"
-
 #include "gameshared/q_arch.h"
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
@@ -31,13 +29,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/application.h"
 #include "qcommon/qfiles.h"
-#include "qcommon/cmodel.h"
 #include "qcommon/strtonum.h"
 
-inline Vec3 FromQF3( const vec3_t v ) { return Vec3( v[ 0 ], v[ 1 ], v[ 2 ] ); }
-inline EulerDegrees3 FromQFAngles( const vec3_t v ) { return { v[ PITCH ], v[ YAW ], v[ ROLL ] }; }
+inline Vec3 FromQFAxis( mat3_t m, int axis ) {
+	return Vec3( m[ axis + 0 ], m[ axis + 1 ], m[ axis + 2 ] );
+}
 
-inline Mat4 FromQFAxisAndOrigin( const mat3_t axis, const vec3_t origin ) {
+inline Mat4 FromAxisAndOrigin( const mat3_t axis, Vec3 origin ) {
 	Mat4 rotation = Mat4::Identity();
 	rotation.col0.x = axis[ 0 ];
 	rotation.col0.y = axis[ 1 ];
@@ -50,9 +48,7 @@ inline Mat4 FromQFAxisAndOrigin( const mat3_t axis, const vec3_t origin ) {
 	rotation.col2.z = axis[ 8 ];
 
 	Mat4 translation = Mat4::Identity();
-	translation.col3.x = origin[ 0 ];
-	translation.col3.y = origin[ 1 ];
-	translation.col3.z = origin[ 2 ];
+	translation.col3 = Vec4( origin, 1.0f );
 
 	return translation * rotation;
 }
@@ -66,6 +62,8 @@ struct snapshot_s;
 struct ginfo_s;
 struct client_s;
 struct client_entities_s;
+
+struct CollisionModel;
 
 //============================================================================
 
@@ -612,6 +610,13 @@ void Com_GGPrintNL( const char * fmt, const Rest & ... rest ) {
 
 #define Com_GGPrint( fmt, ... ) Com_GGPrintNL( fmt "\n", ##__VA_ARGS__ )
 
+template< typename... Rest >
+void Com_GGError( com_error_code_t code, const char * fmt, const Rest & ... rest ) {
+	char buf[ 4096 ];
+	ggformat( buf, sizeof( buf ), fmt, rest... );
+	Com_Error( code, "%s", buf );
+}
+
 void        Com_DeferQuit( void );
 
 int         Com_ClientState( void );        // this should have just been a cvar...
@@ -777,12 +782,3 @@ Span< const char * > GetMapList();
 bool MapExists( const char * name );
 
 const char ** CompleteMapName( const char * prefix );
-
-/*
-==============================================================
-
-MULTITHREADING
-
-==============================================================
-*/
-#include "qthreads.h"

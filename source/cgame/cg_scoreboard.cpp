@@ -106,10 +106,8 @@ static void DrawPlayerScoreboard( TempAllocator & temp, ScoreboardPlayer player,
 	ImGui::AlignTextToFramePadding();
 	ColumnCenterText( temp( "{}", player.kills ) );
 	ImGui::NextColumn();
-
 	ImGui::AlignTextToFramePadding();
-	ImGuiColorToken color( Min2( 255, player.ping ), 0, 0, 255 );
-	ColumnCenterText( temp( "{}{}", color, player.ping ) );
+	ColumnCenterText( temp( "{}", player.ping ) );
 	ImGui::NextColumn();
 }
 
@@ -331,7 +329,7 @@ void CG_DrawScoreboard() {
 				if( !ParsePlayer( &cursor, &player ) )
 					break;
 
-				RGB8 team_color = TEAM_COLORS[ i % ARRAY_COUNT( TEAM_COLORS ) ].rgb;
+				RGB8 team_color = TEAM_COLORS[ i % ARRAY_COUNT( TEAM_COLORS ) ];
 				bool alive = player.id >= 0;
 
 				float bg_scale = alive ? 0.75f : 0.5f;

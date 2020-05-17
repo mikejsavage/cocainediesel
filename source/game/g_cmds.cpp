@@ -25,9 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 * Teleports client to specified position
 * If client is not spectator teleporting is only done if position is free and teleport effects are drawn.
 */
-static bool G_Teleport( edict_t *ent, vec3_t origin, vec3_t angles ) {
-	int i;
-
+static bool G_Teleport( edict_t *ent, Vec3 origin, Vec3 angles ) {
 	if( !ent->r.inuse || !ent->r.client ) {
 		return false;
 	}
@@ -43,11 +41,11 @@ static bool G_Teleport( edict_t *ent, vec3_t origin, vec3_t angles ) {
 		G_TeleportEffect( ent, false );
 	}
 
-	VectorCopy( origin, ent->s.origin );
-	VectorCopy( origin, ent->olds.origin );
+	ent->s.origin = origin;
+	ent->olds.origin = origin;
 	ent->s.teleported = true;
 
-	VectorClear( ent->velocity );
+	ent->velocity = Vec3( 0.0f );
 	ent->r.client->ps.pmove.pm_time = 1;
 	ent->r.client->ps.pmove.pm_flags |= PMF_TIME_TELEPORT;
 
@@ -56,12 +54,13 @@ static bool G_Teleport( edict_t *ent, vec3_t origin, vec3_t angles ) {
 	}
 
 	// set angles
-	VectorCopy( angles, ent->s.angles );
-	VectorCopy( angles, ent->r.client->ps.viewangles );
+	ent->s.angles = angles;
+	ent->r.client->ps.viewangles = angles;
 
 	// set the delta angle
-	for( i = 0; i < 3; i++ )
-		ent->r.client->ps.pmove.delta_angles[i] = ANGLE2SHORT( ent->r.client->ps.viewangles[i] ) - ent->r.client->ucmd.angles[i];
+	ent->r.client->ps.pmove.delta_angles[ 0 ] = ANGLE2SHORT( ent->r.client->ps.viewangles.x ) - ent->r.client->ucmd.angles[ 0 ];
+	ent->r.client->ps.pmove.delta_angles[ 1 ] = ANGLE2SHORT( ent->r.client->ps.viewangles.y ) - ent->r.client->ucmd.angles[ 1 ];
+	ent->r.client->ps.pmove.delta_angles[ 2 ] = ANGLE2SHORT( ent->r.client->ps.viewangles.z ) - ent->r.client->ucmd.angles[ 2 ];
 
 	return true;
 }
@@ -155,7 +154,7 @@ static void Cmd_Kill_f( edict_t *ent ) {
 	meansOfDeath = MOD_SUICIDE;
 
 	// wsw : pb : fix /kill command
-	G_Killed( ent, ent, ent, 100000, vec3_origin, MOD_SUICIDE );
+	G_Killed( ent, ent, ent, 100000, Vec3( 0.0f ), MOD_SUICIDE );
 }
 
 void Cmd_ChaseNext_f( edict_t *ent ) {
@@ -203,8 +202,8 @@ static void Cmd_Position_f( edict_t *ent ) {
 
 	if( !Q_stricmp( action, "save" ) ) {
 		ent->r.client->teamstate.position_saved = true;
-		VectorCopy( ent->s.origin, ent->r.client->teamstate.position_origin );
-		VectorCopy( ent->s.angles, ent->r.client->teamstate.position_angles );
+		ent->r.client->teamstate.position_origin = ent->s.origin;
+		ent->r.client->teamstate.position_angles = ent->s.angles;
 		G_PrintMsg( ent, "Position saved.\n" );
 	} else if( !Q_stricmp( action, "load" ) ) {
 		if( !ent->r.client->teamstate.position_saved ) {
@@ -221,14 +220,8 @@ static void Cmd_Position_f( edict_t *ent ) {
 			}
 		}
 	} else if( !Q_stricmp( action, "set" ) && Cmd_Argc() == 7 ) {
-		vec3_t origin, angles;
-		int i, argnumber = 2;
-
-		for( i = 0; i < 3; i++ )
-			origin[i] = atof( Cmd_Argv( argnumber++ ) );
-		for( i = 0; i < 2; i++ )
-			angles[i] = atof( Cmd_Argv( argnumber++ ) );
-		angles[2] = 0;
+		Vec3 origin = Vec3( atof( Cmd_Argv( 2 ) ), atof( Cmd_Argv( 3 ) ), atof( Cmd_Argv( 4 ) ) );
+		Vec3 angles = Vec3( atof( Cmd_Argv( 5 ) ), atof( Cmd_Argv( 6 ) ), 0.0f );
 
 		if( ent->r.client->resp.chase.active ) {
 			G_SpectatorMode( ent );
@@ -246,8 +239,8 @@ static void Cmd_Position_f( edict_t *ent ) {
 		Q_strncatz( msg, "Usage:\nposition save - Save current position\n", sizeof( msg ) );
 		Q_strncatz( msg, "position load - Teleport to saved position\n", sizeof( msg ) );
 		Q_strncatz( msg, "position set <x> <y> <z> <pitch> <yaw> - Teleport to specified position\n", sizeof( msg ) );
-		Q_strncatz( msg, va( "Current position: %.4f %.4f %.4f %.4f %.4f\n", ent->s.origin[0], ent->s.origin[1],
-							 ent->s.origin[2], ent->s.angles[0], ent->s.angles[1] ), sizeof( msg ) );
+		Q_strncatz( msg, va( "Current position: %.4f %.4f %.4f %.4f %.4f\n", ent->s.origin.x, ent->s.origin.y,
+							 ent->s.origin.z, ent->s.angles.x, ent->s.angles.y ), sizeof( msg ) );
 		G_PrintMsg( ent, "%s", msg );
 	}
 }
@@ -527,11 +520,14 @@ static const g_vsays_t g_vsays[] = {
 	{ "getgood", Vsay_GetGood },
 	{ "hittheshowers", Vsay_HitTheShowers },
 	{ "lads", Vsay_Lads },
+	{ "shedoesnteven", Vsay_SheDoesntEvenGoHere },
 	{ "shitson", Vsay_ShitSon },
 	{ "trashsmash", Vsay_TrashSmash },
+	{ "whattheshit", Vsay_WhatTheShit },
 	{ "wowyourterrible", Vsay_WowYourTerrible },
 	{ "acne", Vsay_Acne },
 	{ "valley", Vsay_Valley },
+	{ "mike", Vsay_Mike },
 
 	{ NULL, 0 }
 };
@@ -540,8 +536,6 @@ static const g_vsays_t g_vsays[] = {
 * G_vsay_f
 */
 static void G_vsay_f( edict_t *ent, bool team ) {
-	edict_t *event = NULL;
-	const g_vsays_t *vsay;
 	const char *msg = Cmd_Argv( 1 );
 
 	if( ent->r.client && ( ent->r.client->muted & 2 ) ) {
@@ -567,41 +561,40 @@ static void G_vsay_f( edict_t *ent, bool team ) {
 		}
 	}
 
-	for( vsay = g_vsays; vsay->name; vsay++ ) {
-		if( !Q_stricmp( msg, vsay->name ) ) {
-			event = G_SpawnEvent( EV_VSAY, vsay->id, NULL );
-			break;
-		}
-	}
+	for( const g_vsays_t * vsay = g_vsays; vsay->name; vsay++ ) {
+		if( Q_stricmp( msg, vsay->name ) != 0 )
+			continue;
 
-	if( event ) {
+		u64 entropy = random_u32( &svs.rng );
+		u64 parm = u64( vsay->id ) | ( entropy << 16 );
+
+		edict_t * event = G_SpawnEvent( EV_VSAY, parm, NULL );
 		event->r.svflags |= SVF_BROADCAST; // force sending even when not in PVS
 		event->s.ownerNum = ent->s.number;
+
 		if( team ) {
 			event->s.team = ent->s.team;
-			event->r.svflags |= SVF_ONLYTEAM; // send only to clients with the same ->s.team value
+			event->r.svflags |= SVF_ONLYTEAM;
 		}
+
 		return;
 	}
 
 	// unknown token, print help
-	{
-		char string[MAX_STRING_CHARS];
+	char string[MAX_STRING_CHARS];
 
-		// print information
-		string[0] = 0;
-		if( msg && msg[0] != '\0' ) {
-			Q_strncatz( string, va( "%sUnknown vsay token%s \"%s\"\n", S_COLOR_YELLOW, S_COLOR_WHITE, msg ), sizeof( string ) );
-		}
-		Q_strncatz( string, va( "%svsays:%s\n", S_COLOR_YELLOW, S_COLOR_WHITE ), sizeof( string ) );
-		for( vsay = g_vsays; vsay->name; vsay++ ) {
-			if( strlen( vsay->name ) + strlen( string ) < sizeof( string ) - 6 ) {
-				Q_strncatz( string, va( "%s ", vsay->name ), sizeof( string ) );
-			}
-		}
-		Q_strncatz( string, "\n", sizeof( string ) );
-		G_PrintMsg( ent, "%s", string );
+	string[0] = 0;
+	if( msg && msg[0] != '\0' ) {
+		Q_strncatz( string, va( "%sUnknown vsay token%s \"%s\"\n", S_COLOR_YELLOW, S_COLOR_WHITE, msg ), sizeof( string ) );
 	}
+	Q_strncatz( string, va( "%svsays:%s\n", S_COLOR_YELLOW, S_COLOR_WHITE ), sizeof( string ) );
+	for( const g_vsays_t * vsay = g_vsays; vsay->name; vsay++ ) {
+		if( strlen( vsay->name ) + strlen( string ) < sizeof( string ) - 6 ) {
+			Q_strncatz( string, va( "%s ", vsay->name ), sizeof( string ) );
+		}
+	}
+	Q_strncatz( string, "\n", sizeof( string ) );
+	G_PrintMsg( ent, "%s", string );
 }
 
 /*

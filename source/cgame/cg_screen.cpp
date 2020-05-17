@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "cg_local.h"
+#include "cgame/cg_local.h"
 
 cvar_t *cg_centerTime;
 cvar_t *cg_showFPS;
@@ -176,7 +176,7 @@ void CG_DrawCrosshair() {
 
 		int size = 32;
 		CG_FillRect( w / 2 - 1 - size, h / 2 - 1 + 24, 2 + 2 * size, 4, vec4_black );
-		CG_FillRect( w / 2 - 1 - size, h / 2 - 1 + 25, frac * ( 2 + 2 * size ), 2, vec4_white );
+		CG_FillRect( w / 2 - size, h / 2 - 1 + 25, frac * 2 * size, 2, vec4_white );
 	}
 }
 
@@ -301,7 +301,7 @@ static void CG_UpdatePointedNum( void ) {
 */
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border ) {
 	// static vec4_t alphagreen = { 0, 1, 0, 0 }, alphared = { 1, 0, 0, 0 }, alphayellow = { 1, 1, 0, 0 }, alphamagenta = { 1, 0, 1, 1 }, alphagrey = { 0.85, 0.85, 0.85, 1 };
-	vec3_t dir, drawOrigin;
+	Vec3 dir, drawOrigin;
 	float dist, fadeFrac;
 	trace_t trace;
 
@@ -335,10 +335,11 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 		}
 
 		// Kill if behind the view
-		VectorSubtract( cent->ent.origin, cg.view.origin, dir );
-		dist = VectorNormalize( dir ) * cg.view.fracDistFOV;
+		dir = cent->ent.origin - cg.view.origin;
+		dist = Length( dir ) * cg.view.fracDistFOV;
+		dir = Normalize( dir );
 
-		if( DotProduct( dir, &cg.view.axis[AXIS_FORWARD] ) < 0 ) {
+		if( Dot( dir, FromQFAxis( cg.view.axis, AXIS_FORWARD ) ) < 0 ) {
 			continue;
 		}
 
@@ -362,14 +363,14 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			continue;
 		}
 
-		CG_Trace( &trace, cg.view.origin, vec3_origin, vec3_origin, cent->ent.origin, cg.predictedPlayerState.POVnum, MASK_OPAQUE );
+		CG_Trace( &trace, cg.view.origin, Vec3( 0.0f ), Vec3( 0.0f ), cent->ent.origin, cg.predictedPlayerState.POVnum, MASK_OPAQUE );
 		if( trace.fraction < 1.0f && trace.ent != cent->current.number ) {
 			continue;
 		}
 
-		VectorSet( drawOrigin, cent->ent.origin[0], cent->ent.origin[1], cent->ent.origin[2] + playerbox_stand_maxs[2] + 8 );
+		drawOrigin = Vec3( cent->ent.origin.x, cent->ent.origin.y, cent->ent.origin.z + playerbox_stand_maxs.z + 8 );
 
-		Vec2 coords = WorldToScreen( FromQF3( drawOrigin ) );
+		Vec2 coords = WorldToScreen( drawOrigin );
 		if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {
 			continue;
 		}
@@ -389,6 +390,7 @@ struct DamageNumber {
 	int64_t t;
 	const char * obituary;
 	int damage;
+	bool headshot;
 };
 
 static DamageNumber damage_numbers[ 16 ];
@@ -401,16 +403,17 @@ void CG_InitDamageNumbers() {
 	}
 }
 
-void CG_AddDamageNumber( SyncEntityState * ent ) {
+void CG_AddDamageNumber( SyncEntityState * ent, u64 parm ) {
 	DamageNumber * dn = &damage_numbers[ damage_numbers_head ];
 
 	dn->t = cl.serverTime;
-	dn->damage = ent->damage;
+	dn->damage = parm >> 1;
+	dn->headshot = ( parm & 1 ) != 0;
 	dn->drift = random_float11( &cls.rng );
 	dn->obituary = random_select( &cls.rng, mini_obituaries );
 
 	float distance_jitter = 4;
-	dn->origin = FromQF3( ent->origin );
+	dn->origin = ent->origin;
 	dn->origin.x += random_float11( &cls.rng ) * distance_jitter;
 	dn->origin.y += random_float11( &cls.rng ) * distance_jitter;
 	dn->origin.z += 48;
@@ -448,12 +451,12 @@ void CG_DrawDamageNumbers() {
 		}
 		else {
 			snprintf( buf, sizeof( buf ), "%d", dn.damage );
-			color = vec4_white;
+			color = dn.headshot ? AttentionGettingColor() : vec4_white;
 		}
 
 		float font_size = Lerp( cgs.textSizeTiny, Unlerp01( 0, dn.damage, 60 ), cgs.textSizeSmall );
 
-		float alpha = 1 - max( 0, frac - 0.75f ) / 0.25f;
+		float alpha = 1 - Max2( 0.0f, frac - 0.75f ) / 0.25f;
 		color.w *= alpha;
 
 		DrawText( cgs.fontMontserrat, font_size, buf, Alignment_CenterBottom, coords.x, coords.y, color, true );
@@ -463,7 +466,7 @@ void CG_DrawDamageNumbers() {
 //=============================================================================
 
 struct BombSite {
-	vec3_t origin;
+	Vec3 origin;
 	int team;
 	char letter;
 };
@@ -471,13 +474,13 @@ struct BombSite {
 enum BombState {
 	BombState_None,
 	BombState_Dropped,
-	BombState_Placed,
-	BombState_Armed,
+	BombState_Planting,
+	BombState_Planted,
 };
 
 struct Bomb {
 	BombState state;
-	vec3_t origin;
+	Vec3 origin;
 	int team;
 };
 
@@ -485,36 +488,35 @@ static BombSite bomb_sites[ 26 ];
 static size_t num_bomb_sites;
 static Bomb bomb;
 
-void CG_AddBombHudEntity( centity_t * cent ) {
-	if( cent->current.counterNum != 0 ) {
-		assert( num_bomb_sites < ARRAY_COUNT( bomb_sites ) );
-
-		BombSite * site = &bomb_sites[ num_bomb_sites ];
-		VectorCopy( cent->current.origin, site->origin );
-		site->team = cent->current.team;
-		site->letter = cent->current.counterNum;
-
-		num_bomb_sites++;
+void CG_AddBomb( centity_t * cent ) {
+	if( cent->current.svflags & SVF_ONLYTEAM ) {
+		bomb.state = cent->current.radius == BombDown_Dropped ? BombState_Dropped : BombState_Planting;
 	}
 	else {
-		if( cent->current.svflags & SVF_ONLYTEAM ) {
-			bomb.state = cent->current.radius == BombDown_Dropped ? BombState_Dropped : BombState_Placed;
-		}
-		else {
-			bomb.state = BombState_Armed;
-		}
-
-		bomb.team = cent->current.team;
-		VectorCopy( cent->current.origin, bomb.origin );
+		bomb.state = BombState_Planted;
 	}
+
+	bomb.team = cent->current.team;
+	bomb.origin = cent->current.origin;
+}
+
+void CG_AddBombSite( centity_t * cent ) {
+	assert( num_bomb_sites < ARRAY_COUNT( bomb_sites ) );
+
+	BombSite * site = &bomb_sites[ num_bomb_sites ];
+	site->origin = cent->current.origin;
+	site->team = cent->current.team;
+	site->letter = cent->current.counterNum;
+
+	num_bomb_sites++;
 }
 
 void CG_DrawBombHUD() {
-	if( GS_MatchState( &client_gs ) != MATCH_STATE_PLAYTIME )
+	if( GS_MatchState( &client_gs ) > MATCH_STATE_PLAYTIME )
 		return;
 
-	int my_team = cg.predictedPlayerState.real_team;
-	bool show_labels = my_team != TEAM_SPECTATOR;
+	int my_team = cg.predictedPlayerState.team;
+	bool show_labels = my_team != TEAM_SPECTATOR && GS_MatchState( &client_gs ) == MATCH_STATE_PLAYTIME;
 
 	// TODO: draw arrows when clamped
 
@@ -522,7 +524,7 @@ void CG_DrawBombHUD() {
 		for( size_t i = 0; i < num_bomb_sites; i++ ) {
 			const BombSite * site = &bomb_sites[ i ];
 			bool clamped;
-			Vec2 coords = WorldToScreenClamped( FromQF3( site->origin ), Vec2( cgs.fontSystemMediumSize * 2 ), &clamped );
+			Vec2 coords = WorldToScreenClamped( site->origin, Vec2( cgs.fontSystemMediumSize * 2 ), &clamped );
 
 			char buf[ 4 ];
 			snprintf( buf, sizeof( buf ), "%c", site->letter );
@@ -538,7 +540,7 @@ void CG_DrawBombHUD() {
 
 	if( bomb.state != BombState_None ) {
 		bool clamped;
-		Vec2 coords = WorldToScreenClamped( FromQF3( bomb.origin ), Vec2( cgs.fontSystemMediumSize * 2 ), &clamped );
+		Vec2 coords = WorldToScreenClamped( bomb.origin, Vec2( cgs.fontSystemMediumSize * 2 ), &clamped );
 
 		if( clamped ) {
 			int icon_size = ( cgs.fontSystemMediumSize * frame_static.viewport_height ) / 600;
@@ -547,9 +549,9 @@ void CG_DrawBombHUD() {
 		else {
 			if( show_labels ) {
 				const char * msg = "RETRIEVE";
-				if( bomb.state == BombState_Placed )
+				if( bomb.state == BombState_Planting )
 					msg = "PLANTING";
-				else if( bomb.state == BombState_Armed )
+				else if( bomb.state == BombState_Planted )
 					msg = my_team == bomb.team ? "PROTECT" : "DEFUSE";
 				float y = coords.y - cgs.fontSystemTinySize / 2;
 				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, y, vec4_white, true );
@@ -563,7 +565,6 @@ void CG_ResetBombHUD() {
 	num_bomb_sites = 0;
 	bomb.state = BombState_None;
 }
-
 
 //=============================================================================
 

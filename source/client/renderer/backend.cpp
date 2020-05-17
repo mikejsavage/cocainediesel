@@ -361,9 +361,35 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		}
 	}
 
-	// depth writing
-	if( pipeline.write_depth != prev_pipeline.write_depth ) {
-		glDepthMask( pipeline.write_depth ? GL_TRUE : GL_FALSE );
+	// alpha blending
+	if( pipeline.blend_func != prev_pipeline.blend_func ) {
+		if( pipeline.blend_func == BlendFunc_Disabled ) {
+			glDisable( GL_BLEND );
+		}
+		else {
+			if( prev_pipeline.blend_func == BlendFunc_Disabled ) {
+				glEnable( GL_BLEND );
+			}
+			if( pipeline.blend_func == BlendFunc_Blend ) {
+				glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+			}
+			else {
+				glBlendFunc( GL_SRC_ALPHA, GL_ONE );
+			}
+		}
+	}
+
+	// depth testing
+	if( pipeline.depth_func != prev_pipeline.depth_func ) {
+		if( pipeline.depth_func == DepthFunc_Disabled ) {
+			glDisable( GL_DEPTH_TEST );
+		}
+		else {
+			if( prev_pipeline.depth_func == DepthFunc_Disabled ) {
+				glEnable( GL_DEPTH_TEST );
+			}
+			glDepthFunc( DepthFuncToGL( pipeline.depth_func ) );
+		}
 	}
 
 	// backface culling
@@ -383,37 +409,6 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		}
 	}
 
-	// depth testing
-	if( pipeline.depth_func != prev_pipeline.depth_func ) {
-		if( pipeline.depth_func == DepthFunc_Disabled ) {
-			glDisable( GL_DEPTH_TEST );
-		}
-		else {
-			if( prev_pipeline.depth_func == DepthFunc_Disabled ) {
-				glEnable( GL_DEPTH_TEST );
-			}
-			glDepthFunc( DepthFuncToGL( pipeline.depth_func ) );
-		}
-	}
-
-	// alpha blending
-	if( pipeline.blend_func != prev_pipeline.blend_func ) {
-		if( pipeline.blend_func == BlendFunc_Disabled ) {
-			glDisable( GL_BLEND );
-		}
-		else {
-			if( prev_pipeline.blend_func == BlendFunc_Disabled ) {
-				glEnable( GL_BLEND );
-			}
-			if( pipeline.blend_func == BlendFunc_Blend ) {
-				glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-			}
-			else {
-				glBlendFunc( GL_SRC_ALPHA, GL_ONE );
-			}
-		}
-	}
-
 	// scissor
 	if( pipeline.scissor != prev_pipeline.scissor ) {
 		PipelineState::Scissor s = pipeline.scissor;
@@ -427,6 +422,17 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 			}
 			glScissor( s.x, frame_static.viewport_height - s.y - s.h, s.w, s.h );
 		}
+	}
+
+	// depth writing
+	if( pipeline.write_depth != prev_pipeline.write_depth ) {
+		glDepthMask( pipeline.write_depth ? GL_TRUE : GL_FALSE );
+	}
+
+	// view weapon depth hack
+	if( pipeline.view_weapon_depth_hack != prev_pipeline.view_weapon_depth_hack ) {
+		float far = pipeline.view_weapon_depth_hack ? 0.3f : 1.0f;
+		glDepthRange( 0.0f, far );
 	}
 
 	// polygon fill mode

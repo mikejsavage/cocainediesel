@@ -25,6 +25,9 @@ struct Chat {
 	size_t history_head;
 	size_t history_len;
 
+	bool at_bottom;
+	bool scroll_to_bottom;
+
 	s64 lastHighlightTime;
 };
 
@@ -32,16 +35,10 @@ static Chat chat;
 
 static void OpenChat() {
 	if( !cls.demo.playing ) {
-		chat.mode = ChatMode_Say;
+		bool team = Q_stricmp( Cmd_Argv( 0 ), "messagemode2" ) == 0 &&  Cmd_Exists( "say_team" );
+		chat.mode = team ? ChatMode_SayTeam : ChatMode_Say;
 		chat.input[ 0 ] = '\0';
-		CL_SetKeyDest( key_message );
-	}
-}
-
-static void OpenTeamChat() {
-	if( !cls.demo.playing ) {
-		chat.mode = Cmd_Exists( "say_team" ) ? ChatMode_SayTeam : ChatMode_Say;
-		chat.input[ 0 ] = '\0';
+		chat.scroll_to_bottom = true;
 		CL_SetKeyDest( key_message );
 	}
 }
@@ -55,7 +52,7 @@ void CG_InitChat() {
 	chat = { };
 
 	Cmd_AddCommand( "messagemode", OpenChat );
-	Cmd_AddCommand( "messagemode2", OpenTeamChat );
+	Cmd_AddCommand( "messagemode2", OpenChat );
 }
 
 void CG_ShutdownChat() {
@@ -73,6 +70,10 @@ void CG_AddChat( const char * str ) {
 	}
 	else {
 		chat.history_head = ( chat.history_head + 1 ) % CHAT_HISTORY_SIZE;
+	}
+
+	if( chat.at_bottom ) {
+		chat.scroll_to_bottom = true;
 	}
 }
 
@@ -117,10 +118,10 @@ void CG_DrawChat() {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	const ImGuiIO & io = ImGui::GetIO();
-	float width_frac = Lerp( 0.5f, Unlerp01( 1024.0f, io.DisplaySize.x, 1920.0f ), 0.25f );
+	float width_frac = Lerp( 0.5f, Unlerp01( 1024.0f, io.DisplaySize.x, 1920.0f ), 0.3f );
 	Vec2 size = io.DisplaySize * Vec2( width_frac, 0.25f );
 
-	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground;
+	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground;
 	ImGuiWindowFlags log_flags = 0;
 	if( chat.mode == ChatMode_None ) {
 		flags |= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
@@ -132,6 +133,7 @@ void CG_DrawChat() {
 	ImGui::Begin( "chat", WindowZOrder_Chat, flags );
 
 	ImGui::BeginChild( "chatlog", ImVec2( 0, -ImGui::GetFrameHeight() ), false, log_flags );
+
 	for( size_t i = 0; i < chat.history_len; i++ ) {
 		size_t idx = ( chat.history_head + i ) % ARRAY_COUNT( chat.history );
 		const ChatMessage * msg = &chat.history[ idx ];
@@ -141,8 +143,23 @@ void CG_DrawChat() {
 		}
 
 		ImGui::TextWrapped( "%s", msg->text );
-		ImGui::SetScrollHereY( 1.0f );
 	}
+
+	if( chat.scroll_to_bottom ) {
+		ImGui::SetScrollHereY( 1.0f );
+		chat.scroll_to_bottom = false;
+	}
+
+	if( ImGui::IsKeyPressed( K_PGUP ) || ImGui::IsKeyPressed( K_PGDN ) ) {
+		float scroll = ImGui::GetScrollY();
+		float page = ImGui::GetWindowSize().y - ImGui::GetTextLineHeight();
+		scroll += page * ( ImGui::IsKeyPressed( K_PGUP ) ? -1 : 1 );
+		scroll = Clamp( 0.0f, scroll, ImGui::GetScrollMaxY() );
+		ImGui::SetScrollY( scroll );
+	}
+
+	chat.at_bottom = ImGui::GetScrollY() == ImGui::GetScrollMaxY();
+
 	ImGui::EndChild();
 
 	if( chat.mode != ChatMode_None ) {
@@ -168,11 +185,11 @@ void CG_DrawChat() {
 		ImGui::PopStyleColor();
 	}
 
-	ImGui::End();
-
-	if( ImGui::IsKeyPressed( K_ESCAPE ) ) {
+	if( ImGui::Hotkey( K_ESCAPE ) ) {
 		CloseChat();
 	}
+
+	ImGui::End();
 }
 
 void CG_FlashChatHighlight( const unsigned int fromIndex, const char *text ) {

@@ -1,8 +1,9 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-#include "qcommon/assets.h"
+#include "qcommon/cmodel.h"
 #include "qcommon/compression.h"
 #include "qcommon/hashtable.h"
+#include "client/assets.h"
 #include "client/maps.h"
 #include "client/renderer/model.h"
 
@@ -22,6 +23,9 @@ void InitMaps() {
 		if( ext != ".bsp" )
 			continue;
 
+		ZoneScopedN( "Load map" );
+		ZoneText( path, strlen( path ) );
+
 		Span< const u8 > compressed = AssetBinary( path );
 		if( compressed.n < 4 ) {
 			Com_Printf( S_COLOR_RED "BSP too small %s\n", path );
@@ -39,7 +43,7 @@ void InitMaps() {
 		maps[ num_maps ].name = CopyString( sys_allocator, path );
 		u64 base_hash = Hash64( path, strlen( path ) - ext.n );
 
-		if( !LoadBSPRenderData( &maps[ num_maps ], path, base_hash, data ) )
+		if( !LoadBSPRenderData( &maps[ num_maps ], base_hash, data ) )
 			continue;
 
 		maps[ num_maps ].cms = CM_LoadMap( CM_Client, data, base_hash );

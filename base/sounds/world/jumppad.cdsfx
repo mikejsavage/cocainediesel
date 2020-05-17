@@ -1,0 +1,5 @@
+{
+	attenuation idle
+	volume 0.75
+	sound sounds/world/jumppad
+}

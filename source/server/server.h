@@ -74,9 +74,7 @@ typedef struct {
 typedef struct {
 	bool allentities;
 	bool multipov;
-	int clientarea;
 	int numareas;
-	int areabytes;
 	uint8_t *areabits;                  // portalarea visibility bits
 	int numplayers;
 	int ps_size;
@@ -315,11 +313,6 @@ void SV_Map( const char *level, bool devmap );
 void SV_SetServerConfigStrings( void );
 
 //
-// sv_phys.c
-//
-void SV_PrepWorldFrame( void );
-
-//
 // sv_send.c
 //
 bool SV_Netchan_Transmit( netchan_t *netchan, msg_t *msg );
@@ -334,13 +327,6 @@ void SV_ResetClientFrameCounters( void );
 
 typedef enum { RD_NONE, RD_PACKET } redirect_t;
 
-// destination class for SV_multicast
-typedef enum {
-	MULTICAST_ALL,
-	MULTICAST_PHS,
-	MULTICAST_PVS
-} multicast_t;
-
 #define SV_OUTPUTBUF_LENGTH ( MAX_MSGLEN - 16 )
 
 extern char sv_outputbuf[SV_OUTPUTBUF_LENGTH];
@@ -352,8 +338,6 @@ typedef struct {
 
 void SV_FlushRedirect( int sv_redirected, const char *outputbuf, const void *extra );
 void SV_SendClientMessages( void );
-
-void SV_Multicast( vec3_t origin, multicast_t to );
 
 #ifndef _MSC_VER
 void SV_BroadcastCommand( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );

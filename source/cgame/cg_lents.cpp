@@ -46,11 +46,11 @@ struct LocalEntity {
 	unsigned int start;
 
 	float light;
-	vec3_t lightcolor;
+	Vec3 lightcolor;
 
-	vec3_t velocity;
-	vec3_t angles;
-	vec3_t accel;
+	Vec3 velocity;
+	Vec3 angles;
+	Vec3 accel;
 
 	int frames;
 
@@ -147,23 +147,21 @@ static void CG_FreeLocalEntity( LocalEntity *le ) {
 /*
 * CG_AllocModel
 */
-static LocalEntity *CG_AllocModel( LocalEntityType type, const vec3_t origin, const vec3_t angles, int frames,
+static LocalEntity *CG_AllocModel( LocalEntityType type, Vec3 origin, Vec3 angles, int frames,
 								 Vec4 color, float light, float lr, float lg, float lb, const Model *model, const Material * material ) {
 	LocalEntity * le = CG_AllocLocalEntity( type, color );
 	le->frames = frames;
 	le->light = light;
-	le->lightcolor[0] = lr;
-	le->lightcolor[1] = lg;
-	le->lightcolor[2] = lb;
+	le->lightcolor.x = lr;
+	le->lightcolor.y = lg;
+	le->lightcolor.z = lb;
 
 	le->ent.model = model;
-	le->ent.override_material = material;
-	le->ent.shaderTime = cl.serverTime;
 	le->ent.scale = 1.0f;
 
-	VectorCopy( angles, le->angles );
+	le->angles = angles;
 	AnglesToAxis( angles, le->ent.axis );
-	VectorCopy( origin, le->ent.origin );
+	le->ent.origin = origin;
 
 	return le;
 }
@@ -171,140 +169,75 @@ static LocalEntity *CG_AllocModel( LocalEntityType type, const vec3_t origin, co
 /*
 * CG_AllocSprite
 */
-static LocalEntity *CG_AllocSprite( LocalEntityType type, const vec3_t origin, float radius, int frames,
+static LocalEntity *CG_AllocSprite( LocalEntityType type, Vec3 origin, float radius, int frames,
 								  Vec4 color, float light, float lr, float lg, float lb, const Material * material ) {
 	LocalEntity * le = CG_AllocLocalEntity( type, color );
 	le->frames = frames;
 	le->light = light;
-	le->lightcolor[0] = lr;
-	le->lightcolor[1] = lg;
-	le->lightcolor[2] = lb;
+	le->lightcolor.x = lr;
+	le->lightcolor.y = lg;
+	le->lightcolor.z = lb;
 
 	le->ent.radius = radius;
-	le->ent.override_material = material;
-	le->ent.shaderTime = cl.serverTime;
 	le->ent.scale = 1.0f;
 
 	Matrix3_Identity( le->ent.axis );
-	VectorCopy( origin, le->ent.origin );
+	le->ent.origin = origin;
 
 	return le;
 }
 
-void CG_EBBeam( Vec3 start, Vec3 end, int team ) {
-	Vec4 color = CG_TeamColorVec4( team );
-	AddPersistentBeam( start, end, 16.0f, color, cgs.media.shaderEBBeam, 0.25f, 0.1f );
-	CG_EBIonsTrail( start, end, color );
+void CG_EBBeam( Vec3 start, Vec3 end, Vec4 team_color ) {
+	AddPersistentBeam( start, end, 16.0f, team_color, cgs.media.shaderEBBeam, 0.25f, 0.1f );
+	CG_EBIonsTrail( start, end, team_color );
 }
 
 /*
 * CG_ImpactSmokePuff
 */
-void CG_ImpactSmokePuff( const vec3_t origin, const vec3_t dir, float radius, float alpha, int time, int speed ) {
+void CG_ImpactSmokePuff( Vec3 origin, Vec3 dir, float radius, float alpha, int time, int speed ) {
 #define SMOKEPUFF_MAXVIEWDIST 700
 	const Material * material = cgs.media.shaderSmokePuff;
-	vec3_t local_origin, local_dir;
+	Vec3 local_origin, local_dir;
 
 	if( CG_PointContents( origin ) & MASK_WATER ) {
 		return;
 	}
 
-	if( Distance( origin, cg.view.origin ) * cg.view.fracDistFOV > SMOKEPUFF_MAXVIEWDIST ) {
+	if( Length( cg.view.origin - origin ) * cg.view.fracDistFOV > SMOKEPUFF_MAXVIEWDIST ) {
 		return;
 	}
 
-	if( !VectorLength( dir ) ) {
-		VectorNegate( &cg.view.axis[AXIS_FORWARD], local_dir );
+	if( !Length( dir ) ) {
+		local_dir = -FromQFAxis( cg.view.axis, AXIS_FORWARD );
 	} else {
-		VectorNormalize2( dir, local_dir );
+		local_dir = Normalize( dir );
 	}
 
 	// offset the origin by half of the radius
-	VectorMA( origin, radius * 0.5f, local_dir, local_origin );
+	local_origin = origin + local_dir * ( radius * 0.5f );
 
 	LocalEntity * le = CG_AllocSprite( LE_SCALE_ALPHA_FADE, local_origin, radius + random_float11( &cls.rng ), time,
 						 Vec4( 1, 1, 1, alpha ), 0, 0, 0, 0, material );
 
 	le->ent.rotation = random_float01( &cls.rng ) * 360;
-	VectorScale( local_dir, speed, le->velocity );
-}
-
-/*
-* CG_BulletExplosion
-*/
-void CG_BulletExplosion( const vec3_t pos, const float *dir, const trace_t *trace ) {
-	LocalEntity *le;
-	vec3_t angles;
-	vec3_t local_dir, end;
-	trace_t local_trace;
-	const trace_t *tr;
-
-	assert( dir || trace );
-
-	if( dir ) {
-		vec3_t local_pos;
-
-		// find what are we hitting
-		VectorCopy( pos, local_pos );
-		VectorMA( pos, -1.0, dir, end );
-		CG_Trace( &local_trace, local_pos, vec3_origin, vec3_origin, end, cg.view.POVent, MASK_SHOT );
-		if( local_trace.fraction == 1.0 ) {
-			return;
-		}
-
-		tr = &local_trace;
-		VectorCopy( dir, local_dir );
-	} else {
-		tr = trace;
-		VectorCopy( tr->plane.normal, local_dir );
-	}
-
-	VecToAngles( local_dir, angles );
-
-	if( tr->ent > 0 && cg_entities[tr->ent].current.type == ET_PLAYER ) {
-		return;
-	} else if( ISVIEWERENTITY( tr->ent ) ) {
-		return;
-	} else if( tr->surfFlags & SURF_FLESH || ( tr->ent > 0 && cg_entities[tr->ent].current.type == ET_CORPSE ) ) {
-		le = CG_AllocModel( LE_ALPHA_FADE, pos, angles, 3, //3 frames for weak
-							vec4_red,
-							0, 0, 0, 0, //dlight
-							cgs.media.modBulletExplode,
-							NULL );
-		le->ent.rotation = random_float01( &cls.rng ) * 360;
-		le->ent.scale = 1.0f;
-	} else if( tr->surfFlags & SURF_DUST ) {
-		// throw particles on dust
-		CG_ImpactSmokePuff( tr->endpos, tr->plane.normal, 4, 0.6f, 6, 8 );
-	} else {
-		le = CG_AllocModel( LE_ALPHA_FADE, pos, angles, 3, //3 frames for weak
-							vec4_white,
-							0, 0, 0, 0, //dlight
-							cgs.media.modBulletExplode,
-							NULL );
-		le->ent.rotation = random_float01( &cls.rng ) * 360;
-		le->ent.scale = 1.0f;
-		CG_ImpactSmokePuff( tr->endpos, tr->plane.normal, 2, 0.6f, 6, 8 );
-
-		if( !( tr->surfFlags & SURF_NOMARKS ) ) {
-			// CG_SpawnDecal( pos, local_dir, random_float01( &cls.rng ) * 360, 8, 1, 1, 1, 1, 10, 1, false, cgs.media.shaderBulletMark );
-		}
-	}
+	le->velocity = local_dir * ( speed );
 }
 
 /*
 * CG_BubbleTrail
 */
-void CG_BubbleTrail( const vec3_t start, const vec3_t end, int dist ) {
-	vec3_t move, vec;
-	VectorCopy( start, move );
-	VectorSubtract( end, start, vec );
-	float len = VectorNormalize( vec );
+void CG_BubbleTrail( Vec3 start, Vec3 end, int dist ) {
+	Vec3 move, vec;
+	move = start;
+	vec = end - start;
+	float len = Length( vec );
+	vec = Normalize( vec );
 	if( !len ) {
 		return;
 	}
 
-	VectorScale( vec, dist, vec );
+	vec = vec * ( dist );
 	const Material * material = cgs.media.shaderWaterBubble;
 
 	for( int i = 0; i < len; i += dist ) {
@@ -312,51 +245,48 @@ void CG_BubbleTrail( const vec3_t start, const vec3_t end, int dist ) {
 							 vec4_white,
 							 0, 0, 0, 0,
 							 material );
-		VectorSet( le->velocity, random_float11( &cls.rng ) * 5, random_float11( &cls.rng ) * 5, random_float11( &cls.rng ) * 5 + 6 );
-		VectorAdd( move, vec, move );
+		le->velocity = Vec3( random_float11( &cls.rng ) * 5, random_float11( &cls.rng ) * 5, random_float11( &cls.rng ) * 5 + 6 );
+		move = move + vec;
 	}
 }
 
 /*
 * CG_PlasmaExplosion
 */
-void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, int team, float radius ) {
-	LocalEntity *le;
-	vec3_t angles;
-
-	VecToAngles( dir, angles );
-
-	Vec4 color = CG_TeamColorVec4( team );
-
-	le = CG_AllocModel( LE_ALPHA_FADE, pos, angles, 4,
-						color,
-						150, 0, 0.75, 0,
-						cgs.media.modPlasmaExplosion,
-						NULL );
-	le->ent.scale = radius;
-
+void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	// CG_ImpactPuffParticles( pos, dir, 15, 0.75f, color[0], color[1], color[2], color[3], NULL );
-
-	le->ent.rotation = random_float01( &cls.rng ) * 360;
 
 	// CG_SpawnDecal( pos, dir, random_float01( &cls.rng ) * 360, 16,
 	// 			   color[0], color[1], color[2], color[3],
 	// 			   4, 1, true,
 	// 			   cgs.media.shaderPlasmaMark );
+	CG_ParticlePlasmaExplosionEffect( pos, dir, team_color.xyz() );
+
+	S_StartFixedSound( cgs.media.sfxPlasmaHit, pos, CHAN_AUTO, 1.0f );
 }
 
-void CG_EBImpact( const vec3_t pos, const vec3_t dir, int surfFlags, int team ) {
+void CG_BubbleExplosion( Vec3 pos, Vec4 team_color ) {
+	// CG_ImpactPuffParticles( pos, dir, 15, 0.75f, color[0], color[1], color[2], color[3], NULL );
+
+	// CG_SpawnDecal( pos, dir, random_float01( &cls.rng ) * 360, 16,
+	// 			   color[0], color[1], color[2], color[3],
+	// 			   4, 1, true,
+	// 			   cgs.media.shaderPlasmaMark );
+
+	CG_ParticleBubbleExplosionEffect( pos, team_color.xyz() );
+
+	S_StartFixedSound( cgs.media.sfxBubbleHit, pos, CHAN_AUTO, 1.0f );
+}
+
+void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color ) {
 	if( surfFlags & ( SURF_SKY | SURF_NOMARKS | SURF_NOIMPACT ) ) {
 		return;
 	}
 
-	// Vec4 color = CG_TeamColorVec4( team );
-
 	// CG_SpawnDecal( pos, dir, 0, 3, color[0], color[1], color[2], color[3],
 	// 	10, 1, true, cgs.media.shaderEBImpact );
 
-	vec3_t angles;
-	VecToAngles( dir, angles );
+	Vec3 angles = VecToAngles( dir );
 
 	LocalEntity * le = CG_AllocModel( LE_INVERSESCALE_ALPHA_FADE, pos, angles, 6, // 6 is time
 						vec4_white,
@@ -368,60 +298,41 @@ void CG_EBImpact( const vec3_t pos, const vec3_t dir, int surfFlags, int team ) 
 
 	// CG_ImpactPuffParticles( pos, dir, 15, 0.75f, color[0], color[1], color[2], color[3], NULL );
 
-	S_StartFixedSound( cgs.media.sfxElectroboltHit, FromQF3( pos ), CHAN_AUTO, 1.0f );
+	S_StartFixedSound( cgs.media.sfxElectroboltHit, pos, CHAN_AUTO, 1.0f );
 }
 
 /*
 * CG_RocketExplosionMode
 */
-void CG_RocketExplosionMode( const vec3_t pos, const vec3_t dir, float radius, int team ) {
-	LocalEntity *le;
-	vec3_t angles, vec;
-	float expvelocity = 8.0f;
-
-	VecToAngles( dir, angles );
-
+void CG_RocketExplosionMode( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	// CG_SpawnDecal( pos, dir, random_float01( &cls.rng ) * 360, radius * 0.5, 1, 1, 1, 1, 10, 1, false, cgs.media.shaderExplosionMark );
 
-	Vec4 color = CG_TeamColorVec4( team );
-
-	// animmap shader of the explosion
-	le = CG_AllocSprite( LE_ALPHA_FADE, pos, radius * 0.6f, 8,
-		color,
-		radius * 4, 0.8f, 0.6f, 0, // orange dlight
-		cgs.media.shaderRocketExplosion );
-
-	VectorSet( vec, random_float11( &cls.rng ) * expvelocity, random_float11( &cls.rng ) * expvelocity, random_float11( &cls.rng ) * expvelocity );
-	VectorScale( dir, expvelocity, le->velocity );
-	VectorAdd( le->velocity, vec, le->velocity );
-	le->ent.rotation = random_float01( &cls.rng ) * 360;
-
 	// Explosion particles
-	CG_ParticleExplosionEffect( FromQF3( pos ), FromQF3( dir ), color.xyz() );
+	CG_ParticleRocketExplosionEffect( pos, dir, team_color.xyz() );
 
-	S_StartFixedSound( cgs.media.sfxRocketLauncherHit, FromQF3( pos ), CHAN_AUTO, 1.0f );
+	S_StartFixedSound( cgs.media.sfxRocketLauncherHit, pos, CHAN_AUTO, 1.0f );
 }
 
 /*
 * CG_BladeImpact
 */
-void CG_BladeImpact( const vec3_t pos, const vec3_t dir ) {
+void CG_BladeImpact( Vec3 pos, Vec3 dir ) {
 	LocalEntity *le;
-	vec3_t angles;
-	vec3_t end;
-	vec3_t local_pos, local_dir;
+	Vec3 angles;
+	Vec3 end;
+	Vec3 local_pos, local_dir;
 	trace_t trace;
 
 	//find what are we hitting
-	VectorCopy( pos, local_pos );
-	VectorNormalize2( dir, local_dir );
-	VectorMA( pos, -1.0, local_dir, end );
-	CG_Trace( &trace, local_pos, vec3_origin, vec3_origin, end, cg.view.POVent, MASK_SHOT );
+	local_pos = pos;
+	local_dir = Normalize( dir );
+	end = pos + local_dir * ( -1.0 );
+	CG_Trace( &trace, local_pos, Vec3( 0.0f ), Vec3( 0.0f ), end, cg.view.POVent, MASK_SHOT );
 	if( trace.fraction == 1.0 ) {
 		return;
 	}
 
-	VecToAngles( local_dir, angles );
+	angles = VecToAngles( local_dir );
 
 	if( trace.surfFlags & SURF_FLESH ||
 		( trace.ent > 0 && cg_entities[trace.ent].current.type == ET_PLAYER )
@@ -433,13 +344,13 @@ void CG_BladeImpact( const vec3_t pos, const vec3_t dir ) {
 		le->ent.rotation = random_float01( &cls.rng ) * 360;
 		le->ent.scale = 1.0f;
 
-		S_StartFixedSound( cgs.media.sfxBladeFleshHit, FromQF3( pos ), CHAN_AUTO, 1.0f );
+		S_StartFixedSound( cgs.media.sfxBladeFleshHit, pos, CHAN_AUTO, 1.0f );
 	} else if( trace.surfFlags & SURF_DUST ) {
 		// throw particles on dust
 		// CG_ParticleEffect( trace.endpos, trace.plane.normal, 0.30f, 0.30f, 0.25f, 30 );
 
 		//fixme? would need a dust sound
-		S_StartFixedSound( cgs.media.sfxBladeWallHit, FromQF3( pos ), CHAN_AUTO, 1.0f );
+		S_StartFixedSound( cgs.media.sfxBladeWallHit, pos, CHAN_AUTO, 1.0f );
 	} else {
 		le = CG_AllocModel( LE_ALPHA_FADE, pos, angles, 3, //3 frames for weak
 							vec4_white,
@@ -450,7 +361,7 @@ void CG_BladeImpact( const vec3_t pos, const vec3_t dir ) {
 
 		// CG_ParticleEffect( trace.endpos, trace.plane.normal, 0.30f, 0.30f, 0.25f, 15 );
 
-		S_StartFixedSound( cgs.media.sfxBladeWallHit, FromQF3( pos ), CHAN_AUTO, 1.0f );
+		S_StartFixedSound( cgs.media.sfxBladeWallHit, pos, CHAN_AUTO, 1.0f );
 		if( !( trace.surfFlags & SURF_NOMARKS ) ) {
 			// CG_SpawnDecal( pos, dir, random_float01( &cls.rng ) * 45, 8, 1, 1, 1, 1, 10, 1, false, cgs.media.shaderBladeMark );
 		}
@@ -460,18 +371,18 @@ void CG_BladeImpact( const vec3_t pos, const vec3_t dir ) {
 /*
 * CG_LasertGunImpact
 */
-void CG_LaserGunImpact( const vec3_t pos, float radius, const vec3_t laser_dir, RGBA8 color ) {
+void CG_LaserGunImpact( Vec3 pos, Vec3 laser_dir, RGBA8 color ) {
 	entity_t ent;
-	vec3_t ndir;
-	vec3_t angles;
+	Vec3 ndir;
+	Vec3 angles;
 
 	memset( &ent, 0, sizeof( ent ) );
-	VectorCopy( pos, ent.origin );
+	ent.origin = pos;
 	ent.scale = 1.45f;
 	ent.color = color;
 	ent.model = cgs.media.modLasergunWallExplo;
-	VectorNegate( laser_dir, ndir );
-	VecToAngles( ndir, angles );
+	ndir = -laser_dir;
+	angles = VecToAngles( ndir );
 	AnglesToAxis( angles, ent.axis );
 
 	// trap_R_AddEntityToScene( &ent );
@@ -480,38 +391,37 @@ void CG_LaserGunImpact( const vec3_t pos, float radius, const vec3_t laser_dir, 
 /*
 * CG_ProjectileTrail
 */
-void CG_ProjectileTrail( centity_t *cent ) {
+void CG_ProjectileTrail( const centity_t * cent ) {
 	float radius = 8;
 	float alpha = 0.45f;
 
 	// didn't move
-	vec3_t vec;
-	VectorSubtract( cent->ent.origin, cent->trailOrigin, vec );
-	float len = VectorNormalize( vec );
+	Vec3 vec = cent->ent.origin - cent->trailOrigin;
+	float len = Length( vec );
+	vec = Normalize( vec );
 	if( len == 0 )
 		return;
 
-	const Material * material = cgs.media.shaderRocketFireTrailPuff;
+	ParticleEmitter emitter = { };
 
-	// density is found by quantity per second
-	int trailTime = int( 1000.0f / alpha );
-	if( trailTime < 1 ) {
-		trailTime = 1;
-	}
+	emitter.position = cent->ent.origin;
+	emitter.position_distribution.type = RandomDistribution3DType_Line;
+	emitter.position_distribution.line.end = cent->trailOrigin;
 
-	// we don't add more than one sprite each frame. If frame
-	// ratio is too slow, people will prefer having less sprites on screen
-	if( cent->localEffects[LOCALEFFECT_ROCKETFIRE_LAST_DROP] + trailTime < cl.serverTime ) {
-		cent->localEffects[LOCALEFFECT_ROCKETFIRE_LAST_DROP] = cl.serverTime;
+	emitter.start_speed = 5.0f;
+	emitter.end_speed = 5.0f;
 
-		Vec4 color = CG_TeamColorVec4( cent->current.team );
-		LocalEntity * le = CG_AllocSprite( LE_INVERSESCALE_ALPHA_FADE, cent->trailOrigin, radius, 4,
-							 Vec4( color.xyz(), alpha ),
-							 0, 0, 0, 0,
-							 material );
-		VectorSet( le->velocity, -vec[0] * 10 + random_float11( &cls.rng ) * 5, -vec[1] * 10 + random_float11( &cls.rng ) * 5, -vec[2] * 10 + random_float11( &cls.rng ) * 5 );
-		le->ent.rotation = random_float01( &cls.rng ) * 360;
-	}
+	emitter.start_color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 0.5f );
+	emitter.end_color = Lerp( emitter.start_color.xyz(), 0.2f, Vec3( 1.0f ) );
+
+	emitter.start_size = 8.0f;
+	emitter.end_size = 16.0f;
+
+	emitter.lifetime = 0.25f;
+
+	emitter.emission_rate = 128.0f;
+
+	EmitParticles( &cgs.ions, emitter );
 }
 
 /*
@@ -523,9 +433,9 @@ void CG_NewBloodTrail( centity_t *cent ) {
 	const Material * material = cgs.media.shaderBloodTrailPuff;
 
 	// didn't move
-	vec3_t vec;
-	VectorSubtract( cent->ent.origin, cent->trailOrigin, vec );
-	float len = VectorNormalize( vec );
+	Vec3 vec = cent->ent.origin - cent->trailOrigin;
+	float len = Length( vec );
+	vec = Normalize( vec );
 	if( !len ) {
 		return;
 	}
@@ -546,7 +456,7 @@ void CG_NewBloodTrail( centity_t *cent ) {
 							 Vec4( 1, 1, 1, alpha ),
 							 0, 0, 0, 0,
 							 material );
-		VectorSet( le->velocity, -vec[0] * 5 + random_float11( &cls.rng ) * 5, -vec[1] * 5 + random_float11( &cls.rng ) * 5, -vec[2] * 5 + random_float11( &cls.rng ) * 5 + 3 );
+		le->velocity = Vec3( -vec.x * 5 + random_float11( &cls.rng ) * 5, -vec.y * 5 + random_float11( &cls.rng ) * 5, -vec.z * 5 + random_float11( &cls.rng ) * 5 + 3 );
 		le->ent.rotation = random_float01( &cls.rng ) * 360;
 	}
 }
@@ -554,12 +464,11 @@ void CG_NewBloodTrail( centity_t *cent ) {
 /*
 * CG_BloodDamageEffect
 */
-void CG_BloodDamageEffect( const vec3_t origin, const vec3_t dir, int damage, int team ) {
+void CG_BloodDamageEffect( Vec3 origin, Vec3 dir, int damage, Vec4 team_color ) {
 	float radius = 5.0f, alpha = 1.0f;
 	int time = 8;
 	const Material * material = cgs.media.shaderBloodImpactPuff;
-	vec3_t local_dir;
-
+	Vec3 local_dir;
 
 	int count = Clamp( 1, int( damage * 0.25f ), 10 );
 
@@ -569,27 +478,26 @@ void CG_BloodDamageEffect( const vec3_t origin, const vec3_t dir, int damage, in
 		alpha = 0.5f;
 	}
 
-	if( !VectorLength( dir ) ) {
-		VectorNegate( &cg.view.axis[AXIS_FORWARD], local_dir );
+	if( !Length( dir ) ) {
+		local_dir = -FromQFAxis( cg.view.axis, AXIS_FORWARD );
 	} else {
-		VectorNormalize2( dir, local_dir );
+		local_dir = Normalize( dir );
 	}
-
-	Vec4 color = CG_TeamColorVec4( team );
 
 	for( int i = 0; i < count; i++ ) {
 		LocalEntity *le = CG_AllocSprite( LE_PUFF_SHRINK, origin, radius + random_float11( &cls.rng ), time,
-			Vec4( color.xyz(), alpha ),
+			Vec4( team_color.xyz(), alpha ),
 			0, 0, 0, 0, material );
 
 		le->ent.rotation = random_float01( &cls.rng ) * 360;
 
 		// randomize dir
-		VectorSet( le->velocity,
-				   -local_dir[0] * 5 + random_float11( &cls.rng ) * 5,
-				   -local_dir[1] * 5 + random_float11( &cls.rng ) * 5,
-				   -local_dir[2] * 5 + random_float11( &cls.rng ) * 5 + 3 );
-		VectorMA( local_dir, min( 6, count ), le->velocity, le->velocity );
+		le->velocity = Vec3(
+			-local_dir.x * 5 + random_float11( &cls.rng ) * 5,
+			-local_dir.y * 5 + random_float11( &cls.rng ) * 5,
+			-local_dir.z * 5 + random_float11( &cls.rng ) * 5 + 3
+		);
+		le->velocity = local_dir + Min2( 6, count ) * le->velocity;
 	}
 }
 
@@ -603,19 +511,19 @@ void CG_PModel_SpawnTeleportEffect( centity_t * cent, MatrixPalettes temp_pose )
 
 		cent->localEffects[i] = 0;
 
-		vec3_t teleportOrigin;
+		Vec3 teleportOrigin;
 		Vec4 color = Vec4( 0.5f, 0.5f, 0.5f, 1.0f );
 		if( i == LOCALEFFECT_EV_PLAYER_TELEPORT_OUT ) {
-			VectorCopy( cent->teleportedFrom, teleportOrigin );
+			teleportOrigin = cent->teleportedFrom;
 		}
 		else {
-			VectorCopy( cent->teleportedTo, teleportOrigin );
+			teleportOrigin = cent->teleportedTo;
 			if( ISVIEWERENTITY( cent->current.number ) ) {
 				color = Vec4( 0.1f, 0.1f, 0.1f, 1.0f );
 			}
 		}
 
-		LocalEntity * le = CG_AllocModel( LE_RGB_FADE, teleportOrigin, vec3_origin, 10,
+		LocalEntity * le = CG_AllocModel( LE_RGB_FADE, teleportOrigin, Vec3( 0.0f ), 10,
 							color, 0, 0, 0, 0, cent->ent.model,
 							cgs.media.shaderTeleportShellGfx );
 
@@ -634,50 +542,27 @@ void CG_PModel_SpawnTeleportEffect( centity_t * cent, MatrixPalettes temp_pose )
 /*
 * CG_GrenadeExplosionMode
 */
-void CG_GrenadeExplosionMode( const vec3_t pos, const vec3_t dir, float radius, int team ) {
-	LocalEntity *le;
-	vec3_t angles;
-	vec3_t decaldir;
-	vec3_t origin, vec;
-	float expvelocity = 8.0f;
-
-	VectorCopy( dir, decaldir );
-	VecToAngles( dir, angles );
-
+void CG_GrenadeExplosionMode( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	// CG_SpawnDecal( pos, decaldir, random_float01( &cls.rng ) * 360, radius * 0.5, 1, 1, 1, 1, 10, 1, false, cgs.media.shaderExplosionMark );
 
-	Vec4 color = CG_TeamColorVec4( team );
-
-	// animmap shader of the explosion
-	VectorMA( pos, radius * 0.15f, dir, origin );
-	le = CG_AllocSprite( LE_ALPHA_FADE, origin, radius * 0.5f, 8,
-		color,
-		radius * 4, 0.75f, 0.533f, 0, // yellow dlight
-		cgs.media.shaderGrenadeExplosion );
-
-	VectorSet( vec, random_float11( &cls.rng ) * expvelocity, random_float11( &cls.rng ) * expvelocity, random_float11( &cls.rng ) * expvelocity );
-	VectorScale( dir, expvelocity, le->velocity );
-	VectorAdd( le->velocity, vec, le->velocity );
-	le->ent.rotation = random_float01( &cls.rng ) * 360;
-
 	// Explosion particles
-	CG_ParticleExplosionEffect( FromQF3( pos ), FromQF3( dir ), color.xyz() );
+	CG_ParticleRocketExplosionEffect( pos, dir, team_color.xyz() );
 
-	S_StartFixedSound( cgs.media.sfxGrenadeExplosion, FromQF3( pos ), CHAN_AUTO, 1.0f );
+	S_StartFixedSound( cgs.media.sfxGrenadeExplosion, pos, CHAN_AUTO, 1.0f );
 }
 
 /*
 * CG_GenericExplosion
 */
-void CG_GenericExplosion( const vec3_t pos, const vec3_t dir, float radius ) {
+void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius ) {
 	LocalEntity *le;
-	vec3_t angles;
-	vec3_t decaldir;
-	vec3_t origin, vec;
+	Vec3 angles;
+	Vec3 decaldir;
+	Vec3 origin, vec;
 	float expvelocity = 8.0f;
 
-	VectorCopy( dir, decaldir );
-	VecToAngles( dir, angles );
+	decaldir = dir;
+	angles = VecToAngles( dir );
 
 	//if( CG_PointContents( pos ) & MASK_WATER )
 	//jalfixme: (shouldn't we do the water sound variation?)
@@ -685,40 +570,40 @@ void CG_GenericExplosion( const vec3_t pos, const vec3_t dir, float radius ) {
 	// CG_SpawnDecal( pos, decaldir, random_float01( &cls.rng ) * 360, radius * 0.5, 1, 1, 1, 1, 10, 1, false, cgs.media.shaderExplosionMark );
 
 	// animmap shader of the explosion
-	VectorMA( pos, radius * 0.15f, dir, origin );
+	origin = pos + dir * ( radius * 0.15f );
 	le = CG_AllocSprite( LE_ALPHA_FADE, origin, radius * 0.5f, 8,
 						 vec4_white,
 						 radius * 4, 0.75f, 0.533f, 0, // yellow dlight
 						 cgs.media.shaderRocketExplosion );
 
-	VectorSet( vec, random_float11( &cls.rng ) * expvelocity, random_float11( &cls.rng ) * expvelocity, random_float11( &cls.rng ) * expvelocity );
-	VectorScale( dir, expvelocity, le->velocity );
-	VectorAdd( le->velocity, vec, le->velocity );
+	vec = Vec3( random_float11( &cls.rng ) * expvelocity, random_float11( &cls.rng ) * expvelocity, random_float11( &cls.rng ) * expvelocity );
+	le->velocity = dir * expvelocity;
+	le->velocity = le->velocity + vec;
 	le->ent.rotation = random_float01( &cls.rng ) * 360;
 
 	// use the rocket explosion sounds
-	S_StartFixedSound( cgs.media.sfxRocketLauncherHit, FromQF3( pos ), CHAN_AUTO, 1.0f );
+	S_StartFixedSound( cgs.media.sfxRocketLauncherHit, pos, CHAN_AUTO, 1.0f );
 }
 
 void CG_Dash( const SyncEntityState *state ) {
 	LocalEntity *le;
-	vec3_t pos, dvect, angle = { 0, 0, 0 };
+	Vec3 pos, dvect, angle = { 0, 0, 0 };
 
 	// KoFFiE: Calculate angle based on relative position of the previous origin state of the player entity
-	VectorSubtract( state->origin, cg_entities[state->number].prev.origin, dvect );
+	dvect = state->origin - cg_entities[state->number].prev.origin;
 
 	// ugly inline define -> Ignore when difference between 2 positions was less than this value.
 #define IGNORE_DASH 6.0
 
-	if( ( dvect[0] > -IGNORE_DASH ) && ( dvect[0] < IGNORE_DASH ) &&
-		( dvect[1] > -IGNORE_DASH ) && ( dvect[1] < IGNORE_DASH ) ) {
+	if( ( dvect.x > -IGNORE_DASH ) && ( dvect.x < IGNORE_DASH ) &&
+		( dvect.y > -IGNORE_DASH ) && ( dvect.y < IGNORE_DASH ) ) {
 		return;
 	}
 
-	VecToAngles( dvect, angle );
-	VectorCopy( state->origin, pos );
-	angle[1] += 270; // Adjust angle
-	pos[2] -= 24; // Adjust the position to ground height
+	angle = VecToAngles( dvect );
+	pos = state->origin;
+	angle.y += 270; // Adjust angle
+	pos.z -= 24; // Adjust the position to ground height
 
 	if( CG_PointContents( pos ) & MASK_WATER ) {
 		return; // no smoke under water :)
@@ -734,9 +619,9 @@ void CG_Dash( const SyncEntityState *state ) {
 	le->ent.axis[AXIS_UP + 2] *= 2.0f;
 }
 
-void CG_Explosion_Puff( const vec3_t pos, float radius, int frame ) {
+void CG_Explosion_Puff( Vec3 pos, float radius, int frame ) {
 	const Material * material = cgs.media.shaderSmokePuff1;
-	vec3_t local_pos;
+	Vec3 local_pos;
 
 	switch( (int)floorf( random_float11( &cls.rng ) * 3.0f ) ) {
 		case 0:
@@ -750,10 +635,10 @@ void CG_Explosion_Puff( const vec3_t pos, float radius, int frame ) {
 			break;
 	}
 
-	VectorCopy( pos, local_pos );
-	local_pos[0] += random_float11( &cls.rng ) * 4;
-	local_pos[1] += random_float11( &cls.rng ) * 4;
-	local_pos[2] += random_float11( &cls.rng ) * 4;
+	local_pos = pos;
+	local_pos.x += random_float11( &cls.rng ) * 4;
+	local_pos.y += random_float11( &cls.rng ) * 4;
+	local_pos.z += random_float11( &cls.rng ) * 4;
 
 	LocalEntity * le = CG_AllocSprite( LE_PUFF_SCALE, local_pos, radius, frame,
 						 vec4_white,
@@ -762,7 +647,7 @@ void CG_Explosion_Puff( const vec3_t pos, float radius, int frame ) {
 	le->ent.rotation = random_float01( &cls.rng ) * 360;
 }
 
-void CG_Explosion_Puff_2( const vec3_t pos, const vec3_t vel, int radius ) {
+void CG_Explosion_Puff_2( Vec3 pos, Vec3 vel, int radius ) {
 
 	const Material * material = cgs.media.shaderSmokePuff3;
 	if( radius == 0 ) {
@@ -773,38 +658,39 @@ void CG_Explosion_Puff_2( const vec3_t pos, const vec3_t vel, int radius ) {
 						 Vec4( 1, 1, 1, 0.2f ),
 						 0, 0, 0, 0,
 						 material );
-	VectorCopy( vel, le->velocity );
+	le->velocity = vel;
 
 	//le->ent.rotation = rand () % 360;
 }
 
-void CG_DustCircle( const vec3_t pos, const vec3_t dir, float radius, int count ) {
-	vec3_t dir_per1;
-	vec3_t dir_per2;
-	vec3_t dir_temp = { 0.0f, 0.0f, 0.0f };
-	int i;
-	float angle;
-
-	if( CG_PointContents( pos ) & MASK_WATER ) {
-		return; // no smoke under water :)
-
-	}
-	PerpendicularVector( dir_per2, dir );
-	CrossProduct( dir, dir_per2, dir_per1 );
-
-	VectorScale( dir_per1, VectorNormalize( dir_per1 ), dir_per1 );
-	VectorScale( dir_per2, VectorNormalize( dir_per2 ), dir_per2 );
-
-	for( i = 0; i < count; i++ ) {
-		angle = (float)( PI * 2.0f / count * i );
-		VectorSet( dir_temp, 0.0f, 0.0f, 0.0f );
-		VectorMA( dir_temp, sinf( angle ), dir_per1, dir_temp );
-		VectorMA( dir_temp, cosf( angle ), dir_per2, dir_temp );
-
-		//VectorScale(dir_temp, VectorNormalize(dir_temp),dir_temp );
-		VectorScale( dir_temp, random_float11( &cls.rng ) * 10 + radius, dir_temp );
-		CG_Explosion_Puff_2( pos, dir_temp, 10 );
-	}
+void CG_DustCircle( Vec3 pos, Vec3 dir, float radius, int count ) {
+	// Vec3 dir_per1;
+	// Vec3 dir_per2;
+	// Vec3 dir_temp = { 0.0f, 0.0f, 0.0f };
+	// int i;
+	// float angle;
+	//
+	// if( CG_PointContents( pos ) & MASK_WATER ) {
+	// 	return; // no smoke under water :)
+	// }
+	// PerpendicularVector( &dir_per2, dir );
+	// dir_per1 = Cross( dir, dir_per2 );
+	//
+	// dir_per1 *= Length( dir_per1 );
+	// dir_per2 *= Length( dir_per2 );
+	// Normalize( dir_per1 );
+	// Normalize( dir_per2 );
+	//
+	// for( i = 0; i < count; i++ ) {
+	// 	angle = (float)( PI * 2.0f / count * i );
+	// 	dir_temp = Vec3( 0.0f, 0.0f, 0.0f );
+	// 	dir_temp = dir_temp + dir_per1 * ( sinf( angle ) );
+	// 	dir_temp = dir_temp + dir_per2 * ( cosf( angle ) );
+	//
+	// 	//dir_temp = dir_temp * ( dir_temp) = Normalize( dir_temp) );
+	// 	dir_temp = dir_temp * ( random_float11( &cls.rng ) * 10 + radius );
+	// 	CG_Explosion_Puff_2( pos, dir_temp, 10 );
+	// }
 }
 
 
@@ -817,7 +703,7 @@ void CG_AddLocalEntities( void ) {
 	LocalEntity *le, *next, *hnode;
 	entity_t *ent;
 	float scale, frac, fade, time, scaleIn, fadeIn;
-	vec3_t angles;
+	Vec3 angles;
 
 	time = (float)cls.frametime * 0.001f;
 
@@ -836,8 +722,7 @@ void CG_AddLocalEntities( void ) {
 		}
 
 		if( le->frames > 1 ) {
-			scale = 1.0f - frac / ( le->frames - 1 );
-			scale = bound( 0.0f, scale, 1.0f );
+			scale = Clamp01( 1.0f - frac / ( le->frames - 1 ) );
 			fade = scale * 255.0f;
 
 			// quick fade in, if time enough
@@ -863,11 +748,11 @@ void CG_AddLocalEntities( void ) {
 			if( f < 1 ) {
 				ent->scale = 0.15 * frac;
 			} else {
-				VecToAngles( &ent->axis[AXIS_RIGHT], angles );
-				ent->axis[1 * 3 + 1] += 0.005f * sinf( DEG2RAD( angles[YAW] ) ); //length
-				ent->axis[1 * 3 + 0] += 0.005f * cosf( DEG2RAD( angles[YAW] ) ); //length
-				ent->axis[0 * 3 + 1] += 0.008f * cosf( DEG2RAD( angles[YAW] ) ); //width
-				ent->axis[0 * 3 + 0] -= 0.008f * sinf( DEG2RAD( angles[YAW] ) ); //width
+				angles = VecToAngles( FromQFAxis( ent->axis, AXIS_RIGHT ) );
+				ent->axis[1 * 3 + 1] += 0.005f * sinf( DEG2RAD( angles.y ) ); //length
+				ent->axis[1 * 3 + 0] += 0.005f * cosf( DEG2RAD( angles.y ) ); //length
+				ent->axis[0 * 3 + 1] += 0.008f * cosf( DEG2RAD( angles.y ) ); //width
+				ent->axis[0 * 3 + 0] -= 0.008f * sinf( DEG2RAD( angles.y ) ); //width
 				ent->axis[2 * 3 + 2] -= 0.052f;              //height
 
 				if( ent->axis[AXIS_UP + 2] <= 0 ) {
@@ -886,7 +771,7 @@ void CG_AddLocalEntities( void ) {
 				ent->scale = 1.0f - 0.2f * frac / 4;
 			} else {
 				ent->scale = 0.8 - 0.8 * ( frac - 3 ) / 3;
-				VectorScale( le->velocity, 0.85f, le->velocity );
+				le->velocity = le->velocity * ( 0.85f );
 			}
 		}
 
@@ -894,33 +779,33 @@ void CG_AddLocalEntities( void ) {
 			case LE_NO_FADE:
 				break;
 			case LE_RGB_FADE:
-				fade = min( fade, fadeIn );
+				fade = Min2( fade, fadeIn );
 				ent->color.r = ( uint8_t )( fade * le->color.x );
 				ent->color.g = ( uint8_t )( fade * le->color.y );
 				ent->color.b = ( uint8_t )( fade * le->color.z );
 				break;
 			case LE_SCALE_ALPHA_FADE:
-				fade = min( fade, fadeIn );
+				fade = Min2( fade, fadeIn );
 				ent->scale = 1.0f + 1.0f / scale;
-				ent->scale = min( ent->scale, 5.0f );
+				ent->scale = Min2( ent->scale, 5.0f );
 				ent->color.a = ( uint8_t )( fade * le->color.w );
 				break;
 			case LE_INVERSESCALE_ALPHA_FADE:
-				fade = min( fade, fadeIn );
+				fade = Min2( fade, fadeIn );
 				ent->scale = Clamp( 0.1f, scale + 0.1f, 1.0f );
 				ent->color.a = ( uint8_t )( fade * le->color.w );
 				break;
 			case LE_ALPHA_FADE:
-				fade = min( fade, fadeIn );
+				fade = Min2( fade, fadeIn );
 				ent->color.a = ( uint8_t )( fade * le->color.w );
 				break;
 			default:
 				break;
 		}
 
-		VectorCopy( ent->origin, ent->origin2 );
-		VectorMA( ent->origin, time, le->velocity, ent->origin );
-		VectorMA( le->velocity, time, le->accel, le->velocity );
+		ent->origin2 = ent->origin;
+		ent->origin = ent->origin + le->velocity * ( time );
+		le->velocity = le->velocity + le->accel * ( time );
 
 		CG_AddEntityToScene( ent );
 	}
@@ -948,7 +833,7 @@ struct Gib {
 	Vec3 velocity;
 	float scale;
 	float lifetime;
-	int team;
+	Vec4 color;
 };
 
 static Gib gibs[ 512 ];
@@ -958,11 +843,11 @@ void InitGibs() {
 	num_gibs = 0;
 }
 
-void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, int team ) {
+void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
 	ZoneScoped;
 
 	int count = Min2( damage * 3 / 2, 60 );
-	float player_radius = playerbox_stand_maxs[ 0 ];
+	float player_radius = playerbox_stand_maxs.x;
 
 	for( int i = 0; i < count; i++ ) {
 		if( num_gibs == ARRAY_COUNT( gibs ) )
@@ -979,7 +864,7 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, int team ) {
 
 		gib->scale = random_uniform_float( &cls.rng, 0.25f, 0.5f );
 		gib->lifetime = 10.0f;
-		gib->team = team;
+		gib->color = color;
 	}
 }
 
@@ -994,18 +879,15 @@ void DrawGibs() {
 	for( u32 i = 0; i < num_gibs; i++ ) {
 		Gib * gib = &gibs[ i ];
 
-		Vec4 color = CG_TeamColorVec4( gib->team );
-
 		gib->velocity += gravity * dt;
 		Vec3 next_origin = gib->origin + gib->velocity * dt;
 
 		MinMax3 bounds = model->bounds * gib->scale;
 
-		vec3_t qf_mins, qf_maxs, qf_origin, qf_next_origin;
-		VectorCopy( bounds.mins.ptr(), qf_mins );
-		VectorCopy( bounds.maxs.ptr(), qf_maxs );
-		VectorCopy( gib->origin.ptr(), qf_origin );
-		VectorCopy( next_origin.ptr(), qf_next_origin );
+		Vec3 qf_mins = bounds.mins;
+		Vec3 qf_maxs = bounds.maxs;
+		Vec3 qf_origin = gib->origin;
+		Vec3 qf_next_origin = next_origin;
 
 		trace_t trace;
 		CG_Trace( &trace, qf_origin, qf_mins, qf_maxs, qf_next_origin, 0, MASK_SOLID );
@@ -1017,17 +899,17 @@ void DrawGibs() {
 			gib->lifetime = 0;
 
 			ParticleEmitter emitter = { };
-			emitter.position = FromQF3( trace.endpos );
+			emitter.position = trace.endpos;
 
 			emitter.use_cone_direction = true;
-			emitter.direction_cone.normal = FromQF3( trace.plane.normal );
+			emitter.direction_cone.normal = trace.plane.normal;
 			emitter.direction_cone.theta = 90.0f;
 
 			emitter.start_speed = 128.0f;
 			emitter.end_speed = 128.0f;
 
-			emitter.start_color = color;
-			emitter.end_color = color.xyz();
+			emitter.start_color = gib->color;
+			emitter.end_color = gib->color.xyz();
 
 			emitter.start_size = 4.0f;
 			emitter.end_size = 4.0f;
@@ -1048,7 +930,7 @@ void DrawGibs() {
 		}
 
 		Mat4 transform = Mat4Translation( gib->origin ) * Mat4Scale( gib->scale );
-		DrawModel( model, transform, color );
+		DrawModel( model, transform, gib->color );
 
 		gib->origin = next_origin;
 	}

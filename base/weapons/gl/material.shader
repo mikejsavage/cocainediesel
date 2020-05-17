@@ -1,3 +1,11 @@
+models/weapons/gl
+{
+	{
+		map $whiteimage
+		rgbGen const 0.243 0.553 1.000
+	}
+}
+
 weapons/gl/grenade
 {
 	{
@@ -6,44 +14,12 @@ weapons/gl/grenade
 	}
 }
 
-models/weapons/glauncher/f_glaunch
+models/weapons/glauncher/glauncher_fx
 {
-	sort nearest
 	cull disable
-	softParticle
 	{
-		map models/weapons/glauncher/f_glaunch
-		rgbgen entity
+		map weapons/gl/glauncher_fx
 		blendFunc add
-	}
-	{
-		map models/weapons/glauncher/f_glaunch_spark
-		rgbgen entity
-		tcMod stretch sawtooth .65 .3 0 8
-		blendFunc add
-	}
-}
-
-models/weapons/glauncher/f_glaunch_2
-{
-	sort nearest
-	cull disable
-	softParticle
-	{
-		map models/weapons/glauncher/f_glaunch_2
-		rgbgen entity
-		blendfunc add
-	}
-}
-
-models/weapons/glauncher/f_glaunch_3
-{
-	sort nearest
-	cull disable
-	softParticle
-	{
-		map models/weapons/glauncher/f_glaunch_2
-		rgbgen entity
-		blendfunc add
+		rgbGen wave sin 0.5 0.5 0 0.5
 	}
 }

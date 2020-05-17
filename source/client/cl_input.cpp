@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "client/client.h"
+#include "cgame/cg_local.h"
 
 cvar_t *cl_ucmdMaxResend;
 
@@ -34,9 +35,9 @@ static void CL_CreateNewUserCommand( int realMsec );
 static void CL_UpdateGameInput( int frameTime ) {
 	Vec2 movement = GetMouseMovement();
 
-	if( cls.key_dest == key_game ) {
+	if( cls.key_dest == key_game && cls.state == CA_ACTIVE ) {
 		CL_GameModule_MouseMove( frameTime, movement );
-		CL_GameModule_AddViewAngles( cl.viewangles );
+		cl.viewangles += CG_GetDeltaViewAngles();
 	}
 }
 
@@ -81,12 +82,11 @@ static void CL_RefreshUcmd( usercmd_t *ucmd, int msec, bool ready ) {
 	ucmd->msec += msec;
 
 	if( ucmd->msec && cls.key_dest == key_game ) {
-		vec3_t movement = { 0.0f, 0.0f, 0.0f };
-		CL_GameModule_AddMovement( movement );
+		Vec3 movement = CG_GetMovement();
 
-		ucmd->sidemove = bound( -127, (int)(movement[0] * 127.0f), 127 );
-		ucmd->forwardmove = bound( -127, (int)(movement[1] * 127.0f), 127 );
-		ucmd->upmove = bound( -127, (int)(movement[2] * 127.0f), 127 );
+		ucmd->sidemove = Clamp( -127, (int)(movement.x * 127.0f), 127 );
+		ucmd->forwardmove = Clamp( -127, (int)(movement.y * 127.0f), 127 );
+		ucmd->upmove = Clamp( -127, (int)(movement.z * 127.0f), 127 );
 
 		ucmd->buttons |= CL_GameModule_GetButtonBits();
 
@@ -109,9 +109,9 @@ static void CL_RefreshUcmd( usercmd_t *ucmd, int msec, bool ready ) {
 		}
 	}
 
-	ucmd->angles[0] = ANGLE2SHORT( cl.viewangles[0] );
-	ucmd->angles[1] = ANGLE2SHORT( cl.viewangles[1] );
-	ucmd->angles[2] = ANGLE2SHORT( cl.viewangles[2] );
+	ucmd->angles[0] = ANGLE2SHORT( cl.viewangles.x );
+	ucmd->angles[1] = ANGLE2SHORT( cl.viewangles.y );
+	ucmd->angles[2] = ANGLE2SHORT( cl.viewangles.z );
 }
 
 /*

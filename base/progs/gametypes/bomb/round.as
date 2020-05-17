@@ -47,6 +47,7 @@ int defendingTeam;
 
 bool attackersHurried;
 bool defendersHurried;
+bool was1vx;
 
 void playerKilled( Entity @victim, Entity @attacker, Entity @inflictor ) {
 	// this happens if you kill a corpse or something...
@@ -72,13 +73,9 @@ void playerKilled( Entity @victim, Entity @attacker, Entity @inflictor ) {
 
 		player.killsThisRound++;
 
-		int required_for_bongo = attacker.team == TEAM_ALPHA ? match.betaPlayersTotal : match.alphaPlayersTotal;
-		if( required_for_bongo >= 3 && player.killsThisRound == required_for_bongo ) {
-			player.client.addAward( S_COLOR_YELLOW + "King of Bongo!" );
-
-			G_AnnouncerSound( null, sndBongo, GS_MAX_TEAMS, true, null );
-
-			G_CenterPrintMsg( null, player.client.name + " is the King of Bongo!" );
+		int required_for_ace = attacker.team == TEAM_ALPHA ? match.betaPlayersTotal : match.alphaPlayersTotal;
+		if( required_for_ace >= 3 && player.killsThisRound == required_for_ace ) {
+			G_AnnouncerSound( null, sndAce, GS_MAX_TEAMS, false, null );
 		}
 	}
 
@@ -102,48 +99,19 @@ void checkPlayersAlive( int team ) {
 		return;
 	}
 
-	int teamOther   = otherTeam( team );
-	uint aliveOther = playersAliveOnTeam( teamOther );
+	int other = otherTeam( team );
+	uint aliveOther = playersAliveOnTeam( other );
 
 	if( alive == 1 ) {
 		if( aliveOther == 1 ) {
-			G_PrintMsg( null, "1v1! Good luck!\n" );
-
-			firstAliveOnTeam( attackingTeam ).addAward( "1v1! Good luck!" );
-			firstAliveOnTeam( defendingTeam ).addAward( "1v1! Good luck!" );
+			if( was1vx ) {
+				G_AnnouncerSound( null, snd1v1, GS_MAX_TEAMS, false, null );
+			}
 		}
-		else if( aliveOther != 0 ) {
-			oneVsMsg( team, aliveOther );
-		}
-
-		return;
-	}
-
-	if( aliveOther == 1 ) {
-		// we know alive != 0 && alive != 1
-		oneVsMsg( teamOther, alive );
-	}
-}
-
-void oneVsMsg( int teamNum, uint enemies ) {
-	Client @survivor = @firstAliveOnTeam( teamNum );
-
-	if( @survivor == null ) {
-		assert( false, "round.as oneVsMsg: @survivor == null" );
-
-		return;
-	}
-
-	survivor.addAward( "1v" + enemies + "! You're on your own!" );
-
-	if( enemies == 1 ) {
-		G_PrintMsg( null, "1v1! Good luck!" );
-	}
-	else {
-		Team @team = @G_GetTeam( teamNum );
-
-		for( int i = 0; @team.ent( i ) != null; i++ ) {
-			G_PrintMsg( @team.ent( i ), "1v" + enemies + "! " + survivor.name + " is on their own!\n" );
+		else if( aliveOther >= 3 ) {
+			G_AnnouncerSound( null, snd1vx, team, false, null );
+			G_AnnouncerSound( null, sndxv1, other, false, null );
+			was1vx = true;
 		}
 	}
 }
@@ -276,7 +244,9 @@ void roundNewState( uint state ) {
 			gametype.shootingDisabled = true;
 			gametype.removeInactivePlayers = false;
 
-			attackersHurried = defendersHurried = false;
+			attackersHurried = false;
+			defendersHurried = false;
+			was1vx = false;
 
 			resetBombSites();
 
@@ -303,7 +273,7 @@ void roundNewState( uint state ) {
 
 			enableMovement();
 
-			announce( Announcement_Started );
+			announce( Announcement_RoundStarted );
 
 			break;
 
@@ -311,7 +281,7 @@ void roundNewState( uint state ) {
 			roundCheckEndTime = true;
 			roundStateEndTime = levelTime + 1500; // magic numbers are awesome
 
-			gametype.shootingDisabled = true;
+			gametype.shootingDisabled = false;
 
 			break;
 
@@ -406,8 +376,7 @@ void roundThink() {
 			last_time = -1;
 
 			if( !defendersHurried && levelTime + BOMB_HURRYUP_TIME >= bombActionTime ) {
-				announceDef( Announcement_Hurry );
-
+				G_AnnouncerSound( null, sndHurry, defendingTeam, true, null );
 				defendersHurried = true;
 			}
 		}
@@ -415,8 +384,7 @@ void roundThink() {
 			last_time = roundStateEndTime - levelTime;
 
 			if( !attackersHurried && levelTime + BOMB_HURRYUP_TIME >= roundStateEndTime ) {
-				announceOff( Announcement_Hurry );
-
+				G_AnnouncerSound( null, sndHurry, attackingTeam, true, null );
 				attackersHurried = true;
 			}
 		}

@@ -90,7 +90,7 @@ void bombInit() {
 
 	// don't set ~SVF_NOCLIENT yet
 	@bombHud = @G_SpawnEntity( "hud_bomb" );
-	bombHud.type = ET_HUD;
+	bombHud.type = ET_BOMB;
 	bombHud.solid = SOLID_NOT;
 	bombHud.svflags |= SVF_BROADCAST;
 
@@ -229,7 +229,7 @@ void bombPlanted() {
 	// show to defs too
 	bombHud.svflags &= ~SVF_ONLYTEAM;
 
-	announce( Announcement_Armed );
+	announce( Announcement_Planted );
 
 	G_CenterPrintMsg( null, "Bomb planted at " + bombSite.letter + "!" );
 

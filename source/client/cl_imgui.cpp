@@ -6,10 +6,10 @@
 #include "imgui/imgui_freetype.h"
 
 #include "qcommon/base.h"
-#include "qcommon/assets.h"
 #include "qcommon/string.h"
 #include "qcommon/utf8.h"
 #include "client/client.h"
+#include "client/assets.h"
 #include "client/renderer/renderer.h"
 
 static Texture atlas_texture;

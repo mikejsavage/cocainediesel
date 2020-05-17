@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "client/client.h"
+#include "qcommon/threads.h"
 #include "qcommon/version.h"
 
 //#define UNSAFE_EXIT
@@ -37,7 +38,7 @@ typedef struct serverlist_s {
 	struct serverlist_s *pnext;
 } serverlist_t;
 
-serverlist_t *masterList, *favoritesList;
+serverlist_t *masterList;
 
 static bool filter_allow_full = false;
 static bool filter_allow_empty = false;
@@ -49,7 +50,7 @@ static int64_t localQueryTimeStamp = 0;
 typedef struct masterserver_s {
 	char addressString[MAX_TOKEN_CHARS];
 	netadr_t address;
-	qthread_t *resolverThread;
+	Thread *resolverThread;
 	volatile bool resolverActive;
 	char delayedRequestModName[MAX_TOKEN_CHARS];
 } masterserver_t;
@@ -219,9 +220,6 @@ void CL_PingServer_f( void ) {
 
 	pingserver = CL_ServerFindInList( masterList, address_string );
 	if( !pingserver ) {
-		pingserver = CL_ServerFindInList( favoritesList, address_string );
-	}
-	if( !pingserver ) {
 		return;
 	}
 
@@ -255,9 +253,6 @@ void CL_ParseStatusMessage( const socket_t *socket, const netadr_t *address, msg
 
 	// ping response
 	pingserver = CL_ServerFindInList( masterList, adrString );
-	if( !pingserver ) {
-		pingserver = CL_ServerFindInList( favoritesList, adrString );
-	}
 
 	if( pingserver && pingserver->pingTimeStamp ) { // valid ping
 		int ping = (int)(Sys_Milliseconds() - pingserver->pingTimeStamp);
@@ -371,7 +366,7 @@ void CL_ParseGetServersResponse( const socket_t *socket, const netadr_t *address
 /*
 * CL_MasterResolverThreadFunc
 */
-static void *CL_MasterResolverThreadFunc( void *param ) {
+static void CL_MasterResolverThreadFunc( void *param ) {
 	masterserver_t *master = ( masterserver_t * ) param;
 
 	NET_StringToAddress( master->addressString, &master->address );
@@ -384,7 +379,6 @@ static void *CL_MasterResolverThreadFunc( void *param ) {
 	}
 
 	master->resolverActive = false;
-	return NULL;
 }
 
 /*
@@ -429,10 +423,7 @@ static void CL_MasterAddressCache_Init( void ) {
 		Q_strncpyz( master->addressString, masterAddress, sizeof( master->addressString ) );
 		master->address.type = NA_NOTRANSMIT;
 		master->resolverActive = true;
-		master->resolverThread = QThread_Create( CL_MasterResolverThreadFunc, master );
-		if( !master->resolverThread ) {
-			master->resolverActive = false;
-		}
+		master->resolverThread = NewThread( CL_MasterResolverThreadFunc, master );
 	}
 }
 
@@ -554,14 +545,11 @@ void CL_GetServers_f( void ) {
 		Com_DPrintf( "Resolving master server address: %s\n", master->addressString );
 
 		if( master->resolverThread ) {
-			QThread_Join( master->resolverThread );
+			JoinThread( master->resolverThread );
 		}
 
 		master->resolverActive = true;
-		master->resolverThread = QThread_Create( CL_MasterResolverThreadFunc, master );
-		if( !master->resolverThread ) {
-			master->resolverActive = false;
-		}
+		master->resolverThread = NewThread( CL_MasterResolverThreadFunc, master );
 
 	}
 
@@ -592,7 +580,6 @@ void CL_ServerListFrame( void ) {
 */
 void CL_InitServerList( void ) {
 	CL_FreeServerlist( &masterList );
-	CL_FreeServerlist( &favoritesList );
 
 	CL_MasterAddressCache_Init();
 }
@@ -602,7 +589,6 @@ void CL_InitServerList( void ) {
 */
 void CL_ShutDownServerList( void ) {
 	CL_FreeServerlist( &masterList );
-	CL_FreeServerlist( &favoritesList );
 
 	CL_MasterAddressCache_Shutdown();
 }

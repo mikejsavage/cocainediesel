@@ -53,7 +53,7 @@ float snoise(vec2 v){
 
 void main() {
 	vec3 normal_pos = normalize( v_Position );
-	float elevation = acos( normal_pos.z ) / ( M_PI * 0.5 );
+	float elevation = acos( normal_pos.z ) / ( M_PI * 0.425 );
 	float latitude = atan( v_Position.y, v_Position.x );
 
 	float r = elevation * 2.0 * ( 1 - cos( u_T ) * 0.125 );

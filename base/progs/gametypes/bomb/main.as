@@ -299,7 +299,7 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
 
 		if( matchState == MATCH_STATE_PLAYTIME ) {
 			if( roundState == RoundState_Round ) {
-				if( old_team != TEAM_SPECTATOR ) {
+				if( old_team != TEAM_SPECTATOR && !ent.isGhosting() ) {
 					checkPlayersAlive( old_team );
 				}
 			}

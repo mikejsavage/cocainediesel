@@ -394,6 +394,8 @@ static bool SV_SendClientDatagram( client_t *client ) {
 * SV_SendClientMessages
 */
 void SV_SendClientMessages( void ) {
+	ZoneScoped;
+
 	int i;
 	client_t *client;
 

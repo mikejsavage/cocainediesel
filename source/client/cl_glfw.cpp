@@ -21,7 +21,7 @@ extern Noesis::IView * _view;
 static bool running_in_debugger = false;
 const bool is_dedicated_server = false;
 
-void Sys_Error( const char *format, ... ) {
+void Sys_Error( const char * format, ... ) {
 	va_list argptr;
 	char msg[ 1024 ];
 
@@ -637,14 +637,18 @@ int main( int argc, char ** argv ) {
 	running_in_debugger = Sys_BeingDebugged();
 #endif
 
-	glfwSetErrorCallback( OnGlfwError );
+	{
+		ZoneScopedN( "Init GLFW" );
 
-	if( !glfwInit() ) {
-		Sys_Error( "glfwInit" );
+		glfwSetErrorCallback( OnGlfwError );
+
+		if( !glfwInit() ) {
+			Sys_Error( "glfwInit" );
+		}
+
+		glfwSetMonitorCallback( OnMonitorConfigChange );
+		AssignMonitorNumbers();
 	}
-
-	glfwSetMonitorCallback( OnMonitorConfigChange );
-	AssignMonitorNumbers();
 
 	Qcommon_Init( argc, argv );
 

@@ -1,6 +1,6 @@
-#include "qcommon/assets.h"
 #include "qcommon/fs.h"
 #include "qcommon/serialization.h"
+#include "client/assets.h"
 #include "cgame/cg_local.h"
 
 #include "imgui/imgui.h"
@@ -85,6 +85,8 @@ static float EvaluateEasingDerivative( EasingFunction func, float t ) {
 }
 
 static void UpdateParticleChunk( const ParticleSystem * ps, ParticleChunk * chunk, Vec3 acceleration, float dt ) {
+	DisableFPEScoped;
+
 	for( int i = 0; i < 4; i++ ) {
 		chunk->t[ i ] += dt;
 		float t = chunk->t[ i ] / chunk->lifetime[ i ];
@@ -167,6 +169,8 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 }
 
 void DrawParticleSystem( ParticleSystem * ps ) {
+	DisableFPEScoped;
+
 	if( ps->num_particles == 0 )
 		return;
 
@@ -466,7 +470,6 @@ static void RandomDistributionEditor( const char * id, RandomDistribution * dist
 	}
 }
 
-
 void DrawParticleMenuEffect() {
 	RendererSetView( Vec3( -400, 0, 400 ), EulerDegrees3( 45, 0, 0 ), 90 );
 
@@ -476,8 +479,6 @@ void DrawParticleMenuEffect() {
 	UpdateParticleSystem( &menu_ps, dt );
 	DrawParticleSystem( &menu_ps );
 }
-
-
 
 void DrawParticleEditor() {
 	TempAllocator temp = cls.frame_arena.temp();

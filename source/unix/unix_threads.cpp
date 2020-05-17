@@ -1,81 +1,123 @@
-/*
-Copyright (C) 2013 Victor Luchits
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-
+#include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-#include "qcommon/sys_threads.h"
+
 #include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+#include <errno.h>
 
-struct qthread_s {
-	pthread_t t;
+struct Thread { pthread_t thread; };
+struct Mutex { pthread_mutex_t mutex; };
+struct Semaphore { sem_t sem; };
+
+struct ThreadStartData {
+	void ( *callback )( void * );
+	void * data;
 };
 
-struct qmutex_s {
-	pthread_mutex_t m;
-};
+static void * ThreadWrapper( void * data ) {
+	ThreadStartData * tsd = ( ThreadStartData * ) data;
+	tsd->callback( tsd->data );
+	delete tsd;
 
-int Sys_Mutex_Create( qmutex_t **mutex ) {
-	pthread_mutexattr_t mta;
-	pthread_mutexattr_init( &mta );
-	pthread_mutexattr_settype( &mta, PTHREAD_MUTEX_RECURSIVE );
-
-	pthread_mutex_t m;
-	int res = pthread_mutex_init( &m, &mta );
-	if( res != 0 ) {
-		return res;
-	}
-
-	*mutex = ( qmutex_t * )Q_malloc( sizeof( qmutex_t ) );
-	( *mutex )->m = m;
-
-	return 0;
+	return NULL;
 }
 
-void Sys_Mutex_Destroy( qmutex_t *mutex ) {
-	pthread_mutex_destroy( &mutex->m );
-	Q_free( mutex );
-}
+Thread * NewThread( void ( *callback )( void * ), void * data ) {
+	// can't use sys_allocator because serverlist leaks its threads
+	ThreadStartData * tsd = new ThreadStartData;
+	tsd->callback = callback;
+	tsd->data = data;
 
-void Sys_Mutex_Lock( qmutex_t *mutex ) {
-	pthread_mutex_lock( &mutex->m );
-}
-
-void Sys_Mutex_Unlock( qmutex_t *mutex ) {
-	pthread_mutex_unlock( &mutex->m );
-}
-
-int Sys_Thread_Create( qthread_t **thread, void *( *routine )( void* ), void *param ) {
 	pthread_t t;
-	int res = pthread_create( &t, NULL, routine, param );
-	if( res != 0 ) {
-		return res;
+	if( pthread_create( &t, NULL, ThreadWrapper, tsd ) == -1 ) {
+		Com_Error( ERR_FATAL, "pthread_create" );
 	}
 
-	*thread = ( qthread_t * )Q_malloc( sizeof( qthread_t ) );
-	( *thread )->t = t;
-
-	return 0;
+	// can't use sys_allocator because serverlist leaks its threads
+	Thread * thread = new Thread;
+	thread->thread = t;
+	return thread;
 }
 
-void Sys_Thread_Join( qthread_t *thread ) {
-	pthread_join( thread->t, NULL );
-	free( thread );
+void JoinThread( Thread * thread ) {
+	if( pthread_join( thread->thread, NULL ) == -1 ) {
+		Com_Error( ERR_FATAL, "pthread_join" );
+	}
+
+	delete thread;
+}
+
+Mutex * NewMutex() {
+	// can't use sys_allocator because sys_allocator itself calls NewMutex
+	Mutex * mutex = new Mutex;
+	if( pthread_mutex_init( &mutex->mutex, NULL ) != 0 ) {
+		Com_Error( ERR_FATAL, "pthread_mutex_init" );
+	}
+	return mutex;
+}
+
+void DeleteMutex( Mutex * mutex ) {
+	if( pthread_mutex_destroy( &mutex->mutex ) != 0 ) {
+		Com_Error( ERR_FATAL, "pthread_mutex_destroy" );
+	}
+	delete mutex;
+}
+
+void Lock( Mutex * mutex ) {
+	if( pthread_mutex_lock( &mutex->mutex ) != 0 ) {
+		Com_Error( ERR_FATAL, "pthread_mutex_lock" );
+	}
+}
+
+void Unlock( Mutex * mutex ) {
+	if( pthread_mutex_unlock( &mutex->mutex ) != 0 ) {
+		Com_Error( ERR_FATAL, "pthread_mutex_unlock" );
+	}
+}
+
+Semaphore * NewSemaphore() {
+	sem_t s;
+	if( sem_init( &s, 0, 0 ) != 0 ) {
+		Com_Error( ERR_FATAL, "sem_init" );
+	}
+
+	Semaphore * sem = ALLOC( sys_allocator, Semaphore );
+	sem->sem = s;
+	return sem;
+}
+
+void DeleteSemaphore( Semaphore * sem ) {
+	if( sem_destroy( &sem->sem ) != 0 ) {
+		Com_Error( ERR_FATAL, "sem_destroy" );
+	}
+	FREE( sys_allocator, sem );
+}
+
+void Signal( Semaphore * sem, int n ) {
+	for( int i = 0; i < n; i++ ) {
+		if( sem_post( &sem->sem ) != 0 && errno != EOVERFLOW ) {
+			Com_Error( ERR_FATAL, "sem_post" );
+		}
+	}
+}
+
+void Wait( Semaphore * sem ) {
+	while( true ) {
+		if( sem_wait( &sem->sem ) == 0 )
+			break;
+		if( errno == EINTR )
+			continue;
+		Com_Error( ERR_FATAL, "sem_wait" );
+	}
+}
+
+u32 GetCoreCount() {
+	long ok = sysconf( _SC_NPROCESSORS_ONLN );
+	if( ok == -1 ) {
+		Com_Error( ERR_FATAL, "sysconf( _SC_NPROCESSORS_ONLN )" );
+	}
+	return checked_cast< u32 >( ok );
 }
 
 int Sys_Atomic_FetchAdd( volatile int *value, int add ) {

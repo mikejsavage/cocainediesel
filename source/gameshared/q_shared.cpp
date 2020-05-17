@@ -189,48 +189,6 @@ short ShortSwap( short l ) {
 }
 
 /*
-* TempVector
-*
-* This is just a convenience function
-* for making temporary vectors for function calls
-*/
-float *tv( float x, float y, float z ) {
-	static int index;
-	static float vecs[8][3];
-	float *v;
-
-	// use an array so that multiple tempvectors won't collide
-	// for a while
-	v = vecs[index];
-	index = ( index + 1 ) & 7;
-
-	v[0] = x;
-	v[1] = y;
-	v[2] = z;
-
-	return v;
-}
-
-/*
-* VectorToString
-*
-* This is just a convenience function for printing vectors
-*/
-char *vtos( float v[3] ) {
-	static int index;
-	static char str[8][32];
-	char *s;
-
-	// use an array so that multiple vtos won't collide
-	s = str[index];
-	index = ( index + 1 ) & 7;
-
-	snprintf( s, 32, "(%+6.3f %+6.3f %+6.3f)", v[0], v[1], v[2] );
-
-	return s;
-}
-
-/*
 * va_r
 *
 * does a varargs printf into a temp buffer, so I don't need to have
@@ -269,6 +227,9 @@ static bool IsWhitespace( char c ) {
 
 Span< const char > ParseToken( const char ** ptr, ParseStopOnNewLine stop ) {
 	const char * cursor = *ptr;
+	if( cursor == NULL ) {
+		return MakeSpan( "" );
+	}
 
 	// skip leading whitespace
 	while( IsWhitespace( *cursor ) ) {
@@ -622,8 +583,10 @@ int COM_ReadColorRGBString( const char *in ) {
 	if( sscanf( in, "%3i %3i %3i", &rgb[0], &rgb[1], &rgb[2] ) != 3 )
 		return 0;
 
-	for( int i = 0; i < 3; i++ )
-		rgb[i] = bound( rgb[i], 0, 255 );
+	for( int i = 0; i < 3; i++ ) {
+		rgb[i] = Clamp( rgb[i], 0, 255 );
+	}
+
 	return COLOR_RGB( rgb[0], rgb[1], rgb[2] );
 }
 
@@ -635,8 +598,10 @@ int COM_ReadColorRGBAString( const char *in ) {
 	if( sscanf( in, "%3i %3i %3i %3i", &rgba[0], &rgba[1], &rgba[2], &rgba[3] ) != 4 )
 		return 0;
 
-	for( int i = 0; i < 4; i++ )
-		rgba[i] = bound( rgba[i], 0, 255 );
+	for( int i = 0; i < 4; i++ ) {
+		rgba[i] = Clamp( rgba[i], 0, 255 );
+	}
+
 	return COLOR_RGBA( rgba[0], rgba[1], rgba[2], rgba[3] );
 }
 

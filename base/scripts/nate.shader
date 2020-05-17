@@ -31,10 +31,4 @@ textures/natestah/nateswater
 		tcMod scale 0.5 0.5
 		tcMod scroll 0.025 0.01
 	}
-
-	{
-		map $lightmap
-		blendfunc filter
-		rgbGen identity
-	}
 }

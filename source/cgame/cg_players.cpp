@@ -61,7 +61,7 @@ void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps ) {
 
 	const SoundEffect * sfx = GetPlayerSound( entnum, ps );
 	if( fixed ) {
-		S_StartFixedSound( sfx, FromQF3( cg_entities[entnum].current.origin ), entchannel, 1.0f );
+		S_StartFixedSound( sfx, cg_entities[entnum].current.origin, entchannel, 1.0f );
 	}
 	else if( ISVIEWERENTITY( entnum ) ) {
 		S_StartGlobalSound( sfx, entchannel, 1.0f );

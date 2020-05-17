@@ -28,8 +28,6 @@ class cPlayer {
 	uint[] loadout( Weapon_Count - 1 );
 	int num_weapons;
 
-	int64 lastLoadoutChangeTime; // so people can't spam change weapons during warmup
-
 	int killsThisRound;
 
 	uint arms;
@@ -41,8 +39,6 @@ class cPlayer {
 		@this.client = @player;
 
 		setLoadout( this.client.getUserInfoKey( "cg_loadout" ) );
-
-		this.lastLoadoutChangeTime = -1;
 
 		this.arms = 0;
 		this.defuses = 0;
@@ -113,13 +109,7 @@ class cPlayer {
 		this.client.execGameCommand( command );
 
 		if( match.getState() == MATCH_STATE_WARMUP ) {
-			if( lastLoadoutChangeTime == -1 || levelTime - lastLoadoutChangeTime >= 1000 ) {
-				giveInventory();
-				lastLoadoutChangeTime = levelTime;
-			}
-			else {
-				G_PrintMsg( @this.client.getEnt(), "You can't change weapons so fast\n" );
-			}
+			giveInventory();
 		}
 
 		if( match.getState() == MATCH_STATE_PLAYTIME && roundState == RoundState_Pre ) {

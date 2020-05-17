@@ -1515,7 +1515,7 @@ int NET_Monitor( int msec, socket_t *sockets[], void ( *read_cb )( socket_t *, v
 			case SOCKET_TCP:
 #endif
 				assert( sockets[i]->handle > 0 );
-				fdmax = max( (int)sockets[i]->handle, fdmax );
+				fdmax = Max2( (int)sockets[i]->handle, fdmax );
 				FD_SET( sockets[i]->handle, &fdsetr ); // network socket
 				if( p_fdsetw ) {
 					FD_SET( sockets[i]->handle, p_fdsetw );

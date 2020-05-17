@@ -148,8 +148,12 @@ static void CheckedALListener( ALenum param, Vec3 v ) {
 
 static void CheckedALListener( ALenum param, const mat3_t m ) {
 	float forward_and_up[ 6 ];
-	VectorCopy( &m[ AXIS_FORWARD ], &forward_and_up[ 0 ] );
-	VectorCopy( &m[ AXIS_UP ], &forward_and_up[ 3 ] );
+	forward_and_up[ 0 ] = m[ AXIS_FORWARD ];
+	forward_and_up[ 1 ] = m[ AXIS_FORWARD + 1 ];
+	forward_and_up[ 2 ] = m[ AXIS_FORWARD + 2 ];
+	forward_and_up[ 3 ] = m[ AXIS_UP ];
+	forward_and_up[ 4 ] = m[ AXIS_UP + 1 ];
+	forward_and_up[ 5 ] = m[ AXIS_UP + 2 ];
 	alListenerfv( param, forward_and_up );
 	CheckALErrors();
 }

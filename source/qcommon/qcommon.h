@@ -31,10 +31,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/qfiles.h"
 #include "qcommon/strtonum.h"
 
-inline Vec3 FromQF3( const vec3_t v ) { return Vec3( v[ 0 ], v[ 1 ], v[ 2 ] ); }
-inline EulerDegrees3 FromQFAngles( const vec3_t v ) { return { v[ PITCH ], v[ YAW ], v[ ROLL ] }; }
+inline Vec3 FromQFAxis( mat3_t m, int axis ) {
+	return Vec3( m[ axis + 0 ], m[ axis + 1 ], m[ axis + 2 ] );
+}
 
-inline Mat4 FromQFAxisAndOrigin( const mat3_t axis, const vec3_t origin ) {
+inline Mat4 FromAxisAndOrigin( const mat3_t axis, Vec3 origin ) {
 	Mat4 rotation = Mat4::Identity();
 	rotation.col0.x = axis[ 0 ];
 	rotation.col0.y = axis[ 1 ];
@@ -47,9 +48,7 @@ inline Mat4 FromQFAxisAndOrigin( const mat3_t axis, const vec3_t origin ) {
 	rotation.col2.z = axis[ 8 ];
 
 	Mat4 translation = Mat4::Identity();
-	translation.col3.x = origin[ 0 ];
-	translation.col3.y = origin[ 1 ];
-	translation.col3.z = origin[ 2 ];
+	translation.col3 = Vec4( origin, 1.0f );
 
 	return translation * rotation;
 }

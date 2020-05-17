@@ -45,30 +45,26 @@ WeaponType MODToWeapon( int mod ) {
 	return Weapon_None;
 }
 
-void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, const vec3_t start, const vec3_t dir, const vec3_t right, const vec3_t up, float r, float u, int range, int ignore, int timeDelta ) {
-	vec3_t end;
-	VectorMA( start, range, dir, end );
-	VectorMA( end, r, right, end );
-	VectorMA( end, u, up, end );
+void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, Vec3 start, Vec3 dir, Vec3 right, Vec3 up, float r, float u, int range, int ignore, int timeDelta ) {
+	Vec3 end = start + dir * range + right * r + up * u;
 
-	gs->api.Trace( trace, start, vec3_origin, vec3_origin, end, ignore, MASK_WALLBANG, timeDelta );
+	gs->api.Trace( trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ignore, MASK_WALLBANG, timeDelta );
 
 	if( wallbang_trace != NULL ) {
-		gs->api.Trace( wallbang_trace, start, vec3_origin, vec3_origin, trace->endpos, ignore, MASK_SHOT, timeDelta );
+		gs->api.Trace( wallbang_trace, start, Vec3( 0.0f ), Vec3( 0.0f ), trace->endpos, ignore, MASK_SHOT, timeDelta );
 	}
 }
 
-void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, const vec3_t origin, const vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * tr, const vec3_t dir ) ) {
-	vec3_t dir, end;
-	vec3_t mins = { -0.5, -0.5, -0.5 };
-	vec3_t maxs = { 0.5, 0.5, 0.5 };
+void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, Vec3 origin, Vec3 angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * tr, Vec3 dir ) ) {
+	Vec3 maxs = Vec3( 0.5f, 0.5f, 0.5f );
 
-	AngleVectors( angles, dir, NULL, NULL );
-	VectorMA( origin, range, dir, end );
+	Vec3 dir;
+	AngleVectors( angles, &dir, NULL, NULL );
+	Vec3 end = origin + dir * range;
 
 	trace->ent = 0;
 
-	gs->api.Trace( trace, origin, mins, maxs, end, ignore, MASK_SHOT, timeDelta );
+	gs->api.Trace( trace, origin, -maxs, maxs, end, ignore, MASK_SHOT, timeDelta );
 	if( trace->ent != -1 && impact != NULL ) {
 		impact( trace, dir );
 	}

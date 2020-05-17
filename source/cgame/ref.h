@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 typedef struct orientation_s {
 	mat3_t axis;
-	vec3_t origin;
+	Vec3 origin;
 } orientation_t;
 
 struct TRS {
@@ -46,7 +46,7 @@ typedef struct entity_s {
 	const Model * model;
 
 	mat3_t axis;
-	vec3_t origin, origin2;
+	Vec3 origin, origin2;
 
 	RGBA8 color;
 

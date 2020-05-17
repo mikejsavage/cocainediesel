@@ -246,15 +246,9 @@ static void Shaderpass_Map( Material * material, const char * name, const char *
 	Shaderpass_MapExt( material, ptr );
 }
 
-static void ColorNormalize( const vec3_t in, vec3_t out ) {
-	float f = Max2( Max2( in[0], in[1] ), in[2] );
-
-	if( f > 1.0f ) {
-		f = 1.0f / f;
-		VectorScale( in, f, out );
-	} else {
-		VectorCopy( in, out );
-	}
+static Vec3 NormalizeColor( Vec3 color ) {
+	float f = Max2( Max2( color.x, color.y ), color.z );
+	return f > 1.0f ? color / f : color;
 }
 
 static void Shaderpass_RGBGen( Material * material, const char * name, const char ** ptr ) {
@@ -278,9 +272,12 @@ static void Shaderpass_RGBGen( Material * material, const char * name, const cha
 	}
 	else if( !strcmp( token, "const" ) ) {
 		material->rgbgen.type = ColorGenType_Constant;
-		vec3_t color;
-		Shader_ParseVector( ptr, color, 3 );
-		ColorNormalize( color, material->rgbgen.args );
+		Vec3 color;
+		Shader_ParseVector( ptr, color.ptr(), 3 );
+		color = NormalizeColor( color );
+		material->rgbgen.args[ 0 ] = color.x;
+		material->rgbgen.args[ 1 ] = color.y;
+		material->rgbgen.args[ 2 ] = color.z;
 	}
 }
 

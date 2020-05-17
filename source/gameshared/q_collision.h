@@ -72,7 +72,7 @@ typedef struct {
 	bool allsolid;          // if true, plane is not valid
 	bool startsolid;        // if true, the initial point was in a solid area
 	float fraction;             // time completed, 1.0 = didn't hit anything
-	vec3_t endpos;              // final position
+	Vec3 endpos;              // final position
 	cplane_t plane;             // surface normal at impact
 	int surfFlags;              // surface hit
 	int contents;               // contents on other side of surface hit

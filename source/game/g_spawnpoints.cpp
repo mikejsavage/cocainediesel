@@ -49,10 +49,10 @@ static edict_t *G_FindPostMatchCamera( void ) {
 /*
 * G_OffsetSpawnPoint - use a grid of player boxes to offset the spawn point
 */
-bool G_OffsetSpawnPoint( vec3_t origin, const vec3_t box_mins, const vec3_t box_maxs, float radius, bool checkground ) {
+bool G_OffsetSpawnPoint( Vec3 * origin, Vec3 box_mins, Vec3 box_maxs, float radius, bool checkground ) {
 	trace_t trace;
-	vec3_t virtualorigin;
-	vec3_t absmins, absmaxs;
+	Vec3 virtualorigin;
+	Vec3 absmins, absmaxs;
 	float playerbox_rowwidth;
 	float playerbox_columnwidth;
 	int rows, columns;
@@ -65,25 +65,25 @@ bool G_OffsetSpawnPoint( vec3_t origin, const vec3_t box_mins, const vec3_t box_
 	int num_leafs;
 	int leafs[8];
 
-	if( radius <= box_maxs[0] - box_mins[0] ) {
+	if( radius <= box_maxs.x - box_mins.x ) {
 		return true;
 	}
 
 	if( checkground ) { // drop the point to ground (scripts can accept any entity now)
-		VectorCopy( origin, virtualorigin );
-		virtualorigin[2] -= 1024;
+		virtualorigin = *origin;
+		virtualorigin.z -= 1024;
 
-		G_Trace( &trace, origin, box_mins, box_maxs, virtualorigin, NULL, MASK_PLAYERSOLID );
+		G_Trace( &trace, *origin, box_mins, box_maxs, virtualorigin, NULL, MASK_PLAYERSOLID );
 		if( trace.fraction == 1.0f ) {
 			checkground = false;
-		} else if( trace.endpos[2] + 8.0f < origin[2] ) {
-			VectorCopy( trace.endpos, origin );
-			origin[2] += 8.0f;
+		} else if( trace.endpos.z + 8.0f < origin->z ) {
+			*origin = trace.endpos;
+			origin->z += 8.0f;
 		}
 	}
 
-	playerbox_rowwidth = 2 + box_maxs[0] - box_mins[0];
-	playerbox_columnwidth = 2 + box_maxs[1] - box_mins[1];
+	playerbox_rowwidth = 2 + box_maxs.x - box_mins.x;
+	playerbox_columnwidth = 2 + box_maxs.y - box_mins.y;
 
 	rows = radius / playerbox_rowwidth;
 	columns = radius / playerbox_columnwidth;
@@ -94,16 +94,15 @@ bool G_OffsetSpawnPoint( vec3_t origin, const vec3_t box_mins, const vec3_t box_
 		int row = random_uniform( &svs.rng, -rows, rows + 1 );
 		int column = random_uniform( &svs.rng, -columns, columns + 1 );
 
-		VectorSet( virtualorigin, origin[0] + ( row * playerbox_rowwidth ),
-				   origin[1] + ( column * playerbox_columnwidth ),
-				   origin[2] );
+		virtualorigin = *origin + Vec3( row * playerbox_rowwidth, column * playerbox_columnwidth, 0.0f );
 
-		VectorAdd( virtualorigin, box_mins, absmins );
-		VectorAdd( virtualorigin, box_maxs, absmaxs );
-		for( j = 0; j < 2; j++ ) {
-			absmaxs[j] += 1;
-			absmins[j] -= 1;
-		}
+		absmins = virtualorigin + box_mins;
+		absmaxs = virtualorigin + box_maxs;
+
+		absmaxs.x += 1;
+		absmaxs.y += 1;
+		absmins.x -= 1;
+		absmins.y -= 1;
 
 		//check if position is inside world
 
@@ -124,14 +123,14 @@ bool G_OffsetSpawnPoint( vec3_t origin, const vec3_t box_mins, const vec3_t box_
 
 		// one more trace is needed, only checking if some part of the world is on the
 		// way from spawnpoint to the virtual position
-		CM_TransformedBoxTrace( CM_Server, svs.cms, &trace, origin, virtualorigin, box_mins, box_maxs, NULL, MASK_PLAYERSOLID, NULL, NULL );
+		CM_TransformedBoxTrace( CM_Server, svs.cms, &trace, *origin, virtualorigin, box_mins, box_maxs, NULL, MASK_PLAYERSOLID, Vec3( 0.0f ), Vec3( 0.0f ) );
 		if( trace.fraction != 1.0f ) {
 			continue;
 		}
 
 		// check if anything solid is on player's way
 
-		G_Trace( &trace, vec3_origin, absmins, absmaxs, vec3_origin, world, mask_spawn );
+		G_Trace( &trace, Vec3( 0.0f ), absmins, absmaxs, Vec3( 0.0f ), world, mask_spawn );
 		if( trace.startsolid || trace.allsolid || trace.ent != -1 ) {
 			if( trace.ent == 0 ) {
 				worldfound++;
@@ -143,21 +142,21 @@ bool G_OffsetSpawnPoint( vec3_t origin, const vec3_t box_mins, const vec3_t box_
 
 		// one more check before accepting this spawn: there's ground at our feet?
 		if( checkground ) { // if floating item flag is not set
-			vec3_t origin_from, origin_to;
-			VectorCopy( virtualorigin, origin_from );
-			origin_from[2] += box_mins[2] + 1;
-			VectorCopy( origin_from, origin_to );
-			origin_to[2] -= 32;
+			Vec3 origin_from, origin_to;
+			origin_from = virtualorigin;
+			origin_from.z += box_mins.z + 1;
+			origin_to = origin_from;
+			origin_to.z -= 32;
 
 			// use point trace instead of box trace to avoid small glitches that can't support the player but will stop the trace
-			G_Trace( &trace, origin_from, vec3_origin, vec3_origin, origin_to, NULL, MASK_PLAYERSOLID );
+			G_Trace( &trace, origin_from, Vec3( 0.0f ), Vec3( 0.0f ), origin_to, NULL, MASK_PLAYERSOLID );
 			if( trace.startsolid || trace.allsolid || trace.fraction == 1.0f ) { // full run means no ground
 				nofloorfound++;
 				continue;
 			}
 		}
 
-		VectorCopy( virtualorigin, origin );
+		*origin = virtualorigin;
 		return true;
 	}
 
@@ -171,7 +170,7 @@ bool G_OffsetSpawnPoint( vec3_t origin, const vec3_t box_mins, const vec3_t box_
 *
 * Chooses a player start, deathmatch start, etc
 */
-void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, vec3_t origin, vec3_t angles ) {
+void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, Vec3 * origin, Vec3 * angles ) {
 	edict_t *spot = NULL;
 
 	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH ) {
@@ -195,25 +194,22 @@ void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, vec3_t origin, vec3_t
 	}
 
 	*spawnpoint = spot;
-	VectorCopy( spot->s.origin, origin );
-	VectorCopy( spot->s.angles, angles );
+	*origin = spot->s.origin;
+	*angles = spot->s.angles;
 
 	if( !Q_stricmp( spot->classname, "info_player_intermission" ) ) {
 		// if it has a target, look towards it
 		if( spot->target ) {
-			vec3_t dir;
-			edict_t *target;
-
-			target = G_PickTarget( spot->target );
-			if( target ) {
-				VectorSubtract( target->s.origin, origin, dir );
-				VecToAngles( dir, angles );
+			edict_t * target = G_PickTarget( spot->target );
+			if( target != NULL ) {
+				Vec3 dir = target->s.origin - *origin;
+				*angles = VecToAngles( dir );
 			}
 		}
 	}
 
 	// SPAWN TELEFRAGGING PROTECTION.
-	if( ent->r.solid == SOLID_YES && ( level.gametype.spawnpointRadius > ( playerbox_stand_maxs[0] - playerbox_stand_mins[0] ) ) ) {
+	if( ent->r.solid == SOLID_YES && level.gametype.spawnpointRadius > playerbox_stand_maxs.x - playerbox_stand_mins.x ) {
 		G_OffsetSpawnPoint( origin, playerbox_stand_mins, playerbox_stand_maxs, level.gametype.spawnpointRadius, ( spot->spawnflags & 1 ) == 0 );
 	}
 }

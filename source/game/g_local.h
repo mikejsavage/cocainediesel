@@ -177,7 +177,7 @@ extern spawn_temp_t st;
 extern mempool_t *gamepool;
 
 extern int meansOfDeath;
-extern vec3_t knockbackOfDeath;
+extern Vec3 knockbackOfDeath;
 
 #define FOFS( x ) offsetof( edict_t,x )
 #define STOFS( x ) offsetof( spawn_temp_t,x )
@@ -278,7 +278,7 @@ void G_SpawnQueue_AddClient( edict_t *ent );
 void G_SpawnQueue_RemoveClient( edict_t *ent );
 void G_SpawnQueue_Think( void );
 
-void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, vec3_t origin, vec3_t angles );
+void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, Vec3 * origin, Vec3 * angles );
 void SP_info_player_start( edict_t *ent );
 void SP_info_player_deathmatch( edict_t *ent );
 void SP_post_match_camera( edict_t *ent );
@@ -311,7 +311,7 @@ void GT_asCallSpawn( void );
 void GT_asCallMatchStateStarted( void );
 bool GT_asCallMatchStateFinished( int incomingMatchState );
 void GT_asCallThinkRules( void );
-void GT_asCallPlayerKilled( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point, int mod );
+void GT_asCallPlayerKilled( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point, int mod );
 void GT_asCallPlayerRespawn( edict_t *ent, int old_team, int new_team );
 void GT_asCallScoreEvent( gclient_t *client, const char *score_event, const char *args );
 void GT_asCallScoreboardMessage( char * buf, size_t buf_size );
@@ -324,7 +324,7 @@ void G_asCallMapEntityThink( edict_t *ent );
 void G_asCallMapEntityTouch( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags );
 void G_asCallMapEntityUse( edict_t *ent, edict_t *other, edict_t *activator );
 void G_asCallMapEntityPain( edict_t *ent, edict_t *other, float kick, float damage );
-void G_asCallMapEntityDie( edict_t *ent, edict_t *inflicter, edict_t *attacker, int damage, const vec3_t point );
+void G_asCallMapEntityDie( edict_t *ent, edict_t *inflicter, edict_t *attacker, int damage, Vec3 point );
 void G_asCallMapEntityStop( edict_t *ent );
 void G_asClearEntityBehaviors( edict_t *ent );
 void G_asReleaseEntityBehaviors( edict_t *ent );
@@ -365,12 +365,12 @@ void G_AddCommand( const char *name, gamecommandfunc_t cmdfunc );
 //
 #define G_LEVELPOOL_BASE_SIZE   45 * 1024 * 1024
 
-bool KillBox( edict_t *ent, int mod, const vec3_t knockback );
+bool KillBox( edict_t *ent, int mod, Vec3 knockback );
 float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker );
 edict_t *G_Find( edict_t *from, size_t fieldofs, const char *match );
 edict_t *G_PickTarget( const char *targetname );
 void G_UseTargets( edict_t *ent, edict_t *activator );
-void G_SetMovedir( vec3_t angles, vec3_t movedir );
+void G_SetMovedir( Vec3 * angles, Vec3 * movedir );
 void G_InitMover( edict_t *ent );
 void G_DropSpawnpointToFloor( edict_t *ent );
 
@@ -394,7 +394,7 @@ char *_G_CopyString( const char *in, const char *filename, int fileline );
 #define G_CopyString( in ) _G_CopyString( in, __FILE__, __LINE__ )
 
 void G_AddEvent( edict_t *ent, int event, u64 parm, bool highPriority );
-edict_t *G_SpawnEvent( int event, u64 parm, const vec3_t origin );
+edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin );
 void G_MorphEntityIntoEvent( edict_t *ent, int event, u64 parm );
 
 void G_CallThink( edict_t *ent );
@@ -402,7 +402,7 @@ void G_CallTouch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags 
 void G_CallUse( edict_t *self, edict_t *other, edict_t *activator );
 void G_CallStop( edict_t *self );
 void G_CallPain( edict_t *ent, edict_t *attacker, float kick, float damage );
-void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point );
+void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point );
 
 #ifndef _MSC_VER
 void G_PrintMsg( edict_t *ent, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
@@ -417,7 +417,7 @@ void G_CenterPrintMsg( edict_t *ent, _Printf_format_string_ const char *format, 
 void G_Obituary( edict_t *victim, edict_t *attacker, int mod );
 
 edict_t *G_Sound( edict_t *owner, int channel, StringHash sound );
-edict_t *G_PositionedSound( const vec3_t origin, int channel, StringHash sound );
+edict_t *G_PositionedSound( Vec3 origin, int channel, StringHash sound );
 void G_GlobalSound( int channel, StringHash sound );
 void G_LocalSound( edict_t *owner, int channel, StringHash sound );
 
@@ -473,22 +473,22 @@ typedef struct link_s {
 	int entNum;
 } link_t;
 
-int G_PointContents( const vec3_t p );
-void G_Trace( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, edict_t *passedict, int contentmask );
-int G_PointContents4D( const vec3_t p, int timeDelta );
-void G_Trace4D( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, edict_t *passedict, int contentmask, int timeDelta );
+int G_PointContents( Vec3 p );
+void G_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, edict_t *passedict, int contentmask );
+int G_PointContents4D( Vec3 p, int timeDelta );
+void G_Trace4D( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, edict_t *passedict, int contentmask, int timeDelta );
 void GClip_BackUpCollisionFrame( void );
-int GClip_FindInRadius4D( vec3_t org, float rad, int *list, int maxcount, int timeDelta );
-void G_SplashFrac4D( const edict_t *ent, vec3_t hitpoint, float maxradius, vec3_t pushdir, float *frac, int timeDelta, bool selfdamage );
+int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int timeDelta );
+void G_SplashFrac4D( const edict_t *ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta, bool selfdamage );
 void GClip_ClearWorld( void );
 void GClip_SetBrushModel( edict_t * ent );
 void GClip_SetAreaPortalState( edict_t *ent, bool open );
 void GClip_LinkEntity( edict_t *ent );
 void GClip_UnlinkEntity( edict_t *ent );
 void GClip_TouchTriggers( edict_t *ent );
-void G_PMoveTouchTriggers( pmove_t *pm, vec3_t previous_origin );
+void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin );
 SyncEntityState *G_GetEntityStateForDeltaTime( int entNum, int deltaTime );
-int GClip_FindInRadius( vec3_t org, float rad, int *list, int maxcount );
+int GClip_FindInRadius( Vec3 org, float rad, int *list, int maxcount );
 
 bool IsHeadshot( int entNum, Vec3 hit, int timeDelta );
 
@@ -497,16 +497,16 @@ bool IsHeadshot( int entNum, Vec3 hit, int timeDelta );
 #define AREA_ALL       -1
 #define AREA_SOLID      1
 #define AREA_TRIGGERS   2
-int GClip_AreaEdicts( const vec3_t mins, const vec3_t maxs, int *list, int maxcount, int areatype, int timeDelta );
-bool GClip_EntityContact( const vec3_t mins, const vec3_t maxs, edict_t *ent );
+int GClip_AreaEdicts( Vec3 mins, Vec3 maxs, int *list, int maxcount, int areatype, int timeDelta );
+bool GClip_EntityContact( Vec3 mins, Vec3 maxs, edict_t *ent );
 
 //
 // g_combat.c
 //
 bool G_IsTeamDamage( SyncEntityState *targ, SyncEntityState *attacker );
-void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point, int mod );
-void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, const vec3_t point, float maxradius, vec3_t pushdir, float *frac, bool selfdamage );
-void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_t pushdir, const vec3_t dmgdir, const vec3_t point, float damage, float knockback, int dflags, int mod );
+void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point, int mod );
+void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 point, float maxradius, Vec3 * pushdir, float *frac, bool selfdamage );
+void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdir, Vec3 dmgdir, Vec3 point, float damage, float knockback, int dflags, int mod );
 void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edict_t *ignore, int mod );
 
 // damage flags
@@ -518,7 +518,7 @@ void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edi
 //
 // g_misc.c
 //
-void ThrowSmallPileOfGibs( edict_t *self, const vec3_t knockback, int damage );
+void ThrowSmallPileOfGibs( edict_t *self, Vec3 knockback, int damage );
 
 void BecomeExplosion1( edict_t *self );
 
@@ -553,7 +553,6 @@ void G_Client_InactivityRemove( gclient_t *client );
 void G_ClientRespawn( edict_t *self, bool ghost );
 void G_ClientClearStats( edict_t *ent );
 void G_GhostClient( edict_t *self );
-bool ClientMultiviewChanged( edict_t *ent, bool multiview );
 void ClientThink( edict_t *ent, usercmd_t *cmd, int timeDelta );
 void G_ClientThink( edict_t *ent );
 void G_CheckClientRespawnClick( edict_t *ent );
@@ -570,7 +569,7 @@ bool G_PlayerCanTeleport( edict_t *player );
 // g_player.c
 //
 void player_pain( edict_t *self, edict_t *other, float kick, int damage );
-void player_die( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point );
+void player_die( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point );
 void player_think( edict_t *self );
 
 //
@@ -600,7 +599,7 @@ void SV_WriteIPList( void );
 // p_view.c
 //
 void G_ClientEndSnapFrame( edict_t *ent );
-void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, const vec3_t dir );
+void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, Vec3 dir );
 void G_ClientDamageFeedback( edict_t *ent );
 
 //
@@ -686,16 +685,16 @@ typedef struct {
 
 typedef struct {
 	// fixed data
-	vec3_t start_origin;
-	vec3_t start_angles;
-	vec3_t end_origin;
-	vec3_t end_angles;
+	Vec3 start_origin;
+	Vec3 start_angles;
+	Vec3 end_origin;
+	Vec3 end_angles;
 
 	StringHash sound_start;
 	StringHash sound_middle;
 	StringHash sound_end;
 
-	vec3_t movedir;  // direction defined in the bsp
+	Vec3 movedir;  // direction defined in the bsp
 
 	float speed;
 	float distance;    // used by binary movers
@@ -704,14 +703,13 @@ typedef struct {
 
 	// state data
 	int state;
-	vec3_t dir;             // used by func_bobbing and func_pendulum
 	float current_speed;    // used by func_rotating
 
 	void ( *endfunc )( edict_t * );
 	void ( *blocked )( edict_t *self, edict_t *other );
 
-	vec3_t dest;
-	vec3_t destangles;
+	Vec3 dest;
+	Vec3 destangles;
 } moveinfo_t;
 
 #define MAX_CLIENT_EVENTS   16
@@ -724,7 +722,7 @@ typedef struct {
 	int buttons;
 	uint8_t plrkeys; // used for displaying key icons
 	int damageTaken;
-	vec3_t damageTakenDir;
+	Vec3 damageTakenDir;
 } client_snapreset_t;
 
 typedef struct {
@@ -767,8 +765,8 @@ typedef struct {
 
 	// for position command
 	bool position_saved;
-	vec3_t position_origin;
-	vec3_t position_angles;
+	Vec3 position_origin;
+	Vec3 position_angles;
 	int64_t position_lastcmd;
 } client_teamreset_t;
 
@@ -779,15 +777,6 @@ struct gclient_s {
 
 	// DO NOT MODIFY ANYTHING ABOVE THIS, THE SERVER
 	// EXPECTS THE FIELDS IN THAT ORDER!
-
-	//================================
-
-	/*
-	// Review notes
-	- Revise the calls to G_ClearPlayerStateEvents, they may be useless now
-	- self->ai.pers.netname for what? there is self->r.client->netname already
-	- CTF prints personal bonuses in global console. I don't think this is worth it
-	*/
 
 	client_respawnreset_t resp;
 	client_levelreset_t level;
@@ -803,7 +792,6 @@ struct gclient_s {
 	char socket[MAX_INFO_VALUE];
 
 	bool connecting;
-	bool multiview;
 
 	int team;
 	int hand;
@@ -829,8 +817,8 @@ typedef struct snap_edict_s {
 	// ents can accumulate damage along the frame, so they spawn less events
 	float damage_taken;
 	float damage_saved;
-	vec3_t damage_dir;
-	vec3_t damage_at;
+	Vec3 damage_dir;
+	Vec3 damage_at;
 	float damage_given;             // for hitsounds
 	float damageteam_given;
 } snap_edict_t;
@@ -875,7 +863,7 @@ struct edict_s {
 	EdictTouchCallback touch;
 	void ( *use )( edict_t *self, edict_t *other, edict_t *activator );
 	void ( *pain )( edict_t *self, edict_t *other, float kick, int damage );
-	void ( *die )( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point );
+	void ( *die )( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point );
 	void ( *stop )( edict_t *self );
 
 	const char *target;
@@ -885,8 +873,8 @@ struct edict_s {
 	const char *pathtarget;
 	edict_t *target_ent;
 
-	vec3_t velocity;
-	vec3_t avelocity;
+	Vec3 velocity;
+	Vec3 avelocity;
 
 	float angle;                // set in qe3, -1 = up, -2 = down
 	float speed;
@@ -939,7 +927,7 @@ struct edict_s {
 	int style;                  // also used as areaportal number
 
 	float light;
-	vec3_t color;
+	Vec3 color;
 
 	const Item *item;       // for bonus items
 

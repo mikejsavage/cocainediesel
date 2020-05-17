@@ -298,17 +298,13 @@ static void ED_ParseField( char *key, char *value, edict_t *ent ) {
 				*(float *)( b + f.ofs ) = atof( value );
 				break;
 			case F_ANGLE:
-				( (float *)( b + f.ofs ) )[0] = 0;
-				( (float *)( b + f.ofs ) )[1] = atof( value );
-				( (float *)( b + f.ofs ) )[2] = 0;
+				*(Vec3 *)( b + f.ofs ) = Vec3( 0.0f, atof( value ), 0.0f );
 				break;
 
 			case F_VECTOR: {
-				vec3_t vec;
-				sscanf( value, "%f %f %f", &vec[0], &vec[1], &vec[2] );
-				( (float *)( b + f.ofs ) )[0] = vec[0];
-				( (float *)( b + f.ofs ) )[1] = vec[1];
-				( (float *)( b + f.ofs ) )[2] = vec[2];
+				Vec3 vec;
+				sscanf( value, "%f %f %f", &vec.x, &vec.y, &vec.z );
+				*(Vec3 *)( b + f.ofs ) = vec;
 			} break;
 
 			case F_RGBA: {
@@ -606,8 +602,8 @@ static void SP_worldspawn( edict_t *ent ) {
 	ent->movetype = MOVETYPE_PUSH;
 	ent->r.solid = SOLID_YES;
 	ent->r.inuse = true;       // since the world doesn't use G_Spawn()
-	VectorClear( ent->s.origin );
-	VectorClear( ent->s.angles );
+	ent->s.origin = Vec3( 0.0f );
+	ent->s.angles = Vec3( 0.0f );
 
 	const char * model_name = "*0";
 	ent->s.model = StringHash( Hash64( model_name, strlen( model_name ), svs.cms->base_hash ) );

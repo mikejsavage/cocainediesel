@@ -48,15 +48,9 @@ static bool EntityOverlapsAnything( edict_t *ent ) {
 * SV_CheckVelocity
 */
 static void SV_CheckVelocity( edict_t *ent ) {
-	float scale;
-
-	//
-	// bound velocity
-	//
-	scale = VectorLength( ent->velocity );
-	if( ( scale > g_maxvelocity->value ) && ( scale ) ) {
-		scale = g_maxvelocity->value / scale;
-		VectorScale( ent->velocity, scale, ent->velocity );
+	float velocity = Length( ent->velocity );
+	if( velocity > g_maxvelocity->value && velocity != 0.0f ) {
+		ent->velocity = ent->velocity * g_maxvelocity->value / velocity;
 	}
 }
 
@@ -119,14 +113,12 @@ void SV_Impact( edict_t *e1, trace_t *trace ) {
 *
 * Does not change the entities velocity at all
 */
-static trace_t SV_PushEntity( edict_t *ent, vec3_t push ) {
+static trace_t SV_PushEntity( edict_t *ent, Vec3 push ) {
 	trace_t trace;
-	vec3_t start;
-	vec3_t end;
 	int mask;
 
-	VectorCopy( ent->s.origin, start );
-	VectorAdd( start, push, end );
+	Vec3 start = ent->s.origin;
+	Vec3 end = start + push;
 
 retry:
 	if( ent->r.clipmask ) {
@@ -137,7 +129,7 @@ retry:
 
 	G_Trace4D( &trace, start, ent->r.mins, ent->r.maxs, end, ent, mask, ent->timeDelta );
 	if( ent->movetype == MOVETYPE_PUSH || !trace.startsolid ) {
-		VectorCopy( trace.endpos, ent->s.origin );
+		ent->s.origin = trace.endpos;
 	}
 
 	GClip_LinkEntity( ent );
@@ -148,7 +140,7 @@ retry:
 		// if the pushed entity went away and the pusher is still there
 		if( !game.edicts[trace.ent].r.inuse && ent->movetype == MOVETYPE_PUSH && ent->r.inuse ) {
 			// move the pusher back and try again
-			VectorCopy( start, ent->s.origin );
+			ent->s.origin = start;
 			GClip_LinkEntity( ent );
 			goto retry;
 		}
@@ -165,10 +157,10 @@ retry:
 typedef struct
 {
 	edict_t *ent;
-	vec3_t origin;
-	vec3_t angles;
+	Vec3 origin;
+	Vec3 angles;
 	float yaw;
-	vec3_t pmove_origin;
+	Vec3 pmove_origin;
 } pushed_t;
 pushed_t pushed[MAX_EDICTS], *pushed_p;
 
@@ -181,37 +173,35 @@ edict_t *obstacle;
 * Objects need to be moved back on a failed push,
 * otherwise riders would continue to slide.
 */
-static bool SV_Push( edict_t *pusher, vec3_t move, vec3_t amove ) {
-	int i, e;
+static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
+	int e;
 	edict_t *check;
-	vec3_t mins, maxs;
+	Vec3 mins, maxs;
 	pushed_t *p;
 	mat3_t axis;
-	vec3_t org, org2, move2;
+	Vec3 org, org2, move2;
 
 	// find the bounding box
-	for( i = 0; i < 3; i++ ) {
-		mins[i] = pusher->r.absmin[i] + move[i];
-		maxs[i] = pusher->r.absmax[i] + move[i];
-	}
+	mins = pusher->r.absmin + move;
+	maxs = pusher->r.absmax + move;
 
 	// we need this for pushing things later
-	VectorNegate( amove, org );
+	org = -amove;
 	AnglesToAxis( org, axis );
 
 	// save the pusher's original position
 	pushed_p->ent = pusher;
-	VectorCopy( pusher->s.origin, pushed_p->origin );
-	VectorCopy( pusher->s.angles, pushed_p->angles );
+	pushed_p->origin = pusher->s.origin;
+	pushed_p->angles = pusher->s.angles;
 	if( pusher->r.client ) {
-		VectorCopy( pusher->r.client->ps.pmove.velocity, pushed_p->pmove_origin );
-		pushed_p->yaw = pusher->r.client->ps.viewangles[YAW];
+		pushed_p->pmove_origin = pusher->r.client->ps.pmove.velocity;
+		pushed_p->yaw = pusher->r.client->ps.viewangles.y;
 	}
 	pushed_p++;
 
 	// move the pusher to its final position
-	VectorAdd( pusher->s.origin, move, pusher->s.origin );
-	VectorAdd( pusher->s.angles, amove, pusher->s.angles );
+	pusher->s.origin = pusher->s.origin + move;
+	pusher->s.angles = pusher->s.angles + amove;
 	GClip_LinkEntity( pusher );
 
 	// see if any solid entities are inside the final position
@@ -234,12 +224,7 @@ static bool SV_Push( edict_t *pusher, vec3_t move, vec3_t amove ) {
 		// if the entity is standing on the pusher, it will definitely be moved
 		if( check->groundentity != pusher ) {
 			// see if the ent needs to be tested
-			if( check->r.absmin[0] >= maxs[0]
-				|| check->r.absmin[1] >= maxs[1]
-				|| check->r.absmin[2] >= maxs[2]
-				|| check->r.absmax[0] <= mins[0]
-				|| check->r.absmax[1] <= mins[1]
-				|| check->r.absmax[2] <= mins[2] ) {
+			if( !BoundsOverlap( check->r.absmin, check->r.absmax, mins, maxs ) ) {
 				continue;
 			}
 
@@ -252,23 +237,23 @@ static bool SV_Push( edict_t *pusher, vec3_t move, vec3_t amove ) {
 		if( ( pusher->movetype == MOVETYPE_PUSH ) || ( check->groundentity == pusher ) ) {
 			// move this entity
 			pushed_p->ent = check;
-			VectorCopy( check->s.origin, pushed_p->origin );
-			VectorCopy( check->s.angles, pushed_p->angles );
+			pushed_p->origin = check->s.origin;
+			pushed_p->angles = check->s.angles;
 			pushed_p++;
 
 			// try moving the contacted entity
-			VectorAdd( check->s.origin, move, check->s.origin );
+			check->s.origin = check->s.origin + move;
 			if( check->r.client ) {
 				// FIXME: doesn't rotate monsters?
-				VectorAdd( check->r.client->ps.pmove.origin, move, check->r.client->ps.pmove.origin );
-				check->r.client->ps.viewangles[YAW] += amove[YAW];
+				check->r.client->ps.pmove.origin = check->r.client->ps.pmove.origin + move;
+				check->r.client->ps.viewangles.y += amove.y;
 			}
 
 			// figure movement due to the pusher's amove
-			VectorSubtract( check->s.origin, pusher->s.origin, org );
-			Matrix3_TransformVector( axis, org, org2 );
-			VectorSubtract( org2, org, move2 );
-			VectorAdd( check->s.origin, move2, check->s.origin );
+			org = check->s.origin - pusher->s.origin;
+			Matrix3_TransformVector( axis, org, &org2 );
+			move2 = org2 - org;
+			check->s.origin = check->s.origin + move2;
 
 			if( check->movetype != MOVETYPE_BOUNCEGRENADE ) {
 				// may have pushed them off an edge
@@ -288,8 +273,8 @@ static bool SV_Push( edict_t *pusher, vec3_t move, vec3_t amove ) {
 				// try to fix block
 				// if it is ok to leave in the old position, do it
 				// this is only relevant for riding entities, not pushed
-				VectorSubtract( check->s.origin, move, check->s.origin );
-				VectorSubtract( check->s.origin, move2, check->s.origin );
+				check->s.origin = check->s.origin - move;
+				check->s.origin = check->s.origin - move2;
 				block = EntityOverlapsAnything( check );
 				if( !block ) {
 					pushed_p--;
@@ -305,11 +290,11 @@ static bool SV_Push( edict_t *pusher, vec3_t move, vec3_t amove ) {
 		// go backwards, so if the same entity was pushed
 		// twice, it goes back to the original position
 		for( p = pushed_p - 1; p >= pushed; p-- ) {
-			VectorCopy( p->origin, p->ent->s.origin );
-			VectorCopy( p->angles, p->ent->s.angles );
+			p->ent->s.origin = p->origin;
+			p->ent->s.angles = p->angles;
 			if( p->ent->r.client ) {
-				VectorCopy( p->pmove_origin, p->ent->r.client->ps.pmove.origin );
-				p->ent->r.client->ps.viewangles[YAW] = p->yaw;
+				p->ent->r.client->ps.pmove.origin = p->pmove_origin;
+				p->ent->r.client->ps.viewangles.y = p->yaw;
 			}
 			GClip_LinkEntity( p->ent );
 		}
@@ -335,18 +320,17 @@ static void SV_Physics_Pusher( edict_t *ent ) {
 
 	bool blocked = false;
 
-	if( ent->velocity[0] || ent->velocity[1] || ent->velocity[2] || ent->avelocity[0] || ent->avelocity[1] || ent->avelocity[2] ) {
-		vec3_t move, amove;
-
+	if( ent->velocity != Vec3( 0.0f ) || ent->avelocity != Vec3( 0.0f ) ) {
+		Vec3 move;
 		if( ent->s.linearMovement ) {
-			GS_LinearMovement( &ent->s, svs.gametime, move );
-			VectorSubtract( move, ent->s.origin, move );
-			VectorScale( ent->avelocity, FRAMETIME, amove );
+			GS_LinearMovement( &ent->s, svs.gametime, &move );
+			move -= ent->s.origin;
 		}
 		else {
-			VectorScale( ent->velocity, FRAMETIME, move );
-			VectorScale( ent->avelocity, FRAMETIME, amove );
+			move = ent->velocity * FRAMETIME;
 		}
+
+		Vec3 amove = ent->avelocity * FRAMETIME;
 
 		blocked = !SV_Push( ent, move, amove );
 	}
@@ -384,16 +368,16 @@ static void SV_Physics_Pusher( edict_t *ent ) {
 */
 static void SV_Physics_Toss( edict_t *ent ) {
 	trace_t trace;
-	vec3_t move;
+	Vec3 move;
 	float backoff;
 	bool wasinwater;
 	bool isinwater;
-	vec3_t old_origin;
+	Vec3 old_origin;
 	float oldSpeed;
 
 	// refresh the ground entity
 	if( ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ) {
-		if( ent->velocity[2] > 0.1f ) {
+		if( ent->velocity.z > 0.1f ) {
 			ent->groundentity = NULL;
 		}
 	}
@@ -402,7 +386,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 		ent->groundentity = NULL;
 	}
 
-	oldSpeed = VectorLength( ent->velocity );
+	oldSpeed = Length( ent->velocity );
 
 	if( ent->groundentity ) {
 		if( !oldSpeed ) {
@@ -410,27 +394,27 @@ static void SV_Physics_Toss( edict_t *ent ) {
 		}
 
 		if( ent->movetype == MOVETYPE_TOSS ) {
-			if( ent->velocity[2] >= 8 ) {
+			if( ent->velocity.z >= 8 ) {
 				ent->groundentity = NULL;
 			} else {
-				VectorClear( ent->velocity );
-				VectorClear( ent->avelocity );
+				ent->velocity = Vec3( 0.0f );
+				ent->avelocity = Vec3( 0.0f );
 				G_CallStop( ent );
 				return;
 			}
 		}
 	}
 
-	VectorCopy( ent->s.origin, old_origin );
+	old_origin = ent->s.origin;
 
 	if( ent->accel != 0 ) {
-		if( ent->accel < 0 && VectorLength( ent->velocity ) < 50 ) {
-			VectorClear( ent->velocity );
+		if( ent->accel < 0 && Length( ent->velocity ) < 50 ) {
+			ent->velocity = Vec3( 0.0f );
 		} else {
-			vec3_t acceldir;
-			VectorNormalize2( ent->velocity, acceldir );
-			VectorScale( acceldir, ent->accel * FRAMETIME, acceldir );
-			VectorAdd( ent->velocity, acceldir, ent->velocity );
+			Vec3 acceldir;
+			acceldir = Normalize( ent->velocity );
+			acceldir = acceldir * ( ent->accel * FRAMETIME );
+			ent->velocity = ent->velocity + acceldir;
 		}
 	}
 
@@ -438,14 +422,14 @@ static void SV_Physics_Toss( edict_t *ent ) {
 
 	// add gravity
 	if( ent->movetype != MOVETYPE_FLY && !ent->groundentity ) {
-		ent->velocity[2] -= ent->gravity * level.gravity * FRAMETIME;
+		ent->velocity.z -= ent->gravity * level.gravity * FRAMETIME;
 	}
 
 	// move angles
-	VectorMA( ent->s.angles, FRAMETIME, ent->avelocity, ent->s.angles );
+	ent->s.angles = ent->s.angles + ent->avelocity * FRAMETIME;
 
 	// move origin
-	VectorScale( ent->velocity, FRAMETIME, move );
+	move = ent->velocity * FRAMETIME;
 
 	if( !ent->r.inuse ) {
 		return;
@@ -462,7 +446,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 			backoff = 1;
 		}
 
-		GS_ClipVelocity( ent->velocity, trace.plane.normal, ent->velocity, backoff );
+		ent->velocity = GS_ClipVelocity( ent->velocity, trace.plane.normal, backoff );
 
 		// stop if on ground
 
@@ -473,13 +457,13 @@ static void SV_Physics_Toss( edict_t *ent ) {
 			// method taken from Darkplaces sourcecode
 			if( trace.allsolid ||
 				( ISWALKABLEPLANE( &trace.plane ) &&
-				  Abs( DotProduct( trace.plane.normal, ent->velocity ) ) < 40
+				  Abs( Dot( trace.plane.normal, ent->velocity ) ) < 40
 				)
 				) {
 				ent->groundentity = &game.edicts[trace.ent];
 				ent->groundentity_linkcount = ent->groundentity->linkcount;
-				VectorClear( ent->velocity );
-				VectorClear( ent->avelocity );
+				ent->velocity = Vec3( 0.0f );
+				ent->avelocity = Vec3( 0.0f );
 				G_CallStop( ent );
 			}
 		} else {
@@ -489,8 +473,8 @@ static void SV_Physics_Toss( edict_t *ent ) {
 			if( trace.allsolid || ISWALKABLEPLANE( &trace.plane ) ) {
 				ent->groundentity = trace.ent < 0 ? world : &game.edicts[trace.ent];
 				ent->groundentity_linkcount = ent->groundentity->linkcount;
-				VectorClear( ent->velocity );
-				VectorClear( ent->avelocity );
+				ent->velocity = Vec3( 0.0f );
+				ent->avelocity = Vec3( 0.0f );
 				G_CallStop( ent );
 			}
 		}
@@ -522,7 +506,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 //============================================================================
 
 static void SV_Physics_LinearProjectile( edict_t *ent ) {
-	vec3_t start, end;
+	Vec3 start, end;
 	int mask;
 	trace_t trace;
 	bool wasinwater;
@@ -535,11 +519,11 @@ static void SV_Physics_LinearProjectile( edict_t *ent ) {
 	float endFlyTime = float( svs.gametime - ent->s.linearMovementTimeStamp ) * 0.001f;
 	float startFlyTime = float( Max2( s64( 0 ), game.prevServerTime - ent->s.linearMovementTimeStamp ) ) * 0.001f;
 
-	VectorMA( ent->s.linearMovementBegin, startFlyTime, ent->s.linearMovementVelocity, start );
-	VectorMA( ent->s.linearMovementBegin, endFlyTime, ent->s.linearMovementVelocity, end );
+	start = ent->s.linearMovementBegin + ent->s.linearMovementVelocity * startFlyTime;
+	end = ent->s.linearMovementBegin + ent->s.linearMovementVelocity * endFlyTime;
 
 	G_Trace4D( &trace, start, ent->r.mins, ent->r.maxs, end, ent, mask, ent->timeDelta );
-	VectorCopy( trace.endpos, ent->s.origin );
+	ent->s.origin = trace.endpos;
 	GClip_LinkEntity( ent );
 	SV_Impact( ent, &trace );
 

@@ -30,13 +30,13 @@ static void target_explosion_explode( edict_t *self ) {
 		if( radius < 1 ) {
 			radius = 1;
 		}
-		G_SpawnEvent( EV_EXPLOSION2, radius, self->s.origin );
+		G_SpawnEvent( EV_EXPLOSION2, radius, &self->s.origin );
 	} else {
 		radius = ( self->projectileInfo.radius * 1 / 8 ) & 0xFF;
 		if( radius < 1 ) {
 			radius = 1;
 		}
-		G_SpawnEvent( EV_EXPLOSION1, radius, self->s.origin );
+		G_SpawnEvent( EV_EXPLOSION1, radius, &self->s.origin );
 	}
 
 	save = self->delay;
@@ -74,12 +74,9 @@ void SP_target_explosion( edict_t *self ) {
 //==========================================================
 
 static void target_laser_think( edict_t *self ) {
-	edict_t *ignore;
-	vec3_t start;
-	vec3_t end;
 	trace_t tr;
-	vec3_t point;
-	vec3_t last_movedir;
+	Vec3 point;
+	Vec3 last_movedir;
 	int count;
 
 	// our lifetime has expired
@@ -99,21 +96,20 @@ static void target_laser_think( edict_t *self ) {
 	}
 
 	if( self->enemy ) {
-		VectorCopy( self->moveinfo.movedir, last_movedir );
-		VectorMA( self->enemy->r.absmin, 0.5, self->enemy->r.size, point );
-		VectorSubtract( point, self->s.origin, self->moveinfo.movedir );
-		VectorNormalize( self->moveinfo.movedir );
-		if( !VectorCompare( self->moveinfo.movedir, last_movedir ) ) {
+		last_movedir = self->moveinfo.movedir;
+		point = self->enemy->r.absmin + self->enemy->r.size * 0.5f;
+		self->moveinfo.movedir = point - self->s.origin;
+		self->moveinfo.movedir = Normalize( self->moveinfo.movedir );
+		if( self->moveinfo.movedir != last_movedir ) {
 			self->spawnflags |= 0x80000000;
 		}
 	}
 
-	ignore = self;
-	VectorCopy( self->s.origin, start );
-	VectorMA( start, 2048, self->moveinfo.movedir, end );
-	VectorClear( tr.endpos ); // shut up compiler
+	edict_t *ignore = self;
+	Vec3 start = self->s.origin;
+	Vec3 end = start + self->moveinfo.movedir * 2048.0f;
 	while( 1 ) {
-		G_Trace( &tr, start, NULL, NULL, end, ignore, MASK_SHOT );
+		G_Trace( &tr, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ignore, MASK_SHOT );
 		if( tr.fraction == 1 ) {
 			break;
 		}
@@ -137,7 +133,7 @@ static void target_laser_think( edict_t *self ) {
 
 				self->spawnflags &= ~0x80000000;
 
-				event = G_SpawnEvent( EV_LASER_SPARKS, DirToByte( tr.plane.normal ), tr.endpos );
+				event = G_SpawnEvent( EV_LASER_SPARKS, DirToByte( tr.plane.normal ), &tr.endpos );
 				event->s.counterNum = count;
 				event->s.colorRGBA = self->s.colorRGBA;
 			}
@@ -145,10 +141,10 @@ static void target_laser_think( edict_t *self ) {
 		}
 
 		ignore = &game.edicts[tr.ent];
-		VectorCopy( tr.endpos, start );
+		start = tr.endpos;
 	}
 
-	VectorCopy( tr.endpos, self->s.origin2 );
+	self->s.origin2 = tr.endpos;
 	G_SetBoundsForSpanEntity( self, 8 );
 
 	GClip_LinkEntity( self );
@@ -162,7 +158,7 @@ static void target_laser_on( edict_t *self ) {
 	}
 	self->spawnflags |= 0x80000001;
 	self->r.svflags &= ~SVF_NOCLIENT;
-	self->wait = ( level.time * 0.001 ) + self->delay;
+	self->wait = level.time * 0.001f + self->delay;
 	target_laser_think( self );
 }
 
@@ -195,12 +191,12 @@ void target_laser_start( edict_t *self ) {
 			edict_t * target = G_Find( NULL, FOFS( targetname ), self->target );
 			if( !target ) {
 				if( developer->integer ) {
-					Com_Printf( "%s at %s: %s is a bad target\n", self->classname, vtos( self->s.origin ), self->target );
+					Com_GGPrint( "{} at {}: {} is a bad target", self->classname, self->s.origin, self->target );
 				}
 			}
 			self->enemy = target;
 		} else {
-			G_SetMovedir( self->s.angles, self->moveinfo.movedir );
+			G_SetMovedir( &self->s.angles, &self->moveinfo.movedir );
 		}
 	}
 	self->use = target_laser_use;
@@ -326,7 +322,7 @@ void SP_target_teleporter( edict_t *self ) {
 
 	if( !self->targetname ) {
 		if( developer->integer ) {
-			Com_Printf( "untargeted %s at %s\n", self->classname, vtos( self->s.origin ) );
+			Com_GGPrint( "untargeted {} at {}", self->classname, self->s.origin );
 		}
 	}
 

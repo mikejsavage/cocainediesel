@@ -69,8 +69,8 @@ typedef struct {
 	// the server sends a delta each frame which is added to the locally
 	// tracked view angles to account for standing on rotating objects,
 	// and teleport direction changes
-	vec3_t prevviewangles;
-	vec3_t viewangles;
+	Vec3 prevviewangles;
+	Vec3 viewangles;
 
 	int serverTimeDeltas[MAX_TIMEDELTAS_BACKUP];
 	int newServerTimeDelta;         // the time difference with the server time, or at least our best guess about it
@@ -325,11 +325,11 @@ void CL_GameModule_ConfigString( int number, const char *value );
 void CL_GameModule_EscapeKey( void );
 bool CL_GameModule_NewSnapshot( int pendingSnapshot );
 void CL_GameModule_RenderView();
-void CL_GameModule_GetEntitySpatilization( int entnum, vec3_t origin, vec3_t velocity );
+void CL_GameModule_GetEntitySpatilization( int entnum, Vec3 * origin, Vec3 * velocity );
 void CL_GameModule_InputFrame( int frameTime );
 unsigned CL_GameModule_GetButtonBits( void );
-void CL_GameModule_AddViewAngles( vec3_t viewAngles );
-void CL_GameModule_AddMovement( vec3_t movement );
+void CL_GameModule_AddViewAngles( Vec3 * viewAngles );
+void CL_GameModule_AddMovement( Vec3 * movement );
 void CL_GameModule_MouseMove( int frameTime, Vec2 m );
 
 //

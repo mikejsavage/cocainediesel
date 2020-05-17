@@ -30,53 +30,50 @@ float xyspeed;
 /*
 * G_ProjectThirdPersonView
 */
-static void G_ProjectThirdPersonView( vec3_t vieworg, vec3_t viewangles, edict_t *passent ) {
+static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t *passent ) {
 	float thirdPersonRange = 60;
 	float thirdPersonAngle = 0;
-	float dist, f, r;
-	vec3_t dest, stop;
-	vec3_t chase_dest;
 	trace_t trace;
-	vec3_t mins = { -4, -4, -4 };
-	vec3_t maxs = { 4, 4, 4 };
-	vec3_t v_forward, v_right, v_up;
+	Vec3 mins( -4.0f );
+	Vec3 maxs( 4.0f);
+	Vec3 v_forward, v_right, v_up;
 
-	AngleVectors( viewangles, v_forward, v_right, v_up );
+	AngleVectors( *viewangles, &v_forward, &v_right, &v_up );
 
 	// calc exact destination
-	VectorCopy( vieworg, chase_dest );
-	r = DEG2RAD( thirdPersonAngle );
-	f = -cosf( r );
+	Vec3 chase_dest = *vieworg;
+	float r = DEG2RAD( thirdPersonAngle );
+	float f = -cosf( r );
 	r = -sinf( r );
-	VectorMA( chase_dest, thirdPersonRange * f, v_forward, chase_dest );
-	VectorMA( chase_dest, thirdPersonRange * r, v_right, chase_dest );
-	chase_dest[2] += 8;
+	chase_dest += v_forward * thirdPersonRange * f;
+	chase_dest += v_right * thirdPersonRange * r;
+	chase_dest.z += 8;
 
 	// find the spot the player is looking at
-	VectorMA( vieworg, 512, v_forward, dest );
-	G_Trace( &trace, vieworg, mins, maxs, dest, passent, MASK_SOLID );
+	Vec3 dest = *vieworg + v_forward * ( 512 );
+	G_Trace( &trace, *vieworg, mins, maxs, dest, passent, MASK_SOLID );
 
 	// calculate pitch to look at the same spot from camera
-	VectorSubtract( trace.endpos, vieworg, stop );
-	dist = sqrtf( stop[0] * stop[0] + stop[1] * stop[1] );
+	Vec3 stop = trace.endpos - *vieworg;
+	float dist = Length( stop.xy() );
 	if( dist < 1 ) {
 		dist = 1;
 	}
-	viewangles[PITCH] = RAD2DEG( -atan2f( stop[2], dist ) );
-	viewangles[YAW] -= thirdPersonAngle;
-	AngleVectors( viewangles, v_forward, v_right, v_up );
+	viewangles->x = RAD2DEG( -atan2f( stop.z, dist ) );
+	viewangles->y -= thirdPersonAngle;
+	AngleVectors( *viewangles, &v_forward, &v_right, &v_up );
 
 	// move towards destination
-	G_Trace( &trace, vieworg, mins, maxs, chase_dest, passent, MASK_SOLID );
+	G_Trace( &trace, *vieworg, mins, maxs, chase_dest, passent, MASK_SOLID );
 
-	if( trace.fraction != 1.0 ) {
-		VectorCopy( trace.endpos, stop );
-		stop[2] += ( 1.0 - trace.fraction ) * 32;
-		G_Trace( &trace, vieworg, mins, maxs, stop, passent, MASK_SOLID );
-		VectorCopy( trace.endpos, chase_dest );
+	if( trace.fraction != 1.0f ) {
+		stop = trace.endpos;
+		stop.z += ( 1.0f - trace.fraction ) * 32;
+		G_Trace( &trace, *vieworg, mins, maxs, stop, passent, MASK_SOLID );
+		chase_dest = trace.endpos;
 	}
 
-	VectorCopy( chase_dest, vieworg );
+	*vieworg = chase_dest;
 }
 
 /*
@@ -91,28 +88,28 @@ static void G_Client_DeadView( edict_t *ent ) {
 	}
 
 	// move us to body position
-	VectorCopy( body->s.origin, ent->s.origin );
+	ent->s.origin = body->s.origin;
 	ent->s.teleported = true;
-	client->ps.viewangles[ROLL] = 0;
-	client->ps.viewangles[PITCH] = 0;
+	client->ps.viewangles.z = 0;
+	client->ps.viewangles.x = 0;
 
 	// see if our killer is still in view
 	if( body->enemy && ( body->enemy != ent ) ) {
 		trace_t trace;
-		G_Trace( &trace, ent->s.origin, vec3_origin, vec3_origin, body->enemy->s.origin, body, MASK_OPAQUE );
+		G_Trace( &trace, ent->s.origin, Vec3( 0.0f ), Vec3( 0.0f ), body->enemy->s.origin, body, MASK_OPAQUE );
 		if( trace.fraction != 1.0f ) {
 			body->enemy = NULL;
 		} else {
-			client->ps.viewangles[YAW] = LookAtKillerYAW( ent, NULL, body->enemy );
+			client->ps.viewangles.y = LookAtKillerYAW( ent, NULL, body->enemy );
 		}
 	} else {   // nobody killed us, so just circle around the body ?
 
 	}
 
-	G_ProjectThirdPersonView( ent->s.origin, client->ps.viewangles, body );
-	VectorCopy( client->ps.viewangles, ent->s.angles );
-	VectorCopy( ent->s.origin, client->ps.pmove.origin );
-	VectorClear( client->ps.pmove.velocity );
+	G_ProjectThirdPersonView( &ent->s.origin, &ent->s.angles, body );
+	client->ps.pmove.origin = ent->s.origin;
+	client->ps.viewangles = ent->s.angles;
+	client->ps.pmove.velocity = Vec3( 0.0f );
 }
 
 //====================================================================
@@ -122,10 +119,7 @@ static void G_Client_DeadView( edict_t *ent ) {
 /*
 * G_ClientAddDamageIndicatorImpact
 */
-void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, const vec3_t basedir ) {
-	vec3_t dir;
-	float frac;
-
+void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, const Vec3 basedir ) {
 	if( damage < 1 ) {
 		return;
 	}
@@ -134,14 +128,10 @@ void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, const vec3
 		return;
 	}
 
-	if( !basedir ) {
-		VectorCopy( vec3_origin, dir );
-	} else {
-		VectorNormalize2( basedir, dir );
-	}
+	Vec3 dir = Normalize( basedir );
 
-	frac = (float)damage / ( damage + client->resp.snap.damageTaken );
-	VectorLerp( client->resp.snap.damageTakenDir, frac, dir, client->resp.snap.damageTakenDir );
+	float frac = (float)damage / ( damage + client->resp.snap.damageTaken );
+	client->resp.snap.damageTakenDir = Lerp( client->resp.snap.damageTakenDir, frac, dir );
 	client->resp.snap.damageTaken += damage;
 }
 
@@ -231,12 +221,12 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 	//
 	if( waterlevel && ( ent->watertype & ( CONTENTS_LAVA | CONTENTS_SLIME ) ) ) {
 		if( ent->watertype & CONTENTS_LAVA ) {
-			G_Damage( ent, world, world, vec3_origin, vec3_origin, ent->s.origin,
+			G_Damage( ent, world, world, Vec3( 0.0f ), Vec3( 0.0f ), ent->s.origin,
 					  ( 30 * waterlevel ) * game.snapFrameTime / 1000.0f, 0, 0, MOD_LAVA );
 		}
 
 		if( ent->watertype & CONTENTS_SLIME ) {
-			G_Damage( ent, world, world, vec3_origin, vec3_origin, ent->s.origin,
+			G_Damage( ent, world, world, Vec3( 0.0f ), Vec3( 0.0f ), ent->s.origin,
 					  ( 10 * waterlevel ) * game.snapFrameTime / 1000.0f, 0, 0, MOD_SLIME );
 		}
 	}
@@ -315,6 +305,6 @@ void G_ClientEndSnapFrame( edict_t *ent ) {
 
 	// this is pretty hackish
 	if( !G_ISGHOSTING( ent ) ) {
-		VectorCopy( ent->velocity, ent->s.origin2 );
+		ent->s.origin2 = ent->velocity;
 	}
 }

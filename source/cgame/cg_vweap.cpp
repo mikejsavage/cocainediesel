@@ -22,15 +22,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /*
 * CG_ViewWeapon_UpdateProjectionSource
 */
-static void CG_ViewWeapon_UpdateProjectionSource( const vec3_t hand_origin, const mat3_t hand_axis, const vec3_t weap_origin, const mat3_t weap_axis ) {
+static void CG_ViewWeapon_UpdateProjectionSource( Vec3 hand_origin, const mat3_t hand_axis, Vec3 weap_origin, const mat3_t weap_axis ) {
 	orientation_t *tag_result = &cg.weapon.projectionSource;
 	orientation_t tag_weapon;
 
-	VectorCopy( vec3_origin, tag_weapon.origin );
+	tag_weapon.origin = Vec3( 0.0f );
 	Matrix3_Copy( axis_identity, tag_weapon.axis );
 
 	// move to tag_weapon
-	CG_MoveToTag( tag_weapon.origin, tag_weapon.axis,
+	CG_MoveToTag( &tag_weapon.origin, tag_weapon.axis,
 				  hand_origin, hand_axis,
 				  weap_origin, weap_axis );
 
@@ -38,41 +38,41 @@ static void CG_ViewWeapon_UpdateProjectionSource( const vec3_t hand_origin, cons
 
 	// move to projectionSource tag
 	if( weaponInfo ) {
-		VectorCopy( vec3_origin, tag_result->origin );
+		tag_result->origin = Vec3( 0.0f );
 		Matrix3_Copy( axis_identity, tag_result->axis );
-		CG_MoveToTag( tag_result->origin, tag_result->axis,
+		CG_MoveToTag( &tag_result->origin, tag_result->axis,
 					  tag_weapon.origin, tag_weapon.axis,
 					  weaponInfo->tag_projectionsource.origin, weaponInfo->tag_projectionsource.axis );
 		return;
 	}
 
 	// fall back: copy gun origin and move it front by 16 units and 8 up
-	VectorCopy( tag_weapon.origin, tag_result->origin );
+	tag_result->origin = tag_weapon.origin;
 	Matrix3_Copy( tag_weapon.axis, tag_result->axis );
-	VectorMA( tag_result->origin, 16, &tag_result->axis[AXIS_FORWARD], tag_result->origin );
-	VectorMA( tag_result->origin, 8, &tag_result->axis[AXIS_UP], tag_result->origin );
+	tag_result->origin += FromQFAxis( tag_result->axis, AXIS_FORWARD ) * 16.0f;
+	tag_result->origin += FromQFAxis( tag_result->axis, AXIS_UP ) * 8.0f;
 }
 
 /*
 * CG_ViewWeapon_AddAngleEffects
 */
-static void CG_ViewWeapon_AddAngleEffects( vec3_t angles ) {
+static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles ) {
 	if( cg.predictedPlayerState.weapon_state == WeaponState_Firing || cg.predictedPlayerState.weapon_state == WeaponState_FiringSemiAuto ) {
 		const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapon );
 		float frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->refire_time );
-		angles[ PITCH ] -= def->refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+		angles->x -= def->refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 	}
 
 	if( cg_gunbob->integer ) {
 		// gun angles from bobbing
 		if( cg.bobCycle & 1 ) {
-			angles[ROLL] -= cg.xyspeed * cg.bobFracSin * 0.012;
-			angles[YAW] -= cg.xyspeed * cg.bobFracSin * 0.006;
+			angles->z -= cg.xyspeed * cg.bobFracSin * 0.012f;
+			angles->y -= cg.xyspeed * cg.bobFracSin * 0.006f;
 		} else {
-			angles[ROLL] += cg.xyspeed * cg.bobFracSin * 0.012;
-			angles[YAW] += cg.xyspeed * cg.bobFracSin * 0.006;
+			angles->z += cg.xyspeed * cg.bobFracSin * 0.012f;
+			angles->y += cg.xyspeed * cg.bobFracSin * 0.006f;
 		}
-		angles[PITCH] += cg.xyspeed * cg.bobFracSin * 0.012;
+		angles->x += cg.xyspeed * cg.bobFracSin * 0.012f;
 
 		// gun angles from delta movement
 		for( int i = 0; i < 3; i++ ) {
@@ -80,13 +80,13 @@ static void CG_ViewWeapon_AddAngleEffects( vec3_t angles ) {
 			delta = Clamp( -45.0f, delta, 45.0f );
 
 			if( i == YAW ) {
-				angles[ROLL] += 0.001 * delta;
+				angles->z += 0.001f * delta;
 			}
-			angles[i] += 0.002 * delta;
+			angles->ptr()[i] += 0.002f * delta;
 		}
 
 		// gun angles from kicks
-		CG_AddKickAngles( angles );
+		*angles += CG_GetKickAngles();
 	}
 }
 
@@ -244,8 +244,6 @@ void CG_ViewWeapon_StartAnimationEvent( int newAnim ) {
 * CG_CalcViewWeapon
 */
 void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
-	vec3_t gunAngles;
-	vec3_t gunOffset;
 	float handOffset;
 
 	CG_ViewWeapon_RefreshAnimation( viewweapon );
@@ -253,16 +251,14 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	const WeaponModelMetadata * weaponInfo = cgs.weaponInfos[ viewweapon->weapon ];
 
 	// calculate the entity position
-	VectorCopy( cg.view.origin, viewweapon->origin );
+	viewweapon->origin = cg.view.origin;
 
 	// weapon config offsets
-	VectorAdd( weaponInfo->handpositionAngles, cg.predictedPlayerState.viewangles, gunAngles );
-	gunOffset[FORWARD] = cg_gunz->value + weaponInfo->handpositionOrigin[FORWARD];
-	gunOffset[RIGHT] = cg_gunx->value + weaponInfo->handpositionOrigin[RIGHT];
-	gunOffset[UP] = cg_guny->value + weaponInfo->handpositionOrigin[UP];
+	Vec3 gunAngles = weaponInfo->handpositionAngles + cg.predictedPlayerState.viewangles;
+	Vec3 gunOffset = weaponInfo->handpositionOrigin + Vec3( cg_gunz->value, cg_gunx->value, cg_guny->value );
 
 	// scale forward gun offset depending on fov and aspect ratio
-	gunOffset[FORWARD] = gunOffset[FORWARD] * frame_static.viewport_width / ( frame_static.viewport_height * cg.view.fracDistFOV ) ;
+	gunOffset.x *= frame_static.viewport_width / ( frame_static.viewport_height * cg.view.fracDistFOV ) ;
 
 	// hand cvar offset
 	handOffset = 0.0f;
@@ -280,18 +276,18 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 		}
 	}
 
-	gunOffset[RIGHT] += handOffset;
+	gunOffset.y += handOffset;
 	if( cg_gunbob->integer ) {
-		gunOffset[UP] += CG_ViewSmoothFallKick();
+		gunOffset.z += CG_ViewSmoothFallKick();
 	}
 
 	// apply the offsets
-	VectorMA( viewweapon->origin, gunOffset[FORWARD], &cg.view.axis[AXIS_FORWARD], viewweapon->origin );
-	VectorMA( viewweapon->origin, gunOffset[RIGHT], &cg.view.axis[AXIS_RIGHT], viewweapon->origin );
-	VectorMA( viewweapon->origin, gunOffset[UP], &cg.view.axis[AXIS_UP], viewweapon->origin );
+	viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * gunOffset.x;
+	viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_RIGHT ) * gunOffset.y;
+	viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_UP ) * gunOffset.z;
 
 	// add angles effects
-	CG_ViewWeapon_AddAngleEffects( gunAngles );
+	CG_ViewWeapon_AddAngleEffects( &gunAngles );
 
 	// finish
 	AnglesToAxis( gunAngles, viewweapon->axis );
@@ -302,10 +298,12 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 
 		float fracWeapFOV = tanf( DEG2RAD( gun_fov_x ) * 0.5f ) / cg.view.fracDistFOV;
 
-		VectorScale( &viewweapon->axis[AXIS_FORWARD], fracWeapFOV, &viewweapon->axis[AXIS_FORWARD] );
+		viewweapon->axis[AXIS_FORWARD] *= fracWeapFOV;
+		viewweapon->axis[AXIS_FORWARD + 1] *= fracWeapFOV;
+		viewweapon->axis[AXIS_FORWARD + 2] *= fracWeapFOV;
 	}
 
-	CG_ViewWeapon_UpdateProjectionSource( viewweapon->origin, viewweapon->axis, vec3_origin, axis_identity );
+	CG_ViewWeapon_UpdateProjectionSource( viewweapon->origin, viewweapon->axis, Vec3( 0.0f ), axis_identity );
 }
 
 void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
@@ -314,7 +312,7 @@ void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
 	}
 
 	const Model * model = cgs.weaponInfos[ viewweapon->weapon ]->model;
-	Mat4 transform = FromQFAxisAndOrigin( viewweapon->axis, viewweapon->origin );
+	Mat4 transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
 	DrawViewWeapon( model, transform );
 	// DrawOutlinedViewWeapon( model, transform, vec4_black, 0.25f );
 }

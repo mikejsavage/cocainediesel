@@ -44,11 +44,11 @@ static constexpr s16 TBAG_AMOUNT_PER_CROUCH = 500;
 // any differences when running on client or server
 
 typedef struct {
-	vec3_t origin;          // full float precision
-	vec3_t velocity;        // full float precision
+	Vec3 origin;          // full float precision
+	Vec3 velocity;        // full float precision
 
-	vec3_t forward, right, up;
-	vec3_t flatforward;     // normalized forward without z component, saved here because it needs
+	Vec3 forward, right, up;
+	Vec3 flatforward;     // normalized forward without z component, saved here because it needs
 	// special handling for looking straight up or down
 	float frametime;
 
@@ -56,7 +56,7 @@ typedef struct {
 	cplane_t groundplane;
 	int groundcontents;
 
-	vec3_t previous_origin;
+	Vec3 previous_origin;
 	bool ladder;
 
 	float forwardPush, sidePush, upPush;
@@ -101,21 +101,11 @@ const float pm_wjupspeed = ( 330.0f * GRAVITY_COMPENSATE );
 const float pm_wjbouncefactor = 0.3f;
 #define pm_wjminspeed ( ( pml.maxWalkSpeed + pml.maxPlayerSpeed ) * 0.5f )
 
-//
-// Kurim : some functions/defines that can be useful to work on the horizontal movement of player :
-//
-#define VectorScale2D( in, scale, out ) ( ( out )[0] = ( in )[0] * ( scale ), ( out )[1] = ( in )[1] * ( scale ) )
-#define DotProduct2D( x, y )           ( ( x )[0] * ( y )[0] + ( x )[1] * ( y )[1] )
-
-static float VectorNormalize2D( vec3_t v ) { // ByMiK : normalize horizontally (don't affect Z value)
-	float length, ilength;
-	length = v[0] * v[0] + v[1] * v[1];
-	if( length ) {
-		length = sqrtf( length ); // FIXME
-		ilength = 1.0f / length;
-		v[0] *= ilength;
-		v[1] *= ilength;
-	}
+static float Normalize2D( Vec3 * v ) {
+	float length = Length( v->xy() );
+	Vec2 n = SafeNormalize( v->xy() );
+	v->x = n.x;
+	v->y = n.y;
 	return length;
 }
 
@@ -123,44 +113,46 @@ static float VectorNormalize2D( vec3_t v ) { // ByMiK : normalize horizontally (
 // nbTestDir is the number of directions to test around the player
 // maxZnormal is the max Z value of the normal of a poly to consider it a wall
 // normal becomes a pointer to the normal of the most appropriate wall
-static void PlayerTouchWall( int nbTestDir, float maxZnormal, vec3_t *normal ) {
-	vec3_t min, max, dir;
-	int i, j;
-	trace_t trace;
+static void PlayerTouchWall( int nbTestDir, float maxZnormal, Vec3 * normal ) {
+	ZoneScoped;
+
 	float dist = 1.0;
-	SyncEntityState *state;
 
-	for( i = 0; i < nbTestDir; i++ ) {
-		dir[0] = pml.origin[0] + ( pm->maxs[0]*cosf( ( PI*2.0f /nbTestDir )*i ) + pml.velocity[0] * 0.015f );
-		dir[1] = pml.origin[1] + ( pm->maxs[1]*sinf( ( PI*2.0f /nbTestDir )*i ) + pml.velocity[1] * 0.015f );
-		dir[2] = pml.origin[2];
+	Vec3 mins = Vec3( pm->mins.xy(), 0.0f );
+	Vec3 maxs = Vec3( pm->maxs.xy(), 0.0f );
 
-		for( j = 0; j < 2; j++ ) {
-			min[j] = pm->mins[j];
-			max[j] = pm->maxs[j];
-		}
-		min[2] = max[2] = 0;
+	for( int i = 0; i < nbTestDir; i++ ) {
+		float t = float( i ) / float( nbTestDir );
 
-		pmove_gs->api.Trace( &trace, pml.origin, min, max, dir, pm->playerState->POVnum, pm->contentmask, 0 );
+		Vec3 dir = Vec3(
+			pm->maxs.x * cosf( PI * 2.0f * t ) + pml.velocity.x * 0.015f,
+			pm->maxs.y * sinf( PI * 2.0f * t ) + pml.velocity.y * 0.015f,
+			0.0f
+		);
+		Vec3 end = pml.origin + dir;
 
-		if( trace.allsolid ) return;
+		trace_t trace;
+		pmove_gs->api.Trace( &trace, pml.origin, mins, maxs, end, pm->playerState->POVnum, pm->contentmask, 0 );
+
+		if( trace.allsolid )
+			return;
 
 		if( trace.fraction == 1 )
 			continue; // no wall in this direction
 
-		if( trace.surfFlags & (SURF_SKY|SURF_NOWALLJUMP) )
+		if( trace.surfFlags & ( SURF_SKY | SURF_NOWALLJUMP ) )
 			continue;
 
 		if( trace.ent > 0 ) {
-			state = pmove_gs->api.GetEntityState( trace.ent, 0 );
+			const SyncEntityState * state = pmove_gs->api.GetEntityState( trace.ent, 0 );
 			if( state->type == ET_PLAYER )
 				continue;
 		}
 
 		if( trace.fraction > 0 ) {
-			if( dist > trace.fraction && Abs( trace.plane.normal[2] ) < maxZnormal ) {
+			if( dist > trace.fraction && Abs( trace.plane.normal.z ) < maxZnormal ) {
 				dist = trace.fraction;
-				VectorCopy( trace.plane.normal, *normal );
+				*normal = trace.plane.normal;
 			}
 		}
 	}
@@ -180,14 +172,12 @@ static void PlayerTouchWall( int nbTestDir, float maxZnormal, vec3_t *normal ) {
 #define MAX_CLIP_PLANES 5
 
 static void PM_AddTouchEnt( int entNum ) {
-	int i;
-
 	if( pm->numtouch >= MAXTOUCH || entNum < 0 ) {
 		return;
 	}
 
 	// see if it is already added
-	for( i = 0; i < pm->numtouch; i++ ) {
+	for( int i = 0; i < pm->numtouch; i++ ) {
 		if( pm->touchents[i] == entNum ) {
 			return;
 		}
@@ -199,127 +189,125 @@ static void PM_AddTouchEnt( int entNum ) {
 }
 
 
-static int PM_SlideMove( void ) {
+static int PM_SlideMove() {
 	ZoneScoped;
 
-	vec3_t end, dir;
-	vec3_t old_velocity, last_valid_origin;
-	float value;
-	vec3_t planes[MAX_CLIP_PLANES];
-	int numplanes = 0;
-	trace_t trace;
-	int moves, i, j, k;
-	int maxmoves = 4;
+	Vec3 planes[MAX_CLIP_PLANES];
+	constexpr int maxmoves = 4;
 	float remainingTime = pml.frametime;
 	int blockedmask = 0;
 
-	VectorCopy( pml.velocity, old_velocity );
-	VectorCopy( pml.origin, last_valid_origin );
+	Vec3 old_velocity = pml.velocity;
+	Vec3 last_valid_origin = pml.origin;
 
 	if( pm->groundentity != -1 ) { // clip velocity to ground, no need to wait
 		// if the ground is not horizontal (a ramp) clipping will slow the player down
-		if( pml.groundplane.normal[2] == 1.0f && pml.velocity[2] < 0.0f ) {
-			pml.velocity[2] = 0.0f;
+		if( pml.groundplane.normal.z == 1.0f && pml.velocity.z < 0.0f ) {
+			pml.velocity.z = 0.0f;
 		}
 	}
 
-	numplanes = 0; // clean up planes count for checking
+	int numplanes = 0; // clean up planes count for checking
 
-	for( moves = 0; moves < maxmoves; moves++ ) {
-		VectorMA( pml.origin, remainingTime, pml.velocity, end );
+	for( int moves = 0; moves < maxmoves; moves++ ) {
+		Vec3 end = pml.origin + pml.velocity * remainingTime;
+
+		trace_t trace;
 		pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, end, pm->playerState->POVnum, pm->contentmask, 0 );
 		if( trace.allsolid ) { // trapped into a solid
-			VectorCopy( last_valid_origin, pml.origin );
+			pml.origin = last_valid_origin;
 			return SLIDEMOVEFLAG_TRAPPED;
 		}
 
 		if( trace.fraction > 0 ) { // actually covered some distance
-			VectorCopy( trace.endpos, pml.origin );
-			VectorCopy( trace.endpos, last_valid_origin );
+			pml.origin = trace.endpos;
+			last_valid_origin = trace.endpos;
 		}
 
 		if( trace.fraction == 1 ) {
 			break; // move done
-
 		}
+
 		// save touched entity for return output
 		PM_AddTouchEnt( trace.ent );
 
 		// at this point we are blocked but not trapped.
 
 		blockedmask |= SLIDEMOVEFLAG_BLOCKED;
-		if( trace.plane.normal[2] < SLIDEMOVE_PLANEINTERACT_EPSILON ) { // is it a vertical wall?
+		if( trace.plane.normal.z < SLIDEMOVE_PLANEINTERACT_EPSILON ) { // is it a vertical wall?
 			blockedmask |= SLIDEMOVEFLAG_WALL_BLOCKED;
 		}
 
-		remainingTime -= ( trace.fraction * remainingTime );
+		remainingTime -= trace.fraction * remainingTime;
 
 		// we got blocked, add the plane for sliding along it
 
 		// if this is a plane we have touched before, try clipping
 		// the velocity along it's normal and repeat.
-		for( i = 0; i < numplanes; i++ ) {
-			if( DotProduct( trace.plane.normal, planes[i] ) > ( 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) ) {
-				VectorAdd( trace.plane.normal, pml.velocity, pml.velocity );
-				break;
+		{
+			int i;
+			for( i = 0; i < numplanes; i++ ) {
+				if( Dot( trace.plane.normal, planes[i] ) > ( 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) ) {
+					pml.velocity = trace.plane.normal + pml.velocity;
+					break;
+				}
 			}
-		}
-		if( i < numplanes ) { // found a repeated plane, so don't add it, just repeat the trace
-			continue;
+			if( i < numplanes ) { // found a repeated plane, so don't add it, just repeat the trace
+				continue;
+			}
 		}
 
 		// security check: we can't store more planes
 		if( numplanes >= MAX_CLIP_PLANES ) {
-			VectorClear( pml.velocity );
+			pml.velocity = Vec3( 0.0f );
 			return SLIDEMOVEFLAG_TRAPPED;
 		}
 
 		// put the actual plane in the list
-		VectorCopy( trace.plane.normal, planes[numplanes] );
+		planes[numplanes] = trace.plane.normal;
 		numplanes++;
 
 		//
 		// modify original_velocity so it parallels all of the clip planes
 		//
 
-		for( i = 0; i < numplanes; i++ ) {
-			if( DotProduct( pml.velocity, planes[i] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) { // would not touch it
+		for( int i = 0; i < numplanes; i++ ) {
+			if( Dot( pml.velocity, planes[i] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) { // would not touch it
 				continue;
 			}
 
-			GS_ClipVelocity( pml.velocity, planes[i], pml.velocity, PM_OVERBOUNCE );
+			pml.velocity = GS_ClipVelocity( pml.velocity, planes[i], PM_OVERBOUNCE );
 			// see if we enter a second plane
-			for( j = 0; j < numplanes; j++ ) {
+			for( int j = 0; j < numplanes; j++ ) {
 				if( j == i ) { // it's the same plane
 					continue;
 				}
-				if( DotProduct( pml.velocity, planes[j] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+				if( Dot( pml.velocity, planes[j] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
 					continue; // not with this one
-
 				}
+
 				//there was a second one. Try to slide along it too
-				GS_ClipVelocity( pml.velocity, planes[j], pml.velocity, PM_OVERBOUNCE );
+				pml.velocity = GS_ClipVelocity( pml.velocity, planes[j], PM_OVERBOUNCE );
 
 				// check if the slide sent it back to the first plane
-				if( DotProduct( pml.velocity, planes[i] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+				if( Dot( pml.velocity, planes[i] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
 					continue;
 				}
 
 				// bad luck: slide the original velocity along the crease
-				CrossProduct( planes[i], planes[j], dir );
-				VectorNormalize( dir );
-				value = DotProduct( dir, pml.velocity );
-				VectorScale( dir, value, pml.velocity );
+				Vec3 dir = Normalize( Cross( planes[i], planes[j] ) );
+				float value = Dot( dir, pml.velocity );
+				pml.velocity = dir * value;
 
 				// check if there is a third plane, in that case we're trapped
-				for( k = 0; k < numplanes; k++ ) {
+				for( int k = 0; k < numplanes; k++ ) {
 					if( j == k || i == k ) { // it's the same plane
 						continue;
 					}
-					if( DotProduct( pml.velocity, planes[k] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+					if( Dot( pml.velocity, planes[k] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
 						continue; // not with this one
 					}
-					VectorClear( pml.velocity );
+					pml.velocity = Vec3( 0.0f );
 					break;
 				}
 			}
@@ -327,7 +315,7 @@ static int PM_SlideMove( void ) {
 	}
 
 	if( pm->playerState->pmove.pm_time ) {
-		VectorCopy( old_velocity, pml.velocity );
+		pml.velocity = old_velocity;
 	}
 
 	return blockedmask;
@@ -339,72 +327,64 @@ static int PM_SlideMove( void ) {
 * Each intersection will try to step over the obstruction instead of
 * sliding along it.
 */
-static void PM_StepSlideMove( void ) {
-	vec3_t start_o, start_v;
-	vec3_t down_o, down_v;
+static void PM_StepSlideMove() {
+	ZoneScoped;
+
 	trace_t trace;
-	float down_dist, up_dist;
-	float hspeed;
-	vec3_t up, down;
-	int blocked;
 
-	VectorCopy( pml.origin, start_o );
-	VectorCopy( pml.velocity, start_v );
+	Vec3 start_o = pml.origin;
+	Vec3 start_v = pml.velocity;
 
-	blocked = PM_SlideMove();
+	int blocked = PM_SlideMove();
 
-	VectorCopy( pml.origin, down_o );
-	VectorCopy( pml.velocity, down_v );
+	Vec3 down_o = pml.origin;
+	Vec3 down_v = pml.velocity;
 
-	VectorCopy( start_o, up );
-	up[2] += STEPSIZE;
+	Vec3 up = start_o + Vec3( 0.0f, 0.0f, STEPSIZE );
 
 	pmove_gs->api.Trace( &trace, up, pm->mins, pm->maxs, up, pm->playerState->POVnum, pm->contentmask, 0 );
 	if( trace.allsolid ) {
 		return; // can't step up
-
 	}
+
 	// try sliding above
-	VectorCopy( up, pml.origin );
-	VectorCopy( start_v, pml.velocity );
+	pml.origin = up;
+	pml.velocity = start_v;
 
 	PM_SlideMove();
 
 	// push down the final amount
-	VectorCopy( pml.origin, down );
-	down[2] -= STEPSIZE;
+	Vec3 down = pml.origin - Vec3( 0.0f, 0.0f, STEPSIZE );
 	pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, down, pm->playerState->POVnum, pm->contentmask, 0 );
 	if( !trace.allsolid ) {
-		VectorCopy( trace.endpos, pml.origin );
+		pml.origin = trace.endpos;
 	}
 
-	VectorCopy( pml.origin, up );
+	up = pml.origin;
 
 	// decide which one went farther
-	down_dist = ( down_o[0] - start_o[0] ) * ( down_o[0] - start_o[0] )
-				+ ( down_o[1] - start_o[1] ) * ( down_o[1] - start_o[1] );
-	up_dist = ( up[0] - start_o[0] ) * ( up[0] - start_o[0] )
-			  + ( up[1] - start_o[1] ) * ( up[1] - start_o[1] );
+	float down_dist = LengthSquared( down_o.xy() - start_o.xy() );
+	float up_dist = LengthSquared( up.xy() - start_o.xy() );
 
 	if( down_dist >= up_dist || trace.allsolid || ( trace.fraction != 1.0 && !ISWALKABLEPLANE( &trace.plane ) ) ) {
-		VectorCopy( down_o, pml.origin );
-		VectorCopy( down_v, pml.velocity );
+		pml.origin = down_o;
+		pml.velocity = down_v;
 		return;
 	}
 
 	// only add the stepping output when it was a vertical step (second case is at the exit of a ramp)
-	if( ( blocked & SLIDEMOVEFLAG_WALL_BLOCKED ) || trace.plane.normal[2] == 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
-		pm->step = ( pml.origin[2] - pml.previous_origin[2] );
+	if( ( blocked & SLIDEMOVEFLAG_WALL_BLOCKED ) || trace.plane.normal.z == 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+		pm->step = pml.origin.z - pml.previous_origin.z;
 	}
 
 	// Preserve speed when sliding up ramps
-	hspeed = sqrtf( start_v[0] * start_v[0] + start_v[1] * start_v[1] );
+	float hspeed = Length( start_v.xy() );
 	if( hspeed && ISWALKABLEPLANE( &trace.plane ) ) {
-		if( trace.plane.normal[2] >= 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
-			VectorCopy( start_v, pml.velocity );
+		if( trace.plane.normal.z >= 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+			pml.velocity = start_v;
 		} else {
-			VectorNormalize2D( pml.velocity );
-			VectorScale2D( pml.velocity, hspeed, pml.velocity );
+			Normalize2D( &pml.velocity );
+			pml.velocity = Vec3( pml.velocity.xy() * hspeed, pml.velocity.z );
 		}
 	}
 
@@ -412,7 +392,7 @@ static void PM_StepSlideMove( void ) {
 
 	//!! Special case
 	// if we were walking along a plane, then we need to copy the Z over
-	pml.velocity[2] = down_v[2];
+	pml.velocity.z = down_v.z;
 }
 
 /*
@@ -420,42 +400,29 @@ static void PM_StepSlideMove( void ) {
 *
 * Handles both ground friction and water friction
 */
-static void PM_Friction( void ) {
-	float *vel;
-	float speed, newspeed, control;
-	float friction;
-	float drop;
-
-	vel = pml.velocity;
-
-	speed = vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2];
+static void PM_Friction() {
+	float speed = LengthSquared( pml.velocity );
 	if( speed < 1 ) {
-		vel[0] = 0;
-		vel[1] = 0;
+		pml.velocity.x = 0.0f;
+		pml.velocity.y = 0.0f;
 		return;
 	}
 
 	speed = sqrtf( speed );
-	drop = 0;
+	float drop = 0.0f;
 
 	// apply ground friction
-	if( ( ( pm->groundentity != -1 ) && !( pml.groundsurfFlags & SURF_SLICK ) ) || pml.ladder ) {
+	if( ( pm->groundentity != -1 && !( pml.groundsurfFlags & SURF_SLICK ) ) || pml.ladder ) {
 		if( pm->playerState->pmove.knockback_time <= 0 ) {
-			friction = pm_friction;
-			control = speed < pm_decelerate ? pm_decelerate : speed;
+			float friction = pm_friction;
+			float control = speed < pm_decelerate ? pm_decelerate : speed;
 			drop += control * friction * pml.frametime;
 		}
 	}
 
 	// scale the velocity
-	newspeed = speed - drop;
-	if( newspeed <= 0 ) {
-		newspeed = 0;
-		VectorClear( vel );
-	} else {
-		newspeed /= speed;
-		VectorScale( vel, newspeed, vel );
-	}
+	float newspeed = Max2( 0.0f, speed - drop );
+	pml.velocity *= newspeed / speed;
 }
 
 /*
@@ -463,114 +430,102 @@ static void PM_Friction( void ) {
 *
 * Handles user intended acceleration
 */
-static void PM_Accelerate( vec3_t wishdir, float wishspeed, float accel ) {
-	float addspeed, accelspeed, currentspeed;
-
-	currentspeed = DotProduct( pml.velocity, wishdir );
-	addspeed = wishspeed - currentspeed;
+static void PM_Accelerate( Vec3 wishdir, float wishspeed, float accel ) {
+	float currentspeed = Dot( pml.velocity, wishdir );
+	float addspeed = wishspeed - currentspeed;
 	if( addspeed <= 0 ) {
 		return;
 	}
 
-	accelspeed = accel * pml.frametime * wishspeed;
+	float accelspeed = accel * pml.frametime * wishspeed;
 	if( accelspeed > addspeed ) {
 		accelspeed = addspeed;
 	}
 
-	VectorMA( pml.velocity, accelspeed, wishdir, pml.velocity );
+	pml.velocity = pml.velocity + wishdir * accelspeed;
 }
 
 // when using +strafe convert the inertia to forward speed.
-static void PM_Aircontrol( vec3_t wishdir, float wishspeed ) {
-	int i;
-	float zspeed, speed, dot, k;
-	float smove;
-
+static void PM_Aircontrol( Vec3 wishdir, float wishspeed ) {
 	if( !pm_aircontrol ) {
 		return;
 	}
 
 	// accelerate
-	smove = pml.sidePush;
+	float smove = pml.sidePush;
 
-	if( ( smove > 0 || smove < 0 ) || ( wishspeed == 0.0 ) ) {
+	if( smove != 0.0f || wishspeed == 0.0f ) {
 		return; // can't control movement if not moving forward or backward
-
 	}
-	zspeed = pml.velocity[2];
-	pml.velocity[2] = 0;
-	speed = VectorNormalize( pml.velocity );
 
+	float zspeed = pml.velocity.z;
+	pml.velocity.z = 0;
+	float speed = Length( pml.velocity );
+	pml.velocity = Normalize( pml.velocity );
 
-	dot = DotProduct( pml.velocity, wishdir );
-	k = 32.0f * pm_aircontrol * dot * dot * pml.frametime;
+	float dot = Dot( pml.velocity, wishdir );
+	float k = 32.0f * pm_aircontrol * dot * dot * pml.frametime;
 
 	if( dot > 0 ) {
 		// we can't change direction while slowing down
-		for( i = 0; i < 2; i++ )
-			pml.velocity[i] = pml.velocity[i] * speed + wishdir[i] * k;
+		pml.velocity.x = pml.velocity.x * speed + wishdir.x * k;
+		pml.velocity.y = pml.velocity.y * speed + wishdir.y * k;
 
-		VectorNormalize( pml.velocity );
+		pml.velocity = Normalize( pml.velocity );
 	}
 
-	for( i = 0; i < 2; i++ )
-		pml.velocity[i] *= speed;
-
-	pml.velocity[2] = zspeed;
+	pml.velocity.x *= speed;
+	pml.velocity.y *= speed;
+	pml.velocity.z = zspeed;
 }
 
 /*
 * PM_AddCurrents
 */
-static void PM_AddCurrents( vec3_t wishvel ) {
+static void PM_AddCurrents( Vec3 wishvel ) {
 	//
 	// account for ladders
 	//
 
-	if( pml.ladder && Abs( pml.velocity[2] ) <= DEFAULT_LADDERSPEED ) {
+	if( pml.ladder && Abs( pml.velocity.z ) <= DEFAULT_LADDERSPEED ) {
 		if( pml.forwardPush > 0 ) {
-			wishvel[2] = Lerp( -float( DEFAULT_LADDERSPEED ), Unlerp01( 15.0f, pm->playerState->viewangles[PITCH], -15.0f ), float( DEFAULT_LADDERSPEED ) );
+			wishvel.z = Lerp( -float( DEFAULT_LADDERSPEED ), Unlerp01( 15.0f, pm->playerState->viewangles[PITCH], -15.0f ), float( DEFAULT_LADDERSPEED ) );
 		}
 		else if( pml.upPush > 0 ) {
-			wishvel[2] = DEFAULT_LADDERSPEED;
+			wishvel.z = DEFAULT_LADDERSPEED;
 		}
 		else if( pml.upPush < 0 ) {
-			wishvel[2] = -DEFAULT_LADDERSPEED;
+			wishvel.z = -DEFAULT_LADDERSPEED;
 		}
 		else {
-			wishvel[2] = 0;
+			wishvel.z = 0;
 		}
 
 		// limit horizontal speed when on a ladder
-		wishvel[0] = Clamp( -25.0f, wishvel[0], 25.0f );
-		wishvel[1] = Clamp( -25.0f, wishvel[1], 25.0f );
+		wishvel.x = Clamp( -25.0f, wishvel.x, 25.0f );
+		wishvel.y = Clamp( -25.0f, wishvel.y, 25.0f );
 	}
 }
 
 /*
 * PM_WaterMove
-*
 */
-static void PM_WaterMove( void ) {
-	int i;
-	vec3_t wishvel;
-	float wishspeed;
-	vec3_t wishdir;
+static void PM_WaterMove() {
+	ZoneScoped;
 
 	// user intentions
-	for( i = 0; i < 3; i++ )
-		wishvel[i] = pml.forward[i] * pml.forwardPush + pml.right[i] * pml.sidePush;
-
-	wishvel[2] -= pm_waterfriction;
+	Vec3 wishvel = pml.forward * pml.forwardPush + pml.right * pml.sidePush;
+	wishvel.z -= pm_waterfriction;
 
 	PM_AddCurrents( wishvel );
 
-	VectorCopy( wishvel, wishdir );
-	wishspeed = VectorNormalize( wishdir );
+	Vec3 wishdir = wishvel;
+	float wishspeed = Length( wishdir );
+	wishdir = SafeNormalize( wishdir );
 
 	if( wishspeed > pml.maxPlayerSpeed ) {
 		wishspeed = pml.maxPlayerSpeed / wishspeed;
-		VectorScale( wishvel, wishspeed, wishvel );
+		wishvel *= wishspeed;
 		wishspeed = pml.maxPlayerSpeed;
 	}
 
@@ -580,34 +535,25 @@ static void PM_WaterMove( void ) {
 
 /*
 * PM_Move -- Kurim
-*
 */
-static void PM_Move( void ) {
+static void PM_Move() {
 	ZoneScoped;
 
-	int i;
-	vec3_t wishvel;
-	float fmove, smove;
-	vec3_t wishdir;
-	float wishspeed;
-	float maxspeed;
-	float accel;
-	float wishspeed2;
+	float fmove = pml.forwardPush;
+	float smove = pml.sidePush;
 
-	fmove = pml.forwardPush;
-	smove = pml.sidePush;
-
-	for( i = 0; i < 2; i++ )
-		wishvel[i] = pml.forward[i] * fmove + pml.right[i] * smove;
-	wishvel[2] = 0;
+	Vec3 wishvel = pml.forward * fmove + pml.right * smove;
+	wishvel.z = 0;
 
 	PM_AddCurrents( wishvel );
 
-	VectorCopy( wishvel, wishdir );
-	wishspeed = VectorNormalize( wishdir );
+	Vec3 wishdir = wishvel;
+	float wishspeed = Length( wishdir );
+	wishdir = SafeNormalize( wishdir );
 
 	// clamp to server defined max speed
 
+	float maxspeed;
 	if( pm->playerState->pmove.crouch_time ) {
 		maxspeed = pml.maxCrouchedSpeed;
 	} else if( ( pm->cmd.buttons & BUTTON_WALK ) && ( pm->playerState->pmove.features & PMFEAT_WALK ) ) {
@@ -618,56 +564,52 @@ static void PM_Move( void ) {
 
 	if( wishspeed > maxspeed ) {
 		wishspeed = maxspeed / wishspeed;
-		VectorScale( wishvel, wishspeed, wishvel );
+		wishvel *= wishspeed;
 		wishspeed = maxspeed;
 	}
 
 	if( pml.ladder ) {
 		PM_Accelerate( wishdir, wishspeed, pm_accelerate );
 
-		if( !wishvel[2] ) {
-			if( pml.velocity[2] > 0 ) {
-				pml.velocity[2] -= pm->playerState->pmove.gravity * pml.frametime;
-				if( pml.velocity[2] < 0 ) {
-					pml.velocity[2]  = 0;
-				}
-			} else {
-				pml.velocity[2] += pm->playerState->pmove.gravity * pml.frametime;
-				if( pml.velocity[2] > 0 ) {
-					pml.velocity[2]  = 0;
-				}
+		if( wishvel.z == 0.0f ) {
+			float decel = pm->playerState->pmove.gravity * pml.frametime;
+			if( pml.velocity.z > 0 ) {
+				pml.velocity.z = Max2( 0.0f, pml.velocity.z - decel );
+			}
+			else {
+				pml.velocity.z = Min2( 0.0f, pml.velocity.z + decel );
 			}
 		}
 
 		PM_StepSlideMove();
-	} else if( pm->groundentity != -1 ) {
+	}
+	else if( pm->groundentity != -1 ) {
 		// walking on ground
-		if( pml.velocity[2] > 0 ) {
-			pml.velocity[2] = 0; //!!! this is before the accel
-
+		if( pml.velocity.z > 0 ) {
+			pml.velocity.z = 0; //!!! this is before the accel
 		}
+
 		PM_Accelerate( wishdir, wishspeed, pm_accelerate );
 
 		// fix for negative trigger_gravity fields
 		if( pm->playerState->pmove.gravity > 0 ) {
-			if( pml.velocity[2] > 0 ) {
-				pml.velocity[2] = 0;
-			}
-		} else {
-			pml.velocity[2] -= pm->playerState->pmove.gravity * pml.frametime;
+			pml.velocity.z = Min2( 0.0f, pml.velocity.z );
+		}
+		else {
+			pml.velocity.z -= pm->playerState->pmove.gravity * pml.frametime;
 		}
 
-		if( !pml.velocity[0] && !pml.velocity[1] ) {
+		if( pml.velocity.xy() == Vec2( 0.0f ) ) {
 			return;
 		}
 
 		PM_StepSlideMove();
-	} else {
+	}
+	else {
 		// Air Control
-		wishspeed2 = wishspeed;
-		if( DotProduct( pml.velocity, wishdir ) < 0
-			&& !( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING )
-			&& ( pm->playerState->pmove.knockback_time <= 0 ) ) {
+		float wishspeed2 = wishspeed;
+		float accel;
+		if( Dot( pml.velocity, wishdir ) < 0 && !( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING ) && pm->playerState->pmove.knockback_time <= 0 ) {
 			accel = pm_airdecelerate;
 		} else {
 			accel = pm_airaccelerate;
@@ -676,7 +618,7 @@ static void PM_Move( void ) {
 		if( ( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING ) ) {
 			accel = 0; // no stopmove while walljumping
 		}
-		if( ( smove > 0 || smove < 0 ) && !fmove && ( pm->playerState->pmove.knockback_time <= 0 ) ) {
+		if( smove != 0.0f && !fmove && pm->playerState->pmove.knockback_time <= 0 ) {
 			if( wishspeed > pm_wishspeed ) {
 				wishspeed = pm_wishspeed;
 			}
@@ -685,12 +627,12 @@ static void PM_Move( void ) {
 
 		// Air control
 		PM_Accelerate( wishdir, wishspeed, accel );
-		if( pm_aircontrol && !( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING ) && ( pm->playerState->pmove.knockback_time <= 0 ) ) { // no air ctrl while wjing
+		if( pm_aircontrol && !( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING ) && pm->playerState->pmove.knockback_time <= 0 ) { // no air ctrl while wjing
 			PM_Aircontrol( wishdir, wishspeed2 );
 		}
 
 		// add gravity
-		pml.velocity[2] -= pm->playerState->pmove.gravity * pml.frametime;
+		pml.velocity.z -= pm->playerState->pmove.gravity * pml.frametime;
 		PM_StepSlideMove();
 	}
 }
@@ -701,20 +643,14 @@ static void PM_Move( void ) {
 * If the player hull point one-quarter unit down is solid, the player is on ground
 */
 static void PM_GroundTrace( trace_t *trace ) {
-	vec3_t point;
-
-	// see if standing on something solid
-	point[0] = pml.origin[0];
-	point[1] = pml.origin[1];
-	point[2] = pml.origin[2] - 0.25;
-
+	Vec3 point = pml.origin - Vec3( 0.0f, 0.0f, 0.25f );
 	pmove_gs->api.Trace( trace, pml.origin, pm->mins, pm->maxs, point, pm->playerState->POVnum, pm->contentmask, 0 );
 }
 
 /*
 * PM_GoodPosition
 */
-static bool PM_GoodPosition( vec3_t origin, trace_t *trace ) {
+static bool PM_GoodPosition( Vec3 origin, trace_t *trace ) {
 	if( pm->playerState->pmove.pm_type == PM_SPECTATOR ) {
 		return true;
 	}
@@ -728,38 +664,40 @@ static bool PM_GoodPosition( vec3_t origin, trace_t *trace ) {
 * PM_UnstickPosition
 */
 static void PM_UnstickPosition( trace_t *trace ) {
-	int j;
-	vec3_t origin;
+	ZoneScoped;
 
-	VectorCopy( pml.origin, origin );
+	Vec3 origin = pml.origin;
 
 	// try all combinations
-	for( j = 0; j < 8; j++ ) {
-		VectorCopy( pml.origin, origin );
+	for( int j = 0; j < 8; j++ ) {
+		origin = pml.origin;
 
-		origin[0] += ( ( j & 1 ) ? -1 : 1 );
-		origin[1] += ( ( j & 2 ) ? -1 : 1 );
-		origin[2] += ( ( j & 4 ) ? -1 : 1 );
+		origin.x += ( j & 1 ) ? -1.0f : 1.0f;
+		origin.y += ( j & 2 ) ? -1.0f : 1.0f;
+		origin.z += ( j & 4 ) ? -1.0f : 1.0f;
 
 		if( PM_GoodPosition( origin, trace ) ) {
-			VectorCopy( origin, pml.origin );
+			pml.origin = origin;
 			PM_GroundTrace( trace );
 			return;
 		}
 	}
 
 	// go back to the last position
-	VectorCopy( pml.previous_origin, pml.origin );
+	pml.origin = pml.previous_origin;
 }
 
 /*
 * PM_CategorizePosition
 */
-static void PM_CategorizePosition( void ) {
-	if( pml.velocity[2] > 180 ) { // !!ZOID changed from 100 to 180 (ramp accel)
+static void PM_CategorizePosition() {
+	ZoneScoped;
+
+	if( pml.velocity.z > 180 ) { // !!ZOID changed from 100 to 180 (ramp accel)
 		pm->playerState->pmove.pm_flags &= ~PMF_ON_GROUND;
 		pm->groundentity = -1;
-	} else {
+	}
+	else {
 		trace_t trace;
 
 		// see if standing on something solid
@@ -774,10 +712,11 @@ static void PM_CategorizePosition( void ) {
 		pml.groundsurfFlags = trace.surfFlags;
 		pml.groundcontents = trace.contents;
 
-		if( ( trace.fraction == 1 ) || ( !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
+		if( trace.fraction == 1 || ( !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
 			pm->groundentity = -1;
 			pm->playerState->pmove.pm_flags &= ~PMF_ON_GROUND;
-		} else {
+		}
+		else {
 			pm->groundentity = trace.ent;
 
 			// hitting solid ground will end a waterjump
@@ -791,7 +730,7 @@ static void PM_CategorizePosition( void ) {
 			}
 		}
 
-		if( ( pm->numtouch < MAXTOUCH ) && ( trace.fraction < 1.0 ) ) {
+		if( pm->numtouch < MAXTOUCH && trace.fraction < 1.0f ) {
 			pm->touchents[pm->numtouch] = trace.ent;
 			pm->numtouch++;
 		}
@@ -803,23 +742,21 @@ static void PM_CategorizePosition( void ) {
 	pm->waterlevel = 0;
 	pm->watertype = 0;
 
-	int sample2 = pm->playerState->viewheight - pm->mins[2];
+	int sample2 = pm->playerState->viewheight - pm->mins.z;
 	int sample1 = sample2 / 2;
 
-	vec3_t point;
-	point[0] = pml.origin[0];
-	point[1] = pml.origin[1];
-	point[2] = pml.origin[2] + pm->mins[2] + 1;
+	Vec3 point = pml.origin;
+	point.z += pm->mins.z + 1.0f;
 	int cont = pmove_gs->api.PointContents( point, 0 );
 
 	if( cont & MASK_WATER ) {
 		pm->watertype = cont;
 		pm->waterlevel = 1;
-		point[2] = pml.origin[2] + pm->mins[2] + sample1;
+		point.z = pml.origin.z + pm->mins.z + sample1;
 		cont = pmove_gs->api.PointContents( point, 0 );
 		if( cont & MASK_WATER ) {
 			pm->waterlevel = 2;
-			point[2] = pml.origin[2] + pm->mins[2] + sample2;
+			point.z = pml.origin.z + pm->mins.z + sample2;
 			cont = pmove_gs->api.PointContents( point, 0 );
 			if( cont & MASK_WATER ) {
 				pm->waterlevel = 3;
@@ -828,12 +765,12 @@ static void PM_CategorizePosition( void ) {
 	}
 }
 
-static void PM_ClearDash( void ) {
+static void PM_ClearDash() {
 	pm->playerState->pmove.pm_flags &= ~PMF_DASHING;
 	pm->playerState->pmove.dash_time = 0;
 }
 
-static void PM_ClearWallJump( void ) {
+static void PM_ClearWallJump() {
 	pm->playerState->pmove.pm_flags &= ~PMF_WALLJUMPING;
 	pm->playerState->pmove.pm_flags &= ~PMF_WALLJUMPCOUNT;
 	pm->playerState->pmove.walljump_time = 0;
@@ -842,7 +779,7 @@ static void PM_ClearWallJump( void ) {
 /*
 * PM_CheckJump
 */
-static void PM_CheckJump( void ) {
+static void PM_CheckJump() {
 	if( pml.upPush < 10 ) {
 		return;
 	}
@@ -862,18 +799,15 @@ static void PM_CheckJump( void ) {
 	pm->groundentity = -1;
 
 	// clip against the ground when jumping if moving that direction
-	if( pml.groundplane.normal[2] > 0 && pml.velocity[2] < 0 && DotProduct2D( pml.groundplane.normal, pml.velocity ) > 0 ) {
-		GS_ClipVelocity( pml.velocity, pml.groundplane.normal, pml.velocity, PM_OVERBOUNCE );
+	if( pml.groundplane.normal.z > 0 && pml.velocity.z < 0 && Dot( pml.groundplane.normal.xy(), pml.velocity.xy() ) > 0 ) {
+		pml.velocity = GS_ClipVelocity( pml.velocity, pml.groundplane.normal, PM_OVERBOUNCE );
 	}
 
 
 	float jumpSpeed = ( pm->waterlevel >= 2 ? pml.jumpPlayerSpeedWater : pml.jumpPlayerSpeed );
 
 	pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_JUMP, 0 );
-	if( pml.velocity[2] > 0 )
-		pml.velocity[2] = jumpSpeed + pml.velocity[2];
-	else
-		pml.velocity[2] = jumpSpeed;
+	pml.velocity.z = Max2( 0.0f, pml.velocity.z ) + jumpSpeed;
 
 	// remove wj count
 	pm->playerState->pmove.pm_flags &= ~PMF_JUMPPAD_TIME;
@@ -884,11 +818,7 @@ static void PM_CheckJump( void ) {
 /*
 * PM_CheckDash -- by Kurim
 */
-static void PM_CheckDash( void ) {
-	float actual_velocity;
-	float upspeed;
-	vec3_t dashdir;
-
+static void PM_CheckDash() {
 	bool pressed = pm->cmd.buttons & BUTTON_SPECIAL;
 
 	if( !pressed ) {
@@ -920,36 +850,32 @@ static void PM_CheckDash( void ) {
 		pm->groundentity = -1;
 
 		// clip against the ground when jumping if moving that direction
-		if( pml.groundplane.normal[2] > 0 && pml.velocity[2] < 0 && DotProduct2D( pml.groundplane.normal, pml.velocity ) > 0 ) {
-			GS_ClipVelocity( pml.velocity, pml.groundplane.normal, pml.velocity, PM_OVERBOUNCE );
+		if( pml.groundplane.normal.z > 0 && pml.velocity.z < 0 && Dot( pml.groundplane.normal.xy(), pml.velocity.xy() ) > 0 ) {
+			pml.velocity = GS_ClipVelocity( pml.velocity, pml.groundplane.normal, PM_OVERBOUNCE );
 		}
 
-		if( pml.velocity[2] <= 0.0f )
-			upspeed = pm_dashupspeed;
-		else
-			upspeed = pm_dashupspeed + pml.velocity[2];
+		float upspeed = Max2( 0.0f, pml.velocity.z ) + pm_dashupspeed;
 
 		// ch : we should do explicit forwardPush here, and ignore sidePush ?
-		VectorMA( vec3_origin, pml.forwardPush, pml.flatforward, dashdir );
-		VectorMA( dashdir, pml.sidePush, pml.right, dashdir );
-		dashdir[2] = 0.0;
+		Vec3 dashdir = pml.flatforward * pml.forwardPush + pml.right * pml.sidePush;
+		dashdir.z = 0.0f;
 
-		if( VectorLength( dashdir ) < 0.01f ) { // if not moving, dash like a "forward dash"
-			VectorCopy( pml.flatforward, dashdir );
+		if( Length( dashdir ) < 0.01f ) { // if not moving, dash like a "forward dash"
+			dashdir = pml.flatforward;
 			pml.forwardPush = pml.dashPlayerSpeed;
 		}
 
-		VectorNormalize( dashdir );
+		dashdir = Normalize( dashdir );
 
-		actual_velocity = VectorNormalize2D( pml.velocity );
-		if( actual_velocity <= pml.dashPlayerSpeed )
-			VectorScale( dashdir, pml.dashPlayerSpeed, dashdir );
-		else
-			VectorScale( dashdir, actual_velocity, dashdir );
-		
+		float actual_velocity = Normalize2D( &pml.velocity );
+		if( actual_velocity <= pml.dashPlayerSpeed ) {
+			dashdir *= pml.dashPlayerSpeed;
+		} else {
+			dashdir *= actual_velocity;
+		}
 
-		VectorCopy( dashdir, pml.velocity );
-		pml.velocity[2] = upspeed;
+		pml.velocity = dashdir;
+		pml.velocity.z = upspeed;
 
 		pm->playerState->pmove.dash_time = PM_DASHJUMP_TIMEDELAY;
 
@@ -967,9 +893,8 @@ static void PM_CheckDash( void ) {
 /*
 * PM_CheckWallJump -- By Kurim
 */
-static void PM_CheckWallJump( void ) {
-	vec3_t normal;
-	float hspeed;
+static void PM_CheckWallJump() {
+	ZoneScoped;
 
 	bool pressed = pm->cmd.buttons & BUTTON_SPECIAL;
 
@@ -982,7 +907,7 @@ static void PM_CheckWallJump( void ) {
 		pm->playerState->pmove.pm_flags &= ~PMF_WALLJUMPCOUNT;
 	}
 
-	if( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING && pml.velocity[2] < 0.0 ) {
+	if( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING && pml.velocity.z < 0.0 ) {
 		pm->playerState->pmove.pm_flags &= ~PMF_WALLJUMPING;
 	}
 
@@ -999,7 +924,6 @@ static void PM_CheckWallJump( void ) {
 		return;
 	}
 
-
 	// markthis
 
 	if( pm->groundentity == -1 && pressed &&
@@ -1008,44 +932,41 @@ static void PM_CheckWallJump( void ) {
 		pm->playerState->pmove.walljump_time <= 0 )
 	{
 		trace_t trace;
-		vec3_t point;
-
-		point[0] = pml.origin[0];
-		point[1] = pml.origin[1];
-		point[2] = pml.origin[2] - STEPSIZE;
+		Vec3 point = pml.origin;
+		point.z -= STEPSIZE;
 
 		// don't walljump if our height is smaller than a step
 		// unless jump is pressed or the player is moving faster than dash speed and upwards
-		hspeed = VectorLength( tv( pml.velocity[0], pml.velocity[1], 0 ) );
+		float hspeed = Length( Vec3( pml.velocity.x, pml.velocity.y, 0 ) );
 		pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, point, pm->playerState->POVnum, pm->contentmask, 0 );
 
 		if( pml.upPush >= 10
-			|| ( hspeed > pm->playerState->pmove.dash_speed && pml.velocity[2] > 8 )
+			|| ( hspeed > pm->playerState->pmove.dash_speed && pml.velocity.z > 8 )
 			|| ( trace.fraction == 1 ) || ( !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
-			VectorClear( normal );
+			Vec3 normal( 0.0f );
 			PlayerTouchWall( 12, 0.3f, &normal );
-			if( !VectorLength( normal ) ) {
+			if( !Length( normal ) ) {
 				return;
 			}
 
 			if( !( pm->playerState->pmove.pm_flags & PMF_SPECIAL_HELD )
 				&& !( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING ) ) {
-				float oldupvelocity = pml.velocity[2];
-				pml.velocity[2] = 0.0;
+				float oldupvelocity = pml.velocity.z;
+				pml.velocity.z = 0.0;
 
-				hspeed = VectorNormalize2D( pml.velocity );
+				hspeed = Normalize2D( &pml.velocity );
 
-				GS_ClipVelocity( pml.velocity, normal, pml.velocity, 1.0005f );
-				VectorMA( pml.velocity, pm_wjbouncefactor, normal, pml.velocity );
+				pml.velocity = GS_ClipVelocity( pml.velocity, normal, 1.0005f );
+				pml.velocity = pml.velocity + normal * pm_wjbouncefactor;
 
 				if( hspeed < pm_wjminspeed ) {
 					hspeed = pm_wjminspeed;
 				}
 
-				VectorNormalize( pml.velocity );
+				pml.velocity = Normalize( pml.velocity );
 
-				VectorScale( pml.velocity, hspeed, pml.velocity );
-				pml.velocity[2] = ( oldupvelocity > pm_wjupspeed ) ? oldupvelocity : pm_wjupspeed; // jal: if we had a faster upwards speed, keep it
+				pml.velocity *= hspeed;
+				pml.velocity.z = ( oldupvelocity > pm_wjupspeed ) ? oldupvelocity : pm_wjupspeed; // jal: if we had a faster upwards speed, keep it
 
 				// set the walljumping state
 				PM_ClearDash();
@@ -1070,10 +991,8 @@ static void PM_CheckWallJump( void ) {
 /*
 * PM_CheckSpecialMovement
 */
-static void PM_CheckSpecialMovement( void ) {
-	vec3_t spot;
+static void PM_CheckSpecialMovement() {
 	int cont;
-	trace_t trace;
 
 	pm->ladder = false;
 
@@ -1084,9 +1003,10 @@ static void PM_CheckSpecialMovement( void ) {
 	pml.ladder = false;
 
 	// check for ladder
-	VectorMA( pml.origin, 1, pml.flatforward, spot );
+	Vec3 spot = pml.origin + pml.flatforward;
+	trace_t trace;
 	pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->contentmask, 0 );
-	if( ( trace.fraction < 1 ) && ( trace.surfFlags & SURF_LADDER ) ) {
+	if( trace.fraction < 1 && ( trace.surfFlags & SURF_LADDER ) ) {
 		pml.ladder = true;
 		pm->ladder = true;
 	}
@@ -1096,21 +1016,21 @@ static void PM_CheckSpecialMovement( void ) {
 		return;
 	}
 
-	VectorMA( pml.origin, 30, pml.flatforward, spot );
-	spot[2] += 4;
+	spot = pml.origin + pml.flatforward * 30;
+	spot.z += 4;
 	cont = pmove_gs->api.PointContents( spot, 0 );
 	if( !( cont & CONTENTS_SOLID ) ) {
 		return;
 	}
 
-	spot[2] += 16;
+	spot.z += 16;
 	cont = pmove_gs->api.PointContents( spot, 0 );
 	if( cont ) {
 		return;
 	}
 	// jump out of water
-	VectorScale( pml.flatforward, 50, pml.velocity );
-	pml.velocity[2] = 350;
+	pml.velocity = pml.flatforward * 50;
+	pml.velocity.z = 350;
 
 	pm->playerState->pmove.pm_flags |= PMF_TIME_WATERJUMP;
 	pm->playerState->pmove.pm_time = 255;
@@ -1120,92 +1040,76 @@ static void PM_CheckSpecialMovement( void ) {
 * PM_FlyMove
 */
 static void PM_FlyMove( bool doclip ) {
-	float speed, drop, friction, control, newspeed;
-	float currentspeed, addspeed, accelspeed, maxspeed;
-	int i;
-	vec3_t wishvel;
-	float fmove, smove;
-	vec3_t wishdir;
-	float wishspeed;
-	vec3_t end;
 	trace_t trace;
 
-	maxspeed = pml.maxPlayerSpeed * 1.5;
+	float maxspeed = pml.maxPlayerSpeed * 1.5f;
 
 	if( pm->cmd.buttons & BUTTON_SPECIAL ) {
 		maxspeed *= 2;
 	}
 
 	// friction
-	speed = VectorLength( pml.velocity );
+	float speed = Length( pml.velocity );
 	if( speed < 1 ) {
-		VectorClear( pml.velocity );
+		pml.velocity = Vec3( 0.0f );
 	} else {
-		drop = 0;
+		float drop = 0;
 
-		friction = pm_friction * 1.5; // extra friction
-		control = speed < pm_decelerate ? pm_decelerate : speed;
+		float friction = pm_friction * 1.5f; // extra friction
+		float control = speed < pm_decelerate ? pm_decelerate : speed;
 		drop += control * friction * pml.frametime;
 
 		// scale the velocity
-		newspeed = speed - drop;
-		if( newspeed < 0 ) {
-			newspeed = 0;
-		}
-		newspeed /= speed;
-
-		VectorScale( pml.velocity, newspeed, pml.velocity );
+		float newspeed = Max2( 0.0f, speed - drop );
+		pml.velocity *= newspeed / speed;
 	}
 
 	// accelerate
-	fmove = pml.forwardPush;
-	smove = pml.sidePush;
+	float fmove = pml.forwardPush;
+	float smove = pml.sidePush;
 
 	if( pm->cmd.buttons & BUTTON_SPECIAL ) {
 		fmove *= 2;
 		smove *= 2;
 	}
 
-	VectorNormalize( pml.forward );
-	VectorNormalize( pml.right );
+	pml.forward = Normalize( pml.forward );
+	pml.right = Normalize( pml.right );
 
-	for( i = 0; i < 3; i++ )
-		wishvel[i] = pml.forward[i] * fmove + pml.right[i] * smove;
-	wishvel[2] += pml.upPush;
+	Vec3 wishvel = pml.forward * fmove + pml.right * smove;
+	wishvel.z += pml.upPush;
 
-	VectorCopy( wishvel, wishdir );
-	wishspeed = VectorNormalize( wishdir );
-
+	Vec3 wishdir = wishvel;
+	float wishspeed = Length( wishdir );
+	wishdir = SafeNormalize( wishdir );
 
 	// clamp to server defined max speed
 	if( wishspeed > maxspeed ) {
 		wishspeed = maxspeed / wishspeed;
-		VectorScale( wishvel, wishspeed, wishvel );
+		wishvel *= wishspeed;
 		wishspeed = maxspeed;
 	}
 
-	currentspeed = DotProduct( pml.velocity, wishdir );
-	addspeed = wishspeed - currentspeed;
+	float currentspeed = Dot( pml.velocity, wishdir );
+	float addspeed = wishspeed - currentspeed;
 	if( addspeed > 0 ) {
-		accelspeed = pm_accelerate * pml.frametime * wishspeed;
+		float accelspeed = pm_accelerate * pml.frametime * wishspeed;
 		if( accelspeed > addspeed ) {
 			accelspeed = addspeed;
 		}
 
-		for( i = 0; i < 3; i++ )
-			pml.velocity[i] += accelspeed * wishdir[i];
+		pml.velocity += accelspeed * wishdir;
 	}
 
 	if( doclip ) {
-		for( i = 0; i < 3; i++ )
-			end[i] = pml.origin[i] + pml.frametime * pml.velocity[i];
+		Vec3 end = pml.origin + pml.frametime * pml.velocity;
 
 		pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, end, pm->playerState->POVnum, pm->contentmask, 0 );
 
-		VectorCopy( trace.endpos, pml.origin );
+		pml.origin = trace.endpos;
 	} else {
 		// move
-		VectorMA( pml.origin, pml.frametime, pml.velocity, pml.origin );
+		pml.origin += pml.velocity * pml.frametime;
 	}
 }
 
@@ -1214,7 +1118,7 @@ static void PM_FlyMove( bool doclip ) {
 *
 * Sets mins, maxs, and pm->viewheight
 */
-static void PM_AdjustBBox( void ) {
+static void PM_AdjustBBox() {
 	float crouchFrac;
 	trace_t trace;
 
@@ -1246,8 +1150,8 @@ static void PM_AdjustBBox( void ) {
 		pm->playerState->pmove.crouch_time = Clamp( 0, pm->playerState->pmove.crouch_time + pm->cmd.msec, CROUCHTIME );
 
 		crouchFrac = (float)pm->playerState->pmove.crouch_time / (float)CROUCHTIME;
-		VectorLerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins, pm->mins );
-		VectorLerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs, pm->maxs );
+		pm->mins = Lerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins );
+		pm->maxs = Lerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs );
 		pm->playerState->viewheight = playerbox_stand_viewheight - ( crouchFrac * ( playerbox_stand_viewheight - playerbox_crouch_viewheight ) );
 
 		// it's going down, so, no need of checking for head-chomping
@@ -1256,19 +1160,19 @@ static void PM_AdjustBBox( void ) {
 
 	// it's crouched, but not pressing the crouch button anymore, try to stand up
 	if( pm->playerState->pmove.crouch_time != 0 ) {
-		vec3_t curmins, curmaxs, wishmins, wishmaxs;
+		Vec3 curmins, curmaxs, wishmins, wishmaxs;
 		float curviewheight, wishviewheight;
 		int newcrouchtime;
 
 		// find the current size
 		crouchFrac = (float)pm->playerState->pmove.crouch_time / (float)CROUCHTIME;
-		VectorLerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins, curmins );
-		VectorLerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs, curmaxs );
+		curmins = Lerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins );
+		curmaxs = Lerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs );
 		curviewheight = playerbox_stand_viewheight - ( crouchFrac * ( playerbox_stand_viewheight - playerbox_crouch_viewheight ) );
 
 		if( !pm->cmd.msec ) { // no need to continue
-			VectorCopy( curmins, pm->mins );
-			VectorCopy( curmaxs, pm->maxs );
+			pm->mins = curmins;
+			pm->maxs = curmaxs;
 			pm->playerState->viewheight = curviewheight;
 			return;
 		}
@@ -1276,41 +1180,41 @@ static void PM_AdjustBBox( void ) {
 		// find the desired size
 		newcrouchtime = Clamp( 0, pm->playerState->pmove.crouch_time - pm->cmd.msec, CROUCHTIME );
 		crouchFrac = (float)newcrouchtime / (float)CROUCHTIME;
-		VectorLerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins, wishmins );
-		VectorLerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs, wishmaxs );
+		wishmins = Lerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins );
+		wishmaxs = Lerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs );
 		wishviewheight = playerbox_stand_viewheight - ( crouchFrac * ( playerbox_stand_viewheight - playerbox_crouch_viewheight ) );
 
 		// check that the head is not blocked
 		pmove_gs->api.Trace( &trace, pml.origin, wishmins, wishmaxs, pml.origin, pm->playerState->POVnum, pm->contentmask, 0 );
 		if( trace.allsolid || trace.startsolid ) {
 			// can't do the uncrouching, let the time alone and use old position
-			VectorCopy( curmins, pm->mins );
-			VectorCopy( curmaxs, pm->maxs );
+			pm->mins = curmins;
+			pm->maxs = curmaxs;
 			pm->playerState->viewheight = curviewheight;
 			return;
 		}
 
 		// can do the uncrouching, use new position and update the time
 		pm->playerState->pmove.crouch_time = newcrouchtime;
-		VectorCopy( wishmins, pm->mins );
-		VectorCopy( wishmaxs, pm->maxs );
+		pm->mins = wishmins;
+		pm->maxs = wishmaxs;
 		pm->playerState->viewheight = wishviewheight;
 		return;
 	}
 
 	// the player is not crouching at all
-	VectorCopy( playerbox_stand_mins, pm->mins );
-	VectorCopy( playerbox_stand_maxs, pm->maxs );
+	pm->mins = playerbox_stand_mins;
+	pm->maxs = playerbox_stand_maxs;
 	pm->playerState->viewheight = playerbox_stand_viewheight;
 }
 
-static void PM_UpdateDeltaAngles( void ) {
+static void PM_UpdateDeltaAngles() {
 	if( pmove_gs->module != GS_MODULE_GAME ) {
 		return;
 	}
 
 	for( int i = 0; i < 3; i++ ) {
-		pm->playerState->pmove.delta_angles[i] = ANGLE2SHORT( pm->playerState->viewangles[i] ) - pm->cmd.angles[i];
+		pm->playerState->pmove.delta_angles[ i ] = ANGLE2SHORT( pm->playerState->viewangles[ i ] ) - pm->cmd.angles[ i ];
 	}
 }
 
@@ -1318,9 +1222,9 @@ static void PM_UpdateDeltaAngles( void ) {
 * PM_ApplyMouseAnglesClamp
 *
 */
-static void PM_ApplyMouseAnglesClamp( void ) {
+static void PM_ApplyMouseAnglesClamp() {
 	for( int i = 0; i < 3; i++ ) {
-		short temp = pm->cmd.angles[i] + pm->playerState->pmove.delta_angles[i];
+		s16 temp = pm->cmd.angles[i] + pm->playerState->pmove.delta_angles[i];
 		if( i == PITCH ) {
 			// don't let the player look up or down more than 90 degrees
 			if( temp > (short)ANGLE2SHORT( 90 ) - 1 ) {
@@ -1335,17 +1239,15 @@ static void PM_ApplyMouseAnglesClamp( void ) {
 		pm->playerState->viewangles[i] = SHORT2ANGLE( (short)temp );
 	}
 
-	AngleVectors( pm->playerState->viewangles, pml.forward, pml.right, pml.up );
+	AngleVectors( pm->playerState->viewangles, &pml.forward, &pml.right, &pml.up );
 
-	VectorCopy( pml.forward, pml.flatforward );
-	pml.flatforward[2] = 0.0f;
-	VectorNormalize( pml.flatforward );
+	pml.flatforward = Normalize( Vec3( pml.forward.xy(), 0.0f ) );
 }
 
 /*
 * PM_BeginMove
 */
-static void PM_BeginMove( void ) {
+static void PM_BeginMove() {
 	// clear results
 	pm->numtouch = 0;
 	pm->groundentity = -1;
@@ -1356,19 +1258,19 @@ static void PM_BeginMove( void ) {
 	// clear all pmove local vars
 	memset( &pml, 0, sizeof( pml ) );
 
-	VectorCopy( pm->playerState->pmove.origin, pml.origin );
-	VectorCopy( pm->playerState->pmove.velocity, pml.velocity );
+	pml.origin = pm->playerState->pmove.origin;
+	pml.velocity = pm->playerState->pmove.velocity;
 
 	// save old org in case we get stuck
-	VectorCopy( pm->playerState->pmove.origin, pml.previous_origin );
+	pml.previous_origin = pm->playerState->pmove.origin;
 }
 
 /*
 * PM_EndMove
 */
-static void PM_EndMove( void ) {
-	VectorCopy( pml.origin, pm->playerState->pmove.origin );
-	VectorCopy( pml.velocity, pm->playerState->pmove.velocity );
+static void PM_EndMove() {
+	pm->playerState->pmove.origin = pml.origin;
+	pm->playerState->pmove.velocity = pml.velocity;
 }
 
 /*
@@ -1389,7 +1291,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 	// clear all pmove local vars
 	PM_BeginMove();
 
-	float fallvelocity = Max2( 0.0f, -pml.velocity[ 2 ] );
+	float fallvelocity = Max2( 0.0f, -pml.velocity.z );
 
 	pml.frametime = pm->cmd.msec * 0.001;
 
@@ -1535,8 +1437,8 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 		// teleport pause stays exactly in place
 	} else if( pm->playerState->pmove.pm_flags & PMF_TIME_WATERJUMP ) {
 		// waterjump has no control, but falls
-		pml.velocity[2] -= pm->playerState->pmove.gravity * pml.frametime;
-		if( pml.velocity[2] < 0 ) {
+		pml.velocity.z -= pm->playerState->pmove.gravity * pml.frametime;
+		if( pml.velocity.z < 0 ) {
 			// cancel as soon as we are falling down again
 			pm->playerState->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_LAND | PMF_TIME_TELEPORT );
 			pm->playerState->pmove.pm_time = 0;
@@ -1558,27 +1460,25 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 		if( pm->waterlevel >= 2 ) {
 			PM_WaterMove();
 		} else {
-			vec3_t angles;
-
-			VectorCopy( pm->playerState->viewangles, angles );
-			if( angles[PITCH] > 180 ) {
-				angles[PITCH] = angles[PITCH] - 360;
+			Vec3 angles = pm->playerState->viewangles;
+			if( angles.x > 180 ) {
+				angles.x -= 360;
 			}
-			angles[PITCH] /= 3;
+			angles.x /= 3;
 
-			AngleVectors( angles, pml.forward, pml.right, pml.up );
+			AngleVectors( angles, &pml.forward, &pml.right, &pml.up );
 
 			// hack to work when looking straight up and straight down
-			if( pml.forward[2] == -1.0f ) {
-				VectorCopy( pml.up, pml.flatforward );
-			} else if( pml.forward[2] == 1.0f ) {
-				VectorCopy( pml.up, pml.flatforward );
-				VectorNegate( pml.flatforward, pml.flatforward );
+			if( pml.forward.z == -1.0f ) {
+				pml.flatforward = pml.up;
+			} else if( pml.forward.z == 1.0f ) {
+				pml.flatforward = pml.up;
+				pml.flatforward = -pml.flatforward;
 			} else {
-				VectorCopy( pml.forward, pml.flatforward );
+				pml.flatforward = pml.forward;
 			}
-			pml.flatforward[2] = 0.0f;
-			VectorNormalize( pml.flatforward );
+			pml.flatforward.z = 0.0f;
+			pml.flatforward = Normalize( pml.flatforward );
 
 			PM_Move();
 		}
@@ -1600,7 +1500,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 	// touching triggers may force groundentity off
 	if( !( pm->playerState->pmove.pm_flags & PMF_ON_GROUND ) && pm->groundentity != -1 ) {
 		pm->groundentity = -1;
-		pml.velocity[2] = 0;
+		pml.velocity.z = 0;
 	}
 
 	if( pm->groundentity != -1 ) { // remove wall-jump and dash bits when touching ground
@@ -1618,7 +1518,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 		constexpr float min_fall_velocity = 200;
 		constexpr float max_fall_velocity = 800;
 
-		float fall_delta = fallvelocity - Max2( 0.0f, -pml.velocity[ 2 ] );
+		float fall_delta = fallvelocity - Max2( 0.0f, -pml.velocity.z );
 
 		// scale velocity if in water
 		if( pm->waterlevel == 3 ) {

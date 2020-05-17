@@ -25,7 +25,7 @@ typedef struct {
 	int leaf_topnode;
 	int leaf_count, leaf_maxcount;
 	int *leaf_list;
-	float *leaf_mins, *leaf_maxs;
+	Vec3 leaf_mins, leaf_maxs;
 } boxLeafsWork_t;
 
 typedef struct {
@@ -35,11 +35,11 @@ typedef struct {
 
 	float realfraction;
 
-	vec3_t extents;
+	Vec3 extents;
 
-	vec3_t start, end;
-	vec3_t mins, maxs;
-	vec3_t absmins, absmaxs;
+	Vec3 start, end;
+	Vec3 mins, maxs;
+	Vec3 absmins, absmaxs;
 
 	CollisionModel * cms;
 
@@ -69,7 +69,7 @@ void CM_InitBoxHull( CollisionModel *cms ) {
 	cms->box_brush->contents = CONTENTS_BODY;
 
 	// Make sure CM_CollideBox() will not reject the brush by its bounds
-	ClearBounds( cms->box_brush->maxs, cms->box_brush->mins );
+	ClearBounds( &cms->box_brush->maxs, &cms->box_brush->mins );
 
 	cms->box_markbrushes[0] = 0;
 
@@ -87,7 +87,7 @@ void CM_InitBoxHull( CollisionModel *cms ) {
 
 		// planes
 		cplane_t * p = &s->plane;
-		VectorClear( p->normal );
+		p->normal = Vec3( 0.0f );
 
 		if( ( i & 1 ) ) {
 			p->normal[i >> 1] = -1;
@@ -104,11 +104,11 @@ void CM_InitBoxHull( CollisionModel *cms ) {
 * can just be stored out and get a proper clipping hull structure.
 */
 void CM_InitOctagonHull( CollisionModel *cms ) {
-	const vec3_t oct_dirs[4] = {
-		{  1,  1, 0 },
-		{ -1,  1, 0 },
-		{ -1, -1, 0 },
-		{  1, -1, 0 }
+	const Vec3 oct_dirs[4] = {
+		Vec3(  1.0f,  1.0f, 0.0f ),
+		Vec3( -1.0f,  1.0f, 0.0f ),
+		Vec3( -1.0f, -1.0f, 0.0f ),
+		Vec3(  1.0f, -1.0f, 0.0f )
 	};
 
 	cms->oct_brush->numsides = 10;
@@ -116,7 +116,7 @@ void CM_InitOctagonHull( CollisionModel *cms ) {
 	cms->oct_brush->contents = CONTENTS_BODY;
 
 	// Make sure CM_CollideBox() will not reject the brush by its bounds
-	ClearBounds( cms->oct_brush->maxs, cms->oct_brush->mins );
+	ClearBounds( &cms->oct_brush->maxs, &cms->oct_brush->mins );
 
 	cms->oct_markbrushes[0] = 0;
 
@@ -135,7 +135,7 @@ void CM_InitOctagonHull( CollisionModel *cms ) {
 
 		// planes
 		cplane_t * p = &s->plane;
-		VectorClear( p->normal );
+		p->normal = Vec3( 0.0f );
 
 		if( ( i & 1 ) ) {
 			p->normal[i >> 1] = -1;
@@ -152,7 +152,7 @@ void CM_InitOctagonHull( CollisionModel *cms ) {
 
 		// planes
 		cplane_t * p = &s->plane;
-		VectorCopy( oct_dirs[i - 6], p->normal );
+		p->normal = oct_dirs[i - 6];
 	}
 }
 
@@ -161,16 +161,16 @@ void CM_InitOctagonHull( CollisionModel *cms ) {
 *
 * To keep everything totally uniform, bounding boxes are turned into inline models
 */
-cmodel_t *CM_ModelForBBox( CollisionModel *cms, const vec3_t mins, const vec3_t maxs ) {
-	cms->box_brushsides[0].plane.dist = maxs[0];
-	cms->box_brushsides[1].plane.dist = -mins[0];
-	cms->box_brushsides[2].plane.dist = maxs[1];
-	cms->box_brushsides[3].plane.dist = -mins[1];
-	cms->box_brushsides[4].plane.dist = maxs[2];
-	cms->box_brushsides[5].plane.dist = -mins[2];
+cmodel_t *CM_ModelForBBox( CollisionModel *cms, Vec3 mins, Vec3 maxs ) {
+	cms->box_brushsides[0].plane.dist = maxs.x;
+	cms->box_brushsides[1].plane.dist = -mins.x;
+	cms->box_brushsides[2].plane.dist = maxs.y;
+	cms->box_brushsides[3].plane.dist = -mins.y;
+	cms->box_brushsides[4].plane.dist = maxs.z;
+	cms->box_brushsides[5].plane.dist = -mins.z;
 
-	VectorCopy( mins, cms->box_cmodel->mins );
-	VectorCopy( maxs, cms->box_cmodel->maxs );
+	cms->box_cmodel->mins = mins;
+	cms->box_cmodel->maxs = maxs;
 
 	return cms->box_cmodel;
 }
@@ -181,31 +181,28 @@ cmodel_t *CM_ModelForBBox( CollisionModel *cms, const vec3_t mins, const vec3_t 
 * Same as CM_ModelForBBox with 4 additional planes at corners.
 * Internally offset to be symmetric on all sides.
 */
-cmodel_t *CM_OctagonModelForBBox( CollisionModel *cms, const vec3_t mins, const vec3_t maxs ) {
-	int i;
+cmodel_t *CM_OctagonModelForBBox( CollisionModel *cms, Vec3 mins, Vec3 maxs ) {
 	float a, b, d, t;
 	float sina, cosa;
-	vec3_t offset, size[2];
+	Vec3 offset, size[2];
 
-	for( i = 0; i < 3; i++ ) {
-		offset[i] = ( mins[i] + maxs[i] ) * 0.5;
-		size[0][i] = mins[i] - offset[i];
-		size[1][i] = maxs[i] - offset[i];
-	}
+	offset = ( mins + maxs ) * 0.5f;
+	size[0] = mins - offset;
+	size[1] = maxs - offset;
 
-	VectorCopy( offset, cms->oct_cmodel->cyl_offset );
-	VectorCopy( size[0], cms->oct_cmodel->mins );
-	VectorCopy( size[1], cms->oct_cmodel->maxs );
+	cms->oct_cmodel->cyl_offset = offset;
+	cms->oct_cmodel->mins = size[0];
+	cms->oct_cmodel->maxs = size[1];
 
-	cms->oct_brushsides[0].plane.dist = size[1][0];
-	cms->oct_brushsides[1].plane.dist = -size[0][0];
-	cms->oct_brushsides[2].plane.dist = size[1][1];
-	cms->oct_brushsides[3].plane.dist = -size[0][1];
-	cms->oct_brushsides[4].plane.dist = size[1][2];
-	cms->oct_brushsides[5].plane.dist = -size[0][2];
+	cms->oct_brushsides[0].plane.dist = size[1].x;
+	cms->oct_brushsides[1].plane.dist = -size[0].x;
+	cms->oct_brushsides[2].plane.dist = size[1].y;
+	cms->oct_brushsides[3].plane.dist = -size[0].y;
+	cms->oct_brushsides[4].plane.dist = size[1].z;
+	cms->oct_brushsides[5].plane.dist = -size[0].z;
 
-	a = size[1][0]; // halfx
-	b = size[1][1]; // halfy
+	a = size[1].x; // halfx
+	b = size[1].y; // halfy
 	d = sqrtf( a * a + b * b ); // hypothenuse
 
 	cosa = a / d;
@@ -222,22 +219,22 @@ cmodel_t *CM_OctagonModelForBBox( CollisionModel *cms, const vec3_t mins, const 
 
 	// the following should match normals set in CM_InitOctagonHull
 
-	VectorSet( cms->oct_brushsides[6].plane.normal, cosa, sina, 0 );
+	cms->oct_brushsides[6].plane.normal = Vec3( cosa, sina, 0 );
 	cms->oct_brushsides[6].plane.dist = d;
 
-	VectorSet( cms->oct_brushsides[7].plane.normal, -cosa, sina, 0 );
+	cms->oct_brushsides[7].plane.normal = Vec3( -cosa, sina, 0 );
 	cms->oct_brushsides[7].plane.dist = d;
 
-	VectorSet( cms->oct_brushsides[8].plane.normal, -cosa, -sina, 0 );
+	cms->oct_brushsides[8].plane.normal = Vec3( -cosa, -sina, 0 );
 	cms->oct_brushsides[8].plane.dist = d;
 
-	VectorSet( cms->oct_brushsides[9].plane.normal, cosa, -sina, 0 );
+	cms->oct_brushsides[9].plane.normal = Vec3( cosa, -sina, 0 );
 	cms->oct_brushsides[9].plane.dist = d;
 
 	return cms->oct_cmodel;
 }
 
-int CM_PointLeafnum( const CollisionModel *cms, const vec3_t p ) {
+int CM_PointLeafnum( const CollisionModel *cms, Vec3 p ) {
 	if( !cms->numplanes ) {
 		return 0; // sound may call this without map loaded
 	}
@@ -257,15 +254,15 @@ enum AABBPlaneResult {
 	AABBPlaneResult_InFront,
 };
 
-static AABBPlaneResult IntersectAABBPlane( const vec3_t mins, const vec3_t maxs, const cplane_t * p ) {
-	vec3_t back_point, front_point;
+static AABBPlaneResult IntersectAABBPlane( Vec3 mins, Vec3 maxs, const cplane_t * p ) {
+	Vec3 back_point, front_point;
 	for( int i = 0; i < 3; i++ ) {
 		back_point[ i ] = p->normal[ i ] < 0 ? maxs[ i ] : mins[ i ];
 		front_point[ i ] = p->normal[ i ] < 0 ? mins[ i ] : maxs[ i ];
 	}
 
-	float back_dist = DotProduct( p->normal, back_point ) - p->dist;
-	float front_dist = DotProduct( p->normal, front_point ) - p->dist;
+	float back_dist = Dot( p->normal, back_point ) - p->dist;
+	float front_dist = Dot( p->normal, front_point ) - p->dist;
 
 	if( back_dist > 0 ) {
 		return AABBPlaneResult_InFront;
@@ -309,7 +306,7 @@ static void CM_BoxLeafnums_r( boxLeafsWork_t *bw, const CollisionModel *cms, int
 	}
 }
 
-int CM_BoxLeafnums( CollisionModel *cms, vec3_t mins, vec3_t maxs, int *list, int listsize, int *topnode ) {
+int CM_BoxLeafnums( CollisionModel *cms, Vec3 mins, Vec3 maxs, int *list, int listsize, int *topnode ) {
 	boxLeafsWork_t bw;
 
 	bw.leaf_list = list;
@@ -328,7 +325,7 @@ int CM_BoxLeafnums( CollisionModel *cms, vec3_t mins, vec3_t maxs, int *list, in
 	return bw.leaf_count;
 }
 
-static inline int CM_BrushContents( cbrush_t *brush, vec3_t p ) {
+static inline int CM_BrushContents( cbrush_t *brush, Vec3 p ) {
 	int i;
 	cbrushside_t *brushside;
 
@@ -341,7 +338,7 @@ static inline int CM_BrushContents( cbrush_t *brush, vec3_t p ) {
 	return brush->contents;
 }
 
-static inline int CM_PatchContents( cface_t *patch, vec3_t p ) {
+static inline int CM_PatchContents( cface_t *patch, Vec3 p ) {
 	int i, c;
 	cbrush_t *facet;
 
@@ -354,10 +351,8 @@ static inline int CM_PatchContents( cface_t *patch, vec3_t p ) {
 	return 0;
 }
 
-static int CM_PointContents( CollisionModel *cms, vec3_t p, cmodel_t *cmodel ) {
-	if( !cms->numnodes ) {  // map not loaded
-		return 0;
-	}
+static int CM_PointContents( CollisionModel *cms, Vec3 p, cmodel_t *cmodel ) {
+	ZoneScoped;
 
 	int superContents;
 	int nummarkfaces, nummarkbrushes;
@@ -423,37 +418,26 @@ static int CM_PointContents( CollisionModel *cms, vec3_t p, cmodel_t *cmodel ) {
 * Handles offseting and rotation of the end points for moving and
 * rotating entities
 */
-int CM_TransformedPointContents( CModelServerOrClient soc, CollisionModel * cms, const vec3_t p, cmodel_t *cmodel, const vec3_t origin, const vec3_t angles ) {
-	vec3_t p_l;
-
+int CM_TransformedPointContents( CModelServerOrClient soc, CollisionModel * cms, Vec3 p, cmodel_t *cmodel, Vec3 origin, Vec3 angles ) {
 	if( !cms->numnodes ) { // map not loaded
 		return 0;
 	}
 
 	if( !cmodel || cmodel->hash == cms->world_hash ) {
 		cmodel = CM_FindCModel( soc, StringHash( cms->world_hash ) );
-		origin = vec3_origin;
-		angles = vec3_origin;
-	} else {
-		if( !origin ) {
-			origin = vec3_origin;
-		}
-		if( !angles ) {
-			angles = vec3_origin;
-		}
+		origin = Vec3( 0.0f );
+		angles = Vec3( 0.0f );
 	}
 
-	// subtract origin offset
-	VectorSubtract( p, origin, p_l );
+	Vec3 p_l = p - origin;
 
 	// rotate start and end into the models frame of reference
-	if( ( angles[0] || angles[1] || angles[2] ) && !cmodel->builtin ) {
-		vec3_t temp;
+	if( angles != Vec3( 0.0f ) && !cmodel->builtin ) {
 		mat3_t axis;
 
 		AnglesToAxis( angles, axis );
-		VectorCopy( p_l, temp );
-		Matrix3_TransformVector( axis, temp, p_l );
+		Vec3 temp = p_l;
+		Matrix3_TransformVector( axis, temp, &p_l );
 	}
 
 	return CM_PointContents( cms, p_l, cmodel );
@@ -491,17 +475,17 @@ static void CM_ClipBoxToBrush( traceWork_t *tw, const cbrush_t *brush ) {
 	for( int i = 0; i < brush->numsides; i++, side++ ) {
 		const cplane_t * p = &side->plane;
 
-		vec3_t offset;
+		Vec3 offset;
 		for( int j = 0; j < 3; j++ ) {
 			offset[ j ] = p->normal[ j ] < 0 ? tw->maxs[ j ] : tw->mins[ j ];
 		}
 
-		vec3_t start_offset, end_offset;
-		VectorAdd( tw->start, offset, start_offset );
-		VectorAdd( tw->end, offset, end_offset );
+		Vec3 start_offset, end_offset;
+		start_offset = tw->start + offset;
+		end_offset = tw->end + offset;
 
-		float d1 = DotProduct( p->normal, start_offset ) - p->dist;
-		float d2 = DotProduct( p->normal, end_offset ) - p->dist;
+		float d1 = Dot( p->normal, start_offset ) - p->dist;
+		float d2 = Dot( p->normal, end_offset ) - p->dist;
 
 		if( d2 > 0 ) {
 			getout = true; // endpoint is not in solid
@@ -577,15 +561,14 @@ static void CM_TestBoxInBrush( traceWork_t *tw, const cbrush_t *brush ) {
 	for( int i = 0; i < brush->numsides; i++, side++ ) {
 		const cplane_t * p = &side->plane;
 
-		vec3_t offset;
+		Vec3 offset;
 		for( int j = 0; j < 3; j++ ) {
 			offset[ j ] = p->normal[ j ] < 0 ? tw->maxs[ j ] : tw->mins[ j ];
 		}
 
-		vec3_t start_offset;
-		VectorAdd( tw->start, offset, start_offset );
+		Vec3 start_offset = tw->start + offset;
 
-		if( DotProduct( p->normal, start_offset ) > p->dist ) {
+		if( Dot( p->normal, start_offset ) > p->dist ) {
 			return;
 		}
 	}
@@ -667,7 +650,7 @@ static inline void CM_TestBox( traceWork_t *tw, const int *markbrushes, int numm
 	CM_CollideBox( tw, markbrushes, nummarkbrushes, markfaces, nummarkfaces, CM_TestBoxInBrush );
 }
 
-static void CM_RecursiveHullCheck( traceWork_t *tw, int num, float p1f, float p2f, const vec3_t p1, const vec3_t p2 ) {
+static void CM_RecursiveHullCheck( traceWork_t *tw, int num, float p1f, float p2f, Vec3 p1, Vec3 p2 ) {
 	ZoneScoped;
 
 	const CollisionModel *cms = tw->cms;
@@ -677,7 +660,7 @@ static void CM_RecursiveHullCheck( traceWork_t *tw, int num, float p1f, float p2
 	float t1, t2, radius;
 	float frac, frac2;
 	float idist, midf;
-	vec3_t mid;
+	Vec3 mid;
 
 loc0:
 	if( tw->realfraction <= p1f ) {
@@ -702,15 +685,15 @@ loc0:
 	node = cms->map_nodes + num;
 	plane = node->plane;
 
-	t1 = DotProduct( plane->normal, p1 ) - plane->dist;
-	t2 = DotProduct( plane->normal, p2 ) - plane->dist;
+	t1 = Dot( plane->normal, p1 ) - plane->dist;
+	t2 = Dot( plane->normal, p2 ) - plane->dist;
 	if( tw->ispoint ) {
 		radius = 0;
 	}
 	else {
-		radius = Abs( tw->extents[0] * plane->normal[0] ) +
-			Abs( tw->extents[1] * plane->normal[1] ) +
-			Abs( tw->extents[2] * plane->normal[2] );
+		radius = Abs( tw->extents.x * plane->normal.x ) +
+			Abs( tw->extents.y * plane->normal.y ) +
+			Abs( tw->extents.z * plane->normal.z );
 	}
 
 	// see which sides we need to consider
@@ -743,21 +726,21 @@ loc0:
 	// move up to the node
 	frac = Clamp01( frac );
 	midf = p1f + ( p2f - p1f ) * frac;
-	VectorLerp( p1, frac, p2, mid );
+	mid = Lerp( p1, frac, p2 );
 
 	CM_RecursiveHullCheck( tw, node->children[side], p1f, midf, p1, mid );
 
 	// go past the node
 	frac2 = Clamp01( frac2 );
 	midf = p1f + ( p2f - p1f ) * frac2;
-	VectorLerp( p1, frac2, p2, mid );
+	mid = Lerp( p1, frac2, p2 );
 
 	CM_RecursiveHullCheck( tw, node->children[side ^ 1], midf, p2f, mid, p2 );
 }
 
 static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
-	const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs,
-	cmodel_t *cmodel, const vec3_t origin, int brushmask ) {
+	Vec3 start, Vec3 end, Vec3 mins, Vec3 maxs,
+	cmodel_t *cmodel, Vec3 origin, int brushmask ) {
 
 	ZoneScoped;
 
@@ -780,23 +763,22 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 	tw->trace = tr;
 	tw->contents = brushmask;
 	tw->cms = cms;
-	VectorCopy( start, tw->start );
-	VectorCopy( end, tw->end );
-	VectorCopy( mins, tw->mins );
-	VectorCopy( maxs, tw->maxs );
+	tw->start = start;
+	tw->end = end;
+	tw->mins = mins;
+	tw->maxs = maxs;
 
 	// build a bounding box of the entire move
-	vec3_t startmins, startmaxs, endmins, endmaxs;
-	VectorAdd( start, tw->mins, startmins );
-	VectorAdd( start, tw->maxs, startmaxs );
-	VectorAdd( end, tw->mins, endmins );
-	VectorAdd( end, tw->maxs, endmaxs );
+	Vec3 startmins = start + tw->mins;
+	Vec3 startmaxs = start + tw->maxs;
+	Vec3 endmins = end + tw->mins;
+	Vec3 endmaxs = end + tw->maxs;
 
-	ClearBounds( tw->absmins, tw->absmaxs );
-	AddPointToBounds( startmins, tw->absmins, tw->absmaxs );
-	AddPointToBounds( startmaxs, tw->absmins, tw->absmaxs );
-	AddPointToBounds( endmins, tw->absmins, tw->absmaxs );
-	AddPointToBounds( endmaxs, tw->absmins, tw->absmaxs );
+	ClearBounds( &tw->absmins, &tw->absmaxs );
+	AddPointToBounds( startmins, &tw->absmins, &tw->absmaxs );
+	AddPointToBounds( startmaxs, &tw->absmins, &tw->absmaxs );
+	AddPointToBounds( endmins, &tw->absmins, &tw->absmaxs );
+	AddPointToBounds( endmaxs, &tw->absmins, &tw->absmaxs );
 
 	tw->brushes = cmodel->brushes;
 	tw->faces = cmodel->faces;
@@ -815,17 +797,15 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 	//
 	// check for position test special case
 	//
-	if( VectorCompare( start, end ) ) {
+	if( start == end ) {
 		int leafs[1024];
 		int i, numleafs;
-		vec3_t c1, c2;
+		Vec3 c1, c2;
 		cleaf_t *leaf;
 
 		if( world ) {
-			for( i = 0; i < 3; i++ ) {
-				c1[i] = start[i] + mins[i] - 1;
-				c2[i] = start[i] + maxs[i] + 1;
-			}
+			c1 = start + mins - Vec3( 1.0f );
+			c2 = start + maxs + Vec3( 1.0f );
 
 			numleafs = CM_BoxLeafnums( cms, c1, c2, leafs, 1024, NULL );
 			for( i = 0; i < numleafs; i++ ) {
@@ -845,22 +825,21 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 			}
 		}
 
-		VectorCopy( start, tr->endpos );
+		tr->endpos = start;
 		return;
 	}
 
 	//
 	// check for point special case
 	//
-	if( VectorCompare( mins, vec3_origin ) && VectorCompare( maxs, vec3_origin ) ) {
+	if( mins == Vec3( 0.0f ) && maxs == Vec3( 0.0f ) ) {
 		tw->ispoint = true;
-		VectorClear( tw->extents );
+		tw->extents = Vec3( 0.0f );
 	} else {
 		tw->ispoint = false;
-		VectorSet( tw->extents,
-			-mins[0] > maxs[0] ? -mins[0] : maxs[0],
-			-mins[1] > maxs[1] ? -mins[1] : maxs[1],
-			-mins[2] > maxs[2] ? -mins[2] : maxs[2] );
+		for( int i = 0; i < 3; i++ ) {
+			tw->extents[ i ] = Max2( Abs( mins[ i ] ), Abs( maxs[ i ] ) );
+		}
 	}
 
 	//
@@ -874,7 +853,7 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 	}
 
 	tr->fraction = Clamp01( tr->fraction );
-	VectorLerp( start, tr->fraction, end, tr->endpos );
+	tr->endpos = Lerp( start, tr->fraction, end );
 }
 
 /*
@@ -883,12 +862,12 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 * Handles offseting and rotation of the end points for moving and
 * rotating entities
 */
-void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, trace_t * tr, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs,
-							 cmodel_t *cmodel, int brushmask, const vec3_t origin, const vec3_t angles ) {
+void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, trace_t * tr, Vec3 start, Vec3 end, Vec3 mins, Vec3 maxs,
+							 cmodel_t *cmodel, int brushmask, Vec3 origin, Vec3 angles ) {
 	ZoneScoped;
 
-	vec3_t start_l, end_l;
-	vec3_t a, temp;
+	Vec3 start_l, end_l;
+	Vec3 a, temp;
 	mat3_t axis;
 	bool rotated;
 	traceWork_t tw;
@@ -899,36 +878,29 @@ void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, tra
 
 	if( !cmodel || cmodel->hash == cms->world_hash ) {
 		cmodel = CM_FindCModel( soc, StringHash( cms->world_hash ) );
-		origin = vec3_origin;
-		angles = vec3_origin;
-	} else {
-		if( !origin ) {
-			origin = vec3_origin;
-		}
-		if( !angles ) {
-			angles = vec3_origin;
-		}
+		origin = Vec3( 0.0f );
+		angles = Vec3( 0.0f );
 	}
 
 	// cylinder offset
 	if( cmodel == cms->oct_cmodel ) {
-		VectorSubtract( start, cmodel->cyl_offset, start_l );
-		VectorSubtract( end, cmodel->cyl_offset, end_l );
+		start_l = start - cmodel->cyl_offset;
+		end_l = end - cmodel->cyl_offset;
 	} else {
-		VectorCopy( start, start_l );
-		VectorCopy( end, end_l );
+		start_l = start;
+		end_l = end;
 	}
 
 	// subtract origin offset
-	VectorSubtract( start_l, origin, start_l );
-	VectorSubtract( end_l, origin, end_l );
+	start_l -= origin;
+	end_l -= origin;
 
 	// ch : here we could try back-rotate the vector for aabb to get
 	// 'cylinder-like' shape, ie width of the aabb is constant for all directions
 	// in this case, the orientation of vector would be ( normalize(origin-start), cross(x,z), up )
 
 	// rotate start and end into the models frame of reference
-	if( ( angles[0] || angles[1] || angles[2] ) && !cmodel->builtin ) {
+	if( angles != Vec3( 0.0f ) && !cmodel->builtin ) {
 		rotated = true;
 	} else {
 		rotated = false;
@@ -937,23 +909,23 @@ void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, tra
 	if( rotated ) {
 		AnglesToAxis( angles, axis );
 
-		VectorCopy( start_l, temp );
-		Matrix3_TransformVector( axis, temp, start_l );
+		temp = start_l;
+		Matrix3_TransformVector( axis, temp, &start_l );
 
-		VectorCopy( end_l, temp );
-		Matrix3_TransformVector( axis, temp, end_l );
+		temp = end_l;
+		Matrix3_TransformVector( axis, temp, &end_l );
 	}
 
 	// sweep the box through the model
 	CM_BoxTrace( &tw, cms, tr, start_l, end_l, mins, maxs, cmodel, origin, brushmask );
 
 	if( rotated && tr->fraction != 1.0 ) {
-		VectorNegate( angles, a );
+		a = -angles;
 		AnglesToAxis( a, axis );
 
-		VectorCopy( tr->plane.normal, temp );
-		Matrix3_TransformVector( axis, temp, tr->plane.normal );
+		temp = tr->plane.normal;
+		Matrix3_TransformVector( axis, temp, &tr->plane.normal );
 	}
 
-	VectorLerp( start, tr->fraction, end, tr->endpos );
+	tr->endpos = Lerp( start, tr->fraction, end );
 }

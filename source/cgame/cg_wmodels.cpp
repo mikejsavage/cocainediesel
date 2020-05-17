@@ -33,7 +33,6 @@ static WeaponModelMetadata cg_pWeaponModelInfos[ Weapon_Count ];
 * 3 = frame time
 */
 static bool CG_vWeap_ParseAnimationScript( WeaponModelMetadata *weaponinfo, const char *filename ) {
-	int i;
 	bool debug = cg_debugWeaponModels->integer != 0;
 	int anim_data[4][VWEAP_MAXANIMS] = { };
 
@@ -63,17 +62,18 @@ static bool CG_vWeap_ParseAnimationScript( WeaponModelMetadata *weaponinfo, cons
 					Com_Printf( "%sScript: handPosition:%s", S_COLOR_YELLOW, S_COLOR_WHITE );
 				}
 
-				weaponinfo->handpositionOrigin[FORWARD] = atof( COM_ParseExt( &ptr, false ) );
-				weaponinfo->handpositionOrigin[RIGHT] = atof( COM_ParseExt( &ptr, false ) );
-				weaponinfo->handpositionOrigin[UP] = atof( COM_ParseExt( &ptr, false ) );
-				weaponinfo->handpositionAngles[PITCH] = atof( COM_ParseExt( &ptr, false ) );
-				weaponinfo->handpositionAngles[YAW] = atof( COM_ParseExt( &ptr, false ) );
-				weaponinfo->handpositionAngles[ROLL] = atof( COM_ParseExt( &ptr, false ) );
+				for( int i = 0; i < 3; i++ ) {
+					weaponinfo->handpositionOrigin[ i ] = atof( COM_ParseExt( &ptr, false ) );
+				}
+
+				for( int i = 0; i < 3; i++ ) {
+					weaponinfo->handpositionAngles[ i ] = atof( COM_ParseExt( &ptr, false ) );
+				}
 
 				if( debug ) {
 					Com_Printf( "%s%f %f %f %f %f %f%s\n", S_COLOR_YELLOW,
-							   weaponinfo->handpositionOrigin[0], weaponinfo->handpositionOrigin[1], weaponinfo->handpositionOrigin[2],
-							   weaponinfo->handpositionAngles[0], weaponinfo->handpositionAngles[1], weaponinfo->handpositionAngles[2],
+							   weaponinfo->handpositionOrigin.x, weaponinfo->handpositionOrigin.y, weaponinfo->handpositionOrigin.z,
+							   weaponinfo->handpositionAngles.x, weaponinfo->handpositionAngles.y, weaponinfo->handpositionAngles.z,
 							   S_COLOR_WHITE );
 				}
 
@@ -82,7 +82,7 @@ static bool CG_vWeap_ParseAnimationScript( WeaponModelMetadata *weaponinfo, cons
 			}
 		} else {
 			//frame & animation values
-			i = (int)atoi( token );
+			int i = (int)atoi( token );
 			if( debug ) {
 				if( rounder == 0 ) {
 					Com_Printf( "%sScript: %s", S_COLOR_YELLOW, S_COLOR_WHITE );
@@ -110,7 +110,7 @@ static bool CG_vWeap_ParseAnimationScript( WeaponModelMetadata *weaponinfo, cons
 	}
 
 	//reorganize to make my life easier
-	for( i = 0; i < VWEAP_MAXANIMS; i++ ) {
+	for( int i = 0; i < VWEAP_MAXANIMS; i++ ) {
 		weaponinfo->firstframe[i] = anim_data[0][i];
 		weaponinfo->lastframe[i] = anim_data[1][i];
 		weaponinfo->loopingframes[i] = anim_data[2][i];
@@ -177,7 +177,7 @@ static void CG_WeaponModelUpdateRegistration( WeaponModelMetadata *weaponinfo, c
 	weaponinfo->zoom_in_sound = FindSoundEffect( temp( "weapons/{}/zoom_in", filename ) );
 	weaponinfo->zoom_out_sound = FindSoundEffect( temp( "weapons/{}/zoom_out", filename ) );
 
-	VectorSet( weaponinfo->tag_projectionsource.origin, 16, 0, 8 );
+	weaponinfo->tag_projectionsource.origin = Vec3( 16, 0, 8 );
 	Matrix3_Identity( weaponinfo->tag_projectionsource.axis );
 
 	if( cg_debugWeaponModels->integer ) {

@@ -73,14 +73,14 @@ static void Move_UpdateLinearVelocity( edict_t *ent, float dist, int speed ) {
 		return;
 	}
 
-	VectorCopy( ent->moveinfo.dest, ent->s.linearMovementEnd );
-	VectorCopy( ent->s.origin, ent->s.linearMovementBegin );
+	ent->s.linearMovementEnd = ent->moveinfo.dest;
+	ent->s.linearMovementBegin = ent->s.origin;
 	ent->s.linearMovementTimeStamp = svs.gametime - game.frametime;
 	ent->s.linearMovementDuration = duration;
 }
 
 static void Move_Done( edict_t *ent ) {
-	VectorClear( ent->velocity );
+	ent->velocity = Vec3( 0.0f );
 	ent->moveinfo.endfunc( ent );
 	G_CallStop( ent );
 
@@ -102,21 +102,19 @@ static void Move_Watch( edict_t *ent ) {
 }
 
 static void Move_Begin( edict_t *ent ) {
-	vec3_t dir;
-	float dist;
-
 	// set up velocity vector
-	VectorSubtract( ent->moveinfo.dest, ent->s.origin, dir );
-	dist = VectorNormalize( dir );
-	VectorScale( dir, ent->moveinfo.speed, ent->velocity );
+	Vec3 dir = ent->moveinfo.dest - ent->s.origin;
+	float dist = Length( dir );
+	dir = Normalize( dir );
+	ent->velocity = dir * ent->moveinfo.speed;
 	ent->nextThink = level.time + 1;
 	ent->think = Move_Watch;
 	Move_UpdateLinearVelocity( ent, dist, ent->moveinfo.speed );
 }
 
-static void Move_Calc( edict_t *ent, vec3_t dest, void ( *func )( edict_t * ) ) {
-	VectorClear( ent->velocity );
-	VectorCopy( dest, ent->moveinfo.dest );
+static void Move_Calc( edict_t *ent, Vec3 dest, void ( *func )( edict_t * ) ) {
+	ent->velocity = Vec3( 0.0f );
+	ent->moveinfo.dest = dest;
 	ent->moveinfo.endfunc = func;
 	Move_UpdateLinearVelocity( ent, 0, 0 );
 
@@ -134,20 +132,18 @@ static void Move_Calc( edict_t *ent, vec3_t dest, void ( *func )( edict_t * ) ) 
 //
 
 static void AngleMove_Done( edict_t *ent ) {
-	VectorClear( ent->avelocity );
+	ent->avelocity = Vec3( 0.0f );
 	ent->moveinfo.endfunc( ent );
 }
 
 static bool AngleMove_AdjustFinalStep( edict_t *ent ) {
-	float movedist, remainingdist;
-	vec3_t destdelta;
+	Vec3 destdelta = ent->moveinfo.destangles - ent->s.angles;
+	float remainingdist = Length( destdelta );
+	destdelta = Normalize( destdelta );
 
-	VectorSubtract( ent->moveinfo.destangles, ent->s.angles, destdelta );
-	remainingdist = VectorNormalize( destdelta );
-
-	movedist = ent->moveinfo.speed * ( game.frametime * 0.001f );
+	float movedist = ent->moveinfo.speed * ( game.frametime * 0.001f );
 	if( remainingdist <= movedist ) { // final move: will be reached this frame
-		VectorScale( destdelta, 1000.0f / game.frametime, ent->avelocity );
+		ent->avelocity = destdelta * 1000.0f / game.frametime;
 		return true;
 	}
 
@@ -155,14 +151,11 @@ static bool AngleMove_AdjustFinalStep( edict_t *ent ) {
 }
 
 static void AngleMove_Watch( edict_t *ent ) {
-	vec3_t destdelta;
-
 	// update remaining distance
-	VectorSubtract( ent->moveinfo.destangles, ent->s.angles, destdelta );
-	VectorNormalize( destdelta );
+	Vec3 destdelta = Normalize( ent->moveinfo.destangles - ent->s.angles );
 
 	// reached?
-	if( VectorCompare( destdelta, vec3_origin ) ) {
+	if( destdelta == Vec3( 0.0f ) ) {
 		AngleMove_Done( ent );
 		return;
 	}
@@ -172,7 +165,7 @@ static void AngleMove_Watch( edict_t *ent ) {
 		ent->nextThink = level.time + 1;
 		return;
 	} else {
-		VectorScale( destdelta, ent->moveinfo.speed, ent->avelocity );
+		ent->avelocity = destdelta * ent->moveinfo.speed;
 	}
 
 	ent->think =  AngleMove_Watch;
@@ -180,8 +173,6 @@ static void AngleMove_Watch( edict_t *ent ) {
 }
 
 static void AngleMove_Begin( edict_t *ent ) {
-	vec3_t destdelta;
-
 	if( AngleMove_AdjustFinalStep( ent ) ) {
 		ent->think = AngleMove_Done;
 		ent->nextThink = level.time + 1;
@@ -189,17 +180,16 @@ static void AngleMove_Begin( edict_t *ent ) {
 	}
 
 	// set up velocity vector
-	VectorSubtract( ent->moveinfo.destangles, ent->s.angles, destdelta );
-	VectorNormalize( destdelta );
+	Vec3 destdelta = Normalize( ent->moveinfo.destangles - ent->s.angles );
 
-	VectorScale( destdelta, ent->moveinfo.speed, ent->avelocity );
+	ent->avelocity = destdelta * ent->moveinfo.speed;
 	ent->nextThink = level.time + 1;
 	ent->think = AngleMove_Watch;
 }
 
-static void AngleMove_Calc( edict_t *ent, vec3_t destangles, void ( *func )( edict_t * ) ) {
-	VectorClear( ent->avelocity );
-	VectorCopy( destangles, ent->moveinfo.destangles );
+static void AngleMove_Calc( edict_t *ent, Vec3 destangles, void ( *func )( edict_t * ) ) {
+	ent->avelocity = Vec3( 0.0f );
+	ent->moveinfo.destangles = destangles;
 	ent->moveinfo.endfunc = func;
 
 	if( level.current_entity == ent ) {
@@ -265,7 +255,7 @@ static void plat_go_up( edict_t *ent ) {
 static void plat_blocked( edict_t *self, edict_t *other ) {
 	if( !other->r.client ) {
 		// give it a chance to go away on its own terms (like gibs)
-		G_Damage( other, self, self, vec3_origin, vec3_origin, other->s.origin, 100000, 1, 0, MOD_CRUSH );
+		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 100000, 1, 0, MOD_CRUSH );
 
 		// if it's still there, nuke it
 		if( other->r.inuse ) {
@@ -274,7 +264,7 @@ static void plat_blocked( edict_t *self, edict_t *other ) {
 		return;
 	}
 
-	G_Damage( other, self, self, vec3_origin, vec3_origin, other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
+	G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
 
 	if( self->moveinfo.state == STATE_UP ) {
 		plat_go_down( self );
@@ -309,44 +299,35 @@ static void Touch_Plat_Center( edict_t *ent, edict_t *other, cplane_t *plane, in
 }
 
 static void plat_spawn_inside_trigger( edict_t *ent ) {
-	edict_t *trigger;
-	vec3_t tmin, tmax;
-
 	//
 	// middle trigger
 	//
-	trigger = G_Spawn();
+	edict_t * trigger = G_Spawn();
 	trigger->s.team = ent->s.team;
 	trigger->touch = Touch_Plat_Center;
 	trigger->movetype = MOVETYPE_NONE;
 	trigger->r.solid = SOLID_TRIGGER;
 	trigger->enemy = ent;
 
-	tmin[0] = ent->r.mins[0] + 25;
-	tmin[1] = ent->r.mins[1] + 25;
-	tmin[2] = ent->r.mins[2];
-
-	tmax[0] = ent->r.maxs[0] - 25;
-	tmax[1] = ent->r.maxs[1] - 25;
-	tmax[2] = ent->r.maxs[2] + 8;
-
-	tmin[2] = tmax[2] - ( ent->moveinfo.start_origin[2] - ent->moveinfo.end_origin[2] + st.lip );
+	Vec3 tmin = ent->r.mins + Vec3( 25.0f, 25.0f, 0.0f );
+	Vec3 tmax = ent->r.maxs + Vec3( -25.0f, -25.0f, 8.0f );
+	tmin.z = tmax.z - ( ent->moveinfo.start_origin.z - ent->moveinfo.end_origin.z + st.lip );
 
 	if( ent->spawnflags & PLAT_LOW_TRIGGER ) {
-		tmax[2] = tmin[2] + 8;
+		tmax.z = tmin.z + 8;
 	}
 
-	if( tmax[0] - tmin[0] <= 0 ) {
-		tmin[0] = ( ent->r.mins[0] + ent->r.maxs[0] ) * 0.5;
-		tmax[0] = tmin[0] + 1;
+	if( tmax.x - tmin.x <= 0 ) {
+		tmin.x = ( ent->r.mins.x + ent->r.maxs.x ) * 0.5;
+		tmax.x = tmin.x + 1;
 	}
-	if( tmax[1] - tmin[1] <= 0 ) {
-		tmin[1] = ( ent->r.mins[1] + ent->r.maxs[1] ) * 0.5;
-		tmax[1] = tmin[1] + 1;
+	if( tmax.y - tmin.y <= 0 ) {
+		tmin.y = ( ent->r.mins.y + ent->r.maxs.y ) * 0.5;
+		tmax.y = tmin.y + 1;
 	}
 
-	VectorCopy( tmin, trigger->r.mins );
-	VectorCopy( tmax, trigger->r.maxs );
+	trigger->r.mins = tmin;
+	trigger->r.maxs = tmax;
 
 	GClip_LinkEntity( trigger );
 }
@@ -354,7 +335,7 @@ static void plat_spawn_inside_trigger( edict_t *ent ) {
 void SP_func_plat( edict_t *ent ) {
 	G_InitMover( ent );
 
-	VectorClear( ent->s.angles );
+	ent->s.angles = Vec3( 0.0f );
 
 	ent->moveinfo.blocked = plat_blocked;
 
@@ -371,12 +352,12 @@ void SP_func_plat( edict_t *ent ) {
 	}
 
 	// start is the top position, end is the bottom
-	VectorCopy( ent->s.origin, ent->moveinfo.start_origin );
-	VectorCopy( ent->s.origin, ent->moveinfo.end_origin );
+	ent->moveinfo.start_origin = ent->s.origin;
+	ent->moveinfo.end_origin = ent->s.origin;
 	if( st.height ) {
-		ent->moveinfo.end_origin[2] -= st.height;
+		ent->moveinfo.end_origin.z -= st.height;
 	} else {
-		ent->moveinfo.end_origin[2] -= ( ent->r.maxs[2] - ent->r.mins[2] ) - st.lip;
+		ent->moveinfo.end_origin.z -= ( ent->r.maxs.z - ent->r.mins.z ) - st.lip;
 	}
 
 	ent->use = Use_Plat;
@@ -386,14 +367,14 @@ void SP_func_plat( edict_t *ent ) {
 	if( ent->targetname ) {
 		ent->moveinfo.state = STATE_UP;
 	} else {
-		VectorCopy( ent->moveinfo.end_origin, ent->s.origin );
+		ent->s.origin = ent->moveinfo.end_origin;
 		ent->moveinfo.state = STATE_BOTTOM;
 	}
 
 	ent->moveinfo.speed = ent->speed;
 	ent->moveinfo.wait = ent->wait;
-	VectorCopy( ent->s.angles, ent->moveinfo.start_angles );
-	VectorCopy( ent->s.angles, ent->moveinfo.end_angles );
+	ent->moveinfo.start_angles = ent->s.angles;
+	ent->moveinfo.end_angles = ent->s.angles;
 
 	GClip_LinkEntity( ent );
 
@@ -537,21 +518,20 @@ static void Touch_DoorTrigger( edict_t *self, edict_t *other, cplane_t *plane, i
 
 static void Think_SpawnDoorTrigger( edict_t *ent ) {
 	edict_t *other;
-	vec3_t mins, maxs;
 	float expand_size = 80;     // was 60
 
-	VectorCopy( ent->r.absmin, mins );
-	VectorCopy( ent->r.absmax, maxs );
+	Vec3 mins = ent->r.absmin;
+	Vec3 maxs = ent->r.absmax;
 
 	// expand
-	mins[0] -= expand_size;
-	mins[1] -= expand_size;
-	maxs[0] += expand_size;
-	maxs[1] += expand_size;
+	mins.x -= expand_size;
+	mins.y -= expand_size;
+	maxs.x += expand_size;
+	maxs.y += expand_size;
 
 	other = G_Spawn();
-	VectorCopy( mins, other->r.mins );
-	VectorCopy( maxs, other->r.maxs );
+	other->r.mins = mins;
+	other->r.maxs = maxs;
 	other->r.owner = ent;
 	other->s.team = ent->s.team;
 	other->r.solid = SOLID_TRIGGER;
@@ -565,7 +545,7 @@ static void Think_SpawnDoorTrigger( edict_t *ent ) {
 static void door_blocked( edict_t *self, edict_t *other ) {
 	if( !other->r.client ) {
 		// give it a chance to go away on its own terms (like gibs)
-		G_Damage( other, self, self, vec3_origin, vec3_origin, other->s.origin, 100000, 1, 0, MOD_CRUSH );
+		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 100000, 1, 0, MOD_CRUSH );
 
 		// if it's still there, nuke it
 		if( other->r.inuse ) {
@@ -574,7 +554,7 @@ static void door_blocked( edict_t *self, edict_t *other ) {
 		return;
 	}
 
-	G_Damage( other, self, self, vec3_origin, vec3_origin, other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
+	G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
 
 	if( self->spawnflags & DOOR_CRUSHER ) {
 		return;
@@ -592,10 +572,8 @@ static void door_blocked( edict_t *self, edict_t *other ) {
 }
 
 void SP_func_door( edict_t *ent ) {
-	vec3_t abs_movedir;
-
 	G_InitMover( ent );
-	G_SetMovedir( ent->s.angles, ent->moveinfo.movedir );
+	G_SetMovedir( &ent->s.angles, &ent->moveinfo.movedir );
 
 	G_AssignMoverSounds( ent, S_DOOR_START, S_DOOR_MOVE, S_DOOR_STOP );
 
@@ -623,27 +601,28 @@ void SP_func_door( edict_t *ent ) {
 	ent->s.effects = EF_WORLD_MODEL;
 
 	// calculate second position
-	VectorCopy( ent->s.origin, ent->moveinfo.start_origin );
-	abs_movedir[0] = Abs( ent->moveinfo.movedir[0] );
-	abs_movedir[1] = Abs( ent->moveinfo.movedir[1] );
-	abs_movedir[2] = Abs( ent->moveinfo.movedir[2] );
-	ent->moveinfo.distance = abs_movedir[0] * ent->r.size[0] + abs_movedir[1] * ent->r.size[1] + abs_movedir[2] * ent->r.size[2] - st.lip;
-	VectorMA( ent->moveinfo.start_origin, ent->moveinfo.distance, ent->moveinfo.movedir, ent->moveinfo.end_origin );
+	ent->moveinfo.start_origin = ent->s.origin;
+	Vec3 abs_movedir;
+	abs_movedir.x = Abs( ent->moveinfo.movedir.x );
+	abs_movedir.y = Abs( ent->moveinfo.movedir.y );
+	abs_movedir.z = Abs( ent->moveinfo.movedir.z );
+	ent->moveinfo.distance = Dot( abs_movedir, ent->r.size ) - st.lip;
+	ent->moveinfo.end_origin = ent->moveinfo.start_origin + ent->moveinfo.movedir * ent->moveinfo.distance;
 
 	// if it starts open, switch the positions
 	if( ent->spawnflags & DOOR_START_OPEN ) {
-		VectorCopy( ent->moveinfo.end_origin, ent->s.origin );
-		VectorCopy( ent->moveinfo.start_origin, ent->moveinfo.end_origin );
-		VectorCopy( ent->s.origin, ent->moveinfo.start_origin );
-		VectorNegate( ent->moveinfo.movedir, ent->moveinfo.movedir );
+		ent->s.origin = ent->moveinfo.end_origin;
+		ent->moveinfo.end_origin = ent->moveinfo.start_origin;
+		ent->moveinfo.start_origin = ent->s.origin;
+		ent->moveinfo.movedir = -ent->moveinfo.movedir;
 	}
 
 	ent->moveinfo.state = STATE_BOTTOM;
 
 	ent->moveinfo.speed = ent->speed;
 	ent->moveinfo.wait = ent->wait;
-	VectorCopy( ent->s.angles, ent->moveinfo.start_angles );
-	VectorCopy( ent->s.angles, ent->moveinfo.end_angles );
+	ent->moveinfo.start_angles = ent->s.angles;
+	ent->moveinfo.end_angles = ent->s.angles;
 
 	GClip_LinkEntity( ent );
 
@@ -659,32 +638,32 @@ void SP_func_door( edict_t *ent ) {
 void SP_func_door_rotating( edict_t *ent ) {
 	G_InitMover( ent );
 
-	VectorClear( ent->s.angles );
+	ent->s.angles = Vec3( 0.0f );
 
 	// set the axis of rotation
-	VectorClear( ent->moveinfo.movedir );
+	ent->moveinfo.movedir = Vec3( 0.0f );
 	if( ent->spawnflags & DOOR_X_AXIS ) {
-		ent->moveinfo.movedir[2] = 1.0;
+		ent->moveinfo.movedir.z = 1.0;
 	} else if( ent->spawnflags & DOOR_Y_AXIS ) {
-		ent->moveinfo.movedir[0] = 1.0;
+		ent->moveinfo.movedir.x = 1.0;
 	} else { // Z_AXIS
-		ent->moveinfo.movedir[1] = 1.0;
+		ent->moveinfo.movedir.y = 1.0;
 	}
 
 	// check for reverse rotation
 	if( ent->spawnflags & DOOR_REVERSE ) {
-		VectorNegate( ent->moveinfo.movedir, ent->moveinfo.movedir );
+		ent->moveinfo.movedir = -ent->moveinfo.movedir;
 	}
 
 	if( !st.distance ) {
 		if( developer->integer ) {
-			Com_Printf( "%s at %s with no distance set\n", ent->classname, vtos( ent->s.origin ) );
+			Com_GGPrint( "{} at {} with no distance set", ent->classname, ent->s.origin );
 		}
 		st.distance = 90;
 	}
 
-	VectorCopy( ent->s.angles, ent->moveinfo.start_angles );
-	VectorMA( ent->moveinfo.start_angles, st.distance, ent->moveinfo.movedir, ent->moveinfo.end_angles );
+	ent->moveinfo.start_angles = ent->s.angles;
+	ent->moveinfo.end_angles = ent->moveinfo.start_angles + ent->moveinfo.movedir * st.distance;
 	ent->moveinfo.distance = st.distance;
 
 	ent->moveinfo.blocked = door_blocked;
@@ -704,17 +683,17 @@ void SP_func_door_rotating( edict_t *ent ) {
 
 	// if it starts open, switch the positions
 	if( ent->spawnflags & DOOR_START_OPEN ) {
-		VectorCopy( ent->moveinfo.end_angles, ent->s.angles );
-		VectorCopy( ent->moveinfo.start_angles, ent->moveinfo.end_angles );
-		VectorCopy( ent->s.angles, ent->moveinfo.start_angles );
-		VectorNegate( ent->moveinfo.movedir, ent->moveinfo.movedir );
+		ent->s.angles = ent->moveinfo.end_angles;
+		ent->moveinfo.end_angles = ent->moveinfo.start_angles;
+		ent->moveinfo.start_angles = ent->s.angles;
+		ent->moveinfo.movedir = -ent->moveinfo.movedir;
 	}
 
 	ent->moveinfo.state = STATE_BOTTOM;
 	ent->moveinfo.speed = ent->speed;
 	ent->moveinfo.wait = ent->wait;
-	VectorCopy( ent->s.origin, ent->moveinfo.start_origin );
-	VectorCopy( ent->s.origin, ent->moveinfo.end_origin );
+	ent->moveinfo.start_origin = ent->s.origin;
+	ent->moveinfo.end_origin = ent->s.origin;
 
 	GClip_LinkEntity( ent );
 
@@ -735,7 +714,7 @@ static void Think_RotateAccel( edict_t *self ) {
 	if( self->moveinfo.current_speed >= self->speed ) { // has reached full speed
 		// if calculation causes it to go a little over, readjust
 		if( self->moveinfo.current_speed != self->speed ) {
-			VectorScale( self->moveinfo.movedir, self->speed, self->avelocity );
+			self->avelocity = self->moveinfo.movedir * self->speed;
 			self->moveinfo.current_speed = self->speed;
 		}
 
@@ -747,7 +726,7 @@ static void Think_RotateAccel( edict_t *self ) {
 	// if here, some more acceleration needs to be done
 	// add acceleration value to current speed to cause accel
 	self->moveinfo.current_speed += self->accel;
-	VectorScale( self->moveinfo.movedir, self->moveinfo.current_speed, self->avelocity );
+	self->avelocity = self->moveinfo.movedir * self->moveinfo.current_speed;
 	self->nextThink = level.time + 1;
 }
 
@@ -755,7 +734,7 @@ static void Think_RotateDecel( edict_t *self ) {
 	if( self->moveinfo.current_speed <= 0 ) { // has reached full stop
 		// if calculation cause it to go a little under, readjust
 		if( self->moveinfo.current_speed != 0 ) {
-			VectorClear( self->avelocity );
+			self->avelocity = Vec3( 0.0f );
 			self->moveinfo.current_speed = 0;
 		}
 
@@ -767,17 +746,17 @@ static void Think_RotateDecel( edict_t *self ) {
 	// if here, some more deceleration needs to be done
 	// subtract deceleration value from current speed to cause decel
 	self->moveinfo.current_speed -= self->decel;
-	VectorScale( self->moveinfo.movedir, self->moveinfo.current_speed, self->avelocity );
+	self->avelocity = self->moveinfo.movedir * self->moveinfo.current_speed;
 	self->nextThink = level.time + 1;
 }
 
 static void rotating_blocked( edict_t *self, edict_t *other ) {
-	G_Damage( other, self, self, vec3_origin, vec3_origin, other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
+	G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
 }
 
 static void rotating_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
-	if( self->avelocity[0] || self->avelocity[1] || self->avelocity[2] ) {
-		G_Damage( other, self, self, vec3_origin, vec3_origin, other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
+	if( self->avelocity != Vec3( 0.0f ) ) {
+		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
 	}
 }
 
@@ -786,7 +765,7 @@ static void rotating_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	if( self->moveinfo.state == STATE_ACCEL || self->moveinfo.state == STATE_FULLSPEED ) {
 		// if decel is 0 then just stop
 		if( self->decel == 0 ) {
-			VectorClear( self->avelocity );
+			self->avelocity = Vec3( 0.0f );
 			self->moveinfo.current_speed = 0;
 			self->touch = NULL;
 			self->think = NULL;
@@ -802,7 +781,7 @@ static void rotating_use( edict_t *self, edict_t *other, edict_t *activator ) {
 
 		// check if accel is 0.  If so, just start the rotation
 		if( self->accel == 0 ) {
-			VectorScale( self->moveinfo.movedir, self->speed, self->avelocity );
+			self->avelocity = self->moveinfo.movedir * self->speed;
 			self->moveinfo.state = STATE_FULLSPEED;
 		} else {
 			// accelerate baybee
@@ -830,18 +809,18 @@ void SP_func_rotating( edict_t *ent ) {
 	ent->moveinfo.state = STATE_STOPPED; // rotating thingy starts out idle
 
 	// set the axis of rotation
-	VectorClear( ent->moveinfo.movedir );
+	ent->moveinfo.movedir = Vec3( 0.0f );
 	if( ent->spawnflags & 4 ) {
-		ent->moveinfo.movedir[2] = 1.0;
+		ent->moveinfo.movedir.z = 1.0;
 	} else if( ent->spawnflags & 8 ) {
-		ent->moveinfo.movedir[0] = 1.0;
+		ent->moveinfo.movedir.x = 1.0;
 	} else { // Z_AXIS
-		ent->moveinfo.movedir[1] = 1.0;
+		ent->moveinfo.movedir.y = 1.0;
 	}
 
 	// check for reverse rotation
 	if( ent->spawnflags & 2 ) {
-		VectorNegate( ent->moveinfo.movedir, ent->moveinfo.movedir );
+		ent->moveinfo.movedir = -ent->moveinfo.movedir;
 	}
 
 	if( !ent->speed ) {
@@ -940,7 +919,7 @@ static void button_touch( edict_t *self, edict_t *other, cplane_t *plane, int su
 	button_fire( self );
 }
 
-static void button_killed( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point ) {
+static void button_killed( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point ) {
 	self->activator = attacker;
 	self->health = self->max_health;
 	self->takedamage = DAMAGE_NO;
@@ -948,11 +927,8 @@ static void button_killed( edict_t *self, edict_t *inflictor, edict_t *attacker,
 }
 
 void SP_func_button( edict_t *ent ) {
-	vec3_t abs_movedir;
-	float dist;
-
 	G_InitMover( ent );
-	G_SetMovedir( ent->s.angles, ent->moveinfo.movedir );
+	G_SetMovedir( &ent->s.angles, &ent->moveinfo.movedir );
 
 	ent->moveinfo.sound_start = st.noise != EMPTY_HASH ? st.noise : S_BUTTON_START;
 
@@ -967,12 +943,13 @@ void SP_func_button( edict_t *ent ) {
 		st.lip = 4;
 	}
 
-	VectorCopy( ent->s.origin, ent->moveinfo.start_origin );
-	abs_movedir[0] = Abs( ent->moveinfo.movedir[0] );
-	abs_movedir[1] = Abs( ent->moveinfo.movedir[1] );
-	abs_movedir[2] = Abs( ent->moveinfo.movedir[2] );
-	dist = abs_movedir[0] * ent->r.size[0] + abs_movedir[1] * ent->r.size[1] + abs_movedir[2] * ent->r.size[2] - st.lip;
-	VectorMA( ent->moveinfo.start_origin, dist, ent->moveinfo.movedir, ent->moveinfo.end_origin );
+	ent->moveinfo.start_origin = ent->s.origin;
+	Vec3 abs_movedir;
+	abs_movedir.x = Abs( ent->moveinfo.movedir.x );
+	abs_movedir.y = Abs( ent->moveinfo.movedir.y );
+	abs_movedir.z = Abs( ent->moveinfo.movedir.z );
+	float dist = Dot( abs_movedir, ent->r.size ) - st.lip;
+	ent->moveinfo.end_origin = ent->moveinfo.start_origin + ent->moveinfo.movedir * dist;
 
 	ent->use = button_use;
 
@@ -988,8 +965,8 @@ void SP_func_button( edict_t *ent ) {
 
 	ent->moveinfo.speed = ent->speed;
 	ent->moveinfo.wait = ent->wait;
-	VectorCopy( ent->s.angles, ent->moveinfo.start_angles );
-	VectorCopy( ent->s.angles, ent->moveinfo.end_angles );
+	ent->moveinfo.start_angles = ent->s.angles;
+	ent->moveinfo.end_angles = ent->s.angles;
 
 	GClip_LinkEntity( ent );
 }
@@ -1003,7 +980,7 @@ static void train_next( edict_t *self );
 static void train_blocked( edict_t *self, edict_t *other ) {
 	if( !other->r.client ) {
 		// give it a chance to go away on its own terms (like gibs)
-		G_Damage( other, self, self, vec3_origin, vec3_origin, other->s.origin, 100000, 1, 0, MOD_CRUSH );
+		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 100000, 1, 0, MOD_CRUSH );
 
 		// if it's still there, nuke it
 		if( other->r.inuse ) {
@@ -1020,7 +997,7 @@ static void train_blocked( edict_t *self, edict_t *other ) {
 		return;
 	}
 	self->timeStamp = level.time;
-	G_Damage( other, self, world, vec3_origin, vec3_origin, other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
+	G_Damage( other, self, world, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
 }
 
 static void train_wait( edict_t *self ) {
@@ -1047,7 +1024,7 @@ static void train_wait( edict_t *self ) {
 		} else if( self->spawnflags & TRAIN_TOGGLE ) {   // && wait < 0
 			train_next( self );
 			self->spawnflags &= ~TRAIN_START_ON;
-			VectorClear( self->velocity );
+			self->velocity = Vec3( 0.0f );
 			self->nextThink = 0;
 		}
 
@@ -1063,7 +1040,6 @@ static void train_wait( edict_t *self ) {
 
 void train_next( edict_t *self ) {
 	edict_t *ent;
-	vec3_t dest;
 	bool first;
 
 	first = true;
@@ -1087,15 +1063,15 @@ again:
 	if( ent->spawnflags & 1 ) {
 		if( !first ) {
 			if( developer->integer ) {
-				Com_Printf( "connected teleport path_corners, see %s at %s\n", ent->classname, vtos( ent->s.origin ) );
+				Com_GGPrint( "connected teleport path_corners, see {} at {}", ent->classname, ent->s.origin );
 			}
 
 			return;
 		}
 
 		first = false;
-		VectorSubtract( ent->s.origin, self->r.mins, self->s.origin );
-		VectorCopy( self->s.origin, self->olds.origin );
+		self->s.origin = ent->s.origin - self->r.mins;
+		self->olds.origin = self->s.origin;
 		GClip_LinkEntity( self );
 		self->s.teleported = true;
 		goto again;
@@ -1109,24 +1085,21 @@ again:
 	}
 	self->s.sound = self->moveinfo.sound_middle;
 
-	VectorSubtract( ent->s.origin, self->r.mins, dest );
+	Vec3 dest = ent->s.origin - self->r.mins;
 	self->moveinfo.state = STATE_TOP;
-	VectorCopy( self->s.origin, self->moveinfo.start_origin );
-	VectorCopy( dest, self->moveinfo.end_origin );
+	self->moveinfo.start_origin = self->s.origin;
+	self->moveinfo.end_origin = dest;
 	Move_Calc( self, dest, train_wait );
 	self->spawnflags |= TRAIN_START_ON;
 }
 
 static void train_resume( edict_t *self ) {
-	edict_t *ent;
-	vec3_t dest;
+	edict_t * ent = self->target_ent;
 
-	ent = self->target_ent;
-
-	VectorSubtract( ent->s.origin, self->r.mins, dest );
+	Vec3 dest = ent->s.origin - self->r.mins;
 	self->moveinfo.state = STATE_TOP;
-	VectorCopy( self->s.origin, self->moveinfo.start_origin );
-	VectorCopy( dest, self->moveinfo.end_origin );
+	self->moveinfo.start_origin = self->s.origin;
+	self->moveinfo.end_origin = dest;
 	Move_Calc( self, dest, train_wait );
 	self->spawnflags |= TRAIN_START_ON;
 }
@@ -1151,7 +1124,7 @@ static void func_train_find( edict_t *self ) {
 
 	self->target = ent->target;
 
-	VectorSubtract( ent->s.origin, self->r.mins, self->s.origin );
+	self->s.origin = ent->s.origin - self->r.mins;
 	GClip_LinkEntity( self );
 
 	// if not triggered, start immediately
@@ -1174,7 +1147,7 @@ static void train_use( edict_t *self, edict_t *other, edict_t *activator ) {
 			return;
 		}
 		self->spawnflags &= ~TRAIN_START_ON;
-		VectorClear( self->velocity );
+		self->velocity = Vec3( 0.0f );
 		self->nextThink = 0;
 	} else {
 		if( self->target_ent ) {
@@ -1188,7 +1161,7 @@ static void train_use( edict_t *self, edict_t *other, edict_t *activator ) {
 void SP_func_train( edict_t *self ) {
 	G_InitMover( self );
 
-	VectorClear( self->s.angles );
+	self->s.angles = Vec3( 0.0f );
 	self->moveinfo.blocked = train_blocked;
 	if( self->spawnflags & TRAIN_BLOCK_STOPS ) {
 		self->dmg = 0;
@@ -1217,7 +1190,7 @@ void SP_func_train( edict_t *self ) {
 		self->think = func_train_find;
 	} else {
 		if( developer->integer ) {
-			Com_Printf( "func_train without a target at %s\n", vtos( self->r.absmin ) );
+			Com_GGPrint( "func_train without a target at {}", self->r.absmin );
 		}
 	}
 }
@@ -1313,7 +1286,7 @@ void SP_func_timer( edict_t *self ) {
 	if( self->random >= self->wait ) {
 		self->random = self->wait - 0.1;
 		if( developer->integer ) {
-			Com_Printf( "func_timer at %s has random >= wait\n", vtos( self->s.origin ) );
+			Com_GGPrint( "func_timer at {} has random >= wait\n", self->s.origin );
 		}
 	}
 

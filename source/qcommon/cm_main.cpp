@@ -156,7 +156,7 @@ static void CM_Clear( CModelServerOrClient soc, CollisionModel * cms ) {
 
 	CM_FreeCheckCounts( cms );
 
-	ClearBounds( cms->world_mins, cms->world_maxs );
+	ClearBounds( &cms->world_mins, &cms->world_maxs );
 }
 
 /*
@@ -233,13 +233,13 @@ bool CM_IsBrushModel( CModelServerOrClient soc, StringHash hash ) {
 /*
 * CM_InlineModelBounds
 */
-void CM_InlineModelBounds( const CollisionModel *cms, const cmodel_t *cmodel, vec3_t mins, vec3_t maxs ) {
+void CM_InlineModelBounds( const CollisionModel *cms, const cmodel_t *cmodel, Vec3 * mins, Vec3 * maxs ) {
 	if( cmodel->hash == cms->world_hash ) {
-		VectorCopy( cms->world_mins, mins );
-		VectorCopy( cms->world_maxs, maxs );
+		*mins = cms->world_mins;
+		*maxs = cms->world_maxs;
 	} else {
-		VectorCopy( cmodel->mins, mins );
-		VectorCopy( cmodel->maxs, maxs );
+		*mins = cmodel->mins;
+		*maxs = cmodel->maxs;
 	}
 }
 
@@ -522,17 +522,15 @@ bool CM_HeadnodeVisible( CollisionModel *cms, int nodenum, uint8_t *visbits ) {
 * CM_MergePVS
 * Merge PVS at origin into out
 */
-void CM_MergePVS( CollisionModel *cms, const vec3_t org, uint8_t *out ) {
+void CM_MergePVS( CollisionModel *cms, Vec3 org, uint8_t *out ) {
 	int leafs[128];
 	int i, j, count;
 	int longs;
 	const uint8_t *src;
-	vec3_t mins, maxs;
+	Vec3 mins, maxs;
 
-	for( i = 0; i < 3; i++ ) {
-		mins[i] = org[i] - 9;
-		maxs[i] = org[i] + 9;
-	}
+	mins = org - Vec3( 9.0f );
+	maxs = org + Vec3( 9.0f );
 
 	count = CM_BoxLeafnums( cms, mins, maxs, leafs, sizeof( leafs ) / sizeof( int ), NULL );
 	if( count < 1 ) {
@@ -563,7 +561,7 @@ void CM_MergePVS( CollisionModel *cms, const vec3_t org, uint8_t *out ) {
 /*
 * CM_MergeVisSets
 */
-int CM_MergeVisSets( CollisionModel *cms, const vec3_t org, uint8_t *pvs, uint8_t *areabits ) {
+int CM_MergeVisSets( CollisionModel *cms, Vec3 org, uint8_t *pvs, uint8_t *areabits ) {
 	int area;
 
 	assert( pvs || areabits );

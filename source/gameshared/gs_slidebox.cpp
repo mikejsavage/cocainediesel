@@ -30,37 +30,30 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /*
 * GS_ClipVelocity
 */
-void GS_ClipVelocity( vec3_t in, vec3_t normal, vec3_t out, float overbounce ) {
-	float backoff = DotProduct( in, normal );
+Vec3 GS_ClipVelocity( Vec3 in, Vec3 normal, float overbounce ) {
+	float backoff = Dot( in, normal );
 	if( backoff <= 0 ) {
 		backoff *= overbounce;
 	} else {
 		backoff /= overbounce;
 	}
 
-	for( int i = 0; i < 3; i++ ) {
-		float change = normal[i] * backoff;
-		out[i] = in[i] - change;
+	Vec3 out = in - normal * backoff;
+
+	float oldspeed = Length( in );
+	float newspeed = Length( out );
+	if( newspeed > oldspeed ) {
+		out = out / newspeed * oldspeed;
 	}
 
-	float oldspeed, newspeed;
-	oldspeed = VectorLength( in );
-	newspeed = VectorLength( out );
-	if( newspeed > oldspeed ) {
-		VectorNormalize( out );
-		VectorScale( out, oldspeed, out );
-	}
+	return out;
 }
 
 /*
 * GS_LinearMovement
 */
-int GS_LinearMovement( const SyncEntityState *ent, int64_t time, vec3_t dest ) {
-	vec3_t dist;
-	int moveTime;
-	float moveFrac;
-
-	moveTime = time - ent->linearMovementTimeStamp;
+int GS_LinearMovement( const SyncEntityState *ent, int64_t time, Vec3 * dest ) {
+	int moveTime = time - ent->linearMovementTimeStamp;
 	if( moveTime < 0 ) {
 		moveTime = 0;
 	}
@@ -70,12 +63,12 @@ int GS_LinearMovement( const SyncEntityState *ent, int64_t time, vec3_t dest ) {
 			moveTime = ent->linearMovementDuration;
 		}
 
-		VectorSubtract( ent->linearMovementEnd, ent->linearMovementBegin, dist );
-		moveFrac = Clamp01( (float)moveTime / (float)ent->linearMovementDuration );
-		VectorMA( ent->linearMovementBegin, moveFrac, dist, dest );
+		Vec3 dist = ent->linearMovementEnd - ent->linearMovementBegin;
+		float moveFrac = Clamp01( (float)moveTime / (float)ent->linearMovementDuration );
+		*dest = ent->linearMovementBegin + dist * moveFrac;
 	} else {
-		moveFrac = moveTime * 0.001f;
-		VectorMA( ent->linearMovementBegin, moveFrac, ent->linearMovementVelocity, dest );
+		float moveFrac = moveTime * 0.001f;
+		*dest = ent->linearMovementBegin + ent->linearMovementVelocity * moveFrac;
 	}
 
 	return moveTime;
@@ -84,9 +77,9 @@ int GS_LinearMovement( const SyncEntityState *ent, int64_t time, vec3_t dest ) {
 /*
 * GS_LinearMovementDelta
 */
-void GS_LinearMovementDelta( const SyncEntityState *ent, int64_t oldTime, int64_t curTime, vec3_t dest ) {
-	vec3_t p1, p2;
-	GS_LinearMovement( ent, oldTime, p1 );
-	GS_LinearMovement( ent, curTime, p2 );
-	VectorSubtract( p2, p1, dest );
+void GS_LinearMovementDelta( const SyncEntityState *ent, int64_t oldTime, int64_t curTime, Vec3 * dest ) {
+	Vec3 p1, p2;
+	GS_LinearMovement( ent, oldTime, &p1 );
+	GS_LinearMovement( ent, curTime, &p2 );
+	*dest = p2 - p1;
 }

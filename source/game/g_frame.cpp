@@ -235,7 +235,7 @@ static void G_SnapEntities() {
 		if( ent->s.type == ET_PLAYER || ent->s.type == ET_CORPSE ) {
 			// this is pretty hackish
 			if( !G_ISGHOSTING( ent ) ) {
-				VectorCopy( ent->velocity, ent->s.origin2 );
+				ent->s.origin2 = ent->velocity;
 			}
 		}
 
@@ -255,13 +255,11 @@ static void G_SnapEntities() {
 			if( ent->snap.damage_taken && !( ent->flags & FL_GODMODE ) && HEALTH_TO_INT( ent->health ) > 0 ) {
 				float damage = Min2( ent->snap.damage_taken, 120.0f );
 
-				vec3_t dir, origin;
-				VectorCopy( ent->snap.damage_dir, dir );
-				VectorNormalize( dir );
-				VectorAdd( ent->s.origin, ent->snap.damage_at, origin );
+				Vec3 dir = Normalize( ent->snap.damage_dir );
+				Vec3 origin = ent->s.origin + ent->snap.damage_at;
 
 				if( ent->s.type == ET_PLAYER || ent->s.type == ET_CORPSE ) {
-					edict_t * event = G_SpawnEvent( EV_BLOOD, DirToByte( dir ), origin );
+					edict_t * event = G_SpawnEvent( EV_BLOOD, DirToByte( dir ), &origin );
 					// event->s.damage = HEALTH_TO_INT( damage );
 					event->s.ownerNum = i; // set owner
 					event->s.team = ent->s.team;
@@ -280,7 +278,7 @@ static void G_SnapEntities() {
 						}
 					}
 				} else {
-					edict_t * event = G_SpawnEvent( EV_SPARKS, DirToByte( dir ), origin );
+					edict_t * event = G_SpawnEvent( EV_SPARKS, DirToByte( dir ), &origin );
 					// event->s.damage = HEALTH_TO_INT( damage );
 				}
 			}

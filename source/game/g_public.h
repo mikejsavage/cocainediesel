@@ -44,8 +44,8 @@ typedef struct {
 	//================================
 
 	unsigned int svflags;                // SVF_NOCLIENT, SVF_MONSTER, etc
-	vec3_t mins, maxs;
-	vec3_t absmin, absmax, size;
+	Vec3 mins, maxs;
+	Vec3 absmin, absmax, size;
 	solid_t solid;
 	int clipmask;
 	edict_t *owner;
@@ -100,7 +100,6 @@ typedef struct {
 	bool ( *ClientConnect )( edict_t *ent, char *userinfo, bool fakeClient );
 	void ( *ClientBegin )( edict_t *ent );
 	void ( *ClientUserinfoChanged )( edict_t *ent, char *userinfo );
-	bool ( *ClientMultiviewChanged )( edict_t *ent, bool multiview );
 	void ( *ClientDisconnect )( edict_t *ent, const char *reason );
 	void ( *ClientCommand )( edict_t *ent );
 	void ( *ClientThink )( edict_t *ent, usercmd_t *cmd, int timeDelta );

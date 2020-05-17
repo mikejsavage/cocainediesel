@@ -135,8 +135,8 @@ struct WeaponModelMetadata {
 	orientation_t tag_projectionsource;
 
 	// handOffset
-	vec3_t handpositionOrigin;
-	vec3_t handpositionAngles;
+	Vec3 handpositionOrigin;
+	Vec3 handpositionAngles;
 
 	const SoundEffect * fire_sound;
 	const SoundEffect * up_sound;
@@ -215,8 +215,8 @@ typedef struct {
 	// dynamic
 	pmodel_animationstate_t animState;
 
-	vec3_t angles[PMODEL_PARTS];                // for rotations
-	vec3_t oldangles[PMODEL_PARTS];             // for rotations
+	Vec3 angles[PMODEL_PARTS];                // for rotations
+	Vec3 oldangles[PMODEL_PARTS];             // for rotations
 
 	// effects
 	orientation_t projectionSource;     // for projectiles
@@ -229,11 +229,11 @@ extern pmodel_t cg_entPModels[MAX_EDICTS];      //a pmodel handle for each cg_en
 //
 
 //utils
-void CG_MoveToTag( vec3_t move_origin,
+void CG_MoveToTag( Vec3 * move_origin,
 				   mat3_t move_axis,
-				   const vec3_t space_origin,
+				   Vec3 space_origin,
 				   const mat3_t space_axis,
-				   const vec3_t tag_origin,
+				   Vec3 tag_origin,
 				   const mat3_t tag_axis );
 
 //pmodels
@@ -260,7 +260,7 @@ WeaponModelMetadata *CG_RegisterWeaponModel( const char *cgs_name, WeaponType we
 
 typedef struct {
 	mat3_t axis;
-	vec3_t origin;
+	Vec3 origin;
 
 	unsigned int POVnum;
 	int weapon;

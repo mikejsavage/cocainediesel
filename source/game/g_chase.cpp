@@ -113,8 +113,8 @@ static void G_EndFrame_UpdateChaseCam( edict_t *ent ) {
 	ent->r.client->ps.pmove.pm_type = PM_CHASECAM;
 	ent->r.client->ps.pmove.pm_flags |= PMF_NO_PREDICTION;
 
-	VectorCopy( targ->s.origin, ent->s.origin );
-	VectorCopy( targ->s.angles, ent->s.angles );
+	ent->s.origin = targ->s.origin;
+	ent->s.angles = targ->s.angles;
 	GClip_LinkEntity( ent );
 }
 

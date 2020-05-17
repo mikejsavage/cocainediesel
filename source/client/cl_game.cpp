@@ -142,7 +142,7 @@ void CL_GameModule_EscapeKey( void ) {
 /*
 * CL_GameModule_GetEntitySoundOrigin
 */
-void CL_GameModule_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
+void CL_GameModule_GetEntitySpatilization( int entNum, Vec3 * origin, Vec3 * velocity ) {
 	if( cge ) {
 		cge->GetEntitySpatilization( entNum, origin, velocity );
 	}
@@ -189,24 +189,6 @@ unsigned CL_GameModule_GetButtonBits( void ) {
 		return cge->GetButtonBits();
 	}
 	return 0;
-}
-
-/*
-* CL_GameModule_AddViewAngles
-*/
-void CL_GameModule_AddViewAngles( vec3_t viewAngles ) {
-	if( cge ) {
-		cge->AddViewAngles( viewAngles );
-	}
-}
-
-/*
-* CL_GameModule_AddMovement
-*/
-void CL_GameModule_AddMovement( vec3_t movement ) {
-	if( cge ) {
-		cge->AddMovement( movement );
-	}
 }
 
 /*

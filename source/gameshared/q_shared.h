@@ -185,9 +185,6 @@ void Q_urlencode_unsafechars( const char *src, char *dst, size_t dst_size );
  */
 size_t Q_urldecode( const char *src, char *dst, size_t dst_size );
 
-float *tv( float x, float y, float z );
-char *vtos( float v[3] );
-
 #ifndef _MSC_VER
 char *va( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
 char *va_r( char *dst, size_t size, const char *format, ... ) __attribute__( ( format( printf, 3, 4 ) ) );

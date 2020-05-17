@@ -1754,7 +1754,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	allRealMsec = 0;
 	allGameMsec = 0;
 
-	VectorCopy( cl.viewangles, cl.prevviewangles );
+	cl.prevviewangles = cl.viewangles;
 
 	cls.framecount++;
 

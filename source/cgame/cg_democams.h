@@ -26,5 +26,5 @@ void CG_DemocamShutdown( void );
 void CG_DemocamReset( void );
 int CG_DemoCam_GetViewType( void );
 bool CG_DemoCam_GetThirdPerson( void );
-float CG_DemoCam_GetOrientation( vec3_t origin, vec3_t angles, vec3_t velocity );
+float CG_DemoCam_GetOrientation( Vec3 * origin, Vec3 * angles, Vec3 * velocity );
 void CG_DemoCam_GetViewDef( cg_viewdef_t *view );

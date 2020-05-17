@@ -22,25 +22,26 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/q_shared.h"
 #include "patch.h"
 
-static int Patch_FlatnessTest( float maxflat2, const float *point0, const float *point1, const float *point2 ) {
-	vec3_t t, n;
-	vec3_t v1, v2, v3;
+static int Patch_FlatnessTest( float maxflat2, Vec3 point0, Vec3 point1, Vec3 point2 ) {
+	Vec3 t, n;
+	Vec3 v1, v2, v3;
 
-	VectorSubtract( point2, point0, n );
-	if( !VectorNormalize( n ) ) {
+	n = point2 - point0;
+	if( !Length( n ) ) {
+		return 0;
+	}
+	n = Normalize( n );
+
+	t = point1 - point0;
+	float d = -Dot( t, n );
+	t = t + n * ( d );
+	if( Dot( t, t ) < maxflat2 ) {
 		return 0;
 	}
 
-	VectorSubtract( point1, point0, t );
-	float d = -DotProduct( t, n );
-	VectorMA( t, d, n, t );
-	if( DotProduct( t, t ) < maxflat2 ) {
-		return 0;
-	}
-
-	VectorAvg( point1, point0, v1 );
-	VectorAvg( point2, point1, v2 );
-	VectorAvg( v1, v2, v3 );
+	v1 = ( point1 + point0 ) * 0.5f;
+	v2 = ( point2 + point1 ) * 0.5f;
+	v3 = ( v1 + v2 ) * 0.5f;
 
 	int ft0 = Patch_FlatnessTest( maxflat2, point0, v1, v3 );
 	int ft1 = Patch_FlatnessTest( maxflat2, v3, v2, point2 );
@@ -48,7 +49,7 @@ static int Patch_FlatnessTest( float maxflat2, const float *point0, const float 
 	return 1 + Max2( ft0, ft1 );
 }
 
-void Patch_GetFlatness( float maxflat, const float *points, int comp, const int *patch_cp, int *flat ) {
+void Patch_GetFlatness( float maxflat, const Vec3 *points, int comp, const int *patch_cp, int *flat ) {
 	int i, p, u, v;
 	float maxflat2 = maxflat * maxflat;
 
@@ -57,41 +58,43 @@ void Patch_GetFlatness( float maxflat, const float *points, int comp, const int 
 		for( u = 0; u < patch_cp[0] - 1; u += 2 ) {
 			p = v * patch_cp[0] + u;
 
-			i = Patch_FlatnessTest( maxflat2, &points[p * comp], &points[( p + 1 ) * comp], &points[( p + 2 ) * comp] );
+			i = Patch_FlatnessTest( maxflat2, points[p * comp], points[( p + 1 ) * comp], points[( p + 2 ) * comp] );
 			flat[0] = Max2( flat[0], i );
-			i = Patch_FlatnessTest( maxflat2, &points[( p + patch_cp[0] ) * comp], &points[( p + patch_cp[0] + 1 ) * comp], &points[( p + patch_cp[0] + 2 ) * comp] );
+			i = Patch_FlatnessTest( maxflat2, points[( p + patch_cp[0] ) * comp], points[( p + patch_cp[0] + 1 ) * comp], points[( p + patch_cp[0] + 2 ) * comp] );
 			flat[0] = Max2( flat[0], i );
-			i = Patch_FlatnessTest( maxflat2, &points[( p + 2 * patch_cp[0] ) * comp], &points[( p + 2 * patch_cp[0] + 1 ) * comp], &points[( p + 2 * patch_cp[0] + 2 ) * comp] );
+			i = Patch_FlatnessTest( maxflat2, points[( p + 2 * patch_cp[0] ) * comp], points[( p + 2 * patch_cp[0] + 1 ) * comp], points[( p + 2 * patch_cp[0] + 2 ) * comp] );
 			flat[0] = Max2( flat[0], i );
 
-			i = Patch_FlatnessTest( maxflat2, &points[p * comp], &points[( p + patch_cp[0] ) * comp], &points[( p + 2 * patch_cp[0] ) * comp] );
+			i = Patch_FlatnessTest( maxflat2, points[p * comp], points[( p + patch_cp[0] ) * comp], points[( p + 2 * patch_cp[0] ) * comp] );
 			flat[1] = Max2( flat[1], i );
-			i = Patch_FlatnessTest( maxflat2, &points[( p + 1 ) * comp], &points[( p + patch_cp[0] + 1 ) * comp], &points[( p + 2 * patch_cp[0] + 1 ) * comp] );
+			i = Patch_FlatnessTest( maxflat2, points[( p + 1 ) * comp], points[( p + patch_cp[0] + 1 ) * comp], points[( p + 2 * patch_cp[0] + 1 ) * comp] );
 			flat[1] = Max2( flat[1], i );
-			i = Patch_FlatnessTest( maxflat2, &points[( p + 2 ) * comp], &points[( p + patch_cp[0] + 2 ) * comp], &points[( p + 2 * patch_cp[0] + 2 ) * comp] );
+			i = Patch_FlatnessTest( maxflat2, points[( p + 2 ) * comp], points[( p + patch_cp[0] + 2 ) * comp], points[( p + 2 * patch_cp[0] + 2 ) * comp] );
 			flat[1] = Max2( flat[1], i );
 		}
 	}
 }
 
-static void Patch_Evaluate_QuadricBezier( float t, const float * point0, const float * point1, const float * point2, float * out, int comp ) {
+static void Patch_Evaluate_QuadricBezier( float t, Vec3 point0, Vec3 point1, Vec3 point2, Vec3 * out, int comp ) {
 	float qt = t * t;
 	float dt = 2.0f * t;
 
 	float tt = 1.0f - dt + qt;
 	float tt2 = dt - 2.0f * qt;
 
-	for( int k = 0; k < comp; k++ )
-		out[k] = point0[k] * tt + point1[k] * tt2 + point2[k] * qt;
+	*out = point0 * tt + point1 * tt2 + point2 *qt;
 }
 
-void Patch_Evaluate( int comp, const float * p, const int *numcp, const int *tess, float * dest, int stride ) {
+void Patch_Evaluate( int comp, Vec3 * p, const int *numcp, const int *tess, Vec3 * dest, int stride ) {
 	int num_patches[2], num_tess[2];
 	int index[3], dstpitch, i, u, v, x, y;
 	float s, t, step[2];
-	float *tvec, *tvec2;
-	const float *pv[3][3];
-	float v1[4] = {0,0,0,0}, v2[4] = {0,0,0,0}, v3[4] = {0,0,0,0};
+	// float *tvec, *tvec2;
+	Vec3 *tvec, *tvec2;
+	Vec3 *pv[3][3];
+	Vec3 v1( 0.0f );
+	Vec3 v2( 0.0f );
+	Vec3 v3( 0.0f );
 
 	assert( comp <= 4 );
 
@@ -127,9 +130,9 @@ void Patch_Evaluate( int comp, const float * p, const int *numcp, const int *tes
 
 			tvec = dest + v * tess[1] * dstpitch + u * tess[0] * stride;
 			for( y = 0, t = 0.0f; y < num_tess[1]; y++, t += step[1], tvec += dstpitch ) {
-				Patch_Evaluate_QuadricBezier( t, pv[0][0], pv[0][1], pv[0][2], v1, comp );
-				Patch_Evaluate_QuadricBezier( t, pv[1][0], pv[1][1], pv[1][2], v2, comp );
-				Patch_Evaluate_QuadricBezier( t, pv[2][0], pv[2][1], pv[2][2], v3, comp );
+				Patch_Evaluate_QuadricBezier( t, *pv[0][0], *pv[0][1], *pv[0][2], &v1, comp );
+				Patch_Evaluate_QuadricBezier( t, *pv[1][0], *pv[1][1], *pv[1][2], &v2, comp );
+				Patch_Evaluate_QuadricBezier( t, *pv[2][0], *pv[2][1], *pv[2][2], &v3, comp );
 
 				for( x = 0, tvec2 = tvec, s = 0.0f; x < num_tess[0]; x++, s += step[0], tvec2 += stride )
 					Patch_Evaluate_QuadricBezier( s, v1, v2, v3, tvec2, comp );
@@ -138,27 +141,29 @@ void Patch_Evaluate( int comp, const float * p, const int *numcp, const int *tes
 	}
 }
 
-void Patch_RemoveLinearColumnsRows( float *verts, int comp, int *pwidth, int *pheight,
+void Patch_RemoveLinearColumnsRows( Vec3 *verts, int comp, int *pwidth, int *pheight,
 									int numattribs, uint8_t * const *attribs, const int *attribsizes ) {
 	int i, j, k, l;
-	const float *v0, *v1, *v2;
+	Vec3 v0, v1, v2 = Vec3( 0.0f );
 	float len, maxLength;
 	int maxWidth = *pwidth;
 	int src, dst;
 	int width = *pwidth, height = *pheight;
-	vec3_t dir, proj;
+	Vec3 dir, proj;
 
 	for( j = 1; j < width - 1; j++ ) {
 		maxLength = 0;
 		for( i = 0; i < height; i++ ) {
-			v0 = &verts[( i * maxWidth + j - 1 ) * comp];
-			v1 = &verts[( i * maxWidth + j + 1 ) * comp];
-			v2 = &verts[( i * maxWidth + j ) * comp];
-			VectorSubtract( v1, v0, dir );
-			VectorNormalize( dir );
-			ProjectPointOntoVector( v2, v0, dir, proj );
-			VectorSubtract( v2, proj, dir );
-			len = VectorLengthSquared( dir );
+			v0 = verts[( i * maxWidth + j - 1 ) * comp];
+			v1 = verts[( i * maxWidth + j + 1 ) * comp];
+			v2 = verts[( i * maxWidth + j ) * comp];
+			if( v1 == v0 )
+				continue;
+			dir = v1 - v0;
+			dir = Normalize( dir );
+			ProjectPointOntoVector( v2, v0, dir, &proj );
+			dir = v2 - proj;
+			len = LengthSquared( dir );
 			if( len > maxLength ) {
 				maxLength = len;
 			}
@@ -179,14 +184,14 @@ void Patch_RemoveLinearColumnsRows( float *verts, int comp, int *pwidth, int *ph
 	for( j = 1; j < height - 1; j++ ) {
 		maxLength = 0;
 		for( i = 0; i < width; i++ ) {
-			v0 = &verts[( ( j - 1 ) * maxWidth + i ) * comp];
-			v1 = &verts[( ( j + 1 ) * maxWidth + i ) * comp];
-			v2 = &verts[( j * maxWidth + i ) * comp];
-			VectorSubtract( v1, v0, dir );
-			VectorNormalize( dir );
-			ProjectPointOntoVector( v2, v0, dir, proj );
-			VectorSubtract( v2, proj, dir );
-			len = VectorLengthSquared( dir );
+			v0 = verts[( ( j - 1 ) * maxWidth + i ) * comp];
+			v1 = verts[( ( j + 1 ) * maxWidth + i ) * comp];
+			v2 = verts[( j * maxWidth + i ) * comp];
+			dir = v1 - v0;
+			dir = Normalize( dir );
+			ProjectPointOntoVector( v2, v0, dir, &proj );
+			dir = v2 - proj;
+			len = LengthSquared( dir );
 			if( len > maxLength ) {
 				maxLength = len;
 			}

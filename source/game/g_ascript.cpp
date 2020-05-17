@@ -918,7 +918,6 @@ static const asProperty_t gameclient_Properties[] =
 {
 	{ ASLIB_PROPERTY_DECL( Stats, stats ), offsetof( gclient_t, level.stats ) },
 	{ ASLIB_PROPERTY_DECL( const bool, connecting ), offsetof( gclient_t, connecting ) },
-	{ ASLIB_PROPERTY_DECL( const bool, multiview ), offsetof( gclient_t, multiview ) },
 	{ ASLIB_PROPERTY_DECL( int, team ), offsetof( gclient_t, team ) },
 	{ ASLIB_PROPERTY_DECL( const int, hand ), offsetof( gclient_t, hand ) },
 	{ ASLIB_PROPERTY_DECL( const bool, isOperator ), offsetof( gclient_t, isoperator ) },
@@ -963,96 +962,95 @@ static const asClassDescriptor_t asGameClientDescriptor =
 static asvec3_t objectGameEntity_GetVelocity( edict_t *obj ) {
 	asvec3_t velocity;
 
-	VectorCopy( obj->velocity, velocity.v );
+	velocity.v = obj->velocity;
 
 	return velocity;
 }
 
 static void objectGameEntity_SetVelocity( asvec3_t *vel, edict_t *self ) {
-	VectorCopy( vel->v, self->velocity );
+	self->velocity = vel->v;
 
 	if( self->r.client && trap_GetClientState( PLAYERNUM( self ) ) >= CS_SPAWNED ) {
-		VectorCopy( vel->v, self->r.client->ps.pmove.velocity );
+		self->r.client->ps.pmove.velocity = vel->v;
 	}
 }
 
 static asvec3_t objectGameEntity_GetAVelocity( edict_t *obj ) {
 	asvec3_t avelocity;
 
-	VectorCopy( obj->avelocity, avelocity.v );
+	avelocity.v = obj->avelocity;
 
 	return avelocity;
 }
 
 static void objectGameEntity_SetAVelocity( asvec3_t *vel, edict_t *self ) {
-	VectorCopy( vel->v, self->avelocity );
+	self->avelocity = vel->v;
 }
 
 static asvec3_t objectGameEntity_GetOrigin( edict_t *obj ) {
 	asvec3_t origin;
 
-	VectorCopy( obj->s.origin, origin.v );
+	origin.v = obj->s.origin;
 	return origin;
 }
 
 static void objectGameEntity_SetOrigin( asvec3_t *vec, edict_t *self ) {
 	if( self->r.client && trap_GetClientState( PLAYERNUM( self ) ) >= CS_SPAWNED ) {
-		VectorCopy( vec->v, self->r.client->ps.pmove.origin );
+		self->r.client->ps.pmove.origin = vec->v;
 	}
-	VectorCopy( vec->v, self->s.origin );
+	self->s.origin = vec->v;
 }
 
 static asvec3_t objectGameEntity_GetOrigin2( edict_t *obj ) {
 	asvec3_t origin;
 
-	VectorCopy( obj->s.origin2, origin.v );
+	origin.v = obj->s.origin2;
 	return origin;
 }
 
 static void objectGameEntity_SetOrigin2( asvec3_t *vec, edict_t *self ) {
-	VectorCopy( vec->v, self->s.origin2 );
+	self->s.origin2 = vec->v;
 }
 
 static asvec3_t objectGameEntity_GetAngles( edict_t *obj ) {
 	asvec3_t angles;
 
-	VectorCopy( obj->s.angles, angles.v );
+	angles.v = obj->s.angles;
 	return angles;
 }
 
 static void objectGameEntity_SetAngles( asvec3_t *vec, edict_t *self ) {
-	VectorCopy( vec->v, self->s.angles );
+	self->s.angles = vec->v;
 
 	if( self->r.client && trap_GetClientState( PLAYERNUM( self ) ) >= CS_SPAWNED ) {
-		int i;
-
-		VectorCopy( vec->v, self->r.client->ps.viewangles );
+		self->r.client->ps.viewangles = vec->v;
 
 		// update the delta angle
-		for( i = 0; i < 3; i++ )
-			self->r.client->ps.pmove.delta_angles[i] = ANGLE2SHORT( self->r.client->ps.viewangles[i] ) - self->r.client->ucmd.angles[i];
+		for( int i = 0; i < 3; i++ ) {
+			self->r.client->ps.pmove.delta_angles[ i ] = ANGLE2SHORT( self->r.client->ps.viewangles[ i ] ) - self->r.client->ucmd.angles[ i ];
+		}
 	}
 }
 
 static void objectGameEntity_GetSize( asvec3_t *mins, asvec3_t *maxs, edict_t *self ) {
-	VectorCopy( self->r.maxs, maxs->v );
-	VectorCopy( self->r.mins, mins->v );
+	maxs->v = self->r.maxs;
+	mins->v = self->r.mins;
 }
 
 static void objectGameEntity_SetSize( asvec3_t *mins, asvec3_t *maxs, edict_t *self ) {
-	VectorCopy( mins->v, self->r.mins );
-	VectorCopy( maxs->v, self->r.maxs );
+	self->r.mins = mins->v;
+	self->r.maxs = maxs->v;
 }
 
 static asvec3_t objectGameEntity_GetMovedir( edict_t *self ) {
 	asvec3_t movedir;
 
-	VectorCopy( self->moveinfo.movedir, movedir.v );
+	movedir.v = self->moveinfo.movedir;
 	return movedir;
 }
 
 static void objectGameEntity_SetMovedir( edict_t *self ) {
-	G_SetMovedir( self->s.angles, self->moveinfo.movedir );
+	G_SetMovedir( &self->s.angles, &self->moveinfo.movedir );
 }
 
 static bool objectGameEntity_IsGhosting( edict_t *self ) {
@@ -1149,7 +1147,7 @@ static void objectGameEntity_TeleportEffect( bool in, edict_t *self ) {
 
 static void objectGameEntity_sustainDamage( edict_t *inflictor, edict_t *attacker, asvec3_t *dir, float damage, float knockback, int mod, edict_t *self ) {
 	G_Damage( self, inflictor, attacker,
-			  dir ? dir->v : NULL, dir ? dir->v : NULL,
+			  dir ? dir->v : Vec3( 0.0f ), dir ? dir->v : Vec3( 0.0f ),
 			  inflictor ? inflictor->s.origin : self->s.origin,
 			  damage, knockback, 0, mod >= 0 ? mod : 0 );
 }
@@ -1169,8 +1167,7 @@ static void objectGameEntity_splashDamage( edict_t *attacker, int radius, float 
 }
 
 static void objectGameEntity_explosionEffect( int radius, edict_t *self ) {
-	int i, eventType, eventRadius;
-	vec3_t center;
+	int eventType, eventRadius;
 
 	if( radius < 8 ) {
 		return;
@@ -1189,10 +1186,9 @@ static void objectGameEntity_explosionEffect( int radius, edict_t *self ) {
 		eventRadius = 1;
 	}
 
-	for( i = 0; i < 3; i++ )
-		center[i] = self->s.origin[i] + ( 0.5f * ( self->r.maxs[i] + self->r.mins[i] ) );
+	Vec3 center = self->s.origin + 0.5f * ( self->r.maxs + self->r.mins );
 
-	G_SpawnEvent( eventType, eventRadius, center );
+	G_SpawnEvent( eventType, eventRadius, &center );
 }
 
 static const asFuncdef_t gedict_Funcdefs[] =
@@ -1346,7 +1342,7 @@ static bool objectTrace_doTrace4D( asvec3_t *start, asvec3_t *mins, asvec3_t *ma
 		return false;
 	}
 
-	server_gs.api.Trace( &self->trace, start->v, mins ? mins->v : vec3_origin, maxs ? maxs->v : vec3_origin, end->v, ignore, contentMask, 0 );
+	server_gs.api.Trace( &self->trace, start->v, mins ? mins->v : Vec3( 0.0f ), maxs ? maxs->v : Vec3( 0.0f ), end->v, ignore, contentMask, 0 );
 
 	if( self->trace.startsolid || self->trace.allsolid ) {
 		return true;
@@ -1362,14 +1358,14 @@ static bool objectTrace_doTrace( asvec3_t *start, asvec3_t *mins, asvec3_t *maxs
 static asvec3_t objectTrace_getEndPos( astrace_t *self ) {
 	asvec3_t asvec;
 
-	VectorCopy( self->trace.endpos, asvec.v );
+	asvec.v = self->trace.endpos;
 	return asvec;
 }
 
 static asvec3_t objectTrace_getPlaneNormal( astrace_t *self ) {
 	asvec3_t asvec;
 
-	VectorCopy( self->trace.plane.normal, asvec.v );
+	asvec.v = self->trace.plane.normal;
 	return asvec;
 }
 
@@ -1890,9 +1886,9 @@ void G_asCallMapEntityTouch( edict_t *ent, edict_t *other, cplane_t *plane, int 
 	}
 
 	if( plane ) {
-		VectorCopy( plane->normal, normal.v );
+		normal.v = plane->normal;
 	} else {
-		VectorClear( normal.v );
+		normal.v = Vec3( 0.0f );
 	}
 
 	// Now we need to pass the parameters to the script function.
@@ -1963,7 +1959,7 @@ void G_asCallMapEntityPain( edict_t *ent, edict_t *other, float kick, float dama
 }
 
 // "void %s_die( Entity @ent, Entity @inflicter, Entity @attacker )"
-void G_asCallMapEntityDie( edict_t *ent, edict_t *inflicter, edict_t *attacker, int damage, const vec3_t point ) {
+void G_asCallMapEntityDie( edict_t *ent, edict_t *inflicter, edict_t *attacker, int damage, const Vec3 point ) {
 	int error;
 	asIScriptContext *ctx;
 

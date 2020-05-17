@@ -20,23 +20,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/qcommon.h"
 
-void GS_EvaluateJumppad( const SyncEntityState * jumppad, vec3_t velocity ) {
+Vec3 GS_EvaluateJumppad( const SyncEntityState * jumppad, Vec3 velocity ) {
 	if( jumppad->type == ET_PAINKILLER_JUMPPAD ) {
-		Vec3 v = FromQF3( velocity );
-		Vec3 p = FromQF3( jumppad->origin2 );
+		Vec3 push = jumppad->origin2;
 
-		Vec3 v_par = Project( v, p );
-		Vec3 v_per = v - v_par;
+		Vec3 parallel = Project( velocity, push );
+		Vec3 perpendicular = velocity - parallel;
 
-		Vec3 new_v = v_per + p;
-
-		velocity[ 0 ] = new_v.x;
-		velocity[ 1 ] = new_v.y;
-		velocity[ 2 ] = new_v.z;
+		return perpendicular + push;
 	}
-	else {
-		VectorCopy( jumppad->origin2, velocity );
-	}
+
+	return jumppad->origin2;
 }
 
 void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, const SyncEntityState * pusher ) {
@@ -57,24 +51,20 @@ void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, 
 /*
 * GS_WaterLevel
 */
-int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, vec3_t mins, vec3_t maxs ) {
-	vec3_t point;
-	int cont;
-	int waterlevel;
+int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, Vec3 mins, Vec3 maxs ) {
+	int waterlevel = 0;
 
-	waterlevel = 0;
+	Vec3 point = state->origin;
+	point.z += mins.z + 1;
 
-	point[0] = state->origin[0];
-	point[1] = state->origin[1];
-	point[2] = state->origin[2] + mins[2] + 1;
-	cont = gs->api.PointContents( point, 0 );
+	int cont = gs->api.PointContents( point, 0 );
 	if( cont & MASK_WATER ) {
 		waterlevel = 1;
-		point[2] += 26;
+		point.z += 26;
 		cont = gs->api.PointContents( point, 0 );
 		if( cont & MASK_WATER ) {
 			waterlevel = 2;
-			point[2] += 22;
+			point.z += 22;
 			cont = gs->api.PointContents( point, 0 );
 			if( cont & MASK_WATER ) {
 				waterlevel = 3;

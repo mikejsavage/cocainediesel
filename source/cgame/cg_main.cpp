@@ -74,12 +74,12 @@ void CG_LocalPrint( const char *format, ... ) {
 	CG_AddChat( msg );
 }
 
-static void CG_GS_Trace( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask, int timeDelta ) {
+static void CG_GS_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, int timeDelta ) {
 	assert( !timeDelta );
 	CG_Trace( t, start, mins, maxs, end, ignore, contentmask );
 }
 
-static int CG_GS_PointContents( const vec3_t point, int timeDelta ) {
+static int CG_GS_PointContents( Vec3 point, int timeDelta ) {
 	assert( !timeDelta );
 	return CG_PointContents( point );
 }

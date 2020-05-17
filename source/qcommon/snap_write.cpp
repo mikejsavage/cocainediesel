@@ -346,7 +346,7 @@ Build a client frame structure
 * The client will interpolate the view position,
 * so we can't use a single PVS point
 */
-static void SNAP_FatPVS( CollisionModel *cms, const vec3_t org, uint8_t *fatpvs ) {
+static void SNAP_FatPVS( CollisionModel *cms, Vec3 org, uint8_t *fatpvs ) {
 	memset( fatpvs, 0, CM_ClusterRowSize( cms ) );
 	CM_MergePVS( cms, org, fatpvs );
 }
@@ -434,9 +434,9 @@ static float SNAP_GainForAttenuation( float dist ) {
 /*
 * SNAP_SnapCullSoundEntity
 */
-static bool SNAP_SnapCullSoundEntity( CollisionModel *cms, edict_t *ent, const vec3_t listener_origin ) {
+static bool SNAP_SnapCullSoundEntity( CollisionModel *cms, edict_t *ent, Vec3 listener_origin ) {
 	// extend the influence sphere cause the player could be moving
-	float dist = Distance( ent->s.origin, listener_origin ) - 128;
+	float dist = Length( listener_origin - ent->s.origin ) - 128;
 	float gain = SNAP_GainForAttenuation( dist < 0 ? 0 : dist );
 	return gain <= 0.05f;
 }
@@ -445,7 +445,7 @@ static bool SNAP_SnapCullSoundEntity( CollisionModel *cms, edict_t *ent, const v
 * SNAP_SnapCullEntity
 */
 static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *clent, client_snapshot_t *frame,
-								const vec3_t vieworg, int viewarea, uint8_t *fatpvs ) {
+								Vec3 vieworg, int viewarea, uint8_t *fatpvs ) {
 	// filters: this entity has been disabled for comunication
 	if( ent->r.svflags & SVF_NOCLIENT ) {
 		return true;
@@ -524,7 +524,7 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 /*
 * SNAP_AddEntitiesVisibleAtOrigin
 */
-static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg,
+static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, edict_t *clent, Vec3 vieworg,
 											int viewarea, client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
 	int entNum;
 	edict_t *ent;
@@ -568,7 +568,7 @@ static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, e
 /*
 * SNAP_BuildSnapEntitiesList
 */
-static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, ginfo_t *gi, edict_t *clent, const vec3_t vieworg,
+static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, ginfo_t *gi, edict_t *clent, Vec3 vieworg,
 										client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
 	int entNum;
 	int leafnum, clientarea;
@@ -613,7 +613,7 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 								SyncGameState *gameState, client_entities_t *client_entities,
 								mempool_t *mempool ) {
 	int e, i, ne;
-	vec3_t org;
+	Vec3 org;
 	edict_t *ent, *clent;
 	client_snapshot_t *frame;
 	SyncEntityState *state;
@@ -628,11 +628,11 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 
 	}
 	if( clent ) {
-		VectorCopy( clent->s.origin, org );
-		org[2] += clent->r.client->ps.viewheight;
+		org = clent->s.origin;
+		org.z += clent->r.client->ps.viewheight;
 	} else {
 		assert( client->mv );
-		VectorClear( org );
+		org = Vec3( 0.0f );
 	}
 
 	// this is the frame we are creating

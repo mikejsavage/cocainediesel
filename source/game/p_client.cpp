@@ -88,18 +88,18 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	}
 
 	//use flat yaw
-	body->s.angles[YAW] = ent->s.angles[YAW];
+	body->s.angles.y = ent->s.angles.y;
 
 	//copy player position and box size
-	VectorCopy( ent->s.origin, body->s.origin );
-	VectorCopy( ent->s.origin, body->olds.origin );
-	VectorCopy( ent->r.mins, body->r.mins );
-	VectorCopy( ent->r.maxs, body->r.maxs );
-	VectorCopy( ent->r.absmin, body->r.absmin );
-	VectorCopy( ent->r.absmax, body->r.absmax );
-	VectorCopy( ent->r.size, body->r.size );
-	VectorCopy( ent->velocity, body->velocity );
-	body->r.maxs[2] = body->r.mins[2] + 8;
+	body->s.origin = ent->s.origin;
+	body->olds.origin = ent->s.origin;
+	body->r.mins = ent->r.mins;
+	body->r.maxs = ent->r.maxs;
+	body->r.absmin = ent->r.absmin;
+	body->r.absmax = ent->r.absmax;
+	body->r.size = ent->r.size;
+	body->velocity = ent->velocity;
+	body->r.maxs.z = body->r.mins.z + 8;
 
 	body->r.solid = SOLID_NOT;
 	body->takedamage = DAMAGE_NO;
@@ -118,7 +118,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 		ThrowSmallPileOfGibs( body, knockbackOfDeath, damage );
 
 		// reset gib impulse
-		VectorClear( body->velocity );
+		body->velocity = Vec3( 0.0f );
 
 		body->nextThink = level.time + 3000 + random_float01( &svs.rng ) * 3000;
 		body->deadflag = DEAD_DEAD;
@@ -146,14 +146,14 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 /*
 * player_die
 */
-void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point ) {
+void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage, const Vec3 point ) {
 	snap_edict_t snap_backup = ent->snap;
 	client_snapreset_t resp_snap_backup = ent->r.client->resp.snap;
 
-	VectorClear( ent->avelocity );
+	ent->avelocity = Vec3( 0.0f );
 
-	ent->s.angles[0] = 0;
-	ent->s.angles[2] = 0;
+	ent->s.angles.x = 0;
+	ent->s.angles.z = 0;
 	ent->s.sound = EMPTY_HASH;
 
 	ent->r.solid = SOLID_NOT;
@@ -165,15 +165,15 @@ void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage
 	CreateCorpse( ent, attacker, damage );
 	ent->enemy = NULL;
 
-	ent->s.angles[YAW] = ent->r.client->ps.viewangles[YAW] = LookAtKillerYAW( ent, inflictor, attacker );
+	ent->s.angles.y = ent->r.client->ps.viewangles.y = LookAtKillerYAW( ent, inflictor, attacker );
 
 	// go ghost (also resets snap)
 	G_GhostClient( ent );
 
 	ent->deathTimeStamp = level.time;
 
-	VectorClear( ent->velocity );
-	VectorClear( ent->avelocity );
+	ent->velocity = Vec3( 0.0f );
+	ent->avelocity = Vec3( 0.0f );
 	ent->snap = snap_backup;
 	ent->r.client->resp.snap = resp_snap_backup;
 	ent->r.client->resp.snap.buttons = 0;
@@ -285,9 +285,8 @@ void G_GhostClient( edict_t *ent ) {
 * G_ClientRespawn
 */
 void G_ClientRespawn( edict_t *self, bool ghost ) {
-	int i;
 	edict_t *spawnpoint;
-	vec3_t spawn_origin, spawn_angles;
+	Vec3 spawn_origin, spawn_angles;
 	gclient_t *client;
 	int old_team;
 
@@ -352,10 +351,10 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		self->classname = "player";
 	}
 
-	VectorCopy( playerbox_stand_mins, self->r.mins );
-	VectorCopy( playerbox_stand_maxs, self->r.maxs );
-	VectorClear( self->velocity );
-	VectorClear( self->avelocity );
+	self->r.mins = playerbox_stand_mins;
+	self->r.maxs = playerbox_stand_maxs;
+	self->velocity = Vec3( 0.0f );
+	self->avelocity = Vec3( 0.0f );
 
 	client->ps.POVnum = ENTNUM( self );
 
@@ -381,23 +380,24 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		G_Teams_UpdateMembersList();
 	}
 
-	SelectSpawnPoint( self, &spawnpoint, spawn_origin, spawn_angles );
-	VectorCopy( spawn_origin, client->ps.pmove.origin );
-	VectorCopy( spawn_origin, self->s.origin );
+	SelectSpawnPoint( self, &spawnpoint, &spawn_origin, &spawn_angles );
+	client->ps.pmove.origin = spawn_origin;
+	self->s.origin = spawn_origin;
 
 	// set angles
-	self->s.angles[PITCH] = 0;
-	self->s.angles[YAW] = AngleNormalize360( spawn_angles[YAW] );
-	self->s.angles[ROLL] = 0;
-	VectorCopy( self->s.angles, client->ps.viewangles );
+	self->s.angles.x = 0.0f;
+	self->s.angles.y = AngleNormalize360( spawn_angles.y );
+	self->s.angles.z = 0.0f;
+	client->ps.viewangles = Vec3( self->s.angles );
 
 	// set the delta angle
-	for( i = 0; i < 3; i++ )
-		client->ps.pmove.delta_angles[i] = ANGLE2SHORT( client->ps.viewangles[i] ) - client->ucmd.angles[i];
+	client->ps.pmove.delta_angles[ 0 ] = ANGLE2SHORT( client->ps.viewangles.x ) - client->ucmd.angles[ 0 ];
+	client->ps.pmove.delta_angles[ 1 ] = ANGLE2SHORT( client->ps.viewangles.y ) - client->ucmd.angles[ 1 ];
+	client->ps.pmove.delta_angles[ 2 ] = ANGLE2SHORT( client->ps.viewangles.z ) - client->ucmd.angles[ 2 ];
 
 	// don't put spectators in the game
 	if( !ghost ) {
-		KillBox( self, MOD_TELEFRAG, vec3_origin );
+		KillBox( self, MOD_TELEFRAG, Vec3( 0.0f ) );
 	}
 
 	self->s.teleported = true;
@@ -438,10 +438,6 @@ bool G_PlayerCanTeleport( edict_t *player ) {
 * G_TeleportPlayer
 */
 void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
-	int i;
-	vec3_t velocity;
-	mat3_t axis;
-	float speed;
 	gclient_t *client = player->r.client;
 
 	if( !dest ) {
@@ -459,36 +455,38 @@ void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
 	//
 
 	// from racesow - use old pmove velocity
-	VectorCopy( client->old_pmove.velocity, velocity );
+	Vec3 velocity = client->old_pmove.velocity;
 
-	velocity[2] = 0; // ignore vertical velocity
-	speed = VectorLength( velocity );
+	velocity.z = 0; // ignore vertical velocity
+	float speed = Length( velocity );
 
+	mat3_t axis;
 	AnglesToAxis( dest->s.angles, axis );
-	VectorScale( &axis[AXIS_FORWARD], speed, client->ps.pmove.velocity );
+	client->ps.pmove.velocity = FromQFAxis( axis, AXIS_FORWARD ) * ( speed );
 
-	VectorCopy( dest->s.angles, client->ps.viewangles );
-	VectorCopy( dest->s.origin, client->ps.pmove.origin );
+	client->ps.viewangles = dest->s.angles;
+	client->ps.pmove.origin = dest->s.origin;
 
 	// set the delta angle
-	for( i = 0; i < 3; i++ )
-		client->ps.pmove.delta_angles[i] = ANGLE2SHORT( client->ps.viewangles[i] ) - client->ucmd.angles[i];
+	client->ps.pmove.delta_angles[ 0 ] = ANGLE2SHORT( client->ps.viewangles.x ) - client->ucmd.angles[ 0 ];
+	client->ps.pmove.delta_angles[ 1 ] = ANGLE2SHORT( client->ps.viewangles.y ) - client->ucmd.angles[ 1 ];
+	client->ps.pmove.delta_angles[ 2 ] = ANGLE2SHORT( client->ps.viewangles.z ) - client->ucmd.angles[ 2 ];
 
 	client->ps.pmove.pm_flags |= PMF_TIME_TELEPORT;
 	client->ps.pmove.pm_time = 1; // force the minimum no control delay
 	player->s.teleported = true;
 
 	// update the entity from the pmove
-	VectorCopy( client->ps.viewangles, player->s.angles );
-	VectorCopy( client->ps.pmove.origin, player->s.origin );
-	VectorCopy( client->ps.pmove.origin, player->olds.origin );
-	VectorCopy( client->ps.pmove.velocity, player->velocity );
+	player->s.angles = client->ps.viewangles;
+	player->s.origin = client->ps.pmove.origin;
+	player->olds.origin = client->ps.pmove.origin;
+	player->velocity = client->ps.pmove.velocity;
 
 	// unlink to make sure it can't possibly interfere with KillBox
 	GClip_UnlinkEntity( player );
 
 	// kill anything at the destination
-	KillBox( player, MOD_TELEFRAG, vec3_origin );
+	KillBox( player, MOD_TELEFRAG, Vec3( 0.0f ) );
 
 	GClip_LinkEntity( player );
 
@@ -885,13 +883,12 @@ void G_PredictedFireWeapon( int entNum, WeaponType weapon ) {
 	edict_t * ent = &game.edicts[ entNum ];
 	G_FireWeapon( ent, weapon );
 
-	vec3_t start;
-	VectorCopy( ent->s.origin, start );
-	start[ 2 ] += ent->r.client->ps.viewheight;
+	Vec3 start = ent->s.origin;
+	start.z += ent->r.client->ps.viewheight;
 
-	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, weapon, start );
+	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, weapon, &start );
 	event->s.ownerNum = entNum;
-	VectorCopy( ent->r.client->ps.viewangles, event->s.origin2 ); // DirToByte is too inaccurate
+	event->s.origin2 = ent->r.client->ps.viewangles; // DirToByte is too inaccurate
 	event->s.team = ent->s.team;
 }
 
@@ -935,20 +932,11 @@ static void ClientMakePlrkeys( gclient_t *client, usercmd_t *ucmd ) {
 }
 
 /*
-* ClientMultiviewChanged
-* This will be called when client tries to change multiview mode
-* Mode change can be disallowed by returning false
-*/
-bool ClientMultiviewChanged( edict_t *ent, bool multiview ) {
-	ent->r.client->multiview = multiview == true;
-
-	return true;
-}
-
-/*
 * ClientThink
 */
 void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
+	ZoneScoped;
+
 	gclient_t *client;
 	int i, j;
 	static pmove_t pm;
@@ -963,7 +951,7 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	if( ent->r.svflags & SVF_FAKECLIENT ) {
 		client->timeDelta = 0;
 	} else {
-		int fixedNudge = ( game.snapFrameTime ) * 0.5; // fixme: find where this nudge comes from.
+		int fixedNudge = game.snapFrameTime * 0.5; // fixme: find where this nudge comes from.
 
 		// add smoothing to timeDelta between the last few ucmds and a small fine-tuning nudge.
 		int nudge = fixedNudge + g_antilag_timenudge->integer;
@@ -1004,9 +992,9 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 
 	// (is this really needed?:only if not cared enough about ps in the rest of the code)
 	// refresh player state position from the entity
-	VectorCopy( ent->s.origin, client->ps.pmove.origin );
-	VectorCopy( ent->velocity, client->ps.pmove.velocity );
-	VectorCopy( ent->s.angles, client->ps.viewangles );
+	client->ps.pmove.origin = ent->s.origin;
+	client->ps.pmove.velocity = ent->velocity;
+	client->ps.viewangles = ent->s.angles;
 
 	client->ps.pmove.gravity = level.gravity;
 
@@ -1031,12 +1019,12 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	client->old_pmove = client->ps.pmove;
 
 	// update the entity with the new position
-	VectorCopy( client->ps.pmove.origin, ent->s.origin );
-	VectorCopy( client->ps.pmove.velocity, ent->velocity );
-	VectorCopy( client->ps.viewangles, ent->s.angles );
+	ent->s.origin = client->ps.pmove.origin;
+	ent->velocity = client->ps.pmove.velocity;
+	ent->s.angles = client->ps.viewangles;
 	ent->viewheight = client->ps.viewheight;
-	VectorCopy( pm.mins, ent->r.mins );
-	VectorCopy( pm.maxs, ent->r.maxs );
+	ent->r.mins = pm.mins;
+	ent->r.maxs = pm.maxs;
 
 	ent->waterlevel = pm.waterlevel;
 	ent->watertype = pm.watertype;
@@ -1069,8 +1057,8 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 			G_CallTouch( other, ent, NULL, 0 );
 		}
 
-		if( ent->s.origin[ 2 ] <= -1024 ) {
-			G_Damage( ent, world, world, vec3_origin, vec3_origin, ent->s.origin, 1337, 0, 0, MOD_VOID );
+		if( ent->s.origin.z <= -1024 ) {
+			G_Damage( ent, world, world, Vec3( 0.0f ), Vec3( 0.0f ), ent->s.origin, 1337, 0, 0, MOD_VOID );
 		}
 	}
 

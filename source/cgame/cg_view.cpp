@@ -162,25 +162,19 @@ static void CG_FlashGameWindow( void ) {
 	}
 }
 
-/*
-* CG_AddKickAngles
-*/
-void CG_AddKickAngles( vec3_t viewangles ) {
-	float time;
-	float uptime;
-	float delta;
-	int i;
+Vec3 CG_GetKickAngles() {
+	Vec3 angles = Vec3( 0.0f );
 
-	for( i = 0; i < MAX_ANGLES_KICKS; i++ ) {
+	for( int i = 0; i < MAX_ANGLES_KICKS; i++ ) {
 		if( cl.serverTime > cg.kickangles[i].timestamp + cg.kickangles[i].kicktime ) {
 			continue;
 		}
 
-		time = (float)( ( cg.kickangles[i].timestamp + cg.kickangles[i].kicktime ) - cl.serverTime );
-		uptime = ( (float)cg.kickangles[i].kicktime ) * 0.5f;
-		delta = 1.0f - ( Abs( time - uptime ) / uptime );
+		float time = (float)( ( cg.kickangles[i].timestamp + cg.kickangles[i].kicktime ) - cl.serverTime );
+		float uptime = ( (float)cg.kickangles[i].kicktime ) * 0.5f;
+		float delta = 1.0f - ( Abs( time - uptime ) / uptime );
 
-		//Com_Printf("Kick Delta:%f\n", delta );
+		//CG_Printf("Kick Delta:%f\n", delta );
 		if( delta > 1.0f ) {
 			delta = 1.0f;
 		}
@@ -188,9 +182,11 @@ void CG_AddKickAngles( vec3_t viewangles ) {
 			continue;
 		}
 
-		viewangles[PITCH] += cg.kickangles[i].v_pitch * delta;
-		viewangles[ROLL] += cg.kickangles[i].v_roll * delta;
+		angles.x += cg.kickangles[i].v_pitch * delta;
+		angles.z += cg.kickangles[i].v_roll * delta;
 	}
+
+	return angles;
 }
 
 /*
@@ -219,7 +215,7 @@ static void CG_CalcViewBob( void ) {
 	}
 
 	// calculate speed and cycle to be used for all cyclic walking effects
-	cg.xyspeed = sqrtf( cg.predictedPlayerState.pmove.velocity[0] * cg.predictedPlayerState.pmove.velocity[0] + cg.predictedPlayerState.pmove.velocity[1] * cg.predictedPlayerState.pmove.velocity[1] );
+	cg.xyspeed = Length( cg.predictedPlayerState.pmove.velocity.xy() );
 
 	bobScale = 0;
 	if( cg.xyspeed < 5 ) {
@@ -232,13 +228,13 @@ static void CG_CalcViewBob( void ) {
 			bobScale =  0.75f;
 		} else {
 			centity_t *cent;
-			vec3_t mins, maxs;
+			Vec3 mins, maxs;
 			trace_t trace;
 
 			cent = &cg_entities[cg.view.POVent];
-			CG_BBoxForEntityState( &cent->current, mins, maxs );
-			maxs[2] = mins[2];
-			mins[2] -= ( 1.6f * STEPSIZE );
+			CG_BBoxForEntityState( &cent->current, &mins, &maxs );
+			maxs.z = mins.z;
+			mins.z -= 1.6f * STEPSIZE;
 
 			CG_Trace( &trace, cg.predictedPlayerState.pmove.origin, mins, maxs, cg.predictedPlayerState.pmove.origin, cg.view.POVent, MASK_PLAYERSOLID );
 			if( trace.startsolid || trace.allsolid ) {
@@ -305,19 +301,17 @@ static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 
 	bool teleported = ( ps->pmove.pm_flags & PMF_TIME_TELEPORT ) != 0;
 
-	if( Abs( (int)( ops->pmove.origin[0] - ps->pmove.origin[0] ) ) > 256
-		|| Abs( (int)( ops->pmove.origin[1] - ps->pmove.origin[1] ) ) > 256
-		|| Abs( (int)( ops->pmove.origin[2] - ps->pmove.origin[2] ) ) > 256 ) {
+	if( Abs( ops->pmove.origin.x - ps->pmove.origin.x ) > 256
+		|| Abs( ops->pmove.origin.y - ps->pmove.origin.y ) > 256
+		|| Abs( ops->pmove.origin.z - ps->pmove.origin.z ) > 256 ) {
 		teleported = true;
 	}
 
 	// if the player entity was teleported this frame use the final position
 	if( !teleported ) {
-		for( int i = 0; i < 3; i++ ) {
-			playerState->pmove.origin[i] = Lerp( ops->pmove.origin[i], cg.lerpfrac, ps->pmove.origin[i] );
-			playerState->pmove.velocity[i] = Lerp( ops->pmove.velocity[i], cg.lerpfrac, ps->pmove.velocity[i] );
-			playerState->viewangles[i] = LerpAngle( ops->viewangles[i], ps->viewangles[i], cg.lerpfrac );
-		}
+		playerState->pmove.origin = Lerp( ops->pmove.origin, cg.lerpfrac, ps->pmove.origin );
+		playerState->pmove.velocity = Lerp( ops->pmove.velocity, cg.lerpfrac, ps->pmove.velocity );
+		playerState->viewangles = LerpAngles( ops->viewangles, cg.lerpfrac, ps->viewangles );
 	}
 
 	// interpolate fov and viewheight
@@ -332,11 +326,9 @@ static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 */
 static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 	float dist, f, r;
-	vec3_t dest, stop;
-	vec3_t chase_dest;
 	trace_t trace;
-	vec3_t mins = { -4, -4, -4 };
-	vec3_t maxs = { 4, 4, 4 };
+	Vec3 mins( -4.0f );
+	Vec3 maxs( 4.0f );
 
 	if( !cg_thirdPersonAngle || !cg_thirdPersonRange ) {
 		cg_thirdPersonAngle = Cvar_Get( "cg_thirdPersonAngle", "0", CVAR_ARCHIVE );
@@ -344,51 +336,51 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 	}
 
 	// calc exact destination
-	VectorCopy( view->origin, chase_dest );
+	Vec3 chase_dest = view->origin;
 	r = DEG2RAD( cg_thirdPersonAngle->value );
 	f = -cosf( r );
 	r = -sinf( r );
-	VectorMA( chase_dest, cg_thirdPersonRange->value * f, &view->axis[AXIS_FORWARD], chase_dest );
-	VectorMA( chase_dest, cg_thirdPersonRange->value * r, &view->axis[AXIS_RIGHT], chase_dest );
-	chase_dest[2] += 8;
+	chase_dest += FromQFAxis( view->axis, AXIS_FORWARD ) * ( cg_thirdPersonRange->value * f );
+	chase_dest += FromQFAxis( view->axis, AXIS_RIGHT ) * ( cg_thirdPersonRange->value * r );
+	chase_dest.z += 8;
 
 	// find the spot the player is looking at
-	VectorMA( view->origin, 512, &view->axis[AXIS_FORWARD], dest );
+	Vec3 dest = view->origin + FromQFAxis( view->axis, AXIS_FORWARD ) * ( 512 );
 	CG_Trace( &trace, view->origin, mins, maxs, dest, view->POVent, MASK_SOLID );
 
 	// calculate pitch to look at the same spot from camera
-	VectorSubtract( trace.endpos, view->origin, stop );
-	dist = sqrtf( stop[0] * stop[0] + stop[1] * stop[1] );
+	Vec3 stop = trace.endpos - view->origin;
+	dist = Length( stop.xy() );
 	if( dist < 1 ) {
 		dist = 1;
 	}
-	view->angles[PITCH] = RAD2DEG( -atan2f( stop[2], dist ) );
-	view->angles[YAW] -= cg_thirdPersonAngle->value;
+	view->angles.x = RAD2DEG( -atan2f( stop.z, dist ) );
+	view->angles.y -= cg_thirdPersonAngle->value;
 	Matrix3_FromAngles( view->angles, view->axis );
 
 	// move towards destination
 	CG_Trace( &trace, view->origin, mins, maxs, chase_dest, view->POVent, MASK_SOLID );
 
 	if( trace.fraction != 1.0 ) {
-		VectorCopy( trace.endpos, stop );
-		stop[2] += ( 1.0 - trace.fraction ) * 32;
+		stop = trace.endpos;
+		stop.z += ( 1.0 - trace.fraction ) * 32;
 		CG_Trace( &trace, view->origin, mins, maxs, stop, view->POVent, MASK_SOLID );
-		VectorCopy( trace.endpos, chase_dest );
+		chase_dest = trace.endpos;
 	}
 
-	VectorCopy( chase_dest, view->origin );
+	view->origin = chase_dest;
 }
 
 /*
 * CG_ViewSmoothPredictedSteps
 */
-void CG_ViewSmoothPredictedSteps( vec3_t vieworg ) {
+void CG_ViewSmoothPredictedSteps( Vec3 * vieworg ) {
 	int timeDelta;
 
 	// smooth out stair climbing
 	timeDelta = cls.realtime - cg.predictedStepTime;
 	if( timeDelta < PREDICTED_STEP_TIME ) {
-		vieworg[2] -= cg.predictedStep * ( PREDICTED_STEP_TIME - timeDelta ) / PREDICTED_STEP_TIME;
+		vieworg->z -= cg.predictedStep * ( PREDICTED_STEP_TIME - timeDelta ) / PREDICTED_STEP_TIME;
 	}
 }
 
@@ -539,38 +531,36 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 	//
 
 	if( view->type == VIEWDEF_PLAYERVIEW ) {
-		vec3_t viewoffset;
+		Vec3 viewoffset;
 
 		if( view->playerPrediction ) {
 			CG_PredictMovement();
 
 			// fixme: crouching is predicted now, but it looks very ugly
-			VectorSet( viewoffset, 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
+			viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
 
-			for( int i = 0; i < 3; i++ ) {
-				view->origin[i] = cg.predictedPlayerState.pmove.origin[i] + viewoffset[i] - ( 1.0f - cg.lerpfrac ) * cg.predictionError[i];
-				view->angles[i] = cg.predictedPlayerState.viewangles[i];
-			}
+			view->origin = cg.predictedPlayerState.pmove.origin + viewoffset - ( 1.0f - cg.lerpfrac ) * cg.predictionError;
+			view->angles = cg.predictedPlayerState.viewangles;
 
 			if( cg.recoiling ) {
 				constexpr float up_mult = 30.0f;
 				constexpr float down_mult = 5.0f;
 
-				cg.recoil_initial_pitch += Min2( 0.0f, cl.viewangles[ PITCH ] - cl.prevviewangles[ PITCH ] );
+				cg.recoil_initial_pitch += Min2( 0.0f, cl.viewangles.x - cl.prevviewangles.x );
 
 				if( cg.recoil == 0.0f ) {
-					float d = cg.recoil_initial_pitch - cl.viewangles[ PITCH ];
+					float d = cg.recoil_initial_pitch - cl.viewangles.x;
 					if( d <= 0.0f ) {
 						cg.recoiling = false;
 					}
 					else {
 						float downkick = d * down_mult * cls.frametime * 0.001f;
-						cl.viewangles[ PITCH ] += Min2( downkick, d );
+						cl.viewangles.x += Min2( downkick, d );
 					}
 				}
 				else {
 					float kick = cg.recoil * up_mult * cls.frametime * 0.001f;
-					cl.viewangles[ PITCH ] -= kick;
+					cl.viewangles.x -= kick;
 					cg.recoil -= kick;
 					if( cg.recoil < 0.1f ) {
 						cg.recoil = 0.0f;
@@ -578,7 +568,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 				}
 			}
 
-			CG_ViewSmoothPredictedSteps( view->origin ); // smooth out stair climbing
+			CG_ViewSmoothPredictedSteps( &view->origin ); // smooth out stair climbing
 		} else {
 			cg.predictingTimeStamp = cl.serverTime;
 			cg.predictFrom = 0;
@@ -586,19 +576,19 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 			// we don't run prediction, but we still set cg.predictedPlayerState with the interpolation
 			CG_InterpolatePlayerState( &cg.predictedPlayerState );
 
-			VectorSet( viewoffset, 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
+			viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
 
-			VectorAdd( cg.predictedPlayerState.pmove.origin, viewoffset, view->origin );
-			VectorCopy( cg.predictedPlayerState.viewangles, view->angles );
+			view->origin = cg.predictedPlayerState.pmove.origin + viewoffset;
+			view->angles = cg.predictedPlayerState.viewangles;
 		}
 
 		view->fov_y = WidescreenFov( CG_CalcViewFov() );
 
 		CG_CalcViewBob();
 
-		VectorCopy( cg.predictedPlayerState.pmove.velocity, view->velocity );
+		view->velocity = cg.predictedPlayerState.pmove.velocity;
 	} else if( view->type == VIEWDEF_DEMOCAM ) {
-		view->fov_y = WidescreenFov( CG_DemoCam_GetOrientation( view->origin, view->angles, view->velocity ) );
+		view->fov_y = WidescreenFov( CG_DemoCam_GetOrientation( &view->origin, &view->angles, &view->velocity ) );
 	}
 
 	view->fov_x = CalcHorizontalFov( view->fov_y, frame_static.viewport_width, frame_static.viewport_height );
@@ -837,7 +827,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 		CG_SetupViewDef( &cg.view, VIEWDEF_PLAYERVIEW );
 	}
 
-	RendererSetView( FromQF3( cg.view.origin ), FromQFAngles( cg.view.angles ), cg.view.fov_y );
+	RendererSetView( cg.view.origin, EulerDegrees3( cg.view.angles ), cg.view.fov_y );
 	frame_static.fog_uniforms = UploadUniformBlock( cl.map->fog_strength );
 
 	CG_LerpEntities();  // interpolate packet entities positions
@@ -860,7 +850,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	CG_AddLocalSounds();
 
-	S_Update( FromQF3( cg.view.origin ), FromQF3( cg.view.velocity ), cg.view.axis );
+	S_Update( cg.view.origin, cg.view.velocity, cg.view.axis );
 
 	CG_Draw2D();
 }

@@ -514,22 +514,9 @@ void G_UseTargets( edict_t *ent, edict_t *activator ) {
 	}
 }
 
-
-static vec3_t VEC_UP       = { 0, -1, 0 };
-static vec3_t MOVEDIR_UP   = { 0, 0, 1 };
-static vec3_t VEC_DOWN     = { 0, -2, 0 };
-static vec3_t MOVEDIR_DOWN = { 0, 0, -1 };
-
-void G_SetMovedir( vec3_t angles, vec3_t movedir ) {
-	if( VectorCompare( angles, VEC_UP ) ) {
-		VectorCopy( MOVEDIR_UP, movedir );
-	} else if( VectorCompare( angles, VEC_DOWN ) ) {
-		VectorCopy( MOVEDIR_DOWN, movedir );
-	} else {
-		AngleVectors( angles, movedir, NULL, NULL );
-	}
-
-	VectorClear( angles );
+void G_SetMovedir( Vec3 * angles, Vec3 * movedir ) {
+	AngleVectors( *angles, movedir, NULL, NULL );
+	*angles = Vec3( 0.0f );
 }
 
 char *_G_CopyString( const char *in, const char *filename, int fileline ) {
@@ -669,13 +656,13 @@ void G_AddEvent( edict_t *ent, int event, u64 parm, bool highPriority ) {
 /*
 * G_SpawnEvent
 */
-edict_t *G_SpawnEvent( int event, u64 parm, const vec3_t origin ) {
+edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin ) {
 	edict_t * ent = G_Spawn();
 	ent->s.type = ET_EVENT;
 	ent->r.solid = SOLID_NOT;
 	ent->r.svflags &= ~SVF_NOCLIENT;
-	if( origin != NULL ) {
-		VectorCopy( origin, ent->s.origin );
+	if( origin ) {
+		ent->s.origin = *origin;
 	}
 	G_AddEvent( ent, event, parm, true );
 
@@ -707,7 +694,7 @@ void G_InitMover( edict_t *ent ) {
 
 	GClip_SetBrushModel( ent );
 
-	if( ent->light || !VectorCompare( ent->color, vec3_origin ) ) {
+	if( ent->light || ent->color != Vec3( 0.0f ) ) {
 		int r, g, b, i;
 
 		if( !ent->light ) {
@@ -719,19 +706,19 @@ void G_InitMover( edict_t *ent ) {
 		i /= 4;
 		i = Min2( i, 255 );
 
-		r = ent->color[0];
+		r = ent->color.x;
 		if( r <= 1.0 ) {
 			r *= 255;
 		}
 		r = Clamp( 0, r, 255 );
 
-		g = ent->color[1];
+		g = ent->color.y;
 		if( g <= 1.0 ) {
 			g *= 255;
 		}
 		g = Clamp( 0, g, 255 );
 
-		b = ent->color[2];
+		b = ent->color.z;
 		if( b <= 1.0 ) {
 			b *= 255;
 		}
@@ -805,7 +792,7 @@ void G_CallPain( edict_t *ent, edict_t *attacker, float kick, float damage ) {
 /*
 * G_CallDie
 */
-void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point ) {
+void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point ) {
 	if( ent->die ) {
 		ent->die( ent, inflictor, attacker, damage, point );
 	} else if( ent->scriptSpawned && ent->asDieFunc ) {
@@ -988,12 +975,11 @@ edict_t *G_Sound( edict_t *owner, int channel, StringHash sound ) {
 	edict_t * ent = _G_SpawnSound( channel, sound );
 	ent->s.ownerNum = owner->s.number;
 
-	if( owner->s.solid != SOLID_BMODEL ) {
-		VectorCopy( owner->s.origin, ent->s.origin );
+	if( owner->s.solid == SOLID_BMODEL ) {
+		ent->s.origin = owner->s.origin;
 	}
 	else {
-		VectorAdd( owner->r.mins, owner->r.maxs, ent->s.origin );
-		VectorMA( owner->s.origin, 0.5f, ent->s.origin, ent->s.origin );
+		ent->s.origin = ( owner->r.absmin + owner->r.absmax ) * 0.5f;
 	}
 
 	GClip_LinkEntity( ent );
@@ -1003,15 +989,15 @@ edict_t *G_Sound( edict_t *owner, int channel, StringHash sound ) {
 /*
 * G_PositionedSound
 */
-edict_t *G_PositionedSound( const vec3_t origin, int channel, StringHash sound ) {
+edict_t *G_PositionedSound( Vec3 origin, int channel, StringHash sound ) {
 	if( sound == EMPTY_HASH ) {
 		return NULL;
 	}
 
 	edict_t * ent = _G_SpawnSound( channel, sound );
-	if( origin != NULL ) {
+	if( origin != Vec3( 0.0f ) ) {
 		ent->s.channel |= CHAN_FIXED;
-		VectorCopy( origin, ent->s.origin );
+		ent->s.origin = origin;
 	}
 	else {
 		ent->r.svflags |= SVF_BROADCAST;
@@ -1025,7 +1011,7 @@ edict_t *G_PositionedSound( const vec3_t origin, int channel, StringHash sound )
 * G_GlobalSound
 */
 void G_GlobalSound( int channel, StringHash sound ) {
-	G_PositionedSound( NULL, channel, sound );
+	G_PositionedSound( Vec3( 0.0f ), channel, sound );
 }
 
 /*
@@ -1058,7 +1044,7 @@ void G_LocalSound( edict_t * owner, int channel, StringHash sound ) {
 * Kills all entities that would touch the proposed new positioning
 * of ent.  Ent should be unlinked before calling this!
 */
-bool KillBox( edict_t *ent, int mod, const vec3_t knockback ) {
+bool KillBox( edict_t *ent, int mod, Vec3 knockback ) {
 	trace_t tr;
 	bool telefragged = false;
 
@@ -1073,7 +1059,7 @@ bool KillBox( edict_t *ent, int mod, const vec3_t knockback ) {
 		}
 
 		// nail it
-		G_Damage( &game.edicts[tr.ent], ent, ent, knockback, vec3_origin, ent->s.origin, 100000, VectorLength( knockback ), 0, mod );
+		G_Damage( &game.edicts[tr.ent], ent, ent, knockback, Vec3( 0.0f ), ent->s.origin, 100000, Length( knockback ), 0, mod );
 		telefragged = true;
 
 		// if we didn't kill it, fail
@@ -1090,33 +1076,17 @@ bool KillBox( edict_t *ent, int mod, const vec3_t knockback ) {
 * returns the YAW angle to look at our killer
 */
 float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker ) {
-	vec3_t dir;
-	float killer_yaw;
+	Vec3 dir;
 
 	if( attacker && attacker != world && attacker != self ) {
-		VectorSubtract( attacker->s.origin, self->s.origin, dir );
+		dir = attacker->s.origin - self->s.origin;
 	} else if( inflictor && inflictor != world && inflictor != self ) {
-		VectorSubtract( inflictor->s.origin, self->s.origin, dir );
+		dir = inflictor->s.origin - self->s.origin;
 	} else {
-		killer_yaw = self->s.angles[YAW];
-		return killer_yaw;
+		return self->s.angles.y;
 	}
 
-	if( dir[0] ) {
-		killer_yaw = RAD2DEG( atan2f( dir[1], dir[0] ) );
-	} else {
-		killer_yaw = 0;
-		if( dir[1] > 0 ) {
-			killer_yaw = 90;
-		} else if( dir[1] < 0 ) {
-			killer_yaw = -90;
-		}
-	}
-	if( killer_yaw < 0 ) {
-		killer_yaw += 360;
-	}
-
-	return killer_yaw;
+	return VecToAngles( dir ).y;
 }
 
 //==============================================================================
@@ -1140,7 +1110,7 @@ static void G_SpawnTeleportEffect( edict_t *ent, bool respawn, bool in ) {
 	}
 
 	// add a teleportation effect
-	event = G_SpawnEvent( respawn ? EV_PLAYER_RESPAWN : ( in ? EV_PLAYER_TELEPORT_IN : EV_PLAYER_TELEPORT_OUT ), 0, ent->s.origin );
+	event = G_SpawnEvent( respawn ? EV_PLAYER_RESPAWN : ( in ? EV_PLAYER_TELEPORT_IN : EV_PLAYER_TELEPORT_OUT ), 0, &ent->s.origin );
 	event->s.ownerNum = ENTNUM( ent );
 }
 
@@ -1163,19 +1133,17 @@ int G_SolidMaskForEnt( edict_t *ent ) {
 * G_CheckEntGround
 */
 void G_CheckGround( edict_t *ent ) {
-	vec3_t point;
 	trace_t trace;
 
-	if( ent->r.client && ent->velocity[2] > 180 ) {
+	if( ent->r.client && ent->velocity.z > 180 ) {
 		ent->groundentity = NULL;
 		ent->groundentity_linkcount = 0;
 		return;
 	}
 
 	// if the hull point one-quarter unit down is solid the entity is on ground
-	point[0] = ent->s.origin[0];
-	point[1] = ent->s.origin[1];
-	point[2] = ent->s.origin[2] - 0.25;
+	Vec3 point = ent->s.origin;
+	point.z -= 0.25f;
 
 	G_Trace( &trace, ent->s.origin, ent->r.mins, ent->r.maxs, point, ent, G_SolidMaskForEnt( ent ) );
 
@@ -1186,7 +1154,7 @@ void G_CheckGround( edict_t *ent ) {
 		return;
 	}
 
-	if( ( ent->velocity[2] > 1 && !ent->r.client ) && !trace.startsolid ) {
+	if( ent->velocity.z > 1.0f && !ent->r.client && !trace.startsolid ) {
 		ent->groundentity = NULL;
 		ent->groundentity_linkcount = 0;
 		return;
@@ -1196,8 +1164,8 @@ void G_CheckGround( edict_t *ent ) {
 		//VectorCopy( trace.endpos, ent->s.origin );
 		ent->groundentity = &game.edicts[trace.ent];
 		ent->groundentity_linkcount = ent->groundentity->linkcount;
-		if( ent->velocity[2] < 0 ) {
-			ent->velocity[2] = 0;
+		if( ent->velocity.z < 0.0f ) {
+			ent->velocity.z = 0.0f;
 		}
 	}
 }
@@ -1206,15 +1174,13 @@ void G_CheckGround( edict_t *ent ) {
 * G_CategorizePosition
 */
 void G_CategorizePosition( edict_t *ent ) {
-	vec3_t point;
 	int cont;
 
 	//
 	// get waterlevel
 	//
-	point[0] = ent->s.origin[0];
-	point[1] = ent->s.origin[1];
-	point[2] = ent->s.origin[2] + ent->r.mins[2] + 1;
+	Vec3 point = ent->s.origin;
+	point.z += ent->r.mins.z + 1.0f;
 	cont = G_PointContents( point );
 
 	if( !( cont & MASK_WATER ) ) {
@@ -1225,14 +1191,14 @@ void G_CategorizePosition( edict_t *ent ) {
 
 	ent->watertype = cont;
 	ent->waterlevel = 1;
-	point[2] += 26;
+	point.z += 26;
 	cont = G_PointContents( point );
 	if( !( cont & MASK_WATER ) ) {
 		return;
 	}
 
 	ent->waterlevel = 2;
-	point[2] += 22;
+	point.z += 22;
 	cont = G_PointContents( point );
 	if( cont & MASK_WATER ) {
 		ent->waterlevel = 3;
@@ -1243,17 +1209,17 @@ void G_CategorizePosition( edict_t *ent ) {
 * G_DropSpawnpointToFloor
 */
 void G_DropSpawnpointToFloor( edict_t *ent ) {
-	vec3_t start, end;
+	Vec3 start, end;
 	trace_t trace;
 
-	VectorCopy( ent->s.origin, start );
-	start[2] += 16;
-	VectorCopy( ent->s.origin, end );
-	end[2] -= 16000;
+	start = ent->s.origin;
+	start.z += 16;
+	end = ent->s.origin;
+	end.z -= 16000;
 
 	G_Trace( &trace, start, playerbox_stand_mins, playerbox_stand_maxs, end, ent, MASK_PLAYERSOLID );
 	if( trace.startsolid || trace.allsolid ) {
-		Com_Printf( "Warning: %s %s spawns inside solid. Inhibited\n", ent->classname, vtos( ent->s.origin ) );
+		Com_GGPrint( "Warning: {} {} spawns inside solid. Inhibited", ent->classname, ent->s.origin );
 		G_FreeEdict( ent );
 		return;
 	}
@@ -1263,7 +1229,7 @@ void G_DropSpawnpointToFloor( edict_t *ent ) {
 	}
 
 	if( trace.fraction < 1.0f ) {
-		VectorMA( trace.endpos, 1.0f, trace.plane.normal, ent->s.origin );
+		ent->s.origin = trace.endpos + trace.plane.normal;
 	}
 }
 
@@ -1274,16 +1240,13 @@ void G_DropSpawnpointToFloor( edict_t *ent ) {
 * for laser entities for proper clipping against world leafs/clusters.
 */
 void G_SetBoundsForSpanEntity( edict_t *ent, float size ) {
-	vec3_t sizeVec;
-
-	VectorSet( sizeVec, size, size, size );
-	ClearBounds( ent->r.absmin, ent->r.absmax );
-	AddPointToBounds( ent->s.origin, ent->r.absmin, ent->r.absmax );
-	AddPointToBounds( ent->s.origin2, ent->r.absmin, ent->r.absmax );
-	VectorSubtract( ent->r.absmin, sizeVec, ent->r.absmin );
-	VectorAdd( ent->r.absmax, sizeVec, ent->r.absmax );
-	VectorSubtract( ent->r.absmin, ent->s.origin, ent->r.mins );
-	VectorSubtract( ent->r.absmax, ent->s.origin, ent->r.maxs );
+	ClearBounds( &ent->r.absmin, &ent->r.absmax );
+	AddPointToBounds( ent->s.origin, &ent->r.absmin, &ent->r.absmax );
+	AddPointToBounds( ent->s.origin2, &ent->r.absmin, &ent->r.absmax );
+	ent->r.absmin -= size;
+	ent->r.absmax += size;
+	ent->r.mins = ent->r.absmin - ent->s.origin;
+	ent->r.maxs = ent->r.absmax - ent->s.origin;
 }
 
 /*

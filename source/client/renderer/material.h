@@ -27,7 +27,7 @@ enum TCModType {
 
 struct Wave {
 	WaveFunc type;
-	float args[ 4 ];                      // offset, amplitude, phase_offset, rate
+	float args[ 4 ]; // offset, amplitude, phase_offset, rate
 };
 
 struct TCMod {

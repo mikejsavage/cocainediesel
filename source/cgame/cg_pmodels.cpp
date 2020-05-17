@@ -49,7 +49,7 @@ void CG_ResetPModels( void ) {
 
 static Mat4 EulerAnglesToMat4( float pitch, float yaw, float roll ) {
 	mat3_t axis;
-	AnglesToAxis( tv( pitch, yaw, roll ), axis );
+	AnglesToAxis( Vec3( pitch, yaw, roll ), axis );
 
 	Mat4 m = Mat4::Identity();
 
@@ -235,18 +235,24 @@ PlayerModelMetadata *CG_RegisterPlayerModel( const char *filename ) {
 * CG_MoveToTag
 * "move" tag must have an axis and origin set up. Use vec3_origin and axis_identity for "nothing"
 */
-void CG_MoveToTag( vec3_t move_origin,
+void CG_MoveToTag( Vec3 * move_origin,
 				   mat3_t move_axis,
-				   const vec3_t space_origin,
+				   Vec3 space_origin,
 				   const mat3_t space_axis,
-				   const vec3_t tag_origin,
+				   Vec3 tag_origin,
 				   const mat3_t tag_axis ) {
 	mat3_t tmpAxis;
 
-	VectorCopy( space_origin, move_origin );
+	*move_origin = space_origin;
 
-	for( int i = 0; i < 3; i++ )
-		VectorMA( move_origin, tag_origin[i], &space_axis[i * 3], move_origin );
+	for( int i = 0; i < 3; i++ ) {
+		Vec3 axis(
+			space_axis[i * 3],
+			space_axis[i * 3 + 1],
+			space_axis[i * 3 + 2]
+		);
+		*move_origin += axis * tag_origin[i];
+	}
 
 	Matrix3_Multiply( move_axis, tag_axis, tmpAxis );
 	Matrix3_Multiply( tmpAxis, space_axis, move_axis );
@@ -275,7 +281,7 @@ bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result ) {
 
 	// see if it's the view weapon
 	if( ISVIEWERENTITY( entnum ) && !cg.view.thirdperson ) {
-		VectorCopy( cg.weapon.projectionSource.origin, tag_result->origin );
+		tag_result->origin = cg.weapon.projectionSource.origin;
 		Matrix3_Copy( cg.weapon.projectionSource.axis, tag_result->axis );
 		return true;
 	}
@@ -284,7 +290,7 @@ bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result ) {
 
 	// it's a 3rd person model
 	pmodel = &cg_entPModels[entnum];
-	VectorCopy( pmodel->projectionSource.origin, tag_result->origin );
+	tag_result->origin = pmodel->projectionSource.origin;
 	Matrix3_Copy( pmodel->projectionSource.axis, tag_result->axis );
 	return true;
 }
@@ -293,21 +299,18 @@ bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result ) {
 * CG_OutlineScaleForDist
 */
 static float CG_OutlineScaleForDist( const entity_t * e, float maxdist, float scale ) {
-	float dist;
-	vec3_t dir;
-
 	// if( e->renderfx & RenderFX_WeaponModel ) {
 	// 	return 0.14f;
 	// }
 
 	// Kill if behind the view or if too far away
-	VectorSubtract( e->origin, cg.view.origin, dir );
-	dist = VectorNormalize2( dir, dir ) * cg.view.fracDistFOV;
+	Vec3 dir = e->origin - cg.view.origin;
+	float dist = Length( dir ) * cg.view.fracDistFOV; dir = Normalize( dir );
 	if( dist > maxdist ) {
 		return 0;
 	}
 
-	if( DotProduct( dir, &cg.view.axis[AXIS_FORWARD] ) < 0 ) {
+	if( Dot( dir, FromQFAxis( cg.view.axis, AXIS_FORWARD ) ) < 0 ) {
 		return 0;
 	}
 
@@ -423,19 +426,16 @@ static int CG_MoveFlagsToLowerAnimation( uint32_t moveflags ) {
 	return LEGS_STAND_IDLE;
 }
 
-static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, const vec3_t velocity ) {
+static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, Vec3 velocity ) {
 	constexpr float MOVEDIREPSILON = 0.3f;
 	constexpr float WALKEPSILON = 5.0f;
 	constexpr float RUNEPSILON = 220.0f;
 
 	uint32_t moveflags = 0;
-	vec3_t movedir;
-	vec3_t hvel;
 	mat3_t viewaxis;
-	float xyspeedcheck;
 	int waterlevel;
-	vec3_t mins, maxs;
-	vec3_t point;
+	Vec3 mins, maxs;
+	Vec3 point;
 	trace_t trace;
 
 	if( state->type == ET_CORPSE ) {
@@ -446,21 +446,20 @@ static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, const ve
 		return a;
 	}
 
-	CG_BBoxForEntityState( state, mins, maxs );
+	CG_BBoxForEntityState( state, &mins, &maxs );
 
 	// determine if player is at ground, for walking or falling
 	// this is not like having groundEntity, we are more generous with
 	// the tracing size here to include small steps
-	point[0] = state->origin[0];
-	point[1] = state->origin[1];
-	point[2] = state->origin[2] - ( 1.6 * STEPSIZE );
+	point = state->origin;
+	point.z -= 1.6 * STEPSIZE;
 	client_gs.api.Trace( &trace, state->origin, mins, maxs, point, state->number, MASK_PLAYERSOLID, 0 );
 	if( trace.ent == -1 || ( trace.fraction < 1.0f && !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
 		moveflags |= ANIMMOVE_AIR;
 	}
 
 	// crouching : fixme? : it assumes the entity is using the player box sizes
-	// if( !VectorCompare( maxs, playerbox_stand_maxs ) ) {
+	// if( maxs != playerbox_stand_maxs ) {
 	// 	moveflags |= ANIMMOVE_DUCK;
 	// }
 
@@ -472,22 +471,21 @@ static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, const ve
 
 	//find out what are the base movements the model is doing
 
-	hvel[0] = velocity[0];
-	hvel[1] = velocity[1];
-	hvel[2] = 0;
-	xyspeedcheck = VectorNormalize2( hvel, movedir );
+	Vec2 hvel = velocity.xy();
+	float xyspeedcheck = Length( hvel );
+	Vec3 movedir = Vec3( SafeNormalize( hvel ), 0.0f );
 	if( xyspeedcheck > WALKEPSILON ) {
-		Matrix3_FromAngles( tv( 0, state->angles[YAW], 0 ), viewaxis );
+		Matrix3_FromAngles( Vec3( 0, state->angles.y, 0 ), viewaxis );
 
 		// if it's moving to where is looking, it's moving forward
-		if( DotProduct( movedir, &viewaxis[AXIS_RIGHT] ) > MOVEDIREPSILON ) {
+		if( Dot( movedir, FromQFAxis( viewaxis, AXIS_RIGHT ) ) > MOVEDIREPSILON ) {
 			moveflags |= ANIMMOVE_RIGHT;
-		} else if( -DotProduct( movedir, &viewaxis[AXIS_RIGHT] ) > MOVEDIREPSILON ) {
+		} else if( -Dot( movedir, FromQFAxis( viewaxis, AXIS_RIGHT ) ) > MOVEDIREPSILON ) {
 			moveflags |= ANIMMOVE_LEFT;
 		}
-		if( DotProduct( movedir, &viewaxis[AXIS_FORWARD] ) > MOVEDIREPSILON ) {
+		if( Dot( movedir, FromQFAxis( viewaxis, AXIS_FORWARD ) ) > MOVEDIREPSILON ) {
 			moveflags |= ANIMMOVE_FRONT;
-		} else if( -DotProduct( movedir, &viewaxis[AXIS_FORWARD] ) > MOVEDIREPSILON ) {
+		} else if( -Dot( movedir, FromQFAxis( viewaxis, AXIS_FORWARD ) ) > MOVEDIREPSILON ) {
 			moveflags |= ANIMMOVE_BACK;
 		}
 
@@ -597,58 +595,57 @@ void CG_PModel_AddAnimation( int entNum, int loweranim, int upperanim, int heada
 
 void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
 	mat3_t axis;
-	vec3_t hvelocity;
 	float speed;
-	vec3_t leanAngles[PMODEL_PARTS];
+	Vec3 leanAngles[PMODEL_PARTS];
 
 	memset( leanAngles, 0, sizeof( leanAngles ) );
 
-	hvelocity[0] = cent->animVelocity[0];
-	hvelocity[1] = cent->animVelocity[1];
-	hvelocity[2] = 0;
+	Vec3 hvelocity = cent->animVelocity;
+	hvelocity.z = 0.0f;
 
 	float scale = 0.04f;
 
-	if( ( speed = VectorLength( hvelocity ) ) * scale > 1.0f ) {
-		AnglesToAxis( tv( 0, cent->current.angles[YAW], 0 ), axis );
+	if( ( speed = Length( hvelocity ) ) * scale > 1.0f ) {
+		AnglesToAxis( Vec3( 0, cent->current.angles.y, 0 ), axis );
 
-		float front = scale * DotProduct( hvelocity, &axis[AXIS_FORWARD] );
+		float front = scale * Dot( hvelocity, FromQFAxis( axis, AXIS_FORWARD ) );
 		if( front < -0.1 || front > 0.1 ) {
-			leanAngles[LOWER][PITCH] += front;
-			leanAngles[UPPER][PITCH] -= front * 0.25;
-			leanAngles[HEAD][PITCH] -= front * 0.5;
+			leanAngles[LOWER].x += front;
+			leanAngles[UPPER].x -= front * 0.25;
+			leanAngles[HEAD].x -= front * 0.5;
 		}
 
 		float aside = ( front * 0.001f ) * cent->yawVelocity;
 
 		if( aside ) {
 			float asidescale = 75;
-			leanAngles[LOWER][ROLL] -= aside * 0.5 * asidescale;
-			leanAngles[UPPER][ROLL] += aside * 1.75 * asidescale;
-			leanAngles[HEAD][ROLL] -= aside * 0.35 * asidescale;
+			leanAngles[LOWER].z -= aside * 0.5 * asidescale;
+			leanAngles[UPPER].z += aside * 1.75 * asidescale;
+			leanAngles[HEAD].z -= aside * 0.35 * asidescale;
 		}
 
-		float side = scale * DotProduct( hvelocity, &axis[AXIS_RIGHT] );
+		float side = scale * Dot( hvelocity, FromQFAxis( axis, AXIS_RIGHT ) );
 
 		if( side < -1 || side > 1 ) {
-			leanAngles[LOWER][ROLL] -= side * 0.5;
-			leanAngles[UPPER][ROLL] += side * 0.5;
-			leanAngles[HEAD][ROLL] += side * 0.25;
+			leanAngles[LOWER].z -= side * 0.5;
+			leanAngles[UPPER].z += side * 0.5;
+			leanAngles[HEAD].z += side * 0.25;
 		}
 
-		leanAngles[LOWER][PITCH] = Clamp( -45.0f, leanAngles[LOWER][PITCH], 45.0f );
-		leanAngles[LOWER][ROLL] = Clamp( -15.0f, leanAngles[LOWER][ROLL], 15.0f );
+		leanAngles[LOWER].x = Clamp( -45.0f, leanAngles[LOWER].x, 45.0f );
+		leanAngles[LOWER].z = Clamp( -15.0f, leanAngles[LOWER].z, 15.0f );
 
-		leanAngles[UPPER][PITCH] = Clamp( -45.0f, leanAngles[UPPER][PITCH], 45.0f );
-		leanAngles[UPPER][ROLL] = Clamp( -20.0f, leanAngles[UPPER][ROLL], 20.0f );
+		leanAngles[UPPER].x = Clamp( -45.0f, leanAngles[UPPER].x, 45.0f );
+		leanAngles[UPPER].z = Clamp( -20.0f, leanAngles[UPPER].z, 20.0f );
 
-		leanAngles[HEAD][PITCH] = Clamp( -45.0f, leanAngles[HEAD][PITCH], 45.0f );
-		leanAngles[HEAD][ROLL] = Clamp( -20.0f, leanAngles[HEAD][ROLL], 20.0f );
+		leanAngles[HEAD].x = Clamp( -45.0f, leanAngles[HEAD].x, 45.0f );
+		leanAngles[HEAD].z = Clamp( -20.0f, leanAngles[HEAD].z, 20.0f );
 	}
 
-	for( int j = LOWER; j < PMODEL_PARTS; j++ ) {
-		for( int i = 0; i < 3; i++ )
-			pmodel->angles[i][j] = AngleNormalize180( pmodel->angles[i][j] + leanAngles[i][j] );
+	for( int i = LOWER; i < PMODEL_PARTS; i++ ) {
+		pmodel->angles[i].x = AngleNormalize180( pmodel->angles[i].x + leanAngles[i].x );
+		pmodel->angles[i].y = AngleNormalize180( pmodel->angles[i].y + leanAngles[i].y );
+		pmodel->angles[i].z = AngleNormalize180( pmodel->angles[i].z + leanAngles[i].z );
 	}
 }
 
@@ -683,33 +680,28 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 
 	// update parts rotation angles
 	for( int i = LOWER; i < PMODEL_PARTS; i++ )
-		VectorCopy( pmodel->angles[i], pmodel->oldangles[i] );
+		pmodel->oldangles[i] = pmodel->angles[i];
 
 	if( cent->current.type == ET_CORPSE ) {
-		VectorClear( cent->animVelocity );
+		cent->animVelocity = Vec3( 0.0f );
 		cent->yawVelocity = 0;
 	} else {
 		// update smoothed velocities used for animations and leaning angles
 		// rotational yaw velocity
-		float adelta = AngleDelta( cent->current.angles[YAW], cent->prev.angles[YAW] );
+		float adelta = AngleDelta( cent->current.angles.y, cent->prev.angles.y );
 		adelta = Clamp( -35.0f, adelta, 35.0f );
 
 		// smooth a velocity vector between the last snaps
-		cent->lastVelocities[cg.frame.serverFrame & 3][0] = cent->velocity[0];
-		cent->lastVelocities[cg.frame.serverFrame & 3][1] = cent->velocity[1];
-		cent->lastVelocities[cg.frame.serverFrame & 3][2] = 0;
-		cent->lastVelocities[cg.frame.serverFrame & 3][3] = adelta;
+		cent->lastVelocities[cg.frame.serverFrame & 3] = Vec4( cent->velocity.xy(), 0.0f, adelta );
 		cent->lastVelocitiesFrames[cg.frame.serverFrame & 3] = cg.frame.serverFrame;
 
 		int count = 0;
-		VectorClear( cent->animVelocity );
+		cent->animVelocity = Vec3( 0.0f );
 		cent->yawVelocity = 0;
 		for( int i = cg.frame.serverFrame; ( i >= 0 ) && ( count < 3 ) && ( i == cent->lastVelocitiesFrames[i & 3] ); i-- ) {
 			count++;
-			cent->animVelocity[0] += cent->lastVelocities[i & 3][0];
-			cent->animVelocity[1] += cent->lastVelocities[i & 3][1];
-			cent->animVelocity[2] += cent->lastVelocities[i & 3][2];
-			cent->yawVelocity += cent->lastVelocities[i & 3][3];
+			cent->animVelocity += cent->lastVelocities[i & 3].xyz();
+			cent->yawVelocity += cent->lastVelocities[i & 3].w;
 		}
 
 		// safety/static code analysis check
@@ -717,7 +709,7 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 			count = 1;
 		}
 
-		VectorScale( cent->animVelocity, 1.0f / (float)count, cent->animVelocity );
+		cent->animVelocity = cent->animVelocity * ( 1.0f / (float)count );
 		cent->yawVelocity /= (float)count;
 
 
@@ -726,29 +718,29 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 		//
 
 		// lower has horizontal direction, and zeroes vertical
-		pmodel->angles[LOWER][PITCH] = 0;
-		pmodel->angles[LOWER][YAW] = cent->current.angles[YAW];
-		pmodel->angles[LOWER][ROLL] = 0;
+		pmodel->angles[LOWER].x = 0;
+		pmodel->angles[LOWER].y = cent->current.angles.y;
+		pmodel->angles[LOWER].z = 0;
 
 		// upper marks vertical direction (total angle, so it fits aim)
-		if( cent->current.angles[PITCH] > 180 ) {
-			pmodel->angles[UPPER][PITCH] = ( -360 + cent->current.angles[PITCH] );
+		if( cent->current.angles.x > 180 ) {
+			pmodel->angles[UPPER].x = ( -360 + cent->current.angles.x );
 		} else {
-			pmodel->angles[UPPER][PITCH] = cent->current.angles[PITCH];
+			pmodel->angles[UPPER].x = cent->current.angles.x;
 		}
 
-		pmodel->angles[UPPER][YAW] = 0;
-		pmodel->angles[UPPER][ROLL] = 0;
+		pmodel->angles[UPPER].y = 0;
+		pmodel->angles[UPPER].z = 0;
 
 		// head adds a fraction of vertical angle again
-		if( cent->current.angles[PITCH] > 180 ) {
-			pmodel->angles[HEAD][PITCH] = ( -360 + cent->current.angles[PITCH] ) / 3;
+		if( cent->current.angles.x > 180 ) {
+			pmodel->angles[HEAD].x = ( -360 + cent->current.angles.x ) / 3;
 		} else {
-			pmodel->angles[HEAD][PITCH] = cent->current.angles[PITCH] / 3;
+			pmodel->angles[HEAD].x = cent->current.angles.x / 3;
 		}
 
-		pmodel->angles[HEAD][YAW] = 0;
-		pmodel->angles[HEAD][ROLL] = 0;
+		pmodel->angles[HEAD].y = 0;
+		pmodel->angles[HEAD].z = 0;
 
 		CG_PModel_LeanAngles( cent, pmodel );
 	}
@@ -757,7 +749,7 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	// Spawning (teleported bit) forces nobacklerp and the interruption of EVENT_CHANNEL animations
 	if( cent->current.teleported ) {
 		for( int i = LOWER; i < PMODEL_PARTS; i++ )
-			VectorCopy( pmodel->angles[i], pmodel->oldangles[i] );
+			pmodel->oldangles[i] = pmodel->angles[i];
 	}
 
 	CG_UpdatePModelAnimations( cent );
@@ -791,22 +783,21 @@ void CG_DrawPlayer( centity_t *cent ) {
 	// for view and shadow accuracy
 
 	if( ISVIEWERENTITY( cent->current.number ) ) {
-		vec3_t origin;
+		Vec3 origin;
 
 		if( cg.view.playerPrediction ) {
 			float backlerp = 1.0f - cg.lerpfrac;
 
-			for( int i = 0; i < 3; i++ )
-				origin[i] = cg.predictedPlayerState.pmove.origin[i] - backlerp * cg.predictionError[i];
+			origin = cg.predictedPlayerState.pmove.origin - backlerp * cg.predictionError;
 
-			CG_ViewSmoothPredictedSteps( origin );
+			CG_ViewSmoothPredictedSteps( &origin );
 		}
 		else {
-			VectorCopy( cent->ent.origin, origin );
+			origin = cent->ent.origin;
 		}
 
-		VectorCopy( origin, cent->ent.origin );
-		VectorCopy( origin, cent->ent.origin2 );
+		cent->ent.origin = origin;
+		cent->ent.origin2 = origin;
 	}
 
 	TempAllocator temp = cls.frame_arena.temp();
@@ -820,18 +811,16 @@ void CG_DrawPlayer( centity_t *cent ) {
 	// add skeleton effects (pose is unmounted yet)
 	bool corpse = cent->current.type == ET_CORPSE;
 	if( !corpse ) {
-		vec3_t tmpangles;
+		Vec3 tmpangles;
 		// if it's our client use the predicted angles
 		if( cg.view.playerPrediction && ISVIEWERENTITY( cent->current.number ) ) {
-			tmpangles[ YAW ] = cg.predictedPlayerState.viewangles[YAW];
-			tmpangles[ PITCH ] = 0;
-			tmpangles[ ROLL ] = 0;
+			tmpangles.y = cg.predictedPlayerState.viewangles.y;
+			tmpangles.x = 0;
+			tmpangles.z = 0;
 		}
 		else {
 			// apply interpolated LOWER angles to entity
-			for( int i = 0; i < 3; i++ ) {
-				tmpangles[i] = LerpAngle( pmodel->oldangles[LOWER][i], pmodel->angles[LOWER][i], cg.lerpfrac );
-			}
+			tmpangles = LerpAngles( pmodel->oldangles[LOWER], cg.lerpfrac, pmodel->angles[LOWER] );
 		}
 
 		AnglesToAxis( tmpangles, cent->ent.axis );
@@ -839,10 +828,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 		// apply UPPER and HEAD angles to rotator joints
 		// also add rotations from velocity leaning
 		{
-			EulerDegrees3 angles;
-			angles.pitch = LerpAngle( pmodel->oldangles[ UPPER ][ PITCH ], pmodel->angles[ UPPER ][ PITCH ], cg.lerpfrac ) / 2.0f;
-			angles.yaw = LerpAngle( pmodel->oldangles[ UPPER ][ YAW ], pmodel->angles[ UPPER ][ YAW ], cg.lerpfrac ) / 2.0f;
-			angles.roll = LerpAngle( pmodel->oldangles[ UPPER ][ ROLL ], pmodel->angles[ UPPER ][ ROLL ], cg.lerpfrac ) / 2.0f;
+			EulerDegrees3 angles = EulerDegrees3( LerpAngles( pmodel->oldangles[ UPPER ], cg.lerpfrac, pmodel->angles[ UPPER ] ) * 0.5f );
 
 			Quaternion q = EulerAnglesToQuaternion( angles );
 			lower[ meta->upper_rotator_joints[ 0 ] ].rotation *= q;
@@ -850,11 +836,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 		}
 
 		{
-			EulerDegrees3 angles;
-			angles.pitch = LerpAngle( pmodel->oldangles[ HEAD ][ PITCH ], pmodel->angles[ HEAD ][ PITCH ], cg.lerpfrac );
-			angles.yaw = LerpAngle( pmodel->oldangles[ HEAD ][ YAW ], pmodel->angles[ HEAD ][ YAW ], cg.lerpfrac );
-			angles.roll = LerpAngle( pmodel->oldangles[ HEAD ][ ROLL ], pmodel->angles[ HEAD ][ ROLL ], cg.lerpfrac );
-
+			EulerDegrees3 angles = EulerDegrees3( LerpAngles( pmodel->oldangles[ HEAD ], cg.lerpfrac, pmodel->angles[ HEAD ] ) );
 			lower[ meta->head_rotator_joint ].rotation *= EulerAnglesToQuaternion( angles );
 		}
 	}
@@ -863,7 +845,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 
 	// CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
 
-	Mat4 transform = FromQFAxisAndOrigin( cent->ent.axis, cent->ent.origin );
+	Mat4 transform = FromAxisAndOrigin( cent->ent.axis, cent->ent.origin );
 
 	Vec4 color = CG_TeamColorVec4( cent->current.team );
 	if( corpse ) {

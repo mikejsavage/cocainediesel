@@ -301,7 +301,7 @@ static void CG_UpdatePointedNum( void ) {
 */
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border ) {
 	// static vec4_t alphagreen = { 0, 1, 0, 0 }, alphared = { 1, 0, 0, 0 }, alphayellow = { 1, 1, 0, 0 }, alphamagenta = { 1, 0, 1, 1 }, alphagrey = { 0.85, 0.85, 0.85, 1 };
-	vec3_t dir, drawOrigin;
+	Vec3 dir, drawOrigin;
 	float dist, fadeFrac;
 	trace_t trace;
 
@@ -335,10 +335,11 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 		}
 
 		// Kill if behind the view
-		VectorSubtract( cent->ent.origin, cg.view.origin, dir );
-		dist = VectorNormalize( dir ) * cg.view.fracDistFOV;
+		dir = cent->ent.origin - cg.view.origin;
+		dist = Length( dir ) * cg.view.fracDistFOV;
+		dir = Normalize( dir );
 
-		if( DotProduct( dir, &cg.view.axis[AXIS_FORWARD] ) < 0 ) {
+		if( Dot( dir, FromQFAxis( cg.view.axis, AXIS_FORWARD ) ) < 0 ) {
 			continue;
 		}
 
@@ -362,14 +363,14 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			continue;
 		}
 
-		CG_Trace( &trace, cg.view.origin, vec3_origin, vec3_origin, cent->ent.origin, cg.predictedPlayerState.POVnum, MASK_OPAQUE );
+		CG_Trace( &trace, cg.view.origin, Vec3( 0.0f ), Vec3( 0.0f ), cent->ent.origin, cg.predictedPlayerState.POVnum, MASK_OPAQUE );
 		if( trace.fraction < 1.0f && trace.ent != cent->current.number ) {
 			continue;
 		}
 
-		VectorSet( drawOrigin, cent->ent.origin[0], cent->ent.origin[1], cent->ent.origin[2] + playerbox_stand_maxs[2] + 8 );
+		drawOrigin = Vec3( cent->ent.origin.x, cent->ent.origin.y, cent->ent.origin.z + playerbox_stand_maxs.z + 8 );
 
-		Vec2 coords = WorldToScreen( FromQF3( drawOrigin ) );
+		Vec2 coords = WorldToScreen( drawOrigin );
 		if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {
 			continue;
 		}
@@ -412,7 +413,7 @@ void CG_AddDamageNumber( SyncEntityState * ent, u64 parm ) {
 	dn->obituary = random_select( &cls.rng, mini_obituaries );
 
 	float distance_jitter = 4;
-	dn->origin = FromQF3( ent->origin );
+	dn->origin = ent->origin;
 	dn->origin.x += random_float11( &cls.rng ) * distance_jitter;
 	dn->origin.y += random_float11( &cls.rng ) * distance_jitter;
 	dn->origin.z += 48;
@@ -496,14 +497,14 @@ void CG_AddBomb( centity_t * cent ) {
 	}
 
 	bomb.team = cent->current.team;
-	bomb.origin = FromQF3( cent->current.origin );
+	bomb.origin = cent->current.origin;
 }
 
 void CG_AddBombSite( centity_t * cent ) {
 	assert( num_bomb_sites < ARRAY_COUNT( bomb_sites ) );
 
 	BombSite * site = &bomb_sites[ num_bomb_sites ];
-	site->origin = FromQF3( cent->current.origin );
+	site->origin = cent->current.origin;
 	site->team = cent->current.team;
 	site->letter = cent->current.counterNum;
 

@@ -232,7 +232,7 @@ struct BSPModelVertex {
 	Vec2 uv;
 };
 
-BSPModelVertex Lerp( const BSPModelVertex & a, float t, const BSPModelVertex & b ) {
+static BSPModelVertex Lerp( const BSPModelVertex & a, float t, const BSPModelVertex & b ) {
 	BSPModelVertex res;
 	res.position = Lerp( a.position, t, b.position );
 	res.normal = Normalize( Lerp( a.normal, t, b.normal ) );

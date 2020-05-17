@@ -189,48 +189,6 @@ short ShortSwap( short l ) {
 }
 
 /*
-* TempVector
-*
-* This is just a convenience function
-* for making temporary vectors for function calls
-*/
-float *tv( float x, float y, float z ) {
-	static int index;
-	static float vecs[8][3];
-	float *v;
-
-	// use an array so that multiple tempvectors won't collide
-	// for a while
-	v = vecs[index];
-	index = ( index + 1 ) & 7;
-
-	v[0] = x;
-	v[1] = y;
-	v[2] = z;
-
-	return v;
-}
-
-/*
-* VectorToString
-*
-* This is just a convenience function for printing vectors
-*/
-char *vtos( float v[3] ) {
-	static int index;
-	static char str[8][32];
-	char *s;
-
-	// use an array so that multiple vtos won't collide
-	s = str[index];
-	index = ( index + 1 ) & 7;
-
-	snprintf( s, 32, "(%+6.3f %+6.3f %+6.3f)", v[0], v[1], v[2] );
-
-	return s;
-}
-
-/*
 * va_r
 *
 * does a varargs printf into a temp buffer, so I don't need to have

@@ -24,184 +24,182 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "qcommon/rng.h"
 
-//============================================================================
-
-static const vec3_t bytedirs[NUMVERTEXNORMALS] = {
-	{ -0.525731f, 0.000000f, 0.850651f },
-	{ -0.442863f, 0.238856f, 0.864188f },
-	{ -0.295242f, 0.000000f, 0.955423f },
-	{ -0.309017f, 0.500000f, 0.809017f },
-	{ -0.162460f, 0.262866f, 0.951056f },
-	{ 0.000000f, 0.000000f, 1.000000f },
-	{ 0.000000f, 0.850651f, 0.525731f },
-	{ -0.147621f, 0.716567f, 0.681718f },
-	{ 0.147621f, 0.716567f, 0.681718f },
-	{ 0.000000f, 0.525731f, 0.850651f },
-	{ 0.309017f, 0.500000f, 0.809017f },
-	{ 0.525731f, 0.000000f, 0.850651f },
-	{ 0.295242f, 0.000000f, 0.955423f },
-	{ 0.442863f, 0.238856f, 0.864188f },
-	{ 0.162460f, 0.262866f, 0.951056f },
-	{ -0.681718f, 0.147621f, 0.716567f },
-	{ -0.809017f, 0.309017f, 0.500000f },
-	{ -0.587785f, 0.425325f, 0.688191f },
-	{ -0.850651f, 0.525731f, 0.000000f },
-	{ -0.864188f, 0.442863f, 0.238856f },
-	{ -0.716567f, 0.681718f, 0.147621f },
-	{ -0.688191f, 0.587785f, 0.425325f },
-	{ -0.500000f, 0.809017f, 0.309017f },
-	{ -0.238856f, 0.864188f, 0.442863f },
-	{ -0.425325f, 0.688191f, 0.587785f },
-	{ -0.716567f, 0.681718f, -0.147621f },
-	{ -0.500000f, 0.809017f, -0.309017f },
-	{ -0.525731f, 0.850651f, 0.000000f },
-	{ 0.000000f, 0.850651f, -0.525731f },
-	{ -0.238856f, 0.864188f, -0.442863f },
-	{ 0.000000f, 0.955423f, -0.295242f },
-	{ -0.262866f, 0.951056f, -0.162460f },
-	{ 0.000000f, 1.000000f, 0.000000f },
-	{ 0.000000f, 0.955423f, 0.295242f },
-	{ -0.262866f, 0.951056f, 0.162460f },
-	{ 0.238856f, 0.864188f, 0.442863f },
-	{ 0.262866f, 0.951056f, 0.162460f },
-	{ 0.500000f, 0.809017f, 0.309017f },
-	{ 0.238856f, 0.864188f, -0.442863f },
-	{ 0.262866f, 0.951056f, -0.162460f },
-	{ 0.500000f, 0.809017f, -0.309017f },
-	{ 0.850651f, 0.525731f, 0.000000f },
-	{ 0.716567f, 0.681718f, 0.147621f },
-	{ 0.716567f, 0.681718f, -0.147621f },
-	{ 0.525731f, 0.850651f, 0.000000f },
-	{ 0.425325f, 0.688191f, 0.587785f },
-	{ 0.864188f, 0.442863f, 0.238856f },
-	{ 0.688191f, 0.587785f, 0.425325f },
-	{ 0.809017f, 0.309017f, 0.500000f },
-	{ 0.681718f, 0.147621f, 0.716567f },
-	{ 0.587785f, 0.425325f, 0.688191f },
-	{ 0.955423f, 0.295242f, 0.000000f },
-	{ 1.000000f, 0.000000f, 0.000000f },
-	{ 0.951056f, 0.162460f, 0.262866f },
-	{ 0.850651f, -0.525731f, 0.000000f },
-	{ 0.955423f, -0.295242f, 0.000000f },
-	{ 0.864188f, -0.442863f, 0.238856f },
-	{ 0.951056f, -0.162460f, 0.262866f },
-	{ 0.809017f, -0.309017f, 0.500000f },
-	{ 0.681718f, -0.147621f, 0.716567f },
-	{ 0.850651f, 0.000000f, 0.525731f },
-	{ 0.864188f, 0.442863f, -0.238856f },
-	{ 0.809017f, 0.309017f, -0.500000f },
-	{ 0.951056f, 0.162460f, -0.262866f },
-	{ 0.525731f, 0.000000f, -0.850651f },
-	{ 0.681718f, 0.147621f, -0.716567f },
-	{ 0.681718f, -0.147621f, -0.716567f },
-	{ 0.850651f, 0.000000f, -0.525731f },
-	{ 0.809017f, -0.309017f, -0.500000f },
-	{ 0.864188f, -0.442863f, -0.238856f },
-	{ 0.951056f, -0.162460f, -0.262866f },
-	{ 0.147621f, 0.716567f, -0.681718f },
-	{ 0.309017f, 0.500000f, -0.809017f },
-	{ 0.425325f, 0.688191f, -0.587785f },
-	{ 0.442863f, 0.238856f, -0.864188f },
-	{ 0.587785f, 0.425325f, -0.688191f },
-	{ 0.688191f, 0.587785f, -0.425325f },
-	{ -0.147621f, 0.716567f, -0.681718f },
-	{ -0.309017f, 0.500000f, -0.809017f },
-	{ 0.000000f, 0.525731f, -0.850651f },
-	{ -0.525731f, 0.000000f, -0.850651f },
-	{ -0.442863f, 0.238856f, -0.864188f },
-	{ -0.295242f, 0.000000f, -0.955423f },
-	{ -0.162460f, 0.262866f, -0.951056f },
-	{ 0.000000f, 0.000000f, -1.000000f },
-	{ 0.295242f, 0.000000f, -0.955423f },
-	{ 0.162460f, 0.262866f, -0.951056f },
-	{ -0.442863f, -0.238856f, -0.864188f },
-	{ -0.309017f, -0.500000f, -0.809017f },
-	{ -0.162460f, -0.262866f, -0.951056f },
-	{ 0.000000f, -0.850651f, -0.525731f },
-	{ -0.147621f, -0.716567f, -0.681718f },
-	{ 0.147621f, -0.716567f, -0.681718f },
-	{ 0.000000f, -0.525731f, -0.850651f },
-	{ 0.309017f, -0.500000f, -0.809017f },
-	{ 0.442863f, -0.238856f, -0.864188f },
-	{ 0.162460f, -0.262866f, -0.951056f },
-	{ 0.238856f, -0.864188f, -0.442863f },
-	{ 0.500000f, -0.809017f, -0.309017f },
-	{ 0.425325f, -0.688191f, -0.587785f },
-	{ 0.716567f, -0.681718f, -0.147621f },
-	{ 0.688191f, -0.587785f, -0.425325f },
-	{ 0.587785f, -0.425325f, -0.688191f },
-	{ 0.000000f, -0.955423f, -0.295242f },
-	{ 0.000000f, -1.000000f, 0.000000f },
-	{ 0.262866f, -0.951056f, -0.162460f },
-	{ 0.000000f, -0.850651f, 0.525731f },
-	{ 0.000000f, -0.955423f, 0.295242f },
-	{ 0.238856f, -0.864188f, 0.442863f },
-	{ 0.262866f, -0.951056f, 0.162460f },
-	{ 0.500000f, -0.809017f, 0.309017f },
-	{ 0.716567f, -0.681718f, 0.147621f },
-	{ 0.525731f, -0.850651f, 0.000000f },
-	{ -0.238856f, -0.864188f, -0.442863f },
-	{ -0.500000f, -0.809017f, -0.309017f },
-	{ -0.262866f, -0.951056f, -0.162460f },
-	{ -0.850651f, -0.525731f, 0.000000f },
-	{ -0.716567f, -0.681718f, -0.147621f },
-	{ -0.716567f, -0.681718f, 0.147621f },
-	{ -0.525731f, -0.850651f, 0.000000f },
-	{ -0.500000f, -0.809017f, 0.309017f },
-	{ -0.238856f, -0.864188f, 0.442863f },
-	{ -0.262866f, -0.951056f, 0.162460f },
-	{ -0.864188f, -0.442863f, 0.238856f },
-	{ -0.809017f, -0.309017f, 0.500000f },
-	{ -0.688191f, -0.587785f, 0.425325f },
-	{ -0.681718f, -0.147621f, 0.716567f },
-	{ -0.442863f, -0.238856f, 0.864188f },
-	{ -0.587785f, -0.425325f, 0.688191f },
-	{ -0.309017f, -0.500000f, 0.809017f },
-	{ -0.147621f, -0.716567f, 0.681718f },
-	{ -0.425325f, -0.688191f, 0.587785f },
-	{ -0.162460f, -0.262866f, 0.951056f },
-	{ 0.442863f, -0.238856f, 0.864188f },
-	{ 0.162460f, -0.262866f, 0.951056f },
-	{ 0.309017f, -0.500000f, 0.809017f },
-	{ 0.147621f, -0.716567f, 0.681718f },
-	{ 0.000000f, -0.525731f, 0.850651f },
-	{ 0.425325f, -0.688191f, 0.587785f },
-	{ 0.587785f, -0.425325f, 0.688191f },
-	{ 0.688191f, -0.587785f, 0.425325f },
-	{ -0.955423f, 0.295242f, 0.000000f },
-	{ -0.951056f, 0.162460f, 0.262866f },
-	{ -1.000000f, 0.000000f, 0.000000f },
-	{ -0.850651f, 0.000000f, 0.525731f },
-	{ -0.955423f, -0.295242f, 0.000000f },
-	{ -0.951056f, -0.162460f, 0.262866f },
-	{ -0.864188f, 0.442863f, -0.238856f },
-	{ -0.951056f, 0.162460f, -0.262866f },
-	{ -0.809017f, 0.309017f, -0.500000f },
-	{ -0.864188f, -0.442863f, -0.238856f },
-	{ -0.951056f, -0.162460f, -0.262866f },
-	{ -0.809017f, -0.309017f, -0.500000f },
-	{ -0.681718f, 0.147621f, -0.716567f },
-	{ -0.681718f, -0.147621f, -0.716567f },
-	{ -0.850651f, 0.000000f, -0.525731f },
-	{ -0.688191f, 0.587785f, -0.425325f },
-	{ -0.587785f, 0.425325f, -0.688191f },
-	{ -0.425325f, 0.688191f, -0.587785f },
-	{ -0.425325f, -0.688191f, -0.587785f },
-	{ -0.587785f, -0.425325f, -0.688191f },
-	{ -0.688191f, -0.587785f, -0.425325f },
+static const Vec3 bytedirs[NUMVERTEXNORMALS] = {
+	Vec3( -0.525731f, 0.000000f, 0.850651f ),
+	Vec3( -0.442863f, 0.238856f, 0.864188f ),
+	Vec3( -0.295242f, 0.000000f, 0.955423f ),
+	Vec3( -0.309017f, 0.500000f, 0.809017f ),
+	Vec3( -0.162460f, 0.262866f, 0.951056f ),
+	Vec3( 0.000000f, 0.000000f, 1.000000f ),
+	Vec3( 0.000000f, 0.850651f, 0.525731f ),
+	Vec3( -0.147621f, 0.716567f, 0.681718f ),
+	Vec3( 0.147621f, 0.716567f, 0.681718f ),
+	Vec3( 0.000000f, 0.525731f, 0.850651f ),
+	Vec3( 0.309017f, 0.500000f, 0.809017f ),
+	Vec3( 0.525731f, 0.000000f, 0.850651f ),
+	Vec3( 0.295242f, 0.000000f, 0.955423f ),
+	Vec3( 0.442863f, 0.238856f, 0.864188f ),
+	Vec3( 0.162460f, 0.262866f, 0.951056f ),
+	Vec3( -0.681718f, 0.147621f, 0.716567f ),
+	Vec3( -0.809017f, 0.309017f, 0.500000f ),
+	Vec3( -0.587785f, 0.425325f, 0.688191f ),
+	Vec3( -0.850651f, 0.525731f, 0.000000f ),
+	Vec3( -0.864188f, 0.442863f, 0.238856f ),
+	Vec3( -0.716567f, 0.681718f, 0.147621f ),
+	Vec3( -0.688191f, 0.587785f, 0.425325f ),
+	Vec3( -0.500000f, 0.809017f, 0.309017f ),
+	Vec3( -0.238856f, 0.864188f, 0.442863f ),
+	Vec3( -0.425325f, 0.688191f, 0.587785f ),
+	Vec3( -0.716567f, 0.681718f, -0.147621f ),
+	Vec3( -0.500000f, 0.809017f, -0.309017f ),
+	Vec3( -0.525731f, 0.850651f, 0.000000f ),
+	Vec3( 0.000000f, 0.850651f, -0.525731f ),
+	Vec3( -0.238856f, 0.864188f, -0.442863f ),
+	Vec3( 0.000000f, 0.955423f, -0.295242f ),
+	Vec3( -0.262866f, 0.951056f, -0.162460f ),
+	Vec3( 0.000000f, 1.000000f, 0.000000f ),
+	Vec3( 0.000000f, 0.955423f, 0.295242f ),
+	Vec3( -0.262866f, 0.951056f, 0.162460f ),
+	Vec3( 0.238856f, 0.864188f, 0.442863f ),
+	Vec3( 0.262866f, 0.951056f, 0.162460f ),
+	Vec3( 0.500000f, 0.809017f, 0.309017f ),
+	Vec3( 0.238856f, 0.864188f, -0.442863f ),
+	Vec3( 0.262866f, 0.951056f, -0.162460f ),
+	Vec3( 0.500000f, 0.809017f, -0.309017f ),
+	Vec3( 0.850651f, 0.525731f, 0.000000f ),
+	Vec3( 0.716567f, 0.681718f, 0.147621f ),
+	Vec3( 0.716567f, 0.681718f, -0.147621f ),
+	Vec3( 0.525731f, 0.850651f, 0.000000f ),
+	Vec3( 0.425325f, 0.688191f, 0.587785f ),
+	Vec3( 0.864188f, 0.442863f, 0.238856f ),
+	Vec3( 0.688191f, 0.587785f, 0.425325f ),
+	Vec3( 0.809017f, 0.309017f, 0.500000f ),
+	Vec3( 0.681718f, 0.147621f, 0.716567f ),
+	Vec3( 0.587785f, 0.425325f, 0.688191f ),
+	Vec3( 0.955423f, 0.295242f, 0.000000f ),
+	Vec3( 1.000000f, 0.000000f, 0.000000f ),
+	Vec3( 0.951056f, 0.162460f, 0.262866f ),
+	Vec3( 0.850651f, -0.525731f, 0.000000f ),
+	Vec3( 0.955423f, -0.295242f, 0.000000f ),
+	Vec3( 0.864188f, -0.442863f, 0.238856f ),
+	Vec3( 0.951056f, -0.162460f, 0.262866f ),
+	Vec3( 0.809017f, -0.309017f, 0.500000f ),
+	Vec3( 0.681718f, -0.147621f, 0.716567f ),
+	Vec3( 0.850651f, 0.000000f, 0.525731f ),
+	Vec3( 0.864188f, 0.442863f, -0.238856f ),
+	Vec3( 0.809017f, 0.309017f, -0.500000f ),
+	Vec3( 0.951056f, 0.162460f, -0.262866f ),
+	Vec3( 0.525731f, 0.000000f, -0.850651f ),
+	Vec3( 0.681718f, 0.147621f, -0.716567f ),
+	Vec3( 0.681718f, -0.147621f, -0.716567f ),
+	Vec3( 0.850651f, 0.000000f, -0.525731f ),
+	Vec3( 0.809017f, -0.309017f, -0.500000f ),
+	Vec3( 0.864188f, -0.442863f, -0.238856f ),
+	Vec3( 0.951056f, -0.162460f, -0.262866f ),
+	Vec3( 0.147621f, 0.716567f, -0.681718f ),
+	Vec3( 0.309017f, 0.500000f, -0.809017f ),
+	Vec3( 0.425325f, 0.688191f, -0.587785f ),
+	Vec3( 0.442863f, 0.238856f, -0.864188f ),
+	Vec3( 0.587785f, 0.425325f, -0.688191f ),
+	Vec3( 0.688191f, 0.587785f, -0.425325f ),
+	Vec3( -0.147621f, 0.716567f, -0.681718f ),
+	Vec3( -0.309017f, 0.500000f, -0.809017f ),
+	Vec3( 0.000000f, 0.525731f, -0.850651f ),
+	Vec3( -0.525731f, 0.000000f, -0.850651f ),
+	Vec3( -0.442863f, 0.238856f, -0.864188f ),
+	Vec3( -0.295242f, 0.000000f, -0.955423f ),
+	Vec3( -0.162460f, 0.262866f, -0.951056f ),
+	Vec3( 0.000000f, 0.000000f, -1.000000f ),
+	Vec3( 0.295242f, 0.000000f, -0.955423f ),
+	Vec3( 0.162460f, 0.262866f, -0.951056f ),
+	Vec3( -0.442863f, -0.238856f, -0.864188f ),
+	Vec3( -0.309017f, -0.500000f, -0.809017f ),
+	Vec3( -0.162460f, -0.262866f, -0.951056f ),
+	Vec3( 0.000000f, -0.850651f, -0.525731f ),
+	Vec3( -0.147621f, -0.716567f, -0.681718f ),
+	Vec3( 0.147621f, -0.716567f, -0.681718f ),
+	Vec3( 0.000000f, -0.525731f, -0.850651f ),
+	Vec3( 0.309017f, -0.500000f, -0.809017f ),
+	Vec3( 0.442863f, -0.238856f, -0.864188f ),
+	Vec3( 0.162460f, -0.262866f, -0.951056f ),
+	Vec3( 0.238856f, -0.864188f, -0.442863f ),
+	Vec3( 0.500000f, -0.809017f, -0.309017f ),
+	Vec3( 0.425325f, -0.688191f, -0.587785f ),
+	Vec3( 0.716567f, -0.681718f, -0.147621f ),
+	Vec3( 0.688191f, -0.587785f, -0.425325f ),
+	Vec3( 0.587785f, -0.425325f, -0.688191f ),
+	Vec3( 0.000000f, -0.955423f, -0.295242f ),
+	Vec3( 0.000000f, -1.000000f, 0.000000f ),
+	Vec3( 0.262866f, -0.951056f, -0.162460f ),
+	Vec3( 0.000000f, -0.850651f, 0.525731f ),
+	Vec3( 0.000000f, -0.955423f, 0.295242f ),
+	Vec3( 0.238856f, -0.864188f, 0.442863f ),
+	Vec3( 0.262866f, -0.951056f, 0.162460f ),
+	Vec3( 0.500000f, -0.809017f, 0.309017f ),
+	Vec3( 0.716567f, -0.681718f, 0.147621f ),
+	Vec3( 0.525731f, -0.850651f, 0.000000f ),
+	Vec3( -0.238856f, -0.864188f, -0.442863f ),
+	Vec3( -0.500000f, -0.809017f, -0.309017f ),
+	Vec3( -0.262866f, -0.951056f, -0.162460f ),
+	Vec3( -0.850651f, -0.525731f, 0.000000f ),
+	Vec3( -0.716567f, -0.681718f, -0.147621f ),
+	Vec3( -0.716567f, -0.681718f, 0.147621f ),
+	Vec3( -0.525731f, -0.850651f, 0.000000f ),
+	Vec3( -0.500000f, -0.809017f, 0.309017f ),
+	Vec3( -0.238856f, -0.864188f, 0.442863f ),
+	Vec3( -0.262866f, -0.951056f, 0.162460f ),
+	Vec3( -0.864188f, -0.442863f, 0.238856f ),
+	Vec3( -0.809017f, -0.309017f, 0.500000f ),
+	Vec3( -0.688191f, -0.587785f, 0.425325f ),
+	Vec3( -0.681718f, -0.147621f, 0.716567f ),
+	Vec3( -0.442863f, -0.238856f, 0.864188f ),
+	Vec3( -0.587785f, -0.425325f, 0.688191f ),
+	Vec3( -0.309017f, -0.500000f, 0.809017f ),
+	Vec3( -0.147621f, -0.716567f, 0.681718f ),
+	Vec3( -0.425325f, -0.688191f, 0.587785f ),
+	Vec3( -0.162460f, -0.262866f, 0.951056f ),
+	Vec3( 0.442863f, -0.238856f, 0.864188f ),
+	Vec3( 0.162460f, -0.262866f, 0.951056f ),
+	Vec3( 0.309017f, -0.500000f, 0.809017f ),
+	Vec3( 0.147621f, -0.716567f, 0.681718f ),
+	Vec3( 0.000000f, -0.525731f, 0.850651f ),
+	Vec3( 0.425325f, -0.688191f, 0.587785f ),
+	Vec3( 0.587785f, -0.425325f, 0.688191f ),
+	Vec3( 0.688191f, -0.587785f, 0.425325f ),
+	Vec3( -0.955423f, 0.295242f, 0.000000f ),
+	Vec3( -0.951056f, 0.162460f, 0.262866f ),
+	Vec3( -1.000000f, 0.000000f, 0.000000f ),
+	Vec3( -0.850651f, 0.000000f, 0.525731f ),
+	Vec3( -0.955423f, -0.295242f, 0.000000f ),
+	Vec3( -0.951056f, -0.162460f, 0.262866f ),
+	Vec3( -0.864188f, 0.442863f, -0.238856f ),
+	Vec3( -0.951056f, 0.162460f, -0.262866f ),
+	Vec3( -0.809017f, 0.309017f, -0.500000f ),
+	Vec3( -0.864188f, -0.442863f, -0.238856f ),
+	Vec3( -0.951056f, -0.162460f, -0.262866f ),
+	Vec3( -0.809017f, -0.309017f, -0.500000f ),
+	Vec3( -0.681718f, 0.147621f, -0.716567f ),
+	Vec3( -0.681718f, -0.147621f, -0.716567f ),
+	Vec3( -0.850651f, 0.000000f, -0.525731f ),
+	Vec3( -0.688191f, 0.587785f, -0.425325f ),
+	Vec3( -0.587785f, 0.425325f, -0.688191f ),
+	Vec3( -0.425325f, 0.688191f, -0.587785f ),
+	Vec3( -0.425325f, -0.688191f, -0.587785f ),
+	Vec3( -0.587785f, -0.425325f, -0.688191f ),
+	Vec3( -0.688191f, -0.587785f, -0.425325f ),
 };
 
-int DirToByte( const vec3_t dir ) {
-	if( !dir || VectorCompare( dir, vec3_origin ) ) {
+int DirToByte( Vec3 dir ) {
+	if( dir == Vec3( 0.0f ) ) {
 		return NUMVERTEXNORMALS;
 	}
 
-	bool normalized = DotProduct( dir, dir ) == 1;
+	bool normalized = Dot( dir, dir ) == 1;
 
 	float bestd = 0;
 	int best = 0;
 	for( int i = 0; i < NUMVERTEXNORMALS; i++ ) {
-		float d = DotProduct( dir, bytedirs[i] );
+		float d = Dot( dir, bytedirs[i] );
 		if( d == 1 && normalized ) {
 			return i;
 		}
@@ -214,181 +212,130 @@ int DirToByte( const vec3_t dir ) {
 	return best;
 }
 
-void ByteToDir( int b, vec3_t dir ) {
+Vec3 ByteToDir( int b ) {
 	if( b < 0 || b >= NUMVERTEXNORMALS ) {
-		VectorSet( dir, 0, 0, 0 );
+		return Vec3( 0.0f );
 	} else {
-		VectorCopy( bytedirs[b], dir );
+		return bytedirs[b];
 	}
 }
 
 //============================================================================
 
-void ViewVectors( const vec3_t forward, vec3_t right, vec3_t up ) {
-	vec3_t world_up = { 0, 0, 1 };
+void ViewVectors( Vec3 forward, Vec3 * right, Vec3 * up ) {
+	constexpr Vec3 world_up = Vec3( 0, 0, 1 );
 
-	CrossProduct( forward, world_up, right );
-	VectorNormalize( right );
-	CrossProduct( right, forward, up );
-	VectorNormalize( up );
+	*right = Normalize( Cross( forward, world_up ) );
+	*up = Normalize( Cross( *right, forward ) );
 }
 
-void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up ) {
-	float yaw = DEG2RAD( angles[YAW] );
-	float sy = sinf( yaw );
-	float cy = cosf( yaw );
-	float pitch = DEG2RAD( angles[PITCH] );
+void AngleVectors( Vec3 angles, Vec3 * forward, Vec3 * right, Vec3 * up ) {
+	float pitch = DEG2RAD( angles.x );
 	float sp = sinf( pitch );
 	float cp = cosf( pitch );
-	float roll = DEG2RAD( angles[ROLL] );
+	float yaw = DEG2RAD( angles.y );
+	float sy = sinf( yaw );
+	float cy = cosf( yaw );
+	float roll = DEG2RAD( angles.z );
 	float sr = sinf( roll );
 	float cr = cosf( roll );
 
-	if( forward ) {
-		forward[0] = cp * cy;
-		forward[1] = cp * sy;
-		forward[2] = -sp;
+	if( forward != NULL ) {
+		*forward = Vec3( cp * cy, cp * sy, -sp );
 	}
-	if( right ) {
-		float t = sr * sp;
-		right[0] = ( -1 * t * cy + -1 * cr * -sy );
-		right[1] = ( -1 * t * sy + -1 * cr * cy );
-		right[2] = -1 * sr * cp;
+
+	if( right != NULL ) {
+		float t = -sr * sp;
+		*right = Vec3( t * cy + cr * sy, t * sy - cr * cy, -sr * cp );
 	}
+
 	if( up ) {
 		float t = cr * sp;
-		up[0] = ( t * cy + -sr * -sy );
-		up[1] = ( t * sy + -sr * cy );
-		up[2] = cr * cp;
+		*up = Vec3( t * cy + sr * sy, t * sy - sr * cy, cr * cp );
 	}
 }
 
-void VecToAngles( const vec3_t vec, vec3_t angles ) {
-	float forward;
-	float yaw, pitch;
-
-	if( vec[1] == 0 && vec[0] == 0 ) {
-		yaw = 0;
-		if( vec[2] > 0 ) {
-			pitch = 90;
-		} else {
-			pitch = 270;
-		}
-	} else {
-		if( vec[0] ) {
-			yaw = RAD2DEG( atan2f( vec[1], vec[0] ) );
-		} else if( vec[1] > 0 ) {
-			yaw = 90;
-		} else {
-			yaw = -90;
-		}
-		if( yaw < 0 ) {
-			yaw += 360;
-		}
-
-		forward = sqrtf( vec[0] * vec[0] + vec[1] * vec[1] );
-		pitch = RAD2DEG( atan2f( vec[2], forward ) );
-		if( pitch < 0 ) {
-			pitch += 360;
-		}
+Vec3 VecToAngles( Vec3 vec ) {
+	if( vec.xy() == Vec2( 0.0f ) ) {
+		return vec.z > 0 ? Vec3( -90.0f, 0.0f, 0.0f ) : Vec3( -270.0f, 0.0f, 0.0f );
 	}
 
-	angles[PITCH] = -pitch;
-	angles[YAW] = yaw;
-	angles[ROLL] = 0;
-}
-
-void AnglesToAxis( const vec3_t angles, mat3_t axis ) {
-	AngleVectors( angles, &axis[0], &axis[3], &axis[6] );
-	VectorInverse( &axis[3] );
-}
-
-void BuildBoxPoints( vec3_t p[8], const vec3_t org, const vec3_t mins, const vec3_t maxs ) {
-	VectorAdd( org, mins, p[0] );
-	VectorAdd( org, maxs, p[1] );
-	VectorSet( p[2], p[0][0], p[0][1], p[1][2] );
-	VectorSet( p[3], p[0][0], p[1][1], p[0][2] );
-	VectorSet( p[4], p[0][0], p[1][1], p[1][2] );
-	VectorSet( p[5], p[1][0], p[1][1], p[0][2] );
-	VectorSet( p[6], p[1][0], p[0][1], p[1][2] );
-	VectorSet( p[7], p[1][0], p[0][1], p[0][2] );
-}
-
-//
-// assumes "src" is normalized
-//
-void PerpendicularVector( vec3_t dst, const vec3_t src ) {
-	int pos;
-	int i;
-	float minelem = 1.0F;
-	vec3_t tempvec;
-
-	//
-	// find the smallest magnitude axially aligned vector
-	//
-	for( pos = 0, i = 0; i < 3; i++ ) {
-		if( Abs( src[i] ) < minelem ) {
-			pos = i;
-			minelem = Abs( src[i] );
-		}
+	float yaw;
+	if( vec.x != 0.0f ) {
+		yaw = RAD2DEG( atan2f( vec.y, vec.x ) );
 	}
-	tempvec[0] = tempvec[1] = tempvec[2] = 0.0F;
-	tempvec[pos] = 1.0F;
+	else if( vec.y > 0 ) {
+		yaw = 90;
+	}
+	else {
+		yaw = -90;
+	}
 
-	//
-	// project the point onto the plane defined by src
-	//
-	ProjectPointOntoPlane( dst, tempvec, src );
+	float forward = Length( vec.xy() );
+	float pitch = RAD2DEG( atan2f( vec.z, forward ) );
 
-	//
-	// normalize the result
-	//
-	VectorNormalize( dst );
+	if( yaw < 0 ) {
+		yaw += 360;
+	}
+	if( pitch < 0 ) {
+		pitch += 360;
+	}
+
+	return Vec3( -pitch, yaw, 0.0f );
 }
 
-void ProjectPointOntoPlane( vec3_t dst, const vec3_t p, const vec3_t normal ) {
-	float d;
-	vec3_t n;
-	float inv_denom;
+void AnglesToAxis( Vec3 angles, mat3_t axis ) {
+	Vec3 forward, right, up;
+	AngleVectors( angles, &forward, &right, &up );
+	axis[0] = forward.x;
+	axis[1] = forward.y;
+	axis[2] = forward.z;
+	axis[3] = -right.x;
+	axis[4] = -right.y;
+	axis[5] = -right.z;
+	axis[6] = up.x;
+	axis[7] = up.y;
+	axis[8] = up.z;
+}
 
-	inv_denom = 1.0F / DotProduct( normal, normal );
-
-	d = DotProduct( normal, p ) * inv_denom;
-
-	n[0] = normal[0] * inv_denom;
-	n[1] = normal[1] * inv_denom;
-	n[2] = normal[2] * inv_denom;
-
-	dst[0] = p[0] - d * n[0];
-	dst[1] = p[1] - d * n[1];
-	dst[2] = p[2] - d * n[2];
+void BuildBoxPoints( Vec3 p[8], Vec3 org, Vec3 mins, Vec3 maxs ) {
+	p[0] = org + mins;
+	p[1] = org + maxs;
+	p[2] = Vec3( p[0].x, p[0].y, p[1].z );
+	p[3] = Vec3( p[0].x, p[1].y, p[0].z );
+	p[4] = Vec3( p[0].x, p[1].y, p[1].z );
+	p[5] = Vec3( p[1].x, p[1].y, p[0].z );
+	p[6] = Vec3( p[1].x, p[0].y, p[1].z );
+	p[7] = Vec3( p[1].x, p[0].y, p[0].z );
 }
 
 /*
 * ProjectPointOntoVector
 */
-void ProjectPointOntoVector( const vec3_t point, const vec3_t vStart, const vec3_t vDir, vec3_t vProj ) {
-	vec3_t pVec;
-
-	VectorSubtract( point, vStart, pVec );
+void ProjectPointOntoVector( Vec3 point, Vec3 vStart, Vec3 vDir, Vec3 * vProj ) {
+	Vec3 pVec = point - vStart;
 	// project onto the directional vector for this segment
-	VectorMA( vStart, DotProduct( pVec, vDir ), vDir, vProj );
+	*vProj = vStart + vDir * Dot( pVec, vDir );
 }
 
 //============================================================================
 
-/*
-* LerpAngle
-*
-*/
-float LerpAngle( float a2, float a1, const float frac ) {
-	if( a1 - a2 > 180 ) {
-		a1 -= 360;
+static float LerpAngle( float a, float t, float b ) {
+	if( b - a > 180 ) {
+		b -= 360;
 	}
-	if( a1 - a2 < -180 ) {
-		a1 += 360;
+	if( b - a < -180 ) {
+		b += 360;
 	}
-	return Lerp( a2, frac, a1 );
+	return Lerp( a, t, b );
+}
+
+Vec3 LerpAngles( Vec3 a, float t, Vec3 b ) {
+	return Vec3(
+		LerpAngle( a.x, t, b.x ),
+		LerpAngle( a.y, t, b.y ),
+		LerpAngle( a.z, t, b.z )
+	);
 }
 
 /*
@@ -447,14 +394,16 @@ float CalcHorizontalFov( float fov_y, float width, float height ) {
 /*
 * PlaneFromPoints
 */
-void PlaneFromPoints( vec3_t verts[3], cplane_t *plane ) {
-	vec3_t v1, v2;
+bool PlaneFromPoints( Vec3 verts[3], cplane_t *plane ) {
+	if( verts[ 0 ] == verts[ 1 ] || verts[ 0 ] == verts[ 2 ] || verts[ 1 ] == verts[ 2 ] )
+		return false;
 
-	VectorSubtract( verts[1], verts[0], v1 );
-	VectorSubtract( verts[2], verts[0], v2 );
-	CrossProduct( v2, v1, plane->normal );
-	VectorNormalize( plane->normal );
-	plane->dist = DotProduct( verts[0], plane->normal );
+	Vec3 v1 = verts[1] - verts[0];
+	Vec3 v2 = verts[2] - verts[0];
+	plane->normal = Normalize( Cross( v2, v1 ) );
+	plane->dist = Dot( verts[0], plane->normal );
+
+	return true;
 }
 
 #define PLANE_NORMAL_EPSILON    0.00001
@@ -463,10 +412,10 @@ void PlaneFromPoints( vec3_t verts[3], cplane_t *plane ) {
 /*
 * ComparePlanes
 */
-bool ComparePlanes( const vec3_t p1normal, float p1dist, const vec3_t p2normal, float p2dist ) {
-	if( Abs( p1normal[0] - p2normal[0] ) < PLANE_NORMAL_EPSILON
-		&& Abs( p1normal[1] - p2normal[1] ) < PLANE_NORMAL_EPSILON
-		&& Abs( p1normal[2] - p2normal[2] ) < PLANE_NORMAL_EPSILON
+bool ComparePlanes( Vec3 p1normal, float p1dist, Vec3 p2normal, float p2dist ) {
+	if( Abs( p1normal.x - p2normal.x ) < PLANE_NORMAL_EPSILON
+		&& Abs( p1normal.y - p2normal.y ) < PLANE_NORMAL_EPSILON
+		&& Abs( p1normal.z - p2normal.z ) < PLANE_NORMAL_EPSILON
 		&& Abs( p1dist - p2dist ) < PLANE_DIST_EPSILON ) {
 		return true;
 	}
@@ -477,16 +426,16 @@ bool ComparePlanes( const vec3_t p1normal, float p1dist, const vec3_t p2normal, 
 /*
 * SnapVector
 */
-void SnapVector( vec3_t normal ) {
+void SnapVector( Vec3 * normal ) {
 	for( int i = 0; i < 3; i++ ) {
-		if( Abs( normal[i] - 1 ) < PLANE_NORMAL_EPSILON ) {
-			VectorClear( normal );
-			normal[i] = 1;
+		if( Abs( normal->ptr()[i] - 1 ) < PLANE_NORMAL_EPSILON ) {
+			*normal = Vec3( 0.0f );
+			normal->ptr()[i] = 1;
 			break;
 		}
-		if( Abs( normal[i] - -1 ) < PLANE_NORMAL_EPSILON ) {
-			VectorClear( normal );
-			normal[i] = -1;
+		if( Abs( normal->ptr()[i] - -1 ) < PLANE_NORMAL_EPSILON ) {
+			*normal = Vec3( 0.0f );
+			normal->ptr()[i] = -1;
 			break;
 		}
 	}
@@ -495,7 +444,7 @@ void SnapVector( vec3_t normal ) {
 /*
 * SnapPlane
 */
-void SnapPlane( vec3_t normal, float *dist ) {
+void SnapPlane( Vec3 * normal, float *dist ) {
 	SnapVector( normal );
 
 	if( Abs( *dist - Q_rint( *dist ) ) < PLANE_DIST_EPSILON ) {
@@ -503,88 +452,44 @@ void SnapPlane( vec3_t normal, float *dist ) {
 	}
 }
 
-void ClearBounds( vec3_t mins, vec3_t maxs ) {
-	mins[0] = mins[1] = mins[2] = 999999;
-	maxs[0] = maxs[1] = maxs[2] = -999999;
+void ClearBounds( Vec3 * mins, Vec3 * maxs ) {
+	*mins = Vec3( 999999.0f );
+	*maxs = Vec3( -999999.0f );
 }
 
-void CopyBounds( const vec3_t inmins, const vec3_t inmaxs, vec3_t outmins, vec3_t outmaxs ) {
-	VectorCopy( inmins, outmins );
-	VectorCopy( inmaxs, outmaxs );
+bool BoundsOverlap( const Vec3 & mins1, const Vec3 & maxs1, const Vec3 & mins2, const Vec3 & maxs2 ) {
+	return mins1.x <= maxs2.x && mins1.y <= maxs2.y && mins1.z <= maxs2.z &&
+		maxs1.x >= mins2.x && maxs1.y >= mins2.y && maxs1.z >= mins2.z;
 }
 
-bool BoundsOverlap( const vec3_t mins1, const vec3_t maxs1, const vec3_t mins2, const vec3_t maxs2 ) {
-	return ( mins1[0] <= maxs2[0] && mins1[1] <= maxs2[1] && mins1[2] <= maxs2[2] &&
-		maxs1[0] >= mins2[0] && maxs1[1] >= mins2[1] && maxs1[2] >= mins2[2] );
-}
-
-bool BoundsOverlapSphere( const vec3_t mins, const vec3_t maxs, const vec3_t centre, float radius ) {
-	float dmin = 0;
-	for( int i = 0; i < 3; i++ ) {
-		if( centre[i] < mins[i] ) {
-			dmin += ( centre[i] - mins[i] ) * ( centre[i] - mins[i] );
-		} else if( centre[i] > maxs[i] ) {
-			dmin += ( centre[i] - maxs[i] ) * ( centre[i] - maxs[i] );
-		}
-	}
-
-	return dmin <= radius * radius;
-}
-
-void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs ) {
-	float val;
+bool BoundsOverlapSphere( Vec3 mins, Vec3 maxs, Vec3 centre, float radius ) {
+	float dist_squared = 0;
 
 	for( int i = 0; i < 3; i++ ) {
-		val = v[i];
-		if( val < mins[i] ) {
-			mins[i] = val;
-		}
-		if( val > maxs[i] ) {
-			maxs[i] = val;
-		}
+		float x = centre[ i ] < mins[ i ] ? mins[ i ] : maxs[ i ];
+		float d = centre[ i ] - x;
+		dist_squared += d * d;
+	}
+
+	return dist_squared <= radius * radius;
+}
+
+void AddPointToBounds( Vec3 v, Vec3 * mins, Vec3 * maxs ) {
+	for( int i = 0; i < 3; i++ ) {
+		float x = v[ i ];
+		mins->ptr()[ i ] = Min2( x, mins->ptr()[ i ] );
+		maxs->ptr()[ i ] = Max2( x, maxs->ptr()[ i ] );
 	}
 }
 
-float RadiusFromBounds( const vec3_t mins, const vec3_t maxs ) {
-	vec3_t corner;
+float RadiusFromBounds( Vec3 mins, Vec3 maxs ) {
+	Vec3 corner;
 
 	for( int i = 0; i < 3; i++ ) {
-		corner[i] = Abs( mins[i] ) > Abs( maxs[i] ) ? Abs( mins[i] ) : Abs( maxs[i] );
+		corner[ i ] = Max2( Abs( mins[ i ] ), Abs( maxs[ i ] ) );
 	}
 
-	return VectorLength( corner );
-}
-
-float VectorNormalize( vec3_t v ) {
-	float length = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
-
-	if( length ) {
-		length = sqrtf( length ); // FIXME
-		float ilength = 1.0 / length;
-		v[0] *= ilength;
-		v[1] *= ilength;
-		v[2] *= ilength;
-	}
-
-	return length;
-}
-
-float VectorNormalize2( const vec3_t v, vec3_t out ) {
-	float length, ilength;
-
-	length = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
-
-	if( length ) {
-		length = sqrtf( length ); // FIXME
-		ilength = 1.0 / length;
-		out[0] = v[0] * ilength;
-		out[1] = v[1] * ilength;
-		out[2] = v[2] * ilength;
-	} else {
-		VectorClear( out );
-	}
-
-	return length;
+	return Length( corner );
 }
 
 //============================================================================
@@ -627,10 +532,10 @@ void Matrix3_Multiply( const mat3_t m1, const mat3_t m2, mat3_t out ) {
 	out[8] = m1[6] * m2[2] + m1[7] * m2[5] + m1[8] * m2[8];
 }
 
-void Matrix3_TransformVector( const mat3_t m, const vec3_t v, vec3_t out ) {
-	out[0] = m[0] * v[0] + m[1] * v[1] + m[2] * v[2];
-	out[1] = m[3] * v[0] + m[4] * v[1] + m[5] * v[2];
-	out[2] = m[6] * v[0] + m[7] * v[1] + m[8] * v[2];
+void Matrix3_TransformVector( const mat3_t m, Vec3 v, Vec3 * out ) {
+	out->x = m[0] * v.x + m[1] * v.y + m[2] * v.z;
+	out->y = m[3] * v.x + m[4] * v.y + m[5] * v.z;
+	out->z = m[6] * v.x + m[7] * v.y + m[8] * v.z;
 }
 
 void Matrix3_Transpose( const mat3_t in, mat3_t out ) {
@@ -646,8 +551,18 @@ void Matrix3_Transpose( const mat3_t in, mat3_t out ) {
 	out[7] = in[5];
 }
 
-void Matrix3_FromAngles( const vec3_t angles, mat3_t m ) {
-	AngleVectors( angles, &m[AXIS_FORWARD], &m[AXIS_RIGHT], &m[AXIS_UP] );
+void Matrix3_FromAngles( Vec3 angles, mat3_t m ) {
+	Vec3 forward, right, up;
+	AngleVectors( angles, &forward, &right, &up );
+	m[0] = forward.x;
+	m[1] = forward.y;
+	m[2] = forward.z;
+	m[3] = right.x;
+	m[4] = right.y;
+	m[5] = right.z;
+	m[6] = up.x;
+	m[7] = up.y;
+	m[8] = up.z;
 }
 
 float PositiveMod( float x, float y ) {

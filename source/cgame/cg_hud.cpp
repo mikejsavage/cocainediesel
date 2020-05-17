@@ -125,20 +125,12 @@ static int CG_IsTeamBased( const void *parameter ) {
 	return GS_TeamBasedGametype( &client_gs ) ? 1 : 0;
 }
 
-static float _getspeed( void ) {
-	vec3_t hvel;
-
-	VectorSet( hvel, cg.predictedPlayerState.pmove.velocity[0], cg.predictedPlayerState.pmove.velocity[1], 0 );
-
-	return VectorLength( hvel );
-}
-
 static int CG_GetSpeed( const void *parameter ) {
-	return (int)_getspeed();
+	return Length( cg.predictedPlayerState.pmove.velocity.xy() );
 }
 
 static int CG_GetSpeedVertical( const void *parameter ) {
-	return cg.predictedPlayerState.pmove.velocity[2];
+	return cg.predictedPlayerState.pmove.velocity.z;
 }
 
 static int CG_GetFPS( const void *parameter ) {
@@ -1899,7 +1891,7 @@ static bool CG_LFuncSize( struct cg_layoutnode_s *argumentnode, int numArguments
 
 static bool CG_LFuncColor( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	for( int i = 0; i < 4; i++ ) {
-		layout_cursor_color.ptr()[ i ] = Clamp01( CG_GetNumericArg( &argumentnode ) );
+		layout_cursor_color[ i ] = Clamp01( CG_GetNumericArg( &argumentnode ) );
 	}
 	return true;
 }

@@ -18,9 +18,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-void Patch_Evaluate( int comp, const float * p, const int *numcp, const int *tess, float * dest, int stride );
+void Patch_Evaluate( int comp, Vec3 * p, const int *numcp, const int *tess, Vec3 * dest, int stride );
 
-void Patch_GetFlatness( float maxflat, const float *points, int comp, const int *patch_cp, int *flat );
+void Patch_GetFlatness( float maxflat, const Vec3 *points, int comp, const int *patch_cp, int *flat );
 
-void Patch_RemoveLinearColumnsRows( float *verts, int comp, int *pwidth, int *pheight,
+void Patch_RemoveLinearColumnsRows( Vec3 *verts, int comp, int *pwidth, int *pheight,
 									int numattribs, uint8_t * const *attribs, const int *attribsizes );

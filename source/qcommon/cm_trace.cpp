@@ -39,9 +39,7 @@ typedef struct {
 
 	Vec3 start, end;
 	Vec3 mins, maxs;
-
 	Vec3 absmins, absmaxs;
-	__m128 absmins_sse, absmaxs_sse;
 
 	CollisionModel * cms;
 
@@ -59,13 +57,6 @@ typedef struct {
 	int *face_checkcounts;
 } traceWork_t;
 
-static bool BoundsOverlapSSE( __m128 mins1, __m128 maxs1, __m128 mins2, __m128 maxs2 ) {
-	__m128i a = _mm_castps_si128( _mm_cmple_ps( mins1, maxs2 ) );
-	__m128i b = _mm_castps_si128( _mm_cmpge_ps( maxs1, mins2 ) );
-	__m128i c = _mm_and_si128( a, b );
-	return u16( _mm_movemask_epi8( c ) ) == U16_MAX;
-}
-
 /*
 * CM_InitBoxHull
 *
@@ -78,8 +69,7 @@ void CM_InitBoxHull( CollisionModel *cms ) {
 	cms->box_brush->contents = CONTENTS_BODY;
 
 	// Make sure CM_CollideBox() will not reject the brush by its bounds
-	cms->box_brush->mins = _mm_setr_ps( FLT_MAX, FLT_MAX, FLT_MAX, 0.0f );
-	cms->box_brush->maxs = _mm_setr_ps( -FLT_MAX, -FLT_MAX, -FLT_MAX, 0.0f );
+	ClearBounds( &cms->box_brush->maxs, &cms->box_brush->mins );
 
 	cms->box_markbrushes[0] = 0;
 
@@ -126,8 +116,7 @@ void CM_InitOctagonHull( CollisionModel *cms ) {
 	cms->oct_brush->contents = CONTENTS_BODY;
 
 	// Make sure CM_CollideBox() will not reject the brush by its bounds
-	cms->box_brush->mins = _mm_setr_ps( FLT_MAX, FLT_MAX, FLT_MAX, 0.0f );
-	cms->box_brush->maxs = _mm_setr_ps( -FLT_MAX, -FLT_MAX, -FLT_MAX, 0.0f );
+	ClearBounds( &cms->oct_brush->maxs, &cms->oct_brush->mins );
 
 	cms->oct_markbrushes[0] = 0;
 
@@ -407,14 +396,12 @@ static int CM_PointContents( CollisionModel *cms, Vec3 p, cmodel_t *cmodel ) {
 		}
 	}
 
-	__m128 sse = ToSSE( p );
-
 	for( int i = 0; i < nummarkfaces; i++ ) {
 		cface_t *patch = faces + markface[i];
 
 		// check if patch adds something to contents
 		if( contents & patch->contents ) {
-			if( BoundsOverlapSSE( sse, sse, patch->mins, patch->maxs ) ) {
+			if( BoundsOverlap( p, p, patch->mins, patch->maxs ) ) {
 				if( !( contents &= ~CM_PatchContents( patch, p ) ) ) {
 					return superContents;
 				}
@@ -612,7 +599,7 @@ static void CM_CollideBox( traceWork_t *tw, const int *markbrushes, int nummarkb
 		if( !( b->contents & tw->contents ) ) {
 			continue;
 		}
-		if( !BoundsOverlapSSE( b->mins, b->maxs, tw->absmins_sse, tw->absmaxs_sse ) ) {
+		if( !BoundsOverlap( b->mins, b->maxs, tw->absmins, tw->absmaxs ) ) {
 			continue;
 		}
 		func( tw, b );
@@ -638,13 +625,13 @@ static void CM_CollideBox( traceWork_t *tw, const int *markbrushes, int nummarkb
 		if( !( patch->contents & tw->contents ) ) {
 			continue;
 		}
-		if( !BoundsOverlapSSE( patch->mins, patch->maxs, tw->absmins_sse, tw->absmaxs_sse ) ) {
+		if( !BoundsOverlap( patch->mins, patch->maxs, tw->absmins, tw->absmaxs ) ) {
 			continue;
 		}
 		const cbrush_t * facet = patch->facets;
 		int j;
 		for( j = 0; j < patch->numfacets; j++, facet++ ) {
-			if( !BoundsOverlapSSE( facet->mins, facet->maxs, tw->absmins_sse, tw->absmaxs_sse ) ) {
+			if( !BoundsOverlap( facet->mins, facet->maxs, tw->absmins, tw->absmaxs ) ) {
 				continue;
 			}
 			func( tw, facet );
@@ -782,16 +769,16 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 	tw->maxs = maxs;
 
 	// build a bounding box of the entire move
-	MinMax3 absbounds = MinMax3::Empty();
-	absbounds = Extend( absbounds, start + tw->mins );
-	absbounds = Extend( absbounds, start + tw->maxs );
-	absbounds = Extend( absbounds, end + tw->mins );
-	absbounds = Extend( absbounds, end + tw->maxs );
+	Vec3 startmins = start + tw->mins;
+	Vec3 startmaxs = start + tw->maxs;
+	Vec3 endmins = end + tw->mins;
+	Vec3 endmaxs = end + tw->maxs;
 
-	tw->absmins = absbounds.mins;
-	tw->absmaxs = absbounds.maxs;
-	tw->absmins_sse = ToSSE( tw->absmins );
-	tw->absmaxs_sse = ToSSE( tw->absmaxs );
+	ClearBounds( &tw->absmins, &tw->absmaxs );
+	AddPointToBounds( startmins, &tw->absmins, &tw->absmaxs );
+	AddPointToBounds( startmaxs, &tw->absmins, &tw->absmaxs );
+	AddPointToBounds( endmins, &tw->absmins, &tw->absmaxs );
+	AddPointToBounds( endmaxs, &tw->absmins, &tw->absmaxs );
 
 	tw->brushes = cmodel->brushes;
 	tw->faces = cmodel->faces;

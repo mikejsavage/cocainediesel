@@ -18,8 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include <emmintrin.h>
-
 #include "qcommon/qcommon.h"
 #include "qcommon/hash.h"
 #include "qcommon/string.h"
@@ -40,7 +38,9 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 
 	facet->brushsides = NULL;
 	facet->contents = shaderref->contents;
 
-	MinMax3 bounds = MinMax3::Empty();
+	// these bounds are default for the facet, and are not valid
+	// however only bogus facets that are not collidable anyway would use these bounds
+	ClearBounds( &facet->mins, &facet->maxs );
 
 	// calculate plane for this triangle
 	if( !PlaneFromPoints( verts, &mainplane ) ) {
@@ -64,7 +64,7 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 
 
 	// calculate mins & maxs
 	for( int i = 0; i < numverts; i++ ) {
-		bounds = Extend( bounds, verts[ i ] );
+		AddPointToBounds( verts[i], &facet->mins, &facet->maxs );
 	}
 
 	// add the axial planes
@@ -81,9 +81,9 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 
 				normal = Vec3( 0.0f );
 				normal[axis] = dir;
 				if( dir == 1 ) {
-					dist = bounds.maxs[axis];
+					dist = facet->maxs[axis];
 				} else {
-					dist = -bounds.mins[axis];
+					dist = -facet->mins[axis];
 				}
 
 				brushplanes[numbrushplanes].normal = normal;
@@ -159,11 +159,8 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 
 	}
 
 	// spread facet mins/maxs by a unit
-	bounds.mins -= 1.0f;
-	bounds.maxs += 1.0f;
-
-	facet->mins = ToSSE( bounds.mins );
-	facet->maxs = ToSSE( bounds.maxs );
+	facet->mins -= Vec3( 1.0f );
+	facet->maxs += Vec3( 1.0f );
 
 	return ( facet->numsides = numbrushplanes );
 }
@@ -198,7 +195,7 @@ static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, cshaderref_t *s
 	int totalsides = 0;
 	patch->numfacets = 0;
 	patch->facets = NULL;
-	MinMax3 bounds = MinMax3::Empty();
+	ClearBounds( &patch->mins, &patch->maxs );
 
 	// create a set of facets
 	for( int v = 0; v < size[1] - 1; v++ ) {
@@ -212,7 +209,7 @@ static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, cshaderref_t *s
 			tverts[3] = points[i + 1];
 
 			for( i = 0; i < 4; i++ ) {
-				bounds = Extend( bounds, tverts[ i ] );
+				AddPointToBounds( tverts[i], &patch->mins, &patch->maxs );
 			}
 
 			// try to create one facet from a quad
@@ -238,16 +235,16 @@ static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, cshaderref_t *s
 	}
 
 	if( patch->numfacets ) {
-		patch->facets = ALLOC_MANY( sys_allocator, cbrush_t, patch->numfacets );
-		memcpy( patch->facets, facets, patch->numfacets * sizeof( cbrush_t ) );
+		uint8_t * fdata = ( uint8_t * ) Mem_Alloc( cmap_mempool, patch->numfacets * sizeof( cbrush_t ) + totalsides * ( sizeof( cbrushside_t ) + sizeof( cplane_t ) ) );
 
-		cbrushside_t * brushsides = ALLOC_MANY( sys_allocator, cbrushside_t, totalsides );
+		patch->facets = ( cbrush_t * )fdata; fdata += patch->numfacets * sizeof( cbrush_t );
+		memcpy( patch->facets, facets, patch->numfacets * sizeof( cbrush_t ) );
 
 		int k = 0;
 		for( int i = 0; i < patch->numfacets; i++ ) {
 			cbrush_t * facet = &patch->facets[ i ];
-			facet->brushsides = brushsides;
-			brushsides += facet->numsides;
+
+			facet->brushsides = ( cbrushside_t * )fdata; fdata += facet->numsides * sizeof( cbrushside_t );
 
 			for( int j = 0; j < facet->numsides; j++ ) {
 				cbrushside_t * s = &facet->brushsides[ j ];
@@ -259,12 +256,9 @@ static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, cshaderref_t *s
 
 		patch->contents = shaderref->contents;
 
-		bounds.mins -= 1.0f;
-		bounds.maxs += 1.0f;
+		patch->mins -= Vec3( 1.0f );
+		patch->mins += Vec3( 1.0f );
 	}
-
-	patch->mins = ToSSE( bounds.mins );
-	patch->maxs = ToSSE( bounds.maxs );
 }
 
 static void CMod_LoadSurfaces( CollisionModel *cms, lump_t *l ) {
@@ -703,14 +697,10 @@ static void CMod_LoadBrushSides_RBSP( CollisionModel *cms, lump_t *l ) {
 }
 
 static void CM_BoundBrush( cbrush_t *brush ) {
-	Vec3 mins, maxs;
 	for( int i = 0; i < 3; i++ ) {
-		mins[ i ] = -brush->brushsides[ i * 2 + 0 ].plane.dist;
-		maxs[ i ] = +brush->brushsides[ i * 2 + 1 ].plane.dist;
+		brush->mins[i] = -brush->brushsides[i * 2 + 0].plane.dist;
+		brush->maxs[i] = +brush->brushsides[i * 2 + 1].plane.dist;
 	}
-
-	brush->mins = ToSSE( mins );
-	brush->maxs = ToSSE( maxs );
 }
 
 static void CMod_LoadBrushes( CollisionModel *cms, lump_t *l ) {

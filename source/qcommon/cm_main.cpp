@@ -76,12 +76,8 @@ static void CM_Clear( CModelServerOrClient soc, CollisionModel * cms ) {
 	}
 
 	if( cms->map_faces ) {
-		for( int i = 0; i < cms->numfaces; i++ ) {
-			if( cms->map_faces[i].facets != NULL ) {
-				FREE( sys_allocator, cms->map_faces[i].facets[0].brushsides );
-			}
-			FREE( sys_allocator, cms->map_faces[i].facets );
-		}
+		for( int i = 0; i < cms->numfaces; i++ )
+			Mem_Free( cms->map_faces[i].facets );
 		Mem_Free( cms->map_faces );
 		cms->map_faces = NULL;
 		cms->numfaces = 0;
@@ -598,8 +594,4 @@ void CM_Shutdown( void ) {
 	Mem_FreePool( &cmap_mempool );
 
 	cm_initialized = false;
-}
-
-__m128 ToSSE( Vec3 v ) {
-	return _mm_setr_ps( v.x, v.y, v.z, 0.0f );
 }

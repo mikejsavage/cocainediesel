@@ -128,7 +128,7 @@ void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, const Vec3
 		return;
 	}
 
-	Vec3 dir = Normalize( basedir );
+	Vec3 dir = SafeNormalize( basedir );
 
 	float frac = (float)damage / ( damage + client->resp.snap.damageTaken );
 	client->resp.snap.damageTakenDir = Lerp( client->resp.snap.damageTakenDir, frac, dir );

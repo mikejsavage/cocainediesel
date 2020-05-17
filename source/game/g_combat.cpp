@@ -149,7 +149,7 @@ static void G_BlendFrameDamage( edict_t *ent, float damage, float *old_damage, c
 		offset = *point - ent->s.origin;
 	}
 
-	Vec3 dir = Normalize( basedir );
+	Vec3 dir = SafeNormalize( basedir );
 
 	if( *old_damage == 0 ) {
 		*old_point = offset;

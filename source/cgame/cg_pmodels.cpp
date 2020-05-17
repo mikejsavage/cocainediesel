@@ -515,7 +515,8 @@ static float GetAnimationTime( const PlayerModelMetadata * metadata, int64_t cur
 			return clip.start_time;
 
 		if( t > clip.loop_from ) {
-			float loop_t = PositiveMod( t - clip.loop_from, clip.duration - clip.loop_from );
+			float base = clip.duration - clip.loop_from;
+			float loop_t = base == 0 ? 0 : PositiveMod( t - clip.loop_from, base );
 			t = clip.loop_from + loop_t;
 		}
 	}

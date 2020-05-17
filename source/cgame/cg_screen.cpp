@@ -176,7 +176,7 @@ void CG_DrawCrosshair() {
 
 		int size = 32;
 		CG_FillRect( w / 2 - 1 - size, h / 2 - 1 + 24, 2 + 2 * size, 4, vec4_black );
-		CG_FillRect( w / 2 - 1 - size, h / 2 - 1 + 25, frac * ( 2 + 2 * size ), 2, vec4_white );
+		CG_FillRect( w / 2 - size, h / 2 - 1 + 25, frac * 2 * size, 2, vec4_white );
 	}
 }
 

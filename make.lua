@@ -40,6 +40,7 @@ do
 			"source/win32/win_console.cpp",
 			"source/win32/win_fs.cpp",
 			"source/win32/win_net.cpp",
+			"source/win32/win_sys.cpp",
 			"source/win32/win_threads.cpp",
 			"source/win32/win_time.cpp",
 		}
@@ -111,6 +112,7 @@ do
 			"source/win32/win_fs.cpp",
 			"source/win32/win_net.cpp",
 			"source/win32/win_server.cpp",
+			"source/win32/win_sys.cpp",
 			"source/win32/win_threads.cpp",
 			"source/win32/win_time.cpp",
 		}

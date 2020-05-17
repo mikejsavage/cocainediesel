@@ -1,23 +1,21 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #868]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 #include <NsCore/Error.h>
+#include <NsCore/Math.h>
 #include <NsDrawing/Size.h>
 #include <NsDrawing/Point.h>
-#include <NsMath/Utils.h>
-
-#include <limits>
+#include <NsMath/AABBox.h>
 
 
 namespace Noesis
 {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Rect::Rect(float left, float top, float right, float bottom): x(left), y(top), 
+inline Rect::Rect(float left, float top, float right, float bottom): x(left), y(top),
     width(right - left), height(bottom - top)
 {
     NS_ASSERT(left <= right);
@@ -25,133 +23,116 @@ Rect::Rect(float left, float top, float right, float bottom): x(left), y(top),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Rect::Rect(const Size& size): x(0.0f), y(0.0f), width(size.width), height(size.height)
+inline Rect::Rect(const Size& size): x(0.0f), y(0.0f), width(size.width), height(size.height)
 {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Rect::Rect(const Point& location, const Size& size): x(location.x), y(location.y),
+inline Rect::Rect(const Point& location, const Size& size): x(location.x), y(location.y),
     width(size.width), height(size.height)
 {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Rect::Rect(const Recti& rect):
-    x(static_cast<float>(rect.x)), y(static_cast<float>(rect.y)),
-    width(static_cast<float>(rect.width)), height(static_cast<float>(rect.height))
+inline Rect::Rect(const Recti& rect): x(float(rect.x)), y(float(rect.y)), width(float(rect.width)),
+    height(float(rect.height))
 {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Rect::Rect(const Rect& rect): x(rect.x), y(rect.y), width(rect.width), height(rect.height)
-{
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-Rect& Rect::operator=(const Rect& rect)
-{
-    x = rect.x;
-    y = rect.y;
-    width = rect.width;
-    height = rect.height;
-
-    return *this;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Rect::operator==(const Rect& rect) const
+inline bool Rect::operator==(const Rect& rect) const
 {
     return x == rect.x && y == rect.y && width == rect.width && height == rect.height;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Rect::operator!=(const Rect& rect) const
+inline bool Rect::operator!=(const Rect& rect) const
 {
     return !(*this == rect);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Point Rect::GetLocation() const
+inline Point Rect::GetLocation() const
 {
     return Point(x, y);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Rect::SetLocation(const Point& location)
+inline void Rect::SetLocation(const Point& location)
 {
     x = location.x;
     y = location.y;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Size Rect::GetSize() const
+inline Size Rect::GetSize() const
 {
     return Size(width, height);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Rect::SetSize(const Size& size)
+inline void Rect::SetSize(const Size& size)
 {
     width = size.width;
     height = size.height;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-float Rect::GetLeft() const
+inline float Rect::GetLeft() const
 {
     return x;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-float Rect::GetRight() const
+inline float Rect::GetRight() const
 {
-    return IsInfinity(width) ? std::numeric_limits<float>::infinity() : x + width;
+    return IsInfinity(width) ? FLT_INF : x + width;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-float Rect::GetTop() const
+inline float Rect::GetTop() const
 {
     return y;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-float Rect::GetBottom() const
+inline float Rect::GetBottom() const
 {
-    return IsInfinity(height) ? std::numeric_limits<float>::infinity() : y + height;
+    return IsInfinity(height) ? FLT_INF : y + height;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Point Rect::GetTopLeft() const
+inline Point Rect::GetTopLeft() const
 {
     return Point(x, y);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Point Rect::GetTopRight() const
+inline Point Rect::GetTopRight() const
 {
     return Point(GetRight(), y);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Point Rect::GetBottomLeft() const
+inline Point Rect::GetBottomLeft() const
 {
     return Point(x, GetBottom());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Point Rect::GetBottomRight() const
+inline Point Rect::GetBottomRight() const
 {
     return Point(GetRight(), GetBottom());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Rect::IsEmpty() const
+inline bool Rect::IsEmpty() const
 {
     return width == 0.0f || height == 0.0f;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Rect::Contains(float x_, float y_) const
+inline bool Rect::Contains(float x_, float y_) const
 {
     return !IsEmpty() &&
         x_ >= GetLeft() && x_ <= GetRight() &&
@@ -159,13 +140,13 @@ bool Rect::Contains(float x_, float y_) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Rect::Contains(const Point& point) const
+inline bool Rect::Contains(const Point& point) const
 {
     return Contains(point.x, point.y);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Rect::Contains(const Rect& rect) const
+inline bool Rect::Contains(const Rect& rect) const
 {
     return !IsEmpty() && !rect.IsEmpty() && 
         rect.GetLeft() >= GetLeft() && rect.GetRight() <= GetRight() &&
@@ -173,7 +154,7 @@ bool Rect::Contains(const Rect& rect) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Rect::Inflate(float width_, float height_)
+inline void Rect::Inflate(float width_, float height_)
 {
     x -= width_;
     y -= height_;
@@ -190,35 +171,52 @@ void Rect::Inflate(float width_, float height_)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Rect::Inflate(const Size& size)
+inline void Rect::Inflate(const Size& size)
 {
     Inflate(size.width, size.height);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Rect::IntersectsWith(const Rect& rect) const
+inline Rect Rect::Intersect(const Rect& rect) const
 {
-    const float eps = std::numeric_limits<float>::epsilon();
-    Size s = Intersect(rect).GetSize();
-    return s.width > eps && s.height > eps;
+    float x1 = Max(GetLeft(), rect.GetLeft());
+    float x2 = Min(GetRight(), rect.GetRight());
+    if (x2 >= x1)
+    {
+        float y1 = Max(GetTop(), rect.GetTop());
+        float y2 = Min(GetBottom(), rect.GetBottom());
+        if (y2 >= y1)
+        {
+            return Rect(x1, y1, x2, y2);
+        }
+    }
+
+    return Rect::Empty();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Rect::Offset(const Point& offset)
+inline bool Rect::IntersectsWith(const Rect& rect) const
+{
+    Size s = Intersect(rect).GetSize();
+    return s.width > FLT_EPSILON && s.height > FLT_EPSILON;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline void Rect::Offset(const Point& offset)
 {
     x += offset.x;
     y += offset.y;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Rect::Scale(float scaleX, float scaleY)
+inline void Rect::Scale(float scaleX, float scaleY)
 {
     width *= scaleX;
     height *= scaleY;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Rect::Expand(const Point& point)
+inline void Rect::Expand(const Point& point)
 {
     float x0 = Min(x, point.x);
     float y0 = Min(y, point.y);
@@ -232,7 +230,7 @@ void Rect::Expand(const Point& point)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Rect::Expand(const Rect& rect)
+inline void Rect::Expand(const Rect& rect)
 {
     float x0 = Min(x, rect.x);
     float y0 = Min(y, rect.y);
@@ -246,161 +244,196 @@ void Rect::Expand(const Rect& rect)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Rect Rect::Empty()
+inline void Rect::Transform(const Transform2& mtx)
+{
+    if (!IsInfinity(width) && !IsInfinity(height))
+    {
+        AABBox2 box = AABBox2(x, y, x + width, y + height) * mtx;
+
+        Vector2 boxMin = box.Min();
+        x = boxMin.x;
+        y = boxMin.y;
+
+        Vector2 boxDiagonal = box.Diagonal();
+        width = boxDiagonal.x;
+        height = boxDiagonal.y;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline void Rect::Transform(const Matrix4& mtx)
+{
+    // Use a 2D transformation whenever is possible
+    if (IsZero(mtx[0][2]) && IsZero(mtx[1][2]) && IsOne(mtx[2][2]) && IsZero(mtx[3][2]))
+    {
+        Transform(Transform2(mtx[0].XY(), mtx[1].XY(), mtx[3].XY()));
+    }
+    else if (!IsInfinity(width) && !IsInfinity(height))
+    {
+        float l = GetLeft();
+        float r = GetRight();
+        float t = GetTop();
+        float b = GetBottom();
+
+        Vector4 tlp = Vector4(l, t, 0.0f, 1.0f) * mtx;
+        Vector4 trp = Vector4(r, t, 0.0f, 1.0f) * mtx;
+        Vector4 blp = Vector4(r, b, 0.0f, 1.0f) * mtx;
+        Vector4 brp = Vector4(l, b, 0.0f, 1.0f) * mtx;
+
+        Point tlpw(tlp.x / tlp.w, tlp.y / tlp.w);
+        Point trpw(trp.x / trp.w, trp.y / trp.w);
+        Point blpw(blp.x / blp.w, blp.y / blp.w);
+        Point brpw(brp.x / brp.w, brp.y / brp.w);
+
+        width = 0.0f;
+        height = 0.0f;
+
+        x = tlpw.x;
+        y = tlpw.y;
+
+        Expand(trpw);
+        Expand(blpw);
+        Expand(brpw);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline Rect Rect::Empty()
 {
     return Rect(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Rect Rect::Infinite()
+inline Rect Rect::Infinite()
 {
-    const float inf = std::numeric_limits<float>::infinity();
-    return Rect(-inf, -inf, inf, inf);
+    return Rect(-FLT_INF, -FLT_INF, FLT_INF, FLT_INF);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Recti::Recti(int left, int top, int right, int bottom): x(left), y(top), 
-    width(right - left), height(bottom - top)
+inline Recti::Recti(int left, int top, int right, int bottom): x(left), y(top), width(right - left),
+    height(bottom - top)
 {
     NS_ASSERT(left <= right);
     NS_ASSERT(top <= bottom);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Recti::Recti(const Sizei& size): x(0), y(0), width(size.width), height(size.height)
+inline Recti::Recti(const Sizei& size): x(0), y(0), width(size.width), height(size.height)
 {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Recti::Recti(const Pointi& location, const Sizei& size): x(location.x), y(location.y),
+inline Recti::Recti(const Pointi& location, const Sizei& size): x(location.x), y(location.y),
     width(size.width), height(size.height)
 {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Recti::Recti(const Recti& rect): x(rect.x), y(rect.y), width(rect.width), height(rect.height)
-{
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-Recti& Recti::operator=(const Recti& rect)
-{
-    x = rect.x;
-    y = rect.y;
-    width = rect.width;
-    height = rect.height;
-
-    return *this;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Recti::operator==(const Recti& rect) const
+inline bool Recti::operator==(const Recti& rect) const
 {
     return x == rect.x && y == rect.y && width == rect.width && height == rect.height;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Recti::operator!=(const Recti& rect) const
+inline bool Recti::operator!=(const Recti& rect) const
 {
     return !(*this == rect);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Pointi Recti::GetLocation() const
+inline Pointi Recti::GetLocation() const
 {
     return Pointi(x, y);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Recti::SetLocation(const Pointi& location)
+inline void Recti::SetLocation(const Pointi& location)
 {
     x = location.x;
     y = location.y;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Sizei Recti::GetSize() const
+inline Sizei Recti::GetSize() const
 {
     return Sizei(width, height);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Recti::SetSize(const Sizei& size)
+inline void Recti::SetSize(const Sizei& size)
 {
     width = size.width;
     height = size.height;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-int Recti::GetLeft() const
+inline int Recti::GetLeft() const
 {
     return x;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-int Recti::GetRight() const
+inline int Recti::GetRight() const
 {
     return x + width;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-int Recti::GetTop() const
+inline int Recti::GetTop() const
 {
     return y;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-int Recti::GetBottom() const
+inline int Recti::GetBottom() const
 {
     return y + height;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Pointi Recti::GetTopLeft() const
+inline Pointi Recti::GetTopLeft() const
 {
     return Pointi(x, y);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Pointi Recti::GetTopRight() const
+inline Pointi Recti::GetTopRight() const
 {
     return Pointi(GetRight(), y);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Pointi Recti::GetBottomLeft() const
+inline Pointi Recti::GetBottomLeft() const
 {
     return Pointi(x, GetBottom());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Pointi Recti::GetBottomRight() const
+inline Pointi Recti::GetBottomRight() const
 {
     return Pointi(GetRight(), GetBottom());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Recti::IsEmpty() const
+inline bool Recti::IsEmpty() const
 {
     return width == 0 || height == 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Recti::Contains(int x_, int y_) const
+inline bool Recti::Contains(int x_, int y_) const
 {
-    return !IsEmpty() &&
-        x_ >= GetLeft() && x_ <= GetRight() &&
-        y_ >= GetTop() && y_ <= GetBottom();
+    return !IsEmpty() &&  x_ >= GetLeft() && x_ <= GetRight() && y_ >= GetTop() && y_ <= GetBottom();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Recti::Contains(const Pointi& point) const
+inline bool Recti::Contains(const Pointi& point) const
 {
     return Contains(point.x, point.y);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Recti::Contains(const Recti& rect) const
+inline bool Recti::Contains(const Recti& rect) const
 {
     return !IsEmpty() && !rect.IsEmpty() &&
         rect.GetLeft() >= GetLeft() && rect.GetRight() <= GetRight() &&
@@ -408,7 +441,7 @@ bool Recti::Contains(const Recti& rect) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Recti::Inflate(int width_, int height_)
+inline void Recti::Inflate(int width_, int height_)
 {
     x -= width_;
     y -= height_;
@@ -425,34 +458,52 @@ void Recti::Inflate(int width_, int height_)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Recti::Inflate(const Sizei& size)
+inline void Recti::Inflate(const Sizei& size)
 {
     Inflate(size.width, size.height);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Recti::IntersectsWith(const Recti& rect) const
+inline Recti Recti::Intersect(const Recti& rect) const
+{
+    int x1 = Max(GetLeft(), rect.GetLeft());
+    int x2 = Min(GetRight(), rect.GetRight());
+    if (x2 >= x1)
+    {
+        int y1 = Max(GetTop(), rect.GetTop());
+        int y2 = Min(GetBottom(), rect.GetBottom());
+        if (y2 >= y1)
+        {
+            return Recti(x1, y1, x2, y2);
+        }
+    }
+
+    return Recti::Empty();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline bool Recti::IntersectsWith(const Recti& rect) const
 {
     Sizei s = Intersect(rect).GetSize();
     return s.width > 0 && s.height > 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Recti::Offset(const Pointi& offset)
+inline void Recti::Offset(const Pointi& offset)
 {
     x += offset.x;
     y += offset.y;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Recti::Scale(int scaleX, int scaleY)
+inline void Recti::Scale(int scaleX, int scaleY)
 {
     width *= scaleX;
     height *= scaleY;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Recti::Expand(const Pointi& point)
+inline void Recti::Expand(const Pointi& point)
 {
     int x0 = Min(x, point.x);
     int y0 = Min(y, point.y);
@@ -466,7 +517,7 @@ void Recti::Expand(const Pointi& point)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Recti::Expand(const Recti& rect)
+inline void Recti::Expand(const Recti& rect)
 {
     int x0 = Min(x, rect.x);
     int y0 = Min(y, rect.y);
@@ -480,16 +531,9 @@ void Recti::Expand(const Recti& rect)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Recti Recti::Empty()
+inline Recti Recti::Empty()
 {
     return Recti(0, 0, 0, 0);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-Recti Recti::Infinite()
-{
-    const int inf = std::numeric_limits<int>::infinity();
-    return Recti(-inf, -inf, inf, inf);
 }
 
 }

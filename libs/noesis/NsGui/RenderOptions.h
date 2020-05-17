@@ -10,7 +10,6 @@
 
 #include <NsCore/Noesis.h>
 #include <NsGui/CoreApi.h>
-#include <NsGui/Enums.h>
 #include <NsCore/ReflectionDeclare.h>
 #include <NsCore/ReflectionDeclareEnum.h>
 
@@ -20,6 +19,7 @@ namespace Noesis
 
 class DependencyObject;
 class DependencyProperty;
+enum BitmapScalingMode: int32_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Provides options for controlling the rendering behavior of objects.

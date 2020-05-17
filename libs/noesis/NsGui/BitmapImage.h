@@ -74,6 +74,8 @@ private:
         const DependencyPropertyChangedEventArgs& e);
     void UpdateImageInfo(const char* uri);
 
+    void OnTextureChanged(const char* uri);
+
 private:
     friend class BitmapImageTest;
 

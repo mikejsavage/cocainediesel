@@ -12,7 +12,6 @@
 #include <NsGui/CoreApi.h>
 #include <NsGui/Animatable.h>
 #include <NsGui/IRenderProxyCreator.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis
@@ -21,6 +20,8 @@ namespace Noesis
 struct Thickness;
 class Brush;
 class DashStyle;
+enum PenLineCap: int32_t;
+enum PenLineJoin: int32_t;
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
@@ -84,6 +85,24 @@ public:
     void SetThickness(float thickness);
     //@}
 
+    /// Gets or sets the amount to trim the start of the geometry path
+    //@{
+    float GetTrimStart() const;
+    void SetTrimStart(float value);
+    //@}
+
+    /// Gets or sets the amount to trim the end of the geometry path
+    //@{
+    float GetTrimEnd() const;
+    void SetTrimEnd(float value);
+    //@}
+
+    /// Gets or sets the amount to offset trimming the geometry path
+    //@{
+    float GetTrimOffset() const;
+    void SetTrimOffset(float value);
+    //@}
+
     /// Indicates if pen is renderable
     bool IsRenderable() const;
 
@@ -113,6 +132,9 @@ public:
     static const DependencyProperty* MiterLimitProperty;
     static const DependencyProperty* StartLineCapProperty;
     static const DependencyProperty* ThicknessProperty;
+    static const DependencyProperty* TrimStartProperty;
+    static const DependencyProperty* TrimEndProperty;
+    static const DependencyProperty* TrimOffsetProperty;
     //@}
 
 protected:
@@ -139,7 +161,10 @@ private:
         UpdateFlags_StartLineCap,
         UpdateFlags_EndLineCap,
         UpdateFlags_LineJoin,
-        UpdateFlags_MiterLimit
+        UpdateFlags_MiterLimit,
+        UpdateFlags_TrimStart,
+        UpdateFlags_TrimEnd,
+        UpdateFlags_TrimOffset
     };
 
     NS_DECLARE_REFLECTION(Pen, Animatable)

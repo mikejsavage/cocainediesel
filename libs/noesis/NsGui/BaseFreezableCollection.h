@@ -14,7 +14,6 @@
 #include <NsGui/IList.h>
 #include <NsGui/INotifyCollectionChanged.h>
 #include <NsGui/INotifyPropertyChanged.h>
-#include <NsCore/TypeId.h>
 #include <NsCore/Vector.h>
 #include <NsCore/ReflectionImplement.h>
 
@@ -94,7 +93,7 @@ protected:
     //@}
 
 protected:
-    NsVector<Ptr<BaseComponent>> mItems;
+    Vector<Ptr<BaseComponent>> mItems;
 
 private:
     bool CheckFrozen();
@@ -107,11 +106,11 @@ private:
     NotifyCollectionChangedEventHandler mCollectionChanged;
     PropertyChangedEventHandler mPropertyChanged;
 
+    friend class VisualTreeInspectorHelper;
     NS_DECLARE_REFLECTION(BaseFreezableCollection, Animatable)
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-NS_GUI_CORE_API NsSymbol IdOfCollection(const TypeClass* type);
+NS_WARNING_POP
 
 }
 

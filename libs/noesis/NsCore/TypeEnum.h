@@ -14,70 +14,45 @@
 #include <NsCore/TypeMeta.h>
 #include <NsCore/ReflectionDeclare.h>
 #include <NsCore/Vector.h>
+#include <NsCore/Pair.h>
 
 
 namespace Noesis
 {
 
+template<typename T> class ArrayRef;
 class BoxedValue;
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// TypeEnum. Defines reflection info for enumerations.
+/// Base class providing reflection for enumerations
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 class NS_CORE_KERNEL_API TypeEnum: public TypeMeta
 {
 public:
-    /// Constructor
-    TypeEnum(const TypeInfo& typeInfo);
+    TypeEnum(Symbol name);
 
-    /// Destructor
-    ~TypeEnum();
+    /// Gets the value corresponding to the given enumeration name
+    bool HasName(Symbol name, int& value) const;
 
-    /// Defines enum value information
-    struct ValueInfo
-    {
-        NsSymbol id;
-        int value;
-
-        ValueInfo(NsSymbol i, int v): id(i), value(v) { }
-    };
-
-    /// Gets number of enumeration values
-    uint32_t GetNumValues() const;
-
-    /// Gets enum value info
-    const ValueInfo* GetValueInfo(uint32_t index) const;
-
-    /// Indicates if an enum defines the specified value
-    //@{
-    bool HasValue(NsSymbol id) const;
-    bool HasValue(int value) const;
-    //@}
-
-    /// Gets value of the specified enumeration identifier
-    /// An error occurrs if the identifier is not defined in the enumeration
-    //@{
-    int GetValue(NsSymbol id) const;
-    NsSymbol GetValue(int value) const;
-    //@}
+    /// Gets the name corresponding to the given enumeration value
+    bool HasValue(int value, Symbol& name) const;
     
-    /// Gets a boxed value of the specified enumeration identifier
-    /// An error occurrs if the identifier is not defined in the enumeration
-    virtual Ptr<BoxedValue> GetValueObject(NsSymbol id) const = 0;
+    /// Gets a boxed value for the given enumeration name
+    virtual bool GetValueObject(Symbol name, Ptr<BoxedValue>& value) const = 0;
 
-    /// Enumeration type creation
-    void AddValue(NsSymbol id, int value);
+    /// Adds a new enumeration value
+    void AddValue(Symbol name, int value);
+
+    /// Gets all values
+    typedef Pair<Symbol, int> Value;
+    ArrayRef<Value> GetValues() const;
 
 private:
-    const ValueInfo* TryGetValueInfo(NsSymbol id) const;
-    const ValueInfo* TryGetValueInfo(int value) const;
-
-private:
-    typedef NsVector<ValueInfo*> ValueVector;
-    ValueVector mValues;
+    typedef Vector<Value> Values;
+    Values mValues;
 
     NS_DECLARE_REFLECTION(TypeEnum, TypeMeta)
 };

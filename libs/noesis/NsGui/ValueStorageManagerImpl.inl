@@ -7,10 +7,8 @@
 #include <NsCore/Ptr.h>
 #include <NsCore/Boxing.h>
 #include <NsCore/Memory.h>
-#include <NsCore/MemProfiler.h>
 #include <NsCore/CompilerTools.h>
 #include <NsGui/DependencyObject.h>
-#include <NsMath/Utils.h>
 
 
 namespace Noesis
@@ -104,7 +102,6 @@ void ValueStorageManagerImpl<T>::Construct(ValueStorage* storage, const void* va
         }
         case false:
         {
-            NS_PROFILE_MEM("Gui/DependencyObject");
             void* storage_ = Alloc(sizeof(T));
             *storage = new(storage_) T(*static_cast<const T*>(value));
             break;

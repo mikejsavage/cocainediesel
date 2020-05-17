@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #1476]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -40,6 +39,9 @@ public:
     //@{
     static const DependencyProperty* EasingFunctionProperty;
     //@}
+
+protected:
+    int mAnimationType;
 
     NS_DECLARE_REFLECTION(BaseAnimation, AnimationTimeline)
 };

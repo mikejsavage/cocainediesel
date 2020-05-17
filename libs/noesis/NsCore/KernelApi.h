@@ -11,11 +11,7 @@
 #include <NsCore/CompilerSettings.h>
 
 
-#if defined(NS_CORE_KERNEL_PRIVATE)
-    #define NS_CORE_KERNEL_API
-#elif defined(NS_CORE_KERNEL_EXPORTS)
-    #define NS_CORE_KERNEL_API NS_DLL_EXPORT
-#else
+#ifndef NS_CORE_KERNEL_API
     #define NS_CORE_KERNEL_API NS_DLL_IMPORT
 #endif
 

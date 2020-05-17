@@ -20,7 +20,7 @@ namespace Noesis
 class UIElement;
 
 NS_WARNING_PUSH
-NS_MSVC_WARNING_DISABLE(4251)
+NS_MSVC_WARNING_DISABLE(4251 4275)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Provides an abstract base class for events associated with the DataObject class.
@@ -65,8 +65,7 @@ typedef Noesis::Delegate<void (BaseComponent* sender, const DataObjectPastingEve
     DataObjectPastingEventHandler;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Provides a basic implementation of the IDataObject interface, which defines a format-independent
-/// mechanism for transferring data.
+/// Defines a format-independent mechanism for transferring data.
 ///
 /// https://docs.microsoft.com/en-us/dotnet/api/system.windows.dataobject
 ////////////////////////////////////////////////////////////////////////////////////////////////////

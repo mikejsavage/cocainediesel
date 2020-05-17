@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #488]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -25,6 +24,9 @@ class TypeMetaData;
 class BaseRefCounted;
 class BaseComponent;
 
+NS_WARNING_PUSH
+NS_MSVC_WARNING_DISABLE(4251)
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// TypeProperty. Defines a property of a reflection class type.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -33,12 +35,12 @@ class NS_CORE_KERNEL_API TypeProperty
 public:
     NS_DISABLE_COPY(TypeProperty)
 
-    TypeProperty(NsSymbol name, const Type* type);
+    TypeProperty(Symbol name, const Type* type);
     virtual ~TypeProperty() = 0;
 
     /// Gets property's reflection name
     /// \return A symbol that represents reflection property's name
-    inline NsSymbol GetName() const;
+    inline Symbol GetName() const;
 
     /// Gets property's reflection type
     /// \return Reflection type of the property
@@ -98,11 +100,13 @@ private:
     typename Param<T>::Type Get(const void* ptr, ByCopy) const;
 
 private:
-    NsSymbol mName;
+    Symbol mName;
     const Type* mType;
 
     MetaData mMetaData;
 };
+
+NS_WARNING_POP
 
 }
 

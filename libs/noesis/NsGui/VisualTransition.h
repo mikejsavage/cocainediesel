@@ -39,14 +39,14 @@ public:
 
     /// Gets or sets the name of the VisualState to transition from
     //@{
-    NsSymbol GetFrom() const;
-    void SetFrom(NsSymbol from);
+    Symbol GetFrom() const;
+    void SetFrom(Symbol from);
     //@}
 
     /// Gets or sets the name of the VisualState to transition to
     //@{
-    NsSymbol GetTo() const;
-    void SetTo(NsSymbol to);
+    Symbol GetTo() const;
+    void SetTo(Symbol to);
     //@}
 
     /// Gets or sets the amount of time it takes to move from one state to another
@@ -74,7 +74,7 @@ public:
     //@{
     IUITreeNode* GetNodeParent() const override;
     void SetNodeParent(IUITreeNode* parent) override;
-    BaseComponent* FindNodeResource(IResourceKey* key, bool fullElementSearch) const override;
+    BaseComponent* FindNodeResource(const char* key, bool fullElementSearch) const override;
     BaseComponent* FindNodeName(const char* name) const override;
     ObjectWithNameScope FindNodeNameAndScope(const char* name) const override;
     //@}
@@ -89,8 +89,8 @@ protected:
     //@}
 
 private:
-    NsSymbol mFrom;
-    NsSymbol mTo;
+    Symbol mFrom;
+    Symbol mTo;
     Duration mGeneratedDuration;
     Ptr<EasingFunctionBase> mGeneratedEasingFunction;
     Ptr<Storyboard> mStoryboard;

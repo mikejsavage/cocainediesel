@@ -10,6 +10,7 @@
 #include "imgui/imgui_internal.h"
 
 #define NS_STATIC_LIBRARY
+#include "noesis/NsGui/InputEnums.h"
 #include "noesis/NsGui/IView.h"
 
 #include "stb/stb_image.h"
@@ -352,6 +353,106 @@ static int TranslateGLFWKey( int glfw ) {
 	return 0;
 }
 
+static Noesis::Key TranslateGLFWKeyNoesis( int glfw ) {
+	switch( glfw ) {
+		case GLFW_KEY_TAB:           return Noesis::Key::Key_Tab;
+		case GLFW_KEY_ENTER:         return Noesis::Key::Key_Enter;
+		case GLFW_KEY_ESCAPE:        return Noesis::Key::Key_Escape;
+		case GLFW_KEY_SPACE:         return Noesis::Key::Key_Space;
+		case GLFW_KEY_CAPS_LOCK:     return Noesis::Key::Key_CapsLock;
+		case GLFW_KEY_SCROLL_LOCK:   return Noesis::Key::Key_Scroll;
+		case GLFW_KEY_NUM_LOCK:      return Noesis::Key::Key_NumLock;
+		case GLFW_KEY_BACKSPACE:     return Noesis::Key::Key_Back;
+		case GLFW_KEY_UP:            return Noesis::Key::Key_Up;
+		case GLFW_KEY_DOWN:          return Noesis::Key::Key_Down;
+		case GLFW_KEY_LEFT:          return Noesis::Key::Key_Left;
+		case GLFW_KEY_RIGHT:         return Noesis::Key::Key_Right;
+		case GLFW_KEY_LEFT_ALT:      return Noesis::Key::Key_LeftAlt;
+		case GLFW_KEY_RIGHT_ALT:     return Noesis::Key::Key_RightAlt;
+		case GLFW_KEY_LEFT_CONTROL:  return Noesis::Key::Key_LeftCtrl;
+		case GLFW_KEY_RIGHT_CONTROL: return Noesis::Key::Key_RightCtrl;
+		case GLFW_KEY_LEFT_SHIFT:    return Noesis::Key::Key_LeftShift;
+		case GLFW_KEY_RIGHT_SHIFT:   return Noesis::Key::Key_RightShift;
+		case GLFW_KEY_F1:            return Noesis::Key::Key_F1;
+		case GLFW_KEY_F2:            return Noesis::Key::Key_F2;
+		case GLFW_KEY_F3:            return Noesis::Key::Key_F3;
+		case GLFW_KEY_F4:            return Noesis::Key::Key_F4;
+		case GLFW_KEY_F5:            return Noesis::Key::Key_F5;
+		case GLFW_KEY_F6:            return Noesis::Key::Key_F6;
+		case GLFW_KEY_F7:            return Noesis::Key::Key_F7;
+		case GLFW_KEY_F8:            return Noesis::Key::Key_F8;
+		case GLFW_KEY_F9:            return Noesis::Key::Key_F9;
+		case GLFW_KEY_F10:           return Noesis::Key::Key_F10;
+		case GLFW_KEY_F11:           return Noesis::Key::Key_F11;
+		case GLFW_KEY_F12:           return Noesis::Key::Key_F12;
+		case GLFW_KEY_F13:           return Noesis::Key::Key_F13;
+		case GLFW_KEY_F14:           return Noesis::Key::Key_F14;
+		case GLFW_KEY_F15:           return Noesis::Key::Key_F15;
+		case GLFW_KEY_INSERT:        return Noesis::Key::Key_Insert;
+		case GLFW_KEY_DELETE:        return Noesis::Key::Key_Delete;
+		case GLFW_KEY_PAGE_UP:       return Noesis::Key::Key_PageUp;
+		case GLFW_KEY_PAGE_DOWN:     return Noesis::Key::Key_PageDown;
+		case GLFW_KEY_HOME:          return Noesis::Key::Key_Home;
+		case GLFW_KEY_END:           return Noesis::Key::Key_End;
+
+		case GLFW_KEY_A:             return Noesis::Key::Key_A;
+		case GLFW_KEY_B:             return Noesis::Key::Key_B;
+		case GLFW_KEY_C:             return Noesis::Key::Key_C;
+		case GLFW_KEY_D:             return Noesis::Key::Key_D;
+		case GLFW_KEY_E:             return Noesis::Key::Key_E;
+		case GLFW_KEY_F:             return Noesis::Key::Key_F;
+		case GLFW_KEY_G:             return Noesis::Key::Key_G;
+		case GLFW_KEY_H:             return Noesis::Key::Key_H;
+		case GLFW_KEY_I:             return Noesis::Key::Key_I;
+		case GLFW_KEY_J:             return Noesis::Key::Key_J;
+		case GLFW_KEY_K:             return Noesis::Key::Key_K;
+		case GLFW_KEY_L:             return Noesis::Key::Key_L;
+		case GLFW_KEY_M:             return Noesis::Key::Key_M;
+		case GLFW_KEY_N:             return Noesis::Key::Key_N;
+		case GLFW_KEY_O:             return Noesis::Key::Key_O;
+		case GLFW_KEY_P:             return Noesis::Key::Key_P;
+		case GLFW_KEY_Q:             return Noesis::Key::Key_Q;
+		case GLFW_KEY_R:             return Noesis::Key::Key_R;
+		case GLFW_KEY_S:             return Noesis::Key::Key_S;
+		case GLFW_KEY_T:             return Noesis::Key::Key_T;
+		case GLFW_KEY_U:             return Noesis::Key::Key_U;
+		case GLFW_KEY_V:             return Noesis::Key::Key_V;
+		case GLFW_KEY_W:             return Noesis::Key::Key_W;
+		case GLFW_KEY_X:             return Noesis::Key::Key_X;
+		case GLFW_KEY_Y:             return Noesis::Key::Key_Y;
+		case GLFW_KEY_Z:             return Noesis::Key::Key_Z;
+
+		case GLFW_KEY_0:             return Noesis::Key::Key_D0;
+		case GLFW_KEY_1:             return Noesis::Key::Key_D1;
+		case GLFW_KEY_2:             return Noesis::Key::Key_D2;
+		case GLFW_KEY_3:             return Noesis::Key::Key_D3;
+		case GLFW_KEY_4:             return Noesis::Key::Key_D4;
+		case GLFW_KEY_5:             return Noesis::Key::Key_D5;
+		case GLFW_KEY_6:             return Noesis::Key::Key_D6;
+		case GLFW_KEY_7:             return Noesis::Key::Key_D7;
+		case GLFW_KEY_8:             return Noesis::Key::Key_D8;
+		case GLFW_KEY_9:             return Noesis::Key::Key_D9;
+
+		case GLFW_KEY_KP_0:          return Noesis::Key::Key_NumPad0;
+		case GLFW_KEY_KP_1:          return Noesis::Key::Key_NumPad1;
+		case GLFW_KEY_KP_2:          return Noesis::Key::Key_NumPad2;
+		case GLFW_KEY_KP_3:          return Noesis::Key::Key_NumPad3;
+		case GLFW_KEY_KP_4:          return Noesis::Key::Key_NumPad4;
+		case GLFW_KEY_KP_5:          return Noesis::Key::Key_NumPad5;
+		case GLFW_KEY_KP_6:          return Noesis::Key::Key_NumPad6;
+		case GLFW_KEY_KP_7:          return Noesis::Key::Key_NumPad7;
+		case GLFW_KEY_KP_8:          return Noesis::Key::Key_NumPad8;
+		case GLFW_KEY_KP_9:          return Noesis::Key::Key_NumPad9;
+		case GLFW_KEY_KP_ENTER:      return Noesis::Key::Key_Enter;
+		case GLFW_KEY_KP_DECIMAL:    return Noesis::Key::Key_Decimal;
+		case GLFW_KEY_KP_ADD:        return Noesis::Key::Key_Add;
+		case GLFW_KEY_KP_SUBTRACT:   return Noesis::Key::Key_Subtract;
+		case GLFW_KEY_KP_DIVIDE:     return Noesis::Key::Key_Divide;
+		case GLFW_KEY_KP_MULTIPLY:   return Noesis::Key::Key_Multiply;
+	}
+	return Noesis::Key::Key_None;
+}
+
 static void OnKeyPressed( GLFWwindow *, int glfw_key, int scancode, int action, int mods ) {
 	if( action == GLFW_REPEAT )
 		return;
@@ -378,6 +479,14 @@ static void OnKeyPressed( GLFWwindow *, int glfw_key, int scancode, int action, 
 	io.KeysDown[ key ] = down;
 
 	Key_Event( key, down );
+
+	Noesis::Key noesis = TranslateGLFWKeyNoesis( glfw_key );
+	if( down ) {
+		_view->KeyDown( noesis );
+	}
+	else {
+		_view->KeyUp( noesis );
+	}
 }
 
 static void OnCharTyped( GLFWwindow *, unsigned int codepoint ) {

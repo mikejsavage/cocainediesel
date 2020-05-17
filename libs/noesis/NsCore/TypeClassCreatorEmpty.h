@@ -15,7 +15,6 @@ namespace Noesis
 {
 
 class Type;
-class TypeInfo;
 class TypeClassBuilder;
 template<int N> struct Int2Type;
 
@@ -26,8 +25,10 @@ template<class ClassT, class BaseT>
 class TypeClassCreatorEmpty
 {
 public:
+    NS_DISABLE_COPY(TypeClassCreatorEmpty)
+
     /// Creates a TypeClass for the specified class
-    static Type* Create(const TypeInfo& typeInfo);
+    static Type* Create(Symbol name);
 
     /// Fills TypeClass with members of the class (only the base type in this case)
     static void Fill(Type* type);

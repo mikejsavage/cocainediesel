@@ -37,8 +37,8 @@ class NS_GUI_CORE_API RoutedCommand: public BaseCommand
 {
 public:
     RoutedCommand();
-    RoutedCommand(NsSymbol name, const TypeClass* owner);
-    RoutedCommand(NsSymbol name, const TypeClass* owner, InputGestureCollection* inputGestures);
+    RoutedCommand(Symbol name, const TypeClass* owner);
+    RoutedCommand(Symbol name, const TypeClass* owner, InputGestureCollection* inputGestures);
     ~RoutedCommand();
 
     ///  Gets the name of the command as it is registered in the CommandManager
@@ -82,7 +82,7 @@ private:
     bool CanExecute(BaseComponent* param, UIElement* target, bool& continueRouting) const;
 
 private:
-    NsSymbol mName;
+    Symbol mName;
     const TypeClass* mOwnerType;
     Ptr<InputGestureCollection> mInputGestures;
 

@@ -10,6 +10,7 @@
 
 #include <NsCore/Noesis.h>
 #include <NsCore/BaseComponent.h>
+#include <NsCore/Delegate.h>
 
 
 namespace Noesis
@@ -37,6 +38,14 @@ public:
 
     /// Returns a texture compatible with the given device. Null is returned if no texture found
     virtual Ptr<Texture> LoadTexture(const char* uri, RenderDevice* device) = 0;
+
+    /// Delegate to notify changes to the texture file content
+    typedef Delegate<void (const char*)> TextureChangedDelegate;
+    TextureChangedDelegate& TextureChanged() { return mTextureChanged; }
+    void RaiseTextureChanged(const char* uri) { mTextureChanged(uri); }
+
+private:
+    TextureChangedDelegate mTextureChanged;
 };
 
 }

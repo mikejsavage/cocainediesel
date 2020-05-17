@@ -15,6 +15,8 @@
 namespace Noesis
 {
 
+typedef decltype(sizeof(int)) SizeT;
+
 template<class T> struct Alignment
 {
     enum { Mask = sizeof(T) - 1 };
@@ -26,17 +28,16 @@ template<class T> struct Alignment
 struct MemoryCallbacks
 {
     void* user;
-    void* (*alloc)(void* user, size_t size);
-    void* (*realloc)(void* user, void* ptr, size_t size);
+    void* (*alloc)(void* user, SizeT size);
+    void* (*realloc)(void* user, void* ptr, SizeT size);
     void (*dealloc)(void* user, void* ptr);
-    size_t (*allocSize)(void* user, void* ptr);
+    SizeT (*allocSize)(void* user, void* ptr);
 };
-
 
 NS_CORE_KERNEL_API void SetMemoryCallbacks(const MemoryCallbacks& callbacks);
 
-NS_CORE_KERNEL_API void* Alloc(size_t size);
-NS_CORE_KERNEL_API void* Realloc(void* ptr, size_t size);
+NS_CORE_KERNEL_API void* Alloc(SizeT size);
+NS_CORE_KERNEL_API void* Realloc(void* ptr, SizeT size);
 NS_CORE_KERNEL_API void Dealloc(void* ptr);
 
 NS_CORE_KERNEL_API uint32_t GetAllocatedMemory();

@@ -17,7 +17,6 @@ namespace Noesis
 
 class Type;
 class TypeClassBuilder;
-class TypeInfo;
 class TypeProperty;
 class TypeMetaData;
 class Symbol;
@@ -54,12 +53,14 @@ template<class Class, class Parent> uint32_t CalculateParentOffset()
 class TypeClassCreator
 {
 public:
+    NS_DISABLE_COPY(TypeClassCreator)
+
     /// Constructor
     inline TypeClassCreator(TypeClassBuilder* typeClass);
 
     /// Creates a TypeClass for the specified class
     template<class ClassT> 
-    static Type* Create(const TypeInfo& typeInfo);
+    static Type* Create(Symbol name);
 
     /// Fills TypeClass with members of the class
     template<class ClassT, class BaseT> 

@@ -10,8 +10,11 @@
 
 #include <stdint.h>
 
+
+#include <NsCore/BuildSettings.h>
 #include <NsCore/CompilerSettings.h>
 #include <NsCore/PlatformSettings.h>
+#include <NoesisLicense.h>
 
 
 #endif

@@ -110,7 +110,7 @@ private:
 
     FrameworkElement* GetHeaderHost() const;
 
-    void BringHeaderIntoView();
+    bool BringHeaderIntoView();
 
     static void FocusFirstChild(ItemsControl* current);
     static void FocusParent(TreeViewItem* current);

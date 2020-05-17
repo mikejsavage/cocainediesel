@@ -211,6 +211,7 @@ protected:
     void OnCaretBrushChanged(Brush* oldBrush, Brush* newBrush) override;
     void OnSelectionBrushChanged(Brush* oldBrush, Brush* newBrush) override;
     void OnSelectionOpacityChanged(float oldOpacity, float newOpacity) override;
+    void OnIsReadOnlyChanged(bool oldValue, bool newValue) override;
     void DoLineUp(ScrollViewer* scrollViewer) override;
     void DoLineDown(ScrollViewer* scrollViewer) override;
     ScrollViewer* GetScrollViewer() const override;
@@ -266,7 +267,7 @@ private:
     Ptr<FrameworkElement> mContentHost;
     Ptr<TextBoxTextContainer> mTextContainer;
 
-    typedef NsVector<CompositionUnderline> CompositionUnderlines;
+    typedef Vector<CompositionUnderline> CompositionUnderlines;
     CompositionUnderlines mCompositionUnderlines;
 
     union

@@ -10,7 +10,6 @@
 
 #include <NsCore/Noesis.h>
 #include <NsGui/ContentControl.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis

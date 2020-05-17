@@ -10,6 +10,7 @@
 
 #include <NsCore/Noesis.h>
 #include <NsCore/BaseComponent.h>
+#include <NsCore/Delegate.h>
 
 
 namespace Noesis
@@ -24,8 +25,16 @@ template<class T> class Ptr;
 class XamlProvider: public BaseComponent
 {
 public:
-    // Loads the specified XAML file. Returns null if no xaml found
+    /// Loads the specified XAML file. Returns null if no xaml found
     virtual Ptr<Stream> LoadXaml(const char* uri) = 0;
+
+    /// Delegate to notify changes to the XAML file text
+    typedef Delegate<void (const char*)> XamlChangedDelegate;
+    XamlChangedDelegate& XamlChanged() { return mXamlChanged; }
+    void RaiseXamlChanged(const char* uri) { mXamlChanged(uri); }
+
+private:
+    XamlChangedDelegate mXamlChanged;
 };
 
 }

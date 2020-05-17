@@ -38,7 +38,7 @@ public:
     //@}
 
 private:
-    NsString mTitle;
+    String mTitle;
 
     NS_DECLARE_REFLECTION(Page, UserControl)
 };

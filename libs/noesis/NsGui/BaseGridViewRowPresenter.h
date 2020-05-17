@@ -68,6 +68,12 @@ protected:
     Visual* GetVisualChild(uint32_t index) const override;
     //@}
 
+    // From FrameworkElement
+    //@{
+    uint32_t GetLogicalChildrenCount() const override;
+    Ptr<BaseComponent> GetLogicalChild(uint32_t index) const override;
+    //@}
+
 protected:
     Ptr<UIElementCollection> mVisualChildren;
 

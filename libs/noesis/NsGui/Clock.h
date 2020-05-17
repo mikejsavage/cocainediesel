@@ -18,8 +18,6 @@
 #include <NsGui/Duration.h>
 #include <NsGui/Events.h>
 
-#include <EASTL/fixed_vector.h>
-
 
 namespace Noesis
 {

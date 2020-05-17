@@ -69,6 +69,12 @@ public:
         Copy(d);
     }
 
+    /// Move constructor
+    Delegate(Delegate&& d)
+    {
+        Move(Noesis::Move(d));
+    }
+
     /// Destructor
     ~Delegate()
     {
@@ -82,6 +88,18 @@ public:
         {
             Destroy();
             Copy(d);
+        }
+
+        return *this;
+    }
+
+    /// Move operator
+    Delegate& operator=(Delegate&& d)
+    {
+        if (this != &d)
+        {
+            Destroy();
+            Move(Noesis::Move(d));
         }
 
         return *this;
@@ -161,22 +179,9 @@ public:
     }
 
     /// Delegate invocation with functor to cancel
-    template<typename Func> void Invoke(Args... args, Func f) const
+    void Invoke(Args... args, const void* param, bool (*abort)(const void*)) const
     {
-        GetImpl()->BeginInvoke();
-
-        uint32_t size = GetImpl()->Size();
-        for (uint32_t i = 0; i < size; i++)
-        {
-            if (f())
-            {
-                break;
-            }
-
-            GetImpl()->Invoke(i, args...);
-        }
-
-        GetImpl()->EndInvoke();
+        GetImpl()->Invoke(args..., param, abort);
     }
 
 private:
@@ -245,6 +250,11 @@ private:
         d.GetImpl()->Copy(GetImpl());
     }
 
+    void Move(Delegate&& d)
+    {
+        d.GetImpl()->Move(GetImpl());
+    }
+
     typedef Int2Type<0> _0;
 
     Delegate(const Impl* impl, _0)
@@ -269,10 +279,9 @@ private:
         virtual uint32_t Size() const = 0;
         virtual bool Equal(const Impl* impl) const = 0;
         virtual Ret Invoke(Args... args) const = 0;
-        virtual void BeginInvoke() const {};
-        virtual Ret Invoke(uint32_t i, Args... args) const = 0;
-        virtual void EndInvoke() const {};
+        virtual void Invoke(Args... args, const void* param, bool (*abort)(const void*)) const = 0;
         virtual void Copy(Impl* dest) const = 0;
+        virtual void Move(Impl* dest) { return Copy(dest); }
         virtual void Add(const Delegate& d) = 0;
         virtual void Remove(const Delegate& d) = 0;
 
@@ -283,7 +292,7 @@ private:
     };
 
     /// Implementation for null delegates
-    class NullStub: public Impl
+    class NullStub final: public Impl
     {
     public:
         Type GetType() const override
@@ -306,9 +315,8 @@ private:
             return Ret();
         }
 
-        Ret Invoke(uint32_t, Args...) const override
+        void Invoke(Args..., const void*, bool (*)(const void*)) const override
         {
-            return Ret();
         }
 
         void Copy(Impl* dest) const override
@@ -325,9 +333,7 @@ private:
             }
         }
 
-        void Remove(const Delegate&) override
-        {
-        }
+        void Remove(const Delegate&) override {}
     };
 
     /// Base class implementation for single delegates
@@ -369,7 +375,7 @@ private:
     };
 
     /// Implementation for free functions
-    template<class Func> class FreeFuncStub: public SingleDelegate
+    template<class Func> class FreeFuncStub final: public SingleDelegate
     {
     public:
         FreeFuncStub(Func f): mFunc(f) {}
@@ -390,10 +396,9 @@ private:
             return mFunc(args...);
         }
 
-        Ret Invoke(uint32_t i, Args... args) const override
+        void Invoke(Args... args, const void*, bool (*)(const void*)) const override
         {
-            NS_ASSERT(i == 0);
-            return mFunc(args...);
+            mFunc(args...);
         }
 
         void Copy(Impl* dest) const override
@@ -406,7 +411,7 @@ private:
     };
 
     /// Implementation for functors
-    template<class F> class FunctorStub: public SingleDelegate
+    template<class F> class FunctorStub final: public SingleDelegate
     {
     public:
         FunctorStub(const F& f): mFunctor(f) {}
@@ -426,10 +431,9 @@ private:
             return const_cast<F*>(&mFunctor)->operator()(args...);
         }
 
-        Ret Invoke(uint32_t i, Args... args) const override
+        void Invoke(Args... args, const void*, bool (*)(const void*)) const override
         {
-            NS_ASSERT(i == 0);
-            return const_cast<F*>(&mFunctor)->operator()(args...);
+            const_cast<F*>(&mFunctor)->operator()(args...);
         }
 
         void Copy(Impl* dest) const override
@@ -442,7 +446,7 @@ private:
     };
 
     /// Implementation for member functions
-    template<class C, class Func> class MemberFuncStub: public SingleDelegate
+    template<class C, class Func> class MemberFuncStub final: public SingleDelegate
     {
     public:
         MemberFuncStub(C* obj, Func f): mObj(obj), mFunc(f) {}
@@ -464,10 +468,9 @@ private:
             return (mObj->*mFunc)(args...);
         }
 
-        Ret Invoke(uint32_t i, Args... args) const override
+        void Invoke(Args... args, const void*, bool (*)(const void*)) const override
         {
-            NS_ASSERT(i == 0);
-            return (mObj->*mFunc)(args...);
+            (mObj->*mFunc)(args...);
         }
 
         void Copy(Impl* dest) const override
@@ -481,11 +484,12 @@ private:
     };
 
     /// Implementation for MultiDelegates
-    class MultiDelegate: public Impl
+    class MultiDelegate final: public Impl
     {
     public:
         MultiDelegate(): mVector(*new DelegateVector()) {}
         MultiDelegate(const MultiDelegate& d): mVector(*new DelegateVector(*d.mVector.GetPtr())) {}
+        MultiDelegate(MultiDelegate&& d): mVector(Noesis::Move(d.mVector)) {}
         MultiDelegate& operator=(const MultiDelegate&) = delete;
 
         Type GetType() const override
@@ -495,10 +499,10 @@ private:
 
         uint32_t Size() const override
         {
-            return mVector->v.size();
+            return mVector->v.Size();
         }
 
-        typedef eastl::fixed_vector<Delegate, 2> Delegates;
+        typedef Vector<Delegate, 2> Delegates;
 
         bool Equal(const Impl* impl) const override
         {
@@ -517,20 +521,12 @@ private:
             DelegateVector(): nestingCount(0), compactPending(0) {}
             DelegateVector(const DelegateVector& o): nestingCount(0), compactPending(0), v(o.v) {}
 
-            struct IsNull
-            {
-                inline bool operator()(const Delegate& d) const
-                {
-                    return d.Empty();
-                }
-            };
-
             // Remove null delegates
             void Compact()
             {
                 NS_ASSERT(compactPending == 1);
                 NS_ASSERT(nestingCount == 0);
-                v.erase(eastl::remove_if(v.begin(), v.end(), IsNull()), v.end());
+                v.EraseIf([](const Delegate& d) { return d.Empty(); });
                 compactPending = 0;
             }
 
@@ -564,13 +560,13 @@ private:
 
             const Delegates& v = mVector->v;
 
-            if (v.empty())
+            if (v.Empty())
             {
                 return Ret();
             }
             else
             {
-                uint32_t numDelegates = v.size();
+                uint32_t numDelegates = v.Size();
                 for (uint32_t i = 0; i < numDelegates - 1; ++i)
                 {
                     (v[i])(args...);
@@ -581,31 +577,19 @@ private:
             }
         }
 
-        void BeginInvoke() const override
+        void Invoke(Args... args, const void* param, bool (*abort)(const void*)) const override
         {
-            mVector->AddReference();
-            mVector->nestingCount++;
-        }
+            // Hold reference to the vector to avoid it being destructed in the iteration loop
+            InvokerGuard guard(mVector);
 
-        Ret Invoke(uint32_t i, Args... args) const override
-        {
-            NS_ASSERT(i < mVector->v.size());
-            return mVector->v[i](args...);
-        }
-
-        void EndInvoke() const override
-        {
-            // Nesting counter could be zero in weird situations, like for example when a
-            // SingleDelegate is being converted to MultiDelegate inside an invocation. There is a
-            // test for this scenario (ticket #1336)
-            if (mVector->nestingCount > 0)
+            for (Delegate& d: mVector->v)
             {
-                if (--mVector->nestingCount == 0 && mVector->compactPending == 1)
+                if (abort(param))
                 {
-                    mVector->Compact();
+                    break;
                 }
 
-                mVector->Release();
+                d(args...);
             }
         }
 
@@ -614,12 +598,19 @@ private:
             new(dest) MultiDelegate(*this);
         }
 
+        void Move(Impl* dest) override
+        {
+            new(dest) MultiDelegate(Noesis::Move(*this));
+            this->Destroy();
+            new(this) NullStub();
+        }
+
         void Add(const Delegate& d) override
         {
             if (!d.Empty())
             {
                 Delegates& v = mVector->v;
-                v.push_back(d);
+                v.PushBack(d);
             }
         }
 
@@ -628,8 +619,8 @@ private:
             if (!d.Empty())
             {
                 Delegates& v = mVector->v;
-                typename Delegates::iterator it = eastl::find(v.begin(), v.end(), d);
-                if (it != v.end())
+                typename Delegates::Iterator it = v.Find(d);
+                if (it != v.End())
                 {
                     it->Reset();
                     mVector->compactPending = 1;

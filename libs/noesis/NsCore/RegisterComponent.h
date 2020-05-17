@@ -10,34 +10,19 @@
 
 #include <NsCore/TypeOf.h>
 #include <NsCore/KernelApi.h>
-#include <NsCore/ComponentFactory.h>
 
 
 namespace Noesis
 {
 
-NS_CORE_KERNEL_API void RegisterComponent(const TypeClass* typeClass,
-    ComponentFactory::CreatorFn creatorFn);
-NS_CORE_KERNEL_API void UnregisterComponent(const TypeClass* typeClass);
+/// Registers the given type in the factory. Registered types can be created in XAML
+template<class T> void RegisterComponent();
+
+/// Unregisters given type from the factory
+template<class T> void UnregisterComponent();
 
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T> Noesis::BaseComponent* NsComponentCreator(Noesis::Symbol)
-{
-    return new T;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T> void NsRegisterComponent()
-{
-    Noesis::RegisterComponent(Noesis::TypeOf<T>(), NsComponentCreator<T>);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T> void NsUnregisterComponent()
-{
-    Noesis::UnregisterComponent(Noesis::TypeOf<T>());
-}
+#include <NsCore/RegisterComponent.inl>
 
 #endif

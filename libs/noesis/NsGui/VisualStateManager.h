@@ -58,14 +58,14 @@ public:
     /// \param useTransitions true to use a VisualTransition to transition between states, 
     ///     otherwise false.
     /// \return true if the control successfully transitioned to the new state, otherwise false.
-    static bool GoToState(FrameworkElement* control, NsSymbol stateName, bool useTransitions);
+    static bool GoToState(FrameworkElement* control, Symbol stateName, bool useTransitions);
     
     /// Transitions the element between two states. Use this method to transition states that are 
     /// defined by an application, rather than defined by a control.
     /// \param root The root element that contains the VisualStateManager
     /// \param stateName The state to transition to.
     /// \param useTransitions true to use a VisualTransition object to transition between states
-    static bool GoToElementState(FrameworkElement* root, NsSymbol stateName,
+    static bool GoToElementState(FrameworkElement* root, Symbol stateName,
         bool useTransitions);
 
 public:
@@ -77,7 +77,7 @@ public:
 
 private:
     static bool GoToStateInternal(FrameworkElement* control, FrameworkElement* root, 
-        NsSymbol, bool useTransitions);
+        Symbol, bool useTransitions);
        
     static VisualTransition* GetTransition(FrameworkElement* fe, VisualStateGroup* group, 
         VisualState* from, VisualState* to);

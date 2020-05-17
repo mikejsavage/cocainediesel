@@ -85,7 +85,6 @@ protected:
 
 private:
     void TryFocusSelected();
-    BaseComponent* ItemFromContainer(TreeViewItem* tvi) const;
 
 private:
     Ptr<TreeViewItem> mSelectedContainer;

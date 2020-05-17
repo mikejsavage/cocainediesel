@@ -16,8 +16,6 @@
 namespace Noesis
 {
 
-class ResourceKeyType;
-
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
 
@@ -34,8 +32,8 @@ public:
 
     /// Gets or sets the type for which this DataTemplate is intended
     //@{
-    ResourceKeyType* GetDataType() const;
-    void SetDataType(ResourceKeyType* dataType);
+    const Type* GetDataType() const;
+    void SetDataType(const Type* dataType);
     //@}
     
     /// Gets a collection of triggers that apply property values or perform actions based on one or 
@@ -53,7 +51,7 @@ private:
     void EnsureTriggers() const;
 
 private:
-    Ptr<ResourceKeyType> mDataType;
+    const Type* mDataType;
     mutable Ptr<TriggerCollection> mTriggers;
 
     NS_DECLARE_REFLECTION(DataTemplate, FrameworkTemplate)

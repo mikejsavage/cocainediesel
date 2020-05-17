@@ -90,8 +90,8 @@ private:
         UpdateFlags_Mesh = Geometry::UpdateFlags_Sentinel
     };
 
-    NsVector<Point> mVertices;
-    NsVector<uint16_t> mIndices;
+    Vector<Point> mVertices;
+    Vector<uint16_t> mIndices;
     Rect mBounds;
 
     NS_DECLARE_REFLECTION(MeshGeometry, Geometry)

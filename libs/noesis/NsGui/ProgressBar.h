@@ -10,7 +10,6 @@
 
 #include <NsCore/Noesis.h>
 #include <NsGui/RangeBase.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis

@@ -15,7 +15,7 @@
 namespace Noesis
 {
 
-class Color;
+struct Color;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Paints an area with a solid color.
@@ -39,7 +39,7 @@ public:
 
     /// From BaseObject
     //@{
-    NsString ToString() const override;
+    String ToString() const override;
     //@}
 
     // Hides Freezable methods for convenience

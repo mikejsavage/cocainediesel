@@ -24,7 +24,7 @@ namespace Noesis
 struct Point;
 struct Rect;
 struct Size;
-class Color;
+struct Color;
 class Brush;
 class Pen;
 class Geometry;
@@ -46,12 +46,6 @@ public:
     DrawingContext();
     ~DrawingContext();
 
-    /// Gets drawing commands generated for the specified drawing operations
-    DrawingCommands* GetDrawingCommands() const;
-
-    /// Resets stored drawing commands
-    void Reset();
-
     /// Draws the specified Geometry using the specified Brush and Pen
     void DrawGeometry(Brush* brush, Pen* pen, Geometry* geometry);
 
@@ -70,6 +64,13 @@ public:
 
     /// Pushes the specified Transform onto the drawing context
     void PushTransform(Transform* transform);
+
+private:
+    friend class UIElement;
+    friend class DrawingContextTestBase;
+    DrawingCommands* GetDrawingCommands() const;
+    void EnsureDrawingCommands();
+    void ResetDrawingCommands();
 
 private:
     Ptr<DrawingCommands> mCommands;

@@ -10,8 +10,6 @@
 
 #include <NsCore/Noesis.h>
 #include <NsGui/CoreApi.h>
-#include <NsGui/Enums.h>
-#include <NsGui/InputEnums.h>
 #include <NsCore/Delegate.h>
 #include <NsCore/Ptr.h>
 #include <NsCore/Vector.h>
@@ -33,6 +31,9 @@ class ToolTip;
 class RoutedEvent;
 struct RoutedEventArgs;
 struct DependencyPropertyChangedEventArgs;
+enum MouseButtonState: int32_t;
+enum MouseButton: int32_t;
+enum Cursor: int32_t;
 
 typedef Noesis::Delegate<void(UIElement*)> DirectlyOverChangedEvent;
 
@@ -198,7 +199,7 @@ private:
     static const uint32_t NumButtons = 5;
     MouseButtonState mButtonStates[NumButtons];
 
-    typedef NsVector<Ptr<UIElement> > Elements;
+    typedef Vector<Ptr<UIElement> > Elements;
 
     // Captured element
     Ptr<UIElement> mCaptured;

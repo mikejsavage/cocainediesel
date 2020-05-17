@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #1403]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -57,10 +56,7 @@ public:
 
     /// Generates a string representation of the point
     /// The string has the following form: "Forever", "2x", or a TimeSpan: "0:0:1"
-    NsString ToString() const;
-
-    /// Returns a hash code
-    uint32_t GetHashCode() const;
+    String ToString() const;
 
     /// Tries to parse a RepeatBehavior from a string
     static bool TryParse(const char* txt, RepeatBehavior& result);

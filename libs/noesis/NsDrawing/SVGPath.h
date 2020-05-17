@@ -12,7 +12,6 @@
 #include <NsCore/ReflectionDeclare.h>
 #include <NsDrawing/TypesApi.h>
 #include <NsCore/Vector.h>
-#include <NsCore/FixedVector.h>
 
 
 namespace Noesis
@@ -164,7 +163,7 @@ public:
     };
 
     Fill fillRule;
-    NsVector<uint32_t> commands;
+    Vector<uint32_t> commands;
 
     NS_DECLARE_REFLECTION(SVGPath, NoParent)
 };
@@ -173,7 +172,7 @@ public:
 struct NS_DRAWING_TYPES_API PathContext
 {
     void PushCommand(const SVGPath::Command& command);
-    NsFixedVector<uint32_t, 512> commands;
+    Vector<uint32_t, 512> commands;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

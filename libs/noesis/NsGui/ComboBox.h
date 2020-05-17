@@ -118,6 +118,8 @@ protected:
     void UpdateVisualStates() override;
     //@}
 
+    void OnIsFocusEngagedChanged(bool engaged) override;
+
     /// From ItemsControl
     //@{
     Ptr<DependencyObject> GetContainerForItemOverride() const override;
@@ -139,7 +141,7 @@ private:
 
     void UpdateText(const char* text);
     void UpdateEditableText(const char* text);
-    NsString GetSelectedItemText() const;
+    String GetSelectedItemText() const;
     void OnEditableTextChanged(BaseComponent* sender, const RoutedEventArgs& e);
 
     void UpdateSelectionBoxItem();
@@ -186,7 +188,8 @@ private:
     {
         NeedsUpdate = Selector::LastFlag * 2,
         UpdatingText = NeedsUpdate * 2,
-        UpdatingEditableText = UpdatingText * 2
+        UpdatingEditableText = UpdatingText * 2,
+        DropDownHasFocus = UpdatingEditableText * 2
     };
 
     NS_DECLARE_REFLECTION(ComboBox, Selector)

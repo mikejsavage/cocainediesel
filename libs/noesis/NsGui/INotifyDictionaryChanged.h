@@ -9,9 +9,8 @@
 
 
 #include <NsCore/Noesis.h>
-#include <NsGui/CoreApi.h>
 #include <NsCore/Interface.h>
-#include <NsCore/ReflectionDeclare.h>
+#include <NsCore/ReflectionImplementEmpty.h>
 
 
 namespace Noesis
@@ -19,46 +18,35 @@ namespace Noesis
 
 class BaseComponent;
 template<class T> class Delegate;
-NS_INTERFACE IResourceKey;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Describes the action that caused the DictionaryChanged event
 enum NotifyDictionaryChangedAction
 {
-    /// One item was added to the collection. 
+    /// One item was added to the dictionary
     NotifyDictionaryChangedAction_Add,
-    /// One item was removed from the collection. 
+
+    /// One item was removed from the dictionary
     NotifyDictionaryChangedAction_Remove,
-    /// One item was replaced in the collection. 
-    NotifyDictionaryChangedAction_Replace, 
-    /// The content of the collection changed dramatically. 
+
+    /// One item was replaced in the dictionary
+    NotifyDictionaryChangedAction_Replace,
+
+    /// The content of the dictionary was cleared
     NotifyDictionaryChangedAction_Reset,
+
+    /// The content of the dictionary is going to be cleared
     NotifyDictionaryChangedAction_PreReset
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Args passed on dictionary changed event notification.
-////////////////////////////////////////////////////////////////////////////////////////////////////
-NS_WARNING_PUSH
-NS_MSVC_WARNING_DISABLE(4251 4275)
-
-struct NS_GUI_CORE_API NotifyDictionaryChangedEventArgs
+/// Provides data for the DictionaryChanged event
+struct NotifyDictionaryChangedEventArgs
 {
-public:
     NotifyDictionaryChangedAction action;
-    const IResourceKey* key;
+    const char* key;
     const BaseComponent* oldValue;
     const BaseComponent* newValue;
-
-    NotifyDictionaryChangedEventArgs(NotifyDictionaryChangedAction act, const IResourceKey* k,
-        const BaseComponent* oldVal, const BaseComponent* newVal);
-
-private:
-    NS_DECLARE_REFLECTION(NotifyDictionaryChangedEventArgs, NoParent)
 };
 
-NS_WARNING_POP
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 typedef Delegate<void (BaseComponent*, const NotifyDictionaryChangedEventArgs&)>
     NotifyDictionaryChangedEventHandler;
 

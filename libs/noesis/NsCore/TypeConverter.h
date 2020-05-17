@@ -11,7 +11,7 @@
 #include <NsCore/Noesis.h>
 #include <NsCore/TypeConverterApi.h>
 #include <NsCore/BaseComponent.h>
-#include <NsCore/NSTLForwards.h>
+#include <NsCore/StringFwd.h>
 #include <NsCore/ReflectionDeclare.h>
 
 
@@ -51,7 +51,7 @@ public:
         Ptr<BaseComponent>& result) const;
 
     /// Converts the specified value to a string representation
-    virtual bool TryConvertToString(BaseComponent* object, NsString& result) const;
+    virtual bool TryConvertToString(BaseComponent* object, String& result) const;
 
     NS_DECLARE_REFLECTION(TypeConverter, BaseComponent)
 };

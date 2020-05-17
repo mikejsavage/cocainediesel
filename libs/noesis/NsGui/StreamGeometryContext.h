@@ -11,6 +11,7 @@
 #include <NsCore/Noesis.h>
 #include <NsCore/Ptr.h>
 #include <NsGui/CoreApi.h>
+#include <NsGui/ArcSegment.h>
 #include <NsDrawing/SVGPath.h>
 
 
@@ -20,17 +21,6 @@ namespace Noesis
 struct Point;
 struct Size;
 class StreamGeometry;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Defines the direction an elliptical arc is drawn.
-////////////////////////////////////////////////////////////////////////////////////////////////////
-enum SweepDirection
-{
-    /// Specifies that arcs are drawn in a counter clockwise (negative-angle) direction
-    SweepDirection_Counterclockwise,
-    /// Specifies that arcs are drawn in a clockwise (positive-angle) direction
-    SweepDirection_Clockwise
-};
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)

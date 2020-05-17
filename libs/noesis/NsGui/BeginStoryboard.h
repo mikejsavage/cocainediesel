@@ -69,7 +69,7 @@ public:
 
 private:
     HandoffBehavior mHandoffBehavior;
-    NsString mName;
+    String mName;
 
     NS_DECLARE_REFLECTION(BeginStoryboard, TriggerAction)
 };

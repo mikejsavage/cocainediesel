@@ -18,18 +18,22 @@
 namespace Noesis
 {
 
+NS_WARNING_PUSH
+NS_MSVC_WARNING_DISABLE(4251)
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Metadata used to assign Category to types
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 struct NS_CORE_KERNEL_API Category: public TypeMetaData
 {
     Category(const char* category);
-    Category(NsSymbol category);
 
-    NsSymbol category;
-    
+    Symbol category;
+
     NS_DECLARE_REFLECTION(Category, TypeMetaData)
 };
+
+NS_WARNING_POP
 
 }
 

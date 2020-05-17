@@ -15,13 +15,12 @@
 #include <NsGui/CoreApi.h>
 #include <NsGui/MarkupExtension.h>
 #include <NsGui/CoreApi.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis
 {
 
-class ResourceKeyType;
+enum RelativeSourceMode: int32_t;
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
@@ -43,7 +42,7 @@ public:
 
     /// Initializes a new instance of the RelativeSource class with an initial mode and additional 
     /// tree-walking qualifiers for finding the desired relative source
-    RelativeSource(RelativeSourceMode mode, ResourceKeyType* type, int level);
+    RelativeSource(RelativeSourceMode mode, const Type* type, int level);
 
     /// Copy constructor
     RelativeSource(const RelativeSource& other);
@@ -73,8 +72,8 @@ public:
 
     /// Gets or sets the type of ancestor to look for
     //@{
-    ResourceKeyType* GetAncestorType() const;
-    void SetAncestorType(ResourceKeyType* type);
+    const Type* GetAncestorType() const;
+    void SetAncestorType(const Type* type);
     //@}
 
     /// Gets or sets the level of ancestor to look for, in FindAncestor mode. Use 1 to indicate the
@@ -94,7 +93,7 @@ public:
 
 private:
     RelativeSourceMode mMode;
-    Ptr<ResourceKeyType> mAncestorType;
+    const Type* mAncestorType;
     int mAncestorLevel;
 
     NS_DECLARE_REFLECTION(RelativeSource, MarkupExtension)

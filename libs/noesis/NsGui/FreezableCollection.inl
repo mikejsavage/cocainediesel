@@ -60,6 +60,7 @@ bool FreezableCollection<T>::Remove(T* item)
 template<class T>
 const TypeClass* FreezableCollection<T>::GetItemType() const
 {
+    static_assert(IsDerived<T, DependencyObject>::Result, "T must inherit from DependencyObject");
     return TypeOf<T>();
 }
 

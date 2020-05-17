@@ -11,13 +11,28 @@
 #include <NsCore/Noesis.h>
 #include <NsCore/Interface.h>
 #include <NsCore/BaseComponent.h>
-#include <NsGui/INameScopeTypes.h>
 
 
 namespace Noesis
 {
 
 template<class T> class Delegate;
+
+enum NameScopeChangedAction
+{
+    NameScopeChangedAction_Register,
+    NameScopeChangedAction_Unregister,
+    NameScopeChangedAction_Update,
+    NameScopeChangedAction_Destroy
+};
+
+struct NameScopeChangedArgs
+{
+    NameScopeChangedAction action;
+    const char* name;
+    BaseComponent* newElement;
+    BaseComponent* oldElement;
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Defines how names of elements should be accessed within a particular XAML scope, and how to
@@ -39,7 +54,7 @@ NS_INTERFACE INameScope: public Interface
     virtual void UpdateName(const char* name, BaseComponent* object) = 0;
 
     /// Delegate to be notified about events
-    typedef Noesis::Delegate<void (INameScope*, const NameScopeChangedArgs&)> ChangedDelegate;
+    typedef Delegate<void (INameScope*, const NameScopeChangedArgs&)> ChangedDelegate;
     virtual ChangedDelegate& NameScopeChanged() = 0;
 
     NS_IMPLEMENT_INLINE_REFLECTION_(INameScope, Interface)

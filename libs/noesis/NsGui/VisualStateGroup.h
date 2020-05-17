@@ -14,7 +14,7 @@
 #include <NsGui/IUITreeNode.h>
 #include <NsGui/AnimationApi.h>
 #include <NsCore/String.h>
-#include <NsCore/Map.h>
+#include <NsCore/HashMap.h>
 
 
 namespace Noesis
@@ -61,7 +61,7 @@ public:
     //@}
 
     /// Finds a matching state with the same name (can be null or empty)
-    VisualState* FindState(NsSymbol name) const;
+    VisualState* FindState(Symbol name) const;
 
     /// Finds a matching transition for the provided *from* and "to* VisualState objects
     VisualTransition* FindTransition(VisualState* from, VisualState* to) const;
@@ -78,7 +78,7 @@ public:
     //@{
     IUITreeNode* GetNodeParent() const override;
     void SetNodeParent(IUITreeNode* parent) override;
-    BaseComponent* FindNodeResource(IResourceKey* key, bool fullElementSearch) const override;
+    BaseComponent* FindNodeResource(const char* key, bool fullElementSearch) const override;
     BaseComponent* FindNodeName(const char* name) const override;
     ObjectWithNameScope FindNodeNameAndScope(const char* name) const override;
     //@}
@@ -99,7 +99,7 @@ private:
     void OnObjectDestroyed(DependencyObject* object);
 
 private:
-    NsString mName;
+    String mName;
     mutable Ptr<VisualStateCollection> mStates;
     mutable Ptr<VisualTransitionCollection> mTransitions;
 
@@ -109,7 +109,7 @@ private:
         Ptr<Storyboard> storyboards[2];
     };
 
-    typedef NsMap<FrameworkElement*, ElementState> CurrentStates;
+    typedef HashMap<FrameworkElement*, ElementState> CurrentStates;
     CurrentStates mCurrentStates;
 
     IUITreeNode* mOwner;

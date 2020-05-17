@@ -38,8 +38,7 @@ public:
     //@{
     IUITreeNode* GetNodeParent() const override;
     void SetNodeParent(IUITreeNode* parent) override;
-    BaseComponent* FindNodeResource(IResourceKey* key,
-        bool fullElementSearch) const override;
+    BaseComponent* FindNodeResource(const char* key, bool fullElementSearch) const override;
     BaseComponent* FindNodeName(const char* name) const override;
     ObjectWithNameScope FindNodeNameAndScope(const char* name) const override;
     //@}

@@ -16,7 +16,6 @@
 #include <NsCore/Symbol.h>
 #include <NsCore/Vector.h>
 #include <NsGui/CoreApi.h>
-#include <NsGui/IResourceKey.h>
 
 
 namespace Noesis
@@ -32,21 +31,14 @@ NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-struct NS_GUI_CORE_API PathElement
+struct PathElement
 {
-    PathElement();
-    PathElement(const PathElement& pe);
-    ~PathElement();
-
-    PathElement& operator=(const PathElement& pe);
-
-    // If you add a new member here, remember to add the proper code in copy ctor and operator=
     Ptr<BaseComponent> source;
     Ptr<CollectionView> collection;
-    const TypeProperty* property;
-    const DependencyProperty* dp;
-    int index;
-    Ptr<IResourceKey> key;
+    const TypeProperty* property = nullptr;
+    const DependencyProperty* dp = nullptr;
+    const char* key = "";
+    int index = -1;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -69,7 +61,7 @@ public:
     //@}
 
     /// Returns false if path cannot be resolved for the provided source
-    typedef NsVector<PathElement> Elements;
+    typedef Vector<PathElement> Elements;
     bool GetPathElements(BaseComponent* source, bool insertLastValue, Elements& elements) const;
 
     /// Returns false if path cannot be resolved for the provided source
@@ -80,33 +72,33 @@ public:
 private:
     void AddPathElements(const PathElement& pathElement, void* context) const;
     bool UpdatePathItems() const;
-    const NsString& RebuildPath() const;
+    const String& RebuildPath() const;
 
 private:
     friend class PropertyPathTest;
 
-    mutable NsString mPath;
+    mutable String mPath;
 
     struct PathItem
     {
         bool slash;
-        NsSymbol owner;
-        NsSymbol prop;
+        Symbol owner;
+        Symbol prop;
 
         struct IndexKey
         {
             int index;
-            NsString key;
+            String key;
 
             IndexKey();
         };
 
-        NsVector<IndexKey> keys;
+        Vector<IndexKey> keys;
 
         PathItem();
     };
 
-    typedef NsVector<PathItem> PathItems;
+    typedef Vector<PathItem> PathItems;
     mutable PathItems mPathItems;
 
     NS_DECLARE_REFLECTION(PropertyPath, BaseComponent)

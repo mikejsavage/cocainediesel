@@ -10,7 +10,6 @@
 
 #include <NsCore/Noesis.h>
 #include <NsGui/FrameworkElement.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis
@@ -106,6 +105,24 @@ public:
     void SetStrokeThickness(float thickness);
     //@}
 
+    /// Gets or sets the amount to trim the start of the geometry path
+    //@{
+    float GetTrimStart() const;
+    void SetTrimStart(float value);
+    //@}
+
+    /// Gets or sets the amount to trim the end of the geometry path
+    //@{
+    float GetTrimEnd() const;
+    void SetTrimEnd(float value);
+    //@}
+
+    /// Gets or sets the amount to offset trimming the geometry path
+    //@{
+    float GetTrimOffset() const;
+    void SetTrimOffset(float value);
+    //@}
+
 public:
     /// Dependency properties
     //@{
@@ -120,6 +137,9 @@ public:
     static const DependencyProperty* StrokeMiterLimitProperty;
     static const DependencyProperty* StrokeStartLineCapProperty;
     static const DependencyProperty* StrokeThicknessProperty;
+    static const DependencyProperty* TrimStartProperty;
+    static const DependencyProperty* TrimEndProperty;
+    static const DependencyProperty* TrimOffsetProperty;
     //@}
 
 protected:

@@ -12,7 +12,6 @@
 #include <NsCore/ReflectionDeclareEnum.h>
 #include <NsCore/Vector.h>
 #include <NsGui/FrameworkElement.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis
@@ -177,7 +176,7 @@ public:
 
     /// From BaseObject
     //@{
-    NsString ToString() const override;
+    String ToString() const override;
     //@}
 
 public:
@@ -255,8 +254,8 @@ private:
 
     void DisconnectInlineContainers();
 
-    void BuildInlinesInfo(NsFixedString<4096>& text);
-    void BuildInlinesInfo(InlineCollection* inlines, NsFixedString<4096>& text);
+    void BuildInlinesInfo(FixedString<4096>& text);
+    void BuildInlinesInfo(InlineCollection* inlines, FixedString<4096>& text);
 
     void RegisterInlines(InlineCollection* inlines);
     void UnregisterInlines(InlineCollection* inlines, bool removeLogical);
@@ -277,6 +276,8 @@ private:
     struct InlineInfo;
     const InlineInfo* FindInline(uint32_t position) const;
 
+    void OnFontChanged(const char*, const char*, FontWeight, FontStretch, FontStyle);
+
 private:
     friend class TextBlockTest;
 
@@ -292,9 +293,9 @@ private:
         Inline* inl;
     };
 
-    typedef NsVector<InlineInfo> InlineInfoList;
+    typedef Vector<InlineInfo> InlineInfoList;
     InlineInfoList mInlineInfo;
-    NsVector<uint32_t> mInlineContainers;
+    Vector<uint32_t> mInlineContainers;
 
     NS_DECLARE_REFLECTION(TextBlock, FrameworkElement)
 };

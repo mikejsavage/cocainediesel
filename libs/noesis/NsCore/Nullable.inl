@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #1336]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -32,7 +31,7 @@ Nullable<T>::Nullable(): BaseNullable(false)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T>
-Nullable<T>::Nullable(std::nullptr_t): BaseNullable(false)
+Nullable<T>::Nullable(NullPtrT): BaseNullable(false)
 {
 }
 
@@ -68,7 +67,7 @@ Nullable<T>& Nullable<T>::operator=(typename Param<T>::Type value)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T>
-Nullable<T>& Nullable<T>::operator=(std::nullptr_t)
+Nullable<T>& Nullable<T>::operator=(NullPtrT)
 {
     mHasValue = false;
     return *this;
@@ -111,30 +110,23 @@ bool Nullable<T>::operator!=(typename Param<T>::Type value) const
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T>
-inline bool Nullable<T>::operator==(std::nullptr_t) const
+inline bool Nullable<T>::operator==(NullPtrT) const
 {
     return !mHasValue;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T>
-bool Nullable<T>::operator!=(std::nullptr_t) const
+bool Nullable<T>::operator!=(NullPtrT) const
 {
     return mHasValue;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T>
-NsString Nullable<T>::ToString() const
+String Nullable<T>::ToString() const
 {
     return mHasValue ? Noesis::ToString(mValue) : "";
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-uint32_t Nullable<T>::GetHashCode() const
-{
-    return mHasValue ? Noesis::GetHashCode(mValue) : 0x5bd1e995;
 }
 
 namespace Boxing

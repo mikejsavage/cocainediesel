@@ -12,7 +12,6 @@
 #include <NsCore/BaseComponent.h>
 #include <NsCore/Ptr.h>
 #include <NsCore/ReflectionDeclare.h>
-#include <NsRender/RenderDevice.h>
 #include <NsRender/RenderDeviceApi.h>
 
 

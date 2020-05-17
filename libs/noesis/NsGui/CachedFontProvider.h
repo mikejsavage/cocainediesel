@@ -10,12 +10,10 @@
 
 #include <NsCore/Noesis.h>
 #include <NsCore/Vector.h>
-#include <NsCore/Map.h>
+#include <NsCore/HashMap.h>
+#include <NsCore/String.h>
 #include <NsGui/FontProvider.h>
 #include <NsGui/CachedFontProviderApi.h>
-
-#include <EASTL/fixed_string.h>
-#include <EASTL/fixed_vector.h>
 
 
 namespace Noesis
@@ -29,17 +27,16 @@ NS_MSVC_WARNING_DISABLE(4251 4275)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 class NS_GUI_CACHEDFONTPROVIDER_API CachedFontProvider: public FontProvider
 {
-public:
-    CachedFontProvider();
-
-    /// Disables or enables operating systems fonts. By default they are enabled
-    void SetUseSystemFonts(bool value);
-
 protected:
     /// Registers a font filename in the given folder. Each time this function is invoked, the
     /// given filename is opened and scanned (through OpenFont). It is recommened deferring
     /// this call as much as possible (for example, until ScanFolder is invoked)
     void RegisterFont(const char* folder, const char* filename);
+
+    /// Registers a font face with given font properties. In comparison with the previous function
+    /// this one doesn't open the filename to scan it. Always use this function if possible
+    void RegisterFont(const char* folder, const char* filename, uint32_t index, const char* family,
+        FontWeight weight, FontStretch stretch, FontStyle style);
 
     /// First time a font is requested from a folder, this function is invoked to give inheritors
     /// the opportunity to register faces found in that folder
@@ -50,21 +47,15 @@ protected:
 
     /// From FontProvider
     //@{
-    FontSource MatchFont(const char* baseUri, const char* familyName, FontWeight weight,
-        FontStretch stretch, FontStyle style) override;
+    FontSource MatchFont(const char* baseUri, const char* familyName, FontWeight& weight,
+        FontStretch& stretch, FontStyle& style) override;
     bool FamilyExists(const char* baseUri, const char* familyName) override;
     //@}
 
 private:
-    void RegisterFace(const char* folder, const char* filename, uint32_t index, const char* family,
-        FontWeight weight, FontStretch stretch, FontStyle style);
-
-private:
-    typedef eastl::fixed_string<char, 128> Filename;
-
     struct Face
     {
-        Filename filename;
+        FixedString<128> filename;
         uint32_t faceIndex;
 
         FontWeight weight;
@@ -72,27 +63,16 @@ private:
         FontStyle style;
     };
 
-    struct ILess
-    {
-        bool operator()(const Filename& a, const Filename& b) const
-        {
-            return a.comparei(b) < 0;
-        }
-    };
+    template<class T> using Bucket = HashBucket_KHV<String, T, CaseStringHashKeyInfo>;
 
-    typedef NsVector<Face> Family;
-    typedef NsMap<Filename, Family, ILess> Families;
-    typedef NsMap<Filename, Families, ILess> Folders;
+    typedef Vector<Face> Family;
+    typedef HashMap<String, Family, 0, Bucket<Family>> Families;
+    typedef HashMap<String, Families, 0, Bucket<Families>> Folders;
     Folders mFolders;
 
-    bool mUseSystemFonts;
-
-    Folders::iterator GetFolder(const char* folder);
-    Ptr<Stream> InternalOpenFont(const char* folder, const char* filename) const;
-    void ScanSystemFonts(const char* root = "");
-
-    FontSource FindBestMatch(const char* baseUri, const Family& faces, FontWeight weight,
-        FontStretch stretch, FontStyle style) const;
+    Families& GetFolder(const char* folder);
+    FontSource FindBestMatch(const char* baseUri, const Family& faces, FontWeight& weight,
+        FontStretch& stretch, FontStyle& style) const;
 };
 
 NS_WARNING_POP

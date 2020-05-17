@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #868]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -10,8 +9,7 @@
 
 
 #include <NsCore/Noesis.h>
-#include <NsCore/ReflectionImplement.h>
-#include <NsCore/TypeId.h>
+#include <NsCore/ReflectionImplementEmpty.h>
 #include <NsDrawing/TypesApi.h>
 #include <NsDrawing/Size.h>
 #include <NsMath/Vector.h>
@@ -25,78 +23,72 @@ struct Pointi;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Point. Represents an x- and y-coordinate pair in two-dimensional space.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-struct Point: public Vector2f
+struct Point: public Vector2
 {
     /// Default constructor that creates a (0,0) point
-    inline Point();
+    Point();
 
     /// Constructor for x, y
-    inline Point(float x, float y);
+    Point(float x, float y);
 
     /// Construct from Pointi
-    inline Point(const Pointi& point);
+    Point(const Pointi& point);
 
     /// Constructor from Vector
-    inline Point(const Vector2f& v);
+    Point(const Vector2& v);
 
     /// Constructor from size
-    explicit inline Point(const Size& size);
+    explicit Point(const Size& size);
 
     /// Copy constructor
-    inline Point(const Point& point);
+    Point(const Point& point) = default;
 
     /// Copy operator
-    inline Point& operator=(const Point& point);
+    Point& operator=(const Point& point) = default;
 
     /// Generates a string representation of the point
     /// The string has the following form: "x,y"
-    NS_DRAWING_TYPES_API NsString ToString() const;
+    NS_DRAWING_TYPES_API String ToString() const;
 
     /// Tries to parse a Point from a string
     NS_DRAWING_TYPES_API static bool TryParse(const char* str, Point& result);
 
-    /// TODO: Inline because inheriting from Vector does not allow exporting full class
-    NS_IMPLEMENT_INLINE_REFLECTION(Point, Vector2f)
-    {
-        NsMeta<TypeId>("Point");
-    }
+    NS_IMPLEMENT_INLINE_REFLECTION_(Point, Vector2)
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Pointi. Represents an x- and y-coordinate pair in integer two-dimensional space.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-struct Pointi: public Vector2i
+struct Pointi
 {
+    int x, y;
+
     /// Default constructor that creates a (0,0) point
-    inline Pointi();
+    Pointi();
 
     /// Constructor for x, y
-    inline Pointi(int x, int y);
+    Pointi(int x, int y);
 
     /// Constructor from float Point
-    inline Pointi(const Point& p);
-
-    /// Constructor from Vector
-    inline Pointi(const Vector2i& v);
+    Pointi(const Point& p);
 
     /// Constructor from size
-    explicit inline Pointi(const Sizei& size);
+    explicit Pointi(const Sizei& size);
 
     /// Copy constructor
-    inline Pointi(const Pointi& point);
+    Pointi(const Pointi& point) = default;
 
     /// Copy operator
-    inline Pointi& operator=(const Pointi& point);
+    Pointi& operator=(const Pointi& point) = default;
 
     /// Generates a string representation of the point
     /// The string has the following form: "x,y"
-    NS_DRAWING_TYPES_API NsString ToString() const;
+    NS_DRAWING_TYPES_API String ToString() const;
 
     /// Tries to parse a Pointi from a string
     NS_DRAWING_TYPES_API static bool TryParse(const char* str, Pointi& result);
 
-    /// TODO: Inline because inheriting from Vector does not allow exporting full class
-    NS_IMPLEMENT_INLINE_REFLECTION_(Pointi, Vector2i)
+    NS_IMPLEMENT_INLINE_REFLECTION_(Pointi, NoParent)
 };
 
 }

@@ -32,6 +32,11 @@ namespace Noesis
     #define NS_LOG_CHANNEL ""
 #endif
 
+/// Traces are globally disabled. They must be enabled in each cpp
+#ifndef NS_LOG_TRACE
+    #define NS_LOG_TRACE(...) NS_UNUSED(__VA_ARGS__)
+#endif
+
 /// Installs custom logging handler and returns previous one
 typedef void (*LogHandler)(const char* file, uint32_t line, uint32_t level, const char* channel,
     const char* message);
@@ -43,12 +48,6 @@ NS_CORE_KERNEL_API void InvokeLogHandler(const char* file, uint32_t line, uint32
 
 #define NS_LOG_(level, ...) \
     Noesis::InvokeLogHandler(__FILE__, __LINE__, level, NS_LOG_CHANNEL, __VA_ARGS__)
-
-#if NS_MINIMUM_LOG_LEVEL <= NS_LOG_LEVEL_TRACE
-    #define NS_LOG_TRACE(...) NS_LOG_(NS_LOG_LEVEL_TRACE, __VA_ARGS__)
-#else
-    #define NS_LOG_TRACE(...) NS_UNUSED(__VA_ARGS__)
-#endif
 
 #if NS_MINIMUM_LOG_LEVEL <= NS_LOG_LEVEL_DEBUG
     #define NS_LOG_DEBUG(...) NS_LOG_(NS_LOG_LEVEL_DEBUG, __VA_ARGS__)

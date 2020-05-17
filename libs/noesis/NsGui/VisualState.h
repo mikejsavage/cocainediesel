@@ -36,8 +36,8 @@ public:
 
     /// Gets the name of the VisualState
     //@{
-    NsSymbol GetName() const;
-    void SetName(NsSymbol name);
+    Symbol GetName() const;
+    void SetName(Symbol name);
     //@}
 
     /// Gets or sets a Storyboard that defines the appearance of the control when it is the state 
@@ -51,7 +51,7 @@ public:
     //@{
     IUITreeNode* GetNodeParent() const override;
     void SetNodeParent(IUITreeNode* parent) override;
-    BaseComponent* FindNodeResource(IResourceKey* key, bool fullElementSearch) const override;
+    BaseComponent* FindNodeResource(const char* key, bool fullElementSearch) const override;
     BaseComponent* FindNodeName(const char* name) const override;
     ObjectWithNameScope FindNodeNameAndScope(const char* name) const override;
     //@}
@@ -66,7 +66,7 @@ protected:
     //@}
 
 private:
-    NsSymbol mName;
+    Symbol mName;
     Ptr<Storyboard> mStoryboard;
 
     IUITreeNode* mOwner;

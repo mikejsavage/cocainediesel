@@ -56,8 +56,8 @@ protected:
     //@}
     
 private:
-    void RegisterGroup(const NsString& name);
-    void UnregisterGroup(const NsString& name);
+    void RegisterGroup(const String& name);
+    void UnregisterGroup(const String& name);
 
     NS_DECLARE_REFLECTION(RadioButton, ToggleButton)
 };

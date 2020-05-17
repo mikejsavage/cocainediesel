@@ -53,7 +53,7 @@ private:
     Storyboard* GetStoryboard(FrameworkElement* nameScope) const;
 
 private:
-    NsString mBeginStoryboardName;
+    String mBeginStoryboardName;
 
     NS_DECLARE_REFLECTION(ControllableStoryboardAction, TriggerAction)
 };

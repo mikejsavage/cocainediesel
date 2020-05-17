@@ -23,23 +23,22 @@ struct PathElement;
 template<class T> class UICollection;
 typedef UICollection<BaseComponent> SelectedItemsCollection;
 
-NS_WARNING_PUSH
-NS_MSVC_WARNING_DISABLE(4251 4275)
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Provides data for the Selector.SelectionChanged event.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-struct NS_GUI_CORE_API SelectionChangedEventArgs: public RoutedEventArgs
+struct SelectionChangedEventArgs: public RoutedEventArgs
 {
-    typedef NsVector<Ptr<BaseComponent> > ItemList;
+    typedef Vector<Ptr<BaseComponent>> ItemList;
     ItemList addedItems;
     ItemList removedItems;
 
-    SelectionChangedEventArgs(BaseComponent* s);
+    SelectionChangedEventArgs(BaseComponent* source);
 };
 
-typedef Noesis::Delegate<void (BaseComponent*, const SelectionChangedEventArgs&)> 
-    SelectionChangedEventHandler;
+typedef Delegate<void (BaseComponent*, const SelectionChangedEventArgs&)> SelectionChangedEventHandler;
+
+NS_WARNING_PUSH
+NS_MSVC_WARNING_DISABLE(4251 4275)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Represents a control that allows a user to select items from among its child elements.
@@ -152,7 +151,7 @@ protected:
 
     SelectedItemsCollection* GetInternalSelectedItems() const;
 
-    typedef NsVector<int32_t> IndicesVector;
+    typedef Vector<int32_t> IndicesVector;
     const IndicesVector& GetInternalSelectedIndices() const;
 
     void InternalSelectAll();
@@ -234,5 +233,6 @@ NS_WARNING_POP
 
 }
 
+#include <NsGui/Selector.inl>
 
 #endif

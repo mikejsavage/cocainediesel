@@ -23,7 +23,6 @@ class ItemsPanelTemplate;
 class ItemCollection;
 class ItemsPresenter;
 class Panel;
-class ResourceKeyString;
 class ItemsControlTest;
 struct NotifyCollectionChangedEventArgs;
 
@@ -166,7 +165,7 @@ protected:
 
     // Applies the appropriate style to item container
     virtual void ApplyItemContainerStyle(DependencyObject* container) const;
-    static void OverrideContainerStyle(DependencyObject* container, ResourceKeyString* key);
+    static void OverrideContainerStyle(DependencyObject* container, const char* key);
 
     // Invoked when the Items property changes
     virtual void OnItemsChanged(const NotifyCollectionChangedEventArgs& args);

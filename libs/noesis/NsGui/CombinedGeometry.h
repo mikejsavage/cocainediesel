@@ -11,12 +11,13 @@
 #include <NsCore/Noesis.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/Geometry.h>
-#include <NsGui/Enums.h>
 #include <NsCore/ReflectionDeclareEnum.h>
 
 
 namespace Noesis
 {
+
+enum GeometryCombineMode: int32_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Represents a 2D geometric shape defined by the combination of two Geometry objects.

@@ -10,45 +10,28 @@
 
 #include <NsCore/Noesis.h>
 #include <NsCore/KernelApi.h>
-#include <NsCore/TypeOfForward.h>
-#include <NsCore/Symbol.h>
 
 
 namespace Noesis
 {
 
-class Type;
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Helpers for generating TypeIds from types. The functions receiving a base argument composes
-/// it with the type. For example, 
-///     - IdOf<Test0>("Base") == "Base<Test0>"
-///     - IdOf<Test0, Test1>("Base") == "Base<Test0,Test1>"
+/// Helper functions to format reflection type names for templated classes.
+///
+///  template<class T> struct Point
+///  {
+///     T x, y;
+///
+///     NS_IMPLEMENT_INLINE_REFLECTION_(Point, NoParent, IdOf("Point<", IdOf<T>(), ">"));
+///  };
+///
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-//@{
-NS_CORE_KERNEL_API NsSymbol IdOf(const Type* type);
-NS_CORE_KERNEL_API NsSymbol IdOf(const char* base, const Type* type0);
-NS_CORE_KERNEL_API NsSymbol IdOf(const char* base, const Type* type0, const Type* type1);
-
-template<class T0>
-static NsSymbol IdOf()
-{
-    return IdOf(TypeOf<T0>());
-}
-
-template<class T0>
-static NsSymbol IdOf(const char* base)
-{
-    return IdOf(base, TypeOf<T0>());
-}
-
-template<class T0, class T1>
-static NsSymbol IdOf(const char* base)
-{
-    return IdOf(base, TypeOf<T0>(), TypeOf<T1>());
-}
-//@}
+template<class T> const char* IdOf();
+Symbol IdOf(const char* str0, const char* str1);
+Symbol IdOf(const char* str0, const char* str1, const char* str2);
 
 }
+
+#include <NsCore/IdOf.inl>
 
 #endif

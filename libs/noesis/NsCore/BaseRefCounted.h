@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #696]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -21,6 +20,14 @@ namespace Noesis
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
+
+#ifndef BASEREFCOUNTED_VIRTUAL_REFS
+    #ifdef NS_MANAGED
+        #define BASEREFCOUNTED_VIRTUAL_REFS 1
+    #else
+        #define BASEREFCOUNTED_VIRTUAL_REFS 0
+    #endif
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Base class for types that control their lifetime with a reference counter. Instances of this
@@ -45,30 +52,32 @@ class NS_CORE_KERNEL_API BaseRefCounted: public BaseObject
 public:
     NS_DISABLE_COPY(BaseRefCounted)
 
-    inline BaseRefCounted();
-    inline virtual ~BaseRefCounted() = 0;
+    BaseRefCounted();
+    virtual ~BaseRefCounted() = 0;
 
     /// Increments reference count and returns the new value
-    inline int32_t AddReference() const;
+    int32_t AddReference() const;
 
     /// Decrements reference count and returns the new value
     /// When the reference count on an object reaches zero, it is deleted
-    inline int32_t Release() const;
+    int32_t Release() const;
 
     /// Gets current reference count for the object
-    inline int32_t GetNumReferences() const;
+    int32_t GetNumReferences() const;
 
 protected:
     /// Invoked when the reference counter reaches 0. By default the instance is deleted
     /// Can be reimplemented by child classes to avoid the default destruction
     /// Return the reference counter (0 if the object was destroyed)
-    inline virtual int32_t OnDestroy() const;
+    virtual int32_t OnDestroy() const;
 
-    /// Increments reference count. Can be reimplemented by child classes
-    inline virtual int32_t InternalAddReference() const;
-
-    /// Decrements reference count. Can be reimplemented by child classes
-    inline virtual int32_t InternalRelease() const;
+#if BASEREFCOUNTED_VIRTUAL_REFS
+    virtual int32_t InternalAddReference() const;
+    virtual int32_t InternalRelease() const;
+#else
+    int32_t InternalAddReference() const;
+    int32_t InternalRelease() const;
+#endif    
 
 private:
     mutable AtomicInteger mRefCount;

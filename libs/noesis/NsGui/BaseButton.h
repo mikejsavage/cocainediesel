@@ -11,14 +11,13 @@
 #include <NsCore/Noesis.h>
 #include <NsGui/ContentControl.h>
 #include <NsGui/ICommandSource.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis
 {
 
 NS_INTERFACE ICommand;
-enum ClickMode;
+enum ClickMode: int32_t;
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)

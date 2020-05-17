@@ -39,6 +39,12 @@ public:
     void SetHeader(const char* header);
     //@}
 
+    /// Gets or sets the format used to display the header of the control as a string
+    //@{
+    const char* GetHeaderStringFormat() const;
+    void SetHeaderStringFormat(const char* value);
+    //@}
+
     /// Gets or sets the DataTemplate used to display the content of the control's header
     //@{
     DataTemplate* GetHeaderTemplate() const;
@@ -75,6 +81,7 @@ public:
     //@{
     static const DependencyProperty* HasHeaderProperty;
     static const DependencyProperty* HeaderProperty;
+    static const DependencyProperty* HeaderStringFormatProperty;
     static const DependencyProperty* HeaderTemplateProperty;
     static const DependencyProperty* HeaderTemplateSelectorProperty;
     //@}

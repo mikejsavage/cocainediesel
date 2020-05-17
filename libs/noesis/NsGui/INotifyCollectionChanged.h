@@ -9,9 +9,8 @@
 
 
 #include <NsCore/Noesis.h>
-#include <NsGui/CoreApi.h>
 #include <NsCore/Interface.h>
-#include <NsCore/ReflectionDeclare.h>
+#include <NsCore/ReflectionImplementEmpty.h>
 
 
 namespace Noesis
@@ -20,53 +19,44 @@ namespace Noesis
 class BaseComponent;
 template<class T> class Delegate;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-enum NotifyCollectionChangedAction
+/// Describes the action that caused a CollectionChanged even
+enum NotifyCollectionChangedAction: int32_t
 {
-    /// One item was added to the collection
+    /// An item was added to the collection
     NotifyCollectionChangedAction_Add,
-    /// One item was removed from the collection
+
+    /// An item was removed from the collection
     NotifyCollectionChangedAction_Remove,
-    /// One item was replaced in the collection
+
+    /// An item was replaced in the collection
     NotifyCollectionChangedAction_Replace,
-    // One items was moved within the collection
+
+    /// An item was moved within the collection
     NotifyCollectionChangedAction_Move,
-    /// The content of the collection changed dramatically
+
+    /// The content of the collection was cleared
     NotifyCollectionChangedAction_Reset,
+
+    /// The content of the collection is going to be cleared
     NotifyCollectionChangedAction_PreReset
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Args passed on collection changed event notification.
-////////////////////////////////////////////////////////////////////////////////////////////////////
-NS_WARNING_PUSH
-NS_MSVC_WARNING_DISABLE(4251 4275)
-
-struct NS_GUI_CORE_API NotifyCollectionChangedEventArgs
+/// Provides data for the CollectionChanged event
+struct NotifyCollectionChangedEventArgs
 {
-public:
     NotifyCollectionChangedAction action;
     int oldIndex;
     int newIndex;
     BaseComponent* oldValue;
     BaseComponent* newValue;
-
-    NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction a,
-        int oldIdx, int newIdx, BaseComponent* oldVal, BaseComponent* newVal);
-
-private:
-    NS_DECLARE_REFLECTION(NotifyCollectionChangedEventArgs, NoParent)
 };
 
-NS_WARNING_POP
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 typedef Delegate<void (BaseComponent*, const NotifyCollectionChangedEventArgs&)>
     NotifyCollectionChangedEventHandler;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Notifies listeners of dynamic changes, such as when items get added and removed or the whole
-/// list is refreshed.
+/// Notifies listeners of dynamic changes, such as when an item is added and removed or the whole
+/// list is cleared
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 NS_INTERFACE INotifyCollectionChanged: public Interface
 {

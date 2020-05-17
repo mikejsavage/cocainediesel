@@ -11,7 +11,6 @@
 #include <NsCore/Noesis.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/Selector.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis

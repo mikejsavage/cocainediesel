@@ -10,7 +10,6 @@
 
 #include <NsCore/Noesis.h>
 #include <NsGui/Selector.h>
-#include <NsGui/Enums.h>
 #include <NsCore/ReflectionDeclareEnum.h>
 
 

@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #1382]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -11,7 +10,7 @@
 
 #include <NsCore/Noesis.h>
 #include <NsCore/ReflectionDeclare.h>
-#include <NsCore/NSTLForwards.h>
+#include <NsCore/StringFwd.h>
 #include <NsGui/AnimationApi.h>
 
 
@@ -59,10 +58,7 @@ public:
     static bool TryParse(const char* str, TimeSpan& result);
 
     /// Returns a string representation of the TimeSpan instance
-    NsString ToString() const;
-
-    /// Returns a hash code
-    uint32_t GetHashCode() const;
+    String ToString() const;
 
     /// Gets Zero Timespan
     static inline TimeSpan Zero();

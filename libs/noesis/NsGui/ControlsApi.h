@@ -11,11 +11,7 @@
 #include <NsCore/CompilerSettings.h>
 
 
-#if defined(NS_GUI_CONTROLS_PRIVATE)
-    #define NS_GUI_CONTROLS_API
-#elif defined(NS_GUI_CONTROLS_EXPORTS)
-    #define NS_GUI_CONTROLS_API NS_DLL_EXPORT
-#else
+#ifndef NS_GUI_CONTROLS_API
     #define NS_GUI_CONTROLS_API NS_DLL_IMPORT
 #endif
 

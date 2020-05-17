@@ -8,7 +8,17 @@ namespace Noesis
 {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-inline NsSymbol RoutedEvent::GetName() const
+inline RoutedEventArgs::RoutedEventArgs(BaseComponent* s, const RoutedEvent* e): source(s),
+    routedEvent(e) {}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+template<class T>
+inline RoutedPropertyChangedEventArgs<T>::RoutedPropertyChangedEventArgs(BaseComponent* s,
+    const RoutedEvent* e, typename Param<T>::Type oldV, typename Param<T>::Type newV):
+     RoutedEventArgs(s, e), oldValue(oldV), newValue(newV) {}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline Symbol RoutedEvent::GetName() const
 {
     return mName;
 }

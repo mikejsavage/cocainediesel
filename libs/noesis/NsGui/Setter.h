@@ -57,7 +57,7 @@ public:
     //@}
 
 private:
-    NsString mTargetName;
+    String mTargetName;
     const DependencyProperty* mProperty;
     Ptr<BaseComponent> mValue;
 

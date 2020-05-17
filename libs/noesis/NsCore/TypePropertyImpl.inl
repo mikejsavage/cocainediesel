@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #488]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -14,7 +13,7 @@ namespace Noesis
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T>
-TypePropertyOffset<T>::TypePropertyOffset(NsSymbol name, uint32_t offset):
+TypePropertyOffset<T>::TypePropertyOffset(Symbol name, uint32_t offset):
     TypeProperty(name, TypeOf<TT>()), mOffset(offset)
 {
 }
@@ -23,35 +22,35 @@ TypePropertyOffset<T>::TypePropertyOffset(NsSymbol name, uint32_t offset):
 template<class T>
 void* TypePropertyOffset<T>::GetContent(void* ptr) const
 {
-    return Reflection::PtrOffset<TT>(ptr, mOffset);
+    return (uint8_t*)ptr + mOffset;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T>
 const void* TypePropertyOffset<T>::GetContent(const void* ptr) const
 {
-    return Reflection::PtrOffset<TT>(ptr, mOffset);
+    return (const uint8_t*)ptr + mOffset;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T>
 Ptr<BaseComponent> TypePropertyOffset<T>::GetComponent(const void* ptr) const
 {
-    return Reflection::GetComponent<TT>(this, ptr);
+    return Noesis::GetComponent<TT>(this, ptr);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T>
 void TypePropertyOffset<T>::SetComponent(void* ptr, BaseComponent* value) const
 {
-    Reflection::SetComponent<TT>(this, ptr, value);
+    Noesis::SetComponent<TT>(this, ptr, value);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T>
 const void* TypePropertyOffset<T>::InternalGet(const void* ptr) const
 {
-    return Reflection::PtrOffset<TT>(ptr, mOffset);
+    return (const uint8_t*)ptr + mOffset;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -59,14 +58,14 @@ template<class T>
 void TypePropertyOffset<T>::InternalGet(const void* ptr, void* storage) const
 {
     TT* storageT = static_cast<TT*>(storage);
-    *storageT = *Reflection::PtrOffset<TT>(ptr, mOffset);
+    *storageT = *(TT*)((const uint8_t*)ptr + mOffset);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T>
 void TypePropertyOffset<T>::InternalSet(void* ptr, const void* value) const
 {
-    *Reflection::PtrOffset<TT>(ptr, mOffset) = *static_cast<const TT*>(value);
+    *(TT*)((uint8_t*)ptr + mOffset) = *static_cast<const TT*>(value);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -79,7 +78,7 @@ bool TypePropertyOffset<T>::InternalIsReadOnly() const
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T, uint32_t N>
-TypePropertyArray<T,N>::TypePropertyArray(NsSymbol name, uint32_t offset):
+TypePropertyArray<T,N>::TypePropertyArray(Symbol name, uint32_t offset):
     TypeProperty(name, TypeOf<T[N]>()), mOffset(offset)
 {
 }
@@ -88,14 +87,14 @@ TypePropertyArray<T,N>::TypePropertyArray(NsSymbol name, uint32_t offset):
 template<class T, uint32_t N>
 void* TypePropertyArray<T,N>::GetContent(void* ptr) const
 {
-    return Reflection::PtrOffset<T>(ptr, mOffset);
+    return (uint8_t*)ptr + mOffset;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T, uint32_t N>
 const void* TypePropertyArray<T,N>::GetContent(const void* ptr) const
 {
-    return Reflection::PtrOffset<T>(ptr, mOffset);
+    return (const uint8_t*)ptr + mOffset;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -118,7 +117,7 @@ void TypePropertyArray<T,N>::SetComponent(void*, BaseComponent*) const
 template<class T, uint32_t N>
 const void* TypePropertyArray<T,N>::InternalGet(const void* ptr) const
 {
-    return Reflection::PtrOffset<T>(ptr, mOffset);
+    return (const uint8_t*)ptr + mOffset;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -179,7 +178,7 @@ void TypePropertyFunction<C,T>::ByCopy::GetCopy(GetterFn getter, const void* ptr
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class C, class T>
-TypePropertyFunction<C,T>::TypePropertyFunction(NsSymbol name, GetterFn getter, SetterFn setter):
+TypePropertyFunction<C,T>::TypePropertyFunction(Symbol name, GetterFn getter, SetterFn setter):
     TypeProperty(name, TypeOf<T>()), mGetter(getter), mSetter(setter)
 {
     NS_ASSERT(mGetter);
@@ -203,14 +202,14 @@ const void* TypePropertyFunction<C,T>::GetContent(const void* ptr) const
 template<class C, class T>
 Ptr<BaseComponent> TypePropertyFunction<C,T>::GetComponent(const void* ptr) const
 {
-    return Reflection::GetComponent<T>(this, ptr);
+    return Noesis::GetComponent<T>(this, ptr);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class C, class T>
 void TypePropertyFunction<C,T>::SetComponent(void* ptr, BaseComponent* value) const
 {
-    Reflection::SetComponent<T>(this, ptr, value);
+    Noesis::SetComponent<T>(this, ptr, value);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -244,7 +243,7 @@ bool TypePropertyFunction<C,T>::InternalIsReadOnly() const
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-TypePropertyOffsetEvent::TypePropertyOffsetEvent(NsSymbol name, uint32_t offset):
+TypePropertyOffsetEvent::TypePropertyOffsetEvent(Symbol name, uint32_t offset):
     TypeProperty(name, nullptr), mOffset(offset)
 {
 }
@@ -252,13 +251,13 @@ TypePropertyOffsetEvent::TypePropertyOffsetEvent(NsSymbol name, uint32_t offset)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void* TypePropertyOffsetEvent::GetContent(void* ptr) const
 {
-    return Reflection::PtrOffset<void>(ptr, mOffset);
+    return (uint8_t*)ptr + mOffset;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 const void* TypePropertyOffsetEvent::GetContent(const void* ptr) const
 {
-    return Reflection::PtrOffset<void>(ptr, mOffset);
+    return (const uint8_t*)ptr + mOffset;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -276,7 +275,7 @@ void TypePropertyOffsetEvent::SetComponent(void*, BaseComponent*) const
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 const void* TypePropertyOffsetEvent::InternalGet(const void* ptr) const
 {
-    return Reflection::PtrOffset<void>(ptr, mOffset);
+    return (const uint8_t*)ptr + mOffset;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -300,7 +299,7 @@ bool TypePropertyOffsetEvent::InternalIsReadOnly() const
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class C>
-TypePropertyFunctionEvent<C>::TypePropertyFunctionEvent(NsSymbol name, GetterFn getter):
+TypePropertyFunctionEvent<C>::TypePropertyFunctionEvent(Symbol name, GetterFn getter):
     TypeProperty(name, nullptr), mGetter(getter)
 {
 }

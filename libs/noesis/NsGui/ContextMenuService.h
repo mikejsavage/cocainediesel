@@ -12,7 +12,6 @@
 #include <NsCore/Ptr.h>
 #include <NsCore/ReflectionDeclare.h>
 #include <NsGui/CoreApi.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis
@@ -26,6 +25,7 @@ class RoutedEvent;
 class UIElement;
 class ContextMenu;
 struct EventArgs;
+enum PlacementMode: int32_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Provides the system implementation for displaying a ContextMenu.

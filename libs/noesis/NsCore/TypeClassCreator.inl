@@ -8,13 +8,15 @@
 #include <NsCore/CompilerTools.h>
 #include <NsCore/Error.h>
 #include <NsCore/Ptr.h>
-#include <NsCore/TypeOfForward.h>
 #include <NsCore/TypePropertyImpl.h>
 #include <NsCore/TypeClass.h>
 
 
 namespace Noesis
 {
+
+template<class T> struct TypeOfHelper;
+template<class T> const typename TypeOfHelper<T>::ReturnType* TypeOf();
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 TypeClassCreator::TypeClassCreator(TypeClassBuilder* typeClass): mTypeClass(typeClass)
@@ -23,9 +25,9 @@ TypeClassCreator::TypeClassCreator(TypeClassBuilder* typeClass): mTypeClass(type
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class ClassT>
-Type* TypeClassCreator::Create(const TypeInfo& typeInfo)
+Type* TypeClassCreator::Create(Symbol name)
 {
-    return new TypeClass(typeInfo, IsInterface<ClassT>::Result);
+    return new TypeClass(name, IsInterface<ClassT>::Result);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -70,10 +72,9 @@ typename TypeClassCreator::TypePropertyCreator TypeClassCreator::Prop(const char
     T ClassT::* prop)
 {
     uint32_t offset = OffsetOf(prop);
-    TypeProperty* typeProperty = new TypePropertyOffset<T>(NsSymbol(name), offset);
-    mTypeClass->AddProperty(typeProperty);
-
-    return TypePropertyCreator(typeProperty);
+    TypeProperty* p = new TypePropertyOffset<T>(Symbol::Static(name), offset);
+    mTypeClass->AddProperty(p);
+    return TypePropertyCreator(p);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -82,10 +83,9 @@ typename TypeClassCreator::TypePropertyCreator TypeClassCreator::Prop(const char
     T (ClassT::* prop)[N])
 {
     uint32_t offset = OffsetOf(prop);
-    TypeProperty* typeProperty = new TypePropertyArray<T, N>(NsSymbol(name), offset);
-    mTypeClass->AddProperty(typeProperty);
-
-    return TypePropertyCreator(typeProperty);
+    TypeProperty* p = new TypePropertyArray<T, N>(Symbol::Static(name), offset);
+    mTypeClass->AddProperty(p);
+    return TypePropertyCreator(p);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -96,10 +96,9 @@ typename TypeClassCreator::TypePropertyCreator TypeClassCreator::Prop(const char
     NS_ASSERT(index < N);
     
     uint32_t offset = OffsetOf(prop) + (index * sizeof(T));
-    TypeProperty* typeProperty = new TypePropertyOffset<T>(NsSymbol(name), offset);
-    mTypeClass->AddProperty(typeProperty);
-
-    return TypePropertyCreator(typeProperty);
+    TypeProperty* p = new TypePropertyOffset<T>(Symbol::Static(name), offset);
+    mTypeClass->AddProperty(p);
+    return TypePropertyCreator(p);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -107,10 +106,9 @@ template<class T>
 typename TypeClassCreator::TypePropertyCreator TypeClassCreator::Prop(const char* name,
     uint32_t offset)
 {
-    TypeProperty* typeProperty = new TypePropertyOffset<T>(NsSymbol(name), offset);
-    mTypeClass->AddProperty(typeProperty);
-
-    return TypePropertyCreator(typeProperty);
+    TypeProperty* p = new TypePropertyOffset<T>(Symbol::Static(name), offset);
+    mTypeClass->AddProperty(p);
+    return TypePropertyCreator(p);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -119,10 +117,9 @@ typename TypeClassCreator::TypePropertyCreator TypeClassCreator::Prop(const char
     T (ClassT::*getter)() const)
 {
     typedef RemoveConst<RemoveReference<T>> Type;
-    TypeProperty* typeProperty = new TypePropertyFunction<ClassT, Type>(NsSymbol(name), getter, 0);
-    mTypeClass->AddProperty(typeProperty);
-
-    return TypePropertyCreator(typeProperty);
+    TypeProperty* p = new TypePropertyFunction<ClassT, Type>(Symbol::Static(name), getter, 0);
+    mTypeClass->AddProperty(p);
+    return TypePropertyCreator(p);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -131,11 +128,9 @@ typename TypeClassCreator::TypePropertyCreator TypeClassCreator::Prop(const char
     T (ClassT::*getter)() const, void (ClassT::*setter)(T))
 {
     typedef RemoveConst<RemoveReference<T>> Type;
-    TypeProperty* typeProperty = new TypePropertyFunction<ClassT, Type>(NsSymbol(name), getter,
-        setter);
-    mTypeClass->AddProperty(typeProperty);
-
-    return TypePropertyCreator(typeProperty);
+    TypeProperty* p = new TypePropertyFunction<ClassT, Type>(Symbol::Static(name), getter, setter);
+    mTypeClass->AddProperty(p);
+    return TypePropertyCreator(p);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -144,10 +139,9 @@ typename TypeClassCreator::TypePropertyCreator TypeClassCreator::Event(const cha
     Delegate<T> ClassT::* event)
 {
     uint32_t offset = OffsetOf(event);
-    TypeProperty* typeProperty = new TypePropertyOffsetEvent(NsSymbol(name), offset);
-    mTypeClass->AddEvent(typeProperty);
-
-    return TypePropertyCreator(typeProperty);
+    TypeProperty* p = new TypePropertyOffsetEvent(Symbol::Static(name), offset);
+    mTypeClass->AddEvent(p);
+    return TypePropertyCreator(p);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -156,10 +150,9 @@ typename TypeClassCreator::TypePropertyCreator TypeClassCreator::Event(const cha
     Delegate<T>& (ClassT::*getter_)())
 {
     auto getter = (void* (ClassT::*)())(getter_);
-    TypeProperty* typeProperty = new TypePropertyFunctionEvent<ClassT>(NsSymbol(name), getter);
-    mTypeClass->AddEvent(typeProperty);
-
-    return TypePropertyCreator(typeProperty);
+    TypeProperty* p = new TypePropertyFunctionEvent<ClassT>(Symbol::Static(name), getter);
+    mTypeClass->AddEvent(p);
+    return TypePropertyCreator(p);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

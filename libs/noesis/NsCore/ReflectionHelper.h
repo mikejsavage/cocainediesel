@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #1316]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -26,8 +25,6 @@ class TypeProperty;
 class BaseComponent;
 class MetaData;
 
-namespace Reflection
-{
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Defines a metadata of a specific type class
@@ -58,7 +55,7 @@ struct TypeClassProperty
 
 /// Gets first property found in the passed class hierarchy that match the property name
 /// If found, returns the typeProperty and the typeClass where the property was found
-NS_CORE_KERNEL_API TypeClassProperty FindProperty(const TypeClass* typeClass, NsSymbol propId);
+NS_CORE_KERNEL_API TypeClassProperty FindProperty(const TypeClass* typeClass, Symbol propId);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Defines an event of a specific type class
@@ -73,9 +70,8 @@ struct TypeClassEvent
 
 /// Gets first event found in the passed class hierarchy that matches the event name
 /// If found, returns the event and the typeClass where the property was found
-NS_CORE_KERNEL_API TypeClassEvent FindEvent(const TypeClass* typeClass, NsSymbol eventId);
+NS_CORE_KERNEL_API TypeClassEvent FindEvent(const TypeClass* typeClass, Symbol eventId);
 
-}
 }
 
 #include <NsCore/ReflectionHelper.inl>

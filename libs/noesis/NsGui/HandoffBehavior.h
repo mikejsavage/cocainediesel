@@ -20,7 +20,7 @@ namespace Noesis
 /// Specifies how new animations interact with any existing ones that are already applied to a 
 /// property.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum HandoffBehavior
+enum HandoffBehavior: int32_t
 {
     /// New animations replace any existing animations on the properties to which they are applied.
     HandoffBehavior_SnapshotAndReplace,

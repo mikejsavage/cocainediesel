@@ -17,7 +17,7 @@ namespace Noesis
 {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum MouseButton
+enum MouseButton: int32_t
 {
     MouseButton_Left,
     MouseButton_Right,
@@ -29,14 +29,14 @@ enum MouseButton
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum MouseButtonState
+enum MouseButtonState: int32_t
 {
     MouseButtonState_Released,
     MouseButtonState_Pressed
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum Key
+enum Key: int32_t
 {
     Key_None,
 
@@ -286,7 +286,7 @@ enum Key
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum KeyStates
+enum KeyStates: int32_t
 {
     /// The key is not pressed (same as up).
     KeyStates_None = 0,
@@ -299,7 +299,7 @@ enum KeyStates
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum ModifierKeys
+enum ModifierKeys: int32_t
 {
     ModifierKeys_None = 0,
     ModifierKeys_Alt = 1,
@@ -308,9 +308,32 @@ enum ModifierKeys
     ModifierKeys_Windows = 8
 };
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Specifies how manipulation events are interpreted
+////////////////////////////////////////////////////////////////////////////////////////////////////
+enum ManipulationModes: int32_t
+{
+    /// Manipulation events do not occur
+    ManipulationModes_None = 0,
+    /// A manipulation can translate an object horizontally
+    ManipulationModes_TranslateX = 1,
+    /// A manipulation can translate an object vertically
+    ManipulationModes_TranslateY = 2,
+    /// A manipulation can translate an object
+    ManipulationModes_Translate = ManipulationModes_TranslateX | ManipulationModes_TranslateY,
+    /// A manipulation can rotate an object
+    ManipulationModes_Rotate = 4,
+    /// A manipulation can scale an object
+    ManipulationModes_Scale = 8,
+    /// A manipulation can scale, translate, or rotate an object
+    ManipulationModes_All = ManipulationModes_Translate | ManipulationModes_Rotate |
+        ManipulationModes_Scale
+};
+
 }
 
 NS_DECLARE_REFLECTION_ENUM_EXPORT(NS_GUI_CORE_API, Noesis::Key)
 NS_DECLARE_REFLECTION_ENUM_EXPORT(NS_GUI_CORE_API, Noesis::ModifierKeys)
+NS_DECLARE_REFLECTION_ENUM_EXPORT(NS_GUI_CORE_API, Noesis::ManipulationModes)
 
 #endif

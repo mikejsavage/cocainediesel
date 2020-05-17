@@ -12,7 +12,7 @@
 #include <NsCore/CompilerTools.h>
 #include <NsCore/BaseComponent.h>
 #include <NsCore/Ptr.h>
-#include <EASTL/fixed_vector.h>
+#include <NsCore/Vector.h>
 
 
 namespace Noesis
@@ -20,7 +20,7 @@ namespace Noesis
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// A callable entity with T signature. Similar to C# delegates
-//
+///
 ///    Delegate<void (uint32_t&, float)> delegate;
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////

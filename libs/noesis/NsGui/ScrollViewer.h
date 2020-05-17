@@ -17,8 +17,8 @@ namespace Noesis
 {
 
 NS_INTERFACE IScrollInfo;
-enum Visibility;
-enum ScrollBarVisibility;
+enum Visibility: int32_t;
+enum ScrollBarVisibility: int32_t;
 class ScrollBar;
 class ScrollViewerTest;
 struct RequestBringIntoViewEventArgs;
@@ -28,7 +28,7 @@ struct ExecutedRoutedEventArgs;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Describes a change in the scrolling state for a ScrollViewer.ScrollChanged event.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-struct NS_GUI_CORE_API ScrollChangedEventArgs: public RoutedEventArgs
+struct ScrollChangedEventArgs: public RoutedEventArgs
 {
     /// Gets the updated *height* of the ScrollViewer *extent*
     float extentHeight;
@@ -55,8 +55,10 @@ struct NS_GUI_CORE_API ScrollChangedEventArgs: public RoutedEventArgs
     /// Gets a value that indicates the change in *width* of a ScrollViewer *viewport*
     float viewportWidthChange;
 
-    ScrollChangedEventArgs(BaseComponent* s);
+    ScrollChangedEventArgs(BaseComponent* source);
 };
+
+typedef Delegate<void (BaseComponent*, const ScrollChangedEventArgs&)> ScrollChangedEventHandler;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Specifies how ScrollViewer reacts to touch manipulation
@@ -80,9 +82,6 @@ enum PanningMode
     /// The ScrollViewer scrolls vertically only
     PanningMode_VerticalOnly
 };
-
-typedef Noesis::Delegate<void (BaseComponent*, const ScrollChangedEventArgs&)> 
-    ScrollChangedEventHandler;
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
@@ -387,5 +386,6 @@ NS_WARNING_POP
 
 NS_DECLARE_REFLECTION_ENUM_EXPORT(NS_GUI_CORE_API, Noesis::PanningMode)
 
+#include <NsGui/ScrollViewer.inl>
 
 #endif

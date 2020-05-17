@@ -10,80 +10,74 @@
 
 #include <NsCore/Noesis.h>
 #include <NsGui/Visual.h>
-#include <NsGui/Enums.h>
 #include <NsGui/UIElementEvents.h>
 #include <NsDrawing/Size.h>
 #include <NsDrawing/Rect.h>
 #include <NsCore/Vector.h>
-#include <EASTL/fixed_vector.h>
 
 
 namespace Noesis
 {
 
+class Effect;
 class Brush;
 class DrawingContext;
 class Geometry;
-class Projection;
 class Transform;
+class Transform3D;
 class CommandBinding;
 class InputBinding;
 class Mouse;
 class Keyboard;
-struct EventArgs;
-struct RoutedEventArgs;
-struct DependencyPropertyChangedEventArgs;
-struct KeyboardFocusChangedEventArgs;
-struct KeyEventArgs;
-struct MouseButtonEventArgs;
-struct MouseEventArgs;
-struct MouseWheelEventArgs;
 struct SizeChangedInfo;
-struct TextCompositionEventArgs;
-struct TraversalRequest;
-struct QueryContinueDragEventArgs;
-struct GiveFeedbackEventArgs;
-struct DragEventArgs;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-typedef Noesis::Delegate<void (BaseComponent*,
-    const DependencyPropertyChangedEventArgs&)>  DependencyPropertyChangedEventHandler;
-typedef Noesis::Delegate<void (BaseComponent*, const KeyboardFocusChangedEventArgs&)>
-    KeyboardFocusChangedEventHandler;
-typedef Noesis::Delegate<void (BaseComponent*, const MouseEventArgs&)> 
-    MouseEventHandler;
-typedef Noesis::Delegate<void (BaseComponent*, const KeyEventArgs&)> 
-    KeyEventHandler;
-typedef Noesis::Delegate<void (BaseComponent*, const MouseButtonEventArgs&)> 
-    MouseButtonEventHandler;
-typedef Noesis::Delegate<void (BaseComponent*, const MouseWheelEventArgs&)> 
-    MouseWheelEventHandler;
-typedef Noesis::Delegate<void (BaseComponent*, const TouchEventArgs&)>
-    TouchEventHandler;
-typedef Noesis::Delegate<void (BaseComponent*, const ManipulationStartingEventArgs&)>
-    ManipulationStartingEventHandler;
-typedef Noesis::Delegate<void (BaseComponent*, const ManipulationStartedEventArgs&)>
-    ManipulationStartedEventHandler;
-typedef Noesis::Delegate<void (BaseComponent*, const ManipulationDeltaEventArgs&)>
-    ManipulationDeltaEventHandler;
-typedef Noesis::Delegate<void (BaseComponent*,
-    const ManipulationInertiaStartingEventArgs&)> ManipulationInertiaStartingEventHandler;
-typedef Noesis::Delegate<void (BaseComponent*, const ManipulationCompletedEventArgs&)>
-    ManipulationCompletedEventHandler;
-typedef Noesis::Delegate<void (BaseComponent*, const QueryCursorEventArgs&)>
-    QueryCursorEventHandler;
-typedef Noesis::Delegate<void (BaseComponent*, const TextCompositionEventArgs&)> 
-    TextCompositionEventHandler;
-typedef Noesis::Delegate<void (BaseComponent*, const QueryContinueDragEventArgs&)>
-    QueryContinueDragEventHandler;
-typedef Noesis::Delegate<void (BaseComponent*, const GiveFeedbackEventArgs&)>
-    GiveFeedbackEventHandler;
-typedef Noesis::Delegate<void (BaseComponent*, const DragEventArgs&)>
-    DragEventHandler;
 
 template<class T> class UICollection;
-typedef Noesis::UICollection<Noesis::CommandBinding> CommandBindingCollection;
-typedef Noesis::UICollection<Noesis::InputBinding> InputBindingCollection;
+typedef UICollection<CommandBinding> CommandBindingCollection;
+typedef UICollection<InputBinding> InputBindingCollection;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Specifies the direction within a user interface (UI) in which a desired focus change request is
+/// attempted. The direction is either based on tab order or by relative direction in layout.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+enum FocusNavigationDirection: int32_t
+{
+    /// Move focus to the next focusable element in tab order. Not supported for PredictFocus.
+    FocusNavigationDirection_Next,
+
+    /// Move focus to the previous focusable element in tab order. Not supported for PredictFocus.
+    FocusNavigationDirection_Previous,
+
+    /// Move focus to the first focusable element in tab order. Not supported for PredictFocus.
+    FocusNavigationDirection_First,
+
+    /// Move focus to the last focusable element in tab order. Not supported for PredictFocus.
+    FocusNavigationDirection_Last,
+
+    /// Move focus to another focusable element to the left of the currently focused element.
+    FocusNavigationDirection_Left,
+
+    /// Move focus to another focusable element to the right of the currently focused element.
+    FocusNavigationDirection_Right,
+
+    /// Move focus to another focusable element upwards from the currently focused element.
+    FocusNavigationDirection_Up,
+
+    /// Move focus to another focusable element downwards from the currently focused element.
+    FocusNavigationDirection_Down
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Represents a request to move focus to another control. 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+struct TraversalRequest
+{
+    /// Gets the traversal direction
+    FocusNavigationDirection focusNavigationDirection;
+
+    /// Gets or sets a value that indicates whether focus traversal has reached the end of child
+    /// elements that can have focus
+    bool wrapped;
+};
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
@@ -129,6 +123,12 @@ public:
     //@{
     bool GetClipToBounds() const;
     void SetClipToBounds(bool clipToBounds);
+    //@}
+
+    /// Gets or sets the bitmap effect to apply to the element
+    //@{
+    Effect* GetEffect() const;
+    void SetEffect(Effect* value);
     //@}
 
     /// Gets or sets a value that indicates whether the element can receive focus
@@ -191,12 +191,6 @@ public:
     void SetOpacity(float opacity);
     //@}
 
-    /// Gets or sets the perspective projection (3D effect) to apply when rendering this element
-    //@{
-    Projection* GetProjection() const;
-    void SetProjection(Projection* projection);
-    //@}
-
     /// Gets or sets the center point of any possible render transform declared by
     /// *RenderTransform*, relative to the bounds of the element
     //@{
@@ -208,6 +202,12 @@ public:
     //@{
     Transform* GetRenderTransform() const;
     void SetRenderTransform(Transform* transform);
+    //@}
+
+    /// Gets or sets the 3D effect to apply when rendering this element
+    //@{
+    Transform3D* GetTransform3D() const;
+    void SetTransform3D(Transform3D* transform);
     //@}
 
     /// Gets or sets the user interface visibility of this element
@@ -486,7 +486,7 @@ public:
     class Event_
     {
     public:
-        inline Event_(UIElement* element, NsSymbol key):
+        inline Event_(UIElement* element, Symbol key):
             _element(element), _key(key)
         {
             NS_ASSERT(element != 0);
@@ -505,7 +505,7 @@ public:
 
     private:
         UIElement* _element;
-        NsSymbol _key;
+        Symbol _key;
     };
 
     /// Occurs when the value of the Focusable property changes
@@ -533,6 +533,7 @@ public:
     static const DependencyProperty* AllowDropProperty;
     static const DependencyProperty* ClipProperty;
     static const DependencyProperty* ClipToBoundsProperty;
+    static const DependencyProperty* EffectProperty;
     static const DependencyProperty* FocusableProperty;
     static const DependencyProperty* IsEnabledProperty;
     static const DependencyProperty* IsFocusedProperty;
@@ -547,9 +548,9 @@ public:
     static const DependencyProperty* IsVisibleProperty;
     static const DependencyProperty* OpacityMaskProperty;
     static const DependencyProperty* OpacityProperty;
-    static const DependencyProperty* ProjectionProperty;
     static const DependencyProperty* RenderTransformOriginProperty;
     static const DependencyProperty* RenderTransformProperty;
+    static const DependencyProperty* Transform3DProperty;
     static const DependencyProperty* VisibilityProperty;
     //@}
 
@@ -619,16 +620,16 @@ public:
 
 protected:
     /// Adds a handler to the specified non-routed event
-    void AddEventHandler(NsSymbol key, const EventHandler& handler);
+    void AddEventHandler(Symbol key, const EventHandler& handler);
 
     /// Removes a handler from the specified non-routed event
-    void RemoveEventHandler(NsSymbol key, const EventHandler& handler);
+    void RemoveEventHandler(Symbol key, const EventHandler& handler);
 
     /// Raises a specific non-routed event
-    void RaiseEvent(NsSymbol key, const EventArgs& args);
+    void RaiseEvent(Symbol key, const EventArgs& args);
 
     /// Returns the delegate corresponding to the given non-routed event
-    EventHandler& GetEventHandler(NsSymbol key);
+    EventHandler& GetEventHandler(Symbol key);
 
     /// Indicates if the element has ever been measured or arranged
     //@{
@@ -821,7 +822,7 @@ private:
 
     /// Builds the route for a tunneling or bubbling event
     //@{
-    typedef eastl::fixed_vector<Ptr<UIElement>, 128> EventRoute;
+    typedef Vector<Ptr<UIElement>, 128> EventRoute;
     void BuildEventRoute(EventRoute& route);
     //@}
 
@@ -961,12 +962,10 @@ private:
     Size mPreviousMeasureConstraint;
     Rect mPreviousArrangeConstraint;
 
-    static const DependencyProperty* ArrangeClipProperty;
-
-    typedef NsHashMap<const RoutedEvent*, RoutedEventHandler> RoutedEventMap;
+    typedef HashMap<const RoutedEvent*, RoutedEventHandler> RoutedEventMap;
     RoutedEventMap mRoutedEventHandlers;
 
-    typedef NsHashMap<NsSymbol, EventHandler> EventMap;
+    typedef HashMap<Symbol, EventHandler> EventMap;
     EventMap mEventHandlers;
 
     Ptr<DrawingContext> mDrawingContext;
@@ -974,9 +973,14 @@ private:
     Ptr<CommandBindingCollection> mCommandBindings;
     Ptr<InputBindingCollection> mInputBindings;
 
-    LayoutRequest mMeasureRequest;
-    LayoutRequest mArrangeRequest;
-    LayoutRequest mSizeChangedRequest;
+    void* mMeasureRequest;
+    void* mArrangeRequest;
+    void* mSizeChangedRequest;
+
+    // Private properties
+    //@{
+    static const DependencyProperty* ArrangeClipProperty;
+    //@}
 
     NS_DECLARE_REFLECTION(UIElement, Visual)
 };

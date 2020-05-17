@@ -11,13 +11,13 @@
 #include <NsCore/Noesis.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/Geometry.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis
 {
 
 struct NotifyCollectionChangedEventArgs;
+enum FillRule: int32_t;
 
 template<class T> class FreezableCollection;
 typedef Noesis::FreezableCollection<Noesis::Geometry> GeometryCollection;

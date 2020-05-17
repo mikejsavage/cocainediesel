@@ -16,25 +16,6 @@
 
 namespace Noesis
 {
-namespace Reflection
-{
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Auxiliary function to get a typed pointer using a base pointer and an offset
-////////////////////////////////////////////////////////////////////////////////////////////////////
-//@{
-template<class T>
-inline T* PtrOffset(void* ptr, uint32_t offset)
-{
-    return reinterpret_cast<T*>(static_cast<uint8_t*>(ptr) + offset);
-}
-
-template<class T>
-inline const T* PtrOffset(const void* ptr, uint32_t offset)
-{
-    return reinterpret_cast<const T*>(static_cast<const uint8_t*>(ptr) + offset);
-}
-//@}
 
 typedef Int2Type<0> NonRefCountedType;
 typedef Int2Type<1> PtrRefCountedType;
@@ -88,7 +69,7 @@ void SetComponent(const TypeProperty* prop, void* ptr, BaseComponent* value, Non
 template<class T>
 void SetComponent(const TypeProperty* prop, void* ptr, BaseComponent* value, CharPointerType)
 {
-    prop->Set<T>(ptr, value != 0 ? Boxing::Unbox<NsString>(value).c_str() : "");
+    prop->Set<T>(ptr, value != 0 ? Boxing::Unbox<String>(value).Str() : "");
 }
 
 template<class T>
@@ -118,7 +99,6 @@ void SetComponent(const TypeProperty* prop, void* ptr, BaseComponent* value)
 }
 //@}
 
-}
 }
 
 #endif

@@ -1,31 +1,30 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #785]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 #include <NsCore/String.h>
 #include <NsCore/DynamicCast.h>
-#include <NsCore/TypeOfForward.h>
 #include <NsCore/ValueHelper.h>
-#include <NsCore/IdOf.h>
 #include <NsCore/ReflectionImplementEmpty.h>
-#include <NsCore/TypeId.h>
+#include <NsCore/IdOf.h>
 
 
 namespace Noesis
 {
+
+template<class T> struct TypeOfHelper;
+template<class T> const typename TypeOfHelper<T>::ReturnType* TypeOf();
+
 namespace Boxing
 {
-NS_CORE_KERNEL_API const Ptr<BoxedValue>& TrueBoxed();
-NS_CORE_KERNEL_API const Ptr<BoxedValue>& FalseBoxed();
+NS_CORE_KERNEL_API BoxedValue* TrueBoxed();
+NS_CORE_KERNEL_API BoxedValue* FalseBoxed();
 NS_CORE_KERNEL_API void* BoxingAllocate(size_t size);
 NS_CORE_KERNEL_API void BoxingDeallocate(void* ptr, size_t size);
 void Init();
 void Shutdown();
-void InitThread();
-void ShutdownThread();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -37,7 +36,7 @@ public:
 
     /// From BaseObject
     //@{
-    NsString ToString() const override
+    String ToString() const override
     {
         return Noesis::ToString(mValue);
     }
@@ -56,11 +55,6 @@ public:
         }
 
         return false;
-    }
-
-    uint32_t GetHashCode() const override
-    {
-        return Noesis::GetHashCode(mValue);
     }
     //@}
 
@@ -91,7 +85,7 @@ public:
     T mValue;
 
 private:
-    NS_IMPLEMENT_INLINE_REFLECTION_(Boxed, BoxedValue)
+    NS_IMPLEMENT_INLINE_REFLECTION_(Boxed, BoxedValue, IdOf("Boxed<", IdOf<T>(), ">"));
 };
 
 namespace Boxing
@@ -135,13 +129,13 @@ template<class T> EnableIf<!IsBestByCopy<T>::Result, Ptr<BoxedValue>> Box(const 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Ptr<BoxedValue> Box(bool value)
 {
-    return value ? TrueBoxed() : FalseBoxed();
+    return Ptr<BoxedValue>(value ? TrueBoxed() : FalseBoxed());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Ptr<BoxedValue> Box(const char* text)
 {
-    Ptr<Boxed<NsString>> boxed = *new Boxed<NsString>;
+    Ptr<Boxed<String>> boxed = *new Boxed<String>;
     boxed->mValue = text;
     return boxed;
 }
@@ -149,7 +143,7 @@ Ptr<BoxedValue> Box(const char* text)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Ptr<BoxedValue> Box(char* text)
 {
-    Ptr<Boxed<NsString>> boxed = *new Boxed<NsString>;
+    Ptr<Boxed<String>> boxed = *new Boxed<String>;
     boxed->mValue = text;
     return boxed;
 }

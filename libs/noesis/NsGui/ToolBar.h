@@ -11,7 +11,6 @@
 #include <NsCore/Noesis.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/HeaderedItemsControl.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis
@@ -118,6 +117,10 @@ protected:
     bool IsItemItsOwnContainerOverride(BaseComponent* item) const;
     void ApplyItemContainerStyle(DependencyObject* container) const;
     //@}
+
+private:
+    static void StaticHasOverflowItemsChanged(DependencyObject* d,
+        const DependencyPropertyChangedEventArgs& e);
 
 private:
     Ptr<ToolBarPanel> mPanelInternal;

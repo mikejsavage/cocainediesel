@@ -12,7 +12,6 @@
 #include <NsCore/Ptr.h>
 #include <NsCore/ReflectionDeclare.h>
 #include <NsGui/CoreApi.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis
@@ -25,6 +24,7 @@ class DependencyProperty;
 class RoutedEvent;
 class UIElement;
 struct EventArgs;
+enum PlacementMode: int32_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Represents a service that provides properties and events to control the display and behavior

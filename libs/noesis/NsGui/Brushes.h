@@ -17,11 +17,16 @@
 namespace Noesis
 {
 
-class Color;
+struct Color;
 class SolidColorBrush;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Declares a set of predefined SolidColorBrush objects.
+///
+/// These colors and their names are based on the UNIX X11 color values. The following image shows
+/// the color of each predefined brush, its name, and its hexadecimal value.
+///
+/// .. image:: BrushTable.png
 ///
 /// https://msdn.microsoft.com/en-us/library/system.windows.media.brushes.aspx
 ////////////////////////////////////////////////////////////////////////////////////////////////////

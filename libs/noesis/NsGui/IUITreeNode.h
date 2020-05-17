@@ -11,14 +11,19 @@
 #include <NsCore/Noesis.h>
 #include <NsCore/Interface.h>
 #include <NsGui/CoreApi.h>
-#include <NsGui/IUITreeNodeTypes.h>
 
 namespace Noesis
 {
 
 class BaseComponent;
 class FrameworkElement;
-NS_INTERFACE IResourceKey;
+NS_INTERFACE INameScope;
+
+struct ObjectWithNameScope
+{
+    BaseComponent* object;
+    INameScope* scope;
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Represents nodes in a UI tree.
@@ -33,7 +38,7 @@ NS_INTERFACE IUITreeNode: public Interface
 
     /// Looks for a UI resource upwards in the tree.
     /// Returns *DependencyProperty.UnsetValue* if resource is not found
-    virtual BaseComponent* FindNodeResource(IResourceKey* key, bool fullElementSearch) const = 0;
+    virtual BaseComponent* FindNodeResource(const char* key, bool fullElementSearch) const = 0;
 
     /// Looks for a named node upwards in the tree.
     /// Returns null if node is not found

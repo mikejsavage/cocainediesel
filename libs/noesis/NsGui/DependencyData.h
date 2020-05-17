@@ -71,7 +71,7 @@ public:
         PropertyMetadata* metadata);
 
     /// Finds a property for the given owner type name
-    const DependencyProperty* FindProperty(NsSymbol name) const;
+    const DependencyProperty* FindProperty(Symbol name) const;
 
     /// Removes specified type metadatas from all registered properties
     void ClearMetadata(const TypeClass* forType);
@@ -82,8 +82,7 @@ protected:
     const TypeClass* mOwnerType;
 
 private:
-    bool CheckMetadata(const char* name, PropertyMetadata* metadata) const;
-    bool CheckMetadata(const char* name, PropertyMetadata* metadata, const Type* type) const;
+    void CheckMetadata(const char* name, PropertyMetadata* metadata, const Type* type) const;
 
     template<class T>
     void RegisterProperty(const DependencyProperty*& dp, const char* name,
@@ -110,8 +109,10 @@ private:
     friend class DependencyDataTest;
     friend class UIElementDataTest;
 
-    typedef NsHashMap<NsSymbol, Ptr<const DependencyProperty>> PropertyMap;
+    typedef HashMap<Symbol, Ptr<const DependencyProperty>> PropertyMap;
     PropertyMap mProperties;
+
+    friend class VisualTreeInspectorHelper;
 
     NS_DECLARE_REFLECTION(DependencyData, TypeMetaData)
 };

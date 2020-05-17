@@ -20,7 +20,6 @@ namespace Noesis
 
 template<class T> class Collection;
 class CollectionView;
-class ResourceKeyType;
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
@@ -38,8 +37,8 @@ public:
 
     /// Gets or sets the desired view type
     //@{
-    ResourceKeyType* GetCollectionViewType() const;
-    void SetCollectionViewType(ResourceKeyType* type);
+    const Type* GetCollectionViewType() const;
+    void SetCollectionViewType(const Type* type);
     //@}
     
     /// Gets or sets the collection object from which to create this view
@@ -57,7 +56,7 @@ public:
     //@{
     IUITreeNode* GetNodeParent() const final;
     void SetNodeParent(IUITreeNode* parent) final;
-    BaseComponent* FindNodeResource(IResourceKey* key, bool fullElementSearch) const final;
+    BaseComponent* FindNodeResource(const char* key, bool fullElementSearch) const final;
     BaseComponent* FindNodeName(const char* name) const final;
     ObjectWithNameScope FindNodeNameAndScope(const char* name) const final;
     //@}

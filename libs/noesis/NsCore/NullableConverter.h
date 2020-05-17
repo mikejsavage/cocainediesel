@@ -9,10 +9,11 @@
 
 
 #include <NsCore/Noesis.h>
-#include <NsCore/ReflectionImplement.h>
+#include <NsCore/ReflectionImplementEmpty.h>
 #include <NsCore/TypeConverter.h>
 #include <NsCore/TypeConverterApi.h>
 #include <NsCore/Nullable.h>
+#include <NsCore/IdOf.h>
 
 
 namespace Noesis
@@ -37,7 +38,7 @@ public:
     bool TryConvertFromString(const char* str, Ptr<BaseComponent>& result) const override;
     bool TryConvertTo(BaseComponent* object, const Type* type, 
         Ptr<BaseComponent>& result) const override;
-    bool TryConvertToString(BaseComponent* object, NsString& result) const override;
+    bool TryConvertToString(BaseComponent* object, String& result) const override;
     //@}
 
 private:
@@ -58,10 +59,8 @@ public:
     inline NullableConverter();
     inline NullableConverter(TypeConverter* converter);
 
-    NS_IMPLEMENT_INLINE_REFLECTION(NullableConverter, BaseNullableConverter)
-    {
-        NsMeta<TypeId>(IdOf<Nullable<T>>("Converter"));
-    }
+    NS_IMPLEMENT_INLINE_REFLECTION_(NullableConverter, BaseNullableConverter,
+        IdOf("Converter<", IdOf<Nullable<T>>(), ">"))
 };
 
 }

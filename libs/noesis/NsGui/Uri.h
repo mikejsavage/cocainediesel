@@ -10,7 +10,7 @@
 
 #include <NsCore/Noesis.h>
 #include <NsCore/ReflectionDeclare.h>
-#include <NsCore/FixedString.h>
+#include <NsCore/String.h>
 #include <NsGui/CoreApi.h>
 
 
@@ -37,13 +37,10 @@ struct NS_GUI_CORE_API Uri
     //@}
 
     /// Generates a string representation of the Uri
-    NsString ToString() const;
-
-    /// Returns a hash code
-    uint32_t GetHashCode() const;
+    String ToString() const;
 
 private:
-    NsFixedString<512> mUri;
+    FixedString<512> mUri;
 
     NS_DECLARE_REFLECTION(Uri, NoParent)
 };

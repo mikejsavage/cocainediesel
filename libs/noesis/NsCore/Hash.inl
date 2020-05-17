@@ -6,96 +6,165 @@
 
 #include <NsCore/Error.h>
 #include <NsCore/Memory.h>
+#include <NsCore/Symbol.h>
 
 
 namespace Noesis
 {
 
-// MurmurHash2A, by Austin Appleby
-// https://github.com/aappleby/smhasher
-//
-// Doing an incremental implementation is not easy due to memory alignment accesses. There is
-// a sample implementation in GitHub (CMurmurHash2A) but it not very efficient and does
-// non-alignment reads. The incremental implementation provided here is not 100% strict. If you
-// split the same data in different partitionings the hash value you get out will not necessarily
-// be the same. But it allow us to have a faster implementation. I have done a minor change in
-// MurmurHash2A to ensure same results if using multiple of 4-bytes sizes.
-
-
-#define MURMUR_M 0x5bd1e995
-#define MURMUR_R 24
-#define MMIX(h, k) { k *= MURMUR_M; k ^= k >> MURMUR_R; k *= MURMUR_M; h *= MURMUR_M; h ^= k; }
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline uint32_t Hash(uint32_t val)
+{
+    // FNV-1a
+    return (2166136261u ^ val) * 16777619u;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-NS_FORCE_INLINE uint32_t MurmurHash2A_Body(const uint8_t* data, uint32_t size, uint32_t seed)
+inline uint32_t Hash(uint32_t val0, uint32_t val1)
 {
-    NS_ASSERT(size < 4 || Alignment<uint32_t>::IsAlignedPtr(data));
+    // FNV-1a
+    return (((2166136261u ^ val0) * 16777619u) ^ val1) * 16777619u;
+}
 
-    uint32_t h = seed;
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline uint32_t Hash(uint64_t val)
+{
+    return Hash(uint32_t(val), uint32_t(val >> 32));
+}
 
-    while (size >= 4)
+////////////////////////////////////////////////////////////////////////////////////////////////////
+template<int N> struct Int;
+template<> struct Int<4> { typedef uint32_t Type; };
+template<> struct Int<8> { typedef uint64_t Type; };
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline uint32_t Hash(const void* val)
+{
+    return Hash((typename Int<sizeof(val)>::Type)(uintptr_t)val);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline uint32_t Hash(float val)
+{
+    union { float f; uint32_t u; } ieee754 = { val };
+    return Hash(ieee754.u);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline uint32_t Hash(double val)
+{
+    union { double f; uint32_t u[2]; } ieee754 = { val };
+    return Hash(ieee754.u[0], ieee754.u[1]);
+}
+
+// MurmurHash2, by Austin Appleby
+// https://github.com/aappleby/smhasher
+
+#define MMIX(h, k) k *= 0x5bd1e995; k ^= k >> 24; k *= 0x5bd1e995; h *= 0x5bd1e995; h ^= k;
+#define MTAIL(h) h ^= h >> 13; h *= 0x5bd1e995; h ^= h >> 15;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline uint32_t HashBytes(const void* data_, uint32_t len)
+{
+    NS_ASSERT(len < 4 || Alignment<uint32_t>::IsAlignedPtr(data_));
+    const uint8_t* data = (const uint8_t*)data_;
+    uint32_t h = len;
+
+    while (len >= 4)
     {
-        uint32_t k = *reinterpret_cast<const uint32_t*>(data);
-
+        uint32_t k = *(const uint32_t*)(data);
         MMIX(h, k);
 
         data += 4;
-        size -= 4;
+        len -= 4;
     }
 
-    uint32_t t = 0;
-
-    switch (size)
+    switch (len)
     {
-        case 3: t ^= data[2] << 16;
-        case 2: t ^= data[1] << 8;
-        case 1: t ^= data[0];
-            MMIX(h, t); // This is my modification to the original MurmurHash2A implementation
-    };
+        case 3: h ^= data[2] << 16;
+        case 2: h ^= data[1] << 8;
+        case 1: h ^= data[0];
+                h *= 0x5bd1e995;
+    }
 
+    MTAIL(h);
     return h;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-NS_FORCE_INLINE uint32_t MurmurHash2A_Tail(uint32_t l, uint32_t h)
+inline void HashCombine_(uint32_t& hash, uint64_t val)
 {
-    MMIX(h, l);
+    uint32_t k0 = uint32_t(val);
+    MMIX(hash, k0);
 
-    h ^= h >> 13;
-    h *= MURMUR_M;
-    h ^= h >> 15;
-
-    return h;
+    uint32_t k1 = uint32_t(val >> 32);
+    MMIX(hash, k1);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void IncrementalHasher::Begin()
+inline void HashCombine_(uint32_t& hash, int64_t val)
 {
-    mHash = 0;
-    mLen = 0;
+    uint32_t k0 = uint32_t(val);
+    MMIX(hash, k0);
+
+    uint32_t k1 = uint32_t(val >> 32);
+    MMIX(hash, k1);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void IncrementalHasher::Add(const void* data, uint32_t numBytes)
+inline void HashCombine_(uint32_t& hash, uint32_t val)
 {
-    mHash = MurmurHash2A_Body((const uint8_t*)data, numBytes, mHash);
-    mLen += numBytes;
+    MMIX(hash, val);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename T> void IncrementalHasher::Add(const T& value)
+inline void HashCombine_(uint32_t& hash, int32_t val)
 {
-    Add(&value, sizeof(T));
+    uint32_t k0 = uint32_t(val);
+    MMIX(hash, k0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-uint32_t IncrementalHasher::End()
+inline void HashCombine_(uint32_t& hash, Symbol val)
 {
-    return MurmurHash2A_Tail(mLen, mHash);
+    uint32_t k0 = uint32_t(val);
+    MMIX(hash, k0);
 }
 
-#undef MURMUR_M
-#undef MURMUR_R
+////////////////////////////////////////////////////////////////////////////////////////////////////
+template<class T>
+inline void HashCombine_(uint32_t& hash, T* val)
+{
+    HashCombine_(hash, (typename Int<sizeof(val)>::Type)(uintptr_t)val);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline void HashCombine_(uint32_t& hash, float val)
+{
+    union { float f; uint32_t u; } ieee754 = { val };
+    uint32_t k = uint32_t(ieee754.u);
+    MMIX(hash, k);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+template<typename T, typename... Types>
+inline void HashCombine_(uint32_t& hash, const T& val, const Types&... args)
+{
+    HashCombine_(hash, val);
+    HashCombine_(hash, args...);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+template<typename... Types>
+inline uint32_t HashCombine(const Types&... args)
+{
+    uint32_t hash = sizeof...(args);
+    HashCombine_(hash, args...);
+    MTAIL(hash);
+    return hash;
+}
+
 #undef MMIX
+#undef MTAIL
 
 }

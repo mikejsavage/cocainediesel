@@ -12,7 +12,6 @@
 #include <NsCore/ReflectionDeclareEnum.h>
 #include <NsCore/Delegate.h>
 #include <NsGui/FrameworkElement.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis
@@ -111,11 +110,11 @@ public:
     /// Determines if an element is descendant of another in a tree with Popups
     static bool IsDescendantOf(Visual* ancestor, Visual* child);
 
-    /// Events
-    //@{
+    /// Occurs when the IsOpen property changes to false
     DelegateEvent_<EventHandler> Closed();
+
+    /// Occurs when the IsOpen property changes to true
     DelegateEvent_<EventHandler> Opened();
-    //@}
 
 public:
     /// Dependency properties

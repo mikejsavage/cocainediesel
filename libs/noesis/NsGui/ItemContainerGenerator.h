@@ -9,14 +9,11 @@
 
 
 #include <NsCore/Noesis.h>
+#include <NsCore/Delegate.h>
+#include <NsCore/BaseComponent.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/IRecyclingItemContainerGenerator.h>
 #include <NsGui/Events.h>
-#include <NsGui/INotifyCollectionChanged.h>
-#include <NsCore/BaseComponent.h>
-#include <NsCore/Delegate.h>
-#include <NsCore/NSTLPoolAllocator.h>
-#include <NsCore/List.h>
 
 
 namespace Noesis
@@ -28,12 +25,13 @@ class ItemsControl;
 class Panel;
 class ItemContainerGeneratorTest;
 struct NotifyCollectionChangedEventArgs;
+enum NotifyCollectionChangedAction: int32_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// The ItemsChanged event is raised by an ItemContainerGenerator to inform layouts that the items
 /// collection has changed.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-struct NS_GUI_CORE_API ItemsChangedEventArgs: public EventArgs
+struct ItemsChangedEventArgs: public EventArgs
 {
     NotifyCollectionChangedAction action;
     GeneratorPosition position;
@@ -41,20 +39,14 @@ struct NS_GUI_CORE_API ItemsChangedEventArgs: public EventArgs
     int itemCount;
     int itemUICount;
 
-private:
-    friend class ItemContainerGenerator;
-
     ItemsChangedEventArgs(NotifyCollectionChangedAction action, const GeneratorPosition& position,
         const GeneratorPosition& oldPosition, int itemCount, int itemUICount);
 
     ItemsChangedEventArgs(NotifyCollectionChangedAction action, const GeneratorPosition& position,
         int itemCount, int itemUICount);
-
-    NS_IMPLEMENT_INLINE_REFLECTION_(ItemsChangedEventArgs, EventArgs)
 };
 
-typedef Delegate<void(BaseComponent*, const ItemsChangedEventArgs&)>
-    ItemsChangedEventHandler;
+typedef Delegate<void(BaseComponent*, const ItemsChangedEventArgs&)> ItemsChangedEventHandler;
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
@@ -64,7 +56,7 @@ NS_MSVC_WARNING_DISABLE(4251 4275)
 ///
 /// http://msdn.microsoft.com/en-us/library/system.windows.controls.itemcontainergenerator.aspx
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-class NS_GUI_CORE_API ItemContainerGenerator: public BaseComponent,
+class NS_GUI_CORE_API ItemContainerGenerator: public BaseComponent, 
     public IRecyclingItemContainerGenerator
 {
 public:
@@ -183,10 +175,13 @@ private:
 
         ItemNode(uint32_t n = 0);
         ItemNode(BaseComponent* i, DependencyObject* c);
+        ItemNode(const ItemNode& node);
+        ItemNode(ItemNode&& node);
+
         ~ItemNode();
 
-        ItemNode(const ItemNode& node);
         ItemNode& operator=(const ItemNode& node);
+        ItemNode& operator=(ItemNode&& node);
 
         uint32_t NumItems() const;
         uint32_t NumContainers() const;
@@ -203,6 +198,7 @@ private:
 
     private:
         void CopyFrom(const ItemNode& node);
+        void MoveFrom(ItemNode& node);
         void UnrealizeInternal(uint32_t n);
         void RealizeInternal(BaseComponent* i, DependencyObject* c);
         void Release();
@@ -217,24 +213,24 @@ private:
     //      | unrealized | -> | 1 container* | -> ... -> | 1 container* | -> | unrealized |
     //       ------------      --------------             --------------      ------------ 
     //
-    typedef NsList<ItemNode, eastl::PoolAllocator> ItemNodes;
+    typedef Vector<ItemNode> ItemNodes;
     ItemNodes mItemNodes;
     uint32_t mNumItems;
 
     void Remove(const GeneratorPosition& position, uint32_t count, bool recycleContainers,
         const char* actionName);
-    void Remove(const ItemNodes::iterator& startIt, int startIndex, uint32_t count,
-        bool allowUnrealizedItems, bool recycleContainers, const char* actionName);
-    int RemoveItem(const ItemNodes::iterator& it);
-    void CoalesceNodes(const ItemNodes::iterator& prevIt, const ItemNodes::iterator& nextIt);
-    ItemNodes::iterator FindNodeFromIndex(int index, int& itemIndex, int& offset);
+    void Remove(uint32_t startIt, int startIndex, uint32_t count, bool allowUnrealizedItems,
+        bool recycleContainers, const char* actionName);
+    int RemoveItem(uint32_t it);
+    void CoalesceNodes(uint32_t prevIt, uint32_t nextIt);
+    uint32_t FindNodeFromIndex(int index, int& itemIndex, int& offset);
     void MoveForward();
     void MoveForward(int offset, bool allowStartAtRealizedItem);
     void MoveBackward();
     void MoveBackward(int offset, bool allowStartAtRealizedItem);
 
     // Stores recycled containers to be used in future generations
-    typedef NsVector<Ptr<DependencyObject> > RecycledContainers;
+    typedef Vector<Ptr<DependencyObject>> RecycledContainers;
     RecycledContainers mRecycledContainers;
 
     // Generator status
@@ -243,7 +239,7 @@ private:
 
     // Generation state
     GeneratorDirection mDirection;
-    ItemNodes::iterator mNode; // node where next generation should occur
+    uint32_t mNode; // node where next generation should occur
     int mOffset; // offset inside the current node where next generation should occur
     int mItemIndex; // index of next generated item
 
@@ -255,7 +251,7 @@ private:
     static const DependencyProperty* ContainerItemProperty;
 
     // Optimization for ContainerFromIndex look-ups
-    mutable ItemNodes::const_iterator mLastNode;
+    mutable uint32_t mLastNode;
     mutable int mLastIndex;
 
     NS_DECLARE_REFLECTION(ItemContainerGenerator, BaseComponent)
@@ -265,5 +261,6 @@ NS_WARNING_POP
 
 }
 
+#include <NsGui/ItemContainerGenerator.inl>
 
 #endif

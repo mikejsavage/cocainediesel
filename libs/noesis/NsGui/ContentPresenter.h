@@ -43,6 +43,12 @@ public:
     void SetContentSource(const char* source);
     //@}
 
+    /// Gets or sets the format used to display the content of the control as a string.
+    //@{
+    const char* GetContentStringFormat() const;
+    void SetContentStringFormat(const char* value);
+    //@}
+
     /// Gets or sets the template used to display the content of the control.
     //@{
     DataTemplate* GetContentTemplate() const;
@@ -61,14 +67,12 @@ public:
     //@{
     static const DependencyProperty* ContentProperty;
     static const DependencyProperty* ContentSourceProperty;
+    static const DependencyProperty* ContentStringFormatProperty;
     static const DependencyProperty* ContentTemplateProperty;
     static const DependencyProperty* ContentTemplateSelectorProperty;
     //@}
 
 protected:
-    // Inheritors must call this function before measuring the content presenter
-    void RefreshVisualTree();
-
     // Invoked when Content property changes
     virtual void OnContentChanged(BaseComponent* oldContent, BaseComponent* newContent);
 
@@ -81,7 +85,7 @@ protected:
     /// From FrameworkElement
     //@{
     void CloneOverride(FrameworkElement* clone, FrameworkTemplate* template_) const override;
-    Size MeasureOverride(const Size& availableSize) override;
+    void OnPreApplyTemplate() override;
     //@}
 
 private:
@@ -95,7 +99,7 @@ private:
     bool RemoveOldParent(Visual* child) const;
 
     TextBlock* GetDefaultTemplate() const;
-    TextBlock* EnsureDefaultTemplate();
+    void EnsureDefaultTemplate();
     void RemoveDefaultTemplate();
 
     bool UsingDefaultTemplate() const;

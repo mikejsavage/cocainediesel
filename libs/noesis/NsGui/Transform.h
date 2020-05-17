@@ -13,12 +13,12 @@
 #include <NsGui/Animatable.h>
 #include <NsGui/IRenderProxyCreator.h>
 #include <NsCore/ReflectionDeclare.h>
-#include <NsMath/TransformForward.h>
 
 
 namespace Noesis
 {
 
+class Transform2;
 template<class T> class Ptr;
 
 NS_WARNING_PUSH
@@ -48,7 +48,7 @@ public:
     static Transform* GetIdentity();
 
     /// Gets the transformation matrix defined by a transform object
-    virtual Transform2f GetTransform() const = 0;
+    virtual Transform2 GetTransform() const = 0;
 
     // Hides Freezable methods for convenience
     //@{

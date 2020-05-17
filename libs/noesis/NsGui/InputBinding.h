@@ -75,7 +75,7 @@ public:
     //@{
     IUITreeNode* GetNodeParent() const final;
     void SetNodeParent(IUITreeNode* parent) final;
-    BaseComponent* FindNodeResource(IResourceKey* key, bool fullElementSearch) const final;
+    BaseComponent* FindNodeResource(const char* key, bool fullElementSearch) const final;
     BaseComponent* FindNodeName(const char* name) const final;
     ObjectWithNameScope FindNodeNameAndScope(const char* name) const final;
     //@}

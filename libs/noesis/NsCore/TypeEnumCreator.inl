@@ -23,9 +23,9 @@ TypeEnumCreator<EnumT>::TypeEnumCreator(TypeEnum* typeEnum): mTypeEnum(typeEnum)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class EnumT>
-Type* TypeEnumCreator<EnumT>::Create(const TypeInfo& typeInfo)
+Type* TypeEnumCreator<EnumT>::Create(Symbol name)
 {
-    return new TypeEnumImpl<EnumT>(typeInfo);
+    return new TypeEnumImpl<EnumT>(name);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -49,7 +49,7 @@ void TypeEnumCreator<EnumT>::Meta(Args... args)
 template<class EnumT>
 void TypeEnumCreator<EnumT>::Val(const char* name, EnumT value)
 {
-    mTypeEnum->AddValue(NsSymbol(name), (int)value);
+    mTypeEnum->AddValue(Symbol::Static(name), (int)value);
 }
 
 }

@@ -13,7 +13,7 @@
 #include <NsGui/InputGesture.h>
 #include <NsGui/InputEnums.h>
 #include <NsCore/ReflectionDeclare.h>
-#include <NsCore/NSTLForwards.h>
+#include <NsCore/StringFwd.h>
 
 
 namespace Noesis
@@ -39,7 +39,7 @@ public:
 
     /// Gets a string to be displayed in UI
     /// \prop
-    NsString GetDisplayString() const;
+    String GetDisplayString() const;
 
     /// From InputGesture
     //@{

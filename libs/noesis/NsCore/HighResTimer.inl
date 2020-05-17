@@ -7,6 +7,9 @@
 #include <NsCore/Error.h>
 
 #if defined(NS_PLATFORM_WINDOWS)
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN 1
+    #endif
     #include <windows.h>
 #elif defined(NS_PLATFORM_APPLE)
     #include <mach/mach_time.h>

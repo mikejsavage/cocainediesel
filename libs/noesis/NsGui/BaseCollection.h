@@ -66,7 +66,7 @@ protected:
     virtual const TypeClass* GetItemType() const;
 
 protected:
-    NsVector<Ptr<BaseComponent>> mItems;
+    Vector<Ptr<BaseComponent>> mItems;
 
 private:
     bool CheckType(BaseComponent* item) const;

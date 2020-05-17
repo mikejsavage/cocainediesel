@@ -1,13 +1,10 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #514]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 #include <NsCore/Error.h>
-#include <NsMath/Utils.h>
-#include <EASTL/algorithm.h>
 
 #include <float.h>
 
@@ -16,261 +13,207 @@ namespace Noesis
 {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-AABBox2<T>::AABBox2(): mMin(FLT_MAX, FLT_MAX), mMax(-FLT_MAX, -FLT_MAX)
+inline AABBox2::AABBox2(): mMin(FLT_MAX, FLT_MAX), mMax(-FLT_MAX, -FLT_MAX)
 {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-template<class S> AABBox2<T>::AABBox2(const AABBox2<S>& v): mMin(v.mMin), mMax(v.mMax)
+inline AABBox2::AABBox2(float minX, float minY, float maxX, float maxY):  mMin(minX, minY), 
+    mMax(maxX, maxY)
 {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-AABBox2<T>::AABBox2(float minX, float minY, float maxX, float maxY): 
-    mMin(minX, minY), mMax(maxX, maxY)
+inline AABBox2::AABBox2(const Vector2& min, const Vector2& max): mMin(min), mMax(max)
 {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-AABBox2<T>::AABBox2(const Vector2<T>& min, const Vector2<T>& max): mMin(min), mMax(max)
+inline AABBox2::AABBox2(const Vector2& center, float halfSide)
 {
+    NS_ASSERT(halfSide > 0.0f);
+    mMin = center - Vector2(halfSide, halfSide);
+    mMax = center + Vector2(halfSide, halfSide);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-AABBox2<T>::AABBox2(const Vector2<T>& center, T halfSide)
+inline void AABBox2::Reset()
 {
-    NS_ASSERT(halfSide > T(0.0));
-
-    Vector2<T> halfSideVector(halfSide, halfSide);
-    mMin = center - halfSideVector;
-    mMax = center + halfSideVector;
-}
-////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-template<class S> AABBox2<T>& AABBox2<T>::operator=(const AABBox2<S>& v)
-{
-    mMin = v.mMin;
-    mMax = v.mMax;
-    
-    return *this;
+    mMin = Vector2(FLT_MAX, FLT_MAX);
+    mMax = Vector2(-FLT_MAX, -FLT_MAX);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-void AABBox2<T>::Reset()
-{
-    mMin = Vector2<T>(FLT_MAX, FLT_MAX);
-    mMax = Vector2<T>(-FLT_MAX, -FLT_MAX);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-Vector2<T> AABBox2<T>::operator[](uint32_t i) const
+inline Vector2 AABBox2::operator[](uint32_t i) const
 {
     NS_ASSERT(i < 4);
-    return Vector2<T>(
-        i & 1 ? mMax[0] : mMin[0],
-        i & 2 ? mMax[1] : mMin[1]);
+    return Vector2(i & 1 ? mMax[0] : mMin[0], i & 2 ? mMax[1] : mMin[1]);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-void AABBox2<T>::SetMin(const Vector2<T>& min)
-{
-    mMin = min;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-const Vector2<T>& AABBox2<T>::GetMin() const
+inline Vector2& AABBox2::Min()
 {
     return mMin;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-void AABBox2<T>::SetMax(const Vector2<T>& max)
+inline const Vector2& AABBox2::Min() const
 {
-    mMax = max;
+    return mMin;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-const Vector2<T>& AABBox2<T>::GetMax() const
+inline Vector2& AABBox2::Max()
 {
     return mMax;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-Vector2<T> AABBox2<T>::GetCenter() const
+inline const Vector2& AABBox2::Max() const
 {
-    return T(0.5f) * (mMin + mMax);
+    return mMax;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-Vector2<T> AABBox2<T>::GetDiagonal() const
+inline Vector2 AABBox2::Center() const
+{
+    return 0.5f * (mMin + mMax);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline Vector2 AABBox2::Diagonal() const
 {
     return mMax - mMin;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-AABBox2<T>& AABBox2<T>::operator+=(const AABBox2<T>& box)
+inline AABBox2& AABBox2::operator+=(const AABBox2& box)
 {
-    mMin[0] = Min(box.mMin[0], mMin[0]);
-    mMin[1] = Min(box.mMin[1], mMin[1]);
-
-    mMax[0] = Max(box.mMax[0], mMax[0]);
-    mMax[1] = Max(box.mMax[1], mMax[1]);
-
+    mMin[0] = Noesis::Min(box.mMin[0], mMin[0]);
+    mMin[1] = Noesis::Min(box.mMin[1], mMin[1]);
+    mMax[0] = Noesis::Max(box.mMax[0], mMax[0]);
+    mMax[1] = Noesis::Max(box.mMax[1], mMax[1]);
     return *this;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-AABBox2<T>& AABBox2<T>::operator+=(const Vector2<T>& point)
+inline AABBox2& AABBox2::operator+=(const Vector2& point)
 {
-    mMin[0] = Min(point[0], mMin[0]);
-    mMin[1] = Min(point[1], mMin[1]);
-
-    mMax[0] = Max(point[0], mMax[0]);
-    mMax[1] = Max(point[1], mMax[1]);
-
+    mMin[0] = Noesis::Min(point[0], mMin[0]);
+    mMin[1] = Noesis::Min(point[1], mMin[1]);
+    mMax[0] = Noesis::Max(point[0], mMax[0]);
+    mMax[1] = Noesis::Max(point[1], mMax[1]);
     return *this;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-AABBox2<T>& AABBox2<T>::Scale(T s)
+inline AABBox2& AABBox2::Scale(float s)
 {
-    Vector2<T> center = GetCenter();
-
-    SetMin((mMin - center) * s + center);
-    SetMax((mMax - center) * s + center);
-    
+    Vector2 center = Center();
+    mMin = (mMin - center) * s + center;
+    mMax = (mMax - center) * s + center;
     return *this;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-bool AABBox2<T>::operator==(const AABBox2<T>& box) const
+inline bool AABBox2::operator==(const AABBox2& box) const
 {
     return mMin == box.mMin && mMax == box.mMax;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-bool AABBox2<T>::operator!=(const AABBox2<T>& box) const
+inline bool AABBox2::operator!=(const AABBox2& box) const
 {
     return !(*this == box);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-bool AABBox2<T>::IsEmpty() const
+inline bool AABBox2::Empty() const
 {
     return mMax[0] < mMin[0] || mMax[1] < mMin[1];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-const AABBox2<T> operator+(const AABBox2<T>& box0, const AABBox2<T>& box1)
+inline const AABBox2 operator+(const AABBox2& box0, const AABBox2& box1)
 {
-    AABBox2<T> ret(box0);
+    AABBox2 ret(box0);
     return ret += box1;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-const AABBox2<T> operator+(const AABBox2<T>& box, const Vector2<T>& point)
+inline const AABBox2 operator+(const AABBox2& box, const Vector2& point)
 {
-    AABBox2<T> ret(box);
+    AABBox2 ret(box);
     return ret += point;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-const AABBox2<T> operator+(const Vector2<T>& point, const AABBox2<T>& box)
+inline const AABBox2 operator+(const Vector2& point, const AABBox2& box)
 {
-    AABBox2<T> ret(box);
+    AABBox2 ret(box);
     return ret += point;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-const AABBox2<T> operator*(const AABBox2<T>& box, const Transform2<T>& mtx)
+inline const AABBox2 operator*(const AABBox2& box, const Transform2& mtx)
 {
-    if (box.IsEmpty()) return box;
+    if (box.Empty()) return box;
     
-    AABBox2<T> ret(mtx[2], mtx[2]);
+    AABBox2 ret(mtx[2], mtx[2]);
    
     for (uint32_t i = 0; i < 2; i++)
     {
         for (uint32_t j = 0; j < 2; j++)
         {
-            T a = mtx[j][i] * box.mMin[j];
-            T b = mtx[j][i] * box.mMax[j];
+            float a = mtx[j][i] * box.Min()[j];
+            float b = mtx[j][i] * box.Max()[j];
 
-            ret.mMin[i] += a < b ? a : b;
-            ret.mMax[i] += a < b ? b : a;
+            ret.Min()[i] += a < b ? a : b;
+            ret.Max()[i] += a < b ? b : a;
         }
     }
-    
+
     return ret;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-const AABBox2<T> operator*(const AABBox2<T>& box, T s)
+inline const AABBox2 operator*(const AABBox2& box, float s)
 {
-    AABBox2<T> ret(box);
+    AABBox2 ret(box);
     ret.Scale(s);
     return ret;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-const AABBox2<T> operator*(T s, const AABBox2<T>& box)
+inline const AABBox2 operator*(float s, const AABBox2& box)
 {
-    AABBox2<T> ret(box);
+    AABBox2 ret(box);
     ret.Scale(s);
     return ret;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-bool Inside(const AABBox2<T>& box, const Vector2<T>& p)
+inline bool Inside(const AABBox2& box, const Vector2& p)
 {
-    return (p[0] > box.GetMin()[0] && p[1] > box.GetMin()[1] &&
-        p[0] < box.GetMax()[0] && p[1] < box.GetMax()[1]);
+    return (p[0] > box.Min()[0] && p[1] > box.Min()[1] && p[0] < box.Max()[0]
+        && p[1] < box.Max()[1]);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-bool BoxesIntersect(const AABBox2<T>& box0, const AABBox2<T>& box1)
+inline bool BoxesIntersect(const AABBox2& box0, const AABBox2& box1)
 {
-    return (box0.GetMin()[0] < box1.GetMax()[0] && box0.GetMin()[1] < box1.GetMax()[1] &&
-        box0.GetMax()[0] > box1.GetMin()[0] && box0.GetMax()[1] > box1.GetMin()[1]);
+    return (box0.Min()[0] < box1.Max()[0] && box0.Min()[1] < box1.Max()[1] &&
+        box0.Max()[0] > box1.Min()[0] && box0.Max()[1] > box1.Min()[1]);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T>
-AABBox2<T> Intersect(const AABBox2<T>& b0, const AABBox2<T>& b1)
+inline AABBox2 Intersect(const AABBox2& b0, const AABBox2& b1)
 {
-    float minX = eastl::max_alt(b0.GetMin()[0], b1.GetMin()[0]);
-    float maxX = eastl::min_alt(b0.GetMax()[0], b1.GetMax()[0]);
-
-    float minY = eastl::max_alt(b0.GetMin()[1], b1.GetMin()[1]);
-    float maxY = eastl::min_alt(b0.GetMax()[1], b1.GetMax()[1]);
-
-    return AABBox2<T>(minX, minY, maxX, maxY);
+    return AABBox2
+    (
+        Max(b0.Min()[0], b1.Min()[0]), Max(b0.Min()[1], b1.Min()[1]),
+        Min(b0.Max()[0], b1.Max()[0]), Min(b0.Max()[1], b1.Max()[1])
+    );
 }
 
 }

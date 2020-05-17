@@ -23,18 +23,18 @@
         #define NS_PLATFORM_IPHONE
         #if defined(__arm__)
             #define NS_PROCESSOR_ARM
-            #define NS_PLATFORM_DESCRIPTION "iPhone on ARM"
+            #define NS_PLATFORM_DESCRIPTION "iOS on ARM"
         #elif defined(__arm64__)
             #define NS_PROCESSOR_ARM_64
-            #define NS_PLATFORM_DESCRIPTION "iPhone on ARM64"
+            #define NS_PLATFORM_DESCRIPTION "iOS on ARM64"
         #elif defined(__i386__)
             #define NS_PLATFORM_IPHONE_SIMULATOR
             #define NS_PROCESSOR_X86
-            #define NS_PLATFORM_DESCRIPTION "iPhone simulator on x86"
+            #define NS_PLATFORM_DESCRIPTION "iOS simulator on x86"
         #elif defined(__x86_64)
             #define NS_PLATFORM_IPHONE_SIMULATOR
             #define NS_PROCESSOR_X86_64
-            #define NS_PLATFORM_DESCRIPTION "iPhone simulator on x86_64"
+            #define NS_PLATFORM_DESCRIPTION "iOS simulator on x86_64"
         #else
             #error Unknown processor
         #endif
@@ -50,10 +50,10 @@
         #define NS_PLATFORM_OSX
         #if defined(__i386__) || defined(__intel__)
             #define NS_PROCESSOR_X86
-            #define NS_PLATFORM_DESCRIPTION "OSX on x86"
+            #define NS_PLATFORM_DESCRIPTION "macOS on x86"
         #elif defined(__x86_64) || defined(__amd64)
             #define NS_PROCESSOR_X86_64
-            #define NS_PLATFORM_DESCRIPTION "OSX on x86_64"
+            #define NS_PLATFORM_DESCRIPTION "macOS on x86_64"
         #else
             #error Unknown processor
         #endif

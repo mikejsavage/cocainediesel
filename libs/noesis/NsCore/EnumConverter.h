@@ -13,7 +13,6 @@
 #include <NsCore/TypeConverterApi.h>
 #include <NsCore/ReflectionImplement.h>
 #include <NsCore/TypeConverter.h>
-#include <NsCore/TypeId.h>
 #include <NsCore/IdOf.h>
 
 
@@ -36,7 +35,7 @@ public:
     bool TryConvertFromString(const char* str, Ptr<BaseComponent>& result) const override;
     bool TryConvertTo(BaseComponent* object, const Type* type,
         Ptr<BaseComponent>& result) const override;
-    bool TryConvertToString(BaseComponent* object, NsString& result) const override;
+    bool TryConvertToString(BaseComponent* object, String& result) const override;
     //@}
 
 private:
@@ -65,10 +64,7 @@ private:
     Ptr<BaseComponent> Box(uint32_t v) const override;
     uint32_t Unbox(BaseComponent* value) const override;
 
-    NS_IMPLEMENT_INLINE_REFLECTION(EnumConverter, BaseEnumConverter)
-    {
-        NsMeta<TypeId>(IdOf<T>("Converter"));
-    }
+    NS_IMPLEMENT_INLINE_REFLECTION_(EnumConverter, BaseEnumConverter, IdOf("Converter<", IdOf<T>(), ">"))
 };
 
 }

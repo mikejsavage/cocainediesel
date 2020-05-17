@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #866]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -19,8 +18,6 @@
 namespace Noesis
 {
 
-class TypeInfo;
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// TypeReference. Types for references.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -28,7 +25,7 @@ class NS_CORE_KERNEL_API TypeReference: public Type
 {
 public:
     /// Constructor
-    TypeReference(const TypeInfo& typeInfo);
+    TypeReference(Symbol name);
 
     /// Sets reflection static type of reference content
     void SetContentType(const Type* contentType);
@@ -50,7 +47,7 @@ class NS_CORE_KERNEL_API TypeConst: public Type
 {
 public:
     /// Constructor
-    TypeConst(const TypeInfo& typeInfo);
+    TypeConst(Symbol name);
 
     /// Sets reflection static type of const content
     void SetContentType(const Type* contentType);
@@ -72,7 +69,7 @@ class NS_CORE_KERNEL_API TypePointer: public Type
 {
 public:
     /// Constructor
-    TypePointer(const TypeInfo& typeInfo);
+    TypePointer(Symbol name);
 
     /// Sets reflection static type of pointer content
     void SetStaticContentType(const Type* contentType);
@@ -103,7 +100,7 @@ class NS_CORE_KERNEL_API TypePtr: public Type
 {
 public:
     /// Constructor
-    TypePtr(const TypeInfo& typeInfo);
+    TypePtr(Symbol name);
 
     /// Sets reflection static type of Ptr content
     void SetStaticContentType(const Type* contentType);
@@ -134,7 +131,7 @@ class NS_CORE_KERNEL_API TypeArray: public TypeCollection
 {
 public:
     /// Constructor
-    TypeArray(const TypeInfo& typeInfo);
+    TypeArray(Symbol name);
 
     /// Sets number of elements in the array
     void SetElemCount(uint32_t elemCount);

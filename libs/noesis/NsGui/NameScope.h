@@ -70,10 +70,8 @@ protected:
     int32_t OnDestroy() const override;
 
 private:
-    typedef NsHashMap<NsString, BaseComponent*> NameObjectMap;
-
+    typedef HashMap<String, BaseComponent*> NameObjectMap;
     NameObjectMap mNamedObjects;
-    mutable eastl::pair<NsString, BaseComponent*> mKeyVal;
 
     ChangedDelegate mChanged;
 

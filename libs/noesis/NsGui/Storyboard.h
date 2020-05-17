@@ -17,9 +17,7 @@
 #include <NsGui/HandoffBehavior.h>
 #include <NsCore/ReflectionDeclareEnum.h>
 #include <NsCore/Vector.h>
-#include <NsCore/Map.h>
-
-#include <EASTL/fixed_vector.h>
+#include <NsCore/HashMap.h>
 
 
 namespace Noesis
@@ -147,9 +145,9 @@ private:
     void RegisterControllableClock(FrameworkElement* target, Clock* clock);
     void UnregisterControllableClock(FrameworkElement* target, bool removeClock, bool clearValue);
 
-    typedef NsMap<FrameworkElement*, Clock*> Controllables;
+    typedef HashMap<FrameworkElement*, Clock*> Controllables;
 
-    void UnregisterControllableClock(Controllables::iterator it, bool removeClock, bool clearValue);
+    void UnregisterControllableClock(Controllables::Iterator it, bool removeClock, bool clearValue);
 
     void OnTargetDestroyed(DependencyObject* object);
 
@@ -162,7 +160,7 @@ private:
         AnimationClock* clock;
     };
 
-    typedef eastl::fixed_vector<Animation, 64> Animations;
+    typedef Vector<Animation, 64> Animations;
 
     void ResolveTargets(FrameworkElement* fe, FrameworkElement* ns, Clock* clock,
         Animations& targets) const;

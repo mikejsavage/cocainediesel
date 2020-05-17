@@ -140,7 +140,7 @@ private:
     Ptr<FrameworkElement> mContentHost;
     Ptr<PasswordBoxTextContainer> mTextContainer;
 
-    NsString mPassword;
+    String mPassword;
 
     union
     {

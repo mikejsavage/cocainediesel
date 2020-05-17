@@ -166,7 +166,6 @@ private:
         const Point& offset, int itemOffset);
 
     void EnsureScrollData();
-    bool HasScrollData() const;
     bool IsScrolling() const;
     bool IsHorizontal() const;
     bool IsVertical() const;

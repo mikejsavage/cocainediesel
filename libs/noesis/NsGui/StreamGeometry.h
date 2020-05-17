@@ -11,7 +11,6 @@
 #include <NsCore/Noesis.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/Geometry.h>
-#include <NsGui/Enums.h>
 #include <NsDrawing/Rect.h>
 #include <NsDrawing/SVGPath.h>
 
@@ -20,6 +19,10 @@ namespace Noesis
 {
 
 class StreamGeometryContext;
+enum FillRule: int32_t;
+
+NS_WARNING_PUSH
+NS_MSVC_WARNING_DISABLE(4251)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Defines a geometric shape, described using a StreamGeometryContext or a SVG command string
@@ -68,9 +71,6 @@ public:
     ///     M 100, 100 L 200, 100 200, 200 Z
     void SetData(const char* data);
 
-    // Gets stream data
-    const SVGPath& GetData() const;
-
     /// Constructs a stream geometry specifying drawing commands
     StreamGeometryContext Open();
 
@@ -94,7 +94,7 @@ public:
 
     /// From BaseObject
     //@{
-    NsString ToString() const override;
+    String ToString() const override;
     //@}
 
     /// From IRenderProxyCreator
@@ -132,6 +132,7 @@ private:
 
 private:
     friend class StreamGeometryContext;
+    friend class StreamGeometryTest;
 
     enum UpdateFlags
     {
@@ -144,6 +145,8 @@ private:
 
     NS_DECLARE_REFLECTION(StreamGeometry, Geometry)
 };
+
+NS_WARNING_POP
 
 }
 

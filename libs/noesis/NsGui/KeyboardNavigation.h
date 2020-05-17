@@ -10,11 +10,9 @@
 
 #include <NsCore/Noesis.h>
 #include <NsGui/CoreApi.h>
-#include <NsGui/UIElementEvents.h>
-#include <NsGui/Enums.h>
+#include <NsCore/Ptr.h>
 #include <NsCore/ReflectionDeclare.h>
 #include <NsCore/BaseComponent.h>
-#include <NsCore/ReflectionDeclareEnum.h>
 
 
 namespace Noesis
@@ -27,9 +25,13 @@ class UIElement;
 class FrameworkElement;
 class Keyboard;
 class FocusVisualLayer;
+struct TraversalRequest;
+enum FocusNavigationDirection: int32_t;
+enum KeyboardNavigationMode: int32_t;
+enum Key: int32_t;
 
 NS_WARNING_PUSH
-NS_MSVC_WARNING_DISABLE(4251 4275)
+NS_MSVC_WARNING_DISABLE(4251)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Provides logical and directional navigation between focusable objects.
@@ -107,14 +109,10 @@ public:
 private:
     friend class Keyboard;
     bool OnKeyDown(Key key);
-    void OnFocused(UIElement* focusedElement);
+    void OnFocused(UIElement* focusedElement, bool keyboardFocused);
 
-    void UpdateFocus(FrameworkElement* newFocused);
     void UpdateDirectionalFocus(UIElement* focused, FocusNavigationDirection direction,
         bool enableFocusEngagement);
-
-    void SetFocusStyle(FrameworkElement* focusedElement);
-    void HideFocusStyle();
 
 private:
     Keyboard* mKeyboard;

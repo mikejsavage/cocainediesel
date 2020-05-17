@@ -1,11 +1,12 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #629]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 #include <NsCore/Error.h>
+#include <NsCore/Hash.h>
+#include <NsCore/CompilerTools.h>
 
 
 namespace Noesis
@@ -17,7 +18,7 @@ Ptr<T>::Ptr(): mPtr(0) {}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T> 
-Ptr<T>::Ptr(std::nullptr_t): mPtr(0) {}
+Ptr<T>::Ptr(NullPtrT): mPtr(0) {}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T> 
@@ -213,7 +214,21 @@ Ptr<T>::operator T*() const
 template<class T, class... Args>
 Ptr<T> MakePtr(Args&&... args)
 {
-    return *new T(std::forward<Args>(args)...);
+    return *new T(Forward<Args>(args)...);
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Hash function
+////////////////////////////////////////////////////////////////////////////////////////////////////
+template<typename T> struct HashKeyInfo;
+template<typename T> struct HashKeyInfo<Ptr<T>>
+{
+    static bool IsEmpty(const Ptr<T>& key) { return key.GetPtr() == (T*)0x1; }
+    static void MarkEmpty(Ptr<T>& key) { *(T**)(&key) = (T*)0x1; }
+    static uint32_t HashValue(const Ptr<T>& key) { return Hash(key.GetPtr()); }
+    static uint32_t HashValue(const T* key) { return Hash(key); }
+    static bool IsEqual(const Ptr<T>& lhs, const Ptr<T>& rhs) { return lhs == rhs; }
+    static bool IsEqual(const Ptr<T>& lhs, const T* rhs) { return lhs == rhs; }
+};
 
 }

@@ -11,7 +11,6 @@
 #include <NsCore/Noesis.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/RangeBase.h>
-#include <NsGui/Enums.h>
 
 namespace Noesis
 {
@@ -78,7 +77,7 @@ enum ScrollEventType
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Provides data for a scroll event that occurs when the Thumb of a ScrollBar moves.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-struct NS_GUI_CORE_API ScrollEventArgs: public RoutedEventArgs
+struct ScrollEventArgs: public RoutedEventArgs
 {
     /// Gets a value that represents the new location of the Thumb in the ScrollBar
     float newValue;
@@ -87,10 +86,10 @@ struct NS_GUI_CORE_API ScrollEventArgs: public RoutedEventArgs
     /// that caused this event
     ScrollEventType scrollEventType;
 
-    ScrollEventArgs(BaseComponent* s, float value, ScrollEventType type);
+    ScrollEventArgs(BaseComponent* source, float value, ScrollEventType type);
 };
 
-typedef Noesis::Delegate<void (BaseComponent*, const ScrollEventArgs&)> ScrollEventHandler;
+typedef Delegate<void (BaseComponent*, const ScrollEventArgs&)> ScrollEventHandler;
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
@@ -226,5 +225,6 @@ NS_WARNING_POP
 
 }
 
+#include <NsGui/ScrollBar.inl>
 
 #endif

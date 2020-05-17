@@ -35,86 +35,104 @@ struct TextureFormat
 // Render device capabilities
 struct DeviceCaps
 {
-    // Offset in pixel units from top-left corner to center of pixel 
-    float centerPixelOffset;
+    // Offset in pixel units from top-left corner to center of pixel
+    float centerPixelOffset = 0.0f;
 
-    // Maximum size that can be passed to MapVertices function
-    uint32_t dynamicVerticesSize;
+    // When this flag is enabled the device works in 'Linear' mode. All internal textures and
+    // offscreens are created in 'sRGB' format. In this mode, the device also expects colors
+    // (like the ones in the vertex buffer) in 'sRGB' format. It also indicates that the device
+    // writes to the render target in linear space
+    bool linearRendering = false;
 
-    // Maximum size that can be passed to MapIndices function
-    uint32_t dynamicIndicesSize;
-
-    // If the device writes to the render target in linear or gamma space
-    bool linearRendering;
+    // This flag is enabled to indicate that the device supports LCD subpixel rendering. Extra
+    // shaders and dual source blending are needed for this feature
+    bool subpixelRendering = false;
 };
 
 // Shader effect
-struct Effect
+struct Shader
 {
+    // List of shaders to be implemented by the device with expected vertex format
+    //
+    //  Name       Format                   Size (bytes)      Semantic
+    //  ---------------------------------------------------------------------------------
+    //  Pos        R32G32_FLOAT             8                 Position (x,y)
+    //  Color      R8G8B8A8_UNORM           4                 Color (rgba)
+    //  Tex0       R32G32_FLOAT             8                 Texture (u,v)
+    //  Tex1       R32G32_FLOAT             8                 Texture (u,v)
+    //  Tex2       R16G16B16A16_UNORM       8                 Rect (x0,y0, x1,y1)
+    //  Coverage   R32_FLOAT                4                 Coverage (x)
+    //
     enum Enum
     {
-        RGBA,
-        Mask,
-        Path,
-        PathAA,
-        ImagePaintOpacity,
-        Text,
+        RGBA,                       // Pos
+        Mask,                       // Pos
+
+        Path_Solid,                 // Pos | Color
+        Path_Linear,                // Pos | Tex0
+        Path_Radial,                // Pos | Tex0
+        Path_Pattern,               // Pos | Tex0
+
+        PathAA_Solid,               // Pos | Color | Coverage
+        PathAA_Linear,              // Pos | Tex0  | Coverage
+        PathAA_Radial,              // Pos | Tex0  | Coverage
+        PathAA_Pattern,             // Pos | Tex0  | Coverage
+
+        SDF_Solid,                  // Pos | Color | Tex1
+        SDF_Linear,                 // Pos | Tex0  | Tex1
+        SDF_Radial,                 // Pos | Tex0  | Tex1
+        SDF_Pattern,                // Pos | Tex0  | Tex1
+
+        SDF_LCD_Solid,              // Pos | Color | Tex1
+        SDF_LCD_Linear,             // Pos | Tex0  | Tex1
+        SDF_LCD_Radial,             // Pos | Tex0  | Tex1
+        SDF_LCD_Pattern,            // Pos | Tex0  | Tex1
+
+        Image_Opacity_Solid,        // Pos | Color | Tex1
+        Image_Opacity_Linear,       // Pos | Tex0  | Tex1
+        Image_Opacity_Radial,       // Pos | Tex0  | Tex1
+        Image_Opacity_Pattern,      // Pos | Tex0  | Tex1
+
+        Image_Shadow35V,            // Pos | Color | Tex1 | Tex2
+        Image_Shadow63V,            // Pos | Color | Tex1 | Tex2
+        Image_Shadow127V,           // Pos | Color | Tex1 | Tex2
+
+        Image_Shadow35H_Solid,      // Pos | Color | Tex1 | Tex2
+        Image_Shadow35H_Linear,     // Pos | Tex0  | Tex1 | Tex2
+        Image_Shadow35H_Radial,     // Pos | Tex0  | Tex1 | Tex2
+        Image_Shadow35H_Pattern,    // Pos | Tex0  | Tex1 | Tex2
+
+        Image_Shadow63H_Solid,      // Pos | Color | Tex1 | Tex2
+        Image_Shadow63H_Linear,     // Pos | Tex0  | Tex1 | Tex2
+        Image_Shadow63H_Radial,     // Pos | Tex0  | Tex1 | Tex2
+        Image_Shadow63H_Pattern,    // Pos | Tex0  | Tex1 | Tex2
+
+        Image_Shadow127H_Solid,     // Pos | Color | Tex1 | Tex2
+        Image_Shadow127H_Linear,    // Pos | Tex0  | Tex1 | Tex2
+        Image_Shadow127H_Radial,    // Pos | Tex0  | Tex1 | Tex2
+        Image_Shadow127H_Pattern,   // Pos | Tex0  | Tex1 | Tex2
+
+        Image_Blur35V,              // Pos | Color | Tex1 | Tex2
+        Image_Blur63V,              // Pos | Color | Tex1 | Tex2
+        Image_Blur127V,             // Pos | Color | Tex1 | Tex2
+
+        Image_Blur35H_Solid,        // Pos | Color | Tex1 | Tex2
+        Image_Blur35H_Linear,       // Pos | Tex0  | Tex1 | Tex2
+        Image_Blur35H_Radial,       // Pos | Tex0  | Tex1 | Tex2
+        Image_Blur35H_Pattern,      // Pos | Tex0  | Tex1 | Tex2
+
+        Image_Blur63H_Solid,        // Pos | Color | Tex1 | Tex2
+        Image_Blur63H_Linear,       // Pos | Tex0  | Tex1 | Tex2
+        Image_Blur63H_Radial,       // Pos | Tex0  | Tex1 | Tex2
+        Image_Blur63H_Pattern,      // Pos | Tex0  | Tex1 | Tex2
+
+        Image_Blur127H_Solid,       // Pos | Color | Tex1 | Tex2
+        Image_Blur127H_Linear,      // Pos | Tex0  | Tex1 | Tex2
+        Image_Blur127H_Radial,      // Pos | Tex0  | Tex1 | Tex2
+        Image_Blur127H_Pattern,     // Pos | Tex0  | Tex1 | Tex2
 
         Count
     };
-};
-
-// Shader paint
-struct Paint
-{
-    enum Enum
-    {
-        Solid,
-        Linear,
-        Radial,
-        Pattern,
-
-        Count
-    };
-};
-
-// Shaders, identified by 8-bit integers, are the combination of an effect with a given paint.
-// The following table descibes the vertex data sent for each shader combination.
-//
-//  ------------------------------------------------------
-//  Pos = X32Y32
-//  Color = R8G8B8A8
-//  Tex0 = U32V32
-//  Tex1 = U32V32
-//  Coverage = A32
-//  ------------------------------------------------------
-//  RGBA                        Pos
-//  Mask                        Pos
-//  PathSolid                   Pos | Color
-//  PathLinear                  Pos | Tex0
-//  PathRadial                  Pos | Tex0
-//  PathPattern                 Pos | Tex0
-//  PathAASolid                 Pos | Color | Coverage
-//  PathAALinear                Pos | Tex0 | Coverage
-//  PathAARadial                Pos | Tex0 | Coverage
-//  PathAAPattern               Pos | Tex0 | Coverage
-//  ImagePaintOpacitySolid      Pos | Color| Tex1
-//  ImagePaintOpacityLinear     Pos | Tex0 | Tex1
-//  ImagePaintOpacityRadial     Pos | Tex0 | Tex1
-//  ImagePaintOpacityPattern    Pos | Tex0 | Tex1
-//  TextSolid                   Pos | Color | Tex1
-//  TextLinear                  Pos | Tex0 | Tex1
-//  TextRadial                  Pos | Tex0 | Tex1
-//  TextPattern                 Pos | Tex0 | Tex1
-//  ------------------------------------------------------
-
-union Shader
-{
-    struct
-    {
-        uint8_t paint:4;
-        uint8_t effect:4;
-    } f;
 
     uint8_t v;
 };
@@ -126,6 +144,7 @@ struct BlendMode
     {
         Src,
         SrcOver,
+        SrcOver_Dual,
 
         Count
     };
@@ -241,7 +260,7 @@ struct Batch
     uint32_t startIndex;
     uint32_t numIndices;
 
-    // Textures. Unused textures are set to null
+    // Textures (Unused textures are set to null)
     Texture* pattern;
     SamplerState patternSampler;
 
@@ -254,7 +273,15 @@ struct Batch
     Texture* glyphs;
     SamplerState glyphsSampler;
 
-    // Shader constants. Unused constants are set to null
+    Texture* shadow;
+    SamplerState shadowSampler;
+
+    // Effect parameters
+    float* effectParams;
+    uint32_t effectParamsSize;
+    uint32_t effectParamsHash;
+
+    // Shader constants (Unused constants are set to null)
     const float (*projMtx)[16];
     uint32_t projMtxHash;
 
@@ -276,6 +303,21 @@ struct Tile
     uint32_t width;
     uint32_t height;
 };
+
+// Max requested bytes for MapVertices
+#ifndef DYNAMIC_VB_SIZE
+    #define DYNAMIC_VB_SIZE 512 * 1024
+#endif
+
+// Max requested bytes for MapIndices
+#ifndef DYNAMIC_IB_SIZE
+    #define DYNAMIC_IB_SIZE 128 * 1024
+#endif
+
+// Max requested bytes for UpdateTexture
+#ifndef DYNAMIC_TEX_SIZE
+    #define DYNAMIC_TEX_SIZE 128 * 1024
+#endif
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
@@ -301,14 +343,16 @@ public:
     /// Creates render target sharing transient (stencil, colorAA) buffers with the given surface
     virtual Ptr<RenderTarget> CloneRenderTarget(const char* label, RenderTarget* surface) = 0;
 
-    /// Creates texture with given dimensions and format
+    /// Creates texture with given dimensions and format. For immutable textures, the content of
+    /// each mipmap is given in 'data'. The passed data is tightly packed (no extra pitch). When 
+    /// 'data' is null the texture is considered dynamic and will be updated using UpdateTexture()
     virtual Ptr<Texture> CreateTexture(const char* label, uint32_t width, uint32_t height,
-        uint32_t numLevels, TextureFormat::Enum format) = 0;
+        uint32_t numLevels, TextureFormat::Enum format, const void** data) = 0;
 
-    /// Updates texture mipmap copying the given image to desired position. The passed image is
+    /// Updates texture mipmap copying the given data to desired position. The passed data is
     /// tightly packed (no extra pitch). Origin is located at the left of the first scanline
-    virtual void UpdateTexture(Texture* texture, uint32_t level, uint32_t x, uint32_t y, uint32_t width,
-        uint32_t height, const void* data) = 0;
+    virtual void UpdateTexture(Texture* texture, uint32_t level, uint32_t x, uint32_t y,
+        uint32_t width, uint32_t height, const void* data) = 0;
 
     /// Begins rendering offscreen or onscreen commands
     virtual void BeginRender(bool offscreen) = 0;
@@ -372,18 +416,6 @@ public:
     void SetGlyphCacheHeight(uint32_t height);
     uint32_t GetGlyphCacheHeight() const;
 
-    /// Width of texture used to cache emojis (0 = automatic). Default is automatic
-    void SetColorGlyphCacheWidth(uint32_t width);
-    uint32_t GetColorGlyphCacheWidth() const;
-
-    /// Height of texture used to cache emojis (0 = automatic). Default is automatic
-    void SetColorGlyphCacheHeight(uint32_t height);
-    uint32_t GetColorGlyphCacheHeight() const;
-
-    /// Glyphs with size above threshold are rendered using triangles meshes. Default is 96
-    void SetGlyphCacheMeshThreshold(uint32_t threshold);
-    uint32_t GetGlyphCacheMeshThreshold() const;
-
     /// Vector graphics context
     void SetVGContext(BaseComponent* context);
     BaseComponent* GetVGContext() const;
@@ -400,9 +432,6 @@ private:
     uint32_t mOffscreenMaxNumSurfaces;
     uint32_t mGlyphCacheWidth;
     uint32_t mGlyphCacheHeight;
-    uint32_t mColorGlyphCacheWidth;
-    uint32_t mColorGlyphCacheHeight;
-    uint32_t mGlyphCacheMeshThreshold;
 
     Ptr<BaseComponent> mVGContext;
 };

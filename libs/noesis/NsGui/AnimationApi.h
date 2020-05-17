@@ -11,11 +11,7 @@
 #include <NsCore/CompilerSettings.h>
 
 
-#if defined(NS_GUI_ANIMATION_PRIVATE)
-    #define NS_GUI_ANIMATION_API
-#elif defined(NS_GUI_ANIMATION_EXPORTS)
-    #define NS_GUI_ANIMATION_API NS_DLL_EXPORT
-#else
+#ifndef NS_GUI_ANIMATION_API
     #define NS_GUI_ANIMATION_API NS_DLL_IMPORT
 #endif
 

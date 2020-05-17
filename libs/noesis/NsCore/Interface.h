@@ -41,7 +41,7 @@ NS_INTERFACE Interface
     /// Gets current reference count for the object
     virtual int32_t GetNumReferences() const = 0;
 
-    NS_IMPLEMENT_INLINE_STATIC_REFLECTION_(Interface, NoParent)
+    NS_IMPLEMENT_INLINE_STATIC_REFLECTION_(Interface, NoParent, "Interface")
 };
 
 inline Interface::~Interface() {}

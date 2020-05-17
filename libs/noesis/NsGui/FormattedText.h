@@ -13,13 +13,11 @@
 #include <NsCore/Ptr.h>
 #include <NsCore/String.h>
 #include <NsCore/Vector.h>
-#include <NsCore/Set.h>
-#include <NsCore/NSTLPoolAllocator.h>
+#include <NsCore/HashMap.h>
 #include <NsCore/ReflectionDeclare.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/Freezable.h>
 #include <NsGui/IRenderProxyCreator.h>
-#include <NsGui/Enums.h>
 #include <NsDrawing/Rect.h>
 
 
@@ -34,6 +32,14 @@ class Font;
 class VGLFontFace;
 class VGLTextLayout;
 struct TextRun;
+enum FontWeight: int32_t;
+enum FontStretch: int32_t;
+enum FontStyle: int32_t;
+enum TextDecorations: int32_t;
+enum TextAlignment: int32_t;
+enum TextWrapping: int32_t;
+enum TextTrimming: int32_t;
+enum LineStackingStrategy: int32_t;
 
 template<class T> class UICollection;
 typedef Noesis::UICollection<Noesis::Inline> InlineCollection;
@@ -151,11 +157,11 @@ private:
         UpdateFlags_TextLayout
     };
 
-    NsVector<TextRun> mTextRuns;
-    NsVector<Ptr<VGLFontFace>> mFontFaces;
-    NsVector<Ptr<Brush>> mBrushes;
+    Vector<TextRun> mTextRuns;
+    Vector<Ptr<VGLFontFace>> mFontFaces;
+    Vector<Ptr<Brush>> mBrushes;
 
-    typedef NsSet<Brush*, eastl::less<Brush*>, eastl::PoolAllocator> RegisteredBrushes;
+    typedef HashSet<Brush*> RegisteredBrushes;
     RegisteredBrushes mRegisteredBrushes;
 
     struct ContainerInfo
@@ -165,10 +171,10 @@ private:
         uint32_t glyphPosition;
     };
 
-    NsVector<ContainerInfo> mContainers;
+    Vector<ContainerInfo> mContainers;
 
     Ptr<VGLTextLayout> mTextLayout;
-    NsVector<LineInfo> mLines;
+    Vector<LineInfo> mLines;
     bool mUseMeasureRuns;
 
     NS_DECLARE_REFLECTION(FormattedText, BaseComponent)

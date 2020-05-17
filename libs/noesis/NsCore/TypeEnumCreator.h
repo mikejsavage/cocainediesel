@@ -15,7 +15,6 @@ namespace Noesis
 {
 
 class Type;
-class TypeInfo;
 class TypeEnum;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -25,8 +24,10 @@ template<class EnumT>
 class TypeEnumCreator
 {
 public:
+    NS_DISABLE_COPY(TypeEnumCreator)
+
     /// Creates a TypeEnum for the specified type info
-    static Type* Create(const TypeInfo& typeInfo);
+    static Type* Create(Symbol name);
 
     /// Fills TypeEnum with members of the enum
     static void Fill(Type* type);
@@ -39,7 +40,6 @@ public:
     void Val(const char* name, EnumT value);
 
 private:
-    /// Constructor
     TypeEnumCreator(TypeEnum* typeEnum);
 
 private:
@@ -48,7 +48,6 @@ private:
 
 }
 
-/// Inline include
 #include <NsCore/TypeEnumCreator.inl>
 
 #endif

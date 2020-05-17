@@ -28,6 +28,11 @@ public:
     StatusBar();
     ~StatusBar();
 
+    // From ItemsControl
+    //@{
+    Ptr<Panel> GetDefaultItemsPanel() const override;
+    //@}
+
 public:
     static const DependencyProperty* SeparatorStyleKey;
 

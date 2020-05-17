@@ -10,44 +10,21 @@
 
 namespace Noesis
 {
-namespace GUI
-{
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T> Ptr<T> LoadXaml(const char* filename)
+template<class T> Ptr<T> GUI::LoadXaml(const char* filename)
 {
-    Ptr<T> root;
-
     Ptr<BaseComponent> xaml = LoadXaml(filename);
-    if (xaml != 0)
-    {
-        root = DynamicPtrCast<T>(xaml);
-        if (root == 0)
-        {
-            NS_ERROR("LoadXaml('%s'): invalid requested root type", filename);
-        }
-    }
-
-    return root;
+    NS_CHECK(xaml == 0 || DynamicPtrCast<T>(xaml) != 0, "Invalid cast");
+    return StaticPtrCast<T>(xaml);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T> Ptr<T> ParseXaml(const char* xamlText)
+template<class T> Ptr<T> GUI::ParseXaml(const char* xamlText)
 {
-    Ptr<T> root;
-
     Ptr<BaseComponent> xaml = ParseXaml(xamlText);
-    if (xaml != 0)
-    {
-        root = DynamicPtrCast<T>(xaml);
-        if (root == 0)
-        {
-            NS_ERROR("ParseXaml: invalid requested root type");
-        }
-    }
-
-    return root;
+    NS_CHECK(xaml == 0 || DynamicPtrCast<T>(xaml) != 0, "Invalid cast");
+    return StaticPtrCast<T>(xaml);
 }
 
-}
 }

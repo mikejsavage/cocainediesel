@@ -49,20 +49,25 @@ public:
     /// Gets the name for specified font
     const char* GetFontName(uint32_t index) const;
 
+    /// From BaseObject
+    //@{
+    String ToString() const override;
+    //@}
+
 private:
     void FindFonts();
 
 private:
-    NsString mBaseUri;
-    NsString mSource;
+    String mBaseUri;
+    String mSource;
 
     struct Font
     {
-        NsString path;
-        NsString name;
+        String path;
+        String name;
     };
 
-    NsVector<Font> mFonts;
+    Vector<Font> mFonts;
 
     NS_DECLARE_REFLECTION(FontFamily, BaseComponent)
 };

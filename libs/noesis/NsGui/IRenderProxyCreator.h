@@ -11,10 +11,8 @@
 #include <NsCore/Noesis.h>
 #include <NsCore/Interface.h>
 #include <NsCore/Ptr.h>
+#include <NsCore/HashMap.h>
 #include <NsGui/CoreApi.h>
-
-
-#include <NsCore/Map.h>
 
 
 namespace Noesis
@@ -75,7 +73,7 @@ public:
     void NotifyDestroyed(BaseComponent* resource);
 
 private:
-    typedef NsMap<ViewId, uint32_t> Flags;
+    typedef HashMap<ViewId, uint32_t> Flags;
     Flags mFlags;
 };
 

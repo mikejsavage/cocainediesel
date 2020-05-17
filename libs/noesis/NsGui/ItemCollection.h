@@ -23,6 +23,7 @@
 namespace Noesis
 {
 
+class DependencyObject;
 class ItemsControl;
 template<class T> class UICollection;
 class CollectionView;
@@ -120,7 +121,7 @@ public:
     //@{
     IUITreeNode* GetNodeParent() const final;
     void SetNodeParent(IUITreeNode* parent) final;
-    BaseComponent* FindNodeResource(IResourceKey* key, bool fullElementSearch) const final;
+    BaseComponent* FindNodeResource(const char* key, bool fullElementSearch) const final;
     BaseComponent* FindNodeName(const char* name) const final;
     ObjectWithNameScope FindNodeNameAndScope(const char* name) const final;
     //@}
@@ -133,8 +134,6 @@ private:
     void ConnectChildren() const;
     void DisconnectChildren() const;
 
-    void CreateCollections();
-
     void OnCollectionChanged(BaseComponent* sender,
         const NotifyCollectionChangedEventArgs& args);
     void OnCurrentChanged(BaseComponent* sender, const EventArgs& args);
@@ -144,7 +143,9 @@ private:
 
     void RegisterDelegates();
     void UnregisterDelegates();
-    
+
+    void Reset(DependencyObject* d);
+
 private:
     bool mIsInitialized;
     ItemsControl* mItemsControl;

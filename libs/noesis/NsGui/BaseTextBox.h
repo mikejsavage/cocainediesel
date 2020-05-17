@@ -10,7 +10,6 @@
 
 #include <NsCore/Noesis.h>
 #include <NsGui/Control.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis
@@ -192,6 +191,7 @@ protected:
     virtual void OnCaretBrushChanged(Brush* oldBrush, Brush* newBrush);
     virtual void OnSelectionBrushChanged(Brush* oldBrush, Brush* newBrush);
     virtual void OnSelectionOpacityChanged(float oldOpacity, float newOpacity);
+    virtual void OnIsReadOnlyChanged(bool oldValue, bool newValue);
     //@}
 
     // Do the work of line up. Can be overridden by subclass to implement true line up.

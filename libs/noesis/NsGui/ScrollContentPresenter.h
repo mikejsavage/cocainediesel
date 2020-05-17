@@ -129,7 +129,6 @@ private:
 
     void EnsureScrollData();
     void DestroyScrollData();
-    bool HasScrollData() const;
     bool UpdateScrollData(const Size& extent, const Size& viewport);
 
 private:

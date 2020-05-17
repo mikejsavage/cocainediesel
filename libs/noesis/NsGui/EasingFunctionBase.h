@@ -11,7 +11,7 @@
 #include <NsCore/Noesis.h>
 #include <NsCore/ReflectionDeclare.h>
 #include <NsCore/ReflectionDeclareEnum.h>
-#include <NsGui/Freezable.h>
+#include <NsGui/Animatable.h>
 #include <NsGui/IEasingFunction.h>
 #include <NsGui/AnimationApi.h>
 
@@ -43,7 +43,7 @@ NS_MSVC_WARNING_DISABLE(4251 4275)
 ///
 /// http://msdn.microsoft.com/en-us/library/system.windows.media.animation.easingfunctionbase.aspx
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-class NS_GUI_ANIMATION_API EasingFunctionBase: public Freezable, public IEasingFunction
+class NS_GUI_ANIMATION_API EasingFunctionBase: public Animatable, public IEasingFunction
 {
 public:
     EasingFunctionBase();
@@ -73,7 +73,7 @@ protected:
     /// EaseIn mode of the custom easing function
     virtual float EaseInCore(float normalizedTime) = 0;
 
-    NS_DECLARE_REFLECTION(EasingFunctionBase, Freezable)
+    NS_DECLARE_REFLECTION(EasingFunctionBase, Animatable)
 };
 
 NS_WARNING_POP

@@ -9,14 +9,9 @@
 
 
 #include <NsCore/Noesis.h>
+#include <NsCore/Vector.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/FrameworkElement.h>
-#include <NsGui/Enums.h>
-#include <NsCore/Set.h>
-#include <NsCore/Vector.h>
-#include <NsCore/NSTLPoolAllocator.h>
-#include <NsCore/ReflectionDeclareEnum.h>
-#include <NsMath/VectorForward.h>
 
 
 namespace Noesis
@@ -144,13 +139,12 @@ private:
     friend class TickBarTest;
 
     void GetRenderInfo(float& range, float& offset, float& tickLength,
-        Vector2f& origin, Vector2f& tickDirection, Vector2f& tickBarDirection);
+        Vector2& origin, Vector2& tickDirection, Vector2& tickBarDirection);
     bool UpdateFixedTicks();
     bool UpdateTicks(float range, float offset);
     bool UpdateSelection(float range, float offset);
-    void UpdateGeometry(float range, float offset, float tickLength,
-        const Vector2f& origin, const Vector2f& tickDirection,
-        const Vector2f& tickBarDirection);
+    void UpdateGeometry(float range, float offset, float tickLength, const Vector2& origin,
+        const Vector2& tickDirection, const Vector2& tickBarDirection);
 
     void RegisterBindings();
     void BindToTemplatedParent(const char* path, const DependencyProperty* dp);
@@ -162,10 +156,8 @@ private:
     float mPreviousRange;
     float mPreviousOffset;
 
-    typedef NsSet<float, eastl::less<float>, eastl::PoolAllocator> FixedTicks;
-    FixedTicks mFixedTicks;
-
-    typedef NsVector<float> Ticks;
+    typedef Vector<float> Ticks;
+    Ticks mFixedTicks;
     Ticks mTicksInternal;
 
     float mSelectionStartInternal;

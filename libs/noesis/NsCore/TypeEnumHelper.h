@@ -9,7 +9,7 @@
 
 
 #include <NsCore/Noesis.h>
-#include <NsCore/TypeCreate.h>
+#include <NsCore/Reflection.h>
 #include <NsCore/TypeEnumCreator.h>
 
 
@@ -19,24 +19,22 @@ namespace Noesis
 class TypeEnum;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Helper structure to create and get reflection type for enums.
-/// \remarks Enum type must be register using NS_REGISTER_ENUM(enumType) before calling
-/// TypeEnumHelper<enumType>::GetType().
+/// Helper to create reflection for enums.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T> class TypeEnumHelper
 {
 public:
-    static const TypeEnum* GetType()
+    static const TypeEnum* GetType(const char* name)
     {
-        static const TypeEnum* sType;
+        static const TypeEnum* type;
         
-        if (sType == 0)
+        if (NS_UNLIKELY(type == 0))
         {
-            sType = static_cast<const TypeEnum*>(TypeCreate::Create(
-                NS_TYPEID(T), TypeEnumCreator<T>::Create, TypeEnumCreator<T>::Fill));
+            type = (const TypeEnum*)(Reflection::RegisterType(name, TypeEnumCreator<T>::Create,
+                TypeEnumCreator<T>::Fill));
         }
         
-        return sType;
+        return type;
     }
 };
 

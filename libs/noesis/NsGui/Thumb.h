@@ -20,55 +20,55 @@ namespace Noesis
 /// Provides information about the *DragCompleted* event that occurs when a user completes a drag
 /// operation with the mouse of a Thumb control.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-struct NS_GUI_CORE_API DragCompletedEventArgs: public RoutedEventArgs
+struct DragCompletedEventArgs: public RoutedEventArgs
 {
     /// Gets whether the drag operation for a Thumb was canceled by a call to the CancelDrag method
     bool canceled;
+
     /// Gets horizontal change in position of the Thumb after the user drags the control with mouse
     float horizontalChange;
+
     /// Gets vertical change in position of the Thumb after the user drags the control with mouse
     float verticalChange;
 
-    DragCompletedEventArgs(BaseComponent* s, bool c, float h, float v);
+    DragCompletedEventArgs(BaseComponent* source, bool canceled, float hChange, float vChange);
 };
+
+typedef Delegate<void (BaseComponent*, const DragCompletedEventArgs&)> DragCompletedEventHandler;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Provides information about the *DragStarted* event that occurs when a user drags a Thumb control
 /// with the mouse.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-struct NS_GUI_CORE_API DragStartedEventArgs: public RoutedEventArgs
+struct DragStartedEventArgs: public RoutedEventArgs
 {
     /// Gets the horizontal offset of the mouse click relative to the screen coordinates of Thumb
     float horizontalOffset;
+
     /// Gets the vertical offset of the mouse click relative to the screen coordinates of the Thumb
     float verticalOffset;
-    
-    DragStartedEventArgs(BaseComponent* s, float h, float v);
+
+    DragStartedEventArgs(BaseComponent* source, float hOffset, float voffset);
 };
+
+typedef Delegate<void (BaseComponent*, const DragStartedEventArgs&)> DragStartedEventHandler;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Provides information about the *DragDelta* event that occurs one or more times when a user drags
 /// a Thumb control with the mouse.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-struct NS_GUI_CORE_API DragDeltaEventArgs: public RoutedEventArgs
+struct DragDeltaEventArgs: public RoutedEventArgs
 {
     /// Gets horizontal change in position of the Thumb after the user drags the control with mouse
     float horizontalChange;
+
     /// Gets vertical change in position of the Thumb after the user drags the control with mouse
     float verticalChange;
 
-    DragDeltaEventArgs(BaseComponent* s, float h, float v);
+    DragDeltaEventArgs(BaseComponent* source, float hChange, float vChange);
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-typedef Noesis::Delegate<void (BaseComponent*, const DragCompletedEventArgs&)> 
-    DragCompletedEventHandler;
-
-typedef Noesis::Delegate<void (BaseComponent*, const DragStartedEventArgs&)> 
-    DragStartedEventHandler;
-
-typedef Noesis::Delegate<void (BaseComponent*, const DragDeltaEventArgs&)> 
-    DragDeltaEventHandler;
+typedef Delegate<void (BaseComponent*, const DragDeltaEventArgs&)> DragDeltaEventHandler;
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
@@ -127,12 +127,20 @@ protected:
     void OnMouseLeftButtonDown(const MouseButtonEventArgs& e);
     void OnMouseLeftButtonUp(const MouseButtonEventArgs& e);
     void OnMouseMove(const MouseEventArgs& e);
+    void OnTouchDown(const TouchEventArgs& e);
+    void OnTouchUp(const TouchEventArgs& e);
+    void OnTouchMove(const TouchEventArgs& e);
     //@}
 
     // From DependencyObject
     //@{
     bool OnPropertyChanged(const DependencyPropertyChangedEventArgs& args);
     //@}
+
+private:
+    bool StartDrag(const Point& p);
+    bool StopDrag(const Point& p);
+    bool Drag(const Point& p);
 
 private:
     Point mStartThumbPosition;
@@ -146,5 +154,6 @@ NS_WARNING_POP
 
 }
 
+#include <NsGui/Thumb.inl>
 
 #endif

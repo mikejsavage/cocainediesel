@@ -5,121 +5,156 @@
 
 
 #include <NsCore/Error.h>
+#include <NsCore/Math.h>
 
 #include <string.h>
-#include <stdio.h>
 
 
 namespace Noesis
 {
-namespace String
-{
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool IsNullOrEmpty(const char* str)
+inline bool StrIsNullOrEmpty(const char* str)
 {
-    return str == 0 || *str == 0;
+    return str == nullptr || *str == 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-uint32_t Length(const char* str)
+inline bool StrIsEmpty(const char* str)
 {
-    NS_ASSERT(str != 0);
-    return static_cast<uint32_t>(strlen(str));
+    NS_ASSERT(str != nullptr);
+    return *str == 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-int Compare(const char* str1, const char* str2, IgnoreCase ignoreCase)
+inline char ToLower(char c)
 {
-    NS_ASSERT(str1 != 0);
-    NS_ASSERT(str2 != 0);
-
-    if (ignoreCase == IgnoreCase_True)
-    {
-#ifdef NS_PLATFORM_WINDOWS
-        return  _stricmp(str1, str2);
-#else
-        return strcasecmp(str1, str2);
-#endif
-    }
-    else
-    {
-        return strcmp(str1, str2);
-    }
+    return (c >= 'A' && c <= 'Z') ? c + 'a' - 'A' : c;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Equals(const char* str1, const char* str2, IgnoreCase ignoreCase)
+inline int StrCaseCompare(const char* str1, const char* str2)
 {
-    return Compare(str1, str2, ignoreCase) == 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-int CompareFirst(const char* str1, const char* str2, uint32_t n, IgnoreCase ignoreCase)
-{
-    NS_ASSERT(str1 != 0);
-    NS_ASSERT(str2 != 0);
-
-    if (ignoreCase == IgnoreCase_True)
+    while (true)
     {
-#ifdef NS_PLATFORM_WINDOWS
-        return _strnicmp(str1, str2, n);
-#else
-        return strncasecmp(str1, str2, n);
-#endif
-    }
-    else
-    {
-        return strncmp(str1, str2, n);
+        char a = ToLower(*str1++);
+        char b = ToLower(*str2++);
+
+        if (a != b)
+        {
+            return a < b ? -1 : 1;
+        }
+
+        if (a == 0)
+        {
+            return 0;
+        }
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool StartsWith(const char* str, const char* value, IgnoreCase ignoreCase)
+inline int StrCaseCompare(const char* str1, const char* str2, uint32_t count)
 {
-    return CompareFirst(str, value, Length(value), ignoreCase) == 0;
+    while (count-- > 0)
+    {
+        char a = ToLower(*str1++);
+        char b = ToLower(*str2++);
+
+        if (a != b)
+        {
+            return a < b ? -1 : 1;
+        }
+
+        if (a == 0)
+        {
+            return 0;
+        }
+    }
+
+    return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool EndsWith(const char* str, const char* value, IgnoreCase ignoreCase)
+inline bool StrEquals(const char* str1, const char* str2)
 {
-    NS_ASSERT(str != 0);
-    NS_ASSERT(value != 0);
+    NS_ASSERT(str1 != nullptr);
+    NS_ASSERT(str2 != nullptr);
+    return strcmp(str1, str2) == 0;
+}
 
-    uint32_t len = Length(str);
-    uint32_t valueLen = Length(value);
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline bool StrCaseEquals(const char* str1, const char* str2)
+{
+    NS_ASSERT(str1 != nullptr);
+    NS_ASSERT(str2 != nullptr);
+    return StrCaseCompare(str1, str2) == 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline bool StrStartsWith(const char* str, const char* value)
+{
+    NS_ASSERT(str != nullptr);
+    NS_ASSERT(value != nullptr);
+    return strncmp(str, value, strlen(value)) == 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline bool StrCaseStartsWith(const char* str, const char* value)
+{
+    NS_ASSERT(str != nullptr);
+    NS_ASSERT(value != nullptr);
+    return StrCaseCompare(str, value, (uint32_t)strlen(value)) == 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline bool StrEndsWith(const char* str, const char* value)
+{
+    NS_ASSERT(str != nullptr);
+    NS_ASSERT(value != nullptr);
+
+    size_t len = strlen(str);
+    size_t valueLen = strlen(value);
 
     if (len >= valueLen)
     {
-        return Compare(str + len - valueLen, value, ignoreCase) == 0;
+        return strcmp(str + len - valueLen, value) == 0;
     }
 
     return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-int FindFirst(const char* str, const char* value, uint32_t offset, IgnoreCase ignoreCase)
+inline bool StrCaseEndsWith(const char* str, const char* value)
 {
-    NS_ASSERT(str != 0);
-    NS_ASSERT(value != 0);
+    NS_ASSERT(str != nullptr);
+    NS_ASSERT(value != nullptr);
 
-    uint32_t valueLen = Length(value);
+    size_t len = strlen(str);
+    size_t valueLen = strlen(value);
 
-    if (valueLen == 0)
+    if (len >= valueLen)
     {
-        return static_cast<int>(offset);
+        return StrCaseCompare(str + len - valueLen, value) == 0;
     }
 
-    uint32_t len = Length(str);
+    return false;
+}
 
-    if (offset + valueLen <= len)
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline int StrFindFirst(const char* str, const char* value, uint32_t offset)
+{
+    NS_ASSERT(str != nullptr);
+    NS_ASSERT(value != nullptr);
+
+    size_t valueLen = strlen(value);
+    size_t len = strlen(str);
+
+    for (uint32_t i = offset; i + valueLen <= len; ++i)
     {
-        for (uint32_t i = offset; i < len; ++i)
+        if (strncmp(str + i, value, valueLen) == 0)
         {
-            if (CompareFirst(str + i, value, valueLen, ignoreCase) == 0)
-            {
-                return static_cast<int>(i);
-            }
+            return i;
         }
     }
 
@@ -127,28 +162,19 @@ int FindFirst(const char* str, const char* value, uint32_t offset, IgnoreCase ig
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-int FindLast(const char* str, const char* value, uint32_t offset, IgnoreCase ignoreCase)
+inline int StrCaseFindFirst(const char* str, const char* value, uint32_t offset)
 {
-    NS_ASSERT(str != 0);
-    NS_ASSERT(value != 0);
+    NS_ASSERT(str != nullptr);
+    NS_ASSERT(value != nullptr);
 
-    uint32_t valueLen = Length(value);
+    size_t valueLen = strlen(value);
+    size_t len = strlen(str);
 
-    if (valueLen == 0)
+    for (uint32_t i = offset; i + valueLen <= len; ++i)
     {
-        return static_cast<int>(offset);
-    }
-
-    uint32_t len = Length(str);
-
-    if (offset + valueLen <= len)
-    {
-        for (uint32_t i = offset + valueLen; i <= len; ++i)
+        if (StrCaseCompare(str + i, value, (uint32_t)valueLen) == 0)
         {
-            if (CompareFirst(str + len - i, value, valueLen, ignoreCase) == 0)
-            {
-                return static_cast<int>(len - i);
-            }
+            return i;
         }
     }
 
@@ -156,50 +182,74 @@ int FindLast(const char* str, const char* value, uint32_t offset, IgnoreCase ign
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-char* Copy(char* dst, uint32_t capacity, const char* src, uint32_t count)
+inline int StrFindLast(const char* str, const char* value)
 {
-    NS_ASSERT(dst != 0);
-    NS_ASSERT(src != 0);
-    NS_ASSERT(capacity != 0);
+    NS_ASSERT(str != nullptr);
+    NS_ASSERT(value != nullptr);
 
-    uint32_t i = 0;
+    uint32_t valueLen = (uint32_t)strlen(value);
+    uint32_t len = (uint32_t)strlen(str);
 
-    while (i < capacity - 1 && i < count && src[i] != 0)
+    for (int i = len - valueLen; i >= 0; i--)
     {
-        dst[i] = src[i];
-        i++;
+        if (strncmp(str + i, value, valueLen) == 0)
+        {
+            return i;
+        }
     }
 
-    dst[i] = 0;
+    return -1;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline char* StrCopy(char* dst, uint32_t capacity, const char* src)
+{
+    NS_ASSERT(dst != nullptr);
+    NS_ASSERT(src != nullptr);
+    NS_ASSERT(capacity != 0);
+
+    uint32_t n = Min((uint32_t)strlen(src), capacity - 1);
+    memcpy(dst, src, n);
+    dst[n] = 0;
 
     return dst;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-char* Append(char* dst, uint32_t capacity, const char* src, uint32_t count)
+inline char* StrCopy(char* dst, uint32_t capacity, const char* src, uint32_t count)
 {
-    NS_ASSERT(dst != 0);
-    NS_ASSERT(src != 0);
+    NS_ASSERT(dst != nullptr);
+    NS_ASSERT(src != nullptr);
     NS_ASSERT(capacity != 0);
 
-    uint32_t len = Length(dst);
-    uint32_t i = 0;
-
-    while (len + i < capacity - 1 && i < count && src[i] != 0)
-    {
-        dst[len + i] = src[i];
-        i++;
-    }
-
-    dst[len + i] = 0;
+    uint32_t n = Min(Min((uint32_t)strlen(src), count), capacity - 1);
+    memcpy(dst, src, n);
+    dst[n] = 0;
 
     return dst;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-char* Replace(char* str, char oldValue, char newValue)
+inline char* StrAppend(char* dst, uint32_t capacity, const char* src)
 {
-    NS_ASSERT(str != 0);
+    NS_ASSERT(dst != nullptr);
+    NS_ASSERT(src != nullptr);
+    NS_ASSERT(capacity != 0);
+
+    uint32_t len = (uint32_t)strlen(dst);
+    NS_ASSERT(len < capacity);
+
+    uint32_t n = Min((uint32_t)strlen(src), capacity - len - 1);
+    memcpy(dst + len, src, n);
+    dst[len + n] = 0;
+
+    return dst;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline char* StrReplace(char* str, char oldValue, char newValue)
+{
+    NS_ASSERT(str != nullptr);
 
     while (*str != 0)
     {
@@ -215,8 +265,10 @@ char* Replace(char* str, char oldValue, char newValue)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-uint32_t Hash(const char* str)
+inline uint32_t StrHash(const char* str)
 {
+    NS_ASSERT(str != nullptr);
+
     char c;
     uint32_t result = 2166136261U;
 
@@ -229,18 +281,19 @@ uint32_t Hash(const char* str)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-uint32_t CaseHash(const char* str)
+inline uint32_t StrCaseHash(const char* str)
 {
+    NS_ASSERT(str != nullptr);
+
     char c;
     uint32_t result = 2166136261U;
 
     while ((c = *str++) != 0)
     {
-        result = (result * 16777619) ^ (c >= 'A' && c <= 'Z' ? c + 'a' - 'A' : c);
+        result = (result * 16777619) ^ ToLower(c);
     }
 
     return result;
 }
 
-}
 }

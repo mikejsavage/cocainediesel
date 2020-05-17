@@ -15,6 +15,10 @@
     Class(const Class&) = delete; \
     Class& operator=(const Class&) = delete;
 
+#ifndef NS_PRIVATE_API
+    #define NS_PRIVATE_API
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Compiler dependant settings
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -127,9 +131,10 @@
     #define NS_UNUSED_9(x1, x2, x3, x4, x5, x6, x7, x8, x9) NS_UNUSED_8(x1, x2, x3, x4, x5, x6, x7, x8); NS_UNUSED_1(x9);
     #define NS_UNUSED_10(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10) NS_UNUSED_9(x1, x2, x3, x4, x5, x6, x7, x8, x9); NS_UNUSED_1(x10);
     #define NS_UNUSED_11(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11) NS_UNUSED_10(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10); NS_UNUSED_1(x11);
+    #define NS_UNUSED_12(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12) NS_UNUSED_11(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11); NS_UNUSED_1(x12);
 
-    #define VA_NUM_ARGS_IMPL(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, N, ...) N
-    #define VA_NUM_ARGS(...) VA_NUM_ARGS_IMPL(__VA_ARGS__, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1)
+    #define VA_NUM_ARGS_IMPL(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, N, ...) N
+    #define VA_NUM_ARGS(...) VA_NUM_ARGS_IMPL(__VA_ARGS__, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1)
 
     #define NS_UNUSED_IMPL_(n) NS_UNUSED_##n
     #define NS_UNUSED_IMPL(n) NS_UNUSED_IMPL_(n)
@@ -187,8 +192,7 @@
     #define NS_UNREACHABLE __builtin_unreachable()
 
     // http://cnicholson.net/2011/01/stupid-c-tricks-a-better-sizeof_array/
-    #include <cstddef>
-    template<typename T, size_t N> char (&NS_COUNTOF_REQUIRES_ARRAY_ARGUMENT(const T(&)[N]))[N];
+    template<typename T, int N> char (&NS_COUNTOF_REQUIRES_ARRAY_ARGUMENT(const T(&)[N]))[N];
     #define NS_COUNTOF(_x) sizeof(NS_COUNTOF_REQUIRES_ARRAY_ARGUMENT(_x))
 
     #define NS_LIKELY(x) __builtin_expect(!!(x), 1)

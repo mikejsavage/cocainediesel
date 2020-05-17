@@ -1,8 +1,6 @@
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #952]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -18,7 +16,6 @@
 #include <NsGui/CoreApi.h>
 #include <NsGui/UpdateSourceTrigger.h>
 #include <NsGui/IUITreeNode.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis
@@ -30,6 +27,7 @@ class PropertyPath;
 class RelativeSource;
 class FrameworkElement;
 NS_INTERFACE IValueConverter;
+enum BindingMode: int32_t;
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
@@ -165,7 +163,7 @@ public:
     //@}
 
     // Item[] property is used to notify of changes on collections
-    static NsSymbol ItemNotifyName();
+    static Symbol ItemNotifyName();
 
     // Placeholder item to keep bindings working when item containers are recycled
     static BaseComponent* DisconnectedItem();
@@ -184,7 +182,7 @@ private:
     void SetSourceImpl(BaseComponent* source);
 
 private:
-    NsString mElementName;
+    String mElementName;
     BaseComponent* mSource;
     Ptr<RelativeSource> mRelativeSource;
 

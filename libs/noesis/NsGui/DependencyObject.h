@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #751]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -15,13 +14,12 @@
 #include <NsCore/Delegate.h>
 #include <NsCore/HashMap.h>
 #include <NsCore/String.h>
-#include <NsCore/NSTLPoolAllocator.h>
 #include <NsGui/IComponentInitializer.h>
 #include <NsGui/DispatcherObject.h>
 #include <NsGui/DependencySystemApi.h>
 #include <NsGui/DependencyObjectValueData.h>
-#include <NsGui/ChangedHandler.h>
 #include <NsGui/ValueDestination.h>
+#include <NsGui/FreezableEventReason.h>
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -39,7 +37,6 @@ class DependencyObject;
 class DependencyProperty;
 class PropertyMetadata;
 class Freezable;
-class ChangedHandler;
 struct ProviderValue;
 struct DependencyPropertyChangedEventArgs;
 class Expression;
@@ -51,14 +48,14 @@ template<class T> class ValueStorageManagerImpl;
 //      Property Type  | Param Type
 //      ---------------------------------------
 //      Ptr<T>           T*
-//      NsString         const char*
+//      String         const char*
 //      T                T (basic types) or T&
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T> struct SetValueType
 {
     typedef typename Param<T>::Type Type;
 };
-template<> struct SetValueType<NsString>
+template<> struct SetValueType<String>
 {
     typedef const char* Type;
 };
@@ -66,6 +63,29 @@ template<class T> struct SetValueType<Ptr<T>>
 {
     typedef T* Type;
 };
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// DependencyPropertyChangedEventArgs. Args passed on property changed event notification.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+struct DependencyPropertyChangedEventArgs
+{
+    const DependencyProperty* prop;
+    const void* oldValue;
+    const void* newValue;
+
+private:
+    friend class DependencyObject;
+    friend class FrameworkElement;
+
+    DependencyPropertyChangedEventArgs(const DependencyProperty* dp, const void* oldValue,
+        const void* newValue, const PropertyMetadata* metadata);
+
+private:
+    const PropertyMetadata* metadata;
+};
+
+typedef Delegate<void (BaseComponent*, const DependencyPropertyChangedEventArgs&)>
+    DependencyPropertyChangedEventHandler;
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
@@ -167,9 +187,6 @@ public:
     /// Returns true if there is any animated property
     bool HasAnimatedProperties() const;
 
-    typedef Delegate<void (BaseComponent*, const DependencyPropertyChangedEventArgs&)>
-        DependencyPropertyChangedEventHandler;
-
     /// Returns the PropertyChanged event
     inline DependencyPropertyChangedEventHandler& DependencyPropertyChanged();
 
@@ -213,6 +230,9 @@ protected:
     // Called to allow descendants to manage a component value change
     virtual void OnObjectValueSet(BaseComponent* oldValue, BaseComponent* newValue);
 
+    // Called when uncached properties are locally set
+    virtual void OnUncachedPropertySet(const DependencyProperty* dp);
+
     // Gets the value of a dependency property from the active provider
     //@{
     virtual ProviderValue GetProviderValue(const DependencyProperty* dp) const;
@@ -237,14 +257,14 @@ protected:
     friend class ChangedHandler;
     friend class DependencyObjectTestHelper;
     friend struct BindingOperations;
+    friend class VisualTreeInspectorHelper;
+    friend class XamlContext;
     template<class T> friend class DependencyPropertyImpl;
     template<class T> friend class ValueStorageManagerImpl;
     //@}
 
     /// Hash of stored properties
-    typedef NsHashMap<const DependencyProperty*, StoredValue,
-        eastl::hash<const DependencyProperty*>, eastl::equal_to<const DependencyProperty*>,
-        eastl::PoolAllocator> Values;
+    typedef HashMap<const DependencyProperty*, StoredValue*> Values;
     mutable Values mValues;
 
 private:
@@ -269,6 +289,7 @@ private:
     //@{
     typedef Int2Type<0> IsNotBaseComponent;
     typedef Int2Type<1> IsBaseComponent;
+    typedef Int2Type<2> IsString;
 
     template<class T>
     void SetValue_(IsNotBaseComponent, const DependencyProperty* dp,
@@ -278,6 +299,10 @@ private:
     template<class T>
     void SetValue_(IsBaseComponent, const DependencyProperty* dp, typename T::Type* value,
         Value::Destination destination = Value::Destination_BaseValue);
+
+    template<class T>
+    void SetValue_(IsString, const DependencyProperty* dp,
+        const char* value, Value::Destination destination = Value::Destination_BaseValue);
     //@}
 
     void InternalSetValue(const DependencyProperty* dp, void* oldValue, const void* newValue,
@@ -319,22 +344,35 @@ private:
     bool IsInitializing() const;
 
 private:
-    struct ValueInfo;
-
     uint32_t mFlags;
+
+    class ChangedHandler
+    {
+    public:
+        ChangedHandler() = default;
+        ChangedHandler(const ChangedHandler& handler) = delete;
+        ChangedHandler& operator=(ChangedHandler&) = delete;
+        ChangedHandler(ChangedHandler&& handler);
+
+        void OnChanged(Freezable* freezable, FreezableEventReason reason);
+        void Attach(Freezable* object, DependencyObject* owner, const DependencyProperty* prop);
+        void Detach();
+
+    private:
+        Freezable* mFreezable = nullptr;
+        DependencyObject* mOwner = nullptr;
+        const DependencyProperty* mOwnerProperty = nullptr;
+    };
 
     /// List of handlers attached to property objects to monitor changes
     /// TODO [srodriguez] Maybe this can be a simple std::set because the value is already stored
     /// in the Values map
-    typedef NsHashMap<const DependencyProperty*, ChangedHandler,
-        eastl::hash<const DependencyProperty*>, eastl::equal_to<const DependencyProperty*>,
-        eastl::PoolAllocator> ChangedHandlers;
+    typedef HashMap<const DependencyProperty*, ChangedHandler> ChangedHandlers;
     ChangedHandlers mChangedHandlers;
 
     /// Dependency property changed event
     DependencyPropertyChangedEventHandler mDependencyPropertyChangedEvent;
 
-    // HACK #884
     //@{
     DestroyedDelegate mDestroyedDelegate;
     //@}
@@ -343,28 +381,6 @@ private:
 };
 
 NS_WARNING_POP
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-/// DependencyPropertyChangedEventArgs. Args passed on property changed event notification.
-////////////////////////////////////////////////////////////////////////////////////////////////////
-struct NS_GUI_DEPENDENCYSYSTEM_API DependencyPropertyChangedEventArgs
-{
-    const DependencyProperty* prop;
-    const void* oldValue;
-    const void* newValue;
-
-private:
-    friend class DependencyObject;
-    friend class FrameworkElement;
-
-    DependencyPropertyChangedEventArgs(const DependencyProperty* dp,
-        const void* oldValue_, const void* newValue_, const PropertyMetadata* metadata_);
-
-private:
-    const PropertyMetadata* metadata;
-
-    NS_DECLARE_REFLECTION(DependencyPropertyChangedEventArgs, NoParent)
-};
 
 }
 

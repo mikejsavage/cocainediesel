@@ -10,7 +10,6 @@
 
 #include <NsCore/Noesis.h>
 #include <NsGui/CoreApi.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis
@@ -22,10 +21,12 @@ struct HitTestResult;
 struct Rect;
 struct Point;
 struct Size;
+enum HitTestFilterBehavior: int32_t;
+enum HitTestResultBehavior: int32_t;
 
 template<class T> class Delegate;
-typedef Noesis::Delegate<HitTestFilterBehavior (Visual* target)> HitTestFilterCallback;
-typedef Noesis::Delegate<HitTestResultBehavior (const HitTestResult& result)> HitTestResultCallback;
+typedef Delegate<HitTestFilterBehavior (Visual* target)> HitTestFilterCallback;
+typedef Delegate<HitTestResultBehavior (const HitTestResult& result)> HitTestResultCallback;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Provides utility methods that perform common tasks involving nodes in a visual tree.
@@ -52,6 +53,14 @@ struct NS_GUI_CORE_API VisualTreeHelper
     /// Returns the union of all the content bounding boxes for all visual object descendants,
     /// which includes the content bounding box of the visual itself
     static Rect GetDescendantBounds(const Visual* visual);
+
+    /// Returns the minimum z value of the union of all the content bounding boxes for all visual
+    /// object descendants, which includes the content bounding box of the visual itself
+    static float GetDescendantBoundsMinZ(const Visual* visual);
+
+    /// Returns the maximum z value of the union of all the content bounding boxes for all visual
+    /// object descendants, which includes the content bounding box of the visual itself
+    static float GetDescendantBoundsMaxZ(const Visual* visual);
 
     /// Returns the offset of the visual
     static const Point& GetOffset(const Visual* visual);

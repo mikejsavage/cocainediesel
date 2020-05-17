@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #751]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -33,7 +32,7 @@ struct NS_GUI_DEPENDENCYSYSTEM_API StoredValue
         /// Stores the expression when the property is set using SetExpression or a 
         /// ValueProvider returned an expression
         Ptr<Expression> expression;
-        // Source value (using SetValue or returned by a ValueProvider), or if there is an
+        /// Source value (using SetValue or returned by a ValueProvider), or if there is an
         /// expression stored above, this will contain the result of evaluating the expression
         ValueStorage base;
         /// Value set by animation using SetAnimate

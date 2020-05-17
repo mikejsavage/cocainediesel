@@ -37,7 +37,7 @@ public:
     const TypeClass* GetPartType() const;
 
 private:
-    NsString mPartName;
+    String mPartName;
     const TypeClass* mPartType;
 
     NS_DECLARE_REFLECTION(TemplatePartMetaData, TypeMetaData)

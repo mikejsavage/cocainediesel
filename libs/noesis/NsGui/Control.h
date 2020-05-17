@@ -11,7 +11,6 @@
 #include <NsCore/Noesis.h>
 #include <NsGui/FrameworkElement.h>
 #include <NsGui/ControlTemplate.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis
@@ -136,10 +135,10 @@ public:
     void SetIsFocusEngagementEnabled(bool enable);
     //@}
 
-    /// Get or sets a value that indicates whether this control supports focus engagement
+    // Indicates if this control is using focus engagement. For internal use only.
     //@{
-    bool GetSupportsFocusEngagement() const;
-    void SetSupportsFocusEngagement(bool value);
+    bool GetUsingFocusEngagement() const;
+    void SetUsingFocusEngagement(bool value);
     //@}
 
     /// Occurs when a mouse button is clicked two or more times
@@ -169,7 +168,6 @@ public:
 
     static const DependencyProperty* IsFocusEngagedProperty;
     static const DependencyProperty* IsFocusEngagementEnabledProperty;
-    static const DependencyProperty* SupportsFocusEngagementProperty;
     //@}
 
     /// Dependency events
@@ -196,8 +194,8 @@ protected:
 
     /// Calls VisualStateManager GoToState()
     //@{
-    void GoToState(NsSymbol stateName);
-    void GoToState(NsSymbol stateName, NsSymbol fallbackStateName);
+    void GoToState(Symbol stateName);
+    void GoToState(Symbol stateName, Symbol fallbackStateName);
     //@}
 
     /// Raises the MouseDoubleClick routed event.
@@ -213,6 +211,12 @@ protected:
     void OnPreviewLostKeyboardFocus(const KeyboardFocusChangedEventArgs& e) override;
     //@}
 
+    /// From FrameworkElement
+    //@{
+    void OnPreApplyTemplate() override;
+    void OnPostApplyTemplate() override;
+    //@}
+
     /// From DependencyObject
     //@{
     bool OnPropertyChanged(const DependencyPropertyChangedEventArgs& args) override;
@@ -222,8 +226,10 @@ private:
     static void StaticOnPreviewMouseDown(BaseComponent* obj, const EventArgs& e);
     static void StaticOnMouseDown(BaseComponent* obj, const EventArgs& e);
 
-    static bool StaticCoerceIsFocusEngagementEnabled(const DependencyObject* d, const void* value,
+    static bool StaticCoerceUsingFocusEngagement(const DependencyObject* d, const void* value,
         void* coercedValue);
+
+    static const DependencyProperty* UsingFocusEngagementProperty;
 
     NS_DECLARE_REFLECTION(Control, FrameworkElement)
 };

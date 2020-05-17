@@ -13,8 +13,6 @@
 #include <NsGui/UIElement.h>
 #include <NsGui/IUITreeNode.h>
 #include <NsGui/INameScope.h>
-#include <NsGui/Style.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis
@@ -25,17 +23,15 @@ class NameScope;
 class FocusVisualLayer;
 class ResourceDictionary;
 class BaseBinding;
+class BaseTrigger;
+class Style;
 class BaseBindingExpression;
 class BindingExpression;
-class ResourceKeyType;
 class FrameworkTemplate;
 class DataTemplate;
 class TemplateLocalValueProvider;
 template<class T> class Delegate;
-struct ContextMenuEventArgs;
-struct RequestBringIntoViewEventArgs;
 struct SizeChangedEventArgs;
-struct ToolTipEventArgs;
 struct NotifyCollectionChangedEventArgs;
 struct NotifyDictionaryChangedEventArgs;
 struct Size;
@@ -44,11 +40,11 @@ NS_INTERFACE ITimeManager;
 NS_INTERFACE IView;
 
 template<class T> class UICollection;
-typedef Noesis::UICollection<Noesis::BaseTrigger> TriggerCollection;
+typedef UICollection<BaseTrigger> TriggerCollection;
 
 /// Helper macro to easily connect events to code behind functions when overriding ConnectEvent
 #define NS_CONNECT_EVENT(type_, event_, handler_) \
-    if (Noesis::String::Equals(event, #event_) && Noesis::String::Equals(handler, #handler_)) \
+    if (Noesis::StrEquals(event, #event_) && Noesis::StrEquals(handler, #handler_)) \
     { \
         ((type_*)source)->event_() += Noesis::MakeDelegate(this, &SelfClass::handler_); \
         return true; \
@@ -56,12 +52,13 @@ typedef Noesis::UICollection<Noesis::BaseTrigger> TriggerCollection;
 
 /// Helper macro to easily connect attached events to code behind functions on ConnectEvent override
 #define NS_CONNECT_ATTACHED_EVENT(type_, event_, handler_) \
-    if (Noesis::String::Equals(event, #event_) && Noesis::String::Equals(handler, #handler_)) \
+    if (Noesis::StrEquals(event, #event_) && Noesis::StrEquals(handler, #handler_)) \
     { \
         ((Noesis::UIElement*)source)->AddHandler(type_::event_##Event, \
             Noesis::MakeDelegate(this, &SelfClass::handler_)); \
         return true; \
     }
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 enum PPAAMode
 {
@@ -77,7 +74,8 @@ enum AncestorNameScopeChangeAction
 {
     AncestorNameScopeChangeAction_Attach,
     AncestorNameScopeChangeAction_Detach,
-    AncestorNameScopeChangeAction_Change
+    AncestorNameScopeChangeAction_Add,
+    AncestorNameScopeChangeAction_Remove
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -88,20 +86,79 @@ struct AncestorNameScopeChangedArgs
     NameScopeChangedArgs changeArgs;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-typedef Noesis::Delegate<void (FrameworkElement*)> AncestorChangedDelegate;
-typedef Noesis::Delegate<void(BaseComponent*, const NotifyDictionaryChangedEventArgs&)>
-    AncestorResourcesChangedDelegate;
 typedef Noesis::Delegate<void (FrameworkElement*, const AncestorNameScopeChangedArgs&)>
     AncestorNameScopeChangedDelegate;
-typedef Noesis::Delegate<void (BaseComponent*, const ContextMenuEventArgs&)> 
-    ContextMenuEventHandler;
-typedef Noesis::Delegate<void (BaseComponent*, const RequestBringIntoViewEventArgs&)>
-    RequestBringIntoViewEventHandler;
-typedef Noesis::Delegate<void (BaseComponent*, const SizeChangedEventArgs&)> 
-    SizeChangedEventHandler;
-typedef Noesis::Delegate<void (BaseComponent*, const ToolTipEventArgs&)> 
-    ToolTipEventHandler;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Provides data for the context menu event. 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+struct ContextMenuEventArgs: public RoutedEventArgs
+{
+    /// Gets the object that has the ContextMenu that will be opened
+    mutable DependencyObject* targetElement = nullptr;
+
+    /// Gets the horizontal position of the mouse
+    float cursorLeft;
+
+    /// Gets the vertical position of the mouse
+    float cursorTop;
+
+    ContextMenuEventArgs(BaseComponent* source, const RoutedEvent* event, float cursorLeft = -1.0f,
+        float cursorTop = -1.0f);
+};
+
+typedef Delegate<void (BaseComponent*, const ContextMenuEventArgs&)> ContextMenuEventHandler;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Provides event information for events that occur when a tooltip opens or closes.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+struct ToolTipEventArgs: public RoutedEventArgs
+{
+    ToolTipEventArgs(BaseComponent* source, const RoutedEvent* event);
+};
+
+typedef Delegate<void (BaseComponent*, const ToolTipEventArgs&)> ToolTipEventHandler;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Provides data for the RequestBringIntoView routed event
+////////////////////////////////////////////////////////////////////////////////////////////////////
+struct RequestBringIntoViewEventArgs: public RoutedEventArgs
+{
+    /// Gets the object that should be made visible in response to the event. 
+    DependencyObject* targetObject;
+
+    /// Gets the rectangular region in the object's coordinate space which should be made visible. 
+    Rect targetRect;
+
+    RequestBringIntoViewEventArgs(BaseComponent* source, DependencyObject* object,
+        const Rect& targetRect);
+};
+
+typedef Delegate<void (BaseComponent*, const RequestBringIntoViewEventArgs&)> RequestBringIntoViewEventHandler;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Provides data related to the SizeChanged event
+////////////////////////////////////////////////////////////////////////////////////////////////////
+struct SizeChangedEventArgs: public RoutedEventArgs
+{
+    /// Gets the new size of the object
+    Size newSize;
+    /// Gets the previous size of the object
+    Size previousSize;
+    /// Gets a value that indicates whether the *Width* component of the Size changed
+    bool widthChanged;
+    /// Gets a value that indicates whether the *Height* component of the Size changed
+    bool heightChanged;
+
+    SizeChangedEventArgs(BaseComponent* source, const RoutedEvent* event, const SizeChangedInfo& info);
+};
+
+typedef Delegate<void (BaseComponent*, const SizeChangedEventArgs&)> SizeChangedEventHandler;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+typedef Delegate<void (FrameworkElement*)> AncestorChangedDelegate;
+typedef Delegate<void(BaseComponent*, const NotifyDictionaryChangedEventArgs&)>
+    AncestorResourcesChangedDelegate;
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
@@ -154,8 +211,8 @@ public:
     /// Gets or sets the key to use to reference the style for this control, when theme styles are
     /// used or defined
     //@{
-    ResourceKeyType* GetDefaultStyleKey() const;
-    void SetDefaultStyleKey(ResourceKeyType* key);
+    const Type* GetDefaultStyleKey() const;
+    void SetDefaultStyleKey(const Type* key);
     //@}
 
     /// Gets or sets a property that enables customization of appearance, effects, or other style 
@@ -251,6 +308,20 @@ public:
     void SetPPAAMode(PPAAMode mode);
     //@}
 
+    /// Gets or sets the value of the contraction of each vertex along the normal for PPAA. This
+    /// property is inherited down by the visual tree
+    //@{
+    float GetPPAAIn() const;
+    void SetPPAAIn(float value);
+    //@}
+
+    /// Gets or sets the value of the extrusion of each vertex along the normal for PPAA. This
+    /// property is inherited down by the visual tree
+    //@{
+    float GetPPAAOut() const;
+    void SetPPAAOut(float value);
+    //@}
+
     /// Gets or sets the style used by this element when it is rendered
     //@{
     Style* GetStyle() const;
@@ -330,6 +401,9 @@ public:
     /// Template management
     //@{
 
+    /// Called on every Measure. Returns true if Visuals were added to the tree
+    bool ApplyTemplate();
+
     /// Gets the logical parent or the templated parent when logical parent is not available
     FrameworkElement* GetParentOrTemplatedParent() const;
 
@@ -337,8 +411,7 @@ public:
     /// element was not created through a template
     //@{
     FrameworkElement* GetTemplatedParent() const;
-    void SetTemplatedParent(FrameworkElement* templatedParent,
-        FrameworkTemplate* frameworkTemplate);
+    void SetTemplatedParent(FrameworkElement* templatedParent, FrameworkTemplate* frameworkTemplate);
     //@}
 
     /// Looks for a named element in the applied template
@@ -351,8 +424,8 @@ public:
     /// Gets applied template on this element
     FrameworkTemplate* GetFrameworkTemplate() const;
 
-    /// Applies a template on this element for the provided context
-    void ApplyFrameworkTemplate(FrameworkTemplate* frameworkTemplate);
+    /// Clears current template
+    void ClearFrameworkTemplate();
 
     /// Returns a clone of this element. Used when applying a template
     Ptr<FrameworkElement> Clone(FrameworkElement* parent, FrameworkElement* templatedParent,
@@ -376,14 +449,8 @@ public:
 
     /// Finds a resource looking in the logical parent chain
     //@{
-    BaseComponent* FindResource(IResourceKey* key) const;
-    template<class T> T* FindResource(IResourceKey* key) const;
-    BaseComponent* TryFindResource(IResourceKey* key) const;
-    template<class T> T* TryFindResource(IResourceKey* key) const;
     BaseComponent* FindResource(const char* key) const;
     template<class T> T* FindResource(const char* key) const;
-    BaseComponent* TryFindResource(const char* key) const;
-    template<class T> T* TryFindResource(const char* key) const;
     //@}
 
     /// Gets or sets the locally-defined resource dictionary
@@ -398,6 +465,8 @@ public:
     UIElement::RoutedEvent_<ContextMenuEventHandler> ContextMenuOpening();
     /// Occurs when the element is laid out, rendered, and ready for interaction
     UIElement::RoutedEvent_<RoutedEventHandler> Loaded();
+    /// Occurs when this element xaml gets reloaded as a result of a hot-reload operation
+    UIElement::RoutedEvent_<RoutedEventHandler> Reloaded();
     /// Occurs when BringIntoView is called on this element
     UIElement::RoutedEvent_<RequestBringIntoViewEventHandler> RequestBringIntoView();
     /// Occurs when either ActualHeight or ActualWidth properties change value on this element
@@ -434,7 +503,7 @@ public:
     //@{
     IUITreeNode* GetNodeParent() const override;
     void SetNodeParent(IUITreeNode* parent) override;
-    BaseComponent* FindNodeResource(IResourceKey* key, bool fullElementSearch) const override;
+    BaseComponent* FindNodeResource(const char* key, bool fullElementSearch) const override;
     BaseComponent* FindNodeName(const char* name) const override;
     ObjectWithNameScope FindNodeNameAndScope(const char* name) const override;
     //@}}
@@ -464,6 +533,8 @@ public:
     static const DependencyProperty* NameProperty;
     static const DependencyProperty* OverridesDefaultStyleProperty;
     static const DependencyProperty* PPAAModeProperty;
+    static const DependencyProperty* PPAAInProperty;
+    static const DependencyProperty* PPAAOutProperty;
     static const DependencyProperty* StyleProperty;
     static const DependencyProperty* TagProperty;
     static const DependencyProperty* ToolTipProperty;
@@ -477,6 +548,7 @@ public:
     static const RoutedEvent* ContextMenuClosingEvent;
     static const RoutedEvent* ContextMenuOpeningEvent;
     static const RoutedEvent* LoadedEvent;
+    static const RoutedEvent* ReloadedEvent;
     static const RoutedEvent* RequestBringIntoViewEvent;
     static const RoutedEvent* SizeChangedEvent;
     static const RoutedEvent* ToolTipClosingEvent;
@@ -532,13 +604,6 @@ protected:
     /// Indicates that logical parent has changed
     virtual void OnLogicalParentChanged(FrameworkElement* oldParent);
 
-    /// Process inherited properties and updates local values if required
-    //@{
-    void UpdateInheritedProps();
-    void PropagateInheritedProps();
-    void EndUpdateInheritedProps();
-    //@}
-
     /// Allows derived classes to use this visual as the default visual child
     //@{
     Visual* GetSingleVisualChild() const;
@@ -551,8 +616,22 @@ protected:
     virtual void OnHeightChanged(float height);
     //@}
 
+    /// Called by ApplyTemplate before it does work to generate the template tree.
+    virtual void OnPreApplyTemplate();
+
+    /// Override if you wish to get notified that the template tree has been created. Called after
+    /// the template tree has been generated and it is invoked only if the call to ApplyTemplate
+    /// actually caused the template tree to be generated
+    virtual void OnApplyTemplate();
+
+    /// Called by ApplyTemplate after it generates the template tree
+    virtual void OnPostApplyTemplate();
+
+    /// Sets a template on this element
+    void SetFrameworkTemplate(FrameworkTemplate* frameworkTemplate);
+
     /// Looks for a DataTemplate in the UI tree that matches the specified item type
-    static DataTemplate* TryFindTemplate(FrameworkElement* element, BaseComponent* item);
+    static DataTemplate* FindTemplate(FrameworkElement* element, BaseComponent* item);
 
     /// Indicates if the property specified is set as a local value in the template
     bool IsTemplateLocalValue(const DependencyProperty* dp) const;
@@ -621,6 +700,7 @@ protected:
     bool OnPropertyChanged(const DependencyPropertyChangedEventArgs& args) override;
     bool OnSubPropertyChanged(const DependencyProperty* prop) override;
     void OnObjectValueSet(BaseComponent* oldValue, BaseComponent* newValue) override;
+    void OnUncachedPropertySet(const DependencyProperty* dp) final override;
     ProviderValue GetProviderValue(const DependencyProperty* dp) const override;
     ProviderValue GetNonCachedProviderValue(const DependencyProperty* dp) const override;
     uint8_t GetNonCachedValueProvider(const DependencyProperty* dp) const override;
@@ -630,11 +710,11 @@ protected:
     //@{
     uint32_t GetVisualChildrenCount() const override;
     Visual* GetVisualChild(uint32_t index) const override;
+    void OnVisualParentChanged(Visual* oldParent) override;
     void OnConnectToView(IView* view) override;
     void OnConnectToViewChildren() override;
     void OnDisconnectFromView() override;
-    void OnVisualOffsetChanged() override;
-    void OnVisualTransformChanged() override;
+    DrawingCommands* GetDrawingCommands() const override;
     //@}
 
     /// From UIElement
@@ -660,37 +740,26 @@ private:
 
     Style* GetDefaultStyle() const;
 
-    FocusVisualLayer* GetFocusVisualLayer() const;
-    void SetFocusVisualLayer(FocusVisualLayer* focusVisual);
-
-    BaseComponent* TryFindResource(IResourceKey* key, FrameworkElement* boundaryElement,
-        bool themeSearch) const;
-    BaseComponent* TryFindResourceInElement(IResourceKey* key, bool fullElementSearch) const;
+    BaseComponent* FindResource(const char* key, FrameworkElement* boundary,
+        bool themeSearch = true) const;
+    BaseComponent* FindResourceInElement(const char* key, bool fullElementSearch) const;
 
     void OnFrameworkTemplateChanged(FrameworkTemplate* oldTemplate, FrameworkTemplate* newTemplate);
 
     void RemoveTemplatedParent();
 
-    struct InheritedValueInfo
-    {
-        const DependencyProperty* dp;
-        const void* val;
-        const void* cur;
-    };
-
-    typedef NsVector<InheritedValueInfo> InheritedProps;
-    struct InheritedComparer;
-
-    void ResetInheritanceParent();
-    FrameworkElement* GetInheritanceParent() const;
-    void StoreAncestorInheritedProps(InheritedProps& props);
-    void UpdateStoredInheritedProps(InheritedProps& props);
-    void CheckInheritedPropsChanges(InheritedProps& props);
-    void PropagateInheritedPropsChanges(const DependencyProperty* prop, bool isSubPropertyChange,
+    FrameworkElement* FindInheritanceParent() const;
+    bool IsSelfInheritanceParent() const;
+    void SetInheritanceParentProps(FrameworkElement* inheritanceParent);
+    void ConnectInheritanceParent();
+    void ClearInheritanceParentProps();
+    void DisconnectInheritanceParent();
+    void UpdateInheritanceParentOnChildren(FrameworkElement* oldInheritanceParent,
+        FrameworkElement* newInheritanceParent);
+    void UpdateInheritanceParent(FrameworkElement* inheritanceParent);
+    void UpdateInheritedProps(bool connect);
+    void UpdateInheritedProp(const DependencyProperty* prop, bool isSubPropertyChange,
         const void* oldValue, const void* newValue);
-    void InvalidateInheritedProperties();
-    void OnLogicalAncestorChanged(FrameworkElement* element, bool traverseChildren,
-        bool updateInherited, InheritedProps* parentProps);
 
     void OnResourcesChanged(BaseComponent* sender,
         const NotifyDictionaryChangedEventArgs& args);
@@ -700,7 +769,6 @@ private:
     void OnAncestorNameScopeChanged(FrameworkElement* element,
         const AncestorNameScopeChangedArgs& args);
 
-    Size ApplyTransformToSize(Transform* transform, const Size& size);
     INameScope* GetNameScope() const;
     void SetParent(FrameworkElement* parent);
     void CheckPropertyMetadata(const DependencyProperty* prop, bool isSubPropertyChange,
@@ -731,7 +799,7 @@ private:
     void CloneCommandBindings(FrameworkElement* clone) const;
     void CloneTriggers(FrameworkElement* clone) const;
 
-    void AddClonedResources(IResourceKey* key, BaseComponent* value);
+    void AddClonedResources(const char* key, BaseComponent* value);
 
     void TransferAnimations();
     void EnsureTimeManager(bool createTimeManager = true);
@@ -780,9 +848,8 @@ private:
     friend struct ImplicitStyleProvider;
     friend struct BaseStyleTriggerProvider;
     friend struct StyleTriggerProvider;
-    friend struct TemplateTriggerProvider;
-    friend struct DefaultStyleTriggerProvider;
     friend struct DefaultStyleSetterProvider;
+    friend struct TemplateTriggerProvider;
     friend struct InheritedPropertyProvider;
     friend class FrameworkElementTest;
     friend class StoryboardTest;
@@ -800,6 +867,11 @@ private:
     // Control that contains this element as part of its template visual tree
     FrameworkElement* mTemplatedParent;
 
+    // Element storing inherited properties
+    FrameworkElement* mInheritanceParent;
+
+    // Private properties
+    //@{
     // Template applied to this framework element
     static const DependencyProperty* TemplateProperty;
 
@@ -808,10 +880,6 @@ private:
 
     // Default style if one is available for this element type
     static const DependencyProperty* DefaultStyleProperty;
-
-    // Layer that renders focus visual style
-    static const DependencyProperty* FocusVisualLayerProperty;
-    struct FocusVisualContainer;
 
     // Stores layout transforms and clipping geometries
     static const DependencyProperty* ArrangeTransformGroupProperty;
@@ -822,9 +890,10 @@ private:
     static const DependencyProperty* ArrangeClipAvailableProperty;
     static const DependencyProperty* ArrangeClipAvailableTransformProperty;
     static const DependencyProperty* ArrangeClipCombineProperty;
+    //@}
 
     // Prevents triggers to enter into an infinite recursion when invalidating
-    NsVector<const DependencyProperty*> mInvalidatedProperties;
+    Vector<const DependencyProperty*> mInvalidatedProperties;
 
     // Element resources dictionary
     Ptr<ResourceDictionary> mResources;
@@ -838,14 +907,11 @@ private:
     // Desired size without applying clipping
     Size mUnclippedSize;
 
-    // Inherited properties set in the ancestors
-    InheritedProps mInheritedProps;
-
     // FrameworkElement flags
     int32_t mElementFlags;
 
     // Element request to raise Loaded event when layout finalizes
-    LayoutRequest mLoadedRequest;
+    void* mLoadedRequest;
 
     // Delegates
     //@{

@@ -61,8 +61,8 @@ class NS_GUI_CORE_API RoutedUICommand: public RoutedCommand
 {
 public:
     RoutedUICommand();
-    RoutedUICommand(const char* text, NsSymbol name, const TypeClass* owner);
-    RoutedUICommand(const char* text, NsSymbol name, const TypeClass* owner,
+    RoutedUICommand(const char* text, Symbol name, const TypeClass* owner);
+    RoutedUICommand(const char* text, Symbol name, const TypeClass* owner,
         InputGestureCollection* inputGestures);
     ~RoutedUICommand();
 
@@ -83,7 +83,7 @@ public:
     //@}
 
 private:
-    NsString mText;
+    String mText;
 
     NS_DECLARE_REFLECTION(RoutedUICommand, RoutedCommand)
 };

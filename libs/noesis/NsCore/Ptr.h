@@ -8,12 +8,10 @@
 #define __CORE_PTR_H__
 
 
-#include <cstddef>
-#include <utility>
-
-
 namespace Noesis
 {
+
+typedef decltype(nullptr) NullPtrT;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Automatically handles lifetime of BaseRefCounted objects by doing AddReference() and Release().
@@ -38,7 +36,7 @@ public:
 
     /// Constructs empty smart pointer
     inline Ptr();
-    inline Ptr(std::nullptr_t);
+    inline Ptr(NullPtrT);
 
     /// Constructor from pointer, increasing reference counter
     inline explicit Ptr(T* ptr);
@@ -95,23 +93,6 @@ private:
 
 /// Constructs an object of type T and wraps it in a Ptr<>
 template<class T, class... Args> Ptr<T> MakePtr(Args&&... args);
-
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// Hash function
-////////////////////////////////////////////////////////////////////////////////////////////////////
-namespace eastl
-{
-
-template<class T> struct hash;
-template<class T> struct hash<Noesis::Ptr<T>>
-{
-    size_t operator()(const Noesis::Ptr<T>& s) const
-    {
-        return size_t(uintptr_t(s.GetPtr()));
-    }
-};
 
 }
 

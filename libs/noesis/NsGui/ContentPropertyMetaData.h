@@ -19,6 +19,9 @@
 namespace Noesis
 {
 
+NS_WARNING_PUSH
+NS_MSVC_WARNING_DISABLE(4251)
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// ContentPropertyMetaData. Stores information about the content property of an object
 /// Note: A class can't have both ContentPropertyMetaData and DependsOnAttributeMetaData
@@ -30,16 +33,18 @@ public:
     ContentPropertyMetaData(const char* propertyName);
 
     /// Constructor
-    ContentPropertyMetaData(NsSymbol contentProperty);
+    ContentPropertyMetaData(Symbol contentProperty);
 
     /// Gets content property
-    NsSymbol GetContentProperty() const;
+    Symbol GetContentProperty() const;
 
 private:
-    NsSymbol mContentProperty;
+    Symbol mContentProperty;
 
     NS_DECLARE_REFLECTION(ContentPropertyMetaData, TypeMetaData)
 };
+
+NS_WARNING_POP
 
 }
 

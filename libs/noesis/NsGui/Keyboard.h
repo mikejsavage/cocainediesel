@@ -11,6 +11,7 @@
 #include <NsCore/Noesis.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/IView.h>
+#include <NsGui/InputEnums.h>
 #include <NsCore/Ptr.h>
 #include <NsCore/Vector.h>
 #include <NsCore/ReflectionDeclare.h>
@@ -125,7 +126,7 @@ private:
     Ptr<UIElement> mFocusedElement;
     Ptr<UIElement> mRestoreFocusedElement;
 
-    typedef NsVector<Ptr<UIElement>> Elements;
+    typedef Vector<Ptr<UIElement>> Elements;
     Elements mFocusWithinElements;
 
     Ptr<KeyboardNavigation> mKeyboardNavigation;
@@ -135,6 +136,7 @@ private:
         struct
         {
             bool inactive : 1;
+            bool processingKey : 1;
             bool keyDownHandled : 1;
             bool reevaluateFocus : 1;
         } mFlags;

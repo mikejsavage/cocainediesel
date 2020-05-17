@@ -15,7 +15,6 @@
 namespace Noesis
 {
 
-class ResourceKeyType;
 class Control;
 
 NS_WARNING_PUSH
@@ -35,8 +34,8 @@ public:
 
     /// Gets or sets the type for which this template is intended
     //@{
-    ResourceKeyType* GetTargetType() const;
-    void SetTargetType(ResourceKeyType* targetType);
+    const Type* GetTargetType() const;
+    void SetTargetType(const Type* targetType);
     //@}
 
     /// Gets a collection of TriggerBase objects that apply property changes or perform actions
@@ -54,7 +53,7 @@ private:
     void EnsureTriggers() const;
 
 private:
-    Ptr<ResourceKeyType> mTargetType;
+    const Type* mTargetType;
     mutable Ptr<TriggerCollection> mTriggers;
 
     NS_DECLARE_REFLECTION(ControlTemplate, FrameworkTemplate)

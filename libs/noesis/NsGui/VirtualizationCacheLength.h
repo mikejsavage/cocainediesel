@@ -12,7 +12,7 @@
 #include <NsGui/CoreApi.h>
 #include <NsCore/ReflectionDeclare.h>
 #include <NsCore/ReflectionDeclareEnum.h>
-#include <NsCore/NSTLForwards.h>
+#include <NsCore/StringFwd.h>
 
 
 namespace Noesis
@@ -63,10 +63,7 @@ public:
 
     // Creates a string representation of this VirtualizationCacheLength structure
     // The string has the following form: "beforeViewportLength,afterViewportLength"
-    NsString ToString() const;
-
-    // Returns a hash code
-    uint32_t GetHashCode() const;
+    String ToString() const;
 
     // Converts a string into the equivalent VirtualizationCacheLength structure
     static bool TryParse(const char* str, VirtualizationCacheLength& result);

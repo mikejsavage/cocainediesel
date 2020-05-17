@@ -9,11 +9,9 @@
 
 
 #include <NsCore/Noesis.h>
+#include <NsCore/Vector.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/RangeBase.h>
-#include <NsGui/Enums.h>
-#include <NsCore/Set.h>
-#include <NsCore/ReflectionDeclareEnum.h>
 
 
 namespace Noesis
@@ -167,6 +165,7 @@ protected:
     /// From UIElement
     //@{
     void OnPreviewMouseLeftButtonDown(const MouseButtonEventArgs& e) override;
+    void OnPreviewTouchDown(const TouchEventArgs& e) override;
     //@}
 
     /// From Control
@@ -181,6 +180,8 @@ protected:
     //@}
 
 private:
+    bool PreviewDown(const Point& p);
+
     void OnThumbDragStarted(BaseComponent* sender, const DragStartedEventArgs& e);
     void OnThumbDragDelta(BaseComponent* sender, const DragDeltaEventArgs& e);
 
@@ -195,23 +196,17 @@ private:
     float FindNextTick(float currentValue);
     float FindPrevTick(float currentValue);
 
-    static void OnDecreaseLargeCommand(BaseComponent* sender,
-        const ExecutedRoutedEventArgs& args);
-    static void OnIncreaseLargeCommand(BaseComponent* sender,
-        const ExecutedRoutedEventArgs& args);
-    static void OnDecreaseSmallCommand(BaseComponent* sender,
-        const ExecutedRoutedEventArgs& args);
-    static void OnIncreaseSmallCommand(BaseComponent* sender,
-        const ExecutedRoutedEventArgs& args);
-    static void OnMinimizeValueCommand(BaseComponent* sender,
-        const ExecutedRoutedEventArgs& args);
-    static void OnMaximizeValueCommand(BaseComponent* sender,
-        const ExecutedRoutedEventArgs& args);
+    static void OnDecreaseLargeCommand(BaseComponent* sender, const ExecutedRoutedEventArgs& args);
+    static void OnIncreaseLargeCommand(BaseComponent* sender, const ExecutedRoutedEventArgs& args);
+    static void OnDecreaseSmallCommand(BaseComponent* sender, const ExecutedRoutedEventArgs& args);
+    static void OnIncreaseSmallCommand(BaseComponent* sender, const ExecutedRoutedEventArgs& args);
+    static void OnMinimizeValueCommand(BaseComponent* sender, const ExecutedRoutedEventArgs& args);
+    static void OnMaximizeValueCommand(BaseComponent* sender, const ExecutedRoutedEventArgs& args);
 
 private:
     Ptr<Track> mTrackInternal;
 
-    typedef NsSet<float> Ticks;
+    typedef Vector<float> Ticks;
     Ticks mTicksInternal;
 
     NS_DECLARE_REFLECTION(Slider, RangeBase)

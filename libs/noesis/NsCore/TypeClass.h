@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #473]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -32,7 +31,7 @@ class NS_CORE_KERNEL_API TypeClass: public TypeMeta
 {
 public:
     /// Constructor
-    TypeClass(const TypeInfo& typeInfo, bool isInterface);
+    TypeClass(Symbol name, bool isInterface);
 
     /// Destructor
     ~TypeClass();
@@ -74,7 +73,7 @@ public:
 
     /// Looks for a property given its name. If this class type has the property requested then it
     /// returns the property, else it returns a null pointer.
-    const TypeProperty* FindProperty(NsSymbol name) const;
+    const TypeProperty* FindProperty(Symbol name) const;
 
     /// Gets number of events of this class reflection type
     uint32_t GetNumEvents() const;
@@ -83,7 +82,7 @@ public:
     const TypeProperty* GetEvent(uint32_t index) const;
 
     /// Indicates if this class type has the specified event
-    const TypeProperty* FindEvent(NsSymbol name) const;
+    const TypeProperty* FindEvent(Symbol name) const;
 
     /// From Type
     //@{
@@ -97,13 +96,13 @@ protected:
     const TypeClass* mBase;
 
     // List of interfaces implemented by this class
-    typedef NsVector<AncestorInfo> AncestorVector;
+    typedef Vector<AncestorInfo> AncestorVector;
     AncestorVector mInterfaces;
 
-    typedef NsVector<TypeProperty*> PropertyVector;
+    typedef Vector<TypeProperty*> PropertyVector;
     PropertyVector mProperties;
 
-    typedef NsVector<TypeProperty*> EventVector;
+    typedef Vector<TypeProperty*> EventVector;
     EventVector mEvents;
 
 private:

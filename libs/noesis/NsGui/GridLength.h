@@ -11,7 +11,7 @@
 #include <NsCore/Noesis.h>
 #include <NsGui/CoreApi.h>
 #include <NsCore/ReflectionDeclare.h>
-#include <NsCore/NSTLForwards.h>
+#include <NsCore/StringFwd.h>
 
 
 namespace Noesis
@@ -80,10 +80,7 @@ public:
     //@}
 
     /// Creates a string representation of this structure
-    NsString ToString() const;
-
-    /// Returns a hash code
-    uint32_t GetHashCode() const;
+    String ToString() const;
 
     /// Tries to parse a GridLength from a string
     static bool TryParse(const char* str, GridLength& result);

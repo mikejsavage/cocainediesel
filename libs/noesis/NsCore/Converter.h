@@ -11,7 +11,6 @@
 #include <NsCore/Noesis.h>
 #include <NsCore/TypeConverter.h>
 #include <NsCore/ReflectionImplement.h>
-#include <NsCore/TypeId.h>
 #include <NsCore/IdOf.h>
 
 
@@ -30,10 +29,7 @@ public:
     bool TryConvertFromString(const char* str, Ptr<BaseComponent>& result) const override;
     //@}
 
-    NS_IMPLEMENT_INLINE_REFLECTION(Converter, TypeConverter)
-    {
-        NsMeta<TypeId>(IdOf<T>("Converter"));
-    }
+    NS_IMPLEMENT_INLINE_REFLECTION_(Converter, TypeConverter, IdOf("Converter<", IdOf<T>(), ">"))
 };
 
 }

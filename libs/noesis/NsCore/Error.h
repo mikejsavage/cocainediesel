@@ -62,7 +62,7 @@
                 } \
             NS_MACRO_END
     #else
-        #define NS_CHECK(expr, ...) NS_UNUSED(expr)
+        #define NS_CHECK(...) NS_UNUSED(__VA_ARGS__)
     #endif
 #endif
 

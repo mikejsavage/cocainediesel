@@ -51,12 +51,12 @@ NS_MSVC_WARNING_DISABLE(4251 4275)
 class NS_GUI_CORE_API RoutedEvent: public BaseComponent
 {
 public:
-    RoutedEvent(NsSymbol name);
-    RoutedEvent(NsSymbol name, const TypeClass* ownerType, RoutingStrategy routingStrategy);
+    RoutedEvent(Symbol name);
+    RoutedEvent(Symbol name, const TypeClass* ownerType, RoutingStrategy routingStrategy);
     ~RoutedEvent();
 
     /// Gets event name
-    inline NsSymbol GetName() const;
+    inline Symbol GetName() const;
 
     /// Gets or sets event owner type
     //@{
@@ -71,7 +71,7 @@ public:
     //@}
 
 private:
-    NsSymbol mName;
+    Symbol mName;
     const TypeClass* mOwnerType;
     RoutingStrategy mRoutingStrategy;
 
@@ -81,19 +81,18 @@ private:
 NS_WARNING_POP
 
 /// Search for routed events in the class hierarchy
-NS_GUI_CORE_API const RoutedEvent* FindRoutedEvent(const TypeClass* type, NsSymbol eventId);
+NS_GUI_CORE_API const RoutedEvent* FindRoutedEvent(const TypeClass* type, Symbol eventId);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Contains state information and event arguments associated with a routed event.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-struct NS_GUI_CORE_API RoutedEventArgs: public EventArgs
+struct RoutedEventArgs: public EventArgs
 {
-public:
     BaseComponent* source;
     const RoutedEvent* routedEvent;
-    mutable bool handled;
+    mutable bool handled = false;
 
-    RoutedEventArgs(BaseComponent* s, const RoutedEvent* e);
+    RoutedEventArgs(BaseComponent* source, const RoutedEvent* event);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -110,11 +109,8 @@ struct RoutedPropertyChangedEventArgs: public RoutedEventArgs
     T oldValue;
     T newValue;
 
-    RoutedPropertyChangedEventArgs(BaseComponent* s, const RoutedEvent* e, 
-        typename Param<T>::Type oldV, typename Param<T>::Type newV): 
-        RoutedEventArgs(s, e), oldValue(oldV), newValue(newV)
-    {
-    }
+    RoutedPropertyChangedEventArgs(BaseComponent* source, const RoutedEvent* event,
+        typename Param<T>::Type oldValue, typename Param<T>::Type newValue);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

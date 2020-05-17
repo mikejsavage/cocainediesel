@@ -13,7 +13,6 @@
 #include <NsCore/ReflectionDeclare.h>
 #include <NsGui/FrameworkElement.h>
 #include <NsGui/CoreApi.h>
-#include <NsGui/Enums.h>
 #include <NsCore/String.h>
 
 

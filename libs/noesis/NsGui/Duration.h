@@ -57,10 +57,7 @@ public:
     inline DurationType GetDurationType() const;
 
     /// Gets duration as a string
-    NsString ToString() const;
-
-    /// Returns a hash code
-    uint32_t GetHashCode() const;
+    String ToString() const;
 
     // Operators
     //@{

@@ -9,8 +9,9 @@
 
 
 #include <NsCore/Noesis.h>
-#include <NsCore/ReflectionImplement.h>
-#include <NsCore/TypeId.h>
+#include <NsCore/ReflectionImplementEmpty.h>
+#include <NsCore/TypeOf.h>
+#include <NsCore/IdOf.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/BaseUICollection.h>
 
@@ -25,8 +26,6 @@ template <class T>
 class UICollection: public BaseUICollection
 {
 public:
-    static_assert(IsDerived<T, BaseComponent>::Result, "T must inherit from BaseComponent");
-
     /// Gets the element at the specified index
     inline T* Get(uint32_t index) const;
 
@@ -53,10 +52,7 @@ public:
 protected:
     inline const TypeClass* GetItemType() const final;
 
-    NS_IMPLEMENT_INLINE_REFLECTION(UICollection<T>, BaseUICollection)
-    {
-        NsMeta<TypeId>(IdOfCollection(TypeOf<T>()).GetStr());
-    }
+    NS_IMPLEMENT_INLINE_REFLECTION_(UICollection<T>, BaseUICollection, IdOf(IdOf<T>(), "Collection"))
 };
 
 }

@@ -9,9 +9,6 @@
 
 
 #include <NsCore/Noesis.h>
-#include <NsGui/CoreApi.h>
-#include <NsGui/RoutedEvent.h>
-#include <NsCore/ReflectionDeclare.h>
 #include <NsDrawing/Size.h>
 
 
@@ -33,17 +30,6 @@ struct SizeChangedInfo
     bool heightChanged;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Provides data related to the FrameworkElement.SizeChanged event.
-////////////////////////////////////////////////////////////////////////////////////////////////////
-struct NS_GUI_CORE_API SizeChangedEventArgs: public RoutedEventArgs
-{
-    SizeChangedInfo sizeChangedInfo;
-
-    SizeChangedEventArgs(BaseComponent* s, const RoutedEvent* e, const SizeChangedInfo& info);
-};
-
 }
-
 
 #endif

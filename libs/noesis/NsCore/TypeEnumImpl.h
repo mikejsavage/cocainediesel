@@ -10,32 +10,28 @@
 
 #include <NsCore/Noesis.h>
 #include <NsCore/TypeEnum.h>
-#include <NsCore/ReflectionImplementEmpty.h>
 
 
 namespace Noesis
 {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Implementation of TypeEnum specialized for T
+/// Reflection implementation for enumeration T
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T>
-class TypeEnumImpl: public TypeEnum
+class TypeEnumImpl final: public TypeEnum
 {
 public:
-    TypeEnumImpl(const TypeInfo& typeInfo);
+    TypeEnumImpl(Symbol name);
 
     /// From TypeEnum
     //@{
-    Ptr<BoxedValue> GetValueObject(NsSymbol id) const;
+    bool GetValueObject(Symbol name, Ptr<BoxedValue>& value) const override;
     //@}
-
-    NS_IMPLEMENT_INLINE_REFLECTION_(TypeEnumImpl, TypeEnum)
 };
 
 }
 
-// Inline Include
 #include <NsCore/TypeEnumImpl.inl>
 
 #endif

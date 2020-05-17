@@ -11,7 +11,6 @@
 #include <NsCore/Noesis.h>
 #include <NsGui/Panel.h>
 #include <NsGui/IScrollInfo.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis
@@ -85,7 +84,6 @@ protected:
 
 private:
     void EnsureScrollData();
-    bool HasScrollData() const;
     bool IsScrolling() const;
 
 private:

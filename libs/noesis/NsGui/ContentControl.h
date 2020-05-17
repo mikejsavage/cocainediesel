@@ -37,6 +37,12 @@ public:
     void SetContent(const char* content);
     //@}
 
+    /// Gets or sets the format used to display the content of the control as a string.
+    //@{
+    const char* GetContentStringFormat() const;
+    void SetContentStringFormat(const char* value);
+    //@}
+
     /// Gets or sets the template used to display the content of the ContentControl
     //@{
     DataTemplate* GetContentTemplate() const;
@@ -55,13 +61,14 @@ public:
 
     /// From BaseObject
     //@{
-    NsString ToString() const override;
+    String ToString() const override;
     //@}
 
 public:
     /// Dependency properties
     //@{
     static const DependencyProperty* ContentProperty;
+    static const DependencyProperty* ContentStringFormatProperty;
     static const DependencyProperty* ContentTemplateProperty;
     static const DependencyProperty* ContentTemplateSelectorProperty;
     static const DependencyProperty* HasContentProperty;

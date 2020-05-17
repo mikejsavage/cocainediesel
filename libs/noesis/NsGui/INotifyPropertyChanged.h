@@ -25,9 +25,9 @@ template<class T> class Delegate;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 struct PropertyChangedEventArgs: public EventArgs
 {
-    NsSymbol propertyName;
+    Symbol propertyName;
 
-    PropertyChangedEventArgs(NsSymbol name): propertyName(name) { }
+    PropertyChangedEventArgs(Symbol name): propertyName(name) { }
 };
 
 typedef Delegate<void (BaseComponent*, const PropertyChangedEventArgs&)>

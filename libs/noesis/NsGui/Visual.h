@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #1213]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -12,13 +11,9 @@
 #include <NsCore/Noesis.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/DependencyObject.h>
-#include <NsGui/Enums.h>
 #include <NsDrawing/Point.h>
 #include <NsDrawing/Size.h>
 #include <NsDrawing/Rect.h>
-#include <NsCore/List.h>
-#include <NsMath/MatrixForward.h>
-#include <NsMath/TransformForward.h>
 
 
 namespace Noesis
@@ -26,13 +21,19 @@ namespace Noesis
 
 class Visual;
 class DrawingCommands;
+class Effect;
 class Geometry;
 class Brush;
 class Transform;
-class Projection;
+class Transform3D;
 class RenderTreeUpdater;
+class Matrix4;
+class Transform3;
 class View;
 NS_INTERFACE IView;
+enum HitTestFilterBehavior: int32_t;
+enum HitTestResultBehavior: int32_t;
+enum BitmapScalingMode: int32_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Indicates the visual that was hit in a HitTest operation
@@ -44,9 +45,8 @@ struct HitTestResult
     HitTestResult(): visualHit(0) { }
 };
 
-typedef Noesis::Delegate<HitTestFilterBehavior (Visual* target)> HitTestFilterCallback;
-typedef Noesis::Delegate<HitTestResultBehavior (const HitTestResult& result)> HitTestResultCallback;
-
+typedef Delegate<HitTestFilterBehavior (Visual* target)> HitTestFilterCallback;
+typedef Delegate<HitTestResultBehavior (const HitTestResult& result)> HitTestResultCallback;
 typedef Noesis::Delegate<void ()> SubtreeDrawingCommandsChangedDelegate;
 
 NS_WARNING_PUSH
@@ -88,15 +88,15 @@ public:
 
     /// Returns a transform that can be used to transform coordinates from the Visual to the
     /// specified ancestor of the visual object
-    Matrix4f TransformToAncestor(const Visual* ancestor) const;
+    Matrix4 TransformToAncestor(const Visual* ancestor) const;
 
     /// Returns a transform that can be used to transform coordinates from the Visual to the
     /// specified visual object descendant
-    Matrix4f TransformToDescendant(const Visual* descendant) const;
+    Matrix4 TransformToDescendant(const Visual* descendant) const;
 
     /// Returns a transform that can be used to transform coordinates from the Visual to the
     /// specified visual object
-    Matrix4f TransformToVisual(const Visual* visual) const;
+    Matrix4 TransformToVisual(const Visual* visual) const;
 
     /// Occurs when subtree render commands have changed
     SubtreeDrawingCommandsChangedDelegate& SubtreeDrawingCommandsChanged();
@@ -142,6 +142,12 @@ protected:
     /// Returns a bounding box that encloses this visual and all its children
     Rect GetDescendantBounds() const;
 
+    /// Returns the minimum z of a bounding box that encloses this visual and all its children
+    float GetDescendantBoundsMinZ() const;
+
+    /// Returns the maximum z of a bounding box that encloses this visual and all its children
+    float GetDescendantBoundsMaxZ() const;
+
     /// Gets the root of the View tree where this visual is connected to
     /// \return Null if this visual is not connected to a View
     Visual* GetRoot() const;
@@ -159,6 +165,12 @@ protected:
     //@{
     Geometry* GetVisualClip() const;
     void SetVisualClip(Geometry* clip);
+    //@}
+
+    /// Gets or sets the bitmap effect to apply to this visual
+    //@{
+    Effect* GetVisualEffect() const;
+    void SetVisualEffect(Effect* value);
     //@}
 
     /// Gets or sets the offset value of the visual object
@@ -191,14 +203,17 @@ protected:
     void SetVisualTransform(Transform* transform);
     //@}
 
-    /// Gets or sets the Transform value for the Visual
+    /// Gets or sets the Transform3D value for the Visual
     //@{
-    Projection* GetVisualProjection() const;
-    void SetVisualProjection(Projection* projection);
+    Transform3D* GetVisualTransform3D() const;
+    void SetVisualTransform3D(Transform3D* transform);
     //@}
 
     /// Disables PPAA generation on this visual node
     void DisablePPAA(bool disable);
+
+    /// Invalidates PPAA generated geometries for this visual node
+    void InvalidatePPAA();
 
     /// Invalidate visual render commands
     void InvalidateDrawingCommands() const;
@@ -251,8 +266,8 @@ protected:
     /// Called when the VisualTransform of the visual object is modified
     virtual void OnVisualTransformChanged();
 
-    /// Called when the VisualProjection of the visual object is modified
-    virtual void OnVisualProjectionChanged();
+    /// Called when the VisualTransform3D of the visual object is modified
+    virtual void OnVisualTransform3DChanged();
 
     /// Gets the bounding box rectangle
     virtual Rect GetContentBoundsCore() const;
@@ -271,9 +286,6 @@ protected:
     bool OnSubPropertyChanged(const DependencyProperty* prop) override;
     //@}
 
-    // Layout requests are stored in the element
-    typedef eastl::ListNodeBase* LayoutRequest;
-
 private:
     friend class VisualTest;
     friend struct VisualTreeHelper;
@@ -287,32 +299,29 @@ private:
 
     void Invalidate();
 
-    /// Invalidates descendant bounds on a branch
+    // Invalidates descendant bounds on a branch
     void InvalidateBranchBounds(bool raiseDrawingCommandsChanged) const;
 
-    /// Fires SubtreeDrawingCommandsChanged event
+    // Fires SubtreeDrawingCommandsChanged event
     void RaiseSubtreeDrawingCommandsChanged() const;
 
-    Point ToProjectedSurface(const Point& point, const Matrix4f& m) const;
-    Point FromProjectedSurface(const Point& point, const Matrix4f& m) const;
+    Transform3 InternalTransformToRoot() const;
+    Transform3 InternalTransformToAncestor(const Visual* ancestor) const;
+    Transform3 InternalTransformToParent() const;
 
-    Matrix4f InternalTransformToRoot() const;
-    Matrix4f InternalTransformToAncestor(const Visual* ancestor, const Size& surface) const;
-    Matrix4f InternalTransformToParent(const Size& surface) const;
-
-    /// Returns the topmost Visual object of a hit test by specifying a Point in local coordinates
+    // Returns the topmost Visual object of a hit test by specifying a Point in local coordinates
     HitTestResult HitTest(const Point& point);
-    HitTestResult InternalHitTest(const Point& point, bool isProjectionIdentity,
-        const Size& surface);
+    HitTestResult InternalHitTest(const Point& point, const Vector4& dir);
 
-    /// Initiates a hit test on this Visual, with caller-defined HitTestFilterCallback and
-    /// HitTestResultCallback allowing to retrieve all of the visuals under the specified point,
-    /// not just the topmost one
+    // Initiates a hit test on this Visual, with caller-defined HitTestFilterCallback and
+    // HitTestResultCallback allowing to retrieve all of the visuals under the specified point,
+    // not just the topmost one
     void HitTest(const Point& point, const HitTestFilterCallback& hitTestFilter,
         const HitTestResultCallback& hitTestResult);
-    HitTestResultBehavior InternalHitTest(const Point& point, bool isProjectionIdentity,
-        const Size& surface, const HitTestFilterCallback& hitTestFilter,
-        const HitTestResultCallback& hitTestResult);
+    HitTestResultBehavior InternalHitTest(const Point& point, const Vector4& dir,
+        const HitTestFilterCallback& hitTestFilter, const HitTestResultCallback& hitTestResult);
+
+    Rect InternalGetDescendantBounds() const;
 
     // Pushes all the necessary commands into the UI render thread queue to update corresponding
     // render nodes
@@ -321,11 +330,11 @@ private:
     void UpdateFlags(RenderTreeUpdater& updater);
     void UpdateBounds(RenderTreeUpdater& updater);
     void UpdateTransform(RenderTreeUpdater& updater);
-    void UpdateProjection(RenderTreeUpdater& updater);
+    void UpdateTransform3D(RenderTreeUpdater& updater);
     void UpdateBitmapScalingMode(RenderTreeUpdater& updater);
     void UpdateClip(RenderTreeUpdater& updater);
+    void UpdateEffect(RenderTreeUpdater& updater);
     void UpdateOffset(RenderTreeUpdater& updater);
-    void UpdateSize(RenderTreeUpdater& updater);
     void UpdateOpacity(RenderTreeUpdater& updater);
     void UpdateOpacityMask(RenderTreeUpdater& updater);
     void UpdateDrawingCommands(RenderTreeUpdater& updater);
@@ -363,21 +372,24 @@ private:
 
     mutable Rect mContentBoundsCache;
     mutable Rect mDescendantBoundsCache;
+    mutable float mDescendantBoundsMinZ;
+    mutable float mDescendantBoundsMaxZ;
 
     mutable uint32_t mVisualFlags;
 
-    LayoutRequest mUpdateRequest;
+    void* mUpdateRequest;
 
     SubtreeDrawingCommandsChangedDelegate mSubtreeDrawingCommandsChanged;
 
-    /// Private properties
+    // Private properties
     //@{
     static const DependencyProperty* VisualBitmapScalingModeProperty;
     static const DependencyProperty* VisualClipProperty;
+    static const DependencyProperty* VisualEffectProperty;
     static const DependencyProperty* VisualOpacityProperty;
     static const DependencyProperty* VisualOpacityMaskProperty;
     static const DependencyProperty* VisualTransformProperty;
-    static const DependencyProperty* VisualProjectionProperty;
+    static const DependencyProperty* VisualTransform3DProperty;
     //@}
 
     NS_DECLARE_REFLECTION(Visual, DependencyObject)

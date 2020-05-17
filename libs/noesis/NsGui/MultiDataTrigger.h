@@ -9,11 +9,11 @@
 
 
 #include <NsCore/Noesis.h>
-#include <NsCore/Set.h>
-#include <NsCore/FixedVector.h>
+#include <NsCore/HashMap.h>
+#include <NsCore/PoolAllocator.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/BaseTrigger.h>
-#include <NsGui/BindingListener.h>
+#include <NsGui/ConditionListener.h>
 
 
 namespace Noesis
@@ -86,47 +86,65 @@ private:
     mutable Ptr<ConditionCollection> mConditions;
     mutable Ptr<BaseSetterCollection> mSetters;
 
-    class Listener
+    struct Listener
     {
-    public:
         Listener(MultiDataTrigger* dt, FrameworkElement* t, FrameworkElement* ns, bool sk,
             uint8_t p);
-
-        struct Comparer;
-        bool operator<(const Listener& other) const;
-        bool operator==(const Listener& other) const;
 
         void Register();
         void Unregister();
 
         bool Matches() const;
+        void UpdateMatches(bool allMatches);
 
-    private:
-        MultiDataTrigger* trigger;
-        BindingListenerData data;
-
-        class ConditionListener: public BindingListener
+        class Cond: public ConditionListener
         {
         public:
-            ConditionListener(Listener* listener, Condition* c);
+            Cond(Listener* listener, Condition* c);
 
         protected:
-            const BindingListenerData* GetData() const;
-            BaseComponent* GetValue() const;
-            BaseBinding* GetBinding() const;
-            void Invalidate(FrameworkElement* target, FrameworkElement* nameScope,
-                bool skipTargetName, bool fireEnterActions, uint8_t priority) const;
+            DependencyObject* GetTarget() const override;
+            BaseBinding* GetBinding() const override;
+            BaseComponent* GetValue() const override;
+            void Invalidate(bool matches) const override;
 
         private:
             Listener* listener;
             Condition* condition;
         };
 
-        NsFixedVector<ConditionListener, 4> conditions;
+        Vector<Cond> conditions;
+
+        MultiDataTrigger* trigger;
+        FrameworkElement* target;
+        FrameworkElement* nameScope;
+        uint8_t priority;
+        bool matches : 1;
+        bool skipTargetName : 1;
+        bool skipInvalidate : 1;
     };
 
-    typedef NsSet<Listener> Listeners;
+    struct ListenerHashKeyInfo
+    {
+        static bool IsEmpty(Listener* key) { return key == (Listener*)0x01; }
+        static void MarkEmpty(Listener*& key) { key = (Listener*)0x01; } 
+        static uint32_t HashValue(Listener* key) { return Hash(key->target); }
+        static uint32_t HashValue(FrameworkElement* target) { return Hash(target); }
+
+        static bool IsEqual(Listener* lhs, Listener* rhs)
+        {
+            return !IsEmpty(lhs) && lhs->target == rhs->target;
+        }
+
+        static bool IsEqual(Listener* lhs, FrameworkElement* target)
+        {
+            return !IsEmpty(lhs) && lhs->target == target;
+        }
+    };
+
+    typedef HashSet<Listener*, 0, HashBucket_K<Listener*, ListenerHashKeyInfo>> Listeners;
     Listeners mListeners;
+    PoolAllocator mListenersPool;
 
     NS_DECLARE_REFLECTION(MultiDataTrigger, BaseTrigger)
 };

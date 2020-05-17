@@ -47,7 +47,7 @@ public:
 
     /// From Transform
     //@{
-    Transform2f GetTransform() const override;
+    Transform2 GetTransform() const override;
     //@}
 
     // Hides Freezable methods for convenience

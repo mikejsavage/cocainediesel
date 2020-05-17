@@ -16,6 +16,7 @@ namespace Noesis
 {
 
 class RenderDevice;
+class Matrix4;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// This interface renders the UI tree. Using IView and IRenderer in different threads is allowed.
@@ -37,16 +38,21 @@ NS_INTERFACE IRenderer: public Interface
     /// RenderOffscreen() and Render() calls could be avoided if last render was preserved
     virtual bool UpdateRenderTree() = 0;
 
-    /// Indicates if offscreen textures are needed at the current render tree state. When this
-    /// function returns true, it is mandatory to call RenderOffscreen() before Render()
-    virtual bool NeedsOffscreen() const = 0;
+    /// Generates all the needed offscreen textures. It is recommended, specially on tiled
+    /// architectures, to invoke this function before bindind the main render target.
+    /// Returns 'false' when no commands are generated and restoring the GPU state is not needed
+    virtual bool RenderOffscreen() = 0;
 
-    /// Generates offscreen textures. This function fills internal textures and must be invoked
-    /// before binding the main render target. This is especially critical in tiled architectures.
-    virtual void RenderOffscreen() = 0;
+    /// Generates all the needed offscreen textures. This function overrides the default
+    /// view projection matrix. Can be used for example to render each eye in VR
+    virtual bool RenderOffscreen(const Matrix4& projection) = 0;
 
-    /// Renders UI in the active render target and viewport dimensions
+    /// Renders UI into the current render target and viewport
     virtual void Render(bool flipY = false) = 0;
+
+    /// Renders UI into the current render target and viewport. This function overrides the default
+    /// view projection matrix. Can be used for example to render each eye in VR
+    virtual void Render(const Matrix4& projection, bool flipY = false) = 0;
 
     NS_IMPLEMENT_INLINE_REFLECTION_(IRenderer, Interface)
 };

@@ -11,11 +11,7 @@
 #include <NsCore/CompilerSettings.h>
 
 
-#if defined(NS_DRAWING_TYPES_PRIVATE)
-    #define NS_DRAWING_TYPES_API
-#elif defined(NS_DRAWING_TYPES_EXPORTS)
-    #define NS_DRAWING_TYPES_API NS_DLL_EXPORT
-#else
+#ifndef NS_DRAWING_TYPES_API
     #define NS_DRAWING_TYPES_API NS_DLL_IMPORT
 #endif
 

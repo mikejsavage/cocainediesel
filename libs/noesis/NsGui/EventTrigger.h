@@ -9,11 +9,12 @@
 
 
 #include <NsCore/Noesis.h>
+#include <NsCore/HashMap.h>
+#include <NsCore/PoolAllocator.h>
+#include <NsCore/String.h>
 #include <NsCore/ReflectionDeclare.h>
 #include <NsGui/BaseTrigger.h>
 #include <NsGui/CoreApi.h>
-#include <NsCore/String.h>
-#include <NsCore/Set.h>
 
 
 namespace Noesis
@@ -66,7 +67,7 @@ private:
     void EnsureActions() const;
 
 private:
-    NsString mSourceName;
+    String mSourceName;
     const RoutedEvent* mRoutedEvent;
     mutable Ptr<TriggerActionCollection> mActions;
 
@@ -80,10 +81,6 @@ private:
         Listener(EventTrigger* et, FrameworkElement* t, FrameworkElement* ns,
             FrameworkElement* s);
 
-        struct Comparer;
-        bool operator<(const Listener& other) const;
-        bool operator==(const Listener& other) const;
-
         void Register() const;
         void Unregister() const;
 
@@ -93,8 +90,27 @@ private:
         void OnSourceDestroyed(DependencyObject* source);
     };
 
-    typedef NsSet<Listener> Listeners;
+    struct ListenerHashKeyInfo
+    {
+        static bool IsEmpty(Listener* key) { return key == (Listener*)0x01; }
+        static void MarkEmpty(Listener*& key) { key = (Listener*)0x01; } 
+        static uint32_t HashValue(Listener* key) { return Hash(key->target); }
+        static uint32_t HashValue(FrameworkElement* target) { return Hash(target); }
+
+        static bool IsEqual(Listener* lhs, Listener* rhs)
+        {
+            return !IsEmpty(lhs) && lhs->target == rhs->target;
+        }
+
+        static bool IsEqual(Listener* lhs, FrameworkElement* target)
+        {
+            return !IsEmpty(lhs) && lhs->target == target;
+        }
+    };
+
+    typedef HashSet<Listener*, 0, HashBucket_K<Listener*, ListenerHashKeyInfo>> Listeners;
     Listeners mListeners;
+    PoolAllocator mListenersPool;
 
     NS_DECLARE_REFLECTION(EventTrigger, BaseTrigger)
 };

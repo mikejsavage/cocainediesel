@@ -88,7 +88,7 @@ private:
     void EnsureSetters() const;
 
 private:
-    NsString mSourceName;
+    String mSourceName;
     const DependencyProperty* mProperty;
     Ptr<BaseComponent> mValue;
     mutable Ptr<BaseSetterCollection> mSetters;

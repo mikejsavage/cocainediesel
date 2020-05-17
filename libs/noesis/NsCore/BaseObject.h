@@ -11,13 +11,14 @@
 #include <NsCore/Noesis.h>
 #include <NsCore/KernelApi.h>
 #include <NsCore/ReflectionDeclare.h>
-#include <NsCore/NSTLForwards.h>
+#include <NsCore/StringFwd.h>
 
 
 namespace Noesis
 {
 
 class TypeClass;
+typedef decltype(sizeof(int)) SizeT;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Base class for all Noesis Engine Polymorphic objects.
@@ -30,17 +31,9 @@ public:
     BaseObject();
     virtual ~BaseObject() = 0;
 
-    /// NoesisEngine object memory is managed by kernel
-    //@{
-    static void *operator new(size_t size);
-    static void *operator new[](size_t size);
+    /// Redirect allocations to memory manager
+    static void *operator new(SizeT size);
     static void operator delete(void* ptr);
-    static void operator delete[](void* ptr);
-    static void *operator new(size_t size, void* placementPtr);
-    static void *operator new[](size_t size, void* placementPtr);
-    static void operator delete(void* ptr, void* placementPtr);
-    static void operator delete[](void* ptr, void* placementPtr);
-    //@}
 
     /// Determines whether the specified object instances are considered equal
     static bool Equals(const BaseObject* left, const BaseObject* right);
@@ -49,21 +42,13 @@ public:
     virtual const TypeClass* GetClassType() const;
 
     /// Returns a string that represents the current object
-    virtual NsString ToString() const;
+    virtual String ToString() const;
 
     /// Determines whether the specified object is equal to the current object
     virtual bool Equals(const BaseObject* object) const;
 
-    /// Returns a hash code for the current object
-    virtual uint32_t GetHashCode() const;
-
     NS_DECLARE_STATIC_REFLECTION(BaseObject, NoParent)
 };
-
-#ifdef NS_TRACK_COMPONENTS
-NS_CORE_KERNEL_API void TrackObjectAlloc(const char* id);
-NS_CORE_KERNEL_API void TrackObjectDealloc(const char* id);
-#endif
 
 }
 

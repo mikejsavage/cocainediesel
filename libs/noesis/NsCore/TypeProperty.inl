@@ -1,20 +1,21 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #488]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 #include <NsCore/Ptr.h>
 #include <NsCore/Error.h>
-#include <NsCore/TypeOfForward.h>
 
 
 namespace Noesis
 {
 
+template<class T> struct TypeOfHelper;
+template<class T> const typename TypeOfHelper<T>::ReturnType* TypeOf();
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-inline NsSymbol TypeProperty::GetName() const
+inline Symbol TypeProperty::GetName() const
 {
     return mName;
 }

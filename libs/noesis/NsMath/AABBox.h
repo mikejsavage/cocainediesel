@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #514]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -12,120 +11,88 @@
 #include <NsCore/Noesis.h>
 #include <NsMath/Vector.h>
 #include <NsMath/Transform.h>
-#include <NsMath/VectorMathApi.h>
 
 
 namespace Noesis
 {
 
-template<class T> class AABBox2;
-typedef AABBox2<float> AABBox2f;
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// 2D Axis Aligned Bounding Box
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T> class AABBox2
+class AABBox2
 {
 public:
-    /// Default constructor. An empty box is created
-    inline AABBox2();
-    
-    /// Copy constructor
-    inline AABBox2(const AABBox2& v) = default;
-    template<class S> inline AABBox2(const AABBox2<S>& v);
-    
-    /// Constructor from minX, minY, maxX, maxY
-    inline AABBox2(float minX, float minY, float maxX, float maxY);
+    /// Constructors
+    AABBox2();
+    AABBox2(const AABBox2& v) = default;
+    AABBox2(float minX, float minY, float maxX, float maxY);
+    AABBox2(const Vector2& min, const Vector2& max);
+    AABBox2(const Vector2& center, float halfSide);
 
-    /// Constructor from min, max
-    inline AABBox2(const Vector2<T>& min, const Vector2<T>& max);
-    
-    /// Constructor from center and side. A bounding box with size 2*halfSide will be constructed
-    inline AABBox2(const Vector2<T>& center, T halfSide);
+    /// Resets to empty bounding box
+    void Reset();
 
-    /// Assignment
-    inline AABBox2& operator=(const AABBox2& v) = default;
-    template<class S> inline AABBox2& operator=(const AABBox2<S>& v);
-
-    /// Reset to an empty bounding box
-    inline void Reset();
-
-    /// Accessors
-    //@{
-    /// \return ith corner point
+    /// Returns ith corner point
     ///         X   Y
     /// [0] : (min,min)
     /// [1] : (max,min)
     /// [2] : (min,max)
     /// [3] : (max,max)
-    inline Vector2<T> operator[](uint32_t i) const;
+    Vector2 operator[](uint32_t i) const;
 
-    inline void SetMin(const Vector2<T>& min);
-    inline const Vector2<T>& GetMin() const;
-    inline void SetMax(const Vector2<T>& max);
-    inline const Vector2<T>& GetMax() const;
-    //@}
+    /// Returns the minimal extents of the box
+    Vector2& Min();
+    const Vector2& Min() const;
 
-    /// \return the center position of the box
-    inline Vector2<T> GetCenter() const;
+    /// Returns the maximal extents of the box
+    Vector2& Max();
+    const Vector2& Max() const;
 
-    /// \return the diagonal vector of the box
-    inline Vector2<T> GetDiagonal() const;
+    /// Returns the center position of the box
+    Vector2 Center() const;
 
-    /// In-Place operators
-    //@{
-    /// Operator to expand the bounding box to fit a given box
-    inline AABBox2& operator+=(const AABBox2& box);
-    /// Operator to expand the box to fit the given point
-    inline AABBox2& operator+=(const Vector2<T>& point);
+    /// Returns the diagonal vector of the box
+    inline Vector2 Diagonal() const;
+
+    /// Expands bounding box to fit a given box
+    AABBox2& operator+=(const AABBox2& box);
+
+    /// Expands bounding box to fit the given point
+    AABBox2& operator+=(const Vector2& point);
+
     /// Scales the box. The origin of the scale if the center of the box. 
-    inline AABBox2& Scale(T s);
-    //@}
+    AABBox2& Scale(float s);
 
-    ///// Logic operators
-    //@{
-    inline bool operator==(const AABBox2& box) const;
-    inline bool operator!=(const AABBox2& box) const;
-    //@}
+    /// Logic operators
+    bool operator==(const AABBox2& box) const;
+    bool operator!=(const AABBox2& box) const;
 
-    /// Check if the bounding box is empty
-    inline bool IsEmpty() const;
+    /// Checks if the bounding box is empty
+    bool Empty() const;
 
 private:
-    template<class TT> friend class AABBox2;
-    template<class TT> friend const AABBox2<TT> operator*(const AABBox2<TT>& box, 
-        const Transform2<TT>& mtx);
-    
-    Vector2<T> mMin, mMax;
+    Vector2 mMin, mMax;
 };
 
-/// Binary operators
-//@{
-template<class T> const AABBox2<T> operator+(const AABBox2<T>& box0, const AABBox2<T>& box1);
-template<class T> const AABBox2<T> operator+(const AABBox2<T>& box, const Vector2<T>& point);
-template<class T> const AABBox2<T> operator+(const Vector2<T>& point, const AABBox2<T>& box);
+/// Operators
+const AABBox2 operator+(const AABBox2& box0, const AABBox2& box1);
+const AABBox2 operator+(const AABBox2& box, const Vector2& point);
+const AABBox2 operator+(const Vector2& point, const AABBox2& box);
+const AABBox2 operator*(const AABBox2& box, const Transform2& mtx);
+const AABBox2 operator*(const AABBox2& box, float s);
+const AABBox2 operator*(float s, const AABBox2& box);
 
-// Transform a AABBox by a matrix returning a AABBox
-template<class T> const AABBox2<T> operator*(const AABBox2<T>& box, const Transform2<T>& mtx);
+/// Checks if specified point is inside the bounding box
+bool Inside(const AABBox2& box, const Vector2& p);
 
-/// Scale operators
-template<class T> const AABBox2<T> operator*(const AABBox2<T>& box, T s);
-template<class T> const AABBox2<T> operator*(T s, const AABBox2<T>& box);
-//@}
+///  Checks if given bounding boxes overlap
+bool BoxesIntersect(const AABBox2& box0, const AABBox2& box1);
 
-/// Function to check if a point is inside a bounding box
-template<class T> bool Inside(const AABBox2<T>& box, const Vector2<T>& p);
-
-/// Function to check if two bounding boxes overlap
-template<class T> bool BoxesIntersect(const AABBox2<T>& box0, const AABBox2<T>& box1);
-
-/// Returns the intersection of two boxes
-template<class T> AABBox2<T> Intersect(const AABBox2<T>& box0, const AABBox2<T>& box1);
+/// Returns the intersection of given boxes
+AABBox2 Intersect(const AABBox2& box0, const AABBox2& box1);
 
 }
 
-// Inline include
 #include <NsMath/AABBox.inl>
 
 #endif

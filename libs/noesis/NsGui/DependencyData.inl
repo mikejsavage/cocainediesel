@@ -4,9 +4,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-#include <NsCore/MemProfiler.h>
-
-
 namespace Noesis
 {
 
@@ -50,15 +47,13 @@ void DependencyData::AddOwner(const DependencyProperty*& dp, const char* name,
     static_assert(!IsInterface<RemovePtr<T>>::Result, "Interface not supported in DPs");
     const Type* type = TypeOf<RemovePtr<T>>();
 
-    NS_ASSERT(!String::IsNullOrEmpty(name));
-    NS_ASSERT(dp == 0 || dp->GetName() == NsSymbol(name));
+    NS_ASSERT(!StrIsNullOrEmpty(name));
+    NS_ASSERT(dp == 0 || dp->GetName() == Symbol(name));
     NS_ASSERT(dp == 0 || type == dp->GetType());
-
-    NS_PROFILE_MEM("Gui/DependencyProperty");
 
     if (source != 0)
     {
-        NS_ASSERT(source->GetName() == NsSymbol(name));
+        NS_ASSERT(source->GetName() == Symbol(name));
         NS_ASSERT(type == source->GetType());
         dp = InsertProperty(source);
     }
@@ -94,17 +89,14 @@ void DependencyData::OverrideMetadata(const DependencyProperty*& dp, const char*
     static_assert(!IsInterface<RemovePtr<T>>::Result, "Interface not supported in DPs");
     const Type* type = TypeOf<RemovePtr<T>>();
 
-    if (CheckMetadata(name, metadata))
-    {
-        return;
-    }
-
-    NS_PROFILE_MEM("Gui/DependencyProperty");
+    NS_CHECK(metadata != nullptr,
+        "Can't override dependency property '%s.%s', metadata is null",
+        mOwnerType->GetName(), name);
 
     if (dp != 0)
     {
-        NS_ASSERT(!String::IsNullOrEmpty(name));
-        NS_ASSERT(dp->GetName() == NsSymbol(name));
+        NS_ASSERT(!StrIsNullOrEmpty(name));
+        NS_ASSERT(dp->GetName() == Symbol(name));
         NS_ASSERT(type == dp->GetType());
     }
     else
@@ -128,12 +120,7 @@ void DependencyData::RegisterProperty(const DependencyProperty*& dp, const char*
     static_assert(!IsInterface<RemovePtr<T>>::Result, "Interface not supported in DPs");
     const Type* type = TypeOf<RemovePtr<T>>();
 
-    if (CheckMetadata(name, metadata, type))
-    {
-        return;
-    }
-
-    NS_PROFILE_MEM("Gui/DependencyProperty");
+    CheckMetadata(name, metadata, type);
 
     if (dp != 0)
     {

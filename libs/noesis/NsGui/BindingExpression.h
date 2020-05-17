@@ -21,7 +21,6 @@ namespace Noesis
 {
 
 NS_INTERFACE IValueConverter;
-NS_INTERFACE IResourceKey;
 NS_INTERFACE INameScope;
 class DependencyObject;
 class DependencyProperty;
@@ -105,7 +104,6 @@ private:
     // Checks if a converter is needed, creating one when required
     bool CheckConverter(const Type* sourceType, BaseComponent* sourceVal,
         const Type* targetType, BaseComponent* targetVal) const;
-    bool NeedsConverter(BaseComponent* value) const;
 
     void UpdateSourceInternal(const void* value) const;
     void TransferSourceValue(const void* value) const;
@@ -170,12 +168,12 @@ private:
         CollectionView* collection;
         const TypeProperty* property;
         const DependencyProperty* dp;
+        const char* key;
         int index;
-        Ptr<IResourceKey> key;
     };
 
     // List of objects to access final source property
-    NsVector<WeakPathElement> mPaths;
+    Vector<WeakPathElement> mPaths;
 
     // Effective binding mode (never set to Default because proper value is retrieved from metadata)
     BindingMode mEffectiveBindingMode;
@@ -183,12 +181,6 @@ private:
     // Value converter is used when source and target property types are different, or when set by
     // the user in the Converter field of the Binding class
     mutable Ptr<IValueConverter> mEffectiveConverter;
-
-    // The effective fallback value to assign in case of fail in the binding
-    Ptr<BaseComponent> mEffectiveFallback;
-
-    // The effective value to assign in case the final target value is null
-    Ptr<BaseComponent> mEffectiveTargetNull;
 
     // The effective UpdateSourceTrigger value to use
     UpdateSourceTrigger mEffectiveUpdateSourceTrigger;

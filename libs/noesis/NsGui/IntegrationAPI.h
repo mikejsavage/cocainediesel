@@ -1,4 +1,3 @@
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
@@ -10,37 +9,62 @@
 
 
 #include <NsCore/Noesis.h>
-#include <NsCore/Log.h>
-#include <NsCore/Error.h>
 #include <NsCore/Ptr.h>
-#include <NsCore/NSTLForwards.h>
+#include <NsCore/Init.h>
+#include <NsCore/Error.h>
+#include <NsCore/Log.h>
 #include <NsGui/CoreApi.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis
 {
 
 NS_INTERFACE IView;
-class BaseComponent;
+class Stream;
 class UIElement;
+class FontProvider;
+class XamlProvider;
+class BaseComponent;
+class TextureProvider;
 class FrameworkElement;
 class ResourceDictionary;
-class XamlProvider;
-class TextureProvider;
-class FontProvider;
-class Stream;
-struct MemoryCallbacks;
+enum Cursor: int32_t;
+enum FontWeight: int32_t;
+enum FontStyle: int32_t;
+enum FontStretch: int32_t;
+enum XamlDependencyType: int32_t;
 
 namespace GUI
 {
 
-/// Initialization passing error handler and optional logging handler and memory allocator
-/// This must be the first Noesis function invoked and Shutdown the last one
-/// For now, only a pair of Init() and Shutdown() is supported per application execution
-/// If passed error handler is null a default one that just redirect to log is used
-NS_GUI_CORE_API void Init(ErrorHandler errorHandler, LogHandler logHandler = 0,
-    const MemoryCallbacks* memoryCallbacks = 0);
+/// Installs custom assert handler. See 'NsCore/Error.h'
+/// Must be invoked before Noesis::GUI::Init()
+using Noesis::SetAssertHandler;
+
+/// Installs custom error handler. See 'NsCore/Error.h'
+/// Must be invoked before Noesis::GUI::Init()
+using Noesis::SetErrorHandler;
+
+/// Installs custom logging handler. See 'NsCore/Log.h'
+/// Must be invoked before Noesis::GUI::Init()
+using Noesis::SetLogHandler;
+
+/// Installs custom memory handlers. See 'NsCore/Memory.h'
+/// Must be invoked before Noesis::GUI::Init()
+using Noesis::SetMemoryCallbacks;
+
+/// Disables all connections from the remote Inspector tool
+/// Must be invoked before Noesis::GUI::Init()
+NS_GUI_CORE_API void DisableInspector();
+
+/// Returns whether the remote Inspector is currently connected
+NS_GUI_CORE_API bool IsInspectorConnected();
+
+/// Noesis Initialization. See 'NsCore/Init.h'
+using Noesis::Init;
+
+/// Noesis Shutdown. See 'NsCore/Init.h'
+using Noesis::Shutdown;
 
 /// Sets the provider in charge of loading XAML resources
 NS_GUI_CORE_API void SetXamlProvider(XamlProvider* provider);
@@ -51,9 +75,19 @@ NS_GUI_CORE_API void SetTextureProvider(TextureProvider* provider);
 /// Sets the provider in charge of loading font resources
 NS_GUI_CORE_API void SetFontProvider(FontProvider* provider);
 
-/// Sets a collection of application-scope resources, such as styles and brushes. Provides a
-/// simple way to support a consistent theme across your application
+/// Sets the family names to be used by the global font fallback mechanism. These fonts are used
+/// whenever the FontFamily of an element does not contain needed glyphs. Fallback sequence can
+/// specify font locations, for example { "./Fonts/#Pericles Light", "Tahoma", "Verdana" } 
+NS_GUI_CORE_API void SetFontFallbacks(const char** familyNames, uint32_t numFamilies);
+
+/// Sets default font properties to be used when not specified in an element
+NS_GUI_CORE_API void SetFontDefaultProperties(float size, FontWeight weight, FontStretch stretch,
+    FontStyle style);
+
+/// Sets a collection of application-scope resources, such as styles and brushes
+NS_GUI_CORE_API void LoadApplicationResources(const char* xaml);
 NS_GUI_CORE_API void SetApplicationResources(ResourceDictionary* resources);
+NS_GUI_CORE_API ResourceDictionary* GetApplicationResources();
 
 /// Callback invoked each time an element requests opening or closing the on-screen keyboard
 typedef void (*SoftwareKeyboardCallback)(void* user, UIElement* focused, bool open);
@@ -69,9 +103,9 @@ NS_GUI_CORE_API void SetOpenUrlCallback(void* user, OpenUrlCallback callback);
 NS_GUI_CORE_API void OpenUrl(const char* url);
 
 /// Callback for playing audio
-typedef void (*PlaySoundCallback)(void* user, const char* filename, float volume);
-NS_GUI_CORE_API void SetPlaySoundCallback(void* user, PlaySoundCallback callback);
-NS_GUI_CORE_API void PlaySound(const char* filename, float volume);
+typedef void (*PlayAudioCallback)(void* user, const char* filename, float volume);
+NS_GUI_CORE_API void SetPlayAudioCallback(void* user, PlayAudioCallback callback);
+NS_GUI_CORE_API void PlayAudio(const char* filename, float volume);
 
 /// Finds dependencies to other XAMLS and resources (fonts, textures, sounds...)
 typedef void (*XamlDependencyCallback)(void* user, const char* uri, XamlDependencyType type);
@@ -94,9 +128,6 @@ NS_GUI_CORE_API void LoadComponent(BaseComponent* component, const char* filenam
 
 /// Creates a view with the given root element
 NS_GUI_CORE_API Ptr<IView> CreateView(FrameworkElement* content);
-
-/// Frees allocated resources and shutdowns. Release all noesis objects before calling this
-NS_GUI_CORE_API void Shutdown();
 
 }
 

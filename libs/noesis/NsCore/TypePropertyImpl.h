@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #488]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -25,7 +24,7 @@ class TypePropertyOffset: public TypeProperty
 {
 public:
     /// Constructor
-    TypePropertyOffset(NsSymbol name, uint32_t offset);
+    TypePropertyOffset(Symbol name, uint32_t offset);
 
     /// From TypeProperty
     //@{
@@ -57,7 +56,7 @@ class TypePropertyArray: public TypeProperty
 {
 public:
     /// Constructor
-    TypePropertyArray(NsSymbol name, uint32_t offset);
+    TypePropertyArray(Symbol name, uint32_t offset);
 
     /// From TypeProperty
     //@{
@@ -112,7 +111,7 @@ public:
     typedef typename Helper::SetterFn SetterFn;
 
     /// Constructor
-    TypePropertyFunction(NsSymbol name, GetterFn getter, SetterFn setter);
+    TypePropertyFunction(Symbol name, GetterFn getter, SetterFn setter);
 
     /// From TypeProperty
     //@{
@@ -143,7 +142,7 @@ class TypePropertyOffsetEvent: public TypeProperty
 {
 public:
     /// Constructor
-    inline TypePropertyOffsetEvent(NsSymbol name, uint32_t offset);
+    inline TypePropertyOffsetEvent(Symbol name, uint32_t offset);
 
     /// From TypeProperty
     //@{
@@ -175,7 +174,7 @@ class TypePropertyFunctionEvent: public TypeProperty
 public:
     /// Constructor
     typedef void* (C::*GetterFn)();
-    inline TypePropertyFunctionEvent(NsSymbol name, GetterFn getter);
+    inline TypePropertyFunctionEvent(Symbol name, GetterFn getter);
 
     /// From TypeProperty
     //@{

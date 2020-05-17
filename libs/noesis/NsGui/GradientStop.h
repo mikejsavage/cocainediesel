@@ -48,7 +48,7 @@ public:
 
     /// From BaseObject
     //@{
-    NsString ToString() const override;
+    String ToString() const override;
     //@}
 
 public:

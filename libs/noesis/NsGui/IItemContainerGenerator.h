@@ -10,7 +10,6 @@
 
 #include <NsCore/Noesis.h>
 #include <NsCore/Interface.h>
-#include <NsCore/NSTLForwards.h>
 #include <NsCore/ReflectionDeclare.h>
 
 
@@ -58,32 +57,16 @@ enum GeneratorDirection
 ///  - To generate the items after the element with index k, specify position (k, 0) and
 ///     direction Forward.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-struct NS_GUI_CORE_API GeneratorPosition
+struct GeneratorPosition
 {
     /// Index, with respect to realized elements.  The special value -1 refers to a fictitious
     /// element at the beginning or end of the the list
     int index;
+
     /// Offset, with respect to unrealized items near the indexed element. An offset of 0 refers to
     /// the indexed element itself, an offset of 1 refers to the next (unrealized) item, and an
     /// offset of -1 refers to the previous item
     int offset;
-
-    GeneratorPosition();
-    GeneratorPosition(int i, int o);
-
-    /// Gets duration as a string
-    NsString ToString() const;
-
-    /// Returns a hash code
-    uint32_t GetHashCode() const;
-
-    /// Operators
-    //@{
-    bool operator==(const GeneratorPosition& other) const;
-    bool operator!=(const GeneratorPosition& other) const;
-    //@}
-
-    NS_DECLARE_REFLECTION(GeneratorPosition, NoParent)
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

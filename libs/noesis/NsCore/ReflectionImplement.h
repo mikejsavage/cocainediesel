@@ -8,6 +8,12 @@
 #define __CORE_REFLECTIONIMPLEMENT_H__
 
 
+#include <NsCore/Noesis.h> 
+#include <NsCore/Symbol.h>
+#include <NsCore/Reflection.h>
+#include <NsCore/TypeClassCreator.h>
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Shortcuts for defining reflection members
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -26,17 +32,25 @@
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Implements reflection for a class outside class definition
+/// Implements reflection for a class. This is the corresponding macro to NS_DECLARE_REFLECTION that
+/// is used in the implementation file. Note that name, the second paremeter, is optional.
+///
+///  NS_IMPLEMENT_REFLECTION(ViewModel, "MyApp.ViewModel")
+///  {
+///     NsProp("Start", &ViewModel::GetStart);
+///     NsProp("Settings", &ViewModel::GetSettings);
+///     NsProp("Exit", &ViewModel::GetExit);
+///  }
+///
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-#define NS_IMPLEMENT_REFLECTION(classType) \
+#define NS_IMPLEMENT_REFLECTION2(classType, name) \
 const Noesis::TypeClass* classType::StaticGetClassType(Noesis::TypeTag<classType>*)\
 {\
     static const Noesis::TypeClass* type;\
 \
     if (NS_UNLIKELY(type == 0))\
     {\
-        type = static_cast<const Noesis::TypeClass*>(Noesis::TypeCreate::Create(\
-            NS_TYPEID(classType),\
+        type = static_cast<const Noesis::TypeClass*>(Noesis::Reflection::RegisterType(name,\
             Noesis::TypeClassCreator::Create<SelfClass>,\
             Noesis::TypeClassCreator::Fill<SelfClass, ParentClass>));\
     }\
@@ -60,43 +74,13 @@ struct classType::Rebind_ \
 template <class VOID_> \
 NS_COLD_FUNC void classType::StaticFillClassType(Noesis::TypeClassCreator& helper)
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Implements reflection for a templated class with one template param outside class definition
-////////////////////////////////////////////////////////////////////////////////////////////////////
-#define NS_IMPLEMENT_REFLECTION_T1(classType) \
-template<class T1>\
-const Noesis::TypeClass* classType<T1>::StaticGetClassType(Noesis::TypeTag<classType>*)\
-{\
-    static const Noesis::TypeClass* type;\
-\
-    if (NS_UNLIKELY(type == 0))\
-    {\
-        type = static_cast<const Noesis::TypeClass*>(Noesis::TypeCreate::Create(\
-            NS_TYPEID(classType<T1>),\
-            Noesis::TypeClassCreator::Create<SelfClass>,\
-            Noesis::TypeClassCreator::Fill<SelfClass, ParentClass>));\
-    }\
-\
-    return type;\
-}\
-\
-template<class T1>\
-const Noesis::TypeClass* classType<T1>::GetClassType() const\
-{\
-    return StaticGetClassType((Noesis::TypeTag<classType>*)nullptr);\
-}\
-\
-template<class T1>\
-struct classType<T1>::Rebind_ \
-{ \
-    NS_DISABLE_COPY(Rebind_) \
-    NS_FORCE_INLINE Rebind_(Noesis::TypeClassCreator& helper_): helper(helper_) {} \
-    template<class IFACE> NS_FORCE_INLINE void Impl() { helper.Impl<classType, IFACE>(); } \
-    Noesis::TypeClassCreator& helper; \
-}; \
-\
-template<class T1> template<class VOID_> \
-NS_COLD_FUNC void classType<T1>::StaticFillClassType(Noesis::TypeClassCreator& helper)
+#define NS_IMPLEMENT_REFLECTION1(classType) NS_IMPLEMENT_REFLECTION2(classType, #classType)
+
+#define NS_IMPLEMENT_REFLECTION_EXPAND(x) x
+#define NS_IMPLEMENT_REFLECTION_GET_OVERLOAD(_1, _2, MACRO, ...) MACRO
+#define NS_IMPLEMENT_REFLECTION(...) NS_IMPLEMENT_REFLECTION_EXPAND( \
+    NS_IMPLEMENT_REFLECTION_GET_OVERLOAD(__VA_ARGS__, NS_IMPLEMENT_REFLECTION2, \
+    NS_IMPLEMENT_REFLECTION1)(__VA_ARGS__))
 
 // Supress clang "-Winconsistent-missing-override" this way because push/pop is not working
 #ifdef __clang__
@@ -104,9 +88,18 @@ NS_COLD_FUNC void classType<T1>::StaticFillClassType(Noesis::TypeClassCreator& h
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Implements reflection for a class inside class definition (templates must use this one)
+/// Instead of using the pair of macros NS_DECLARE_REFLECTION and NS_IMPLEMENT_REFLECTION, this
+/// single macro, NS_IMPLEMENT_INLINE_REFLECTION, can be used for the same purpose. Its usage is not
+/// recommended but in cases with no alternative like, for example, with templated classes this
+/// macro can be used inlined in the class header. Note that name, the third paremeter, is optional.
+///
+///  NS_INTERFACE IList: public Interface
+///  {
+///      NS_IMPLEMENT_INLINE_REFLECTION_(IList, Interface, "IList")
+///  };
+///
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-#define NS_IMPLEMENT_INLINE_REFLECTION(classType, parentType) \
+#define NS_IMPLEMENT_INLINE_REFLECTION3(classType, parentType, name) \
 public:\
     static const Noesis::TypeClass* StaticGetClassType(Noesis::TypeTag<classType>*)\
     {\
@@ -114,8 +107,7 @@ public:\
 \
         if (NS_UNLIKELY(type == 0))\
         {\
-            type = static_cast<const Noesis::TypeClass*>(Noesis::TypeCreate::Create(\
-                NS_TYPEID(classType),\
+            type = static_cast<const Noesis::TypeClass*>(Noesis::Reflection::RegisterType(name,\
                 Noesis::TypeClassCreator::Create<SelfClass>,\
                 Noesis::TypeClassCreator::Fill<SelfClass, ParentClass>));\
         }\
@@ -145,12 +137,14 @@ private:\
     template <class VOID_> \
     NS_COLD_FUNC static void StaticFillClassType(Noesis::TypeClassCreator& helper)
 
+#define NS_IMPLEMENT_INLINE_REFLECTION2(classType, parentType) \
+    NS_IMPLEMENT_INLINE_REFLECTION3(classType, parentType, #classType)
 
-#include <NsCore/Noesis.h> 
-#include <NsCore/CompilerTools.h>
-#include <NsCore/TypeCreate.h>
-#include <NsCore/TypeClassCreator.h>
-#include <NsCore/TypeOf.h>
+#define NS_IMPLEMENT_INLINE_REFLECTION_EXPAND(x) x
+#define NS_IMPLEMENT_INLINE_REFLECTION_GET_OVERLOAD(_1, _2, _3, MACRO, ...) MACRO
+#define NS_IMPLEMENT_INLINE_REFLECTION(...) NS_IMPLEMENT_INLINE_REFLECTION_EXPAND( \
+    NS_IMPLEMENT_INLINE_REFLECTION_GET_OVERLOAD(__VA_ARGS__, NS_IMPLEMENT_INLINE_REFLECTION3, \
+    NS_IMPLEMENT_INLINE_REFLECTION2)(__VA_ARGS__))
 
 
 #endif

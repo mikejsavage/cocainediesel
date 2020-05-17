@@ -26,11 +26,12 @@ struct NS_GUI_CORE_API Element
 {
     /// Dependency properties
     //@{
-    static const DependencyProperty* ProjectionProperty;
+    static const DependencyProperty* Transform3DProperty;
     static const DependencyProperty* IsFocusEngagedProperty;
     static const DependencyProperty* IsFocusEngagementEnabledProperty;
-    static const DependencyProperty* SupportsFocusEngagementProperty;
     static const DependencyProperty* PPAAModeProperty;
+    static const DependencyProperty* PPAAInProperty;
+    static const DependencyProperty* PPAAOutProperty;
     //@}
 
     NS_DECLARE_REFLECTION(Element, NoParent)

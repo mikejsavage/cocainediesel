@@ -9,17 +9,30 @@
 
 
 #include <NsCore/Noesis.h>
+#include <NsCore/TypeEnum.h>
 
 
 namespace Noesis
 {
-class TypeEnum;
-template<class EnumT> class TypeEnumCreator;
+template<class T> class TypeEnumCreator;
 template<class T> struct TypeEnumFiller;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Declares an enum to be used in reflection.
+/// Declares reflection for enumerations. This macro is intended to be used in the header file
+/// with the correponding NS_IMPLEMENT_REFLECTION_ENUM in the implementation file.
+///
+///  namespace Scoreboard
+///  {
+///      enum class Team
+///      {
+///          Alliance,
+///          Horde,
+///      };
+///  }
+///
+///  NS_DECLARE_REFLECTION_ENUM(Scoreboard::Team)
+///
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined(NS_COMPILER_GCC) && NS_COMPILER_VERSION < 7000
 

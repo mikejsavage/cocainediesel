@@ -12,15 +12,22 @@ namespace Noesis
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T>
-TypeEnumImpl<T>::TypeEnumImpl(const TypeInfo& typeInfo): TypeEnum(typeInfo)
+TypeEnumImpl<T>::TypeEnumImpl(Symbol name): TypeEnum(name)
 {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T>
-Ptr<BoxedValue> TypeEnumImpl<T>::GetValueObject(NsSymbol id) const
+bool TypeEnumImpl<T>::GetValueObject(Symbol name, Ptr<BoxedValue>& value) const
 {
-    return Boxing::Box<T>(static_cast<T>(GetValue(id)));
+    int v;
+    if (HasName(name, v))
+    {
+        value = Boxing::Box<T>(static_cast<T>(v));
+        return true;
+    }
+
+    return false;
 }
 
 }

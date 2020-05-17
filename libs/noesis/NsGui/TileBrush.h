@@ -11,13 +11,17 @@
 #include <NsCore/Noesis.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/Brush.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis
 {
 
 struct Rect;
+enum AlignmentX: int32_t;
+enum AlignmentY: int32_t;
+enum Stretch: int32_t;
+enum TileMode: int32_t;
+enum BrushMappingMode: int32_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Describes a way to paint a region by using one or more tiles.

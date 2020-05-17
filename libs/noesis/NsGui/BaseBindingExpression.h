@@ -11,6 +11,7 @@
 #include <NsCore/Noesis.h>
 #include <NsGui/Expression.h>
 #include <NsGui/CoreApi.h>
+#include <NsGui/UpdateSourceTrigger.h>
 #include <NsCore/ReflectionDeclare.h>
 #include <NsCore/Ptr.h>
 
@@ -21,6 +22,7 @@ namespace Noesis
 class BaseBinding;
 class DependencyObject;
 class DependencyProperty;
+enum BindingMode: int32_t;
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
@@ -61,6 +63,9 @@ public:
     virtual void UpdateSource() const = 0;
 
 protected:
+    void ResolveEffectiveDefaultValues(BindingMode& mode, UpdateSourceTrigger& trigger);
+
+protected:
     // Base binding which originated the expression
     Ptr<BaseBinding> mBinding;
 
@@ -69,6 +74,12 @@ protected:
 
     // Dependency property where the expression is applied
     const DependencyProperty* mTargetProperty;
+
+    // The effective fallback value to assign in case of fail in the binding
+    Ptr<BaseComponent> mEffectiveFallback;
+
+    // The effective value to assign in case the final target value is null
+    Ptr<BaseComponent> mEffectiveTargetNull;
 
     NS_DECLARE_REFLECTION(BaseBindingExpression, Expression)
 };

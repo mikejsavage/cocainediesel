@@ -8,17 +8,15 @@
 #define __CORE_REFLECTIONDECLARE_H__
 
 
-#include <NsCore/CompilerTools.h>
+#include <NsCore/Noesis.h>
 
 
 namespace Noesis
 {
-
 class TypeClass;
 class TypeClassCreator;
 typedef void NoParent;
 template<class T> struct TypeTag;
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -43,7 +41,17 @@ private:\
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Declares reflection for a class (interface, component or simple class/struct)
+/// Declares reflection for a class. This macro is intended to be used inlined in the declaration of
+/// the class with the corresponding NS_IMPLEMENT_REFLECTION macro in the implementation file.
+///
+///  class Button: public BaseButton
+///  {
+///  public:
+///
+///  private:
+///      NS_DECLARE_REFLECTION(Button, BaseButton)
+///  };
+///
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 #define NS_DECLARE_REFLECTION(classType, parentType) \
 public:\

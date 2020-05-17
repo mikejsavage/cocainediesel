@@ -21,7 +21,7 @@ namespace Noesis
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Indicates the type of dedependency found in a xaml
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum XamlDependencyType
+enum XamlDependencyType: int32_t
 {
     /// Identifies Xamls, Audios, Textures and Uri properties
     XamlDependencyType_Filename,
@@ -34,7 +34,7 @@ enum XamlDependencyType
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Behavior for filtering visuals while hit testing
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum HitTestFilterBehavior
+enum HitTestFilterBehavior: int32_t
 {
     /// Do not hit test against current visual or its children
     HitTestFilterBehavior_ContinueSkipSelfAndChildren = 0,
@@ -55,7 +55,7 @@ enum HitTestFilterBehavior
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Behavior when a positive hit occurs during hit testing
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum HitTestResultBehavior
+enum HitTestResultBehavior: int32_t
 {
     /// Stop any further hit testing and return
     HitTestResultBehavior_Stop,
@@ -67,7 +67,7 @@ enum HitTestResultBehavior
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Describes how content is positioned horizontally in a container.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum AlignmentX
+enum AlignmentX: int32_t
 {
     /// The contents align toward the left of the container.
     AlignmentX_Left,
@@ -82,7 +82,7 @@ enum AlignmentX
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Describes how content is positioned vertically in a container.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum AlignmentY
+enum AlignmentY: int32_t
 {
     /// The contents align toward the upper edge of the container.
     AlignmentY_Top,
@@ -95,7 +95,7 @@ enum AlignmentY
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum AutoToolTipPlacement
+enum AutoToolTipPlacement: int32_t
 {
     /// No automatic ToolTip 
     AutoToolTipPlacement_None,
@@ -108,7 +108,7 @@ enum AutoToolTipPlacement
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum BindingMode
+enum BindingMode: int32_t
 {
     /// Uses the default Mode value of the binding target. The default value varies for each 
     /// dependency property. In general, user-editable control properties, such as those of text 
@@ -147,7 +147,7 @@ enum BindingMode
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Specifies which algorithm is used to scale bitmap images.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum BitmapScalingMode
+enum BitmapScalingMode: int32_t
 {
     /// Use the default bitmap scaling mode, which is HighQuality
     /// NOTE: In WPF the default value is LowQuality/Linear
@@ -177,7 +177,7 @@ enum BitmapScalingMode
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Specifies the coordinate system used by a Brush. 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum BrushMappingMode
+enum BrushMappingMode: int32_t
 {
     /// The coordinate system is not relative to a bounding box. Values are interpreted directly in 
     /// local space.
@@ -191,7 +191,7 @@ enum BrushMappingMode
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum CharacterCasing
+enum CharacterCasing: int32_t
 {
     /// Characters typed into a TextBox are not converted. 
     CharacterCasing_Normal,
@@ -206,7 +206,7 @@ enum CharacterCasing
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Specifies when the Click event should fire.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum ClickMode
+enum ClickMode: int32_t
 {
     /// The Click event should fire when the mouse hovers over a control
     ClickMode_Hover,
@@ -221,7 +221,7 @@ enum ClickMode
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Determines how the colors in a gradient are interpolated. 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum ColorInterpolationMode 
+enum ColorInterpolationMode: int32_t
 {
     /// Colors are interpolated in the scRGB color space
     ColorInterpolationMode_ScRgbLinearInterpolation, 
@@ -233,7 +233,7 @@ enum ColorInterpolationMode
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Cursor. Specifies default cursor types.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum Cursor
+enum Cursor: int32_t
 {
     /// No cursor
     Cursor_None = 0,
@@ -305,7 +305,7 @@ enum Cursor
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Dock. Specifies the Dock position of a child element that is inside a DockPanel.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum Dock
+enum Dock: int32_t
 {
     /// A child element that is positioned on the left side of the DockPanel
     Dock_Left,
@@ -323,7 +323,7 @@ enum Dock
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// ExpandDirection. Specifies the direction in which an Expander control opens.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum ExpandDirection
+enum ExpandDirection: int32_t
 {
     /// The Expander control opens down
     ExpandDirection_Down,
@@ -342,7 +342,7 @@ enum ExpandDirection
 /// Specifies how the intersecting areas of PathFigure objects contained in a Geometry are combined 
 /// to form the area of the Geometry.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum FillRule
+enum FillRule: int32_t
 {
     /// Rule that determines whether a point is in the fill region by drawing a ray from that point 
     /// to infinity in any direction and counting the number of path segments within the given 
@@ -362,7 +362,7 @@ enum FillRule
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// FlowDirection. Specify the content flow direction for text and UI elements
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum FlowDirection
+enum FlowDirection: int32_t
 {
     /// Indicates that content should flow from left to right. 
     FlowDirection_LeftToRight,
@@ -374,7 +374,7 @@ enum FlowDirection
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Specifies the different methods by which two geometries can be combined. 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum GeometryCombineMode
+enum GeometryCombineMode: int32_t
 {
     /// The two regions are combined by taking the union of both. The resulting geometry is 
     /// geometry A + geometry B. 
@@ -397,7 +397,7 @@ enum GeometryCombineMode
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Specifies how to draw the gradient outside a gradient brush's gradient vector or space.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum GradientSpreadMethod
+enum GradientSpreadMethod: int32_t
 {
     /// Fill the remaining space with boundary colors (default)
     GradientSpreadMethod_Pad,
@@ -413,7 +413,7 @@ enum GradientSpreadMethod
 /// Indicates where an element should be displayed on the horizontal axis relative to the
 /// allocated layout slot of the parent element.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum HorizontalAlignment
+enum HorizontalAlignment: int32_t
 {
     /// Element aligned to the left of the layout slot for the parent
     HorizontalAlignment_Left,
@@ -431,7 +431,7 @@ enum HorizontalAlignment
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Specifies the scope which modifies how input from alternative input methods is interpreted.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum InputScope
+enum InputScope: int32_t
 {
     /// The default handling of input commands
     InputScope_Default,
@@ -591,7 +591,7 @@ enum InputScope
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum KeyboardNavigationMode
+enum KeyboardNavigationMode: int32_t
 {
     /// Each element receives keyboard focus, as long as it is a navigation stop. Navigation leaves
     /// the containing element when an edge is reached. 
@@ -620,7 +620,7 @@ enum KeyboardNavigationMode
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum ListSortDirection
+enum ListSortDirection: int32_t
 {
     ListSortDirection_Ascending,
     ListSortDirection_Descending
@@ -629,7 +629,7 @@ enum ListSortDirection
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// MenuItemRole. Defines the different roles that a MenuItem can have.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum MenuItemRole
+enum MenuItemRole: int32_t
 {
     /// Top-level menu item that can invoke commands
     MenuItemRole_TopLevelItem,
@@ -647,7 +647,7 @@ enum MenuItemRole
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Defines the different orientations that a control or layout can have.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum Orientation
+enum Orientation: int32_t
 {
     /// Control or layout should be horizontally oriented.   
     Orientation_Horizontal,
@@ -657,7 +657,7 @@ enum Orientation
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum OverflowMode
+enum OverflowMode: int32_t
 {
     /// Item moves between the main panel and overflow panel, depending on the available space.  
     OverflowMode_AsNeeded,
@@ -672,7 +672,7 @@ enum OverflowMode
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// PenLineCap. Describes the shape at the end of a line or segment. 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum PenLineCap
+enum PenLineCap: int32_t
 {
     /// A cap that does not extend past the last point of the line. Comparable to no line cap
     PenLineCap_Flat,
@@ -691,7 +691,7 @@ enum PenLineCap
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// PenLineJoin. Describes the shape that joins two lines or segments.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum PenLineJoin
+enum PenLineJoin: int32_t
 {
     /// Regular angular vertices
     PenLineJoin_Miter,
@@ -706,7 +706,7 @@ enum PenLineJoin
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// PlacementMode. Describes the placement of where a Popup control appears on the screen.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum PlacementMode
+enum PlacementMode: int32_t
 {
     /// A position of the Popup control relative to the upper-left corner of the screen and at an
     /// offset that is defined by the HorizontalOffset and VerticalOffset property values. If the
@@ -792,7 +792,7 @@ enum PlacementMode
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// PopupAnimation. Represents a pop-up window that has content.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum PopupAnimation
+enum PopupAnimation: int32_t
 {
     /// The Popup control appears without animation
     PopupAnimation_None,
@@ -812,7 +812,7 @@ enum PopupAnimation
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum RelativeSourceMode
+enum RelativeSourceMode: int32_t
 {
     /// Allows you to bind the previous data item (not that control that contains the data item) 
     /// in the list of data items being displayed
@@ -834,7 +834,7 @@ enum RelativeSourceMode
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum SelectionMode
+enum SelectionMode: int32_t
 {
     /// The user can select only one item at a time. This is the default mode.
     SelectionMode_Single, 
@@ -847,7 +847,7 @@ enum SelectionMode
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Specifies the visibility of a ScrollBar for scrollable content.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum ScrollBarVisibility
+enum ScrollBarVisibility: int32_t
 {
     /// A ScrollBar does not appear even when the viewport cannot display all of the content. The
     /// dimension of the content is set to the corresponding dimension of the ScrollViewer parent.
@@ -876,7 +876,7 @@ enum ScrollBarVisibility
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Describes how content is resized to fill its allocated space.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum Stretch
+enum Stretch: int32_t
 {
     /// The content preserves its original size.  
     Stretch_None,
@@ -897,7 +897,7 @@ enum Stretch
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Describes how scaling applies to content and restricts scaling to named axis types.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum StretchDirection
+enum StretchDirection: int32_t
 {
     ///  The content scales upward only when it is smaller than the parent. If the content is
     /// larger, no scaling downward is performed
@@ -914,7 +914,7 @@ enum StretchDirection
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Specifies the text decoration to apply to the text
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum TextDecorations
+enum TextDecorations: int32_t
 {
     /// Indicates no text
     TextDecorations_None,
@@ -935,7 +935,7 @@ enum TextDecorations
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Specifies the placement of a TickBar with respect to the Track of a Slider.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum TickBarPlacement
+enum TickBarPlacement: int32_t
 {
     /// The tick bar is positioned to the left of the Track of the Slider
     TickBarPlacement_Left,
@@ -951,7 +951,7 @@ enum TickBarPlacement
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum TickPlacement
+enum TickPlacement: int32_t
 {
     /// No tick marks appear.
     TickPlacement_None,
@@ -969,7 +969,7 @@ enum TickPlacement
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Describes how a TileBrush paints tiles onto an output area.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum TileMode
+enum TileMode: int32_t
 {
     /// The base tile is drawn but not repeated. The remaining area is transparent  
     TileMode_None,
@@ -995,7 +995,7 @@ enum TileMode
 /// Indicates where an element should be displayed on the vertical axis relative to the
 /// allocated layout slot of the parent element.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum VerticalAlignment
+enum VerticalAlignment: int32_t
 {
     /// Element aligned to the top of the parent's layout slot
     VerticalAlignment_Top,
@@ -1013,7 +1013,7 @@ enum VerticalAlignment
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Specifies the display state of an element.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum Visibility
+enum Visibility: int32_t
 {
     /// Do not display the element, do not reserve space for it in layout
     Visibility_Collapsed,
@@ -1023,6 +1023,76 @@ enum Visibility
 
     /// Display the element
     Visibility_Visible
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Specifies the effects of a drag-and-drop operation.
+/// This enumaration allows a bitwise combination of its member values.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+enum DragDropEffects: int32_t
+{
+    /// A drop would not be allowed
+    DragDropEffects_None = 0,
+
+    /// A copy operation would be performed
+    DragDropEffects_Copy = 1,
+
+    /// A move operation would be performed
+    DragDropEffects_Move = 2,
+
+    /// A link from the dropped data to the original data would be established
+    DragDropEffects_Link = 4,
+
+    /// A drag scroll operation is about to occur or is occurring in the target
+    DragDropEffects_Scroll = (int)0x80000000,
+
+    /// All operation is about to occur data is copied or removed from the drag source, and
+    /// scrolled in the drop target
+    DragDropEffects_All = DragDropEffects_Copy | DragDropEffects_Move | DragDropEffects_Scroll
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Specifies the current state of the modifier keys (SHIFT, CTRL, and ALT), as well as the state of
+/// the mouse buttons.
+/// This enumaration allows a bitwise combination of its member values.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+enum DragDropKeyStates: int32_t
+{
+    /// No state set
+    DragDropKeyStates_None = 0,
+
+    /// The left mouse button
+    DragDropKeyStates_LeftMouseButton = 1,
+
+    /// The right mouse button
+    DragDropKeyStates_RightMouseButton = 2,
+
+    /// The SHIFT key
+    DragDropKeyStates_ShiftKey = 4,
+
+    /// The CTRL key
+    DragDropKeyStates_ControlKey = 8,
+
+    /// The middle mouse button
+    DragDropKeyStates_MiddleMouseButton = 16,
+
+    /// The ALT key
+    DragDropKeyStates_AltKey = 32
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Specifies how and if a drag-and-drop operation should continue.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+enum DragAction: int32_t
+{
+    /// The drag and drop can continue
+    DragAction_Continue = 0,
+
+    /// Drop operation should occur
+    DragAction_Drop = 1,
+
+    /// Drop operation is canceled
+    DragAction_Cancel = 2
 };
 
 }
@@ -1072,6 +1142,9 @@ NS_DECLARE_REFLECTION_ENUM_EXPORT(NS_GUI_CORE_API, Noesis::TickPlacement)
 NS_DECLARE_REFLECTION_ENUM_EXPORT(NS_GUI_CORE_API, Noesis::TileMode)
 NS_DECLARE_REFLECTION_ENUM_EXPORT(NS_GUI_CORE_API, Noesis::VerticalAlignment)
 NS_DECLARE_REFLECTION_ENUM_EXPORT(NS_GUI_CORE_API, Noesis::Visibility)
+NS_DECLARE_REFLECTION_ENUM_EXPORT(NS_GUI_CORE_API, Noesis::DragDropEffects)
+NS_DECLARE_REFLECTION_ENUM_EXPORT(NS_GUI_CORE_API, Noesis::DragDropKeyStates)
+NS_DECLARE_REFLECTION_ENUM_EXPORT(NS_GUI_CORE_API, Noesis::DragAction)
 
 
 #endif

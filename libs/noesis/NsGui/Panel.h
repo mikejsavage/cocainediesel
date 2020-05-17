@@ -149,7 +149,7 @@ private:
 
     Ptr<RectangleGeometry> mBackgroundGeometry;
 
-    typedef NsVector<uint32_t> ZOrderVector;
+    typedef Vector<uint32_t> ZOrderVector;
     ZOrderVector mZOrder;
 
     bool mValidZOrder;

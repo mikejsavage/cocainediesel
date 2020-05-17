@@ -129,7 +129,6 @@ protected:
     //@}
 
 private:
-    void ColumnsChanged(BaseComponent* sender, const NotifyCollectionChangedEventArgs& args);
     void EnsureColumns() const;
 
 private:

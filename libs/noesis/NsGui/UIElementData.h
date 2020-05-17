@@ -51,7 +51,7 @@ public:
     void AddEventOwner(const RoutedEvent*& event, const char* name, const RoutedEvent*& source);
 
     /// Finds a routed event for the owner type given its name
-    const RoutedEvent* FindEvent(NsSymbol name) const;
+    const RoutedEvent* FindEvent(Symbol name) const;
 
     /// Registers an event with a delegate to be executed in first place when the event is raised
     void RegisterEventHandler(const RoutedEvent* event, const EventHandler& handler,
@@ -66,10 +66,10 @@ private:
 private:
     friend class UIElementDataTest;
 
-    typedef NsHashMap<NsSymbol, Ptr<const RoutedEvent>> EventMap;
+    typedef HashMap<Symbol, Ptr<const RoutedEvent>> EventMap;
     EventMap mEvents;
 
-    typedef NsHashMap<const RoutedEvent*, EventHandlerInfo> EventHandlerMap;
+    typedef HashMap<const RoutedEvent*, EventHandlerInfo> EventHandlerMap;
     EventHandlerMap mEventHandlers;
 
     NS_DECLARE_REFLECTION(UIElementData, DependencyData)

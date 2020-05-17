@@ -10,7 +10,6 @@
 
 #include <NsCore/Noesis.h>
 #include <NsGui/TextElement.h>
-#include <NsGui/Enums.h>
 #include <NsCore/ReflectionDeclare.h>
 
 

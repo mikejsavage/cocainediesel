@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #1336]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -11,12 +10,9 @@
 
 #include <NsCore/Noesis.h>
 #include <NsCore/ReflectionImplement.h>
-#include <NsCore/IdOf.h>
-#include <NsCore/TypeId.h>
 #include <NsCore/AssignableFromType.h>
 #include <NsCore/NullableApi.h>
-
-#include <cstddef>
+#include <NsCore/IdOf.h>
 
 
 namespace Noesis
@@ -40,6 +36,8 @@ protected:
     NS_DECLARE_REFLECTION(BaseNullable, NoParent)
 };
 
+typedef decltype(nullptr) NullPtrT;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Represents a value type that can be assigned nullptr
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -48,7 +46,7 @@ template<class T> class Nullable: public BaseNullable
 public:
     /// Initializes a new null instance
     inline Nullable();
-    inline Nullable(std::nullptr_t);
+    inline Nullable(NullPtrT);
 
     /// Constructor from value
     inline Nullable(typename Param<T>::Type value);
@@ -63,7 +61,7 @@ public:
     inline Nullable<T>& operator=(typename Param<T>::Type value);
 
     /// Assigns from nullptr
-    inline Nullable<T>& operator=(std::nullptr_t);
+    inline Nullable<T>& operator=(NullPtrT);
 
     /// Explicit conversion to value
     inline explicit operator T() const;
@@ -74,22 +72,18 @@ public:
     inline bool operator!=(const Nullable<T>& other) const;
     inline bool operator==(typename Param<T>::Type value) const;
     inline bool operator!=(typename Param<T>::Type value) const;
-    inline bool operator==(std::nullptr_t) const;
-    inline bool operator!=(std::nullptr_t) const;
+    inline bool operator==(NullPtrT) const;
+    inline bool operator!=(NullPtrT) const;
     //@}
 
     /// Returns a string that represents the current nullable
-    NsString ToString() const;
-
-    /// Returns a hash code for the current nullable
-    uint32_t GetHashCode() const;
+    String ToString() const;
 
 private:
     T mValue;
 
-    NS_IMPLEMENT_INLINE_REFLECTION(Nullable, BaseNullable)
+    NS_IMPLEMENT_INLINE_REFLECTION(Nullable, BaseNullable, IdOf("Nullable<", IdOf<T>(), ">"))
     {
-        NsMeta<TypeId>(IdOf<T>("Nullable"));
         NsMeta<AssignableFromType>(TypeOf<T>());
     }
 };

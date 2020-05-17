@@ -33,8 +33,6 @@ namespace Noesis
 template<class T> class ObservableCollection: public BaseObservableCollection
 {
 public:
-    static_assert(IsDerived<T, BaseComponent>::Result, "T must inherit from BaseComponent");
-
     /// Gets the element at the specified index
     inline T* Get(uint32_t index) const;
 

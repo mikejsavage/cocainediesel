@@ -57,7 +57,7 @@ private:
     //@}
 
 private:
-    NsVector<Ptr<Clock> > mChildren;
+    Vector<Ptr<Clock>> mChildren;
 
     NS_DECLARE_REFLECTION(ClockGroup, Clock)
 };

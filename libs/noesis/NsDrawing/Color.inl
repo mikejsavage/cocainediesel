@@ -4,176 +4,187 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-#include <NsMath/Utils.h>
+#include <NsCore/Math.h>
 
 
 namespace Noesis
 {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Color::Color()
+inline Color::Color(): r(0.0f), g(0.0f), b(0.0f), a(1.0f)
 {
-    mColor[0] = 0.0f;
-    mColor[1] = 0.0f;
-    mColor[2] = 0.0f;
-    mColor[3] = 1.0f;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Color::Color(float red, float green, float blue, float alpha)
+inline Color::Color(float rr, float gg, float bb, float aa): r(rr), g(gg), b(bb), a(aa)
 {
-    mColor[0] = red;
-    mColor[1] = green;
-    mColor[2] = blue;
-    mColor[3] = alpha;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Color::Color(int red, int green, int blue, int alpha)
+inline Color::Color(int rr, int gg, int bb, int aa): r(rr / 255.0f), g(gg / 255.0f), b(bb / 255.0f),
+    a(aa / 255.0f)
 {
-    mColor[0] = red / 255.0f;
-    mColor[1] = green / 255.0f;
-    mColor[2] = blue / 255.0f;
-    mColor[3] = alpha / 255.0f;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Color::SetRed(float red)
+inline Color Color::FromPackedBGRA(uint32_t color)
 {
-    mColor[0] = red;
+    return Color(((color >> 16) & 255) / 255.0f, ((color >> 8) & 255) / 255.0f, 
+        (color & 255) / 255.0f, (color >> 24) / 255.0f);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Color::SetRed(int red)
+inline Color Color::FromPackedRGBA(uint32_t color)
 {
-    mColor[0] = red / 255.0f;
+    return Color((color & 255) / 255.0f, ((color >> 8) & 255) / 255.0f, 
+        ((color >> 16) & 255) / 255.0f, (color >> 24) / 255.0f);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Color::SetGreen(float green)
+inline float Gamma(float v)
 {
-    mColor[1] = green;
+    /// http://www.w3.org/Graphics/Color/sRGB.html
+    return v <= 0.00304f ? v * 12.92f : 1.055f * powf(v, 1.0f / 2.4f) - 0.055f;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Color::SetGreen(int green)
+inline float DeGamma(float v)
 {
-    mColor[1] = green / 255.0f;
+    /// http://www.w3.org/Graphics/Color/sRGB.html
+    return v <= 0.03928f ? v / 12.92f : powf((v + 0.055f) / 1.055f, 2.4f);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Color::SetBlue(float blue)
+inline Color Color::FromLinearRGB(float r, float g, float b, float a)
 {
-    mColor[2] = blue;
+    return Color(Gamma(r), Gamma(g), Gamma(b), a);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Color::SetBlue(int blue)
+inline Color Color::FromLinearRGB(int r, int g, int b,  int a)
 {
-    mColor[2] = blue / 255.0f;
+    return Color(Gamma(r / 255.0f), Gamma(g / 255.0f), Gamma(b / 255.0f), a / 255.0f);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Color::SetAlpha(float alpha)
+inline void Color::ToLinearRGB(float& red, float& green, float& blue, float& alpha) const
 {
-    mColor[3] = alpha;
+    red = DeGamma(r);
+    green = DeGamma(g);
+    blue = DeGamma(b);
+    alpha = a;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Color::SetAlpha(int alpha)
+inline void Color::ToLinearRGB(int& r_, int& g_, int& b_, int& a_) const
 {
-    mColor[3] = alpha / 255.0f;
+    float red = DeGamma(r);
+    float green = DeGamma(g);
+    float blue = DeGamma(b);
+    float alpha = a;
+
+    r_ = Clip(Trunc(red * 255.0f), 0, 255);
+    g_ = Clip(Trunc(green * 255.0f), 0, 255);
+    b_ = Clip(Trunc(blue * 255.0f), 0, 255);
+    a_ = Clip(Trunc(alpha * 255.0f), 0, 255);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Color::SetPackedColorBGRA(uint32_t color)
+inline uint32_t Color::GetPackedColorBGRA() const
 {
-    mColor[0] = ((color >> 16) & 255) / 255.0f;
-    mColor[1] = ((color >> 8) & 255) / 255.0f;
-    mColor[2] = (color & 255) / 255.0f;
-    mColor[3] = (color >> 24) / 255.0f;
+    uint32_t red = Clip(Trunc(r * 255.0f), 0, 255);
+    uint32_t green = Clip(Trunc(g * 255.0f), 0, 255);
+    uint32_t blue = Clip(Trunc(b * 255.0f), 0, 255);
+    uint32_t alpha = Clip(Trunc(a * 255.0f), 0, 255);
+
+    return (alpha << 24) | (red << 16) | (green << 8) | blue;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Color::SetPackedColorRGBA(uint32_t color)
+inline uint32_t Color::GetPackedColorRGBA() const
 {
-    mColor[0] = (color & 255) / 255.0f;
-    mColor[1] = ((color >> 8) & 255) / 255.0f;
-    mColor[2] = ((color >> 16) & 255) / 255.0f;
-    mColor[3] = (color >> 24) / 255.0f;
+    uint32_t red = Clip(Trunc(r * 255.0f), 0, 255);
+    uint32_t green = Clip(Trunc(g * 255.0f), 0, 255);
+    uint32_t blue = Clip(Trunc(b * 255.0f), 0, 255);
+    uint32_t alpha = Clip(Trunc(a * 255.0f), 0, 255);
+
+    return (alpha << 24) | (blue << 16) | (green << 8) | red;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-int Color::GetRedI() const
+inline bool Color::operator==(const Color& color) const
 {
-    return Clip(Trunc(mColor[0] * 255.0f), 0, 255);
+    return r == color.r && g == color.g && b == color.b && a == color.a;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-int Color::GetGreenI() const
-{
-    return Clip(Trunc(mColor[1] * 255.0f), 0, 255);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-int Color::GetBlueI() const
-{
-    return Clip(Trunc(mColor[2] * 255.0f), 0, 255);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-int Color::GetAlphaI() const
-{
-    return Clip(Trunc(mColor[3] * 255.0f), 0, 255);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-float Color::GetRedF() const
-{
-    return mColor[0];
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-float Color::GetGreenF() const
-{
-    return mColor[1];
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-float Color::GetBlueF() const
-{
-    return mColor[2];
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-float Color::GetAlphaF() const
-{
-    return mColor[3];
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-uint32_t Color::GetPackedColorBGRA() const
-{
-    return (GetAlphaI() << 24) | (GetRedI() << 16) | (GetGreenI() << 8) | GetBlueI();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-uint32_t Color::GetPackedColorRGBA() const
-{
-    return (GetAlphaI() << 24) | (GetBlueI() << 16) | (GetGreenI() << 8) | GetRedI();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Color::operator==(const Color& color) const
-{
-    return mColor[0] == color.mColor[0] && mColor[1] == color.mColor[1] && 
-        mColor[2] == color.mColor[2] && mColor[3] == color.mColor[3];
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Color::operator!=(const Color& color) const
+inline bool Color::operator!=(const Color& color) const
 {
     return !(*this == color);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline Color PreMultiplyAlpha(const Color& color, bool sRGB)
+{
+    // http://ssp.impulsetrain.com/gamma-premult.html
+    const float a_ = sRGB ? color.a : Gamma(color.a);
+    return Color(color.r * a_, color.g * a_, color.b * a_, color.a);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline Color Lerp(const Color& c0, const Color& c1, float t, bool sRGB)
+{
+    if (sRGB)
+    {
+        return Color
+        (
+            Lerp(c0.r, c1.r, t),
+            Lerp(c0.g, c1.g, t),
+            Lerp(c0.b, c1.b, t),
+            Lerp(c0.a, c1.a, t)
+        );
+    }
+    else
+    {
+        float lr0, lg0, lb0, la0;
+        c0.ToLinearRGB(lr0, lg0, lb0, la0);
+        
+        float lr1, lg1, lb1, la1;
+        c1.ToLinearRGB(lr1, lg1, lb1, la1);
+
+        return Color::FromLinearRGB
+        (
+            Lerp(lr0, lr1, t), 
+            Lerp(lg0, lg1, t), 
+            Lerp(lb0, lb1, t), 
+            Lerp(la0, la1, t)
+        );
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline Color Add(const Color& c0, const Color& c1, bool sRGB)
+{
+    if (sRGB)
+    {
+        return Color(c0.r + c1.r, c0.g + c1.g, c0.b + c1.b, c0.a + c1.a);
+    }
+    else
+    {
+        float lr0, lg0, lb0, la0;
+        c0.ToLinearRGB(lr0, lg0, lb0, la0);
+        
+        float lr1, lg1, lb1, la1;
+        c1.ToLinearRGB(lr1, lg1, lb1, la1);
+        
+        return Color::FromLinearRGB(lr0 + lr1, lg0 + lg1, lb0 + lb1, la0 + la1);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline Color Modulate(const Color& c0, const Color& c1)
+{
+    return Color(c0.r * c1.r, c0.g * c1.g, c0.b * c1.b, c0.a * c1.a);
 }
 
 }

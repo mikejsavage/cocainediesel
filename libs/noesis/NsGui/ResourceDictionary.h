@@ -9,14 +9,12 @@
 
 
 #include <NsCore/Noesis.h>
+#include <NsCore/HashMap.h>
 #include <NsGui/CoreApi.h>
-#include <NsGui/DependencyObject.h>
 #include <NsGui/BaseDictionary.h>
 #include <NsGui/INameScope.h>
-#include <NsGui/IComponentInitializer.h>
 #include <NsGui/IUITreeNode.h>
 #include <NsGui/Uri.h>
-#include <NsCore/HashMap.h>
 
 
 namespace Noesis
@@ -25,19 +23,18 @@ namespace Noesis
 class ResourceDictionary;
 struct NotifyCollectionChangedEventArgs;
 
-template <class T> class UICollection;
-typedef Noesis::UICollection<Noesis::ResourceDictionary> ResourceDictionaryCollection;
+template<class T> class UICollection;
+typedef UICollection<ResourceDictionary> ResourceDictionaryCollection;
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Provides a hash table that contains resources used by the UI.
+/// Provides a hash table implementation that contains resources used by the UI.
 ///
 /// http://msdn.microsoft.com/en-us/library/system.windows.resourcedictionary.aspx
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-class NS_GUI_CORE_API ResourceDictionary: public BaseDictionary, public INameScope,
-    public IUITreeNode
+class NS_GUI_CORE_API ResourceDictionary: public BaseDictionary, public IUITreeNode
 {
 public:
     ResourceDictionary();
@@ -62,84 +59,75 @@ public:
     uint32_t Count() const;
 
     /// Gets the value stored for the specified key
-    BaseComponent* Get(IResourceKey* key) const;
+    BaseComponent* Get(const char* key) const;
+    template<class T> T* Get(const char* key) const;
 
     /// Determines whether the dictionary contains an element with the specified key
-    bool Contains(IResourceKey* key) const;
+    bool Contains(const char* key) const;
 
     /// Removes the element with the specified key from the dictionary
-    void Remove(IResourceKey* key);
+    void Remove(const char* key);
 
     /// Removes all elements from the dictionary
     void Clear();
 
     /// Enumerates the entries of the base dictionary (excluding merged dictionaries)
-    typedef Noesis::Delegate<void (IResourceKey*, BaseComponent*)> EnumCallback;
+    typedef Delegate<void (const char*, BaseComponent*)> EnumCallback;
     void EnumKeyValues(const EnumCallback& callback) const;
+
+    /// Destroyed delegate is raised when object is going to be destroyed
+    typedef Delegate<void(ResourceDictionary*)> DestroyedDelegate;
+    DestroyedDelegate& Destroyed();
 
     /// From IDictionary
     //@{
-    void Add(IResourceKey* key, BaseComponent* value) override;
-    void Set(IResourceKey* key, BaseComponent* value) override;
-    bool Find(IResourceKey* key, Ptr<BaseComponent>& resource) const override;
+    void Add(const char* key, BaseComponent* value) override;
+    void Set(const char* key, BaseComponent* value) override;
+    bool Find(const char* key, Ptr<BaseComponent>& resource) const override;
     //@}
-
-    /// From INameScope
-    //@{
-    BaseComponent* FindName(const char* name) const override;
-    void RegisterName(const char* name, BaseComponent* object) override;
-    void UnregisterName(const char* name) override;
-    void UpdateName(const char* name, BaseComponent* object) override;
-    INameScope::ChangedDelegate& NameScopeChanged() override;
-    //@}
-
-    // Templated version of FindName. Asserts that returned object implements specified type
-    template<class T>
-    T* FindName(const char* name) const
-    {
-        BaseComponent* resource = FindName(name);
-        NS_ASSERT(resource == 0 || DynamicCast<T*>(resource) != 0);
-        return static_cast<T*>(resource);
-    }
 
     /// From IUITreeNode
     //@{
     IUITreeNode* GetNodeParent() const override;
     void SetNodeParent(IUITreeNode* parent) override;
-    BaseComponent* FindNodeResource(IResourceKey* key, bool fullElementSearch) const override;
+    BaseComponent* FindNodeResource(const char* key, bool fullElementSearch) const override;
     BaseComponent* FindNodeName(const char* name) const override;
     ObjectWithNameScope FindNodeNameAndScope(const char* name) const override;
     //@}
 
     NS_IMPLEMENT_INTERFACE_FIXUP
 
+protected:
+    // From BaseRefCounted
+    //@{
+    int32_t OnDestroy() const override;
+    //@}
+
 private:
-    friend class UISystem;
+    friend struct UI;
     friend class Style;
     friend class FrameworkTemplate;
     friend class ResourceDictionaryTest;
 
     /// Makes this dictionary (and merged dictionaries) read-only
-    void Seal();
+    void SetReadOnly();
+
+    /// Makes this dictionary part of the Application resources
+    void SetAppDictionary();
+
+    /// Seals all values of this dictionary and merged dictionaries
+    void SealValues();
 
     /// Item management
-    //@{
     void OnItemAdded(BaseComponent* item);
     void OnItemRemoved(BaseComponent* item);
     void OnAllItemsRemoved();
-    //@}
-
-    /// Tries to get an object from the map
-    Ptr<BaseComponent> TryGet(IResourceKey* key) const;
 
     /// Clears all dictionary elements, including merged dictionaries
     void Reset();
 
     /// Load source dictionary resource
     void LoadSource();
-
-    bool CheckReadOnly() const;
-    bool CheckItemKey(IResourceKey* key, BaseComponent* item) const;
 
     /// Called when a dictionary is added to be merged
     void OnMergedDictionariesChanged(BaseComponent* sender,
@@ -148,17 +136,20 @@ private:
     void OnRemoveMergedDictionary(ResourceDictionary* dict);
     void OnRemoveMergedDictionaryForMerged(ResourceDictionary* dict);
 
-    void EnsureMergedDictionaries(bool registerNotifications) const;
+    void EnsureMergedDictionaries(bool registerNotifications);
 
 private:
     IUITreeNode* mOwner;
-
     Uri mSource;
-
-    struct Data;
-    Ptr<Data> mData;
-
     bool mIsReadOnly;
+    bool mIsAppDictionary;
+
+    Ptr<ResourceDictionaryCollection> mMergedDictionaries;
+
+    typedef HashMap<String, Ptr<BaseComponent>> Resources;
+    Resources mResources;
+
+    DestroyedDelegate mDestroyedDelegate;
 
     NS_DECLARE_REFLECTION(ResourceDictionary, BaseDictionary)
 };
@@ -166,6 +157,8 @@ private:
 NS_WARNING_POP
 
 }
+
+#include <NsGui/ResourceDictionary.inl>
 
 
 #endif

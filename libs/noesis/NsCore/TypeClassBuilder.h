@@ -24,7 +24,7 @@ class NS_CORE_KERNEL_API TypeClassBuilder: public TypeClass
 {
 public:
     /// Constructor
-    TypeClassBuilder(const TypeInfo& typeInfo, bool isInterface);
+    TypeClassBuilder(Symbol name, bool isInterface);
 
     /// Adds a type as the base of this class
     void AddBase(const TypeClass* baseType);

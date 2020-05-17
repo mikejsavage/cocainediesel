@@ -11,7 +11,12 @@
 #include <NsCore/Noesis.h>
 
 
-#if defined(NS_PROFILE) && !defined(NS_DEBUG)
+#ifndef NS_PROFILER_ENABLED
+    #define NS_PROFILER_ENABLED 0
+#endif
+
+
+#if NS_PROFILER_ENABLED
 
     // https://github.com/bombomby/brofiler
     #ifdef NS_BROFILER

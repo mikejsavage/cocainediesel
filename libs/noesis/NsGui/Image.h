@@ -10,13 +10,14 @@
 
 #include <NsCore/Noesis.h>
 #include <NsGui/FrameworkElement.h>
-#include <NsGui/Enums.h>
 
 
 namespace Noesis
 {
 
 class ImageSource;
+enum Stretch: int32_t;
+enum StretchDirection: int32_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Represents a control that displays an image.

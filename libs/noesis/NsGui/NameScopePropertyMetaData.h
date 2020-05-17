@@ -18,6 +18,9 @@
 namespace Noesis
 {
 
+NS_WARNING_PUSH
+NS_MSVC_WARNING_DISABLE(4251)
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// The component that contains this metadata can be registered into a NameScope using the value of
 /// the property specified by the metadata
@@ -26,16 +29,18 @@ class NS_GUI_CORE_API NameScopePropertyMetaData: public TypeMetaData
 {
 public:
     NameScopePropertyMetaData(const char* nameScopeProperty);
-    NameScopePropertyMetaData(NsSymbol nameScopeProperty);
+    NameScopePropertyMetaData(Symbol nameScopeProperty);
     ~NameScopePropertyMetaData();
 
-    NsSymbol GetNameScopeProperty() const;
+    Symbol GetNameScopeProperty() const;
 
 private:
-    NsSymbol mNameScopeProperty;
+    Symbol mNameScopeProperty;
 
     NS_DECLARE_REFLECTION(NameScopePropertyMetaData, TypeMetaData)
 };
+
+NS_WARNING_POP
 
 }
 

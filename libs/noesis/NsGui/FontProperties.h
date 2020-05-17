@@ -15,7 +15,7 @@ namespace Noesis
 {
 
 // Represents the density of a typeface, in terms of the lightness or heaviness of the strokes
-enum FontWeight
+enum FontWeight: int32_t
 {
     FontWeight_Thin = 100,
     FontWeight_ExtraLight = 200,
@@ -37,7 +37,7 @@ enum FontWeight
 };
 
 // Represents the style of a font face as normal, italic, or oblique
-enum FontStyle
+enum FontStyle: int32_t
 {
     FontStyle_Normal,
     FontStyle_Oblique,
@@ -45,7 +45,7 @@ enum FontStyle
 };
 
 // Represents the degree to which a font has been stretched compared to a font's normal aspect ratio
-enum FontStretch
+enum FontStretch: int32_t
 {
     FontStretch_UltraCondensed = 1,
     FontStretch_ExtraCondensed = 2,

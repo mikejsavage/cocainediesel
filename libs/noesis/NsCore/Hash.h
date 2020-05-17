@@ -15,35 +15,20 @@
 namespace Noesis
 {
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-/// An incremental hash function implementation
-///
-/// Usage:
-///
-///     IncrementalHasher hasher;
-///     hasher.Begin();
-///     hasher.Add(v0);
-///     hasher.Add(v1);
-///     hasher.Add(v2);
-///     uint32_t hash = hasher.End();
-////////////////////////////////////////////////////////////////////////////////////////////////////
-class IncrementalHasher
-{
-public:
-    NS_FORCE_INLINE void Begin();
+/// These functions for specific cases are supposed to be faster than HashBytes or HashCombine
+uint32_t Hash(uint32_t val);
+uint32_t Hash(uint32_t val0, uint32_t val1);
+uint32_t Hash(uint64_t val);
+uint32_t Hash(const void* val);
+uint32_t Hash(float val);
+uint32_t Hash(double val);
 
-    NS_FORCE_INLINE void Add(const void* data, uint32_t numBytes);
-    template<typename T> NS_FORCE_INLINE void Add(const T& value);
+/// Creates a hash value for a memory buffer
+uint32_t HashBytes(const void* data, uint32_t len);
 
-    NS_FORCE_INLINE uint32_t End();
-
-private:
-    uint32_t mHash;
-    uint32_t mLen;
-};
-
-/// Helper function for hashing a memory buffer
-NS_CORE_KERNEL_API uint32_t Hash(const void* data, uint32_t numBytes);
+/// Creates a hash value from a list of arguments
+template<typename... Types>
+uint32_t HashCombine(const Types&... args);
 
 }
 

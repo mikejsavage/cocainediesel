@@ -10,17 +10,18 @@
 
 #include <NsCore/Noesis.h>
 #include <NsGui/Brush.h>
-#include <NsGui/Enums.h>
 
-#include <NsCore/Map.h>
 
 
 namespace Noesis
 {
 
-class Color;
+struct Color;
 class GradientStopCollection;
 struct GradientBrushProxy;
+enum ColorInterpolationMode: int32_t;
+enum BrushMappingMode: int32_t;
+enum GradientSpreadMethod: int32_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Defines an abstract class that describes a gradient, composed of gradient stops. Classes that

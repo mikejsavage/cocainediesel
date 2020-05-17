@@ -9,13 +9,11 @@
 
 
 #include <NsCore/Noesis.h>
+#include <NsCore/Vector.h>
+#include <NsCore/HashMap.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/Panel.h>
 #include <NsGui/GridLength.h>
-
-#include <NsCore/Vector.h>
-#include <NsCore/Set.h>
-#include <NsCore/HashMap.h>
 
 
 namespace Noesis
@@ -136,16 +134,17 @@ private:
         DefinitionCache(GridUnitType t, float s, float mins, float maxs);
     };
 
-    typedef NsVector<DefinitionCache> DefinitionCacheVector;
-    typedef NsVector<float> FloatVector;
+    typedef Vector<DefinitionCache> DefinitionCacheVector;
+    typedef Vector<float> FloatVector;
 
     // Measure helpers
     //@{
     Size DoMeasure(const Size& availableSize);
-    void MeasureElements(uint32_t start, uint32_t end, bool colsSolved, bool rowsSolved);
+    void MeasureElements(const Size& availableSize, uint32_t start, uint32_t end, bool colsSolved,
+        bool rowsSolved);
     float MeasureSizes(const DefinitionCacheVector& defVec, FloatVector& sizes);
     void UpdateSizes(const DefinitionCacheVector& defVec, uint32_t index, uint32_t span,
-        bool allAutoSpan, float size, float starTotal, FloatVector& sizes);
+        float size, FloatVector& sizes);
     void SolveDef(float availableSize, const DefinitionsInfo& info, const FloatVector& sizes,
         FloatVector& constraints, float& usedSize);
     //@}
@@ -165,11 +164,12 @@ private:
     bool IsDesiredSize(float finalSize, float desiredSize, float localSize) const;
 
     // Distributes desired size within the cell span
-    void DistributeSize(uint32_t index, uint32_t span, bool allAuto, float size,
-        float starTotal, const DefinitionCacheVector& defVec, FloatVector& vec) const;
+    void DistributeSize(uint32_t index, uint32_t span, float size,
+        const DefinitionCacheVector& defVec, FloatVector& sizes) const;
 
     // Calculates the size of a range of cells
-    float GetSpanSize(const FloatVector& vec, uint32_t index, uint32_t span) const;
+    float GetSpanSize(const DefinitionCacheVector& defVec, const FloatVector& sizes,
+        float constraint, uint32_t index, uint32_t span, bool defsSolved) const;
 
     // Indicates if all cells in the span are auto
     void GetAllAutoSpanAndOrder(const DefinitionCacheVector& defVec, uint32_t index, uint32_t span,
@@ -215,19 +215,8 @@ private:
         bool allAutoColSpan;
     };
 
-    typedef NsVector<ElementInfo> ElementInfoVector;
-    typedef NsVector<uint32_t> IndexVector;
-
-    struct OrderedSize
-    {
-        float size;
-        uint32_t index;
-
-        OrderedSize(float s = 0.0f, uint32_t i = 0);
-        bool operator<(const OrderedSize& other) const;
-    };
-
-    typedef NsMultiset<OrderedSize> OrderedSizes;
+    typedef Vector<ElementInfo> ElementInfoVector;
+    typedef Vector<uint32_t> IndexVector;
 
     struct DefinitionsInfo
     {
@@ -267,16 +256,15 @@ private:
         FloatVector rowPositions;
     };
 
-    typedef NsHashMap<uint32_t, IndexVector> OrderedIndices;
+    typedef HashMap<uint32_t, IndexVector> OrderedIndices;
 
-    struct CellStructureInfo: public BaseComponent
+    struct CellStructureInfo
     {
         DefinitionsInfo colInfo;
         DefinitionsInfo rowInfo;
         ElementInfoVector elements;
         OrderedIndices orderedIndices;
         IndexVector orderedElements;
-        OrderedSizes orderedSizes;
         uint32_t solveColsIndex;
         uint32_t solveRowsIndex;
         MeasureInfo measureInfo;
@@ -297,7 +285,7 @@ private:
             FloatVector& positions);
     };
 
-    Ptr<CellStructureInfo> mCellInfo;
+    CellStructureInfo* mCellInfo;
 
     NS_DECLARE_REFLECTION(Grid, Panel)
 };

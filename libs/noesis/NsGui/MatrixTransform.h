@@ -25,7 +25,7 @@ class NS_GUI_CORE_API MatrixTransform: public Transform
 {
 public:
     MatrixTransform();
-    MatrixTransform(const Transform2f& matrix);
+    MatrixTransform(const Transform2& matrix);
     ~MatrixTransform();
 
     /// Parses a string value to create an instance of a MatrixTransform
@@ -33,13 +33,13 @@ public:
 
     /// Gets or sets the 2D matrix that represents this MatrixTransform
     //@{
-    const Transform2f& GetMatrix() const;
-    void SetMatrix(const Transform2f& matrix);
+    const Transform2& GetMatrix() const;
+    void SetMatrix(const Transform2& matrix);
     //@}
 
     /// From Transform
     //@{
-    Transform2f GetTransform() const override;
+    Transform2 GetTransform() const override;
     //@}
 
     // Hides Freezable methods for convenience

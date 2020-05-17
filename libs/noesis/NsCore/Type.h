@@ -11,7 +11,7 @@
 #include <NsCore/Noesis.h>
 #include <NsCore/KernelApi.h>
 #include <NsCore/BaseObject.h>
-#include <NsCore/TypeInfo.h>
+#include <NsCore/Symbol.h>
 #include <NsCore/ReflectionDeclare.h>
 
 
@@ -27,27 +27,25 @@ NS_MSVC_WARNING_DISABLE(4251 4275)
 class NS_CORE_KERNEL_API Type: public BaseObject
 {
 public:
-    /// Constructor
-    Type(const TypeInfo& typeInfo);
+    NS_DISABLE_COPY(Type)
 
-    /// Destructor
-    virtual ~Type();
+    Type(Symbol name);
 
-    /// \return a string identifying this type
+    /// Returns the name of the type
     const char* GetName() const;
 
-    /// \return a string with a compiler representation of the type
-    const char* GetRawName() const;
+    /// Returns the symbol name of the type
+    Symbol GetTypeId() const;
 
     /// Determines if an instance of a specified type can be assigned to an instance of current type
-    /// \return true if any of the following conditions is true:
-    ///     - 'type' and the current instance represent the same type
-    ///     - 'type' is derived either directly or indirectly from the current instance
-    ///     - The current instance is an interface that 'type' implements
+    /// Returns true if any of the following conditions is true:
+    ///  - 'type' and the current instance represent the same type
+    ///  - 'type' is derived either directly or indirectly from the current instance
+    ///  - The current instance is an interface that 'type' implements
     virtual bool IsAssignableFrom(const Type* type) const;
 
 private:
-    TypeInfo mTypeInfo;
+    const Symbol mName;
 
     NS_DECLARE_REFLECTION(Type, NoParent)
 };

@@ -60,6 +60,7 @@ bool Collection<T>::Remove(T* item)
 template<class T>
 const TypeClass* Collection<T>::GetItemType() const
 {
+    static_assert(IsDerived<T, BaseComponent>::Result, "T must inherit from BaseComponent");
     return TypeOf<T>();
 }
 

@@ -11,11 +11,7 @@
 #include <NsCore/CompilerSettings.h>
 
 
-#if defined(NS_MATH_VECTORMATH_PRIVATE)
-    #define NS_MATH_VECTORMATH_API
-#elif defined(NS_MATH_VECTORMATH_EXPORTS)
-    #define NS_MATH_VECTORMATH_API NS_DLL_EXPORT
-#else
+#ifndef NS_MATH_VECTORMATH_API
     #define NS_MATH_VECTORMATH_API NS_DLL_IMPORT
 #endif
 

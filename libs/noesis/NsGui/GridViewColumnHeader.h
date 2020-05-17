@@ -60,16 +60,10 @@ public:
 public:
     /// Dependency Properties
     //@{
-    static const DependencyProperty* ColumnProperty;
     static const DependencyProperty* RoleProperty;
     //@}
 
 protected:
-    /// From DependencyObject
-    //@{
-    bool OnPropertyChanged(const DependencyPropertyChangedEventArgs& args) override;
-    //@}
-
     /// From UIElement
     //@{
     void OnMouseLeftButtonDown(const MouseButtonEventArgs& e) override;
@@ -84,7 +78,8 @@ protected:
     //@}
 
 private:
-    void OnColumnPropertyChanged(BaseComponent* sender, 
+    void SetColumn(GridViewColumn* column);
+    void OnColumnPropertyChanged(BaseComponent* sender,
         const DependencyPropertyChangedEventArgs& args);
 
     void OnGripperDragStarted(BaseComponent*, const DragStartedEventArgs&);
@@ -101,12 +96,12 @@ private:
     void OnHeaderRowPresenterDestroyed(DependencyObject* dob);
 
     void UpdateProperty(const DependencyProperty* headerDP,
-        GridViewColumn* column, const DependencyProperty* columnDP,
-        GridViewHeaderRowPresenter* presenter, const DependencyProperty* presenterDP);
+        const DependencyProperty* columnDP, const DependencyProperty* presenterDP);
 
 private:
     friend class GridViewHeaderRowPresenter;
     GridViewHeaderRowPresenter* mPresenter;
+    GridViewColumn* mColumn;
 
     Ptr<Thumb> mHeaderGripper;
     Ptr<Canvas> mFloatingHeaderCanvas;

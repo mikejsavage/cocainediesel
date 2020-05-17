@@ -24,7 +24,6 @@ class BaseSetter;
 class BaseTrigger;
 class Condition;
 class ResourceDictionary;
-class ResourceKeyType;
 class FrameworkElement;
 
 template<class T> class UICollection;
@@ -46,8 +45,8 @@ public:
 
     /// Gets or sets the type for which this style is intended
     //@{
-    ResourceKeyType* GetTargetType() const;
-    void SetTargetType(ResourceKeyType* targetType);
+    const Type* GetTargetType() const;
+    void SetTargetType(const Type* targetType);
     //@}
 
     /// Gets or sets a defined style that is the basis of the current style
@@ -80,8 +79,7 @@ public:
     //@{
     IUITreeNode* GetNodeParent() const override;
     void SetNodeParent(IUITreeNode* parent) override;
-    BaseComponent* FindNodeResource(IResourceKey* key,
-        bool fullElementSearch) const override;
+    BaseComponent* FindNodeResource(const char* key, bool fullElementSearch) const override;
     BaseComponent* FindNodeName(const char* name) const override;
     ObjectWithNameScope FindNodeNameAndScope(const char* name) const override;
     //@}
@@ -89,7 +87,7 @@ public:
     NS_IMPLEMENT_INTERFACE_FIXUP
 
 private:
-    static Ptr<BaseComponent> FindInStyleResources(const Style* style, IResourceKey* key);
+    Ptr<BaseComponent> FindInResources(const char* key) const;
 
     void EnsureResources() const;
     void EnsureSetters() const;
@@ -111,7 +109,7 @@ private:
     friend class FrameworkElement;
 
     IUITreeNode* mOwner;
-    Ptr<ResourceKeyType> mTargetType;
+    const Type* mTargetType;
     Ptr<Style> mBasedOn;
     mutable Ptr<ResourceDictionary> mResources;
     mutable Ptr<BaseSetterCollection> mSetters;

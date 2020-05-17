@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #696]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -13,13 +12,13 @@ namespace Noesis
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-BaseRefCounted::BaseRefCounted()
+inline BaseRefCounted::BaseRefCounted()
 {
     mRefCount = 1;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-BaseRefCounted::~BaseRefCounted()
+inline BaseRefCounted::~BaseRefCounted()
 {
     // Note that 1 is valid when the object lives is the stack or is being manually destroyed
     NS_CHECK(mRefCount == 1 || mRefCount == 0, "Unexpected RefCount(%d) deleting object at %p",
@@ -45,12 +44,8 @@ inline int32_t BaseRefCounted::GetNumReferences() const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-int32_t BaseRefCounted::OnDestroy() const
+inline int32_t BaseRefCounted::OnDestroy() const
 {
-#ifdef NS_TRACK_COMPONENTS
-    TrackObjectDealloc(GetClassType()->GetName());
-#endif
-
     delete this;
     return 0;
 }
@@ -65,7 +60,6 @@ inline int32_t BaseRefCounted::InternalAddReference() const
 inline int32_t BaseRefCounted::InternalRelease() const
 {
     NS_ASSERT(mRefCount > 0);
-    
     int32_t ref = --mRefCount;
 
     if (ref == 0)

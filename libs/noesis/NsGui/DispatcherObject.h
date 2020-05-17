@@ -18,6 +18,9 @@ namespace Noesis
 {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+const uint32_t NoThreadId = static_cast<uint32_t>(-1);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Represents an object with thread affinity.
 ///
 /// This object can be accessed only from the thread on which it was created. Subclasses of
@@ -34,7 +37,8 @@ public:
 
     virtual ~DispatcherObject() = 0;
 
-    /// Gets the thread this DispatcherObject is associated with
+    /// Gets the thread this DispatcherObject is associated with.
+    /// Returns NoThreadId when this object is not attached to any thread.
     uint32_t GetThreadId() const;
 
     /// Determines whether the calling thread has access to this DispatcherObject

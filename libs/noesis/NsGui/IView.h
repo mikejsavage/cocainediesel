@@ -10,15 +10,17 @@
 
 #include <NsCore/Noesis.h>
 #include <NsCore/Interface.h>
-#include <NsGui/InputEnums.h>
 
 
 namespace Noesis
 {
 
 class FrameworkElement;
+class Matrix4;
 template<class T> class Delegate;
 NS_INTERFACE IRenderer;
+enum MouseButton: int32_t;
+enum Key: int32_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 struct TessellationMaxPixelError
@@ -35,7 +37,7 @@ struct TessellationMaxPixelError
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-enum RenderFlags
+enum RenderFlags: int32_t
 {
     /// Toggles wireframe mode when rendering triangles
     RenderFlags_Wireframe = 1,
@@ -43,12 +45,25 @@ enum RenderFlags
     /// Each batch submitted to the GPU is given a unique solid color
     RenderFlags_ColorBatches = 2,
 
-    /// Display pixel overdraw using blending layers. Different colors are used for each type
+    /// Displays pixel overdraw using blending layers. Different colors are used for each type
     /// of triangles. 'Green' for normal ones, 'Red' for opacities and 'Blue' for clipping masks
     RenderFlags_Overdraw = 4,
 
     /// Inverts the render vertically
     RenderFlags_FlipY = 8,
+
+    /// Per-Primitive Antialiasing extrudes the contours of the geometry and smooths them.
+    /// It is a 'cheap' antialiasing algorithm useful when GPU MSAA is not enabled
+    RenderFlags_PPAA = 16,
+
+    /// Enables subpixel rendering compatible with LCD displays
+    RenderFlags_LCD = 32,
+
+    /// Displays glyph atlas as a small overlay for debugging purposes
+    RenderFlags_ShowGlyphs = 64,
+
+    /// Displays ramp atlas as a small overlay for debugging purposes
+    RenderFlags_ShowRamps = 128,
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -89,24 +104,22 @@ NS_INTERFACE IView: public Interface
     /// Sets the size of the surface where UI elements will layout and render
     virtual void SetSize(uint32_t width, uint32_t height) = 0;
 
-    /// Per-Primitive Antialiasing extrudes the contours of the geometry and smooths them.
-    /// It is a 'cheap' antialiasing algorithm useful when GPU MSAA is not enabled
-    virtual void SetIsPPAAEnabled(bool enabled) = 0;
-
-    /// Returns true if Per-Primitive Antialiasing is enabled
-    virtual bool GetIsPPAAEnabled() const = 0;
-
     /// Sets the tessellation curve tolerance in screen space. MediumQuality is the default value
     virtual void SetTessellationMaxPixelError(TessellationMaxPixelError maxError) = 0;
 
     /// Gets current tessellation curve tolerance
     virtual TessellationMaxPixelError GetTessellationMaxPixelError() const = 0;
 
-    /// Enables debugging render flags. No debug flags are active by default
+    /// Sets render flags
     virtual void SetFlags(uint32_t flags) = 0;
 
-    /// Returns current debugging render flags
+    /// Gets current render flags
     virtual uint32_t GetFlags() const = 0;
+
+    /// Sets the projection matrix that transforms the coordinates of each primitive to a
+    /// non-normalized homogeneous space where (0, 0) is at the lower-left corner and
+    /// (width, height) is at the upper-right corner after projection
+    virtual void SetProjectionMatrix(const Matrix4& projection) = 0;
 
     /// Activates the view and recovers keyboard focus
     virtual void Activate() = 0;
@@ -195,7 +208,8 @@ NS_INTERFACE IView: public Interface
     virtual bool Char(uint32_t ch) = 0;
 
     /// Performs layout pass and calculates changes to be consumed by the renderer.
-    /// Returns false if there were no changes since last frame indicating render can be avoided
+    /// Returns false if there are no changes since last frame (meaning render can be avoided).
+    /// This function will block when invoked many times without the corresponding UpdateRenderTree
     virtual bool Update(double timeInSeconds) = 0;
 
     /// Rendering event occurs after animation and layout have been applied to the composition

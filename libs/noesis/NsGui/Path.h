@@ -10,6 +10,7 @@
 
 #include <NsCore/Noesis.h>
 #include <NsGui/Shape.h>
+#include <NsGui/MatrixTransform.h>
 
 
 namespace Noesis
@@ -17,7 +18,6 @@ namespace Noesis
 
 class Geometry;
 class GeometryGroup;
-class MatrixTransform;
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
@@ -39,14 +39,14 @@ NS_MSVC_WARNING_DISABLE(4251 4275)
 ///    // Path
 ///    Ptr<Path> path = *new Path();
 ///    Ptr<Brush> red = *new SolidColorBrush(Color::Red);
-///    path->SetFill(red.GetPtr());
-///    path->SetData(geometry.GetPtr());
+///    path->SetFill(red);
+///    path->SetData(geometry);
 ///
 ///    // Root canvas
 ///    Ptr<Canvas> root = *new Canvas();
 ///    Ptr<Brush> gray = *new SolidColorBrush(Color::LightGray);
-///    root->SetBackground(gray.GetPtr());
-///    root->GetChildren()->Add(path.GetPtr());
+///    root->SetBackground(gray);
+///    root->GetChildren()->Add(path);
 ///
 /// http://msdn.microsoft.com/en-us/library/system.windows.shapes.path.aspx
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -89,8 +89,8 @@ private:
     Size GetMinimumSize() const;
 
 private:
+    MatrixTransform mStretchMatrix;
     Ptr<GeometryGroup> mRenderGeometry;
-    Ptr<MatrixTransform> mStretchMatrix;
 
     NS_DECLARE_REFLECTION(Path, Shape)
 };

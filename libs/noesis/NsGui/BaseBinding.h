@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #952]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -82,7 +81,7 @@ protected:
 private:
     Ptr<BaseComponent> mFallbackValue;
     Ptr<BaseComponent> mTargetNullValue;
-    NsString mStringFormat;
+    String mStringFormat;
     int mDelay;
 
     NS_DECLARE_REFLECTION(BaseBinding, MarkupExtension)

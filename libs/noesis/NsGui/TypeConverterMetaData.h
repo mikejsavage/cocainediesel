@@ -19,6 +19,9 @@
 namespace Noesis
 {
 
+NS_WARNING_PUSH
+NS_MSVC_WARNING_DISABLE(4251)
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// TypeConverterMetaData. Stores information about the proper TypeConverter for an object
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -29,13 +32,15 @@ public:
     TypeConverterMetaData(const char* typeId);
 
     /// Gets converter type Id
-    NsSymbol GetTypeId() const;
+    Symbol GetTypeId() const;
 
 private:
-    NsSymbol mTypeId;
+    Symbol mTypeId;
 
     NS_DECLARE_REFLECTION(TypeConverterMetaData, TypeMetaData)
 };
+
+NS_WARNING_POP
 
 }
 

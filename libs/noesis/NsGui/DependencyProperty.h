@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #781]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -14,7 +13,7 @@
 #include <NsGui/ValueDestination.h>
 #include <NsCore/BaseComponent.h>
 #include <NsCore/ReflectionDeclare.h>
-#include <NsCore/Map.h>
+#include <NsCore/HashMap.h>
 #include <NsCore/Delegate.h>
 #include <NsCore/Symbol.h>
 
@@ -75,7 +74,7 @@ public:
     static BaseComponent* GetUnsetValue();
 
     /// Gets property name
-    inline NsSymbol GetName() const;
+    inline Symbol GetName() const;
 
     /// Gets property type
     inline const Type* GetType() const;
@@ -105,8 +104,7 @@ public:
     const PropertyMetadata* GetMetadata(const TypeClass* forType) const;
 
     /// Uses dependency property type information to override its metadata
-    inline void OverrideMetadata(const TypeClass* forType,
-        const Ptr<PropertyMetadata>& metadata) const;
+    inline void OverrideMetadata(const TypeClass* forType, PropertyMetadata* metadata) const;
 
     /// Looks for a reflection property in the owner type of this dependency property with the same
     /// name. If not found, null is returned
@@ -180,8 +178,8 @@ public:
 protected:
     /// Constructors
     //@{
-    DependencyProperty(NsSymbol name, ValueStorageManager* valueManager, const Type* type);
-    DependencyProperty(NsSymbol name, ValueStorageManager* valueManager, const Type* type,
+    DependencyProperty(Symbol name, ValueStorageManager* valueManager, const Type* type);
+    DependencyProperty(Symbol name, ValueStorageManager* valueManager, const Type* type,
         const TypeClass* ownerType, PropertyMetadata* metadata, ValidateValueCallback validate,
         PropertyAccess access);
     //@}
@@ -198,14 +196,14 @@ private:
     void MergeMetaData(PropertyMetadata* metadata, const TypeClass* type);
 
 private:
-    NsSymbol mName;
+    Symbol mName;
     ValueStorageManager* mValueManager;
     const Type* mType;
     const TypeClass* mOwnerType;
     ValidateValueCallback mValidate;
     bool mIsReadOnly;
 
-    typedef NsMap<const TypeClass*, Ptr<const PropertyMetadata> > MetaDatas;
+    typedef HashMap<const TypeClass*, Ptr<const PropertyMetadata>> MetaDatas;
     mutable MetaDatas mMetaDatas;
 
     NS_DECLARE_REFLECTION(DependencyProperty, BaseComponent)
@@ -215,7 +213,7 @@ NS_WARNING_POP
 
 /// Search for dependency properties in the class hierarchy
 NS_GUI_DEPENDENCYSYSTEM_API const DependencyProperty* FindDependencyProperty(
-    const TypeClass* typeClass, NsSymbol propId);
+    const TypeClass* typeClass, Symbol propId);
 
 /// Indicates if the specified property is of type BaseComponent
 NS_GUI_DEPENDENCYSYSTEM_API bool IsBaseComponentProperty(const DependencyProperty* dp);

@@ -1,18 +1,30 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #751]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 #include <NsCore/Boxing.h>
 #include <NsCore/Ptr.h>
+#include <NsCore/String.h>
 #include <NsGui/Expression.h>
 #include <NsGui/ProviderValue.h>
 
 
 namespace Noesis
 {
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline DependencyPropertyChangedEventArgs::DependencyPropertyChangedEventArgs(
+    const DependencyProperty* dp, const void* oldValue_, const void* newValue_,
+    const PropertyMetadata* metadata_): prop(dp), oldValue(oldValue_), newValue(newValue_),
+    metadata(metadata_)
+{
+    NS_ASSERT(dp != 0);
+    NS_ASSERT(oldValue != 0);
+    NS_ASSERT(newValue != 0);
+    NS_ASSERT(metadata != 0);
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T>
@@ -43,7 +55,8 @@ void DependencyObject::SetValue(const DependencyProperty* dp, typename SetValueT
         return;
     }
 
-    SetValue_<T>(Int2Type<IsPtr<T>::Result>(), dp, value);
+    enum { ValueTypeId = IsSame<T, String>::Result ? 2 : IsPtr<T>::Result ? 1 : 0 };
+    SetValue_<T>(Int2Type<ValueTypeId>(), dp, value);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -58,7 +71,8 @@ void DependencyObject::SetReadOnlyProperty(const DependencyProperty* dp,
     }
 
     DependencyObject* this_ = const_cast<DependencyObject*>(this);
-    this_->SetValue_<T>(Int2Type<IsPtr<T>::Result>(), dp, value);
+    enum { ValueTypeId = IsSame<T, String>::Result ? 2 : IsPtr<T>::Result ? 1 : 0 };
+    this_->SetValue_<T>(Int2Type<ValueTypeId>(), dp, value);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -77,8 +91,8 @@ void DependencyObject::SetCurrentValue(const DependencyProperty* dp,
         return;
     }
 
-    SetValue_<T>(Int2Type<IsPtr<T>::Result>(), dp, value,
-        Value::Destination_CurrentValue);
+    enum { ValueTypeId = IsSame<T, String>::Result ? 2 : IsPtr<T>::Result ? 1 : 0 };
+    SetValue_<T>(Int2Type<ValueTypeId>(), dp, value, Value::Destination_CurrentValue);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -97,8 +111,8 @@ void DependencyObject::SetAnimation(const DependencyProperty* dp,
         return;
     }
 
-    SetValue_<T>(Int2Type<IsPtr<T>::Result>(), dp, value,
-        Value::Destination_Animation);
+    enum { ValueTypeId = IsSame<T, String>::Result ? 2 : IsPtr<T>::Result ? 1 : 0 };
+    SetValue_<T>(Int2Type<ValueTypeId>(), dp, value, Value::Destination_Animation);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -130,8 +144,7 @@ void DependencyObject::CoerceValue(const DependencyProperty* dp)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-DependencyObject::DependencyPropertyChangedEventHandler&
-    DependencyObject::DependencyPropertyChanged()
+DependencyPropertyChangedEventHandler& DependencyObject::DependencyPropertyChanged()
 {
     VerifyAccess();
 
@@ -180,6 +193,20 @@ void DependencyObject::SetValue_(IsBaseComponent, const DependencyProperty* dp,
 
     Ptr<BaseComponent> oldValue, coercedValue;
     InternalSetValue(dp, &oldValue, &value_, &coercedValue, 0, 0, 0, destination, true);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+template<class T>
+void DependencyObject::SetValue_(IsString, const DependencyProperty* dp,
+    const char* value, Value::Destination destination)
+{
+    if (!CheckTypes(TypeOf<String>(), dp))
+    {
+        return;
+    }
+
+    FixedString<512> oldValue, coercedValue, newValue(value);
+    InternalSetValue(dp, &oldValue, &newValue, &coercedValue, 0, 0, 0, destination, false);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

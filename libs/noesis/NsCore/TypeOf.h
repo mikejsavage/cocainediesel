@@ -8,13 +8,28 @@
 #define __CORE_TYPEOF_H__
 
 
-#define __INCLUDED_FROM_TYPEOF_H__
-
-
 #include <NsCore/Noesis.h>
-#include <NsCore/TypeOfBase.h>
-#include <NsCore/TypeOfBasic.h>
-#include <NsCore/TypeOfPointer.h>
 
+
+namespace Noesis
+{
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Used to obtain the Noesis::Type object for a type.
+///
+///  const Type* intType = TypeOf<int>();
+///  const TypeClass* buttonType = TypeOf<Button>();
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////
+template<class T> struct TypeOfHelper;
+
+template<class T> const typename TypeOfHelper<T>::ReturnType* TypeOf()
+{
+    return TypeOfHelper<T>::Get();
+}
+
+}
+
+#include <NsCore/TypeOf.inl>
 
 #endif

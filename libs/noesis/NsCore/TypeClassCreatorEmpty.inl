@@ -12,7 +12,6 @@
 namespace Noesis
 {
 
-class TypeInfo;
 typedef void NoParent;
 template<class T> struct TypeTag;
 
@@ -25,9 +24,9 @@ TypeClassCreatorEmpty<ClassT, BaseT>::TypeClassCreatorEmpty(TypeClassBuilder* ty
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class ClassT, class BaseT>
-Type* TypeClassCreatorEmpty<ClassT, BaseT>::Create(const TypeInfo& typeInfo)
+Type* TypeClassCreatorEmpty<ClassT, BaseT>::Create(Symbol name)
 {
-    return new TypeClass(typeInfo, IsInterface<ClassT>::Result);
+    return new TypeClass(name, IsInterface<ClassT>::Result);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

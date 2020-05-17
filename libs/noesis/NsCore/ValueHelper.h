@@ -17,16 +17,12 @@ namespace Noesis
 {
 
 /// Returns a string that represents the passed value
-template<class T> NsString ToString(const T& value);
+template<class T> String ToString(const T& value);
 
-/// Returns a hash code for the passed value
-template<class T> uint32_t GetHashCode(const T& value);
-
-/// Returns true if both values are equal. We require a specialization for float/double because NaN
-/// values cannot be directly compared with fast float compiler setting enabled
+/// Comparison helper with special cases for NaN values
 template<class T> bool Equals(const T& left, const T& right);
-inline bool Equals(float left, float right);
-inline bool Equals(double left, double right);
+bool Equals(float left, float right);
+bool Equals(double left, double right);
 
 }
 

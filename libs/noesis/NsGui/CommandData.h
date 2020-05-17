@@ -14,7 +14,6 @@
 #include <NsCore/ReflectionDeclare.h>
 #include <NsCore/Ptr.h>
 #include <NsGui/CoreApi.h>
-#include <NsGui/CommandManager.h>
 
 
 namespace Noesis
@@ -26,8 +25,13 @@ class CommandBinding;
 class InputBinding;
 class InputGesture;
 template<class T> class UICollection;
-typedef Noesis::UICollection<Noesis::CommandBinding> CommandBindingCollection;
-typedef Noesis::UICollection<Noesis::InputBinding> InputBindingCollection;
+template<class T> class Delegate;
+struct CanExecuteRoutedEventArgs;
+struct ExecutedRoutedEventArgs;
+typedef UICollection<CommandBinding> CommandBindingCollection;
+typedef UICollection<InputBinding> InputBindingCollection;
+typedef Delegate<void (BaseComponent*, const CanExecuteRoutedEventArgs&)> CanExecuteRoutedEventHandler;
+typedef Delegate<void (BaseComponent*, const ExecutedRoutedEventArgs&)> ExecutedRoutedEventHandler;
 
 NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
@@ -45,7 +49,7 @@ public:
     template<class T> const T* RegisterCommand(const Ptr<T>& command);
 
     /// Finds a command for the owner type given its name
-    const ICommand* FindCommand(NsSymbol name) const;
+    const ICommand* FindCommand(Symbol name) const;
 
     /// Registers handlers for the specified command
     //@{
@@ -93,7 +97,7 @@ private:
 
     struct Adapter;
 
-    typedef NsHashMap<NsSymbol, Ptr<const RoutedCommand>> CommandMap;
+    typedef HashMap<Symbol, Ptr<const RoutedCommand>> CommandMap;
     CommandMap mCommands;
 
     Ptr<CommandBindingCollection> mCommandBindings;

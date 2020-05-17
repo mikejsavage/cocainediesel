@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // NoesisGUI - http://www.noesisengine.com
 // Copyright (c) 2013 Noesis Technologies S.L. All Rights Reserved.
-// [CR #781]
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -22,7 +21,7 @@ Ptr<DependencyProperty> DependencyProperty::Create(const char* name)
     // the class and later be fulfilled (example: when using AddOwner or OverrideMetadata
     // before RegisterProperty)
     ValueStorageManager* valueManager = new ValueStorageManagerImpl<T>();
-    return *new DependencyProperty(NsSymbol(name), valueManager, TypeOf<RemovePtr<T>>());
+    return *new DependencyProperty(Symbol(name), valueManager, TypeOf<RemovePtr<T>>());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -35,7 +34,7 @@ Ptr<DependencyProperty> DependencyProperty::Create(const char* name, const Type*
     // before RegisterProperty)
 
     ValueStorageManager* valueManager = new ValueStorageManagerImpl<T>();
-    return *new DependencyProperty(NsSymbol(name), valueManager, type);
+    return *new DependencyProperty(Symbol(name), valueManager, type);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -44,7 +43,7 @@ Ptr<DependencyProperty> DependencyProperty::Create(const char* name, const TypeC
     PropertyMetadata* metadata, ValidateValueCallback validate, PropertyAccess access)
 {
     ValueStorageManager* valueManager = new ValueStorageManagerImpl<T>();
-    return *new DependencyProperty(NsSymbol(name), valueManager, TypeOf<RemovePtr<T>>(),
+    return *new DependencyProperty(Symbol(name), valueManager, TypeOf<RemovePtr<T>>(),
         ownerType, metadata, validate, access);
 }
 
@@ -55,12 +54,12 @@ Ptr<DependencyProperty> DependencyProperty::Create(const char* name, const Type*
     PropertyAccess access)
 {
     ValueStorageManager* valueManager = new ValueStorageManagerImpl<T>();
-    return *new DependencyProperty(NsSymbol(name), valueManager, type, ownerType, metadata,
+    return *new DependencyProperty(Symbol(name), valueManager, type, ownerType, metadata,
         validate, access);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-inline NsSymbol DependencyProperty::GetName() const
+inline Symbol DependencyProperty::GetName() const
 {
     return mName;
 }
@@ -116,9 +115,9 @@ inline ValueStorageManager* DependencyProperty::GetValueManager() const
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void DependencyProperty::OverrideMetadata(const TypeClass* forType,
-    const Ptr<PropertyMetadata>& metadata) const
+    PropertyMetadata* metadata) const
 {
-    mValueManager->OverrideMetadata(this, forType, metadata.GetPtr());
+    mValueManager->OverrideMetadata(this, forType, metadata);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

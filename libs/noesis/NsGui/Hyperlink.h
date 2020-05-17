@@ -22,18 +22,17 @@ NS_WARNING_PUSH
 NS_MSVC_WARNING_DISABLE(4251 4275)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-struct NS_GUI_CORE_API RequestNavigateEventArgs: public RoutedEventArgs
+struct RequestNavigateEventArgs: public RoutedEventArgs
 {
     const char* uri;
     const char* target;
 
-    RequestNavigateEventArgs(BaseComponent* source_, const RoutedEvent* event_,
-        const char* uri_, const char* target_);
+    RequestNavigateEventArgs(BaseComponent* source, const RoutedEvent* event, const char* uri,
+        const char* target);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-typedef Noesis::Delegate<void (BaseComponent*, const RequestNavigateEventArgs&)>
-    RequestNavigateEventHandler;
+typedef Delegate<void (BaseComponent*, const RequestNavigateEventArgs&)> RequestNavigateEventHandler;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// An inline-level flow content element that hosts hyperlinks within flow content.
@@ -116,5 +115,6 @@ NS_WARNING_POP
 
 }
 
+#include <NsGui/Hyperlink.inl>
 
 #endif

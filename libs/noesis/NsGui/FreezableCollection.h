@@ -11,8 +11,8 @@
 #include <NsCore/Noesis.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/BaseFreezableCollection.h>
-#include <NsCore/TypeId.h>
-#include <NsCore/ReflectionImplement.h>
+#include <NsCore/ReflectionImplementEmpty.h>
+#include <NsCore/IdOf.h>
 
 
 namespace Noesis
@@ -22,12 +22,10 @@ namespace Noesis
 /// Represents a collection of DependencyObject, Freezable, or Animatable objects.
 /// FreezableCollection is itself an Animatable type.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template <class T>
+template<class T>
 class FreezableCollection: public BaseFreezableCollection
 {
 public:
-    static_assert(IsDerived<T, DependencyObject>::Result, "T must inherit from DependencyObject");
-
     /// Gets the element at the specified index
     inline T* Get(uint32_t index) const;
 
@@ -61,10 +59,8 @@ protected:
     inline const TypeClass* GetItemType() const final;
     inline Ptr<Freezable> CreateInstanceCore() const override;
 
-    NS_IMPLEMENT_INLINE_REFLECTION(FreezableCollection<T>, BaseFreezableCollection)
-    {
-        NsMeta<TypeId>(IdOfCollection(TypeOf<T>()).GetStr());
-    }
+    NS_IMPLEMENT_INLINE_REFLECTION_(FreezableCollection<T>, BaseFreezableCollection,
+        IdOf(IdOf<T>(), "Collection"))
 };
 
 }

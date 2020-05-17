@@ -17,23 +17,21 @@ namespace Noesis
 
 template<class T> class Ptr;
 class BaseComponent;
-NS_INTERFACE IResourceKey;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// Interface to a dictionary container of generic items using strings or Types as keys.
-/// Note: String keys are case-sensitive.
+/// Interface to a dictionary container of generic items using strings as keys
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 NS_INTERFACE IDictionary: public Interface
 {
     /// Looks for an element in the dictionary.
     /// Returns true if element was found, false otherwise
-    virtual bool Find(IResourceKey* key, Ptr<BaseComponent>& resource) const = 0;
+    virtual bool Find(const char* key, Ptr<BaseComponent>& resource) const = 0;
 
     /// Sets the element with the specified key
-    virtual void Set(IResourceKey* key, BaseComponent* value) = 0;
+    virtual void Set(const char* key, BaseComponent* value) = 0;
 
     /// Adds an element with the provided key and value to the dictionary
-    virtual void Add(IResourceKey* key, BaseComponent* value) = 0;
+    virtual void Add(const char* key, BaseComponent* value) = 0;
 
     NS_IMPLEMENT_INLINE_REFLECTION_(IDictionary, Interface)
 };

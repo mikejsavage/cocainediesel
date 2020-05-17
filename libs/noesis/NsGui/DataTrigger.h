@@ -9,11 +9,12 @@
 
 
 #include <NsCore/Noesis.h>
-#include <NsCore/Set.h>
+#include <NsCore/HashMap.h>
+#include <NsCore/PoolAllocator.h>
 #include <NsCore/Ptr.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/BaseTrigger.h>
-#include <NsGui/BindingListener.h>
+#include <NsGui/ConditionListener.h>
 
 
 namespace Noesis
@@ -94,29 +95,43 @@ private:
     Ptr<BaseComponent> mValue;
     mutable Ptr<BaseSetterCollection> mSetters;
 
-    class Listener: public BindingListener
+    struct Listener: public ConditionListener
     {
-    public:
         Listener(DataTrigger* dt, FrameworkElement* t, FrameworkElement* ns, bool sk, uint8_t p);
 
-        struct Comparer;
-        bool operator<(const Listener& other) const;
-        bool operator==(const Listener& other) const;
+        DependencyObject* GetTarget() const override;
+        BaseBinding* GetBinding() const override;
+        BaseComponent* GetValue() const override;
+        void Invalidate(bool matches) const override;
 
-    protected:
-        const BindingListenerData* GetData() const;
-        BaseComponent* GetValue() const;
-        BaseBinding* GetBinding() const;
-        void Invalidate(FrameworkElement* target, FrameworkElement* nameScope,
-            bool skipTargetName, bool fireEnterActions, uint8_t priority) const;
-
-    private:
         DataTrigger* trigger;
-        BindingListenerData data;
+        FrameworkElement* target;
+        FrameworkElement* nameScope;
+        bool skipTargetName;
+        uint8_t priority;
     };
 
-    typedef NsSet<Listener> Listeners;
+    struct ListenerHashKeyInfo
+    {
+        static bool IsEmpty(Listener* key) { return key == (Listener*)0x01; }
+        static void MarkEmpty(Listener*& key) { key = (Listener*)0x01; } 
+        static uint32_t HashValue(Listener* key) { return Hash(key->target); }
+        static uint32_t HashValue(FrameworkElement* target) { return Hash(target); }
+
+        static bool IsEqual(Listener* lhs, Listener* rhs)
+        {
+            return !IsEmpty(lhs) && lhs->target == rhs->target;
+        }
+
+        static bool IsEqual(Listener* lhs, FrameworkElement* target)
+        {
+            return !IsEmpty(lhs) && lhs->target == target;
+        }
+    };
+
+    typedef HashSet<Listener*, 0, HashBucket_K<Listener*, ListenerHashKeyInfo>> Listeners;
     Listeners mListeners;
+    PoolAllocator mListenersPool;
 
     NS_DECLARE_REFLECTION(DataTrigger, BaseTrigger)
 };

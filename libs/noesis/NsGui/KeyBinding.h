@@ -11,13 +11,14 @@
 #include <NsCore/Noesis.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/InputBinding.h>
-#include <NsGui/InputEnums.h>
 
 
 namespace Noesis
 {
 
 class KeyGesture;
+enum Key: int32_t;
+enum ModifierKeys: int32_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Binds a KeyGesture to a Command.

@@ -16,28 +16,23 @@ NS_MSVC_WARNING_DISABLE(4100)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 #define NS_REGISTER_REFLECTION(module, package) \
-    extern "C" NS_COLD_FUNC void NsRegisterReflection##module##package( \
-    Noesis::ComponentFactory* factory, bool registerComponents) \
+    extern "C" NS_COLD_FUNC void NsRegisterReflection##module##package()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 #define NS_REGISTER_COMPONENT(componentClass) \
     { \
         const Noesis::TypeClass* type = Noesis::TypeOf<componentClass>(); \
-        if (registerComponents) \
+        Noesis::RegisterComponent(type, [](Noesis::Symbol) -> Noesis::BaseComponent* \
         { \
-            Noesis::RegisterComponent(type, NsComponentCreator<componentClass>); \
-        } \
-        else \
-        { \
-            Noesis::UnregisterComponent(type); \
-        } \
+            return new componentClass; \
+        }); \
     }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef NS_TESTS_ENABLED
     #define NS_REGISTER_TEST(n) \
-        extern void Noesis_Register##n##Test(bool doRegister); \
-        Noesis_Register##n##Test(registerComponents);
+        extern void Noesis_Register##n##Test(); \
+        Noesis_Register##n##Test();
 #else
     #define NS_REGISTER_TEST(n)
 #endif

@@ -15,7 +15,7 @@ namespace Noesis
 {
 
 /// Specifies whether the text is left-aligned, right-aligned, centered, or justified
-enum TextAlignment
+enum TextAlignment: int32_t
 {
     TextAlignment_Left,
     TextAlignment_Right,
@@ -24,7 +24,7 @@ enum TextAlignment
 };
 
 /// Describes how text is trimmed when it overflows the edge of its containing box
-enum TextTrimming
+enum TextTrimming: int32_t
 {
     /// Not trimmed
     TextTrimming_None,
@@ -35,7 +35,7 @@ enum TextTrimming
 };
 
 /// Specifies whether text wraps when it reaches the edge of the containing box
-enum TextWrapping
+enum TextWrapping: int32_t
 {
     /// No line wrapping is performed
     TextWrapping_NoWrap,
@@ -51,7 +51,7 @@ enum TextWrapping
 };
 
 /// Describes a mechanism by which a line box is determined for each line
-enum LineStackingStrategy
+enum LineStackingStrategy: int32_t
 {
     /// The stack height is determined by the block element line-height property value.
     LineStackingStrategy_BlockLineHeight,

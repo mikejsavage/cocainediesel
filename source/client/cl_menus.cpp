@@ -150,21 +150,6 @@ static void CvarCheckbox( const char * label, const char * cvar_name, const char
 	Cvar_Set( cvar_name, val ? "1" : "0" );
 }
 
-static void CvarSliderInt( const char * label, const char * cvar_name, int lo, int hi, const char * def, cvar_flag_t flags, const char * format = NULL ) {
-	TempAllocator temp = cls.frame_arena.temp();
-
-	SettingLabel( label );
-
-	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
-
-	int val = cvar->integer;
-	ImGui::PushID( cvar_name );
-	ImGui::SliderInt( "", &val, lo, hi, format );
-	ImGui::PopID();
-
-	Cvar_Set( cvar_name, temp( "{}", val ) );
-}
-
 static void CvarSliderFloat( const char * label, const char * cvar_name, float lo, float hi, const char * def, cvar_flag_t flags ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
@@ -214,23 +199,6 @@ static void KeyBindButton( const char * label, const char * command ) {
 	}
 
 	ImGui::PopID();
-}
-
-static bool SelectableColor( const char * label, RGB8 rgb, bool selected ) {
-	bool clicked = ImGui::Selectable( "", selected, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_PressedOnRelease );
-
-	ImGui::NextColumn();
-	ImVec2 window_pos = ImGui::GetWindowPos();
-	ImVec2 top_left = ImGui::GetCursorPos();
-	top_left.x += window_pos.x;
-	top_left.y += window_pos.y;
-	ImVec2 bottom_right = top_left;
-	bottom_right.x += ImGui::GetTextLineHeight() * 1.618f;
-	bottom_right.y += ImGui::GetTextLineHeight();
-	ImGui::GetWindowDrawList()->AddRectFilled( top_left, bottom_right, IM_COL32( rgb.r, rgb.g, rgb.b, 255 ) );
-	ImGui::NextColumn();
-
-	return clicked;
 }
 
 static const char * SelectableMapList() {

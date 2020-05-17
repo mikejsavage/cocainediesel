@@ -32,6 +32,6 @@ void    CM_InitOctagonHull( CollisionModel *cms );
 
 void    CM_FloodAreaConnections( CollisionModel *cms );
 
-void	CM_BoundBrush( cbrush_t *brush );
-
 void CM_LoadQ3BrushModel( CModelServerOrClient soc, CollisionModel * cms, Span< const u8 > data );
+
+__m128 ToSSE( Vec3 v );

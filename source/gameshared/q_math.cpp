@@ -661,3 +661,12 @@ Mat4 TransformKToDir( Vec3 dir ) {
 
 	return rotation;
 }
+
+MinMax3 Extend( MinMax3 bounds, Vec3 p ) {
+	for( int i = 0; i < 3; i++ ) {
+		bounds.mins[ i ] = Min2( bounds.mins[ i ], p[ i ] );
+		bounds.maxs[ i ] = Max2( bounds.maxs[ i ], p[ i ] );
+	}
+
+	return bounds;
+}

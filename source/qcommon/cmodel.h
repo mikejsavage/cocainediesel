@@ -18,6 +18,8 @@
 
  */
 
+#include <emmintrin.h>
+
 #include "gameshared/q_math.h"
 #include "gameshared/q_collision.h"
 #include "qcommon/qfiles.h"
@@ -42,19 +44,19 @@ typedef struct {
 } cbrushside_t;
 
 typedef struct {
+	alignas( 16 ) __m128 mins, maxs;
+
 	int contents;
 	int numsides;
-
-	Vec3 mins, maxs;
 
 	cbrushside_t *brushsides;
 } cbrush_t;
 
 typedef struct {
+	alignas( 16 ) __m128 mins, maxs;
+
 	int contents;
 	int numfacets;
-
-	Vec3 mins, maxs;
 
 	cbrush_t *facets;
 } cface_t;

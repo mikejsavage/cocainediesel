@@ -76,8 +76,12 @@ static void CM_Clear( CModelServerOrClient soc, CollisionModel * cms ) {
 	}
 
 	if( cms->map_faces ) {
-		for( int i = 0; i < cms->numfaces; i++ )
-			Mem_Free( cms->map_faces[i].facets );
+		for( int i = 0; i < cms->numfaces; i++ ) {
+			if( cms->map_faces[i].facets != NULL ) {
+				FREE( sys_allocator, cms->map_faces[i].facets[0].brushsides );
+			}
+			FREE( sys_allocator, cms->map_faces[i].facets );
+		}
 		Mem_Free( cms->map_faces );
 		cms->map_faces = NULL;
 		cms->numfaces = 0;
@@ -275,16 +279,6 @@ int CM_LeafArea( const CollisionModel *cms, int leafnum ) {
 		Com_Error( ERR_DROP, "CM_LeafArea: bad number" );
 	}
 	return cms->map_leafs[leafnum].area;
-}
-
-/*
-* CM_BoundBrush
-*/
-void CM_BoundBrush( cbrush_t *brush ) {
-	for( int i = 0; i < 3; i++ ) {
-		brush->mins[i] = -brush->brushsides[i * 2 + 0].plane.dist;
-		brush->maxs[i] = +brush->brushsides[i * 2 + 1].plane.dist;
-	}
 }
 
 /*
@@ -604,4 +598,8 @@ void CM_Shutdown( void ) {
 	Mem_FreePool( &cmap_mempool );
 
 	cm_initialized = false;
+}
+
+__m128 ToSSE( Vec3 v ) {
+	return _mm_setr_ps( v.x, v.y, v.z, 0.0f );
 }

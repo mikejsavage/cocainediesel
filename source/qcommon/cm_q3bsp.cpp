@@ -463,6 +463,7 @@ static void CMod_LoadSubmodels( CModelServerOrClient soc, CollisionModel *cms, l
 
 		cmodel_t * model = CM_NewCModel( soc, hash );
 
+		model->hash = hash;
 		model->faces = cms->map_faces;
 		model->nummarkfaces = LittleLong( in->numfaces );
 		model->markfaces = ( int * ) Mem_Alloc( cmap_mempool, model->nummarkfaces * sizeof( *model->markfaces ) );

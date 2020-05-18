@@ -479,14 +479,7 @@ static void PM_Aircontrol( Vec3 wishdir, float wishspeed ) {
 	pml.velocity.z = zspeed;
 }
 
-/*
-* PM_AddCurrents
-*/
-static void PM_AddCurrents( Vec3 wishvel ) {
-	//
-	// account for ladders
-	//
-
+static Vec3 PM_LadderMove( Vec3 wishvel ) {
 	if( pml.ladder && Abs( pml.velocity.z ) <= DEFAULT_LADDERSPEED ) {
 		if( pml.forwardPush > 0 ) {
 			wishvel.z = Lerp( -float( DEFAULT_LADDERSPEED ), Unlerp01( 15.0f, pm->playerState->viewangles[PITCH], -15.0f ), float( DEFAULT_LADDERSPEED ) );
@@ -505,11 +498,10 @@ static void PM_AddCurrents( Vec3 wishvel ) {
 		wishvel.x = Clamp( -25.0f, wishvel.x, 25.0f );
 		wishvel.y = Clamp( -25.0f, wishvel.y, 25.0f );
 	}
+
+	return wishvel;
 }
 
-/*
-* PM_WaterMove
-*/
 static void PM_WaterMove() {
 	ZoneScoped;
 
@@ -517,7 +509,7 @@ static void PM_WaterMove() {
 	Vec3 wishvel = pml.forward * pml.forwardPush + pml.right * pml.sidePush;
 	wishvel.z -= pm_waterfriction;
 
-	PM_AddCurrents( wishvel );
+	wishvel = PM_LadderMove( wishvel );
 
 	Vec3 wishdir = wishvel;
 	float wishspeed = Length( wishdir );
@@ -545,7 +537,7 @@ static void PM_Move() {
 	Vec3 wishvel = pml.forward * fmove + pml.right * smove;
 	wishvel.z = 0;
 
-	PM_AddCurrents( wishvel );
+	wishvel = PM_LadderMove( wishvel );
 
 	Vec3 wishdir = wishvel;
 	float wishspeed = Length( wishdir );

@@ -202,8 +202,8 @@ static void G_KnockBackPush( edict_t *targ, edict_t *attacker, Vec3 basedir, int
 		targ->r.client->ps.pmove.knockback_time = Clamp( 100, 3 * knockback, 250 );
 	}
 
-	targ->velocity = targ->velocity + dir * ( push );
-	knockbackOfDeath = dir * ( push );
+	targ->velocity = targ->velocity + dir * push;
+	knockbackOfDeath = dir * push;
 }
 
 /*
@@ -426,21 +426,17 @@ void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edi
 	float minknockback = inflictor->projectileInfo.minKnockback;
 	float radius = inflictor->projectileInfo.radius;
 
-	if( radius <= 1.0f || ( maxdamage <= 0.0f && maxknockback <= 0.0f ) ) {
-		return;
-	}
-
-	mindamage = Min2( mindamage, maxdamage );
-	minknockback = Min2( minknockback, maxknockback );
+	assert( radius >= 0.0f );
+	assert( mindamage >= 0.0f && minknockback >= 0.0f && mindamage <= maxdamage );
+	assert( maxdamage >= 0.0f && maxknockback >= 0.0f && mindamage <= maxdamage );
 
 	int touch[MAX_EDICTS];
 	int numtouch = GClip_FindInRadius4D( inflictor->s.origin, radius, touch, MAX_EDICTS, inflictor->timeDelta );
 
 	for( int i = 0; i < numtouch; i++ ) {
 		edict_t * ent = game.edicts + touch[i];
-		if( ent == ignore || !ent->takedamage ) {
+		if( ent == ignore || !ent->takedamage )
 			continue;
-		}
 
 		int timeDelta;
 		if( ent == attacker && ent->r.client ) {
@@ -453,19 +449,12 @@ void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edi
 		Vec3 pushDir;
 		bool is_selfdamage = inflictor->r.client != NULL && attacker == inflictor;
 		G_SplashFrac4D( ent, inflictor->s.origin, radius, &pushDir, &frac, timeDelta, is_selfdamage );
-
-		float damage = Max2( 0.0f, mindamage + ( ( maxdamage - mindamage ) * frac ) );
-		float knockback = Max2( 0.0f, minknockback + ( ( maxknockback - minknockback ) * frac ) );
-
-		if( knockback < 1.0f ) {
-			knockback = 0.0f;
-		}
-
-		if( damage <= 0.0f && knockback <= 0.0f ) {
+		if( frac == 0.0f )
 			continue;
-		}
 
 		if( G_CanSplashDamage( ent, inflictor, plane ) ) {
+			float damage = Lerp( mindamage, frac, maxdamage );
+			float knockback = Lerp( minknockback, frac, maxknockback );
 			G_Damage( ent, inflictor, attacker, pushDir, inflictor->velocity, inflictor->s.origin, damage, knockback, DAMAGE_RADIUS, mod );
 		}
 	}

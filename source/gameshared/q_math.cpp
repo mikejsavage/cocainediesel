@@ -466,7 +466,7 @@ bool BoundsOverlapSphere( Vec3 mins, Vec3 maxs, Vec3 centre, float radius ) {
 	float dist_squared = 0;
 
 	for( int i = 0; i < 3; i++ ) {
-		float x = centre[ i ] < mins[ i ] ? mins[ i ] : maxs[ i ];
+		float x = Clamp( mins[ i ], centre[ i ], maxs[ i ] );
 		float d = centre[ i ] - x;
 		dist_squared += d * d;
 	}

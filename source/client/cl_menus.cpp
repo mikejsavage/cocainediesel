@@ -283,6 +283,7 @@ static void SettingsControls() {
 			CvarSliderFloat( "Sensitivity", "sensitivity", 1.0f, 10.0f, "3", CVAR_ARCHIVE );
 			CvarSliderFloat( "Horizontal sensitivity", "horizontalsensscale", 0.5f, 2.0f, "1", CVAR_ARCHIVE );
 			CvarSliderFloat( "Acceleration", "m_accel", 0.0f, 1.0f, "0", CVAR_ARCHIVE );
+			CvarCheckbox( "Invert Y axis", "m_invertY", "0", CVAR_ARCHIVE );
 
 			ImGui::EndTabItem();
 		}

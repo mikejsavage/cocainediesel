@@ -21,17 +21,14 @@
 Noesis::IView * _view;
 Noesis::Ptr<Noesis::Grid> _xaml;
 
-static char blah[ 128 ];
-struct Retarded {
-	const char * GetBlah() const { return blah; }
-	void SetBlah( const char * ) { }
+struct Retarded : public Noesis::BaseComponent {
+	Noesis::String blah;
+	NS_DECLARE_REFLECTION( Retarded, BaseComponent )
 };
 
-NS_BEGIN_COLD_REGION
-
-NsProp( "Blah", &Retarded::GetBlah, &Retarded::SetBlah );
-
-NS_END_COLD_REGION
+NS_IMPLEMENT_REFLECTION( Retarded ) {
+	NsProp( "Blah", &Retarded::blah );
+}
 
 void InitNoesis() {
 	Noesis::SetLogHandler( []( const char*, uint32_t, uint32_t level, const char*, const char* msg ) {

@@ -95,7 +95,7 @@ static unsigned int G_FindPointedPlayer( edict_t *self ) {
 
 		Vec3 dir = other->s.origin - self->s.origin;
 		float dist = Length( dir );
-		dir = Normalize( dir );
+		dir = SafeNormalize( dir );
 		if( dist > 1000 ) {
 			continue;
 		}

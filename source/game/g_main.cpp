@@ -132,8 +132,6 @@ void G_GamestatSetFlag( int flag, bool b ) {
 void G_Init( unsigned int framemsec ) {
 	gamepool = _Mem_AllocPool( NULL, "Game", MEMPOOL_GAME, __FILE__, __LINE__ );
 
-	cvar_t *g_maxentities;
-
 	Com_Printf( "==== G_Init ====\n" );
 
 	G_InitGameShared();
@@ -212,8 +210,7 @@ void G_Init( unsigned int framemsec ) {
 	g_asGC_interval = Cvar_Get( "g_asGC_interval", "10", CVAR_ARCHIVE );
 
 	// initialize all entities for this game
-	g_maxentities = Cvar_Get( "sv_maxentities", "4096", CVAR_LATCH );
-	game.maxentities = g_maxentities->integer;
+	game.maxentities = MAX_EDICTS;
 	game.edicts = ( edict_t * )G_Malloc( game.maxentities * sizeof( game.edicts[0] ) );
 
 	// initialize all clients for this game

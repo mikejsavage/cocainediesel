@@ -211,10 +211,7 @@ bool Info_Validate( const char *s );
 // per-level limits
 //
 #define MAX_CLIENTS                 256         // absolute limit
-#define MAX_EDICTS                  4096        // must change protocol to increase more
-#define MAX_MODELS                  1024        // these are sent over the net as shorts
-#define MAX_SOUNDS                  1024        // so they cannot be blindly increased
-#define MAX_IMAGES                  256
+#define MAX_EDICTS                  1024        // must change protocol to increase more
 
 //============================================
 // sound

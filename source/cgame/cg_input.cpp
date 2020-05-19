@@ -208,6 +208,7 @@ static cvar_t *m_accelStyle;
 static cvar_t *m_accelOffset;
 static cvar_t *m_accelPow;
 static cvar_t *m_sensCap;
+static cvar_t *m_invertY;
 
 static Vec2 mouse_movement;
 
@@ -276,9 +277,11 @@ void CG_MouseMove( int frameTime, Vec2 m ) {
 
 Vec3 CG_GetDeltaViewAngles() {
 	// m_pitch/m_yaw used to default to 0.022
+	float x = horizontalSensScale->value;
+	float y = m_invertY->integer == 0 ? 1.0f : -1.0f;
 	return Vec3(
-		0.022f * mouse_movement.y,
-		-0.022f * horizontalSensScale->value * mouse_movement.x,
+		0.022f * y * mouse_movement.y,
+		-0.022f * x * mouse_movement.x,
 		0.0f
 	);
 }
@@ -345,6 +348,7 @@ void CG_InitInput() {
 	m_accelOffset = Cvar_Get( "m_accelOffset", "0", CVAR_ARCHIVE );
 	m_accelPow = Cvar_Get( "m_accelPow", "2", CVAR_ARCHIVE );
 	m_sensCap = Cvar_Get( "m_sensCap", "0", CVAR_ARCHIVE );
+	m_invertY = Cvar_Get( "m_invertY", "0", CVAR_ARCHIVE );
 }
 
 void CG_ShutdownInput() {

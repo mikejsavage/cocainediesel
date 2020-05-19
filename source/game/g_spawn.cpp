@@ -578,6 +578,8 @@ void G_LoadMap( const char * name ) {
 
 	server_gs.gameState.map = StringHash( base_hash );
 	server_gs.gameState.map_checksum = svs.cms->checksum;
+
+	FS_FreeFile( buf );
 }
 
 // TODO: game module init is a mess and I'm not sure how to clean this up

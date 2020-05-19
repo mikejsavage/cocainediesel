@@ -64,7 +64,7 @@ typedef struct c4clipedict_s {
 
 //backups of all server frames areas and edicts
 typedef struct c4frame_s {
-	c4clipedict_t clipEdicts[MAX_EDICTS];   // fixme: there is a g_maxentities cvar. We have to adjust to it
+	c4clipedict_t clipEdicts[MAX_EDICTS];
 	int numedicts;
 
 	int64_t timestamp;

@@ -268,8 +268,8 @@ static void SettingsControls() {
 			KeyBindButton( "Weapon 6", "weapon 6" );
 
 			ImGui::BeginChild( "weapon", ImVec2( 400, -1 ) );
-			if( ImGui::CollapsingHeader( "Advanced weapon keys" ) ) {
-				for( int i = 0; i < Weapon_Count; i++ ) {
+			if( ImGui::CollapsingHeader( "Advanced" ) ) {
+				for( int i = Weapon_Knife; i < Weapon_Count; i++ ) {
 					const WeaponDef * weapon = GS_GetWeaponDef( i );
 					KeyBindButton( weapon->name, temp( "use {}", weapon->short_name ) );
 				}
@@ -293,8 +293,18 @@ static void SettingsControls() {
 			KeyBindButton( "Chat", "messagemode" );
 			KeyBindButton( "Team chat", "messagemode2" );
 
-			ImGui::BeginChild( "voice lines", ImVec2( 400, -1 ) );
-			if( ImGui::CollapsingHeader( "Voice Lines" ) ) {
+			ImGui::Separator();
+
+			ImGui::Text( "Voice" );
+
+			ImGui::Separator();
+
+			KeyBindButton( "Acne", "vsay acne" );
+			KeyBindButton( "Valley", "vsay valley" );
+			KeyBindButton( "Mike", "vsay mike" );
+
+			ImGui::BeginChild( "voice", ImVec2( 400, -1 ) );
+			if( ImGui::CollapsingHeader( "Advanced" ) ) {
 				KeyBindButton( "Sorry", "vsay sorry" );
 				KeyBindButton( "Thanks", "vsay thanks" );
 				KeyBindButton( "Good game", "vsay goodgame" );
@@ -310,9 +320,6 @@ static void SettingsControls() {
 				KeyBindButton( "Trash smash", "vsay trashsmash" );
 				KeyBindButton( "What the shit", "vsay whattheshit" );
 				KeyBindButton( "Wow your terrible", "vsay wowyourterrible" );
-				KeyBindButton( "Acne", "vsay acne" );
-				KeyBindButton( "Valley", "vsay valley" );
-				KeyBindButton( "Mike", "vsay mike" );
 			} ImGui::EndChild();
 
 			ImGui::EndTabItem();
@@ -884,8 +891,10 @@ static void GameMenu() {
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 192 ) );
 	bool should_close = false;
 
+	ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+
 	if( gamemenu_state == GameMenuState_Menu ) {
-		ImGui::SetNextWindowPos( ImGui::GetIO().DisplaySize * 0.5f, 0, Vec2( 0.5f ) );
+		ImGui::SetNextWindowPos( displaySize * 0.5f, 0, Vec2( 0.5f ) );
 		ImGui::SetNextWindowSize( ImVec2( 300, 0 ) );
 		ImGui::Begin( "gamemenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 		ImGuiStyle & style = ImGui::GetStyle();
@@ -959,7 +968,6 @@ static void GameMenu() {
 		ImGui::Columns( 1 );
 	}
 	else if( gamemenu_state == GameMenuState_Loadout ) {
-		ImVec2 displaySize = ImGui::GetIO().DisplaySize;
 		ImGui::PushFont( cls.medium_font );
 		ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 255 ) );
 		ImGui::SetNextWindowPos( Vec2( 0, 0 ) );
@@ -1075,11 +1083,7 @@ static void GameMenu() {
 	}
 	else if( gamemenu_state == GameMenuState_Votemap ) {
 		TempAllocator temp = cls.frame_arena.temp();
-
-		ImVec2 pos = ImGui::GetIO().DisplaySize;
-		pos.x *= 0.5f;
-		pos.y *= 0.5f;
-		ImGui::SetNextWindowPos( pos, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
+		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
 		ImGui::Begin( "votemap", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		const char * map_name = SelectableMapList();
@@ -1087,11 +1091,8 @@ static void GameMenu() {
 		GameMenuButton( "Start vote", temp( "callvote map {}", map_name ), &should_close );
 	}
 	else if( gamemenu_state == GameMenuState_Settings ) {
-		ImVec2 pos = ImGui::GetIO().DisplaySize;
-		pos.x *= 0.5f;
-		pos.y *= 0.5f;
-		ImGui::SetNextWindowPos( pos, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
-		ImGui::SetNextWindowSize( ImVec2( 600, 500 ) );
+		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
+		ImGui::SetNextWindowSize( ImVec2( Max2( 800.f, displaySize.x * 0.6f ), Max2( 600.f, displaySize.y * 0.6f ) ) );
 		ImGui::Begin( "settings", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		Settings();

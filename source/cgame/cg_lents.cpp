@@ -398,9 +398,10 @@ void CG_ProjectileTrail( const centity_t * cent ) {
 	// didn't move
 	Vec3 vec = cent->ent.origin - cent->trailOrigin;
 	float len = Length( vec );
-	vec = Normalize( vec );
 	if( len == 0 )
 		return;
+
+	vec = Normalize( vec );
 
 	ParticleEmitter emitter = { };
 

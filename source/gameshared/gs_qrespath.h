@@ -44,7 +44,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define S_TELEPORT      "sounds/world/tele_in"
 #define S_JUMPPAD       "sounds/world/jumppad"
-#define S_LAUNCHPAD     "sounds/world/launchpad"
 
 #define S_PLAT_START    EMPTY_HASH
 #define S_PLAT_MOVE     "sounds/movers/elevator_move"

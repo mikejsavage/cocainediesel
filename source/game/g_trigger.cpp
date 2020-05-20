@@ -197,7 +197,7 @@ static void trigger_push_touch( edict_t *self, edict_t *other, cplane_t *plane, 
 			return;
 		}
 
-		GS_EvaluateJumppad( &self->s, other->velocity );
+		other->velocity = GS_EvaluateJumppad( &self->s, other->velocity );
 	}
 
 	G_JumpPadSound( self ); // play jump pad sound

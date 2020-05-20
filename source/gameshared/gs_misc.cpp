@@ -39,7 +39,7 @@ void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, 
 		return;
 	}
 
-	GS_EvaluateJumppad( pusher, playerState->pmove.velocity );
+	playerState->pmove.velocity = GS_EvaluateJumppad( pusher, playerState->pmove.velocity );
 
 	// reset walljump counter
 	playerState->pmove.pm_flags &= ~PMF_WALLJUMPCOUNT;

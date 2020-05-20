@@ -5,6 +5,7 @@
 
 #define NS_STATIC_LIBRARY
 #include "noesis/NsApp/ThemeProviders.h"
+#include "noesis/NsApp/NotifyPropertyChangedBase.h"
 #include "noesis/NsCore/Noesis.h"
 #include "noesis/NsCore/RegisterComponent.h"
 #include "noesis/NsRender/GLFactory.h"
@@ -21,14 +22,25 @@
 Noesis::IView * _view;
 Noesis::Ptr<Noesis::Grid> _xaml;
 
-struct Retarded : public Noesis::BaseComponent {
+class Retarded : public NoesisApp::NotifyPropertyChangedBase {
+public:
+	Retarded() { }
+
+	void Set( const char * str ) {
+		blah = str;
+		OnPropertyChanged( "Blah" );
+	}
+
+private:
 	Noesis::String blah;
-	NS_DECLARE_REFLECTION( Retarded, BaseComponent )
+
+	NS_IMPLEMENT_INLINE_REFLECTION( Retarded, BaseComponent ) {
+		NsProp( "Blah", &Retarded::blah );
+	}
 };
 
-NS_IMPLEMENT_REFLECTION( Retarded ) {
-	NsProp( "Blah", &Retarded::blah );
-}
+
+Retarded mwaga;
 
 void InitNoesis() {
 	Noesis::SetLogHandler( []( const char*, uint32_t, uint32_t level, const char*, const char* msg ) {
@@ -75,13 +87,16 @@ void InitNoesis() {
       </EventTrigger>
     </Button.Triggers>
   </Button>
-				  <TextBlock x:Name="test" Foreground="white" Text="{Binding Text}"/>
+				  <TextBlock x:Name="test" Foreground="white"/>
+				  <TextBlock Foreground="white" Text="{Binding Blah, UpdateSourceTrigger=PropertyChanged}"/>
 			  </StackPanel>
 		  </Viewbox>
 	  </Grid>
   )ASDF");
 
-	Noesis::Button* btn = _xaml->FindName<Noesis::Button>( "start" );
+	_xaml->SetDataContext( &mwaga );
+
+	Noesis::Button* btn = _xaml->FindName< Noesis::Button >( "start" );
 	btn->Click() += []( Noesis::BaseComponent * sender, const Noesis::RoutedEventArgs & args ) {
 		Cbuf_AddText( "map carfentanil\n" );
 	};
@@ -102,10 +117,12 @@ void NoesisFrame( int width, int height ) {
 	Noesis::TextBox* text = _xaml->FindName<Noesis::TextBox>( "text" );
 	Noesis::Slider* slider = _xaml->FindName<Noesis::Slider>( "slider" );
 
-	Noesis::TextBlock* test = _xaml->FindName<Noesis::TextBlock>( "test" );
 	char buf[ 128 ];
 	// snprintf( buf, sizeof( buf ), "%lld: %f %s", cls.monotonicTime, slider->GetTrack()->GetValue(), text->GetText() );
 	snprintf( buf, sizeof( buf ), "%lld: %f %s", cls.monotonicTime, 1.0f, text->GetText() );
+	mwaga.Set( buf );
+
+	Noesis::TextBlock* test = _xaml->FindName<Noesis::TextBlock>( "test" );
 	test->SetText( buf );
 
 	_view->SetSize( width, height );

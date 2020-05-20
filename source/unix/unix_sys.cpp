@@ -3,9 +3,9 @@
 void Sys_Init() { }
 
 void EnableFPE() {
-	feenableexcept( FE_INVALID );
+	// feenableexcept( FE_INVALID );
 }
 
 void DisableFPE() {
-	fedisableexcept( FE_INVALID );
+	// fedisableexcept( FE_INVALID );
 }

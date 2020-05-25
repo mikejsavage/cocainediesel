@@ -100,6 +100,7 @@ struct SystemAllocator final : public Allocator {
 
 		assert( alignment <= 16 );
 		void * ptr = malloc( size );
+		TracyAlloc( ptr, size );
 		tracker.track( ptr, func, file, line );
 		return ptr;
 	}
@@ -112,11 +113,14 @@ struct SystemAllocator final : public Allocator {
 			tracker.track( ptr, func, file, line );
 			return NULL;
 		}
+		TracyFree( ptr );
+		TracyAlloc( new_ptr, new_size );
 		tracker.track( new_ptr, func, file, line );
 		return new_ptr;
 	}
 
 	void deallocate( void * ptr, const char * func, const char * file, int line ) {
+		TracyFree( ptr );
 		free( ptr );
 		tracker.untrack( ptr, func, file, line );
 	}

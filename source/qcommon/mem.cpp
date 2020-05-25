@@ -161,6 +161,7 @@ ATTRIBUTE_MALLOC void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t align
 	pool->realsize += realsize;
 
 	base = malloc( realsize );
+	TracyAlloc( base, realsize );
 	if( base == NULL ) {
 		_Mem_Error( "Mem_Alloc: out of memory (alloc at %s:%i)", filename, fileline );
 	}
@@ -310,6 +311,7 @@ void _Mem_Free( void *data, int musthave, int canthave, const char *filename, in
 	Unlock( memMutex );
 
 	free( base );
+	TracyFree( base );
 }
 
 mempool_t *_Mem_AllocPool( mempool_t *parent, const char *name, int flags, const char *filename, int fileline ) {
@@ -323,6 +325,7 @@ mempool_t *_Mem_AllocPool( mempool_t *parent, const char *name, int flags, const
 	}
 
 	pool = ( mempool_t* )malloc( sizeof( mempool_t ) );
+	TracyAlloc( pool, sizeof( mempool_t ) );
 	if( pool == NULL ) {
 		_Mem_Error( "Mem_AllocPool: out of memory (allocpool at %s:%i)", filename, fileline );
 	}
@@ -421,6 +424,7 @@ void _Mem_FreePool( mempool_t **pool, int musthave, int canthave, const char *fi
 
 	// free the pool itself
 	free( *pool );
+	TracyFree( *pool );
 	*pool = NULL;
 }
 

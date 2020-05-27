@@ -48,6 +48,12 @@ class cPlayer {
 		@players[player.playerNum] = @this;
 	}
 
+	void orderInventory() {
+		for( uint i = 0; i < this.loadout.length(); i++ ) {
+			this.client.setWeaponIndex( WeaponType( this.loadout[ i ] ), i + 1 ); // + 1 because of knife
+		}
+	}
+
 	void giveInventory() {
 		this.client.inventoryClear();
 		this.client.giveWeapon( Weapon_Knife );
@@ -74,13 +80,11 @@ class cPlayer {
 
 	void setLoadout( String &cmd ) {
 		int cash = MAX_CASH;
-
-		for( uint i = 0; i < this.loadout.length(); i++ ) {
-			this.loadout[ i ] = Weapon_None;
-		}
+		bool swap_weapons = true;
 
 		this.num_weapons = 0;
 
+		uint[] newloadout( Weapon_Count - 1 );
 		{
 			int i = 0;
 			while( true ) {
@@ -90,12 +94,24 @@ class cPlayer {
 					break;
 				int weapon = token.toInt();
 				if( weapon > Weapon_None && weapon < Weapon_Count && weapon != Weapon_Knife ) {
-					this.loadout[ this.num_weapons ] = weapon;
+					newloadout[ this.num_weapons ] = weapon;
 					cash -= WeaponCost( WeaponType( weapon ) );
 					this.num_weapons++;
 				}
 			}
 		}
+
+		for( uint i = 0; i < newloadout.length(); i++ ) {
+			if( this.loadout.find( newloadout[ i ] ) == -1 ) {
+				swap_weapons = false;
+				break;
+			}
+		}
+
+		for( uint i = 0; i < newloadout.length(); i++ ) {
+			this.loadout[ i ] = newloadout[ i ];
+		}
+
 
 		if( cash < 0 ) {
 			G_PrintMsg( @this.client.getEnt(), "You are not wealthy enough\n" );
@@ -108,12 +124,16 @@ class cPlayer {
 		}
 		this.client.execGameCommand( command );
 
-		if( match.getState() == MATCH_STATE_WARMUP ) {
-			giveInventory();
-		}
+		if( swap_weapons ) {
+			orderInventory();
+		} else {
+			if( match.getState() == MATCH_STATE_WARMUP || match.getState() == MATCH_STATE_COUNTDOWN ) {
+				giveInventory();
+			}
 
-		if( match.getState() == MATCH_STATE_PLAYTIME && roundState == RoundState_Pre ) {
-			giveInventory();
+			if( match.getState() == MATCH_STATE_PLAYTIME && roundState == RoundState_Pre ) {
+				giveInventory();
+			}
 		}
 	}
 }

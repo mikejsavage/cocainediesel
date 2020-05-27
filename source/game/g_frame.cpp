@@ -255,7 +255,7 @@ static void G_SnapEntities() {
 			if( ent->snap.damage_taken && !( ent->flags & FL_GODMODE ) && HEALTH_TO_INT( ent->health ) > 0 ) {
 				float damage = Min2( ent->snap.damage_taken, 120.0f );
 
-				Vec3 dir = Normalize( ent->snap.damage_dir );
+				Vec3 dir = SafeNormalize( ent->snap.damage_dir );
 				Vec3 origin = ent->s.origin + ent->snap.damage_at;
 
 				if( ent->s.type == ET_PLAYER || ent->s.type == ET_CORPSE ) {

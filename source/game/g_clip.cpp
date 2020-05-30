@@ -940,15 +940,11 @@ void GClip_TouchTriggers( edict_t *ent ) {
 }
 
 void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
-	int touch[MAX_EDICTS];
-	Vec3 mins, maxs;
-	edict_t *ent;
-
 	if( pm->playerState->POVnum <= 0 || (int)pm->playerState->POVnum > server_gs.maxclients ) {
 		return;
 	}
 
-	ent = game.edicts + pm->playerState->POVnum;
+	edict_t * ent = game.edicts + pm->playerState->POVnum;
 	if( !ent->r.inuse || !ent->r.client || G_IsDead( ent ) ) { // dead things don't activate triggers!
 		return;
 	}
@@ -973,16 +969,18 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 	GClip_LinkEntity( ent );
 
 	// expand the search bounds to include the space between the previous and current origin
+	Vec3 mins, maxs;
 	for( int i = 0; i < 3; i++ ) {
 		if( previous_origin[i] < pm->playerState->pmove.origin[i] ) {
-			mins[i] = Max2( previous_origin[i] + pm->maxs[i], pm->playerState->pmove.origin[i] + pm->mins[i] );
+			mins[i] = Min2( previous_origin[i] + pm->maxs[i], pm->playerState->pmove.origin[i] + pm->mins[i] );
 			maxs[i] = pm->playerState->pmove.origin[i] + pm->maxs[i];
 		} else {
 			mins[i] = pm->playerState->pmove.origin[i] + pm->mins[i];
-			maxs[i] = Min2( previous_origin[i] + pm->mins[i], pm->playerState->pmove.origin[i] + pm->maxs[i] );
+			maxs[i] = Max2( previous_origin[i] + pm->mins[i], pm->playerState->pmove.origin[i] + pm->maxs[i] );
 		}
 	}
 
+	int touch[MAX_EDICTS];
 	int num = GClip_AreaEdicts( mins, maxs, touch, MAX_EDICTS, AREA_TRIGGERS, 0 );
 
 	// be careful, it is possible to have an entity in this

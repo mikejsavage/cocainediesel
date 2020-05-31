@@ -119,7 +119,3 @@ u32 GetCoreCount() {
 	}
 	return checked_cast< u32 >( ok );
 }
-
-int Sys_Atomic_FetchAdd( volatile int *value, int add ) {
-	return __sync_fetch_and_add( value, add );
-}

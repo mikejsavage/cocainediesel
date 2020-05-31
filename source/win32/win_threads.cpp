@@ -99,7 +99,3 @@ u32 GetCoreCount() {
 	GetSystemInfo( &info );
 	return info.dwNumberOfProcessors;
 }
-
-int Sys_Atomic_FetchAdd( volatile int *value, int add ) {
-	return InterlockedExchangeAdd( (volatile LONG*)value, add );
-}

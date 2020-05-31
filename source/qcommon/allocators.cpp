@@ -107,22 +107,27 @@ struct SystemAllocator final : public Allocator {
 
 	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
 		assert( alignment <= 16 );
+
+		TracyFree( ptr );
 		tracker.untrack( ptr, func, file, line );
+
 		void * new_ptr = realloc( ptr, new_size );
 		if( new_ptr == NULL ) {
+			TracyAlloc( ptr, new_size );
 			tracker.track( ptr, func, file, line );
 			return NULL;
 		}
-		TracyFree( ptr );
+
 		TracyAlloc( new_ptr, new_size );
 		tracker.track( new_ptr, func, file, line );
+
 		return new_ptr;
 	}
 
 	void deallocate( void * ptr, const char * func, const char * file, int line ) {
 		TracyFree( ptr );
-		free( ptr );
 		tracker.untrack( ptr, func, file, line );
+		free( ptr );
 	}
 };
 

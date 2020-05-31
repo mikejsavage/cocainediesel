@@ -612,7 +612,7 @@ void InitMaterials() {
 		ParallelFor( jobs.span(), []( TempAllocator * temp, void * data ) {
 			DecodeTextureJob * job = ( DecodeTextureJob * ) data;
 
-			ZoneScoped;
+			ZoneScopedN( "stbi_load_from_memory" );
 			ZoneText( job->in.path, strlen( job->in.path ) );
 
 			job->out.pixels = stbi_load_from_memory( job->in.data.ptr, job->in.data.num_bytes(), &job->out.width, &job->out.height, &job->out.channels, 0 );
@@ -649,6 +649,7 @@ void HotloadMaterials() {
 			u8 * pixels;
 			{
 				ZoneScopedN( "stbi_load_from_memory" );
+				ZoneText( path, strlen( path ) );
 				pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
 			}
 

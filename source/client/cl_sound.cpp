@@ -324,7 +324,7 @@ static void LoadSounds() {
 	ParallelFor( jobs.span(), []( TempAllocator * temp, void * data ) {
 		DecodeSoundJob * job = ( DecodeSoundJob * ) data;
 
-		ZoneScoped;
+		ZoneScopedN( "stb_vorbis_decode_memory" );
 		ZoneText( job->in.path, strlen( job->in.path ) );
 
 		job->out.num_samples = stb_vorbis_decode_memory( job->in.ogg.ptr, job->in.ogg.num_bytes(), &job->out.channels, &job->out.sample_rate, &job->out.samples );
@@ -346,6 +346,7 @@ static void HotloadSounds() {
 			s16 * samples;
 			{
 				ZoneScopedN( "stb_vorbis_decode_memory" );
+				ZoneText( path, strlen( path ) );
 				num_samples = stb_vorbis_decode_memory( ogg.ptr, ogg.num_bytes(), &channels, &sample_rate, &samples );
 			}
 

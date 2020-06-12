@@ -17,16 +17,6 @@
  * helpers
  */
 
-template< typename T, size_t N >
-constexpr size_t ARRAY_COUNT( const T ( &arr )[ N ] ) {
-	return N;
-}
-
-template< typename T, typename M, size_t N >
-constexpr size_t ARRAY_COUNT( M ( T::* )[ N ] ) {
-	return N;
-}
-
 #define CONCAT_HELPER( a, b ) a##b
 #define CONCAT( a, b ) CONCAT_HELPER( a, b )
 #define COUNTER_NAME( x ) CONCAT( x, __COUNTER__ )
@@ -132,16 +122,3 @@ void DisableFPE();
 #else
 #define DisableFPEScoped DisableFPE(); defer { EnableFPE(); }
 #endif
-
-/*
- * colors
- */
-
-constexpr Vec4 vec4_white = Vec4( 1, 1, 1, 1 );
-constexpr Vec4 vec4_black = Vec4( 0, 0, 0, 1 );
-constexpr Vec4 vec4_red = Vec4( 1, 0, 0, 1 );
-constexpr Vec4 vec4_green = Vec4( 0, 1, 0, 1 );
-constexpr Vec4 vec4_yellow = Vec4( 1, 1, 0, 1 );
-
-constexpr RGBA8 rgba8_white = RGBA8( 255, 255, 255, 255 );
-constexpr RGBA8 rgba8_black = RGBA8( 0, 0, 0, 255 );

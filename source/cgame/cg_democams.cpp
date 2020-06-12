@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/qcommon.h"
 #include "qcommon/cmodel.h"
 #include "cgame/cg_local.h"
+#include "client/renderer/renderer.h"
 
 // Thanks to Xavatar (xavatar2004@hotmail.com) for the path spline implementation
 

@@ -1,4 +1,5 @@
 #include "cgame/cg_local.h"
+#include "client/renderer/renderer.h"
 
 void CG_ParticleRocketExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 	{

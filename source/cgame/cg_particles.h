@@ -1,7 +1,7 @@
 #pragma once
 
 #include "qcommon/types.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/types.h"
 
 struct ParticleChunk {
 	alignas( 16 ) float t[ 4 ];

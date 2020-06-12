@@ -1,6 +1,6 @@
 #pragma once
 
-#include "client/renderer/backend.h"
+#include "client/renderer/types.h"
 
 struct Shaders {
 	Shader standard;

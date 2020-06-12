@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #pragma once
 
+#include "qcommon/types.h"
+#include "client/renderer/types.h"
 #include "gameshared/q_math.h"
 
 // refdef flags
@@ -54,3 +56,39 @@ typedef struct entity_s {
 	float radius;                       // used as RT_SPRITE's radius
 	float rotation;
 } entity_t;
+
+enum XAlignment {
+	XAlignment_Left,
+	XAlignment_Center,
+	XAlignment_Right,
+};
+
+enum YAlignment {
+	YAlignment_Top,
+	YAlignment_Middle,
+	YAlignment_Bottom,
+};
+
+struct Alignment {
+	XAlignment x;
+	YAlignment y;
+};
+
+constexpr Alignment Alignment_LeftTop = { XAlignment_Left, YAlignment_Top };
+constexpr Alignment Alignment_CenterTop = { XAlignment_Center, YAlignment_Top };
+constexpr Alignment Alignment_RightTop = { XAlignment_Right, YAlignment_Top };
+constexpr Alignment Alignment_LeftMiddle = { XAlignment_Left, YAlignment_Middle };
+constexpr Alignment Alignment_CenterMiddle = { XAlignment_Center, YAlignment_Middle };
+constexpr Alignment Alignment_RightMiddle = { XAlignment_Right, YAlignment_Middle };
+constexpr Alignment Alignment_LeftBottom = { XAlignment_Left, YAlignment_Bottom };
+constexpr Alignment Alignment_CenterBottom = { XAlignment_Center, YAlignment_Bottom };
+constexpr Alignment Alignment_RightBottom = { XAlignment_Right, YAlignment_Bottom };
+
+constexpr Vec4 vec4_white = Vec4( 1, 1, 1, 1 );
+constexpr Vec4 vec4_black = Vec4( 0, 0, 0, 1 );
+constexpr Vec4 vec4_red = Vec4( 1, 0, 0, 1 );
+constexpr Vec4 vec4_green = Vec4( 0, 1, 0, 1 );
+constexpr Vec4 vec4_yellow = Vec4( 1, 1, 0, 1 );
+
+constexpr RGBA8 rgba8_white = RGBA8( 255, 255, 255, 255 );
+constexpr RGBA8 rgba8_black = RGBA8( 0, 0, 0, 255 );

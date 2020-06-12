@@ -2,15 +2,7 @@
 
 #include "qcommon/types.h"
 #include "qcommon/hash.h"
-
-constexpr size_t SHADER_MAX_TEXTURES = 4;
-constexpr size_t SHADER_MAX_UNIFORM_BLOCKS = 8;
-
-enum BlendFunc : u8 {
-	BlendFunc_Disabled,
-	BlendFunc_Blend,
-	BlendFunc_Add,
-};
+#include "client/renderer/types.h"
 
 enum CullFace : u8 {
 	CullFace_Back,
@@ -23,13 +15,6 @@ enum DepthFunc : u8 {
 	DepthFunc_Equal,
 	DepthFunc_Always,
 	DepthFunc_Disabled, // also disables writing
-};
-
-enum PrimitiveType : u8 {
-	PrimitiveType_Triangles,
-	PrimitiveType_TriangleStrip,
-	PrimitiveType_Points,
-	PrimitiveType_Lines,
 };
 
 enum TextureFormat : u8 {
@@ -82,34 +67,11 @@ enum VertexFormat : u8 {
 	VertexFormat_Floatx4,
 };
 
-enum IndexFormat : u8 {
-	IndexFormat_U16,
-	IndexFormat_U32,
-};
-
-struct VertexBuffer {
-	u32 vbo;
-};
-
-struct IndexBuffer {
-	u32 ebo;
-};
-
 struct Texture {
 	u32 texture;
 	u32 width, height;
 	bool msaa;
 	TextureFormat format;
-};
-
-struct SamplerObject {
-	u32 sampler;
-};
-
-struct Shader {
-	u32 program;
-	u64 uniforms[ SHADER_MAX_UNIFORM_BLOCKS ];
-	u64 textures[ SHADER_MAX_TEXTURES ];
 };
 
 struct Framebuffer {
@@ -118,12 +80,6 @@ struct Framebuffer {
 	Texture normal_texture;
 	Texture depth_texture;
 	u32 width, height;
-};
-
-struct UniformBlock {
-	u32 ubo;
-	u32 offset;
-	u32 size;
 };
 
 struct PipelineState {
@@ -141,8 +97,8 @@ struct PipelineState {
 		u32 x, y, w, h;
 	};
 
-	UniformBinding uniforms[ SHADER_MAX_UNIFORM_BLOCKS ];
-	TextureBinding textures[ SHADER_MAX_TEXTURES ];
+	UniformBinding uniforms[ ARRAY_COUNT( &Shader::uniforms ) ];
+	TextureBinding textures[ ARRAY_COUNT( &Shader::textures ) ];
 	size_t num_uniforms = 0;
 	size_t num_textures = 0;
 
@@ -181,28 +137,6 @@ struct PipelineState {
 		textures[ num_textures ].texture = texture;
 		num_textures++;
 	}
-};
-
-struct Mesh {
-	u32 num_vertices;
-	PrimitiveType primitive_type;
-	u32 vao;
-	VertexBuffer positions;
-	VertexBuffer normals;
-	VertexBuffer tex_coords;
-	VertexBuffer colors;
-	VertexBuffer joints;
-	VertexBuffer weights;
-	IndexBuffer indices;
-	IndexFormat indices_format;
-	bool ccw_winding;
-};
-
-struct GPUParticle {
-	Vec3 position;
-	float scale;
-	float t;
-	RGBA8 color;
 };
 
 struct MeshConfig {
@@ -263,13 +197,6 @@ struct TextureConfig {
 	TextureFilter filter = TextureFilter_Linear;
 
 	Vec4 border_color;
-};
-
-struct SamplerConfig {
-	TextureWrap wrap = TextureWrap_Repeat;
-	TextureFilter filter = TextureFilter_Linear;
-	Vec4 border_color;
-	// swizzle
 };
 
 struct RenderPass {
@@ -340,9 +267,6 @@ IndexBuffer NewIndexBuffer( Span< T > data ) {
 Texture NewTexture( const TextureConfig & config );
 void UpdateTexture( Texture texture, int x, int y, int w, int h, const void * data );
 void DeleteTexture( Texture texture );
-
-SamplerObject NewSampler( const SamplerConfig & config );
-void DeleteSampler( SamplerObject sampler );
 
 Framebuffer NewFramebuffer( const FramebufferConfig & config );
 void DeleteFramebuffer( Framebuffer fb );

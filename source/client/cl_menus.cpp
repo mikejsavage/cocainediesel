@@ -2,6 +2,7 @@
 #include "imgui/imgui_internal.h"
 
 #include "client/client.h"
+#include "client/renderer/renderer.h"
 #include "qcommon/version.h"
 #include "qcommon/string.h"
 

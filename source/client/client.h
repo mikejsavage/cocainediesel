@@ -25,13 +25,13 @@
 #include "cgame/cg_public.h"
 #include "gameshared/gs_public.h"
 
-#include "client/renderer/renderer.h"
-#include "vid.h"
-#include "ui.h"
-#include "keys.h"
-#include "maps.h"
-#include "console.h"
-#include "sound.h"
+#include "client/vid.h"
+#include "client/ui.h"
+#include "client/keys.h"
+#include "client/maps.h"
+#include "client/console.h"
+#include "client/sound.h"
+#include "client/renderer/types.h"
 
 typedef struct shader_s shader_t;
 typedef struct qfontface_s qfontface_t;

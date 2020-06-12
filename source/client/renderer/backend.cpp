@@ -812,21 +812,6 @@ void DeleteTexture( Texture texture ) {
 	glDeleteTextures( 1, &texture.texture );
 }
 
-SamplerObject NewSampler( const SamplerConfig & config ) {
-	SamplerObject sampler;
-	glGenSamplers( 1, &sampler.sampler );
-	// glSamplerParameteri( sampler.sampler, GL_TEXTURE_WRAP_S, GL_REPEAT );
-	// glSamplerParameteri( sampler.sampler, GL_TEXTURE_WRAP_T, GL_REPEAT );
-	// glSamplerParameteri( sampler.sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	// glSamplerParameteri( sampler.sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-	return sampler;
-
-}
-
-void DeleteSampler( SamplerObject sampler ) {
-	glDeleteSamplers( 1, &sampler.sampler );
-}
-
 Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 	GLuint fbo;
 	glGenFramebuffers( 1, &fbo );

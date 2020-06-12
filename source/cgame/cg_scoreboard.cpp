@@ -1,5 +1,6 @@
 #include "cgame/cg_local.h"
 #include "qcommon/string.h"
+#include "client/renderer/renderer.h"
 
 #include "imgui/imgui.h"
 

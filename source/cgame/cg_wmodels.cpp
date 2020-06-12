@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "cgame/cg_local.h"
 #include "client/assets.h"
+#include "client/renderer/renderer.h"
 
 static WeaponModelMetadata cg_pWeaponModelInfos[ Weapon_Count ];
 

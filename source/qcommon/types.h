@@ -128,6 +128,16 @@ void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t ne
  * helper functions that are useful in templates. so headers don't need to include base.h
  */
 
+template< typename T, size_t N >
+constexpr size_t ARRAY_COUNT( const T ( &arr )[ N ] ) {
+	return N;
+}
+
+template< typename T, typename M, size_t N >
+constexpr size_t ARRAY_COUNT( M ( T::* )[ N ] ) {
+	return N;
+}
+
 #define STATIC_ASSERT( p ) static_assert( p, #p )
 #define NONCOPYABLE( T ) T( const T & ) = delete; void operator=( const T & ) = delete
 
@@ -173,7 +183,7 @@ enum class NoInit { NoInit };
 constexpr NoInit NO_INIT = NoInit::NoInit;
 
 /*
- * span
+ * Span
  */
 
 template< typename T >
@@ -470,6 +480,4 @@ struct RGBA8 {
 
 // TODO: asset types?
 
-struct Model;
-struct Material;
 struct SoundEffect;

@@ -1,6 +1,7 @@
 #include "qcommon/fs.h"
 #include "qcommon/serialization.h"
 #include "client/assets.h"
+#include "client/renderer/renderer.h"
 #include "cgame/cg_local.h"
 
 #include "imgui/imgui.h"

@@ -291,14 +291,16 @@ FALL : player will die the next time he touches the ground.
 -------- NOTES --------
 */
 
-/*QUAKED trigger_capture_area (.5 .5 .5) ? -
-Target it to a misc_capture_area_indicator
+/*QUAKED bomb_site (.5 .5 .5) (-8 -8 -8) (8 8 8)
+A bomb site
 -------- KEYS --------
-target : this points to the entity to activate.
-targetname : activating trigger points to this.
--------- SPAWNFLAGS --------
--------- NOTES --------
-Target it to a misc_capture_area_indicator.
+targetname : the bomb site name, must match the plant_area's target
+*/
+
+/*QUAKED plant_area (.5 .5 0) ? -
+Bomb site plant area
+-------- KEYS --------
+target : a bomb_site entity
 */
 
 /*QUAKED trigger_teleport (.5 .5 .5) ? SPECTATOR
@@ -381,25 +383,6 @@ Aiming target for entities like light, misc_portal_camera and trigger_push (jump
 targetname : the entity that requires an aiming direction points to this.
 -------- NOTES --------
 To make a jump pad, place this entity at the highest point of the jump and target it with a trigger_push entity.
-*/
-
-/*QUAKED target_speaker (0 .7 .7) (-8 -8 -8) (8 8 8) LOOPED_ON LOOPED_OFF RELIABLE GLOBAL ACTIVATOR
-Normal sounds play each time the target is used.  The reliable flag can be set for crucial voiceovers. Looped sounds are always atten 3 / vol 1, and the use function toggles it on/off. Multiple identical looping sounds will just increase volume without any speed cost.
--------- KEYS --------
-noise : path/name of .wav file to play (eg. sound/world/growl1.wav - see Notes).
-volume : 0.0 to 1.0
-attenuation : -1 = none, send to whole level, 1 = normal fighting sounds, 2 = idle sound level, 3 = ambient sound level
-wait : delay in seconds between each time the sound is played ("random" key must be set - see Notes).
-random : random time variance in seconds added or subtracted from "wait" delay ("wait" key must be set - see Notes).
-targetname : the activating button or trigger points to this.
--------- SPAWNFLAGS --------
-LOOPED_ON : &1 sound will loop and initially start on in level (will toggle on/off when triggered).
-LOOPED_OFF : &2 sound will loop and initially start off in level (will toggle on/off when triggered).
-RELIABLE : &4
-GLOBAL : &8 Overrides attenuation setting. Sound will play full volume throughout the level as if it had attenuation -1
-ACTIVATOR : &16 sound will play only for the player that activated the target.
--------- NOTES --------
-The path portion value of the "noise" key can be replaced by the implicit folder character "*" for triggered sounds that belong to a particular player model. For example, if you want to create a "bottomless pit" in which the player screams and dies when he falls into, you would place a trigger_multiple over the floor of the pit and target a target_speaker with it. Then, you would set the "noise" key to "*falling1.wav". The * character means the current player model's sound folder. So if your current player model is Visor, * = sound/player/visor, if your current player model is Sarge, * = sound/player/sarge, etc. This cool feature provides an excellent way to create "player-specific" triggered sounds in your levels.
 */
 
 /*QUAKED model (1 0 0) (-8 -8 -8) (8 8 8)

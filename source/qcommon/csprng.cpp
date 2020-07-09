@@ -13,8 +13,11 @@ static size_t bytes_since_stir;
 void CSPRNG_Init() {
 	u8 entropy[ 32 + 8 ];
 	bool ok = ggentropy( entropy, sizeof( entropy ) );
-	if( !ok )
+	defer { crypto_wipe( entropy, sizeof( entropy ) ); };
+
+	if( !ok ) {
 		Com_Error( ERR_FATAL, "ggentropy" );
+	}
 
 	mtx = NewMutex();
 
@@ -39,6 +42,8 @@ static void Stir() {
 
 	u8 entropy[ 32 ];
 	bool ok = ggentropy( entropy, sizeof( entropy ) );
+	defer { crypto_wipe( entropy, sizeof( entropy ) ); };
+
 	if( !ok ) {
 		Com_Printf( S_COLOR_YELLOW "WARNING: ggentropy failed, not stirring" );
 		return;

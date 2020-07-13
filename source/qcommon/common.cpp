@@ -623,13 +623,8 @@ void Qcommon_Init( int argc, char **argv ) {
 	Cbuf_Execute();
 }
 
-/*
-* Qcommon_Frame
-*/
-void Qcommon_Frame( unsigned int realMsec ) {
+void Qcommon_Frame( u64 real_dt ) {
 	ZoneScoped;
-
-	static unsigned int gameMsec;
 
 	if( com_quit ) {
 		Com_Quit();
@@ -642,14 +637,6 @@ void Qcommon_Frame( unsigned int realMsec ) {
 	if( logconsole && logconsole->modified ) {
 		logconsole->modified = false;
 		Com_ReopenConsoleLog();
-	}
-
-	if( timescale->value >= 0 ) {
-		static float extratime = 0.0f;
-		gameMsec = extratime + (float)realMsec * timescale->value;
-		extratime = ( extratime + (float)realMsec * timescale->value ) - (float)gameMsec;
-	} else {
-		gameMsec = realMsec;
 	}
 
 	wswcurl_perform();
@@ -668,14 +655,16 @@ void Qcommon_Frame( unsigned int realMsec ) {
 		Cbuf_Execute();
 	}
 
-	SV_Frame( realMsec, gameMsec );
-	CL_Frame( realMsec, gameMsec );
+	if( timescale->value < 0 ) {
+		Cvar_ForceSet( "timescale", "1.0" );
+	}
+
+	u64 dt = double( real_dt ) * timescale->value;
+	SV_Frame( real_dt, dt );
+	CL_Frame( real_dt, dt );
 }
 
-/*
-* Qcommon_Shutdown
-*/
-void Qcommon_Shutdown( void ) {
+void Qcommon_Shutdown() {
 	CM_Shutdown();
 	Netchan_Shutdown();
 	NET_Shutdown();

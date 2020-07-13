@@ -702,8 +702,8 @@ void *Q_realloc( void *buf, size_t newsize );
 void Q_free( void *buf );
 
 void Qcommon_Init( int argc, char **argv );
-void Qcommon_Frame( unsigned int realMsec );
-void Qcommon_Shutdown( void );
+void Qcommon_Frame( u64 real_dt );
+void Qcommon_Shutdown();
 
 /*
 ==============================================================
@@ -753,7 +753,7 @@ CLIENT / SERVER SYSTEMS
 void CL_Init( void );
 void CL_Disconnect( const char *message );
 void CL_Shutdown( void );
-void CL_Frame( int realMsec, int gameMsec );
+void CL_Frame( u64 real_dt, u64 dt );
 void CL_ParseServerMessage( msg_t *msg );
 void CL_Netchan_Transmit( msg_t *msg );
 void Con_Print( const char *text );
@@ -761,7 +761,7 @@ void Con_Print( const char *text );
 void SV_Init( void );
 void SV_Shutdown( const char *finalmsg );
 void SV_ShutdownGame( const char *finalmsg, bool reconnect );
-void SV_Frame( unsigned realMsec, unsigned gameMsec );
+void SV_Frame( u64 real_dt, u64 dt );
 bool SV_SendMessageToClient( struct client_s *client, msg_t *msg );
 void SV_ParseClientMessage( struct client_s *client, msg_t *msg );
 

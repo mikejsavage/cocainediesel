@@ -1639,10 +1639,7 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 	CL_ServerListFrame();
 }
 
-/*
-* CL_Frame
-*/
-void CL_Frame( int realMsec, int gameMsec ) {
+void CL_Frame( u64 real_dt, u64 dt ) {
 	ZoneScoped;
 
 	TracyPlot( "Client frame arena max utilisation", cls.frame_arena.max_utilisation() );
@@ -1653,30 +1650,23 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	cls.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
 
 	static int allRealMsec = 0, allGameMsec = 0, extraMsec = 0;
-	static float roundingMsec = 0.0f;
-	int minMsec;
-	float maxFps;
 
-	cls.monotonicTime += realMsec;
-	cls.realtime += realMsec;
+	cls.monotonicTime += real_dt;
+	cls.realtime += real_dt;
 
 	if( cls.demo.playing && cls.demo.play_ignore_next_frametime ) {
-		gameMsec = 0;
+		dt = 0;
 		cls.demo.play_ignore_next_frametime = false;
 	}
 
 	if( cls.demo.playing ) {
 		if( cls.demo.paused ) {
-			gameMsec = 0;
-		} else {
+			dt = 0;
+		}
+		else {
 			CL_LatchedDemoJump();
 		}
 	}
-
-	cls.gametime += gameMsec;
-
-	allRealMsec += realMsec;
-	allGameMsec += gameMsec;
 
 	DoneHotloadingAssets();
 
@@ -1698,38 +1688,45 @@ void CL_Frame( int realMsec, int gameMsec ) {
 		last_focused = focused;
 	}
 
-	CL_UpdateSnapshot();
-	CL_AdjustServerTime( gameMsec );
-	CL_UserInputFrame( realMsec );
-	CL_NetFrame( realMsec, gameMsec );
+	static u64 accumulated_real_dt = 0;
+	static u64 accumulated_dt = 0;
 
-	const int absMinFps = 24;
+	cls.gametime += dt;
+	accumulated_real_dt += real_dt;
+	accumulated_dt += dt;
+
+	CL_UpdateSnapshot();
+	CL_AdjustServerTime( dt );
+	CL_UserInputFrame( real_dt );
+	CL_NetFrame( real_dt, dt );
+
+	constexpr int min_fps = 24;
 
 	// do not allow setting cl_maxfps to very low values to prevent cheating
-	if( cl_maxfps->integer < absMinFps ) {
-		Cvar_ForceSet( "cl_maxfps", va( "%i", absMinFps ) );
-	}
-	maxFps = IsWindowFocused() ? cl_maxfps->value : absMinFps;
-	minMsec = Max2( 1000.0f / maxFps, 1.0f );
-	roundingMsec += Max2( 1000.0f / maxFps, 1.0f ) - minMsec;
-
-	if( roundingMsec >= 1.0f ) {
-		minMsec += (int)roundingMsec;
-		roundingMsec -= (int)roundingMsec;
+	if( cl_maxfps->integer < min_fps ) {
+		Cvar_ForceSet( "cl_maxfps", va( "%i", min_fps ) );
 	}
 
-	if( allRealMsec + extraMsec < minMsec ) {
+	float target_fps = IsWindowFocused() ? cl_maxfps->value : min_fps;
+	u64 target_dt = Seconds( 1.0f / target_fps );
+
+	if( accumulated_real_dt < target_dt ) {
 		// let CPU sleep while minimized
 		bool sleep = cls.state == CA_DISCONNECTED || !IsWindowFocused();
+		float ms_to_next_frame = ToSeconds( target_dt - accumulated_real_dt ) * 1000.0f;
 
-		if( sleep && minMsec - extraMsec > 1 ) {
-			Sys_Sleep( minMsec - extraMsec - 1 );
+		if( sleep && ms_to_next_frame >= 1.0f ) {
+			Sys_Sleep( ms_to_next_frame );
 		}
+
 		return;
 	}
 
-	cls.frametime = allGameMsec;
-	cls.realFrameTime = allRealMsec;
+	cls.dt = accumulated_dt;
+	cls.real_dt = accumulated_real_dt;
+
+	// TODO: that's not right lol. use fixed timestep
+
 	if( allRealMsec < minMsec ) { // is compensating for a too slow frame
 		extraMsec = Clamp( 0, extraMsec - ( minMsec - allRealMsec ), 100 );
 	} else {   // too slow, or exact frame
@@ -1751,6 +1748,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 		S_Update( Vec3( 0 ), Vec3( 0 ), axis_identity );
 	}
 
+	// TODO ????
 	allRealMsec = 0;
 	allGameMsec = 0;
 

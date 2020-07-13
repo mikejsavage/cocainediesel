@@ -1,5 +1,6 @@
 #include "client/client.h"
 #include "client/icon.h"
+#include "qcommon/time.h"
 
 #include "glad/glad.h"
 

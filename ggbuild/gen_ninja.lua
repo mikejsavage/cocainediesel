@@ -34,7 +34,6 @@ configs[ "linux" ] = {
 	lib_suffix = ".a",
 
 	toolchain = "gcc",
-	cc = "gcc",
 	cxx = "g++",
 
 	cxxflags = "-c -fdiagnostics-color",

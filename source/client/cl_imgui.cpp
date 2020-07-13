@@ -31,7 +31,7 @@ extern GLFWwindow * window;
 void CL_InitImGui() {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGui_ImplGlfw_InitForOpenGL( window, NULL );
+	ImGui_ImplGlfw_InitForOpenGL( window, false );
 
 	ImGuiIO & io = ImGui::GetIO();
 

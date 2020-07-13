@@ -150,16 +150,6 @@ static void GetBytes( DeltaBuffer * buf, void * data, size_t n ) {
 	buf->cursor += n;
 }
 
-static void AddByte( DeltaBuffer * buf, u8 byte ) {
-	AddBytes( buf, &byte, 1 );
-}
-
-static u8 GetByte( DeltaBuffer * buf ) {
-	u8 b;
-	GetBytes( buf, &b, 1 );
-	return b;
-}
-
 template< typename T >
 static void DeltaFundamental( DeltaBuffer * buf, T & x, const T & baseline ) {
 	if( buf->serializing ) {
@@ -187,7 +177,6 @@ static void Delta( DeltaBuffer * buf, u16 & x, u16 baseline ) { DeltaFundamental
 static void Delta( DeltaBuffer * buf, u32 & x, u32 baseline ) { DeltaFundamental( buf, x, baseline ); }
 static void Delta( DeltaBuffer * buf, u64 & x, u64 baseline ) { DeltaFundamental( buf, x, baseline ); }
 static void Delta( DeltaBuffer * buf, float & x, float baseline ) { DeltaFundamental( buf, x, baseline ); }
-static void Delta( DeltaBuffer * buf, double & x, double baseline ) { DeltaFundamental( buf, x, baseline ); }
 
 static void Delta( DeltaBuffer * buf, bool & b, bool baseline ) {
 	if( buf->serializing ) {
@@ -220,43 +209,6 @@ static void Delta( DeltaBuffer * buf, RGBA8 & rgba, const RGBA8 & baseline ) {
 	Delta( buf, rgba.g, baseline.b );
 	Delta( buf, rgba.b, baseline.g );
 	Delta( buf, rgba.a, baseline.a );
-}
-
-template< typename T >
-static void DeltaUnsignedLEB128( DeltaBuffer * buf, T & x, const T & baseline ) {
-	if( buf->serializing ) {
-		if( x == baseline ) {
-			AddBit( buf, false );
-		}
-		else {
-			AddBit( buf, true );
-			do {
-				u8 curr = x & 127;
-				x >>= 7;
-				if( x != 0 ) {
-					curr |= 1 << 7;
-				}
-
-				AddByte( buf, curr );
-			} while( x != 0 );
-		}
-	}
-	else {
-		if( GetBit( buf ) ) {
-			x = 0;
-			u32 n = 0;
-			while( !buf->error ) {
-				u8 byte = GetByte( buf );
-				x |= ( byte & 127 ) << ( n * 7 );
-				if( ( byte & ( 1 << 7 ) ) == 0 )
-					break;
-				n++;
-			}
-		}
-		else {
-			x = baseline;
-		}
-	}
 }
 
 static void DeltaHalf( DeltaBuffer * buf, float & x, const float & baseline ) {

@@ -1738,8 +1738,6 @@ enum {
 // Commands' Functions
 //=============================================================================
 
-static constexpr float SEL_WEAP_Y_OFFSET = 0.25f;
-
 static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih, Alignment alignment, float font_size ) {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
 	static constexpr Vec4 light_gray = Vec4( 0.5, 0.5, 0.5, 1.0 );

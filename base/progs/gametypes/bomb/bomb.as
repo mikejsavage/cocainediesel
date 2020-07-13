@@ -314,7 +314,7 @@ void bombThink() {
 				@defuser = firstNearbyTeammate( bombModel.origin, defendingTeam );
 
 			if( @defuser != null ) {
-				if( !entCanSee( defuser, bombModel.origin ) || defuser.origin.distance( bombModel.origin ) > BOMB_ARM_DEFUSE_RADIUS ) {
+				if( defuser.isGhosting() || !entCanSee( defuser, bombModel.origin ) || defuser.origin.distance( bombModel.origin ) > BOMB_ARM_DEFUSE_RADIUS ) {
 					@defuser = null;
 				}
 			}

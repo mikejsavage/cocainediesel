@@ -12,7 +12,7 @@ void Sys_InitTime() {
 static bool time_set = false;
 static u64 base_usec;
 
-u64 Sys_Microseconds() {
+static u64 Sys_Microseconds() {
 	static bool first = true;
 	static LARGE_INTEGER p_start;
 

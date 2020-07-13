@@ -616,27 +616,21 @@ int main( int argc, char ** argv ) {
 
 	Qcommon_Init( argc, argv );
 
-	int64_t oldtime = Sys_Milliseconds();
+	u64 last_frame_time = ggtime();
 	while( !glfwWindowShouldClose( window ) ) {
 		FrameMark;
 
-		int64_t newtime;
-
-		int dt;
-		{
-			ZoneScopedN( "Interframe" );
-
-			// find time spent rendering last frame
-			do {
-				newtime = Sys_Milliseconds();
-				dt = newtime - oldtime;
-			} while( dt == 0 );
-			oldtime = newtime;
-		}
+		u64 now = ggtime();
+		u64 dt = now - last_frame_time;
+#if !PUBLIC_BUILD
+		// limit frame time to 200ms after being stopped by the debugger etc
+		dt = Min2( dt, Milliseconds( 200 ) );
+#endif
 
 		glfwPollEvents();
+		Qcommon_Frame( now - last_frame_time );
 
-		Qcommon_Frame( dt );
+		last_frame_time = now;
 	}
 
 	Com_Quit();

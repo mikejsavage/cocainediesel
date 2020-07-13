@@ -724,7 +724,6 @@ void Sys_Init();
 void Sys_ShowErrorMessage( const char * msg );
 
 int64_t Sys_Milliseconds();
-uint64_t Sys_Microseconds();
 void Sys_Sleep( unsigned int millis );
 bool Sys_FormatTime( char * buf, size_t buf_size, const char * fmt );
 

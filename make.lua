@@ -23,6 +23,7 @@ end
 require( "libs.cgltf" )
 require( "libs.glad" )
 require( "libs.imgui" )
+require( "libs.gg" )
 require( "libs.meshoptimizer" )
 require( "libs.monocypher" )
 require( "libs.stb" )
@@ -73,6 +74,7 @@ do
 			"cgltf",
 			"glad",
 			"imgui",
+			"ggtime",
 			"meshoptimizer",
 			"monocypher",
 			"stb_image",
@@ -140,6 +142,7 @@ do
 		},
 
 		libs = {
+			"ggtime",
 			"monocypher",
 			"tracy",
 			"whereami",

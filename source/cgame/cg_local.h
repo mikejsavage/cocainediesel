@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_syscalls.h"
 #include "cgame/cg_decals.h"
 #include "cgame/cg_particles.h"
+#include "cgame/cg_sprays.h"
 
 #include "client/sound.h"
 #include "client/renderer/types.h"
@@ -156,6 +157,7 @@ typedef struct {
 	const SoundEffect * sfxFall;
 
 	const SoundEffect * sfxTbag;
+	const SoundEffect * sfxSpray;
 
 	const SoundEffect * sfxHeadshot;
 

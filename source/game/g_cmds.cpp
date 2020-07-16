@@ -503,6 +503,123 @@ static void Cmd_Clack_f( edict_t * ent ) {
 	}
 }
 
+static StringHash spray_names[] = {
+	"textures/sprays/1515",
+	"textures/sprays/2cb",
+	"textures/sprays/420",
+	"textures/sprays/666",
+	"textures/sprays/934",
+	"textures/sprays/acab",
+	"textures/sprays/ahacheers",
+	"textures/sprays/antifa",
+	"textures/sprays/artofrespect",
+	"textures/sprays/betmen",
+	"textures/sprays/biohazard",
+	"textures/sprays/bomb",
+	"textures/sprays/boobs",
+	"textures/sprays/callme",
+	"textures/sprays/candle",
+	"textures/sprays/cat",
+	"textures/sprays/catawake",
+	"textures/sprays/catfood",
+	"textures/sprays/david",
+	"textures/sprays/defusethis",
+	"textures/sprays/dontdead",
+	"textures/sprays/dope",
+	"textures/sprays/dude",
+	"textures/sprays/epstein",
+	"textures/sprays/eye",
+	"textures/sprays/face1",
+	"textures/sprays/face2",
+	"textures/sprays/ferhat",
+	"textures/sprays/five",
+	"textures/sprays/flower",
+	"textures/sprays/freehk",
+	"textures/sprays/fuckpigs",
+	"textures/sprays/fuckthepopo",
+	"textures/sprays/gg",
+	"textures/sprays/ggkorean",
+	"textures/sprays/goteem",
+	"textures/sprays/hahaha",
+	"textures/sprays/homor",
+	"textures/sprays/hyde",
+	"textures/sprays/jesusu",
+	"textures/sprays/kalash",
+	"textures/sprays/karma",
+	"textures/sprays/kilroy",
+	"textures/sprays/knobhead",
+	"textures/sprays/madma",
+	"textures/sprays/mike",
+	"textures/sprays/mj",
+	"textures/sprays/munch",
+	"textures/sprays/mussolini",
+	"textures/sprays/neveragain",
+	"textures/sprays/obama",
+	"textures/sprays/oink",
+	"textures/sprays/onion",
+	"textures/sprays/owned",
+	"textures/sprays/peace",
+	"textures/sprays/peepee",
+	"textures/sprays/phart",
+	"textures/sprays/poop",
+	"textures/sprays/popit",
+	"textures/sprays/puffdar",
+	"textures/sprays/quakelove",
+	"textures/sprays/radioactive",
+	"textures/sprays/random",
+	"textures/sprays/rico",
+	"textures/sprays/rip",
+	"textures/sprays/rtr",
+	"textures/sprays/santa",
+	"textures/sprays/skull",
+	"textures/sprays/skull2",
+	"textures/sprays/smiley",
+	"textures/sprays/snooy",
+	"textures/sprays/snowman",
+	"textures/sprays/start_here",
+	"textures/sprays/supercool",
+	"textures/sprays/sure",
+	"textures/sprays/teabag",
+	"textures/sprays/terrible",
+	"textures/sprays/triangel",
+	"textures/sprays/urgay",
+	"textures/sprays/urinate",
+	"textures/sprays/usa",
+	"textures/sprays/user",
+	"textures/sprays/vagina",
+	"textures/sprays/volim1",
+	"textures/sprays/warsowsucks",
+	"textures/sprays/wutang",
+	"textures/sprays/x_x",
+};
+
+static void Cmd_Spray_f( edict_t * ent ) {
+	if( G_ISGHOSTING( ent ) )
+		return;
+
+	if( ent->r.client->level.last_spray + 2500 > svs.realtime )
+		return;
+
+	Vec3 forward;
+	AngleVectors( ent->r.client->ps.viewangles, &forward, NULL, NULL );
+
+	Vec3 start = ent->s.origin + Vec3( 0.0f, 0.0f, ent->r.client->ps.viewheight );
+	Vec3 end = start + forward * 80.0f;
+
+	trace_t trace;
+	G_Trace( &trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ent, MASK_OPAQUE );
+
+	if( trace.ent != 0 || ( trace.surfFlags & ( SURF_SKY | SURF_NOMARKS ) ) )
+		return;
+
+	ent->r.client->level.last_spray = svs.realtime;
+
+	StringHash spray = random_select( &svs.rng, spray_names );
+	edict_t * event = G_SpawnEvent( EV_SPRAY, spray.hash, &trace.endpos );
+	event->s.angles = ent->r.client->ps.viewangles;
+	event->s.origin2 = trace.plane.normal;
+}
+
 typedef struct
 {
 	const char *name;
@@ -890,6 +1007,8 @@ void G_InitGameCommands( void ) {
 
 	G_AddCommand( "typewriterclack", Cmd_Clack_f );
 	G_AddCommand( "typewriterspace", Cmd_Clack_f );
+
+	G_AddCommand( "spray", Cmd_Spray_f );
 
 	G_AddCommand( "vsay", G_vsay_Cmd );
 	G_AddCommand( "vsay_team", G_Teams_vsay_Cmd );

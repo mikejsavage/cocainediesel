@@ -744,6 +744,7 @@ typedef struct {
 
 	int64_t last_vsay;				// time when last vsay was said
 	int64_t last_activity;
+	int64_t last_spray;
 
 	score_stats_t stats;
 	bool showscores;

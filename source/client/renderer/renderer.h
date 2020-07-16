@@ -13,6 +13,7 @@
  */
 struct FrameStatic {
 	u32 viewport_width, viewport_height;
+	u32 last_viewport_width, last_viewport_height;
 	Vec2 viewport;
 	float aspect_ratio;
 	int msaa_samples;

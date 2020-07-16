@@ -850,6 +850,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	DrawParticles();
 	DrawPersistentBeams();
 	DrawSkybox();
+	DrawSprays();
 
 	CG_AddLocalSounds();
 

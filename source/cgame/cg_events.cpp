@@ -975,6 +975,13 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			S_StartFixedSound( cgs.media.sfxTbag, ent->origin, CHAN_AUTO, parm / 255.0f );
 			break;
 
+		case EV_SPRAY:
+			Vec3 up;
+			AngleVectors( ent->angles, NULL, NULL, &up );
+			AddSpray( ent->origin, ent->origin2, up, StringHash( parm ) );
+			S_StartFixedSound( cgs.media.sfxSpray, ent->origin, CHAN_AUTO, 1.0f );
+			break;
+
 		case EV_DAMAGE:
 			CG_AddDamageNumber( ent, parm );
 			break;

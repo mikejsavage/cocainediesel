@@ -293,6 +293,7 @@ static void SettingsControls() {
 
 			KeyBindButton( "Chat", "messagemode" );
 			KeyBindButton( "Team chat", "messagemode2" );
+			KeyBindButton( "Spray", "spray" );
 
 			ImGui::Separator();
 

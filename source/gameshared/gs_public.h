@@ -633,6 +633,7 @@ typedef enum {
 	EV_VSAY,
 
 	EV_TBAG,
+	EV_SPRAY,
 
 	EV_LASER_SPARKS,
 

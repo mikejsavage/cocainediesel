@@ -70,6 +70,7 @@ void CG_RegisterMediaSounds() {
 	cgs.media.sfxFall = FindSoundEffect( "players/fall" );
 
 	cgs.media.sfxTbag = FindSoundEffect( "sounds/tbag/tbag" );
+	cgs.media.sfxSpray = FindSoundEffect( "sounds/spray/spray" );
 
 	cgs.media.sfxHeadshot = FindSoundEffect( "sounds/headshot/headshot" );
 

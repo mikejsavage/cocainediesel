@@ -58,10 +58,21 @@ static void CG_ViewWeapon_UpdateProjectionSource( Vec3 hand_origin, const mat3_t
 * CG_ViewWeapon_AddAngleEffects
 */
 static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles ) {
+	const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapon );
+
 	if( cg.predictedPlayerState.weapon_state == WeaponState_Firing || cg.predictedPlayerState.weapon_state == WeaponState_FiringSemiAuto ) {
-		const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapon );
 		float frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->refire_time );
 		angles->x -= def->refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+	}
+	else if( cg.predictedPlayerState.weapon_state == WeaponState_SwitchingIn || cg.predictedPlayerState.weapon_state == WeaponState_SwitchingOut ) {
+		float frac;
+		if( cg.predictedPlayerState.weapon_state == WeaponState_SwitchingIn ) {
+			frac = float( cg.predictedPlayerState.weapon_time ) / float( def->weaponup_time );
+		}
+		else {
+			frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->weapondown_time );
+		}
+		angles->x += Lerp( 0.0f, frac, 30.0f );
 	}
 
 	if( cg_gunbob->integer ) {

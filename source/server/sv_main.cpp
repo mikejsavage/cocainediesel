@@ -555,6 +555,8 @@ void SV_UserinfoChanged( client_t *client ) {
 * SV_Init
 */
 void SV_Init( void ) {
+	ZoneScoped;
+
 	cvar_t *sv_pps;
 	cvar_t *sv_fps;
 

@@ -286,6 +286,8 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 * command from the console or progs.
 */
 void SV_Map( const char *level, bool devmap ) {
+	ZoneScoped;
+
 	client_t *cl;
 	int i;
 

@@ -421,9 +421,9 @@ const WeaponDef gs_weaponDefs[] = {
 		//timings (in msecs)
 		WEAPONUP_TIME_VERY_SLOW,        // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		500,                             // refire time
+		500,                            // refire time
 		HITSCAN_RANGE,                  // range
-		100.0f,                          // recoil
+		50.0f,                          // recoil
 		FiringMode_Auto,
 
 		25.0f,                          // zoom fov

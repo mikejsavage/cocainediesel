@@ -36,20 +36,6 @@ constexpr T Max3( const T & a, const T & b, const T & c ) {
 }
 
 template< typename T >
-T Clamp( const T & lo, const T & x, const T & hi ) {
-	assert( lo <= hi );
-	return Max2( lo, Min2( x, hi ) );
-}
-
-inline float Clamp01( float x ) {
-	return Clamp( 0.0f, x, 1.0f );
-}
-
-inline Vec4 Clamp01( Vec4 v ) {
-	return Vec4( Clamp01( v.x ), Clamp01( v.y ), Clamp01( v.z ), Clamp01( v.w ) );
-}
-
-template< typename T >
 T Lerp( T a, float t, T b ) {
 	return a * ( 1.0f - t ) + b * t;
 }

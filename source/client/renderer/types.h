@@ -24,6 +24,8 @@ struct Shader {
 	u32 program;
 	u64 uniforms[ 8 ];
 	u64 textures[ 4 ];
+	u64 texture_buffers[ 4 ];
+	u64 texture_array;
 };
 
 struct VertexBuffer {

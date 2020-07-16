@@ -614,7 +614,7 @@ float SampleNormalDistribution( RNG * rng ) {
 }
 
 Vec3 Project( Vec3 a, Vec3 b ) {
-	return Dot( a, b ) / Dot( b, b ) * b;
+	return Dot( a, b ) / LengthSquared( b ) * b;
 }
 
 Vec3 ClosestPointOnLine( Vec3 p0, Vec3 p1, Vec3 p ) {

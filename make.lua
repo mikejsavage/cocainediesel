@@ -77,6 +77,7 @@ do
 			"monocypher",
 			"stb_image",
 			"stb_image_write",
+			"stb_rect_pack",
 			"stb_vorbis",
 			"tracy",
 			"whereami",

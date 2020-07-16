@@ -28,6 +28,10 @@ T Abs( const T & x ) {
 	return x >= 0 ? x : -x;
 }
 
+inline float Square( float x ) {
+	return x * x;
+}
+
 // some stubs to catch accidental double usage
 void sinf( double x );
 void cosf( double x );

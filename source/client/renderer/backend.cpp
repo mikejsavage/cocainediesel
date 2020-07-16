@@ -235,6 +235,29 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 	assert( false );
 }
 
+static void TextureBufferFormatToGL( TextureBufferFormat format, GLenum * internal_format, u32 * element_size ) {
+	switch( format ) {
+		case TextureBufferFormat_U8x4:
+			*internal_format = GL_RGBA8;
+			*element_size = 4 * sizeof( u8 );
+			return;
+		case TextureBufferFormat_U32:
+			*internal_format = GL_R32UI;
+			*element_size = sizeof( u32 );
+			return;
+		case TextureBufferFormat_U32x2:
+			*internal_format = GL_RG32UI;
+			*element_size = 2 * sizeof( u32 );
+			return;
+		case TextureBufferFormat_Floatx4:
+			*internal_format = GL_RGBA32F;
+			*element_size = 4 * sizeof( float );
+			return;
+	}
+
+	assert( false );
+}
+
 void RenderBackendInit() {
 	ZoneScoped;
 	TracyGpuContext;
@@ -359,6 +382,33 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 			glBindTexture( GL_TEXTURE_2D, 0 );
 			glBindTexture( GL_TEXTURE_2D_MULTISAMPLE, 0 );
 		}
+	}
+
+	// texture buffers
+	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->texture_buffers ); i++ ) {
+		glActiveTexture( GL_TEXTURE0 + ARRAY_COUNT( pipeline.shader->textures ) + i );
+
+		bool found = false;
+		for( size_t j = 0; j < pipeline.num_texture_buffers; j++ ) {
+			if( pipeline.texture_buffers[ j ].name_hash == pipeline.shader->texture_buffers[ i ] ) {
+				glBindTexture( GL_TEXTURE_BUFFER, pipeline.texture_buffers[ j ].tb.texture );
+				found = true;
+				break;
+			}
+		}
+
+		if( !found ) {
+			glBindTexture( GL_TEXTURE_BUFFER, 0 );
+		}
+	}
+
+	// texture array
+	glActiveTexture( GL_TEXTURE0 + ARRAY_COUNT( pipeline.shader->textures ) + ARRAY_COUNT( pipeline.shader->texture_buffers ) );
+	if( pipeline.texture_array.name_hash == pipeline.shader->texture_array ) {
+		glBindTexture( GL_TEXTURE_2D_ARRAY, pipeline.texture_array.ta.texture );
+	}
+	else {
+		glBindTexture( GL_TEXTURE_2D_ARRAY, 0 );
 	}
 
 	// alpha blending
@@ -737,8 +787,37 @@ void DeleteIndexBuffer( IndexBuffer ib ) {
 	glDeleteBuffers( 1, &ib.ebo );
 }
 
+TextureBuffer NewTextureBuffer( TextureBufferFormat format, u32 len ) {
+	TextureBuffer tb;
+	glGenBuffers( 1, &tb.tbo );
+	glGenTextures( 1, &tb.texture );
+
+	glBindBuffer( GL_TEXTURE_BUFFER, tb.tbo );
+	glBindTexture( GL_TEXTURE_BUFFER, tb.texture );
+
+	GLenum internal_format;
+	u32 element_size;
+	TextureBufferFormatToGL( format, &internal_format, &element_size );
+	glTexBuffer( GL_TEXTURE_BUFFER, internal_format, tb.tbo );
+
+	assert( len * element_size < S32_MAX );
+	glBufferData( GL_TEXTURE_BUFFER, len * element_size, NULL, GL_STREAM_DRAW );
+
+	return tb;
+}
+
+void WriteTextureBuffer( TextureBuffer tb, const void * data, u32 len ) {
+	glBindBuffer( GL_TEXTURE_BUFFER, tb.tbo );
+	glBufferSubData( GL_TEXTURE_BUFFER, 0, len, data );
+}
+
+void DeleteTextureBuffer( TextureBuffer tb ) {
+	glDeleteBuffers( 1, &tb.tbo );
+	glDeleteTextures( 1, &tb.texture );
+}
+
 static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
-	Texture texture;
+	Texture texture = { };
 	texture.width = config.width;
 	texture.height = config.height;
 	texture.msaa = msaa_samples > 1;
@@ -801,15 +880,31 @@ Texture NewTexture( const TextureConfig & config ) {
 	return NewTextureSamples( config, 0 );
 }
 
-void UpdateTexture( Texture texture, int x, int y, int w, int h, const void * data ) {
-	GLenum internal_format, channels, type;
-	TextureFormatToGL( texture.format, &internal_format, &channels, &type );
-	glBindTexture( GL_TEXTURE_2D, texture.texture );
-	glTexSubImage2D( GL_TEXTURE_2D, 0, x, y, w, h, channels, type, data );
+void DeleteTexture( Texture texture ) {
+	if( texture.texture == 0 )
+		return;
+	glDeleteTextures( 1, &texture.texture );
 }
 
-void DeleteTexture( Texture texture ) {
-	glDeleteTextures( 1, &texture.texture );
+TextureArray NewAtlasTextureArray( const TextureArrayConfig & config ) {
+	TextureArray ta;
+
+	glGenTextures( 1, &ta.texture );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, ta.texture );
+	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT );
+	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT );
+	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+
+	glTexImage3D( GL_TEXTURE_2D_ARRAY, 0, GL_SRGB8_ALPHA8, config.width, config.height, config.layers, 0, GL_RGBA, GL_UNSIGNED_BYTE, config.data );
+
+	return ta;
+}
+
+void DeleteTextureArray( TextureArray ta ) {
+	if( ta.texture == 0 )
+		return;
+	glDeleteTextures( 1, &ta.texture );
 }
 
 Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
@@ -874,13 +969,9 @@ void DeleteFramebuffer( Framebuffer fb ) {
 		return;
 
 	glDeleteFramebuffers( 1, &fb.fbo );
-
-	if( fb.albedo_texture.texture != 0 )
-		DeleteTexture( fb.albedo_texture );
-	if( fb.normal_texture.texture != 0 )
-		DeleteTexture( fb.normal_texture );
-	if( fb.depth_texture.texture != 0 )
-		DeleteTexture( fb.depth_texture );
+	DeleteTexture( fb.albedo_texture );
+	DeleteTexture( fb.normal_texture );
+	DeleteTexture( fb.depth_texture );
 }
 
 #define MAX_GLSL_UNIFORM_JOINTS 100
@@ -1000,6 +1091,7 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens ) {
 	glGetProgramiv( program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxlen );
 
 	size_t num_textures = 0;
+	size_t num_texture_buffers = 0;
 	for( GLint i = 0; i < count; i++ ) {
 		char name[ 128 ];
 		GLint size, len;
@@ -1007,9 +1099,32 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens ) {
 		glGetActiveUniform( program, i, sizeof( name ), &len, &size, &type, name );
 
 		if( type == GL_SAMPLER_2D || type == GL_SAMPLER_2D_MULTISAMPLE ) {
+			if( num_textures == ARRAY_COUNT( shader->textures ) ) {
+				glDeleteProgram( program );
+				Com_Printf( S_COLOR_YELLOW "Too many samplers in shader\n" );
+				return false;
+			}
+
 			glUniform1i( glGetUniformLocation( program, name ), num_textures );
 			shader->textures[ num_textures ] = Hash64( name, len );
 			num_textures++;
+		}
+
+		if( type == GL_SAMPLER_BUFFER || type == GL_INT_SAMPLER_BUFFER || type == GL_UNSIGNED_INT_SAMPLER_BUFFER ) {
+			if( num_texture_buffers == ARRAY_COUNT( shader->texture_buffers ) ) {
+				glDeleteProgram( program );
+				Com_Printf( S_COLOR_YELLOW "Too many samplers in shader\n" );
+				return false;
+			}
+
+			glUniform1i( glGetUniformLocation( program, name ), ARRAY_COUNT( &Shader::textures ) + num_texture_buffers );
+			shader->texture_buffers[ num_texture_buffers ] = Hash64( name, len );
+			num_texture_buffers++;
+		}
+
+		if( type == GL_SAMPLER_2D_ARRAY ) {
+			glUniform1i( glGetUniformLocation( program, name ), ARRAY_COUNT( &Shader::textures ) + ARRAY_COUNT( &Shader::texture_buffers ) );
+			shader->texture_array = Hash64( name, len );
 		}
 	}
 

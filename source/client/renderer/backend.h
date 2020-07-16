@@ -67,11 +67,25 @@ enum VertexFormat : u8 {
 	VertexFormat_Floatx4,
 };
 
+enum TextureBufferFormat : u8 {
+	TextureBufferFormat_U8x4,
+
+	TextureBufferFormat_U32,
+	TextureBufferFormat_U32x2,
+
+	TextureBufferFormat_Floatx4,
+};
+
 struct Texture {
 	u32 texture;
 	u32 width, height;
 	bool msaa;
 	TextureFormat format;
+	const void * data;
+};
+
+struct TextureArray {
+	u32 texture;
 };
 
 struct Framebuffer {
@@ -93,14 +107,27 @@ struct PipelineState {
 		const Texture * texture;
 	};
 
+	struct TextureArrayBinding {
+		u64 name_hash;
+		TextureArray ta;
+	};
+
+	struct TextureBufferBinding {
+		u64 name_hash;
+		TextureBuffer tb;
+	};
+
 	struct Scissor {
 		u32 x, y, w, h;
 	};
 
 	UniformBinding uniforms[ ARRAY_COUNT( &Shader::uniforms ) ];
 	TextureBinding textures[ ARRAY_COUNT( &Shader::textures ) ];
+	TextureBufferBinding texture_buffers[ ARRAY_COUNT( &Shader::texture_buffers ) ];
+	TextureArrayBinding texture_array = { };
 	size_t num_uniforms = 0;
 	size_t num_textures = 0;
+	size_t num_texture_buffers = 0;
 
 	u8 pass = U8_MAX;
 	const Shader * shader = NULL;
@@ -136,6 +163,24 @@ struct PipelineState {
 		textures[ num_textures ].name_hash = name.hash;
 		textures[ num_textures ].texture = texture;
 		num_textures++;
+	}
+
+	void set_texture_buffer( StringHash name, TextureBuffer tb ) {
+		for( size_t i = 0; i < num_texture_buffers; i++ ) {
+			if( texture_buffers[ i ].name_hash == name.hash ) {
+				texture_buffers[ i ].tb = tb;
+				return;
+			}
+		}
+
+		texture_buffers[ num_texture_buffers ].name_hash = name.hash;
+		texture_buffers[ num_texture_buffers ].tb = tb;
+		num_texture_buffers++;
+	}
+
+	void set_texture_array( StringHash name, TextureArray ta ) {
+		texture_array.name_hash = name.hash;
+		texture_array.ta = ta;
 	}
 };
 
@@ -197,6 +242,14 @@ struct TextureConfig {
 	TextureFilter filter = TextureFilter_Linear;
 
 	Vec4 border_color;
+};
+
+struct TextureArrayConfig {
+	u32 width = 0;
+	u32 height = 0;
+	u32 layers = 0;
+
+	const void * data = NULL;
 };
 
 struct RenderPass {
@@ -264,9 +317,15 @@ IndexBuffer NewIndexBuffer( Span< T > data ) {
 	return NewIndexBuffer( data.ptr, data.num_bytes() );
 }
 
+TextureBuffer NewTextureBuffer( TextureBufferFormat format, u32 len );
+void WriteTextureBuffer( TextureBuffer tb, const void * data, u32 size );
+void DeleteTextureBuffer( TextureBuffer tb );
+
 Texture NewTexture( const TextureConfig & config );
-void UpdateTexture( Texture texture, int x, int y, int w, int h, const void * data );
 void DeleteTexture( Texture texture );
+
+TextureArray NewAtlasTextureArray( const TextureArrayConfig & config );
+void DeleteTextureArray( TextureArray ta );
 
 Framebuffer NewFramebuffer( const FramebufferConfig & config );
 void DeleteFramebuffer( Framebuffer fb );

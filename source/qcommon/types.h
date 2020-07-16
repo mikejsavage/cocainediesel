@@ -175,6 +175,17 @@ constexpr T Max2( const T & a, const T & b ) {
 	return a > b ? a : b;
 }
 
+template< typename T >
+T Clamp( const T & lo, const T & x, const T & hi ) {
+	assert( lo <= hi );
+	return Max2( lo, Min2( x, hi ) );
+}
+
+template< typename T >
+T Clamp01( const T & x ) {
+	return Clamp( T( 0.0f ), x, T( 1.0f ) );
+}
+
 /*
  * NoInit
  */

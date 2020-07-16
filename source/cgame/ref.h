@@ -28,6 +28,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define RDF_CROSSINGWATER       0x2     // potentially crossing water surface
 #define RDF_BLURRED             0x4
 
+constexpr u32 TILE_SIZE = 32;
+
 typedef struct orientation_s {
 	mat3_t axis;
 	Vec3 origin;

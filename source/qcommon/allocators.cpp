@@ -241,7 +241,7 @@ float ArenaAllocator::max_utilisation() const {
 }
 
 void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, const char * func, const char * file, int line ) {
-	if( SIZE_MAX / n < size )
+	if( n != 0 && SIZE_MAX / n < size )
 		Sys_Error( "allocation too large" );
 	return a->allocate( n * size, alignment, func, file, line );
 }

@@ -86,9 +86,11 @@ static void LoadShaders() {
 	BuildShaderSrcs( "glsl/standard.glsl", "#define ALPHA_TEST 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.standard_alphatest, srcs.span(), lengths.span() );
 
-	const char * world_defines =
+	const char * world_defines = temp(
 		"#define APPLY_DRAWFLAT 1\n"
-		"#define APPLY_FOG 1\n";
+		"#define APPLY_FOG 1\n"
+		"#define APPLY_DECALS 1\n"
+		"#define TILE_SIZE {}\n", TILE_SIZE );
 	BuildShaderSrcs( "glsl/standard.glsl", world_defines, &srcs, &lengths );
 	ReplaceShader( &shaders.world, srcs.span(), lengths.span() );
 

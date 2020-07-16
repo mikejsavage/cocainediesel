@@ -174,7 +174,7 @@ static Mat4 OrthographicProjection( float left, float top, float right, float bo
 }
 
 static Mat4 PerspectiveProjection( float vertical_fov_degrees, float aspect_ratio, float near_plane ) {
-	float tan_half_vertical_fov = tanf( DEG2RAD( vertical_fov_degrees ) / 2.0f );
+	float tan_half_vertical_fov = tanf( Radians( vertical_fov_degrees ) / 2.0f );
 	float epsilon = 2.4e-6f;
 
 	return Mat4(
@@ -216,10 +216,10 @@ static Mat4 InvertPerspectiveProjection( const Mat4 & P ) {
 }
 
 static Mat4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
-	float pitch = DEG2RAD( angles.pitch );
+	float pitch = Radians( angles.pitch );
 	float sp = sinf( pitch );
 	float cp = cosf( pitch );
-	float yaw = DEG2RAD( angles.yaw );
+	float yaw = Radians( angles.yaw );
 	float sy = sinf( yaw );
 	float cy = cosf( yaw );
 

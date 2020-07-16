@@ -230,13 +230,13 @@ void ViewVectors( Vec3 forward, Vec3 * right, Vec3 * up ) {
 }
 
 void AngleVectors( Vec3 angles, Vec3 * forward, Vec3 * right, Vec3 * up ) {
-	float pitch = DEG2RAD( angles.x );
+	float pitch = Radians( angles.x );
 	float sp = sinf( pitch );
 	float cp = cosf( pitch );
-	float yaw = DEG2RAD( angles.y );
+	float yaw = Radians( angles.y );
 	float sy = sinf( yaw );
 	float cy = cosf( yaw );
-	float roll = DEG2RAD( angles.z );
+	float roll = Radians( angles.z );
 	float sr = sinf( roll );
 	float cr = cosf( roll );
 
@@ -262,7 +262,7 @@ Vec3 VecToAngles( Vec3 vec ) {
 
 	float yaw;
 	if( vec.x != 0.0f ) {
-		yaw = RAD2DEG( atan2f( vec.y, vec.x ) );
+		yaw = Degrees( atan2f( vec.y, vec.x ) );
 	}
 	else if( vec.y > 0 ) {
 		yaw = 90;
@@ -272,7 +272,7 @@ Vec3 VecToAngles( Vec3 vec ) {
 	}
 
 	float forward = Length( vec.xy() );
-	float pitch = RAD2DEG( atan2f( vec.z, forward ) );
+	float pitch = Degrees( atan2f( vec.z, forward ) );
 
 	if( yaw < 0 ) {
 		yaw += 360;

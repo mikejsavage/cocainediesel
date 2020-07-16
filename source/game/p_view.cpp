@@ -42,7 +42,7 @@ static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t
 
 	// calc exact destination
 	Vec3 chase_dest = *vieworg;
-	float r = DEG2RAD( thirdPersonAngle );
+	float r = Radians( thirdPersonAngle );
 	float f = -cosf( r );
 	r = -sinf( r );
 	chase_dest += v_forward * thirdPersonRange * f;
@@ -59,7 +59,7 @@ static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t
 	if( dist < 1 ) {
 		dist = 1;
 	}
-	viewangles->x = RAD2DEG( -atan2f( stop.z, dist ) );
+	viewangles->x = Degrees( -atan2f( stop.z, dist ) );
 	viewangles->y -= thirdPersonAngle;
 	AngleVectors( *viewangles, &v_forward, &v_right, &v_up );
 

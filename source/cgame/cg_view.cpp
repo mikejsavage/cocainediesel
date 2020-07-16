@@ -337,7 +337,7 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 
 	// calc exact destination
 	Vec3 chase_dest = view->origin;
-	r = DEG2RAD( cg_thirdPersonAngle->value );
+	r = Radians( cg_thirdPersonAngle->value );
 	f = -cosf( r );
 	r = -sinf( r );
 	chase_dest += FromQFAxis( view->axis, AXIS_FORWARD ) * ( cg_thirdPersonRange->value * f );
@@ -354,7 +354,7 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 	if( dist < 1 ) {
 		dist = 1;
 	}
-	view->angles.x = RAD2DEG( -atan2f( stop.z, dist ) );
+	view->angles.x = Degrees( -atan2f( stop.z, dist ) );
 	view->angles.y -= cg_thirdPersonAngle->value;
 	Matrix3_FromAngles( view->angles, view->axis );
 
@@ -391,7 +391,7 @@ float CG_ViewSmoothFallKick( void ) {
 	// fallkick offset
 	if( cg.fallEffectTime > cl.serverTime ) {
 		float fallfrac = (float)( cl.serverTime - cg.fallEffectRebounceTime ) / (float)( cg.fallEffectTime - cg.fallEffectRebounceTime );
-		float fallkick = -1.0f * sinf( DEG2RAD( fallfrac * 180 ) ) * ( ( cg.fallEffectTime - cg.fallEffectRebounceTime ) * 0.01f );
+		float fallkick = -1.0f * sinf( Radians( fallfrac * 180 ) ) * ( ( cg.fallEffectTime - cg.fallEffectRebounceTime ) * 0.01f );
 		return fallkick;
 	} else {
 		cg.fallEffectTime = cg.fallEffectRebounceTime = 0;
@@ -595,7 +595,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 
 	Matrix3_FromAngles( view->angles, view->axis );
 
-	view->fracDistFOV = tanf( DEG2RAD( view->fov_x ) * 0.5f );
+	view->fracDistFOV = tanf( Radians( view->fov_x ) * 0.5f );
 
 	if( view->thirdperson ) {
 		CG_ThirdPersonOffsetView( view );

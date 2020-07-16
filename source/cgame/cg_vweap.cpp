@@ -296,7 +296,7 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 		float gun_fov_y = WidescreenFov( Clamp( 20.0f, cg_gun_fov->value, 160.0f ) );
 		float gun_fov_x = CalcHorizontalFov( gun_fov_y, frame_static.viewport_width, frame_static.viewport_height );
 
-		float fracWeapFOV = tanf( DEG2RAD( gun_fov_x ) * 0.5f ) / cg.view.fracDistFOV;
+		float fracWeapFOV = tanf( Radians( gun_fov_x ) * 0.5f ) / cg.view.fracDistFOV;
 
 		viewweapon->axis[AXIS_FORWARD] *= fracWeapFOV;
 		viewweapon->axis[AXIS_FORWARD + 1] *= fracWeapFOV;

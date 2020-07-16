@@ -265,7 +265,7 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 	float y_spread = 0.0f;
 	if( self->r.client != NULL && self->r.client->ps.zoom_time < ZOOMTIME ) {
 		float frac = 1.0f - float( self->r.client->ps.zoom_time ) / float( ZOOMTIME );
-		float spread = frac * def->range * atanf( DEG2RAD( def->zoom_spread ) );
+		float spread = frac * def->range * atanf( Radians( def->zoom_spread ) );
 		x_spread = random_float11( &svs.rng ) * spread;
 		y_spread = random_float11( &svs.rng ) * spread;
 	}
@@ -363,7 +363,7 @@ static void W_Touch_Grenade( edict_t *ent, edict_t *other, cplane_t *plane, int 
 static void W_Fire_Grenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, bool aim_up ) {
 	Vec3 new_angles = angles;
 	if( aim_up ) {
-		new_angles.x -= 5.0f * cosf( DEG2RAD( new_angles.x ) ); // aim some degrees upwards from view dir
+		new_angles.x -= 5.0f * cosf( Radians( new_angles.x ) ); // aim some degrees upwards from view dir
 	}
 
 	edict_t * grenade = FireProjectile( self, start, new_angles, timeDelta, GS_GetWeaponDef( Weapon_GrenadeLauncher ), W_Touch_Grenade, ET_GRENADE, MASK_SHOT );

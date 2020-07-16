@@ -750,10 +750,10 @@ void CG_AddLocalEntities( void ) {
 				ent->scale = 0.15 * frac;
 			} else {
 				angles = VecToAngles( FromQFAxis( ent->axis, AXIS_RIGHT ) );
-				ent->axis[1 * 3 + 1] += 0.005f * sinf( DEG2RAD( angles.y ) ); //length
-				ent->axis[1 * 3 + 0] += 0.005f * cosf( DEG2RAD( angles.y ) ); //length
-				ent->axis[0 * 3 + 1] += 0.008f * cosf( DEG2RAD( angles.y ) ); //width
-				ent->axis[0 * 3 + 0] -= 0.008f * sinf( DEG2RAD( angles.y ) ); //width
+				ent->axis[1 * 3 + 1] += 0.005f * sinf( Radians( angles.y ) ); //length
+				ent->axis[1 * 3 + 0] += 0.005f * cosf( Radians( angles.y ) ); //length
+				ent->axis[0 * 3 + 1] += 0.008f * cosf( Radians( angles.y ) ); //width
+				ent->axis[0 * 3 + 0] -= 0.008f * sinf( Radians( angles.y ) ); //width
 				ent->axis[2 * 3 + 2] -= 0.052f;              //height
 
 				if( ent->axis[AXIS_UP + 2] <= 0 ) {

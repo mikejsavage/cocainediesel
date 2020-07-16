@@ -777,8 +777,8 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	}
 	else if( material->tcmod.type == TCModFunc_Rotate ) {
 		float degrees = float( PositiveMod( double( material->tcmod.args[ 0 ] ) * double( cls.gametime / 1000.0 ), 360.0 ) );
-		float s = sinf( DEG2RAD( degrees ) );
-		float c = cosf( DEG2RAD( degrees ) );
+		float s = sinf( Radians( degrees ) );
+		float c = cosf( Radians( degrees ) );
 		// keep centered on (0.5, 0.5)
 		tcmod_row0 = Vec3( c, -s, 0.5f * ( 1.0f + s - c ) );
 		tcmod_row1 = Vec3( s, c, 0.5f * ( 1.0f - s - c ) );

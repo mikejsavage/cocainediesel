@@ -272,7 +272,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter & emitter, 
 
 	if( emitter.use_cone_direction ) {
 		Mat4 dir_transform = TransformKToDir( emitter.direction_cone.normal );
-		dir = ( dir_transform * Vec4( UniformSampleCone( &cls.rng, DEG2RAD( emitter.direction_cone.theta ) ), 0.0f ) ).xyz();
+		dir = ( dir_transform * Vec4( UniformSampleCone( &cls.rng, Radians( emitter.direction_cone.theta ) ), 0.0f ) ).xyz();
 	}
 	else {
 		dir = UniformSampleSphere( &cls.rng );

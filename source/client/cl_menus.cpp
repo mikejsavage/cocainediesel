@@ -839,7 +839,7 @@ static void WeaponButton( int cash, WeaponType weapon, ImVec2 size ) {
 	bool affordable = def->cost <= cash;
 
 	const Material * icon = cgs.media.shaderWeaponIcon[ weapon ];
-	Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
+	Vec2 half_pixel = HalfPixelSize( icon );
 	Vec4 color = selected ? vec4_green : ( affordable ? vec4_white : Vec4( 0.5f, 0.5f, 0.5f, 1.0f ) );
 
 	ImGui::PushStyleColor( ImGuiCol_Border, color );
@@ -1043,7 +1043,7 @@ static void GameMenu() {
 
 			for( size_t i = 0; i < num_weapons; i++ ) {
 				const Material * icon = cgs.media.shaderWeaponIcon[ selected_weapons[ i ] ];
-				Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
+				Vec2 half_pixel = HalfPixelSize( icon );
 				ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, vec4_black );
 
 				if( ImGui::BeginDragDropSource( ImGuiDragDropFlags_None ) ) {

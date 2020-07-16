@@ -43,7 +43,7 @@ ParticleSystem NewParticleSystem( Allocator * a, size_t n, const Material * mate
 			Vec2( 0.5f, 0.5f ),
 		};
 
-		Vec2 half_pixel = 0.5f / Vec2( material->texture->width, material->texture->height );
+		Vec2 half_pixel = HalfPixelSize( material );
 		Vec2 uvs[] = {
 			half_pixel,
 			Vec2( 1.0f - half_pixel.x, half_pixel.y ),

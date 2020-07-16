@@ -691,6 +691,10 @@ const Material * FindMaterial( const char * name, const Material * def ) {
 	return FindMaterial( StringHash( HashMaterialName( name ) ), def );
 }
 
+Vec2 HalfPixelSize( const Material * material ) {
+	return 0.5f / Vec2( material->texture->width, material->texture->height );
+}
+
 bool HasAlpha( TextureFormat format ) {
 	return format == TextureFormat_A_U8 || format == TextureFormat_RA_U8 || format == TextureFormat_RGBA_U8 || format == TextureFormat_RGBA_U8_sRGB;
 }

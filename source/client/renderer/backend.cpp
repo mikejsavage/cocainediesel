@@ -1237,7 +1237,7 @@ void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material 
 	pipeline.blend_func = blend_func;
 	pipeline.write_depth = false;
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.set_uniform( "u_GradientMaterial", UploadUniformBlock( 0.5f / gradient->texture->width ) );
+	pipeline.set_uniform( "u_GradientMaterial", UploadUniformBlock( HalfPixelSize( gradient ).x ) );
 	pipeline.set_texture( "u_BaseTexture", material->texture );
 	pipeline.set_texture( "u_GradientTexture", gradient->texture );
 

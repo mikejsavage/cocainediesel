@@ -412,7 +412,7 @@ void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh )
 }
 
 void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color ) {
-	Vec2 half_pixel = 0.5f / Vec2( material->texture->width, material->texture->height );
+	Vec2 half_pixel = HalfPixelSize( material );
 	Draw2DBoxUV( x, y, w, h, half_pixel, 1.0f - half_pixel, material, color );
 }
 

@@ -245,7 +245,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * m
 	float beam_aspect_ratio = Length( end - start ) / width;
 	float repetitions = beam_aspect_ratio / texture_aspect_ratio;
 
-	Vec2 half_pixel = 0.5f / Vec2( material->texture->width, material->texture->height );
+	Vec2 half_pixel = HalfPixelSize( material );
 	Vec2 uvs[] = {
 		Vec2( half_pixel.x, half_pixel.y ),
 		Vec2( half_pixel.x, 1.0f - half_pixel.y ),

@@ -64,3 +64,5 @@ void ShutdownMaterials();
 const Material * FindMaterial( StringHash name, const Material * def = NULL );
 const Material * FindMaterial( const char * name, const Material * def = NULL );
 bool TryFindMaterial( StringHash name, const Material ** material );
+
+Vec2 HalfPixelSize( const Material * material );

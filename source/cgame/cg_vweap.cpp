@@ -72,7 +72,8 @@ static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles ) {
 		else {
 			frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->weapondown_time );
 		}
-		angles->x += Lerp( 0.0f, frac, 30.0f );
+		frac *= frac; //smoother curve
+		angles->x += Lerp( 0.0f, frac, 60.0f );
 	}
 
 	if( cg_gunbob->integer ) {

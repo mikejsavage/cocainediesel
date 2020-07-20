@@ -870,7 +870,7 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			// 					ent->counterNum );
 			break;
 
-		case EV_SPOG:
+		case EV_GIB:
 			SpawnGibs( ent->origin, ent->origin2, parm, team_color );
 			break;
 

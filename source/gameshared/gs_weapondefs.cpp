@@ -60,7 +60,7 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		120,                            // refire time
 		HITSCAN_RANGE,                  // projectile timeout
-		2.50f,                            // recoil
+		2.50f,                          // recoil
 		FiringMode_SemiAuto,
 
 		0.0f,                           // zoom fov
@@ -217,15 +217,15 @@ const WeaponDef gs_weaponDefs[] = {
 
 		1,                              // projectiles fired each shot
 		5,                              // clip size
-		1500,                            // reload time
-		false,                           // staged reloading
+		1500,                           // reload time
+		false,                          // staged reloading
 
 		//timings (in msecs)
 		WEAPONUP_TIME_NORMAL,           // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
 		500,                            // refire time
 		1250,                           // projectile timeout
-		5.0f,                          // recoil
+		5.0f,                           // recoil
 		FiringMode_Auto,
 
 		0.0f,                           // zoom fov
@@ -240,7 +240,7 @@ const WeaponDef gs_weaponDefs[] = {
 		50,                             // splash minimum knockback
 
 		//projectile def
-		420,                           // speed
+		420,                            // speed
 		0,                              // spread
 	},
 

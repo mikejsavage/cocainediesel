@@ -192,7 +192,7 @@ struct SyncEntityState {
 
 	Vec3 origin;
 	Vec3 angles;
-	Vec3 origin2;                 // ET_BEAM, ET_EVENT specific
+	Vec3 origin2; // velocity for players/corpses. often used for endpoints, e.g. ET_BEAM and some events
 
 	StringHash model;
 	StringHash model2;
@@ -612,9 +612,8 @@ typedef enum {
 	EV_PLAYER_TELEPORT_IN,
 	EV_PLAYER_TELEPORT_OUT,
 
-	EV_SPOG,
-
 	EV_BLOOD,
+	EV_GIB,
 
 	EV_BLADE_IMPACT,
 	EV_GRENADE_BOUNCE,

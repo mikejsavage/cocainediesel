@@ -222,10 +222,6 @@ struct SyncEntityState {
 	int64_t linearMovementTimeStamp;
 	int linearMovementTimeDelta;
 
-	// server will use this for sound culling in case
-	// the entity has an event attached to it (along with
-	// PVS culling)
-
 	WeaponType weapon;                  // WEAP_ for players
 	bool teleported;
 

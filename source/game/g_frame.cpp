@@ -234,9 +234,7 @@ static void G_SnapEntities() {
 
 		if( ent->s.type == ET_PLAYER || ent->s.type == ET_CORPSE ) {
 			// this is pretty hackish
-			if( !G_ISGHOSTING( ent ) ) {
-				ent->s.origin2 = ent->velocity;
-			}
+			ent->s.origin2 = ent->velocity;
 		}
 
 		if( ISEVENTENTITY( ent ) || G_ISGHOSTING( ent ) || !ent->takedamage ) {

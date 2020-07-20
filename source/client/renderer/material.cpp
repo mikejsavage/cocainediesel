@@ -43,7 +43,7 @@ struct MaterialSpecKey {
 constexpr u32 MAX_TEXTURES = 4096;
 constexpr u32 MAX_MATERIALS = 4096;
 
-constexpr u32 MAX_DECALS = 128;
+constexpr u32 MAX_DECALS = 4096;
 constexpr int DECAL_ATLAS_SIZE = 2048;
 
 static Texture textures[ MAX_TEXTURES ];
@@ -604,7 +604,8 @@ static void PackDecalAtlas() {
 
 	decals_hashtable.clear();
 
-	stbrp_rect rects[ MAX_TEXTURES ];
+	stbrp_rect rects[ MAX_DECALS ];
+	num_decals = 0;
 
 	for( u32 i = 0; i < num_materials; i++ ) {
 		if( !materials[ i ].decal )
@@ -615,6 +616,8 @@ static void PackDecalAtlas() {
 			continue;
 		}
 
+		assert( num_decals < ARRAY_COUNT( rects ) );
+
 		stbrp_rect * rect = &rects[ num_decals ];
 		num_decals++;
 
@@ -623,7 +626,7 @@ static void PackDecalAtlas() {
 		rect->h = materials[ i ].texture->height;
 	}
 
-	u32 num_unpacked_decals = num_decals;
+	u32 num_to_pack = num_decals;
 	u32 num_atlases = 0;
 	while( true ) {
 		stbrp_node nodes[ MAX_TEXTURES ];
@@ -631,24 +634,24 @@ static void PackDecalAtlas() {
 		stbrp_init_target( &packer, DECAL_ATLAS_SIZE, DECAL_ATLAS_SIZE, nodes, ARRAY_COUNT( nodes ) );
 		stbrp_setup_allow_out_of_mem( &packer, 1 );
 
-		bool all_packed = stbrp_pack_rects( &packer, rects, num_unpacked_decals ) != 0;
+		bool all_packed = stbrp_pack_rects( &packer, rects, num_to_pack ) != 0;
 		bool none_packed = true;
 
 		static RGBA8 pixels[ DECAL_ATLAS_SIZE * DECAL_ATLAS_SIZE ];
 		Span2D< RGBA8 > image( pixels, DECAL_ATLAS_SIZE, DECAL_ATLAS_SIZE );
-		for( u32 i = 0; i < num_unpacked_decals; i++ ) {
+		for( u32 i = 0; i < num_to_pack; i++ ) {
 			if( !rects[ i ].was_packed )
 				continue;
 			none_packed = false;
 
-			const Material * decal = &materials[ rects[ i ].id ];
+			const Material * material = &materials[ rects[ i ].id ];
 
 			size_t decal_idx = decals_hashtable.size();
-			decals_hashtable.add( decal->name, decal_idx );
+			decals_hashtable.add( material->name, decal_idx );
 			decal_uvwhs[ decal_idx ].x = rects[ i ].x / float( DECAL_ATLAS_SIZE ) + num_atlases;
 			decal_uvwhs[ decal_idx ].y = rects[ i ].y / float( DECAL_ATLAS_SIZE );
-			decal_uvwhs[ decal_idx ].z = decal->texture->width / float( DECAL_ATLAS_SIZE );
-			decal_uvwhs[ decal_idx ].w = decal->texture->height / float( DECAL_ATLAS_SIZE );
+			decal_uvwhs[ decal_idx ].z = material->texture->width / float( DECAL_ATLAS_SIZE );
+			decal_uvwhs[ decal_idx ].w = material->texture->height / float( DECAL_ATLAS_SIZE );
 		}
 
 		num_atlases++;
@@ -660,12 +663,12 @@ static void PackDecalAtlas() {
 		}
 
 		// repack rects array
-		for( u32 i = 0; i < num_unpacked_decals; i++ ) {
+		for( u32 i = 0; i < num_to_pack; i++ ) {
 			if( !rects[ i ].was_packed )
 				continue;
 
-			num_unpacked_decals--;
-			Swap2( &rects[ num_unpacked_decals ], &rects[ i ] );
+			num_to_pack--;
+			Swap2( &rects[ num_to_pack ], &rects[ i ] );
 			i--;
 		}
 	}
@@ -675,15 +678,15 @@ static void PackDecalAtlas() {
 	defer { FREE( sys_allocator, pixels ); };
 
 	for( u32 i = 0; i < num_decals; i++ ) {
-		const Material * decal = &materials[ rects[ i ].id ];
+		const Material * material = &materials[ rects[ i ].id ];
 		u64 decal_idx;
-		bool ok = decals_hashtable.get( decal->name, &decal_idx );
+		bool ok = decals_hashtable.get( material->name, &decal_idx );
 		assert( ok );
 
 		u32 layer = u32( decal_uvwhs[ decal_idx ].x );
 		Span2D< RGBA8 > atlas( pixels + DECAL_ATLAS_SIZE * DECAL_ATLAS_SIZE * layer, DECAL_ATLAS_SIZE, DECAL_ATLAS_SIZE );
 
-		CopyImage( atlas, rects[ i ].x, rects[ i ].y, decal->texture );
+		CopyImage( atlas, rects[ i ].x, rects[ i ].y, material->texture );
 	}
 
 	// upload atlases

@@ -2,7 +2,7 @@ models/weapons/lg
 {
 	{
 		map $whiteimage
-		rgbGen const 0.322 0.988 0.372
+		rgbGen const 0.1 0.1 0.1
 	}
 }
 

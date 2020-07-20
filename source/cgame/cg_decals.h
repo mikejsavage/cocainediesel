@@ -7,7 +7,10 @@
 void InitDecals();
 void ShutdownDecals();
 
-void AddDecal( Vec3 origin, Vec3 normal, float radius, float angle, StringHash name, Vec4 color );
+void DrawDecal( Vec3 origin, Vec3 normal, float radius, float angle, StringHash name, Vec4 color );
+
+void AddPersistentDecal( Vec3 origin, Vec3 normal, float radius, float angle, StringHash name, Vec4 color, s64 duration );
+void DrawPersistentDecals();
 
 void UploadDecalBuffers();
 void AddDecalsToPipeline( PipelineState * pipeline );

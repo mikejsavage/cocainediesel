@@ -20,6 +20,12 @@ struct Decal {
 	Vec4 uvwh;
 };
 
+struct PersistentDecal {
+	Decal decal;
+	s64 spawn_time;
+	s64 duration;
+};
+
 STATIC_ASSERT( sizeof( Decal ) == 4 * 4 * sizeof( float ) );
 STATIC_ASSERT( sizeof( Decal ) % alignof( Decal ) == 0 );
 
@@ -29,8 +35,13 @@ static constexpr u32 MAX_DECALS_PER_TILE = 100;
 static Decal decals[ MAX_DECALS ];
 static u32 num_decals;
 
+static PersistentDecal persistent_decals[ MAX_DECALS ];
+static u32 num_persistent_decals;
+
 void InitDecals() {
 	decal_buffer = NewTextureBuffer( TextureBufferFormat_Floatx4, MAX_DECALS * sizeof( Decal ) / sizeof( Vec4 ) );
+
+	num_persistent_decals = 0;
 
 	last_viewport_width = U32_MAX;
 	last_viewport_height = U32_MAX;
@@ -42,8 +53,8 @@ void ShutdownDecals() {
 	DeleteTextureBuffer( decal_tile_buffer );
 }
 
-void AddDecal( Vec3 origin, Vec3 normal, float radius, float angle, StringHash name, Vec4 color ) {
-	if( num_decals >= ARRAY_COUNT( decals ) )
+void DrawDecal( Vec3 origin, Vec3 normal, float radius, float angle, StringHash name, Vec4 color ) {
+	if( num_decals == ARRAY_COUNT( decals ) )
 		return;
 
 	Decal * decal = &decals[ num_decals ];
@@ -60,6 +71,46 @@ void AddDecal( Vec3 origin, Vec3 normal, float radius, float angle, StringHash n
 	decal->color = color;
 
 	num_decals++;
+}
+
+void AddPersistentDecal( Vec3 origin, Vec3 normal, float radius, float angle, StringHash name, Vec4 color, s64 duration ) {
+	if( num_persistent_decals == ARRAY_COUNT( persistent_decals ) )
+		return;
+
+	PersistentDecal * decal = &persistent_decals[ num_persistent_decals ];
+
+	if( !TryFindDecal( name, &decal->decal.uvwh ) ) {
+		Com_GGPrint( S_COLOR_YELLOW "Material {} should have decal key", name );
+		return;
+	}
+
+	decal->decal.origin = origin;
+	decal->decal.normal = normal;
+	decal->decal.radius = radius;
+	decal->decal.angle = angle;
+	decal->decal.color = color;
+	decal->spawn_time = cl.serverTime;
+	decal->duration = duration;
+
+	num_persistent_decals++;
+}
+
+void DrawPersistentDecals() {
+	for( u32 i = 0; i < num_persistent_decals; i++ ) {
+		if( num_decals == ARRAY_COUNT( decals ) )
+			break;
+
+		PersistentDecal * decal = &persistent_decals[ i ];
+		if( decal->spawn_time + decal->duration < cl.serverTime ) {
+			num_persistent_decals--;
+			Swap2( decal, &persistent_decals[ num_persistent_decals ] );
+			i--;
+			continue;
+		}
+
+		decals[ num_decals ] = decal->decal;
+		num_decals++;
+	}
 }
 
 struct DecalTile {

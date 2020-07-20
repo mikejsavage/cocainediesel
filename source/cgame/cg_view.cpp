@@ -849,6 +849,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	DrawGibs();
 	DrawParticles();
 	DrawPersistentBeams();
+	DrawPersistentDecals();
 	DrawSkybox();
 	DrawSprays();
 

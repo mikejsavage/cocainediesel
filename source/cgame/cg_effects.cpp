@@ -326,10 +326,12 @@ void DrawPersistentBeams() {
 		PersistentBeam & beam = persistent_beams[ i ];
 		float t = ( cl.serverTime - beam.spawn_time ) / 1000.0f;
 		float alpha;
-		if( beam.start_fade_time != beam.duration )
+		if( beam.start_fade_time != beam.duration ) {
 			alpha = 1.0f - Unlerp01( beam.start_fade_time, t, beam.duration );
-		else
+		}
+		else {
 			alpha = t < beam.duration ? 1.0f : 0.0f;
+		}
 
 		if( alpha <= 0 ) {
 			num_persistent_beams--;

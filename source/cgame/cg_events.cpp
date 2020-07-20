@@ -146,37 +146,16 @@ static void WallbangImpact( const trace_t * trace, int num_particles ) {
 	EmitParticles( &cgs.bullet_sparks, emitter );
 }
 
-static void _LaserImpact( const trace_t *trace, Vec3 dir ) {
-	if( !trace || trace->ent < 0 ) {
-		return;
-	}
-
+static void LGImpact( const trace_t * trace, Vec3 dir ) {
 	Vec4 team_color = CG_TeamColorVec4( laserOwner->current.team );
 
-	if( laserOwner ) {
-#define TRAILTIME ( (int)( 1000.0f / 20.0f ) ) // density as quantity per second
-
-		if( laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] + TRAILTIME < cl.serverTime ) {
-			laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] = cl.serverTime;
-
-			// CG_HighVelImpactPuffParticles( trace->endpos, trace->plane.normal, 8, 0.5f, color[ 0 ], color[ 1 ], color[ 2 ], color[ 3 ], NULL );
-
-			S_StartFixedSound( cgs.media.sfxLasergunHit, trace->endpos, CHAN_AUTO, 1.0f );
-		}
-#undef TRAILTIME
+	constexpr int trailtime = int( 1000.0f / 20.0f ); // density as quantity per second
+	if( laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] + trailtime < cl.serverTime ) {
+		laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] = cl.serverTime;
+		S_StartFixedSound( cgs.media.sfxLasergunHit, trace->endpos, CHAN_AUTO, 1.0f );
 	}
 
-	// it's a brush model
-	if( trace->ent == 0 || !( cg_entities[trace->ent].current.effects & EF_TAKEDAMAGE ) ) {
-		CG_LaserGunImpact( trace->endpos, dir, RGBA8( team_color ) );
-		// CG_AddLightToScene( trace->endpos, 100, color[ 0 ], color[ 1 ], color[ 2 ] );
-		BulletImpact( trace, team_color, 1 );
-		return;
-	}
-
-	// it's a player
-
-	// TODO: add player-impact model
+	BulletSparks( trace->endpos, trace->plane.normal, team_color, 1 );
 }
 
 void CG_LaserBeamEffect( centity_t *cent ) {
@@ -220,7 +199,7 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 
 	// trace the beam: for tracing we use the real beam origin
 	float range = GS_GetWeaponDef( Weapon_Laser )->range;
-	GS_TraceLaserBeam( &client_gs, &trace, laserOrigin, laserAngles, range, cent->current.number, 0, _LaserImpact );
+	GS_TraceLaserBeam( &client_gs, &trace, laserOrigin, laserAngles, range, cent->current.number, 0, LGImpact );
 
 	// draw the beam: for drawing we use the weapon projection source (already handles the case of viewer entity)
 	if( CG_PModel_GetProjectionSource( cent->current.number, &projectsource ) ) {

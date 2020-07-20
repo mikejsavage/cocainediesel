@@ -369,26 +369,6 @@ void CG_BladeImpact( Vec3 pos, Vec3 dir ) {
 }
 
 /*
-* CG_LasertGunImpact
-*/
-void CG_LaserGunImpact( Vec3 pos, Vec3 laser_dir, RGBA8 color ) {
-	entity_t ent;
-	Vec3 ndir;
-	Vec3 angles;
-
-	memset( &ent, 0, sizeof( ent ) );
-	ent.origin = pos;
-	ent.scale = 1.45f;
-	ent.color = color;
-	ent.model = cgs.media.modLasergunWallExplo;
-	ndir = -laser_dir;
-	angles = VecToAngles( ndir );
-	AnglesToAxis( angles, ent.axis );
-
-	// trap_R_AddEntityToScene( &ent );
-}
-
-/*
 * CG_ProjectileTrail
 */
 void CG_ProjectileTrail( const centity_t * cent ) {

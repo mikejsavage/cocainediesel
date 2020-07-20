@@ -615,7 +615,6 @@ void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color );
 void CG_ImpactSmokePuff( Vec3 origin, Vec3 dir, float radius, float alpha, int time, int speed );
 void CG_BladeImpact( Vec3 pos, Vec3 dir );
 void CG_PModel_SpawnTeleportEffect( centity_t * cent, MatrixPalettes temp_pose );
-void CG_LaserGunImpact( Vec3 pos, Vec3 laser_dir, RGBA8 color );
 
 void CG_Dash( const SyncEntityState *state );
 void CG_Explosion_Puff_2( Vec3 pos, Vec3 vel, int radius );

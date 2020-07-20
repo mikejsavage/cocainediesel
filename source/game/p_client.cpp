@@ -117,9 +117,6 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	if( gib ) {
 		ThrowSmallPileOfGibs( body, knockbackOfDeath, damage );
 
-		// reset gib impulse
-		body->velocity = Vec3( 0.0f );
-
 		body->nextThink = level.time + 3000 + random_float01( &svs.rng ) * 3000;
 		body->deadflag = DEAD_DEAD;
 	}

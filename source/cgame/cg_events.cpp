@@ -116,7 +116,7 @@ static void BulletSparks( Vec3 pos, Vec3 normal, Vec4 color, int num_particles )
 static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles ) {
 	BulletSparks( trace->endpos, trace->plane.normal, color, num_particles );
 
-	float angle = random_uniform_float( &cls.rng, 0.0f, PI );
+	float angle = random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
 	AddPersistentDecal( trace->endpos, trace->plane.normal, 2.0f, angle, "weapons/bullet_impact", color, 30000 );
 }
 

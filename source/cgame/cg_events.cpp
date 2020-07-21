@@ -117,10 +117,11 @@ static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles )
 	BulletSparks( trace->endpos, trace->plane.normal, color, num_particles );
 
 	float angle = random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
-	AddPersistentDecal( trace->endpos, trace->plane.normal, 2.0f, angle, "weapons/bullet_impact", color, 30000 );
+	AddPersistentDecal( trace->endpos, trace->plane.normal, 2.0f, angle, "weapons/bullet_impact", vec4_white, 30000 );
 }
 
 static void WallbangImpact( const trace_t * trace, int num_particles ) {
+	// TODO: should draw on entry/exit of all wallbanged surfaces
 	if( ( trace->contents & CONTENTS_WALLBANGABLE ) == 0 )
 		return;
 
@@ -144,6 +145,9 @@ static void WallbangImpact( const trace_t * trace, int num_particles ) {
 	emitter.n = num_particles;
 
 	EmitParticles( &cgs.bullet_sparks, emitter );
+
+	float angle = random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
+	AddPersistentDecal( trace->endpos, trace->plane.normal, 2.0f, angle, "weapons/bullet_impact", vec4_white, 30000 );
 }
 
 static void LGImpact( const trace_t * trace, Vec3 dir ) {
@@ -152,9 +156,7 @@ static void LGImpact( const trace_t * trace, Vec3 dir ) {
 	constexpr int trailtime = int( 1000.0f / 20.0f ); // density as quantity per second
 	if( laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] + trailtime < cl.serverTime ) {
 		laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] = cl.serverTime;
-		S_StartFixedSound( cgs.media.sfxLasergunHit, trace->endpos, CHAN_AUTO, 1.0f );
 	}
-
 	BulletSparks( trace->endpos, trace->plane.normal, team_color, 1 );
 }
 

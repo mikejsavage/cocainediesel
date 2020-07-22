@@ -150,7 +150,7 @@ void main() {
 
 			vec4 sample = texture( u_DecalAtlases, vec3( uv, layer ) );
 			float inv_cos_45_degrees = 1.41421356237;
-			float decal_alpha = sample.a * decal_color.a * max( 0.0, dot( v_Normal, normal_angle.xyz ) * inv_cos_45_degrees );
+			float decal_alpha = min( 1.0, sample.a * decal_color.a * max( 0.0, dot( v_Normal, normal_angle.xyz ) * inv_cos_45_degrees ) );
 			diffuse.rgb = mix( diffuse.rgb, sample.rgb * decal_color.rgb, decal_alpha );
 		}
 	}

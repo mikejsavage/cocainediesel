@@ -504,7 +504,7 @@ void DrawGibs() {
 		trace_t trace;
 		CG_Trace( &trace, qf_origin, qf_mins, qf_maxs, qf_next_origin, 0, MASK_SOLID );
 
-		if( ( trace.contents & CONTENTS_NODROP ) || ( trace.surfFlags & SURF_SKY ) ) {
+		if( trace.startsolid || ( trace.contents & CONTENTS_NODROP ) || ( trace.surfFlags & SURF_SKY ) ) {
 			gib->lifetime = 0;
 		}
 		else if( trace.fraction != 1.0f ) {

@@ -530,12 +530,12 @@ void CG_DrawBombHUD() {
 
 			char buf[ 4 ];
 			snprintf( buf, sizeof( buf ), "%c", site->letter );
-			DrawText( cgs.fontMontserrat, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords.x, coords.y, vec4_white, true );
+			DrawText( cgs.fontMontserrat, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords.x, coords.y, vec4_yellow, true );
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {
 				const char * msg = my_team == site->team ? "DEFEND" : "ATTACK";
 				coords.y += ( cgs.fontSystemMediumSize * 7 ) / 8;
-				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, vec4_white, true );
+				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, vec4_yellow, true );
 			}
 		}
 	}
@@ -550,11 +550,25 @@ void CG_DrawBombHUD() {
 		}
 		else {
 			if( show_labels ) {
-				const char * msg = "RETRIEVE";
-				if( bomb.state == BombState_Planting )
+				Vec4 color = vec4_white;
+				const char * msg;
+
+				if( bomb.state == BombState_Dropped ) {
+					msg = "RETRIEVE";
+				}
+				else if( bomb.state == BombState_Planting ) {
 					msg = "PLANTING";
-				else if( bomb.state == BombState_Planted )
-					msg = my_team == bomb.team ? "PROTECT" : "DEFUSE";
+				}
+				else if( bomb.state == BombState_Planted ) {
+					if( my_team == bomb.team ) {
+						msg = "PROTECT";
+					}
+					else {
+						msg = "DEFUSE";
+						color = AttentionGettingColor();
+					}
+				}
+
 				float y = coords.y - cgs.fontSystemTinySize / 2;
 				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, y, vec4_white, true );
 			}

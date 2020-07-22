@@ -406,19 +406,6 @@ void G_SpectatorMode( edict_t *ent ) {
 }
 
 /*
-* Cmd_Spec_f
-*/
-void Cmd_Spec_f( edict_t *ent ) {
-	if( ent->s.team == TEAM_SPECTATOR && !ent->r.client->queueTimeStamp ) {
-		G_PrintMsg( ent, "You are already a spectator.\n" );
-		return;
-	}
-
-	G_SpectatorMode( ent );
-	G_Teams_LeaveChallengersQueue( ent );
-}
-
-/*
 * Cmd_SwitchChaseCamMode_f
 */
 void Cmd_SwitchChaseCamMode_f( edict_t *ent ) {

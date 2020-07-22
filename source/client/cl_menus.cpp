@@ -327,6 +327,15 @@ static void SettingsControls() {
 			ImGui::EndTabItem();
 		}
 
+		if( ImGui::BeginTabItem( "Misc" ) ) {
+			KeyBindButton( "Join/ Switch team", "join" );
+			KeyBindButton( "Ready / Unread", "toggleready" );
+			KeyBindButton( "Spectate", "chase" );
+			KeyBindButton( "Screenshot", "screenshot" );
+
+			ImGui::EndTabItem();
+		}
+
 		ImGui::EndTabBar();
 	}
 
@@ -942,7 +951,7 @@ static void GameMenu() {
 			}
 
 
-			GameMenuButton( "Spectate", "spec", &should_close );
+			GameMenuButton( "Spectate", "chase", &should_close );
 
 			if( team_based ) {
 				GameMenuButton( "Change loadout", "gametypemenu", &should_close );

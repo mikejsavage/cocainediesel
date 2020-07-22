@@ -541,7 +541,6 @@ void G_ChasePlayer( edict_t *ent, const char *name, bool teamonly, int followmod
 void G_ChaseStep( edict_t *ent, int step );
 void Cmd_SwitchChaseCamMode_f( edict_t *ent );
 void Cmd_ChaseCam_f( edict_t *ent );
-void Cmd_Spec_f( edict_t *ent );
 void G_EndServerFrames_UpdateChaseCam( void );
 
 //

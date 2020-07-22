@@ -30,7 +30,7 @@ STATIC_ASSERT( sizeof( Decal ) == 4 * 4 * sizeof( float ) );
 STATIC_ASSERT( sizeof( Decal ) % alignof( Decal ) == 0 );
 
 static constexpr u32 MAX_DECALS = 100000;
-static constexpr u32 MAX_DECALS_PER_TILE = 100;
+static constexpr u32 MAX_DECALS_PER_TILE = 50;
 
 static Decal decals[ MAX_DECALS ];
 static u32 num_decals;

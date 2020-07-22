@@ -475,7 +475,9 @@ static void GibImpact( Vec3 pos, Vec3 normal, Vec4 color, float scale ) {
 			"textures/blood_decals/blood11",
 		};
 
-		AddPersistentDecal( pos, normal, scale * 64.0f, RandomRadians(), random_select( &cls.rng, decals ), color, 30000 );
+		if( random_p( &cls.rng, 0.25f ) ) {
+			AddPersistentDecal( pos, normal, scale * 64.0f, RandomRadians(), random_select( &cls.rng, decals ), color, 30000 );
+		}
 	}
 }
 

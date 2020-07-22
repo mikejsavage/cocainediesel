@@ -410,7 +410,11 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
 	ZoneScoped;
 
 	int count = Min2( damage * 3 / 2, 60 );
+
 	float player_radius = playerbox_stand_maxs.x;
+	float gib_radius = cgs.media.modGib->bounds.maxs.x;
+	constexpr float epsilon = 0.1f;
+	float radius = player_radius - gib_radius - epsilon;
 
 	for( int i = 0; i < count; i++ ) {
 		if( num_gibs == ARRAY_COUNT( gibs ) )
@@ -420,7 +424,7 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
 		num_gibs++;
 
 		Vec3 dir = Vec3( UniformSampleDisk( &cls.rng ), 0.0f );
-		gib->origin = origin + dir * player_radius;
+		gib->origin = origin + dir * radius;
 
 		dir.z = random_float01( &cls.rng );
 		gib->velocity = velocity * 0.5f + dir * Length( velocity ) * 0.5f;

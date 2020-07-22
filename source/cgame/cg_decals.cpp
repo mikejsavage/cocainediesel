@@ -253,6 +253,10 @@ void UploadDecalBuffers() {
 			gpu_tiles( x, y ).num_decals = tile->num_decals;
 
 			for( u32 i = 0; i < tile->num_decals; i++ ) {
+				if( num_indices == ARRAY_COUNT( indices ) ) {
+					break;
+				}
+
 				indices[ num_indices ] = tile->indices[ i ];
 				num_indices++;
 			}

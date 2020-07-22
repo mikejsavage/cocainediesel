@@ -429,7 +429,7 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
 		dir.z = random_float01( &cls.rng );
 		gib->velocity = velocity * 0.5f + dir * Length( velocity ) * 0.5f;
 
-		gib->scale = random_uniform_float( &cls.rng, 0.25f, 0.5f );
+		gib->scale = random_uniform_float( &cls.rng, 0.5f, 1.0f );
 		gib->lifetime = 10.0f;
 		gib->color = color;
 	}
@@ -475,8 +475,7 @@ static void GibImpact( Vec3 pos, Vec3 normal, Vec4 color, float scale ) {
 			"textures/blood_decals/blood11",
 		};
 
-		// scale is in [0.25,0.5)
-		AddPersistentDecal( pos, normal, scale * 128.0f, RandomRadians(), random_select( &cls.rng, decals ), color, 30000 );
+		AddPersistentDecal( pos, normal, scale * 64.0f, RandomRadians(), random_select( &cls.rng, decals ), color, 30000 );
 	}
 }
 
@@ -494,15 +493,11 @@ void DrawGibs() {
 		gib->velocity += gravity * dt;
 		Vec3 next_origin = gib->origin + gib->velocity * dt;
 
-		MinMax3 bounds = model->bounds * gib->scale;
-
-		Vec3 qf_mins = bounds.mins;
-		Vec3 qf_maxs = bounds.maxs;
-		Vec3 qf_origin = gib->origin;
-		Vec3 qf_next_origin = next_origin;
+		float size = 0.5f * gib->scale;
+		MinMax3 bounds = model->bounds * size;
 
 		trace_t trace;
-		CG_Trace( &trace, qf_origin, qf_mins, qf_maxs, qf_next_origin, 0, MASK_SOLID );
+		CG_Trace( &trace, gib->origin, bounds.mins, bounds.maxs, next_origin, 0, MASK_SOLID );
 
 		if( trace.startsolid || ( trace.contents & CONTENTS_NODROP ) || ( trace.surfFlags & SURF_SKY ) ) {
 			gib->lifetime = 0;
@@ -521,7 +516,7 @@ void DrawGibs() {
 			continue;
 		}
 
-		Mat4 transform = Mat4Translation( gib->origin ) * Mat4Scale( gib->scale );
+		Mat4 transform = Mat4Translation( gib->origin ) * Mat4Scale( size );
 		DrawModel( model, transform, gib->color );
 
 		gib->origin = next_origin;

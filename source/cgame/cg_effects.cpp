@@ -1,7 +1,7 @@
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 
-void CG_ParticleRocketExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color ) {
+void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 	{
 		ParticleEmitter emitter = { };
 		emitter.position = origin;
@@ -116,7 +116,7 @@ void CG_ParticleRocketExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color
 	}
 }
 
-void CG_ParticlePlasmaExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color ) {
+void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 	ParticleEmitter emitter = { };
 	emitter.position = origin;
 
@@ -144,7 +144,7 @@ void CG_ParticlePlasmaExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color
 	EmitParticles( &cgs.sparks, emitter );
 }
 
-void CG_ParticleBubbleExplosionEffect( Vec3 origin, Vec3 team_color ) {
+void BubbleImpactParticles( Vec3 origin, Vec3 team_color ) {
 	ParticleEmitter emitter = { };
 	emitter.position = origin;
 
@@ -171,7 +171,7 @@ void CG_ParticleBubbleExplosionEffect( Vec3 origin, Vec3 team_color ) {
 	EmitParticles( &cgs.sparks, emitter );
 }
 
-void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color ) {
+void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
 	ParticleEmitter emitter = { };
 	emitter.position = start;
 	emitter.position_distribution.type = RandomDistribution3DType_Line;

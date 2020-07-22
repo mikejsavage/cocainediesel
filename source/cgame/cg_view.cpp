@@ -845,7 +845,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	DrawSilhouettes();
 	CG_AddEntities();
 	CG_AddViewWeapon( &cg.weapon );
-	CG_AddLocalEntities();
 	DrawGibs();
 	DrawParticles();
 	DrawPersistentBeams();

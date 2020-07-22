@@ -597,27 +597,21 @@ bool CG_SwitchChaseCamMode( void );
 // cg_lents.c
 //
 
-void CG_ClearLocalEntities( void );
-void CG_AddLocalEntities( void );
-void CG_FreeLocalEntities( void );
-
 void CG_BubbleTrail( Vec3 start, Vec3 end, int dist );
 void CG_ProjectileTrail( const centity_t * cent );
 void CG_NewBloodTrail( centity_t *cent );
 void CG_BloodDamageEffect( Vec3 origin, Vec3 dir, int damage, Vec4 team_color );
 void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_BubbleExplosion( Vec3 pos, Vec4 team_color );
-void CG_GrenadeExplosionMode( Vec3 pos, Vec3 dir, Vec4 team_color );
+void CG_GrenadeExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius );
-void CG_RocketExplosionMode( Vec3 pos, Vec3 dir, Vec4 team_color );
+void CG_RocketExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_EBBeam( Vec3 start, Vec3 end, Vec4 team_color );
 void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color );
-void CG_ImpactSmokePuff( Vec3 origin, Vec3 dir, float radius, float alpha, int time, int speed );
 void CG_BladeImpact( Vec3 pos, Vec3 dir );
 void CG_PModel_SpawnTeleportEffect( centity_t * cent, MatrixPalettes temp_pose );
 
 void CG_Dash( const SyncEntityState *state );
-void CG_Explosion_Puff_2( Vec3 pos, Vec3 vel, int radius );
 void CG_DustCircle( Vec3 pos, Vec3 dir, float radius, int count );
 
 void InitGibs();
@@ -627,10 +621,10 @@ void DrawGibs();
 //
 // cg_effects.c
 //
-void CG_ParticleRocketExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color );
-void CG_ParticlePlasmaExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color );
-void CG_ParticleBubbleExplosionEffect( Vec3 origin, Vec3 team_color );
-void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color );
+void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color );
+void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color );
+void BubbleImpactParticles( Vec3 origin, Vec3 team_color );
+void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color );
 
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material );
 

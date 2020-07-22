@@ -239,8 +239,6 @@ void CG_Reset( void ) {
 
 	CG_SC_ResetObituaries();
 
-	CG_ClearLocalEntities();
-
 	// start up announcer events queue from clean
 	CG_ClearAnnouncerEvents();
 
@@ -297,8 +295,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	CG_ScreenInit();
 
-	CG_ClearLocalEntities();
-
 	CG_InitDamageNumbers();
 
 	// get configstrings
@@ -333,7 +329,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 }
 
 void CG_Shutdown() {
-	CG_FreeLocalEntities();
 	CG_DemocamShutdown();
 	CG_UnregisterCGameCommands();
 	CG_PModelsShutdown();

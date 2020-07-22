@@ -901,17 +901,18 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			if( parm ) {
 				// we have a direction
 				dir = ByteToDir( parm );
-				CG_GrenadeExplosionMode( ent->origin, dir, team_color );
-			} else {
+				CG_GrenadeExplosion( ent->origin, dir, team_color );
+			}
+			else {
 				// no direction
-				CG_GrenadeExplosionMode( ent->origin, Vec3( 0.0f ), team_color );
+				CG_GrenadeExplosion( ent->origin, Vec3( 0.0f ), team_color );
 			}
 
 			break;
 
 		case EV_ROCKET_EXPLOSION:
 			dir = ByteToDir( parm );
-			CG_RocketExplosionMode( ent->origin, dir, team_color );
+			CG_RocketExplosion( ent->origin, dir, team_color );
 
 			break;
 

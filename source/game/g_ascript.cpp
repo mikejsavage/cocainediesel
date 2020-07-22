@@ -757,45 +757,23 @@ static edict_t *objectGameClient_GetEntity( gclient_t *self ) {
 }
 
 static void objectGameClient_SetWeaponIndex( WeaponType weapon, int index, gclient_t * self ) {
-	if( weapon <= Weapon_None || weapon >= Weapon_Count ) { //not a weapon
-		return;
-	}
+	assert( weapon > Weapon_None && weapon < Weapon_Count );
+	assert( index > 0 && index < ARRAY_COUNT( &SyncPlayerState::weapons ) );
 
 	int playerNum = objectGameClient_PlayerNum( self );
-	if( playerNum < 0 || playerNum >= server_gs.maxclients ) { //not a player
+	if( playerNum < 0 || playerNum >= server_gs.maxclients ) {
 		return;
 	}
 
 	SyncPlayerState * ps = &PLAYERENT( playerNum )->r.client->ps;
+	SyncPlayerState::WeaponInfo * weapon_info = GS_FindWeapon( ps, weapon );
+	assert( weapon_info != NULL );
 
-	SyncPlayerState::WeaponInfo * check_weap = GS_FindWeapon( ps, weapon ); //weapon doesn't exist or index is out of range
-	if( check_weap == NULL || index < 0 || index >= ARRAY_COUNT( ps->weapons ) ) {
-		return;
-	}
-
-	SyncPlayerState::WeaponInfo weap = *check_weap;
-
-	int weap_pos;
-	for( weap_pos = 0; weap_pos < ARRAY_COUNT( ps->weapons ) - 1; weap_pos++ ) {
-		if( ps->weapons[ weap_pos ].weapon == weapon )
-			break;
-	}
-
-	if( weap_pos == index ) { //weapon doesn't move
-		return;
-	}
-
-	ps->weapons[ weap_pos ].weapon = ps->weapons[ index ].weapon;
-	ps->weapons[ weap_pos ].ammo = ps->weapons[ index ].ammo;
-
-	ps->weapons[ index ].weapon = weap.weapon;
-	ps->weapons[ index ].ammo = weap.ammo;
+	Swap2( weapon_info, &ps->weapons[ index ] );
 }
 
 static void objectGameClient_GiveWeapon( WeaponType weapon, gclient_t * self ) {
-	if( weapon <= Weapon_None || weapon >= Weapon_Count ) {
-		return;
-	}
+	assert( weapon > Weapon_None && weapon < Weapon_Count );
 
 	int playerNum = objectGameClient_PlayerNum( self );
 	if( playerNum < 0 || playerNum >= server_gs.maxclients ) {

@@ -48,8 +48,8 @@ class cPlayer {
 		@players[player.playerNum] = @this;
 	}
 
-	void orderInventory() {
-		for( uint i = 0; i < this.loadout.length(); i++ ) {
+	void rearrangeInventory() {
+		for( int i = 0; i < this.num_weapons; i++ ) {
 			this.client.setWeaponIndex( WeaponType( this.loadout[ i ] ), i + 1 ); // + 1 because of knife
 		}
 	}
@@ -80,8 +80,8 @@ class cPlayer {
 
 	void setLoadout( String &cmd ) {
 		int cash = MAX_CASH;
-		bool swap_weapons = true;
 
+		int old_num_weapons = this.num_weapons;
 		this.num_weapons = 0;
 
 		uint[] newloadout( Weapon_Count - 1 );
@@ -102,16 +102,8 @@ class cPlayer {
 		}
 
 		for( uint i = 0; i < newloadout.length(); i++ ) {
-			if( this.loadout.find( newloadout[ i ] ) == -1 ) {
-				swap_weapons = false;
-				break;
-			}
-		}
-
-		for( uint i = 0; i < newloadout.length(); i++ ) {
 			this.loadout[ i ] = newloadout[ i ];
 		}
-
 
 		if( cash < 0 ) {
 			G_PrintMsg( @this.client.getEnt(), "You are not wealthy enough\n" );
@@ -124,15 +116,27 @@ class cPlayer {
 		}
 		this.client.execGameCommand( command );
 
-		if( swap_weapons ) {
-			orderInventory();
-		} else {
-			if( match.getState() == MATCH_STATE_WARMUP || match.getState() == MATCH_STATE_COUNTDOWN ) {
+		if( match.getState() == MATCH_STATE_WARMUP || match.getState() == MATCH_STATE_COUNTDOWN ) {
+			giveInventory();
+		}
+
+		if( match.getState() == MATCH_STATE_PLAYTIME ) {
+			if( roundState == RoundState_Pre ) {
 				giveInventory();
 			}
+			else if( old_num_weapons == this.num_weapons ) {
+				bool rearranging = true;
 
-			if( match.getState() == MATCH_STATE_PLAYTIME && roundState == RoundState_Pre ) {
-				giveInventory();
+				for( uint i = 0; i < newloadout.length(); i++ ) {
+					if( this.loadout.find( newloadout[ i ] ) == -1 ) {
+						rearranging = false;
+						break;
+					}
+				}
+
+				if( rearranging ) {
+					rearrangeInventory();
+				}
 			}
 		}
 	}

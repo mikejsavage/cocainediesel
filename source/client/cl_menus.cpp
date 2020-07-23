@@ -228,6 +228,11 @@ static void SettingsGeneral() {
 
 	CvarCheckbox( "Show hotkeys", "cg_showHotkeys", "1", CVAR_ARCHIVE );
 	CvarCheckbox( "Show FPS", "cg_showFPS", "0", CVAR_ARCHIVE );
+	
+	ImGui::Separator();
+	ImGui::Text( "Crosshair option" );
+	ImGui::Separator();
+	CvarSliderFloat( "Crosshair size", "cg_crosshair_size", 1.0f, 18.0f, "3", CVAR_ARCHIVE );
 }
 
 static void SettingsControls() {

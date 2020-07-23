@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define SPEEDKEY    500.0f
 
-#define PM_DASHJUMP_TIMEDELAY 1000 // delay in milliseconds
+#define PM_DASHJUMP_TIMEDELAY 200 // delay in milliseconds
 #define PM_WALLJUMP_TIMEDELAY   1300
 #define PM_SPECIAL_CROUCH_INHIBIT 400
 #define PM_AIRCONTROL_BOUNCE_DELAY 200
@@ -79,26 +79,26 @@ static const gs_state_t * pmove_gs;
 #define DEFAULT_CROUCHEDSPEED 100.0f
 #define DEFAULT_LADDERSPEED 300.0f
 
-const float pm_friction = 8; //  ( initially 6 )
+const float pm_friction = 16; //  ( initially 6 )
 const float pm_waterfriction = 16;
 const float pm_wateraccelerate = 12; // user intended acceleration when swimming ( initially 6 )
 
-const float pm_accelerate = 12; // user intended acceleration when on ground or fly movement ( initially 10 )
-const float pm_decelerate = 12; // user intended deceleration when on ground
+const float pm_accelerate = 16; // user intended acceleration when on ground or fly movement ( initially 10 )
+const float pm_decelerate = 16; // user intended deceleration when on ground
 
-const float pm_airaccelerate = 1; // user intended aceleration when on air
-const float pm_airdecelerate = 2.0f; // air deceleration (not +strafe one, just at normal moving).
+const float pm_airaccelerate = 0.5f; // user intended aceleration when on air
+const float pm_airdecelerate = 1.0f; // air deceleration (not +strafe one, just at normal moving).
 
 // special movement parameters
 
-const float pm_aircontrol = 150.0f; // aircontrol multiplier (intertia velocity to forward velocity conversion)
-const float pm_strafebunnyaccel = 70; // forward acceleration when strafe bunny hopping
+const float pm_aircontrol = 140.0f; // aircontrol multiplier (intertia velocity to forward velocity conversion)
+const float pm_strafebunnyaccel = 60; // forward acceleration when strafe bunny hopping
 const float pm_wishspeed = 30;
 
 const float pm_dashupspeed = ( 174.0f * GRAVITY_COMPENSATE );
 
-const float pm_wjupspeed = ( 330.0f * GRAVITY_COMPENSATE );
-const float pm_wjbouncefactor = 0.3f;
+const float pm_wjupspeed = ( 350.0f * GRAVITY_COMPENSATE );
+const float pm_wjbouncefactor = 0.4f;
 #define pm_wjminspeed ( ( pml.maxWalkSpeed + pml.maxPlayerSpeed ) * 0.5f )
 
 static float Normalize2D( Vec3 * v ) {
@@ -830,9 +830,6 @@ static void PM_CheckDash() {
 	}
 
 	if( pm->groundentity != -1 && pressed && ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) ) {
-		if( pm->playerState->pmove.pm_flags & PMF_SPECIAL_HELD ) {
-			return;
-		}
 
 		pm->playerState->pmove.pm_flags &= ~PMF_JUMPPAD_TIME;
 		PM_ClearWallJump();
@@ -912,9 +909,9 @@ static void PM_CheckWallJump() {
 	}
 
 	// don't walljump in the first 100 milliseconds of a dash jump
-	if( pm->playerState->pmove.pm_flags & PMF_DASHING && pm->playerState->pmove.dash_time > PM_DASHJUMP_TIMEDELAY - 100 ) {
-		return;
-	}
+	// if( pm->playerState->pmove.pm_flags & PMF_DASHING && pm->playerState->pmove.dash_time > PM_DASHJUMP_TIMEDELAY - 100 ) {
+	// 	return;
+	// }
 
 	// markthis
 

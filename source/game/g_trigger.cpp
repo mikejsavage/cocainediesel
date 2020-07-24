@@ -219,7 +219,7 @@ static void trigger_push_setup( edict_t *self ) {
 	if( time != 0 ) {
 		velocity.z = 0;
 		float dist = Length( velocity );
-		velocity = Normalize( velocity );
+		velocity = SafeNormalize( velocity );
 		velocity = velocity * ( dist / time );
 		velocity.z = time * level.gravity;
 		self->s.origin2 = velocity;

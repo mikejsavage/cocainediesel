@@ -37,8 +37,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 constexpr float FOV = 107.9f; // chosen to upset everyone equally
 
 constexpr RGB8 TEAM_COLORS[] = {
-	RGB8( 0, 140, 220 ),
-	RGB8( 200, 20, 40 ),
+	RGB8( 0, 204, 255 ),
+	RGB8( 255, 24, 96 ),
 	RGB8( 50, 200, 90 ),
 	RGB8( 210, 170, 0 ),
 };

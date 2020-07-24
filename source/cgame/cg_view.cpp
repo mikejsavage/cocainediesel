@@ -313,12 +313,19 @@ static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 		playerState->pmove.origin = Lerp( ops->pmove.origin, cg.lerpfrac, ps->pmove.origin );
 		playerState->pmove.velocity = Lerp( ops->pmove.velocity, cg.lerpfrac, ps->pmove.velocity );
 		playerState->viewangles = LerpAngles( ops->viewangles, cg.lerpfrac, ps->viewangles );
+		playerState->viewheight = Lerp( ops->viewheight, cg.lerpfrac, ps->viewheight );
 	}
 
-	// interpolate fov and viewheight
-	if( !teleported ) {
-		playerState->viewheight = Lerp( ops->viewheight, cg.lerpfrac, ps->viewheight );
-		playerState->zoom_time = Lerp( ops->zoom_time, cg.lerpfrac, ps->zoom_time );
+	playerState->pmove.velocity = Lerp( ops->pmove.velocity, cg.lerpfrac, ps->pmove.velocity );
+
+	playerState->zoom_time = Lerp( ops->zoom_time, cg.lerpfrac, ps->zoom_time );
+
+	if( ps->weapon_time <= ops->weapon_time ) {
+		playerState->weapon_time = Lerp( ops->weapon_time, cg.lerpfrac, ps->weapon_time );
+	}
+	else {
+		s64 dt = cg.frame.serverTime - cg.oldFrame.serverTime;
+		playerState->weapon_time = Max2( 0.0f, ops->weapon_time - cg.lerpfrac * dt );
 	}
 }
 

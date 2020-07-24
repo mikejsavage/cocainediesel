@@ -27,8 +27,6 @@ cvar_t *cg_showFPS;
 cvar_t *cg_showPointedPlayer;
 cvar_t *cg_draw2D;
 
-cvar_t *cg_crosshair_color;
-cvar_t *cg_crosshair_damage_color;
 cvar_t *cg_crosshair_size;
 
 cvar_t *cg_showSpeed;
@@ -82,11 +80,7 @@ void CG_ScreenInit( void ) {
 	cg_draw2D =     Cvar_Get( "cg_draw2D", "1", 0 );
 	cg_centerTime =     Cvar_Get( "cg_centerTime", "2.5", 0 );
 
-	cg_crosshair_color =    Cvar_Get( "cg_crosshair_color", "255 255 255", CVAR_ARCHIVE );
-	cg_crosshair_damage_color = Cvar_Get( "cg_crosshair_damage_color", "255 0 0", CVAR_ARCHIVE );
 	cg_crosshair_size = Cvar_Get( "cg_crosshair_size", "3", CVAR_ARCHIVE );
-	cg_crosshair_color->modified = true;
-	cg_crosshair_damage_color->modified = true;
 
 	cg_showSpeed =      Cvar_Get( "cg_showSpeed", "0", CVAR_ARCHIVE );
 	cg_showPointedPlayer =  Cvar_Get( "cg_showPointedPlayer", "1", CVAR_ARCHIVE );
@@ -127,40 +121,11 @@ static void CG_FillRect( int x, int y, int w, int h, Vec4 color ) {
 	Draw2DBox( x, y, w, h, cgs.white_material, color );
 }
 
-static Vec4 crosshair_color = vec4_white;
-static Vec4 crosshair_damage_color = vec4_red;
-
 void CG_DrawCrosshair() {
 	if( cg.predictedPlayerState.health <= 0 || ( cg.predictedPlayerState.weapon == Weapon_Sniper && cg.predictedPlayerState.zoom_time > 0 ) )
 		return;
 
-	float s = 1.0f / 255.0f;
-
-	if( cg_crosshair_color->modified ) {
-		cg_crosshair_color->modified = false;
-		int rgb = COM_ReadColorRGBString( cg_crosshair_color->string );
-		if( rgb != -1 ) {
-			crosshair_color = Vec4( COLOR_R( rgb ) * s, COLOR_G( rgb ) * s, COLOR_B( rgb ) * s, 1.0f );
-		}
-		else {
-			crosshair_color = vec4_white;
-			Cvar_Set( cg_crosshair_color->name, "255 255 255" );
-		}
-	}
-
-	if( cg_crosshair_damage_color->modified ) {
-		cg_crosshair_damage_color->modified = false;
-		int rgb = COM_ReadColorRGBString( cg_crosshair_damage_color->string );
-		if( rgb != -1 ) {
-			crosshair_damage_color = Vec4( COLOR_R( rgb ) * s, COLOR_G( rgb ) * s, COLOR_B( rgb ) * s, 1.0f );
-		}
-		else {
-			crosshair_color = vec4_red;
-			Cvar_Set( cg_crosshair_damage_color->name, "255 255 255" );
-		}
-	}
-
-	Vec4 color = cls.monotonicTime - scr_damagetime <= 300 ? crosshair_damage_color : crosshair_color;
+	Vec4 color = cls.monotonicTime - scr_damagetime <= 300 ? vec4_red : vec4_white;
 
 	int w = frame_static.viewport_width;
 	int h = frame_static.viewport_height;

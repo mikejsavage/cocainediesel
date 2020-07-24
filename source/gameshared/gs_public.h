@@ -707,12 +707,11 @@ enum {
 // even if it has a zero index model.
 #define EF_CARRIER                  ( 1 << 0 )
 #define EF_TAKEDAMAGE               ( 1 << 1 )
-#define EF_TEAMCOLOR_TRANSITION     ( 1 << 2 )
-#define EF_GODMODE                  ( 1 << 3 )
-#define EF_RACEGHOST                ( 1 << 4 )
-#define EF_HAT                      ( 1 << 5 )
-#define EF_WORLD_MODEL              ( 1 << 6 )
-#define EF_TEAM_SILHOUETTE          ( 1 << 7 )
+#define EF_GODMODE                  ( 1 << 2 )
+#define EF_RACEGHOST                ( 1 << 3 )
+#define EF_HAT                      ( 1 << 4 )
+#define EF_WORLD_MODEL              ( 1 << 5 )
+#define EF_TEAM_SILHOUETTE          ( 1 << 6 )
 
 //===============================================================
 // gs_weapons.c

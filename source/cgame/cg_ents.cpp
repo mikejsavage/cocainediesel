@@ -388,14 +388,6 @@ struct cmodel_s *CG_CModelForEntity( int entNum ) {
 	return cmodel;
 }
 
-/*
-* CG_EntAddTeamColorTransitionEffect
-*/
-static void CG_EntAddTeamColorTransitionEffect( centity_t *cent ) {
-	float t = Clamp01( float( cent->current.counterNum ) / 255.0f );
-	cent->ent.color = RGBA8( Lerp( vec4_white, t, CG_TeamColorVec4( cent->current.team ) ) );
-}
-
 //==========================================================================
 //		ET_GENERIC
 //==========================================================================
@@ -508,10 +500,6 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 
 	if( cent->ent.model == NULL ) {
 		return;
-	}
-
-	if( cent->effects & EF_TEAMCOLOR_TRANSITION ) {
-		CG_EntAddTeamColorTransitionEffect( cent );
 	}
 
 	const Model * model = cent->ent.model;

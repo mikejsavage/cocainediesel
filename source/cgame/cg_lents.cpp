@@ -147,9 +147,6 @@ void CG_BladeImpact( Vec3 pos, Vec3 dir ) {
 }
 
 void CG_ProjectileTrail( const centity_t * cent ) {
-	float radius = 8;
-	float alpha = 0.45f;
-
 	// didn't move
 	Vec3 vec = cent->ent.origin - cent->trailOrigin;
 	float len = Length( vec );

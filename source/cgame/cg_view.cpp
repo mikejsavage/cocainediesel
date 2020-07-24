@@ -829,6 +829,8 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	CG_FlashGameWindow(); // notify player of important game events
 
+	AllocateDecalBuffers();
+
 	CG_UpdateChaseCam();
 
 	if( CG_DemoCam_Update() ) {

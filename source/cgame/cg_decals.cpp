@@ -192,9 +192,7 @@ static MinMax2 SphereScreenSpaceBounds( Vec3 origin, float radius ) {
 	return MinMax2( Vec2( min_x, min_y ), Vec2( max_x, max_y ) );
 }
 
-void UploadDecalBuffers() {
-	ZoneScoped;
-
+void AllocateDecalBuffers() {
 	u32 rows = ( frame_static.viewport_height + TILE_SIZE - 1 ) / TILE_SIZE;
 	u32 cols = ( frame_static.viewport_width + TILE_SIZE - 1 ) / TILE_SIZE;
 
@@ -207,6 +205,13 @@ void UploadDecalBuffers() {
 		last_viewport_width = frame_static.viewport_width;
 		last_viewport_height = frame_static.viewport_height;
 	}
+}
+
+void UploadDecalBuffers() {
+	ZoneScoped;
+
+	u32 rows = ( frame_static.viewport_height + TILE_SIZE - 1 ) / TILE_SIZE;
+	u32 cols = ( frame_static.viewport_width + TILE_SIZE - 1 ) / TILE_SIZE;
 
 	Span2D< DecalTile > tiles = ALLOC_SPAN2D( sys_allocator, DecalTile, cols, rows );
 	memset( tiles.ptr, 0, tiles.num_bytes() );

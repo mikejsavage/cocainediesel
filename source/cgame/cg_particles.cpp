@@ -10,7 +10,7 @@ void InitParticles() {
 	constexpr Vec3 gravity = Vec3( 0, 0, -GRAVITY );
 
 	cgs.ions = NewParticleSystem( sys_allocator, 8192, FindMaterial( "$particle" ) );
-	cgs.bullet_sparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "weapons/mg/spark" ) );
+	cgs.bullet_sparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "textures/vfx/flare1" ) );
 	cgs.bullet_sparks.acceleration = gravity;
 	cgs.sparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "$particle" ) );
 	cgs.sparks.acceleration = gravity;

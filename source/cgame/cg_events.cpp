@@ -60,7 +60,7 @@ void CG_WeaponBeamEffect( centity_t *cent ) {
 static centity_t *laserOwner = NULL;
 
 static void BulletSparks( Vec3 pos, Vec3 normal, Vec4 color, int num_particles ) {
-	float num_yellow_particles = num_particles / 4.0f;
+	// float num_yellow_particles = num_particles / 4.0f;
 
 	{
 		ParticleEmitter emitter = { };
@@ -77,40 +77,16 @@ static void BulletSparks( Vec3 pos, Vec3 normal, Vec4 color, int num_particles )
 
 		emitter.start_color = color;
 
-		emitter.start_size = 2.0f;
+		emitter.start_size = 16.0f;
 		emitter.end_size = 0.0f;
 
 		emitter.lifetime = 0.5f;
 
-		emitter.n = num_particles - num_yellow_particles;
+		emitter.n = num_particles;
 
 		EmitParticles( &cgs.bullet_sparks, emitter );
 	}
 
-	{
-		ParticleEmitter emitter = { };
-		emitter.position = pos;
-
-		if( Length( normal ) == 0.0f ) {
-			emitter.use_cone_direction = true;
-			emitter.direction_cone.normal = normal;
-			emitter.direction_cone.theta = 90.0f;
-		}
-
-		emitter.start_speed = 128.0f;
-		emitter.end_speed = 128.0f;
-
-		emitter.start_color = Vec4( 1.0f, 0.9, 0.0f, 0.5f );
-
-		emitter.start_size = 2.0f;
-		emitter.end_size = 0.0f;
-
-		emitter.lifetime = 0.5f;
-
-		emitter.n = num_yellow_particles;
-
-		EmitParticles( &cgs.bullet_sparks, emitter );
-	}
 }
 
 static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles ) {
@@ -157,7 +133,7 @@ static void LGImpact( const trace_t * trace, Vec3 dir ) {
 	if( laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] + trailtime < cl.serverTime ) {
 		laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] = cl.serverTime;
 	}
-	BulletSparks( trace->endpos, trace->plane.normal, team_color, 1 );
+	BulletSparks( trace->endpos, trace->plane.normal, team_color, 36 );
 }
 
 void CG_LaserBeamEffect( centity_t *cent ) {

@@ -289,9 +289,9 @@ static void Shaderpass_RGBGen( Material * material, const char * name, const cha
 		Vec3 color;
 		Shader_ParseVector( ptr, color.ptr(), 3 );
 		color = NormalizeColor( color );
-		material->rgbgen.args[ 0 ] = color.x;
-		material->rgbgen.args[ 1 ] = color.y;
-		material->rgbgen.args[ 2 ] = color.z;
+		material->rgbgen.args[ 0 ] = sRGBToLinear( color.x );
+		material->rgbgen.args[ 1 ] = sRGBToLinear( color.y );
+		material->rgbgen.args[ 2 ] = sRGBToLinear( color.z );
 	}
 }
 

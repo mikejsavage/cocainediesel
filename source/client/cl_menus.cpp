@@ -1028,7 +1028,7 @@ static void GameMenu() {
 		ImGui::EndColumns();
 
 		TempAllocator temp = cls.frame_arena.temp();
-		ImGuiColorToken c = cash == 0 ? ImGuiColorToken( 255, 255, 255, 255 ) : ImGuiColorToken( RGBA8( AttentionGettingColor() ) );
+		ImGuiColorToken c = cash == 0 ? ImGuiColorToken( 255, 255, 255, 255 ) : ImGuiColorToken( LinearTosRGB( AttentionGettingColor() ) );
 		ImGui::Text( "%s", temp( "{}UNSPENT CASH: {}${}.{02}{}{}", c, S_COLOR_GREEN, cash / 100, cash % 100, c, cash == 0 ? "" : "!!!" ) );
 
 		{

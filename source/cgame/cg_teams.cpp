@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
+#include "client/renderer/srgb.h"
 
 static bool CG_IsAlly( int team ) {
 	if( team == TEAM_ALLY || team == TEAM_ENEMY )
@@ -71,13 +72,7 @@ RGB8 CG_TeamColor( int team ) {
 }
 
 Vec4 CG_TeamColorVec4( int team ) {
-	RGB8 rgb = CG_TeamColor( team );
-	return Vec4(
-		rgb.r * ( 1.0f / 255.0f ),
-		rgb.g * ( 1.0f / 255.0f ),
-		rgb.b * ( 1.0f / 255.0f ),
-		1.0f
-	);
+	return Vec4( sRGBToLinear( CG_TeamColor( team ) ), 1.0f );
 }
 
 void CG_RegisterPlayerModels() {

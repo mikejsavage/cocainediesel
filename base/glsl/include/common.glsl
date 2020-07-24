@@ -3,7 +3,7 @@
 float sRGBToLinear( float srgb ) {
 	if( srgb <= 0.04045 )
 		return srgb * ( 1.0 / 12.92 );
-	return float( pow( ( srgb + 0.055 ) * ( 1.0 / 1.055 ), 2.4 ) );
+	return pow( ( srgb + 0.055 ) * ( 1.0 / 1.055 ), 2.4 );
 }
 
 vec3 sRGBToLinear( vec3 srgb ) {

@@ -109,7 +109,7 @@ typedef struct {
 	float yawVelocity;
 } centity_t;
 
-#include "cg_pmodels.h"
+#include "cgame/cg_pmodels.h"
 
 typedef struct {
 	// sounds

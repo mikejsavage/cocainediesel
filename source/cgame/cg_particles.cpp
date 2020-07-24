@@ -185,7 +185,7 @@ void DrawParticleSystem( ParticleSystem * ps ) {
 			ps->vb_memory[ i * 4 + j ].scale = chunk.size[ j ];
 			ps->vb_memory[ i * 4 + j ].t = chunk.t[ j ] / chunk.lifetime[ j ];
 			Vec4 color = Vec4( chunk.color_r[ j ], chunk.color_g[ j ], chunk.color_b[ j ], chunk.color_a[ j ] );
-			ps->vb_memory[ i * 4 + j ].color = RGBA8( color );
+			ps->vb_memory[ i * 4 + j ].color = LinearTosRGB( color );
 		}
 	}
 

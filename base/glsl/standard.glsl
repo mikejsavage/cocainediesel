@@ -93,7 +93,7 @@ void main() {
 #if APPLY_DRAWFLAT
 	vec4 diffuse = vec4( 0.25, 0.25, 0.25, 1.0 );
 #else
-	vec4 color = sRGBToLinear( u_MaterialColor );
+	vec4 color = u_MaterialColor;
 
 #if VERTEX_COLORS
 	color *= v_Color;

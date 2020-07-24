@@ -505,24 +505,12 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 	const Model * model = cent->ent.model;
 	Mat4 transform = FromAxisAndOrigin( cent->ent.axis, cent->ent.origin );
 
-	Vec4 color = Vec4(
-		cent->ent.color.r / 255.0f,
-		cent->ent.color.g / 255.0f,
-		cent->ent.color.b / 255.0f,
-		cent->ent.color.a / 255.0f
-	);
-
+	Vec4 color = sRGBToLinear( cent->ent.color );
 	DrawModel( model, transform, color );
 
 	if( cent->current.silhouetteColor.a > 0 ) {
 		if( ( cent->current.effects & EF_TEAM_SILHOUETTE ) == 0 || ISREALSPECTATOR() || cent->current.team == cg.predictedPlayerState.team ) {
-			Vec4 silhouette_color = Vec4(
-				cent->current.silhouetteColor.r / 255.0f,
-				cent->current.silhouetteColor.g / 255.0f,
-				cent->current.silhouetteColor.b / 255.0f,
-				cent->current.silhouetteColor.a / 255.0f
-			);
-
+			Vec4 silhouette_color = sRGBToLinear( cent->current.silhouetteColor );
 			DrawModelSilhouette( model, transform, silhouette_color );
 		}
 	}

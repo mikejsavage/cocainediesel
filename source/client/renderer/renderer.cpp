@@ -5,6 +5,7 @@
 #include "client/renderer/renderer.h"
 #include "client/renderer/blue_noise.h"
 #include "client/renderer/skybox.h"
+#include "client/renderer/srgb.h"
 #include "client/renderer/text.h"
 
 #include "imgui/imgui.h"
@@ -422,7 +423,7 @@ void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bott
 	if( w <= 0.0f || h <= 0.0f )
 		return;
 
-	RGBA8 rgba = RGBA8( color );
+	RGBA8 rgba = LinearTosRGB( color );
 
 	ImDrawList * bg = ImGui::GetBackgroundDrawList();
 	bg->PushTextureID( ImGuiShaderAndMaterial( material ) );

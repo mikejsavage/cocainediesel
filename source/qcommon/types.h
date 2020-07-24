@@ -275,7 +275,7 @@ struct Vec3 {
 	constexpr Vec3( Vec2 xy, float z_ ) : x( xy.x ), y( xy.y ), z( z_ ) { }
 	constexpr Vec3( float x_, float y_, float z_ ) : x( x_ ), y( y_ ), z( z_ ) { }
 
-	Vec2 xy() const { return Vec2( x, y ); }
+	constexpr Vec2 xy() const { return Vec2( x, y ); }
 
 	float * ptr() { return &x; }
 	const float * ptr() const { return &x; }
@@ -300,8 +300,8 @@ struct Vec4 {
 	constexpr Vec4( Vec3 xyz, float w_ ) : x( xyz.x ), y( xyz.y ), z( xyz.z ), w( w_ ) { }
 	constexpr Vec4( float x_, float y_, float z_, float w_ ) : x( x_ ), y( y_ ), z( z_ ), w( w_ ) { }
 
-	Vec2 xy() const { return Vec2( x, y ); }
-	Vec3 xyz() const { return Vec3( x, y, z ); }
+	constexpr Vec2 xy() const { return Vec2( x, y ); }
+	constexpr Vec3 xyz() const { return Vec3( x, y, z ); }
 
 	float * ptr() { return &x; }
 	const float * ptr() const { return &x; }
@@ -481,12 +481,7 @@ struct RGBA8 {
 	constexpr RGBA8( u8 r_, u8 g_, u8 b_, u8 a_ ) : r( r_ ), g( g_ ), b( b_ ), a( a_ ) { }
 	explicit constexpr RGBA8( RGB8 rgb, u8 a_ = 255 ) : r( rgb.r ), g( rgb.g ), b( rgb.b ), a( a_ ) { }
 
-	explicit RGBA8( const Vec4 & v ) {
-		r = v.x * 255.0f;
-		g = v.y * 255.0f;
-		b = v.z * 255.0f;
-		a = v.w * 255.0f;
-	}
+	constexpr RGB8 rgb() const { return RGB8( r, g, b ); }
 };
 
 // TODO: asset types?

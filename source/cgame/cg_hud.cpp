@@ -1753,10 +1753,10 @@ enum {
 
 static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih, Alignment alignment, float font_size ) {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
-	static constexpr Vec4 light_gray = Vec4( 0.5, 0.5, 0.5, 1.0 );
-	static constexpr Vec4 dark_gray = Vec4( 0.2, 0.2, 0.2, 1.0 );
-	static constexpr Vec4 color_ammo_max = Vec4( 1.0, 0.8, 0.15, 1.0 );
-	static constexpr Vec4 color_ammo_min = Vec4( 1.0, 0.22, 0.38, 1.0 );
+	Vec4 light_gray = sRGBToLinear( RGBA8( 128, 128, 128, 255 ) );
+	Vec4 dark_gray = sRGBToLinear( RGBA8( 51, 51, 51, 255 ) );
+	Vec4 color_ammo_max = sRGBToLinear( RGBA8( 255, 204, 38, 255 ) );
+	Vec4 color_ammo_min = sRGBToLinear( RGBA8( 255, 56, 97, 255 ) );
 
 	const SyncEntityState * es = &cg_entities[ ps->POVnum ].current;
 
@@ -1817,7 +1817,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 
 		color = Lerp( color_ammo_min, Unlerp( 0.0f, ammo_frac, 1.0f ), color_ammo_max );
 
-		Vec4 color_bg = Vec4( color.xyz() * 0.625f, 1.0f );
+		Vec4 color_bg = Vec4( color.xyz() * 0.33f, 1.0f );
 
 		const Material * icon = cgs.media.shaderWeaponIcon[ weap ];
 
@@ -1908,6 +1908,13 @@ static bool CG_LFuncSize( struct cg_layoutnode_s *argumentnode, int numArguments
 static bool CG_LFuncColor( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	for( int i = 0; i < 4; i++ ) {
 		layout_cursor_color[ i ] = Clamp01( CG_GetNumericArg( &argumentnode ) );
+	}
+	return true;
+}
+
+static bool CG_LFuncColorsRGB( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+	for( int i = 0; i < 4; i++ ) {
+		layout_cursor_color[ i ] = sRGBToLinear( Clamp01( CG_GetNumericArg( &argumentnode ) ) );
 	}
 	return true;
 }
@@ -2224,6 +2231,13 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncColor,
 		4,
 		"Sets color setting in RGBA mode. Used for text and pictures",
+	},
+
+	{
+		"setColorsRGB",
+		CG_LFuncColorsRGB,
+		4,
+		"setColor but in sRGB",
 	},
 
 	{

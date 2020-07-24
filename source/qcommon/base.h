@@ -8,7 +8,7 @@
 #include "qcommon/platform.h"
 #include "qcommon/types.h"
 #include "qcommon/math.h"
-#include "qcommon/ggformat.h"
+#include "gg/ggformat.h"
 #include "qcommon/linear_algebra.h"
 
 #include "tracy/Tracy.hpp"

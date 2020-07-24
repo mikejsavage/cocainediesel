@@ -21,6 +21,7 @@ else
 end
 
 require( "libs.cgltf" )
+require( "libs.gg" )
 require( "libs.glad" )
 require( "libs.imgui" )
 require( "libs.meshoptimizer" )
@@ -71,6 +72,8 @@ do
 
 		libs = {
 			"cgltf",
+			"ggentropy",
+			"ggformat",
 			"glad",
 			"imgui",
 			"meshoptimizer",
@@ -141,6 +144,8 @@ do
 		},
 
 		libs = {
+			"ggentropy",
+			"ggformat",
 			"monocypher",
 			"tracy",
 			"whereami",

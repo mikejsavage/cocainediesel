@@ -1,5 +1,3 @@
-// include base.h instead of this
-
 /*
  * ggformat v1.0
  *

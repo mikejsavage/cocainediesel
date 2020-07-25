@@ -298,6 +298,16 @@ void AnglesToAxis( Vec3 angles, mat3_t axis ) {
 	axis[8] = up.z;
 }
 
+// must match the GLSL OrthonormalBasis
+void OrthonormalBasis( Vec3 v, Vec3 * tangent, Vec3 * bitangent ) {
+	float s = copysignf( 1.0f, v.z );
+	float a = -1.0f / ( s + v.z );
+	float b = v.x * v.y * a;
+
+	*tangent = Vec3( 1.0f + s * v.x * v.x * a, s * b, -s * v.x );
+	*bitangent = Vec3( b, s + v.y * v.y * a, -v.y );
+}
+
 void BuildBoxPoints( Vec3 p[8], Vec3 org, Vec3 mins, Vec3 maxs ) {
 	p[0] = org + mins;
 	p[1] = org + maxs;

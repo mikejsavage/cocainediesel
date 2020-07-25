@@ -212,7 +212,7 @@ struct SyncEntityState {
 	int targetNum;                  // ET_EVENT specific
 	int colorRGBA;                  // ET_BEAM, ET_EVENT specific
 	RGBA8 silhouetteColor;
-	int radius;                     // ET_GLADIATOR always extended, ET_BOMB state, ...
+	int radius;                     // ET_GLADIATOR always extended, ET_BOMB state, EV_BLOOD damage, ...
 
 	bool linearMovement;
 	Vec3 linearMovementVelocity;      // this is transmitted instead of origin when linearProjectile is true

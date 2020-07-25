@@ -23,16 +23,6 @@ void InitSprays() {
 	num_sprays = 0;
 }
 
-// must match the GLSL OrthonormalBasis
-static void OrthonormalBasis( Vec3 v, Vec3 * tangent, Vec3 * bitangent ) {
-	float s = copysignf( 1.0f, v.z );
-	float a = -1.0f / ( s + v.z );
-	float b = v.x * v.y * a;
-
-	*tangent = Vec3( 1.0f + s * v.x * v.x * a, s * b, -s * v.x );
-	*bitangent = Vec3( b, s + v.y * v.y * a, -v.y );
-}
-
 void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, StringHash material ) {
 	Vec3 forward, up;
 	AngleVectors( angles, &forward, NULL, &up );

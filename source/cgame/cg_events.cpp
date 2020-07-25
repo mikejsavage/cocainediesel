@@ -902,10 +902,51 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			S_StartFixedSound( cgs.media.sfxBulletImpact, ent->origin, CHAN_AUTO, 1.0f );
 			break;
 
-		case EV_BLOOD:
+		case EV_BLOOD: {
 			dir = ByteToDir( parm );
-			// CG_BloodDamageEffect( ent->origin, dir, ent->damage, team_color );
-			break;
+			Vec3 tangent, bitangent;
+			OrthonormalBasis( dir, &tangent, &bitangent );
+
+			int damage = ent->radius;
+			float p = damage / 20.0f;
+
+			while( true ) {
+				if( !random_p( &cls.rng, p ) )
+					break;
+
+				Vec3 random_dir = Normalize( dir + tangent * random_float11( &cls.rng ) * 0.1f + bitangent * random_float11( &cls.rng ) * 0.1f );
+				Vec3 end = ent->origin + random_dir * 256.0f;
+
+				trace_t trace;
+				CG_Trace( &trace, ent->origin, Vec3( -4.0f ), Vec3( 4.0f ), end, 0, MASK_SOLID );
+
+				if( trace.fraction < 1.0f ) {
+					constexpr StringHash decals[] = {
+						"textures/blood_decals/blood1",
+						"textures/blood_decals/blood2",
+						"textures/blood_decals/blood3",
+						"textures/blood_decals/blood4",
+						"textures/blood_decals/blood5",
+						"textures/blood_decals/blood6",
+						"textures/blood_decals/blood7",
+						"textures/blood_decals/blood8",
+						"textures/blood_decals/blood9",
+						"textures/blood_decals/blood10",
+						"textures/blood_decals/blood11",
+					};
+
+					Vec4 color = CG_TeamColorVec4( ent->team );
+					float angle = random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
+
+					float min_size = Lerp( 20.0f, Unlerp01( 5, damage, 50 ), 64.0f );
+					float size = min_size * random_uniform_float( &cls.rng, 0.75f, 1.5f );
+
+					AddPersistentDecal( trace.endpos, trace.plane.normal, size, angle, random_select( &cls.rng, decals ), team_color, 30000 );
+				}
+
+				p -= 1.0f;
+			}
+		} break;
 
 		// func movers
 		case EV_PLAT_HIT_TOP:

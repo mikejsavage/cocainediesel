@@ -97,6 +97,10 @@ class cPlayer {
 		}
 		this.client.execGameCommand( command );
 
+		if( this.client.getEnt().isGhosting() ) {
+			return;
+		}
+
 		if( match.getState() == MATCH_STATE_WARMUP || match.getState() == MATCH_STATE_COUNTDOWN ) {
 			giveInventory();
 		}

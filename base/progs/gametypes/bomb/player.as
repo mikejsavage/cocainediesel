@@ -160,21 +160,6 @@ void playersInit() {
 	}
 }
 
-// using a global counter would be faster
-uint getCarrierCount( int teamNum ) {
-	uint count = 0;
-
-	Team @team = @G_GetTeam( teamNum );
-
-	for( int i = 0; @team.ent( i ) != null; i++ ) {
-		if( @team.ent( i ) == @bombCarrier ) {
-			count++;
-		}
-	}
-
-	return count;
-}
-
 void resetKillCounters() {
 	for( int i = 0; i < maxClients; i++ ) {
 		if( @players[i] != null ) {

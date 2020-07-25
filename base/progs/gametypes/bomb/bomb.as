@@ -420,14 +420,18 @@ bool bombCanPlant() {
 
 void bombGiveToRandom() {
 	Team @team = @G_GetTeam( attackingTeam );
+	int bots = 0;
 
-	uint n = getCarrierCount( attackingTeam );
-	bool hasCarriers = cvarEnableCarriers.boolean && n > 0;
-	if( !hasCarriers )
-		n = team.numPlayers;
+	for( int i = 0; @team.ent( i ) != null; i++ ) {
+		if( ( team.ent( i ).svflags & SVF_FAKECLIENT ) != 0 ) {
+			bots++;
+		}
+	}
 
-	int carrierIdx = random_uniform( 0, n );
-	int seenCarriers = 0;
+	bool all_bots = bots == team.numPlayers;
+	int n = all_bots ? team.numPlayers : team.numPlayers - bots;
+	int carrier = random_uniform( 0, n );
+	int seen = 0;
 
 	for( int i = 0; @team.ent( i ) != null; i++ ) {
 		Entity @ent = @team.ent( i );
@@ -435,13 +439,13 @@ void bombGiveToRandom() {
 
 		cPlayer @player = @playerFromClient( @client );
 
-		if( !hasCarriers || @ent == @bombCarrier ) {
-			if( seenCarriers == carrierIdx ) {
+		if( all_bots || ( ent.svflags & SVF_FAKECLIENT ) == 0 ) {
+			if( seen == carrier ) {
 				bombSetCarrier( @ent, true );
 				break;
 			}
 
-			seenCarriers++;
+			seen++;
 		}
 	}
 }

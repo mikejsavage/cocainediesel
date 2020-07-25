@@ -29,7 +29,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define PM_DASHJUMP_TIMEDELAY 200 // delay in milliseconds
 #define PM_WALLJUMP_TIMEDELAY   1300
-#define PM_SPECIAL_CROUCH_INHIBIT 400
 #define PM_AIRCONTROL_BOUNCE_DELAY 200
 #define PM_OVERBOUNCE       1.01f
 
@@ -830,7 +829,6 @@ static void PM_CheckDash() {
 	}
 
 	if( pm->groundentity != -1 && pressed && ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) ) {
-
 		pm->playerState->pmove.pm_flags &= ~PMF_JUMPPAD_TIME;
 		PM_ClearWallJump();
 
@@ -870,10 +868,19 @@ static void PM_CheckDash() {
 
 		// return sound events
 		if( Abs( pml.sidePush ) >= Abs( pml.forwardPush ) ) {
-			if( pml.sidePush > 0 ) 			pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 2 );
-			else 							pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 1 );
-		} else if( pml.forwardPush < 0 ) 	pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 3 );
-		else								pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 0 );
+			if( pml.sidePush > 0 ) {
+				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 2 );
+			}
+			else {
+				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 1 );
+			}
+		}
+		else if( pml.forwardPush < 0 ) {
+			pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 3 );
+		}
+		else {
+			pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 0 );
+		}
 	} else if( pm->groundentity == -1 ) {
 		pm->playerState->pmove.pm_flags &= ~PMF_DASHING;
 	}
@@ -1123,8 +1130,6 @@ static void PM_AdjustBBox() {
 	}
 
 	if( pml.upPush < 0 && ( pm->playerState->pmove.features & PMFEAT_CROUCH ) &&
-		pm->playerState->pmove.walljump_time < ( PM_WALLJUMP_TIMEDELAY - PM_SPECIAL_CROUCH_INHIBIT ) &&
-		pm->playerState->pmove.dash_time < ( PM_DASHJUMP_TIMEDELAY - PM_SPECIAL_CROUCH_INHIBIT ) &&
 		( pm->playerState->pmove.pm_flags & PMF_ON_GROUND ) ) {
 
 		if( pm->playerState->pmove.crouch_time == 0 ) {

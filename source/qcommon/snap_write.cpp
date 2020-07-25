@@ -594,10 +594,7 @@ static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, ginfo_t *gi, edict_
 		SNAP_AddEntNumToSnapList( entNum, entList );
 	}
 
-	// if the client is outside of the world, don't send him any entity
-	if( clientarea >= 0 || frame->allentities ) {
-		SNAP_AddEntitiesVisibleAtOrigin( cms, gi, clent, vieworg, clientarea, frame, entList );
-	}
+	SNAP_AddEntitiesVisibleAtOrigin( cms, gi, clent, vieworg, clientarea, frame, entList );
 
 	SNAP_SortSnapList( entList );
 }

@@ -1070,14 +1070,6 @@ textures/sprays/spook
 	decal
 }
 
-textures/sprays/sprays.shader*
-{
-	{
-		map textures/sprays/sprays.shader*
-	}
-	decal
-}
-
 textures/sprays/starwings
 {
 	{

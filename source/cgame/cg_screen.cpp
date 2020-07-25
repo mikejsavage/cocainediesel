@@ -485,6 +485,8 @@ void CG_DrawBombHUD() {
 	int my_team = cg.predictedPlayerState.team;
 	bool show_labels = my_team != TEAM_SPECTATOR && GS_MatchState( &client_gs ) == MATCH_STATE_PLAYTIME;
 
+	Vec4 color = sRGBToLinear( rgba8_diesel_yellow );
+
 	// TODO: draw arrows when clamped
 
 	if( bomb.state == BombState_None || bomb.state == BombState_Dropped ) {
@@ -495,12 +497,12 @@ void CG_DrawBombHUD() {
 
 			char buf[ 4 ];
 			snprintf( buf, sizeof( buf ), "%c", site->letter );
-			DrawText( cgs.fontMontserrat, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords.x, coords.y, vec4_yellow, true );
+			DrawText( cgs.fontMontserrat, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords.x, coords.y, color, true );
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {
 				const char * msg = my_team == site->team ? "DEFEND" : "ATTACK";
 				coords.y += ( cgs.fontSystemMediumSize * 7 ) / 8;
-				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, vec4_yellow, true );
+				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, color, true );
 			}
 		}
 	}

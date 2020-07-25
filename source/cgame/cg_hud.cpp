@@ -1755,7 +1755,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
 	Vec4 light_gray = sRGBToLinear( RGBA8( 128, 128, 128, 255 ) );
 	Vec4 dark_gray = sRGBToLinear( RGBA8( 51, 51, 51, 255 ) );
-	Vec4 color_ammo_max = sRGBToLinear( RGBA8( 255, 204, 38, 255 ) );
+	Vec4 color_ammo_max = sRGBToLinear( rgba8_diesel_yellow );
 	Vec4 color_ammo_min = sRGBToLinear( RGBA8( 255, 56, 97, 255 ) );
 
 	const SyncEntityState * es = &cg_entities[ ps->POVnum ].current;

@@ -37,6 +37,8 @@ typedef struct shader_s shader_t;
 typedef struct qfontface_s qfontface_t;
 struct ImFont;
 
+constexpr RGBA8 rgba8_diesel_yellow = RGBA8( 255, 204, 38, 255 );
+
 //=============================================================================
 
 #define MAX_TIMEDELTAS_BACKUP 8

@@ -771,10 +771,6 @@ static void DrawSilhouettes() {
 	}
 }
 
-float global_attenuation = 1.0f;
-float global_refdist = 125.0f;
-float global_maxdist = 8000.0f;
-
 /*
 * CG_RenderView
 */

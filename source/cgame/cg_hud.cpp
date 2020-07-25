@@ -1317,7 +1317,7 @@ void CG_SC_Obituary( void ) {
 
 			CG_AddChat( temp( "{}{} {}{} {}{}",
 				ImGuiColorToken( attacker_color ), attacker_name,
-				ImGuiColorToken( 255, 234, 0, 255 ), obituary,
+				ImGuiColorToken( rgba8_diesel_yellow ), obituary,
 				ImGuiColorToken( victim_color ), victim_name
 			) );
 

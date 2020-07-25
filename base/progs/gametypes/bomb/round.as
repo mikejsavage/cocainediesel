@@ -26,8 +26,6 @@ uint roundCount;
 int attackingTeam;
 int defendingTeam;
 
-bool attackersHurried;
-bool defendersHurried;
 bool was1vx;
 
 void playerKilled( Entity @victim, Entity @attacker, Entity @inflictor ) {
@@ -225,8 +223,6 @@ void roundNewState( uint state ) {
 			gametype.shootingDisabled = true;
 			gametype.removeInactivePlayers = false;
 
-			attackersHurried = false;
-			defendersHurried = false;
 			was1vx = false;
 
 			resetBombSites();
@@ -351,23 +347,11 @@ void roundThink() {
 			return;
 		}
 
-		// warn defs if bomb will explode soon
-		// warn offs if the round ends soon and they haven't planted
 		if( bombState == BombState_Planted ) {
 			last_time = -1;
-
-			if( !defendersHurried && levelTime + BOMB_HURRYUP_TIME >= bombActionTime ) {
-				G_AnnouncerSound( null, sndHurry, defendingTeam, true, null );
-				defendersHurried = true;
-			}
 		}
 		else {
 			last_time = roundStateEndTime - levelTime;
-
-			if( !attackersHurried && levelTime + BOMB_HURRYUP_TIME >= roundStateEndTime ) {
-				G_AnnouncerSound( null, sndHurry, attackingTeam, true, null );
-				attackersHurried = true;
-			}
 		}
 
 		match.setClockOverride( last_time );

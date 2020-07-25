@@ -19,8 +19,6 @@ BombState bombState = BombState_Idle;
 
 cBombSite @bombSite;
 
-int64 bombNextBeep;
-
 int64 bombPickTime;
 Entity @bombDropper;
 
@@ -59,7 +57,7 @@ void bombModelCreate() {
 	bombModel.setSize( BOMB_MINS, BOMB_MAXS );
 	bombModel.solid = SOLID_TRIGGER;
 	bombModel.light = BOMB_LIGHT_INACTIVE;
-	bombModel.model = modelBombModel;
+	bombModel.model = modelBomb;
 	bombModel.silhouetteColor = uint( 255 << 0 ) | uint( 255 << 8 ) | uint( 255 << 16 ) | uint( 255 << 24 );
 	bombModel.svflags |= SVF_BROADCAST;
 	@bombModel.touch = bomb_touch;
@@ -80,7 +78,7 @@ void bombInit() {
 
 void bombPickUp() {
 	bombCarrier.effects |= EF_CARRIER;
-	bombCarrier.model2 = modelBombBackpack;
+	bombCarrier.model2 = modelBomb;
 
 	hide( @bombModel );
 	hide( @bombHud );
@@ -196,7 +194,7 @@ void bombStartPlanting( cBombSite @site ) {
 	bombActionTime = levelTime;
 	bombState = BombState_Planting;
 
-	G_Sound( @bombModel, 0, sndPlantStart );
+	G_Sound( @bombModel, 0, sndPlant );
 }
 
 void bombPlanted() {
@@ -204,7 +202,8 @@ void bombPlanted() {
 
 	// add red dynamic light
 	bombModel.light = BOMB_LIGHT_ARMED;
-	bombModel.model = modelBombModelActive;
+	bombModel.model = modelBomb;
+	bombModel.sound = sndFuse;
 	bombModel.effects &= ~EF_TEAM_SILHOUETTE;
 
 	// show to defs too
@@ -221,7 +220,7 @@ void bombPlanted() {
 
 void bombDefused() {
 	bombModel.light = BOMB_LIGHT_INACTIVE;
-	bombModel.model = modelBombModel;
+	bombModel.model = modelBomb;
 
 	hide( @bombHud );
 
@@ -260,7 +259,7 @@ void resetBomb() {
 	hide( @bombModel );
 
 	bombModel.light = BOMB_LIGHT_INACTIVE;
-	bombModel.model = modelBombModel;
+	bombModel.model = modelBomb;
 	bombModel.effects |= EF_TEAM_SILHOUETTE;
 
 	bombModel.team = attackingTeam;
@@ -319,23 +318,6 @@ void bombThink() {
 			if( levelTime >= bombActionTime ) {
 				bombExplode();
 				break;
-			}
-
-			if( levelTime > bombNextBeep ) {
-				G_PositionedSound( bombModel.origin, CHAN_AUTO, sndBeep );
-
-				uint remainingTime = bombActionTime - levelTime;
-
-				uint nextBeepDelta = uint( BOMB_BEEP_FRACTION * remainingTime );
-
-				if( nextBeepDelta > BOMB_BEEP_MAX ) {
-					nextBeepDelta = BOMB_BEEP_MAX;
-				}
-				else if( nextBeepDelta < BOMB_BEEP_MIN ) {
-					nextBeepDelta = BOMB_BEEP_MIN;
-				}
-
-				bombNextBeep = levelTime + nextBeepDelta;
 			}
 		} break;
 	}

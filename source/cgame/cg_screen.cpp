@@ -465,6 +465,38 @@ void CG_AddBomb( centity_t * cent ) {
 
 	bomb.team = cent->current.team;
 	bomb.origin = cent->current.origin;
+
+	// TODO: this really does not belong here...
+	if( bomb.state == BombState_Planted ) {
+		ParticleEmitter emitter = { };
+		emitter.position = bomb.origin + Vec3( -12.0f, 3.0f, -12.0f ); // TODO lol
+
+		emitter.start_speed = 128.0f;
+		emitter.end_speed = 128.0f;
+
+		emitter.start_color = Vec4( 1.0f, 0.69f, 0.0f, 1.0f );
+		emitter.end_color = Vec3( 0.8f, 0.1f, 0.0f );
+
+		emitter.red_distribution.type = RandomDistributionType_Uniform;
+		emitter.red_distribution.uniform = 0.1f;
+		emitter.green_distribution.type = RandomDistributionType_Uniform;
+		emitter.green_distribution.uniform = 0.05f;
+
+		emitter.start_size = 24.0f;
+		emitter.end_size = 0.0f;
+
+		emitter.size_distribution.type = RandomDistributionType_Uniform;
+		emitter.size_distribution.uniform = 2.0f;
+
+		emitter.lifetime = 0.2f;
+
+		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
+		emitter.lifetime_distribution.uniform = 0.05f;
+
+		emitter.emission_rate = 100;
+
+		EmitParticles( &cgs.bullet_sparks, emitter );
+	}
 }
 
 void CG_AddBombSite( centity_t * cent ) {

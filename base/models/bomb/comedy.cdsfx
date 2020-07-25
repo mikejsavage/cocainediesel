@@ -1,0 +1,9 @@
+{
+	sound ./laugh1
+	sound ./laugh2
+	sound ./laugh3
+	sound sounds/vsay/goodgame
+	sound sounds/trombone/sad
+	sound sounds/vsay/cya
+	sound sounds/vsay/valley/dontlookatme1
+}

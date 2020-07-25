@@ -17,14 +17,6 @@ const Vec3 VEC_UP( 0, 0, 1 ); // this must have length 1! don't change this unle
 
 const float BOMB_ARM_DEFUSE_RADIUS = 32.0f;
 
-const uint BOMB_SPRITE_RESIZE_TIME = 300; // time taken to expand/shrink sprite/decal
-
-const float BOMB_BEEP_FRACTION = 1.0f / 12.0f; // fraction of time left between beeps
-const uint BOMB_BEEP_MAX = 5000;               // max time (ms) between beeps
-const uint BOMB_BEEP_MIN = 200;                // min time (ms) between beeps
-
-const uint BOMB_HURRYUP_TIME = 12000;
-
 const uint BOMB_AUTODROP_DISTANCE = 400; // distance from indicator to drop (only some maps)
 
 const uint BOMB_THROW_SPEED = 300; // speed at which the bomb is thrown with drop

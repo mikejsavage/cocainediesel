@@ -1,20 +1,10 @@
+uint64 modelBomb;
 
-// MODELS
-uint64 modelBombModel;
-uint64 modelBombModelActive;
-uint64 modelBombBackpack;
-uint64 modelIndicator;
-
-// SPRITES ETC
-uint64 imgBombDecal;
-
-// SOUNDS
-uint64 sndBeep;
-uint64 sndPlantStart;
+uint64 sndPlant;
+uint64 sndFuse;
 uint64 sndGoodGame;
 uint64 sndBombTaken;
 uint64 sndAce;
-uint64 sndHurry;
 
 uint64 snd1v1;
 uint64 snd1vx;
@@ -37,16 +27,13 @@ void announce( Announcement announcement ) {
 }
 
 void mediaInit() {
-	modelBombModel = Hash64( "models/objects/misc/bomb_centered" );
-	modelBombModelActive = Hash64( "models/objects/misc/bomb_centered_active" );
-	modelBombBackpack = Hash64( "models/objects/misc/bomb" );
+	modelBomb = Hash64( "models/bomb/bomb" );
 
-	sndBeep = Hash64( "sounds/bomb/bombtimer" );
-	sndPlantStart = Hash64( "sounds/misc/timer_bip_bip" );
+	sndPlant = Hash64( "models/bomb/plant" );
+	sndFuse = Hash64( "models/bomb/fuse" );
 	sndGoodGame = Hash64( "sounds/vsay/goodgame" );
 	sndBombTaken = Hash64( "sounds/announcer/bomb/offense/taken" );
 	sndAce = Hash64( "sounds/announcer/bomb/bongo" );
-	sndHurry = Hash64( "sounds/misc/timer_bip_bip" );
 
 	snd1v1 = Hash64( "sounds/announcer/bomb/1v1" );
 	snd1vx = Hash64( "sounds/announcer/bomb/1vx" );

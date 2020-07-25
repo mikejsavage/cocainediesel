@@ -19,7 +19,7 @@ const float BOMB_ARM_DEFUSE_RADIUS = 32.0f;
 
 const uint BOMB_AUTODROP_DISTANCE = 400; // distance from indicator to drop (only some maps)
 
-const uint BOMB_THROW_SPEED = 300; // speed at which the bomb is thrown with drop
+const uint BOMB_THROW_SPEED = 550; // speed at which the bomb is thrown with drop
 
 const uint BOMB_EXPLOSION_EFFECT_RADIUS = 256;
 

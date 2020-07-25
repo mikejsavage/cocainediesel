@@ -439,7 +439,7 @@ struct BombSite {
 };
 
 enum BombState {
-	BombState_None,
+	BombState_Carried,
 	BombState_Dropped,
 	BombState_Planting,
 	BombState_Planted,
@@ -485,11 +485,11 @@ void CG_DrawBombHUD() {
 	int my_team = cg.predictedPlayerState.team;
 	bool show_labels = my_team != TEAM_SPECTATOR && GS_MatchState( &client_gs ) == MATCH_STATE_PLAYTIME;
 
-	Vec4 color = sRGBToLinear( rgba8_diesel_yellow );
+	Vec4 yellow = sRGBToLinear( rgba8_diesel_yellow );
 
 	// TODO: draw arrows when clamped
 
-	if( bomb.state == BombState_None || bomb.state == BombState_Dropped ) {
+	if( bomb.state == BombState_Carried || bomb.state == BombState_Dropped ) {
 		for( size_t i = 0; i < num_bomb_sites; i++ ) {
 			const BombSite * site = &bomb_sites[ i ];
 			bool clamped;
@@ -497,17 +497,17 @@ void CG_DrawBombHUD() {
 
 			char buf[ 4 ];
 			snprintf( buf, sizeof( buf ), "%c", site->letter );
-			DrawText( cgs.fontMontserrat, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords.x, coords.y, color, true );
+			DrawText( cgs.fontMontserrat, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {
 				const char * msg = my_team == site->team ? "DEFEND" : "ATTACK";
 				coords.y += ( cgs.fontSystemMediumSize * 7 ) / 8;
-				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, color, true );
+				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
 			}
 		}
 	}
 
-	if( bomb.state != BombState_None ) {
+	if( bomb.state != BombState_Carried ) {
 		bool clamped;
 		Vec2 coords = WorldToScreenClamped( bomb.origin, Vec2( cgs.fontSystemMediumSize * 2 ), &clamped );
 
@@ -546,7 +546,7 @@ void CG_DrawBombHUD() {
 
 void CG_ResetBombHUD() {
 	num_bomb_sites = 0;
-	bomb.state = BombState_None;
+	bomb.state = BombState_Carried;
 }
 
 //=============================================================================

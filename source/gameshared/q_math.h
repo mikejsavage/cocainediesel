@@ -43,11 +43,10 @@ enum {
 
 typedef float mat3_t[9];
 
-// cplane_t structure
-typedef struct cplane_s {
+struct cplane_t {
 	Vec3 normal;
 	float dist;
-} cplane_t;
+};
 
 constexpr mat3_t axis_identity = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 

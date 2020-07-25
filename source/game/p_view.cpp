@@ -270,14 +270,11 @@ static void G_SetClientSound( edict_t *ent ) {
 * and right after spawning
 */
 void G_ClientEndSnapFrame( edict_t *ent ) {
-	gclient_t *client;
-	int i;
-
-	if( trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+	if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 		return;
 	}
 
-	client = ent->r.client;
+	gclient_t * client = ent->r.client;
 
 	// If the end of unit layout is displayed, don't give
 	// the player any normal movement attributes
@@ -300,8 +297,9 @@ void G_ClientEndSnapFrame( edict_t *ent ) {
 	G_ReleaseClientPSEvent( client );
 
 	// set the delta angle
-	for( i = 0; i < 3; i++ )
+	for( int i = 0; i < 3; i++ ) {
 		client->ps.pmove.delta_angles[i] = ANGLE2SHORT( client->ps.viewangles[i] ) - client->ucmd.angles[i];
+	}
 
 	// this is pretty hackish
 	if( !G_ISGHOSTING( ent ) ) {

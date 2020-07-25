@@ -58,7 +58,7 @@ enum {
 	MAX_LOCALEFFECTS = 64,
 };
 
-typedef struct {
+struct centity_t {
 	SyncEntityState current;
 	SyncEntityState prev;        // will always be valid, but might just be a copy of current
 
@@ -107,11 +107,11 @@ typedef struct {
 	bool jumpedLeft;
 	Vec3 animVelocity;
 	float yawVelocity;
-} centity_t;
+};
 
 #include "cgame/cg_pmodels.h"
 
-typedef struct {
+struct cgs_media_t {
 	// sounds
 	const SoundEffect * sfxWeaponNoAmmo;
 
@@ -221,20 +221,20 @@ typedef struct {
 	const Material * shaderAlive;
 	const Material * shaderDead;
 	const Material * shaderReady;
-} cgs_media_t;
+};
 
-typedef struct {
+struct cg_clientInfo_t {
 	char name[MAX_QPATH];
 	int hand;
-} cg_clientInfo_t;
+};
 
 #define MAX_ANGLES_KICKS 3
 
-typedef struct {
+struct cg_kickangles_t {
 	int64_t timestamp;
 	int64_t kicktime;
 	float v_roll, v_pitch;
-} cg_kickangles_t;
+};
 
 #define PREDICTED_STEP_TIME 150 // stairs smoothing time
 #define MAX_AWARD_LINES 3
@@ -246,7 +246,7 @@ enum {
 	VIEWDEF_PLAYERVIEW,
 };
 
-typedef struct {
+struct cg_viewdef_t {
 	int type;
 	int POVent;
 	bool thirdperson;
@@ -259,12 +259,12 @@ typedef struct {
 	Vec3 angles;
 	mat3_t axis;
 	Vec3 velocity;
-} cg_viewdef_t;
+};
 
-#include "cg_democams.h"
+#include "cgame/cg_democams.h"
 
 // this is not exactly "static" but still...
-typedef struct {
+struct cg_static_t {
 	const char *serverName;
 	const char *demoName;
 	unsigned int playerNum;
@@ -314,9 +314,9 @@ typedef struct {
 	ParticleSystem bullet_sparks;
 	ParticleSystem sparks;
 	ParticleSystem smoke;
-} cg_static_t;
+};
 
-typedef struct {
+struct cg_state_t {
 	int frameCount;
 
 	snapshot_t frame, oldFrame;
@@ -385,7 +385,7 @@ typedef struct {
 
 	cg_viewweapon_t weapon;
 	cg_viewdef_t view;
-} cg_state_t;
+};
 
 extern cg_static_t cgs;
 extern cg_state_t cg;

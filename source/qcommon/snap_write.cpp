@@ -757,11 +757,8 @@ static void SNAP_FreeClientFrame( client_snapshot_t *frame ) {
 *
 */
 void SNAP_FreeClientFrames( client_t *client ) {
-	int i;
-	client_snapshot_t *frame;
-
-	for( i = 0; i < UPDATE_BACKUP; i++ ) {
-		frame = &client->snapShots[i];
+	for( int i = 0; i < UPDATE_BACKUP; i++ ) {
+		client_snapshot_t * frame = &client->snapShots[i];
 		SNAP_FreeClientFrame( frame );
 	}
 }

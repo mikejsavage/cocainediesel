@@ -453,7 +453,7 @@ static void G_SpawnEntities( void ) {
 	level.map_parsed_ents[level.map_parsed_len] = 0;
 
 	// make sure server got the edicts data
-	trap_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
+	SV_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
 }
 
 /*
@@ -502,13 +502,13 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		game.edicts[i + 1].s.number = i + 1;
 		game.edicts[i + 1].r.client = &game.clients[i];
-		game.edicts[i + 1].r.inuse = ( trap_GetClientState( i ) >= CS_CONNECTED ) ? true : false;
+		game.edicts[i + 1].r.inuse = ( PF_GetClientState( i ) >= CS_CONNECTED ) ? true : false;
 		memset( &game.clients[i].level, 0, sizeof( game.clients[0].level ) );
 		game.clients[i].level.timeStamp = level.time;
 	}
 
 	// initialize game subsystems
-	trap_ConfigString( CS_MATCHSCORE, "" );
+	PF_ConfigString( CS_MATCHSCORE, "" );
 
 	G_InitGameCommands();
 	G_CallVotes_Init();

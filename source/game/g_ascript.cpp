@@ -429,13 +429,13 @@ static int objectMatch_getState( SyncGameState *self ) {
 }
 
 static asstring_t *objectMatch_getScore( SyncGameState *self ) {
-	const char *s = trap_GetConfigString( CS_MATCHSCORE );
+	const char *s = PF_GetConfigString( CS_MATCHSCORE );
 
 	return game.asExport->asStringFactoryBuffer( s, strlen( s ) );
 }
 
 static void objectMatch_setScore( asstring_t *name, SyncGameState *self ) {
-	trap_ConfigString( CS_MATCHSCORE, name->buffer );
+	PF_ConfigString( CS_MATCHSCORE, name->buffer );
 }
 
 static void objectMatch_setClockOverride( int64_t time, SyncGameState *self ) {
@@ -719,7 +719,7 @@ static int objectGameClient_ClientState( gclient_t *self ) {
 		return CS_FREE;
 	}
 
-	return trap_GetClientState( (int)( self - game.clients ) );
+	return PF_GetClientState( (int)( self - game.clients ) );
 }
 
 static void objectGameClient_ClearPlayerStateEvents( gclient_t *self ) {
@@ -829,7 +829,7 @@ static void objectGameClient_execGameCommand( asstring_t *msg, gclient_t *self )
 		return;
 	}
 
-	trap_GameCmd( PLAYERENT( playerNum ), msg->buffer );
+	PF_GameCmd( PLAYERENT( playerNum ), msg->buffer );
 }
 
 static unsigned int objectGameClient_getPressedKeys( gclient_t *self ) {
@@ -984,7 +984,7 @@ static asvec3_t objectGameEntity_GetVelocity( edict_t *obj ) {
 static void objectGameEntity_SetVelocity( asvec3_t *vel, edict_t *self ) {
 	self->velocity = vel->v;
 
-	if( self->r.client && trap_GetClientState( PLAYERNUM( self ) ) >= CS_SPAWNED ) {
+	if( self->r.client && PF_GetClientState( PLAYERNUM( self ) ) >= CS_SPAWNED ) {
 		self->r.client->ps.pmove.velocity = vel->v;
 	}
 }
@@ -1009,7 +1009,7 @@ static asvec3_t objectGameEntity_GetOrigin( edict_t *obj ) {
 }
 
 static void objectGameEntity_SetOrigin( asvec3_t *vec, edict_t *self ) {
-	if( self->r.client && trap_GetClientState( PLAYERNUM( self ) ) >= CS_SPAWNED ) {
+	if( self->r.client && PF_GetClientState( PLAYERNUM( self ) ) >= CS_SPAWNED ) {
 		self->r.client->ps.pmove.origin = vec->v;
 	}
 	self->s.origin = vec->v;
@@ -1036,7 +1036,7 @@ static asvec3_t objectGameEntity_GetAngles( edict_t *obj ) {
 static void objectGameEntity_SetAngles( asvec3_t *vec, edict_t *self ) {
 	self->s.angles = vec->v;
 
-	if( self->r.client && trap_GetClientState( PLAYERNUM( self ) ) >= CS_SPAWNED ) {
+	if( self->r.client && PF_GetClientState( PLAYERNUM( self ) ) >= CS_SPAWNED ) {
 		self->r.client->ps.viewangles = vec->v;
 
 		// update the delta angle
@@ -1068,7 +1068,7 @@ static void objectGameEntity_SetMovedir( edict_t *self ) {
 }
 
 static bool objectGameEntity_IsGhosting( edict_t *self ) {
-	if( self->r.client && trap_GetClientState( PLAYERNUM( self ) ) < CS_SPAWNED ) {
+	if( self->r.client && PF_GetClientState( PLAYERNUM( self ) ) < CS_SPAWNED ) {
 		return true;
 	}
 
@@ -1578,7 +1578,7 @@ static void asFunc_RegisterCommand( asstring_t *str ) {
 }
 
 static asstring_t *asFunc_GetConfigString( int index ) {
-	const char *cs = trap_GetConfigString( index );
+	const char *cs = PF_GetConfigString( index );
 	return game.asExport->asStringFactoryBuffer( (char *)cs, cs ? strlen( cs ) : 0 );
 }
 
@@ -1593,7 +1593,7 @@ static void asFunc_SetConfigString( int index, asstring_t *str ) {
 		return;
 	}
 
-	trap_ConfigString( index, str->buffer );
+	PF_ConfigString( index, str->buffer );
 }
 
 static CScriptArrayInterface *asFunc_G_FindInRadius( asvec3_t *org, float radius ) {
@@ -2495,7 +2495,7 @@ static void G_asDumpAPIToFile( const char *path ) {
 		const asEnum_t *const allEnumsLists[] = { asGameEnums };
 		for( const asEnum_t *const enumsList: allEnumsLists ) {
 			for( i = 0, asEnum = enumsList; asEnum->name != NULL; i++, asEnum++ ) {
-				snprintf( string, sizeof( string ), "typedef enum\r\n{\r\n" );
+				snprintf( string, sizeof( string ), "enum %s\r\n{\r\n", asEnum->name );
 				FS_Write( string, strlen( string ), file );
 
 				for( j = 0, asEnumVal = asEnum->values; asEnumVal->name != NULL; j++, asEnumVal++ ) {
@@ -2503,7 +2503,7 @@ static void G_asDumpAPIToFile( const char *path ) {
 					FS_Write( string, strlen( string ), file );
 				}
 
-				snprintf( string, sizeof( string ), "} %s;\r\n\r\n", asEnum->name );
+				snprintf( string, sizeof( string ), "};\r\n\r\n" );
 				FS_Write( string, strlen( string ), file );
 			}
 		}

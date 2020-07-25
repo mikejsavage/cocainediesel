@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "g_local.h"
+#include "game/g_local.h"
 
 g_teamlist_t teamlist[GS_MAX_TEAMS];
 
@@ -38,7 +38,7 @@ cvar_t *g_scorelimit;
 * G_Match_SetAutorecordState
 */
 static void G_Match_SetAutorecordState( const char *state ) {
-	trap_ConfigString( CS_AUTORECORDSTATE, state );
+	PF_ConfigString( CS_AUTORECORDSTATE, state );
 }
 
 /*
@@ -516,14 +516,14 @@ static void G_CheckNumBots( void ) {
 			if( !ent->r.inuse || !( ent->r.svflags & SVF_FAKECLIENT ) ) {
 				continue;
 			}
-			trap_DropClient( ent, DROP_TYPE_GENERAL, NULL );
+			PF_DropClient( ent, DROP_TYPE_GENERAL, NULL );
 			game.numBots--;
 			break;
 		}
 	}
 	else if( desiredNumBots > game.numBots ) {
 		for( edict_t *ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients && game.numBots < desiredNumBots; ent++ ) {
-			if( !ent->r.inuse && trap_GetClientState( PLAYERNUM( ent ) ) == CS_FREE ) {
+			if( !ent->r.inuse && PF_GetClientState( PLAYERNUM( ent ) ) == CS_FREE ) {
 				AI_SpawnBot();
 			}
 		}

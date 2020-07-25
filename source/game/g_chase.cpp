@@ -34,7 +34,7 @@ static bool G_Chase_IsValidTarget( edict_t *ent, edict_t *target, bool teamonly 
 		return false;
 	}
 
-	if( !target->r.inuse || !target->r.client || trap_GetClientState( PLAYERNUM( target ) ) < CS_SPAWNED ) {
+	if( !target->r.inuse || !target->r.client || PF_GetClientState( PLAYERNUM( target ) ) < CS_SPAWNED ) {
 		return false;
 	}
 
@@ -129,7 +129,7 @@ void G_EndServerFrames_UpdateChaseCam( void ) {
 	for( team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
 		for( i = 0; i < teamlist[team].numplayers; i++ ) {
 			ent = game.edicts + teamlist[team].playerIndices[i];
-			if( trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+			if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 				G_Chase_SetChaseActive( ent, false );
 				continue;
 			}
@@ -141,7 +141,7 @@ void G_EndServerFrames_UpdateChaseCam( void ) {
 	// Do spectators last
 	for( i = 0; i < teamlist[TEAM_SPECTATOR].numplayers; i++ ) {
 		ent = game.edicts + teamlist[TEAM_SPECTATOR].playerIndices[i];
-		if( trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+		if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 			G_Chase_SetChaseActive( ent, false );
 			continue;
 		}

@@ -267,7 +267,12 @@ static const reference_numeric_t cg_numeric_references[] = {
 
 #define MAX_OBITUARIES 32
 
-typedef enum { OBITUARY_NONE, OBITUARY_NORMAL, OBITUARY_SUICIDE, OBITUARY_ACCIDENT } obituary_type_t;
+enum obituary_type_t {
+	OBITUARY_NONE,
+	OBITUARY_NORMAL,
+	OBITUARY_SUICIDE,
+	OBITUARY_ACCIDENT,
+};
 
 typedef struct obituary_s {
 	obituary_type_t type;

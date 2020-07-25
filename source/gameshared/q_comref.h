@@ -48,7 +48,7 @@ enum {
 
 // pmove_state_t is the information necessary for client side movement
 // prediction
-typedef enum {
+enum pmtype_t {
 	// can accelerate and turn
 	PM_NORMAL,
 	PM_SPECTATOR,
@@ -56,7 +56,7 @@ typedef enum {
 	// no acceleration or turning
 	PM_FREEZE,
 	PM_CHASECAM     // same as freeze, but so client knows it's in chasecam
-} pmtype_t;
+};
 
 // pmove->pm_flags
 #define PMF_WALLJUMPCOUNT   ( 1 << 0 )
@@ -130,11 +130,11 @@ constexpr const char * MASTER_SERVERS[] = { "dpmaster.deathmask.net", "ghdigital
 #define SVF_NEVEROWNER          0x00002000      // this entity is tramitted to everyone but its owner
 
 // edict->solid values
-typedef enum {
+enum solid_t {
 	SOLID_NOT,              // no interaction with other objects
 	SOLID_TRIGGER,          // only touch when inside, after moving
 	SOLID_YES               // touch on edge
-} solid_t;
+};
 
 #define SOLID_BMODEL    31  // special value for bmodel
 
@@ -170,24 +170,24 @@ enum {
 
 #define DROP_FLAG_AUTORECONNECT 1       // it's okay try reconnectting automatically
 
-typedef enum {
+enum downloadtype_t {
 	DOWNLOADTYPE_NONE,
 	DOWNLOADTYPE_SERVER,
 	DOWNLOADTYPE_WEB
-} downloadtype_t;
+};
 
 //==============================================
 
-typedef enum {
+enum http_query_method_t {
 	HTTP_METHOD_BAD = -1,
 	HTTP_METHOD_NONE = 0,
 	HTTP_METHOD_GET  = 1,
 	HTTP_METHOD_POST = 2,
 	HTTP_METHOD_PUT  = 3,
 	HTTP_METHOD_HEAD = 4,
-} http_query_method_t;
+};
 
-typedef enum {
+enum http_response_code_t {
 	HTTP_RESP_NONE = 0,
 	HTTP_RESP_OK = 200,
 	HTTP_RESP_PARTIAL_CONTENT = 206,
@@ -197,4 +197,4 @@ typedef enum {
 	HTTP_RESP_REQUEST_TOO_LARGE = 413,
 	HTTP_RESP_REQUESTED_RANGE_NOT_SATISFIABLE = 416,
 	HTTP_RESP_SERVICE_UNAVAILABLE = 503,
-} http_response_code_t;
+};

@@ -101,14 +101,6 @@ static SyncEntityState *CG_GS_GetEntityState( int entNum, int deltaTime ) {
 	return &cent->current;
 }
 
-static const char *CG_GS_GetConfigString( int index ) {
-	if( index < 0 || index >= MAX_CONFIGSTRINGS ) {
-		return NULL;
-	}
-
-	return cgs.configStrings[ index ];
-}
-
 static void CG_InitGameShared( void ) {
 	char cstring[MAX_CONFIGSTRING_CHARS];
 	trap_GetConfigString( CS_MAXCLIENTS, cstring, MAX_CONFIGSTRING_CHARS );
@@ -127,7 +119,6 @@ static void CG_InitGameShared( void ) {
 	client_gs.api.GetEntityState = CG_GS_GetEntityState;
 	client_gs.api.PointContents = CG_GS_PointContents;
 	client_gs.api.PMoveTouchTriggers = CG_Predict_TouchTriggers;
-	client_gs.api.GetConfigString = CG_GS_GetConfigString;
 }
 
 char *_CG_CopyString( const char *in, const char *filename, int fileline ) {

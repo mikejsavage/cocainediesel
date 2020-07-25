@@ -419,7 +419,7 @@ static bool SV_RunGameFrame( int msec ) {
 			accTime = 0;
 		}
 
-		ge->RunFrame( moduleTime );
+		G_RunFrame( moduleTime );
 	}
 
 	// if we don't have to send a snapshot we are done here
@@ -428,7 +428,7 @@ static bool SV_RunGameFrame( int msec ) {
 
 		// set up for sending a snapshot
 		sv.framenum++;
-		ge->SnapFrame();
+		G_SnapFrame();
 
 		// set time for next snapshot
 		extraSnapTime = (int)( svs.gametime - sv.nextSnapTime );
@@ -500,7 +500,7 @@ void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 		SV_MasterHeartbeat();
 
 		// clear teleport flags, etc for next frame
-		ge->ClearSnap();
+		G_ClearSnap();
 	}
 }
 
@@ -531,7 +531,7 @@ void SV_UserinfoChanged( client_t *client ) {
 	}
 
 	// call prog code to allow overrides
-	ge->ClientUserinfoChanged( client->edict, client->userinfo );
+	ClientUserinfoChanged( client->edict, client->userinfo );
 
 	if( !Info_Validate( client->userinfo ) ) {
 		SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: Invalid userinfo (after game)" );

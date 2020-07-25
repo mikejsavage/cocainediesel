@@ -686,6 +686,7 @@ static void CG_DrawEntityNumbers( void ) {
 	}
 }
 
+#if 0
 void CG_Democam_DrawCenterSubtitle( int y, unsigned int maxwidth, struct qfontface_s *font, char *text ) {
 	char *ptr, *s, *t, c, d;
 	int x = frame_static.viewport_width / 2;
@@ -751,6 +752,7 @@ void CG_Democam_DrawCenterSubtitle( int y, unsigned int maxwidth, struct qfontfa
 		// y += trap_SCR_FontHeight( font );
 	}
 }
+#endif
 
 /*
 * CG_DrawDemocam2D

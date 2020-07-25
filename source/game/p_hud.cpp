@@ -56,7 +56,7 @@ void G_UpdateScoreBoardMessages( void ) {
 
 		if( client->ps.show_scoreboard ) {
 			client->level.scoreboard_time = svs.realtime + scoreboardInterval - ( svs.realtime % scoreboardInterval );
-			trap_GameCmd( ent, scoreboard.c_str() );
+			PF_GameCmd( ent, scoreboard.c_str() );
 		}
 	}
 }

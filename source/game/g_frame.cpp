@@ -327,7 +327,7 @@ void G_ClearSnap( void ) {
 
 		// clear the snap temp info
 		memset( &ent->snap, 0, sizeof( ent->snap ) );
-		if( ent->r.client && trap_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
+		if( ent->r.client && PF_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
 			memset( &ent->r.client->resp.snap, 0, sizeof( ent->r.client->resp.snap ) );
 		}
 	}

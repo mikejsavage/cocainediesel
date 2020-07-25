@@ -707,7 +707,7 @@ int SVC_FakeConnect( const char *fakeUserinfo, const char *fakeSocketType, const
 
 	// directly call the game begin function
 	newcl->state = CS_SPAWNED;
-	ge->ClientBegin( newcl->edict );
+	ClientBegin( newcl->edict );
 
 	return NUM_FOR_EDICT( newcl->edict );
 }

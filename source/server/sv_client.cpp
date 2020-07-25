@@ -17,9 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// sv_client.c -- server code for moving users
 
-#include "server.h"
+#include "server/server.h"
 #include "qcommon/version.h"
 
 //============================================================================
@@ -71,7 +70,7 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 	ent = EDICT_NUM( edictnum );
 
 	// get the game a chance to reject this connection or modify the userinfo
-	if( !ge->ClientConnect( ent, userinfo, fakeClient ) ) {
+	if( !ClientConnect( ent, userinfo, fakeClient ) ) {
 		return false;
 	}
 
@@ -164,7 +163,7 @@ void SV_DropClient( client_t *drop, int type, const char *format, ... ) {
 
 	// add the disconnect
 	if( drop->edict && ( drop->edict->r.svflags & SVF_FAKECLIENT ) ) {
-		ge->ClientDisconnect( drop->edict, reason );
+		ClientDisconnect( drop->edict, reason );
 		SV_ClientResetCommandBuffers( drop ); // make sure everything is clean
 	} else {
 		SV_InitClientMessage( drop, &tmpMessage, NULL, 0 );
@@ -177,7 +176,7 @@ void SV_DropClient( client_t *drop, int type, const char *format, ... ) {
 		if( drop->state >= CS_CONNECTED ) {
 			// call the prog function for removing a client
 			// this will remove the body, among other things
-			ge->ClientDisconnect( drop->edict, reason );
+			ClientDisconnect( drop->edict, reason );
 		} else if( drop->name[0] ) {
 			Com_Printf( "Connecting client %s%s disconnected (%s%s)\n", drop->name, S_COLOR_WHITE, reason,
 						S_COLOR_WHITE );
@@ -410,7 +409,7 @@ static void SV_Begin_f( client_t *client ) {
 	client->state = CS_SPAWNED;
 
 	// call the game begin function
-	ge->ClientBegin( client->edict );
+	ClientBegin( client->edict );
 }
 
 //=============================================================================
@@ -723,7 +722,7 @@ static void SV_ExecuteUserCommand( client_t *client, const char *s ) {
 	}
 
 	if( client->state >= CS_SPAWNED && !u->name && sv.state == ss_game ) {
-		ge->ClientCommand( client->edict );
+		ClientCommand( client->edict );
 	}
 }
 
@@ -800,7 +799,7 @@ void SV_ExecuteClientThinks( int clientNum ) {
 			timeDelta = -(int)( svs.gametime - ucmd->serverTimeStamp );
 		}
 
-		ge->ClientThink( client->edict, ucmd, timeDelta );
+		ClientThink( client->edict, ucmd, timeDelta );
 
 		client->UcmdTime = ucmd->serverTimeStamp;
 	}

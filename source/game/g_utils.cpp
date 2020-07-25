@@ -621,7 +621,7 @@ edict_t *G_Spawn( void ) {
 
 	game.numentities++;
 
-	trap_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
+	SV_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
 
 	G_InitEdict( e );
 
@@ -824,13 +824,13 @@ void G_PrintMsg( edict_t *ent, const char *format, ... ) {
 
 	if( !ent ) {
 		// mirror at server console
-		if( GAME_IMPORT.is_dedicated_server ) {
+		if( is_dedicated_server ) {
 			Com_Printf( "%s", msg );
 		}
-		trap_GameCmd( NULL, s );
+		PF_GameCmd( NULL, s );
 	} else {
 		if( ent->r.inuse && ent->r.client ) {
-			trap_GameCmd( ent, s );
+			PF_GameCmd( ent, s );
 		}
 	}
 }
@@ -858,7 +858,7 @@ void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, .
 
 	if( !ent ) {
 		// mirror at server console
-		if( GAME_IMPORT.is_dedicated_server ) {
+		if( is_dedicated_server ) {
 			if( !who ) {
 				Com_Printf( "Console: %s\n", msg );     // admin console
 			} else if( !who->r.client ) {
@@ -877,19 +877,19 @@ void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, .
 			for( i = 0; i < server_gs.maxclients; i++ ) {
 				ent = game.edicts + 1 + i;
 
-				if( ent->r.inuse && ent->r.client && trap_GetClientState( i ) >= CS_CONNECTED ) {
+				if( ent->r.inuse && ent->r.client && PF_GetClientState( i ) >= CS_CONNECTED ) {
 					if( ent->s.team == who->s.team ) {
-						trap_GameCmd( ent, s );
+						PF_GameCmd( ent, s );
 					}
 				}
 			}
 		} else {
-			trap_GameCmd( NULL, s );
+			PF_GameCmd( NULL, s );
 		}
 	} else {
-		if( ent->r.inuse && ent->r.client && trap_GetClientState( PLAYERNUM( ent ) ) >= CS_CONNECTED ) {
+		if( ent->r.inuse && ent->r.client && PF_GetClientState( PLAYERNUM( ent ) ) >= CS_CONNECTED ) {
 			if( !who || !teamonly || ent->s.team == who->s.team ) {
-				trap_GameCmd( ent, s );
+				PF_GameCmd( ent, s );
 			}
 		}
 	}
@@ -917,7 +917,7 @@ void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) {
 		*p = '\'';
 
 	snprintf( cmd, sizeof( cmd ), "cp \"%s\"", msg );
-	trap_GameCmd( ent, cmd );
+	PF_GameCmd( ent, cmd );
 
 	if( ent != NULL ) {
 		// add it to every player who's chasing this player
@@ -927,7 +927,7 @@ void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) {
 			}
 
 			if( other->r.client->resp.chase.target == ENTNUM( ent ) ) {
-				trap_GameCmd( other, cmd );
+				PF_GameCmd( other, cmd );
 			}
 		}
 	}
@@ -939,7 +939,7 @@ void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) {
 * Prints death message to all clients
 */
 void G_Obituary( edict_t * victim, edict_t * attacker, int mod ) {
-	trap_GameCmd( NULL, va( "obry %i %i %i %" PRIi64, ENTNUM( victim ), ENTNUM( attacker ), mod, random_u64( &svs.rng ) ) );
+	PF_GameCmd( NULL, va( "obry %i %i %i %" PRIi64, ENTNUM( victim ), ENTNUM( attacker ), mod, random_u64( &svs.rng ) ) );
 }
 
 //==================================================
@@ -1105,7 +1105,7 @@ static void G_SpawnTeleportEffect( edict_t *ent, bool respawn, bool in ) {
 		return;
 	}
 
-	if( trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED || ent->r.solid == SOLID_NOT ) {
+	if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED || ent->r.solid == SOLID_NOT ) {
 		return;
 	}
 
@@ -1329,7 +1329,7 @@ void G_AnnouncerSound( edict_t *targ, StringHash sound, int team, bool queued, e
 	int playerTeam;
 
 	if( targ ) { // only for a given player
-		if( !targ->r.client || trap_GetClientState( PLAYERNUM( targ ) ) < CS_SPAWNED ) {
+		if( !targ->r.client || PF_GetClientState( PLAYERNUM( targ ) ) < CS_SPAWNED ) {
 			return;
 		}
 
@@ -1342,7 +1342,7 @@ void G_AnnouncerSound( edict_t *targ, StringHash sound, int team, bool queued, e
 		edict_t *ent;
 
 		for( ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients; ent++ ) {
-			if( !ent->r.inuse || trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+			if( !ent->r.inuse || PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 				continue;
 			}
 

@@ -95,11 +95,11 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 	Com_SetServerState( sv.state );
 
 	// load and spawn all other entities
-	ge->InitLevel( sv.mapname, 0 );
+	G_InitLevel( sv.mapname, 0 );
 
 	// run two frames to allow everything to settle
-	ge->RunFrame( svc.snapFrameTime );
-	ge->RunFrame( svc.snapFrameTime );
+	G_RunFrame( svc.snapFrameTime );
+	G_RunFrame( svc.snapFrameTime );
 
 	SV_CreateBaseline(); // create a baseline for more efficient communications
 

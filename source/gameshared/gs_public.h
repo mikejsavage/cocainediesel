@@ -236,7 +236,7 @@ struct SyncEntityState {
 // to rendered a view.  There will only be 10 SyncPlayerState sent each second,
 // but the number of pmove_state_t changes will be relative to client
 // frame rates
-typedef struct {
+struct pmove_state_t {
 	int pm_type;
 
 	Vec3 origin;
@@ -260,7 +260,7 @@ typedef struct {
 	s16 jump_speed;
 	s16 dash_speed;
 	s16 gravity;
-} pmove_state_t;
+};
 
 struct SyncPlayerState {
 	pmove_state_t pmove;        // for prediction
@@ -318,18 +318,18 @@ struct SyncPlayerState {
 };
 
 // usercmd_t is sent to the server each client frame
-typedef struct usercmd_s {
+struct usercmd_t {
 	u8 msec;
 	u32 buttons;
 	s64 serverTimeStamp;
 	s16 angles[3];
 	s8 forwardmove, sidemove, upmove;
 	WeaponType weaponSwitch;
-} usercmd_t;
+};
 
 #define MAXTOUCH    32
 
-typedef struct {
+struct pmove_t {
 	// state (in / out)
 	SyncPlayerState *playerState;
 
@@ -350,24 +350,23 @@ typedef struct {
 	int contentmask;
 
 	bool ladder;
-} pmove_t;
+};
 
-typedef struct {
+struct gs_module_api_t {
 	void ( *Trace )( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, int timeDelta );
 	SyncEntityState *( *GetEntityState )( int entNum, int deltaTime );
 	int ( *PointContents )( Vec3 point, int timeDelta );
 	void ( *PredictedEvent )( int entNum, int ev, u64 parm );
 	void ( *PredictedFireWeapon )( int entNum, WeaponType weapon );
 	void ( *PMoveTouchTriggers )( pmove_t *pm, Vec3 previous_origin );
-	const char *( *GetConfigString )( int index );
-} gs_module_api_t;
+};
 
-typedef struct {
+struct gs_state_t {
 	int module;
 	int maxclients;
 	SyncGameState gameState;
 	gs_module_api_t api;
-} gs_state_t;
+};
 
 #define GS_ShootingDisabled( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_INHIBITSHOOTING ) != 0 )
 #define GS_HasChallengers( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_HASCHALLENGERS ) != 0 )
@@ -578,7 +577,7 @@ enum {
 
 // SyncEntityState->event values
 #define PREDICTABLE_EVENTS_MAX 32
-typedef enum {
+enum EventType {
 	EV_NONE,
 
 	// predictable events
@@ -650,9 +649,9 @@ typedef enum {
 	EV_HEADSHOT,
 
 	MAX_EVENTS = 128
-} entity_event_t;
+};
 
-typedef enum {
+enum playerstate_event_t {
 	PSEV_NONE = 0,
 	PSEV_HIT,
 	PSEV_DAMAGE_10,
@@ -663,14 +662,14 @@ typedef enum {
 	PSEV_ANNOUNCER_QUEUED,
 
 	PSEV_MAX_EVENTS = 0xFF
-} playerstate_event_t;
+};
 
 //===============================================================
 
 #define EVENT_ENTITIES_START    96 // entity types above this index will get event treatment
 
 // SyncEntityState->type values
-enum {
+enum EntityType {
 	ET_GENERIC,
 	ET_PLAYER,
 	ET_CORPSE,

@@ -30,10 +30,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 constexpr u32 TILE_SIZE = 32; // forward+ tile size
 
-typedef struct orientation_s {
+struct orientation_t {
 	mat3_t axis;
 	Vec3 origin;
-} orientation_t;
+};
 
 struct TRS {
 	Quaternion rotation;
@@ -46,7 +46,7 @@ struct MatrixPalettes {
 	Span< Mat4 > skinning_matrices;
 };
 
-typedef struct entity_s {
+struct entity_t {
 	const Model * model;
 
 	mat3_t axis;
@@ -57,7 +57,7 @@ typedef struct entity_s {
 	float scale;
 	float radius;                       // used as RT_SPRITE's radius
 	float rotation;
-} entity_t;
+};
 
 enum XAlignment {
 	XAlignment_Left,

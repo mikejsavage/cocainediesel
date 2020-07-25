@@ -263,7 +263,7 @@ static void Cmd_PlayersExt_f( edict_t *ent, bool onlyspecs ) {
 	msg[0] = 0;
 
 	for( i = start; i < server_gs.maxclients; i++ ) {
-		if( trap_GetClientState( i ) >= CS_SPAWNED ) {
+		if( PF_GetClientState( i ) >= CS_SPAWNED ) {
 			edict_t *clientEnt = &game.edicts[i + 1];
 			gclient_t *cl;
 
@@ -1043,7 +1043,7 @@ static void Cmd_ShowStats_f( edict_t *ent ) {
 		return;
 	}
 
-	trap_GameCmd( ent, va( "plstats \"%s\"", G_StatsMessage( target ) ) );
+	PF_GameCmd( ent, va( "plstats \"%s\"", G_StatsMessage( target ) ) );
 }
 
 //===========================================================
@@ -1064,10 +1064,9 @@ g_gamecommands_t g_Commands[MAX_GAMECOMMANDS];
 * G_PrecacheGameCommands
 */
 void G_PrecacheGameCommands( void ) {
-	int i;
-
-	for( i = 0; i < MAX_GAMECOMMANDS; i++ )
-		trap_ConfigString( CS_GAMECOMMANDS + i, g_Commands[i].name );
+	for( int i = 0; i < MAX_GAMECOMMANDS; i++ ) {
+		PF_ConfigString( CS_GAMECOMMANDS + i, g_Commands[i].name );
+	}
 }
 
 /*
@@ -1112,7 +1111,7 @@ void G_AddCommand( const char *name, gamecommandfunc_t callback ) {
 
 	// add the configstring if the precache process was already done
 	if( level.canSpawnEntities ) {
-		trap_ConfigString( CS_GAMECOMMANDS + i, g_Commands[i].name );
+		PF_ConfigString( CS_GAMECOMMANDS + i, g_Commands[i].name );
 	}
 }
 
@@ -1170,18 +1169,15 @@ void G_InitGameCommands( void ) {
 * ClientCommand
 */
 void ClientCommand( edict_t *ent ) {
-	const char *cmd;
-	int i;
-
-	if( !ent->r.client || trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+	if( !ent->r.client || PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 		return; // not fully in game yet
-
 	}
-	cmd = Cmd_Argv( 0 );
+
+	const char * cmd = Cmd_Argv( 0 );
 
 	G_Client_UpdateActivity( ent->r.client ); // activity detected
 
-	for( i = 0; i < MAX_GAMECOMMANDS; i++ ) {
+	for( int i = 0; i < MAX_GAMECOMMANDS; i++ ) {
 		if( !g_Commands[i].name[0] ) {
 			break;
 		}

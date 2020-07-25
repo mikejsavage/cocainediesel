@@ -22,12 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/cmodel.h"
 #include "qcommon/version.h"
 
-game_export_t *ge;
-
-/*
-* PF_DropClient
-*/
-static void PF_DropClient( edict_t *ent, int type, const char *message ) {
+void PF_DropClient( edict_t *ent, int type, const char *message ) {
 	int p;
 	client_t *drop;
 
@@ -48,12 +43,7 @@ static void PF_DropClient( edict_t *ent, int type, const char *message ) {
 	}
 }
 
-/*
-* PF_GetClientState
-*
-* Game code asks for the state of this client
-*/
-static int PF_GetClientState( int numClient ) {
+int PF_GetClientState( int numClient ) {
 	if( numClient < 0 || numClient >= sv_maxclients->integer ) {
 		return -1;
 	}
@@ -66,7 +56,7 @@ static int PF_GetClientState( int numClient ) {
 * Sends the server command to clients.
 * If ent is NULL the command will be sent to all connected clients
 */
-static void PF_GameCmd( edict_t *ent, const char *cmd ) {
+void PF_GameCmd( edict_t *ent, const char *cmd ) {
 	int i;
 	client_t *client;
 
@@ -96,10 +86,7 @@ static void PF_GameCmd( edict_t *ent, const char *cmd ) {
 	}
 }
 
-/*
-* PF_Configstring
-*/
-static void PF_ConfigString( int index, const char *val ) {
+void PF_ConfigString( int index, const char *val ) {
 	size_t len;
 
 	if( !val ) {
@@ -139,7 +126,7 @@ static void PF_ConfigString( int index, const char *val ) {
 	}
 }
 
-static const char *PF_GetConfigString( int index ) {
+const char *PF_GetConfigString( int index ) {
 	if( index < 0 || index >= MAX_CONFIGSTRINGS ) {
 		return NULL;
 	}
@@ -156,18 +143,10 @@ static const char *PF_GetConfigString( int index ) {
 * it is changing to a different game directory.
 */
 void SV_ShutdownGameProgs( void ) {
-	if( !ge ) {
-		return;
-	}
-
-	ge->Shutdown();
-	ge = NULL;
+	G_Shutdown();
 }
 
-/*
-* SV_LocateEntities
-*/
-static void SV_LocateEntities( struct edict_s *edicts, size_t edict_size, int num_edicts, int max_edicts ) {
+void SV_LocateEntities( edict_t *edicts, size_t edict_size, int num_edicts, int max_edicts ) {
 	if( !edicts || edict_size < sizeof( entity_shared_t ) ) {
 		Com_Error( ERR_DROP, "SV_LocateEntities: bad edicts" );
 	}
@@ -186,31 +165,7 @@ static void SV_LocateEntities( struct edict_s *edicts, size_t edict_size, int nu
 * Init the game subsystem for a new map
 */
 void SV_InitGameProgs( void ) {
-	game_import_t import;
-
-	// unload anything we have now
-	if( ge ) {
-		SV_ShutdownGameProgs();
-	}
-
-	// load a new game dll
-	import.GameCmd = PF_GameCmd;
-
-	import.ConfigString = PF_ConfigString;
-	import.GetConfigString = PF_GetConfigString;
-
-	import.FakeClientConnect = SVC_FakeConnect;
-	import.DropClient = PF_DropClient;
-	import.GetClientState = PF_GetClientState;
-	import.ExecuteClientThinks = SV_ExecuteClientThinks;
-
-	import.LocateEntities = SV_LocateEntities;
-
-	import.is_dedicated_server = is_dedicated_server;
-
-	ge = GetGameAPI( &import );
-
 	SV_SetServerConfigStrings();
 
-	ge->Init( svc.snapFrameTime );
+	G_Init( svc.snapFrameTime );
 }

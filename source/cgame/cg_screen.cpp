@@ -623,6 +623,14 @@ static void CG_SCRDrawViewBlend( void ) {
 	Draw2DBox( 0, 0, frame_static.viewport_width, frame_static.viewport_height, cgs.white_material, color );
 }
 
+void AddDamageEffect( float x ) {
+	constexpr float max = 1.0f;
+	if( x == 0.0f )
+		x = max;
+
+	cg.damage_effect = Min2( max, cg.damage_effect + x );
+}
+
 static void CG_DrawScope() {
 	if( cg.predictedPlayerState.weapon == Weapon_Sniper && cg.predictedPlayerState.zoom_time > 0 ) {
 		PipelineState pipeline;

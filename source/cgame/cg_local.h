@@ -354,14 +354,13 @@ struct cg_state_t {
 	int64_t pointRemoveTime;
 	int pointedHealth;
 
-	//
-	// all cyclic walking effects
-	//
 	float xyspeed;
 
 	bool recoiling;
 	float recoil;
 	float recoil_initial_pitch;
+
+	float damage_effect;
 
 	float oldBobTime;
 	int bobCycle;                   // odd cycles are right foot going forward
@@ -481,6 +480,8 @@ void CG_AddBomb( centity_t * cent );
 void CG_AddBombSite( centity_t * cent );
 void CG_DrawBombHUD();
 void CG_ResetBombHUD();
+
+void AddDamageEffect( float x = 0.0f );
 
 //
 // cg_hud.c

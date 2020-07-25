@@ -599,6 +599,16 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 		view->fov_y = WidescreenFov( CG_DemoCam_GetOrientation( &view->origin, &view->angles, &view->velocity ) );
 	}
 
+	if( cg.predictedPlayerState.health <= 0 && cg.predictedPlayerState.team != TEAM_SPECTATOR ) {
+		AddDamageEffect();
+	}
+	else {
+		cg.damage_effect *= 0.97f;
+		if( cg.damage_effect <= 0.001f ) {
+			cg.damage_effect = 0.0f;
+		}
+	}
+
 	view->fov_x = CalcHorizontalFov( view->fov_y, frame_static.viewport_width, frame_static.viewport_height );
 
 	Matrix3_FromAngles( view->angles, view->axis );
@@ -771,9 +781,6 @@ static void DrawSilhouettes() {
 	}
 }
 
-/*
-* CG_RenderView
-*/
 void CG_RenderView( unsigned extrapolationTime ) {
 	ZoneScoped;
 

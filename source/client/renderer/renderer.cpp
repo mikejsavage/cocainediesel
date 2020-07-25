@@ -306,6 +306,18 @@ static void CreateFramebuffers() {
 
 		frame_static.msaa_fb = NewFramebuffer( fb );
 	}
+
+	{
+		FramebufferConfig fb;
+
+		texture_config.format = TextureFormat_RGB_U8_sRGB;
+		fb.albedo_attachment = texture_config;
+
+		texture_config.format = TextureFormat_Depth;
+		fb.depth_attachment = texture_config;
+
+		frame_static.postprocess_fb = NewFramebuffer( fb );
+	}
 }
 
 void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
@@ -347,8 +359,8 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines", frame_static.msaa_fb );
 	}
 	else {
-		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", ClearColor_Do, ClearDepth_Do );
-		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines" );
+		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", frame_static.postprocess_fb, ClearColor_Do, ClearDepth_Do );
+		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines", frame_static.postprocess_fb );
 	}
 
 	frame_static.write_silhouette_gbuffer_pass = AddRenderPass( "Write silhouette gbuffer", frame_static.silhouette_gbuffer, ClearColor_Do, ClearDepth_Dont );
@@ -359,16 +371,16 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		frame_static.sky_pass = AddRenderPass( "Render sky", frame_static.msaa_fb );
 		frame_static.transparent_pass = AddRenderPass( "Render transparent", frame_static.msaa_fb );
 
-		AddResolveMSAAPass( frame_static.msaa_fb );
+		AddResolveMSAAPass( frame_static.msaa_fb, frame_static.postprocess_fb );
 	}
 	else {
-		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque" );
-		frame_static.sky_pass = AddRenderPass( "Render sky" );
-		frame_static.transparent_pass = AddRenderPass( "Render transparent" );
+		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque", frame_static.postprocess_fb );
+		frame_static.sky_pass = AddRenderPass( "Render sky", frame_static.postprocess_fb );
+		frame_static.transparent_pass = AddRenderPass( "Render transparent", frame_static.postprocess_fb );
 	}
 
-	frame_static.add_silhouettes_pass = AddRenderPass( "Render silhouettes" );
-	frame_static.blur_pass = AddRenderPass( "Blur screen" );
+	frame_static.add_silhouettes_pass = AddRenderPass( "Render silhouettes", frame_static.postprocess_fb );
+	frame_static.postprocess_pass = AddRenderPass( "Postprocess" );
 	frame_static.ui_pass = AddUnsortedRenderPass( "Render UI" );
 }
 

@@ -37,6 +37,7 @@ struct FrameStatic {
 	Framebuffer silhouette_gbuffer;
 	Framebuffer silhouette_silhouettes_fb;
 	Framebuffer msaa_fb;
+	Framebuffer postprocess_fb;
 
 	u8 write_world_gbuffer_pass;
 	u8 postprocess_world_gbuffer_pass;
@@ -52,7 +53,8 @@ struct FrameStatic {
 
 	u8 add_silhouettes_pass;
 
-	u8 blur_pass;
+	u8 postprocess_pass;
+
 	u8 ui_pass;
 };
 

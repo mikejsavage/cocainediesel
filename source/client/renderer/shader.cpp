@@ -112,9 +112,6 @@ static void LoadShaders() {
 	BuildShaderSrcs( "glsl/postprocess_silhouette_gbuffer.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.postprocess_silhouette_gbuffer, srcs.span(), lengths.span() );
 
-	BuildShaderSrcs( "glsl/blur.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.blur, srcs.span(), lengths.span() );
-
 	BuildShaderSrcs( "glsl/outline.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.outline, srcs.span(), lengths.span() );
 
@@ -132,6 +129,12 @@ static void LoadShaders() {
 
 	BuildShaderSrcs( "glsl/text.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.text, srcs.span(), lengths.span() );
+
+	BuildShaderSrcs( "glsl/blur.glsl", NULL, &srcs, &lengths );
+	ReplaceShader( &shaders.blur, srcs.span(), lengths.span() );
+
+	BuildShaderSrcs( "glsl/postprocess.glsl", NULL, &srcs, &lengths );
+	ReplaceShader( &shaders.postprocess, srcs.span(), lengths.span() );
 }
 
 void InitShaders() {

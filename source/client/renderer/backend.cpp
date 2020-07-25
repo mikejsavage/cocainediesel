@@ -1310,10 +1310,11 @@ u8 AddUnsortedRenderPass( const char * name ) {
 	return AddRenderPass( pass );
 }
 
-void AddResolveMSAAPass( Framebuffer fb ) {
+void AddResolveMSAAPass( Framebuffer src, Framebuffer dst ) {
 	RenderPass pass;
 	pass.name = "Resolve MSAA";
-	pass.msaa_source = fb;
+	pass.msaa_source = src;
+	pass.target = dst;
 
 	PipelineState dummy;
 	dummy.pass = AddRenderPass( pass );

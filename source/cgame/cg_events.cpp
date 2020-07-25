@@ -1051,22 +1051,22 @@ static void CG_FirePlayerStateEvents( void ) {
 
 			case PSEV_DAMAGE_10:
 				dir = ByteToDir( parm );
-				// CG_DamageIndicatorAdd( 10, dir );
+				AddDamageEffect( 0.1f );
 				break;
 
 			case PSEV_DAMAGE_20:
 				dir = ByteToDir( parm );
-				// CG_DamageIndicatorAdd( 20, dir );
+				AddDamageEffect( 0.2f );
 				break;
 
 			case PSEV_DAMAGE_30:
 				dir = ByteToDir( parm );
-				// CG_DamageIndicatorAdd( 30, dir );
+				AddDamageEffect( 0.3f );
 				break;
 
 			case PSEV_DAMAGE_40:
 				dir = ByteToDir( parm );
-				// CG_DamageIndicatorAdd( 40, dir );
+				AddDamageEffect( 0.4f );
 				break;
 
 			case PSEV_ANNOUNCER:

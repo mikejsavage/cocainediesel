@@ -1,5 +1,3 @@
-#include <math.h>
-
 #include "qcommon/base.h"
 #include "cgame/cg_local.h"
 

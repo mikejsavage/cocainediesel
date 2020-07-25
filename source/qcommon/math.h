@@ -18,8 +18,6 @@ extern "C" double fmod( double, double );
 extern "C" float floorf( float );
 extern "C" float ceilf( float );
 
-extern "C" float copysignf( float, float );
-
 constexpr float PI = 3.14159265358979323846f;
 
 inline constexpr float Radians( float d ) { return d * PI / 180.0f; }

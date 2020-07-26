@@ -38,7 +38,7 @@ void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, StringHash material ) {
 	Vec3 tangent, bitangent;
 	OrthonormalBasis( normal, &tangent, &bitangent );
 
-	spray.angle = -atan2( Dot( decal_up, tangent ), Dot( decal_up, bitangent ) );
+	spray.angle = -atan2f( Dot( decal_up, tangent ), Dot( decal_up, bitangent ) );
 	spray.angle += random_float11( &cls.rng ) * Radians( 10.0f );
 
 	sprays[ ( sprays_head + num_sprays ) % ARRAY_COUNT( sprays ) ] = spray;

@@ -167,10 +167,10 @@ bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize ) {
 		Q_strncpyz( keys, "UNBOUND", keysSize );
 	}
 	else if( numKeys == 1 ) {
-		Q_strncpyz( keys, Key_KeynumToString( keyCodes[ 0 ] ), keysSize );
+		ggformat( keys, keysSize, "{}", Key_KeynumToString( keyCodes[ 0 ] ) );
 	}
 	else {
-		snprintf( keys, keysSize, "%s or %s", Key_KeynumToString( keyCodes[ 0 ] ), Key_KeynumToString( keyCodes[ 1 ] ) );
+		ggformat( keys, keysSize, "{} or {}", Key_KeynumToString( keyCodes[ 0 ] ), Key_KeynumToString( keyCodes[ 1 ] ) );
 	}
 
 	return numKeys > 0;

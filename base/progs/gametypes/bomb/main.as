@@ -1,25 +1,3 @@
-/*
-   Copyright (C) 2009-2010 Chasseur de bots
-
-   This program is free software; you can redistribute it and/or
-   modify it under the terms of the GNU General Public License
-   as published by the Free Software Foundation; either version 2
-   of the License, or (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-   See the GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-   */
-
-// TODO: organise this crap
-//       maybe move to constants.as
-
 const uint BOMB_MAX_PLANT_SPEED = 50;
 const uint BOMB_MAX_PLANT_HEIGHT = 100; // doesn't detect site above that height above ground
 
@@ -39,17 +17,9 @@ const Vec3 VEC_UP( 0, 0, 1 ); // this must have length 1! don't change this unle
 
 const float BOMB_ARM_DEFUSE_RADIUS = 32.0f;
 
-const uint BOMB_SPRITE_RESIZE_TIME = 300; // time taken to expand/shrink sprite/decal
-
-const float BOMB_BEEP_FRACTION = 1.0f / 12.0f; // fraction of time left between beeps
-const uint BOMB_BEEP_MAX = 5000;               // max time (ms) between beeps
-const uint BOMB_BEEP_MIN = 200;                // min time (ms) between beeps
-
-const uint BOMB_HURRYUP_TIME = 12000;
-
 const uint BOMB_AUTODROP_DISTANCE = 400; // distance from indicator to drop (only some maps)
 
-const uint BOMB_THROW_SPEED = 300; // speed at which the bomb is thrown with drop
+const uint BOMB_THROW_SPEED = 550; // speed at which the bomb is thrown with drop
 
 const uint BOMB_EXPLOSION_EFFECT_RADIUS = 256;
 
@@ -73,7 +43,6 @@ Cvar cvarRoundTime( "g_bomb_roundtime", "61", CVAR_ARCHIVE ); //So round starts 
 Cvar cvarExplodeTime( "g_bomb_bombtimer", "35", CVAR_ARCHIVE );
 Cvar cvarArmTime( "g_bomb_armtime", "1", CVAR_ARCHIVE );
 Cvar cvarDefuseTime( "g_bomb_defusetime", "5", CVAR_ARCHIVE );
-Cvar cvarEnableCarriers( "g_bomb_carriers", "1", CVAR_ARCHIVE );
 Cvar cvarSpawnProtection( "g_bomb_spawnprotection", "3", CVAR_ARCHIVE );
 
 // read from this later
@@ -122,37 +91,6 @@ bool GT_Command( Client @client, const String &cmdString, const String &argsStri
 	if( cmdString == "drop" ) {
 		if( @client.getEnt() == @bombCarrier && bombState == BombState_Carried ) {
 			bombDrop( BombDrop_Normal );
-		}
-
-		return true;
-	}
-
-	if( cmdString == "carrier" ) {
-		if( !cvarEnableCarriers.boolean ) {
-			G_PrintMsg( @client.getEnt(), "Bomb carriers are disabled.\n" );
-
-			return true;
-		}
-
-		cPlayer @player = @playerFromClient( @client );
-
-		String token = argsString.getToken( 0 );
-
-		if( token.len() != 0 ) {
-			if( token.toInt() == 1 ) {
-				G_PrintMsg( @client.getEnt(), "You are now a bomb carrier!\n" );
-			}
-			else {
-				G_PrintMsg( @client.getEnt(), "You are no longer a bomb carrier.\n" );
-			}
-		}
-		else {
-			if( @client.getEnt() == @bombCarrier ) {
-				G_PrintMsg( @client.getEnt(), "You are now a bomb carrier!\n" );
-			}
-			else {
-				G_PrintMsg( @client.getEnt(), "You are no longer a bomb carrier.\n" );
-			}
 		}
 
 		return true;

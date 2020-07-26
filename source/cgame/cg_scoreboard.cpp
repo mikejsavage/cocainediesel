@@ -1,5 +1,6 @@
 #include "cgame/cg_local.h"
 #include "qcommon/string.h"
+#include "client/renderer/renderer.h"
 
 #include "imgui/imgui.h"
 
@@ -86,7 +87,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, ScoreboardPlayer player,
 		float dim = ImGui::GetTextLineHeight();
 		ImGui::SetCursorPos( ImGui::GetCursorPos() - Vec2( ( dim - line_height ) * 0.5f ) );
 
-		Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
+		Vec2 half_pixel = HalfPixelSize( icon );
 		ImGui::Image( icon, Vec2( dim ), half_pixel, 1.0f - half_pixel, vec4_black );
 	}
 

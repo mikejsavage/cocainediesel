@@ -1,6 +1,7 @@
 #include "qcommon/fs.h"
 #include "qcommon/serialization.h"
 #include "client/assets.h"
+#include "client/renderer/renderer.h"
 #include "cgame/cg_local.h"
 
 #include "imgui/imgui.h"
@@ -9,7 +10,7 @@ void InitParticles() {
 	constexpr Vec3 gravity = Vec3( 0, 0, -GRAVITY );
 
 	cgs.ions = NewParticleSystem( sys_allocator, 8192, FindMaterial( "$particle" ) );
-	cgs.bullet_sparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "weapons/mg/spark" ) );
+	cgs.bullet_sparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "textures/vfx/flare1" ) );
 	cgs.bullet_sparks.acceleration = gravity;
 	cgs.sparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "$particle" ) );
 	cgs.sparks.acceleration = gravity;
@@ -42,7 +43,7 @@ ParticleSystem NewParticleSystem( Allocator * a, size_t n, const Material * mate
 			Vec2( 0.5f, 0.5f ),
 		};
 
-		Vec2 half_pixel = 0.5f / Vec2( material->texture->width, material->texture->height );
+		Vec2 half_pixel = HalfPixelSize( material );
 		Vec2 uvs[] = {
 			half_pixel,
 			Vec2( 1.0f - half_pixel.x, half_pixel.y ),
@@ -184,7 +185,7 @@ void DrawParticleSystem( ParticleSystem * ps ) {
 			ps->vb_memory[ i * 4 + j ].scale = chunk.size[ j ];
 			ps->vb_memory[ i * 4 + j ].t = chunk.t[ j ] / chunk.lifetime[ j ];
 			Vec4 color = Vec4( chunk.color_r[ j ], chunk.color_g[ j ], chunk.color_b[ j ], chunk.color_a[ j ] );
-			ps->vb_memory[ i * 4 + j ].color = RGBA8( color );
+			ps->vb_memory[ i * 4 + j ].color = LinearTosRGB( color );
 		}
 	}
 
@@ -272,7 +273,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter & emitter, 
 
 	if( emitter.use_cone_direction ) {
 		Mat4 dir_transform = TransformKToDir( emitter.direction_cone.normal );
-		dir = ( dir_transform * Vec4( UniformSampleCone( &cls.rng, DEG2RAD( emitter.direction_cone.theta ) ), 0.0f ) ).xyz();
+		dir = ( dir_transform * Vec4( UniformSampleCone( &cls.rng, Radians( emitter.direction_cone.theta ) ), 0.0f ) ).xyz();
 	}
 	else {
 		dir = UniformSampleSphere( &cls.rng );

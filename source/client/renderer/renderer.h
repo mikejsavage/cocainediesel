@@ -5,6 +5,7 @@
 #include "client/renderer/material.h"
 #include "client/renderer/model.h"
 #include "client/renderer/shader.h"
+#include "client/renderer/srgb.h"
 #include "gameshared/q_math.h"
 #include "cgame/ref.h"
 
@@ -13,6 +14,7 @@
  */
 struct FrameStatic {
 	u32 viewport_width, viewport_height;
+	u32 last_viewport_width, last_viewport_height;
 	Vec2 viewport;
 	float aspect_ratio;
 	int msaa_samples;
@@ -27,12 +29,15 @@ struct FrameStatic {
 	Mat4 V, inverse_V;
 	Mat4 P, inverse_P;
 	Vec3 position;
+	float vertical_fov;
+	float near_plane;
 
 	Framebuffer world_gbuffer;
 	Framebuffer world_outlines_fb;
 	Framebuffer silhouette_gbuffer;
 	Framebuffer silhouette_silhouettes_fb;
 	Framebuffer msaa_fb;
+	Framebuffer postprocess_fb;
 
 	u8 write_world_gbuffer_pass;
 	u8 postprocess_world_gbuffer_pass;
@@ -48,7 +53,8 @@ struct FrameStatic {
 
 	u8 add_silhouettes_pass;
 
-	u8 blur_pass;
+	u8 postprocess_pass;
+
 	u8 ui_pass;
 };
 

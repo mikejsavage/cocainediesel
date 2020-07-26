@@ -86,7 +86,7 @@ void G_Teams_UpdateMembersList( void ) {
 
 		//create a temp list with the clients inside this team
 		for( i = 0, ent = game.edicts + 1; i < server_gs.maxclients; i++, ent++ ) {
-			if( !ent->r.client || ( trap_GetClientState( PLAYERNUM( ent ) ) < CS_CONNECTED ) ) {
+			if( !ent->r.client || ( PF_GetClientState( PLAYERNUM( ent ) ) < CS_CONNECTED ) ) {
 				continue;
 			}
 
@@ -380,23 +380,20 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 * G_Teams_Join_Cmd
 */
 void G_Teams_Join_Cmd( edict_t *ent ) {
-	const char *t;
-	int team;
-
-	if( !ent->r.client || trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+	if( !ent->r.client || PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 		return;
 	}
 
-	t = Cmd_Argv( 1 );
+	const char * t = Cmd_Argv( 1 );
 	if( !t || *t == 0 ) {
 		G_Teams_JoinAnyTeam( ent, false );
 		return;
 	}
 
-	team = GS_TeamFromName( t );
+	int team = GS_TeamFromName( t );
 	if( team != -1 ) {
 		if( team == TEAM_SPECTATOR ) { // special handling for spectator team
-			Cmd_Spec_f( ent );
+			Cmd_ChaseCam_f( ent );
 			return;
 		}
 		if( team == ent->s.team ) {
@@ -441,18 +438,17 @@ edict_t **G_Teams_ChallengersQueue( void ) {
 	int num_challengers = 0;
 	static edict_t *challengers[MAX_CLIENTS + 1];
 	edict_t *e;
-	gclient_t *cl;
 
 	// fill the challengers into array, then sort
 	for( e = game.edicts + 1; PLAYERNUM( e ) < server_gs.maxclients; e++ ) {
 		if( !e->r.inuse || !e->r.client || e->s.team != TEAM_SPECTATOR ) {
 			continue;
 		}
-		if( trap_GetClientState( PLAYERNUM( e ) ) < CS_SPAWNED ) {
+		if( PF_GetClientState( PLAYERNUM( e ) ) < CS_SPAWNED ) {
 			continue;
 		}
 
-		cl = e->r.client;
+		gclient_t * cl = e->r.client;
 		if( cl->connecting || !cl->queueTimeStamp ) {
 			continue;
 		}
@@ -661,7 +657,7 @@ void G_Teams_JoinChallengersQueue( edict_t *ent ) {
 	if( !ent->r.client->queueTimeStamp ) {  // enter the line
 		ent->r.client->queueTimeStamp = svs.realtime;
 		for( e = game.edicts + 1; PLAYERNUM( e ) < server_gs.maxclients; e++ ) {
-			if( !e->r.inuse || !e->r.client || trap_GetClientState( PLAYERNUM( e ) ) < CS_SPAWNED ) {
+			if( !e->r.inuse || !e->r.client || PF_GetClientState( PLAYERNUM( e ) ) < CS_SPAWNED ) {
 				continue;
 			}
 			if( !e->r.client->queueTimeStamp || e->s.team != TEAM_SPECTATOR ) {
@@ -682,10 +678,9 @@ void G_Teams_JoinChallengersQueue( edict_t *ent ) {
 }
 
 void G_InitChallengersQueue( void ) {
-	int i;
-
-	for( i = 0; i < server_gs.maxclients; i++ )
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		game.clients[i].queueTimeStamp = 0;
+	}
 }
 
 //======================================================================

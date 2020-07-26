@@ -8,7 +8,7 @@
 #include "qcommon/platform.h"
 #include "qcommon/types.h"
 #include "qcommon/math.h"
-#include "qcommon/ggformat.h"
+#include "gg/ggformat.h"
 #include "qcommon/linear_algebra.h"
 
 #include "tracy/Tracy.hpp"
@@ -16,16 +16,6 @@
 /*
  * helpers
  */
-
-template< typename T, size_t N >
-constexpr size_t ARRAY_COUNT( const T ( &arr )[ N ] ) {
-	return N;
-}
-
-template< typename T, typename M, size_t N >
-constexpr size_t ARRAY_COUNT( M ( T::* )[ N ] ) {
-	return N;
-}
 
 #define CONCAT_HELPER( a, b ) a##b
 #define CONCAT( a, b ) CONCAT_HELPER( a, b )
@@ -43,20 +33,6 @@ inline To bit_cast( const From & from ) {
 template< typename T >
 constexpr T Max3( const T & a, const T & b, const T & c ) {
 	return Max2( Max2( a, b ), c );
-}
-
-template< typename T >
-T Clamp( const T & lo, const T & x, const T & hi ) {
-	assert( lo <= hi );
-	return Max2( lo, Min2( x, hi ) );
-}
-
-inline float Clamp01( float x ) {
-	return Clamp( 0.0f, x, 1.0f );
-}
-
-inline Vec4 Clamp01( Vec4 v ) {
-	return Vec4( Clamp01( v.x ), Clamp01( v.y ), Clamp01( v.z ), Clamp01( v.w ) );
 }
 
 template< typename T >
@@ -132,16 +108,3 @@ void DisableFPE();
 #else
 #define DisableFPEScoped DisableFPE(); defer { EnableFPE(); }
 #endif
-
-/*
- * colors
- */
-
-constexpr Vec4 vec4_white = Vec4( 1, 1, 1, 1 );
-constexpr Vec4 vec4_black = Vec4( 0, 0, 0, 1 );
-constexpr Vec4 vec4_red = Vec4( 1, 0, 0, 1 );
-constexpr Vec4 vec4_green = Vec4( 0, 1, 0, 1 );
-constexpr Vec4 vec4_yellow = Vec4( 1, 1, 0, 1 );
-
-constexpr RGBA8 rgba8_white = RGBA8( 255, 255, 255, 255 );
-constexpr RGBA8 rgba8_black = RGBA8( 0, 0, 0, 255 );

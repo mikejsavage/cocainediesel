@@ -1,6 +1,6 @@
 #pragma once
 
-#include "client/renderer/backend.h"
+#include "client/renderer/types.h"
 
 struct Shaders {
 	Shader standard;
@@ -20,8 +20,6 @@ struct Shaders {
 	Shader write_silhouette_gbuffer_skinned;
 	Shader postprocess_silhouette_gbuffer;
 
-	Shader blur;
-
 	Shader outline;
 	Shader outline_skinned;
 
@@ -32,6 +30,9 @@ struct Shaders {
 	Shader skybox;
 
 	Shader text;
+
+	Shader blur;
+	Shader postprocess;
 };
 
 extern Shaders shaders;

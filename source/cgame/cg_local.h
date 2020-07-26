@@ -25,19 +25,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/client.h"
 #include "cgame/cg_public.h"
 #include "cgame/cg_syscalls.h"
+#include "cgame/cg_decals.h"
 #include "cgame/cg_particles.h"
+#include "cgame/cg_sprays.h"
 
 #include "client/sound.h"
-#include "client/renderer/renderer.h"
-#include "client/renderer/text.h"
+#include "client/renderer/types.h"
 
 #define VSAY_TIMEOUT 2500
 
 constexpr float FOV = 107.9f; // chosen to upset everyone equally
 
 constexpr RGB8 TEAM_COLORS[] = {
-	RGB8( 0, 140, 220 ),
-	RGB8( 200, 20, 40 ),
+	RGB8( 0, 204, 255 ),
+	RGB8( 255, 24, 96 ),
 	RGB8( 50, 200, 90 ),
 	RGB8( 210, 170, 0 ),
 };
@@ -57,7 +58,7 @@ enum {
 	MAX_LOCALEFFECTS = 64,
 };
 
-typedef struct {
+struct centity_t {
 	SyncEntityState current;
 	SyncEntityState prev;        // will always be valid, but might just be a copy of current
 
@@ -106,11 +107,11 @@ typedef struct {
 	bool jumpedLeft;
 	Vec3 animVelocity;
 	float yawVelocity;
-} centity_t;
+};
 
-#include "cg_pmodels.h"
+#include "cgame/cg_pmodels.h"
 
-typedef struct {
+struct cgs_media_t {
 	// sounds
 	const SoundEffect * sfxWeaponNoAmmo;
 
@@ -156,6 +157,7 @@ typedef struct {
 	const SoundEffect * sfxFall;
 
 	const SoundEffect * sfxTbag;
+	const SoundEffect * sfxSpray;
 
 	const SoundEffect * sfxHeadshot;
 
@@ -219,20 +221,20 @@ typedef struct {
 	const Material * shaderAlive;
 	const Material * shaderDead;
 	const Material * shaderReady;
-} cgs_media_t;
+};
 
-typedef struct {
+struct cg_clientInfo_t {
 	char name[MAX_QPATH];
 	int hand;
-} cg_clientInfo_t;
+};
 
 #define MAX_ANGLES_KICKS 3
 
-typedef struct {
+struct cg_kickangles_t {
 	int64_t timestamp;
 	int64_t kicktime;
 	float v_roll, v_pitch;
-} cg_kickangles_t;
+};
 
 #define PREDICTED_STEP_TIME 150 // stairs smoothing time
 #define MAX_AWARD_LINES 3
@@ -244,7 +246,7 @@ enum {
 	VIEWDEF_PLAYERVIEW,
 };
 
-typedef struct {
+struct cg_viewdef_t {
 	int type;
 	int POVent;
 	bool thirdperson;
@@ -257,12 +259,12 @@ typedef struct {
 	Vec3 angles;
 	mat3_t axis;
 	Vec3 velocity;
-} cg_viewdef_t;
+};
 
-#include "cg_democams.h"
+#include "cgame/cg_democams.h"
 
 // this is not exactly "static" but still...
-typedef struct {
+struct cg_static_t {
 	const char *serverName;
 	const char *demoName;
 	unsigned int playerNum;
@@ -312,9 +314,9 @@ typedef struct {
 	ParticleSystem bullet_sparks;
 	ParticleSystem sparks;
 	ParticleSystem smoke;
-} cg_static_t;
+};
 
-typedef struct {
+struct cg_state_t {
 	int frameCount;
 
 	snapshot_t frame, oldFrame;
@@ -352,14 +354,13 @@ typedef struct {
 	int64_t pointRemoveTime;
 	int pointedHealth;
 
-	//
-	// all cyclic walking effects
-	//
 	float xyspeed;
 
 	bool recoiling;
 	float recoil;
 	float recoil_initial_pitch;
+
+	float damage_effect;
 
 	float oldBobTime;
 	int bobCycle;                   // odd cycles are right foot going forward
@@ -383,7 +384,7 @@ typedef struct {
 
 	cg_viewweapon_t weapon;
 	cg_viewdef_t view;
-} cg_state_t;
+};
 
 extern cg_static_t cgs;
 extern cg_state_t cg;
@@ -479,6 +480,8 @@ void CG_AddBomb( centity_t * cent );
 void CG_AddBombSite( centity_t * cent );
 void CG_DrawBombHUD();
 void CG_ResetBombHUD();
+
+void AddDamageEffect( float x = 0.0f );
 
 //
 // cg_hud.c
@@ -595,28 +598,21 @@ bool CG_SwitchChaseCamMode( void );
 // cg_lents.c
 //
 
-void CG_ClearLocalEntities( void );
-void CG_AddLocalEntities( void );
-void CG_FreeLocalEntities( void );
-
 void CG_BubbleTrail( Vec3 start, Vec3 end, int dist );
 void CG_ProjectileTrail( const centity_t * cent );
 void CG_NewBloodTrail( centity_t *cent );
 void CG_BloodDamageEffect( Vec3 origin, Vec3 dir, int damage, Vec4 team_color );
 void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_BubbleExplosion( Vec3 pos, Vec4 team_color );
-void CG_GrenadeExplosionMode( Vec3 pos, Vec3 dir, Vec4 team_color );
+void CG_GrenadeExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius );
-void CG_RocketExplosionMode( Vec3 pos, Vec3 dir, Vec4 team_color );
+void CG_RocketExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_EBBeam( Vec3 start, Vec3 end, Vec4 team_color );
 void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color );
-void CG_ImpactSmokePuff( Vec3 origin, Vec3 dir, float radius, float alpha, int time, int speed );
 void CG_BladeImpact( Vec3 pos, Vec3 dir );
 void CG_PModel_SpawnTeleportEffect( centity_t * cent, MatrixPalettes temp_pose );
-void CG_LaserGunImpact( Vec3 pos, Vec3 laser_dir, RGBA8 color );
 
 void CG_Dash( const SyncEntityState *state );
-void CG_Explosion_Puff_2( Vec3 pos, Vec3 vel, int radius );
 void CG_DustCircle( Vec3 pos, Vec3 dir, float radius, int count );
 
 void InitGibs();
@@ -626,10 +622,10 @@ void DrawGibs();
 //
 // cg_effects.c
 //
-void CG_ParticleRocketExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color );
-void CG_ParticlePlasmaExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color );
-void CG_ParticleBubbleExplosionEffect( Vec3 origin, Vec3 team_color );
-void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color );
+void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color );
+void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color );
+void BubbleImpactParticles( Vec3 origin, Vec3 team_color );
+void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color );
 
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material );
 

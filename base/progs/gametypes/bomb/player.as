@@ -1,22 +1,3 @@
-/*
-Copyright (C) 2009-2010 Chasseur de bots
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-*/
-
 const int MAX_CASH = 500;
 
 cPlayer@[] players( maxClients ); // array of handles
@@ -48,8 +29,8 @@ class cPlayer {
 		@players[player.playerNum] = @this;
 	}
 
-	void orderInventory() {
-		for( uint i = 0; i < this.loadout.length(); i++ ) {
+	void rearrangeInventory() {
+		for( int i = 0; i < this.num_weapons; i++ ) {
 			this.client.setWeaponIndex( WeaponType( this.loadout[ i ] ), i + 1 ); // + 1 because of knife
 		}
 	}
@@ -80,8 +61,8 @@ class cPlayer {
 
 	void setLoadout( String &cmd ) {
 		int cash = MAX_CASH;
-		bool swap_weapons = true;
 
+		int old_num_weapons = this.num_weapons;
 		this.num_weapons = 0;
 
 		uint[] newloadout( Weapon_Count - 1 );
@@ -102,16 +83,8 @@ class cPlayer {
 		}
 
 		for( uint i = 0; i < newloadout.length(); i++ ) {
-			if( this.loadout.find( newloadout[ i ] ) == -1 ) {
-				swap_weapons = false;
-				break;
-			}
-		}
-
-		for( uint i = 0; i < newloadout.length(); i++ ) {
 			this.loadout[ i ] = newloadout[ i ];
 		}
-
 
 		if( cash < 0 ) {
 			G_PrintMsg( @this.client.getEnt(), "You are not wealthy enough\n" );
@@ -124,15 +97,31 @@ class cPlayer {
 		}
 		this.client.execGameCommand( command );
 
-		if( swap_weapons ) {
-			orderInventory();
-		} else {
-			if( match.getState() == MATCH_STATE_WARMUP || match.getState() == MATCH_STATE_COUNTDOWN ) {
+		if( this.client.getEnt().isGhosting() ) {
+			return;
+		}
+
+		if( match.getState() == MATCH_STATE_WARMUP || match.getState() == MATCH_STATE_COUNTDOWN ) {
+			giveInventory();
+		}
+
+		if( match.getState() == MATCH_STATE_PLAYTIME ) {
+			if( roundState == RoundState_Pre ) {
 				giveInventory();
 			}
+			else if( old_num_weapons == this.num_weapons ) {
+				bool rearranging = true;
 
-			if( match.getState() == MATCH_STATE_PLAYTIME && roundState == RoundState_Pre ) {
-				giveInventory();
+				for( uint i = 0; i < newloadout.length(); i++ ) {
+					if( this.loadout.find( newloadout[ i ] ) == -1 ) {
+						rearranging = false;
+						break;
+					}
+				}
+
+				if( rearranging ) {
+					rearrangeInventory();
+				}
 			}
 		}
 	}
@@ -154,21 +143,6 @@ void playersInit() {
 
 		playersInitialized = true;
 	}
-}
-
-// using a global counter would be faster
-uint getCarrierCount( int teamNum ) {
-	uint count = 0;
-
-	Team @team = @G_GetTeam( teamNum );
-
-	for( int i = 0; @team.ent( i ) != null; i++ ) {
-		if( @team.ent( i ) == @bombCarrier ) {
-			count++;
-		}
-	}
-
-	return count;
 }
 
 void resetKillCounters() {

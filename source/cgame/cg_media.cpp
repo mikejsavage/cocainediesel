@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
+#include "client/renderer/renderer.h"
+#include "client/renderer/text.h"
 
 void CG_RegisterMediaSounds() {
 	cgs.media.sfxBulletImpact = FindSoundEffect( "weapons/bullet_impact" );
@@ -68,6 +70,7 @@ void CG_RegisterMediaSounds() {
 	cgs.media.sfxFall = FindSoundEffect( "players/fall" );
 
 	cgs.media.sfxTbag = FindSoundEffect( "sounds/tbag/tbag" );
+	cgs.media.sfxSpray = FindSoundEffect( "sounds/spray/spray" );
 
 	cgs.media.sfxHeadshot = FindSoundEffect( "sounds/headshot/headshot" );
 

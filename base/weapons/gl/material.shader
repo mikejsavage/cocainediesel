@@ -2,7 +2,7 @@ models/weapons/gl
 {
 	{
 		map $whiteimage
-		rgbGen const 0.243 0.553 1.000
+		rgbGen const 0.1 0.1 0.1
 	}
 }
 
@@ -10,7 +10,7 @@ weapons/gl/grenade
 {
 	{
 		map $whiteimage
-		rgbgen entitycolorwave 1 1 1 sin 0 0.5 1 3
+		rgbgen entitycolorwave 0.7 0.7 0.7 sin 0.25 0.25 0.25 10
 	}
 }
 

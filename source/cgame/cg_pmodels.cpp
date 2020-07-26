@@ -757,12 +757,12 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 }
 
 static Quaternion EulerAnglesToQuaternion( EulerDegrees3 angles ) {
-	float cp = cosf( DEG2RAD( angles.pitch ) * 0.5f );
-	float sp = sinf( DEG2RAD( angles.pitch ) * 0.5f );
-	float cy = cosf( DEG2RAD( angles.yaw ) * 0.5f );
-	float sy = sinf( DEG2RAD( angles.yaw ) * 0.5f );
-	float cr = cosf( DEG2RAD( angles.roll ) * 0.5f );
-	float sr = sinf( DEG2RAD( angles.roll ) * 0.5f );
+	float cp = cosf( Radians( angles.pitch ) * 0.5f );
+	float sp = sinf( Radians( angles.pitch ) * 0.5f );
+	float cy = cosf( Radians( angles.yaw ) * 0.5f );
+	float sy = sinf( Radians( angles.yaw ) * 0.5f );
+	float cr = cosf( Radians( angles.roll ) * 0.5f );
+	float sr = sinf( Radians( angles.roll ) * 0.5f );
 
 	return Quaternion(
 		cp * cy * sr - sp * sy * cr,

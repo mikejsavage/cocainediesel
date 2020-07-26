@@ -1,5 +1,5 @@
 #include "qcommon/base.h"
-#include "qcommon/ggentropy.h"
+#include "gg/ggentropy.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/threads.h"
 

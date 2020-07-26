@@ -263,7 +263,7 @@ static void Cmd_PlayersExt_f( edict_t *ent, bool onlyspecs ) {
 	msg[0] = 0;
 
 	for( i = start; i < server_gs.maxclients; i++ ) {
-		if( trap_GetClientState( i ) >= CS_SPAWNED ) {
+		if( PF_GetClientState( i ) >= CS_SPAWNED ) {
 			edict_t *clientEnt = &game.edicts[i + 1];
 			gclient_t *cl;
 
@@ -501,6 +501,203 @@ static void Cmd_Clack_f( edict_t * ent ) {
 		event->s.ownerNum = ent->s.number;
 		event->s.svflags |= SVF_NEVEROWNER;
 	}
+}
+
+static StringHash spray_names[] = {
+	"textures/sprays/102",
+	"textures/sprays/120",
+	"textures/sprays/15152",
+	"textures/sprays/3pac",
+	"textures/sprays/48",
+	"textures/sprays/911",
+	"textures/sprays/acab2",
+	"textures/sprays/acab3",
+	"textures/sprays/acab4",
+	"textures/sprays/aititty",
+	"textures/sprays/amk",
+	"textures/sprays/anal",
+	"textures/sprays/angry",
+	"textures/sprays/astley",
+	"textures/sprays/avocadotoast",
+	"textures/sprays/betmen2",
+	"textures/sprays/biedronka",
+	"textures/sprays/blm",
+	"textures/sprays/bojo",
+	"textures/sprays/bom",
+	"textures/sprays/bombsite",
+	"textures/sprays/bonk",
+	"textures/sprays/butterfly",
+	"textures/sprays/cactus",
+	"textures/sprays/cccp",
+	"textures/sprays/chainmail",
+	"textures/sprays/clint",
+	"textures/sprays/cock",
+	"textures/sprays/cock2",
+	"textures/sprays/cock3",
+	"textures/sprays/cock4",
+	"textures/sprays/cock5",
+	"textures/sprays/combo",
+	"textures/sprays/cracovia",
+	"textures/sprays/crazyal",
+	"textures/sprays/creep",
+	"textures/sprays/cumshoot",
+	"textures/sprays/danksy",
+	"textures/sprays/defqon1",
+	"textures/sprays/dickbutt",
+	"textures/sprays/dikhed",
+	"textures/sprays/disastergirl",
+	"textures/sprays/dontgiveupo",
+	"textures/sprays/donttellme",
+	"textures/sprays/dudedead",
+	"textures/sprays/duderando",
+	"textures/sprays/eggquake",
+	"textures/sprays/emule",
+	"textures/sprays/epstein2",
+	"textures/sprays/face",
+	"textures/sprays/faec",
+	"textures/sprays/fakeb",
+	"textures/sprays/fish",
+	"textures/sprays/flat_earth",
+	"textures/sprays/forkknife",
+	"textures/sprays/fuck",
+	"textures/sprays/fuckyou",
+	"textures/sprays/fuckyour",
+	"textures/sprays/fun",
+	"textures/sprays/gfnervig",
+	"textures/sprays/goku",
+	"textures/sprays/goochie",
+	"textures/sprays/goy",
+	"textures/sprays/graf",
+	"textures/sprays/greencube",
+	"textures/sprays/hacktheplanet",
+	"textures/sprays/happysad",
+	"textures/sprays/harambe",
+	"textures/sprays/heart1",
+	"textures/sprays/hitit",
+	"textures/sprays/hotel",
+	"textures/sprays/hta",
+	"textures/sprays/huso",
+	"textures/sprays/icq",
+	"textures/sprays/ig",
+	"textures/sprays/influencer",
+	"textures/sprays/informer",
+	"textures/sprays/jebise",
+	"textures/sprays/jwzr",
+	"textures/sprays/kama",
+	"textures/sprays/kanye",
+	"textures/sprays/kanye2",
+	"textures/sprays/kanye3",
+	"textures/sprays/kapow",
+	"textures/sprays/kazaa",
+	"textures/sprays/kerning",
+	"textures/sprays/ket",
+	"textures/sprays/kobe",
+	"textures/sprays/kurwa",
+	"textures/sprays/limewire",
+	"textures/sprays/mask",
+	"textures/sprays/master",
+	"textures/sprays/mdma",
+	"textures/sprays/mike2",
+	"textures/sprays/mirc",
+	"textures/sprays/missgeburt",
+	"textures/sprays/munch",
+	"textures/sprays/napster",
+	"textures/sprays/never",
+	"textures/sprays/neveragain2",
+	"textures/sprays/neveragain3",
+	"textures/sprays/neverforget",
+	"textures/sprays/nighty",
+	"textures/sprays/nipplegate",
+	"textures/sprays/nodrama",
+	"textures/sprays/noregerts",
+	"textures/sprays/oink",
+	"textures/sprays/onionfire1",
+	"textures/sprays/palestine",
+	"textures/sprays/peekatyou",
+	"textures/sprays/phart",
+	"textures/sprays/pig",
+	"textures/sprays/pigeon",
+	"textures/sprays/pistol",
+	"textures/sprays/poop2",
+	"textures/sprays/pow",
+	"textures/sprays/praisethesun",
+	"textures/sprays/ps",
+	"textures/sprays/puffdarneko",
+	"textures/sprays/punk",
+	"textures/sprays/pusikuirac",
+	"textures/sprays/ranger",
+	"textures/sprays/raptor",
+	"textures/sprays/redskin",
+	"textures/sprays/right2bear",
+	"textures/sprays/ripwpd",
+	"textures/sprays/robot",
+	"textures/sprays/sapipa",
+	"textures/sprays/skirym",
+	"textures/sprays/slime",
+	"textures/sprays/slk",
+	"textures/sprays/smudge",
+	"textures/sprays/spin",
+	"textures/sprays/spook",
+	"textures/sprays/starwings",
+	"textures/sprays/sun",
+	"textures/sprays/sup",
+	"textures/sprays/sure",
+	"textures/sprays/symbol",
+	"textures/sprays/teleport",
+	"textures/sprays/tictactoe",
+	"textures/sprays/tissue",
+	"textures/sprays/titties",
+	"textures/sprays/tonyskate",
+	"textures/sprays/toof",
+	"textures/sprays/triangel",
+	"textures/sprays/truffle",
+	"textures/sprays/tupac",
+	"textures/sprays/urgay",
+	"textures/sprays/urinate",
+	"textures/sprays/user",
+	"textures/sprays/vagina",
+	"textures/sprays/volim1",
+	"textures/sprays/wack",
+	"textures/sprays/warsowsucks",
+	"textures/sprays/what",
+	"textures/sprays/whatablast",
+	"textures/sprays/whodone",
+	"textures/sprays/wutang",
+	"textures/sprays/x_x",
+	"textures/sprays/xmas",
+	"textures/sprays/yanderedev",
+	"textures/sprays/youngp",
+	"textures/sprays/zakalidis",
+	"textures/sprays/zelder",
+	"textures/sprays/zoink",
+};
+
+static void Cmd_Spray_f( edict_t * ent ) {
+	if( G_ISGHOSTING( ent ) )
+		return;
+
+	if( ent->r.client->level.last_spray + 2500 > svs.realtime )
+		return;
+
+	Vec3 forward;
+	AngleVectors( ent->r.client->ps.viewangles, &forward, NULL, NULL );
+
+	constexpr float range = 96.0f;
+	Vec3 start = ent->s.origin + Vec3( 0.0f, 0.0f, ent->r.client->ps.viewheight );
+	Vec3 end = start + forward * range;
+
+	trace_t trace;
+	G_Trace( &trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ent, MASK_OPAQUE );
+
+	if( trace.ent != 0 || ( trace.surfFlags & ( SURF_SKY | SURF_NOMARKS ) ) )
+		return;
+
+	ent->r.client->level.last_spray = svs.realtime;
+
+	StringHash spray = random_select( &svs.rng, spray_names );
+	edict_t * event = G_SpawnEvent( EV_SPRAY, spray.hash, &trace.endpos );
+	event->s.angles = ent->r.client->ps.viewangles;
+	event->s.origin2 = trace.plane.normal;
 }
 
 typedef struct
@@ -773,7 +970,7 @@ static void Cmd_ShowStats_f( edict_t *ent ) {
 		return;
 	}
 
-	trap_GameCmd( ent, va( "plstats \"%s\"", G_StatsMessage( target ) ) );
+	PF_GameCmd( ent, va( "plstats \"%s\"", G_StatsMessage( target ) ) );
 }
 
 //===========================================================
@@ -794,10 +991,9 @@ g_gamecommands_t g_Commands[MAX_GAMECOMMANDS];
 * G_PrecacheGameCommands
 */
 void G_PrecacheGameCommands( void ) {
-	int i;
-
-	for( i = 0; i < MAX_GAMECOMMANDS; i++ )
-		trap_ConfigString( CS_GAMECOMMANDS + i, g_Commands[i].name );
+	for( int i = 0; i < MAX_GAMECOMMANDS; i++ ) {
+		PF_ConfigString( CS_GAMECOMMANDS + i, g_Commands[i].name );
+	}
 }
 
 /*
@@ -842,7 +1038,7 @@ void G_AddCommand( const char *name, gamecommandfunc_t callback ) {
 
 	// add the configstring if the precache process was already done
 	if( level.canSpawnEntities ) {
-		trap_ConfigString( CS_GAMECOMMANDS + i, g_Commands[i].name );
+		PF_ConfigString( CS_GAMECOMMANDS + i, g_Commands[i].name );
 	}
 }
 
@@ -865,7 +1061,6 @@ void G_InitGameCommands( void ) {
 	G_AddCommand( "chase", Cmd_ChaseCam_f );
 	G_AddCommand( "chasenext", Cmd_ChaseNext_f );
 	G_AddCommand( "chaseprev", Cmd_ChasePrev_f );
-	G_AddCommand( "spec", Cmd_Spec_f );
 	G_AddCommand( "enterqueue", G_Teams_JoinChallengersQueue );
 	G_AddCommand( "leavequeue", G_Teams_LeaveChallengersQueue );
 	G_AddCommand( "camswitch", Cmd_SwitchChaseCamMode_f );
@@ -891,6 +1086,8 @@ void G_InitGameCommands( void ) {
 	G_AddCommand( "typewriterclack", Cmd_Clack_f );
 	G_AddCommand( "typewriterspace", Cmd_Clack_f );
 
+	G_AddCommand( "spray", Cmd_Spray_f );
+
 	G_AddCommand( "vsay", G_vsay_Cmd );
 	G_AddCommand( "vsay_team", G_Teams_vsay_Cmd );
 }
@@ -899,18 +1096,15 @@ void G_InitGameCommands( void ) {
 * ClientCommand
 */
 void ClientCommand( edict_t *ent ) {
-	const char *cmd;
-	int i;
-
-	if( !ent->r.client || trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+	if( !ent->r.client || PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 		return; // not fully in game yet
-
 	}
-	cmd = Cmd_Argv( 0 );
+
+	const char * cmd = Cmd_Argv( 0 );
 
 	G_Client_UpdateActivity( ent->r.client ); // activity detected
 
-	for( i = 0; i < MAX_GAMECOMMANDS; i++ ) {
+	for( int i = 0; i < MAX_GAMECOMMANDS; i++ ) {
 		if( !g_Commands[i].name[0] ) {
 			break;
 		}

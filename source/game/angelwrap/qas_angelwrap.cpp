@@ -170,7 +170,7 @@ void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool s
 		int enumTypeId;
 		const char *enumName = engine->GetEnumByIndex( i, &enumTypeId, NULL, NULL, NULL );
 
-		str = "typedef enum\r\n{\r\n";
+		str = va( "enum %s\r\n{\r\n", enumName );
 		FS_Write( str, strlen( str ), filenum );
 
 		int enumValueCount = engine->GetEnumValueCount( enumTypeId );
@@ -181,7 +181,7 @@ void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool s
 			FS_Write( str, strlen( str ), filenum );
 		}
 
-		str = va( "} %s;\r\n\r\n", enumName );
+		str = "};\r\n\r\n";
 		FS_Write( str, strlen( str ), filenum );
 	}
 

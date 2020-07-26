@@ -1,6 +1,7 @@
 #include "cgame/cg_local.h"
+#include "client/renderer/renderer.h"
 
-void CG_ParticleRocketExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color ) {
+void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 	{
 		ParticleEmitter emitter = { };
 		emitter.position = origin;
@@ -115,7 +116,7 @@ void CG_ParticleRocketExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color
 	}
 }
 
-void CG_ParticlePlasmaExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color ) {
+void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 	ParticleEmitter emitter = { };
 	emitter.position = origin;
 
@@ -143,7 +144,7 @@ void CG_ParticlePlasmaExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color
 	EmitParticles( &cgs.sparks, emitter );
 }
 
-void CG_ParticleBubbleExplosionEffect( Vec3 origin, Vec3 team_color ) {
+void BubbleImpactParticles( Vec3 origin, Vec3 team_color ) {
 	ParticleEmitter emitter = { };
 	emitter.position = origin;
 
@@ -170,7 +171,7 @@ void CG_ParticleBubbleExplosionEffect( Vec3 origin, Vec3 team_color ) {
 	EmitParticles( &cgs.sparks, emitter );
 }
 
-void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color ) {
+void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
 	ParticleEmitter emitter = { };
 	emitter.position = start;
 	emitter.position_distribution.type = RandomDistribution3DType_Line;
@@ -224,7 +225,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * m
 	// "phone wire anti-aliasing"
 	// we should really do this in the shader so it's accurate across the whole beam.
 	// scale width by 8 because our beam textures have their own fade to transparent at the edges.
-	float pixel_scale = tanf( 0.5f * DEG2RAD( cg.view.fov_y ) ) / frame_static.viewport.y;
+	float pixel_scale = tanf( 0.5f * Radians( cg.view.fov_y ) ) / frame_static.viewport.y;
 	Mat4 VP = frame_static.P * frame_static.V;
 
 	float start_w = ( VP * Vec4( start, 1.0f ) ).w;
@@ -244,7 +245,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * m
 	float beam_aspect_ratio = Length( end - start ) / width;
 	float repetitions = beam_aspect_ratio / texture_aspect_ratio;
 
-	Vec2 half_pixel = 0.5f / Vec2( material->texture->width, material->texture->height );
+	Vec2 half_pixel = HalfPixelSize( material );
 	Vec2 uvs[] = {
 		Vec2( half_pixel.x, half_pixel.y ),
 		Vec2( half_pixel.x, 1.0f - half_pixel.y ),
@@ -325,10 +326,12 @@ void DrawPersistentBeams() {
 		PersistentBeam & beam = persistent_beams[ i ];
 		float t = ( cl.serverTime - beam.spawn_time ) / 1000.0f;
 		float alpha;
-		if( beam.start_fade_time != beam.duration )
+		if( beam.start_fade_time != beam.duration ) {
 			alpha = 1.0f - Unlerp01( beam.start_fade_time, t, beam.duration );
-		else
+		}
+		else {
 			alpha = t < beam.duration ? 1.0f : 0.0f;
+		}
 
 		if( alpha <= 0 ) {
 			num_persistent_beams--;

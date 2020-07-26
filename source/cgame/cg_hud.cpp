@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "qcommon/string.h"
 #include "client/assets.h"
+#include "client/renderer/renderer.h"
+#include "client/renderer/text.h"
 #include "cgame/cg_local.h"
 
 static int layout_cursor_x = 400;
@@ -265,7 +267,12 @@ static const reference_numeric_t cg_numeric_references[] = {
 
 #define MAX_OBITUARIES 32
 
-typedef enum { OBITUARY_NONE, OBITUARY_NORMAL, OBITUARY_SUICIDE, OBITUARY_ACCIDENT } obituary_type_t;
+enum obituary_type_t {
+	OBITUARY_NONE,
+	OBITUARY_NORMAL,
+	OBITUARY_SUICIDE,
+	OBITUARY_ACCIDENT,
+};
 
 typedef struct obituary_s {
 	obituary_type_t type;
@@ -298,6 +305,7 @@ static const char * obituaries[] = {
 	"2.3'ED",
 	"ABOLISHED",
 	"ABUSED",
+	"AFFECTED",
 	"AIRED OUT",
 	"AMPUTATED",
 	"ANALYZED",
@@ -664,6 +672,7 @@ static const char * obituaries[] = {
 	"SAMPLED",
 	"SANDED",
 	"SAUCED",
+	"SCARIFIED",
 	"SCARRED",
 	"SCATTERED",
 	"SCISSORED",
@@ -705,7 +714,9 @@ static const char * obituaries[] = {
 	"SNOOPED"
 	"SNUBBED",
 	"SOCKED",
+	"SOILED",
 	"SOLD",
+	"SPARKLED",
 	"SPANKED",
 	"SPAYED",
 	"SPLASHED",
@@ -804,6 +815,7 @@ static const char * prefixes[] = {
 	"ANTI",
 	"APE",
 	"AREA51",
+	"ART & ",
 	"ASS",
 	"ASTRO",
 	"BACK",
@@ -939,6 +951,7 @@ static const char * prefixes[] = {
 	"FISH",
 	"FLAT",
 	"FLEX",
+	"FLUID",
 	"FOOL",
 	"FOOT",
 	"FORCE",
@@ -950,6 +963,7 @@ static const char * prefixes[] = {
 	"FUDGE",
 	"FULL",
 	"FURY",
+	"G-",
 	"GALAXY",
 	"GANGSTA",
 	"GARBAGE",
@@ -1022,6 +1036,7 @@ static const char * prefixes[] = {
 	"LEMON",
 	"LIBROCKET",
 	"LICK",
+	"LIL'",
 	"LITERALLY ",
 	"LONG",
 	"LOTION",
@@ -1070,6 +1085,7 @@ static const char * prefixes[] = {
 	"NICELY ",
 	"NOVEL CORONA",
 	"NUT",
+	"O-",
 	"OBAMA",
 	"OMEGA",
 	"OPEN-SOURCE ",
@@ -1098,6 +1114,7 @@ static const char * prefixes[] = {
 	"PRIME",
 	"PRISON",
 	"PROBABLY",
+	"PROPERLY",
 	"PROUD",
 	"PUFF",
 	"PUMPKIN",
@@ -1229,6 +1246,7 @@ static const char * prefixes[] = {
 	"WILLY",
 	"WISHFULLY ",
 	"WONDER",
+	"XXX",
 	"ZOOM",
 	"ZOOMER",
 };
@@ -1299,7 +1317,7 @@ void CG_SC_Obituary( void ) {
 
 			CG_AddChat( temp( "{}{} {}{} {}{}",
 				ImGuiColorToken( attacker_color ), attacker_name,
-				ImGuiColorToken( 255, 234, 0, 255 ), obituary,
+				ImGuiColorToken( rgba8_diesel_yellow ), obituary,
 				ImGuiColorToken( victim_color ), victim_name
 			) );
 
@@ -1740,10 +1758,10 @@ enum {
 
 static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih, Alignment alignment, float font_size ) {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
-	static constexpr Vec4 light_gray = Vec4( 0.5, 0.5, 0.5, 1.0 );
-	static constexpr Vec4 dark_gray = Vec4( 0.2, 0.2, 0.2, 1.0 );
-	static constexpr Vec4 color_ammo_max = Vec4( 1.0, 0.8, 0.15, 1.0 );
-	static constexpr Vec4 color_ammo_min = Vec4( 1.0, 0.22, 0.38, 1.0 );
+	Vec4 light_gray = sRGBToLinear( RGBA8( 128, 128, 128, 255 ) );
+	Vec4 dark_gray = sRGBToLinear( RGBA8( 51, 51, 51, 255 ) );
+	Vec4 color_ammo_max = sRGBToLinear( rgba8_diesel_yellow );
+	Vec4 color_ammo_min = sRGBToLinear( RGBA8( 255, 56, 97, 255 ) );
 
 	const SyncEntityState * es = &cg_entities[ ps->POVnum ].current;
 
@@ -1804,7 +1822,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 
 		color = Lerp( color_ammo_min, Unlerp( 0.0f, ammo_frac, 1.0f ), color_ammo_max );
 
-		Vec4 color_bg = Vec4( color.xyz() * 0.625f, 1.0f );
+		Vec4 color_bg = Vec4( color.xyz() * 0.33f, 1.0f );
 
 		const Material * icon = cgs.media.shaderWeaponIcon[ weap ];
 
@@ -1818,7 +1836,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 			Draw2DBox( curx + border + padding, cury + border + padding - pady_sel, iconw, iconh, icon, light_gray );
 		}
 
-		Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
+		Vec2 half_pixel = HalfPixelSize( icon );
 
 		if( def->clip_size == 0 || ammo_frac != 0 ) {
 			Draw2DBox( curx - offset, cury + ih * ( 1.0f - ammo_frac ) - offset - pady_sel, iw + offset * 2, ih * ammo_frac + offset * 2, cgs.white_material, color );
@@ -1895,6 +1913,13 @@ static bool CG_LFuncSize( struct cg_layoutnode_s *argumentnode, int numArguments
 static bool CG_LFuncColor( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	for( int i = 0; i < 4; i++ ) {
 		layout_cursor_color[ i ] = Clamp01( CG_GetNumericArg( &argumentnode ) );
+	}
+	return true;
+}
+
+static bool CG_LFuncColorsRGB( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+	for( int i = 0; i < 4; i++ ) {
+		layout_cursor_color[ i ] = sRGBToLinear( Clamp01( CG_GetNumericArg( &argumentnode ) ) );
 	}
 	return true;
 }
@@ -2211,6 +2236,13 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncColor,
 		4,
 		"Sets color setting in RGBA mode. Used for text and pictures",
+	},
+
+	{
+		"setColorsRGB",
+		CG_LFuncColorsRGB,
+		4,
+		"setColor but in sRGB",
 	},
 
 	{

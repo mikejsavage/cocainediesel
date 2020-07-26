@@ -36,13 +36,13 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 	if( attacker && attacker->r.client ) {
 		if( attacker != self ) { // regular death message
 			self->enemy = attacker;
-			if( GAME_IMPORT.is_dedicated_server ) {
+			if( is_dedicated_server ) {
 				Com_Printf( "%s %s %s%s\n", self->r.client->netname, message,
 						  attacker->r.client->netname, message2 );
 			}
 		} else {      // suicide
 			self->enemy = NULL;
-			if( GAME_IMPORT.is_dedicated_server ) {
+			if( is_dedicated_server ) {
 				Com_Printf( "%s %s\n", self->r.client->netname, message );
 			}
 
@@ -52,7 +52,7 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 		G_Obituary( self, attacker, mod );
 	} else {      // wrong place, suicide, etc.
 		self->enemy = NULL;
-		if( GAME_IMPORT.is_dedicated_server ) {
+		if( is_dedicated_server ) {
 			Com_Printf( "%s %s\n", self->r.client->netname, message );
 		}
 
@@ -116,9 +116,6 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 
 	if( gib ) {
 		ThrowSmallPileOfGibs( body, knockbackOfDeath, damage );
-
-		// reset gib impulse
-		body->velocity = Vec3( 0.0f );
 
 		body->nextThink = level.time + 3000 + random_float01( &svs.rng ) * 3000;
 		body->deadflag = DEAD_DEAD;
@@ -198,7 +195,7 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 		return;
 	}
 
-	if( trap_GetClientState( client - game.clients ) < CS_SPAWNED ) {
+	if( PF_GetClientState( client - game.clients ) < CS_SPAWNED ) {
 		return;
 	}
 
@@ -652,7 +649,7 @@ static void G_UpdatePlayerInfoString( int playerNum ) {
 	Info_SetValueForKey( playerString, "hand", va( "%i", client->hand ) );
 
 	playerString[MAX_CONFIGSTRING_CHARS - 1] = 0;
-	trap_ConfigString( CS_PLAYERINFOS + playerNum, playerString );
+	PF_ConfigString( CS_PLAYERINFOS + playerNum, playerString );
 }
 
 /*
@@ -672,7 +669,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 
 	// check for malformed or illegal info strings
 	if( !Info_Validate( userinfo ) ) {
-		trap_DropClient( ent, DROP_TYPE_GENERAL, "Error: Invalid userinfo" );
+		PF_DropClient( ent, DROP_TYPE_GENERAL, "Error: Invalid userinfo" );
 		return;
 	}
 
@@ -681,7 +678,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	// ip
 	s = Info_ValueForKey( userinfo, "ip" );
 	if( !s ) {
-		trap_DropClient( ent, DROP_TYPE_GENERAL, "Error: Server didn't provide client IP" );
+		PF_DropClient( ent, DROP_TYPE_GENERAL, "Error: Server didn't provide client IP" );
 		return;
 	}
 
@@ -690,7 +687,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	// socket
 	s = Info_ValueForKey( userinfo, "socket" );
 	if( !s ) {
-		trap_DropClient( ent, DROP_TYPE_GENERAL, "Error: Server didn't provide client socket" );
+		PF_DropClient( ent, DROP_TYPE_GENERAL, "Error: Server didn't provide client socket" );
 		return;
 	}
 
@@ -703,7 +700,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 		G_PrintMsg( NULL, "%s is now known as %s\n", oldname, cl->netname );
 	}
 	if( !Info_SetValueForKey( userinfo, "name", cl->netname ) ) {
-		trap_DropClient( ent, DROP_TYPE_GENERAL, "Error: Couldn't set userinfo (name)" );
+		PF_DropClient( ent, DROP_TYPE_GENERAL, "Error: Couldn't set userinfo (name)" );
 		return;
 	}
 
@@ -850,7 +847,7 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 	memset( ent->r.client, 0, sizeof( *ent->r.client ) );
 	ent->r.client->ps.playerNum = PLAYERNUM( ent );
 
-	trap_ConfigString( CS_PLAYERINFOS + PLAYERNUM( ent ), "" );
+	PF_ConfigString( CS_PLAYERINFOS + PLAYERNUM( ent ), "" );
 	GClip_UnlinkEntity( ent );
 
 	G_Match_CheckReadys();
@@ -1085,7 +1082,7 @@ void G_ClientThink( edict_t *ent ) {
 		return;
 	}
 
-	if( trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+	if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 		return;
 	}
 
@@ -1096,7 +1093,7 @@ void G_ClientThink( edict_t *ent ) {
 		AI_Think( ent );
 	}
 
-	trap_ExecuteClientThinks( PLAYERNUM( ent ) );
+	SV_ExecuteClientThinks( PLAYERNUM( ent ) );
 }
 
 /*
@@ -1111,7 +1108,7 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 		return;
 	}
 
-	if( trap_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
+	if( PF_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
 		// if the spawnsystem doesn't require to click
 		if( G_SpawnQueue_GetSystem( ent->s.team ) != SPAWNSYSTEM_INSTANT ) {
 			if( level.time >= ent->deathTimeStamp + 3000 ) {

@@ -19,14 +19,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
+#include "client/renderer/renderer.h"
+#include "client/renderer/text.h"
 
 cvar_t *cg_centerTime;
 cvar_t *cg_showFPS;
 cvar_t *cg_showPointedPlayer;
 cvar_t *cg_draw2D;
 
-cvar_t *cg_crosshair_color;
-cvar_t *cg_crosshair_damage_color;
 cvar_t *cg_crosshair_size;
 
 cvar_t *cg_showSpeed;
@@ -80,11 +80,7 @@ void CG_ScreenInit( void ) {
 	cg_draw2D =     Cvar_Get( "cg_draw2D", "1", 0 );
 	cg_centerTime =     Cvar_Get( "cg_centerTime", "2.5", 0 );
 
-	cg_crosshair_color =    Cvar_Get( "cg_crosshair_color", "255 255 255", CVAR_ARCHIVE );
-	cg_crosshair_damage_color = Cvar_Get( "cg_crosshair_damage_color", "255 0 0", CVAR_ARCHIVE );
 	cg_crosshair_size = Cvar_Get( "cg_crosshair_size", "3", CVAR_ARCHIVE );
-	cg_crosshair_color->modified = true;
-	cg_crosshair_damage_color->modified = true;
 
 	cg_showSpeed =      Cvar_Get( "cg_showSpeed", "0", CVAR_ARCHIVE );
 	cg_showPointedPlayer =  Cvar_Get( "cg_showPointedPlayer", "1", CVAR_ARCHIVE );
@@ -125,40 +121,11 @@ static void CG_FillRect( int x, int y, int w, int h, Vec4 color ) {
 	Draw2DBox( x, y, w, h, cgs.white_material, color );
 }
 
-static Vec4 crosshair_color = vec4_white;
-static Vec4 crosshair_damage_color = vec4_red;
-
 void CG_DrawCrosshair() {
 	if( cg.predictedPlayerState.health <= 0 || ( cg.predictedPlayerState.weapon == Weapon_Sniper && cg.predictedPlayerState.zoom_time > 0 ) )
 		return;
 
-	float s = 1.0f / 255.0f;
-
-	if( cg_crosshair_color->modified ) {
-		cg_crosshair_color->modified = false;
-		int rgb = COM_ReadColorRGBString( cg_crosshair_color->string );
-		if( rgb != -1 ) {
-			crosshair_color = Vec4( COLOR_R( rgb ) * s, COLOR_G( rgb ) * s, COLOR_B( rgb ) * s, 1.0f );
-		}
-		else {
-			crosshair_color = vec4_white;
-			Cvar_Set( cg_crosshair_color->name, "255 255 255" );
-		}
-	}
-
-	if( cg_crosshair_damage_color->modified ) {
-		cg_crosshair_damage_color->modified = false;
-		int rgb = COM_ReadColorRGBString( cg_crosshair_damage_color->string );
-		if( rgb != -1 ) {
-			crosshair_damage_color = Vec4( COLOR_R( rgb ) * s, COLOR_G( rgb ) * s, COLOR_B( rgb ) * s, 1.0f );
-		}
-		else {
-			crosshair_color = vec4_red;
-			Cvar_Set( cg_crosshair_damage_color->name, "255 255 255" );
-		}
-	}
-
-	Vec4 color = cls.monotonicTime - scr_damagetime <= 300 ? crosshair_damage_color : crosshair_color;
+	Vec4 color = cls.monotonicTime - scr_damagetime <= 300 ? vec4_red : vec4_white;
 
 	int w = frame_static.viewport_width;
 	int h = frame_static.viewport_height;
@@ -472,7 +439,7 @@ struct BombSite {
 };
 
 enum BombState {
-	BombState_None,
+	BombState_Carried,
 	BombState_Dropped,
 	BombState_Planting,
 	BombState_Planted,
@@ -498,6 +465,38 @@ void CG_AddBomb( centity_t * cent ) {
 
 	bomb.team = cent->current.team;
 	bomb.origin = cent->current.origin;
+
+	// TODO: this really does not belong here...
+	if( bomb.state == BombState_Planted ) {
+		ParticleEmitter emitter = { };
+		emitter.position = bomb.origin + Vec3( -12.0f, 3.0f, -12.0f ); // TODO lol
+
+		emitter.start_speed = 128.0f;
+		emitter.end_speed = 128.0f;
+
+		emitter.start_color = Vec4( 1.0f, 0.69f, 0.0f, 1.0f );
+		emitter.end_color = Vec3( 0.8f, 0.1f, 0.0f );
+
+		emitter.red_distribution.type = RandomDistributionType_Uniform;
+		emitter.red_distribution.uniform = 0.1f;
+		emitter.green_distribution.type = RandomDistributionType_Uniform;
+		emitter.green_distribution.uniform = 0.05f;
+
+		emitter.start_size = 24.0f;
+		emitter.end_size = 0.0f;
+
+		emitter.size_distribution.type = RandomDistributionType_Uniform;
+		emitter.size_distribution.uniform = 2.0f;
+
+		emitter.lifetime = 0.2f;
+
+		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
+		emitter.lifetime_distribution.uniform = 0.05f;
+
+		emitter.emission_rate = 100;
+
+		EmitParticles( &cgs.bullet_sparks, emitter );
+	}
 }
 
 void CG_AddBombSite( centity_t * cent ) {
@@ -518,9 +517,11 @@ void CG_DrawBombHUD() {
 	int my_team = cg.predictedPlayerState.team;
 	bool show_labels = my_team != TEAM_SPECTATOR && GS_MatchState( &client_gs ) == MATCH_STATE_PLAYTIME;
 
+	Vec4 yellow = sRGBToLinear( rgba8_diesel_yellow );
+
 	// TODO: draw arrows when clamped
 
-	if( bomb.state == BombState_None || bomb.state == BombState_Dropped ) {
+	if( bomb.state == BombState_Carried || bomb.state == BombState_Dropped ) {
 		for( size_t i = 0; i < num_bomb_sites; i++ ) {
 			const BombSite * site = &bomb_sites[ i ];
 			bool clamped;
@@ -528,17 +529,17 @@ void CG_DrawBombHUD() {
 
 			char buf[ 4 ];
 			snprintf( buf, sizeof( buf ), "%c", site->letter );
-			DrawText( cgs.fontMontserrat, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords.x, coords.y, vec4_white, true );
+			DrawText( cgs.fontMontserrat, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {
 				const char * msg = my_team == site->team ? "DEFEND" : "ATTACK";
 				coords.y += ( cgs.fontSystemMediumSize * 7 ) / 8;
-				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, vec4_white, true );
+				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
 			}
 		}
 	}
 
-	if( bomb.state != BombState_None ) {
+	if( bomb.state != BombState_Carried ) {
 		bool clamped;
 		Vec2 coords = WorldToScreenClamped( bomb.origin, Vec2( cgs.fontSystemMediumSize * 2 ), &clamped );
 
@@ -548,11 +549,25 @@ void CG_DrawBombHUD() {
 		}
 		else {
 			if( show_labels ) {
-				const char * msg = "RETRIEVE";
-				if( bomb.state == BombState_Planting )
+				Vec4 color = vec4_white;
+				const char * msg;
+
+				if( bomb.state == BombState_Dropped ) {
+					msg = "RETRIEVE";
+				}
+				else if( bomb.state == BombState_Planting ) {
 					msg = "PLANTING";
-				else if( bomb.state == BombState_Planted )
-					msg = my_team == bomb.team ? "PROTECT" : "DEFUSE";
+				}
+				else if( bomb.state == BombState_Planted ) {
+					if( my_team == bomb.team ) {
+						msg = "PROTECT";
+					}
+					else {
+						msg = "DEFUSE";
+						color = AttentionGettingColor();
+					}
+				}
+
 				float y = coords.y - cgs.fontSystemTinySize / 2;
 				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, y, vec4_white, true );
 			}
@@ -563,7 +578,7 @@ void CG_DrawBombHUD() {
 
 void CG_ResetBombHUD() {
 	num_bomb_sites = 0;
-	bomb.state = BombState_None;
+	bomb.state = BombState_Carried;
 }
 
 //=============================================================================
@@ -606,6 +621,14 @@ static void CG_SCRDrawViewBlend( void ) {
 	}
 
 	Draw2DBox( 0, 0, frame_static.viewport_width, frame_static.viewport_height, cgs.white_material, color );
+}
+
+void AddDamageEffect( float x ) {
+	constexpr float max = 1.0f;
+	if( x == 0.0f )
+		x = max;
+
+	cg.damage_effect = Min2( max, cg.damage_effect + x );
 }
 
 static void CG_DrawScope() {

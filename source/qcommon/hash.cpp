@@ -46,3 +46,11 @@ StringHash::StringHash( const char * s ) {
 	str = NULL;
 }
 #endif
+
+void format( FormatBuffer * fb, const StringHash & v, const FormatOpts & opts ) {
+#ifdef PUBLIC_BUILD
+	ggformat_impl( fb, "0x{08x}", v.hash );
+#else
+	ggformat_impl( fb, "{} (0x{08x})", v.str == NULL ? "NULL" : v.str, v.hash );
+#endif
+}

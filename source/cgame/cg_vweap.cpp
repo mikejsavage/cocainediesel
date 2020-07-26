@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
+#include "client/renderer/renderer.h"
 
 /*
 * CG_ViewWeapon_UpdateProjectionSource
@@ -57,10 +58,22 @@ static void CG_ViewWeapon_UpdateProjectionSource( Vec3 hand_origin, const mat3_t
 * CG_ViewWeapon_AddAngleEffects
 */
 static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles ) {
+	const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapon );
+
 	if( cg.predictedPlayerState.weapon_state == WeaponState_Firing || cg.predictedPlayerState.weapon_state == WeaponState_FiringSemiAuto ) {
-		const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapon );
 		float frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->refire_time );
 		angles->x -= def->refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+	}
+	else if( cg.predictedPlayerState.weapon_state == WeaponState_SwitchingIn || cg.predictedPlayerState.weapon_state == WeaponState_SwitchingOut ) {
+		float frac;
+		if( cg.predictedPlayerState.weapon_state == WeaponState_SwitchingIn ) {
+			frac = float( cg.predictedPlayerState.weapon_time ) / float( def->weaponup_time );
+		}
+		else {
+			frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->weapondown_time );
+		}
+		frac *= frac; //smoother curve
+		angles->x += Lerp( 0.0f, frac, 60.0f );
 	}
 
 	if( cg_gunbob->integer ) {
@@ -296,7 +309,7 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 		float gun_fov_y = WidescreenFov( Clamp( 20.0f, cg_gun_fov->value, 160.0f ) );
 		float gun_fov_x = CalcHorizontalFov( gun_fov_y, frame_static.viewport_width, frame_static.viewport_height );
 
-		float fracWeapFOV = tanf( DEG2RAD( gun_fov_x ) * 0.5f ) / cg.view.fracDistFOV;
+		float fracWeapFOV = tanf( Radians( gun_fov_x ) * 0.5f ) / cg.view.fracDistFOV;
 
 		viewweapon->axis[AXIS_FORWARD] *= fracWeapFOV;
 		viewweapon->axis[AXIS_FORWARD + 1] *= fracWeapFOV;

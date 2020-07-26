@@ -20,7 +20,7 @@ void main() {
 	float radial_frac = distance( p, mid ) / min( mid.x, mid.y );
 	float cross_dist = min( distance( floor( p.x ), floor( mid.x ) ), distance( floor( p.y ), floor( mid.y ) ) );
 
-	if( radial_frac < 0.03 ) {
+	if( radial_frac < 0.035 ) {
 		if( floor( p.x ) == floor( mid.x ) || floor( p.y ) == floor( mid.y ) ) {
 			f_Albedo = vec4( 1.0, 0.0, 0.0, 1.0 );
 		}
@@ -31,7 +31,7 @@ void main() {
 			f_Albedo = vec4( 0.0, 0.0, 0.0, 1.0 );
 		}
 		else {
-			float frac = Unlerp( 0.7, radial_frac, 0.8 );
+			float frac = Unlerp( 0.375, radial_frac, 0.95 );
 			f_Albedo = LinearTosRGB( mix( vec4( 0.0, 0.0, 0.0, 0.0 ), vec4( 0.0, 0.0, 0.0, 1.0 ), frac ) );
 		}
 	}

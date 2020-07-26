@@ -150,20 +150,20 @@ enum {
 	PLAYERANIM_CHANNELS
 };
 
-typedef struct {
+struct animstate_t {
 	int anim;
 	int64_t startTimestamp;
-} animstate_t;
+};
 
 struct PlayerModelAnimationSet {
 	int parts[PMODEL_PARTS];
 };
 
-typedef struct {
+struct pmodel_animationstate_t {
 	// animations in the mixer
 	animstate_t curAnims[PMODEL_PARTS][PLAYERANIM_CHANNELS];
 	PlayerModelAnimationSet pending[PLAYERANIM_CHANNELS];
-} pmodel_animationstate_t;
+};
 
 enum PlayerSound {
 	PlayerSound_Death,
@@ -208,7 +208,7 @@ struct PlayerModelMetadata {
 	PlayerModelMetadata *next;
 };
 
-typedef struct {
+struct pmodel_t {
 	// static data
 	const PlayerModelMetadata * metadata;
 
@@ -220,7 +220,7 @@ typedef struct {
 
 	// effects
 	orientation_t projectionSource;     // for projectiles
-} pmodel_t;
+};
 
 extern pmodel_t cg_entPModels[MAX_EDICTS];      //a pmodel handle for each cg_entity
 
@@ -258,7 +258,7 @@ WeaponModelMetadata *CG_RegisterWeaponModel( const char *cgs_name, WeaponType we
 //				VIEW WEAPON
 //=================================================
 
-typedef struct {
+struct cg_viewweapon_t {
 	mat3_t axis;
 	Vec3 origin;
 
@@ -273,4 +273,4 @@ typedef struct {
 
 	// other effects
 	orientation_t projectionSource;
-} cg_viewweapon_t;
+};

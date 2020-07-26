@@ -234,10 +234,10 @@ constexpr size_t NUM_IMAGE_EXTENSIONS = ARRAY_COUNT( IMAGE_EXTENSIONS );
 //
 //==============================================================
 
-typedef enum {
+enum com_error_code_t {
 	ERR_FATAL,      // exit the entire game with a popup window
 	ERR_DROP,       // print to console and disconnect from game
-} com_error_code_t;
+};
 
 // this is only here so the functions in q_shared.c and q_math.c can link
 
@@ -271,27 +271,21 @@ __declspec( noreturn ) void Com_Error( com_error_code_t code, _Printf_format_str
 #define FS_SEEK_SET         1
 #define FS_SEEK_END         2
 
-typedef enum {
-	FS_MEDIA_IMAGES,
-
-	FS_MEDIA_NUM_TYPES
-} fs_mediatype_t;
-
 //==============================================================
 
 // connection state of the client in the server
-typedef enum {
+enum sv_client_state_t {
 	CS_FREE,            // can be reused for a new connection
 	CS_ZOMBIE,          // client has been disconnected, but don't reuse
 	                    // connection for a couple seconds
 	CS_CONNECTING,      // has send a "new" command, is awaiting for fetching configstrings
 	CS_CONNECTED,       // has been assigned to a client_t, but not in game yet
 	CS_SPAWNED          // client is fully in game
-} sv_client_state_t;
+};
 
-typedef enum {
+enum keydest_t {
 	key_game,
 	key_console,
 	key_message,
 	key_menu,
-} keydest_t;
+};

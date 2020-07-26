@@ -2,6 +2,7 @@
 #include "imgui/imgui_internal.h"
 
 #include "client/client.h"
+#include "client/renderer/renderer.h"
 #include "qcommon/version.h"
 #include "qcommon/string.h"
 
@@ -292,6 +293,7 @@ static void SettingsControls() {
 
 			KeyBindButton( "Chat", "messagemode" );
 			KeyBindButton( "Team chat", "messagemode2" );
+			KeyBindButton( "Spray", "spray" );
 
 			ImGui::Separator();
 
@@ -321,6 +323,15 @@ static void SettingsControls() {
 				KeyBindButton( "What the shit", "vsay whattheshit" );
 				KeyBindButton( "Wow your terrible", "vsay wowyourterrible" );
 			} ImGui::EndChild();
+
+			ImGui::EndTabItem();
+		}
+
+		if( ImGui::BeginTabItem( "Misc" ) ) {
+			KeyBindButton( "Join/ Switch team", "join" );
+			KeyBindButton( "Ready / Unread", "toggleready" );
+			KeyBindButton( "Spectate", "chase" );
+			KeyBindButton( "Screenshot", "screenshot" );
 
 			ImGui::EndTabItem();
 		}
@@ -838,7 +849,7 @@ static void WeaponButton( int cash, WeaponType weapon, ImVec2 size ) {
 	bool affordable = def->cost <= cash;
 
 	const Material * icon = cgs.media.shaderWeaponIcon[ weapon ];
-	Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
+	Vec2 half_pixel = HalfPixelSize( icon );
 	Vec4 color = selected ? vec4_green : ( affordable ? vec4_white : Vec4( 0.5f, 0.5f, 0.5f, 1.0f ) );
 
 	ImGui::PushStyleColor( ImGuiCol_Border, color );
@@ -940,7 +951,7 @@ static void GameMenu() {
 			}
 
 
-			GameMenuButton( "Spectate", "spec", &should_close );
+			GameMenuButton( "Spectate", "chase", &should_close );
 
 			if( team_based ) {
 				GameMenuButton( "Change loadout", "gametypemenu", &should_close );
@@ -1017,7 +1028,7 @@ static void GameMenu() {
 		ImGui::EndColumns();
 
 		TempAllocator temp = cls.frame_arena.temp();
-		ImGuiColorToken c = cash == 0 ? ImGuiColorToken( 255, 255, 255, 255 ) : ImGuiColorToken( RGBA8( AttentionGettingColor() ) );
+		ImGuiColorToken c = cash == 0 ? ImGuiColorToken( 255, 255, 255, 255 ) : ImGuiColorToken( LinearTosRGB( AttentionGettingColor() ) );
 		ImGui::Text( "%s", temp( "{}UNSPENT CASH: {}${}.{02}{}{}", c, S_COLOR_GREEN, cash / 100, cash % 100, c, cash == 0 ? "" : "!!!" ) );
 
 		{
@@ -1042,7 +1053,7 @@ static void GameMenu() {
 
 			for( size_t i = 0; i < num_weapons; i++ ) {
 				const Material * icon = cgs.media.shaderWeaponIcon[ selected_weapons[ i ] ];
-				Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
+				Vec2 half_pixel = HalfPixelSize( icon );
 				ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, vec4_black );
 
 				if( ImGui::BeginDragDropSource( ImGuiDragDropFlags_None ) ) {

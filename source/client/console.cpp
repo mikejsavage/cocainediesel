@@ -1,4 +1,5 @@
 #include "client/client.h"
+#include "client/renderer/renderer.h"
 #include "qcommon/string.h"
 #include "qcommon/utf8.h"
 #include "qcommon/threads.h"

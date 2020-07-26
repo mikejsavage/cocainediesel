@@ -121,7 +121,7 @@ static Mutex *http_requests_mutex = NULL;
 static CURLM *curlmulti = NULL;     // Curl MULTI handle
 static int curlmulti_num_handles = 0;
 
-static struct mempool_s *wswcurl_mempool;
+static mempool_t *wswcurl_mempool;
 static CURL *curldummy = NULL;
 static Mutex *curldummy_mutex = NULL;
 

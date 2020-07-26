@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
+#include "client/renderer/renderer.h"
 
 cg_static_t cgs;
 cg_state_t cg;
@@ -100,14 +101,6 @@ static SyncEntityState *CG_GS_GetEntityState( int entNum, int deltaTime ) {
 	return &cent->current;
 }
 
-static const char *CG_GS_GetConfigString( int index ) {
-	if( index < 0 || index >= MAX_CONFIGSTRINGS ) {
-		return NULL;
-	}
-
-	return cgs.configStrings[ index ];
-}
-
 static void CG_InitGameShared( void ) {
 	char cstring[MAX_CONFIGSTRING_CHARS];
 	trap_GetConfigString( CS_MAXCLIENTS, cstring, MAX_CONFIGSTRING_CHARS );
@@ -126,7 +119,6 @@ static void CG_InitGameShared( void ) {
 	client_gs.api.GetEntityState = CG_GS_GetEntityState;
 	client_gs.api.PointContents = CG_GS_PointContents;
 	client_gs.api.PMoveTouchTriggers = CG_Predict_TouchTriggers;
-	client_gs.api.GetConfigString = CG_GS_GetConfigString;
 }
 
 char *_CG_CopyString( const char *in, const char *filename, int fileline ) {
@@ -238,8 +230,6 @@ void CG_Reset( void ) {
 
 	CG_SC_ResetObituaries();
 
-	CG_ClearLocalEntities();
-
 	// start up announcer events queue from clean
 	CG_ClearAnnouncerEvents();
 
@@ -296,8 +286,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	CG_ScreenInit();
 
-	CG_ClearLocalEntities();
-
 	CG_InitDamageNumbers();
 
 	// get configstrings
@@ -311,6 +299,7 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	CG_InitHUD();
 
+	InitDecals();
 	InitParticles();
 	InitPersistentBeams();
 	InitGibs();
@@ -331,7 +320,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 }
 
 void CG_Shutdown() {
-	CG_FreeLocalEntities();
 	CG_DemocamShutdown();
 	CG_UnregisterCGameCommands();
 	CG_PModelsShutdown();
@@ -339,6 +327,7 @@ void CG_Shutdown() {
 	CG_ShutdownInput();
 	CG_ShutdownHUD();
 	ShutdownParticles();
+	ShutdownDecals();
 
 	CG_Free( const_cast< char * >( cgs.serverName ) );
 

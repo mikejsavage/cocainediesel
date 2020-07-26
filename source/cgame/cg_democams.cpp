@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/qcommon.h"
 #include "qcommon/cmodel.h"
 #include "cgame/cg_local.h"
+#include "client/renderer/renderer.h"
 
 // Thanks to Xavatar (xavatar2004@hotmail.com) for the path spline implementation
 
@@ -685,6 +686,7 @@ static void CG_DrawEntityNumbers( void ) {
 	}
 }
 
+#if 0
 void CG_Democam_DrawCenterSubtitle( int y, unsigned int maxwidth, struct qfontface_s *font, char *text ) {
 	char *ptr, *s, *t, c, d;
 	int x = frame_static.viewport_width / 2;
@@ -750,6 +752,7 @@ void CG_Democam_DrawCenterSubtitle( int y, unsigned int maxwidth, struct qfontfa
 		// y += trap_SCR_FontHeight( font );
 	}
 }
+#endif
 
 /*
 * CG_DrawDemocam2D

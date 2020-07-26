@@ -120,7 +120,7 @@ namespace ImGui
 		continue; \
 	}
 
-#include "client/renderer/backend.h"
+#include "qcommon/hash.h"
 #include "client/renderer/shader.h"
 
 struct ImGuiShaderAndMaterial {

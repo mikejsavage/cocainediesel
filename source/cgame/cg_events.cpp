@@ -60,64 +60,39 @@ void CG_WeaponBeamEffect( centity_t *cent ) {
 static centity_t *laserOwner = NULL;
 
 static void BulletSparks( Vec3 pos, Vec3 normal, Vec4 color, int num_particles ) {
-	float num_yellow_particles = num_particles / 4.0f;
+	ParticleEmitter emitter = { };
+	emitter.position = pos;
 
-	{
-		ParticleEmitter emitter = { };
-		emitter.position = pos;
-
-		if( Length( normal ) == 0.0f ) {
-			emitter.use_cone_direction = true;
-			emitter.direction_cone.normal = normal;
-			emitter.direction_cone.theta = 90.0f;
-		}
-
-		emitter.start_speed = 128.0f;
-		emitter.end_speed = 128.0f;
-
-		emitter.start_color = color;
-
-		emitter.start_size = 2.0f;
-		emitter.end_size = 0.0f;
-
-		emitter.lifetime = 0.5f;
-
-		emitter.n = num_particles - num_yellow_particles;
-
-		EmitParticles( &cgs.bullet_sparks, emitter );
+	if( Length( normal ) == 0.0f ) {
+		emitter.use_cone_direction = true;
+		emitter.direction_cone.normal = normal;
+		emitter.direction_cone.theta = 90.0f;
 	}
 
-	{
-		ParticleEmitter emitter = { };
-		emitter.position = pos;
+	emitter.start_speed = 128.0f;
+	emitter.end_speed = 128.0f;
 
-		if( Length( normal ) == 0.0f ) {
-			emitter.use_cone_direction = true;
-			emitter.direction_cone.normal = normal;
-			emitter.direction_cone.theta = 90.0f;
-		}
+	emitter.start_color = color;
 
-		emitter.start_speed = 128.0f;
-		emitter.end_speed = 128.0f;
+	emitter.start_size = 16.0f;
+	emitter.end_size = 0.0f;
 
-		emitter.start_color = Vec4( 1.0f, 0.9, 0.0f, 0.5f );
+	emitter.lifetime = 0.5f;
 
-		emitter.start_size = 2.0f;
-		emitter.end_size = 0.0f;
+	emitter.n = num_particles;
 
-		emitter.lifetime = 0.5f;
-
-		emitter.n = num_yellow_particles;
-
-		EmitParticles( &cgs.bullet_sparks, emitter );
-	}
+	EmitParticles( &cgs.bullet_sparks, emitter );
 }
 
 static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles ) {
 	BulletSparks( trace->endpos, trace->plane.normal, color, num_particles );
+
+	float angle = random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
+	AddPersistentDecal( trace->endpos, trace->plane.normal, 2.0f, angle, "weapons/bullet_impact", vec4_white, 30000 );
 }
 
 static void WallbangImpact( const trace_t * trace, int num_particles ) {
+	// TODO: should draw on entry/exit of all wallbanged surfaces
 	if( ( trace->contents & CONTENTS_WALLBANGABLE ) == 0 )
 		return;
 
@@ -141,39 +116,20 @@ static void WallbangImpact( const trace_t * trace, int num_particles ) {
 	emitter.n = num_particles;
 
 	EmitParticles( &cgs.bullet_sparks, emitter );
+
+	float angle = random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
+	AddPersistentDecal( trace->endpos, trace->plane.normal, 2.0f, angle, "weapons/bullet_impact", vec4_white, 30000 );
 }
 
-static void _LaserImpact( const trace_t *trace, Vec3 dir ) {
-	if( !trace || trace->ent < 0 ) {
-		return;
-	}
-
+static void LGImpact( const trace_t * trace, Vec3 dir ) {
 	Vec4 team_color = CG_TeamColorVec4( laserOwner->current.team );
 
-	if( laserOwner ) {
-#define TRAILTIME ( (int)( 1000.0f / 20.0f ) ) // density as quantity per second
-
-		if( laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] + TRAILTIME < cl.serverTime ) {
-			laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] = cl.serverTime;
-
-			// CG_HighVelImpactPuffParticles( trace->endpos, trace->plane.normal, 8, 0.5f, color[ 0 ], color[ 1 ], color[ 2 ], color[ 3 ], NULL );
-
-			S_StartFixedSound( cgs.media.sfxLasergunHit, trace->endpos, CHAN_AUTO, 1.0f );
-		}
-#undef TRAILTIME
+	constexpr int trailtime = int( 1000.0f / 20.0f ); // density as quantity per second
+	if( laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] + trailtime < cl.serverTime ) {
+		laserOwner->localEffects[LOCALEFFECT_LASERBEAM_SMOKE_TRAIL] = cl.serverTime;
 	}
 
-	// it's a brush model
-	if( trace->ent == 0 || !( cg_entities[trace->ent].current.effects & EF_TAKEDAMAGE ) ) {
-		CG_LaserGunImpact( trace->endpos, dir, RGBA8( team_color ) );
-		// CG_AddLightToScene( trace->endpos, 100, color[ 0 ], color[ 1 ], color[ 2 ] );
-		BulletImpact( trace, team_color, 1 );
-		return;
-	}
-
-	// it's a player
-
-	// TODO: add player-impact model
+	BulletSparks( trace->endpos, trace->plane.normal, team_color, 4 );
 }
 
 void CG_LaserBeamEffect( centity_t *cent ) {
@@ -217,7 +173,7 @@ void CG_LaserBeamEffect( centity_t *cent ) {
 
 	// trace the beam: for tracing we use the real beam origin
 	float range = GS_GetWeaponDef( Weapon_Laser )->range;
-	GS_TraceLaserBeam( &client_gs, &trace, laserOrigin, laserAngles, range, cent->current.number, 0, _LaserImpact );
+	GS_TraceLaserBeam( &client_gs, &trace, laserOrigin, laserAngles, range, cent->current.number, 0, LGImpact );
 
 	// draw the beam: for drawing we use the weapon projection source (already handles the case of viewer entity)
 	if( CG_PModel_GetProjectionSource( cent->current.number, &projectsource ) ) {
@@ -867,7 +823,7 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			// 					ent->counterNum );
 			break;
 
-		case EV_SPOG:
+		case EV_GIB:
 			SpawnGibs( ent->origin, ent->origin2, parm, team_color );
 			break;
 
@@ -917,17 +873,18 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			if( parm ) {
 				// we have a direction
 				dir = ByteToDir( parm );
-				CG_GrenadeExplosionMode( ent->origin, dir, team_color );
-			} else {
+				CG_GrenadeExplosion( ent->origin, dir, team_color );
+			}
+			else {
 				// no direction
-				CG_GrenadeExplosionMode( ent->origin, Vec3( 0.0f ), team_color );
+				CG_GrenadeExplosion( ent->origin, Vec3( 0.0f ), team_color );
 			}
 
 			break;
 
 		case EV_ROCKET_EXPLOSION:
 			dir = ByteToDir( parm );
-			CG_RocketExplosionMode( ent->origin, dir, team_color );
+			CG_RocketExplosion( ent->origin, dir, team_color );
 
 			break;
 
@@ -945,10 +902,51 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			S_StartFixedSound( cgs.media.sfxBulletImpact, ent->origin, CHAN_AUTO, 1.0f );
 			break;
 
-		case EV_BLOOD:
+		case EV_BLOOD: {
 			dir = ByteToDir( parm );
-			// CG_BloodDamageEffect( ent->origin, dir, ent->damage, team_color );
-			break;
+			Vec3 tangent, bitangent;
+			OrthonormalBasis( dir, &tangent, &bitangent );
+
+			int damage = ent->radius;
+			float p = damage / 20.0f;
+
+			while( true ) {
+				if( !random_p( &cls.rng, p ) )
+					break;
+
+				Vec3 random_dir = Normalize( dir + tangent * random_float11( &cls.rng ) * 0.1f + bitangent * random_float11( &cls.rng ) * 0.1f );
+				Vec3 end = ent->origin + random_dir * 256.0f;
+
+				trace_t trace;
+				CG_Trace( &trace, ent->origin, Vec3( -4.0f ), Vec3( 4.0f ), end, 0, MASK_SOLID );
+
+				if( trace.fraction < 1.0f ) {
+					constexpr StringHash decals[] = {
+						"textures/blood_decals/blood1",
+						"textures/blood_decals/blood2",
+						"textures/blood_decals/blood3",
+						"textures/blood_decals/blood4",
+						"textures/blood_decals/blood5",
+						"textures/blood_decals/blood6",
+						"textures/blood_decals/blood7",
+						"textures/blood_decals/blood8",
+						"textures/blood_decals/blood9",
+						"textures/blood_decals/blood10",
+						"textures/blood_decals/blood11",
+					};
+
+					Vec4 color = CG_TeamColorVec4( ent->team );
+					float angle = random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
+
+					float min_size = Lerp( 20.0f, Unlerp01( 5, damage, 50 ), 64.0f );
+					float size = min_size * random_uniform_float( &cls.rng, 0.75f, 1.5f );
+
+					AddPersistentDecal( trace.endpos, trace.plane.normal, size, angle, random_select( &cls.rng, decals ), team_color, 30000 );
+				}
+
+				p -= 1.0f;
+			}
+		} break;
 
 		// func movers
 		case EV_PLAT_HIT_TOP:
@@ -973,6 +971,11 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_TBAG:
 			S_StartFixedSound( cgs.media.sfxTbag, ent->origin, CHAN_AUTO, parm / 255.0f );
+			break;
+
+		case EV_SPRAY:
+			AddSpray( ent->origin, ent->origin2, ent->angles, StringHash( parm ) );
+			S_StartFixedSound( cgs.media.sfxSpray, ent->origin, CHAN_AUTO, 1.0f );
 			break;
 
 		case EV_DAMAGE:
@@ -1048,22 +1051,22 @@ static void CG_FirePlayerStateEvents( void ) {
 
 			case PSEV_DAMAGE_10:
 				dir = ByteToDir( parm );
-				// CG_DamageIndicatorAdd( 10, dir );
+				AddDamageEffect( 0.1f );
 				break;
 
 			case PSEV_DAMAGE_20:
 				dir = ByteToDir( parm );
-				// CG_DamageIndicatorAdd( 20, dir );
+				AddDamageEffect( 0.2f );
 				break;
 
 			case PSEV_DAMAGE_30:
 				dir = ByteToDir( parm );
-				// CG_DamageIndicatorAdd( 30, dir );
+				AddDamageEffect( 0.3f );
 				break;
 
 			case PSEV_DAMAGE_40:
 				dir = ByteToDir( parm );
-				// CG_DamageIndicatorAdd( 40, dir );
+				AddDamageEffect( 0.4f );
 				break;
 
 			case PSEV_ANNOUNCER:

@@ -1,22 +1,3 @@
-/*
-   Copyright (C) 2009-2010 Chasseur de bots
-
-   This program is free software; you can redistribute it and/or
-   modify it under the terms of the GNU General Public License
-   as published by the Free Software Foundation; either version 2
-   of the License, or (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-   See the GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-   */
-
 enum BombState {
 	BombState_Idle,
 	BombState_Carried,
@@ -37,8 +18,6 @@ const int BOMB_HUD_OFFSET = 32;
 BombState bombState = BombState_Idle;
 
 cBombSite @bombSite;
-
-int64 bombNextBeep;
 
 int64 bombPickTime;
 Entity @bombDropper;
@@ -78,7 +57,7 @@ void bombModelCreate() {
 	bombModel.setSize( BOMB_MINS, BOMB_MAXS );
 	bombModel.solid = SOLID_TRIGGER;
 	bombModel.light = BOMB_LIGHT_INACTIVE;
-	bombModel.model = modelBombModel;
+	bombModel.model = modelBomb;
 	bombModel.silhouetteColor = uint( 255 << 0 ) | uint( 255 << 8 ) | uint( 255 << 16 ) | uint( 255 << 24 );
 	bombModel.svflags |= SVF_BROADCAST;
 	@bombModel.touch = bomb_touch;
@@ -99,7 +78,7 @@ void bombInit() {
 
 void bombPickUp() {
 	bombCarrier.effects |= EF_CARRIER;
-	bombCarrier.model2 = modelBombBackpack;
+	bombCarrier.model2 = modelBomb;
 
 	hide( @bombModel );
 	hide( @bombHud );
@@ -215,7 +194,7 @@ void bombStartPlanting( cBombSite @site ) {
 	bombActionTime = levelTime;
 	bombState = BombState_Planting;
 
-	G_Sound( @bombModel, 0, sndPlantStart );
+	G_Sound( @bombModel, 0, sndPlant );
 }
 
 void bombPlanted() {
@@ -223,7 +202,8 @@ void bombPlanted() {
 
 	// add red dynamic light
 	bombModel.light = BOMB_LIGHT_ARMED;
-	bombModel.model = modelBombModelActive;
+	bombModel.model = modelBomb;
+	bombModel.sound = sndFuse;
 	bombModel.effects &= ~EF_TEAM_SILHOUETTE;
 
 	// show to defs too
@@ -240,7 +220,7 @@ void bombPlanted() {
 
 void bombDefused() {
 	bombModel.light = BOMB_LIGHT_INACTIVE;
-	bombModel.model = modelBombModel;
+	bombModel.model = modelBomb;
 
 	hide( @bombHud );
 
@@ -279,7 +259,7 @@ void resetBomb() {
 	hide( @bombModel );
 
 	bombModel.light = BOMB_LIGHT_INACTIVE;
-	bombModel.model = modelBombModel;
+	bombModel.model = modelBomb;
 	bombModel.effects |= EF_TEAM_SILHOUETTE;
 
 	bombModel.team = attackingTeam;
@@ -338,23 +318,6 @@ void bombThink() {
 			if( levelTime >= bombActionTime ) {
 				bombExplode();
 				break;
-			}
-
-			if( levelTime > bombNextBeep ) {
-				G_PositionedSound( bombModel.origin, CHAN_AUTO, sndBeep );
-
-				uint remainingTime = bombActionTime - levelTime;
-
-				uint nextBeepDelta = uint( BOMB_BEEP_FRACTION * remainingTime );
-
-				if( nextBeepDelta > BOMB_BEEP_MAX ) {
-					nextBeepDelta = BOMB_BEEP_MAX;
-				}
-				else if( nextBeepDelta < BOMB_BEEP_MIN ) {
-					nextBeepDelta = BOMB_BEEP_MIN;
-				}
-
-				bombNextBeep = levelTime + nextBeepDelta;
 			}
 		} break;
 	}
@@ -420,14 +383,18 @@ bool bombCanPlant() {
 
 void bombGiveToRandom() {
 	Team @team = @G_GetTeam( attackingTeam );
+	int bots = 0;
 
-	uint n = getCarrierCount( attackingTeam );
-	bool hasCarriers = cvarEnableCarriers.boolean && n > 0;
-	if( !hasCarriers )
-		n = team.numPlayers;
+	for( int i = 0; @team.ent( i ) != null; i++ ) {
+		if( ( team.ent( i ).svflags & SVF_FAKECLIENT ) != 0 ) {
+			bots++;
+		}
+	}
 
-	int carrierIdx = random_uniform( 0, n );
-	int seenCarriers = 0;
+	bool all_bots = bots == team.numPlayers;
+	int n = all_bots ? team.numPlayers : team.numPlayers - bots;
+	int carrier = random_uniform( 0, n );
+	int seen = 0;
 
 	for( int i = 0; @team.ent( i ) != null; i++ ) {
 		Entity @ent = @team.ent( i );
@@ -435,13 +402,13 @@ void bombGiveToRandom() {
 
 		cPlayer @player = @playerFromClient( @client );
 
-		if( !hasCarriers || @ent == @bombCarrier ) {
-			if( seenCarriers == carrierIdx ) {
+		if( all_bots || ( ent.svflags & SVF_FAKECLIENT ) == 0 ) {
+			if( seen == carrier ) {
 				bombSetCarrier( @ent, true );
 				break;
 			}
 
-			seenCarriers++;
+			seen++;
 		}
 	}
 }

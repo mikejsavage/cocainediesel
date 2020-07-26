@@ -1,4 +1,5 @@
 #include "include/uniforms.glsl"
+#include "include/common.glsl"
 
 uniform sampler2D u_BaseTexture;
 
@@ -64,7 +65,7 @@ void main() {
 	color += 0.5 * SampleMSDF( v_TexCoord - ssy, half_pixel_size );
 	color += 0.5 * SampleMSDF( v_TexCoord + ssy, half_pixel_size );
 
-	f_Albedo = color * ( 1.0 / 3.0 );
+	f_Albedo = LinearTosRGB( color * ( 1.0 / 3.0 ) );
 }
 
 #endif

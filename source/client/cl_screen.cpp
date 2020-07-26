@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "client/client.h"
+#include "client/renderer/renderer.h"
+#include "cgame/cg_local.h"
 #include "qcommon/cmodel.h"
 
 static cvar_t *scr_netgraph;
@@ -154,9 +156,25 @@ static void SCR_RenderView() {
 	}
 }
 
-/*
-* SCR_UpdateScreen
-*/
+static void SubmitPostprocessPass() {
+	ZoneScoped;
+
+	{
+		PipelineState pipeline;
+		pipeline.pass = frame_static.postprocess_pass;
+		pipeline.depth_func = DepthFunc_Disabled;
+		pipeline.shader = &shaders.postprocess;
+
+		const Framebuffer & fb = frame_static.postprocess_fb;
+		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+		pipeline.set_texture( "u_Screen", &fb.albedo_texture );
+		pipeline.set_texture( "u_Noise", FindMaterial( "textures/noise" )->texture );
+		pipeline.set_uniform( "u_PostProcess", UploadUniformBlock( float( Sys_Milliseconds() ) * 0.001f, cg.damage_effect ) );
+
+		DrawFullscreenMesh( pipeline );
+	}
+}
+
 void SCR_UpdateScreen() {
 	CL_ForceVsync( cls.state == CA_DISCONNECTED );
 
@@ -173,6 +191,11 @@ void SCR_UpdateScreen() {
 			SCR_DrawDebugGraph();
 		}
 	}
+	else {
+		cg.damage_effect = 0.0f;
+	}
+
+	SubmitPostprocessPass();
 
 	UI_Refresh();
 

@@ -12,6 +12,8 @@ gcc_obj_cxxflags( ".*", "-Wall -Wextra -Wcast-align -Wvla -Wformat-security" ) -
 gcc_obj_cxxflags( ".*", "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-implicit-fallthrough -Wno-format-truncation" )
 gcc_obj_cxxflags( ".*", "-Werror=vla -Werror=format-security -Werror=unused-value" )
 
+gcc_obj_cxxflags( "source/game/angelwrap/addon/addon_scriptarray.cpp", "-Wno-cast-function-type" )
+
 obj_cxxflags( ".*", "-D_LIBCPP_TYPE_TRAITS" )
 
 if config == "release" then
@@ -21,6 +23,7 @@ else
 end
 
 require( "libs.cgltf" )
+require( "libs.gg" )
 require( "libs.glad" )
 require( "libs.imgui" )
 require( "libs.gg" )
@@ -72,13 +75,16 @@ do
 
 		libs = {
 			"cgltf",
+			"ggentropy",
+			"ggformat",
+			"ggtime",
 			"glad",
 			"imgui",
-			"ggtime",
 			"meshoptimizer",
 			"monocypher",
 			"stb_image",
 			"stb_image_write",
+			"stb_rect_pack",
 			"stb_vorbis",
 			"tracy",
 			"whereami",
@@ -142,6 +148,8 @@ do
 		},
 
 		libs = {
+			"ggentropy",
+			"ggformat",
 			"ggtime",
 			"monocypher",
 			"tracy",

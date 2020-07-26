@@ -5,10 +5,3 @@ models/objects/gibs/gib
 		rgbGen entity
 	}
 }
-
-sky
-{
-	{
-		map $whiteimage
-	}
-}

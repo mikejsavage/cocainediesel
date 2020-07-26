@@ -25,17 +25,18 @@
 #include "cgame/cg_public.h"
 #include "gameshared/gs_public.h"
 
-#include "client/renderer/renderer.h"
-#include "vid.h"
-#include "ui.h"
-#include "keys.h"
-#include "maps.h"
-#include "console.h"
-#include "sound.h"
+#include "client/vid.h"
+#include "client/ui.h"
+#include "client/keys.h"
+#include "client/maps.h"
+#include "client/console.h"
+#include "client/sound.h"
+#include "client/renderer/types.h"
 
-typedef struct shader_s shader_t;
-typedef struct qfontface_s qfontface_t;
 struct ImFont;
+struct snapshot_t;
+
+constexpr RGBA8 rgba8_diesel_yellow = RGBA8( 255, 204, 38, 255 );
 
 //=============================================================================
 
@@ -46,7 +47,7 @@ struct ImFont;
 // the client_state_t structure is wiped completely at every
 // server map change
 //
-typedef struct {
+struct client_state_t {
 	int timeoutcount;
 
 	int cmdNum;                     // current cmd
@@ -85,7 +86,7 @@ typedef struct {
 	int playernum;
 
 	char configstrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
-} client_state_t;
+};
 
 extern client_state_t cl;
 
@@ -98,14 +99,12 @@ of server connections
 ==================================================================
 */
 
-typedef struct download_list_s download_list_t;
-
-struct download_list_s {
+struct download_list_t {
 	char *filename;
 	download_list_t *next;
 };
 
-typedef struct {
+struct download_t {
 	// for request
 	char *requestname;              // file we requested from the server (NULL if none requested)
 	bool requestnext;           // whether to request next download after this, for precaching
@@ -137,9 +136,9 @@ typedef struct {
 	bool disconnect;            // set when user tries to disconnect, to allow cleaning up webdownload
 	bool pending_reconnect;     // set when we ignored a map change command to avoid stopping the download
 	bool cancelled;             // to allow cleaning up of temporary download file
-} download_t;
+};
 
-typedef struct {
+struct cl_demo_t {
 	char *name;
 
 	bool recording;
@@ -163,9 +162,9 @@ typedef struct {
 
 	char meta_data[SNAP_MAX_DEMO_META_DATA_SIZE];
 	size_t meta_data_realsize;
-} cl_demo_t;
+};
 
-typedef struct {
+struct client_static_t {
 	ArenaAllocator frame_arena;
 
 	RNG rng;
@@ -219,9 +218,6 @@ typedef struct {
 
 	const Material * whiteTexture;
 
-	// system font
-	qfontface_t *consoleFont;
-
 	// these are our reliable messages that go to the server
 	int64_t reliableSequence;          // the last one we put in the list to be sent
 	int64_t reliableSent;              // the last one we sent to the server
@@ -247,7 +243,7 @@ typedef struct {
 	ImFont * big_font;
 	ImFont * medium_font;
 	ImFont * console_font;
-} client_static_t;
+};
 
 extern client_static_t cls;
 extern gs_state_t client_gs;
@@ -399,8 +395,13 @@ void CL_AddNetgraph( void );
 //
 // cl_imgui
 //
-
 void CL_InitImGui();
 void CL_ShutdownImGui();
 void CL_ImGuiBeginFrame();
 void CL_ImGuiEndFrame();
+
+//
+// snap_read
+//
+void SNAP_ParseBaseline( msg_t *msg, SyncEntityState *baselines );
+snapshot_t *SNAP_ParseFrame( msg_t *msg, snapshot_t *lastFrame, snapshot_t *backup, SyncEntityState *baselines, int showNet );

@@ -398,7 +398,7 @@ void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 poin
 	if( frac != NULL ) {
 		// soft sin curve
 		float distance_frac = ( maxradius - distance ) / maxradius;
-		*frac = Clamp01( sinf( DEG2RAD( distance_frac * 80 ) ) );
+		*frac = Clamp01( sinf( Radians( distance_frac * 80 ) ) );
 	}
 
 	// find push direction

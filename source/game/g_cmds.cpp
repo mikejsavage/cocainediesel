@@ -977,8 +977,6 @@ static void Cmd_ShowStats_f( edict_t *ent ) {
 //	client commands
 //===========================================================
 
-typedef void ( *gamecommandfunc_t )( edict_t * );
-
 typedef struct
 {
 	char name[MAX_QPATH];

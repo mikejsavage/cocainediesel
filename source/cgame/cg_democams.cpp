@@ -27,8 +27,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //===================================================================
 
-#define DEFAULT_SUBTITLE_SECONDS 9
-
 char *demoscriptname;
 bool democam_editing_mode;
 int64_t demo_initial_timestamp;
@@ -208,110 +206,6 @@ void CG_Democam_FreeCams( void ) {
 
 //===================================================================
 
-typedef struct cg_subtitles_s
-{
-	int64_t timeStamp;
-	int64_t maxDuration;
-	bool highprint;
-	char *text;
-
-	struct cg_subtitles_s *next;
-} cg_subtitle_t;
-
-static cg_subtitle_t *cg_subs_headnode = NULL;
-
-static cg_subtitle_t *CG_Democam_FindCurrentSubtitle( void ) {
-	int64_t higher_time = 0;
-	cg_subtitle_t *sub, *currentsub;
-
-	sub = cg_subs_headnode;
-	currentsub = NULL;
-	while( sub != NULL ) {
-		if( ( currentsub == NULL || sub->timeStamp > higher_time ) && sub->timeStamp <= demo_time &&
-			( sub->timeStamp + sub->maxDuration > demo_time ) ) {
-			higher_time = sub->timeStamp;
-			currentsub = sub;
-		}
-		sub = sub->next;
-	}
-
-	return currentsub;
-}
-
-/*
-* CG_Democam_RegisterSubtitle
-*/
-static cg_subtitle_t *CG_Democam_RegisterSubtitle( void ) {
-	cg_subtitle_t *sub;
-
-	CG_DemoCam_UpdateDemoTime();
-
-	sub = cg_subs_headnode;
-	while( sub != NULL ) {
-		if( sub->timeStamp == demo_time ) { // a subtitle exists with the very same timestamp
-			Com_Printf( "warning: There was a subtitle with the same timestamp, it's being replaced\n" );
-			break;
-		}
-		sub = sub->next;
-	}
-
-	if( sub == NULL ) {
-		sub = ( cg_subtitle_t * )CG_Malloc( sizeof( cg_subtitle_t ) );
-		sub->next = cg_subs_headnode;
-		cg_subs_headnode = sub;
-	}
-
-	sub->timeStamp = demo_time;
-	sub->maxDuration = DEFAULT_SUBTITLE_SECONDS * 1000;
-	sub->highprint = false;
-	return sub;
-}
-
-/*
-* CG_Democam_UnregisterSubtitle
-*/
-static void CG_Democam_UnregisterSubtitle( cg_subtitle_t *sub ) {
-	cg_subtitle_t *tsub;
-
-	if( !sub ) {
-		return;
-	}
-
-	// headnode shortcut
-	if( cg_subs_headnode == sub ) {
-		cg_subs_headnode = cg_subs_headnode->next;
-		if( sub->text ) {
-			CG_Free( sub->text );
-		}
-		CG_Free( sub );
-		return;
-	}
-
-	// find the camera which has this one as next;
-	tsub = cg_subs_headnode;
-	while( tsub != NULL ) {
-		if( tsub->next == sub ) {
-			tsub->next = sub->next;
-
-			if( sub->text ) {
-				CG_Free( sub->text );
-			}
-			CG_Free( sub );
-			break;
-		}
-		tsub = tsub->next;
-	}
-}
-
-/*
-* CG_Democam_FreeSubtitles
-*/
-void CG_Democam_FreeSubtitles( void ) {
-	while( cg_subs_headnode )
-		CG_Democam_UnregisterSubtitle( cg_subs_headnode );
-
-	cg_subs_headnode = NULL;
-}
 
 //===================================================================
 
@@ -488,65 +382,44 @@ bool CG_LoadRecamScriptFile( char *filename ) {
 			break;
 		}
 
-		if( !Q_stricmp( token, "subtitle" ) || !Q_stricmp( token, "print" ) ) {
-			cg_subtitle_t *sub;
-
-			sub = CG_Democam_RegisterSubtitle();
-			sub->highprint = ( Q_stricmp( token, "print" ) == 0 );
-
-			token = COM_ParseExt( &ptr, true );
-			if( !token[0] ) {
+		switch( linecount ) {
+			case 0:
+				cam = CG_Democam_RegisterCam( atoi( token ) );
 				break;
-			}
-			sub->timeStamp = (unsigned int)atoi( token );
-			token = COM_ParseExt( &ptr, true );
-			if( !token[0] ) {
+			case 1:
+				cam->timeStamp = (unsigned int)atoi( token );
 				break;
-			}
-			sub->maxDuration = (unsigned int)atoi( token );
-			sub->text = CG_CopyString( COM_ParseExt( &ptr, true ) );
+			case 2:
+				cam->origin.x = atof( token );
+				break;
+			case 3:
+				cam->origin.y = atof( token );
+				break;
+			case 4:
+				cam->origin.z = atof( token );
+				break;
+			case 5:
+				cam->angles.x = atof( token );
+				break;
+			case 6:
+				cam->angles.y = atof( token );
+				break;
+			case 7:
+				cam->angles.z = atof( token );
+				break;
+			case 8:
+				cam->trackEnt = atoi( token );
+				break;
+			case 9:
+				cam->fov = atoi( token );
+				break;
+			default:
+				Com_Error( ERR_DROP, "CG_LoadRecamScriptFile: bad switch\n" );
+		}
 
+		linecount++;
+		if( linecount == 10 ) {
 			linecount = 0;
-		} else {
-			switch( linecount ) {
-				case 0:
-					cam = CG_Democam_RegisterCam( atoi( token ) );
-					break;
-				case 1:
-					cam->timeStamp = (unsigned int)atoi( token );
-					break;
-				case 2:
-					cam->origin.x = atof( token );
-					break;
-				case 3:
-					cam->origin.y = atof( token );
-					break;
-				case 4:
-					cam->origin.z = atof( token );
-					break;
-				case 5:
-					cam->angles.x = atof( token );
-					break;
-				case 6:
-					cam->angles.y = atof( token );
-					break;
-				case 7:
-					cam->angles.z = atof( token );
-					break;
-				case 8:
-					cam->trackEnt = atoi( token );
-					break;
-				case 9:
-					cam->fov = atoi( token );
-					break;
-				default:
-					Com_Error( ERR_DROP, "CG_LoadRecamScriptFile: bad switch\n" );
-			}
-
-			linecount++;
-			if( linecount == 10 ) {
-				linecount = 0;
-			}
 		}
 	}
 
@@ -554,7 +427,6 @@ bool CG_LoadRecamScriptFile( char *filename ) {
 	if( linecount != 0 ) {
 		Com_Printf( "CG_LoadRecamScriptFile: Invalid script. Ignored\n" );
 		CG_Democam_FreeCams();
-		CG_Democam_FreeSubtitles();
 		return false;
 	}
 
@@ -567,12 +439,11 @@ bool CG_LoadRecamScriptFile( char *filename ) {
 */
 void CG_SaveRecamScriptFile( const char *filename ) {
 	cg_democam_t *cam;
-	cg_subtitle_t *sub;
 	int filehandle;
 	char str[256];
 
-	if( !cg_cams_headnode && !cg_subs_headnode ) {
-		Com_Printf( "CG_SaveRecamScriptFile: no cameras nor subtitles to save\n" );
+	if( !cg_cams_headnode ) {
+		Com_Printf( "CG_SaveRecamScriptFile: no cameras to save\n" );
 		return;
 	}
 
@@ -610,20 +481,6 @@ void CG_SaveRecamScriptFile( const char *filename ) {
 					 );
 		FS_Print( filehandle, str );
 		cam = cam->next;
-	}
-
-	sub = cg_subs_headnode;
-	while( sub != NULL ) {
-		snprintf( str, sizeof( str ), "%s %" PRIi64 " %" PRIi64 " ",
-					 sub->highprint ? "print" : "subtitle",
-					 sub->timeStamp,
-					 sub->maxDuration
-					 );
-		FS_Print( filehandle, str );
-		FS_Print( filehandle, "\"" );
-		FS_Print( filehandle, sub->text ? sub->text : "" );
-		FS_Print( filehandle, "\"\n" );
-		sub = sub->next;
 	}
 
 	FS_FCloseFile( filehandle );
@@ -686,74 +543,6 @@ static void CG_DrawEntityNumbers( void ) {
 	}
 }
 
-#if 0
-void CG_Democam_DrawCenterSubtitle( int y, unsigned int maxwidth, struct qfontface_s *font, char *text ) {
-	char *ptr, *s, *t, c, d;
-	int x = frame_static.viewport_width / 2;
-
-	if( !text || !text[0] ) {
-		return;
-	}
-
-	int shadowOffset = 2 * frame_static.viewport_height / 600;
-	if( !shadowOffset ) {
-		shadowOffset = 1;
-	}
-
-	// if( !maxwidth || trap_SCR_strWidth( text, font, 0 ) <= maxwidth ) {
-	if( !maxwidth ) {
-		// trap_SCR_DrawStringWidth( x + shadowOffset, y + shadowOffset, ALIGN_CENTER_TOP, COM_RemoveColorTokens( text ), maxwidth, font, colorBlack );
-		// trap_SCR_DrawStringWidth( x, y, ALIGN_CENTER_TOP, text, maxwidth, font, colorWhite );
-		return;
-	}
-
-	t = s = ptr = text;
-	while( *s ) {
-		while( *s && *s != ' ' && *s != '\n' )
-			s++;
-
-		// if( ( !*s || *s == '\n' ) && trap_SCR_strWidth( ptr, font, 0 ) < maxwidth ) { // new line or end of text, in both cases force write
-		if( false ) { // new line or end of text, in both cases force write
-			c = *s;
-			*s = 0;
-			// trap_SCR_DrawStringWidth( x + shadowOffset, y + shadowOffset, ALIGN_CENTER_TOP, COM_RemoveColorTokens( ptr ), maxwidth, font, colorBlack );
-			// trap_SCR_DrawStringWidth( x, y, ALIGN_CENTER_TOP, ptr, maxwidth, font, colorWhite );
-			*s = c;
-
-			if( !*s ) {
-				break;
-			}
-
-			t = s;
-			s++;
-			ptr = s;
-		} else {
-			c = *s;
-			*s = 0;
-
-			// if( trap_SCR_strWidth( ptr, font, 0 ) < maxwidth ) {
-			// 	*s = c;
-			// 	t = s;
-			// 	s++;
-			// 	continue;
-			// }
-
-			*s = c;
-			d = *t;
-			*t = 0;
-			// trap_SCR_DrawStringWidth( x + shadowOffset, y + shadowOffset, ALIGN_CENTER_TOP, COM_RemoveColorTokens( ptr ), maxwidth, font, colorBlack );
-			// trap_SCR_DrawStringWidth( x, y, ALIGN_CENTER_TOP, ptr, maxwidth, font, colorWhite );
-			*t = d;
-			s = t;
-			s++;
-			ptr = s;
-		}
-
-		// y += trap_SCR_FontHeight( font );
-	}
-}
-#endif
-
 /*
 * CG_DrawDemocam2D
 */
@@ -762,24 +551,9 @@ void CG_DrawDemocam2D( void ) {
 	const char *cam_type_name;
 	int64_t cam_timestamp;
 	char sfov[8], strack[8];
-	cg_subtitle_t *sub;
 
 	if( !cgs.demoPlaying ) {
 		return;
-	}
-
-	if( ( sub = CG_Democam_FindCurrentSubtitle() ) != NULL ) {
-		if( sub->text && sub->text[0] ) {
-			int y;
-
-			if( sub->highprint ) {
-				y = frame_static.viewport_height * 0.30f;
-			} else {
-				y = frame_static.viewport_height - ( frame_static.viewport_height * 0.30f );
-			}
-
-			// CG_Democam_DrawCenterSubtitle( y, frame_static.viewport_width * 0.75, cgs.fontSystemBig, sub->text );
-		}
 	}
 
 	if( democam_editing_mode ) {
@@ -1276,66 +1050,6 @@ static void CG_CamSwitch_Cmd_f( void ) {
 }
 
 /*
-* CG_AddCam_Sub_f
-*/
-static void CG_AddSub_Cmd_f( void ) {
-	cg_subtitle_t *sub;
-
-	sub = CG_Democam_RegisterSubtitle();
-	if( !sub ) {
-		Com_Printf( "DemoCam Error: Failed to allocate the subtitle\n" );
-		return;
-	}
-
-	if( Cmd_Argc() > 1 ) {
-		char str[MAX_STRING_CHARS]; // one line of the console can't handle more than this
-
-		str[0] = 0;
-		for( int i = 1; i < Cmd_Argc(); i++ ) {
-			Q_strncatz( str, Cmd_Argv( i ), sizeof( str ) );
-			if( i < Cmd_Argc() - 1 ) {
-				Q_strncatz( str, " ", sizeof( str ) );
-			}
-		}
-
-		sub->text = CG_CopyString( str );
-	} else {
-		sub->text = CG_CopyString( "" );
-	}
-}
-
-/*
-* CG_AddPrint_Cmd_f
-*/
-static void CG_AddPrint_Cmd_f( void ) {
-	cg_subtitle_t *sub;
-
-	sub = CG_Democam_RegisterSubtitle();
-	if( !sub ) {
-		Com_Printf( "DemoCam Error: Failed to allocate the subtitle\n" );
-		return;
-	}
-
-	if( Cmd_Argc() > 1 ) {
-		char str[MAX_STRING_CHARS]; // one line of the console can't handle more than this
-
-		str[0] = 0;
-		for( int i = 1; i < Cmd_Argc(); i++ ) {
-			Q_strncatz( str, Cmd_Argv( i ), sizeof( str ) );
-			if( i < Cmd_Argc() - 1 ) {
-				Q_strncatz( str, " ", sizeof( str ) );
-			}
-		}
-
-		sub->text = CG_CopyString( str );
-	} else {
-		sub->text = CG_CopyString( "" );
-	}
-
-	sub->highprint = true;
-}
-
-/*
 * CG_AddCam_Cmd_f
 */
 static void CG_AddCam_Cmd_f( void ) {
@@ -1586,8 +1300,6 @@ void CG_DemoEditMode_RemoveCmds( void ) {
 	Cmd_RemoveCommand( "saverecam" );
 	Cmd_RemoveCommand( "clearcams" );
 	Cmd_RemoveCommand( "importcams" );
-	Cmd_RemoveCommand( "subtitle" );
-	Cmd_RemoveCommand( "addprint" );
 }
 
 /*
@@ -1616,8 +1328,6 @@ static void CG_DemoEditMode_Cmd_f( void ) {
 		Cmd_AddCommand( "saverecam", CG_SaveCam_Cmd_f );
 		Cmd_AddCommand( "clearcams", CG_Democam_FreeCams );
 		Cmd_AddCommand( "importcams", CG_Democam_ImportCams_f );
-		Cmd_AddCommand( "subtitle", CG_AddSub_Cmd_f );
-		Cmd_AddCommand( "addprint", CG_AddPrint_Cmd_f );
 	} else {
 		CG_DemoEditMode_RemoveCmds();
 	}
@@ -1676,7 +1386,6 @@ void CG_DemocamShutdown( void ) {
 	}
 
 	CG_Democam_FreeCams();
-	CG_Democam_FreeSubtitles();
 	CG_Free( demoscriptname );
 	demoscriptname = NULL;
 }

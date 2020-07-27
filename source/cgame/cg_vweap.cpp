@@ -54,6 +54,10 @@ static void CG_ViewWeapon_UpdateProjectionSource( Vec3 hand_origin, const mat3_t
 	tag_result->origin += FromQFAxis( tag_result->axis, AXIS_UP ) * 8.0f;
 }
 
+static float SmoothStep( float t ) {
+	return t * t * ( 3.0f - 2.0f * t );
+}
+
 /*
 * CG_ViewWeapon_AddAngleEffects
 */
@@ -74,6 +78,10 @@ static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles ) {
 		}
 		frac *= frac; //smoother curve
 		angles->x += Lerp( 0.0f, frac, 60.0f );
+	}
+	else if( cg.predictedPlayerState.weapon_state == WeaponState_Reloading ) {
+		float frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->reload_time );
+		angles->z += Lerp( 0.0f, SmoothStep( frac ), 360.0f );
 	}
 
 	if( cg_gunbob->integer ) {

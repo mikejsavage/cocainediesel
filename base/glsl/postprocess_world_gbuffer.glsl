@@ -19,16 +19,11 @@ void main() {
 
 out float f_Albedo;
 
-#define EDGE_SCALE 30000.0
-#define EDGE_COMPENSATE 0.1
-
 float edgeDetect( float center, float up, float down_left, float down_right ) {
 	float delta = 4.0 * center - 2.0 * up - down_left - down_right;
 	vec2 clamping = clamp( u_ViewportSize - abs( u_ViewportSize - gl_FragCoord.xy * 2.0 ), 1.0, 2.0 ) - 1.0;
 	delta *= min( clamping.x, clamping.y );
-	float edgeness = EDGE_SCALE * abs(delta);
-	edgeness -= EDGE_COMPENSATE * center * center;
-	return clamp( edgeness, 0.0, 1.0 );
+	return smoothstep( 0.0, 0.00001, abs( delta ) );
 }
 
 void main() {

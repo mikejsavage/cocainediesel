@@ -135,16 +135,6 @@ void CG_DrawCrosshair() {
 	CG_FillRect( w / 2 - 2 - size, h / 2 - 2, 4 + 2 * size, 4, vec4_black );
 	CG_FillRect( w / 2 - 1, h / 2 - 1 - size, 2, 2 + 2 * size, color );
 	CG_FillRect( w / 2 - 1 - size, h / 2 - 1, 2 + 2 * size, 2, color );
-
-	// temp reload progress bar
-	if( cg.predictedPlayerState.weapon_state == WeaponState_Reloading ) {
-		const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapon );
-		float frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->reload_time );
-
-		int size = 32;
-		CG_FillRect( w / 2 - 1 - size, h / 2 - 1 + 24, 2 + 2 * size, 4, vec4_black );
-		CG_FillRect( w / 2 - size, h / 2 - 1 + 25, frac * 2 * size, 2, vec4_white );
-	}
 }
 
 void CG_DrawKeyState( int x, int y, int w, int h, const char *key ) {

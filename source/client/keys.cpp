@@ -226,26 +226,16 @@ void Key_WriteBindings( int file ) {
 	}
 }
 
-static void Key_Bindlist_f() {
-	for( int i = 0; i < int( ARRAY_COUNT( keybindings ) ); i++ ) {
-		if( keybindings[i] && keybindings[i][0] ) {
-			Com_Printf( "%s \"%s\"\n", Key_KeynumToString( i ), keybindings[i] );
-		}
-	}
-}
-
 void Key_Init() {
 	Cmd_AddCommand( "bind", Key_Bind_f );
 	Cmd_AddCommand( "unbind", Key_Unbind_f );
 	Cmd_AddCommand( "unbindall", Key_Unbindall );
-	Cmd_AddCommand( "bindlist", Key_Bindlist_f );
 }
 
 void Key_Shutdown() {
 	Cmd_RemoveCommand( "bind" );
 	Cmd_RemoveCommand( "unbind" );
 	Cmd_RemoveCommand( "unbindall" );
-	Cmd_RemoveCommand( "bindlist" );
 
 	Key_Unbindall();
 }

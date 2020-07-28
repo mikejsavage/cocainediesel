@@ -106,8 +106,6 @@ static u64 immediate_sounds_autoinc;
 static ALuint music_source;
 static bool music_playing;
 
-static bool window_focused;
-
 static EntitySound entities[ MAX_EDICTS ];
 
 const char *S_ErrorMessage( ALenum error ) {
@@ -509,7 +507,6 @@ bool S_Init() {
 	num_playing_sound_effects = 0;
 	immediate_sounds_autoinc = 1;
 	music_playing = false;
-	window_focused = true;
 	initialized = false;
 
 	memset( entities, 0, sizeof( entities ) );

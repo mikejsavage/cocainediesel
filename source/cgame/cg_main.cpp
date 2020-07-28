@@ -300,6 +300,7 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	CG_InitHUD();
 
 	InitDecals();
+	InitSprays();
 	InitParticles();
 	InitPersistentBeams();
 	InitGibs();

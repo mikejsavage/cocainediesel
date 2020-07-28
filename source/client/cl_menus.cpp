@@ -31,7 +31,7 @@ enum GameMenuState {
 	GameMenuState_Menu,
 	GameMenuState_Loadout,
 	GameMenuState_Settings,
-	GameMenuState_Votemap,
+	GameMenuState_Vote,
 };
 
 enum DemoMenuState {
@@ -914,6 +914,8 @@ static void GameMenu() {
 
 		if( spectating ) {
 			if( team_based ) {
+				GameMenuButton( "Auto-join", "join", &should_close );
+
 				ImGui::Columns( 2, NULL, false );
 				ImGui::SetColumnWidth( 0, half );
 				ImGui::SetColumnWidth( 1, half );
@@ -958,8 +960,8 @@ static void GameMenu() {
 			}
 		}
 
-		if( ImGui::Button( "Change map", ImVec2( -1, 0 ) ) ) {
-			gamemenu_state = GameMenuState_Votemap;
+		if( ImGui::Button( "Start a vote", ImVec2( -1, 0 ) ) ) {
+			gamemenu_state = GameMenuState_Vote;
 		}
 
 		if( ImGui::Button( "Settings", ImVec2( -1, 0 ) ) ) {
@@ -1092,14 +1094,24 @@ static void GameMenu() {
 		ImGui::PopStyleColor();
 		ImGui::PopFont();
 	}
-	else if( gamemenu_state == GameMenuState_Votemap ) {
+	else if( gamemenu_state == GameMenuState_Vote ) {
 		TempAllocator temp = cls.frame_arena.temp();
 		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
+		ImGui::SetNextWindowSize( ImVec2( -1, -1 ) );
 		ImGui::Begin( "votemap", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
-		const char * map_name = SelectableMapList();
+		static int e = 0;
+        ImGui::RadioButton( "Start match", &e, 0 ); ImGui::SameLine();
+        ImGui::RadioButton( "Change map", &e, 1 );
 
-		GameMenuButton( "Start vote", temp( "callvote map {}", map_name ), &should_close );
+        if( e == 0 ) {
+        	GameMenuButton( "Start vote", "callvote allready", &should_close );
+        }
+        
+        if( e == 1 ) {
+			const char * map_name = SelectableMapList();
+			GameMenuButton( "Start vote", temp( "callvote map {}", map_name ), &should_close );
+		}
 	}
 	else if( gamemenu_state == GameMenuState_Settings ) {
 		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );

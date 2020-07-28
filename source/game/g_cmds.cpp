@@ -752,10 +752,6 @@ static void G_vsay_f( edict_t *ent, bool team ) {
 			return; // ignore silently vsays in that come in rapid succession
 		}
 		ent->r.client->level.last_vsay = svs.realtime;
-
-		if( CheckFlood( ent, false ) ) {
-			return;
-		}
 	}
 
 	for( const g_vsays_t * vsay = g_vsays; vsay->name; vsay++ ) {

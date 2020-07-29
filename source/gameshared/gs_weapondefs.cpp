@@ -81,7 +81,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"SMG", "mg",
-		3,
+		2,
 
 		1,                              // projectiles fired each shot
 		25,                             // clip size
@@ -180,7 +180,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Assault Rifle", "ar",
-		2,
+		1,
 
 		1,                              // projectiles fired each shot
 		25,                             // clip size

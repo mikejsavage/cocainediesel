@@ -1,10 +1,5 @@
 const int NUM_WEAPONS = 3;
 
-const WeaponType[] primaries = { Weapon_Sniper, Weapon_RocketLauncher, Weapon_Laser };
-const WeaponType[] secondaries = { Weapon_Rifle, Weapon_Shotgun, Weapon_Deagle, Weapon_Railgun, Weapon_GrenadeLauncher };
-const WeaponType[] backup = { Weapon_MachineGun, Weapon_Pistol, Weapon_Plasma, Weapon_BubbleGun };
-
-
 cPlayer@[] players( maxClients ); // array of handles
 bool playersInitialized = false;
 
@@ -65,8 +60,6 @@ class cPlayer {
 	}
 
 	void setLoadout( String &cmd ) {		
-		WeaponType[][] category = { primaries, secondaries, backup };
-
 		uint[] oldloadout = this.loadout;
 		uint[] newloadout( NUM_WEAPONS );
 
@@ -87,9 +80,9 @@ class cPlayer {
 
 
 		//Check for categories
-		for( uint i = 0; i < category.length(); i++ ) {
+		for( int i = 0; i < NUM_WEAPONS; i++ ) {
 			for( uint j = 0; j < newloadout.length(); j++ ) {
-				if( category[ i ].find( WeaponType( newloadout[ j ] ) ) != -1 ) {
+				if( ( WeaponCategory( WeaponType( newloadout[ j ] ) ) - 1 ) == i ) {
 					this.loadout[ j ] = newloadout[ j ];
 					break;
 				}

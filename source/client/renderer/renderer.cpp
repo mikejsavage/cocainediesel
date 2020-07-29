@@ -330,6 +330,11 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	dynamic_geometry_num_vertices = 0;
 	dynamic_geometry_num_indices = 0;
 
+	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer > 16 || r_samples->integer == 1 ) {
+		Com_Printf( "Invalid r_samples value (%d), resetting\n", r_samples->integer );
+		Cvar_Set( "r_samples", "0" );
+	}
+
 	frame_static.viewport_width = Max2( u32( 1 ), viewport_width );
 	frame_static.viewport_height = Max2( u32( 1 ), viewport_height );
 	frame_static.viewport = Vec2( frame_static.viewport_width, frame_static.viewport_height );

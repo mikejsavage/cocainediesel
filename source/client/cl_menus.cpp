@@ -654,6 +654,9 @@ static void CreateServer() {
 }
 
 static void MainMenu() {
+	static bool change_name_popup = false;
+	static const char * player_name = Cvar_Get( "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE )->string;
+
 	TempAllocator temp = cls.frame_arena.temp();
 
 	ImGui::SetNextWindowPos( ImVec2() );
@@ -663,6 +666,30 @@ static void MainMenu() {
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground;
 
 	ImGui::Begin( "mainmenu", WindowZOrder_Menu, flags );
+
+	//Set your nickname if its the default one
+	if( !change_name_popup && strcmp( "Player", player_name ) == 0 ) {
+		ImGui::OpenPopup( "change name" );
+	} else {
+		change_name_popup = true;
+	}
+	
+	if( ImGui::BeginPopupModal( "change name", NULL, ImGuiWindowFlags_NoDecoration ) ) {
+		ImGui::BeginChild( "nameset", ImVec2( 500, 125 ) );
+		ImGui::Text( "Change your nickname" );
+
+		CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
+
+		if( ImGui::Button( "Ok", ImVec2( -1, 0 ) ) ) {
+			change_name_popup = true;
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::EndChild();
+		ImGui::EndPopup();
+	}
+
+
 
 	ImVec2 window_padding = ImGui::GetStyle().WindowPadding;
 

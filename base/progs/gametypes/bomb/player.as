@@ -1,4 +1,9 @@
-const int MAX_CASH = 500;
+const int NUM_WEAPONS = 3;
+
+const WeaponType[] primaries = { Weapon_Sniper, Weapon_RocketLauncher, Weapon_Laser };
+const WeaponType[] secondaries = { Weapon_Rifle, Weapon_Shotgun, Weapon_Deagle, Weapon_Railgun, Weapon_GrenadeLauncher };
+const WeaponType[] backup = { Weapon_MachineGun, Weapon_Pistol, Weapon_Plasma, Weapon_BubbleGun };
+
 
 cPlayer@[] players( maxClients ); // array of handles
 bool playersInitialized = false;
@@ -6,7 +11,7 @@ bool playersInitialized = false;
 class cPlayer {
 	Client @client;
 
-	uint[] loadout( Weapon_Count - 1 );
+	uint[] loadout( NUM_WEAPONS );
 	int num_weapons;
 
 	int killsThisRound;
@@ -59,36 +64,36 @@ class cPlayer {
 		this.client.execGameCommand( command );
 	}
 
-	void setLoadout( String &cmd ) {
-		int cash = MAX_CASH;
+	void setLoadout( String &cmd ) {		
+		WeaponType[][] category = { primaries, secondaries, backup };
 
-		int old_num_weapons = this.num_weapons;
+		uint[] oldloadout = this.loadout;
+		uint[] newloadout( NUM_WEAPONS );
+
+		//Retrieve weapons
 		this.num_weapons = 0;
+		for( int i = 0; i < NUM_WEAPONS; i++ ) {
+			String token = cmd.getToken( i );
 
-		uint[] newloadout( Weapon_Count - 1 );
-		{
-			int i = 0;
-			while( true ) {
-				String token = cmd.getToken( i );
-				i++;
-				if( token == "" )
-					break;
-				int weapon = token.toInt();
-				if( weapon > Weapon_None && weapon < Weapon_Count && weapon != Weapon_Knife ) {
-					newloadout[ this.num_weapons ] = weapon;
-					cash -= WeaponCost( WeaponType( weapon ) );
-					this.num_weapons++;
-				}
+			if( token == "" )
+				break;
+
+			int weapon = token.toInt();
+			if( weapon > Weapon_None && weapon < Weapon_Count && weapon != Weapon_Knife ) {
+				newloadout[ i ] = weapon;
+				this.num_weapons++;
 			}
 		}
 
-		for( uint i = 0; i < newloadout.length(); i++ ) {
-			this.loadout[ i ] = newloadout[ i ];
-		}
 
-		if( cash < 0 ) {
-			G_PrintMsg( @this.client.getEnt(), "You are not wealthy enough\n" );
-			return;
+		//Check for categories
+		for( uint i = 0; i < category.length(); i++ ) {
+			for( uint j = 0; j < newloadout.length(); j++ ) {
+				if( category[ i ].find( WeaponType( newloadout[ j ] ) ) != -1 ) {
+					this.loadout[ j ] = newloadout[ j ];
+					break;
+				}
+			}
 		}
 
 		String command = "saveloadout";
@@ -109,11 +114,11 @@ class cPlayer {
 			if( roundState == RoundState_Pre ) {
 				giveInventory();
 			}
-			else if( old_num_weapons == this.num_weapons ) {
+			else {
 				bool rearranging = true;
 
-				for( uint i = 0; i < newloadout.length(); i++ ) {
-					if( this.loadout.find( newloadout[ i ] ) == -1 ) {
+				for( uint i = 0; i < this.loadout.length(); i++ ) {
+					if( this.loadout.find( oldloadout[ i ] ) == -1 ) {
 						rearranging = false;
 						break;
 					}

@@ -176,6 +176,7 @@ static const asEnumVal_t asWeaponTypeEnumVals[] =
 	ASLIB_ENUM_VAL( Weapon_GrenadeLauncher ),
 	ASLIB_ENUM_VAL( Weapon_RocketLauncher ),
 	ASLIB_ENUM_VAL( Weapon_Plasma ),
+	ASLIB_ENUM_VAL( Weapon_BubbleGun ),
 	ASLIB_ENUM_VAL( Weapon_Laser ),
 	ASLIB_ENUM_VAL( Weapon_Railgun ),
 	ASLIB_ENUM_VAL( Weapon_Sniper ),
@@ -1636,8 +1637,8 @@ static void asFunc_G_LoadMap( asstring_t *str ) {
 	G_Aasdf();
 }
 
-static int asFunc_WeaponCost( WeaponType weapon ) {
-	return GS_GetWeaponDef( weapon )->cost;
+static int asFunc_WeaponCategory( WeaponType weapon ) {
+	return GS_GetWeaponDef( weapon )->category;
 }
 
 static void asFunc_PositionedSound( asvec3_t *origin, int channel, u64 sound ) {
@@ -1712,7 +1713,7 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 
 	{ "void G_LoadMap( const String &name )", asFUNCTION( asFunc_G_LoadMap ), NULL },
 
-	{ "int WeaponCost( WeaponType )", asFUNCTION( asFunc_WeaponCost ), NULL },
+	{ "int WeaponCategory( WeaponType )", asFUNCTION( asFunc_WeaponCategory ), NULL },
 
 	// misc management utils
 	{ "void G_RemoveProjectiles( Entity @ )", asFUNCTION( asFunc_G_Match_RemoveProjectiles ), NULL },

@@ -64,7 +64,6 @@ static MainMenuState mainmenu_state;
 static int selected_server;
 
 static GameMenuState gamemenu_state;
-static constexpr int MAX_CASH = 500;
 static WeaponType selected_weapons[ Weapon_Count - 1 ];
 
 static SettingsState settings_state;
@@ -832,7 +831,7 @@ static void SendLoadout() {
 }
 
 
-static void WeaponButton( int cash, WeaponType weapon, ImVec2 size ) {
+static void WeaponButton( WeaponType weapon, ImVec2 size ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
 	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0.1f, 0.1f, 0.1f, 1.0f ) );
 	ImGui::PushStyleColor( ImGuiCol_ButtonActive, Vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
@@ -846,11 +845,10 @@ static void WeaponButton( int cash, WeaponType weapon, ImVec2 size ) {
 	int idx = SelectedWeaponIndex( weapon );
 
 	bool selected = idx != -1;
-	bool affordable = def->cost <= cash;
 
 	const Material * icon = cgs.media.shaderWeaponIcon[ weapon ];
 	Vec2 half_pixel = HalfPixelSize( icon );
-	Vec4 color = selected ? vec4_green : ( affordable ? vec4_white : Vec4( 0.5f, 0.5f, 0.5f, 1.0f ) );
+	Vec4 color = selected ? vec4_green : vec4_white;
 
 	ImGui::PushStyleColor( ImGuiCol_Border, color );
 	defer { ImGui::PopStyleColor(); };
@@ -873,7 +871,14 @@ static void WeaponButton( int cash, WeaponType weapon, ImVec2 size ) {
 				selected_weapons[ i ] = selected_weapons[ i + 1 ];
 			}
 		}
-		else if( affordable ) {
+		else {
+			int category = GS_GetWeaponDef( weapon )->category;
+			for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
+				if( GS_GetWeaponDef( selected_weapons[ i ] )->category == category ) {
+					selected_weapons[ i ] = Weapon_None;
+				}
+			}
+
 			for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
 				if( selected_weapons[ i ] == Weapon_None ) {
 					selected_weapons[ i ] = weapon;
@@ -987,25 +992,20 @@ static void GameMenu() {
 		ImGui::SetNextWindowSize( displaySize );
 		ImGui::Begin( "Loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
-		int cash = MAX_CASH;
-		for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
-			cash -= GS_GetWeaponDef( selected_weapons[ i ] )->cost;
-		}
-
 		const Vec2 icon_size = Vec2( displaySize.x * 0.075f );
 
 		ImGui::Columns( 2, NULL, false );
 		ImGui::SetColumnWidth( 0, 300 );
 
 		{
-			ImGui::Text( "Primaries ($2.00)" );
+			ImGui::Text( "Primary" );
 			ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
 			ImGui::NextColumn();
 
 			for( WeaponType i = 0; i < Weapon_Count; i++ ) {
 				const WeaponDef * def = GS_GetWeaponDef( i );
-				if( def->cost == 200 ) {
-					WeaponButton( cash, i, icon_size );
+				if( def->category == 1 ) {
+					WeaponButton( i, icon_size );
 				}
 			}
 
@@ -1013,14 +1013,29 @@ static void GameMenu() {
 		}
 
 		{
-			ImGui::Text( "Secondaries ($1.00)" );
+			ImGui::Text( "Secondary" );
 			ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
 			ImGui::NextColumn();
 
 			for( WeaponType i = 0; i < Weapon_Count; i++ ) {
 				const WeaponDef * def = GS_GetWeaponDef( i );
-				if( def->cost == 100 ) {
-					WeaponButton( cash, i, icon_size );
+				if( def->category == 2 ) {
+					WeaponButton( i, icon_size );
+				}
+			}
+
+			ImGui::NextColumn();
+		}
+
+		{
+			ImGui::Text( "Backup" );
+			ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
+			ImGui::NextColumn();
+
+			for( WeaponType i = 0; i < Weapon_Count; i++ ) {
+				const WeaponDef * def = GS_GetWeaponDef( i );
+				if( def->category == 3 ) {
+					WeaponButton( i, icon_size );
 				}
 			}
 
@@ -1030,9 +1045,6 @@ static void GameMenu() {
 		ImGui::EndColumns();
 
 		TempAllocator temp = cls.frame_arena.temp();
-		ImGuiColorToken c = cash == 0 ? ImGuiColorToken( 255, 255, 255, 255 ) : ImGuiColorToken( LinearTosRGB( AttentionGettingColor() ) );
-		ImGui::Text( "%s", temp( "{}UNSPENT CASH: {}${}.{02}{}{}", c, S_COLOR_GREEN, cash / 100, cash % 100, c, cash == 0 ? "" : "!!!" ) );
-
 		{
 			ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
 			ImGui::PushStyleColor( ImGuiCol_ButtonHovered, vec4_black );

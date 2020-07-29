@@ -64,7 +64,6 @@ class cPlayer {
 		uint[] newloadout( NUM_WEAPONS );
 
 		//Retrieve weapons
-		this.num_weapons = 0;
 		for( int i = 0; i < NUM_WEAPONS; i++ ) {
 			String token = cmd.getToken( i );
 
@@ -74,16 +73,17 @@ class cPlayer {
 			int weapon = token.toInt();
 			if( weapon > Weapon_None && weapon < Weapon_Count && weapon != Weapon_Knife ) {
 				newloadout[ i ] = weapon;
-				this.num_weapons++;
 			}
 		}
 
 
 		//Check for categories
+		this.num_weapons = 0;
 		for( int i = 0; i < NUM_WEAPONS; i++ ) {
 			for( uint j = 0; j < newloadout.length(); j++ ) {
 				if( ( WeaponCategory( WeaponType( newloadout[ j ] ) ) - 1 ) == i ) {
 					this.loadout[ j ] = newloadout[ j ];
+					this.num_weapons++;
 					break;
 				}
 			}

@@ -29,12 +29,6 @@ class cPlayer {
 		@players[player.playerNum] = @this;
 	}
 
-	void rearrangeInventory() {
-		for( int i = 0; i < this.num_weapons; i++ ) {
-			this.client.setWeaponIndex( WeaponType( this.loadout[ i ] ), i + 1 ); // + 1 because of knife
-		}
-	}
-
 	void giveInventory() {
 		this.client.inventoryClear();
 		this.client.giveWeapon( Weapon_Knife );
@@ -60,7 +54,6 @@ class cPlayer {
 	}
 
 	void setLoadout( String &cmd ) {		
-		uint[] oldloadout = this.loadout;
 		uint[] newloadout( NUM_WEAPONS );
 
 		//Retrieve weapons
@@ -103,24 +96,8 @@ class cPlayer {
 			giveInventory();
 		}
 
-		if( match.getState() == MATCH_STATE_PLAYTIME ) {
-			if( roundState == RoundState_Pre ) {
-				giveInventory();
-			}
-			else {
-				bool rearranging = true;
-
-				for( uint i = 0; i < this.loadout.length(); i++ ) {
-					if( this.loadout.find( oldloadout[ i ] ) == -1 ) {
-						rearranging = false;
-						break;
-					}
-				}
-
-				if( rearranging ) {
-					rearrangeInventory();
-				}
-			}
+		if( match.getState() == MATCH_STATE_PLAYTIME && roundState == RoundState_Pre ) {
+			giveInventory();
 		}
 	}
 }

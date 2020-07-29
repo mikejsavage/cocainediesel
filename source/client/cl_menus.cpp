@@ -848,9 +848,8 @@ static void SendLoadout() {
 	DynamicString loadout( &temp, "weapselect" );
 
 	for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
-		if( selected_weapons[ i ] == Weapon_None )
-			break;
-		loadout.append( " {}", selected_weapons[ i ] );
+		if( selected_weapons[ i ] > Weapon_None && selected_weapons[ i ] < Weapon_Count )
+			loadout.append( " {}", selected_weapons[ i ] );
 	}
 	loadout += "\n";
 
@@ -894,24 +893,10 @@ static void WeaponButton( WeaponType weapon, ImVec2 size ) {
 	if( clicked || ImGui::Hotkey( weaponBinds[ 0 ] ) || ImGui::Hotkey( weaponBinds[ 1 ] ) ) {
 		if( selected ) {
 			selected_weapons[ idx ] = Weapon_None;
-			for( size_t i = idx; i < ARRAY_COUNT( selected_weapons ) - 1; i++ ) {
-				selected_weapons[ i ] = selected_weapons[ i + 1 ];
-			}
 		}
 		else {
-			int category = GS_GetWeaponDef( weapon )->category;
-			for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
-				if( GS_GetWeaponDef( selected_weapons[ i ] )->category == category ) {
-					selected_weapons[ i ] = Weapon_None;
-				}
-			}
-
-			for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
-				if( selected_weapons[ i ] == Weapon_None ) {
-					selected_weapons[ i ] = weapon;
-					break;
-				}
-			}
+			int i = GS_GetWeaponDef( weapon )->category - 1;
+			selected_weapons[ i ] = weapon;
 		}
 
 		SendLoadout();
@@ -1084,38 +1069,20 @@ static void GameMenu() {
 
 			size_t num_weapons = 0;
 			for( WeaponType w : selected_weapons ) {
-				if( w == Weapon_None )
-					break;
-				num_weapons++;
+				if( w != Weapon_None )
+					num_weapons++;
 			}
 
 			const ImGuiStyle & style = ImGui::GetStyle();
 			ImGui::SetCursorPos( ImVec2( displaySize.x - num_weapons * ( icon_size.x + style.ItemSpacing.x + style.FramePadding.x * 2 + 16 + 2 ), displaySize.y - icon_size.y - 16 ) - style.WindowPadding );
 
-			for( size_t i = 0; i < num_weapons; i++ ) {
-				const Material * icon = cgs.media.shaderWeaponIcon[ selected_weapons[ i ] ];
+			for( WeaponType w : selected_weapons ) {
+				if( w == Weapon_None )
+					continue;
+				
+				const Material * icon = cgs.media.shaderWeaponIcon[ w ];
 				Vec2 half_pixel = HalfPixelSize( icon );
 				ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, vec4_black );
-
-				if( ImGui::BeginDragDropSource( ImGuiDragDropFlags_None ) ) {
-					ImGui::SetDragDropPayload( "inventory", &i, sizeof( size_t ) );
-					ImGui::Image( icon, icon_size, half_pixel, 1.0f - half_pixel );
-					ImGui::EndDragDropSource();
-				}
-
-				if( ImGui::BeginDragDropTarget() ) {
-					if( const ImGuiPayload * payload = ImGui::AcceptDragDropPayload( "inventory" ) ) {
-						size_t dragged;
-						IM_ASSERT( payload->DataSize == sizeof( dragged ) );
-						memcpy( &dragged, payload->Data, sizeof( dragged ) );
-
-						Swap2( &selected_weapons[ dragged ], &selected_weapons[ i ] );
-
-						SendLoadout();
-					}
-
-					ImGui::EndDragDropTarget();
-				}
 
 				ImGui::SameLine();
 				ImGui::Dummy( Vec2( 16, 0 ) );

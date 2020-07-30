@@ -1,71 +1,81 @@
-in vec3      iResolution;           // viewport resolution (in pixels)
-in float     iTime;                 // shader playback time (in seconds)
-in float     iTimeDelta;            // render time (in seconds)
-in int       iFrame;                // shader playback frame
-in float     iChannelTime[4];       // channel playback time (in seconds)
-in vec3      iChannelResolution[4]; // channel resolution (in pixels)
-in vec4      iMouse;                // mouse pixel coords. xy: current (if MLB down), zw: click
-in vec4      iDate;                 // (year, month, day, time in seconds)
-in float     iSampleRate;           // sound sample rate (i.e., 44100)
-// License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
-in vec2 fragCoord;
-// Return random noise in the range [0.0, 1.0], as a function of x.
-float Noise2d( in vec2 x )
-{
-    float xhash = cos( x.x * 37.0 );
-    float yhash = cos( x.y * 57.0 );
-    return fract( 415.92653 * ( xhash + yhash ) );
+#include "include/uniforms.glsl"
+#include "include/common.glsl"
+#include "include/dither.glsl"
+
+v2f vec3 v_Position;
+
+
+#if VERTEX_SHADER
+
+in vec4 a_Position;
+
+void main() {
+	v_Position = a_Position.xyz;
+	gl_Position = u_P * u_V * vec4( a_Position );
 }
 
-// Convert Noise2d() into a "star field" by stomping everthing below fThreshhold to zero.
-float NoisyStarField( in vec2 vSamplePos, float fThreshhold )
-{
-    float StarVal = Noise2d( vSamplePos );
-    if ( StarVal >= fThreshhold )
-        StarVal = pow( (StarVal - fThreshhold)/(1.0 - fThreshhold), 6.0 );
-    else
-        StarVal = 0.0;
-    return StarVal;
+#else
+
+layout( std140 ) uniform u_Time {
+	float u_T;
+};
+
+out vec3 f_Albedo;
+
+vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+
+float snoise(vec2 v){
+  const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+           -0.577350269189626, 0.024390243902439);
+  vec2 i  = floor(v + dot(v, C.yy) );
+  vec2 x0 = v -   i + dot(i, C.xx) + sin( u_T ) * 0.375;
+  vec2 i1;
+  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+  vec4 x12 = x0.xyxy + C.xxzz;
+  x12.xy -= i1;
+  i = mod(i, 289.0);
+  vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
+  + i.x + vec3(0.0, i1.x, 1.0 ));
+  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy),
+    dot(x12.zw,x12.zw)), 0.0);
+  m = m*m ;
+  m = m*m ;
+  vec3 x = 2.0 * fract(p * C.www) - 1.0;
+  vec3 h = abs(x) - 0.5;
+  vec3 ox = floor(x + 0.5);
+  vec3 a0 = x - ox;
+  m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+  vec3 g;
+  g.x  = a0.x  * x0.x  + h.x  * x0.y;
+  g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+  return 130.0 * dot(m, g);
 }
 
-// Stabilize NoisyStarField() by only sampling at integer values.
-float StableStarField( in vec2 vSamplePos, float fThreshhold )
-{
-    // Linear interpolation between four samples.
-    // Note: This approach has some visual artifacts.
-    // There must be a better way to "anti alias" the star field.
-    float fractX = fract( vSamplePos.x );
-    float fractY = fract( vSamplePos.y );
-    vec2 floorSample = floor( vSamplePos );    
-    float v1 = NoisyStarField( floorSample, fThreshhold );
-    float v2 = NoisyStarField( floorSample + vec2( 0.0, 1.0 ), fThreshhold );
-    float v3 = NoisyStarField( floorSample + vec2( 1.0, 0.0 ), fThreshhold );
-    float v4 = NoisyStarField( floorSample + vec2( 1.0, 1.0 ), fThreshhold );
+void main() {
+	vec3 normal_pos = normalize( v_Position );
+	float elevation = acos( normal_pos.z ) / ( M_PI * 0.425 );
+	float latitude = atan( v_Position.y, v_Position.x );
 
-    float StarVal =   v1 * ( 1.0 - fractX ) * ( 1.0 - fractY )
-        			+ v2 * ( 1.0 - fractX ) * fractY
-        			+ v3 * fractX * ( 1.0 - fractY )
-        			+ v4 * fractX * fractY;
-	return StarVal;
+	float r = elevation * 2.0 * ( 1 - cos( u_T ) * 0.125 );
+	vec2 movement = vec2( distance( vec3( 10000.0 ), u_CameraPos ) * 0.0005 );
+	float n = snoise( vec2( sin( latitude ), cos( latitude ) ) * r + movement );
+	n += snoise( vec2( sin( latitude ), cos( latitude ) ) * r * 4.0 + movement * 0.5 ) * 1.0;
+	n += snoise( vec2( sin( latitude ), cos( latitude ) ) * r * 8.0 + movement * 0.25 ) * 0.5;
+	float factor = elevation + 0.02 * n;
+	float lines = 10.0;
+	float value = floor( factor * lines ) / lines;
+	value -= 0.25;
+	float smoothness = mod( factor, 1.0 / lines ) * elevation * 0.25;
+	smoothness = clamp( smoothness, 0.0, 1.0 );
+	value += smoothness;
+	value = clamp( value, 0.0, 1.0 );
+	value = 1.0 - value;
+	value = abs( value ) * 0.1;
+	value = clamp( value, 0.0, 1.0 );
+
+	vec3 color = vec3( value, value, value );
+
+	f_Albedo = LinearTosRGB( color + Dither() );
 }
 
-void main()
-{
-// Sky Background Color
-	vec3 vColor = vec3( 0.1, 0.2, 0.4 ) * fragCoord.y / iResolution.y;
-
-    // Note: Choose fThreshhold in the range [0.99, 0.9999].
-    // Higher values (i.e., closer to one) yield a sparser starfield.
-    float StarFieldThreshhold = 0.97;
-
-    // Stars with a slow crawl.
-    float xRate = 0.2;
-    float yRate = -0.06;
-    vec2 vSamplePos = fragCoord.xy + vec2( xRate * float( iFrame ), yRate * float( iFrame ) );
-	float StarVal = StableStarField( vSamplePos, StarFieldThreshhold );
-    vColor += vec3( StarVal );
-	
-	fragColor = vec4(vColor, 1.0);
-}
-
-out vec4 fragColor;
+#endif

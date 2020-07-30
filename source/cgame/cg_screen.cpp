@@ -404,7 +404,7 @@ void CG_DrawDamageNumbers() {
 		Vec4 color;
 		if( dn.damage == MINI_OBITUARY_DAMAGE ) {
 			Q_strncpyz( buf, dn.obituary, sizeof( buf ) );
-			color = CG_TeamColorVec4( TEAM_ENEMY );
+			color = AttentionGettingColor();
 		}
 		else {
 			snprintf( buf, sizeof( buf ), "%d", dn.damage );

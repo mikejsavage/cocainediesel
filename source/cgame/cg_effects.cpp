@@ -6,114 +6,137 @@ void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 		ParticleEmitter emitter = { };
 		emitter.position = origin;
 
-		emitter.use_cone_direction = true;
-		emitter.direction_cone.normal = normal;
-		emitter.direction_cone.theta = 80.0f;
+        emitter.position_distribution.type = RandomDistribution3DType_Sphere;
+        emitter.position_distribution.sphere.radius = 48.0f;
 
-		emitter.start_speed = 500.0f;
-		emitter.end_speed = 200.0f;
-		emitter.speed_distribution.type = RandomDistributionType_Uniform;
-		emitter.speed_distribution.uniform = 100.0f;
-
-		emitter.start_color = Vec4( 1.0f, 1.0f, 1.0f, 1.0f );
-		emitter.end_color = Vec3( 1.0f, 1.0f, 1.0f );
-
-		emitter.start_size = 4.0f;
-		emitter.end_size = 4.0f;
-
-		emitter.lifetime = 1.5f;
-		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-		emitter.lifetime_distribution.uniform = 0.15f;
-
-		emitter.n = 24;
-
-		EmitParticles( &cgs.sparks, emitter );
-	}
-
-	{
-		ParticleEmitter emitter = { };
-		emitter.position = origin;
-
-		emitter.use_cone_direction = true;
-		emitter.direction_cone.normal = normal;
-		emitter.direction_cone.theta = 180.0f;
-
-		emitter.start_speed = 200.0f;
-		emitter.end_speed = 50.0f;
-
-		float darken = 0.1f;
-		float r = team_color.x >= darken ? team_color.x - darken : 0.0f;
-		float g = team_color.y >= darken ? team_color.y - darken : 0.0f;
-		float b = team_color.z >= darken ? team_color.z - darken : 0.0f;
-
-		emitter.start_color = Vec4( 1.0f, 1.0f, 1.0f, 1.0f );
-		emitter.end_color = Vec3( r, g, b );
-
-		emitter.start_size = 24.0f;
-		emitter.end_size = 12.0f;
-		emitter.size_distribution.type = RandomDistributionType_Uniform;
-		emitter.size_distribution.uniform = 10.0f;
-
-		emitter.lifetime = 0.30f;
-		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-		emitter.lifetime_distribution.uniform = 0.15f;
-
-		emitter.n = 64;
-
-		EmitParticles( &cgs.sparks, emitter );
-	}
-
-	{
-		ParticleEmitter emitter = { };
-		emitter.position = origin;
-
-		emitter.use_cone_direction = true;
-		emitter.direction_cone.normal = normal;
-		emitter.direction_cone.theta = 180.0f;
-
-		emitter.start_speed = 200.0f;
+		emitter.start_speed = 20.0f;
 		emitter.end_speed = 50.0f;
 
 		emitter.start_color = Vec4( 1.0f, 1.0f, 1.0f, 1.0f );
-		emitter.end_color = team_color;
+		emitter.end_color = Vec3( 0.0f, 0.0f, 0.0f );
 
-		emitter.start_size = 16.0f;
-		emitter.end_size = 16.0f;
+		emitter.start_size = 32.0f;
+		emitter.end_size = 0.0f;
 		emitter.size_distribution.type = RandomDistributionType_Uniform;
-		emitter.size_distribution.uniform = 16.0f;
+		emitter.size_distribution.uniform = 8.0f;
 
-		emitter.lifetime = 0.3f;
+		emitter.lifetime = 0.25f;
 		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
 		emitter.lifetime_distribution.uniform = 0.2f;
 
-		emitter.n = 256;
+		emitter.n = 64;
 
-		EmitParticles( &cgs.ions, emitter );
+		EmitParticles( &cgs.smoke, emitter );
 	}
-
 	{
 		ParticleEmitter emitter = { };
 		emitter.position = origin;
 
 		emitter.use_cone_direction = true;
 		emitter.direction_cone.normal = normal;
-		emitter.direction_cone.theta = 5.0f;
+		emitter.direction_cone.theta = 180.0f;
+		// emitter.position_distribution.type = RandomDistribution3DType_Disk;
+		// emitter.position_distribution.disk.radius = 24.0f;
 
-		emitter.start_speed = 200.0f;
+		emitter.start_speed = 1000.0f;
 		emitter.end_speed = 0.0f;
 
-		emitter.start_color = Vec4( 1.0f, 1.0f, 1.0f, 1.0f );
-		emitter.end_color = Vec3( 1.0f, 1.0f, 1.0f );
+		emitter.start_color = Vec4( team_color, 1.0f );
+		emitter.end_color = Vec3( 0.0f, 0.0f, 0.0f );
 
-		emitter.start_size = 64.0f;
+		emitter.start_size = 12.0f;
 		emitter.end_size = 0.0f;
+		emitter.size_distribution.type = RandomDistributionType_Uniform;
+		emitter.size_distribution.uniform = 8.0f;
 
-		emitter.lifetime = 0.5f;
+		emitter.lifetime = 0.55f;
+		emitter.lifetime_distribution.uniform = 0.25f;
 
-		emitter.n = 1;
+		emitter.n = 64;
 
-		EmitParticles( &cgs.sparks, emitter );
+		EmitParticles( &cgs.fire, emitter );
 	}
+	{
+		ParticleEmitter emitter = { };
+		emitter.position = origin;
+
+		emitter.use_cone_direction = true;
+		emitter.direction_cone.normal = normal;
+		emitter.direction_cone.theta = 90.0f;
+        emitter.position_distribution.type = RandomDistribution3DType_Sphere;
+        emitter.position_distribution.sphere.radius = 8.0f;
+
+		emitter.start_speed = 0.0f;
+		emitter.end_speed = 100.0f;
+
+		emitter.start_color = Vec4( team_color, 1.0f );
+		emitter.end_color = Vec3( 0.0f, 0.0f, 0.0f );
+
+		emitter.start_size = 165.0f;
+		emitter.end_size = 128.0f;
+		emitter.size_distribution.type = RandomDistributionType_Uniform;
+		emitter.size_distribution.uniform = 8.0f;
+
+		emitter.lifetime = 0.15f;
+		emitter.lifetime_distribution.uniform = 0.25f;
+
+		emitter.n = 32;
+
+		EmitParticles( &cgs.explosion, emitter );
+	}
+	{
+		ParticleEmitter emitter = { };
+
+        emitter.position = origin;
+        emitter.position_distribution.type = RandomDistribution3DType_Sphere;
+        emitter.position_distribution.sphere.radius = 48.0f;
+
+		emitter.start_speed = 20.0f;
+		emitter.end_speed = 100.0f;
+
+		emitter.start_color = Vec4( 0.25f, 0.25f, 0.25f, 1.20f );
+		emitter.end_color = Vec3( 0.0f, 0.0f, 0.0f );
+
+		emitter.start_size = 32.0f;
+		emitter.end_size = 0.0f;
+		emitter.size_distribution.type = RandomDistributionType_Uniform;
+		emitter.size_distribution.uniform = 8.0f;
+
+		emitter.lifetime = 0.45f;
+		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
+		emitter.lifetime_distribution.uniform = 0.2f;
+
+		emitter.n = 64;
+
+		EmitParticles( &cgs.smoke2, emitter );
+	}
+	// 	{
+	// 	ParticleEmitter emitter = { };
+	// 	emitter.position = origin;
+
+	// 	emitter.use_cone_direction = true;
+	// 	emitter.direction_cone.normal = normal;
+	// 	emitter.direction_cone.theta = 180.0f;
+
+	// 	emitter.start_speed = 200.0f;
+	// 	emitter.end_speed = 1000.0f;
+
+	// 	emitter.start_color = Vec4( team_color, 1.0f );
+	// 	emitter.end_color = team_color;
+
+	// 	emitter.start_size = 16.0f;
+	// 	emitter.end_size = 0.0f;
+	// 	emitter.size_distribution.type = RandomDistributionType_Uniform;
+	// 	emitter.size_distribution.uniform = 16.0f;
+
+	// 	emitter.lifetime = 0.2f;
+	// 	emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
+	// 	emitter.lifetime_distribution.uniform = 0.2f;
+
+	// 	emitter.n = 256;
+
+	// 	EmitParticles( &cgs.ions, emitter );
+	// }
 }
 
 void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
@@ -135,7 +158,7 @@ void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 	emitter.size_distribution.type = RandomDistributionType_Uniform;
 	emitter.size_distribution.uniform = 8.0f;
 
-	emitter.lifetime = 0.15f;
+	emitter.lifetime = 1.0f;
 	emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
 	emitter.lifetime_distribution.uniform = 0.1f;
 

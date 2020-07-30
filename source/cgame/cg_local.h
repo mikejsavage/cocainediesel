@@ -314,7 +314,12 @@ struct cg_static_t {
 	ParticleSystem bullet_sparks;
 	ParticleSystem sparks;
 	ParticleSystem smoke;
-};
+	ParticleSystem smoke2;
+	ParticleSystem fire;
+	ParticleSystem explosion;
+	ParticleSystem rain;
+	ParticleSystem gibimpact;
+	};
 
 struct cg_state_t {
 	int frameCount;

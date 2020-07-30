@@ -160,11 +160,11 @@ static void CG_RegisterVariables( void ) {
 	cg_thirdPersonRange =   Cvar_Get( "cg_thirdPersonRange", "90", 0 );
 
 	cg_gunx =       Cvar_Get( "cg_gunx", "5", CVAR_CHEAT );
-	cg_guny =       Cvar_Get( "cg_guny", "-10", CVAR_CHEAT );
-	cg_gunz =       Cvar_Get( "cg_gunz", "5", CVAR_CHEAT );
+	cg_guny =       Cvar_Get( "cg_guny", "-12", CVAR_CHEAT );
+	cg_gunz =       Cvar_Get( "cg_gunz", "3", CVAR_CHEAT );
 	cg_gunbob =     Cvar_Get( "cg_gunbob", "1", CVAR_ARCHIVE );
 
-	cg_gun_fov =        Cvar_Get( "cg_gun_fov", "75", CVAR_ARCHIVE );
+	cg_gun_fov =        Cvar_Get( "cg_gun_fov", "90", CVAR_ARCHIVE );
 
 	// wsw
 	cg_volume_announcer =   Cvar_Get( "cg_volume_announcer", "1.0", CVAR_ARCHIVE );

@@ -4,10 +4,10 @@
 void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 	{
 		ParticleEmitter emitter = { };
-		emitter.position = origin;
 
-        emitter.position_distribution.type = RandomDistribution3DType_Sphere;
-        emitter.position_distribution.sphere.radius = 48.0f;
+		emitter.position = origin;
+		emitter.position_distribution.type = RandomDistribution3DType_Sphere;
+		emitter.position_distribution.sphere.radius = 48.0f;
 
 		emitter.start_speed = 20.0f;
 		emitter.end_speed = 50.0f;
@@ -30,13 +30,12 @@ void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 	}
 	{
 		ParticleEmitter emitter = { };
+
 		emitter.position = origin;
 
 		emitter.use_cone_direction = true;
 		emitter.direction_cone.normal = normal;
 		emitter.direction_cone.theta = 180.0f;
-		// emitter.position_distribution.type = RandomDistribution3DType_Disk;
-		// emitter.position_distribution.disk.radius = 24.0f;
 
 		emitter.start_speed = 1000.0f;
 		emitter.end_speed = 0.0f;
@@ -58,13 +57,14 @@ void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 	}
 	{
 		ParticleEmitter emitter = { };
+
 		emitter.position = origin;
+		emitter.position_distribution.type = RandomDistribution3DType_Sphere;
+		emitter.position_distribution.sphere.radius = 8.0f;
 
 		emitter.use_cone_direction = true;
 		emitter.direction_cone.normal = normal;
 		emitter.direction_cone.theta = 90.0f;
-        emitter.position_distribution.type = RandomDistribution3DType_Sphere;
-        emitter.position_distribution.sphere.radius = 8.0f;
 
 		emitter.start_speed = 0.0f;
 		emitter.end_speed = 100.0f;
@@ -77,8 +77,8 @@ void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 		emitter.size_distribution.type = RandomDistributionType_Uniform;
 		emitter.size_distribution.uniform = 8.0f;
 
-		emitter.lifetime = 0.15f;
-		emitter.lifetime_distribution.uniform = 0.25f;
+		emitter.lifetime = 0.25f;
+		emitter.lifetime_distribution.uniform = 0.15f;
 
 		emitter.n = 32;
 
@@ -87,9 +87,9 @@ void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 	{
 		ParticleEmitter emitter = { };
 
-        emitter.position = origin;
-        emitter.position_distribution.type = RandomDistribution3DType_Sphere;
-        emitter.position_distribution.sphere.radius = 48.0f;
+		emitter.position = origin;
+		emitter.position_distribution.type = RandomDistribution3DType_Sphere;
+		emitter.position_distribution.sphere.radius = 48.0f;
 
 		emitter.start_speed = 20.0f;
 		emitter.end_speed = 100.0f;
@@ -110,33 +110,6 @@ void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 
 		EmitParticles( &cgs.smoke2, emitter );
 	}
-	// 	{
-	// 	ParticleEmitter emitter = { };
-	// 	emitter.position = origin;
-
-	// 	emitter.use_cone_direction = true;
-	// 	emitter.direction_cone.normal = normal;
-	// 	emitter.direction_cone.theta = 180.0f;
-
-	// 	emitter.start_speed = 200.0f;
-	// 	emitter.end_speed = 1000.0f;
-
-	// 	emitter.start_color = Vec4( team_color, 1.0f );
-	// 	emitter.end_color = team_color;
-
-	// 	emitter.start_size = 16.0f;
-	// 	emitter.end_size = 0.0f;
-	// 	emitter.size_distribution.type = RandomDistributionType_Uniform;
-	// 	emitter.size_distribution.uniform = 16.0f;
-
-	// 	emitter.lifetime = 0.2f;
-	// 	emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-	// 	emitter.lifetime_distribution.uniform = 0.2f;
-
-	// 	emitter.n = 256;
-
-	// 	EmitParticles( &cgs.ions, emitter );
-	// }
 }
 
 void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {

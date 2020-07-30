@@ -10,17 +10,32 @@ void InitParticles() {
 	constexpr Vec3 gravity = Vec3( 0, 0, -GRAVITY );
 
 	cgs.ions = NewParticleSystem( sys_allocator, 8192, FindMaterial( "$particle" ) );
+	cgs.gibimpact = NewParticleSystem( sys_allocator, 8192, FindMaterial( "textures/vfx/dirt1" ) );
+	cgs.gibimpact.blend_func = BlendFunc_Blend;
 	cgs.bullet_sparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "textures/vfx/flare1" ) );
 	cgs.bullet_sparks.acceleration = gravity;
 	cgs.sparks = NewParticleSystem( sys_allocator, 8192, FindMaterial( "$particle" ) );
 	cgs.sparks.acceleration = gravity;
 	cgs.sparks.blend_func = BlendFunc_Blend;
+	cgs.rain = NewParticleSystem( sys_allocator, 8192, FindMaterial( "textures/vfx/flare1" ) );
+	cgs.smoke = NewParticleSystem( sys_allocator, 8192, FindMaterial( "textures/vfx/smoke7" ) );
+	cgs.smoke.blend_func = BlendFunc_Blend;
+	cgs.smoke2 = NewParticleSystem( sys_allocator, 8192, FindMaterial( "textures/vfx/smoke2" ) );
+	cgs.fire = NewParticleSystem( sys_allocator, 8192, FindMaterial( "textures/vfx/explosion3" ) );
+	cgs.fire.acceleration = gravity;
+	cgs.explosion = NewParticleSystem( sys_allocator, 8192, FindMaterial( "textures/vfx/explosion2" ) );
 }
 
 void ShutdownParticles() {
 	DeleteParticleSystem( sys_allocator, cgs.ions );
 	DeleteParticleSystem( sys_allocator, cgs.bullet_sparks );
 	DeleteParticleSystem( sys_allocator, cgs.sparks );
+	DeleteParticleSystem( sys_allocator, cgs.rain );
+	DeleteParticleSystem( sys_allocator, cgs.gibimpact );
+	DeleteParticleSystem( sys_allocator, cgs.smoke );
+	DeleteParticleSystem( sys_allocator, cgs.smoke2 );
+	DeleteParticleSystem( sys_allocator, cgs.fire );
+	DeleteParticleSystem( sys_allocator, cgs.explosion );
 }
 
 ParticleSystem NewParticleSystem( Allocator * a, size_t n, const Material * material ) {
@@ -199,9 +214,21 @@ void DrawParticles() {
 	UpdateParticleSystem( &cgs.ions, dt );
 	UpdateParticleSystem( &cgs.bullet_sparks, dt );
 	UpdateParticleSystem( &cgs.sparks, dt );
+	UpdateParticleSystem( &cgs.rain, dt );
+	UpdateParticleSystem( &cgs.gibimpact, dt );
+	UpdateParticleSystem( &cgs.smoke, dt );
+	UpdateParticleSystem( &cgs.smoke2, dt );
+	UpdateParticleSystem( &cgs.fire, dt );
+	UpdateParticleSystem( &cgs.explosion, dt );
 	DrawParticleSystem( &cgs.ions );
 	DrawParticleSystem( &cgs.bullet_sparks );
 	DrawParticleSystem( &cgs.sparks );
+	DrawParticleSystem( &cgs.rain );
+	DrawParticleSystem( &cgs.gibimpact );
+	DrawParticleSystem( &cgs.smoke );
+	DrawParticleSystem( &cgs.smoke2 );
+	DrawParticleSystem( &cgs.fire );
+	DrawParticleSystem( &cgs.explosion );
 }
 
 static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float dvelocity, Vec4 color, Vec4 dcolor, float size, float dsize ) {

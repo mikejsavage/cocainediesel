@@ -439,7 +439,7 @@ static void GibImpact( Vec3 pos, Vec3 normal, Vec4 color, float scale ) {
 
 		emitter.use_cone_direction = true;
 		emitter.direction_cone.normal = normal;
-		emitter.direction_cone.theta = 90.0f;
+		emitter.direction_cone.theta = 180.0f;
 
 		emitter.start_speed = 128.0f;
 		emitter.end_speed = 128.0f;
@@ -447,14 +447,14 @@ static void GibImpact( Vec3 pos, Vec3 normal, Vec4 color, float scale ) {
 		emitter.start_color = color;
 		emitter.end_color = color.xyz();
 
-		emitter.start_size = 4.0f;
-		emitter.end_size = 4.0f;
+		emitter.start_size = 100.0f;
+		emitter.end_size = 100.0f;
 
-		emitter.lifetime = 1.0f;
+		emitter.lifetime = 0.4f;
 
-		emitter.n = 64;
+		emitter.n = 3;
 
-		EmitParticles( &cgs.sparks, emitter );
+		EmitParticles( &cgs.gibimpact, emitter );
 	}
 
 	{

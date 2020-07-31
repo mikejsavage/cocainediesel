@@ -884,7 +884,7 @@ static void WeaponButton( WeaponType weapon, Vec2 size ) {
 }
 
 static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 icon_size ) {
-	ImGui::Text( label );
+	ImGui::Text( "%s", label );
 	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
 	ImGui::NextColumn();
 

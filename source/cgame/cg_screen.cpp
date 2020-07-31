@@ -483,7 +483,6 @@ void CG_AddBomb( centity_t * cent ) {
 		emitter.size_distribution.uniform = 2.0f;
 
 		emitter.lifetime = 0.2f;
-
 		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
 		emitter.lifetime_distribution.uniform = 0.05f;
 
@@ -548,9 +547,33 @@ void CG_DrawBombHUD() {
 
 				if( bomb.state == BombState_Dropped ) {
 					msg = "RETRIEVE";
+					color = AttentionGettingColor();
+
+					// TODO: lol
+					{
+						ParticleEmitter emitter = { };
+
+						emitter.position = bomb.origin - Vec3( 0.0f, 0.0f, 32.0f );
+						emitter.position_distribution.type = RandomDistribution3DType_Sphere;
+						emitter.position_distribution.sphere.radius = 20.0f;
+
+						emitter.start_speed = 8.0f;
+						emitter.end_speed = 0.0f;
+
+						emitter.start_color = AttentionGettingColor();
+						emitter.end_color = emitter.start_color.xyz();
+
+						emitter.start_size = 16.0f;
+
+						emitter.lifetime = 1.0f;
+						emitter.emission_rate = 50;
+
+						EmitParticles( &cgs.rain, emitter );
+					}
 				}
 				else if( bomb.state == BombState_Planting ) {
 					msg = "PLANTING";
+					color = AttentionGettingColor();
 				}
 				else if( bomb.state == BombState_Planted ) {
 					if( my_team == bomb.team ) {
@@ -563,7 +586,7 @@ void CG_DrawBombHUD() {
 				}
 
 				float y = coords.y - cgs.fontSystemTinySize / 2;
-				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, y, vec4_white, true );
+				DrawText( cgs.fontMontserrat, cgs.textSizeSmall, msg, Alignment_CenterMiddle, coords.x, y, color, true );
 			}
 		}
 

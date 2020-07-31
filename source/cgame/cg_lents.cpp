@@ -153,8 +153,6 @@ void CG_ProjectileTrail( const centity_t * cent ) {
 	if( len == 0 )
 		return;
 
-	vec = Normalize( vec );
-
 	ParticleEmitter emitter = { };
 
 	emitter.position = cent->ent.origin;
@@ -183,8 +181,6 @@ void CG_RifleBulletTrail( const centity_t * cent ) {
 	if( len == 0 )
 		return;
 
-	vec = Normalize( vec );
-
 	ParticleEmitter emitter = { };
 
 	emitter.position = cent->ent.origin;
@@ -195,8 +191,7 @@ void CG_RifleBulletTrail( const centity_t * cent ) {
 	emitter.end_speed = 0.0f;
 
 	emitter.start_color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 1.0f );
-	// emitter.end_color = Lerp( emitter.start_color.xyz(), 0.2f, Vec3( 1.0f ) );
-    emitter.end_color = Vec3( 0.0f, 0.0f, 0.0f );
+	emitter.end_color = Vec3( 0.0f, 0.0f, 0.0f );
 	emitter.start_size = 16.0f;
 	emitter.end_size = 0.0f;
 

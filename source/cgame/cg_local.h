@@ -320,7 +320,7 @@ struct cg_static_t {
 	ParticleSystem rain;
 	ParticleSystem gibimpact;
 	ParticleSystem rifle_bullet;
-	};
+};
 
 struct cg_state_t {
 	int frameCount;

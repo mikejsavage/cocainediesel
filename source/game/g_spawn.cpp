@@ -502,7 +502,7 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		game.edicts[i + 1].s.number = i + 1;
 		game.edicts[i + 1].r.client = &game.clients[i];
-		game.edicts[i + 1].r.inuse = ( PF_GetClientState( i ) >= CS_CONNECTED ) ? true : false;
+		game.edicts[i + 1].r.inuse = PF_GetClientState( i ) >= CS_CONNECTED;
 		memset( &game.clients[i].level, 0, sizeof( game.clients[0].level ) );
 		game.clients[i].level.timeStamp = level.time;
 	}
@@ -527,6 +527,12 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	// always start in warmup match state and let the thinking code
 	// revert it to wait state if empty ( so gametype based item masks are setup )
 	G_Match_LaunchState( MATCH_STATE_WARMUP );
+
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
+		if( game.edicts[ i + 1 ].r.inuse ) {
+			G_Teams_JoinAnyTeam( &game.edicts[ i + 1 ], true );
+		}
+	}
 
 	G_asGarbageCollect( true );
 }

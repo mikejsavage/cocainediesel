@@ -620,8 +620,7 @@ static StringHash spray_names[] = {
 	"textures/sprays/kurwa",
 	"textures/sprays/limewire",
 	"textures/sprays/lojk",
-	"textures/sprays/lol*
-		"textures/sprays/mask",
+	"textures/sprays/mask",
 	"textures/sprays/master",
 	"textures/sprays/mdma",
 	"textures/sprays/mike",

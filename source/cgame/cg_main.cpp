@@ -240,7 +240,9 @@ void CG_Reset( void ) {
 	CG_ClearAwards();
 
 	CG_InitDamageNumbers();
+	InitDecals();
 	InitPersistentBeams();
+	InitSprays();
 
 	chaseCam.key_pressed = false;
 

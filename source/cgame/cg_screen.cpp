@@ -402,16 +402,18 @@ void CG_DrawDamageNumbers() {
 
 		char buf[ 16 ];
 		Vec4 color;
+		float font_size;
 		if( dn.damage == MINI_OBITUARY_DAMAGE ) {
 			Q_strncpyz( buf, dn.obituary, sizeof( buf ) );
 			color = AttentionGettingColor();
+			font_size = cgs.textSizeTiny;
 		}
 		else {
 			snprintf( buf, sizeof( buf ), "%d", dn.damage );
 			color = dn.headshot ? AttentionGettingColor() : vec4_white;
+			font_size = Lerp( cgs.textSizeTiny, Unlerp01( 0, dn.damage, 60 ), cgs.textSizeSmall );
 		}
 
-		float font_size = Lerp( cgs.textSizeTiny, Unlerp01( 0, dn.damage, 60 ), cgs.textSizeSmall );
 
 		float alpha = 1 - Max2( 0.0f, frac - 0.75f ) / 0.25f;
 		color.w *= alpha;

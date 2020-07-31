@@ -24,6 +24,7 @@ void InitParticles() {
 	cgs.fire = NewParticleSystem( sys_allocator, 8192, FindMaterial( "textures/vfx/explosion3" ) );
 	cgs.fire.acceleration = gravity;
 	cgs.explosion = NewParticleSystem( sys_allocator, 8192, FindMaterial( "textures/vfx/explosion2" ) );
+	cgs.rifle_bullet = NewParticleSystem( sys_allocator, 8192, FindMaterial( "textures/vfx/magic5" ) );
 }
 
 void ShutdownParticles() {
@@ -36,6 +37,7 @@ void ShutdownParticles() {
 	DeleteParticleSystem( sys_allocator, cgs.smoke2 );
 	DeleteParticleSystem( sys_allocator, cgs.fire );
 	DeleteParticleSystem( sys_allocator, cgs.explosion );
+	DeleteParticleSystem( sys_allocator, cgs.rifle_bullet );
 }
 
 ParticleSystem NewParticleSystem( Allocator * a, size_t n, const Material * material ) {
@@ -220,6 +222,7 @@ void DrawParticles() {
 	UpdateParticleSystem( &cgs.smoke2, dt );
 	UpdateParticleSystem( &cgs.fire, dt );
 	UpdateParticleSystem( &cgs.explosion, dt );
+	UpdateParticleSystem( &cgs.rifle_bullet, dt );
 	DrawParticleSystem( &cgs.ions );
 	DrawParticleSystem( &cgs.bullet_sparks );
 	DrawParticleSystem( &cgs.sparks );
@@ -229,6 +232,7 @@ void DrawParticles() {
 	DrawParticleSystem( &cgs.smoke2 );
 	DrawParticleSystem( &cgs.fire );
 	DrawParticleSystem( &cgs.explosion );
+	DrawParticleSystem( &cgs.rifle_bullet );
 }
 
 static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float dvelocity, Vec4 color, Vec4 dcolor, float size, float dsize ) {

@@ -177,6 +177,36 @@ void CG_ProjectileTrail( const centity_t * cent ) {
 	EmitParticles( &cgs.ions, emitter );
 }
 
+void CG_RifleBulletTrail( const centity_t * cent ) {
+	Vec3 vec = cent->ent.origin - cent->trailOrigin;
+	float len = Length( vec );
+	if( len == 0 )
+		return;
+
+	vec = Normalize( vec );
+
+	ParticleEmitter emitter = { };
+
+	emitter.position = cent->ent.origin;
+	emitter.position_distribution.type = RandomDistribution3DType_Line;
+	emitter.position_distribution.line.end = cent->trailOrigin;
+
+	emitter.start_speed = 0.0f;
+	emitter.end_speed = 0.0f;
+
+	emitter.start_color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 1.0f );
+	// emitter.end_color = Lerp( emitter.start_color.xyz(), 0.2f, Vec3( 1.0f ) );
+    emitter.end_color = Vec3( 0.0f, 0.0f, 0.0f );
+	emitter.start_size = 16.0f;
+	emitter.end_size = 0.0f;
+
+	emitter.lifetime = 0.25f;
+
+	emitter.n = 64;
+
+	EmitParticles( &cgs.rifle_bullet, emitter );
+}
+
 void CG_NewBloodTrail( centity_t *cent ) {
 	/*
 	float radius = 2.5f;

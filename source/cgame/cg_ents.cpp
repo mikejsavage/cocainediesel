@@ -768,6 +768,7 @@ void CG_AddEntities( void ) {
 			case ET_RIFLEBULLET:
 				CG_AddGenericEnt( cent );
 				CG_EntityLoopSound( cent, state );
+				CG_RifleBulletTrail( cent );
 				break;
 
 			case ET_PLAYER:

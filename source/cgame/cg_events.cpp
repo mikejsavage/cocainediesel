@@ -860,6 +860,7 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted ) {
 			dir = ByteToDir( parm );
 			CG_PlasmaExplosion( ent->origin, dir, team_color );
 			break;
+			
 		case EV_BUBBLE_EXPLOSION:
 			CG_BubbleExplosion( ent->origin, team_color );
 			break;

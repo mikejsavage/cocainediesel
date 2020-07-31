@@ -319,6 +319,7 @@ struct cg_static_t {
 	ParticleSystem explosion;
 	ParticleSystem rain;
 	ParticleSystem gibimpact;
+	ParticleSystem rifle_bullet;
 	};
 
 struct cg_state_t {
@@ -605,6 +606,7 @@ bool CG_SwitchChaseCamMode( void );
 
 void CG_BubbleTrail( Vec3 start, Vec3 end, int dist );
 void CG_ProjectileTrail( const centity_t * cent );
+void CG_RifleBulletTrail( const centity_t * cent );
 void CG_NewBloodTrail( centity_t *cent );
 void CG_BloodDamageEffect( Vec3 origin, Vec3 dir, int damage, Vec4 team_color );
 void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );

@@ -178,12 +178,15 @@ void bombStartPlanting( cBombSite @site ) {
 	Trace trace;
 	trace.doTrace( start, BOMB_MINS, BOMB_MAXS, end, bombCarrier.entNum, MASK_SOLID );
 
+	Vec3 angles = Vec3( 0, random_float01() * 360.0f, 0 );
+
 	// show stuff
 	bombModel.origin = trace.endPos;
-	bombModel.angles = Vec3( 0, random_float01() * 360.0f, 0 );
+	bombModel.angles = angles;
 	show( @bombModel );
 
 	bombHud.origin = trace.endPos + Vec3( 0, 0, BOMB_HUD_OFFSET );
+	bombHud.angles = angles;
 	bombHud.svflags |= SVF_ONLYTEAM;
 	bombHud.radius = BombDown_Planting;
 	show( @bombHud );

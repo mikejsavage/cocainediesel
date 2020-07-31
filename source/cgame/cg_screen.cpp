@@ -459,7 +459,9 @@ void CG_AddBomb( centity_t * cent ) {
 	// TODO: this really does not belong here...
 	if( bomb.state == BombState_Planted ) {
 		ParticleEmitter emitter = { };
-		emitter.position = bomb.origin + Vec3( -12.0f, 3.0f, -12.0f ); // TODO lol
+
+		Mat2 r = Mat2Rotation( cent->current.angles.y );
+		emitter.position = bomb.origin + Vec3( r * Vec2( -12.0f, 3.0f ), -12.0f ); // TODO lol
 
 		emitter.start_speed = 128.0f;
 		emitter.end_speed = 128.0f;

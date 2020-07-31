@@ -202,6 +202,10 @@ inline Mat2 Mat2Rotation( float c, float s ) {
 	return Mat2( c, -s, s, c );
 }
 
+inline Mat2 Mat2Rotation( float theta ) {
+	return Mat2Rotation( cosf( Radians( theta ) ), sinf( Radians( theta ) ) );
+}
+
 inline Vec2 operator*( const Mat2 & m, const Vec2 & v ) {
 	return Vec2(
 		Dot( m.row0(), v ),

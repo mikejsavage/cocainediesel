@@ -180,6 +180,7 @@ void bombStartPlanting( cBombSite @site ) {
 
 	// show stuff
 	bombModel.origin = trace.endPos;
+	bombModel.angles = Vec3( 0, random_float01() * 360.0f, 0 );
 	show( @bombModel );
 
 	bombHud.origin = trace.endPos + Vec3( 0, 0, BOMB_HUD_OFFSET );

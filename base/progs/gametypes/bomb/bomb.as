@@ -203,7 +203,6 @@ void bombPlanted() {
 
 	// add red dynamic light
 	bombModel.light = BOMB_LIGHT_ARMED;
-	bombModel.model = modelBomb;
 	bombModel.sound = sndFuse;
 	bombModel.effects &= ~EF_TEAM_SILHOUETTE;
 
@@ -221,7 +220,7 @@ void bombPlanted() {
 
 void bombDefused() {
 	bombModel.light = BOMB_LIGHT_INACTIVE;
-	bombModel.model = modelBomb;
+	bombModel.sound = 0;
 
 	hide( @bombHud );
 
@@ -236,6 +235,8 @@ void bombDefused() {
 
 	client.addAward( "Bomb defused!" );
 	G_PrintMsg( null, client.name + " defused the bomb!\n" );
+
+	G_Sound( @bombModel, 0, sndFuseExtinguished );
 
 	roundWonBy( defendingTeam );
 
@@ -260,7 +261,6 @@ void resetBomb() {
 	hide( @bombModel );
 
 	bombModel.light = BOMB_LIGHT_INACTIVE;
-	bombModel.model = modelBomb;
 	bombModel.effects |= EF_TEAM_SILHOUETTE;
 
 	bombModel.team = attackingTeam;

@@ -743,7 +743,7 @@ static void G_vsay_f( edict_t *ent, bool team ) {
 		return;
 	}
 
-	if( ( !GS_TeamBasedGametype( &server_gs ) || GS_IndividualGameType( &server_gs ) ) && ent->s.team != TEAM_SPECTATOR ) {
+	if( ( !level.gametype.isTeamBased || GS_IndividualGameType( &server_gs ) ) && ent->s.team != TEAM_SPECTATOR ) {
 		team = false;
 	}
 
@@ -825,7 +825,7 @@ static void Cmd_Timeout_f( edict_t *ent ) {
 		return;
 	}
 
-	if( GS_TeamBasedGametype( &server_gs ) ) {
+	if( level.gametype.isTeamBased ) {
 		num = ent->s.team;
 	} else {
 		num = ENTNUM( ent ) - 1;
@@ -839,7 +839,7 @@ static void Cmd_Timeout_f( edict_t *ent ) {
 	if( g_maxtimeouts->integer != -1 && level.timeout.used[num] >= g_maxtimeouts->integer ) {
 		if( g_maxtimeouts->integer == 0 ) {
 			G_PrintMsg( ent, "Timeouts are not allowed on this server\n" );
-		} else if( GS_TeamBasedGametype( &server_gs ) ) {
+		} else if( level.gametype.isTeamBased ) {
 			G_PrintMsg( ent, "Your team doesn't have any timeouts left\n" );
 		} else {
 			G_PrintMsg( ent, "You don't have any timeouts left\n" );
@@ -879,14 +879,14 @@ static void Cmd_Timein_f( edict_t *ent ) {
 		return;
 	}
 
-	if( GS_TeamBasedGametype( &server_gs ) ) {
+	if( level.gametype.isTeamBased ) {
 		num = ent->s.team;
 	} else {
 		num = ENTNUM( ent ) - 1;
 	}
 
 	if( level.timeout.caller != num ) {
-		if( GS_TeamBasedGametype( &server_gs ) ) {
+		if( level.gametype.isTeamBased ) {
 			G_PrintMsg( ent, "Your team didn't call this timeout.\n" );
 		} else {
 			G_PrintMsg( ent, "You didn't call this timeout.\n" );

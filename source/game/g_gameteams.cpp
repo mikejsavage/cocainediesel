@@ -246,7 +246,7 @@ static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
 		return ER_TEAM_LOCKED;
 	}
 
-	if( !GS_TeamBasedGametype( &server_gs ) ) {
+	if( !level.gametype.isTeamBased ) {
 		return team == TEAM_PLAYERS ? ER_TEAM_OK : ER_TEAM_INVALID;
 	}
 
@@ -319,7 +319,7 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 	G_Teams_UpdateMembersList(); // make sure we have up-to-date data
 
 	//depending on the gametype, of course
-	if( !GS_TeamBasedGametype( &server_gs ) ) {
+	if( !level.gametype.isTeamBased ) {
 		if( ent->s.team == TEAM_PLAYERS ) {
 			if( !silent ) {
 				G_PrintMsg( ent, "You are already in %s team\n", GS_TeamName( TEAM_PLAYERS ) );
@@ -535,7 +535,7 @@ static edict_t *G_Teams_BestScoreBelow( int maxscore ) {
 	edict_t *e, *best = NULL;
 	int bestScore = -9999999;
 
-	if( GS_TeamBasedGametype( &server_gs ) ) {
+	if( level.gametype.isTeamBased ) {
 		for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
 			for( i = 0; i < teamlist[team].numplayers; i++ ) {
 				e = game.edicts + teamlist[team].playerIndices[i];
@@ -577,7 +577,7 @@ void G_Teams_AdvanceChallengersQueue( void ) {
 
 	G_Teams_UpdateMembersList();
 
-	if( GS_TeamBasedGametype( &server_gs ) ) {
+	if( level.gametype.isTeamBased ) {
 		START_TEAM = TEAM_ALPHA;
 		END_TEAM = GS_MAX_TEAMS;
 	}
@@ -690,7 +690,7 @@ void G_InitChallengersQueue( void ) {
 //======================================================================
 
 void G_Say_Team( edict_t *who, const char *inmsg, bool checkflood ) {
-	if( who->s.team != TEAM_SPECTATOR && ( !GS_TeamBasedGametype( &server_gs ) || GS_IndividualGameType( &server_gs ) ) ) {
+	if( who->s.team != TEAM_SPECTATOR && ( !level.gametype.isTeamBased || GS_IndividualGameType( &server_gs ) ) ) {
 		Cmd_Say_f( who, false, true );
 		return;
 	}

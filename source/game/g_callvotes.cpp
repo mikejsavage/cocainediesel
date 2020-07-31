@@ -397,7 +397,7 @@ static void G_VoteLockPassed( callvotedata_t *vote ) {
 
 	// if we are inside a match, update the teams state
 	if( GS_MatchState( &server_gs ) >= MATCH_STATE_COUNTDOWN && GS_MatchState( &server_gs ) <= MATCH_STATE_PLAYTIME ) {
-		if( GS_TeamBasedGametype( &server_gs ) ) {
+		if( level.gametype.isTeamBased ) {
 			for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ )
 				G_Teams_LockTeam( team );
 		} else {
@@ -440,7 +440,7 @@ static void G_VoteUnlockPassed( callvotedata_t *vote ) {
 
 	// if we are inside a match, update the teams state
 	if( GS_MatchState( &server_gs ) >= MATCH_STATE_COUNTDOWN && GS_MatchState( &server_gs ) <= MATCH_STATE_PLAYTIME ) {
-		if( GS_TeamBasedGametype( &server_gs ) ) {
+		if( level.gametype.isTeamBased ) {
 			for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ )
 				G_Teams_UnLockTeam( team );
 		} else {
@@ -464,7 +464,7 @@ static void G_VoteRemoveExtraHelp( edict_t *ent ) {
 	msg[0] = 0;
 	Q_strncatz( msg, "- List of players in game:\n", sizeof( msg ) );
 
-	if( GS_TeamBasedGametype( &server_gs ) ) {
+	if( level.gametype.isTeamBased ) {
 		int team;
 
 		for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {

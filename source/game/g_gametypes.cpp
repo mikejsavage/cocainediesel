@@ -122,7 +122,7 @@ static void G_Match_CheckStateAbort( void ) {
 		return;
 	}
 
-	if( GS_TeamBasedGametype( &server_gs ) ) {
+	if( level.gametype.isTeamBased ) {
 		int team, emptyteams = 0;
 
 		for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
@@ -263,7 +263,7 @@ bool G_Match_ScorelimitHit( void ) {
 	}
 
 	if( g_scorelimit->integer ) {
-		if( !GS_TeamBasedGametype( &server_gs ) ) {
+		if( !level.gametype.isTeamBased ) {
 			for( e = game.edicts + 1; PLAYERNUM( e ) < server_gs.maxclients; e++ ) {
 				if( !e->r.inuse ) {
 					continue;
@@ -354,7 +354,7 @@ void G_Match_CheckReadys( void ) {
 	}
 
 	// everyone has commited
-	if( GS_TeamBasedGametype( &server_gs ) ) {
+	if( level.gametype.isTeamBased ) {
 		if( teamsready == GS_MAX_TEAMS - TEAM_ALPHA ) {
 			allready = true;
 		} else {
@@ -559,7 +559,7 @@ static void G_CheckEvenTeam( void ) {
 		return;
 	}
 
-	if( !GS_TeamBasedGametype( &server_gs ) ) {
+	if( !level.gametype.isTeamBased ) {
 		return;
 	}
 

@@ -129,7 +129,7 @@ static void G_UpdateServerInfo( void ) {
 	}
 
 	// g_match_score
-	if( GS_MatchState( &server_gs ) >= MATCH_STATE_PLAYTIME && GS_TeamBasedGametype( &server_gs ) ) {
+	if( GS_MatchState( &server_gs ) >= MATCH_STATE_PLAYTIME && level.gametype.isTeamBased ) {
 		String< MAX_INFO_STRING > score( "{}: {} {}: {}",
 			GS_TeamName( TEAM_ALPHA ), server_gs.gameState.bomb.alpha_score,
 			GS_TeamName( TEAM_BETA ), server_gs.gameState.bomb.beta_score );

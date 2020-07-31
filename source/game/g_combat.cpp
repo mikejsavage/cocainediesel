@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "game/g_local.h"
 
 bool G_IsTeamDamage( SyncEntityState *targ, SyncEntityState *attacker ) {
-	if( !GS_TeamBasedGametype( &server_gs ) )
+	if( !level.gametype.isTeamBased )
 		return false;
 	return targ->number != attacker->number && targ->team == attacker->team;
 }

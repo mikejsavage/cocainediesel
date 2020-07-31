@@ -22,22 +22,22 @@ layout( std140 ) uniform u_PostProcess {
 out vec4 f_Albedo;
 
 #define SPEED 0.1 // 0.1
-#define ABERRATION 1.0 // 1.0
+#define ABERRATION 0.5 // 1.0
 #define STRENGTH 1.0 // 1.0
 
-#define MPEG_BLOCKSIZE 16.0 // 16.0
-#define MPEG_OFFSET 0.3 // 0.3
-#define MPEG_INTERLEAVE 3.0 // 3.0
+#define MPEG_BLOCKSIZE 8.0 // 16.0
+#define MPEG_OFFSET 0.1 // 0.3
+#define MPEG_INTERLEAVE 8.0 // 3.0
 
-#define MPEG_BLOCKS 0.2 // 0.2
+#define MPEG_BLOCKS 0.05 // 0.2
 #define MPEG_BLOCK_LUMA 0.5 // 0.5
-#define MPEG_BLOCK_INTERLEAVE 0.6 // 0.6
+#define MPEG_BLOCK_INTERLEAVE 0.9 // 0.6
 
-#define MPEG_LINES 0.7 // 0.7
-#define MPEG_LINE_DISCOLOR 0.3 // 0.3
-#define MPEG_LINE_INTERLEAVE 0.4 // 0.4
+#define MPEG_LINES 0.2 // 0.7
+#define MPEG_LINE_DISCOLOR 0.9 // 0.3
+#define MPEG_LINE_INTERLEAVE 0.2 // 0.4
 
-#define LENS_DISTORT -1.0 // -1.0
+#define LENS_DISTORT 5 // -1.0
 
 vec2 lensDistort( vec2 p, float power ) {
 	p -= 0.5;

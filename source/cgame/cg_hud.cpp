@@ -870,6 +870,7 @@ static const char * prefixes[] = {
 	"CHAMPION",
 	"CHAOS",
 	"CHASSEUR DE ",
+	"CHATUR",
 	"CHECK",
 	"CHEDDAR",
 	"CHEERFULLY ",

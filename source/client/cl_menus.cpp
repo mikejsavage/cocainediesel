@@ -780,11 +780,11 @@ static void MainMenu() {
 
 		ImGuiWindowFlags credits_flags = ( ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar ) | ImGuiWindowFlags_NoMove;
 		if( ImGui::BeginPopupModal( "Credits", NULL, credits_flags ) ) {
+			ImGui::Text( "Dexter - programming" );
 			ImGui::Text( "goochie - art & programming" );
+			ImGui::Text( "MSC - programming" );
 			ImGui::Text( "MikeJS - programming" );
 			ImGui::Text( "Obani - music & fx & programming" );
-			ImGui::Text( "Dexter - programming" );
-			ImGui::Text( "Special thanks to MSC" );
 			ImGui::Text( "Special thanks to the Warsow team except for slk and MWAGA" );
 			ImGui::Spacing();
 

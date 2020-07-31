@@ -383,19 +383,26 @@ void CG_DrawDamageNumbers() {
 		if( dn.damage == 0 )
 			continue;
 
-		float lifetime = Lerp( 750.0f, Unlerp01( 0, dn.damage, MINI_OBITUARY_DAMAGE ), 2000.0f );
+		bool obituary = dn.damage == MINI_OBITUARY_DAMAGE;
+
+		float lifetime = obituary ? 750.0f : Lerp( 750.0f, Unlerp01( 0, dn.damage, 50 ), 1000.0f );
 		float frac = ( cl.serverTime - dn.t ) / lifetime;
 		if( frac > 1 )
 			continue;
 
 		Vec3 origin = dn.origin;
-		origin.z += frac * 32;
+		if( obituary ) {
+			origin.z += 128.0f * frac + 0.5f * -200.0f * frac * frac;
+		}
+		else {
+			origin.z += frac * 32.0f;
+		}
 
 		if( Dot( -frame_static.V.row2().xyz(), origin - frame_static.position ) <= 0 )
 			continue;
 
 		Vec2 coords = WorldToScreen( origin );
-		coords.x += dn.drift * frac * 8;
+		coords.x += dn.drift * frac * ( obituary ? 64.0f : 8.0f );
 		if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {
 			continue;
 		}
@@ -403,15 +410,15 @@ void CG_DrawDamageNumbers() {
 		char buf[ 16 ];
 		Vec4 color;
 		float font_size;
-		if( dn.damage == MINI_OBITUARY_DAMAGE ) {
+		if( obituary ) {
 			Q_strncpyz( buf, dn.obituary, sizeof( buf ) );
-			color = AttentionGettingColor();
-			font_size = cgs.textSizeTiny;
+			color = CG_TeamColorVec4( TEAM_ENEMY );
+			font_size = Lerp( cgs.textSizeSmall, frac * frac, 0.0f );
 		}
 		else {
 			snprintf( buf, sizeof( buf ), "%d", dn.damage );
 			color = dn.headshot ? AttentionGettingColor() : vec4_white;
-			font_size = Lerp( cgs.textSizeTiny, Unlerp01( 0, dn.damage, 60 ), cgs.textSizeSmall );
+			font_size = Lerp( cgs.textSizeTiny, Unlerp01( 0, dn.damage, 50 ), cgs.textSizeSmall );
 		}
 
 

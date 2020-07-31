@@ -1,13 +1,10 @@
-const int NUM_WEAPONS = 3;
-
 cPlayer@[] players( maxClients ); // array of handles
 bool playersInitialized = false;
 
 class cPlayer {
 	Client @client;
 
-	uint[] loadout( NUM_WEAPONS );
-	int num_weapons;
+	WeaponType[] loadout( WeaponCategory_Count );
 
 	int killsThisRound;
 
@@ -33,8 +30,10 @@ class cPlayer {
 		this.client.inventoryClear();
 		this.client.giveWeapon( Weapon_Knife );
 
-		for( int i = 0; i < this.num_weapons; i++ ) {
-			this.client.giveWeapon( WeaponType( this.loadout[ i ] ) );
+		for( uint i = 0; i < loadout.length; i++ ) {
+			if( loadout[ i ] != Weapon_None ) {
+				this.client.giveWeapon( this.loadout[ i ] );
+			}
 		}
 
 		this.client.selectWeapon( 0 );
@@ -47,44 +46,42 @@ class cPlayer {
 		}
 
 		String command = "changeloadout";
-		for( int i = 0; i < this.num_weapons; i++ ) {
-			command += " " + this.loadout[ i ];
+		for( uint i = 0; i < loadout.length; i++ ) {
+			if( loadout[ i ] != Weapon_None ) {
+				command += " " + loadout[ i ];
+			}
 		}
 		this.client.execGameCommand( command );
 	}
 
-	void setLoadout( String &cmd ) {		
-		uint[] newloadout( NUM_WEAPONS );
+	void setLoadout( String &cmd ) {
+		WeaponType[] new_loadout( WeaponCategory_Count );
 
-		//Retrieve weapons
-		for( int i = 0; i < NUM_WEAPONS; i++ ) {
+		for( int i = 0; i < WeaponCategory_Count; i++ ) {
 			String token = cmd.getToken( i );
-
 			if( token == "" )
 				break;
 
 			int weapon = token.toInt();
-			if( weapon > Weapon_None && weapon < Weapon_Count && weapon != Weapon_Knife ) {
-				newloadout[ i ] = weapon;
+			if( weapon <= Weapon_None || weapon >= Weapon_Count || weapon == Weapon_Knife ) {
+				return;
 			}
+
+			WeaponCategory category = GetWeaponCategory( WeaponType( weapon ) );
+			if( new_loadout[ category ] != Weapon_None ) {
+				return;
+			}
+
+			new_loadout[ category ] = WeaponType( weapon );
 		}
 
-
-		//Check for categories
-		this.num_weapons = 0;
-		for( int i = 0; i < NUM_WEAPONS; i++ ) {
-			for( uint j = 0; j < newloadout.length(); j++ ) {
-				if( ( WeaponCategory( WeaponType( newloadout[ j ] ) ) - 1 ) == i ) {
-					this.loadout[ j ] = newloadout[ j ];
-					this.num_weapons++;
-					break;
-				}
-			}
-		}
+		this.loadout = new_loadout;
 
 		String command = "saveloadout";
-		for( int i = 0; i < this.num_weapons; i++ ) {
-			command += " " + this.loadout[ i ];
+		for( uint i = 0; i < this.loadout.length; i++ ) {
+			if( this.loadout[ i ] != Weapon_None ) {
+				command += " " + this.loadout[ i ];
+			}
 		}
 		this.client.execGameCommand( command );
 

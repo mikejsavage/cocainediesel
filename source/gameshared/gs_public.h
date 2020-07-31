@@ -715,11 +715,19 @@ enum EntityType {
 //===============================================================
 // gs_weapons.c
 
+enum WeaponCategory {
+	WeaponCategory_Primary,
+	WeaponCategory_Secondary,
+	WeaponCategory_Backup,
+
+	WeaponCategory_Count
+};
+
 struct WeaponDef {
 	const char * name;
 	const char * short_name;
 
-	int category;
+	WeaponCategory category;
 
 	int projectile_count;
 	int clip_size;

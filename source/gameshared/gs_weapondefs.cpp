@@ -11,11 +11,11 @@
 #define WEAPONUP_TIME_VERY_SLOW 1000
 
 const WeaponDef gs_weaponDefs[] = {
-	{ "", "" },
+	{ "", "", WeaponCategory_Count }, // Weapon_None
 
 	{
 		"Knife", "gb",
-		0,
+		WeaponCategory_Count,
 
 		6,                              // projectiles fired each shot
 		0,                              // clip size
@@ -48,7 +48,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"9mm", "9mm",
-		3,
+		WeaponCategory_Backup,
 
 		1,                              // projectiles fired each shot
 		15,                             // clip size
@@ -81,7 +81,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"SMG", "mg",
-		2,
+		WeaponCategory_Secondary,
 
 		1,                              // projectiles fired each shot
 		25,                             // clip size
@@ -114,7 +114,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Deagle", "deagle",
-		2,
+		WeaponCategory_Secondary,
 
 		1,                              // projectiles fired each shot
 		8,                              // clip size
@@ -147,7 +147,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Shotgun", "rg",
-		2,
+		WeaponCategory_Secondary,
 
 		25,                             // projectiles fired each shot
 		5,                              // clip size
@@ -180,7 +180,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Assault Rifle", "ar",
-		1,
+		WeaponCategory_Primary,
 
 		1,                              // projectiles fired each shot
 		25,                             // clip size
@@ -213,7 +213,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Grenades", "gl",
-		2,
+		WeaponCategory_Secondary,
 
 		1,                              // projectiles fired each shot
 		5,                              // clip size
@@ -246,7 +246,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Rockets", "rl",
-		1,
+		WeaponCategory_Primary,
 
 		1,                              // projectiles fired each shot
 		5,                              // clip size
@@ -279,7 +279,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Plasma", "pg",
-		3,
+		WeaponCategory_Backup,
 
 		1,                              // projectiles fired each shot
 		30,                             // clip size
@@ -312,7 +312,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"BubbleGun", "bg",
-		3,
+		WeaponCategory_Backup,
 
 		3,                              // projectiles fired each shot
 		20,                             // clip size
@@ -345,7 +345,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Laser", "lg",
-		1,
+		WeaponCategory_Primary,
 
 		1,                              // projectiles fired each shot
 		50,                             // clip size
@@ -378,7 +378,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Railgun", "eb",
-		2,
+		WeaponCategory_Secondary,
 
 		1,                              // projectiles fired each shot
 		5,                              // clip size
@@ -411,7 +411,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Sniper", "sniper",
-		1,
+		WeaponCategory_Primary,
 
 		1,                              // projectiles fired each shot
 		1,                              // clip size
@@ -444,7 +444,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Rifle", "rifle",
-		2,
+		WeaponCategory_Secondary,
 
 		1,                              // projectiles fired each shot
 		5,                              // clip size

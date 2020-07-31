@@ -163,6 +163,17 @@ static const asEnumVal_t asPMoveFeaturesVals[] =
 	ASLIB_ENUM_VAL_NULL
 };
 
+static const asEnumVal_t asWeaponCategoryEnumVals[] =
+{
+	ASLIB_ENUM_VAL( WeaponCategory_Primary ),
+	ASLIB_ENUM_VAL( WeaponCategory_Secondary ),
+	ASLIB_ENUM_VAL( WeaponCategory_Backup ),
+
+	ASLIB_ENUM_VAL( WeaponCategory_Count ),
+
+	ASLIB_ENUM_VAL_NULL
+};
+
 static const asEnumVal_t asWeaponTypeEnumVals[] =
 {
 	ASLIB_ENUM_VAL( Weapon_None ),
@@ -363,6 +374,7 @@ static const asEnum_t asGameEnums[] =
 	{ "solid_e", asSolidEnumVals },
 	{ "pmovefeats_e", asPMoveFeaturesVals },
 
+	{ "WeaponCategory", asWeaponCategoryEnumVals },
 	{ "WeaponType", asWeaponTypeEnumVals },
 	{ "ItemType", asItemTypeEnumVals },
 
@@ -1562,6 +1574,10 @@ static void asFunc_Cbuf_ExecuteText( asstring_t *str ) {
 	Cbuf_ExecuteText( EXEC_APPEND, str->buffer );
 }
 
+static WeaponCategory asFunc_GetWeaponCategory( WeaponType weapon ) {
+	return GS_GetWeaponDef( weapon )->category;
+}
+
 static u64 asFunc_Hash64( asstring_t *str ) {
 	if( !str || !str->buffer ) {
 		return 0;
@@ -1637,10 +1653,6 @@ static void asFunc_G_LoadMap( asstring_t *str ) {
 	G_Aasdf();
 }
 
-static int asFunc_WeaponCategory( WeaponType weapon ) {
-	return GS_GetWeaponDef( weapon )->category;
-}
-
 static void asFunc_PositionedSound( asvec3_t *origin, int channel, u64 sound ) {
 	if( !origin ) {
 		return;
@@ -1713,8 +1725,6 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 
 	{ "void G_LoadMap( const String &name )", asFUNCTION( asFunc_G_LoadMap ), NULL },
 
-	{ "int WeaponCategory( WeaponType )", asFUNCTION( asFunc_WeaponCategory ), NULL },
-
 	// misc management utils
 	{ "void G_RemoveProjectiles( Entity @ )", asFUNCTION( asFunc_G_Match_RemoveProjectiles ), NULL },
 	{ "void G_RemoveAllProjectiles()", asFUNCTION( asFunc_G_Match_RemoveAllProjectiles ), NULL },
@@ -1738,6 +1748,8 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "void G_RegisterCommand( const String &in )", asFUNCTION( asFunc_RegisterCommand ), NULL },
 	{ "const String @G_ConfigString( int index )", asFUNCTION( asFunc_GetConfigString ), NULL },
 	{ "void G_ConfigString( int index, const String &in )", asFUNCTION( asFunc_SetConfigString ), NULL },
+
+	{ "WeaponCategory GetWeaponCategory( WeaponType )", asFUNCTION( asFunc_GetWeaponCategory ), NULL },
 
 	{ "uint64 Hash64( const String &in )", asFUNCTION( asFunc_Hash64 ), NULL },
 
@@ -2078,7 +2090,7 @@ static void G_asRegisterEnums( asIScriptEngine *asEngine, const asEnum_t *asEnum
 /*
 * G_asRegisterObjectClassNames
 */
-static void G_asRegisterObjectClassNames( asIScriptEngine *asEngine, 
+static void G_asRegisterObjectClassNames( asIScriptEngine *asEngine,
 	const asClassDescriptor_t *const *asClassesDescriptors, const char *nameSpace ) {
 	int i;
 	const asClassDescriptor_t *cDescr;
@@ -2104,7 +2116,7 @@ static void G_asRegisterObjectClassNames( asIScriptEngine *asEngine,
 /*
 * G_asRegisterObjectClasses
 */
-static void G_asRegisterObjectClasses( asIScriptEngine *asEngine, 
+static void G_asRegisterObjectClasses( asIScriptEngine *asEngine,
 	const asClassDescriptor_t *const *asClassesDescriptors, const char *nameSpace ) {
 	int i, j;
 	const asClassDescriptor_t *cDescr;
@@ -2181,7 +2193,7 @@ static void G_asRegisterObjectClasses( asIScriptEngine *asEngine,
 /*
 * G_asRegisterGlobalFunctions
 */
-static void G_asRegisterGlobalFunctions( asIScriptEngine *asEngine, 
+static void G_asRegisterGlobalFunctions( asIScriptEngine *asEngine,
 	const asglobfuncs_t *funcs, const char *nameSpace ) {
 	int error;
 	int count = 0, failedcount = 0;
@@ -2219,7 +2231,7 @@ static void G_asRegisterGlobalFunctions( asIScriptEngine *asEngine,
 /*
 * G_asRegisterGlobalProperties
 */
-static void G_asRegisterGlobalProperties( asIScriptEngine *asEngine, 
+static void G_asRegisterGlobalProperties( asIScriptEngine *asEngine,
 	const asglobproperties_t *props, const char *nameSpace ) {
 	int error;
 	int count = 0, failedcount = 0;

@@ -64,7 +64,7 @@ static MainMenuState mainmenu_state;
 static int selected_server;
 
 static GameMenuState gamemenu_state;
-static WeaponType selected_weapons[ Weapon_Count - 1 ];
+static WeaponType selected_weapons[ WeaponCategory_Count ];
 
 static SettingsState settings_state;
 static bool reset_video_settings;
@@ -673,7 +673,7 @@ static void MainMenu() {
 	} else {
 		change_name_popup = true;
 	}
-	
+
 	if( ImGui::BeginPopupModal( "change name", NULL, ImGuiWindowFlags_NoDecoration ) ) {
 		ImGui::BeginChild( "nameset", ImVec2( 500, 125 ) );
 		ImGui::Text( "Change your nickname" );
@@ -814,16 +814,6 @@ static void GameMenuButton( const char * label, const char * command, bool * cli
 	}
 }
 
-static int SelectedWeaponIndex( WeaponType weapon ) {
-	for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
-		if( selected_weapons[ i ] == weapon ) {
-			return i;
-		}
-	}
-
-	return -1;
-}
-
 static void WeaponTooltip( const WeaponDef * def ) {
 	if( ImGui::IsItemHovered() ) {
 		ImGui::BeginTooltip();
@@ -841,23 +831,22 @@ static void WeaponTooltip( const WeaponDef * def ) {
 	}
 }
 
-
 static void SendLoadout() {
 	TempAllocator temp = cls.frame_arena.temp();
-	
+
 	DynamicString loadout( &temp, "weapselect" );
 
 	for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
-		if( selected_weapons[ i ] > Weapon_None && selected_weapons[ i ] < Weapon_Count )
+		if( selected_weapons[ i ] != Weapon_None ) {
 			loadout.append( " {}", selected_weapons[ i ] );
+		}
 	}
 	loadout += "\n";
 
 	Cbuf_AddText( loadout.c_str() );
 }
 
-
-static void WeaponButton( WeaponType weapon, ImVec2 size ) {
+static void WeaponButton( WeaponType weapon, Vec2 size ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
 	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0.1f, 0.1f, 0.1f, 1.0f ) );
 	ImGui::PushStyleColor( ImGuiCol_ButtonActive, Vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
@@ -868,9 +857,7 @@ static void WeaponButton( WeaponType weapon, ImVec2 size ) {
 	defer { ImGui::PopStyleVar( 2 ); };
 
 	const WeaponDef * def = GS_GetWeaponDef( weapon );
-	int idx = SelectedWeaponIndex( weapon );
-
-	bool selected = idx != -1;
+	bool selected = selected_weapons[ def->category ] == weapon;
 
 	const Material * icon = cgs.media.shaderWeaponIcon[ weapon ];
 	Vec2 half_pixel = HalfPixelSize( icon );
@@ -891,19 +878,57 @@ static void WeaponButton( WeaponType weapon, ImVec2 size ) {
 	CG_GetBoundKeycodes( va( "use %s", def->short_name ), weaponBinds );
 
 	if( clicked || ImGui::Hotkey( weaponBinds[ 0 ] ) || ImGui::Hotkey( weaponBinds[ 1 ] ) ) {
-		if( selected ) {
-			selected_weapons[ idx ] = Weapon_None;
-		}
-		else {
-			int i = GS_GetWeaponDef( weapon )->category - 1;
-			selected_weapons[ i ] = weapon;
-		}
-
+		selected_weapons[ def->category ] = selected ? Weapon_None : weapon;
 		SendLoadout();
 	}
 }
 
+static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 icon_size ) {
+	ImGui::Text( label );
+	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
+	ImGui::NextColumn();
 
+	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
+		const WeaponDef * def = GS_GetWeaponDef( i );
+		if( def->category == category ) {
+			WeaponButton( i, icon_size );
+		}
+	}
+
+	ImGui::NextColumn();
+}
+
+static bool LoadoutMenu( Vec2 displaySize ) {
+	ImGui::PushFont( cls.medium_font );
+	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 255 ) );
+	ImGui::SetNextWindowPos( Vec2( 0, 0 ) );
+	ImGui::SetNextWindowSize( displaySize );
+	ImGui::Begin( "Loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+
+	const Vec2 icon_size = Vec2( displaySize.x * 0.075f );
+
+	ImGui::Columns( 2, NULL, false );
+	ImGui::SetColumnWidth( 0, 300 );
+
+	LoadoutCategory( "Primary", WeaponCategory_Primary, icon_size );
+	LoadoutCategory( "Secondary", WeaponCategory_Secondary, icon_size );
+	LoadoutCategory( "Backup", WeaponCategory_Backup, icon_size );
+
+	ImGui::EndColumns();
+
+	int loadoutKeys[ 2 ] = { };
+	CG_GetBoundKeycodes( "gametypemenu", loadoutKeys );
+
+	bool should_close = false;
+	if( ImGui::Hotkey( loadoutKeys[ 0 ] ) || ImGui::Hotkey( loadoutKeys[ 1 ] ) ) {
+		should_close = true;
+	}
+
+	ImGui::PopStyleColor();
+	ImGui::PopFont();
+
+	return should_close;
+}
 
 static void GameMenu() {
 	bool spectating = cg.predictedPlayerState.real_team == TEAM_SPECTATOR;
@@ -998,107 +1023,9 @@ static void GameMenu() {
 		ImGui::Columns( 1 );
 	}
 	else if( gamemenu_state == GameMenuState_Loadout ) {
-		ImGui::PushFont( cls.medium_font );
-		ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 255 ) );
-		ImGui::SetNextWindowPos( Vec2( 0, 0 ) );
-		ImGui::SetNextWindowSize( displaySize );
-		ImGui::Begin( "Loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
-
-		const Vec2 icon_size = Vec2( displaySize.x * 0.075f );
-
-		ImGui::Columns( 2, NULL, false );
-		ImGui::SetColumnWidth( 0, 300 );
-
-		{
-			ImGui::Text( "Primary" );
-			ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
-			ImGui::NextColumn();
-
-			for( WeaponType i = 0; i < Weapon_Count; i++ ) {
-				const WeaponDef * def = GS_GetWeaponDef( i );
-				if( def->category == 1 ) {
-					WeaponButton( i, icon_size );
-				}
-			}
-
-			ImGui::NextColumn();
-		}
-
-		{
-			ImGui::Text( "Secondary" );
-			ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
-			ImGui::NextColumn();
-
-			for( WeaponType i = 0; i < Weapon_Count; i++ ) {
-				const WeaponDef * def = GS_GetWeaponDef( i );
-				if( def->category == 2 ) {
-					WeaponButton( i, icon_size );
-				}
-			}
-
-			ImGui::NextColumn();
-		}
-
-		{
-			ImGui::Text( "Backup" );
-			ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
-			ImGui::NextColumn();
-
-			for( WeaponType i = 0; i < Weapon_Count; i++ ) {
-				const WeaponDef * def = GS_GetWeaponDef( i );
-				if( def->category == 3 ) {
-					WeaponButton( i, icon_size );
-				}
-			}
-
-			ImGui::NextColumn();
-		}
-
-		ImGui::EndColumns();
-
-		TempAllocator temp = cls.frame_arena.temp();
-		{
-			ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
-			ImGui::PushStyleColor( ImGuiCol_ButtonHovered, vec4_black );
-			ImGui::PushStyleColor( ImGuiCol_ButtonActive, vec4_black );
-			defer { ImGui::PopStyleColor( 3 ); };
-
-			ImGui::PushStyleVar( ImGuiStyleVar_FrameBorderSize, 2 );
-			ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0 );
-			defer { ImGui::PopStyleVar( 2 ); };
-
-			size_t num_weapons = 0;
-			for( WeaponType w : selected_weapons ) {
-				if( w != Weapon_None )
-					num_weapons++;
-			}
-
-			const ImGuiStyle & style = ImGui::GetStyle();
-			ImGui::SetCursorPos( ImVec2( displaySize.x - num_weapons * ( icon_size.x + style.ItemSpacing.x + style.FramePadding.x * 2 + 16 + 2 ), displaySize.y - icon_size.y - 16 ) - style.WindowPadding );
-
-			for( WeaponType w : selected_weapons ) {
-				if( w == Weapon_None )
-					continue;
-				
-				const Material * icon = cgs.media.shaderWeaponIcon[ w ];
-				Vec2 half_pixel = HalfPixelSize( icon );
-				ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, vec4_black );
-
-				ImGui::SameLine();
-				ImGui::Dummy( Vec2( 16, 0 ) );
-				ImGui::SameLine();
-			}
-		}
-
-		int loadoutKeys[ 2 ] = { };
-		CG_GetBoundKeycodes( "gametypemenu", loadoutKeys );
-
-		if( ImGui::Hotkey( K_ESCAPE ) || ImGui::Hotkey( loadoutKeys[ 0 ] ) || ImGui::Hotkey( loadoutKeys[ 1 ] ) ) {
+		if( LoadoutMenu( displaySize ) ) {
 			should_close = true;
 		}
-
-		ImGui::PopStyleColor();
-		ImGui::PopFont();
 	}
 	else if( gamemenu_state == GameMenuState_Vote ) {
 		TempAllocator temp = cls.frame_arena.temp();
@@ -1107,14 +1034,14 @@ static void GameMenu() {
 		ImGui::Begin( "votemap", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		static int e = 0;
-        ImGui::RadioButton( "Start match", &e, 0 ); ImGui::SameLine();
-        ImGui::RadioButton( "Change map", &e, 1 );
+		ImGui::RadioButton( "Start match", &e, 0 ); ImGui::SameLine();
+		ImGui::RadioButton( "Change map", &e, 1 );
 
-        if( e == 0 ) {
-        	GameMenuButton( "Start vote", "callvote allready", &should_close );
-        }
-        
-        if( e == 1 ) {
+		if( e == 0 ) {
+			GameMenuButton( "Start vote", "callvote allready", &should_close );
+		}
+
+		if( e == 1 ) {
 			const char * map_name = SelectableMapList();
 			GameMenuButton( "Start vote", temp( "callvote map {}", map_name ), &should_close );
 		}
@@ -1280,8 +1207,15 @@ void UI_ShowLoadoutMenu( Span< int > weapons ) {
 		w = Weapon_None;
 	}
 
-	for( size_t i = 0; i < weapons.n; i++ ) {
-		selected_weapons[ i ] = weapons[ i ];
+	for( int w : weapons ) {
+		if( w <= Weapon_None || w >= Weapon_Count )
+			return;
+
+		WeaponCategory category = GS_GetWeaponDef( w )->category;
+		if( category == WeaponCategory_Count || selected_weapons[ category ] != Weapon_None )
+			return;
+
+		selected_weapons[ category ] = w;
 	}
 
 	CL_SetKeyDest( key_menu );

@@ -304,17 +304,14 @@ static void CG_SC_ChangeLoadout() {
 	if( cgs.demoPlaying )
 		return;
 
-	int weapons[ Weapon_Count ] = { };
+	int weapons[ WeaponCategory_Count ] = { };
 	size_t n = 0;
 
-	if( Cmd_Argc() - 1 >= ARRAY_COUNT( weapons ) )
+	if( Cmd_Argc() - 1 > ARRAY_COUNT( weapons ) )
 		return;
 
 	for( int i = 0; i < Cmd_Argc() - 1; i++ ) {
-		int weapon = atoi( Cmd_Argv( i + 1 ) );
-		if( weapon <= Weapon_None || weapon >= Weapon_Count )
-			return;
-		weapons[ n ] = weapon;
+		weapons[ n ] = atoi( Cmd_Argv( i + 1 ) );
 		n++;
 	}
 

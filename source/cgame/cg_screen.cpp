@@ -67,7 +67,7 @@ void CG_CenterPrint( const char *str ) {
 }
 
 static void CG_DrawCenterString( void ) {
-	DrawText( cgs.fontMontserrat, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, frame_static.viewport_width * 0.5f, frame_static.viewport_height * 0.35f, vec4_white, true );
+	DrawText( cgs.fontMontserrat, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, frame_static.viewport_width * 0.5f, frame_static.viewport_height * 0.75f, vec4_white, true );
 }
 
 //============================================================================

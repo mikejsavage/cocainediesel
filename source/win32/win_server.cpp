@@ -43,9 +43,9 @@ int main( int argc, char ** argv ) {
 	oldtime = Sys_Milliseconds();
 
 	while( 1 ) {
-		Sys_Sleep( 1 );
-
 		do {
+			ZoneScopedN( "Interframe" );
+
 			newtime = Sys_Milliseconds();
 			time = newtime - oldtime;
 			if( time > 0 ) {

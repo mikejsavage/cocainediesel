@@ -619,8 +619,6 @@ int main( int argc, char ** argv ) {
 
 	int64_t oldtime = Sys_Milliseconds();
 	while( !glfwWindowShouldClose( window ) ) {
-		FrameMark;
-
 		int64_t newtime;
 
 		int dt;

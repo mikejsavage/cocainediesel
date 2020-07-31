@@ -1316,7 +1316,7 @@ void CG_SC_Obituary( void ) {
 			RGB8 victim_color = CG_TeamColor( current->victim_team );
 
 			if( ISVIEWERENTITY( attackerNum ) ) {
-				CG_CenterPrint( temp( "YOU {} {}", obituary, victim_name ) );
+				CG_CenterPrint( temp( "{} {}", obituary, victim_name ) );
 			}
 
 			CG_AddChat( temp( "{}{} {}{} {}{}",

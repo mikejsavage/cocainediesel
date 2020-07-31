@@ -286,6 +286,8 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	CG_ScreenInit();
 
+	SCR_UpdateScoreboardMessage( "" );
+
 	CG_InitDamageNumbers();
 
 	// get configstrings

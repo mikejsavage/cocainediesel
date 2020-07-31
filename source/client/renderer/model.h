@@ -68,8 +68,6 @@ void DrawOutlinedViewWeapon( const Model * model, const Mat4 & transform, const 
 void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices = Span< const Mat4 >() );
 void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, Span< const Mat4 > skinning_matrices = Span< const Mat4 >() );
 
-MinMax3 ModelBounds( const Model * model );
-
 Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t );
 MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< TRS > local_poses );
 bool FindJointByName( const Model * model, u32 name, u8 * joint_idx );

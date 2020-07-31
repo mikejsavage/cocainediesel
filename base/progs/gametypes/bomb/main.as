@@ -35,7 +35,7 @@ const int SITE_EXPLOSION_MAX_DELAY = 1500; // XXX THIS MUST BE BIGGER THAN BOMB_
 const float SITE_EXPLOSION_MAX_DIST = 512.0f;
 
 // jit cries if i use const
-Vec3 BOMB_MINS( -16, -16, -8 );
+Vec3 BOMB_MINS( -16, -16, -16 );
 Vec3 BOMB_MAXS(  16,  16, 48 ); // same size as player i guess
 
 // cvars

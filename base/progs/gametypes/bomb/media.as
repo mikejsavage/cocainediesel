@@ -3,7 +3,7 @@ uint64 modelBomb;
 uint64 sndPlant;
 uint64 sndFuse;
 uint64 sndFuseExtinguished;
-uint64 sndGoodGame;
+uint64 sndComedy;
 uint64 sndBombTaken;
 uint64 sndAce;
 
@@ -33,7 +33,7 @@ void mediaInit() {
 	sndPlant = Hash64( "models/bomb/plant" );
 	sndFuse = Hash64( "models/bomb/fuse" );
 	sndFuseExtinguished = Hash64( "models/bomb/tss" );
-	sndGoodGame = Hash64( "sounds/vsay/goodgame" );
+	sndComedy = Hash64( "sounds/vsay/comedy" );
 	sndBombTaken = Hash64( "sounds/announcer/bomb/offense/taken" );
 	sndAce = Hash64( "sounds/announcer/bomb/bongo" );
 

@@ -257,7 +257,7 @@ void bombExplode() {
 	bombState = BombState_Exploding;
 	@defuser = null;
 
-	G_Sound( @bombModel, 0, sndGoodGame );
+	G_Sound( @bombModel, 0, sndComedy );
 }
 
 void resetBomb() {

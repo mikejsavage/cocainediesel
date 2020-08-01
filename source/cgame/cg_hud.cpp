@@ -624,6 +624,7 @@ static const char * obituaries[] = {
 	"POLARIZED",
 	"POOLED",
 	"POUNDED",
+	"PUFFED",
 	"PULVERIZED",
 	"PUMPED",
 	"PUMMELLED",

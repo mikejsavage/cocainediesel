@@ -877,6 +877,7 @@ static const char * prefixes[] = {
 	"CHEDDAR",
 	"CHEERFULLY ",
 	"CHEESE",
+	"CHERRY",
 	"CHICKEN",
 	"CHIN",
 	"CHINA",

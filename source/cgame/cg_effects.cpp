@@ -173,8 +173,10 @@ void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
 	emitter.position_distribution.type = RandomDistribution3DType_Line;
 	emitter.position_distribution.line.end = end;
 
-	emitter.start_speed = 4.0f;
-	emitter.end_speed = 0.0f;
+	emitter.start_speed = 16.0f;
+	emitter.end_speed = 4.0f;
+	emitter.speed_distribution.type = RandomDistributionType_Uniform;
+	emitter.speed_distribution.uniform = 4.0f;
 
 	emitter.start_color = color;
 	emitter.end_color = color.xyz();
@@ -187,14 +189,14 @@ void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
 	emitter.blue_distribution = color_dist;
 	emitter.alpha_distribution = color_dist;
 
-	emitter.start_size = 1.0f;
-	emitter.end_size = 1.0f;
+	emitter.start_size = 1.25f;
+	emitter.end_size = 0.75f;
 	emitter.size_distribution.type = RandomDistributionType_Uniform;
-	emitter.size_distribution.uniform = 0.1f;
+	emitter.size_distribution.uniform = 0.25f;
 
-	emitter.lifetime = 0.9f;
+	emitter.lifetime = 1.0f;
 	emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-	emitter.lifetime_distribution.uniform = 0.3f;
+	emitter.lifetime_distribution.uniform = 0.5f;
 
 	constexpr int max_ions = 256;
 	float distance_between_particles = 4.0f;

@@ -998,7 +998,7 @@ static void GameMenu() {
 			GameMenuButton( "Spectate", "chase", &should_close );
 
 			if( team_based ) {
-				GameMenuButton( "Change loadout", "gametypemenu", &should_close );
+				GameMenuButton( "Change weapons", "gametypemenu", &should_close );
 			}
 		}
 

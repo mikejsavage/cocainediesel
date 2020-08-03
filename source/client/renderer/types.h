@@ -64,9 +64,19 @@ struct Mesh {
 
 struct GPUParticle {
 	Vec3 position;
-	float scale;
-	float t;
+	Vec3 velocity;
 	RGBA8 color;
+	RGBA8 dcolor;
+	float size;
+	float dsize;
+	float age;
+	float lifetime;
+};
+
+struct GPUParticleFeedback {
+	u32 parm;
+	Vec3 position;
+	Vec3 normal;
 };
 
 struct Font;

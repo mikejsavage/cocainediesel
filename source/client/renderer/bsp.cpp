@@ -14,14 +14,14 @@
 enum BSPLump {
 	BSPLump_Entities,
 	BSPLump_Materials,
-	BSPLump_Planes_Unused,
-	BSPLump_Nodes_Unused,
-	BSPLump_Leaves_Unused,
+	BSPLump_Planes,
+	BSPLump_Nodes,
+	BSPLump_Leaves,
 	BSPLump_LeafFaces_Unused,
-	BSPLump_LeafBrushes_Unused,
+	BSPLump_LeafBrushes,
 	BSPLump_Models,
-	BSPLump_Brushes_Unused,
-	BSPLump_BrushSides_Unused,
+	BSPLump_Brushes,
+	BSPLump_BrushSides,
 	BSPLump_Vertices,
 	BSPLump_Indices,
 	BSPLump_Fogs_Unused,
@@ -51,12 +51,56 @@ struct BSPMaterial {
 	u32 contents;
 };
 
+struct BSPPlane {
+	Vec3 normal;
+	float dist;
+};
+
+struct BSPNode {
+	int planenum;
+	int children[2];
+	Vec3 mins;
+	Vec3 maxs;
+};
+
+struct BSPLeaf {
+	int cluster;
+	int area;
+	Vec3 mins;
+	Vec3 maxs;
+	int firstLeafFace;
+	int numLeafFaces;
+	int firstLeafBrush;
+	int numLeafBrushes;
+};
+
+struct BSPLeafBrush {
+	int brush;
+};
+
 struct BSPModel {
 	MinMax3 bounds;
 	u32 first_face;
 	u32 num_faces;
 	u32 first_brush;
 	u32 num_brushes;
+};
+
+struct BSPBrush {
+	u32 first_side;
+	u32 num_sides;
+	u32 material;
+};
+
+struct BSPBrushSide {
+	u32 planenum;
+	u32 material;
+};
+
+struct RavenBSPBrushSide {
+	u32 planenum;
+	u32 material;
+	u32 material2;
 };
 
 struct BSPVertex {
@@ -133,7 +177,14 @@ struct BSPVisbilityHeader {
 struct BSPSpans {
 	Span< const char > entities;
 	Span< const BSPMaterial > materials;
+	Span< const BSPPlane > planes;
+	Span< const BSPNode > nodes;
+	Span< const BSPLeaf > leaves;
+	Span< const BSPLeafBrush > leafbrushes;
 	Span< const BSPModel > models;
+	Span< const BSPBrush > brushes;
+	Span< const BSPBrushSide > brushsides;
+	Span< const RavenBSPBrushSide > raven_brushsides;
 	Span< const BSPVertex > vertices;
 	Span< const RavenBSPVertex > raven_vertices;
 	Span< const BSPIndex > indices;
@@ -169,17 +220,26 @@ static bool ParseBSP( BSPSpans * bsp, Span< const u8 > data ) {
 	ok = ok && ParseLump( &bsp->entities, data, BSPLump_Entities );
 	ok = ok && ParseLump( &bsp->materials, data, BSPLump_Materials );
 	ok = ok && ParseLump( &bsp->models, data, BSPLump_Models );
+	ok = ok && ParseLump( &bsp->brushes, data, BSPLump_Brushes );
+	ok = ok && ParseLump( &bsp->planes, data, BSPLump_Planes );
+	ok = ok && ParseLump( &bsp->nodes, data, BSPLump_Nodes );
+	ok = ok && ParseLump( &bsp->leaves, data, BSPLump_Leaves );
+	ok = ok && ParseLump( &bsp->leafbrushes, data, BSPLump_LeafBrushes );
 	ok = ok && ParseLump( &bsp->indices, data, BSPLump_Indices );
 
 	if( bsp->idbsp ) {
+		ok = ok && ParseLump( &bsp->brushsides, data, BSPLump_BrushSides );
 		ok = ok && ParseLump( &bsp->vertices, data, BSPLump_Vertices );
 		ok = ok && ParseLump( &bsp->faces, data, BSPLump_Faces );
+		bsp->raven_brushsides = { };
 		bsp->raven_vertices = { };
 		bsp->raven_faces = { };
 	}
 	else {
+		bsp->brushsides = { };
 		bsp->vertices = { };
 		bsp->faces = { };
+		ok = ok && ParseLump( &bsp->raven_brushsides, data, BSPLump_BrushSides );
 		ok = ok && ParseLump( &bsp->raven_vertices, data, BSPLump_Vertices );
 		ok = ok && ParseLump( &bsp->raven_faces, data, BSPLump_Faces );
 	}
@@ -230,6 +290,26 @@ struct BSPModelVertex {
 	Vec3 position;
 	Vec3 normal;
 	Vec2 uv;
+};
+
+struct GPUBSPPlane {
+	Vec3 normal;
+	float dist;
+};
+
+struct GPUBSPNode {
+	s32 plane;
+	s32 children[ 2 ];
+};
+
+struct GPUBSPLeaf {
+	s32 firstBrush;
+	s32 numBrushes;
+};
+
+struct GPUBSPLeafBrush {
+	u32 firstSide;
+	u32 numSides;
 };
 
 static BSPModelVertex Lerp( const BSPModelVertex & a, float t, const BSPModelVertex & b ) {
@@ -484,6 +564,74 @@ bool LoadBSPRenderData( Map * map, u64 base_hash, Span< const u8 > data ) {
 	map->base_hash = base_hash;
 	map->num_models = bsp.models.n;
 	map->fog_strength = ParseFogStrength( &bsp );
+
+
+	DynamicArray< GPUBSPNode > nodes( sys_allocator, bsp.nodes.n );
+	DynamicArray< GPUBSPLeaf > leaves( sys_allocator, bsp.leaves.n );
+	DynamicArray< GPUBSPLeafBrush > leafbrushes( sys_allocator, bsp.leafbrushes.n );
+	DynamicArray< GPUBSPPlane > planes( sys_allocator, bsp.planes.n + bsp.brushsides.n );
+
+	for ( u32 i = 0; i < bsp.nodes.n; i++ )
+	{
+		const BSPNode node = bsp.nodes[ i ];
+		const BSPPlane plane = bsp.planes[ node.planenum ];
+
+		GPUBSPNode gpu_node = { int( planes.size() ), node.children[ 0 ], node.children[ 1 ] };
+		nodes.add( gpu_node );
+		GPUBSPPlane gpu_plane = { plane.normal, plane.dist };
+		planes.add( gpu_plane );
+	}
+
+	for ( u32 i = 0; i < bsp.leaves.n; i++ )
+	{
+		const BSPLeaf leaf = bsp.leaves[ i ];
+		GPUBSPLeaf gpu_leaf = { leaf.firstLeafBrush, leaf.numLeafBrushes };
+		leaves.add( gpu_leaf );
+	}
+	int planes_offset = planes.size();
+	for ( u32 i = 0; i < bsp.leafbrushes.n; i++ )
+	{
+		// TODO(msc): ignore non-solid brushes..
+		const BSPLeafBrush leafbrush = bsp.leafbrushes[ i ];
+		const BSPBrush brush = bsp.brushes[ leafbrush.brush ];
+		GPUBSPLeafBrush gpu_brush = { planes_offset + brush.first_side, brush.num_sides };
+		leafbrushes.add( gpu_brush );
+	}
+	for ( u32 i = 0; i < bsp.brushsides.n; i++ )
+	{
+		const BSPBrushSide brushside = bsp.brushsides[ i ];
+		const BSPPlane plane = bsp.planes[ brushside.planenum ];
+		GPUBSPPlane gpu_plane = { plane.normal, plane.dist };
+		planes.add( gpu_plane );
+	}
+	for ( u32 i = 0; i < bsp.raven_brushsides.n; i++ )
+	{
+		const RavenBSPBrushSide brushside = bsp.raven_brushsides[ i ];
+		const BSPPlane plane = bsp.planes[ brushside.planenum ];
+		GPUBSPPlane gpu_plane = { plane.normal, plane.dist };
+		planes.add( gpu_plane );
+	}
+
+	TextureBuffer nodesBuffer = NewTextureBuffer( TextureBufferFormat_S32x3, nodes.size() );
+	WriteTextureBuffer( nodesBuffer, nodes.ptr(), nodes.size() * sizeof( GPUBSPNode ) );
+	map->nodeBuffer = nodesBuffer;
+
+	TextureBuffer leafBuffer = NewTextureBuffer( TextureBufferFormat_S32x2, leaves.size() );
+	WriteTextureBuffer( leafBuffer, leaves.ptr(), leaves.size() * sizeof( GPUBSPLeaf ) );
+	map->leafBuffer = leafBuffer;
+
+	TextureBuffer brushBuffer = NewTextureBuffer( TextureBufferFormat_S32x2, leafbrushes.size() );
+	WriteTextureBuffer( brushBuffer, leafbrushes.ptr(), leafbrushes.size() * sizeof( GPUBSPLeafBrush ) );
+	map->brushBuffer = brushBuffer;
+
+	TextureBuffer planeBuffer = NewTextureBuffer( TextureBufferFormat_Floatx4, planes.size() );
+	WriteTextureBuffer( planeBuffer, planes.ptr(), planes.size() * sizeof( GPUBSPPlane ) );
+	map->planeBuffer = planeBuffer;
+
+	nodes.clear();
+	leaves.clear();
+	leafbrushes.clear();
+	planes.clear();
 
 	return true;
 }

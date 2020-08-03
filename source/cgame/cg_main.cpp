@@ -305,7 +305,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	InitDecals();
 	InitSprays();
-	InitParticles();
 	InitPersistentBeams();
 	InitGibs();
 
@@ -331,7 +330,6 @@ void CG_Shutdown() {
 	CG_ShutdownChat();
 	CG_ShutdownInput();
 	CG_ShutdownHUD();
-	ShutdownParticles();
 	ShutdownDecals();
 
 	CG_Free( const_cast< char * >( cgs.serverName ) );

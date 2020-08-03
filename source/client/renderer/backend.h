@@ -73,6 +73,9 @@ enum TextureBufferFormat : u8 {
 	TextureBufferFormat_U32,
 	TextureBufferFormat_U32x2,
 
+	TextureBufferFormat_S32x2,
+	TextureBufferFormat_S32x3,
+
 	TextureBufferFormat_Floatx4,
 };
 
@@ -310,6 +313,7 @@ VertexBuffer NewParticleVertexBuffer( u32 n );
 IndexBuffer NewIndexBuffer( const void * data, u32 len );
 IndexBuffer NewIndexBuffer( u32 len );
 void WriteIndexBuffer( IndexBuffer ib, const void * data, u32 size, u32 offset = 0 );
+void ReadVertexBuffer( VertexBuffer vb, void * data, u32 len, u32 offset = 0 );
 void DeleteIndexBuffer( IndexBuffer ib );
 
 template< typename T >
@@ -330,7 +334,7 @@ void DeleteTextureArray( TextureArray ta );
 Framebuffer NewFramebuffer( const FramebufferConfig & config );
 void DeleteFramebuffer( Framebuffer fb );
 
-bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lengths );
+bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lengths, Span< const char * > feedback_varyings = Span< const char * >() );
 void DeleteShader( Shader shader );
 
 Mesh NewMesh( MeshConfig config );
@@ -338,7 +342,10 @@ void DeleteMesh( const Mesh & mesh );
 void DeferDeleteMesh( const Mesh & mesh );
 
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override = 0, u32 first_index = 0 );
+void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, u32 collision, float radius, Vec3 acceleration, u32 num_particles, float dt );
+void UpdateParticlesFeedback( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, VertexBuffer vb_feedback, u32 collision, float radius, Vec3 acceleration, u32 num_particles, float dt );
 void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material * material, const Material * gradient, BlendFunc blend_func, u32 num_particles );
+void DrawInstancedParticles( VertexBuffer vb, const Model * model, const Material * gradient, u32 num_particles );
 
 void DownloadFramebuffer( void * buf );
 

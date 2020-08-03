@@ -8,6 +8,8 @@
 #include "client/renderer/srgb.h"
 #include "client/renderer/text.h"
 
+#include "cgame/cg_particles.h"
+
 #include "imgui/imgui.h"
 
 #include "stb/stb_image.h"
@@ -124,6 +126,7 @@ void InitRenderer() {
 	InitText();
 	InitSkybox();
 	InitModels();
+	InitParticles();
 }
 
 static void DeleteFramebuffers() {
@@ -139,6 +142,7 @@ void ShutdownRenderer() {
 	ShutdownSkybox();
 	ShutdownText();
 	ShutdownMaterials();
+	ShutdownParticles();
 	ShutdownShaders();
 
 	DeleteTexture( blue_noise );
@@ -324,6 +328,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadShaders();
 	HotloadMaterials();
 	HotloadModels();
+	HotloadParticles();
 
 	RenderBackendBeginFrame();
 

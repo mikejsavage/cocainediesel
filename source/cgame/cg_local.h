@@ -309,17 +309,6 @@ struct cg_static_t {
 	PlayerModelMetadata *teamModelInfo[2];
 
 	char checkname[MAX_QPATH];
-
-	ParticleSystem ions;
-	ParticleSystem bullet_sparks;
-	ParticleSystem sparks;
-	ParticleSystem smoke;
-	ParticleSystem smoke2;
-	ParticleSystem fire;
-	ParticleSystem explosion;
-	ParticleSystem rain;
-	ParticleSystem gibimpact;
-	ParticleSystem rifle_bullet;
 };
 
 struct cg_state_t {

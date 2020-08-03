@@ -1,0 +1,56 @@
+system sparks1 {
+  model models/bomb/bomb
+  blendfunc add
+  acceleration $gravity
+  max 10000
+  collision sphere
+  radius 16
+
+  on_collision {
+    bulletSparks2
+  }
+  on_age {
+    bulletSparks3
+    despawn
+  }
+}
+
+system sparks2 {
+  material textures/vfx/flare1
+  blendfunc add
+  acceleration $gravity
+  max 10000
+  collision point
+}
+
+emitter bulletSparks {
+  system sparks1
+
+  speed 128
+  color 0.0 0.5 1.0 1.0
+  size 1 0
+  lifetime 1.5
+  count 0.1
+}
+
+emitter bulletSparks2 {
+  system sparks2
+
+  speed 256
+  color 0.0 0.5 1.0 1.0
+  size 16 0
+  lifetime 1.5
+  lifetime_distribution uniform 1
+  count 10
+}
+
+emitter bulletSparks3 {
+  system sparks2
+
+  speed 256
+  color 0.9 0.1 0.0 1.0
+  size 16 0
+  lifetime 1.5
+  lifetime_distribution uniform 1
+  count 100
+}

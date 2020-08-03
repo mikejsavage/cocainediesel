@@ -781,6 +781,7 @@ static void MainMenu() {
 		ImGuiWindowFlags credits_flags = ( ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar ) | ImGuiWindowFlags_NoMove;
 		if( ImGui::BeginPopupModal( "Credits", NULL, credits_flags ) ) {
 			ImGui::Text( "Dexter - programming" );
+			ImGui::Text( "general adnic - voice acting" );
 			ImGui::Text( "goochie - art & programming" );
 			ImGui::Text( "MSC - programming" );
 			ImGui::Text( "MikeJS - programming" );

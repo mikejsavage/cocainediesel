@@ -1415,7 +1415,7 @@ void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out
 	assert( in_frame );
 
 	PipelineState pipeline;
-	pipeline.pass = frame_static.transparent_pass;
+	pipeline.pass = frame_static.particle_update_pass;
 	pipeline.shader = &shaders.particle_update;
 	if( !cl.map ) {
 		collision = 0;
@@ -1442,7 +1442,7 @@ void UpdateParticlesFeedback( const Mesh & mesh, VertexBuffer vb_in, VertexBuffe
 	assert( in_frame );
 
 	PipelineState pipeline;
-	pipeline.pass = frame_static.transparent_pass;
+	pipeline.pass = frame_static.particle_update_pass;
 	pipeline.shader = &shaders.particle_update_feedback;
 	if( !cl.map ) {
 		collision = 0;

@@ -364,6 +364,8 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.write_world_gbuffer_pass = AddRenderPass( "Write world gbuffer", frame_static.world_gbuffer, ClearColor_Do, ClearDepth_Do );
 	frame_static.postprocess_world_gbuffer_pass = AddRenderPass( "Postprocess world gbuffer", frame_static.world_outlines_fb );
 
+	frame_static.particle_update_pass = AddRenderPass( "Particle Update" );
+
 	if( msaa ) {
 		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", frame_static.msaa_fb, ClearColor_Do, ClearDepth_Do );
 		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines", frame_static.msaa_fb );

@@ -241,15 +241,22 @@ static void SettingsControls() {
 			KeyBindButton( "Left", "+left" );
 			KeyBindButton( "Right", "+right" );
 			KeyBindButton( "Jump", "+jump" );
-			KeyBindButton( "Dash/walljump/zoom", "+special" );
-			KeyBindButton( "Crouch", "+crouch" );
-			KeyBindButton( "Walk", "+walk" );
+			KeyBindButton( "Dash", "+special" );
+
+			ImGui::Separator();
 
 			KeyBindButton( "Attack", "+attack" );
 			KeyBindButton( "Reload", "+reload" );
+			KeyBindButton( "Plant bomb", "+crouch" );
 			KeyBindButton( "Drop bomb", "drop" );
 			KeyBindButton( "Shop", "gametypemenu" );
 			KeyBindButton( "Scoreboard", "+scores" );
+
+			ImGui::Separator();
+
+			KeyBindButton( "Chat", "messagemode" );
+			KeyBindButton( "Team chat", "messagemode2" );
+			KeyBindButton( "Spray", "spray" );
 
 			ImGui::EndTabItem();
 		}
@@ -260,12 +267,10 @@ static void SettingsControls() {
 
 			ImGui::Separator();
 
-			KeyBindButton( "Weapon 1", "weapon 1" );
-			KeyBindButton( "Weapon 2", "weapon 2" );
-			KeyBindButton( "Weapon 3", "weapon 3" );
-			KeyBindButton( "Weapon 4", "weapon 4" );
-			KeyBindButton( "Weapon 5", "weapon 5" );
-			KeyBindButton( "Weapon 6", "weapon 6" );
+			KeyBindButton( "Melee", "weapon 1" );
+			KeyBindButton( "Primary", "weapon 2" );
+			KeyBindButton( "Secondary", "weapon 3" );
+			KeyBindButton( "Backup", "weapon 4" );
 
 			ImGui::BeginChild( "weapon", ImVec2( 400, -1 ) );
 			if( ImGui::CollapsingHeader( "Advanced" ) ) {
@@ -288,13 +293,7 @@ static void SettingsControls() {
 			ImGui::EndTabItem();
 		}
 
-		if( ImGui::BeginTabItem( "Communication" ) ) {
-
-			KeyBindButton( "Chat", "messagemode" );
-			KeyBindButton( "Team chat", "messagemode2" );
-			KeyBindButton( "Spray", "spray" );
-
-			ImGui::Separator();
+		if( ImGui::BeginTabItem( "Voice lines" ) ) {
 
 			ImGui::Text( "Voice" );
 
@@ -452,7 +451,7 @@ static void SettingsVideo() {
 
 		ImGui::SameLine();
 
-		PushButtonColor( ImVec4( 0.5f, 0.125f, 0.f, 0.75f ) );
+		PushButtonColor( ImVec4( 0.5f, 0.5f, 0.5f, 1.f ) );
 		if( ImGui::Button( "Discard changes" ) ) {
 			reset_video_settings = true;
 		}
@@ -487,7 +486,7 @@ static void SettingsVideo() {
 
 		if( samples > 1 ) {
 			ImGui::SameLine();
-			ImGui::Text( S_COLOR_RED "Enabling anti-aliasing can cause significant FPS drops!" );
+			ImGui::Text( S_COLOR_WHITE "Enabling anti-aliasing can cause significant FPS drops!" );
 		}
 
 		Cvar_Set( "r_samples", temp( "{}", samples ) );
@@ -696,16 +695,16 @@ static void MainMenu() {
 	ImGui::BeginChild( "mainmenubody", ImVec2( 0, -ImGui::GetFrameHeightWithSpacing() + window_padding.y ) );
 
 	ImGui::PushFont( cls.large_font );
-	const char * name = "CORONADIESEL";
+	const char * name = "KOKAIN DIZEL";
 	const int break_time = 1000;
 	for( size_t i = 0; i < strlen( name ); i++ ) {
 		ImGui::SameLine();
 		if( cls.monotonicTime < break_time ) {
 			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + frame_static.viewport_width * Max2( s64( 0 ), ( 1000 - cls.monotonicTime ) ) /1000.f );
 		} else {
-			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + Max2( 0.0f, sinf( ( cls.monotonicTime - break_time ) / 500.0f + i*0.5f )*8 ) );
+			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + Max2( 0.0f, sinf( ( cls.monotonicTime - break_time ) / 250.0f + i*0.5f )*16 ) );
 		}
-		ImGui::Text( "%s%c", temp( "{}", ImGuiColorToken( 220, 180 + i*2, 100 + i*4, 255 ) ), name[ i ] );
+		ImGui::Text( "%s%c", temp( "{}", ImGuiColorToken( 255, 255, 255, 255 - i*16 ) ), name[ i ] );
 	}
 	ImGui::PopFont();
 

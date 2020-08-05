@@ -409,7 +409,7 @@ static bool menu_blend;
 
 
 void InitParticleMenuEffect() {
-	strcpy( menu_material_name, "$particle" );
+	strcpy( menu_material_name, "textures/vfx/flare1" );
 	strcpy( menu_gradient_name, "$whiteimage" );
 	menu_one_shot = false;
 	menu_blend = false;
@@ -419,25 +419,26 @@ void InitParticleMenuEffect() {
 	menu_ps.blend_func = menu_blend ? BlendFunc_Blend : BlendFunc_Add;
 	menu_emitter = { };
 
-	menu_emitter.position_distribution.sphere.radius = 600.0f;
+	menu_emitter.position_distribution.sphere.radius = 1500.0f;
 
-	menu_emitter.start_speed = 1.0f;
-	menu_emitter.end_speed = 25.0f;
-	menu_emitter.direction_cone.normal = Vec3( 0, 0, 1 );
-	menu_emitter.direction_cone.theta = 90.0f;
-	menu_emitter.start_color = vec4_black;
-	menu_emitter.start_color.w = 1.0f;
-	menu_emitter.end_color = vec4_black.xyz();
+	menu_emitter.start_speed = 50.0f;
+	menu_emitter.end_speed = 50.0f;
 
-	menu_emitter.red_distribution.uniform = 0.325f;
-	menu_emitter.green_distribution.uniform = 0.325f;
-	menu_emitter.blue_distribution.uniform = 0.325f;
+	menu_emitter.speed_distribution.type = RandomDistributionType_Uniform;
+	menu_emitter.speed_distribution.uniform = 25.0f;
 
+	menu_emitter.start_color = Vec4( 1.0f, 1.0f, 1.0f, 1.0f );
+	menu_emitter.end_color = Vec3( 0.0f, 0.0f, 0.0f );
 
-	menu_emitter.start_size = 0.0f;
-	menu_emitter.end_size = 20.0f;
-	menu_emitter.lifetime = 10.0f;
-	menu_emitter.emission_rate = 500.0f;
+	menu_emitter.start_size = 32.0f;
+	menu_emitter.end_size = 16.0f;
+
+	menu_emitter.size_distribution.type = RandomDistributionType_Uniform;
+	menu_emitter.size_distribution.uniform = 8.0f;
+
+	menu_emitter.lifetime = 0.5f;
+
+	menu_emitter.n = 8.0f;
 }
 
 void ShutdownParticleEditor() {

@@ -283,19 +283,29 @@ MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< 
 	assert( local_poses.n == model->num_joints );
 
 	MatrixPalettes palettes;
-	palettes.joint_poses = ALLOC_SPAN( a, Mat4, model->num_joints );
-	palettes.skinning_matrices = ALLOC_SPAN( a, Mat4, model->num_joints );
+	palettes.joint_poses = ALLOC_SPAN( a, Mat4, model->num_skinned_joints );
+	palettes.skinning_matrices = ALLOC_SPAN( a, Mat4, model->num_skinned_joints );
 
-	u8 joint_idx = model->root_joint;
-	palettes.joint_poses[ joint_idx ] = TRSToMat4( local_poses[ joint_idx ] );
-	for( u8 i = 0; i < model->num_joints - 1; i++ ) {
-		joint_idx = model->joints[ joint_idx ].next;
-		u8 parent = model->joints[ joint_idx ].parent;
-		palettes.joint_poses[ joint_idx ] = palettes.joint_poses[ parent ] * TRSToMat4( local_poses[ joint_idx ] );
+	{
+		u8 joint_idx = model->root_joint;
+		palettes.joint_poses[ model->joints[ joint_idx ].skinned_idx ] = TRSToMat4( local_poses[ model->joints[ joint_idx ].skinned_idx ] );
+		for( u8 i = 0; i < model->num_skinned_joints - 1; i++ ) {
+			joint_idx = model->joints[ joint_idx ].next;
+			u8 parent = model->joints[ joint_idx ].parent;
+			u8 skinned_idx = model->joints[ joint_idx ].skinned_idx;
+			palettes.joint_poses[ skinned_idx ] = palettes.joint_poses[ parent ] * TRSToMat4( local_poses[ skinned_idx ] );
+		}
 	}
 
-	for( u8 i = 0; i < model->num_joints; i++ ) {
-		palettes.skinning_matrices[ i ] = palettes.joint_poses[ i ] * model->joints[ i ].joint_to_bind;
+	{
+		u8 joint_idx = model->root_joint;
+		palettes.skinning_matrices[ model->joints[ joint_idx ].skinned_idx ] = palettes.joint_poses[ model->joints[ joint_idx ].skinned_idx ] * model->joints[ joint_idx ].joint_to_bind;
+		for( u8 i = 0; i < model->num_skinned_joints - 1; i++ ) {
+			joint_idx = model->joints[ joint_idx ].next;
+			u8 parent = model->joints[ joint_idx ].parent;
+			u8 skinned_idx = model->joints[ joint_idx ].skinned_idx;
+			palettes.skinning_matrices[ skinned_idx ] = palettes.joint_poses[ skinned_idx ] * model->joints[ joint_idx ].joint_to_bind;
+		}
 	}
 
 	return palettes;

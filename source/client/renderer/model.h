@@ -23,6 +23,7 @@ struct Model {
 		Mat4 joint_to_bind;
 		u8 parent;
 		u8 next;
+		u8 skinned_idx;
 
 		// TODO: remove this with additive animations
 		u32 name;
@@ -45,6 +46,7 @@ struct Model {
 	Joint * joints;
 	u8 num_joints;
 	u8 root_joint;
+	u8 num_skinned_joints;
 };
 
 void InitModels();

@@ -36,7 +36,7 @@ static void SetJointIdx( cgltf_node * node, u8 joint_idx ) {
 	node->camera = ( cgltf_camera * ) uintptr_t( joint_idx + 1 );
 }
 
-static void LoadJoint( Model * model, const cgltf_skin * skin, const cgltf_node * node, u8 ** prev ) {
+static void LoadJoint( Model * model, const cgltf_node * node, u8 ** prev ) {
 	u8 joint_idx = GetJointIdx( node );
 	**prev = joint_idx;
 	*prev = &model->joints[ joint_idx ].next;
@@ -44,12 +44,10 @@ static void LoadJoint( Model * model, const cgltf_skin * skin, const cgltf_node 
 	Model::Joint & joint = model->joints[ joint_idx ];
 	joint.parent = node->parent != NULL ? GetJointIdx( node->parent ) : U8_MAX;
 	joint.name = Hash32( node->name );
-
-	cgltf_bool ok = cgltf_accessor_read_float( skin->inverse_bind_matrices, joint_idx, joint.joint_to_bind.ptr(), 16 );
-	assert( ok != 0 );
+	joint.joint_to_bind = Mat4::Identity();
 
 	for( size_t i = 0; i < node->children_count; i++ ) {
-		LoadJoint( model, skin, node->children[ i ], prev );
+		LoadJoint( model, node->children[ i ], prev );
 	}
 
 	// TODO: remove with additive animations
@@ -67,42 +65,24 @@ static void LoadJoint( Model * model, const cgltf_skin * skin, const cgltf_node 
 	}
 }
 
-static void LoadSkin( Model * model, const cgltf_node * root, const cgltf_skin * skin, Mat4 * transform ) {
-	model->num_joints = skin->joints_count;
-	if( skin->joints_count == 0 )
-		return;
-
-	model->joints = ALLOC_MANY( sys_allocator, Model::Joint, skin->joints_count );
-	memset( model->joints, 0, sizeof( Model::Joint ) * skin->joints_count );
-
+static void LoadJointTree( Model * model, const cgltf_node * root ) {
 	u8 * prev_ptr = &model->root_joint;
-	LoadJoint( model, skin, root, &prev_ptr );
-
-	if( root->parent != NULL ) {
-		Mat4 root_transform;
-		cgltf_node_transform_local( root->parent, root_transform.ptr() );
-		*transform = root_transform * *transform;
-	}
+	LoadJoint( model, root, &prev_ptr );
 
 	// TODO: remove with additive animations
 	model->joints[ GetJointIdx( root ) ].sibling = U8_MAX;
 }
 
-static bool FindRootJoint( cgltf_skin * skin, cgltf_node ** root ) {
+static void LoadSkinJointToBindTransforms( Model * model, const cgltf_skin * skin ) {
 	for( size_t i = 0; i < skin->joints_count; i++ ) {
-		SetJointIdx( skin->joints[ i ], i );
-	}
+		u8 joint_idx = GetJointIdx( skin->joints[ i ] );
+		Model::Joint * joint = &model->joints[ joint_idx ];
 
-	for( size_t i = 0; i < skin->joints_count; i++ ) {
-		cgltf_node * joint = skin->joints[ i ];
-		if( joint->parent == NULL || GetJointIdx( joint->parent ) == U8_MAX ) {
-			if( *root != NULL )
-				return false;
-			*root = joint;
-		}
-	}
+		joint->skinned_idx = i;
 
-	return true;
+		cgltf_bool ok = cgltf_accessor_read_float( skin->inverse_bind_matrices, joint_idx, joint->joint_to_bind.ptr(), 16 );
+		assert( ok != 0 );
+	}
 }
 
 static MinMax3 Extend( MinMax3 bounds, Vec3 p ) {
@@ -270,7 +250,7 @@ static void CreateSingleSampleChannel( Model::AnimationChannel< T > * out_channe
 }
 
 static void FixupMissingAnimationChannels( Model * model, const cgltf_skin * skin ) {
-	for( u8 i = 0; i < model->num_joints; i++ ) {
+	for( u8 i = 0; i < skin->joints_count; i++ ) {
 		const cgltf_node * node = skin->joints[ i ];
 		Model::Joint & joint = model->joints[ i ];
 
@@ -294,6 +274,9 @@ static void FixupMissingAnimationChannels( Model * model, const cgltf_skin * ski
 bool LoadGLTFModel( Model * model, const char * path ) {
 	ZoneScoped;
 	ZoneText( path, strlen( path ) );
+
+	if( strcmp( path, "spraycan.glb" ) == 0 )
+		__debugbreak();
 
 	Span< const u8 > data = AssetBinary( path );
 
@@ -323,11 +306,6 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 		return false;
 	}
 
-	if( gltf->animations_count != gltf->skins_count ) {
-		Com_Printf( S_COLOR_YELLOW "Animation/skin count must match\n" );
-		return false;
-	}
-
 	for( size_t i = 0; i < gltf->meshes_count; i++ ) {
 		if( gltf->meshes[ i ].primitives_count != 1 ) {
 			Com_Printf( S_COLOR_YELLOW "Meshes with multiple primitives are unsupported\n" );
@@ -336,14 +314,7 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 	}
 
 	bool animated = gltf->animations_count > 0;
-	cgltf_node * root_joint = NULL;
-
-	if( animated ) {
-		if( !FindRootJoint( &gltf->skins[ 0 ], &root_joint ) ) {
-			Com_Printf( S_COLOR_YELLOW "Model skeleton has multiple root joints" );
-			return false;
-		}
-	}
+	bool skinned = gltf->skins_count > 0;
 
 	*model = { };
 
@@ -362,7 +333,23 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 	}
 
 	if( animated ) {
-		LoadSkin( model, root_joint, &gltf->skins[ 0 ], &model->transform );
+		model->joints = ALLOC_MANY( sys_allocator, Model::Joint, gltf->nodes_count );
+		memset( model->joints, 0, sizeof( Model::Joint ) * gltf->nodes_count );
+		model->num_joints = gltf->nodes_count;
+
+		for( size_t i = 0; i < gltf->nodes_count; i++ ) {
+			SetJointIdx( &gltf->nodes[ i ], i );
+		}
+
+		for( size_t i = 0; i < gltf->scene->nodes_count; i++ ) {
+			LoadJointTree( model, gltf->scene->nodes[ i ] );
+		}
+
+		if( skinned ) {
+			LoadSkinJointToBindTransforms( model, &gltf->skins[ 0 ] );
+			model->num_skinned_joints = gltf->skins[ 0 ].joints_count;
+		}
+
 		LoadAnimation( model, &gltf->animations[ 0 ] );
 		FixupMissingAnimationChannels( model, &gltf->skins[ 0 ] );
 	}

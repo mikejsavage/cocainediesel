@@ -432,7 +432,7 @@ static void FireBubble( edict_t * owner, Vec3 start, Vec3 angles, const WeaponDe
 }
 
 void W_Fire_BubbleGun( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
-	constexpr int bubble_spacing = 25;
+	constexpr int bubble_spacing = 0;
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_BubbleGun );
 
 	Vec3 dir, right, up;

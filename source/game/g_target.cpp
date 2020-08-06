@@ -135,7 +135,6 @@ static void target_laser_think( edict_t *self ) {
 
 				event = G_SpawnEvent( EV_LASER_SPARKS, DirToByte( tr.plane.normal ), &tr.endpos );
 				event->s.counterNum = count;
-				event->s.colorRGBA = self->s.colorRGBA;
 			}
 			break;
 		}
@@ -183,7 +182,6 @@ void target_laser_start( edict_t *self ) {
 	self->s.type = ET_LASER;
 	self->r.svflags = 0;
 	self->s.radius = st.size > 0 ? st.size : 8;
-	self->s.colorRGBA = st.rgba != 0 ? st.rgba : COLOR_RGBA( 220, 0, 0, 76 );
 	self->s.sound = "sounds/gladiator/laser_hum";
 
 	if( !self->enemy ) {

@@ -110,8 +110,6 @@ char *COM_ParseExt2( const char **data_p, bool nl, bool sq );
 #define COM_Parse( data_p )   COM_ParseExt( data_p, true )
 
 const char *COM_RemoveJunkChars( const char *in );
-int COM_ReadColorRGBString( const char *in );
-int COM_ReadColorRGBAString( const char *in );
 bool COM_ValidateConfigstring( const char *string );
 
 char *COM_ListNameForPosition( const char *namesList, int position, const char separator );
@@ -152,13 +150,6 @@ char *COM_ListNameForPosition( const char *namesList, int position, const char s
 #define S_COLOR_WHITE   "\x1b\xff\xff\xff\xff"
 #define S_COLOR_ORANGE  "\x1b\xff\x80\x01\xff"
 #define S_COLOR_GREY    "\x1b\x80\x80\x80\xff"
-
-#define COLOR_R( rgba )       ( ( rgba ) & 0xFF )
-#define COLOR_G( rgba )       ( ( ( rgba ) >> 8 ) & 0xFF )
-#define COLOR_B( rgba )       ( ( ( rgba ) >> 16 ) & 0xFF )
-#define COLOR_A( rgba )       ( ( ( rgba ) >> 24 ) & 0xFF )
-#define COLOR_RGB( r, g, b )    ( ( ( r ) << 0 ) | ( ( g ) << 8 ) | ( ( b ) << 16 ) )
-#define COLOR_RGBA( r, g, b, a ) ( ( ( r ) << 0 ) | ( ( g ) << 8 ) | ( ( b ) << 16 ) | ( ( a ) << 24 ) )
 
 //=============================================
 // strings

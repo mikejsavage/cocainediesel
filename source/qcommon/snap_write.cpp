@@ -503,7 +503,7 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 	}
 
 	// if not a sound entity but the entity is only a sound
-	else if( ent->s.model == EMPTY_HASH && !ent->s.events[0].type && !ent->s.light && !ent->s.effects && ent->s.sound != EMPTY_HASH ) {
+	else if( ent->s.model == EMPTY_HASH && !ent->s.events[0].type && !ent->s.effects && ent->s.sound != EMPTY_HASH ) {
 		snd_cull_only = true;
 	}
 

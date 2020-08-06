@@ -31,7 +31,6 @@ enum EntityFieldType {
 	F_MODELHASH,
 	F_VECTOR,
 	F_ANGLE,
-	F_RGBA,
 };
 
 struct EntityField {
@@ -82,7 +81,6 @@ static const EntityField fields[] = {
 	{ "gravity", STOFS( gravity ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "gameteam", STOFS( gameteam ), F_INT, FFL_SPAWNTEMP },
 	{ "size", STOFS( size ), F_INT, FFL_SPAWNTEMP },
-	{ "rgba", STOFS( rgba ), F_RGBA, FFL_SPAWNTEMP },
 };
 
 typedef struct
@@ -305,10 +303,6 @@ static void ED_ParseField( char *key, char *value, edict_t *ent ) {
 				Vec3 vec;
 				sscanf( value, "%f %f %f", &vec.x, &vec.y, &vec.z );
 				*(Vec3 *)( b + f.ofs ) = vec;
-			} break;
-
-			case F_RGBA: {
-				*( int * ) ( b + f.ofs ) = COM_ReadColorRGBAString( value );
 			} break;
 		}
 		return;

@@ -386,6 +386,13 @@ bool StrCaseEqual( const char * rhs, Span< const char > lhs ) {
 	return StrCaseEqual( lhs, rhs );
 }
 
+bool StartsWith( const char * str, const char * prefix ) {
+	if( strlen( str ) < strlen( prefix ) )
+		return false;
+
+	return memcmp( str, prefix, strlen( prefix ) ) == 0;
+}
+
 Span< const char > FileExtension( const char * path ) {
 	const char * filename = strrchr( path, '/' );
 	const char * ext = strchr( filename == NULL ? path : filename, '.' );
@@ -570,39 +577,6 @@ const char *COM_RemoveJunkChars( const char *in ) {
 
 	*out = '\0';
 	return cleanString;
-}
-
-/*
-* COM_ReadColorRGBString
-*/
-int COM_ReadColorRGBString( const char *in ) {
-	if( in == NULL )
-		return 0;
-
-	int rgb[3];
-	if( sscanf( in, "%3i %3i %3i", &rgb[0], &rgb[1], &rgb[2] ) != 3 )
-		return 0;
-
-	for( int i = 0; i < 3; i++ ) {
-		rgb[i] = Clamp( rgb[i], 0, 255 );
-	}
-
-	return COLOR_RGB( rgb[0], rgb[1], rgb[2] );
-}
-
-int COM_ReadColorRGBAString( const char *in ) {
-	if( in == NULL )
-		return 0;
-
-	int rgba[4];
-	if( sscanf( in, "%3i %3i %3i %3i", &rgba[0], &rgba[1], &rgba[2], &rgba[3] ) != 4 )
-		return 0;
-
-	for( int i = 0; i < 4; i++ ) {
-		rgba[i] = Clamp( rgba[i], 0, 255 );
-	}
-
-	return COLOR_RGBA( rgba[0], rgba[1], rgba[2], rgba[3] );
 }
 
 /*

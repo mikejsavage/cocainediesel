@@ -15,6 +15,7 @@ public:
 	NONCOPYABLE( DynamicArray );
 
 	DynamicArray( NoInit ) {
+		a = NULL;
 		auto_destruct = false;
 	}
 

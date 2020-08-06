@@ -682,15 +682,10 @@ void RenderBackendSubmitFrame() {
 	}
 	TracyPlot( "UBO utilisation", float( ubo_bytes_used ) / float( UNIFORM_BUFFER_SIZE * ARRAY_COUNT( ubos ) ) );
 
+	TracyPlot( "Draw calls", s64( draw_calls.size() ) );
+	TracyPlot( "Vertices", s64( num_vertices_this_frame ) );
+
 	TracyGpuCollect;
-}
-
-u32 renderer_num_draw_calls() {
-	return draw_calls.size();
-}
-
-u32 renderer_num_vertices() {
-	return num_vertices_this_frame;
 }
 
 UniformBlock UploadUniforms( const void * data, size_t size ) {
@@ -1341,7 +1336,7 @@ void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertic
 	dc.index_offset = index_offset;
 	draw_calls.add( dc );
 
-	num_vertices_this_frame += mesh.num_vertices;
+	num_vertices_this_frame += dc.num_vertices;
 }
 
 void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material * material, const Material * gradient, BlendFunc blend_func, u32 num_particles ) {
@@ -1365,6 +1360,7 @@ void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material 
 	dc.num_instances = num_particles;
 
 	draw_calls.add( dc );
+
 	num_vertices_this_frame += mesh.num_vertices * num_particles;
 }
 

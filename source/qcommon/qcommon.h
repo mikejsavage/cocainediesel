@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/qfiles.h"
 #include "qcommon/strtonum.h"
 
-inline Vec3 FromQFAxis( mat3_t m, int axis ) {
+inline Vec3 FromQFAxis( const mat3_t m, int axis ) {
 	return Vec3( m[ axis + 0 ], m[ axis + 1 ], m[ axis + 2 ] );
 }
 
@@ -167,7 +167,6 @@ PROTOCOL
 
 #define PORT_MASTER         27950
 #define PORT_SERVER         44400
-#define PORT_HTTP_SERVER    44444
 #define NUM_BROADCAST_PORTS 5
 
 //=========================================
@@ -190,7 +189,6 @@ enum svc_ops_e {
 	svc_servercmd,          // [string] string
 	svc_serverdata,         // [int] protocol ...
 	svc_spawnbaseline,
-	svc_download,           // [short] size [size bytes]
 	svc_playerinfo,         // variable
 	svc_packetentities,     // [...]
 	svc_gamecommands,

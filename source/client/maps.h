@@ -19,6 +19,8 @@ struct Map {
 void InitMaps();
 void ShutdownMaps();
 
+bool AddMap( Span< const u8 > compressed, const char * path );
+
 const Map * FindMap( StringHash name );
 const Map * FindMap( const char * name );
 

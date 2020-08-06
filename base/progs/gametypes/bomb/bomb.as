@@ -56,7 +56,6 @@ void bombModelCreate() {
 	bombModel.type = ET_GENERIC;
 	bombModel.setSize( BOMB_MINS, BOMB_MAXS );
 	bombModel.solid = SOLID_TRIGGER;
-	bombModel.light = BOMB_LIGHT_INACTIVE;
 	bombModel.model = modelBomb;
 	bombModel.silhouetteColor = uint( 255 << 0 ) | uint( 255 << 8 ) | uint( 255 << 16 ) | uint( 255 << 24 );
 	bombModel.svflags |= SVF_BROADCAST;
@@ -204,8 +203,6 @@ void bombStartPlanting( cBombSite @site ) {
 void bombPlanted() {
 	bombActionTime = levelTime + int( cvarExplodeTime.value * 1000.0f );
 
-	// add red dynamic light
-	bombModel.light = BOMB_LIGHT_ARMED;
 	bombModel.sound = sndFuse;
 	bombModel.effects &= ~EF_TEAM_SILHOUETTE;
 
@@ -222,7 +219,6 @@ void bombPlanted() {
 }
 
 void bombDefused() {
-	bombModel.light = BOMB_LIGHT_INACTIVE;
 	bombModel.sound = 0;
 
 	hide( @bombHud );
@@ -263,7 +259,6 @@ void bombExplode() {
 void resetBomb() {
 	hide( @bombModel );
 
-	bombModel.light = BOMB_LIGHT_INACTIVE;
 	bombModel.effects |= EF_TEAM_SILHOUETTE;
 
 	bombModel.team = attackingTeam;

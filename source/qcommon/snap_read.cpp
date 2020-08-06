@@ -29,12 +29,10 @@ UTILITY FUNCTIONS
 =========================================================================
 */
 
-const char * const svc_strings[256] =
-{
+const char * const svc_strings[256] = {
 	"svc_servercmd",
 	"svc_serverdata",
 	"svc_spawnbaseline",
-	"svc_download",
 	"svc_playerinfo",
 	"svc_packetentities",
 	"svc_gamecommands",

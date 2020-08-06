@@ -263,7 +263,6 @@ void G_GhostClient( edict_t *ent ) {
 	ent->s.effects = 0;
 	ent->s.weapon = 0;
 	ent->s.sound = EMPTY_HASH;
-	ent->s.light = 0;
 	ent->viewheight = 0;
 	ent->takedamage = DAMAGE_NO;
 

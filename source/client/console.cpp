@@ -122,6 +122,7 @@ void Con_Print( const char * str ) {
 	}
 
 	console.log.remove( 0, trim );
+	console.log += S_COLOR_WHITE;
 	console.log.append_raw( str, len );
 
 	if( console.at_bottom ) {

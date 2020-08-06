@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/array.h"
 #include "qcommon/version.h"
 
-static void CL_InitServerDownload( const char *filename, int size, unsigned checksum, bool allow_localhttpdownload, const char *url );
+static void CL_InitServerDownload( const char *filename, int size, unsigned checksum, bool not_external_server, const char *url );
 void CL_StopServerDownload( void );
 
 static DynamicArray< u8 > map_download_data( NO_INIT );
@@ -110,24 +110,11 @@ static void CL_DownloadComplete( void ) {
 			return;
 		}
 
-		if( !StartsWith( cls.download.name, "base/" ) ) {
-			Com_Printf( "Downloaded map has bad name.\n" );
-			return;
-		}
-
-		const char * baseless = cls.download.name + strlen( "base/" );
-		// u64 hash = Hash64( baseless, strlen( baseless ) - FileExtension( baseless ).n );
-		// if( client_gs.gameState.map.hash != hash ) {
-		// 	Com_Printf( "Downloaded map is not what we asked for.\n" );
-		// 	return;
-		// }
-
-		if( !AddMap( map_download_data.span(), baseless ) ) {
+		if( !AddMap( map_download_data.span(), cls.download.requestname ) ) {
 			Com_Printf( "Downloaded map is corrupt.\n" );
 			return;
 		}
 
-		cls.download.successCount++;
 		return;
 	}
 
@@ -156,22 +143,7 @@ static void CL_DownloadComplete( void ) {
 		return;
 	}
 
-	cls.download.successCount++;
 	cls.download.timeout = 0;
-}
-
-/*
-* CL_FreeDownloadList
-*/
-void CL_FreeDownloadList( void ) {
-	download_list_t *next;
-
-	while( cls.download.list ) {
-		next = cls.download.list->next;
-		Mem_ZoneFree( cls.download.list->filename );
-		Mem_ZoneFree( cls.download.list );
-		cls.download.list = next;
-	}
 }
 
 /*
@@ -188,17 +160,14 @@ void CL_DownloadDone( void ) {
 	cls.download.requestname = NULL;
 
 	cls.download.timeout = 0;
-	cls.download.timestart = 0;
 	cls.download.map = false;
 	cls.download.offset = cls.download.baseoffset = 0;
-	cls.download.web = false;
 	cls.download.filenum = 0;
 	cls.download.cancelled = false;
 
 	// the server has changed map during the download
 	if( cls.download.pending_reconnect ) {
 		cls.download.pending_reconnect = false;
-		CL_FreeDownloadList();
 		CL_ServerReconnect_f();
 		return;
 	}
@@ -237,7 +206,7 @@ static void CL_WebDownloadDoneCb( int status, const char *contentType, void *pri
 */
 static size_t CL_WebDownloadReadCb( const void *buf, size_t numb, float percentage, int status,
 									const char *contentType, void *privatep ) {
-	bool stop = cls.download.disconnect || cls.download.cancelled || status < 0 || status >= 300;
+	bool stop = cls.download.disconnect || status < 0 || status >= 300;
 	size_t write = 0;
 
 	if( !stop ) {
@@ -269,9 +238,8 @@ static size_t CL_WebDownloadReadCb( const void *buf, size_t numb, float percenta
 *
 * Hanldles server's initdownload message, starts web or server download if possible
 */
-static void CL_InitServerDownload( const char *filename, int size, unsigned checksum, bool allow_localhttpdownload, const char *url ) {
+static void CL_InitServerDownload( const char *filename, int size, unsigned checksum, bool not_external_server, const char *url ) {
 	int alloc_size;
-	const char *baseurl;
 
 	// ignore download commands coming from demo files
 	if( cls.demo.playing ) {
@@ -283,7 +251,7 @@ static void CL_InitServerDownload( const char *filename, int size, unsigned chec
 		return;
 	}
 
-	if( cls.download.filenum || cls.download.web ) {
+	if( cls.download.filenum ) {
 		Com_Printf( "Got init download message while already downloading\n" );
 		return;
 	}
@@ -349,17 +317,11 @@ static void CL_InitServerDownload( const char *filename, int size, unsigned chec
 	snprintf( cls.download.tempname, alloc_size, "%s.tmp", cls.download.name );
 
 	cls.download.origname = ZoneCopyString( filename );
-	cls.download.web = false;
-	cls.download.web_url = ZoneCopyString( url );
-	cls.download.web_local_http = allow_localhttpdownload;
-	cls.download.cancelled = false;
 	cls.download.disconnect = false;
 	cls.download.size = size;
 	cls.download.checksum = checksum;
 	cls.download.percent = 0;
 	cls.download.timeout = 0;
-	cls.download.retries = 0;
-	cls.download.timestart = Sys_Milliseconds();
 	cls.download.offset = 0;
 	cls.download.baseoffset = 0;
 	cls.download.pending_reconnect = false;
@@ -367,16 +329,13 @@ static void CL_InitServerDownload( const char *filename, int size, unsigned chec
 	Cvar_ForceSet( "cl_download_name", COM_FileBase( filename ) );
 	Cvar_ForceSet( "cl_download_percent", "0" );
 
-	baseurl = cls.httpbaseurl;
+	const char * baseurl = cls.httpbaseurl;
 
-	if( cl_downloads_from_web->integer && allow_localhttpdownload && url && url[0] != 0 ) {
-		cls.download.web = true;
+	if( not_external_server ) {
 		Com_Printf( "Web download: %s from %s/%s\n", cls.download.tempname, baseurl, url );
-	} else if( cl_downloads_from_web->integer && url && url[0] != 0 ) {
-		cls.download.web = true;
+	}
+	else {
 		Com_Printf( "Web download: %s from %s\n", cls.download.tempname, url );
-	} else {
-		Com_Printf( "Server download: %s\n", cls.download.tempname );
 	}
 
 	if( FileExtension( filename ) != ".bsp" ) {
@@ -392,73 +351,58 @@ static void CL_InitServerDownload( const char *filename, int size, unsigned chec
 		map_download_data.init( sys_allocator );
 	}
 
-	if( cls.download.web ) {
-		char *referer, *fullurl;
-		const char *headers[] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+	char *referer, *fullurl;
+	const char *headers[] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL };
 
-		if( cls.download.offset == cls.download.size ) {
-			// special case for completed downloads to avoid passing empty HTTP range
-			CL_WebDownloadDoneCb( 200, "", NULL );
-			return;
-		}
-
-		alloc_size = strlen( APP_URI_SCHEME ) + strlen( NET_AddressToString( &cls.serveraddress ) ) + 1;
-		referer = ( char * ) alloca( alloc_size );
-		snprintf( referer, alloc_size, APP_URI_SCHEME "%s", NET_AddressToString( &cls.serveraddress ) );
-		Q_strlwr( referer );
-
-		if( allow_localhttpdownload ) {
-			alloc_size = strlen( baseurl ) + 1 + strlen( url ) + 1;
-			fullurl = ( char * ) alloca( alloc_size );
-			snprintf( fullurl, alloc_size, "%s/%s", baseurl, url );
-		} else {
-			size_t url_len = strlen( url );
-			alloc_size = url_len + 1 + strlen( filename ) * 3 + 1;
-			fullurl = ( char * ) alloca( alloc_size );
-			snprintf( fullurl, alloc_size, "%s/", url );
-			Q_urlencode_unsafechars( filename, fullurl + url_len + 1, alloc_size - url_len - 1 );
-		}
-
-		headers[0] = "Referer";
-		headers[1] = referer;
-
-		CL_AddSessionHttpRequestHeaders( fullurl, &headers[2] );
-
-		CL_AsyncStreamRequest( fullurl, headers, cl_downloads_from_web_timeout->integer / 100, cls.download.offset,
-							   CL_WebDownloadReadCb, CL_WebDownloadDoneCb, NULL, NULL, false );
-
+	if( cls.download.offset == cls.download.size ) {
+		// special case for completed downloads to avoid passing empty HTTP range
+		CL_WebDownloadDoneCb( 200, "", NULL );
 		return;
 	}
 
-	cls.download.timeout = Sys_Milliseconds() + 3000;
-	cls.download.retries = 0;
+	alloc_size = strlen( APP_URI_SCHEME ) + strlen( NET_AddressToString( &cls.serveraddress ) ) + 1;
+	referer = ( char * ) alloca( alloc_size );
+	snprintf( referer, alloc_size, APP_URI_SCHEME "%s", NET_AddressToString( &cls.serveraddress ) );
+	Q_strlwr( referer );
 
-	CL_AddReliableCommand( va( "nextdl \"%s\" %li", cls.download.name, cls.download.offset ) );
+	if( not_external_server ) {
+		alloc_size = strlen( baseurl ) + 1 + strlen( url ) + 1;
+		fullurl = ( char * ) alloca( alloc_size );
+		snprintf( fullurl, alloc_size, "%s/%s", baseurl, url );
+	} else {
+		size_t url_len = strlen( url );
+		alloc_size = url_len + 1 + strlen( filename ) * 3 + 1;
+		fullurl = ( char * ) alloca( alloc_size );
+		snprintf( fullurl, alloc_size, "%s/", url );
+		Q_urlencode_unsafechars( filename, fullurl + url_len + 1, alloc_size - url_len - 1 );
+	}
+
+	headers[0] = "Referer";
+	headers[1] = referer;
+
+	CL_AddSessionHttpRequestHeaders( fullurl, &headers[2] );
+
+	CL_AsyncStreamRequest( fullurl, headers, cl_downloads_from_web_timeout->integer / 100, cls.download.offset,
+						   CL_WebDownloadReadCb, CL_WebDownloadDoneCb, NULL, NULL, false );
 }
 
 /*
 * CL_InitDownload_f
 */
 static void CL_InitDownload_f( void ) {
-	const char *filename;
-	const char *url;
-	int size;
-	unsigned checksum;
-	bool allow_localhttpdownload;
-
 	// ignore download commands coming from demo files
 	if( cls.demo.playing ) {
 		return;
 	}
 
 	// read the data
-	filename = Cmd_Argv( 1 );
-	size = atoi( Cmd_Argv( 2 ) );
-	checksum = strtoul( Cmd_Argv( 3 ), NULL, 10 );
-	allow_localhttpdownload = ( atoi( Cmd_Argv( 4 ) ) != 0 ) && cls.httpbaseurl != NULL;
-	url = Cmd_Argv( 5 );
+	const char * filename = Cmd_Argv( 1 );
+	int size = atoi( Cmd_Argv( 2 ) );
+	unsigned int checksum = strtoul( Cmd_Argv( 3 ), NULL, 10 );
+	bool not_external_server = atoi( Cmd_Argv( 4 ) ) != 0 && cls.httpbaseurl != NULL;
+	const char * url = Cmd_Argv( 5 );
 
-	CL_InitServerDownload( filename, size, checksum, allow_localhttpdownload, url );
+	CL_InitServerDownload( filename, size, checksum, not_external_server, url );
 }
 
 /*
@@ -470,10 +414,6 @@ void CL_StopServerDownload( void ) {
 		cls.download.filenum = 0;
 	}
 
-	if( cls.download.cancelled ) {
-		FS_RemoveBaseFile( cls.download.tempname );
-	}
-
 	Mem_ZoneFree( cls.download.name );
 	cls.download.name = NULL;
 
@@ -483,41 +423,17 @@ void CL_StopServerDownload( void ) {
 	Mem_ZoneFree( cls.download.origname );
 	cls.download.origname = NULL;
 
-	Mem_ZoneFree( cls.download.web_url );
-	cls.download.web_url = NULL;
-
 	cls.download.offset = 0;
 	cls.download.size = 0;
 	cls.download.percent = 0;
 	cls.download.map = false;
 	cls.download.timeout = 0;
-	cls.download.retries = 0;
-	cls.download.web = false;
 
 	map_download_data.shutdown();
 
 	Cvar_ForceSet( "cl_download_name", "" );
 	Cvar_ForceSet( "cl_download_percent", "0" );
 }
-
-/*
-* CL_RetryDownload
-* Resends download request
-* Also aborts download if we have retried too many times
-*/
-static void CL_RetryDownload( void ) {
-	if( ++cls.download.retries > 5 ) {
-		Com_Printf( "Download timed out: %s\n", cls.download.name );
-
-		// let the server know we're done
-		CL_AddReliableCommand( va( "nextdl \"%s\" %i", cls.download.name, -2 ) );
-		CL_DownloadDone();
-	} else {
-		cls.download.timeout = Sys_Milliseconds() + 3000;
-		CL_AddReliableCommand( va( "nextdl \"%s\" %li", cls.download.name, cls.download.offset ) );
-	}
-}
-
 /*
 * CL_CheckDownloadTimeout
 * Retry downloading if too much time has passed since last download packet was received
@@ -527,55 +443,8 @@ void CL_CheckDownloadTimeout( void ) {
 		return;
 	}
 
-	if( cls.download.filenum ) {
-		CL_RetryDownload();
-	} else {
-		Com_Printf( "Download request timed out.\n" );
-		CL_DownloadDone();
-	}
-}
-
-/*
-* CL_DownloadStatus_f
-*/
-void CL_DownloadStatus_f( void ) {
-	if( !cls.download.requestname ) {
-		Com_Printf( "No download active\n" );
-		return;
-	}
-
-	if( !cls.download.name ) {
-		Com_Printf( "%s: Requesting\n", COM_FileBase( cls.download.requestname ) );
-		return;
-	}
-
-	Com_Printf( "%s: %s download %3.2f%c done\n", COM_FileBase( cls.download.name ),
-				( cls.download.web ? "Web" : "Server" ), cls.download.percent * 100.0f, '%' );
-}
-
-/*
-* CL_DownloadCancel_f
-*/
-void CL_DownloadCancel_f( void ) {
-	if( !cls.download.requestname ) {
-		Com_Printf( "No download active\n" );
-		return;
-	}
-
-	if( !cls.download.name ) {
-		CL_DownloadDone();
-		Com_Printf( "Canceled download request\n" );
-		return;
-	}
-
-	Com_Printf( "Canceled download of %s\n", cls.download.name );
-
-	cls.download.cancelled = true;
-
-	if( !cls.download.web ) {
-		CL_AddReliableCommand( va( "nextdl \"%s\" %i", cls.download.name, -2 ) ); // let the server know we're done
-		CL_DownloadDone();
-	}
+	Com_Printf( "Download request timed out.\n" );
+	CL_DownloadDone();
 }
 
 /*

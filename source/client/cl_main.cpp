@@ -554,7 +554,7 @@ void CL_Disconnect( const char *message ) {
 	bool wasconnecting;
 
 	// We have to shut down webdownloading first
-	if( cls.download.web && !cls.download.disconnect ) {
+	if( cls.download.requestname && !cls.download.disconnect ) {
 		cls.download.disconnect = true;
 		return;
 	}
@@ -563,7 +563,7 @@ void CL_Disconnect( const char *message ) {
 		return;
 	}
 	if( cls.state == CA_DISCONNECTED ) {
-		goto done;
+		return;
 	}
 
 	if( cls.state < CA_CONNECTED ) {
@@ -618,19 +618,9 @@ void CL_Disconnect( const char *message ) {
 
 		Cbuf_ExecuteText( EXEC_NOW, menuparms );
 	}
-
-done:
-	// in case we disconnect while in download phase
-	CL_FreeDownloadList();
 }
 
 void CL_Disconnect_f( void ) {
-	// We have to shut down webdownloading first
-	if( cls.download.web ) {
-		cls.download.disconnect = true;
-		return;
-	}
-
 	CL_Disconnect( NULL );
 }
 
@@ -641,9 +631,8 @@ void CL_Disconnect_f( void ) {
 * drop to full console
 */
 void CL_Changing_f( void ) {
-	//ZOID
 	//if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
-	if( cls.download.filenum || cls.download.web ) {
+	if( cls.download.requestname ) {
 		return;
 	}
 
@@ -672,7 +661,7 @@ void CL_ServerReconnect_f( void ) {
 	}
 
 	//if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
-	if( cls.download.filenum || cls.download.web ) {
+	if( cls.download.requestname ) {
 		cls.download.pending_reconnect = true;
 		return;
 	}
@@ -1274,8 +1263,6 @@ static void CL_InitLocal( void ) {
 	Cmd_AddCommand( "demopause", CL_PauseDemo_f );
 	Cmd_AddCommand( "demojump", CL_DemoJump_f );
 	Cmd_AddCommand( "showserverip", CL_ShowServerIP_f );
-	Cmd_AddCommand( "downloadstatus", CL_DownloadStatus_f );
-	Cmd_AddCommand( "downloadcancel", CL_DownloadCancel_f );
 
 	Cmd_SetCompletionFunc( "demo", CL_DemoComplete );
 }

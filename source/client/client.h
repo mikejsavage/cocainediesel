@@ -99,19 +99,12 @@ of server connections
 ==================================================================
 */
 
-struct download_list_t {
-	char *filename;
-	download_list_t *next;
-};
-
 struct download_t {
 	// for request
 	char *requestname;              // file we requested from the server (NULL if none requested)
 	int64_t timeout;
-	int64_t timestart;
 	bool map;
 
-	// both downloads
 	char *name;                     // name of the file in download, relative to base path
 	char *origname;                 // name of the file in download as originally passed by the server
 	char *tempname;                 // temporary location, relative to base path
@@ -119,19 +112,10 @@ struct download_t {
 	unsigned checksum;
 
 	double percent;
-	int successCount;               // so we know to restart media
-	download_list_t *list;          // list of all tried downloads, so we don't request same file twice
 
-	// server download
 	int filenum;
 	size_t offset;
-	int retries;
 	size_t baseoffset;              // for download speed calculation when resuming downloads
-
-	// web download
-	bool web;
-	char *web_url;                  // download URL, passed by the server
-	bool web_local_http;
 
 	bool disconnect;            // set when user tries to disconnect, to allow cleaning up webdownload
 	bool pending_reconnect;     // set when we ignored a map change command to avoid stopping the download
@@ -372,12 +356,9 @@ const char **CL_DemoComplete( const char *partial );
 void CL_ParseServerMessage( msg_t *msg );
 #define SHOWNET( msg,s ) _SHOWNET( msg,s,cl_shownet->integer );
 
-void CL_FreeDownloadList( void );
 bool CL_CheckOrDownloadFile( const char *filename );
 
 bool CL_DownloadRequest( const char *filename );
-void CL_DownloadStatus_f( void );
-void CL_DownloadCancel_f( void );
 void CL_DownloadDone( void );
 void CL_CheckDownloadTimeout( void );
 

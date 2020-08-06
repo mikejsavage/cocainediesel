@@ -7,11 +7,11 @@ system sparks1 {
   radius 16
 
   on_collision {
-    bulletSparks2
+    emitter bulletSparks2
+    decal textures/blood_decals/blood1
   }
   on_age {
-    bulletSparks3
-    despawn
+    emitter bulletSparks3
   }
 }
 

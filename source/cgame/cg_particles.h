@@ -67,9 +67,21 @@ enum ParticleCollisionType : u8 {
 	ParticleCollisionType_Sphere,
 };
 
+enum ParticleSystemEventType : u8 {
+	ParticleSystemEventType_None,
+	ParticleSystemEventType_Despawn,
+	ParticleSystemEventType_Emitter,
+	ParticleSystemEventType_Decal,
+};
+
 struct ParticleSystemEvent {
+	u8 type;
+	StringHash event_name;
+};
+
+struct ParticleSystemEvents {
 	u8 num_events;
-	StringHash events[ MAX_PARTICLE_EMITTER_EVENTS ];
+	ParticleSystemEvent events[ MAX_PARTICLE_EMITTER_EVENTS ];
 };
 
 struct ParticleSystem {
@@ -85,8 +97,8 @@ struct ParticleSystem {
 	ParticleCollisionType collision;
 	float radius;
 
-	ParticleSystemEvent on_collision;
-	ParticleSystemEvent on_age;
+	ParticleSystemEvents on_collision;
+	ParticleSystemEvents on_age;
 
 	// dynamic stuff
 	bool initialized;

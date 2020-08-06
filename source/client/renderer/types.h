@@ -65,6 +65,8 @@ struct Mesh {
 struct GPUParticle {
 	Vec3 position;
 	Vec3 velocity;
+	Vec3 orientation;
+	Vec3 avelocity;
 	RGBA8 color;
 	RGBA8 dcolor;
 	float size;

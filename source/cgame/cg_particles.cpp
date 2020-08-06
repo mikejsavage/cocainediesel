@@ -18,7 +18,7 @@ static ParticleEmitter particleEmitters[ MAX_PARTICLE_EMITTERS ];
 static u32 num_particleEmitters;
 static Hashtable< MAX_PARTICLE_EMITTERS * 2 > particleEmitters_hashtable;
 
-bool ParseParticleSystemEvent( Span< const char > * data, ParticleSystemEvent * event ) {
+bool ParseParticleSystemEvents( Span< const char > * data, ParticleSystemEvents * event ) {
 	while( true ) {
 		Span< const char > opening_brace = ParseToken( data, Parse_DontStopOnNewLine );
 		if( opening_brace == "" )
@@ -41,8 +41,27 @@ bool ParseParticleSystemEvent( Span< const char > * data, ParticleSystemEvent * 
 				return false;
 			}
 
-			event->events[ event->num_events ] = StringHash( Hash64( key.ptr, key.n ) );
-			event->num_events++;
+			ParticleSystemEvent e = { };
+			if( key == "despawn" ) {
+				e.type = ParticleSystemEventType_Despawn;
+				event->events[ event->num_events ] = e;
+				event->num_events++;
+			}
+			else if( key == "emitter" ) {
+				e.type = ParticleSystemEventType_Emitter;
+				Span< const char > value = ParseToken( data, Parse_DontStopOnNewLine );
+				e.event_name = StringHash( Hash64( value.ptr, value.n ) );
+				event->events[ event->num_events ] = e;
+				event->num_events++;
+			}
+			else if( key == "decal" ) {
+				e.type = ParticleSystemEventType_Decal;
+				Span< const char > value = ParseToken( data, Parse_DontStopOnNewLine );
+				e.event_name = StringHash( Hash64( value.ptr, value.n ) );
+				event->events[ event->num_events ] = e;
+				event->num_events++;
+			}
+
 		}
 	}
 
@@ -70,15 +89,15 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 
 	ps->gradient = FindMaterial( "$whiteimage" );
 
-	ps->particles = ALLOC_SPAN( sys_allocator, GPUParticle, ps->max_particles );
-	ps->gpu_instances = ALLOC_SPAN( sys_allocator, u32, ps->max_particles );
+	ps->particles = ALLOC_SPAN( a, GPUParticle, ps->max_particles );
+	ps->gpu_instances = ALLOC_SPAN( a, u32, ps->max_particles );
 	if( ps->feedback ) {
-		ps->particles_feedback = ALLOC_SPAN( sys_allocator, GPUParticleFeedback, ps->max_particles );
+		ps->particles_feedback = ALLOC_SPAN( a, GPUParticleFeedback, ps->max_particles );
 		memset( ps->particles_feedback.ptr, 0, ps->particles_feedback.num_bytes() );
 		ps->vb_feedback = NewVertexBuffer( ps->particles_feedback.begin(), ps->max_particles * sizeof( GPUParticleFeedback ) );
 	}
 	else {
-		ps->gpu_instances_time = ALLOC_SPAN( sys_allocator, s64, ps->max_particles );
+		ps->gpu_instances_time = ALLOC_SPAN( a, s64, ps->max_particles );
 	}
 	ps->ibo = NewIndexBuffer( ps->max_particles * sizeof( ps->gpu_instances[ 0 ] ) );
 	ps->vb = NewParticleVertexBuffer( ps->max_particles );
@@ -113,9 +132,6 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 
 			ps->mesh = NewMesh( mesh_config );
 		}
-	}
-	else {
-		
 	}
 	
 	{
@@ -199,11 +215,11 @@ static bool ParseParticleSystem( ParticleSystem * system, Span< const char > nam
 				}
 			}
 			else if( key == "on_collision" ) {
-				ParseParticleSystemEvent( data, &system->on_collision );
+				ParseParticleSystemEvents( data, &system->on_collision );
 				system->feedback = true;
 			}
 			else if( key == "on_age" ) {
-				ParseParticleSystemEvent( data, &system->on_age );
+				ParseParticleSystemEvents( data, &system->on_age );
 				system->feedback = true;
 			}
 		}
@@ -409,24 +425,31 @@ bool ParticleFeedback( ParticleSystem * ps, GPUParticleFeedback * feedback ) {
 
 	if( feedback->parm & FEEDBACK_COLLISION ) {
 		for( u8 i = 0; i < ps->on_collision.num_events; i++ ) {
-			StringHash event = ps->on_collision.events[ i ];
-			if( event == despawn ) {
+			ParticleSystemEvent event = ps->on_collision.events[ i ];
+			if( event.type == ParticleSystemEventType_Despawn ) {
 				result = false;
 			}
-			else {
-				EmitParticles( FindParticleEmitter( event ), ParticleEmitterSphere( feedback->position, feedback->normal, 90.0f ), 1.0f );
+			else if( event.type == ParticleSystemEventType_Emitter ) {
+				EmitParticles( FindParticleEmitter( event.event_name ), ParticleEmitterSphere( feedback->position, feedback->normal, 90.0f ), 1.0f );
+			}
+			else if( event.type == ParticleSystemEventType_Decal ) {
+				AddPersistentDecal( feedback->position, feedback->normal, 64.0f, 0.0f, event.event_name, Vec4( 1.0f ), 5000 );
 			}
 		}
 	}
 
 	if( feedback->parm & FEEDBACK_AGE ) {
+		result = false;
 		for( u8 i = 0; i < ps->on_age.num_events; i++ ) {
-			StringHash event = ps->on_age.events[ i ];
-			if( event == despawn ) {
+			ParticleSystemEvent event = ps->on_age.events[ i ];
+			if( event.type == ParticleSystemEventType_Despawn ) {
 				result = false;
 			}
-			else {
-				EmitParticles( FindParticleEmitter( event ), ParticleEmitterSphere( feedback->position, feedback->normal ), 1.0f );
+			else if( event.type == ParticleSystemEventType_Emitter ) {
+				EmitParticles( FindParticleEmitter( event.event_name ), ParticleEmitterSphere( feedback->position, feedback->normal ), 1.0f );
+			}
+			else if( event.type == ParticleSystemEventType_Decal ) {
+				AddPersistentDecal( feedback->position, feedback->normal, 64.0f, 0.0f, event.event_name, Vec4( 1.0f ), 5000 );
 			}
 		}
 	}
@@ -465,7 +488,6 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 
 	{
 		ZoneScopedN( "Spawn new particles" );
-		// Spawn new particles by putting them at the end of the list
 		if( ps->new_particles > 0 ) {
 			WriteVertexBuffer( ps->vb, ps->particles.begin(), ps->new_particles * sizeof( GPUParticle ), ps->num_particles * sizeof( GPUParticle ) );
 			for( size_t i = 0; i < ps->new_particles; i++ ) {
@@ -477,22 +499,20 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		}
 	}
 
-	ps->num_particles += ps->new_particles;
-	ps->new_particles = 0;
-
 	{
 		ZoneScopedN( "Upload index buffer" );
-		// Index buffer to draw particles in new order
-		WriteIndexBuffer( ps->ibo, ps->gpu_instances.begin(), ps->num_particles * sizeof( ps->gpu_instances[ 0 ] ) );
+		WriteIndexBuffer( ps->ibo, ps->gpu_instances.begin(), ( ps->num_particles + ps->new_particles ) * sizeof( ps->gpu_instances[ 0 ] ) );
 	}
 
 	{
 		ZoneScopedN( "Reset order" );
-		// Reset order
 		for( size_t i = 0; i < ps->num_particles; i++ ) {
 			ps->gpu_instances[ i ] = i;
 		}
 	}
+
+	ps->num_particles += ps->new_particles;
+	ps->new_particles = 0;
 }
 
 void DrawParticleSystem( ParticleSystem * ps ) {
@@ -530,6 +550,27 @@ void DrawParticles() {
 			DrawParticleSystem( &particleSystems[ i ] );
 		}
 	}
+
+	if( cg_particleDebug->integer ) {
+		const ImGuiIO & io = ImGui::GetIO();
+		float width_frac = Lerp( 0.25f, Unlerp01( 1024.0f, io.DisplaySize.x, 1920.0f ), 0.15f );
+		Vec2 size = io.DisplaySize * Vec2( width_frac, 0.25f );
+		ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs;
+
+
+		ImGui::SetNextWindowSize( ImVec2( size.x, size.y ) );
+		ImGui::SetNextWindowPos( ImVec2( io.DisplaySize.x - size.x, 100.0f ), ImGuiCond_Always, ImVec2( 0, 0.5f ) );
+		ImGui::Begin( "particle statistics", WindowZOrder_Chat, flags );
+
+		for( size_t i = 0; i < num_particleSystems; i++ ) {
+			ParticleSystem * ps = &particleSystems[ i ];
+			if( ps->initialized ) {
+				ImGui::Text( "ps: %i, num: %i / %i", i, ps->num_particles, ps->max_particles );
+			}
+		}
+
+		ImGui::End();
+	}
 }
 
 static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, Vec4 color, Vec4 dcolor, float size, float dsize ) {
@@ -540,6 +581,10 @@ static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Ve
 	GPUParticle & particle = ps->particles[ ps->new_particles ];
 	particle.position = position;
 	particle.velocity = velocity;
+	// particle.orientation = Quaternion( 0.0f, 0.0f, 0.0f, 1.0f );
+	// particle.avelocity = Normalize( Quaternion( 0.0f, 0.0f, 0.996f, 0.087f ) );
+	particle.orientation = UniformSampleSphere( &cls.rng );
+	particle.avelocity = UniformSampleSphere( &cls.rng );
 	particle.color = LinearTosRGB( color );
 	particle.dcolor = LinearTosRGB( dcolor );
 	particle.size = size;

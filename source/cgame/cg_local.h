@@ -518,6 +518,8 @@ extern cvar_t *cg_chatFilter;
 extern cvar_t *cg_allyModel;
 extern cvar_t *cg_enemyModel;
 
+extern cvar_t *cg_particleDebug;
+
 #define CG_Malloc( size ) _Mem_AllocExt( cg_mempool, size, 16, 1, 0, 0, __FILE__, __LINE__ );
 #define CG_Free( data ) Mem_Free( data )
 

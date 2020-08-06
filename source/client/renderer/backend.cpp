@@ -29,6 +29,8 @@ enum VertexAttribute : GLuint {
 
 	VertexAttribute_ParticlePosition,
 	VertexAttribute_ParticleVelocity,
+	VertexAttribute_ParticleOrientation,
+	VertexAttribute_ParticleAVelocity,
 	VertexAttribute_ParticleColor,
 	VertexAttribute_ParticleDColor,
 	VertexAttribute_ParticleSize,
@@ -605,6 +607,8 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 
 		SetupAttribute( VertexAttribute_ParticlePosition, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, position ) );
 		SetupAttribute( VertexAttribute_ParticleVelocity, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, velocity ) );
+		SetupAttribute( VertexAttribute_ParticleOrientation, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, orientation ) );
+		SetupAttribute( VertexAttribute_ParticleAVelocity, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, avelocity ) );
 		SetupAttribute( VertexAttribute_ParticleColor, VertexFormat_U8x4_Norm, sizeof( GPUParticle ), offsetof( GPUParticle, color ) );
 		SetupAttribute( VertexAttribute_ParticleDColor, VertexFormat_U8x4_Norm, sizeof( GPUParticle ), offsetof( GPUParticle, dcolor ) );
 		SetupAttribute( VertexAttribute_ParticleSize, VertexFormat_Floatx1, sizeof( GPUParticle ), offsetof( GPUParticle, size ) );
@@ -634,6 +638,8 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		else {
 			glVertexAttribDivisor( VertexAttribute_ParticlePosition, 1 );
 			glVertexAttribDivisor( VertexAttribute_ParticleVelocity, 1 );
+			glVertexAttribDivisor( VertexAttribute_ParticleOrientation, 1 );
+			glVertexAttribDivisor( VertexAttribute_ParticleAVelocity, 1 );
 			glVertexAttribDivisor( VertexAttribute_ParticleColor, 1 );
 			glVertexAttribDivisor( VertexAttribute_ParticleDColor, 1 );
 			glVertexAttribDivisor( VertexAttribute_ParticleSize, 1 );
@@ -1115,6 +1121,8 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 
 	glBindAttribLocation( program, VertexAttribute_ParticlePosition, "a_ParticlePosition" );
 	glBindAttribLocation( program, VertexAttribute_ParticleVelocity, "a_ParticleVelocity" );
+	glBindAttribLocation( program, VertexAttribute_ParticleOrientation, "a_ParticleOrientation" );
+	glBindAttribLocation( program, VertexAttribute_ParticleAVelocity, "a_ParticleAVelocity" );
 	glBindAttribLocation( program, VertexAttribute_ParticleColor, "a_ParticleColor" );
 	glBindAttribLocation( program, VertexAttribute_ParticleDColor, "a_ParticleDColor" );
 	glBindAttribLocation( program, VertexAttribute_ParticleSize, "a_ParticleSize" );

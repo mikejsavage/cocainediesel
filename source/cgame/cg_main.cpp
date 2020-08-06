@@ -62,6 +62,8 @@ cvar_t *cg_showClamp;
 cvar_t *cg_allyModel;
 cvar_t *cg_enemyModel;
 
+cvar_t *cg_particleDebug;
+
 void CG_LocalPrint( const char *format, ... ) {
 	va_list argptr;
 	char msg[ 1024 ];
@@ -188,6 +190,8 @@ static void CG_RegisterVariables( void ) {
 
 	cg_enemyModel = Cvar_Get( "cg_enemyModel", "padpork", CVAR_ARCHIVE );
 	cg_enemyModel->modified = true;
+
+	cg_particleDebug = Cvar_Get( "cg_particleDebug", "0", CVAR_DEVELOPER );
 
 	Cvar_Get( "cg_loadout", "", CVAR_ARCHIVE | CVAR_USERINFO );
 }

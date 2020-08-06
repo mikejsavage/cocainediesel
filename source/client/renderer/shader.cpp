@@ -125,6 +125,8 @@ static void LoadShaders() {
 	const char * update_no_feedback[] = {
 		"v_ParticlePosition",
 		"v_ParticleVelocity",
+		"v_ParticleOrientation",
+		"v_ParticleAVelocity",
 		"v_ParticleColor",
 		"v_ParticleDColor",
 		"v_ParticleSize",
@@ -138,6 +140,8 @@ static void LoadShaders() {
 	const char * update_feedback[] = {
 		"v_ParticlePosition",
 		"v_ParticleVelocity",
+		"v_ParticleOrientation",
+		"v_ParticleAVelocity",
 		"v_ParticleColor",
 		"v_ParticleDColor",
 		"v_ParticleSize",

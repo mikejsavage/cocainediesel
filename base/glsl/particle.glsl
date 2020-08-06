@@ -15,7 +15,8 @@ in vec2 a_TexCoord;
 
 in vec3 a_ParticlePosition;
 in vec3 a_ParticleVelocity;
-in float a_ParticleDVelocity;
+in vec3 a_ParticleOrientation;
+in vec3 a_ParticleAVelocity;
 in vec4 a_ParticleColor;
 in vec4 a_ParticleDColor;
 in float a_ParticleSize;
@@ -29,6 +30,23 @@ layout( std140 ) uniform u_GradientMaterial {
 	float u_GradientHalfPixel;
 };
 
+vec3 rotate_euler( vec3 euler, vec3 v ) {
+  float sp = sin( euler.x );
+  float cp = cos( euler.x );
+  float sy = sin( euler.y );
+  float cy = cos( euler.y );
+  float sr = sin( euler.z );
+  float cr = cos( euler.z );
+
+  float t1 = -sr * sp;
+  float t2 = cr * sp;
+  return mat3(
+    cp * cy, cp * sy, -sp,
+    t1 * cy + cr * sy, t1 * sy - cr * cy, -sr * cp,
+    t2 * cy + sr * sy, t2 * sy - sr * cy, cr * cp
+  ) * v;
+}
+
 void main() {
 	float fage = a_ParticleAge / a_ParticleLifetime;
 
@@ -41,7 +59,7 @@ void main() {
 	float scale = a_ParticleSize + a_ParticleDSize * a_ParticleAge;
 
 #if MODEL
-	vec3 position = a_ParticlePosition + ( u_M * vec4( a_Position * scale, 1.0 ) ).xyz;
+	vec3 position = a_ParticlePosition + rotate_euler( a_ParticleOrientation, ( u_M * vec4( a_Position * scale, 1.0 ) ).xyz );
 
 	gl_Position = u_P * u_V * vec4( position, 1.0 );
 #else

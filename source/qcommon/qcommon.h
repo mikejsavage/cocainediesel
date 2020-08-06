@@ -167,7 +167,6 @@ PROTOCOL
 
 #define PORT_MASTER         27950
 #define PORT_SERVER         44400
-#define PORT_HTTP_SERVER    44444
 #define NUM_BROADCAST_PORTS 5
 
 //=========================================
@@ -190,7 +189,6 @@ enum svc_ops_e {
 	svc_servercmd,          // [string] string
 	svc_serverdata,         // [int] protocol ...
 	svc_spawnbaseline,
-	svc_download,           // [short] size [size bytes]
 	svc_playerinfo,         // variable
 	svc_packetentities,     // [...]
 	svc_gamecommands,

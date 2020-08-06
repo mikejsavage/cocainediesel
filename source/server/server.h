@@ -253,7 +253,6 @@ extern cvar_t *sv_port;
 extern cvar_t *sv_ip6;
 extern cvar_t *sv_port6;
 
-#ifdef HTTP_SUPPORT
 extern cvar_t *sv_http;
 extern cvar_t *sv_http_ip;
 extern cvar_t *sv_http_ipv6;
@@ -261,7 +260,6 @@ extern cvar_t *sv_http_port;
 extern cvar_t *sv_http_upstream_baseurl;
 extern cvar_t *sv_http_upstream_ip;
 extern cvar_t *sv_http_upstream_realip_header;
-#endif
 
 extern cvar_t *sv_maxclients;
 

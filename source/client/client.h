@@ -107,9 +107,9 @@ struct download_list_t {
 struct download_t {
 	// for request
 	char *requestname;              // file we requested from the server (NULL if none requested)
-	bool requestnext;           // whether to request next download after this, for precaching
 	int64_t timeout;
 	int64_t timestart;
+	bool map;
 
 	// both downloads
 	char *name;                     // name of the file in download, relative to base path
@@ -262,7 +262,6 @@ extern cvar_t *cl_extrapolate;
 extern cvar_t *cl_debug_serverCmd;
 extern cvar_t *cl_debug_timeDelta;
 
-extern cvar_t *cl_downloads;
 extern cvar_t *cl_downloads_from_web;
 extern cvar_t *cl_downloads_from_web_timeout;
 
@@ -295,6 +294,7 @@ void CL_ReadPackets( void );
 void CL_Disconnect_f( void );
 
 void CL_Reconnect_f( void );
+void CL_FinishConnect();
 void CL_ServerReconnect_f( void );
 void CL_Changing_f( void );
 void CL_Precache_f( void );
@@ -379,7 +379,6 @@ bool CL_DownloadRequest( const char *filename );
 void CL_DownloadStatus_f( void );
 void CL_DownloadCancel_f( void );
 void CL_DownloadDone( void );
-void CL_RequestNextDownload( void );
 void CL_CheckDownloadTimeout( void );
 
 //

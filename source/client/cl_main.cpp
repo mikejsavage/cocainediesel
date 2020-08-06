@@ -51,14 +51,10 @@ cvar_t *info_password;
 cvar_t *cl_debug_serverCmd;
 cvar_t *cl_debug_timeDelta;
 
-cvar_t *cl_downloads;
 cvar_t *cl_downloads_from_web;
 cvar_t *cl_downloads_from_web_timeout;
 
 cvar_t *cl_devtools;
-
-static char cl_nextString[MAX_STRING_CHARS];
-static char cl_connectChain[MAX_STRING_CHARS];
 
 client_static_t cls;
 client_state_t cl;
@@ -258,11 +254,8 @@ static void CL_CheckForResend( void ) {
 /*
 * CL_Connect
 */
-static void CL_Connect( const char *servername, socket_type_t type, netadr_t *address, const char *serverchain ) {
+static void CL_Connect( const char *servername, socket_type_t type, netadr_t *address ) {
 	netadr_t socketaddress;
-
-	cl_connectChain[0] = '\0';
-	cl_nextString[0] = '\0';
 
 	CL_Disconnect( NULL );
 
@@ -302,10 +295,6 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 
 	CL_SetClientState( CA_CONNECTING );
 
-	if( serverchain[0] ) {
-		Q_strncpyz( cl_connectChain, serverchain, sizeof( cl_connectChain ) );
-	}
-
 	cls.connect_time = -99999; // CL_CheckForResend() will fire immediately
 	cls.connect_count = 0;
 	cls.rejected = false;
@@ -320,7 +309,6 @@ static void CL_Connect_Cmd_f( socket_type_t socket ) {
 	char *servername, password[64];
 	char *connectstring, *connectstring_base;
 	const char *tmp;
-	const char *serverchain;
 
 	if( Cmd_Argc() < 2 ) {
 		Com_Printf( "Usage: %s <server>\n", Cmd_Argv( 0 ) );
@@ -329,7 +317,6 @@ static void CL_Connect_Cmd_f( socket_type_t socket ) {
 
 	connectstring_base = TempCopyString( Cmd_Argv( 1 ) );
 	connectstring = connectstring_base;
-	serverchain = Cmd_Argc() >= 3 ? Cmd_Argv( 2 ) : "";
 
 	if( !Q_strnicmp( connectstring, APP_URI_SCHEME, strlen( APP_URI_SCHEME ) ) ) {
 		connectstring += strlen( APP_URI_SCHEME );
@@ -372,8 +359,7 @@ static void CL_Connect_Cmd_f( socket_type_t socket ) {
 	}
 
 	servername = TempCopyString( connectstring );
-	CL_Connect( servername, ( serveraddress.type == NA_LOOPBACK ? SOCKET_LOOPBACK : socket ),
-				&serveraddress, serverchain );
+	CL_Connect( servername, ( serveraddress.type == NA_LOOPBACK ? SOCKET_LOOPBACK : socket ), &serveraddress );
 
 	Mem_TempFree( servername );
 	Mem_TempFree( connectstring_base );
@@ -538,25 +524,8 @@ static void CL_SetNext_f( void ) {
 		Com_Printf( "USAGE: next <commands>\n" );
 		return;
 	}
-
-	// jalfixme: I'm afraid of this being too powerful, since it basically
-	// is allowed to execute everything. Shall we check for something?
-	Q_strncpyz( cl_nextString, Cmd_Args(), sizeof( cl_nextString ) );
-	Com_Printf( "NEXT: %s\n", cl_nextString );
 }
 
-
-/*
-* CL_ExecuteNext
-*/
-static void CL_ExecuteNext( void ) {
-	if( !strlen( cl_nextString ) ) {
-		return;
-	}
-
-	Cbuf_ExecuteText( EXEC_APPEND, cl_nextString );
-	memset( cl_nextString, 0, sizeof( cl_nextString ) );
-}
 
 /*
 * CL_Disconnect_SendCommand
@@ -643,34 +612,19 @@ void CL_Disconnect( const char *message ) {
 		CL_DownloadDone();
 	}
 
-	if( cl_connectChain[0] == '\0' ) {
-		if( message != NULL ) {
-			snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
-						 ( wasconnecting ? DROP_REASON_CONNFAILED : DROP_REASON_CONNERROR ), cls.servername, DROP_TYPE_GENERAL, message );
+	if( message != NULL ) {
+		snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
+					 ( wasconnecting ? DROP_REASON_CONNFAILED : DROP_REASON_CONNERROR ), cls.servername, DROP_TYPE_GENERAL, message );
 
-			Cbuf_ExecuteText( EXEC_NOW, menuparms );
-		}
-	} else {
-		const char *s = strchr( cl_connectChain, ',' );
-		if( s ) {
-			cl_connectChain[s - cl_connectChain] = '\0';
-		} else {
-			s = cl_connectChain + strlen( cl_connectChain ) - 1;
-		}
-		snprintf( cl_nextString, sizeof( cl_nextString ), "connect \"%s\" \"%s\"", cl_connectChain, s + 1 );
+		Cbuf_ExecuteText( EXEC_NOW, menuparms );
 	}
 
 done:
 	// in case we disconnect while in download phase
 	CL_FreeDownloadList();
-
-	CL_ExecuteNext(); // start next action if any is defined
 }
 
 void CL_Disconnect_f( void ) {
-	cl_connectChain[0] = '\0';
-	cl_nextString[0] = '\0';
-
 	// We have to shut down webdownloading first
 	if( cls.download.web ) {
 		cls.download.disconnect = true;
@@ -762,14 +716,11 @@ void CL_Reconnect_f( void ) {
 		return;
 	}
 
-	cl_connectChain[0] = '\0';
-	cl_nextString[0] = '\0';
-
 	servername = TempCopyString( cls.servername );
 	servertype = cls.servertype;
 	serveraddress = cls.serveraddress;
 	CL_Disconnect( NULL );
-	CL_Connect( servername, servertype, &serveraddress, "" );
+	CL_Connect( servername, servertype, &serveraddress );
 	Mem_TempFree( servername );
 }
 
@@ -1107,17 +1058,7 @@ static void CL_Userinfo_f( void ) {
 
 static int precache_spawncount;
 
-void CL_RequestNextDownload( void ) {
-	if( cls.state != CA_CONNECTED ) {
-		return;
-	}
-
-	if( cl_downloads->integer ) {
-		// if( !CL_CheckOrDownloadFile( cl.configstrings[CS_WORLDMODEL] ) ) {
-		// 	return; // started a download
-		// }
-	}
-
+void CL_FinishConnect() {
 	CL_GameModule_Init();
 	CL_AddReliableCommand( va( "begin %i\n", precache_spawncount ) );
 }
@@ -1144,7 +1085,16 @@ void CL_Precache_f( void ) {
 
 	precache_spawncount = atoi( Cmd_Argv( 1 ) );
 
-	CL_RequestNextDownload();
+	const char * mapname = Cmd_Argv( 2 );
+	u64 hash = Hash64( mapname, strlen( mapname ), Hash64( "maps/" ) );
+
+	if( FindMap( StringHash( hash ) ) == NULL ) {
+		TempAllocator temp = cls.frame_arena.temp();
+		CL_DownloadRequest( temp( "maps/{}.bsp", Cmd_Argv( 2 ) ) );
+		return;
+	}
+
+	CL_FinishConnect();
 }
 
 /*
@@ -1224,7 +1174,6 @@ void CL_SetClientState( connstate_t state ) {
 			Cvar_FixCheatVars();
 			break;
 		case CA_ACTIVE:
-			cl_connectChain[0] = '\0';
 			Con_Close();
 			UI_HideMenu();
 			S_StopBackgroundTrack();
@@ -1283,7 +1232,6 @@ static void CL_InitLocal( void ) {
 	cl_debug_serverCmd =    Cvar_Get( "cl_debug_serverCmd", "0", CVAR_ARCHIVE | CVAR_CHEAT );
 	cl_debug_timeDelta =    Cvar_Get( "cl_debug_timeDelta", "0", CVAR_ARCHIVE /*|CVAR_CHEAT*/ );
 
-	cl_downloads =      Cvar_Get( "cl_downloads", "1", CVAR_ARCHIVE );
 	cl_downloads_from_web = Cvar_Get( "cl_downloads_from_web", "1", CVAR_ARCHIVE | CVAR_READONLY );
 	cl_downloads_from_web_timeout = Cvar_Get( "cl_downloads_from_web_timeout", "600", CVAR_ARCHIVE );
 

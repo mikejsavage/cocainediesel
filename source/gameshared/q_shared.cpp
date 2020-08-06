@@ -386,6 +386,13 @@ bool StrCaseEqual( const char * rhs, Span< const char > lhs ) {
 	return StrCaseEqual( lhs, rhs );
 }
 
+bool StartsWith( const char * str, const char * prefix ) {
+	if( strlen( str ) < strlen( prefix ) )
+		return false;
+
+	return memcmp( str, prefix, strlen( prefix ) ) == 0;
+}
+
 Span< const char > FileExtension( const char * path ) {
 	const char * filename = strrchr( path, '/' );
 	const char * ext = strchr( filename == NULL ? path : filename, '.' );

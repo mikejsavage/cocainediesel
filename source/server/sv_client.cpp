@@ -110,8 +110,6 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 
 	if( fakeClient ) {
 		client->netchan.remoteAddress.type = NA_NOTRANSMIT; // fake-clients can't transmit
-		// TODO: if mm_debug_reportbots
-		Info_SetValueForKey( userinfo, "cl_mm_session", va( "%d", client->mm_session ) );
 	} else {
 		if( client->individual_socket ) {
 			Netchan_Setup( &client->netchan, &client->socket, address, game_port );
@@ -126,13 +124,11 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 	SV_UserinfoChanged( client );
 
 	// generate session id
-	size_t i;
-	for( i = 0; i < sizeof( svs.clients[0].session ) - 1; i++ ) {
-		const unsigned char symbols[65] =
-			"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+	for( size_t i = 0; i < sizeof( client->session ) - 1; i++ ) {
+		const char symbols[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 		client->session[i] = random_select( &svs.rng, symbols );
 	}
-	client->session[i] = '\0';
+	client->session[ sizeof( client->session ) - 1 ] = '\0';
 
 	SV_Web_AddGameClient( client->session, client - svs.clients, &client->netchan.remoteAddress );
 
@@ -373,7 +369,7 @@ static void SV_Baselines_f( client_t *client ) {
 
 	// send next command
 	if( start == MAX_EDICTS ) {
-		SV_SendServerCommand( client, "precache %i", svs.spawncount );
+		SV_SendServerCommand( client, "precache %i \"%s\"", svs.spawncount, sv.mapname );
 	} else {
 		SV_SendServerCommand( client, "cmd baselines %i %i", svs.spawncount, start );
 	}
@@ -414,98 +410,16 @@ static void SV_Begin_f( client_t *client ) {
 
 //=============================================================================
 
-
-/*
-* SV_NextDownload_f
-*
-* Responds to reliable nextdl packet with unreliable download packet
-* If nextdl packet's offet information is negative, download will be stopped
-*/
-static void SV_NextDownload_f( client_t *client ) {
-	uint8_t data[FRAGMENT_SIZE * 2];
-
-	if( !client->download.name ) {
-		Com_Printf( "nextdl message for client with no download active, from: %s\n", client->name );
-		return;
-	}
-
-	if( Q_stricmp( client->download.name, Cmd_Argv( 1 ) ) ) {
-		Com_Printf( "nextdl message for wrong filename, from: %s\n", client->name );
-		return;
-	}
-
-	int offset = atoi( Cmd_Argv( 2 ) );
-
-	if( offset > client->download.size ) {
-		Com_Printf( "nextdl message with too big offset, from: %s\n", client->name );
-		return;
-	}
-
-	if( offset == -1 ) {
-		Com_Printf( "Upload of %s to %s%s completed\n", client->download.name, client->name, S_COLOR_WHITE );
-		SV_ClientCloseDownload( client );
-		return;
-	}
-
-	if( offset < 0 ) {
-		Com_Printf( "Upload of %s to %s%s failed\n", client->download.name, client->name, S_COLOR_WHITE );
-		SV_ClientCloseDownload( client );
-		return;
-	}
-
-	if( !client->download.file ) {
-		Com_Printf( "Starting server upload of %s to %s\n", client->download.name, client->name );
-
-		client->download.size = FS_FOpenBaseFile( client->download.name, &client->download.file, FS_READ );
-		if( !client->download.file || client->download.size < 0 ) {
-			Com_Printf( "Error opening %s for uploading\n", client->download.name );
-			SV_ClientCloseDownload( client );
-			return;
-		}
-	}
-
-	SV_InitClientMessage( client, &tmpMessage, NULL, 0 );
-	SV_AddReliableCommandsToMessage( client, &tmpMessage );
-
-	int blocksize = client->download.size - offset;
-	if( blocksize > sizeof( data ) ) {
-		blocksize = sizeof( data );
-	}
-	if( offset + blocksize > client->download.size ) {
-		blocksize = client->download.size - offset;
-	}
-	if( blocksize < 0 ) {
-		blocksize = 0;
-	}
-
-	if( blocksize > 0 ) {
-		FS_Seek( client->download.file, offset, FS_SEEK_SET );
-		blocksize = FS_Read( data, blocksize, client->download.file );
-	}
-
-	MSG_WriteUint8( &tmpMessage, svc_download );
-	MSG_WriteString( &tmpMessage, client->download.name );
-	MSG_WriteInt32( &tmpMessage, offset );
-	MSG_WriteInt32( &tmpMessage, blocksize );
-	if( blocksize > 0 ) {
-		MSG_CopyData( &tmpMessage, data, blocksize );
-	}
-	SV_SendMessageToClient( client, &tmpMessage );
-
-	client->download.timeout = svs.realtime + 10000;
-}
-
 /*
 * SV_GameAllowDownload
 * Asks game function whether to allow downloading of a file
 */
 static bool SV_GameAllowDownload( client_t *client, const char *requestname, const char *uploadname ) {
-	if( client->state < CS_SPAWNED ) {
-		return false;
+	if( client->state < CS_SPAWNED && FileExtension( requestname ) == ".bsp" ) {
+		return true;
 	}
 
-	// allow downloading demos
-	if( SV_IsDemoDownloadRequest( requestname ) ) {
+	if( client->state >= CS_SPAWNED && SV_IsDemoDownloadRequest( requestname ) ) {
 		return sv_uploads_demos->integer != 0;
 	}
 
@@ -543,7 +457,7 @@ static bool SV_FilenameForDownloadRequest( const char *requestname, const char *
 * SV_BeginDownload_f
 * Responds to reliable download packet with reliable initdownload packet
 */
-static void SV_BeginDownload_f( client_t *client ) {
+static void SV_BeginDownload_f( client_t * client ) {
 	const char *requestname;
 	const char *uploadname;
 	size_t alloc_size;
@@ -592,33 +506,33 @@ static void SV_BeginDownload_f( client_t *client ) {
 
 	Com_Printf( "Offering %s to %s\n", client->download.name, client->name );
 
-	if( SV_IsDemoDownloadRequest( requestname ) && ( local_http || sv_uploads_demos_baseurl->string[0] != 0 ) ) {
-		// demo file download from the web
-		if( local_http ) {
-			alloc_size = sizeof( char ) * ( 6 + strlen( uploadname ) * 3 + 1 );
-			url = ( char * ) Mem_TempMalloc( alloc_size );
-			snprintf( url, alloc_size, "files/" );
-			Q_urlencode_unsafechars( uploadname, url + 6, alloc_size - 6 );
-		} else {
+	if( local_http ) {
+		alloc_size = sizeof( char ) * ( 6 + strlen( uploadname ) * 3 + 1 );
+		url = ( char * ) Mem_TempMalloc( alloc_size );
+		snprintf( url, alloc_size, "files/" );
+		Q_urlencode_unsafechars( uploadname, url + 6, alloc_size - 6 );
+	}
+	else {
+		if( SV_IsDemoDownloadRequest( requestname ) ) {
 			alloc_size = sizeof( char ) * ( strlen( sv_uploads_demos_baseurl->string ) + 1 );
 			url = ( char * ) Mem_TempMalloc( alloc_size );
 			snprintf( url, alloc_size, "%s/", sv_uploads_demos_baseurl->string );
 		}
-	} else {
-		url = NULL;
+		else {
+			alloc_size = sizeof( char ) * ( strlen( sv_uploads_baseurl->string ) + 1 );
+			url = ( char * ) Mem_TempMalloc( alloc_size );
+			snprintf( url, alloc_size, "%s/", sv_uploads_baseurl->string );
+		}
 	}
 
 	// start the download
 	SV_InitClientMessage( client, &tmpMessage, NULL, 0 );
 	SV_SendServerCommand( client, "initdownload \"%s\" %i %u %i \"%s\"", client->download.name,
-						  client->download.size, checksum, local_http ? 1 : 0, ( url ? url : "" ) );
+						  client->download.size, checksum, local_http ? 1 : 0, url );
 	SV_AddReliableCommandsToMessage( client, &tmpMessage );
 	SV_SendMessageToClient( client, &tmpMessage );
 
-	if( url ) {
-		Mem_TempFree( url );
-		url = NULL;
-	}
+	Mem_TempFree( url );
 }
 
 //============================================================================
@@ -697,7 +611,6 @@ ucmd_t ucmds[] =
 	{ "info", SV_ShowServerinfo_f },
 
 	{ "download", SV_BeginDownload_f },
-	{ "nextdl", SV_NextDownload_f },
 
 	// server demo downloads
 	{ "demolist", SV_DemoList_f },

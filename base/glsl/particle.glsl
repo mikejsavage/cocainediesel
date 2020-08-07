@@ -63,14 +63,17 @@ void main() {
 
 	gl_Position = u_P * u_V * vec4( position, 1.0 );
 #else
-	vec3 camera_right = vec3( u_V[ 0 ].x, u_V[ 1 ].x, u_V[ 2 ].x );
-	vec3 camera_up = vec3( u_V[ 0 ].y, u_V[ 1 ].y, u_V[ 2 ].y );
-
-	vec3 right = a_Position.x * scale * camera_right;
-	vec3 up = a_Position.y * scale * camera_up;
-	vec3 position = right + up + a_ParticlePosition;
-
-	gl_Position = u_P * u_V * vec4( position, 1.0 );
+	// stretched billboards based on
+	// https://github.com/turanszkij/WickedEngine/blob/master/WickedEngine/emittedparticleVS.hlsl
+	vec3 view_velocity = ( u_V * vec4( a_ParticleVelocity * 0.01, 0.0 ) ).xyz;
+	float angle = atan( view_velocity.x, -view_velocity.y );
+	float ca = cos( angle );
+	float sa = sin( angle );
+	mat2 rot = mat2( ca, sa, -sa, ca );
+	vec3 quadPos = vec3( scale * rot * a_Position, 0.0 );
+	vec3 stretch = dot( quadPos, view_velocity ) * view_velocity;
+	quadPos += normalize( stretch ) * clamp( length( stretch ), 1.0, scale );
+	gl_Position = u_P * ( u_V * vec4( a_ParticlePosition, 1.0 ) + vec4( quadPos, 0.0 ) );
 #endif
 }
 

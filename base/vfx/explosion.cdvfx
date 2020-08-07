@@ -7,21 +7,22 @@ system smoke {
 
 system smoke2 {
   material textures/vfx/smoke2
-  blendfunc blend
+  blendfunc add
   max 10000
   collision point
 }
 
 system fire {
   material textures/vfx/explosion3
-  blendfunc blend
+  blendfunc add
+  acceleration $gravity
   max 10000
   collision point
 }
 
 system explosion {
   material textures/vfx/explosion2
-  blendfunc blend
+  blendfunc add
   max 10000
   collision point
 }

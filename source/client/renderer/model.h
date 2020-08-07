@@ -19,11 +19,10 @@ struct Model {
 		u32 num_samples;
 	};
 
-	struct Joint {
-		Mat4 joint_to_bind;
+	struct Node {
+		Mat4 transform;
 		u8 parent;
 		u8 next;
-		u8 skinned_idx;
 
 		// TODO: remove this with additive animations
 		u32 name;
@@ -35,6 +34,11 @@ struct Model {
 		AnimationChannel< float > scales;
 	};
 
+	struct Joint {
+		Mat4 joint_to_bind;
+		u8 node_idx;
+	};
+
 	Mesh mesh;
 
 	Mat4 transform;
@@ -43,10 +47,12 @@ struct Model {
 	Primitive * primitives;
 	u32 num_primitives;
 
-	Joint * joints;
+	Node * nodes;
+	u8 num_nodes;
+	u8 root_node;
+
+	Joint * skin;
 	u8 num_joints;
-	u8 root_joint;
-	u8 num_skinned_joints;
 };
 
 void InitModels();

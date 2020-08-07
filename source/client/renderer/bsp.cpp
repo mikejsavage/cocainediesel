@@ -591,10 +591,10 @@ bool LoadBSPRenderData( Map * map, u64 base_hash, Span< const u8 > data ) {
 	int planes_offset = planes.size();
 	for ( u32 i = 0; i < bsp.leafbrushes.n; i++ )
 	{
-		// TODO(msc): ignore non-solid brushes..
 		const BSPLeafBrush leafbrush = bsp.leafbrushes[ i ];
 		const BSPBrush brush = bsp.brushes[ leafbrush.brush ];
-		GPUBSPLeafBrush gpu_brush = { planes_offset + brush.first_side, brush.num_sides };
+		bool solid = ( bsp.materials[ brush.material ].contents & MASK_PLAYERSOLID ) != 0;
+		GPUBSPLeafBrush gpu_brush = { planes_offset + brush.first_side, solid ? brush.num_sides : 0 };
 		leafbrushes.add( gpu_brush );
 	}
 	for ( u32 i = 0; i < bsp.brushsides.n; i++ )

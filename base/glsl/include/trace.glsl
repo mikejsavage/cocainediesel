@@ -87,9 +87,11 @@ vec4 ClipLeaf( vec3 p1, vec3 dir, float tmin, float tmax, Leaf leaf, float radiu
 
 	for ( int i = 0; i < leaf.numBrushes; i++ ) {
 		Brush brush = GetBrush( leaf.firstBrush + i );
-		vec4 frac = ClipBrush( p1, dir, tmin, tmax, brush, radius );
-		if ( frac.w <= near.w )
-			near = frac;
+		if( brush.numSides > 0 ) {
+			vec4 frac = ClipBrush( p1, dir, tmin, tmax, brush, radius );
+			if ( frac.w <= near.w )
+				near = frac;
+		}
 	}
 	return near;
 }

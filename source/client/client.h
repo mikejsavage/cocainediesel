@@ -119,7 +119,6 @@ struct download_t {
 
 	bool disconnect;            // set when user tries to disconnect, to allow cleaning up webdownload
 	bool pending_reconnect;     // set when we ignored a map change command to avoid stopping the download
-	bool cancelled;             // to allow cleaning up of temporary download file
 };
 
 struct cl_demo_t {

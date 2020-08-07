@@ -608,7 +608,6 @@ void CL_Disconnect( const char *message ) {
 
 	if( cls.download.requestname ) {
 		cls.download.pending_reconnect = false;
-		cls.download.cancelled = true;
 		CL_DownloadDone();
 	}
 

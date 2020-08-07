@@ -163,7 +163,6 @@ void CL_DownloadDone( void ) {
 	cls.download.map = false;
 	cls.download.offset = cls.download.baseoffset = 0;
 	cls.download.filenum = 0;
-	cls.download.cancelled = false;
 
 	// the server has changed map during the download
 	if( cls.download.pending_reconnect ) {
@@ -183,7 +182,6 @@ void CL_DownloadDone( void ) {
 static void CL_WebDownloadDoneCb( int status, const char *contentType, void *privatep ) {
 	download_t download = cls.download;
 	bool disconnect = download.disconnect;
-	bool cancelled = download.cancelled;
 	bool success = download.offset == download.size && status > -1;
 
 	Com_Printf( "Web download %s: %s (%i)\n", success ? "successful" : "failed", download.tempname, status );
@@ -408,10 +406,14 @@ static void CL_InitDownload_f( void ) {
 /*
 * CL_StopServerDownload
 */
-void CL_StopServerDownload( void ) {
+void CL_StopServerDownload() {
 	if( cls.download.filenum > 0 ) {
 		FS_FCloseFile( cls.download.filenum );
 		cls.download.filenum = 0;
+	}
+
+	if( cls.download.disconnect ) {
+		FS_RemoveBaseFile( cls.download.tempname );
 	}
 
 	Mem_ZoneFree( cls.download.name );

@@ -111,11 +111,8 @@ struct download_t {
 	size_t size;
 	unsigned checksum;
 
-	double percent;
-
 	int filenum;
-	size_t offset;
-	size_t baseoffset;              // for download speed calculation when resuming downloads
+	size_t bytes_downloaded;
 
 	bool disconnect;            // set when user tries to disconnect, to allow cleaning up webdownload
 	bool pending_reconnect;     // set when we ignored a map change command to avoid stopping the download
@@ -245,9 +242,6 @@ extern cvar_t *cl_extrapolate;
 extern cvar_t *cl_debug_serverCmd;
 extern cvar_t *cl_debug_timeDelta;
 
-extern cvar_t *cl_downloads_from_web;
-extern cvar_t *cl_downloads_from_web_timeout;
-
 extern cvar_t *cl_devtools;
 
 // delta from this if not from a previous frame
@@ -287,12 +281,6 @@ void CL_ServerDisconnect_f( void );
 void CL_ForceVsync( bool force );
 
 size_t CL_GetBaseServerURL( char *buffer, size_t buffer_size );
-
-int CL_AddSessionHttpRequestHeaders( const char *url, const char **headers );
-void CL_AsyncStreamRequest( const char *url, const char **headers, int timeout, int resumeFrom,
-							size_t ( *read_cb )( const void *, size_t, float, int, const char *, void * ),
-							void ( *done_cb )( int, const char *, void * ),
-							void ( *header_cb )( const char *, void * ), void *privatep, bool urlencodeUnsafe );
 
 //
 // cl_game.c

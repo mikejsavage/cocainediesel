@@ -110,7 +110,6 @@ end
 
 do
 	local platform_srcs
-	local platform_libs
 
 	if OS == "windows" then
 		platform_srcs = {
@@ -122,7 +121,6 @@ do
 			"source/win32/win_threads.cpp",
 			"source/win32/win_time.cpp",
 		}
-		platform_libs = { }
 	else
 		platform_srcs = {
 			"source/unix/unix_console.cpp",
@@ -133,7 +131,6 @@ do
 			"source/unix/unix_threads.cpp",
 			"source/unix/unix_time.cpp",
 		}
-		platform_libs = { "mbedtls" }
 	end
 
 	bin( "server", {
@@ -156,9 +153,7 @@ do
 
 		prebuilt_libs = {
 			"angelscript",
-			"curl",
 			"zlib",
-			platform_libs
 		},
 
 		gcc_extra_ldflags = "-lm -lpthread -ldl -no-pie -static-libstdc++",

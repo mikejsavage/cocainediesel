@@ -21,9 +21,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "client/client.h"
 #include "client/assets.h"
+#include "client/downloads.h"
 #include "client/threadpool.h"
 #include "client/renderer/renderer.h"
-#include "qcommon/asyncstream.h"
 #include "qcommon/version.h"
 #include "qcommon/hash.h"
 #include "qcommon/csprng.h"
@@ -51,9 +51,6 @@ cvar_t *info_password;
 cvar_t *cl_debug_serverCmd;
 cvar_t *cl_debug_timeDelta;
 
-cvar_t *cl_downloads_from_web;
-cvar_t *cl_downloads_from_web_timeout;
-
 cvar_t *cl_devtools;
 
 client_static_t cls;
@@ -62,8 +59,6 @@ client_state_t cl;
 SyncEntityState cl_baselines[MAX_EDICTS];
 
 static bool cl_initialized = false;
-
-static async_stream_module_t *cl_async_stream;
 
 /*
 =======================================================================
@@ -1220,9 +1215,6 @@ static void CL_InitLocal( void ) {
 	cl_debug_serverCmd =    Cvar_Get( "cl_debug_serverCmd", "0", CVAR_ARCHIVE | CVAR_CHEAT );
 	cl_debug_timeDelta =    Cvar_Get( "cl_debug_timeDelta", "0", CVAR_ARCHIVE /*|CVAR_CHEAT*/ );
 
-	cl_downloads_from_web = Cvar_Get( "cl_downloads_from_web", "1", CVAR_ARCHIVE | CVAR_READONLY );
-	cl_downloads_from_web_timeout = Cvar_Get( "cl_downloads_from_web_timeout", "600", CVAR_ARCHIVE );
-
 	cl_devtools = Cvar_Get( "cl_devtools", "0", CVAR_ARCHIVE );
 
 	//
@@ -1292,8 +1284,6 @@ static void CL_ShutdownLocal( void ) {
 	Cmd_RemoveCommand( "demopause" );
 	Cmd_RemoveCommand( "demojump" );
 	Cmd_RemoveCommand( "showserverip" );
-	Cmd_RemoveCommand( "downloadstatus" );
-	Cmd_RemoveCommand( "downloadcancel" );
 }
 
 //============================================================================
@@ -1636,6 +1626,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	CL_AdjustServerTime( gameMsec );
 	CL_UserInputFrame( realMsec );
 	CL_NetFrame( realMsec, gameMsec );
+	PumpDownloads();
 
 	const int absMinFps = 24;
 
@@ -1694,92 +1685,6 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	SwapBuffers();
 }
-
-//============================================================================
-
-/*
-* CL_AsyncStream_Alloc
-*/
-static void *CL_AsyncStream_Alloc( size_t size, const char *filename, int fileline ) {
-	return _Mem_Alloc( zoneMemPool, size, 0, 0, filename, fileline );
-}
-
-/*
-* CL_AsyncStream_Free
-*/
-static void CL_AsyncStream_Free( void *data, const char *filename, int fileline ) {
-	_Mem_Free( data, 0, 0, filename, fileline );
-}
-
-/*
-* CL_InitAsyncStream
-*/
-static void CL_InitAsyncStream( void ) {
-	cl_async_stream = AsyncStream_InitModule( "Client", CL_AsyncStream_Alloc, CL_AsyncStream_Free );
-}
-
-/*
-* CL_ShutdownAsyncStream
-*/
-static void CL_ShutdownAsyncStream( void ) {
-	if( !cl_async_stream ) {
-		return;
-	}
-
-	AsyncStream_ShutdownModule( cl_async_stream );
-	cl_async_stream = NULL;
-}
-
-/*
-* CL_AddSessionHttpRequestHeaders
-*/
-int CL_AddSessionHttpRequestHeaders( const char *url, const char **headers ) {
-	static char pH[32];
-
-	if( cls.httpbaseurl && *cls.httpbaseurl ) {
-		if( !strncmp( url, cls.httpbaseurl, strlen( cls.httpbaseurl ) ) ) {
-			snprintf( pH, sizeof( pH ), "%i", cl.playernum );
-
-			headers[0] = "X-Client";
-			headers[1] = pH;
-			headers[2] = "X-Session";
-			headers[3] = cls.session;
-			return 4;
-		}
-	}
-	return 0;
-}
-
-/*
-* CL_AsyncStreamRequest
-*/
-void CL_AsyncStreamRequest( const char *url, const char **headers, int timeout, int resumeFrom,
-							size_t ( *read_cb )( const void *, size_t, float, int, const char *, void * ),
-							void ( *done_cb )( int, const char *, void * ),
-							void ( *header_cb )( const char *, void * ), void *privatep, bool urlencodeUnsafe ) {
-	char *tmpUrl = NULL;
-	const char *safeUrl;
-
-	if( urlencodeUnsafe ) {
-		// urlencode unsafe characters
-		size_t allocSize = strlen( url ) * 3 + 1;
-		tmpUrl = ( char * )Mem_TempMalloc( allocSize );
-		AsyncStream_UrlEncodeUnsafeChars( url, tmpUrl, allocSize );
-
-		safeUrl = tmpUrl;
-	} else {
-		safeUrl = url;
-	}
-
-	AsyncStream_PerformRequestExt( cl_async_stream, safeUrl, "GET", NULL, headers, timeout,
-								   resumeFrom, read_cb, done_cb, (async_stream_header_cb_t)header_cb, NULL );
-
-	if( urlencodeUnsafe ) {
-		Mem_TempFree( tmpUrl );
-	}
-}
-
-//============================================================================
 
 /*
 * CL_Init
@@ -1841,7 +1746,7 @@ void CL_Init( void ) {
 	CL_InitLocal();
 	CL_InitInput();
 
-	CL_InitAsyncStream();
+	InitDownloads();
 
 	SCR_RegisterConsoleMedia();
 
@@ -1890,7 +1795,7 @@ void CL_Shutdown( void ) {
 	ShutdownRenderer();
 	DestroyWindow();
 
-	CL_ShutdownAsyncStream();
+	ShutdownDownloads();
 
 	CL_ShutdownLocal();
 

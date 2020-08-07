@@ -63,7 +63,6 @@ void InitMaps() {
 
 void ShutdownMaps() {
 	for( u32 i = 0; i < num_maps; i++ ) {
-		// TODO: free render data
 		FREE( sys_allocator, const_cast< char * >( maps[ i ].name ) );
 		CM_Free( CM_Client, maps[ i ].cms );
 	}

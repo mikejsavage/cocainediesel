@@ -674,12 +674,12 @@ static void MainMenu() {
 	}
 
 	if( ImGui::BeginPopupModal( "change name", NULL, ImGuiWindowFlags_NoDecoration ) ) {
-		ImGui::BeginChild( "nameset", ImVec2( 500, 125 ) );
+		ImGui::BeginChild( "nameset", ImVec2( 500, 150 ) );
 		ImGui::Text( "Change your nickname" );
 
 		CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
 
-		if( ImGui::Button( "Ok", ImVec2( -1, 0 ) ) ) {
+		if( ImGui::Button( "Ok", ImVec2( -1, 0 ) ) || ImGui::Hotkey( K_ESCAPE ) ) {
 			change_name_popup = true;
 			ImGui::CloseCurrentPopup();
 		}
@@ -700,9 +700,9 @@ static void MainMenu() {
 	for( size_t i = 0; i < strlen( name ); i++ ) {
 		ImGui::SameLine();
 		if( cls.monotonicTime < break_time ) {
-			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + frame_static.viewport_width * Max2( s64( 0 ), ( 1000 - cls.monotonicTime ) ) /1000.f );
+			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + frame_static.viewport_width * Max2( s64( 0 ), ( 1000 - cls.monotonicTime ) ) / 1000.f );
 		} else {
-			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + Max2( 0.0f, sinf( ( cls.monotonicTime - break_time ) / 250.0f + i*0.5f )*16 ) );
+			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + Max2( 0.0f, sinf( ( cls.monotonicTime - break_time ) / 500.0f + i*1.33f )*16 ) );
 		}
 		ImGui::Text( "%s%c", temp( "{}", ImGuiColorToken( 255, 255, 255, 255 - i*16 ) ), name[ i ] );
 	}
@@ -948,7 +948,7 @@ static void GameMenu() {
 
 	if( gamemenu_state == GameMenuState_Menu ) {
 		ImGui::SetNextWindowPos( displaySize * 0.5f, 0, Vec2( 0.5f ) );
-		ImGui::SetNextWindowSize( ImVec2( 300, 0 ) );
+		ImGui::SetNextWindowSize( ImVec2( 500, 0 ) );
 		ImGui::Begin( "gamemenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 		ImGuiStyle & style = ImGui::GetStyle();
 		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
@@ -1048,7 +1048,7 @@ static void GameMenu() {
 	}
 	else if( gamemenu_state == GameMenuState_Settings ) {
 		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
-		ImGui::SetNextWindowSize( ImVec2( Max2( 800.f, displaySize.x * 0.6f ), Max2( 600.f, displaySize.y * 0.6f ) ) );
+		ImGui::SetNextWindowSize( ImVec2( Max2( 800.f, displaySize.x * 0.65f ), Max2( 600.f, displaySize.y * 0.65f ) ) );
 		ImGui::Begin( "settings", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		Settings();

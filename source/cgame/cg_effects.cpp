@@ -2,208 +2,26 @@
 #include "client/renderer/renderer.h"
 
 void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
-	{
-		// ParticleEmitter emitter = { };
-
-		// emitter.position = origin;
-		// emitter.position_distribution.type = RandomDistribution3DType_Sphere;
-		// emitter.position_distribution.sphere.radius = 48.0f;
-
-		// emitter.start_speed = 20.0f;
-		// emitter.end_speed = 50.0f;
-
-		// emitter.start_color = Vec4( 1.0f, 1.0f, 1.0f, 1.0f );
-		// emitter.end_color = Vec3( 0.0f, 0.0f, 0.0f );
-
-		// emitter.start_size = 32.0f;
-		// emitter.end_size = 0.0f;
-		// emitter.size_distribution.type = RandomDistributionType_Uniform;
-		// emitter.size_distribution.uniform = 8.0f;
-
-		// emitter.lifetime = 0.25f;
-		// emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-		// emitter.lifetime_distribution.uniform = 0.2f;
-
-		// emitter.n = 64;
-
-		// EmitParticles( &cgs.smoke, emitter );
-	}
-	{
-		// ParticleEmitter emitter = { };
-
-		// emitter.position = origin;
-
-		// emitter.use_cone_direction = true;
-		// emitter.direction_cone.normal = normal;
-		// emitter.direction_cone.theta = 180.0f;
-
-		// emitter.start_speed = 1000.0f;
-		// emitter.end_speed = 0.0f;
-
-		// emitter.start_color = Vec4( team_color, 1.0f );
-		// emitter.end_color = Vec3( 0.0f, 0.0f, 0.0f );
-
-		// emitter.start_size = 12.0f;
-		// emitter.end_size = 0.0f;
-		// emitter.size_distribution.type = RandomDistributionType_Uniform;
-		// emitter.size_distribution.uniform = 8.0f;
-
-		// emitter.lifetime = 0.55f;
-		// emitter.lifetime_distribution.uniform = 0.25f;
-
-		// emitter.n = 64;
-
-		// EmitParticles( &cgs.fire, emitter );
-	}
-	{
-		// ParticleEmitter emitter = { };
-
-		// emitter.position = origin;
-		// emitter.position_distribution.type = RandomDistribution3DType_Sphere;
-		// emitter.position_distribution.sphere.radius = 8.0f;
-
-		// emitter.use_cone_direction = true;
-		// emitter.direction_cone.normal = normal;
-		// emitter.direction_cone.theta = 90.0f;
-
-		// emitter.start_speed = 0.0f;
-		// emitter.end_speed = 100.0f;
-
-		// emitter.start_color = Vec4( team_color, 1.0f );
-		// emitter.end_color = Vec3( 0.0f, 0.0f, 0.0f );
-
-		// emitter.start_size = 165.0f;
-		// emitter.end_size = 128.0f;
-		// emitter.size_distribution.type = RandomDistributionType_Uniform;
-		// emitter.size_distribution.uniform = 8.0f;
-
-		// emitter.lifetime = 0.25f;
-		// emitter.lifetime_distribution.uniform = 0.15f;
-
-		// emitter.n = 32;
-
-		// EmitParticles( &cgs.explosion, emitter );
-	}
-	{
-		// ParticleEmitter emitter = { };
-
-		// emitter.position = origin;
-		// emitter.position_distribution.type = RandomDistribution3DType_Sphere;
-		// emitter.position_distribution.sphere.radius = 48.0f;
-
-		// emitter.start_speed = 20.0f;
-		// emitter.end_speed = 100.0f;
-
-		// emitter.start_color = Vec4( 0.25f, 0.25f, 0.25f, 1.20f );
-		// emitter.end_color = Vec3( 0.0f, 0.0f, 0.0f );
-
-		// emitter.start_size = 32.0f;
-		// emitter.end_size = 0.0f;
-		// emitter.size_distribution.type = RandomDistributionType_Uniform;
-		// emitter.size_distribution.uniform = 8.0f;
-
-		// emitter.lifetime = 0.45f;
-		// emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-		// emitter.lifetime_distribution.uniform = 0.2f;
-
-		// emitter.n = 64;
-
-		// EmitParticles( &cgs.smoke2, emitter );
-	}
+	EmitParticles( FindParticleEmitter( "explosion1" ), ParticleEmitterSphere( origin, normal, 180.0f, 48.0f ), 1.0f );
+	EmitParticles( FindParticleEmitter( "explosion2" ), ParticleEmitterSphere( origin, normal, 180.0f ), 1.0f, Vec4( team_color, 1.0f ) );
+	EmitParticles( FindParticleEmitter( "explosion3" ), ParticleEmitterSphere( origin, normal, 180.0f, 8.0f ), 1.0f, Vec4( team_color, 1.0f ) );
+	EmitParticles( FindParticleEmitter( "explosion4" ), ParticleEmitterSphere( origin, normal, 180.0f, 48.0f ), 1.0f );
 }
 
 void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
-	// ParticleEmitter emitter = { };
-	// emitter.position = origin;
-
-	// emitter.use_cone_direction = true;
-	// emitter.direction_cone.normal = normal;
-	// emitter.direction_cone.theta = 90.0f;
-
-	// emitter.start_speed = 125.0f;
-	// emitter.end_speed = 25.0f;
-
-	// emitter.start_color = Vec4( team_color, 0.5f );
-	// emitter.end_color = team_color;
-
-	// emitter.start_size = 32.0f;
-	// emitter.end_size = 32.0f;
-	// emitter.size_distribution.type = RandomDistributionType_Uniform;
-	// emitter.size_distribution.uniform = 8.0f;
-
-	// emitter.lifetime = 1.0f;
-	// emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-	// emitter.lifetime_distribution.uniform = 0.1f;
-
-	// emitter.n = 8;
-
-	// EmitParticles( &cgs.sparks, emitter );
+	EmitParticles( FindParticleEmitter( "plasmaImpact"), ParticleEmitterSphere( origin, normal, 90.0f ), 8.0f, Vec4( team_color, 0.5f ) );
 }
 
 void BubbleImpactParticles( Vec3 origin, Vec3 team_color ) {
-	// ParticleEmitter emitter = { };
-	// emitter.position = origin;
-
-	// emitter.start_speed = 200.0f;
-	// emitter.end_speed = 0.0f;
-
-	// emitter.start_color = Vec4( team_color, 1.0f );
-	// emitter.end_color = team_color;
-
-	// emitter.start_size = 1.5f;
-	// emitter.end_size = 0.0f;
-	// emitter.size_distribution.type = RandomDistributionType_Uniform;
-	// emitter.size_distribution.uniform = 1.5f;
-
-	// emitter.lifetime = 0.5f;
-	// emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-	// emitter.lifetime_distribution.uniform = 0.5f;
-
-	// emitter.red_distribution.uniform = 0.5f;
-	// emitter.blue_distribution.uniform = 0.5f;
-
-	// emitter.n = 64;
-
-	// EmitParticles( &cgs.sparks, emitter );
+	EmitParticles( FindParticleEmitter( "bubbleImpact"), ParticleEmitterSphere( origin, Vec3( 0.0f, 0.0f, 1.0f ) ), 64.0f, Vec4( team_color, 1.0f ) );
 }
 
 void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
-	// ParticleEmitter emitter = { };
-	// emitter.position = start;
-	// emitter.position_distribution.type = RandomDistribution3DType_Line;
-	// emitter.position_distribution.line.end = end;
-
-	// emitter.start_speed = 4.0f;
-	// emitter.end_speed = 0.0f;
-
-	// emitter.start_color = color;
-	// emitter.end_color = color.xyz();
-
-	// RandomDistribution color_dist;
-	// color_dist.type = RandomDistributionType_Uniform;
-	// color_dist.uniform = 0.1f;
-	// emitter.red_distribution = color_dist;
-	// emitter.green_distribution = color_dist;
-	// emitter.blue_distribution = color_dist;
-	// emitter.alpha_distribution = color_dist;
-
-	// emitter.start_size = 1.0f;
-	// emitter.end_size = 1.0f;
-	// emitter.size_distribution.type = RandomDistributionType_Uniform;
-	// emitter.size_distribution.uniform = 0.1f;
-
-	// emitter.lifetime = 0.9f;
-	// emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-	// emitter.lifetime_distribution.uniform = 0.3f;
-
-	// constexpr int max_ions = 256;
-	// float distance_between_particles = 4.0f;
-
-	// float len = Length( end - start );
-
-	// emitter.n = Min2( len / distance_between_particles + 1.0f, float( max_ions ) );
-
-	// EmitParticles( &cgs.ions, emitter );
+	constexpr int max_ions = 256;
+	float distance_between_particles = 4.0f;
+	float len = Length( end - start );
+	float count = Min2( len / distance_between_particles + 1.0f, float( max_ions ) );
+	EmitParticles( FindParticleEmitter( "railtrail" ), ParticleEmitterLine( start, end ), count, color );
 }
 
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material ) {

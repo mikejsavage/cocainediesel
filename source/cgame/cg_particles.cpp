@@ -278,20 +278,44 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
 				if( value[ 0 ] == '$' ) {
 					// TODO variables
-				} else {
+				}
+				else {
 					float r = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
 					float g = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
 					float b = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
 					float a = ParseFloat( data, 1.0f, Parse_StopOnNewLine );
 					emitter->start_color = Vec4( r, g, b, a );
-					r = ParseFloat( data, r, Parse_StopOnNewLine );
-					g = ParseFloat( data, g, Parse_StopOnNewLine );
-					b = ParseFloat( data, b, Parse_StopOnNewLine );
+				}
+			}
+			else if( key == "end_color" ) {
+				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
+				if( value[ 0 ] == '$' ) {
+					// TODO variables
+				}
+				else {
+					float r = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+					float g = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+					float b = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
 					emitter->end_color = Vec4( r, g, b, 0.0f );
 				}
 			}
+			else if( key == "red_distribution" ) {
+				emitter->red_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
+			}
+			else if( key == "green_distribution" ) {
+				emitter->green_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
+			}
+			else if( key == "blue_distribution" ) {
+				emitter->blue_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
+			}
+			else if( key == "alpha_distribution" ) {
+				emitter->alpha_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
+			}
 			else if( key == "count" ) {
 				emitter->count = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+			}
+			else if( key == "emission" ) {
+				emitter->emission = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
 			}
 		}
 	}
@@ -554,12 +578,12 @@ void DrawParticles() {
 	if( cg_particleDebug->integer ) {
 		const ImGuiIO & io = ImGui::GetIO();
 		float width_frac = Lerp( 0.25f, Unlerp01( 1024.0f, io.DisplaySize.x, 1920.0f ), 0.15f );
-		Vec2 size = io.DisplaySize * Vec2( width_frac, 0.25f );
+		Vec2 size = io.DisplaySize * Vec2( width_frac, 0.5f );
 		ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs;
 
 
 		ImGui::SetNextWindowSize( ImVec2( size.x, size.y ) );
-		ImGui::SetNextWindowPos( ImVec2( io.DisplaySize.x - size.x, 100.0f ), ImGuiCond_Always, ImVec2( 0, 0.5f ) );
+		ImGui::SetNextWindowPos( ImVec2( io.DisplaySize.x - size.x, 100.0f ), ImGuiCond_Always );
 		ImGui::Begin( "particle statistics", WindowZOrder_Chat, flags );
 
 		for( size_t i = 0; i < num_particleSystems; i++ ) {
@@ -581,8 +605,6 @@ static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Ve
 	GPUParticle & particle = ps->particles[ ps->new_particles ];
 	particle.position = position;
 	particle.velocity = velocity;
-	// particle.orientation = Quaternion( 0.0f, 0.0f, 0.0f, 1.0f );
-	// particle.avelocity = Normalize( Quaternion( 0.0f, 0.0f, 0.996f, 0.087f ) );
 	particle.orientation = UniformSampleSphere( &cls.rng );
 	particle.avelocity = UniformSampleSphere( &cls.rng );
 	particle.color = LinearTosRGB( color );
@@ -624,7 +646,8 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 		} break;
 
 		case ParticleEmitterPosition_Line: {
-			position = Lerp( position, t, pos.end );
+			position = Lerp( position, random_float01( &cls.rng ), pos.end );
+			position += ( dir_transform * Vec4( UniformSampleDisk( &cls.rng ) * pos.radius, 0.0f, 0.0f ) ).xyz();
 		} break;
 	}
 
@@ -664,6 +687,9 @@ void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, floa
 	Mat4 dir_transform = Mat4::Identity();
 	if( pos.theta != 0.0f ) {
 		dir_transform = TransformKToDir( pos.normal );
+	}
+	else if( pos.type == ParticleEmitterPosition_Line && pos.radius > 0.0f ) {
+		dir_transform = TransformKToDir( Normalize( pos.end - pos.origin ) );
 	}
 
 	for( u32 i = 0; i < n; i++ ) {

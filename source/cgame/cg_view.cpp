@@ -853,35 +853,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	CG_ResetBombHUD();
 
-	{
-    //     ParticleEmitter emitter = { };
-    //     emitter.position = cg.view.origin;
-    //     emitter.position_distribution.type = RandomDistribution3DType_Sphere;
-    //     emitter.position_distribution.sphere.radius = 1500.0f;
-
-    //     emitter.start_speed = 50.0f;
-    //     emitter.end_speed = 50.0f;
-
-		// emitter.speed_distribution.type = RandomDistributionType_Uniform;
-		// emitter.speed_distribution.uniform = 25.0f;
-
-    //     emitter.start_color = Vec4( 1.0f, 0.31f, 0.0f, 1.0f );
-    //     emitter.end_color = Vec3( 0.0f, 0.0f, 0.0f );
-
-    //     emitter.start_size = 16.0f;
-    //     emitter.end_size = 16.0f;
-
-		// emitter.size_distribution.type = RandomDistributionType_Uniform;
-		// emitter.size_distribution.uniform = 8.0f;
-
-    //     emitter.lifetime = 5.0f;
-    //     emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-    //     emitter.lifetime_distribution.uniform = 0.2f;
-
-    //     emitter.n = 1.0f;
-
-    //     EmitParticles( &cgs.rain, emitter );
-    }
+	EmitParticles( FindParticleEmitter( "rain" ), ParticleEmitterSphere( cg.view.origin, Vec3( 0.0f, 0.0f, 1.0f ), 180.0f, 1500.0f ), 1.0f );
 
 	DrawWorld();
 	DrawSilhouettes();

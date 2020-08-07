@@ -1,0 +1,91 @@
+system smoke {
+  material textures/vfx/smoke7
+  blendfunc blend
+  max 10000
+  collision point
+}
+
+system smoke2 {
+  material textures/vfx/smoke2
+  blendfunc blend
+  max 10000
+  collision point
+}
+
+system fire {
+  material textures/vfx/explosion3
+  blendfunc blend
+  max 10000
+  collision point
+}
+
+system explosion {
+  material textures/vfx/explosion2
+  blendfunc blend
+  max 10000
+  collision point
+}
+
+emitter explosion1 {
+  system smoke
+
+  speed 20
+
+  color 1.0 1.0 1.0 1.0
+  end_color 0.0 0.0 0.0
+
+  size 32 0
+  size_distribution uniform 8
+  lifetime 0.25
+  lifetime_distribution uniform 0.2
+
+  count 64
+}
+
+emitter explosion2 {
+  system fire
+
+  speed 1000
+
+  color 1.0 1.0 1.0 1.0
+  end_color 0.0 0.0 0.0
+
+  size 12 0
+  size_distribution uniform 8
+  lifetime 0.55
+  lifetime_distribution uniform 0.25
+
+  count 64
+}
+
+emitter explosion3 {
+  system explosion
+
+  speed 100
+
+  color 1.0 1.0 1.0 1.0
+  end_color 0.0 0.0 0.0
+
+  size 165 128
+  size_distribution uniform 8
+  lifetime 0.25
+  lifetime_distribution uniform 0.15
+
+  count 32
+}
+
+emitter explosion4 {
+  system smoke2
+
+  speed 100
+
+  color 0.25 0.25 0.25 1.2
+  end_color 0.0 0.0 0.0
+
+  size 32 0
+  size_distribution uniform 8
+  lifetime 0.45
+  lifetime_distribution uniform 0.2
+
+  count 64
+}

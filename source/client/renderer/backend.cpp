@@ -1509,10 +1509,9 @@ void DrawInstancedParticles( VertexBuffer vb, const Model * model, const Materia
 
 	for( u32 i = 0; i < model->num_primitives; i++ ) {
 		PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
-		// PipelineState pipeline;
-		// pipeline.pass = frame_static.nonworld_opaque_pass;
+		pipeline.pass = frame_static.nonworld_opaque_pass;
 		pipeline.shader = &shaders.particle_model;
-		// pipeline.blend_func = blend_func;
+		pipeline.write_depth = true;
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 		pipeline.set_uniform( "u_Model", model_uniforms );
 		pipeline.set_uniform( "u_GradientMaterial", UploadUniformBlock( HalfPixelSize( gradient ).x ) );

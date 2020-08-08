@@ -1,76 +1,71 @@
-system smoke {
-  material textures/vfx/smoke7
-  blendfunc blend
-  max 10000
-  collision point
-}
-
-system smoke2 {
-  material textures/vfx/smoke2
-  blendfunc add
-  max 10000
-  collision point
-}
-
-system fire {
-  material textures/vfx/explosion3
+system spark {
+  material textures/vfx/trace2
   blendfunc add
   acceleration $gravity
   max 10000
-  collision point
+}
+
+system smoke2 {
+  material textures/vfx/smoke10
+  blendfunc blend
+  max 10000
+}
+
+system slash {
+  material textures/vfx/circle6
+  blendfunc blend
+  max 10000
 }
 
 system explosion {
-  material textures/vfx/explosion2
-  blendfunc add
+  material textures/vfx/fire1
+  blendfunc blend
   max 10000
-  collision point
 }
 
 emitter explosion1 {
-  system smoke
+  system spark
 
-  speed 20
+  speed 500
 
-  color 1.0 1.0 1.0 1.0
+  color 1.0 0.15 0.0 1.0
   end_color 0.0 0.0 0.0
 
-  size 32 0
-  size_distribution uniform 8
-  lifetime 0.25
-  lifetime_distribution uniform 0.2
+  size 32
+  size_distribution uniform 0
+  lifetime 1.0
 
-  count 64
+  count 128
 }
 
 emitter explosion2 {
-  system fire
+  system slash
 
-  speed 1000
+  speed 200
 
-  color 1.0 1.0 1.0 1.0
+  color 1.0 0.0 0.0 1.0
   end_color 0.0 0.0 0.0
 
   size 12 0
-  size_distribution uniform 8
-  lifetime 0.55
-  lifetime_distribution uniform 0.25
+  size_distribution uniform 4
+  lifetime 0.25
+  lifetime_distribution uniform 0.05
 
-  count 64
+  count 256
 }
 
 emitter explosion3 {
   system explosion
 
-  speed 100
+  speed 60
 
   color 1.0 1.0 1.0 1.0
   end_color 0.0 0.0 0.0
 
-  size 165 128
-  size_distribution uniform 8
+  size 200 100
+  size_distribution uniform 0
   lifetime 0.25
-  lifetime_distribution uniform 0.15
+  lifetime_distribution uniform 0
 
   count 32
 }
@@ -78,15 +73,15 @@ emitter explosion3 {
 emitter explosion4 {
   system smoke2
 
-  speed 100
+  speed 15
 
-  color 0.25 0.25 0.25 1.2
+  color 0.1 0.1 0.1 1.0
   end_color 0.0 0.0 0.0
 
-  size 32 0
-  size_distribution uniform 8
-  lifetime 0.45
-  lifetime_distribution uniform 0.2
+  size 0 64
+  size_distribution uniform 16
+  lifetime 0.35
+  lifetime_distribution uniform 0.05
 
-  count 64
+  count 256
 }

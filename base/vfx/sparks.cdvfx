@@ -1,36 +1,51 @@
-system bulletSparks {
-  material textures/vfx/flare1
+system bulletSparks1 {
+  material textures/vfx/trace2
   blendfunc add
-  acceleration $gravity
   max 100000
-  collision point
+}
+
+system bulletSparks2 {
+  material textures/vfx/trace6
+  blendfunc add
+  max 100000
+  acceleration $gravity
 }
 
 system sparks {
-  material $particle
+  material textures/vfx/trace3
   blendfunc blend
   acceleration $gravity
   max 100000
   collision point
 }
 
-emitter bulletSparks {
-  system bulletSparks
+emitter bulletSparks1 {
+  system bulletSparks1
 
-  speed 128
+  speed 150
   speed_distribution uniform 32
-  color 0.0 0.5 1.0 1.0
-  size 16 0
-  lifetime 0.5
-  lifetime_distribution uniform 0.1
-  count 10
+  color 1.0 0.5 1.0 1.0
+  size 12
+  lifetime 0.25
+  count 1
+}
+
+emitter bulletSparks2 {
+  system bulletSparks2
+
+  speed 100
+  speed_distribution uniform 100
+  color 1.0 0.25 0.0 1.0
+  size 2 0
+  lifetime 0.7
+  count 1
 }
 
 emitter wallbangImpact {
-  system bulletSparks
+  system bulletSparks1
 
   speed 128
-  color = 1.0 0.9 0.0 0.5
+  color 1.0 0.9 0.0 0.5
   size 2 0
   lifetime 0.5
   lifetime_distribution uniform 0.1

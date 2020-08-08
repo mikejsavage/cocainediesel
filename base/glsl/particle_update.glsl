@@ -12,26 +12,20 @@ layout( std140 ) uniform u_ParticleUpdate {
 // input vbo
 in vec3 a_ParticlePosition;
 in vec3 a_ParticleVelocity;
-in vec3 a_ParticleOrientation;
-in vec3 a_ParticleAVelocity;
+in vec4 a_ParticleUVWH;
 in vec4 a_ParticleStartColor;
 in vec4 a_ParticleEndColor;
-in float a_ParticleStartSize;
-in float a_ParticleEndSize;
-in float a_ParticleAge;
-in float a_ParticleLifetime;
+in vec2 a_ParticleSize;
+in vec2 a_ParticleAgeLifetime;
 
 // output vbo
 out vec3 v_ParticlePosition;
 out vec3 v_ParticleVelocity;
-out vec3 v_ParticleOrientation;
-out vec3 v_ParticleAVelocity;
+out vec4 v_ParticleUVWH;
 out uint v_ParticleStartColor;
 out uint v_ParticleEndColor;
-out float v_ParticleStartSize;
-out float v_ParticleEndSize;
-out float v_ParticleAge;
-out float v_ParticleLifetime;
+out vec2 v_ParticleSize;
+out vec2 v_ParticleAgeLifetime;
 
 #if FEEDBACK
 	out uint v_Feedback;
@@ -55,8 +49,8 @@ bool collide() {
 
 	float radius = 0.0;
 	if( u_Collision == 2 ) {
-		float fage = a_ParticleAge / a_ParticleLifetime;
-		radius = mix( a_ParticleStartSize, a_ParticleEndSize, fage );
+		float fage = a_ParticleAgeLifetime.x / a_ParticleAgeLifetime.y;
+		radius = mix( a_ParticleSize.x, a_ParticleSize.y, fage );
 		radius *= u_Radius;
 	}
 	float restitution = 0.8;
@@ -65,12 +59,10 @@ bool collide() {
 	vec4 frac = Trace( a_ParticlePosition - a_ParticleVelocity * u_dt * 0.1, a_ParticleVelocity * u_dt * asdf, radius );
 	if ( frac.w < 1.0 ) {
 		v_ParticlePosition = a_ParticlePosition + a_ParticleVelocity * frac.w * u_dt / asdf;
-		v_ParticleOrientation = a_ParticleOrientation + a_ParticleAVelocity * frac.w * u_dt / asdf;
 
 		vec3 impulse = ( 1.0 + restitution ) * dot( a_ParticleVelocity, frac.xyz ) * frac.xyz;
 
 		v_ParticleVelocity = a_ParticleVelocity - impulse;
-		v_ParticleAVelocity = a_ParticleAVelocity;
 
 #if FEEDBACK
 		v_Feedback |= FEEDBACK_COLLISION;
@@ -79,7 +71,6 @@ bool collide() {
 #endif
 
 		v_ParticlePosition += v_ParticleVelocity * ( 1.0 - frac.w / asdf ) * u_dt;
-		v_ParticleOrientation += v_ParticleAVelocity * ( 1.0 - frac.w / asdf ) * u_dt;
 
 		return true;
 	}
@@ -87,13 +78,13 @@ bool collide() {
 }
 
 void main() {
-	v_ParticleAge = a_ParticleAge + u_dt;
+	v_ParticleAgeLifetime.x = a_ParticleAgeLifetime.x + u_dt;
 
 #if FEEDBACK
 	v_Feedback = FEEDBACK_NONE;
 	v_FeedbackPosition = vec3( 0.0 );
 	v_FeedbackNormal = vec3( 0.0 );
-	if ( v_ParticleAge >= a_ParticleLifetime ) {
+	if ( v_ParticleAgeLifetime.x >= a_ParticleAgeLifetime.y ) {
 		v_Feedback |= FEEDBACK_AGE;
 		v_FeedbackPosition = a_ParticlePosition;
 		v_FeedbackNormal = normalize( a_ParticleVelocity );
@@ -102,16 +93,14 @@ void main() {
 
 	if ( !collide() ) {
 		v_ParticlePosition = a_ParticlePosition + a_ParticleVelocity * u_dt;
-		v_ParticleOrientation = a_ParticleOrientation + a_ParticleAVelocity * u_dt;
 
 		v_ParticleVelocity = a_ParticleVelocity;
-		v_ParticleAVelocity = a_ParticleAVelocity;
 	}
 
 	v_ParticleVelocity += u_Acceleration * u_dt;
+	v_ParticleUVWH = a_ParticleUVWH;
 	v_ParticleStartColor = colorPack( a_ParticleStartColor );
 	v_ParticleEndColor = colorPack( a_ParticleEndColor );
-	v_ParticleStartSize = a_ParticleStartSize;
-	v_ParticleEndSize = a_ParticleEndSize;
-	v_ParticleLifetime = a_ParticleLifetime;
+	v_ParticleSize = a_ParticleSize;
+	v_ParticleAgeLifetime.y = a_ParticleAgeLifetime.y;
 }

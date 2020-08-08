@@ -1,6 +1,7 @@
 #include "include/uniforms.glsl"
 #include "include/common.glsl"
 
+v2f vec4 v_UVWH;
 v2f vec2 v_TexCoord;
 v2f vec4 v_Color;
 
@@ -15,14 +16,11 @@ in vec2 a_TexCoord;
 
 in vec3 a_ParticlePosition;
 in vec3 a_ParticleVelocity;
-in vec3 a_ParticleOrientation;
-in vec3 a_ParticleAVelocity;
+in vec4 a_ParticleUVWH;
 in vec4 a_ParticleStartColor;
 in vec4 a_ParticleEndColor;
-in float a_ParticleStartSize;
-in float a_ParticleEndSize;
-in float a_ParticleAge;
-in float a_ParticleLifetime;
+in vec2 a_ParticleSize;
+in vec2 a_ParticleAgeLifetime;
 
 uniform sampler2D u_GradientTexture;
 
@@ -30,35 +28,19 @@ layout( std140 ) uniform u_GradientMaterial {
 	float u_GradientHalfPixel;
 };
 
-vec3 rotate_euler( vec3 euler, vec3 v ) {
-  float sp = sin( euler.x );
-  float cp = cos( euler.x );
-  float sy = sin( euler.y );
-  float cy = cos( euler.y );
-  float sr = sin( euler.z );
-  float cr = cos( euler.z );
-
-  float t1 = -sr * sp;
-  float t2 = cr * sp;
-  return mat3(
-    cp * cy, cp * sy, -sp,
-    t1 * cy + cr * sy, t1 * sy - cr * cy, -sr * cp,
-    t2 * cy + sr * sy, t2 * sy - sr * cy, cr * cp
-  ) * v;
-}
-
 void main() {
-	float fage = a_ParticleAge / a_ParticleLifetime;
+	float fage = a_ParticleAgeLifetime.x / a_ParticleAgeLifetime.y;
 
 	float uv = mix( u_GradientHalfPixel, fage, 1.0 - u_GradientHalfPixel );
 	vec4 gradColor = texture( u_GradientTexture, vec2( uv, 0.5 ) );
 
 	v_Color = sRGBToLinear( mix( a_ParticleStartColor, a_ParticleEndColor, fage ) ) * gradColor;
 	v_TexCoord = a_TexCoord;
-	float scale = mix( a_ParticleStartSize, a_ParticleEndSize, fage );
+	v_UVWH = a_ParticleUVWH;
+	float scale = mix( a_ParticleSize.x, a_ParticleSize.y, fage );
 
 #if MODEL
-	vec3 position = a_ParticlePosition + rotate_euler( a_ParticleOrientation, ( u_M * vec4( a_Position * scale, 1.0 ) ).xyz );
+	vec3 position = a_ParticlePosition + ( u_M * vec4( a_Position * scale, 1.0 ) ).xyz;
 
 	gl_Position = u_P * u_V * vec4( position, 1.0 );
 #else
@@ -78,13 +60,17 @@ void main() {
 
 #else
 
-uniform sampler2D u_BaseTexture;
+// uniform sampler2D u_BaseTexture;
+uniform sampler2DArray u_DecalAtlases;
 
 out vec4 f_Albedo;
 
 void main() {
 	// TODO: soft particles
-	f_Albedo = LinearTosRGB( texture( u_BaseTexture, v_TexCoord ) * v_Color );
+	vec2 uv = v_TexCoord * v_UVWH.zw + v_UVWH.xy;
+	float layer = floor( v_UVWH.x );
+	vec4 sample = texture( u_DecalAtlases, vec3( uv, layer ) );
+	f_Albedo = LinearTosRGB( sample * v_Color );
 }
 
 #endif

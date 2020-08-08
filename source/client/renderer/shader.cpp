@@ -125,14 +125,11 @@ static void LoadShaders() {
 	const char * update_no_feedback[] = {
 		"v_ParticlePosition",
 		"v_ParticleVelocity",
-		"v_ParticleOrientation",
-		"v_ParticleAVelocity",
+		"v_ParticleUVWH",
 		"v_ParticleStartColor",
 		"v_ParticleEndColor",
-		"v_ParticleStartSize",
-		"v_ParticleEndSize",
-		"v_ParticleAge",
-		"v_ParticleLifetime",
+		"v_ParticleSize",
+		"v_ParticleAgeLifetime",
 	};
 	ReplaceShader( &shaders.particle_update, srcs.span(), lengths.span(), Span< const char *>( update_no_feedback, ARRAY_COUNT( update_no_feedback ) ) );
 
@@ -140,14 +137,11 @@ static void LoadShaders() {
 	const char * update_feedback[] = {
 		"v_ParticlePosition",
 		"v_ParticleVelocity",
-		"v_ParticleOrientation",
-		"v_ParticleAVelocity",
+		"v_ParticleUVWH",
 		"v_ParticleStartColor",
 		"v_ParticleEndColor",
-		"v_ParticleStartSize",
-		"v_ParticleEndSize",
-		"v_ParticleAge",
-		"v_ParticleLifetime",
+		"v_ParticleSize",
+		"v_ParticleAgeLifetime",
 		"gl_NextBuffer",
 		"v_Feedback",
 		"v_FeedbackPosition",

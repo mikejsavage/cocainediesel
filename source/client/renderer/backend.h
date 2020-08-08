@@ -344,7 +344,7 @@ void DeferDeleteMesh( const Mesh & mesh );
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override = 0, u32 first_index = 0 );
 void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, u32 collision, float radius, Vec3 acceleration, u32 num_particles, float dt );
 void UpdateParticlesFeedback( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, VertexBuffer vb_feedback, u32 collision, float radius, Vec3 acceleration, u32 num_particles, float dt );
-void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material * material, const Material * gradient, BlendFunc blend_func, u32 num_particles );
+void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material * gradient, BlendFunc blend_func, u32 num_particles );
 void DrawInstancedParticles( VertexBuffer vb, const Model * model, const Material * gradient, u32 num_particles );
 
 void DownloadFramebuffer( void * buf );

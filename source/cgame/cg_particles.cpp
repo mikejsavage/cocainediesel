@@ -112,12 +112,11 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 				Vec2( 0.5f, 0.5f ),
 			};
 
-			Vec2 half_pixel = 0.5f / Vec2( ps->material->texture->width, ps->material->texture->height );
 			Vec2 uvs[] = {
-				half_pixel,
-				Vec2( 1.0f - half_pixel.x, half_pixel.y ),
-				Vec2( half_pixel.x, 1.0f - half_pixel.y ),
-				1.0f - half_pixel,
+				Vec2( 0.0f, 0.0f ),
+				Vec2( 1.0f, 0.0f ),
+				Vec2( 0.0f, 1.0f ),
+				Vec2( 1.0f, 1.0f ),
 			};
 
 			constexpr u16 indices[] = { 0, 1, 2, 3 };
@@ -557,7 +556,7 @@ void DrawParticleSystem( ParticleSystem * ps ) {
 	}
 	
 	if( ps->material ) {
-		DrawInstancedParticles( ps->mesh, ps->vb2, ps->material, ps->gradient, ps->blend_func, ps->num_particles );
+		DrawInstancedParticles( ps->mesh, ps->vb2, ps->gradient, ps->blend_func, ps->num_particles );
 	}
 	else if( ps->model ) {
 		DrawInstancedParticles( ps->vb2, ps->model, ps->gradient, ps->num_particles );
@@ -598,7 +597,7 @@ void DrawParticles() {
 	}
 }
 
-static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, Vec4 start_color, Vec4 end_color, float start_size, float end_size ) {
+static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, Vec4 uvwh, Vec4 start_color, Vec4 end_color, float start_size, float end_size ) {
 	ZoneScopedN( "Store Particle" );
 	if( ps->num_particles + ps->new_particles == ps->max_particles )
 		return;
@@ -606,8 +605,7 @@ static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Ve
 	GPUParticle & particle = ps->particles[ ps->new_particles ];
 	particle.position = position;
 	particle.velocity = velocity;
-	particle.orientation = UniformSampleSphere( &cls.rng );
-	particle.avelocity = UniformSampleSphere( &cls.rng );
+	particle.uvwh = uvwh;
 	particle.start_color = LinearTosRGB( start_color );
 	particle.end_color = LinearTosRGB( end_color );
 	particle.start_size = start_size;
@@ -668,7 +666,15 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 	start_color.w += SampleRandomDistribution( &cls.rng, emitter->alpha_distribution );
 	start_color = Clamp01( start_color );
 
-	EmitParticle( ps, lifetime, position, dir * speed, start_color, end_color, size, emitter->end_size );
+	Vec4 uvwh = Vec4( 0.0f );
+	if( ps->material ) {
+		if( TryFindDecal( StringHash( ps->material->name ), &uvwh ) ) {
+			EmitParticle( ps, lifetime, position, dir * speed, uvwh, start_color, end_color, size, emitter->end_size );
+		}
+	}
+	else {
+		EmitParticle( ps, lifetime, position, dir * speed, uvwh, start_color, end_color, size, emitter->end_size );
+	}
 }
 
 void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 start_color, Vec4 end_color ) {

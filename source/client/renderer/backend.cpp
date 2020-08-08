@@ -29,14 +29,11 @@ enum VertexAttribute : GLuint {
 
 	VertexAttribute_ParticlePosition,
 	VertexAttribute_ParticleVelocity,
-	VertexAttribute_ParticleOrientation,
-	VertexAttribute_ParticleAVelocity,
+	VertexAttribute_ParticleUVWH,
 	VertexAttribute_ParticleStartColor,
 	VertexAttribute_ParticleEndColor,
-	VertexAttribute_ParticleStartSize,
-	VertexAttribute_ParticleEndSize,
-	VertexAttribute_ParticleAge,
-	VertexAttribute_ParticleLifetime,
+	VertexAttribute_ParticleSize,
+	VertexAttribute_ParticleAgeLifetime,
 };
 
 static const u32 UNIFORM_BUFFER_SIZE = 64 * 1024;
@@ -607,14 +604,11 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 
 		SetupAttribute( VertexAttribute_ParticlePosition, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, position ) );
 		SetupAttribute( VertexAttribute_ParticleVelocity, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, velocity ) );
-		SetupAttribute( VertexAttribute_ParticleOrientation, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, orientation ) );
-		SetupAttribute( VertexAttribute_ParticleAVelocity, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, avelocity ) );
+		SetupAttribute( VertexAttribute_ParticleUVWH, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, uvwh ) );
 		SetupAttribute( VertexAttribute_ParticleStartColor, VertexFormat_U8x4_Norm, sizeof( GPUParticle ), offsetof( GPUParticle, start_color ) );
 		SetupAttribute( VertexAttribute_ParticleEndColor, VertexFormat_U8x4_Norm, sizeof( GPUParticle ), offsetof( GPUParticle, end_color ) );
-		SetupAttribute( VertexAttribute_ParticleStartSize, VertexFormat_Floatx1, sizeof( GPUParticle ), offsetof( GPUParticle, start_size ) );
-		SetupAttribute( VertexAttribute_ParticleEndSize, VertexFormat_Floatx1, sizeof( GPUParticle ), offsetof( GPUParticle, end_size ) );
-		SetupAttribute( VertexAttribute_ParticleAge, VertexFormat_Floatx1, sizeof( GPUParticle ), offsetof( GPUParticle, age ) );
-		SetupAttribute( VertexAttribute_ParticleLifetime, VertexFormat_Floatx1, sizeof( GPUParticle ), offsetof( GPUParticle, lifetime ) );
+		SetupAttribute( VertexAttribute_ParticleSize, VertexFormat_Floatx2, sizeof( GPUParticle ), offsetof( GPUParticle, start_size ) );
+		SetupAttribute( VertexAttribute_ParticleAgeLifetime, VertexFormat_Floatx2, sizeof( GPUParticle ), offsetof( GPUParticle, age ) );
 
 		if( dc.update_data.vbo ) {
 			glEnable( GL_RASTERIZER_DISCARD );
@@ -638,14 +632,11 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		else {
 			glVertexAttribDivisor( VertexAttribute_ParticlePosition, 1 );
 			glVertexAttribDivisor( VertexAttribute_ParticleVelocity, 1 );
-			glVertexAttribDivisor( VertexAttribute_ParticleOrientation, 1 );
-			glVertexAttribDivisor( VertexAttribute_ParticleAVelocity, 1 );
+			glVertexAttribDivisor( VertexAttribute_ParticleUVWH, 1 );
 			glVertexAttribDivisor( VertexAttribute_ParticleStartColor, 1 );
 			glVertexAttribDivisor( VertexAttribute_ParticleEndColor, 1 );
-			glVertexAttribDivisor( VertexAttribute_ParticleStartSize, 1 );
-			glVertexAttribDivisor( VertexAttribute_ParticleEndSize, 1 );
-			glVertexAttribDivisor( VertexAttribute_ParticleAge, 1 );
-			glVertexAttribDivisor( VertexAttribute_ParticleLifetime, 1 );
+			glVertexAttribDivisor( VertexAttribute_ParticleSize, 1 );
+			glVertexAttribDivisor( VertexAttribute_ParticleAgeLifetime, 1 );
 			GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
 			glDrawElementsInstanced( primitive, dc.num_vertices, type, 0, dc.num_instances );
 		}
@@ -1121,14 +1112,11 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 
 	glBindAttribLocation( program, VertexAttribute_ParticlePosition, "a_ParticlePosition" );
 	glBindAttribLocation( program, VertexAttribute_ParticleVelocity, "a_ParticleVelocity" );
-	glBindAttribLocation( program, VertexAttribute_ParticleOrientation, "a_ParticleOrientation" );
-	glBindAttribLocation( program, VertexAttribute_ParticleAVelocity, "a_ParticleAVelocity" );
+	glBindAttribLocation( program, VertexAttribute_ParticleUVWH, "a_ParticleUVWH" );
 	glBindAttribLocation( program, VertexAttribute_ParticleStartColor, "a_ParticleStartColor" );
 	glBindAttribLocation( program, VertexAttribute_ParticleEndColor, "a_ParticleEndColor" );
-	glBindAttribLocation( program, VertexAttribute_ParticleStartSize, "a_ParticleStartSize" );
-	glBindAttribLocation( program, VertexAttribute_ParticleEndSize, "a_ParticleEndSize" );
-	glBindAttribLocation( program, VertexAttribute_ParticleAge, "a_ParticleAge" );
-	glBindAttribLocation( program, VertexAttribute_ParticleLifetime, "a_ParticleLifetime" );
+	glBindAttribLocation( program, VertexAttribute_ParticleSize, "a_ParticleSize" );
+	glBindAttribLocation( program, VertexAttribute_ParticleAgeLifetime, "a_ParticleAgeLifetime" );
 
 	if( !feedback ) {
 		glBindFragDataLocation( program, 0, "f_Albedo" );
@@ -1474,7 +1462,7 @@ void UpdateParticlesFeedback( const Mesh & mesh, VertexBuffer vb_in, VertexBuffe
 	draw_calls.add( dc );
 }
 
-void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material * material, const Material * gradient, BlendFunc blend_func, u32 num_particles ) {
+void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material * gradient, BlendFunc blend_func, u32 num_particles ) {
 	assert( in_frame );
 
 	PipelineState pipeline;
@@ -1484,8 +1472,8 @@ void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material 
 	pipeline.write_depth = false;
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.set_uniform( "u_GradientMaterial", UploadUniformBlock( HalfPixelSize( gradient ).x ) );
-	pipeline.set_texture( "u_BaseTexture", material->texture );
 	pipeline.set_texture( "u_GradientTexture", gradient->texture );
+	pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
 
 	DrawCall dc = { };
 	dc.mesh = mesh;

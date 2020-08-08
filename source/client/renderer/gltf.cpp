@@ -28,21 +28,21 @@ static Span< const u8 > AccessorToSpan( const cgltf_accessor * accessor ) {
 	return Span< const u8 >( ( const u8 * ) accessor->buffer_view->buffer->data + offset, accessor->count * accessor->stride );
 }
 
-static u8 GetJointIdx( const cgltf_node * node ) {
+static u8 GetNodeIdx( const cgltf_node * node ) {
 	return u8( uintptr_t( node->camera ) - 1 );
 }
 
-static void SetJointIdx( cgltf_node * node, u8 joint_idx ) {
-	node->camera = ( cgltf_camera * ) uintptr_t( joint_idx + 1 );
+static void SetNodeIdx( cgltf_node * node, u8 idx ) {
+	node->camera = ( cgltf_camera * ) uintptr_t( idx + 1 );
 }
 
 static void LoadJoint( Model * model, const cgltf_node * node, u8 ** prev ) {
-	u8 joint_idx = GetJointIdx( node );
+	u8 joint_idx = GetNodeIdx( node );
 	**prev = joint_idx;
 	*prev = &model->joints[ joint_idx ].next;
 
 	Model::Joint & joint = model->joints[ joint_idx ];
-	joint.parent = node->parent != NULL ? GetJointIdx( node->parent ) : U8_MAX;
+	joint.parent = node->parent != NULL ? GetNodeIdx( node->parent ) : U8_MAX;
 	joint.name = Hash32( node->name );
 	joint.joint_to_bind = Mat4::Identity();
 
@@ -55,13 +55,13 @@ static void LoadJoint( Model * model, const cgltf_node * node, u8 ** prev ) {
 		joint.first_child = U8_MAX;
 	}
 	else {
-		joint.first_child = GetJointIdx( node->children[ 0 ] );
+		joint.first_child = GetNodeIdx( node->children[ 0 ] );
 
 		for( size_t i = 0; i < node->children_count - 1; i++ ) {
-			model->joints[ GetJointIdx( node->children[ i ] ) ].sibling = GetJointIdx( node->children[ i + 1 ] );
+			model->joints[ GetNodeIdx( node->children[ i ] ) ].sibling = GetNodeIdx( node->children[ i + 1 ] );
 		}
 
-		model->joints[ GetJointIdx( node->children[ node->children_count - 1 ] ) ].sibling = U8_MAX;
+		model->joints[ GetNodeIdx( node->children[ node->children_count - 1 ] ) ].sibling = U8_MAX;
 	}
 }
 
@@ -70,12 +70,12 @@ static void LoadJointTree( Model * model, const cgltf_node * root ) {
 	LoadJoint( model, root, &prev_ptr );
 
 	// TODO: remove with additive animations
-	model->joints[ GetJointIdx( root ) ].sibling = U8_MAX;
+	model->joints[ GetNodeIdx( root ) ].sibling = U8_MAX;
 }
 
 static void LoadSkinJointToBindTransforms( Model * model, const cgltf_skin * skin ) {
 	for( size_t i = 0; i < skin->joints_count; i++ ) {
-		u8 joint_idx = GetJointIdx( skin->joints[ i ] );
+		u8 joint_idx = GetNodeIdx( skin->joints[ i ] );
 		Model::Joint * joint = &model->joints[ joint_idx ];
 
 		joint->skinned_idx = i;
@@ -220,7 +220,7 @@ static void LoadAnimation( Model * model, const cgltf_animation * animation ) {
 	for( size_t i = 0; i < animation->channels_count; i++ ) {
 		const cgltf_animation_channel * chan = &animation->channels[ i ];
 
-		u8 joint_idx = GetJointIdx( chan->target_node );
+		u8 joint_idx = GetNodeIdx( chan->target_node );
 		assert( joint_idx != U8_MAX );
 
 		if( chan->target_path == cgltf_animation_path_type_translation ) {
@@ -313,9 +313,6 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 		}
 	}
 
-	bool animated = gltf->animations_count > 0;
-	bool skinned = gltf->skins_count > 0;
-
 	*model = { };
 
 	constexpr Mat4 y_up_to_z_up(
@@ -328,26 +325,26 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 
 	model->primitives = ALLOC_MANY( sys_allocator, Model::Primitive, gltf->meshes_count );
 
+	bool animated = gltf->animations_count > 0;
 	for( size_t i = 0; i < gltf->scene->nodes_count; i++ ) {
 		LoadNode( model, gltf->scene->nodes[ i ], animated );
 	}
 
+	model->nodes = ALLOC_MANY( sys_allocator, Model::Joint, gltf->nodes_count );
+	memset( model->nodes, 0, sizeof( Model::Node ) * gltf->nodes_count );
+	model->num_nodes = gltf->nodes_count;
+
+	for( size_t i = 0; i < gltf->nodes_count; i++ ) {
+		SetNodeIdx( &gltf->nodes[ i ], i );
+	}
+
+	for( size_t i = 0; i < gltf->scene->nodes_count; i++ ) {
+		LoadJointTree( model, gltf->scene->nodes[ i ] );
+	}
+
 	if( animated ) {
-		model->joints = ALLOC_MANY( sys_allocator, Model::Joint, gltf->nodes_count );
-		memset( model->joints, 0, sizeof( Model::Joint ) * gltf->nodes_count );
-		model->num_joints = gltf->nodes_count;
-
-		for( size_t i = 0; i < gltf->nodes_count; i++ ) {
-			SetJointIdx( &gltf->nodes[ i ], i );
-		}
-
-		for( size_t i = 0; i < gltf->scene->nodes_count; i++ ) {
-			LoadJointTree( model, gltf->scene->nodes[ i ] );
-		}
-
-		if( skinned ) {
-			LoadSkinJointToBindTransforms( model, &gltf->skins[ 0 ] );
-			model->num_skinned_joints = gltf->skins[ 0 ].joints_count;
+		if( gltf->skins_count > 0 ) {
+			LoadSkin( model, &gltf->skins[ 0 ] );
 		}
 
 		LoadAnimation( model, &gltf->animations[ 0 ] );

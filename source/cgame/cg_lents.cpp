@@ -1,16 +1,19 @@
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 
-static float RandomRadians() {
-	return random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
+static float RandomRadians()
+{
+	return random_uniform_float(&cls.rng, 0.0f, Radians(360.0f));
 }
 
-void CG_EBBeam( Vec3 start, Vec3 end, Vec4 team_color ) {
-	AddPersistentBeam( start, end, 16.0f, team_color, cgs.media.shaderEBBeam, 0.25f, 0.1f );
-	RailTrailParticles( start, end, team_color );
+void CG_EBBeam(Vec3 start, Vec3 end, Vec4 team_color)
+{
+	AddPersistentBeam(start, end, 16.0f, team_color, cgs.media.shaderEBBeam, 0.25f, 0.1f);
+	RailTrailParticles(start, end, team_color);
 }
 
-void CG_BubbleTrail( Vec3 start, Vec3 end, int dist ) {
+void CG_BubbleTrail(Vec3 start, Vec3 end, int dist)
+{
 	/*
 	Vec3 move, vec;
 	move = start;
@@ -35,21 +38,25 @@ void CG_BubbleTrail( Vec3 start, Vec3 end, int dist ) {
 	*/
 }
 
-void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
-	PlasmaImpactParticles( pos, dir, team_color.xyz() );
+void CG_PlasmaExplosion(Vec3 pos, Vec3 dir, Vec4 team_color)
+{
+	PlasmaImpactParticles(pos, dir, team_color.xyz());
 
-	AddPersistentDecal( pos, dir, 8.0f, RandomRadians(), "weapons/pg/impact_decal", team_color, 30000 );
+	AddPersistentDecal(pos, dir, 8.0f, RandomRadians(), "weapons/pg/impact_decal", team_color, 30000);
 
-	S_StartFixedSound( cgs.media.sfxPlasmaHit, pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound(cgs.media.sfxPlasmaHit, pos, CHAN_AUTO, 1.0f);
 }
 
-void CG_BubbleExplosion( Vec3 pos, Vec4 team_color ) {
-	BubbleImpactParticles( pos, team_color.xyz() );
-	S_StartFixedSound( cgs.media.sfxBubbleHit, pos, CHAN_AUTO, 1.0f );
+void CG_BubbleExplosion(Vec3 pos, Vec4 team_color)
+{
+	BubbleImpactParticles(pos, team_color.xyz());
+	S_StartFixedSound(cgs.media.sfxBubbleHit, pos, CHAN_AUTO, 1.0f);
 }
 
-void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color ) {
-	if( surfFlags & ( SURF_SKY | SURF_NOMARKS | SURF_NOIMPACT ) ) {
+void CG_EBImpact(Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color)
+{
+	if (surfFlags & (SURF_SKY | SURF_NOMARKS | SURF_NOIMPACT))
+	{
 		return;
 	}
 
@@ -65,34 +72,39 @@ void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color ) {
 	le->ent.scale = 1.5f;
 	*/
 
-	AddPersistentDecal( pos, dir, 4.0f, RandomRadians(), "weapons/eb/impact_decal", team_color, 30000 );
+	AddPersistentDecal(pos, dir, 4.0f, RandomRadians(), "weapons/eb/impact_decal", team_color, 30000);
 
-	S_StartFixedSound( cgs.media.sfxElectroboltHit, pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound(cgs.media.sfxElectroboltHit, pos, CHAN_AUTO, 1.0f);
 }
 
-static void ScorchDecal( Vec3 pos, Vec3 normal ) {
+static void ScorchDecal(Vec3 pos, Vec3 normal)
+{
 	constexpr StringHash decals[] = {
 		"weapons/explosion_scorch1",
 		"weapons/explosion_scorch2",
 		"weapons/explosion_scorch3",
 	};
 
-	AddPersistentDecal( pos, normal, 32.0f, RandomRadians(), random_select( &cls.rng, decals ), vec4_white, 30000 );
+	float size = random_uniform_float(&cls.rng, 50.0f, 70.0f);
+	AddPersistentDecal(pos, normal, 64.0f, RandomRadians(), random_select(&cls.rng, decals), vec4_white, 30000);
 }
 
-void CG_RocketExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
-	ExplosionParticles( pos, dir, team_color.xyz() );
-	ScorchDecal( pos, dir );
-	S_StartFixedSound( cgs.media.sfxRocketLauncherHit, pos, CHAN_AUTO, 1.0f );
+void CG_RocketExplosion(Vec3 pos, Vec3 dir, Vec4 team_color)
+{
+	ExplosionParticles(pos, dir, team_color.xyz());
+	ScorchDecal(pos, dir);
+	S_StartFixedSound(cgs.media.sfxRocketLauncherHit, pos, CHAN_AUTO, 1.0f);
 }
 
-void CG_GrenadeExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
-	ExplosionParticles( pos, dir, team_color.xyz() );
-	ScorchDecal( pos, dir );
-	S_StartFixedSound( cgs.media.sfxGrenadeExplosion, pos, CHAN_AUTO, 1.0f );
+void CG_GrenadeExplosion(Vec3 pos, Vec3 dir, Vec4 team_color)
+{
+	ExplosionParticles(pos, dir, team_color.xyz());
+	ScorchDecal(pos, dir);
+	S_StartFixedSound(cgs.media.sfxGrenadeExplosion, pos, CHAN_AUTO, 1.0f);
 }
 
-void CG_BladeImpact( Vec3 pos, Vec3 dir ) {
+void CG_BladeImpact(Vec3 pos, Vec3 dir)
+{
 	/*
 	LocalEntity *le;
 	Vec3 angles;
@@ -146,14 +158,15 @@ void CG_BladeImpact( Vec3 pos, Vec3 dir ) {
 	*/
 }
 
-void CG_ProjectileTrail( const centity_t * cent ) {
+void CG_ProjectileTrail(const centity_t *cent)
+{
 	// didn't move
 	Vec3 vec = cent->ent.origin - cent->trailOrigin;
-	float len = Length( vec );
-	if( len == 0 )
+	float len = Length(vec);
+	if (len == 0)
 		return;
 
-	ParticleEmitter emitter = { };
+	ParticleEmitter emitter = {};
 
 	emitter.position = cent->ent.origin;
 	emitter.position_distribution.type = RandomDistribution3DType_Line;
@@ -162,8 +175,8 @@ void CG_ProjectileTrail( const centity_t * cent ) {
 	emitter.start_speed = 5.0f;
 	emitter.end_speed = 5.0f;
 
-	emitter.start_color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 0.5f );
-	emitter.end_color = Lerp( emitter.start_color.xyz(), 0.2f, Vec3( 1.0f ) );
+	emitter.start_color = Vec4(CG_TeamColorVec4(cent->current.team).xyz(), 0.5f);
+	emitter.end_color = Lerp(emitter.start_color.xyz(), 0.2f, Vec3(1.0f));
 
 	emitter.start_size = 8.0f;
 	emitter.end_size = 16.0f;
@@ -172,16 +185,17 @@ void CG_ProjectileTrail( const centity_t * cent ) {
 
 	emitter.emission_rate = 128.0f;
 
-	EmitParticles( &cgs.ions, emitter );
+	EmitParticles(&cgs.ions, emitter);
 }
 
-void CG_RifleBulletTrail( const centity_t * cent ) {
+void CG_RifleBulletTrail(const centity_t *cent)
+{
 	Vec3 vec = cent->ent.origin - cent->trailOrigin;
-	float len = Length( vec );
-	if( len == 0 )
+	float len = Length(vec);
+	if (len == 0)
 		return;
 
-	ParticleEmitter emitter = { };
+	ParticleEmitter emitter = {};
 
 	emitter.position = cent->ent.origin;
 	emitter.position_distribution.type = RandomDistribution3DType_Line;
@@ -190,8 +204,8 @@ void CG_RifleBulletTrail( const centity_t * cent ) {
 	emitter.start_speed = 0.0f;
 	emitter.end_speed = 0.0f;
 
-	emitter.start_color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 1.0f );
-	emitter.end_color = Vec3( 0.0f, 0.0f, 0.0f );
+	emitter.start_color = Vec4(CG_TeamColorVec4(cent->current.team).xyz(), 1.0f);
+	emitter.end_color = Vec3(0.0f, 0.0f, 0.0f);
 	emitter.start_size = 16.0f;
 	emitter.end_size = 0.0f;
 
@@ -199,10 +213,11 @@ void CG_RifleBulletTrail( const centity_t * cent ) {
 
 	emitter.n = 64;
 
-	EmitParticles( &cgs.rifle_bullet, emitter );
+	EmitParticles(&cgs.rifle_bullet, emitter);
 }
 
-void CG_NewBloodTrail( centity_t *cent ) {
+void CG_NewBloodTrail(centity_t *cent)
+{
 	/*
 	float radius = 2.5f;
 	float alpha = 1.0f;
@@ -238,7 +253,8 @@ void CG_NewBloodTrail( centity_t *cent ) {
 	*/
 }
 
-void CG_BloodDamageEffect( Vec3 origin, Vec3 dir, int damage, Vec4 team_color ) {
+void CG_BloodDamageEffect(Vec3 origin, Vec3 dir, int damage, Vec4 team_color)
+{
 	/*
 	float radius = 5.0f, alpha = 1.0f;
 	int time = 8;
@@ -277,7 +293,8 @@ void CG_BloodDamageEffect( Vec3 origin, Vec3 dir, int damage, Vec4 team_color ) 
 	*/
 }
 
-void CG_PModel_SpawnTeleportEffect( centity_t * cent, MatrixPalettes temp_pose ) {
+void CG_PModel_SpawnTeleportEffect(centity_t *cent, MatrixPalettes temp_pose)
+{
 	/*
 	for( int i = LOCALEFFECT_EV_PLAYER_TELEPORT_IN; i <= LOCALEFFECT_EV_PLAYER_TELEPORT_OUT; i++ ) {
 		if( !cent->localEffects[i] )
@@ -314,7 +331,8 @@ void CG_PModel_SpawnTeleportEffect( centity_t * cent, MatrixPalettes temp_pose )
 	*/
 }
 
-void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius ) {
+void CG_GenericExplosion(Vec3 pos, Vec3 dir, float radius)
+{
 	/*
 	LocalEntity *le;
 	Vec3 angles;
@@ -347,7 +365,8 @@ void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius ) {
 	*/
 }
 
-void CG_Dash( const SyncEntityState *state ) {
+void CG_Dash(const SyncEntityState *state)
+{
 	/*
 	LocalEntity *le;
 	Vec3 pos, dvect, angle = { 0, 0, 0 };
@@ -383,7 +402,8 @@ void CG_Dash( const SyncEntityState *state ) {
 	*/
 }
 
-void CG_DustCircle( Vec3 pos, Vec3 dir, float radius, int count ) {
+void CG_DustCircle(Vec3 pos, Vec3 dir, float radius, int count)
+{
 	// Vec3 dir_per1;
 	// Vec3 dir_per2;
 	// Vec3 dir_temp = { 0.0f, 0.0f, 0.0f };
@@ -413,7 +433,8 @@ void CG_DustCircle( Vec3 pos, Vec3 dir, float radius, int count ) {
 	// }
 }
 
-struct Gib {
+struct Gib
+{
 	Vec3 origin;
 	Vec3 velocity;
 	float scale;
@@ -421,45 +442,49 @@ struct Gib {
 	Vec4 color;
 };
 
-static Gib gibs[ 512 ];
+static Gib gibs[512];
 static u32 num_gibs;
 
-void InitGibs() {
+void InitGibs()
+{
 	num_gibs = 0;
 }
 
-void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
+void SpawnGibs(Vec3 origin, Vec3 velocity, int damage, Vec4 color)
+{
 	ZoneScoped;
 
-	int count = Min2( damage * 3 / 2, 60 );
+	int count = Min2(damage * 3 / 2, 60);
 
 	float player_radius = playerbox_stand_maxs.x;
 	float gib_radius = cgs.media.modGib->bounds.maxs.x;
 	constexpr float epsilon = 0.1f;
 	float radius = player_radius - gib_radius - epsilon;
 
-	for( int i = 0; i < count; i++ ) {
-		if( num_gibs == ARRAY_COUNT( gibs ) )
+	for (int i = 0; i < count; i++)
+	{
+		if (num_gibs == ARRAY_COUNT(gibs))
 			break;
 
-		Gib * gib = &gibs[ num_gibs ];
+		Gib *gib = &gibs[num_gibs];
 		num_gibs++;
 
-		Vec3 dir = Vec3( UniformSampleDisk( &cls.rng ), 0.0f );
+		Vec3 dir = Vec3(UniformSampleDisk(&cls.rng), 0.0f);
 		gib->origin = origin + dir * radius;
 
-		dir.z = random_float01( &cls.rng );
-		gib->velocity = velocity * 0.5f + dir * Length( velocity ) * 0.5f;
+		dir.z = random_float01(&cls.rng);
+		gib->velocity = velocity * 0.5f + dir * Length(velocity) * 0.5f;
 
-		gib->scale = random_uniform_float( &cls.rng, 0.5f, 1.0f );
+		gib->scale = random_uniform_float(&cls.rng, 0.5f, 1.0f);
 		gib->lifetime = 10.0f;
 		gib->color = color;
 	}
 }
 
-static void GibImpact( Vec3 pos, Vec3 normal, Vec4 color, float scale ) {
+static void GibImpact(Vec3 pos, Vec3 normal, Vec4 color, float scale)
+{
 	{
-		ParticleEmitter emitter = { };
+		ParticleEmitter emitter = {};
 		emitter.position = pos;
 
 		emitter.use_cone_direction = true;
@@ -479,7 +504,7 @@ static void GibImpact( Vec3 pos, Vec3 normal, Vec4 color, float scale ) {
 
 		emitter.n = 3;
 
-		EmitParticles( &cgs.gibimpact, emitter );
+		EmitParticles(&cgs.gibimpact, emitter);
 	}
 
 	{
@@ -497,22 +522,25 @@ static void GibImpact( Vec3 pos, Vec3 normal, Vec4 color, float scale ) {
 			"textures/blood_decals/blood11",
 		};
 
-		if( random_p( &cls.rng, 0.25f ) ) {
-			AddPersistentDecal( pos, normal, scale * 64.0f, RandomRadians(), random_select( &cls.rng, decals ), color, 30000 );
+		if (random_p(&cls.rng, 0.25f))
+		{
+			AddPersistentDecal(pos, normal, scale * 64.0f, RandomRadians(), random_select(&cls.rng, decals), color, 30000);
 		}
 	}
 }
 
-void DrawGibs() {
+void DrawGibs()
+{
 	ZoneScoped;
 
 	float dt = cls.frametime * 0.001f;
 
-	const Model * model = cgs.media.modGib;
-	Vec3 gravity = Vec3( 0, 0, -GRAVITY );
+	const Model *model = cgs.media.modGib;
+	Vec3 gravity = Vec3(0, 0, -GRAVITY);
 
-	for( u32 i = 0; i < num_gibs; i++ ) {
-		Gib * gib = &gibs[ i ];
+	for (u32 i = 0; i < num_gibs; i++)
+	{
+		Gib *gib = &gibs[i];
 
 		gib->velocity += gravity * dt;
 		Vec3 next_origin = gib->origin + gib->velocity * dt;
@@ -521,27 +549,30 @@ void DrawGibs() {
 		MinMax3 bounds = model->bounds * size;
 
 		trace_t trace;
-		CG_Trace( &trace, gib->origin, bounds.mins, bounds.maxs, next_origin, 0, MASK_SOLID );
+		CG_Trace(&trace, gib->origin, bounds.mins, bounds.maxs, next_origin, 0, MASK_SOLID);
 
-		if( trace.startsolid || ( trace.contents & CONTENTS_NODROP ) || ( trace.surfFlags & SURF_SKY ) ) {
+		if (trace.startsolid || (trace.contents & CONTENTS_NODROP) || (trace.surfFlags & SURF_SKY))
+		{
 			gib->lifetime = 0;
 		}
-		else if( trace.fraction != 1.0f ) {
+		else if (trace.fraction != 1.0f)
+		{
 			gib->lifetime = 0;
 
-			GibImpact( trace.endpos, trace.plane.normal, gib->color, gib->scale );
+			GibImpact(trace.endpos, trace.plane.normal, gib->color, gib->scale);
 		}
 
 		gib->lifetime -= dt;
-		if( gib->lifetime <= 0 ) {
+		if (gib->lifetime <= 0)
+		{
 			num_gibs--;
 			i--;
-			Swap2( gib, &gibs[ num_gibs ] );
+			Swap2(gib, &gibs[num_gibs]);
 			continue;
 		}
 
-		Mat4 transform = Mat4Translation( gib->origin ) * Mat4Scale( size );
-		DrawModel( model, transform, gib->color );
+		Mat4 transform = Mat4Translation(gib->origin) * Mat4Scale(size);
+		DrawModel(model, transform, gib->color);
 
 		gib->origin = next_origin;
 	}

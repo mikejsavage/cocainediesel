@@ -681,7 +681,7 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 				if( ps->stopped[ j ] )
 					continue;
 
-				ALint state = CheckedALGetSource( ps->sources[ j ], AL_SOURCE_STATE );;
+				ALint state = CheckedALGetSource( ps->sources[ j ], AL_SOURCE_STATE );
 				if( not_touched || state == AL_STOPPED ) {
 					StopSound( ps, j );
 				}

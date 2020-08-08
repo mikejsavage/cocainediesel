@@ -86,7 +86,7 @@ static void ScorchDecal(Vec3 pos, Vec3 normal)
 	};
 
 	float size = random_uniform_float(&cls.rng, 50.0f, 70.0f);
-	AddPersistentDecal(pos, normal, 64.0f, RandomRadians(), random_select(&cls.rng, decals), vec4_white, 30000);
+	AddPersistentDecal(pos, normal, size, RandomRadians(), random_select(&cls.rng, decals), vec4_white, 30000);
 }
 
 void CG_RocketExplosion(Vec3 pos, Vec3 dir, Vec4 team_color)

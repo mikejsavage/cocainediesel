@@ -2,10 +2,10 @@
 #include "client/renderer/renderer.h"
 
 void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
-	EmitParticles( FindParticleEmitter( "explosion1" ), ParticleEmitterSphere( origin, normal, 180.0f, 48.0f ), 1.0f );
-	EmitParticles( FindParticleEmitter( "explosion2" ), ParticleEmitterSphere( origin, normal, 180.0f ), 1.0f, Vec4( team_color, 1.0f ) );
-	EmitParticles( FindParticleEmitter( "explosion3" ), ParticleEmitterSphere( origin, normal, 180.0f, 8.0f ), 1.0f, Vec4( team_color, 1.0f ) );
-	EmitParticles( FindParticleEmitter( "explosion4" ), ParticleEmitterSphere( origin, normal, 180.0f, 48.0f ), 1.0f );
+	EmitParticles( FindParticleEmitter( "explosion1" ), ParticleEmitterSphere( origin, 48.0f ), 1.0f );
+	EmitParticles( FindParticleEmitter( "explosion2" ), ParticleEmitterSphere( origin ), 1.0f, Vec4( team_color, 1.0f ) );
+	EmitParticles( FindParticleEmitter( "explosion3" ), ParticleEmitterSphere( origin, 8.0f ), 1.0f, Vec4( team_color, 1.0f ) );
+	EmitParticles( FindParticleEmitter( "explosion4" ), ParticleEmitterSphere( origin, 48.0f ), 1.0f );
 }
 
 void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
@@ -13,7 +13,7 @@ void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 }
 
 void BubbleImpactParticles( Vec3 origin, Vec3 team_color ) {
-	EmitParticles( FindParticleEmitter( "bubbleImpact"), ParticleEmitterSphere( origin, Vec3( 0.0f, 0.0f, 1.0f ) ), 64.0f, Vec4( team_color, 1.0f ) );
+	EmitParticles( FindParticleEmitter( "bubbleImpact"), ParticleEmitterSphere( origin ), 64.0f, Vec4( team_color, 1.0f ) );
 }
 
 void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {

@@ -168,10 +168,11 @@ ParticleEmitter * FindParticleEmitter( StringHash name );
 ParticleEmitter * FindParticleEmitter( const char * name );
 
 ParticleEmitterPosition ParticleEmitterSphere( Vec3 origin, Vec3 normal, float theta = 180.0f, float radius = 0.0f );
+ParticleEmitterPosition ParticleEmitterSphere( Vec3 origin, float radius = 0.0f );
 ParticleEmitterPosition ParticleEmitterDisk( Vec3 origin, Vec3 normal, float radius = 0.0f );
 ParticleEmitterPosition ParticleEmitterLine( Vec3 origin, Vec3 end, float radius = 0.0f );
 
-void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 color );
+void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 start_color );
 void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count );
 
 void DrawParticles();

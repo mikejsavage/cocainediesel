@@ -17,10 +17,10 @@ in vec3 a_ParticlePosition;
 in vec3 a_ParticleVelocity;
 in vec3 a_ParticleOrientation;
 in vec3 a_ParticleAVelocity;
-in vec4 a_ParticleColor;
-in vec4 a_ParticleDColor;
-in float a_ParticleSize;
-in float a_ParticleDSize;
+in vec4 a_ParticleStartColor;
+in vec4 a_ParticleEndColor;
+in float a_ParticleStartSize;
+in float a_ParticleEndSize;
 in float a_ParticleAge;
 in float a_ParticleLifetime;
 
@@ -53,10 +53,9 @@ void main() {
 	float uv = mix( u_GradientHalfPixel, fage, 1.0 - u_GradientHalfPixel );
 	vec4 gradColor = texture( u_GradientTexture, vec2( uv, 0.5 ) );
 
-	v_Color = sRGBToLinear( a_ParticleColor + a_ParticleDColor * a_ParticleAge ) * gradColor;
-	// v_Color.a = 1-fage;
+	v_Color = sRGBToLinear( mix( a_ParticleStartColor, a_ParticleEndColor, fage ) ) * gradColor;
 	v_TexCoord = a_TexCoord;
-	float scale = a_ParticleSize + a_ParticleDSize * a_ParticleAge;
+	float scale = mix( a_ParticleStartSize, a_ParticleEndSize, fage );
 
 #if MODEL
 	vec3 position = a_ParticlePosition + rotate_euler( a_ParticleOrientation, ( u_M * vec4( a_Position * scale, 1.0 ) ).xyz );

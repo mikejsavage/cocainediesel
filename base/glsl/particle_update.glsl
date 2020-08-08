@@ -14,10 +14,10 @@ in vec3 a_ParticlePosition;
 in vec3 a_ParticleVelocity;
 in vec3 a_ParticleOrientation;
 in vec3 a_ParticleAVelocity;
-in vec4 a_ParticleColor;
-in vec4 a_ParticleDColor;
-in float a_ParticleSize;
-in float a_ParticleDSize;
+in vec4 a_ParticleStartColor;
+in vec4 a_ParticleEndColor;
+in float a_ParticleStartSize;
+in float a_ParticleEndSize;
 in float a_ParticleAge;
 in float a_ParticleLifetime;
 
@@ -26,10 +26,10 @@ out vec3 v_ParticlePosition;
 out vec3 v_ParticleVelocity;
 out vec3 v_ParticleOrientation;
 out vec3 v_ParticleAVelocity;
-out uint v_ParticleColor;
-out uint v_ParticleDColor;
-out float v_ParticleSize;
-out float v_ParticleDSize;
+out uint v_ParticleStartColor;
+out uint v_ParticleEndColor;
+out float v_ParticleStartSize;
+out float v_ParticleEndSize;
 out float v_ParticleAge;
 out float v_ParticleLifetime;
 
@@ -55,7 +55,8 @@ bool collide() {
 
 	float radius = 0.0;
 	if( u_Collision == 2 ) {
-		radius = a_ParticleSize + a_ParticleAge * a_ParticleDSize;
+		float fage = a_ParticleAge / a_ParticleLifetime;
+		radius = mix( a_ParticleStartSize, a_ParticleEndSize, fage );
 		radius *= u_Radius;
 	}
 	float restitution = 0.8;
@@ -108,9 +109,9 @@ void main() {
 	}
 
 	v_ParticleVelocity += u_Acceleration * u_dt;
-	v_ParticleColor = colorPack( a_ParticleColor );
-	v_ParticleDColor = colorPack( a_ParticleDColor );
-	v_ParticleSize = a_ParticleSize;
-	v_ParticleDSize = a_ParticleDSize;
+	v_ParticleStartColor = colorPack( a_ParticleStartColor );
+	v_ParticleEndColor = colorPack( a_ParticleEndColor );
+	v_ParticleStartSize = a_ParticleStartSize;
+	v_ParticleEndSize = a_ParticleEndSize;
 	v_ParticleLifetime = a_ParticleLifetime;
 }

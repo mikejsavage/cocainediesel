@@ -469,7 +469,7 @@ void CG_AddBomb( centity_t * cent ) {
 	if( bomb.state == BombState_Planted ) {
 		Mat2 r = Mat2Rotation( cent->current.angles.y );
 		Vec3 origin = bomb.origin + Vec3( r * Vec2( -12.0f, 3.0f ), -12.0f );
-		EmitParticles( FindParticleEmitter( "bomb_fuse" ), ParticleEmitterSphere( origin, Vec3( 0.0f, 0.0f, 1.0f ) ), 1.0f );
+		EmitParticles( FindParticleEmitter( "bomb_fuse" ), ParticleEmitterSphere( origin ), 1.0f );
 	}
 }
 
@@ -531,7 +531,7 @@ void CG_DrawBombHUD() {
 					color = AttentionGettingColor();
 
 					// TODO: lol
-					EmitParticles( FindParticleEmitter( "bomb_attention" ), ParticleEmitterSphere( bomb.origin - Vec3( 0.0f, 0.0f, 32.0f ), Vec3( 0.0f, 0.0f, 1.0f ), 180.0f, 20.0f ), 1.0f, AttentionGettingColor() );
+					EmitParticles( FindParticleEmitter( "bomb_attention" ), ParticleEmitterSphere( bomb.origin - Vec3( 0.0f, 0.0f, 32.0f ), 20.0f ), 1.0f, AttentionGettingColor() );
 				}
 				else if( bomb.state == BombState_Planting ) {
 					msg = "PLANTING";

@@ -285,6 +285,7 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 					float b = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
 					float a = ParseFloat( data, 1.0f, Parse_StopOnNewLine );
 					emitter->start_color = Vec4( r, g, b, a );
+					emitter->end_color = Vec4( r, g, b, 0.0f );
 				}
 			}
 			else if( key == "end_color" ) {
@@ -470,7 +471,7 @@ bool ParticleFeedback( ParticleSystem * ps, GPUParticleFeedback * feedback ) {
 				result = false;
 			}
 			else if( event.type == ParticleSystemEventType_Emitter ) {
-				EmitParticles( FindParticleEmitter( event.event_name ), ParticleEmitterSphere( feedback->position, feedback->normal ), 1.0f );
+				EmitParticles( FindParticleEmitter( event.event_name ), ParticleEmitterSphere( feedback->position ), 1.0f );
 			}
 			else if( event.type == ParticleSystemEventType_Decal ) {
 				AddPersistentDecal( feedback->position, feedback->normal, 64.0f, 0.0f, event.event_name, Vec4( 1.0f ), 5000 );
@@ -597,7 +598,7 @@ void DrawParticles() {
 	}
 }
 
-static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, Vec4 color, Vec4 dcolor, float size, float dsize ) {
+static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, Vec4 start_color, Vec4 end_color, float start_size, float end_size ) {
 	ZoneScopedN( "Store Particle" );
 	if( ps->num_particles + ps->new_particles == ps->max_particles )
 		return;
@@ -607,10 +608,10 @@ static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Ve
 	particle.velocity = velocity;
 	particle.orientation = UniformSampleSphere( &cls.rng );
 	particle.avelocity = UniformSampleSphere( &cls.rng );
-	particle.color = LinearTosRGB( color );
-	particle.dcolor = LinearTosRGB( dcolor );
-	particle.size = size;
-	particle.dsize = dsize;
+	particle.start_color = LinearTosRGB( start_color );
+	particle.end_color = LinearTosRGB( end_color );
+	particle.start_size = start_size;
+	particle.end_size = end_size;
 	particle.age = 0.0f;
 	particle.lifetime = lifetime;
 
@@ -625,12 +626,11 @@ static float SampleRandomDistribution( RNG * rng, RandomDistribution dist ) {
 	return SampleNormalDistribution( rng ) * dist.sigma;
 }
 
-static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, ParticleEmitterPosition pos, float t, Vec4 force_color, Mat4 dir_transform ) {
+static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, ParticleEmitterPosition pos, float t, Vec4 start_color, Vec4 end_color, Mat4 dir_transform ) {
 	ZoneScopedN( "Emit Particle" );
 	float lifetime = Max2( 0.0f, emitter->lifetime + SampleRandomDistribution( &cls.rng, emitter->lifetime_distribution ) );
 
 	float size = Max2( 0.0f, emitter->start_size + SampleRandomDistribution( &cls.rng, emitter->size_distribution ) );
-	float dsize = ( emitter->end_size - emitter->start_size ) / lifetime;
 
 	Vec3 position = pos.origin + size * ps->radius * pos.normal;
 
@@ -662,23 +662,24 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 
 	float speed = emitter->speed + SampleRandomDistribution( &cls.rng, emitter->speed_distribution );
 
-	Vec4 color = force_color;
-	color.x += SampleRandomDistribution( &cls.rng, emitter->red_distribution );
-	color.y += SampleRandomDistribution( &cls.rng, emitter->green_distribution );
-	color.z += SampleRandomDistribution( &cls.rng, emitter->blue_distribution );
-	color.w += SampleRandomDistribution( &cls.rng, emitter->alpha_distribution );
-	color = Clamp01( color );
+	start_color.x += SampleRandomDistribution( &cls.rng, emitter->red_distribution );
+	start_color.y += SampleRandomDistribution( &cls.rng, emitter->green_distribution );
+	start_color.z += SampleRandomDistribution( &cls.rng, emitter->blue_distribution );
+	start_color.w += SampleRandomDistribution( &cls.rng, emitter->alpha_distribution );
+	start_color = Clamp01( start_color );
 
-	Vec4 dcolor = ( emitter->end_color - force_color ) / lifetime;
-
-	EmitParticle( ps, lifetime, position, dir * speed, color, dcolor, size, dsize );
+	EmitParticle( ps, lifetime, position, dir * speed, start_color, end_color, size, emitter->end_size );
 }
 
-void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 color ) {
+void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 start_color, Vec4 end_color ) {
 	ZoneScoped;
 
 	float dt = cls.frametime / 1000.0f;
 	ParticleSystem * ps = FindParticleSystem( emitter->pSystem );
+	if( ps == NULL ) {
+		Com_Printf( S_COLOR_YELLOW "Warning: Particle emitter doesn't have a system\n" );
+		return;
+	}
 
 	float p = emitter->count * count + emitter->emission * count * dt;
 	u32 n = u32( p );
@@ -694,16 +695,20 @@ void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, floa
 
 	for( u32 i = 0; i < n; i++ ) {
 		float t = float( i ) / ( p + 1.0f );
-		EmitParticle( ps, emitter, pos, t, color, dir_transform );
+		EmitParticle( ps, emitter, pos, t, start_color, end_color, dir_transform );
 	}
 
 	if( random_p( &cls.rng, remaining_p ) ) {
-		EmitParticle( ps, emitter, pos, p / ( p + 1.0f ), color, dir_transform );
+		EmitParticle( ps, emitter, pos, p / ( p + 1.0f ), start_color, end_color, dir_transform );
 	}
 }
 
+void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 start_color ) {
+	EmitParticles( emitter, pos, count, start_color, start_color );
+}
+
 void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count ) {
-	EmitParticles( emitter, pos, count, emitter->start_color );
+	EmitParticles( emitter, pos, count, emitter->start_color, emitter->end_color );
 }
 
 ParticleEmitterPosition ParticleEmitterSphere( Vec3 origin, Vec3 normal, float theta, float radius ) {
@@ -712,6 +717,16 @@ ParticleEmitterPosition ParticleEmitterSphere( Vec3 origin, Vec3 normal, float t
 	pos.origin = origin;
 	pos.normal = normal;
 	pos.theta = theta;
+	pos.radius = radius;
+	return pos;
+}
+
+ParticleEmitterPosition ParticleEmitterSphere( Vec3 origin, float radius ) {
+	ParticleEmitterPosition pos = { };
+	pos.type = ParticleEmitterPosition_Sphere;
+	pos.origin = origin;
+	pos.normal = Vec3( 0.0f, 0.0f, 1.0f );
+	pos.theta = 180.0f;
 	pos.radius = radius;
 	return pos;
 }

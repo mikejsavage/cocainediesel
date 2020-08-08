@@ -67,10 +67,10 @@ struct GPUParticle {
 	Vec3 velocity;
 	Vec3 orientation;
 	Vec3 avelocity;
-	RGBA8 color;
-	RGBA8 dcolor;
-	float size;
-	float dsize;
+	RGBA8 start_color;
+	RGBA8 end_color;
+	float start_size;
+	float end_size;
 	float age;
 	float lifetime;
 };

@@ -1,5 +1,5 @@
-setCursor #WIDTH / 2, #HEIGHT - 64
-setAlignment center middle
+setCursor 16, #HEIGHT - 88
+setAlignment left middle
 setSize 200, 18
 setFontSize %VIDHEIGHT / 40
 setFontBorder on
@@ -8,7 +8,7 @@ if %SHOW_HOTKEYS
 	if %CARRYING_BOMB
 		setColor 1, 1, 1, 1
 		drawBindString "Press %s to drop the bomb" "drop"
-		moveCursor 0, -32
+		moveCursor 0, -20
 	endif
 
 	if %CAN_CHANGE_LOADOUT

@@ -4,8 +4,8 @@ if %PROGRESS
 	setFontSize %VIDHEIGHT / 40
 
 	// draw background
-	setColor 0.0, 0.0, 0.0, 0.5
-	setSize 200, 18
+	setColor 0.03, 0.03, 0.03, 1.0
+	setSize 200, 40
 	drawPicByName $whiteimage
 
 	moveCursor -100, 0
@@ -18,7 +18,7 @@ if %PROGRESS
 	if %PROGRESS_TYPE == #BombProgress_Defusing
 		setColor 0.25 - %PROGRESS / 400, 0.25 + %PROGRESS / 400, 0.25 + %PROGRESS / 150, 1
 	endif
-	setSize %PROGRESS * 2, 18
+	setSize %PROGRESS * 2, 40
 	drawPicByName $whiteimage
 
 	// draw bomb icon

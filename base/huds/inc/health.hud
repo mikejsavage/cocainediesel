@@ -1,6 +1,6 @@
 if %HEALTH >= 0
 	setAlignment left middle
-	setCursor 16, #HEIGHT - 48
+	setCursor 16, #HEIGHT - 54
 	setFontSize %VIDHEIGHT / 24
 
 	// fill coloured health bar

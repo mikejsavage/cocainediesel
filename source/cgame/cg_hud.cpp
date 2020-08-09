@@ -1659,7 +1659,7 @@ static void CG_DrawObituaries(
 
 		xoffset += icon_padding;
 
-		Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, pic, vec4_white );
+		Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, pic, AttentionGettingColor() );
 
 		xoffset += icon_size + icon_padding;
 
@@ -2078,14 +2078,14 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		char bind[ 32 ];
 
 		// UNBOUND can look real stupid so bump size down a bit in case someone is scrolling. this still doesnt fit
-		const float bind_font_size = font_size * 0.75f;
+		const float bind_font_size = font_size * 0.55f;
 
 		// first try the weapon specific bind
 		if( !CG_GetBoundKeysString( va( "use %s", def->short_name ), bind, sizeof( bind ) ) ) {
 			CG_GetBoundKeysString( va( "weapon %i", i + 1 ), bind, sizeof( bind ) );
 		}
 
-		DrawText( GetHUDFont(), bind_font_size, bind, Alignment_CenterMiddle, curx + iw*0.5f, cury + ih * 1.25f - pady_sel, layout_cursor_color, layout_cursor_font_border );
+		DrawText( GetHUDFont(), bind_font_size, va( "[ %s ]", bind) , Alignment_CenterMiddle, curx + iw*0.5f, cury + ih * 1.25f - pady_sel, layout_cursor_color, layout_cursor_font_border );
 	}
 }
 

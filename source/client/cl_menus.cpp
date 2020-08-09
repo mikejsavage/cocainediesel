@@ -227,6 +227,7 @@ static void SettingsGeneral() {
 
 	CvarCheckbox( "Show hotkeys", "cg_showHotkeys", "1", CVAR_ARCHIVE );
 	CvarCheckbox( "Show FPS", "cg_showFPS", "0", CVAR_ARCHIVE );
+	CvarCheckbox( "Show speed", "cg_showSpeed", "0", CVAR_ARCHIVE );
 }
 
 static void SettingsControls() {
@@ -521,7 +522,7 @@ static void SettingsVideo() {
 
 static void SettingsAudio() {
 	CvarSliderFloat( "Master volume", "s_volume", 0.0f, 1.0f, "1", CVAR_ARCHIVE );
-	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f, "1", CVAR_ARCHIVE );
+	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f, "0.5", CVAR_ARCHIVE );
 	CvarCheckbox( "Mute when alt-tabbed", "s_muteinbackground", "1", CVAR_ARCHIVE );
 }
 

@@ -114,7 +114,7 @@ static void LoadGeometry( Model * model, const cgltf_node * node ) {
 
 static void LoadNode( Model * model, cgltf_node * gltf_node, u8 * node_idx ) {
 	u8 idx = *node_idx;
-	*node_idx++;
+	*node_idx += 1;
 	SetNodeIdx( gltf_node, idx );
 
 	Model::Node * node = &model->nodes[ idx ];
@@ -260,9 +260,6 @@ static void LoadSkin( Model * model, const cgltf_skin * skin ) {
 bool LoadGLTFModel( Model * model, const char * path ) {
 	ZoneScoped;
 	ZoneText( path, strlen( path ) );
-
-	if( strcmp( path, "spraycan.glb" ) == 0 )
-		__debugbreak();
 
 	Span< const u8 > data = AssetBinary( path );
 

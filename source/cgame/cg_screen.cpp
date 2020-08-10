@@ -338,7 +338,272 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 
 //=============================================================================
 
-static const char * mini_obituaries[] = { "69","102","420","1337","1515","ACHOO","AHA","AHH","ARF","ARGH","BAH","BAM","BANG","BARF","BASH","BEEP","BIFF","BING","BLAB","BLAM","BLAST","BLEEP","BLESS","BLING","BLIP","BLOOP","BLUP","BLURP","BOING","BOINK","BONG","BONK","BOO","BOOM","BOOSH","BOP","BRRR","BUCK","BURP","BUZZ","BWAK","BYE","BZZZ","CHEERS","CHING","CHUNK","CLACK","CLANG","CLANK","CLAP","CLASH","CLICK","CLINK","CLOP","CLOUT","CLUCK","CLUNK","COOL","CRACK","CRISP","CRUNCH","CYA","DAB","DING","DOINK","DONG","DOOK","DRIP","DUH","EEK","EEYORE","EHHH","ESPORT","EWW","FART","FINCH","FIZZ","FLAP","FLASH","FLEX","FLICK","FLIP","FLOG","FLOP","FLUSH","GAG","GASP","GG","GNASH","GNAW","GONG","GOSH","GOT","GOTEEM","GRRR","GULP","GUSH","GYUH","HAH","HAHA","HAX","HEH","HEHE","HEY","HIP","HISS","HMPF","HO","HOHO","HOOT","HUFF","HUMPF","HUSH","ICE","ICKY","ITCH","JINGLE","KLOK","KLUNK","KNOCK","KRACH","KURAC","KURWA","L8R","LALA","LIT","LOL","MEOW","MMMMM","MOO","MROW","MUNCH","NAH","NEIGH","NOPE","NYAH","OHHH","OINK","OMG","OOMPAH","OOPS","OOZE","OUCH","OW","PEEP","PEW","PHEW","PING","PIZDEC","PLINK","PLONK","PLOOP","PLOP","PLZ","POOF","POP","POW","PRRR","PSST","PUFF","PUMP","QUACK","QUEEF","RAWR","REKT","RIBBIT","RING","RIP","rm -rf","ROFL","ROWR","RUFF","SCAT","SCHLIP","SCRATCH","SHHH","SHIT","SHOO","SHOOP","SIGH","SKRA","SKRRT","SLAM","SLASH","SLIP","SLUMP","SMACK","SMASH","SNAP","SNEEZE","SNIP","SNORT","SPIT","SPLAT","SPLISH","SPLOSH","SPOOT","SQUIRT","SQUISH","STOMP","SUP","SWASH","SWOOP","SWOOSH","TACK","TAP","THROB","THUD","THUMP","THUNK","TING","TKTK","TONG","TOOT","TRILL","TUFF","TUG","TWEET","UGH","UH-OH","UNTZ","VROOM","WAAA","WACK","WAFFLE","WANK","WHACK","WHAM","WHEW","WHIFF","WHIP","WHIRL","WHIZ","WHIZZ","WHOA","WHOO","WHOOP","WHOOPS","WIZZ","WOOF","WOOSH","WOW","WTF","YADDA","YANK","YAP","YAWN","YAWP","YAY","YEAH","YEET","YIKES","YOINK","YOOO","YUCK","YUMMY","ZAP","ZING","ZIP","ZLOPP","ZONK","ZOOM","ZZZ" };
+static const char * mini_obituaries[] = {
+	"69",
+	"102",
+	"420",
+	"1337",
+	"1515",
+	"ACHOO",
+	"AHA",
+	"AHH",
+	"ARF",
+	"ARGH",
+	"BAH",
+	"BAM",
+	"BANG",
+	"BARF",
+	"BASH",
+	"BEEP",
+	"BIFF",
+	"BING",
+	"BLAB",
+	"BLAM",
+	"BLAST",
+	"BLEEP",
+	"BLESS",
+	"BLING",
+	"BLIP",
+	"BLOOP",
+	"BLUP",
+	"BLURP",
+	"BOING",
+	"BOINK",
+	"BONG",
+	"BONK",
+	"BOO",
+	"BOOM",
+	"BOOSH",
+	"BOP",
+	"BRRR",
+	"BUCK",
+	"BURP",
+	"BUZZ",
+	"BWAK",
+	"BYE",
+	"BZZZ",
+	"CHEERS",
+	"CHING",
+	"CHUNK"
+	,"CLACK"
+	,"CLANG"
+	,"CLANK"
+	,"CLAP"
+	,"CLASH"
+	,"CLICK"
+	,"CLINK"
+	,"CLOP"
+	,"CLOUT"
+	,"CLUCK"
+	,"CLUNK"
+	,"COOL",
+	"CRACK",
+	"CRISP",
+	"CRUNCH",
+	"CYA",
+	"DAB",
+	"DING",
+	"DOINK",
+	"DONG",
+	"DOOK",
+	"DRIP",
+	"DUH",
+	"EEK",
+	"EEYORE",
+	"EHHH",
+	"ESPORT",
+	"EWW",
+	"FART",
+	"FINCH",
+	"FIZZ",
+	"FLAP",
+	"FLASH",
+	"FLEX",
+	"FLICK",
+	"FLIP",
+	"FLOG",
+	"FLOP",
+	"FLUSH",
+	"GAG",
+	"GASP",
+	"GG",
+	"GNASH",
+	"GNAW",
+	"GONG",
+	"GOSH",
+	"GOT",
+	"GOTEEM",
+	"GRRR",
+	"GULP",
+	"GUSH",
+	"GYUH",
+	"HAH",
+	"HAHA",
+	"HAX",
+	"HEH",
+	"HEHE",
+	"HEY",
+	"HIP",
+	"HISS",
+	"HMPF",
+	"HO",
+	"HOHO",
+	"HOOT",
+	"HUFF",
+	"HUMPF",
+	"HUSH",
+	"ICE",
+	"ICKY",
+	"ITCH",
+	"JINGLE",
+	"KLOK",
+	"KLUNK",
+	"KNOCK",
+	"KRACH",
+	"KURAC",
+	"KURWA",
+	"L8R",
+	"LALA",
+	"LIT",
+	"LOL",
+	"MEOW",
+	"MMMMM",
+	"MOO",
+	"MROW",
+	"MUNCH",
+	"NAH",
+	"NEIGH",
+	"NOPE",
+	"NYAH",
+	"OHHH",
+	"OINK",
+	"OMG",
+	"OOMPAH",
+	"OOPS",
+	"OOZE",
+	"OUCH",
+	"OW",
+	"PEEP",
+	"PEW",
+	"PFF",
+	"PHEW",
+	"PING",
+	"PIZDEC",
+	"PLINK",
+	"PLONK",
+	"PLOOP",
+	"PLOP",
+	"PLZ",
+	"POOF",
+	"POP",
+	"POW",
+	"PRRR",
+	"PSST",
+	"PUFF",
+	"PUMP",
+	"QUACK",
+	"QUEEF",
+	"RAWR",
+	"REKT",
+	"RIBBIT",
+	"RING",
+	"RIP",
+	"rm -rf",
+	"ROFL",
+	"ROWR",
+	"RUFF",
+	"SCAT",
+	"SCHLIP",
+	"SCRATCH",
+	"SHHH",
+	"SHIT",
+	"SHOO",
+	"SHOOP",
+	"SIGH",
+	"SKRA",
+	"SKRRT",
+	"SLAM",
+	"SLASH",
+	"SLIP",
+	"SLUMP",
+	"SMACK",
+	"SMASH",
+	"SNAP",
+	"SNEEZE",
+	"SNIP",
+	"SNORT",
+	"SPIT",
+	"SPLAT",
+	"SPLISH",
+	"SPLOSH",
+	"SPOOT",
+	"SQUIRT",
+	"SQUISH",
+	"STOMP",
+	"SUKA",
+	"SUP",
+	"SWASH",
+	"SWOOP",
+	"SWOOSH",
+	"TACK",
+	"TAP",
+	"THROB",
+	"THUD",
+	"THUMP",
+	"THUNK",
+	"TING",
+	"TKTK",
+	"TONG",
+	"TOOT",
+	"TRILL",
+	"TUFF",
+	"TUG",
+	"TWEET",
+	"UGH",
+	"UH-OH",
+	"UNTZ",
+	"VROOM",
+	"WAAA",
+	"WACK",
+	"WAFFLE",
+	"WANK",
+	"WHACK",
+	"WHAM",
+	"WHEW",
+	"WHIFF",
+	"WHIP",
+	"WHIRL",
+	"WHIZ",
+	"WHIZZ",
+	"WHOA",
+	"WHOO",
+	"WHOOP",
+	"WHOOPS",
+	"WIZZ",
+	"WOOF",
+	"WOOSH",
+	"WOW",
+	"WTF",
+	"YADDA",
+	"YANK",
+	"YAP",
+	"YAWN",
+	"YAWP",
+	"YAY",
+	"YEAH",
+	"YEET",
+	"YIKES",
+	"YOINK",
+	"YOOO",
+	"YUCK",
+	"YUMMY",
+	"ZAP",
+	"ZING",
+	"ZIP",
+	"ZLOPP",
+	"ZONK",
+	"ZOOM",
+	"ZZZ" };
 
 constexpr int MINI_OBITUARY_DAMAGE = 255;
 
@@ -367,7 +632,7 @@ void CG_AddDamageNumber( SyncEntityState * ent, u64 parm ) {
 	dn->t = cl.serverTime;
 	dn->damage = parm >> 1;
 	dn->headshot = ( parm & 1 ) != 0;
-	dn->drift = random_float11( &cls.rng );
+	dn->drift = random_float11( &cls.rng ) > 0.0f ? 1.0f : -1.0f;
 	dn->obituary = random_select( &cls.rng, mini_obituaries );
 
 	float distance_jitter = 4;
@@ -386,14 +651,15 @@ void CG_DrawDamageNumbers() {
 
 		bool obituary = dn.damage == MINI_OBITUARY_DAMAGE;
 
-		float lifetime = obituary ? 750.0f : Lerp( 750.0f, Unlerp01( 0, dn.damage, 50 ), 1000.0f );
+		float lifetime = obituary ? 1150.0f : Lerp( 750.0f, Unlerp01( 0, dn.damage, 50 ), 1000.0f );
 		float frac = ( cl.serverTime - dn.t ) / lifetime;
 		if( frac > 1 )
 			continue;
 
 		Vec3 origin = dn.origin;
+		
 		if( obituary ) {
-			origin.z += 128.0f * frac + 0.5f * -200.0f * frac * frac;
+			origin.z += 256.0f * frac - 512.0f * frac * frac;
 		}
 		else {
 			origin.z += frac * 32.0f;
@@ -403,7 +669,7 @@ void CG_DrawDamageNumbers() {
 			continue;
 
 		Vec2 coords = WorldToScreen( origin );
-		coords.x += dn.drift * frac * ( obituary ? 64.0f : 8.0f );
+		coords.x += dn.drift * frac * ( obituary ? 512.0f : 8.0f );
 		if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {
 			continue;
 		}
@@ -413,15 +679,14 @@ void CG_DrawDamageNumbers() {
 		float font_size;
 		if( obituary ) {
 			Q_strncpyz( buf, dn.obituary, sizeof( buf ) );
-			color = CG_TeamColorVec4( TEAM_ENEMY );
+			color = AttentionGettingColor();
 			font_size = Lerp( cgs.textSizeSmall, frac * frac, 0.0f );
 		}
 		else {
 			snprintf( buf, sizeof( buf ), "%d", dn.damage );
-			color = dn.headshot ? AttentionGettingColor() : vec4_white;
+			color = dn.headshot ? sRGBToLinear( rgba8_diesel_yellow ) : vec4_white;
 			font_size = Lerp( cgs.textSizeTiny, Unlerp01( 0, dn.damage, 50 ), cgs.textSizeSmall );
 		}
-
 
 		float alpha = 1 - Max2( 0.0f, frac - 0.75f ) / 0.25f;
 		color.w *= alpha;

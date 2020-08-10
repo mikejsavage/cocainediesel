@@ -29,11 +29,13 @@ enum VertexAttribute : GLuint {
 
 	VertexAttribute_ParticlePosition,
 	VertexAttribute_ParticleVelocity,
+	VertexAttribute_ParticleAccelDragRest,
 	VertexAttribute_ParticleUVWH,
 	VertexAttribute_ParticleStartColor,
 	VertexAttribute_ParticleEndColor,
 	VertexAttribute_ParticleSize,
 	VertexAttribute_ParticleAgeLifetime,
+	VertexAttribute_ParticleFlags,
 };
 
 static const u32 UNIFORM_BUFFER_SIZE = 64 * 1024;
@@ -206,6 +208,12 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 			*num_components = 4;
 			*integral = true;
 			*normalized = format == VertexFormat_U16x4_Norm;
+			return;
+
+		case VertexFormat_U32x1:
+			*type = GL_UNSIGNED_INT;
+			*num_components = 1;
+			*integral = true;
 			return;
 
 		case VertexFormat_Halfx2:
@@ -604,11 +612,13 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 
 		SetupAttribute( VertexAttribute_ParticlePosition, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, position ) );
 		SetupAttribute( VertexAttribute_ParticleVelocity, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, velocity ) );
+		SetupAttribute( VertexAttribute_ParticleAccelDragRest, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, acceleration ) );
 		SetupAttribute( VertexAttribute_ParticleUVWH, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, uvwh ) );
 		SetupAttribute( VertexAttribute_ParticleStartColor, VertexFormat_U8x4_Norm, sizeof( GPUParticle ), offsetof( GPUParticle, start_color ) );
 		SetupAttribute( VertexAttribute_ParticleEndColor, VertexFormat_U8x4_Norm, sizeof( GPUParticle ), offsetof( GPUParticle, end_color ) );
 		SetupAttribute( VertexAttribute_ParticleSize, VertexFormat_Floatx2, sizeof( GPUParticle ), offsetof( GPUParticle, start_size ) );
 		SetupAttribute( VertexAttribute_ParticleAgeLifetime, VertexFormat_Floatx2, sizeof( GPUParticle ), offsetof( GPUParticle, age ) );
+		SetupAttribute( VertexAttribute_ParticleFlags, VertexFormat_U32x1, sizeof( GPUParticle ), offsetof( GPUParticle, flags ) );
 
 		if( dc.update_data.vbo ) {
 			glEnable( GL_RASTERIZER_DISCARD );
@@ -632,11 +642,13 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		else {
 			glVertexAttribDivisor( VertexAttribute_ParticlePosition, 1 );
 			glVertexAttribDivisor( VertexAttribute_ParticleVelocity, 1 );
+			glVertexAttribDivisor( VertexAttribute_ParticleAccelDragRest, 1 );
 			glVertexAttribDivisor( VertexAttribute_ParticleUVWH, 1 );
 			glVertexAttribDivisor( VertexAttribute_ParticleStartColor, 1 );
 			glVertexAttribDivisor( VertexAttribute_ParticleEndColor, 1 );
 			glVertexAttribDivisor( VertexAttribute_ParticleSize, 1 );
 			glVertexAttribDivisor( VertexAttribute_ParticleAgeLifetime, 1 );
+			glVertexAttribDivisor( VertexAttribute_ParticleFlags, 1 );
 			GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
 			glDrawElementsInstanced( primitive, dc.num_vertices, type, 0, dc.num_instances );
 		}
@@ -1112,11 +1124,13 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 
 	glBindAttribLocation( program, VertexAttribute_ParticlePosition, "a_ParticlePosition" );
 	glBindAttribLocation( program, VertexAttribute_ParticleVelocity, "a_ParticleVelocity" );
+	glBindAttribLocation( program, VertexAttribute_ParticleAccelDragRest, "a_ParticleAccelDragRest" );
 	glBindAttribLocation( program, VertexAttribute_ParticleUVWH, "a_ParticleUVWH" );
 	glBindAttribLocation( program, VertexAttribute_ParticleStartColor, "a_ParticleStartColor" );
 	glBindAttribLocation( program, VertexAttribute_ParticleEndColor, "a_ParticleEndColor" );
 	glBindAttribLocation( program, VertexAttribute_ParticleSize, "a_ParticleSize" );
 	glBindAttribLocation( program, VertexAttribute_ParticleAgeLifetime, "a_ParticleAgeLifetime" );
+	glBindAttribLocation( program, VertexAttribute_ParticleFlags, "a_ParticleFlags" );
 
 	if( !feedback ) {
 		glBindFragDataLocation( program, 0, "f_Albedo" );
@@ -1407,16 +1421,14 @@ void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertic
 	num_vertices_this_frame += mesh.num_vertices;
 }
 
-void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, u32 collision, float radius, Vec3 acceleration, u32 num_particles, float dt ) {
+void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, float radius, u32 num_particles, float dt ) {
 	assert( in_frame );
 
 	PipelineState pipeline;
 	pipeline.pass = frame_static.particle_update_pass;
 	pipeline.shader = &shaders.particle_update;
-	if( !cl.map ) {
-		collision = 0;
-	}
-	pipeline.set_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, radius, acceleration, dt ) );
+	u32 collision = cl.map == NULL ? 0 : 1;
+	pipeline.set_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, radius, dt ) );
 	if( collision ) {
 		pipeline.set_texture_buffer( "u_NodeBuffer", cl.map->nodeBuffer );
 		pipeline.set_texture_buffer( "u_LeafBuffer", cl.map->leafBuffer );
@@ -1434,16 +1446,14 @@ void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out
 	draw_calls.add( dc );
 }
 
-void UpdateParticlesFeedback( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, VertexBuffer vb_feedback, u32 collision, float radius, Vec3 acceleration, u32 num_particles, float dt ) {
+void UpdateParticlesFeedback( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, VertexBuffer vb_feedback, float radius, u32 num_particles, float dt ) {
 	assert( in_frame );
 
 	PipelineState pipeline;
 	pipeline.pass = frame_static.particle_update_pass;
 	pipeline.shader = &shaders.particle_update_feedback;
-	if( !cl.map ) {
-		collision = 0;
-	}
-	pipeline.set_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, radius, acceleration, dt ) );
+	u32 collision = cl.map == NULL ? 0 : 1;
+	pipeline.set_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, radius, dt ) );
 	if( collision ) {
 		pipeline.set_texture_buffer( "u_NodeBuffer", cl.map->nodeBuffer );
 		pipeline.set_texture_buffer( "u_LeafBuffer", cl.map->leafBuffer );

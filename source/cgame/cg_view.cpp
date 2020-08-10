@@ -853,7 +853,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	CG_ResetBombHUD();
 
-	EmitParticles( FindParticleEmitter( "rain" ), ParticleEmitterSphere( cg.view.origin, 1500.0f ), 1.0f );
+	DoVisualEffect( "vfx/rain", cg.view.origin );
 
 	DrawWorld();
 	DrawSilhouettes();

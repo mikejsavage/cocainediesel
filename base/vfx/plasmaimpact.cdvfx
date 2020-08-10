@@ -1,0 +1,31 @@
+{
+  decal {
+    material weapons/pg/impact_decal
+    color_override
+    size 8
+    lifetime 30
+  }
+  particles {
+    material textures/vfx/trace3
+    blendfunc blend
+    rotate
+    stretch
+
+    position cone 90 0
+
+    acceleration $gravity
+    collision point
+
+    speed 125
+
+    color 1.0 1.0 1.0 1.0
+    color_override
+
+    size 32 32
+    size_distribution uniform 8
+
+    lifetime 1
+    lifetime_distribution uniform 0.1
+    count 8
+  }
+}

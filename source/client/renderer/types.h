@@ -65,6 +65,9 @@ struct Mesh {
 struct GPUParticle {
 	Vec3 position;
 	Vec3 velocity;
+	float acceleration;
+	float drag;
+	float restitution;
 	Vec4 uvwh;
 	RGBA8 start_color;
 	RGBA8 end_color;
@@ -72,6 +75,7 @@ struct GPUParticle {
 	float end_size;
 	float age;
 	float lifetime;
+	u32 flags;
 };
 
 struct GPUParticleFeedback {

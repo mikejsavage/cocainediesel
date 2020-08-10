@@ -50,7 +50,7 @@ void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, StringHash material ) {
 		num_sprays++;
 	}
 
-	EmitParticles( FindParticleEmitter( "spray" ), ParticleEmitterSphere( origin - forward * 64.0f, forward, 20.0f ), 1.0f );
+	DoVisualEffect( "vfx/spray", origin - forward * 64.0f, forward );
 }
 
 void DrawSprays() {

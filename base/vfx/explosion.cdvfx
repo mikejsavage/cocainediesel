@@ -1,87 +1,84 @@
-system spark {
-  material textures/vfx/trace2
-  blendfunc add
-  acceleration $gravity
-  max 10000
-}
+{
+  decal {
+    material weapons/explosion_scorch1
+    material weapons/explosion_scorch2
+    material weapons/explosion_scorch3
+    size 32
+    lifetime 30
+  }
+  particles {
+    material textures/vfx/trace2
+    blendfunc add
+    rotate
+    stretch
 
-system smoke2 {
-  material textures/vfx/smoke10
-  blendfunc blend
-  max 10000
-}
+    position sphere 48
 
-system slash {
-  material textures/vfx/circle6
-  blendfunc blend
-  max 10000
-}
+    acceleration $gravity
 
-system explosion {
-  material textures/vfx/fire1
-  blendfunc blend
-  max 10000
-}
+    speed 500
 
-emitter explosion1 {
-  system spark
+    color 1.0 0.15 0.0 1.0
+    end_color 0.0 0.0 0.0
 
-  speed 500
+    size 32
+    size_distribution uniform 0
 
-  color 1.0 0.15 0.0 1.0
-  end_color 0.0 0.0 0.0
+    lifetime 1.0
+    count 128
+  }
+  particles {
+    material textures/vfx/circle6
+    blendfunc blend
 
-  size 32
-  size_distribution uniform 0
-  lifetime 1.0
+    position sphere 0
 
-  count 128
-}
+    speed 200
 
-emitter explosion2 {
-  system slash
+    color 1.0 1.0 1.0 1.0
+    color_override
 
-  speed 200
+    size 12 0
+    size_distribution uniform 4
 
-  color 1.0 0.0 0.0 1.0
-  end_color 0.0 0.0 0.0
+    lifetime 0.25
+    lifetime_distribution uniform 0.05
+    count 256
+  }
+  particles {
+    material textures/vfx/fire1
+    blendfunc blend
 
-  size 12 0
-  size_distribution uniform 4
-  lifetime 0.25
-  lifetime_distribution uniform 0.05
+    position sphere 8
 
-  count 256
-}
+    speed 60
 
-emitter explosion3 {
-  system explosion
+    color 1.0 1.0 1.0 1.0
+    color_override
 
-  speed 60
+    size 200 100
+    size_distribution uniform 0
 
-  color 1.0 1.0 1.0 1.0
-  end_color 0.0 0.0 0.0
+    lifetime 0.25
+    lifetime_distribution uniform 0
+    count 32
+  }
+  particles {
+    material textures/vfx/smoke10
+    blendfunc blend
 
-  size 200 100
-  size_distribution uniform 0
-  lifetime 0.25
-  lifetime_distribution uniform 0
+    position sphere 48
 
-  count 32
-}
+    speed 15
 
-emitter explosion4 {
-  system smoke2
+    color 0.1 0.1 0.1 1.0
+    end_color 0.0 0.0 0.0
 
-  speed 15
+    size 0 64
+    size_distribution uniform 16
 
-  color 0.1 0.1 0.1 1.0
-  end_color 0.0 0.0 0.0
-
-  size 0 64
-  size_distribution uniform 16
-  lifetime 0.35
-  lifetime_distribution uniform 0.05
-
-  count 256
+    lifetime 0.35
+    lifetime_distribution uniform 0.05
+    count 256
+  }
 }

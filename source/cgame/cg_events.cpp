@@ -66,8 +66,7 @@ static centity_t *laserOwner = NULL;
 
 static void BulletSparks(Vec3 pos, Vec3 normal, Vec4 color, int num_particles)
 {
-	EmitParticles(FindParticleEmitter("bulletSparks1"), ParticleEmitterSphere(pos, normal, 90.0f), num_particles, color);
-	EmitParticles(FindParticleEmitter("bulletSparks2"), ParticleEmitterSphere(pos, normal, 45.0f), num_particles, Vec4(1.0f, 0.15f, 0.0f, 1.0f));
+	DoVisualEffect( "vfx/bulletsparks", pos, normal, num_particles, color );
 }
 
 static void BulletImpact(const trace_t *trace, Vec4 color, int num_particles)
@@ -84,7 +83,7 @@ static void WallbangImpact(const trace_t *trace, int num_particles)
 	if ((trace->contents & CONTENTS_WALLBANGABLE) == 0)
 		return;
 
-	EmitParticles(FindParticleEmitter("wallbangImpact"), ParticleEmitterSphere(trace->endpos, trace->plane.normal, 90.0f), num_particles);
+	DoVisualEffect( "vfx/wallbangimpact", trace->endpos, trace->plane.normal, num_particles );
 
 	float angle = random_uniform_float(&cls.rng, 0.0f, Radians(360.0f));
 	AddPersistentDecal(trace->endpos, trace->plane.normal, 2.0f, angle, "weapons/bullet_impact", vec4_white, 30000);

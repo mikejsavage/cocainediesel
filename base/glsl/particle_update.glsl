@@ -5,33 +5,42 @@
 layout( std140 ) uniform u_ParticleUpdate {
 	int u_Collision;
 	float u_Radius;
-	vec3 u_Acceleration;
 	float u_dt;
 };
 
 // input vbo
 in vec3 a_ParticlePosition;
 in vec3 a_ParticleVelocity;
+in vec3 a_ParticleAccelDragRest;
 in vec4 a_ParticleUVWH;
 in vec4 a_ParticleStartColor;
 in vec4 a_ParticleEndColor;
 in vec2 a_ParticleSize;
 in vec2 a_ParticleAgeLifetime;
+in uint a_ParticleFlags;
 
 // output vbo
 out vec3 v_ParticlePosition;
 out vec3 v_ParticleVelocity;
+out vec3 v_ParticleAccelDragRest;
 out vec4 v_ParticleUVWH;
 out uint v_ParticleStartColor;
 out uint v_ParticleEndColor;
 out vec2 v_ParticleSize;
 out vec2 v_ParticleAgeLifetime;
+out uint v_ParticleFlags;
 
 #if FEEDBACK
 	out uint v_Feedback;
 	out vec3 v_FeedbackPosition;
 	out vec3 v_FeedbackNormal;
 #endif
+
+// must match source
+#define PARTICLE_COLLISION_POINT 1u
+#define PARTICLE_COLLISION_SPHERE 2u
+#define PARTICLE_ROTATE 4u
+#define PARTICLE_STRETCH 8u
 
 #define FEEDBACK_NONE 0u
 #define FEEDBACK_AGE 1u
@@ -43,17 +52,17 @@ uint colorPack( vec4 color ) {
 }
 
 bool collide() {
-	if ( u_Collision == 0 ) {
+	if ( u_Collision == 0 || ( a_ParticleFlags & ( PARTICLE_COLLISION_POINT | PARTICLE_COLLISION_SPHERE ) ) == 0u ) {
 		return false;
 	}
 
 	float radius = 0.0;
-	if( u_Collision == 2 ) {
+	if( ( a_ParticleFlags & PARTICLE_COLLISION_SPHERE ) != 0u ) {
 		float fage = a_ParticleAgeLifetime.x / a_ParticleAgeLifetime.y;
 		radius = mix( a_ParticleSize.x, a_ParticleSize.y, fage );
 		radius *= u_Radius;
 	}
-	float restitution = 0.8;
+	float restitution = a_ParticleAccelDragRest.z;
 	float asdf = 8.0;
 	
 	vec4 frac = Trace( a_ParticlePosition - a_ParticleVelocity * u_dt * 0.1, a_ParticleVelocity * u_dt * asdf, radius );
@@ -97,10 +106,13 @@ void main() {
 		v_ParticleVelocity = a_ParticleVelocity;
 	}
 
-	v_ParticleVelocity += u_Acceleration * u_dt;
+	v_ParticleVelocity.z += a_ParticleAccelDragRest.x * u_dt;
+	v_ParticleVelocity -= v_ParticleVelocity * a_ParticleAccelDragRest.y * u_dt;
+	v_ParticleAccelDragRest = a_ParticleAccelDragRest;
 	v_ParticleUVWH = a_ParticleUVWH;
 	v_ParticleStartColor = colorPack( a_ParticleStartColor );
 	v_ParticleEndColor = colorPack( a_ParticleEndColor );
 	v_ParticleSize = a_ParticleSize;
 	v_ParticleAgeLifetime.y = a_ParticleAgeLifetime.y;
+	v_ParticleFlags = a_ParticleFlags;
 }

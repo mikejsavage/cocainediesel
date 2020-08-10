@@ -1,0 +1,28 @@
+{
+  particles {
+    material textures/vfx/trace2
+    blendfunc add
+    rotate
+    stretch
+
+    position sphere 0
+
+    acceleration $negative_gravity
+
+    speed 128
+
+    color 1.0 0.69 0.0 1.0
+    end_color 0.8 0.1 0.0
+
+    red_distribution uniform 0.1
+    green_distribution uniform 0.05
+
+    size 24 24
+    size_distribution uniform 2
+
+    lifetime 0.2
+    lifetime_distribution uniform 0.05
+
+    emission 100
+  }
+}

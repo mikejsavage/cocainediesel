@@ -2,18 +2,15 @@
 #include "client/renderer/renderer.h"
 
 void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
-	EmitParticles( FindParticleEmitter( "explosion1" ), ParticleEmitterSphere( origin, 48.0f ), 1.0f );
-	EmitParticles( FindParticleEmitter( "explosion2" ), ParticleEmitterSphere( origin ), 1.0f, Vec4( team_color, 1.0f ) );
-	EmitParticles( FindParticleEmitter( "explosion3" ), ParticleEmitterSphere( origin, 8.0f ), 1.0f, Vec4( team_color, 1.0f ) );
-	EmitParticles( FindParticleEmitter( "explosion4" ), ParticleEmitterSphere( origin, 48.0f ), 1.0f );
+	DoVisualEffect( "vfx/explosion", origin, normal, 1.0f, Vec4( team_color, 1.0f ) );
 }
 
 void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
-	EmitParticles( FindParticleEmitter( "plasmaImpact"), ParticleEmitterSphere( origin, normal, 90.0f ), 8.0f, Vec4( team_color, 0.5f ) );
+	DoVisualEffect( "vfx/plasmaimpact", origin, normal, 1.0f, Vec4( team_color, 1.0f ) );
 }
 
 void BubbleImpactParticles( Vec3 origin, Vec3 team_color ) {
-	EmitParticles( FindParticleEmitter( "bubbleImpact"), ParticleEmitterSphere( origin ), 64.0f, Vec4( team_color, 1.0f ) );
+	DoVisualEffect( "vfx/bubbleimpact", origin, Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, Vec4( team_color, 1.0f ) );
 }
 
 void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
@@ -21,7 +18,7 @@ void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
 	float distance_between_particles = 4.0f;
 	float len = Length( end - start );
 	float count = Min2( len / distance_between_particles + 1.0f, float( max_ions ) );
-	EmitParticles( FindParticleEmitter( "railtrail" ), ParticleEmitterLine( start, end ), count, color );
+	DoVisualEffect( "vfx/railtrail", start, end, count, color );
 }
 
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material ) {

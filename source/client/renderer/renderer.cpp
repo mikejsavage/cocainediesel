@@ -126,7 +126,7 @@ void InitRenderer() {
 	InitText();
 	InitSkybox();
 	InitModels();
-	InitParticles();
+	InitVisualEffects();
 }
 
 static void DeleteFramebuffers() {
@@ -142,7 +142,7 @@ void ShutdownRenderer() {
 	ShutdownSkybox();
 	ShutdownText();
 	ShutdownMaterials();
-	ShutdownParticles();
+	ShutdownVisualEffects();
 	ShutdownShaders();
 
 	DeleteTexture( blue_noise );
@@ -328,7 +328,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadShaders();
 	HotloadMaterials();
 	HotloadModels();
-	HotloadParticles();
+	HotloadVisualEffects();
 
 	RenderBackendBeginFrame();
 

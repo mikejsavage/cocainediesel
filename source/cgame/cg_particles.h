@@ -6,6 +6,13 @@
 constexpr u32 MAX_PARTICLE_SYSTEMS = 512;
 constexpr u32 MAX_PARTICLE_EMITTERS = 512;
 constexpr u32 MAX_PARTICLE_EMITTER_EVENTS = 8;
+constexpr u32 MAX_PARTICLE_EMITTER_MATERIALS = 8;
+
+constexpr u32 MAX_DECAL_EMITTERS = 512;
+constexpr u32 MAX_DECAL_EMITTER_MATERIALS = 8;
+
+constexpr u32 MAX_VISUAL_EFFECT_GROUPS = 512;
+constexpr u32 MAX_VISUAL_EFFECTS = 8;
 
 enum EasingFunction {
 	EasingFunction_Linear,
@@ -87,14 +94,11 @@ struct ParticleSystemEvents {
 struct ParticleSystem {
 	size_t max_particles;
 
-	const Material * material;
 	const Model * model;
 
 	const Material * gradient;
 
 	BlendFunc blend_func;
-	Vec3 acceleration;
-	ParticleCollisionType collision;
 	float radius;
 
 	ParticleSystemEvents on_collision;
@@ -120,23 +124,19 @@ struct ParticleSystem {
 	Mesh update_mesh;
 };
 
-struct ParticleEmitter {
-	StringHash pSystem;
+enum VisualEffectType : u8 {
+	VisualEffectType_Particles,
+	VisualEffectType_Decal,
+};
 
-	float speed;
-	RandomDistribution speed_distribution;
+struct VisualEffect {
+	u8 type;
+	u64 hash;
+};
 
-	Vec4 start_color, end_color;
-	RandomDistribution red_distribution, green_distribution, blue_distribution, alpha_distribution;
-
-	float start_size, end_size;
-	RandomDistribution size_distribution;
-
-	float lifetime;
-	RandomDistribution lifetime_distribution;
-
-	float count;
-	float emission;
+struct VisualEffectGroup {
+	VisualEffect effects[ MAX_VISUAL_EFFECTS ];
+	u8 num_effects;
 };
 
 enum ParticleEmitterPositionType : u8 {
@@ -158,14 +158,58 @@ struct ParticleEmitterPosition {
 	float surface_theta;
 };
 
-void InitParticles();
-void HotloadParticles();
-void ShutdownParticles();
+struct ParticleEmitter {
+	u64 particle_system;
 
-ParticleSystem * FindParticleSystem( StringHash name );
-ParticleSystem * FindParticleSystem( const char * name );
-ParticleEmitter * FindParticleEmitter( StringHash name );
-ParticleEmitter * FindParticleEmitter( const char * name );
+	u8 num_materials;
+	StringHash materials[ MAX_PARTICLE_EMITTER_MATERIALS ];
+	StringHash model;
+
+	BlendFunc blend_func = BlendFunc_Add;
+
+	ParticleEmitterPosition position;
+
+	float acceleration;
+	float drag = 0.0f;
+	float restitution = 0.8f;
+
+	float speed;
+	RandomDistribution speed_distribution;
+
+	Vec4 start_color = Vec4( 1.0f ), end_color = Vec4( 1.0f );
+	RandomDistribution red_distribution, green_distribution, blue_distribution, alpha_distribution;
+	bool color_override;
+
+	float start_size = 16.0f, end_size = 16.0f;
+	RandomDistribution size_distribution;
+
+	float lifetime = 1.0f;
+	RandomDistribution lifetime_distribution;
+
+	float count;
+	float emission;
+
+	u32 flags;
+};
+
+struct DecalEmitter {
+	u8 num_materials;
+	StringHash materials[ MAX_DECAL_EMITTER_MATERIALS ];
+
+	Vec4 color = Vec4( 1.0f );
+	RandomDistribution red_distribution, green_distribution, blue_distribution, alpha_distribution;
+	bool color_override;
+
+	float size = 32.0f;
+	RandomDistribution size_distribution;
+
+	float lifetime = 30.0f;
+	RandomDistribution lifetime_distribution;
+};
+
+void InitVisualEffects();
+void HotloadVisualEffects();
+void ShutdownVisualEffects();
 
 ParticleEmitterPosition ParticleEmitterSphere( Vec3 origin, Vec3 normal, float theta = 180.0f, float radius = 0.0f );
 ParticleEmitterPosition ParticleEmitterSphere( Vec3 origin, float radius = 0.0f );
@@ -174,6 +218,8 @@ ParticleEmitterPosition ParticleEmitterLine( Vec3 origin, Vec3 end, float radius
 
 void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 start_color );
 void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count );
+
+void DoVisualEffect( const char * name, Vec3 origin, Vec3 normal = Vec3( 0.0f, 0.0f, 1.0f ), float count = 1.0f, Vec4 color = Vec4( 0.0f ) );
 
 void DrawParticles();
 

@@ -1,0 +1,27 @@
+{
+  particles {
+    material textures/vfx/trace3
+    blendfunc blend
+    rotate
+    stretch
+
+    position cone 90 0
+
+    acceleration $gravity
+    collision point
+
+    speed 200
+
+    color 1.0 1.0 1.0 1.0
+    color_override
+    red_distribution uniform 0.5
+    blue_distribution uniform 0.5
+
+    size 1.5 0
+    size_distribution uniform 1.5
+
+    lifetime 0.5
+    lifetime_distribution uniform 0.5
+    count 64
+  }
+}

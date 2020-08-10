@@ -38,7 +38,7 @@ void CG_BubbleTrail( Vec3 start, Vec3 end, int dist ) {
 void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	PlasmaImpactParticles( pos, dir, team_color.xyz() );
 
-	AddPersistentDecal( pos, dir, 8.0f, RandomRadians(), "weapons/pg/impact_decal", team_color, 30000 );
+	// AddPersistentDecal( pos, dir, 8.0f, RandomRadians(), "weapons/pg/impact_decal", team_color, 30000 );
 
 	S_StartFixedSound( cgs.media.sfxPlasmaHit, pos, CHAN_AUTO, 1.0f );
 }
@@ -82,13 +82,13 @@ static void ScorchDecal( Vec3 pos, Vec3 normal ) {
 
 void CG_RocketExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	ExplosionParticles( pos, dir, team_color.xyz() );
-	ScorchDecal( pos, dir );
+	// ScorchDecal( pos, dir );
 	S_StartFixedSound( cgs.media.sfxRocketLauncherHit, pos, CHAN_AUTO, 1.0f );
 }
 
 void CG_GrenadeExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	ExplosionParticles( pos, dir, team_color.xyz() );
-	ScorchDecal( pos, dir );
+	// ScorchDecal( pos, dir );
 	S_StartFixedSound( cgs.media.sfxGrenadeExplosion, pos, CHAN_AUTO, 1.0f );
 }
 
@@ -154,7 +154,7 @@ void CG_ProjectileTrail( const centity_t * cent ) {
 		return;
 
 	Vec4 color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 0.5f );
-	EmitParticles( FindParticleEmitter( "projectiletrail" ), ParticleEmitterLine( cent->ent.origin, cent->trailOrigin ), 1.0f, color );
+	DoVisualEffect( "vfx/projectiletrail", cent->ent.origin, cent->trailOrigin, 1.0f, color );
 }
 
 void CG_RifleBulletTrail( const centity_t * cent ) {
@@ -164,7 +164,7 @@ void CG_RifleBulletTrail( const centity_t * cent ) {
 		return;
 
 	Vec4 color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 1.0f );
-	EmitParticles( FindParticleEmitter( "rifletrail" ), ParticleEmitterLine( cent->ent.origin, cent->trailOrigin ), 1.0f, color );
+	DoVisualEffect( "vfx/rifletrail", cent->ent.origin, cent->trailOrigin, 1.0f, color );
 }
 
 void CG_NewBloodTrail( centity_t *cent ) {
@@ -423,7 +423,7 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
 }
 
 static void GibImpact( Vec3 pos, Vec3 normal, Vec4 color, float scale ) {
-	EmitParticles( FindParticleEmitter( "blood" ), ParticleEmitterSphere( pos, normal ), 3.0f, color );
+	DoVisualEffect( "vfx/blood", pos, normal, 1.0f, color );
 
 	{
 		constexpr StringHash decals[] = {

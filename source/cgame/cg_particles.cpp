@@ -10,13 +10,33 @@
 
 #include "imgui/imgui.h"
 
+// must match glsl
+#define PARTICLE_COLLISION_POINT 1u
+#define PARTICLE_COLLISION_SPHERE 2u
+#define PARTICLE_ROTATE 4u
+#define PARTICLE_STRETCH 8u
+
+#define FEEDBACK_NONE 0u
+#define FEEDBACK_AGE 1u
+#define FEEDBACK_COLLISION 2u
+
 static ParticleSystem particleSystems[ MAX_PARTICLE_SYSTEMS ];
 static u32 num_particleSystems;
 static Hashtable< MAX_PARTICLE_SYSTEMS * 2 > particleSystems_hashtable;
 
+static VisualEffectGroup visualEffectGroups[ MAX_VISUAL_EFFECT_GROUPS ];
+static u32 num_visualEffectGroups;
+static Hashtable< MAX_VISUAL_EFFECT_GROUPS * 2 > visualEffectGroups_hashtable;
+
 static ParticleEmitter particleEmitters[ MAX_PARTICLE_EMITTERS ];
 static u32 num_particleEmitters;
 static Hashtable< MAX_PARTICLE_EMITTERS * 2 > particleEmitters_hashtable;
+
+static DecalEmitter decalEmitters[ MAX_DECAL_EMITTERS ];
+static u32 num_decalEmitters;
+static Hashtable< MAX_DECAL_EMITTERS * 2 > decalEmitters_hashtable;
+
+constexpr u32 particles_per_emitter = 10000;
 
 bool ParseParticleSystemEvents( Span< const char > * data, ParticleSystemEvents * event ) {
 	while( true ) {
@@ -103,7 +123,7 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	ps->vb = NewParticleVertexBuffer( ps->max_particles );
 	ps->vb2 = NewParticleVertexBuffer( ps->max_particles );
 
-	if( ps->material ) {
+	if( !ps->model ) {
 		{
 			constexpr Vec2 verts[] = {
 				Vec2( -0.5f, -0.5f ),
@@ -170,25 +190,12 @@ static bool ParseParticleSystem( ParticleSystem * system, Span< const char > nam
 				return false;
 			}
 
-			if( key == "material" ) {
-				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
-				system->material = FindMaterial( StringHash( Hash64( value.ptr, value.n ) ) );
-			}
-			else if( key == "model" ) {
+			if( key == "model" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
 				system->model = FindModel( StringHash( Hash64( value.ptr, value.n ) ) );
 			}
 			else if( key == "max" ) {
 				system->max_particles = ParseInt( data, 0, Parse_StopOnNewLine );
-			}
-			else if( key == "collision" ) {
-				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
-				if( value == "point" ) {
-					system->collision = ParticleCollisionType_Point;
-				}
-				else if( value == "sphere" ) {
-					system->collision = ParticleCollisionType_Sphere;
-				}
 			}
 			else if( key == "radius" ) {
 				system->radius = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
@@ -200,17 +207,6 @@ static bool ParseParticleSystem( ParticleSystem * system, Span< const char > nam
 				}
 				else if( value == "add" ) {
 					system->blend_func = BlendFunc_Add;
-				}
-			}
-			else if( key == "acceleration" ) {
-				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
-				if( value == "$gravity" ) {
-					system->acceleration = Vec3( 0.0f, 0.0f, -GRAVITY );
-				} else {
-					float x = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
-					float y = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
-					float z = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
-					system->acceleration = Vec3( x, y, z );
 				}
 			}
 			else if( key == "on_collision" ) {
@@ -227,7 +223,7 @@ static bool ParseParticleSystem( ParticleSystem * system, Span< const char > nam
 	return true;
 }
 
-static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > name, Span< const char > * data ) {
+static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > * data ) {
 	while( true ) {
 		Span< const char > opening_brace = ParseToken( data, Parse_DontStopOnNewLine );
 		if( opening_brace == "" )
@@ -250,9 +246,84 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 				return false;
 			}
 
-			if( key == "system" ) {
+			if( key == "material" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
-				emitter->pSystem = StringHash( Hash64( value.ptr, value.n ) );
+				emitter->materials[ emitter->num_materials ] = StringHash( Hash64( value.ptr, value.n ) );
+				emitter->num_materials++;
+			}
+			else if( key == "model" ) {
+				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
+				emitter->model = StringHash( Hash64( value.ptr, value.n ) );
+			}
+			else if( key == "blendfunc" ) {
+				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
+				if( value == "blend" ) {
+					emitter->blend_func = BlendFunc_Blend;
+				}
+				else if( value == "add" ) {
+					emitter->blend_func = BlendFunc_Add;
+				}
+			}
+			else if( key == "position" ) {
+				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
+				if( value == "sphere" ) {
+					emitter->position.type = ParticleEmitterPosition_Sphere;
+					emitter->position.radius = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+				}
+				else if( value == "cone" ) {
+					emitter->position.type = ParticleEmitterPosition_Sphere;
+					emitter->position.theta = ParseFloat( data, 90.0f, Parse_StopOnNewLine );
+					emitter->position.radius = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+				}
+				else if( value == "line" ) {
+					emitter->position.type = ParticleEmitterPosition_Line;
+					emitter->position.radius = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+				}
+			}
+			else if( key == "collision" ) {
+				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
+				if( value == "point" ) {
+					emitter->flags |= PARTICLE_COLLISION_POINT;
+				}
+				else if( value == "sphere" ) {
+					emitter->flags |= PARTICLE_COLLISION_SPHERE;
+				}
+			}
+			else if( key == "stretch" ) {
+				emitter->flags |= PARTICLE_STRETCH;
+			}
+			else if( key == "rotate" ) {
+				emitter->flags |= PARTICLE_ROTATE;
+			}
+			else if( key == "acceleration" ) {
+				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
+				if( value == "$gravity" ) {
+					emitter->acceleration = -GRAVITY;
+				}
+				else if( value == "$negative_gravity" ) {
+					emitter->acceleration = GRAVITY;
+				}
+				else {
+					emitter->acceleration = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+				}
+			}
+			else if( key == "acceleration" ) {
+				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
+				if( value == "$gravity" ) {
+					emitter->acceleration = -GRAVITY;
+				}
+				else if( value == "$negative_gravity" ) {
+					emitter->acceleration = GRAVITY;
+				}
+				else {
+					emitter->acceleration = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+				}
+			}
+			else if( key == "drag" ) {
+				emitter->drag = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+			}
+			else if( key == "restitution" ) {
+				emitter->restitution = ParseFloat( data, 0.8f, Parse_StopOnNewLine );
 			}
 			else if( key == "speed" ) {
 				emitter->speed = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
@@ -275,17 +346,12 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 			}
 			else if( key == "color" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
-				if( value[ 0 ] == '$' ) {
-					// TODO variables
-				}
-				else {
-					float r = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
-					float g = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
-					float b = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
-					float a = ParseFloat( data, 1.0f, Parse_StopOnNewLine );
-					emitter->start_color = Vec4( r, g, b, a );
-					emitter->end_color = Vec4( r, g, b, 0.0f );
-				}
+				float r = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+				float g = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+				float b = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+				float a = ParseFloat( data, 1.0f, Parse_StopOnNewLine );
+				emitter->start_color = Vec4( r, g, b, a );
+				emitter->end_color = Vec4( r, g, b, 0.0f );
 			}
 			else if( key == "end_color" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
@@ -311,6 +377,9 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 			else if( key == "alpha_distribution" ) {
 				emitter->alpha_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
 			}
+			else if( key == "color_override" ) {
+				emitter->color_override = true;
+			}
 			else if( key == "count" ) {
 				emitter->count = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
 			}
@@ -323,84 +392,262 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 	return true;
 }
 
-static void LoadParticleFile( const char * path ) {
-	Span< const char > data = AssetString( path );
+static bool ParseDecalEmitter( DecalEmitter * emitter, Span< const char > * data ) {
+	while( true ) {
+		Span< const char > opening_brace = ParseToken( data, Parse_DontStopOnNewLine );
+		if( opening_brace == "" )
+			break;
 
-	while( data.ptr < data.end() ) {
-		Span< const char > type = ParseToken( &data, Parse_DontStopOnNewLine );
-		Span< const char > name = ParseToken( &data, Parse_StopOnNewLine );
-		u64 hash = Hash64( name );
+		if( opening_brace != "{" ) {
+			Com_Printf( S_COLOR_YELLOW "Expected {" );
+			return false;
+		}
 
-		if( type == "system" ) {
-			ParticleSystem pSystem = { };
-			if( !ParseParticleSystem( &pSystem, name, &data ) ) {
-				Com_Printf( S_COLOR_YELLOW "Couldn't load %s\n", path );
-				return;
+		while( true ) {
+			Span< const char > key = ParseToken( data, Parse_DontStopOnNewLine );
+
+			if( key == "}" ) {
+				return true;
 			}
+
+			if( key == "" ) {
+				Com_Printf( S_COLOR_YELLOW "Missing key" );
+				return false;
+			}
+
+			if( key == "material" ) {
+				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
+				emitter->materials[ emitter->num_materials ] = StringHash( Hash64( value.ptr, value.n ) );
+				emitter->num_materials++;
+			}
+			else if( key == "color" ) {
+				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
+				float r = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+				float g = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+				float b = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+				float a = ParseFloat( data, 1.0f, Parse_StopOnNewLine );
+				emitter->color = Vec4( r, g, b, a );
+			}
+			else if( key == "red_distribution" ) {
+				emitter->red_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
+			}
+			else if( key == "green_distribution" ) {
+				emitter->green_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
+			}
+			else if( key == "blue_distribution" ) {
+				emitter->blue_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
+			}
+			else if( key == "alpha_distribution" ) {
+				emitter->alpha_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
+			}
+			else if( key == "color_override" ) {
+				emitter->color_override = true;
+			}
+			else if( key == "size" ) {
+				emitter->size = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+			}
+			else if( key == "size_distribution" ) {
+				emitter->size_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
+			}
+			else if( key == "lifetime" ) {
+				emitter->lifetime = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+			}
+			else if( key == "lifetime_distribution" ) {
+				emitter->lifetime_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
+			}
+		}
+	}
+
+	return true;
+}
+
+static bool ParseVisualEffectGroup( VisualEffectGroup * group, Span< const char > * data, u64 base_hash ) {
+	while( true ) {
+		Span< const char > opening_brace = ParseToken( data, Parse_DontStopOnNewLine );
+		if( opening_brace == "" )
+			break;
+
+		if( opening_brace != "{" ) {
+			Com_Printf( S_COLOR_YELLOW "Expected {\n" );
+			return false;
+		}
+
+		while( true ) {
+			Span< const char > key = ParseToken( data, Parse_DontStopOnNewLine );
+
+			if( key == "}" ) {
+				return true;
+			}
+
+			if( key == "" ) {
+				Com_Printf( S_COLOR_YELLOW "Missing type\n" );
+				return false;
+			}
+
+			VisualEffect e = { };
+			if( key == "particles" ) {
+				e.type = VisualEffectType_Particles;
+				ParticleEmitter emitter = { };
+				if( ParseParticleEmitter( &emitter, data ) ) {
+					e.hash = Hash64( ( void * )&group->num_effects, 1, base_hash );
+
+					u64 idx = num_particleEmitters;
+					if( !particleEmitters_hashtable.get( e.hash, &idx ) ) {
+						particleEmitters_hashtable.add( e.hash, idx );
+						num_particleEmitters++;
+					}
+					particleEmitters[ idx ] = emitter;
+
+					group->effects[ group->num_effects ] = e;
+					group->num_effects++;
+				}
+			}
+			else if( key == "decal" ) {
+				e.type = VisualEffectType_Decal;
+				DecalEmitter emitter = { };
+				if( ParseDecalEmitter( &emitter, data ) ) {
+					e.hash = Hash64( ( void * )&group->num_effects, 1, base_hash );
+
+					u64 idx = num_decalEmitters;
+					if( !decalEmitters_hashtable.get( e.hash, &idx ) ) {
+						decalEmitters_hashtable.add( e.hash, idx );
+						num_decalEmitters++;
+					}
+					decalEmitters[ idx ] = emitter;
+
+					group->effects[ group->num_effects ] = e;
+					group->num_effects++;
+				}
+			}
+
+		}
+	}
+
+	return true;
+}
+
+static void LoadVisualEffect( const char * path ) {
+	ZoneScoped;
+	ZoneText( path, strlen( path ) );
+
+	Span< const char > data = AssetString( path );
+	u64 hash = Hash64( path, strlen( path ) - strlen( ".cdvfx" ) );
+
+	VisualEffectGroup vfx = { };
+
+	if( !ParseVisualEffectGroup( &vfx, &data, hash ) ) {
+		Com_Printf( S_COLOR_YELLOW "Couldn't load %s\n", path );
+		return;
+	}
+
+	u64 idx = num_visualEffectGroups;
+	if( !visualEffectGroups_hashtable.get( hash, &idx ) ) {
+		visualEffectGroups_hashtable.add( hash, idx );
+		num_visualEffectGroups++;
+	}
+	visualEffectGroups[ idx ] = vfx;
+}
+
+void CreateParticleSystems() {
+	ParticleSystem * addSystem = &particleSystems[ 0 ];
+	u64 addSystem_hash = Hash64( "addSystem", strlen( "addSystem" ) );
+	DeleteParticleSystem( sys_allocator, addSystem );
+	addSystem->blend_func = BlendFunc_Add;
+	particleSystems_hashtable.add( addSystem_hash, 0 );
+	num_particleSystems ++;
+
+	ParticleSystem * blendSystem = &particleSystems[ 1 ];
+	u64 blendSystem_hash = Hash64( "blendSystem", strlen( "blendSystem" ) );
+	DeleteParticleSystem( sys_allocator, blendSystem );
+	blendSystem->blend_func = BlendFunc_Blend;
+	particleSystems_hashtable.add( blendSystem_hash, 1 );
+	num_particleSystems ++;
+
+	// TODO(msc): models / feedback events
+	for( size_t i = 0; i < num_particleEmitters; i++ ) {
+		ParticleEmitter * emitter = &particleEmitters[ i ];
+		if( emitter->num_materials ) {
+			if( emitter->blend_func == BlendFunc_Add ) {
+				emitter->particle_system = addSystem_hash;
+				addSystem->max_particles += particles_per_emitter;
+			}
+			else if( emitter->blend_func == BlendFunc_Blend ) {
+				emitter->particle_system = blendSystem_hash;
+				blendSystem->max_particles += particles_per_emitter;
+			}
+		}
+		else {
+			// models
+			ParticleSystem ps = { };
+			ps.model = FindModel( emitter->model );
+			ps.max_particles += particles_per_emitter;
+
 			u64 idx = num_particleSystems;
-			if( !particleSystems_hashtable.get( hash, &idx ) ) {
-				particleSystems_hashtable.add( hash, idx );
+			if( !particleSystems_hashtable.get( emitter->model.hash, &idx ) ) {
+				particleSystems_hashtable.add( emitter->model.hash, idx );
 				num_particleSystems++;
 			}
-			InitParticleSystem( sys_allocator, &pSystem );
-			particleSystems[ idx ] = pSystem;
+			particleSystems[ idx ] = ps;
+
+			emitter->particle_system = emitter->model.hash;
 		}
-		else if( type == "emitter" ) {
-			ParticleEmitter particleEmitter = { };
-			if( !ParseParticleEmitter( &particleEmitter, name, &data ) ) {
-				Com_Printf( S_COLOR_YELLOW "Couldn't load %s\n", path );
-				return;
-			}
-			u64 idx = num_particleEmitters;
-			if( !particleEmitters_hashtable.get( hash, &idx ) ) {
-				particleEmitters_hashtable.add( hash, idx );
-				num_particleEmitters++;
-			}
-			particleEmitters[ idx ] = particleEmitter;
-		}
+	}
+
+	for( size_t i = 0; i < num_particleSystems; i++ ) {
+		ParticleSystem * ps = &particleSystems[ i ];
+		InitParticleSystem( sys_allocator, ps );
 	}
 }
 
-void InitParticles() {
+void ShutdownParticleSystems() {
+	for( size_t i = 0; i < num_particleSystems; i++ ) {
+		ParticleSystem * ps = &particleSystems[ i ];
+		DeleteParticleSystem( sys_allocator, ps );
+		*ps = { };
+	}
+	particleSystems_hashtable.clear();
+	num_particleSystems = 0;
+}
+
+void InitVisualEffects() {
 	ZoneScoped;
+
+	ShutdownParticleSystems();
 
 	for( const char * path : AssetPaths() ) {
 		if( FileExtension( path ) == ".cdvfx" ) {
-			LoadParticleFile( path );
+			LoadVisualEffect( path );
 		}
 	}
+
+	CreateParticleSystems();
 }
 
-void HotloadParticles() {
+void HotloadVisualEffects() {
 	ZoneScoped;
 
+	bool restart_systems = false;
 	for( const char * path : ModifiedAssetPaths() ) {
 		if( FileExtension( path ) == ".cdvfx" ) {
-			LoadParticleFile( path );
+			LoadVisualEffect( path );
+			restart_systems = true;
 		}
+	}
+	if( restart_systems ) {
+		ShutdownParticleSystems();
+		CreateParticleSystems();
 	}
 }
 
-ParticleSystem * FindParticleSystem( StringHash name ) {
+VisualEffectGroup * FindVisualEffectGroup( StringHash name ) {
 	u64 idx;
-	if( !particleSystems_hashtable.get( name.hash, &idx ) )
+	if( !visualEffectGroups_hashtable.get( name.hash, &idx ) )
 		return NULL;
-	return &particleSystems[ idx ];
+	return &visualEffectGroups[ idx ];
 }
 
-ParticleSystem * FindParticleSystem( const char * name ) {
-	return FindParticleSystem( StringHash( name ) );
-}
-
-ParticleEmitter * FindParticleEmitter( StringHash name ) {
-	u64 idx;
-	if( !particleEmitters_hashtable.get( name.hash, &idx ) )
-		return NULL;
-	return &particleEmitters[ idx ];
-}
-
-ParticleEmitter * FindParticleEmitter( const char * name ) {
-	return FindParticleEmitter( StringHash( name ) );
+VisualEffectGroup * FindVisualEffectGroup( const char * name ) {
+	return FindVisualEffectGroup( StringHash( name ) );
 }
 
 void DeleteParticleSystem( Allocator * a, ParticleSystem * ps ) {
@@ -422,10 +669,14 @@ void DeleteParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	ps->initialized = false;
 }
 
-void ShutdownParticles() {
-	for( size_t i = 0; i < num_particleSystems; i++ ) {
-		DeleteParticleSystem( sys_allocator, &particleSystems[ i ] );
-	}
+void ShutdownVisualEffects() {
+	visualEffectGroups_hashtable.clear();
+	num_visualEffectGroups = 0;
+	particleEmitters_hashtable.clear();
+	num_particleEmitters = 0;
+	decalEmitters_hashtable.clear();
+	num_decalEmitters = 0;
+	ShutdownParticleSystems();
 }
 
 static float EvaluateEasingDerivative( EasingFunction func, float t ) {
@@ -439,10 +690,6 @@ static float EvaluateEasingDerivative( EasingFunction func, float t ) {
 	return 0.0f;
 }
 
-#define FEEDBACK_NONE 0
-#define FEEDBACK_AGE 1
-#define FEEDBACK_COLLISION 2
-
 bool ParticleFeedback( ParticleSystem * ps, GPUParticleFeedback * feedback ) {
 	StringHash despawn = StringHash( "despawn" );
 	bool result = true;
@@ -454,7 +701,7 @@ bool ParticleFeedback( ParticleSystem * ps, GPUParticleFeedback * feedback ) {
 				result = false;
 			}
 			else if( event.type == ParticleSystemEventType_Emitter ) {
-				EmitParticles( FindParticleEmitter( event.event_name ), ParticleEmitterSphere( feedback->position, feedback->normal, 90.0f ), 1.0f );
+				// EmitParticles( FindParticleEmitter( event.event_name ), ParticleEmitterSphere( feedback->position, feedback->normal, 90.0f ), 1.0f );
 			}
 			else if( event.type == ParticleSystemEventType_Decal ) {
 				AddPersistentDecal( feedback->position, feedback->normal, 64.0f, 0.0f, event.event_name, Vec4( 1.0f ), 5000 );
@@ -470,7 +717,7 @@ bool ParticleFeedback( ParticleSystem * ps, GPUParticleFeedback * feedback ) {
 				result = false;
 			}
 			else if( event.type == ParticleSystemEventType_Emitter ) {
-				EmitParticles( FindParticleEmitter( event.event_name ), ParticleEmitterSphere( feedback->position ), 1.0f );
+				// EmitParticles( FindParticleEmitter( event.event_name ), ParticleEmitterSphere( feedback->position ), 1.0f );
 			}
 			else if( event.type == ParticleSystemEventType_Decal ) {
 				AddPersistentDecal( feedback->position, feedback->normal, 64.0f, 0.0f, event.event_name, Vec4( 1.0f ), 5000 );
@@ -549,17 +796,17 @@ void DrawParticleSystem( ParticleSystem * ps ) {
 	float dt = cls.frametime / 1000.0f;
 
 	if( ps->feedback ) {
-		UpdateParticlesFeedback( ps->update_mesh, ps->vb, ps->vb2, ps->vb_feedback, ps->collision, ps->radius, ps->acceleration, ps->num_particles, dt );
+		UpdateParticlesFeedback( ps->update_mesh, ps->vb, ps->vb2, ps->vb_feedback, ps->radius, ps->num_particles, dt );
 	}
 	else {
-		UpdateParticles( ps->update_mesh, ps->vb, ps->vb2, ps->collision, ps->radius, ps->acceleration, ps->num_particles, dt );
+		UpdateParticles( ps->update_mesh, ps->vb, ps->vb2, ps->radius, ps->num_particles, dt );
 	}
-	
-	if( ps->material ) {
-		DrawInstancedParticles( ps->mesh, ps->vb2, ps->gradient, ps->blend_func, ps->num_particles );
-	}
-	else if( ps->model ) {
+
+	if( ps->model ) {
 		DrawInstancedParticles( ps->vb2, ps->model, ps->gradient, ps->num_particles );
+	}
+	else {
+		DrawInstancedParticles( ps->mesh, ps->vb2, ps->gradient, ps->blend_func, ps->num_particles );
 	}
 
 	Swap2( &ps->vb, &ps->vb2 );
@@ -586,6 +833,11 @@ void DrawParticles() {
 		ImGui::SetNextWindowPos( ImVec2( io.DisplaySize.x - size.x, 100.0f ), ImGuiCond_Always );
 		ImGui::Begin( "particle statistics", WindowZOrder_Chat, flags );
 
+		
+		ImGui::Text( "%i visual effects", num_visualEffectGroups );
+		ImGui::Text( "%i particle emitters", num_particleEmitters );
+		ImGui::Text( "%i decal emitters", num_decalEmitters );
+
 		for( size_t i = 0; i < num_particleSystems; i++ ) {
 			ParticleSystem * ps = &particleSystems[ i ];
 			if( ps->initialized ) {
@@ -597,7 +849,7 @@ void DrawParticles() {
 	}
 }
 
-static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, Vec4 uvwh, Vec4 start_color, Vec4 end_color, float start_size, float end_size ) {
+static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float acceleration, float drag, float restitution, Vec4 uvwh, Vec4 start_color, Vec4 end_color, float start_size, float end_size, u32 flags ) {
 	ZoneScopedN( "Store Particle" );
 	if( ps->num_particles + ps->new_particles == ps->max_particles )
 		return;
@@ -605,6 +857,9 @@ static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Ve
 	GPUParticle & particle = ps->particles[ ps->new_particles ];
 	particle.position = position;
 	particle.velocity = velocity;
+	particle.acceleration = acceleration;
+	particle.drag = drag;
+	particle.restitution = restitution;
 	particle.uvwh = uvwh;
 	particle.start_color = LinearTosRGB( start_color );
 	particle.end_color = LinearTosRGB( end_color );
@@ -612,6 +867,7 @@ static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Ve
 	particle.end_size = end_size;
 	particle.age = 0.0f;
 	particle.lifetime = lifetime;
+	particle.flags = flags;
 
 	ps->new_particles++;
 }
@@ -667,25 +923,30 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 	start_color = Clamp01( start_color );
 
 	Vec4 uvwh = Vec4( 0.0f );
-	if( ps->material ) {
-		if( TryFindDecal( StringHash( ps->material->name ), &uvwh ) ) {
-			EmitParticle( ps, lifetime, position, dir * speed, uvwh, start_color, end_color, size, emitter->end_size );
-		}
+	if( ps->model ) {
+		EmitParticle( ps, lifetime, position, dir * speed, emitter->acceleration, emitter->drag, emitter->restitution, uvwh, start_color, end_color, size, emitter->end_size, emitter->flags );
 	}
-	else {
-		EmitParticle( ps, lifetime, position, dir * speed, uvwh, start_color, end_color, size, emitter->end_size );
+	else if( emitter->num_materials ) {
+		if( TryFindDecal( emitter->materials[ random_uniform( &cls.rng, 0, emitter->num_materials - 1 ) ], &uvwh ) ) {
+			EmitParticle( ps, lifetime, position, dir * speed, emitter->acceleration, emitter->drag, emitter->restitution, uvwh, start_color, end_color, size, emitter->end_size, emitter->flags );
+		}
 	}
 }
 
-void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 start_color, Vec4 end_color ) {
+void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 color ) {
 	ZoneScoped;
 
+	if( !emitter ) {
+		return;
+	}
+
 	float dt = cls.frametime / 1000.0f;
-	ParticleSystem * ps = FindParticleSystem( emitter->pSystem );
-	if( ps == NULL ) {
+	u64 idx = num_particleSystems;
+	if( !particleSystems_hashtable.get( emitter->particle_system, &idx ) ) {
 		Com_Printf( S_COLOR_YELLOW "Warning: Particle emitter doesn't have a system\n" );
 		return;
 	}
+	ParticleSystem * ps = &particleSystems[ idx ];
 
 	float p = emitter->count * count + emitter->emission * count * dt;
 	u32 n = u32( p );
@@ -699,6 +960,13 @@ void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, floa
 		dir_transform = TransformKToDir( Normalize( pos.end - pos.origin ) );
 	}
 
+	Vec4 start_color = emitter->start_color;
+	Vec4 end_color = emitter->end_color;
+	if( emitter->color_override ) {
+		start_color *= color;
+		end_color *= color;
+	}
+
 	for( u32 i = 0; i < n; i++ ) {
 		float t = float( i ) / ( p + 1.0f );
 		EmitParticle( ps, emitter, pos, t, start_color, end_color, dir_transform );
@@ -709,12 +977,9 @@ void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, floa
 	}
 }
 
-void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 start_color ) {
-	EmitParticles( emitter, pos, count, start_color, start_color );
-}
-
 void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count ) {
-	EmitParticles( emitter, pos, count, emitter->start_color, emitter->end_color );
+	if( emitter )
+		EmitParticles( emitter, pos, count, Vec4( 1.0f ) );
 }
 
 ParticleEmitterPosition ParticleEmitterSphere( Vec3 origin, Vec3 normal, float theta, float radius ) {
@@ -753,6 +1018,55 @@ ParticleEmitterPosition ParticleEmitterLine( Vec3 origin, Vec3 end, float radius
 	pos.end = end;
 	pos.radius = radius;
 	return pos;
+}
+
+void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 color ) {
+	float lifetime = Max2( 0.0f, emitter->lifetime + SampleRandomDistribution( &cls.rng, emitter->lifetime_distribution ) );
+	float size = Max2( 0.0f, emitter->size + SampleRandomDistribution( &cls.rng, emitter->size_distribution ) );
+	float angle = random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
+	StringHash material = emitter->materials[ random_uniform( &cls.rng, 0, emitter->num_materials - 1 ) ];
+
+	Vec4 actual_color = emitter->color;
+	if( emitter->color_override ) {
+		actual_color *= color;
+	}
+	actual_color.x += SampleRandomDistribution( &cls.rng, emitter->red_distribution );
+	actual_color.y += SampleRandomDistribution( &cls.rng, emitter->green_distribution );
+	actual_color.z += SampleRandomDistribution( &cls.rng, emitter->blue_distribution );
+	actual_color.w += SampleRandomDistribution( &cls.rng, emitter->alpha_distribution );
+	actual_color = Clamp01( actual_color );
+	AddPersistentDecal( origin, normal, size, angle, material, actual_color, lifetime * 1000.0f );
+}
+
+void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec4 color ) {
+	VisualEffectGroup * vfx = FindVisualEffectGroup( name );
+	if( !vfx ) {
+		return;
+	}
+	for( size_t i = 0; i < vfx->num_effects; i++ ) {
+		VisualEffect e = vfx->effects[ i ];
+		if( e.type == VisualEffectType_Particles ) {
+			u64 idx = num_particleEmitters;
+			if( particleEmitters_hashtable.get( e.hash, &idx ) ) {
+				ParticleEmitter * emitter = &particleEmitters[ idx ];
+				ParticleEmitterPosition pos = emitter->position;
+				pos.origin = origin;
+				pos.normal = normal;
+				EmitParticles( emitter, pos, count, color );
+			}
+		}
+		else if( e.type == VisualEffectType_Decal ) {
+			u64 idx = num_decalEmitters;
+			if( decalEmitters_hashtable.get( e.hash, &idx ) ) {
+				DecalEmitter * emitter = &decalEmitters[ idx ];
+				EmitDecal( emitter, origin, normal, color );
+			}
+		}
+	}
+}
+
+void DoVisualEffect( const char * name, Vec3 origin, Vec3 normal, float count, Vec4 color ) {
+	DoVisualEffect( StringHash( name ), origin, normal, count, color );
 }
 
 // enum ParticleEmitterVersion : u32 {

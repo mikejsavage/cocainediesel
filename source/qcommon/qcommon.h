@@ -241,14 +241,13 @@ servers can also send across commands and entire text files can be execed.
 The + command line options are also added to the command buffer.
 */
 
-void        Cbuf_Init( void );
-void        Cbuf_Shutdown( void );
-void        Cbuf_AddText( const char *text );
-void        Cbuf_InsertText( const char *text );
-void        Cbuf_ExecuteText( int exec_when, const char *text );
-void        Cbuf_AddEarlyCommands( bool clear );
-bool    Cbuf_AddLateCommands( void );
-void        Cbuf_Execute( void );
+void Cbuf_Init( void );
+void Cbuf_Shutdown( void );
+void Cbuf_AddText( const char *text );
+void Cbuf_ExecuteText( int exec_when, const char *text );
+void Cbuf_AddEarlyCommands( bool clear );
+bool Cbuf_AddLateCommands( void );
+void Cbuf_Execute( void );
 
 
 //===========================================================================

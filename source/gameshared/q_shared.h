@@ -37,8 +37,7 @@ short ShortSwap( short l );
 
 // command line execution flags
 #define EXEC_NOW                    0           // don't return until completed
-#define EXEC_INSERT                 1           // insert at current position, but don't run yet
-#define EXEC_APPEND                 2           // add to end of the command buffer
+#define EXEC_APPEND                 1           // add to end of the command buffer
 
 //=============================================
 // fonts

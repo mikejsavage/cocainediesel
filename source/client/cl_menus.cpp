@@ -263,15 +263,12 @@ static void SettingsControls() {
 		}
 
 		if( ImGui::BeginTabItem( "Weapons" ) ) {
-			KeyBindButton( "Next weapon", "weapnext" );
-			KeyBindButton( "Previous weapon", "weapprev" );
-
-			ImGui::Separator();
-
 			KeyBindButton( "Melee", "weapon 1" );
 			KeyBindButton( "Primary", "weapon 2" );
 			KeyBindButton( "Secondary", "weapon 3" );
 			KeyBindButton( "Backup", "weapon 4" );
+			KeyBindButton( "Next weapon", "weapnext" );
+			KeyBindButton( "Previous weapon", "weapprev" );
 
 			ImGui::BeginChild( "weapon", ImVec2( 400, -1 ) );
 			if( ImGui::CollapsingHeader( "Advanced" ) ) {
@@ -295,14 +292,9 @@ static void SettingsControls() {
 		}
 
 		if( ImGui::BeginTabItem( "Voice lines" ) ) {
-
-			ImGui::Text( "Voice" );
-
-			ImGui::Separator();
-
-			KeyBindButton( "Acne", "vsay acne" );
-			KeyBindButton( "Valley", "vsay valley" );
-			KeyBindButton( "Mike", "vsay mike" );
+			KeyBindButton( "Acne pack", "vsay acne" );
+			KeyBindButton( "Valley pack", "vsay valley" );
+			KeyBindButton( "Mike pack", "vsay mike" );
 
 			ImGui::BeginChild( "voice", ImVec2( 400, -1 ) );
 			if( ImGui::CollapsingHeader( "Advanced" ) ) {
@@ -327,8 +319,10 @@ static void SettingsControls() {
 		}
 
 		if( ImGui::BeginTabItem( "Misc" ) ) {
-			KeyBindButton( "Join/ Switch team", "join" );
-			KeyBindButton( "Ready / Unread", "toggleready" );
+			KeyBindButton( "Vote yes", "vote yes" );
+			KeyBindButton( "Vote no", "vote no" );
+			KeyBindButton( "Join team", "join" );
+			KeyBindButton( "Ready", "toggleready" );
 			KeyBindButton( "Spectate", "chase" );
 			KeyBindButton( "Screenshot", "screenshot" );
 

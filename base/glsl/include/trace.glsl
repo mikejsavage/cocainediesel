@@ -144,7 +144,7 @@ vec4 TracePoint( vec3 p1, vec3 dir )
 		}
 	} while ( stackIdx >= 0 && stackIdx <= STACKSIZE );
 
-	return vec4( 0.0 );
+	return vec4( 1.0 );
 }
 
 struct State {

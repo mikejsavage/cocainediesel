@@ -74,21 +74,9 @@ enum ParticleCollisionType : u8 {
 	ParticleCollisionType_Sphere,
 };
 
-enum ParticleSystemEventType : u8 {
-	ParticleSystemEventType_None,
-	ParticleSystemEventType_Despawn,
-	ParticleSystemEventType_Emitter,
-	ParticleSystemEventType_Decal,
-};
-
-struct ParticleSystemEvent {
-	u8 type;
-	StringHash event_name;
-};
-
-struct ParticleSystemEvents {
+struct ParticleEvents {
 	u8 num_events;
-	ParticleSystemEvent events[ MAX_PARTICLE_EMITTER_EVENTS ];
+	StringHash events[ MAX_PARTICLE_EMITTER_EVENTS ];
 };
 
 struct ParticleSystem {
@@ -101,8 +89,8 @@ struct ParticleSystem {
 	BlendFunc blend_func;
 	float radius;
 
-	ParticleSystemEvents on_collision;
-	ParticleSystemEvents on_age;
+	ParticleEvents on_collision;
+	ParticleEvents on_age;
 
 	// dynamic stuff
 	bool initialized;
@@ -190,6 +178,10 @@ struct ParticleEmitter {
 	float emission;
 
 	u32 flags;
+
+	bool feedback;
+	ParticleEvents on_collision;
+	ParticleEvents on_age;
 };
 
 struct DecalEmitter {
@@ -219,7 +211,8 @@ ParticleEmitterPosition ParticleEmitterLine( Vec3 origin, Vec3 end, float radius
 void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 start_color );
 void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count );
 
-void DoVisualEffect( const char * name, Vec3 origin, Vec3 normal = Vec3( 0.0f, 0.0f, 1.0f ), float count = 1.0f, Vec4 color = Vec4( 0.0f ) );
+void DoVisualEffect( const char * name, Vec3 origin, Vec3 normal = Vec3( 0.0f, 0.0f, 1.0f ), float count = 1.0f, Vec4 color = Vec4( 1.0f ) );
+void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal = Vec3( 0.0f, 0.0f, 1.0f ), float count = 1.0f, Vec4 color = Vec4( 1.0f ) );
 
 void DrawParticles();
 

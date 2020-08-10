@@ -91,12 +91,10 @@ void main() {
 
 #if FEEDBACK
 	v_Feedback = FEEDBACK_NONE;
-	v_FeedbackPosition = vec3( 0.0 );
-	v_FeedbackNormal = vec3( 0.0 );
+	v_FeedbackPosition = a_ParticlePosition;
+	v_FeedbackNormal = normalize( a_ParticleVelocity );
 	if ( v_ParticleAgeLifetime.x >= a_ParticleAgeLifetime.y ) {
 		v_Feedback |= FEEDBACK_AGE;
-		v_FeedbackPosition = a_ParticlePosition;
-		v_FeedbackNormal = normalize( a_ParticleVelocity );
 	}
 #endif
 

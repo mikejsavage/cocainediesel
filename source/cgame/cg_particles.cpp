@@ -38,7 +38,8 @@ static Hashtable< MAX_DECAL_EMITTERS * 2 > decalEmitters_hashtable;
 
 constexpr u32 particles_per_emitter = 10000;
 
-bool ParseParticleSystemEvents( Span< const char > * data, ParticleSystemEvents * event ) {
+bool ParseParticleEvents( Span< const char > * data, ParticleEvents * event ) {
+	StringHash despawn = StringHash( "despawn" );
 	while( true ) {
 		Span< const char > opening_brace = ParseToken( data, Parse_DontStopOnNewLine );
 		if( opening_brace == "" )
@@ -51,6 +52,7 @@ bool ParseParticleSystemEvents( Span< const char > * data, ParticleSystemEvents 
 
 		while( true ) {
 			Span< const char > key = ParseToken( data, Parse_DontStopOnNewLine );
+			StringHash name = StringHash( Hash64( key.ptr, key.n ) );
 
 			if( key == "}" ) {
 				return true;
@@ -61,27 +63,8 @@ bool ParseParticleSystemEvents( Span< const char > * data, ParticleSystemEvents 
 				return false;
 			}
 
-			ParticleSystemEvent e = { };
-			if( key == "despawn" ) {
-				e.type = ParticleSystemEventType_Despawn;
-				event->events[ event->num_events ] = e;
-				event->num_events++;
-			}
-			else if( key == "emitter" ) {
-				e.type = ParticleSystemEventType_Emitter;
-				Span< const char > value = ParseToken( data, Parse_DontStopOnNewLine );
-				e.event_name = StringHash( Hash64( value.ptr, value.n ) );
-				event->events[ event->num_events ] = e;
-				event->num_events++;
-			}
-			else if( key == "decal" ) {
-				e.type = ParticleSystemEventType_Decal;
-				Span< const char > value = ParseToken( data, Parse_DontStopOnNewLine );
-				e.event_name = StringHash( Hash64( value.ptr, value.n ) );
-				event->events[ event->num_events ] = e;
-				event->num_events++;
-			}
-
+			event->events[ event->num_events ] = name;
+			event->num_events++;
 		}
 	}
 
@@ -165,62 +148,6 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	}
 
 	ps->initialized = true;
-}
-
-static bool ParseParticleSystem( ParticleSystem * system, Span< const char > name, Span< const char > * data ) {
-	while( true ) {
-		Span< const char > opening_brace = ParseToken( data, Parse_DontStopOnNewLine );
-		if( opening_brace == "" )
-			break;
-
-		if( opening_brace != "{" ) {
-			Com_Printf( S_COLOR_YELLOW "Expected {\n" );
-			return false;
-		}
-
-		while( true ) {
-			Span< const char > key = ParseToken( data, Parse_DontStopOnNewLine );
-
-			if( key == "}" ) {
-				return true;
-			}
-
-			if( key == "" ) {
-				Com_Printf( S_COLOR_YELLOW "Missing key\n" );
-				return false;
-			}
-
-			if( key == "model" ) {
-				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
-				system->model = FindModel( StringHash( Hash64( value.ptr, value.n ) ) );
-			}
-			else if( key == "max" ) {
-				system->max_particles = ParseInt( data, 0, Parse_StopOnNewLine );
-			}
-			else if( key == "radius" ) {
-				system->radius = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
-			}
-			else if( key == "blendfunc" ) {
-				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
-				if( value == "blend" ) {
-					system->blend_func = BlendFunc_Blend;
-				}
-				else if( value == "add" ) {
-					system->blend_func = BlendFunc_Add;
-				}
-			}
-			else if( key == "on_collision" ) {
-				ParseParticleSystemEvents( data, &system->on_collision );
-				system->feedback = true;
-			}
-			else if( key == "on_age" ) {
-				ParseParticleSystemEvents( data, &system->on_age );
-				system->feedback = true;
-			}
-		}
-	}
-
-	return true;
 }
 
 static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > * data ) {
@@ -385,6 +312,14 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 			}
 			else if( key == "emission" ) {
 				emitter->emission = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+			}
+			else if( key == "on_collision" ) {
+				ParseParticleEvents( data, &emitter->on_collision );
+				emitter->feedback = true;
+			}
+			else if( key == "on_age" ) {
+				ParseParticleEvents( data, &emitter->on_age );
+				emitter->feedback = true;
 			}
 		}
 	}
@@ -567,13 +502,33 @@ void CreateParticleSystems() {
 	for( size_t i = 0; i < num_particleEmitters; i++ ) {
 		ParticleEmitter * emitter = &particleEmitters[ i ];
 		if( emitter->num_materials ) {
-			if( emitter->blend_func == BlendFunc_Add ) {
-				emitter->particle_system = addSystem_hash;
-				addSystem->max_particles += particles_per_emitter;
+			if( !emitter->feedback ) {
+				if( emitter->blend_func == BlendFunc_Add ) {
+					emitter->particle_system = addSystem_hash;
+					addSystem->max_particles += particles_per_emitter;
+				}
+				else if( emitter->blend_func == BlendFunc_Blend ) {
+					emitter->particle_system = blendSystem_hash;
+					blendSystem->max_particles += particles_per_emitter;
+				}
 			}
-			else if( emitter->blend_func == BlendFunc_Blend ) {
-				emitter->particle_system = blendSystem_hash;
-				blendSystem->max_particles += particles_per_emitter;
+			else {
+				ParticleSystem ps = { };
+				ps.max_particles += particles_per_emitter;
+				ps.blend_func = emitter->blend_func;
+				ps.feedback = true;
+				ps.on_collision = emitter->on_collision;
+				ps.on_age = emitter->on_age;
+
+				// TODO(msc): lol
+				u64 hash = random_u64( &cls.rng );
+				u64 idx = num_particleSystems;
+				if( !particleSystems_hashtable.get( hash, &idx ) ) {
+					particleSystems_hashtable.add( hash, idx );
+					num_particleSystems++;
+				}
+				particleSystems[ idx ] = ps;
+				emitter->particle_system = hash;
 			}
 		}
 		else {
@@ -581,15 +536,21 @@ void CreateParticleSystems() {
 			ParticleSystem ps = { };
 			ps.model = FindModel( emitter->model );
 			ps.max_particles += particles_per_emitter;
-
+			u64 hash = random_u64( &cls.rng );
+			if( emitter->feedback ) {
+				ps.blend_func = emitter->blend_func;
+				ps.feedback = true;
+				ps.on_collision = emitter->on_collision;
+				ps.on_age = emitter->on_age;
+			}
 			u64 idx = num_particleSystems;
-			if( !particleSystems_hashtable.get( emitter->model.hash, &idx ) ) {
-				particleSystems_hashtable.add( emitter->model.hash, idx );
+			if( !particleSystems_hashtable.get( hash, &idx ) ) {
+				particleSystems_hashtable.add( hash, idx );
 				num_particleSystems++;
 			}
 			particleSystems[ idx ] = ps;
 
-			emitter->particle_system = emitter->model.hash;
+			emitter->particle_system = hash;
 		}
 	}
 
@@ -696,15 +657,12 @@ bool ParticleFeedback( ParticleSystem * ps, GPUParticleFeedback * feedback ) {
 
 	if( feedback->parm & FEEDBACK_COLLISION ) {
 		for( u8 i = 0; i < ps->on_collision.num_events; i++ ) {
-			ParticleSystemEvent event = ps->on_collision.events[ i ];
-			if( event.type == ParticleSystemEventType_Despawn ) {
+			StringHash event = ps->on_collision.events[ i ];
+			if( event == despawn ) {
 				result = false;
 			}
-			else if( event.type == ParticleSystemEventType_Emitter ) {
-				// EmitParticles( FindParticleEmitter( event.event_name ), ParticleEmitterSphere( feedback->position, feedback->normal, 90.0f ), 1.0f );
-			}
-			else if( event.type == ParticleSystemEventType_Decal ) {
-				AddPersistentDecal( feedback->position, feedback->normal, 64.0f, 0.0f, event.event_name, Vec4( 1.0f ), 5000 );
+			else {
+				DoVisualEffect( event, feedback->position, feedback->normal );
 			}
 		}
 	}
@@ -712,15 +670,12 @@ bool ParticleFeedback( ParticleSystem * ps, GPUParticleFeedback * feedback ) {
 	if( feedback->parm & FEEDBACK_AGE ) {
 		result = false;
 		for( u8 i = 0; i < ps->on_age.num_events; i++ ) {
-			ParticleSystemEvent event = ps->on_age.events[ i ];
-			if( event.type == ParticleSystemEventType_Despawn ) {
+			StringHash event = ps->on_age.events[ i ];
+			if( event == despawn ) {
 				result = false;
 			}
-			else if( event.type == ParticleSystemEventType_Emitter ) {
-				// EmitParticles( FindParticleEmitter( event.event_name ), ParticleEmitterSphere( feedback->position ), 1.0f );
-			}
-			else if( event.type == ParticleSystemEventType_Decal ) {
-				AddPersistentDecal( feedback->position, feedback->normal, 64.0f, 0.0f, event.event_name, Vec4( 1.0f ), 5000 );
+			else {
+				DoVisualEffect( event, feedback->position, feedback->normal );
 			}
 		}
 	}

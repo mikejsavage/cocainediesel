@@ -107,107 +107,110 @@ void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive
 	}
 }
 
-void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices ) {
-	bool skinned = skinning_matrices.ptr != NULL;
+using Asdf = void ( * )( PipelineState * pipeline, bool skinned );
 
-	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
-	UniformBlock pose_uniforms;
-	if( skinned ) {
-		pose_uniforms = UploadUniforms( skinning_matrices.ptr, skinning_matrices.num_bytes() );
-	}
+template< typename F >
+static void RenderNode( const Model * model, u8 node_idx, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes, UniformBlock pose_uniforms, F f ) {
+	if( node_idx == U8_MAX )
+		return;
 
-	for( u32 i = 0; i < model->num_primitives; i++ ) {
-		PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material, color, skinned );
+	const Model::Node * node = &model->nodes[ node_idx ];
+
+	if( node->primitive != U8_MAX ) {
+		bool animated = palettes.node_transforms.ptr != NULL;
+		bool skinned = palettes.skinning_matrices.ptr != NULL;
+
+		Mat4 primitive_transform;
+		if( animated ) {
+			primitive_transform = skinned ? Mat4::Identity() : palettes.node_transforms[ node_idx ];
+		}
+		else {
+			primitive_transform = node->global_transform;
+		}
+
+		UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform * primitive_transform );
+
+		PipelineState pipeline = MaterialToPipelineState( model->primitives[ node->primitive ].material, color, skinned );
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 		pipeline.set_uniform( "u_Model", model_uniforms );
 		if( skinned ) {
 			pipeline.set_uniform( "u_Pose", pose_uniforms );
 		}
+		f( &pipeline, skinned );
 
-		DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+		DrawModelPrimitive( model, &model->primitives[ node->primitive ], pipeline );
 	}
+
+	RenderNode( model, node->first_child, transform, color, palettes, pose_uniforms, f );
+	RenderNode( model, node->sibling, transform, color, palettes, pose_uniforms, f );
+}
+
+void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
+	UniformBlock pose_uniforms;
+	if( palettes.skinning_matrices.ptr != NULL ) {
+		pose_uniforms = UploadUniforms( palettes.skinning_matrices.ptr, palettes.skinning_matrices.num_bytes() );
+	}
+
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		if( model->nodes[ i ].parent == U8_MAX ) {
+			RenderNode( model, i, transform, color, palettes, pose_uniforms, []( PipelineState * pipeline, bool skinned ) { } );
+		}
+	}
+}
+
+static void AddViewWeaponDepthHack( PipelineState * pipeline, bool skinned ) {
+	pipeline->view_weapon_depth_hack = true;
 }
 
 void DrawViewWeapon( const Model * model, const Mat4 & transform ) {
-	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
-
-	for( u32 i = 0; i < model->num_primitives; i++ ) {
-		PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material, vec4_white, false );
-		pipeline.view_weapon_depth_hack = true;
-		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-		pipeline.set_uniform( "u_Model", model_uniforms );
-
-		DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
-	}
-}
-
-void DrawOutlinedViewWeapon( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height ) {
-	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
-	UniformBlock outline_uniforms = UploadUniformBlock( color, outline_height );
-
-	for( u32 i = 0; i < model->num_primitives; i++ ) {
-		PipelineState pipeline;
-		pipeline.shader = &shaders.outline;
-		pipeline.pass = frame_static.nonworld_opaque_pass;
-		pipeline.cull_face = CullFace_Front;
-		pipeline.view_weapon_depth_hack = true;
-		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-		pipeline.set_uniform( "u_Model", model_uniforms );
-		pipeline.set_uniform( "u_Outline", outline_uniforms );
-
-		DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
-	}
-}
-
-void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, Span< const Mat4 > skinning_matrices ) {
-	bool skinned = skinning_matrices.ptr != NULL;
-
-	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
-	UniformBlock outline_uniforms = UploadUniformBlock( color, outline_height );
-	UniformBlock pose_uniforms;
-	if( skinned ) {
-		pose_uniforms = UploadUniforms( skinning_matrices.ptr, skinning_matrices.num_bytes() );
-	}
-
-	for( u32 i = 0; i < model->num_primitives; i++ ) {
-		PipelineState pipeline;
-		pipeline.shader = skinned ? &shaders.outline_skinned : &shaders.outline;
-		pipeline.pass = frame_static.nonworld_opaque_pass;
-		pipeline.cull_face = CullFace_Front;
-		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-		pipeline.set_uniform( "u_Model", model_uniforms );
-		pipeline.set_uniform( "u_Outline", outline_uniforms );
-		if( skinned ) {
-			pipeline.set_uniform( "u_Pose", pose_uniforms );
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		if( model->nodes[ i ].parent == U8_MAX ) {
+			RenderNode( model, i, transform, vec4_white, MatrixPalettes(), UniformBlock(), AddViewWeaponDepthHack );
 		}
-
-		DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 	}
 }
 
-void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices ) {
-	bool skinned = skinning_matrices.ptr != NULL;
+void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, MatrixPalettes palettes ) {
+	UniformBlock outline_uniforms = UploadUniformBlock( color, outline_height );
 
-	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
+	auto MakeOutlinePipeline = [ &outline_uniforms ]( PipelineState * pipeline, bool skinned ) {
+		pipeline->shader = skinned ? &shaders.outline_skinned : &shaders.outline;
+		pipeline->pass = frame_static.nonworld_opaque_pass;
+		pipeline->cull_face = CullFace_Front;
+		pipeline->set_uniform( "u_Outline", outline_uniforms );
+	};
+
+	UniformBlock pose_uniforms;
+	if( palettes.skinning_matrices.ptr != NULL ) {
+		pose_uniforms = UploadUniforms( palettes.skinning_matrices.ptr, palettes.skinning_matrices.num_bytes() );
+	}
+
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		if( model->nodes[ i ].parent == U8_MAX ) {
+			RenderNode( model, i, transform, color, palettes, pose_uniforms, MakeOutlinePipeline );
+		}
+	}
+}
+
+void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
 	UniformBlock material_uniforms = UploadMaterialUniforms( color, Vec2( 0 ), 0.0f );
+
+	auto MakeSilhouettePipeline = [ &material_uniforms ]( PipelineState * pipeline, bool skinned ) {
+		pipeline->shader = skinned ? &shaders.write_silhouette_gbuffer_skinned : &shaders.write_silhouette_gbuffer;
+		pipeline->pass = frame_static.write_silhouette_gbuffer_pass;
+		pipeline->write_depth = false;
+		pipeline->set_uniform( "u_Material", material_uniforms );
+	};
+
 	UniformBlock pose_uniforms;
-	if( skinned ) {
-		pose_uniforms = UploadUniforms( skinning_matrices.ptr, skinning_matrices.num_bytes() );
+	if( palettes.skinning_matrices.ptr != NULL ) {
+		pose_uniforms = UploadUniforms( palettes.skinning_matrices.ptr, palettes.skinning_matrices.num_bytes() );
 	}
 
-	for( u32 i = 0; i < model->num_primitives; i++ ) {
-		PipelineState pipeline;
-		pipeline.shader = skinned ? &shaders.write_silhouette_gbuffer_skinned : &shaders.write_silhouette_gbuffer;
-		pipeline.pass = frame_static.write_silhouette_gbuffer_pass;
-		pipeline.write_depth = false;
-		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-		pipeline.set_uniform( "u_Model", model_uniforms );
-		pipeline.set_uniform( "u_Material", material_uniforms );
-		if( skinned ) {
-			pipeline.set_uniform( "u_Pose", pose_uniforms );
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		if( model->nodes[ i ].parent == U8_MAX ) {
+			RenderNode( model, i, transform, color, palettes, pose_uniforms, MakeSilhouettePipeline );
 		}
-
-		DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 	}
 }
 
@@ -244,9 +247,9 @@ Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t ) {
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		const Model::Node * node = &model->nodes[ i ];
-		local_poses[ i ].rotation = SampleAnimationChannel( node->rotations, t, node->transform.rotation, NLerp );
-		local_poses[ i ].translation = SampleAnimationChannel( node->translations, t, node->transform.translation, LerpVec3 );
-		local_poses[ i ].scale = SampleAnimationChannel( node->scales, t, node->transform.scale, LerpFloat );
+		local_poses[ i ].rotation = SampleAnimationChannel( node->rotations, t, node->local_transform.rotation, NLerp );
+		local_poses[ i ].translation = SampleAnimationChannel( node->translations, t, node->local_transform.translation, LerpVec3 );
+		local_poses[ i ].scale = SampleAnimationChannel( node->scales, t, node->local_transform.scale, LerpFloat );
 	}
 
 	return local_poses;

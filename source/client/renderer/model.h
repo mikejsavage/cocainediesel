@@ -19,7 +19,8 @@ struct Model {
 	};
 
 	struct Node {
-		TRS transform;
+		Mat4 global_transform;
+		TRS local_transform;
 		u8 parent;
 		u8 primitive;
 
@@ -68,11 +69,11 @@ struct Map;
 bool LoadBSPRenderData( Map * map, u64 base_hash, Span< const u8 > data );
 
 void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline );
-void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices = Span< const Mat4 >() );
+void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
 void DrawViewWeapon( const Model * model, const Mat4 & transform );
 void DrawOutlinedViewWeapon( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height );
-void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices = Span< const Mat4 >() );
-void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, Span< const Mat4 > skinning_matrices = Span< const Mat4 >() );
+void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
+void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, MatrixPalettes palettes = MatrixPalettes() );
 
 Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t );
 MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< const TRS > local_poses );

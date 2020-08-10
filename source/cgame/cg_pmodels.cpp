@@ -853,16 +853,16 @@ void CG_DrawPlayer( centity_t *cent ) {
 		color *= Vec4( 0.25f, 0.25f, 0.25f, 1.0 );
 	}
 
-	DrawModel( meta->model, transform, color, pose.skinning_matrices );
+	DrawModel( meta->model, transform, color, pose );
 
 	bool same_team = GS_TeamBasedGametype( &client_gs ) && cg.predictedPlayerState.team == cent->current.team;
 	bool draw_silhouette = ISREALSPECTATOR() || same_team;
 	if( !corpse && draw_silhouette ) {
-		DrawModelSilhouette( meta->model, transform, color, pose.skinning_matrices );
+		DrawModelSilhouette( meta->model, transform, color, pose );
 	}
 
 	float outline_height = CG_OutlineScaleForDist( &cent->ent, 4096, 1.0f );
-	DrawOutlinedModel( meta->model, transform, vec4_black, outline_height, pose.skinning_matrices );
+	DrawOutlinedModel( meta->model, transform, vec4_black, outline_height, pose );
 
 	CG_PModel_SpawnTeleportEffect( cent, pose );
 

@@ -43,7 +43,7 @@ static Span< const u8 > AccessorToSpan( const cgltf_accessor * accessor ) {
 	return Span< const u8 >( ( const u8 * ) accessor->buffer_view->buffer->data + offset, accessor->count * accessor->stride );
 }
 
-static void LoadGeometry( Model * model, const cgltf_node * node ) {
+static void LoadGeometry( Model * model, const cgltf_node * node, const Mat4 & transform ) {
 	const cgltf_primitive & prim = node->mesh->primitives[ 0 ];
 
 	MeshConfig mesh_config;
@@ -55,9 +55,6 @@ static void LoadGeometry( Model * model, const cgltf_node * node ) {
 			Span< const Vec3 > positions = AccessorToSpan( attr.data ).cast< const Vec3 >();
 			mesh_config.num_vertices = positions.n;
 			mesh_config.positions = NewVertexBuffer( positions );
-
-			Mat4 transform;
-			cgltf_node_transform_local( node, transform.ptr() );
 
 			for( size_t j = 0; j < positions.n; j++ ) {
 				Vec3 transformed = ( transform * Vec4( positions[ j ], 1.0f ) ).xyz();
@@ -122,12 +119,14 @@ static void LoadNode( Model * model, cgltf_node * gltf_node, u8 * node_idx ) {
 	node->primitive = U8_MAX;
 	node->name = gltf_node->name == NULL ? 0 : Hash32( gltf_node->name );
 
-	node->transform.rotation = Quaternion::Identity();
-	node->transform.translation = Vec3( 0.0f );
-	node->transform.scale = 1.0f;
+	cgltf_node_transform_world( gltf_node, node->global_transform.ptr() );
+
+	node->local_transform.rotation = Quaternion::Identity();
+	node->local_transform.translation = Vec3( 0.0f );
+	node->local_transform.scale = 1.0f;
 
 	if( gltf_node->has_rotation ) {
-		node->transform.rotation = Quaternion(
+		node->local_transform.rotation = Quaternion(
 			gltf_node->rotation[ 0 ],
 			gltf_node->rotation[ 1 ],
 			gltf_node->rotation[ 2 ],
@@ -136,7 +135,7 @@ static void LoadNode( Model * model, cgltf_node * gltf_node, u8 * node_idx ) {
 	}
 
 	if( gltf_node->has_translation ) {
-		node->transform.translation = Vec3(
+		node->local_transform.translation = Vec3(
 			gltf_node->translation[ 0 ],
 			gltf_node->translation[ 1 ],
 			gltf_node->translation[ 2 ]
@@ -146,12 +145,12 @@ static void LoadNode( Model * model, cgltf_node * gltf_node, u8 * node_idx ) {
 	if( gltf_node->has_scale ) {
 		// assert( Abs( gltf_node->scale[ 0 ] / gltf_node->scale[ 1 ] - 1.0f ) < 0.001f );
 		// assert( Abs( gltf_node->scale[ 0 ] / gltf_node->scale[ 2 ] - 1.0f ) < 0.001f );
-		node->transform.scale = gltf_node->scale[ 0 ];
+		node->local_transform.scale = gltf_node->scale[ 0 ];
 	}
 
 	if( gltf_node->mesh != NULL ) {
 		node->primitive = model->num_primitives;
-		LoadGeometry( model, gltf_node );
+		LoadGeometry( model, gltf_node, node->global_transform );
 		return;
 	}
 

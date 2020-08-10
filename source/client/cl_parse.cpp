@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static void CL_InitServerDownload( const char *filename, int size, unsigned checksum, bool not_external_server, const char *url );
 void CL_StopServerDownload( void );
 
-static DynamicArray< u8 > map_download_data( NO_INIT );
+static DynamicArray< u8 > map_download_data( NO_RAII );
 
 /*
 * CL_DownloadRequest

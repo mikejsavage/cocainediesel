@@ -190,8 +190,8 @@ T Clamp01( const T & x ) {
  * NoInit
  */
 
-enum class NoInit { NoInit };
-constexpr NoInit NO_INIT = NoInit::NoInit;
+enum class NoRAII { NoRAII };
+constexpr NoRAII NO_RAII = NoRAII::NoRAII;
 
 /*
  * Span

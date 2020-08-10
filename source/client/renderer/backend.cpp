@@ -43,9 +43,9 @@ struct DrawCall {
 	VertexBuffer instance_data;
 };
 
-static DynamicArray< RenderPass > render_passes( NO_INIT );
-static DynamicArray< DrawCall > draw_calls( NO_INIT );
-static DynamicArray< Mesh > deferred_deletes( NO_INIT );
+static DynamicArray< RenderPass > render_passes( NO_RAII );
+static DynamicArray< DrawCall > draw_calls( NO_RAII );
+static DynamicArray< Mesh > deferred_deletes( NO_RAII );
 
 static u32 num_vertices_this_frame;
 

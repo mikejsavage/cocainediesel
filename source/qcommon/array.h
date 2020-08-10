@@ -14,7 +14,7 @@ class DynamicArray {
 public:
 	NONCOPYABLE( DynamicArray );
 
-	DynamicArray( NoInit ) {
+	DynamicArray( NoRAII ) {
 		a = NULL;
 		auto_destruct = false;
 	}

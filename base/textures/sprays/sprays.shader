@@ -78,14 +78,6 @@ textures/sprays/934
 	decal
 }
 
-textures/sprays/acab
-{
-	{
-		map textures/sprays/acab
-	}
-	decal
-}
-
 textures/sprays/acab2
 {
 	{
@@ -106,6 +98,14 @@ textures/sprays/acab4
 {
 	{
 		map textures/sprays/acab4
+	}
+	decal
+}
+
+textures/sprays/acab
+{
+	{
+		map textures/sprays/acab
 	}
 	decal
 }
@@ -230,18 +230,18 @@ textures/sprays/bojo
 	decal
 }
 
-textures/sprays/bom
-{
-	{
-		map textures/sprays/bom
-	}
-	decal
-}
-
 textures/sprays/bombsite
 {
 	{
 		map textures/sprays/bombsite
+	}
+	decal
+}
+
+textures/sprays/bom
+{
+	{
+		map textures/sprays/bom
 	}
 	decal
 }
@@ -334,14 +334,6 @@ textures/sprays/clint
 	decal
 }
 
-textures/sprays/cock
-{
-	{
-		map textures/sprays/cock
-	}
-	decal
-}
-
 textures/sprays/cock2
 {
 	{
@@ -370,6 +362,14 @@ textures/sprays/cock5
 {
 	{
 		map textures/sprays/cock5
+	}
+	decal
+}
+
+textures/sprays/cock
+{
+	{
+		map textures/sprays/cock
 	}
 	decal
 }
@@ -486,18 +486,18 @@ textures/sprays/donttellme
 	decal
 }
 
-textures/sprays/dude
-{
-	{
-		map textures/sprays/dude
-	}
-	decal
-}
-
 textures/sprays/dudedead
 {
 	{
 		map textures/sprays/dudedead
+	}
+	decal
+}
+
+textures/sprays/dude
+{
+	{
+		map textures/sprays/dude
 	}
 	decal
 }
@@ -526,18 +526,18 @@ textures/sprays/emule
 	decal
 }
 
-textures/sprays/epstein
-{
-	{
-		map textures/sprays/epstein
-	}
-	decal
-}
-
 textures/sprays/epstein2
 {
 	{
 		map textures/sprays/epstein2
+	}
+	decal
+}
+
+textures/sprays/epstein
+{
+	{
+		map textures/sprays/epstein
 	}
 	decal
 }
@@ -550,18 +550,18 @@ textures/sprays/eye
 	decal
 }
 
-textures/sprays/face
-{
-	{
-		map textures/sprays/face
-	}
-	decal
-}
-
 textures/sprays/face1
 {
 	{
 		map textures/sprays/face1
+	}
+	decal
+}
+
+textures/sprays/face
+{
+	{
+		map textures/sprays/face
 	}
 	decal
 }
@@ -902,14 +902,6 @@ textures/sprays/kama
 	decal
 }
 
-textures/sprays/kanye
-{
-	{
-		map textures/sprays/kanye
-	}
-	decal
-}
-
 textures/sprays/kanye2
 {
 	{
@@ -922,6 +914,14 @@ textures/sprays/kanye3
 {
 	{
 		map textures/sprays/kanye3
+	}
+	decal
+}
+
+textures/sprays/kanye
+{
+	{
+		map textures/sprays/kanye
 	}
 	decal
 }
@@ -950,18 +950,18 @@ textures/sprays/kerning
 	decal
 }
 
-textures/sprays/ket
-{
-	{
-		map textures/sprays/ket
-	}
-	decal
-}
-
 textures/sprays/ketamine
 {
 	{
 		map textures/sprays/ketamine
+	}
+	decal
+}
+
+textures/sprays/ket
+{
+	{
+		map textures/sprays/ket
 	}
 	decal
 }
@@ -974,18 +974,18 @@ textures/sprays/kilroy
 	decal
 }
 
-textures/sprays/knobhead
-{
-	{
-		map textures/sprays/knobhead
-	}
-	decal
-}
-
 textures/sprays/knobhead2
 {
 	{
 		map textures/sprays/knobhead2
+	}
+	decal
+}
+
+textures/sprays/knobhead
+{
+	{
+		map textures/sprays/knobhead
 	}
 	decal
 }
@@ -1070,18 +1070,18 @@ textures/sprays/member
 	decal
 }
 
-textures/sprays/mike
-{
-	{
-		map textures/sprays/mike
-	}
-	decal
-}
-
 textures/sprays/mike2
 {
 	{
 		map textures/sprays/mike2
+	}
+	decal
+}
+
+textures/sprays/mike
+{
+	{
+		map textures/sprays/mike
 	}
 	decal
 }
@@ -1126,14 +1126,6 @@ textures/sprays/napster
 	decal
 }
 
-textures/sprays/never
-{
-	{
-		map textures/sprays/never
-	}
-	decal
-}
-
 textures/sprays/neveragain2
 {
 	{
@@ -1154,6 +1146,14 @@ textures/sprays/neverforget
 {
 	{
 		map textures/sprays/neverforget
+	}
+	decal
+}
+
+textures/sprays/never
+{
+	{
+		map textures/sprays/never
 	}
 	decal
 }
@@ -1206,18 +1206,18 @@ textures/sprays/oink
 	decal
 }
 
-textures/sprays/onion
-{
-	{
-		map textures/sprays/onion
-	}
-	decal
-}
-
 textures/sprays/onionfire1
 {
 	{
 		map textures/sprays/onionfire1
+	}
+	decal
+}
+
+textures/sprays/onion
+{
+	{
+		map textures/sprays/onion
 	}
 	decal
 }
@@ -1286,18 +1286,18 @@ textures/sprays/phart
 	decal
 }
 
-textures/sprays/pig
-{
-	{
-		map textures/sprays/pig
-	}
-	decal
-}
-
 textures/sprays/pigeon
 {
 	{
 		map textures/sprays/pigeon
+	}
+	decal
+}
+
+textures/sprays/pig
+{
+	{
+		map textures/sprays/pig
 	}
 	decal
 }
@@ -1326,18 +1326,18 @@ textures/sprays/poon
 	decal
 }
 
-textures/sprays/poop
-{
-	{
-		map textures/sprays/poop
-	}
-	decal
-}
-
 textures/sprays/poop2
 {
 	{
 		map textures/sprays/poop2
+	}
+	decal
+}
+
+textures/sprays/poop
+{
+	{
+		map textures/sprays/poop
 	}
 	decal
 }
@@ -1382,18 +1382,18 @@ textures/sprays/ps
 	decal
 }
 
-textures/sprays/puffdar
-{
-	{
-		map textures/sprays/puffdar
-	}
-	decal
-}
-
 textures/sprays/puffdarneko
 {
 	{
 		map textures/sprays/puffdarneko
+	}
+	decal
+}
+
+textures/sprays/puffdar
+{
+	{
+		map textures/sprays/puffdar
 	}
 	decal
 }
@@ -1558,18 +1558,18 @@ textures/sprays/skirym
 	decal
 }
 
-textures/sprays/skull
-{
-	{
-		map textures/sprays/skull
-	}
-	decal
-}
-
 textures/sprays/skull2
 {
 	{
 		map textures/sprays/skull2
+	}
+	decal
+}
+
+textures/sprays/skull
+{
+	{
+		map textures/sprays/skull
 	}
 	decal
 }
@@ -1654,18 +1654,18 @@ textures/sprays/strawman
 	decal
 }
 
-textures/sprays/sun
-{
-	{
-		map textures/sprays/sun
-	}
-	decal
-}
-
 textures/sprays/sunlaser
 {
 	{
 		map textures/sprays/sunlaser
+	}
+	decal
+}
+
+textures/sprays/sun
+{
+	{
+		map textures/sprays/sun
 	}
 	decal
 }
@@ -1870,18 +1870,18 @@ textures/sprays/webdev
 	decal
 }
 
-textures/sprays/what
-{
-	{
-		map textures/sprays/what
-	}
-	decal
-}
-
 textures/sprays/whatablast
 {
 	{
 		map textures/sprays/whatablast
+	}
+	decal
+}
+
+textures/sprays/what
+{
+	{
+		map textures/sprays/what
 	}
 	decal
 }
@@ -1910,18 +1910,18 @@ textures/sprays/wutang
 	decal
 }
 
-textures/sprays/x_x
-{
-	{
-		map textures/sprays/x_x
-	}
-	decal
-}
-
 textures/sprays/xmas
 {
 	{
 		map textures/sprays/xmas
+	}
+	decal
+}
+
+textures/sprays/x_x
+{
+	{
+		map textures/sprays/x_x
 	}
 	decal
 }

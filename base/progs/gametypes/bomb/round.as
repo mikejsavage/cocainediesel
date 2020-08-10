@@ -359,6 +359,15 @@ void roundThink() {
 		bombThink();
 	}
 	else {
+		if( bombState == BombState_Planting ) {
+			setTeamProgress( attackingTeam, 0, BombProgress_Nothing );
+			bombPickUp();
+		}
+
+		if( defuseProgress > 0 ) {
+			setTeamProgress( defendingTeam, 0, BombProgress_Defusing );
+		}
+
 		match.setClockOverride( last_time );
 
 		if( roundState > RoundState_Round ) {

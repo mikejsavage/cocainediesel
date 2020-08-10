@@ -148,11 +148,9 @@ static void PlayerTouchWall( int nbTestDir, float maxZnormal, Vec3 * normal ) {
 				continue;
 		}
 
-		if( trace.fraction > 0 ) {
-			if( dist > trace.fraction && Abs( trace.plane.normal.z ) < maxZnormal ) {
-				dist = trace.fraction;
-				*normal = trace.plane.normal;
-			}
+		if( dist > trace.fraction && Abs( trace.plane.normal.z ) < maxZnormal ) {
+			dist = trace.fraction;
+			*normal = trace.plane.normal;
 		}
 	}
 }

@@ -1659,7 +1659,7 @@ static void CG_DrawObituaries(
 
 		xoffset += icon_padding;
 
-		Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, pic, vec4_white );
+		Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, pic, AttentionGettingColor() );
 
 		xoffset += icon_size + icon_padding;
 
@@ -1979,7 +1979,7 @@ enum {
 
 static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih, Alignment alignment, float font_size ) {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
-	Vec4 light_gray = sRGBToLinear( RGBA8( 128, 128, 128, 255 ) );
+	Vec4 light_gray = sRGBToLinear( RGBA8( 96, 96, 96, 255 ) );
 	Vec4 dark_gray = sRGBToLinear( RGBA8( 51, 51, 51, 255 ) );
 	Vec4 color_ammo_max = sRGBToLinear( rgba8_diesel_yellow );
 	Vec4 color_ammo_min = sRGBToLinear( RGBA8( 255, 56, 97, 255 ) );
@@ -2012,11 +2012,11 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 	if( bomb != 0 ) {
 		int curx = CG_HorizontalAlignForWidth( x, alignment, total_width );
 		int cury = CG_VerticalAlignForHeight( y, alignment, total_height );
-
-		Draw2DBox( curx, cury, iw, ih, cgs.white_material, light_gray );
-		Draw2DBox( curx + border, cury + border, innerw, innerh, cgs.white_material, dark_gray );
-
 		Vec4 color = ps->can_plant ? AttentionGettingColor() : light_gray;
+
+		Draw2DBox( curx, cury, iw, ih, cgs.white_material, color );
+		Draw2DBox( curx + border, cury + border, innerw, innerh, cgs.white_material, dark_gray );
+		
 		Draw2DBox( curx + border + padding, cury + border + padding, iconw, iconh, cgs.media.shaderBombIcon, color );
 	}
 
@@ -2071,21 +2071,21 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 			CG_GetWeaponIcon( weap ), color );
 
 		if( def->clip_size != 0 ) {
-			DrawText( GetHUDFont(), font_size, va( "%i", ammo ), Alignment_CenterMiddle, curx + iw*0.5f, cury + ih * 1.175f - pady_sel, color, layout_cursor_font_border );
+			DrawText( GetHUDFont(), font_size, va( "%i", ammo ), Alignment_CenterMiddle, curx + iw*0.5f, cury - ih * 0.25f - pady_sel, color, layout_cursor_font_border );
 		}
 
 		// weapon slot binds start from index 1, use drawn_weapons for actual loadout index
 		char bind[ 32 ];
 
 		// UNBOUND can look real stupid so bump size down a bit in case someone is scrolling. this still doesnt fit
-		const float bind_font_size = font_size * 0.75f;
+		const float bind_font_size = font_size * 0.55f;
 
 		// first try the weapon specific bind
 		if( !CG_GetBoundKeysString( va( "use %s", def->short_name ), bind, sizeof( bind ) ) ) {
 			CG_GetBoundKeysString( va( "weapon %i", i + 1 ), bind, sizeof( bind ) );
 		}
 
-		DrawText( GetHUDFont(), bind_font_size, bind, Alignment_CenterMiddle, curx + iw*0.5f, cury - ih*0.2f - pady_sel, layout_cursor_color, layout_cursor_font_border );
+		DrawText( GetHUDFont(), bind_font_size, va( "[ %s ]", bind) , Alignment_CenterMiddle, curx + iw*0.5f, cury + ih * 1.2f - pady_sel, layout_cursor_color, layout_cursor_font_border );
 	}
 }
 

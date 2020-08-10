@@ -520,7 +520,7 @@ bool S_Init() {
 	memset( entities, 0, sizeof( entities ) );
 
 	s_volume = Cvar_Get( "s_volume", "1", CVAR_ARCHIVE );
-	s_musicvolume = Cvar_Get( "s_musicvolume", "1", CVAR_ARCHIVE );
+	s_musicvolume = Cvar_Get( "s_musicvolume", "0.5", CVAR_ARCHIVE );
 	s_muteinbackground = Cvar_Get( "s_muteinbackground", "1", CVAR_ARCHIVE );
 	s_muteinbackground->modified = true;
 
@@ -681,7 +681,7 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 				if( ps->stopped[ j ] )
 					continue;
 
-				ALint state = CheckedALGetSource( ps->sources[ j ], AL_SOURCE_STATE );;
+				ALint state = CheckedALGetSource( ps->sources[ j ], AL_SOURCE_STATE );
 				if( not_touched || state == AL_STOPPED ) {
 					StopSound( ps, j );
 				}

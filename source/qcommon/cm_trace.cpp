@@ -29,7 +29,6 @@ typedef struct {
 } boxLeafsWork_t;
 
 typedef struct {
-	bool ispoint;
 	int contents;
 	int checkcount;
 
@@ -653,16 +652,8 @@ static inline void CM_TestBox( traceWork_t *tw, const int *markbrushes, int numm
 static void CM_RecursiveHullCheck( traceWork_t *tw, int num, float p1f, float p2f, Vec3 p1, Vec3 p2 ) {
 	ZoneScoped;
 
-	const CollisionModel *cms = tw->cms;
-	const cnode_t *node;
-	const cplane_t *plane;
-	int side;
-	float t1, t2, radius;
-	float frac, frac2;
-	float idist, midf;
-	Vec3 mid;
+	const CollisionModel * cms = tw->cms;
 
-loc0:
 	if( tw->realfraction <= p1f ) {
 		return; // already hit something nearer
 	}
@@ -671,7 +662,7 @@ loc0:
 	if( num < 0 ) {
 		cleaf_t *leaf;
 
-		leaf = &cms->map_leafs[-1 - num];
+		leaf = &cms->map_leafs[ -1 - num ];
 		if( leaf->contents & tw->contents ) {
 			CM_ClipBox( tw, leaf->markbrushes, leaf->nummarkbrushes, leaf->markfaces, leaf->nummarkfaces );
 		}
@@ -682,38 +673,35 @@ loc0:
 	// find the point distances to the seperating plane
 	// and the radius for the size of the box
 	//
-	node = cms->map_nodes + num;
-	plane = node->plane;
+	const cnode_t * node = cms->map_nodes + num;
+	const cplane_t * plane = node->plane;
 
-	t1 = Dot( plane->normal, p1 ) - plane->dist;
-	t2 = Dot( plane->normal, p2 ) - plane->dist;
-	if( tw->ispoint ) {
-		radius = 0;
-	}
-	else {
-		radius = Abs( tw->extents.x * plane->normal.x ) +
-			Abs( tw->extents.y * plane->normal.y ) +
-			Abs( tw->extents.z * plane->normal.z );
-	}
+	float t1 = Dot( plane->normal, p1 ) - plane->dist;
+	float t2 = Dot( plane->normal, p2 ) - plane->dist;
+	float radius = Abs( tw->extents.x * plane->normal.x ) +
+		Abs( tw->extents.y * plane->normal.y ) +
+		Abs( tw->extents.z * plane->normal.z );
 
 	// see which sides we need to consider
 	if( t1 >= radius && t2 >= radius ) {
-		num = node->children[0];
-		goto loc0;
+		CM_RecursiveHullCheck( tw, node->children[ 0 ], p1f, p2f, p1, p2 );
+		return;
 	}
 	if( t1 < -radius && t2 < -radius ) {
-		num = node->children[1];
-		goto loc0;
+		CM_RecursiveHullCheck( tw, node->children[ 1 ], p1f, p2f, p1, p2 );
+		return;
 	}
 
 	// put the crosspoint DIST_EPSILON pixels on the near side
+	int side;
+	float frac, frac2;
 	if( t1 < t2 ) {
-		idist = 1.0 / ( t1 - t2 );
+		float idist = 1.0f / ( t1 - t2 );
 		side = 1;
 		frac2 = ( t1 + radius ) * idist;
 		frac = ( t1 - radius ) * idist;
 	} else if( t1 > t2 ) {
-		idist = 1.0 / ( t1 - t2 );
+		float idist = 1.0f / ( t1 - t2 );
 		side = 0;
 		frac2 = ( t1 - radius ) * idist;
 		frac = ( t1 + radius ) * idist;
@@ -725,17 +713,17 @@ loc0:
 
 	// move up to the node
 	frac = Clamp01( frac );
-	midf = p1f + ( p2f - p1f ) * frac;
-	mid = Lerp( p1, frac, p2 );
+	float midf = p1f + ( p2f - p1f ) * frac;
+	Vec3 mid = Lerp( p1, frac, p2 );
 
-	CM_RecursiveHullCheck( tw, node->children[side], p1f, midf, p1, mid );
+	CM_RecursiveHullCheck( tw, node->children[ side ], p1f, midf, p1, mid );
 
 	// go past the node
 	frac2 = Clamp01( frac2 );
 	midf = p1f + ( p2f - p1f ) * frac2;
 	mid = Lerp( p1, frac2, p2 );
 
-	CM_RecursiveHullCheck( tw, node->children[side ^ 1], midf, p2f, mid, p2 );
+	CM_RecursiveHullCheck( tw, node->children[ side ^ 1 ], midf, p2f, mid, p2 );
 }
 
 static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
@@ -749,10 +737,6 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 	// fill in a default trace
 	memset( tr, 0, sizeof( *tr ) );
 	tr->fraction = 1;
-
-	if( !cms->numnodes ) { // map not loaded
-		return;
-	}
 
 	cms->checkcount++;  // for multi-check avoidance
 
@@ -805,7 +789,7 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 			int leafs[ 1024 ];
 			int numleafs = CM_BoxLeafnums( cms, c1, c2, leafs, 1024, NULL );
 			for( int i = 0; i < numleafs; i++ ) {
-				cleaf_t * leaf = &cms->map_leafs[leafs[i]];
+				const cleaf_t * leaf = &cms->map_leafs[ leafs[ i ] ];
 
 				if( leaf->contents & brushmask ) {
 					CM_TestBox( tw, leaf->markbrushes, leaf->nummarkbrushes, leaf->markfaces, leaf->nummarkfaces );
@@ -828,14 +812,8 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 	//
 	// check for point special case
 	//
-	if( mins == Vec3( 0.0f ) && maxs == Vec3( 0.0f ) ) {
-		tw->ispoint = true;
-		tw->extents = Vec3( 0.0f );
-	} else {
-		tw->ispoint = false;
-		for( int i = 0; i < 3; i++ ) {
-			tw->extents[ i ] = Max2( Abs( mins[ i ] ), Abs( maxs[ i ] ) );
-		}
+	for( int i = 0; i < 3; i++ ) {
+		tw->extents[ i ] = Max2( Abs( mins[ i ] ), Abs( maxs[ i ] ) );
 	}
 
 	//
@@ -867,10 +845,6 @@ void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, tra
 	mat3_t axis;
 	bool rotated;
 	traceWork_t tw;
-
-	if( !tr ) {
-		return;
-	}
 
 	if( !cmodel || cmodel->hash == cms->world_hash ) {
 		cmodel = CM_FindCModel( soc, StringHash( cms->world_hash ) );

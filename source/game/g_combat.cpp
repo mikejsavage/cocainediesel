@@ -30,7 +30,7 @@ bool G_IsTeamDamage( SyncEntityState *targ, SyncEntityState *attacker ) {
 * G_CanSplashDamage
 */
 #define SPLASH_DAMAGE_TRACE_FRAC_EPSILON 1.0 / 32.0f
-static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, cplane_t *plane ) {
+static bool G_CanSplashDamageEnt( edict_t *targ, edict_t *inflictor, cplane_t *plane ) {
 	Vec3 dest, origin;
 	trace_t trace;
 	int solidmask = MASK_SOLID;
@@ -95,6 +95,46 @@ static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, cplane_t *plan
 	dest.x -= 15.0;
 	dest.y -= 15.0;
 	G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, solidmask, inflictor->timeDelta );
+	if( trace.fraction >= 1.0 - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
+		return true;
+	}
+
+	return false;
+}
+
+static bool G_CanSplashDamagePos( edict_t *targ, Vec3 pos, cplane_t *plane ) {
+	Vec3 dest, origin;
+	trace_t trace;
+	int solidmask = MASK_SOLID;
+
+	if( !targ ) {
+		return false;
+	}
+
+	if( !plane ) {
+		origin = pos;
+	}
+
+	// bmodels need special checking because their origin is 0,0,0
+	if( targ->movetype == MOVETYPE_PUSH ) {
+		// NOT FOR PLAYERS only for entities that can push the players
+		dest = targ->r.absmin + targ->r.absmax;
+		dest = dest * ( 0.5 );
+		G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), dest, NULL, solidmask, targ->timeDelta );
+		if( trace.fraction >= 1.0 - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	if( plane ) {
+		// up by 9 units to account for stairs
+		origin = pos + plane->normal * 9;
+	}
+
+	// This is for players
+	G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), targ->s.origin, NULL, solidmask, targ->timeDelta );
 	if( trace.fraction >= 1.0 - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 		return true;
 	}
@@ -414,6 +454,41 @@ void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 poin
 	*pushdir = Normalize( center_of_mass - point );
 }
 
+
+/*
+* G_RadiusKnockback
+*/
+
+void G_RadiusKnockback( const WeaponDef * def, edict_t *attacker, Vec3 pos, cplane_t *plane, int mod, int timeDelta ) {
+	float maxknockback = def->knockback;
+	float minknockback = def->minknockback;
+	float radius = def->splash_radius;
+
+	assert( radius >= 0.0f );
+	assert( minknockback >= 0.0f && maxknockback >= 0.0f );
+
+	int touch[MAX_EDICTS];
+	int numtouch = GClip_FindInRadius4D( pos, radius, touch, MAX_EDICTS, timeDelta );
+
+	for( int i = 0; i < numtouch; i++ ) {
+		edict_t * ent = game.edicts + touch[i];
+		if( !ent->takedamage || G_IsTeamDamage( &ent->s, &attacker->s ) )
+			continue;
+
+		float frac;
+		Vec3 pushDir;
+		G_SplashFrac4D( ent, pos, radius, &pushDir, &frac, timeDelta, false );
+		if( frac == 0.0f )
+			continue;
+
+		if( G_CanSplashDamagePos( ent, pos, plane ) ) {
+			float knockback = Lerp( minknockback, frac, maxknockback );
+			G_KnockBackPush( ent, attacker, pushDir, knockback, 0 );
+		}
+	}
+}
+
+
 /*
 * G_RadiusDamage
 */
@@ -452,7 +527,7 @@ void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edi
 		if( frac == 0.0f )
 			continue;
 
-		if( G_CanSplashDamage( ent, inflictor, plane ) ) {
+		if( G_CanSplashDamageEnt( ent, inflictor, plane ) ) {
 			float damage = Lerp( mindamage, frac, maxdamage );
 			float knockback = Lerp( minknockback, frac, maxknockback );
 			G_Damage( ent, inflictor, attacker, pushDir, inflictor->velocity, inflictor->s.origin, damage, knockback, DAMAGE_RADIUS, mod );

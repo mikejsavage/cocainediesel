@@ -399,10 +399,10 @@ const WeaponDef gs_weaponDefs[] = {
 		//damages
 		25,                             // damage
 		0,                              // selfdamage ratio
-		50,                             // knockback
-		0,                              // splash radius
+		60,                             // knockback
+		100,                            // splash radius
 		0,                              // minimum damage
-		0,                              // minimum knockback
+		60,                             // minimum knockback
 
 		//projectile def
 		INSTANT,                        // speed

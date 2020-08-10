@@ -93,24 +93,24 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata * metadata, const char 
 			break;
 
 		if( cmd == "upper_rotator_joints" ) {
-			Span< const char > joint_name0 = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindJointByName( metadata->model, Hash32( joint_name0 ), &metadata->upper_rotator_joints[ 0 ] );
+			Span< const char > node_name0 = ParseToken( &cursor, Parse_StopOnNewLine );
+			FindNodeByName( metadata->model, Hash32( node_name0 ), &metadata->upper_rotator_nodes[ 0 ] );
 
-			Span< const char > joint_name1 = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindJointByName( metadata->model, Hash32( joint_name1 ), &metadata->upper_rotator_joints[ 1 ] );
+			Span< const char > node_name1 = ParseToken( &cursor, Parse_StopOnNewLine );
+			FindNodeByName( metadata->model, Hash32( node_name1 ), &metadata->upper_rotator_nodes[ 1 ] );
 		}
 		else if( cmd == "head_rotator_joint" ) {
-			Span< const char > joint_name = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindJointByName( metadata->model, Hash32( joint_name ), &metadata->head_rotator_joint );
+			Span< const char > node_name = ParseToken( &cursor, Parse_StopOnNewLine );
+			FindNodeByName( metadata->model, Hash32( node_name ), &metadata->head_rotator_node );
 		}
 		else if( cmd == "upper_root_joint" ) {
-			Span< const char > joint_name = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindJointByName( metadata->model, Hash32( joint_name ), &metadata->upper_root_joint );
+			Span< const char > node_name = ParseToken( &cursor, Parse_StopOnNewLine );
+			FindNodeByName( metadata->model, Hash32( node_name ), &metadata->upper_root_node );
 		}
 		else if( cmd == "tag" ) {
-			Span< const char > joint_name = ParseToken( &cursor, Parse_StopOnNewLine );
-			u8 joint_idx;
-			if( FindJointByName( metadata->model, Hash32( joint_name ), &joint_idx ) ) {
+			Span< const char > node_name = ParseToken( &cursor, Parse_StopOnNewLine );
+			u8 node_idx;
+			if( FindNodeByName( metadata->model, Hash32( node_name ), &node_idx ) ) {
 				Span< const char > tag_name = ParseToken( &cursor, Parse_StopOnNewLine );
 				PlayerModelMetadata::Tag * tag = &metadata->tag_backpack;
 				if( tag_name == "tag_head" )
@@ -125,11 +125,11 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata * metadata, const char 
 				float yaw = ParseFloat( &cursor, 0.0f, Parse_StopOnNewLine );
 				float roll = ParseFloat( &cursor, 0.0f, Parse_StopOnNewLine );
 
-				tag->joint_idx = joint_idx;
+				tag->node_idx = node_idx;
 				tag->transform = Mat4Translation( forward, right, up ) * EulerAnglesToMat4( pitch, yaw, roll );
 			}
 			else {
-				Com_GGPrint( "{}: Unknown joint name: {}", filename, joint_name );
+				Com_GGPrint( "{}: Unknown node name: {}", filename, node_name );
 				for( int i = 0; i < 7; i++ )
 					ParseToken( &cursor, Parse_StopOnNewLine );
 			}
@@ -773,7 +773,7 @@ static Quaternion EulerAnglesToQuaternion( EulerDegrees3 angles ) {
 }
 
 static Mat4 TransformTag( const Model * model, const Mat4 & transform, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
-	return transform * model->transform * pose.joint_poses[ tag.joint_idx ] * tag.transform;
+	return transform * model->transform * pose.node_transforms[ tag.node_idx ] * tag.transform;
 }
 
 void CG_DrawPlayer( centity_t *cent ) {
@@ -807,7 +807,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 	CG_GetAnimationTimes( pmodel, cl.serverTime, &lower_time, &upper_time );
 	Span< TRS > lower = SampleAnimation( &temp, meta->model, lower_time );
 	Span< TRS > upper = SampleAnimation( &temp, meta->model, upper_time );
-	MergeLowerUpperPoses( lower, upper, meta->model, meta->upper_root_joint );
+	MergeLowerUpperPoses( lower, upper, meta->model, meta->upper_root_node );
 
 	// add skeleton effects (pose is unmounted yet)
 	bool corpse = cent->current.type == ET_CORPSE;
@@ -826,19 +826,19 @@ void CG_DrawPlayer( centity_t *cent ) {
 
 		AnglesToAxis( tmpangles, cent->ent.axis );
 
-		// apply UPPER and HEAD angles to rotator joints
+		// apply UPPER and HEAD angles to rotator nodes
 		// also add rotations from velocity leaning
 		{
 			EulerDegrees3 angles = EulerDegrees3( LerpAngles( pmodel->oldangles[ UPPER ], cg.lerpfrac, pmodel->angles[ UPPER ] ) * 0.5f );
 
 			Quaternion q = EulerAnglesToQuaternion( angles );
-			lower[ meta->upper_rotator_joints[ 0 ] ].rotation *= q;
-			lower[ meta->upper_rotator_joints[ 1 ] ].rotation *= q;
+			lower[ meta->upper_rotator_nodes[ 0 ] ].rotation *= q;
+			lower[ meta->upper_rotator_nodes[ 1 ] ].rotation *= q;
 		}
 
 		{
 			EulerDegrees3 angles = EulerDegrees3( LerpAngles( pmodel->oldangles[ HEAD ], cg.lerpfrac, pmodel->angles[ HEAD ] ) );
-			lower[ meta->head_rotator_joint ].rotation *= EulerAnglesToQuaternion( angles );
+			lower[ meta->head_rotator_node ].rotation *= EulerAnglesToQuaternion( angles );
 		}
 	}
 

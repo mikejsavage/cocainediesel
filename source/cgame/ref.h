@@ -35,17 +35,6 @@ struct orientation_t {
 	Vec3 origin;
 };
 
-struct TRS {
-	Quaternion rotation;
-	Vec3 translation;
-	float scale;
-};
-
-struct MatrixPalettes {
-	Span< Mat4 > joint_poses;
-	Span< Mat4 > skinning_matrices;
-};
-
 struct entity_t {
 	const Model * model;
 

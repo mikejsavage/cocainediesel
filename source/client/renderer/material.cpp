@@ -703,6 +703,8 @@ static void PackDecalAtlas() {
 
 		decals_atlases = NewAtlasTextureArray( config );
 	}
+
+	Com_GGPrint( "Atlas is {}MB ({} layers)", num_atlases * DECAL_ATLAS_SIZE * DECAL_ATLAS_SIZE * sizeof( RGBA8 ) / 1000 / 1000, num_atlases );
 }
 
 void InitMaterials() {

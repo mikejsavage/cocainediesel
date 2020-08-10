@@ -34,16 +34,17 @@ static void DeleteModel( Model * model ) {
 		}
 	}
 
-	for( u8 i = 0; i < model->num_joints; i++ ) {
-		FREE( sys_allocator, model->joints[ i ].rotations.times );
-		FREE( sys_allocator, model->joints[ i ].translations.times );
-		FREE( sys_allocator, model->joints[ i ].scales.times );
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		FREE( sys_allocator, model->nodes[ i ].rotations.times );
+		FREE( sys_allocator, model->nodes[ i ].translations.times );
+		FREE( sys_allocator, model->nodes[ i ].scales.times );
 	}
 
 	DeleteMesh( model->mesh );
 
 	FREE( sys_allocator, model->primitives );
-	FREE( sys_allocator, model->joints );
+	FREE( sys_allocator, model->nodes );
+	FREE( sys_allocator, model->skin );
 }
 
 void HotloadModels() {
@@ -239,13 +240,13 @@ static float LerpFloat( float a, float t, float b ) { return Lerp( a, t, b ); }
 Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t ) {
 	ZoneScoped;
 
-	Span< TRS > local_poses = ALLOC_SPAN( a, TRS, model->num_joints );
+	Span< TRS > local_poses = ALLOC_SPAN( a, TRS, model->num_nodes );
 
-	for( u8 i = 0; i < model->num_joints; i++ ) {
-		const Model::Joint & joint = model->joints[ i ];
-		local_poses[ i ].rotation = SampleAnimationChannel( joint.rotations, t, Quaternion::Identity(), NLerp );
-		local_poses[ i ].translation = SampleAnimationChannel( joint.translations, t, Vec3( 0 ), LerpVec3 );
-		local_poses[ i ].scale = SampleAnimationChannel( joint.scales, t, 1.0f, LerpFloat );
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		const Model::Node * node = &model->nodes[ i ];
+		local_poses[ i ].rotation = SampleAnimationChannel( node->rotations, t, node->transform.rotation, NLerp );
+		local_poses[ i ].translation = SampleAnimationChannel( node->translations, t, node->transform.translation, LerpVec3 );
+		local_poses[ i ].scale = SampleAnimationChannel( node->scales, t, node->transform.scale, LerpFloat );
 	}
 
 	return local_poses;
@@ -277,44 +278,37 @@ static Mat4 TRSToMat4( const TRS & trs ) {
 	);
 }
 
-MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< TRS > local_poses ) {
+MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< const TRS > local_poses ) {
 	ZoneScoped;
 
-	assert( local_poses.n == model->num_joints );
+	assert( local_poses.n == model->num_nodes );
 
 	MatrixPalettes palettes;
-	palettes.joint_poses = ALLOC_SPAN( a, Mat4, model->num_skinned_joints );
-	palettes.skinning_matrices = ALLOC_SPAN( a, Mat4, model->num_skinned_joints );
+	palettes.node_transforms = ALLOC_SPAN( a, Mat4, model->num_nodes );
+	palettes.skinning_matrices = ALLOC_SPAN( a, Mat4, model->num_joints );
 
-	{
-		u8 joint_idx = model->root_joint;
-		palettes.joint_poses[ model->joints[ joint_idx ].skinned_idx ] = TRSToMat4( local_poses[ model->joints[ joint_idx ].skinned_idx ] );
-		for( u8 i = 0; i < model->num_skinned_joints - 1; i++ ) {
-			joint_idx = model->joints[ joint_idx ].next;
-			u8 parent = model->joints[ joint_idx ].parent;
-			u8 skinned_idx = model->joints[ joint_idx ].skinned_idx;
-			palettes.joint_poses[ skinned_idx ] = palettes.joint_poses[ parent ] * TRSToMat4( local_poses[ skinned_idx ] );
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		u8 parent = model->nodes[ i ].parent;
+		if( parent == U8_MAX ) {
+			palettes.node_transforms[ i ] = TRSToMat4( local_poses[ i ] );
+		}
+		else {
+			palettes.node_transforms[ i ] = palettes.node_transforms[ parent ] * TRSToMat4( local_poses[ i ] );
 		}
 	}
 
-	{
-		u8 joint_idx = model->root_joint;
-		palettes.skinning_matrices[ model->joints[ joint_idx ].skinned_idx ] = palettes.joint_poses[ model->joints[ joint_idx ].skinned_idx ] * model->joints[ joint_idx ].joint_to_bind;
-		for( u8 i = 0; i < model->num_skinned_joints - 1; i++ ) {
-			joint_idx = model->joints[ joint_idx ].next;
-			u8 parent = model->joints[ joint_idx ].parent;
-			u8 skinned_idx = model->joints[ joint_idx ].skinned_idx;
-			palettes.skinning_matrices[ skinned_idx ] = palettes.joint_poses[ skinned_idx ] * model->joints[ joint_idx ].joint_to_bind;
-		}
+	for( u8 i = 0; i < model->num_joints; i++ ) {
+		u8 node_idx = model->skin[ i ].node_idx;
+		palettes.skinning_matrices[ i ] = palettes.node_transforms[ node_idx ] * model->skin[ i ].joint_to_bind;
 	}
 
 	return palettes;
 }
 
-bool FindJointByName( const Model * model, u32 name, u8 * joint_idx ) {
-	for( u8 i = 0; i < model->num_joints; i++ ) {
-		if( model->joints[ i ].name == name ) {
-			*joint_idx = i;
+bool FindNodeByName( const Model * model, u32 name, u8 * idx ) {
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		if( model->nodes[ i ].name == name ) {
+			*idx = i;
 			return true;
 		}
 	}
@@ -325,17 +319,17 @@ bool FindJointByName( const Model * model, u32 name, u8 * joint_idx ) {
 static void MergePosesRecursive( Span< TRS > lower, Span< const TRS > upper, const Model * model, u8 i ) {
 	lower[ i ] = upper[ i ];
 
-	const Model::Joint & joint = model->joints[ i ];
-	if( joint.sibling != U8_MAX )
-		MergePosesRecursive( lower, upper, model, joint.sibling );
-	if( joint.first_child != U8_MAX )
-		MergePosesRecursive( lower, upper, model, joint.first_child );
+	const Model::Node * node = &model->nodes[ i ];
+	if( node->sibling != U8_MAX )
+		MergePosesRecursive( lower, upper, model, node->sibling );
+	if( node->first_child != U8_MAX )
+		MergePosesRecursive( lower, upper, model, node->first_child );
 }
 
-void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const Model * model, u8 upper_root_joint ) {
-	lower[ upper_root_joint ] = upper[ upper_root_joint ];
+void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const Model * model, u8 upper_root_node ) {
+	lower[ upper_root_node ] = upper[ upper_root_node ];
 
-	const Model::Joint & joint = model->joints[ upper_root_joint ];
-	if( joint.first_child != U8_MAX )
-		MergePosesRecursive( lower, upper, model, joint.first_child );
+	const Model::Node * node = &model->nodes[ upper_root_node ];
+	if( node->first_child != U8_MAX )
+		MergePosesRecursive( lower, upper, model, node->first_child );
 }

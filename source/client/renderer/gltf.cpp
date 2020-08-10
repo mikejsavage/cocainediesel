@@ -23,66 +23,12 @@ static bool LoadBinaryBuffers( cgltf_data * data ) {
 	return true;
 }
 
-static Span< const u8 > AccessorToSpan( const cgltf_accessor * accessor ) {
-	cgltf_size offset = accessor->offset + accessor->buffer_view->offset;
-	return Span< const u8 >( ( const u8 * ) accessor->buffer_view->buffer->data + offset, accessor->count * accessor->stride );
-}
-
 static u8 GetNodeIdx( const cgltf_node * node ) {
 	return u8( uintptr_t( node->camera ) - 1 );
 }
 
 static void SetNodeIdx( cgltf_node * node, u8 idx ) {
 	node->camera = ( cgltf_camera * ) uintptr_t( idx + 1 );
-}
-
-static void LoadJoint( Model * model, const cgltf_node * node, u8 ** prev ) {
-	u8 joint_idx = GetNodeIdx( node );
-	**prev = joint_idx;
-	*prev = &model->joints[ joint_idx ].next;
-
-	Model::Joint & joint = model->joints[ joint_idx ];
-	joint.parent = node->parent != NULL ? GetNodeIdx( node->parent ) : U8_MAX;
-	joint.name = Hash32( node->name );
-	joint.joint_to_bind = Mat4::Identity();
-
-	for( size_t i = 0; i < node->children_count; i++ ) {
-		LoadJoint( model, node->children[ i ], prev );
-	}
-
-	// TODO: remove with additive animations
-	if( node->children_count == 0 ) {
-		joint.first_child = U8_MAX;
-	}
-	else {
-		joint.first_child = GetNodeIdx( node->children[ 0 ] );
-
-		for( size_t i = 0; i < node->children_count - 1; i++ ) {
-			model->joints[ GetNodeIdx( node->children[ i ] ) ].sibling = GetNodeIdx( node->children[ i + 1 ] );
-		}
-
-		model->joints[ GetNodeIdx( node->children[ node->children_count - 1 ] ) ].sibling = U8_MAX;
-	}
-}
-
-static void LoadJointTree( Model * model, const cgltf_node * root ) {
-	u8 * prev_ptr = &model->root_joint;
-	LoadJoint( model, root, &prev_ptr );
-
-	// TODO: remove with additive animations
-	model->joints[ GetNodeIdx( root ) ].sibling = U8_MAX;
-}
-
-static void LoadSkinJointToBindTransforms( Model * model, const cgltf_skin * skin ) {
-	for( size_t i = 0; i < skin->joints_count; i++ ) {
-		u8 joint_idx = GetNodeIdx( skin->joints[ i ] );
-		Model::Joint * joint = &model->joints[ joint_idx ];
-
-		joint->skinned_idx = i;
-
-		cgltf_bool ok = cgltf_accessor_read_float( skin->inverse_bind_matrices, joint_idx, joint->joint_to_bind.ptr(), 16 );
-		assert( ok != 0 );
-	}
 }
 
 static MinMax3 Extend( MinMax3 bounds, Vec3 p ) {
@@ -92,15 +38,12 @@ static MinMax3 Extend( MinMax3 bounds, Vec3 p ) {
 	);
 }
 
-static void LoadNode( Model * model, const cgltf_node * node, bool animated ) {
-	for( size_t i = 0; i < node->children_count; i++ ) {
-		LoadNode( model, node->children[ i ], animated );
-	}
+static Span< const u8 > AccessorToSpan( const cgltf_accessor * accessor ) {
+	cgltf_size offset = accessor->offset + accessor->buffer_view->offset;
+	return Span< const u8 >( ( const u8 * ) accessor->buffer_view->buffer->data + offset, accessor->count * accessor->stride );
+}
 
-	if( node->mesh == NULL ) {
-		return;
-	}
-
+static void LoadGeometry( Model * model, const cgltf_node * node ) {
 	const cgltf_primitive & prim = node->mesh->primitives[ 0 ];
 
 	MeshConfig mesh_config;
@@ -111,23 +54,14 @@ static void LoadNode( Model * model, const cgltf_node * node, bool animated ) {
 		if( attr.type == cgltf_attribute_type_position ) {
 			Span< const Vec3 > positions = AccessorToSpan( attr.data ).cast< const Vec3 >();
 			mesh_config.num_vertices = positions.n;
-			if( animated ) {
-				mesh_config.positions = NewVertexBuffer( positions );
-				for( Vec3 p : positions ) {
-					model->bounds = Extend( model->bounds, p );
-				}
-			}
-			else {
-				Mat4 node_transform;
-				cgltf_node_transform_local( node, node_transform.ptr() );
+			mesh_config.positions = NewVertexBuffer( positions );
 
-				Span< Vec3 > transformed = ALLOC_SPAN( sys_allocator, Vec3, positions.n );
-				for( size_t j = 0; j < positions.n; j++ ) {
-					transformed[ j ] = ( node_transform * Vec4( positions[ j ], 1.0f ) ).xyz();
-					model->bounds = Extend( model->bounds, transformed[ j ] );
-				}
-				mesh_config.positions = NewVertexBuffer( transformed );
-				FREE( sys_allocator, transformed.ptr );
+			Mat4 transform;
+			cgltf_node_transform_local( node, transform.ptr() );
+
+			for( size_t j = 0; j < positions.n; j++ ) {
+				Vec3 transformed = ( transform * Vec4( positions[ j ], 1.0f ) ).xyz();
+				model->bounds = Extend( model->bounds, transformed );
 			}
 		}
 
@@ -178,6 +112,68 @@ static void LoadNode( Model * model, const cgltf_node * node, bool animated ) {
 	primitive->material = FindMaterial( material_name );
 }
 
+static void LoadNode( Model * model, cgltf_node * gltf_node, u8 * node_idx ) {
+	u8 idx = *node_idx;
+	*node_idx++;
+	SetNodeIdx( gltf_node, idx );
+
+	Model::Node * node = &model->nodes[ idx ];
+	node->parent = gltf_node->parent != NULL ? GetNodeIdx( gltf_node->parent ) : U8_MAX;
+	node->primitive = U8_MAX;
+	node->name = gltf_node->name == NULL ? 0 : Hash32( gltf_node->name );
+
+	node->transform.rotation = Quaternion::Identity();
+	node->transform.translation = Vec3( 0.0f );
+	node->transform.scale = 1.0f;
+
+	if( gltf_node->has_rotation ) {
+		node->transform.rotation = Quaternion(
+			gltf_node->rotation[ 0 ],
+			gltf_node->rotation[ 1 ],
+			gltf_node->rotation[ 2 ],
+			gltf_node->rotation[ 3 ]
+		);
+	}
+
+	if( gltf_node->has_translation ) {
+		node->transform.translation = Vec3(
+			gltf_node->translation[ 0 ],
+			gltf_node->translation[ 1 ],
+			gltf_node->translation[ 2 ]
+		);
+	}
+
+	if( gltf_node->has_scale ) {
+		// assert( Abs( gltf_node->scale[ 0 ] / gltf_node->scale[ 1 ] - 1.0f ) < 0.001f );
+		// assert( Abs( gltf_node->scale[ 0 ] / gltf_node->scale[ 2 ] - 1.0f ) < 0.001f );
+		node->transform.scale = gltf_node->scale[ 0 ];
+	}
+
+	if( gltf_node->mesh != NULL ) {
+		node->primitive = model->num_primitives;
+		LoadGeometry( model, gltf_node );
+		return;
+	}
+
+	for( size_t i = 0; i < gltf_node->children_count; i++ ) {
+		LoadNode( model, gltf_node->children[ i ], node_idx );
+	}
+
+	// TODO: remove with additive animations
+	if( gltf_node->children_count == 0 ) {
+		node->first_child = U8_MAX;
+	}
+	else {
+		node->first_child = GetNodeIdx( gltf_node->children[ 0 ] );
+
+		for( size_t i = 0; i < gltf_node->children_count - 1; i++ ) {
+			model->nodes[ GetNodeIdx( gltf_node->children[ i ] ) ].sibling = GetNodeIdx( gltf_node->children[ i + 1 ] );
+		}
+
+		model->nodes[ GetNodeIdx( gltf_node->children[ gltf_node->children_count - 1 ] ) ].sibling = U8_MAX;
+	}
+}
+
 template< typename T >
 static void LoadChannel( const cgltf_animation_channel * chan, Model::AnimationChannel< T > * out_channel ) {
 	constexpr size_t lanes = sizeof( T ) / sizeof( float );
@@ -216,58 +212,48 @@ static void LoadScaleChannel( const cgltf_animation_channel * chan, Model::Anima
 	}
 }
 
-static void LoadAnimation( Model * model, const cgltf_animation * animation ) {
-	for( size_t i = 0; i < animation->channels_count; i++ ) {
-		const cgltf_animation_channel * chan = &animation->channels[ i ];
-
-		u8 joint_idx = GetNodeIdx( chan->target_node );
-		assert( joint_idx != U8_MAX );
-
-		if( chan->target_path == cgltf_animation_path_type_translation ) {
-			LoadChannel( chan, &model->joints[ joint_idx ].translations );
-		}
-		else if( chan->target_path == cgltf_animation_path_type_rotation ) {
-			LoadChannel( chan, &model->joints[ joint_idx ].rotations );
-		}
-		else if( chan->target_path == cgltf_animation_path_type_scale ) {
-			LoadScaleChannel( chan, &model->joints[ joint_idx ].scales );
-		}
-	}
-}
-
-template< typename T, size_t N >
-static void CreateSingleSampleChannel( Model::AnimationChannel< T > * out_channel, const float ( &sample )[ N ] ) {
+template< typename T >
+static void CreateSingleSampleChannel( Model::AnimationChannel< T > * out_channel, T sample ) {
 	constexpr size_t lanes = sizeof( T ) / sizeof( float );
-	STATIC_ASSERT( lanes == N );
 
-	float * memory = ALLOC_MANY( sys_allocator, float, N + 1 );
+	float * memory = ALLOC_MANY( sys_allocator, float, lanes + 1 );
 	out_channel->times = memory;
 	out_channel->samples = ( T * ) ( memory + 1 );
 	out_channel->num_samples = 1;
 
 	out_channel->times[ 0 ] = 0.0f;
-	memcpy( &out_channel->samples[ 0 ], sample, N * sizeof( float ) );
+	out_channel->samples[ 0 ] = sample;
 }
 
-static void FixupMissingAnimationChannels( Model * model, const cgltf_skin * skin ) {
-	for( u8 i = 0; i < skin->joints_count; i++ ) {
-		const cgltf_node * node = skin->joints[ i ];
-		Model::Joint & joint = model->joints[ i ];
+static void LoadAnimation( Model * model, const cgltf_animation * animation ) {
+	for( size_t i = 0; i < animation->channels_count; i++ ) {
+		const cgltf_animation_channel * chan = &animation->channels[ i ];
 
-		if( joint.rotations.samples == NULL && node->has_rotation ) {
-			CreateSingleSampleChannel( &joint.rotations, node->rotation );
-		}
+		u8 node_idx = GetNodeIdx( chan->target_node );
+		assert( node_idx != U8_MAX );
 
-		if( joint.translations.samples == NULL && node->has_translation ) {
-			CreateSingleSampleChannel( &joint.translations, node->translation );
+		if( chan->target_path == cgltf_animation_path_type_translation ) {
+			LoadChannel( chan, &model->nodes[ node_idx ].translations );
 		}
+		else if( chan->target_path == cgltf_animation_path_type_rotation ) {
+			LoadChannel( chan, &model->nodes[ node_idx ].rotations );
+		}
+		else if( chan->target_path == cgltf_animation_path_type_scale ) {
+			LoadScaleChannel( chan, &model->nodes[ node_idx ].scales );
+		}
+	}
+}
 
-		if( joint.scales.samples == NULL && node->has_scale ) {
-			assert( Abs( node->scale[ 0 ] / node->scale[ 1 ] - 1.0f ) < 0.001f );
-			assert( Abs( node->scale[ 0 ] / node->scale[ 2 ] - 1.0f ) < 0.001f );
-			float scale[ 1 ] = { node->scale[ 0 ] };
-			CreateSingleSampleChannel( &joint.scales, scale );
-		}
+static void LoadSkin( Model * model, const cgltf_skin * skin ) {
+	model->skin = ALLOC_MANY( sys_allocator, Model::Joint, skin->joints_count );
+	model->num_joints = skin->joints_count;
+
+	for( size_t i = 0; i < skin->joints_count; i++ ) {
+		Model::Joint * joint = &model->skin[ i ];
+		joint->node_idx = GetNodeIdx( skin->joints[ i ] );
+
+		cgltf_bool ok = cgltf_accessor_read_float( skin->inverse_bind_matrices, i, joint->joint_to_bind.ptr(), 16 );
+		assert( ok != 0 );
 	}
 }
 
@@ -325,30 +311,24 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 
 	model->primitives = ALLOC_MANY( sys_allocator, Model::Primitive, gltf->meshes_count );
 
-	bool animated = gltf->animations_count > 0;
-	for( size_t i = 0; i < gltf->scene->nodes_count; i++ ) {
-		LoadNode( model, gltf->scene->nodes[ i ], animated );
-	}
-
-	model->nodes = ALLOC_MANY( sys_allocator, Model::Joint, gltf->nodes_count );
+	model->nodes = ALLOC_MANY( sys_allocator, Model::Node, gltf->nodes_count );
 	memset( model->nodes, 0, sizeof( Model::Node ) * gltf->nodes_count );
 	model->num_nodes = gltf->nodes_count;
 
-	for( size_t i = 0; i < gltf->nodes_count; i++ ) {
-		SetNodeIdx( &gltf->nodes[ i ], i );
-	}
-
+	u8 node_idx = 0;
 	for( size_t i = 0; i < gltf->scene->nodes_count; i++ ) {
-		LoadJointTree( model, gltf->scene->nodes[ i ] );
+		LoadNode( model, gltf->scene->nodes[ i ], &node_idx );
+
+		// TODO: remove with additive animations
+		model->nodes[ GetNodeIdx( gltf->scene->nodes[ i ] ) ].sibling = U8_MAX;
 	}
 
-	if( animated ) {
+	if( gltf->animations_count > 0 ) {
 		if( gltf->skins_count > 0 ) {
 			LoadSkin( model, &gltf->skins[ 0 ] );
 		}
 
 		LoadAnimation( model, &gltf->animations[ 0 ] );
-		FixupMissingAnimationChannels( model, &gltf->skins[ 0 ] );
 	}
 
 	return true;

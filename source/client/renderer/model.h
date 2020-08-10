@@ -1,8 +1,7 @@
 #pragma once
 
 #include "qcommon/types.h"
-#include "cgame/ref.h"
-#include "client/renderer/backend.h"
+#include "client/renderer/types.h"
 
 struct Model {
 	struct Primitive {
@@ -20,9 +19,9 @@ struct Model {
 	};
 
 	struct Node {
-		Mat4 transform;
+		TRS transform;
 		u8 parent;
-		u8 next;
+		u8 primitive;
 
 		// TODO: remove this with additive animations
 		u32 name;
@@ -49,7 +48,6 @@ struct Model {
 
 	Node * nodes;
 	u8 num_nodes;
-	u8 root_node;
 
 	Joint * skin;
 	u8 num_joints;
@@ -77,6 +75,6 @@ void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec
 void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, Span< const Mat4 > skinning_matrices = Span< const Mat4 >() );
 
 Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t );
-MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< TRS > local_poses );
-bool FindJointByName( const Model * model, u32 name, u8 * joint_idx );
+MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< const TRS > local_poses );
+bool FindNodeByName( const Model * model, u32 name, u8 * idx );
 void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const Model * model, u8 upper_root_joint );

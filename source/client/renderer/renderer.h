@@ -6,7 +6,6 @@
 #include "client/renderer/model.h"
 #include "client/renderer/shader.h"
 #include "client/renderer/srgb.h"
-#include "gameshared/q_math.h"
 #include "cgame/ref.h"
 
 /*

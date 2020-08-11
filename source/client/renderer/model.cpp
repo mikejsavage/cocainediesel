@@ -286,9 +286,11 @@ MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< 
 
 	assert( local_poses.n == model->num_nodes );
 
-	MatrixPalettes palettes;
+	MatrixPalettes palettes = { };
 	palettes.node_transforms = ALLOC_SPAN( a, Mat4, model->num_nodes );
-	palettes.skinning_matrices = ALLOC_SPAN( a, Mat4, model->num_joints );
+	if( model->num_joints != 0 ) {
+		palettes.skinning_matrices = ALLOC_SPAN( a, Mat4, model->num_joints );
+	}
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		u8 parent = model->nodes[ i ].parent;

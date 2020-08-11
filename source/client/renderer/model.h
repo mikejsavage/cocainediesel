@@ -19,13 +19,13 @@ struct Model {
 	};
 
 	struct Node {
+		u32 name;
+
 		Mat4 global_transform;
 		TRS local_transform;
-		u8 parent;
 		u8 primitive;
 
-		// TODO: remove this with additive animations
-		u32 name;
+		u8 parent;
 		u8 first_child;
 		u8 sibling;
 

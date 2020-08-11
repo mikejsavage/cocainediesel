@@ -143,11 +143,13 @@ static void LoadNode( Model * model, cgltf_node * gltf_node, u8 * node_idx ) {
 	}
 
 	if( gltf_node->has_scale ) {
+		// TODO
 		// assert( Abs( gltf_node->scale[ 0 ] / gltf_node->scale[ 1 ] - 1.0f ) < 0.001f );
 		// assert( Abs( gltf_node->scale[ 0 ] / gltf_node->scale[ 2 ] - 1.0f ) < 0.001f );
 		node->local_transform.scale = gltf_node->scale[ 0 ];
 	}
 
+	// TODO: this will break if multiple nodes share a mesh
 	if( gltf_node->mesh != NULL ) {
 		node->primitive = model->num_primitives;
 		LoadGeometry( model, gltf_node, node->global_transform );
@@ -157,7 +159,6 @@ static void LoadNode( Model * model, cgltf_node * gltf_node, u8 * node_idx ) {
 		LoadNode( model, gltf_node->children[ i ], node_idx );
 	}
 
-	// TODO: remove with additive animations
 	if( gltf_node->children_count == 0 ) {
 		node->first_child = U8_MAX;
 	}
@@ -313,8 +314,6 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 	u8 node_idx = 0;
 	for( size_t i = 0; i < gltf->scene->nodes_count; i++ ) {
 		LoadNode( model, gltf->scene->nodes[ i ], &node_idx );
-
-		// TODO: remove with additive animations
 		model->nodes[ GetNodeIdx( gltf->scene->nodes[ i ] ) ].sibling = U8_MAX;
 	}
 

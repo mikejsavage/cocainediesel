@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/version.h"
 
 static void CL_InitServerDownload( const char *filename, int size, unsigned checksum, bool not_external_server, const char *url );
-void CL_StopServerDownload( void );
+static void CL_StopServerDownload( void );
 
 static DynamicArray< u8 > map_download_data( NO_RAII );
 
@@ -371,10 +371,13 @@ static void CL_InitDownload_f( void ) {
 	CL_InitServerDownload( filename, size, checksum, not_external_server, url );
 }
 
-void CL_StopServerDownload() {
+static void CL_StopServerDownload() {
 	if( cls.download.filenum > 0 ) {
 		FS_FCloseFile( cls.download.filenum );
 		cls.download.filenum = 0;
+	}
+	else {
+		map_download_data.shutdown();
 	}
 
 	if( cls.download.disconnect ) {
@@ -394,8 +397,6 @@ void CL_StopServerDownload() {
 	cls.download.size = 0;
 	cls.download.map = false;
 	cls.download.timeout = 0;
-
-	map_download_data.shutdown();
 
 	Cvar_ForceSet( "cl_download_name", "" );
 	Cvar_ForceSet( "cl_download_percent", "0" );

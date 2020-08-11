@@ -1,5 +1,7 @@
 #pragma once
 
+#include "qcommon/types.h"
+
 using DownloadDataCallback = bool ( * )( const void * data, size_t n );
 using DownloadDoneCallback = void ( * )( bool success, int http_status );
 

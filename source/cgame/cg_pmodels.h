@@ -180,7 +180,7 @@ enum PlayerSound {
 
 struct PlayerModelMetadata {
 	struct Tag {
-		u8 joint_idx;
+		u8 node_idx;
 		Mat4 transform;
 	};
 
@@ -195,9 +195,9 @@ struct PlayerModelMetadata {
 	const Model * model;
 	const SoundEffect * sounds[ PlayerSound_Count ];
 
-	u8 upper_rotator_joints[ 2 ];
-	u8 head_rotator_joint;
-	u8 upper_root_joint;
+	u8 upper_rotator_nodes[ 2 ];
+	u8 head_rotator_node;
+	u8 upper_root_node;
 
 	Tag tag_backpack;
 	Tag tag_head;

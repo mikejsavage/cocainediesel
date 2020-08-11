@@ -151,7 +151,6 @@ static void LoadNode( Model * model, cgltf_node * gltf_node, u8 * node_idx ) {
 	if( gltf_node->mesh != NULL ) {
 		node->primitive = model->num_primitives;
 		LoadGeometry( model, gltf_node, node->global_transform );
-		return;
 	}
 
 	for( size_t i = 0; i < gltf_node->children_count; i++ ) {

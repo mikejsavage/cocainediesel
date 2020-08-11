@@ -1365,5 +1365,7 @@ void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material 
 }
 
 void DownloadFramebuffer( void * buf ) {
+	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 	glReadPixels( 0, 0, frame_static.viewport_width, frame_static.viewport_height, GL_RGB, GL_UNSIGNED_BYTE, buf );
+	prev_fbo = 0;
 }

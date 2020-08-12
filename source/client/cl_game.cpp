@@ -92,7 +92,6 @@ void CL_GameModule_Init( void ) {
 	CL_GameModule_Shutdown();
 
 	import.GetConfigString = CL_GameModule_GetConfigString;
-	import.DownloadRequest = CL_DownloadRequest;
 
 	import.NET_GetUserCmd = CL_GameModule_NET_GetUserCmd;
 	import.NET_GetCurrentUserCmdNum = CL_GameModule_NET_GetCurrentUserCmdNum;

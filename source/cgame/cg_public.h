@@ -65,7 +65,6 @@ struct snapshot_t {
 //
 struct cgame_import_t {
 	void ( *GetConfigString )( int i, char *str, int size );
-	bool ( *DownloadRequest )( const char *filename );
 
 	void ( *NET_GetUserCmd )( int frame, usercmd_t *cmd );
 	int ( *NET_GetCurrentUserCmdNum )( void );

@@ -93,30 +93,11 @@ extern client_state_t cl;
 /*
 ==================================================================
 
-the client_static_t structure is persistant through an arbitrary number
+the client_static_t structure is persistent through an arbitrary number
 of server connections
 
 ==================================================================
 */
-
-struct download_t {
-	// for request
-	char *requestname;              // file we requested from the server (NULL if none requested)
-	int64_t timeout;
-	bool map;
-
-	char *name;                     // name of the file in download, relative to base path
-	char *origname;                 // name of the file in download as originally passed by the server
-	char *tempname;                 // temporary location, relative to base path
-	size_t size;
-	unsigned checksum;
-
-	int filenum;
-	size_t bytes_downloaded;
-
-	bool disconnect;            // set when user tries to disconnect, to allow cleaning up webdownload
-	bool pending_reconnect;     // set when we ignored a map change command to avoid stopping the download
-};
 
 struct cl_demo_t {
 	char *name;
@@ -190,8 +171,6 @@ struct client_static_t {
 	netchan_t netchan;
 
 	int challenge;              // from the server to use for connecting
-
-	download_t download;
 
 	// demo recording info must be here, so it isn't cleared on level change
 	cl_demo_t demo;
@@ -343,11 +322,11 @@ const char **CL_DemoComplete( const char *partial );
 void CL_ParseServerMessage( msg_t *msg );
 #define SHOWNET( msg,s ) _SHOWNET( msg,s,cl_shownet->integer );
 
-bool CL_CheckOrDownloadFile( const char *filename );
-
-bool CL_DownloadRequest( const char *filename );
-void CL_DownloadDone( void );
-void CL_CheckDownloadTimeout( void );
+bool CL_DownloadFile( const char * filename, bool save_to_disk );
+bool CL_IsDownloading();
+void CL_CancelDownload();
+void CL_ReconnectAfterDownload();
+void CL_CheckDownloadTimeout();
 
 //
 // cl_screen.c

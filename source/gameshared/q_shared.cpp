@@ -70,11 +70,13 @@ bool COM_ValidateFilename( const char *filename ) {
 * COM_ValidateRelativeFilename
 */
 bool COM_ValidateRelativeFilename( const char *filename ) {
+	// TODO: should probably use PathIsRelative on windows
+	// https://docs.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathisrelativea?redirectedfrom=MSDN
 	if( !COM_ValidateFilename( filename ) ) {
 		return false;
 	}
 
-	if( strstr( filename, ".." ) || strstr( filename, "//" ) ) {
+	if( strchr( filename, ':' ) || strstr( filename, ".." ) || strstr( filename, "//" ) ) {
 		return false;
 	}
 

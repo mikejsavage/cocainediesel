@@ -545,12 +545,9 @@ static void CL_Disconnect_SendCommand( void ) {
 * This is also called on Com_Error, so it shouldn't cause any errors
 */
 void CL_Disconnect( const char *message ) {
-	char menuparms[MAX_STRING_CHARS];
-	bool wasconnecting;
-
 	// We have to shut down webdownloading first
-	if( cls.download.requestname && !cls.download.disconnect ) {
-		cls.download.disconnect = true;
+	if( CL_IsDownloading() ) {
+		CL_CancelDownload();
 		return;
 	}
 
@@ -561,11 +558,7 @@ void CL_Disconnect( const char *message ) {
 		return;
 	}
 
-	if( cls.state < CA_CONNECTED ) {
-		wasconnecting = true;
-	} else {
-		wasconnecting = false;
-	}
+	bool wasconnecting = cls.state < CA_CONNECTED;
 
 	SV_ShutdownGame( "Owner left the listen server", false );
 
@@ -601,12 +594,8 @@ void CL_Disconnect( const char *message ) {
 	CL_ClearState();
 	CL_SetClientState( CA_DISCONNECTED );
 
-	if( cls.download.requestname ) {
-		cls.download.pending_reconnect = false;
-		CL_DownloadDone();
-	}
-
 	if( message != NULL ) {
+		char menuparms[MAX_STRING_CHARS];
 		snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
 					 ( wasconnecting ? DROP_REASON_CONNFAILED : DROP_REASON_CONNERROR ), cls.servername, DROP_TYPE_GENERAL, message );
 
@@ -626,7 +615,7 @@ void CL_Disconnect_f( void ) {
 */
 void CL_Changing_f( void ) {
 	//if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
-	if( cls.download.requestname ) {
+	if( CL_IsDownloading() ) {
 		return;
 	}
 
@@ -655,8 +644,8 @@ void CL_ServerReconnect_f( void ) {
 	}
 
 	//if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
-	if( cls.download.requestname ) {
-		cls.download.pending_reconnect = true;
+	if( CL_IsDownloading() ) {
+		CL_ReconnectAfterDownload();
 		return;
 	}
 
@@ -1073,7 +1062,7 @@ void CL_Precache_f( void ) {
 
 	if( FindMap( StringHash( hash ) ) == NULL ) {
 		TempAllocator temp = cls.frame_arena.temp();
-		CL_DownloadRequest( temp( "maps/{}.bsp", Cmd_Argv( 2 ) ) );
+		CL_DownloadFile( temp( "maps/{}.bsp", Cmd_Argv( 2 ) ), false );
 		return;
 	}
 

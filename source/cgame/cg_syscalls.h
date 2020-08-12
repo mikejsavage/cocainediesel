@@ -24,10 +24,6 @@ static inline void trap_GetConfigString( int i, char *str, int size ) {
 	CGAME_IMPORT.GetConfigString( i, str, size );
 }
 
-static inline bool trap_DownloadRequest( const char *filename ) {
-	return CGAME_IMPORT.DownloadRequest( filename );
-}
-
 static inline void trap_NET_GetUserCmd( int frame, usercmd_t *cmd ) {
 	CGAME_IMPORT.NET_GetUserCmd( frame, cmd );
 }

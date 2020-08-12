@@ -25,19 +25,36 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/array.h"
 #include "qcommon/version.h"
 
-static void CL_InitServerDownload( const char *filename, int size, unsigned checksum, bool not_external_server, const char *url );
-static void CL_StopServerDownload( void );
+struct DownloadInProgress {
+	char * requestname;
+	int64_t timeout;
 
-static DynamicArray< u8 > map_download_data( NO_RAII );
+	char * name; // name of the file in download, relative to base path
+	char * tempname; // temporary location, relative to base path
+	size_t expected_size;
+	u32 expected_checksum;
 
-/*
-* CL_DownloadRequest
-*
-* Request file download
-* return false if couldn't request it for some reason
-*/
-bool CL_DownloadRequest( const char *filename ) {
-	if( cls.download.requestname ) {
+	size_t bytes_downloaded;
+	u32 checksum;
+
+	bool cancelled; // player pressed escape, disconnect after
+	bool reconnect; // server has changed maps while downloading
+
+	bool save_to_disk;
+	int filenum;
+};
+
+static DownloadInProgress download;
+static DynamicArray< u8 > download_data( NO_RAII );
+
+static void DownloadRejected() {
+	FREE( sys_allocator, download.requestname );
+	download.requestname = NULL;
+	download.timeout = 0;
+}
+
+bool CL_DownloadFile( const char * filename, bool save_to_disk ) {
+	if( download.requestname ) {
 		Com_Printf( "Can't download: %s. Download already in progress.\n", filename );
 		return false;
 	}
@@ -47,16 +64,8 @@ bool CL_DownloadRequest( const char *filename ) {
 		return false;
 	}
 
-	Span< const char > ext = FileExtension( filename );
-	bool is_map = ext == ".bsp";
-
-	if( !is_map && FS_FOpenFile( filename, NULL, FS_READ ) != -1 ) {
+	if( save_to_disk && FS_FOpenFile( filename, NULL, FS_READ ) != -1 ) {
 		Com_Printf( "Can't download: %s. File already exists.\n", filename );
-		return false;
-	}
-
-	if( !is_map && ext != APP_DEMO_EXTENSION_STR ) {
-		Com_Printf( "Can't download, got arbitrary file type: %s\n", filename );
 		return false;
 	}
 
@@ -67,292 +76,110 @@ bool CL_DownloadRequest( const char *filename ) {
 
 	Com_Printf( "Asking to download: %s\n", filename );
 
-	cls.download.requestname = ( char * ) Mem_ZoneMalloc( sizeof( char ) * ( strlen( filename ) + 1 ) );
-	Q_strncpyz( cls.download.requestname, filename, sizeof( char ) * ( strlen( filename ) + 1 ) );
-	cls.download.timeout = Sys_Milliseconds() + 5000;
-	cls.download.map = is_map;
+	download = { };
+	download.requestname = CopyString( sys_allocator, filename );
+	download.timeout = Sys_Milliseconds() + 5000;
+	download.save_to_disk = save_to_disk;
 
 	CL_AddReliableCommand( va( "download \"%s\"", filename ) );
 
 	return true;
 }
 
-/*
-* CL_CheckOrDownloadFile
-*
-* Returns true if the file exists or couldn't send download request
-*/
-bool CL_CheckOrDownloadFile( const char *filename ) {
-	if( !COM_ValidateRelativeFilename( filename ) ) {
-		return true;
-	}
-
-	if( FileExtension( filename ).n == 0 ) {
-		return true;
-	}
-
-	if( !CL_DownloadRequest( filename ) ) {
-		return true;
-	}
-
-	return false;
+bool CL_IsDownloading() {
+	return download.requestname != NULL;
 }
 
-/*
-* CL_DownloadComplete
-*
-* Checks downloaded file's checksum, renames it and adds to the filesystem.
-*/
-static void CL_DownloadComplete( void ) {
-	if( cls.download.filenum == 0 ) {
-		if( Hash32( map_download_data.ptr(), map_download_data.num_bytes() ) != cls.download.checksum ) {
-			Com_Printf( "Downloaded map has wrong checksum.\n" );
-			return;
-		}
+void CL_CancelDownload() {
+	download.cancelled = true;
+}
 
-		if( !AddMap( map_download_data.span(), cls.download.requestname ) ) {
+void CL_ReconnectAfterDownload() {
+	download.reconnect = true;
+}
+
+static void FinishDownload() {
+	if( download.bytes_downloaded != download.expected_size || download.checksum != download.expected_checksum ) {
+		Com_Printf( "Downloaded file doesn't match what we expected.\n" );
+		if( download.save_to_disk ) {
+			FS_RemoveBaseFile( download.tempname );
+		}
+		return;
+	}
+
+	if( !download.save_to_disk ) {
+		if( !AddMap( download_data.span(), download.requestname ) ) {
 			Com_Printf( "Downloaded map is corrupt.\n" );
-			return;
 		}
 
 		return;
 	}
 
-	unsigned checksum = 0;
-	int length;
+	FS_FCloseFile( download.filenum );
 
-	FS_FCloseFile( cls.download.filenum );
-	cls.download.filenum = 0;
-
-	// verify checksum
-	length = FS_LoadBaseFile( cls.download.tempname, NULL, NULL, 0 );
-	if( length < 0 ) {
-		Com_Printf( "Error: Couldn't load downloaded file\n" );
-		return;
-	}
-	checksum = FS_ChecksumBaseFile( cls.download.tempname );
-
-	if( cls.download.checksum != checksum ) {
-		Com_Printf( "Downloaded file has wrong checksum. Removing: %u %u %s\n", cls.download.checksum, checksum, cls.download.tempname );
-		FS_RemoveBaseFile( cls.download.tempname );
-		return;
-	}
-
-	if( !FS_MoveBaseFile( cls.download.tempname, cls.download.name ) ) {
+	if( !FS_MoveBaseFile( download.tempname, download.name ) ) {
 		Com_Printf( "Failed to rename the downloaded file\n" );
-		return;
-	}
-
-	cls.download.timeout = 0;
-}
-
-void CL_DownloadDone( void ) {
-	bool is_map = cls.download.map;
-
-	if( cls.download.name ) {
-		CL_StopServerDownload();
-	}
-
-	Mem_ZoneFree( cls.download.requestname );
-	cls.download.requestname = NULL;
-
-	cls.download.timeout = 0;
-	cls.download.map = false;
-	cls.download.bytes_downloaded = 0;
-	cls.download.filenum = 0;
-
-	// the server has changed map during the download
-	if( cls.download.pending_reconnect ) {
-		cls.download.pending_reconnect = false;
-		CL_ServerReconnect_f();
-		return;
-	}
-
-	if( is_map ) {
-		CL_FinishConnect();
 	}
 }
 
 static void OnDownloadDone( bool ok, int http_status ) {
-	download_t download = cls.download;
-	bool disconnect = download.disconnect;
-	bool success = download.bytes_downloaded == download.size && ok;
+	Com_Printf( "Download %s: %s (%i)\n", ok ? "successful" : "failed", download.name, http_status );
 
-	Com_Printf( "Web download %s: %s (%i)\n", success ? "successful" : "failed", download.name, http_status );
-
-	if( success ) {
-		CL_DownloadComplete();
+	if( ok ) {
+		FinishDownload();
 	}
 
-	// check if user pressed escape to stop the download
-	if( disconnect ) {
-		CL_Disconnect( NULL ); // this also calls CL_DownloadDone()
-		return;
+	FREE( sys_allocator, download.requestname );
+	FREE( sys_allocator, download.name );
+	FREE( sys_allocator, download.tempname );
+	download.requestname = NULL;
+
+	if( !download.save_to_disk ) {
+		download_data.shutdown();
 	}
 
-	CL_DownloadDone();
+	if( download.cancelled ) {
+		CL_Disconnect( NULL );
+	}
+	else if( download.reconnect ) {
+		CL_ServerReconnect_f();
+	}
+	else if( !download.save_to_disk ) {
+		// map download
+		if( ok ) {
+			CL_FinishConnect();
+		}
+		else {
+			CL_Disconnect( NULL );
+		}
+	}
+
+	Cvar_ForceSet( "cl_download_name", "" );
+	Cvar_ForceSet( "cl_download_percent", "0" );
 }
 
 static bool OnDownloadData( const void * data, size_t n ) {
-	if( cls.download.disconnect ) {
+	if( download.cancelled ) {
 		return false;
 	}
 
-	if( cls.download.filenum != 0 ) {
-		FS_Write( data, n, cls.download.filenum );
+	if( download.save_to_disk ) {
+		FS_Write( data, n, download.filenum );
 	}
 	else {
-		size_t old_size = map_download_data.extend( n );
-		memcpy( map_download_data.ptr() + old_size, data, n );
+		size_t old_size = download_data.extend( n );
+		memcpy( download_data.ptr() + old_size, data, n );
 	}
 
-	cls.download.bytes_downloaded += n;
+	download.checksum = Hash32( data, n, download.checksum );
+	download.bytes_downloaded += n;
 
-	float progress = double( cls.download.bytes_downloaded ) / double( cls.download.size );
+	float progress = double( download.bytes_downloaded ) / double( download.expected_size );
 	Cvar_ForceSet( "cl_download_percent", va( "%.1f", progress ) );
 
-	cls.download.timeout = 0;
+	download.timeout = 0;
 
 	return true;
-}
-
-static void CL_InitServerDownload( const char *filename, int size, unsigned checksum, bool not_external_server, const char *url ) {
-	int alloc_size;
-
-	// ignore download commands coming from demo files
-	if( cls.demo.playing ) {
-		return;
-	}
-
-	if( !cls.download.requestname ) {
-		Com_Printf( "Got init download message without request\n" );
-		return;
-	}
-
-	if( cls.download.filenum ) {
-		Com_Printf( "Got init download message while already downloading\n" );
-		return;
-	}
-
-	if( size == -1 ) {
-		// means that download was refused
-		Com_Printf( "Server refused download request: %s\n", url ); // if it's refused, url field holds the reason
-		CL_DownloadDone();
-		return;
-	}
-
-	if( size <= 0 ) {
-		Com_Printf( "Server gave invalid size, not downloading\n" );
-		CL_DownloadDone();
-		return;
-	}
-
-	if( checksum == 0 ) {
-		Com_Printf( "Server didn't provide checksum, not downloading\n" );
-		CL_DownloadDone();
-		return;
-	}
-
-	if( !COM_ValidateRelativeFilename( filename ) ) {
-		Com_Printf( "Not downloading, invalid filename: %s\n", filename );
-		CL_DownloadDone();
-		return;
-	}
-
-	if( !strchr( filename, '/' ) ) {
-		Com_Printf( "Refusing to download file with no gamedir: %s\n", filename );
-		CL_DownloadDone();
-		return;
-	}
-
-	// check that it is in game or basegame dir
-	if( strlen( filename ) < strlen( FS_GameDirectory() ) + 1 ||
-		strncmp( filename, FS_GameDirectory(), strlen( FS_GameDirectory() ) ) ||
-		filename[strlen( FS_GameDirectory() )] != '/' ) {
-		if( strlen( filename ) < strlen( FS_BaseGameDirectory() ) + 1 ||
-			strncmp( filename, FS_BaseGameDirectory(), strlen( FS_BaseGameDirectory() ) ) ||
-			filename[strlen( FS_BaseGameDirectory() )] != '/' ) {
-			Com_Printf( "Can't download, invalid game directory: %s\n", filename );
-			CL_DownloadDone();
-			return;
-		}
-	}
-
-	if( strcmp( cls.download.requestname, strchr( filename, '/' ) + 1 ) ) {
-		Com_Printf( "Can't download, got different file than requested: %s\n", filename );
-		CL_DownloadDone();
-		return;
-	}
-
-	alloc_size = strlen( "downloads" ) + 1 /* '/' */ + strlen( filename ) + 1;
-	cls.download.name = ( char * ) Mem_ZoneMalloc( alloc_size );
-	// it's an official pak, otherwise
-	// if we're not downloading a pak, this must be a demo so drop it into the gamedir
-	snprintf( cls.download.name, alloc_size, "%s", filename );
-
-	alloc_size = strlen( cls.download.name ) + strlen( ".tmp" ) + 1;
-	cls.download.tempname = ( char * ) Mem_ZoneMalloc( alloc_size );
-	snprintf( cls.download.tempname, alloc_size, "%s.tmp", cls.download.name );
-
-	cls.download.origname = ZoneCopyString( filename );
-	cls.download.disconnect = false;
-	cls.download.size = size;
-	cls.download.checksum = checksum;
-	cls.download.timeout = 0;
-	cls.download.bytes_downloaded = 0;
-	cls.download.pending_reconnect = false;
-
-	Cvar_ForceSet( "cl_download_name", COM_FileBase( filename ) );
-	Cvar_ForceSet( "cl_download_percent", "0" );
-
-	const char * baseurl = cls.httpbaseurl;
-
-	if( not_external_server ) {
-		Com_Printf( "Web download: %s from %s/%s\n", cls.download.tempname, baseurl, url );
-	}
-	else {
-		Com_Printf( "Web download: %s from %s\n", cls.download.tempname, url );
-	}
-
-	if( FileExtension( filename ) != ".bsp" ) {
-		FS_FOpenBaseFile( cls.download.tempname, &cls.download.filenum, FS_WRITE );
-
-		if( !cls.download.filenum ) {
-			Com_Printf( "Can't download, couldn't open %s for writing\n", cls.download.tempname );
-			CL_DownloadDone();
-			return;
-		}
-	}
-	else {
-		map_download_data.init( sys_allocator );
-	}
-
-	char *fullurl;
-
-	if( not_external_server ) {
-		alloc_size = strlen( baseurl ) + 1 + strlen( url ) + 1;
-		fullurl = ( char * ) alloca( alloc_size );
-		snprintf( fullurl, alloc_size, "%s/%s", baseurl, url );
-	} else {
-		size_t url_len = strlen( url );
-		alloc_size = url_len + 1 + strlen( filename ) * 3 + 1;
-		fullurl = ( char * ) alloca( alloc_size );
-		snprintf( fullurl, alloc_size, "%s/", url );
-		Q_urlencode_unsafechars( filename, fullurl + url_len + 1, alloc_size - url_len - 1 );
-	}
-
-	if( not_external_server ) {
-		TempAllocator temp = cls.frame_arena.temp();
-		const char * headers[] = {
-			temp( "X-Client: {}", cl.playernum ),
-			temp( "X-Session: {}", cls.session ),
-		};
-
-		StartDownload( fullurl, OnDownloadData, OnDownloadDone, headers, ARRAY_COUNT( headers ) );
-	}
-	else {
-		StartDownload( fullurl, OnDownloadData, OnDownloadDone, NULL, 0 );
-	}
 }
 
 static void CL_InitDownload_f( void ) {
@@ -364,51 +191,103 @@ static void CL_InitDownload_f( void ) {
 	// read the data
 	const char * filename = Cmd_Argv( 1 );
 	int size = atoi( Cmd_Argv( 2 ) );
-	unsigned int checksum = strtoul( Cmd_Argv( 3 ), NULL, 10 );
+	u32 checksum = strtoul( Cmd_Argv( 3 ), NULL, 10 );
 	bool not_external_server = atoi( Cmd_Argv( 4 ) ) != 0 && cls.httpbaseurl != NULL;
 	const char * url = Cmd_Argv( 5 );
 
-	CL_InitServerDownload( filename, size, checksum, not_external_server, url );
-}
+	if( download.requestname == NULL ) {
+		Com_Printf( "Got init download message without request\n" );
+		return;
+	}
 
-static void CL_StopServerDownload() {
-	if( cls.download.filenum > 0 ) {
-		FS_FCloseFile( cls.download.filenum );
-		cls.download.filenum = 0;
+	if( download.name != NULL ) {
+		Com_Printf( "Got init download message while already downloading\n" );
+		return;
+	}
+
+	if( size == -1 ) {
+		// means that download was refused
+		Com_Printf( "Server refused download request: %s\n", url ); // if it's refused, url field holds the reason
+		DownloadRejected();
+		return;
+	}
+
+	if( size <= 0 ) {
+		Com_Printf( "Server gave invalid size, not downloading\n" );
+		DownloadRejected();
+		return;
+	}
+
+	if( checksum == 0 ) {
+		Com_Printf( "Server didn't provide checksum, not downloading\n" );
+		DownloadRejected();
+		return;
+	}
+
+	if( !COM_ValidateRelativeFilename( filename ) ) {
+		Com_Printf( "Not downloading, invalid filename: %s\n", filename );
+		DownloadRejected();
+		return;
+	}
+
+	if( strchr( filename, '/' ) == NULL || strcmp( download.requestname, strchr( filename, '/' ) + 1 ) ) {
+		Com_Printf( "Can't download, got different file than requested: %s\n", filename );
+		DownloadRejected();
+		return;
+	}
+
+	TempAllocator temp = cls.frame_arena.temp();
+	char * tempname = temp( "{}.tmp", filename );
+
+	if( download.save_to_disk ) {
+		FS_FOpenBaseFile( tempname, &download.filenum, FS_WRITE );
+
+		if( !download.filenum ) {
+			Com_Printf( "Can't download, couldn't open %s for writing\n", tempname );
+			DownloadRejected();
+			return;
+		}
+
+		download.tempname = CopyString( sys_allocator, tempname );
 	}
 	else {
-		map_download_data.shutdown();
+		download_data.init( sys_allocator );
 	}
 
-	if( cls.download.disconnect ) {
-		FS_RemoveBaseFile( cls.download.tempname );
-	}
+	download.timeout = 0;
+	download.name = CopyString( sys_allocator, filename );
+	download.expected_size = size;
+	download.expected_checksum = checksum;
+	download.checksum = Hash32( "" );
 
-	Mem_ZoneFree( cls.download.name );
-	cls.download.name = NULL;
-
-	Mem_ZoneFree( cls.download.tempname );
-	cls.download.tempname = NULL;
-
-	Mem_ZoneFree( cls.download.origname );
-	cls.download.origname = NULL;
-
-	cls.download.bytes_downloaded = 0;
-	cls.download.size = 0;
-	cls.download.map = false;
-	cls.download.timeout = 0;
-
-	Cvar_ForceSet( "cl_download_name", "" );
+	Cvar_ForceSet( "cl_download_name", COM_FileBase( filename ) );
 	Cvar_ForceSet( "cl_download_percent", "0" );
+
+	const char * fullurl;
+	if( not_external_server ) {
+		fullurl = temp( "{}/{}", cls.httpbaseurl, url );
+		const char * headers[] = {
+			temp( "X-Client: {}", cl.playernum ),
+			temp( "X-Session: {}", cls.session ),
+		};
+
+		StartDownload( fullurl, OnDownloadData, OnDownloadDone, headers, ARRAY_COUNT( headers ) );
+	}
+	else {
+		fullurl = temp( "{}/{}", url, filename );
+		StartDownload( fullurl, OnDownloadData, OnDownloadDone, NULL, 0 );
+	}
+
+	Com_Printf( "Downloading %s\n", fullurl );
 }
 
 void CL_CheckDownloadTimeout( void ) {
-	if( !cls.download.timeout || cls.download.timeout > Sys_Milliseconds() ) {
+	if( download.timeout == 0 || download.timeout > Sys_Milliseconds() ) {
 		return;
 	}
 
 	Com_Printf( "Download request timed out.\n" );
-	CL_DownloadDone();
+	DownloadRejected();
 }
 
 /*

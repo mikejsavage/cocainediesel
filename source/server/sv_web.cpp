@@ -1174,9 +1174,9 @@ static void SV_Web_InitSocket( const char *addrstr, netadrtype_t adrtype, socket
 
 	if( address.type == adrtype ) {
 		if( !NET_OpenSocket( socket, SOCKET_TCP, &address, true ) ) {
-			Com_Printf( "Error: Couldn't open TCP socket: %s\n", NET_ErrorString() );
+			Com_Printf( "Couldn't start web server: Couldn't open TCP socket: %s\n", NET_ErrorString() );
 		} else if( !NET_Listen( socket ) ) {
-			Com_Printf( "Error: Couldn't listen to TCP socket: %s\n", NET_ErrorString() );
+			Com_Printf( "Couldn't start web server: Couldn't listen to TCP socket: %s\n", NET_ErrorString() );
 			NET_CloseSocket( socket );
 		} else {
 			Com_Printf( "Web server started on %s\n", NET_AddressToString( &address ) );

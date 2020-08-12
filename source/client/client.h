@@ -175,7 +175,7 @@ struct client_static_t {
 	// demo recording info must be here, so it isn't cleared on level change
 	cl_demo_t demo;
 
-	const Material * whiteTexture;
+	const Material * white_material;
 
 	// these are our reliable messages that go to the server
 	int64_t reliableSequence;          // the last one we put in the list to be sent
@@ -334,7 +334,6 @@ void CL_CheckDownloadTimeout();
 void SCR_InitScreen( void );
 void SCR_UpdateScreen( void );
 void SCR_DebugGraph( float value, float r, float g, float b );
-void SCR_RegisterConsoleMedia( void );
 
 void CL_AddNetgraph( void );
 

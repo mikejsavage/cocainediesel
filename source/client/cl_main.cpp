@@ -1712,6 +1712,8 @@ void CL_Init( void ) {
 	InitRenderer();
 	InitMaps();
 
+	cls.white_material = FindMaterial( "$whiteimage" );
+
 	if( !S_Init() ) {
 		Com_Printf( S_COLOR_RED "Couldn't initialise audio engine\n" );
 	}
@@ -1736,8 +1738,6 @@ void CL_Init( void ) {
 	CL_InitInput();
 
 	InitDownloads();
-
-	SCR_RegisterConsoleMedia();
 
 	CL_InitImGui();
 	UI_Init();

@@ -118,7 +118,7 @@ void CG_ScreenCrosshairDamageUpdate( void ) {
 }
 
 static void CG_FillRect( int x, int y, int w, int h, Vec4 color ) {
-	Draw2DBox( x, y, w, h, cgs.white_material, color );
+	Draw2DBox( x, y, w, h, cls.white_material, color );
 }
 
 void CG_DrawCrosshair() {
@@ -910,7 +910,7 @@ static void CG_SCRDrawViewBlend( void ) {
 		return;
 	}
 
-	Draw2DBox( 0, 0, frame_static.viewport_width, frame_static.viewport_height, cgs.white_material, color );
+	Draw2DBox( 0, 0, frame_static.viewport_width, frame_static.viewport_height, cls.white_material, color );
 }
 
 void AddDamageEffect( float x ) {

@@ -47,7 +47,7 @@ ParticleSystem NewParticleSystem( Allocator * a, size_t n, const Material * mate
 	ps.blend_func = BlendFunc_Add;
 
 	ps.material = material;
-	ps.gradient = cgs.white_material;
+	ps.gradient = cls.white_material;
 
 	ps.vb = NewParticleVertexBuffer( n );
 	ps.vb_memory = ALLOC_MANY( a, GPUParticle, n );

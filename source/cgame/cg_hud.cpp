@@ -1676,7 +1676,7 @@ static void CG_DrawObituaries(
 
 			float t = float( cls.monotonicTime - self_obituary.time ) / 1000.0f;
 
-			Draw2DBox( 0, yy, frame_static.viewport.x, h, cls.whiteTexture, Vec4( 0, 0, 0, Min2( 0.5f, t * 0.5f ) ) );
+			Draw2DBox( 0, yy, frame_static.viewport.x, h, cls.white_material, Vec4( 0, 0, 0, Min2( 0.5f, t * 0.5f ) ) );
 
 			if( t >= 1.0f ) {
 				RNG rng = new_rng( self_obituary.entropy, 0 );
@@ -1761,7 +1761,7 @@ static bool CG_LFuncDrawCallvote( struct cg_layoutnode_s *argumentnode, int numA
 
 	if( !voted ) {
 		float height = padding * 2 + layout_cursor_font_size * 2.2f;
-		Draw2DBox( left, top, layout_cursor_width, height, cgs.white_material, Vec4( 0, 0, 0, 0.5f ) );
+		Draw2DBox( left, top, layout_cursor_width, height, cls.white_material, Vec4( 0, 0, 0, 0.5f ) );
 	}
 
 	Vec4 color = voted ? vec4_white : AttentionGettingColor();
@@ -2014,8 +2014,8 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		int cury = CG_VerticalAlignForHeight( y, alignment, total_height );
 		Vec4 color = ps->can_plant ? AttentionGettingColor() : light_gray;
 
-		Draw2DBox( curx, cury, iw, ih, cgs.white_material, color );
-		Draw2DBox( curx + border, cury + border, innerw, innerh, cgs.white_material, dark_gray );
+		Draw2DBox( curx, cury, iw, ih, cls.white_material, color );
+		Draw2DBox( curx + border, cury + border, innerw, innerh, cls.white_material, dark_gray );
 		
 		Draw2DBox( curx + border + padding, cury + border + padding, iconw, iconh, cgs.media.shaderBombIcon, color );
 	}
@@ -2052,16 +2052,16 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		int pady_sel = ( selected ? pad_sel : 0 );
 
 		if( ammo_frac < 1.0f ) {
-			Draw2DBox( curx - offset, cury - offset - pady_sel, iw + offset * 2, ih + offset * 2, cgs.white_material, light_gray );
-			Draw2DBox( curx + border, cury + border - pady_sel, innerw, innerh, cgs.white_material, dark_gray );
+			Draw2DBox( curx - offset, cury - offset - pady_sel, iw + offset * 2, ih + offset * 2, cls.white_material, light_gray );
+			Draw2DBox( curx + border, cury + border - pady_sel, innerw, innerh, cls.white_material, dark_gray );
 			Draw2DBox( curx + border + padding, cury + border + padding - pady_sel, iconw, iconh, icon, light_gray );
 		}
 
 		Vec2 half_pixel = HalfPixelSize( icon );
 
 		if( def->clip_size == 0 || ammo_frac != 0 ) {
-			Draw2DBox( curx - offset, cury + ih * ( 1.0f - ammo_frac ) - offset - pady_sel, iw + offset * 2, ih * ammo_frac + offset * 2, cgs.white_material, color );
-			Draw2DBox( curx + border, cury + ih * ( 1.0f - ammo_frac ) + border - pady_sel, innerw, ih * ammo_frac - border * 2, cgs.white_material, color_bg );
+			Draw2DBox( curx - offset, cury + ih * ( 1.0f - ammo_frac ) - offset - pady_sel, iw + offset * 2, ih * ammo_frac + offset * 2, cls.white_material, color );
+			Draw2DBox( curx + border, cury + ih * ( 1.0f - ammo_frac ) + border - pady_sel, innerw, ih * ammo_frac - border * 2, cls.white_material, color_bg );
 		}
 
 		float asdf = Max2( ih * ( 1.0f - ammo_frac ), float( padding ) ) - padding;

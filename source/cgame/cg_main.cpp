@@ -297,7 +297,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	// register fonts here so loading screen works
 	CG_RegisterFonts();
-	cgs.white_material = FindMaterial( "$whiteimage" );
 
 	CG_RegisterCGameCommands();
 

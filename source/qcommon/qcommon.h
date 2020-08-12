@@ -495,7 +495,6 @@ const char *FS_BaseGameDirectory( void );
 // handling of absolute filenames
 // only to be used if necessary (library not supporting custom file handling functions etc.)
 const char *FS_WriteDirectory( void );
-const char *FS_CacheDirectory( void );
 const char *FS_DownloadsDirectory( void );
 void        FS_CreateAbsolutePath( const char *path );
 const char *FS_AbsoluteNameForFile( const char *filename );
@@ -533,7 +532,6 @@ void    FS_FreeFile( void *buffer );
 void    FS_FreeBaseFile( void *buffer );
 #define FS_LoadFile( path,buffer,stack,stacksize ) FS_LoadFileExt( path,0,buffer,stack,stacksize,__FILE__,__LINE__ )
 #define FS_LoadBaseFile( path,buffer,stack,stacksize ) FS_LoadBaseFileExt( path,0,buffer,stack,stacksize,__FILE__,__LINE__ )
-#define FS_LoadCacheFile( path,buffer,stack,stacksize ) FS_LoadFileExt( path,FS_CACHE,buffer,stack,stacksize,__FILE__,__LINE__ )
 
 // util functions
 bool    FS_MoveFile( const char *src, const char *dst );

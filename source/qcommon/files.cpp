@@ -71,7 +71,6 @@ static cvar_t *fs_basepath;
 static cvar_t *fs_cdpath;
 static cvar_t *fs_usehomedir;
 static cvar_t *fs_usedownloadsdir;
-static cvar_t *fs_basegame;
 
 static searchpath_t *fs_basepaths = NULL;       // directories without gamedirs
 static searchpath_t *fs_searchpaths = NULL;     // game search directories
@@ -481,7 +480,6 @@ static int _FS_FOpenFile( const char *filename, int *filenum, int mode, bool bas
 	filehandle_t *file;
 	bool gz;
 	bool update;
-	bool cache;
 	gzFile gzf = NULL;
 	int realmode;
 	char tempname[FS_MAX_PATH];
@@ -489,7 +487,6 @@ static int _FS_FOpenFile( const char *filename, int *filenum, int mode, bool bas
 	realmode = mode;
 	gz = mode & FS_GZ ? true : false;
 	update = mode & FS_UPDATE ? true : false;
-	cache = mode & FS_CACHE ? true : false;
 	mode = mode & FS_RWA_MASK;
 
 	assert( mode == FS_READ || mode == FS_WRITE || mode == FS_APPEND );
@@ -506,13 +503,13 @@ static int _FS_FOpenFile( const char *filename, int *filenum, int mode, bool bas
 		return -1;
 	}
 
-	if( mode == FS_WRITE || mode == FS_APPEND || update || cache ) {
+	if( mode == FS_WRITE || mode == FS_APPEND || update ) {
 		int end;
 		char modestr[4] = { 0, 0, 0, 0 };
 		FILE *f = NULL;
 		const char *dir;
 
-		dir = cache ? FS_CacheDirectory() : FS_WriteDirectory();
+		dir = FS_WriteDirectory();
 
 		if( base ) {
 			snprintf( tempname, sizeof( tempname ), "%s/%s", dir, filename );
@@ -1336,7 +1333,7 @@ int FS_GetFileList( const char *dir, const char *extension, char *buf, size_t bu
 * Returns the current game directory, without the path
 */
 const char *FS_GameDirectory( void ) {
-	return fs_basegame->string;
+	return DEFAULT_BASEGAME;
 }
 
 /*
@@ -1345,8 +1342,7 @@ const char *FS_GameDirectory( void ) {
 * Returns the current base game directory, without the path
 */
 const char *FS_BaseGameDirectory( void ) {
-	assert( fs_basegame && fs_basegame->string && fs_basegame->string[0] );
-	return fs_basegame->string;
+	return DEFAULT_BASEGAME;
 }
 
 /*
@@ -1356,16 +1352,6 @@ const char *FS_BaseGameDirectory( void ) {
 */
 const char *FS_WriteDirectory( void ) {
 	return fs_write_searchpath->path;
-}
-
-/*
-* FS_CacheDirectory
-*
-* Returns directory where we can write cached files
-*/
-const char *FS_CacheDirectory( void ) {
-	const char *dir = Sys_FS_GetCacheDirectory();
-	return dir ? dir : FS_WriteDirectory();
 }
 
 /*
@@ -1520,7 +1506,6 @@ static void FS_FreeSearchFiles( void ) {
 void FS_Init( void ) {
 	int i;
 	const char *homedir;
-	const char *cachedir;
 	char downloadsdir[FS_MAX_PATH];
 
 	assert( !fs_initialized );
@@ -1582,20 +1567,7 @@ void FS_Init( void ) {
 		fs_write_searchpath = fs_basepaths;
 	}
 
-	cachedir = Sys_FS_GetCacheDirectory();
-	if( cachedir ) {
-		FS_AddBasePath( cachedir );
-	}
-
-	//
-	// set game directories
-	//
-	fs_basegame = Cvar_Get( "fs_basegame", DEFAULT_BASEGAME, CVAR_READONLY );
-	if( !fs_basegame->string[0] ) {
-		Cvar_ForceSet( "fs_basegame", DEFAULT_BASEGAME );
-	}
-
-	FS_TouchGameDirectory( fs_basegame->string );
+	FS_TouchGameDirectory( DEFAULT_BASEGAME );
 
 	fs_base_searchpaths = fs_searchpaths;
 

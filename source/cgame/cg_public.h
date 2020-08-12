@@ -20,10 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-struct orientation_s;
-struct entity_s;
-struct cmodel_s;
-
 //
 // structs and variables shared with the main engine
 //

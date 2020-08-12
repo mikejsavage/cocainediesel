@@ -255,7 +255,6 @@ __declspec( noreturn ) void Com_Error( com_error_code_t code, _Printf_format_str
 #define FS_APPEND           2
 #define FS_GZ               0x100   // compress on write and decompress on read automatically
 #define FS_UPDATE           0x200
-#define FS_CACHE            0x800
 
 #define FS_RWA_MASK         ( FS_READ | FS_WRITE | FS_APPEND )
 

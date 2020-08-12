@@ -244,13 +244,6 @@ const char *Sys_FS_GetHomeDirectory( void ) {
 }
 
 /*
-* Sys_FS_GetCacheDirectory
-*/
-const char *Sys_FS_GetCacheDirectory( void ) {
-	return NULL;
-}
-
-/*
 * Sys_FS_CreateDirectory
 */
 bool Sys_FS_CreateDirectory( const char *path ) {

@@ -342,10 +342,8 @@ struct netadr_t {
 
 enum socket_type_t {
 	SOCKET_LOOPBACK,
-	SOCKET_UDP
-#ifdef TCP_SUPPORT
-	, SOCKET_TCP
-#endif
+	SOCKET_UDP,
+	SOCKET_TCP,
 };
 
 struct socket_t {
@@ -355,9 +353,7 @@ struct socket_t {
 	netadr_t address;
 	bool server;
 
-#ifdef TCP_SUPPORT
 	bool connected;
-#endif
 	netadr_t remoteAddress;
 
 	socket_handle_t handle;

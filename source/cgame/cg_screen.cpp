@@ -954,7 +954,6 @@ void CG_Draw2DView( void ) {
 		CG_DrawCenterString();
 	}
 
-	CG_DrawScope();
 	CG_ExecuteLayoutProgram( cg.statusBar );
 	CG_DrawChat();
 }
@@ -963,6 +962,8 @@ void CG_Draw2DView( void ) {
 * CG_Draw2D
 */
 void CG_Draw2D( void ) {
+	CG_DrawScope();
+
 	if( !cg_draw2D->integer ) {
 		return;
 	}

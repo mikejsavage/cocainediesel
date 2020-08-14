@@ -122,7 +122,11 @@ static void CG_FillRect( int x, int y, int w, int h, Vec4 color ) {
 }
 
 void CG_DrawCrosshair() {
-	if( cg.predictedPlayerState.health <= 0 || ( cg.predictedPlayerState.weapon == Weapon_Sniper && cg.predictedPlayerState.zoom_time > 0 ) )
+	if( cg.predictedPlayerState.health <= 0 )
+		return;
+
+	WeaponType weapon = cg.predictedPlayerState.weapon;
+	if( weapon == Weapon_Knife || weapon == Weapon_Sniper )
 		return;
 
 	Vec4 color = cls.monotonicTime - scr_damagetime <= 300 ? vec4_red : vec4_white;

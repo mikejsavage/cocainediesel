@@ -622,6 +622,14 @@ textures/sprays/forkknife
 	decal
 }
 
+textures/sprays/ftba
+{
+	{
+		map textures/sprays/ftba
+	}
+	decal
+}
+
 textures/sprays/fuck
 {
 	{
@@ -1026,6 +1034,14 @@ textures/sprays/lojk
 {
 	{
 		map textures/sprays/lojk
+	}
+	decal
+}
+
+textures/sprays/maddox
+{
+	{
+		map textures/sprays/maddox
 	}
 	decal
 }
@@ -1630,6 +1646,14 @@ textures/sprays/spin
 	decal
 }
 
+textures/sprays/s
+{
+	{
+		map textures/sprays/s
+	}
+	decal
+}
+
 textures/sprays/spook
 {
 	{
@@ -1690,6 +1714,14 @@ textures/sprays/symbol
 {
 	{
 		map textures/sprays/symbol
+	}
+	decal
+}
+
+textures/sprays/tbag
+{
+	{
+		map textures/sprays/tbag
 	}
 	decal
 }
@@ -1802,6 +1834,14 @@ textures/sprays/urinate
 {
 	{
 		map textures/sprays/urinate
+	}
+	decal
+}
+
+textures/sprays/urterrible
+{
+	{
+		map textures/sprays/urterrible
 	}
 	decal
 }

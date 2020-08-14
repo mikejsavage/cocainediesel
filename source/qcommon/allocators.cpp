@@ -16,14 +16,25 @@ void * Allocator::reallocate( void * ptr, size_t current_size, size_t new_size, 
 	return new_p;
 }
 
+void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, const char * func, const char * file, int line ) {
+	if( n != 0 && SIZE_MAX / n < size )
+		Sys_Error( "allocation too large" );
+	return a->allocate( n * size, alignment, func, file, line );
+}
+
+void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t new_n, size_t size, size_t alignment, const char * func, const char * file, int line ) {
+	if( SIZE_MAX / new_n < size )
+		Sys_Error( "allocation too large" );
+	return a->reallocate( ptr, current_n * size, new_n * size, alignment, func, file, line );
+}
+
 /*
  * SystemAllocator
  */
 
-#if RELEASE_BUILD
+#if PUBLIC_BUILD
 
 struct AllocationTracker {
-	NONCOPYABLE( AllocationTracker );
 	void track( void * ptr, const char * func, const char * file, int line ) { }
 	void untrack( void * ptr, const char * func, const char * file, int line ) { }
 };
@@ -238,18 +249,6 @@ void * ArenaAllocator::get_memory() {
 
 float ArenaAllocator::max_utilisation() const {
 	return float( cursor_max - cursor ) / float( top - cursor );
-}
-
-void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, const char * func, const char * file, int line ) {
-	if( n != 0 && SIZE_MAX / n < size )
-		Sys_Error( "allocation too large" );
-	return a->allocate( n * size, alignment, func, file, line );
-}
-
-void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t new_n, size_t size, size_t alignment, const char * func, const char * file, int line ) {
-	if( SIZE_MAX / new_n < size )
-		Sys_Error( "allocation too large" );
-	return a->reallocate( ptr, current_n * size, new_n * size, alignment, func, file, line );
 }
 
 static SystemAllocator sys_allocator_;

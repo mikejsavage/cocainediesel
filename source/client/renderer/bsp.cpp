@@ -250,7 +250,7 @@ static bool ParseBSP( BSPSpans * bsp, Span< const u8 > data ) {
 static float ParseFogStrength( const BSPSpans * bsp ) {
 	ZoneScoped;
 
-	float default_fog_strength = 0.0004f;
+	float default_fog_strength = 0.0007f;
 
 	Span< const char > cursor = bsp->entities;
 

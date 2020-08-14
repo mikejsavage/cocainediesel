@@ -31,7 +31,7 @@ void main() {
 			f_Albedo = vec4( 0.0, 0.0, 0.0, 1.0 );
 		}
 		else {
-			float frac = Unlerp( 0.375, radial_frac, 0.95 );
+			float frac = smoothstep( 0.375, 0.95, radial_frac );
 			f_Albedo = LinearTosRGB( mix( vec4( 0.0, 0.0, 0.0, 0.0 ), vec4( 0.0, 0.0, 0.0, 1.0 ), frac ) );
 		}
 	}

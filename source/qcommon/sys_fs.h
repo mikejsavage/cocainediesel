@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 const char *Sys_FS_GetHomeDirectory( void );
-const char *Sys_FS_GetCacheDirectory( void );
 
 bool    Sys_FS_CreateDirectory( const char *path );
 

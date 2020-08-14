@@ -335,5 +335,4 @@ void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
 	const Model * model = cgs.weaponInfos[ viewweapon->weapon ]->model;
 	Mat4 transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
 	DrawViewWeapon( model, transform );
-	// DrawOutlinedViewWeapon( model, transform, vec4_black, 0.25f );
 }

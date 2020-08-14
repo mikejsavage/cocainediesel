@@ -9,6 +9,10 @@
 /server-*
 
 /demos
+/maps/*.bak
+/maps/*.map
+/maps/*.prt
+/maps/*.srf
 /screenshots
 
 .vs/

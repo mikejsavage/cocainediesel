@@ -148,11 +148,9 @@ static void PlayerTouchWall( int nbTestDir, float maxZnormal, Vec3 * normal ) {
 				continue;
 		}
 
-		if( trace.fraction > 0 ) {
-			if( dist > trace.fraction && Abs( trace.plane.normal.z ) < maxZnormal ) {
-				dist = trace.fraction;
-				*normal = trace.plane.normal;
-			}
+		if( dist > trace.fraction && Abs( trace.plane.normal.z ) < maxZnormal ) {
+			dist = trace.fraction;
+			*normal = trace.plane.normal;
 		}
 	}
 }
@@ -441,7 +439,7 @@ static void PM_Accelerate( Vec3 wishdir, float wishspeed, float accel ) {
 		accelspeed = addspeed;
 	}
 
-	pml.velocity = pml.velocity + wishdir * accelspeed;
+	pml.velocity += wishdir * accelspeed;
 }
 
 // when using +strafe convert the inertia to forward speed.
@@ -1466,8 +1464,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 			if( pml.forward.z == -1.0f ) {
 				pml.flatforward = pml.up;
 			} else if( pml.forward.z == 1.0f ) {
-				pml.flatforward = pml.up;
-				pml.flatforward = -pml.flatforward;
+				pml.flatforward = -pml.up;
 			} else {
 				pml.flatforward = pml.forward;
 			}

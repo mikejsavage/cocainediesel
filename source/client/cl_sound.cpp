@@ -108,7 +108,7 @@ static bool music_playing;
 
 static EntitySound entities[ MAX_EDICTS ];
 
-const char *S_ErrorMessage( ALenum error ) {
+const char *ALErrorMessage( ALenum error ) {
 	switch( error ) {
 		case AL_NO_ERROR:
 			return "No error";
@@ -127,21 +127,29 @@ const char *S_ErrorMessage( ALenum error ) {
 	}
 }
 
-static void CheckALErrors() {
+template< typename... Rest >
+static void CheckALErrors( const char * fmt, const Rest & ... rest ) {
 	ALenum err = alGetError();
 	if( err != AL_NO_ERROR ) {
-		Sys_Error( "%s", S_ErrorMessage( err ) );
+		char buf[ 1024 ];
+		ggformat( buf, sizeof( buf ), fmt, rest... );
+
+#if !PUBLIC_BUILD
+		Sys_Error( "AL error: %s", buf );
+#else
+		Com_Printf( S_COLOR_RED "AL error: %s\n", buf );
+#endif
 	}
 }
 
 static void CheckedALListener( ALenum param, float x ) {
 	alListenerf( param, x );
-	CheckALErrors();
+	CheckALErrors( "alListenerf( {}, {} )", param, x );
 }
 
 static void CheckedALListener( ALenum param, Vec3 v ) {
 	alListenerfv( param, v.ptr() );
-	CheckALErrors();
+	CheckALErrors( "alListenerfv( {}, {} )", param, v );
 }
 
 static void CheckedALListener( ALenum param, const mat3_t m ) {
@@ -153,44 +161,44 @@ static void CheckedALListener( ALenum param, const mat3_t m ) {
 	forward_and_up[ 4 ] = m[ AXIS_UP + 1 ];
 	forward_and_up[ 5 ] = m[ AXIS_UP + 2 ];
 	alListenerfv( param, forward_and_up );
-	CheckALErrors();
+	CheckALErrors( "alListenerfv( {}, {}/{} )", param, FromQFAxis( m, AXIS_FORWARD ), FromQFAxis( m, AXIS_UP ) );
 }
 
 static ALint CheckedALGetSource( ALuint source, ALenum param ) {
 	ALint res;
 	alGetSourcei( source, param, &res );
-	CheckALErrors();
+	CheckALErrors( "alGetSourcei( {}, {} )", source, param );
 	return res;
 }
 
 static void CheckedALSource( ALuint source, ALenum param, ALint x ) {
 	alSourcei( source, param, x );
-	CheckALErrors();
+	CheckALErrors( "alSourcei( {}, {}, {} )", source, param, x );
 }
 
 static void CheckedALSource( ALuint source, ALenum param, ALuint x ) {
 	alSourcei( source, param, x );
-	CheckALErrors();
+	CheckALErrors( "alSourcei( {}, {}, {} )", source, param, x );
 }
 
 static void CheckedALSource( ALuint source, ALenum param, float x ) {
 	alSourcef( source, param, x );
-	CheckALErrors();
+	CheckALErrors( "alSourcef( {}, {}, {} )", source, param, x );
 }
 
 static void CheckedALSource( ALuint source, ALenum param, Vec3 v ) {
 	alSourcefv( source, param, v.ptr() );
-	CheckALErrors();
+	CheckALErrors( "alSourcefv( {}, {}, {} )", source, param, v );
 }
 
 static void CheckedALSourcePlay( ALuint source ) {
 	alSourcePlay( source );
-	CheckALErrors();
+	CheckALErrors( "alSourcePlay( {} )", source );
 }
 
 static void CheckedALSourceStop( ALuint source ) {
 	alSourceStop( source );
-	CheckALErrors();
+	CheckALErrors( "alSourceStop( {} )", source );
 }
 
 static bool S_InitAL() {
@@ -286,7 +294,7 @@ static void AddSound( const char * path, int num_samples, int channels, int samp
 	ALenum format = channels == 1 ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
 	alGenBuffers( 1, &sounds[ idx ].buf );
 	alBufferData( sounds[ idx ].buf, format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
-	CheckALErrors();
+	CheckALErrors( "AddSound" );
 
 	sounds[ idx ].mono = channels == 1;
 
@@ -512,7 +520,7 @@ bool S_Init() {
 	memset( entities, 0, sizeof( entities ) );
 
 	s_volume = Cvar_Get( "s_volume", "1", CVAR_ARCHIVE );
-	s_musicvolume = Cvar_Get( "s_musicvolume", "1", CVAR_ARCHIVE );
+	s_musicvolume = Cvar_Get( "s_musicvolume", "0.5", CVAR_ARCHIVE );
 	s_muteinbackground = Cvar_Get( "s_muteinbackground", "1", CVAR_ARCHIVE );
 	s_muteinbackground->modified = true;
 
@@ -544,7 +552,7 @@ void S_Shutdown() {
 		alDeleteBuffers( 1, &sounds[ i ].buf );
 	}
 
-	CheckALErrors();
+	CheckALErrors( "S_Shutdown" );
 
 	alcDestroyContext( al_context );
 	alcCloseDevice( al_device );
@@ -673,7 +681,7 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 				if( ps->stopped[ j ] )
 					continue;
 
-				ALint state = CheckedALGetSource( ps->sources[ j ], AL_SOURCE_STATE );;
+				ALint state = CheckedALGetSource( ps->sources[ j ], AL_SOURCE_STATE );
 				if( not_touched || state == AL_STOPPED ) {
 					StopSound( ps, j );
 				}

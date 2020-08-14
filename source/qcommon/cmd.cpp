@@ -199,7 +199,7 @@ void Cbuf_AddText( const char *text ) {
 * commands.
 * Adds a \n to the text
 */
-void Cbuf_InsertText( const char *text ) {
+static void Cbuf_InsertText( const char *text ) {
 	size_t textlen = strlen( text );
 
 	Cbuf_EnsureSpace( textlen );
@@ -223,9 +223,6 @@ void Cbuf_ExecuteText( int exec_when, const char *text ) {
 	switch( exec_when ) {
 		case EXEC_NOW:
 			Cmd_ExecuteString( text );
-			break;
-		case EXEC_INSERT:
-			Cbuf_InsertText( text );
 			break;
 		case EXEC_APPEND:
 			Cbuf_AddText( text );

@@ -135,7 +135,7 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 			ps->mesh = NewMesh( mesh_config );
 		}
 	}
-	
+
 	{
 		MeshConfig mesh_config = { };
 		mesh_config.positions = NewVertexBuffer( NULL, 0 );
@@ -684,7 +684,7 @@ bool ParticleFeedback( ParticleSystem * ps, GPUParticleFeedback * feedback ) {
 
 void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 	ZoneScopedN( "Update particles" );
-	
+
 	{
 		ZoneScopedN( "Despawn expired particles" );
 
@@ -788,7 +788,7 @@ void DrawParticles() {
 		ImGui::SetNextWindowPos( ImVec2( io.DisplaySize.x - size.x, 100.0f ), ImGuiCond_Always );
 		ImGui::Begin( "particle statistics", WindowZOrder_Chat, flags );
 
-		
+
 		ImGui::Text( "%i visual effects", num_visualEffectGroups );
 		ImGui::Text( "%i particle emitters", num_particleEmitters );
 		ImGui::Text( "%i decal emitters", num_decalEmitters );

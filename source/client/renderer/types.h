@@ -84,6 +84,17 @@ struct GPUParticleFeedback {
 	Vec3 normal;
 };
 
+struct TRS {
+	Quaternion rotation;
+	Vec3 translation;
+	float scale;
+};
+
+struct MatrixPalettes {
+	Span< Mat4 > node_transforms;
+	Span< Mat4 > skinning_matrices;
+};
+
 struct Font;
 struct Material;
 struct Model;

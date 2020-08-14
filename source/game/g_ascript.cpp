@@ -768,22 +768,6 @@ static edict_t *objectGameClient_GetEntity( gclient_t *self ) {
 	return PLAYERENT( playerNum );
 }
 
-static void objectGameClient_SetWeaponIndex( WeaponType weapon, int index, gclient_t * self ) {
-	assert( weapon > Weapon_None && weapon < Weapon_Count );
-	assert( index > 0 && index < ARRAY_COUNT( &SyncPlayerState::weapons ) );
-
-	int playerNum = objectGameClient_PlayerNum( self );
-	if( playerNum < 0 || playerNum >= server_gs.maxclients ) {
-		return;
-	}
-
-	SyncPlayerState * ps = &PLAYERENT( playerNum )->r.client->ps;
-	SyncPlayerState::WeaponInfo * weapon_info = GS_FindWeapon( ps, weapon );
-	assert( weapon_info != NULL );
-
-	Swap2( weapon_info, &ps->weapons[ index ] );
-}
-
 static void objectGameClient_GiveWeapon( WeaponType weapon, gclient_t * self ) {
 	assert( weapon > Weapon_None && weapon < Weapon_Count );
 
@@ -925,7 +909,6 @@ static const asMethod_t gameclient_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, clearPlayerStateEvents, ( ) ), asFUNCTION( objectGameClient_ClearPlayerStateEvents ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_name, ( ) const ), asFUNCTION( objectGameClient_getName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( Entity @, getEnt, ( ) const ), asFUNCTION( objectGameClient_GetEntity ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, setWeaponIndex, ( WeaponType weapon, int index ) ), asFUNCTION( objectGameClient_SetWeaponIndex ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, giveWeapon, ( WeaponType weapon ) ), asFUNCTION( objectGameClient_GiveWeapon ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, inventoryClear, ( ) ), asFUNCTION( objectGameClient_InventoryClear ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, selectWeapon, ( int tag ) ), asFUNCTION( objectGameClient_SelectWeapon ), asCALL_CDECL_OBJLAST },
@@ -1292,14 +1275,12 @@ static const asProperty_t gedict_Properties[] =
 	{ ASLIB_PROPERTY_DECL( int, radius ), offsetof( edict_t, s.radius ) },
 	{ ASLIB_PROPERTY_DECL( int, ownerNum ), offsetof( edict_t, s.ownerNum ) },
 	{ ASLIB_PROPERTY_DECL( int, counterNum ), offsetof( edict_t, s.counterNum ) },
-	{ ASLIB_PROPERTY_DECL( int, colorRGBA ), offsetof( edict_t, s.colorRGBA ) },
 	{ ASLIB_PROPERTY_DECL( uint, silhouetteColor ), offsetof( edict_t, s.silhouetteColor ) },
 	{ ASLIB_PROPERTY_DECL( int, weapon ), offsetof( edict_t, s.weapon ) },
 	{ ASLIB_PROPERTY_DECL( bool, teleported ), offsetof( edict_t, s.teleported ) },
 	{ ASLIB_PROPERTY_DECL( uint, effects ), offsetof( edict_t, s.effects ) },
 	{ ASLIB_PROPERTY_DECL( uint64, sound ), offsetof( edict_t, s.sound ) },
 	{ ASLIB_PROPERTY_DECL( int, team ), offsetof( edict_t, s.team ) },
-	{ ASLIB_PROPERTY_DECL( int, light ), offsetof( edict_t, s.light ) },
 	{ ASLIB_PROPERTY_DECL( const bool, inuse ), offsetof( edict_t, r.inuse ) },
 	{ ASLIB_PROPERTY_DECL( uint, svflags ), offsetof( edict_t, r.svflags ) },
 	{ ASLIB_PROPERTY_DECL( int, solid ), offsetof( edict_t, r.solid ) },

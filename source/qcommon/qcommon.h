@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/qfiles.h"
 #include "qcommon/strtonum.h"
 
-inline Vec3 FromQFAxis( mat3_t m, int axis ) {
+inline Vec3 FromQFAxis( const mat3_t m, int axis ) {
 	return Vec3( m[ axis + 0 ], m[ axis + 1 ], m[ axis + 2 ] );
 }
 
@@ -167,7 +167,6 @@ PROTOCOL
 
 #define PORT_MASTER         27950
 #define PORT_SERVER         44400
-#define PORT_HTTP_SERVER    44444
 #define NUM_BROADCAST_PORTS 5
 
 //=========================================
@@ -190,7 +189,6 @@ enum svc_ops_e {
 	svc_servercmd,          // [string] string
 	svc_serverdata,         // [int] protocol ...
 	svc_spawnbaseline,
-	svc_download,           // [short] size [size bytes]
 	svc_playerinfo,         // variable
 	svc_packetentities,     // [...]
 	svc_gamecommands,
@@ -243,14 +241,13 @@ servers can also send across commands and entire text files can be execed.
 The + command line options are also added to the command buffer.
 */
 
-void        Cbuf_Init( void );
-void        Cbuf_Shutdown( void );
-void        Cbuf_AddText( const char *text );
-void        Cbuf_InsertText( const char *text );
-void        Cbuf_ExecuteText( int exec_when, const char *text );
-void        Cbuf_AddEarlyCommands( bool clear );
-bool    Cbuf_AddLateCommands( void );
-void        Cbuf_Execute( void );
+void Cbuf_Init( void );
+void Cbuf_Shutdown( void );
+void Cbuf_AddText( const char *text );
+void Cbuf_ExecuteText( int exec_when, const char *text );
+void Cbuf_AddEarlyCommands( bool clear );
+bool Cbuf_AddLateCommands( void );
+void Cbuf_Execute( void );
 
 
 //===========================================================================
@@ -345,10 +342,8 @@ struct netadr_t {
 
 enum socket_type_t {
 	SOCKET_LOOPBACK,
-	SOCKET_UDP
-#ifdef TCP_SUPPORT
-	, SOCKET_TCP
-#endif
+	SOCKET_UDP,
+	SOCKET_TCP,
 };
 
 struct socket_t {
@@ -358,9 +353,7 @@ struct socket_t {
 	netadr_t address;
 	bool server;
 
-#ifdef TCP_SUPPORT
 	bool connected;
-#endif
 	netadr_t remoteAddress;
 
 	socket_handle_t handle;
@@ -498,7 +491,6 @@ const char *FS_BaseGameDirectory( void );
 // handling of absolute filenames
 // only to be used if necessary (library not supporting custom file handling functions etc.)
 const char *FS_WriteDirectory( void );
-const char *FS_CacheDirectory( void );
 const char *FS_DownloadsDirectory( void );
 void        FS_CreateAbsolutePath( const char *path );
 const char *FS_AbsoluteNameForFile( const char *filename );
@@ -536,7 +528,6 @@ void    FS_FreeFile( void *buffer );
 void    FS_FreeBaseFile( void *buffer );
 #define FS_LoadFile( path,buffer,stack,stacksize ) FS_LoadFileExt( path,0,buffer,stack,stacksize,__FILE__,__LINE__ )
 #define FS_LoadBaseFile( path,buffer,stack,stacksize ) FS_LoadBaseFileExt( path,0,buffer,stack,stacksize,__FILE__,__LINE__ )
-#define FS_LoadCacheFile( path,buffer,stack,stacksize ) FS_LoadFileExt( path,FS_CACHE,buffer,stack,stacksize,__FILE__,__LINE__ )
 
 // util functions
 bool    FS_MoveFile( const char *src, const char *dst );

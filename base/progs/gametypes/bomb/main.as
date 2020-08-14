@@ -3,11 +3,6 @@ const uint BOMB_MAX_PLANT_HEIGHT = 100; // doesn't detect site above that height
 
 const uint BOMB_DROP_RETAKE_DELAY = 1000; // time (ms) after dropping before you can retake it
 
-// jit cries if i use COLOR_RGBA so readability can go suck it
-//                                     RED            GREEN          BLUE          ALPHA
-const int BOMB_LIGHT_INACTIVE = int( ( 255 << 0 ) | ( 255 << 8 ) | ( 0 << 16 ) | ( 128 << 24 ) ); // yellow
-const int BOMB_LIGHT_ARMED    = int( ( 255 << 0 ) | (   0 << 8 ) | ( 0 << 16 ) | ( 128 << 24 ) ); // red
-
 // min cos(ang) between ground and up to plant
 // 0.90 gives ~26 degrees max slope
 // setting this too low breaks the roofplant @ alley b

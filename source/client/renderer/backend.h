@@ -295,9 +295,6 @@ u8 AddRenderPass( const char * name, Framebuffer target, ClearColor clear_color 
 u8 AddUnsortedRenderPass( const char * name );
 void AddResolveMSAAPass( Framebuffer src, Framebuffer dst );
 
-u32 renderer_num_draw_calls();
-u32 renderer_num_vertices();
-
 UniformBlock UploadUniforms( const void * data, size_t size );
 
 VertexBuffer NewVertexBuffer( const void * data, u32 len );

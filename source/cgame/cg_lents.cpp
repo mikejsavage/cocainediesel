@@ -77,7 +77,8 @@ static void ScorchDecal( Vec3 pos, Vec3 normal ) {
 		"weapons/explosion_scorch3",
 	};
 
-	AddPersistentDecal( pos, normal, 32.0f, RandomRadians(), random_select( &cls.rng, decals ), vec4_white, 30000 );
+	float size = random_uniform_float( &cls.rng, 50.0f, 70.0f );
+	AddPersistentDecal( pos, normal, size, RandomRadians(), random_select( &cls.rng, decals ), vec4_white, 30000 );
 }
 
 void CG_RocketExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
@@ -167,7 +168,7 @@ void CG_RifleBulletTrail( const centity_t * cent ) {
 	DoVisualEffect( "vfx/rifletrail", cent->ent.origin, cent->trailOrigin, 1.0f, color );
 }
 
-void CG_NewBloodTrail( centity_t *cent ) {
+void CG_NewBloodTrail( centity_t * cent ) {
 	/*
 	float radius = 2.5f;
 	float alpha = 1.0f;
@@ -312,7 +313,7 @@ void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius ) {
 	*/
 }
 
-void CG_Dash( const SyncEntityState *state ) {
+void CG_Dash( const SyncEntityState * state ) {
 	/*
 	LocalEntity *le;
 	Vec3 pos, dvect, angle = { 0, 0, 0 };

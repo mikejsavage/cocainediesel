@@ -20,10 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-struct orientation_s;
-struct entity_s;
-struct cmodel_s;
-
 //
 // structs and variables shared with the main engine
 //
@@ -65,7 +61,6 @@ struct snapshot_t {
 //
 struct cgame_import_t {
 	void ( *GetConfigString )( int i, char *str, int size );
-	bool ( *DownloadRequest )( const char *filename );
 
 	void ( *NET_GetUserCmd )( int frame, usercmd_t *cmd );
 	int ( *NET_GetCurrentUserCmdNum )( void );

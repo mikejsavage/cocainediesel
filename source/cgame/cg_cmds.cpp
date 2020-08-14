@@ -297,7 +297,7 @@ static void CG_SC_DemoGet( void ) {
 		return;
 	}
 
-	trap_DownloadRequest( filename );
+	CL_DownloadFile( filename, true );
 }
 
 static void CG_SC_ChangeLoadout() {

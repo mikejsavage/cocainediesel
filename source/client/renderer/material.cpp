@@ -703,6 +703,8 @@ static void PackDecalAtlas() {
 
 		decals_atlases = NewAtlasTextureArray( config );
 	}
+
+	TracyPlot( "Atlas VRAM", s64( num_atlases * DECAL_ATLAS_SIZE * DECAL_ATLAS_SIZE * sizeof( pixels[ 0 ] ) ) );
 }
 
 void InitMaterials() {

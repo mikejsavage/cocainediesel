@@ -210,7 +210,6 @@ struct SyncEntityState {
 
 	int counterNum;                 // ET_GENERIC
 	int targetNum;                  // ET_EVENT specific
-	int colorRGBA;                  // ET_BEAM, ET_EVENT specific
 	RGBA8 silhouetteColor;
 	int radius;                     // ET_GLADIATOR always extended, ET_BOMB state, EV_BLOOD damage, ...
 
@@ -226,8 +225,6 @@ struct SyncEntityState {
 	bool teleported;
 
 	StringHash sound;                          // for looping sounds, to guarantee shutoff
-
-	int light;							// constant light glow
 
 	int team;                           // team in the game
 };

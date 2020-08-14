@@ -432,7 +432,7 @@ static void FireBubble( edict_t * owner, Vec3 start, Vec3 angles, const WeaponDe
 }
 
 void W_Fire_BubbleGun( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
-	constexpr int bubble_spacing = 25;
+	constexpr int bubble_spacing = 0;
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_BubbleGun );
 
 	Vec3 dir, right, up;
@@ -472,6 +472,7 @@ static void W_Fire_Railgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 
 	trace_t tr;
 	tr.ent = -1;
+
 	while( ignore ) {
 		G_Trace4D( &tr, from, Vec3( 0.0f ), Vec3( 0.0f ), end, ignore, MASK_WALLBANG, timeDelta );
 
@@ -486,6 +487,7 @@ static void W_Fire_Railgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 		edict_t * hit = &game.edicts[tr.ent];
 		int hit_movetype = hit->movetype; // backup the original movetype as the entity may "die"
 		if( hit == world ) { // stop dead if hit the world
+			G_RadiusKnockback( def, self, tr.endpos, &tr.plane, MOD_RAILGUN, timeDelta );
 			break;
 		}
 

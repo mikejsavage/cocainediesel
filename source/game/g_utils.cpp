@@ -693,39 +693,6 @@ void G_InitMover( edict_t *ent ) {
 	ent->r.svflags &= ~SVF_NOCLIENT;
 
 	GClip_SetBrushModel( ent );
-
-	if( ent->light || ent->color != Vec3( 0.0f ) ) {
-		int r, g, b, i;
-
-		if( !ent->light ) {
-			i = 100;
-		} else {
-			i = ent->light;
-		}
-
-		i /= 4;
-		i = Min2( i, 255 );
-
-		r = ent->color.x;
-		if( r <= 1.0 ) {
-			r *= 255;
-		}
-		r = Clamp( 0, r, 255 );
-
-		g = ent->color.y;
-		if( g <= 1.0 ) {
-			g *= 255;
-		}
-		g = Clamp( 0, g, 255 );
-
-		b = ent->color.z;
-		if( b <= 1.0 ) {
-			b *= 255;
-		}
-		b = Clamp( 0, b, 255 );
-
-		ent->s.light = COLOR_RGBA( r, g, b, i );
-	}
 }
 
 /*

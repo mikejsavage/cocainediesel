@@ -227,6 +227,7 @@ static void SettingsGeneral() {
 
 	CvarCheckbox( "Show hotkeys", "cg_showHotkeys", "1", CVAR_ARCHIVE );
 	CvarCheckbox( "Show FPS", "cg_showFPS", "0", CVAR_ARCHIVE );
+	CvarCheckbox( "Show speed", "cg_showSpeed", "0", CVAR_ARCHIVE );
 }
 
 static void SettingsControls() {
@@ -241,31 +242,33 @@ static void SettingsControls() {
 			KeyBindButton( "Left", "+left" );
 			KeyBindButton( "Right", "+right" );
 			KeyBindButton( "Jump", "+jump" );
-			KeyBindButton( "Dash/walljump/zoom", "+special" );
-			KeyBindButton( "Crouch", "+crouch" );
-			KeyBindButton( "Walk", "+walk" );
+			KeyBindButton( "Dash", "+special" );
+
+			ImGui::Separator();
 
 			KeyBindButton( "Attack", "+attack" );
 			KeyBindButton( "Reload", "+reload" );
+			KeyBindButton( "Plant bomb", "+crouch" );
 			KeyBindButton( "Drop bomb", "drop" );
 			KeyBindButton( "Shop", "gametypemenu" );
 			KeyBindButton( "Scoreboard", "+scores" );
+
+			ImGui::Separator();
+
+			KeyBindButton( "Chat", "messagemode" );
+			KeyBindButton( "Team chat", "messagemode2" );
+			KeyBindButton( "Spray", "spray" );
 
 			ImGui::EndTabItem();
 		}
 
 		if( ImGui::BeginTabItem( "Weapons" ) ) {
+			KeyBindButton( "Melee", "weapon 1" );
+			KeyBindButton( "Primary", "weapon 2" );
+			KeyBindButton( "Secondary", "weapon 3" );
+			KeyBindButton( "Backup", "weapon 4" );
 			KeyBindButton( "Next weapon", "weapnext" );
 			KeyBindButton( "Previous weapon", "weapprev" );
-
-			ImGui::Separator();
-
-			KeyBindButton( "Weapon 1", "weapon 1" );
-			KeyBindButton( "Weapon 2", "weapon 2" );
-			KeyBindButton( "Weapon 3", "weapon 3" );
-			KeyBindButton( "Weapon 4", "weapon 4" );
-			KeyBindButton( "Weapon 5", "weapon 5" );
-			KeyBindButton( "Weapon 6", "weapon 6" );
 
 			ImGui::BeginChild( "weapon", ImVec2( 400, -1 ) );
 			if( ImGui::CollapsingHeader( "Advanced" ) ) {
@@ -288,21 +291,10 @@ static void SettingsControls() {
 			ImGui::EndTabItem();
 		}
 
-		if( ImGui::BeginTabItem( "Communication" ) ) {
-
-			KeyBindButton( "Chat", "messagemode" );
-			KeyBindButton( "Team chat", "messagemode2" );
-			KeyBindButton( "Spray", "spray" );
-
-			ImGui::Separator();
-
-			ImGui::Text( "Voice" );
-
-			ImGui::Separator();
-
-			KeyBindButton( "Acne", "vsay acne" );
-			KeyBindButton( "Valley", "vsay valley" );
-			KeyBindButton( "Mike", "vsay mike" );
+		if( ImGui::BeginTabItem( "Voice lines" ) ) {
+			KeyBindButton( "Acne pack", "vsay acne" );
+			KeyBindButton( "Valley pack", "vsay valley" );
+			KeyBindButton( "Mike pack", "vsay mike" );
 
 			ImGui::BeginChild( "voice", ImVec2( 400, -1 ) );
 			if( ImGui::CollapsingHeader( "Advanced" ) ) {
@@ -327,8 +319,10 @@ static void SettingsControls() {
 		}
 
 		if( ImGui::BeginTabItem( "Misc" ) ) {
-			KeyBindButton( "Join/ Switch team", "join" );
-			KeyBindButton( "Ready / Unread", "toggleready" );
+			KeyBindButton( "Vote yes", "vote yes" );
+			KeyBindButton( "Vote no", "vote no" );
+			KeyBindButton( "Join team", "join" );
+			KeyBindButton( "Ready", "toggleready" );
 			KeyBindButton( "Spectate", "chase" );
 			KeyBindButton( "Screenshot", "screenshot" );
 
@@ -452,7 +446,7 @@ static void SettingsVideo() {
 
 		ImGui::SameLine();
 
-		PushButtonColor( ImVec4( 0.5f, 0.125f, 0.f, 0.75f ) );
+		PushButtonColor( ImVec4( 0.5f, 0.5f, 0.5f, 1.f ) );
 		if( ImGui::Button( "Discard changes" ) ) {
 			reset_video_settings = true;
 		}
@@ -487,7 +481,7 @@ static void SettingsVideo() {
 
 		if( samples > 1 ) {
 			ImGui::SameLine();
-			ImGui::Text( S_COLOR_RED "Enabling anti-aliasing can cause significant FPS drops!" );
+			ImGui::Text( S_COLOR_WHITE "Enabling anti-aliasing can cause significant FPS drops!" );
 		}
 
 		Cvar_Set( "r_samples", temp( "{}", samples ) );
@@ -522,7 +516,7 @@ static void SettingsVideo() {
 
 static void SettingsAudio() {
 	CvarSliderFloat( "Master volume", "s_volume", 0.0f, 1.0f, "1", CVAR_ARCHIVE );
-	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f, "1", CVAR_ARCHIVE );
+	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f, "0.5", CVAR_ARCHIVE );
 	CvarCheckbox( "Mute when alt-tabbed", "s_muteinbackground", "1", CVAR_ARCHIVE );
 }
 
@@ -675,12 +669,12 @@ static void MainMenu() {
 	}
 
 	if( ImGui::BeginPopupModal( "change name", NULL, ImGuiWindowFlags_NoDecoration ) ) {
-		ImGui::BeginChild( "nameset", ImVec2( 500, 125 ) );
+		ImGui::BeginChild( "nameset", ImVec2( 500, 150 ) );
 		ImGui::Text( "Change your nickname" );
 
 		CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
 
-		if( ImGui::Button( "Ok", ImVec2( -1, 0 ) ) ) {
+		if( ImGui::Button( "Ok", ImVec2( -1, 0 ) ) || ImGui::Hotkey( K_ESCAPE ) ) {
 			change_name_popup = true;
 			ImGui::CloseCurrentPopup();
 		}
@@ -696,16 +690,16 @@ static void MainMenu() {
 	ImGui::BeginChild( "mainmenubody", ImVec2( 0, -ImGui::GetFrameHeightWithSpacing() + window_padding.y ) );
 
 	ImGui::PushFont( cls.large_font );
-	const char * name = "CORONADIESEL";
+	const char * name = "KOKAIN DIZEL";
 	const int break_time = 1000;
 	for( size_t i = 0; i < strlen( name ); i++ ) {
 		ImGui::SameLine();
 		if( cls.monotonicTime < break_time ) {
-			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + frame_static.viewport_width * Max2( s64( 0 ), ( 1000 - cls.monotonicTime ) ) /1000.f );
+			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + frame_static.viewport_width * Max2( s64( 0 ), ( 1000 - cls.monotonicTime ) ) / 1000.f );
 		} else {
-			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + Max2( 0.0f, sinf( ( cls.monotonicTime - break_time ) / 500.0f + i*0.5f )*8 ) );
+			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + Max2( 0.0f, sinf( ( cls.monotonicTime - break_time ) / 500.0f + i*1.33f )*16 ) );
 		}
-		ImGui::Text( "%s%c", temp( "{}", ImGuiColorToken( 220, 180 + i*2, 100 + i*4, 255 ) ), name[ i ] );
+		ImGui::Text( "%s%c", temp( "{}", ImGuiColorToken( 255, 255, 255, 255 - i*16 ) ), name[ i ] );
 	}
 	ImGui::PopFont();
 
@@ -781,6 +775,7 @@ static void MainMenu() {
 		ImGuiWindowFlags credits_flags = ( ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar ) | ImGuiWindowFlags_NoMove;
 		if( ImGui::BeginPopupModal( "Credits", NULL, credits_flags ) ) {
 			ImGui::Text( "Dexter - programming" );
+			ImGui::Text( "general adnic - voice acting" );
 			ImGui::Text( "goochie - art & programming" );
 			ImGui::Text( "MSC - programming" );
 			ImGui::Text( "MikeJS - programming" );
@@ -948,7 +943,7 @@ static void GameMenu() {
 
 	if( gamemenu_state == GameMenuState_Menu ) {
 		ImGui::SetNextWindowPos( displaySize * 0.5f, 0, Vec2( 0.5f ) );
-		ImGui::SetNextWindowSize( ImVec2( 300, 0 ) );
+		ImGui::SetNextWindowSize( ImVec2( 500, 0 ) );
 		ImGui::Begin( "gamemenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 		ImGuiStyle & style = ImGui::GetStyle();
 		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
@@ -998,7 +993,7 @@ static void GameMenu() {
 			GameMenuButton( "Spectate", "chase", &should_close );
 
 			if( team_based ) {
-				GameMenuButton( "Change loadout", "gametypemenu", &should_close );
+				GameMenuButton( "Change weapons", "gametypemenu", &should_close );
 			}
 		}
 
@@ -1048,7 +1043,7 @@ static void GameMenu() {
 	}
 	else if( gamemenu_state == GameMenuState_Settings ) {
 		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
-		ImGui::SetNextWindowSize( ImVec2( Max2( 800.f, displaySize.x * 0.6f ), Max2( 600.f, displaySize.y * 0.6f ) ) );
+		ImGui::SetNextWindowSize( ImVec2( Max2( 800.f, displaySize.x * 0.65f ), Max2( 600.f, displaySize.y * 0.65f ) ) );
 		ImGui::Begin( "settings", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		Settings();

@@ -269,9 +269,6 @@ struct cg_static_t {
 	const char *demoName;
 	unsigned int playerNum;
 
-	// materials
-	const Material * white_material;
-
 	// fonts
 	int fontSystemTinySize;
 	int fontSystemSmallSize;

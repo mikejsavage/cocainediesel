@@ -74,9 +74,6 @@ typedef struct {
 static int current;
 static graphsamp_t values[1024];
 
-/*
-* SCR_DebugGraph
-*/
 void SCR_DebugGraph( float value, float r, float g, float b ) {
 	values[current].value = value;
 	values[current].color = Vec4( r, g, b, 1.0f );
@@ -86,12 +83,9 @@ void SCR_DebugGraph( float value, float r, float g, float b ) {
 }
 
 static void SCR_DrawFillRect( int x, int y, int w, int h, Vec4 color ) {
-	Draw2DBox( x, y, w, h, cls.whiteTexture, color );
+	Draw2DBox( x, y, w, h, cls.white_material, color );
 }
 
-/*
-* SCR_DrawDebugGraph
-*/
 static void SCR_DrawDebugGraph( void ) {
 	//
 	// draw the graph
@@ -116,11 +110,6 @@ static void SCR_DrawDebugGraph( void ) {
 	}
 }
 
-//============================================================================
-
-/*
-* SCR_InitScreen
-*/
 void SCR_InitScreen( void ) {
 	scr_netgraph = Cvar_Get( "netgraph", "0", 0 );
 	scr_timegraph = Cvar_Get( "timegraph", "0", 0 );
@@ -130,20 +119,6 @@ void SCR_InitScreen( void ) {
 	scr_graphshift = Cvar_Get( "graphshift", "0", 0 );
 }
 
-//=============================================================================
-
-/*
-* SCR_RegisterConsoleMedia
-*/
-void SCR_RegisterConsoleMedia() {
-	cls.whiteTexture = FindMaterial( "$whiteimage" );
-}
-
-//============================================================================
-
-/*
-* SCR_RenderView
-*/
 static void SCR_RenderView() {
 	cl.map = FindMap( client_gs.gameState.map );
 	if( cl.map != NULL ) {

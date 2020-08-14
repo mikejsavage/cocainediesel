@@ -22,8 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/q_trie.h"
 #include "qcommon/threads.h"
 
-#ifdef HTTP_SUPPORT
-
 #define MAX_INCOMING_HTTP_CONNECTIONS           48
 #define MAX_INCOMING_HTTP_CONNECTIONS_PER_ADDR  3
 
@@ -913,8 +911,8 @@ static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_respo
 				return;
 			}
 
-			// only serve GET requests for demo files
-			if( FileExtension( filename ) != APP_DEMO_EXTENSION_STR ) {
+			Span< const char > ext = FileExtension( filename );
+			if( ext != ".bsp" && ext != APP_DEMO_EXTENSION_STR ) {
 				response->code = HTTP_RESP_FORBIDDEN;
 				return;
 			}
@@ -1176,9 +1174,9 @@ static void SV_Web_InitSocket( const char *addrstr, netadrtype_t adrtype, socket
 
 	if( address.type == adrtype ) {
 		if( !NET_OpenSocket( socket, SOCKET_TCP, &address, true ) ) {
-			Com_Printf( "Error: Couldn't open TCP socket: %s", NET_ErrorString() );
+			Com_Printf( "Couldn't start web server: Couldn't open TCP socket: %s\n", NET_ErrorString() );
 		} else if( !NET_Listen( socket ) ) {
-			Com_Printf( "Error: Couldn't listen to TCP socket: %s", NET_ErrorString() );
+			Com_Printf( "Couldn't start web server: Couldn't listen to TCP socket: %s\n", NET_ErrorString() );
 			NET_CloseSocket( socket );
 		} else {
 			Com_Printf( "Web server started on %s\n", NET_AddressToString( &address ) );
@@ -1412,33 +1410,3 @@ void SV_Web_Shutdown( void ) {
 const char *SV_Web_UpstreamBaseUrl( void ) {
 	return sv_http_upstream_baseurl->string;
 }
-
-#else
-
-/*
-* SV_Web_Init
-*/
-void SV_Web_Init( void ) {
-}
-
-/*
-* SV_Web_Shutdown
-*/
-void SV_Web_Shutdown( void ) {
-}
-
-/*
-* SV_Web_Running
-*/
-bool SV_Web_Running( void ) {
-	return false;
-}
-
-/*
-* SV_Web_UpstreamBaseUrl
-*/
-const char *SV_Web_UpstreamBaseUrl( void ) {
-	return "";
-}
-
-#endif // HTTP_SUPPORT

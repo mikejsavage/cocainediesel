@@ -525,30 +525,6 @@ void SV_DemoGet_f( client_t *client ) {
 	SV_AddGameCommand( client, message );
 }
 
-/*
-* SV_IsDemoDownloadRequest
-*/
-bool SV_IsDemoDownloadRequest( const char *request ) {
-	const char *demoDir = SV_DEMO_DIR;
-	const size_t demoDirLen = strlen( demoDir );
-
-	if( !request ) {
-		return false;
-	}
-	if( strlen( request ) <= demoDirLen + 1 + strlen( APP_DEMO_EXTENSION_STR ) ) {
-		// should at least contain demo dir name and demo file extension
-		return false;
-	}
-
-	if( Q_strnicmp( request, demoDir, demoDirLen ) || request[demoDirLen] != '/' ) {
-		// nah, wrong dir
-		return false;
-	}
-
-	if( FileExtension( request ) != APP_DEMO_EXTENSION_STR ) {
-		// wrong extension
-		return false;
-	}
-
-	return true;
+bool SV_IsDemoDownloadRequest( const char * request ) {
+	return StartsWith( request, SV_DEMO_DIR ) && FileExtension( request ) == APP_DEMO_EXTENSION_STR;
 }

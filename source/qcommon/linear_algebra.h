@@ -40,6 +40,7 @@ inline float LengthSquared( Vec2 v ) {
 }
 
 inline Vec2 Normalize( Vec2 v ) {
+	assert( v != Vec2( 0.0f ) );
 	return v / Length( v );
 }
 
@@ -113,6 +114,7 @@ inline float LengthSquared( Vec3 v ) {
 }
 
 inline Vec3 Normalize( Vec3 v ) {
+	assert( v != Vec3( 0.0f ) );
 	return v / Length( v );
 }
 
@@ -173,6 +175,9 @@ inline void operator/=( Vec4 & v, float inv_scale ) { v = v / inv_scale; }
 
 inline Vec4 operator-( Vec4 v ) { return Vec4( -v.x, -v.y, -v.z, -v.w ); }
 
+inline bool operator==( Vec4 lhs, Vec4 rhs ) { return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z && lhs.w == rhs.w; }
+inline bool operator!=( Vec4 lhs, Vec4 rhs ) { return !( lhs == rhs ); }
+
 inline float Dot( Vec4 lhs, Vec4 rhs ) {
 	return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z + lhs.w * rhs.w;
 }
@@ -182,6 +187,7 @@ inline float Length( Vec4 v ) {
 }
 
 inline Vec4 Normalize( Vec4 v ) {
+	assert( v != Vec4( 0.0f ) );
 	return v / Length( v );
 }
 

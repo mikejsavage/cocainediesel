@@ -5,7 +5,7 @@
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
 
-static DynamicArray< char * > maps( NO_INIT );
+static DynamicArray< char * > maps( NO_RAII );
 
 void InitMapList() {
 	maps.init( sys_allocator );

@@ -13,48 +13,52 @@ static Map maps[ MAX_MAPS ];
 static u32 num_maps;
 static Hashtable< MAX_MAPS * 2 > maps_hashtable;
 
+bool AddMap( Span< const u8 > compressed, const char * path ) {
+	ZoneScoped;
+	ZoneText( path, strlen( path ) );
+
+	Span< const char > ext = FileExtension( path );
+	if( ext != ".bsp" )
+		return false;
+
+	if( compressed.n < 4 ) {
+		Com_Printf( S_COLOR_RED "BSP too small %s\n", path );
+		return false;
+	}
+
+	Span< u8 > decompressed;
+	defer { FREE( sys_allocator, decompressed.ptr ); };
+	bool ok = Decompress( path, sys_allocator, compressed, &decompressed );
+	if( !ok )
+		return false;
+
+	Span< const u8 > data = decompressed.ptr == NULL ? compressed : decompressed;
+
+	maps[ num_maps ].name = CopyString( sys_allocator, path );
+	u64 base_hash = Hash64( path, strlen( path ) - ext.n );
+
+	if( !LoadBSPRenderData( &maps[ num_maps ], base_hash, data ) )
+		return false;
+
+	maps[ num_maps ].cms = CM_LoadMap( CM_Client, data, base_hash );
+	if( maps[ num_maps ].cms == NULL )
+		// TODO: free render data
+		return false;
+
+	maps_hashtable.add( base_hash, num_maps );
+	num_maps++;
+
+	return true;
+}
+
 void InitMaps() {
 	ZoneScoped;
 
 	num_maps = 0;
 
 	for( const char * path : AssetPaths() ) {
-		Span< const char > ext = FileExtension( path );
-		if( ext != ".bsp" )
-			continue;
-
-		ZoneScopedN( "Load map" );
-		ZoneText( path, strlen( path ) );
-
-		Span< const u8 > compressed = AssetBinary( path );
-		if( compressed.n < 4 ) {
-			Com_Printf( S_COLOR_RED "BSP too small %s\n", path );
-			continue;
-		}
-
-		Span< u8 > decompressed;
-		defer { FREE( sys_allocator, decompressed.ptr ); };
-		bool ok = Decompress( path, sys_allocator, compressed, &decompressed );
-		if( !ok )
-			continue;
-
-		Span< const u8 > data = decompressed.ptr == NULL ? compressed : decompressed;
-
-		maps[ num_maps ].name = CopyString( sys_allocator, path );
-		u64 base_hash = Hash64( path, strlen( path ) - ext.n );
-
-		if( !LoadBSPRenderData( &maps[ num_maps ], base_hash, data ) )
-			continue;
-
-		maps[ num_maps ].cms = CM_LoadMap( CM_Client, data, base_hash );
-		if( maps[ num_maps ].cms == NULL )
-			// TODO: free render data
-			continue;
-
-		maps_hashtable.add( base_hash, num_maps );
-		num_maps++;
+		AddMap( AssetBinary( path ), path );
 	}
-
 }
 
 void ShutdownMaps() {

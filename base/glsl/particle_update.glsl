@@ -64,8 +64,9 @@ bool collide() {
 	}
 	float restitution = a_ParticleAccelDragRest.z;
 	float asdf = 8.0;
+	float prestep = 0.1;
 	
-	vec4 frac = Trace( a_ParticlePosition - a_ParticleVelocity * u_dt * 0.1, a_ParticleVelocity * u_dt * asdf, radius );
+	vec4 frac = Trace( a_ParticlePosition - a_ParticleVelocity * u_dt * prestep, a_ParticleVelocity * u_dt * asdf, radius );
 	if ( frac.w < 1.0 ) {
 		v_ParticlePosition = a_ParticlePosition + a_ParticleVelocity * frac.w * u_dt / asdf;
 
@@ -75,7 +76,7 @@ bool collide() {
 
 #if FEEDBACK
 		v_Feedback |= FEEDBACK_COLLISION;
-		v_FeedbackPosition = v_ParticlePosition;
+		v_FeedbackPosition = a_ParticlePosition + a_ParticleVelocity * ( frac.w * ( prestep + asdf ) - prestep ) * u_dt;
 		v_FeedbackNormal = normalize( frac.xyz );
 #endif
 

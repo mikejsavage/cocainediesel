@@ -69,7 +69,7 @@ void main() {
 	}
 	if ( ( a_ParticleFlags & PARTICLE_STRETCH ) != 0u ) {
 		vec3 stretch = dot( quadPos, view_velocity ) * view_velocity;
-		quadPos += normalize( stretch ) * clamp( length( stretch ), 0.0, 1.0 );
+		quadPos += normalize( stretch ) * clamp( length( stretch ), 0.0, scale );
 	}
 	gl_Position = u_P * ( u_V * vec4( a_ParticlePosition, 1.0 ) + vec4( quadPos, 0.0 ) );
 #endif

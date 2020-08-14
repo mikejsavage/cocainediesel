@@ -48,14 +48,13 @@ public:
 	}
 
 	void clear() {
-		n = 0;
-		ASAN_POISON_MEMORY_REGION( elems, capacity * sizeof( T ) );
+		resize( 0 );
 	}
 
 	void resize( size_t new_size ) {
 		if( new_size < n ) {
 			n = new_size;
-			ASAN_POISON_MEMORY_REGION( elems + n * sizeof( T ), ( capacity - n ) * sizeof( T ) );
+			ASAN_POISON_MEMORY_REGION( elems + n, ( capacity - n ) * sizeof( T ) );
 			return;
 		}
 
@@ -74,7 +73,7 @@ public:
 		n = new_size;
 
 		ASAN_UNPOISON_MEMORY_REGION( elems, n * sizeof( T ) );
-		ASAN_POISON_MEMORY_REGION( elems + n * sizeof( T ), ( capacity - n ) * sizeof( T ) );
+		ASAN_POISON_MEMORY_REGION( elems + n, ( capacity - n ) * sizeof( T ) );
 	}
 
 	size_t extend( size_t by ) {

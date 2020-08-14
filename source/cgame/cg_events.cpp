@@ -290,46 +290,6 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 	}
 }
 
-/*
- * CG_LeadWaterSplash
- */
-static void CG_LeadWaterSplash( trace_t * tr ) {
-	int contents;
-	Vec3 dir, pos;
-
-	contents = tr->contents;
-	pos = tr->endpos;
-	dir = tr->plane.normal;
-
-	if( contents & CONTENTS_WATER ) {
-		// CG_ParticleEffect( pos, dir, 0.47f, 0.48f, 0.8f, 8 );
-	}
-	else if( contents & CONTENTS_SLIME ) {
-		// CG_ParticleEffect( pos, dir, 0.0f, 1.0f, 0.0f, 8 );
-	}
-	else if( contents & CONTENTS_LAVA ) {
-		// CG_ParticleEffect( pos, dir, 1.0f, 0.67f, 0.0f, 8 );
-	}
-}
-
-/*
- * CG_LeadBubbleTrail
- */
-static void CG_LeadBubbleTrail( trace_t * tr, Vec3 water_start ) {
-	// if went through water, determine where the end and make a bubble trail
-	Vec3 dir = Normalize( tr->endpos - water_start );
-	Vec3 pos = tr->endpos - dir * 2.0f;
-
-	if( CG_PointContents( pos ) & MASK_WATER ) {
-		tr->endpos = pos;
-	}
-	else {
-		CG_Trace( tr, pos, Vec3( 0.0f ), Vec3( 0.0f ), water_start, tr->ent, MASK_WATER );
-	}
-
-	CG_BubbleTrail( water_start, tr->endpos, 32 );
-}
-
 static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, WeaponType weapon, int owner, Vec4 team_color ) {
 	int range = GS_GetWeaponDef( weapon )->range;
 
@@ -663,9 +623,7 @@ static void CG_Event_Jump( SyncEntityState * state ) {
  * CG_EntityEvent
  */
 void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
-	Vec3 dir;
 	bool viewer = ISVIEWERENTITY( ent->number );
-	int count = 0;
 
 	if( viewer && ev < PREDICTABLE_EVENTS_MAX && predicted != cg.view.playerPrediction ) {
 		return;
@@ -709,6 +667,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 				if( parm == Weapon_Laser ) {
 					Vec3 origin = cg.predictedPlayerState.pmove.origin;
 					origin.z += cg.predictedPlayerState.viewheight;
+
+					Vec3 dir;
 					AngleVectors( cg.predictedPlayerState.viewangles, &dir, NULL, NULL );
 
 					CG_Event_LaserBeam( origin, dir, ent->number );
@@ -745,6 +705,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 			CG_FireWeaponEvent( num, parm );
 
+			Vec3 dir;
 			AngleVectors( angles, &dir, NULL, NULL );
 
 			if( parm == Weapon_Railgun ) {
@@ -829,8 +790,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			CG_GenericExplosion( ent->origin, Vec3( 0.0f ), parm * 16 );
 			break;
 
-		case EV_SPARKS:
-			dir = ByteToDir( parm );
+		case EV_SPARKS: {
+			// Vec3 dir = ByteToDir( parm );
 			// if( ent->damage > 0 ) {
 			// 	count = Clamp( 1, int( ent->damage * 0.25f ), 10 );
 			// } else {
@@ -838,16 +799,16 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			// }
 
 			// CG_ParticleEffect( ent->origin, dir, 1.0f, 0.67f, 0.0f, count );
-			break;
+		} break;
 
-		case EV_LASER_SPARKS:
-			dir = ByteToDir( parm );
+		case EV_LASER_SPARKS: {
+			// Vec3 dir = ByteToDir( parm );
 			// CG_ParticleEffect2( ent->origin, dir,
 			// 					COLOR_R( ent->colorRGBA ) * ( 1.0 / 255.0 ),
 			// 					COLOR_G( ent->colorRGBA ) * ( 1.0 / 255.0 ),
 			// 					COLOR_B( ent->colorRGBA ) * ( 1.0 / 255.0 ),
 			// 					ent->counterNum );
-			break;
+		} break;
 
 		case EV_GIB:
 			SpawnGibs( ent->origin, ent->origin2, parm, team_color );
@@ -882,21 +843,22 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 			break;
 
-		case EV_PLASMA_EXPLOSION:
-			dir = ByteToDir( parm );
+		case EV_PLASMA_EXPLOSION: {
+			Vec3 dir = ByteToDir( parm );
 			CG_PlasmaExplosion( ent->origin, dir, team_color );
-			break;
+		} break;
 
 		case EV_BUBBLE_EXPLOSION:
 			CG_BubbleExplosion( ent->origin, team_color );
 			break;
 
-		case EV_BOLT_EXPLOSION:
-			dir = ByteToDir( parm );
+		case EV_BOLT_EXPLOSION: {
+			Vec3 dir = ByteToDir( parm );
 			CG_EBImpact( ent->origin, dir, 0, team_color );
-			break;
+		} break;
 
-		case EV_GRENADE_EXPLOSION:
+		case EV_GRENADE_EXPLOSION: {
+			Vec3 dir;
 			if( parm ) {
 				// we have a direction
 				dir = ByteToDir( parm );
@@ -907,13 +869,13 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 				CG_GrenadeExplosion( ent->origin, Vec3( 0.0f ), team_color );
 			}
 
-			break;
+		} break;
 
-		case EV_ROCKET_EXPLOSION:
-			dir = ByteToDir( parm );
+		case EV_ROCKET_EXPLOSION: {
+			Vec3 dir = ByteToDir( parm );
 			CG_RocketExplosion( ent->origin, dir, team_color );
 
-			break;
+		} break;
 
 		case EV_GRENADE_BOUNCE:
 			S_StartEntitySound( cgs.media.sfxGrenadeBounce, ent->number, CHAN_AUTO, 1.0f );
@@ -923,14 +885,14 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			CG_BladeImpact( ent->origin, ent->origin2 );
 			break;
 
-		case EV_RIFLEBULLET_IMPACT:
-			dir = ByteToDir( parm );
+		case EV_RIFLEBULLET_IMPACT: {
+			Vec3 dir = ByteToDir( parm );
 			BulletSparks( ent->origin, dir, team_color, 24 );
 			S_StartFixedSound( cgs.media.sfxBulletImpact, ent->origin, CHAN_AUTO, 1.0f );
-			break;
+		} break;
 
 		case EV_BLOOD: {
-			dir = ByteToDir( parm );
+			Vec3 dir = ByteToDir( parm );
 			Vec3 tangent, bitangent;
 			OrthonormalBasis( dir, &tangent, &bitangent );
 
@@ -962,9 +924,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 						"textures/blood_decals/blood11",
 					};
 
-					Vec4 color = CG_TeamColorVec4( ent->team );
 					float angle = random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
-
 					float min_size = Lerp( 20.0f, Unlerp01( 5, damage, 50 ), 64.0f );
 					float size = min_size * random_uniform_float( &cls.rng, 0.75f, 1.5f );
 

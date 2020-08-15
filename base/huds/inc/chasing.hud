@@ -1,6 +1,6 @@
 if %CHASING != #NOTSET
 	setAlignment left middle
-	setCursor 20 * 1.333 * %VIDHEIGHT / %VIDWIDTH, #HEIGHT - 32
+	setCursor 8 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 16
 	setColor 1 1 1 1
 	setSize 24 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 24
 	drawPicByName "gfx/hud/cam"

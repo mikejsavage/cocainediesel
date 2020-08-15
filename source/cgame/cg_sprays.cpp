@@ -10,7 +10,7 @@ struct Spray {
 	s64 spawn_time;
 };
 
-constexpr static s64 SPRAY_DURATION = 60000;
+constexpr static s64 SPRAY_LIFETIME = 60000;
 
 static Spray sprays[ 1024 ];
 static size_t sprays_head;
@@ -83,7 +83,7 @@ void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, StringHash material ) {
 
 void DrawSprays() {
 	while( num_sprays > 0 ) {
-		if( sprays[ sprays_head % ARRAY_COUNT( sprays ) ].spawn_time + SPRAY_DURATION >= cls.gametime )
+		if( sprays[ sprays_head % ARRAY_COUNT( sprays ) ].spawn_time + SPRAY_LIFETIME >= cls.gametime )
 			break;
 		sprays_head++;
 		num_sprays--;

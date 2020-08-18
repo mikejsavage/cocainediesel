@@ -550,31 +550,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 			view->origin = cg.predictedPlayerState.pmove.origin + viewoffset - ( 1.0f - cg.lerpfrac ) * cg.predictionError;
 			view->angles = cg.predictedPlayerState.viewangles;
 
-			if( cg.recoiling ) {
-				constexpr float up_mult = 30.0f;
-				constexpr float down_mult = 5.0f;
-
-				cg.recoil_initial_pitch += Min2( 0.0f, cl.viewangles.x - cl.prevviewangles.x );
-
-				if( cg.recoil == 0.0f ) {
-					float d = cg.recoil_initial_pitch - cl.viewangles.x;
-					if( d <= 0.0f ) {
-						cg.recoiling = false;
-					}
-					else {
-						float downkick = d * down_mult * cls.frametime * 0.001f;
-						cl.viewangles.x += Min2( downkick, d );
-					}
-				}
-				else {
-					float kick = cg.recoil * up_mult * cls.frametime * 0.001f;
-					cl.viewangles.x -= kick;
-					cg.recoil -= kick;
-					if( cg.recoil < 0.1f ) {
-						cg.recoil = 0.0f;
-					}
-				}
-			}
+			CG_Recoil( cg.predictedPlayerState.weapon );
 
 			CG_ViewSmoothPredictedSteps( &view->origin ); // smooth out stair climbing
 		} else {

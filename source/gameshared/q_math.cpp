@@ -381,6 +381,14 @@ float AngleDelta( float angle1, float angle2 ) {
 	return AngleNormalize180( angle1 - angle2 );
 }
 
+Vec3 AngleDelta( Vec3 angle1, Vec3 angle2 ) {
+	return Vec3(
+		AngleDelta( angle1.x, angle2.x ),
+		AngleDelta( angle1.y, angle2.y ),
+		AngleDelta( angle1.z, angle2.z )
+	);
+}
+
 /*
 * WidescreenFov
 */

@@ -735,7 +735,9 @@ struct WeaponDef {
 	unsigned int weapondown_time;
 	unsigned int refire_time;
 	unsigned int range;
-	float recoil;
+	Vec2 recoil;
+	Vec2 recoil_min;
+	float recoil_recover;
 	FiringMode mode;
 
 	float zoom_fov;

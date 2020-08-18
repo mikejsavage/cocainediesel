@@ -360,8 +360,8 @@ struct cg_state_t {
 	float xyspeed;
 
 	bool recoiling;
-	float recoil;
-	float recoil_initial_pitch;
+	Vec3 recoil;
+	Vec3 recoil_initial;
 
 	float damage_effect;
 
@@ -644,6 +644,9 @@ void CG_AddViewWeapon( cg_viewweapon_t *viewweapon );
 void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon );
 void CG_ViewWeapon_StartAnimationEvent( int newAnim );
 void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon );
+
+void CG_AddRecoil( WeaponType weapon );
+void CG_Recoil( WeaponType weapon );
 
 //
 // cg_events.c

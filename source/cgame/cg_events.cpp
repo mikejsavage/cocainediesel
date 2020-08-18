@@ -282,11 +282,7 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 
 	// recoil
 	if( ISVIEWERENTITY( entNum ) && cg.view.playerPrediction ) {
-		if( !cg.recoiling ) {
-			cg.recoil_initial_pitch = cl.viewangles.x;
-			cg.recoiling = true;
-		}
-		cg.recoil += GS_GetWeaponDef( weapon )->recoil;
+		CG_AddRecoil( weapon );
 	}
 }
 

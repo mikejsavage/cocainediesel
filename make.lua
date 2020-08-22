@@ -39,13 +39,13 @@ do
 
 	if OS == "windows" then
 		platform_srcs = {
-			"source/win32/win_client.cpp",
-			"source/win32/win_console.cpp",
-			"source/win32/win_fs.cpp",
-			"source/win32/win_net.cpp",
-			"source/win32/win_sys.cpp",
-			"source/win32/win_threads.cpp",
-			"source/win32/win_time.cpp",
+			"source/windows/win_client.cpp",
+			"source/windows/win_console.cpp",
+			"source/windows/win_fs.cpp",
+			"source/windows/win_net.cpp",
+			"source/windows/win_sys.cpp",
+			"source/windows/win_threads.cpp",
+			"source/windows/win_time.cpp",
 		}
 		platform_libs = { }
 	else
@@ -99,7 +99,7 @@ do
 			platform_libs
 		},
 
-		rc = "source/win32/client",
+		rc = "source/windows/client",
 
 		gcc_extra_ldflags = "-lm -lpthread -ldl -lX11 -no-pie -static-libstdc++",
 		msvc_extra_ldflags = "gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib /SUBSYSTEM:WINDOWS",
@@ -113,13 +113,13 @@ do
 
 	if OS == "windows" then
 		platform_srcs = {
-			"source/win32/win_console.cpp",
-			"source/win32/win_fs.cpp",
-			"source/win32/win_net.cpp",
-			"source/win32/win_server.cpp",
-			"source/win32/win_sys.cpp",
-			"source/win32/win_threads.cpp",
-			"source/win32/win_time.cpp",
+			"source/windows/win_console.cpp",
+			"source/windows/win_fs.cpp",
+			"source/windows/win_net.cpp",
+			"source/windows/win_server.cpp",
+			"source/windows/win_sys.cpp",
+			"source/windows/win_threads.cpp",
+			"source/windows/win_time.cpp",
 		}
 	else
 		platform_srcs = {

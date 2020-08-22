@@ -1,5 +1,5 @@
 #define _WIN32_WINNT 0x4000
-#include <windows.h>
+#include "windows/miniwindows.h"
 #include <stdlib.h>
 #include <shellapi.h>
 

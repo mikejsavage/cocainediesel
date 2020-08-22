@@ -17,23 +17,14 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#include "windows/miniwindows.h"
+#include <io.h>
+#include <shlobj.h>
+
 #include "qcommon/qcommon.h"
 #include "qcommon/string.h"
 #include "qcommon/fs.h"
-
 #include "qcommon/sys_fs.h"
-
-#include "winquake.h"
-#include <direct.h>
-#include <shlobj.h>
-
-#ifndef CSIDL_APPDATA
-# define CSIDL_APPDATA                  0x001A
-#endif
-
-#ifndef CSIDL_PERSONAL
-# define CSIDL_PERSONAL                 0x0005        // My Documents
-#endif
 
 static char *findbase = NULL;
 static char *findpath = NULL;
@@ -217,22 +208,7 @@ const char *Sys_FS_GetHomeDirectory( void ) {
 		return home;
 	}
 
-#ifndef SHGetFolderPath
-	HINSTANCE shFolderDll = LoadLibrary( "shfolder.dll" );
-
-	if( !shFolderDll ) {
-		shFolderDll = LoadLibrary( "shell32.dll" );
-	}
-
-	SHGetFolderPath = GetProcAddress( shFolderDll, "SHGetFolderPathA" );
-	if( SHGetFolderPath ) {
-		SHGetFolderPath( NULL, csidl, 0, 0, home );
-	}
-
-	FreeLibrary( shFolderDll );
-#else
 	SHGetFolderPath( 0, csidl, 0, 0, home );
-#endif
 
 	if( home[0] == '\0' ) {
 		return NULL;
@@ -247,7 +223,7 @@ const char *Sys_FS_GetHomeDirectory( void ) {
 * Sys_FS_CreateDirectory
 */
 bool Sys_FS_CreateDirectory( const char *path ) {
-	return ( !_mkdir( path ) );
+	return CreateDirectoryA( path, NULL ) != 0 || GetLastError() == ERROR_ALREADY_EXISTS;
 }
 
 /*

@@ -18,12 +18,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "qcommon.h"
+#include "qcommon/platform.h"
 
-#include "sys_net.h"
-
-#ifdef _WIN32
-#include "../win32/winquake.h"
+#ifdef PLATFORM_WINDOWS
+#include "windows/miniwindows.h"
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #else
 #include <unistd.h>
 #include <netinet/in.h>
@@ -34,6 +34,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <sys/socket.h>
 #include <sys/time.h>
 #endif
+
+#include "qcommon/qcommon.h"
+#include "qcommon/sys_net.h"
 
 #define MAX_LOOPBACK    4
 

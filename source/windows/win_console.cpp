@@ -1,6 +1,7 @@
+#include "windows/miniwindows.h"
+
 #include "qcommon/types.h"
 #include "qcommon/qcommon.h"
-#include "winquake.h"
 
 static HANDLE hinput = NULL;
 static HANDLE houtput = NULL;

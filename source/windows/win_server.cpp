@@ -1,4 +1,4 @@
-#include <windows.h>
+#include "windows/miniwindows.h"
 
 #include "qcommon/qcommon.h"
 

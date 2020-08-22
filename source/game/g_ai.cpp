@@ -1,5 +1,5 @@
-#include "g_local.h"
-#include "../gameshared/gs_public.h"
+#include "game/g_local.h"
+#include "gameshared/gs_public.h"
 
 static const char * bot_names[] = {
 	"vic",

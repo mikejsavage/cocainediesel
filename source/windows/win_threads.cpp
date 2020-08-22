@@ -1,8 +1,8 @@
+#include "windows/miniwindows.h"
+#include <process.h>
+
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-
-#include <windows.h>
-#include <process.h>
 
 struct Thread { HANDLE handle; };
 struct Mutex { SRWLOCK lock; };

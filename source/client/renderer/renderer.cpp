@@ -56,6 +56,7 @@ static void TakeScreenshot() {
 
 	filename.append( ".png" );
 
+	FS_CreateAbsolutePath( filename.c_str() );
 	stbi_flip_vertically_on_write( 1 );
 	int ok = stbi_write_png( filename.c_str(), frame_static.viewport_width, frame_static.viewport_height, 3, buf, 0 );
 	if( ok != 0 ) {

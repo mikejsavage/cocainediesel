@@ -17,15 +17,14 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// net_wins.c
 
-#include "../qcommon/qcommon.h"
-
-#include "../qcommon/sys_net.h"
-
-#include "winquake.h"
+#include "windows/miniwindows.h"
 #include <io.h>
+#include <winsock2.h>
 #include <mswsock.h>
+
+#include "qcommon/qcommon.h"
+#include "qcommon/sys_net.h"
 
 static int( WINAPI * pTransmitFile )( SOCKET hSocket,
 									  HANDLE hFile, DWORD nNumberOfBytesToWrite, DWORD nNumberOfBytesPerSend,

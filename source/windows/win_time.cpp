@@ -1,4 +1,4 @@
-#include <windows.h>
+#include "windows/miniwindows.h"
 #include <time.h>
 
 #include "qcommon/types.h"

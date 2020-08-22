@@ -240,9 +240,7 @@ void plant_area( Entity @ent ) {
 	ent.solid = SOLID_TRIGGER;
 	ent.linkEntity();
 
-	// give time for indicator to load
-	// old bomb did 1s but this seems to be enough
-	ent.nextThink = levelTime + 1;
+	ent.nextThink = levelTime + 1000;
 }
 
 String @vec3ToString( Vec3 vec ) {

@@ -125,6 +125,17 @@ toolchain = rightmost( "toolchain" )
 local dir = "build/" .. OS_config
 local output = { }
 
+local objs = { }
+local objs_flags = { }
+local objs_extra_flags = { }
+
+local bins = { }
+local bins_flags = { }
+local bins_extra_flags = { }
+
+local libs = { }
+local prebuilt_libs = { }
+
 local function flatten_into( res, t )
 	for _, x in ipairs( t ) do
 		if type( x ) == "table" then
@@ -141,45 +152,38 @@ local function flatten( t )
 	return res
 end
 
-local function join( names, suffix, prefix )
+local function join_srcs( names, suffix )
 	if not names then
 		return ""
 	end
 
-	prefix = prefix or ""
 	local flat = flatten( names )
 	for i = 1, #flat do
-		flat[ i ] = dir .. "/" .. prefix .. flat[ i ] .. suffix
+		flat[ i ] = dir .. "/" .. flat[ i ] .. suffix
 	end
 	return table.concat( flat, " " )
 end
 
-local function joinpb( names, suffix, prefix )
+local function join_libs( names )
 	if not names then
 		return ""
 	end
 
-	prefix = prefix or ""
-	local flat = flatten( names )
-	for i = 1, #flat do
-		flat[ i ] = "libs/" .. flat[ i ] .. "/" .. prebuilt_lib_dir .. "/" .. prefix .. flat[ i ] .. suffix
+	local joined = { }
+	for _, lib in ipairs( flatten( names ) ) do
+		local prebuilt = prebuilt_libs[ lib ]
+		if prebuilt then
+			table.insert( joined, "libs/" .. lib .. "/" .. prebuilt_lib_dir .. "/" .. lib_prefix .. lib .. lib_suffix )
+		else
+			table.insert( joined, dir .. "/" .. lib_prefix .. lib .. lib_suffix )
+		end
 	end
-	return table.concat( flat, " " )
+	return table.concat( joined, " " )
 end
 
 local function printf( form, ... )
 	print( form:format( ... ) )
 end
-
-local objs = { }
-local objs_flags = { }
-local objs_extra_flags = { }
-
-local bins = { }
-local bins_flags = { }
-local bins_extra_flags = { }
-
-local libs = { }
 
 local function glob_impl( dir, rel, res, prefix, suffix, recursive )
 	for filename in lfs.dir( dir .. rel ) do
@@ -244,6 +248,11 @@ function lib( lib_name, srcs )
 	local globbed = glob( srcs )
 	libs[ lib_name ] = globbed
 	add_srcs( globbed )
+end
+
+function prebuilt_lib( lib_name )
+	assert( not prebuilt_libs[ lib_name ] )
+	prebuilt_libs[ lib_name ] = true
 end
 
 function obj_cxxflags( pattern, flags )
@@ -348,7 +357,7 @@ local function write_ninja_script()
 	end
 
 	for lib_name, srcs in pairs( libs ) do
-		printf( "build %s/%s%s%s: lib %s", dir, lib_prefix, lib_name, lib_suffix, join( srcs, obj_suffix ) )
+		printf( "build %s/%s%s%s: lib %s", dir, lib_prefix, lib_name, lib_suffix, join_srcs( srcs, obj_suffix ) )
 	end
 
 	for bin_name, cfg in pairs( bins ) do
@@ -362,11 +371,10 @@ local function write_ninja_script()
 		end
 
 		local full_name = bin_prefix .. bin_name .. bin_suffix
-		printf( "build %s: bin %s %s %s",
+		printf( "build %s: bin %s %s",
 			full_name,
-			join( srcs, obj_suffix ),
-			join( cfg.libs, lib_suffix, lib_prefix ),
-			joinpb( cfg.prebuilt_libs, lib_suffix, lib_prefix )
+			join_srcs( srcs, obj_suffix ),
+			join_libs( cfg.libs )
 		)
 
 		local ldflags_key = toolchain .. "_ldflags"

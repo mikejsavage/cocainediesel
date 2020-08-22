@@ -22,15 +22,21 @@ else
 	obj_cxxflags( ".*", "-DTRACY_ENABLE" )
 end
 
+require( "libs.angelscript" )
 require( "libs.cgltf" )
+require( "libs.curl" )
+require( "libs.freetype" )
 require( "libs.gg" )
 require( "libs.glad" )
+require( "libs.glfw3" )
 require( "libs.imgui" )
 require( "libs.meshoptimizer" )
 require( "libs.monocypher" )
+require( "libs.openal" )
 require( "libs.stb" )
 require( "libs.tracy" )
 require( "libs.whereami" )
+require( "libs.zlib" )
 require( "libs.zstd" )
 
 do
@@ -73,30 +79,27 @@ do
 		},
 
 		libs = {
+			"angelscript",
 			"cgltf",
+			"curl",
+			"freetype",
 			"ggentropy",
 			"ggformat",
 			"glad",
+			"glfw3",
 			"imgui",
 			"meshoptimizer",
 			"monocypher",
+			"openal",
 			"stb_image",
 			"stb_image_write",
 			"stb_rect_pack",
 			"stb_vorbis",
 			"tracy",
 			"whereami",
-			"zstd",
-		},
-
-		prebuilt_libs = {
-			"angelscript",
-			"curl",
-			"freetype",
-			"glfw3",
-			"openal",
 			"zlib",
-			platform_libs
+			"zstd",
+			platform_libs,
 		},
 
 		rc = "source/windows/client",
@@ -143,17 +146,14 @@ do
 		},
 
 		libs = {
+			"angelscript",
 			"ggentropy",
 			"ggformat",
 			"monocypher",
 			"tracy",
 			"whereami",
-			"zstd",
-		},
-
-		prebuilt_libs = {
-			"angelscript",
 			"zlib",
+			"zstd",
 		},
 
 		gcc_extra_ldflags = "-lm -lpthread -ldl -no-pie -static-libstdc++",

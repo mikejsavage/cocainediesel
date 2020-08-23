@@ -62,8 +62,8 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		120,                            // refire time
 		HITSCAN_RANGE,                  // projectile timeout
-		Vec2( 90.0f, 30.0f ),           // recoil
-		Vec2( 10.0f, 10.0f ),           // recoilmin
+		Vec2( 80.0f, 40.0f ),           // recoil
+		Vec2( 40.0f, 20.0f ),           // recoilmin
 		1000.0f,                        // recoil recovery
 		FiringMode_SemiAuto,
 
@@ -97,8 +97,8 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		75,                             // refire time
 		HITSCAN_RANGE,                  // projectile timeout
-		Vec2( 80.0f, 60.0f ),           // recoil
-		Vec2( 10.0f, 10.0f ),           // recoilmin
+		Vec2( 85.0f, 40.0f ),           // recoil
+		Vec2( 50.0f, 10.0f ),           // recoilmin
 		1350.0f,                        // recoil recovery
 		FiringMode_Auto,
 
@@ -132,9 +132,9 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		500,                            // refire time
 		HITSCAN_RANGE,                  // projectile timeout
-		Vec2( 360.0f, 40.0f ),          // recoil
-		Vec2( 20.0f, 20.0f ),           // recoilmin
-		2000.0f,                        // recoil recovery
+		Vec2( 425.0f, 100.0f ),         // recoil
+		Vec2( 175.0f, 40.0f ),          // recoilmin
+		3000.0f,                        // recoil recovery
 		FiringMode_SemiAuto,
 
 		0.0f,                           // zoom fov
@@ -167,8 +167,8 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		1400,                           // refire time
 		HITSCAN_RANGE,                  // projectile timeout / projectile range for instant weapons
-		Vec2( 360.0f, 90.0f ),          // recoil
-		Vec2( 90.0f, 40.0f ),           // recoilmin
+		Vec2( 325.0f, 120.0f ),         // recoil
+		Vec2( 125.0f, 80.0f ),          // recoilmin
 		1800.0f,                        // recoil recovery
 		FiringMode_Auto,
 
@@ -202,9 +202,9 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		160,                            // refire time
 		HITSCAN_RANGE,                  // projectile timeout
-		Vec2( 80.0f, 60.0f ),           // recoil
-		Vec2( 20.0f, 20.0f ),           // recoilmin
-		1350.0f,                        // recoil recovery
+		Vec2( 140.0f, 70.0f ),          // recoil
+		Vec2( 50.0f, 30.0f ),           // recoilmin
+		2250.0f,                        // recoil recovery
 		FiringMode_Auto,
 
 		0.0f,                           // zoom fov
@@ -237,9 +237,9 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		500,                            // refire time
 		1250,                           // projectile timeout
-		Vec2( 60.0f, 60.0f ),           // recoil
-		Vec2( 20.0f, 20.0f ),           // recoilmin
-		500.0f,                         // recoil recovery
+		Vec2( 325.0f, 60.0f ),          // recoil
+		Vec2( 125.0f, 20.0f ),          // recoilmin
+		2000.0f,                        // recoil recovery
 		FiringMode_Auto,
 
 		0.0f,                           // zoom fov
@@ -272,9 +272,9 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		1000,                           // refire time
 		10000,                          // projectile timeout
-		Vec2( 90.0f, 60.0f ),           // recoil
-		Vec2( 30.0f, 20.0f ),           // recoilmin
-		400.0f,                         // recoil recovery
+		Vec2( 350.0f, 100.0f ),         // recoil
+		Vec2( 150.0f, 40.0f ),          // recoilmin
+		2500.0f,                        // recoil recovery
 		FiringMode_Auto,
 
 		0.0f,                           // zoom fov
@@ -307,8 +307,8 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		50,                             // refire time
 		10000,                          // projectile timeout
-		Vec2( 90.0f, 40.0f ),           // recoil
-		Vec2( 0.0f, 0.0f ),             // recoilmin
+		Vec2( 60.0f, 50.0f ),           // recoil
+		Vec2( 30.0f, 10.0f ),           // recoilmin
 		1350.0f,                        // recoil recovery
 		FiringMode_Auto,
 
@@ -341,9 +341,9 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONUP_TIME_NORMAL,           // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
 		150,                            // refire time
-		10000,                           // projectile timeout
-		Vec2( 135.0f, 80.0f ),          // recoil
-		Vec2( 0.0f, 0.0f ),             // recoilmin
+		10000,                          // projectile timeout
+		Vec2( 80.0f, 60.0f ),           // recoil
+		Vec2( 50.0f, 20.0f ),           // recoilmin
 		1350.0f,                        // recoil recovery
 		FiringMode_Auto,
 
@@ -351,9 +351,9 @@ const WeaponDef gs_weaponDefs[] = {
 		0.0f,                           // !zoom inaccuracy
 
 		//damages
-		15,                              // damage
+		15,                             // damage
 		0,                              // selfdamage ratio
-		50,                              // knockback
+		50,                             // knockback
 		80,                             // splash radius
 		1,                              // splash minimum damage
 		6,                              // splash minimum knockback
@@ -447,9 +447,9 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		500,                            // refire time
 		HITSCAN_RANGE,                  // range
-		Vec2( 720.0f, 60.0f ),          // recoil
-		Vec2( 180.0f, 10.0f ),          // recoilmin
-		3000.0f,                        // recoil recovery
+		Vec2( 500.0f, 150.0f ),         // recoil
+		Vec2( 200.0f, 50.0f ),          // recoilmin
+		2500.0f,                        // recoil recovery
 		FiringMode_Auto,
 
 		25.0f,                          // zoom fov
@@ -482,9 +482,9 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		600,                            // refire time
 		10000,                          // range
-		Vec2( 180.0f, 60.0f ),          // recoil
-		Vec2( 30.0f, 20.0f ),           // recoilmin
-		800.0f,                         // recoil recovery
+		Vec2( 275.0f, 60.0f ),          // recoil
+		Vec2( 125.0f, 20.0f ),          // recoilmin
+		2000.0f,                        // recoil recovery
 		FiringMode_SemiAuto,
 
 		0.0f,                           // zoom fov

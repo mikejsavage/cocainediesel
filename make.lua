@@ -30,6 +30,7 @@ require( "libs.gg" )
 require( "libs.glad" )
 require( "libs.glfw3" )
 require( "libs.imgui" )
+require( "libs.mbedtls" )
 require( "libs.meshoptimizer" )
 require( "libs.monocypher" )
 require( "libs.openal" )
@@ -79,6 +80,8 @@ do
 		},
 
 		libs = {
+			"imgui",
+
 			"angelscript",
 			"cgltf",
 			"curl",
@@ -87,7 +90,6 @@ do
 			"ggformat",
 			"glad",
 			"glfw3",
-			"imgui",
 			"meshoptimizer",
 			"monocypher",
 			"openal",

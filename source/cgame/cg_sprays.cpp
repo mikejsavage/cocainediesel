@@ -50,35 +50,7 @@ void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, StringHash material ) {
 		num_sprays++;
 	}
 
-	{
-		ParticleEmitter emitter = { };
-		// TODO: we don't have player eye position so fake it
-		emitter.position = origin - forward * 64.0f;
-
-		emitter.use_cone_direction = true;
-		emitter.direction_cone.normal = forward;
-		emitter.direction_cone.theta = 20.0f;
-
-		emitter.start_speed = 500.0f;
-		emitter.end_speed = 250.0f;
-
-		emitter.start_color = vec4_white;
-		emitter.end_color = vec4_white.xyz();
-
-		emitter.start_size = 4.0f;
-		emitter.end_size = 4.0f;
-		emitter.size_distribution.type = RandomDistributionType_Uniform;
-		emitter.size_distribution.uniform = 4.0f;
-
-		emitter.lifetime = 0.10f;
-		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-		emitter.lifetime_distribution.uniform = 0.05f;
-
-		emitter.n = 64;
-
-		EmitParticles( &cgs.sparks, emitter );
-	}
-
+	DoVisualEffect( "vfx/spray", origin - forward * 64.0f, forward );
 }
 
 void DrawSprays() {

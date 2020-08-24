@@ -2,6 +2,7 @@
 
 #include "qcommon/types.h"
 #include "qcommon/hash.h"
+#include "client/renderer/backend.h"
 
 struct CollisionModel;
 
@@ -14,6 +15,11 @@ struct Map {
 	float fog_strength;
 
 	CollisionModel * cms;
+
+	TextureBuffer nodeBuffer;
+	TextureBuffer leafBuffer;
+	TextureBuffer brushBuffer;
+	TextureBuffer planeBuffer;
 };
 
 void InitMaps();

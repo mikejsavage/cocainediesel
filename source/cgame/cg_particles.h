@@ -3,33 +3,16 @@
 #include "qcommon/types.h"
 #include "client/renderer/types.h"
 
-struct ParticleChunk {
-	alignas( 16 ) float t[ 4 ];
-	alignas( 16 ) float lifetime[ 4 ];
+constexpr u32 MAX_PARTICLE_SYSTEMS = 512;
+constexpr u32 MAX_PARTICLE_EMITTERS = 512;
+constexpr u32 MAX_PARTICLE_EMITTER_EVENTS = 8;
+constexpr u32 MAX_PARTICLE_EMITTER_MATERIALS = 8;
 
-	alignas( 16 ) float position_x[ 4 ];
-	alignas( 16 ) float position_y[ 4 ];
-	alignas( 16 ) float position_z[ 4 ];
+constexpr u32 MAX_DECAL_EMITTERS = 512;
+constexpr u32 MAX_DECAL_EMITTER_MATERIALS = 8;
 
-	alignas( 16 ) float velocity_x[ 4 ];
-	alignas( 16 ) float velocity_y[ 4 ];
-	alignas( 16 ) float velocity_z[ 4 ];
-
-	alignas( 16 ) float dvelocity[ 4 ];
-
-	alignas( 16 ) float color_r[ 4 ];
-	alignas( 16 ) float color_g[ 4 ];
-	alignas( 16 ) float color_b[ 4 ];
-	alignas( 16 ) float color_a[ 4 ];
-
-	alignas( 16 ) float dcolor_r[ 4 ];
-	alignas( 16 ) float dcolor_g[ 4 ];
-	alignas( 16 ) float dcolor_b[ 4 ];
-	alignas( 16 ) float dcolor_a[ 4 ];
-
-	alignas( 16 ) float size[ 4 ];
-	alignas( 16 ) float dsize[ 4 ];
-};
+constexpr u32 MAX_VISUAL_EFFECT_GROUPS = 512;
+constexpr u32 MAX_VISUAL_EFFECTS = 8;
 
 enum EasingFunction {
 	EasingFunction_Linear,
@@ -37,23 +20,6 @@ enum EasingFunction {
 	EasingFunction_Cubic,
 	EasingFunction_QuadraticEaseIn,
 	EasingFunction_QuadraticEaseOut,
-};
-
-struct ParticleSystem {
-	Span< ParticleChunk > chunks;
-	size_t num_particles;
-
-	VertexBuffer vb;
-	GPUParticle * vb_memory;
-	Mesh mesh;
-
-	EasingFunction color_easing;
-	EasingFunction size_easing;
-
-	BlendFunc blend_func;
-	const Material * material;
-	const Material * gradient;
-	Vec3 acceleration;
 };
 
 enum RandomDistribution3DType : u8 {
@@ -102,49 +68,159 @@ struct RandomDistribution3D {
 	};
 };
 
-struct ParticleEmitter {
-	Vec3 position;
-	RandomDistribution3D position_distribution;
-
-	bool use_cone_direction;
-	ConeDistribution direction_cone;
-
-	float start_speed;
-	float end_speed;
-	RandomDistribution speed_distribution;
-
-	Vec4 start_color;
-	Vec3 end_color;
-	RandomDistribution red_distribution;
-	RandomDistribution green_distribution;
-	RandomDistribution blue_distribution;
-	RandomDistribution alpha_distribution;
-
-	float start_size, end_size;
-	RandomDistribution size_distribution;
-
-	float lifetime;
-	RandomDistribution lifetime_distribution;
-
-	float emission_rate;
-	float n;
+enum ParticleCollisionType : u8 {
+	ParticleCollisionType_None,
+	ParticleCollisionType_Point,
+	ParticleCollisionType_Sphere,
 };
 
-void InitParticles();
-void ShutdownParticles();
+struct ParticleEvents {
+	u8 num_events;
+	StringHash events[ MAX_PARTICLE_EMITTER_EVENTS ];
+};
 
-ParticleSystem NewParticleSystem( Allocator * a, size_t n, const Material * material );
-void DeleteParticleSystem( Allocator * a, ParticleSystem ps );
+struct ParticleSystem {
+	size_t max_particles;
 
-void EmitParticles( ParticleSystem * ps, const ParticleEmitter & emitter );
+	const Model * model;
+
+	const Material * gradient;
+
+	BlendFunc blend_func;
+	float radius;
+
+	ParticleEvents on_collision;
+	ParticleEvents on_age;
+
+	// dynamic stuff
+	bool initialized;
+
+	size_t num_particles;
+	size_t new_particles;
+	Span< GPUParticle > particles;
+	bool feedback;
+	Span< GPUParticleFeedback > particles_feedback;
+	Span< u32 > gpu_instances;
+	Span< s64 > gpu_instances_time;
+
+	IndexBuffer ibo;
+	VertexBuffer vb;
+	VertexBuffer vb2;
+	VertexBuffer vb_feedback;
+
+	Mesh mesh;
+	Mesh update_mesh;
+};
+
+enum VisualEffectType : u8 {
+	VisualEffectType_Particles,
+	VisualEffectType_Decal,
+};
+
+struct VisualEffect {
+	u8 type;
+	u64 hash;
+};
+
+struct VisualEffectGroup {
+	VisualEffect effects[ MAX_VISUAL_EFFECTS ];
+	u8 num_effects;
+};
+
+enum ParticleEmitterPositionType : u8 {
+	ParticleEmitterPosition_Sphere,
+	ParticleEmitterPosition_Disk,
+	ParticleEmitterPosition_Line,
+};
+
+struct ParticleEmitterPosition {
+	u8 type;
+	Vec3 origin;
+	union {
+		Vec3 normal;
+		Vec3 end;
+	};
+	float theta;
+	float radius;
+	RandomDistribution surface_offset;
+	float surface_theta;
+};
+
+struct ParticleEmitter {
+	u64 particle_system;
+
+	u8 num_materials;
+	StringHash materials[ MAX_PARTICLE_EMITTER_MATERIALS ];
+	StringHash model;
+
+	BlendFunc blend_func = BlendFunc_Add;
+
+	ParticleEmitterPosition position;
+
+	float acceleration;
+	float drag = 0.0f;
+	float restitution = 0.8f;
+
+	float speed;
+	RandomDistribution speed_distribution;
+
+	Vec4 start_color = Vec4( 1.0f ), end_color = Vec4( 1.0f );
+	RandomDistribution red_distribution, green_distribution, blue_distribution, alpha_distribution;
+	bool color_override;
+
+	float start_size = 16.0f, end_size = 16.0f;
+	RandomDistribution size_distribution;
+
+	float lifetime = 1.0f;
+	RandomDistribution lifetime_distribution;
+
+	float count;
+	float emission;
+
+	u32 flags;
+
+	bool feedback;
+	ParticleEvents on_collision;
+	ParticleEvents on_age;
+};
+
+struct DecalEmitter {
+	u8 num_materials;
+	StringHash materials[ MAX_DECAL_EMITTER_MATERIALS ];
+
+	Vec4 color = Vec4( 1.0f );
+	RandomDistribution red_distribution, green_distribution, blue_distribution, alpha_distribution;
+	bool color_override;
+
+	float size = 32.0f;
+	RandomDistribution size_distribution;
+
+	float lifetime = 30.0f;
+	RandomDistribution lifetime_distribution;
+};
+
+void InitVisualEffects();
+void HotloadVisualEffects();
+void ShutdownVisualEffects();
+
+ParticleEmitterPosition ParticleEmitterSphere( Vec3 origin, Vec3 normal, float theta = 180.0f, float radius = 0.0f );
+ParticleEmitterPosition ParticleEmitterSphere( Vec3 origin, float radius = 0.0f );
+ParticleEmitterPosition ParticleEmitterDisk( Vec3 origin, Vec3 normal, float radius = 0.0f );
+ParticleEmitterPosition ParticleEmitterLine( Vec3 origin, Vec3 end, float radius = 0.0f );
+
+void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 start_color );
+void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count );
+
+void DoVisualEffect( const char * name, Vec3 origin, Vec3 normal = Vec3( 0.0f, 0.0f, 1.0f ), float count = 1.0f, Vec4 color = Vec4( 1.0f ) );
+void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal = Vec3( 0.0f, 0.0f, 1.0f ), float count = 1.0f, Vec4 color = Vec4( 1.0f ) );
 
 void DrawParticles();
 
-void InitParticleMenuEffect();
-void ShutdownParticleEditor();
+// void InitParticleMenuEffect();
+// void ShutdownParticleEditor();
 
-void ResetParticleMenuEffect();
-void ResetParticleEditor();
+// void ResetParticleMenuEffect();
+// void ResetParticleEditor();
 
-void DrawParticleMenuEffect();
-void DrawParticleEditor();
+// void DrawParticleMenuEffect();
+// void DrawParticleEditor();

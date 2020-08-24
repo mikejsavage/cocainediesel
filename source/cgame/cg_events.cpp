@@ -60,28 +60,7 @@ void CG_WeaponBeamEffect( centity_t * cent ) {
 static centity_t * laserOwner = NULL;
 
 static void BulletSparks( Vec3 pos, Vec3 normal, Vec4 color, int num_particles ) {
-	ParticleEmitter emitter = { };
-	emitter.position = pos;
-
-	if( Length( normal ) == 0.0f ) {
-		emitter.use_cone_direction = true;
-		emitter.direction_cone.normal = normal;
-		emitter.direction_cone.theta = 90.0f;
-	}
-
-	emitter.start_speed = 128.0f;
-	emitter.end_speed = 128.0f;
-
-	emitter.start_color = color;
-
-	emitter.start_size = 16.0f;
-	emitter.end_size = 0.0f;
-
-	emitter.lifetime = 0.5f;
-
-	emitter.n = num_particles;
-
-	EmitParticles( &cgs.bullet_sparks, emitter );
+	DoVisualEffect( "vfx/bulletsparks", pos, normal, num_particles, color );
 }
 
 static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles ) {
@@ -103,26 +82,7 @@ static void WallbangImpact( const trace_t * trace, int num_particles ) {
 	if( ( trace->contents & CONTENTS_WALLBANGABLE ) == 0 )
 		return;
 
-	ParticleEmitter emitter = { };
-	emitter.position = trace->endpos;
-
-	emitter.use_cone_direction = true;
-	emitter.direction_cone.normal = trace->plane.normal;
-	emitter.direction_cone.theta = 90.0f;
-
-	emitter.start_speed = 128.0f;
-	emitter.end_speed = 128.0f;
-
-	emitter.start_color = Vec4( 1.0f, 0.9, 0.0f, 0.5f );
-
-	emitter.start_size = 2.0f;
-	emitter.end_size = 0.0f;
-
-	emitter.lifetime = 0.5f;
-
-	emitter.n = num_particles;
-
-	EmitParticles( &cgs.bullet_sparks, emitter );
+	DoVisualEffect( "vfx/wallbangimpact", trace->endpos, trace->plane.normal, num_particles );
 
 	constexpr StringHash decals[] = {
 		"weapons/bullet_impact1",

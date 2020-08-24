@@ -102,7 +102,7 @@ static void RefreshServerBrowser() {
 
 void UI_Init() {
 	ResetServerBrowser();
-	InitParticleMenuEffect();
+	// InitParticleMenuEffect();
 
 	uistate = UIState_MainMenu;
 	mainmenu_state = MainMenuState_ServerBrowser;
@@ -112,7 +112,7 @@ void UI_Init() {
 
 void UI_Shutdown() {
 	ResetServerBrowser();
-	ShutdownParticleEditor();
+	// ShutdownParticleEditor();
 }
 
 static void SettingLabel( const char * label ) {
@@ -736,12 +736,12 @@ static void MainMenu() {
 
 		if( ImGui::Button( "Particle editor" ) ) {
 			mainmenu_state = MainMenuState_ParticleEditor;
-			ResetParticleEditor();
+			// ResetParticleEditor();
 		}
 	}
 
 	if( parteditor_wason && mainmenu_state != MainMenuState_ParticleEditor ) {
-		ResetParticleMenuEffect();
+		// ResetParticleMenuEffect();
 	}
 
 	ImGui::Separator();
@@ -750,7 +750,7 @@ static void MainMenu() {
 		case MainMenuState_ServerBrowser: ServerBrowser(); break;
 		case MainMenuState_CreateServer: CreateServer(); break;
 		case MainMenuState_Settings: Settings(); break;
-		case MainMenuState_ParticleEditor: DrawParticleEditor(); break;
+		// case MainMenuState_ParticleEditor: DrawParticleEditor(); break;
 	}
 
 	ImGui::EndChild();
@@ -1104,7 +1104,7 @@ void UI_Refresh() {
 
 	if( uistate == UIState_MainMenu ) {
 		if( mainmenu_state != MainMenuState_ParticleEditor ) {
-			DrawParticleMenuEffect();
+			// DrawParticleMenuEffect();
 		}
 
 		MainMenu();
@@ -1112,7 +1112,7 @@ void UI_Refresh() {
 
 	if( uistate == UIState_Connecting ) {
 		if( mainmenu_state != MainMenuState_ParticleEditor ) {
-			DrawParticleMenuEffect();
+			// DrawParticleMenuEffect();
 		}
 
 		const char * connecting = "Connecting...";

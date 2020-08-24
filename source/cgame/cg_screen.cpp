@@ -737,35 +737,9 @@ void CG_AddBomb( centity_t * cent ) {
 
 	// TODO: this really does not belong here...
 	if( bomb.state == BombState_Planted ) {
-		ParticleEmitter emitter = { };
-
 		Mat2 r = Mat2Rotation( cent->current.angles.y );
-		emitter.position = bomb.origin + Vec3( r * Vec2( -12.0f, 3.0f ), -12.0f ); // TODO lol
-
-		emitter.start_speed = 128.0f;
-		emitter.end_speed = 128.0f;
-
-		emitter.start_color = Vec4( 1.0f, 0.69f, 0.0f, 1.0f );
-		emitter.end_color = Vec3( 0.8f, 0.1f, 0.0f );
-
-		emitter.red_distribution.type = RandomDistributionType_Uniform;
-		emitter.red_distribution.uniform = 0.1f;
-		emitter.green_distribution.type = RandomDistributionType_Uniform;
-		emitter.green_distribution.uniform = 0.05f;
-
-		emitter.start_size = 24.0f;
-		emitter.end_size = 0.0f;
-
-		emitter.size_distribution.type = RandomDistributionType_Uniform;
-		emitter.size_distribution.uniform = 2.0f;
-
-		emitter.lifetime = 0.2f;
-		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-		emitter.lifetime_distribution.uniform = 0.05f;
-
-		emitter.emission_rate = 100;
-
-		EmitParticles( &cgs.bullet_sparks, emitter );
+		Vec3 origin = bomb.origin + Vec3( r * Vec2( -12.0f, 3.0f ), -12.0f );
+		DoVisualEffect( "vfx/bomb_fuse", origin );
 	}
 }
 
@@ -827,26 +801,7 @@ void CG_DrawBombHUD() {
 					color = AttentionGettingColor();
 
 					// TODO: lol
-					{
-						ParticleEmitter emitter = { };
-
-						emitter.position = bomb.origin - Vec3( 0.0f, 0.0f, 32.0f );
-						emitter.position_distribution.type = RandomDistribution3DType_Sphere;
-						emitter.position_distribution.sphere.radius = 20.0f;
-
-						emitter.start_speed = 8.0f;
-						emitter.end_speed = 0.0f;
-
-						emitter.start_color = AttentionGettingColor();
-						emitter.end_color = emitter.start_color.xyz();
-
-						emitter.start_size = 16.0f;
-
-						emitter.lifetime = 1.0f;
-						emitter.emission_rate = 50;
-
-						EmitParticles( &cgs.rain, emitter );
-					}
+					DoVisualEffect( "vfx/bomb_attention", bomb.origin - Vec3( 0.0f, 0.0f, 32.0f ), Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, AttentionGettingColor() );
 				}
 				else if( bomb.state == BombState_Planting ) {
 					msg = "PLANTING";

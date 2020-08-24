@@ -25,7 +25,10 @@ struct Shaders {
 
 	Shader scope;
 
+	Shader particle_update;
+	Shader particle_update_feedback;
 	Shader particle;
+	Shader particle_model;
 
 	Shader skybox;
 

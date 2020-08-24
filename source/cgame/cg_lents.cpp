@@ -38,7 +38,7 @@ void CG_BubbleTrail( Vec3 start, Vec3 end, int dist ) {
 void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	PlasmaImpactParticles( pos, dir, team_color.xyz() );
 
-	AddPersistentDecal( pos, dir, 8.0f, RandomRadians(), "weapons/pg/impact_decal", team_color, 30000 );
+	// AddPersistentDecal( pos, dir, 8.0f, RandomRadians(), "weapons/pg/impact_decal", team_color, 30000 );
 
 	S_StartFixedSound( cgs.media.sfxPlasmaHit, pos, CHAN_AUTO, 1.0f );
 }
@@ -83,13 +83,13 @@ static void ScorchDecal( Vec3 pos, Vec3 normal ) {
 
 void CG_RocketExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	ExplosionParticles( pos, dir, team_color.xyz() );
-	ScorchDecal( pos, dir );
+	// ScorchDecal( pos, dir );
 	S_StartFixedSound( cgs.media.sfxRocketLauncherHit, pos, CHAN_AUTO, 1.0f );
 }
 
 void CG_GrenadeExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	ExplosionParticles( pos, dir, team_color.xyz() );
-	ScorchDecal( pos, dir );
+	// ScorchDecal( pos, dir );
 	S_StartFixedSound( cgs.media.sfxGrenadeExplosion, pos, CHAN_AUTO, 1.0f );
 }
 
@@ -154,26 +154,8 @@ void CG_ProjectileTrail( const centity_t * cent ) {
 	if( len == 0 )
 		return;
 
-	ParticleEmitter emitter = { };
-
-	emitter.position = cent->ent.origin;
-	emitter.position_distribution.type = RandomDistribution3DType_Line;
-	emitter.position_distribution.line.end = cent->trailOrigin;
-
-	emitter.start_speed = 5.0f;
-	emitter.end_speed = 5.0f;
-
-	emitter.start_color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 0.5f );
-	emitter.end_color = Lerp( emitter.start_color.xyz(), 0.2f, Vec3( 1.0f ) );
-
-	emitter.start_size = 8.0f;
-	emitter.end_size = 16.0f;
-
-	emitter.lifetime = 0.25f;
-
-	emitter.emission_rate = 128.0f;
-
-	EmitParticles( &cgs.ions, emitter );
+	Vec4 color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 0.5f );
+	DoVisualEffect( "vfx/projectiletrail", cent->ent.origin, cent->trailOrigin, 1.0f, color );
 }
 
 void CG_RifleBulletTrail( const centity_t * cent ) {
@@ -182,25 +164,8 @@ void CG_RifleBulletTrail( const centity_t * cent ) {
 	if( len == 0 )
 		return;
 
-	ParticleEmitter emitter = { };
-
-	emitter.position = cent->ent.origin;
-	emitter.position_distribution.type = RandomDistribution3DType_Line;
-	emitter.position_distribution.line.end = cent->trailOrigin;
-
-	emitter.start_speed = 0.0f;
-	emitter.end_speed = 0.0f;
-
-	emitter.start_color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 1.0f );
-	emitter.end_color = Vec3( 0.0f, 0.0f, 0.0f );
-	emitter.start_size = 16.0f;
-	emitter.end_size = 0.0f;
-
-	emitter.lifetime = 0.25f;
-
-	emitter.n = 64;
-
-	EmitParticles( &cgs.rifle_bullet, emitter );
+	Vec4 color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 1.0f );
+	DoVisualEffect( "vfx/rifletrail", cent->ent.origin, cent->trailOrigin, 1.0f, color );
 }
 
 void CG_NewBloodTrail( centity_t * cent ) {
@@ -459,29 +424,7 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
 }
 
 static void GibImpact( Vec3 pos, Vec3 normal, Vec4 color, float scale ) {
-	{
-		ParticleEmitter emitter = { };
-		emitter.position = pos;
-
-		emitter.use_cone_direction = true;
-		emitter.direction_cone.normal = normal;
-		emitter.direction_cone.theta = 180.0f;
-
-		emitter.start_speed = 128.0f;
-		emitter.end_speed = 128.0f;
-
-		emitter.start_color = color;
-		emitter.end_color = color.xyz();
-
-		emitter.start_size = 100.0f;
-		emitter.end_size = 100.0f;
-
-		emitter.lifetime = 0.4f;
-
-		emitter.n = 3;
-
-		EmitParticles( &cgs.gibimpact, emitter );
-	}
+	DoVisualEffect( "vfx/blood", pos, normal, 1.0f, color );
 
 	{
 		constexpr StringHash decals[] = {

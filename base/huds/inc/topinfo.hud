@@ -2,6 +2,14 @@ setCursor #WIDTH / 2, 4
 setAlignment center top
 setFontBorder on
 
+if %MATCH_STATE != #MATCH_STATE_COUNTDOWN
+	setFontStyle normal
+	setFontSize %VIDHEIGHT / 24
+	setColor 1, 1, 1, 1
+
+	drawClock
+endif
+
 if %MATCH_STATE < #MATCH_STATE_PLAYTIME
 	// background
 	setSize 120 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 32
@@ -9,14 +17,13 @@ if %MATCH_STATE < #MATCH_STATE_PLAYTIME
 		setSize 120 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 48
 	endif
 
-	moveCursor 0, 15
+	moveCursor 0, 20
 	setFontSize %VIDHEIGHT / 50
 	setFontStyle bold
-	setColor 1, 1, 1, 1
 	drawString "WARMUP"
 
 	if %TEAM != #TEAM_SPECTATOR
-		moveCursor 0, 17
+		moveCursor 0, 15
 
 		if %READY || %MATCH_STATE == #MATCH_STATE_COUNTDOWN
 			setColorsRGB 0.32, 0.99, 0.37, 1
@@ -38,12 +45,6 @@ if %MATCH_STATE == #MATCH_STATE_PLAYTIME
 	if %ROUND_TYPE != #RoundType_Normal
 		setSize 120 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 48
 	endif
-
-	// clock
-	setColor 1, 1, 1, 1
-	setFontSize %VIDHEIGHT / 24
-	moveCursor 0, 3
-	drawClock
 
 	if %TEAMBASED
 		// scores

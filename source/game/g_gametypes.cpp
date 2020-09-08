@@ -147,10 +147,6 @@ static void G_Match_CheckStateAbort( void ) {
 	else if( GS_MatchState( &server_gs ) == MATCH_STATE_WARMUP && !enough && GS_MatchDuration( &server_gs ) ) {
 		G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, true );
 	} else if( GS_MatchState( &server_gs ) == MATCH_STATE_COUNTDOWN && !enough ) {
-		if( any ) {
-			G_PrintMsg( NULL, "Not enough players left. Countdown aborted.\n" );
-			G_CenterPrintMsg( NULL, "COUNTDOWN ABORTED" );
-		}
 		G_Match_Autorecord_Cancel();
 		G_Match_LaunchState( MATCH_STATE_WARMUP );
 		G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, true );

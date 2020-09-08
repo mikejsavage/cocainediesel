@@ -718,8 +718,10 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
 
 // Thinking function. Called each frame
 void GT_ThinkRules() {
-	if( match.scoreLimitHit() || match.timeLimitHit() )
+	if( match.scoreLimitHit() || match.timeLimitHit() ) {
 		match.launchState( match.getState() + 1 );
+		G_ClearCenterPrint( null );
+	}
 
 	if( match.getState() >= MATCH_STATE_POSTMATCH )
 		return;

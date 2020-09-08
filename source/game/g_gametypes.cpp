@@ -148,7 +148,7 @@ static void G_Match_CheckStateAbort( void ) {
 		G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, true );
 	} else if( GS_MatchState( &server_gs ) == MATCH_STATE_COUNTDOWN && !enough ) {
 		if( any ) {
-			G_CenterPrintMsg( NULL, "" );
+			G_ClearCenterPrint( NULL );
 		}
 		G_Match_Autorecord_Cancel();
 		G_Match_LaunchState( MATCH_STATE_WARMUP );
@@ -371,7 +371,7 @@ void G_Match_CheckReadys( void ) {
 		G_PrintMsg( NULL, "All players are ready. Match starting!\n" );
 		G_Match_LaunchState( MATCH_STATE_COUNTDOWN );
 	} else if( !allready && GS_MatchState( &server_gs ) == MATCH_STATE_COUNTDOWN ) {
-		G_CenterPrintMsg( NULL, "" );
+		G_ClearCenterPrint( NULL );
 		G_Match_Autorecord_Cancel();
 		G_Match_LaunchState( MATCH_STATE_WARMUP );
 	}

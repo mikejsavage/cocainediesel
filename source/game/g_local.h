@@ -411,6 +411,7 @@ void G_PrintMsg( edict_t *ent, _Printf_format_string_ const char *format, ... );
 void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, _Printf_format_string_ const char *format, ... );
 void G_CenterPrintMsg( edict_t *ent, _Printf_format_string_ const char *format, ... );
 #endif
+void G_ClearCenterPrint( edict_t *ent );
 
 void G_Obituary( edict_t *victim, edict_t *attacker, int mod );
 

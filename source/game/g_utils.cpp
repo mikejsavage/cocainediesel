@@ -900,6 +900,10 @@ void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) {
 	}
 }
 
+void G_ClearCenterPrint( edict_t *ent ) {
+	G_CenterPrintMsg( ent, "" );
+}
+
 /*
 * G_Obituary
 *

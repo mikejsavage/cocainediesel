@@ -1523,6 +1523,10 @@ static void asFunc_CenterPrintMsg( edict_t *ent, asstring_t *str ) {
 	G_CenterPrintMsg( ent, "%s", str->buffer );
 }
 
+static void asFunc_ClearCenterPrint( edict_t *ent ) {
+	G_ClearCenterPrint( ent );
+}
+
 static void asFunc_Error( const asstring_t *str ) {
 	Com_Error( ERR_DROP, "%s", str && str->buffer ? str->buffer : "" );
 }
@@ -1716,6 +1720,7 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "void G_Print( const String &in )", asFUNCTION( asFunc_Print ), NULL },
 	{ "void G_PrintMsg( Entity @, const String &in )", asFUNCTION( asFunc_PrintMsg ), NULL },
 	{ "void G_CenterPrintMsg( Entity @, const String &in )", asFUNCTION( asFunc_CenterPrintMsg ), NULL },
+	{ "void G_ClearCenterPrint( Entity @ )", asFUNCTION( asFunc_ClearCenterPrint ), NULL },
 	{ "void Com_Error( const String &in )", asFUNCTION( asFunc_Error ), NULL },
 	{ "void G_Sound( Entity @, int channel, uint64 sound )", asFUNCTION( asFunc_G_Sound ), NULL },
 	{ "void G_PositionedSound( const Vec3 &in, int channel, uint64 sound )", asFUNCTION( asFunc_PositionedSound ), NULL },

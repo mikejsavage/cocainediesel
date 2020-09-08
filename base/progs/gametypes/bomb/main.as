@@ -268,6 +268,7 @@ void GT_ThinkRules() {
 	// XXX: old bomb would let the current round finish before doing this
 	if( match.timeLimitHit() ) {
 		match.launchState( match.getState() + 1 );
+		G_ClearCenterPrint( null );
 	}
 
 	for( int t = 0; t < GS_MAX_TEAMS; t++ ) {

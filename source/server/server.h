@@ -154,10 +154,6 @@ struct client_t {
 	int challenge;                  // challenge of this user, randomly generated
 
 	netchan_t netchan;
-
-	int mm_session;
-	unsigned int mm_ticket;
-	char mm_login[MAX_INFO_VALUE];
 };
 
 // a client can leave the server in one of four ways:

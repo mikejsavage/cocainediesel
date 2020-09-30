@@ -20,7 +20,7 @@ if %HEALTH >= 0
 
 	// draw white cross
 	setColor 1.0, %HEALTH / 83.333, %HEALTH / 500, 1
-if %HEALTH > 50
+	if %HEALTH > 50
 		setColorsRGB 1.0 - 0.02 * %HEALTH - 50, 0.6, %HEALTH / 500, 1
 	endif
 	setSize %HEALTH * 2, 36

@@ -97,7 +97,7 @@ private:
         bool Matches() const;
         void UpdateMatches(bool allMatches);
 
-        class Cond: public ConditionListener
+        class Cond final: public ConditionListener
         {
         public:
             Cond(Listener* listener, Condition* c);

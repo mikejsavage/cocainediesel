@@ -222,15 +222,6 @@ protected:
     bool OnPropertyChanged(const DependencyPropertyChangedEventArgs& args) override;
     //@}
 
-private:
-    static void StaticOnPreviewMouseDown(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnMouseDown(BaseComponent* obj, const EventArgs& e);
-
-    static bool StaticCoerceUsingFocusEngagement(const DependencyObject* d, const void* value,
-        void* coercedValue);
-
-    static const DependencyProperty* UsingFocusEngagementProperty;
-
     NS_DECLARE_REFLECTION(Control, FrameworkElement)
 };
 

@@ -73,9 +73,6 @@ protected:
     Ptr<Freezable> CreateInstanceCore() const override;
     //@}
 
-private:
-    static void OnPointChanged(DependencyObject* d, const DependencyPropertyChangedEventArgs& e);
-
     NS_DECLARE_REFLECTION(BezierSegment, PathSegment)
 };
 

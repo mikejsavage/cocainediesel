@@ -196,13 +196,6 @@ private:
     float FindNextTick(float currentValue);
     float FindPrevTick(float currentValue);
 
-    static void OnDecreaseLargeCommand(BaseComponent* sender, const ExecutedRoutedEventArgs& args);
-    static void OnIncreaseLargeCommand(BaseComponent* sender, const ExecutedRoutedEventArgs& args);
-    static void OnDecreaseSmallCommand(BaseComponent* sender, const ExecutedRoutedEventArgs& args);
-    static void OnIncreaseSmallCommand(BaseComponent* sender, const ExecutedRoutedEventArgs& args);
-    static void OnMinimizeValueCommand(BaseComponent* sender, const ExecutedRoutedEventArgs& args);
-    static void OnMaximizeValueCommand(BaseComponent* sender, const ExecutedRoutedEventArgs& args);
-
 private:
     Ptr<Track> mTrackInternal;
 

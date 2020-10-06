@@ -18,6 +18,7 @@ namespace Noesis
 {
 
 class DependencyProperty;
+class RoutedEvent;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Extends UI elements with properties that are not standard in WPF.
@@ -32,6 +33,19 @@ struct NS_GUI_CORE_API Element
     static const DependencyProperty* PPAAModeProperty;
     static const DependencyProperty* PPAAInProperty;
     static const DependencyProperty* PPAAOutProperty;
+    static const DependencyProperty* IsTapEnabledProperty;
+    static const DependencyProperty* IsDoubleTapEnabledProperty;
+    static const DependencyProperty* IsHoldingEnabledProperty;
+    static const DependencyProperty* IsRightTapEnabledProperty;
+    //@}
+
+
+    /// Routed events
+    //@{
+    static const RoutedEvent* TappedEvent;
+    static const RoutedEvent* DoubleTappedEvent;
+    static const RoutedEvent* HoldingEvent;
+    static const RoutedEvent* RightTappedEvent;
     //@}
 
     NS_DECLARE_REFLECTION(Element, NoParent)

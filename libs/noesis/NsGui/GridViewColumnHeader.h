@@ -104,7 +104,6 @@ private:
     GridViewColumn* mColumn;
 
     Ptr<Thumb> mHeaderGripper;
-    Ptr<Canvas> mFloatingHeaderCanvas;
 
     float mStartDragWidth;
 

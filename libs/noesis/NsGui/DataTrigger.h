@@ -95,7 +95,7 @@ private:
     Ptr<BaseComponent> mValue;
     mutable Ptr<BaseSetterCollection> mSetters;
 
-    struct Listener: public ConditionListener
+    struct Listener final: public ConditionListener
     {
         Listener(DataTrigger* dt, FrameworkElement* t, FrameworkElement* ns, bool sk, uint8_t p);
 

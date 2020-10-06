@@ -119,10 +119,6 @@ protected:
     //@}
 
 private:
-    static void StaticHasOverflowItemsChanged(DependencyObject* d,
-        const DependencyPropertyChangedEventArgs& e);
-
-private:
     Ptr<ToolBarPanel> mPanelInternal;
     Ptr<ToolBarOverflowPanel> mOverflowPanelInternal;
 

@@ -40,15 +40,6 @@ struct NS_GUI_CORE_API CommandManager
     // Process keyboard input (for internal use only)
     static void ProcessKeyboardInput(UIElement* target, const KeyEventArgs& args);
 
-private:
-    static void ExecuteCommand(const ICommand* command, BaseComponent* param, UIElement* target,
-        const KeyEventArgs& args);
-
-    static void StaticOnPreviewCanExecute(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnCanExecute(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewExecuted(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnExecuted(BaseComponent* obj, const EventArgs& e);
-
     NS_DECLARE_REFLECTION(CommandManager, NoParent)
 };
 

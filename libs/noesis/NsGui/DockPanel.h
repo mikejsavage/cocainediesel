@@ -53,11 +53,6 @@ protected:
     Size ArrangeOverride(const Size& finalSize) override;
     //@}
 
-private:
-    // Detects docking changes in children elements
-    static void StaticDockChanged(DependencyObject* obj,
-        const DependencyPropertyChangedEventArgs& args);
-
     NS_DECLARE_REFLECTION(DockPanel, Panel)
 };
 

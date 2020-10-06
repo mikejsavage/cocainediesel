@@ -70,6 +70,7 @@ public:
 private:
     HandoffBehavior mHandoffBehavior;
     String mName;
+    bool mValidTargets;
 
     NS_DECLARE_REFLECTION(BeginStoryboard, TriggerAction)
 };

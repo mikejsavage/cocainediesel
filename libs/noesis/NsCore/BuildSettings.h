@@ -66,4 +66,9 @@
     #define USE_SYSTEM_FONTS 1
 #endif
 
+// Enables touches and manipulations (code size ~ 13KB)
+#ifndef TOUCH_ENABLED
+    #define TOUCH_ENABLED 1
+#endif
+
 #endif

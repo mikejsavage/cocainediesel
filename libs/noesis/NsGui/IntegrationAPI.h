@@ -60,11 +60,18 @@ NS_GUI_CORE_API void DisableInspector();
 /// Returns whether the remote Inspector is currently connected
 NS_GUI_CORE_API bool IsInspectorConnected();
 
+/// Keeps alive the Inspector connection. Only needed if Inspector is connected before any
+/// view is created. Views call this function internally when updated
+NS_GUI_CORE_API void UpdateInspector();
+
 /// Noesis Initialization. See 'NsCore/Init.h'
 using Noesis::Init;
 
 /// Noesis Shutdown. See 'NsCore/Init.h'
 using Noesis::Shutdown;
+
+/// Sets the active license. Read 'NoesisLicense.h' for more information about licensing parameters
+NS_GUI_CORE_API void SetLicense(const char* name, const char* key); 
 
 /// Sets the provider in charge of loading XAML resources
 NS_GUI_CORE_API void SetXamlProvider(XamlProvider* provider);

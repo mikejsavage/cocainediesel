@@ -168,9 +168,6 @@ private:
     void OnStaysOpenChanged(bool staysOpen);
     void OnPreviewMouseButton(const MouseButtonEventArgs& e);
 
-    static void StaticOnPopupLostMouseCapture(BaseComponent* obj, const EventArgs& e);
-    void OnPopupLostMouseCapture(const MouseEventArgs& e);
-
     bool IsPopupOpen() const;
     void ShowPopup();
     void HidePopup();
@@ -181,12 +178,6 @@ private:
 
     void MouseCapture();
     void MouseRelease();
-
-    bool CoerceIsOpen(const void* isOpen, void* coercedIsOpen) const;
-    static bool StaticCoerceIsOpen(const DependencyObject* object, const void* isOpen,
-        void* coercedIsOpen);
-    static bool StaticCoerceVisibility(const DependencyObject* object, const void* visibility,
-        void* coercedVisibility);
 
 private:
     Ptr<PopupLayer> mPopupLayer;

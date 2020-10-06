@@ -104,18 +104,26 @@
     #endif
 
     #ifndef NS_DLL_EXPORT
-        #if __has_declspec_attribute(dllexport)
-            #define NS_DLL_EXPORT __declspec(dllexport)
+        #ifdef NS_STATIC_LIBRARY
+            #define NS_DLL_EXPORT
         #else
-            #define NS_DLL_EXPORT __attribute__ ((visibility("default")))
+            #if __has_declspec_attribute(dllexport)
+                #define NS_DLL_EXPORT __declspec(dllexport)
+            #else
+                #define NS_DLL_EXPORT __attribute__ ((visibility("default")))
+            #endif
         #endif
     #endif
 
     #ifndef NS_DLL_IMPORT
-        #if __has_declspec_attribute(dllimport)
-            #define NS_DLL_IMPORT __declspec(dllimport)
+        #ifdef NS_STATIC_LIBRARY
+            #define NS_DLL_IMPORT
         #else
-            #define NS_DLL_IMPORT __attribute__ ((visibility("default")))
+            #if __has_declspec_attribute(dllimport)
+                #define NS_DLL_IMPORT __declspec(dllimport)
+            #else
+                #define NS_DLL_IMPORT __attribute__ ((visibility("default")))
+            #endif
         #endif
     #endif
 

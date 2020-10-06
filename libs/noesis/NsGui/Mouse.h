@@ -109,6 +109,7 @@ public:
 private:
     friend class View;
     friend class ViewLayout;
+    friend class TouchScreen;
     friend class UIElement;
     friend class FrameworkElement;
 
@@ -167,6 +168,7 @@ private:
     void OnContextMenuClosed(BaseComponent* sender, const RoutedEventArgs& args);
 
     bool OpenToolTip(UIElement* element);
+    bool CloseToolTip();
     void TryOpenToolTip();
     bool TryCloseToolTip();
     void OnToolTipClosed(BaseComponent* sender, const RoutedEventArgs& args);
@@ -199,7 +201,7 @@ private:
     static const uint32_t NumButtons = 5;
     MouseButtonState mButtonStates[NumButtons];
 
-    typedef Vector<Ptr<UIElement> > Elements;
+    typedef Vector<Ptr<UIElement>> Elements;
 
     // Captured element
     Ptr<UIElement> mCaptured;
@@ -233,6 +235,7 @@ private:
             bool contextMenuOpened : 1;
             bool toolTipOwn : 1;
             bool toolTipDelay : 1;
+            bool toolTipOpened : 1;
             bool toolTipBetween : 1;
             bool toolTipTimerCreated : 1;
             bool updatingOver : 1;

@@ -175,7 +175,7 @@ inline Transform2 Transform2::Rot(float radians)
 {
     float cs = cosf(radians);
     float sn = sinf(radians);
-        
+
     return Transform2(Vector2(cs, sn), Vector2(-sn, cs), Vector2(0.0f, 0.0f));
 }
 
@@ -194,7 +194,12 @@ inline Transform2 Transform2::ShearYX(float shear)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 inline Transform2 Transform2::Skew(float radiansX, float radiansY)
 {
-    return Transform2(Vector2(1.0f, radiansY), Vector2(radiansX, 1.0f), Vector2(0.0f, 0.0f));
+    float cosX = cosf(radiansX);
+    float cosY = cosf(radiansY);
+    float skewX = IsZero(cosX) ? FLT_INF : sinf(radiansX) / cosX;
+    float skewY = IsZero(cosY) ? FLT_INF : sinf(radiansY) / cosY;
+
+    return Transform2(Vector2(1.0f, skewY), Vector2(skewX, 1.0f), Vector2(0.0f, 0.0f));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -221,7 +226,7 @@ inline Transform2 Inverse(const Transform2& m, float determinant)
 
     float xx = m[1][1] / determinant;
     float xy = -m[0][1] / determinant;
-    
+
     float yx = -m[1][0] / determinant;
     float yy = m[0][0] / determinant;
 
@@ -235,15 +240,15 @@ inline Transform2 Inverse(const Transform2& m, float determinant)
 inline Transform2 PreScale(float scaleX, float scaleY, const Transform2& m)
 {
     Transform2 res;
-    
+
     res[0][0] = m[0][0] * scaleX;
     res[0][1] = m[0][1] * scaleX;
-    
+
     res[1][0] = m[1][0] * scaleY;
     res[1][1] = m[1][1] * scaleY;
-    
+
     res[2] = m[2];
-    
+
     return res;
 }
 
@@ -251,13 +256,13 @@ inline Transform2 PreScale(float scaleX, float scaleY, const Transform2& m)
 inline Transform2 PreTrans(float transX, float transY, const Transform2& m)
 {
     Transform2 res;
-    
+
     res[0] = m[0];
     res[1] = m[1];
-    
+
     res[2][0] = m[2][0] + m[0][0] * transX + m[1][0] * transY;
     res[2][1] = m[2][1] + m[0][1] * transX + m[1][1] * transY;
-    
+
     return res;
 }
 
@@ -265,31 +270,36 @@ inline Transform2 PreTrans(float transX, float transY, const Transform2& m)
 inline Transform2 PreRot(float radians, const Transform2& m)
 {
     Transform2 res;
-    
+
     float cs = cosf(radians);
     float sn = sinf(radians);
-    
-    res[0][0] = m[0][0] * cs + m[1][0] * sn; 
-    res[0][1] = m[0][1] * cs + m[1][1] * sn;   
-    
+
+    res[0][0] = m[0][0] * cs + m[1][0] * sn;
+    res[0][1] = m[0][1] * cs + m[1][1] * sn;
+
     res[1][0] = m[1][0] * cs - m[0][0] * sn;
     res[1][1] = m[1][1] * cs - m[0][1] * sn;
-    
+
     res[2] = m[2];
-        
+
     return res;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 inline Transform2 PreSkew(float radiansX, float radiansY, const Transform2& m)
 {
+    float cosX = cosf(radiansX);
+    float cosY = cosf(radiansY);
+    float skewX = IsZero(cosX) ? FLT_INF : sinf(radiansX) / cosX;
+    float skewY = IsZero(cosY) ? FLT_INF : sinf(radiansY) / cosY;
+
     Transform2 res;
 
-    res[0][0] = m[0][0] + m[1][0] * radiansY;
-    res[0][1] = m[0][1] + m[1][1] * radiansY;
+    res[0][0] = m[0][0] + m[1][0] * skewY;
+    res[0][1] = m[0][1] + m[1][1] * skewY;
 
-    res[1][0] = m[1][0] + m[0][0] * radiansX;
-    res[1][1] = m[1][1] + m[0][1] * radiansX;
+    res[1][0] = m[1][0] + m[0][0] * skewX;
+    res[1][1] = m[1][1] + m[0][1] * skewX;
 
     res[2] = m[2];
 
@@ -300,16 +310,16 @@ inline Transform2 PreSkew(float radiansX, float radiansY, const Transform2& m)
 inline Transform2 PostScale(const Transform2& m, float scaleX, float scaleY)
 {
     Transform2 res;
-    
+
     res[0][0] = m[0][0] * scaleX;
     res[0][1] = m[0][1] * scaleY;
-    
+
     res[1][0] = m[1][0] * scaleX;
     res[1][1] = m[1][1] * scaleY;
-    
+
     res[2][0] = m[2][0] * scaleX;
     res[2][1] = m[2][1] * scaleY;
-    
+
     return res;
 }
 
@@ -317,13 +327,13 @@ inline Transform2 PostScale(const Transform2& m, float scaleX, float scaleY)
 inline Transform2 PostTrans(const Transform2& m, float transX, float transY)
 {
     Transform2 res;
-    
+
     res[0] = m[0];
     res[1] = m[1];
-    
+
     res[2][0] = m[2][0] + transX;
     res[2][1] = m[2][1] + transY;
-    
+
     return res;
 }
 
@@ -331,35 +341,40 @@ inline Transform2 PostTrans(const Transform2& m, float transX, float transY)
 inline Transform2 PostRot(const Transform2& m, float radians)
 {
     Transform2 res;
-    
+
     float cs = cosf(radians);
     float sn = sinf(radians);
-    
-    res[0][0] = m[0][0] * cs - m[0][1] * sn; 
-    res[0][1] = m[0][1] * cs + m[0][0] * sn;    
-    
+
+    res[0][0] = m[0][0] * cs - m[0][1] * sn;
+    res[0][1] = m[0][1] * cs + m[0][0] * sn;
+
     res[1][0] = m[1][0] * cs - m[1][1] * sn;
     res[1][1] = m[1][1] * cs + m[1][0] * sn;
-    
+
     res[2][0] = m[2][0] * cs - m[2][1] * sn;
-    res[2][1] = m[2][1] * cs + m[2][0] * sn;    
-    
+    res[2][1] = m[2][1] * cs + m[2][0] * sn;
+
     return res;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 inline Transform2 PostSkew(const Transform2& m, float radiansX, float radiansY)
 {
+    float cosX = cosf(radiansX);
+    float cosY = cosf(radiansY);
+    float skewX = IsZero(cosX) ? FLT_INF : sinf(radiansX) / cosX;
+    float skewY = IsZero(cosY) ? FLT_INF : sinf(radiansY) / cosY;
+
     Transform2 res;
 
-    res[0][0] = m[0][0] + m[0][1] * radiansX;
-    res[0][1] = m[0][1] + m[0][0] * radiansY;
+    res[0][0] = m[0][0] + m[0][1] * skewX;
+    res[0][1] = m[0][1] + m[0][0] * skewY;
 
-    res[1][0] = m[1][0] + m[1][1] * radiansX;
-    res[1][1] = m[1][1] + m[1][0] * radiansY;
+    res[1][0] = m[1][0] + m[1][1] * skewX;
+    res[1][1] = m[1][1] + m[1][0] * skewY;
     
-    res[2][0] = m[2][0] + m[2][1] * radiansX;
-    res[2][1] = m[2][1] + m[2][0] * radiansY;
+    res[2][0] = m[2][0] + m[2][1] * skewX;
+    res[2][1] = m[2][1] + m[2][0] * skewY;
 
     return res;
 }

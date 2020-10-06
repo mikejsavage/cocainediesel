@@ -9,10 +9,26 @@
 
 
 #if defined(NS_PLATFORM_WINDOWS)
-    #ifndef WIN32_LEAN_AND_MEAN
-        #define WIN32_LEAN_AND_MEAN 1
-    #endif
-    #include <windows.h>
+    #include <sal.h>
+
+    struct _WIN32_FIND_DATAW;
+    typedef _WIN32_FIND_DATAW* LPWIN32_FIND_DATAW;
+    enum _FINDEX_INFO_LEVELS;
+    typedef _FINDEX_INFO_LEVELS FINDEX_INFO_LEVELS;
+    enum _FINDEX_SEARCH_OPS;
+    typedef _FINDEX_SEARCH_OPS FINDEX_SEARCH_OPS;
+
+    extern "C" __declspec(dllimport) void* __stdcall FindFirstFileExW(
+        _In_ _Null_terminated_ const wchar_t* lpFileName,
+        _In_ FINDEX_INFO_LEVELS fInfoLevelId,
+        _Out_writes_bytes_(sizeof(WIN32_FIND_DATAW)) void* lpFindFileData,
+        _In_ FINDEX_SEARCH_OPS fSearchOp,
+        _Reserved_ void* lpSearchFilter,
+        _In_ unsigned long dwAdditionalFlags);
+
+    extern "C" __declspec(dllimport) int __stdcall FindNextFileW(_In_ void* hFindFile, _Out_ LPWIN32_FIND_DATAW lpFindFileData);
+    extern "C" __declspec(dllimport) int __stdcall FindClose(_Inout_ void* hFindFile);
+
 #else
     #include <sys/stat.h>
     #include <dirent.h>
@@ -22,8 +38,31 @@
 
 namespace Noesis
 {
+
+#ifdef NS_PLATFORM_WINDOWS
+struct _FileTime
+{
+    unsigned long dwLowDateTime;
+    unsigned long dwHighDateTime;
+};
+
+struct _FindData
+{
+    unsigned long dwFileAttributes;
+    _FileTime ftCreationTime;
+    _FileTime ftLastAccessTime;
+    _FileTime ftLastWriteTime;
+    unsigned long nFileSizeHigh;
+    unsigned long nFileSizeLow;
+    unsigned long dwReserved0;
+    unsigned long dwReserved1;
+    _Field_z_ wchar_t cFileName[260];
+    _Field_z_ wchar_t cAlternateFileName[14];
+};
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool FindFirst(const char* directory, const char* extension, FindData& findData)
+inline bool FindFirst(const char* directory, const char* extension, FindData& findData)
 {
 #if defined(NS_PLATFORM_WINDOWS)
     char fullPath[sizeof(findData.filename)];
@@ -35,9 +74,9 @@ bool FindFirst(const char* directory, const char* extension, FindData& findData)
     uint32_t numChars = UTF8::UTF8To16(fullPath, u16str, sizeof(fullPath));
     NS_ASSERT(numChars <= sizeof(fullPath));
 
-    WIN32_FIND_DATAW fd;
-    HANDLE h = FindFirstFileExW((LPCWSTR)u16str, FindExInfoBasic, &fd, FindExSearchNameMatch, 0, 0);
-    if (h != INVALID_HANDLE_VALUE)
+    _FindData fd;
+    void* h = FindFirstFileExW((const wchar_t*)u16str, (FINDEX_INFO_LEVELS)1, &fd, (FINDEX_SEARCH_OPS)0, 0, 0);
+    if (h != ((void*)(__int64)-1))
     {
         numChars = UTF8::UTF16To8((uint16_t*)fd.cFileName, findData.filename, sizeof(fullPath));
         NS_ASSERT(numChars <= sizeof(fullPath));
@@ -72,11 +111,11 @@ bool FindFirst(const char* directory, const char* extension, FindData& findData)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool FindNext(FindData& findData)
+inline bool FindNext(FindData& findData)
 {
 #if defined(NS_PLATFORM_WINDOWS)
-    WIN32_FIND_DATAW fd;
-    BOOL res = FindNextFileW(findData.handle, &fd);
+    _FindData fd;
+    int res = FindNextFileW(findData.handle, (LPWIN32_FIND_DATAW)&fd);
     
     if (res)
     {
@@ -112,10 +151,10 @@ bool FindNext(FindData& findData)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void FindClose(FindData& findData)
+inline void FindClose(FindData& findData)
 {
 #if defined(NS_PLATFORM_WINDOWS)
-    BOOL r = ::FindClose(findData.handle);
+    int r = ::FindClose(findData.handle);
     NS_ASSERT(r != 0);
 
 #else

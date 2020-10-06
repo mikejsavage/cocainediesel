@@ -19,7 +19,7 @@ namespace Noesis
 /// SetMemoryCallbacks(), etc., before this function. The current implementation does not support
 /// calling this function after Shutdown()
 /// Read 'NoesisLicense.h' for more information about licensing parameters
-NS_CORE_KERNEL_API void Init(const char* licenseName = 0, const char* licenseKey = 0);
+NS_CORE_KERNEL_API void Init(const char* licenseName = "", const char* licenseKey = "");
 
 /// Frees allocated resources and shutdown internal subsystems. Make sure to release all Noesis
 /// objects and memory before invoking this function

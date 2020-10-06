@@ -94,17 +94,6 @@ private:
     Ptr<Freezable> CreateInstanceCore() const override;
     //@}
 
-    static void OnBlurRadiusChanged(DependencyObject* d,
-        const DependencyPropertyChangedEventArgs& e);
-    static void OnColorChanged(DependencyObject* d,
-        const DependencyPropertyChangedEventArgs& e);
-    static void OnDirectionChanged(DependencyObject* d,
-        const DependencyPropertyChangedEventArgs& e);
-    static void OnOpacityChanged(DependencyObject* d,
-        const DependencyPropertyChangedEventArgs& e);
-    static void OnShadowDepthChanged(DependencyObject* d,
-        const DependencyPropertyChangedEventArgs& e);
-
 private:
     enum UpdateFlags
     {

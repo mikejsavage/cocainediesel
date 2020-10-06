@@ -115,8 +115,8 @@ private:
     template<typename Key_, typename... ValueArgs>
     void Create(uint32_t, Key_&& key_, ValueArgs&&... values)
     {
-        new ((KeyT*)&key) KeyT(Forward<Key_>(key_));
-        new (&value) ValueT(Forward<ValueArgs>(values)...);
+        new ((KeyT*)&key) KeyT(ForwardArg<Key_>(key_));
+        new (&value) ValueT(ForwardArg<ValueArgs>(values)...);
     }
 
     template<class Key_>
@@ -155,8 +155,8 @@ private:
     void Create(uint32_t hash_, Key_&& key_, ValueArgs&&... values)
     {
         hash = hash_;
-        new ((KeyT*)&key) KeyT(Forward<Key_>(key_));
-        new (&value) ValueT(Forward<ValueArgs>(values)...);
+        new ((KeyT*)&key) KeyT(ForwardArg<Key_>(key_));
+        new (&value) ValueT(ForwardArg<ValueArgs>(values)...);
     }
 
     template<class Key_>
@@ -195,7 +195,7 @@ private:
     template<typename Key_, typename... ValueArgs>
     void Create(uint32_t, Key_&& key_, ValueArgs&&...)
     {
-        new ((KeyT*)&key) KeyT(Forward<Key_>(key_));
+        new ((KeyT*)&key) KeyT(ForwardArg<Key_>(key_));
     }
 
     template<class Key_>
@@ -233,7 +233,7 @@ private:
     void Create(uint32_t hash_, Key_&& key_, ValueArgs&&...)
     {
         hash = hash_;
-        new ((KeyT*)&key) KeyT(Forward<Key_>(key_));
+        new ((KeyT*)&key) KeyT(ForwardArg<Key_>(key_));
     }
 
     template<class Key_>
@@ -443,7 +443,7 @@ inline typename HashMapImpl<Bucket>::InsertResult HashMapImpl<Bucket>::Insert(Ke
         return InsertResult(Iterator(bucket, mBuckets + mNumBuckets), false);
     }
 
-    bucket = InsertIntoBucket(bucket, hash, Forward<Key_>(key), Forward<Ts>(args)...);
+    bucket = InsertIntoBucket(bucket, hash, ForwardArg<Key_>(key), ForwardArg<Ts>(args)...);
     return InsertResult(Iterator(bucket, mBuckets + mNumBuckets), true);
 }
 
@@ -512,7 +512,7 @@ inline void HashMapImpl<Bucket>::Erase(Bucket* bucket)
         }
         while ((i <= j) ? ((i < k) && (k <= j)) : ((i < k) || (k <= j)));
 
-        new (bucket) Bucket(Move(*bucket_));
+        new (bucket) Bucket(MoveArg(*bucket_));
         i = j;
         bucket = bucket_;
     }
@@ -686,7 +686,7 @@ inline void HashMapImpl<Bucket>::MoveBuckets(Bucket* dst, Bucket* src, uint32_t 
     {
         if (!src->IsEmpty())
         {
-            new (dst) Bucket(Move(*src));
+            new (dst) Bucket(MoveArg(*src));
             src->~Bucket();
         }
         else
@@ -712,7 +712,7 @@ inline void HashMapImpl<Bucket>::InsertBucketsFrom(Bucket* src, uint32_t count)
             bool found = FindInsertBucket(it->Hash(), it->key, bucket);
             NS_ASSERT(!found);
 
-            new (bucket) Bucket(Move(*it));
+            new (bucket) Bucket(MoveArg(*it));
             it->~Bucket();
 
             mNumEntries++;
@@ -736,7 +736,7 @@ inline Bucket* HashMapImpl<Bucket>::InsertIntoBucket(Bucket* bucket, uint32_t ha
     NS_ASSERT(bucket != nullptr && bucket->IsEmpty());
     mNumEntries++;
 
-    bucket->Create(hash, Forward<Key_>(key), Forward<ValueArgs>(values)...);
+    bucket->Create(hash, ForwardArg<Key_>(key), ForwardArg<ValueArgs>(values)...);
     NS_ASSERT(!bucket->IsEmpty());
 
     return bucket;
@@ -829,7 +829,7 @@ inline HashMap<Key, T, N, Bucket>::HashMap(): HashMapImpl<Bucket>(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename Key, typename T, unsigned N, typename Bucket>
-inline HashMap<Key, T, N, Bucket>::HashMap(HashMap&& m): HashMapImpl<Bucket>(Move(m),
+inline HashMap<Key, T, N, Bucket>::HashMap(HashMap&& m): HashMapImpl<Bucket>(MoveArg(m),
     HashMapStorage<Bucket, N>::GetFirst(), HashMapStorage<Bucket, N>::GetCapacity())
 {
     m.mBuckets = m.GetFirst();
@@ -849,7 +849,7 @@ inline T& HashMap<Key, T, N, Bucket>::operator[](const Key_& key)
 template<typename Key, typename T, unsigned N, typename Bucket>
 inline T& HashMap<Key, T, N, Bucket>::operator[](Key&& key)
 {
-    return this->Insert(Move(key)).first->value;
+    return this->Insert(MoveArg(key)).first->value;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -881,7 +881,7 @@ inline HashSet<Key, N, Bucket>::HashSet(): HashMapImpl<Bucket>(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename Key, unsigned N, typename Bucket>
-inline HashSet<Key, N, Bucket>::HashSet(HashSet&& m): HashMapImpl<Bucket>(Move(m),
+inline HashSet<Key, N, Bucket>::HashSet(HashSet&& m): HashMapImpl<Bucket>(MoveArg(m),
     HashMapStorage<Bucket, N>::GetFirst(), HashMapStorage<Bucket, N>::GetCapacity())
 {
     m.mBuckets = m.GetFirst();

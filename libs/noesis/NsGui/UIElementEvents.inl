@@ -8,6 +8,9 @@ namespace Noesis
 {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+NS_GUI_CORE_API Point GetRelativePosition(const Point& p, UIElement* relativeTo);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 inline InputEventArgs::InputEventArgs(BaseComponent* s, const RoutedEvent* e): RoutedEventArgs(s, e) {}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -18,6 +21,13 @@ inline MouseButtonEventArgs::MouseButtonEventArgs(BaseComponent* s, const Routed
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 inline MouseWheelEventArgs::MouseWheelEventArgs(BaseComponent* s, const RoutedEvent* e, int delta)
     : MouseEventArgs(s, e), wheelRotation(delta) {}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline Point TouchEventArgs::GetTouchPoint(UIElement* relativeTo) const
+{
+    NS_CHECK(relativeTo != nullptr, "GetTouchPoint relativeTo argument is null");
+    return GetRelativePosition(touchPoint, relativeTo);
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 inline TouchEventArgs::TouchEventArgs(BaseComponent* s, const RoutedEvent* e, const Point& touchPoint_,
@@ -59,12 +69,75 @@ inline ManipulationCompletedEventArgs::ManipulationCompletedEventArgs(BaseCompon
     totalManipulation(totalManipulation_), isInertial(isInertial_) {}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+inline TappedEventArgs::TappedEventArgs(BaseComponent* source, const RoutedEvent* event,
+    const Point& p, uint64_t device): TouchEventArgs(source, event, p, device) {}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline DoubleTappedEventArgs::DoubleTappedEventArgs(BaseComponent* source, const RoutedEvent* event,
+    const Point& p, uint64_t device): TouchEventArgs(source, event, p, device) {}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline HoldingEventArgs::HoldingEventArgs(BaseComponent* source, const RoutedEvent* event,
+    const Point& p, uint64_t device, HoldingState holdingState_):
+    TouchEventArgs(source, event, p, device), holdingState(holdingState_) {};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline RightTappedEventArgs::RightTappedEventArgs(BaseComponent* source, const RoutedEvent* event,
+    const Point& p, uint64_t device): TouchEventArgs(source, event, p, device) {}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 inline KeyboardEventArgs::KeyboardEventArgs(BaseComponent* s, const RoutedEvent* e):
     InputEventArgs(s, e) {}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 inline KeyboardFocusChangedEventArgs::KeyboardFocusChangedEventArgs(BaseComponent* s,
     const RoutedEvent* e, UIElement* o, UIElement* n) : KeyboardEventArgs(s, e), oldFocus(o), newFocus(n) {}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline bool KeyEventArgs::GetIsDown() const
+{
+    return (keyStates & KeyStates_Down) != 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline bool KeyEventArgs::GetIsRepeat() const
+{
+    return (keyStates & KeyStates_Down) != 0 && (keyStates & KeyStates_Toggled) == 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline bool KeyEventArgs::GetIsToggled() const
+{
+    return (keyStates & KeyStates_Toggled) != 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline bool KeyEventArgs::GetIsUp() const
+{
+    return (keyStates & KeyStates_Down) == 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline KeyEventArgs::KeyEventArgs(BaseComponent* s, const RoutedEvent* e, Key k, KeyStates ks):
+    KeyboardEventArgs(s, e), keyStates(ks)
+{
+    originalKey = k;
+
+    switch (k)
+    {
+        case Key_GamepadLeft: key = Key_Left; break;
+        case Key_GamepadUp: key = Key_Up; break;
+        case Key_GamepadRight: key = Key_Right; break;
+        case Key_GamepadDown: key = Key_Down; break;
+        case Key_GamepadAccept: key = Key_Space; break;
+        case Key_GamepadCancel: key = Key_Escape; break;
+        case Key_GamepadPageUp: key = Key_PageUp; break;
+        case Key_GamepadPageDown: key = Key_PageDown; break;
+        case Key_GamepadPageLeft: key = Key_PageLeft; break;
+        case Key_GamepadPageRight: key = Key_PageRight; break;
+        default: key = k; break;
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 inline TextCompositionEventArgs::TextCompositionEventArgs(BaseComponent* s, const RoutedEvent* e,
@@ -83,6 +156,13 @@ inline QueryContinueDragEventArgs::QueryContinueDragEventArgs(BaseComponent* sou
 inline GiveFeedbackEventArgs::GiveFeedbackEventArgs(BaseComponent* source, const RoutedEvent* event,
     uint32_t effects_, bool useDefaultCursors_): RoutedEventArgs(source, event), effects(effects_),
     useDefaultCursors(useDefaultCursors_) {}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline Point DragEventArgs::GetPosition(UIElement* relativeTo) const
+{
+    NS_CHECK(relativeTo != nullptr, "GetPosition relativeTo argument is null");
+    return GetRelativePosition(dropPoint, relativeTo);
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 inline DragEventArgs::DragEventArgs(BaseComponent* source, const RoutedEvent* event,

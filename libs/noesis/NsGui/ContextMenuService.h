@@ -111,11 +111,6 @@ struct NS_GUI_CORE_API ContextMenuService
     /// Sets the vertical distance between the target origin and the popup alignment point
     static void SetVerticalOffset(DependencyObject* obj, float offset);
 
-private:
-    static void StaticOnContextMenuClosing(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnContextMenuOpening(BaseComponent* obj, const EventArgs& e);
-    static bool CanOpenContextMenu(DependencyObject* obj);
-
     NS_DECLARE_REFLECTION(ContextMenuService, NoParent)
 };
 

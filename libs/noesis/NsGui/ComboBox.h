@@ -82,6 +82,10 @@ public:
     void SetText(const char* text);
     //@}
 
+    /// Causes the item to scroll into view. If it is not visible, it is aligned either at the
+    /// top or bottom of the viewport. Note this will only work if drop down is open.
+    void ScrollIntoView(BaseComponent* item);
+
 public:
     /// Dependency Properties
     //@{
@@ -156,21 +160,6 @@ private:
     void Close();
 
     void OnIsDropDownChanged(bool isDropDown);
-
-    static void StaticIsSelectionActiveChanged(DependencyObject* d,
-        const DependencyPropertyChangedEventArgs& e);
-
-    static void StaticOnComboBoxLostMouseCapture(BaseComponent* obj, const EventArgs& e);
-    void OnComboBoxLostMouseCapture(const MouseEventArgs& e);
-
-    static void StaticOnComboBoxMouseButtonDown(BaseComponent* obj, const EventArgs& e);
-    void OnComboBoxMouseButtonDown(const MouseEventArgs& e);
-
-    static void StaticOnComboBoxPreviewMouseButtonDown(BaseComponent* obj, const EventArgs& e);
-    void OnComboBoxPreviewMouseButtonDown(const MouseEventArgs& e);
-
-    static void StaticOnComboBoxGotFocus(BaseComponent* obj, const EventArgs& e);
-    void OnComboBoxGotFocus(const RoutedEventArgs& e);
 
     void SelectNext(int startIndex, int direction);
 

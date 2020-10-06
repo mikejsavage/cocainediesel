@@ -11,11 +11,12 @@
 #include <NsCore/Noesis.h>
 #include <NsGui/CoreApi.h>
 #include <NsGui/Animatable.h>
-#include <NsDrawing/Color.h>
 
 
 namespace Noesis
 {
+
+struct Color;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Describes the location and color of a transition point in a gradient.

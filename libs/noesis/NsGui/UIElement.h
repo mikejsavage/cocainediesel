@@ -247,6 +247,30 @@ public:
     void SetIsManipulationEnabled(bool enabled);
     //@}
 
+    /// Gets or sets a value that determines whether this element can originate *Tapped* events
+    //@{
+    bool GetIsTapEnabled() const;
+    void SetIsTapEnabled(bool enabled);
+    //@}
+
+    /// Gets or sets a value that determines whether this element can originate *DoubleTapped* events
+    //@{
+    bool GetIsDoubleTapEnabled() const;
+    void SetIsDoubleTapEnabled(bool enabled);
+    //@}
+
+    /// Gets or sets a value that determines whether this element can originate *Holding* events
+    //@{
+    bool GetIsHoldingEnabled() const;
+    void SetIsHoldingEnabled(bool enabled);
+    //@}
+
+    /// Gets or sets a value that determines whether this element can originate *RightTapped* events
+    //@{
+    bool GetIsRightTapEnabled() const;
+    void SetIsRightTapEnabled(bool enabled);
+    //@}
+
     /// Attempts to force capture of a touch to this element
     bool CaptureTouch(uint64_t touchDevice);
 
@@ -414,6 +438,14 @@ public:
     RoutedEvent_<ManipulationInertiaStartingEventHandler> ManipulationInertiaStarting();
     /// Occurs when a manipulation and inertia on the UIElement object is complete
     RoutedEvent_<ManipulationCompletedEventHandler> ManipulationCompleted();
+    /// Occurs when a Tap interaction occurs on this element
+    RoutedEvent_<TappedEventHandler> Tapped();
+    /// Occurs when a DoubleTap interaction occurs on this element
+    RoutedEvent_<DoubleTappedEventHandler> DoubleTapped();
+    /// Occurs when a Hold interaction occurs on this element
+    RoutedEvent_<HoldingEventHandler> Holding();
+    /// Occurs when a DoubleTap interaction occurs on this element
+    RoutedEvent_<RightTappedEventHandler> RightTapped();
     /// Occurs when the keyboard is focused on this element
     RoutedEvent_<KeyboardFocusChangedEventHandler> PreviewGotKeyboardFocus();
     /// Occurs when a key is pressed while focus is on this element
@@ -545,6 +577,10 @@ public:
     static const DependencyProperty* IsMouseDirectlyOverProperty;
     static const DependencyProperty* IsMouseOverProperty;
     static const DependencyProperty* IsManipulationEnabledProperty;
+    static const DependencyProperty* IsTapEnabledProperty;
+    static const DependencyProperty* IsDoubleTapEnabledProperty;
+    static const DependencyProperty* IsHoldingEnabledProperty;
+    static const DependencyProperty* IsRightTapEnabledProperty;
     static const DependencyProperty* IsVisibleProperty;
     static const DependencyProperty* OpacityMaskProperty;
     static const DependencyProperty* OpacityProperty;
@@ -589,6 +625,10 @@ public:
     static const RoutedEvent* ManipulationDeltaEvent;
     static const RoutedEvent* ManipulationInertiaStartingEvent;
     static const RoutedEvent* ManipulationCompletedEvent;
+    static const RoutedEvent* TappedEvent;
+    static const RoutedEvent* DoubleTappedEvent;
+    static const RoutedEvent* HoldingEvent;
+    static const RoutedEvent* RightTappedEvent;
     static const RoutedEvent* PreviewGotKeyboardFocusEvent;
     static const RoutedEvent* PreviewKeyDownEvent;
     static const RoutedEvent* PreviewKeyUpEvent;
@@ -741,6 +781,10 @@ protected:
     virtual void OnManipulationDelta(const ManipulationDeltaEventArgs& e);
     virtual void OnManipulationInertiaStarting(const ManipulationInertiaStartingEventArgs& e);
     virtual void OnManipulationCompleted(const ManipulationCompletedEventArgs& e);
+    virtual void OnTapped(const TappedEventArgs& e);
+    virtual void OnDoubleTapped(const DoubleTappedEventArgs& e);
+    virtual void OnHolding(const HoldingEventArgs& e);
+    virtual void OnRightTapped(const RightTappedEventArgs& e);
     virtual void OnPreviewGotKeyboardFocus(const KeyboardFocusChangedEventArgs& e);
     virtual void OnPreviewKeyDown(const KeyEventArgs& e);
     virtual void OnPreviewKeyUp(const KeyEventArgs& e);
@@ -887,76 +931,6 @@ private:
     void PromoteMouseButtonEvent(const MouseButtonEventArgs& e,
         const RoutedEvent* leftEvent, const RoutedEvent* rightEvent);
 
-    /// Class event handlers
-    //@{
-    static void StaticOnTouchDown(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnTouchMove(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnTouchUp(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnTouchEnter(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnTouchLeave(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnGotTouchCapture(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnLostTouchCapture(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewTouchDown(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewTouchMove(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewTouchUp(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnManipulationStarting(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnManipulationStarted(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnManipulationDelta(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnManipulationInertiaStarting(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnManipulationCompleted(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnGotKeyboardFocus(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnGotMouseCapture(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnKeyDown(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnKeyUp(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnLostKeyboardFocus(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnLostMouseCapture(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnMouseDown(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnMouseEnter(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnMouseLeave(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnMouseLeftButtonDown(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnMouseLeftButtonUp(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnMouseMove(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnMouseRightButtonDown(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnMouseRightButtonUp(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnMouseUp(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnMouseWheel(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewGotKeyboardFocus(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewKeyDown(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewKeyUp(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewLostKeyboardFocus(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewMouseDown(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewMouseLeftButtonDown(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewMouseLeftButtonUp(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewMouseMove(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewMouseRightButtonDown(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewMouseRightButtonUp(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewMouseUp(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewMouseWheel(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewTextInput(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnTextInput(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnQueryCursor(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewQueryContinueDrag(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnQueryContinueDrag(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewGiveFeedback(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnGiveFeedback(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewDragEnter(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnDragEnter(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewDragOver(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnDragOver(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewDragLeave(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnDragLeave(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnPreviewDrop(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnDrop(BaseComponent* obj, const EventArgs& e);
-    //@}
-
-    static bool CoerceIsEnabled(const DependencyObject* object, const void* value, 
-        void* coercedValue);
-    static bool CoerceIsHitTestVisible(const DependencyObject* object, const void* value, 
-        void* coercedValue);
-
-    static void StaticBitmapScalingModeChanged(DependencyObject* sender,
-        const DependencyPropertyChangedEventArgs& args);
-
 private:
     Size mDesiredSize;
     Size mPreviousMeasureConstraint;
@@ -976,11 +950,6 @@ private:
     void* mMeasureRequest;
     void* mArrangeRequest;
     void* mSizeChangedRequest;
-
-    // Private properties
-    //@{
-    static const DependencyProperty* ArrangeClipProperty;
-    //@}
 
     NS_DECLARE_REFLECTION(UIElement, Visual)
 };

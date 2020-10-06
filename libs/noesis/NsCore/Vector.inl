@@ -237,7 +237,7 @@ inline T* BaseVector<T>::Insert(T* pos, T &&v)
 
     if (pos == End())
     {
-        PushBack(Noesis::Move(v));
+        PushBack(MoveArg(v));
         return End() - 1;
     }
 
@@ -252,7 +252,7 @@ inline T* BaseVector<T>::Insert(T* pos, T &&v)
     MoveBackward(pos, End() - 1, End(), IsPod());
     ForceSize(mSize + 1);
 
-    *pos = Noesis::Move(v);
+    *pos = MoveArg(v);
     return pos;
 }
 
@@ -547,7 +547,7 @@ inline T& BaseVector<T>::EmplaceBack(Args&&... args)
         Grow(0, IsPod());
     }
 
-    new (End()) T(Forward<Args>(args)...);
+    new (End()) T(ForwardArg<Args>(args)...);
     ForceSize(mSize + 1);
     return Back();
 }
@@ -862,7 +862,7 @@ inline void BaseVector<T>::UninitializedMove(T* first, const T* last, T* dest, I
 {
     for (; first != last; ++first, ++dest)
     {
-        new (dest) T(Noesis::Move(*first));
+        new (dest) T(MoveArg(*first));
     }
 }
 
@@ -884,7 +884,7 @@ inline T* BaseVector<T>::Move(T* first, const T* last, T* dest, IsPod<false>)
 {
     while (first != last)
     {
-        *dest++ = Noesis::Move(*first++);
+        *dest++ = MoveArg(*first++);
     }
 
     return dest;
@@ -905,7 +905,7 @@ inline T* BaseVector<T>::MoveOverlap(T* first, const T* last, T* dest, IsPod<fal
 {
     while (first != last)
     {
-        *dest++ = Noesis::Move(*first++);
+        *dest++ = MoveArg(*first++);
     }
 
     return dest;
@@ -925,7 +925,7 @@ inline void BaseVector<T>::MoveBackward(T* first, const T* last, T* destLast, Is
 {
     while (first != last)
     {
-        *(--destLast) = Noesis::Move(*(--last));
+        *(--destLast) = MoveArg(*(--last));
     }
 }
 
@@ -965,7 +965,7 @@ inline Vector<T, N>::Vector(Vector&& v): BaseVector<T>(N)
 {
     if (!v.Empty())
     {
-        this->Assign(Noesis::Move(v));
+        this->Assign(MoveArg(v));
     }
 }
 
@@ -987,7 +987,7 @@ inline const Vector<T, N>& Vector<T, N>::operator=(Vector&& v)
 {
     if (this != &v)
     {
-        this->Assign(Noesis::Move(v));
+        this->Assign(MoveArg(v));
     }
 
     return *this;

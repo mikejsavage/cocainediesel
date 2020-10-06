@@ -162,10 +162,10 @@ protected:
 ///
 /// For example:
 ///
-///     ExtractComponentType(TypeOf<Ptr<BaseComponent> >()) == TypeOf<BaseComponent>();
-///     ExtractComponentType(TypeOf<Ptr<const BaseComponent> >()) == TypeOf<BaseComponent>();
-///     ExtractComponentType(TypeOf<Ptr<Interface> >()) == TypeOf<Interface>();
-///     ExtractComponentType(TypeOf<Ptr<const Interface> >()) == TypeOf<Interface>();
+///     ExtractComponentType(TypeOf<Ptr<BaseComponent>>()) == TypeOf<BaseComponent>();
+///     ExtractComponentType(TypeOf<Ptr<const BaseComponent>>()) == TypeOf<BaseComponent>();
+///     ExtractComponentType(TypeOf<Ptr<Interface>>()) == TypeOf<Interface>();
+///     ExtractComponentType(TypeOf<Ptr<const Interface>>()) == TypeOf<Interface>();
 ///     ExtractComponentType(TypeOf<BaseComponent*>()) == TypeOf<BaseComponent>();
 ///     ExtractComponentType(TypeOf<const BaseComponent*>()) == TypeOf<BaseComponent>();
 ///     ExtractComponentType(TypeOf<Interface*>()) == TypeOf<Interface>();

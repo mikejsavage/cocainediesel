@@ -28,7 +28,7 @@ namespace NoesisApp
 
 struct NS_RENDER_GLRENDERDEVICE_API GLFactory
 {
-    static Noesis::Ptr<Noesis::RenderDevice> CreateDevice();
+    static Noesis::Ptr<Noesis::RenderDevice> CreateDevice(bool sRGB);
     static Noesis::Ptr<Noesis::Texture> WrapTexture(GLuint object, uint32_t width, uint32_t height,
         uint32_t levels, bool isInverted);
 };

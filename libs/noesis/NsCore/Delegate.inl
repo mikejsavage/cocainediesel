@@ -72,7 +72,7 @@ public:
     /// Move constructor
     Delegate(Delegate&& d)
     {
-        Move(Noesis::Move(d));
+        Move(MoveArg(d));
     }
 
     /// Destructor
@@ -99,7 +99,7 @@ public:
         if (this != &d)
         {
             Destroy();
-            Move(Noesis::Move(d));
+            Move(MoveArg(d));
         }
 
         return *this;
@@ -489,7 +489,7 @@ private:
     public:
         MultiDelegate(): mVector(*new DelegateVector()) {}
         MultiDelegate(const MultiDelegate& d): mVector(*new DelegateVector(*d.mVector.GetPtr())) {}
-        MultiDelegate(MultiDelegate&& d): mVector(Noesis::Move(d.mVector)) {}
+        MultiDelegate(MultiDelegate&& d): mVector(MoveArg(d.mVector)) {}
         MultiDelegate& operator=(const MultiDelegate&) = delete;
 
         Type GetType() const override
@@ -582,14 +582,17 @@ private:
             // Hold reference to the vector to avoid it being destructed in the iteration loop
             InvokerGuard guard(mVector);
 
-            for (Delegate& d: mVector->v)
+            const Delegates& v = mVector->v;
+            uint32_t numDelegates = v.Size();
+
+            for (uint32_t i = 0; i < numDelegates; ++i)
             {
                 if (abort(param))
                 {
                     break;
                 }
 
-                d(args...);
+                (v[i])(args...);
             }
         }
 
@@ -600,7 +603,7 @@ private:
 
         void Move(Impl* dest) override
         {
-            new(dest) MultiDelegate(Noesis::Move(*this));
+            new(dest) MultiDelegate(MoveArg(*this));
             this->Destroy();
             new(this) NullStub();
         }

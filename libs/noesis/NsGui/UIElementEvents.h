@@ -84,6 +84,9 @@ struct TouchEventArgs: public InputEventArgs
     Point touchPoint;
     uint64_t touchDevice;
 
+    /// Returns the current position of the touch device relative to the specified element
+    Point GetTouchPoint(UIElement* relativeTo) const;
+
     TouchEventArgs(BaseComponent* source, const RoutedEvent* event, const Point& p, uint64_t device);
 };
 
@@ -286,6 +289,63 @@ struct ManipulationCompletedEventArgs: public InputEventArgs
 typedef Delegate<void (BaseComponent*, const ManipulationCompletedEventArgs&)>
     ManipulationCompletedEventHandler;
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Provides event data for the Tapped event
+////////////////////////////////////////////////////////////////////////////////////////////////////
+struct TappedEventArgs: public TouchEventArgs
+{
+    TappedEventArgs(BaseComponent* source, const RoutedEvent* event, const Point& p,
+        uint64_t device);
+};
+
+typedef Delegate<void (BaseComponent*, const TappedEventArgs&)> TappedEventHandler;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Provides event data for the DoubleTapped event
+////////////////////////////////////////////////////////////////////////////////////////////////////
+struct DoubleTappedEventArgs: public TouchEventArgs
+{
+    DoubleTappedEventArgs(BaseComponent* source, const RoutedEvent* event, const Point& p,
+        uint64_t device);
+};
+
+typedef Delegate<void (BaseComponent*, const DoubleTappedEventArgs&)> DoubleTappedEventHandler;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Specifies the state of the Holding event
+////////////////////////////////////////////////////////////////////////////////////////////////////
+enum HoldingState: int32_t
+{
+    HoldingState_Started,
+    HoldingState_Completed,
+    HoldingState_Canceled
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Provides event data for the Holding event
+////////////////////////////////////////////////////////////////////////////////////////////////////
+struct HoldingEventArgs: public TouchEventArgs
+{
+    HoldingState holdingState;
+
+    HoldingEventArgs(BaseComponent* source, const RoutedEvent* event, const Point& p,
+        uint64_t device, HoldingState holdingState);
+};
+
+typedef Delegate<void (BaseComponent*, const HoldingEventArgs&)> HoldingEventHandler;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Provides event data for the RightTapped event
+////////////////////////////////////////////////////////////////////////////////////////////////////
+struct RightTappedEventArgs: public TouchEventArgs
+{
+    RightTappedEventArgs(BaseComponent* source, const RoutedEvent* event, const Point& p,
+        uint64_t device);
+};
+
+typedef Delegate<void (BaseComponent*, const RightTappedEventArgs&)> RightTappedEventHandler;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Provides information for access keys events.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -325,14 +385,11 @@ struct KeyboardFocusChangedEventArgs: public KeyboardEventArgs
 typedef Delegate<void (BaseComponent*, const KeyboardFocusChangedEventArgs&)>
     KeyboardFocusChangedEventHandler;
 
-NS_WARNING_PUSH
-NS_MSVC_WARNING_DISABLE(4275)
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Provides data for the KeyUp and KeyDown routed events, as well as related attached and Preview
 /// events.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-struct NS_GUI_CORE_API KeyEventArgs: public KeyboardEventArgs
+struct KeyEventArgs: public KeyboardEventArgs
 {
     /// Gets the keyboard key associated with the event.
     Key key;
@@ -358,8 +415,6 @@ struct NS_GUI_CORE_API KeyEventArgs: public KeyboardEventArgs
 
     KeyEventArgs(BaseComponent* source, const RoutedEvent* event, Key key, KeyStates keyStates);
 };
-
-NS_WARNING_POP
 
 typedef Delegate<void (BaseComponent*, const KeyEventArgs&)> KeyEventHandler;
 
@@ -438,7 +493,7 @@ struct DragEventArgs final: public RoutedEventArgs
     mutable uint32_t effects;
 
     /// Returns the point of drop operation that based on relativeTo
-    NS_GUI_CORE_API Point GetPosition(UIElement* relativeTo) const;
+    Point GetPosition(UIElement* relativeTo) const;
 
     DragEventArgs(BaseComponent* source, const RoutedEvent* event, BaseComponent* data,
         uint32_t keyStates, uint32_t allowedEffects, UIElement* target, const Point& point);

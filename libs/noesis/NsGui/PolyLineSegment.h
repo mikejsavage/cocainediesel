@@ -66,8 +66,6 @@ protected:
 private:
     void OnPointsCollectionChanged(BaseComponent* s, const NotifyCollectionChangedEventArgs& e);
 
-    static void OnPointsChanged(DependencyObject* d, const DependencyPropertyChangedEventArgs& e);
-
     NS_DECLARE_REFLECTION(PolyLineSegment, PathSegment)
 };
 

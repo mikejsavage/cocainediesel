@@ -214,7 +214,7 @@ Ptr<T>::operator T*() const
 template<class T, class... Args>
 Ptr<T> MakePtr(Args&&... args)
 {
-    return *new T(Forward<Args>(args)...);
+    return *new T(ForwardArg<Args>(args)...);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

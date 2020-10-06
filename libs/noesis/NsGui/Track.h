@@ -135,8 +135,6 @@ private:
         RepeatButton* decBtn, RepeatButton* incBtn);
     float ThumbSize(float finalSize, float trackSize, float desiredSize);
 
-    static bool ValidateViewportSize(const void* value);
-
 private:
     Ptr<Thumb> mThumb;
     Ptr<RepeatButton> mDecreaseButton;

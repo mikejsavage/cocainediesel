@@ -17,10 +17,10 @@ namespace HighResTimer
 {
 
 /// Retrieves the current value of the high resolution timer in ticks (CPU dependent unit)
-inline uint64_t Ticks();
+uint64_t Ticks();
 
 /// Converts from ticks to seconds
-inline double Seconds(uint64_t ticks);
+double Seconds(uint64_t ticks);
 
 }
 }

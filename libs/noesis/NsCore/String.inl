@@ -304,14 +304,14 @@ inline void BaseString::Assign(const BaseString& str)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 inline void BaseString::Assign(BaseString&& str)
 {
-    Assign(Move(str), 0);
+    Assign(MoveArg(str), 0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<unsigned N>
 inline void BaseString::Assign(FixedString<N>&& str)
 {
-    Assign(Move(str), N);
+    Assign(MoveArg(str), N);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -616,7 +616,7 @@ inline FixedString<N>::FixedString(const FixedString& str, uint32_t pos, uint32_
 template<unsigned N>
 inline FixedString<N>::FixedString(FixedString&& str): BaseString(N - 1)
 {
-    Assign(Move(str));
+    Assign(MoveArg(str));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -669,7 +669,7 @@ inline FixedString<N>& FixedString<N>::operator=(const FixedString& str)
 template<unsigned N>
 inline FixedString<N>& FixedString<N>::operator=(FixedString&& str)
 {
-    Assign(Move(str));
+    Assign(MoveArg(str));
     return *this;
 }
 

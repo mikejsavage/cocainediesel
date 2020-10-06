@@ -210,9 +210,6 @@ private:
 
     bool IsStandalone() const;
 
-    static void OnCanScrollCommand(BaseComponent* o, const CanExecuteRoutedEventArgs& e);
-    static void OnScrollCommand(BaseComponent* o, const ExecutedRoutedEventArgs& e);
-
 private:
     Ptr<Track> mTrack;
     ScrollViewer* mScrollViewerOwner;

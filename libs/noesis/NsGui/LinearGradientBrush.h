@@ -73,8 +73,7 @@ protected:
 private:
     enum UpdateFlags
     {
-        UpdateFlags_StartPoint = GradientBrush::UpdateFlags_Sentinel,
-        UpdateFlags_EndPoint
+        UpdateFlags_Vector = GradientBrush::UpdateFlags_Sentinel
     };
 
     NS_DECLARE_REFLECTION(LinearGradientBrush, GradientBrush)

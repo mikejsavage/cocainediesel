@@ -96,28 +96,10 @@ protected:
 private:
     void CreatePen();
     void UpdateGeometries();
-    bool IsBorderUniform(const Thickness& borders,
-        const CornerRadius& corners) const;
     void GenerateSimpleGeometry(const Thickness& borders,
         const CornerRadius& corners);
     void GenerateComplexGeometry(const Thickness& borders,
         const CornerRadius& corners);
-    void CoerceBorders(float width, float height, float& topBorder,
-        float& bottomBorder, float& leftBorder, float& rightBorder) const;
-    void CoerceCorners(float width, float height, Size& topLeftCorner,
-        Size& topRightCorner, Size& bottomLeftCorner,
-        Size& bottomRightCorner) const;
-    float ExtrudeCorner(float cornerSize, float halfBorderSize) const;
-    void BuildPathData(const StreamGeometryContext& context,
-        const Point& p0, const Point& p1,
-        const Point& p2, const Point& p3,
-        const Point& p4, const Point& p5,
-        const Point& p6, const Point& p7,
-        const Size& a12, const Size& a34,
-        const Size& a56, const Size& a70) const;
-
-    static bool ValidateThickness(const void* value);
-    static bool ValidateCornerRadius(const void* value);
 
 private:
     Ptr<Pen> mPen;

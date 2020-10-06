@@ -38,6 +38,12 @@ public:
     void SetBackground(Brush* background);
     //@}
 
+    /// Gets or sets the uniform spacing between characters, in units of 1/1000 of an em
+    //@{
+    int32_t GetCharacterSpacing() const;
+    void SetCharacterSpacing(int32_t spacing);
+    //@}
+
     /// Gets or sets the preferred top-level font family for the content of the element
     //@{
     FontFamily* GetFontFamily() const;
@@ -87,12 +93,6 @@ public:
     //@}
 
     // As ATTACHED PROPERTIES
-
-    /// Gets or sets the Brush used to fill the background of the content area
-    //@{
-    static Brush* GetBackground(const DependencyObject* element);
-    static void SetBackground(DependencyObject* element, Brush* background);
-    //@}
 
     /// Gets or sets the preferred top-level font family for the content of the element
     //@{
@@ -146,6 +146,7 @@ public:
     /// Dependency properties
     //@{
     static const DependencyProperty* BackgroundProperty;
+    static const DependencyProperty* CharacterSpacingProperty;
     static const DependencyProperty* FontFamilyProperty;
     static const DependencyProperty* FontSizeProperty;
     static const DependencyProperty* FontStretchProperty;
@@ -155,9 +156,6 @@ public:
     static const DependencyProperty* StrokeProperty;
     static const DependencyProperty* StrokeThicknessProperty;
     //@}
-
-private:
-    static bool ValidateFontSize(const void* value);
 
     NS_DECLARE_REFLECTION(TextElement, FrameworkElement)
 };

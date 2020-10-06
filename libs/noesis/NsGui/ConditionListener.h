@@ -54,7 +54,8 @@ protected:
     virtual BaseComponent* GetValue() const = 0;
     virtual void Invalidate(bool matches) const = 0;
 
-    void OnBindingChanged(BaseComponent* sourceValue, const Type* sourceType);
+    void OnBindingChanged(BaseComponent* sourceValue, const Type* sourceType) override;
+
     void UpdateValue(BaseComponent* sourceValue, const Type* sourceType);
     void Invalidate(BaseComponent* sourceValue);
 

@@ -821,15 +821,6 @@ private:
     EventHandler& GetDataContextChangedEvent();
     EventHandler& GetInitializedEvent();
 
-    static void OnCursorChanged(DependencyObject* dob, const DependencyPropertyChangedEventArgs& e);
-    static void StaticOnQueryCursor(BaseComponent* obj, const EventArgs& e);
-
-    static bool ValidateSize(const void* value);
-    static bool ValidateMinSize(const void* value);
-    static bool ValidateMaxSize(const void* value);
-
-    static bool ValidateMargin(const void* value);
-
 private:
     friend class UIElementCollection;
     friend class ItemCollection;

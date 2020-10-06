@@ -71,9 +71,6 @@ private:
 
     uint32_t OnTimerElapsed();
 
-    static bool ValidateDelay(const void* value);
-    static bool ValidateInterval(const void* value);
-
 private:
     uint32_t mTimerId;
 

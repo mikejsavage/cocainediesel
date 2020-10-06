@@ -70,11 +70,9 @@ private:
     int32_t GetPixelHeightCore() const override;
     //@}
 
-    static void OnUriSourceChanged(DependencyObject* d,
-        const DependencyPropertyChangedEventArgs& e);
     void UpdateImageInfo(const char* uri);
 
-    void OnTextureChanged(const char* uri);
+    static void OnTextureChanged(const char* uri);
 
 private:
     friend class BitmapImageTest;

@@ -40,16 +40,12 @@ struct NS_GUI_CORE_API Text
 
     /// Dependency properties
     //@{
+    static const DependencyProperty* CharacterSpacingProperty;
     static const DependencyProperty* StrokeProperty;
     static const DependencyProperty* StrokeThicknessProperty;
     static const DependencyProperty* PlaceholderProperty;
     static const DependencyProperty* PasswordLengthProperty;
     //@}
-
-private:
-    static void OnPlaceholderChanged(DependencyObject* d,
-        const DependencyPropertyChangedEventArgs& e);
-    static void OnPasswordChanged(BaseComponent* sender, const RoutedEventArgs& e);
 
     NS_DECLARE_REFLECTION(Text, NoParent)
 };

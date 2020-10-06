@@ -161,6 +161,9 @@ protected:
     void OnMouseLeftButtonUp(const MouseButtonEventArgs& e) override;
     void OnMouseRightButtonDown(const MouseButtonEventArgs& e) override;
     void OnMouseRightButtonUp(const MouseButtonEventArgs& e) override;
+    void OnGotKeyboardFocus(const KeyboardFocusChangedEventArgs& e) override;
+    void OnLostKeyboardFocus(const KeyboardFocusChangedEventArgs& e) override;
+    void OnKeyDown(const KeyEventArgs& e) override;
     //@}
 
     /// From FrameworkElement
@@ -196,7 +199,7 @@ private:
 
     void UpdateIsPressed();
 
-    void UpdateSubmenuVisibility(bool visible);
+    void UpdateSubmenuVisibility(bool visible, bool focus = false);
     void UpdateRole();
 
     void ShowSubmenu();
@@ -205,6 +208,8 @@ private:
     static void UpdateCommandCanExecute(ItemCollection* items);
 
     void ActivateMenu(bool activate);
+    void NavigateMenu(FocusNavigationDirection direction);
+    void NavigateSubmenu(FocusNavigationDirection direction);
 
     void CloseAncestors();
     void CloseDescendants();
@@ -219,11 +224,6 @@ private:
 
     friend class Popup;
     void SetSubmenuLayer(PopupLayer* submenuLayer);
-
-    static bool StaticCoerceHeader(const DependencyObject* object, const void* value,
-        void* coercedValue);
-    static bool StaticCoerceInputGesture(const DependencyObject* object, const void* value,
-        void* coercedValue);
 
 private:
     static const DependencyProperty* IsInsideContextMenuProperty;

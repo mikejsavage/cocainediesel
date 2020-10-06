@@ -177,7 +177,6 @@ protected:
     // From UIElement
     //@{
     void OnKeyDown(const KeyEventArgs& e) override;
-    void OnKeyUp(const KeyEventArgs& e) override;
     void OnTextInput(const TextCompositionEventArgs& e) override;
     void OnGotKeyboardFocus(const KeyboardFocusChangedEventArgs& e) override;
     void OnLostKeyboardFocus(const KeyboardFocusChangedEventArgs& e) override;
@@ -185,6 +184,7 @@ protected:
     void OnMouseLeftButtonUp(const MouseButtonEventArgs& e) override;
     void OnMouseRightButtonDown(const MouseButtonEventArgs& e) override;
     void OnMouseMove(const MouseEventArgs& e) override;
+    void OnTapped(const TappedEventArgs& e) override;
     //@}
 
     // From FrameworkElement
@@ -224,48 +224,12 @@ private:
     void UpdateContentHostHeight();
     void UpdateContentHostHeight(float padding);
 
-    void OnTextContainerSelectionChanged();
-
     void EnableFocus();
     void DisableFocus();
 
-    /// Command management
-    //@{
-    static void StaticOnCanExecuteCopy(BaseComponent* target,
-        const CanExecuteRoutedEventArgs& args);
-    static void StaticOnExecutedCopy(BaseComponent* target,
-        const ExecutedRoutedEventArgs& args);
-    static void StaticOnCanExecuteCut(BaseComponent* target,
-        const CanExecuteRoutedEventArgs& args);
-    static void StaticOnExecutedCut(BaseComponent* target,
-        const ExecutedRoutedEventArgs& args);
-    static void StaticOnCanExecutePaste(BaseComponent* target,
-        const CanExecuteRoutedEventArgs& args);
-    static void StaticOnExecutedPaste(BaseComponent* target,
-        const ExecutedRoutedEventArgs& args);
-    static void StaticOnCanExecuteSelectAll(BaseComponent* target,
-        const CanExecuteRoutedEventArgs& args);
-    static void StaticOnExecutedSelectAll(BaseComponent* target,
-        const ExecutedRoutedEventArgs& args);
-    //@}
-
-    void OnCanExecuteCopy(const CanExecuteRoutedEventArgs& args);
-    void OnExecuteCopy(const ExecutedRoutedEventArgs& args);
-    void OnCanExecuteCut(const CanExecuteRoutedEventArgs& args);
-    void OnExecuteCut(const ExecutedRoutedEventArgs& args);
-    void OnCanExecutePaste(const CanExecuteRoutedEventArgs& args);
-    void OnExecutePaste(const ExecutedRoutedEventArgs& args);
-    void OnCanExecuteSelectAll(const CanExecuteRoutedEventArgs& args);
-    void OnExecuteSelectAll(const ExecutedRoutedEventArgs& args);
-
-    static void StaticTextWrappingChanged(DependencyObject* d,
-        const DependencyPropertyChangedEventArgs& e);
-    static bool StaticCoerceHorizontalScrollBarVisibility(const DependencyObject* object,
-        const void* value, void* coercedValue);
-
 private:
     Ptr<FrameworkElement> mContentHost;
-    Ptr<TextBoxTextContainer> mTextContainer;
+    TextBoxTextContainer* mTextContainer;
 
     typedef Vector<CompositionUnderline> CompositionUnderlines;
     CompositionUnderlines mCompositionUnderlines;

@@ -112,14 +112,6 @@ private:
 
     bool BringHeaderIntoView();
 
-    static void FocusFirstChild(ItemsControl* current);
-    static void FocusParent(TreeViewItem* current);
-    static void FocusParentNext(TreeViewItem* current);
-    static void FocusParentPrev(TreeViewItem* current);
-    static void FocusLatestCollapsed(ItemsControl* current);
-
-    static void StaticOnRequestBringIntoView(BaseComponent* obj, const EventArgs& e);
-
 private:
     Ptr<FrameworkElement> mHeaderHost;
 

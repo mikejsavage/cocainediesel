@@ -70,10 +70,6 @@ private:
     void UpdateKeyAndModifers(KeyGesture* keyGesture);
     void UpdateGesture(Key key, ModifierKeys modifiers);
 
-    static void OnKeyChanged(DependencyObject* d, const DependencyPropertyChangedEventArgs& e);
-    static void OnModifiersChanged(DependencyObject* d,
-        const DependencyPropertyChangedEventArgs& e);
-
     NS_DECLARE_REFLECTION(KeyBinding, InputBinding)
 };
 

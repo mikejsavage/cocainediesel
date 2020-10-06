@@ -68,6 +68,12 @@ public:
     void SetBackground(Brush* brush);
     //@}
 
+    /// Gets or sets the uniform spacing between characters, in units of 1/1000 of an em.
+    //@{
+    int32_t GetCharacterSpacing() const;
+    void SetCharacterSpacing(int32_t spacing);
+    //@}
+
     /// Gets or sets the preferred top-level font family for the TextBlock.
     //@{
     FontFamily* GetFontFamily() const;
@@ -183,6 +189,7 @@ public:
     /// Dependency properties
     //@{
     static const DependencyProperty* BackgroundProperty;
+    static const DependencyProperty* CharacterSpacingProperty;
     static const DependencyProperty* FontFamilyProperty;
     static const DependencyProperty* FontSizeProperty;
     static const DependencyProperty* FontStretchProperty;
@@ -276,7 +283,7 @@ private:
     struct InlineInfo;
     const InlineInfo* FindInline(uint32_t position) const;
 
-    void OnFontChanged(const char*, const char*, FontWeight, FontStretch, FontStyle);
+    static void OnFontChanged(const char*, const char*, FontWeight, FontStretch, FontStyle);
 
 private:
     friend class TextBlockTest;

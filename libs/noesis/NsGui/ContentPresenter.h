@@ -106,7 +106,17 @@ private:
     bool UsingContentTemplate() const;
 
 private:
-    bool mRefreshVisualTree;
+    union
+    {
+        mutable struct
+        {
+            bool refreshVisualTree : 1;
+            bool localDataContext : 1;
+        } mFlags;
+
+        // To quickly set all flags to 0
+        uint32_t mAllFlags;
+    };
 
     NS_DECLARE_REFLECTION(ContentPresenter, FrameworkElement)
 };

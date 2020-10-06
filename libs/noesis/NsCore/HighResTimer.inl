@@ -7,10 +7,10 @@
 #include <NsCore/Error.h>
 
 #if defined(NS_PLATFORM_WINDOWS)
-    #ifndef WIN32_LEAN_AND_MEAN
-        #define WIN32_LEAN_AND_MEAN 1
-    #endif
-    #include <windows.h>
+    union _LARGE_INTEGER;
+    typedef _LARGE_INTEGER LARGE_INTEGER;
+    extern "C" __declspec(dllimport) int __stdcall QueryPerformanceCounter(_Out_ LARGE_INTEGER*);
+    extern "C" __declspec(dllimport) int __stdcall QueryPerformanceFrequency(_Out_ LARGE_INTEGER*);
 #elif defined(NS_PLATFORM_APPLE)
     #include <mach/mach_time.h>
 #elif defined(NS_PLATFORM_EMSCRIPTEN)
@@ -29,9 +29,9 @@ namespace HighResTimer
 inline uint64_t Ticks()
 {
 #if defined(NS_PLATFORM_WINDOWS)
-    LARGE_INTEGER count;
-    QueryPerformanceCounter(&count); // will always succeed
-    return count.QuadPart;
+    uint64_t count;
+    QueryPerformanceCounter((LARGE_INTEGER*)&count); // will always succeed
+    return count;
 
 #elif defined(NS_PLATFORM_APPLE)
     return mach_absolute_time();
@@ -54,9 +54,7 @@ inline double Seconds(uint64_t ticks)
     static uint64_t frequency;
     if (NS_UNLIKELY(frequency == 0))
     {
-        LARGE_INTEGER f;
-        QueryPerformanceFrequency(&f); // will always succeed
-        frequency = f.QuadPart;
+        QueryPerformanceFrequency((LARGE_INTEGER*)&frequency); // will always succeed
     }
 
     return (double)ticks / frequency;

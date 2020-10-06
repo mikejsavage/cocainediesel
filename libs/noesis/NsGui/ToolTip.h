@@ -144,23 +144,6 @@ private:
 
     void Close();
 
-    template<class T>
-    static bool StaticCoerce(const DependencyProperty* dp, const DependencyObject* object,
-        const void* value, void* coercedValue);
-
-    static bool StaticCoerceHasDropShadow(const DependencyObject* object, const void* value,
-        void* coercedValue);
-    static bool StaticCoerceHorizontalOffset(const DependencyObject* object, const void* value,
-        void* coercedValue);
-    static bool StaticCoercePlacement(const DependencyObject* object, const void* value,
-        void* coercedValue);
-    static bool StaticCoercePlacementRectangle(const DependencyObject* object, const void* value,
-        void* coercedValue);
-    static bool StaticCoercePlacementTarget(const DependencyObject* object, const void* value,
-        void* coercedValue);
-    static bool StaticCoerceVerticalOffset(const DependencyObject* object, const void* value,
-        void* coercedValue);
-
 private:
     PopupBinder* mPopupInternal;
 

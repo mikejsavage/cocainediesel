@@ -71,7 +71,7 @@ public:
     void BuildTextRuns(const char* text, InlineCollection* inlines, FontFamily* fontFamily,
         FontWeight fontWeight, FontStretch fontStretch, FontStyle fontStyle, float fontSize,
         float strokeThickness, Brush* background, Brush* foreground, Brush* stroke,
-        TextDecorations textDecorations);
+        TextDecorations textDecorations, int32_t charSpacing);
 
     /// Obtains the size of the stored runs for the given constraints
     Size Measure(TextAlignment alignment, TextWrapping wrapping, TextTrimming trimming,
@@ -113,6 +113,8 @@ private:
     friend class TextBlock;
     friend class TextContainer;
 
+    void SetOwner(TextBlock* owner);
+
     struct FontFaces
     {
         uint32_t start;
@@ -123,10 +125,10 @@ private:
         FontStretch fontStretch, FontStyle fontStyle, const FontFaces& fontFaces,
         float fontSize, float strokeThickness, int32_t backgroundIndex,
         int32_t foregroundIndex, int32_t strokeIndex, TextDecorations textDecorations,
-        uint32_t numGlyphs);
+        uint32_t numGlyphs, int32_t charSpacing);
     uint32_t AddRun(const char* text, const FontFaces& faces, float size, float strokeThickness,
         int32_t foregroundIndex, int32_t strokeIndex, int32_t backgroundIndex,
-        TextDecorations textDecorations);
+        TextDecorations textDecorations, int32_t charSpacing);
     uint32_t AddRun(UIElement* container, uint32_t numGlyphs);
     FontFaces AddFontFace(FontFamily* family, FontWeight weight, FontStretch stretch,
         FontStyle style);
@@ -134,13 +136,12 @@ private:
         FontWeight& weight, FontStretch& stretch, FontStyle& style);
     TextDecorations InlineDecorations(TextDecorations currentDecorations, Inline* inl);
     float InlineSize(float currentSize, Inline* inl, const DependencyProperty* dp);
+    int32_t InlineSpacing(int32_t currentSpacing, Inline* inl);
     int32_t InlineBrushIndex(int32_t currentBrushIndex, Inline* inl, const DependencyProperty* dp);
     int32_t BrushIndex(Brush* brush);
 
     void UnregisterBrushes();
-
     void RegisterBrush(Brush* brush);
-    void UnregisterBrush(Brush* brush);
     void OnBrushChanged(Freezable* sender, FreezableEventReason reason);
 
     bool MeasureContainers(float width, float height);
@@ -154,8 +155,11 @@ private:
     enum UpdateFlags
     {
         UpdateFlags_Brushes,
-        UpdateFlags_TextLayout
+        UpdateFlags_TextLayout,
+        UpdateFlags_Invalidate
     };
+
+    TextBlock* mOwner;
 
     Vector<TextRun> mTextRuns;
     Vector<Ptr<VGLFontFace>> mFontFaces;

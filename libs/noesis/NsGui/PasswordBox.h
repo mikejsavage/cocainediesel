@@ -100,13 +100,13 @@ protected:
     // From UIElement
     //@{
     void OnKeyDown(const KeyEventArgs& e) override;
-    void OnKeyUp(const KeyEventArgs& e) override;
     void OnTextInput(const TextCompositionEventArgs& e) override;
     void OnGotKeyboardFocus(const KeyboardFocusChangedEventArgs& e) override;
     void OnLostKeyboardFocus(const KeyboardFocusChangedEventArgs& e) override;
     void OnMouseLeftButtonDown(const MouseButtonEventArgs& e) override;
     void OnMouseLeftButtonUp(const MouseButtonEventArgs& e) override;
     void OnMouseMove(const MouseEventArgs& e) override;
+    void OnTapped(const TappedEventArgs& e) override;
     //@}
 
     // From Control
@@ -127,18 +127,9 @@ private:
     void EnableFocus();
     void DisableFocus();
 
-    static void StaticOnCanExecutePaste(BaseComponent* target,
-        const CanExecuteRoutedEventArgs& args);
-    static void StaticOnExecutedPaste(BaseComponent* target,
-        const ExecutedRoutedEventArgs& args);
-    static void StaticOnCanExecuteSelectAll(BaseComponent* target,
-        const CanExecuteRoutedEventArgs& args);
-    static void StaticOnExecutedSelectAll(BaseComponent* target,
-        const ExecutedRoutedEventArgs& args);
-
 private:
     Ptr<FrameworkElement> mContentHost;
-    Ptr<PasswordBoxTextContainer> mTextContainer;
+    PasswordBoxTextContainer* mTextContainer;
 
     String mPassword;
 

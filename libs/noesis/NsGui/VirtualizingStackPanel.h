@@ -178,9 +178,6 @@ private:
 
     void CheckVirtualization(BaseComponent* sender, const RoutedEventArgs& e);
 
-    static void OnOrientationChanged(DependencyObject* d,
-        const DependencyPropertyChangedEventArgs& e);
-
 private:
     struct ScrollData;
     ScrollData* mScrollData;

@@ -76,11 +76,6 @@ protected:
     Size ArrangeOverride(const Size& finalSize) override;
     //@}
 
-private:
-    // Detects canvas position changes in children elements
-    static void StaticPositionChanged(DependencyObject* obj,
-        const DependencyPropertyChangedEventArgs& args);
-
     NS_DECLARE_REFLECTION(Canvas, Panel)
 };
 

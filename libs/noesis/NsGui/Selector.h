@@ -176,8 +176,6 @@ private:
     void SynchronizeWithCurrent(int32_t currentIndex);
     BaseComponent* SelectItem(BaseComponent* selectedValue);
     void UpdateSelectedValue(BaseComponent* selectedItem);
-    void UpdateSelectedIndex(int32_t selectedIndex);
-    void EnumPath(const PathElement& element, void* context);
 
     void TryFocusSelected();
 
@@ -203,19 +201,8 @@ private:
     void OnSelectedItemRemoved(SelectionChangedEventArgs& args, BaseComponent* item,
         int32_t index, int32_t& selectedIndex);
 
-    static bool ValidateSelectedIndex(const void* value);
-
-    static bool CoerceSelectedIndex(const DependencyObject* object,
-        const void* value, void* coercedValue);
-
-    static bool CoerceSelectedItem(const DependencyObject* object,
-        const void* value, void* coercedValue);
-
     static bool CoerceSelectedValue(const DependencyObject* object,
         const void* value, void* coercedValue);
-
-    static void OnDataContextChanged(DependencyObject* d,
-        const DependencyPropertyChangedEventArgs& e);
 
 private:
     friend class ListBoxTest;

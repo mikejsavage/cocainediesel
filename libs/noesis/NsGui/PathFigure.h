@@ -99,11 +99,6 @@ private:
 
     void OnSegmentsCollectionChanged(BaseComponent* s, const NotifyCollectionChangedEventArgs& e);
 
-    static void OnSegmentsChanged(DependencyObject* d, const DependencyPropertyChangedEventArgs& e);
-    static void OnIsClosedChanged(DependencyObject* d, const DependencyPropertyChangedEventArgs& e);
-    static void OnStartPointChanged(DependencyObject* d,
-        const DependencyPropertyChangedEventArgs& e);
-
 private:
     PathGeometry* mPathGeometry;
 

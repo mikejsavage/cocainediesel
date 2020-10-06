@@ -16,6 +16,8 @@
 namespace Noesis
 {
 
+class SharedSizeScope;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Defines the functionality required to support a shared-size group that is used
 /// by the ColumnDefinitionCollection and RowDefinitionCollection classes.
@@ -43,9 +45,22 @@ protected:
     static bool ValidateMinSize(const void* value);
     static bool ValidateMaxSize(const void* value);
 
+private:
+    friend class Grid;
+    friend class SharedSizeScope;
+    friend class SharedSizeGroup;
+
+    uint32_t mIndex;
+
+    static SharedSizeScope* GetSharedSizeScope(const DependencyObject* d);
+    static void SetSharedSizeScope(DependencyObject* d, SharedSizeScope* scope);
+
+    static const DependencyProperty* SharedSizeScopeProperty; // attached inherited DP
+
     NS_DECLARE_REFLECTION(BaseDefinition, FrameworkElement)
 };
 
 }
+
 
 #endif

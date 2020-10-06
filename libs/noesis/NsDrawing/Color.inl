@@ -41,74 +41,21 @@ inline Color Color::FromPackedRGBA(uint32_t color)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-inline float Gamma(float v)
-{
-    /// http://www.w3.org/Graphics/Color/sRGB.html
-    return v <= 0.00304f ? v * 12.92f : 1.055f * powf(v, 1.0f / 2.4f) - 0.055f;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-inline float DeGamma(float v)
-{
-    /// http://www.w3.org/Graphics/Color/sRGB.html
-    return v <= 0.03928f ? v / 12.92f : powf((v + 0.055f) / 1.055f, 2.4f);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 inline Color Color::FromLinearRGB(float r, float g, float b, float a)
 {
-    return Color(Gamma(r), Gamma(g), Gamma(b), a);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-inline Color Color::FromLinearRGB(int r, int g, int b,  int a)
-{
-    return Color(Gamma(r / 255.0f), Gamma(g / 255.0f), Gamma(b / 255.0f), a / 255.0f);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-inline void Color::ToLinearRGB(float& red, float& green, float& blue, float& alpha) const
-{
-    red = DeGamma(r);
-    green = DeGamma(g);
-    blue = DeGamma(b);
-    alpha = a;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-inline void Color::ToLinearRGB(int& r_, int& g_, int& b_, int& a_) const
-{
-    float red = DeGamma(r);
-    float green = DeGamma(g);
-    float blue = DeGamma(b);
-    float alpha = a;
-
-    r_ = Clip(Trunc(red * 255.0f), 0, 255);
-    g_ = Clip(Trunc(green * 255.0f), 0, 255);
-    b_ = Clip(Trunc(blue * 255.0f), 0, 255);
-    a_ = Clip(Trunc(alpha * 255.0f), 0, 255);
+    return Color(LinearToSRGB(r), LinearToSRGB(g), LinearToSRGB(b), a);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 inline uint32_t Color::GetPackedColorBGRA() const
 {
-    uint32_t red = Clip(Trunc(r * 255.0f), 0, 255);
-    uint32_t green = Clip(Trunc(g * 255.0f), 0, 255);
-    uint32_t blue = Clip(Trunc(b * 255.0f), 0, 255);
-    uint32_t alpha = Clip(Trunc(a * 255.0f), 0, 255);
-
-    return (alpha << 24) | (red << 16) | (green << 8) | blue;
+    return Noesis::GetPackedColorBGRA(r, g, b, a);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 inline uint32_t Color::GetPackedColorRGBA() const
 {
-    uint32_t red = Clip(Trunc(r * 255.0f), 0, 255);
-    uint32_t green = Clip(Trunc(g * 255.0f), 0, 255);
-    uint32_t blue = Clip(Trunc(b * 255.0f), 0, 255);
-    uint32_t alpha = Clip(Trunc(a * 255.0f), 0, 255);
-
-    return (alpha << 24) | (blue << 16) | (green << 8) | red;
+    return Noesis::GetPackedColorRGBA(r, g, b, a);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -124,67 +71,122 @@ inline bool Color::operator!=(const Color& color) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-inline Color PreMultiplyAlpha(const Color& color, bool sRGB)
+inline Color Color::Black()
 {
-    // http://ssp.impulsetrain.com/gamma-premult.html
-    const float a_ = sRGB ? color.a : Gamma(color.a);
-    return Color(color.r * a_, color.g * a_, color.b * a_, color.a);
+    return Color::FromPackedBGRA(0xFF000000);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-inline Color Lerp(const Color& c0, const Color& c1, float t, bool sRGB)
+inline Color Color::Blue()
 {
-    if (sRGB)
-    {
-        return Color
-        (
-            Lerp(c0.r, c1.r, t),
-            Lerp(c0.g, c1.g, t),
-            Lerp(c0.b, c1.b, t),
-            Lerp(c0.a, c1.a, t)
-        );
-    }
-    else
-    {
-        float lr0, lg0, lb0, la0;
-        c0.ToLinearRGB(lr0, lg0, lb0, la0);
-        
-        float lr1, lg1, lb1, la1;
-        c1.ToLinearRGB(lr1, lg1, lb1, la1);
-
-        return Color::FromLinearRGB
-        (
-            Lerp(lr0, lr1, t), 
-            Lerp(lg0, lg1, t), 
-            Lerp(lb0, lb1, t), 
-            Lerp(la0, la1, t)
-        );
-    }
+    return Color::FromPackedBGRA(0xFF0000FF);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-inline Color Add(const Color& c0, const Color& c1, bool sRGB)
+inline Color Color::Cyan()
 {
-    if (sRGB)
-    {
-        return Color(c0.r + c1.r, c0.g + c1.g, c0.b + c1.b, c0.a + c1.a);
-    }
-    else
-    {
-        float lr0, lg0, lb0, la0;
-        c0.ToLinearRGB(lr0, lg0, lb0, la0);
-        
-        float lr1, lg1, lb1, la1;
-        c1.ToLinearRGB(lr1, lg1, lb1, la1);
-        
-        return Color::FromLinearRGB(lr0 + lr1, lg0 + lg1, lb0 + lb1, la0 + la1);
-    }
+    return Color::FromPackedBGRA(0xFF00FFFF);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-inline Color Modulate(const Color& c0, const Color& c1)
+inline Color Color::DarkGray()
 {
-    return Color(c0.r * c1.r, c0.g * c1.g, c0.b * c1.b, c0.a * c1.a);
+    return Color::FromPackedBGRA(0xFFA9A9A9);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline Color Color::Gray()
+{
+    return Color::FromPackedBGRA(0xFF808080);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline Color Color::Green()
+{
+    return Color::FromPackedBGRA(0xFF00FF00);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline Color Color::LightGray()
+{
+    return Color::FromPackedBGRA(0xFFD3D3D3);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline Color Color::Magenta()
+{
+    return Color::FromPackedBGRA(0xFFFF00FF);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline Color Color::Orange()
+{
+    return Color::FromPackedBGRA(0xFFFFA500);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline Color Color::Pink()
+{
+    return Color::FromPackedBGRA(0xFFFFC0CB);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline Color Color::Red()
+{
+    return Color::FromPackedBGRA(0xFFFF0000);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline Color Color::White()
+{
+    return Color::FromPackedBGRA(0xFFFFFFFF);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline Color Color::Yellow()
+{
+    return Color::FromPackedBGRA(0xFFFFFF00);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline float SRGBToLinear(float v_)
+{
+    // http://chilliant.blogspot.com/2012/08/srgb-approximations-for-hlsl.html
+    float v = Clip(v_, 0.0f, 1.0f);
+    return v * (v * (v * 0.305306011f + 0.682171111f) + 0.012522878f);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline float LinearToSRGB(float v_)
+{
+    // http://chilliant.blogspot.com/2012/08/srgb-approximations-for-hlsl.html
+    float v = Clip(v_, 0.0f, 1.0f);
+    float s1 = sqrtf(v);
+    float s2 = sqrtf(s1);
+    float s3 = sqrtf(s2);
+    return Max(0.585122381f * s1 + 0.783140355f * s2 - 0.368262736f * s3, 0.0f);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline uint32_t GetPackedColorBGRA(float r, float g, float b, float a)
+{
+    uint32_t red = Clip(Trunc(r * 255.0f), 0, 255);
+    uint32_t green = Clip(Trunc(g * 255.0f), 0, 255);
+    uint32_t blue = Clip(Trunc(b * 255.0f), 0, 255);
+    uint32_t alpha = Clip(Trunc(a * 255.0f), 0, 255);
+
+    return (alpha << 24) | (red << 16) | (green << 8) | blue;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+inline uint32_t GetPackedColorRGBA(float r, float g, float b, float a)
+{
+    uint32_t red = Clip(Trunc(r * 255.0f), 0, 255);
+    uint32_t green = Clip(Trunc(g * 255.0f), 0, 255);
+    uint32_t blue = Clip(Trunc(b * 255.0f), 0, 255);
+    uint32_t alpha = Clip(Trunc(a * 255.0f), 0, 255);
+
+    return (alpha << 24) | (blue << 16) | (green << 8) | red;
 }
 
 }

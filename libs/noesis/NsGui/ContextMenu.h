@@ -129,6 +129,11 @@ protected:
     void OnVisualParentChanged(Visual* oldParent) override;
     //@}
 
+    /// From UIElement
+    //@{
+    void OnKeyDown(const KeyEventArgs& e) override;
+    //@}
+
     /// From FrameworkElement
     //@{
     void OnLogicalParentChanged(FrameworkElement* oldParent) override;
@@ -150,29 +155,6 @@ private:
 
     template<class T>
     void CheckParent(Visual* parent) const;
-
-    template<class T>
-    static bool StaticCoerce(const DependencyProperty* dp,
-        const DependencyObject* object, const void* value, void* coercedValue);
-
-    static bool StaticCoerceHasDropShadow(const DependencyObject* object, const void* value,
-        void* coercedValue);
-    static bool StaticCoerceHorizontalOffset(const DependencyObject* object, const void* value,
-        void* coercedValue);
-    static bool StaticCoercePlacement(const DependencyObject* object, const void* value,
-        void* coercedValue);
-    static bool StaticCoercePlacementRectangle(const DependencyObject* object, const void* value,
-        void* coercedValue);
-    static bool StaticCoercePlacementTarget(const DependencyObject* object, const void* value,
-        void* coercedValue);
-    static bool StaticCoerceVerticalOffset(const DependencyObject* object, const void* value,
-        void* coercedValue);
-
-    static void StaticOnContextMenuLostMouseCapture(BaseComponent* obj, const EventArgs& e);
-    void OnContextMenuLostMouseCapture(const MouseEventArgs& e);
-
-    static void StaticOnContextMenuMouseButtonDown(BaseComponent* obj, const EventArgs& e);
-    void OnContextMenuMouseButtonDown(const MouseEventArgs& e);
 
 private:
     PopupBinder* mPopupInternal;

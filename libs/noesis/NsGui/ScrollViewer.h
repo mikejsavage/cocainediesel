@@ -349,13 +349,8 @@ private:
     void DeferScrollToVerticalOffset(float offset);
 
     void BindToTemplatedParent(const DependencyProperty* property);
-    static void StaticOnRequestBringIntoView(BaseComponent* obj, const EventArgs& e);
-    void OnRequestBringIntoView(const RequestBringIntoViewEventArgs& e);
 
     void AdjustOffsets(bool& fitsWidth, bool& fitsHeight);
-
-    static void OnCanExecuteScrollCommand(BaseComponent* o, const CanExecuteRoutedEventArgs& e);
-    static void OnScrollCommand(BaseComponent* o, const ExecutedRoutedEventArgs& e);
 
 private:
     Ptr<ScrollBar> mHorizontalScrollBar;

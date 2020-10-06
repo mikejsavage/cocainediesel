@@ -255,7 +255,7 @@ template<class T> struct TypeOfHelper<T*>: public TypeOfHelperBase<T*, TypePoint
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// TypeOfHelper for Ptr<T>
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class T> struct TypeOfHelper<Ptr<T> >: public TypeOfHelperBase<Ptr<T>, TypePtr>
+template<class T> struct TypeOfHelper<Ptr<T>>: public TypeOfHelperBase<Ptr<T>, TypePtr>
 {
     static Symbol GetName()
     {

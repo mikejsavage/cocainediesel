@@ -137,9 +137,6 @@ private:
         int numContainers);
     void OnResetItems();
 
-    static void StaticZIndexChanged(DependencyObject* sender,
-        const DependencyPropertyChangedEventArgs& args);
-
 private:
     // Collection of child elements of this panel
     Ptr<UIElementCollection> mInternalChildren;

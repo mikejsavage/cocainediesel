@@ -19,6 +19,11 @@ namespace Noesis
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Implements a set of predefined colors.
 ///
+/// These colors and their names are based on the UNIX X11 color values. The following image shows
+/// the color of each predefined brush, its name, and its hexadecimal value.
+///
+/// .. image:: BrushTable.png
+///
 /// https://msdn.microsoft.com/en-us/library/system.windows.media.colors.aspx
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 struct NS_GUI_CORE_API Colors

@@ -289,8 +289,6 @@ private:
     static void SetAlternationIndex(DependencyObject* element, int value);
     static void ClearAlternationIndex(DependencyObject* element);
 
-    static void OnAlternationCountChanged(DependencyObject* d,
-        const DependencyPropertyChangedEventArgs& e);
     virtual void OnAlternationCountChanged(int oldValue, int newValue);
 
 private:

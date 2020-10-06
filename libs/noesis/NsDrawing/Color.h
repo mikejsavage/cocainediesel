@@ -27,13 +27,13 @@ struct Color
     float b;
     float a;
 
-    /// Default constructor that creates a black color
+    /// Constructs a black color
     Color();
 
-    /// Constructor from float components (0.0 - 1.0)
+    /// Constructor from float components with a range from 0 to 1
     Color(float r, float g, float b, float a = 1.0f);
 
-    /// Constructor from integer components (0 - 255)
+    /// Constructor from integer components with a range from 0 to 255
     Color(int r, int g, int b, int a = 255);
 
     /// Creates a color from an integer representation as obtained from GetPackedColorBGRA
@@ -42,13 +42,8 @@ struct Color
     /// Creates a color from an integer representation as obtained from GetPackedColorRGBA
     static Color FromPackedRGBA(uint32_t color);
 
-    /// Creates a sRGB color from components given in linear RGB space
+    /// Creates a color from components given in linear RGB space
     static Color FromLinearRGB(float r, float g, float b, float a = 1.0f);
-    static Color FromLinearRGB(int r, int g, int b,  int a = 255);
-
-    /// Returns the components of the color in linear RGB space
-    void ToLinearRGB(float& r, float& g, float& b, float& a) const;
-    void ToLinearRGB(int& r, int& g, int& b, int& a) const;
 
     /// Returns the BGRA packed representation
     uint32_t GetPackedColorBGRA() const;
@@ -63,28 +58,24 @@ struct Color
     /// Generates a string representation in the form #AARRGGBB
     NS_DRAWING_TYPES_API String ToString() const;
 
-    /// Creates a color from a string. Valid formats are:
-    ///  - #AARRGGBB 
-    ///  - #RRGGBB
-    ///  - #ARGB | 
-    ///  - A predefined color from the list defined in 
-    ///     http://msdn.microsoft.com/en-us/library/system.windows.media.colors.aspx
+    /// Creates a color from a string
+    /// #aarrggbb | #rrggbb | #argb | #rgb | sc#r,g,b | sc#a,r,g,b | PredefinedColor
     NS_DRAWING_TYPES_API static bool TryParse(const char* str, Color& output);
 
     /// Constants
-    NS_DRAWING_TYPES_API static const Color Black;
-    NS_DRAWING_TYPES_API static const Color Blue;
-    NS_DRAWING_TYPES_API static const Color Cyan;
-    NS_DRAWING_TYPES_API static const Color DarkGray;
-    NS_DRAWING_TYPES_API static const Color Gray;
-    NS_DRAWING_TYPES_API static const Color Green;
-    NS_DRAWING_TYPES_API static const Color LightGray;
-    NS_DRAWING_TYPES_API static const Color Magenta;
-    NS_DRAWING_TYPES_API static const Color Orange;
-    NS_DRAWING_TYPES_API static const Color Pink;
-    NS_DRAWING_TYPES_API static const Color Red;
-    NS_DRAWING_TYPES_API static const Color White;
-    NS_DRAWING_TYPES_API static const Color Yellow;
+    static Color Black();
+    static Color Blue();
+    static Color Cyan();
+    static Color DarkGray();
+    static Color Gray();
+    static Color Green();
+    static Color LightGray();
+    static Color Magenta();
+    static Color Orange();
+    static Color Pink();
+    static Color Red();
+    static Color White();
+    static Color Yellow();
 
     NS_IMPLEMENT_INLINE_REFLECTION(Color, NoParent)
     {
@@ -95,21 +86,17 @@ struct Color
     }
 };
 
-/// Returns the Premultiplied alpha representation of the given color
-/// The Premultiplied alpha representation of RGBA is (RA, GA, BA, A)
-/// Setting sRGB to false performs the premultiplication in linear space
-Color PreMultiplyAlpha(const Color& color, bool sRGB = true);
+/// Converts the given value from sRGB to linear color space
+float SRGBToLinear(float v);
 
-/// Returns a linear interpolation between two colours
-/// Setting sRGB to false perfoms the interpolation in linear space
-Color Lerp(const Color& c0, const Color& c1, float t, bool sRGB = true);
+/// Converts the given value from linear to sRGB color space
+float LinearToSRGB(float v);
 
-/// Add two colours
-/// Setting sRGB to false perfoms the operation in linear space
-Color Add(const Color& c0, const Color& c1, bool sRGB = true);
+/// Returns the BGRA packed representation for the given color components
+uint32_t GetPackedColorBGRA(float r, float g, float b, float a);
 
-/// Returns the multiplication of two given colors
-Color Modulate(const Color& c0, const Color& c1);
+/// Returns the RGBA packed representation for the given color components
+uint32_t GetPackedColorRGBA(float r, float g, float b, float a);
 
 }
 

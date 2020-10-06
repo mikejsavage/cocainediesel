@@ -122,9 +122,6 @@ private:
 
     void OnFiguresCollectionChanged(BaseComponent* s, const NotifyCollectionChangedEventArgs& e);
 
-    static void OnFiguresChanged(DependencyObject* d, const DependencyPropertyChangedEventArgs& e);
-    static void OnFillRuleChanged(DependencyObject* d, const DependencyPropertyChangedEventArgs& e);
-
 private:
     enum UpdateFlags
     {

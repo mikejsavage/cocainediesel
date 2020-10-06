@@ -53,12 +53,6 @@ private:
     void MouseCapture();
     void MouseRelease();
 
-    static void StaticOnMenuLostMouseCapture(BaseComponent* obj, const EventArgs& e);
-    void OnMenuLostMouseCapture(const MouseEventArgs& e);
-
-    static void StaticOnMenuMouseButtonDown(BaseComponent* obj, const EventArgs& e);
-    void OnMenuMouseButtonDown(const MouseEventArgs& e);
-
 private:
     bool mIsActivated;
 

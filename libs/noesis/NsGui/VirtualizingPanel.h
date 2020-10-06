@@ -106,12 +106,6 @@ protected:
     void OnItemsChangedOverride(BaseComponent* sender, const ItemsChangedEventArgs& e) override;
     //@}
 
-private:
-    static void OnVirtualizationChanged(DependencyObject* sender,
-        const DependencyPropertyChangedEventArgs& e);
-
-    static bool ValidateCacheLength(const void* value);
-
     NS_DECLARE_REFLECTION(VirtualizingPanel, Panel)
 };
 

@@ -91,10 +91,7 @@ protected:
 private:
     enum UpdateFlags
     {
-        UpdateFlags_Center = GradientBrush::UpdateFlags_Sentinel,
-        UpdateFlags_Origin,
-        UpdateFlags_RadiusX,
-        UpdateFlags_RadiusY
+        UpdateFlags_Radial = GradientBrush::UpdateFlags_Sentinel
     };
 
     NS_DECLARE_REFLECTION(RadialGradientBrush, GradientBrush)

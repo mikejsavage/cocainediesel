@@ -10,6 +10,7 @@
 
 #include <NsCore/Noesis.h>
 #include <NsCore/BaseComponent.h>
+#include <NsGui/IUITreeNode.h>
 #include <NsGui/CoreApi.h>
 
 
@@ -18,6 +19,9 @@ namespace Noesis
 
 template<class T> class Ptr;
 class ValueTargetProvider;
+
+NS_WARNING_PUSH
+NS_MSVC_WARNING_DISABLE(4251 4275)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Provides a base class for XAML markup extension implementations.
@@ -33,14 +37,32 @@ class ValueTargetProvider;
 ///
 /// http://msdn.microsoft.com/en-us/library/system.windows.markup.markupextension.aspx
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-class NS_GUI_CORE_API MarkupExtension: public BaseComponent
+class NS_GUI_CORE_API MarkupExtension: public BaseComponent, public IUITreeNode
 {
 public:
+    MarkupExtension();
+
     /// Returns an object that is provided as the value of the target property for this extension
     virtual Ptr<BaseComponent> ProvideValue(const ValueTargetProvider* provider) = 0;
 
+    /// From IUITreeNode
+    //@{
+    IUITreeNode* GetNodeParent() const final;
+    void SetNodeParent(IUITreeNode* parent) final;
+    BaseComponent* FindNodeResource(const char* key, bool fullElementSearch) const final;
+    BaseComponent* FindNodeName(const char* name) const final;
+    ObjectWithNameScope FindNodeNameAndScope(const char* name) const final;
+    //@}
+
+    NS_IMPLEMENT_INTERFACE_FIXUP
+
+private:
+    IUITreeNode* mOwner;
+
     NS_DECLARE_REFLECTION(MarkupExtension, BaseComponent)
 };
+
+NS_WARNING_POP
 
 }
 

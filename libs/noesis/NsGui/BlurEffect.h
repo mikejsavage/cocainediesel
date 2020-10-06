@@ -66,9 +66,6 @@ private:
     Ptr<Freezable> CreateInstanceCore() const override;
     //@}
 
-    static void OnBlurRadiusChanged(DependencyObject* d,
-        const DependencyPropertyChangedEventArgs& e);
-
 private:
     enum UpdateFlags
     {

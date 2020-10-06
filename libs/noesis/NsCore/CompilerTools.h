@@ -342,7 +342,7 @@ template<bool B, class T = void> using EnableIf = typename EnableIf_<B,T>::Type;
 /// Helper function to force move semantics on values
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T> 
-inline constexpr RemoveReference<T>&& Move(T&& arg)
+inline constexpr RemoveReference<T>&& MoveArg(T&& arg)
 {
     return static_cast<RemoveReference<T>&&>(arg);
 }
@@ -351,13 +351,13 @@ inline constexpr RemoveReference<T>&& Move(T&& arg)
 /// Helper for perfect forwarding of function arguments
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<class T>
-inline constexpr T&& Forward(RemoveReference<T>& arg)
+inline constexpr T&& ForwardArg(RemoveReference<T>& arg)
 {
     return static_cast<T&&>(arg);
 }
 
 template<class T>
-inline constexpr T&& Forward(RemoveReference<T>&& arg)
+inline constexpr T&& ForwardArg(RemoveReference<T>&& arg)
 {
     return static_cast<T&&>(arg);
 }

@@ -146,16 +146,6 @@ struct NS_GUI_CORE_API ToolTipService
     /// Finds the first object in the tree from the specified element that can show a tooltip
     static UIElement* FindValidToolTipOwner(UIElement* obj);
 
-private:
-    static const RoutedEvent* FindToolTipEvent;
-    struct FindToolTipEventArgs;
-
-private:
-    static void StaticOnFindToolTip(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnToolTipClosing(BaseComponent* obj, const EventArgs& e);
-    static void StaticOnToolTipOpening(BaseComponent* obj, const EventArgs& e);
-    static bool CanOpenToolTip(DependencyObject* obj);
-
     NS_DECLARE_REFLECTION(ToolTipService, NoParent)
 };
 

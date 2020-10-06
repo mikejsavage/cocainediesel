@@ -5,14 +5,14 @@
 
 #define NS_STATIC_LIBRARY
 #include "noesis/NsApp/ThemeProviders.h"
-#include "noesis/NsApp/NotifyPropertyChangedBase.h"
+#include "noesis/NsApp/LocalXamlProvider.h"
 #include "noesis/NsCore/Noesis.h"
 #include "noesis/NsCore/RegisterComponent.h"
 #include "noesis/NsRender/GLFactory.h"
 #include "noesis/NsGui/IntegrationAPI.h"
 #include "noesis/NsGui/IRenderer.h"
 #include "noesis/NsGui/IView.h"
-#include "noesis/NsGui/Grid.h"
+#include "noesis/NsGui/Page.h"
 #include "noesis/NsGui/TextBlock.h"
 #include "noesis/NsGui/TextBox.h"
 #include "noesis/NsGui/Track.h"
@@ -20,25 +20,14 @@
 #include "noesis/NsGui/Button.h"
 
 Noesis::IView * _view;
-Noesis::Ptr<Noesis::Grid> _xaml;
+Noesis::Ptr<Noesis::Page> _xaml;
 
-class Retarded : public NoesisApp::NotifyPropertyChangedBase {
-public:
-	Retarded() { }
-
-	void Set( const char * str ) {
-		blah = str;
-		OnPropertyChanged( "Blah" );
-	}
-
-private:
+struct Retarded : public Noesis::BaseComponent {
 	Noesis::String blah;
-
-	NS_IMPLEMENT_INLINE_REFLECTION( Retarded, BaseComponent ) {
+	NS_IMPLEMENT_INLINE_REFLECTION( Retarded, Noesis::BaseComponent ) {
 		NsProp( "Blah", &Retarded::blah );
 	}
 };
-
 
 Retarded mwaga;
 
@@ -55,46 +44,8 @@ void InitNoesis() {
 
 	Noesis::RegisterComponent< Retarded >();
 
-	_xaml = Noesis::GUI::ParseXaml<Noesis::Grid>(R"ASDF(
-	  <Grid xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-	  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-		  <Viewbox>
-			  <StackPanel Margin="50">
-				  <Button x:Name="start" Content="Cocaine Diesel"/>
-				  <TextBox x:Name="text" Width="100" Height="25" Text="asdf"/>
-				  <Slider x:Name="slider" Width="100" Height="30" TickPlacement="TopLeft" />
-				  <Rectangle x:name="rect" Height="50" RenderTransformOrigin="0.5,0.5">
-					  <Rectangle.RenderTransform>
-						<TranslateTransform X="0" Y="0"/>
-					  </Rectangle.RenderTransform>
-
-					  <Rectangle.Fill>
-						  <RadialGradientBrush>
-							  <GradientStop Offset="0" Color="#ffffffff"/>
-							  <GradientStop Offset="1" Color="#80ffffff"/>
-						  </RadialGradientBrush>
-					  </Rectangle.Fill>
-				  </Rectangle>
-				  <Button Content="Start Animation" Margin="10" HorizontalAlignment="Left" VerticalAlignment="Top">
-    <Button.Triggers>
-      <EventTrigger RoutedEvent="Button.Click">
-        <BeginStoryboard>
-          <Storyboard TargetName="rect"
-            TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)">
-            <DoubleAnimation Duration="0:0:1" From="0" To="200"/>
-          </Storyboard>
-        </BeginStoryboard>
-      </EventTrigger>
-    </Button.Triggers>
-  </Button>
-				  <TextBlock x:Name="test" Foreground="white"/>
-				  <TextBlock Foreground="white" Text="{Binding Blah, UpdateSourceTrigger=PropertyChanged}"/>
-			  </StackPanel>
-		  </Viewbox>
-	  </Grid>
-  )ASDF");
-
-	_xaml->SetDataContext( &mwaga );
+	Noesis::GUI::SetXamlProvider( Noesis::MakePtr< NoesisApp::LocalXamlProvider >( "" ) );
+	_xaml = Noesis::GUI::LoadXaml<Noesis::Page>( "gui/MainWindow.xaml" );
 
 	Noesis::Button* btn = _xaml->FindName< Noesis::Button >( "start" );
 	btn->Click() += []( Noesis::BaseComponent * sender, const Noesis::RoutedEventArgs & args ) {
@@ -103,7 +54,7 @@ void InitNoesis() {
 
 	_view = Noesis::GUI::CreateView( _xaml ).GiveOwnership();
 	_view->SetFlags( Noesis::RenderFlags_PPAA | Noesis::RenderFlags_LCD );
-	_view->GetRenderer()->Init( NoesisApp::GLFactory::CreateDevice() );
+	_view->GetRenderer()->Init( NoesisApp::GLFactory::CreateDevice( true ) );
 }
 
 void ShutdownNoesis() {
@@ -120,7 +71,7 @@ void NoesisFrame( int width, int height ) {
 	char buf[ 128 ];
 	// snprintf( buf, sizeof( buf ), "%lld: %f %s", cls.monotonicTime, slider->GetTrack()->GetValue(), text->GetText() );
 	snprintf( buf, sizeof( buf ), "%lld: %f %s", cls.monotonicTime, 1.0f, text->GetText() );
-	mwaga.Set( buf );
+	mwaga.blah = buf;
 
 	Noesis::TextBlock* test = _xaml->FindName<Noesis::TextBlock>( "test" );
 	test->SetText( buf );

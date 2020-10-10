@@ -37,7 +37,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 struct MaterialSpecKey {
 	const char * keyword;
-	void ( *func )( Material * material, const char * name, const char ** ptr );
+	void ( *func )( Material * material, Span< const char > name, Span< const char > * data );
 };
 
 constexpr u32 MAX_TEXTURES = 4096;
@@ -59,205 +59,123 @@ static Hashtable< MAX_MATERIALS * 2 > materials_hashtable;
 
 Material world_material;
 
-struct MaterialLocation {
-	const char * start;
-	const char * end;
-};
-
-static MaterialLocation material_locations[ MAX_MATERIALS ];
-static Hashtable< MAX_MATERIALS * 2 > material_locations_hashtable;
-
 static Vec4 decal_uvwhs[ MAX_DECALS ];
 static u32 num_decals;
 static Hashtable< MAX_DECALS * 2 > decals_hashtable;
 static TextureArray decals_atlases;
 
-static u64 HashMaterialName( const char * name ) {
+static u64 HashMaterialName( Span< const char > name ) {
 	// skip leading /
-	while( *name == '/' )
+	while( name != "" && name[ 0 ] == '/' )
 		name++;
 	return Hash64( name );
 }
 
-static const char * Shader_ParseString( const char ** ptr ) {
-	if( **ptr == '\0' || **ptr == '}' )
-		return "";
-	return COM_ParseExt( ptr, false );
+static u64 HashMaterialName( const char * str ) {
+	return HashMaterialName( MakeSpan( str ) );
 }
 
-static Span< const char > Shader_ParseToken( const char ** ptr ) {
-	Span< const char > span = ParseToken( ptr, Parse_StopOnNewLine );
-	if( span.n == 0 || span[ 0 ] == '}' )
+static Span< const char > ParseMaterialToken( Span< const char > * data ) {
+	Span< const char > token = ParseToken( data, Parse_StopOnNewLine );
+	if( token == "" ) {
 		return Span< const char >();
-	return span;
+	}
+
+	if( token == "}" ) {
+		data->ptr--;
+		data->n++;
+		return Span< const char >();
+	}
+
+	return token;
 }
 
-static float Shader_ParseFloat( const char ** ptr ) {
-	if( **ptr == '\0' || **ptr == '}' )
-		return 0;
-	return atof( COM_ParseExt( ptr, false ) );
+static float ParseMaterialFloat( Span< const char > * data ) {
+	Span< const char > token = ParseToken( data, Parse_StopOnNewLine );
+	float x;
+	SpanToFloat( token, &x );
+	return x;
 }
 
-static void Shader_ParseVector( const char ** ptr, float * v, unsigned int size ) {
-	for( unsigned int i = 0; i < size; i++ ) {
-		v[i] = Shader_ParseFloat( ptr );
+static void ParseVector( Span< const char > * data, float * v, size_t n ) {
+	for( size_t i = 0; i < n; i++ ) {
+		v[ i ] = ParseMaterialFloat( data );
 	}
 }
 
-static void Shader_SkipLine( const char ** ptr ) {
-	while( ptr ) {
-		if( **ptr == '}' )
-			return;
-		const char * token = COM_ParseExt( ptr, false );
-		if( strlen( token ) == 0 )
-			return;
+static void SkipToEndOfLine( Span< const char > * data ) {
+	while( true ) {
+		Span< const char > token = ParseToken( data, Parse_StopOnNewLine );
+		if( token == "" || token == "}" )
+			break;
 	}
 }
 
-static Wave Shader_ParseWave( const char ** ptr ) {
+static Wave ParseWave( Span< const char > * data ) {
 	Wave wave = { };
-	const char * token = Shader_ParseString( ptr );
-	if( !strcmp( token, "sin" ) ) {
+	Span< const char > token = ParseMaterialToken( data );
+	if( token == "sin" ) {
 		wave.type = WaveFunc_Sin;
 	}
-	else if( !strcmp( token, "triangle" ) ) {
+	else if( token == "triangle" ) {
 		wave.type = WaveFunc_Triangle;
 	}
-	else if( !strcmp( token, "sawtooth" ) ) {
+	else if( token == "sawtooth" ) {
 		wave.type = WaveFunc_Sawtooth;
 	}
-	else if( !strcmp( token, "inversesawtooth" ) ) {
+	else if( token == "inversesawtooth" ) {
 		wave.type = WaveFunc_InverseSawtooth;
 	}
 
-	wave.args[ 0 ] = Shader_ParseFloat( ptr );
-	wave.args[ 1 ] = Shader_ParseFloat( ptr );
-	wave.args[ 2 ] = Shader_ParseFloat( ptr );
-	wave.args[ 3 ] = Shader_ParseFloat( ptr );
+	ParseVector( data, wave.args, 4 );
 
 	return wave;
 }
 
-static void Shader_Cull( Material * material, const char * name, const char ** ptr ) {
-	const char * token = Shader_ParseString( ptr );
-	if( !strcmp( token, "disable" ) || !strcmp( token, "none" ) || !strcmp( token, "twosided" ) ) {
+static void ParseCull( Material * material, Span< const char > name, Span< const char > * data ) {
+	Span< const char > token = ParseMaterialToken( data );
+	if( token == "disable" || token == "none" || token == "twosided" ) {
 		material->double_sided = true;
 	}
 }
 
-static void Shader_Discard( Material * material, const char * name, const char ** ptr ) {
+static void ParseDiscard( Material * material, Span< const char > name, Span< const char > * data ) {
 	material->discard = true;
 }
 
-static void Shader_Decal( Material * material, const char * name, const char ** ptr ) {
+static void ParseDecal( Material * material, Span< const char > name, Span< const char > * data ) {
 	material->decal = true;
 }
 
-static void ParseMaterial( Material * material, const char * name, const char ** ptr );
-static void Shader_Template( Material * material, const char * material_name, const char ** ptr ) {
-	constexpr int MAX_ARGS = 9;
-
-	const char * name = Shader_ParseString( ptr );
-	if( !*name ) {
-		Com_Printf( S_COLOR_YELLOW "WARNING: missing template name in material %s\n", material_name );
-		Shader_SkipLine( ptr );
-		return;
-	}
-
-	u64 idx;
-	if( !material_locations_hashtable.get( HashMaterialName( name ), &idx ) ) {
-		Com_Printf( S_COLOR_YELLOW "WARNING: material template %s not found\n", name );
-		Shader_SkipLine( ptr );
-		return;
-	}
-
-	MaterialLocation location = material_locations[ idx ];
-	TempAllocator temp = cls.frame_arena.temp();
-	DynamicString original( &temp );
-	original.append_raw( location.start, location.end - location.start );
-
-	// parse args
-	Span< const char > args[ MAX_ARGS ];
-	int num_args = 0;
-	while( true ) {
-		args[ num_args ] = Shader_ParseToken( ptr );
-		if( args[ num_args ].n == 0 )
-			break;
-
-		if( num_args == MAX_ARGS ) {
-			Com_Printf( S_COLOR_YELLOW "WARNING: material template %s has too many arguments\n", name );
-			break;
-		}
-
-		num_args++;
-	}
-
-	// expand template
-	DynamicString expanded( &temp );
-
-	const char * cursor = original.c_str();
-	while( true ) {
-		const char * dollar = strchr( cursor, '$' );
-		if( dollar == NULL ) {
-			expanded += cursor;
-			break;
-		}
-
-		expanded.append_raw( cursor, dollar - cursor );
-
-		if( dollar[ 1 ] == '\0' )
-			break;
-
-		if( dollar[ 1 ] >= '1' && dollar[ 1 ] <= '9' ) {
-			int arg = dollar[ 1 ] - '1';
-			expanded += args[ arg ];
-		}
-		else {
-			expanded.append_raw( dollar, 2 );
-		}
-
-		cursor = dollar + strlen( "$0" );
-	}
-
-	const char * template_ptr = expanded.c_str();
-	ParseMaterial( material, material_name, &template_ptr );
-}
-
 static const MaterialSpecKey shaderkeys[] = {
-	{ "cull", Shader_Cull },
-	{ "template", Shader_Template },
-	{ "polygonoffset", Shader_Discard },
-	{ "decal", Shader_Decal },
+	{ "cull", ParseCull },
+	{ "polygonoffset", ParseDiscard },
+	{ "decal", ParseDecal },
 
-	{ NULL, NULL }
+	{ }
 };
 
-static void Shaderpass_AlphaTest( Material * material, const char * name, const char ** ptr ) {
-	const char * token = Shader_ParseString( ptr );
-	material->alpha_cutoff = atof( token );
+static void ParseAlphaTest( Material * material, Span< const char > name, Span< const char > * data ) {
+	material->alpha_cutoff = ParseMaterialFloat( data );
 }
 
-static void Shaderpass_BlendFunc( Material * material, const char * name, const char ** ptr ) {
-	const char * token = Shader_ParseString( ptr );
-	if( strcmp( token, "blend" ) == 0 ) {
+static void ParseBlendFunc( Material * material, Span< const char > name, Span< const char > * data ) {
+	Span< const char > token = ParseMaterialToken( data );
+	if( token == "blend" ) {
 		material->blend_func = BlendFunc_Blend;
 	}
-	else if( strcmp( token, "add" ) == 0 ) {
+	else if( token == "add" ) {
 		material->blend_func = BlendFunc_Add;
 	}
-	Shader_SkipLine( ptr );
+	SkipToEndOfLine( data );
 }
 
-static void Shaderpass_MapExt( Material * material, const char ** ptr ) {
-	const char * token = Shader_ParseString( ptr );
+static void ParseMap( Material * material, Span< const char > name, Span< const char > * data ) {
+	Span< const char > token = ParseMaterialToken( data );
 	u64 idx;
 	if( textures_hashtable.get( StringHash( token ).hash, &idx ) ) {
 		material->texture = &textures[ idx ];
 	}
-}
-
-static void Shaderpass_Map( Material * material, const char * name, const char ** ptr ) {
-	Shaderpass_MapExt( material, ptr );
 }
 
 static Vec3 NormalizeColor( Vec3 color ) {
@@ -265,29 +183,29 @@ static Vec3 NormalizeColor( Vec3 color ) {
 	return f > 1.0f ? color / f : color;
 }
 
-static void Shaderpass_RGBGen( Material * material, const char * name, const char ** ptr ) {
-	const char * token = Shader_ParseString( ptr );
-	if( !strcmp( token, "wave" ) ) {
+static void ParseRGBGen( Material * material, Span< const char > name, Span< const char > * data ) {
+	Span< const char > token = ParseMaterialToken( data );
+	if( token == "wave" ) {
 		material->rgbgen.type = ColorGenType_Wave;
-		material->rgbgen.wave = Shader_ParseWave( ptr );
+		material->rgbgen.wave = ParseWave( data );
 	}
-	else if( !strcmp( token, "colorwave" ) ) {
+	else if( token == "colorwave" ) {
 		material->rgbgen.type = ColorGenType_Wave;
-		Shader_ParseVector( ptr, material->rgbgen.args, 3 );
-		material->rgbgen.wave = Shader_ParseWave( ptr );
+		ParseVector( data, material->rgbgen.args, 3 );
+		material->rgbgen.wave = ParseWave( data );
 	}
-	else if( !strcmp( token, "entity" ) ) {
+	else if( token == "entity" ) {
 		material->rgbgen.type = ColorGenType_Entity;
 	}
-	else if( !strcmp( token, "entitycolorwave" ) ) {
+	else if( token == "entitycolorwave" ) {
 		material->rgbgen.type = ColorGenType_EntityWave;
-		Shader_ParseVector( ptr, material->rgbgen.args, 3 );
-		material->rgbgen.wave = Shader_ParseWave( ptr );
+		ParseVector( data, material->rgbgen.args, 3 );
+		material->rgbgen.wave = ParseWave( data );
 	}
-	else if( !strcmp( token, "const" ) ) {
+	else if( token == "const" ) {
 		material->rgbgen.type = ColorGenType_Constant;
 		Vec3 color;
-		Shader_ParseVector( ptr, color.ptr(), 3 );
+		ParseVector( data, color.ptr(), 3 );
 		color = NormalizeColor( color );
 		material->rgbgen.args[ 0 ] = sRGBToLinear( color.x );
 		material->rgbgen.args[ 1 ] = sRGBToLinear( color.y );
@@ -295,83 +213,69 @@ static void Shaderpass_RGBGen( Material * material, const char * name, const cha
 	}
 }
 
-static void Shaderpass_AlphaGen( Material * material, const char * name, const char ** ptr ) {
-	const char * token = Shader_ParseString( ptr );
-	if( !strcmp( token, "entity" ) ) {
+static void ParseAlphaGen( Material * material, Span< const char > name, Span< const char > * data ) {
+	Span< const char > token = ParseMaterialToken( data );
+	if( token == "entity" ) {
 		material->alphagen.type = ColorGenType_EntityWave;
 	}
-	else if( !strcmp( token, "wave" ) ) {
+	else if( token == "wave" ) {
 		material->alphagen.type = ColorGenType_Wave;
-		material->alphagen.wave = Shader_ParseWave( ptr );
+		material->alphagen.wave = ParseWave( data );
 	}
-	else if( !strcmp( token, "const" ) ) {
+	else if( token == "const" ) {
 		material->alphagen.type = ColorGenType_Constant;
-		material->alphagen.args[0] = Shader_ParseFloat( ptr );
+		material->alphagen.args[0] = ParseMaterialFloat( data );
 	}
 }
 
-static void Shaderpass_TcMod( Material * material, const char * name, const char ** ptr ) {
+static void ParseTCMod( Material * material, Span< const char > name, Span< const char > * data ) {
 	if( material->tcmod.type != TCModFunc_None ) {
-		Com_Printf( S_COLOR_YELLOW "WARNING: material %s has multiple tcmods\n", name );
-		Shader_SkipLine( ptr );
+		Com_GGPrint( S_COLOR_YELLOW "WARNING: material {} has multiple tcmods", name );
+		SkipToEndOfLine( data );
 		return;
 	}
 
-	const char * token = Shader_ParseString( ptr );
-	if( !strcmp( token, "rotate" ) ) {
-		material->tcmod.args[0] = -Shader_ParseFloat( ptr );
-		if( !material->tcmod.args[0] ) {
-			return;
-		}
+	Span< const char > token = ParseMaterialToken( data );
+	if( token == "rotate" ) {
+		material->tcmod.args[0] = -ParseMaterialFloat( data );
 		material->tcmod.type = TCModFunc_Rotate;
 	}
-	else if( !strcmp( token, "scroll" ) ) {
-		Shader_ParseVector( ptr, material->tcmod.args, 2 );
+	else if( token == "scroll" ) {
+		ParseVector( data, material->tcmod.args, 2 );
 		material->tcmod.type = TCModFunc_Scroll;
 	}
-	else if( !strcmp( token, "stretch" ) ) {
-		material->tcmod.wave = Shader_ParseWave( ptr );
+	else if( token == "stretch" ) {
+		material->tcmod.wave = ParseWave( data );
 		material->tcmod.type = TCModFunc_Stretch;
 	}
 	else {
-		Shader_SkipLine( ptr );
-		return;
+		SkipToEndOfLine( data );
 	}
 }
 
 static const MaterialSpecKey shaderpasskeys[] = {
-	{ "alphagen", Shaderpass_AlphaGen },
-	{ "alphamaskclampmap", Shaderpass_Map },
-	{ "alphatest", Shaderpass_AlphaTest },
-	{ "blendfunc", Shaderpass_BlendFunc },
-	{ "clampmap", Shaderpass_Map },
-	{ "map", Shaderpass_Map },
-	{ "rgbgen", Shaderpass_RGBGen },
-	{ "tcmod", Shaderpass_TcMod },
+	{ "alphagen", ParseAlphaGen },
+	{ "alphatest", ParseAlphaTest },
+	{ "blendfunc", ParseBlendFunc },
+	{ "map", ParseMap },
+	{ "rgbgen", ParseRGBGen },
+	{ "tcmod", ParseTCMod },
 
-	{ NULL, NULL }
+	{ }
 };
 
-static bool Shader_Parsetok( Material * material, const char * name, const MaterialSpecKey * keys, const char * token, const char ** ptr ) {
+static void ParseMaterialKey( Material * material, Span< const char > name, const MaterialSpecKey * keys, Span< const char > token, Span< const char > * data ) {
 	for( const MaterialSpecKey * key = keys; key->keyword != NULL; key++ ) {
-		if( !Q_stricmp( token, key->keyword ) ) {
-			if( key->func ) {
-				key->func( material, name, ptr );
-			}
-			if( *ptr && **ptr == '}' ) {
-				*ptr = *ptr + 1;
-				return true;
-			}
-			return false;
+		if( StrCaseEqual( token, key->keyword ) ) {
+			key->func( material, name, data );
+			return;
 		}
 	}
 
-	Shader_SkipLine( ptr );
-
-	return false;
+	SkipToEndOfLine( data );
 }
 
-static void Shader_Readpass( Material * material, const char * name, const char ** ptr ) {
+static void ParseMaterialPass( Material * material, Span< const char > name, Span< const char > * data ) {
 	material->rgbgen.type = ColorGenType_Constant;
 	material->rgbgen.args[ 0 ] = 1.0f;
 	material->rgbgen.args[ 1 ] = 1.0f;
@@ -380,53 +284,45 @@ static void Shader_Readpass( Material * material, const char * name, const char 
 	material->alphagen.type = ColorGenType_Constant;
 	material->rgbgen.args[ 0 ] = 1.0f;
 
-	while( ptr ) {
-		const char * token = COM_ParseExt( ptr, true );
-		if( !token[0] ) {
+	while( true ) {
+		Span< const char > token = ParseToken( data, Parse_DontStopOnNewLine );
+		if( token == "" || token == "}" )
 			break;
-		}
-		else if( token[0] == '}' ) {
-			break;
-		}
-		else if( Shader_Parsetok( material, name, shaderpasskeys, token, ptr ) ) {
-			break;
-		}
+
+		ParseMaterialKey( material, name, shaderpasskeys, token, data );
 	}
 }
 
-static void ParseMaterial( Material * material, const char * name, const char ** ptr ) {
+static bool ParseMaterial( Material * material, Span< const char > name, Span< const char > * data ) {
 	ZoneScoped;
 
 	bool seen_pass = false;
-	while( ptr != NULL ) {
-		const char * token = COM_ParseExt( ptr, true );
+	while( true ) {
+		Span< const char > token = ParseToken( data, Parse_DontStopOnNewLine );
+		if( token == "" ) {
+			Com_GGPrint( S_COLOR_YELLOW "WARNING: hit end of file inside a material ({})", name );
+			return false;
+		}
 
-		if( !token[ 0 ] ) {
+		if( token == "}" ) {
 			break;
 		}
-		else if( token[ 0 ] == '}' ) {
-			break;
-		}
-		else if( token[ 0 ] == '{' ) {
+		else if( token == "{" ) {
 			if( !seen_pass ) {
-				Shader_Readpass( material, name, ptr );
+				ParseMaterialPass( material, name, data );
 				seen_pass = true;
 			}
 			else {
-				Com_Printf( S_COLOR_YELLOW "WARNING: material %s has multiple passes\n", name );
-
-				while( ptr ) { // skip
-					token = COM_ParseExt( ptr, true );
-					if( !token[0] || token[0] == '}' ) {
-						break;
-					}
-				}
+				Com_GGPrint( S_COLOR_YELLOW "WARNING: material {} has multiple passes", name );
+				return false;
 			}
 		}
-		else if( Shader_Parsetok( material, name, shaderkeys, token, ptr ) ) {
-			break;
+		else {
+			ParseMaterialKey( material, name, shaderkeys, token, data );
 		}
 	}
+
+	return true;
 }
 
 static Texture * AddTexture( u64 hash, const TextureConfig & config ) {
@@ -551,15 +447,17 @@ static void LoadTexture( const char * path, u8 * pixels, int w, int h, int chann
 static void LoadMaterialFile( const char * path ) {
 	Span< const char > data = AssetString( path );
 
-	const char * ptr = data.ptr;
-	while( ptr != NULL ) {
-		const char * material_name = COM_ParseExt( &ptr, true );
-		if( strlen( material_name ) == 0 )
+	while( data != "" ) {
+		Span< const char > name = ParseToken( &data, Parse_DontStopOnNewLine );
+		if( name == "" )
 			break;
 
-		u64 hash = HashMaterialName( material_name );
-		COM_ParseExt( &ptr, true ); // skip opening brace
-		const char * start = ptr;
+		u64 hash = HashMaterialName( name );
+		ParseToken( &data, Parse_DontStopOnNewLine );
+
+		Material material = Material();
+		if( !ParseMaterial( &material, name, &data ) )
+			break;
 
 		u64 idx = num_materials;
 		if( !materials_hashtable.get( hash, &idx ) ) {
@@ -567,16 +465,9 @@ static void LoadMaterialFile( const char * path ) {
 			num_materials++;
 		}
 
-		materials[ idx ] = Material();
+		materials[ idx ] = material;
 		materials[ idx ].name = hash;
-		materials[ idx ].texture = &missing_texture;
-		ParseMaterial( &materials[ idx ], material_name, &ptr );
-
-		material_locations[ idx ] = { start, ptr };
-		material_locations_hashtable.add( hash, idx );
 	}
-
-	material_locations_hashtable.clear();
 }
 
 struct DecodeTextureJob {

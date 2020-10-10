@@ -1,7 +1,6 @@
 textures/world/lava
 {
 	q3map_globaltexture
-	//surfaceparm trans
 	surfaceparm nonsolid
 	surfaceparm noimpact
 	surfaceparm lava

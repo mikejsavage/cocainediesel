@@ -35,6 +35,7 @@ struct StringHash {
 
 	StringHash() = default;
 	explicit StringHash( const char * s );
+	explicit StringHash( Span< const char > s );
 
 #ifdef PUBLIC_BUILD
 	template< size_t N >

@@ -40,8 +40,17 @@ u64 Hash64( u64 x ) {
 StringHash::StringHash( const char * s ) {
 	hash = Hash64( s );
 }
+
+StringHash::StringHash( Span< const char > s ) {
+	hash = Hash64( s );
+}
 #else
 StringHash::StringHash( const char * s ) {
+	hash = Hash64( s );
+	str = NULL;
+}
+
+StringHash::StringHash( Span< const char > s ) {
 	hash = Hash64( s );
 	str = NULL;
 }

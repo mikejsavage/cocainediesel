@@ -284,13 +284,13 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 	}
 
 	if( gltf->scenes_count != 1 || gltf->animations_count > 1 || gltf->skins_count > 1 ) {
-		Com_Printf( S_COLOR_YELLOW "Trivial models only please\n" );
+		Com_Printf( S_COLOR_YELLOW "Trivial models only please (%s)\n", path );
 		return false;
 	}
 
 	for( size_t i = 0; i < gltf->meshes_count; i++ ) {
 		if( gltf->meshes[ i ].primitives_count != 1 ) {
-			Com_Printf( S_COLOR_YELLOW "Meshes with multiple primitives are unsupported\n" );
+			Com_Printf( S_COLOR_YELLOW "Meshes with multiple primitives are unsupported (%s)\n", path );
 			return false;
 		}
 	}

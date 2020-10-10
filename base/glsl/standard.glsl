@@ -121,7 +121,13 @@ void main() {
 
 	ivec2 tile = texelFetch( u_DecalTiles, tile_index ).xy;
 
+	float accumulated_alpha = 1.0;
+	vec3 accumulated_color = vec3( 0.0 );
+
 	for( int i = 0; i < tile.y; i++ ) {
+		if( accumulated_alpha < 0.01 )
+			break;
+
 		int idx = texelFetch( u_DecalIndices, tile.x + i ).x;
 		vec4 origin_radius = texelFetch( u_DecalData, idx * 4 + 0 );
 
@@ -151,9 +157,12 @@ void main() {
 			vec4 sample = texture( u_DecalAtlases, vec3( uv, layer ) );
 			float inv_cos_45_degrees = 1.41421356237;
 			float decal_alpha = min( 1.0, sample.a * decal_color.a * max( 0.0, dot( v_Normal, normal_angle.xyz ) * inv_cos_45_degrees ) );
-			diffuse.rgb = mix( diffuse.rgb, sample.rgb * decal_color.rgb, decal_alpha );
+			accumulated_color += sample.rgb * decal_color.rgb * decal_alpha * accumulated_alpha;
+			accumulated_alpha *= ( 1.0 - decal_alpha );
 		}
 	}
+
+	diffuse.rgb = diffuse.rgb * accumulated_alpha + accumulated_color;
 #endif
 
 #if APPLY_FOG

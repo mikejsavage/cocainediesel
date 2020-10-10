@@ -262,7 +262,7 @@ void UploadDecalBuffers() {
 					break;
 				}
 
-				indices[ num_indices ] = tile->indices[ i ];
+				indices[ num_indices ] = tile->indices[ tile->num_decals - i - 1 ];
 				num_indices++;
 			}
 		}

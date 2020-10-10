@@ -33,11 +33,11 @@ inline float Square( float x ) {
 }
 
 // some stubs to catch accidental double usage
-void sinf( double x );
-void cosf( double x );
-void tanf( double x );
-void asinf( double x );
-void acosf( double x );
-void atanf( double x );
-void atan2f( double x );
-void sqrtf( double x );
+void sinf( double );
+void cosf( double );
+void tanf( double );
+void asinf( double );
+void acosf( double );
+void atanf( double );
+void atan2f( double );
+void sqrtf( double );

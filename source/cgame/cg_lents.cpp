@@ -70,26 +70,13 @@ void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color ) {
 	S_StartFixedSound( cgs.media.sfxElectroboltHit, pos, CHAN_AUTO, 1.0f );
 }
 
-static void ScorchDecal( Vec3 pos, Vec3 normal ) {
-	constexpr StringHash decals[] = {
-		"weapons/explosion_scorch1",
-		"weapons/explosion_scorch2",
-		"weapons/explosion_scorch3",
-	};
-
-	float size = random_uniform_float( &cls.rng, 50.0f, 70.0f );
-	AddPersistentDecal( pos, normal, size, RandomRadians(), random_select( &cls.rng, decals ), vec4_white, 30000 );
-}
-
 void CG_RocketExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	ExplosionParticles( pos, dir, team_color.xyz() );
-	// ScorchDecal( pos, dir );
 	S_StartFixedSound( cgs.media.sfxRocketLauncherHit, pos, CHAN_AUTO, 1.0f );
 }
 
 void CG_GrenadeExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	ExplosionParticles( pos, dir, team_color.xyz() );
-	// ScorchDecal( pos, dir );
 	S_StartFixedSound( cgs.media.sfxGrenadeExplosion, pos, CHAN_AUTO, 1.0f );
 }
 

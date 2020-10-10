@@ -37,8 +37,6 @@ cvar_t *cg_showPlayerNames_alpha;
 cvar_t *cg_showPlayerNames_zfar;
 cvar_t *cg_showPlayerNames_barWidth;
 
-cvar_t *cg_showPressedKeys;
-
 cvar_t *cg_showViewBlends;
 
 static int64_t scr_damagetime = 0;
@@ -91,8 +89,6 @@ void CG_ScreenInit( void ) {
 	cg_showPlayerNames_alpha =  Cvar_Get( "cg_showPlayerNames_alpha", "0.4", CVAR_ARCHIVE );
 	cg_showPlayerNames_zfar =   Cvar_Get( "cg_showPlayerNames_zfar", "1024", CVAR_ARCHIVE );
 	cg_showPlayerNames_barWidth =   Cvar_Get( "cg_showPlayerNames_barWidth", "8", CVAR_ARCHIVE );
-
-	cg_showPressedKeys = Cvar_Get( "cg_showPressedKeys", "0", CVAR_ARCHIVE );
 }
 
 /*
@@ -139,39 +135,6 @@ void CG_DrawCrosshair() {
 	CG_FillRect( w / 2 - 2 - size, h / 2 - 2, 4 + 2 * size, 4, vec4_black );
 	CG_FillRect( w / 2 - 1, h / 2 - 1 - size, 2, 2 + 2 * size, color );
 	CG_FillRect( w / 2 - 1 - size, h / 2 - 1, 2 + 2 * size, 2, color );
-}
-
-void CG_DrawKeyState( int x, int y, int w, int h, const char *key ) {
-	int i;
-	bool pressed = false;
-
-	if( !cg_showPressedKeys->integer ) {
-		return;
-	}
-
-	if( !key ) {
-		return;
-	}
-
-	for( i = 0; i < KEYICON_TOTAL; i++ )
-		if( !Q_stricmp( key, gs_keyicon_names[i] ) ) {
-			break;
-		}
-
-	if( i == KEYICON_TOTAL ) {
-		return;
-	}
-
-	if( cg.predictedPlayerState.plrkeys & ( 1 << i ) ) {
-		pressed = 1;
-	}
-
-	Vec4 color = vec4_white;
-	if( !pressed ) {
-		color.w = 0.5f;
-	}
-
-	Draw2DBox( x, y, w, h, cgs.media.shaderKeyIcon[i], color );
 }
 
 /*

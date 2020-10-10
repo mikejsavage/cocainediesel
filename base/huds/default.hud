@@ -39,7 +39,6 @@ endif
 #include net
 #include damage_numbers
 #include pointing
-#include keystate
 #include obituaries
 
 #include crosshair

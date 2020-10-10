@@ -252,7 +252,6 @@ static const reference_numeric_t cg_numeric_references[] = {
 	// cvars
 	{ "SHOW_FPS", CG_GetCvar, "cg_showFPS" },
 	{ "SHOW_POINTED_PLAYER", CG_GetCvar, "cg_showPointedPlayer" },
-	{ "SHOW_PRESSED_KEYS", CG_GetCvar, "cg_showPressedKeys" },
 	{ "SHOW_SPEED", CG_GetCvar, "cg_showSpeed" },
 	{ "SHOW_AWARDS", CG_GetCvar, "cg_showAwards" },
 	{ "SHOW_HOTKEYS", CG_GetCvar, "cg_showHotkeys" },
@@ -2373,13 +2372,6 @@ static bool CG_LFuncDrawCrossHair( struct cg_layoutnode_s *argumentnode, int num
 	return true;
 }
 
-static bool CG_LFuncDrawKeyState( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	const char *key = CG_GetStringArg( &argumentnode );
-
-	CG_DrawKeyState( layout_cursor_x, layout_cursor_y, layout_cursor_width, layout_cursor_height, key );
-	return true;
-}
-
 static bool CG_LFuncDrawNet( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	CG_DrawNet( layout_cursor_x, layout_cursor_y, layout_cursor_width, layout_cursor_height, layout_cursor_alignment, layout_cursor_color );
 	return true;
@@ -2576,13 +2568,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawCrossHair,
 		0,
 		"Draws the game crosshair",
-	},
-
-	{
-		"drawKeyState",
-		CG_LFuncDrawKeyState,
-		1,
-		"Draws icons showing if the argument key is pressed. Possible arg: forward, backward, left, right, fire, jump, crouch, special",
 	},
 
 	{

@@ -444,7 +444,7 @@ static void LoadTexture( const char * path, u8 * pixels, int w, int h, int chann
 	texture->data = pixels;
 }
 
-static void LoadMaterialFile( const char * path ) {
+static void LoadMaterialFile( const char * path, Span< const char > * material_names ) {
 	Span< const char > data = AssetString( path );
 
 	while( data != "" ) {
@@ -465,6 +465,7 @@ static void LoadMaterialFile( const char * path ) {
 			num_materials++;
 		}
 
+		material_names[ idx ] = name;
 		materials[ idx ] = material;
 		materials[ idx ].name = hash;
 	}
@@ -490,7 +491,7 @@ static void CopyImage( Span2D< RGBA8 > dst, int x, int y, const Texture * textur
 	}
 }
 
-static void PackDecalAtlas() {
+static void PackDecalAtlas( Span< const char > * material_names ) {
 	ZoneScoped;
 
 	decals_hashtable.clear();
@@ -503,7 +504,7 @@ static void PackDecalAtlas() {
 			continue;
 
 		if( materials[ i ].texture->format != TextureFormat_RGBA_U8_sRGB ) {
-			Com_Printf( S_COLOR_YELLOW "Decals must be RGBA\n" );
+			Com_GGPrint( S_COLOR_YELLOW "Decals must be RGBA ({})", material_names[ i ] );
 			continue;
 		}
 
@@ -645,12 +646,14 @@ void InitMaterials() {
 		}
 	}
 
+	Span< const char > material_names[ MAX_MATERIALS ];
+
 	{
 		ZoneScopedN( "Load materials" );
 
 		for( const char * path : AssetPaths() ) {
 			if( FileExtension( path ) == ".shader" && BaseName( path ) != "editor.shader" ) {
-				LoadMaterialFile( path );
+				LoadMaterialFile( path, material_names );
 			}
 		}
 	}
@@ -658,7 +661,7 @@ void InitMaterials() {
 	missing_material = Material();
 	missing_material.texture = &missing_texture;
 
-	PackDecalAtlas();
+	PackDecalAtlas( material_names );
 }
 
 void HotloadMaterials() {
@@ -685,15 +688,17 @@ void HotloadMaterials() {
 		}
 	}
 
+	Span< const char > material_names[ MAX_MATERIALS ] = { };
+
 	for( const char * path : ModifiedAssetPaths() ) {
 		if( FileExtension( path ) == ".shader" && BaseName( path ) != "editor.shader" ) {
-			LoadMaterialFile( path );
+			LoadMaterialFile( path, material_names );
 			changes = true;
 		}
 	}
 
 	if( changes ) {
-		PackDecalAtlas();
+		PackDecalAtlas( material_names );
 	}
 }
 

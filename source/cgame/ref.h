@@ -23,11 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/types.h"
 #include "gameshared/q_math.h"
 
-// refdef flags
-#define RDF_UNDERWATER          0x1     // warp the screen as apropriate
-#define RDF_CROSSINGWATER       0x2     // potentially crossing water surface
-#define RDF_BLURRED             0x4
-
 constexpr u32 TILE_SIZE = 32; // forward+ tile size
 
 struct orientation_t {

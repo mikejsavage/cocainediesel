@@ -534,10 +534,6 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 		Com_Error( ERR_DROP, "CG_SetupView: Invalid view type %i\n", view->type );
 	}
 
-	//
-	// SETUP REFDEF FOR THE VIEW SETTINGS
-	//
-
 	if( view->type == VIEWDEF_PLAYERVIEW ) {
 		Vec3 viewoffset;
 

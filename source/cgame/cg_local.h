@@ -181,7 +181,6 @@ struct cgs_media_t {
 	const Material * shaderGrenadeExplosion;
 	const Material * shaderGrenadeExplosionRing;
 	const Material * shaderBulletExplosion;
-	const Material * shaderRaceGhostEffect;
 	const Material * shaderWaterBubble;
 	const Material * shaderSmokePuff;
 

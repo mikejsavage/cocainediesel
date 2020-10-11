@@ -150,8 +150,6 @@ void CG_RegisterMediaShaders() {
 
 	cgs.media.shaderLaser = FindMaterial( "gfx/misc/laser" );
 
-	cgs.media.shaderRaceGhostEffect = FindMaterial( "gfx/raceghost" );
-
 	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
 		cgs.media.shaderWeaponIcon[ i ] = FindMaterial( temp( "weapons/{}/icon", GS_GetWeaponDef( i )->short_name ) );
 	}

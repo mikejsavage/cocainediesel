@@ -124,6 +124,14 @@ inline Vec3 SafeNormalize( Vec3 v ) {
 	return Normalize( v );
 }
 
+inline Vec3 Floor( Vec3 v ) {
+	return Vec3(
+		floorf( v.x ),
+		floorf( v.y ),
+		floorf( v.z )
+	);
+}
+
 /*
  * Mat3
  */

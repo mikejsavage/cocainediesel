@@ -70,8 +70,7 @@ layout( std140 ) uniform u_Decal {
 };
 
 uniform samplerBuffer u_DecalData;
-uniform isamplerBuffer u_DecalIndices;
-uniform isamplerBuffer u_DecalTiles;
+uniform isamplerBuffer u_DecalCount;
 uniform sampler2DArray u_DecalAtlases;
 #endif
 
@@ -119,33 +118,40 @@ void main() {
 	int cols = int( u_ViewportSize.x + tile_size - 1 ) / int( tile_size );
 	int tile_index = tile_row * cols + tile_col;
 
-	ivec2 tile = texelFetch( u_DecalTiles, tile_index ).xy;
+	int count = texelFetch( u_DecalCount, tile_index ).x;
 
 	float accumulated_alpha = 1.0;
 	vec3 accumulated_color = vec3( 0.0 );
 
-	for( int i = 0; i < tile.y; i++ ) {
-		if( accumulated_alpha < 0.01 )
+	for( int i = 0; i < count; i++ ) {
+		if( accumulated_alpha < 0.001 ) {
+			accumulated_alpha = 0.0;
 			break;
+		}
 
-		int idx = texelFetch( u_DecalIndices, tile.x + i ).x;
-		vec4 origin_radius = texelFetch( u_DecalData, idx * 4 + 0 );
+		int idx = tile_index * 100 + i * 2; // NOTE(msc): 100 = 2 * MAX_DECALS_PER_TILE
 
-		if( distance( origin_radius.xyz, v_Position ) < origin_radius.w ) {
-			vec4 normal_angle = texelFetch( u_DecalData, idx * 4 + 1 );
-			vec4 decal_color = texelFetch( u_DecalData, idx * 4 + 2 );
-			vec4 uvwh = texelFetch( u_DecalData, idx * 4 + 3 );
-			float layer = floor( uvwh.x );
+		vec4 data1 = texelFetch( u_DecalData, idx + 0 );
+		vec3 origin = floor( data1.xyz );
+		float radius = floor( data1.w );
+		vec3 normal = ( fract( data1.xyz ) - 0.5 ) / 0.49;
+		float angle = fract( data1.w ) * M_PI * 2.0;
 
+		vec4 data2 = texelFetch( u_DecalData, idx + 1 );
+		vec4 decal_color = vec4( floor( data2.yzw ) / 255.0, 1.0 );
+		vec4 uvwh = vec4( data2.x, fract( data2.yzw ) );
+		float layer = floor( uvwh.x );
+
+		if( distance( origin, v_Position ) < radius ) {
 			vec3 basis_u;
 			vec3 basis_v;
-			OrthonormalBasis( normal_angle.xyz, basis_u, basis_v );
-			basis_u *= origin_radius.w * 2.0;
-			basis_v *= origin_radius.w * -2.0;
-			vec3 bottom_left = origin_radius.xyz - ( basis_u + basis_v ) * 0.5;
+			OrthonormalBasis( normal, basis_u, basis_v );
+			basis_u *= radius * 2.0;
+			basis_v *= radius * -2.0;
+			vec3 bottom_left = origin - ( basis_u + basis_v ) * 0.5;
 
-			float c = cos( normal_angle.w );
-			float s = sin( normal_angle.w );
+			float c = cos( angle );
+			float s = sin( angle );
 			mat2 rotation = mat2( c, s, -s, c );
 			vec2 uv = vec2( ProjectedScale( v_Position, bottom_left, basis_u ), ProjectedScale( v_Position, bottom_left, basis_v ) );
 
@@ -156,7 +162,7 @@ void main() {
 
 			vec4 sample = texture( u_DecalAtlases, vec3( uv, layer ) );
 			float inv_cos_45_degrees = 1.41421356237;
-			float decal_alpha = min( 1.0, sample.a * decal_color.a * max( 0.0, dot( v_Normal, normal_angle.xyz ) * inv_cos_45_degrees ) );
+			float decal_alpha = min( 1.0, sample.a * decal_color.a * max( 0.0, dot( v_Normal, normal ) * inv_cos_45_degrees ) );
 			accumulated_color += sample.rgb * decal_color.rgb * decal_alpha * accumulated_alpha;
 			accumulated_alpha *= ( 1.0 - decal_alpha );
 		}

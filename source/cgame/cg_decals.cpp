@@ -1,23 +1,23 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/span2d.h"
+#include "qcommon/span3d.h"
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
+#include "qcommon/array.h"
 
 static TextureBuffer decal_buffer;
-static TextureBuffer decal_index_buffer;
-static TextureBuffer decal_tile_buffer;
+static TextureBuffer decal_count;
 
 static u32 last_viewport_width, last_viewport_height;
 
 // gets copied directly to GPU so packing order is important
 struct Decal {
-	Vec3 origin;
-	float radius;
-	Vec3 normal;
-	float angle;
-	Vec4 color;
-	Vec4 uvwh;
+	Vec3 origin_normal; // floor( origin ) + ( normal * 0.49 + 0.5 )
+	// NOTE(msc): normal can't go to 0.0 or 1.0
+	float radius_angle; // floor( radius ) + ( angle / 2 / PI )
+	Vec4 color_uvwh;    // vec4( u + layer, v + r * 255, w + g * 255, h + b * 255 )
+	// NOTE(msc): uvwh should all be < 1.0
 };
 
 struct PersistentDecal {
@@ -26,7 +26,7 @@ struct PersistentDecal {
 	s64 duration;
 };
 
-STATIC_ASSERT( sizeof( Decal ) == 4 * 4 * sizeof( float ) );
+STATIC_ASSERT( sizeof( Decal ) == 2 * 4 * sizeof( float ) );
 STATIC_ASSERT( sizeof( Decal ) % alignof( Decal ) == 0 );
 
 static constexpr u32 MAX_DECALS = 100000;
@@ -38,9 +38,10 @@ static u32 num_decals;
 static PersistentDecal persistent_decals[ MAX_DECALS ];
 static u32 num_persistent_decals;
 
-void InitDecals() {
-	decal_buffer = NewTextureBuffer( TextureBufferFormat_Floatx4, MAX_DECALS * sizeof( Decal ) / sizeof( Vec4 ) );
+static Span3D< Decal > gpu_decals;
+static Span2D< u32 > gpu_counts;
 
+void InitDecals() {
 	num_persistent_decals = 0;
 
 	last_viewport_width = U32_MAX;
@@ -48,9 +49,10 @@ void InitDecals() {
 }
 
 void ShutdownDecals() {
+	FREE( sys_allocator, gpu_decals.ptr );
+	FREE( sys_allocator, gpu_counts.ptr );
 	DeleteTextureBuffer( decal_buffer );
-	DeleteTextureBuffer( decal_index_buffer );
-	DeleteTextureBuffer( decal_tile_buffer );
+	DeleteTextureBuffer( decal_count );
 }
 
 void DrawDecal( Vec3 origin, Vec3 normal, float radius, float angle, StringHash name, Vec4 color ) {
@@ -59,16 +61,17 @@ void DrawDecal( Vec3 origin, Vec3 normal, float radius, float angle, StringHash 
 
 	Decal * decal = &decals[ num_decals ];
 
-	if( !TryFindDecal( name, &decal->uvwh ) ) {
+	Vec4 uvwh;
+	if( !TryFindDecal( name, &uvwh ) ) {
 		Com_GGPrint( S_COLOR_YELLOW "Material {} should have decal key", name );
 		return;
 	}
 
-	decal->origin = origin;
-	decal->normal = normal;
-	decal->radius = radius;
-	decal->angle = angle;
-	decal->color = color;
+	Vec3 c = Floor( color.xyz() * 255.0f );
+
+	decal->origin_normal = Floor( origin ) + ( normal * 0.49f + 0.5f );
+	decal->radius_angle = floorf( radius ) + angle / 2.0f / PI;
+	decal->color_uvwh = Vec4( uvwh.x, uvwh.y + c.x, uvwh.z + c.y, uvwh.w + c.z );
 
 	num_decals++;
 }
@@ -79,16 +82,17 @@ void AddPersistentDecal( Vec3 origin, Vec3 normal, float radius, float angle, St
 
 	PersistentDecal * decal = &persistent_decals[ num_persistent_decals ];
 
-	if( !TryFindDecal( name, &decal->decal.uvwh ) ) {
+	Vec4 uvwh;
+	if( !TryFindDecal( name, &uvwh ) ) {
 		Com_GGPrint( S_COLOR_YELLOW "Material {} should have decal key", name );
 		return;
 	}
 
-	decal->decal.origin = origin;
-	decal->decal.normal = normal;
-	decal->decal.radius = radius;
-	decal->decal.angle = angle;
-	decal->decal.color = color;
+	Vec3 c = Floor( color.xyz() * 255.0f );
+
+	decal->decal.origin_normal = Floor( origin ) + ( normal * 0.4f + 0.5f );
+	decal->decal.radius_angle = floorf( radius ) + angle / 2.0f / PI;
+	decal->decal.color_uvwh = Vec4( uvwh.x, uvwh.y + c.x, uvwh.z + c.y, uvwh.w + c.z );
 	decal->spawn_time = cl.serverTime;
 	decal->duration = duration;
 
@@ -112,16 +116,6 @@ void DrawPersistentDecals() {
 		num_decals++;
 	}
 }
-
-struct DecalTile {
-	u32 indices[ MAX_DECALS_PER_TILE ];
-	u32 num_decals;
-};
-
-struct GPUDecalTile {
-	u32 first_decal;
-	u32 num_decals;
-};
 
 /*
  * implementation of "2D Polyhedral Bounds of a Clipped, Perspective-Projected
@@ -199,13 +193,27 @@ void AllocateDecalBuffers() {
 	if( frame_static.viewport_width != last_viewport_width || frame_static.viewport_height != last_viewport_height ) {
 		ZoneScopedN( "Reallocate TBOs" );
 
-		decal_tile_buffer = NewTextureBuffer( TextureBufferFormat_U32x2, rows * cols );
-		decal_index_buffer = NewTextureBuffer( TextureBufferFormat_U32, rows * cols * MAX_DECALS_PER_TILE );
+		FREE( sys_allocator, gpu_decals.ptr );
+		FREE( sys_allocator, gpu_counts.ptr );
+		gpu_decals = ALLOC_SPAN3D( sys_allocator, Decal, MAX_DECALS_PER_TILE, cols, rows );
+		gpu_counts = ALLOC_SPAN2D( sys_allocator, u32, cols, rows );
+		decal_buffer = NewTextureBuffer( TextureBufferFormat_Floatx4, rows * cols * MAX_DECALS_PER_TILE * sizeof( Decal ) / sizeof( Vec4 ) );
+		decal_count = NewTextureBuffer( TextureBufferFormat_U32, rows * cols );
 
 		last_viewport_width = frame_static.viewport_width;
 		last_viewport_height = frame_static.viewport_height;
 	}
 }
+
+struct DecalRect {
+	MinMax2 bounds;
+	u32 idx;
+};
+
+struct DecalSet {
+	u32 indices[ MAX_DECALS_PER_TILE ];
+	u32 num_decals;
+};
 
 void UploadDecalBuffers() {
 	ZoneScoped;
@@ -213,12 +221,10 @@ void UploadDecalBuffers() {
 	u32 rows = ( frame_static.viewport_height + TILE_SIZE - 1 ) / TILE_SIZE;
 	u32 cols = ( frame_static.viewport_width + TILE_SIZE - 1 ) / TILE_SIZE;
 
-	Span2D< DecalTile > tiles = ALLOC_SPAN2D( sys_allocator, DecalTile, cols, rows );
-	memset( tiles.ptr, 0, tiles.num_bytes() );
-	defer { FREE( sys_allocator, tiles.ptr ); };
+	DynamicArray< DecalRect > rects( sys_allocator );
 
 	for( u32 i = 0; i < num_decals; i++ ) {
-		MinMax2 bounds = SphereScreenSpaceBounds( decals[ i ].origin, decals[ i ].radius );
+		MinMax2 bounds = SphereScreenSpaceBounds( Floor( decals[ i ].origin_normal ), floorf( decals[ i ].radius_angle ) );
 		bounds.mins.y = -bounds.mins.y;
 		bounds.maxs.y = -bounds.maxs.y;
 		Swap2( &bounds.mins.y, &bounds.maxs.y );
@@ -233,46 +239,87 @@ void UploadDecalBuffers() {
 		Vec2 maxs = ( bounds.maxs + 1.0f ) * 0.5f * frame_static.viewport;
 		maxs = Clamp( Vec2( 0.0f ), maxs, frame_static.viewport - 1.0f ) / float( TILE_SIZE );
 
-		for( u32 y = mins.y; y <= maxs.y; y++ ) {
-			for( u32 x = mins.x; x <= maxs.x; x++ ) {
-				DecalTile * tile = &tiles( x, y );
-				if( tile->num_decals < ARRAY_COUNT( tile->indices ) ) {
-					tile->indices[ tile->num_decals ] = i;
-					tile->num_decals++;
-				}
-			}
-		}
+
+		DecalRect rect;
+		rect.bounds = MinMax2( Vec2( floorf( mins.x ), floorf( mins.y ) ), Vec2( floorf( maxs.x ), floorf( maxs.y ) ) );
+		rect.idx = i;
+		rects.add( rect );
 	}
+	
+	{
+		ZoneScopedN( "Fill buffers" );
 
-	// pack tile buffer
-	Span2D< GPUDecalTile > gpu_tiles = ALLOC_SPAN2D( sys_allocator, GPUDecalTile, cols, rows );
-	defer { FREE( sys_allocator, gpu_tiles.ptr ); };
+		Span< DecalSet > rows_coverage = ALLOC_SPAN( sys_allocator, DecalSet, rows );
+		Span< DecalSet > cols_coverage = ALLOC_SPAN( sys_allocator, DecalSet, cols );
 
-	u32 indices[ MAX_DECALS ];
-	u32 num_indices = 0;
-	for( u32 y = 0; y < rows; y++ ) {
-		for( u32 x = 0; x < cols; x++ ) {
-			const DecalTile * tile = &tiles( x, y );
+		memset( rows_coverage.ptr, 0, rows_coverage.num_bytes() );
+		memset( cols_coverage.ptr, 0, cols_coverage.num_bytes() );
 
-			gpu_tiles( x, y ).first_decal = num_indices;
-			gpu_tiles( x, y ).num_decals = tile->num_decals;
-
-			for( u32 i = 0; i < tile->num_decals; i++ ) {
-				if( num_indices == ARRAY_COUNT( indices ) ) {
+		for( u32 y = 0; y < rows; y++ ) {
+			DecalSet & set = rows_coverage[ y ];
+			for( u32 i = 0; i < rects.size(); i++ ) {
+				if( set.num_decals == MAX_DECALS_PER_TILE ) {
 					break;
 				}
-
-				indices[ num_indices ] = tile->indices[ tile->num_decals - i - 1 ];
-				num_indices++;
+				DecalRect & rect = rects[ i ];
+				if( rect.bounds.mins.y <= y && y <= rect.bounds.maxs.y ) {
+					set.indices[ set.num_decals ] = rect.idx;
+					set.num_decals++;
+				}
 			}
 		}
+
+		for( u32 x = 0; x < cols; x++ ) {
+			DecalSet & set = cols_coverage[ x ];
+			for( u32 i = 0; i < rects.size(); i++ ) {
+				if( set.num_decals == MAX_DECALS_PER_TILE ) {
+					break;
+				}
+				DecalRect & rect = rects[ i ];
+				if( rect.bounds.mins.x <= x && x <= rect.bounds.maxs.x ) {
+					set.indices[ set.num_decals ] = rect.idx;
+					set.num_decals++;
+				}
+			}
+		}
+
+		memset( gpu_counts.ptr, 0, gpu_counts.num_bytes() );
+
+		for( u32 y = 0; y < rows; y++ ) {
+			DecalSet & y_set = rows_coverage[ y ];
+			for( u32 x = 0; x < cols; x++ ) {
+				DecalSet & x_set = cols_coverage[ x ];
+				u32 x_idx = 0;
+				u32 y_idx = 0;
+
+				// NOTE(msc): decals guaranteed to be sorted in set
+				while( x_idx < x_set.num_decals && y_idx < y_set.num_decals ) {
+					u32 x_instance = x_set.indices[ x_idx ];
+					u32 y_instance = y_set.indices[ y_idx ];
+					// NOTE(msc): instance in both column & row, must be active in this cell
+					if( x_instance == y_instance ) {
+						gpu_decals( gpu_counts( x, y ), x, y ) = decals[ x_instance ];
+						gpu_counts( x, y )++;
+						// NOTE(msc): can't hit MAX_DECALS_PER_TILE limit since both sets are smaller
+						x_idx++;
+						y_idx++;
+					} else if( x_instance < y_instance ) {
+						x_idx++;
+					} else {
+						y_idx++;
+					}
+				}
+			}
+		}
+
+		FREE( sys_allocator, rows_coverage.ptr );
+		FREE( sys_allocator, cols_coverage.ptr );
 	}
 
 	{
 		ZoneScopedN( "Upload TBOs" );
-		WriteTextureBuffer( decal_buffer, decals, num_decals * sizeof( decals[ 0 ] ) );
-		WriteTextureBuffer( decal_index_buffer, indices, num_indices * sizeof( indices[ 0 ] ) );
-		WriteTextureBuffer( decal_tile_buffer, gpu_tiles.ptr, gpu_tiles.num_bytes() );
+		WriteTextureBuffer( decal_buffer, gpu_decals.ptr, gpu_decals.num_bytes() );
+		WriteTextureBuffer( decal_count, gpu_counts.ptr, gpu_counts.num_bytes() );
 	}
 
 	num_decals = 0;
@@ -281,6 +328,5 @@ void UploadDecalBuffers() {
 void AddDecalsToPipeline( PipelineState * pipeline ) {
 	pipeline->set_uniform( "u_Decal", UploadUniformBlock( s32( num_decals ) ) );
 	pipeline->set_texture_buffer( "u_DecalData", decal_buffer );
-	pipeline->set_texture_buffer( "u_DecalIndices", decal_index_buffer );
-	pipeline->set_texture_buffer( "u_DecalTiles", decal_tile_buffer );
+	pipeline->set_texture_buffer( "u_DecalCount", decal_count );
 }

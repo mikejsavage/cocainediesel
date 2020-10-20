@@ -30,6 +30,7 @@ STATIC_ASSERT( sizeof( Decal ) == 2 * 4 * sizeof( float ) );
 STATIC_ASSERT( sizeof( Decal ) % alignof( Decal ) == 0 );
 
 static constexpr u32 MAX_DECALS = 100000;
+static constexpr u32 MAX_DECALS_PER_SET = 500;
 static constexpr u32 MAX_DECALS_PER_TILE = 50;
 
 static Decal decals[ MAX_DECALS ];
@@ -50,7 +51,9 @@ void InitDecals() {
 
 void ShutdownDecals() {
 	FREE( sys_allocator, gpu_decals.ptr );
+	gpu_decals.ptr = NULL;
 	FREE( sys_allocator, gpu_counts.ptr );
+	gpu_counts.ptr = NULL;
 	DeleteTextureBuffer( decal_buffer );
 	DeleteTextureBuffer( decal_count );
 }
@@ -193,8 +196,10 @@ void AllocateDecalBuffers() {
 	if( frame_static.viewport_width != last_viewport_width || frame_static.viewport_height != last_viewport_height ) {
 		ZoneScopedN( "Reallocate TBOs" );
 
-		FREE( sys_allocator, gpu_decals.ptr );
-		FREE( sys_allocator, gpu_counts.ptr );
+		if ( gpu_decals.ptr )
+			FREE( sys_allocator, gpu_decals.ptr );
+		if ( gpu_counts.ptr )
+			FREE( sys_allocator, gpu_counts.ptr );
 		gpu_decals = ALLOC_SPAN3D( sys_allocator, Decal, MAX_DECALS_PER_TILE, cols, rows );
 		gpu_counts = ALLOC_SPAN2D( sys_allocator, u32, cols, rows );
 		decal_buffer = NewTextureBuffer( TextureBufferFormat_Floatx4, rows * cols * MAX_DECALS_PER_TILE * sizeof( Decal ) / sizeof( Vec4 ) );
@@ -211,7 +216,7 @@ struct DecalRect {
 };
 
 struct DecalSet {
-	u32 indices[ MAX_DECALS_PER_TILE ];
+	u32 indices[ MAX_DECALS_PER_SET ];
 	u32 num_decals;
 };
 
@@ -255,28 +260,18 @@ void UploadDecalBuffers() {
 		memset( rows_coverage.ptr, 0, rows_coverage.num_bytes() );
 		memset( cols_coverage.ptr, 0, cols_coverage.num_bytes() );
 
-		for( u32 y = 0; y < rows; y++ ) {
-			DecalSet & set = rows_coverage[ y ];
-			for( u32 i = 0; i < rects.size(); i++ ) {
-				if( set.num_decals == MAX_DECALS_PER_TILE ) {
-					break;
-				}
-				DecalRect & rect = rects[ i ];
-				if( rect.bounds.mins.y <= y && y <= rect.bounds.maxs.y ) {
+		for( u32 i = 0; i < rects.size(); i++ ) {
+			DecalRect & rect = rects[ i ];
+			for ( u32 x = rect.bounds.mins.x; x <= rect.bounds.maxs.x; x++ ) {
+				DecalSet & set = cols_coverage[ x ];
+				if ( set.num_decals < MAX_DECALS_PER_SET ) {
 					set.indices[ set.num_decals ] = rect.idx;
 					set.num_decals++;
 				}
 			}
-		}
-
-		for( u32 x = 0; x < cols; x++ ) {
-			DecalSet & set = cols_coverage[ x ];
-			for( u32 i = 0; i < rects.size(); i++ ) {
-				if( set.num_decals == MAX_DECALS_PER_TILE ) {
-					break;
-				}
-				DecalRect & rect = rects[ i ];
-				if( rect.bounds.mins.x <= x && x <= rect.bounds.maxs.x ) {
+			for ( u32 y = rect.bounds.mins.y; y <= rect.bounds.maxs.y; y++ ) {
+				DecalSet & set = rows_coverage[ y ];
+				if ( set.num_decals < MAX_DECALS_PER_SET ) {
 					set.indices[ set.num_decals ] = rect.idx;
 					set.num_decals++;
 				}
@@ -300,7 +295,9 @@ void UploadDecalBuffers() {
 					if( x_instance == y_instance ) {
 						gpu_decals( gpu_counts( x, y ), x, y ) = decals[ x_instance ];
 						gpu_counts( x, y )++;
-						// NOTE(msc): can't hit MAX_DECALS_PER_TILE limit since both sets are smaller
+						if( gpu_counts( x, y ) == MAX_DECALS_PER_TILE ) {
+							break;
+						}
 						x_idx++;
 						y_idx++;
 					} else if( x_instance < y_instance ) {

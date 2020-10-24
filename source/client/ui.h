@@ -10,7 +10,7 @@ void UI_Refresh();
 void UI_ShowMainMenu();
 void UI_ShowConnectingScreen();
 void UI_ShowGameMenu();
-void UI_ShowLoadoutMenu( Span< int > weapons );
+void UI_ShowLoadoutMenu();
 void UI_ShowDemoMenu();
 void UI_HideMenu();
 

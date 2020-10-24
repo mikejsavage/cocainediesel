@@ -1985,6 +1985,13 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 
 	const SyncEntityState * es = &cg_entities[ ps->POVnum ].current;
 
+	int num_items = 0;
+	for( size_t i = 0; i < ARRAY_COUNT( ps->items ); i++ ) {
+		if( ps->items[ i ].item != Item_None ) {
+			num_items++;
+		}
+	}
+
 	int num_weapons = 0;
 	for( size_t i = 0; i < ARRAY_COUNT( ps->weapons ); i++ ) {
 		if( ps->weapons[ i ].weapon != Weapon_None ) {
@@ -1996,8 +2003,8 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 
 	int padx = offx - iw;
 	int pady = offy - ih;
-	int total_width = Max2( 0, ( num_weapons + bomb ) * offx - padx );
-	int total_height = Max2( 0, ( num_weapons + bomb ) * offy - pady );
+	int total_width = Max2( 0, ( num_items + num_weapons + bomb ) * offx - padx );
+	int total_height = Max2( 0, ( num_items + num_weapons + bomb ) * offy - pady );
 
 	int border = iw * 0.04f;
 	int border_sel = border * 0.25f;
@@ -2019,9 +2026,72 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		Draw2DBox( curx + border + padding, cury + border + padding, iconw, iconh, cgs.media.shaderBombIcon, color );
 	}
 
+	num_items = 0;
+	for( int i = 0; i < ARRAY_COUNT( ps->items ); i++ ) {
+		if( ps->items[ i ].item == Item_None )
+			continue;
+
+		int curx = CG_HorizontalAlignForWidth( x + offx * ( num_items + bomb ), alignment, total_width );
+		int cury = CG_VerticalAlignForHeight( y + offy * ( num_items + bomb ), alignment, total_height );
+		num_items++;
+
+		ItemType item = ps->items[ i ].item;
+		int uses = ps->items[ i ].uses;
+		const Item * def = GS_GetItem( item );
+
+		Vec4 color = Vec4( 1.0f );
+		float uses_frac = float( uses ) / float( def->uses );
+		color = Lerp( color_ammo_min, Unlerp( 0.0f, uses_frac, 1.0f ), color_ammo_max );
+
+		Vec4 color_bg = Vec4( color.xyz() * 0.33f, 1.0f );
+		const Material * icon = cgs.media.shaderItemIcon[ item ];
+
+		bool selected = def->category == ItemCategory_Utility && ps->weapon_state == WeaponState_Disabled;
+		int offset = ( selected ? border_sel : 0 );
+		int pady_sel = ( selected ? pad_sel : 0 );
+
+		if( uses_frac < 1.0f ) {
+			Draw2DBox( curx - offset, cury - offset - pady_sel, iw + offset * 2, ih + offset * 2, cls.white_material, light_gray );
+			Draw2DBox( curx + border, cury + border - pady_sel, innerw, innerh, cls.white_material, dark_gray );
+			Draw2DBox( curx + border + padding, cury + border + padding - pady_sel, iconw, iconh, icon, light_gray );
+		}
+
+		Vec2 half_pixel = HalfPixelSize( icon );
+
+		if( def->uses == 0 || uses_frac != 0 ) {
+			Draw2DBox( curx - offset, cury + ih * ( 1.0f - uses_frac ) - offset - pady_sel, iw + offset * 2, ih * uses_frac + offset * 2, cls.white_material, color );
+			Draw2DBox( curx + border, cury + ih * ( 1.0f - uses_frac ) + border - pady_sel, innerw, ih * uses_frac - border * 2, cls.white_material, color_bg );
+		}
+
+		float asdf = Max2( ih * ( 1.0f - uses_frac ), float( padding ) ) - padding;
+		Draw2DBoxUV( curx + border + padding, cury + border + padding + asdf - pady_sel,
+			iconw, iconh - asdf,
+			Vec2( half_pixel.x, Lerp( half_pixel.y, asdf / iconh, 1.0f - half_pixel.y ) ), 1.0f - half_pixel,
+			icon, color );
+
+		if( def->uses != 0 ) {
+			DrawText( GetHUDFont(), font_size, va( "%i", uses ), Alignment_CenterMiddle, curx + iw*0.5f, cury - ih * 0.25f - pady_sel, color, layout_cursor_font_border );
+		}
+		
+		if( def->category == ItemCategory_Utility ) {
+			// weapon slot binds start from index 1, use drawn_weapons for actual loadout index
+			char bind[ 32 ];
+
+			// UNBOUND can look real stupid so bump size down a bit in case someone is scrolling. this still doesnt fit
+			const float bind_font_size = font_size * 0.55f;
+
+			// first try the weapon specific bind
+			if( !CG_GetBoundKeysString( "+utility", bind, sizeof( bind ) ) ) {
+				CG_GetBoundKeysString( "+utility", bind, sizeof( bind ) );
+			}
+
+			DrawText( GetHUDFont(), bind_font_size, va( "[ %s ]", bind) , Alignment_CenterMiddle, curx + iw*0.5f, cury + ih * 1.2f - pady_sel, layout_cursor_color, layout_cursor_font_border );
+		}
+	}
+
 	for( int i = 0; i < num_weapons; i++ ) {
-		int curx = CG_HorizontalAlignForWidth( x + offx * ( i + bomb ), alignment, total_width );
-		int cury = CG_VerticalAlignForHeight( y + offy * ( i + bomb ), alignment, total_height );
+		int curx = CG_HorizontalAlignForWidth( x + offx * ( num_items + i + bomb ), alignment, total_width );
+		int cury = CG_VerticalAlignForHeight( y + offy * ( num_items + i + bomb ), alignment, total_height );
 
 		WeaponType weap = ps->weapons[ i ].weapon;
 		int ammo = ps->weapons[ i ].ammo;

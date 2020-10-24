@@ -5,6 +5,7 @@ class cPlayer {
 	Client @client;
 
 	WeaponType[] loadout( WeaponCategory_Count );
+	ItemType[] item_loadout( ItemCategory_Count );
 
 	int killsThisRound;
 
@@ -17,6 +18,7 @@ class cPlayer {
 		@this.client = @player;
 
 		setLoadout( this.client.getUserInfoKey( "cg_loadout" ) );
+		setItemLoadout( this.client.getUserInfoKey( "cg_item_loadout" ) );
 
 		this.arms = 0;
 		this.defuses = 0;
@@ -36,6 +38,12 @@ class cPlayer {
 			}
 		}
 
+		for( uint i = 0; i < item_loadout.length; i++ ) {
+			if( item_loadout[ i ] != Item_None ) {
+				this.client.giveItem( this.item_loadout[ i ] );
+			}
+		}
+
 		this.client.selectWeapon( 0 );
 		this.client.selectWeapon( 1 );
 	}
@@ -45,13 +53,7 @@ class cPlayer {
 			return;
 		}
 
-		String command = "changeloadout";
-		for( uint i = 0; i < loadout.length; i++ ) {
-			if( loadout[ i ] != Weapon_None ) {
-				command += " " + loadout[ i ];
-			}
-		}
-		this.client.execGameCommand( command );
+		this.client.execGameCommand( "changeloadout" );
 	}
 
 	void setLoadout( String &cmd ) {
@@ -81,6 +83,50 @@ class cPlayer {
 		for( uint i = 0; i < this.loadout.length; i++ ) {
 			if( this.loadout[ i ] != Weapon_None ) {
 				command += " " + this.loadout[ i ];
+			}
+		}
+		this.client.execGameCommand( command );
+
+		if( this.client.getEnt().isGhosting() ) {
+			return;
+		}
+
+		if( match.getState() == MATCH_STATE_WARMUP || match.getState() == MATCH_STATE_COUNTDOWN ) {
+			giveInventory();
+		}
+
+		if( match.getState() == MATCH_STATE_PLAYTIME && roundState == RoundState_Pre ) {
+			giveInventory();
+		}
+	}
+
+	void setItemLoadout( String &cmd ) {
+		ItemType[] new_loadout( ItemCategory_Count );
+
+		for( int i = 0; i < ItemCategory_Count; i++ ) {
+			String token = cmd.getToken( i );
+			if( token == "" )
+				break;
+
+			int item = token.toInt();
+			if( item <= Item_None || item >= Item_Count ) {
+				return;
+			}
+
+			ItemCategory category = GetItemCategory( ItemType( item ) );
+			if( new_loadout[ category ] != Item_None ) {
+				return;
+			}
+
+			new_loadout[ category ] = ItemType( item );
+		}
+
+		this.item_loadout = new_loadout;
+
+		String command = "saveitemloadout";
+		for( uint i = 0; i < this.item_loadout.length; i++ ) {
+			if( this.item_loadout[ i ] != Item_None ) {
+				command += " " + this.item_loadout[ i ];
 			}
 		}
 		this.client.execGameCommand( command );

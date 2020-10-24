@@ -304,22 +304,15 @@ static void CG_SC_ChangeLoadout() {
 	if( cgs.demoPlaying )
 		return;
 
-	int weapons[ WeaponCategory_Count ] = { };
-	size_t n = 0;
-
-	if( Cmd_Argc() - 1 > ARRAY_COUNT( weapons ) )
-		return;
-
-	for( int i = 0; i < Cmd_Argc() - 1; i++ ) {
-		weapons[ n ] = atoi( Cmd_Argv( i + 1 ) );
-		n++;
-	}
-
-	UI_ShowLoadoutMenu( Span< int >( weapons, n ) );
+	UI_ShowLoadoutMenu();
 }
 
 static void CG_SC_SaveLoadout() {
 	Cvar_Set( "cg_loadout", Cmd_Args() );
+}
+
+static void CG_SC_SaveItemLoadout() {
+	Cvar_Set( "cg_item_loadout", Cmd_Args() );
 }
 
 void CG_AddAward( const char * str ) {
@@ -353,6 +346,7 @@ static const ServerCommand server_commands[] = {
 	{ "aw", CG_SC_AddAward },
 	{ "changeloadout", CG_SC_ChangeLoadout },
 	{ "saveloadout", CG_SC_SaveLoadout },
+	{ "saveitemloadout", CG_SC_SaveItemLoadout },
 };
 
 void CG_GameCommand( const char * command ) {

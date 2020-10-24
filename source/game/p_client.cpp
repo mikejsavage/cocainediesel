@@ -1059,6 +1059,7 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	}
 
 	ent->s.weapon = GS_ThinkPlayerWeapon( &server_gs, &client->ps, ucmd, client->timeDelta );
+	GS_ThinkPlayerItem( &server_gs, &client->ps, ucmd, client->timeDelta );
 
 	if( G_IsDead( ent ) ) {
 		if( ent->deathTimeStamp + g_respawn_delay_min->integer <= level.time ) {

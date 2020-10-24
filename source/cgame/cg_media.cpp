@@ -154,6 +154,10 @@ void CG_RegisterMediaShaders() {
 		cgs.media.shaderWeaponIcon[ i ] = FindMaterial( temp( "weapons/{}/icon", GS_GetWeaponDef( i )->short_name ) );
 	}
 
+	for( ItemType i = 0; i < Item_Count; i++ ) {
+		cgs.media.shaderItemIcon[ i ] = FindMaterial( temp( "items/{}", GS_GetItem( i )->short_name ) );
+	}
+
 	cgs.media.shaderKeyIcon[KEYICON_FORWARD] = FindMaterial( PATH_KEYICON_FORWARD );
 	cgs.media.shaderKeyIcon[KEYICON_BACKWARD] = FindMaterial( PATH_KEYICON_BACKWARD );
 	cgs.media.shaderKeyIcon[KEYICON_LEFT] = FindMaterial( PATH_KEYICON_LEFT );

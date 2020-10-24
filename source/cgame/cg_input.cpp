@@ -45,6 +45,8 @@ static Button button_walk;
 static Button button_attack;
 static Button button_reload;
 
+static Button button_utility;
+
 static void ClearButton( Button * b ) {
 	b->keys[ 0 ] = 0;
 	b->keys[ 1 ] = 0;
@@ -126,6 +128,9 @@ static void IN_AttackUp() { KeyUp( &button_attack ); }
 static void IN_ReloadDown() { KeyDown( &button_reload ); }
 static void IN_ReloadUp() { KeyUp( &button_reload ); }
 
+static void IN_UtilityDown() { KeyDown( &button_utility ); }
+static void IN_UtilityUp() { KeyUp( &button_utility ); }
+
 unsigned int CG_GetButtonBits() {
 	unsigned int buttons = 0;
 
@@ -142,6 +147,11 @@ unsigned int CG_GetButtonBits() {
 	if( button_reload.down || button_reload.edge ) {
 		buttons |= BUTTON_RELOAD;
 		button_reload.edge = false;
+	}
+
+	if( button_utility.down || button_utility.edge ) {
+		buttons |= BUTTON_UTILITY;
+		button_utility.edge = false;
 	}
 
 	if( button_walk.down ) {
@@ -298,6 +308,8 @@ void CG_ClearInputState() {
 	ClearButton( &button_walk );
 
 	ClearButton( &button_attack );
+	ClearButton( &button_reload );
+	ClearButton( &button_utility );
 
 	mouse_movement = Vec2( 0.0f );
 }
@@ -327,6 +339,9 @@ void CG_InitInput() {
 	Cmd_AddCommand( "-attack", IN_AttackUp );
 	Cmd_AddCommand( "+reload", IN_ReloadDown );
 	Cmd_AddCommand( "-reload", IN_ReloadUp );
+
+	Cmd_AddCommand( "+utility", IN_UtilityDown );
+	Cmd_AddCommand( "-utility", IN_UtilityUp );
 
 	// legacy command names
 	Cmd_AddCommand( "+moveleft", IN_LeftDown );
@@ -374,6 +389,9 @@ void CG_ShutdownInput() {
 	Cmd_RemoveCommand( "-attack" );
 	Cmd_RemoveCommand( "+reload" );
 	Cmd_RemoveCommand( "-reload" );
+
+	Cmd_RemoveCommand( "+utility" );
+	Cmd_RemoveCommand( "-utility" );
 
 	// legacy command names
 	Cmd_RemoveCommand( "+moveleft" );

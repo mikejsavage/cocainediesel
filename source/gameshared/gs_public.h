@@ -71,6 +71,25 @@ enum MatchState {
 	MATCH_STATE_TOTAL
 };
 
+typedef u8 ItemType;
+enum ItemType_ : ItemType {
+	Item_None,
+
+	Item_FakeBomb,
+	Item_Nade,
+
+	Item_Jetpack,
+
+	Item_Count
+};
+
+enum ItemCategory {
+	ItemCategory_Utility,
+	ItemCategory_Perk,
+
+	ItemCategory_Count
+};
+
 typedef u8 WeaponType;
 enum WeaponType_ : WeaponType {
 	Weapon_None,
@@ -101,19 +120,14 @@ enum WeaponState_ : WeaponState {
 	WeaponState_Firing,
 	WeaponState_FiringSemiAuto,
 	WeaponState_Reloading,
+	WeaponState_Disabling,
+	WeaponState_Disabled,
 };
 
 enum FiringMode {
 	FiringMode_Auto,
 	FiringMode_Smooth,
 	FiringMode_SemiAuto,
-};
-
-enum ItemType {
-	Item_Bomb,
-	Item_FakeBomb,
-
-	Item_Count
 };
 
 typedef u8 RoundType;
@@ -285,7 +299,14 @@ struct SyncPlayerState {
 	};
 
 	WeaponInfo weapons[ Weapon_Count - 1 ];
-	bool items[ Item_Count ];
+
+	struct ItemInfo {
+		ItemType item;
+		int uses;
+	};
+
+	ItemInfo items[ ItemCategory_Count ];
+	s16 item_time;
 
 	uint32_t plrkeys;           // infos on the pressed keys of chased player (self if not chasing)
 
@@ -438,14 +459,18 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove );
 //==================
 
 struct Item {
-	ItemType type;
-
 	const char * name;
 	const char * short_name;
-	RGB8 color;
-	const char * description;
-	int cost;
+
+	ItemCategory category;
+
+	s32 uses;
+	u32 charge_time;
+	float damage;
 };
+
+const Item * GS_GetItem( ItemType item );
+ItemType GS_ThinkPlayerItem( const gs_state_t * gs, SyncPlayerState * player, const usercmd_t * cmd, int timeDelta );
 
 //===================
 //	GAMETYPES

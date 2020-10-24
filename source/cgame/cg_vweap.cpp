@@ -196,6 +196,9 @@ void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
 
 	viewweapon->POVnum = cg.predictedPlayerState.POVnum;
 	viewweapon->weapon = cg.predictedPlayerState.weapon;
+	if( cg.predictedPlayerState.weapon_state == WeaponState_Disabled ) {
+		viewweapon->weapon = Weapon_None;
+	}
 
 	// hack cause of missing animation config
 	if( viewweapon->weapon == Weapon_None ) {

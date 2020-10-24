@@ -175,6 +175,20 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 		}
 	}
 
+	// weapon disabling for items
+	if( player->weapon_state == WeaponState_Disabling ) {
+		if( player->weapon_time > 0 ) {
+			return player->weapon;
+		}
+
+		player->weapon_state = WeaponState_Disabled;
+		return Weapon_None;
+	}
+
+	if( player->weapon_state == WeaponState_Disabled ) {
+		return Weapon_None;
+	}
+
 	SyncPlayerState::WeaponInfo * selected_weapon = GS_FindWeapon( player, player->weapon );
 
 	if( player->weapon_state == WeaponState_Reloading ) {

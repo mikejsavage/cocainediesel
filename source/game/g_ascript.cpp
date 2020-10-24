@@ -197,10 +197,23 @@ static const asEnumVal_t asWeaponTypeEnumVals[] =
 	ASLIB_ENUM_VAL_NULL
 };
 
+static const asEnumVal_t asItemCategoryEnumVals[] =
+{
+	ASLIB_ENUM_VAL( ItemCategory_Utility ),
+	ASLIB_ENUM_VAL( ItemCategory_Perk ),
+
+	ASLIB_ENUM_VAL( ItemCategory_Count ),
+
+	ASLIB_ENUM_VAL_NULL
+};
+
 static const asEnumVal_t asItemTypeEnumVals[] =
 {
-	ASLIB_ENUM_VAL( Item_Bomb ),
+	ASLIB_ENUM_VAL( Item_None ),
+
 	ASLIB_ENUM_VAL( Item_FakeBomb ),
+	ASLIB_ENUM_VAL( Item_Nade ),
+	ASLIB_ENUM_VAL( Item_Jetpack ),
 
 	ASLIB_ENUM_VAL( Item_Count ),
 
@@ -375,6 +388,7 @@ static const asEnum_t asGameEnums[] =
 
 	{ "WeaponCategory", asWeaponCategoryEnumVals },
 	{ "WeaponType", asWeaponTypeEnumVals },
+	{ "ItemCategory", asItemCategoryEnumVals },
 	{ "ItemType", asItemTypeEnumVals },
 
 	{ "client_statest_e", asClientStateEnumVals },
@@ -786,8 +800,26 @@ static void objectGameClient_GiveWeapon( WeaponType weapon, gclient_t * self ) {
 	}
 }
 
+static void objectGameClient_GiveItem( ItemType item, gclient_t * self ) {
+	assert( item > Item_None && item < Item_Count );
+
+	int playerNum = objectGameClient_PlayerNum( self );
+	if( playerNum < 0 || playerNum >= server_gs.maxclients ) {
+		return;
+	}
+
+	SyncPlayerState * ps = &PLAYERENT( playerNum )->r.client->ps;
+
+	ItemCategory category = GS_GetItem( item )->category;
+	if( ps->items[ category ].item == item || ps->items[ category ].item == Item_None ) {
+		ps->items[ category ].item = item;
+		ps->items[ category ].uses = GS_GetItem( item )->uses;
+	}
+}
+
 static void objectGameClient_InventoryClear( gclient_t *self ) {
 	memset( self->ps.weapons, 0, sizeof( self->ps.weapons ) );
+	memset( self->ps.items, 0, sizeof( self->ps.items ) );
 
 	self->ps.weapon = Weapon_None;
 	self->ps.pending_weapon = Weapon_None;
@@ -909,6 +941,7 @@ static const asMethod_t gameclient_Methods[] =
 	{ ASLIB_FUNCTION_DECL( const String @, get_name, ( ) const ), asFUNCTION( objectGameClient_getName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( Entity @, getEnt, ( ) const ), asFUNCTION( objectGameClient_GetEntity ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, giveWeapon, ( WeaponType weapon ) ), asFUNCTION( objectGameClient_GiveWeapon ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, giveItem, ( ItemType weapon ) ), asFUNCTION( objectGameClient_GiveItem ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, inventoryClear, ( ) ), asFUNCTION( objectGameClient_InventoryClear ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, selectWeapon, ( int tag ) ), asFUNCTION( objectGameClient_SelectWeapon ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, addAward, ( const String &in ) ), asFUNCTION( objectGameClient_addAward ), asCALL_CDECL_OBJLAST },
@@ -1562,6 +1595,10 @@ static WeaponCategory asFunc_GetWeaponCategory( WeaponType weapon ) {
 	return GS_GetWeaponDef( weapon )->category;
 }
 
+static ItemCategory asFunc_GetItemCategory( ItemType item ) {
+	return GS_GetItem( item )->category;
+}
+
 static u64 asFunc_Hash64( asstring_t *str ) {
 	if( !str || !str->buffer ) {
 		return 0;
@@ -1735,6 +1772,7 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "void G_ConfigString( int index, const String &in )", asFUNCTION( asFunc_SetConfigString ), NULL },
 
 	{ "WeaponCategory GetWeaponCategory( WeaponType )", asFUNCTION( asFunc_GetWeaponCategory ), NULL },
+	{ "ItemCategory GetItemCategory( ItemType )", asFUNCTION( asFunc_GetItemCategory ), NULL },
 
 	{ "uint64 Hash64( const String &in )", asFUNCTION( asFunc_Hash64 ), NULL },
 

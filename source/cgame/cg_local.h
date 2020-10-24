@@ -215,6 +215,7 @@ struct cgs_media_t {
 	const Material * shaderTick;
 
 	const Material * shaderWeaponIcon[ Weapon_Count ];
+	const Material * shaderItemIcon[ Item_Count ];
 	const Material * shaderKeyIcon[KEYICON_TOTAL];
 
 	const Material * shaderAlive;

@@ -101,6 +101,11 @@ bool GT_Command( Client @client, const String &cmdString, const String &argsStri
 		return true;
 	}
 
+	if( cmdString == "itemselect" ) {
+		playerFromClient( @client ).setItemLoadout( argsString );
+		return true;
+	}
+
 	return false;
 }
 
@@ -439,6 +444,7 @@ void GT_InitGametype() {
 
 	G_RegisterCommand( "gametypemenu" );
 	G_RegisterCommand( "weapselect" );
+	G_RegisterCommand( "itemselect" );
 
 	mediaInit();
 }

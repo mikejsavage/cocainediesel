@@ -194,6 +194,7 @@ static void CG_RegisterVariables( void ) {
 	cg_particleDebug = Cvar_Get( "cg_particleDebug", "0", CVAR_DEVELOPER );
 
 	Cvar_Get( "cg_loadout", "", CVAR_ARCHIVE | CVAR_USERINFO );
+	Cvar_Get( "cg_item_loadout", "", CVAR_ARCHIVE | CVAR_USERINFO );
 }
 
 void CG_Precache( void ) {

@@ -65,6 +65,7 @@ static int selected_server;
 
 static GameMenuState gamemenu_state;
 static WeaponType selected_weapons[ WeaponCategory_Count ];
+static ItemType selected_items[ ItemCategory_Count ];
 
 static SettingsState settings_state;
 static bool reset_video_settings;
@@ -267,6 +268,7 @@ static void SettingsControls() {
 			KeyBindButton( "Primary", "weapon 2" );
 			KeyBindButton( "Secondary", "weapon 3" );
 			KeyBindButton( "Backup", "weapon 4" );
+			KeyBindButton( "Utility", "+utility" );
 			KeyBindButton( "Next weapon", "weapnext" );
 			KeyBindButton( "Previous weapon", "weapprev" );
 
@@ -839,6 +841,17 @@ static void SendLoadout() {
 	loadout += "\n";
 
 	Cbuf_AddText( loadout.c_str() );
+
+	DynamicString item_loadout( &temp, "itemselect" );
+
+	for( size_t i = 0; i < ARRAY_COUNT( selected_items ); i++ ) {
+		if( selected_items[ i ] != Item_None ) {
+			item_loadout.append( " {}", selected_items[ i ] );
+		}
+	}
+	item_loadout += "\n";
+
+	Cbuf_AddText( item_loadout.c_str() );
 }
 
 static void WeaponButton( WeaponType weapon, Vec2 size ) {
@@ -878,15 +891,67 @@ static void WeaponButton( WeaponType weapon, Vec2 size ) {
 	}
 }
 
+static void ItemButton( ItemType item, Vec2 size ) {
+	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
+	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0.1f, 0.1f, 0.1f, 1.0f ) );
+	ImGui::PushStyleColor( ImGuiCol_ButtonActive, Vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
+	defer { ImGui::PopStyleColor( 3 ); };
+
+	ImGui::PushStyleVar( ImGuiStyleVar_FrameBorderSize, 2 );
+	ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0 );
+	defer { ImGui::PopStyleVar( 2 ); };
+
+	const Item * def = GS_GetItem( item );
+	bool selected = selected_items[ def->category ] == item;
+
+	const Material * icon = cgs.media.shaderItemIcon[ item ];
+	Vec2 half_pixel = HalfPixelSize( icon );
+	Vec4 color = selected ? vec4_green : vec4_white;
+
+	ImGui::PushStyleColor( ImGuiCol_Border, color );
+	defer { ImGui::PopStyleColor(); };
+
+	bool clicked = ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
+
+	// WeaponTooltip( def );
+
+	ImGui::SameLine();
+	ImGui::Dummy( Vec2( 16, 0 ) );
+	ImGui::SameLine();
+
+	int weaponBinds[ 2 ] = { -1, -1 };
+	CG_GetBoundKeycodes( va( "use %s", def->short_name ), weaponBinds );
+
+	if( clicked || ImGui::Hotkey( weaponBinds[ 0 ] ) || ImGui::Hotkey( weaponBinds[ 1 ] ) ) {
+		selected_items[ def->category ] = selected ? Item_None : item;
+		SendLoadout();
+	}
+}
+
 static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 icon_size ) {
 	ImGui::Text( "%s", label );
-	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
+	ImGui::Dummy( ImVec2( 0, icon_size.y ) );
 	ImGui::NextColumn();
 
 	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
 		const WeaponDef * def = GS_GetWeaponDef( i );
 		if( def->category == category ) {
 			WeaponButton( i, icon_size );
+		}
+	}
+
+	ImGui::NextColumn();
+}
+
+static void LoadoutItemCategory( const char * label, ItemCategory category, Vec2 icon_size ) {
+	ImGui::Text( "%s", label );
+	ImGui::Dummy( ImVec2( 0, icon_size.y ) );
+	ImGui::NextColumn();
+
+	for( ItemType i = 0; i < Item_Count; i++ ) {
+		const Item * def = GS_GetItem( i );
+		if( def->category == category ) {
+			ItemButton( i, icon_size );
 		}
 	}
 
@@ -908,6 +973,9 @@ static bool LoadoutMenu( Vec2 displaySize ) {
 	LoadoutCategory( "Primary", WeaponCategory_Primary, icon_size );
 	LoadoutCategory( "Secondary", WeaponCategory_Secondary, icon_size );
 	LoadoutCategory( "Backup", WeaponCategory_Backup, icon_size );
+
+	LoadoutItemCategory( "Utility", ItemCategory_Utility, icon_size );
+	LoadoutItemCategory( "Perks", ItemCategory_Perk, icon_size );
 
 	ImGui::EndColumns();
 
@@ -1194,7 +1262,7 @@ void UI_AddToServerList( const char * address, const char * info ) {
 	}
 }
 
-void UI_ShowLoadoutMenu( Span< int > weapons ) {
+void UI_ShowLoadoutMenu() {
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Loadout;
 
@@ -1202,15 +1270,22 @@ void UI_ShowLoadoutMenu( Span< int > weapons ) {
 		w = Weapon_None;
 	}
 
-	for( int w : weapons ) {
-		if( w <= Weapon_None || w >= Weapon_Count )
-			return;
+	for ( WeaponType i = Weapon_None; i < Weapon_Count - 1; i++ ) {
+		WeaponType weapon = cg.predictedPlayerState.weapons[ i ].weapon;
+		if ( weapon != Weapon_None ) {
+			selected_weapons[ GS_GetWeaponDef( weapon )->category ] = weapon;
+		}
+	}
 
-		WeaponCategory category = GS_GetWeaponDef( w )->category;
-		if( category == WeaponCategory_Count || selected_weapons[ category ] != Weapon_None )
-			return;
+	for( ItemType & i : selected_items ) {
+		i = Item_None;
+	}
 
-		selected_weapons[ category ] = w;
+	for ( ItemType i = 0; i < ItemCategory_Count; i++ ) {
+		ItemType item = cg.predictedPlayerState.items[ i ].item;
+		if ( item != Item_None ) {
+			selected_items[ GS_GetItem( item )->category ] = item;
+		}
 	}
 
 	CL_SetKeyDest( key_menu );

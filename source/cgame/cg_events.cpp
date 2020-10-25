@@ -189,7 +189,7 @@ static void CG_Event_LaserBeam( Vec3 origin, Vec3 dir, int entNum ) {
  * CG_FireWeaponEvent
  */
 static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
-	const WeaponModelMetadata * weaponInfo = cgs.weaponInfos[ weapon ];
+	const WeaponModelMetadata * weaponInfo = GetWeaponModelMetadata( weapon );
 	const SoundEffect * sfx = weaponInfo->fire_sound;
 
 	if( sfx ) {
@@ -598,13 +598,12 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			bool silent = ( parm & 1 ) != 0;
 			if( predicted ) {
 				cg_entities[ ent->number ].current.weapon = weapon;
-				CG_ViewWeapon_RefreshAnimation( &cg.weapon );
 			}
 
 			if( !silent ) {
 				CG_PModel_AddAnimation( ent->number, 0, TORSO_WEAPON_SWITCHIN, 0, EVENT_CHANNEL );
 
-				const SoundEffect * sfx = cgs.weaponInfos[ weapon ]->up_sound;
+				const SoundEffect * sfx = GetWeaponModelMetadata( weapon )->up_sound;
 				if( viewer ) {
 					S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f );
 				}
@@ -617,8 +616,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_SMOOTHREFIREWEAPON: // the server never sends this event
 			if( predicted ) {
 				cg_entities[ ent->number ].current.weapon = parm;
-
-				CG_ViewWeapon_RefreshAnimation( &cg.weapon );
 
 				if( parm == Weapon_Laser ) {
 					Vec3 origin = cg.predictedPlayerState.pmove.origin;
@@ -692,7 +689,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			if( parm <= Weapon_None || parm >= Weapon_Count )
 				return;
 
-			const WeaponModelMetadata * weapon = cgs.weaponInfos[ parm ];
+			const WeaponModelMetadata * weapon = GetWeaponModelMetadata( parm );
 			const SoundEffect * sfx = ev == EV_ZOOM_IN ? weapon->zoom_in_sound : weapon->zoom_out_sound;
 
 			if( viewer ) {

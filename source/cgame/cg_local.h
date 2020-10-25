@@ -298,8 +298,6 @@ struct cg_static_t {
 	char configStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 	char baseConfigStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 
-	WeaponModelMetadata *weaponInfos[ Weapon_Count + 1 ];
-
 	cg_clientInfo_t clientInfo[MAX_CLIENTS];
 
 	PlayerModelMetadata *teamModelInfo[2];
@@ -633,7 +631,6 @@ void DrawPersistentBeams();
 void CG_AddViewWeapon( cg_viewweapon_t *viewweapon );
 void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon );
 void CG_ViewWeapon_StartAnimationEvent( int newAnim );
-void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon );
 
 void CG_AddRecoil( WeaponType weapon );
 void CG_Recoil( WeaponType weapon );

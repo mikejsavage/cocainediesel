@@ -29,8 +29,6 @@ extern cvar_t *cg_weaponFlashes;
 extern cvar_t *cg_gunx;
 extern cvar_t *cg_guny;
 extern cvar_t *cg_gunz;
-extern cvar_t *cg_debugPlayerModels;
-extern cvar_t *cg_debugWeaponModels;
 extern cvar_t *cg_gunbob;
 extern cvar_t *cg_gun_fov;
 extern cvar_t *cg_handOffset;
@@ -121,20 +119,13 @@ enum {
 	VWEAP_MAXANIMS
 };
 
-// equivalent to pmodelinfo_t. Shared by different players, etc.
 struct WeaponModelMetadata {
 	bool inuse;
 
 	const Model * model;
 
-	int firstframe[VWEAP_MAXANIMS];         // animation script
-	int lastframe[VWEAP_MAXANIMS];
-	int loopingframes[VWEAP_MAXANIMS];
-	unsigned int frametime[VWEAP_MAXANIMS];
-
 	orientation_t tag_projectionsource;
 
-	// handOffset
 	Vec3 handpositionOrigin;
 	Vec3 handpositionAngles;
 
@@ -250,9 +241,8 @@ void CG_PModel_ClearEventAnimations( int entNum );
 //
 // cg_wmodels.c
 //
-void CG_WModelsInit();
-WeaponModelMetadata *CG_CreateWeaponZeroModel();
-WeaponModelMetadata *CG_RegisterWeaponModel( const char *cgs_name, WeaponType weaponTag );
+void InitWeaponModels();
+const WeaponModelMetadata * GetWeaponModelMetadata( WeaponType weapon );
 
 //=================================================
 //				VIEW WEAPON
@@ -261,9 +251,6 @@ WeaponModelMetadata *CG_RegisterWeaponModel( const char *cgs_name, WeaponType we
 struct cg_viewweapon_t {
 	mat3_t axis;
 	Vec3 origin;
-
-	unsigned int POVnum;
-	int weapon;
 
 	// animation
 	int baseAnim;

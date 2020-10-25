@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/model.h"
 
 pmodel_t cg_entPModels[MAX_EDICTS];
-PlayerModelMetadata *cg_PModelInfos;
+static PlayerModelMetadata *cg_PModelInfos;
 
 void CG_PModelsInit() {
 	memset( cg_entPModels, 0, sizeof( cg_entPModels ) );
@@ -868,7 +868,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 
 	// add weapon model
 	if( cent->current.weapon != Weapon_None ) {
-		const Model * weapon_model = cgs.weaponInfos[ cent->current.weapon ]->model;
+		const Model * weapon_model = GetWeaponModelMetadata( cent->current.weapon )->model;
 		if( weapon_model != NULL ) {
 			Mat4 tag_transform = TransformTag( weapon_model, transform, pose, meta->tag_weapon );
 

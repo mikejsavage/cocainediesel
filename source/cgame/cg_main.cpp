@@ -31,8 +31,6 @@ cvar_t *cg_showMiss;
 
 cvar_t *cg_hand;
 
-cvar_t *cg_addDecals;
-
 cvar_t *cg_thirdPerson;
 cvar_t *cg_thirdPersonAngle;
 cvar_t *cg_thirdPersonRange;
@@ -40,8 +38,6 @@ cvar_t *cg_thirdPersonRange;
 cvar_t *cg_gunx;
 cvar_t *cg_guny;
 cvar_t *cg_gunz;
-cvar_t *cg_debugPlayerModels;
-cvar_t *cg_debugWeaponModels;
 cvar_t *cg_gunbob;
 
 cvar_t *cg_handOffset;
@@ -129,13 +125,6 @@ char *_CG_CopyString( const char *in, const char *filename, int fileline ) {
 	return out;
 }
 
-static void CG_RegisterWeaponModels( void ) {
-	cgs.weaponInfos[ Weapon_None ] = CG_CreateWeaponZeroModel();
-	for( WeaponType i = Weapon_None + 1; i < Weapon_Count; i++ ) {
-		cgs.weaponInfos[i] = CG_RegisterWeaponModel( GS_GetWeaponDef( i )->short_name, i );
-	}
-}
-
 static void CG_RegisterClients( void ) {
 	for( int i = 0; i < MAX_CLIENTS; i++ ) {
 		const char * name = cgs.configStrings[CS_PLAYERINFOS + i];
@@ -148,14 +137,9 @@ static void CG_RegisterClients( void ) {
 static void CG_RegisterVariables( void ) {
 	cg_showMiss =       Cvar_Get( "cg_showMiss", "0", 0 );
 
-	cg_debugPlayerModels =  Cvar_Get( "cg_debugPlayerModels", "0", CVAR_CHEAT );
-	cg_debugWeaponModels =  Cvar_Get( "cg_debugWeaponModels", "0", CVAR_CHEAT );
-
 	cg_showHotkeys = Cvar_Get( "cg_showHotkeys", "1", CVAR_ARCHIVE );
 
 	cg_hand =           Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
-
-	cg_addDecals =      Cvar_Get( "cg_decals", "1", CVAR_ARCHIVE );
 
 	cg_thirdPerson =    Cvar_Get( "cg_thirdPerson", "0", CVAR_CHEAT );
 	cg_thirdPersonAngle =   Cvar_Get( "cg_thirdPersonAngle", "0", 0 );
@@ -202,7 +186,6 @@ void CG_Precache( void ) {
 	}
 
 	CG_RegisterMediaModels();
-	CG_RegisterWeaponModels();
 	CG_RegisterPlayerModels();
 	CG_RegisterMediaSounds();
 	CG_RegisterMediaSounds();
@@ -288,7 +271,7 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	CG_RegisterVariables();
 	CG_PModelsInit();
-	CG_WModelsInit();
+	InitWeaponModels();
 
 	CG_ScreenInit();
 

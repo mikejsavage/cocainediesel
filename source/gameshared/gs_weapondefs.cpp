@@ -165,11 +165,11 @@ const WeaponDef gs_weaponDefs[] = {
 		//timings (in msecs)
 		WEAPONUP_TIME_SLOW,             // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		1400,                           // refire time
+		1250,                           // refire time
 		HITSCAN_RANGE,                  // projectile timeout / projectile range for instant weapons
 		Vec2( 325.0f, 120.0f ),         // recoil
 		Vec2( 125.0f, 80.0f ),          // recoilmin
-		1800.0f,                        // recoil recovery
+		1500.0f,                        // recoil recovery
 		FiringMode_Auto,
 
 		0.0f,                           // zoom fov
@@ -240,7 +240,7 @@ const WeaponDef gs_weaponDefs[] = {
 		Vec2( 325.0f, 60.0f ),          // recoil
 		Vec2( 125.0f, 20.0f ),          // recoilmin
 		2000.0f,                        // recoil recovery
-		FiringMode_Auto,
+		FiringMode_SemiAuto,
 
 		0.0f,                           // zoom fov
 		0.0f,                           // !zoom inaccuracy
@@ -274,14 +274,14 @@ const WeaponDef gs_weaponDefs[] = {
 		10000,                          // projectile timeout
 		Vec2( 350.0f, 100.0f ),         // recoil
 		Vec2( 150.0f, 40.0f ),          // recoilmin
-		2500.0f,                        // recoil recovery
+		2000.0f,                        // recoil recovery
 		FiringMode_Auto,
 
 		0.0f,                           // zoom fov
 		0.0f,                           // !zoom inaccuracy
 
 		//damages
-		45,                             // damage
+		40,                             // damage
 		1.0f,                           // selfdamage ratio
 		100,                            // knockback
 		120,                            // splash radius
@@ -320,7 +320,7 @@ const WeaponDef gs_weaponDefs[] = {
 		0,                              // selfdamage ratio
 		30,                             // knockback
 		45,                             // splash radius
-		6,                              // splash minimum damage
+		7,                              // splash minimum damage
 		5,                              // splash minimum knockback
 
 		//projectile def
@@ -484,7 +484,7 @@ const WeaponDef gs_weaponDefs[] = {
 		10000,                          // range
 		Vec2( 275.0f, 60.0f ),          // recoil
 		Vec2( 125.0f, 20.0f ),          // recoilmin
-		2000.0f,                        // recoil recovery
+		1500.0f,                        // recoil recovery
 		FiringMode_SemiAuto,
 
 		0.0f,                           // zoom fov

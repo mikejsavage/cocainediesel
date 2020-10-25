@@ -633,9 +633,9 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 			glDrawElements( primitive, dc.num_instances, type, offset );
 			glEndTransformFeedback();
 
-			glBindBufferBase( GL_TRANSFORM_FEEDBACK_BUFFER, 0, NULL );
+			glBindBufferBase( GL_TRANSFORM_FEEDBACK_BUFFER, 0, 0 );
 			if( dc.feedback_data.vbo ) {
-				glBindBufferBase( GL_TRANSFORM_FEEDBACK_BUFFER, 1, NULL );
+				glBindBufferBase( GL_TRANSFORM_FEEDBACK_BUFFER, 1, 0 );
 			}
 			glDisable( GL_RASTERIZER_DISCARD );
 		}
@@ -1437,7 +1437,7 @@ void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out
 	dc.num_instances = num_particles;
 	dc.instance_data = vb_in;
 	dc.update_data = vb_out;
-	
+
 	draw_calls.add( dc );
 }
 
@@ -1463,7 +1463,7 @@ void UpdateParticlesFeedback( const Mesh & mesh, VertexBuffer vb_in, VertexBuffe
 	dc.instance_data = vb_in;
 	dc.update_data = vb_out;
 	dc.feedback_data = vb_feedback;
-	
+
 	draw_calls.add( dc );
 }
 

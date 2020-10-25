@@ -323,6 +323,7 @@ IndexBuffer NewIndexBuffer( Span< T > data ) {
 TextureBuffer NewTextureBuffer( TextureBufferFormat format, u32 len );
 void WriteTextureBuffer( TextureBuffer tb, const void * data, u32 size );
 void DeleteTextureBuffer( TextureBuffer tb );
+void DeferDeleteTextureBuffer( TextureBuffer tb );
 
 Texture NewTexture( const TextureConfig & config );
 void DeleteTexture( Texture texture );

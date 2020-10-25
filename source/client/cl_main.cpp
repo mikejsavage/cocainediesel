@@ -591,6 +591,8 @@ void CL_Disconnect( const char *message ) {
 
 	S_StopAllSounds( false );
 
+	CL_GameModule_Shutdown();
+
 	CL_ClearState();
 	CL_SetClientState( CA_DISCONNECTED );
 

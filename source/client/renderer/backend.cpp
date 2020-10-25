@@ -54,7 +54,8 @@ struct DrawCall {
 
 static DynamicArray< RenderPass > render_passes( NO_RAII );
 static DynamicArray< DrawCall > draw_calls( NO_RAII );
-static DynamicArray< Mesh > deferred_deletes( NO_RAII );
+static DynamicArray< Mesh > deferred_mesh_deletes( NO_RAII );
+static DynamicArray< TextureBuffer > deferred_tb_deletes( NO_RAII );
 
 static u32 num_vertices_this_frame;
 
@@ -287,7 +288,8 @@ void RenderBackendInit() {
 
 	render_passes.init( sys_allocator );
 	draw_calls.init( sys_allocator );
-	deferred_deletes.init( sys_allocator );
+	deferred_mesh_deletes.init( sys_allocator );
+	deferred_tb_deletes.init( sys_allocator );
 
 	glEnable( GL_DEPTH_TEST );
 	glDepthFunc( GL_LESS );
@@ -329,7 +331,8 @@ void RenderBackendShutdown() {
 
 	render_passes.shutdown();
 	draw_calls.shutdown();
-	deferred_deletes.shutdown();
+	deferred_mesh_deletes.shutdown();
+	deferred_tb_deletes.shutdown();
 }
 
 void RenderBackendBeginFrame() {
@@ -338,7 +341,8 @@ void RenderBackendBeginFrame() {
 
 	render_passes.clear();
 	draw_calls.clear();
-	deferred_deletes.clear();
+	deferred_mesh_deletes.clear();
+	deferred_tb_deletes.clear();
 
 	num_vertices_this_frame = 0;
 
@@ -724,9 +728,16 @@ void RenderBackendSubmitFrame() {
 	}
 
 	{
-		ZoneScopedN( "Deferred deletes" );
-		for( const Mesh & mesh : deferred_deletes ) {
+		ZoneScopedN( "Deferred mesh deletes" );
+		for( const Mesh & mesh : deferred_mesh_deletes ) {
 			DeleteMesh( mesh );
+		}
+	}
+
+	{
+		ZoneScopedN( "Deferred texturebuffer deletes" );
+		for( const TextureBuffer & tb : deferred_tb_deletes ) {
+			DeleteTextureBuffer( tb );
 		}
 	}
 
@@ -868,6 +879,10 @@ void WriteTextureBuffer( TextureBuffer tb, const void * data, u32 len ) {
 void DeleteTextureBuffer( TextureBuffer tb ) {
 	glDeleteBuffers( 1, &tb.tbo );
 	glDeleteTextures( 1, &tb.texture );
+}
+
+void DeferDeleteTextureBuffer( TextureBuffer tb ) {
+	deferred_tb_deletes.add( tb );
 }
 
 static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
@@ -1357,6 +1372,25 @@ void DeleteMesh( const Mesh & mesh ) {
 	glDeleteVertexArrays( 1, &mesh.vao );
 }
 
+void DeferDeleteMesh( const Mesh & mesh ) {
+	deferred_mesh_deletes.add( mesh );
+}
+
+void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 index_offset ) {
+	assert( in_frame );
+	assert( pipeline.pass != U8_MAX );
+	assert( pipeline.shader != NULL );
+
+	DrawCall dc = { };
+	dc.mesh = mesh;
+	dc.pipeline = pipeline;
+	dc.num_vertices = num_vertices_override == 0 ? mesh.num_vertices : num_vertices_override;
+	dc.index_offset = index_offset;
+	draw_calls.add( dc );
+
+	num_vertices_this_frame += dc.num_vertices;
+}
+
 u8 AddRenderPass( const RenderPass & pass ) {
 	return checked_cast< u8 >( render_passes.add( pass ) );
 }
@@ -1395,25 +1429,6 @@ void AddResolveMSAAPass( Framebuffer src, Framebuffer dst ) {
 	DrawCall dc = { };
 	dc.pipeline = dummy;
 	draw_calls.add( dc );
-}
-
-void DeferDeleteMesh( const Mesh & mesh ) {
-	deferred_deletes.add( mesh );
-}
-
-void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 index_offset ) {
-	assert( in_frame );
-	assert( pipeline.pass != U8_MAX );
-	assert( pipeline.shader != NULL );
-
-	DrawCall dc = { };
-	dc.mesh = mesh;
-	dc.pipeline = pipeline;
-	dc.num_vertices = num_vertices_override == 0 ? mesh.num_vertices : num_vertices_override;
-	dc.index_offset = index_offset;
-	draw_calls.add( dc );
-
-	num_vertices_this_frame += dc.num_vertices;
 }
 
 void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, float radius, u32 num_particles, float dt ) {

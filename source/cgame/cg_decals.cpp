@@ -54,8 +54,8 @@ void ShutdownDecals() {
 	gpu_decals.ptr = NULL;
 	FREE( sys_allocator, gpu_counts.ptr );
 	gpu_counts.ptr = NULL;
-	DeleteTextureBuffer( decal_buffer );
-	DeleteTextureBuffer( decal_count );
+	DeferDeleteTextureBuffer( decal_buffer );
+	DeferDeleteTextureBuffer( decal_count );
 }
 
 void DrawDecal( Vec3 origin, Vec3 normal, float radius, float angle, StringHash name, Vec4 color ) {

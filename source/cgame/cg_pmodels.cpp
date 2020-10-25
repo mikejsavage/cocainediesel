@@ -299,18 +299,9 @@ bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result ) {
 * CG_OutlineScaleForDist
 */
 static float CG_OutlineScaleForDist( const entity_t * e, float maxdist, float scale ) {
-	// if( e->renderfx & RenderFX_WeaponModel ) {
-	// 	return 0.14f;
-	// }
-
-	// Kill if behind the view or if too far away
 	Vec3 dir = e->origin - cg.view.origin;
-	float dist = Length( dir ) * cg.view.fracDistFOV; dir = Normalize( dir );
+	float dist = Length( dir ) * cg.view.fracDistFOV;
 	if( dist > maxdist ) {
-		return 0;
-	}
-
-	if( Dot( dir, FromQFAxis( cg.view.axis, AXIS_FORWARD ) ) < 0 ) {
 		return 0;
 	}
 

@@ -634,7 +634,6 @@ static void DrawWorld() {
 
 		const Framebuffer & fb = frame_static.world_gbuffer;
 		pipeline.set_texture( "u_DepthTexture", &fb.depth_texture );
-		pipeline.set_texture( "u_NormalTexture", &fb.normal_texture );
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 
 		DrawFullscreenMesh( pipeline );

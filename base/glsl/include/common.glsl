@@ -36,27 +36,6 @@ vec3 NormalToRGB( vec3 normal ) {
 	return normal * 0.5 + 0.5;
 }
 
-vec2 OctahedronWrap( vec2 v ) {
-	float x = ( 1.0 - abs( v.y ) ) * ( v.x >= 0.0 ? 1.0 : -1.0 );
-	float y = ( 1.0 - abs( v.x ) ) * ( v.y >= 0.0 ? 1.0 : -1.0 );
-	return vec2( x, y );
-}
-
-vec2 CompressNormal( vec3 n ) {
-	n /= abs( n.x ) + abs( n.y ) + abs( n.z );
-	vec2 oct = n.z >= 0.0 ? n.xy : OctahedronWrap( n.xy );
-	return oct * 0.5 + 0.5;
-}
-
-vec3 DecompressNormal( vec2 oct ) {
-	oct = oct * 2.0 - 1.0;
-	vec3 n = vec3( oct.x, oct.y, 1.0 - abs( oct.x ) - abs( oct.y ) );
-	float t = max( -n.z, 0.0 );
-	n.x += n.x >= 0.0 ? -t : t;
-	n.y += n.y >= 0.0 ? -t : t;
-	return normalize( n );
-}
-
 float Unlerp( float lo, float x, float hi ) {
 	return ( x - lo ) / ( hi - lo );
 }

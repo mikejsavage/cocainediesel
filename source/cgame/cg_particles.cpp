@@ -989,6 +989,7 @@ void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec
 	for( size_t i = 0; i < vfx->num_effects; i++ ) {
 		VisualEffect e = vfx->effects[ i ];
 		if( e.type == VisualEffectType_Particles ) {
+#if !PLATFORM_LINUX
 			u64 idx = num_particleEmitters;
 			if( particleEmitters_hashtable.get( e.hash, &idx ) ) {
 				ParticleEmitter * emitter = &particleEmitters[ idx ];
@@ -997,6 +998,7 @@ void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec
 				pos.normal = normal;
 				EmitParticles( emitter, pos, count, color );
 			}
+#endif
 		}
 		else if( e.type == VisualEffectType_Decal ) {
 			u64 idx = num_decalEmitters;

@@ -505,7 +505,7 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	PF_ConfigString( CS_MATCHSCORE, "" );
 
 	G_InitGameCommands();
-	G_CallVotes_Init();
+
 	G_SpawnQueue_Init();
 	G_Teams_Init();
 

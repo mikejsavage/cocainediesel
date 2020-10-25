@@ -21,10 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 
-//===================================================================
-
-int clientVoted[MAX_CLIENTS];
-int clientVoteChanges[MAX_CLIENTS];
+static int clientVoted[MAX_CLIENTS];
+static int clientVoteChanges[MAX_CLIENTS];
 
 cvar_t *g_callvote_electpercentage;
 cvar_t *g_callvote_electtime;          // in seconds

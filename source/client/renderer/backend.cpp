@@ -1106,7 +1106,7 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 	bool feedback = feedback_varyings.n > 0;
 
 	GLuint vs = CompileShader( GL_VERTEX_SHADER, srcs, lens );
-	GLuint fs;
+	GLuint fs = 0;
 	if( !feedback ) {
 		fs = CompileShader( GL_FRAGMENT_SHADER, srcs, lens );
 	}

@@ -46,8 +46,7 @@ static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, cplane_t *plan
 	// bmodels need special checking because their origin is 0,0,0
 	if( targ->movetype == MOVETYPE_PUSH ) {
 		// NOT FOR PLAYERS only for entities that can push the players
-		dest = targ->r.absmin + targ->r.absmax;
-		dest = dest * ( 0.5 );
+		dest = ( targ->r.absmin + targ->r.absmax ) * 0.5f;
 		G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, solidmask, timeDelta );
 		if( trace.fraction >= 1.0 - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 			return true;

@@ -353,7 +353,7 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 	chase_dest.z += 8;
 
 	// find the spot the player is looking at
-	Vec3 dest = view->origin + FromQFAxis( view->axis, AXIS_FORWARD ) * ( 512 );
+	Vec3 dest = view->origin + FromQFAxis( view->axis, AXIS_FORWARD ) * 512.0f;
 	CG_Trace( &trace, view->origin, mins, maxs, dest, view->POVent, MASK_SOLID );
 
 	// calculate pitch to look at the same spot from camera

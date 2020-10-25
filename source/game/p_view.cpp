@@ -50,7 +50,7 @@ static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t
 	chase_dest.z += 8;
 
 	// find the spot the player is looking at
-	Vec3 dest = *vieworg + v_forward * ( 512 );
+	Vec3 dest = *vieworg + v_forward * 512.0f;
 	G_Trace( &trace, *vieworg, mins, maxs, dest, passent, MASK_SOLID );
 
 	// calculate pitch to look at the same spot from camera

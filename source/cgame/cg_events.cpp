@@ -314,7 +314,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 	}
 
 	// spawn a single sound at the impact
-	Vec3 end = origin + dir * ( def->range );
+	Vec3 end = origin + dir * def->range;
 
 	trace_t trace;
 	CG_Trace( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), end, owner, MASK_SHOT );

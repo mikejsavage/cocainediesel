@@ -413,7 +413,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 		} else {
 			Vec3 acceldir;
 			acceldir = Normalize( ent->velocity );
-			acceldir = acceldir * ( ent->accel * FRAMETIME );
+			acceldir = acceldir * ent->accel * FRAMETIME;
 			ent->velocity = ent->velocity + acceldir;
 		}
 	}

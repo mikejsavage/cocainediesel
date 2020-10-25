@@ -167,14 +167,14 @@ void G_Teams_SetTeam( edict_t *ent, int team ) {
 		ent->r.client->teamstate.timeStamp = level.time;
 	}
 
+	if( ent->r.client->team == TEAM_SPECTATOR || team == TEAM_SPECTATOR ) {
+		level.ready[PLAYERNUM( ent )] = false;
+	}
+
 	ent->r.client->team = team;
 
 	G_ClientRespawn( ent, true ); // make ghost using G_ClientRespawn so team is updated at ghosting
 	G_SpawnQueue_AddClient( ent );
-
-	level.ready[PLAYERNUM( ent )] = false;
-
-	G_Match_CheckReadys();
 }
 
 enum

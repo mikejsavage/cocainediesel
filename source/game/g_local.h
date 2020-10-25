@@ -136,7 +136,6 @@ struct level_locals_t {
 
 	bool teamlock;
 	bool ready[MAX_CLIENTS];
-	bool forceStart;    // force starting the game, when warmup timelimit is up
 	bool forceExit;     // just exit, ignore extended time checks
 
 	edict_t *current_entity;    // entity running from G_RunFrame

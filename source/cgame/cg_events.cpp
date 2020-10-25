@@ -59,12 +59,8 @@ void CG_WeaponBeamEffect( centity_t * cent ) {
 
 static centity_t * laserOwner = NULL;
 
-static void BulletSparks( Vec3 pos, Vec3 normal, Vec4 color, int num_particles ) {
-	DoVisualEffect( "vfx/bulletsparks", pos, normal, num_particles, color );
-}
-
 static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles ) {
-	BulletSparks( trace->endpos, trace->plane.normal, color, num_particles );
+	DoVisualEffect( "vfx/bulletsparks", trace->endpos, trace->plane.normal, num_particles, color );
 
 	constexpr StringHash decals[] = {
 		"weapons/bullet_impact1",
@@ -77,12 +73,13 @@ static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles )
 	AddPersistentDecal( trace->endpos, trace->plane.normal, size, angle, random_select( &cls.rng, decals ), vec4_white, 30000 );
 }
 
-static void WallbangImpact( const trace_t * trace, int num_particles ) {
+static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles ) {
 	// TODO: should draw on entry/exit of all wallbanged surfaces
 	if( ( trace->contents & CONTENTS_WALLBANGABLE ) == 0 )
 		return;
 
-	DoVisualEffect( "vfx/wallbangimpact", trace->endpos, trace->plane.normal, num_particles );
+	DoVisualEffect( "vfx/bulletsparks", trace->endpos, trace->plane.normal, num_particles, color );
+	DoVisualEffect( "vfx/wallbangimpact", trace->endpos, trace->plane.normal, num_particles, color );
 
 	constexpr StringHash decals[] = {
 		"weapons/bullet_impact1",
@@ -103,7 +100,7 @@ static void LGImpact( const trace_t * trace, Vec3 dir ) {
 		laserOwner->localEffects[ LOCALEFFECT_LASERBEAM_SMOKE_TRAIL ] = cl.serverTime;
 	}
 
-	BulletSparks( trace->endpos, trace->plane.normal, team_color, 4 );
+	DoVisualEffect( "vfx/bulletsparks", trace->endpos, trace->plane.normal, 4, team_color );
 }
 
 void CG_LaserBeamEffect( centity_t * cent ) {
@@ -268,7 +265,7 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, WeaponType weapon, int o
 			}
 		}
 
-		WallbangImpact( &wallbang, 12 );
+		WallbangImpact( &wallbang, team_color, 12 );
 	}
 
 	orientation_t projection;
@@ -308,7 +305,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 			BulletImpact( &trace, team_color, 4 );
 		}
 
-		WallbangImpact( &wallbang, 2 );
+		WallbangImpact( &wallbang, team_color, 2 );
 
 		AddPersistentBeam( projection.origin, trace.endpos, 1.0f, team_color, cgs.media.shaderTracer, 0.2f, 0.1f );
 	}
@@ -840,7 +837,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_RIFLEBULLET_IMPACT: {
 			Vec3 dir = ByteToDir( parm );
-			BulletSparks( ent->origin, dir, team_color, 24 );
+			DoVisualEffect( "vfx/bulletsparks", ent->origin, dir, 24, team_color );
 			S_StartFixedSound( cgs.media.sfxBulletImpact, ent->origin, CHAN_AUTO, 1.0f );
 		} break;
 

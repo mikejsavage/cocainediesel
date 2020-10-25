@@ -500,7 +500,7 @@ static void PackDecalAtlas( Span< const char > * material_names ) {
 	num_decals = 0;
 
 	for( u32 i = 0; i < num_materials; i++ ) {
-		if( !materials[ i ].decal )
+		if( !materials[ i ].decal || materials[ i ].texture == NULL )
 			continue;
 
 		if( materials[ i ].texture->format != TextureFormat_RGBA_U8_sRGB ) {

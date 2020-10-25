@@ -1106,18 +1106,21 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 	bool feedback = feedback_varyings.n > 0;
 
 	GLuint vs = CompileShader( GL_VERTEX_SHADER, srcs, lens );
+	if( vs == 0 )
+		return false;
+	defer { glDeleteShader( vs ); };
+
 	GLuint fs = 0;
 	if( !feedback ) {
 		fs = CompileShader( GL_FRAGMENT_SHADER, srcs, lens );
+		if( fs == 0 )
+			return false;
 	}
-
-	if( vs == 0 || fs == 0 ) {
-		if( vs != 0 )
-			glDeleteShader( vs );
-		if( !feedback && fs != 0 )
+	defer {
+		if( fs != 0 ) {
 			glDeleteShader( fs );
-		return false;
-	}
+		}
+	};
 
 	GLuint program = glCreateProgram();
 	glAttachShader( program, vs );
@@ -1151,11 +1154,6 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 	}
 
 	glLinkProgram( program );
-
-	glDeleteShader( vs );
-	if( !feedback ) {
-		glDeleteShader( fs );
-	}
 
 	GLint status;
 	glGetProgramiv( program, GL_LINK_STATUS, &status );

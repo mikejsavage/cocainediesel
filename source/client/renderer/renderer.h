@@ -40,7 +40,7 @@ struct FrameStatic {
 
 	u8 write_world_gbuffer_pass;
 	u8 postprocess_world_gbuffer_pass;
-	
+
 	u8 particle_update_pass;
 
 	u8 world_opaque_pass;

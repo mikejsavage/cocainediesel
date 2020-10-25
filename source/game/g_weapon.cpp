@@ -175,7 +175,7 @@ static edict_t * FireProjectile(
 	Vec3 dir;
 	AngleVectors( angles, &dir, NULL, NULL );
 
-	projectile->velocity = dir * ( def->speed );
+	projectile->velocity = dir * def->speed;
 
 	projectile->movetype = MOVETYPE_LINEARPROJECTILE;
 

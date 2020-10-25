@@ -39,7 +39,6 @@ static Hashtable< MAX_DECAL_EMITTERS * 2 > decalEmitters_hashtable;
 constexpr u32 particles_per_emitter = 10000;
 
 bool ParseParticleEvents( Span< const char > * data, ParticleEvents * event ) {
-	StringHash despawn = StringHash( "despawn" );
 	while( true ) {
 		Span< const char > opening_brace = ParseToken( data, Parse_DontStopOnNewLine );
 		if( opening_brace == "" )
@@ -640,17 +639,6 @@ void ShutdownVisualEffects() {
 	ShutdownParticleSystems();
 }
 
-static float EvaluateEasingDerivative( EasingFunction func, float t ) {
-	switch( func ) {
-		case EasingFunction_Linear: return 1.0f;
-		case EasingFunction_Quadratic: return t < 0.5f ? 4.0f * t : -4.0f * t + 4.0f;
-		case EasingFunction_QuadraticEaseIn: return 2.0f * t;
-		case EasingFunction_QuadraticEaseOut: return -2.0f * t + 2.0f;
-	}
-
-	return 0.0f;
-}
-
 bool ParticleFeedback( ParticleSystem * ps, GPUParticleFeedback * feedback ) {
 	StringHash despawn = StringHash( "despawn" );
 	bool result = true;
@@ -796,7 +784,7 @@ void DrawParticles() {
 		for( size_t i = 0; i < num_particleSystems; i++ ) {
 			ParticleSystem * ps = &particleSystems[ i ];
 			if( ps->initialized ) {
-				ImGui::Text( "ps: %i, num: %i / %i", i, ps->num_particles, ps->max_particles );
+				ImGui::Text( "ps: %zu, num: %zu / %zu", i, ps->num_particles, ps->max_particles );
 			}
 		}
 

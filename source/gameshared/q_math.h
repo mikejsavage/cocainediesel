@@ -112,4 +112,5 @@ Vec3 Project( Vec3 a, Vec3 b );
 Vec3 ClosestPointOnLine( Vec3 p0, Vec3 p1, Vec3 p );
 Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p );
 
+Mat4 Mat4RotationAxisSinCos( Vec3 axis, float s, float c );
 Mat4 TransformKToDir( Vec3 dir );

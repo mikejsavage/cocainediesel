@@ -294,29 +294,9 @@ static Mat4 TransformKToSegment( Vec3 start, Vec3 end ) {
 	float c = Dot( K, dir ) / Length( dir );
 	float s = sqrtf( 1.0f - c * c );
 
-	Mat4 rotation = Mat4(
-		c + axis.x * axis.x * ( 1.0f - c ),
-		axis.x * axis.y * ( 1.0f - c ) - axis.z * s,
-		axis.x * axis.z * ( 1.0f - c ) + axis.y * s,
-		0.0f,
-
-		axis.y * axis.x * ( 1.0f - c ) + axis.z * s,
-		c + axis.y * axis.y * ( 1.0f - c ),
-		axis.y * axis.z * ( 1.0f - c ) - axis.x * s,
-		0.0f,
-
-		axis.z * axis.x * ( 1.0f - c ) - axis.y * s,
-		axis.z * axis.y * ( 1.0f - c ) + axis.x * s,
-		c + axis.z * axis.z * ( 1.0f - c ),
-		0.0f,
-
-		0.0f, 0.0f, 0.0f, 1.0f
-	);
-
+	Mat4 rotation = Mat4RotationAxisSinCos( axis, s, c );
 	Mat4 translation = Mat4Translation( start );
-
 	Mat4 scale = Mat4Scale( Length( dir ) );
-
 	return translation * rotation * scale;
 }
 

@@ -647,20 +647,8 @@ Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p ) {
 	return Lerp( start, Clamp01( t ), end );
 }
 
-Mat4 TransformKToDir( Vec3 dir ) {
-	assert( ( Length( dir ) - 1.0f ) < 0.0001f );
-
-	Vec3 K = Vec3( 0, 0, 1 );
-
-	if( Abs( dir.z ) >= 0.9999f ) {
-		return dir.z > 0 ? Mat4::Identity() : -Mat4::Identity();
-	}
-
-	Vec3 axis = Normalize( Cross( K, dir ) );
-	float c = Dot( K, dir ) / Length( dir );
-	float s = sqrtf( 1.0f - c * c );
-
-	Mat4 rotation = Mat4(
+Mat4 Mat4RotationAxisSinCos( Vec3 axis, float s, float c ) {
+	return Mat4(
 		c + axis.x * axis.x * ( 1.0f - c ),
 		axis.x * axis.y * ( 1.0f - c ) - axis.z * s,
 		axis.x * axis.z * ( 1.0f - c ) + axis.y * s,
@@ -678,6 +666,20 @@ Mat4 TransformKToDir( Vec3 dir ) {
 
 		0.0f, 0.0f, 0.0f, 1.0f
 	);
+}
 
-	return rotation;
+Mat4 TransformKToDir( Vec3 dir ) {
+	assert( ( Length( dir ) - 1.0f ) < 0.0001f );
+
+	Vec3 K = Vec3( 0, 0, 1 );
+
+	if( Abs( dir.z ) >= 0.9999f ) {
+		return dir.z > 0 ? Mat4::Identity() : -Mat4::Identity();
+	}
+
+	Vec3 axis = Normalize( Cross( K, dir ) );
+	float c = Dot( K, dir ) / Length( dir );
+	float s = sqrtf( 1.0f - c * c );
+
+	return Mat4RotationAxisSinCos( axis, s, c );
 }

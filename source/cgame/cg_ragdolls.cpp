@@ -89,6 +89,9 @@ static void CreateBone( Ragdoll * ragdoll, RagdollBoneType bone, const Model * m
 	Vec3 physx_ragdoll_up = Vec3( -1, 0, 0 );
 	Vec3 pose_up = p1 - p0;
 
+	// TODO: this does a lookat transform so the bone's up vector is
+	// aligned with the world up vector. we would like the bone to be
+	// twisted like how it is in the skeleton instead
 	Vec3 axis = Normalize( Cross( physx_ragdoll_up, pose_up ) );
 	float theta = acosf( Dot( physx_ragdoll_up, Normalize( pose_up ) ) );
 	PxQuat q = PxQuat( theta, PxVec3( axis.x, axis.y, axis.z ) );
@@ -445,6 +448,34 @@ EulerDegrees3 QuaternionToEulerAngles( Quaternion q ) {
 	return euler;
 }
 
+static PxRigidDynamic * dumpy1;
+static PxRigidDynamic * dumpy2;
+static PxRevoluteJoint * dumpyjoint;
+
+static void AddDumpyModel() {
+	PxCapsuleGeometry capsule = PxCapsuleGeometry( 1.0f, 4.0f );
+
+	PxTransform transform1 = PxTransform( PxVec3( -4.0f, 0.0f, 0.0f ), PxQuat( PxIdentity ) );
+	PxTransform transform2 = PxTransform( PxVec3( 4.0f, 0.0f, 0.0f ), PxQuat( PxIdentity ) );
+
+	dumpy1 = PxCreateDynamic( *physx_physics, transform1, capsule, *physx_default_material, 10.0f );
+	dumpy2 = PxCreateDynamic( *physx_physics, transform2, capsule, *physx_default_material, 10.0f );
+
+	PxVec3 K = PxVec3( 0.0f, 0.0f, 1.0f );
+	dumpyjoint = PxRevoluteJointCreate( *physx_physics,
+		dumpy1, PxTransform( -transform1.p, PxQuat( PxPi / 2.0f, K ) ),
+		dumpy2, PxTransform( -transform2.p, PxQuat( PxPi / 2.0f, K ) )
+	);
+	dumpyjoint->setLimit( PxJointAngularLimitPair( 0.0f, PxPi ) );
+	dumpyjoint->setRevoluteJointFlag( PxRevoluteJointFlag::eLIMIT_ENABLED, true );
+
+	physx_scene->addActor( *dumpy1 );
+	physx_scene->addActor( *dumpy2 );
+
+	PxRigidDynamic * gg = PxCreateDynamic( *physx_physics, PxTransform( PxVec3( 4.0f, 0.0f, -10.0f ), PxQuat( PxIdentity ) ), PxSphereGeometry( 8.0f ), *physx_default_material, 10.0f );
+	physx_scene->addActor( *gg );
+}
+
 void DrawRagdollEditor() {
 	const Model * padpork = FindModel( "players/padpork/model" );
 
@@ -521,55 +552,65 @@ void DrawRagdollEditor() {
 			Com_Printf( "blah %s\n", temp( "{}", QuaternionToEulerAngles( editor_initial_local_pose[ editor_ragdoll_config.right_elbow ].rotation ) ) );
 
 			InitPhysicsForRagdollEditor();
-			editor_ragdoll = AddRagdoll( padpork, editor_ragdoll_config, pose );
+			// editor_ragdoll = AddRagdoll( padpork, editor_ragdoll_config, pose );
+
+			AddDumpyModel();
 		}
+
+		PxTransform transform1 = PxTransform( PxVec3( -4.0f, 0.0f, 0.0f ), PxQuat( PxIdentity ) );
+		PxTransform transform2 = PxTransform( PxVec3( 4.0f, 0.0f, 0.0f ), PxQuat( PxIdentity ) );
+
+		// dumpy1->setGlobalPose( transform1 );
+		// dumpy2->setGlobalPose( transform2 );
 
 		UpdatePhysicsCommon( cls.frametime / 5000.0f );
 
-		Com_Printf( "%s\n", temp( "{}", editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().q ) );
-		Com_Printf( "%s\n", temp( "{}", QuaternionToEulerAngles( PhysxToDE( editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().q ) ) ) );
+		// todo: print joint transform
 
-		// TODO: copy physics to render pose
-		editor_initial_local_pose[ editor_ragdoll_config.right_elbow ].rotation = PhysxToDE( editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().q );
-		editor_initial_local_pose[ editor_ragdoll_config.left_knee ].rotation = PhysxToDE( editor_ragdoll.joints[ Joint_LeftKnee ]->getRelativeTransform().q );
-
-		ImGui::TextWrapped( "p.x = %f", editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().p.x );
-		ImGui::TextWrapped( "p.y = %f", editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().p.y );
-		ImGui::TextWrapped( "p.z = %f", editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().p.z );
-		ImGui::TextWrapped( "q.x = %f", editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().q.x );
-		ImGui::TextWrapped( "q.y = %f", editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().q.y );
-		ImGui::TextWrapped( "q.z = %f", editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().q.z );
-		ImGui::TextWrapped( "q.w = %f", editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().q.w );
-
-		pose = ComputeMatrixPalettes( &temp, padpork, editor_initial_local_pose );
+		// Com_Printf( "%s\n", temp( "{}", editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().q ) );
+		// Com_Printf( "%s\n", temp( "{}", QuaternionToEulerAngles( PhysxToDE( editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().q ) ) ) );
+                //
+		// // TODO: copy physics to render pose
+		// editor_initial_local_pose[ editor_ragdoll_config.right_elbow ].rotation = PhysxToDE( editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().q );
+		// editor_initial_local_pose[ editor_ragdoll_config.left_knee ].rotation = PhysxToDE( editor_ragdoll.joints[ Joint_LeftKnee ]->getRelativeTransform().q );
+                //
+		// ImGui::TextWrapped( "p.x = %f", editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().p.x );
+		// ImGui::TextWrapped( "p.y = %f", editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().p.y );
+		// ImGui::TextWrapped( "p.z = %f", editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().p.z );
+		// ImGui::TextWrapped( "q.x = %f", editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().q.x );
+		// ImGui::TextWrapped( "q.y = %f", editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().q.y );
+		// ImGui::TextWrapped( "q.z = %f", editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().q.z );
+		// ImGui::TextWrapped( "q.w = %f", editor_ragdoll.joints[ Joint_RightElbow ]->getRelativeTransform().q.w );
+                //
+		// pose = ComputeMatrixPalettes( &temp, padpork, editor_initial_local_pose );
 	}
 
-	if( editor_draw_model ) {
-		RGB8 rgb = TEAM_COLORS[ 0 ];
-		Vec4 color = Vec4( rgb.r / 255.0f, rgb.g / 255.0f, rgb.b / 255.0f, 1.0f );
-		float outline_height = 0.42f;
-
-		DrawModel( padpork, Mat4::Identity(), color, pose );
-		DrawOutlinedModel( padpork, Mat4::Identity(), vec4_black, outline_height, pose );
-	}
-
-	DrawBone( padpork, pose, editor_ragdoll_config.pelvis, editor_ragdoll_config.spine, editor_ragdoll_config.lower_back_radius );
-	DrawBone( padpork, pose, editor_ragdoll_config.spine, editor_ragdoll_config.neck, editor_ragdoll_config.upper_back_radius );
-	// TODO: head
-
-	DrawBone( padpork, pose, editor_ragdoll_config.left_shoulder, editor_ragdoll_config.left_elbow, editor_ragdoll_config.left_upper_arm_radius );
-	DrawBone( padpork, pose, editor_ragdoll_config.left_elbow, editor_ragdoll_config.left_wrist, editor_ragdoll_config.left_forearm_radius );
-
-	DrawBone( padpork, pose, editor_ragdoll_config.right_shoulder, editor_ragdoll_config.right_elbow, editor_ragdoll_config.right_upper_arm_radius );
-	DrawBone( padpork, pose, editor_ragdoll_config.right_elbow, editor_ragdoll_config.right_wrist, editor_ragdoll_config.right_forearm_radius );
-
-	DrawBone( padpork, pose, editor_ragdoll_config.left_hip, editor_ragdoll_config.left_knee, editor_ragdoll_config.left_thigh_radius );
-	DrawBone( padpork, pose, editor_ragdoll_config.left_knee, editor_ragdoll_config.left_ankle, editor_ragdoll_config.left_lower_leg_radius );
-	// TODO: left foot
-
-	DrawBone( padpork, pose, editor_ragdoll_config.right_hip, editor_ragdoll_config.right_knee, editor_ragdoll_config.right_thigh_radius );
-	DrawBone( padpork, pose, editor_ragdoll_config.right_knee, editor_ragdoll_config.right_ankle, editor_ragdoll_config.right_lower_leg_radius );
-	// TODO: right foot
+	// if( editor_draw_model ) {
+	// 	RGB8 rgb = TEAM_COLORS[ 0 ];
+	// 	Vec4 color = Vec4( rgb.r / 255.0f, rgb.g / 255.0f, rgb.b / 255.0f, 1.0f );
+	// 	float outline_height = 0.42f;
+        //
+	// 	DrawModel( padpork, Mat4::Identity(), color, pose );
+	// 	DrawOutlinedModel( padpork, Mat4::Identity(), vec4_black, outline_height, pose );
+	// }
+        //
+	// DrawBone( padpork, pose, editor_ragdoll_config.pelvis, editor_ragdoll_config.spine, editor_ragdoll_config.lower_back_radius );
+	// DrawBone( padpork, pose, editor_ragdoll_config.spine, editor_ragdoll_config.neck, editor_ragdoll_config.upper_back_radius );
+	// // TODO: head
+        //
+	// DrawBone( padpork, pose, editor_ragdoll_config.left_shoulder, editor_ragdoll_config.left_elbow, editor_ragdoll_config.left_upper_arm_radius );
+	// DrawBone( padpork, pose, editor_ragdoll_config.left_elbow, editor_ragdoll_config.left_wrist, editor_ragdoll_config.left_forearm_radius );
+        //
+	// DrawBone( padpork, pose, editor_ragdoll_config.right_shoulder, editor_ragdoll_config.right_elbow, editor_ragdoll_config.right_upper_arm_radius );
+	// DrawBone( padpork, pose, editor_ragdoll_config.right_elbow, editor_ragdoll_config.right_wrist, editor_ragdoll_config.right_forearm_radius );
+        //
+	// DrawBone( padpork, pose, editor_ragdoll_config.left_hip, editor_ragdoll_config.left_knee, editor_ragdoll_config.left_thigh_radius );
+	// DrawBone( padpork, pose, editor_ragdoll_config.left_knee, editor_ragdoll_config.left_ankle, editor_ragdoll_config.left_lower_leg_radius );
+	// // TODO: left foot
+        //
+	// DrawBone( padpork, pose, editor_ragdoll_config.right_hip, editor_ragdoll_config.right_knee, editor_ragdoll_config.right_thigh_radius );
+	// DrawBone( padpork, pose, editor_ragdoll_config.right_knee, editor_ragdoll_config.right_ankle, editor_ragdoll_config.right_lower_leg_radius );
+	// // TODO: right foot
 
 	ImGui::EndChild();
 	ImGui::PopFont();

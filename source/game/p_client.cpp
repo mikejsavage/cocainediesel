@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "g_local.h"
+#include "game/g_local.h"
 
 #define PLAYER_MASS 200
 
@@ -36,25 +36,27 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 	if( attacker && attacker->r.client ) {
 		if( attacker != self ) { // regular death message
 			self->enemy = attacker;
-			if( GAME_IMPORT.is_dedicated_server ) {
-				G_Printf( "%s %s %s%s\n", self->r.client->netname, message,
+			if( is_dedicated_server ) {
+				Com_Printf( "%s %s %s%s\n", self->r.client->netname, message,
 						  attacker->r.client->netname, message2 );
 			}
 		} else {      // suicide
 			self->enemy = NULL;
-			if( GAME_IMPORT.is_dedicated_server ) {
-				G_Printf( "%s %s\n", self->r.client->netname, message );
+			if( is_dedicated_server ) {
+				Com_Printf( "%s %s\n", self->r.client->netname, message );
 			}
+
+			G_PositionedSound( self->s.origin, CHAN_AUTO, "sounds/trombone/sad" );
 		}
 
 		G_Obituary( self, attacker, mod );
 	} else {      // wrong place, suicide, etc.
 		self->enemy = NULL;
-		if( GAME_IMPORT.is_dedicated_server ) {
-			G_Printf( "%s %s\n", self->r.client->netname, message );
+		if( is_dedicated_server ) {
+			Com_Printf( "%s %s\n", self->r.client->netname, message );
 		}
 
-		G_Obituary( self, ( attacker == self ) ? self : world, mod );
+		G_Obituary( self, attacker == self ? self : world, mod );
 	}
 }
 
@@ -63,173 +65,75 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 // DEAD BODIES
 //=======================================================
 
-/*
-* G_Client_UnlinkBodies
-*/
-static void G_Client_UnlinkBodies( edict_t *ent ) {
-	edict_t *body;
-	int i;
+static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
+	assert( ent->s.type == ET_PLAYER );
 
-	// find bodies linked to us
-	body = &game.edicts[server_gs.maxclients + 1];
-	for( i = 0; i < BODY_QUEUE_SIZE; body++, i++ ) {
-		if( !body->r.inuse ) {
-			continue;
-		}
-
-		if( body->activator == ent ) {
-			// this is our body
-			body->activator = NULL;
-		}
-	}
-}
-
-/*
-* InitBodyQue
-*/
-void G_InitBodyQueue( void ) {
-	int i;
-	edict_t *ent;
-
-	level.body_que = 0;
-	for( i = 0; i < BODY_QUEUE_SIZE; i++ ) {
-		ent = G_Spawn();
-		ent->classname = "bodyque";
-	}
-}
-
-/*
-* body_think
-*/
-static void body_think( edict_t *self ) {
-	self->health = -1;
-
-	// disallow interaction with the world.
-	self->takedamage = DAMAGE_NO;
-	self->r.solid = SOLID_NOT;
-	self->s.sound = 0;
-	self->flags |= FL_NO_KNOCKBACK;
-	self->s.type = ET_GENERIC;
-	self->r.svflags &= ~SVF_CORPSE;
-	self->r.svflags |= SVF_NOCLIENT;
-	self->s.modelindex = 0;
-	self->s.modelindex2 = 0;
-	VectorClear( self->velocity );
-	VectorClear( self->avelocity );
-	self->movetype = MOVETYPE_NONE;
-	self->think = NULL;
-
-	GClip_UnlinkEntity( self );
-}
-
-/*
-* CopyToBodyQue
-*/
-static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
-	edict_t *body;
-	int contents;
-
-	if( GS_RaceGametype( &server_gs ) ) {
-		return NULL;
-	}
-
-	contents = G_PointContents( ent->s.origin );
+	int contents = G_PointContents( ent->s.origin );
 	if( contents & CONTENTS_NODROP ) {
 		return NULL;
 	}
 
-	G_Client_UnlinkBodies( ent );
+	edict_t * body = G_Spawn();
 
-	// grab a body que and cycle to the next one
-	body = &game.edicts[server_gs.maxclients + level.body_que + 1];
-	level.body_que = ( level.body_que + 1 ) % BODY_QUEUE_SIZE;
-
-	// send an effect on the removed body
-	if( body->s.modelindex && body->s.type == ET_CORPSE ) {
-		ThrowSmallPileOfGibs( body, vec3_origin, 10 );
-	}
-
-	GClip_UnlinkEntity( body );
-
-	memset( body, 0, sizeof( edict_t ) ); //clean up garbage
-
-	//init body edict
-	G_InitEdict( body );
 	body->classname = "body";
+	body->s.type = ET_CORPSE;
 	body->health = ent->health;
 	body->mass = ent->mass;
 	body->r.owner = ent->r.owner;
-	body->s.type = ent->s.type;
 	body->s.team = ent->s.team;
-	body->s.effects = 0;
-	body->r.svflags = SVF_CORPSE;
-	body->r.svflags &= ~SVF_NOCLIENT;
+	body->r.svflags = SVF_CORPSE | SVF_BROADCAST;
 	body->activator = ent;
 	if( g_deadbody_followkiller->integer ) {
 		body->enemy = attacker;
 	}
 
 	//use flat yaw
-	body->s.angles[PITCH] = 0;
-	body->s.angles[ROLL] = 0;
-	body->s.angles[YAW] = ent->s.angles[YAW];
-	body->s.modelindex2 = 0; // <-  is bodyOwner when in ET_CORPSE, but not in ET_GENERIC or ET_PLAYER
-	body->s.weapon = 0;
+	body->s.angles.y = ent->s.angles.y;
 
 	//copy player position and box size
-	VectorCopy( ent->s.origin, body->s.origin );
-	VectorCopy( ent->s.origin, body->olds.origin );
-	VectorCopy( ent->r.mins, body->r.mins );
-	VectorCopy( ent->r.maxs, body->r.maxs );
-	VectorCopy( ent->r.absmin, body->r.absmin );
-	VectorCopy( ent->r.absmax, body->r.absmax );
-	VectorCopy( ent->r.size, body->r.size );
-	VectorCopy( ent->velocity, body->velocity );
-	body->r.maxs[2] = body->r.mins[2] + 8;
+	body->s.origin = ent->s.origin;
+	body->olds.origin = ent->s.origin;
+	body->r.mins = ent->r.mins;
+	body->r.maxs = ent->r.maxs;
+	body->r.absmin = ent->r.absmin;
+	body->r.absmax = ent->r.absmax;
+	body->r.size = ent->r.size;
+	body->velocity = ent->velocity;
+	body->r.maxs.z = body->r.mins.z + 8;
 
 	body->r.solid = SOLID_NOT;
 	body->takedamage = DAMAGE_NO;
 	body->movetype = MOVETYPE_TOSS;
-	body->think = body_think; // body self destruction countdown
+	body->think = G_FreeEdict; // body self destruction countdown
+
+	body->s.teleported = true;
+	body->s.ownerNum = ent->s.number;
 
 	int mod = meansOfDeath;
-	bool gib = mod == MOD_ELECTROBOLT || mod == MOD_ROCKET || mod == MOD_GRENADE ||
-		mod == MOD_TRIGGER_HURT || mod == MOD_TELEFRAG || mod == MOD_EXPLOSIVE ||
-		mod == MOD_SPIKES ||
-		( ( mod == MOD_ROCKET_SPLASH || mod == MOD_GRENADE_SPLASH ) && damage >= 20 );
+	bool gib = mod == MOD_RAILGUN || mod == MOD_TRIGGER_HURT || mod == MOD_TELEFRAG
+		|| mod == MOD_EXPLOSIVE || mod == MOD_SPIKES ||
+		( ( mod == MOD_ROCKET || mod == MOD_GRENADE ) && damage >= 20 );
 
 	if( gib ) {
 		ThrowSmallPileOfGibs( body, knockbackOfDeath, damage );
 
-		// reset gib impulse
-		VectorClear( body->velocity );
-
-		body->nextThink = level.time + 3000 + random() * 3000;
+		body->nextThink = level.time + 3000 + random_float01( &svs.rng ) * 3000;
 		body->deadflag = DEAD_DEAD;
 	}
-	if( ent->s.type == ET_PLAYER ) {
-		// copy the model
-		body->s.type = ET_CORPSE;
-		body->s.modelindex = ent->s.modelindex;
-		body->s.bodyOwner = ent->s.number; // bodyOwner is the same as modelindex2
-		body->s.teleported = true;
 
-		edict_t * event = G_SpawnEvent( EV_DIE, rand(), NULL );
-		event->r.svflags |= SVF_BROADCAST;
-		event->s.ownerNum = body->s.number;
+	edict_t * event = G_SpawnEvent( EV_DIE, random_u64( &svs.rng ), NULL );
+	event->r.svflags |= SVF_BROADCAST;
+	event->s.ownerNum = body->s.number;
 
-		// bit of a hack, if we're not in warmup, leave the body with no think. think self destructs
-		// after a timeout, but if we leave, next bomb round will call G_ResetLevel() cleaning up
-		if( GS_MatchState( &server_gs ) == MATCH_STATE_WARMUP ) {
-			body->nextThink = level.time + 3500;
-		}
-		else {
-			body->think = NULL;
-		}
-	} else {   // wasn't a player, just copy it's model
-		VectorClear( body->velocity );
-		body->s.modelindex = ent->s.modelindex;
-		body->nextThink = level.time + 5000 + random() * 10000;
+	ent->s.ownerNum = body->s.number;
+
+	// bit of a hack, if we're not in warmup, leave the body with no think. think self destructs
+	// after a timeout, but if we leave, next bomb round will call G_ResetLevel() cleaning up
+	if( GS_MatchState( &server_gs ) == MATCH_STATE_WARMUP ) {
+		body->nextThink = level.time + 3500;
+	}
+	else {
+		body->think = NULL;
 	}
 
 	GClip_LinkEntity( body );
@@ -239,35 +143,34 @@ static edict_t *CopyToBodyQue( edict_t *ent, edict_t *attacker, int damage ) {
 /*
 * player_die
 */
-void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point ) {
+void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage, const Vec3 point ) {
 	snap_edict_t snap_backup = ent->snap;
 	client_snapreset_t resp_snap_backup = ent->r.client->resp.snap;
 
-	VectorClear( ent->avelocity );
+	ent->avelocity = Vec3( 0.0f );
 
-	ent->s.angles[0] = 0;
-	ent->s.angles[2] = 0;
-	ent->s.sound = 0;
+	ent->s.angles.x = 0;
+	ent->s.angles.z = 0;
+	ent->s.sound = EMPTY_HASH;
 
 	ent->r.solid = SOLID_NOT;
 
-	ent->r.client->teamstate.last_killer = attacker;
-
 	// player death
-	ent->s.angles[YAW] = ent->r.client->ps.viewangles[YAW] = LookAtKillerYAW( ent, inflictor, attacker );
 	ClientObituary( ent, inflictor, attacker );
 
-	// create a body
-	CopyToBodyQue( ent, attacker, damage );
+	// create a corpse
+	CreateCorpse( ent, attacker, damage );
 	ent->enemy = NULL;
+
+	ent->s.angles.y = ent->r.client->ps.viewangles.y = LookAtKillerYAW( ent, inflictor, attacker );
 
 	// go ghost (also resets snap)
 	G_GhostClient( ent );
 
 	ent->deathTimeStamp = level.time;
 
-	VectorClear( ent->velocity );
-	VectorClear( ent->avelocity );
+	ent->velocity = Vec3( 0.0f );
+	ent->avelocity = Vec3( 0.0f );
 	ent->snap = snap_backup;
 	ent->r.client->resp.snap = resp_snap_backup;
 	ent->r.client->resp.snap.buttons = 0;
@@ -292,7 +195,7 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 		return;
 	}
 
-	if( trap_GetClientState( client - game.clients ) < CS_SPAWNED ) {
+	if( PF_GetClientState( client - game.clients ) < CS_SPAWNED ) {
 		return;
 	}
 
@@ -302,9 +205,9 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 
 	if( g_inactivity_maxtime->modified ) {
 		if( g_inactivity_maxtime->value <= 0.0f ) {
-			trap_Cvar_ForceSet( "g_inactivity_maxtime", "0.0" );
+			Cvar_ForceSet( "g_inactivity_maxtime", "0.0" );
 		} else if( g_inactivity_maxtime->value < 15.0f ) {
-			trap_Cvar_ForceSet( "g_inactivity_maxtime", "15.0" );
+			Cvar_ForceSet( "g_inactivity_maxtime", "15.0" );
 		}
 
 		g_inactivity_maxtime->modified = false;
@@ -332,27 +235,6 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 	}
 }
 
-static void G_Client_AssignTeamSkin( edict_t *ent, char *userinfo ) {
-	char model[MAX_QPATH];
-	const char *usermodel;
-
-	// index player model
-	usermodel = Info_ValueForKey( userinfo, "model" );
-	if( !usermodel || !usermodel[0] || !COM_ValidateRelativeFilename( usermodel ) || strchr( usermodel, '/' ) ) {
-		usermodel = NULL;
-	}
-
-	if( usermodel ) {
-		Q_snprintfz( model, sizeof( model ), "$models/players/%s", usermodel );
-	} else {
-		Q_snprintfz( model, sizeof( model ), "$models/players/%s", DEFAULT_PLAYERMODEL );
-	}
-
-	if( !ent->deadflag ) {
-		ent->s.modelindex = trap_ModelIndex( model );
-	}
-}
-
 /*
 * G_ClientClearStats
 */
@@ -377,20 +259,20 @@ void G_GhostClient( edict_t *ent ) {
 	ent->r.client->resp.old_waterlevel = 0;
 	ent->r.client->resp.old_watertype = 0;
 
-	ent->s.modelindex = ent->s.modelindex2 = 0;
+	ent->s.type = ET_GHOST;
 	ent->s.effects = 0;
 	ent->s.weapon = 0;
-	ent->s.sound = 0;
-	ent->s.light = 0;
+	ent->s.sound = EMPTY_HASH;
 	ent->viewheight = 0;
 	ent->takedamage = DAMAGE_NO;
 
-	// clear inventory
-	memset( ent->r.client->ps.inventory, 0, sizeof( ent->r.client->ps.inventory ) );
+	memset( ent->r.client->ps.weapons, 0, sizeof( ent->r.client->ps.weapons ) );
+	memset( ent->r.client->ps.items, 0, sizeof( ent->r.client->ps.items ) );
 
-	ent->r.client->ps.stats[STAT_WEAPON] = ent->r.client->ps.stats[STAT_PENDING_WEAPON] = WEAP_NONE;
-	ent->r.client->ps.weaponState = WEAPON_STATE_READY;
-	ent->r.client->ps.stats[STAT_WEAPON_TIME] = 0;
+	ent->r.client->ps.weapon = Weapon_None;
+	ent->r.client->ps.pending_weapon = Weapon_None;
+	ent->r.client->ps.weapon_state = WeaponState_Ready;
+	ent->r.client->ps.weapon_time = 0;
 
 	GClip_LinkEntity( ent );
 }
@@ -399,9 +281,8 @@ void G_GhostClient( edict_t *ent ) {
 * G_ClientRespawn
 */
 void G_ClientRespawn( edict_t *self, bool ghost ) {
-	int i;
 	edict_t *spawnpoint;
-	vec3_t spawn_origin, spawn_angles;
+	Vec3 spawn_origin, spawn_angles;
 	gclient_t *client;
 	int old_team;
 
@@ -444,7 +325,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->s.team = client->team;
 
 	self->deadflag = DEAD_NO;
-	self->s.type = ET_PLAYER;
 	self->groundentity = NULL;
 	self->takedamage = DAMAGE_AIM;
 	self->die = player_die;
@@ -467,28 +347,27 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		self->classname = "player";
 	}
 
-	VectorCopy( playerbox_stand_mins, self->r.mins );
-	VectorCopy( playerbox_stand_maxs, self->r.maxs );
-	VectorClear( self->velocity );
-	VectorClear( self->avelocity );
+	self->r.mins = playerbox_stand_mins;
+	self->r.maxs = playerbox_stand_maxs;
+	self->velocity = Vec3( 0.0f );
+	self->avelocity = Vec3( 0.0f );
 
 	client->ps.POVnum = ENTNUM( self );
 
 	// set movement info
-	client->ps.pmove.stats[PM_STAT_MAXSPEED] = (short)DEFAULT_PLAYERSPEED;
-	client->ps.pmove.stats[PM_STAT_JUMPSPEED] = (short)DEFAULT_JUMPSPEED;
-	client->ps.pmove.stats[PM_STAT_DASHSPEED] = (short)DEFAULT_DASHSPEED;
+	client->ps.pmove.max_speed = DEFAULT_PLAYERSPEED;
+	client->ps.pmove.jump_speed = DEFAULT_JUMPSPEED;
+	client->ps.pmove.dash_speed = DEFAULT_DASHSPEED;
 
 	if( ghost ) {
+		self->s.type = ET_GHOST;
 		self->r.solid = SOLID_NOT;
 		self->movetype = MOVETYPE_NOCLIP;
-		if( self->s.team == TEAM_SPECTATOR ) {
-			self->r.svflags |= SVF_NOCLIENT;
-		}
 	} else {
+		self->s.type = ET_PLAYER;
 		self->r.solid = SOLID_YES;
 		self->movetype = MOVETYPE_PLAYER;
-		client->ps.pmove.stats[PM_STAT_FEATURES] = static_cast<unsigned short>( PMFEAT_DEFAULT );
+		client->ps.pmove.features = PMFEAT_DEFAULT;
 	}
 
 	ClientUserinfoChanged( self, client->userinfo );
@@ -497,40 +376,32 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		G_Teams_UpdateMembersList();
 	}
 
-	SelectSpawnPoint( self, &spawnpoint, spawn_origin, spawn_angles );
-	VectorCopy( spawn_origin, client->ps.pmove.origin );
-	VectorCopy( spawn_origin, self->s.origin );
+	SelectSpawnPoint( self, &spawnpoint, &spawn_origin, &spawn_angles );
+	client->ps.pmove.origin = spawn_origin;
+	self->s.origin = spawn_origin;
 
 	// set angles
-	self->s.angles[PITCH] = 0;
-	self->s.angles[YAW] = AngleNormalize360( spawn_angles[YAW] );
-	self->s.angles[ROLL] = 0;
-	VectorCopy( self->s.angles, client->ps.viewangles );
+	self->s.angles.x = 0.0f;
+	self->s.angles.y = AngleNormalize360( spawn_angles.y );
+	self->s.angles.z = 0.0f;
+	client->ps.viewangles = Vec3( self->s.angles );
 
 	// set the delta angle
-	for( i = 0; i < 3; i++ )
-		client->ps.pmove.delta_angles[i] = ANGLE2SHORT( client->ps.viewangles[i] ) - client->ucmd.angles[i];
+	client->ps.pmove.delta_angles[ 0 ] = ANGLE2SHORT( client->ps.viewangles.x ) - client->ucmd.angles[ 0 ];
+	client->ps.pmove.delta_angles[ 1 ] = ANGLE2SHORT( client->ps.viewangles.y ) - client->ucmd.angles[ 1 ];
+	client->ps.pmove.delta_angles[ 2 ] = ANGLE2SHORT( client->ps.viewangles.z ) - client->ucmd.angles[ 2 ];
 
 	// don't put spectators in the game
 	if( !ghost ) {
-		KillBox( self, MOD_TELEFRAG, vec3_origin );
+		KillBox( self, MOD_TELEFRAG, Vec3( 0.0f ) );
 	}
-
-	self->s.attenuation = ATTN_NORM;
 
 	self->s.teleported = true;
 
 	// hold in place briefly
 	client->ps.pmove.pm_flags = PMF_TIME_TELEPORT;
 	client->ps.pmove.pm_time = 14;
-	client->ps.pmove.stats[PM_STAT_NOUSERCONTROL] = CLIENT_RESPAWN_FREEZE_DELAY;
-
-	// set race stats to invisible
-	client->ps.stats[STAT_TIME_SELF] = STAT_NOTSET;
-	client->ps.stats[STAT_TIME_BEST] = STAT_NOTSET;
-	client->ps.stats[STAT_TIME_RECORD] = STAT_NOTSET;
-	client->ps.stats[STAT_TIME_ALPHA] = STAT_NOTSET;
-	client->ps.stats[STAT_TIME_BETA] = STAT_NOTSET;
+	client->ps.pmove.no_control_time = CLIENT_RESPAWN_FREEZE_DELAY;
 
 	G_UseTargets( spawnpoint, self );
 
@@ -563,10 +434,6 @@ bool G_PlayerCanTeleport( edict_t *player ) {
 * G_TeleportPlayer
 */
 void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
-	int i;
-	vec3_t velocity;
-	mat3_t axis;
-	float speed;
 	gclient_t *client = player->r.client;
 
 	if( !dest ) {
@@ -584,36 +451,38 @@ void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
 	//
 
 	// from racesow - use old pmove velocity
-	VectorCopy( client->old_pmove.velocity, velocity );
+	Vec3 velocity = client->old_pmove.velocity;
 
-	velocity[2] = 0; // ignore vertical velocity
-	speed = VectorLengthFast( velocity );
+	velocity.z = 0; // ignore vertical velocity
+	float speed = Length( velocity );
 
+	mat3_t axis;
 	AnglesToAxis( dest->s.angles, axis );
-	VectorScale( &axis[AXIS_FORWARD], speed, client->ps.pmove.velocity );
+	client->ps.pmove.velocity = FromQFAxis( axis, AXIS_FORWARD ) * ( speed );
 
-	VectorCopy( dest->s.angles, client->ps.viewangles );
-	VectorCopy( dest->s.origin, client->ps.pmove.origin );
+	client->ps.viewangles = dest->s.angles;
+	client->ps.pmove.origin = dest->s.origin;
 
 	// set the delta angle
-	for( i = 0; i < 3; i++ )
-		client->ps.pmove.delta_angles[i] = ANGLE2SHORT( client->ps.viewangles[i] ) - client->ucmd.angles[i];
+	client->ps.pmove.delta_angles[ 0 ] = ANGLE2SHORT( client->ps.viewangles.x ) - client->ucmd.angles[ 0 ];
+	client->ps.pmove.delta_angles[ 1 ] = ANGLE2SHORT( client->ps.viewangles.y ) - client->ucmd.angles[ 1 ];
+	client->ps.pmove.delta_angles[ 2 ] = ANGLE2SHORT( client->ps.viewangles.z ) - client->ucmd.angles[ 2 ];
 
 	client->ps.pmove.pm_flags |= PMF_TIME_TELEPORT;
 	client->ps.pmove.pm_time = 1; // force the minimum no control delay
 	player->s.teleported = true;
 
 	// update the entity from the pmove
-	VectorCopy( client->ps.viewangles, player->s.angles );
-	VectorCopy( client->ps.pmove.origin, player->s.origin );
-	VectorCopy( client->ps.pmove.origin, player->olds.origin );
-	VectorCopy( client->ps.pmove.velocity, player->velocity );
+	player->s.angles = client->ps.viewangles;
+	player->s.origin = client->ps.pmove.origin;
+	player->olds.origin = client->ps.pmove.origin;
+	player->velocity = client->ps.pmove.velocity;
 
 	// unlink to make sure it can't possibly interfere with KillBox
 	GClip_UnlinkEntity( player );
 
 	// kill anything at the destination
-	KillBox( player, MOD_TELEFRAG, vec3_origin );
+	KillBox( player, MOD_TELEFRAG, Vec3( 0.0f ) );
 
 	GClip_LinkEntity( player );
 
@@ -637,7 +506,11 @@ void ClientBegin( edict_t *ent ) {
 	G_Client_UpdateActivity( client ); // activity detected
 
 	client->team = TEAM_SPECTATOR;
-	G_ClientRespawn( ent, true ); // respawn as ghost
+	if( g_teams_autojoin->integer ) {
+		G_Teams_JoinAnyTeam( ent, true ); // auto respawn in a team
+	} else {
+		G_ClientRespawn( ent, true ); // respawn as ghost
+	}
 	ent->movetype = MOVETYPE_NOCLIP; // allow freefly
 
 	G_PrintMsg( NULL, "%s entered the game\n", client->netname );
@@ -775,7 +648,7 @@ static void G_UpdatePlayerInfoString( int playerNum ) {
 	Info_SetValueForKey( playerString, "hand", va( "%i", client->hand ) );
 
 	playerString[MAX_CONFIGSTRING_CHARS - 1] = 0;
-	trap_ConfigString( CS_PLAYERINFOS + playerNum, playerString );
+	PF_ConfigString( CS_PLAYERINFOS + playerNum, playerString );
 }
 
 /*
@@ -790,14 +663,12 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	char oldname[MAX_INFO_VALUE];
 	gclient_t *cl;
 
-	int i;
-
 	assert( ent && ent->r.client );
 	assert( userinfo && Info_Validate( userinfo ) );
 
 	// check for malformed or illegal info strings
 	if( !Info_Validate( userinfo ) ) {
-		trap_DropClient( ent, DROP_TYPE_GENERAL, "Error: Invalid userinfo" );
+		PF_DropClient( ent, DROP_TYPE_GENERAL, "Error: Invalid userinfo" );
 		return;
 	}
 
@@ -806,7 +677,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	// ip
 	s = Info_ValueForKey( userinfo, "ip" );
 	if( !s ) {
-		trap_DropClient( ent, DROP_TYPE_GENERAL, "Error: Server didn't provide client IP" );
+		PF_DropClient( ent, DROP_TYPE_GENERAL, "Error: Server didn't provide client IP" );
 		return;
 	}
 
@@ -815,7 +686,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	// socket
 	s = Info_ValueForKey( userinfo, "socket" );
 	if( !s ) {
-		trap_DropClient( ent, DROP_TYPE_GENERAL, "Error: Server didn't provide client socket" );
+		PF_DropClient( ent, DROP_TYPE_GENERAL, "Error: Server didn't provide client socket" );
 		return;
 	}
 
@@ -828,7 +699,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 		G_PrintMsg( NULL, "%s is now known as %s\n", oldname, cl->netname );
 	}
 	if( !Info_SetValueForKey( userinfo, "name", cl->netname ) ) {
-		trap_DropClient( ent, DROP_TYPE_GENERAL, "Error: Couldn't set userinfo (name)" );
+		PF_DropClient( ent, DROP_TYPE_GENERAL, "Error: Couldn't set userinfo (name)" );
 		return;
 	}
 
@@ -837,24 +708,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	if( !s ) {
 		cl->hand = 2;
 	} else {
-		cl->hand = bound( atoi( s ), 0, 2 );
-	}
-
-	// handicap
-	s = Info_ValueForKey( userinfo, "handicap" );
-	if( s ) {
-		i = atoi( s );
-
-		if( i > 90 || i < 0 ) {
-			G_PrintMsg( ent, "Handicap must be defined in the [0-90] range.\n" );
-			cl->handicap = 0;
-		} else {
-			cl->handicap = i;
-		}
-	}
-
-	if( !G_ISGHOSTING( ent ) && trap_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
-		G_Client_AssignTeamSkin( ent, userinfo );
+		cl->hand = Clamp( atoi( s ), 0, 2 );
 	}
 
 	// save off the userinfo in case we want to check something later
@@ -929,7 +783,6 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient ) {
 	// they can connect
 
 	G_InitEdict( ent );
-	ent->s.modelindex = 0;
 	ent->r.solid = SOLID_NOT;
 	ent->r.client = game.clients + PLAYERNUM( ent );
 	ent->r.svflags = ( SVF_NOCLIENT | ( fakeClient ? SVF_FAKECLIENT : 0 ) );
@@ -944,11 +797,11 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient ) {
 	if( !fakeClient ) {
 		char message[MAX_STRING_CHARS];
 
-		Q_snprintfz( message, sizeof( message ), "%s connected", ent->r.client->netname );
+		snprintf( message, sizeof( message ), "%s connected", ent->r.client->netname );
 
 		G_PrintMsg( NULL, "%s\n", message );
 
-		G_Printf( "%s connected from %s\n", ent->r.client->netname, ent->r.client->ip );
+		Com_Printf( "%s connected from %s\n", ent->r.client->netname, ent->r.client->ip );
 	}
 
 	// let the gametype scripts know this client just connected
@@ -993,7 +846,7 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 	memset( ent->r.client, 0, sizeof( *ent->r.client ) );
 	ent->r.client->ps.playerNum = PLAYERNUM( ent );
 
-	trap_ConfigString( CS_PLAYERINFOS + PLAYERNUM( ent ), "" );
+	PF_ConfigString( CS_PLAYERINFOS + PLAYERNUM( ent ), "" );
 	GClip_UnlinkEntity( ent );
 
 	G_Match_CheckReadys();
@@ -1004,17 +857,12 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 /*
 * G_PredictedEvent
 */
-void G_PredictedEvent( int entNum, int ev, int parm ) {
+void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 	edict_t *ent = &game.edicts[entNum];
 	switch( ev ) {
 		case EV_SMOOTHREFIREWEAPON: // update the firing
 			G_FireWeapon( ent, parm );
 			break; // don't send the event
-
-		case EV_FIREWEAPON:
-			G_FireWeapon( ent, parm );
-			G_AddEvent( ent, ev, parm, true );
-			break;
 
 		case EV_WEAPONACTIVATE:
 			ent->s.weapon = parm;
@@ -1025,6 +873,19 @@ void G_PredictedEvent( int entNum, int ev, int parm ) {
 			G_AddEvent( ent, ev, parm, true );
 			break;
 	}
+}
+
+void G_PredictedFireWeapon( int entNum, WeaponType weapon ) {
+	edict_t * ent = &game.edicts[ entNum ];
+	G_FireWeapon( ent, weapon );
+
+	Vec3 start = ent->s.origin;
+	start.z += ent->r.client->ps.viewheight;
+
+	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, weapon, &start );
+	event->s.ownerNum = entNum;
+	event->s.origin2 = ent->r.client->ps.viewangles; // DirToByte is too inaccurate
+	event->s.team = ent->s.team;
 }
 
 /*
@@ -1067,20 +928,11 @@ static void ClientMakePlrkeys( gclient_t *client, usercmd_t *ucmd ) {
 }
 
 /*
-* ClientMultiviewChanged
-* This will be called when client tries to change multiview mode
-* Mode change can be disallowed by returning false
-*/
-bool ClientMultiviewChanged( edict_t *ent, bool multiview ) {
-	ent->r.client->multiview = multiview == true;
-
-	return true;
-}
-
-/*
 * ClientThink
 */
 void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
+	ZoneScoped;
+
 	gclient_t *client;
 	int i, j;
 	static pmove_t pm;
@@ -1095,7 +947,7 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	if( ent->r.svflags & SVF_FAKECLIENT ) {
 		client->timeDelta = 0;
 	} else {
-		int fixedNudge = ( game.snapFrameTime ) * 0.5; // fixme: find where this nudge comes from.
+		int fixedNudge = game.snapFrameTime * 0.5; // fixme: find where this nudge comes from.
 
 		// add smoothing to timeDelta between the last few ucmds and a small fine-tuning nudge.
 		int nudge = fixedNudge + g_antilag_timenudge->integer;
@@ -1136,17 +988,15 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 
 	// (is this really needed?:only if not cared enough about ps in the rest of the code)
 	// refresh player state position from the entity
-	VectorCopy( ent->s.origin, client->ps.pmove.origin );
-	VectorCopy( ent->velocity, client->ps.pmove.velocity );
-	VectorCopy( ent->s.angles, client->ps.viewangles );
+	client->ps.pmove.origin = ent->s.origin;
+	client->ps.pmove.velocity = ent->velocity;
+	client->ps.viewangles = ent->s.angles;
 
 	client->ps.pmove.gravity = level.gravity;
 
 	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH || GS_MatchPaused( &server_gs )
 		|| ( ent->movetype != MOVETYPE_PLAYER && ent->movetype != MOVETYPE_NOCLIP ) ) {
 		client->ps.pmove.pm_type = PM_FREEZE;
-	} else if( ent->s.type == ET_GIB ) {
-		client->ps.pmove.pm_type = PM_GIB;
 	} else if( ent->movetype == MOVETYPE_NOCLIP ) {
 		client->ps.pmove.pm_type = PM_SPECTATOR;
 	} else {
@@ -1165,12 +1015,12 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	client->old_pmove = client->ps.pmove;
 
 	// update the entity with the new position
-	VectorCopy( client->ps.pmove.origin, ent->s.origin );
-	VectorCopy( client->ps.pmove.velocity, ent->velocity );
-	VectorCopy( client->ps.viewangles, ent->s.angles );
+	ent->s.origin = client->ps.pmove.origin;
+	ent->velocity = client->ps.pmove.velocity;
+	ent->s.angles = client->ps.viewangles;
 	ent->viewheight = client->ps.viewheight;
-	VectorCopy( pm.mins, ent->r.mins );
-	VectorCopy( pm.maxs, ent->r.maxs );
+	ent->r.mins = pm.mins;
+	ent->r.maxs = pm.maxs;
 
 	ent->waterlevel = pm.waterlevel;
 	ent->watertype = pm.watertype;
@@ -1202,15 +1052,19 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 			// player can't touch projectiles, only projectiles can touch the player
 			G_CallTouch( other, ent, NULL, 0 );
 		}
+
+		if( ent->s.origin.z <= -1024 ) {
+			G_Damage( ent, world, world, Vec3( 0.0f ), Vec3( 0.0f ), ent->s.origin, 1337, 0, 0, MOD_VOID );
+		}
 	}
 
-	ent->s.weapon = GS_ThinkPlayerWeapon( &server_gs, &client->ps, ucmd->buttons, ucmd->msec, client->timeDelta );
+	ent->s.weapon = GS_ThinkPlayerWeapon( &server_gs, &client->ps, ucmd, client->timeDelta );
 
 	if( G_IsDead( ent ) ) {
 		if( ent->deathTimeStamp + g_respawn_delay_min->integer <= level.time ) {
 			client->resp.snap.buttons |= ucmd->buttons;
 		}
-	} else if( client->ps.pmove.stats[PM_STAT_NOUSERCONTROL] <= 0 ) {
+	} else if( client->ps.pmove.no_control_time <= 0 ) {
 		client->resp.snap.buttons |= ucmd->buttons;
 	}
 
@@ -1227,7 +1081,7 @@ void G_ClientThink( edict_t *ent ) {
 		return;
 	}
 
-	if( trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+	if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 		return;
 	}
 
@@ -1238,7 +1092,7 @@ void G_ClientThink( edict_t *ent ) {
 		AI_Think( ent );
 	}
 
-	trap_ExecuteClientThinks( PLAYERNUM( ent ) );
+	SV_ExecuteClientThinks( PLAYERNUM( ent ) );
 }
 
 /*
@@ -1253,22 +1107,10 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 		return;
 	}
 
-	if( trap_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
+	if( PF_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
 		// if the spawnsystem doesn't require to click
 		if( G_SpawnQueue_GetSystem( ent->s.team ) != SPAWNSYSTEM_INSTANT ) {
-			int minDelay = g_respawn_delay_min->integer;
-
-			// waves system must wait for at least 500 msecs (to see the death, but very short for selfkilling tactics).
-			if( G_SpawnQueue_GetSystem( ent->s.team ) == SPAWNSYSTEM_WAVES ) {
-				minDelay = ( g_respawn_delay_min->integer < 500 ) ? 500 : g_respawn_delay_min->integer;
-			}
-
-			// hold system must wait for at least 1000 msecs (to see the death properly)
-			if( G_SpawnQueue_GetSystem( ent->s.team ) == SPAWNSYSTEM_HOLD ) {
-				minDelay = ( g_respawn_delay_min->integer < 1300 ) ? 1300 : g_respawn_delay_min->integer;
-			}
-
-			if( level.time >= ent->deathTimeStamp + minDelay ) {
+			if( level.time >= ent->deathTimeStamp + 3000 ) {
 				G_SpawnQueue_AddClient( ent );
 			}
 		}
@@ -1279,7 +1121,7 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 			}
 		}
 		// didn't click, but too much time passed
-		else if( g_respawn_delay_max->integer && ( level.time > ent->deathTimeStamp + g_respawn_delay_max->integer ) ) {
+		else if( g_respawn_delay_max->integer && level.time > ent->deathTimeStamp + g_respawn_delay_max->integer ) {
 			G_SpawnQueue_AddClient( ent );
 		}
 	}

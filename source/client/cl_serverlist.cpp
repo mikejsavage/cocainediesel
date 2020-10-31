@@ -18,7 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "client.h"
+#include "client/client.h"
+#include "qcommon/threads.h"
 #include "qcommon/version.h"
 
 //#define UNSAFE_EXIT
@@ -37,7 +38,7 @@ typedef struct serverlist_s {
 	struct serverlist_s *pnext;
 } serverlist_t;
 
-serverlist_t *masterList, *favoritesList;
+serverlist_t *masterList;
 
 static bool filter_allow_full = false;
 static bool filter_allow_empty = false;
@@ -49,7 +50,7 @@ static int64_t localQueryTimeStamp = 0;
 typedef struct masterserver_s {
 	char addressString[MAX_TOKEN_CHARS];
 	netadr_t address;
-	qthread_t *resolverThread;
+	Thread *resolverThread;
 	volatile bool resolverActive;
 	char delayedRequestModName[MAX_TOKEN_CHARS];
 } masterserver_t;
@@ -75,7 +76,7 @@ static void CL_FreeServerlist( serverlist_t **serversList ) {
 /*
 * CL_ServerIsInList
 */
-static serverlist_t *CL_ServerFindInList( serverlist_t *serversList, char *adr ) {
+static serverlist_t *CL_ServerFindInList( serverlist_t *serversList, const char *adr ) {
 
 	serverlist_t *server;
 
@@ -93,7 +94,7 @@ static serverlist_t *CL_ServerFindInList( serverlist_t *serversList, char *adr )
 /*
 * CL_AddServerToList
 */
-static bool CL_AddServerToList( serverlist_t **serversList, char *adr ) {
+static bool CL_AddServerToList( serverlist_t **serversList, const char *adr ) {
 	serverlist_t *newserv;
 	netadr_t nadr;
 
@@ -155,7 +156,7 @@ void CL_ParseGetStatusResponse( const socket_t *socket, const netadr_t *address,
 */
 static void CL_QueryGetInfoMessage( const char *cmdname ) {
 	netadr_t adr;
-	char *server;
+	const char *server;
 
 	//get what master
 	server = Cmd_Argv( 1 );
@@ -201,7 +202,7 @@ void CL_QueryGetStatusMessage_f( void ) {
 * CL_PingServer_f
 */
 void CL_PingServer_f( void ) {
-	char *address_string;
+	const char *address_string;
 	char requestString[64];
 	netadr_t adr;
 	serverlist_t *pingserver;
@@ -219,9 +220,6 @@ void CL_PingServer_f( void ) {
 
 	pingserver = CL_ServerFindInList( masterList, address_string );
 	if( !pingserver ) {
-		pingserver = CL_ServerFindInList( favoritesList, address_string );
-	}
-	if( !pingserver ) {
 		return;
 	}
 
@@ -232,7 +230,7 @@ void CL_PingServer_f( void ) {
 
 	pingserver->pingTimeStamp = Sys_Milliseconds();
 
-	Q_snprintfz( requestString, sizeof( requestString ), "info %i %s %s", SERVERBROWSER_PROTOCOL_VERSION,
+	snprintf( requestString, sizeof( requestString ), "info %i %s %s", SERVERBROWSER_PROTOCOL_VERSION,
 				 filter_allow_full ? "full" : "",
 				 filter_allow_empty ? "empty" : "" );
 
@@ -255,9 +253,6 @@ void CL_ParseStatusMessage( const socket_t *socket, const netadr_t *address, msg
 
 	// ping response
 	pingserver = CL_ServerFindInList( masterList, adrString );
-	if( !pingserver ) {
-		pingserver = CL_ServerFindInList( favoritesList, adrString );
-	}
 
 	if( pingserver && pingserver->pingTimeStamp ) { // valid ping
 		int ping = (int)(Sys_Milliseconds() - pingserver->pingTimeStamp);
@@ -305,14 +300,14 @@ static void CL_ParseGetServersResponseMessage( msg_t *msg, bool extended ) {
 			case '\\':
 				MSG_ReadData( msg, addr, 4 );
 				port = ShortSwap( MSG_ReadInt16( msg ) ); // both endians need this swapped.
-				Q_snprintfz( adrString, sizeof( adrString ), "%u.%u.%u.%u:%u", addr[0], addr[1], addr[2], addr[3], port );
+				snprintf( adrString, sizeof( adrString ), "%u.%u.%u.%u:%u", addr[0], addr[1], addr[2], addr[3], port );
 				break;
 
 			case '/':
 				if( extended ) {
 					MSG_ReadData( msg, addr, 16 );
 					port = ShortSwap( MSG_ReadInt16( msg ) ); // both endians need this swapped.
-					Q_snprintfz( adrString, sizeof( adrString ), "[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]:%hu",
+					snprintf( adrString, sizeof( adrString ), "[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]:%hu",
 								 addr[ 0], addr[ 1], addr[ 2], addr[ 3], addr[ 4], addr[ 5], addr[ 6], addr[ 7],
 								 addr[ 8], addr[ 9], addr[10], addr[11], addr[12], addr[13], addr[14], addr[15],
 								 port );
@@ -371,7 +366,7 @@ void CL_ParseGetServersResponse( const socket_t *socket, const netadr_t *address
 /*
 * CL_MasterResolverThreadFunc
 */
-static void *CL_MasterResolverThreadFunc( void *param ) {
+static void CL_MasterResolverThreadFunc( void *param ) {
 	masterserver_t *master = ( masterserver_t * ) param;
 
 	NET_StringToAddress( master->addressString, &master->address );
@@ -384,7 +379,6 @@ static void *CL_MasterResolverThreadFunc( void *param ) {
 	}
 
 	master->resolverActive = false;
-	return NULL;
 }
 
 /*
@@ -429,10 +423,7 @@ static void CL_MasterAddressCache_Init( void ) {
 		Q_strncpyz( master->addressString, masterAddress, sizeof( master->addressString ) );
 		master->address.type = NA_NOTRANSMIT;
 		master->resolverActive = true;
-		master->resolverThread = QThread_Create( CL_MasterResolverThreadFunc, master );
-		if( !master->resolverThread ) {
-			master->resolverActive = false;
-		}
+		master->resolverThread = NewThread( CL_MasterResolverThreadFunc, master );
 	}
 }
 
@@ -554,14 +545,11 @@ void CL_GetServers_f( void ) {
 		Com_DPrintf( "Resolving master server address: %s\n", master->addressString );
 
 		if( master->resolverThread ) {
-			QThread_Join( master->resolverThread );
+			JoinThread( master->resolverThread );
 		}
 
 		master->resolverActive = true;
-		master->resolverThread = QThread_Create( CL_MasterResolverThreadFunc, master );
-		if( !master->resolverThread ) {
-			master->resolverActive = false;
-		}
+		master->resolverThread = NewThread( CL_MasterResolverThreadFunc, master );
 
 	}
 
@@ -592,7 +580,6 @@ void CL_ServerListFrame( void ) {
 */
 void CL_InitServerList( void ) {
 	CL_FreeServerlist( &masterList );
-	CL_FreeServerlist( &favoritesList );
 
 	CL_MasterAddressCache_Init();
 }
@@ -602,7 +589,6 @@ void CL_InitServerList( void ) {
 */
 void CL_ShutDownServerList( void ) {
 	CL_FreeServerlist( &masterList );
-	CL_FreeServerlist( &favoritesList );
 
 	CL_MasterAddressCache_Shutdown();
 }

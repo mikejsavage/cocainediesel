@@ -20,23 +20,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-// global preprocessor defines
-#include "config.h"
-
-// q_shared.h -- included first by ALL program modules
-#include <assert.h>
-#include <ctype.h>
-#include <limits.h>
-#define _USE_MATH_DEFINES
-#include <math.h>
-#include <stdio.h>
 #include <stdarg.h>
-#include <string.h>
-#include <stdlib.h>
-#include <time.h>
-#include <stdint.h>
-#include <stddef.h>
+#include <ctype.h>
 #include <inttypes.h>
+
+#define ARCH "x86_64"
 
 //==============================================
 
@@ -55,8 +43,6 @@ typedef unsigned long ioctl_param_t;
 typedef uintptr_t socket_handle_t;
 
 #endif
-
-#define ARCH "x86_64"
 
 //==============================================
 

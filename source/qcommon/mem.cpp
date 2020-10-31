@@ -18,7 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "qcommon.h"
+#include "qcommon/qcommon.h"
+#include "qcommon/threads.h"
 
 #define POOLNAMESIZE 128
 
@@ -27,16 +28,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MEMALIGNMENT_DEFAULT        16
 
-typedef struct memheader_s {
+struct memheader_t {
 	// address returned by malloc (may be significantly before this header to satisify alignment)
 	void *baseaddress;
 
 	// next and previous memheaders in chain belonging to pool
-	struct memheader_s *next;
-	struct memheader_s *prev;
+	memheader_t *next;
+	memheader_t *prev;
 
 	// pool this memheader belongs to
-	struct mempool_s *pool;
+	mempool_t *pool;
 
 	// size of the memory after the header (excluding header and sentinel2)
 	size_t size;
@@ -51,14 +52,14 @@ typedef struct memheader_s {
 	// should always be MEMHEADER_SENTINEL1
 	unsigned int sentinel1;
 	// immediately followed by data, which is followed by a MEMHEADER_SENTINEL2 byte
-} memheader_t;
+};
 
-struct mempool_s {
+struct mempool_t {
 	// should always be MEMHEADER_SENTINEL1
 	unsigned int sentinel1;
 
 	// chain of individual memory allocations
-	struct memheader_s *chain;
+	memheader_t *chain;
 
 	// temporary, etc
 	int flags;
@@ -76,10 +77,10 @@ struct mempool_s {
 	char name[POOLNAMESIZE];
 
 	// linked into global mempool list or parent's children list
-	struct mempool_s *next;
+	mempool_t *next;
 
-	struct mempool_s *parent;
-	struct mempool_s *child;
+	mempool_t *parent;
+	mempool_t *child;
 
 	// file name and line where Mem_AllocPool was called
 	const char *filename;
@@ -106,7 +107,7 @@ mempool_t *tempMemPool;
 // only for zone
 mempool_t *zoneMemPool;
 
-static qmutex_t *memMutex;
+static Mutex *memMutex;
 
 static bool memory_initialized = false;
 static bool commands_initialized = false;
@@ -116,7 +117,7 @@ static void _Mem_Error( const char *format, ... ) {
 	char msg[1024];
 
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	Sys_Error( "%s", msg );
@@ -152,7 +153,7 @@ ATTRIBUTE_MALLOC void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t align
 		Com_DPrintf( "Mem_Alloc: pool %s, file %s:%i, size %" PRIuPTR " bytes\n", pool->name, filename, fileline, (uintptr_t)size );
 	}
 
-	QMutex_Lock( memMutex );
+	Lock( memMutex );
 
 	pool->totalsize += size;
 	realsize = sizeof( memheader_t ) + size + alignment + sizeof( int );
@@ -160,6 +161,7 @@ ATTRIBUTE_MALLOC void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t align
 	pool->realsize += realsize;
 
 	base = malloc( realsize );
+	TracyAlloc( base, realsize );
 	if( base == NULL ) {
 		_Mem_Error( "Mem_Alloc: out of memory (alloc at %s:%i)", filename, fileline );
 	}
@@ -185,7 +187,7 @@ ATTRIBUTE_MALLOC void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t align
 		mem->next->prev = mem;
 	}
 
-	QMutex_Unlock( memMutex );
+	Unlock( memMutex );
 
 	if( z ) {
 		memset( (void *)( (uint8_t *) mem + sizeof( memheader_t ) ), 0, mem->size );
@@ -284,7 +286,7 @@ void _Mem_Free( void *data, int musthave, int canthave, const char *filename, in
 			pool->name, mem->filename, mem->fileline, filename, fileline, (uintptr_t)mem->size );
 	}
 
-	QMutex_Lock( memMutex );
+	Lock( memMutex );
 
 	// unlink memheader from doubly linked list
 	if( ( mem->prev ? mem->prev->next != mem : pool->chain != mem ) || ( mem->next && mem->next->prev != mem ) ) {
@@ -306,9 +308,10 @@ void _Mem_Free( void *data, int musthave, int canthave, const char *filename, in
 	base = mem->baseaddress;
 	pool->realsize -= mem->realsize;
 
-	QMutex_Unlock( memMutex );
+	Unlock( memMutex );
 
 	free( base );
+	TracyFree( base );
 }
 
 mempool_t *_Mem_AllocPool( mempool_t *parent, const char *name, int flags, const char *filename, int fileline ) {
@@ -322,6 +325,7 @@ mempool_t *_Mem_AllocPool( mempool_t *parent, const char *name, int flags, const
 	}
 
 	pool = ( mempool_t* )malloc( sizeof( mempool_t ) );
+	TracyAlloc( pool, sizeof( mempool_t ) );
 	if( pool == NULL ) {
 		_Mem_Error( "Mem_AllocPool: out of memory (allocpool at %s:%i)", filename, fileline );
 	}
@@ -420,6 +424,7 @@ void _Mem_FreePool( mempool_t **pool, int musthave, int canthave, const char *fi
 
 	// free the pool itself
 	free( *pool );
+	TracyFree( *pool );
 	*pool = NULL;
 }
 
@@ -668,7 +673,7 @@ static void MemStats_f( void ) {
 void Memory_Init( void ) {
 	assert( !memory_initialized );
 
-	memMutex = QMutex_Create();
+	memMutex = NewMutex();
 
 	zoneMemPool = Mem_AllocPool( NULL, "Zone" );
 	tempMemPool = Mem_AllocTempPool( "Temporary Memory" );
@@ -720,7 +725,7 @@ void Memory_Shutdown( void ) {
 		Mem_FreePool( &pool );
 	}
 
-	QMutex_Destroy( &memMutex );
+	DeleteMutex( memMutex );
 
 	memory_initialized = false;
 }

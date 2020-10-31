@@ -1,0 +1,8 @@
+{
+	sound ./headshot1
+	sound ./headshot2
+	sound ./headshot3
+	sound ./headshot4
+	sound ./headshot5
+	sound ./headshot6
+}

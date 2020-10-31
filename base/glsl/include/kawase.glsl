@@ -15,24 +15,24 @@ vec3 KawaseBlurFilter( sampler2D tex, vec2 texCoord, vec2 pixelSize, float itera
     texCoordSample.x = texCoord.x - dUV.x;
     texCoordSample.y = texCoord.y + dUV.y;
     
-    cOut = qf_texture( tex, texCoordSample ).xyz;
+    cOut = texture( tex, texCoordSample ).xyz;
 
     // Sample top right pixel
     texCoordSample.x = texCoord.x + dUV.x;
     texCoordSample.y = texCoord.y + dUV.y;
 
-    cOut += qf_texture( tex, texCoordSample ).xyz;
+    cOut += texture( tex, texCoordSample ).xyz;
 
     // Sample bottom right pixel
     texCoordSample.x = texCoord.x + dUV.x;
     texCoordSample.y = texCoord.y - dUV.y;
-    cOut += qf_texture( tex, texCoordSample ).xyz;
+    cOut += texture( tex, texCoordSample ).xyz;
 
     // Sample bottom left pixel
     texCoordSample.x = texCoord.x - dUV.x;
     texCoordSample.y = texCoord.y - dUV.y;
 
-    cOut += qf_texture( tex, texCoordSample ).xyz;
+    cOut += texture( tex, texCoordSample ).xyz;
 
     // Average 
     cOut *= 0.25f;

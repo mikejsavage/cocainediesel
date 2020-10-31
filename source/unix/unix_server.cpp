@@ -74,16 +74,12 @@ void Sys_Error( const char *format, ... ) {
 	fcntl( 0, F_SETFL, fcntl( 0, F_GETFL, 0 ) & ~O_NONBLOCK );
 
 	va_start( argptr, format );
-	Q_vsnprintfz( string, sizeof( string ), format, argptr );
+	vsnprintf( string, sizeof( string ), format, argptr );
 	va_end( argptr );
 
 	fprintf( stderr, "Error: %s\n", string );
 
 	_exit( 1 );
-}
-
-void Sys_Sleep( unsigned int millis ) {
-	usleep( millis * 1000 );
 }
 
 int main( int argc, char **argv ) {
@@ -99,6 +95,8 @@ int main( int argc, char **argv ) {
 	while( true ) {
 		// find time spent rendering last frame
 		do {
+			ZoneScopedN( "Interframe" );
+
 			newtime = Sys_Milliseconds();
 			time = newtime - oldtime;
 			if( time > 0 ) {

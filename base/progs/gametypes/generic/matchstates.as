@@ -80,8 +80,8 @@ void GENERIC_SetUpCountdown()
 
 	// Countdowns should be made entirely client side, because we now can
 
-	int soundIndex = G_SoundIndex( "sounds/announcer/countdown/get_ready_to_fight0" + random_uniform( 1, 3 ) );
-	G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, false, null );
+	uint64 sound = Hash64( "sounds/announcer/countdown/get_ready_to_fight0" + random_uniform( 1, 3 ) );
+	G_AnnouncerSound( null, sound, GS_MAX_TEAMS, false, null );
 }
 
 void GENERIC_SetUpMatch()
@@ -98,10 +98,12 @@ void GENERIC_SetUpMatch()
 
 	// clear player stats and scores, team scores and respawn clients in team lists
 
+	match.alphaScore = 0;
+	match.betaScore = 0;
+
 	for ( i = TEAM_PLAYERS; i < GS_MAX_TEAMS; i++ )
 	{
 		@team = @G_GetTeam( i );
-		team.stats.clear();
 
 		// respawn all clients inside the playing teams
 		for ( j = 0; @team.ent( j ) != null; j++ )
@@ -115,8 +117,8 @@ void GENERIC_SetUpMatch()
 	G_RemoveDeadBodies();
 
 	// Countdowns should be made entirely client side, because we now can
-	int soundindex = G_SoundIndex( "sounds/announcer/countdown/fight0" + random_uniform( 1, 3 ) );
-	G_AnnouncerSound( null, soundindex, GS_MAX_TEAMS, false, null );
+	uint64 sound = Hash64( "sounds/announcer/countdown/fight0" + random_uniform( 1, 3 ) );
+	G_AnnouncerSound( null, sound, GS_MAX_TEAMS, false, null );
 	G_CenterPrintMsg( null, "FIGHT!" );
 
 	// now we can enable shooting
@@ -146,18 +148,11 @@ void GENERIC_SetUpEndMatch()
 	// print scores to console
 	if ( gametype.isTeamBased )
 	{
-		Team @team1 = @G_GetTeam( TEAM_ALPHA );
-		Team @team2 = @G_GetTeam( TEAM_BETA );
-
-		String sC1 = (team1.stats.score < team2.stats.score ? S_COLOR_RED : S_COLOR_GREEN);
-		String sC2 = (team2.stats.score < team1.stats.score ? S_COLOR_RED : S_COLOR_GREEN);
-
-		G_PrintMsg( null, S_COLOR_YELLOW + "Final score: " + S_COLOR_WHITE + team1.name + S_COLOR_WHITE + " vs " +
-			team2.name + S_COLOR_WHITE + " - " + match.getScore() + "\n" );
+		G_PrintMsg( null, S_COLOR_YELLOW + "Final score: " + match.getScore() + "\n" );
 	}
 
-	int soundIndex = G_SoundIndex( "sounds/announcer/postmatch/game_over0" + random_uniform( 1, 3 ) );
-	G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, true, null );
+	uint64 sound = Hash64( "sounds/announcer/postmatch/game_over0" + random_uniform( 1, 3 ) );
+	G_AnnouncerSound( null, sound, GS_MAX_TEAMS, true, null );
 }
 
 ///*****************************************************************
@@ -231,14 +226,8 @@ Entity @GENERIC_SelectBestRandomSpawnPoint( Entity @self, String &className )
 
 void GENERIC_UpdateMatchScore()
 {
-	if ( gametype.isTeamBased )
-	{
-		Team @team1 = @G_GetTeam( TEAM_ALPHA );
-		Team @team2 = @G_GetTeam( TEAM_BETA );
-
-		String score = team1.stats.score + " : " + team2.stats.score;
-
-		match.setScore( score );
+	if( gametype.isTeamBased ) {
+		match.setScore( match.alphaScore + " : " + match.betaScore );
 		return;
 	}
 

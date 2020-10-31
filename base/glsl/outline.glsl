@@ -7,7 +7,7 @@ layout( std140 ) uniform u_Outline {
 	float u_OutlineHeight;
 };
 
-qf_varying vec4 v_Color;
+v2f vec4 v_Color;
 
 #if VERTEX_SHADER
 

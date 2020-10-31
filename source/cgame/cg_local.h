@@ -17,32 +17,32 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-// cg_local.h -- local definitions for client game module
-
 #include "qcommon/types.h"
 #include "qcommon/qcommon.h"
 #include "gameshared/gs_public.h"
 #include "cgame/ref.h"
 
 #include "client/client.h"
-#include "client/sound.h"
-#include "client/renderer/renderer.h"
-#include "client/renderer/text.h"
 #include "cgame/cg_public.h"
 #include "cgame/cg_syscalls.h"
+#include "cgame/cg_decals.h"
 #include "cgame/cg_particles.h"
 #include "cgame/cg_ragdolls.h"
+#include "cgame/cg_sprays.h"
 
-#define CG_OBITUARY_HUD     1
-#define CG_OBITUARY_CENTER  2
-#define CG_OBITUARY_CONSOLE 4
-
-#define ITEM_RESPAWN_TIME   1000
+#include "client/sound.h"
+#include "client/renderer/types.h"
 
 #define VSAY_TIMEOUT 2500
 
-#define GAMECHAT_STRING_SIZE    1024
-#define GAMECHAT_STACK_SIZE     20
+constexpr float FOV = 107.9f; // chosen to upset everyone equally
+
+constexpr RGB8 TEAM_COLORS[] = {
+	RGB8( 0, 204, 255 ),
+	RGB8( 255, 24, 96 ),
+	RGB8( 50, 200, 90 ),
+	RGB8( 210, 170, 0 ),
+};
 
 enum {
 	LOCALEFFECT_EV_PLAYER_TELEPORT_IN,
@@ -59,9 +59,9 @@ enum {
 	MAX_LOCALEFFECTS = 64,
 };
 
-typedef struct {
-	entity_state_t current;
-	entity_state_t prev;        // will always be valid, but might just be a copy of current
+struct centity_t {
+	SyncEntityState current;
+	SyncEntityState prev;        // will always be valid, but might just be a copy of current
 
 	int serverFrame;            // if not current, this ent isn't in the frame
 	int64_t fly_stoptime;
@@ -72,50 +72,51 @@ typedef struct {
 	unsigned int type;
 	unsigned int effects;
 
-	vec3_t velocity;
+	Vec3 velocity;
 
 	bool canExtrapolate;
 	bool canExtrapolatePrev;
-	vec3_t prevVelocity;
+	Vec3 prevVelocity;
 	int microSmooth;
-	vec3_t microSmoothOrigin;
-	vec3_t microSmoothOrigin2;
+	Vec3 microSmoothOrigin;
+	Vec3 microSmoothOrigin2;
 
 	// effects
-	vec3_t trailOrigin;         // for particle trails
+	ImmediateSoundHandle sound;
+	Vec3 trailOrigin;         // for particle trails
 
 	// local effects from events timers
 	int64_t localEffects[MAX_LOCALEFFECTS];
 
 	// attached laser beam
-	vec3_t laserOrigin;
-	vec3_t laserPoint;
-	vec3_t laserOriginOld;
-	vec3_t laserPointOld;
+	Vec3 laserOrigin;
+	Vec3 laserPoint;
+	Vec3 laserOriginOld;
+	Vec3 laserPointOld;
+	ImmediateSoundHandle lg_beam_sound;
 
 	bool linearProjectileCanDraw;
-	vec3_t linearProjectileViewerSource;
-	vec3_t linearProjectileViewerVelocity;
+	Vec3 linearProjectileViewerSource;
+	Vec3 linearProjectileViewerVelocity;
 
-	vec3_t teleportedTo;
-	vec3_t teleportedFrom;
+	Vec3 teleportedTo;
+	Vec3 teleportedFrom;
 
 	// used for client side animation of player models
 	int lastVelocitiesFrames[4];
-	float lastVelocities[4][4];
+	Vec4 lastVelocities[4];
 	bool jumpedLeft;
-	vec3_t animVelocity;
+	Vec3 animVelocity;
 	float yawVelocity;
-} centity_t;
+};
 
-#include "cg_pmodels.h"
+#include "cgame/cg_pmodels.h"
 
-typedef struct {
+struct cgs_media_t {
 	// sounds
-	const SoundEffect * sfxWeaponUp;
-	const SoundEffect * sfxWeaponUpNoAmmo;
+	const SoundEffect * sfxWeaponNoAmmo;
 
-	const SoundEffect * sfxWeaponHit[4];
+	const SoundEffect * sfxWeaponHit[ 4 ];
 	const SoundEffect * sfxWeaponKill;
 	const SoundEffect * sfxWeaponHitTeam;
 
@@ -128,6 +129,7 @@ typedef struct {
 	const SoundEffect * sfxBladeWallHit;
 
 	const SoundEffect * sfxBulletImpact;
+	const SoundEffect * sfxBulletWhizz;
 
 	const SoundEffect * sfxRiotgunHit;
 
@@ -137,14 +139,16 @@ typedef struct {
 	const SoundEffect * sfxRocketLauncherHit;
 
 	const SoundEffect * sfxPlasmaHit;
+	const SoundEffect * sfxBubbleHit;
 
 	const SoundEffect * sfxLasergunHum;
+	const SoundEffect * sfxLasergunBeam;
 	const SoundEffect * sfxLasergunStop;
 	const SoundEffect * sfxLasergunHit;
 
 	const SoundEffect * sfxElectroboltHit;
 
-	const SoundEffect * sfxVSaySounds[VSAY_TOTAL];
+	const SoundEffect * sfxVSaySounds[ Vsay_Total ];
 
 	const SoundEffect * sfxSpikesArm;
 	const SoundEffect * sfxSpikesDeploy;
@@ -152,6 +156,11 @@ typedef struct {
 	const SoundEffect * sfxSpikesRetract;
 
 	const SoundEffect * sfxFall;
+
+	const SoundEffect * sfxTbag;
+	const SoundEffect * sfxSpray;
+
+	const SoundEffect * sfxHeadshot;
 
 	// models
 	const Model * modDash;
@@ -173,7 +182,6 @@ typedef struct {
 	const Material * shaderGrenadeExplosion;
 	const Material * shaderGrenadeExplosionRing;
 	const Material * shaderBulletExplosion;
-	const Material * shaderRaceGhostEffect;
 	const Material * shaderWaterBubble;
 	const Material * shaderSmokePuff;
 
@@ -187,8 +195,6 @@ typedef struct {
 	const Material * shaderBloodTrailPuff;
 	const Material * shaderBloodTrailLiquidPuff;
 	const Material * shaderBloodImpactPuff;
-	const Material * shaderTeamMateIndicator;
-	const Material * shaderTeamCarrierIndicator;
 	const Material * shaderBombIcon;
 	const Material * shaderTeleporterSmokePuff;
 	const Material * shaderBladeMark;
@@ -202,34 +208,33 @@ typedef struct {
 	const Material * shaderPlasmaMark;
 	const Material * shaderEBBeam;
 	const Material * shaderLGBeam;
-	const Material * shaderSMGtrail;
+	const Material * shaderTracer;
 	const Material * shaderEBImpact;
 
 	const Material * shaderPlayerShadow;
 
 	const Material * shaderTick;
 
-	const Material * shaderWeaponIcon[WEAP_TOTAL];
+	const Material * shaderWeaponIcon[ Weapon_Count ];
 	const Material * shaderKeyIcon[KEYICON_TOTAL];
 
 	const Material * shaderAlive;
 	const Material * shaderDead;
 	const Material * shaderReady;
-} cgs_media_t;
+};
 
-typedef struct {
+struct cg_clientInfo_t {
 	char name[MAX_QPATH];
 	int hand;
-	struct shader_s *icon;
-} cg_clientInfo_t;
+};
 
 #define MAX_ANGLES_KICKS 3
 
-typedef struct {
+struct cg_kickangles_t {
 	int64_t timestamp;
 	int64_t kicktime;
 	float v_roll, v_pitch;
-} cg_kickangles_t;
+};
 
 #define PREDICTED_STEP_TIME 150 // stairs smoothing time
 #define MAX_AWARD_LINES 3
@@ -241,7 +246,7 @@ enum {
 	VIEWDEF_PLAYERVIEW,
 };
 
-typedef struct {
+struct cg_viewdef_t {
 	int type;
 	int POVent;
 	bool thirdperson;
@@ -250,23 +255,19 @@ typedef struct {
 	bool draw2D;
 	float fov_x, fov_y;
 	float fracDistFOV;
-	vec3_t origin;
-	vec3_t angles;
+	Vec3 origin;
+	Vec3 angles;
 	mat3_t axis;
-	vec3_t velocity;
-	refdef_t refdef;
-} cg_viewdef_t;
+	Vec3 velocity;
+};
 
-#include "cg_democams.h"
+#include "cgame/cg_democams.h"
 
 // this is not exactly "static" but still...
-typedef struct {
+struct cg_static_t {
 	const char *serverName;
 	const char *demoName;
 	unsigned int playerNum;
-
-	// materials
-	const Material * white_material;
 
 	// fonts
 	int fontSystemTinySize;
@@ -292,73 +293,41 @@ typedef struct {
 	unsigned snapFrameTime;
 	unsigned extrapolationTime;
 
-	char *demoAudioStream;
-
 	//
 	// locally derived information from server state
 	//
 	char configStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 	char baseConfigStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 
-	char weaponModels[WEAP_TOTAL][MAX_QPATH];
-	int numWeaponModels;
-	weaponinfo_t *weaponInfos[WEAP_TOTAL];    // indexed list of weapon model infos
-	orientation_t weaponItemTag;
-
 	cg_clientInfo_t clientInfo[MAX_CLIENTS];
 
-	const Model * modelDraw[MAX_MODELS];
-
-	const MapMetadata * map;
-
-	// force models
 	PlayerModelMetadata *teamModelInfo[2];
 
-	const SoundEffect *soundPrecache[MAX_SOUNDS];
-	const Material *imagePrecache[MAX_IMAGES];
-
-	int precacheModelsStart;
-	int precacheSoundsStart;
-	int precacheShadersStart;
-	int precacheClientsStart;
-
 	char checkname[MAX_QPATH];
-	int precacheCount, precacheTotal, precacheStart;
-	int64_t precacheStartMsec;
+};
 
-	ParticleSystem ions;
-	ParticleSystem SMGsparks;
-	ParticleSystem sparks;
-	ParticleSystem smoke;
-} cg_static_t;
-
-typedef struct {
+struct cg_state_t {
 	int frameCount;
 
 	snapshot_t frame, oldFrame;
-	bool frameSequenceRunning;
-	bool oldAreabits;
 	bool fireEvents;
 	bool firstFrame;
 
-	float predictedOrigins[CMD_BACKUP][3];              // for debug comparing against server
+	Vec3 predictedOrigins[CMD_BACKUP];              // for debug comparing against server
 
 	float predictedStep;                // for stair up smoothing
 	int64_t predictedStepTime;
 
 	int64_t predictingTimeStamp;
 	int64_t predictedEventTimes[PREDICTABLE_EVENTS_MAX];
-	vec3_t predictionError;
-	player_state_t predictedPlayerState;     // current in use, predicted or interpolated
-	int predictedWeaponSwitch;              // inhibit shooting prediction while a weapon change is expected
+	Vec3 predictionError;
+	SyncPlayerState predictedPlayerState;     // current in use, predicted or interpolated
 	int predictedGroundEntity;
 
 	// prediction optimization (don't run all ucmds in not needed)
 	int64_t predictFrom;
-	entity_state_t predictFromEntityState;
-	player_state_t predictFromPlayerState;
-
-	int lastWeapon;
+	SyncEntityState predictFromEntityState;
+	SyncPlayerState predictFromPlayerState;
 
 	float lerpfrac;                     // between oldframe and frame
 	float xerpTime;
@@ -375,10 +344,13 @@ typedef struct {
 	int64_t pointRemoveTime;
 	int pointedHealth;
 
-	//
-	// all cyclic walking effects
-	//
 	float xyspeed;
+
+	bool recoiling;
+	Vec3 recoil;
+	Vec3 recoil_initial;
+
+	float damage_effect;
 
 	float oldBobTime;
 	int bobCycle;                   // odd cycles are right foot going forward
@@ -389,7 +361,6 @@ typedef struct {
 	//
 
 	cg_kickangles_t kickangles[MAX_ANGLES_KICKS];
-	int64_t damageBlends[4];
 	int64_t fallEffectTime;
 	int64_t fallEffectRebounceTime;
 
@@ -403,35 +374,30 @@ typedef struct {
 
 	cg_viewweapon_t weapon;
 	cg_viewdef_t view;
-} cg_state_t;
+};
 
 extern cg_static_t cgs;
 extern cg_state_t cg;
 
 extern mempool_t *cg_mempool;
 
-#define ISVIEWERENTITY( entNum )  ( ( cg.predictedPlayerState.POVnum > 0 ) && ( (int)cg.predictedPlayerState.POVnum == entNum ) && ( cg.view.type == VIEWDEF_PLAYERVIEW ) )
-#define ISBRUSHMODEL( x ) ( ( ( x > 0 ) && ( (int)x < trap_CM_NumInlineModels() ) ) ? true : false )
+#define ISVIEWERENTITY( entNum )  ( cg.predictedPlayerState.POVnum > 0 && (int)cg.predictedPlayerState.POVnum == ( entNum ) && cg.view.type == VIEWDEF_PLAYERVIEW )
 
-#define ISREALSPECTATOR()       ( cg.frame.playerState.stats[STAT_REALTEAM] == TEAM_SPECTATOR )
+#define ISREALSPECTATOR()       ( cg.frame.playerState.real_team == TEAM_SPECTATOR )
 
 extern centity_t cg_entities[MAX_EDICTS];
 
 //
 // cg_ents.c
 //
-extern cvar_t *cg_gun;
-
 bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe );
 struct cmodel_s *CG_CModelForEntity( int entNum );
 void CG_SoundEntityNewState( centity_t *cent );
 void CG_AddEntities( void );
-void CG_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity );
+void CG_GetEntitySpatilization( int entNum, Vec3 * origin, Vec3 * velocity );
 void CG_LerpEntities( void );
 void CG_LerpGenericEnt( centity_t *cent );
-void CG_BBoxForEntityState( const entity_state_t * state, vec3_t mins, vec3_t maxs );
-
-void CG_AddOutline( entity_t *ent, int effects, RGBA8 color );
+void CG_BBoxForEntityState( const SyncEntityState * state, Vec3 * mins, Vec3 * maxs );
 
 //
 // cg_draw.c
@@ -457,21 +423,21 @@ extern cvar_t *cg_hand;
 void CG_ResetClientInfos( void );
 void CG_LoadClientInfo( int client );
 void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata, const char * name );
-void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps, float volume, float attn );
+void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps );
 
 //
 // cg_predict.c
 //
 extern cvar_t *cg_showMiss;
 
-void CG_PredictedEvent( int entNum, int ev, int parm );
-void CG_Predict_ChangeWeapon( int new_weapon );
+void CG_PredictedEvent( int entNum, int ev, u64 parm );
+void CG_PredictedFireWeapon( int entNum, WeaponType weapon );
 void CG_PredictMovement( void );
 void CG_CheckPredictionError( void );
 void CG_BuildSolidList( void );
-void CG_Trace( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask );
-int CG_PointContents( const vec3_t point );
-void CG_Predict_TouchTriggers( pmove_t *pm, vec3_t previous_origin );
+void CG_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask );
+int CG_PointContents( Vec3 point );
+void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin );
 
 //
 // cg_screen.c
@@ -481,20 +447,14 @@ extern cvar_t *cg_showAwards;
 
 void CG_ScreenInit( void );
 void CG_Draw2D( void );
-void CG_DrawHUD( void );
-void CG_DrawLoading( void );
 void CG_CenterPrint( const char *str );
 
 void CG_EscapeKey( void );
-
-bool CG_LoadingItemName( const char *str );
 
 void CG_DrawCrosshair();
 void CG_ScreenCrosshairDamageUpdate( void );
 
 void CG_DrawKeyState( int x, int y, int w, int h, const char *key );
-
-int CG_ParseValue( const char **s );
 
 void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float font_size, Vec4 color, bool border );
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border );
@@ -503,12 +463,15 @@ void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color );
 void CG_ClearPointedNum( void );
 
 void CG_InitDamageNumbers();
-void CG_AddDamageNumber( entity_state_t * ent );
+void CG_AddDamageNumber( SyncEntityState * ent, u64 parm );
 void CG_DrawDamageNumbers();
 
-void CG_AddBombHudEntity( centity_t * cent );
+void CG_AddBomb( centity_t * cent );
+void CG_AddBombSite( centity_t * cent );
 void CG_DrawBombHUD();
 void CG_ResetBombHUD();
+
+void AddDamageEffect( float x = 0.0f );
 
 //
 // cg_hud.c
@@ -519,12 +482,6 @@ void CG_SC_ResetObituaries();
 void CG_SC_Obituary();
 void CG_ExecuteLayoutProgram( struct cg_layoutnode_s *rootnode );
 void CG_ClearAwards();
-
-//
-// cg_damage_indicator.c
-//
-void CG_ResetDamageIndicator( void );
-void CG_DamageIndicatorAdd( int damage, const vec3_t dir );
 
 //
 // cg_scoreboard.c
@@ -540,43 +497,23 @@ bool CG_ScoreboardShown();
 //
 extern cvar_t *developer;
 extern cvar_t *cg_showClamp;
+extern cvar_t *cg_showHotkeys;
 
 // wsw
-extern cvar_t *cg_showObituaries;
-extern cvar_t *cg_damageNumbers;
 extern cvar_t *cg_volume_hitsound;    // hit sound volume
+extern cvar_t *cg_volume_announcer; // announcer sounds volume
 extern cvar_t *cg_autoaction_demo;
 extern cvar_t *cg_autoaction_screenshot;
 extern cvar_t *cg_autoaction_spectator;
-extern cvar_t *cg_volume_players; // players sound volume
-extern cvar_t *cg_volume_effects; // world sound volume
-extern cvar_t *cg_volume_announcer; // announcer sounds volume
-extern cvar_t *cg_volume_voicechats; //vsays volume
-extern cvar_t *cg_projectileFireTrail;
-extern cvar_t *cg_bloodTrail;
-extern cvar_t *cg_showBloodTrail;
-extern cvar_t *cg_projectileFireTrailAlpha;
-extern cvar_t *cg_bloodTrailAlpha;
 
-extern cvar_t *cg_cartoonEffects;
-
-extern cvar_t *cg_explosionsRing;
-extern cvar_t *cg_explosionsDust;
-
-extern cvar_t *cg_fov;
-extern cvar_t *cg_zoomfov;
-extern cvar_t *cg_particles;
 extern cvar_t *cg_voiceChats;
 extern cvar_t *cg_projectileAntilagOffset;
 extern cvar_t *cg_chatFilter;
 
-extern cvar_t *cg_allyColor;
 extern cvar_t *cg_allyModel;
-extern cvar_t *cg_allyForceModel;
-
-extern cvar_t *cg_enemyColor;
 extern cvar_t *cg_enemyModel;
-extern cvar_t *cg_enemyForceModel;
+
+extern cvar_t *cg_particleDebug;
 
 #define CG_Malloc( size ) _Mem_AllocExt( cg_mempool, size, 16, 1, 0, 0, __FILE__, __LINE__ );
 #define CG_Free( data ) Mem_Free( data )
@@ -586,13 +523,9 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 void CG_Shutdown( void );
 
 #ifndef _MSC_VER
-void CG_Printf( const char *format, ... ) __attribute( ( format( printf, 1, 2 ) ) );
 void CG_LocalPrint( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-void CG_Error( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) ) __attribute__( ( noreturn ) );
 #else
-void CG_Printf( _Printf_format_string_ const char *format, ... );
 void CG_LocalPrint( _Printf_format_string_ const char *format, ... );
-void CG_Error( _Printf_format_string_ const char *format, ... );
 #endif
 
 void CG_Reset( void );
@@ -600,11 +533,9 @@ void CG_Precache( void );
 char *_CG_CopyString( const char *in, const char *filename, int fileline );
 #define CG_CopyString( in ) _CG_CopyString( in, __FILE__, __LINE__ )
 
-void CG_UseItem( const char *name );
 void CG_RegisterCGameCommands( void );
 void CG_UnregisterCGameCommands( void );
 void CG_AddAward( const char *str );
-void CG_OverrideWeapondef( int index, const char *cstring );
 
 void CG_StartBackgroundTrack( void );
 
@@ -618,7 +549,7 @@ void CG_SC_AutoRecordAction( const char *action );
 //
 // cg_teams.c
 //
-void CG_RegisterForceModels();
+void CG_RegisterPlayerModels();
 const PlayerModelMetadata * CG_PModelForCentity( centity_t * cent );
 RGB8 CG_TeamColor( int team );
 Vec4 CG_TeamColorVec4( int team );
@@ -646,12 +577,12 @@ extern cvar_t *cg_thirdPersonRange;
 void CG_ResetKickAngles( void );
 
 void CG_AddEntityToScene( entity_t *ent );
-void CG_StartKickAnglesEffect( vec3_t source, float knockback, float radius, int time );
 void CG_StartFallKickEffect( int bounceTime );
-void CG_ViewSmoothPredictedSteps( vec3_t vieworg );
+void CG_ViewSmoothPredictedSteps( Vec3 * vieworg );
 float CG_ViewSmoothFallKick( void );
+float CG_CalcViewFov();
 void CG_RenderView( unsigned extrapolationTime );
-void CG_AddKickAngles( vec3_t viewangles );
+Vec3 CG_GetKickAngles();
 bool CG_ChaseStep( int step );
 bool CG_SwitchChaseCamMode( void );
 
@@ -659,40 +590,35 @@ bool CG_SwitchChaseCamMode( void );
 // cg_lents.c
 //
 
-void CG_ClearLocalEntities( void );
-void CG_AddLocalEntities( void );
-void CG_FreeLocalEntities( void );
-
-void CG_BulletExplosion( const vec3_t origin, const float *dir, const trace_t *trace );
-void CG_BubbleTrail( const vec3_t start, const vec3_t end, int dist );
-void CG_ProjectileTrail( centity_t *cent );
+void CG_BubbleTrail( Vec3 start, Vec3 end, int dist );
+void CG_ProjectileTrail( const centity_t * cent );
+void CG_RifleBulletTrail( const centity_t * cent );
 void CG_NewBloodTrail( centity_t *cent );
-void CG_BloodDamageEffect( const vec3_t origin, const vec3_t dir, int damage, int team );
-void CG_PlasmaExplosion( const vec3_t pos, const vec3_t dir, int team, float radius );
-void CG_GrenadeExplosionMode( const vec3_t pos, const vec3_t dir, float radius, int team );
-void CG_GenericExplosion( const vec3_t pos, const vec3_t dir, float radius );
-void CG_RocketExplosionMode( const vec3_t pos, const vec3_t dir, float radius, int team );
-void CG_EBBeam( Vec3 start, Vec3 end, int team );
-void CG_EBImpact( const vec3_t pos, const vec3_t dir, int surfFlags, int team );
-void CG_ImpactSmokePuff( const vec3_t origin, const vec3_t dir, float radius, float alpha, int time, int speed );
-void CG_BladeImpact( const vec3_t pos, const vec3_t dir );
+void CG_BloodDamageEffect( Vec3 origin, Vec3 dir, int damage, Vec4 team_color );
+void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
+void CG_BubbleExplosion( Vec3 pos, Vec4 team_color );
+void CG_GrenadeExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
+void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius );
+void CG_RocketExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
+void CG_EBBeam( Vec3 start, Vec3 end, Vec4 team_color );
+void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color );
+void CG_BladeImpact( Vec3 pos, Vec3 dir );
 void CG_PModel_SpawnTeleportEffect( centity_t * cent, MatrixPalettes temp_pose );
-void CG_LaserGunImpact( const vec3_t pos, float radius, const vec3_t laser_dir, RGBA8 color );
 
-void CG_Dash( const entity_state_t *state );
-void CG_Explosion_Puff_2( const vec3_t pos, const vec3_t vel, int radius );
-void CG_DustCircle( const vec3_t pos, const vec3_t dir, float radius, int count );
-void CG_ExplosionsDust( const vec3_t pos, const vec3_t dir, float radius );
+void CG_Dash( const SyncEntityState *state );
+void CG_DustCircle( Vec3 pos, Vec3 dir, float radius, int count );
 
 void InitGibs();
-void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, int team );
+void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 team_color );
 void DrawGibs();
 
 //
 // cg_effects.c
 //
-void CG_ParticleExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color );
-void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color );
+void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color );
+void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color );
+void BubbleImpactParticles( Vec3 origin, Vec3 team_color );
+void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color );
 
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material );
 
@@ -706,16 +632,15 @@ void DrawPersistentBeams();
 void CG_AddViewWeapon( cg_viewweapon_t *viewweapon );
 void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon );
 void CG_ViewWeapon_StartAnimationEvent( int newAnim );
-void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon );
+
+void CG_AddRecoil( WeaponType weapon );
+void CG_Recoil( WeaponType weapon );
 
 //
 // cg_events.c
 //
-extern cvar_t *cg_damage_indicator;
-extern cvar_t *cg_damage_indicator_time;
-
 void CG_FireEvents( bool early );
-void CG_EntityEvent( entity_state_t *ent, int ev, int parm, bool predicted );
+void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted );
 void CG_AddAnnouncerEvent( const SoundEffect *sound, bool queued );
 void CG_ReleaseAnnouncerEvents( void );
 void CG_ClearAnnouncerEvents( void );
@@ -739,28 +664,21 @@ void CG_DrawChat();
 
 void CG_InitInput( void );
 void CG_ShutdownInput( void );
-void CG_InputFrame( int frameTime );
 void CG_ClearInputState( void );
-void CG_MouseMove( int mx, int my );
+void CG_MouseMove( int frameTime, Vec2 m );
 float CG_GetSensitivityScale( float sens, float zoomSens );
 unsigned int CG_GetButtonBits( void );
-void CG_AddViewAngles( vec3_t viewAngles );
-void CG_AddMovement( vec3_t movement );
+Vec3 CG_GetDeltaViewAngles();
+Vec3 CG_GetMovement();
 
 /*
 * Returns angular movement vector (in euler angles) obtained from the input.
 * Doesn't take flipping into account.
 */
-void CG_GetAngularMovement( vec3_t movement );
+void CG_GetAngularMovement( Vec3 movement );
 
-/**
- * Gets up to two bound keys for a command.
- *
- * @param cmd      console command to get binds for
- * @param keys     output string
- * @param keysSize output string buffer size
- */
 bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize );
+int CG_GetBoundKeycodes( const char *cmd, int keys[ 2 ] );
 
 /**
  * Checks a chat message for local player nick and flashes window on a match

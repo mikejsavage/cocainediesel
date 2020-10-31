@@ -65,6 +65,15 @@ public:
 		return false;
 	}
 
+	bool update( u64 key, u64 value ) {
+		u64 i;
+		if( !find( hash_key( key ), &i ) )
+			return false;
+
+		entries[ i ].value = value;
+		return true;
+	}
+
 	bool get( u64 key, u64 * value ) const {
 		u64 i;
 		if( !find( hash_key( key ), &i ) )
@@ -105,18 +114,17 @@ private:
 		return ( key & DeletedBit ) != 0;
 	}
 
-	// u64 hash_key( u64 key ) const {
-	// 	return Hash64( key ) & ~DeletedBit;
-	// }
-
 	u64 hash_key( u64 key ) const {
 		return key & ~DeletedBit;
 	}
 
 	bool find( u64 key, u64 * idx ) const {
-		assert( key != EmptyKey );
+		if( key == EmptyKey )
+			return false;
 
-		u64 i = hash_key( key ) % N;
+		key = hash_key( key );
+
+		u64 i = key % N;
 		u64 dist = 0;
 
 		for( ;; ) {

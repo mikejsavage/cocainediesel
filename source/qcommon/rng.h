@@ -28,9 +28,9 @@
 
 struct RNG {
 	// RNG state. All values are possible.
-	uint64_t state; 
+	uint64_t state;
 	// Controls which RNG sequence (stream) is selected. Must *always* be odd.
-	uint64_t inc;   
+	uint64_t inc;
 };
 
 RNG new_rng();
@@ -44,6 +44,7 @@ uint64_t random_u64( RNG * rng );
 
 // return a random number in [lo, hi)
 int random_uniform( RNG * rng, int lo, int hi );
+int random_uniform_exact( RNG * rng, int lo, int hi );
 
 // return a random float in [0, 1)
 float random_float01( RNG * rng );

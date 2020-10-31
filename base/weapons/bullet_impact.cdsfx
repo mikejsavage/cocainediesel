@@ -1,0 +1,5 @@
+{
+	attenuation idle
+	sound ./bullet_impact1
+	sound ./bullet_impact2
+}

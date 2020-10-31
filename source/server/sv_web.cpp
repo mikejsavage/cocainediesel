@@ -18,11 +18,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-// sv_web.c -- builtin HTTP server
 #include "server.h"
 #include "qcommon/q_trie.h"
-
-#ifdef HTTP_SUPPORT
+#include "qcommon/threads.h"
 
 #define MAX_INCOMING_HTTP_CONNECTIONS           48
 #define MAX_INCOMING_HTTP_CONNECTIONS_PER_ADDR  3
@@ -125,8 +123,6 @@ typedef struct {
 	netadr_t remoteAddress;
 } http_game_client_t;
 
-typedef unsigned (*queueCmdHandler_t)( const void * );
-
 static bool sv_http_initialized = false;
 static volatile bool sv_http_running = false;
 
@@ -141,10 +137,10 @@ static netadr_t sv_web_upstream_addr;
 static uint64_t sv_http_request_autoicr;
 
 static trie_t *sv_http_clients = NULL;
-static qmutex_t *sv_http_clients_mutex = NULL;
+static Mutex *sv_http_clients_mutex = NULL;
 
-static qthread_t *sv_http_thread = NULL;
-static void *SV_Web_ThreadProc( void *param );
+static Thread *sv_http_thread = NULL;
+static void SV_Web_ThreadProc( void *param );
 
 // ============================================================================
 
@@ -335,9 +331,9 @@ bool SV_Web_AddGameClient( const char *session, int clientNum, const netadr_t *n
 	client->clientNum = clientNum;
 	client->remoteAddress = *netAdr;
 
-	QMutex_Lock( sv_http_clients_mutex );
+	Lock( sv_http_clients_mutex );
 	trie_error = Trie_Insert( sv_http_clients, client->session, (void *)client );
-	QMutex_Unlock( sv_http_clients_mutex );
+	Unlock( sv_http_clients_mutex );
 
 	if( trie_error != TRIE_OK ) {
 		Mem_ZoneFree( client );
@@ -358,9 +354,9 @@ void SV_Web_RemoveGameClient( const char *session ) {
 		return;
 	}
 
-	QMutex_Lock( sv_http_clients_mutex );
+	Lock( sv_http_clients_mutex );
 	trie_error = Trie_Remove( sv_http_clients, session, (void **)&client );
-	QMutex_Unlock( sv_http_clients_mutex );
+	Unlock( sv_http_clients_mutex );
 
 	if( trie_error != TRIE_OK ) {
 		return;
@@ -383,9 +379,9 @@ static bool SV_Web_FindGameClientBySession( const char *session, int clientNum )
 		return false;
 	}
 
-	QMutex_Lock( sv_http_clients_mutex );
+	Lock( sv_http_clients_mutex );
 	trie_error = Trie_Find( sv_http_clients, session, TRIE_EXACT_MATCH, (void **)&client );
-	QMutex_Unlock( sv_http_clients_mutex );
+	Unlock( sv_http_clients_mutex );
 
 	if( trie_error != TRIE_OK ) {
 		return false;
@@ -407,9 +403,9 @@ static bool SV_Web_FindGameClientByAddress( const netadr_t *netadr ) {
 	struct trie_dump_s *dump;
 	bool valid_address;
 
-	QMutex_Lock( sv_http_clients_mutex );
+	Lock( sv_http_clients_mutex );
 	Trie_Dump( sv_http_clients, "", TRIE_DUMP_VALUES, &dump );
-	QMutex_Unlock( sv_http_clients_mutex );
+	Unlock( sv_http_clients_mutex );
 
 	valid_address = false;
 	for( i = 0; i < dump->size; i++ ) {
@@ -903,7 +899,7 @@ static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_respo
 	if( !resource ) {
 		response->code = HTTP_RESP_BAD_REQUEST;
 	} else if( !Q_strnicmp( resource, "files/", 6 ) ) {
-		const char *filename, *extension;
+		const char *filename;
 
 		filename = resource + 6;
 		response->filename = ZoneCopyString( filename );
@@ -915,9 +911,8 @@ static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_respo
 				return;
 			}
 
-			// only serve GET requests for pack and demo files
-			extension = COM_FileExtension( filename );
-			if( !extension || Q_stricmp( extension, APP_DEMO_EXTENSION_STR ) != 0 ) {
+			Span< const char > ext = FileExtension( filename );
+			if( ext != ".bsp" && ext != APP_DEMO_EXTENSION_STR ) {
 				response->code = HTTP_RESP_FORBIDDEN;
 				return;
 			}
@@ -992,7 +987,7 @@ static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
 			// Content-Range header values
 			response->file_send_pos = FS_Tell( response->file );
 			response->stream.content_range.begin = response->file_send_pos;
-			response->stream.content_range.end = min( (int)content_length, response->stream.content_range.end );
+			response->stream.content_range.end = qmin( content_length, response->stream.content_range.end );
 			response->code = HTTP_RESP_PARTIAL_CONTENT;
 		}
 
@@ -1004,7 +999,7 @@ static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
 
 	con->state = HTTP_CONN_STATE_SEND;
 
-	Q_snprintfz( resp_stream->header_buf, sizeof( resp_stream->header_buf ),
+	snprintf( resp_stream->header_buf, sizeof( resp_stream->header_buf ),
 				 "%s %i %s\r\nServer: " APPLICATION "\r\n",
 				 request->http_ver, response->code, SV_Web_ResponseCodeMessage( response->code ) );
 
@@ -1020,11 +1015,11 @@ static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
 			Q_strncatz( resp_stream->header_buf, "Content-Range: bytes */*\r\n",
 						sizeof( resp_stream->header_buf ) );
 		} else {
-			Q_snprintfz( vastr, sizeof( vastr ), "Content-Range: bytes */%" PRIuPTR "\r\n", (uintptr_t)content_length );
+			snprintf( vastr, sizeof( vastr ), "Content-Range: bytes */%" PRIuPTR "\r\n", (uintptr_t)content_length );
 			Q_strncatz( resp_stream->header_buf, vastr, sizeof( resp_stream->header_buf ) );
 		}
 	} else if( response->code == HTTP_RESP_PARTIAL_CONTENT ) {
-		Q_snprintfz( vastr, sizeof( vastr ), "Content-Range: bytes %" PRIuPTR "-%" PRIuPTR "/%" PRIuPTR "\r\n",
+		snprintf( vastr, sizeof( vastr ), "Content-Range: bytes %" PRIuPTR "-%" PRIuPTR "/%" PRIuPTR "\r\n",
 					(uintptr_t)response->stream.content_range.begin, (uintptr_t)response->stream.content_range.end, (uintptr_t)content_length );
 		Q_strncatz( resp_stream->header_buf, vastr, sizeof( resp_stream->header_buf ) );
 		content_length = response->stream.content_range.end - response->stream.content_range.begin;
@@ -1035,7 +1030,7 @@ static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
 		Q_strncatz( resp_stream->header_buf, "Content-Type: text/plain\r\n",
 					sizeof( resp_stream->header_buf ) );
 
-		Q_snprintfz( err_body, sizeof( err_body ), "%i %s\n",
+		snprintf( err_body, sizeof( err_body ), "%i %s\n",
 					 response->code, SV_Web_ResponseCodeMessage( response->code ) );
 		content = err_body;
 		content_length = strlen( err_body );
@@ -1046,7 +1041,7 @@ static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
 				sizeof( resp_stream->header_buf ) );
 
 	if( response->file ) {
-		Q_snprintfz( vastr, sizeof( vastr ), "Content-Disposition: attachment; filename=\"%s\"\r\n",
+		snprintf( vastr, sizeof( vastr ), "Content-Disposition: attachment; filename=\"%s\"\r\n",
 					 COM_FileBase( response->filename ) );
 		Q_strncatz( resp_stream->header_buf, vastr, sizeof( resp_stream->header_buf ) );
 	}
@@ -1179,9 +1174,9 @@ static void SV_Web_InitSocket( const char *addrstr, netadrtype_t adrtype, socket
 
 	if( address.type == adrtype ) {
 		if( !NET_OpenSocket( socket, SOCKET_TCP, &address, true ) ) {
-			Com_Printf( "Error: Couldn't open TCP socket: %s", NET_ErrorString() );
+			Com_Printf( "Couldn't start web server: Couldn't open TCP socket: %s\n", NET_ErrorString() );
 		} else if( !NET_Listen( socket ) ) {
-			Com_Printf( "Error: Couldn't listen to TCP socket: %s", NET_ErrorString() );
+			Com_Printf( "Couldn't start web server: Couldn't listen to TCP socket: %s\n", NET_ErrorString() );
 			NET_CloseSocket( socket );
 		} else {
 			Com_Printf( "Web server started on %s\n", NET_AddressToString( &address ) );
@@ -1266,8 +1261,8 @@ void SV_Web_Init( void ) {
 	sv_http_running = true;
 
 	Trie_Create( TRIE_CASE_SENSITIVE, &sv_http_clients );
-	sv_http_clients_mutex = QMutex_Create();
-	sv_http_thread = QThread_Create( SV_Web_ThreadProc, NULL );
+	sv_http_clients_mutex = NewMutex();
+	sv_http_thread = NewThread( SV_Web_ThreadProc );
 }
 
 /*
@@ -1384,13 +1379,12 @@ bool SV_Web_Running( void ) {
 /*
 * SV_Web_ThreadProc
 */
-static void *SV_Web_ThreadProc( void *param ) {
+static void SV_Web_ThreadProc( void *param ) {
 	while( sv_http_running ) {
 		SV_Web_Frame();
 	}
 
 	SV_Web_ShutdownConnections();
-	return NULL;
 }
 
 /*
@@ -1402,7 +1396,7 @@ void SV_Web_Shutdown( void ) {
 	}
 
 	sv_http_running = false;
-	QThread_Join( sv_http_thread );
+	JoinThread( sv_http_thread );
 
 	NET_CloseSocket( &sv_socket_http );
 	NET_CloseSocket( &sv_socket_http6 );
@@ -1416,33 +1410,3 @@ void SV_Web_Shutdown( void ) {
 const char *SV_Web_UpstreamBaseUrl( void ) {
 	return sv_http_upstream_baseurl->string;
 }
-
-#else
-
-/*
-* SV_Web_Init
-*/
-void SV_Web_Init( void ) {
-}
-
-/*
-* SV_Web_Shutdown
-*/
-void SV_Web_Shutdown( void ) {
-}
-
-/*
-* SV_Web_Running
-*/
-bool SV_Web_Running( void ) {
-	return false;
-}
-
-/*
-* SV_Web_UpstreamBaseUrl
-*/
-const char *SV_Web_UpstreamBaseUrl( void ) {
-	return "";
-}
-
-#endif // HTTP_SUPPORT

@@ -18,8 +18,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "qcommon.h"
+#include "qcommon/qcommon.h"
 #include "qcommon/hash.h"
+#include "qcommon/threads.h"
 
 #include "sys_fs.h"
 
@@ -70,11 +71,10 @@ static cvar_t *fs_basepath;
 static cvar_t *fs_cdpath;
 static cvar_t *fs_usehomedir;
 static cvar_t *fs_usedownloadsdir;
-static cvar_t *fs_basegame;
 
 static searchpath_t *fs_basepaths = NULL;       // directories without gamedirs
 static searchpath_t *fs_searchpaths = NULL;     // game search directories
-static qmutex_t *fs_searchpaths_mutex;
+static Mutex *fs_searchpaths_mutex;
 
 static searchpath_t *fs_base_searchpaths;       // same as above, but without extra gamedirs
 static searchpath_t *fs_root_searchpath;        // base path directory
@@ -92,7 +92,7 @@ static mempool_t *fs_mempool;
 
 static filehandle_t fs_filehandles[FS_MAX_HANDLES];
 static filehandle_t fs_filehandles_headnode, *fs_free_filehandles;
-static qmutex_t *fs_fh_mutex;
+static Mutex *fs_fh_mutex;
 
 static bool fs_initialized = false;
 
@@ -167,7 +167,7 @@ static bool FS_SearchDirectoryForFile( searchpath_t *search, const char *filenam
 	assert( search );
 	assert( filename );
 
-	Q_snprintfz( tempname, sizeof( tempname ), "%s/%s", search->path, filename );
+	snprintf( tempname, sizeof( tempname ), "%s/%s", search->path, filename );
 
 	f = fopen( tempname, "rb" );
 	if( f ) {
@@ -222,8 +222,8 @@ static searchpath_t *FS_SearchPathForFile( const char *filename, char *path, siz
 	}
 
 	// search through the path, one element at a time
-	QMutex_Lock( fs_searchpaths_mutex );
-	defer { QMutex_Unlock( fs_searchpaths_mutex ); };
+	Lock( fs_searchpaths_mutex );
+	defer { Unlock( fs_searchpaths_mutex ); };
 	search = fs_searchpaths;
 	while( search ) {
 		if( FS_SearchDirectoryForFile( search, filename, path, path_size ) ) {
@@ -271,10 +271,10 @@ static searchpath_t *FS_SearchPathForBaseFile( const char *filename, char *path,
 static int FS_OpenFileHandle( void ) {
 	filehandle_t *fh;
 
-	QMutex_Lock( fs_fh_mutex );
+	Lock( fs_fh_mutex );
 
 	if( !fs_free_filehandles ) {
-		QMutex_Unlock( fs_fh_mutex );
+		Unlock( fs_fh_mutex );
 		Sys_Error( "FS_OpenFileHandle: no free file handles" );
 	}
 
@@ -288,7 +288,7 @@ static int FS_OpenFileHandle( void ) {
 	fh->next->prev = fh;
 	fh->prev->next = fh;
 
-	QMutex_Unlock( fs_fh_mutex );
+	Unlock( fs_fh_mutex );
 
 	return ( fh - fs_filehandles ) + 1;
 }
@@ -320,7 +320,7 @@ static inline int FS_FileNumForHandle( filehandle_t *fh ) {
 * FS_CloseFileHandle
 */
 static void FS_CloseFileHandle( filehandle_t *fh ) {
-	QMutex_Lock( fs_fh_mutex );
+	Lock( fs_fh_mutex );
 
 	// remove from linked open list
 	fh->prev->next = fh->next;
@@ -330,73 +330,7 @@ static void FS_CloseFileHandle( filehandle_t *fh ) {
 	fh->next = fs_free_filehandles;
 	fs_free_filehandles = fh;
 
-	QMutex_Unlock( fs_fh_mutex );
-}
-
-/*
-* FS_FirstExtension
-* Searches the paths for file matching with one of the extensions
-* If found returns the extension otherwise NULL
-* extensions parameter is string with extensions separated by spaces
-*/
-const char *FS_FirstExtension( const char *filename, const char * const * extensions, int num_extensions ) {
-	char **filenames;           // slots for testable filenames
-	size_t filename_size;       // size of one slot
-	int i;
-	size_t max_extension_length;
-	searchpath_t *search;
-
-	assert( filename && extensions );
-
-	if( !num_extensions ) {
-		return NULL;
-	}
-
-#ifndef NDEBUG
-	for( i = 0; i < num_extensions; i++ )
-		assert( extensions[i] && extensions[i][0] );
-#endif
-
-	if( !COM_ValidateRelativeFilename( filename ) ) {
-		return NULL;
-	}
-
-	max_extension_length = 0;
-	for( i = 0; i < num_extensions; i++ ) {
-		if( strlen( extensions[i] ) > max_extension_length ) {
-			max_extension_length = strlen( extensions[i] );
-		}
-	}
-
-	// set the filenames to be tested
-	filenames = ( char** )alloca( sizeof( char * ) * num_extensions );
-	filename_size = sizeof( char ) * ( strlen( filename ) + max_extension_length + 1 );
-
-	for( i = 0; i < num_extensions; i++ ) {
-		if( i ) {
-			filenames[i] = ( char * )( ( uint8_t * )filenames[0] + filename_size * i );
-		} else {
-			filenames[i] = ( char* )alloca( filename_size * num_extensions );
-		}
-		Q_strncpyz( filenames[i], filename, filename_size );
-		COM_ReplaceExtension( filenames[i], extensions[i], filename_size );
-	}
-
-	// search through the path, one element at a time
-	QMutex_Lock( fs_searchpaths_mutex );
-	defer { QMutex_Unlock( fs_searchpaths_mutex ); };
-	search = fs_searchpaths;
-	while( search ) {
-		for( i = 0; i < num_extensions; i++ ) {
-			if( FS_SearchDirectoryForFile( search, filenames[i], NULL, 0 ) ) {
-				return extensions[i];
-			}
-		}
-
-		search = search->next;
-	}
-
-	return NULL;
+	Unlock( fs_fh_mutex );
 }
 
 /*
@@ -447,7 +381,7 @@ static int FS_AbsoluteFileExists( const char *filename ) {
 */
 static void FS_FileModeStr( int mode, char *modestr, size_t size ) {
 	int rwa = mode & FS_RWA_MASK;
-	Q_snprintfz( modestr, size, "%sb%s",
+	snprintf( modestr, size, "%sb%s",
 				 rwa == FS_WRITE ? "w" : ( rwa == FS_APPEND ? "a" : "r" ),
 				 mode & FS_UPDATE ? "+" : "" );
 }
@@ -546,7 +480,6 @@ static int _FS_FOpenFile( const char *filename, int *filenum, int mode, bool bas
 	filehandle_t *file;
 	bool gz;
 	bool update;
-	bool cache;
 	gzFile gzf = NULL;
 	int realmode;
 	char tempname[FS_MAX_PATH];
@@ -554,7 +487,6 @@ static int _FS_FOpenFile( const char *filename, int *filenum, int mode, bool bas
 	realmode = mode;
 	gz = mode & FS_GZ ? true : false;
 	update = mode & FS_UPDATE ? true : false;
-	cache = mode & FS_CACHE ? true : false;
 	mode = mode & FS_RWA_MASK;
 
 	assert( mode == FS_READ || mode == FS_WRITE || mode == FS_APPEND );
@@ -571,18 +503,18 @@ static int _FS_FOpenFile( const char *filename, int *filenum, int mode, bool bas
 		return -1;
 	}
 
-	if( mode == FS_WRITE || mode == FS_APPEND || update || cache ) {
+	if( mode == FS_WRITE || mode == FS_APPEND || update ) {
 		int end;
 		char modestr[4] = { 0, 0, 0, 0 };
 		FILE *f = NULL;
 		const char *dir;
 
-		dir = cache ? FS_CacheDirectory() : FS_WriteDirectory();
+		dir = FS_WriteDirectory();
 
 		if( base ) {
-			Q_snprintfz( tempname, sizeof( tempname ), "%s/%s", dir, filename );
+			snprintf( tempname, sizeof( tempname ), "%s/%s", dir, filename );
 		} else {
-			Q_snprintfz( tempname, sizeof( tempname ), "%s/%s/%s", dir, FS_GameDirectory(), filename );
+			snprintf( tempname, sizeof( tempname ), "%s/%s/%s", dir, FS_GameDirectory(), filename );
 		}
 		FS_CreateAbsolutePath( tempname );
 
@@ -755,7 +687,7 @@ int FS_Printf( int file, const char *format, ... ) {
 	va_list argptr;
 
 	va_start( argptr, format );
-	if( ( len = Q_vsnprintfz( msg, sizeof( msg ), format, argptr ) ) >= sizeof( msg ) - 1 ) {
+	if( ( len = vsnprintf( msg, sizeof( msg ), format, argptr ) ) >= sizeof( msg ) - 1 ) {
 		msg[sizeof( msg ) - 1] = '\0';
 		Com_Printf( "FS_Printf: Buffer overflow" );
 	}
@@ -1180,11 +1112,11 @@ static int FS_PathGetFileListExt( searchpath_t *search, const char *dir, const c
 		}
 	}
 
-	Q_snprintfz( tempname, sizeof( tempname ), "%s/%s%s*%s",
+	snprintf( tempname, sizeof( tempname ), "%s/%s%s*%s",
 				 search->path, dir, dirlen ? "/" : "", ( extension && ( extension[0] != '/' ) ) ? extension : ".*" );
 	filenames = FS_ListFiles( tempname, &numfiles, musthave, canthave );
 
-	Q_snprintfz( tempname, sizeof( tempname ), "%s%s*%s",
+	snprintf( tempname, sizeof( tempname ), "%s%s*%s",
 				 dir, dirlen ? "/" : "", ( extension && ( extension[0] != '/' ) ) ? extension : "" );
 
 	for( i = 0; i < numfiles; i++ ) {
@@ -1285,7 +1217,7 @@ static int FS_GetFileListExt_( const char *dir, const char *extension, char *buf
 
 	files = fs_searchfiles;
 	if( !useCache ) {
-		QMutex_Lock( fs_searchpaths_mutex );
+		Lock( fs_searchpaths_mutex );
 
 		search = fs_searchpaths;
 		while( search ) {
@@ -1297,7 +1229,7 @@ static int FS_GetFileListExt_( const char *dir, const char *extension, char *buf
 				}
 			}
 
-			limit = maxFiles ? min( fs_numsearchfiles, maxFiles ) : fs_numsearchfiles;
+			limit = maxFiles ? Min2( fs_numsearchfiles, maxFiles ) : fs_numsearchfiles;
 			found = FS_PathGetFileListExt( search, dir, extension, files + allfound,
 										   fs_numsearchfiles - allfound );
 
@@ -1319,7 +1251,7 @@ static int FS_GetFileListExt_( const char *dir, const char *extension, char *buf
 			search = search->next;
 		}
 
-		QMutex_Unlock( fs_searchpaths_mutex );
+		Unlock( fs_searchpaths_mutex );
 
 		qsort( files, allfound, sizeof( searchfile_t ), ( int ( * )( const void *, const void * ) )FS_SortFilesCmp );
 
@@ -1401,7 +1333,7 @@ int FS_GetFileList( const char *dir, const char *extension, char *buf, size_t bu
 * Returns the current game directory, without the path
 */
 const char *FS_GameDirectory( void ) {
-	return fs_basegame->string;
+	return DEFAULT_BASEGAME;
 }
 
 /*
@@ -1410,8 +1342,7 @@ const char *FS_GameDirectory( void ) {
 * Returns the current base game directory, without the path
 */
 const char *FS_BaseGameDirectory( void ) {
-	assert( fs_basegame && fs_basegame->string && fs_basegame->string[0] );
-	return fs_basegame->string;
+	return DEFAULT_BASEGAME;
 }
 
 /*
@@ -1421,16 +1352,6 @@ const char *FS_BaseGameDirectory( void ) {
 */
 const char *FS_WriteDirectory( void ) {
 	return fs_write_searchpath->path;
-}
-
-/*
-* FS_CacheDirectory
-*
-* Returns directory where we can write cached files
-*/
-const char *FS_CacheDirectory( void ) {
-	const char *dir = Sys_FS_GetCacheDirectory();
-	return dir ? dir : FS_WriteDirectory();
 }
 
 /*
@@ -1478,7 +1399,7 @@ const char *FS_AbsoluteNameForFile( const char *filename ) {
 		return NULL;
 	}
 
-	Q_snprintfz( absolutename, sizeof( absolutename ), "%s/%s", search->path, filename );
+	snprintf( absolutename, sizeof( absolutename ), "%s/%s", search->path, filename );
 	return absolutename;
 }
 
@@ -1496,7 +1417,7 @@ const char *FS_AbsoluteNameForBaseFile( const char *filename ) {
 		return NULL;
 	}
 
-	Q_snprintfz( absolutename, sizeof( absolutename ), "%s/%s", search->path, filename );
+	snprintf( absolutename, sizeof( absolutename ), "%s/%s", search->path, filename );
 	return absolutename;
 }
 
@@ -1532,7 +1453,7 @@ static void FS_TouchGamePath( searchpath_t *basepath, const char *gamedir ) {
 	path_size = sizeof( char ) * ( strlen( basepath->path ) + 1 + strlen( gamedir ) + 1 );
 	search->path = ( char* )FS_Malloc( path_size );
 	search->base = basepath;
-	Q_snprintfz( search->path, path_size, "%s/%s", basepath->path, gamedir );
+	snprintf( search->path, path_size, "%s/%s", basepath->path, gamedir );
 
 	search->next = fs_searchpaths;
 	fs_searchpaths = search;
@@ -1585,13 +1506,12 @@ static void FS_FreeSearchFiles( void ) {
 void FS_Init( void ) {
 	int i;
 	const char *homedir;
-	const char *cachedir;
 	char downloadsdir[FS_MAX_PATH];
 
 	assert( !fs_initialized );
 
-	fs_fh_mutex = QMutex_Create();
-	fs_searchpaths_mutex = QMutex_Create();
+	fs_fh_mutex = NewMutex();
+	fs_searchpaths_mutex = NewMutex();
 
 	fs_mempool = Mem_AllocPool( NULL, "Filesystem" );
 
@@ -1625,9 +1545,9 @@ void FS_Init( void ) {
 	fs_downloads_searchpath = NULL;
 	if( fs_usedownloadsdir->integer ) {
 		if( homedir != NULL && fs_usehomedir->integer ) {
-			Q_snprintfz( downloadsdir, sizeof( downloadsdir ), "%s/%s", homedir, "downloads" );
+			snprintf( downloadsdir, sizeof( downloadsdir ), "%s/%s", homedir, "downloads" );
 		} else {
-			Q_snprintfz( downloadsdir, sizeof( downloadsdir ), "%s", "downloads" );
+			snprintf( downloadsdir, sizeof( downloadsdir ), "%s", "downloads" );
 		}
 
 		FS_AddBasePath( downloadsdir );
@@ -1647,20 +1567,7 @@ void FS_Init( void ) {
 		fs_write_searchpath = fs_basepaths;
 	}
 
-	cachedir = Sys_FS_GetCacheDirectory();
-	if( cachedir ) {
-		FS_AddBasePath( cachedir );
-	}
-
-	//
-	// set game directories
-	//
-	fs_basegame = Cvar_Get( "fs_basegame", DEFAULT_BASEGAME, CVAR_READONLY );
-	if( !fs_basegame->string[0] ) {
-		Cvar_ForceSet( "fs_basegame", DEFAULT_BASEGAME );
-	}
-
-	FS_TouchGameDirectory( fs_basegame->string );
+	FS_TouchGameDirectory( DEFAULT_BASEGAME );
 
 	fs_base_searchpaths = fs_searchpaths;
 
@@ -1694,7 +1601,7 @@ void FS_Shutdown( void ) {
 	FS_Free( fs_searchfiles );
 	fs_numsearchfiles = 0;
 
-	QMutex_Lock( fs_searchpaths_mutex );
+	Lock( fs_searchpaths_mutex );
 
 	while( fs_searchpaths ) {
 		search = fs_searchpaths;
@@ -1704,7 +1611,7 @@ void FS_Shutdown( void ) {
 		FS_Free( search );
 	}
 
-	QMutex_Unlock( fs_searchpaths_mutex );
+	Unlock( fs_searchpaths_mutex );
 
 	while( fs_basepaths ) {
 		search = fs_basepaths;
@@ -1716,8 +1623,8 @@ void FS_Shutdown( void ) {
 
 	Mem_FreePool( &fs_mempool );
 
-	QMutex_Destroy( &fs_fh_mutex );
-	QMutex_Destroy( &fs_searchpaths_mutex );
+	DeleteMutex( fs_fh_mutex );
+	DeleteMutex( fs_searchpaths_mutex );
 
 	fs_initialized = false;
 }

@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "g_local.h"
+#include "game/g_local.h"
 
 /*
 * G_TriggerWait
@@ -49,7 +49,7 @@ static bool G_TriggerWait( edict_t *ent, edict_t *other ) {
 static void InitTrigger( edict_t *self ) {
 	self->r.solid = SOLID_TRIGGER;
 	self->movetype = MOVETYPE_NONE;
-	GClip_SetBrushModel( self, self->model );
+	GClip_SetBrushModel( self );
 	self->r.svflags = SVF_NOCLIENT;
 }
 
@@ -102,10 +102,10 @@ static void trigger_enable( edict_t *self, edict_t *other, edict_t *activator ) 
 }
 
 void SP_trigger_multiple( edict_t *ent ) {
-	GClip_SetBrushModel( ent, ent->model );
+	GClip_SetBrushModel( ent );
 
-	if( st.noise ) {
-		ent->noise_index = trap_SoundIndex( st.noise );
+	if( st.noise != EMPTY_HASH ) {
+		ent->sound = st.noise;
 	}
 
 	// gameteam field from editor
@@ -167,30 +167,15 @@ void SP_trigger_always( edict_t *ent ) {
 //==============================================================================
 
 static void G_JumpPadSound( edict_t *ent ) {
-	vec3_t org;
-	edict_t *sound;
-
-	if( !ent->s.modelindex ) {
+	if( ent->moveinfo.sound_start == EMPTY_HASH ) {
 		return;
 	}
 
-	if( !ent->moveinfo.sound_start ) {
-		return;
-	}
+	Vec3 org = ent->s.origin + 0.5f * ( ent->r.mins + ent->r.maxs );
 
-	org[0] = ent->s.origin[0] + 0.5 * ( ent->r.mins[0] + ent->r.maxs[0] );
-	org[1] = ent->s.origin[1] + 0.5 * ( ent->r.mins[1] + ent->r.maxs[1] );
-	org[2] = ent->s.origin[2] + 0.5 * ( ent->r.mins[2] + ent->r.maxs[2] );
-
-	sound = G_PositionedSound( org, CHAN_AUTO, ent->moveinfo.sound_start, ATTN_NORM );
-	if( sound && sound->r.areanum < 0 ) {
-		// HACK: jumppad sounds may get trapped inside solid or go outside level bounds and get culled
-		// so forcefully place them into legal space
-		sound->r.areanum = ent->r.areanum < 0 ? ent->r.areanum2 : ent->r.areanum;
-	}
+	G_PositionedSound( org, CHAN_AUTO, ent->moveinfo.sound_start );
 }
 
-#define PUSH_ONCE   1
 #define MIN_TRIGGER_PUSH_REBOUNCE_TIME 100
 
 static void trigger_push_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
@@ -205,75 +190,49 @@ static void trigger_push_touch( edict_t *self, edict_t *other, cplane_t *plane, 
 	// add an event
 	if( other->r.client ) {
 		GS_TouchPushTrigger( &server_gs, &other->r.client->ps, &self->s );
-	} else {
+	}
+	else {
 		// pushing of non-clients
 		if( other->movetype != MOVETYPE_BOUNCEGRENADE ) {
 			return;
 		}
 
-		VectorCopy( self->s.origin2, other->velocity );
+		other->velocity = GS_EvaluateJumppad( &self->s, other->velocity );
 	}
 
-	// game timers for fall damage
 	G_JumpPadSound( self ); // play jump pad sound
-
-	// self removal
-	if( self->spawnflags & PUSH_ONCE ) {
-		self->touch = NULL;
-		self->nextThink = level.time + 1;
-		self->think = G_FreeEdict;
-	}
 }
 
 static void trigger_push_setup( edict_t *self ) {
-	vec3_t origin, velocity;
-	float height, time;
-	float dist;
-	edict_t *target;
-
-	if( !self->target ) {
-		vec3_t movedir;
-
-		G_SetMovedir( self->s.angles, movedir );
-		VectorScale( movedir, ( self->speed ? self->speed : 1000 ) * 10, self->s.origin2 );
-		return;
-	}
-
-	target = G_PickTarget( self->target );
-	if( !target ) {
-		G_FreeEdict( self );
-		return;
-	}
+	edict_t * target = G_PickTarget( self->target );
 	self->target_ent = target;
-
-	VectorAdd( self->r.absmin, self->r.absmax, origin );
-	VectorScale( origin, 0.5, origin );
-
-	height = target->s.origin[2] - origin[2];
-	time = sqrt( height / ( 0.5 * level.gravity ) );
-	if( !time ) {
+	if( target == NULL ) {
 		G_FreeEdict( self );
 		return;
 	}
 
-	VectorSubtract( target->s.origin, origin, velocity );
-	velocity[2] = 0;
-	dist = VectorNormalize( velocity );
-	VectorScale( velocity, dist / time, velocity );
-	velocity[2] = time * level.gravity;
-	VectorCopy( velocity, self->s.origin2 );
+	Vec3 origin = ( self->r.absmin + self->r.absmax ) * 0.5f;
+	Vec3 velocity = target->s.origin - origin;
+
+	float height = target->s.origin.z - origin.z;
+	float time = sqrtf( height / ( 0.5f * level.gravity ) );
+	if( time != 0 ) {
+		velocity.z = 0;
+		float dist = Length( velocity );
+		velocity = SafeNormalize( velocity );
+		velocity = velocity * ( dist / time );
+		velocity.z = time * level.gravity;
+		self->s.origin2 = velocity;
+	}
+	else {
+		self->s.origin2 = velocity;
+	}
 }
 
 void SP_trigger_push( edict_t *self ) {
 	InitTrigger( self );
 
-	if( st.noise && Q_stricmp( st.noise, "default" ) ) {
-		if( Q_stricmp( st.noise, "silent" ) ) {
-			self->moveinfo.sound_start = trap_SoundIndex( st.noise );
-		}
-	} else {
-		self->moveinfo.sound_start = trap_SoundIndex( S_JUMPPAD );
-	}
+	self->moveinfo.sound_start = st.noise != EMPTY_HASH ? st.noise : S_JUMPPAD;
 
 	// gameteam field from editor
 	if( st.gameteam >= TEAM_SPECTATOR && st.gameteam < GS_MAX_TEAMS ) {
@@ -286,8 +245,8 @@ void SP_trigger_push( edict_t *self ) {
 	self->think = trigger_push_setup;
 	self->nextThink = level.time + 1;
 	self->r.svflags &= ~SVF_NOCLIENT;
-	self->s.type = ET_PUSH_TRIGGER;
-	GClip_LinkEntity( self ); // ET_PUSH_TRIGGER gets exceptions at linking so it's added for prediction
+	self->s.type = ( self->spawnflags & 1 ) ? ET_PAINKILLER_JUMPPAD : ET_JUMPPAD;
+	GClip_LinkEntity( self );
 	self->timeStamp = level.time;
 	if( !self->wait ) {
 		self->wait = MIN_TRIGGER_PUSH_REBOUNCE_TIME * 0.001f;
@@ -342,17 +301,17 @@ static void hurt_touch( edict_t *self, edict_t *other, cplane_t *plane, int surf
 
 	if( self->spawnflags & ( 32 | 64 ) ) { // KILL, FALL
 		// play the death sound
-		if( self->noise_index ) {
-			G_Sound( other, CHAN_AUTO | CHAN_FIXED, self->noise_index, ATTN_NORM );
+		if( self->sound != EMPTY_HASH ) {
+			G_Sound( other, CHAN_AUTO | CHAN_FIXED, self->sound );
 			other->pain_debounce_time = level.time + 25;
 		}
-	} else if( !( self->spawnflags & 4 ) && self->noise_index ) {
+	} else if( !( self->spawnflags & 4 ) && self->sound != EMPTY_HASH ) {
 		if( (int)( level.time * 0.001 ) & 1 ) {
-			G_Sound( other, CHAN_AUTO | CHAN_FIXED, self->noise_index, ATTN_NORM );
+			G_Sound( other, CHAN_AUTO | CHAN_FIXED, self->sound );
 		}
 	}
 
-	G_Damage( other, self, world, vec3_origin, vec3_origin, other->s.origin, damage, damage, dflags, MOD_TRIGGER_HURT );
+	G_Damage( other, self, world, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, damage, damage, dflags, MOD_TRIGGER_HURT );
 }
 
 void SP_trigger_hurt( edict_t *self ) {
@@ -362,13 +321,7 @@ void SP_trigger_hurt( edict_t *self ) {
 		self->spawnflags |= 32;
 	}
 
-	if( self->spawnflags & 4 ) { // SILENT
-		self->noise_index = 0;
-	} else if( st.noise ) {
-		self->noise_index = trap_SoundIndex( st.noise );
-	} else {
-		self->noise_index = 0;
-	}
+	self->sound = st.noise;
 
 	// gameteam field from editor
 	if( st.gameteam >= TEAM_SPECTATOR && st.gameteam < GS_MAX_TEAMS ) {
@@ -415,7 +368,7 @@ static void trigger_gravity_touch( edict_t *self, edict_t *other, cplane_t *plan
 void SP_trigger_gravity( edict_t *self ) {
 	if( st.gravity == 0 ) {
 		if( developer->integer ) {
-			G_Printf( "trigger_gravity without gravity set at %s\n", vtos( self->s.origin ) );
+			Com_GGPrint( "trigger_gravity without gravity set at {}", self->s.origin );
 		}
 		G_FreeEdict( self );
 		return;
@@ -457,24 +410,22 @@ static void TeleporterTouch( edict_t *self, edict_t *other, cplane_t *plane, int
 	dest = G_Find( NULL, FOFS( targetname ), self->target );
 	if( !dest ) {
 		if( developer->integer ) {
-			G_Printf( "Couldn't find destination.\n" );
+			Com_Printf( "Couldn't find destination.\n" );
 		}
 		return;
 	}
 
 	// play custom sound if any (played from the teleporter entrance)
-	if( self->noise_index ) {
-		vec3_t org;
+	if( self->sound != EMPTY_HASH ) {
+		Vec3 org;
 
-		if( self->s.modelindex ) {
-			org[0] = self->s.origin[0] + 0.5 * ( self->r.mins[0] + self->r.maxs[0] );
-			org[1] = self->s.origin[1] + 0.5 * ( self->r.mins[1] + self->r.maxs[1] );
-			org[2] = self->s.origin[2] + 0.5 * ( self->r.mins[2] + self->r.maxs[2] );
+		if( self->s.model != EMPTY_HASH ) {
+			org = self->s.origin + 0.5f * ( self->r.mins + self->r.maxs );
 		} else {
-			VectorCopy( self->s.origin, org );
+			org = self->s.origin;
 		}
 
-		G_PositionedSound( org, CHAN_AUTO, self->noise_index, ATTN_NORM );
+		G_PositionedSound( org, CHAN_AUTO, self->sound );
 	}
 
 	G_TeleportPlayer( other, dest );
@@ -483,15 +434,13 @@ static void TeleporterTouch( edict_t *self, edict_t *other, cplane_t *plane, int
 void SP_trigger_teleport( edict_t *ent ) {
 	if( !ent->target ) {
 		if( developer->integer ) {
-			G_Printf( "teleporter without a target.\n" );
+			Com_Printf( "teleporter without a target.\n" );
 		}
 		G_FreeEdict( ent );
 		return;
 	}
 
-	if( st.noise ) {
-		ent->noise_index = trap_SoundIndex( st.noise );
-	}
+	ent->sound = st.noise;
 
 	// gameteam field from editor
 	if( st.gameteam >= TEAM_SPECTATOR && st.gameteam < GS_MAX_TEAMS ) {
@@ -501,5 +450,6 @@ void SP_trigger_teleport( edict_t *ent ) {
 	}
 
 	InitTrigger( ent );
+	GClip_LinkEntity( ent );
 	ent->touch = TeleporterTouch;
 }

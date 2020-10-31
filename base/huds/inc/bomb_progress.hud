@@ -1,42 +1,38 @@
 if %PROGRESS
 	setAlignment center middle
-	setCursor #WIDTH / 2, #HEIGHT - 64
+	setCursor #WIDTH / 2, #HEIGHT - 112
 	setFontSize %VIDHEIGHT / 40
 
 	// draw background
-	setColor 0.0, 0.0, 0.0, 0.5
-	setSize 200, 18
+	setColor 0.03, 0.03, 0.03, 1.0
+	setSize 200, 16
 	drawPicByName $whiteimage
 
 	moveCursor -100, 0
-
 	// fill coloured bar
 	setAlignment left middle
-	setColorToTeamColor #TEAM_ALLY
-	setSize %PROGRESS * 2, 18
-	if %PROGRESS < 0
-		setColorToTeamColor #TEAM_ENEMY
-		setSize %PROGRESS * -2, 18
-	endif
+	setColor 0.6 0.6 0.6 1.0
+	setSize %PROGRESS * 2, 16
 	drawPicByName $whiteimage
 
+	//can't find a good font color, need outlines :)
+
 	// draw bomb icon
-	setColor 1, 1, 1, 1
-	moveCursor 5 * 1.333 * %VIDHEIGHT / %VIDWIDTH, -1
-	setAlignment left middle
-	setSize 20 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 20
-	drawPicByName gfx/bomb
+	//setColor 0.03, 0.03, 0.03, 1
+	//moveCursor 5 * 1.333 * %VIDHEIGHT / %VIDWIDTH, -0.5
+	//setAlignment left middle
+	//setSize 16 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 16
+	//drawPicByName gfx/bomb
 
 	// draw Planting/Defusing
-	setColor 1, 1, 1, 1
-	moveCursor 19 * 1.333 * %VIDHEIGHT / %VIDWIDTH, -1
-	setAlignment left middle
-	setFontStyle bold
-	if %PROGRESS_TYPE == #BombProgress_Planting
-		drawString "Planting..."
-	endif
-	if %PROGRESS_TYPE == #BombProgress_Defusing
-		drawString "Defusing..."
-	endif
-	setFontStyle normal
+	
+	//setAlignment left middle
+	//setFontStyle bold
+	//if %PROGRESS_TYPE == #BombProgress_Planting
+	//	drawString "Planting the bomb"
+	//endif
+	//if %PROGRESS_TYPE == #BombProgress_Defusing
+	//	drawString "Defusing the bomb"
+	//endif
+	//setFontStyle normal
 endif

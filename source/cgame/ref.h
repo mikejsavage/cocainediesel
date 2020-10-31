@@ -19,66 +19,62 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #pragma once
 
+#include "qcommon/types.h"
+#include "client/renderer/types.h"
 #include "gameshared/q_math.h"
 
-// refdef flags
-#define RDF_UNDERWATER          0x1     // warp the screen as apropriate
-#define RDF_CROSSINGWATER       0x2     // potentially crossing water surface
-#define RDF_BLURRED             0x4
+constexpr u32 TILE_SIZE = 32; // forward+ tile size
 
-typedef struct orientation_s {
+struct orientation_t {
 	mat3_t axis;
-	vec3_t origin;
-} orientation_t;
-
-struct TRS {
-	Quaternion rotation;
-	Vec3 translation;
-	float scale;
+	Vec3 origin;
 };
 
-struct MatrixPalettes {
-	Span< Mat4 > joint_poses;
-	Span< Mat4 > skinning_matrices;
-};
-
-typedef struct entity_s {
+struct entity_t {
 	const Model * model;
 
-	/*
-	** most recent data
-	*/
 	mat3_t axis;
-	vec3_t origin, origin2;
+	Vec3 origin, origin2;
 
-	/*
-	** texturing
-	*/
-	const Material * override_material; // NULL for inline skin
-
-	/*
-	** misc
-	*/
-	int64_t shaderTime;
 	RGBA8 color;
 
 	float scale;
 	float radius;                       // used as RT_SPRITE's radius
 	float rotation;
+};
 
-	float outlineHeight;
-	RGBA8 outlineColor;
-} entity_t;
+enum XAlignment {
+	XAlignment_Left,
+	XAlignment_Center,
+	XAlignment_Right,
+};
 
-typedef struct refdef_s {
-	int x, y, width, height;            // viewport, in virtual screen coordinates
-	int scissor_x, scissor_y, scissor_width, scissor_height;
-	int ortho_x, ortho_y;
-	float fov_x, fov_y;
-	vec3_t vieworg;
-	mat3_t viewaxis;
-	int64_t time;                       // time is used for timing offsets
-	int rdflags;                        // RDF_UNDERWATER, etc
-	uint8_t *areabits;                  // if not NULL, only areas with set bits will be drawn
-	float minLight;                     // minimum value of ambient lighting applied to RF_MINLIGHT entities
-} refdef_t;
+enum YAlignment {
+	YAlignment_Top,
+	YAlignment_Middle,
+	YAlignment_Bottom,
+};
+
+struct Alignment {
+	XAlignment x;
+	YAlignment y;
+};
+
+constexpr Alignment Alignment_LeftTop = { XAlignment_Left, YAlignment_Top };
+constexpr Alignment Alignment_CenterTop = { XAlignment_Center, YAlignment_Top };
+constexpr Alignment Alignment_RightTop = { XAlignment_Right, YAlignment_Top };
+constexpr Alignment Alignment_LeftMiddle = { XAlignment_Left, YAlignment_Middle };
+constexpr Alignment Alignment_CenterMiddle = { XAlignment_Center, YAlignment_Middle };
+constexpr Alignment Alignment_RightMiddle = { XAlignment_Right, YAlignment_Middle };
+constexpr Alignment Alignment_LeftBottom = { XAlignment_Left, YAlignment_Bottom };
+constexpr Alignment Alignment_CenterBottom = { XAlignment_Center, YAlignment_Bottom };
+constexpr Alignment Alignment_RightBottom = { XAlignment_Right, YAlignment_Bottom };
+
+constexpr Vec4 vec4_white = Vec4( 1, 1, 1, 1 );
+constexpr Vec4 vec4_black = Vec4( 0, 0, 0, 1 );
+constexpr Vec4 vec4_red = Vec4( 1, 0, 0, 1 );
+constexpr Vec4 vec4_green = Vec4( 0, 1, 0, 1 );
+constexpr Vec4 vec4_yellow = Vec4( 1, 1, 0, 1 );
+
+constexpr RGBA8 rgba8_white = RGBA8( 255, 255, 255, 255 );
+constexpr RGBA8 rgba8_black = RGBA8( 0, 0, 0, 255 );

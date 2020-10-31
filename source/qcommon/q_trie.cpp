@@ -18,11 +18,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "../gameshared/q_arch.h"
-#include "q_trie.h"
+#include <ctype.h>
 
-#include <assert.h>
-#include <string.h>
+#include "qcommon/base.h"
+#include "q_trie.h"
 
 /* Trie structure definitions */
 
@@ -68,8 +67,8 @@ static struct trie_node_s *TRIE_Find_Rec(
 	const char *key,
 	trie_find_mode_t mode,
 	trie_casing_t casing,
-	int ( *predicate )( void *value, void *cookie ),
-	void *cookie
+	int ( *predicate )( void *value, const void *cookie ),
+	const void *cookie
 	);
 
 static int Trie_Insert_Rec(
@@ -89,8 +88,8 @@ static trie_remove_result_t Trie_Remove_Rec(
 static unsigned int Trie_NoOfKeys(
 	const struct trie_node_s *node,
 	trie_casing_t casing,
-	int ( *predicate )( void *value, void *cookie ),
-	void *cookie,
+	int ( *predicate )( void *value, const void *cookie ),
+	const void *cookie,
 	int addSiblings
 	);
 
@@ -98,17 +97,14 @@ static void Trie_Dump_Rec(
 	const struct trie_node_s *node,
 	trie_dump_what_t what,
 	trie_casing_t casing,
-	int ( *predicate )( void *value, void *cookie ),
-	void *cookie,
+	int ( *predicate )( void *value, const void *cookie ),
+	const void *cookie,
 	int dumpSiblings,
 	const char *key_prev,
 	struct trie_key_value_s **key_value_vector
 	);
 
-static int Trie_AlwaysTrue(
-	void *,
-	void *
-	);
+static int Trie_AlwaysTrue( void *, const void * );
 
 static inline int Trie_LetterCompare(
 	char left,
@@ -241,8 +237,8 @@ trie_error_t Trie_FindIf(
 	const struct trie_s *trie,
 	const char *key,
 	trie_find_mode_t mode,
-	int ( *predicate )( void *value, void *cookie ),
-	void *cookie,
+	int ( *predicate )( void *value, const void *cookie ),
+	const void *cookie,
 	void **data
 	) {
 	if( trie && key && data ) {
@@ -283,8 +279,8 @@ trie_error_t Trie_NoOfMatches(
 trie_error_t Trie_NoOfMatchesIf(
 	const struct trie_s *trie,
 	const char *prefix,
-	int ( *predicate )( void *value, void *cookie ),
-	void *cookie,
+	int ( *predicate )( void *value, const void *cookie ),
+	const void *cookie,
 	unsigned int *matches
 	) {
 	if( trie && prefix && matches ) {
@@ -311,8 +307,8 @@ trie_error_t Trie_DumpIf(
 	const struct trie_s *trie,
 	const char *prefix,
 	trie_dump_what_t what,
-	int ( *predicate )( void *value, void *cookie ),
-	void *cookie,
+	int ( *predicate )( void *value, const void *cookie ),
+	const void *cookie,
 	struct trie_dump_s **dump
 	) {
 	if( prefix && dump && predicate ) {
@@ -389,8 +385,8 @@ static struct trie_node_s *TRIE_Find_Rec(
 	const char *key,
 	trie_find_mode_t mode,
 	trie_casing_t casing,
-	int ( *predicate )( void *value, void *cookie ),
-	void *cookie
+	int ( *predicate )( void *value, const void *cookie ),
+	const void *cookie
 	) {
 	assert( key );
 	assert( node );
@@ -544,8 +540,8 @@ static trie_remove_result_t Trie_Remove_Rec(
 static unsigned int Trie_NoOfKeys(
 	const struct trie_node_s *node,
 	trie_casing_t casing,
-	int ( *predicate )( void *value, void *cookie ),
-	void *cookie,
+	int ( *predicate )( void *value, const void *cookie ),
+	const void *cookie,
 	int addSiblings
 	) {
 	unsigned int noOfKeys;
@@ -571,8 +567,8 @@ static void Trie_Dump_Rec(
 	const struct trie_node_s *node,
 	trie_dump_what_t what,
 	trie_casing_t casing,
-	int ( *predicate )( void *value, void *cookie ),
-	void *cookie,
+	int ( *predicate )( void *value, const void *cookie ),
+	const void *cookie,
 	int dumpSiblings,
 	const char *key_prev,
 	struct trie_key_value_s **key_value_vector
@@ -615,10 +611,7 @@ static void Trie_Dump_Rec(
 	}
 }
 
-static int Trie_AlwaysTrue(
-	void *value,
-	void *cookie
-	) {
+static int Trie_AlwaysTrue( void *value, const void *cookie ) {
 	return 1;
 }
 

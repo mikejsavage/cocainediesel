@@ -18,28 +18,24 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-// qcommon.h -- definitions common between client and server, but not game.dll
-
 #pragma once
-
-#include "tracy/Tracy.hpp"
 
 #include "gameshared/q_arch.h"
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
 #include "gameshared/q_cvar.h"
-#include "gameshared/q_comref.h"
 #include "gameshared/q_collision.h"
+#include "gameshared/gs_public.h"
 
-#include "application.h"
-#include "qfiles.h"
-#include "cmodel.h"
-#include "bsp.h"
+#include "qcommon/application.h"
+#include "qcommon/qfiles.h"
+#include "qcommon/strtonum.h"
 
-inline Vec3 FromQF3( const vec3_t v ) { return Vec3( v[ 0 ], v[ 1 ], v[ 2 ] ); }
-inline EulerDegrees3 FromQFAngles( const vec3_t v ) { return { v[ PITCH ], v[ YAW ], v[ ROLL ] }; }
+inline Vec3 FromQFAxis( const mat3_t m, int axis ) {
+	return Vec3( m[ axis + 0 ], m[ axis + 1 ], m[ axis + 2 ] );
+}
 
-inline Mat4 FromQFAxisAndOrigin( const mat3_t axis, const vec3_t origin ) {
+inline Mat4 FromAxisAndOrigin( const mat3_t axis, Vec3 origin ) {
 	Mat4 rotation = Mat4::Identity();
 	rotation.col0.x = axis[ 0 ];
 	rotation.col0.y = axis[ 1 ];
@@ -52,40 +48,24 @@ inline Mat4 FromQFAxisAndOrigin( const mat3_t axis, const vec3_t origin ) {
 	rotation.col2.z = axis[ 8 ];
 
 	Mat4 translation = Mat4::Identity();
-	translation.col3.x = origin[ 0 ];
-	translation.col3.y = origin[ 1 ];
-	translation.col3.z = origin[ 2 ];
+	translation.col3 = Vec4( origin, 1.0f );
 
 	return translation * rotation;
 }
 
 //============================================================================
 
-struct mempool_s;
-
-struct snapshot_s;
-
-struct ginfo_s;
-struct client_s;
-struct cmodel_state_s;
-struct client_entities_s;
+struct CollisionModel;
 
 //============================================================================
 
-typedef struct {
+struct msg_t {
 	uint8_t *data;
 	size_t maxsize;
 	size_t cursize;
 	size_t readcount;
 	bool compressed;
-} msg_t;
-
-typedef struct msg_field_s {
-	int offset;
-	int bits;
-	int count;
-	wireType_t encoding;
-} msg_field_t;
+};
 
 // msg.c
 void MSG_Init( msg_t *buf, uint8_t *data, size_t length );
@@ -97,8 +77,7 @@ int MSG_SkipData( msg_t *sb, size_t length );
 
 //============================================================================
 
-struct usercmd_s;
-struct entity_state_s;
+struct usercmd_t;
 
 void MSG_WriteInt8( msg_t *sb, int c );
 void MSG_WriteUint8( msg_t *sb, int c );
@@ -108,16 +87,12 @@ void MSG_WriteInt32( msg_t *sb, int c );
 void MSG_WriteInt64( msg_t *sb, int64_t c );
 void MSG_WriteUintBase128( msg_t *msg, uint64_t c );
 void MSG_WriteIntBase128( msg_t *msg, int64_t c );
-void MSG_WriteFloat( msg_t *sb, float f );
-void MSG_WriteHalfFloat( msg_t *sb, float f );
 void MSG_WriteString( msg_t *sb, const char *s );
-#define MSG_WriteAngle16( sb, f ) ( MSG_WriteInt16( ( sb ), ANGLE2SHORT( ( f ) ) ) )
-void MSG_WriteDeltaUsercmd( msg_t *sb, const struct usercmd_s *from, struct usercmd_s *cmd );
-void MSG_WriteDeltaEntity( msg_t *msg, const struct entity_state_s *from, const struct entity_state_s *to, bool force );
-void MSG_WriteDeltaPlayerState( msg_t *msg, const player_state_t *ops, const player_state_t *ps );
-void MSG_WriteDeltaGameState( msg_t *msg, const game_state_t *from, const game_state_t *to );
-void MSG_WriteDir( msg_t *sb, vec3_t vector );
-void MSG_WriteDeltaStruct( msg_t *msg, const void *from, const void *to, const msg_field_t *fields, size_t numFields );
+void MSG_WriteDeltaUsercmd( msg_t * msg, const usercmd_t * baseline , const usercmd_t * cmd );
+void MSG_WriteEntityNumber( msg_t * msg, int number, bool remove );
+void MSG_WriteDeltaEntity( msg_t * msg, const SyncEntityState * baseline, const SyncEntityState * ent, bool force );
+void MSG_WriteDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, const SyncPlayerState * player );
+void MSG_WriteDeltaGameState( msg_t * msg, const SyncGameState * baseline, const SyncGameState * state );
 
 void MSG_BeginReading( msg_t *sb );
 int MSG_ReadInt8( msg_t *msg );
@@ -128,19 +103,14 @@ int MSG_ReadInt32( msg_t *sb );
 int64_t MSG_ReadInt64( msg_t *sb );
 uint64_t MSG_ReadUintBase128( msg_t *msg );
 int64_t MSG_ReadIntBase128( msg_t *msg );
-float MSG_ReadFloat( msg_t *sb );
-float MSG_ReadHalfFloat( msg_t *sb );
 char *MSG_ReadString( msg_t *sb );
 char *MSG_ReadStringLine( msg_t *sb );
-#define MSG_ReadAngle16( sb ) ( SHORT2ANGLE( MSG_ReadInt16( ( sb ) ) ) )
-void MSG_ReadDeltaUsercmd( msg_t *sb, const struct usercmd_s *from, struct usercmd_s *cmd );
-int MSG_ReadEntityNumber( msg_t *msg, bool *remove, unsigned *byteMask );
-void MSG_ReadDeltaEntity( msg_t *msg, const entity_state_t *from, entity_state_t *to, int number, unsigned byteMask );
-void MSG_ReadDeltaPlayerState( msg_t *msg, const player_state_t *ops, player_state_t *ps );
-void MSG_ReadDeltaGameState( msg_t *msg, const game_state_t *from, game_state_t *to );
-void MSG_ReadDir( msg_t *sb, vec3_t vector );
+void MSG_ReadDeltaUsercmd( msg_t * msg, const usercmd_t * baseline, usercmd_t * cmd );
+int MSG_ReadEntityNumber( msg_t * msg, bool * remove );
+void MSG_ReadDeltaEntity( msg_t * msg, const SyncEntityState * baseline, SyncEntityState * ent );
+void MSG_ReadDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, SyncPlayerState * player );
+void MSG_ReadDeltaGameState( msg_t * msg, const SyncGameState * baseline, SyncGameState * state );
 void MSG_ReadData( msg_t *sb, void *buffer, size_t length );
-void MSG_ReadDeltaStruct( msg_t *msg, const void *from, void *to, size_t size, const msg_field_t *fields, size_t numFields );
 
 //============================================================================
 
@@ -149,26 +119,10 @@ void MSG_ReadDeltaStruct( msg_t *msg, const void *from, void *to, size_t size, c
 // define this 0 to disable compression of demo files
 #define SNAP_DEMO_GZ                    FS_GZ
 
-void SNAP_ParseBaseline( msg_t *msg, entity_state_t *baselines );
-void SNAP_SkipFrame( msg_t *msg, struct snapshot_s *header );
-struct snapshot_s *SNAP_ParseFrame( msg_t *msg, struct snapshot_s *lastFrame, struct snapshot_s *backup, entity_state_t *baselines, int showNet );
-
-void SNAP_WriteFrameSnapToClient( struct ginfo_s *gi, struct client_s *client, msg_t *msg, int64_t frameNum, int64_t gameTime,
-								  entity_state_t *baselines, struct client_entities_s *client_entities,
-								  int numcmds, gcommand_t *commands, const char *commandsData );
-
-void SNAP_BuildClientFrameSnap( struct cmodel_state_s *cms, struct ginfo_s *gi, int64_t frameNum, int64_t timeStamp,
-								struct client_s *client,
-								game_state_t *gameState, struct client_entities_s *client_entities,
-								bool relay, struct mempool_s *mempool );
-
-void SNAP_FreeClientFrames( struct client_s *client );
-
 void SNAP_RecordDemoMessage( int demofile, msg_t *msg, int offset );
 int SNAP_ReadDemoMessage( int demofile, msg_t *msg );
 void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned int snapFrameTime,
-							  const char *sv_name, unsigned int sv_bitflags,
-							  char *configstrings, entity_state_t *baselines );
+	unsigned int sv_bitflags, char *configstrings, SyncEntityState *baselines );
 void SNAP_StopDemoRecording( int demofile );
 void SNAP_WriteDemoMetaData( const char *filename, const char *meta_data, size_t meta_data_realsize );
 size_t SNAP_ClearDemoMeta( char *meta_data, size_t meta_data_max_size );
@@ -213,12 +167,11 @@ PROTOCOL
 
 #define PORT_MASTER         27950
 #define PORT_SERVER         44400
-#define PORT_HTTP_SERVER    44444
 #define NUM_BROADCAST_PORTS 5
 
 //=========================================
 
-#define UPDATE_BACKUP   32  // copies of entity_state_t to keep buffered
+#define UPDATE_BACKUP   32  // copies of SyncEntityState to keep buffered
 // must be power of two
 
 #define UPDATE_MASK ( UPDATE_BACKUP - 1 )
@@ -233,14 +186,9 @@ void _SHOWNET( msg_t *msg, const char *s, int shownet );
 // server to client
 //
 enum svc_ops_e {
-	svc_bad,
-
-	// the rest are private to the client and server
-	svc_nop,
 	svc_servercmd,          // [string] string
 	svc_serverdata,         // [int] protocol ...
 	svc_spawnbaseline,
-	svc_download,           // [short] size [size bytes]
 	svc_playerinfo,         // variable
 	svc_packetentities,     // [...]
 	svc_gamecommands,
@@ -249,7 +197,6 @@ enum svc_ops_e {
 	svc_servercs,           //tmp jalfixme : send reliable commands as unreliable
 	svc_frame,
 	svc_demoinfo,
-	svc_extension           // for future expansion
 };
 
 //==============================================
@@ -258,8 +205,6 @@ enum svc_ops_e {
 // client to server
 //
 enum clc_ops_e {
-	clc_bad,
-	clc_nop,
 	clc_move,               // [[usercmd_t]
 	clc_svcack,
 	clc_clientcommand,      // [string] message
@@ -296,14 +241,13 @@ servers can also send across commands and entire text files can be execed.
 The + command line options are also added to the command buffer.
 */
 
-void        Cbuf_Init( void );
-void        Cbuf_Shutdown( void );
-void        Cbuf_AddText( const char *text );
-void        Cbuf_InsertText( const char *text );
-void        Cbuf_ExecuteText( int exec_when, const char *text );
-void        Cbuf_AddEarlyCommands( bool clear );
-bool    Cbuf_AddLateCommands( void );
-void        Cbuf_Execute( void );
+void Cbuf_Init( void );
+void Cbuf_Shutdown( void );
+void Cbuf_AddText( const char *text );
+void Cbuf_ExecuteText( int exec_when, const char *text );
+void Cbuf_AddEarlyCommands( bool clear );
+bool Cbuf_AddLateCommands( void );
+void Cbuf_Execute( void );
 
 
 //===========================================================================
@@ -316,7 +260,7 @@ then searches for a command or variable that matches the first token.
 */
 
 typedef void ( *xcommand_t )( void );
-typedef char ** ( *xcompletionf_t )( const char *partial );
+typedef const char ** ( *xcompletionf_t )( const char *partial );
 
 void        Cmd_PreInit( void );
 void        Cmd_Init( void );
@@ -325,16 +269,15 @@ void        Cmd_AddCommand( const char *cmd_name, xcommand_t function );
 void        Cmd_RemoveCommand( const char *cmd_name );
 bool    Cmd_Exists( const char *cmd_name );
 bool    Cmd_CheckForCommand( char *text );
-void        Cmd_WriteAliases( int file );
 int         Cmd_CompleteAliasCountPossible( const char *partial );
-char        **Cmd_CompleteAliasBuildList( const char *partial );
+const char  **Cmd_CompleteAliasBuildList( const char *partial );
 int         Cmd_CompleteCountPossible( const char *partial );
-char        **Cmd_CompleteBuildList( const char *partial );
-char        **Cmd_CompleteBuildArgList( const char *partial );
-char        **Cmd_CompleteBuildArgListExt( const char *command, const char *arguments );
-char        **Cmd_CompleteFileList( const char *partial, const char *basedir, const char *extension, bool subdirectories );
+const char  **Cmd_CompleteBuildList( const char *partial );
+const char  **Cmd_CompleteBuildArgList( const char *partial );
+const char  **Cmd_CompleteBuildArgListExt( const char *command, const char *arguments );
+const char  **Cmd_CompleteFileList( const char *partial, const char *basedir, const char *extension, bool subdirectories );
 int         Cmd_Argc( void );
-char        *Cmd_Argv( int arg );
+const char  *Cmd_Argv( int arg );
 char        *Cmd_Args( void );
 void        Cmd_TokenizeString( const char *text );
 void        Cmd_ExecuteString( const char *text );
@@ -371,62 +314,58 @@ NET
 #define FRAGMENT_LAST       (    1 << 14 )
 #define FRAGMENT_BIT            ( 1 << 31 )
 
-typedef enum {
+enum netadrtype_t {
 	NA_NOTRANSMIT,      // wsw : jal : fakeclients
 	NA_LOOPBACK,
 	NA_IP,
 	NA_IP6,
-} netadrtype_t;
+};
 
-typedef struct netadr_ipv4_s {
+struct netadr_ipv4_t {
 	uint8_t ip [4];
 	unsigned short port;
-} netadr_ipv4_t;
+};
 
-typedef struct netadr_ipv6_s {
+struct netadr_ipv6_t {
 	uint8_t ip [16];
 	unsigned short port;
 	unsigned long scope_id;
-} netadr_ipv6_t;
+};
 
-typedef struct netadr_s {
+struct netadr_t {
 	netadrtype_t type;
 	union {
 		netadr_ipv4_t ipv4;
 		netadr_ipv6_t ipv6;
 	} address;
-} netadr_t;
+};
 
-typedef enum {
+enum socket_type_t {
 	SOCKET_LOOPBACK,
-	SOCKET_UDP
-#ifdef TCP_SUPPORT
-	, SOCKET_TCP
-#endif
-} socket_type_t;
+	SOCKET_UDP,
+	SOCKET_TCP,
+};
 
-typedef struct {
+struct socket_t {
 	bool open;
 
 	socket_type_t type;
 	netadr_t address;
 	bool server;
 
-#ifdef TCP_SUPPORT
 	bool connected;
-#endif
 	netadr_t remoteAddress;
 
 	socket_handle_t handle;
-} socket_t;
+};
 
-typedef enum {
+enum connection_status_t {
 	CONNECTION_FAILED = -1,
 	CONNECTION_INPROGRESS = 0,
 	CONNECTION_SUCCEEDED = 1
-} connection_status_t;
+};
 
-typedef enum {
+enum net_error_t {
 	NET_ERR_UNKNOWN = -1,
 	NET_ERR_NONE = 0,
 
@@ -435,7 +374,7 @@ typedef enum {
 	NET_ERR_MSGSIZE,
 	NET_ERR_WOULDBLOCK,
 	NET_ERR_UNSUPPORTED,
-} net_error_t;
+};
 
 void        NET_Init( void );
 void        NET_Shutdown( void );
@@ -485,7 +424,7 @@ void    NET_BroadcastAddress( netadr_t *address, int port );
 
 //============================================================================
 
-typedef struct {
+struct netchan_t {
 	const socket_t *socket;
 
 	int dropped;                // between last packet and previous
@@ -510,7 +449,7 @@ typedef struct {
 	size_t unsentLength;
 	uint8_t unsentBuffer[MAX_MSGLEN];
 	bool unsentIsCompressed;
-} netchan_t;
+};
 
 extern netadr_t net_from;
 
@@ -552,7 +491,6 @@ const char *FS_BaseGameDirectory( void );
 // handling of absolute filenames
 // only to be used if necessary (library not supporting custom file handling functions etc.)
 const char *FS_WriteDirectory( void );
-const char *FS_CacheDirectory( void );
 const char *FS_DownloadsDirectory( void );
 void        FS_CreateAbsolutePath( const char *path );
 const char *FS_AbsoluteNameForFile( const char *filename );
@@ -590,7 +528,6 @@ void    FS_FreeFile( void *buffer );
 void    FS_FreeBaseFile( void *buffer );
 #define FS_LoadFile( path,buffer,stack,stacksize ) FS_LoadFileExt( path,0,buffer,stack,stacksize,__FILE__,__LINE__ )
 #define FS_LoadBaseFile( path,buffer,stack,stacksize ) FS_LoadBaseFileExt( path,0,buffer,stack,stacksize,__FILE__,__LINE__ )
-#define FS_LoadCacheFile( path,buffer,stack,stacksize ) FS_LoadFileExt( path,FS_CACHE,buffer,stack,stacksize,__FILE__,__LINE__ )
 
 // util functions
 bool    FS_MoveFile( const char *src, const char *dst );
@@ -602,7 +539,6 @@ unsigned    FS_ChecksumAbsoluteFile( const char *filename );
 unsigned    FS_ChecksumBaseFile( const char *filename );
 
 // // only for game files
-const char *FS_FirstExtension( const char *filename, const char * const * extensions, int num_extensions );
 const char *FS_BaseNameForFile( const char *filename );
 
 int         FS_GetFileList( const char *dir, const char *extension, char *buf, size_t bufsize, int start, int end );
@@ -635,6 +571,22 @@ __declspec( noreturn ) void Com_Error( com_error_code_t code, _Printf_format_str
 __declspec( noreturn ) void Com_Quit( void );
 #endif
 
+template< typename... Rest >
+void Com_GGPrintNL( const char * fmt, const Rest & ... rest ) {
+	char buf[ 4096 ];
+	ggformat( buf, sizeof( buf ), fmt, rest... );
+	Com_Printf( "%s", buf );
+}
+
+#define Com_GGPrint( fmt, ... ) Com_GGPrintNL( fmt "\n", ##__VA_ARGS__ )
+
+template< typename... Rest >
+void Com_GGError( com_error_code_t code, const char * fmt, const Rest & ... rest ) {
+	char buf[ 4096 ];
+	ggformat( buf, sizeof( buf ), fmt, rest... );
+	Com_Error( code, "%s", buf );
+}
+
 void        Com_DeferQuit( void );
 
 int         Com_ClientState( void );        // this should have just been a cvar...
@@ -645,19 +597,10 @@ void        Com_SetDemoPlaying( bool state );
 
 int         Com_ServerState( void );        // this should have just been a cvar...
 void        Com_SetServerState( int state );
-struct cmodel_state_s *Com_ServerCM( unsigned *checksum );
-void        Com_SetServerCM( struct cmodel_state_s *cms, unsigned checksum );
 
 extern cvar_t *developer;
 extern const bool is_dedicated_server;
-extern cvar_t *host_speeds;
 extern cvar_t *versioncvar;
-
-// host_speeds times
-extern int64_t time_before_game;
-extern int64_t time_after_game;
-extern int64_t time_before_ref;
-extern int64_t time_after_ref;
 
 /*
 ==============================================================
@@ -667,18 +610,11 @@ MEMORY MANAGEMENT
 ==============================================================
 */
 
-struct mempool_s;
-typedef struct mempool_s mempool_t;
+struct mempool_t;
 
 #define MEMPOOL_TEMPORARY           1
 #define MEMPOOL_GAME                2
-#define MEMPOOL_USERINTERFACE       4
-#define MEMPOOL_CLIENTGAME          8
-#define MEMPOOL_SOUND               16
-#define MEMPOOL_DB                  32
-#define MEMPOOL_ANGELSCRIPT         64
-#define MEMPOOL_CINMODULE           128
-#define MEMPOOL_REFMODULE           256
+#define MEMPOOL_CLIENTGAME          4
 
 void Memory_Init( void );
 void Memory_InitCommands( void );
@@ -764,6 +700,10 @@ bool Sys_FormatTime( char * buf, size_t buf_size, const char * fmt );
 const char * Sys_ConsoleInput();
 void Sys_ConsoleOutput( const char * string );
 
+bool Sys_OpenInWebBrowser( const char * url );
+
+bool Sys_BeingDebugged();
+
 #ifndef _MSC_VER
 void Sys_Error( const char *error, ... ) __attribute__( ( format( printf, 1, 2 ) ) ) __attribute__( ( noreturn ) );
 void Sys_Quit( void ) __attribute__( ( noreturn ) );
@@ -784,16 +724,12 @@ void CL_Init( void );
 void CL_Disconnect( const char *message );
 void CL_Shutdown( void );
 void CL_Frame( int realMsec, int gameMsec );
-void CL_ParseServerMessage( msg_t *msg );
-void CL_Netchan_Transmit( msg_t *msg );
 void Con_Print( const char *text );
 
 void SV_Init( void );
 void SV_Shutdown( const char *finalmsg );
 void SV_ShutdownGame( const char *finalmsg, bool reconnect );
 void SV_Frame( unsigned realMsec, unsigned gameMsec );
-bool SV_SendMessageToClient( struct client_s *client, msg_t *msg );
-void SV_ParseClientMessage( struct client_s *client, msg_t *msg );
 
 /*
 ==============================================================
@@ -802,23 +738,12 @@ MAPLIST SUBSYSTEM
 
 ==============================================================
 */
-void ML_Init( void );
-void ML_Shutdown( void );
-bool ML_Update( void );
 
-size_t ML_GetMapByNum( int num, char *out, size_t size );
+void InitMapList();
+void ShutdownMapList();
 
-bool ML_FilenameExists( const char *filename );
+void RefreshMapList();
+Span< const char * > GetMapList();
+bool MapExists( const char * name );
 
-bool ML_ValidateFilename( const char *filename );
-
-char **ML_CompleteBuildList( const char *partial );
-
-/*
-==============================================================
-
-MULTITHREADING
-
-==============================================================
-*/
-#include "qthreads.h"
+const char ** CompleteMapName( const char * prefix );

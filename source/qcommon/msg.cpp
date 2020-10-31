@@ -17,18 +17,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// msg.c -- Message IO functions
-#include "qcommon.h"
+
+#include "qcommon/qcommon.h"
 #include "qcommon/half_float.h"
+#include "qcommon/serialization.h"
 
-/*
-==============================================================================
-
-MESSAGE IO FUNCTIONS
-
-Handles byte ordering and avoids alignment errors
-==============================================================================
-*/
 #define MAX_MSG_STRING_CHARS    2048
 
 void MSG_Init( msg_t *msg, uint8_t *data, size_t length ) {
@@ -55,6 +48,187 @@ void *MSG_GetSpace( msg_t *msg, size_t length ) {
 	ptr = msg->data + msg->cursize;
 	msg->cursize += length;
 	return ptr;
+}
+
+struct DeltaBuffer {
+	static constexpr u32 MAX_FIELDS = 1024;
+
+	u8 * buf;
+	u8 * cursor;
+	u8 * end;
+
+	u8 field_mask[ MAX_FIELDS / 8 ];
+	u32 num_fields;
+	u32 field_mask_read_cursor;
+
+	bool serializing;
+	bool error;
+};
+
+static void MSG_WriteDeltaBuffer( msg_t * msg, const DeltaBuffer & delta ) {
+	MSG_WriteUintBase128( msg, delta.num_fields );
+	u8 bytes = ( delta.num_fields + 7 ) / 8;
+	MSG_WriteData( msg, delta.field_mask, bytes );
+	MSG_WriteData( msg, delta.buf, delta.cursor - delta.buf );
+}
+
+static DeltaBuffer MSG_StartReadingDeltaBuffer( msg_t * msg ) {
+	DeltaBuffer delta = { };
+
+	delta.num_fields = MSG_ReadUintBase128( msg );
+	u8 bytes = ( delta.num_fields + 7 ) / 8;
+	MSG_ReadData( msg, delta.field_mask, bytes );
+
+	delta.buf = msg->data + msg->readcount;
+	delta.cursor = msg->data + msg->readcount;
+	delta.end = msg->data + msg->cursize;
+
+	return delta;
+}
+
+static void MSG_FinishReadingDeltaBuffer( msg_t * msg, const DeltaBuffer & delta ) {
+	msg->readcount += delta.cursor - delta.buf;
+}
+
+static DeltaBuffer DeltaWriter( u8 * buf, size_t n ) {
+	DeltaBuffer delta = { };
+	delta.buf = buf;
+	delta.cursor = buf;
+	delta.end = delta.buf + n;
+	delta.serializing = true;
+
+	return delta;
+}
+
+static void AddBit( DeltaBuffer * buf, bool b ) {
+	if( buf->error || buf->num_fields == DeltaBuffer::MAX_FIELDS ) {
+		buf->error = true;
+		return;
+	}
+
+	if( b ) {
+		u32 byte = buf->num_fields / 8;
+		u32 bit = buf->num_fields % 8;
+		buf->field_mask[ byte ] |= u8( 1 ) << u8( bit );
+	}
+
+	buf->num_fields++;
+}
+
+static bool GetBit( DeltaBuffer * buf ) {
+	if( buf->error || buf->field_mask_read_cursor == buf->num_fields ) {
+		buf->error = true;
+		return false;
+	}
+
+	u32 byte = buf->field_mask_read_cursor / 8;
+	u32 bit = buf->field_mask_read_cursor % 8;
+	bool b = ( buf->field_mask[ byte ] & ( u8( 1 ) << u8( bit ) ) ) != 0;
+	buf->field_mask_read_cursor++;
+
+	return b;
+}
+
+static void AddBytes( DeltaBuffer * buf, const void * data, size_t n ) {
+	if( buf->error || size_t( buf->end - buf->cursor ) < n ) {
+		buf->error = true;
+		return;
+	}
+
+	memcpy( buf->cursor, data, n );
+	buf->cursor += n;
+}
+
+static void GetBytes( DeltaBuffer * buf, void * data, size_t n ) {
+	if( buf->error || size_t( buf->end - buf->cursor ) < n ) {
+		buf->error = true;
+		memset( data, 0, n );
+		return;
+	}
+
+	memcpy( data, buf->cursor, n );
+	buf->cursor += n;
+}
+
+template< typename T >
+static void DeltaFundamental( DeltaBuffer * buf, T & x, const T & baseline ) {
+	if( buf->serializing ) {
+		AddBit( buf, x != baseline );
+		if( x != baseline ) {
+			AddBytes( buf, &x, sizeof( x ) );
+		}
+	}
+	else {
+		if( GetBit( buf ) ) {
+			GetBytes( buf, &x, sizeof( x ) );
+		}
+		else {
+			x = baseline;
+		}
+	}
+}
+
+static void Delta( DeltaBuffer * buf, s8 & x, s8 baseline ) { DeltaFundamental( buf, x, baseline ); }
+static void Delta( DeltaBuffer * buf, s16 & x, s16 baseline ) { DeltaFundamental( buf, x, baseline ); }
+static void Delta( DeltaBuffer * buf, s32 & x, s32 baseline ) { DeltaFundamental( buf, x, baseline ); }
+static void Delta( DeltaBuffer * buf, s64 & x, s64 baseline ) { DeltaFundamental( buf, x, baseline ); }
+static void Delta( DeltaBuffer * buf, u8 & x, u8 baseline ) { DeltaFundamental( buf, x, baseline ); }
+static void Delta( DeltaBuffer * buf, u16 & x, u16 baseline ) { DeltaFundamental( buf, x, baseline ); }
+static void Delta( DeltaBuffer * buf, u32 & x, u32 baseline ) { DeltaFundamental( buf, x, baseline ); }
+static void Delta( DeltaBuffer * buf, u64 & x, u64 baseline ) { DeltaFundamental( buf, x, baseline ); }
+static void Delta( DeltaBuffer * buf, float & x, float baseline ) { DeltaFundamental( buf, x, baseline ); }
+
+static void Delta( DeltaBuffer * buf, bool & b, bool baseline ) {
+	if( buf->serializing ) {
+		AddBit( buf, b != baseline );
+	}
+	else {
+		b = GetBit( buf ) ? !baseline : baseline;
+	}
+}
+
+static void Delta( DeltaBuffer * buf, StringHash & hash, StringHash baseline ) {
+	DeltaFundamental( buf, hash.hash, baseline.hash );
+}
+
+template< typename T, size_t N >
+void Delta( DeltaBuffer * buf, T ( &arr )[ N ], const T ( &baseline )[ N ] ) {
+	for( size_t i = 0; i < N; i++ ) {
+		Delta( buf, arr[ i ], baseline[ i ] );
+	}
+}
+
+static void Delta( DeltaBuffer * buf, Vec3 & v, const Vec3 & baseline ) {
+	for( int i = 0; i < 3; i++ ) {
+		Delta( buf, v[ i ], baseline[ i ] );
+	}
+}
+
+static void Delta( DeltaBuffer * buf, RGBA8 & rgba, const RGBA8 & baseline ) {
+	Delta( buf, rgba.r, baseline.r );
+	Delta( buf, rgba.g, baseline.b );
+	Delta( buf, rgba.b, baseline.g );
+	Delta( buf, rgba.a, baseline.a );
+}
+
+static void DeltaHalf( DeltaBuffer * buf, float & x, const float & baseline ) {
+	u16 half_x = FloatToHalf( x );
+	u16 half_baseline = FloatToHalf( baseline );
+	Delta( buf, half_x, half_baseline );
+	x = HalfToFloat( half_x );
+}
+
+static void DeltaAngle( DeltaBuffer * buf, float & x, const float & baseline ) {
+	u16 angle16 = AngleNormalize360( x ) / 360.0f * U16_MAX;
+	u16 baseline16 = AngleNormalize360( baseline ) / 360.0f * U16_MAX;
+	Delta( buf, angle16, baseline16 );
+	x = angle16 / float( U16_MAX ) * 360.0f;
+}
+
+static void DeltaAngle( DeltaBuffer * buf, Vec3 & v, const Vec3 & baseline ) {
+	for( int i = 0; i < 3; i++ ) {
+		DeltaAngle( buf, v[ i ], baseline[ i ] );
+	}
 }
 
 //==================================================
@@ -131,24 +305,6 @@ void MSG_WriteIntBase128( msg_t *msg, int64_t c ) {
 	// use Zig-zag encoding for signed integers for more efficient storage
 	uint64_t cc = (uint64_t)(c << 1) ^ (uint64_t)(c >> 63);
 	MSG_WriteUintBase128( msg, cc );
-}
-
-void MSG_WriteFloat( msg_t *msg, float f ) {
-	union {
-		float f;
-		int l;
-	} dat;
-
-	dat.f = f;
-	MSG_WriteInt32( msg, dat.l );
-}
-
-void MSG_WriteHalfFloat( msg_t *msg, float f ) {
-	MSG_WriteUint16( msg, Com_FloatToHalf( f ) );
-}
-
-void MSG_WriteDir( msg_t *msg, vec3_t dir ) {
-	MSG_WriteUint8( msg, dir ? DirToByte( dir ) : 0 );
 }
 
 void MSG_WriteString( msg_t *msg, const char *s ) {
@@ -257,27 +413,6 @@ int64_t MSG_ReadIntBase128( msg_t *msg ) {
 	return (int64_t)(c >> 1) ^ (-(int64_t)(c & 1));
 }
 
-float MSG_ReadFloat( msg_t *msg ) {
-	union {
-		float f;
-		int l;
-	} dat;
-
-	dat.l = MSG_ReadInt32( msg );
-	if( msg->readcount > msg->cursize ) {
-		dat.f = -1;
-	}
-	return dat.f;
-}
-
-float MSG_ReadHalfFloat( msg_t *msg ) {
-	return Com_HalfToFloat( MSG_ReadUint16( msg ) );
-}
-
-void MSG_ReadDir( msg_t *msg, vec3_t dir ) {
-	ByteToDir( MSG_ReadUint8( msg ), dir );
-}
-
 void MSG_ReadData( msg_t *msg, void *data, size_t length ) {
 	unsigned int i;
 
@@ -323,704 +458,52 @@ char *MSG_ReadStringLine( msg_t *msg ) {
 }
 
 //==================================================
-// ENCODED FIELDS
-//==================================================
-
-/*
-* MSG_FieldBytes
-*/
-static size_t MSG_FieldBytes( const msg_field_t *field ) {
-	if( field->bits == 0 ) {
-		return sizeof( float );
-	}
-	return field->bits >> 3;
-}
-
-/*
-* MSG_CompareField
-*/
-static bool MSG_CompareField( const uint8_t *from, const uint8_t *to, const msg_field_t *field ) {
-	int32_t itv, ifv;
-	bool btv, bfv;
-	int64_t bitv, bifv;
-	float ftv, ffv;
-
-	switch( field->bits ) {
-		case 0:
-			ftv = *((float *)( to + field->offset ));
-			ffv = *((float *)( from + field->offset ));
-			return ftv != ffv;
-		case 1:
-			btv = *((bool *)( to + field->offset ));
-			bfv = *((bool *)( from + field->offset ));
-			return btv != bfv;
-		case 8:
-			itv = *((int8_t *)( to + field->offset ));
-			ifv = *((int8_t *)( from + field->offset ));
-			return itv != ifv;
-		case 16:
-			itv = *((int16_t *)( to + field->offset ));
-			ifv = *((int16_t *)( from + field->offset ));
-			return itv != ifv;
-		case 32:
-			itv = *((int32_t *)( to + field->offset ));
-			ifv = *((int32_t *)( from + field->offset ));
-			return itv != ifv;
-		case 64:
-			bitv = *((int64_t *)( to + field->offset ));
-			bifv = *((int64_t *)( from + field->offset ));
-			return bitv != bifv;
-		default:
-			Com_Error( ERR_FATAL, "MSG_CompareField: unknown field bits value %i", field->bits );
-	}
-
-	return false;
-}
-
-/*
-* MSG_WriteField
-*/
-static void MSG_WriteField( msg_t *msg, const uint8_t *to, const msg_field_t *field ) {
-	switch( field->encoding ) {
-	case WIRE_BOOL:
-		break;
-	case WIRE_FIXED_INT8:
-		MSG_WriteInt8( msg, *((int8_t *)( to + field->offset )) );
-		break;
-	case WIRE_FIXED_INT16:
-		MSG_WriteInt16( msg, *((int16_t *)( to + field->offset )) );
-		break;
-	case WIRE_FIXED_INT32:
-		MSG_WriteInt32( msg, *((int32_t *)( to + field->offset )) );
-		break;
-	case WIRE_FIXED_INT64:
-		MSG_WriteInt64( msg, *((int64_t *)( to + field->offset )) );
-		break;
-	case WIRE_FLOAT:
-		MSG_WriteFloat( msg, *((float *)( to + field->offset )) );
-		break;
-	case WIRE_HALF_FLOAT:
-		MSG_WriteHalfFloat( msg, (*((float *)( to + field->offset ))) );
-		break;
-	case WIRE_ANGLE:
-		MSG_WriteHalfFloat( msg, AngleNormalize360( (*((float *)( to + field->offset ))) ) );
-		break;
-	case WIRE_BASE128:
-		switch( field->bits ) {
-		case 8:
-			MSG_WriteInt8( msg, *((int8_t *)( to + field->offset )) );
-			break;
-		case 16:
-			MSG_WriteIntBase128( msg, *((int16_t *)( to + field->offset )) );
-			break;
-		case 32:
-			MSG_WriteIntBase128( msg, *((int32_t *)( to + field->offset )) );
-			break;
-		case 64:
-			MSG_WriteIntBase128( msg, *((int64_t *)( to + field->offset )) );
-			break;
-		default:
-			Com_Error( ERR_FATAL, "MSG_WriteField: unknown base128 field bits value %i", field->bits );
-			break;
-		}
-		break;
-	case WIRE_UBASE128:
-		switch( field->bits ) {
-		case 8:
-			MSG_WriteUint8( msg, *((uint8_t *)( to + field->offset )) );
-			break;
-		case 16:
-			MSG_WriteUintBase128( msg, *((uint16_t *)( to + field->offset )) );
-			break;
-		case 32:
-			MSG_WriteUintBase128( msg, *((uint32_t *)( to + field->offset )) );
-			break;
-		case 64:
-			MSG_WriteUintBase128( msg, *((uint64_t *)( to + field->offset )) );
-			break;
-		default:
-			Com_Error( ERR_FATAL, "MSG_WriteField: unknown base128 field bits value %i", field->bits );
-			break;
-		}
-		break;
-	default:
-		Com_Error( ERR_FATAL, "MSG_WriteField: unknown encoding type %i", field->encoding );
-		break;
-	}
-}
-
-/*
-* MSG_ReadField
-*/
-static void MSG_ReadField( msg_t *msg, uint8_t *to, const msg_field_t *field ) {
-	switch( field->encoding ) {
-	case WIRE_BOOL:
-		*((bool *)( to + field->offset )) ^= true;
-		break;
-	case WIRE_FIXED_INT8:
-		*((int8_t *)( to + field->offset )) = MSG_ReadInt8( msg );
-		break;
-	case WIRE_FIXED_INT16:
-		*((int16_t *)( to + field->offset )) = MSG_ReadInt16( msg );
-		break;
-	case WIRE_FIXED_INT32:
-		*((int32_t *)( to + field->offset )) = MSG_ReadInt32( msg );
-		break;
-	case WIRE_FIXED_INT64:
-		*((int64_t *)( to + field->offset )) = MSG_ReadInt64( msg );
-		break;
-	case WIRE_FLOAT:
-		*((float *)( to + field->offset )) = MSG_ReadFloat( msg );
-		break;
-	case WIRE_HALF_FLOAT:
-		*((float *)( to + field->offset )) = MSG_ReadHalfFloat( msg );
-		break;
-	case WIRE_ANGLE:
-		*((float *)( to + field->offset )) = MSG_ReadHalfFloat( msg );
-		break;
-	case WIRE_BASE128:
-		switch( field->bits ) {
-		case 8:
-			*((int8_t *)( to + field->offset )) = MSG_ReadInt8( msg );
-			break;
-		case 16:
-			*((int16_t *)( to + field->offset )) = MSG_ReadIntBase128( msg );
-			break;
-		case 32:
-			*((int32_t *)( to + field->offset )) = MSG_ReadIntBase128( msg );
-			break;
-		case 64:
-			*((int64_t *)( to + field->offset )) = MSG_ReadIntBase128( msg );
-			break;
-		default:
-			Com_Error( ERR_FATAL, "MSG_WriteField: unknown base128 field bits value %i", field->bits );
-			break;
-		}
-		break;
-	case WIRE_UBASE128:
-		switch( field->bits ) {
-		case 8:
-			*((uint8_t *)( to + field->offset )) = MSG_ReadUint8( msg );
-			break;
-		case 16:
-			*((uint16_t *)( to + field->offset )) = MSG_ReadUintBase128( msg );
-			break;
-		case 32:
-			*((uint32_t *)( to + field->offset )) = MSG_ReadUintBase128( msg );
-			break;
-		case 64:
-			*((uint64_t *)( to + field->offset )) = MSG_ReadUintBase128( msg );
-			break;
-		default:
-			Com_Error( ERR_FATAL, "MSG_WriteField: unknown base128 field bits value %i", field->bits );
-			break;
-		}
-		break;
-	default:
-		Com_Error( ERR_FATAL, "MSG_WriteField: unknown encoding type %i", field->encoding );
-		break;
-	}
-}
-
-/*
-* MSG_WriteFieldMask
-*/
-void MSG_WriteFieldMask( msg_t *msg, const uint8_t *fieldMask, unsigned byteMask ) {
-	size_t b;
-
-	b = 0;
-	while( byteMask ) {
-		if( byteMask & 1 ) {
-			MSG_WriteUint8( msg, fieldMask[b] );
-		}
-		b++;
-		byteMask >>= 1;
-	}
-}
-
-/*
-* MSG_ReadFieldMask
-*/
-void MSG_ReadFieldMask( msg_t *msg, uint8_t *fieldMask, size_t maskSize, unsigned byteMask ) {
-	size_t b;
-
-	b = 0;
-	while( byteMask ) {
-		if( byteMask & 1 ) {
-			if( b >= maskSize ) {
-				Com_Error( ERR_FATAL, "MSG_ReadFieldMask: i >= maskSize" );
-			}
-			fieldMask[b] = MSG_ReadUint8( msg );
-		}
-		b++;
-		byteMask >>= 1;
-	}
-}
-
-/*
-* MSG_CompareArrays
-*/
-static unsigned MSG_CompareArrays( const void *from, const void *to, const msg_field_t *field, uint8_t *elemMask, size_t maskSize, bool quick ) {
-	size_t i;
-	unsigned byteMask;
-	const size_t bytes = MSG_FieldBytes( field );
-	const size_t maxElems = field->count;
-	const uint8_t *bfrom = ( const uint8_t * ) from;
-	const uint8_t *bto = ( const uint8_t * ) to;
-
-	byteMask = 0;
-	for( i = 0; i < maxElems; i++ ) {
-		size_t byte = i >> 3;
-
-		if( elemMask != NULL && byte > maskSize ) {
-			Com_Error( ERR_FATAL, "MSG_CompareArrays: byte > maskSize" );
-		}
-		if( byte > 32 ) {
-			Com_Error( ERR_FATAL, "MSG_CompareArrays: byte > 32" );
-		}
-
-		if( MSG_CompareField( bfrom, bto, field ) ) {
-			if( elemMask != NULL ) {
-				elemMask[byte] |= (1 << (i & 7));
-			}
-			byteMask |= (1 << (byte & 7));
-			if( quick ) {
-				return byteMask;
-			}
-		}
-
-		bfrom += bytes;
-		bto += bytes;
-	}
-
-	return byteMask;
-}
-
-/*
-* MSG_WriteArrayElems
-*/
-static void MSG_WriteArrayElems( msg_t *msg, const void *to, const msg_field_t *field, const uint8_t *elemMask, unsigned byteMask ) {
-	size_t b;
-	const size_t bytes = MSG_FieldBytes( field );
-	const size_t maxElems = field->count;
-	const uint8_t *bto = ( const uint8_t * ) to;
-
-	b = 0;
-	while( byteMask ) {
-		if( byteMask & 1 ) {
-			unsigned fm = elemMask[b];
-			size_t f = b << 3;
-
-			while( fm ) {
-				if( f >= maxElems )
-					return;
-
-				if( fm & 1 ) {
-					MSG_WriteField( msg, bto + f * bytes, field );
-				}
-				f++;
-				fm >>= 1;
-			}
-		}
-
-		b++;
-		byteMask >>= 1;
-	}
-}
-
-/*
-* MSG_ReadArrayElems
-*/
-static void MSG_ReadArrayElems( msg_t *msg, void *to, const msg_field_t *field, const uint8_t *elemMask, size_t maskSize, unsigned byteMask ) {
-	size_t b;
-	uint8_t *bto = ( uint8_t * ) to;
-	const size_t bytes = MSG_FieldBytes( field );
-	const size_t maxElems = field->count;
-
-	b = 0;
-	while( byteMask ) {
-		if( byteMask & 1 ) {
-			unsigned fm;
-			size_t fn = b << 3;
-
-			if( b >= maskSize ) {
-				Com_Error( ERR_FATAL, "MSG_ReadArrayElems: b >= maxSize" );
-			}
-
-			fm = elemMask[b];
-			while( fm ) {
-				assert( fn < maxElems );
-				if( fn >= maxElems ) {
-					Com_Error( ERR_FATAL, "MSG_ReadArrayElems: fn >= maxElems" );
-				}
-
-				if( fm & 1 ) {
-					MSG_ReadField( msg, bto + fn * bytes, field );
-				}
-
-				fn++;
-				fm >>= 1;
-			}
-		}
-
-		b++;
-		byteMask >>= 1;
-	}
-}
-
-/*
-* MSG_WriteDeltaArray
-*/
-static void MSG_WriteDeltaArray( msg_t *msg, const void *from, const void *to, const msg_field_t *field ) {
-	unsigned byteMask;
-	uint8_t elemMask[32] = { 0 };
-	const size_t numElems = field->count;
-
-	assert( numElems < 256 );
-	if( numElems > 256 ) {
-		Com_Error( ERR_FATAL, "MSG_WriteDeltaArray: numFields == %" PRIu32, (unsigned)numElems );
-	}
-
-	byteMask = MSG_CompareArrays( from, to, field, elemMask, sizeof( elemMask ), false );
-
-	if( numElems <= 8 ) {
-		// we don't need the byteMask in case all field bits fit a single byte
-		byteMask = 1;
-	} else {
-		MSG_WriteUintBase128( msg, byteMask );
-	}
-
-	MSG_WriteFieldMask( msg, elemMask, byteMask );
-
-	MSG_WriteArrayElems( msg, to, field, elemMask, byteMask );
-}
-
-/*
-* MSG_ReadDeltaArray
-*/
-static void MSG_ReadDeltaArray( msg_t *msg, const void *from, void *to, const msg_field_t *field ) {
-	unsigned byteMask;
-	uint8_t elemMask[32] = { 0 };
-	//const size_t bytes = MSG_FieldBytes( field );
-	const size_t maxElems = field->count;
-
-	assert( maxElems < 256 );
-	if( maxElems > 256 ) {
-		Com_Error( ERR_FATAL, "MSG_ReadDeltaArray: numFields == %" PRIu32, (unsigned)maxElems );
-	}
-
-	// set everything to the state we are delta'ing from
-	// we actually do this in MSG_ReadDeltaStruct
-	// memcpy( (uint8_t *)to + field->offset, (uint8_t *)from + field->offset, bytes * maxElems );
-
-	if( maxElems <= 8 ) {
-		// we don't need the byteMask in case all field bits fit a single byte
-		byteMask = 1;
-	} else {
-		byteMask = MSG_ReadUintBase128( msg );
-	}
-
-	MSG_ReadFieldMask( msg, elemMask, sizeof( elemMask ), byteMask );
-
-	MSG_ReadArrayElems( msg, to, field, elemMask, sizeof( elemMask ), byteMask );
-}
-
-/*
-* MSG_CompareStructs
-*/
-static unsigned MSG_CompareStructs( const void *from, const void *to, const msg_field_t *fields, size_t numFields, uint8_t *fieldMask, size_t maskSize ) {
-	size_t i;
-	unsigned byteMask;
-	const uint8_t *bfrom = ( const uint8_t * ) from;
-	const uint8_t *bto = ( const uint8_t * ) to;
-
-	byteMask = 0;
-	for( i = 0; i < numFields; i++ ) {
-		size_t byte = i >> 3;
-		bool change;
-		const msg_field_t *f = &fields[i];
-
-		if( fieldMask != NULL && byte > maskSize ) {
-			Com_Error( ERR_FATAL, "MSG_CompareStructs: byte > maskSize" );
-		}
-		if( byte > 32 ) {
-			Com_Error( ERR_FATAL, "MSG_CompareStructs: byte > 32" );
-		}
-
-		if( f->count > 1 ) {
-			change = MSG_CompareArrays( from, to, f, NULL, 0, true ) != 0;
-		} else {
-			change = MSG_CompareField( bfrom, bto, f );
-		}
-
-		if( change ) {
-			if( fieldMask != NULL ) {
-				fieldMask[byte] |= (1 << (i & 7));
-			}
-			byteMask |= (1 << (byte & 7));
-		}
-	}
-
-	return byteMask;
-}
-
-/*
-* MSG_WriteStructFields
-*/
-static void MSG_WriteStructFields( msg_t *msg, const void *from, const void *to, const msg_field_t *fields, size_t numFields, const uint8_t *fieldMask, unsigned byteMask ) {
-	size_t b;
-	const uint8_t *bto = ( const uint8_t * ) to;
-
-	b = 0;
-	while( byteMask ) {
-		if( byteMask & 1 ) {
-			unsigned fm = fieldMask[b];
-			size_t fn = b << 3;
-
-			while( fm ) {
-				if( fn >= numFields )
-					return;
-				
-				if( fm & 1 ) {
-					const msg_field_t *f = &fields[fn];
-
-					if( f->count > 1 ) {
-						MSG_WriteDeltaArray( msg, from, to, f );
-					} else {
-						MSG_WriteField( msg, bto, f );
-					}
-				}
-				fn++;
-				fm >>= 1;
-			}
-		}
-
-		b++;
-		byteMask >>= 1;
-	}
-}
-
-/*
-* MSG_ReadStructFields
-*/
-static void MSG_ReadStructFields( msg_t *msg, const void *from, void *to, const msg_field_t *fields, size_t numFields, const uint8_t *fieldMask, size_t maskSize, unsigned byteMask ) {
-	size_t b;
-	uint8_t *bto = ( uint8_t * ) to;
-
-	b = 0;
-	while( byteMask ) {
-		if( byteMask & 1 ) {
-			unsigned fm;
-			size_t fn = b << 3;
-
-			if( b >= maskSize ) {
-				Com_Error( ERR_FATAL, "MSG_ReadStructFields: b >= maxSize" );
-			}
-
-			fm = fieldMask[b];
-			while( fm ) {
-				assert( fn < numFields );
-				if( fn >= numFields ) {
-					Com_Error( ERR_FATAL, "MSG_ReadStructFields: f >= numFields" );
-				}
-
-				if( fm & 1 ) {
-					const msg_field_t *f = &fields[fn];
-					if( f->count > 1 ) {
-						MSG_ReadDeltaArray( msg, from, to, f );
-					} else {
-						MSG_ReadField( msg, bto, f );
-					}
-				}
-
-				fn++;
-				fm >>= 1;
-			}
-		}
-
-		b++;
-		byteMask >>= 1;
-	}
-}
-
-/*
-* MSG_WriteDeltaStruct
-*/
-void MSG_WriteDeltaStruct( msg_t *msg, const void *from, const void *to, const msg_field_t *fields, size_t numFields ) {
-	unsigned byteMask;
-	uint8_t fieldMask[32] = { 0 };
-
-	assert( numFields < 256 );
-	if( numFields > 256 ) {
-		Com_Error( ERR_FATAL, "MSG_WriteDeltaStruct: numFields == %" PRIu32, (unsigned)numFields );
-	}
-
-	byteMask = MSG_CompareStructs( from, to, fields, numFields, fieldMask, sizeof( fieldMask ) );
-
-	if( numFields <= 8 ) {
-		// we don't need the byteMask in case all field bits fit a single byte
-		byteMask = 1;
-	} else {
-		MSG_WriteUintBase128( msg, byteMask );
-	}
-
-	MSG_WriteFieldMask( msg, fieldMask, byteMask );
-
-	MSG_WriteStructFields( msg, from, to, fields, numFields, fieldMask, byteMask );
-}
-
-/*
-* MSG_ReadDeltaStruct
-*/
-void MSG_ReadDeltaStruct( msg_t *msg, const void *from, void *to, size_t size, const msg_field_t *fields, size_t numFields ) {
-	unsigned byteMask;
-	uint8_t fieldMask[32] = { 0 };
-
-	assert( numFields < 256 );
-	if( numFields > 256 ) {
-		Com_Error( ERR_FATAL, "MSG_ReadDeltaStruct: numFields == %" PRIu32, (unsigned)numFields );
-	}
-
-	// set everything to the state we are delta'ing from
-	memcpy( to, from, size );
-
-	if( numFields <= 8 ) {
-		// we don't need the byteMask in case all field bits fit a single byte
-		byteMask = 1;
-	} else {
-		byteMask = MSG_ReadUintBase128( msg );
-	}
-
-	MSG_ReadFieldMask( msg, fieldMask, sizeof( fieldMask ), byteMask );
-
-	MSG_ReadStructFields( msg, from, to, fields, numFields, fieldMask, sizeof( fieldMask ), byteMask );
-}
-
-//==================================================
 // DELTA ENTITIES
 //==================================================
 
-#define ESOFS( x ) offsetof( entity_state_t,x )
-
-static const msg_field_t ent_state_fields[] = {
-	{ ESOFS( events[0] ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( eventParms[0] ), 32, 1, WIRE_BASE128 },
-
-	{ ESOFS( origin[0] ), 0, 1, WIRE_FLOAT },
-	{ ESOFS( origin[1] ), 0, 1, WIRE_FLOAT },
-	{ ESOFS( origin[2] ), 0, 1, WIRE_FLOAT },
-
-	{ ESOFS( angles[0] ), 0, 1, WIRE_ANGLE },
-	{ ESOFS( angles[1] ), 0, 1, WIRE_ANGLE },
-
-	{ ESOFS( teleported ), 1, 1, WIRE_BOOL },
-
-	{ ESOFS( type ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( solid ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( modelindex ), 32, 1, WIRE_FIXED_INT8 },
-	{ ESOFS( svflags ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( effects ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( ownerNum ), 32, 1, WIRE_BASE128 },
-	{ ESOFS( targetNum ), 32, 1, WIRE_BASE128 },
-	{ ESOFS( sound ), 32, 1, WIRE_FIXED_INT8 },
-	{ ESOFS( modelindex2 ), 32, 1, WIRE_FIXED_INT8 },
-	{ ESOFS( attenuation ), 0, 1, WIRE_HALF_FLOAT },
-	{ ESOFS( counterNum ), 32, 1, WIRE_BASE128 },
-	{ ESOFS( bodyOwner ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( channel ), 32, 1, WIRE_FIXED_INT8 },
-	{ ESOFS( events[1] ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( eventParms[1] ), 32, 1, WIRE_BASE128 },
-	{ ESOFS( weapon ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( damage ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( radius ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( team ), 32, 1, WIRE_FIXED_INT8 },
-
-	{ ESOFS( origin2[0] ), 0, 1, WIRE_FLOAT },
-	{ ESOFS( origin2[1] ), 0, 1, WIRE_FLOAT },
-	{ ESOFS( origin2[2] ), 0, 1, WIRE_FLOAT },
-
-	{ ESOFS( linearMovementTimeStamp ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( linearMovement ), 1, 1, WIRE_BOOL },
-	{ ESOFS( linearMovementDuration ), 32, 1, WIRE_UBASE128 },
-	{ ESOFS( linearMovementVelocity[0] ), 0, 1, WIRE_FLOAT },
-	{ ESOFS( linearMovementVelocity[1] ), 0, 1, WIRE_FLOAT },
-	{ ESOFS( linearMovementVelocity[2] ), 0, 1, WIRE_FLOAT },
-	{ ESOFS( linearMovementBegin[0] ), 0, 1, WIRE_FLOAT },
-	{ ESOFS( linearMovementBegin[1] ), 0, 1, WIRE_FLOAT },
-	{ ESOFS( linearMovementBegin[2] ), 0, 1, WIRE_FLOAT },
-	{ ESOFS( linearMovementEnd[0] ), 0, 1, WIRE_FLOAT },
-	{ ESOFS( linearMovementEnd[1] ), 0, 1, WIRE_FLOAT },
-	{ ESOFS( linearMovementEnd[2] ), 0, 1, WIRE_FLOAT },
-
-	{ ESOFS( itemNum ), 32, 1, WIRE_UBASE128 },
-
-	{ ESOFS( angles[2] ), 0, 1, WIRE_ANGLE },
-
-	{ ESOFS( colorRGBA ), 32, 1, WIRE_FIXED_INT32 },
-	{ ESOFS( silhouetteColor ), 32, 1, WIRE_FIXED_INT32 },
-
-	{ ESOFS( light ), 32, 1, WIRE_FIXED_INT32 },
-};
-
-/*
-* MSG_WriteEntityNumber
-*/
-static void MSG_WriteEntityNumber( msg_t *msg, int number, bool remove, unsigned byteMask ) {
-	MSG_WriteIntBase128( msg, (remove ? 1 : 0) | number << 1 );
-	MSG_WriteUintBase128( msg, byteMask );
+static void Delta( DeltaBuffer * buf, SyncEvent & event, const SyncEvent & baseline ) {
+	Delta( buf, event.parm, baseline.parm );
+	Delta( buf, event.type, baseline.type );
 }
 
-/*
-* MSG_WriteDeltaEntity
-*
-* Writes part of a packetentities message.
-* Can delta from either a baseline or a previous packet_entity
-*/
-void MSG_WriteDeltaEntity( msg_t *msg, const entity_state_t *from, const entity_state_t *to, bool force ) {
-	int number;
-	unsigned byteMask;
-	uint8_t fieldMask[32] = { 0 };
-	const msg_field_t *fields = ent_state_fields;
-	int numFields = ARRAY_COUNT( ent_state_fields );
+static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntityState & baseline ) {
+	Delta( buf, ent.events, baseline.events );
 
-	assert( numFields < 256 );
-	if( numFields > 256 ) {
-		Com_Error( ERR_FATAL, "MSG_WriteDeltaEntity: numFields == %i", numFields );
-	}
+	Delta( buf, ent.origin, baseline.origin );
+	DeltaAngle( buf, ent.angles, baseline.angles );
 
-	if( !to ) {
-		if( !from )
-			Com_Error( ERR_FATAL, "MSG_WriteDeltaEntity: Unset base state" );
-		number = from->number;
-	} else {
-		number = to->number;
-	}
+	Delta( buf, ent.teleported, baseline.teleported );
 
-	if( !number ) {
-		Com_Error( ERR_FATAL, "MSG_WriteDeltaEntity: Unset entity number" );
-	} else if( number >= MAX_EDICTS ) {
-		Com_Error( ERR_FATAL, "MSG_WriteDeltaEntity: Entity number >= MAX_EDICTS" );
-	} else if( number < 0 ) {
-		Com_Error( ERR_FATAL, "MSG_WriteDeltaEntity: Invalid Entity number" );
-	}
+	Delta( buf, ent.type, baseline.type );
+	Delta( buf, ent.solid, baseline.solid );
+	Delta( buf, ent.model, baseline.model );
+	Delta( buf, ent.svflags, baseline.svflags );
+	Delta( buf, ent.effects, baseline.effects );
+	Delta( buf, ent.ownerNum, baseline.ownerNum );
+	Delta( buf, ent.targetNum, baseline.targetNum );
+	Delta( buf, ent.sound, baseline.sound );
+	Delta( buf, ent.model2, baseline.model2 );
+	Delta( buf, ent.counterNum, baseline.counterNum );
+	Delta( buf, ent.channel, baseline.channel );
+	Delta( buf, ent.weapon, baseline.weapon );
+	Delta( buf, ent.radius, baseline.radius );
+	Delta( buf, ent.team, baseline.team );
 
-	if( !to ) {
-		// remove
-		MSG_WriteEntityNumber( msg, number, true, 0 );
-		return;
-	}
+	Delta( buf, ent.origin2, baseline.origin2 );
 
-	byteMask = MSG_CompareStructs( from, to, fields, numFields, fieldMask, sizeof( fieldMask ) );
-	if( !byteMask && !force ) {
-		// no changes
-		return;
-	}
+	Delta( buf, ent.linearMovementTimeStamp, baseline.linearMovementTimeStamp );
+	Delta( buf, ent.linearMovement, baseline.linearMovement );
+	Delta( buf, ent.linearMovementDuration, baseline.linearMovementDuration );
+	Delta( buf, ent.linearMovementVelocity, baseline.linearMovementVelocity );
+	Delta( buf, ent.linearMovementBegin, baseline.linearMovementBegin );
+	Delta( buf, ent.linearMovementEnd, baseline.linearMovementEnd );
+	Delta( buf, ent.linearMovementTimeDelta, baseline.linearMovementTimeDelta );
 
-	MSG_WriteEntityNumber( msg, number, false, byteMask );
+	Delta( buf, ent.silhouetteColor, baseline.silhouetteColor );
+}
 
-	MSG_WriteFieldMask( msg, fieldMask, byteMask );
-
-	MSG_WriteStructFields( msg, from, to, fields, numFields, fieldMask, byteMask );
+void MSG_WriteEntityNumber( msg_t *msg, int number, bool remove ) {
+	MSG_WriteIntBase128( msg, (remove ? 1 : 0) | number << 1 );
 }
 
 /*
@@ -1028,189 +511,220 @@ void MSG_WriteDeltaEntity( msg_t *msg, const entity_state_t *from, const entity_
 *
 * Returns the entity number and the remove bit
 */
-int MSG_ReadEntityNumber( msg_t *msg, bool *remove, unsigned *byteMask ) {
-	int number;
-
-	number = (int)MSG_ReadIntBase128( msg );
-	*remove = (number & 1 ? true : false);
-	number = number >> 1;
-	*byteMask = MSG_ReadUintBase128( msg );
-
-	return number;
+int MSG_ReadEntityNumber( msg_t *msg, bool *remove ) {
+	int number = (int)MSG_ReadIntBase128( msg );
+	*remove = ( number & 1 ) != 0;
+	return number >> 1;
 }
 
-/*
-* MSG_ReadDeltaEntity
-*
-* Can go from either a baseline or a previous packet_entity
-*/
-void MSG_ReadDeltaEntity( msg_t *msg, const entity_state_t *from, entity_state_t *to, int number, unsigned byteMask ) {
-	uint8_t fieldMask[32] = { 0 };
-	const msg_field_t *fields = ent_state_fields;
-	int numFields = ARRAY_COUNT( ent_state_fields );
+void MSG_WriteDeltaEntity( msg_t * msg, const SyncEntityState * baseline, const SyncEntityState * ent, bool force ) {
+	u8 buf[ MAX_MSGLEN ];
+	DeltaBuffer delta = DeltaWriter( buf, sizeof( buf ) );
 
-	// set everything to the state we are delta'ing from
-	*to = *from;
-	to->number = number;
-	
-	MSG_ReadFieldMask( msg, fieldMask, sizeof( fieldMask ), byteMask );
+	Delta( &delta, *const_cast< SyncEntityState * >( ent ), * baseline );
 
-	MSG_ReadStructFields( msg, from, to, fields, numFields, fieldMask, sizeof( fieldMask ), byteMask );
+	bool changed = false;
+	for( u8 x : delta.field_mask ) {
+		if( x != 0 ) {
+			changed = true;
+			break;
+		}
+	}
+
+	if( !changed && !force ) {
+		return;
+	}
+
+	MSG_WriteEntityNumber( msg, ent->number, false );
+	MSG_WriteDeltaBuffer( msg, delta );
+}
+
+void MSG_ReadDeltaEntity( msg_t * msg, const SyncEntityState * baseline, SyncEntityState * ent ) {
+	DeltaBuffer delta = MSG_StartReadingDeltaBuffer( msg );
+	Delta( &delta, *ent, *baseline );
+	MSG_FinishReadingDeltaBuffer( msg, delta );
 }
 
 //==================================================
 // DELTA USER CMDS
 //==================================================
 
-#define UCOFS( x ) offsetof( usercmd_t,x )
+static void Delta( DeltaBuffer * buf, usercmd_t & cmd, const usercmd_t & baseline ) {
+	Delta( buf, cmd.angles, baseline.angles );
+	Delta( buf, cmd.forwardmove, baseline.forwardmove );
+	Delta( buf, cmd.sidemove, baseline.sidemove );
+	Delta( buf, cmd.upmove, baseline.upmove );
+	Delta( buf, cmd.buttons, baseline.buttons );
+	Delta( buf, cmd.weaponSwitch, baseline.weaponSwitch );
+}
 
-static const msg_field_t usercmd_fields[] = {
-	{ UCOFS( angles[0] ), 16, 1, WIRE_FIXED_INT16 },
-	{ UCOFS( angles[1] ), 16, 1, WIRE_FIXED_INT16 },
-	{ UCOFS( angles[2] ), 16, 1, WIRE_FIXED_INT16 },
+void MSG_WriteDeltaUsercmd( msg_t * msg, const usercmd_t * baseline, const usercmd_t * cmd ) {
+	u8 buf[ MAX_MSGLEN ];
+	DeltaBuffer delta = DeltaWriter( buf, sizeof( buf ) );
 
-	{ UCOFS( forwardmove ), 8, 1, WIRE_FIXED_INT8 },
-	{ UCOFS( sidemove ), 8, 1, WIRE_FIXED_INT8 },
-	{ UCOFS( upmove ), 8, 1, WIRE_FIXED_INT8 },
+	Delta( &delta, *const_cast< usercmd_t * >( cmd ), *baseline );
 
-	{ UCOFS( buttons ), 32, 1, WIRE_UBASE128 },
-};
-
-/*
-* MSG_WriteDeltaUsercmd
-*/
-void MSG_WriteDeltaUsercmd( msg_t *msg, const usercmd_t *from, usercmd_t *cmd ) {
-	const msg_field_t *fields = usercmd_fields;
-
-	MSG_WriteDeltaStruct( msg, from, cmd, fields, ARRAY_COUNT( usercmd_fields ) );
-
+	MSG_WriteDeltaBuffer( msg, delta );
 	MSG_WriteIntBase128( msg, cmd->serverTimeStamp );
 }
 
-/*
-* MSG_ReadDeltaUsercmd
-*/
-void MSG_ReadDeltaUsercmd( msg_t *msg, const usercmd_t *from, usercmd_t *move ) {
-	const msg_field_t *fields = usercmd_fields;
-
-	MSG_ReadDeltaStruct( msg, from, move, sizeof( usercmd_t ), fields, ARRAY_COUNT( usercmd_fields ) );
-
-	move->serverTimeStamp = MSG_ReadIntBase128( msg );
+void MSG_ReadDeltaUsercmd( msg_t * msg, const usercmd_t * baseline, usercmd_t * cmd ) {
+	DeltaBuffer delta = MSG_StartReadingDeltaBuffer( msg );
+	Delta( &delta, *cmd, *baseline );
+	MSG_FinishReadingDeltaBuffer( msg, delta );
+	cmd->serverTimeStamp = MSG_ReadIntBase128( msg );
 }
 
 //==================================================
 // DELTA PLAYER STATES
 //==================================================
 
-#define PSOFS( x ) offsetof( player_state_t,x )
+static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t & baseline ) {
+	Delta( buf, pmove.pm_type, baseline.pm_type );
 
-static const msg_field_t player_state_msg_fields[] = {
-	{ PSOFS( pmove.pm_type ), 32, 1, WIRE_UBASE128 },
+	Delta( buf, pmove.origin, baseline.origin );
+	Delta( buf, pmove.velocity, baseline.velocity );
+	Delta( buf, pmove.delta_angles, baseline.delta_angles );
 
-	{ PSOFS( pmove.origin[0] ), 0, 1, WIRE_FLOAT },
-	{ PSOFS( pmove.origin[1] ), 0, 1, WIRE_FLOAT },
-	{ PSOFS( pmove.origin[2] ), 0, 1, WIRE_FLOAT },
+	Delta( buf, pmove.pm_time, baseline.pm_time );
+	Delta( buf, pmove.pm_flags, baseline.pm_flags );
 
-	{ PSOFS( pmove.velocity[0] ), 0, 1, WIRE_FLOAT },
-	{ PSOFS( pmove.velocity[1] ), 0, 1, WIRE_FLOAT },
-	{ PSOFS( pmove.velocity[2] ), 0, 1, WIRE_FLOAT },
+	Delta( buf, pmove.features, baseline.features );
 
-	{ PSOFS( pmove.pm_time ), 32, 1, WIRE_UBASE128 },
+	Delta( buf, pmove.no_control_time, baseline.no_control_time );
+	Delta( buf, pmove.knockback_time, baseline.knockback_time );
+	Delta( buf, pmove.crouch_time, baseline.crouch_time );
+	Delta( buf, pmove.dash_time, baseline.dash_time );
+	Delta( buf, pmove.walljump_time, baseline.walljump_time );
 
-	{ PSOFS( pmove.pm_flags ), 32, 1, WIRE_UBASE128 },
-
-	{ PSOFS( pmove.delta_angles[0] ), 16, 1, WIRE_FIXED_INT16 },
-	{ PSOFS( pmove.delta_angles[1] ), 16, 1, WIRE_FIXED_INT16 },
-	{ PSOFS( pmove.delta_angles[2] ), 16, 1, WIRE_FIXED_INT16 },
-
-	{ PSOFS( event[0] ), 32, 1, WIRE_UBASE128 },
-	{ PSOFS( eventParm[0] ), 32, 1, WIRE_UBASE128 },
-
-	{ PSOFS( event[1] ), 32, 1, WIRE_UBASE128 },
-	{ PSOFS( eventParm[1] ), 32, 1, WIRE_UBASE128 },
-
-	{ PSOFS( viewangles[0] ), 0, 1, WIRE_ANGLE },
-	{ PSOFS( viewangles[1] ), 0, 1, WIRE_ANGLE },
-	{ PSOFS( viewangles[2] ), 0, 1, WIRE_ANGLE },
-
-	{ PSOFS( pmove.gravity ), 32, 1, WIRE_UBASE128 },
-
-	{ PSOFS( weaponState ), 8, 1, WIRE_FIXED_INT8 },
-
-	{ PSOFS( fov ), 0, 1, WIRE_HALF_FLOAT },
-
-	{ PSOFS( POVnum ), 32, 1, WIRE_UBASE128 },
-	{ PSOFS( playerNum ), 32, 1, WIRE_UBASE128 },
-
-	{ PSOFS( viewheight ), 32, 1, WIRE_HALF_FLOAT },
-
-	{ PSOFS( plrkeys ), 32, 1, WIRE_UBASE128 },
-
-	{ PSOFS( stats ), 16, PS_MAX_STATS, WIRE_BASE128 },
-
-	{ PSOFS( pmove.stats ), 16, PM_STAT_SIZE, WIRE_BASE128 },
-	{ PSOFS( inventory ), 32, MAX_ITEMS, WIRE_UBASE128 },
-};
-
-/*
-* MSG_WriteDeltaPlayerstate
-*/
-void MSG_WriteDeltaPlayerState( msg_t *msg, const player_state_t *ops, const player_state_t *ps ) {
-	static player_state_t dummy;
-
-	if( !ops ) {
-		ops = &dummy;
-	}
-
-	MSG_WriteDeltaStruct( msg, ops, ps, player_state_msg_fields, ARRAY_COUNT( player_state_msg_fields ) );
+	Delta( buf, pmove.max_speed, baseline.max_speed );
+	Delta( buf, pmove.jump_speed, baseline.jump_speed );
+	Delta( buf, pmove.dash_speed, baseline.dash_speed );
+	Delta( buf, pmove.gravity, baseline.gravity );
 }
 
-/*
-* MSG_ReadDeltaPlayerstate
-*/
-void MSG_ReadDeltaPlayerState( msg_t *msg, const player_state_t *ops, player_state_t *ps ) {
-	static player_state_t dummy;
+static void Delta( DeltaBuffer * buf, SyncPlayerState::WeaponInfo & weapon, const SyncPlayerState::WeaponInfo & baseline ) {
+	Delta( buf, weapon.weapon, baseline.weapon );
+	Delta( buf, weapon.ammo, baseline.ammo );
+}
 
-	if( !ops ) {
-		ops = &dummy;
+static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayerState & baseline ) {
+	Delta( buf, player.pmove, baseline.pmove );
+
+	Delta( buf, player.events, baseline.events );
+
+	DeltaAngle( buf, player.viewangles, baseline.viewangles );
+
+	Delta( buf, player.weapon_state, baseline.weapon_state );
+
+	DeltaHalf( buf, player.fov, baseline.fov );
+
+	Delta( buf, player.POVnum, baseline.POVnum );
+	Delta( buf, player.playerNum, baseline.playerNum );
+
+	DeltaHalf( buf, player.viewheight, baseline.viewheight );
+
+	Delta( buf, player.plrkeys, baseline.plrkeys );
+
+	Delta( buf, player.weapons, baseline.weapons );
+	Delta( buf, player.items, baseline.items );
+
+	Delta( buf, player.show_scoreboard, baseline.show_scoreboard );
+	Delta( buf, player.ready, baseline.ready );
+	Delta( buf, player.voted, baseline.voted );
+	Delta( buf, player.can_change_loadout, baseline.can_change_loadout );
+	Delta( buf, player.can_plant, baseline.can_plant );
+	Delta( buf, player.carrying_bomb, baseline.carrying_bomb );
+
+	Delta( buf, player.health, baseline.health );
+
+	Delta( buf, player.weapon, baseline.weapon );
+	Delta( buf, player.pending_weapon, baseline.pending_weapon );
+	Delta( buf, player.weapon_time, baseline.weapon_time );
+	Delta( buf, player.zoom_time, baseline.zoom_time );
+
+	Delta( buf, player.team, baseline.team );
+	Delta( buf, player.real_team, baseline.real_team );
+
+	Delta( buf, player.progress_type, baseline.progress_type );
+	Delta( buf, player.progress, baseline.progress );
+
+	Delta( buf, player.pointed_player, baseline.pointed_player );
+	Delta( buf, player.pointed_health, baseline.pointed_health );
+}
+
+void MSG_WriteDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, const SyncPlayerState * player ) {
+	static SyncPlayerState dummy;
+	if( baseline == NULL ) {
+		baseline = &dummy;
 	}
-	memcpy( ps, ops, sizeof( player_state_t ) );
 
-	MSG_ReadDeltaStruct( msg, ops, ps, sizeof( player_state_t ), player_state_msg_fields, ARRAY_COUNT( player_state_msg_fields ) );
+	u8 buf[ MAX_MSGLEN ];
+	DeltaBuffer delta = DeltaWriter( buf, sizeof( buf ) );
+
+	Delta( &delta, *const_cast< SyncPlayerState * >( player ), *baseline );
+
+	MSG_WriteDeltaBuffer( msg, delta );
+}
+
+void MSG_ReadDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, SyncPlayerState * player ) {
+	static SyncPlayerState dummy;
+	if( baseline == NULL ) {
+		baseline = &dummy;
+	}
+
+	DeltaBuffer delta = MSG_StartReadingDeltaBuffer( msg );
+	Delta( &delta, *player, *baseline );
+	MSG_FinishReadingDeltaBuffer( msg, delta );
 }
 
 //==================================================
 // DELTA GAME STATES
 //==================================================
 
-#define GSOFS( x ) offsetof( game_state_t,x )
-
-static const msg_field_t game_state_msg_fields[] = {
-	{ GSOFS( stats ), 64, MAX_GAME_STATS, WIRE_BASE128 },
-};
-
-/*
-* MSG_WriteDeltaGameState
-*/
-void MSG_WriteDeltaGameState( msg_t *msg, const game_state_t *from, const game_state_t *to ) {
-	static game_state_t dummy;
-
-	if( !from ) {
-		from = &dummy;
-	}
-
-	MSG_WriteDeltaStruct( msg, from, to, game_state_msg_fields, ARRAY_COUNT( game_state_msg_fields ) );
+static void Delta( DeltaBuffer * buf, SyncBombGameState & bomb, const SyncBombGameState & baseline ) {
+	Delta( buf, bomb.alpha_score, baseline.alpha_score );
+	Delta( buf, bomb.beta_score, baseline.beta_score );
+	Delta( buf, bomb.alpha_players_alive, baseline.alpha_players_alive );
+	Delta( buf, bomb.alpha_players_total, baseline.alpha_players_total );
+	Delta( buf, bomb.beta_players_alive, baseline.beta_players_alive );
+	Delta( buf, bomb.beta_players_total, baseline.beta_players_total );
 }
 
-/*
-* MSG_ReadDeltaGameState
-*/
-void MSG_ReadDeltaGameState( msg_t *msg, const game_state_t *from, game_state_t *to ) {
-	static game_state_t dummy;
+static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState & baseline ) {
+	Delta( buf, state.flags, baseline.flags );
+	Delta( buf, state.match_state, baseline.match_state );
+	Delta( buf, state.match_start, baseline.match_start );
+	Delta( buf, state.match_duration, baseline.match_duration );
+	Delta( buf, state.clock_override, baseline.clock_override );
+	Delta( buf, state.round_type, baseline.round_type );
+	Delta( buf, state.max_team_players, baseline.max_team_players );
+	Delta( buf, state.map, baseline.map );
+	Delta( buf, state.map_checksum, baseline.map_checksum );
+	Delta( buf, state.bomb, baseline.bomb );
+}
 
-	if( !from ) {
-		from = &dummy;
+void MSG_WriteDeltaGameState( msg_t * msg, const SyncGameState * baseline, const SyncGameState * state ) {
+	static SyncGameState dummy;
+	if( baseline == NULL ) {
+		baseline = &dummy;
 	}
 
-	MSG_ReadDeltaStruct( msg, from, to, sizeof( game_state_t ), game_state_msg_fields, ARRAY_COUNT( game_state_msg_fields ) );
+	u8 buf[ MAX_MSGLEN ];
+	DeltaBuffer delta = DeltaWriter( buf, sizeof( buf ) );
+
+	Delta( &delta, *const_cast< SyncGameState * >( state ), *baseline );
+
+	MSG_WriteDeltaBuffer( msg, delta );
+}
+
+void MSG_ReadDeltaGameState( msg_t * msg, const SyncGameState * baseline, SyncGameState * state ) {
+	static SyncGameState dummy;
+	if( baseline == NULL ) {
+		baseline = &dummy;
+	}
+
+	DeltaBuffer delta = MSG_StartReadingDeltaBuffer( msg );
+	Delta( &delta, *state, *baseline );
+	MSG_FinishReadingDeltaBuffer( msg, delta );
 }

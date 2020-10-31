@@ -20,45 +20,31 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include "gs_qrespath.h"
-
-// shared callbacks
-
-typedef struct {
-#ifndef _MSC_VER
-	void ( *Printf )( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-	void ( *Error )( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) ) __attribute__( ( noreturn ) );
-#else
-	void ( *Printf )( _Printf_format_string_ const char *format, ... );
-	void ( *Error )( _Printf_format_string_ const char *format, ... );
-#endif
-
-	void ( *Trace )( trace_t *t, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask, int timeDelta );
-	entity_state_t *( *GetEntityState )( int entNum, int deltaTime );
-	int ( *PointContents )( const vec3_t point, int timeDelta );
-	void ( *PredictedEvent )( int entNum, int ev, int parm );
-	void ( *PMoveTouchTriggers )( pmove_t *pm, vec3_t previous_origin );
-	const char *( *GetConfigString )( int index );
-} gs_module_api_t;
+#include "qcommon/hash.h"
+#include "gameshared/gs_qrespath.h"
+#include "gameshared/q_comref.h"
+#include "gameshared/q_collision.h"
+#include "gameshared/q_math.h"
 
 //===============================================================
 //		WARSOW player AAboxes sizes
 
-constexpr vec3_t playerbox_stand_mins = { -16, -16, -24 };
-constexpr vec3_t playerbox_stand_maxs = { 16, 16, 40 };
+constexpr Vec3 playerbox_stand_mins = Vec3( -16, -16, -24 );
+constexpr Vec3 playerbox_stand_maxs = Vec3( 16, 16, 40 );
 constexpr int playerbox_stand_viewheight = 30;
 
-constexpr vec3_t playerbox_crouch_mins = { -16, -16, -24 };
-constexpr vec3_t playerbox_crouch_maxs = { 16, 16, 16 };
-constexpr int playerbox_crouch_viewheight = 12;
+// TODO: crouch temp disabled
+// constexpr Vec3 playerbox_crouch_mins = Vec3( -16, -16, -24 );
+// constexpr Vec3 playerbox_crouch_maxs = Vec3( 16, 16, 16 );
+// constexpr int playerbox_crouch_viewheight = 12;
 
-constexpr vec3_t playerbox_gib_mins = { -16, -16, 0 };
-constexpr vec3_t playerbox_gib_maxs = { 16, 16, 16 };
+constexpr Vec3 playerbox_crouch_mins = Vec3( -16, -16, -24 );
+constexpr Vec3 playerbox_crouch_maxs = Vec3( 16, 16, 39 );
+constexpr int playerbox_crouch_viewheight = 30;
+
+constexpr Vec3 playerbox_gib_mins = Vec3( -16, -16, 0 );
+constexpr Vec3 playerbox_gib_maxs = Vec3( 16, 16, 16 );
 constexpr int playerbox_gib_viewheight = 8;
-
-// item box
-constexpr vec3_t item_box_mins = { -16.0f, -16.0f, -16.0f };
-constexpr vec3_t item_box_maxs = { 16.0f, 16.0f, 40.0f };
 
 #define BASEGRAVITY 800
 #define GRAVITY 850
@@ -67,17 +53,14 @@ constexpr vec3_t item_box_maxs = { 16.0f, 16.0f, 40.0f };
 #define ZOOMTIME 60
 #define CROUCHTIME 100
 #define DEFAULT_PLAYERSPEED 320.0f
-#define DEFAULT_JUMPSPEED 280.0f
-#define DEFAULT_DASHSPEED 450.0f
+#define DEFAULT_JUMPSPEED 260.0f
+#define DEFAULT_DASHSPEED 550.0f
 #define PROJECTILE_PRESTEP 100
-#define ELECTROBOLT_RANGE 9001
-
-#define MIN_FOV             60
-#define MAX_FOV             140
+#define HITSCAN_RANGE 9001
 
 //==================================================================
 
-enum {
+enum MatchState {
 	MATCH_STATE_NONE,
 	MATCH_STATE_WARMUP,
 	MATCH_STATE_COUNTDOWN,
@@ -88,18 +71,73 @@ enum {
 	MATCH_STATE_TOTAL
 };
 
-enum {
-	GS_MODULE_GAME = 1,
-	GS_MODULE_CGAME,
+typedef u8 WeaponType;
+enum WeaponType_ : WeaponType {
+	Weapon_None,
+
+	Weapon_Knife,
+	Weapon_Pistol,
+	Weapon_MachineGun,
+	Weapon_Deagle,
+	Weapon_Shotgun,
+	Weapon_AssaultRifle,
+	Weapon_GrenadeLauncher,
+	Weapon_RocketLauncher,
+	Weapon_Plasma,
+	Weapon_BubbleGun,
+	Weapon_Laser,
+	Weapon_Railgun,
+	Weapon_Sniper,
+	Weapon_Rifle,
+
+	Weapon_Count
+};
+
+typedef u8 WeaponState;
+enum WeaponState_ : WeaponState {
+	WeaponState_Ready,
+	WeaponState_SwitchingIn,
+	WeaponState_SwitchingOut,
+	WeaponState_Firing,
+	WeaponState_FiringSemiAuto,
+	WeaponState_Reloading,
+};
+
+enum FiringMode {
+	FiringMode_Auto,
+	FiringMode_Smooth,
+	FiringMode_SemiAuto,
+};
+
+enum ItemType {
+	Item_Bomb,
+	Item_FakeBomb,
+
+	Item_Count
+};
+
+typedef u8 RoundType;
+enum RoundType_ {
+	RoundType_Normal,
+	RoundType_MatchPoint,
+	RoundType_Overtime,
+	RoundType_OvertimeMatchPoint,
+};
+
+enum BombDown {
+	BombDown_Dropped,
+	BombDown_Planting,
+};
+
+enum BombProgress {
+	BombProgress_Nothing,
+	BombProgress_Planting,
+	BombProgress_Defusing,
 };
 
 enum {
-	GAMESTAT_FLAGS,
-	GAMESTAT_MATCHSTATE,
-	GAMESTAT_MATCHSTART,
-	GAMESTAT_MATCHDURATION,
-	GAMESTAT_CLOCKOVERRIDE,
-	GAMESTAT_MAXPLAYERSINTEAM,
+	GS_MODULE_GAME = 1,
+	GS_MODULE_CGAME,
 };
 
 #define GAMESTAT_FLAG_PAUSED ( 1 << 0LL )
@@ -110,34 +148,239 @@ enum {
 #define GAMESTAT_FLAG_ISRACE ( 1 << 5LL )
 #define GAMESTAT_FLAG_COUNTDOWN ( 1 << 6LL )
 #define GAMESTAT_FLAG_SELFDAMAGE ( 1 << 7LL )
-#define GAMESTAT_FLAG_INFINITEAMMO ( 1 << 8LL )
-#define GAMESTAT_FLAG_CANFORCEMODELS ( 1 << 9LL )
 
-typedef struct {
+struct SyncBombGameState {
+	u8 alpha_score;
+	u8 beta_score;
+	u8 alpha_players_alive;
+	u8 alpha_players_total;
+	u8 beta_players_alive;
+	u8 beta_players_total;
+};
+
+struct SyncGameState {
+	u16 flags;
+	int match_state;
+	int64_t match_start;
+	int64_t match_duration;
+	int64_t clock_override;
+	RoundType round_type;
+	u8 max_team_players;
+
+	StringHash map;
+	u32 map_checksum;
+
+	SyncBombGameState bomb;
+};
+
+struct SyncEvent {
+	u64 parm;
+	s8 type;
+};
+
+struct SyncEntityState {
+	int number;                         // edict index
+
+	unsigned int svflags;
+
+	int type;                           // ET_GENERIC, ET_BEAM, etc
+
+	// for client side prediction, 8*(bits 0-4) is x/y radius
+	// 8*(bits 5-9) is z down distance, 8(bits10-15) is z up
+	// GClip_LinkEntity sets this properly
+	int solid;
+
+	Vec3 origin;
+	Vec3 angles;
+	Vec3 origin2; // velocity for players/corpses. often used for endpoints, e.g. ET_BEAM and some events
+
+	StringHash model;
+	StringHash model2;
+
+	int channel;                    // ET_SOUNDEVENT
+
+	int ownerNum;                   // ET_EVENT specific
+
+	unsigned int effects;
+
+	// impulse events -- muzzle flashes, footsteps, etc
+	// events only go out for a single frame, they
+	// are automatically cleared each frame
+	SyncEvent events[ 2 ];
+
+	int counterNum;                 // ET_GENERIC
+	int targetNum;                  // ET_EVENT specific
+	RGBA8 silhouetteColor;
+	int radius;                     // ET_GLADIATOR always extended, ET_BOMB state, EV_BLOOD damage, ...
+
+	bool linearMovement;
+	Vec3 linearMovementVelocity;      // this is transmitted instead of origin when linearProjectile is true
+	Vec3 linearMovementEnd;           // the end movement point for brush models
+	Vec3 linearMovementBegin;			// the starting movement point for brush models
+	unsigned int linearMovementDuration;
+	int64_t linearMovementTimeStamp;
+	int linearMovementTimeDelta;
+
+	WeaponType weapon;                  // WEAP_ for players
+	bool teleported;
+
+	StringHash sound;                          // for looping sounds, to guarantee shutoff
+
+	int team;                           // team in the game
+};
+
+// SyncPlayerState is the information needed in addition to pmove_state_t
+// to rendered a view.  There will only be 10 SyncPlayerState sent each second,
+// but the number of pmove_state_t changes will be relative to client
+// frame rates
+struct pmove_state_t {
+	int pm_type;
+
+	Vec3 origin;
+	Vec3 velocity;
+	short delta_angles[3];      // add to command angles to get view direction
+	                            // changed by spawns, rotating objects, and teleporters
+
+	int pm_flags;               // ducked, jump_held, etc
+	int pm_time;
+
+	u16 features;
+
+	s16 no_control_time;
+	s16 knockback_time;
+	s16 crouch_time;
+	s16 tbag_time;
+	s16 dash_time;
+	s16 walljump_time;
+
+	s16 max_speed;
+	s16 jump_speed;
+	s16 dash_speed;
+	s16 gravity;
+};
+
+struct SyncPlayerState {
+	pmove_state_t pmove;        // for prediction
+
+	// these fields do not need to be communicated bit-precise
+
+	Vec3 viewangles;          // for fixed views
+
+	SyncEvent events[ 2 ];
+	unsigned int POVnum;        // entity number of the player in POV
+	unsigned int playerNum;     // client number
+	float viewheight;
+	float fov;                  // horizontal field of view (unused)
+
+	// BitArray items;
+	//
+	// struct GrenadeInfo { short count; };
+	// struct RechargableCloakingDeviceInfo { float energy; };
+	//
+	// WeaponInfo weapons[ Weapon_Count ];
+
+	struct WeaponInfo {
+		WeaponType weapon;
+		int ammo;
+	};
+
+	WeaponInfo weapons[ Weapon_Count - 1 ];
+	bool items[ Item_Count ];
+
+	uint32_t plrkeys;           // infos on the pressed keys of chased player (self if not chasing)
+
+	bool show_scoreboard;
+	bool ready;
+	bool voted;
+	bool can_change_loadout;
+	bool carrying_bomb;
+	bool can_plant;
+
+	s16 health;
+
+	WeaponState weapon_state;
+	WeaponType weapon;
+	WeaponType pending_weapon;
+	s16 weapon_time;
+	s16 zoom_time;
+
+	int team;
+	int real_team;
+
+	u8 progress_type; // enum BombProgress
+	u8 progress;
+
+	int pointed_player;
+	int pointed_health;
+};
+
+// usercmd_t is sent to the server each client frame
+struct usercmd_t {
+	u8 msec;
+	u32 buttons;
+	s64 serverTimeStamp;
+	s16 angles[3];
+	s8 forwardmove, sidemove, upmove;
+	WeaponType weaponSwitch;
+};
+
+#define MAXTOUCH    32
+
+struct pmove_t {
+	// state (in / out)
+	SyncPlayerState *playerState;
+
+	// command (in)
+	usercmd_t cmd;
+
+	// results (out)
+	int numtouch;
+	int touchents[MAXTOUCH];
+	float step;                 // used for smoothing the player view
+
+	Vec3 mins, maxs;          // bounding box size
+
+	int groundentity;
+	int watertype;
+	int waterlevel;
+
+	int contentmask;
+
+	bool ladder;
+};
+
+struct gs_module_api_t {
+	void ( *Trace )( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, int timeDelta );
+	SyncEntityState *( *GetEntityState )( int entNum, int deltaTime );
+	int ( *PointContents )( Vec3 point, int timeDelta );
+	void ( *PredictedEvent )( int entNum, int ev, u64 parm );
+	void ( *PredictedFireWeapon )( int entNum, WeaponType weapon );
+	void ( *PMoveTouchTriggers )( pmove_t *pm, Vec3 previous_origin );
+};
+
+struct gs_state_t {
 	int module;
 	int maxclients;
-	game_state_t gameState;
+	SyncGameState gameState;
 	gs_module_api_t api;
-} gs_state_t;
+};
 
-#define GS_ShootingDisabled( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_INHIBITSHOOTING ) ? true : false )
-#define GS_HasChallengers( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_HASCHALLENGERS ) ? true : false )
-#define GS_TeamBasedGametype( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_ISTEAMBASED ) ? true : false )
-#define GS_RaceGametype( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_ISRACE ) ? true : false )
-#define GS_MatchPaused( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_PAUSED ) ? true : false )
-#define GS_MatchWaiting( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_WAITING ) ? true : false )
-#define GS_Countdown( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_COUNTDOWN ) ? true : false )
-#define GS_InfiniteAmmo( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_INFINITEAMMO ) ? true : false )
-#define GS_CanForceModels( gs ) ( ( ( gs )->gameState.stats[GAMESTAT_FLAGS] & GAMESTAT_FLAG_CANFORCEMODELS ) ? true : false )
+#define GS_ShootingDisabled( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_INHIBITSHOOTING ) != 0 )
+#define GS_HasChallengers( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_HASCHALLENGERS ) != 0 )
+#define GS_TeamBasedGametype( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_ISTEAMBASED ) != 0 )
+#define GS_RaceGametype( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_ISRACE ) != 0 )
+#define GS_MatchPaused( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_PAUSED ) != 0 )
+#define GS_MatchWaiting( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_WAITING ) != 0 )
+#define GS_Countdown( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_COUNTDOWN ) != 0 )
 
-#define GS_MatchState( gs ) ( ( gs )->gameState.stats[GAMESTAT_MATCHSTATE] )
-#define GS_MaxPlayersInTeam( gs ) ( ( gs )->gameState.stats[GAMESTAT_MAXPLAYERSINTEAM] )
+#define GS_MatchState( gs ) ( ( gs )->gameState.match_state )
+#define GS_MaxPlayersInTeam( gs ) ( ( gs )->gameState.max_team_players )
 #define GS_IndividualGameType( gs ) ( GS_MaxPlayersInTeam( gs ) == 1 )
 
-#define GS_MatchDuration( gs ) ( ( gs )->gameState.stats[GAMESTAT_MATCHDURATION] )
-#define GS_MatchStartTime( gs ) ( ( gs )->gameState.stats[GAMESTAT_MATCHSTART] )
-#define GS_MatchEndTime( gs ) ( ( gs )->gameState.stats[GAMESTAT_MATCHDURATION] ? ( gs )->gameState.stats[GAMESTAT_MATCHSTART] + ( gs )->gameState.stats[GAMESTAT_MATCHDURATION] : 0 )
-#define GS_MatchClockOverride( gs ) ( ( gs )->gameState.stats[GAMESTAT_CLOCKOVERRIDE] )
+#define GS_MatchDuration( gs ) ( ( gs )->gameState.match_duration )
+#define GS_MatchStartTime( gs ) ( ( gs )->gameState.match_start )
+#define GS_MatchEndTime( gs ) ( ( gs )->gameState.match_duration ? ( gs )->gameState.match_start + ( gs )->gameState.match_duration : 0 )
+#define GS_MatchClockOverride( gs ) ( ( gs )->gameState.clock_override )
 
 //==================================================================
 
@@ -160,42 +403,17 @@ enum {
 
 //==================================================================
 
-#define ISWALKABLEPLANE( x ) ( ( (cplane_t *)x )->normal[2] >= 0.7 )
-
-// box slide movement code (not used for player)
-#define MAX_SLIDEMOVE_CLIP_PLANES   16
+#define ISWALKABLEPLANE( x ) ( ( (cplane_t *)x )->normal.z >= 0.7f )
 
 #define SLIDEMOVE_PLANEINTERACT_EPSILON 0.05
-#define SLIDEMOVEFLAG_PLANE_TOUCHED 16
 #define SLIDEMOVEFLAG_WALL_BLOCKED  8
 #define SLIDEMOVEFLAG_TRAPPED       4
 #define SLIDEMOVEFLAG_BLOCKED       2   // it was blocked at some point, doesn't mean it didn't slide along the blocking object
-#define SLIDEMOVEFLAG_MOVED     1
 
-typedef struct {
-	vec3_t velocity;
-	vec3_t origin;
-	vec3_t mins, maxs;
-	float remainingTime;
+Vec3 GS_ClipVelocity( Vec3 in, Vec3 normal, float overbounce );
 
-	vec3_t gravityDir;
-	float slideBounce;
-	int groundEntity;
-
-	int passent, contentmask;
-
-	int numClipPlanes;
-	vec3_t clipPlaneNormals[MAX_SLIDEMOVE_CLIP_PLANES];
-
-	int numtouch;
-	int touchents[MAXTOUCH];
-} move_t;
-
-int GS_SlideMove( const gs_state_t * gs, move_t *move );
-void GS_ClipVelocity( vec3_t in, vec3_t normal, vec3_t out, float overbounce );
-
-int GS_LinearMovement( const entity_state_t *ent, int64_t time, vec3_t dest );
-void GS_LinearMovementDelta( const entity_state_t *ent, int64_t oldTime, int64_t curTime, vec3_t dest );
+int GS_LinearMovement( const SyncEntityState *ent, int64_t time, Vec3 * dest );
+void GS_LinearMovementDelta( const SyncEntityState *ent, int64_t oldTime, int64_t curTime, Vec3 * dest );
 
 //==============================================================
 //
@@ -211,166 +429,23 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove );
 
 //===============================================================
 
-//==================
-//SPLITMODELS
-//==================
-
-// The parts must be listed in draw order
-enum {
-	LOWER = 0,
-	UPPER,
-	HEAD,
-
-	PMODEL_PARTS
-};
-
-// -Torso DEATH frames and Legs DEATH frames must be the same.
-
-// ANIMATIONS
-
-enum {
-	ANIM_NONE,
-	BOTH_DEATH1,      //Death animation
-	BOTH_DEAD1,       //corpse on the ground
-	BOTH_DEATH2,
-	BOTH_DEAD2,
-	BOTH_DEATH3,
-	BOTH_DEAD3,
-
-	LEGS_STAND_IDLE,
-	LEGS_WALK_FORWARD,
-	LEGS_WALK_BACK,
-	LEGS_WALK_LEFT,
-	LEGS_WALK_RIGHT,
-
-	LEGS_RUN_FORWARD,
-	LEGS_RUN_BACK,
-	LEGS_RUN_LEFT,
-	LEGS_RUN_RIGHT,
-
-	LEGS_JUMP_LEG1,
-	LEGS_JUMP_LEG2,
-	LEGS_JUMP_NEUTRAL,
-	LEGS_LAND,
-
-	LEGS_CROUCH_IDLE,
-	LEGS_CROUCH_WALK,
-
-	LEGS_SWIM_FORWARD,
-	LEGS_SWIM_NEUTRAL,
-
-	LEGS_WALLJUMP,
-	LEGS_WALLJUMP_LEFT,
-	LEGS_WALLJUMP_RIGHT,
-	LEGS_WALLJUMP_BACK,
-
-	LEGS_DASH,
-	LEGS_DASH_LEFT,
-	LEGS_DASH_RIGHT,
-	LEGS_DASH_BACK,
-
-	TORSO_HOLD_BLADE,
-	TORSO_HOLD_PISTOL,
-	TORSO_HOLD_LIGHTWEAPON,
-	TORSO_HOLD_HEAVYWEAPON,
-	TORSO_HOLD_AIMWEAPON,
-
-	TORSO_SHOOT_BLADE,
-	TORSO_SHOOT_PISTOL,
-	TORSO_SHOOT_LIGHTWEAPON,
-	TORSO_SHOOT_HEAVYWEAPON,
-	TORSO_SHOOT_AIMWEAPON,
-
-	TORSO_WEAPON_SWITCHOUT,
-	TORSO_WEAPON_SWITCHIN,
-
-	TORSO_DROPHOLD,
-	TORSO_DROP,
-
-	TORSO_SWIM,
-
-	TORSO_PAIN1,
-	TORSO_PAIN2,
-	TORSO_PAIN3,
-
-	PMODEL_TOTAL_ANIMATIONS,
-};
-
-//===============================================================
-
-#define HEALTH_TO_INT( x )    ( ( x ) < 1.0f ? (int)ceil( ( x ) ) : (int)floor( ( x ) + 0.5f ) )
+#define HEALTH_TO_INT( x )    ( ( x ) < 1.0f ? (int)ceilf( ( x ) ) : (int)floorf( ( x ) + 0.5f ) )
 
 // gs_items - shared items definitions
 
 //==================
 //	ITEM TAGS
 //==================
-// max weapons allowed by the net protocol are 128
-typedef enum {
-	WEAP_NONE = 0,
-	WEAP_GUNBLADE,
-	WEAP_MACHINEGUN,
-	WEAP_RIOTGUN,
-	WEAP_GRENADELAUNCHER,
-	WEAP_ROCKETLAUNCHER,
-	WEAP_PLASMAGUN,
-	WEAP_LASERGUN,
-	WEAP_ELECTROBOLT,
 
-	WEAP_TOTAL
-} weapon_tag_t;
+struct Item {
+	ItemType type;
 
-typedef enum {
-	AMMO_NONE = 0,
-	AMMO_GUNBLADE = WEAP_TOTAL,
-	AMMO_BULLETS,
-	AMMO_SHELLS,
-	AMMO_GRENADES,
-	AMMO_ROCKETS,
-	AMMO_PLASMA,
-	AMMO_LASERS,
-	AMMO_BOLTS,
-
-	AMMO_TOTAL,
-	ITEMS_TOTAL = AMMO_TOTAL,
-} ammo_tag_t;
-
-#define GS_MAX_ITEM_TAGS ITEMS_TOTAL
-
-// gsitem_t->type
-// define as bitflags values so they can be masked
-typedef enum {
-	IT_WEAPON = 1,
-	IT_AMMO = 2,
-} itemtype_t;
-
-typedef struct gitem_s {
-	int tag;
-	itemtype_t type;
-
-	const char * name;      // for printing on pickup
-	const char * shortname; // for printing on messages
+	const char * name;
+	const char * short_name;
 	RGB8 color;
 	const char * description;
 	int cost;
-	int capacity;
-	int clips;
-
-	int ammo_tag;          // uses this ammo, for weapons
-
-	// space separated string of stuff to precache that's not mentioned above
-	const char * precache_models;
-	const char * precache_sounds;
-	const char * precache_images;
-} gsitem_t;
-
-const gsitem_t *GS_FindItemByTag( const int tag );
-const gsitem_t *GS_FindItemByName( const char *name );
-const gsitem_t *GS_Cmd_UseItem( const gs_state_t * gs, player_state_t *playerState, const char *string, int typeMask );
-const gsitem_t *GS_Cmd_NextWeapon_f( const gs_state_t * gs, player_state_t *playerState, int predictedWeaponSwitch );
-const gsitem_t *GS_Cmd_PrevWeapon_f( const gs_state_t * gs, player_state_t *playerState, int predictedWeaponSwitch );
-
-//===============================================================
+};
 
 //===================
 //	GAMETYPES
@@ -388,18 +463,6 @@ enum {
 	TEAM_ENEMY,
 };
 
-struct TeamColor {
-	const char * name;
-	RGB8 rgb;
-};
-
-constexpr TeamColor TEAM_COLORS[] = {
-	{ "Blue", RGB8( 0, 160, 255 ) },
-	{ "Red", RGB8( 255, 20, 60 ) },
-	{ "Green", RGB8( 82, 252, 95 ) },
-	{ "Yellow", RGB8( 255, 199, 30 ) },
-};
-
 // teams
 const char *GS_TeamName( int team );
 int GS_TeamFromName( const char *teamname );
@@ -408,8 +471,9 @@ int GS_TeamFromName( const char *teamname );
 
 // gs_misc.c
 void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *message2 );
-void GS_TouchPushTrigger( const gs_state_t * gs, player_state_t *playerState, entity_state_t *pusher );
-int GS_WaterLevel( const gs_state_t * gs, entity_state_t *state, vec3_t mins, vec3_t maxs );
+Vec3 GS_EvaluateJumppad( const SyncEntityState * jumppad, Vec3 velocity );
+void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, const SyncEntityState * pusher );
+int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, Vec3 mins, Vec3 maxs );
 
 //===============================================================
 
@@ -417,63 +481,14 @@ int GS_WaterLevel( const gs_state_t * gs, entity_state_t *state, vec3_t mins, ve
 #define PMFEAT_CROUCH           ( 1 << 0 )
 #define PMFEAT_WALK             ( 1 << 1 )
 #define PMFEAT_JUMP             ( 1 << 2 )
-#define PMFEAT_DASH             ( 1 << 3 )
-#define PMFEAT_WALLJUMP         ( 1 << 4 )
-#define PMFEAT_ZOOM             ( 1 << 5 )
-#define PMFEAT_GHOSTMOVE        ( 1 << 6 )
-#define PMFEAT_WEAPONSWITCH     ( 1 << 7 )
-#define PMFEAT_TEAMGHOST        ( 1 << 8 )
+#define PMFEAT_SPECIAL          ( 1 << 3 )
+#define PMFEAT_SCOPE            ( 1 << 4 )
+#define PMFEAT_GHOSTMOVE        ( 1 << 5 )
+#define PMFEAT_WEAPONSWITCH     ( 1 << 6 )
+#define PMFEAT_TEAMGHOST        ( 1 << 7 )
 
 #define PMFEAT_ALL              ( 0xFFFF )
 #define PMFEAT_DEFAULT          ( PMFEAT_ALL & ~PMFEAT_GHOSTMOVE & ~PMFEAT_TEAMGHOST )
-
-enum {
-	STAT_LAYOUTS = 0,
-	STAT_HEALTH,
-	STAT_WEAPON,
-	STAT_WEAPON_TIME,
-	STAT_PENDING_WEAPON,
-
-	STAT_SCORE,
-	STAT_TEAM,
-	STAT_REALTEAM,
-	STAT_NEXT_RESPAWN,
-
-	STAT_POINTED_PLAYER,
-	STAT_POINTED_TEAMPLAYER,
-
-	STAT_TEAM_ALPHA_SCORE,
-	STAT_TEAM_BETA_SCORE,
-
-	STAT_LAST_KILLER,
-
-	// the stats below this point are set by the gametype scripts
-	GS_GAMETYPE_STATS_START = 32,
-
-	STAT_PROGRESS = GS_GAMETYPE_STATS_START,
-	STAT_PROGRESS_TYPE,
-
-	STAT_ROUND_TYPE,
-
-	STAT_CARRYING_BOMB,
-	STAT_CAN_PLANT_BOMB,
-	STAT_CAN_CHANGE_LOADOUT,
-
-	STAT_ALPHA_PLAYERS_ALIVE,
-	STAT_ALPHA_PLAYERS_TOTAL,
-	STAT_BETA_PLAYERS_ALIVE,
-	STAT_BETA_PLAYERS_TOTAL,
-
-	STAT_TIME_SELF,
-	STAT_TIME_BEST,
-	STAT_TIME_RECORD,
-	STAT_TIME_ALPHA,
-	STAT_TIME_BETA,
-
-	GS_GAMETYPE_STATS_END = PS_MAX_STATS,
-
-	MAX_STATS = PS_MAX_STATS, // 64
-};
 
 #define ISGAMETYPESTAT( x ) ( ( x >= GS_GAMETYPE_STATS_START ) && ( x < GS_GAMETYPE_STATS_END ) )
 
@@ -488,33 +503,22 @@ static constexpr const char *gs_keyicon_names[] = {
 	"special"
 };
 
-// STAT_LAYOUTS flag bits meanings
-#define STAT_LAYOUT_INSTANTRESPAWN  ( 1 << 1 )
-#define STAT_LAYOUT_SCOREBOARD      ( 1 << 2 )
-#define STAT_LAYOUT_TEAMTAB         ( 1 << 3 )
-#define STAT_LAYOUT_CHALLENGER      ( 1 << 4 ) // player is in challengers queue (used for ingame menu)
-#define STAT_LAYOUT_READY           ( 1 << 5 ) // player is ready (used for ingame menu)
-#define STAT_LAYOUT_VOTED           ( 1 << 6 )
-
-#define STAT_NOTSET                 -9999 // used for stats that don't have meaningful value atm.
-
-//===============================================================
-
-// means of death
-#define MOD_UNKNOWN 0
-
-typedef enum {
-	MOD_GUNBLADE = 36,
+enum MeansOfDeath {
+	MOD_UNKNOWN,
+	MOD_GUNBLADE,
+	MOD_PISTOL,
 	MOD_MACHINEGUN,
-	MOD_RIOTGUN,
+	MOD_DEAGLE,
+	MOD_SHOTGUN,
+	MOD_ASSAULTRIFLE,
 	MOD_GRENADE,
 	MOD_ROCKET,
 	MOD_PLASMA,
-	MOD_ELECTROBOLT,
+	MOD_BUBBLEGUN,
+	MOD_RAILGUN,
 	MOD_LASERGUN,
-	MOD_GRENADE_SPLASH,
-	MOD_ROCKET_SPLASH,
-	MOD_PLASMA_SPLASH,
+	MOD_SNIPER,
+	MOD_RIFLE,
 
 	MOD_SLIME,
 	MOD_LAVA,
@@ -527,9 +531,8 @@ typedef enum {
 
 	MOD_LASER,
 	MOD_SPIKES,
-} mod_damage_t;
-
-//===============================================================
+	MOD_VOID,
+};
 
 //
 // events, event parms
@@ -546,54 +549,46 @@ enum {
 
 // vsay tokens list
 enum {
-	VSAY_GENERIC,
-	VSAY_AFFIRMATIVE,
-	VSAY_NEGATIVE,
-	VSAY_YES,
-	VSAY_NO,
-	VSAY_ONDEFENSE,
-	VSAY_ONOFFENSE,
-	VSAY_OOPS,
-	VSAY_SORRY,
-	VSAY_THANKS,
-	VSAY_NOPROBLEM,
-	VSAY_YEEHAA,
-	VSAY_GOODGAME,
-	VSAY_DEFEND,
-	VSAY_ATTACK,
-	VSAY_NEEDBACKUP,
-	VSAY_BOOO,
-	VSAY_NEEDDEFENSE,
-	VSAY_NEEDOFFENSE,
-	VSAY_NEEDHELP,
-	VSAY_ROGER,
-	VSAY_AREASECURED,
-	VSAY_SHUTUP,
-	VSAY_BOOMSTICK,
-	VSAY_OK,
+	Vsay_Sorry,
+	Vsay_Thanks,
+	Vsay_GoodGame,
+	Vsay_ShutUp,
+	Vsay_BoomStick,
 
-	VSAY_TOTAL = 128
+	Vsay_Bruh,
+	Vsay_Cya,
+	Vsay_GetGood,
+	Vsay_HitTheShowers,
+	Vsay_Lads,
+	Vsay_SheDoesntEvenGoHere,
+	Vsay_ShitSon,
+	Vsay_TrashSmash,
+	Vsay_WhatTheShit,
+	Vsay_WowYourTerrible,
+	Vsay_Acne,
+	Vsay_Valley,
+	Vsay_Mike,
+
+	Vsay_Total
 };
 
-// entity_state_t->event values
+// SyncEntityState->event values
 #define PREDICTABLE_EVENTS_MAX 32
-typedef enum {
+enum EventType {
 	EV_NONE,
 
 	// predictable events
 
 	EV_WEAPONACTIVATE,
 	EV_FIREWEAPON,
-	EV_ELECTROTRAIL,
-	EV_FIRE_RIOTGUN,
-	EV_FIRE_MG,
 	EV_SMOOTHREFIREWEAPON,
 	EV_NOAMMOCLICK,
+	EV_ZOOM_IN,
+	EV_ZOOM_OUT,
 
 	EV_DASH,
 
 	EV_WALLJUMP,
-	EV_DOUBLEJUMP,
 	EV_JUMP,
 	EV_JUMP_PAD,
 	EV_FALL,
@@ -602,7 +597,6 @@ typedef enum {
 
 	EV_WEAPONDROP = PREDICTABLE_EVENTS_MAX,
 
-	EV_ITEM_RESPAWN,
 	EV_PAIN,
 	EV_DIE,
 
@@ -610,16 +604,17 @@ typedef enum {
 	EV_PLAYER_TELEPORT_IN,
 	EV_PLAYER_TELEPORT_OUT,
 
-	EV_SPOG,
-
 	EV_BLOOD,
+	EV_GIB,
 
 	EV_BLADE_IMPACT,
 	EV_GRENADE_BOUNCE,
 	EV_GRENADE_EXPLOSION,
 	EV_ROCKET_EXPLOSION,
 	EV_PLASMA_EXPLOSION,
+	EV_BUBBLE_EXPLOSION,
 	EV_BOLT_EXPLOSION,
+	EV_RIFLEBULLET_IMPACT,
 
 	EV_EXPLOSION1,
 	EV_EXPLOSION2,
@@ -627,6 +622,9 @@ typedef enum {
 	EV_SPARKS,
 
 	EV_VSAY,
+
+	EV_TBAG,
+	EV_SPRAY,
 
 	EV_LASER_SPARKS,
 
@@ -645,61 +643,47 @@ typedef enum {
 	EV_TRAIN_START,
 
 	EV_DAMAGE,
+	EV_HEADSHOT,
 
 	MAX_EVENTS = 128
-} entity_event_t;
+};
 
-typedef enum {
+enum playerstate_event_t {
 	PSEV_NONE = 0,
 	PSEV_HIT,
 	PSEV_DAMAGE_10,
 	PSEV_DAMAGE_20,
 	PSEV_DAMAGE_30,
 	PSEV_DAMAGE_40,
-	PSEV_INDEXEDSOUND,
 	PSEV_ANNOUNCER,
 	PSEV_ANNOUNCER_QUEUED,
 
 	PSEV_MAX_EVENTS = 0xFF
-} playerstate_event_t;
-
-enum RoundType {
-	RoundType_Normal,
-	RoundType_MatchPoint,
-	RoundType_Overtime,
-	RoundType_OvertimeMatchPoint,
-};
-
-enum BombDown {
-	BombDown_Dropped,
-	BombDown_Planting,
-};
-
-enum BombProgress {
-	BombProgress_Nothing,
-	BombProgress_Planting,
-	BombProgress_Defusing,
 };
 
 //===============================================================
 
-// entity_state_t->type values
-enum {
+#define EVENT_ENTITIES_START    96 // entity types above this index will get event treatment
+
+// SyncEntityState->type values
+enum EntityType {
 	ET_GENERIC,
 	ET_PLAYER,
 	ET_CORPSE,
-	ET_PUSH_TRIGGER,
+	ET_GHOST,
+	ET_JUMPPAD,
+	ET_PAINKILLER_JUMPPAD,
 
-	ET_GIB,         // leave a trail
 	ET_ROCKET,      // redlight + trail
 	ET_GRENADE,
 	ET_PLASMA,
+	ET_BUBBLE,
+	ET_RIFLEBULLET,
 
 	ET_LASERBEAM,   // for continuous beams
 
-	ET_DECAL,
-
-	ET_HUD,
+	ET_BOMB,
+	ET_BOMB_SITE,
 
 	ET_LASER,
 	ET_SPIKES,
@@ -712,48 +696,52 @@ enum {
 	MAX_ENTITY_TYPES = 128
 };
 
-// entity_state_t->effects
+// SyncEntityState->effects
 // Effects are things handled on the client side (lights, particles, frame animations)
 // that happen constantly on the given entity.
 // An entity that has effects will be sent to the client
 // even if it has a zero index model.
 #define EF_CARRIER                  ( 1 << 0 )
 #define EF_TAKEDAMAGE               ( 1 << 1 )
-#define EF_TEAMCOLOR_TRANSITION     ( 1 << 2 )
-#define EF_GODMODE                  ( 1 << 3 )
-#define EF_RACEGHOST                ( 1 << 4 )
-#define EF_HAT                      ( 1 << 5 )
-#define EF_WORLD_MODEL              ( 1 << 6 )
-#define EF_TEAM_SILHOUETTE          ( 1 << 7 )
+#define EF_GODMODE                  ( 1 << 2 )
+#define EF_HAT                      ( 1 << 3 )
+#define EF_WORLD_MODEL              ( 1 << 4 )
+#define EF_TEAM_SILHOUETTE          ( 1 << 5 )
 
 //===============================================================
 // gs_weapons.c
 
-enum {
-	WEAPON_STATE_READY,
-	WEAPON_STATE_ACTIVATING,
-	WEAPON_STATE_DROPPING,
-	WEAPON_STATE_POWERING,
-	WEAPON_STATE_COOLDOWN,
-	WEAPON_STATE_FIRING,
-	WEAPON_STATE_NOAMMOCLICK,
-	WEAPON_STATE_REFIRE,        // projectile loading
+enum WeaponCategory {
+	WeaponCategory_Primary,
+	WeaponCategory_Secondary,
+	WeaponCategory_Backup,
+
+	WeaponCategory_Count
 };
 
-typedef struct firedef_s {
-	//ammo def
-	int ammo_id;
-	int usage_count;
-	int projectile_count;
+struct WeaponDef {
+	const char * name;
+	const char * short_name;
 
-	// timings
+	WeaponCategory category;
+
+	int projectile_count;
+	int clip_size;
+	unsigned int reload_time;
+	bool staged_reloading;
+
 	unsigned int weaponup_time;
 	unsigned int weapondown_time;
-	unsigned int reload_time;
-	unsigned int timeout;
-	bool smooth_refire;
+	unsigned int refire_time;
+	unsigned int range;
+	Vec2 recoil;
+	Vec2 recoil_min;
+	float recoil_recover;
+	FiringMode mode;
 
-	// damages
+	float zoom_fov;
+	float zoom_spread;
+
 	float damage;
 	float selfdamage;
 	int knockback;
@@ -761,28 +749,14 @@ typedef struct firedef_s {
 	int mindamage;
 	int minknockback;
 
-	// projectile def
 	int speed;
-	int spread;     // horizontal spread
-	int v_spread;   // vertical spread
-} firedef_t;
+	float spread;
+};
 
-typedef struct {
-	const char *name;
-	int weapon_id;
-
-	firedef_t firedef;
-} gs_weapon_definition_t;
-
-gs_weapon_definition_t *GS_GetWeaponDef( int weapon );
-int GS_SelectBestWeapon( player_state_t *playerState );
-bool GS_CheckAmmoInWeapon( player_state_t *playerState, int checkweapon );
-firedef_t *GS_FiredefForPlayerState( player_state_t *playerState, int checkweapon );
-int GS_ThinkPlayerWeapon( const gs_state_t * gs, player_state_t *playerState, int buttons, int msecs, int timeDelta );
-trace_t *GS_TraceBullet( const gs_state_t * gs, trace_t *trace, vec3_t start, vec3_t dir, vec3_t right, vec3_t up, float r, float u, int range, int ignore, int timeDelta );
-void GS_TraceLaserBeam( const gs_state_t * gs, trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( trace_t *tr, vec3_t dir ) );
-
-//===============================================================
-// gs_weapondefs.c
-
-extern firedef_t ammoFireDefs[];
+const WeaponDef * GS_GetWeaponDef( WeaponType weapon );
+SyncPlayerState::WeaponInfo * GS_FindWeapon( SyncPlayerState * player, WeaponType weapon );
+WeaponType MODToWeapon( int mod );
+WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, const usercmd_t * cmd, int timeDelta );
+void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, Vec3 start, Vec3 dir, Vec3 right, Vec3 up, float r, float u, int range, int ignore, int timeDelta );
+void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, Vec3 origin, Vec3 angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * tr, Vec3 dir ) );
+bool GS_CanEquip( SyncPlayerState * player, WeaponType weapon );

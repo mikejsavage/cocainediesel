@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "cg_local.h"
+#include "cgame/cg_local.h"
 #include "client/ui.h"
 
 /*
@@ -33,15 +33,15 @@ SERVER COMMANDS
 * CG_SC_Print
 */
 static void CG_SC_Print( void ) {
-	CG_LocalPrint( "%s", trap_Cmd_Argv( 1 ) );
+	CG_LocalPrint( "%s", Cmd_Argv( 1 ) );
 }
 
 /*
 * CG_SC_ChatPrint
 */
 static void CG_SC_ChatPrint() {
-	bool teamonly = Q_stricmp( trap_Cmd_Argv( 0 ), "tch" ) == 0;
-	int who = atoi( trap_Cmd_Argv( 1 ) );
+	bool teamonly = Q_stricmp( Cmd_Argv( 0 ), "tch" ) == 0;
+	int who = atoi( Cmd_Argv( 1 ) );
 
 	if( who < 0 || who > MAX_CLIENTS ) {
 		return;
@@ -51,7 +51,7 @@ static void CG_SC_ChatPrint() {
 		return;
 	}
 
-	const char * text = trap_Cmd_Argv( 2 );
+	const char * text = Cmd_Argv( 2 );
 
 	if( who == 0 ) {
 		CG_LocalPrint( "Console: %s\n", text );
@@ -82,7 +82,7 @@ static void CG_SC_ChatPrint() {
 * CG_SC_CenterPrint
 */
 static void CG_SC_CenterPrint( void ) {
-	CG_CenterPrint( trap_Cmd_Argv( 1 ) );
+	CG_CenterPrint( Cmd_Argv( 1 ) );
 }
 
 /*
@@ -94,11 +94,11 @@ void CG_ConfigString( int i, const char *s ) {
 	// wsw : jal : warn if configstring overflow
 	len = strlen( s );
 	if( len >= MAX_CONFIGSTRING_CHARS ) {
-		CG_Printf( "%sWARNING:%s Configstring %i overflowed\n", S_COLOR_YELLOW, S_COLOR_WHITE, i );
+		Com_Printf( "%sWARNING:%s Configstring %i overflowed\n", S_COLOR_YELLOW, S_COLOR_WHITE, i );
 	}
 
 	if( i < 0 || i >= MAX_CONFIGSTRINGS ) {
-		CG_Error( "configstring > MAX_CONFIGSTRINGS" );
+		Com_Error( ERR_DROP, "configstring > MAX_CONFIGSTRINGS" );
 		return;
 	}
 
@@ -107,20 +107,12 @@ void CG_ConfigString( int i, const char *s ) {
 	// do something apropriate
 	if( i == CS_AUTORECORDSTATE ) {
 		CG_SC_AutoRecordAction( cgs.configStrings[i] );
-	} else if( i >= CS_MODELS && i < CS_MODELS + MAX_MODELS ) {
-		cgs.modelDraw[i - CS_MODELS] = FindModel( cgs.configStrings[i] );
-	} else if( i >= CS_SOUNDS && i < CS_SOUNDS + MAX_SOUNDS ) {
-		cgs.soundPrecache[i - CS_SOUNDS] = FindSoundEffect( cgs.configStrings[i] );
-	} else if( i >= CS_IMAGES && i < CS_IMAGES + MAX_IMAGES ) {
-		cgs.imagePrecache[i - CS_IMAGES] = FindMaterial( cgs.configStrings[i] );
 	} else if( i >= CS_PLAYERINFOS && i < CS_PLAYERINFOS + MAX_CLIENTS ) {
 		CG_LoadClientInfo( i - CS_PLAYERINFOS );
 	} else if( i >= CS_GAMECOMMANDS && i < CS_GAMECOMMANDS + MAX_GAMECOMMANDS ) {
 		if( !cgs.demoPlaying ) {
-			trap_Cmd_AddCommand( cgs.configStrings[i], NULL );
+			Cmd_AddCommand( cgs.configStrings[i], NULL );
 		}
-	} else if( i >= CS_WEAPONDEFS && i < CS_WEAPONDEFS + MAX_WEAPONDEFS ) {
-		CG_OverrideWeapondef( i - CS_WEAPONDEFS, cgs.configStrings[i] );
 	}
 }
 
@@ -128,47 +120,52 @@ void CG_ConfigString( int i, const char *s ) {
 * CG_SC_Scoreboard
 */
 static void CG_SC_Scoreboard( void ) {
-	SCR_UpdateScoreboardMessage( trap_Cmd_Argv( 1 ) );
+	SCR_UpdateScoreboardMessage( Cmd_Argv( 1 ) );
+}
+
+static int ParseIntOr0( const char ** cursor ) {
+	Span< const char > token = ParseToken( cursor, Parse_DontStopOnNewLine );
+	int x;
+	return SpanToInt( token, &x ) ? x : 0;
 }
 
 static void CG_SC_PlayerStats() {
-	const char * s = trap_Cmd_Argv( 1 );
+	const char * s = Cmd_Argv( 1 );
 
-	int playerNum = CG_ParseValue( &s );
+	int playerNum = ParseIntOr0( &s );
 	if( playerNum < 0 || playerNum >= client_gs.maxclients ) {
 		return;
 	}
 
-	CG_LocalPrint( "Stats for %s" S_COLOR_WHITE ":\n", cgs.clientInfo[playerNum].name );
-	CG_Printf( "\nWeapon\n" );
-	CG_Printf( "    hit/shot percent\n" );
+	Com_Printf( "Stats for %s" S_COLOR_WHITE ":\n", cgs.clientInfo[playerNum].name );
+	Com_Printf( "\nWeapon\n" );
+	Com_Printf( "    hit/shot percent\n" );
 
-	for( int i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
-		const gsitem_t * item = GS_FindItemByTag( i );
-		assert( item );
+	for( WeaponType i = Weapon_Knife; i < Weapon_Count; i++ ) {
+		const WeaponDef * weapon = GS_GetWeaponDef( i );
 
-		int shots = CG_ParseValue( &s );
+		int shots = ParseIntOr0( &s );
 		if( shots < 1 ) { // only continue with registered shots
 			continue;
 		}
-		int hits = CG_ParseValue( &s );
+		int hits = ParseIntOr0( &s );
 
 		// name
-		CG_Printf( "%s%2s" S_COLOR_WHITE ": ", ImGuiColorToken( item->color ).token, item->shortname );
+		Com_Printf( S_COLOR_WHITE "%2s: ", weapon->short_name );
 
 #define STATS_PERCENT( hit, total ) ( ( total ) == 0 ? 0 : ( ( hit ) == ( total ) ? 100 : (float)( hit ) * 100.0f / (float)( total ) ) )
 
 		// total
-		CG_Printf( S_COLOR_GREEN "%3i" S_COLOR_WHITE "/" S_COLOR_CYAN "%3i      " S_COLOR_YELLOW "%2.1f\n",
+		Com_Printf( S_COLOR_GREEN "%3i" S_COLOR_WHITE "/" S_COLOR_CYAN "%3i      " S_COLOR_YELLOW "%2.1f\n",
 			   hits, shots, STATS_PERCENT( hits, shots ) );
 	}
 
-	CG_Printf( "\n" );
+	Com_Printf( "\n" );
 
-	int total_damage_given = CG_ParseValue( &s );
-	int total_damage_received = CG_ParseValue( &s );
+	int total_damage_given = ParseIntOr0( &s );
+	int total_damage_received = ParseIntOr0( &s );
 
-	CG_LocalPrint( S_COLOR_YELLOW "Damage given/received: " S_COLOR_WHITE "%i/%i " S_COLOR_YELLOW "ratio: %s%3.2f\n",
+	Com_Printf( S_COLOR_YELLOW "Damage given/received: " S_COLOR_WHITE "%i/%i " S_COLOR_YELLOW "ratio: %s%3.2f\n",
 		total_damage_given, total_damage_received,
 		total_damage_given > total_damage_received ? S_COLOR_GREEN : S_COLOR_RED,
 		STATS_PERCENT( total_damage_given, total_damage_given + total_damage_received ) );
@@ -180,36 +177,12 @@ static void CG_SC_PlayerStats() {
 * CG_SC_AutoRecordName
 */
 static const char *CG_SC_AutoRecordName( void ) {
-	time_t long_time;
-	struct tm *newtime;
 	static char name[MAX_STRING_CHARS];
-	char mapname[MAX_CONFIGSTRING_CHARS];
-	const char *cleanplayername;
 
-	// get date from system
-	time( &long_time );
-	newtime = localtime( &long_time );
+	char date[ 128 ];
+	Sys_FormatTime( date, sizeof( date ), "%Y-%m-%d_%H-%M" );
 
-	if( cg.view.POVent <= 0 ) {
-		cleanplayername = "";
-	} else {
-		// remove junk chars from player names for files
-		cleanplayername = COM_RemoveJunkChars( cgs.clientInfo[cg.view.POVent - 1].name );
-	}
-
-	// lowercase mapname
-	Q_strncpyz( mapname, cgs.configStrings[CS_MAPNAME], sizeof( mapname ) );
-	Q_strlwr( mapname );
-
-	// make file name
-	// duel_year-month-day_hour-min_map_player
-	Q_snprintfz( name, sizeof( name ), "%04d-%02d-%02d_%02d-%02d_%s_%s_%04i",
-				 newtime->tm_year + 1900, newtime->tm_mon + 1, newtime->tm_mday,
-				 newtime->tm_hour, newtime->tm_min,
-				 mapname,
-				 cleanplayername,
-				 (int)brandom( 0, 9999 )
-				 );
+	snprintf( name, sizeof( name ), "%s_%s_%04i", date, cl.map->name, random_uniform( &cls.rng, 0, 10000 ) );
 
 	return name;
 }
@@ -246,31 +219,31 @@ void CG_SC_AutoRecordAction( const char *action ) {
 
 	if( !Q_stricmp( action, "start" ) ) {
 		if( cg_autoaction_demo->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
-			trap_Cmd_ExecuteText( EXEC_NOW, "stop silent" );
-			trap_Cmd_ExecuteText( EXEC_NOW, va( "record autorecord/%s silent", name ) );
+			Cbuf_ExecuteText( EXEC_NOW, "stop silent" );
+			Cbuf_ExecuteText( EXEC_NOW, va( "record autorecord/%s silent", name ) );
 			autorecording = true;
 		}
 	} else if( !Q_stricmp( action, "altstart" ) ) {
 		if( cg_autoaction_demo->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
-			trap_Cmd_ExecuteText( EXEC_NOW, va( "record autorecord/%s silent", name ) );
+			Cbuf_ExecuteText( EXEC_NOW, va( "record autorecord/%s silent", name ) );
 			autorecording = true;
 		}
 	} else if( !Q_stricmp( action, "stop" ) ) {
 		if( autorecording ) {
-			trap_Cmd_ExecuteText( EXEC_NOW, "stop silent" );
+			Cbuf_ExecuteText( EXEC_NOW, "stop silent" );
 			autorecording = false;
 		}
 
 		if( cg_autoaction_screenshot->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
-			trap_Cmd_ExecuteText( EXEC_NOW, va( "screenshot autorecord/%s silent", name ) );
+			Cbuf_ExecuteText( EXEC_NOW, va( "screenshot autorecord/%s silent", name ) );
 		}
 	} else if( !Q_stricmp( action, "cancel" ) ) {
 		if( autorecording ) {
-			trap_Cmd_ExecuteText( EXEC_NOW, "stop cancel silent" );
+			Cbuf_ExecuteText( EXEC_NOW, "stop cancel silent" );
 			autorecording = false;
 		}
 	} else if( developer->integer ) {
-		CG_Printf( "CG_SC_AutoRecordAction: Unknown action: %s\n", action );
+		Com_Printf( "CG_SC_AutoRecordAction: Unknown action: %s\n", action );
 	}
 }
 
@@ -280,18 +253,18 @@ void CG_SC_AutoRecordAction( const char *action ) {
 static bool demo_requested = false;
 static void CG_Cmd_DemoGet_f( void ) {
 	if( demo_requested ) {
-		CG_Printf( "Already requesting a demo\n" );
+		Com_Printf( "Already requesting a demo\n" );
 		return;
 	}
 
-	if( trap_Cmd_Argc() != 2 || ( atoi( trap_Cmd_Argv( 1 ) ) <= 0 && trap_Cmd_Argv( 1 )[0] != '.' ) ) {
-		CG_Printf( "Usage: demoget <number>\n" );
-		CG_Printf( "Downloads a demo from the server\n" );
-		CG_Printf( "Use the demolist command to see list of demos on the server\n" );
+	if( Cmd_Argc() != 2 || ( atoi( Cmd_Argv( 1 ) ) <= 0 && Cmd_Argv( 1 )[0] != '.' ) ) {
+		Com_Printf( "Usage: demoget <number>\n" );
+		Com_Printf( "Downloads a demo from the server\n" );
+		Com_Printf( "Use the demolist command to see list of demos on the server\n" );
 		return;
 	}
 
-	trap_Cmd_ExecuteText( EXEC_NOW, va( "cmd demoget %s", trap_Cmd_Argv( 1 ) ) );
+	Cbuf_ExecuteText( EXEC_NOW, va( "cmd demoget %s", Cmd_Argv( 1 ) ) );
 
 	demo_requested = true;
 }
@@ -300,48 +273,45 @@ static void CG_Cmd_DemoGet_f( void ) {
 * CG_SC_DemoGet
 */
 static void CG_SC_DemoGet( void ) {
-	const char *filename, *extension;
-
 	if( cgs.demoPlaying ) {
 		// ignore download commands coming from demo files
 		return;
 	}
 
 	if( !demo_requested ) {
-		CG_Printf( "Warning: demoget when not requested, ignored\n" );
+		Com_Printf( "Warning: demoget when not requested, ignored\n" );
 		return;
 	}
 
 	demo_requested = false;
 
-	if( trap_Cmd_Argc() < 2 ) {
-		CG_Printf( "No such demo found\n" );
+	if( Cmd_Argc() < 2 ) {
+		Com_Printf( "No such demo found\n" );
 		return;
 	}
 
-	filename = trap_Cmd_Argv( 1 );
-	extension = COM_FileExtension( filename );
-	if( !COM_ValidateRelativeFilename( filename ) ||
-		!extension || Q_stricmp( extension, APP_DEMO_EXTENSION_STR ) ) {
-		CG_Printf( "Warning: demoget: Invalid filename, ignored\n" );
+	const char * filename = Cmd_Argv( 1 );
+	Span< const char > extension = FileExtension( filename );
+	if( !COM_ValidateRelativeFilename( filename ) || extension != APP_DEMO_EXTENSION_STR ) {
+		Com_Printf( "Warning: demoget: Invalid filename, ignored\n" );
 		return;
 	}
 
-	trap_DownloadRequest( filename );
+	CL_DownloadFile( filename, true );
 }
 
 static void CG_SC_ChangeLoadout() {
-	int weapons[ WEAP_TOTAL ] = { };
-	size_t n = 0;
-
-	if( trap_Cmd_Argc() - 1 >= ARRAY_COUNT( weapons ) )
+	if( cgs.demoPlaying )
 		return;
 
-	for( int i = 0; i < trap_Cmd_Argc() - 1; i++ ) {
-		int weapon = atoi( trap_Cmd_Argv( i + 1 ) );
-		if( weapon <= WEAP_NONE || weapon >= WEAP_TOTAL )
-			return;
-		weapons[ n ] = weapon;
+	int weapons[ WeaponCategory_Count ] = { };
+	size_t n = 0;
+
+	if( Cmd_Argc() - 1 > ARRAY_COUNT( weapons ) )
+		return;
+
+	for( int i = 0; i < Cmd_Argc() - 1; i++ ) {
+		weapons[ n ] = atoi( Cmd_Argv( i + 1 ) );
 		n++;
 	}
 
@@ -349,7 +319,7 @@ static void CG_SC_ChangeLoadout() {
 }
 
 static void CG_SC_SaveLoadout() {
-	trap_Cvar_Set( "cg_loadout", Cmd_Args() );
+	Cvar_Set( "cg_loadout", Cmd_Args() );
 }
 
 void CG_AddAward( const char * str ) {
@@ -363,7 +333,7 @@ void CG_AddAward( const char * str ) {
 }
 
 static void CG_SC_AddAward() {
-	CG_AddAward( trap_Cmd_Argv( 1 ) );
+	CG_AddAward( Cmd_Argv( 1 ) );
 }
 
 struct ServerCommand {
@@ -386,8 +356,8 @@ static const ServerCommand server_commands[] = {
 };
 
 void CG_GameCommand( const char * command ) {
-	trap_Cmd_TokenizeString( command );
-	const char * name = trap_Cmd_Argv( 0 );
+	Cmd_TokenizeString( command );
+	const char * name = Cmd_Argv( 0 );
 
 	for( ServerCommand cmd : server_commands ) {
 		if( strcmp( name, cmd.name ) == 0 ) {
@@ -396,7 +366,7 @@ void CG_GameCommand( const char * command ) {
 		}
 	}
 
-	CG_Printf( "Unknown game command: %s\n", name );
+	Com_Printf( "Unknown game command: %s\n", name );
 }
 
 /*
@@ -407,124 +377,86 @@ CGAME COMMANDS
 ==========================================================================
 */
 
-/*
-* CG_UseItem
-*/
-void CG_UseItem( const char *name ) {
-	const gsitem_t *item;
-
-	if( !cg.frame.valid || cgs.demoPlaying ) {
-		return;
-	}
-
-	if( !name ) {
-		return;
-	}
-
-	item = GS_Cmd_UseItem( &client_gs, &cg.frame.playerState, name, 0 );
-	if( item ) {
-		if( item->type & IT_WEAPON ) {
-			CG_Predict_ChangeWeapon( item->tag );
-			cg.lastWeapon = cg.predictedPlayerState.stats[STAT_PENDING_WEAPON];
-		}
-
-		trap_Cmd_ExecuteText( EXEC_NOW, va( "cmd use %i", item->tag ) );
-	}
+static void SwitchWeapon( WeaponType weapon ) {
+	cl.weaponSwitch = weapon;
 }
 
-/*
-* CG_Cmd_UseItem_f
-*/
 static void CG_Cmd_UseItem_f( void ) {
-	if( !trap_Cmd_Argc() ) {
-		CG_Printf( "Usage: 'use <item name>' or 'use <item index>'\n" );
+	if( !Cmd_Argc() ) {
+		Com_Printf( "Usage: 'use <item name>' or 'use <item index>'\n" );
 		return;
 	}
 
-	CG_UseItem( trap_Cmd_Args() );
+	const char * name = Cmd_Args();
+	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
+		const WeaponDef * weapon = GS_GetWeaponDef( i );
+		if( ( Q_stricmp( weapon->name, name ) == 0 || Q_stricmp( weapon->short_name, name ) == 0 ) && GS_CanEquip( &cg.predictedPlayerState, i ) ) {
+			SwitchWeapon( i );
+		}
+	}
 }
 
-/*
-* CG_Cmd_NextWeapon_f
-*/
-static void CG_Cmd_NextWeapon_f( void ) {
-	const gsitem_t *item;
+static WeaponType CG_UseWeaponStep( SyncPlayerState * ps, bool next, WeaponType predicted_equipped_weapon ) {
+	if( predicted_equipped_weapon == Weapon_Count )
+		return Weapon_Count;
 
-	if( !cg.frame.valid ) {
-		return;
+	size_t num_weapons = ARRAY_COUNT( ps->weapons );
+	
+	int weapon;
+	for( weapon = 0; weapon < num_weapons; weapon++ ) { //find the basis weapon
+		if( ps->weapons[ weapon ].weapon == predicted_equipped_weapon ) {
+			break;
+		}
 	}
 
+	int step = ( next ? 1 : -1 );
+	weapon += step;
+
+	int end = ( next ? num_weapons : -1 );
+	for( int i = weapon; i != end; i += step ) {
+		if( ps->weapons[ i ].weapon != Weapon_None ) {
+			return ps->weapons[ i ].weapon;
+		}
+	}
+
+	for( int i = ( next ? 0 : num_weapons - 1 ); i != end; i+= step ) {
+		if( ps->weapons[ i ].weapon != Weapon_None ) {
+			return ps->weapons[ i ].weapon;
+		}
+	}
+
+	return Weapon_Count;
+}
+
+static void CG_Cmd_NextWeapon_f() {
 	if( cgs.demoPlaying || cg.predictedPlayerState.pmove.pm_type == PM_CHASECAM ) {
 		CG_ChaseStep( 1 );
 		return;
 	}
 
-	item = GS_Cmd_NextWeapon_f( &client_gs, &cg.frame.playerState, cg.predictedWeaponSwitch );
-	if( item ) {
-		CG_Predict_ChangeWeapon( item->tag );
-		trap_Cmd_ExecuteText( EXEC_NOW, va( "cmd use %i", item->tag ) );
-		cg.lastWeapon = cg.predictedPlayerState.stats[STAT_PENDING_WEAPON];
+	WeaponType weapon = CG_UseWeaponStep( &cg.frame.playerState, true, cg.predictedPlayerState.pending_weapon );
+	if( weapon != Weapon_Count ) {
+		SwitchWeapon( weapon );
 	}
 }
 
-/*
-* CG_Cmd_PrevWeapon_f
-*/
-static void CG_Cmd_PrevWeapon_f( void ) {
-	const gsitem_t *item;
-
-	if( !cg.frame.valid ) {
-		return;
-	}
-
+static void CG_Cmd_PrevWeapon_f() {
 	if( cgs.demoPlaying || cg.predictedPlayerState.pmove.pm_type == PM_CHASECAM ) {
 		CG_ChaseStep( -1 );
 		return;
 	}
 
-	item = GS_Cmd_PrevWeapon_f( &client_gs, &cg.frame.playerState, cg.predictedWeaponSwitch );
-	if( item ) {
-		CG_Predict_ChangeWeapon( item->tag );
-		trap_Cmd_ExecuteText( EXEC_NOW, va( "cmd use %i", item->tag ) );
-		cg.lastWeapon = cg.predictedPlayerState.stats[STAT_PENDING_WEAPON];
-	}
-}
-
-/*
-* CG_Cmd_PrevWeapon_f
-*/
-static void CG_Cmd_LastWeapon_f( void ) {
-	const gsitem_t *item;
-
-	if( !cg.frame.valid || cgs.demoPlaying ) {
-		return;
-	}
-
-	if( cg.lastWeapon != WEAP_NONE && cg.lastWeapon != cg.predictedPlayerState.stats[STAT_PENDING_WEAPON] ) {
-		item = GS_Cmd_UseItem( &client_gs, &cg.frame.playerState, va( "%i", cg.lastWeapon ), IT_WEAPON );
-		if( item ) {
-			if( item->type & IT_WEAPON ) {
-				CG_Predict_ChangeWeapon( item->tag );
-			}
-
-			trap_Cmd_ExecuteText( EXEC_NOW, va( "cmd use %i", item->tag ) );
-			cg.lastWeapon = cg.predictedPlayerState.stats[STAT_PENDING_WEAPON];
-		}
+	WeaponType weapon = CG_UseWeaponStep( &cg.frame.playerState, false, cg.predictedPlayerState.pending_weapon );
+	if( weapon != Weapon_Count ) {
+		SwitchWeapon( weapon );
 	}
 }
 
 static void CG_Cmd_Weapon_f() {
-	int w = atoi( trap_Cmd_Argv( 1 ) );
-	int seen = 0;
-	for( int i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
-		if( cg.predictedPlayerState.inventory[ i ] == 0 )
-			continue;
-		seen++;
+	WeaponType weap = cg.predictedPlayerState.weapons[ atoi( Cmd_Argv( 1 ) ) - 1 ].weapon;
 
-		if( seen == w ) {
-			const gsitem_t * item = GS_FindItemByTag( i );
-			CG_UseItem( item->name );
-		}
+	if( weap != Weapon_None ) {
+		SwitchWeapon( weap );
 	}
 }
 
@@ -532,8 +464,8 @@ static void CG_Cmd_Weapon_f() {
 * CG_Viewpos_f
 */
 static void CG_Viewpos_f( void ) {
-	CG_Printf( "\"origin\" \"%i %i %i\"\n", (int)cg.view.origin[0], (int)cg.view.origin[1], (int)cg.view.origin[2] );
-	CG_Printf( "\"angles\" \"%i %i %i\"\n", (int)cg.view.angles[0], (int)cg.view.angles[1], (int)cg.view.angles[2] );
+	Com_Printf( "\"origin\" \"%i %i %i\"\n", (int)cg.view.origin.x, (int)cg.view.origin.y, (int)cg.view.origin.z );
+	Com_Printf( "\"angles\" \"%i %i %i\"\n", (int)cg.view.angles.x, (int)cg.view.angles.y, (int)cg.view.angles.z );
 }
 
 // ======================================================================
@@ -543,16 +475,16 @@ static void CG_Viewpos_f( void ) {
 *
 * Helper function
 */
-static char **CG_PlayerNamesCompletionExt_f( const char *partial, bool teamOnly ) {
+static const char **CG_PlayerNamesCompletionExt_f( const char *partial, bool teamOnly ) {
 	int i;
 	int team = cg_entities[cgs.playerNum + 1].current.team;
-	char **matches = NULL;
+	const char **matches = NULL;
 	int num_matches = 0;
 
 	if( partial ) {
 		size_t partial_len = strlen( partial );
 
-		matches = (char **) CG_Malloc( sizeof( char * ) * ( client_gs.maxclients + 1 ) );
+		matches = (const char **) CG_Malloc( sizeof( char * ) * ( client_gs.maxclients + 1 ) );
 		for( i = 0; i < client_gs.maxclients; i++ ) {
 			cg_clientInfo_t *info = cgs.clientInfo + i;
 			if( !info->name[0] ) {
@@ -574,14 +506,14 @@ static char **CG_PlayerNamesCompletionExt_f( const char *partial, bool teamOnly 
 /*
 * CG_PlayerNamesCompletion_f
 */
-static char **CG_PlayerNamesCompletion_f( const char *partial ) {
+static const char **CG_PlayerNamesCompletion_f( const char *partial ) {
 	return CG_PlayerNamesCompletionExt_f( partial, false );
 }
 
 /*
 * CG_TeamPlayerNamesCompletion_f
 */
-static char **CG_TeamPlayerNamesCompletion_f( const char *partial ) {
+static const char **CG_TeamPlayerNamesCompletion_f( const char *partial ) {
 	return CG_PlayerNamesCompletionExt_f( partial, true );
 }
 
@@ -589,21 +521,21 @@ static char **CG_TeamPlayerNamesCompletion_f( const char *partial ) {
 * CG_SayCmdAdd_f
 */
 static void CG_SayCmdAdd_f( void ) {
-	trap_Cmd_SetCompletionFunc( "say", &CG_PlayerNamesCompletion_f );
+	Cmd_SetCompletionFunc( "say", &CG_PlayerNamesCompletion_f );
 }
 
 /*
 * CG_SayTeamCmdAdd_f
 */
 static void CG_SayTeamCmdAdd_f( void ) {
-	trap_Cmd_SetCompletionFunc( "say_team", &CG_TeamPlayerNamesCompletion_f );
+	Cmd_SetCompletionFunc( "say_team", &CG_TeamPlayerNamesCompletion_f );
 }
 
 /*
 * CG_StatsCmdAdd_f
 */
 static void CG_StatsCmdAdd_f( void ) {
-	trap_Cmd_SetCompletionFunc( "stats", &CG_PlayerNamesCompletion_f );
+	Cmd_SetCompletionFunc( "stats", &CG_PlayerNamesCompletion_f );
 }
 
 // server commands
@@ -632,7 +564,6 @@ static const cgcmd_t cgcmds[] =
 	{ "use", CG_Cmd_UseItem_f, false },
 	{ "weapnext", CG_Cmd_NextWeapon_f, false },
 	{ "weapprev", CG_Cmd_PrevWeapon_f, false },
-	{ "weaplast", CG_Cmd_LastWeapon_f, false },
 	{ "weapon", CG_Cmd_Weapon_f, false },
 	{ "viewpos", CG_Viewpos_f, true },
 	{ "players", NULL, false },
@@ -669,7 +600,7 @@ void CG_RegisterCGameCommands( void ) {
 				continue;
 			}
 
-			trap_Cmd_AddCommand( name, NULL );
+			Cmd_AddCommand( name, NULL );
 
 			// check for server commands we might want to do some special things for..
 			for( svcmd = cg_consvcmds; svcmd->name; svcmd++ ) {
@@ -688,7 +619,7 @@ void CG_RegisterCGameCommands( void ) {
 		if( cgs.demoPlaying && !cmd->allowdemo ) {
 			continue;
 		}
-		trap_Cmd_AddCommand( cmd->name, cmd->func );
+		Cmd_AddCommand( cmd->name, cmd->func );
 	}
 }
 
@@ -719,7 +650,7 @@ void CG_UnregisterCGameCommands( void ) {
 				continue;
 			}
 
-			trap_Cmd_RemoveCommand( name );
+			Cmd_RemoveCommand( name );
 		}
 	}
 
@@ -728,6 +659,6 @@ void CG_UnregisterCGameCommands( void ) {
 		if( cgs.demoPlaying && !cmd->allowdemo ) {
 			continue;
 		}
-		trap_Cmd_RemoveCommand( cmd->name );
+		Cmd_RemoveCommand( cmd->name );
 	}
 }

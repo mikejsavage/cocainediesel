@@ -18,284 +18,265 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-// gs_weapons.c	-	game shared weapons definitions
+#include "gameshared/q_arch.h"
+#include "gameshared/q_math.h"
+#include "gameshared/q_shared.h"
+#include "gameshared/q_collision.h"
+#include "gameshared/gs_public.h"
 
-#include "q_arch.h"
-#include "q_math.h"
-#include "q_shared.h"
-#include "q_comref.h"
-#include "q_collision.h"
-#include "gs_public.h"
-
-/*
-* GS_TraceBullet
-*/
-trace_t *GS_TraceBullet( const gs_state_t * gs, trace_t *trace, vec3_t start, vec3_t dir, vec3_t right, vec3_t up, float r, float u, int range, int ignore, int timeDelta ) {
-	vec3_t end;
-	bool water = false;
-	vec3_t water_start;
-	int content_mask = MASK_SHOT | MASK_WATER;
-	static trace_t water_trace;
-
-	assert( trace );
-
-	VectorMA( start, range, dir, end );
-	if( r ) {
-		VectorMA( end, r, right, end );
-	}
-	if( u ) {
-		VectorMA( end, u, up, end );
+WeaponType MODToWeapon( int mod ) {
+	switch( mod ) {
+		case MOD_GUNBLADE: return Weapon_Knife;
+		case MOD_PISTOL: return Weapon_Pistol;
+		case MOD_MACHINEGUN: return Weapon_MachineGun;
+		case MOD_DEAGLE: return Weapon_Deagle;
+		case MOD_SHOTGUN: return Weapon_Shotgun;
+		case MOD_ASSAULTRIFLE: return Weapon_AssaultRifle;
+		case MOD_GRENADE: return Weapon_GrenadeLauncher;
+		case MOD_ROCKET: return Weapon_RocketLauncher;
+		case MOD_PLASMA: return Weapon_Plasma;
+		case MOD_BUBBLEGUN: return Weapon_BubbleGun;
+		case MOD_RAILGUN: return Weapon_Railgun;
+		case MOD_LASERGUN: return Weapon_Laser;
+		case MOD_SNIPER: return Weapon_Sniper;
+		case MOD_RIFLE: return Weapon_Rifle;
 	}
 
-	if( gs->api.PointContents( start, timeDelta ) & MASK_WATER ) {
-		water = true;
-		VectorCopy( start, water_start );
-		content_mask &= ~MASK_WATER;
-	}
-
-	gs->api.Trace( trace, start, vec3_origin, vec3_origin, end, ignore, content_mask, timeDelta );
-
-	// see if we hit water
-	if( trace->contents & MASK_WATER ) {
-		water_trace = *trace;
-
-		VectorCopy( trace->endpos, water_start );
-
-		// re-trace ignoring water this time
-		gs->api.Trace( trace, water_start, vec3_origin, vec3_origin, end, ignore, MASK_SHOT, timeDelta );
-
-		return &water_trace;
-	}
-
-	if( water ) {
-		water_trace = *trace;
-		VectorCopy( water_start, water_trace.endpos );
-		return &water_trace;
-	}
-
-	return NULL;
+	return Weapon_None;
 }
 
-void GS_TraceLaserBeam( const gs_state_t * gs, trace_t *trace, vec3_t origin, vec3_t angles, float range, int ignore, int timeDelta, void ( *impact )( trace_t *tr, vec3_t dir ) ) {
-	vec3_t dir, end;
-	vec3_t mins = { -0.5, -0.5, -0.5 };
-	vec3_t maxs = { 0.5, 0.5, 0.5 };
+void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, Vec3 start, Vec3 dir, Vec3 right, Vec3 up, float r, float u, int range, int ignore, int timeDelta ) {
+	Vec3 end = start + dir * range + right * r + up * u;
 
-	AngleVectors( angles, dir, NULL, NULL );
-	VectorMA( origin, range, dir, end );
+	gs->api.Trace( trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ignore, MASK_WALLBANG, timeDelta );
+
+	if( wallbang_trace != NULL ) {
+		gs->api.Trace( wallbang_trace, start, Vec3( 0.0f ), Vec3( 0.0f ), trace->endpos, ignore, MASK_SHOT, timeDelta );
+	}
+}
+
+void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, Vec3 origin, Vec3 angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * tr, Vec3 dir ) ) {
+	Vec3 maxs = Vec3( 0.5f, 0.5f, 0.5f );
+
+	Vec3 dir;
+	AngleVectors( angles, &dir, NULL, NULL );
+	Vec3 end = origin + dir * range;
 
 	trace->ent = 0;
 
-	gs->api.Trace( trace, origin, mins, maxs, end, ignore, MASK_SHOT, timeDelta );
+	gs->api.Trace( trace, origin, -maxs, maxs, end, ignore, MASK_SHOT, timeDelta );
 	if( trace->ent != -1 && impact != NULL ) {
 		impact( trace, dir );
 	}
 }
 
-
-//============================================================
-//
-//		PLAYER WEAPON THINKING
-//
-//============================================================
-
-#define NOAMMOCLICK_PENALTY 100
-
-/*
-* GS_SelectBestWeapon
-*/
-int GS_SelectBestWeapon( player_state_t *playerState ) {
-	int weap, weap_chosen = WEAP_NONE;
-	gs_weapon_definition_t *weapondef;
-
-	//find with strong ammos
-	for( weap = WEAP_TOTAL - 1; weap >= WEAP_GUNBLADE; weap-- ) {
-		if( !playerState->inventory[weap] ) {
-			continue;
-		}
-
-		weapondef = GS_GetWeaponDef( weap );
-
-		if( !weapondef->firedef.usage_count ||
-			playerState->inventory[weapondef->firedef.ammo_id] >= weapondef->firedef.usage_count ) {
-			weap_chosen = weap;
-			goto found;
+SyncPlayerState::WeaponInfo * GS_FindWeapon( SyncPlayerState * player, WeaponType weapon ) {
+	for( size_t i = 0; i < ARRAY_COUNT( player->weapons ); i++ ) {
+		if( player->weapons[ i ].weapon == weapon ) {
+			return &player->weapons[ i ];
 		}
 	}
-found:
-	return weap_chosen;
+
+	return NULL;
 }
 
-/*
-* GS_FiredefForPlayerState
-*/
-firedef_t *GS_FiredefForPlayerState( player_state_t *playerState, int checkweapon ) {
-	gs_weapon_definition_t *weapondef = GS_GetWeaponDef( checkweapon );
+static bool GS_CheckAmmoInWeapon( SyncPlayerState * player, WeaponType weapon ) {
+	const WeaponDef * def = GS_GetWeaponDef( weapon );
 
-	return &weapondef->firedef;
+	const SyncPlayerState::WeaponInfo * found_weapon = GS_FindWeapon( player, weapon );
+	if( found_weapon != NULL )
+		return def->clip_size == 0 || found_weapon->ammo > 0;
+
+	return false;
 }
 
-/*
-* GS_CheckAmmoInWeapon
-*/
-bool GS_CheckAmmoInWeapon( player_state_t *playerState, int checkweapon ) {
-	firedef_t *firedef = GS_FiredefForPlayerState( playerState, checkweapon );
-
-	if( checkweapon != WEAP_NONE && !playerState->inventory[checkweapon] ) {
-		return false;
-	}
-
-	if( !firedef->usage_count || firedef->ammo_id == AMMO_NONE ) {
-		return true;
-	}
-
-	return playerState->inventory[firedef->ammo_id] >= firedef->usage_count;
-}
-
-/*
-* GS_ThinkPlayerWeapon
-*/
-int GS_ThinkPlayerWeapon( const gs_state_t * gs, player_state_t *playerState, int buttons, int msecs, int timeDelta ) {
-	firedef_t *firedef;
+WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, const usercmd_t * cmd, int timeDelta ) {
 	bool refire = false;
 
-	assert( playerState->stats[STAT_PENDING_WEAPON] >= 0 && playerState->stats[STAT_PENDING_WEAPON] < WEAP_TOTAL );
+	assert( player->pending_weapon < Weapon_Count );
 
 	if( GS_MatchPaused( gs ) ) {
-		return playerState->stats[STAT_WEAPON];
+		return player->weapon;
 	}
 
-	if( playerState->pmove.pm_type != PM_NORMAL ) {
-		playerState->weaponState = WEAPON_STATE_READY;
-		playerState->stats[STAT_PENDING_WEAPON] = playerState->stats[STAT_WEAPON] = WEAP_NONE;
-		playerState->stats[STAT_WEAPON_TIME] = 0;
-		return playerState->stats[STAT_WEAPON];
+	if( player->weapon == Weapon_None ) {
+		player->weapon = player->pending_weapon;
+		return player->weapon;
 	}
 
-	if( playerState->pmove.stats[PM_STAT_NOUSERCONTROL] > 0 ) {
-		buttons = 0;
+	if( player->pmove.pm_type != PM_NORMAL ) {
+		player->weapon_state = WeaponState_Ready;
+		player->pending_weapon = Weapon_None;
+		player->weapon = Weapon_None;
+		player->weapon_time = 0;
+		player->zoom_time = 0;
+		return player->weapon;
 	}
 
-	if( !msecs ) {
-		goto done;
+	int buttons = player->pmove.no_control_time > 0 ? 0 : cmd->buttons;
+
+	if( cmd->msec == 0 ) {
+		return player->weapon;
 	}
 
-	if( playerState->stats[STAT_WEAPON_TIME] > 0 ) {
-		playerState->stats[STAT_WEAPON_TIME] -= msecs;
-	} else {
-		playerState->stats[STAT_WEAPON_TIME] = 0;
+	player->weapon_time = Max2( 0, player->weapon_time - cmd->msec );
+
+	const WeaponDef * def = GS_GetWeaponDef( player->weapon );
+
+	if( cmd->weaponSwitch != Weapon_None && GS_CanEquip( player, cmd->weaponSwitch ) ) {
+		player->pending_weapon = cmd->weaponSwitch;
 	}
 
-	firedef = GS_FiredefForPlayerState( playerState, playerState->stats[STAT_WEAPON] );
+	s16 last_zoom_time = player->zoom_time;
+	bool can_zoom = ( player->weapon_state == WeaponState_Ready
+			|| player->weapon_state == WeaponState_Firing
+			|| player->weapon_state == WeaponState_FiringSemiAuto )
+		&& ( player->pmove.features & PMFEAT_SCOPE );
+
+	if( can_zoom && def->zoom_fov != 0 && ( buttons & BUTTON_SPECIAL ) != 0 ) {
+		player->zoom_time = Min2( player->zoom_time + cmd->msec, ZOOMTIME );
+		if( last_zoom_time == 0 ) {
+			gs->api.PredictedEvent( player->POVnum, EV_ZOOM_IN, player->weapon );
+		}
+	}
+	else {
+		player->zoom_time = Max2( 0, player->zoom_time - cmd->msec );
+		if( player->zoom_time == 0 && last_zoom_time != 0 ) {
+			gs->api.PredictedEvent( player->POVnum, EV_ZOOM_OUT, player->weapon );
+		}
+	}
+
+	if( player->weapon_state == WeaponState_FiringSemiAuto ) {
+		if( ( buttons & BUTTON_ATTACK ) == 0 ) {
+			player->weapon_state = WeaponState_Firing;
+		}
+		else if( player->weapon_time > 0 ) {
+			return player->weapon;
+		}
+	}
 
 	// during cool-down time it can shoot again or go into reload time
-	if( playerState->weaponState == WEAPON_STATE_REFIRE ) {
-		if( playerState->stats[STAT_WEAPON_TIME] > 0 ) {
-			goto done;
+	if( player->weapon_state == WeaponState_Firing ) {
+		if( player->weapon_time > 0 ) {
+			return player->weapon;
 		}
 
 		refire = true;
 
-		playerState->weaponState = WEAPON_STATE_READY;
-	}
-
-	if( playerState->weaponState == WEAPON_STATE_NOAMMOCLICK ) {
-		if( playerState->stats[STAT_WEAPON_TIME] > 0 ) {
-			goto done;
-		}
-
-		if( playerState->stats[STAT_WEAPON] != playerState->stats[STAT_PENDING_WEAPON] ) {
-			playerState->weaponState = WEAPON_STATE_READY;
-		}
+		player->weapon_state = WeaponState_Ready;
 	}
 
 	// there is a weapon to be changed
-	if( playerState->stats[STAT_WEAPON] != playerState->stats[STAT_PENDING_WEAPON] ) {
-		if( ( playerState->weaponState == WEAPON_STATE_READY ) ||
-			( playerState->weaponState == WEAPON_STATE_DROPPING ) ||
-			( playerState->weaponState == WEAPON_STATE_ACTIVATING ) ) {
-			if( playerState->weaponState != WEAPON_STATE_DROPPING ) {
-				playerState->weaponState = WEAPON_STATE_DROPPING;
-				playerState->stats[STAT_WEAPON_TIME] += firedef->weapondown_time;
+	if( player->weapon != player->pending_weapon ) {
+		if( player->weapon_state == WeaponState_Ready || player->weapon_state == WeaponState_SwitchingIn || player->weapon_state == WeaponState_Reloading || ( player->weapon_state == WeaponState_FiringSemiAuto && player->weapon_time == 0 ) ) {
+			player->weapon_state = WeaponState_SwitchingOut;
+			player->weapon_time = def->weapondown_time;
+			gs->api.PredictedEvent( player->POVnum, EV_WEAPONDROP, 0 );
+		}
+	}
 
-				if( firedef->weapondown_time ) {
-					gs->api.PredictedEvent( playerState->POVnum, EV_WEAPONDROP, 0 );
-				}
+	SyncPlayerState::WeaponInfo * selected_weapon = GS_FindWeapon( player, player->weapon );
+
+	if( player->weapon_state == WeaponState_Reloading ) {
+		if( player->weapon_time > 0 ) {
+			if( ( buttons & BUTTON_ATTACK ) != 0 && GS_CheckAmmoInWeapon( player, player->weapon ) ) {
+				player->weapon_time = 0;
+				player->weapon_state = WeaponState_Ready;
 			}
+			else {
+				return selected_weapon->weapon;
+			}
+		}
+		else if( def->staged_reloading ) {
+			selected_weapon->ammo++;
+
+			if( selected_weapon->ammo == def->clip_size ) {
+				player->weapon_state = WeaponState_Ready;
+			}
+			else {
+				player->weapon_time = def->reload_time;
+			}
+		}
+		else {
+			selected_weapon->ammo = def->clip_size;
+			player->weapon_state = WeaponState_Ready;
+			gs->api.PredictedEvent( player->POVnum, EV_WEAPONACTIVATE, player->weapon << 1 );
 		}
 	}
 
 	// do the change
-	if( playerState->weaponState == WEAPON_STATE_DROPPING ) {
-		if( playerState->stats[STAT_WEAPON_TIME] > 0 ) {
-			goto done;
+	if( player->weapon_state == WeaponState_SwitchingOut ) {
+		if( player->weapon_time > 0 ) {
+			return player->weapon;
 		}
 
-		bool had_weapon_before = playerState->stats[STAT_WEAPON] != WEAP_NONE;
-		playerState->stats[STAT_WEAPON] = playerState->stats[STAT_PENDING_WEAPON];
+		bool had_weapon_before = player->weapon != Weapon_None;
+		player->weapon = player->pending_weapon;
 
 		// update the firedef
-		firedef = GS_FiredefForPlayerState( playerState, playerState->stats[STAT_WEAPON] );
-		playerState->weaponState = WEAPON_STATE_ACTIVATING;
-		playerState->stats[STAT_WEAPON_TIME] += firedef->weaponup_time;
+		def = GS_GetWeaponDef( player->weapon );
+		player->weapon_state = WeaponState_SwitchingIn;
+		player->weapon_time = def->weaponup_time;
 
-		int parm = playerState->stats[STAT_WEAPON] << 1;
+		u64 parm = player->weapon << 1;
 		if( !had_weapon_before )
 			parm |= 1;
 
-		gs->api.PredictedEvent( playerState->POVnum, EV_WEAPONACTIVATE, parm );
+		gs->api.PredictedEvent( player->POVnum, EV_WEAPONACTIVATE, parm );
 	}
 
-	if( playerState->weaponState == WEAPON_STATE_ACTIVATING ) {
-		if( playerState->stats[STAT_WEAPON_TIME] > 0 ) {
-			goto done;
+	if( player->weapon_state == WeaponState_SwitchingIn ) {
+		if( player->weapon_time > 0 ) {
+			return player->weapon;
 		}
 
-		playerState->weaponState = WEAPON_STATE_READY;
+		player->weapon_state = WeaponState_Ready;
 	}
 
-	if( playerState->weaponState == WEAPON_STATE_READY || playerState->weaponState == WEAPON_STATE_NOAMMOCLICK ) {
-		if( playerState->stats[STAT_WEAPON_TIME] > 0 ) {
-			goto done;
+	if( player->weapon_state == WeaponState_Ready ) {
+		if( player->weapon_time > 0 ) {
+			return player->weapon;
+		}
+
+		if( def->clip_size != 0 && selected_weapon->ammo == 0 ) {
+			player->weapon_time = def->reload_time;
+			player->weapon_state = WeaponState_Reloading;
 		}
 
 		if( !GS_ShootingDisabled( gs ) ) {
 			if( buttons & BUTTON_ATTACK ) {
-				if( GS_CheckAmmoInWeapon( playerState, playerState->stats[STAT_WEAPON] ) ) {
-					playerState->weaponState = WEAPON_STATE_FIRING;
+				if( GS_CheckAmmoInWeapon( player, player->weapon ) ) {
+					player->weapon_time = def->refire_time;
+					player->weapon_state = def->mode == FiringMode_SemiAuto ? WeaponState_FiringSemiAuto : WeaponState_Firing;
+
+					if( refire && def->mode == FiringMode_Smooth ) {
+						gs->api.PredictedEvent( player->POVnum, EV_SMOOTHREFIREWEAPON, player->weapon );
+					}
+					else {
+						gs->api.PredictedFireWeapon( player->POVnum, player->weapon );
+					}
+
+					if( def->clip_size > 0 ) {
+						selected_weapon->ammo--;
+						if( selected_weapon->ammo == 0 ) {
+							gs->api.PredictedEvent( player->POVnum, EV_NOAMMOCLICK, 0 );
+						}
+					}
 				}
-				else if( playerState->weaponState != WEAPON_STATE_NOAMMOCLICK ) {
-					// player has no ammo nor clips
-					playerState->weaponState = WEAPON_STATE_NOAMMOCLICK;
-					playerState->stats[STAT_WEAPON_TIME] += NOAMMOCLICK_PENALTY;
-					gs->api.PredictedEvent( playerState->POVnum, EV_NOAMMOCLICK, 0 );
-					goto done;
-				}
+			}
+			else if( ( buttons & BUTTON_RELOAD ) && def->clip_size != 0 && selected_weapon->ammo < def->clip_size ) {
+				player->weapon_time = def->reload_time;
+				player->weapon_state = WeaponState_Reloading;
 			}
 		}
 	}
 
-	if( playerState->weaponState == WEAPON_STATE_FIRING ) {
-		int parm = playerState->stats[STAT_WEAPON] << 1;
+	return player->weapon;
+}
 
-		playerState->stats[STAT_WEAPON_TIME] += firedef->reload_time;
-		playerState->weaponState = WEAPON_STATE_REFIRE;
+bool GS_CanEquip( SyncPlayerState * player, WeaponType weapon ) {
+	if( GS_FindWeapon( player, weapon ) != NULL )
+		return ( player->pmove.features & PMFEAT_WEAPONSWITCH );
 
-		if( refire && firedef->smooth_refire ) {
-			gs->api.PredictedEvent( playerState->POVnum, EV_SMOOTHREFIREWEAPON, parm );
-		} else {
-			gs->api.PredictedEvent( playerState->POVnum, EV_FIREWEAPON, parm );
-		}
-
-		if( !GS_InfiniteAmmo( gs ) && playerState->stats[STAT_WEAPON] != WEAP_GUNBLADE ) {
-			if( firedef->ammo_id != AMMO_NONE && firedef->usage_count ) {
-				playerState->inventory[firedef->ammo_id] -= firedef->usage_count;
-				if( playerState->inventory[firedef->ammo_id] == 0 ) {
-					gs->api.PredictedEvent( playerState->POVnum, EV_NOAMMOCLICK, 0 );
-				}
-			}
-		}
-	}
-done:
-	return playerState->stats[STAT_WEAPON];
+	return false;
 }

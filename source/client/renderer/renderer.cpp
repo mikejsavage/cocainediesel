@@ -5,7 +5,10 @@
 #include "client/renderer/renderer.h"
 #include "client/renderer/blue_noise.h"
 #include "client/renderer/skybox.h"
+#include "client/renderer/srgb.h"
 #include "client/renderer/text.h"
+
+#include "cgame/cg_particles.h"
 
 #include "imgui/imgui.h"
 
@@ -55,6 +58,7 @@ static void TakeScreenshot() {
 
 	filename.append( ".png" );
 
+	FS_CreateAbsolutePath( filename.c_str() );
 	stbi_flip_vertically_on_write( 1 );
 	int ok = stbi_write_png( filename.c_str(), frame_static.viewport_width, frame_static.viewport_height, 3, buf, 0 );
 	if( ok != 0 ) {
@@ -123,6 +127,7 @@ void InitRenderer() {
 	InitText();
 	InitSkybox();
 	InitModels();
+	InitVisualEffects();
 }
 
 static void DeleteFramebuffers() {
@@ -138,6 +143,7 @@ void ShutdownRenderer() {
 	ShutdownSkybox();
 	ShutdownText();
 	ShutdownMaterials();
+	ShutdownVisualEffects();
 	ShutdownShaders();
 
 	DeleteTexture( blue_noise );
@@ -174,7 +180,7 @@ static Mat4 OrthographicProjection( float left, float top, float right, float bo
 }
 
 static Mat4 PerspectiveProjection( float vertical_fov_degrees, float aspect_ratio, float near_plane ) {
-	float tan_half_vertical_fov = tanf( DEG2RAD( vertical_fov_degrees ) / 2.0f );
+	float tan_half_vertical_fov = tanf( Radians( vertical_fov_degrees ) / 2.0f );
 	float epsilon = 2.4e-6f;
 
 	return Mat4(
@@ -216,10 +222,10 @@ static Mat4 InvertPerspectiveProjection( const Mat4 & P ) {
 }
 
 static Mat4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
-	float pitch = DEG2RAD( angles.pitch );
+	float pitch = Radians( angles.pitch );
 	float sp = sinf( pitch );
 	float cp = cosf( pitch );
-	float yaw = DEG2RAD( angles.yaw );
+	float yaw = Radians( angles.yaw );
 	float sy = sinf( yaw );
 	float cy = cosf( yaw );
 
@@ -247,7 +253,7 @@ static Mat4 InvertViewMatrix( const Mat4 & V, Vec3 position ) {
 	);
 }
 
-static UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & inverse_V, const Mat4 & P, const Mat4 & inverse_P, const Vec3 & camera_pos, const Vec2 & viewport_size, float near_plane, int samples ) {
+static UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & inverse_V, const Mat4 & P, const Mat4 & inverse_P, Vec3 camera_pos, Vec2 viewport_size, float near_plane, int samples ) {
 	return UploadUniformBlock( V, inverse_V, P, inverse_P, camera_pos, viewport_size, near_plane, samples );
 }
 
@@ -262,9 +268,6 @@ static void CreateFramebuffers() {
 	{
 		FramebufferConfig fb;
 
-		texture_config.format = TextureFormat_RG_Half;
-		fb.normal_attachment = texture_config;
-
 		texture_config.format = TextureFormat_Depth;
 		fb.depth_attachment = texture_config;
 
@@ -276,7 +279,7 @@ static void CreateFramebuffers() {
 	{
 		FramebufferConfig fb;
 
-		texture_config.format = TextureFormat_R_U8;
+		texture_config.format = TextureFormat_A_U8;
 		fb.albedo_attachment = texture_config;
 
 		frame_static.world_outlines_fb = NewFramebuffer( fb );
@@ -305,16 +308,35 @@ static void CreateFramebuffers() {
 
 		frame_static.msaa_fb = NewFramebuffer( fb );
 	}
+
+	{
+		FramebufferConfig fb;
+
+		texture_config.format = TextureFormat_RGB_U8_sRGB;
+		fb.albedo_attachment = texture_config;
+
+		texture_config.format = TextureFormat_Depth;
+		fb.depth_attachment = texture_config;
+
+		frame_static.postprocess_fb = NewFramebuffer( fb );
+	}
 }
 
 void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadShaders();
 	HotloadMaterials();
+	HotloadModels();
+	HotloadVisualEffects();
 
 	RenderBackendBeginFrame();
 
 	dynamic_geometry_num_vertices = 0;
 	dynamic_geometry_num_indices = 0;
+
+	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer > 16 || r_samples->integer == 1 ) {
+		Com_Printf( "Invalid r_samples value (%d), resetting\n", r_samples->integer );
+		Cvar_Set( "r_samples", "0" );
+	}
 
 	frame_static.viewport_width = Max2( u32( 1 ), viewport_width );
 	frame_static.viewport_height = Max2( u32( 1 ), viewport_height );
@@ -337,16 +359,18 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	frame_static.blue_noise_uniforms = UploadUniformBlock( Vec2( blue_noise.width, blue_noise.height ) );
 
-	frame_static.write_world_gbuffer_pass = AddRenderPass( "Write world gbuffer", frame_static.world_gbuffer, ClearColor_Do, ClearDepth_Do );
+	frame_static.write_world_gbuffer_pass = AddRenderPass( "Write world gbuffer", frame_static.world_gbuffer, ClearColor_Dont, ClearDepth_Do );
 	frame_static.postprocess_world_gbuffer_pass = AddRenderPass( "Postprocess world gbuffer", frame_static.world_outlines_fb );
+
+	frame_static.particle_update_pass = AddRenderPass( "Particle Update" );
 
 	if( msaa ) {
 		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", frame_static.msaa_fb, ClearColor_Do, ClearDepth_Do );
 		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines", frame_static.msaa_fb );
 	}
 	else {
-		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", ClearColor_Do, ClearDepth_Do );
-		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines" );
+		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", frame_static.postprocess_fb, ClearColor_Do, ClearDepth_Do );
+		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines", frame_static.postprocess_fb );
 	}
 
 	frame_static.write_silhouette_gbuffer_pass = AddRenderPass( "Write silhouette gbuffer", frame_static.silhouette_gbuffer, ClearColor_Do, ClearDepth_Dont );
@@ -357,16 +381,16 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		frame_static.sky_pass = AddRenderPass( "Render sky", frame_static.msaa_fb );
 		frame_static.transparent_pass = AddRenderPass( "Render transparent", frame_static.msaa_fb );
 
-		AddResolveMSAAPass( frame_static.msaa_fb );
+		AddResolveMSAAPass( frame_static.msaa_fb, frame_static.postprocess_fb );
 	}
 	else {
-		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque" );
-		frame_static.sky_pass = AddRenderPass( "Render sky" );
-		frame_static.transparent_pass = AddRenderPass( "Render transparent" );
+		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque", frame_static.postprocess_fb );
+		frame_static.sky_pass = AddRenderPass( "Render sky", frame_static.postprocess_fb );
+		frame_static.transparent_pass = AddRenderPass( "Render transparent", frame_static.postprocess_fb );
 	}
 
-	frame_static.add_silhouettes_pass = AddRenderPass( "Render silhouettes" );
-	frame_static.blur_pass = AddRenderPass( "Blur screen" );
+	frame_static.add_silhouettes_pass = AddRenderPass( "Render silhouettes", frame_static.postprocess_fb );
+	frame_static.postprocess_pass = AddRenderPass( "Postprocess" );
 	frame_static.ui_pass = AddUnsortedRenderPass( "Render UI" );
 }
 
@@ -378,6 +402,8 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	frame_static.P = PerspectiveProjection( vertical_fov, frame_static.aspect_ratio, near_plane );
 	frame_static.inverse_P = InvertPerspectiveProjection( frame_static.P );
 	frame_static.position = position;
+	frame_static.vertical_fov = vertical_fov;
+	frame_static.near_plane = near_plane;
 
 	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.inverse_V, frame_static.P, frame_static.inverse_P, position, frame_static.viewport, near_plane, frame_static.msaa_samples );
 }
@@ -411,13 +437,20 @@ void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh )
 }
 
 void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color ) {
-	Vec2 half_pixel = 0.5f / Vec2( material->texture->width, material->texture->height );
-	RGBA8 rgba = RGBA8( color );
+	Vec2 half_pixel = HalfPixelSize( material );
+	Draw2DBoxUV( x, y, w, h, half_pixel, 1.0f - half_pixel, material, color );
+}
+
+void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, const Material * material, Vec4 color ) {
+	if( w <= 0.0f || h <= 0.0f )
+		return;
+
+	RGBA8 rgba = LinearTosRGB( color );
 
 	ImDrawList * bg = ImGui::GetBackgroundDrawList();
 	bg->PushTextureID( ImGuiShaderAndMaterial( material ) );
 	bg->PrimReserve( 6, 4 );
-	bg->PrimRectUV( Vec2( x, y ), Vec2( x + w, y + h ), half_pixel, 1.0f - half_pixel, IM_COL32( rgba.r, rgba.g, rgba.b, rgba.a ) );
+	bg->PrimRectUV( Vec2( x, y ), Vec2( x + w, y + h ), topleft_uv, bottomright_uv, IM_COL32( rgba.r, rgba.g, rgba.b, rgba.a ) );
 	bg->PopTextureID();
 }
 

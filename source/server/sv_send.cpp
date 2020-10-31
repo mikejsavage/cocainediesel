@@ -145,7 +145,7 @@ void SV_SendServerCommand( client_t *cl, const char *format, ... ) {
 	int i;
 
 	va_start( argptr, format );
-	Q_vsnprintfz( message, sizeof( message ), format, argptr );
+	vsnprintf( message, sizeof( message ), format, argptr );
 	va_end( argptr );
 
 	if( cl != NULL ) {
@@ -230,7 +230,7 @@ void SV_BroadcastCommand( const char *format, ... ) {
 	}
 
 	va_start( argptr, format );
-	Q_vsnprintfz( string, sizeof( string ), format, argptr );
+	vsnprintf( string, sizeof( string ), format, argptr );
 	va_end( argptr );
 
 	for( i = 0, client = svs.clients; i < sv_maxclients->integer; i++, client++ ) {
@@ -358,8 +358,7 @@ void SV_ResetClientFrameCounters( void ) {
 * SV_WriteFrameSnapToClient
 */
 void SV_WriteFrameSnapToClient( client_t *client, msg_t *msg ) {
-	SNAP_WriteFrameSnapToClient( &sv.gi, client, msg, sv.framenum, svs.gametime, sv.baselines,
-								 &svs.client_entities, 0, NULL, NULL );
+	SNAP_WriteFrameSnapToClient( &sv.gi, client, msg, sv.framenum, svs.gametime, sv.baselines, &svs.client_entities );
 }
 
 /*
@@ -367,9 +366,7 @@ void SV_WriteFrameSnapToClient( client_t *client, msg_t *msg ) {
 */
 void SV_BuildClientFrameSnap( client_t *client ) {
 	SNAP_BuildClientFrameSnap( svs.cms, &sv.gi, sv.framenum, svs.gametime,
-							  client, ge->GetGameState(),
-							   &svs.client_entities,
-							   false, sv_mempool );
+		client, &server_gs.gameState, &svs.client_entities, sv_mempool );
 }
 
 /*
@@ -384,8 +381,8 @@ static bool SV_SendClientDatagram( client_t *client ) {
 
 	SV_AddReliableCommandsToMessage( client, &tmpMessage );
 
-	// send over all the relevant entity_state_t
-	// and the player_state_t
+	// send over all the relevant SyncEntityState
+	// and the SyncPlayerState
 	SV_BuildClientFrameSnap( client );
 
 	SV_WriteFrameSnapToClient( client, &tmpMessage );
@@ -397,6 +394,8 @@ static bool SV_SendClientDatagram( client_t *client ) {
 * SV_SendClientMessages
 */
 void SV_SendClientMessages( void ) {
+	ZoneScoped;
+
 	int i;
 	client_t *client;
 

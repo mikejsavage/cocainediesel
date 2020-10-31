@@ -359,7 +359,7 @@ static bool G_asInitializeGametypeScript( asIScriptModule *asModule ) {
 	fdeclstr = "void GT_InitGametype()";
 	level.gametype.initFunc = asModule->GetFunctionByDecl( fdeclstr );
 	if( !level.gametype.initFunc ) {
-		G_Printf( "* The function '%s' was not found. Can not continue.\n", fdeclstr );
+		Com_Printf( "* The function '%s' was not found. Can not continue.\n", fdeclstr );
 		return false;
 	} else {
 		funcCount++;
@@ -369,7 +369,7 @@ static bool G_asInitializeGametypeScript( asIScriptModule *asModule ) {
 	level.gametype.spawnFunc = asModule->GetFunctionByDecl( fdeclstr );
 	if( !level.gametype.spawnFunc ) {
 		if( developer->integer || sv_cheats->integer ) {
-			G_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
+			Com_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
 		}
 	} else {
 		funcCount++;
@@ -379,7 +379,7 @@ static bool G_asInitializeGametypeScript( asIScriptModule *asModule ) {
 	level.gametype.matchStateStartedFunc = asModule->GetFunctionByDecl( fdeclstr );
 	if( !level.gametype.matchStateStartedFunc ) {
 		if( developer->integer || sv_cheats->integer ) {
-			G_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
+			Com_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
 		}
 	} else {
 		funcCount++;
@@ -389,7 +389,7 @@ static bool G_asInitializeGametypeScript( asIScriptModule *asModule ) {
 	level.gametype.matchStateFinishedFunc = asModule->GetFunctionByDecl( fdeclstr );
 	if( !level.gametype.matchStateFinishedFunc ) {
 		if( developer->integer || sv_cheats->integer ) {
-			G_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
+			Com_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
 		}
 	} else {
 		funcCount++;
@@ -399,7 +399,7 @@ static bool G_asInitializeGametypeScript( asIScriptModule *asModule ) {
 	level.gametype.thinkRulesFunc = asModule->GetFunctionByDecl( fdeclstr );
 	if( !level.gametype.thinkRulesFunc ) {
 		if( developer->integer || sv_cheats->integer ) {
-			G_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
+			Com_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
 		}
 	} else {
 		funcCount++;
@@ -409,7 +409,7 @@ static bool G_asInitializeGametypeScript( asIScriptModule *asModule ) {
 	level.gametype.playerRespawnFunc = asModule->GetFunctionByDecl( fdeclstr );
 	if( !level.gametype.playerRespawnFunc ) {
 		if( developer->integer || sv_cheats->integer ) {
-			G_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
+			Com_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
 		}
 	} else {
 		funcCount++;
@@ -419,7 +419,7 @@ static bool G_asInitializeGametypeScript( asIScriptModule *asModule ) {
 	level.gametype.scoreEventFunc = asModule->GetFunctionByDecl( fdeclstr );
 	if( !level.gametype.scoreEventFunc ) {
 		if( developer->integer || sv_cheats->integer ) {
-			G_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
+			Com_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
 		}
 	} else {
 		funcCount++;
@@ -429,7 +429,7 @@ static bool G_asInitializeGametypeScript( asIScriptModule *asModule ) {
 	level.gametype.scoreboardMessageFunc = asModule->GetFunctionByDecl( fdeclstr );
 	if( !level.gametype.scoreboardMessageFunc ) {
 		if( developer->integer || sv_cheats->integer ) {
-			G_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
+			Com_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
 		}
 	} else {
 		funcCount++;
@@ -439,7 +439,7 @@ static bool G_asInitializeGametypeScript( asIScriptModule *asModule ) {
 	level.gametype.selectSpawnPointFunc = asModule->GetFunctionByDecl( fdeclstr );
 	if( !level.gametype.selectSpawnPointFunc ) {
 		if( developer->integer || sv_cheats->integer ) {
-			G_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
+			Com_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
 		}
 	} else {
 		funcCount++;
@@ -449,7 +449,7 @@ static bool G_asInitializeGametypeScript( asIScriptModule *asModule ) {
 	level.gametype.clientCommandFunc = asModule->GetFunctionByDecl( fdeclstr );
 	if( !level.gametype.clientCommandFunc ) {
 		if( developer->integer || sv_cheats->integer ) {
-			G_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
+			Com_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
 		}
 	} else {
 		funcCount++;
@@ -459,7 +459,7 @@ static bool G_asInitializeGametypeScript( asIScriptModule *asModule ) {
 	level.gametype.shutdownFunc = asModule->GetFunctionByDecl( fdeclstr );
 	if( !level.gametype.shutdownFunc ) {
 		if( developer->integer || sv_cheats->integer ) {
-			G_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
+			Com_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
 		}
 	} else {
 		funcCount++;

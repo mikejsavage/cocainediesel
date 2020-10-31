@@ -4,33 +4,6 @@
 
 struct Font;
 
-enum XAlignment {
-	XAlignment_Left,
-	XAlignment_Center,
-	XAlignment_Right,
-};
-
-enum YAlignment {
-	YAlignment_Top,
-	YAlignment_Middle,
-	YAlignment_Bottom,
-};
-
-struct Alignment {
-	XAlignment x;
-	YAlignment y;
-};
-
-constexpr Alignment Alignment_LeftTop = { XAlignment_Left, YAlignment_Top };
-constexpr Alignment Alignment_CenterTop = { XAlignment_Center, YAlignment_Top };
-constexpr Alignment Alignment_RightTop = { XAlignment_Right, YAlignment_Top };
-constexpr Alignment Alignment_LeftMiddle = { XAlignment_Left, YAlignment_Middle };
-constexpr Alignment Alignment_CenterMiddle = { XAlignment_Center, YAlignment_Middle };
-constexpr Alignment Alignment_RightMiddle = { XAlignment_Right, YAlignment_Middle };
-constexpr Alignment Alignment_LeftBottom = { XAlignment_Left, YAlignment_Bottom };
-constexpr Alignment Alignment_CenterBottom = { XAlignment_Center, YAlignment_Bottom };
-constexpr Alignment Alignment_RightBottom = { XAlignment_Right, YAlignment_Bottom };
-
 bool InitText();
 void ShutdownText();
 

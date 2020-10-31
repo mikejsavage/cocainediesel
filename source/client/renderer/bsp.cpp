@@ -2,12 +2,13 @@
 
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-#include "qcommon/assets.h"
 #include "qcommon/array.h"
 #include "qcommon/string.h"
 #include "qcommon/span2d.h"
 #include "client/client.h"
+#include "client/assets.h"
 #include "client/renderer/renderer.h"
+#include "client/maps.h"
 
 #include "physx/PxConfig.h"
 #include "physx/PxPhysicsApi.h"
@@ -15,16 +16,14 @@
 
 #include "meshoptimizer/meshoptimizer.h"
 
-#include "zstd/zstd.h"
-
 enum BSPLump {
 	BSPLump_Entities,
 	BSPLump_Materials,
 	BSPLump_Planes,
-	BSPLump_Nodes_Unused,
-	BSPLump_Leaves_Unused,
+	BSPLump_Nodes,
+	BSPLump_Leaves,
 	BSPLump_LeafFaces_Unused,
-	BSPLump_LeafBrushes_Unused,
+	BSPLump_LeafBrushes,
 	BSPLump_Models,
 	BSPLump_Brushes,
 	BSPLump_BrushSides,
@@ -62,6 +61,28 @@ struct BSPPlane {
 	float distance;
 };
 
+struct BSPNode {
+	int planenum;
+	int children[2];
+	Vec3 mins;
+	Vec3 maxs;
+};
+
+struct BSPLeaf {
+	int cluster;
+	int area;
+	Vec3 mins;
+	Vec3 maxs;
+	int firstLeafFace;
+	int numLeafFaces;
+	int firstLeafBrush;
+	int numLeafBrushes;
+};
+
+struct BSPLeafBrush {
+	int brush;
+};
+
 struct BSPModel {
 	MinMax3 bounds;
 	u32 first_face;
@@ -71,8 +92,8 @@ struct BSPModel {
 };
 
 struct BSPBrush {
-	u32 first_brush_side;
-	u32 num_brush_sides;
+	u32 first_side;
+	u32 num_sides;
 	u32 material;
 };
 
@@ -162,18 +183,18 @@ struct BSPSpans {
 	Span< const char > entities;
 	Span< const BSPMaterial > materials;
 	Span< const BSPPlane > planes;
+	Span< const BSPNode > nodes;
+	Span< const BSPLeaf > leaves;
+	Span< const BSPLeafBrush > leafbrushes;
 	Span< const BSPModel > models;
 	Span< const BSPBrush > brushes;
-	Span< const BSPBrushSide > brush_sides;
-	Span< const RavenBSPBrushSide > raven_brush_sides;
+	Span< const BSPBrushSide > brushsides;
+	Span< const RavenBSPBrushSide > raven_brushsides;
 	Span< const BSPVertex > vertices;
 	Span< const RavenBSPVertex > raven_vertices;
 	Span< const BSPIndex > indices;
 	Span< const BSPFace > faces;
 	Span< const RavenBSPFace > raven_faces;
-
-	Span< const u8 > pvs;
-	u32 cluster_size;
 
 	bool idbsp;
 };
@@ -193,31 +214,6 @@ static bool ParseLump( Span< T > * span, Span< const u8 > data, BSPLump lump ) {
 	return true;
 }
 
-static bool ParsePVS( BSPSpans * bsp, Span< const u8 > data ) {
-	const BSPHeader * header = ( const BSPHeader * ) data.ptr;
-	BSPLumpLocation location = header->lumps[ BSPLump_Visibility ];
-
-	if( location.length == 0 ) {
-		bsp->pvs = Span< const u8 >();
-		bsp->cluster_size = 0;
-		return true;
-	}
-
-	if( location.offset + location.length > data.n )
-		return false;
-
-	const BSPVisbilityHeader * vis_header = ( const BSPVisbilityHeader * ) ( data.ptr + location.offset );
-
-	u32 pvs_size = vis_header->num_clusters * vis_header->cluster_size;
-	if( location.length != sizeof( BSPVisbilityHeader ) + pvs_size )
-		return false;
-
-	bsp->pvs = Span< const u8 >( ( const u8 * ) ( vis_header + 1 ), pvs_size );
-	bsp->cluster_size = vis_header->cluster_size;
-
-	return true;
-}
-
 static bool ParseBSP( BSPSpans * bsp, Span< const u8 > data ) {
 	if( data.n < sizeof( BSPHeader ) )
 		return false;
@@ -231,26 +227,28 @@ static bool ParseBSP( BSPSpans * bsp, Span< const u8 > data ) {
 	ok = ok && ParseLump( &bsp->planes, data, BSPLump_Planes );
 	ok = ok && ParseLump( &bsp->models, data, BSPLump_Models );
 	ok = ok && ParseLump( &bsp->brushes, data, BSPLump_Brushes );
+	ok = ok && ParseLump( &bsp->planes, data, BSPLump_Planes );
+	ok = ok && ParseLump( &bsp->nodes, data, BSPLump_Nodes );
+	ok = ok && ParseLump( &bsp->leaves, data, BSPLump_Leaves );
+	ok = ok && ParseLump( &bsp->leafbrushes, data, BSPLump_LeafBrushes );
 	ok = ok && ParseLump( &bsp->indices, data, BSPLump_Indices );
 
 	if( bsp->idbsp ) {
+		ok = ok && ParseLump( &bsp->brushsides, data, BSPLump_BrushSides );
 		ok = ok && ParseLump( &bsp->vertices, data, BSPLump_Vertices );
 		ok = ok && ParseLump( &bsp->faces, data, BSPLump_Faces );
-		ok = ok && ParseLump( &bsp->brush_sides, data, BSPLump_BrushSides );
+		bsp->raven_brushsides = { };
 		bsp->raven_vertices = { };
 		bsp->raven_faces = { };
-		bsp->raven_brush_sides = { };
 	}
 	else {
+		bsp->brushsides = { };
 		bsp->vertices = { };
 		bsp->faces = { };
-		bsp->brush_sides = { };
+		ok = ok && ParseLump( &bsp->raven_brushsides, data, BSPLump_BrushSides );
 		ok = ok && ParseLump( &bsp->raven_vertices, data, BSPLump_Vertices );
 		ok = ok && ParseLump( &bsp->raven_faces, data, BSPLump_Faces );
-		ok = ok && ParseLump( &bsp->raven_brush_sides, data, BSPLump_BrushSides );
 	}
-
-	ok = ok && ParsePVS( bsp, data );
 
 	return ok;
 }
@@ -258,23 +256,25 @@ static bool ParseBSP( BSPSpans * bsp, Span< const u8 > data ) {
 static float ParseFogStrength( const BSPSpans * bsp ) {
 	ZoneScoped;
 
-	float default_fog_strength = 0.000015f;
+	float default_fog_strength = 0.0007f;
 
 	Span< const char > cursor = bsp->entities;
 
-	if( ParseSpan( &cursor, Parse_DontStopOnNewLine ) != "{" )
+	if( ParseToken( &cursor, Parse_DontStopOnNewLine ) != "{" )
 		return default_fog_strength;
 
 	while( true ) {
-		Span< const char > key = ParseSpan( &cursor, Parse_DontStopOnNewLine );
-		Span< const char > value = ParseSpan( &cursor, Parse_DontStopOnNewLine );
+		Span< const char > key = ParseToken( &cursor, Parse_DontStopOnNewLine );
+		Span< const char > value = ParseToken( &cursor, Parse_DontStopOnNewLine );
 
 		if( key == "" || value == "" || key == "}" )
 			break;
 
 		if( key == "fog_strength" ) {
-			String< 32 > buf( "{}", value );
-			return atof( buf.c_str() );
+			float f;
+			if( SpanToFloat( value, &f ) ) {
+				return f;
+			}
 		}
 	}
 
@@ -298,7 +298,27 @@ struct BSPModelVertex {
 	Vec2 uv;
 };
 
-BSPModelVertex Lerp( const BSPModelVertex & a, float t, const BSPModelVertex & b ) {
+struct GPUBSPPlane {
+	Vec3 normal;
+	float dist;
+};
+
+struct GPUBSPNode {
+	s32 plane;
+	s32 children[ 2 ];
+};
+
+struct GPUBSPLeaf {
+	s32 firstBrush;
+	s32 numBrushes;
+};
+
+struct GPUBSPLeafBrush {
+	u32 firstSide;
+	u32 numSides;
+};
+
+static BSPModelVertex Lerp( const BSPModelVertex & a, float t, const BSPModelVertex & b ) {
 	BSPModelVertex res;
 	res.position = Lerp( a.position, t, b.position );
 	res.normal = Normalize( Lerp( a.normal, t, b.normal ) );
@@ -385,7 +405,7 @@ static void BrushConvexHull( DynamicArray< Vec3 > * hull, const DynamicArray< BS
 
 				if( !PointInsideBrush( planes, p ) )
 					continue;
-				
+
 				hull->add( p );
 			}
 		}
@@ -394,13 +414,13 @@ static void BrushConvexHull( DynamicArray< Vec3 > * hull, const DynamicArray< BS
 
 static void GetBrushPlanes( DynamicArray< BSPPlane > * planes, const BSPSpans & bsp, const BSPBrush & brush ) {
 	if( bsp.idbsp ) {
-		for( u32 j = 0; j < brush.num_brush_sides; j++ ) {
-			planes->add( bsp.planes[ bsp.brush_sides[ brush.first_brush_side + j ].plane ] );
+		for( u32 j = 0; j < brush.num_sides; j++ ) {
+			planes->add( bsp.planes[ bsp.brushsides[ brush.first_side + j ].plane ] );
 		}
 	}
 	else {
-		for( u32 j = 0; j < brush.num_brush_sides; j++ ) {
-			planes->add( bsp.planes[ bsp.raven_brush_sides[ brush.first_brush_side + j ].plane ] );
+		for( u32 j = 0; j < brush.num_sides; j++ ) {
+			planes->add( bsp.planes[ bsp.raven_brushsides[ brush.first_side + j ].plane ] );
 		}
 	}
 }
@@ -626,39 +646,11 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 	}
 }
 
-bool LoadBSPMap( MapMetadata * map, const char * path ) {
+bool LoadBSPRenderData( Map * map, u64 base_hash, Span< const u8 > data ) {
 	ZoneScoped;
-	ZoneText( path, strlen( path ) );
-
-	StringHash hash = StringHash( path );
-	Span< const u8 > compressed = AssetBinary( hash );
-	Span< u8 > decompressed;
-	defer { FREE( sys_allocator, decompressed.ptr ); };
-
-	if( compressed.n < 4 )
-		return false;
-
-	u32 zstd_magic = ZSTD_MAGICNUMBER;
-	if( memcmp( compressed.ptr, &zstd_magic, sizeof( zstd_magic ) ) == 0 ) {
-		unsigned long long const decompressed_size = ZSTD_getDecompressedSize( compressed.ptr, compressed.n );
-		if( decompressed_size == ZSTD_CONTENTSIZE_ERROR || decompressed_size == ZSTD_CONTENTSIZE_UNKNOWN ) {
-			// ri.Com_Error( ERR_DROP, "Corrupt BSP" );
-			return false;
-		}
-
-		decompressed = ALLOC_SPAN( sys_allocator, u8, decompressed_size );
-		{
-			ZoneScopedN( "ZSTD_decompress" );
-			size_t r = ZSTD_decompress( decompressed.ptr, decompressed.n, compressed.ptr, compressed.n );
-			if( r != decompressed_size ) {
-				// ri.Com_Error( ERR_DROP, "Failed to decompress BSP: %s", ZSTD_getErrorName( r ) );
-				return false;
-			}
-		}
-	}
 
 	BSPSpans bsp;
-	if( !ParseBSP( &bsp, decompressed.ptr == NULL ? compressed : decompressed ) )
+	if( !ParseBSP( &bsp, data ) )
 		return false;
 
 	// create common vertex data
@@ -684,23 +676,81 @@ bool LoadBSPMap( MapMetadata * map, const char * path ) {
 		}
 	}
 
-	const char * ext = COM_FileExtension( path );
-	u64 base_hash = Hash64( path, strlen( path ) - strlen( ext ) );
 	for( size_t i = 0; i < bsp.models.n; i++ ) {
 		LoadBSPModel( vertices, bsp, base_hash, i );
 	}
 
 	map->base_hash = base_hash;
 	map->num_models = bsp.models.n;
-	if( bsp.pvs.ptr != NULL ) {
-		map->pvs = ALLOC_SPAN( sys_allocator, u8, bsp.pvs.n );
-		memcpy( map->pvs.ptr, bsp.pvs.ptr, bsp.pvs.num_bytes() );
-	}
-	else {
-		map->pvs = Span< u8 >();
-	}
-	map->cluster_size = bsp.cluster_size;
 	map->fog_strength = ParseFogStrength( &bsp );
+
+
+	DynamicArray< GPUBSPNode > nodes( sys_allocator, bsp.nodes.n );
+	DynamicArray< GPUBSPLeaf > leaves( sys_allocator, bsp.leaves.n );
+	DynamicArray< GPUBSPLeafBrush > leafbrushes( sys_allocator, bsp.leafbrushes.n );
+	DynamicArray< GPUBSPPlane > planes( sys_allocator, bsp.planes.n + bsp.brushsides.n );
+
+	for ( u32 i = 0; i < bsp.nodes.n; i++ )
+	{
+		const BSPNode node = bsp.nodes[ i ];
+		const BSPPlane plane = bsp.planes[ node.planenum ];
+
+		GPUBSPNode gpu_node = { int( planes.size() ), node.children[ 0 ], node.children[ 1 ] };
+		nodes.add( gpu_node );
+		GPUBSPPlane gpu_plane = { plane.normal, plane.distance };
+		planes.add( gpu_plane );
+	}
+
+	for ( u32 i = 0; i < bsp.leaves.n; i++ )
+	{
+		const BSPLeaf leaf = bsp.leaves[ i ];
+		GPUBSPLeaf gpu_leaf = { leaf.firstLeafBrush, leaf.numLeafBrushes };
+		leaves.add( gpu_leaf );
+	}
+	int planes_offset = planes.size();
+	for ( u32 i = 0; i < bsp.leafbrushes.n; i++ )
+	{
+		const BSPLeafBrush leafbrush = bsp.leafbrushes[ i ];
+		const BSPBrush brush = bsp.brushes[ leafbrush.brush ];
+		bool solid = ( bsp.materials[ brush.material ].contents & MASK_PLAYERSOLID ) != 0;
+		GPUBSPLeafBrush gpu_brush = { planes_offset + brush.first_side, solid ? brush.num_sides : 0 };
+		leafbrushes.add( gpu_brush );
+	}
+	for ( u32 i = 0; i < bsp.brushsides.n; i++ )
+	{
+		const BSPBrushSide brushside = bsp.brushsides[ i ];
+		const BSPPlane plane = bsp.planes[ brushside.plane ];
+		GPUBSPPlane gpu_plane = { plane.normal, plane.distance };
+		planes.add( gpu_plane );
+	}
+	for ( u32 i = 0; i < bsp.raven_brushsides.n; i++ )
+	{
+		const RavenBSPBrushSide brushside = bsp.raven_brushsides[ i ];
+		const BSPPlane plane = bsp.planes[ brushside.plane ];
+		GPUBSPPlane gpu_plane = { plane.normal, plane.distance };
+		planes.add( gpu_plane );
+	}
+
+	TextureBuffer nodesBuffer = NewTextureBuffer( TextureBufferFormat_S32x3, nodes.size() );
+	WriteTextureBuffer( nodesBuffer, nodes.ptr(), nodes.size() * sizeof( GPUBSPNode ) );
+	map->nodeBuffer = nodesBuffer;
+
+	TextureBuffer leafBuffer = NewTextureBuffer( TextureBufferFormat_S32x2, leaves.size() );
+	WriteTextureBuffer( leafBuffer, leaves.ptr(), leaves.size() * sizeof( GPUBSPLeaf ) );
+	map->leafBuffer = leafBuffer;
+
+	TextureBuffer brushBuffer = NewTextureBuffer( TextureBufferFormat_S32x2, leafbrushes.size() );
+	WriteTextureBuffer( brushBuffer, leafbrushes.ptr(), leafbrushes.size() * sizeof( GPUBSPLeafBrush ) );
+	map->brushBuffer = brushBuffer;
+
+	TextureBuffer planeBuffer = NewTextureBuffer( TextureBufferFormat_Floatx4, planes.size() );
+	WriteTextureBuffer( planeBuffer, planes.ptr(), planes.size() * sizeof( GPUBSPPlane ) );
+	map->planeBuffer = planeBuffer;
+
+	nodes.clear();
+	leaves.clear();
+	leafbrushes.clear();
+	planes.clear();
 
 	return true;
 }

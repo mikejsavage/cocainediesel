@@ -19,62 +19,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "server/server.h"
+#include "qcommon/cmodel.h"
 #include "qcommon/csprng.h"
+#include "qcommon/hash.h"
 
 server_constant_t svc;              // constant server info (trully persistant since sv_init)
 server_static_t svs;                // persistant server info
 server_t sv;                 // local server
-
-/*
-* SV_FindIndex
-*/
-static int SV_FindIndex( const char *name, int start, int max, bool create ) {
-	int i;
-
-	if( !name || !name[0] ) {
-		return 0;
-	}
-
-	if( strlen( name ) >= MAX_CONFIGSTRING_CHARS ) {
-		Com_Error( ERR_DROP, "Configstring too long: %s\n", name );
-	}
-
-	for( i = 1; i < max && sv.configstrings[start + i][0]; i++ ) {
-		if( !strncmp( sv.configstrings[start + i], name, sizeof( sv.configstrings[start + i] ) ) ) {
-			return i;
-		}
-	}
-
-	if( !create ) {
-		return 0;
-	}
-
-	if( i == max ) {
-		Com_Error( ERR_DROP, "*Index: overflow" );
-	}
-
-	Q_strncpyz( sv.configstrings[start + i], name, sizeof( sv.configstrings[i] ) );
-
-	// send the update to everyone
-	if( sv.state != ss_loading ) {
-		SV_SendServerCommand( NULL, "cs %i \"%s\"", start + i, name );
-	}
-
-	return i;
-}
-
-
-int SV_ModelIndex( const char *name ) {
-	return SV_FindIndex( name, CS_MODELS, MAX_MODELS, true );
-}
-
-int SV_SoundIndex( const char *name ) {
-	return SV_FindIndex( name, CS_SOUNDS, MAX_SOUNDS, true );
-}
-
-int SV_ImageIndex( const char *name ) {
-	return SV_FindIndex( name, CS_IMAGES, MAX_IMAGES, true );
-}
 
 /*
 * SV_CreateBaseline
@@ -84,24 +35,12 @@ int SV_ImageIndex( const char *name ) {
 * baseline will be transmitted
 */
 static void SV_CreateBaseline( void ) {
-	edict_t *svent;
-	int entnum;
-
-	for( entnum = 1; entnum < sv.gi.num_edicts; entnum++ ) {
-		svent = EDICT_NUM( entnum );
-
+	for( int entnum = 1; entnum < sv.gi.num_edicts; entnum++ ) {
+		edict_t * svent = EDICT_NUM( entnum );
 		if( !svent->r.inuse ) {
 			continue;
 		}
-		if( !svent->s.modelindex && !svent->s.sound && !svent->s.effects ) {
-			continue;
-		}
 
-		svent->s.number = entnum;
-
-		//
-		// take current state as baseline
-		//
 		sv.baselines[entnum] = svent->s;
 	}
 }
@@ -110,7 +49,7 @@ static void SV_CreateBaseline( void ) {
 * SV_SetServerConfigStrings
 */
 void SV_SetServerConfigStrings( void ) {
-	Q_snprintfz( sv.configstrings[CS_MAXCLIENTS], sizeof( sv.configstrings[0] ), "%i", sv_maxclients->integer );
+	snprintf( sv.configstrings[CS_MAXCLIENTS], sizeof( sv.configstrings[0] ), "%i", sv_maxclients->integer );
 	Q_strncpyz( sv.configstrings[CS_HOSTNAME], Cvar_String( "sv_hostname" ), sizeof( sv.configstrings[0] ) );
 }
 
@@ -118,16 +57,13 @@ void SV_SetServerConfigStrings( void ) {
 * SV_SpawnServer
 * Change the server to a new map, taking all connected clients along with it.
 */
-static void SV_SpawnServer( const char *server, bool devmap ) {
-	unsigned checksum;
-	int i;
-
+static void SV_SpawnServer( const char *mapname, bool devmap ) {
 	if( devmap ) {
 		Cvar_ForceSet( "sv_cheats", "1" );
 	}
 	Cvar_FixCheatVars();
 
-	Com_Printf( "SpawnServer: %s\n", server );
+	Com_Printf( "SpawnServer: %s\n", mapname );
 
 	svs.spawncount++;   // any partially connected client will be restarted
 
@@ -136,28 +72,15 @@ static void SV_SpawnServer( const char *server, bool devmap ) {
 	// wipe the entire per-level structure
 	memset( &sv, 0, sizeof( sv ) );
 
-	u64 entropy[ 2 ];
-	CSPRNG_Bytes( entropy, sizeof( entropy ) );
-	sv.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
-
 	SV_ResetClientFrameCounters();
-	svs.realtime = 0;
+	svs.realtime = Sys_Milliseconds();
 	svs.gametime = 0;
-
-	Q_strncpyz( sv.mapname, server, sizeof( sv.mapname ) );
 
 	SV_SetServerConfigStrings();
 
 	sv.nextSnapTime = 1000;
 
-	Q_snprintfz( sv.configstrings[CS_WORLDMODEL], sizeof( sv.configstrings[CS_WORLDMODEL] ), "maps/%s.bsp", server );
-	CM_LoadMap( svs.cms, sv.configstrings[CS_WORLDMODEL], false, &checksum );
-
-	Q_snprintfz( sv.configstrings[CS_MAPCHECKSUM], sizeof( sv.configstrings[CS_MAPCHECKSUM] ), "%i", checksum );
-
-	// reserve the first modelIndexes for inline models
-	for( i = 1; i < CM_NumInlineModels( svs.cms ); i++ )
-		Q_snprintfz( sv.configstrings[CS_MODELS + i], sizeof( sv.configstrings[CS_MODELS + i] ), "*%i", i );
+	G_LoadMap( mapname );
 
 	// set serverinfo variable
 	Cvar_FullSet( "mapname", sv.mapname, CVAR_SERVERINFO | CVAR_READONLY, true );
@@ -172,15 +95,14 @@ static void SV_SpawnServer( const char *server, bool devmap ) {
 	Com_SetServerState( sv.state );
 
 	// load and spawn all other entities
-	ge->InitLevel( sv.mapname, CM_EntityString( svs.cms ), CM_EntityStringLen( svs.cms ), 0 );
+	G_InitLevel( sv.mapname, 0 );
+	G_CallVotes_Init();
 
 	// run two frames to allow everything to settle
-	ge->RunFrame( svc.snapFrameTime );
-	ge->RunFrame( svc.snapFrameTime );
+	G_RunFrame( svc.snapFrameTime );
+	G_RunFrame( svc.snapFrameTime );
 
 	SV_CreateBaseline(); // create a baseline for more efficient communications
-
-	Com_SetServerCM( svs.cms, checksum );
 
 	// all precaches are complete
 	sv.state = ss_game;
@@ -210,14 +132,11 @@ void SV_InitGame( void ) {
 		Cvar_GetLatchedVars( CVAR_LATCH );
 	}
 
-	svs.initialized = true;
+	u64 entropy[ 2 ];
+	CSPRNG_Bytes( entropy, sizeof( entropy ) );
+	svs.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
 
-	if( sv_skilllevel->integer > 2 ) {
-		Cvar_ForceSet( "sv_skilllevel", "2" );
-	}
-	if( sv_skilllevel->integer < 0 ) {
-		Cvar_ForceSet( "sv_skilllevel", "0" );
-	}
+	svs.initialized = true;
 
 	// init clients
 	if( sv_maxclients->integer < 1 ) {
@@ -226,10 +145,10 @@ void SV_InitGame( void ) {
 		Cvar_FullSet( "sv_maxclients", va( "%i", MAX_CLIENTS ), CVAR_SERVERINFO | CVAR_LATCH, true );
 	}
 
-	svs.spawncount = rand();
+	svs.spawncount = random_uniform( &svs.rng, 0, S16_MAX );
 	svs.clients = ( client_t * ) Mem_Alloc( sv_mempool, sizeof( client_t ) * sv_maxclients->integer );
 	svs.client_entities.num_entities = sv_maxclients->integer * UPDATE_BACKUP * MAX_SNAP_ENTITIES;
-	svs.client_entities.entities = ( entity_state_t * ) Mem_Alloc( sv_mempool, sizeof( entity_state_t ) * svs.client_entities.num_entities );
+	svs.client_entities.entities = ( SyncEntityState * ) Mem_Alloc( sv_mempool, sizeof( SyncEntityState ) * svs.client_entities.num_entities );
 
 	// init network stuff
 
@@ -278,10 +197,6 @@ void SV_InitGame( void ) {
 		ent->s.number = i + 1;
 		svs.clients[i].edict = ent;
 	}
-
-	// load the map
-	assert( !svs.cms );
-	svs.cms = CM_New( NULL );
 }
 
 /*
@@ -355,28 +270,16 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 	}
 
 	if( svs.cms ) {
-		// CM_ReleaseReference will take care of freeing up the memory
-		// if there are no other modules referencing the collision model
-		CM_ReleaseReference( svs.cms );
+		CM_Free( CM_Server, svs.cms );
 		svs.cms = NULL;
 	}
 
-	Com_SetServerCM( NULL, 0 );
-
-	memset( &sv, 0, sizeof( sv ) );
-	Com_SetServerState( sv.state );
-
-	u64 entropy[ 2 ];
-	CSPRNG_Bytes( entropy, sizeof( entropy ) );
-	sv.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
+	Com_SetServerState( ss_dead );
+	svs.initialized = false;
 
 	if( sv_mempool ) {
 		Mem_EmptyPool( sv_mempool );
 	}
-
-	memset( &svs, 0, sizeof( svs ) );
-
-	svs.initialized = false;
 }
 
 /*
@@ -384,6 +287,8 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 * command from the console or progs.
 */
 void SV_Map( const char *level, bool devmap ) {
+	ZoneScoped;
+
 	client_t *cl;
 	int i;
 

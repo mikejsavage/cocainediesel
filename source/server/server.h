@@ -32,26 +32,27 @@
 
 #define USERINFO_UPDATE_COOLDOWN_MSEC   2000
 
-typedef enum {
+enum server_state_t {
 	ss_dead,        // no map loaded
 	ss_loading,     // spawning level edicts
 	ss_game         // actively running
-} server_state_t;
+};
 
 // some commands are only valid before the server has finished
 // initializing (precache commands, static sounds / objects, etc)
 
-typedef struct ginfo_s {
-	struct edict_s *edicts;
-	struct client_s *clients;
+struct client_t;
+struct ginfo_t {
+	edict_t *edicts;
+	client_t *clients;
 
 	int edict_size;
 	int num_edicts;         // current number, <= max_edicts
 	int max_edicts;
 	int max_clients;        // <= sv_maxclients, <= max_edicts
-} ginfo_t;
+};
 
-typedef struct {
+struct server_t {
 	server_state_t state;       // precache commands are only valid during load
 
 	int64_t nextSnapTime;              // always sv.framenum * svc.snapFrameTime msec
@@ -60,55 +61,50 @@ typedef struct {
 	char mapname[MAX_QPATH];               // map name
 
 	char configstrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
-	entity_state_t baselines[MAX_EDICTS];
-
-	RNG rng;
+	SyncEntityState baselines[MAX_EDICTS];
 
 	//
 	// global variables shared between game and server
 	//
 	ginfo_t gi;
-} server_t;
+};
 
 #define EDICT_NUM( n ) ( (edict_t *)( (uint8_t *)sv.gi.edicts + sv.gi.edict_size * ( n ) ) )
 #define NUM_FOR_EDICT( e ) ( ( (uint8_t *)( e ) - (uint8_t *)sv.gi.edicts ) / sv.gi.edict_size )
 
-typedef struct {
+struct client_snapshot_t {
 	bool allentities;
 	bool multipov;
-	bool relay;
-	int clientarea;
 	int numareas;
-	int areabytes;
 	uint8_t *areabits;                  // portalarea visibility bits
 	int numplayers;
 	int ps_size;
-	player_state_t *ps;                 // [numplayers]
+	SyncPlayerState *ps;                 // [numplayers]
 	int num_entities;
 	int first_entity;                   // into the circular sv.client_entities[]
 	int64_t sentTimeStamp;         // time at what this frame snap was sent to the clients
 	unsigned int UcmdExecuted;
-	game_state_t gameState;
-} client_snapshot_t;
+	SyncGameState gameState;
+};
 
-typedef struct {
+struct client_download_t {
 	char *name;
 	int file;
 	int size;               // total bytes
 	int64_t timeout;   // so we can free the file being downloaded
 	                        // if client omits sending success or failure message
-} client_download_t;
+};
 
-typedef struct {
+struct game_command_t {
 	int64_t framenum;
 	char command[MAX_STRING_CHARS];
-} game_command_t;
+};
 
 #define LATENCY_COUNTS  16
 
 #define HTTP_CLIENT_SESSION_SIZE 16
 
-typedef struct client_s {
+struct client_t {
 	sv_client_state_t state;
 
 	char userinfo[MAX_INFO_STRING];         // name, etc
@@ -158,11 +154,7 @@ typedef struct client_s {
 	int challenge;                  // challenge of this user, randomly generated
 
 	netchan_t netchan;
-
-	int mm_session;
-	unsigned int mm_ticket;
-	char mm_login[MAX_INFO_VALUE];
-} client_t;
+};
 
 // a client can leave the server in one of four ways:
 // dropping properly by quiting or disconnecting
@@ -181,14 +173,14 @@ typedef struct client_s {
 // to be sent to a client into a snap. It's used for finding size of the backup storage
 #define MAX_SNAP_ENTITIES 64
 
-typedef struct {
+struct challenge_t {
 	netadr_t adr;
 	int challenge;
 	int64_t time;
-} challenge_t;
+};
 
 // for server side demo recording
-typedef struct {
+struct server_static_demo_t {
 	int file;
 	char *filename;
 	char *tempname;
@@ -197,24 +189,26 @@ typedef struct {
 	client_t client;                // special client for writing the messages
 	char meta_data[SNAP_MAX_DEMO_META_DATA_SIZE];
 	size_t meta_data_realsize;
-} server_static_demo_t;
+};
 
-typedef struct client_entities_s {
+struct client_entities_t {
 	unsigned num_entities;              // maxclients->integer*UPDATE_BACKUP*MAX_PACKET_ENTITIES
 	unsigned next_entities;             // next client_entity to use
-	entity_state_t *entities;           // [num_entities]
-} client_entities_t;
+	SyncEntityState *entities;           // [num_entities]
+};
 
-typedef struct {
+struct server_static_t {
 	bool initialized;               // sv_init has completed
 	int64_t realtime;               // real world time - always increasing, no clamping, etc
 	int64_t gametime;               // game world time - always increasing, no clamping, etc
 
+	ArenaAllocator frame_arena;
+
+	RNG rng;
+
 	socket_t socket_udp;
 	socket_t socket_udp6;
 	socket_t socket_loopback;
-
-	char mapcmd[MAX_TOKEN_CHARS];       // ie: *intro.cin+base
 
 	int spawncount;                     // incremented each server start
 	                                    // used to check late spawns
@@ -226,16 +220,16 @@ typedef struct {
 
 	server_static_demo_t demo;
 
-	cmodel_state_t *cms;                // passed to CM-functions
-} server_static_t;
+	CollisionModel *cms;                // passed to CM-functions
+};
 
-typedef struct {
+struct server_constant_t {
 	int64_t nextHeartbeat;
 	unsigned int snapFrameTime;     // msecs between server packets
 	unsigned int gameFrameTime;     // msecs between game code executions
 	bool autostarted;
 	int64_t lastMasterResolve;
-} server_constant_t;
+};
 
 //=============================================================================
 
@@ -255,7 +249,6 @@ extern cvar_t *sv_port;
 extern cvar_t *sv_ip6;
 extern cvar_t *sv_port6;
 
-#ifdef HTTP_SUPPORT
 extern cvar_t *sv_http;
 extern cvar_t *sv_http_ip;
 extern cvar_t *sv_http_ipv6;
@@ -263,9 +256,7 @@ extern cvar_t *sv_http_port;
 extern cvar_t *sv_http_upstream_baseurl;
 extern cvar_t *sv_http_upstream_ip;
 extern cvar_t *sv_http_upstream_realip_header;
-#endif
 
-extern cvar_t *sv_skilllevel;
 extern cvar_t *sv_maxclients;
 
 extern cvar_t *sv_showRcon;
@@ -289,10 +280,6 @@ extern cvar_t *sv_demodir;
 //
 // sv_main.c
 //
-int SV_ModelIndex( const char *name );
-int SV_SoundIndex( const char *name );
-int SV_ImageIndex( const char *name );
-
 void SV_WriteClientdataToMessage( client_t *client, msg_t *msg );
 
 void SV_InitOperatorCommands( void );
@@ -321,11 +308,6 @@ void SV_Map( const char *level, bool devmap );
 void SV_SetServerConfigStrings( void );
 
 //
-// sv_phys.c
-//
-void SV_PrepWorldFrame( void );
-
-//
 // sv_send.c
 //
 bool SV_Netchan_Transmit( netchan_t *netchan, msg_t *msg );
@@ -338,28 +320,22 @@ void SV_InitClientMessage( client_t *client, msg_t *msg, uint8_t *data, size_t s
 bool SV_SendMessageToClient( client_t *client, msg_t *msg );
 void SV_ResetClientFrameCounters( void );
 
-typedef enum { RD_NONE, RD_PACKET } redirect_t;
-
-// destination class for SV_multicast
-typedef enum {
-	MULTICAST_ALL,
-	MULTICAST_PHS,
-	MULTICAST_PVS
-} multicast_t;
+enum redirect_t {
+	RD_NONE,
+	RD_PACKET,
+};
 
 #define SV_OUTPUTBUF_LENGTH ( MAX_MSGLEN - 16 )
 
 extern char sv_outputbuf[SV_OUTPUTBUF_LENGTH];
 
-typedef struct {
+struct flush_params_t {
 	const socket_t *socket;
 	const netadr_t *address;
-} flush_params_t;
+};
 
 void SV_FlushRedirect( int sv_redirected, const char *outputbuf, const void *extra );
 void SV_SendClientMessages( void );
-
-void SV_Multicast( vec3_t origin, multicast_t to );
 
 #ifndef _MSC_VER
 void SV_BroadcastCommand( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
@@ -399,13 +375,15 @@ void SV_BuildClientFrameSnap( client_t *client );
 //
 // sv_game.c
 //
-extern game_export_t *ge;
-
 void SV_InitGameProgs( void );
 void SV_ShutdownGameProgs( void );
 
-
-//============================================================
+void PF_DropClient( edict_t *ent, int type, const char *message );
+int PF_GetClientState( int numClient );
+void PF_GameCmd( edict_t *ent, const char *cmd );
+void PF_ConfigString( int index, const char *val );
+const char *PF_GetConfigString( int index );
+void SV_LocateEntities( edict_t *edicts, size_t edict_size, int num_edicts, int max_edicts );
 
 //
 // sv_demos.c
@@ -435,3 +413,15 @@ bool SV_Web_Running( void );
 const char *SV_Web_UpstreamBaseUrl( void );
 bool SV_Web_AddGameClient( const char *session, int clientNum, const netadr_t *netAdr );
 void SV_Web_RemoveGameClient( const char *session );
+
+//
+// snap_write
+//
+void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int64_t frameNum, int64_t gameTime,
+	SyncEntityState *baselines, client_entities_t *client_entities );
+
+void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
+	client_t *client,
+	SyncGameState *gameState, client_entities_t *client_entities,
+	mempool_t *mempool );
+void SNAP_FreeClientFrames( client_t * client );

@@ -17,66 +17,77 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#include "cgame/cg_local.h"
+#include "client/renderer/renderer.h"
 
-// - Adding the View Weapon to the scene
-
-
-#include "cg_local.h"
-
-
-/*
-* CG_ViewWeapon_UpdateProjectionSource
-*/
-static void CG_ViewWeapon_UpdateProjectionSource( const vec3_t hand_origin, const mat3_t hand_axis, const vec3_t weap_origin, const mat3_t weap_axis ) {
+static void CG_ViewWeapon_UpdateProjectionSource( Vec3 hand_origin, const mat3_t hand_axis, Vec3 weap_origin, const mat3_t weap_axis ) {
 	orientation_t *tag_result = &cg.weapon.projectionSource;
 	orientation_t tag_weapon;
-	weaponinfo_t *weaponInfo;
 
-	VectorCopy( vec3_origin, tag_weapon.origin );
+	tag_weapon.origin = Vec3( 0.0f );
 	Matrix3_Copy( axis_identity, tag_weapon.axis );
 
 	// move to tag_weapon
-	CG_MoveToTag( tag_weapon.origin, tag_weapon.axis,
+	CG_MoveToTag( &tag_weapon.origin, tag_weapon.axis,
 				  hand_origin, hand_axis,
 				  weap_origin, weap_axis );
 
-	weaponInfo = CG_GetWeaponInfo( cg.weapon.weapon );
+	const WeaponModelMetadata * weaponInfo = GetWeaponModelMetadata( cg.predictedPlayerState.weapon );
 
 	// move to projectionSource tag
 	if( weaponInfo ) {
-		VectorCopy( vec3_origin, tag_result->origin );
+		tag_result->origin = Vec3( 0.0f );
 		Matrix3_Copy( axis_identity, tag_result->axis );
-		CG_MoveToTag( tag_result->origin, tag_result->axis,
+		CG_MoveToTag( &tag_result->origin, tag_result->axis,
 					  tag_weapon.origin, tag_weapon.axis,
 					  weaponInfo->tag_projectionsource.origin, weaponInfo->tag_projectionsource.axis );
 		return;
 	}
 
 	// fall back: copy gun origin and move it front by 16 units and 8 up
-	VectorCopy( tag_weapon.origin, tag_result->origin );
+	tag_result->origin = tag_weapon.origin;
 	Matrix3_Copy( tag_weapon.axis, tag_result->axis );
-	VectorMA( tag_result->origin, 16, &tag_result->axis[AXIS_FORWARD], tag_result->origin );
-	VectorMA( tag_result->origin, 8, &tag_result->axis[AXIS_UP], tag_result->origin );
+	tag_result->origin += FromQFAxis( tag_result->axis, AXIS_FORWARD ) * 16.0f;
+	tag_result->origin += FromQFAxis( tag_result->axis, AXIS_UP ) * 8.0f;
 }
 
-/*
-* CG_ViewWeapon_AddAngleEffects
-*/
-static void CG_ViewWeapon_AddAngleEffects( vec3_t angles ) {
-	if( !cg.view.drawWeapon ) {
-		return;
+static float SmoothStep( float t ) {
+	return t * t * ( 3.0f - 2.0f * t );
+}
+
+static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles ) {
+	const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapon );
+
+	if( cg.predictedPlayerState.weapon_state == WeaponState_Firing || cg.predictedPlayerState.weapon_state == WeaponState_FiringSemiAuto ) {
+		float frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->refire_time );
+		angles->x -= def->refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+	}
+	else if( cg.predictedPlayerState.weapon_state == WeaponState_SwitchingIn || cg.predictedPlayerState.weapon_state == WeaponState_SwitchingOut ) {
+		float frac;
+		if( cg.predictedPlayerState.weapon_state == WeaponState_SwitchingIn ) {
+			frac = float( cg.predictedPlayerState.weapon_time ) / float( def->weaponup_time );
+		}
+		else {
+			frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->weapondown_time );
+		}
+		frac *= frac; //smoother curve
+		angles->x += Lerp( 0.0f, frac, 60.0f );
+	}
+	else if( cg.predictedPlayerState.weapon_state == WeaponState_Reloading ) {
+		float frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->reload_time );
+		angles->z += Lerp( 0.0f, SmoothStep( frac ), 360.0f );
 	}
 
-	if( cg_gun->integer && cg_gunbob->integer ) {
+	if( cg_gunbob->integer ) {
 		// gun angles from bobbing
 		if( cg.bobCycle & 1 ) {
-			angles[ROLL] -= cg.xyspeed * cg.bobFracSin * 0.012;
-			angles[YAW] -= cg.xyspeed * cg.bobFracSin * 0.006;
+			angles->z -= cg.xyspeed * cg.bobFracSin * 0.012f;
+			angles->y -= cg.xyspeed * cg.bobFracSin * 0.006f;
 		} else {
-			angles[ROLL] += cg.xyspeed * cg.bobFracSin * 0.012;
-			angles[YAW] += cg.xyspeed * cg.bobFracSin * 0.006;
+			angles->z += cg.xyspeed * cg.bobFracSin * 0.012f;
+			angles->y += cg.xyspeed * cg.bobFracSin * 0.006f;
 		}
-		angles[PITCH] += cg.xyspeed * cg.bobFracSin * 0.012;
+		angles->x += cg.xyspeed * cg.bobFracSin * 0.012f;
 
 		// gun angles from delta movement
 		for( int i = 0; i < 3; i++ ) {
@@ -84,158 +95,16 @@ static void CG_ViewWeapon_AddAngleEffects( vec3_t angles ) {
 			delta = Clamp( -45.0f, delta, 45.0f );
 
 			if( i == YAW ) {
-				angles[ROLL] += 0.001 * delta;
+				angles->z += 0.001f * delta;
 			}
-			angles[i] += 0.002 * delta;
+			angles->ptr()[i] += 0.002f * delta;
 		}
 
 		// gun angles from kicks
-		CG_AddKickAngles( angles );
+		*angles += CG_GetKickAngles();
 	}
 }
 
-/*
-* CG_ViewWeapon_baseanimFromWeaponState
-*/
-static int CG_ViewWeapon_baseanimFromWeaponState( int weaponState ) {
-	if( weaponState == WEAPON_STATE_ACTIVATING )
-		return WEAPANIM_WEAPONUP;
-
-	if( weaponState == WEAPON_STATE_DROPPING )
-		return WEAPANIM_WEAPDOWN;
-
-	return cg_gunbob->integer ? WEAPANIM_STANDBY : WEAPANIM_NOANIM;
-}
-
-/*
-* CG_FrameForTime
-* Returns the frame and interpolation fraction for current time in an animation started at a given time.
-* When the animation is finished it will return frame -1. Takes looping into account. Looping animations
-* are never finished.
-*/
-static float CG_FrameForTime( int *frame, int64_t curTime, int64_t startTimeStamp, float frametime, int firstframe, int lastframe, int loopingframes, bool forceLoop ) {
-	int64_t runningtime, framecount;
-	int curframe;
-	float framefrac;
-
-	if( curTime <= startTimeStamp ) {
-		*frame = firstframe;
-		return 0.0f;
-	}
-
-	if( firstframe == lastframe ) {
-		*frame = firstframe;
-		return 1.0f;
-	}
-
-	runningtime = curTime - startTimeStamp;
-	framefrac = ( (double)runningtime / (double)frametime );
-	framecount = (unsigned int)framefrac;
-	framefrac -= framecount;
-
-	curframe = firstframe + framecount;
-	if( curframe > lastframe ) {
-		if( forceLoop && !loopingframes ) {
-			loopingframes = lastframe - firstframe;
-		}
-
-		if( loopingframes ) {
-			unsigned int numloops;
-			unsigned int startcount;
-
-			startcount = ( lastframe - firstframe ) - loopingframes;
-
-			numloops = ( framecount - startcount ) / loopingframes;
-			curframe -= loopingframes * numloops;
-			if( loopingframes == 1 ) {
-				framefrac = 1.0f;
-			}
-		} else {
-			curframe = -1;
-		}
-	}
-
-	*frame = curframe;
-
-	return framefrac;
-}
-
-
-/*
-* CG_ViewWeapon_RefreshAnimation
-*/
-void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon ) {
-	int baseAnim;
-	weaponinfo_t *weaponInfo;
-	int curframe = 0;
-	float framefrac;
-
-	// if the pov changed, or weapon changed, force restart
-	if( viewweapon->POVnum != cg.predictedPlayerState.POVnum ||
-		viewweapon->weapon != cg.predictedPlayerState.stats[STAT_WEAPON] ) {
-		viewweapon->eventAnim = 0;
-		viewweapon->eventAnimStartTime = 0;
-		viewweapon->baseAnim = 0;
-		viewweapon->baseAnimStartTime = 0;
-	}
-
-	viewweapon->POVnum = cg.predictedPlayerState.POVnum;
-	viewweapon->weapon = cg.predictedPlayerState.stats[STAT_WEAPON];
-
-	// hack cause of missing animation config
-	if( viewweapon->weapon == WEAP_NONE ) {
-		viewweapon->eventAnim = 0;
-		viewweapon->eventAnimStartTime = 0;
-		return;
-	}
-
-	baseAnim = CG_ViewWeapon_baseanimFromWeaponState( cg.predictedPlayerState.weaponState );
-	weaponInfo = CG_GetWeaponInfo( viewweapon->weapon );
-
-	// Full restart
-	if( !viewweapon->baseAnimStartTime ) {
-		viewweapon->baseAnim = baseAnim;
-		viewweapon->baseAnimStartTime = cl.serverTime;
-	}
-
-	// base animation changed?
-	if( baseAnim != viewweapon->baseAnim ) {
-		viewweapon->baseAnim = baseAnim;
-		viewweapon->baseAnimStartTime = cl.serverTime;
-	}
-
-	// if a eventual animation is running override the baseAnim
-	if( viewweapon->eventAnim ) {
-		if( !viewweapon->eventAnimStartTime ) {
-			viewweapon->eventAnimStartTime = cl.serverTime;
-		}
-
-		framefrac = CG_FrameForTime( &curframe, cl.serverTime, viewweapon->eventAnimStartTime, weaponInfo->frametime[viewweapon->eventAnim],
-									 weaponInfo->firstframe[viewweapon->eventAnim], weaponInfo->lastframe[viewweapon->eventAnim],
-									 weaponInfo->loopingframes[viewweapon->eventAnim], false );
-
-		if( curframe >= 0 ) {
-			return;
-		}
-
-		// disable event anim and fall through
-		viewweapon->eventAnim = 0;
-		viewweapon->eventAnimStartTime = 0;
-	}
-
-	// find new frame for the current animation
-	framefrac = CG_FrameForTime( &curframe, cl.serverTime, viewweapon->baseAnimStartTime, weaponInfo->frametime[viewweapon->baseAnim],
-								 weaponInfo->firstframe[viewweapon->baseAnim], weaponInfo->lastframe[viewweapon->baseAnim],
-								 weaponInfo->loopingframes[viewweapon->baseAnim], true );
-
-	if( curframe < 0 ) {
-		CG_Error( "CG_ViewWeapon_UpdateAnimation(2): Base Animation without a defined loop.\n" );
-	}
-}
-
-/*
-* CG_ViewWeapon_StartAnimationEvent
-*/
 void CG_ViewWeapon_StartAnimationEvent( int newAnim ) {
 	if( !cg.view.drawWeapon ) {
 		return;
@@ -243,41 +112,23 @@ void CG_ViewWeapon_StartAnimationEvent( int newAnim ) {
 
 	cg.weapon.eventAnim = newAnim;
 	cg.weapon.eventAnimStartTime = cl.serverTime;
-	CG_ViewWeapon_RefreshAnimation( &cg.weapon );
 }
 
-/*
-* CG_CalcViewWeapon
-*/
 void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
-	orientation_t tag;
-	weaponinfo_t *weaponInfo;
-	vec3_t gunAngles;
-	vec3_t gunOffset;
-	float handOffset;
-
-	CG_ViewWeapon_RefreshAnimation( viewweapon );
-
-	weaponInfo = CG_GetWeaponInfo( viewweapon->weapon );
-	viewweapon->ent.model = weaponInfo->model[WEAPMODEL_HAND];
-	viewweapon->ent.scale = 1.0f;
-	viewweapon->ent.override_material = NULL;
-	viewweapon->ent.color = rgba8_white;
+	const WeaponModelMetadata * weaponInfo = GetWeaponModelMetadata( cg.predictedPlayerState.weapon );
 
 	// calculate the entity position
-	VectorCopy( cg.view.origin, viewweapon->ent.origin );
+	viewweapon->origin = cg.view.origin;
 
 	// weapon config offsets
-	VectorAdd( weaponInfo->handpositionAngles, cg.predictedPlayerState.viewangles, gunAngles );
-	gunOffset[FORWARD] = cg_gunz->value + weaponInfo->handpositionOrigin[FORWARD];
-	gunOffset[RIGHT] = cg_gunx->value + weaponInfo->handpositionOrigin[RIGHT];
-	gunOffset[UP] = cg_guny->value + weaponInfo->handpositionOrigin[UP];
+	Vec3 gunAngles = weaponInfo->handpositionAngles + cg.predictedPlayerState.viewangles;
+	Vec3 gunOffset = weaponInfo->handpositionOrigin + Vec3( cg_gunz->value, cg_gunx->value, cg_guny->value );
 
 	// scale forward gun offset depending on fov and aspect ratio
-	gunOffset[FORWARD] = gunOffset[FORWARD] * frame_static.viewport_width / ( frame_static.viewport_height * cg.view.fracDistFOV ) ;
+	gunOffset.x *= frame_static.viewport_width / ( frame_static.viewport_height * cg.view.fracDistFOV ) ;
 
 	// hand cvar offset
-	handOffset = 0.0f;
+	float handOffset = 0.0f;
 	if( cgs.demoPlaying ) {
 		if( cg_hand->integer == 0 ) {
 			handOffset = cg_handOffset->value;
@@ -292,64 +143,106 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 		}
 	}
 
-	gunOffset[RIGHT] += handOffset;
-	if( cg_gun->integer && cg_gunbob->integer ) {
-		gunOffset[UP] += CG_ViewSmoothFallKick();
+	gunOffset.y += handOffset;
+	if( cg_gunbob->integer ) {
+		gunOffset.z += CG_ViewSmoothFallKick();
 	}
 
 	// apply the offsets
-	VectorMA( viewweapon->ent.origin, gunOffset[FORWARD], &cg.view.axis[AXIS_FORWARD], viewweapon->ent.origin );
-	VectorMA( viewweapon->ent.origin, gunOffset[RIGHT], &cg.view.axis[AXIS_RIGHT], viewweapon->ent.origin );
-	VectorMA( viewweapon->ent.origin, gunOffset[UP], &cg.view.axis[AXIS_UP], viewweapon->ent.origin );
+	viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * gunOffset.x;
+	viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_RIGHT ) * gunOffset.y;
+	viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_UP ) * gunOffset.z;
 
 	// add angles effects
-	CG_ViewWeapon_AddAngleEffects( gunAngles );
+	CG_ViewWeapon_AddAngleEffects( &gunAngles );
 
 	// finish
-	AnglesToAxis( gunAngles, viewweapon->ent.axis );
+	AnglesToAxis( gunAngles, viewweapon->axis );
 
-	if( cg_gun_fov->integer && !cg.predictedPlayerState.pmove.stats[PM_STAT_ZOOMTIME] ) {
-		float fracWeapFOV;
-		float gun_fov_y = WidescreenFov( bound( 20, cg_gun_fov->value, 160 ) );
+	if( cg_gun_fov->integer && cg.predictedPlayerState.zoom_time == 0 ) {
+		float gun_fov_y = WidescreenFov( Clamp( 20.0f, cg_gun_fov->value, 160.0f ) );
 		float gun_fov_x = CalcHorizontalFov( gun_fov_y, frame_static.viewport_width, frame_static.viewport_height );
 
-		fracWeapFOV = tan( DEG2RAD( gun_fov_x ) * 0.5f ) / cg.view.fracDistFOV;
+		float fracWeapFOV = tanf( Radians( gun_fov_x ) * 0.5f ) / cg.view.fracDistFOV;
 
-		VectorScale( &viewweapon->ent.axis[AXIS_FORWARD], fracWeapFOV, &viewweapon->ent.axis[AXIS_FORWARD] );
+		viewweapon->axis[AXIS_FORWARD] *= fracWeapFOV;
+		viewweapon->axis[AXIS_FORWARD + 1] *= fracWeapFOV;
+		viewweapon->axis[AXIS_FORWARD + 2] *= fracWeapFOV;
 	}
 
-	// if the player doesn't want to view the weapon we still have to build the projection source
-	if( CG_GrabTag( &tag, &viewweapon->ent, "tag_weapon" ) ) {
-		CG_ViewWeapon_UpdateProjectionSource( viewweapon->ent.origin, viewweapon->ent.axis, tag.origin, tag.axis );
-	} else {
-		CG_ViewWeapon_UpdateProjectionSource( viewweapon->ent.origin, viewweapon->ent.axis, vec3_origin, axis_identity );
-	}
+	CG_ViewWeapon_UpdateProjectionSource( viewweapon->origin, viewweapon->axis, Vec3( 0.0f ), axis_identity );
 }
 
-/*
-* CG_AddViewWeapon
-*/
 void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
-	orientation_t tag;
-	int64_t flash_time = 0;
-
-	if( !cg.view.drawWeapon || viewweapon->weapon == WEAP_NONE ) {
+	if( !cg.view.drawWeapon || cg.predictedPlayerState.weapon == Weapon_None )
 		return;
+
+	const Model * model = GetWeaponModelMetadata( cg.predictedPlayerState.weapon )->model;
+	Mat4 transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
+	DrawViewWeapon( model, transform );
+}
+
+void CG_AddRecoil( WeaponType weapon ) {
+	if( !cg.recoiling ) {
+		cg.recoil_initial = cl.viewangles;
+		cg.recoiling = true;
 	}
+	constexpr float recenter_mult = 1.0f / 16.0f;
+	Vec2 recoil = GS_GetWeaponDef( weapon )->recoil;
+	Vec2 viewKickMin = Vec2( -recoil.x, -recoil.y );
+	Vec2 viewKickMax = Vec2( 0.0f, recoil.y );
+	Vec2 viewKickMinMag = GS_GetWeaponDef( weapon )->recoil_min;
 
-	// update the other origins
-	VectorCopy( viewweapon->ent.origin, viewweapon->ent.origin2 );
+	Vec3 kick = Vec3( 0.0f );
+	Vec3 dir_to_center = AngleDelta( cg.recoil_initial, cl.viewangles );
+	for( size_t i = 0; i < 2; i++ ) {
+		float amount = random_uniform_float( &cls.rng, viewKickMin[ i ] + viewKickMinMag[ i ], viewKickMax[ i ] - viewKickMinMag[ i ] );
+		if( amount < 0.0f ) {
+			amount -= viewKickMinMag[ i ];
+		}
+		else {
+			amount += viewKickMinMag[ i ];
+		}
 
-	CG_AddOutline( &viewweapon->ent, cg.effects, RGBA8( 0, 0, 0, viewweapon->ent.color.a ) );
-	CG_AddEntityToScene( &viewweapon->ent );
+		bool recentering = ( dir_to_center[ i ] * amount ) > 0.0f;
+		float mult = recentering ? recenter_mult : 1.0f;
 
-	if( cg_weaponFlashes->integer == 2 ) {
-		flash_time = cg_entPModels[viewweapon->POVnum].flash_time;
+		kick[ i ] = amount * mult;
 	}
+	cg.recoil = kick;
+}
 
-	// add attached weapon
-	if( CG_GrabTag( &tag, &viewweapon->ent, "tag_weapon" ) ) {
-		CG_AddWeaponOnTag( &viewweapon->ent, &tag, viewweapon->weapon, cg.effects, NULL, flash_time,
-			cg_entPModels[viewweapon->POVnum].barrel_time );
+void CG_Recoil( WeaponType weapon ) {
+	if( cg.recoiling ) {
+		constexpr float recenter_mult = 1.0f / 16.0f;
+		constexpr float stop_epsilon = 0.01f;
+		float viewKickCenterSpeed = GS_GetWeaponDef( weapon )->recoil_recover;
+
+		float dt = cls.frametime * 0.001f;
+		Vec3 dir_to_center = AngleDelta( cg.recoil_initial, cl.viewangles );
+		for( size_t i = 0; i < 2; i++ ) {
+			bool recentering = ( dir_to_center[ i ] * cg.recoil[ i ] ) > 0.0f;
+			float direction = ( dir_to_center[ i ] > 0.0f ) - ( dir_to_center[ i ] < 0.0f );
+			float mult = recentering ? recenter_mult : 1.0f;
+			float accel = viewKickCenterSpeed * direction * mult;
+
+			float correction = cl.viewangles[ i ] - cl.prevviewangles[ i ];
+			if( correction * dir_to_center[ i ] <= 0.0f ) {
+				cg.recoil_initial[ i ] += correction;
+				dir_to_center[ i ] += correction;
+			}
+
+			if( recentering && Abs( cg.recoil[ i ] * dt ) > Abs( dir_to_center[ i ] ) ) {
+				cg.recoil[ i ] = 0.0f;
+				cl.viewangles[ i ] = cg.recoil_initial[ i ];
+			} else {
+				cl.viewangles[ i ] += cg.recoil[ i ] * dt;
+			}
+			cg.recoil[ i ] += accel * dt;
+		}
+
+		if( Length( AngleDelta( cg.recoil_initial, cl.viewangles ) ) < stop_epsilon ) {
+			cg.recoiling = false;
+		}
 	}
 }

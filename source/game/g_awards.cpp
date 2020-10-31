@@ -19,29 +19,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "g_local.h"
+#include "game/g_local.h"
 
 void G_PlayerAward( edict_t *ent, const char *awardMsg ) {
-	edict_t *other;
 	char cmd[MAX_STRING_CHARS];
 
 	if( !awardMsg || !awardMsg[0] || !ent->r.client ) {
 		return;
 	}
 
-	Q_snprintfz( cmd, sizeof( cmd ), "aw \"%s\"", awardMsg );
-	trap_GameCmd( ent, cmd );
+	snprintf( cmd, sizeof( cmd ), "aw \"%s\"", awardMsg );
+	PF_GameCmd( ent, cmd );
 
 	G_Gametype_ScoreEvent( ent->r.client, "award", awardMsg );
 
 	// add it to every player who's chasing this player
-	for( other = game.edicts + 1; PLAYERNUM( other ) < server_gs.maxclients; other++ ) {
+	for( edict_t * other = game.edicts + 1; PLAYERNUM( other ) < server_gs.maxclients; other++ ) {
 		if( !other->r.client || !other->r.inuse || !other->r.client->resp.chase.active ) {
 			continue;
 		}
 
 		if( other->r.client->resp.chase.target == ENTNUM( ent ) ) {
-			trap_GameCmd( other, cmd );
+			PF_GameCmd( other, cmd );
 		}
 	}
 }

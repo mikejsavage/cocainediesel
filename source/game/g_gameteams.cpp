@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 cvar_t *g_teams_maxplayers;
 cvar_t *g_teams_allow_uneven;
+cvar_t *g_teams_autojoin;
 
 /*
 * G_Teams_Init
@@ -34,8 +35,9 @@ cvar_t *g_teams_allow_uneven;
 void G_Teams_Init( void ) {
 	edict_t *ent;
 
-	g_teams_maxplayers = trap_Cvar_Get( "g_teams_maxplayers", "0", CVAR_ARCHIVE );
-	g_teams_allow_uneven = trap_Cvar_Get( "g_teams_allow_uneven", "1", CVAR_ARCHIVE );
+	g_teams_maxplayers = Cvar_Get( "g_teams_maxplayers", "0", CVAR_ARCHIVE );
+	g_teams_allow_uneven = Cvar_Get( "g_teams_allow_uneven", "1", CVAR_ARCHIVE );
+	g_teams_autojoin = Cvar_Get( "g_teams_autojoin", "1", CVAR_ARCHIVE );
 
 	//unlock all teams and clear up team lists
 	memset( teamlist, 0, sizeof( teamlist ) );
@@ -44,6 +46,7 @@ void G_Teams_Init( void ) {
 		if( ent->r.inuse ) {
 			memset( &ent->r.client->teamstate, 0, sizeof( ent->r.client->teamstate ) );
 			memset( &ent->r.client->resp, 0, sizeof( ent->r.client->resp ) );
+
 			ent->s.team = ent->r.client->team = TEAM_SPECTATOR;
 			G_GhostClient( ent );
 			ent->movetype = MOVETYPE_NOCLIP; // allow freefly
@@ -51,7 +54,6 @@ void G_Teams_Init( void ) {
 			ent->r.client->resp.timeStamp = level.time;
 		}
 	}
-
 }
 
 static int G_Teams_CompareMembers( const void *a, const void *b ) {
@@ -84,7 +86,7 @@ void G_Teams_UpdateMembersList( void ) {
 
 		//create a temp list with the clients inside this team
 		for( i = 0, ent = game.edicts + 1; i < server_gs.maxclients; i++, ent++ ) {
-			if( !ent->r.client || ( trap_GetClientState( PLAYERNUM( ent ) ) < CS_CONNECTED ) ) {
+			if( !ent->r.client || ( PF_GetClientState( PLAYERNUM( ent ) ) < CS_CONNECTED ) ) {
 				continue;
 			}
 
@@ -165,14 +167,14 @@ void G_Teams_SetTeam( edict_t *ent, int team ) {
 		ent->r.client->teamstate.timeStamp = level.time;
 	}
 
+	if( ent->r.client->team == TEAM_SPECTATOR || team == TEAM_SPECTATOR ) {
+		level.ready[PLAYERNUM( ent )] = false;
+	}
+
 	ent->r.client->team = team;
 
 	G_ClientRespawn( ent, true ); // make ghost using G_ClientRespawn so team is updated at ghosting
 	G_SpawnQueue_AddClient( ent );
-
-	level.ready[PLAYERNUM( ent )] = false;
-
-	G_Match_CheckReadys();
 }
 
 enum
@@ -209,7 +211,7 @@ static bool G_Teams_CanKeepEvenTeam( int leaving, int joining ) {
 		}
 	}
 
-	return teamlist[joining].numplayers + 1 == min || abs( max - min ) <= 1;
+	return teamlist[joining].numplayers + 1 == min || Abs( max - min ) <= 1;
 }
 
 /*
@@ -217,7 +219,7 @@ static bool G_Teams_CanKeepEvenTeam( int leaving, int joining ) {
 */
 static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
 	if( team < 0 || team >= GS_MAX_TEAMS ) {
-		G_Printf( "WARNING: 'G_GameTypes_CanJoinTeam' parsing a unrecognized team value\n" );
+		Com_Printf( "WARNING: 'G_GameTypes_CanJoinTeam' parsing a unrecognized team value\n" );
 		return ER_TEAM_INVALID;
 	}
 
@@ -244,7 +246,7 @@ static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
 		return ER_TEAM_LOCKED;
 	}
 
-	if( !GS_TeamBasedGametype( &server_gs ) ) {
+	if( !level.gametype.isTeamBased ) {
 		return team == TEAM_PLAYERS ? ER_TEAM_OK : ER_TEAM_INVALID;
 	}
 
@@ -309,14 +311,15 @@ bool G_Teams_JoinTeam( edict_t *ent, int team ) {
 * G_Teams_JoinAnyTeam - find us a team since we are too lazy to do ourselves
 */
 bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
-	int best_numplayers = server_gs.maxclients + 1, best_score = 999999;
+	int best_numplayers = server_gs.maxclients + 1;
+	u8 best_score;
 	int i, team = -1;
 	bool wasinqueue = ( ent->r.client->queueTimeStamp != 0 );
 
 	G_Teams_UpdateMembersList(); // make sure we have up-to-date data
 
 	//depending on the gametype, of course
-	if( !GS_TeamBasedGametype( &server_gs ) ) {
+	if( !level.gametype.isTeamBased ) {
 		if( ent->s.team == TEAM_PLAYERS ) {
 			if( !silent ) {
 				G_PrintMsg( ent, "You are already in %s team\n", GS_TeamName( TEAM_PLAYERS ) );
@@ -329,19 +332,17 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 			}
 		}
 		return true;
-
 	} else {   //team based
-
 		//find the available team with smaller player count or worse score
 		for( i = TEAM_ALPHA; i < GS_MAX_TEAMS; i++ ) {
 			if( G_GameTypes_DenyJoinTeam( ent, i ) ) {
 				continue;
 			}
 
-			if( team == -1 || teamlist[i].numplayers < best_numplayers
-				|| ( teamlist[i].numplayers == best_numplayers && teamlist[i].stats.score < best_score ) ) {
+			u8 team_score = i == TEAM_ALPHA ? server_gs.gameState.bomb.alpha_score : server_gs.gameState.bomb.beta_score;
+			if( team == -1 || teamlist[i].numplayers < best_numplayers || ( teamlist[i].numplayers == best_numplayers && team_score < best_score ) ) {
 				best_numplayers = teamlist[i].numplayers;
-				best_score = teamlist[i].stats.score;
+				best_score = team_score;
 				team = i;
 			}
 		}
@@ -379,23 +380,20 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 * G_Teams_Join_Cmd
 */
 void G_Teams_Join_Cmd( edict_t *ent ) {
-	char *t;
-	int team;
-
-	if( !ent->r.client || trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+	if( !ent->r.client || PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 		return;
 	}
 
-	t = trap_Cmd_Argv( 1 );
+	const char * t = Cmd_Argv( 1 );
 	if( !t || *t == 0 ) {
 		G_Teams_JoinAnyTeam( ent, false );
 		return;
 	}
 
-	team = GS_TeamFromName( t );
+	int team = GS_TeamFromName( t );
 	if( team != -1 ) {
 		if( team == TEAM_SPECTATOR ) { // special handling for spectator team
-			Cmd_Spec_f( ent );
+			Cmd_ChaseCam_f( ent );
 			return;
 		}
 		if( team == ent->s.team ) {
@@ -427,7 +425,7 @@ static int G_Teams_ChallengersQueueCmp( const edict_t **pe1, const edict_t **pe2
 	if( e2->r.client->queueTimeStamp > e1->r.client->queueTimeStamp ) {
 		return -1;
 	}
-	return rand() & 1 ? -1 : 1;
+	return random_uniform( &svs.rng, 0, 2 ) == 0 ? -1 : 1;
 }
 
 /*
@@ -440,18 +438,17 @@ edict_t **G_Teams_ChallengersQueue( void ) {
 	int num_challengers = 0;
 	static edict_t *challengers[MAX_CLIENTS + 1];
 	edict_t *e;
-	gclient_t *cl;
 
 	// fill the challengers into array, then sort
 	for( e = game.edicts + 1; PLAYERNUM( e ) < server_gs.maxclients; e++ ) {
 		if( !e->r.inuse || !e->r.client || e->s.team != TEAM_SPECTATOR ) {
 			continue;
 		}
-		if( trap_GetClientState( PLAYERNUM( e ) ) < CS_SPAWNED ) {
+		if( PF_GetClientState( PLAYERNUM( e ) ) < CS_SPAWNED ) {
 			continue;
 		}
 
-		cl = e->r.client;
+		gclient_t * cl = e->r.client;
 		if( cl->connecting || !cl->queueTimeStamp ) {
 			continue;
 		}
@@ -538,7 +535,7 @@ static edict_t *G_Teams_BestScoreBelow( int maxscore ) {
 	edict_t *e, *best = NULL;
 	int bestScore = -9999999;
 
-	if( GS_TeamBasedGametype( &server_gs ) ) {
+	if( level.gametype.isTeamBased ) {
 		for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
 			for( i = 0; i < teamlist[team].numplayers; i++ ) {
 				e = game.edicts + teamlist[team].playerIndices[i];
@@ -580,7 +577,7 @@ void G_Teams_AdvanceChallengersQueue( void ) {
 
 	G_Teams_UpdateMembersList();
 
-	if( GS_TeamBasedGametype( &server_gs ) ) {
+	if( level.gametype.isTeamBased ) {
 		START_TEAM = TEAM_ALPHA;
 		END_TEAM = GS_MAX_TEAMS;
 	}
@@ -660,7 +657,7 @@ void G_Teams_JoinChallengersQueue( edict_t *ent ) {
 	if( !ent->r.client->queueTimeStamp ) {  // enter the line
 		ent->r.client->queueTimeStamp = svs.realtime;
 		for( e = game.edicts + 1; PLAYERNUM( e ) < server_gs.maxclients; e++ ) {
-			if( !e->r.inuse || !e->r.client || trap_GetClientState( PLAYERNUM( e ) ) < CS_SPAWNED ) {
+			if( !e->r.inuse || !e->r.client || PF_GetClientState( PLAYERNUM( e ) ) < CS_SPAWNED ) {
 				continue;
 			}
 			if( !e->r.client->queueTimeStamp || e->s.team != TEAM_SPECTATOR ) {
@@ -681,10 +678,9 @@ void G_Teams_JoinChallengersQueue( edict_t *ent ) {
 }
 
 void G_InitChallengersQueue( void ) {
-	int i;
-
-	for( i = 0; i < server_gs.maxclients; i++ )
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		game.clients[i].queueTimeStamp = 0;
+	}
 }
 
 //======================================================================
@@ -694,7 +690,7 @@ void G_InitChallengersQueue( void ) {
 //======================================================================
 
 void G_Say_Team( edict_t *who, const char *inmsg, bool checkflood ) {
-	if( who->s.team != TEAM_SPECTATOR && ( !GS_TeamBasedGametype( &server_gs ) || GS_IndividualGameType( &server_gs ) ) ) {
+	if( who->s.team != TEAM_SPECTATOR && ( !level.gametype.isTeamBased || GS_IndividualGameType( &server_gs ) ) ) {
 		Cmd_Say_f( who, false, true );
 		return;
 	}

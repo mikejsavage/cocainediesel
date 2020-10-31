@@ -20,30 +20,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client/client.h"
 #include "client/renderer/renderer.h"
-#include "qcommon/string.h"
-#include "sdl/sdl_window.h"
 
-static cvar_t *vid_mode;
-static cvar_t *vid_vsync;
+cvar_t * vid_mode;
+static cvar_t * vid_vsync;
 static bool force_vsync;
-
-static bool vid_app_active;
-static bool vid_app_minimized;
-
-static VideoMode startup_video_mode;
-
-void VID_AppActivate( bool active, bool minimize ) {
-	vid_app_active = active;
-	vid_app_minimized = minimize;
-}
-
-bool VID_AppIsActive() {
-	return vid_app_active;
-}
-
-bool VID_AppIsMinimized() {
-	return vid_app_minimized;
-}
 
 static bool ParseWindowMode( const char * str, WindowMode * mode ) {
 	*mode = { };
@@ -52,7 +32,7 @@ static bool ParseWindowMode( const char * str, WindowMode * mode ) {
 	{
 		int comps = sscanf( str, "%dx%d", &mode->video_mode.width, &mode->video_mode.height );
 		if( comps == 2 ) {
-			mode->fullscreen = FullScreenMode_Windowed;
+			mode->fullscreen = FullscreenMode_Windowed;
 			mode->x = -1;
 			mode->y = -1;
 			return true;
@@ -63,7 +43,7 @@ static bool ParseWindowMode( const char * str, WindowMode * mode ) {
 	{
 		int comps = sscanf( str, "W %dx%d %dx%d", &mode->video_mode.width, &mode->video_mode.height, &mode->x, &mode->y );
 		if( comps == 4 ) {
-			mode->fullscreen = FullScreenMode_Windowed;
+			mode->fullscreen = FullscreenMode_Windowed;
 			return true;
 		}
 	}
@@ -72,7 +52,7 @@ static bool ParseWindowMode( const char * str, WindowMode * mode ) {
 	{
 		int comps = sscanf( str, "B %d", &mode->monitor );
 		if( comps == 1 ) {
-			mode->fullscreen = FullScreenMode_FullscreenBorderless;
+			mode->fullscreen = FullscreenMode_Borderless;
 			return true;
 		}
 	}
@@ -81,7 +61,7 @@ static bool ParseWindowMode( const char * str, WindowMode * mode ) {
 	{
 		int comps = sscanf( str, "F %d %dx%d %dHz", &mode->monitor, &mode->video_mode.width, &mode->video_mode.height, &mode->video_mode.frequency );
 		if( comps == 4 ) {
-			mode->fullscreen = FullScreenMode_Fullscreen;
+			mode->fullscreen = FullscreenMode_Fullscreen;
 			return true;
 		}
 	}
@@ -89,16 +69,54 @@ static bool ParseWindowMode( const char * str, WindowMode * mode ) {
 	return false;
 }
 
+void format( FormatBuffer * fb, VideoMode mode, const FormatOpts & opts ) {
+	ggformat_impl( fb, "{}x{} {}Hz", mode.width, mode.height, mode.frequency );
+}
+
+void format( FormatBuffer * fb, WindowMode mode, const FormatOpts & opts ) {
+	switch( mode.fullscreen ) {
+		case FullscreenMode_Windowed:
+			ggformat_impl( fb, "W {}x{} {}x{}", mode.video_mode.width, mode.video_mode.height, mode.x, mode.y );
+			break;
+
+		case FullscreenMode_Borderless:
+			ggformat_impl( fb, "B {}", mode.monitor );
+			break;
+
+		case FullscreenMode_Fullscreen:
+			ggformat_impl( fb, "F {} {}x{} {}Hz", mode.monitor, mode.video_mode.width, mode.video_mode.height, mode.video_mode.frequency );
+			break;
+	}
+}
+
+bool operator!=( WindowMode lhs, WindowMode rhs ) {
+	if( lhs.fullscreen != rhs.fullscreen )
+		return true;
+
+	if( lhs.fullscreen ) {
+		if( lhs.video_mode.frequency != rhs.video_mode.frequency || lhs.monitor != rhs.monitor ) {
+			return true;
+		}
+	}
+	else {
+		if( lhs.x != rhs.x ) {
+			return true;
+		}
+	}
+
+	return lhs.video_mode.width != rhs.video_mode.width || lhs.video_mode.height != rhs.video_mode.height;
+}
+
 static void UpdateVidModeCvar() {
-	WindowMode mode = VID_GetWindowMode();
-	String< 128 > buf( "{}", mode );
-	Cvar_Set( vid_mode->name, buf.c_str() );
+	WindowMode mode = GetWindowMode();
+	TempAllocator temp = cls.frame_arena.temp();
+	Cvar_Set( vid_mode->name, temp( "{}", mode ) );
 	vid_mode->modified = false;
 }
 
 void VID_CheckChanges() {
 	if( vid_vsync->modified ) {
-		VID_EnableVsync( force_vsync || vid_vsync->integer != 0 ? VsyncEnabled_Enabled : VsyncEnabled_Disabled );
+		EnableVSync( force_vsync || vid_vsync->integer != 0 );
 		vid_vsync->modified = false;
 	}
 
@@ -108,7 +126,7 @@ void VID_CheckChanges() {
 
 	WindowMode mode;
 	if( ParseWindowMode( vid_mode->string, &mode ) ) {
-		VID_SetWindowMode( mode );
+		SetWindowMode( mode );
 	}
 	else {
 		Com_Printf( "Invalid vid_mode string\n" );
@@ -127,32 +145,14 @@ void VID_Init() {
 	force_vsync = false;
 
 	WindowMode mode;
-	startup_video_mode = VID_GetCurrentVideoMode();
-
 	if( !ParseWindowMode( vid_mode->string, &mode ) ) {
 		mode = { };
-		mode.video_mode = startup_video_mode;
-		mode.fullscreen = FullScreenMode_FullscreenBorderless;
-		mode.x = -1;
-		mode.y = -1;
+		mode.video_mode = GetVideoMode( mode.monitor );
+		mode.fullscreen = FullscreenMode_Fullscreen;
 	}
 
-	VID_WindowInit( mode );
+	CreateWindow( mode );
 	UpdateVidModeCvar();
-
-	InitRenderer();
-
-	if( !S_Init() ) {
-		Com_Printf( S_COLOR_RED "Couldn't initialise audio engine\n" );
-	}
-
-	// TODO: what is this?
-	if( cls.cgameActive ) {
-		CL_GameModule_Init();
-		CL_SetKeyDest( key_game );
-	} else {
-		CL_SetKeyDest( key_menu );
-	}
 }
 
 void CL_ForceVsync( bool force ) {
@@ -160,12 +160,4 @@ void CL_ForceVsync( bool force ) {
 		force_vsync = force;
 		vid_vsync->modified = true;
 	}
-}
-
-void VID_Shutdown() {
-	ShutdownRenderer();
-
-	VID_SetVideoMode( startup_video_mode );
-
-	VID_WindowShutdown();
 }

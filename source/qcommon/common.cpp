@@ -17,13 +17,15 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// common.c -- misc functions used in client and server
-#include "qcommon.h"
+
+#include "qcommon/qcommon.h"
+#include "qcommon/cmodel.h"
 #include "qcommon/glob.h"
 #include "qcommon/csprng.h"
+#include "qcommon/threads.h"
+#include "qcommon/version.h"
+
 #include <setjmp.h>
-#include "version.h"
-#include "wswcurl.h"
 
 #define MAX_NUM_ARGVS   50
 
@@ -37,7 +39,6 @@ static bool com_quit;
 
 static jmp_buf abortframe;     // an ERR_DROP occured, exit the entire frame
 
-cvar_t *host_speeds;
 cvar_t *developer;
 cvar_t *timescale;
 cvar_t *versioncvar;
@@ -48,22 +49,13 @@ static cvar_t *logconsole_flush;
 static cvar_t *logconsole_timestamp;
 static cvar_t *com_showtrace;
 
-static qmutex_t *com_print_mutex;
+static Mutex *com_print_mutex;
 
 static int log_file = 0;
 
 static int server_state = CA_UNINITIALIZED;
 static int client_state = CA_UNINITIALIZED;
 static bool demo_playing = false;
-
-struct cmodel_state_s *server_cms = NULL;
-unsigned server_map_checksum = 0;
-
-// host_speeds times
-int64_t time_before_game;
-int64_t time_after_game;
-int64_t time_before_ref;
-int64_t time_after_ref;
 
 /*
 ============================================================================
@@ -85,7 +77,7 @@ void Com_BeginRedirect( int target, char *buffer, int buffersize,
 		return;
 	}
 
-	QMutex_Lock( com_print_mutex );
+	Lock( com_print_mutex );
 
 	rd_target = target;
 	rd_buffer = buffer;
@@ -94,9 +86,13 @@ void Com_BeginRedirect( int target, char *buffer, int buffersize,
 	rd_extra = extra;
 
 	*rd_buffer = 0;
+
+	Unlock( com_print_mutex );
 }
 
 void Com_EndRedirect( void ) {
+	Lock( com_print_mutex );
+
 	rd_flush( rd_target, rd_buffer, rd_extra );
 
 	rd_target = 0;
@@ -105,7 +101,7 @@ void Com_EndRedirect( void ) {
 	rd_flush = NULL;
 	rd_extra = NULL;
 
-	QMutex_Unlock( com_print_mutex );
+	Unlock( com_print_mutex );
 }
 
 void Com_DeferConsoleLogReopen( void ) {
@@ -120,7 +116,7 @@ static void Com_CloseConsoleLog( bool lock, bool shutdown ) {
 	}
 
 	if( lock ) {
-		QMutex_Lock( com_print_mutex );
+		Lock( com_print_mutex );
 	}
 
 	if( log_file ) {
@@ -133,14 +129,14 @@ static void Com_CloseConsoleLog( bool lock, bool shutdown ) {
 	}
 
 	if( lock ) {
-		QMutex_Unlock( com_print_mutex );
+		Unlock( com_print_mutex );
 	}
 }
 
 static void Com_ReopenConsoleLog( void ) {
 	char errmsg[MAX_PRINTMSG] = { 0 };
 
-	QMutex_Lock( com_print_mutex );
+	Lock( com_print_mutex );
 
 	Com_CloseConsoleLog( false, false );
 
@@ -155,13 +151,13 @@ static void Com_ReopenConsoleLog( void ) {
 
 		if( FS_FOpenFile( name, &log_file, ( logconsole_append && logconsole_append->integer ? FS_APPEND : FS_WRITE ) ) == -1 ) {
 			log_file = 0;
-			Q_snprintfz( errmsg, MAX_PRINTMSG, "Couldn't open: %s\n", name );
+			snprintf( errmsg, MAX_PRINTMSG, "Couldn't open: %s\n", name );
 		}
 
 		Mem_TempFree( name );
 	}
 
-	QMutex_Unlock( com_print_mutex );
+	Unlock( com_print_mutex );
 
 	if( errmsg[0] ) {
 		Com_Printf( "%s", errmsg );
@@ -179,10 +175,11 @@ void Com_Printf( const char *format, ... ) {
 	char msg[MAX_PRINTMSG];
 
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
-	QMutex_Lock( com_print_mutex );
+	Lock( com_print_mutex );
+	defer { Unlock( com_print_mutex ); };
 
 	if( rd_target ) {
 		if( (int)( strlen( msg ) + strlen( rd_buffer ) ) > ( rd_buffersize - 1 ) ) {
@@ -190,8 +187,6 @@ void Com_Printf( const char *format, ... ) {
 			*rd_buffer = 0;
 		}
 		Q_strncatz( rd_buffer, msg, rd_buffersize );
-
-		QMutex_Unlock( com_print_mutex );
 		return;
 	}
 
@@ -199,6 +194,8 @@ void Com_Printf( const char *format, ... ) {
 	Sys_ConsoleOutput( msg );
 
 	Con_Print( msg );
+
+	TracyMessage( msg, strlen( msg ) );
 
 	if( log_file ) {
 		if( logconsole_timestamp && logconsole_timestamp->integer ) {
@@ -211,10 +208,7 @@ void Com_Printf( const char *format, ... ) {
 			FS_Flush( log_file ); // force it to save every time
 		}
 	}
-
-	QMutex_Unlock( com_print_mutex );
 }
-
 
 /*
 * Com_DPrintf
@@ -230,7 +224,7 @@ void Com_DPrintf( const char *format, ... ) {
 
 	}
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	Com_Printf( "%s", msg );
@@ -256,7 +250,7 @@ void Com_Error( com_error_code_t code, const char *format, ... ) {
 	recursive = true;
 
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof_msg, format, argptr );
+	vsnprintf( msg, sizeof_msg, format, argptr );
 	va_end( argptr );
 
 	if( code == ERR_DROP ) {
@@ -264,7 +258,11 @@ void Com_Error( com_error_code_t code, const char *format, ... ) {
 		SV_ShutdownGame( va( "Server crashed: %s\n", msg ), false );
 		CL_Disconnect( msg );
 		recursive = false;
+#if PUBLIC_BUILD
 		longjmp( abortframe, -1 );
+#else
+		abort();
+#endif
 	} else {
 		Com_Printf( "********************\nERROR: %s\n********************\n", msg );
 		SV_Shutdown( va( "Server fatal crashed: %s\n", msg ) );
@@ -295,10 +293,10 @@ void Com_DeferQuit( void ) {
 void Com_Quit( void ) {
 	SV_Shutdown( "Server quit\n" );
 	CL_Shutdown();
+	ShutdownMapList();
 
 	Sys_Quit();
 }
-
 
 /*
 * Com_ServerState
@@ -312,23 +310,6 @@ int Com_ServerState( void ) {
 */
 void Com_SetServerState( int state ) {
 	server_state = state;
-}
-
-/*
-* Com_ServerCM
-*/
-struct cmodel_state_s *Com_ServerCM( unsigned *checksum ) {
-	*checksum = server_map_checksum;
-	CM_AddReference( server_cms );
-	return server_cms;
-}
-
-/*
-* Com_SetServerCM
-*/
-void Com_SetServerCM( struct cmodel_state_s *cms, unsigned checksum ) {
-	server_cms = cms;
-	server_map_checksum = checksum;
 }
 
 int Com_ClientState( void ) {
@@ -546,13 +527,17 @@ void Qcommon_ShutdownCommands( void ) {
 void Qcommon_Init( int argc, char **argv ) {
 	ZoneScoped;
 
+#if !PUBLIC_BUILD
+	EnableFPE();
+#endif
+
 	Sys_Init();
 
 	if( setjmp( abortframe ) ) {
 		Sys_Error( "Error during initialization: %s", com_errormsg );
 	}
 
-	com_print_mutex = QMutex_Create();
+	com_print_mutex = NewMutex();
 
 	// initialize memory manager
 	Memory_Init();
@@ -570,8 +555,6 @@ void Qcommon_Init( int argc, char **argv ) {
 	// create basic commands and cvars
 	Cmd_Init();
 	Cvar_Init();
-
-	wswcurl_init();
 
 	Key_Init();
 
@@ -605,7 +588,6 @@ void Qcommon_Init( int argc, char **argv ) {
 
 	Qcommon_InitCommands();
 
-	host_speeds =       Cvar_Get( "host_speeds", "0", 0 );
 	timescale =     Cvar_Get( "timescale", "1.0", CVAR_CHEAT );
 	if( is_dedicated_server ) {
 		logconsole =        Cvar_Get( "logconsole", "server.log", CVAR_ARCHIVE );
@@ -628,6 +610,8 @@ void Qcommon_Init( int argc, char **argv ) {
 
 	CM_Init();
 
+	InitMapList();
+
 	SV_Init();
 	CL_Init();
 
@@ -640,9 +624,9 @@ void Qcommon_Init( int argc, char **argv ) {
 * Qcommon_Frame
 */
 void Qcommon_Frame( unsigned int realMsec ) {
+	FrameMark;
 	ZoneScoped;
 
-	int time_before = 0, time_between = 0, time_after = 0;
 	static unsigned int gameMsec;
 
 	if( com_quit ) {
@@ -666,16 +650,6 @@ void Qcommon_Frame( unsigned int realMsec ) {
 		gameMsec = realMsec;
 	}
 
-	if( com_showtrace->integer ) {
-		Com_Printf( "%4i traces %4i brush traces %4i points\n",
-					c_traces, c_brush_traces, c_pointcontents );
-		c_traces = 0;
-		c_brush_traces = 0;
-		c_pointcontents = 0;
-	}
-
-	wswcurl_perform();
-
 	FS_Frame();
 
 	if( is_dedicated_server ) {
@@ -690,38 +664,8 @@ void Qcommon_Frame( unsigned int realMsec ) {
 		Cbuf_Execute();
 	}
 
-	// keep the random time dependent
-	rand();
-
-	if( host_speeds->integer ) {
-		time_before = Sys_Milliseconds();
-	}
-
 	SV_Frame( realMsec, gameMsec );
-
-	if( host_speeds->integer ) {
-		time_between = Sys_Milliseconds();
-	}
-
 	CL_Frame( realMsec, gameMsec );
-
-	if( host_speeds->integer ) {
-		time_after = Sys_Milliseconds();
-	}
-
-	if( host_speeds->integer ) {
-		int all, sv, gm, cl, rf;
-
-		all = time_after - time_before;
-		sv = time_between - time_before;
-		cl = time_after - time_between;
-		gm = time_after_game - time_before_game;
-		rf = time_after_ref - time_before_ref;
-		sv -= gm;
-		cl -= rf;
-		Com_Printf( "all:%3i sv:%3i gm:%3i cl:%3i rf:%3i\n",
-					all, sv, gm, cl, rf );
-	}
 }
 
 /*
@@ -742,12 +686,10 @@ void Qcommon_Shutdown( void ) {
 
 	CSPRNG_Shutdown();
 
-	wswcurl_cleanup();
-
 	Cvar_Shutdown();
 	Cmd_Shutdown();
 	Cbuf_Shutdown();
 	Memory_Shutdown();
 
-	QMutex_Destroy( &com_print_mutex );
+	DeleteMutex( com_print_mutex );
 }

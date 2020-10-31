@@ -17,13 +17,15 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "cg_local.h"
+#include "qcommon/base.h"
+#include "qcommon/qcommon.h"
+#include "qcommon/cmodel.h"
+#include "cgame/cg_local.h"
+#include "client/renderer/renderer.h"
 
 // Thanks to Xavatar (xavatar2004@hotmail.com) for the path spline implementation
 
 //===================================================================
-
-#define DEFAULT_SUBTITLE_SECONDS 9
 
 char *demoscriptname;
 bool democam_editing_mode;
@@ -63,11 +65,11 @@ typedef struct cg_democam_s
 	int type;
 	int64_t timeStamp;
 	int trackEnt;
-	vec3_t origin;
-	vec3_t angles;
+	Vec3 origin;
+	Vec3 angles;
 	int fov;
-	vec3_t tangent;
-	vec3_t angles_tangent;
+	Vec3 tangent;
+	Vec3 angles_tangent;
 	float speed;
 	struct cg_democam_s *next;
 } cg_democam_t;
@@ -75,12 +77,12 @@ typedef struct cg_democam_s
 cg_democam_t *cg_cams_headnode = NULL;
 cg_democam_t *currentcam, *nextcam;
 
-static vec3_t cam_origin, cam_angles, cam_velocity;
+static Vec3 cam_origin, cam_angles, cam_velocity;
 static float cam_fov = 90;
 static int cam_viewtype;
 static int cam_POVent;
 static bool cam_3dPerson;
-static vec3_t cam_orbital_angles;
+static Vec3 cam_orbital_angles;
 static float cam_orbital_radius;
 
 /*
@@ -134,7 +136,7 @@ static cg_democam_t *CG_Democam_RegisterCam( int type ) {
 	cam = cg_cams_headnode;
 	while( cam != NULL ) {
 		if( cam->timeStamp == demo_time ) { // a cam exists with the very same timestamp
-			CG_Printf( "warning: There was a cam with the same timestamp, it's being replaced\n" );
+			Com_Printf( "warning: There was a cam with the same timestamp, it's being replaced\n" );
 			break;
 		}
 		cam = cam->next;
@@ -148,10 +150,10 @@ static cg_democam_t *CG_Democam_RegisterCam( int type ) {
 
 	cam->timeStamp = demo_time;
 	cam->type = type;
-	VectorCopy( cam_origin, cam->origin );
-	VectorCopy( cam_angles, cam->angles );
+	cam->origin = cam_origin;
+	cam->angles = cam_angles;
 	if( type == DEMOCAM_ORBITAL ) { // in orbital cams, the angles are the angular velocity
-		VectorSet( cam->angles, 0, 96, 0 );
+		cam->angles = Vec3( 0, 96, 0 );
 	}
 	if( type == DEMOCAM_FIRSTPERSON || type == DEMOCAM_THIRDPERSON ) {
 		cam->fov = 0;
@@ -204,110 +206,6 @@ void CG_Democam_FreeCams( void ) {
 
 //===================================================================
 
-typedef struct cg_subtitles_s
-{
-	int64_t timeStamp;
-	int64_t maxDuration;
-	bool highprint;
-	char *text;
-
-	struct cg_subtitles_s *next;
-} cg_subtitle_t;
-
-static cg_subtitle_t *cg_subs_headnode = NULL;
-
-static cg_subtitle_t *CG_Democam_FindCurrentSubtitle( void ) {
-	int64_t higher_time = 0;
-	cg_subtitle_t *sub, *currentsub;
-
-	sub = cg_subs_headnode;
-	currentsub = NULL;
-	while( sub != NULL ) {
-		if( ( currentsub == NULL || sub->timeStamp > higher_time ) && sub->timeStamp <= demo_time &&
-			( sub->timeStamp + sub->maxDuration > demo_time ) ) {
-			higher_time = sub->timeStamp;
-			currentsub = sub;
-		}
-		sub = sub->next;
-	}
-
-	return currentsub;
-}
-
-/*
-* CG_Democam_RegisterSubtitle
-*/
-static cg_subtitle_t *CG_Democam_RegisterSubtitle( void ) {
-	cg_subtitle_t *sub;
-
-	CG_DemoCam_UpdateDemoTime();
-
-	sub = cg_subs_headnode;
-	while( sub != NULL ) {
-		if( sub->timeStamp == demo_time ) { // a subtitle exists with the very same timestamp
-			CG_Printf( "warning: There was a subtitle with the same timestamp, it's being replaced\n" );
-			break;
-		}
-		sub = sub->next;
-	}
-
-	if( sub == NULL ) {
-		sub = ( cg_subtitle_t * )CG_Malloc( sizeof( cg_subtitle_t ) );
-		sub->next = cg_subs_headnode;
-		cg_subs_headnode = sub;
-	}
-
-	sub->timeStamp = demo_time;
-	sub->maxDuration = DEFAULT_SUBTITLE_SECONDS * 1000;
-	sub->highprint = false;
-	return sub;
-}
-
-/*
-* CG_Democam_UnregisterSubtitle
-*/
-static void CG_Democam_UnregisterSubtitle( cg_subtitle_t *sub ) {
-	cg_subtitle_t *tsub;
-
-	if( !sub ) {
-		return;
-	}
-
-	// headnode shortcut
-	if( cg_subs_headnode == sub ) {
-		cg_subs_headnode = cg_subs_headnode->next;
-		if( sub->text ) {
-			CG_Free( sub->text );
-		}
-		CG_Free( sub );
-		return;
-	}
-
-	// find the camera which has this one as next;
-	tsub = cg_subs_headnode;
-	while( tsub != NULL ) {
-		if( tsub->next == sub ) {
-			tsub->next = sub->next;
-
-			if( sub->text ) {
-				CG_Free( sub->text );
-			}
-			CG_Free( sub );
-			break;
-		}
-		tsub = tsub->next;
-	}
-}
-
-/*
-* CG_Democam_FreeSubtitles
-*/
-void CG_Democam_FreeSubtitles( void ) {
-	while( cg_subs_headnode )
-		CG_Democam_UnregisterSubtitle( cg_subs_headnode );
-
-	cg_subs_headnode = NULL;
-}
 
 //===================================================================
 
@@ -334,111 +232,111 @@ static void CG_Democam_ExecutePathAnalysis( void ) {
 				}
 
 				if( !pcam ) {
-					VectorSubtract( ncam->origin, ccam->origin, ccam->tangent );
-					VectorScale( ccam->tangent, 1.0 / 4.0, ccam->tangent );
+					ccam->tangent = ncam->origin - ccam->origin;
+					ccam->tangent = ccam->tangent * ( 1.0 / 4.0 );
 
-					if( ncam->angles[1] - ccam->angles[1] > 180 ) {
-						ncam->angles[1] -= 360;
+					if( ncam->angles.y - ccam->angles.y > 180 ) {
+						ncam->angles.y -= 360;
 					}
-					if( ncam->angles[1] - ccam->angles[1] < -180 ) {
-						ncam->angles[1] += 360;
-					}
-
-					if( ncam->angles[2] - ccam->angles[2] > 180 ) {
-						ncam->angles[2] -= 360;
-					}
-					if( ncam->angles[2] - ccam->angles[2] < -180 ) {
-						ncam->angles[2] += 360;
+					if( ncam->angles.y - ccam->angles.y < -180 ) {
+						ncam->angles.y += 360;
 					}
 
-					VectorSubtract( ncam->angles, ccam->angles, ccam->angles_tangent );
-					VectorScale( ccam->angles_tangent, 1.0 / 4.0, ccam->angles_tangent );
+					if( ncam->angles.z - ccam->angles.z > 180 ) {
+						ncam->angles.z -= 360;
+					}
+					if( ncam->angles.z - ccam->angles.z < -180 ) {
+						ncam->angles.z += 360;
+					}
+
+					ccam->angles_tangent = ncam->angles - ccam->angles;
+					ccam->angles_tangent = ccam->angles_tangent * ( 1.0 / 4.0 );
 				} else if( pcam ) {
-					VectorSubtract( ncam->origin, pcam->origin, ccam->tangent );
-					VectorScale( ccam->tangent, 1.0 / 4.0, ccam->tangent );
+					ccam->tangent = ncam->origin - pcam->origin;
+					ccam->tangent = ccam->tangent * ( 1.0 / 4.0 );
 
-					if( pcam->angles[1] - ccam->angles[1] > 180 ) {
-						pcam->angles[1] -= 360;
+					if( pcam->angles.y - ccam->angles.y > 180 ) {
+						pcam->angles.y -= 360;
 					}
-					if( pcam->angles[1] - ccam->angles[1] < -180 ) {
-						pcam->angles[1] += 360;
+					if( pcam->angles.y - ccam->angles.y < -180 ) {
+						pcam->angles.y += 360;
 					}
-					if( ncam->angles[1] - ccam->angles[1] > 180 ) {
-						ncam->angles[1] -= 360;
+					if( ncam->angles.y - ccam->angles.y > 180 ) {
+						ncam->angles.y -= 360;
 					}
-					if( ncam->angles[1] - ccam->angles[1] < -180 ) {
-						ncam->angles[1] += 360;
-					}
-
-					if( pcam->angles[2] - ccam->angles[2] > 180 ) {
-						pcam->angles[2] -= 360;
-					}
-					if( pcam->angles[2] - ccam->angles[2] < -180 ) {
-						pcam->angles[2] += 360;
-					}
-					if( ncam->angles[2] - ccam->angles[2] > 180 ) {
-						ncam->angles[2] -= 360;
-					}
-					if( ncam->angles[2] - ccam->angles[2] < -180 ) {
-						ncam->angles[2] += 360;
+					if( ncam->angles.y - ccam->angles.y < -180 ) {
+						ncam->angles.y += 360;
 					}
 
-					VectorSubtract( ncam->angles, pcam->angles, ccam->angles_tangent );
-					VectorScale( ccam->angles_tangent, 1.0 / 4.0, ccam->angles_tangent );
+					if( pcam->angles.z - ccam->angles.z > 180 ) {
+						pcam->angles.z -= 360;
+					}
+					if( pcam->angles.z - ccam->angles.z < -180 ) {
+						pcam->angles.z += 360;
+					}
+					if( ncam->angles.z - ccam->angles.z > 180 ) {
+						ncam->angles.z -= 360;
+					}
+					if( ncam->angles.z - ccam->angles.z < -180 ) {
+						ncam->angles.z += 360;
+					}
+
+					ccam->angles_tangent = ncam->angles - pcam->angles;
+					ccam->angles_tangent = ccam->angles_tangent * ( 1.0 / 4.0 );
 				}
 
 				if( sncam ) {
-					VectorSubtract( sncam->origin, ccam->origin, ncam->tangent );
-					VectorScale( ncam->tangent, 1.0 / 4.0, ncam->tangent );
+					ncam->tangent = sncam->origin - ccam->origin;
+					ncam->tangent = ncam->tangent * ( 1.0 / 4.0 );
 
-					if( ccam->angles[1] - ncam->angles[1] > 180 ) {
-						ccam->angles[1] -= 360;
+					if( ccam->angles.y - ncam->angles.y > 180 ) {
+						ccam->angles.y -= 360;
 					}
-					if( ccam->angles[1] - ncam->angles[1] < -180 ) {
-						ccam->angles[1] += 360;
+					if( ccam->angles.y - ncam->angles.y < -180 ) {
+						ccam->angles.y += 360;
 					}
-					if( sncam->angles[1] - ncam->angles[1] > 180 ) {
-						sncam->angles[1] -= 360;
+					if( sncam->angles.y - ncam->angles.y > 180 ) {
+						sncam->angles.y -= 360;
 					}
-					if( sncam->angles[1] - ncam->angles[1] < -180 ) {
-						sncam->angles[1] += 360;
-					}
-
-					if( ccam->angles[2] - ncam->angles[2] > 180 ) {
-						ccam->angles[2] -= 360;
-					}
-					if( ccam->angles[2] - ncam->angles[2] < -180 ) {
-						ccam->angles[2] += 360;
-					}
-					if( sncam->angles[2] - ncam->angles[2] > 180 ) {
-						sncam->angles[2] -= 360;
-					}
-					if( sncam->angles[2] - ncam->angles[2] < -180 ) {
-						sncam->angles[2] += 360;
+					if( sncam->angles.y - ncam->angles.y < -180 ) {
+						sncam->angles.y += 360;
 					}
 
-					VectorSubtract( sncam->angles, ccam->angles, ncam->angles_tangent );
-					VectorScale( ncam->angles_tangent, 1.0 / 4.0, ncam->angles_tangent );
+					if( ccam->angles.z - ncam->angles.z > 180 ) {
+						ccam->angles.z -= 360;
+					}
+					if( ccam->angles.z - ncam->angles.z < -180 ) {
+						ccam->angles.z += 360;
+					}
+					if( sncam->angles.z - ncam->angles.z > 180 ) {
+						sncam->angles.z -= 360;
+					}
+					if( sncam->angles.z - ncam->angles.z < -180 ) {
+						sncam->angles.z += 360;
+					}
+
+					ncam->angles_tangent = sncam->angles - ccam->angles;
+					ncam->angles_tangent = ncam->angles_tangent * ( 1.0 / 4.0 );
 				} else if( !sncam ) {
-					VectorSubtract( ncam->origin, ccam->origin, ncam->tangent );
-					VectorScale( ncam->tangent, 1.0 / 4.0, ncam->tangent );
+					ncam->tangent = ncam->origin - ccam->origin;
+					ncam->tangent = ncam->tangent * ( 1.0 / 4.0 );
 
-					if( ncam->angles[1] - ccam->angles[1] > 180 ) {
-						ncam->angles[1] -= 360;
+					if( ncam->angles.y - ccam->angles.y > 180 ) {
+						ncam->angles.y -= 360;
 					}
-					if( ncam->angles[1] - ccam->angles[1] < -180 ) {
-						ncam->angles[1] += 360;
-					}
-
-					if( ncam->angles[2] - ccam->angles[2] > 180 ) {
-						ncam->angles[2] -= 360;
-					}
-					if( ncam->angles[2] - ccam->angles[2] < -180 ) {
-						ncam->angles[2] += 360;
+					if( ncam->angles.y - ccam->angles.y < -180 ) {
+						ncam->angles.y += 360;
 					}
 
-					VectorSubtract( ncam->angles, ccam->angles, ncam->angles_tangent );
-					VectorScale( ncam->angles_tangent, 1.0 / 4.0, ncam->angles_tangent );
+					if( ncam->angles.z - ccam->angles.z > 180 ) {
+						ncam->angles.z -= 360;
+					}
+					if( ncam->angles.z - ccam->angles.z < -180 ) {
+						ncam->angles.z += 360;
+					}
+
+					ncam->angles_tangent = ncam->angles - ccam->angles;
+					ncam->angles_tangent = ncam->angles_tangent * ( 1.0 / 4.0 );
 				}
 			}
 		}
@@ -458,17 +356,17 @@ bool CG_LoadRecamScriptFile( char *filename ) {
 	cg_democam_t *cam = NULL;
 
 	if( !filename ) {
-		CG_Printf( "CG_LoadRecamScriptFile: no filename\n" );
+		Com_Printf( "CG_LoadRecamScriptFile: no filename\n" );
 		return false;
 	}
 
-	filelen = trap_FS_FOpenFile( filename, &filehandle, FS_READ );
+	filelen = FS_FOpenFile( filename, &filehandle, FS_READ );
 	if( !filehandle || filelen < 1 ) {
-		trap_FS_FCloseFile( filehandle );
+		FS_FCloseFile( filehandle );
 	} else {
 		buf = ( uint8_t * )CG_Malloc( filelen + 1 );
-		filelen = trap_FS_Read( buf, filelen, filehandle );
-		trap_FS_FCloseFile( filehandle );
+		filelen = FS_Read( buf, filelen, filehandle );
+		FS_FCloseFile( filehandle );
 	}
 
 	if( !buf ) {
@@ -484,73 +382,51 @@ bool CG_LoadRecamScriptFile( char *filename ) {
 			break;
 		}
 
-		if( !Q_stricmp( token, "subtitle" ) || !Q_stricmp( token, "print" ) ) {
-			cg_subtitle_t *sub;
-
-			sub = CG_Democam_RegisterSubtitle();
-			sub->highprint = ( Q_stricmp( token, "print" ) == 0 );
-
-			token = COM_ParseExt( &ptr, true );
-			if( !token[0] ) {
+		switch( linecount ) {
+			case 0:
+				cam = CG_Democam_RegisterCam( atoi( token ) );
 				break;
-			}
-			sub->timeStamp = (unsigned int)atoi( token );
-			token = COM_ParseExt( &ptr, true );
-			if( !token[0] ) {
+			case 1:
+				cam->timeStamp = (unsigned int)atoi( token );
 				break;
-			}
-			sub->maxDuration = (unsigned int)atoi( token );
-			sub->text = CG_CopyString( COM_ParseExt( &ptr, true ) );
+			case 2:
+				cam->origin.x = atof( token );
+				break;
+			case 3:
+				cam->origin.y = atof( token );
+				break;
+			case 4:
+				cam->origin.z = atof( token );
+				break;
+			case 5:
+				cam->angles.x = atof( token );
+				break;
+			case 6:
+				cam->angles.y = atof( token );
+				break;
+			case 7:
+				cam->angles.z = atof( token );
+				break;
+			case 8:
+				cam->trackEnt = atoi( token );
+				break;
+			case 9:
+				cam->fov = atoi( token );
+				break;
+			default:
+				Com_Error( ERR_DROP, "CG_LoadRecamScriptFile: bad switch\n" );
+		}
 
+		linecount++;
+		if( linecount == 10 ) {
 			linecount = 0;
-		} else {
-			switch( linecount ) {
-				case 0:
-					cam = CG_Democam_RegisterCam( atoi( token ) );
-					break;
-				case 1:
-					cam->timeStamp = (unsigned int)atoi( token );
-					break;
-				case 2:
-					cam->origin[0] = atof( token );
-					break;
-				case 3:
-					cam->origin[1] = atof( token );
-					break;
-				case 4:
-					cam->origin[2] = atof( token );
-					break;
-				case 5:
-					cam->angles[0] = atof( token );
-					break;
-				case 6:
-					cam->angles[1] = atof( token );
-					break;
-				case 7:
-					cam->angles[2] = atof( token );
-					break;
-				case 8:
-					cam->trackEnt = atoi( token );
-					break;
-				case 9:
-					cam->fov = atoi( token );
-					break;
-				default:
-					CG_Error( "CG_LoadRecamScriptFile: bad switch\n" );
-			}
-
-			linecount++;
-			if( linecount == 10 ) {
-				linecount = 0;
-			}
 		}
 	}
 
 	CG_Free( buf );
 	if( linecount != 0 ) {
-		CG_Printf( "CG_LoadRecamScriptFile: Invalid script. Ignored\n" );
+		Com_Printf( "CG_LoadRecamScriptFile: Invalid script. Ignored\n" );
 		CG_Democam_FreeCams();
-		CG_Democam_FreeSubtitles();
 		return false;
 	}
 
@@ -563,12 +439,11 @@ bool CG_LoadRecamScriptFile( char *filename ) {
 */
 void CG_SaveRecamScriptFile( const char *filename ) {
 	cg_democam_t *cam;
-	cg_subtitle_t *sub;
 	int filehandle;
 	char str[256];
 
-	if( !cg_cams_headnode && !cg_subs_headnode ) {
-		CG_Printf( "CG_SaveRecamScriptFile: no cameras nor subtitles to save\n" );
+	if( !cg_cams_headnode ) {
+		Com_Printf( "CG_SaveRecamScriptFile: no cameras to save\n" );
 		return;
 	}
 
@@ -579,51 +454,37 @@ void CG_SaveRecamScriptFile( const char *filename ) {
 		}
 	}
 
-	if( trap_FS_FOpenFile( filename, &filehandle, FS_WRITE ) == -1 ) {
-		CG_Printf( "CG_SaveRecamScriptFile: Couldn't create the file %s\n", demoscriptname );
+	if( FS_FOpenFile( filename, &filehandle, FS_WRITE ) == -1 ) {
+		Com_Printf( "CG_SaveRecamScriptFile: Couldn't create the file %s\n", demoscriptname );
 		return;
 	}
 
-	Q_snprintfz( str, sizeof( str ), "// cam script file generated by %s\n", trap_Cvar_String( "gamename" ) );
-	trap_FS_Print( filehandle, str );
+	snprintf( str, sizeof( str ), "// cam script file generated by %s\n", Cvar_String( "gamename" ) );
+	FS_Print( filehandle, str );
 
-	Q_snprintfz( str, sizeof( str ), "// demo start time: %" PRIi64 "\n", demo_initial_timestamp );
-	trap_FS_Print( filehandle, str );
+	snprintf( str, sizeof( str ), "// demo start time: %" PRIi64 "\n", demo_initial_timestamp );
+	FS_Print( filehandle, str );
 
 	cam = cg_cams_headnode;
 	while( cam != NULL ) {
-		Q_snprintfz( str, sizeof( str ), "%i %" PRIi64" %.2f %.2f %.2f %.2f %.2f %.2f %i %i\n",
+		snprintf( str, sizeof( str ), "%i %" PRIi64" %.2f %.2f %.2f %.2f %.2f %.2f %i %i\n",
 					 cam->type,
 					 cam->timeStamp,
-					 cam->origin[0],
-					 cam->origin[1],
-					 cam->origin[2],
-					 cam->angles[0],
-					 cam->angles[1],
-					 cam->angles[2],
+					 cam->origin.x,
+					 cam->origin.y,
+					 cam->origin.z,
+					 cam->angles.x,
+					 cam->angles.y,
+					 cam->angles.z,
 					 cam->trackEnt,
 					 cam->fov
 					 );
-		trap_FS_Print( filehandle, str );
+		FS_Print( filehandle, str );
 		cam = cam->next;
 	}
 
-	sub = cg_subs_headnode;
-	while( sub != NULL ) {
-		Q_snprintfz( str, sizeof( str ), "%s %" PRIi64 " %" PRIi64 " ",
-					 sub->highprint ? "print" : "subtitle",
-					 sub->timeStamp,
-					 sub->maxDuration
-					 );
-		trap_FS_Print( filehandle, str );
-		trap_FS_Print( filehandle, "\"" );
-		trap_FS_Print( filehandle, sub->text ? sub->text : "" );
-		trap_FS_Print( filehandle, "\"\n" );
-		sub = sub->next;
-	}
-
-	trap_FS_FCloseFile( filehandle );
-	CG_Printf( "cam file saved\n" );
+	FS_FCloseFile( filehandle );
+	Com_Printf( "cam file saved\n" );
 }
 
 //===================================================================
@@ -635,11 +496,11 @@ static void CG_DrawEntityNumbers( void ) {
 	float zfar = 2048;
 	int i, entnum;
 	centity_t *cent;
-	vec3_t dir;
+	Vec3 dir;
 	float dist;
 	trace_t trace;
-	vec3_t eorigin;
-	int shadowOffset = max( 1, frame_static.viewport_height / 600 );
+	Vec3 eorigin;
+	// int shadowOffset = Max2( 1, frame_static.viewport_height / 600 );
 
 	for( i = 0; i < cg.frame.numEntities; i++ ) {
 		entnum = cg.frame.parsedEntities[i & ( MAX_PARSE_ENTITIES - 1 )].number;
@@ -651,25 +512,25 @@ static void CG_DrawEntityNumbers( void ) {
 			continue;
 		}
 
-		if( !cent->current.modelindex ) {
+		if( cent->current.model == EMPTY_HASH ) {
 			continue;
 		}
 
 		// Kill if behind the view
-		VectorLerp( cent->prev.origin, cg.lerpfrac, cent->current.origin, eorigin );
-		VectorSubtract( eorigin, cam_origin, dir );
-		dist = VectorNormalize2( dir, dir ) * cg.view.fracDistFOV;
+		eorigin = Lerp( cent->prev.origin, cg.lerpfrac, cent->current.origin );
+		dir = eorigin - cam_origin;
+		dist = Length( dir ) * cg.view.fracDistFOV; dir = Normalize( dir );
 		if( dist > zfar ) {
 			continue;
 		}
 
-		if( DotProduct( dir, &cg.view.axis[AXIS_FORWARD] ) < 0 ) {
+		if( Dot( dir, FromQFAxis( cg.view.axis, AXIS_FORWARD ) ) < 0 ) {
 			continue;
 		}
 
-		CG_Trace( &trace, cam_origin, vec3_origin, vec3_origin, eorigin, cent->current.number, MASK_OPAQUE );
+		CG_Trace( &trace, cam_origin, Vec3( 0.0f ), Vec3( 0.0f ), eorigin, cent->current.number, MASK_OPAQUE );
 		if( trace.fraction == 1.0f ) {
-			Vec2 coords = WorldToScreen( FromQF3( eorigin ) );
+			Vec2 coords = WorldToScreen( eorigin );
 			if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {
 				return;
 			}
@@ -682,72 +543,6 @@ static void CG_DrawEntityNumbers( void ) {
 	}
 }
 
-void CG_Democam_DrawCenterSubtitle( int y, unsigned int maxwidth, struct qfontface_s *font, char *text ) {
-	char *ptr, *s, *t, c, d;
-	int x = frame_static.viewport_width / 2;
-
-	if( !text || !text[0] ) {
-		return;
-	}
-
-	int shadowOffset = 2 * frame_static.viewport_height / 600;
-	if( !shadowOffset ) {
-		shadowOffset = 1;
-	}
-
-	// if( !maxwidth || trap_SCR_strWidth( text, font, 0 ) <= maxwidth ) {
-	if( !maxwidth ) {
-		// trap_SCR_DrawStringWidth( x + shadowOffset, y + shadowOffset, ALIGN_CENTER_TOP, COM_RemoveColorTokens( text ), maxwidth, font, colorBlack );
-		// trap_SCR_DrawStringWidth( x, y, ALIGN_CENTER_TOP, text, maxwidth, font, colorWhite );
-		return;
-	}
-
-	t = s = ptr = text;
-	while( *s ) {
-		while( *s && *s != ' ' && *s != '\n' )
-			s++;
-
-		// if( ( !*s || *s == '\n' ) && trap_SCR_strWidth( ptr, font, 0 ) < maxwidth ) { // new line or end of text, in both cases force write
-		if( false ) { // new line or end of text, in both cases force write
-			c = *s;
-			*s = 0;
-			// trap_SCR_DrawStringWidth( x + shadowOffset, y + shadowOffset, ALIGN_CENTER_TOP, COM_RemoveColorTokens( ptr ), maxwidth, font, colorBlack );
-			// trap_SCR_DrawStringWidth( x, y, ALIGN_CENTER_TOP, ptr, maxwidth, font, colorWhite );
-			*s = c;
-
-			if( !*s ) {
-				break;
-			}
-
-			t = s;
-			s++;
-			ptr = s;
-		} else {
-			c = *s;
-			*s = 0;
-
-			// if( trap_SCR_strWidth( ptr, font, 0 ) < maxwidth ) {
-			// 	*s = c;
-			// 	t = s;
-			// 	s++;
-			// 	continue;
-			// }
-
-			*s = c;
-			d = *t;
-			*t = 0;
-			// trap_SCR_DrawStringWidth( x + shadowOffset, y + shadowOffset, ALIGN_CENTER_TOP, COM_RemoveColorTokens( ptr ), maxwidth, font, colorBlack );
-			// trap_SCR_DrawStringWidth( x, y, ALIGN_CENTER_TOP, ptr, maxwidth, font, colorWhite );
-			*t = d;
-			s = t;
-			s++;
-			ptr = s;
-		}
-
-		// y += trap_SCR_FontHeight( font );
-	}
-}
-
 /*
 * CG_DrawDemocam2D
 */
@@ -756,24 +551,9 @@ void CG_DrawDemocam2D( void ) {
 	const char *cam_type_name;
 	int64_t cam_timestamp;
 	char sfov[8], strack[8];
-	cg_subtitle_t *sub;
 
 	if( !cgs.demoPlaying ) {
 		return;
-	}
-
-	if( ( sub = CG_Democam_FindCurrentSubtitle() ) != NULL ) {
-		if( sub->text && sub->text[0] ) {
-			int y;
-
-			if( sub->highprint ) {
-				y = frame_static.viewport_height * 0.30f;
-			} else {
-				y = frame_static.viewport_height - ( frame_static.viewport_height * 0.30f );
-			}
-
-			// CG_Democam_DrawCenterSubtitle( y, frame_static.viewport_width * 0.75, cgs.fontSystemBig, sub->text );
-		}
 	}
 
 	if( democam_editing_mode ) {
@@ -801,8 +581,8 @@ void CG_DrawDemocam2D( void ) {
 		if( currentcam ) {
 			cam_type_name = cam_TypeNames[currentcam->type];
 			cam_timestamp = currentcam->timeStamp;
-			Q_snprintfz( strack, sizeof( strack ), "%i", currentcam->trackEnt );
-			Q_snprintfz( sfov, sizeof( sfov ), "%i", currentcam->fov );
+			snprintf( strack, sizeof( strack ), "%i", currentcam->trackEnt );
+			snprintf( sfov, sizeof( sfov ), "%i", currentcam->fov );
 		} else {
 			Q_strncpyz( strack, "NO", sizeof( strack ) );
 			Q_strncpyz( sfov, "NO", sizeof( sfov ) );
@@ -828,8 +608,8 @@ void CG_DrawDemocam2D( void ) {
 		if( nextcam ) {
 			cam_type_name = cam_TypeNames[nextcam->type];
 			cam_timestamp = nextcam->timeStamp;
-			Q_snprintfz( strack, sizeof( strack ), "%i", nextcam->trackEnt );
-			Q_snprintfz( sfov, sizeof( sfov ), "%i", nextcam->fov );
+			snprintf( strack, sizeof( strack ), "%i", nextcam->trackEnt );
+			snprintf( sfov, sizeof( sfov ), "%i", nextcam->fov );
 		} else {
 			Q_strncpyz( strack, "NO", sizeof( strack ) );
 			Q_strncpyz( sfov, "NO", sizeof( sfov ) );
@@ -856,36 +636,29 @@ void CG_DrawDemocam2D( void ) {
 /*
 * CG_DemoCam_LookAt
 */
-bool CG_DemoCam_LookAt( int trackEnt, vec3_t vieworg, vec3_t viewangles ) {
-	centity_t *cent;
-	vec3_t dir;
-	vec3_t origin;
-	struct cmodel_s *cmodel;
-	int i;
-
+static bool CG_DemoCam_LookAt( int trackEnt, Vec3 vieworg, Vec3 * viewangles ) {
 	if( trackEnt < 1 || trackEnt >= MAX_EDICTS ) {
 		return false;
 	}
 
-	cent = &cg_entities[trackEnt];
+	const centity_t * cent = &cg_entities[trackEnt];
 	if( cent->serverFrame != cg.frame.serverFrame ) {
 		return false;
 	}
 
 	// seems to be valid. Find the angles to look at this entity
-	VectorLerp( cent->prev.origin, cg.lerpfrac, cent->current.origin, origin );
+	Vec3 origin = Lerp( cent->prev.origin, cg.lerpfrac, cent->current.origin );
 
 	// if having a bounding box, look to its center
-	if( ( cmodel = CG_CModelForEntity( trackEnt ) ) != NULL ) {
-		vec3_t mins, maxs;
-		trap_CM_InlineModelBounds( cmodel, mins, maxs );
-		for( i = 0; i < 3; i++ )
-			origin[i] += ( mins[i] + maxs[i] );
+	struct cmodel_s *cmodel = CG_CModelForEntity( trackEnt );
+	if( cmodel != NULL ) {
+		Vec3 mins, maxs;
+		CM_InlineModelBounds( cl.cms, cmodel, &mins, &maxs );
+		origin += mins + maxs;
 	}
 
-	VectorSubtract( origin, vieworg, dir );
-	VectorNormalize( dir );
-	VecToAngles( dir, viewangles );
+	Vec3 dir = Normalize( origin - vieworg );
+	*viewangles = VecToAngles( dir );
 	return true;
 }
 
@@ -920,13 +693,13 @@ void CG_DemoCam_GetViewDef( cg_viewdef_t *view ) {
 /*
 * CG_DemoCam_GetOrientation
 */
-float CG_DemoCam_GetOrientation( vec3_t origin, vec3_t angles, vec3_t velocity ) {
-	VectorCopy( cam_angles, angles );
-	VectorCopy( cam_origin, origin );
-	VectorCopy( cam_velocity, velocity );
+float CG_DemoCam_GetOrientation( Vec3 * origin, Vec3 * angles, Vec3 * velocity ) {
+	*angles = cam_angles;
+	*origin = cam_origin;
+	*velocity = cam_velocity;
 
 	if( !currentcam || !currentcam->fov ) {
-		return bound( MIN_FOV, cg_fov->value, MAX_FOV );
+		return FOV;
 	}
 
 	return cam_fov;
@@ -942,9 +715,8 @@ int CG_DemoCam_FreeFly( void ) {
 	const float SPEED = 500;
 
 	if( cgs.demoPlaying && CamIsFree ) {
-		vec3_t wishvel, wishdir, forward, right, up, moveangles;
+		Vec3 wishvel, wishdir, forward, right, up, moveangles;
 		float fmove, smove, upmove, wishspeed, maxspeed;
-		int i;
 
 		maxspeed = 250;
 
@@ -952,11 +724,12 @@ int CG_DemoCam_FreeFly( void ) {
 		trap_NET_GetUserCmd( trap_NET_GetCurrentUserCmdNum() - 1, &cmd );
 		cmd.msec = cls.realFrameTime;
 
-		for( i = 0; i < 3; i++ )
-			moveangles[i] = SHORT2ANGLE( cmd.angles[i] ) + SHORT2ANGLE( freecam_delta_angles[i] );
+		moveangles.x = SHORT2ANGLE( cmd.angles[ 0 ] ) + SHORT2ANGLE( freecam_delta_angles[ 0 ] );
+		moveangles.y = SHORT2ANGLE( cmd.angles[ 1 ] ) + SHORT2ANGLE( freecam_delta_angles[ 1 ] );
+		moveangles.z = SHORT2ANGLE( cmd.angles[ 2 ] ) + SHORT2ANGLE( freecam_delta_angles[ 2 ] );
 
-		AngleVectors( moveangles, forward, right, up );
-		VectorCopy( moveangles, cam_angles );
+		AngleVectors( moveangles, &forward, &right, &up );
+		cam_angles = moveangles;
 
 		fmove = cmd.forwardmove * SPEED / 127.0f;
 		smove = cmd.sidemove * SPEED / 127.0f;
@@ -965,18 +738,18 @@ int CG_DemoCam_FreeFly( void ) {
 			maxspeed *= 2;
 		}
 
-		for( i = 0; i < 3; i++ )
-			wishvel[i] = forward[i] * fmove + right[i] * smove;
-		wishvel[2] += upmove;
+		wishvel = forward * fmove + right * smove;
+		wishvel.z += upmove;
 
-		wishspeed = VectorNormalize2( wishvel, wishdir );
+		wishspeed = Length( wishvel );
+		wishdir = Normalize( wishvel );
 		if( wishspeed > maxspeed ) {
 			wishspeed = maxspeed / wishspeed;
-			VectorScale( wishvel, wishspeed, wishvel );
+			wishvel = wishvel * ( wishspeed );
 			wishspeed = maxspeed;
 		}
 
-		VectorMA( cam_origin, (float)cls.realFrameTime * 0.001f, wishvel, cam_origin );
+		cam_origin = cam_origin + wishvel * ( (float)cls.realFrameTime * 0.001f );
 
 		cam_POVent = 0;
 		cam_3dPerson = false;
@@ -988,21 +761,21 @@ int CG_DemoCam_FreeFly( void ) {
 
 static void CG_Democam_SetCameraPositionFromView( void ) {
 	if( cg.view.type == VIEWDEF_PLAYERVIEW ) {
-		VectorCopy( cg.view.origin, cam_origin );
-		VectorCopy( cg.view.angles, cam_angles );
-		VectorCopy( cg.view.velocity, cam_velocity );
+		cam_origin = cg.view.origin;
+		cam_angles = cg.view.angles;
+		cam_velocity = cg.view.velocity;
 		cam_fov = cg.view.fov_y;
 		cam_orbital_radius = 0;
 	}
 
 	if( !CamIsFree ) {
-		int i;
 		usercmd_t cmd;
 
 		trap_NET_GetUserCmd( trap_NET_GetCurrentUserCmdNum() - 1, &cmd );
 
-		for( i = 0; i < 3; i++ )
-			freecam_delta_angles[i] = ANGLE2SHORT( cam_angles[i] ) - cmd.angles[i];
+		freecam_delta_angles[ 0 ] = ANGLE2SHORT( cam_angles.x ) - cmd.angles[ 0 ];
+		freecam_delta_angles[ 1 ] = ANGLE2SHORT( cam_angles.y ) - cmd.angles[ 1 ];
+		freecam_delta_angles[ 2 ] = ANGLE2SHORT( cam_angles.z ) - cmd.angles[ 2 ];
 	} else {
 		cam_orbital_radius = 0;
 	}
@@ -1012,12 +785,12 @@ static void CG_Democam_SetCameraPositionFromView( void ) {
 * CG_Democam_CalcView
 */
 static int CG_Democam_CalcView( void ) {
-	int i, viewType;
+	int viewType;
 	float lerpfrac;
-	vec3_t v;
+	Vec3 v;
 
 	viewType = VIEWDEF_PLAYERVIEW;
-	VectorClear( cam_velocity );
+	cam_velocity = Vec3( 0.0f );
 
 	if( currentcam ) {
 		if( !nextcam ) {
@@ -1028,16 +801,16 @@ static int CG_Democam_CalcView( void ) {
 
 		switch( currentcam->type ) {
 			case DEMOCAM_FIRSTPERSON:
-				VectorCopy( cg.view.origin, cam_origin );
-				VectorCopy( cg.view.angles, cam_angles );
-				VectorCopy( cg.view.velocity, cam_velocity );
+				cam_origin = cg.view.origin;
+				cam_angles = cg.view.angles;
+				cam_velocity = cg.view.velocity;
 				cam_fov = cg.view.fov_y;
 				break;
 
 			case DEMOCAM_THIRDPERSON:
-				VectorCopy( cg.view.origin, cam_origin );
-				VectorCopy( cg.view.angles, cam_angles );
-				VectorCopy( cg.view.velocity, cam_velocity );
+				cam_origin = cg.view.origin;
+				cam_angles = cg.view.angles;
+				cam_velocity = cg.view.velocity;
 				cam_fov = cg.view.fov_y;
 				cam_3dPerson = true;
 				break;
@@ -1045,9 +818,9 @@ static int CG_Democam_CalcView( void ) {
 			case DEMOCAM_POSITIONAL:
 				viewType = VIEWDEF_DEMOCAM;
 				cam_POVent = 0;
-				VectorCopy( currentcam->origin, cam_origin );
-				if( !CG_DemoCam_LookAt( currentcam->trackEnt, cam_origin, cam_angles ) ) {
-					VectorCopy( currentcam->angles, cam_angles );
+				cam_origin = currentcam->origin;
+				if( !CG_DemoCam_LookAt( currentcam->trackEnt, cam_origin, &cam_angles ) ) {
+					cam_angles = currentcam->angles;
 				}
 				cam_fov = currentcam->fov;
 				break;
@@ -1055,42 +828,42 @@ static int CG_Democam_CalcView( void ) {
 			case DEMOCAM_PATH_LINEAR:
 				viewType = VIEWDEF_DEMOCAM;
 				cam_POVent = 0;
-				VectorCopy( cam_origin, v );
+				v = cam_origin;
 
 				if( !nextcam || nextcam->type == DEMOCAM_FIRSTPERSON || nextcam->type == DEMOCAM_THIRDPERSON ) {
-					CG_Printf( "Warning: CG_DemoCam: path_linear cam without a valid next cam\n" );
-					VectorCopy( currentcam->origin, cam_origin );
-					if( !CG_DemoCam_LookAt( currentcam->trackEnt, cam_origin, cam_angles ) ) {
-						VectorCopy( currentcam->angles, cam_angles );
+					Com_Printf( "Warning: CG_DemoCam: path_linear cam without a valid next cam\n" );
+					cam_origin = currentcam->origin;
+					if( !CG_DemoCam_LookAt( currentcam->trackEnt, cam_origin, &cam_angles ) ) {
+						cam_angles = currentcam->angles;
 					}
 					cam_fov = currentcam->fov;
 				} else {
-					VectorLerp( currentcam->origin, lerpfrac, nextcam->origin, cam_origin );
-					if( !CG_DemoCam_LookAt( currentcam->trackEnt, cam_origin, cam_angles ) ) {
-						for( i = 0; i < 3; i++ ) cam_angles[i] = LerpAngle( currentcam->angles[i], nextcam->angles[i], lerpfrac );
+					cam_origin = Lerp( currentcam->origin, lerpfrac, nextcam->origin );
+					if( !CG_DemoCam_LookAt( currentcam->trackEnt, cam_origin, &cam_angles ) ) {
+						cam_angles = LerpAngles( currentcam->angles, lerpfrac, nextcam->angles );
 					}
 					cam_fov = (float)currentcam->fov + (float)( nextcam->fov - currentcam->fov ) * lerpfrac;
 				}
 
 				// set velocity
-				VectorSubtract( cam_origin, v, cam_velocity );
+				cam_velocity = cam_origin - v;
 				break;
 
 			case DEMOCAM_PATH_SPLINE:
 				viewType = VIEWDEF_DEMOCAM;
 				cam_POVent = 0;
 				lerpfrac = Clamp01( lerpfrac );
-				VectorCopy( cam_origin, v );
+				v = cam_origin;
 
 				if( !nextcam || nextcam->type == DEMOCAM_FIRSTPERSON || nextcam->type == DEMOCAM_THIRDPERSON ) {
-					CG_Printf( "Warning: CG_DemoCam: path_spline cam without a valid next cam\n" );
-					VectorCopy( currentcam->origin, cam_origin );
-					if( !CG_DemoCam_LookAt( currentcam->trackEnt, cam_origin, cam_angles ) ) {
-						VectorCopy( currentcam->angles, cam_angles );
+					Com_Printf( "Warning: CG_DemoCam: path_spline cam without a valid next cam\n" );
+					cam_origin = currentcam->origin;
+					if( !CG_DemoCam_LookAt( currentcam->trackEnt, cam_origin, &cam_angles ) ) {
+						cam_angles = currentcam->angles;
 					}
 					cam_fov = currentcam->fov;
 				} else {  // valid spline path
-#define VectorHermiteInterp( a, at, b, bt, c, v )  ( ( v )[0] = ( 2 * pow( c, 3 ) - 3 * pow( c, 2 ) + 1 ) * a[0] + ( pow( c, 3 ) - 2 * pow( c, 2 ) + c ) * 2 * at[0] + ( -2 * pow( c, 3 ) + 3 * pow( c, 2 ) ) * b[0] + ( pow( c, 3 ) - pow( c, 2 ) ) * 2 * bt[0], ( v )[1] = ( 2 * pow( c, 3 ) - 3 * pow( c, 2 ) + 1 ) * a[1] + ( pow( c, 3 ) - 2 * pow( c, 2 ) + c ) * 2 * at[1] + ( -2 * pow( c, 3 ) + 3 * pow( c, 2 ) ) * b[1] + ( pow( c, 3 ) - pow( c, 2 ) ) * 2 * bt[1], ( v )[2] = ( 2 * pow( c, 3 ) - 3 * pow( c, 2 ) + 1 ) * a[2] + ( pow( c, 3 ) - 2 * pow( c, 2 ) + c ) * 2 * at[2] + ( -2 * pow( c, 3 ) + 3 * pow( c, 2 ) ) * b[2] + ( pow( c, 3 ) - pow( c, 2 ) ) * 2 * bt[2] )
+#define VectorHermiteInterp( a, at, b, bt, c, v )  ( ( v ).x = ( 2 * powf( c, 3 ) - 3 * powf( c, 2 ) + 1 ) * a.x + ( powf( c, 3 ) - 2 * powf( c, 2 ) + c ) * 2 * at.x + ( -2 * powf( c, 3 ) + 3 * powf( c, 2 ) ) * b.x + ( powf( c, 3 ) - powf( c, 2 ) ) * 2 * bt.x, ( v ).y = ( 2 * powf( c, 3 ) - 3 * powf( c, 2 ) + 1 ) * a.y + ( powf( c, 3 ) - 2 * powf( c, 2 ) + c ) * 2 * at.y + ( -2 * powf( c, 3 ) + 3 * powf( c, 2 ) ) * b.y + ( powf( c, 3 ) - powf( c, 2 ) ) * 2 * bt.y, ( v ).z = ( 2 * powf( c, 3 ) - 3 * powf( c, 2 ) + 1 ) * a.z + ( powf( c, 3 ) - 2 * powf( c, 2 ) + c ) * 2 * at.z + ( -2 * powf( c, 3 ) + 3 * powf( c, 2 ) ) * b.z + ( powf( c, 3 ) - powf( c, 2 ) ) * 2 * bt.z )
 
 					float lerpspline, A, B, C, n1, n2, n3;
 					cg_democam_t *previouscam = NULL;
@@ -1109,26 +882,26 @@ static int CG_Democam_CalcView( void ) {
 					} else if( !previouscam && nextcam && secondnextcam ) {
 						n1 = nextcam->timeStamp - currentcam->timeStamp;
 						n2 = secondnextcam->timeStamp - nextcam->timeStamp;
-						A = n1 * ( n1 - n2 ) / ( pow( n1, 2 ) + n1 * n2 - n1 - n2 );
-						B = ( 2 * n1 * n2 - n1 - n2 ) / ( pow( n1, 2 ) + n1 * n2 - n1 - n2 );
+						A = n1 * ( n1 - n2 ) / ( powf( n1, 2 ) + n1 * n2 - n1 - n2 );
+						B = ( 2 * n1 * n2 - n1 - n2 ) / ( powf( n1, 2 ) + n1 * n2 - n1 - n2 );
 						lerpfrac = (float)( demo_time - currentcam->timeStamp ) / (float)( nextcam->timeStamp - currentcam->timeStamp );
-						lerpspline = A * pow( lerpfrac, 2 ) + B * lerpfrac;
+						lerpspline = A * powf( lerpfrac, 2 ) + B * lerpfrac;
 					} else if( previouscam && nextcam && !secondnextcam ) {
 						n2 = currentcam->timeStamp - previouscam->timeStamp;
 						n3 = nextcam->timeStamp - currentcam->timeStamp;
-						A = n3 * ( n2 - n3 ) / ( -n2 - n3 + n2 * n3 + pow( n3, 2 ) );
-						B = -1 / ( -n2 - n3 + n2 * n3 + pow( n3, 2 ) ) * ( n2 + n3 - 2 * pow( n3, 2 ) );
+						A = n3 * ( n2 - n3 ) / ( -n2 - n3 + n2 * n3 + powf( n3, 2 ) );
+						B = -1 / ( -n2 - n3 + n2 * n3 + powf( n3, 2 ) ) * ( n2 + n3 - 2 * powf( n3, 2 ) );
 						lerpfrac = (float)( demo_time - currentcam->timeStamp ) / (float)( nextcam->timeStamp - currentcam->timeStamp );
-						lerpspline = A * pow( lerpfrac, 2 ) + B * lerpfrac;
+						lerpspline = A * powf( lerpfrac, 2 ) + B * lerpfrac;
 					} else if( previouscam && nextcam && secondnextcam ) {
 						n1 = currentcam->timeStamp - previouscam->timeStamp;
 						n2 = nextcam->timeStamp - currentcam->timeStamp;
 						n3 = secondnextcam->timeStamp - nextcam->timeStamp;
-						A = -2 * pow( n2, 2 ) * ( -pow( n2, 2 ) + n1 * n3 ) / ( 2 * n2 * n3 + pow( n2, 3 ) * n3 - 3 * pow( n2, 2 ) * n1 + n1 * pow( n2, 3 ) + 2 * n1 * n2 - 3 * pow( n2, 2 ) * n3 - 3 * pow( n2, 3 ) + 2 * pow( n2, 2 ) + pow( n2, 4 ) + n1 * pow( n2, 2 ) * n3 - 3 * n1 * n2 * n3 + 2 * n1 * n3 );
-						B = pow( n2, 2 ) * ( -2 * n1 - 3 * pow( n2, 2 ) - n2 * n3 + 2 * n3 + 3 * n1 * n3 + n1 * n2 ) / ( 2 * n2 * n3 + pow( n2, 3 ) * n3 - 3 * pow( n2, 2 ) * n1 + n1 * pow( n2, 3 ) + 2 * n1 * n2 - 3 * pow( n2, 2 ) * n3 - 3 * pow( n2, 3 ) + 2 * pow( n2, 2 ) + pow( n2, 4 ) + n1 * pow( n2, 2 ) * n3 - 3 * n1 * n2 * n3 + 2 * n1 * n3 );
-						C = -( pow( n2, 2 ) * n1 - 2 * n1 * n2 + 3 * n1 * n2 * n3 - 2 * n1 * n3 - 2 * pow( n2, 4 ) + 3 * pow( n2, 3 ) - 2 * pow( n2, 3 ) * n3 + 5 * pow( n2, 2 ) * n3 - 2 * pow( n2, 2 ) - 2 * n2 * n3 ) / ( 2 * n2 * n3 + pow( n2, 3 ) * n3 - 3 * pow( n2, 2 ) * n1 + n1 * pow( n2, 3 ) + 2 * n1 * n2 - 3 * pow( n2, 2 ) * n3 - 3 * pow( n2, 3 ) + 2 * pow( n2, 2 ) + pow( n2, 4 ) + n1 * pow( n2, 2 ) * n3 - 3 * n1 * n2 * n3 + 2 * n1 * n3 );
+						A = -2 * powf( n2, 2 ) * ( -powf( n2, 2 ) + n1 * n3 ) / ( 2 * n2 * n3 + powf( n2, 3 ) * n3 - 3 * powf( n2, 2 ) * n1 + n1 * powf( n2, 3 ) + 2 * n1 * n2 - 3 * powf( n2, 2 ) * n3 - 3 * powf( n2, 3 ) + 2 * powf( n2, 2 ) + powf( n2, 4 ) + n1 * powf( n2, 2 ) * n3 - 3 * n1 * n2 * n3 + 2 * n1 * n3 );
+						B = powf( n2, 2 ) * ( -2 * n1 - 3 * powf( n2, 2 ) - n2 * n3 + 2 * n3 + 3 * n1 * n3 + n1 * n2 ) / ( 2 * n2 * n3 + powf( n2, 3 ) * n3 - 3 * powf( n2, 2 ) * n1 + n1 * powf( n2, 3 ) + 2 * n1 * n2 - 3 * powf( n2, 2 ) * n3 - 3 * powf( n2, 3 ) + 2 * powf( n2, 2 ) + powf( n2, 4 ) + n1 * powf( n2, 2 ) * n3 - 3 * n1 * n2 * n3 + 2 * n1 * n3 );
+						C = -( powf( n2, 2 ) * n1 - 2 * n1 * n2 + 3 * n1 * n2 * n3 - 2 * n1 * n3 - 2 * powf( n2, 4 ) + 3 * powf( n2, 3 ) - 2 * powf( n2, 3 ) * n3 + 5 * powf( n2, 2 ) * n3 - 2 * powf( n2, 2 ) - 2 * n2 * n3 ) / ( 2 * n2 * n3 + powf( n2, 3 ) * n3 - 3 * powf( n2, 2 ) * n1 + n1 * powf( n2, 3 ) + 2 * n1 * n2 - 3 * powf( n2, 2 ) * n3 - 3 * powf( n2, 3 ) + 2 * powf( n2, 2 ) + powf( n2, 4 ) + n1 * powf( n2, 2 ) * n3 - 3 * n1 * n2 * n3 + 2 * n1 * n3 );
 						lerpfrac = (float)( demo_time - currentcam->timeStamp ) / (float)( nextcam->timeStamp - currentcam->timeStamp );
-						lerpspline = A * pow( lerpfrac, 3 ) + B * pow( lerpfrac, 2 ) + C * lerpfrac;
+						lerpspline = A * powf( lerpfrac, 3 ) + B * powf( lerpfrac, 2 ) + C * lerpfrac;
 					} else {
 						lerpfrac = 0;
 						lerpspline = 0;
@@ -1136,7 +909,7 @@ static int CG_Democam_CalcView( void ) {
 
 
 					VectorHermiteInterp( currentcam->origin, currentcam->tangent, nextcam->origin, nextcam->tangent, lerpspline, cam_origin );
-					if( !CG_DemoCam_LookAt( currentcam->trackEnt, cam_origin, cam_angles ) ) {
+					if( !CG_DemoCam_LookAt( currentcam->trackEnt, cam_origin, &cam_angles ) ) {
 						VectorHermiteInterp( currentcam->angles, currentcam->angles_tangent, nextcam->angles, nextcam->angles_tangent, lerpspline, cam_angles );
 					}
 					cam_fov = (float)currentcam->fov + (float)( nextcam->fov - currentcam->fov ) * lerpfrac;
@@ -1144,58 +917,58 @@ static int CG_Democam_CalcView( void ) {
 				}
 
 				// set velocity
-				VectorSubtract( cam_origin, v, cam_velocity );
+				cam_velocity = cam_origin - v;
 				break;
 
 			case DEMOCAM_ORBITAL:
 				viewType = VIEWDEF_DEMOCAM;
 				cam_POVent = 0;
 				cam_fov = currentcam->fov;
-				VectorCopy( cam_origin, v );
+				v = cam_origin;
 
 				if( !currentcam->trackEnt || currentcam->trackEnt >= MAX_EDICTS ) {
-					CG_Printf( "Warning: CG_DemoCam: orbital cam needs a track entity set\n" );
-					VectorCopy( currentcam->origin, cam_origin );
-					VectorClear( cam_angles );
-					VectorClear( cam_velocity );
+					Com_Printf( "Warning: CG_DemoCam: orbital cam needs a track entity set\n" );
+					cam_origin = currentcam->origin;
+					cam_angles = Vec3( 0.0f );
+					cam_velocity = Vec3( 0.0f );
 				} else {
-					vec3_t center, forward;
+					Vec3 center, forward;
 					struct cmodel_s *cmodel;
 					const float ft = (float)cls.frametime * 0.001f;
 
 					// find the trackEnt origin
-					VectorLerp( cg_entities[currentcam->trackEnt].prev.origin, cg.lerpfrac, cg_entities[currentcam->trackEnt].current.origin, center );
+					center = Lerp( cg_entities[currentcam->trackEnt].prev.origin, cg.lerpfrac, cg_entities[currentcam->trackEnt].current.origin );
 
 					// if having a bounding box, look to its center
 					if( ( cmodel = CG_CModelForEntity( currentcam->trackEnt ) ) != NULL ) {
-						vec3_t mins, maxs;
-						trap_CM_InlineModelBounds( cmodel, mins, maxs );
-						for( i = 0; i < 3; i++ )
-							center[i] += ( mins[i] + maxs[i] );
+						Vec3 mins, maxs;
+						CM_InlineModelBounds( cl.cms, cmodel, &mins, &maxs );
+						center += mins + maxs;
 					}
 
 					if( !cam_orbital_radius ) {
 						// cam is just started, find distance from cam to trackEnt and keep it as radius
-						VectorSubtract( currentcam->origin, center, forward );
-						cam_orbital_radius = VectorNormalize( forward );
-						VecToAngles( forward, cam_orbital_angles );
+						forward = currentcam->origin - center;
+						cam_orbital_radius = Length( forward );
+						forward = Normalize( forward );
+						cam_orbital_angles = VecToAngles( forward );
 					}
 
-					for( i = 0; i < 3; i++ ) {
-						cam_orbital_angles[i] += currentcam->angles[i] * ft;
+					cam_orbital_angles += currentcam->angles * ft;
+					for( int i = 0; i < 3; i++ ) {
 						cam_orbital_angles[i] = AngleNormalize360( cam_orbital_angles[i] );
 					}
 
-					AngleVectors( cam_orbital_angles, forward, NULL, NULL );
-					VectorMA( center, cam_orbital_radius, forward, cam_origin );
+					AngleVectors( cam_orbital_angles, &forward, NULL, NULL );
+					cam_origin = center + forward * ( cam_orbital_radius );
 
 					// lookat
-					VectorInverse( forward );
-					VecToAngles( forward, cam_angles );
+					forward = forward * -1;
+					cam_angles = VecToAngles( forward );
 				}
 
 				// set velocity
-				VectorSubtract( cam_origin, v, cam_velocity );
+				cam_velocity = cam_origin - v;
 				break;
 
 			default:
@@ -1203,7 +976,7 @@ static int CG_Democam_CalcView( void ) {
 		}
 
 		if( currentcam->type != DEMOCAM_ORBITAL ) {
-			VectorClear( cam_orbital_angles );
+			cam_orbital_angles = Vec3( 0.0f );
 			cam_orbital_radius = 0;
 		}
 	}
@@ -1255,18 +1028,18 @@ bool CG_DemoCam_IsFree( void ) {
 * CG_DemoFreeFly_Cmd_f
 */
 static void CG_DemoFreeFly_Cmd_f( void ) {
-	if( trap_Cmd_Argc() > 1 ) {
-		if( !Q_stricmp( trap_Cmd_Argv( 1 ), "on" ) ) {
+	if( Cmd_Argc() > 1 ) {
+		if( !Q_stricmp( Cmd_Argv( 1 ), "on" ) ) {
 			CamIsFree = true;
-		} else if( !Q_stricmp( trap_Cmd_Argv( 1 ), "off" ) ) {
+		} else if( !Q_stricmp( Cmd_Argv( 1 ), "off" ) ) {
 			CamIsFree = false;
 		}
 	} else {
 		CamIsFree = !CamIsFree;
 	}
 
-	VectorClear( cam_velocity );
-	CG_Printf( "demo cam mode %s\n", CamIsFree ? "Free Fly" : "Preview" );
+	cam_velocity = Vec3( 0.0f );
+	Com_Printf( "demo cam mode %s\n", CamIsFree ? "Free Fly" : "Preview" );
 }
 
 /*
@@ -1277,68 +1050,6 @@ static void CG_CamSwitch_Cmd_f( void ) {
 }
 
 /*
-* CG_AddCam_Sub_f
-*/
-static void CG_AddSub_Cmd_f( void ) {
-	cg_subtitle_t *sub;
-
-	sub = CG_Democam_RegisterSubtitle();
-	if( !sub ) {
-		CG_Printf( "DemoCam Error: Failed to allocate the subtitle\n" );
-		return;
-	}
-
-	if( trap_Cmd_Argc() > 1 ) {
-		char str[MAX_STRING_CHARS]; // one line of the console can't handle more than this
-		int i;
-
-		str[0] = 0;
-		for( i = 1; i < trap_Cmd_Argc(); i++ ) {
-			Q_strncatz( str, trap_Cmd_Argv( i ), sizeof( str ) );
-			if( i < trap_Cmd_Argc() - 1 ) {
-				Q_strncatz( str, " ", sizeof( str ) );
-			}
-		}
-
-		sub->text = CG_CopyString( str );
-	} else {
-		sub->text = CG_CopyString( "" );
-	}
-}
-
-/*
-* CG_AddPrint_Cmd_f
-*/
-static void CG_AddPrint_Cmd_f( void ) {
-	cg_subtitle_t *sub;
-
-	sub = CG_Democam_RegisterSubtitle();
-	if( !sub ) {
-		CG_Printf( "DemoCam Error: Failed to allocate the subtitle\n" );
-		return;
-	}
-
-	if( trap_Cmd_Argc() > 1 ) {
-		char str[MAX_STRING_CHARS]; // one line of the console can't handle more than this
-		int i;
-
-		str[0] = 0;
-		for( i = 1; i < trap_Cmd_Argc(); i++ ) {
-			Q_strncatz( str, trap_Cmd_Argv( i ), sizeof( str ) );
-			if( i < trap_Cmd_Argc() - 1 ) {
-				Q_strncatz( str, " ", sizeof( str ) );
-			}
-		}
-
-		sub->text = CG_CopyString( str );
-	} else {
-		sub->text = CG_CopyString( "" );
-	}
-
-	sub->highprint = true;
-}
-
-/*
 * CG_AddCam_Cmd_f
 */
 static void CG_AddCam_Cmd_f( void ) {
@@ -1346,11 +1057,11 @@ static void CG_AddCam_Cmd_f( void ) {
 
 	CG_DemoCam_UpdateDemoTime();
 
-	if( trap_Cmd_Argc() == 2 ) {
+	if( Cmd_Argc() == 2 ) {
 		// type
 		type = -1;
 		for( i = 0; cam_TypeNames[i] != NULL; i++ ) {
-			if( !Q_stricmp( cam_TypeNames[i], trap_Cmd_Argv( 1 ) ) ) {
+			if( !Q_stricmp( cam_TypeNames[i], Cmd_Argv( 1 ) ) ) {
 				type = i;
 				break;
 			}
@@ -1359,7 +1070,7 @@ static void CG_AddCam_Cmd_f( void ) {
 		if( type != -1 ) {
 			// valid. Register and return
 			if( CG_Democam_RegisterCam( type ) != NULL ) {
-				CG_Printf( "cam added\n" );
+				Com_Printf( "cam added\n" );
 
 				// update current cam
 				CG_Democam_ExecutePathAnalysis();
@@ -1371,10 +1082,10 @@ static void CG_AddCam_Cmd_f( void ) {
 	}
 
 	// print help
-	CG_Printf( " : Usage: AddCam <type>\n" );
-	CG_Printf( " : Available types:\n" );
+	Com_Printf( " : Usage: AddCam <type>\n" );
+	Com_Printf( " : Available types:\n" );
 	for( i = 0; cam_TypeNames[i] != NULL; i++ )
-		CG_Printf( " : %s\n", cam_TypeNames[i] );
+		Com_Printf( " : %s\n", cam_TypeNames[i] );
 }
 
 /*
@@ -1382,7 +1093,7 @@ static void CG_AddCam_Cmd_f( void ) {
 */
 static void CG_DeleteCam_Cmd_f( void ) {
 	if( !currentcam ) {
-		CG_Printf( "DeleteCam: No current cam to delete\n" );
+		Com_Printf( "DeleteCam: No current cam to delete\n" );
 		return;
 	}
 
@@ -1395,7 +1106,7 @@ static void CG_DeleteCam_Cmd_f( void ) {
 	CG_Democam_ExecutePathAnalysis();
 	currentcam = CG_Democam_FindCurrent( demo_time );
 	nextcam = CG_Democam_FindNext( demo_time );
-	CG_Printf( "cam deleted\n" );
+	Com_Printf( "cam deleted\n" );
 }
 
 /*
@@ -1406,22 +1117,22 @@ static void CG_EditCam_Cmd_f( void ) {
 
 	currentcam = CG_Democam_FindCurrent( demo_time );
 	if( !currentcam ) {
-		CG_Printf( "Editcam: no current cam\n" );
+		Com_Printf( "Editcam: no current cam\n" );
 		return;
 	}
 
-	if( trap_Cmd_Argc() >= 2 && Q_stricmp( trap_Cmd_Argv( 1 ), "help" ) ) {
-		if( !Q_stricmp( trap_Cmd_Argv( 1 ), "type" ) ) {
+	if( Cmd_Argc() >= 2 && Q_stricmp( Cmd_Argv( 1 ), "help" ) ) {
+		if( !Q_stricmp( Cmd_Argv( 1 ), "type" ) ) {
 			int type, i;
-			if( trap_Cmd_Argc() < 3 ) { // not enough parameters, print help
-				CG_Printf( "Usage: EditCam type <type name>\n" );
+			if( Cmd_Argc() < 3 ) { // not enough parameters, print help
+				Com_Printf( "Usage: EditCam type <type name>\n" );
 				return;
 			}
 
 			// type
 			type = -1;
 			for( i = 0; cam_TypeNames[i] != NULL; i++ ) {
-				if( !Q_stricmp( cam_TypeNames[i], trap_Cmd_Argv( 2 ) ) ) {
+				if( !Q_stricmp( cam_TypeNames[i], Cmd_Argv( 2 ) ) ) {
 					type = i;
 					break;
 				}
@@ -1430,106 +1141,106 @@ static void CG_EditCam_Cmd_f( void ) {
 			if( type != -1 ) {
 				// valid. Register and return
 				currentcam->type = type;
-				CG_Printf( "cam edited\n" );
+				Com_Printf( "cam edited\n" );
 				CG_Democam_ExecutePathAnalysis();
 				return;
 			} else {
-				CG_Printf( "invalid type name\n" );
+				Com_Printf( "invalid type name\n" );
 			}
 		}
-		if( !Q_stricmp( trap_Cmd_Argv( 1 ), "track" ) ) {
-			if( trap_Cmd_Argc() < 3 ) {
+		if( !Q_stricmp( Cmd_Argv( 1 ), "track" ) ) {
+			if( Cmd_Argc() < 3 ) {
 				// not enough parameters, print help
-				CG_Printf( "Usage: EditCam track <entity number> ( 0 for no tracking )\n" );
+				Com_Printf( "Usage: EditCam track <entity number> ( 0 for no tracking )\n" );
 				return;
 			}
-			currentcam->trackEnt = atoi( trap_Cmd_Argv( 2 ) );
-			CG_Printf( "cam edited\n" );
+			currentcam->trackEnt = atoi( Cmd_Argv( 2 ) );
+			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
-		} else if( !Q_stricmp( trap_Cmd_Argv( 1 ), "fov" ) ) {
-			if( trap_Cmd_Argc() < 3 ) {
+		} else if( !Q_stricmp( Cmd_Argv( 1 ), "fov" ) ) {
+			if( Cmd_Argc() < 3 ) {
 				// not enough parameters, print help
-				CG_Printf( "Usage: EditCam fov <value>\n" );
+				Com_Printf( "Usage: EditCam fov <value>\n" );
 				return;
 			}
-			currentcam->fov = atoi( trap_Cmd_Argv( 2 ) );
-			CG_Printf( "cam edited\n" );
+			currentcam->fov = atoi( Cmd_Argv( 2 ) );
+			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
-		} else if( !Q_stricmp( trap_Cmd_Argv( 1 ), "timeOffset" ) ) {
+		} else if( !Q_stricmp( Cmd_Argv( 1 ), "timeOffset" ) ) {
 			int64_t newtimestamp;
-			if( trap_Cmd_Argc() < 3 ) {
+			if( Cmd_Argc() < 3 ) {
 				// not enough parameters, print help
-				CG_Printf( "Usage: EditCam timeOffset <value>\n" );
+				Com_Printf( "Usage: EditCam timeOffset <value>\n" );
 				return;
 			}
-			newtimestamp = currentcam->timeStamp += atoi( trap_Cmd_Argv( 2 ) );
+			newtimestamp = currentcam->timeStamp += atoi( Cmd_Argv( 2 ) );
 			if( newtimestamp + cl.serverTime <= demo_initial_timestamp ) {
 				newtimestamp = 1;
 			}
 			currentcam->timeStamp = newtimestamp;
 			currentcam = CG_Democam_FindCurrent( demo_time );
 			nextcam = CG_Democam_FindNext( demo_time );
-			CG_Printf( "cam edited\n" );
+			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
-		} else if( !Q_stricmp( trap_Cmd_Argv( 1 ), "origin" ) ) {
-			VectorCopy( cg.view.origin, currentcam->origin );
+		} else if( !Q_stricmp( Cmd_Argv( 1 ), "origin" ) ) {
+			currentcam->origin = cg.view.origin;
 			cam_orbital_radius = 0;
-			CG_Printf( "cam edited\n" );
+			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
-		} else if( !Q_stricmp( trap_Cmd_Argv( 1 ), "angles" ) ) {
-			VectorCopy( cg.view.angles, currentcam->angles );
-			CG_Printf( "cam edited\n" );
+		} else if( !Q_stricmp( Cmd_Argv( 1 ), "angles" ) ) {
+			currentcam->angles = cg.view.angles;
+			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
-		} else if( !Q_stricmp( trap_Cmd_Argv( 1 ), "pitch" ) ) {
-			if( trap_Cmd_Argc() < 3 ) {
+		} else if( !Q_stricmp( Cmd_Argv( 1 ), "pitch" ) ) {
+			if( Cmd_Argc() < 3 ) {
 				// not enough parameters, print help
-				CG_Printf( "Usage: EditCam pitch <value>\n" );
+				Com_Printf( "Usage: EditCam pitch <value>\n" );
 				return;
 			}
-			currentcam->angles[PITCH] = atof( trap_Cmd_Argv( 2 ) );
-			CG_Printf( "cam edited\n" );
+			currentcam->angles.x = atof( Cmd_Argv( 2 ) );
+			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
-		} else if( !Q_stricmp( trap_Cmd_Argv( 1 ), "yaw" ) ) {
-			if( trap_Cmd_Argc() < 3 ) {
+		} else if( !Q_stricmp( Cmd_Argv( 1 ), "yaw" ) ) {
+			if( Cmd_Argc() < 3 ) {
 				// not enough parameters, print help
-				CG_Printf( "Usage: EditCam yaw <value>\n" );
+				Com_Printf( "Usage: EditCam yaw <value>\n" );
 				return;
 			}
-			currentcam->angles[YAW] = atof( trap_Cmd_Argv( 2 ) );
-			CG_Printf( "cam edited\n" );
+			currentcam->angles.y = atof( Cmd_Argv( 2 ) );
+			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
-		} else if( !Q_stricmp( trap_Cmd_Argv( 1 ), "roll" ) ) {
-			if( trap_Cmd_Argc() < 3 ) {
+		} else if( !Q_stricmp( Cmd_Argv( 1 ), "roll" ) ) {
+			if( Cmd_Argc() < 3 ) {
 				// not enough parameters, print help
-				CG_Printf( "Usage: EditCam roll <value>\n" );
+				Com_Printf( "Usage: EditCam roll <value>\n" );
 				return;
 			}
-			currentcam->angles[ROLL] = atof( trap_Cmd_Argv( 2 ) );
-			CG_Printf( "cam edited\n" );
+			currentcam->angles.z = atof( Cmd_Argv( 2 ) );
+			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
 		}
 	}
 
 	// print help
-	CG_Printf( " : Usage: EditCam <command>\n" );
-	CG_Printf( " : Available commands:\n" );
-	CG_Printf( " : type <type name>\n" );
-	CG_Printf( " : track <entity number> ( 0 for no track )\n" );
-	CG_Printf( " : fov <value> ( only for not player views )\n" );
-	CG_Printf( " : timeOffset <value> ( + or - milliseconds to be added to camera timestamp )\n" );
-	CG_Printf( " : origin ( changes cam to current origin )\n" );
-	CG_Printf( " : angles ( changes cam to current angles )\n" );
-	CG_Printf( " : pitch <value> ( assigns pitch angle to current cam )\n" );
-	CG_Printf( " : yaw <value> ( assigns yaw angle to current cam )\n" );
-	CG_Printf( " : roll <value> ( assigns roll angle to current cam )\n" );
+	Com_Printf( " : Usage: EditCam <command>\n" );
+	Com_Printf( " : Available commands:\n" );
+	Com_Printf( " : type <type name>\n" );
+	Com_Printf( " : track <entity number> ( 0 for no track )\n" );
+	Com_Printf( " : fov <value> ( only for not player views )\n" );
+	Com_Printf( " : timeOffset <value> ( + or - milliseconds to be added to camera timestamp )\n" );
+	Com_Printf( " : origin ( changes cam to current origin )\n" );
+	Com_Printf( " : angles ( changes cam to current angles )\n" );
+	Com_Printf( " : pitch <value> ( assigns pitch angle to current cam )\n" );
+	Com_Printf( " : yaw <value> ( assigns yaw angle to current cam )\n" );
+	Com_Printf( " : roll <value> ( assigns roll angle to current cam )\n" );
 }
 
 /*
@@ -1539,13 +1250,13 @@ void CG_SaveCam_Cmd_f( void ) {
 	if( !cgs.demoPlaying ) {
 		return;
 	}
-	if( trap_Cmd_Argc() > 1 ) {
+	if( Cmd_Argc() > 1 ) {
 		char *customName;
 		int custom_name_size;
 
-		custom_name_size = sizeof( char ) * ( strlen( "demos/" ) + strlen( trap_Cmd_Argv( 1 ) ) + strlen( ".cam" ) + 1 );
+		custom_name_size = sizeof( char ) * ( strlen( "demos/" ) + strlen( Cmd_Argv( 1 ) ) + strlen( ".cam" ) + 1 );
 		customName = ( char * )CG_Malloc( custom_name_size );
-		Q_snprintfz( customName, custom_name_size, "demos/%s", trap_Cmd_Argv( 1 ) );
+		snprintf( customName, custom_name_size, "demos/%s", Cmd_Argv( 1 ) );
 		COM_ReplaceExtension( customName, ".cam", custom_name_size );
 		CG_SaveRecamScriptFile( customName );
 		CG_Free( customName );
@@ -1562,20 +1273,20 @@ void CG_Democam_ImportCams_f( void ) {
 	int name_size;
 	char *customName;
 
-	if( trap_Cmd_Argc() < 2 ) {
-		CG_Printf( "Usage: importcams <filename> (relative to demos directory)\n" );
+	if( Cmd_Argc() < 2 ) {
+		Com_Printf( "Usage: importcams <filename> (relative to demos directory)\n" );
 		return;
 	}
 
 	// see if there is any script for this demo, and load it
-	name_size = sizeof( char ) * ( strlen( "demos/" ) + strlen( trap_Cmd_Argv( 1 ) ) + strlen( ".cam" ) + 1 );
+	name_size = sizeof( char ) * ( strlen( "demos/" ) + strlen( Cmd_Argv( 1 ) ) + strlen( ".cam" ) + 1 );
 	customName = ( char * )CG_Malloc( name_size );
-	Q_snprintfz( customName, name_size, "demos/%s", trap_Cmd_Argv( 1 ) );
+	snprintf( customName, name_size, "demos/%s", Cmd_Argv( 1 ) );
 	COM_ReplaceExtension( customName, ".cam", name_size );
 	if( CG_LoadRecamScriptFile( customName ) ) {
-		CG_Printf( "cam script imported\n" );
+		Com_Printf( "cam script imported\n" );
 	} else {
-		CG_Printf( "CG_Democam_ImportCams_f: no valid file found\n" );
+		Com_Printf( "CG_Democam_ImportCams_f: no valid file found\n" );
 	}
 }
 
@@ -1583,14 +1294,12 @@ void CG_Democam_ImportCams_f( void ) {
 * CG_DemoEditMode_RemoveCmds
 */
 void CG_DemoEditMode_RemoveCmds( void ) {
-	trap_Cmd_RemoveCommand( "addcam" );
-	trap_Cmd_RemoveCommand( "deletecam" );
-	trap_Cmd_RemoveCommand( "editcam" );
-	trap_Cmd_RemoveCommand( "saverecam" );
-	trap_Cmd_RemoveCommand( "clearcams" );
-	trap_Cmd_RemoveCommand( "importcams" );
-	trap_Cmd_RemoveCommand( "subtitle" );
-	trap_Cmd_RemoveCommand( "addprint" );
+	Cmd_RemoveCommand( "addcam" );
+	Cmd_RemoveCommand( "deletecam" );
+	Cmd_RemoveCommand( "editcam" );
+	Cmd_RemoveCommand( "saverecam" );
+	Cmd_RemoveCommand( "clearcams" );
+	Cmd_RemoveCommand( "importcams" );
 }
 
 /*
@@ -1601,26 +1310,24 @@ static void CG_DemoEditMode_Cmd_f( void ) {
 		return;
 	}
 
-	if( trap_Cmd_Argc() > 1 ) {
-		if( !Q_stricmp( trap_Cmd_Argv( 1 ), "on" ) ) {
+	if( Cmd_Argc() > 1 ) {
+		if( !Q_stricmp( Cmd_Argv( 1 ), "on" ) ) {
 			democam_editing_mode = true;
-		} else if( !Q_stricmp( trap_Cmd_Argv( 1 ), "off" ) ) {
+		} else if( !Q_stricmp( Cmd_Argv( 1 ), "off" ) ) {
 			democam_editing_mode = false;
 		}
 	} else {
 		democam_editing_mode = !democam_editing_mode;
 	}
 
-	CG_Printf( "demo cam editing mode %s\n", democam_editing_mode ? "on" : "off" );
+	Com_Printf( "demo cam editing mode %s\n", democam_editing_mode ? "on" : "off" );
 	if( democam_editing_mode ) {
-		trap_Cmd_AddCommand( "addcam", CG_AddCam_Cmd_f );
-		trap_Cmd_AddCommand( "deletecam", CG_DeleteCam_Cmd_f );
-		trap_Cmd_AddCommand( "editcam", CG_EditCam_Cmd_f );
-		trap_Cmd_AddCommand( "saverecam", CG_SaveCam_Cmd_f );
-		trap_Cmd_AddCommand( "clearcams", CG_Democam_FreeCams );
-		trap_Cmd_AddCommand( "importcams", CG_Democam_ImportCams_f );
-		trap_Cmd_AddCommand( "subtitle", CG_AddSub_Cmd_f );
-		trap_Cmd_AddCommand( "addprint", CG_AddPrint_Cmd_f );
+		Cmd_AddCommand( "addcam", CG_AddCam_Cmd_f );
+		Cmd_AddCommand( "deletecam", CG_DeleteCam_Cmd_f );
+		Cmd_AddCommand( "editcam", CG_EditCam_Cmd_f );
+		Cmd_AddCommand( "saverecam", CG_SaveCam_Cmd_f );
+		Cmd_AddCommand( "clearcams", CG_Democam_FreeCams );
+		Cmd_AddCommand( "importcams", CG_Democam_ImportCams_f );
 	} else {
 		CG_DemoEditMode_RemoveCmds();
 	}
@@ -1631,7 +1338,6 @@ static void CG_DemoEditMode_Cmd_f( void ) {
 */
 void CG_DemocamInit( void ) {
 	int name_size;
-	bool hassoundstream = false;
 
 	democam_editing_mode = false;
 	demo_time = 0;
@@ -1642,42 +1348,24 @@ void CG_DemocamInit( void ) {
 	}
 
 	if( !*cgs.demoName ) {
-		CG_Error( "CG_DemocamInit: no demo name string\n" );
+		Com_Error( ERR_DROP, "CG_DemocamInit: no demo name string\n" );
 	}
 
 	// see if there is any script for this demo, and load it
 	name_size = sizeof( char ) * ( strlen( cgs.demoName ) + strlen( ".cam" ) + 1 );
 	demoscriptname = ( char * )CG_Malloc( name_size );
-	Q_snprintfz( demoscriptname, name_size, "%s", cgs.demoName );
+	snprintf( demoscriptname, name_size, "%s", cgs.demoName );
 	COM_ReplaceExtension( demoscriptname, ".cam", name_size );
 
-	CG_Printf( "cam: %s\n", demoscriptname );
+	Com_Printf( "cam: %s\n", demoscriptname );
 
 	// add console commands
-	trap_Cmd_AddCommand( "demoEditMode", CG_DemoEditMode_Cmd_f );
-	trap_Cmd_AddCommand( "demoFreeFly", CG_DemoFreeFly_Cmd_f );
-	trap_Cmd_AddCommand( "camswitch", CG_CamSwitch_Cmd_f );
+	Cmd_AddCommand( "demoEditMode", CG_DemoEditMode_Cmd_f );
+	Cmd_AddCommand( "demoFreeFly", CG_DemoFreeFly_Cmd_f );
+	Cmd_AddCommand( "camswitch", CG_CamSwitch_Cmd_f );
 
 	if( CG_LoadRecamScriptFile( demoscriptname ) ) {
-		CG_Printf( "Loaded demo cam script\n" );
-	}
-
-	// check for a sound stream file
-	cgs.demoAudioStream = ( char * )CG_Malloc( name_size );
-	Q_snprintfz( cgs.demoAudioStream, name_size, "%s", cgs.demoName );
-	COM_ReplaceExtension( cgs.demoAudioStream, ".wav", name_size );
-	if( trap_FS_FOpenFile( cgs.demoAudioStream, NULL, FS_READ ) != -1 ) {
-		hassoundstream = true;
-	} else {
-		COM_ReplaceExtension( cgs.demoAudioStream, ".ogg", name_size );
-		if( trap_FS_FOpenFile( cgs.demoAudioStream, NULL, FS_READ ) != -1 ) {
-			hassoundstream = true;
-		}
-	}
-
-	if( !hassoundstream ) {
-		CG_Free( cgs.demoAudioStream );
-		cgs.demoAudioStream = NULL;
+		Com_Printf( "Loaded demo cam script\n" );
 	}
 }
 
@@ -1690,15 +1378,14 @@ void CG_DemocamShutdown( void ) {
 	}
 
 	// remove console commands
-	trap_Cmd_RemoveCommand( "demoEditMode" );
-	trap_Cmd_RemoveCommand( "demoFreeFly" );
-	trap_Cmd_RemoveCommand( "camswitch" );
+	Cmd_RemoveCommand( "demoEditMode" );
+	Cmd_RemoveCommand( "demoFreeFly" );
+	Cmd_RemoveCommand( "camswitch" );
 	if( democam_editing_mode ) {
 		CG_DemoEditMode_RemoveCmds();
 	}
 
 	CG_Democam_FreeCams();
-	CG_Democam_FreeSubtitles();
 	CG_Free( demoscriptname );
 	demoscriptname = NULL;
 }

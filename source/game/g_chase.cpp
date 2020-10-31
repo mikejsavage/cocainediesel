@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-#include "g_local.h"
+#include "game/g_local.h"
 
 /*
 * G_Chase_SetChaseActive
@@ -34,7 +34,7 @@ static bool G_Chase_IsValidTarget( edict_t *ent, edict_t *target, bool teamonly 
 		return false;
 	}
 
-	if( !target->r.inuse || !target->r.client || trap_GetClientState( PLAYERNUM( target ) ) < CS_SPAWNED ) {
+	if( !target->r.inuse || !target->r.client || PF_GetClientState( PLAYERNUM( target ) ) < CS_SPAWNED ) {
 		return false;
 	}
 
@@ -97,19 +97,24 @@ static void G_EndFrame_UpdateChaseCam( edict_t *ent ) {
 	G_ClearPlayerStateEvents( ent->r.client );
 
 	// copy target playerState to me
-	int64_t layouts = ent->r.client->ps.stats[STAT_LAYOUTS];
+	bool ready = ent->r.client->ps.ready;
+	bool show_scoreboard = ent->r.client->ps.show_scoreboard;
+	bool voted = ent->r.client->ps.voted;
+
 	ent->r.client->ps = targ->r.client->ps;
 
 	// fix some stats we don't want copied from the target
-	ent->r.client->ps.stats[STAT_REALTEAM] = ent->s.team;
-	ent->r.client->ps.stats[STAT_LAYOUTS] = layouts;
+	ent->r.client->ps.ready = ready;
+	ent->r.client->ps.show_scoreboard = show_scoreboard;
+	ent->r.client->ps.voted = voted;
+	ent->r.client->ps.real_team = ent->s.team;
 
 	// chasecam uses PM_CHASECAM
 	ent->r.client->ps.pmove.pm_type = PM_CHASECAM;
 	ent->r.client->ps.pmove.pm_flags |= PMF_NO_PREDICTION;
 
-	VectorCopy( targ->s.origin, ent->s.origin );
-	VectorCopy( targ->s.angles, ent->s.angles );
+	ent->s.origin = targ->s.origin;
+	ent->s.angles = targ->s.angles;
 	GClip_LinkEntity( ent );
 }
 
@@ -124,7 +129,7 @@ void G_EndServerFrames_UpdateChaseCam( void ) {
 	for( team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
 		for( i = 0; i < teamlist[team].numplayers; i++ ) {
 			ent = game.edicts + teamlist[team].playerIndices[i];
-			if( trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+			if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 				G_Chase_SetChaseActive( ent, false );
 				continue;
 			}
@@ -136,7 +141,7 @@ void G_EndServerFrames_UpdateChaseCam( void ) {
 	// Do spectators last
 	for( i = 0; i < teamlist[TEAM_SPECTATOR].numplayers; i++ ) {
 		ent = game.edicts + teamlist[TEAM_SPECTATOR].playerIndices[i];
-		if( trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+		if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 			G_Chase_SetChaseActive( ent, false );
 			continue;
 		}
@@ -341,9 +346,9 @@ void Cmd_ChaseCam_f( edict_t *ent ) {
 	// & 4 = objectives
 	// & 8 = fragger
 
-	const char * arg1 = trap_Cmd_Argv( 1 );
+	const char * arg1 = Cmd_Argv( 1 );
 
-	if( trap_Cmd_Argc() < 2 ) {
+	if( Cmd_Argc() < 2 ) {
 		G_ChasePlayer( ent, NULL, false, 0 );
 	} else if( !Q_stricmp( arg1, "auto" ) ) {
 		G_PrintMsg( ent, "Chasecam mode is 'auto'. It will follow the score leader when no powerup nor flag is carried.\n" );
@@ -392,25 +397,12 @@ void G_SpectatorMode( edict_t *ent ) {
 		G_Chase_SetChaseActive( ent, false );
 
 		// reset movement speeds
-		ent->r.client->ps.pmove.stats[PM_STAT_MAXSPEED] = DEFAULT_PLAYERSPEED;
-		ent->r.client->ps.pmove.stats[PM_STAT_JUMPSPEED] = DEFAULT_JUMPSPEED;
-		ent->r.client->ps.pmove.stats[PM_STAT_DASHSPEED] = DEFAULT_DASHSPEED;
+		ent->r.client->ps.pmove.max_speed = DEFAULT_PLAYERSPEED;
+		ent->r.client->ps.pmove.jump_speed = DEFAULT_JUMPSPEED;
+		ent->r.client->ps.pmove.dash_speed = DEFAULT_DASHSPEED;
 	}
 
 	ent->movetype = MOVETYPE_NOCLIP;
-}
-
-/*
-* Cmd_Spec_f
-*/
-void Cmd_Spec_f( edict_t *ent ) {
-	if( ent->s.team == TEAM_SPECTATOR && !ent->r.client->queueTimeStamp ) {
-		G_PrintMsg( ent, "You are already a spectator.\n" );
-		return;
-	}
-
-	G_SpectatorMode( ent );
-	G_Teams_LeaveChallengersQueue( ent );
 }
 
 /*

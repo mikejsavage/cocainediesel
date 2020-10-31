@@ -18,23 +18,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "q_arch.h"
-#include "q_math.h"
-#include "q_shared.h"
-#include "q_comref.h"
-#include "q_collision.h"
-#include "gs_public.h"
+#include "qcommon/qcommon.h"
 
-/*
-* GS_TouchPushTrigger
-*/
-void GS_TouchPushTrigger( const gs_state_t * gs, player_state_t *playerState, entity_state_t *pusher ) {
+Vec3 GS_EvaluateJumppad( const SyncEntityState * jumppad, Vec3 velocity ) {
+	if( jumppad->type == ET_PAINKILLER_JUMPPAD ) {
+		Vec3 push = jumppad->origin2;
+
+		Vec3 parallel = Project( velocity, push );
+		Vec3 perpendicular = velocity - parallel;
+
+		return perpendicular + push;
+	}
+
+	return jumppad->origin2;
+}
+
+void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, const SyncEntityState * pusher ) {
 	// spectators don't use jump pads
 	if( playerState->pmove.pm_type != PM_NORMAL ) {
 		return;
 	}
 
-	VectorCopy( pusher->origin2, playerState->pmove.velocity );
+	playerState->pmove.velocity = GS_EvaluateJumppad( pusher, playerState->pmove.velocity );
 
 	// reset walljump counter
 	playerState->pmove.pm_flags &= ~PMF_WALLJUMPCOUNT;
@@ -46,24 +51,20 @@ void GS_TouchPushTrigger( const gs_state_t * gs, player_state_t *playerState, en
 /*
 * GS_WaterLevel
 */
-int GS_WaterLevel( const gs_state_t * gs, entity_state_t *state, vec3_t mins, vec3_t maxs ) {
-	vec3_t point;
-	int cont;
-	int waterlevel;
+int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, Vec3 mins, Vec3 maxs ) {
+	int waterlevel = 0;
 
-	waterlevel = 0;
+	Vec3 point = state->origin;
+	point.z += mins.z + 1;
 
-	point[0] = state->origin[0];
-	point[1] = state->origin[1];
-	point[2] = state->origin[2] + mins[2] + 1;
-	cont = gs->api.PointContents( point, 0 );
+	int cont = gs->api.PointContents( point, 0 );
 	if( cont & MASK_WATER ) {
 		waterlevel = 1;
-		point[2] += 26;
+		point.z += 26;
 		cont = gs->api.PointContents( point, 0 );
 		if( cont & MASK_WATER ) {
 			waterlevel = 2;
-			point[2] += 22;
+			point.z += 22;
 			cont = gs->api.PointContents( point, 0 );
 			if( cont & MASK_WATER ) {
 				waterlevel = 3;
@@ -128,7 +129,7 @@ void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *me
 			strcpy( message, "was penetrated by" );
 			strcpy( message2, "'s machinegun" );
 			break;
-		case MOD_RIOTGUN:
+		case MOD_SHOTGUN:
 			strcpy( message, "was shredded by" );
 			strcpy( message2, "'s riotgun" );
 			break;
@@ -141,29 +142,17 @@ void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *me
 			strcpy( message2, "'s rocket" );
 			break;
 		case MOD_PLASMA:
+		case MOD_BUBBLEGUN:
 			strcpy( message, "was melted by" );
 			strcpy( message2, "'s plasmagun" );
 			break;
-		case MOD_ELECTROBOLT:
+		case MOD_RAILGUN:
 			strcpy( message, "was bolted by" );
 			strcpy( message2, "'s electrobolt" );
 			break;
 		case MOD_LASERGUN:
 			strcpy( message, "was cut by" );
 			strcpy( message2, "'s lasergun" );
-			break;
-		case MOD_GRENADE_SPLASH:
-			strcpy( message, "didn't see" );
-			strcpy( message2, "'s grenade" );
-			break;
-		case MOD_ROCKET_SPLASH:
-			strcpy( message, "almost dodged" );
-			strcpy( message2, "'s rocket" );
-			break;
-
-		case MOD_PLASMA_SPLASH:
-			strcpy( message, "was melted by" );
-			strcpy( message2, "'s plasmagun" );
 			break;
 
 		default:

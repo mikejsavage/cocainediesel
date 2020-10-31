@@ -17,9 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// cl_demo.c  -- demo recording
 
-#include "client.h"
+#include "client/client.h"
 
 static void CL_PauseDemo( bool paused );
 
@@ -72,9 +71,8 @@ void CL_Stop_f( void ) {
 	CL_SetDemoMetaKeyValue( "hostname", cl.configstrings[CS_HOSTNAME] );
 	CL_SetDemoMetaKeyValue( "localtime", va( "%" PRIi64, (int64_t)cls.demo.localtime ) );
 	CL_SetDemoMetaKeyValue( "multipov", "0" );
-	CL_SetDemoMetaKeyValue( "duration", va( "%u", (int)ceil( (double)cls.demo.duration / 1000.0 ) ) );
-	CL_SetDemoMetaKeyValue( "mapname", cl.configstrings[CS_MAPNAME] );
-	CL_SetDemoMetaKeyValue( "gametype", cl.configstrings[CS_GAMETYPENAME] );
+	CL_SetDemoMetaKeyValue( "duration", va( "%u", (int)ceilf( (double)cls.demo.duration / 1000.0 ) ) );
+	CL_SetDemoMetaKeyValue( "mapname", cl.map->name );
 	CL_SetDemoMetaKeyValue( "matchscore", cl.configstrings[CS_MATCHSCORE] );
 
 	FS_FCloseFile( cls.demo.file );
@@ -154,7 +152,7 @@ void CL_Record_f( void ) {
 	name_size = sizeof( char ) * ( strlen( "demos/" ) + strlen( demoname ) + strlen( APP_DEMO_EXTENSION_STR ) + 1 );
 	name = ( char * ) Mem_ZoneMalloc( name_size );
 
-	Q_snprintfz( name, name_size, "demos/%s", demoname );
+	snprintf( name, name_size, "demos/%s", demoname );
 	COM_SanitizeFilePath( name );
 	COM_DefaultExtension( name, APP_DEMO_EXTENSION_STR, name_size );
 
@@ -325,7 +323,7 @@ static void CL_StartDemo( const char *demoname, bool pause_on_stop ) {
 	name_size = sizeof( char ) * ( strlen( "demos/" ) + strlen( servername ) + strlen( APP_DEMO_EXTENSION_STR ) + 1 );
 	name = ( char * ) Mem_TempMalloc( name_size );
 
-	Q_snprintfz( name, name_size, "demos/%s", servername );
+	snprintf( name, name_size, "demos/%s", servername );
 	COM_DefaultExtension( name, APP_DEMO_EXTENSION_STR, name_size );
 
 	if( COM_ValidateRelativeFilename( name ) ) {
@@ -338,7 +336,7 @@ static void CL_StartDemo( const char *demoname, bool pause_on_stop ) {
 
 	if( !tempdemofilehandle ) {
 		// relative filename didn't work, try launching a demo from absolute path
-		Q_snprintfz( name, name_size, "%s", servername );
+		snprintf( name, name_size, "%s", servername );
 		COM_DefaultExtension( name, APP_DEMO_EXTENSION_STR, name_size );
 		tempdemofilelen = FS_FOpenAbsoluteFile( name, &tempdemofilehandle, FS_READ | SNAP_DEMO_GZ );
 	}
@@ -384,7 +382,7 @@ static void CL_StartDemo( const char *demoname, bool pause_on_stop ) {
 /*
 * CL_DemoComplete
 */
-char **CL_DemoComplete( const char *partial ) {
+const char **CL_DemoComplete( const char *partial ) {
 	return Cmd_CompleteFileList( partial, "demos", APP_DEMO_EXTENSION_STR, true );
 }
 
@@ -435,7 +433,7 @@ void CL_PauseDemo_f( void ) {
 void CL_DemoJump_f( void ) {
 	bool relative;
 	int time;
-	char *p;
+	const char *p;
 
 	if( !cls.demo.playing ) {
 		Com_Printf( "Can only demojump when playing a demo\n" );
@@ -495,8 +493,8 @@ size_t CL_ReadDemoMetaData( const char *demopath, char *meta_data, size_t meta_d
 	if( cls.demo.playing && !Q_stricmp( cls.demo.name, servername ) && cls.demo.meta_data_realsize > 0 ) {
 		if( meta_data && meta_data_size ) {
 			meta_data_realsize = cls.demo.meta_data_realsize;
-			memcpy( meta_data, cls.demo.meta_data, min( meta_data_size, cls.demo.meta_data_realsize ) );
-			meta_data[min( meta_data_size - 1, cls.demo.meta_data_realsize )] = '\0';
+			memcpy( meta_data, cls.demo.meta_data, Min2( meta_data_size, cls.demo.meta_data_realsize ) );
+			meta_data[Min2( meta_data_size - 1, cls.demo.meta_data_realsize )] = '\0';
 		}
 	} else {
 		char *name;
@@ -506,14 +504,14 @@ size_t CL_ReadDemoMetaData( const char *demopath, char *meta_data, size_t meta_d
 		name_size = sizeof( char ) * ( strlen( "demos/" ) + strlen( servername ) + strlen( APP_DEMO_EXTENSION_STR ) + 1 );
 		name = ( char * ) Mem_TempMalloc( name_size );
 
-		Q_snprintfz( name, name_size, "demos/%s", servername );
+		snprintf( name, name_size, "demos/%s", servername );
 		COM_DefaultExtension( name, APP_DEMO_EXTENSION_STR, name_size );
 
 		demolength = FS_FOpenFile( name, &demofile, FS_READ | SNAP_DEMO_GZ );
 
 		if( !demofile || demolength < 1 ) {
 			// relative filename didn't work, try launching a demo from absolute path
-			Q_snprintfz( name, name_size, "%s", servername );
+			snprintf( name, name_size, "%s", servername );
 			COM_DefaultExtension( name, APP_DEMO_EXTENSION_STR, name_size );
 			demolength = FS_FOpenAbsoluteFile( name, &demofile, FS_READ );
 		}

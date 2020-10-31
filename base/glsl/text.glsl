@@ -1,4 +1,5 @@
 #include "include/uniforms.glsl"
+#include "include/common.glsl"
 
 uniform sampler2D u_BaseTexture;
 
@@ -6,11 +7,11 @@ layout( std140 ) uniform u_Text {
 	vec4 u_TextColor;
 	vec4 u_BorderColor;
 	vec2 u_AtlasSize;
-	float u_PixelRange;
+	float u_dSDFdTexel;
 	int u_HasBorder;
 };
 
-qf_varying vec2 v_TexCoord;
+v2f vec2 v_TexCoord;
 
 #if VERTEX_SHADER
 
@@ -35,7 +36,7 @@ float LinearStep( float lo, float hi, float x ) {
 }
 
 vec4 SampleMSDF( vec2 uv, float half_pixel_size ) {
-	vec3 sample = qf_texture( u_BaseTexture, uv ).rgb;
+	vec3 sample = texture( u_BaseTexture, uv ).rgb;
 	float d = 2.0 * Median( sample ) - 1.0; // rescale to [-1,1], positive being inside
 
 	if( u_HasBorder != 0 ) {
@@ -52,7 +53,7 @@ vec4 SampleMSDF( vec2 uv, float half_pixel_size ) {
 
 void main() {
 	vec2 fw = fwidth( v_TexCoord );
-	float half_pixel_size = 0.5 * ( 1.0 / u_PixelRange ) * dot( fw, u_AtlasSize );
+	float half_pixel_size = 0.5 * u_dSDFdTexel * dot( fw, u_AtlasSize );
 
 	float supersample_offset = 0.354; // rsqrt( 2 ) / 2
 	vec2 ssx = vec2( supersample_offset * fw.x, 0.0 );
@@ -64,7 +65,7 @@ void main() {
 	color += 0.5 * SampleMSDF( v_TexCoord - ssy, half_pixel_size );
 	color += 0.5 * SampleMSDF( v_TexCoord + ssy, half_pixel_size );
 
-	f_Albedo = color * ( 1.0 / 3.0 );
+	f_Albedo = LinearTosRGB( color * ( 1.0 / 3.0 ) );
 }
 
 #endif

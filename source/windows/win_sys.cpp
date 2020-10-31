@@ -1,0 +1,2 @@
+void EnableFPE() { }
+void DisableFPE() { }

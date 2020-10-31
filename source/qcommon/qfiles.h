@@ -34,14 +34,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #define IDBSPHEADER     "IBSP"
-#define RBSPHEADER      "RBSP"
 #define QFBSPHEADER     "FBSP"
-constexpr const uint8_t COMPRESSED_BSP_MAGIC[] = { 0x28, 0xb5, 0x2f, 0xfd };
-
-#define Q3BSPVERSION        46
-#define RTCWBSPVERSION      47
-#define RBSPVERSION     1
-#define QFBSPVERSION        1
 
 #define MAX_MAP_LEAFS       0x20000
 
@@ -118,39 +111,6 @@ typedef struct {
 } dplane_t;
 
 
-// contents flags are separate bits
-// a given brush can contribute multiple content bits
-// multiple brushes can be in a single leaf
-
-// these definitions also need to be in q_shared.h!
-
-// lower bits are stronger, and will eat weaker brushes completely
-#define CONTENTS_SOLID      1       // an eye is never valid in a solid
-#define CONTENTS_LAVA       8
-#define CONTENTS_SLIME      16
-#define CONTENTS_WATER      32
-
-#define CONTENTS_AREAPORTAL 0x8000
-
-#define CONTENTS_PLAYERCLIP 0x10000
-#define CONTENTS_MONSTERCLIP    0x20000
-
-// bot specific contents types
-#define CONTENTS_TELEPORTER 0x40000
-#define CONTENTS_JUMPPAD    0x80000
-#define CONTENTS_CLUSTERPORTAL  0x100000
-#define CONTENTS_DONOTENTER 0x200000
-
-#define CONTENTS_ORIGIN     0x1000000   // removed before bsping an entity
-
-#define CONTENTS_BODY       0x2000000   // should never be on a brush, only in game
-#define CONTENTS_CORPSE     0x4000000
-#define CONTENTS_DETAIL     0x8000000   // brushes not used for the bsp
-#define CONTENTS_STRUCTURAL 0x10000000  // brushes used for the bsp
-#define CONTENTS_TRANSLUCENT    0x20000000  // don't consume surface fragments inside
-#define CONTENTS_TRIGGER    0x40000000
-#define CONTENTS_NODROP     0x80000000  // don't leave bodies or items (death fog, lava)
-
 #define SURF_NODAMAGE     0x1         // never give falling damage
 #define SURF_SLICK        0x2         // effects game physics
 #define SURF_SKY          0x4         // lighting from environment map
@@ -172,9 +132,6 @@ typedef struct {
 #define SURF_DUST         0x40000     // leave a dust trail when walking on this surface
 #define SURF_NOWALLJUMP   0x80000     // can not perform walljumps on this surface
 
-#define SURF_FBSP_START   0x40000     // FBSP specific extensions to BSP
-
-
 typedef struct {
 	int planenum;
 	int children[2];            // negative numbers are -(leafs+1), not nodes
@@ -184,7 +141,7 @@ typedef struct {
 
 
 typedef struct shaderref_s {
-	char name[MAX_QPATH];
+	char name[64];
 	int flags;
 	int contents;
 } dshaderref_t;

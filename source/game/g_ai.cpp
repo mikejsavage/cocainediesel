@@ -1,32 +1,31 @@
-#include "g_local.h"
-#include "../gameshared/gs_public.h"
+#include "game/g_local.h"
+#include "gameshared/gs_public.h"
 
-static struct {
-	const char * name;
-	const char * model;
-} botCharacters[] = {
-	{ "vic", "oldvic" },
-	{ "crizis", "oldvic" },
-	{ "jal", "oldvic" },
+static const char * bot_names[] = {
+	"vic",
+	"crizis",
+	"jal",
 
-	{ "MWAGA", "bigvic" },
+	"MWAGA",
 
-	{ "Triangel", "monada" },
+	"Triangel",
 
-	{ "Perrina", "silverclaw" },
+	"Perrina",
 
-	{ "__mute__", "padpork" },
-	{ "Slice*>", "padpork" },
+	"__mute__",
+	"Slice*>",
+
+	// twitch subs
+	"ne0ns0up",
+	"hvaholic",
+	"catman1900",
 };
 
 static void CreateUserInfo( char * buffer, size_t bufferSize ) {
-	// Try to avoid bad distribution, otherwise some bots are selected too often. Weights are prime numbers
-	int characterIndex = rand() % ARRAY_COUNT( botCharacters );
-
 	memset( buffer, 0, bufferSize );
 
-	Info_SetValueForKey( buffer, "name", botCharacters[characterIndex].name );
-	Info_SetValueForKey( buffer, "hand", va( "%i", (int)( random() * 2.5 ) ) );
+	Info_SetValueForKey( buffer, "name", random_select( &svs.rng, bot_names ) );
+	Info_SetValueForKey( buffer, "hand", va( "%i", random_uniform( &svs.rng, 0, 3 ) ) );
 }
 
 static edict_t * ConnectFakeClient() {
@@ -34,7 +33,7 @@ static edict_t * ConnectFakeClient() {
 	static char fakeSocketType[] = "loopback";
 	static char fakeIP[] = "127.0.0.1";
 	CreateUserInfo( userInfo, sizeof( userInfo ) );
-	int entNum = trap_FakeClientConnect( userInfo, fakeSocketType, fakeIP );
+	int entNum = SVC_FakeConnect( userInfo, fakeSocketType, fakeIP );
 	if( entNum < 1 ) {
 		Com_Printf( "AI: Can't spawn the fake client\n" );
 		return NULL;
@@ -52,7 +51,7 @@ void AI_SpawnBot() {
 		return;
 
 	ent->think = NULL;
-	ent->nextThink = level.time + 500 + (unsigned)( random() * 2000 );
+	ent->nextThink = level.time + 500 + random_uniform( &svs.rng, 0, 2000 );
 	ent->classname = "bot";
 	ent->die = player_die;
 
@@ -62,7 +61,9 @@ void AI_SpawnBot() {
 }
 
 void AI_Respawn( edict_t * ent ) {
-	VectorClear( ent->r.client->ps.pmove.delta_angles );
+	ent->r.client->ps.pmove.delta_angles[ 0 ] = 0;
+	ent->r.client->ps.pmove.delta_angles[ 1 ] = 0;
+	ent->r.client->ps.pmove.delta_angles[ 2 ] = 0;
 	ent->r.client->level.last_activity = level.time;
 }
 
@@ -105,10 +106,13 @@ static void AI_GameThink( edict_t * self ) {
 	memset( &ucmd, 0, sizeof( usercmd_t ) );
 
 	// set up for pmove
-	for( int i = 0; i < 3; i++ )
-		ucmd.angles[i] = (short)ANGLE2SHORT( self->s.angles[i] ) - self->r.client->ps.pmove.delta_angles[i];
+	ucmd.angles[ 0 ] = (short)ANGLE2SHORT( self->s.angles.x ) - self->r.client->ps.pmove.delta_angles[ 0 ];
+	ucmd.angles[ 1 ] = (short)ANGLE2SHORT( self->s.angles.y ) - self->r.client->ps.pmove.delta_angles[ 1 ];
+	ucmd.angles[ 2 ] = (short)ANGLE2SHORT( self->s.angles.z ) - self->r.client->ps.pmove.delta_angles[ 2 ];
 
-	VectorSet( self->r.client->ps.pmove.delta_angles, 0, 0, 0 );
+	self->r.client->ps.pmove.delta_angles[ 0 ] = 0;
+	self->r.client->ps.pmove.delta_angles[ 1 ] = 0;
+	self->r.client->ps.pmove.delta_angles[ 2 ] = 0;
 
 	// set approximate ping and show values
 	ucmd.msec = (uint8_t)game.frametime;

@@ -75,12 +75,6 @@ static const keyname_t keynames[] = {
 	{ "HOME", K_HOME },
 	{ "END", K_END },
 
-	{ "WINKEY", K_WIN },
-	{ "POPUPMENU", K_MENU },
-
-	{ "COMMAND", K_COMMAND },
-	{ "OPTION", K_OPTION },
-
 	{ "MOUSE1", K_MOUSE1 },
 	{ "MOUSE2", K_MOUSE2 },
 	{ "MOUSE3", K_MOUSE3 },
@@ -116,6 +110,7 @@ static const keyname_t keynames[] = {
 	{ "PAUSE", K_PAUSE },
 
 	{ "SEMICOLON", ';' }, // because a raw semicolon separates commands
+	{ nullptr, 0 }
 };
 
 int Key_StringToKeynum( const char *str ) {
@@ -125,7 +120,7 @@ int Key_StringToKeynum( const char *str ) {
 		return -1;
 	}
 	if( !str[1] ) {
-		return (int)(unsigned char)str[0];
+		return tolower( (unsigned char)str[0] );
 	}
 
 	for( kn = keynames; kn->name; kn++ ) {
@@ -136,22 +131,20 @@ int Key_StringToKeynum( const char *str ) {
 	return -1;
 }
 
-const char *Key_KeynumToString( int keynum ) {
-	static char tinystr[2];
+Span< const char > Key_KeynumToString( int keynum ) {
+	static constexpr const char uppercase_ascii[] = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~";
 
-	if( keynum > 32 && keynum < 127 ) { // printable ascii
-		tinystr[0] = keynum;
-		tinystr[1] = 0;
-		return tinystr;
+	if( keynum > 32 && keynum < 127 ) {
+		return Span< const char >( uppercase_ascii + keynum - '!', 1 );
 	}
 
 	for( keyname_t kn : keynames ) {
 		if( keynum == kn.keynum ) {
-			return kn.name;
+			return MakeSpan( kn.name );
 		}
 	}
 
-	return NULL;
+	return Span< const char >();
 }
 
 void Key_SetBinding( int keynum, const char *binding ) {
@@ -227,15 +220,8 @@ void Key_WriteBindings( int file ) {
 
 	for( int i = 0; i < int( ARRAY_COUNT( keybindings ) ); i++ ) {
 		if( keybindings[i] && keybindings[i][0] ) {
-			FS_Printf( file, "bind %s \"%s\"\r\n", Key_KeynumToString( i ), keybindings[i] );
-		}
-	}
-}
-
-static void Key_Bindlist_f() {
-	for( int i = 0; i < int( ARRAY_COUNT( keybindings ) ); i++ ) {
-		if( keybindings[i] && keybindings[i][0] ) {
-			Com_Printf( "%s \"%s\"\n", Key_KeynumToString( i ), keybindings[i] );
+			String< 128 > keyname( "{}", Key_KeynumToString( i ) );
+			FS_Printf( file, "bind %s \"%s\"\r\n", keyname.c_str(), keybindings[i] );
 		}
 	}
 }
@@ -244,14 +230,12 @@ void Key_Init() {
 	Cmd_AddCommand( "bind", Key_Bind_f );
 	Cmd_AddCommand( "unbind", Key_Unbind_f );
 	Cmd_AddCommand( "unbindall", Key_Unbindall );
-	Cmd_AddCommand( "bindlist", Key_Bindlist_f );
 }
 
 void Key_Shutdown() {
 	Cmd_RemoveCommand( "bind" );
 	Cmd_RemoveCommand( "unbind" );
 	Cmd_RemoveCommand( "unbindall" );
-	Cmd_RemoveCommand( "bindlist" );
 
 	Key_Unbindall();
 }
@@ -278,7 +262,7 @@ void Key_Event( int key, bool down ) {
 		if( kb ) {
 			if( kb[0] == '+' ) {
 				char cmd[1024];
-				Q_snprintfz( cmd, sizeof( cmd ), "%s%s %i\n", down ? "+" : "-", kb + 1, key );
+				snprintf( cmd, sizeof( cmd ), "%s%s %i\n", down ? "+" : "-", kb + 1, key );
 				Cbuf_AddText( cmd );
 			}
 			else if( down ) {

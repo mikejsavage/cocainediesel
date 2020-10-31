@@ -17,9 +17,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// cl.input.c  -- builds an intended movement command to send to the server
 
-#include "client.h"
+#include "client/client.h"
+#include "cgame/cg_local.h"
 
 cvar_t *cl_ucmdMaxResend;
 
@@ -33,14 +33,11 @@ static void CL_CreateNewUserCommand( int realMsec );
 * Notifies cgame of new frame, refreshes input timings, coordinates and angles
 */
 static void CL_UpdateGameInput( int frameTime ) {
-	MouseMovement movement = IN_GetMouseMovement();
+	Vec2 movement = GetMouseMovement();
 
-	// refresh input in cgame
-	CL_GameModule_InputFrame( frameTime );
-
-	if( cls.key_dest == key_game ) {
-		CL_GameModule_MouseMove( movement.relx, movement.rely );
-		CL_GameModule_AddViewAngles( cl.viewangles );
+	if( cls.key_dest == key_game && cls.state == CA_ACTIVE ) {
+		CL_GameModule_MouseMove( frameTime, movement );
+		cl.viewangles += CG_GetDeltaViewAngles();
 	}
 }
 
@@ -50,8 +47,7 @@ static void CL_UpdateGameInput( int frameTime ) {
 void CL_UserInputFrame( int realMsec ) {
 	ZoneScoped;
 
-	// let the mouse activate or deactivate
-	IN_Frame();
+	GlfwInputFrame();
 
 	// refresh mouse angles and movement velocity
 	CL_UpdateGameInput( realMsec );
@@ -67,8 +63,6 @@ void CL_UserInputFrame( int realMsec ) {
 * CL_InitInput
 */
 void CL_InitInput( void ) {
-	IN_Init();
-
 	cl_ucmdMaxResend =  Cvar_Get( "cl_ucmdMaxResend", "3", CVAR_ARCHIVE );
 	cl_ucmdFPS =        Cvar_Get( "cl_ucmdFPS", "62", CVAR_DEVELOPER );
 }
@@ -80,30 +74,6 @@ void CL_InitInput( void ) {
 //===============================================================================
 
 /*
-* CL_SetUcmdMovement
-*/
-static void CL_SetUcmdMovement( usercmd_t *ucmd ) {
-	vec3_t movement = { 0.0f, 0.0f, 0.0f };
-
-	if( cls.key_dest == key_game ) {
-		CL_GameModule_AddMovement( movement );
-	}
-
-	ucmd->sidemove = bound( -127, (int)(movement[0] * 127.0f), 127 );
-	ucmd->forwardmove = bound( -127, (int)(movement[1] * 127.0f), 127 );
-	ucmd->upmove = bound( -127, (int)(movement[2] * 127.0f), 127 );
-}
-
-/*
-* CL_SetUcmdButtons
-*/
-static void CL_SetUcmdButtons( usercmd_t *ucmd ) {
-	if( cls.key_dest == key_game ) {
-		ucmd->buttons |= CL_GameModule_GetButtonBits();
-	}
-}
-
-/*
 * CL_RefreshUcmd
 *
 * Updates ucmd to use the most recent viewangles.
@@ -111,10 +81,19 @@ static void CL_SetUcmdButtons( usercmd_t *ucmd ) {
 static void CL_RefreshUcmd( usercmd_t *ucmd, int msec, bool ready ) {
 	ucmd->msec += msec;
 
-	if( ucmd->msec ) {
-		CL_SetUcmdMovement( ucmd );
+	if( ucmd->msec && cls.key_dest == key_game ) {
+		Vec3 movement = CG_GetMovement();
 
-		CL_SetUcmdButtons( ucmd );
+		ucmd->sidemove = Clamp( -127, (int)(movement.x * 127.0f), 127 );
+		ucmd->forwardmove = Clamp( -127, (int)(movement.y * 127.0f), 127 );
+		ucmd->upmove = Clamp( -127, (int)(movement.z * 127.0f), 127 );
+
+		ucmd->buttons |= CL_GameModule_GetButtonBits();
+
+		if( cl.weaponSwitch != 0 ) {
+			ucmd->weaponSwitch = cl.weaponSwitch;
+			cl.weaponSwitch = 0;
+		}
 	}
 
 	if( ready ) {
@@ -130,20 +109,16 @@ static void CL_RefreshUcmd( usercmd_t *ucmd, int msec, bool ready ) {
 		}
 	}
 
-	ucmd->angles[0] = ANGLE2SHORT( cl.viewangles[0] );
-	ucmd->angles[1] = ANGLE2SHORT( cl.viewangles[1] );
-	ucmd->angles[2] = ANGLE2SHORT( cl.viewangles[2] );
+	ucmd->angles[0] = ANGLE2SHORT( cl.viewangles.x );
+	ucmd->angles[1] = ANGLE2SHORT( cl.viewangles.y );
+	ucmd->angles[2] = ANGLE2SHORT( cl.viewangles.z );
 }
 
 /*
 * CL_WriteUcmdsToMessage
 */
 void CL_WriteUcmdsToMessage( msg_t *msg ) {
-	usercmd_t *cmd;
-	usercmd_t *oldcmd;
-	usercmd_t nullcmd;
 	unsigned int resendCount;
-	unsigned int i;
 	unsigned int ucmdFirst;
 	unsigned int ucmdHead;
 
@@ -184,7 +159,7 @@ void CL_WriteUcmdsToMessage( msg_t *msg ) {
 	// move the start backwards to the resend point
 	ucmdFirst = ( ucmdFirst > resendCount ) ? ucmdFirst - resendCount : ucmdFirst;
 
-	if( ( ucmdHead - ucmdFirst ) > CMD_MASK ) { // ran out of updates, seduce the send to try to recover activity
+	if( ucmdHead - ucmdFirst > CMD_MASK ) { // ran out of updates, seduce the send to try to recover activity
 		ucmdFirst = ucmdHead - 3;
 	}
 
@@ -206,20 +181,17 @@ void CL_WriteUcmdsToMessage( msg_t *msg ) {
 	MSG_WriteInt32( msg, ucmdHead );
 	MSG_WriteUint8( msg, (uint8_t)( ucmdHead - ucmdFirst ) );
 
+	usercmd_t nullcmd = { };
+	const usercmd_t * oldcmd = &nullcmd;
+
 	// write the ucmds
-	for( i = ucmdFirst; i < ucmdHead; i++ ) {
-		if( i == ucmdFirst ) { // first one isn't delta-compressed
-			cmd = &cl.cmds[i & CMD_MASK];
-			memset( &nullcmd, 0, sizeof( nullcmd ) );
-			MSG_WriteDeltaUsercmd( msg, &nullcmd, cmd );
-		} else {   // delta compress to previous written
-			cmd = &cl.cmds[i & CMD_MASK];
-			oldcmd = &cl.cmds[( i - 1 ) & CMD_MASK];
-			MSG_WriteDeltaUsercmd( msg, oldcmd, cmd );
-		}
+	for( unsigned int i = ucmdFirst; i < ucmdHead; i++ ) {
+		const usercmd_t * cmd = &cl.cmds[i & CMD_MASK];
+		MSG_WriteDeltaUsercmd( msg, oldcmd, cmd );
+		oldcmd = cmd;
 	}
 
-	cls.ucmdSent = i;
+	cls.ucmdSent = ucmdHead;
 }
 
 /*

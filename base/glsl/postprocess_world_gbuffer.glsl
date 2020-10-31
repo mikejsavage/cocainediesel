@@ -3,10 +3,8 @@
 
 #if MSAA
 uniform sampler2DMS u_DepthTexture;
-uniform sampler2DMS u_NormalTexture;
 #else
 uniform sampler2D u_DepthTexture;
-uniform sampler2D u_NormalTexture;
 #endif
 
 #if VERTEX_SHADER
@@ -21,76 +19,40 @@ void main() {
 
 out float f_Albedo;
 
-#if MSAA
-ivec2 ClampPixelOffset( ivec2 p, int dx, int dy ) {
-	return ivec2(
-		clamp( p.x + dx, 0, int( u_ViewportSize.x ) - 1 ),
-		clamp( p.y + dy, 0, int( u_ViewportSize.y ) - 1 )
-	);
-}
-#endif
-
-float MagicKernel( float right, float left, float up, float down, float min_bias, float max_bias ) {
-	float max_magic = max( max( right, left ), max( up, down ) ) + max_bias;
-	float min_magic = min( min( right, left ), min( up, down ) ) + min_bias;
-	return ( max_magic - min_magic ) * ( max_magic + min_magic );
+float edgeDetect( float center, float up, float down_left, float down_right ) {
+	float delta = 4.0 * center - 2.0 * up - down_left - down_right;
+	vec2 clamping = clamp( u_ViewportSize - abs( u_ViewportSize - gl_FragCoord.xy * 2.0 ), 1.0, 2.0 ) - 1.0;
+	delta *= min( clamping.x, clamping.y );
+	return smoothstep( 0.0, 0.00001, abs( delta ) );
 }
 
 void main() {
-	vec2 pixel_size = 1.0 / u_ViewportSize;
-	vec2 uv = gl_FragCoord.xy / u_ViewportSize;
-
 #if MSAA
 	ivec2 p = ivec2( gl_FragCoord.xy );
+	ivec2 pixel_right = ivec2( 1, 0 );
+	ivec2 pixel_up = ivec2( 0, 1 );
 
 	float edgeness = 0.0;
 	for( int i = 0; i < u_Samples; i++ ) {
-		// normal discontinuity edges
-		vec3 normal = DecompressNormal( texelFetch( u_NormalTexture, ClampPixelOffset( p, 0, 0 ), i ).rg );
-		float normal_right = dot( DecompressNormal( texelFetch( u_NormalTexture, ClampPixelOffset( p, 1, 0 ), i ).rg ), normal );
-		float normal_left =  dot( DecompressNormal( texelFetch( u_NormalTexture, ClampPixelOffset( p, -1, 0 ), i ).rg ), normal );
-		float normal_up =    dot( DecompressNormal( texelFetch( u_NormalTexture, ClampPixelOffset( p, 0, 1 ), i ).rg ), normal );
-		float normal_down =  dot( DecompressNormal( texelFetch( u_NormalTexture, ClampPixelOffset( p, 0, -1 ), i ).rg ), normal );
-
-		float normal_edgeness = MagicKernel( normal_right, normal_left, normal_up, normal_down, 0.0, -0.05 );
-
-		// depth discontinuity edges
-		float depth = LinearizeDepth( texelFetch( u_DepthTexture, ClampPixelOffset( p, 0, 0 ), i ).r );
-		float depth_right = depth - LinearizeDepth( texelFetch( u_DepthTexture, ClampPixelOffset( p, 1, 0 ), i ).r );
-		float depth_left =  depth - LinearizeDepth( texelFetch( u_DepthTexture, ClampPixelOffset( p, -1, 0 ), i ).r );
-		float depth_up =    depth - LinearizeDepth( texelFetch( u_DepthTexture, ClampPixelOffset( p, 0, 1 ), i ).r );
-		float depth_down =  depth - LinearizeDepth( texelFetch( u_DepthTexture, ClampPixelOffset( p, 0, -1 ), i ).r );
-
-		float depth_edgeness = MagicKernel( depth_right, depth_left, depth_up, depth_down, -0.2, 0.0 );
-
-		edgeness += max( depth_edgeness, normal_edgeness );
+		float depth =            texelFetch( u_DepthTexture, p, i ).r;
+		float depth_up =         texelFetch( u_DepthTexture, p + pixel_up, i ).r;
+		float depth_down_left =  texelFetch( u_DepthTexture, p - pixel_up - pixel_right, i ).r;
+		float depth_down_right = texelFetch( u_DepthTexture, p - pixel_up + pixel_right, i ).r;
+		edgeness += edgeDetect( depth, depth_up, depth_down_left, depth_down_right );
 	}
 	edgeness /= u_Samples;
 #else
+	vec2 pixel_size = 1.0 / u_ViewportSize;
+	vec2 uv = gl_FragCoord.xy / u_ViewportSize;
 	vec2 pixel_right = vec2( pixel_size.x, 0.0 );
 	vec2 pixel_up = vec2( 0.0, pixel_size.y );
 
-	// normal discontinuity edges
-	vec3 normal = DecompressNormal( qf_texture( u_NormalTexture, uv ).rg );
-	float normal_right = dot( DecompressNormal( qf_texture( u_NormalTexture, uv + pixel_right ).rg ), normal );
-	float normal_left =  dot( DecompressNormal( qf_texture( u_NormalTexture, uv - pixel_right ).rg ), normal );
-	float normal_up =    dot( DecompressNormal( qf_texture( u_NormalTexture, uv + pixel_up ).rg ), normal );
-	float normal_down =  dot( DecompressNormal( qf_texture( u_NormalTexture, uv - pixel_up ).rg ), normal );
-
-	float normal_edgeness = MagicKernel( normal_right, normal_left, normal_up, normal_down, 0.0, -0.05 );
-
-	// depth discontinuity edges
-	float depth = LinearizeDepth( qf_texture( u_DepthTexture, uv ).r );
-	float depth_right = depth - LinearizeDepth( qf_texture( u_DepthTexture, uv + pixel_right ).r );
-	float depth_left =  depth - LinearizeDepth( qf_texture( u_DepthTexture, uv - pixel_right ).r );
-	float depth_up =    depth - LinearizeDepth( qf_texture( u_DepthTexture, uv + pixel_up ).r );
-	float depth_down =  depth - LinearizeDepth( qf_texture( u_DepthTexture, uv - pixel_up ).r );
-
-	float depth_edgeness = MagicKernel( depth_right, depth_left, depth_up, depth_down, -0.2, 0.0 );
-
-	float edgeness = max( depth_edgeness, normal_edgeness );
+	float depth =            texture( u_DepthTexture, uv ).r;
+	float depth_up =         texture( u_DepthTexture, uv + pixel_up ).r;
+	float depth_down_left =  texture( u_DepthTexture, uv - pixel_up - pixel_right ).r;
+	float depth_down_right = texture( u_DepthTexture, uv - pixel_up + pixel_right ).r;
+	float edgeness = edgeDetect( depth, depth_up, depth_down_left, depth_down_right );
 #endif
-
 	f_Albedo = LinearTosRGB( edgeness );
 }
 

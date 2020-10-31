@@ -27,18 +27,50 @@ const int CountdownSeconds = 4;
 const int CountdownNumSwitches = 20;
 const float CountdownInitialSwitchDelay = 0.1;
 
-const int MAX_HEALTH = 166;
+uint64[] endMatchSounds;
 
-int[] endMatchSounds;
-
-int crownModel;
+uint64 crownModel;
 
 int max( int a, int b ) {
 	return a > b ? a : b;
 }
 
-class cDARound
-{
+const String[] maps = {
+	"gladiator/001",
+	"gladiator/002",
+	"gladiator/003",
+	"gladiator/004",
+	"gladiator/005",
+	"gladiator/006",
+	"gladiator/007",
+	// "gladiator/008",
+	"gladiator/009",
+	"gladiator/010",
+	"gladiator/011",
+	"gladiator/012",
+	"gladiator/013",
+	"gladiator/014",
+	"gladiator/015",
+	"gladiator/016",
+	"gladiator/017",
+	"gladiator/018",
+	"gladiator/019",
+	// "gladiator/020",
+
+	// angelscript doesn't like trailing commas in arrays, so explicitly
+	// add an empty element and trim it out to make editing a bit easier
+	""
+};
+
+Entity @ last_spawn;
+
+void PickRandomArena() {
+	G_LoadMap( maps[ random_uniform( 0, maps.size() - 1 ) ] );
+	@last_spawn = null;
+}
+
+
+class cDARound {
 	int state;
 	int numRounds;
 	int64 roundStateStartTime;
@@ -52,8 +84,7 @@ class cDARound
 	Client@[] roundChallengers;
 	Client@[] roundLosers;
 
-	cDARound()
-	{
+	cDARound() {
 		this.state = DA_ROUNDSTATE_NONE;
 		this.numRounds = 0;
 		this.roundStateStartTime = 0;
@@ -66,56 +97,46 @@ class cDARound
 
 	~cDARound() {}
 
-	void init()
-	{
+	void init() {
 		this.clearChallengersQueue();
 	}
 
-	void clearChallengersQueue()
-	{
-		if ( this.daChallengersQueue.length() != uint( maxClients ) )
+	void clearChallengersQueue() {
+		if( this.daChallengersQueue.length() != uint( maxClients ) )
 			this.daChallengersQueue.resize( maxClients );
 
-		for ( int i = 0; i < maxClients; i++ )
+		for( int i = 0; i < maxClients; i++ )
 			this.daChallengersQueue[i] = -1;
 	}
 
-	void challengersQueueAddPlayer( Client @client )
-	{
-		if ( @client == null )
+	void challengersQueueAddPlayer( Client @client ) {
+		if( @client == null )
 			return;
 
 		// check for already added
-		for ( int i = 0; i < maxClients; i++ )
-		{
-			if ( this.daChallengersQueue[i] == client.playerNum )
+		for( int i = 0; i < maxClients; i++ ) {
+			if( this.daChallengersQueue[i] == client.playerNum )
 				return;
 		}
 
-		for ( int i = 0; i < maxClients; i++ )
-		{
-			if ( this.daChallengersQueue[i] < 0 || this.daChallengersQueue[i] >= maxClients )
-			{
+		for( int i = 0; i < maxClients; i++ ) {
+			if( this.daChallengersQueue[i] < 0 || this.daChallengersQueue[i] >= maxClients ) {
 				this.daChallengersQueue[i] = client.playerNum;
 				break;
 			}
 		}
 	}
 
-	bool challengersQueueRemovePlayer( Client @client )
-	{
-		if ( @client == null )
+	bool challengersQueueRemovePlayer( Client @client ) {
+		if( @client == null )
 			return false;
 
-		for ( int i = 0; i < maxClients; i++ )
-		{
-			if ( this.daChallengersQueue[i] == client.playerNum )
-			{
+		for( int i = 0; i < maxClients; i++ ) {
+			if( this.daChallengersQueue[i] == client.playerNum ) {
 				int j;
-				for ( j = i + 1; j < maxClients; j++ )
-				{
+				for( j = i + 1; j < maxClients; j++ ) {
 					this.daChallengersQueue[j - 1] = this.daChallengersQueue[j];
-					if ( daChallengersQueue[j] == -1 )
+					if( daChallengersQueue[j] == -1 )
 						break;
 				}
 
@@ -127,108 +148,89 @@ class cDARound
 		return false;
 	}
 
-	Client @challengersQueueGetNextPlayer()
-	{
+	Client @challengersQueueGetNextPlayer() {
 		Client @client = @G_GetClient( this.daChallengersQueue[0] );
 
-		if ( @client != null )
-		{
+		if( @client != null ) {
 			this.challengersQueueRemovePlayer( client );
 		}
 
 		return client;
 	}
 
-	bool isChallenger( Client@ client )
-	{
-		for ( uint i = 0; i < this.roundChallengers.size(); i++ )
-		{
-			if ( @client == @this.roundChallengers[i] )
+	bool isChallenger( Client@ client ) {
+		for( uint i = 0; i < this.roundChallengers.size(); i++ ) {
+			if( @client == @this.roundChallengers[i] )
 				return true;
 		}
 		return false;
 	}
 
-	void removeChallenger( Client@ client )
-	{
+	void removeChallenger( Client@ client ) {
 		int index = -1;
-		for ( uint i = 0; i < this.roundChallengers.size(); i++ )
-		{
-			if ( @client == @this.roundChallengers[i] )
-			{
+		for( uint i = 0; i < this.roundChallengers.size(); i++ ) {
+			if( @client == @this.roundChallengers[i] ) {
 				index = i;
 				break;
 			}
 		}
 
-		if ( index != -1 )
+		if( index != -1 )
 			this.roundChallengers.erase(index);
 	}
 
-	bool isLoser( Client@ client )
-	{
-		for ( uint i = 0; i < this.roundLosers.size(); i++ )
-		{
-			if ( @client == @this.roundLosers[i] )
+	bool isLoser( Client@ client ) {
+		for( uint i = 0; i < this.roundLosers.size(); i++ ) {
+			if( @client == @this.roundLosers[i] )
 				return true;
 		}
 		return false;
 	}
 
 
-	void addLoser( Client@ client )
-	{
+	void addLoser( Client@ client ) {
 		this.removeChallenger( client );
 		this.roundLosers.push_back(client);
 	}
 
-	void removeLoser( Client@ client )
-	{
+	void removeLoser( Client@ client ) {
 		int index = -1;
-		for ( uint i = 0; i < this.roundLosers.size(); i++ )
-		{
-			if ( @client == @this.roundLosers[i] )
-			{
+		for( uint i = 0; i < this.roundLosers.size(); i++ ) {
+			if( @client == @this.roundLosers[i] ) {
 				index = i;
 				break;
 			}
 		}
 
-		if ( index != -1 )
+		if( index != -1 )
 			this.roundLosers.erase(index);
 	}
 
-	void playerTeamChanged( Client @client, int new_team )
-	{
-		if ( new_team != TEAM_PLAYERS )
-		{
+	void playerTeamChanged( Client @client, int new_team ) {
+		if( new_team != TEAM_PLAYERS ) {
 			this.challengersQueueRemovePlayer( client );
 
-			if ( this.isChallenger( client ) )
+			if( this.isChallenger( client ) )
 				this.removeChallenger( client );
 
-			if ( this.isLoser( client ) )
+			if( this.isLoser( client ) )
 				this.removeLoser( client );
 
-			if ( this.state != DA_ROUNDSTATE_NONE )
-			{
-				if ( this.roundChallengers.size() <= 1 )
+			if( this.state != DA_ROUNDSTATE_NONE ) {
+				if( this.roundChallengers.size() <= 1 )
 					this.newRoundState( DA_ROUNDSTATE_ROUNDFINISHED );
 			}
 		}
-		else if ( new_team == TEAM_PLAYERS )
-		{
+		else if( new_team == TEAM_PLAYERS ) {
 			this.challengersQueueAddPlayer( client );
 		}
 	}
 
-	void roundAnnouncementPrint( String &string )
-	{
-		if ( string.len() <= 0 )
+	void roundAnnouncementPrint( String &string ) {
+		if( string.len() <= 0 )
 			return;
 
-		for ( uint i = 0; i < this.roundChallengers.size(); i++ )
-		{
+		for( uint i = 0; i < this.roundChallengers.size(); i++ ) {
 			G_CenterPrintMsg( this.roundChallengers[i].getEnt(), string );
 		}
 
@@ -238,23 +240,21 @@ class cDARound
 		Entity @ent;
 
 		// respawn all clients inside the playing teams
-		for ( int i = 0; @team.ent( i ) != null; i++ )
-		{
+		for( int i = 0; @team.ent( i ) != null; i++ ) {
 			@ent = @team.ent( i );
-			if ( !ent.isGhosting() )
+			if( !ent.isGhosting() )
 				G_CenterPrintMsg( ent, string );
 
 		}
 	}
 
-	void newGame()
-	{
+	void newGame() {
 		gametype.readyAnnouncementEnabled = false;
 		gametype.scoreAnnouncementEnabled = false;
 		gametype.countdownEnabled = false;
 
 		// set spawnsystem type to not respawn the players when they die
-		for ( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ )
+		for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ )
 			gametype.setTeamSpawnsystem( team, SPAWNSYSTEM_HOLD, 0, 0, true );
 
 		// clear scores
@@ -262,14 +262,11 @@ class cDARound
 		Entity @ent;
 		Team @team;
 
-		for ( int i = TEAM_PLAYERS; i < GS_MAX_TEAMS; i++ )
-		{
+		for( int i = TEAM_PLAYERS; i < GS_MAX_TEAMS; i++ ) {
 			@team = @G_GetTeam( i );
-			team.stats.clear();
 
 			// respawn all clients inside the playing teams
-			for ( int j = 0; @team.ent( j ) != null; j++ )
-			{
+			for( int j = 0; @team.ent( j ) != null; j++ ) {
 				@ent = @team.ent( j );
 				ent.client.stats.clear(); // clear player scores & stats
 				ent.client.respawn( true );
@@ -280,15 +277,12 @@ class cDARound
 		this.newRound();
 	}
 
-	void endGame()
-	{
+	void endGame() {
 		this.newRoundState( DA_ROUNDSTATE_NONE );
 
-		if ( @this.roundWinner != null )
-		{
+		if( @this.roundWinner != null ) {
 			Cvar scoreLimit( "g_scorelimit", "", 0 );
-			if ( this.roundWinner.stats.score == scoreLimit.integer )
-			{
+			if( this.roundWinner.stats.score == scoreLimit.integer ) {
 				this.roundAnnouncementPrint( S_COLOR_WHITE + this.roundWinner.name + S_COLOR_WHITE + " is a true gladiator!" );
 			}
 		}
@@ -296,44 +290,36 @@ class cDARound
 		GLADIATOR_SetUpEndMatch();
 	}
 
-	void GLADIATOR_SetUpEndMatch()
-	{
+	void GLADIATOR_SetUpEndMatch() {
 		Client @client;
 
 		gametype.readyAnnouncementEnabled = false;
 		gametype.scoreAnnouncementEnabled = false;
 		gametype.countdownEnabled = false;
 
-		for ( int i = 0; i < maxClients; i++ )
-		{
+		for( int i = 0; i < maxClients; i++ ) {
 			@client = @G_GetClient( i );
 
-			if ( client.state() >= CS_SPAWNED ) {
+			if( client.state() >= CS_SPAWNED ) {
 				client.respawn( true ); // ghost them all
 			}
 		}
 
 		GENERIC_UpdateMatchScore();
 
-		int soundIndex = endMatchSounds[random_uniform(0,endMatchSounds.size())];
-		G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, true, null );
+		G_AnnouncerSound( null, endMatchSounds[random_uniform(0,endMatchSounds.size())], GS_MAX_TEAMS, true, null );
 	}
 
-	void newRound()
-	{
-		G_RemoveDeadBodies();
-		G_RemoveAllProjectiles();
-		G_ResetLevel();
+	void newRound() {
+		PickRandomArena();
 
 		this.newRoundState( DA_ROUNDSTATE_PREROUND );
 		this.numRounds++;
 	}
 
-	void newRoundState( int newState )
-	{
+	void newRoundState( int newState ) {
 
-		if ( newState > DA_ROUNDSTATE_POSTROUND )
-		{
+		if( newState > DA_ROUNDSTATE_POSTROUND ) {
 			this.newRound();
 			return;
 		}
@@ -341,16 +327,14 @@ class cDARound
 		this.state = newState;
 		this.roundStateStartTime = levelTime;
 
-		switch ( this.state )
-		{
+		switch ( this.state ) {
 			case DA_ROUNDSTATE_NONE:
 
 				this.roundStateEndTime = 0;
 				this.countDown = 0;
 				break;
 
-			case DA_ROUNDSTATE_PREROUND:
-				{
+			case DA_ROUNDSTATE_PREROUND: {
 					this.roundStateEndTime = levelTime + CountdownSeconds * 1000;
 					this.countDown = 4;
 
@@ -366,30 +350,28 @@ class cDARound
 					this.roundLosers.resize(0);
 
 					// pick 2 to 4 players from queue
-					for ( int i = 0; this.roundChallengers.size() < 4 && this.roundChallengers.size() < uint(team.numPlayers); i++ )
-					{
+					for( int i = 0; this.roundChallengers.size() < 4 && this.roundChallengers.size() < uint(team.numPlayers); i++ ) {
 						this.roundChallengers.push_back( @this.challengersQueueGetNextPlayer() );
 					}
 
 					// find topscore
 					int topscore = 0;
-					for ( int j = 0; @team.ent( j ) != null; j++ ) {
+					for( int j = 0; @team.ent( j ) != null; j++ ) {
 						Client @client = @team.ent( j ).client;
 						topscore = max( client.stats.score, topscore );
 					}
 
 					// respawn all clients inside the playing teams
-					for ( int j = 0; @team.ent( j ) != null; j++ )
-					{
+					for( int j = 0; @team.ent( j ) != null; j++ ) {
 						@ent = @team.ent( j );
 						if( this.isChallenger( ent.client ) ) {
 							ent.client.respawn( false );
 							if( ent.client.stats.score == topscore ) {
-								ent.modelindex2 = crownModel;
+								ent.model2 = crownModel;
 								ent.effects |= EF_HAT;
 							}
 							else {
-								ent.modelindex2 = 0;
+								ent.model2 = 0;
 								ent.effects &= ~EF_HAT;
 							}
 						}
@@ -400,14 +382,11 @@ class cDARound
 						}
 					}
 
-					selected_spawn = false;
-
 					DoSpinner();
 
 					// generate vs string
 					String vs_string = S_COLOR_WHITE + this.roundChallengers[0].name;
-					for ( uint i = 1; i < this.roundChallengers.size(); i++ )
-					{
+					for( uint i = 1; i < this.roundChallengers.size(); i++ ) {
 						vs_string += S_COLOR_WHITE + " vs. " + this.roundChallengers[i].name;
 					}
 
@@ -427,32 +406,28 @@ class cDARound
 
 					for( int i = 0; @team.ent( i ) != null; i++ ) {
 						Client @client = @team.ent( i ).client;
-						client.setHUDStat( STAT_ROUND_TYPE, int( type ) );
+						match.roundType = type;
 					}
 				}
 				break;
 
-			case DA_ROUNDSTATE_ROUND:
-				{
+			case DA_ROUNDSTATE_ROUND: {
 					gametype.shootingDisabled = false;
 					gametype.removeInactivePlayers = true;
 					this.countDown = 0;
 					this.roundStateEndTime = 0;
-					int soundIndex = G_SoundIndex( "sounds/gladiator/fight" );
-					G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, false, null );
+					G_AnnouncerSound( null, Hash64( "sounds/gladiator/fight" ), GS_MAX_TEAMS, false, null );
 					G_CenterPrintMsg( null, 'FIGHT!');
 				}
 				break;
 
 			case DA_ROUNDSTATE_ROUNDFINISHED:
-
 				gametype.shootingDisabled = false;
 				this.roundStateEndTime = levelTime + 1500;
 				this.countDown = 0;
 				break;
 
-			case DA_ROUNDSTATE_POSTROUND:
-				{
+			case DA_ROUNDSTATE_POSTROUND: {
 					this.roundStateEndTime = levelTime + 1000;
 
 					// add score to round-winning player
@@ -460,31 +435,22 @@ class cDARound
 					Client @loser = null;
 
 					// get last remaining challenger if any remain
-					if ( this.roundChallengers.size() > 0 )
+					if( this.roundChallengers.size() > 0 )
 						@winner = @this.roundChallengers[0];
 
 					// if we didn't find a winner, it was a draw round
-					if ( @winner == null )
-					{
-						int soundIndex;
+					if( @winner == null ) {
 						this.roundAnnouncementPrint( S_COLOR_WHITE + "Wow your terrible" );
-
-						soundIndex = G_SoundIndex( "sounds/gladiator/wowyourterrible" );
-						G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, false, null );
+						G_AnnouncerSound( null, Hash64( "sounds/gladiator/wowyourterrible" ), GS_MAX_TEAMS, false, null );
 					}
-					else
-					{
-						int soundIndex;
-
-						soundIndex = G_SoundIndex( "sounds/gladiator/score" );
-						G_AnnouncerSound( winner, soundIndex, GS_MAX_TEAMS, true, loser );
+					else {
+						G_AnnouncerSound( winner, Hash64( "sounds/gladiator/score" ), GS_MAX_TEAMS, true, loser );
 
 						winner.stats.addScore( 1 );
 					}
 
 					this.roundLosers.reverse();
-					for ( uint i = 0; i < this.roundLosers.size(); i++ )
-					{
+					for( uint i = 0; i < this.roundLosers.size(); i++ ) {
 						this.challengersQueueAddPlayer( this.roundLosers[i] );
 					}
 
@@ -497,39 +463,31 @@ class cDARound
 		}
 	}
 
-	void think()
-	{
-		if ( this.state == DA_ROUNDSTATE_NONE )
+	void think() {
+		if( this.state == DA_ROUNDSTATE_NONE )
 			return;
 
-		if ( match.getState() != MATCH_STATE_PLAYTIME )
-		{
+		if( match.getState() != MATCH_STATE_PLAYTIME ) {
 			this.endGame();
 			return;
 		}
 
-		if ( this.roundStateEndTime != 0 )
-		{
-			if ( this.roundStateEndTime < levelTime )
-			{
+		if( this.roundStateEndTime != 0 ) {
+			if( this.roundStateEndTime < levelTime ) {
 				this.newRoundState( this.state + 1 );
 				return;
 			}
 
-			if ( this.countDown > 0 )
-			{
+			if( this.countDown > 0 ) {
 				int remainingSeconds = int( ( this.roundStateEndTime - levelTime ) * 0.001f ) + 1;
-				if ( remainingSeconds < 0 )
+				if( remainingSeconds < 0 )
 					remainingSeconds = 0;
 
-				if ( remainingSeconds < this.countDown )
-				{
+				if( remainingSeconds < this.countDown ) {
 					this.countDown = remainingSeconds;
 
-					if ( this.countDown <= 3 )
-					{
-						int soundIndex = G_SoundIndex( "sounds/gladiator/countdown_" + this.countDown );
-						G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, false, null );
+					if( this.countDown <= 3 ) {
+						G_AnnouncerSound( null, Hash64( "sounds/gladiator/countdown_" + this.countDown ), GS_MAX_TEAMS, false, null );
 					}
 					G_CenterPrintMsg( null, String( this.countDown ) );
 				}
@@ -537,8 +495,7 @@ class cDARound
 		}
 
 		// if one of the teams has no players alive move from DA_ROUNDSTATE_ROUND
-		if ( this.state == DA_ROUNDSTATE_ROUND )
-		{
+		if( this.state == DA_ROUNDSTATE_ROUND ) {
 			Entity @ent;
 			Team @team;
 			int count;
@@ -546,61 +503,54 @@ class cDARound
 			@team = @G_GetTeam( TEAM_PLAYERS );
 			count = 0;
 
-			for ( int j = 0; @team.ent( j ) != null; j++ )
-			{
+			for( int j = 0; @team.ent( j ) != null; j++ ) {
 				@ent = @team.ent( j );
-				if ( !ent.isGhosting() )
+				if( !ent.isGhosting() )
 					count++;
 
 				// do not let the challengers be moved to specs due to inactivity
-				if ( ent.client.chaseActive ) {
+				if( ent.client.chaseActive ) {
 					ent.client.lastActivity = levelTime;
 				}
 			}
 
-			if ( count < 2 )
+			if( count < 2 )
 				this.newRoundState( this.state + 1 );
 		}
 	}
 
-	void playerKilled( Entity @target, Entity @attacker, Entity @inflictor, int mod )
-	{
-		if ( @target == null || @target.client == null )
+	void playerKilled( Entity @target, Entity @attacker, Entity @inflictor, int mod ) {
+		if( @target == null || @target.client == null )
 			return;
 
-		if ( this.isInRound() )
-		{
+		if( this.isInRound() ) {
 			this.addLoser( target.client );
 
 			Vec3 vel = target.velocity;
-			if ( vel.z < -1600 && target.health < MAX_HEALTH )
-			{
-				G_GlobalSound( CHAN_AUTO, G_SoundIndex( "sounds/gladiator/smackdown" ) );
+			if( vel.z < -1600 && target.health < 100 ) {
+				G_GlobalSound( CHAN_AUTO, Hash64( "sounds/gladiator/smackdown" ) );
 			}
 		}
 
-		if ( this.state == DA_ROUNDSTATE_PREROUND )
-		{
+		if( this.state == DA_ROUNDSTATE_PREROUND ) {
 			target.client.stats.addScore( -1 );
-			G_LocalSound( target.client, CHAN_AUTO, G_SoundIndex( "sounds/gladiator/ouch" ) );
+			G_LocalSound( target.client, CHAN_AUTO, Hash64( "sounds/gladiator/ouch" ) );
 		}
 
-		if ( @attacker == null || @attacker.client == null )
+		if( @attacker == null || @attacker.client == null )
 			return;
 
-		for ( int i = 0; i < maxClients; i++ )
-		{
+		for( int i = 0; i < maxClients; i++ ) {
 			Client @client = @G_GetClient( i );
-			if ( client.state() < CS_SPAWNED )
+			if( client.state() < CS_SPAWNED )
 				continue;
 
-			if ( @client == @this.roundWinner || @client == @this.roundChallenger )
+			if( @client == @this.roundWinner || @client == @this.roundChallenger )
 				continue;
 		}
 	}
 
-	bool isInRound()
-	{
+	bool isInRound() {
 		return (this.state > DA_ROUNDSTATE_NONE && this.state < DA_ROUNDSTATE_POSTROUND);
 	}
 }
@@ -611,8 +561,7 @@ cDARound daRound;
 /// NEW MAP ENTITY DEFINITIONS
 ///*****************************************************************
 
-void target_connectroom(Entity@ self)
-{
+void target_connectroom(Entity@ self) {
 
 }
 
@@ -620,19 +569,17 @@ void target_connectroom(Entity@ self)
 /// LOCAL FUNCTIONS
 ///*****************************************************************
 
-void DA_SetUpWarmup()
-{
+void DA_SetUpWarmup() {
 	GENERIC_SetUpWarmup();
 
 	// set spawnsystem type to instant while players join
-	for ( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ )
+	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ )
 		gametype.setTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
 
 	gametype.readyAnnouncementEnabled = true;
 }
 
-void DA_SetUpCountdown()
-{
+void DA_SetUpCountdown() {
 	gametype.readyAnnouncementEnabled = false;
 	gametype.scoreAnnouncementEnabled = false;
 	gametype.countdownEnabled = false;
@@ -640,81 +587,39 @@ void DA_SetUpCountdown()
 
 	// lock teams
 	bool anyone = false;
-	if ( gametype.isTeamBased )
-	{
-		for ( int team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ )
-		{
-			if ( G_GetTeam( team ).lock() )
+	if( gametype.isTeamBased ) {
+		for( int team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
+			if( G_GetTeam( team ).lock() )
 				anyone = true;
 		}
 	}
-	else
-	{
-		if ( G_GetTeam( TEAM_PLAYERS ).lock() )
+	else {
+		if( G_GetTeam( TEAM_PLAYERS ).lock() )
 			anyone = true;
 	}
 
-	if ( anyone )
+	if( anyone )
 		G_PrintMsg( null, "Teams locked.\n" );
 
 	// Countdowns should be made entirely client side, because we now can
-
-	int soundIndex = G_SoundIndex( "sounds/gladiator/let_the_games_begin" );
-	G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, false, null );
+	G_AnnouncerSound( null, Hash64( "sounds/gladiator/let_the_games_begin" ), GS_MAX_TEAMS, false, null );
 }
 
-///*****************************************************************
-/// MODULE SCRIPT CALLS
-///*****************************************************************
-
-bool GT_Command( Client @client, const String &cmdString, const String &argsString, int argc )
-{
+bool GT_Command( Client @client, const String &cmdString, const String &argsString, int argc ) {
 	return false;
 }
 
-// select a spawning point for a player
-Entity @last_spawnposition;
-bool selected_spawn = false;
-Entity@[] gladiator_rooms;
-Entity @GT_SelectSpawnPoint( Entity @self )
-{
-	/*if ( match.getState() != MATCH_STATE_PLAYTIME )
-	  return GENERIC_SelectBestRandomSpawnPoint( self, "info_player_deathmatch" );*/
+void spawn_gladiator( Entity @ent ) { }
 
-	if ( self.isGhosting() )
+Entity @GT_SelectSpawnPoint( Entity @self ) {
+	if( self.isGhosting() )
 		return null;
-
-	Team @enemyTeam;
-	Entity @enemy;
-	Entity @room;
-	Entity@[] spawnents;
-	Entity@[] rooms;
-
-	if ( !selected_spawn || @last_spawnposition == null )
-	{
-		selected_spawn = true;
-
-		//get random room
-		@room = @gladiator_rooms[random_uniform(0, gladiator_rooms.size())];
-
-		//get first spawnpoint from room
-		spawnents = room.findTargets();
-		if ( spawnents.size() == 0 )
-			return null; // hmm? bad/old map
-		@last_spawnposition = @spawnents[0];
-	} else {
-
-		spawnents = last_spawnposition.findTargets();
-		if ( spawnents.size() > 0 )
-		{
-			@last_spawnposition = @spawnents[0];
-		} else {
-			selected_spawn = false;
-			return GT_SelectSpawnPoint(self); // reached the end of spawnpoint chain
-		}
-	}
-
-	return @last_spawnposition;
+	Entity @ spawn = G_Find( @last_spawn, "spawn_gladiator" );
+	if( @spawn == null )
+		@spawn = G_Find( null, "spawn_gladiator" );
+	@last_spawn = @spawn;
+	if( @spawn == null ) G_Print( "null spawn btw\n" );
+	return spawn;
 }
 
 String @playerScoreboardMessage( Client @client ) {
@@ -755,11 +660,11 @@ String @GT_ScoreboardMessage() {
 
 	// then add all the players in the queue
 	for( int i = 0; i < maxClients; i++ ) {
-		if ( daRound.daChallengersQueue[i] < 0 || daRound.daChallengersQueue[i] >= maxClients )
+		if( daRound.daChallengersQueue[i] < 0 || daRound.daChallengersQueue[i] >= maxClients )
 			break;
 
 		Client @client = @G_GetClient( daRound.daChallengersQueue[i] );
-		if ( @client == null )
+		if( @client == null )
 			break;
 
 		scoreboard += playerScoreboardMessage( client );
@@ -771,13 +676,11 @@ String @GT_ScoreboardMessage() {
 // Some game actions trigger score events. These are events not related to killing
 // oponents, like capturing a flag
 // Warning: client can be null
-void GT_ScoreEvent( Client @client, const String &score_event, const String &args )
-{
-	if ( score_event == "kill" )
-	{
+void GT_ScoreEvent( Client @client, const String &score_event, const String &args ) {
+	if( score_event == "kill" ) {
 		Entity @attacker = null;
 
-		if ( @client != null )
+		if( @client != null )
 			@attacker = @client.getEnt();
 
 		int arg1 = args.getToken( 0 ).toInt();
@@ -791,51 +694,36 @@ void GT_ScoreEvent( Client @client, const String &score_event, const String &arg
 
 // a player is being respawned. This can happen from several ways, as dying, changing team,
 // being moved to ghost state, be placed in respawn queue, being spawned from spawn queue, etc
-void GT_PlayerRespawn( Entity @ent, int old_team, int new_team )
-{
-	if ( old_team != new_team )
-	{
+void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
+	if( old_team != new_team ) {
 		daRound.playerTeamChanged( ent.client, new_team );
 	}
 
-	if ( ent.isGhosting() )
+	if( ent.isGhosting() )
 		return;
 
-	const Item @item;
-	const Item @ammoItem;
+	if( match.getState() != MATCH_STATE_PLAYTIME ) {
+		int weap1 = random_uniform( Weapon_None + 1, Weapon_Count );
+		int weap2 = random_uniform( Weapon_None + 1, Weapon_Count - 1 );
 
-	if ( match.getState() == MATCH_STATE_PLAYTIME )
-	{
-		ent.client.getEnt().health = MAX_HEALTH;
-	} else {
-		for ( int i = WEAP_GUNBLADE ; i < WEAP_TOTAL; i++ )
-		{
-			ent.client.inventoryGiveItem( i );
+		if( weap2 >= weap1 )
+			weap2++;
 
-			@item = @G_GetItem( i );
-
-			@ammoItem = @G_GetItem( item.ammoTag );
-			if ( @ammoItem != null )
-				ent.client.inventorySetCount( ammoItem.tag, 66 );
-		}
-	}
-
-
-	// auto-select best weapon in the inventory
-	ent.client.selectWeapon( -1 );
-
-	if( match.getState() == MATCH_STATE_WARMUP ) {
+		ent.client.giveWeapon( WeaponType( weap1 ) );
+		ent.client.giveWeapon( WeaponType( weap2 ) );
+		ent.client.selectWeapon( 0 );
 		ent.respawnEffect();
 	}
 }
 
 // Thinking function. Called each frame
-void GT_ThinkRules()
-{
-	if ( match.scoreLimitHit() || match.timeLimitHit() )
+void GT_ThinkRules() {
+	if( match.scoreLimitHit() || match.timeLimitHit() ) {
 		match.launchState( match.getState() + 1 );
+		G_ClearCenterPrint( null );
+	}
 
-	if ( match.getState() >= MATCH_STATE_POSTMATCH )
+	if( match.getState() >= MATCH_STATE_POSTMATCH )
 		return;
 
 	GENERIC_Think();
@@ -847,15 +735,14 @@ void GT_ThinkRules()
 // doesn't advance it before calling this function.
 // This function must give permission to move into the next
 // state by returning true.
-bool GT_MatchStateFinished( int incomingMatchState )
-{
+bool GT_MatchStateFinished( int incomingMatchState ) {
 	// ** MISSING EXTEND PLAYTIME CHECK **
 
-	if ( match.getState() <= MATCH_STATE_WARMUP && incomingMatchState > MATCH_STATE_WARMUP
+	if( match.getState() <= MATCH_STATE_WARMUP && incomingMatchState > MATCH_STATE_WARMUP
 	    && incomingMatchState < MATCH_STATE_POSTMATCH )
 		match.startAutorecord();
 
-	if ( match.getState() == MATCH_STATE_POSTMATCH )
+	if( match.getState() == MATCH_STATE_POSTMATCH )
 		match.stopAutorecord();
 
 	return true;
@@ -863,10 +750,8 @@ bool GT_MatchStateFinished( int incomingMatchState )
 
 // the match state has just moved into a new state. Here is the
 // place to set up the new state rules
-void GT_MatchStateStarted()
-{
-	switch ( match.getState() )
-	{
+void GT_MatchStateStarted() {
+	switch ( match.getState() ) {
 		case MATCH_STATE_WARMUP:
 			DA_SetUpWarmup();
 			break;
@@ -882,45 +767,16 @@ void GT_MatchStateStarted()
 		case MATCH_STATE_POSTMATCH:
 			daRound.endGame();
 			break;
-
-		default:
-			break;
 	}
 }
 
 // the gametype is shutting down cause of a match restart or map change
-void GT_Shutdown()
-{
+void GT_Shutdown() {
 }
 
 // The map entities have just been spawned. The level is initialized for
 // playing, but nothing has yet started.
-void GT_SpawnGametype()
-{
-	if ( gladiator_rooms.size() > 0 )
-		return;
-
-	Entity@[] rooms = G_FindByClassname( "target_connectroom" );
-	for ( uint i = 0; i < rooms.size(); i++ )
-	{
-		Entity@ ent = rooms[i];
-		uint k = 0;
-		do {
-			Entity@[] spawnents = ent.findTargets();
-			if ( spawnents.size() == 0 )
-				break;
-			for ( uint j = 0; j < spawnents.size(); j++ )
-			{
-				@ent = @spawnents[j];
-			}
-			k++;
-		} while ( true );
-		if ( k < 4 )
-		{
-		} else {
-			gladiator_rooms.push_back(rooms[i]);
-		}
-	}
+void GT_SpawnGametype() {
 }
 
 // Important: This function is called before any entity is spawned, and
@@ -928,8 +784,7 @@ void GT_SpawnGametype()
 // spawning at initialization do it in GT_SpawnGametype, which is called
 // right after the map entities spawning.
 
-void GT_InitGametype()
-{
+void GT_InitGametype() {
 	daRound.init();
 
 	gametype.isTeamBased = false;
@@ -942,50 +797,33 @@ void GT_InitGametype()
 	gametype.countdownEnabled = false;
 	gametype.matchAbortDisabled = false;
 	gametype.shootingDisabled = false;
-	gametype.infiniteAmmo = true;
-	gametype.canForceModels = true;
 	gametype.removeInactivePlayers = true;
 	gametype.selfDamage = false;
 
 	gametype.spawnpointRadius = 0;
 
 	// set spawnsystem type to instant while players join
-	for ( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ )
+	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ )
 		gametype.setTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
 
-	// register gladiator media pure
-	G_SoundIndex( "sounds/gladiator/fight" );
-	G_SoundIndex( "sounds/gladiator/score" );
-	G_SoundIndex( "sounds/gladiator/urrekt" );
-	G_SoundIndex( "sounds/gladiator/ready" );
-	G_SoundIndex( "sounds/gladiator/countdown_1" );
-	G_SoundIndex( "sounds/gladiator/countdown_2" );
-	G_SoundIndex( "sounds/gladiator/countdown_3" );
-	G_SoundIndex( "sounds/gladiator/let_the_games_begin" );
-	G_SoundIndex( "sounds/gladiator/you_both_suck" );
-	G_SoundIndex( "sounds/gladiator/oh_no" );
-	G_SoundIndex( "sounds/gladiator/its_a_tie" );
-	G_SoundIndex( "sounds/gladiator/the_king_is_back" );
-	G_SoundIndex( "sounds/gladiator/fall_scream" );
-	G_SoundIndex( "sounds/gladiator/wowyourterrible" );
-	G_SoundIndex( "sounds/gladiator/smackdown" );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/perrina_sucks_dicks" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/hashtagpuffdarcrybaby" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/callmemaybe" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/mikecabbage" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/rihanna" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/zorg" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/shazam" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/sanic" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/rlop" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/puffdarquote" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/magnets" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/howdoyoufeel" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/fuckoff" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/fluffle" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/drillbit" ) );
+	endMatchSounds.push_back( Hash64( "sounds/gladiator/demo" ) );
 
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/perrina_sucks_dicks" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/hashtagpuffdarcrybaby" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/callmemaybe" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/mikecabbage" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/rihanna" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/zorg" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/shazam" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/sanic" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/rlop" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/puffdarquote" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/magnets" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/howdoyoufeel" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/fuckoff" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/fluffle" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/drillbit" ) );
-	endMatchSounds.push_back( G_SoundIndex( "sounds/gladiator/demo" ) );
+	crownModel = Hash64( "models/objects/crown" );
 
-	crownModel = G_ModelIndex( "models/objects/crown" );
+	PickRandomArena();
 }

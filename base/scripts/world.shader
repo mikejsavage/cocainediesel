@@ -1,7 +1,6 @@
 textures/world/lava
 {
 	q3map_globaltexture
-	//surfaceparm trans
 	surfaceparm nonsolid
 	surfaceparm noimpact
 	surfaceparm lava
@@ -15,7 +14,7 @@ textures/world/lava
 	deformVertexes wave 100 sin 3 2 .1 0.1
 
 	{
-		map $whiteImage
+		map $whiteimage
 		rgbgen const 1.0 0.19 0.0
 	}
 }
@@ -36,7 +35,7 @@ textures/world/bluewater
 	{
 		map textures/colors/blue
 		blendfunc add
-		rgbGen const ( 0.227451 0.227451 0.227451 )
+		rgbGen const 0.227451 0.227451 0.227451
 	}
 }
 
@@ -55,7 +54,7 @@ textures/world/bluewater1
 	sort underwater
 
 	{
-		map $whiteImage
+		map $whiteimage
 		rgbgen const 0.2 0.6 1.0
 		alphagen const 0.25
 		blendFunc GL_DST_COLOR GL_ONE
@@ -78,7 +77,7 @@ textures/world/bluedistortwater
 	sort underwater
 
 	{
-		map $whiteImage
+		map $whiteimage
 		rgbgen const 0.2 0.6 1.0
 		alphagen const 0.25
 	}

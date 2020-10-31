@@ -54,9 +54,9 @@ void G_UpdateScoreBoardMessages( void ) {
 			continue;
 		}
 
-		if( client->ps.stats[STAT_LAYOUTS] & STAT_LAYOUT_SCOREBOARD ) {
+		if( client->ps.show_scoreboard ) {
 			client->level.scoreboard_time = svs.realtime + scoreboardInterval - ( svs.realtime % scoreboardInterval );
-			trap_GameCmd( ent, scoreboard.c_str() );
+			PF_GameCmd( ent, scoreboard.c_str() );
 		}
 	}
 }
@@ -64,23 +64,22 @@ void G_UpdateScoreBoardMessages( void ) {
 //=======================================================================
 
 static unsigned int G_FindPointedPlayer( edict_t *self ) {
-	trace_t trace;
-	int i, j, bestNum = 0;
-	vec3_t boxpoints[8];
-	float value, dist, value_best = 0.90f;   // if nothing better is found, print nothing
-	edict_t *other;
-	vec3_t vieworg, dir, viewforward;
+	int best = 0;
+	float value_best = 0.90f;
 
 	if( G_IsDead( self ) ) {
 		return 0;
 	}
 
 	// we can't handle the thirdperson modifications in server side :/
-	VectorSet( vieworg, self->r.client->ps.pmove.origin[0], self->r.client->ps.pmove.origin[1], self->r.client->ps.pmove.origin[2] + self->r.client->ps.viewheight );
-	AngleVectors( self->r.client->ps.viewangles, viewforward, NULL, NULL );
+	Vec3 vieworg = self->r.client->ps.pmove.origin;
+	vieworg.z += self->r.client->ps.viewheight;
 
-	for( i = 0; i < server_gs.maxclients; i++ ) {
-		other = PLAYERENT( i );
+	Vec3 viewforward;
+	AngleVectors( self->r.client->ps.viewangles, &viewforward, NULL, NULL );
+
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
+		edict_t * other = PLAYERENT( i );
 		if( !other->r.inuse ) {
 			continue;
 		}
@@ -94,117 +93,54 @@ static unsigned int G_FindPointedPlayer( edict_t *self ) {
 			continue;
 		}
 
-		VectorSubtract( other->s.origin, self->s.origin, dir );
-		dist = VectorNormalize2( dir, dir );
+		Vec3 dir = other->s.origin - self->s.origin;
+		float dist = Length( dir );
+		dir = SafeNormalize( dir );
 		if( dist > 1000 ) {
 			continue;
 		}
 
-		value = DotProduct( dir, viewforward );
+		float value = Dot( dir, viewforward );
 
 		if( value > value_best ) {
-			BuildBoxPoints( boxpoints, other->s.origin, tv( 4, 4, 4 ), tv( 4, 4, 4 ) );
-			for( j = 0; j < 8; j++ ) {
-				G_Trace( &trace, vieworg, vec3_origin, vec3_origin, boxpoints[j], self, MASK_SHOT | MASK_OPAQUE );
+			Vec3 boxpoints[8];
+			BuildBoxPoints( boxpoints, other->s.origin, Vec3( 4.0f ), Vec3( 4.0f ) );
+			for( int j = 0; j < 8; j++ ) {
+				trace_t trace;
+				G_Trace( &trace, vieworg, Vec3( 0.0f ), Vec3( 0.0f ), boxpoints[j], self, MASK_SHOT | MASK_OPAQUE );
 				if( trace.ent && trace.ent == ENTNUM( other ) ) {
 					value_best = value;
-					bestNum = ENTNUM( other );
+					best = ENTNUM( other );
 				}
 			}
 		}
 	}
 
-	return bestNum;
+	return best;
 }
 
 /*
 * G_SetClientStats
 */
-void G_SetClientStats( edict_t *ent ) {
-	gclient_t *client = ent->r.client;
+void G_SetClientStats( edict_t * ent ) {
+	gclient_t * client = ent->r.client;
+	SyncPlayerState * ps = &client->ps;
 
-	//
-	// layouts
-	//
-	client->ps.stats[STAT_LAYOUTS] = 0;
+	ps->show_scoreboard = ent->r.client->level.showscores || GS_MatchState( &server_gs ) > MATCH_STATE_PLAYTIME;
+	ps->ready = GS_MatchState( &server_gs ) <= MATCH_STATE_WARMUP && level.ready[ PLAYERNUM( ent ) ];
+	ps->voted = G_Callvotes_HasVoted( ent );
+	ps->team = ent->s.team;
+	ps->real_team = ent->s.team;
+	ps->health = ent->s.team == TEAM_SPECTATOR ? 0 : HEALTH_TO_INT( ent->health );
 
-	// don't force scoreboard when dead during timeout
-	if( ent->r.client->level.showscores || GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH ) {
-		client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_SCOREBOARD;
-	}
-	if( GS_TeamBasedGametype( &server_gs ) && !GS_IndividualGameType( &server_gs ) ) {
-		client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_TEAMTAB;
-	}
-	if( GS_HasChallengers( &server_gs ) && ent->r.client->queueTimeStamp ) {
-		client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_CHALLENGER;
-	}
-	if( GS_MatchState( &server_gs ) <= MATCH_STATE_WARMUP && level.ready[PLAYERNUM( ent )] ) {
-		client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_READY;
-	}
-	if( G_SpawnQueue_GetSystem( ent->s.team ) == SPAWNSYSTEM_INSTANT ) {
-		client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_INSTANTRESPAWN;
-	}
-	if( G_Callvotes_HasVoted( ent ) ) {
-		client->ps.stats[STAT_LAYOUTS] |= STAT_LAYOUT_VOTED;
-	}
-
-	//
-	// team
-	//
-	client->ps.stats[STAT_TEAM] = client->ps.stats[STAT_REALTEAM] = ent->s.team;
-
-	//
-	// health
-	//
-	if( ent->s.team == TEAM_SPECTATOR ) {
-		client->ps.stats[STAT_HEALTH] = STAT_NOTSET; // no health for spectator
-	} else {
-		client->ps.stats[STAT_HEALTH] = HEALTH_TO_INT( ent->health );
-	}
-	client->r.frags = client->ps.stats[STAT_SCORE];
-
-	//
-	// frags
-	//
-	if( ent->s.team == TEAM_SPECTATOR ) {
-		client->ps.stats[STAT_SCORE] = STAT_NOTSET; // no frags for spectators
-	} else {
-		client->ps.stats[STAT_SCORE] = ent->r.client->level.stats.score;
-	}
-
-	//
-	// Team scores
-	//
-	if( GS_TeamBasedGametype( &server_gs ) ) {
-		// team based
-		for( int team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-			client->ps.stats[STAT_TEAM_ALPHA_SCORE + team - TEAM_ALPHA] = teamlist[team].stats.score;
-		}
-	} else {
-		// not team based
-		for( int team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-			client->ps.stats[STAT_TEAM_ALPHA_SCORE + team - TEAM_ALPHA] = STAT_NOTSET;
-		}
-	}
-
-	// spawn system
-	client->ps.stats[STAT_NEXT_RESPAWN] = ceil( G_SpawnQueue_NextRespawnTime( client->team ) * 0.001f );
-
-	// pointed player
-	client->ps.stats[STAT_POINTED_TEAMPLAYER] = 0;
-	client->ps.stats[STAT_POINTED_PLAYER] = G_FindPointedPlayer( ent );
-	if( client->ps.stats[STAT_POINTED_PLAYER] && GS_TeamBasedGametype( &server_gs ) ) {
-		edict_t *e = &game.edicts[client->ps.stats[STAT_POINTED_PLAYER]];
+	ps->pointed_player = 0;
+	ps->pointed_health = 0;
+	if( level.gametype.isTeamBased ) {
+		unsigned int pointed = G_FindPointedPlayer( ent );
+		edict_t * e = &game.edicts[ pointed ];
 		if( e->s.team == ent->s.team ) {
-			client->ps.stats[STAT_POINTED_TEAMPLAYER] = HEALTH_TO_INT( e->health );
+			ps->pointed_player = pointed;
+			ps->pointed_health = HEALTH_TO_INT( e->health );
 		}
-	}
-
-	// last killer. ignore world and team kills
-	if( client->teamstate.last_killer ) {
-		edict_t *attacker = client->teamstate.last_killer;
-		client->ps.stats[STAT_LAST_KILLER] = attacker->r.client ? ENTNUM( attacker ) : 0;
-	} else {
-		client->ps.stats[STAT_LAST_KILLER] = 0;
 	}
 }

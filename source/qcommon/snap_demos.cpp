@@ -147,12 +147,11 @@ static void SNAP_RecordDemoMetaDataMessage( int demofile, msg_t *msg ) {
 * SNAP_BeginDemoRecording
 */
 void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned int snapFrameTime,
-							  const char *sv_name, unsigned int sv_bitflags, char *configstrings,
-							  entity_state_t *baselines ) {
+		unsigned int sv_bitflags, char *configstrings, SyncEntityState *baselines ) {
 	msg_t msg;
 	uint8_t msg_buffer[MAX_MSGLEN];
-	entity_state_t nullstate;
-	entity_state_t *base;
+	SyncEntityState nullstate;
+	SyncEntityState *base;
 
 	MSG_Init( &msg, msg_buffer, sizeof( msg_buffer ) );
 
@@ -167,7 +166,6 @@ void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned in
 	MSG_WriteInt16( &msg, (unsigned short)snapFrameTime );
 	MSG_WriteString( &msg, FS_BaseGameDirectory() );
 	MSG_WriteInt16( &msg, -1 ); // playernum
-	MSG_WriteString( &msg, sv_name ); // level name
 	MSG_WriteUint8( &msg, sv_bitflags & ~SV_BITFLAGS_HTTP ); // sv_bitflags
 
 	// config strings
@@ -186,7 +184,7 @@ void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned in
 
 	for( int i = 0; i < MAX_EDICTS; i++ ) {
 		base = &baselines[i];
-		if( base->modelindex || base->sound || base->effects ) {
+		if( base->number != 0 ) {
 			MSG_WriteUint8( &msg, svc_spawnbaseline );
 			MSG_WriteDeltaEntity( &msg, &nullstate, base, true );
 
@@ -313,7 +311,7 @@ void SNAP_WriteDemoMetaData( const char *filename, const char *meta_data, size_t
 	for( i = 0; filename[i]; i++ ) {
 		v = ( v + i ) * 37 + tolower( filename[i] ); // case insensitivity
 	}
-	Q_snprintfz( tmpn, sizeof( tmpn ), "%u.tmp", v );
+	snprintf( tmpn, sizeof( tmpn ), "%u.tmp", v );
 
 	if( FS_FOpenFile( tmpn, &filenum, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
 		return;
@@ -386,8 +384,8 @@ size_t SNAP_ReadDemoMetaData( int demofile, char *meta_data, size_t meta_data_si
 	meta_data_realsize = LittleLong( meta_data_realsize );
 	meta_data_fullsize = LittleLong( meta_data_fullsize );
 
-	FS_Read( ( void * )meta_data, min( meta_data_size, meta_data_realsize ), demofile );
-	meta_data[min( meta_data_realsize, meta_data_size - 1 )] = '\0'; // termination \0
+	FS_Read( ( void * )meta_data, qmin( meta_data_size, meta_data_realsize ), demofile );
+	meta_data[qmin( meta_data_realsize, meta_data_size - 1 )] = '\0'; // termination \0
 
 	return meta_data_realsize;
 }

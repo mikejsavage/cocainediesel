@@ -1,13 +1,46 @@
 #include "qcommon/types.h"
 
-void VID_Init();
-void VID_Shutdown();
+struct VideoMode {
+	int width, height;
+	int frequency;
+};
 
-void VID_GetViewportSize( u32 * width, u32 * height );
+enum FullscreenMode {
+	FullscreenMode_Windowed,
+	FullscreenMode_Borderless,
+	FullscreenMode_Fullscreen,
+};
+
+struct WindowMode {
+	VideoMode video_mode;
+	int monitor;
+	int x, y;
+	FullscreenMode fullscreen;
+};
+
+void format( FormatBuffer * fb, VideoMode mode, const FormatOpts & opts );
+void format( FormatBuffer * fb, WindowMode mode, const FormatOpts & opts );
+
+bool operator!=( WindowMode lhs, WindowMode rhs );
+
+void VID_Init();
+
+void CreateWindow( WindowMode mode );
+void DestroyWindow();
+
+void GlfwInputFrame();
+void SwapBuffers();
+
+void GetFramebufferSize( int * width, int * height );
+Vec2 GetMouseMovement();
 void VID_CheckChanges();
 
-void VID_FlashWindow();
+void FlashWindow();
 
-void VID_AppActivate( bool active, bool minimize );
-bool VID_AppIsActive();
-bool VID_AppIsMinimized();
+VideoMode GetVideoMode( int monitor );
+bool IsWindowFocused();
+
+WindowMode GetWindowMode();
+void SetWindowMode( WindowMode mode );
+
+void EnableVSync( bool enabled );

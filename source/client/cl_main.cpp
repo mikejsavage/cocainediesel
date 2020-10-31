@@ -20,13 +20,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/base.h"
 #include "client/client.h"
+#include "client/assets.h"
+#include "client/downloads.h"
+#include "client/threadpool.h"
 #include "client/renderer/renderer.h"
-#include "client/sdl/sdl_window.h"
-#include "qcommon/assets.h"
-#include "qcommon/asyncstream.h"
 #include "qcommon/version.h"
 #include "qcommon/hash.h"
 #include "qcommon/csprng.h"
+#include "gameshared/gs_public.h"
 
 cvar_t *rcon_client_password;
 cvar_t *rcon_address;
@@ -50,26 +51,14 @@ cvar_t *info_password;
 cvar_t *cl_debug_serverCmd;
 cvar_t *cl_debug_timeDelta;
 
-cvar_t *cl_downloads;
-cvar_t *cl_downloads_from_web;
-cvar_t *cl_downloads_from_web_timeout;
-
 cvar_t *cl_devtools;
-
-static char cl_nextString[MAX_STRING_CHARS];
-static char cl_connectChain[MAX_STRING_CHARS];
 
 client_static_t cls;
 client_state_t cl;
 
-entity_state_t cl_baselines[MAX_EDICTS];
+SyncEntityState cl_baselines[MAX_EDICTS];
 
 static bool cl_initialized = false;
-
-static async_stream_module_t *cl_async_stream;
-
-//======================================================================
-
 
 /*
 =======================================================================
@@ -168,7 +157,7 @@ void CL_ServerDisconnect_f( void ) {
 
 	Com_Printf( "Connection was closed by server: %s\n", reason );
 
-	Q_snprintfz( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
+	snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
 				 DROP_REASON_CONNTERMINATED, cls.servername, type, reason );
 
 	Cbuf_ExecuteText( EXEC_NOW, menuparms );
@@ -249,10 +238,6 @@ static void CL_CheckForResend( void ) {
 	}
 
 	if( cls.state == CA_CONNECTING && cls.reliable ) {
-		if( realtime - cls.connect_time < 3000 ) {
-			return;
-		}
-
 		if( realtime - cls.connect_time < 10000 ) {
 			return;
 		}
@@ -264,11 +249,8 @@ static void CL_CheckForResend( void ) {
 /*
 * CL_Connect
 */
-static void CL_Connect( const char *servername, socket_type_t type, netadr_t *address, const char *serverchain ) {
+static void CL_Connect( const char *servername, socket_type_t type, netadr_t *address ) {
 	netadr_t socketaddress;
-
-	cl_connectChain[0] = '\0';
-	cl_nextString[0] = '\0';
 
 	CL_Disconnect( NULL );
 
@@ -308,10 +290,6 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 
 	CL_SetClientState( CA_CONNECTING );
 
-	if( serverchain[0] ) {
-		Q_strncpyz( cl_connectChain, serverchain, sizeof( cl_connectChain ) );
-	}
-
 	cls.connect_time = -99999; // CL_CheckForResend() will fire immediately
 	cls.connect_count = 0;
 	cls.rejected = false;
@@ -324,10 +302,8 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 static void CL_Connect_Cmd_f( socket_type_t socket ) {
 	netadr_t serveraddress;
 	char *servername, password[64];
-	const char *extension;
 	char *connectstring, *connectstring_base;
 	const char *tmp;
-	const char *serverchain;
 
 	if( Cmd_Argc() < 2 ) {
 		Com_Printf( "Usage: %s <server>\n", Cmd_Argv( 0 ) );
@@ -336,14 +312,12 @@ static void CL_Connect_Cmd_f( socket_type_t socket ) {
 
 	connectstring_base = TempCopyString( Cmd_Argv( 1 ) );
 	connectstring = connectstring_base;
-	serverchain = Cmd_Argc() >= 3 ? Cmd_Argv( 2 ) : "";
 
 	if( !Q_strnicmp( connectstring, APP_URI_SCHEME, strlen( APP_URI_SCHEME ) ) ) {
 		connectstring += strlen( APP_URI_SCHEME );
 	}
 
-	extension = COM_FileExtension( connectstring );
-	if( extension && !Q_stricmp( extension, APP_DEMO_EXTENSION_STR ) ) {
+	if( FileExtension( connectstring ) == APP_DEMO_EXTENSION_STR ) {
 		char *temp;
 		size_t temp_size;
 		const char *http_scheme = "http://";
@@ -354,7 +328,7 @@ static void CL_Connect_Cmd_f( socket_type_t socket ) {
 
 		temp_size = strlen( "demo " ) + strlen( http_scheme ) + strlen( connectstring ) + 1;
 		temp = ( char * ) Mem_TempMalloc( temp_size );
-		Q_snprintfz( temp, temp_size, "demo %s%s", http_scheme, connectstring );
+		snprintf( temp, temp_size, "demo %s%s", http_scheme, connectstring );
 
 		Cbuf_ExecuteText( EXEC_NOW, temp );
 
@@ -364,7 +338,7 @@ static void CL_Connect_Cmd_f( socket_type_t socket ) {
 	}
 
 	if( ( tmp = Q_strrstr( connectstring, "@" ) ) != NULL ) {
-		Q_strncpyz( password, connectstring, min( sizeof( password ),( tmp - connectstring + 1 ) ) );
+		Q_strncpyz( password, connectstring, qmin( sizeof( password ), tmp - connectstring + 1 ) );
 		Cvar_Set( "password", password );
 		connectstring += ( tmp - connectstring ) + 1;
 	}
@@ -380,8 +354,7 @@ static void CL_Connect_Cmd_f( socket_type_t socket ) {
 	}
 
 	servername = TempCopyString( connectstring );
-	CL_Connect( servername, ( serveraddress.type == NA_LOOPBACK ? SOCKET_LOOPBACK : socket ),
-				&serveraddress, serverchain );
+	CL_Connect( servername, ( serveraddress.type == NA_LOOPBACK ? SOCKET_LOOPBACK : socket ), &serveraddress );
 
 	Mem_TempFree( servername );
 	Mem_TempFree( connectstring_base );
@@ -513,14 +486,6 @@ void CL_ResetServerCount( void ) {
 * CL_ClearState
 */
 void CL_ClearState( void ) {
-	if( cl.cms ) {
-		CM_ReleaseReference( cl.cms );
-	}
-
-	if( cl.frames_areabits ) {
-		Mem_Free( cl.frames_areabits );
-	}
-
 	// wipe the entire cl structure
 	memset( &cl, 0, sizeof( client_state_t ) );
 	memset( cl_baselines, 0, sizeof( cl_baselines ) );
@@ -554,25 +519,8 @@ static void CL_SetNext_f( void ) {
 		Com_Printf( "USAGE: next <commands>\n" );
 		return;
 	}
-
-	// jalfixme: I'm afraid of this being too powerful, since it basically
-	// is allowed to execute everything. Shall we check for something?
-	Q_strncpyz( cl_nextString, Cmd_Args(), sizeof( cl_nextString ) );
-	Com_Printf( "NEXT: %s\n", cl_nextString );
 }
 
-
-/*
-* CL_ExecuteNext
-*/
-static void CL_ExecuteNext( void ) {
-	if( !strlen( cl_nextString ) ) {
-		return;
-	}
-
-	Cbuf_ExecuteText( EXEC_APPEND, cl_nextString );
-	memset( cl_nextString, 0, sizeof( cl_nextString ) );
-}
 
 /*
 * CL_Disconnect_SendCommand
@@ -597,12 +545,9 @@ static void CL_Disconnect_SendCommand( void ) {
 * This is also called on Com_Error, so it shouldn't cause any errors
 */
 void CL_Disconnect( const char *message ) {
-	char menuparms[MAX_STRING_CHARS];
-	bool wasconnecting;
-
 	// We have to shut down webdownloading first
-	if( cls.download.web && !cls.download.disconnect ) {
-		cls.download.disconnect = true;
+	if( CL_IsDownloading() ) {
+		CL_CancelDownload();
 		return;
 	}
 
@@ -610,14 +555,10 @@ void CL_Disconnect( const char *message ) {
 		return;
 	}
 	if( cls.state == CA_DISCONNECTED ) {
-		goto done;
+		return;
 	}
 
-	if( cls.state < CA_CONNECTED ) {
-		wasconnecting = true;
-	} else {
-		wasconnecting = false;
-	}
+	bool wasconnecting = cls.state < CA_CONNECTED;
 
 	SV_ShutdownGame( "Owner left the listen server", false );
 
@@ -650,51 +591,21 @@ void CL_Disconnect( const char *message ) {
 
 	S_StopAllSounds( false );
 
+	CL_GameModule_Shutdown();
+
 	CL_ClearState();
 	CL_SetClientState( CA_DISCONNECTED );
 
-	if( cls.download.requestname ) {
-		cls.download.pending_reconnect = false;
-		cls.download.cancelled = true;
-		CL_DownloadDone();
+	if( message != NULL ) {
+		char menuparms[MAX_STRING_CHARS];
+		snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
+					 ( wasconnecting ? DROP_REASON_CONNFAILED : DROP_REASON_CONNERROR ), cls.servername, DROP_TYPE_GENERAL, message );
+
+		Cbuf_ExecuteText( EXEC_NOW, menuparms );
 	}
-
-	if( cl_connectChain[0] == '\0' ) {
-		if( message != NULL ) {
-			Q_snprintfz( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
-						 ( wasconnecting ? DROP_REASON_CONNFAILED : DROP_REASON_CONNERROR ), cls.servername, DROP_TYPE_GENERAL, message );
-
-			Cbuf_ExecuteText( EXEC_NOW, menuparms );
-		}
-	} else {
-		const char *s = strchr( cl_connectChain, ',' );
-		if( s ) {
-			cl_connectChain[s - cl_connectChain] = '\0';
-		} else {
-			s = cl_connectChain + strlen( cl_connectChain ) - 1;
-		}
-		Q_snprintfz( cl_nextString, sizeof( cl_nextString ), "connect \"%s\" \"%s\"", cl_connectChain, s + 1 );
-	}
-
-done:
-	// in case we disconnect while in download phase
-	CL_FreeDownloadList();
-
-	CL_ExecuteNext(); // start next action if any is defined
-
-	CL_GameModule_Shutdown();
 }
 
 void CL_Disconnect_f( void ) {
-	cl_connectChain[0] = '\0';
-	cl_nextString[0] = '\0';
-
-	// We have to shut down webdownloading first
-	if( cls.download.web ) {
-		cls.download.disconnect = true;
-		return;
-	}
-
 	CL_Disconnect( NULL );
 }
 
@@ -705,9 +616,8 @@ void CL_Disconnect_f( void ) {
 * drop to full console
 */
 void CL_Changing_f( void ) {
-	//ZOID
 	//if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
-	if( cls.download.filenum || cls.download.web ) {
+	if( CL_IsDownloading() ) {
 		return;
 	}
 
@@ -736,8 +646,8 @@ void CL_ServerReconnect_f( void ) {
 	}
 
 	//if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
-	if( cls.download.filenum || cls.download.web ) {
-		cls.download.pending_reconnect = true;
+	if( CL_IsDownloading() ) {
+		CL_ReconnectAfterDownload();
 		return;
 	}
 
@@ -780,14 +690,11 @@ void CL_Reconnect_f( void ) {
 		return;
 	}
 
-	cl_connectChain[0] = '\0';
-	cl_nextString[0] = '\0';
-
 	servername = TempCopyString( cls.servername );
 	servertype = cls.servertype;
 	serveraddress = cls.serveraddress;
 	CL_Disconnect( NULL );
-	CL_Connect( servername, servertype, &serveraddress, "" );
+	CL_Connect( servername, servertype, &serveraddress );
 	Mem_TempFree( servername );
 }
 
@@ -798,7 +705,7 @@ void CL_Reconnect_f( void ) {
 */
 static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *address, msg_t *msg ) {
 	char *s;
-	char *c;
+	const char *c;
 
 	MSG_BeginReading( msg );
 	MSG_ReadInt32( msg ); // skip the -1
@@ -913,7 +820,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 			Com_Printf( "Automatic reconnecting not allowed.\n" );
 
 			CL_Disconnect( NULL );
-			Q_snprintfz( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
+			snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
 						 DROP_REASON_CONNFAILED, cls.servername, cls.rejecttype, cls.rejectmessage );
 
 			Cbuf_ExecuteText( EXEC_NOW, menuparms );
@@ -1022,8 +929,8 @@ static bool CL_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
 * CL_ReadPackets
 */
 void CL_ReadPackets( void ) {
-	static msg_t msg;
-	static uint8_t msgData[MAX_MSGLEN];
+	msg_t msg;
+	uint8_t msgData[MAX_MSGLEN];
 	int ret;
 	socket_t *socket;
 	netadr_t address;
@@ -1123,135 +1030,9 @@ static void CL_Userinfo_f( void ) {
 	Info_Print( Cvar_Userinfo() );
 }
 
-static int precache_check; // for autodownload of precache items
 static int precache_spawncount;
-static int precache_tex;
 
-#define PLAYER_MULT 5
-
-// ENV_CNT is map load
-#define ENV_CNT ( CS_PLAYERINFOS + MAX_CLIENTS * PLAYER_MULT )
-#define TEXTURE_CNT ( ENV_CNT + 1 )
-
-static unsigned int CL_LoadMap( const char *name ) {
-	int i;
-	int areas;
-
-	unsigned int map_checksum;
-
-	assert( !cl.cms );
-
-	// if local server is running, share the collision model,
-	// increasing the ref counter
-	if( Com_ServerState() ) {
-		cl.cms = Com_ServerCM( &map_checksum );
-	} else {
-		cl.cms = CM_New( NULL );
-		CM_LoadMap( cl.cms, name, true, &map_checksum );
-	}
-
-	assert( cl.cms );
-
-	// allocate memory for areabits
-	areas = CM_NumAreas( cl.cms );
-	areas *= CM_AreaRowSize( cl.cms );
-
-	cl.frames_areabits = ( uint8_t * ) Mem_ZoneMalloc( UPDATE_BACKUP * areas );
-	for( i = 0; i < UPDATE_BACKUP; i++ ) {
-		cl.snapShots[i].areabytes = areas;
-		cl.snapShots[i].areabits = cl.frames_areabits + i * areas;
-	}
-
-	// check memory integrity
-	Mem_DebugCheckSentinelsGlobal();
-
-	return map_checksum;
-}
-
-void CL_RequestNextDownload( void ) {
-	char tempname[MAX_CONFIGSTRING_CHARS + 4];
-
-	if( cls.state != CA_CONNECTED ) {
-		return;
-	}
-
-	// skip if download not allowed
-	if( !cl_downloads->integer && precache_check < ENV_CNT ) {
-		precache_check = ENV_CNT;
-	}
-
-	//ZOID
-	if( precache_check == CS_WORLDMODEL ) { // confirm map
-		precache_check = CS_MODELS; // 0 isn't used
-
-		if( !CL_CheckOrDownloadFile( cl.configstrings[CS_WORLDMODEL] ) ) {
-			return; // started a download
-		}
-	}
-
-	if( precache_check >= CS_MODELS && precache_check < CS_MODELS + MAX_MODELS ) {
-		while( precache_check < CS_MODELS + MAX_MODELS && cl.configstrings[precache_check][0] ) {
-			if( cl.configstrings[precache_check][0] == '*' || cl.configstrings[precache_check][0] == '#' ) {
-				precache_check++;
-				continue;
-			}
-
-			if( !CL_CheckOrDownloadFile( cl.configstrings[precache_check++] ) ) {
-				return; // started a download
-			}
-		}
-		precache_check = CS_SOUNDS;
-	}
-
-	if( precache_check >= CS_SOUNDS && precache_check < CS_SOUNDS + MAX_SOUNDS ) {
-		if( precache_check == CS_SOUNDS ) {
-			precache_check++; // zero is blank
-
-		}
-		while( precache_check < CS_SOUNDS + MAX_SOUNDS && cl.configstrings[precache_check][0] ) {
-			Q_strncpyz( tempname, cl.configstrings[precache_check++], sizeof( tempname ) );
-			if( !COM_FileExtension( tempname ) ) {
-				Q_strncatz( tempname, ".ogg", sizeof( tempname ) );
-			}
-			if( !CL_CheckOrDownloadFile( tempname ) ) {
-				return; // started a download
-			}
-		}
-		precache_check = CS_IMAGES;
-	}
-	if( precache_check >= CS_IMAGES && precache_check < CS_IMAGES + MAX_IMAGES ) {
-		if( precache_check == CS_IMAGES ) {
-			precache_check++; // zero is blank
-
-		}
-		// precache phase completed
-		precache_check = ENV_CNT;
-	}
-
-	if( precache_check == ENV_CNT ) {
-		cls.download.successCount = 0;
-
-		unsigned map_checksum = CL_LoadMap( cl.configstrings[CS_WORLDMODEL] );
-		if( map_checksum != (unsigned)atoi( cl.configstrings[CS_MAPCHECKSUM] ) ) {
-			Com_Error( ERR_DROP, "Local map version differs from server: %u != '%u'",
-					   map_checksum, (unsigned)atoi( cl.configstrings[CS_MAPCHECKSUM] ) );
-			return;
-		}
-
-		precache_check = TEXTURE_CNT;
-	}
-
-	if( precache_check == TEXTURE_CNT ) {
-		precache_check = TEXTURE_CNT + 1;
-		precache_tex = 0;
-	}
-
-	// confirm existance of textures, download any that don't exist
-	if( precache_check == TEXTURE_CNT + 1 ) {
-		precache_check = TEXTURE_CNT + 999;
-	}
-
-	// load client game module
+void CL_FinishConnect() {
 	CL_GameModule_Init();
 	CL_AddReliableCommand( va( "begin %i\n", precache_spawncount ) );
 }
@@ -1265,8 +1046,6 @@ void CL_RequestNextDownload( void ) {
 void CL_Precache_f( void ) {
 	if( cls.demo.playing ) {
 		if( !cls.demo.play_jump ) {
-			CL_LoadMap( cl.configstrings[CS_WORLDMODEL] );
-
 			CL_GameModule_Init();
 		} else {
 			CL_GameModule_Reset();
@@ -1278,10 +1057,18 @@ void CL_Precache_f( void ) {
 		return;
 	}
 
-	precache_check = CS_WORLDMODEL;
 	precache_spawncount = atoi( Cmd_Argv( 1 ) );
 
-	CL_RequestNextDownload();
+	const char * mapname = Cmd_Argv( 2 );
+	u64 hash = Hash64( mapname, strlen( mapname ), Hash64( "maps/" ) );
+
+	if( FindMap( StringHash( hash ) ) == NULL ) {
+		TempAllocator temp = cls.frame_arena.temp();
+		CL_DownloadFile( temp( "maps/{}.bsp", Cmd_Argv( 2 ) ), false );
+		return;
+	}
+
+	CL_FinishConnect();
 }
 
 /*
@@ -1291,24 +1078,19 @@ void CL_Precache_f( void ) {
 */
 static void CL_WriteConfiguration( const char *name ) {
 	int file;
-
 	if( FS_FOpenFile( name, &file, FS_WRITE ) == -1 ) {
 		Com_Printf( "Couldn't write %s.\n", name );
 		return;
 	}
 
-	FS_Printf( file, "\r\n// key bindings\r\n" );
+	FS_Printf( file, "// key bindings\r\n" );
 	Key_WriteBindings( file );
 
 	FS_Printf( file, "\r\n// variables\r\n" );
 	Cvar_WriteVariables( file );
 
-	FS_Printf( file, "\r\n// aliases\r\n" );
-	Cmd_WriteAliases( file );
-
 	FS_FCloseFile( file );
 }
-
 
 /*
 * CL_WriteConfig_f
@@ -1358,7 +1140,6 @@ void CL_SetClientState( connstate_t state ) {
 			cls.cgameActive = false;
 			Con_Close();
 			UI_ShowConnectingScreen();
-			S_StopBackgroundTrack();
 			CL_SetKeyDest( key_game );
 			break;
 		case CA_CONNECTED:
@@ -1367,9 +1148,9 @@ void CL_SetClientState( connstate_t state ) {
 			Cvar_FixCheatVars();
 			break;
 		case CA_ACTIVE:
-			cl_connectChain[0] = '\0';
 			Con_Close();
 			UI_HideMenu();
+			S_StopBackgroundTrack();
 			CL_SetKeyDest( key_game );
 			break;
 		default:
@@ -1425,10 +1206,6 @@ static void CL_InitLocal( void ) {
 	cl_debug_serverCmd =    Cvar_Get( "cl_debug_serverCmd", "0", CVAR_ARCHIVE | CVAR_CHEAT );
 	cl_debug_timeDelta =    Cvar_Get( "cl_debug_timeDelta", "0", CVAR_ARCHIVE /*|CVAR_CHEAT*/ );
 
-	cl_downloads =      Cvar_Get( "cl_downloads", "1", CVAR_ARCHIVE );
-	cl_downloads_from_web = Cvar_Get( "cl_downloads_from_web", "1", CVAR_ARCHIVE | CVAR_READONLY );
-	cl_downloads_from_web_timeout = Cvar_Get( "cl_downloads_from_web_timeout", "600", CVAR_ARCHIVE );
-
 	cl_devtools = Cvar_Get( "cl_devtools", "0", CVAR_ARCHIVE );
 
 	//
@@ -1442,7 +1219,6 @@ static void CL_InitLocal( void ) {
 	}
 
 	Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
-	Cvar_Get( "handicap", "0", CVAR_USERINFO | CVAR_ARCHIVE );
 
 	Cvar_Get( "cl_download_name", "", CVAR_READONLY );
 	Cvar_Get( "cl_download_percent", "0", CVAR_READONLY );
@@ -1469,8 +1245,6 @@ static void CL_InitLocal( void ) {
 	Cmd_AddCommand( "demopause", CL_PauseDemo_f );
 	Cmd_AddCommand( "demojump", CL_DemoJump_f );
 	Cmd_AddCommand( "showserverip", CL_ShowServerIP_f );
-	Cmd_AddCommand( "downloadstatus", CL_DownloadStatus_f );
-	Cmd_AddCommand( "downloadcancel", CL_DownloadCancel_f );
 
 	Cmd_SetCompletionFunc( "demo", CL_DemoComplete );
 }
@@ -1501,8 +1275,6 @@ static void CL_ShutdownLocal( void ) {
 	Cmd_RemoveCommand( "demopause" );
 	Cmd_RemoveCommand( "demojump" );
 	Cmd_RemoveCommand( "showserverip" );
-	Cmd_RemoveCommand( "downloadstatus" );
-	Cmd_RemoveCommand( "downloadcancel" );
 }
 
 //============================================================================
@@ -1572,7 +1344,7 @@ int CL_SmoothTimeDeltas( void ) {
 		return cl.serverTimeDeltas[cl.currentSnapNum & MASK_TIMEDELTAS_BACKUP];
 	}
 
-	i = cl.receivedSnapNum - min( MAX_TIMEDELTAS_BACKUP, 8 );
+	i = cl.receivedSnapNum - Min2( MAX_TIMEDELTAS_BACKUP, 8 );
 	if( i < 0 ) {
 		i = 0;
 	}
@@ -1633,7 +1405,7 @@ void CL_UpdateSnapshot( void ) {
 
 			// if we don't have current snap (or delay is too big) don't wait to fire the pending one
 			if( ( !cls.demo.play_jump && cl.currentSnapNum <= 0 ) ||
-				( !cls.demo.playing && abs( cl.newServerTimeDelta - cl.serverTimeDelta ) > 200 ) ) {
+				( !cls.demo.playing && Abs( cl.newServerTimeDelta - cl.serverTimeDelta ) > 200 ) ) {
 				cl.serverTimeDelta = cl.newServerTimeDelta;
 			}
 		}
@@ -1788,7 +1560,7 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 void CL_Frame( int realMsec, int gameMsec ) {
 	ZoneScoped;
 
-	TracyPlot( "Frame arena max utilisation", cls.frame_arena.max_utilisation() );
+	TracyPlot( "Client frame arena max utilisation", cls.frame_arena.max_utilisation() );
 	cls.frame_arena.clear();
 
 	u64 entropy[ 2 ];
@@ -1827,7 +1599,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 		static s64 last_hotload_time = 0;
 		static bool last_focused = true;
 
-		bool focused = VID_AppIsActive();
+		bool focused = IsWindowFocused();
 		bool just_became_focused = focused && !last_focused;
 
 		// hotload assets when the window regains focus or every 1 second when not focused
@@ -1845,22 +1617,17 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	CL_AdjustServerTime( gameMsec );
 	CL_UserInputFrame( realMsec );
 	CL_NetFrame( realMsec, gameMsec );
+	PumpDownloads();
 
-	if( cl_maxfps->integer > 0 && !cls.demo.playing ) {
-		const int absMinFps = 24;
+	const int absMinFps = 24;
 
-		// do not allow setting cl_maxfps to very low values to prevent cheating
-		if( cl_maxfps->integer < absMinFps ) {
-			Cvar_ForceSet( "cl_maxfps", va( "%i", absMinFps ) );
-		}
-		maxFps = VID_AppIsActive() ? cl_maxfps->value : absMinFps;
-		minMsec = max( ( 1000.0f / maxFps ), 1 );
-		roundingMsec += max( ( 1000.0f / maxFps ), 1.0f ) - minMsec;
-	} else {
-		maxFps = 10000.0f;
-		minMsec = 1;
-		roundingMsec = 0;
+	// do not allow setting cl_maxfps to very low values to prevent cheating
+	if( cl_maxfps->integer < absMinFps ) {
+		Cvar_ForceSet( "cl_maxfps", va( "%i", absMinFps ) );
 	}
+	maxFps = IsWindowFocused() ? cl_maxfps->value : absMinFps;
+	minMsec = Max2( 1000.0f / maxFps, 1.0f );
+	roundingMsec += Max2( 1000.0f / maxFps, 1.0f ) - minMsec;
 
 	if( roundingMsec >= 1.0f ) {
 		minMsec += (int)roundingMsec;
@@ -1869,7 +1636,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	if( allRealMsec + extraMsec < minMsec ) {
 		// let CPU sleep while minimized
-		bool sleep = cls.state == CA_DISCONNECTED || !VID_AppIsActive() || VID_AppIsMinimized(); // FIXME: not sure about listen server here..
+		bool sleep = cls.state == CA_DISCONNECTED || !IsWindowFocused();
 
 		if( sleep && minMsec - extraMsec > 1 ) {
 			Sys_Sleep( minMsec - extraMsec - 1 );
@@ -1888,19 +1655,12 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	VID_CheckChanges();
 
 	// update the screen
-	if( host_speeds->integer ) {
-		time_before_ref = Sys_Milliseconds();
-	}
-
-	u32 viewport_width, viewport_height;
-	VID_GetViewportSize( &viewport_width, &viewport_height );
+	int viewport_width, viewport_height;
+	GetFramebufferSize( &viewport_width, &viewport_height );
 	RendererBeginFrame( viewport_width, viewport_height );
 
 	SCR_UpdateScreen();
 	RendererSubmitFrame();
-	if( host_speeds->integer ) {
-		time_after_ref = Sys_Milliseconds();
-	}
 
 	// update audio
 	if( cls.state != CA_ACTIVE ) {
@@ -1910,96 +1670,12 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	allRealMsec = 0;
 	allGameMsec = 0;
 
+	cl.prevviewangles = cl.viewangles;
+
 	cls.framecount++;
 
-	VID_Swap();
+	SwapBuffers();
 }
-
-//============================================================================
-
-/*
-* CL_AsyncStream_Alloc
-*/
-static void *CL_AsyncStream_Alloc( size_t size, const char *filename, int fileline ) {
-	return _Mem_Alloc( zoneMemPool, size, 0, 0, filename, fileline );
-}
-
-/*
-* CL_AsyncStream_Free
-*/
-static void CL_AsyncStream_Free( void *data, const char *filename, int fileline ) {
-	_Mem_Free( data, 0, 0, filename, fileline );
-}
-
-/*
-* CL_InitAsyncStream
-*/
-static void CL_InitAsyncStream( void ) {
-	cl_async_stream = AsyncStream_InitModule( "Client", CL_AsyncStream_Alloc, CL_AsyncStream_Free );
-}
-
-/*
-* CL_ShutdownAsyncStream
-*/
-static void CL_ShutdownAsyncStream( void ) {
-	if( !cl_async_stream ) {
-		return;
-	}
-
-	AsyncStream_ShutdownModule( cl_async_stream );
-	cl_async_stream = NULL;
-}
-
-/*
-* CL_AddSessionHttpRequestHeaders
-*/
-int CL_AddSessionHttpRequestHeaders( const char *url, const char **headers ) {
-	static char pH[32];
-
-	if( cls.httpbaseurl && *cls.httpbaseurl ) {
-		if( !strncmp( url, cls.httpbaseurl, strlen( cls.httpbaseurl ) ) ) {
-			Q_snprintfz( pH, sizeof( pH ), "%i", cl.playernum );
-
-			headers[0] = "X-Client";
-			headers[1] = pH;
-			headers[2] = "X-Session";
-			headers[3] = cls.session;
-			return 4;
-		}
-	}
-	return 0;
-}
-
-/*
-* CL_AsyncStreamRequest
-*/
-void CL_AsyncStreamRequest( const char *url, const char **headers, int timeout, int resumeFrom,
-							size_t ( *read_cb )( const void *, size_t, float, int, const char *, void * ),
-							void ( *done_cb )( int, const char *, void * ),
-							void ( *header_cb )( const char *, void * ), void *privatep, bool urlencodeUnsafe ) {
-	char *tmpUrl = NULL;
-	const char *safeUrl;
-
-	if( urlencodeUnsafe ) {
-		// urlencode unsafe characters
-		size_t allocSize = strlen( url ) * 3 + 1;
-		tmpUrl = ( char * )Mem_TempMalloc( allocSize );
-		AsyncStream_UrlEncodeUnsafeChars( url, tmpUrl, allocSize );
-
-		safeUrl = tmpUrl;
-	} else {
-		safeUrl = url;
-	}
-
-	AsyncStream_PerformRequestExt( cl_async_stream, safeUrl, "GET", NULL, headers, timeout,
-								   resumeFrom, read_cb, done_cb, (async_stream_header_cb_t)header_cb, NULL );
-
-	if( urlencodeUnsafe ) {
-		Mem_TempFree( tmpUrl );
-	}
-}
-
-//============================================================================
 
 void InitPhysx(); // TODO
 void ShutdownPhysx();
@@ -2010,15 +1686,13 @@ void ShutdownPhysx();
 void CL_Init( void ) {
 	ZoneScoped;
 
-	constexpr size_t frame_arena_size = 1024 * 1024;
+	constexpr size_t frame_arena_size = 1024 * 1024; // 1MB
 	void * frame_arena_memory = ALLOC_SIZE( sys_allocator, frame_arena_size, 16 );
 	cls.frame_arena = ArenaAllocator( frame_arena_memory, frame_arena_size );
 
 	u64 entropy[ 2 ];
 	CSPRNG_Bytes( entropy, sizeof( entropy ) );
 	cls.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
-
-	srand( time( NULL ) );
 
 	cls.monotonicTime = 0;
 
@@ -2028,15 +1702,27 @@ void CL_Init( void ) {
 
 	cl_initialized = true;
 
-	{
-		TempAllocator temp = cls.frame_arena.temp();
-		InitAssets( &temp );
-	}
-
 	Con_Init();
+
+	InitThreadPool();
+
+	ThreadPoolDo( []( TempAllocator * temp, void * data ) {
+		InitAssets( temp );
+	} );
 
 	InitPhysx();
 	VID_Init();
+
+	ThreadPoolFinish();
+
+	InitRenderer();
+	InitMaps();
+
+	cls.white_material = FindMaterial( "$whiteimage" );
+
+	if( !S_Init() ) {
+		Com_Printf( S_COLOR_RED "Couldn't initialise audio engine\n" );
+	}
 
 	CL_ClearState();
 
@@ -2057,9 +1743,7 @@ void CL_Init( void ) {
 	CL_InitLocal();
 	CL_InitInput();
 
-	CL_InitAsyncStream();
-
-	SCR_RegisterConsoleMedia();
+	InitDownloads();
 
 	CL_InitImGui();
 	UI_Init();
@@ -2067,8 +1751,6 @@ void CL_Init( void ) {
 	UI_ShowMainMenu();
 
 	CL_InitServerList();
-
-	ML_Init();
 
 	Mem_DebugCheckSentinelsGlobal();
 }
@@ -2086,7 +1768,6 @@ void CL_Shutdown( void ) {
 
 	S_StopAllSounds( true );
 
-	ML_Shutdown();
 	CL_ShutDownServerList();
 
 	CL_WriteConfiguration( "config.cfg" );
@@ -2104,12 +1785,16 @@ void CL_Shutdown( void ) {
 	CL_ShutdownImGui();
 
 	S_Shutdown();
-	VID_Shutdown();
 	ShutdownPhysx();
+	ShutdownMaps();
+	ShutdownRenderer();
+	DestroyWindow();
 
-	CL_ShutdownAsyncStream();
+	ShutdownDownloads();
 
 	CL_ShutdownLocal();
+
+	ShutdownThreadPool();
 
 	Con_Shutdown();
 

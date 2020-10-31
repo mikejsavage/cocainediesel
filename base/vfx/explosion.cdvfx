@@ -1,0 +1,127 @@
+{
+  decal {
+    material weapons/explosion_scorch1
+    material weapons/explosion_scorch2
+    material weapons/explosion_scorch3
+    size 46
+    lifetime 30
+  }
+
+  particles {
+    material textures/vfx/trace2
+    blendfunc add
+    rotate
+    stretch
+
+    position sphere 48
+
+    acceleration $gravity
+
+    speed 500
+
+    color 1.0 0.15 0.0 1.0
+    end_color 0.0 0.0 0.0
+
+    size 32
+    size_distribution uniform 0
+
+    lifetime 1.0
+    count 128
+  }
+
+  particles {
+    material textures/vfx/glow1
+    blendfunc add
+
+    position sphere 64
+	acceleration $gravity
+
+    speed 150
+
+    color 1.0 0.25 0.0 1.0
+	end_color 0.0 0.0 0.0
+
+    size 12 0
+    size_distribution uniform 4
+
+    lifetime 0.25
+    lifetime_distribution uniform 0.05
+    count 128
+  }
+
+  particles {
+    material textures/vfx/smoke9
+    blendfunc blend
+
+    position sphere 42
+
+    speed 35
+
+    color 0.1 0.1 0.1 0.5
+    end_color 0.0 0.0 0.0
+
+    size 12 42
+    size_distribution uniform 16
+
+    lifetime 0.55
+    lifetime_distribution uniform 0.05
+    count 128
+  }
+
+  particles {
+    material textures/vfx/smoke10
+    blendfunc blend
+
+    position cone 180 0
+
+    speed 72
+
+    color 0.5 0.5 0.5 0.5
+    end_color 0.0 0.0 0.0
+
+    size 42 12
+    size_distribution uniform 16
+
+    lifetime 0.65
+    lifetime_distribution uniform 0.05
+    count 128
+  }
+
+  particles {
+    material textures/vfx/smoke10
+    blendfunc add
+
+    position cone 180 0
+
+    speed 600
+
+    color 1.0 0.15 0.0 1.0
+    end_color 0.0 0.0 0.0
+
+    size 42
+    size_distribution uniform 16
+
+    lifetime 0.25
+    lifetime_distribution uniform 0.05
+    count 128
+  }
+
+    particles {
+    material textures/vfx/fire1
+    blendfunc add
+
+    position sphere 8
+
+    speed 60
+
+    color 1.0 1.0 1.0 1.0
+    color_override
+
+    size 200 100
+    size_distribution uniform 0
+
+    lifetime 0.25
+    lifetime_distribution uniform 0
+    count 32
+  }
+}

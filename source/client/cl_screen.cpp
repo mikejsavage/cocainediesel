@@ -18,7 +18,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "client.h"
+#include "client/client.h"
+#include "client/renderer/renderer.h"
+#include "cgame/cg_local.h"
+#include "qcommon/cmodel.h"
 
 static cvar_t *scr_netgraph;
 static cvar_t *scr_timegraph;
@@ -71,9 +74,6 @@ typedef struct {
 static int current;
 static graphsamp_t values[1024];
 
-/*
-* SCR_DebugGraph
-*/
 void SCR_DebugGraph( float value, float r, float g, float b ) {
 	values[current].value = value;
 	values[current].color = Vec4( r, g, b, 1.0f );
@@ -83,12 +83,9 @@ void SCR_DebugGraph( float value, float r, float g, float b ) {
 }
 
 static void SCR_DrawFillRect( int x, int y, int w, int h, Vec4 color ) {
-	Draw2DBox( x, y, w, h, cls.whiteTexture, color );
+	Draw2DBox( x, y, w, h, cls.white_material, color );
 }
 
-/*
-* SCR_DrawDebugGraph
-*/
 static void SCR_DrawDebugGraph( void ) {
 	//
 	// draw the graph
@@ -113,11 +110,6 @@ static void SCR_DrawDebugGraph( void ) {
 	}
 }
 
-//============================================================================
-
-/*
-* SCR_InitScreen
-*/
 void SCR_InitScreen( void ) {
 	scr_netgraph = Cvar_Get( "netgraph", "0", 0 );
 	scr_timegraph = Cvar_Get( "timegraph", "0", 0 );
@@ -127,30 +119,37 @@ void SCR_InitScreen( void ) {
 	scr_graphshift = Cvar_Get( "graphshift", "0", 0 );
 }
 
-//=============================================================================
-
-/*
-* SCR_RegisterConsoleMedia
-*/
-void SCR_RegisterConsoleMedia() {
-	cls.whiteTexture = FindMaterial( "$whiteimage" );
-}
-
-//============================================================================
-
-/*
-* SCR_RenderView
-*/
 static void SCR_RenderView() {
-	// frame is not valid until we load the CM data
-	if( cl.cms != NULL ) {
+	cl.map = FindMap( client_gs.gameState.map );
+	if( cl.map != NULL ) {
+		cl.cms = cl.map->cms;
+		if( cl.cms->checksum != client_gs.gameState.map_checksum ) {
+			Com_Error( ERR_DROP, "Local map version differs from server: %u != '%u'", cl.cms->checksum, client_gs.gameState.map_checksum );
+		}
+
 		CL_GameModule_RenderView();
 	}
 }
 
-/*
-* SCR_UpdateScreen
-*/
+static void SubmitPostprocessPass() {
+	ZoneScoped;
+
+	{
+		PipelineState pipeline;
+		pipeline.pass = frame_static.postprocess_pass;
+		pipeline.depth_func = DepthFunc_Disabled;
+		pipeline.shader = &shaders.postprocess;
+
+		const Framebuffer & fb = frame_static.postprocess_fb;
+		pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
+		pipeline.set_texture( "u_Screen", &fb.albedo_texture );
+		pipeline.set_texture( "u_Noise", FindMaterial( "textures/noise" )->texture );
+		pipeline.set_uniform( "u_PostProcess", UploadUniformBlock( float( Sys_Milliseconds() ) * 0.001f, cg.damage_effect ) );
+
+		DrawFullscreenMesh( pipeline );
+	}
+}
+
 void SCR_UpdateScreen() {
 	CL_ForceVsync( cls.state == CA_DISCONNECTED );
 
@@ -167,6 +166,11 @@ void SCR_UpdateScreen() {
 			SCR_DrawDebugGraph();
 		}
 	}
+	else {
+		cg.damage_effect = 0.0f;
+	}
+
+	SubmitPostprocessPass();
 
 	UI_Refresh();
 

@@ -1,31 +1,20 @@
 #pragma once
 
-#include <assert.h>
-#include <errno.h>
-#define _USE_MATH_DEFINES
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "qcommon/platform.h"
 #include "qcommon/types.h"
-#include "qcommon/ggformat.h"
+#include "qcommon/math.h"
+#include "gg/ggformat.h"
 #include "qcommon/linear_algebra.h"
+
+#include "tracy/Tracy.hpp"
 
 /*
  * helpers
  */
-
-template< typename T, size_t N >
-constexpr size_t ARRAY_COUNT( const T ( &arr )[ N ] ) {
-	return N;
-}
-
-template< typename T, typename M, size_t N >
-constexpr size_t ARRAY_COUNT( M ( T::* )[ N ] ) {
-	return N;
-}
 
 #define CONCAT_HELPER( a, b ) a##b
 #define CONCAT( a, b ) CONCAT_HELPER( a, b )
@@ -41,29 +30,23 @@ inline To bit_cast( const From & from ) {
 }
 
 template< typename T >
-void Swap2( T * a, T * b ) {
-	T t = *a;
-	*a = *b;
-	*b = t;
-}
-
-template< typename T >
 constexpr T Max3( const T & a, const T & b, const T & c ) {
 	return Max2( Max2( a, b ), c );
 }
 
 template< typename T >
-T Clamp( const T & lo, const T & x, const T & hi ) {
-	assert( lo <= hi );
-	return Max2( lo, Min2( x, hi ) );
+T Lerp( T a, float t, T b ) {
+	return a * ( 1.0f - t ) + b * t;
 }
 
-inline float Clamp01( float x ) {
-	return Clamp( 0.0f, x, 1.0f );
+template< typename T >
+float Unlerp( T lo, T x, T hi ) {
+	return float( x - lo ) / float( hi - lo );
 }
 
-inline Vec4 Clamp01( Vec4 v ) {
-	return Vec4( Clamp01( v.x ), Clamp01( v.y ), Clamp01( v.z ), Clamp01( v.w ) );
+template< typename T >
+float Unlerp01( T lo, T x, T hi ) {
+	return Clamp01( Unlerp( lo, x, hi ) );
 }
 
 /*
@@ -90,6 +73,54 @@ struct DeferHelper {
 
 extern Allocator * sys_allocator;
 
+struct ArenaAllocator;
+struct TempAllocator final : public Allocator {
+	TempAllocator() = default;
+	TempAllocator( const TempAllocator & other );
+	~TempAllocator();
+
+	void operator=( const TempAllocator & ) = delete;
+
+	void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
+	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
+	void deallocate( void * ptr, const char * func, const char * file, int line );
+
+private:
+	ArenaAllocator * arena;
+	u8 * old_cursor;
+
+	friend struct ArenaAllocator;
+};
+
+struct ArenaAllocator final : public Allocator {
+	ArenaAllocator() = default;
+	ArenaAllocator( void * mem, size_t size );
+
+	void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
+	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
+	void deallocate( void * ptr, const char * func, const char * file, int line );
+
+	TempAllocator temp();
+
+	void clear();
+	void * get_memory();
+
+	float max_utilisation() const;
+
+private:
+	u8 * memory;
+	u8 * top;
+	u8 * cursor;
+	u8 * cursor_max;
+
+	u32 num_temp_allocators;
+
+	void * try_temp_allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
+	void * try_temp_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
+
+	friend struct TempAllocator;
+};
+
 template< typename... Rest >
 char * Allocator::operator()( const char * fmt, const Rest & ... rest ) {
 	size_t len = ggformat( NULL, 0, fmt, rest... );
@@ -98,23 +129,17 @@ char * Allocator::operator()( const char * fmt, const Rest & ... rest ) {
 	return buf;
 }
 
+char * CopyString( Allocator * a, const char * str );
+
 /*
  * Span< const char >
  */
 
+Span< const char > MakeSpan( const char * str );
 void format( FormatBuffer * fb, Span< const char > arr, const FormatOpts & opts );
 
-template< size_t N >
-bool operator==( Span< const char > span, const char ( &str )[ N ] ) {
-	return span.n == N - 1 && memcmp( span.ptr, str, span.n ) == 0;
-}
-
-template< size_t N > bool operator==( const char ( &str )[ N ], Span< const char > span ) { return span == str; }
-template< size_t N > bool operator!=( Span< const char > span, const char ( &str )[ N ] ) { return !( span == str ); }
-template< size_t N > bool operator!=( const char ( &str )[ N ], Span< const char > span ) { return !( span == str ); }
-
 /*
- * breaks
+ * debug stuff
  */
 
 extern bool break1;
@@ -122,14 +147,11 @@ extern bool break2;
 extern bool break3;
 extern bool break4;
 
-/*
- * colors
- */
+void EnableFPE();
+void DisableFPE();
 
-constexpr Vec4 vec4_white = Vec4( 1, 1, 1, 1 );
-constexpr Vec4 vec4_black = Vec4( 0, 0, 0, 1 );
-constexpr Vec4 vec4_red = Vec4( 1, 0, 0, 1 );
-constexpr Vec4 vec4_yellow = Vec4( 1, 1, 0, 1 );
-
-constexpr RGBA8 rgba8_white = RGBA8( 255, 255, 255, 255 );
-constexpr RGBA8 rgba8_black = RGBA8( 0, 0, 0, 255 );
+#if PUBLIC_BUILD
+#define DisableFPEScoped
+#else
+#define DisableFPEScoped DisableFPE(); defer { EnableFPE(); }
+#endif

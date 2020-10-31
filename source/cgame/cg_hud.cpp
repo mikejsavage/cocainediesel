@@ -19,9 +19,12 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#include "qcommon/base.h"
+#include "qcommon/string.h"
+#include "client/assets.h"
+#include "client/renderer/renderer.h"
+#include "client/renderer/text.h"
 #include "cgame/cg_local.h"
-
-enum { DEFAULTSCALE=0, NOSCALE, SCALEBYWIDTH, SCALEBYHEIGHT };
 
 static int layout_cursor_x = 400;
 static int layout_cursor_y = 300;
@@ -29,7 +32,6 @@ static int layout_cursor_width = 100;
 static int layout_cursor_height = 100;
 static Alignment layout_cursor_alignment = Alignment_LeftTop;
 static Vec4 layout_cursor_color = vec4_white;
-static vec3_t layout_cursor_rotation = { 0, 0, 0 };
 
 enum FontStyle {
 	FontStyle_Normal,
@@ -61,7 +63,7 @@ typedef struct
 } constant_numeric_t;
 
 static const constant_numeric_t cg_numeric_constants[] = {
-	{ "NOTSET", STAT_NOTSET },
+	{ "NOTSET", 9999 },
 
 	// teams
 	{ "TEAM_SPECTATOR", TEAM_SPECTATOR },
@@ -82,16 +84,6 @@ static const constant_numeric_t cg_numeric_constants[] = {
 	{ "MATCH_STATE_POSTMATCH", MATCH_STATE_POSTMATCH },
 	{ "MATCH_STATE_WAITEXIT", MATCH_STATE_WAITEXIT },
 
-	// weapon
-	{ "WEAP_GUNBLADE", WEAP_GUNBLADE },
-	{ "WEAP_MACHINEGUN", WEAP_MACHINEGUN },
-	{ "WEAP_RIOTGUN", WEAP_RIOTGUN },
-	{ "WEAP_GRENADELAUNCHER", WEAP_GRENADELAUNCHER },
-	{ "WEAP_ROCKETLAUNCHER", WEAP_ROCKETLAUNCHER },
-	{ "WEAP_PLASMAGUN", WEAP_PLASMAGUN },
-	{ "WEAP_LASERGUN", WEAP_LASERGUN },
-	{ "WEAP_ELECTROBOLT", WEAP_ELECTROBOLT },
-
 	{ "CS_CALLVOTE", CS_CALLVOTE },
 	{ "CS_CALLVOTE_REQUIRED_VOTES", CS_CALLVOTE_REQUIRED_VOTES },
 	{ "CS_CALLVOTE_YES_VOTES", CS_CALLVOTE_YES_VOTES },
@@ -111,34 +103,36 @@ static const constant_numeric_t cg_numeric_constants[] = {
 
 //=============================================================================
 
-static int CG_GetStatValue( const void *parameter ) {
-	assert( (intptr_t)parameter >= 0 && (intptr_t)parameter < MAX_STATS );
-
-	return cg.predictedPlayerState.stats[(intptr_t)parameter];
+static int CG_Int( const void * p ) {
+	return *( const int * ) p;
 }
 
-static int CG_GetLayoutStatFlag( const void *parameter ) {
-	return ( cg.predictedPlayerState.stats[STAT_LAYOUTS] & (intptr_t)parameter ) ? 1 : 0;
+static int CG_U8( const void * p ) {
+	return *( const u8 * ) p;
+}
+
+static int CG_S16( const void * p ) {
+	return *( const s16 * ) p;
+}
+
+static int CG_Bool( const void * p ) {
+	return *( const bool * ) p ? 1 : 0;
 }
 
 static int CG_GetPOVnum( const void *parameter ) {
-	return ( cg.predictedPlayerState.POVnum != cgs.playerNum + 1 ) ? cg.predictedPlayerState.POVnum : STAT_NOTSET;
+	return cg.predictedPlayerState.POVnum != cgs.playerNum + 1 ? cg.predictedPlayerState.POVnum : 9999;
 }
 
-static float _getspeed( void ) {
-	vec3_t hvel;
-
-	VectorSet( hvel, cg.predictedPlayerState.pmove.velocity[0], cg.predictedPlayerState.pmove.velocity[1], 0 );
-
-	return VectorLength( hvel );
+static int CG_IsTeamBased( const void *parameter ) {
+	return GS_TeamBasedGametype( &client_gs ) ? 1 : 0;
 }
 
 static int CG_GetSpeed( const void *parameter ) {
-	return (int)_getspeed();
+	return Length( cg.predictedPlayerState.pmove.velocity.xy() );
 }
 
 static int CG_GetSpeedVertical( const void *parameter ) {
-	return cg.predictedPlayerState.pmove.velocity[2];
+	return cg.predictedPlayerState.pmove.velocity.z;
 }
 
 static int CG_GetFPS( const void *parameter ) {
@@ -174,10 +168,6 @@ static int CG_Paused( const void *parameter ) {
 	return GS_MatchPaused( &client_gs );
 }
 
-static int CG_GetZoom( const void *parameter ) {
-	return ( !cg.view.thirdperson && ( cg.predictedPlayerState.pmove.stats[PM_STAT_ZOOMTIME] != 0 ) );
-}
-
 static int CG_GetVidWidth( const void *parameter ) {
 	return frame_static.viewport_width;
 }
@@ -187,36 +177,7 @@ static int CG_GetVidHeight( const void *parameter ) {
 }
 
 static int CG_GetCvar( const void *parameter ) {
-	return trap_Cvar_Value( (const char *)parameter );
-}
-
-static int CG_GetDamageIndicatorDirValue( const void *parameter ) {
-	float frac = 0;
-	int index = (intptr_t)parameter;
-
-	if( cg.damageBlends[index] > cl.serverTime && !cg.view.thirdperson ) {
-		frac = Clamp01( ( cg.damageBlends[index] - cl.serverTime ) / 300.0f );
-	}
-
-	return frac * 1000;
-}
-
-/**
- * Returns whether the weapon should be displayed in the weapon list on the HUD
- * (if the player either has the weapon ammo for it).
- *
- * @param weapon weapon item ID
- * @return whether to display the weapon
- */
-static bool CG_IsWeaponInList( int weapon ) {
-	bool hasWeapon = cg.predictedPlayerState.inventory[weapon] != 0;
-	bool hasAmmo = cg.predictedPlayerState.inventory[weapon - WEAP_GUNBLADE + AMMO_GUNBLADE];
-
-	if( weapon == WEAP_GUNBLADE ) { // gunblade always has 1 ammo when it's strong, but the player doesn't necessarily have it
-		return hasWeapon;
-	}
-
-	return hasWeapon || hasAmmo;
+	return Cvar_Value( (const char *)parameter );
 }
 
 static int CG_IsDemoPlaying( const void *parameter ) {
@@ -230,30 +191,12 @@ static int CG_IsActiveCallvote( const void * parameter ) {
 static int CG_DownloadInProgress( const void *parameter ) {
 	const char *str;
 
-	str = trap_Cvar_String( "cl_download_name" );
+	str = Cvar_String( "cl_download_name" );
 	if( str[0] ) {
 		return 1;
 	}
 	return 0;
 }
-
-// ch : backport some of racesow hud elements
-/*********************************************************************************
-lm: edit for race mod,
-    adds bunch of vars to the hud.
-
-*********************************************************************************/
-
-//lm: for readability
-enum race_index {
-	mouse_x,
-	mouse_y,
-	jumpspeed,
-	move_an,
-	diff_an,
-	strafe_an,
-	max_index
-};
 
 static int CG_GetScoreboardShown( const void *parameter ) {
 	return CG_ScoreboardShown() ? 1 : 0;
@@ -268,35 +211,29 @@ typedef struct
 
 static const reference_numeric_t cg_numeric_references[] = {
 	// stats
-	{ "HEALTH", CG_GetStatValue, (void *)STAT_HEALTH },
-	{ "WEAPON_ITEM", CG_GetStatValue, (void *)STAT_WEAPON },
-	{ "PENDING_WEAPON", CG_GetStatValue, (void *)STAT_PENDING_WEAPON },
+	{ "HEALTH", CG_S16, &cg.predictedPlayerState.health },
+	{ "WEAPON_ITEM", CG_U8, &cg.predictedPlayerState.weapon },
 
-	{ "READY", CG_GetLayoutStatFlag, (void *)STAT_LAYOUT_READY },
+	{ "READY", CG_Bool, &cg.predictedPlayerState.ready },
 
-	{ "SCORE", CG_GetStatValue, (void *)STAT_SCORE },
-	{ "TEAM", CG_GetStatValue, (void *)STAT_TEAM },
-	{ "RESPAWN_TIME", CG_GetStatValue, (void *)STAT_NEXT_RESPAWN },
+	{ "TEAM", CG_Int, &cg.predictedPlayerState.team },
 
-	{ "POINTED_PLAYER", CG_GetStatValue, (void *)STAT_POINTED_PLAYER },
-	{ "POINTED_TEAMPLAYER", CG_GetStatValue, (void *)STAT_POINTED_TEAMPLAYER },
+	{ "TEAMBASED", CG_IsTeamBased, NULL },
+	{ "ALPHA_SCORE", CG_U8, &client_gs.gameState.bomb.alpha_score },
+	{ "ALPHA_PLAYERS_ALIVE", CG_U8, &client_gs.gameState.bomb.alpha_players_alive },
+	{ "ALPHA_PLAYERS_TOTAL", CG_U8, &client_gs.gameState.bomb.alpha_players_total },
+	{ "BETA_SCORE", CG_U8, &client_gs.gameState.bomb.beta_score },
+	{ "BETA_PLAYERS_ALIVE", CG_U8, &client_gs.gameState.bomb.beta_players_alive },
+	{ "BETA_PLAYERS_TOTAL", CG_U8, &client_gs.gameState.bomb.beta_players_total },
 
-	{ "TEAM_ALPHA_SCORE", CG_GetStatValue, (void *)STAT_TEAM_ALPHA_SCORE },
-	{ "TEAM_BETA_SCORE", CG_GetStatValue, (void *)STAT_TEAM_BETA_SCORE },
+	{ "PROGRESS", CG_U8, &cg.predictedPlayerState.progress },
+	{ "PROGRESS_TYPE", CG_U8, &cg.predictedPlayerState.progress_type },
 
-	{ "PROGRESS", CG_GetStatValue, (void *)STAT_PROGRESS },
-	{ "PROGRESS_TYPE", CG_GetStatValue, (void *)STAT_PROGRESS_TYPE },
+	{ "ROUND_TYPE", CG_U8, &client_gs.gameState.round_type },
 
-	{ "ROUND_TYPE", CG_GetStatValue, (void *)STAT_ROUND_TYPE },
-
-	{ "CARRYING_BOMB", CG_GetStatValue, (void *)STAT_CARRYING_BOMB },
-	{ "CAN_PLANT_BOMB", CG_GetStatValue, (void *)STAT_CAN_PLANT_BOMB },
-	{ "CAN_CHANGE_LOADOUT", CG_GetStatValue, (void *)STAT_CAN_CHANGE_LOADOUT },
-
-	{ "ALPHA_PLAYERS_ALIVE", CG_GetStatValue, (void *)STAT_ALPHA_PLAYERS_ALIVE },
-	{ "ALPHA_PLAYERS_TOTAL", CG_GetStatValue, (void *)STAT_ALPHA_PLAYERS_TOTAL },
-	{ "BETA_PLAYERS_ALIVE", CG_GetStatValue, (void *)STAT_BETA_PLAYERS_ALIVE },
-	{ "BETA_PLAYERS_TOTAL", CG_GetStatValue, (void *)STAT_BETA_PLAYERS_TOTAL },
+	{ "CARRYING_BOMB", CG_Bool, &cg.predictedPlayerState.carrying_bomb },
+	{ "CAN_PLANT_BOMB", CG_Bool, &cg.predictedPlayerState.can_plant },
+	{ "CAN_CHANGE_LOADOUT", CG_Bool, &cg.predictedPlayerState.can_change_loadout },
 
 	// other
 	{ "CHASING", CG_GetPOVnum, NULL },
@@ -306,26 +243,18 @@ static const reference_numeric_t cg_numeric_references[] = {
 	{ "MATCH_STATE", CG_GetMatchState, NULL },
 	{ "MATCH_DURATION", CG_GetMatchDuration, NULL },
 	{ "PAUSED", CG_Paused, NULL },
-	{ "ZOOM", CG_GetZoom, NULL },
 	{ "VIDWIDTH", CG_GetVidWidth, NULL },
 	{ "VIDHEIGHT", CG_GetVidHeight, NULL },
 	{ "SCOREBOARD", CG_GetScoreboardShown, NULL },
 	{ "DEMOPLAYING", CG_IsDemoPlaying, NULL },
 	{ "CALLVOTE", CG_IsActiveCallvote, NULL },
 
-	{ "DAMAGE_INDICATOR_TOP", CG_GetDamageIndicatorDirValue, (void *)0 },
-	{ "DAMAGE_INDICATOR_RIGHT", CG_GetDamageIndicatorDirValue, (void *)1 },
-	{ "DAMAGE_INDICATOR_BOTTOM", CG_GetDamageIndicatorDirValue, (void *)2 },
-	{ "DAMAGE_INDICATOR_LEFT", CG_GetDamageIndicatorDirValue, (void *)3 },
-
 	// cvars
 	{ "SHOW_FPS", CG_GetCvar, "cg_showFPS" },
-	{ "SHOW_OBITUARIES", CG_GetCvar, "cg_showObituaries" },
 	{ "SHOW_POINTED_PLAYER", CG_GetCvar, "cg_showPointedPlayer" },
-	{ "SHOW_PRESSED_KEYS", CG_GetCvar, "cg_showPressedKeys" },
 	{ "SHOW_SPEED", CG_GetCvar, "cg_showSpeed" },
 	{ "SHOW_AWARDS", CG_GetCvar, "cg_showAwards" },
-	{ "SHOW_R_SPEEDS", CG_GetCvar, "r_speeds" },
+	{ "SHOW_HOTKEYS", CG_GetCvar, "cg_showHotkeys" },
 
 	{ "DOWNLOAD_IN_PROGRESS", CG_DownloadInProgress, NULL },
 	{ "DOWNLOAD_PERCENT", CG_GetCvar, "cl_download_percent" },
@@ -337,7 +266,12 @@ static const reference_numeric_t cg_numeric_references[] = {
 
 #define MAX_OBITUARIES 32
 
-typedef enum { OBITUARY_NONE, OBITUARY_NORMAL, OBITUARY_SUICIDE, OBITUARY_ACCIDENT } obituary_type_t;
+enum obituary_type_t {
+	OBITUARY_NONE,
+	OBITUARY_NORMAL,
+	OBITUARY_SUICIDE,
+	OBITUARY_ACCIDENT,
+};
 
 typedef struct obituary_s {
 	obituary_type_t type;
@@ -352,73 +286,128 @@ typedef struct obituary_s {
 static obituary_t cg_obituaries[MAX_OBITUARIES];
 static int cg_obituaries_current = -1;
 
+struct {
+	s64 time;
+	u64 entropy;
+} self_obituary;
+
 /*
 * CG_SC_ResetObituaries
 */
 void CG_SC_ResetObituaries( void ) {
 	memset( cg_obituaries, 0, sizeof( cg_obituaries ) );
 	cg_obituaries_current = -1;
+	self_obituary = { };
 }
 
 static const char * obituaries[] = {
 	"2.3'ED",
 	"ABOLISHED",
 	"ABUSED",
+	"ACCEPTED",
+	"ADOPTED",
+	"ADMIRED",
+	"AFFECTED",
 	"AIRED OUT",
+	"AIMED AT",
+	"AMPUTATED",
 	"ANALYZED",
 	"ANNIHILATED",
+	"ASSUMED",
+	"ASSURED",
+	"ATE",
 	"ATOMIZED",
 	"AXED",
 	"BAKED",
+	"BALANCED",
 	"BALLED",
 	"BANGED",
+	"BANISHED",
 	"BANKED",
 	"BANNED",
 	"BARFED ON",
 	"BASHED",
+	"BATHED",
 	"BATTERED",
 	"BBQED",
 	"BEAMED",
+	"BEAT",
+	"BEAUTIFIED",
 	"BELITTLED",
-	"BENT",
 	"BENT OVER",
+	"BENT",
 	"BIGGED ON",
 	"BINNED",
+	"BIT",
 	"BLASTED",
 	"BLAZED",
+	"BLED",
 	"BLEMISHED",
+	"BLENDED",
 	"BLESSED",
+	"BLEW",
+	"BLEW UP",
+	"BLINDSIDED",
+	"BLOCKED",
 	"BODYBAGGED",
+	"BOILED",
 	"BOMBED",
 	"BONKED",
 	"BOUGHT",
-	"BROKE",
+	"BOUNCED",
+	"BOUND",
+	"BRED",
 	"BROKE UP WITH",
+	"BROKE",
 	"BROWN BAGGED",
-	"BURIED",
+	"BRUTALIZED",
 	"BUMMED",
 	"BUMPED",
+	"BUMPED OFF",
+	"BURIED",
 	"BURNED",
 	"BUTTERED",
-	"CALCULATED",
 	"CAKED",
+	"CALCULATED",
 	"CANCELED",
 	"CANNED",
 	"CAPPED",
 	"CARAMELIZED",
 	"CARBONATED",
+	"CARRIED",
+	"CARVED",
 	"CASHED OUT",
+	"CELEBRATED",
+	"CHALLENGED",
+	"CHANGED",
 	"CHARRED",
 	"CHEATED ON",
 	"CHECKED",
+	"CHECKED OUT",
 	"CHECKMATED",
 	"CHEESED",
+	"CHEST",
+	"CHEWED",
+	"CHEWED ON",
+	"CHILLED OFF",
+	"CHOSE",
+	"CHOPPED",
 	"CLAPPED",
+	"CLAIMED",
+	"CLEANED",
+	"CLEANSED",
+	"CLIMBED",
 	"CLUBBED",
+	"CODEXED",
 	"COMBED",
 	"COMBO-ED",
 	"COMPACTED",
+	"COMPLETED",
+	"COMPRESSED",
+	"CONFIRMED",
+	"CONNED",
 	"CONSUMED",
+	"CONVINCED",
 	"COOKED",
 	"CORRECTED",
 	"CORRUPTED",
@@ -427,11 +416,19 @@ static const char * obituaries[] = {
 	"CRASHED",
 	"CREAMED",
 	"CRIPPLED",
+	"CRITICIZED",
+	"CROPPED",
+	"CRUCIFIED",
 	"CRUSHED",
+	"CU IN 2 WEEKS'D",
 	"CULLED",
 	"CULTIVATED",
+	"CURBED",
 	"CURED",
+	"CURTAILED",
 	"CUT",
+	"CUT OUT",
+	"DARED",
 	"DARTED",
 	"DEBUGGED",
 	"DECAPITATED",
@@ -452,113 +449,179 @@ static const char * obituaries[] = {
 	"DELETED",
 	"DEMOLISHED",
 	"DEMOTED",
+	"DENIED",
 	"DEPOSITED",
 	"DESTROYED",
+	"DETACHED",
 	"DEVASTATED",
+	"DEVOURED",
 	"DID",
 	"DIGITALIZED",
 	"DIMINISHED",
 	"DIPPED",
 	"DISASSEMBLED",
+	"DISCARDED",
 	"DISCIPLINED",
+	"DISCREDITED",
 	"DISFIGURED",
+	"DISINTEGRATED",
 	"DISJOINTED",
+	"DISLIKED",
+	"DISLODGED",
 	"DISMANTLED",
 	"DISMISSED",
-	"DISLIKED",
 	"DISPATCHED",
 	"DISPERSED",
 	"DISPLACED",
 	"DISSOLVED",
 	"DISTORTED",
+	"DISTRIBUTED",
+	"DISTURBED",
 	"DIVORCED",
 	"DONATED",
+	"DONATED TO",
 	"DOWNGRADED",
 	"DOWNVOTED",
+	"DRANK",
 	"DRENCHED",
-	"DRILLED",
+	"DRESSED",
+	"DRIED",
 	"DRILLED INTO",
+	"DRILLED",
+	"DROPPED",
 	"DROVE",
 	"DUMPED ON",
 	"DUMPED",
 	"DUMPSTERED",
 	"DUNKED",
+	"EARTHED",
+	"EDGED",
 	"EDUCATED",
 	"EGGED",
 	"EJECTED",
 	"ELABORATED ON",
+	"ELEVATED",
 	"ELIMINATED",
 	"EMANCIPATED",
 	"EMBARRASSED",
 	"EMBRACED",
+	"ENCODED",
 	"ENDED",
+	"ENTERED",
+	"ERADICATED",
 	"ERASED",
+	"ESTABLISHED",
+	"EVENED OUT",
+	"EXAMINED",
 	"EXCHANGED",
 	"EXECUTED",
 	"EXERCISED",
+	"EXPANDED",
+	"EXPELLED",
+	"EXPLORED",
+	"EXPORTED",
 	"EXTERMINATED",
+	"EXTINCTED",
 	"EXTRAPOLATED",
+	"EXTRACTED",
 	"FACED",
 	"FADED",
-	"FARTED",
+	"FARTED ON",
+	"FED",
+	"FELT UP",
 	"FILED",
+	"FILLED",
+	"FINALIZED",
 	"FINANCED",
+	"FINISHED",
 	"FIRED",
 	"FISTED",
 	"FIXED",
 	"FLAT EARTHED",
+	"FLATTENED",
 	"FLEXED ON",
+	"FLIPPED",
 	"FLUSHED",
 	"FOLDED",
 	"FOLLOWED",
+	"FORCED",
+	"FORCEPUSHED",
 	"FORKED",
+	"FORGOT",
 	"FORMATTED",
+	"FOUGHT",
 	"FRAGGED",
 	"FREED",
 	"FRIED",
 	"FROSTED",
+	"FROZE",
 	"FUCKED",
 	"GAGGED",
 	"GARFUNKELED",
+	"GARGLED",
+	"GARGLED WITH",
+	"GEFICKT",
 	"GERRYMANDERED",
 	"GHOSTED",
+	"GIBBED",
 	"GLAZED",
+	"GOT",
+	"GOT RID OF",
+	"GRATED",
 	"GRAVEDUG",
 	"GRILLED",
 	"GUTTED",
 	"HACKED",
+	"HARASSED",
 	"HARMED",
-	"HURLED",
-	"HURT",
+	"HARVESTED",
+	"HATED ON",
+	"HIT",
+	"HOLED",
 	"HOSED",
+	"HUGGED",
 	"HUMILIATED",
 	"HUMPED",
+	"HURLED",
+	"HURT",
 	"ICED",
 	"IGNITED",
+	"IGNORED",
 	"IMPAIRED",
 	"IMPREGNATED",
+	"INFORMED",
+	"INGESTED",
 	"INJURED",
 	"INSIDE JOBBED",
+	"INSTALLED",
 	"INSTRUCTED",
+	"INTRODUCED",
 	"INVADED",
 	"JACKED",
 	"JAMMED",
 	"JERKED",
+	"JUMPED",
 	"KICKED",
+	"KILLED",
 	"KINDLED",
 	"KISSED",
+	"KNIT",
 	"KNOCKED",
+	"KNOCKED THE STUFFING OUT OF",
 	"LAGGED",
 	"LAID",
+	"LAMBASTED",
+	"LAMINATED",
 	"LANDED ON",
 	"LANDFILLED",
 	"LARDED",
 	"LECTURED",
 	"LEFT CLICKED ON",
 	"LET GO",
+	"LEVELLED",
 	"LIKED",
 	"LIQUIDATED",
-	"LIT,"
+	"LIT",
 	"LIVESTREAMED",
 	"LOGGED",
 	"LOOPED",
@@ -569,51 +632,81 @@ static const char * obituaries[] = {
 	"MASSAGED",
 	"MATED WITH",
 	"MAULED",
+	"MEASURED",
+	"MELTED",
+	"MERGED",
 	"MESSAGED",
 	"MIXED",
 	"MOBBED",
+	"MOONED",
 	"MOONWALKED ON",
+	"MOPPED UP",
+	"MOWED",
 	"MUNCHED",
 	"MURDERED",
+	"MURKED",
 	"MUTILATED",
 	"NAILED",
+	"NEGLECTED",
 	"NEUTRALIZED",
+	"NEVER AGAINED",
 	"NEXTED",
 	"NOBODIED",
 	"NUKED",
 	"NULLIFIED",
 	"NURTURED",
 	"OBLITERATED",
+	"OFFED",
+	"ORNAMENTED",
 	"OUTRAGED",
 	"OWNED",
 	"PACKED",
+	"PAID",
 	"PAID RESPECTS TO",
+	"PAINTED",
 	"PASTEURIZED",
 	"PEELED",
+	"PEGGED",
 	"PENETRATED",
 	"PERFORMED ON",
 	"PERISHED",
+	"PERSUADED",
 	"PIED",
 	"PILED",
+	"PINCHED",
 	"PIPED",
 	"PISSED ON",
 	"PLANTED",
 	"PLASTERED",
+	"PLAYED",
 	"PLOWED", //:v_trump:
+	"PLUCKED",
 	"POACHED",
 	"POKED",
+	"POLARIZED",
 	"POOLED",
 	"POUNDED",
+	"PUFFED",
+	"PULLED",
 	"PULVERIZED",
 	"PUMPED",
+	"PUMMELLED",
+	"PUNCHED",
 	"PURGED",
+	"PUSHED",
 	"PUT DOWN",
 	"PYONGYANGED",
 	"QUASHED",
+	"QUENCHED",
+	"QUIT",
 	"RAISED",
 	"RAMMED",
 	"RAZED",
+	"READ",
 	"REAMED",
+	"REBASED",
+	"REBUKED",
+	"RECONCILIATED",
 	"RECYCLED",
 	"REDESIGNED",
 	"REDUCED",
@@ -623,28 +716,50 @@ static const char * obituaries[] = {
 	"REGULATED",
 	"REHABILITATED",
 	"REJECTED",
+	"REKT",
 	"RELEASED",
 	"RELEGATED",
+	"REMINDED",
 	"REMOVED",
 	"RENDERED",
+	"REPAIRED",
+	"REPLACED",
+	"REPRIMANDED",
+	"RESET",
 	"RESPECTED",
+	"RESTRICTED",
 	"RETURNED",
+	"REVERSED",
 	"REVERSED INTO",
 	"REVISED",
+	"RINSED",
+	"ROASTED",
+	"ROBBED",
 	"RODE",
 	"ROLLED",
 	"ROOTED",
 	"RUINED",
 	"RULED",
+	"RUNG",
 	"SABOTAGED",
 	"SACKED",
 	"SAMPLED",
+	"SANCTIONED",
 	"SANDED",
+	"SANK",
+	"SATISFIED",
 	"SAUCED",
+	"SCARIFIED",
+	"SCARRED",
+	"SCATTERED",
+	"SCISSORED",
 	"SCORCHED",
 	"SCREWED",
 	"SCUTTLED",
+	"SCRUBBED",
+	"SEPARATED",
 	"SERVED",
+	"SET",
 	"SEVERED",
 	"SHAFTED",
 	"SHAGGED",
@@ -653,14 +768,21 @@ static const char * obituaries[] = {
 	"SHARPENED",
 	"SHATTERED",
 	"SHAVED",
+	"SHED",
 	"SHELVED",
+	"SHIPPED",
 	"SHITTED ON",
+	"SHOOK",
 	"SHOT",
+	"SHUFFLED",
+	"SHUT",
 	"SIMBA'D",
 	"SKEWERED",
 	"SKIMMED",
+	"SLABBED",
 	"SLAMMED",
 	"SLAPPED",
+	"SLATED",
 	"SLAUGHTERED",
 	"SLICED",
 	"SMACKED",
@@ -670,52 +792,98 @@ static const char * obituaries[] = {
 	"SNAKED",
 	"SNAPPED",
 	"SNITCHED ON",
+	"SNOOPED"
+	"SNUBBED",
 	"SOCKED",
+	"SOILED",
 	"SOLD",
+	"SPARKLED",
 	"SPANKED",
+	"SPAYED",
 	"SPLASHED",
+	"SPLATTERED",
 	"SPLIT",
 	"SPOILED",
+	"SPRAYED",
 	"SPREAD",
+	"SPRINKLED",
 	"SQUASHED",
 	"SQUEEZED",
 	"STABBED",
+	"STACKED",
 	"STAMPED OUT",
+	"STASHED",
+	"STEAMED",
 	"STEAMROLLED",
+	"STEPPED",
+	"STEPPED ON",
+	"STERILIZED",
+	"STIFFED",
+	"STIRRED",
+	"STIR-FRIED",
 	"STOMPED",
+	"STONED",
+	"STOPPED",
 	"STREAMED",
+	"STRETCHED",
+	"STRUCK",
+	"STRUCK OUT",
+	"STUCK IT TO",
 	"STUFFED",
+	"STUNG",
 	"STYLED ON",
 	"SUBDUCTED",
 	"SUBSCRIBED TO",
+	"SUBMITTED",
 	"SUNK",
+	"SUPPLIED",
 	"SUSPENDED",
+	"SWALLOWED",
 	"SWAMPED",
-	"SWIPED",
+	"SWEPT",
 	"SWIPED LEFT ON",
+	"SWIPED",
 	"SWIRLED",
 	"SYNTHETIZED",
 	"TAPPED",
 	"TARNISHED",
+	"TASTED",
 	"TATTOOED",
 	"TERMINATED",
+	"THREW",
+	"TIMED OUT",
 	"TOILET STORED",
+	"TOOK DOWN",
+	"TOOK OUT",
 	"TOPPLED",
+	"TORE",
+	"TORE DOWN",
 	"TORPEDOED",
 	"TOSSED",
 	"TRAINED",
+	"TRANSLATED",
+	"TRAPPED",
 	"TRASHED",
+	"TRIED",
+	"TRIMMED",
+	"TRIPPED",
 	"TROLLED",
 	"TRUMPED",
+	"TRUNCATED",
 	"TWEETED",
 	"TWIRLED",
 	"TWISTED",
 	"UNFOLLOWED",
+	"UNINSTALLED",
 	"UNLOCKED",
+	"UNSUBSCRIBED FROM",
 	"UNTANGLED",
+	"UPPERCASED",
 	"UPSET",
+	"VACUUMED",
 	"VANDALIZED",
 	"VAPED",
+	"VAPORIZED",
 	"VIOLATED",
 	"VULKANIZED",
 	"WASHED",
@@ -724,149 +892,287 @@ static const char * obituaries[] = {
 	"WEEDED OUT",
 	"WHACKED",
 	"WHIPPED",
+	"WHISKED",
 	"WIPED OUT",
 	"WITHDREW",
 	"WITNESSED",
+	"WOKE UP",
+	"WORE DOWN",
+	"WORE OUT",
 	"WRECKED",
 };
 
 static const char * prefixes[] = {
+	"#",
+	"1080",
+	"360",
+	"420",
+	"666",
+	"69",
 	"AIR",
+	"AFRICA",
+	"ALIEN",
 	"ALPHA",
 	"AMERICA",
 	"ANTI",
 	"APE",
+	"AREA51",
+	"ART & ",
+	"ASIA",
 	"ASS",
 	"ASTRO",
+	"AUSTRALIA",
+	"AVID",
 	"BACK",
+	"BACKWARDS",
 	"BADASS",
 	"BAG",
 	"BALL",
+	"BAM"
 	"BANANA",
+	"BANK",
 	"BARBIE",
+	"BARSTOOL",
 	"BASEMENT",
 	"BASS",
 	"BBQ",
+	"BEAST",
+	"BEEFCAKE",
 	"BELLY",
 	"BEYONCE",
 	"BINGE",
+	"BIT",
+	"BITMAP",
+	"BLAST",
+	"BLASTER",
 	"BLOOD",
+	"BLUE",
 	"BLUNT",
+	"BUKKAKE",
 	"BODY",
+	"BOLLYWOOD",
 	"BOMB",
 	"BONUS",
+	"BOOB",
+	"BOOM",
+	"BOOMER",
 	"BOOST",
+	"BOOT",
 	"BOOTY",
+	"BORIS",
 	"BOTTOM",
+	"BOY",
+	"BRAIN",
+	"BRASS",
 	"BREXIT",
+	"BRICK",
 	"BRO",
 	"BRUTALLY ",
 	"BUFF",
 	"BUM",
+	"BULG",
 	"BUSINESS",
+	"CABIN",
 	"CAN",
 	"CANDY",
 	"CANNON",
 	"CAPITAL",
+	"CARBONARA",
+	"CARDINAL",
 	"CARE",
 	"CAREFULLY ",
-	"CARDINAL",
 	"CASH",
 	"CASINO",
 	"CASSEROLE",
+	"CAT",
+	"CHAIN",
+	"CHAMPION",
 	"CHAOS",
-	"CHEESE",
+	"CHASSEUR DE ",
+	"CHATUR",
+	"CHECK",
+	"CHEDDAR",
+	"CHEER",
+	"CHEERS",
 	"CHEERFULLY ",
+	"CHEESE",
+	"CHERRY",
 	"CHICKEN",
 	"CHIN",
 	"CHINA",
+	"CHOPPER",
+	"CIRCLE",
+	"CLASH",
 	"CLEVERLY ",
 	"CLOUD",
+	"CLOWN",
 	"CLUTCH",
 	"COASTER",
+	"COCAINE",
 	"COCK",
+	"CODE",
 	"CODEX",
-	"COMBO",
-	"COMMERCIAL",
+	"COKE",
 	"COLOSSAL",
+	"COMBO",
+	"COMIC SANS ",
+	"COMMERCIAL",
+	"CON",
 	"CORN",
+	"CORONA",
 	"COUNTER",
+	"COVID-",
+	"COW",
 	"CRAB",
 	"CREAM",
-	"CHASSEUR DE ",
 	"CRINGE",
 	"CRUELLY ",
 	"CRUNK",
+	"CUCKOLD",
 	"CUM",
+	"CUMIN",
 	"CUNT",
+	"DAMP",
+	"DANK",
+	"DARK",
+	"DART",
 	"DEEP",
 	"DEEPLY ",
 	"DEFIANTLY ",
 	"DEMON",
+	"DEPRESSION",
 	"DEVIL",
 	"DICK",
 	"DIESEL",
 	"DIRT",
+	"DOG",
 	"DONG",
 	"DONKEY",
 	"DOUBLE",
+	"DOUBLE D ",
 	"DOWNSTAIRS",
+	"DRAGON",
+	"DRAGOSTEA DIN ",
+	"DREAM",
+	"DRILL",
 	"DRONE",
+	"DRUG",
+	"DUKE",
+	"DUMB",
 	"DUMP",
+	"DUMPLING",
 	"DUNK",
+	"DUPE",
+	"DWARF",
 	"DYNAMITE",
 	"EARLY",
 	"EASILY ",
+	"EBOLA",
+	"ELITE",
+	"ELON",
 	"ENERGY",
-	"EYE",
+	"EPSTEIN",
+	"ETHERNET",
 	"EXPERTLY",
+	"EXPELIARMUS",
+	"EYE",
 	"FACE",
+	"FAKE NEWS ",
+	"FAKIE",
+	"FAME",
 	"FAMILY",
+	"FANTASY",
 	"FART",
 	"FAST",
 	"FATALLY ",
 	"FESTIVAL",
+	"FETUS",
+	"FIELD",
 	"FINGER",
+	"FIRE",
 	"FISH",
+	"FIST",
+	"FLAKE",
 	"FLAT",
 	"FLEX",
+	"FLUID",
+	"FLY",
+	"FOOL",
 	"FOOT",
+	"FORCE",
+	"FRAME",
+	"FREEMIUM",
 	"FRENCH",
+	"FROG",
 	"FRONT",
+	"FRUITY",
+	"FUDGE",
 	"FULL",
 	"FURY",
+	"G-",
+	"GALAXY",
+	"GANGSTA",
 	"GARBAGE",
+	"GARGOYLE",
+	"GARLIC",
 	"GEEK",
 	"GENDER",
 	"GHETTO",
 	"GIANT",
+	"GIFT",
+	"GIMP",
 	"GINGER",
 	"GIRL",
+	"GIT ",
 	"GNU/",
+	"GOAFER",
 	"GOB",
+	"GOBLIN",
 	"GOD",
+	"GOLD",
 	"GOOD",
 	"GOOF",
+	"GOOSE",
+	"GORILLA",
 	"GRAVE",
+	"GRAVITY",
+	"GREMLIN",
+	"GRID",
 	"GRIME",
+	"GRUNT",
+	"GUT",
 	"HACK",
 	"HAM",
+	"HAMMER",
 	"HAND",
 	"HAPPY",
 	"HARAMBE",
+	"HARD",
 	"HEAD",
+	"HELL",
+	"HERO",
 	"HOLE",
-	"HOLY",
 	"HOLLYWOOD",
+	"HOLY",
 	"HOOD",
 	"HOOLIGAN",
 	"HORROR",
 	"HUSKY",
 	"HYPE",
 	"HYPER",
+	"IMP",
+	"IMPACT",
 	"INDUSTRIAL",
+	"INSECT",
 	"INSIDE",
+	"INSTA",
+	"IRON",
+	"IRONY",
+	"JAIL",
 	"JAM",
+	"JAW",
+	"JELLY",
+	"JEYUK",
 	"JIMMY",
 	"JOKE",
 	"JOKER",
@@ -875,77 +1181,154 @@ static const char * prefixes[] = {
 	"JUDO",
 	"JUICE",
 	"JUMBO",
+	"KAMASUTRA",
 	"KANYE",
 	"KARATE",
 	"KARMA",
 	"KEPT CALM AND ",
+	"KICKFLIP",
 	"KIND",
 	"KINDLY ",
 	"KING",
+	"KITCHEN",
 	"KNEE",
+	"KNOB",
 	"KONY2012",
+	"KRACH",
 	"LAD",
+	"LASER",
 	"LATE",
+	"LATIN AMERICA"
+	"LEMMING",
 	"LEMON",
+	"LIBROCKET",
 	"LICK",
+	"LIFE",
+	"LIL'",
 	"LITERALLY ",
 	"LONG",
+	"LORD",
 	"LOTION",
 	"LUBE",
+	"MACH 2",
+	"MACH 3",
 	"MACHINE",
 	"MADLY ",
+	"MAGIC",
+	"MALLET",
+	"MALWARE",
 	"MAMMOTH",
+	"MAN",
 	"MASTER",
-	"Mc",
+	"MAY HAVE ",
 	"MEAT",
 	"MEGA",
+	"MEMBER",
 	"MERCY",
+	"MERGE",
 	"MERRILY ",
 	"META",
+	"METAL",
+	"MIDGET",
 	"MILDLY ",
 	"MILLENNIUM",
+	"MIND",
 	"MINT",
+	"MISSILE",
+	"MOBILE",
+	"MOIST",
+	"MOLD",
 	"MOLLY",
+	"MONEY",
 	"MONKEY",
 	"MONSTER",
 	"MONUMENTAL",
+	"MOOD",
+	"MOST FROLICKINGLY ",
+	"MOST PROBABLY ",
 	"MOUTH",
+	"MOVIE",
+	"MUMMY",
+	"MULE",
 	"MVP",
+	"MWAGA",
+	"Mc",
 	"NASTY",
 	"NEAT",
 	"NEATLY ",
+	"NECKBEARD",
 	"NERD",
 	"NETFLIX & ",
 	"NICELY ",
+	"NINJA",
+	"NOVEL CORONA",
 	"NUT",
+	"O-",
 	"OBAMA",
 	"OMEGA",
 	"OPEN-SOURCE ",
+	"ORGASM",
 	"OUT",
+	"OVERDRIVE",
+	"P2",
+	"PAD",
 	"PANTY",
+	"PAPRIKASH",
+	"PARTICLE",
 	"PARTY",
+	"PECKER",
+	"PEOPLE'S ",
 	"PERFECTLY ",
 	"PERMA",
+	"PHANTOM",
 	"PHENO",
+	"PIG",
 	"PILE",
 	"PIMP",
+	"PINKY"
 	"PIPE",
+	"PISS",
+	"PISTACCHIO",
+	"PIZZA",
 	"PLANTER",
+	"PLATINUM",
+	"PONY",
+	"POODLE",
+	"POOP",
+	"POOR",
 	"POWER",
 	"PRANK",
+	"PREDATOR",
+	"PREMIUM",
+	"PRICE",
+	"PRICK",
+	"PRIME",
+	"PRINCE",
+	"PRISON",
+	"PRIZE",
+	"PROBABLY",
+	"PRONG",
+	"PROPERLY",
 	"PROUD",
+	"PUFF",
 	"PUMPKIN",
 	"PUSSY",
+	"QUEEF",
 	"QFUSION",
+	"QUALITY",
 	"QUICK",
 	"RAGE",
+	"RAKE",
 	"RAM",
 	"RAMBO",
 	"RAPIDLY ",
+	"RAVE",
 	"RAZOR",
 	"RESPECT",
-	"Rn",
+	"ROAST",
 	"ROBOT",
+	"ROCK 'n' ROLL ",
+	"ROCK",
 	"ROFL",
 	"ROLEX",
 	"ROOSTER",
@@ -954,157 +1337,229 @@ static const char * prefixes[] = {
 	"ROYAL",
 	"RUSSIA",
 	"RUTHLESSLY ",
+	"Rn",
 	"SACK",
 	"SAD",
+	"SAFE SPACE",
+	"SALMON",
 	"SALT",
-	"SASSY",
 	"SANDWICH",
+	"SARS-CoV-",
+	"SASSY",
 	"SAUCE",
 	"SAUSAGE",
+	"SCAM",
+	"SCREW",
+	"SEAGULL",
 	"SERIOUSLY ",
 	"SHAME",
+	"SHART",
+	"SHEEP",
+	"SHIBA",
 	"SHIT",
 	"SHORT",
+	"SIBAL",
 	"SIDE",
 	"SILLY",
+	"SIN",
+	"SKELETON",
+	"SKELETOR",
 	"SKILL",
+	"SKIN",
 	"SKULL",
-	"SMACK",
-	"SMILE",
 	"SLAM",
 	"SLEEP",
 	"SLICE",
 	"SLOW",
 	"SLUT",
+	"SMACK",
 	"SMACKDOWN",
+	"SMELL",
 	"SMELLY",
+	"SMILE",
+	"SMOKE",
 	"SMOOTH",
 	"SMOOTHLY ",
 	"SNAP",
+	"SNOWFLAKE",
+	"SOAK",
+	"SOCK",
 	"SOFT",
 	"SOFTLY ",
+	"SOLDIER",
+	"SOLOMONK",
 	"SON",
 	"SOUR",
+	"SPACE",
 	"SPEED",
 	"SPICE",
+	"SPIRIT",
 	"SPORTSMANSHIP",
+	"SPRAY",
+	"SQUIRT",
 	"STACK",
 	"STAR",
 	"STEAM",
+	"STEEL",
+	"STONE",
+	"STREAM",
+	"STREET",
+	"SUDO ",
 	"SUGAR",
 	"SUPER",
+	"SURELY",
+	"SWAMP",
 	"SWEETHEART",
 	"SWINDLE",
 	"SWOLE",
 	"TAKEOUT",
 	"TENDER",
 	"TENDERLY ",
+	"TERATOMA",
 	"TERROR",
+	"TESLA",
+	"THOROUGHLY ",
+	"TIGHT",
 	"TINDER",
+	"TIT",
+	"TITAN",
 	"TITTY",
+	"TOMBSTONE ",
 	"TOILET",
+	"TOOTH",
 	"TOP",
+	"TOTAL",
 	"TRAP",
 	"TRASH",
+	"TRICKSTER",
+	"TRICKY",
 	"TRIPLE",
 	"TROLL",
-	"TRUMP",
 	"TRULY ",
+	"TRUMP",
 	"TURBO",
 	"TURKEY",
+	"ULTIMATE",
 	"ULTRA",
-	"UTTERLY ",
+	"UNDER",
 	"UNIVERSAL",
+	"UNIVERSE",
+	"UNIVERSITY",
+	"UTTERLY ",
 	"VASTLY",
 	"VEGAN",
 	"VIOLENTLY ",
+	"VIRUS",
+	"VITAMIN",
+	"WAFFLE",
 	"WANG",
 	"WASTE",
+	"WEENIE",
 	"WEINER",
-	"WILLY",
+	"WET",
 	"WHIP",
+	"WHITE",
+	"WICKEDLY ",
+	"WIDLY ",
 	"WIFE",
 	"WILD",
-	"WIDLY ",
+	"WILLY",
+	"WINDMILL",
 	"WISHFULLY ",
 	"WONDER",
+	"XXX",
+	"ZIP",
+	"ZOMBIE",
+	"ZOOM",
+	"ZOOMER",
 };
 
-static const char * RandomObituary() {
-	return obituaries[ rand() % ARRAY_COUNT( obituaries ) ];
+static const char * RandomObituary( RNG * rng ) {
+	return random_select( rng, obituaries );
 }
 
-static const char * RandomPrefix( float p ) {
-	if( !random_p( &cls.rng, p ) )
+static const char * RandomPrefix( RNG * rng, float p ) {
+	if( !random_p( rng, p ) )
 		return "";
-	return prefixes[ rand() % ARRAY_COUNT( prefixes ) ];
+	return random_select( rng, prefixes );
 }
 
 /*
 * CG_SC_Obituary
 */
 void CG_SC_Obituary( void ) {
-	char message[128];
-	char message2[128];
-	cg_clientInfo_t *victim, *attacker;
-	int victimNum = atoi( trap_Cmd_Argv( 1 ) );
-	int attackerNum = atoi( trap_Cmd_Argv( 2 ) );
-	int mod = atoi( trap_Cmd_Argv( 3 ) );
-	obituary_t *current;
+	int victimNum = atoi( Cmd_Argv( 1 ) );
+	int attackerNum = atoi( Cmd_Argv( 2 ) );
+	int mod = atoi( Cmd_Argv( 3 ) );
+	u64 entropy = strtonum( Cmd_Argv( 4 ), S64_MIN, S64_MAX, NULL );
 
-	victim = &cgs.clientInfo[victimNum - 1];
-
-	if( attackerNum ) {
-		attacker = &cgs.clientInfo[attackerNum - 1];
-	} else {
-		attacker = NULL;
-	}
+	cg_clientInfo_t * victim = &cgs.clientInfo[ victimNum - 1 ];
+	cg_clientInfo_t * attacker = attackerNum == 0 ? NULL : &cgs.clientInfo[ attackerNum - 1 ];
 
 	cg_obituaries_current = ( cg_obituaries_current + 1 ) % MAX_OBITUARIES;
-	current = &cg_obituaries[cg_obituaries_current];
+	obituary_t * current = &cg_obituaries[cg_obituaries_current];
+
+	RNG rng = new_rng( entropy, 0 );
 
 	current->time = cls.monotonicTime;
-	if( victim ) {
+	if( victim != NULL ) {
 		Q_strncpyz( current->victim, victim->name, sizeof( current->victim ) );
 		current->victim_team = cg_entities[victimNum].current.team;
 	}
-	if( attacker ) {
+	if( attacker != NULL ) {
 		Q_strncpyz( current->attacker, attacker->name, sizeof( current->attacker ) );
 		current->attacker_team = cg_entities[attackerNum].current.team;
 	}
 	current->mod = mod;
 
-	GS_Obituary( victim, attacker, mod, message, message2 );
+	if( cg.view.playerPrediction && ISVIEWERENTITY( victimNum ) ) {
+		self_obituary.entropy = 0;
+	}
 
 	if( attackerNum ) {
 		if( victimNum != attackerNum ) {
 			current->type = OBITUARY_NORMAL;
-			if( cg_showObituaries->integer & CG_OBITUARY_CONSOLE ) {
-				CG_LocalPrint( "%s %s %s%s\n", victim->name, message, attacker->name, message2 );
+
+			TempAllocator temp = cls.frame_arena.temp();
+			const char * obituary = temp( "{}{}{}", RandomPrefix( &rng, 0.05f ), RandomPrefix( &rng, 0.5f ), RandomObituary( &rng ) );
+
+			char attacker_name[ MAX_NAME_CHARS + 1 ];
+			Q_strncpyz( attacker_name, attacker->name, sizeof( attacker_name ) );
+			Q_strupr( attacker_name );
+
+			char victim_name[ MAX_NAME_CHARS + 1 ];
+			Q_strncpyz( victim_name, victim->name, sizeof( victim_name ) );
+			Q_strupr( victim_name );
+
+			RGB8 attacker_color = CG_TeamColor( current->attacker_team );
+			RGB8 victim_color = CG_TeamColor( current->victim_team );
+
+			if( ISVIEWERENTITY( attackerNum ) ) {
+				CG_CenterPrint( temp( "{} {}", obituary, victim_name ) );
 			}
 
-			if( ISVIEWERENTITY( attackerNum ) && ( cg_showObituaries->integer & CG_OBITUARY_CENTER ) ) {
-				char name[MAX_NAME_CHARS + 1];
-				Q_strncpyz( name, victim->name, sizeof( name ) );
-				Q_strupr( name );
-				CG_CenterPrint( va( "YOU %s%s%s %s", RandomPrefix( 0.05f ), RandomPrefix( 0.5f ), RandomObituary(), name ) );
+			CG_AddChat( temp( "{}{} {}{} {}{}",
+				ImGuiColorToken( attacker_color ), attacker_name,
+				ImGuiColorToken( rgba8_diesel_yellow ), obituary,
+				ImGuiColorToken( victim_color ), victim_name
+			) );
+
+			if( cg.view.playerPrediction && ISVIEWERENTITY( victimNum ) ) {
+				self_obituary.time = cls.monotonicTime;
+				self_obituary.entropy = entropy;
 			}
-		} else {   // suicide
+		}
+		else {   // suicide
 			current->type = OBITUARY_SUICIDE;
-			if( cg_showObituaries->integer & CG_OBITUARY_CONSOLE ) {
-				CG_LocalPrint( "%s %s\n", victim->name, message );
-			}
 		}
-	} else {   // world accidents
+	}
+	else {   // world accidents
 		current->type = OBITUARY_ACCIDENT;
-		if( cg_showObituaries->integer & CG_OBITUARY_CONSOLE ) {
-			CG_LocalPrint( "%s %s\n", victim->name, message );
-		}
 	}
 }
 
 static const Material * CG_GetWeaponIcon( int weapon ) {
-	return cgs.media.shaderWeaponIcon[ weapon - WEAP_GUNBLADE ];
+	return cgs.media.shaderWeaponIcon[ weapon ];
 }
 
 static void CG_DrawObituaries(
@@ -1112,10 +1567,6 @@ static void CG_DrawObituaries(
 	int internal_align, unsigned int icon_size
 ) {
 	const int icon_padding = 4;
-
-	if( !( cg_showObituaries->integer & CG_OBITUARY_HUD ) ) {
-		return;
-	}
 
 	unsigned line_height = Max3( 1u, unsigned( layout_cursor_font_size ), icon_size );
 	int num_max = height / line_height;
@@ -1172,39 +1623,11 @@ static void CG_DrawObituaries(
 			continue;
 		}
 
-		const Material *pic;
-		switch( obr->mod ) {
-			case MOD_GUNBLADE:
-				pic = CG_GetWeaponIcon( WEAP_GUNBLADE );
-				break;
-			case MOD_MACHINEGUN:
-				pic = CG_GetWeaponIcon( WEAP_MACHINEGUN );
-				break;
-			case MOD_RIOTGUN:
-				pic = CG_GetWeaponIcon( WEAP_RIOTGUN );
-				break;
-			case MOD_GRENADE:
-			case MOD_GRENADE_SPLASH:
-				pic = CG_GetWeaponIcon( WEAP_GRENADELAUNCHER );
-				break;
-			case MOD_ROCKET:
-			case MOD_ROCKET_SPLASH:
-				pic = CG_GetWeaponIcon( WEAP_ROCKETLAUNCHER );
-				break;
-			case MOD_PLASMA:
-			case MOD_PLASMA_SPLASH:
-				pic = CG_GetWeaponIcon( WEAP_PLASMAGUN );
-				break;
-			case MOD_ELECTROBOLT:
-				pic = CG_GetWeaponIcon( WEAP_ELECTROBOLT );
-				break;
-			case MOD_LASERGUN:
-				pic = CG_GetWeaponIcon( WEAP_LASERGUN );
-				break;
-			default:
-				pic = CG_GetWeaponIcon( WEAP_GUNBLADE ); // FIXME
-				break;
-		}
+		WeaponType weapon = MODToWeapon( obr->mod );
+		if( weapon == Weapon_None )
+			weapon = Weapon_Knife;
+
+		const Material *pic = CG_GetWeaponIcon( weapon );
 
 		float attacker_width = TextBounds( font, layout_cursor_font_size, obr->attacker ).maxs.x;
 		float victim_width = TextBounds( font, layout_cursor_font_size, obr->victim ).maxs.x;
@@ -1238,7 +1661,7 @@ static void CG_DrawObituaries(
 
 		xoffset += icon_padding;
 
-		Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, pic, vec4_white );
+		Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, pic, AttentionGettingColor() );
 
 		xoffset += icon_size + icon_padding;
 
@@ -1247,6 +1670,29 @@ static void CG_DrawObituaries(
 
 		yoffset += line_height;
 	} while( i != next );
+
+	if( cg.predictedPlayerState.health <= 0 && cg.predictedPlayerState.team != TEAM_SPECTATOR ) {
+		if( self_obituary.entropy != 0 ) {
+			float h = 128.0f;
+			float yy = frame_static.viewport.y * 0.5f - h * 0.5f;
+
+			float t = float( cls.monotonicTime - self_obituary.time ) / 1000.0f;
+
+			Draw2DBox( 0, yy, frame_static.viewport.x, h, cls.white_material, Vec4( 0, 0, 0, Min2( 0.5f, t * 0.5f ) ) );
+
+			if( t >= 1.0f ) {
+				RNG rng = new_rng( self_obituary.entropy, 0 );
+
+				TempAllocator temp = cls.frame_arena.temp();
+				const char * obituary = temp( "{}{}{}", RandomPrefix( &rng, 0.05f ), RandomPrefix( &rng, 0.5f ), RandomObituary( &rng ) );
+
+				float size = Lerp( h * 0.5f, Unlerp01( 1.0f, t, 3.0f ), h * 0.75f );
+				Vec4 color = CG_TeamColorVec4( TEAM_ENEMY );
+				color.w = Unlerp01( 1.0f, t, 2.0f );
+				DrawText( cgs.fontMontserrat, size, obituary, Alignment_CenterMiddle, frame_static.viewport.x * 0.5f, frame_static.viewport.y * 0.5f, color );
+			}
+		}
+	}
 }
 
 //=============================================================================
@@ -1312,12 +1758,12 @@ static bool CG_LFuncDrawCallvote( struct cg_layoutnode_s *argumentnode, int numA
 	const char * yeses = cgs.configStrings[ CS_CALLVOTE_YES_VOTES ];
 	const char * required = cgs.configStrings[ CS_CALLVOTE_REQUIRED_VOTES ];
 
-	bool voted = cg.predictedPlayerState.stats[ STAT_LAYOUTS ] & STAT_LAYOUT_VOTED;
+	bool voted = cg.predictedPlayerState.voted;
 	float padding = layout_cursor_font_size * 0.5f;
 
 	if( !voted ) {
 		float height = padding * 2 + layout_cursor_font_size * 2.2f;
-		Draw2DBox( left, top, layout_cursor_width, height, cgs.white_material, Vec4( 0, 0, 0, 0.5f ) );
+		Draw2DBox( left, top, layout_cursor_width, height, cls.white_material, Vec4( 0, 0, 0, 0.5f ) );
 	}
 
 	Vec4 color = voted ? vec4_white : AttentionGettingColor();
@@ -1533,83 +1979,115 @@ enum {
 // Commands' Functions
 //=============================================================================
 
-static bool CG_IsWeaponSelected( int weapon ) {
-	if( cg.view.playerPrediction && cg.predictedWeaponSwitch && cg.predictedWeaponSwitch != cg.predictedPlayerState.stats[STAT_PENDING_WEAPON] ) {
-		return weapon == cg.predictedWeaponSwitch;
-	}
-
-	return weapon == cg.predictedPlayerState.stats[STAT_PENDING_WEAPON];
-}
-
-constexpr float SEL_WEAP_X_OFFSET = 0.25f;
-
 static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih, Alignment alignment, float font_size ) {
+	const SyncPlayerState * ps = &cg.predictedPlayerState;
+	Vec4 light_gray = sRGBToLinear( RGBA8( 96, 96, 96, 255 ) );
+	Vec4 dark_gray = sRGBToLinear( RGBA8( 51, 51, 51, 255 ) );
+	Vec4 color_ammo_max = sRGBToLinear( rgba8_diesel_yellow );
+	Vec4 color_ammo_min = sRGBToLinear( RGBA8( 255, 56, 97, 255 ) );
+
+	const SyncEntityState * es = &cg_entities[ ps->POVnum ].current;
+
 	int num_weapons = 0;
-	for( int i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
-		if( CG_IsWeaponInList( i ) ) {
+	for( size_t i = 0; i < ARRAY_COUNT( ps->weapons ); i++ ) {
+		if( ps->weapons[ i ].weapon != Weapon_None ) {
 			num_weapons++;
 		}
 	}
 
+	int bomb = ( es->effects & EF_CARRIER ) != 0 ? 1 : 0;
+
 	int padx = offx - iw;
 	int pady = offy - ih;
-	int total_width = max( 0, num_weapons * offx - padx );
-	int total_height = max( 0, num_weapons * offy - pady );
+	int total_width = Max2( 0, ( num_weapons + bomb ) * offx - padx );
+	int total_height = Max2( 0, ( num_weapons + bomb ) * offy - pady );
 
-	int drawn_weapons = 0;
-	bool selected_found = false;
-	for( int i = WEAP_GUNBLADE; i < WEAP_TOTAL; i++ ) {
-		if( !CG_IsWeaponInList( i ) )
-			continue;
+	int border = iw * 0.04f;
+	int border_sel = border * 0.25f;
+	int padding = iw * 0.1f;
+	int pad_sel = border * 2;
+	int innerw = iw - border * 2;
+	int innerh = ih - border * 2;
+	int iconw = iw - border * 2 - padding * 2;
+	int iconh = ih - border * 2 - padding * 2;
 
-		int curx = CG_HorizontalAlignForWidth( x + offx * drawn_weapons, alignment, total_width );
-		int cury = CG_VerticalAlignForHeight( y + offy * drawn_weapons, alignment, total_height );
+	if( bomb != 0 ) {
+		int curx = CG_HorizontalAlignForWidth( x, alignment, total_width );
+		int cury = CG_VerticalAlignForHeight( y, alignment, total_height );
+		Vec4 color = ps->can_plant ? AttentionGettingColor() : light_gray;
 
-		int curiw = iw;
-		int curih = ih;
+		Draw2DBox( curx, cury, iw, ih, cls.white_material, color );
+		Draw2DBox( curx + border, cury + border, innerw, innerh, cls.white_material, dark_gray );
+		
+		Draw2DBox( curx + border + padding, cury + border + padding, iconw, iconh, cgs.media.shaderBombIcon, color );
+	}
 
-		if( CG_IsWeaponSelected( i ) ) {
-			selected_found = true;
-			cury -= ih * SEL_WEAP_X_OFFSET;
-		}
+	for( int i = 0; i < num_weapons; i++ ) {
+		int curx = CG_HorizontalAlignForWidth( x + offx * ( i + bomb ), alignment, total_width );
+		int cury = CG_VerticalAlignForHeight( y + offy * ( i + bomb ), alignment, total_height );
+
+		WeaponType weap = ps->weapons[ i ].weapon;
+		int ammo = ps->weapons[ i ].ammo;
+		const WeaponDef * def = GS_GetWeaponDef( weap );
 
 		Vec4 color = Vec4( 1.0f );
-		Vec4 color_bg = Vec4( 0.5f );
-		// if ( i != WEAP_GUNBLADE ) {
-		int ammo = cg.predictedPlayerState.inventory[ AMMO_GUNBLADE + i - WEAP_GUNBLADE ];
+		float ammo_frac = 1.0f;
 
-		int ammo_in_clip = 0;
-
-		
-		if ( i != WEAP_GUNBLADE ) {
-			int capacity = GS_FindItemByTag( i )->capacity;
-			int clips = GS_FindItemByTag( i )->clips;
-			int ammo_max =  clips * capacity;
-			ammo_in_clip = capacity - ((ammo_max - ammo) % capacity);
-
-			color = Vec4( 0.0f, 1.0f, 0.0f, 1.0f );
-			color_bg = Vec4( 0.0f, 0.5f, 0.0f, 1.0f );
-
-			int ammo_in_clip_pct = ( 100  * ammo_in_clip + capacity / 2) /capacity;
-			if ( ammo_in_clip_pct <= 67) {
-				color = Vec4( 1.0f, 0.5f, 0.0f, 1.0f );
-				color_bg = Vec4( 0.5f, 0.25f, 0.0f, 1.0f );
+		if( def->clip_size != 0 ) {
+			if( weap == ps->weapon && ps->weapon_state == WeaponState_Reloading ) {
+				ammo_frac = 1.0f - float( ps->weapon_time ) / float( def->reload_time );
 			}
-			if ( ammo_in_clip_pct <= 34) {
-				color = Vec4( 1.0f, 0.0f, 0.0f, 1.0f );		
-				color_bg = Vec4( 0.5f, 0.0f, 0.0f, 1.0f );
-			}	
+			else {
+				color = Vec4( 0.0f, 1.0f, 0.0f, 1.0f );
+				ammo_frac = float( ammo ) / float( def->clip_size );
+			}
 		}
 
-		Draw2DBox( curx, cury, curiw, curih, cgs.white_material, color );
-		Draw2DBox( curx + roundf( curiw * 0.03f ), cury + roundf ( curih * 0.03f ), roundf( curiw * 0.95f ), roundf( curih * 0.95f ), cgs.white_material, color_bg );
-		Draw2DBox( curx + roundf( curiw * 0.16f ), cury + roundf ( curih * 0.16f ), roundf( curiw * 0.69f ), roundf( curiw * 0.69f ), CG_GetWeaponIcon( i ), color );
+		color = Lerp( color_ammo_min, Unlerp( 0.0f, ammo_frac, 1.0f ), color_ammo_max );
 
-		if( i != WEAP_GUNBLADE ) {
-			DrawText( GetHUDFont(), font_size + (curiw - iw)/4, va( "%i", ammo_in_clip ), Alignment_LeftBottom, curx + curiw*0.15f, cury + curih*0.85f, layout_cursor_color, layout_cursor_font_border );
+		Vec4 color_bg = Vec4( color.xyz() * 0.33f, 1.0f );
+
+		const Material * icon = cgs.media.shaderWeaponIcon[ weap ];
+
+		bool selected = weap == ps->pending_weapon;
+		int offset = ( selected ? border_sel : 0 );
+		int pady_sel = ( selected ? pad_sel : 0 );
+
+		if( ammo_frac < 1.0f ) {
+			Draw2DBox( curx - offset, cury - offset - pady_sel, iw + offset * 2, ih + offset * 2, cls.white_material, light_gray );
+			Draw2DBox( curx + border, cury + border - pady_sel, innerw, innerh, cls.white_material, dark_gray );
+			Draw2DBox( curx + border + padding, cury + border + padding - pady_sel, iconw, iconh, icon, light_gray );
 		}
 
-		drawn_weapons++;
+		Vec2 half_pixel = HalfPixelSize( icon );
+
+		if( def->clip_size == 0 || ammo_frac != 0 ) {
+			Draw2DBox( curx - offset, cury + ih * ( 1.0f - ammo_frac ) - offset - pady_sel, iw + offset * 2, ih * ammo_frac + offset * 2, cls.white_material, color );
+			Draw2DBox( curx + border, cury + ih * ( 1.0f - ammo_frac ) + border - pady_sel, innerw, ih * ammo_frac - border * 2, cls.white_material, color_bg );
+		}
+
+		float asdf = Max2( ih * ( 1.0f - ammo_frac ), float( padding ) ) - padding;
+		Draw2DBoxUV( curx + border + padding, cury + border + padding + asdf - pady_sel,
+			iconw, iconh - asdf,
+			Vec2( half_pixel.x, Lerp( half_pixel.y, asdf / iconh, 1.0f - half_pixel.y ) ), 1.0f - half_pixel,
+			CG_GetWeaponIcon( weap ), color );
+
+		if( def->clip_size != 0 ) {
+			DrawText( GetHUDFont(), font_size, va( "%i", ammo ), Alignment_CenterMiddle, curx + iw*0.5f, cury - ih * 0.25f - pady_sel, color, layout_cursor_font_border );
+		}
+
+		// weapon slot binds start from index 1, use drawn_weapons for actual loadout index
+		char bind[ 32 ];
+
+		// UNBOUND can look real stupid so bump size down a bit in case someone is scrolling. this still doesnt fit
+		const float bind_font_size = font_size * 0.55f;
+
+		// first try the weapon specific bind
+		if( !CG_GetBoundKeysString( va( "use %s", def->short_name ), bind, sizeof( bind ) ) ) {
+			CG_GetBoundKeysString( va( "weapon %i", i + 1 ), bind, sizeof( bind ) );
+		}
+
+		DrawText( GetHUDFont(), bind_font_size, va( "[ %s ]", bind) , Alignment_CenterMiddle, curx + iw*0.5f, cury + ih * 1.2f - pady_sel, layout_cursor_color, layout_cursor_font_border );
 	}
 }
 
@@ -1617,33 +2095,6 @@ static bool CG_LFuncDrawPicByName( struct cg_layoutnode_s *argumentnode, int num
 	int x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_alignment, layout_cursor_width );
 	int y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_alignment, layout_cursor_height );
 	Draw2DBox( x, y, layout_cursor_width, layout_cursor_height, FindMaterial( CG_GetStringArg( &argumentnode ) ), layout_cursor_color );
-	return true;
-}
-
-static bool CG_LFuncDrawSubPicByName( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_alignment, layout_cursor_width );
-	int y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_alignment, layout_cursor_height );
-
-	const Material * material = FindMaterial( CG_GetStringArg( &argumentnode ) );
-
-	float s1 = CG_GetNumericArg( &argumentnode );
-	float t1 = CG_GetNumericArg( &argumentnode );
-	float s2 = CG_GetNumericArg( &argumentnode );
-	float t2 = CG_GetNumericArg( &argumentnode );
-
-	// Draw2DBox( x, y, layout_cursor_width, layout_cursor_height, material, layout_cursor_color );
-	return true;
-}
-
-static bool CG_LFuncDrawRotatedPicByName( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_alignment, layout_cursor_width );
-	int y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_alignment, layout_cursor_height );
-
-	const Material * material = FindMaterial( CG_GetStringArg( &argumentnode ) );
-
-	float angle = CG_GetNumericArg( &argumentnode );
-
-	// trap_R_DrawRotatedStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, angle, layout_cursor_color, shader );
 	return true;
 }
 
@@ -1684,7 +2135,14 @@ static bool CG_LFuncSize( struct cg_layoutnode_s *argumentnode, int numArguments
 
 static bool CG_LFuncColor( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	for( int i = 0; i < 4; i++ ) {
-		layout_cursor_color.ptr()[ i ] = Clamp01( CG_GetNumericArg( &argumentnode ) );
+		layout_cursor_color[ i ] = Clamp01( CG_GetNumericArg( &argumentnode ) );
+	}
+	return true;
+}
+
+static bool CG_LFuncColorsRGB( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+	for( int i = 0; i < 4; i++ ) {
+		layout_cursor_color[ i ] = sRGBToLinear( Clamp01( CG_GetNumericArg( &argumentnode ) ) );
 	}
 	return true;
 }
@@ -1718,7 +2176,7 @@ static bool CG_LFuncAlignment( struct cg_layoutnode_s *argumentnode, int numArgu
 		layout_cursor_alignment.x = XAlignment_Right;
 	}
 	else {
-		CG_Printf( "WARNING 'CG_LFuncAlignment' Unknown alignment '%s'", x );
+		Com_Printf( "WARNING 'CG_LFuncAlignment' Unknown alignment '%s'", x );
 		return false;
 	}
 
@@ -1732,7 +2190,7 @@ static bool CG_LFuncAlignment( struct cg_layoutnode_s *argumentnode, int numArgu
 		layout_cursor_alignment.y = YAlignment_Bottom;
 	}
 	else {
-		CG_Printf( "WARNING 'CG_LFuncAlignment' Unknown alignment '%s'", y );
+		Com_Printf( "WARNING 'CG_LFuncAlignment' Unknown alignment '%s'", y );
 		return false;
 	}
 
@@ -1778,7 +2236,7 @@ static bool CG_LFuncFontStyle( struct cg_layoutnode_s *argumentnode, int numArgu
 		layout_cursor_font_style = FontStyle_BoldItalic;
 	}
 	else {
-		CG_Printf( "WARNING 'CG_LFuncFontStyle' Unknown font style '%s'", fontstyle );
+		Com_Printf( "WARNING 'CG_LFuncFontStyle' Unknown font style '%s'", fontstyle );
 		return false;
 	}
 
@@ -1822,16 +2280,9 @@ static bool CG_LFuncDrawBombIndicators( struct cg_layoutnode_s *argumentnode, in
 
 static bool CG_LFuncDrawPlayerIcons( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	int team = int( CG_GetNumericArg( &argumentnode ) );
-	int alive_index = int( CG_GetNumericArg( &argumentnode ) );
-	int total_index = int( CG_GetNumericArg( &argumentnode ) );
+	int alive = int( CG_GetNumericArg( &argumentnode ) );
+	int total = int( CG_GetNumericArg( &argumentnode ) );
 
-	if( total_index < 0 || alive_index < 0 || total_index >= MAX_CONFIGSTRINGS || alive_index >= MAX_CONFIGSTRINGS ) {
-		CG_Printf( "WARNING 'CG_LFuncDrawPlayerIcons' configstring out of range" );
-		return false;
-	}
-
-	int alive = atoi( cgs.configStrings[ alive_index ] );
-	int total = atoi( cgs.configStrings[ total_index ] );
 	Vec4 team_color = CG_TeamColorVec4( team );
 
 	const Material * icon = FindMaterial( "gfx/hud/guy" );
@@ -1879,11 +2330,11 @@ static bool CG_LFuncDrawBindString( struct cg_layoutnode_s *argumentnode, int nu
 
 	char keys[ 128 ];
 	if( !CG_GetBoundKeysString( command, keys, sizeof( keys ) ) ) {
-		Q_snprintfz( keys, sizeof( keys ), "[%s]", command );
+		snprintf( keys, sizeof( keys ), "[%s]", command );
 	}
 
 	char buf[ 1024 ];
-	Q_snprintfz( buf, sizeof( buf ), fmt, keys );
+	snprintf( buf, sizeof( buf ), fmt, keys );
 
 	DrawText( GetHUDFont(), layout_cursor_font_size, buf, layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
 
@@ -1902,38 +2353,25 @@ static bool CG_LFuncDrawPlayerName( struct cg_layoutnode_s *argumentnode, int nu
 }
 
 static bool CG_LFuncDrawNumeric( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	int value = (int)CG_GetNumericArg( &argumentnode );
+	int value = CG_GetNumericArg( &argumentnode );
 	DrawText( GetHUDFont(), layout_cursor_font_size, va( "%i", value ), layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
 	return true;
 }
 
-static void CG_LFuncsWeaponIcons( struct cg_layoutnode_s *argumentnode ) {
-	int offx, offy, w, h;
-
-	offx = (int)( CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800 );
-	offy = (int)( CG_GetNumericArg( &argumentnode ) * frame_static.viewport_height / 600 );
-	w = (int)( CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800 );
-	h = (int)( CG_GetNumericArg( &argumentnode ) * frame_static.viewport_height / 600 );
+static bool CG_LFuncDrawWeaponIcons( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+	int offx = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800;
+	int offy = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_height / 600;
+	int w = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800;
+	int h = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_height / 600;
 	float font_size = CG_GetNumericArg( &argumentnode );
 
 	CG_DrawWeaponIcons( layout_cursor_x, layout_cursor_y, offx, offy, w, h, layout_cursor_alignment, font_size );
-}
 
-static bool CG_LFuncDrawWeaponIcons( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	CG_LFuncsWeaponIcons( argumentnode );
 	return true;
 }
-
 
 static bool CG_LFuncDrawCrossHair( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	CG_DrawCrosshair();
-	return true;
-}
-
-static bool CG_LFuncDrawKeyState( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	const char *key = CG_GetStringArg( &argumentnode );
-
-	CG_DrawKeyState( layout_cursor_x, layout_cursor_y, layout_cursor_width, layout_cursor_height, key );
 	return true;
 }
 
@@ -1949,7 +2387,6 @@ static bool CG_LFuncIf( struct cg_layoutnode_s *argumentnode, int numArguments )
 static bool CG_LFuncIfNot( struct cg_layoutnode_s *argumentnode, int numArguments ) {
 	return (int)CG_GetNumericArg( &argumentnode ) == 0;
 }
-
 
 typedef struct cg_layoutcommand_s
 {
@@ -2015,6 +2452,13 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncColor,
 		4,
 		"Sets color setting in RGBA mode. Used for text and pictures",
+	},
+
+	{
+		"setColorsRGB",
+		CG_LFuncColorsRGB,
+		4,
+		"setColor but in sRGB",
 	},
 
 	{
@@ -2130,13 +2574,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 	},
 
 	{
-		"drawKeyState",
-		CG_LFuncDrawKeyState,
-		1,
-		"Draws icons showing if the argument key is pressed. Possible arg: forward, backward, left, right, fire, jump, crouch, special",
-	},
-
-	{
 		"drawNetIcon",
 		CG_LFuncDrawNet,
 		0,
@@ -2148,20 +2585,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 		CG_LFuncDrawPicByName,
 		1,
 		"Draws a pic with argument being the file path",
-	},
-
-	{
-		"drawSubPicByName",
-		CG_LFuncDrawSubPicByName,
-		5,
-		"Draws a part of a pic with arguments being the file path and the texture coordinates",
-	},
-
-	{
-		"drawRotatedPicByName",
-		CG_LFuncDrawRotatedPicByName,
-		2,
-		"Draws a pic with arguments being the file path and the rotation",
 	},
 
 	{
@@ -2219,7 +2642,7 @@ static const char *CG_GetStringArg( struct cg_layoutnode_s **argumentsnode ) {
 	struct cg_layoutnode_s *anode = *argumentsnode;
 
 	if( !anode || anode->type == LNODE_COMMAND ) {
-		CG_Error( "'CG_LayoutGetStringArg': bad arg count" );
+		Com_Error( ERR_DROP, "'CG_LayoutGetStringArg': bad arg count" );
 	}
 
 	// we can return anything as string
@@ -2236,11 +2659,11 @@ static float CG_GetNumericArg( struct cg_layoutnode_s **argumentsnode ) {
 	float value;
 
 	if( !anode || anode->type == LNODE_COMMAND ) {
-		CG_Error( "'CG_LayoutGetNumericArg': bad arg count" );
+		Com_Error( ERR_DROP, "'CG_LayoutGetNumericArg': bad arg count" );
 	}
 
 	if( anode->type != LNODE_NUMERIC && anode->type != LNODE_REFERENCE_NUMERIC ) {
-		CG_Printf( "WARNING: 'CG_LayoutGetNumericArg': arg %s is not numeric", anode->string );
+		Com_Printf( "WARNING: 'CG_LayoutGetNumericArg': arg %s is not numeric", anode->string );
 	}
 
 	*argumentsnode = anode->next;
@@ -2314,13 +2737,13 @@ static cg_layoutnode_t *CG_LayoutParseArgumentNode( const char *token ) {
 		// replace stat names by values
 		for( i = 0; cg_numeric_references[i].name != NULL; i++ ) {
 			if( !Q_stricmp( valuetok, cg_numeric_references[i].name ) ) {
-				Q_snprintfz( tmpstring, sizeof( tmpstring ), "%i", i );
+				snprintf( tmpstring, sizeof( tmpstring ), "%i", i );
 				valuetok = tmpstring;
 				break;
 			}
 		}
 		if( cg_numeric_references[i].name == NULL ) {
-			CG_Printf( "Warning: HUD: %s is not valid numeric reference\n", valuetok );
+			Com_Printf( "Warning: HUD: %s is not valid numeric reference\n", valuetok );
 			valuetok--;
 			valuetok = "0";
 		}
@@ -2331,13 +2754,13 @@ static cg_layoutnode_t *CG_LayoutParseArgumentNode( const char *token ) {
 
 		for( i = 0; cg_numeric_constants[i].name != NULL; i++ ) {
 			if( !Q_stricmp( valuetok, cg_numeric_constants[i].name ) ) {
-				Q_snprintfz( tmpstring, sizeof( tmpstring ), "%i", cg_numeric_constants[i].value );
+				snprintf( tmpstring, sizeof( tmpstring ), "%i", cg_numeric_constants[i].value );
 				valuetok = tmpstring;
 				break;
 			}
 		}
 		if( cg_numeric_constants[i].name == NULL ) {
-			CG_Printf( "Warning: HUD: %s is not valid numeric constant\n", valuetok );
+			Com_Printf( "Warning: HUD: %s is not valid numeric constant\n", valuetok );
 			valuetok = "0";
 		}
 
@@ -2364,7 +2787,7 @@ static cg_layoutnode_t *CG_LayoutParseArgumentNode( const char *token ) {
 /*
 * CG_LayoutCathegorizeToken
 */
-static int CG_LayoutCathegorizeToken( char *token ) {
+static int CG_LayoutCathegorizeToken( const char *token ) {
 	int i = 0;
 
 	for( i = 0; cg_LayoutCommands[i].name; i++ ) {
@@ -2448,7 +2871,7 @@ static bool CG_LayoutFixCommasInToken( char **ptr, char **backptr ) {
 		}
 
 		if( *token != *back ) {
-			CG_Printf( "Token and Back mismatch %c - %c\n", *token, *back );
+			Com_Printf( "Token and Back mismatch %c - %c\n", *token, *back );
 		}
 
 		if( *back == ',' ) {
@@ -2512,11 +2935,11 @@ static cg_layoutnode_t *CG_RecurseParseLayoutScript( char **ptr, int level ) {
 		// if it's an operator, we don't create a node, but add the operation to the last one
 		if( CG_OperatorFuncForArgument( token ) != NULL ) {
 			if( !node ) {
-				CG_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): \"%s\" Operator hasn't any prior argument\n", level, token );
+				Com_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): \"%s\" Operator hasn't any prior argument\n", level, token );
 				continue;
 			}
 			if( node->type == LNODE_COMMAND || node->type == LNODE_STRING ) {
-				CG_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): \"%s\" Operator was assigned to a command node\n", level, token );
+				Com_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): \"%s\" Operator was assigned to a command node\n", level, token );
 			} else {
 				expecArgs++; // we now expect one extra argument (not counting the operator one)
 
@@ -2534,13 +2957,13 @@ static cg_layoutnode_t *CG_RecurseParseLayoutScript( char **ptr, int level ) {
 					break;
 				case LNODE_COMMAND:
 				{
-					CG_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): \"%s\" is not a valid argument for \"%s\"\n", level, token, command ? command->string : "" );
+					Com_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): \"%s\" is not a valid argument for \"%s\"\n", level, token, command ? command->string : "" );
 					continue;
 				}
 				break;
 				default:
 				{
-					CG_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i) skip and continue: Unrecognized token \"%s\"\n", level, token );
+					Com_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i) skip and continue: Unrecognized token \"%s\"\n", level, token );
 					continue;
 				}
 				break;
@@ -2548,7 +2971,7 @@ static cg_layoutnode_t *CG_RecurseParseLayoutScript( char **ptr, int level ) {
 		} else {
 			if( token_type != LNODE_COMMAND ) {
 				// we are expecting a command
-				CG_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): unrecognized command \"%s\"\n", level, token );
+				Com_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): unrecognized command \"%s\"\n", level, token );
 				continue;
 			}
 
@@ -2576,7 +2999,7 @@ static cg_layoutnode_t *CG_RecurseParseLayoutScript( char **ptr, int level ) {
 			{
 				node = CG_LayoutParseArgumentNode( token );
 				if( !node ) {
-					CG_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): \"%s\" is not a valid argument for \"%s\"\n", level, token, command ? command->string : "" );
+					Com_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): \"%s\" is not a valid argument for \"%s\"\n", level, token, command ? command->string : "" );
 					break;
 				}
 				numArgs++;
@@ -2587,7 +3010,7 @@ static cg_layoutnode_t *CG_RecurseParseLayoutScript( char **ptr, int level ) {
 			{
 				node = CG_LayoutParseCommandNode( token );
 				if( !node ) {
-					CG_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): \"%s\" is not a valid command\n", level, token );
+					Com_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): \"%s\" is not a valid command\n", level, token );
 					break; // skip and continue
 				}
 
@@ -2624,7 +3047,7 @@ static cg_layoutnode_t *CG_RecurseParseLayoutScript( char **ptr, int level ) {
 	}
 
 	if( level > 0 ) {
-		CG_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): If without endif\n", level );
+		Com_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): If without endif\n", level );
 	}
 
 	return rootnode;
@@ -2688,7 +3111,7 @@ static void CG_RecurseExecuteLayoutThread( cg_layoutnode_t *rootnode ) {
 
 		// Execute the command node
 		if( commandnode->integer != numArguments ) {
-			CG_Printf( "ERROR: Layout command %s: invalid argument count (expecting %i, found %i)\n", commandnode->string, commandnode->integer, numArguments );
+			Com_Printf( "ERROR: Layout command %s: invalid argument count (expecting %i, found %i)\n", commandnode->string, commandnode->integer, numArguments );
 			return;
 		}
 		if( commandnode->func ) {
@@ -2723,191 +3146,56 @@ void CG_ExecuteLayoutProgram( struct cg_layoutnode_s *rootnode ) {
 
 //=============================================================================
 
-//=============================================================================
+static bool LoadHUDFile( const char * path, DynamicString & script ) {
+	Span< const char > contents = AssetString( StringHash( path ) );
+	const char * cursor = contents.ptr;
 
-
-
-/*
-* CG_LoadHUDFile
-*/
-
-// Loads the HUD-file recursively. Recursive includes now supported
-// Also processes "preload" statements for graphics pre-loading
-#define HUD_MAX_LVL 16 // maximum levels of recursive file loading
-static char *CG_LoadHUDFile( const char *path ) {
-	char *rec_fn[HUD_MAX_LVL]; // Recursive filenames...
-	char *rec_buf[HUD_MAX_LVL]; // Recursive file contents buffers
-	char *rec_ptr[HUD_MAX_LVL]; // Recursive file position buffers
-	char *token = NULL, *tmpbuf = NULL, *retbuf = NULL;
-	int rec_lvl = 0, rec_plvl = -1;
-	int retuse = 0, retlen = 0;
-	int f, i, len;
-
-	// Check if path is correct
-	if( path == NULL ) {
-		return NULL;
-	}
-	memset( rec_ptr, 0, sizeof( rec_ptr ) );
-	memset( rec_buf, 0, sizeof( rec_buf ) );
-	memset( rec_ptr, 0, sizeof( rec_ptr ) );
-
-	// Copy the path of the file to the first recursive level filename :)
-	rec_fn[rec_lvl] = ( char * )CG_Malloc( strlen( path ) + 1 );
-	Q_strncpyz( rec_fn[rec_lvl], path, strlen( path ) + 1 );
-	while( 1 ) {
-		if( rec_lvl > rec_plvl ) {
-			// We went a recursive level higher, our filename should have been filled in :)
-			if( !rec_fn[rec_lvl] ) {
-				rec_lvl--;
-			} else if( rec_fn[rec_lvl][0] == '\0' ) {
-				CG_Free( rec_fn[rec_lvl] );
-				rec_fn[rec_lvl] = NULL;
-				rec_lvl--;
-			} else {
-				// First check if this file hadn't been included already by one of the previous files
-				// in the current file-stack to prevent problems :)
-				for( i = 0; i < rec_lvl; i++ ) {
-					if( !Q_stricmp( rec_fn[rec_lvl], rec_fn[i] ) ) {
-						// Recursive file loading detected!!
-						CG_Printf( "HUD: WARNING: Detected recursive file inclusion: %s\n", rec_fn[rec_lvl] );
-						CG_Free( rec_fn[rec_lvl] );
-						rec_fn[rec_lvl] = NULL;
-					}
-				}
-			}
-
-			// File was OK :)
-			if( rec_fn[rec_lvl] != NULL ) {
-				len = trap_FS_FOpenFile( rec_fn[rec_lvl], &f, FS_READ );
-				if( len > 0 ) {
-					rec_plvl = rec_lvl;
-					rec_buf[rec_lvl] = ( char * )CG_Malloc( len + 1 );
-					rec_buf[rec_lvl][len] = '\0';
-					rec_ptr[rec_lvl] = rec_buf[rec_lvl];
-
-					// Now read the file
-					if( trap_FS_Read( rec_buf[rec_lvl], len, f ) <= 0 ) {
-						if( rec_lvl > 0 ) {
-							CG_Printf( "HUD: WARNING: Read error while loading file: %s\n", rec_fn[rec_lvl] );
-						}
-						CG_Free( rec_fn[rec_lvl] );
-						CG_Free( rec_buf[rec_lvl] );
-						rec_fn[rec_lvl] = NULL;
-						rec_buf[rec_lvl] = NULL;
-						rec_lvl--;
-					}
-					trap_FS_FCloseFile( f );
-				} else {
-					if( !len ) {
-						// File was empty - still have to close
-						trap_FS_FCloseFile( f );
-					} else if( rec_lvl > 0 ) {
-						CG_Printf( "HUD: WARNING: Could not include file: %s\n", rec_fn[rec_lvl] );
-					}
-					CG_Free( rec_fn[rec_lvl] );
-					rec_fn[rec_lvl] = NULL;
-					rec_lvl--;
-				}
-			} else {
-				// Skip this file, go down one level
-				rec_lvl--;
-			}
-			rec_plvl = rec_lvl;
-		} else if( rec_lvl < rec_plvl ) {
-			// Free previous level buffer
-			if( rec_fn[rec_plvl] ) {
-				CG_Free( rec_fn[rec_plvl] );
-			}
-			if( rec_buf[rec_plvl] ) {
-				CG_Free( rec_buf[rec_plvl] );
-			}
-			rec_buf[rec_plvl] = NULL;
-			rec_ptr[rec_plvl] = NULL;
-			rec_fn[rec_plvl] = NULL;
-			rec_plvl = rec_lvl;
-			if( rec_lvl < 0 ) {
-				// Break - end of recursive looping
-				if( retbuf == NULL ) {
-					CG_Printf( "HUD: ERROR: Could not load empty HUD-script: %s\n", path );
-				}
-				break;
-			}
-		}
-		if( rec_lvl < 0 ) {
+	while( true ) {
+		const char * before_include = strstr( cursor, "#include" );
+		if( before_include == NULL )
 			break;
-		}
-		token = COM_ParseExt2( ( const char ** )&rec_ptr[rec_lvl], true, false );
-		if( !Q_stricmp( "include", token ) ) {
-			// Handle include
-			token = COM_ParseExt2( ( const char ** )&rec_ptr[rec_lvl], false, false );
-			if( ( ( rec_lvl + 1 ) < HUD_MAX_LVL ) && ( rec_ptr[rec_lvl] ) && ( token ) && ( token[0] != '\0' ) ) {
-				// Go to next recursive level and prepare it's filename :)
-				rec_lvl++;
-				i = strlen( "huds/" ) + strlen( token ) + strlen( ".hud" ) + 1;
-				rec_fn[rec_lvl] = ( char * )CG_Malloc( i );
-				Q_snprintfz( rec_fn[rec_lvl], i, "huds/%s", token );
-				COM_DefaultExtension( rec_fn[rec_lvl], ".hud", i );
-				if( trap_FS_FOpenFile( rec_fn[rec_lvl], NULL, FS_READ ) < 0 ) {
-					// File doesn't exist!
-					CG_Free( rec_fn[rec_lvl] );
-					i = strlen( "huds/inc/" ) + strlen( token ) + strlen( ".hud" ) + 1;
-					rec_fn[rec_lvl] = ( char * )CG_Malloc( i );
-					Q_snprintfz( rec_fn[rec_lvl], i, "huds/inc/%s", token );
-					COM_DefaultExtension( rec_fn[rec_lvl], ".hud", i );
-					if( trap_FS_FOpenFile( rec_fn[rec_lvl], NULL, FS_READ ) < 0 ) {
-						CG_Free( rec_fn[rec_lvl] );
-						rec_fn[rec_lvl] = NULL;
-						rec_lvl--;
-					}
-				}
-			}
-		} else if( ( len = strlen( token ) ) > 0 ) {
-			// Normal token, add to token-pool.
-			if( ( retuse + len + 1 ) >= retlen ) {
-				// Enlarge token buffer by 1kb
-				retlen += 1024;
-				tmpbuf = ( char * )CG_Malloc( retlen );
-				if( retbuf ) {
-					memcpy( tmpbuf, retbuf, retuse );
-					CG_Free( retbuf );
-				}
-				retbuf = tmpbuf;
-				retbuf[retuse] = '\0';
-			}
-			strcat( &retbuf[retuse], token );
-			retuse += len;
-			strcat( &retbuf[retuse], " " );
-			retuse++;
-			retbuf[retuse] = '\0';
+
+		script.append_raw( cursor, before_include - cursor );
+		cursor = before_include + strlen( "#include" );
+
+		Span< const char > include = ParseToken( &cursor, Parse_StopOnNewLine );
+		if( include == "" ) {
+			Com_Printf( "HUD: WARNING: Missing file after #include\n" );
+			return false;
 		}
 
-		// Detect "end-of-file" of included files and go down 1 level.
-		if( ( rec_lvl <= rec_plvl ) && ( !rec_ptr[rec_lvl] ) ) {
-			rec_plvl = rec_lvl;
-			rec_lvl--;
+		u64 hash = Hash64( "huds/inc/" );
+		hash = Hash64( include.ptr, include.n, hash );
+		hash = Hash64( ".hud", strlen( ".hud" ), hash );
+
+		Span< const char > include_contents = AssetString( StringHash( hash ) );
+		if( include_contents == "" ) {
+			Com_GGPrint( "HUD: Couldn't include huds/inc/{}.hud", include );
+			return false;
 		}
+
+		// TODO: AssetString includes the trailing '\0' and we don't
+		// want to add that to the script
+		script.append_raw( include_contents.ptr, include_contents.n - 1 );
 	}
-	if( retbuf == NULL ) {
-		CG_Printf( "HUD: ERROR: Could not load file: %s\n", path );
-	}
-	return retbuf;
+
+	script += cursor;
+
+	return true;
 }
 
 static void CG_LoadHUD() {
+	TempAllocator temp = cls.frame_arena.temp();
 	const char * path = "huds/default.hud";
-	char * opt = CG_LoadHUDFile( path );
-	if( opt == NULL ) {
-		CG_Printf( "HUD: failed to load %s file\n", path );
+
+	DynamicString script( &temp );
+	if( !LoadHUDFile( path, script ) ) {
+		Com_Printf( "HUD: failed to load %s file\n", path );
 		return;
 	}
 
-	// load the new status bar program
-	CG_ParseLayoutScript( opt, cg.statusBar );
+	CG_ParseLayoutScript( const_cast< char * >( script.c_str() ), cg.statusBar );
 
-	// Free the opt buffer!
-	CG_Free( opt );
-
-	// set up layout font as default system font
 	layout_cursor_font_style = FontStyle_Normal;
 	layout_cursor_font_size = cgs.textSizeSmall;
 }

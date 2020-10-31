@@ -21,16 +21,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 const char *Sys_FS_GetHomeDirectory( void );
-const char *Sys_FS_GetCacheDirectory( void );
 
-bool    Sys_FS_RemoveDirectory( const char *path );
 bool    Sys_FS_CreateDirectory( const char *path );
 
 const char *Sys_FS_FindFirst( const char *path, unsigned musthave, unsigned canthave );
 const char *Sys_FS_FindNext( unsigned musthave, unsigned canthave );
 void        Sys_FS_FindClose( void );
-
-void        *Sys_FS_LockFile( const char *path );
-void        Sys_FS_UnlockFile( void *handle );
 
 int         Sys_FS_FileNo( FILE *fp );

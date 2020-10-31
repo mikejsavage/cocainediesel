@@ -39,31 +39,35 @@ void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata, const char * name 
 			name = p + 1;
 		}
 
-		DynamicString path( &temp, "sounds/players/{}/{}", name, PLAYER_SOUND_NAMES[ i ] );
+		DynamicString path( &temp, "players/{}/{}", name, PLAYER_SOUND_NAMES[ i ] );
 		metadata->sounds[ i ] = FindSoundEffect( path.c_str() );
 	}
 }
 
 static const SoundEffect * GetPlayerSound( int entnum, PlayerSound ps ) {
-	if( entnum < 0 || entnum >= MAX_EDICTS ) {
+	if( entnum < 0 || entnum >= ARRAY_COUNT( cg_entPModels ) ) {
+		return NULL;
+	}
+	if( cg_entPModels[ entnum ].metadata == NULL ) {
+		Com_Printf( "Player model metadata is null\n" );
 		return NULL;
 	}
 	return cg_entPModels[ entnum ].metadata->sounds[ ps ];
 }
 
-void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps, float volume, float attn ) {
-	bool fixed = entchannel & CHAN_FIXED ? true : false;
+void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps ) {
+	bool fixed = ( entchannel & CHAN_FIXED ) != 0;
 	entchannel &= ~CHAN_FIXED;
 
 	const SoundEffect * sfx = GetPlayerSound( entnum, ps );
 	if( fixed ) {
-		S_StartFixedSound( sfx, FromQF3( cg_entities[entnum].current.origin ), entchannel, volume, attn );
+		S_StartFixedSound( sfx, cg_entities[entnum].current.origin, entchannel, 1.0f );
 	}
 	else if( ISVIEWERENTITY( entnum ) ) {
-		S_StartGlobalSound( sfx, entchannel, volume );
+		S_StartGlobalSound( sfx, entchannel, 1.0f );
 	}
 	else {
-		S_StartEntitySound( sfx, entnum, entchannel, volume, attn );
+		S_StartEntitySound( sfx, entnum, entchannel, 1.0f );
 	}
 }
 
@@ -75,7 +79,7 @@ static void CG_ParseClientInfo( cg_clientInfo_t *ci, const char *info ) {
 	assert( info );
 
 	if( !Info_Validate( info ) ) {
-		CG_Error( "Invalid client info" );
+		Com_Error( ERR_DROP, "Invalid client info" );
 	}
 
 	char *s = Info_ValueForKey( info, "name" );

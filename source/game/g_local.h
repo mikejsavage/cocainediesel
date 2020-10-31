@@ -20,9 +20,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 #include "qcommon/qcommon.h"
+#include "qcommon/hash.h"
 #include "gameshared/gs_public.h"
 #include "game/g_public.h"
-#include "game/g_syscalls.h"
 #include "game/g_gametypes.h"
 #include "game/g_ai.h"
 #include "server/server.h"
@@ -37,36 +37,25 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define CLIENT_RESPAWN_FREEZE_DELAY 300
 
 // edict->flags
-#define FL_FLY              0x00000001
-#define FL_SWIM             0x00000002  // implied immunity to drowining
-#define FL_IMMUNE_LASER     0x00000004
-#define FL_INWATER          0x00000008
-#define FL_GODMODE          0x00000010
-#define FL_NOTARGET         0x00000020
-#define FL_IMMUNE_SLIME     0x00000040
-#define FL_IMMUNE_LAVA      0x00000080
-#define FL_PARTIALGROUND    0x00000100  // not all corners are valid
-#define FL_WATERJUMP        0x00000200  // player jumping out of water
-#define FL_TEAMSLAVE        0x00000400  // not the first on the team
-#define FL_NO_KNOCKBACK     0x00000800
+#define FL_GODMODE          0x00000001
+#define FL_NO_KNOCKBACK     0x00000002
 
 #define FRAMETIME ( (float)game.frametime * 0.001f )
 
-#define BODY_QUEUE_SIZE     8
 #define MAX_FLOOD_MESSAGES 32
 
-typedef enum {
+enum damage_t {
 	DAMAGE_NO,
 	DAMAGE_YES,     // will take damage if hit
 	DAMAGE_AIM      // auto targeting recognizes this
-} damage_t;
+};
 
 // deadflag
 #define DEAD_NO         0
 #define DEAD_DEAD       1
 
 // edict->movetype values
-typedef enum {
+enum movetype_t {
 	MOVETYPE_NONE,      // never moves
 	MOVETYPE_PLAYER,    // never moves (but is moved by pmove)
 	MOVETYPE_NOCLIP,    // like MOVETYPE_PLAYER, but not clipped
@@ -77,14 +66,14 @@ typedef enum {
 	MOVETYPE_LINEARPROJECTILE, // extra size to monsters
 	MOVETYPE_BOUNCE,
 	MOVETYPE_BOUNCEGRENADE,
-} movetype_t;
+};
 
 //
 // this structure is left intact through an entire game
 // it should be initialized at dll load time, and read/written to
 // the server.ssv file for savegames
 //
-typedef struct {
+struct game_locals_t {
 	edict_t *edicts;        // [maxentities]
 	gclient_t *clients;     // [maxclients]
 
@@ -104,28 +93,27 @@ typedef struct {
 	int64_t prevServerTime;         // last frame's server time
 
 	int numBots;
-} game_locals_t;
+};
 
 #define TIMEOUT_TIME                    180000
 #define TIMEIN_TIME                     5000
 
-typedef struct {
+struct timeout_t {
 	int64_t time;
 	int64_t endtime;
 	int caller;
 	int used[MAX_CLIENTS];
-} timeout_t;
+};
 
 //
 // this structure is cleared as each map is entered
 //
-typedef struct {
+struct level_locals_t {
 	int64_t framenum;
 	int64_t time; // time in milliseconds
 	int64_t spawnedTimeStamp; // time when map was restarted
 	int64_t finalMatchDuration;
 
-	char mapname[MAX_CONFIGSTRING_CHARS];
 	char callvote_map[MAX_CONFIGSTRING_CHARS];
 	char autorecord_name[128];
 
@@ -148,39 +136,35 @@ typedef struct {
 
 	bool teamlock;
 	bool ready[MAX_CLIENTS];
-	bool forceStart;    // force starting the game, when warmup timelimit is up
 	bool forceExit;     // just exit, ignore extended time checks
 
 	edict_t *current_entity;    // entity running from G_RunFrame
 	edict_t *spawning_entity;   // entity being spawned from G_InitLevel
-	int body_que;               // dead bodies
 
 	timeout_t timeout;
 	float gravity;
-} level_locals_t;
-
+};
 
 // spawn_temp_t is only used to hold entity field values that
 // can be set from the editor, but aren't actualy present
 // in edict_t during gameplay
-typedef struct {
+struct spawn_temp_t {
 	int lip;
 	int distance;
 	int height;
 	float radius;
-	const char *noise;
-	const char *noise_start;
-	const char *noise_stop;
+	StringHash noise;
+	StringHash noise_start;
+	StringHash noise_stop;
 	float pausetime;
 	const char *gravity;
-	const char *debris1, *debris2;
 
 	int gameteam;
 
 	int size;
 
 	int rgba;
-} spawn_temp_t;
+};
 
 extern game_locals_t game;
 extern gs_state_t server_gs;
@@ -190,7 +174,7 @@ extern spawn_temp_t st;
 extern mempool_t *gamepool;
 
 extern int meansOfDeath;
-extern vec3_t knockbackOfDeath;
+extern Vec3 knockbackOfDeath;
 
 #define FOFS( x ) offsetof( edict_t,x )
 #define STOFS( x ) offsetof( spawn_temp_t,x )
@@ -201,7 +185,6 @@ extern cvar_t *developer;
 
 extern cvar_t *filterban;
 
-extern cvar_t *g_gravity;
 extern cvar_t *g_maxvelocity;
 
 extern cvar_t *sv_cheats;
@@ -235,6 +218,7 @@ extern cvar_t *g_antilag_maxtimedelta;
 
 extern cvar_t *g_teams_maxplayers;
 extern cvar_t *g_teams_allow_uneven;
+extern cvar_t *g_teams_autojoin;
 
 extern cvar_t *g_autorecord;
 extern cvar_t *g_autorecord_maxdemos;
@@ -291,7 +275,7 @@ void G_SpawnQueue_AddClient( edict_t *ent );
 void G_SpawnQueue_RemoveClient( edict_t *ent );
 void G_SpawnQueue_Think( void );
 
-void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, vec3_t origin, vec3_t angles );
+void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, Vec3 * origin, Vec3 * angles );
 void SP_info_player_start( edict_t *ent );
 void SP_info_player_deathmatch( edict_t *ent );
 void SP_post_match_camera( edict_t *ent );
@@ -299,8 +283,6 @@ void SP_post_match_camera( edict_t *ent );
 //
 // g_func.c
 //
-void G_AssignMoverSounds( edict_t *ent, const char *start, const char *move, const char *stop );
-
 void SP_func_plat( edict_t *ent );
 void SP_func_rotating( edict_t *ent );
 void SP_func_button( edict_t *ent );
@@ -309,7 +291,6 @@ void SP_func_door_rotating( edict_t *ent );
 void SP_func_train( edict_t *ent );
 void SP_func_timer( edict_t *self );
 void SP_func_wall( edict_t *self );
-void SP_func_object( edict_t *self );
 void SP_func_explosive( edict_t *self );
 void SP_func_static( edict_t *ent );
 
@@ -327,7 +308,7 @@ void GT_asCallSpawn( void );
 void GT_asCallMatchStateStarted( void );
 bool GT_asCallMatchStateFinished( int incomingMatchState );
 void GT_asCallThinkRules( void );
-void GT_asCallPlayerKilled( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point, int mod );
+void GT_asCallPlayerKilled( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point, int mod );
 void GT_asCallPlayerRespawn( edict_t *ent, int old_team, int new_team );
 void GT_asCallScoreEvent( gclient_t *client, const char *score_event, const char *args );
 void GT_asCallScoreboardMessage( char * buf, size_t buf_size );
@@ -340,9 +321,8 @@ void G_asCallMapEntityThink( edict_t *ent );
 void G_asCallMapEntityTouch( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags );
 void G_asCallMapEntityUse( edict_t *ent, edict_t *other, edict_t *activator );
 void G_asCallMapEntityPain( edict_t *ent, edict_t *other, float kick, float damage );
-void G_asCallMapEntityDie( edict_t *ent, edict_t *inflicter, edict_t *attacker, int damage, const vec3_t point );
+void G_asCallMapEntityDie( edict_t *ent, edict_t *inflicter, edict_t *attacker, int damage, Vec3 point );
 void G_asCallMapEntityStop( edict_t *ent );
-void G_asResetEntityBehaviors( edict_t *ent );
 void G_asClearEntityBehaviors( edict_t *ent );
 void G_asReleaseEntityBehaviors( edict_t *ent );
 
@@ -378,27 +358,16 @@ void G_PrecacheGameCommands( void );
 void G_AddCommand( const char *name, gamecommandfunc_t cmdfunc );
 
 //
-// g_items.c
-//
-void PrecacheItem( const gsitem_t *it );
-void G_PrecacheItems( void );
-void G_FireWeapon( edict_t *ent, int parm );
-const gsitem_t *GetItemByTag( int tag );
-bool Add_Ammo( gclient_t *client, const gsitem_t *item, int count, bool add_it );
-bool G_PickupItem( edict_t *other, const gsitem_t *it, int flags, int count );
-void G_UseItem( struct edict_s *ent, const gsitem_t *item );
-
-//
 // g_utils.c
 //
 #define G_LEVELPOOL_BASE_SIZE   45 * 1024 * 1024
 
-bool KillBox( edict_t *ent, int mod, const vec3_t knockback );
+bool KillBox( edict_t *ent, int mod, Vec3 knockback );
 float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker );
 edict_t *G_Find( edict_t *from, size_t fieldofs, const char *match );
 edict_t *G_PickTarget( const char *targetname );
 void G_UseTargets( edict_t *ent, edict_t *activator );
-void G_SetMovedir( vec3_t angles, vec3_t movedir );
+void G_SetMovedir( Vec3 * angles, Vec3 * movedir );
 void G_InitMover( edict_t *ent );
 void G_DropSpawnpointToFloor( edict_t *ent );
 
@@ -421,16 +390,16 @@ char *G_AllocCreateNamesList( const char *path, const char *extension, const cha
 char *_G_CopyString( const char *in, const char *filename, int fileline );
 #define G_CopyString( in ) _G_CopyString( in, __FILE__, __LINE__ )
 
-void G_AddEvent( edict_t *ent, int event, int parm, bool highPriority );
-edict_t *G_SpawnEvent( int event, int parm, vec3_t origin );
-void G_MorphEntityIntoEvent( edict_t *ent, int event, int parm );
+void G_AddEvent( edict_t *ent, int event, u64 parm, bool highPriority );
+edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin );
+void G_MorphEntityIntoEvent( edict_t *ent, int event, u64 parm );
 
 void G_CallThink( edict_t *ent );
 void G_CallTouch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags );
 void G_CallUse( edict_t *self, edict_t *other, edict_t *activator );
 void G_CallStop( edict_t *self );
 void G_CallPain( edict_t *ent, edict_t *attacker, float kick, float damage );
-void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point );
+void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point );
 
 #ifndef _MSC_VER
 void G_PrintMsg( edict_t *ent, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
@@ -441,16 +410,16 @@ void G_PrintMsg( edict_t *ent, _Printf_format_string_ const char *format, ... );
 void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, _Printf_format_string_ const char *format, ... );
 void G_CenterPrintMsg( edict_t *ent, _Printf_format_string_ const char *format, ... );
 #endif
+void G_ClearCenterPrint( edict_t *ent );
 
 void G_Obituary( edict_t *victim, edict_t *attacker, int mod );
 
-edict_t *G_Sound( edict_t *owner, int channel, int soundindex, float attenuation );
-edict_t *G_PositionedSound( vec3_t origin, int channel, int soundindex, float attenuation );
-void G_GlobalSound( int channel, int soundindex );
-void G_LocalSound( edict_t *owner, int channel, int soundindex );
+edict_t *G_Sound( edict_t *owner, int channel, StringHash sound );
+edict_t *G_PositionedSound( Vec3 origin, int channel, StringHash sound );
+void G_GlobalSound( int channel, StringHash sound );
+void G_LocalSound( edict_t *owner, int channel, StringHash sound );
 
-#define G_ISGHOSTING( x ) ( ( ( x )->s.modelindex == 0 ) && ( ( x )->r.solid == SOLID_NOT ) )
-#define ISBRUSHMODEL( x ) ( ( ( x > 0 ) && ( (int)x < trap_CM_NumInlineModels() ) ) ? true : false )
+#define G_ISGHOSTING( x ) ( ( x )->r.solid == SOLID_NOT )
 
 void G_TeleportEffect( edict_t *ent, bool in );
 void G_RespawnEffect( edict_t *ent );
@@ -458,14 +427,12 @@ int G_SolidMaskForEnt( edict_t *ent );
 void G_CheckGround( edict_t *ent );
 void G_CategorizePosition( edict_t *ent );
 void G_ReleaseClientPSEvent( gclient_t *client );
-void G_AddPlayerStateEvent( gclient_t *client, int event, int parm );
+void G_AddPlayerStateEvent( gclient_t *client, int event, u64 parm );
 void G_ClearPlayerStateEvents( gclient_t *client );
 
 // announcer events
-void G_AnnouncerSound( edict_t *targ, int soundindex, int team, bool queued, edict_t *ignore );
+void G_AnnouncerSound( edict_t *targ, StringHash sound, int team, bool queued, edict_t *ignore );
 edict_t *G_PlayerForText( const char *text );
-
-void G_PrecacheWeapondef( int weapon, firedef_t *firedef );
 
 void G_SetBoundsForSpanEntity( edict_t *ent, float size );
 
@@ -480,7 +447,6 @@ void G_CallVotes_Think( void );
 bool G_Callvotes_HasVoted( edict_t *ent );
 void G_CallVote_Cmd( edict_t *ent );
 void G_OperatorVote_Cmd( edict_t *ent );
-void G_RegisterGametypeScriptCallvote( const char *name, const char *usage, const char *type, const char *help );
 
 //
 // g_trigger.c
@@ -500,55 +466,58 @@ void SP_trigger_gravity( edict_t *ent );
 //
 #define MAX_ENT_AREAS 16
 
-typedef struct link_s {
-	struct link_s *prev, *next;
+struct link_t {
+	link_t *prev, *next;
 	int entNum;
-} link_t;
+};
 
-int G_PointContents( const vec3_t p );
-void G_Trace( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, edict_t *passedict, int contentmask );
-int G_PointContents4D( const vec3_t p, int timeDelta );
-void G_Trace4D( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, edict_t *passedict, int contentmask, int timeDelta );
+int G_PointContents( Vec3 p );
+void G_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, edict_t *passedict, int contentmask );
+int G_PointContents4D( Vec3 p, int timeDelta );
+void G_Trace4D( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, edict_t *passedict, int contentmask, int timeDelta );
 void GClip_BackUpCollisionFrame( void );
-int GClip_FindInRadius4D( vec3_t org, float rad, int *list, int maxcount, int timeDelta );
-void G_SplashFrac4D( const edict_t *ent, vec3_t hitpoint, float maxradius, vec3_t pushdir, float *frac, int timeDelta, bool selfdamage );
+int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int timeDelta );
+void G_SplashFrac4D( const edict_t *ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta, bool selfdamage );
 void GClip_ClearWorld( void );
-void GClip_SetBrushModel( edict_t *ent, const char *name );
+void GClip_SetBrushModel( edict_t * ent );
 void GClip_SetAreaPortalState( edict_t *ent, bool open );
 void GClip_LinkEntity( edict_t *ent );
 void GClip_UnlinkEntity( edict_t *ent );
 void GClip_TouchTriggers( edict_t *ent );
-void G_PMoveTouchTriggers( pmove_t *pm, vec3_t previous_origin );
-entity_state_t *G_GetEntityStateForDeltaTime( int entNum, int deltaTime );
-int GClip_FindInRadius( vec3_t org, float rad, int *list, int maxcount );
+void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin );
+SyncEntityState *G_GetEntityStateForDeltaTime( int entNum, int deltaTime );
+int GClip_FindInRadius( Vec3 org, float rad, int *list, int maxcount );
+
+bool IsHeadshot( int entNum, Vec3 hit, int timeDelta );
 
 // BoxEdicts() can return a list of either solid or trigger entities
 // FIXME: eliminate AREA_ distinction?
 #define AREA_ALL       -1
 #define AREA_SOLID      1
 #define AREA_TRIGGERS   2
-int GClip_AreaEdicts( const vec3_t mins, const vec3_t maxs, int *list, int maxcount, int areatype, int timeDelta );
-bool GClip_EntityContact( const vec3_t mins, const vec3_t maxs, edict_t *ent );
+int GClip_AreaEdicts( Vec3 mins, Vec3 maxs, int *list, int maxcount, int areatype, int timeDelta );
+bool GClip_EntityContact( Vec3 mins, Vec3 maxs, edict_t *ent );
 
 //
 // g_combat.c
 //
-bool G_IsTeamDamage( entity_state_t *targ, entity_state_t *attacker );
-void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point, int mod );
-int G_ModToAmmo( int mod );
-void G_SplashFrac( const entity_state_t *s, const entity_shared_t *r, const vec3_t point, float maxradius, vec3_t pushdir, float *frac, bool selfdamage );
-void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_t pushdir, const vec3_t dmgdir, const vec3_t point, float damage, float knockback, int dflags, int mod );
+bool G_IsTeamDamage( SyncEntityState *targ, SyncEntityState *attacker );
+void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point, int mod );
+void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 point, float maxradius, Vec3 * pushdir, float *frac, bool selfdamage );
+void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdir, Vec3 dmgdir, Vec3 point, float damage, float knockback, int dflags, int mod );
+void G_RadiusKnockback( const WeaponDef * def, edict_t *attacker, Vec3 pos, cplane_t *plane, int mod, int timeDelta );
 void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edict_t *ignore, int mod );
 
 // damage flags
 #define DAMAGE_RADIUS 0x00000001  // damage was indirect
 #define DAMAGE_NO_PROTECTION 0x00000002
-#define DAMAGE_KNOCKBACK_SOFT 0x00000040
+#define DAMAGE_KNOCKBACK_SOFT 0x00000004
+#define DAMAGE_HEADSHOT 0x00000008
 
 //
 // g_misc.c
 //
-void ThrowSmallPileOfGibs( edict_t *self, const vec3_t knockback, int damage );
+void ThrowSmallPileOfGibs( edict_t *self, Vec3 knockback, int damage );
 
 void BecomeExplosion1( edict_t *self );
 
@@ -561,16 +530,7 @@ void SP_model( edict_t *ent );
 //
 // g_weapon.c
 //
-void W_Fire_Blade( edict_t *self, int range, vec3_t start, vec3_t angles, float damage, int knockback, int timeDelta );
-void W_Fire_MG( edict_t *self, vec3_t start, vec3_t angles, int seed, int range, int hspread, int vspread, float damage, int knockback, int timeDelta );
-void W_Fire_Riotgun( edict_t *self, vec3_t start, vec3_t angles, int range, int hspread, int vspread, int count, float damage, int knockback, int timeDelta );
-edict_t *W_Fire_Grenade( edict_t *self, vec3_t start, vec3_t angles, int speed, float damage, int minKnockback, int maxKnockback, int minDamage, float radius, int timeout, int timeDelta, bool aim_up );
-edict_t *W_Fire_Rocket( edict_t *self, vec3_t start, vec3_t angles, int speed, float damage, int minKnockback, int maxKnockback, int minDamage, int radius, int timeout, int timeDelta );
-edict_t *W_Fire_Plasma( edict_t *self, vec3_t start, vec3_t angles, float damage, int minKnockback, int maxKnockback, int minDamage, int radius, int speed, int timeout, int timeDelta );
-void W_Fire_Electrobolt_FullInstant( edict_t *self, vec3_t start, vec3_t angles, float maxdamage, float mindamage, int maxknockback, int minknockback, int range, int minDamageRange, int timeDelta );
-edict_t *W_Fire_Lasergun( edict_t *self, vec3_t start, vec3_t angles, float damage, int knockback, int timeout, int timeDelta );
-
-void Use_Weapon( edict_t *ent, const gsitem_t *item );
+void G_FireWeapon( edict_t *ent, u64 parm );
 
 //
 // g_chasecam	//newgametypes
@@ -580,20 +540,17 @@ void G_ChasePlayer( edict_t *ent, const char *name, bool teamonly, int followmod
 void G_ChaseStep( edict_t *ent, int step );
 void Cmd_SwitchChaseCamMode_f( edict_t *ent );
 void Cmd_ChaseCam_f( edict_t *ent );
-void Cmd_Spec_f( edict_t *ent );
 void G_EndServerFrames_UpdateChaseCam( void );
 
 //
 // g_client.c
 //
-void G_InitBodyQueue( void );
 void ClientUserinfoChanged( edict_t *ent, char *userinfo );
 void G_Client_UpdateActivity( gclient_t *client );
 void G_Client_InactivityRemove( gclient_t *client );
 void G_ClientRespawn( edict_t *self, bool ghost );
 void G_ClientClearStats( edict_t *ent );
 void G_GhostClient( edict_t *self );
-bool ClientMultiviewChanged( edict_t *ent, bool multiview );
 void ClientThink( edict_t *ent, usercmd_t *cmd, int timeDelta );
 void G_ClientThink( edict_t *ent );
 void G_CheckClientRespawnClick( edict_t *ent );
@@ -601,7 +558,8 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient );
 void ClientDisconnect( edict_t *ent, const char *reason );
 void ClientBegin( edict_t *ent );
 void ClientCommand( edict_t *ent );
-void G_PredictedEvent( int entNum, int ev, int parm );
+void G_PredictedEvent( int entNum, int ev, u64 parm );
+void G_PredictedFireWeapon( int entNum, WeaponType weapon );
 void G_TeleportPlayer( edict_t *player, edict_t *dest );
 bool G_PlayerCanTeleport( edict_t *player );
 
@@ -609,7 +567,7 @@ bool G_PlayerCanTeleport( edict_t *player );
 // g_player.c
 //
 void player_pain( edict_t *self, edict_t *other, float kick, int damage );
-void player_die( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point );
+void player_die( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point );
 void player_think( edict_t *self );
 
 //
@@ -639,7 +597,7 @@ void SV_WriteIPList( void );
 // p_view.c
 //
 void G_ClientEndSnapFrame( edict_t *ent );
-void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, const vec3_t dir );
+void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, Vec3 dir );
 void G_ClientDamageFeedback( edict_t *ent );
 
 //
@@ -672,18 +630,9 @@ int G_BoxSlideMove( edict_t *ent, int contentmask, float slideBounce, float fric
 #define G_LevelFree( data ) _G_LevelFree( ( data ), __FILE__, __LINE__ )
 #define G_LevelCopyString( in ) _G_LevelCopyString( ( in ), __FILE__, __LINE__ )
 
-#ifndef _MSC_VER
-void G_Error( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) ) __attribute__( ( noreturn ) );
-void G_Printf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-#else
-__declspec( noreturn ) void G_Error( _Printf_format_string_ const char *format, ... );
-void G_Printf( _Printf_format_string_ const char *format, ... );
-#endif
-
-void G_Init( unsigned int seed, unsigned int framemsec );
+void G_Init( unsigned int framemsec );
 void G_Shutdown( void );
 void G_ExitLevel( void );
-game_state_t *G_GetGameState( void );
 void G_GamestatSetFlag( int flag, bool b );
 void G_Timeout_Reset( void );
 
@@ -703,8 +652,8 @@ void G_SnapFrame( void );
 bool G_CallSpawn( edict_t *ent );
 void G_RespawnLevel( void );
 void G_ResetLevel( void );
-void G_InitLevel( char *mapname, char *entities, int entstrlen, int64_t levelTime );
-const char *G_GetEntitySpawnKey( const char *key, edict_t *self );
+void G_InitLevel( const char *mapname, int64_t levelTime );
+void G_LoadMap( const char * name );
 
 //
 // g_awards.c
@@ -714,15 +663,15 @@ void G_AwardRaceRecord( edict_t *self );
 
 //============================================================================
 
-typedef struct {
+struct projectileinfo_t {
 	int radius;
 	float minDamage;
 	float maxDamage;
 	float minKnockback;
 	float maxKnockback;
-} projectileinfo_t;
+};
 
-typedef struct {
+struct chasecam_t {
 	bool active;
 	int target;
 	int mode;                   //3rd or 1st person
@@ -730,20 +679,20 @@ typedef struct {
 	bool teamonly;
 	int64_t timeout;           //delay after loosing target
 	int followmode;
-} chasecam_t;
+};
 
-typedef struct {
+struct moveinfo_t {
 	// fixed data
-	vec3_t start_origin;
-	vec3_t start_angles;
-	vec3_t end_origin;
-	vec3_t end_angles;
+	Vec3 start_origin;
+	Vec3 start_angles;
+	Vec3 end_origin;
+	Vec3 end_angles;
 
-	int sound_start;
-	int sound_middle;
-	int sound_end;
+	StringHash sound_start;
+	StringHash sound_middle;
+	StringHash sound_end;
 
-	vec3_t movedir;  // direction defined in the bsp
+	Vec3 movedir;  // direction defined in the bsp
 
 	float speed;
 	float distance;    // used by binary movers
@@ -752,15 +701,14 @@ typedef struct {
 
 	// state data
 	int state;
-	vec3_t dir;             // used by func_bobbing and func_pendulum
 	float current_speed;    // used by func_rotating
 
 	void ( *endfunc )( edict_t * );
 	void ( *blocked )( edict_t *self, edict_t *other );
 
-	vec3_t dest;
-	vec3_t destangles;
-} moveinfo_t;
+	Vec3 dest;
+	Vec3 destangles;
+};
 
 #define MAX_CLIENT_EVENTS   16
 #define MAX_CLIENT_EVENTS_MASK ( MAX_CLIENT_EVENTS - 1 )
@@ -768,33 +716,33 @@ typedef struct {
 #define G_MAX_TIME_DELTAS   8
 #define G_MAX_TIME_DELTAS_MASK ( G_MAX_TIME_DELTAS - 1 )
 
-typedef struct {
+struct client_snapreset_t {
 	int buttons;
 	uint8_t plrkeys; // used for displaying key icons
 	int damageTaken;
-	vec3_t damageTakenDir;
-} client_snapreset_t;
+	Vec3 damageTakenDir;
+};
 
-typedef struct {
+struct client_respawnreset_t {
 	client_snapreset_t snap;
 	chasecam_t chase;
 
 	int64_t timeStamp; // last time it was reset
 
-	// player_state_t event
-	int events[MAX_CLIENT_EVENTS];
+	SyncEvent events[MAX_CLIENT_EVENTS];
 	unsigned int eventsCurrent;
 	unsigned int eventsHead;
 
 	int old_waterlevel;
 	int old_watertype;
-} client_respawnreset_t;
+};
 
-typedef struct {
+struct client_levelreset_t {
 	int64_t timeStamp;				// last time it was reset
 
 	int64_t last_vsay;				// time when last vsay was said
 	int64_t last_activity;
+	int64_t last_spray;
 
 	score_stats_t stats;
 	bool showscores;
@@ -809,36 +757,25 @@ typedef struct {
 	int flood_team_whenhead;        // head pointer for when said
 
 	int64_t callvote_when;
-} client_levelreset_t;
+};
 
-typedef struct {
+struct client_teamreset_t {
 	int64_t timeStamp; // last time it was reset
 
 	// for position command
 	bool position_saved;
-	vec3_t position_origin;
-	vec3_t position_angles;
+	Vec3 position_origin;
+	Vec3 position_angles;
 	int64_t position_lastcmd;
+};
 
-	edict_t *last_killer;
-} client_teamreset_t;
-
-struct gclient_s {
+struct gclient_t {
 	// known to server
-	player_state_t ps;          // communicated by server to clients
+	SyncPlayerState ps;          // communicated by server to clients
 	client_shared_t r;
 
 	// DO NOT MODIFY ANYTHING ABOVE THIS, THE SERVER
 	// EXPECTS THE FIELDS IN THAT ORDER!
-
-	//================================
-
-	/*
-	// Review notes
-	- Revise the calls to G_ClearPlayerStateEvents, they may be useless now
-	- self->ai.pers.netname for what? there is self->r.client->netname already
-	- CTF prints personal bonuses in global console. I don't think this is worth it
-	*/
 
 	client_respawnreset_t resp;
 	client_levelreset_t level;
@@ -854,11 +791,9 @@ struct gclient_s {
 	char socket[MAX_INFO_VALUE];
 
 	bool connecting;
-	bool multiview;
 
 	int team;
 	int hand;
-	int handicap;
 	bool isoperator;
 	int64_t queueTimeStamp;
 	int muted;     // & 1 = chat disabled, & 2 = vsay disabled
@@ -873,7 +808,7 @@ struct gclient_s {
 	int asRefCount, asFactored;
 };
 
-typedef struct snap_edict_s {
+struct snap_edict_t {
 	// whether we have killed anyone this snap
 	bool kill;
 	bool teamkill;
@@ -881,14 +816,16 @@ typedef struct snap_edict_s {
 	// ents can accumulate damage along the frame, so they spawn less events
 	float damage_taken;
 	float damage_saved;
-	vec3_t damage_dir;
-	vec3_t damage_at;
+	Vec3 damage_dir;
+	Vec3 damage_at;
 	float damage_given;             // for hitsounds
 	float damageteam_given;
-} snap_edict_t;
+};
 
-struct edict_s {
-	entity_state_t s;
+using EdictTouchCallback = void ( * )( edict_t * self, edict_t * other, cplane_t * plane, int surfFlags );
+
+struct edict_t {
+	SyncEntityState s;
 	entity_shared_t r;
 
 	// DO NOT MODIFY ANYTHING ABOVE THIS, THE SERVER
@@ -901,13 +838,11 @@ struct edict_s {
 	// physics grid areas this edict is linked into
 	link_t areagrid[MAX_ENT_AREAS];
 
-	entity_state_t olds; // state in the last sent frame snap
+	SyncEntityState olds; // state in the last sent frame snap
 
 	int movetype;
 	int flags;
 
-	const char *model;
-	const char *model2;
 	int64_t freetime;          // time when the object was freed
 
 	int numEvents;
@@ -924,10 +859,10 @@ struct edict_s {
 	int64_t nextThink;
 
 	void ( *think )( edict_t *self );
-	void ( *touch )( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags );
+	EdictTouchCallback touch;
 	void ( *use )( edict_t *self, edict_t *other, edict_t *activator );
 	void ( *pain )( edict_t *self, edict_t *other, float kick, int damage );
-	void ( *die )( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point );
+	void ( *die )( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point );
 	void ( *stop )( edict_t *self );
 
 	const char *target;
@@ -937,8 +872,8 @@ struct edict_s {
 	const char *pathtarget;
 	edict_t *target_ent;
 
-	vec3_t velocity;
-	vec3_t avelocity;
+	Vec3 velocity;
+	Vec3 avelocity;
 
 	float angle;                // set in qe3, -1 = up, -2 = down
 	float speed;
@@ -978,10 +913,7 @@ struct edict_s {
 	edict_t *activator;
 	edict_t *groundentity;
 	int groundentity_linkcount;
-	edict_t *teamchain;
-	edict_t *teammaster;
-	int noise_index;
-	float attenuation;
+	StringHash sound;
 
 	// timing variables
 	float wait;
@@ -994,9 +926,9 @@ struct edict_s {
 	int style;                  // also used as areaportal number
 
 	float light;
-	vec3_t color;
+	Vec3 color;
 
-	const gsitem_t *item;       // for bonus items
+	const Item *item;       // for bonus items
 
 	// common data blocks
 	moveinfo_t moveinfo;        // func movers movement

@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "qcommon.h"
+#include "qcommon/qcommon.h"
 
 #if defined ( __MACOSX__ )
 #include <arpa/inet.h>
@@ -117,7 +117,7 @@ void Netchan_OutOfBandPrint( const socket_t *socket, const netadr_t *address, co
 	static char string[MAX_PACKETLEN - 4];
 
 	va_start( argptr, format );
-	Q_vsnprintfz( string, sizeof( string ), format, argptr );
+	vsnprintf( string, sizeof( string ), format, argptr );
 	va_end( argptr );
 
 	Netchan_OutOfBand( socket, address, sizeof( char ) * (int)strlen( string ), (uint8_t *)string );
@@ -322,7 +322,7 @@ bool Netchan_TransmitNextFragment( netchan_t *chan ) {
 		fragmentLength = chan->unsentLength - chan->unsentFragmentStart;
 		last = true;
 	} else {
-		fragmentLength = ceil( ( chan->unsentLength - chan->unsentFragmentStart ) * 1.0 / ceil( ( chan->unsentLength - chan->unsentFragmentStart ) * 1.0 / FRAGMENT_SIZE ) );
+		fragmentLength = ceilf( ( chan->unsentLength - chan->unsentFragmentStart ) * 1.0 / ceilf( ( chan->unsentLength - chan->unsentFragmentStart ) * 1.0 / FRAGMENT_SIZE ) );
 		last = false;
 	}
 

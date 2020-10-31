@@ -18,12 +18,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "qcommon.h"
+#include "qcommon/platform.h"
 
-#include "sys_net.h"
-
-#ifdef _WIN32
-#include "../win32/winquake.h"
+#ifdef PLATFORM_WINDOWS
+#include "windows/miniwindows.h"
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #else
 #include <unistd.h>
 #include <netinet/in.h>
@@ -34,6 +34,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <sys/socket.h>
 #include <sys/time.h>
 #endif
+
+#include "qcommon/qcommon.h"
+#include "qcommon/sys_net.h"
 
 #define MAX_LOOPBACK    4
 
@@ -164,6 +167,11 @@ static bool SockaddressToAddress( const struct sockaddr *s, netadr_t *address ) 
 	}
 }
 
+static bool SetSockOptOne( int fd, int level, int opt ) {
+	int one = 1;
+	return setsockopt( fd, level, opt, ( char * ) &one, sizeof( one ) ) != -1;
+}
+
 /*
 * BindSocket
 */
@@ -202,40 +210,32 @@ static socket_handle_t OpenSocket( socket_type_t type, bool ipv6 ) {
 			}
 			break;
 
-#ifdef TCP_SUPPORT
-		case SOCKET_TCP:
+		case SOCKET_TCP: {
 			handle = socket( protocol, SOCK_STREAM, IPPROTO_TCP );
 			if( handle == INVALID_SOCKET ) {
 				NET_SetErrorStringFromLastError( "socket" );
 				return INVALID_SOCKET;
-			} else {
-				struct linger ling;
-
-				ling.l_onoff = 1;
-				ling.l_linger = 5;  // 0 for abortive disconnect
-
-				if( setsockopt( handle, SOL_SOCKET, SO_LINGER, (char *)&ling, sizeof( ling ) ) < 0 ) {
-					NET_SetErrorStringFromLastError( "socket" );
-					Sys_NET_SocketClose( handle );
-					return INVALID_SOCKET;
-				}
 			}
-			break;
-#endif
+		} break;
 
 		default:
 			NET_SetErrorString( "Unknown socket type" );
 			return INVALID_SOCKET;
 	}
 
-	// Win32's API only defines the IPV6_V6ONLY option since Windows Vista, but fortunately
-	// the default value is what we want on Win32 anyway (IPV6_V6ONLY = true)
-#ifdef IPV6_V6ONLY
-	if( ipv6 ) {
-		int ipv6_only = 1;
-		setsockopt( handle, IPPROTO_IPV6, IPV6_V6ONLY, (char*)&ipv6_only, sizeof( ipv6_only ) );
+	if( !SetSockOptOne( handle, SOL_SOCKET, SO_REUSEADDR ) ) {
+		NET_SetErrorStringFromLastError( "socket" );
+		Sys_NET_SocketClose( handle );
+		return INVALID_SOCKET;
 	}
-#endif
+
+	if( ipv6 ) {
+		if( !SetSockOptOne( handle, IPPROTO_IPV6, IPV6_V6ONLY ) ) {
+			NET_SetErrorStringFromLastError( "socket" );
+			Sys_NET_SocketClose( handle );
+			return INVALID_SOCKET;
+		}
+	}
 
 	return handle;
 }
@@ -244,9 +244,7 @@ static socket_handle_t OpenSocket( socket_type_t type, bool ipv6 ) {
 * NET_SocketMakeBroadcastCapable
 */
 static bool NET_SocketMakeBroadcastCapable( socket_handle_t handle ) {
-	int num = 1;
-
-	if( setsockopt( handle, SOL_SOCKET, SO_BROADCAST, (char *)&num, sizeof( num ) ) == SOCKET_ERROR ) {
+	if( !SetSockOptOne( handle, SOL_SOCKET, SO_BROADCAST ) ) {
 		NET_SetErrorStringFromLastError( "setsockopt" );
 		return false;
 	}
@@ -366,12 +364,6 @@ static bool NET_IP_OpenSocket( socket_t *sock, const netadr_t *address, socket_t
 		}
 	}
 
-	// wsw : pb : make it reusable (fast release of port when quit)
-	/*if( setsockopt(newsocket, SOL_SOCKET, SO_REUSEADDR, (char *)&i, sizeof(i)) == -1 ) {
-	SetErrorStringFromErrno( "setsockopt" );
-	return 0;
-	}*/
-
 	if( !BindSocket( newsocket, address ) ) {
 		Sys_NET_SocketClose( newsocket );
 		return false;
@@ -403,7 +395,6 @@ static void NET_UDP_CloseSocket( socket_t *socket ) {
 
 //=============================================================================
 
-#ifdef TCP_SUPPORT
 /*
 * NET_TCP_Get
 */
@@ -611,8 +602,6 @@ static void NET_TCP_CloseSocket( socket_t *socket ) {
 	socket->connected = false;
 }
 
-#endif // TCP_SUPPORT
-
 //===================================================================
 
 
@@ -728,7 +717,6 @@ static void NET_Loopback_CloseSocket( socket_t *socket ) {
 	socket->handle = 0;
 }
 
-#ifdef TCP_SUPPORT
 /*
 * NET_TCP_SendPacket
 */
@@ -750,7 +738,6 @@ static bool NET_TCP_SendPacket( const socket_t *socket, const void *data, size_t
 
 	return true;
 }
-#endif
 
 /*
 =============================================================================
@@ -779,10 +766,8 @@ int NET_GetPacket( const socket_t *socket, netadr_t *address, msg_t *message ) {
 		case SOCKET_UDP:
 			return NET_UDP_GetPacket( socket, address, message );
 
-#ifdef TCP_SUPPORT
 		case SOCKET_TCP:
 			return NET_TCP_GetPacket( socket, address, message );
-#endif
 
 		default:
 			assert( false );
@@ -811,10 +796,8 @@ int NET_Get( const socket_t *socket, netadr_t *address, void *data, size_t lengt
 			NET_SetErrorString( "Operation not supported by the socket type" );
 			return -1;
 
-#ifdef TCP_SUPPORT
 		case SOCKET_TCP:
 			return NET_TCP_Get( socket, address, data, length );
-#endif
 
 		default:
 			assert( false );
@@ -844,10 +827,8 @@ bool NET_SendPacket( const socket_t *socket, const void *data, size_t length, co
 		case SOCKET_UDP:
 			return NET_UDP_SendPacket( socket, data, length, address );
 
-#ifdef TCP_SUPPORT
 		case SOCKET_TCP:
 			return NET_TCP_SendPacket( socket, data, length );
-#endif
 
 		default:
 			assert( false );
@@ -876,10 +857,8 @@ int NET_Send( const socket_t *socket, const void *data, size_t length, const net
 			NET_SetErrorString( "Operation not supported by the socket type" );
 			return -1;
 
-#ifdef TCP_SUPPORT
 		case SOCKET_TCP:
 			return NET_TCP_Send( socket, data, length );
-#endif
 
 		default:
 			assert( false );
@@ -904,13 +883,13 @@ char *NET_AddressToString( const netadr_t *a ) {
 		case NA_IP:
 		{
 			const netadr_ipv4_t *adr4 = &a->address.ipv4;
-			Q_snprintfz( s, sizeof( s ), "%i.%i.%i.%i:%hu", adr4->ip[0], adr4->ip[1], adr4->ip[2], adr4->ip[3], BigShort( adr4->port ) );
+			snprintf( s, sizeof( s ), "%i.%i.%i.%i:%hu", adr4->ip[0], adr4->ip[1], adr4->ip[2], adr4->ip[3], BigShort( adr4->port ) );
 			break;
 		}
 		case NA_IP6:
 		{
 			const netadr_ipv6_t *adr6 = &a->address.ipv6;
-			Q_snprintfz( s, sizeof( s ), "[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]:%hu",
+			snprintf( s, sizeof( s ), "[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]:%hu",
 						 adr6->ip[ 0], adr6->ip[ 1], adr6->ip[ 2], adr6->ip[ 3], adr6->ip[ 4], adr6->ip[ 5], adr6->ip[ 6], adr6->ip[ 7],
 						 adr6->ip[ 8], adr6->ip[ 9], adr6->ip[10], adr6->ip[11], adr6->ip[12], adr6->ip[13], adr6->ip[14], adr6->ip[15],
 						 BigShort( adr6->port ) );
@@ -1295,7 +1274,7 @@ void NET_SetErrorString( const char *format, ... ) {
 	char msg[MAX_PRINTMSG];
 
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	Q_strncpyz( errorstring, msg, sizeof( errorstring ) );
@@ -1324,10 +1303,8 @@ const char *NET_SocketTypeToString( socket_type_t type ) {
 		case SOCKET_UDP:
 			return "UDP";
 
-#ifdef TCP_SUPPORT
 		case SOCKET_TCP:
 			return "TCP";
-#endif
 
 		default:
 			return "unknown";
@@ -1341,7 +1318,6 @@ const char *NET_SocketToString( const socket_t *socket ) {
 	return va( "%s %s", NET_SocketTypeToString( socket->type ), ( socket->server ? "server" : "client" ) );
 }
 
-#ifdef TCP_SUPPORT
 /*
 * NET_Listen
 */
@@ -1381,7 +1357,6 @@ int NET_Accept( const socket_t *socket, socket_t *newsocket, netadr_t *address )
 			return false;
 	}
 }
-#endif
 
 /*
 * NET_OpenSocket
@@ -1394,9 +1369,7 @@ bool NET_OpenSocket( socket_t *socket, socket_type_t type, const netadr_t *addre
 		case SOCKET_LOOPBACK:
 			return NET_Loopback_OpenSocket( socket, address, server );
 
-#ifdef TCP_SUPPORT
 		case SOCKET_TCP:
-#endif
 		case SOCKET_UDP:
 			return NET_IP_OpenSocket( socket, address, type, server );
 
@@ -1424,11 +1397,9 @@ void NET_CloseSocket( socket_t *socket ) {
 			NET_UDP_CloseSocket( socket );
 			break;
 
-#ifdef TCP_SUPPORT
 		case SOCKET_TCP:
 			NET_TCP_CloseSocket( socket );
 			break;
-#endif
 
 		default:
 			assert( false );
@@ -1456,9 +1427,7 @@ void NET_Sleep( int msec, socket_t *sockets[] ) {
 
 		switch( sockets[i]->type ) {
 			case SOCKET_UDP:
-#ifdef TCP_SUPPORT
 			case SOCKET_TCP:
-#endif
 				assert( sockets[i]->handle > 0 );
 				FD_SET( (unsigned)sockets[i]->handle, &fdset ); // network socket
 				break;
@@ -1511,11 +1480,9 @@ int NET_Monitor( int msec, socket_t *sockets[], void ( *read_cb )( socket_t *, v
 		}
 		switch( sockets[i]->type ) {
 			case SOCKET_UDP:
-#ifdef TCP_SUPPORT
 			case SOCKET_TCP:
-#endif
 				assert( sockets[i]->handle > 0 );
-				fdmax = max( (int)sockets[i]->handle, fdmax );
+				fdmax = Max2( (int)sockets[i]->handle, fdmax );
 				FD_SET( sockets[i]->handle, &fdsetr ); // network socket
 				if( p_fdsetw ) {
 					FD_SET( sockets[i]->handle, p_fdsetw );
@@ -1542,9 +1509,7 @@ int NET_Monitor( int msec, socket_t *sockets[], void ( *read_cb )( socket_t *, v
 
 			switch( sockets[i]->type ) {
 				case SOCKET_UDP:
-#ifdef TCP_SUPPORT
 				case SOCKET_TCP:
-#endif
 					if( ( exception_cb ) && ( FD_ISSET( sockets[i]->handle, p_fdsete ) ) ) {
 						exception_cb( sockets[i], privatep ? privatep[i] : NULL );
 					}
@@ -1580,9 +1545,6 @@ int64_t NET_SendFile( const socket_t *socket, int file, size_t offset, size_t co
 		return -1;
 	}
 
-#ifndef TCP_SUPPORT
-	return -1;
-#else
 	if( socket->type != SOCKET_TCP ) {
 		return -1;
 	}
@@ -1600,7 +1562,6 @@ int64_t NET_SendFile( const socket_t *socket, int file, size_t offset, size_t co
 	}
 
 	return ret;
-#endif
 }
 
 /*

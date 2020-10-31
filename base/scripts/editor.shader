@@ -59,3 +59,17 @@ textures/editor/trigger
 	qer_nocarve
 	surfaceparm nodraw
 }
+
+textures/editor/wallbangable
+{
+	qer_editorimage textures/editor/trigger
+	surfaceparm nonsolid
+	surfaceparm wallbangable
+}
+
+textures/editor/door
+{
+	qer_editorimage textures/editor/trigger
+	surfaceparm nonsolid
+	surfaceparm weaponclip
+}

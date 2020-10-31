@@ -18,9 +18,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "q_arch.h"
-#include "q_math.h"
-#include "q_shared.h"
+#include <limits.h>
+
+#include "gameshared/q_arch.h"
+#include "gameshared/q_math.h"
+#include "gameshared/q_shared.h"
+#include "qcommon/strtonum.h"
 
 //============================================================================
 
@@ -67,11 +70,13 @@ bool COM_ValidateFilename( const char *filename ) {
 * COM_ValidateRelativeFilename
 */
 bool COM_ValidateRelativeFilename( const char *filename ) {
+	// TODO: should probably use PathIsRelative on windows
+	// https://docs.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathisrelativea?redirectedfrom=MSDN
 	if( !COM_ValidateFilename( filename ) ) {
 		return false;
 	}
 
-	if( strstr( filename, ".." ) || strstr( filename, "//" ) ) {
+	if( strchr( filename, ':' ) || strstr( filename, ".." ) || strstr( filename, "//" ) ) {
 		return false;
 	}
 
@@ -93,21 +98,6 @@ void COM_StripExtension( char *filename ) {
 	if( src && *( src + 1 ) ) {
 		*src = 0;
 	}
-}
-
-/*
-* COM_FileExtension
-*/
-const char *COM_FileExtension( const char *filename ) {
-	const char *src, *last;
-
-	last = strrchr( filename, '/' );
-	src = strrchr( last ? last : filename, '.' );
-	if( src && *( src + 1 ) ) {
-		return src;
-	}
-
-	return NULL;
 }
 
 /*
@@ -185,22 +175,6 @@ void COM_StripFilename( char *filename ) {
 	*p = 0;
 }
 
-/*
-* COM_FilePathLength
-*
-* Returns the length from start of string to the character before last /
-*/
-int COM_FilePathLength( const char *in ) {
-	const char *s;
-
-	s = strrchr( in, '/' );
-	if( !s ) {
-		s = in;
-	}
-
-	return s - in;
-}
-
 //============================================================================
 //
 //					BYTE ORDER FUNCTIONS
@@ -217,48 +191,6 @@ short ShortSwap( short l ) {
 }
 
 /*
-* TempVector
-*
-* This is just a convenience function
-* for making temporary vectors for function calls
-*/
-float *tv( float x, float y, float z ) {
-	static int index;
-	static float vecs[8][3];
-	float *v;
-
-	// use an array so that multiple tempvectors won't collide
-	// for a while
-	v = vecs[index];
-	index = ( index + 1 ) & 7;
-
-	v[0] = x;
-	v[1] = y;
-	v[2] = z;
-
-	return v;
-}
-
-/*
-* VectorToString
-*
-* This is just a convenience function for printing vectors
-*/
-char *vtos( float v[3] ) {
-	static int index;
-	static char str[8][32];
-	char *s;
-
-	// use an array so that multiple vtos won't collide
-	s = str[index];
-	index = ( index + 1 ) & 7;
-
-	Q_snprintfz( s, 32, "(%+6.3f %+6.3f %+6.3f)", v[0], v[1], v[2] );
-
-	return s;
-}
-
-/*
 * va_r
 *
 * does a varargs printf into a temp buffer, so I don't need to have
@@ -267,7 +199,7 @@ char *vtos( float v[3] ) {
 char *va_r( char *dest, size_t size, const char *format, ... ) {
 	va_list argptr;
 	va_start( argptr, format );
-	Q_vsnprintfz( dest, size, format, argptr );
+	vsnprintf( dest, size, format, argptr );
 	va_end( argptr );
 	return dest;
 }
@@ -285,7 +217,7 @@ char *va( const char *format, ... ) {
 
 	str_index = ( str_index + 1 ) & 7;
 	va_start( argptr, format );
-	Q_vsnprintfz( string[str_index], sizeof( string[0] ), format, argptr );
+	vsnprintf( string[str_index], sizeof( string[0] ), format, argptr );
 	va_end( argptr );
 
 	return string[str_index];
@@ -295,19 +227,22 @@ static bool IsWhitespace( char c ) {
 	return c == '\0' || c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }
 
-Span< char > ParseSpan( char ** ptr, bool stop_on_newline ) {
-	char * cursor = *ptr;
+Span< const char > ParseToken( const char ** ptr, ParseStopOnNewLine stop ) {
+	const char * cursor = *ptr;
+	if( cursor == NULL ) {
+		return MakeSpan( "" );
+	}
 
 	// skip leading whitespace
 	while( IsWhitespace( *cursor ) ) {
 		if( *cursor == '\0' ) {
 			*ptr = NULL;
-			return Span< char >();
+			return MakeSpan( "" );
 		}
 
-		if( *cursor == '\n' && stop_on_newline ) {
+		if( *cursor == '\n' && stop == Parse_StopOnNewLine ) {
 			*ptr = cursor;
-			return Span< char >();
+			return MakeSpan( "" );
 		}
 
 		cursor++;
@@ -319,7 +254,7 @@ Span< char > ParseSpan( char ** ptr, bool stop_on_newline ) {
 		cursor++;
 	}
 
-	Span< char > span( cursor, 0 );
+	Span< const char > span( cursor, 0 );
 
 	if( !quoted ) {
 		while( !IsWhitespace( *cursor ) ) {
@@ -342,11 +277,7 @@ Span< char > ParseSpan( char ** ptr, bool stop_on_newline ) {
 	return span;
 }
 
-Span< const char > ParseSpan( const char ** ptr, bool stop_on_newline ) {
-	return ParseSpan( const_cast< char ** >( ptr ), stop_on_newline );
-}
-
-Span< const char > ParseSpan( Span< const char > * cursor, ParseStopOnNewLine stop ) {
+Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine stop ) {
 	Span< const char > c = *cursor;
 
 	// skip leading whitespace
@@ -358,7 +289,7 @@ Span< const char > ParseSpan( Span< const char > * cursor, ParseStopOnNewLine st
 
 		if( c[ 0 ] == '\n' && stop == Parse_StopOnNewLine ) {
 			*cursor = c;
-			return Span< char >();
+			return MakeSpan( "" );
 		}
 
 		c++;
@@ -393,7 +324,33 @@ Span< const char > ParseSpan( Span< const char > * cursor, ParseStopOnNewLine st
 	return token;
 }
 
-bool ParseFloat( Span< const char > str, float * x ) {
+int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop ) {
+	Span< const char > token = ParseToken( cursor, stop );
+	int x;
+	return SpanToInt( token, &x ) ? x : def;
+}
+
+float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine stop ) {
+	Span< const char > token = ParseToken( cursor, stop );
+	float x;
+	return SpanToFloat( token, &x ) ? x : def;
+}
+
+bool SpanToInt( Span< const char > str, int * x ) {
+	char buf[ 128 ];
+	if( str.n >= sizeof( buf ) )
+		return false;
+
+	memcpy( buf, str.ptr, str.n );
+	buf[ str.n ] = '\0';
+
+	const char * err = NULL;
+	*x = strtonum( buf, INT_MIN, INT_MAX, &err );
+
+	return err == NULL;
+}
+
+bool SpanToFloat( Span< const char > str, float * x ) {
 	char buf[ 128 ];
 	if( str.n >= sizeof( buf ) )
 		return false;
@@ -405,6 +362,56 @@ bool ParseFloat( Span< const char > str, float * x ) {
 	*x = strtof( buf, &end );
 
 	return end == buf + str.n;
+}
+
+bool StrEqual( Span< const char > lhs, Span< const char > rhs ) {
+	return lhs.n == rhs.n && memcmp( lhs.ptr, rhs.ptr, lhs.n ) == 0;
+}
+
+bool StrEqual( Span< const char > lhs, const char * rhs ) {
+	return StrEqual( lhs, MakeSpan( rhs ) );
+}
+
+bool StrEqual( const char * rhs, Span< const char > lhs ) {
+	return StrEqual( lhs, rhs );
+}
+
+bool StrCaseEqual( Span< const char > lhs, Span< const char > rhs ) {
+	if( lhs.n == 0 && rhs.n == 0 )
+		return true;
+	return lhs.n == rhs.n && Q_strnicmp( lhs.ptr, rhs.ptr, lhs.n ) == 0;
+}
+
+bool StrCaseEqual( Span< const char > lhs, const char * rhs ) {
+	return StrCaseEqual( lhs, MakeSpan( rhs ) );
+}
+
+bool StrCaseEqual( const char * rhs, Span< const char > lhs ) {
+	return StrCaseEqual( lhs, rhs );
+}
+
+bool StartsWith( const char * str, const char * prefix ) {
+	if( strlen( str ) < strlen( prefix ) )
+		return false;
+
+	return memcmp( str, prefix, strlen( prefix ) ) == 0;
+}
+
+Span< const char > FileExtension( const char * path ) {
+	const char * filename = strrchr( path, '/' );
+	const char * ext = strchr( filename == NULL ? path : filename, '.' );
+	return ext == NULL ? Span< const char >() : MakeSpan( ext );
+}
+
+Span< const char > BaseName( const char * path ) {
+	const char * filename = strrchr( path, '/' );
+	filename = filename == NULL ? path : filename + 1;
+	return MakeSpan( filename );
+}
+
+Span< const char > BasePath( const char * path ) {
+	const char * slash = strrchr( path, '/' );
+	return slash == NULL ? MakeSpan( path ) : Span< const char >( path, slash - path );
 }
 
 /*
@@ -577,35 +584,6 @@ const char *COM_RemoveJunkChars( const char *in ) {
 }
 
 /*
-* COM_ReadColorRGBString
-*/
-int COM_ReadColorRGBString( const char *in ) {
-	if( in == NULL )
-		return 0;
-
-	int rgb[3];
-	if( sscanf( in, "%3i %3i %3i", &rgb[0], &rgb[1], &rgb[2] ) != 3 )
-		return 0;
-
-	for( int i = 0; i < 3; i++ )
-		rgb[i] = bound( rgb[i], 0, 255 );
-	return COLOR_RGB( rgb[0], rgb[1], rgb[2] );
-}
-
-int COM_ReadColorRGBAString( const char *in ) {
-	if( in == NULL )
-		return 0;
-
-	int rgba[4];
-	if( sscanf( in, "%3i %3i %3i %3i", &rgba[0], &rgba[1], &rgba[2], &rgba[3] ) != 4 )
-		return 0;
-
-	for( int i = 0; i < 4; i++ )
-		rgba[i] = bound( rgba[i], 0, 255 );
-	return COLOR_RGBA( rgba[0], rgba[1], rgba[2], rgba[3] );
-}
-
-/*
 * COM_ListNameForPosition
 */
 char *COM_ListNameForPosition( const char *namesList, int position, const char separator ) {
@@ -691,35 +669,6 @@ void Q_strncatz( char *dest, const char *src, size_t size ) {
 }
 
 /*
-* Q_vsnprintfz
-*/
-int Q_vsnprintfz( char *dest, size_t size, const char *format, va_list argptr ) {
-	int len;
-
-	assert( dest );
-	assert( size );
-
-	len = vsnprintf( dest, size, format, argptr );
-	dest[size - 1] = 0;
-
-	return len;
-}
-
-/*
-* Q_snprintfz
-*/
-int Q_snprintfz( char *dest, size_t size, const char *format, ... ) {
-	int len;
-	va_list argptr;
-
-	va_start( argptr, format );
-	len = Q_vsnprintfz( dest, size, format, argptr );
-	va_end( argptr );
-
-	return len;
-}
-
-/*
 * Q_strupr
 */
 char *Q_strupr( char *s ) {
@@ -787,84 +736,6 @@ char *Q_trim( char *s ) {
 }
 
 /*
-* Q_WCharUtf8Length
-*
-* Returns the length of wchar_t encoded as UTF-8.
-*/
-size_t Q_WCharUtf8Length( wchar_t wc ) {
-	unsigned int num = wc;
-
-	if( !num ) {
-		return 0;
-	}
-	if( num <= 0x7f ) {
-		return 1;
-	}
-	if( num <= 0x7ff ) {
-		return 2;
-	}
-	if( num <= 0xffff ) {
-		return 3;
-	}
-	return 1; // 4-octet sequences are replaced with '?'
-}
-
-/*
-* Q_WCharToUtf8
-*
-* Converts wchar_t to UTF-8 and returns the length of the written sequence.
-*/
-size_t Q_WCharToUtf8( wchar_t wc, char *dest, size_t bufsize ) {
-	unsigned int num = wc;
-	size_t ret = 0;
-
-	if( num ) {
-		if( num <= 0x7f ) {
-			if( bufsize > 1 ) {
-				*dest++ = num;
-				ret = 1;
-			}
-		} else if( num <= 0x7ff ) {
-			if( bufsize > 2 ) {
-				*dest++ = 0xC0 | ( num >> 6 );
-				*dest++ = 0x80 | ( num & 0x3f );
-				ret = 2;
-			}
-		} else if( num <= 0xffff ) {
-			if( bufsize > 3 ) {
-				*dest++ = 0xE0 | ( num >> 12 );
-				*dest++ = 0x80 | ( ( num & 0xfc0 ) >> 6 );
-				*dest++ = 0x80 | ( num & 0x003f );
-				ret = 3;
-			}
-		} else {
-			// sorry, we don't support 4-octet sequences
-			if( bufsize > 1 ) {
-				*dest++ = '?';
-				ret = 1;
-			}
-		}
-	}
-
-	if( bufsize > ret ) {
-		*dest++ = '\0';
-	}
-
-	return ret;
-}
-
-/*
-* Q_WCharToUtf8Char
-*
-* Converts wchar_t to UTF-8 using a temporary buffer.
-*/
-char *Q_WCharToUtf8Char( wchar_t wc ) {
-	static char buf[5]; // longest valid utf-8 sequence is 4 bytes
-	Q_WCharToUtf8( wc, buf, sizeof( buf ) );
-	return buf;
-}
-
-/*
 * Q_isdigit
 */
 bool Q_isdigit( const char *str ) {
@@ -875,16 +746,6 @@ bool Q_isdigit( const char *str ) {
 		}
 	}
 	return false;
-}
-
-/*
-* Q_chrreplace
-*/
-char *Q_chrreplace( char *s, const char subj, const char repl ) {
-	char *t = s;
-	while( ( t = strchr( t, subj ) ) != NULL )
-		*t++ = repl;
-	return s;
 }
 
 void RemoveTrailingZeroesFloat( char * str ) {
@@ -1287,7 +1148,7 @@ bool Info_SetValueForKey( char *info, const char *key, const char *value ) {
 
 	Info_RemoveKey( info, key );
 
-	Q_snprintfz( pair, sizeof( pair ), "\\%s\\%s", key, value );
+	snprintf( pair, sizeof( pair ), "\\%s\\%s", key, value );
 
 	if( strlen( pair ) + strlen( info ) > MAX_INFO_STRING ) {
 		return false;
@@ -1315,15 +1176,15 @@ float Q_GainForAttenuation( int model, float maxdistance, float refdistance, flo
 		case 0:
 			//gain = (1 - AL_ROLLOFF_FACTOR * (distance * AL_REFERENCE_DISTANCE) / (AL_MAX_DISTANCE - AL_REFERENCE_DISTANCE))
 			//AL_LINEAR_DISTANCE
-			dist = min( dist, maxdistance );
+			dist = Min2( dist, maxdistance );
 			gain = ( 1 - attenuation * ( dist - refdistance ) / ( maxdistance - refdistance ) );
 			break;
 		case 1:
 		default:
 			//gain = (1 - AL_ROLLOFF_FACTOR * (distance - AL_REFERENCE_DISTANCE) / (AL_MAX_DISTANCE - AL_REFERENCE_DISTANCE))
 			//AL_LINEAR_DISTANCE_CLAMPED
-			dist = max( dist, refdistance );
-			dist = min( dist, maxdistance );
+			dist = Max2( dist, refdistance );
+			dist = Min2( dist, maxdistance );
 			gain = ( 1 - attenuation * ( dist - refdistance ) / ( maxdistance - refdistance ) );
 			break;
 		case 2:
@@ -1334,21 +1195,21 @@ float Q_GainForAttenuation( int model, float maxdistance, float refdistance, flo
 		case 3:
 			//AL_INVERSE_DISTANCE_CLAMPED
 			//gain = AL_REFERENCE_DISTANCE / (AL_REFERENCE_DISTANCE + AL_ROLLOFF_FACTOR * (distance - AL_REFERENCE_DISTANCE));
-			dist = max( dist, refdistance );
-			dist = min( dist, maxdistance );
+			dist = Max2( dist, refdistance );
+			dist = Min2( dist, maxdistance );
 			gain = refdistance / ( refdistance + attenuation * ( dist - refdistance ) );
 			break;
 		case 4:
 			//AL_EXPONENT_DISTANCE
 			//gain = (distance / AL_REFERENCE_DISTANCE) ^ (- AL_ROLLOFF_FACTOR)
-			gain = pow( ( dist / refdistance ), ( -attenuation ) );
+			gain = powf( ( dist / refdistance ), ( -attenuation ) );
 			break;
 		case 5:
 			//AL_EXPONENT_DISTANCE_CLAMPED
 			//gain = (distance / AL_REFERENCE_DISTANCE) ^ (- AL_ROLLOFF_FACTOR)
-			dist = max( dist, refdistance );
-			dist = min( dist, maxdistance );
-			gain = pow( ( dist / refdistance ), ( -attenuation ) );
+			dist = Max2( dist, refdistance );
+			dist = Min2( dist, maxdistance );
+			gain = powf( ( dist / refdistance ), ( -attenuation ) );
 			break;
 		case 6:
 			// qfusion gain

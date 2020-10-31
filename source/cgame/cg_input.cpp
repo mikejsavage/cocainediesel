@@ -19,10 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/base.h"
-#include "cg_local.h"
+#include "cgame/cg_local.h"
 #include "client/keys.h"
-
-static int cg_inputFrameTime;
 
 /*
  * keyboard
@@ -45,7 +43,7 @@ static Button button_crouch;
 static Button button_walk;
 
 static Button button_attack;
-static Button button_zoom;
+static Button button_reload;
 
 static void ClearButton( Button * b ) {
 	b->keys[ 0 ] = 0;
@@ -55,7 +53,7 @@ static void ClearButton( Button * b ) {
 }
 
 static void KeyDown( Button * b ) {
-	const char * c = trap_Cmd_Argv( 1 );
+	const char * c = Cmd_Argv( 1 );
 	int k = -1;
 	if( c[0] ) {
 		k = atoi( c );
@@ -81,7 +79,7 @@ static void KeyDown( Button * b ) {
 }
 
 static void KeyUp( Button * b ) {
-	const char * c = trap_Cmd_Argv( 1 );
+	const char * c = Cmd_Argv( 1 );
 	if( !c[0] ) {
 		b->keys[ 0 ] = 0;
 		b->keys[ 1 ] = 0;
@@ -125,11 +123,11 @@ static void IN_WalkUp() { KeyUp( &button_walk ); }
 
 static void IN_AttackDown() { KeyDown( &button_attack ); }
 static void IN_AttackUp() { KeyUp( &button_attack ); }
-static void IN_ZoomDown() { KeyDown( &button_zoom ); }
-static void IN_ZoomUp() { KeyUp( &button_zoom ); }
+static void IN_ReloadDown() { KeyDown( &button_reload ); }
+static void IN_ReloadUp() { KeyUp( &button_reload ); }
 
 unsigned int CG_GetButtonBits() {
-	unsigned int buttons = BUTTON_NONE;
+	unsigned int buttons = 0;
 
 	if( button_attack.down || button_attack.edge ) {
 		buttons |= BUTTON_ATTACK;
@@ -141,8 +139,9 @@ unsigned int CG_GetButtonBits() {
 		button_special.edge = false;
 	}
 
-	if( button_zoom.down ) {
-		buttons |= BUTTON_ZOOM;
+	if( button_reload.down || button_reload.edge ) {
+		buttons |= BUTTON_RELOAD;
+		button_reload.edge = false;
 	}
 
 	if( button_walk.down ) {
@@ -152,53 +151,49 @@ unsigned int CG_GetButtonBits() {
 	return buttons;
 }
 
-void CG_AddMovement( vec3_t movement ) {
-	movement[ 0 ] += ( button_right.down ? 1.0f : 0.0f ) - ( button_left.down ? 1.0f : 0.0f );
-	movement[ 1 ] += ( button_forward.down ? 1.0f : 0.0f ) - ( button_back.down ? 1.0f : 0.0f );
-	movement[ 2 ] += ( button_jump.down ? 1.0f : 0.0f ) - ( button_crouch.down ? 1.0f : 0.0f );
+Vec3 CG_GetMovement() {
+	return Vec3(
+		( button_right.down ? 1.0f : 0.0f ) - ( button_left.down ? 1.0f : 0.0f ),
+		( button_forward.down ? 1.0f : 0.0f ) - ( button_back.down ? 1.0f : 0.0f ),
+		( button_jump.down ? 1.0f : 0.0f ) - ( button_crouch.down ? 1.0f : 0.0f )
+	);
 }
 
 bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize ) {
-	int key;
-	const char *bind;
-	int numKeys = 0;
-	const char *keyNames[2];
-	char charKeys[2][2];
+	int keyCodes[ 2 ];
+	int numKeys = CG_GetBoundKeycodes( cmd, keyCodes );
 
-	memset( charKeys, 0, sizeof( charKeys ) );
-
-	for( key = 0; key < 256; key++ ) {
-		bind = Key_GetBindingBuf( key );
-		if( !bind || Q_stricmp( bind, cmd ) ) {
-			continue;
-		}
-
-		if( key >= 'a' && key <= 'z' ) {
-			charKeys[numKeys][0] = key - ( 'a' - 'A' );
-			keyNames[numKeys] = charKeys[numKeys];
-		} else {
-			keyNames[numKeys] = Key_KeynumToString( key );
-		}
-
-		if( keyNames[numKeys] != NULL ) {
-			numKeys++;
-			if( numKeys == 2 ) {
-				break;
-			}
-		}
+	if( numKeys == 0 ) {
+		Q_strncpyz( keys, "UNBOUND", keysSize );
 	}
-
-	if( !numKeys ) {
-		keyNames[0] = "UNBOUND";
+	else if( numKeys == 1 ) {
+		ggformat( keys, keysSize, "{}", Key_KeynumToString( keyCodes[ 0 ] ) );
 	}
-
-	if( numKeys == 2 ) {
-		Q_snprintfz( keys, keysSize, "%s or %s", keyNames[0], keyNames[1] );
-	} else {
-		Q_strncpyz( keys, keyNames[0], keysSize );
+	else {
+		ggformat( keys, keysSize, "{} or {}", Key_KeynumToString( keyCodes[ 0 ] ), Key_KeynumToString( keyCodes[ 1 ] ) );
 	}
 
 	return numKeys > 0;
+}
+
+int CG_GetBoundKeycodes( const char *cmd, int keys[ 2 ] ) {
+	int numKeys = 0;
+
+	for( int key = 0; key < 256; key++ ) {
+		const char * bind = Key_GetBindingBuf( key );
+		if( bind == NULL || Q_stricmp( bind, cmd ) != 0 ) {
+			continue;
+		}
+
+		keys[ numKeys ] = key;
+		numKeys++;
+
+		if( numKeys == 2 ) {
+			break;
+		}
+	}
+
+	return numKeys;
 }
 
 /*
@@ -213,16 +208,17 @@ static cvar_t *m_accelStyle;
 static cvar_t *m_accelOffset;
 static cvar_t *m_accelPow;
 static cvar_t *m_sensCap;
+static cvar_t *m_invertY;
 
 static Vec2 mouse_movement;
 
 float CG_GetSensitivityScale( float sens, float zoomSens ) {
-	if( !cgs.demoPlaying && sens && ( cg.predictedPlayerState.pmove.stats[PM_STAT_ZOOMTIME] > 0 ) ) {
+	if( !cgs.demoPlaying && sens && cg.predictedPlayerState.zoom_time > 0 ) {
 		if( zoomSens ) {
 			return zoomSens / sens;
 		}
 
-		return cg_zoomfov->value / cg_fov->value;
+		return CG_CalcViewFov() / FOV;
 	}
 
 	return 1.0f;
@@ -238,23 +234,21 @@ static Vec2 Sign( Vec2 v ) {
 }
 
 static Vec2 Abs( Vec2 v ) {
-	return Vec2( fabsf( v.x ), fabsf( v.y ) );
+	return Vec2( Abs( v.x ), Abs( v.y ) );
 }
 
 static Vec2 Pow( Vec2 v, float e ) {
 	return Vec2( powf( v.x, e ), powf( v.y, e ) );
 }
 
-void CG_MouseMove( int mx, int my ) {
-	Vec2 m( mx, my );
-
+void CG_MouseMove( int frameTime, Vec2 m ) {
 	float sens = sensitivity->value;
 
-	if( m_accel->value != 0.0f && cg_inputFrameTime != 0 ) {
+	if( m_accel->value != 0.0f && frameTime != 0 ) {
 		// QuakeLive-style mouse acceleration, ported from ioquake3
 		// original patch by Gabriel Schnoering and TTimo
 		if( m_accelStyle->integer == 1 ) {
-			Vec2 base = Abs( m ) / float( cg_inputFrameTime );
+			Vec2 base = Abs( m ) / float( frameTime );
 			Vec2 power = Pow( base / m_accelOffset->value, m_accel->value );
 			m += Sign( m ) * power * m_accelOffset->value;
 		} else if( m_accelStyle->integer == 2 ) {
@@ -264,14 +258,14 @@ void CG_MouseMove( int mx, int my ) {
 			float accelPow = Max2( m_accelPow->value, 1.0f );
 			float accelOffset = Max2( m_accelOffset->value, 0.0f );
 
-			float rate = Max2( Length( m ) / float( cg_inputFrameTime ) - accelOffset, 0.0f );
+			float rate = Max2( Length( m ) / float( frameTime ) - accelOffset, 0.0f );
 			sens += powf( rate * m_accel->value, accelPow - 1.0f );
 
 			if( m_sensCap->value > 0 ) {
 				sens = Min2( sens, m_sensCap->value );
 			}
 		} else {
-			float rate = Length( m ) / float( cg_inputFrameTime );
+			float rate = Length( m ) / float( frameTime );
 			sens += rate * m_accel->value;
 		}
 	}
@@ -281,19 +275,18 @@ void CG_MouseMove( int mx, int my ) {
 	mouse_movement = m * sens;
 }
 
-void CG_AddViewAngles( vec3_t viewAngles ) {
+Vec3 CG_GetDeltaViewAngles() {
 	// m_pitch/m_yaw used to default to 0.022
-	viewAngles[ YAW ] -= 0.022f * horizontalSensScale->value * mouse_movement.x;
-	viewAngles[ PITCH ] += 0.022f * mouse_movement.y;
-}
-
-void CG_InputFrame( int frameTime ) {
-	cg_inputFrameTime = frameTime;
+	float x = horizontalSensScale->value;
+	float y = m_invertY->integer == 0 ? 1.0f : -1.0f;
+	return Vec3(
+		0.022f * y * mouse_movement.y,
+		-0.022f * x * mouse_movement.x,
+		0.0f
+	);
 }
 
 void CG_ClearInputState() {
-	cg_inputFrameTime = 0;
-
 	ClearButton( &button_forward );
 	ClearButton( &button_back );
 	ClearButton( &button_left );
@@ -305,92 +298,92 @@ void CG_ClearInputState() {
 	ClearButton( &button_walk );
 
 	ClearButton( &button_attack );
-	ClearButton( &button_zoom );
 
-	mouse_movement = Vec2( 0 );
+	mouse_movement = Vec2( 0.0f );
 }
 
 void CG_InitInput() {
 	CG_ClearInputState();
 
-	trap_Cmd_AddCommand( "+forward", IN_ForwardDown );
-	trap_Cmd_AddCommand( "-forward", IN_ForwardUp );
-	trap_Cmd_AddCommand( "+back", IN_BackDown );
-	trap_Cmd_AddCommand( "-back", IN_BackUp );
-	trap_Cmd_AddCommand( "+left", IN_LeftDown );
-	trap_Cmd_AddCommand( "-left", IN_LeftUp );
-	trap_Cmd_AddCommand( "+right", IN_RightDown );
-	trap_Cmd_AddCommand( "-right", IN_RightUp );
+	Cmd_AddCommand( "+forward", IN_ForwardDown );
+	Cmd_AddCommand( "-forward", IN_ForwardUp );
+	Cmd_AddCommand( "+back", IN_BackDown );
+	Cmd_AddCommand( "-back", IN_BackUp );
+	Cmd_AddCommand( "+left", IN_LeftDown );
+	Cmd_AddCommand( "-left", IN_LeftUp );
+	Cmd_AddCommand( "+right", IN_RightDown );
+	Cmd_AddCommand( "-right", IN_RightUp );
 
-	trap_Cmd_AddCommand( "+jump", IN_JumpDown );
-	trap_Cmd_AddCommand( "-jump", IN_JumpUp );
-	trap_Cmd_AddCommand( "+special", IN_SpecialDown );
-	trap_Cmd_AddCommand( "-special", IN_SpecialUp );
-	trap_Cmd_AddCommand( "+crouch", IN_CrouchDown );
-	trap_Cmd_AddCommand( "-crouch", IN_CrouchUp );
-	trap_Cmd_AddCommand( "+walk", IN_WalkDown );
-	trap_Cmd_AddCommand( "-walk", IN_WalkUp );
+	Cmd_AddCommand( "+jump", IN_JumpDown );
+	Cmd_AddCommand( "-jump", IN_JumpUp );
+	Cmd_AddCommand( "+special", IN_SpecialDown );
+	Cmd_AddCommand( "-special", IN_SpecialUp );
+	Cmd_AddCommand( "+crouch", IN_CrouchDown );
+	Cmd_AddCommand( "-crouch", IN_CrouchUp );
+	Cmd_AddCommand( "+walk", IN_WalkDown );
+	Cmd_AddCommand( "-walk", IN_WalkUp );
 
-	trap_Cmd_AddCommand( "+attack", IN_AttackDown );
-	trap_Cmd_AddCommand( "-attack", IN_AttackUp );
-	trap_Cmd_AddCommand( "+zoom", IN_ZoomDown );
-	trap_Cmd_AddCommand( "-zoom", IN_ZoomUp );
+	Cmd_AddCommand( "+attack", IN_AttackDown );
+	Cmd_AddCommand( "-attack", IN_AttackUp );
+	Cmd_AddCommand( "+reload", IN_ReloadDown );
+	Cmd_AddCommand( "-reload", IN_ReloadUp );
 
 	// legacy command names
-	trap_Cmd_AddCommand( "+moveleft", IN_LeftDown );
-	trap_Cmd_AddCommand( "-moveleft", IN_LeftUp );
-	trap_Cmd_AddCommand( "+moveright", IN_RightDown );
-	trap_Cmd_AddCommand( "-moveright", IN_RightUp );
-	trap_Cmd_AddCommand( "+moveup", IN_JumpDown );
-	trap_Cmd_AddCommand( "-moveup", IN_JumpUp );
-	trap_Cmd_AddCommand( "+movedown", IN_CrouchDown );
-	trap_Cmd_AddCommand( "-movedown", IN_CrouchUp );
-	trap_Cmd_AddCommand( "+speed", IN_WalkDown );
-	trap_Cmd_AddCommand( "-speed", IN_WalkUp );
+	Cmd_AddCommand( "+moveleft", IN_LeftDown );
+	Cmd_AddCommand( "-moveleft", IN_LeftUp );
+	Cmd_AddCommand( "+moveright", IN_RightDown );
+	Cmd_AddCommand( "-moveright", IN_RightUp );
+	Cmd_AddCommand( "+moveup", IN_JumpDown );
+	Cmd_AddCommand( "-moveup", IN_JumpUp );
+	Cmd_AddCommand( "+movedown", IN_CrouchDown );
+	Cmd_AddCommand( "-movedown", IN_CrouchUp );
+	Cmd_AddCommand( "+speed", IN_WalkDown );
+	Cmd_AddCommand( "-speed", IN_WalkUp );
 
-	sensitivity = trap_Cvar_Get( "sensitivity", "3", CVAR_ARCHIVE );
-	horizontalSensScale = trap_Cvar_Get( "horizontalsensscale", "1", CVAR_ARCHIVE );
-	zoomsens = trap_Cvar_Get( "zoomsens", "0", CVAR_ARCHIVE );
-	m_accel = trap_Cvar_Get( "m_accel", "0", CVAR_ARCHIVE );
-	m_accelStyle = trap_Cvar_Get( "m_accelStyle", "0", CVAR_ARCHIVE );
-	m_accelOffset = trap_Cvar_Get( "m_accelOffset", "0", CVAR_ARCHIVE );
-	m_accelPow = trap_Cvar_Get( "m_accelPow", "2", CVAR_ARCHIVE );
-	m_sensCap = trap_Cvar_Get( "m_sensCap", "0", CVAR_ARCHIVE );
+	sensitivity = Cvar_Get( "sensitivity", "3", CVAR_ARCHIVE );
+	horizontalSensScale = Cvar_Get( "horizontalsensscale", "1", CVAR_ARCHIVE );
+	zoomsens = Cvar_Get( "zoomsens", "0", CVAR_ARCHIVE );
+	m_accel = Cvar_Get( "m_accel", "0", CVAR_ARCHIVE );
+	m_accelStyle = Cvar_Get( "m_accelStyle", "0", CVAR_ARCHIVE );
+	m_accelOffset = Cvar_Get( "m_accelOffset", "0", CVAR_ARCHIVE );
+	m_accelPow = Cvar_Get( "m_accelPow", "2", CVAR_ARCHIVE );
+	m_sensCap = Cvar_Get( "m_sensCap", "0", CVAR_ARCHIVE );
+	m_invertY = Cvar_Get( "m_invertY", "0", CVAR_ARCHIVE );
 }
 
 void CG_ShutdownInput() {
-	trap_Cmd_RemoveCommand( "+forward" );
-	trap_Cmd_RemoveCommand( "-forward" );
-	trap_Cmd_RemoveCommand( "+back" );
-	trap_Cmd_RemoveCommand( "-back" );
-	trap_Cmd_RemoveCommand( "+left" );
-	trap_Cmd_RemoveCommand( "-left" );
-	trap_Cmd_RemoveCommand( "+right" );
-	trap_Cmd_RemoveCommand( "-right" );
+	Cmd_RemoveCommand( "+forward" );
+	Cmd_RemoveCommand( "-forward" );
+	Cmd_RemoveCommand( "+back" );
+	Cmd_RemoveCommand( "-back" );
+	Cmd_RemoveCommand( "+left" );
+	Cmd_RemoveCommand( "-left" );
+	Cmd_RemoveCommand( "+right" );
+	Cmd_RemoveCommand( "-right" );
 
-	trap_Cmd_RemoveCommand( "+jump" );
-	trap_Cmd_RemoveCommand( "-jump" );
-	trap_Cmd_RemoveCommand( "+special" );
-	trap_Cmd_RemoveCommand( "-special" );
-	trap_Cmd_RemoveCommand( "+crouch" );
-	trap_Cmd_RemoveCommand( "-crouch" );
-	trap_Cmd_RemoveCommand( "+walk" );
-	trap_Cmd_RemoveCommand( "-walk" );
+	Cmd_RemoveCommand( "+jump" );
+	Cmd_RemoveCommand( "-jump" );
+	Cmd_RemoveCommand( "+special" );
+	Cmd_RemoveCommand( "-special" );
+	Cmd_RemoveCommand( "+crouch" );
+	Cmd_RemoveCommand( "-crouch" );
+	Cmd_RemoveCommand( "+walk" );
+	Cmd_RemoveCommand( "-walk" );
 
-	trap_Cmd_RemoveCommand( "+attack" );
-	trap_Cmd_RemoveCommand( "-attack" );
-	trap_Cmd_RemoveCommand( "+zoom" );
-	trap_Cmd_RemoveCommand( "-zoom" );
+	Cmd_RemoveCommand( "+attack" );
+	Cmd_RemoveCommand( "-attack" );
+	Cmd_RemoveCommand( "+reload" );
+	Cmd_RemoveCommand( "-reload" );
 
 	// legacy command names
-	trap_Cmd_RemoveCommand( "+moveleft" );
-	trap_Cmd_RemoveCommand( "-moveleft" );
-	trap_Cmd_RemoveCommand( "+moveright" );
-	trap_Cmd_RemoveCommand( "-moveright" );
-	trap_Cmd_RemoveCommand( "+moveup" );
-	trap_Cmd_RemoveCommand( "-moveup" );
-	trap_Cmd_RemoveCommand( "+movedown" );
-	trap_Cmd_RemoveCommand( "-movedown" );
-	trap_Cmd_RemoveCommand( "+speed" );
-	trap_Cmd_RemoveCommand( "-speed" );
+	Cmd_RemoveCommand( "+moveleft" );
+	Cmd_RemoveCommand( "-moveleft" );
+	Cmd_RemoveCommand( "+moveright" );
+	Cmd_RemoveCommand( "-moveright" );
+	Cmd_RemoveCommand( "+moveup" );
+	Cmd_RemoveCommand( "-moveup" );
+	Cmd_RemoveCommand( "+movedown" );
+	Cmd_RemoveCommand( "-movedown" );
+	Cmd_RemoveCommand( "+speed" );
+	Cmd_RemoveCommand( "-speed" );
 }

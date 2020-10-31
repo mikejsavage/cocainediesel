@@ -1,12 +1,6 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-
-#if COMPIER_GCCORCLANG
-#include <sanitizer/asan_interface.h>
-#else
-#define ASAN_POISON_MEMORY_REGION( mem, size )
-#define ASAN_UNPOISON_MEMORY_REGION( mem, size )
-#endif
+#include "qcommon/asan.h"
 
 void * Allocator::allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
 	void * p = try_allocate( size, alignment, func, file, line );
@@ -22,21 +16,32 @@ void * Allocator::reallocate( void * ptr, size_t current_size, size_t new_size, 
 	return new_p;
 }
 
+void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, const char * func, const char * file, int line ) {
+	if( n != 0 && SIZE_MAX / n < size )
+		Sys_Error( "allocation too large" );
+	return a->allocate( n * size, alignment, func, file, line );
+}
+
+void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t new_n, size_t size, size_t alignment, const char * func, const char * file, int line ) {
+	if( SIZE_MAX / new_n < size )
+		Sys_Error( "allocation too large" );
+	return a->reallocate( ptr, current_n * size, new_n * size, alignment, func, file, line );
+}
+
 /*
  * SystemAllocator
  */
 
-#if RELEASE_BUILD
+#if PUBLIC_BUILD
 
 struct AllocationTracker {
-	NONCOPYABLE( AllocationTracker );
 	void track( void * ptr, const char * func, const char * file, int line ) { }
 	void untrack( void * ptr, const char * func, const char * file, int line ) { }
 };
 
 #else
 
-#include "qcommon/qthreads.h"
+#include "qcommon/threads.h"
 #undef min
 #undef max
 #include <unordered_map>
@@ -51,10 +56,10 @@ struct AllocationTracker {
 	};
 
 	std::unordered_map< void *, AllocInfo > allocations;
-	qmutex_t * mutex;
+	Mutex * mutex;
 
 	AllocationTracker() {
-		mutex = QMutex_Create();
+		mutex = NewMutex();
 	}
 
 	~AllocationTracker() {
@@ -63,24 +68,24 @@ struct AllocationTracker {
 			Com_Printf( "Leaked allocation in '%s' (%s:%d)\n", info.func, info.file, info.line );
 		}
 		assert( allocations.empty() );
-		QMutex_Destroy( &mutex );
+		DeleteMutex( mutex );
 	}
 
 	void track( void * ptr, const char * func, const char * file, int line ) {
 		if( ptr == NULL )
 			return;
-		QMutex_Lock( mutex );
+		Lock( mutex );
 		allocations[ ptr ] = { func, file, line };
-		QMutex_Unlock( mutex );
+		Unlock( mutex );
 	}
 
 	void untrack( void * ptr, const char * func, const char * file, int line ) {
 		if( ptr == NULL )
 			return;
-		QMutex_Lock( mutex );
+		Lock( mutex );
 		if( allocations.erase( ptr ) == 0 )
 			Sys_Error( "Stray free in '%s' (%s:%d)", func, file, line );
-		QMutex_Unlock( mutex );
+		Unlock( mutex );
 	};
 };
 
@@ -106,25 +111,34 @@ struct SystemAllocator final : public Allocator {
 
 		assert( alignment <= 16 );
 		void * ptr = malloc( size );
+		TracyAlloc( ptr, size );
 		tracker.track( ptr, func, file, line );
 		return ptr;
 	}
 
 	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
 		assert( alignment <= 16 );
+
+		TracyFree( ptr );
 		tracker.untrack( ptr, func, file, line );
+
 		void * new_ptr = realloc( ptr, new_size );
 		if( new_ptr == NULL ) {
+			TracyAlloc( ptr, new_size );
 			tracker.track( ptr, func, file, line );
 			return NULL;
 		}
+
+		TracyAlloc( new_ptr, new_size );
 		tracker.track( new_ptr, func, file, line );
+
 		return new_ptr;
 	}
 
 	void deallocate( void * ptr, const char * func, const char * file, int line ) {
-		free( ptr );
+		TracyFree( ptr );
 		tracker.untrack( ptr, func, file, line );
+		free( ptr );
 	}
 };
 
@@ -141,6 +155,7 @@ TempAllocator::TempAllocator( const TempAllocator & other ) {
 TempAllocator::~TempAllocator() {
 	arena->cursor = old_cursor;
 	arena->num_temp_allocators--;
+	ASAN_POISON_MEMORY_REGION( arena->cursor, arena->top - arena->cursor );
 }
 
 void * TempAllocator::try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
@@ -234,20 +249,6 @@ void * ArenaAllocator::get_memory() {
 
 float ArenaAllocator::max_utilisation() const {
 	return float( cursor_max - cursor ) / float( top - cursor );
-}
-
-void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, const char * func, const char * file, int line ) {
-	assert( n > 0 );
-	if( SIZE_MAX / n < size )
-		Sys_Error( "allocation too large" );
-	return a->allocate( n * size, alignment, func, file, line );
-}
-
-void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t new_n, size_t size, size_t alignment, const char * func, const char * file, int line ) {
-	assert( new_n > 0 );
-	if( SIZE_MAX / new_n < size )
-		Sys_Error( "allocation too large" );
-	return a->reallocate( ptr, current_n * size, new_n * size, alignment, func, file, line );
 }
 
 static SystemAllocator sys_allocator_;

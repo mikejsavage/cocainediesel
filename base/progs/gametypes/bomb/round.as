@@ -1,22 +1,3 @@
-/*
-Copyright (C) 2009-2010 Chasseur de bots
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-*/
-
 enum RoundState {
 	RoundState_None,
 	RoundState_Pre,
@@ -45,11 +26,7 @@ uint roundCount;
 int attackingTeam;
 int defendingTeam;
 
-uint alphaAliveAtStart;
-uint betaAliveAtStart;
-
-bool attackersHurried;
-bool defendersHurried;
+bool was1vx;
 
 void playerKilled( Entity @victim, Entity @attacker, Entity @inflictor ) {
 	// this happens if you kill a corpse or something...
@@ -75,13 +52,9 @@ void playerKilled( Entity @victim, Entity @attacker, Entity @inflictor ) {
 
 		player.killsThisRound++;
 
-		int required_for_bongo = attacker.team == TEAM_ALPHA ? betaAliveAtStart : alphaAliveAtStart;
-		if( required_for_bongo >= 3 && player.killsThisRound == required_for_bongo ) {
-			player.client.addAward( S_COLOR_YELLOW + "King of Bongo!" );
-
-			G_AnnouncerSound( null, sndBongo, GS_MAX_TEAMS, true, null );
-
-			G_CenterPrintMsg( null, player.client.name + " is the King of Bongo!" );
+		int required_for_ace = attacker.team == TEAM_ALPHA ? match.betaPlayersTotal : match.alphaPlayersTotal;
+		if( required_for_ace >= 3 && player.killsThisRound == required_for_ace ) {
+			G_AnnouncerSound( null, sndAce, GS_MAX_TEAMS, false, null );
 		}
 	}
 
@@ -105,48 +78,19 @@ void checkPlayersAlive( int team ) {
 		return;
 	}
 
-	int teamOther   = otherTeam( team );
-	uint aliveOther = playersAliveOnTeam( teamOther );
+	int other = otherTeam( team );
+	uint aliveOther = playersAliveOnTeam( other );
 
 	if( alive == 1 ) {
 		if( aliveOther == 1 ) {
-			G_PrintMsg( null, "1v1! Good luck!\n" );
-
-			firstAliveOnTeam( attackingTeam ).addAward( "1v1! Good luck!" );
-			firstAliveOnTeam( defendingTeam ).addAward( "1v1! Good luck!" );
+			if( was1vx ) {
+				G_AnnouncerSound( null, snd1v1, GS_MAX_TEAMS, false, null );
+			}
 		}
-		else if( aliveOther != 0 ) {
-			oneVsMsg( team, aliveOther );
-		}
-
-		return;
-	}
-
-	if( aliveOther == 1 ) {
-		// we know alive != 0 && alive != 1
-		oneVsMsg( teamOther, alive );
-	}
-}
-
-void oneVsMsg( int teamNum, uint enemies ) {
-	Client @survivor = @firstAliveOnTeam( teamNum );
-
-	if( @survivor == null ) {
-		assert( false, "round.as oneVsMsg: @survivor == null" );
-
-		return;
-	}
-
-	survivor.addAward( "1v" + enemies + "! You're on your own!" );
-
-	if( enemies == 1 ) {
-		G_PrintMsg( null, "1v1! Good luck!" );
-	}
-	else {
-		Team @team = @G_GetTeam( teamNum );
-
-		for( int i = 0; @team.ent( i ) != null; i++ ) {
-			G_PrintMsg( @team.ent( i ), "1v" + enemies + "! " + survivor.name + " is on their own!\n" );
+		else if( aliveOther >= 3 ) {
+			G_AnnouncerSound( null, snd1vx, team, false, null );
+			G_AnnouncerSound( null, sndxv1, other, false, null );
+			was1vx = true;
 		}
 	}
 }
@@ -177,8 +121,6 @@ void newGame() {
 
 		Team @team = @G_GetTeam( t );
 
-		team.stats.clear();
-
 		for( int i = 0; @team.ent( i ) != null; i++ ) {
 			team.ent( i ).client.stats.clear();
 		}
@@ -193,15 +135,20 @@ void roundWonBy( int winner ) {
 
 	G_CenterPrintMsg( null, S_COLOR_CYAN + ( winner == attackingTeam ? "OFFENSE WINS!" : "DEFENSE WINS!" ) );
 
-	int soundIndex = G_SoundIndex( "sounds/announcer/bomb/score_team0" + random_uniform( 1, 3 ) );
-	G_AnnouncerSound( null, soundIndex, winner, true, null );
+	uint64 sound = Hash64( "sounds/announcer/bomb/score_team0" + random_uniform( 1, 3 ) );
+	G_AnnouncerSound( null, sound, winner, true, null );
 
-	soundIndex = G_SoundIndex( "sounds/announcer/bomb/score_enemy0" + random_uniform( 1, 3 ) );
-	G_AnnouncerSound( null, soundIndex, loser, true, null );
+	sound = Hash64( "sounds/announcer/bomb/score_enemy0" + random_uniform( 1, 3 ) );
+	G_AnnouncerSound( null, sound, loser, true, null );
 
 	Team @teamWinner = @G_GetTeam( winner );
 
-	teamWinner.stats.addScore( 1 );
+	if( winner == TEAM_ALPHA ) {
+		match.alphaScore++;
+	}
+	else {
+		match.betaScore++;
+	}
 
 	for( int i = 0; @teamWinner.ent( i ) != null; i++ ) {
 		Entity @ent = @teamWinner.ent( i );
@@ -225,7 +172,7 @@ void endGame() {
 }
 
 bool scoreLimitHit() {
-	return match.scoreLimitHit() && abs( G_GetTeam( TEAM_ALPHA ).stats.score - G_GetTeam( TEAM_BETA ).stats.score ) > 1;
+	return match.scoreLimitHit() && abs( int( match.alphaScore ) - int( match.betaScore ) ) > 1;
 }
 
 void setRoundType() {
@@ -233,14 +180,11 @@ void setRoundType() {
 
 	uint limit = cvarScoreLimit.integer;
 
-	uint alpha_score = G_GetTeam( TEAM_ALPHA ).stats.score;
-	uint beta_score = G_GetTeam( TEAM_BETA ).stats.score;
-
-	bool match_point = alpha_score == limit - 1 || beta_score == limit - 1;
+	bool match_point = match.alphaScore == limit - 1 || match.betaScore == limit - 1;
 	bool overtime = roundCount > ( limit - 1 ) * 2;
 
 	if( overtime ) {
-		type = alpha_score == beta_score ? RoundType_Overtime : RoundType_OvertimeMatchPoint;
+		type = match.alphaScore == match.betaScore ? RoundType_Overtime : RoundType_OvertimeMatchPoint;
 	}
 	else if( match_point ) {
 		type = RoundType_MatchPoint;
@@ -251,7 +195,7 @@ void setRoundType() {
 
 		for( int i = 0; @team.ent( i ) != null; i++ ) {
 			Client @client = @team.ent( i ).client;
-			client.setHUDStat( STAT_ROUND_TYPE, int( type ) );
+			match.roundType = type;
 		}
 	}
 }
@@ -279,7 +223,7 @@ void roundNewState( uint state ) {
 			gametype.shootingDisabled = true;
 			gametype.removeInactivePlayers = false;
 
-			attackersHurried = defendersHurried = false;
+			was1vx = false;
 
 			resetBombSites();
 
@@ -306,7 +250,7 @@ void roundNewState( uint state ) {
 
 			enableMovement();
 
-			announce( Announcement_Started );
+			announce( Announcement_RoundStarted );
 
 			break;
 
@@ -314,7 +258,7 @@ void roundNewState( uint state ) {
 			roundCheckEndTime = true;
 			roundStateEndTime = levelTime + 1500; // magic numbers are awesome
 
-			gametype.shootingDisabled = true;
+			gametype.shootingDisabled = false;
 
 			break;
 
@@ -351,21 +295,19 @@ void roundThink() {
 			roundCountDown = remainingSeconds;
 
 			if( roundCountDown == COUNTDOWN_MAX ) {
-				int soundIndex = G_SoundIndex( "sounds/announcer/countdown/ready0" + random_uniform( 1, 3 ) );
-
-				G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, false, null );
+				uint64 sound = Hash64( "sounds/announcer/countdown/ready0" + random_uniform( 1, 3 ) );
+				G_AnnouncerSound( null, sound, GS_MAX_TEAMS, false, null );
 			}
 			else {
 				if( roundCountDown < 4 ) {
-					int soundIndex = G_SoundIndex( "sounds/announcer/countdown/" + roundCountDown + "_0" + random_uniform( 1, 3 ) );
-
-					G_AnnouncerSound( null, soundIndex, GS_MAX_TEAMS, false, null );
+					uint64 sound = Hash64( "sounds/announcer/countdown/" + roundCountDown + "_0" + random_uniform( 1, 3 ) );
+					G_AnnouncerSound( null, sound, GS_MAX_TEAMS, false, null );
 				}
 			}
 		}
 
-		alphaAliveAtStart = playersAliveOnTeam( TEAM_ALPHA );
-		betaAliveAtStart = playersAliveOnTeam( TEAM_BETA );
+		match.alphaPlayersTotal = playersAliveOnTeam( TEAM_ALPHA );
+		match.betaPlayersTotal = playersAliveOnTeam( TEAM_BETA );
 
 		last_time = roundStateEndTime - levelTime + int( cvarRoundTime.value * 1000.0f );
 		match.setClockOverride( last_time );
@@ -405,25 +347,11 @@ void roundThink() {
 			return;
 		}
 
-		// warn defs if bomb will explode soon
-		// warn offs if the round ends soon and they haven't planted
 		if( bombState == BombState_Planted ) {
 			last_time = -1;
-
-			if( !defendersHurried && levelTime + BOMB_HURRYUP_TIME >= bombActionTime ) {
-				announceDef( Announcement_Hurry );
-
-				defendersHurried = true;
-			}
 		}
 		else {
 			last_time = roundStateEndTime - levelTime;
-
-			if( !attackersHurried && levelTime + BOMB_HURRYUP_TIME >= roundStateEndTime ) {
-				announceOff( Announcement_Hurry );
-
-				attackersHurried = true;
-			}
 		}
 
 		match.setClockOverride( last_time );
@@ -431,6 +359,15 @@ void roundThink() {
 		bombThink();
 	}
 	else {
+		if( bombState == BombState_Planting ) {
+			setTeamProgress( attackingTeam, 0, BombProgress_Nothing );
+			bombPickUp();
+		}
+
+		if( defuseProgress > 0 ) {
+			setTeamProgress( defendingTeam, 0, BombProgress_Defusing );
+		}
+
 		match.setClockOverride( last_time );
 
 		if( roundState > RoundState_Round ) {
@@ -500,7 +437,7 @@ void enableMovement() {
 
 			client.pmoveMaxSpeed = -1;
 			client.pmoveDashSpeed = -1;
-			client.pmoveFeatures = client.pmoveFeatures | PMFEAT_JUMP | PMFEAT_DASH | PMFEAT_WALLJUMP;
+			client.pmoveFeatures = client.pmoveFeatures | PMFEAT_JUMP | PMFEAT_SPECIAL;
 		}
 	}
 }
@@ -508,7 +445,7 @@ void enableMovement() {
 void disableMovementFor( Client @client ) {
 	client.pmoveMaxSpeed = 100;
 	client.pmoveDashSpeed = 0;
-	client.pmoveFeatures = client.pmoveFeatures & ~( PMFEAT_JUMP | PMFEAT_DASH | PMFEAT_WALLJUMP );
+	client.pmoveFeatures = client.pmoveFeatures & ~( PMFEAT_JUMP | PMFEAT_SPECIAL );
 }
 
 void disableMovement() {

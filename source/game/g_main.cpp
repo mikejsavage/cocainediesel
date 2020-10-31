@@ -25,10 +25,10 @@ gs_state_t server_gs;
 level_locals_t level;
 spawn_temp_t st;
 
-mempool_s *gamepool;
+mempool_t *gamepool;
 
 int meansOfDeath;
-vec3_t knockbackOfDeath;
+Vec3 knockbackOfDeath;
 
 cvar_t *password;
 cvar_t *g_operator_password;
@@ -37,10 +37,8 @@ cvar_t *g_select_empty;
 cvar_t *filterban;
 
 cvar_t *g_maxvelocity;
-cvar_t *g_gravity;
 
 cvar_t *sv_cheats;
-cvar_t *sv_mm_enable;
 
 cvar_t *g_maplist;
 cvar_t *g_maprotation;
@@ -81,44 +79,10 @@ static char **map_rotation_p = NULL;
 static int map_rotation_current = -1;
 static int map_rotation_count = 0;
 
-//===================================================================
-
-/*
-* G_Error
-*
-* Abort the server with a game error
-*/
-void G_Error( const char *format, ... ) {
-	char msg[1024];
-	va_list argptr;
-
-	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
-	va_end( argptr );
-
-	trap_Error( msg );
-}
-
-/*
-* G_Printf
-*
-* Debug print to server console
-*/
-void G_Printf( const char *format, ... ) {
-	char msg[1024];
-	va_list argptr;
-
-	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
-	va_end( argptr );
-
-	trap_Print( msg );
-}
-
 /*
 * G_GS_Trace - Used only for gameshared linking
 */
-static void G_GS_Trace( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int ignore, int contentmask, int timeDelta ) {
+static void G_GS_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, int timeDelta ) {
 	edict_t *passent = NULL;
 	if( ignore >= 0 && ignore < MAX_EDICTS ) {
 		passent = &game.edicts[ignore];
@@ -132,9 +96,9 @@ static void G_GS_Trace( trace_t *tr, const vec3_t start, const vec3_t mins, cons
 * give gameshared access to some utilities
 */
 static void G_InitGameShared( void ) {
-	int maxclients = atoi( trap_GetConfigString( CS_MAXCLIENTS ) );
+	int maxclients = atoi( PF_GetConfigString( CS_MAXCLIENTS ) );
 	if( maxclients < 1 || maxclients > MAX_EDICTS ) {
-		G_Error( "Invalid maxclients value %i\n", maxclients );
+		Com_Error( ERR_DROP, "Invalid maxclients value %i\n", maxclients );
 	}
 
 	server_gs = { };
@@ -142,21 +106,19 @@ static void G_InitGameShared( void ) {
 	server_gs.maxclients = maxclients;
 
 	server_gs.api.PredictedEvent = G_PredictedEvent;
-	server_gs.api.Error = G_Error;
-	server_gs.api.Printf = G_Printf;
+	server_gs.api.PredictedFireWeapon = G_PredictedFireWeapon;
 	server_gs.api.Trace = G_GS_Trace;
 	server_gs.api.GetEntityState = G_GetEntityStateForDeltaTime;
 	server_gs.api.PointContents = G_PointContents4D;
 	server_gs.api.PMoveTouchTriggers = G_PMoveTouchTriggers;
-	server_gs.api.GetConfigString = trap_GetConfigString;
 }
 
 void G_GamestatSetFlag( int flag, bool b ) {
 	if( b ) {
-		server_gs.gameState.stats[GAMESTAT_FLAGS] |= flag;
+		server_gs.gameState.flags |= flag;
 	}
 	else {
-		server_gs.gameState.stats[GAMESTAT_FLAGS] &= ~flag;
+		server_gs.gameState.flags &= ~flag;
 	}
 }
 
@@ -166,14 +128,10 @@ void G_GamestatSetFlag( int flag, bool b ) {
 * This will be called when the dll is first loaded, which
 * only happens when a new game is started or a save game is loaded.
 */
-void G_Init( unsigned int seed, unsigned int framemsec ) {
+void G_Init( unsigned int framemsec ) {
 	gamepool = _Mem_AllocPool( NULL, "Game", MEMPOOL_GAME, __FILE__, __LINE__ );
 
-	cvar_t *g_maxentities;
-
-	G_Printf( "==== G_Init ====\n" );
-
-	srand( seed );
+	Com_Printf( "==== G_Init ====\n" );
 
 	G_InitGameShared();
 
@@ -183,78 +141,75 @@ void G_Init( unsigned int seed, unsigned int framemsec ) {
 	game.frametime = game.snapFrameTime;
 	game.numBots = 0;
 
-	g_maxvelocity = trap_Cvar_Get( "g_maxvelocity", "16000", 0 );
+	g_maxvelocity = Cvar_Get( "g_maxvelocity", "16000", 0 );
 	if( g_maxvelocity->value < 20 ) {
-		trap_Cvar_SetValue( "g_maxvelocity", 20 );
+		Cvar_SetValue( "g_maxvelocity", 20 );
 	}
 
-	g_gravity = trap_Cvar_Get( "g_gravity", va( "%i", GRAVITY ), 0 );
-	developer = trap_Cvar_Get( "developer", "0", 0 );
+	developer = Cvar_Get( "developer", "0", 0 );
 
 	// latched vars
-	sv_cheats = trap_Cvar_Get( "sv_cheats", "0", CVAR_SERVERINFO | CVAR_LATCH );
-	sv_mm_enable = trap_Cvar_Get( "sv_mm_enable", "0", CVAR_ARCHIVE | CVAR_NOSET | CVAR_SERVERINFO );
+	sv_cheats = Cvar_Get( "sv_cheats", "0", CVAR_SERVERINFO | CVAR_LATCH );
 
-	password = trap_Cvar_Get( "password", "", CVAR_USERINFO );
+	password = Cvar_Get( "password", "", CVAR_USERINFO );
 	password->modified = true; // force an update of g_needpass in G_UpdateServerInfo
-	g_operator_password = trap_Cvar_Get( "g_operator_password", "", CVAR_ARCHIVE );
-	filterban = trap_Cvar_Get( "filterban", "1", 0 );
+	g_operator_password = Cvar_Get( "g_operator_password", "", CVAR_ARCHIVE );
+	filterban = Cvar_Get( "filterban", "1", 0 );
 
-	g_projectile_prestep = trap_Cvar_Get( "g_projectile_prestep", va( "%i", PROJECTILE_PRESTEP ), CVAR_DEVELOPER );
-	g_self_knockback = trap_Cvar_Get( "g_self_knockback", "1.18", CVAR_DEVELOPER );
-	g_knockback_scale = trap_Cvar_Get( "g_knockback_scale", "1.0", CVAR_ARCHIVE );
-	g_respawn_delay_min = trap_Cvar_Get( "g_respawn_delay_min", "600", CVAR_DEVELOPER );
-	g_respawn_delay_max = trap_Cvar_Get( "g_respawn_delay_max", "6000", CVAR_DEVELOPER );
-	g_numbots = trap_Cvar_Get( "g_numbots", "0", CVAR_ARCHIVE );
-	g_deadbody_followkiller = trap_Cvar_Get( "g_deadbody_followkiller", "1", CVAR_DEVELOPER );
-	g_maxtimeouts = trap_Cvar_Get( "g_maxtimeouts", "2", CVAR_ARCHIVE );
-	g_antilag_maxtimedelta = trap_Cvar_Get( "g_antilag_maxtimedelta", "200", CVAR_ARCHIVE );
+	g_projectile_prestep = Cvar_Get( "g_projectile_prestep", va( "%i", PROJECTILE_PRESTEP ), CVAR_DEVELOPER );
+	g_self_knockback = Cvar_Get( "g_self_knockback", "1.18", CVAR_DEVELOPER );
+	g_knockback_scale = Cvar_Get( "g_knockback_scale", "1.0", CVAR_ARCHIVE );
+	g_respawn_delay_min = Cvar_Get( "g_respawn_delay_min", "600", CVAR_DEVELOPER );
+	g_respawn_delay_max = Cvar_Get( "g_respawn_delay_max", "6000", CVAR_DEVELOPER );
+	g_numbots = Cvar_Get( "g_numbots", "0", CVAR_ARCHIVE );
+	g_deadbody_followkiller = Cvar_Get( "g_deadbody_followkiller", "1", CVAR_DEVELOPER );
+	g_maxtimeouts = Cvar_Get( "g_maxtimeouts", "2", CVAR_ARCHIVE );
+	g_antilag_maxtimedelta = Cvar_Get( "g_antilag_maxtimedelta", "200", CVAR_ARCHIVE );
 	g_antilag_maxtimedelta->modified = true;
-	g_antilag_timenudge = trap_Cvar_Get( "g_antilag_timenudge", "0", CVAR_ARCHIVE );
+	g_antilag_timenudge = Cvar_Get( "g_antilag_timenudge", "0", CVAR_ARCHIVE );
 	g_antilag_timenudge->modified = true;
 
-	g_allow_spectator_voting = trap_Cvar_Get( "g_allow_spectator_voting", "1", CVAR_ARCHIVE );
+	g_allow_spectator_voting = Cvar_Get( "g_allow_spectator_voting", "1", CVAR_ARCHIVE );
 
-	if( GAME_IMPORT.is_dedicated_server ) {
-		g_autorecord = trap_Cvar_Get( "g_autorecord", "1", CVAR_ARCHIVE );
-		g_autorecord_maxdemos = trap_Cvar_Get( "g_autorecord_maxdemos", "200", CVAR_ARCHIVE );
+	if( is_dedicated_server ) {
+		g_autorecord = Cvar_Get( "g_autorecord", "1", CVAR_ARCHIVE );
+		g_autorecord_maxdemos = Cvar_Get( "g_autorecord_maxdemos", "200", CVAR_ARCHIVE );
 	} else {
-		g_autorecord = trap_Cvar_Get( "g_autorecord", "0", CVAR_ARCHIVE );
-		g_autorecord_maxdemos = trap_Cvar_Get( "g_autorecord_maxdemos", "0", CVAR_ARCHIVE );
+		g_autorecord = Cvar_Get( "g_autorecord", "0", CVAR_ARCHIVE );
+		g_autorecord_maxdemos = Cvar_Get( "g_autorecord_maxdemos", "0", CVAR_ARCHIVE );
 	}
 
 	// flood control
-	g_floodprotection_messages = trap_Cvar_Get( "g_floodprotection_messages", "4", 0 );
+	g_floodprotection_messages = Cvar_Get( "g_floodprotection_messages", "4", 0 );
 	g_floodprotection_messages->modified = true;
-	g_floodprotection_team = trap_Cvar_Get( "g_floodprotection_team", "0", 0 );
+	g_floodprotection_team = Cvar_Get( "g_floodprotection_team", "0", 0 );
 	g_floodprotection_team->modified = true;
-	g_floodprotection_seconds = trap_Cvar_Get( "g_floodprotection_seconds", "4", 0 );
+	g_floodprotection_seconds = Cvar_Get( "g_floodprotection_seconds", "4", 0 );
 	g_floodprotection_seconds->modified = true;
-	g_floodprotection_penalty = trap_Cvar_Get( "g_floodprotection_delay", "2", 0 );
+	g_floodprotection_penalty = Cvar_Get( "g_floodprotection_delay", "2", 0 );
 	g_floodprotection_penalty->modified = true;
 
-	g_inactivity_maxtime = trap_Cvar_Get( "g_inactivity_maxtime", "90.0", 0 );
+	g_inactivity_maxtime = Cvar_Get( "g_inactivity_maxtime", "90.0", 0 );
 	g_inactivity_maxtime->modified = true;
 
 	// map list
-	g_maplist = trap_Cvar_Get( "g_maplist", "", CVAR_ARCHIVE );
-	g_maprotation = trap_Cvar_Get( "g_maprotation", "1", CVAR_ARCHIVE );
+	g_maplist = Cvar_Get( "g_maplist", "", CVAR_ARCHIVE );
+	g_maprotation = Cvar_Get( "g_maprotation", "1", CVAR_ARCHIVE );
 
 	// map pool
-	g_enforce_map_pool = trap_Cvar_Get( "g_enforce_map_pool", "0", CVAR_ARCHIVE );
-	g_map_pool = trap_Cvar_Get( "g_map_pool", "", CVAR_ARCHIVE );
+	g_enforce_map_pool = Cvar_Get( "g_enforce_map_pool", "0", CVAR_ARCHIVE );
+	g_map_pool = Cvar_Get( "g_map_pool", "", CVAR_ARCHIVE );
 
 	// helper cvars to show current status in serverinfo reply
-	trap_Cvar_Get( "g_match_time", "", CVAR_SERVERINFO | CVAR_READONLY );
-	trap_Cvar_Get( "g_match_score", "", CVAR_SERVERINFO | CVAR_READONLY );
-	trap_Cvar_Get( "g_needpass", "", CVAR_SERVERINFO | CVAR_READONLY );
+	Cvar_Get( "g_match_time", "", CVAR_SERVERINFO | CVAR_READONLY );
+	Cvar_Get( "g_match_score", "", CVAR_SERVERINFO | CVAR_READONLY );
+	Cvar_Get( "g_needpass", "", CVAR_SERVERINFO | CVAR_READONLY );
 
-	g_asGC_stats = trap_Cvar_Get( "g_asGC_stats", "0", CVAR_ARCHIVE );
-	g_asGC_interval = trap_Cvar_Get( "g_asGC_interval", "10", CVAR_ARCHIVE );
+	g_asGC_stats = Cvar_Get( "g_asGC_stats", "0", CVAR_ARCHIVE );
+	g_asGC_interval = Cvar_Get( "g_asGC_interval", "10", CVAR_ARCHIVE );
 
 	// initialize all entities for this game
-	g_maxentities = trap_Cvar_Get( "sv_maxentities", "4096", CVAR_LATCH );
-	game.maxentities = g_maxentities->integer;
+	game.maxentities = MAX_EDICTS;
 	game.edicts = ( edict_t * )G_Malloc( game.maxentities * sizeof( game.edicts[0] ) );
 
 	// initialize all clients for this game
@@ -262,7 +217,7 @@ void G_Init( unsigned int seed, unsigned int framemsec ) {
 
 	game.numentities = server_gs.maxclients + 1;
 
-	trap_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
+	SV_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
 
 	// server console commands
 	G_AddServerCommands();
@@ -275,7 +230,7 @@ void G_Init( unsigned int seed, unsigned int framemsec ) {
 * G_Shutdown
 */
 void G_Shutdown( void ) {
-	G_Printf( "==== G_Shutdown ====\n" );
+	Com_Printf( "==== G_Shutdown ====\n" );
 
 	GT_asCallShutdown();
 
@@ -345,7 +300,7 @@ static void G_UpdateMapRotation( void ) {
 			} else if( thiswhitespace && !lastwhitespace && !found && start ) {
 				found = true;
 				for( i = 0; start + i < p; i++ ) {
-					if( tolower( start[i] ) != tolower( level.mapname[i] ) ) {
+					if( tolower( start[i] ) != tolower( sv.mapname[i] ) ) {
 						found = false;
 					}
 				}
@@ -415,11 +370,11 @@ static const char *G_NextMap( void ) {
 
 	if( !( *g_maplist->string ) || g_maplist->string[0] == '\0' || g_maprotation->integer == 0 ) {
 		// same map again
-		return level.mapname;
+		return sv.mapname;
 	}
 
 	const char *next = G_MapRotationNormal();
-	return next ? next : level.mapname;
+	return next ? next : sv.mapname;
 }
 
 /*
@@ -433,15 +388,15 @@ void G_ExitLevel( void ) {
 	const char *nextmapname = G_NextMap();
 
 	// if it's the same map see if we can restart without loading
-	if( !level.hardReset && !Q_stricmp( nextmapname, level.mapname ) ) {
+	if( !level.hardReset && !Q_stricmp( nextmapname, sv.mapname ) ) {
 		G_RespawnLevel();
 		loadmap = false;
 	}
 
 	if( loadmap ) {
 		char command[256];
-		Q_snprintfz( command, sizeof( command ), "gamemap \"%s\"\n", nextmapname );
-		trap_Cmd_ExecuteText( EXEC_APPEND, command );
+		snprintf( command, sizeof( command ), "gamemap \"%s\"\n", nextmapname );
+		Cbuf_ExecuteText( EXEC_APPEND, command );
 	}
 
 	G_SnapClients();

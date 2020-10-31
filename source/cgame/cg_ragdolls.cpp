@@ -1,5 +1,6 @@
 #include "qcommon/base.h"
 #include "client/client.h"
+#include "client/renderer/renderer.h"
 #include "cgame/cg_local.h"
 
 #include "imgui/imgui.h"
@@ -79,8 +80,8 @@ static Ragdoll editor_ragdoll;
 static Span< TRS > editor_initial_local_pose;
 
 static void CreateBone( Ragdoll * ragdoll, RagdollBoneType bone, const Model * model, MatrixPalettes pose, u8 j0, u8 j1, float radius ) {
-	Vec3 p0 = ( model->transform * pose.joint_poses[ j0 ] ).col3.xyz();
-	Vec3 p1 = ( model->transform * pose.joint_poses[ j1 ] ).col3.xyz();
+	Vec3 p0 = ( model->transform * pose.node_transforms[ j0 ] ).col3.xyz();
+	Vec3 p1 = ( model->transform * pose.node_transforms[ j1 ] ).col3.xyz();
 
 	// TODO: radius
 	ragdoll->bones[ bone ].capsule = PxCapsuleGeometry( 3.0f, Length( p1 - p0 ) * 0.5f );
@@ -102,8 +103,8 @@ static void CreateBone( Ragdoll * ragdoll, RagdollBoneType bone, const Model * m
 }
 
 static PxTransform JointOffsetTransform( const Model * model, MatrixPalettes pose, u8 j0, u8 j1 ) {
-	Vec3 p0 = ( model->transform * pose.joint_poses[ j0 ] ).col3.xyz();
-	Vec3 p1 = ( model->transform * pose.joint_poses[ j1 ] ).col3.xyz();
+	Vec3 p0 = ( model->transform * pose.node_transforms[ j0 ] ).col3.xyz();
+	Vec3 p1 = ( model->transform * pose.node_transforms[ j1 ] ).col3.xyz();
 
 	Vec3 d = p1 - p0;
 
@@ -324,27 +325,27 @@ static void DrawBone( const Model * model, MatrixPalettes matrices, u8 j0, u8 j1
 	pipeline.pass = frame_static.nonworld_opaque_pass;
 	pipeline.shader = &shaders.standard;
 	pipeline.depth_func = DepthFunc_Disabled;
-	pipeline.set_texture( "u_BaseTexture", cls.whiteTexture->texture );
+	pipeline.set_texture( "u_BaseTexture", cls.white_material->texture );
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.set_uniform( "u_Material", frame_static.identity_material_uniforms );
 
 	const Model * capsule = FindModel( "models/capsule" );
-	Vec3 p0 = ( model->transform * matrices.joint_poses[ j0 ].col3 ).xyz();
-	Vec3 p1 = ( model->transform * matrices.joint_poses[ j1 ].col3 ).xyz();
+	Vec3 p0 = ( model->transform * matrices.node_transforms[ j0 ].col3 ).xyz();
+	Vec3 p1 = ( model->transform * matrices.node_transforms[ j1 ].col3 ).xyz();
 	pipeline.set_uniform( "u_Model", UploadModelUniforms( TransformKToSegment( p0, p1 ) * capsule->transform ) );
 
 	DrawModelPrimitive( FindModel( "models/capsule" ), &capsule->primitives[ 0 ], pipeline );
 }
 
 static void JointPicker( const Model * model, const char * label, u8 * joint ) {
-	if( ImGui::BeginCombo( label, *joint == U8_MAX ? "None" : model->joints[ *joint ].name ) ) {
+	if( ImGui::BeginCombo( label, *joint == U8_MAX ? "None" : model->nodes[ *joint ].name ) ) {
 		if( ImGui::Selectable( "None", *joint == U8_MAX ) )
 			*joint = U8_MAX;
 		if( *joint == U8_MAX )
 			ImGui::SetItemDefaultFocus();
 
-		for( u8 i = 0; i < model->num_joints; i++ ) {
-			if( ImGui::Selectable( model->joints[ i ].name, *joint == i ) )
+		for( u8 i = 0; i < model->num_nodes; i++ ) {
+			if( ImGui::Selectable( model->nodes[ i ].name, *joint == i ) )
 				*joint = i;
 			if( *joint == i )
 				ImGui::SetItemDefaultFocus();
@@ -427,25 +428,25 @@ EulerDegrees3 QuaternionToEulerAngles( Quaternion q ) {
 	// roll (x-axis rotation)
 	float sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
 	float cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
-	euler.roll = RAD2DEG( atan2f(sinr_cosp, cosr_cosp) );
+	euler.roll = Degrees( atan2f(sinr_cosp, cosr_cosp) );
 
 	// pitch (y-axis rotation)
 	float sinp = 2 * (q.w * q.y - q.z * q.x);
 	if (fabsf(sinp) >= 1)
-		euler.pitch = RAD2DEG( copysignf(M_PI / 2, sinp) ); // use 90 degrees if out of range
+		euler.pitch = Degrees( copysignf(PI / 2, sinp) ); // use 90 degrees if out of range
 	else
-		euler.pitch = RAD2DEG( asinf(sinp) );
+		euler.pitch = Degrees( asinf(sinp) );
 
 	// yaw (z-axis rotation)
 	float siny_cosp = 2 * (q.w * q.z + q.x * q.y);
 	float cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
-	euler.yaw = RAD2DEG( atan2f(siny_cosp, cosy_cosp) );
+	euler.yaw = Degrees( atan2f(siny_cosp, cosy_cosp) );
 
 	return euler;
 }
 
 void DrawRagdollEditor() {
-	const Model * padpork = FindModel( "models/players/padpork" );
+	const Model * padpork = FindModel( "players/padpork/model" );
 
 	TempAllocator temp = cls.frame_arena.temp();
 
@@ -544,12 +545,12 @@ void DrawRagdollEditor() {
 	}
 
 	if( editor_draw_model ) {
-		RGB8 rgb = TEAM_COLORS[ 0 ].rgb;
+		RGB8 rgb = TEAM_COLORS[ 0 ];
 		Vec4 color = Vec4( rgb.r / 255.0f, rgb.g / 255.0f, rgb.b / 255.0f, 1.0f );
 		float outline_height = 0.42f;
 
-		DrawModel( padpork, Mat4::Identity(), color, pose.skinning_matrices );
-		DrawOutlinedModel( padpork, Mat4::Identity(), vec4_black, outline_height, pose.skinning_matrices );
+		DrawModel( padpork, Mat4::Identity(), color, pose );
+		DrawOutlinedModel( padpork, Mat4::Identity(), vec4_black, outline_height, pose );
 	}
 
 	DrawBone( padpork, pose, editor_ragdoll_config.pelvis, editor_ragdoll_config.spine, editor_ragdoll_config.lower_back_radius );

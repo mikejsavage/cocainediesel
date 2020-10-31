@@ -1,8 +1,8 @@
 #if VERTEX_SHADER
 #if SKINNED
 
-qf_attribute uvec4 a_JointIndices;
-qf_attribute vec4 a_JointWeights;
+in uvec4 a_JointIndices;
+in vec4 a_JointWeights;
 
 layout( std140 ) uniform u_Pose {
 	mat4 u_SkinningMatrices[ MAX_JOINTS ];

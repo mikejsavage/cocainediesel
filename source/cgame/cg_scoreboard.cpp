@@ -1,5 +1,6 @@
 #include "cgame/cg_local.h"
 #include "qcommon/string.h"
+#include "client/renderer/renderer.h"
 
 #include "imgui/imgui.h"
 
@@ -27,19 +28,20 @@ bool CG_ScoreboardShown() {
 		return false;
 	}
 
-	if( cgs.demoPlaying || cg.frame.multipov ) {
-		return cg.showScoreboard || ( GS_MatchState( &client_gs ) > MATCH_STATE_PLAYTIME );
+	if( GS_MatchState( &client_gs ) > MATCH_STATE_PLAYTIME ) {
+		return true;
 	}
 
-	return ( cg.predictedPlayerState.stats[ STAT_LAYOUTS ] & STAT_LAYOUT_SCOREBOARD ) != 0;
+	if( cgs.demoPlaying || cg.frame.multipov ) {
+		return cg.showScoreboard;
+	}
+
+	return cg.predictedPlayerState.show_scoreboard;
 }
 
 static bool ParseInt( const char ** cursor, int * x ) {
-	const char * token = COM_Parse( cursor );
-	if( cursor == NULL )
-		return false;
-	*x = atoi( token );
-	return true;
+	Span< const char > token = ParseToken( cursor, Parse_DontStopOnNewLine );
+	return SpanToInt( token, x );
 }
 
 static bool ParseTeam( const char ** cursor, ScoreboardTeam * team ) {
@@ -72,7 +74,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, ScoreboardPlayer player,
 		icon = player.state != 0 ? cgs.media.shaderReady : NULL;
 	}
 	else {
-		bool carrier = player.state != 0 && ( cg.predictedPlayerState.stats[ STAT_REALTEAM ] == TEAM_SPECTATOR || cg_entities[ id + 1 ].current.team == cg.predictedPlayerState.stats[ STAT_TEAM ] );
+		bool carrier = player.state != 0 && ( ISREALSPECTATOR() || cg_entities[ id + 1 ].current.team == cg.predictedPlayerState.team );
 		if( alive ) {
 			icon = carrier ? cgs.media.shaderBombIcon : cgs.media.shaderAlive;
 		}
@@ -85,7 +87,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, ScoreboardPlayer player,
 		float dim = ImGui::GetTextLineHeight();
 		ImGui::SetCursorPos( ImGui::GetCursorPos() - Vec2( ( dim - line_height ) * 0.5f ) );
 
-		Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
+		Vec2 half_pixel = HalfPixelSize( icon );
 		ImGui::Image( icon, Vec2( dim ), half_pixel, 1.0f - half_pixel, vec4_black );
 	}
 
@@ -105,10 +107,8 @@ static void DrawPlayerScoreboard( TempAllocator & temp, ScoreboardPlayer player,
 	ImGui::AlignTextToFramePadding();
 	ColumnCenterText( temp( "{}", player.kills ) );
 	ImGui::NextColumn();
-
 	ImGui::AlignTextToFramePadding();
-	ImGuiColorToken color( Min2( 255, player.ping ), 0, 0, 255 );
-	ColumnCenterText( temp( "{}{}", color, player.ping ) );
+	ColumnCenterText( temp( "{}", player.ping ) );
 	ImGui::NextColumn();
 }
 
@@ -185,7 +185,7 @@ void CG_DrawScoreboard() {
 	const char * cursor = scoreboard_string;
 
 	const ImGuiIO & io = ImGui::GetIO();
-	float width_frac = Lerp( 0.8f, Clamp01( Unlerp( 1024.0f, io.DisplaySize.x, 1920.0f ) ), 0.6f );
+	float width_frac = Lerp( 0.8f, Unlerp01( 1024.0f, io.DisplaySize.x, 1920.0f ), 0.6f );
 	Vec2 size = io.DisplaySize * Vec2( width_frac, 0.8f );
 
 	ImGuiWindowFlags basic_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoInputs;
@@ -330,7 +330,7 @@ void CG_DrawScoreboard() {
 				if( !ParsePlayer( &cursor, &player ) )
 					break;
 
-				RGB8 team_color = TEAM_COLORS[ i % ARRAY_COUNT( TEAM_COLORS ) ].rgb;
+				RGB8 team_color = TEAM_COLORS[ i % ARRAY_COUNT( TEAM_COLORS ) ];
 				bool alive = player.id >= 0;
 
 				float bg_scale = alive ? 0.75f : 0.5f;
@@ -366,6 +366,7 @@ void CG_DrawScoreboard() {
 	ImGui::Dummy( ImVec2( 0, separator_height ) );
 
 	ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, alpha ) );
+	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8, 0 ) );
 	ImGui::BeginChild( "spectators", ImVec2( 0, separator_height ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
 
 	{
@@ -383,6 +384,7 @@ void CG_DrawScoreboard() {
 	}
 
 	ImGui::EndChild();
+	ImGui::PopStyleVar();
 	ImGui::PopStyleColor();
 }
 
@@ -391,7 +393,7 @@ void CG_ScoresOn_f() {
 		cg.showScoreboard = true;
 	}
 	else {
-		trap_Cmd_ExecuteText( EXEC_NOW, "svscore 1" );
+		Cbuf_ExecuteText( EXEC_NOW, "svscore 1" );
 	}
 }
 
@@ -400,6 +402,6 @@ void CG_ScoresOff_f() {
 		cg.showScoreboard = false;
 	}
 	else {
-		trap_Cmd_ExecuteText( EXEC_NOW, "svscore 0" );
+		Cbuf_ExecuteText( EXEC_NOW, "svscore 0" );
 	}
 }

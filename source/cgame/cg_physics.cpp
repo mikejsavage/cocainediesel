@@ -2,6 +2,7 @@
 #include "qcommon/qcommon.h"
 #include "gameshared/gs_public.h"
 #include "client/client.h"
+#include "client/renderer/model.h"
 #include "qcommon/cm_local.h"
 #include "cgame/cg_local.h"
 
@@ -56,7 +57,7 @@ void InitPhysics() {
 
 	{
 		const char * suffix = "*0";
-		u64 hash = Hash64( suffix, strlen( suffix ), cgs.map->base_hash );
+		u64 hash = Hash64( suffix, strlen( suffix ), cl.map->base_hash );
 		const Model * model = FindModel( StringHash( hash ) );
 
 		for( u32 i = 0; i < model->num_collision_shapes; i++ ) {

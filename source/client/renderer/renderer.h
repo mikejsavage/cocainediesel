@@ -5,7 +5,7 @@
 #include "client/renderer/material.h"
 #include "client/renderer/model.h"
 #include "client/renderer/shader.h"
-#include "gameshared/q_math.h"
+#include "client/renderer/srgb.h"
 #include "cgame/ref.h"
 
 /*
@@ -13,6 +13,7 @@
  */
 struct FrameStatic {
 	u32 viewport_width, viewport_height;
+	u32 last_viewport_width, last_viewport_height;
 	Vec2 viewport;
 	float aspect_ratio;
 	int msaa_samples;
@@ -27,15 +28,21 @@ struct FrameStatic {
 	Mat4 V, inverse_V;
 	Mat4 P, inverse_P;
 	Vec3 position;
+	float vertical_fov;
+	float near_plane;
 
 	Framebuffer world_gbuffer;
 	Framebuffer world_outlines_fb;
 	Framebuffer silhouette_gbuffer;
 	Framebuffer silhouette_silhouettes_fb;
 	Framebuffer msaa_fb;
+	Framebuffer postprocess_fb;
 
 	u8 write_world_gbuffer_pass;
 	u8 postprocess_world_gbuffer_pass;
+
+	u8 particle_update_pass;
+
 	u8 world_opaque_pass;
 	u8 add_world_outlines_pass;
 
@@ -48,7 +55,8 @@ struct FrameStatic {
 
 	u8 add_silhouettes_pass;
 
-	u8 blur_pass;
+	u8 postprocess_pass;
+
 	u8 ui_pass;
 };
 
@@ -74,10 +82,10 @@ void RendererSubmitFrame();
 const Texture * BlueNoiseTexture();
 void DrawFullscreenMesh( const PipelineState & pipeline );
 
-bool HasAlpha( TextureFormat format );
 PipelineState MaterialToPipelineState( const Material * material, Vec4 color = vec4_white, bool skinned = false );
 
 void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color = vec4_white );
+void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, const Material * material, Vec4 color );
 // void DrawRotatedBox( float x, float y, float w, float h, float angle, const Material * material, RGBA8 color );
 
 u16 DynamicMeshBaseIndex();

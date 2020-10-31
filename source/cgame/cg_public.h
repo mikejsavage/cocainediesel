@@ -20,23 +20,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-struct orientation_s;
-struct shader_s;
-struct fragment_s;
-struct entity_s;
-struct refdef_s;
-struct poly_s;
-struct cmodel_s;
-struct qfontface_s;
-
-// cg_public.h -- client game dll information visible to engine
-
 //
 // structs and variables shared with the main engine
 //
 
+#define MAX_PARSE_GAMECOMMANDS  256
+
+struct gcommand_t {
+	bool all;
+	uint8_t targets[MAX_CLIENTS / 8];
+	size_t commandOffset;           // offset of the data in gamecommandsData
+};
+
 #define MAX_PARSE_ENTITIES  1024
-typedef struct snapshot_s {
+struct snapshot_t {
 	bool valid;             // cleared if delta parsing was invalid
 	int64_t serverFrame;
 	int64_t serverTime;    // time in the server when frame was created
@@ -45,72 +42,25 @@ typedef struct snapshot_s {
 	bool allentities;
 	bool multipov;
 	int64_t deltaFrameNum;
-	size_t areabytes;
-	uint8_t *areabits;             // portalarea visibility bits
 	int numplayers;
-	player_state_t playerState;
-	player_state_t playerStates[MAX_CLIENTS];
+	SyncPlayerState playerState;
+	SyncPlayerState playerStates[MAX_CLIENTS];
 	int numEntities;
-	entity_state_t parsedEntities[MAX_PARSE_ENTITIES];
-	game_state_t gameState;
+	SyncEntityState parsedEntities[MAX_PARSE_ENTITIES];
+	SyncGameState gameState;
 	int numgamecommands;
 	gcommand_t gamecommands[MAX_PARSE_GAMECOMMANDS];
 	char gamecommandsData[( MAX_STRING_CHARS / 16 ) * MAX_PARSE_GAMECOMMANDS];
 	size_t gamecommandsDataHead;
-} snapshot_t;
+};
 
 //===============================================================
 
 //
 // functions provided by the main engine
 //
-typedef struct {
-	// drops to console a client game error
-#ifndef _MSC_VER
-	void ( *Error )( const char *msg ) __attribute__( ( noreturn ) );
-#else
-	void ( *Error )( const char *msg );
-#endif
-
-	// console messages
-	void ( *Print )( const char *msg );
-	void ( *PrintToLog )( const char *msg );
-
-	// console variable interaction
-	cvar_t *( *Cvar_Get )( const char *name, const char *value, int flags );
-	cvar_t *( *Cvar_Set )( const char *name, const char *value );
-	void ( *Cvar_SetValue )( const char *name, float value );
-	cvar_t *( *Cvar_ForceSet )( const char *name, const char *value );      // will return 0 0 if not found
-	float ( *Cvar_Value )( const char *name );
-	const char *( *Cvar_String )( const char *name );
-
-	void ( *Cmd_TokenizeString )( const char *text );
-	int ( *Cmd_Argc )( void );
-	char *( *Cmd_Argv )( int arg );
-	char *( *Cmd_Args )( void );        // concatenation of all argv >= 1
-
-	void ( *Cmd_AddCommand )( const char *name, void ( *cmd )( void ) );
-	void ( *Cmd_RemoveCommand )( const char *cmd_name );
-	void ( *Cmd_ExecuteText )( int exec_when, const char *text );
-	void ( *Cmd_Execute )( void );
-	void ( *Cmd_SetCompletionFunc )( const char *cmd_name, char **( *completion_func )( const char *partial ) );
-
-	// files will be memory mapped read only
-	// a -1 return means the file does not exist
-	// NULL can be passed for buf to just determine existance
-	int ( *FS_FOpenFile )( const char *filename, int *filenum, int mode );
-	int ( *FS_Read )( void *buffer, size_t len, int file );
-	int ( *FS_Write )( const void *buffer, size_t len, int file );
-	int ( *FS_Print )( int file, const char *msg );
-	void ( *FS_FCloseFile )( int file );
-
-	// key bindings
-	const char *( *Key_GetBindingBuf )( int binding );
-	const char *( *Key_KeynumToString )( int keynum );
-
+struct cgame_import_t {
 	void ( *GetConfigString )( int i, char *str, int size );
-	int64_t ( *Milliseconds )( void );
-	bool ( *DownloadRequest )( const char *filename );
 
 	void ( *NET_GetUserCmd )( int frame, usercmd_t *cmd );
 	int ( *NET_GetCurrentUserCmdNum )( void );
@@ -118,22 +68,12 @@ typedef struct {
 
 	// refresh system
 	void ( *VID_FlashWindow )();
-
-	// collision detection
-	int ( *CM_NumInlineModels )( void );
-	struct cmodel_s *( *CM_InlineModel )( int num );
-	struct cmodel_s *( *CM_ModelForBBox )( vec3_t mins, vec3_t maxs );
-	struct cmodel_s *( *CM_OctagonModelForBBox )( vec3_t mins, vec3_t maxs );
-	void ( *CM_TransformedBoxTrace )( trace_t *tr, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs, struct cmodel_s *cmodel, int brushmask, const vec3_t origin, const vec3_t angles );
-	int ( *CM_TransformedPointContents )( const vec3_t p, struct cmodel_s *cmodel, const vec3_t origin, const vec3_t angles );
-	void ( *CM_InlineModelBounds )( const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs );
-	bool ( *CM_InPVS )( const vec3_t p1, const vec3_t p2 );
-} cgame_import_t;
+};
 
 //
 // functions exported by the client game subsystem
 //
-typedef struct {
+struct cgame_export_t {
 	// the init function will be called at each restart
 	void ( *Init )( const char *serverName, unsigned int playerNum,
 					bool demoplaying, const char *demoName, unsigned int snapFrameTime );
@@ -147,28 +87,15 @@ typedef struct {
 
 	void ( *EscapeKey )( void );
 
-	void ( *GetEntitySpatilization )( int entNum, vec3_t origin, vec3_t velocity );
+	void ( *GetEntitySpatilization )( int entNum, Vec3 * origin, Vec3 * velocity );
 
-	void ( *Trace )( trace_t *tr, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passent, int contentmask );
+	void ( *Trace )( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int passent, int contentmask );
 
 	void ( *RenderView )( unsigned extrapolationTime );
 
 	bool ( *NewFrameSnapshot )( snapshot_t *newSnapshot, snapshot_t *currentSnapshot );
 
-	/**
-	 * Updates input-related parts of cgame every frame.
-	 *
-	 * @param frametime real frame time
-	 */
-	void ( *InputFrame )( int frameTime );
-
-	/**
-	* Transmits accumulated mouse movement event for the current frame.
-	*
-	* @param dx horizontal mouse movement
-	* @param dy vertical mouse movement
-	*/
-	void ( *MouseMove )( int dx, int dy );
+	void ( *MouseMove )( int frameTime, Vec2 m );
 
 	/**
 	 * Gets input command buttons added by cgame.
@@ -177,22 +104,6 @@ typedef struct {
 	 * @return BUTTON_ bitfield with the pressed or simulated actions
 	 */
 	unsigned int ( *GetButtonBits )( void );
-
-	/**
-	 * Adds input view rotation.
-	 * May be called multiple times in a frame.
-	 *
-	 * @param viewAngles view angles to modify
-	 */
-	void ( *AddViewAngles )( vec3_t viewAngles );
-
-	/**
-	 * Adds player movement.
-	 * May be called multiple times in a frame.
-	 *
-	 * @param movement movement vector to modify
-	 */
-	void ( *AddMovement )( vec3_t movement );
-} cgame_export_t;
+};
 
 cgame_export_t *GetCGameAPI( cgame_import_t * import );

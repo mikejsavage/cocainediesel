@@ -1,22 +1,3 @@
-/*
-   Copyright (C) 2009-2010 Chasseur de bots
-
-   This program is free software; you can redistribute it and/or
-   modify it under the terms of the GNU General Public License
-   as published by the Free Software Foundation; either version 2
-   of the License, or (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-   See the GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-   */
-
 enum BombState {
 	BombState_Idle,
 	BombState_Carried,
@@ -38,8 +19,6 @@ BombState bombState = BombState_Idle;
 
 cBombSite @bombSite;
 
-int64 bombNextBeep;
-
 int64 bombPickTime;
 Entity @bombDropper;
 
@@ -55,7 +34,6 @@ Entity @defuser = null;
 uint defuseProgress;
 
 Entity @bombModel;
-Entity @bombDecal;
 Entity @bombHud;
 
 void show( Entity @ent ) {
@@ -78,9 +56,9 @@ void bombModelCreate() {
 	bombModel.type = ET_GENERIC;
 	bombModel.setSize( BOMB_MINS, BOMB_MAXS );
 	bombModel.solid = SOLID_TRIGGER;
-	bombModel.light = BOMB_LIGHT_INACTIVE;
-	bombModel.modelindex = modelBombModel;
+	bombModel.model = modelBomb;
 	bombModel.silhouetteColor = uint( 255 << 0 ) | uint( 255 << 8 ) | uint( 255 << 16 ) | uint( 255 << 24 );
+	bombModel.svflags |= SVF_BROADCAST;
 	@bombModel.touch = bomb_touch;
 	@bombModel.stop = bomb_stop;
 }
@@ -89,15 +67,8 @@ void bombInit() {
 	bombModelCreate();
 
 	// don't set ~SVF_NOCLIENT yet
-	@bombDecal = @G_SpawnEntity( "flag_indicator_decal" );
-	bombDecal.type = ET_DECAL;
-	bombDecal.origin2 = VEC_UP; // normal
-	bombDecal.solid = SOLID_NOT;
-	bombDecal.modelindex = imgBombDecal;
-	bombDecal.svflags |= SVF_TRANSMITORIGIN2; // so the normal actually gets used
-
 	@bombHud = @G_SpawnEntity( "hud_bomb" );
-	bombHud.type = ET_HUD;
+	bombHud.type = ET_BOMB;
 	bombHud.solid = SOLID_NOT;
 	bombHud.svflags |= SVF_BROADCAST;
 
@@ -106,10 +77,9 @@ void bombInit() {
 
 void bombPickUp() {
 	bombCarrier.effects |= EF_CARRIER;
-	bombCarrier.modelindex2 = modelBombBackpack;
+	bombCarrier.model2 = modelBomb;
 
 	hide( @bombModel );
-	hide( @bombDecal );
 	hide( @bombHud );
 
 	bombModel.moveType = MOVETYPE_NONE;
@@ -120,7 +90,7 @@ void bombPickUp() {
 void bombSetCarrier( Entity @ent, bool no_sound ) {
 	if( @bombCarrier != null ) {
 		bombCarrier.effects &= ~EF_CARRIER;
-		bombCarrier.modelindex2 = 0;
+		bombCarrier.model2 = 0;
 	}
 
 	@bombCarrier = @ent;
@@ -183,10 +153,9 @@ void bombDrop( BombDrop drop_reason ) {
 	bombModel.origin = trace.endPos;
 	bombModel.velocity = velocity;
 	show( @bombModel );
-	hide( @bombDecal );
 
 	bombCarrier.effects &= ~EF_CARRIER;
-	bombCarrier.modelindex2 = 0;
+	bombCarrier.model2 = 0;
 
 	@bombCarrier = null;
 
@@ -208,43 +177,39 @@ void bombStartPlanting( cBombSite @site ) {
 	Trace trace;
 	trace.doTrace( start, BOMB_MINS, BOMB_MAXS, end, bombCarrier.entNum, MASK_SOLID );
 
+	Vec3 angles = Vec3( 0, random_float01() * 360.0f, 0 );
+
 	// show stuff
 	bombModel.origin = trace.endPos;
+	bombModel.angles = angles;
 	show( @bombModel );
 
-	bombDecal.origin = trace.endPos;
-	bombDecal.svflags |= SVF_ONLYTEAM;
-	bombDecal.radius = 0;
-	show( @bombDecal );
-
 	bombHud.origin = trace.endPos + Vec3( 0, 0, BOMB_HUD_OFFSET );
+	bombHud.angles = angles;
 	bombHud.svflags |= SVF_ONLYTEAM;
 	bombHud.radius = BombDown_Planting;
 	show( @bombHud );
 
 	// make carrier look normal
 	bombCarrier.effects &= ~EF_CARRIER;
-	bombCarrier.modelindex2 = 0;
+	bombCarrier.model2 = 0;
 
 	bombActionTime = levelTime;
 	bombState = BombState_Planting;
 
-	G_Sound( @bombModel, 0, sndPlantStart, ATTN_NORM );
+	G_Sound( @bombModel, 0, sndPlant );
 }
 
 void bombPlanted() {
 	bombActionTime = levelTime + int( cvarExplodeTime.value * 1000.0f );
 
-	// add red dynamic light
-	bombModel.light = BOMB_LIGHT_ARMED;
-	bombModel.modelindex = modelBombModelActive;
+	bombModel.sound = sndFuse;
 	bombModel.effects &= ~EF_TEAM_SILHOUETTE;
 
 	// show to defs too
-	bombDecal.svflags &= ~SVF_ONLYTEAM;
 	bombHud.svflags &= ~SVF_ONLYTEAM;
 
-	announce( Announcement_Armed );
+	announce( Announcement_Planted );
 
 	G_CenterPrintMsg( null, "Bomb planted at " + bombSite.letter + "!" );
 
@@ -254,10 +219,8 @@ void bombPlanted() {
 }
 
 void bombDefused() {
-	bombModel.light = BOMB_LIGHT_INACTIVE;
-	bombModel.modelindex = modelBombModel;
+	bombModel.sound = 0;
 
-	hide( @bombDecal );
 	hide( @bombHud );
 
 	announce( Announcement_Defused );
@@ -272,6 +235,8 @@ void bombDefused() {
 	client.addAward( "Bomb defused!" );
 	G_PrintMsg( null, client.name + " defused the bomb!\n" );
 
+	G_Sound( @bombModel, 0, sndFuseExtinguished );
+
 	roundWonBy( defendingTeam );
 
 	@defuser = null;
@@ -281,7 +246,6 @@ void bombExplode() {
 	// do this first else the attackers can score 2 points when the explosion kills everyone
 	roundWonBy( attackingTeam );
 
-	hide( @bombDecal );
 	hide( @bombHud );
 
 	bombSite.explode();
@@ -289,18 +253,16 @@ void bombExplode() {
 	bombState = BombState_Exploding;
 	@defuser = null;
 
-	G_Sound( @bombModel, 0, sndGoodGame, ATTN_DISTANT );
+	G_Sound( @bombModel, 0, sndComedy );
 }
 
 void resetBomb() {
 	hide( @bombModel );
-	hide( @bombDecal );
 
-	bombModel.light = BOMB_LIGHT_INACTIVE;
-	bombModel.modelindex = modelBombModel;
 	bombModel.effects |= EF_TEAM_SILHOUETTE;
 
-	bombModel.team = bombDecal.team = bombHud.team = attackingTeam;
+	bombModel.team = attackingTeam;
+	bombHud.team = attackingTeam;
 
 	bombState = BombState_Idle;
 }
@@ -321,12 +283,9 @@ void bombThink() {
 				break;
 			}
 
-			float decal_radius_frac = min( 1.0f, float( levelTime - bombActionTime ) / float( BOMB_SPRITE_RESIZE_TIME ) );
-			bombDecal.radius = int( BOMB_ARM_DEFUSE_RADIUS * decal_radius_frac );
-			bombDecal.effects |= EF_TEAMCOLOR_TRANSITION;
-			bombDecal.counterNum = int( frac * 255.0f );
-			if( frac != 0 )
+			if( frac != 0 ) {
 				setTeamProgress( attackingTeam, int( frac * 100.0f ), BombProgress_Planting );
+			}
 		} break;
 
 		case BombState_Planted: {
@@ -334,7 +293,7 @@ void bombThink() {
 				@defuser = firstNearbyTeammate( bombModel.origin, defendingTeam );
 
 			if( @defuser != null ) {
-				if( !entCanSee( defuser, bombModel.origin ) || defuser.origin.distance( bombModel.origin ) > BOMB_ARM_DEFUSE_RADIUS ) {
+				if( defuser.isGhosting() || !entCanSee( defuser, bombModel.origin ) || defuser.origin.distance( bombModel.origin ) > BOMB_ARM_DEFUSE_RADIUS ) {
 					@defuser = null;
 				}
 			}
@@ -359,41 +318,14 @@ void bombThink() {
 				bombExplode();
 				break;
 			}
-
-			if( levelTime > bombNextBeep ) {
-				G_PositionedSound( bombModel.origin, CHAN_AUTO, sndBeep, ATTN_DISTANT );
-
-				uint remainingTime = bombActionTime - levelTime;
-
-				uint nextBeepDelta = uint( BOMB_BEEP_FRACTION * remainingTime );
-
-				if( nextBeepDelta > BOMB_BEEP_MAX ) {
-					nextBeepDelta = BOMB_BEEP_MAX;
-				}
-				else if( nextBeepDelta < BOMB_BEEP_MIN ) {
-					nextBeepDelta = BOMB_BEEP_MIN;
-				}
-
-				bombNextBeep = levelTime + nextBeepDelta;
-			}
 		} break;
 	}
 }
 
-// fixes sprite/decal changing colour at the end of a round
-// and the exploding animation from stopping
+// fixes the exploding animation from stopping
 void bombPostRoundThink() {
-	switch( bombState ) {
-		case BombState_Planting: {
-			bombDecal.effects |= EF_TEAMCOLOR_TRANSITION;
-
-			float frac = float( levelTime - bombActionTime ) / ( cvarArmTime.value * 1000.0f );
-			bombDecal.counterNum = int( frac * 255.0f );
-		} break;
-
-		case BombState_Exploding:
-			bombSite.stepExplosion();
-			break;
+	if( bombState == BombState_Exploding ) {
+		bombSite.stepExplosion();
 	}
 }
 
@@ -450,14 +382,18 @@ bool bombCanPlant() {
 
 void bombGiveToRandom() {
 	Team @team = @G_GetTeam( attackingTeam );
+	int bots = 0;
 
-	uint n = getCarrierCount( attackingTeam );
-	bool hasCarriers = cvarEnableCarriers.boolean && n > 0;
-	if( !hasCarriers )
-		n = team.numPlayers;
+	for( int i = 0; @team.ent( i ) != null; i++ ) {
+		if( ( team.ent( i ).svflags & SVF_FAKECLIENT ) != 0 ) {
+			bots++;
+		}
+	}
 
-	int carrierIdx = random_uniform( 0, n );
-	int seenCarriers = 0;
+	bool all_bots = bots == team.numPlayers;
+	int n = all_bots ? team.numPlayers : team.numPlayers - bots;
+	int carrier = random_uniform( 0, n );
+	int seen = 0;
 
 	for( int i = 0; @team.ent( i ) != null; i++ ) {
 		Entity @ent = @team.ent( i );
@@ -465,13 +401,13 @@ void bombGiveToRandom() {
 
 		cPlayer @player = @playerFromClient( @client );
 
-		if( !hasCarriers || @ent == @bombCarrier ) {
-			if( seenCarriers == carrierIdx ) {
+		if( all_bots || ( ent.svflags & SVF_FAKECLIENT ) == 0 ) {
+			if( seen == carrier ) {
 				bombSetCarrier( @ent, true );
 				break;
 			}
 
-			seenCarriers++;
+			seen++;
 		}
 	}
 }
@@ -510,9 +446,7 @@ void bombLookAt( Entity @ent ) {
 
 	float dist = dir.length();
 
-	dir *= 1.0 / dist; // save a sqrt? Vec3 has no /=...
-
-	Vec3 end = center + dir * ( dist + BOMB_DEAD_CAMERA_DIST );
+	Vec3 end = center + dir.normalize() * ( dist + BOMB_DEAD_CAMERA_DIST );
 
 	Trace trace;
 	bool didHit = trace.doTrace( bombOrigin, vec3Origin, vec3Origin, end, -1, MASK_SOLID );

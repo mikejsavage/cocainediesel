@@ -18,7 +18,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "server.h"
+#include <time.h>
+
+#include "server/server.h"
 
 #define SV_DEMO_DIR va( "demos/server%s%s", sv_demodir->string[0] ? "/" : "", sv_demodir->string[0] ? sv_demodir->string : "" )
 
@@ -43,14 +45,15 @@ static void SV_Demo_WriteStartMessages( void ) {
 	// clear demo meta data, we'll write some keys later
 	svs.demo.meta_data_realsize = SNAP_ClearDemoMeta( svs.demo.meta_data, sizeof( svs.demo.meta_data ) );
 
-	SNAP_BeginDemoRecording( svs.demo.file, svs.spawncount, svc.snapFrameTime, sv.mapname, SV_BITFLAGS_RELIABLE,
-		sv.configstrings[0], sv.baselines );
+	SNAP_BeginDemoRecording( svs.demo.file, svs.spawncount, svc.snapFrameTime, SV_BITFLAGS_RELIABLE, sv.configstrings[0], sv.baselines );
 }
 
 /*
 * SV_Demo_WriteSnap
 */
 void SV_Demo_WriteSnap( void ) {
+	ZoneScoped;
+
 	int i;
 	msg_t msg;
 	uint8_t msg_buffer[MAX_MSGLEN];
@@ -146,7 +149,7 @@ void SV_Demo_Start_f( void ) {
 		sizeof( char ) * ( strlen( SV_DEMO_DIR ) + 1 + strlen( Cmd_Args() ) + strlen( APP_DEMO_EXTENSION_STR ) + 1 );
 	svs.demo.filename = ( char * ) Mem_ZoneMalloc( demofilename_size );
 
-	Q_snprintfz( svs.demo.filename, demofilename_size, "%s/%s", SV_DEMO_DIR, Cmd_Args() );
+	snprintf( svs.demo.filename, demofilename_size, "%s/%s", SV_DEMO_DIR, Cmd_Args() );
 
 	COM_SanitizeFilePath( svs.demo.filename );
 
@@ -162,7 +165,7 @@ void SV_Demo_Start_f( void ) {
 	// temp name
 	demofilename_size = sizeof( char ) * ( strlen( svs.demo.filename ) + strlen( ".rec" ) + 1 );
 	svs.demo.tempname = ( char * ) Mem_ZoneMalloc( demofilename_size );
-	Q_snprintfz( svs.demo.tempname, demofilename_size, "%s.rec", svs.demo.filename );
+	snprintf( svs.demo.tempname, demofilename_size, "%s.rec", svs.demo.filename );
 
 	// open it
 	if( FS_FOpenFile( svs.demo.tempname, &svs.demo.file, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
@@ -221,9 +224,8 @@ static void SV_Demo_Stop( bool cancel, bool silent ) {
 		SV_SetDemoMetaKeyValue( "hostname", sv.configstrings[CS_HOSTNAME] );
 		SV_SetDemoMetaKeyValue( "localtime", va( "%" PRIi64, (int64_t)svs.demo.localtime ) );
 		SV_SetDemoMetaKeyValue( "multipov", "1" );
-		SV_SetDemoMetaKeyValue( "duration", va( "%u", (int)ceil( (double)svs.demo.duration / 1000.0 ) ) );
-		SV_SetDemoMetaKeyValue( "mapname", sv.configstrings[CS_MAPNAME] );
-		SV_SetDemoMetaKeyValue( "gametype", sv.configstrings[CS_GAMETYPENAME] );
+		SV_SetDemoMetaKeyValue( "duration", va( "%u", (int)ceilf( (double)svs.demo.duration / 1000.0 ) ) );
+		SV_SetDemoMetaKeyValue( "mapname", sv.mapname );
 		SV_SetDemoMetaKeyValue( "matchscore", sv.configstrings[CS_MATCHSCORE] );
 
 		SNAP_WriteDemoMetaData( svs.demo.tempname, svs.demo.meta_data, svs.demo.meta_data_realsize );
@@ -307,7 +309,7 @@ void SV_Demo_Purge_f( void ) {
 		}
 
 		p += strlen( "_auto" );
-		Q_snprintfz( num, sizeof( num ), "%04i", atoi( p ) );
+		snprintf( num, sizeof( num ), "%04i", atoi( p ) );
 		if( strncmp( p, num, 4 ) ) {
 			continue;
 		}
@@ -333,12 +335,12 @@ void SV_Demo_Purge_f( void ) {
 		}
 
 		p += strlen( "_auto" );
-		Q_snprintfz( num, sizeof( num ), "%04i", atoi( p ) );
+		snprintf( num, sizeof( num ), "%04i", atoi( p ) );
 		if( strncmp( p, num, 4 ) ) {
 			continue;
 		}
 
-		Q_snprintfz( path, sizeof( path ), "%s/%s", SV_DEMO_DIR, s );
+		snprintf( path, sizeof( path ), "%s/%s", SV_DEMO_DIR, s );
 		Com_Printf( "Removing old autorecord demo: %s\n", path );
 		if( !FS_RemoveFile( path ) ) {
 			Com_Printf( "Error, couldn't remove file: %s\n", path );
@@ -387,7 +389,7 @@ void SV_DemoList_f( client_t *client ) {
 	numdemos = FS_GetFileList( SV_DEMO_DIR, APP_DEMO_EXTENSION_STR, NULL, 0, 0, 0 );
 	if( numdemos ) {
 		if( start < 0 ) {
-			start = max( 0, numdemos - DEMOS_PER_VIEW );
+			start = Max2( 0, numdemos - DEMOS_PER_VIEW );
 		} else if( start > numdemos - 1 ) {
 			start = numdemos - 1;
 		}
@@ -418,7 +420,7 @@ void SV_DemoList_f( client_t *client ) {
 				while( ( p = strchr( p, '\\' ) ) )
 					length_escaped++;
 
-				Q_snprintfz( numpr, sizeof( numpr ), "%i: ", i + 1 );
+				snprintf( numpr, sizeof( numpr ), "%i: ", i + 1 );
 				if( strlen( message ) + strlen( numpr ) + length_escaped - extlen + 1 + 5 >= sizeof( message ) ) {
 					Q_strncatz( message, "\"", sizeof( message ) );
 					SV_AddGameCommand( client, message );
@@ -523,32 +525,6 @@ void SV_DemoGet_f( client_t *client ) {
 	SV_AddGameCommand( client, message );
 }
 
-/*
-* SV_IsDemoDownloadRequest
-*/
-bool SV_IsDemoDownloadRequest( const char *request ) {
-	const char *ext;
-	const char *demoDir = SV_DEMO_DIR;
-	const size_t demoDirLen = strlen( demoDir );
-
-	if( !request ) {
-		return false;
-	}
-	if( strlen( request ) <= demoDirLen + 1 + strlen( APP_DEMO_EXTENSION_STR ) ) {
-		// should at least contain demo dir name and demo file extension
-		return false;
-	}
-
-	if( Q_strnicmp( request, demoDir, demoDirLen ) || request[demoDirLen] != '/' ) {
-		// nah, wrong dir
-		return false;
-	}
-
-	ext = COM_FileExtension( request );
-	if( !ext || Q_stricmp( ext, APP_DEMO_EXTENSION_STR ) ) {
-		// wrong extension
-		return false;
-	}
-
-	return true;
+bool SV_IsDemoDownloadRequest( const char * request ) {
+	return StartsWith( request, SV_DEMO_DIR ) && FileExtension( request ) == APP_DEMO_EXTENSION_STR;
 }

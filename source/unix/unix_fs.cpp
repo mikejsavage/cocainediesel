@@ -61,7 +61,7 @@ static bool FS_DirentIsDir( const struct dirent64 *d, const char *base ) {
 
 	pathSize = strlen( base ) + 1 + strlen( d->d_name ) + 1;
 	path = alloca( pathSize );
-	Q_snprintfz( path, pathSize, "%s/%s", base, d->d_name );
+	snprintf( path, pathSize, "%s/%s", base, d->d_name );
 	if( stat( path, &st ) ) {
 		return false;
 	}
@@ -179,7 +179,7 @@ const char *Sys_FS_FindNext( unsigned musthave, unsigned canhave ) {
 				findpath = ( char * ) Mem_TempMalloc( findpath_size );
 			}
 
-			Q_snprintfz( findpath, findpath_size, "%s/%s%s", findbase, dname,
+			snprintf( findpath, findpath_size, "%s/%s%s", findbase, dname,
 						 dname[dname_len - 1] != '/' && FS_DirentIsDir( d, findbase ) ? "/" : "" );
 			if( CompareAttributesForPath( d, findpath, musthave, canhave ) ) {
 				return findpath;
@@ -235,7 +235,7 @@ const char *Sys_FS_GetHomeDirectory( void ) {
 #endif
 
 		if( base ) {
-			Q_snprintfz( home, sizeof( home ), "%s/%s%s-0.0", base, local, APPLICATION );
+			snprintf( home, sizeof( home ), "%s/%s%s-0.0", base, local, APPLICATION );
 		}
 	}
 
@@ -246,63 +246,10 @@ const char *Sys_FS_GetHomeDirectory( void ) {
 }
 
 /*
-* Sys_FS_GetCacheDirectory
-*/
-const char *Sys_FS_GetCacheDirectory( void ) {
-	static char cache[PATH_MAX] = { '\0' };
-
-	if( cache[0] == '\0' ) {
-		const char *homeEnv = getenv( "HOME" );
-		const char *base = NULL, *local = "";
-
-#ifdef __MACOSX__
-		base = homeEnv;
-		local = "Library/Caches/";
-#else
-		base = getenv( "XDG_CACHE_HOME" );
-		local = "";
-		if( !base ) {
-			base = homeEnv;
-			local = ".cache/";
-		}
-#endif
-
-		if( base ) {
-			Q_snprintfz( cache, sizeof( cache ), "%s/%s%s-0.0", base, local, APPLICATION );
-		}
-	}
-
-	if( cache[0] == '\0' ) {
-		return NULL;
-	}
-	return cache;
-}
-
-/*
-* Sys_FS_LockFile
-*/
-void *Sys_FS_LockFile( const char *path ) {
-	return (void *)1; // return non-NULL pointer
-}
-
-/*
-* Sys_FS_UnlockFile
-*/
-void Sys_FS_UnlockFile( void *handle ) {
-}
-
-/*
 * Sys_FS_CreateDirectory
 */
 bool Sys_FS_CreateDirectory( const char *path ) {
 	return ( !mkdir( path, 0777 ) );
-}
-
-/*
-* Sys_FS_RemoveDirectory
-*/
-bool Sys_FS_RemoveDirectory( const char *path ) {
-	return ( !rmdir( path ) );
 }
 
 /*

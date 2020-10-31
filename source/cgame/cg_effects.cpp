@@ -1,102 +1,24 @@
 #include "cgame/cg_local.h"
+#include "client/renderer/renderer.h"
 
-void CG_ParticleExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color ) {
-	{
-		ParticleEmitter emitter = { };
-		emitter.position = origin;
-
-		emitter.use_cone_direction = true;
-		emitter.direction_cone.normal = normal;
-		emitter.direction_cone.theta = 90.0f;
-
-		emitter.start_speed = 100.0f;
-		emitter.end_speed = 100.0f;
-
-		emitter.start_color = Vec4( 1.0f, 0.9, 0.0f, 0.5f );
-		emitter.end_color = Vec3( 0.2f, 0.1f, 0.0f );
-		emitter.alpha_distribution.type = RandomDistributionType_Uniform;
-		emitter.alpha_distribution.uniform = 0.1f;
-
-		emitter.start_size = 32.0f;
-		emitter.end_size = 32.0f;
-		emitter.size_distribution.type = RandomDistributionType_Uniform;
-		emitter.size_distribution.uniform = 16.0f;
-
-		emitter.lifetime = 0.8f;
-		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-		emitter.lifetime_distribution.uniform = 0.3f;
-
-		emitter.n = 32;
-
-		EmitParticles( &cgs.smoke, emitter );
-	}
-
-	{
-		ParticleEmitter emitter = { };
-		emitter.position = origin;
-
-		emitter.use_cone_direction = true;
-		emitter.direction_cone.normal = normal;
-		emitter.direction_cone.theta = 90.0f;
-
-		emitter.start_speed = 400.0f;
-		emitter.end_speed = 0.0f;
-
-		emitter.start_color = Vec4( team_color, 1.0f );
-		emitter.end_color = team_color;
-
-		emitter.start_size = 16.0f;
-		emitter.end_size = 32.0f;
-		emitter.size_distribution.type = RandomDistributionType_Uniform;
-		emitter.size_distribution.uniform = 4.0f;
-
-		emitter.lifetime = 0.25f;
-		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-		emitter.lifetime_distribution.uniform = 0.1f;
-
-		emitter.n = 128;
-
-		EmitParticles( &cgs.ions, emitter );
-	}
+void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
+	DoVisualEffect( "vfx/explosion", origin, normal, 1.0f, Vec4( team_color, 1.0f ) );
 }
 
-void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color ) {
-	ParticleEmitter emitter = { };
-	emitter.position = start;
-	emitter.position_distribution.type = RandomDistribution3DType_Line;
-	emitter.position_distribution.line.end = end;
+void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
+	DoVisualEffect( "vfx/plasmaimpact", origin, normal, 1.0f, Vec4( team_color, 1.0f ) );
+}
 
-	emitter.start_speed = 4.0f;
-	emitter.end_speed = 0.0f;
+void BubbleImpactParticles( Vec3 origin, Vec3 team_color ) {
+	DoVisualEffect( "vfx/bubbleimpact", origin, Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, Vec4( team_color, 1.0f ) );
+}
 
-	emitter.start_color = color;
-	emitter.end_color = color.xyz();
-
-	RandomDistribution color_dist;
-	color_dist.type = RandomDistributionType_Uniform;
-	color_dist.uniform = 0.1f;
-	emitter.red_distribution = color_dist;
-	emitter.green_distribution = color_dist;
-	emitter.blue_distribution = color_dist;
-	emitter.alpha_distribution = color_dist;
-
-	emitter.start_size = 1.0f;
-	emitter.end_size = 1.0f;
-	emitter.size_distribution.type = RandomDistributionType_Uniform;
-	emitter.size_distribution.uniform = 0.1f;
-
-	emitter.lifetime = 0.9f;
-	emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-	emitter.lifetime_distribution.uniform = 0.3f;
-
+void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
 	constexpr int max_ions = 256;
 	float distance_between_particles = 4.0f;
-
 	float len = Length( end - start );
-
-	emitter.n = Min2( len / distance_between_particles + 1.0f, float( max_ions ) );
-
-	EmitParticles( &cgs.ions, emitter );
+	float count = Min2( len / distance_between_particles + 1.0f, float( max_ions ) );
+	DoVisualEffect( "vfx/railtrail", start, end, count, color );
 }
 
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material ) {
@@ -106,23 +28,35 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * m
 	Vec3 dir = Normalize( end - start );
 	Vec3 forward = Normalize( start - frame_static.position );
 
-	if( fabsf( Dot( dir, forward ) ) == 1.0f )
+	if( Abs( Dot( dir, forward ) ) == 1.0f )
 		return;
 
 	Vec3 beam_across = Normalize( Cross( -forward, dir ) );
 
+	// "phone wire anti-aliasing"
+	// we should really do this in the shader so it's accurate across the whole beam.
+	// scale width by 8 because our beam textures have their own fade to transparent at the edges.
+	float pixel_scale = tanf( 0.5f * Radians( cg.view.fov_y ) ) / frame_static.viewport.y;
+	Mat4 VP = frame_static.P * frame_static.V;
+
+	float start_w = ( VP * Vec4( start, 1.0f ) ).w;
+	float start_width = Max2( width, 8.0f * start_w * pixel_scale );
+
+	float end_w = ( VP * Vec4( end, 1.0f ) ).w;
+	float end_width = Max2( width, 8.0f * end_w * pixel_scale );
+
 	Vec3 positions[] = {
-		start + width * beam_across * 0.5f,
-		start - width * beam_across * 0.5f,
-		end + width * beam_across * 0.5f,
-		end - width * beam_across * 0.5f,
+		start + start_width * beam_across * 0.5f,
+		start - start_width * beam_across * 0.5f,
+		end + end_width * beam_across * 0.5f,
+		end - end_width * beam_across * 0.5f,
 	};
 
 	float texture_aspect_ratio = float( material->texture->width ) / float( material->texture->height );
 	float beam_aspect_ratio = Length( end - start ) / width;
 	float repetitions = beam_aspect_ratio / texture_aspect_ratio;
 
-	Vec2 half_pixel = 0.5f / Vec2( material->texture->width, material->texture->height );
+	Vec2 half_pixel = HalfPixelSize( material );
 	Vec2 uvs[] = {
 		Vec2( half_pixel.x, half_pixel.y ),
 		Vec2( half_pixel.x, 1.0f - half_pixel.y ),
@@ -130,7 +64,12 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * m
 		Vec2( repetitions - half_pixel.x, 1.0f - half_pixel.y ),
 	};
 
-	constexpr RGBA8 colors[] = { rgba8_white, rgba8_white, rgba8_white, rgba8_white };
+	RGBA8 colors[] = {
+		RGBA8( 255, 255, 255, 255 * width / start_width ),
+		RGBA8( 255, 255, 255, 255 * width / start_width ),
+		RGBA8( 255, 255, 255, 255 * width / end_width ),
+		RGBA8( 255, 255, 255, 255 * width / end_width ),
+	};
 
 	u16 base_index = DynamicMeshBaseIndex();
 	u16 indices[] = { 0, 1, 2, 1, 3, 2 };
@@ -139,6 +78,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * m
 	}
 
 	PipelineState pipeline = MaterialToPipelineState( material, color );
+	pipeline.shader = &shaders.standard_vertexcolors;
 	pipeline.blend_func = BlendFunc_Add;
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
@@ -197,10 +137,12 @@ void DrawPersistentBeams() {
 		PersistentBeam & beam = persistent_beams[ i ];
 		float t = ( cl.serverTime - beam.spawn_time ) / 1000.0f;
 		float alpha;
-		if( beam.start_fade_time != beam.duration )
-			alpha = 1.0f - Clamp01( Unlerp( beam.start_fade_time, t, beam.duration ) );
-		else
+		if( beam.start_fade_time != beam.duration ) {
+			alpha = 1.0f - Unlerp01( beam.start_fade_time, t, beam.duration );
+		}
+		else {
 			alpha = t < beam.duration ? 1.0f : 0.0f;
+		}
 
 		if( alpha <= 0 ) {
 			num_persistent_beams--;

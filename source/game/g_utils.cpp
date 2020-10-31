@@ -18,9 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-// g_utils.c -- misc utility functions for game module
-
-#include "g_local.h"
+#include "game/g_local.h"
 
 /*
 ==============================================================================
@@ -91,20 +89,20 @@ static void G_Z_Free( void *ptr, const char *filename, int fileline ) {
 	memzone_t *zone;
 
 	if( !ptr ) {
-		G_Error( "G_Z_Free: NULL pointer" );
+		Com_Error( ERR_DROP, "G_Z_Free: NULL pointer" );
 	}
 
 	block = (memblock_t *) ( (uint8_t *)ptr - sizeof( memblock_t ) );
 	if( block->id != ZONEID ) {
-		G_Error( "G_Z_Free: freed a pointer without ZONEID (file %s at line %i)", filename, fileline );
+		Com_Error( ERR_DROP, "G_Z_Free: freed a pointer without ZONEID (file %s at line %i)", filename, fileline );
 	}
 	if( block->tag == 0 ) {
-		G_Error( "G_Z_Free: freed a freed pointer (file %s at line %i)", filename, fileline );
+		Com_Error( ERR_DROP, "G_Z_Free: freed a freed pointer (file %s at line %i)", filename, fileline );
 	}
 
 	// check the memory trash tester
 	if( *(int *)( (uint8_t *)block + block->size - 4 ) != ZONEID ) {
-		G_Error( "G_Z_Free: memory block wrote past end" );
+		Com_Error( ERR_DROP, "G_Z_Free: memory block wrote past end" );
 	}
 
 	zone = levelzone;
@@ -146,7 +144,7 @@ static void *G_Z_TagMalloc( int size, int tag, const char *filename, int filelin
 	memzone_t *zone;
 
 	if( !tag ) {
-		G_Error( "G_Z_TagMalloc: tried to use a 0 tag (file %s at line %i)", filename, fileline );
+		Com_Error( ERR_DROP, "G_Z_TagMalloc: tried to use a 0 tag (file %s at line %i)", filename, fileline );
 	}
 
 	//
@@ -209,7 +207,7 @@ static void *G_Z_Malloc( int size, const char *filename, int fileline ) {
 
 	buf = G_Z_TagMalloc( size, TAG_LEVEL, filename, fileline );
 	if( !buf ) {
-		G_Error( "G_Z_Malloc: failed on allocation of %i bytes", size );
+		Com_Error( ERR_DROP, "G_Z_Malloc: failed on allocation of %i bytes", size );
 	}
 	memset( buf, 0, size );
 
@@ -325,7 +323,7 @@ const char *_G_RegisterLevelString( const char *string, const char *filename, in
 
 	size = strlen( string ) + 1;
 	if( sizeof( *ps ) + size > STRINGPOOL_SIZE ) {
-		G_Error( "G_RegisterLevelString: out of memory (str:%s at %s:%i)\n", string, filename, fileline );
+		Com_Error( ERR_DROP, "G_RegisterLevelString: out of memory (str:%s at %s:%i)\n", string, filename, fileline );
 		return NULL;
 	}
 
@@ -404,7 +402,7 @@ edict_t *G_PickTarget( const char *targetname ) {
 	edict_t *choice[MAXCHOICES];
 
 	if( !targetname ) {
-		G_Printf( "G_PickTarget called with NULL targetname\n" );
+		Com_Printf( "G_PickTarget called with NULL targetname\n" );
 		return NULL;
 	}
 
@@ -420,11 +418,11 @@ edict_t *G_PickTarget( const char *targetname ) {
 	}
 
 	if( !num_choices ) {
-		G_Printf( "G_PickTarget: target %s not found\n", targetname );
+		Com_Printf( "G_PickTarget: target %s not found\n", targetname );
 		return NULL;
 	}
 
-	return choice[rand() % num_choices];
+	return choice[ random_uniform( &svs.rng, 0, num_choices ) ];
 }
 
 
@@ -462,7 +460,7 @@ void G_UseTargets( edict_t *ent, edict_t *activator ) {
 		t->think = Think_Delay;
 		t->activator = activator;
 		if( !activator ) {
-			G_Printf( "Think_Delay with no activator\n" );
+			Com_Printf( "Think_Delay with no activator\n" );
 		}
 		t->message = ent->message;
 		t->target = ent->target;
@@ -470,17 +468,14 @@ void G_UseTargets( edict_t *ent, edict_t *activator ) {
 		return;
 	}
 
-
 	//
 	// print the message
 	//
 	if( ent->message ) {
 		G_CenterPrintMsg( activator, "%s", ent->message );
 
-		if( ent->noise_index ) {
-			G_Sound( activator, CHAN_AUTO, ent->noise_index, ATTN_NORM );
-		} else {
-			G_Sound( activator, CHAN_AUTO, trap_SoundIndex( S_WORLD_MESSAGE ), ATTN_NORM );
+		if( ent->sound != EMPTY_HASH ) {
+			G_Sound( activator, CHAN_AUTO, ent->sound );
 		}
 	}
 
@@ -492,13 +487,13 @@ void G_UseTargets( edict_t *ent, edict_t *activator ) {
 		while( ( t = G_Find( t, FOFS( targetname ), ent->killtarget ) ) ) {
 			G_FreeEdict( t );
 			if( !ent->r.inuse ) {
-				G_Printf( "entity was removed while using killtargets\n" );
+				Com_Printf( "entity was removed while using killtargets\n" );
 				return;
 			}
 		}
 	}
 
-	//	G_Printf ("TARGET: activating %s\n", ent->target);
+	//	Com_Printf ("TARGET: activating %s\n", ent->target);
 
 	//
 	// fire targets
@@ -507,34 +502,21 @@ void G_UseTargets( edict_t *ent, edict_t *activator ) {
 		t = NULL;
 		while( ( t = G_Find( t, FOFS( targetname ), ent->target ) ) ) {
 			if( t == ent ) {
-				G_Printf( "WARNING: Entity used itself.\n" );
+				Com_Printf( "WARNING: Entity used itself.\n" );
 			} else {
 				G_CallUse( t, ent, activator );
 			}
 			if( !ent->r.inuse ) {
-				G_Printf( "entity was removed while using targets\n" );
+				Com_Printf( "entity was removed while using targets\n" );
 				return;
 			}
 		}
 	}
 }
 
-
-static vec3_t VEC_UP       = { 0, -1, 0 };
-static vec3_t MOVEDIR_UP   = { 0, 0, 1 };
-static vec3_t VEC_DOWN     = { 0, -2, 0 };
-static vec3_t MOVEDIR_DOWN = { 0, 0, -1 };
-
-void G_SetMovedir( vec3_t angles, vec3_t movedir ) {
-	if( VectorCompare( angles, VEC_UP ) ) {
-		VectorCopy( MOVEDIR_UP, movedir );
-	} else if( VectorCompare( angles, VEC_DOWN ) ) {
-		VectorCopy( MOVEDIR_DOWN, movedir );
-	} else {
-		AngleVectors( angles, movedir, NULL, NULL );
-	}
-
-	VectorClear( angles );
+void G_SetMovedir( Vec3 * angles, Vec3 * movedir ) {
+	AngleVectors( *angles, movedir, NULL, NULL );
+	*angles = Vec3( 0.0f );
 }
 
 char *_G_CopyString( const char *in, const char *filename, int fileline ) {
@@ -578,11 +560,10 @@ void G_InitEdict( edict_t *e ) {
 	e->timeStamp = 0;
 	e->scriptSpawned = false;
 
-	memset( &e->s, 0, sizeof( entity_state_t ) );
-	e->s.attenuation = ATTN_NORM;
+	memset( &e->s, 0, sizeof( SyncEntityState ) );
 	e->s.number = ENTNUM( e );
 
-	G_asResetEntityBehaviors( e );
+	G_asClearEntityBehaviors( e );
 
 	// mark all entities to not be sent by default
 	e->r.svflags = SVF_NOCLIENT | (e->r.svflags & SVF_FAKECLIENT);
@@ -606,7 +587,7 @@ edict_t *G_Spawn( void ) {
 	edict_t *e, *freed;
 
 	if( !level.canSpawnEntities ) {
-		G_Printf( "WARNING: Spawning entity before map entities have been spawned\n" );
+		Com_Printf( "WARNING: Spawning entity before map entities have been spawned\n" );
 	}
 
 	freed = NULL;
@@ -635,12 +616,12 @@ edict_t *G_Spawn( void ) {
 			G_InitEdict( freed );
 			return freed;
 		}
-		G_Error( "G_Spawn: no free edicts" );
+		Com_Error( ERR_DROP, "G_Spawn: no free edicts" );
 	}
 
 	game.numentities++;
 
-	trap_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
+	SV_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
 
 	G_InitEdict( e );
 
@@ -650,7 +631,7 @@ edict_t *G_Spawn( void ) {
 /*
 * G_AddEvent
 */
-void G_AddEvent( edict_t *ent, int event, int parm, bool highPriority ) {
+void G_AddEvent( edict_t *ent, int event, u64 parm, bool highPriority ) {
 	if( !ent || ent == world || !ent->r.inuse ) {
 		return;
 	}
@@ -667,23 +648,21 @@ void G_AddEvent( edict_t *ent, int event, int parm, bool highPriority ) {
 		ent->numEvents++; // numEvents is only used to vary the overwritten event
 
 	}
-	ent->s.events[eventNum] = event;
-	ent->s.eventParms[eventNum] = parm & 0xFF;
+	ent->s.events[eventNum].type = event;
+	ent->s.events[eventNum].parm = parm;
 	ent->eventPriority[eventNum] = highPriority;
 }
 
 /*
 * G_SpawnEvent
 */
-edict_t *G_SpawnEvent( int event, int parm, vec3_t origin ) {
-	edict_t *ent;
-
-	ent = G_Spawn();
+edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin ) {
+	edict_t * ent = G_Spawn();
 	ent->s.type = ET_EVENT;
 	ent->r.solid = SOLID_NOT;
 	ent->r.svflags &= ~SVF_NOCLIENT;
-	if( origin != NULL ) {
-		VectorCopy( origin, ent->s.origin );
+	if( origin ) {
+		ent->s.origin = *origin;
 	}
 	G_AddEvent( ent, event, parm, true );
 
@@ -695,7 +674,7 @@ edict_t *G_SpawnEvent( int event, int parm, vec3_t origin ) {
 /*
 * G_MorphEntityIntoEvent
 */
-void G_MorphEntityIntoEvent( edict_t *ent, int event, int parm ) {
+void G_MorphEntityIntoEvent( edict_t *ent, int event, u64 parm ) {
 	ent->s.type = ET_EVENT;
 	ent->r.solid = SOLID_NOT;
 	ent->r.svflags &= ~SVF_PROJECTILE; // FIXME: Medar: should be remove all or remove this one elsewhere?
@@ -713,44 +692,7 @@ void G_InitMover( edict_t *ent ) {
 	ent->movetype = MOVETYPE_PUSH;
 	ent->r.svflags &= ~SVF_NOCLIENT;
 
-	GClip_SetBrushModel( ent, ent->model );
-
-	if( ent->model2 ) {
-		ent->s.modelindex2 = trap_ModelIndex( ent->model2 );
-	}
-
-	if( ent->light || !VectorCompare( ent->color, vec3_origin ) ) {
-		int r, g, b, i;
-
-		if( !ent->light ) {
-			i = 100;
-		} else {
-			i = ent->light;
-		}
-
-		i /= 4;
-		i = min( i, 255 );
-
-		r = ent->color[0];
-		if( r <= 1.0 ) {
-			r *= 255;
-		}
-		r = Clamp( 0, r, 255 );
-
-		g = ent->color[1];
-		if( g <= 1.0 ) {
-			g *= 255;
-		}
-		g = Clamp( 0, g, 255 );
-
-		b = ent->color[2];
-		if( b <= 1.0 ) {
-			b *= 255;
-		}
-		b = Clamp( 0, b, 255 );
-
-		ent->s.light = COLOR_RGBA( r, g, b, i );
-	}
+	GClip_SetBrushModel( ent );
 }
 
 /*
@@ -762,7 +704,7 @@ void G_CallThink( edict_t *ent ) {
 	} else if( ent->scriptSpawned && ent->asThinkFunc ) {
 		G_asCallMapEntityThink( ent );
 	} else if( developer->integer ) {
-		G_Printf( "NULL ent->think in %s\n", ent->classname ? ent->classname : va( "'no classname. Entity type is %i", ent->s.type ) );
+		Com_Printf( "NULL ent->think in %s\n", ent->classname ? ent->classname : va( "'no classname. Entity type is %i", ent->s.type ) );
 	}
 }
 
@@ -817,7 +759,7 @@ void G_CallPain( edict_t *ent, edict_t *attacker, float kick, float damage ) {
 /*
 * G_CallDie
 */
-void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage, const vec3_t point ) {
+void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point ) {
 	if( ent->die ) {
 		ent->die( ent, inflictor, attacker, damage, point );
 	} else if( ent->scriptSpawned && ent->asDieFunc ) {
@@ -837,7 +779,7 @@ void G_PrintMsg( edict_t *ent, const char *format, ... ) {
 	char *s, *p;
 
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	// double quotes are bad
@@ -849,13 +791,13 @@ void G_PrintMsg( edict_t *ent, const char *format, ... ) {
 
 	if( !ent ) {
 		// mirror at server console
-		if( GAME_IMPORT.is_dedicated_server ) {
-			G_Printf( "%s", msg );
+		if( is_dedicated_server ) {
+			Com_Printf( "%s", msg );
 		}
-		trap_GameCmd( NULL, s );
+		PF_GameCmd( NULL, s );
 	} else {
 		if( ent->r.inuse && ent->r.client ) {
-			trap_GameCmd( ent, s );
+			PF_GameCmd( ent, s );
 		}
 	}
 }
@@ -871,7 +813,7 @@ void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, .
 	char *s, *p;
 
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	// double quotes are bad
@@ -883,16 +825,16 @@ void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, .
 
 	if( !ent ) {
 		// mirror at server console
-		if( GAME_IMPORT.is_dedicated_server ) {
+		if( is_dedicated_server ) {
 			if( !who ) {
-				G_Printf( "Console: %s\n", msg );     // admin console
+				Com_Printf( "Console: %s\n", msg );     // admin console
 			} else if( !who->r.client ) {
 				;   // wtf?
 			} else if( teamonly ) {
-				G_Printf( "[%s] %s %s\n",
-						  who->r.client->ps.stats[STAT_TEAM] == TEAM_SPECTATOR ? "SPEC" : "TEAM", who->r.client->netname, msg );
+				Com_Printf( "[%s] %s %s\n",
+						  who->r.client->ps.team == TEAM_SPECTATOR ? "SPEC" : "TEAM", who->r.client->netname, msg );
 			} else {
-				G_Printf( "%s: %s\n", who->r.client->netname, msg );
+				Com_Printf( "%s: %s\n", who->r.client->netname, msg );
 			}
 		}
 
@@ -902,19 +844,19 @@ void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, .
 			for( i = 0; i < server_gs.maxclients; i++ ) {
 				ent = game.edicts + 1 + i;
 
-				if( ent->r.inuse && ent->r.client && trap_GetClientState( i ) >= CS_CONNECTED ) {
+				if( ent->r.inuse && ent->r.client && PF_GetClientState( i ) >= CS_CONNECTED ) {
 					if( ent->s.team == who->s.team ) {
-						trap_GameCmd( ent, s );
+						PF_GameCmd( ent, s );
 					}
 				}
 			}
 		} else {
-			trap_GameCmd( NULL, s );
+			PF_GameCmd( NULL, s );
 		}
 	} else {
-		if( ent->r.inuse && ent->r.client && trap_GetClientState( PLAYERNUM( ent ) ) >= CS_CONNECTED ) {
+		if( ent->r.inuse && ent->r.client && PF_GetClientState( PLAYERNUM( ent ) ) >= CS_CONNECTED ) {
 			if( !who || !teamonly || ent->s.team == who->s.team ) {
-				trap_GameCmd( ent, s );
+				PF_GameCmd( ent, s );
 			}
 		}
 	}
@@ -933,7 +875,7 @@ void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) {
 	edict_t *other;
 
 	va_start( argptr, format );
-	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	// double quotes are bad
@@ -941,8 +883,8 @@ void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) {
 	while( ( p = strchr( p, '\"' ) ) != NULL )
 		*p = '\'';
 
-	Q_snprintfz( cmd, sizeof( cmd ), "cp \"%s\"", msg );
-	trap_GameCmd( ent, cmd );
+	snprintf( cmd, sizeof( cmd ), "cp \"%s\"", msg );
+	PF_GameCmd( ent, cmd );
 
 	if( ent != NULL ) {
 		// add it to every player who's chasing this player
@@ -952,10 +894,14 @@ void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) {
 			}
 
 			if( other->r.client->resp.chase.target == ENTNUM( ent ) ) {
-				trap_GameCmd( other, cmd );
+				PF_GameCmd( other, cmd );
 			}
 		}
 	}
+}
+
+void G_ClearCenterPrint( edict_t *ent ) {
+	G_CenterPrintMsg( ent, "" );
 }
 
 /*
@@ -963,10 +909,8 @@ void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) {
 *
 * Prints death message to all clients
 */
-void G_Obituary( edict_t *victim, edict_t *attacker, int mod ) {
-	if( victim && attacker ) {
-		trap_GameCmd( NULL, va( "obry %i %i %i", (int)(victim - game.edicts), (int)(attacker - game.edicts), mod ) );
-	}
+void G_Obituary( edict_t * victim, edict_t * attacker, int mod ) {
+	PF_GameCmd( NULL, va( "obry %i %i %i %" PRIi64, ENTNUM( victim ), ENTNUM( attacker ), mod, random_u64( &svs.rng ) ) );
 }
 
 //==================================================
@@ -976,20 +920,13 @@ void G_Obituary( edict_t *victim, edict_t *attacker, int mod ) {
 /*
 * _G_SpawnSound
 */
-static edict_t *_G_SpawnSound( int channel, int soundindex, float attenuation ) {
-	edict_t *ent;
-
-	if( attenuation <= 0.0f ) {
-		attenuation = ATTN_NONE;
-	}
-
-	ent = G_Spawn();
+static edict_t *_G_SpawnSound( int channel, StringHash sound ) {
+	edict_t * ent = G_Spawn();
 	ent->r.svflags &= ~SVF_NOCLIENT;
 	ent->r.svflags |= SVF_SOUNDCULL;
 	ent->s.type = ET_SOUNDEVENT;
-	ent->s.attenuation = attenuation;
 	ent->s.channel = channel;
-	ent->s.sound = soundindex;
+	ent->s.sound = sound;
 
 	return ent;
 }
@@ -997,32 +934,23 @@ static edict_t *_G_SpawnSound( int channel, int soundindex, float attenuation ) 
 /*
 * G_Sound
 */
-edict_t *G_Sound( edict_t *owner, int channel, int soundindex, float attenuation ) {
-	edict_t *ent;
-
-	if( !soundindex ) {
+edict_t *G_Sound( edict_t *owner, int channel, StringHash sound ) {
+	if( sound == EMPTY_HASH ) {
 		return NULL;
 	}
 
-	if( owner == NULL || owner == world ) {
-		attenuation = ATTN_NONE;
-	} else if( ISEVENTENTITY( &owner->s ) ) {
+	if( ISEVENTENTITY( &owner->s ) ) {
 		return NULL; // event entities can't be owner of sound entities
-
 	}
-	ent = _G_SpawnSound( channel, soundindex, attenuation );
-	if( attenuation != ATTN_NONE ) {
-		assert( owner );
-		ent->s.ownerNum = owner->s.number;
 
-		if( owner->s.solid != SOLID_BMODEL ) {
-			VectorCopy( owner->s.origin, ent->s.origin );
-		} else {
-			VectorAdd( owner->r.mins, owner->r.maxs, ent->s.origin );
-			VectorMA( owner->s.origin, 0.5f, ent->s.origin, ent->s.origin );
-		}
-	} else {
-		ent->r.svflags |= SVF_BROADCAST;
+	edict_t * ent = _G_SpawnSound( channel, sound );
+	ent->s.ownerNum = owner->s.number;
+
+	if( owner->s.solid == SOLID_BMODEL ) {
+		ent->s.origin = owner->s.origin;
+	}
+	else {
+		ent->s.origin = ( owner->r.absmin + owner->r.absmax ) * 0.5f;
 	}
 
 	GClip_LinkEntity( ent );
@@ -1032,23 +960,17 @@ edict_t *G_Sound( edict_t *owner, int channel, int soundindex, float attenuation
 /*
 * G_PositionedSound
 */
-edict_t *G_PositionedSound( vec3_t origin, int channel, int soundindex, float attenuation ) {
-	edict_t *ent;
-
-	if( !soundindex ) {
+edict_t *G_PositionedSound( Vec3 origin, int channel, StringHash sound ) {
+	if( sound == EMPTY_HASH ) {
 		return NULL;
 	}
 
-	if( origin == NULL ) {
-		attenuation = ATTN_NONE;
-	}
-
-	ent = _G_SpawnSound( channel, soundindex, attenuation );
-	if( attenuation != ATTN_NONE ) {
-		assert( origin );
+	edict_t * ent = _G_SpawnSound( channel, sound );
+	if( origin != Vec3( 0.0f ) ) {
 		ent->s.channel |= CHAN_FIXED;
-		VectorCopy( origin, ent->s.origin );
-	} else {
+		ent->s.origin = origin;
+	}
+	else {
 		ent->r.svflags |= SVF_BROADCAST;
 	}
 
@@ -1059,24 +981,22 @@ edict_t *G_PositionedSound( vec3_t origin, int channel, int soundindex, float at
 /*
 * G_GlobalSound
 */
-void G_GlobalSound( int channel, int soundindex ) {
-	G_PositionedSound( NULL, channel, soundindex, ATTN_NONE );
+void G_GlobalSound( int channel, StringHash sound ) {
+	G_PositionedSound( Vec3( 0.0f ), channel, sound );
 }
 
 /*
 * G_LocalSound
 */
-void G_LocalSound( edict_t *owner, int channel, int soundindex ) {
-	edict_t *ent;
-
-	if( !soundindex ) {
+void G_LocalSound( edict_t * owner, int channel, StringHash sound ) {
+	if( sound == EMPTY_HASH )
 		return;
-	}
+
 	if( ISEVENTENTITY( &owner->s ) ) {
 		return; // event entities can't be owner of sound entities
 	}
 
-	ent = _G_SpawnSound( channel, soundindex, ATTN_NONE );
+	edict_t * ent = _G_SpawnSound( channel, sound );
 	ent->s.ownerNum = ENTNUM( owner );
 	ent->r.svflags |= SVF_ONLYOWNER | SVF_BROADCAST;
 
@@ -1095,7 +1015,7 @@ void G_LocalSound( edict_t *owner, int channel, int soundindex ) {
 * Kills all entities that would touch the proposed new positioning
 * of ent.  Ent should be unlinked before calling this!
 */
-bool KillBox( edict_t *ent, int mod, const vec3_t knockback ) {
+bool KillBox( edict_t *ent, int mod, Vec3 knockback ) {
 	trace_t tr;
 	bool telefragged = false;
 
@@ -1110,7 +1030,7 @@ bool KillBox( edict_t *ent, int mod, const vec3_t knockback ) {
 		}
 
 		// nail it
-		G_Damage( &game.edicts[tr.ent], ent, ent, knockback, vec3_origin, ent->s.origin, 100000, VectorLength( knockback ), 0, mod );
+		G_Damage( &game.edicts[tr.ent], ent, ent, knockback, Vec3( 0.0f ), ent->s.origin, 100000, Length( knockback ), 0, mod );
 		telefragged = true;
 
 		// if we didn't kill it, fail
@@ -1127,33 +1047,17 @@ bool KillBox( edict_t *ent, int mod, const vec3_t knockback ) {
 * returns the YAW angle to look at our killer
 */
 float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker ) {
-	vec3_t dir;
-	float killer_yaw;
+	Vec3 dir;
 
 	if( attacker && attacker != world && attacker != self ) {
-		VectorSubtract( attacker->s.origin, self->s.origin, dir );
+		dir = attacker->s.origin - self->s.origin;
 	} else if( inflictor && inflictor != world && inflictor != self ) {
-		VectorSubtract( inflictor->s.origin, self->s.origin, dir );
+		dir = inflictor->s.origin - self->s.origin;
 	} else {
-		killer_yaw = self->s.angles[YAW];
-		return killer_yaw;
+		return self->s.angles.y;
 	}
 
-	if( dir[0] ) {
-		killer_yaw = RAD2DEG( atan2( dir[1], dir[0] ) );
-	} else {
-		killer_yaw = 0;
-		if( dir[1] > 0 ) {
-			killer_yaw = 90;
-		} else if( dir[1] < 0 ) {
-			killer_yaw = -90;
-		}
-	}
-	if( killer_yaw < 0 ) {
-		killer_yaw += 360;
-	}
-
-	return killer_yaw;
+	return VecToAngles( dir ).y;
 }
 
 //==============================================================================
@@ -1172,12 +1076,12 @@ static void G_SpawnTeleportEffect( edict_t *ent, bool respawn, bool in ) {
 		return;
 	}
 
-	if( trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED || ent->r.solid == SOLID_NOT ) {
+	if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED || ent->r.solid == SOLID_NOT ) {
 		return;
 	}
 
 	// add a teleportation effect
-	event = G_SpawnEvent( respawn ? EV_PLAYER_RESPAWN : ( in ? EV_PLAYER_TELEPORT_IN : EV_PLAYER_TELEPORT_OUT ), 0, ent->s.origin );
+	event = G_SpawnEvent( respawn ? EV_PLAYER_RESPAWN : ( in ? EV_PLAYER_TELEPORT_IN : EV_PLAYER_TELEPORT_OUT ), 0, &ent->s.origin );
 	event->s.ownerNum = ENTNUM( ent );
 }
 
@@ -1200,25 +1104,17 @@ int G_SolidMaskForEnt( edict_t *ent ) {
 * G_CheckEntGround
 */
 void G_CheckGround( edict_t *ent ) {
-	vec3_t point;
 	trace_t trace;
 
-	if( ent->flags & ( FL_SWIM | FL_FLY ) ) {
-		ent->groundentity = NULL;
-		ent->groundentity_linkcount = 0;
-		return;
-	}
-
-	if( ent->r.client && ent->velocity[2] > 180 ) {
+	if( ent->r.client && ent->velocity.z > 180 ) {
 		ent->groundentity = NULL;
 		ent->groundentity_linkcount = 0;
 		return;
 	}
 
 	// if the hull point one-quarter unit down is solid the entity is on ground
-	point[0] = ent->s.origin[0];
-	point[1] = ent->s.origin[1];
-	point[2] = ent->s.origin[2] - 0.25;
+	Vec3 point = ent->s.origin;
+	point.z -= 0.25f;
 
 	G_Trace( &trace, ent->s.origin, ent->r.mins, ent->r.maxs, point, ent, G_SolidMaskForEnt( ent ) );
 
@@ -1229,7 +1125,7 @@ void G_CheckGround( edict_t *ent ) {
 		return;
 	}
 
-	if( ( ent->velocity[2] > 1 && !ent->r.client ) && !trace.startsolid ) {
+	if( ent->velocity.z > 1.0f && !ent->r.client && !trace.startsolid ) {
 		ent->groundentity = NULL;
 		ent->groundentity_linkcount = 0;
 		return;
@@ -1239,8 +1135,8 @@ void G_CheckGround( edict_t *ent ) {
 		//VectorCopy( trace.endpos, ent->s.origin );
 		ent->groundentity = &game.edicts[trace.ent];
 		ent->groundentity_linkcount = ent->groundentity->linkcount;
-		if( ent->velocity[2] < 0 ) {
-			ent->velocity[2] = 0;
+		if( ent->velocity.z < 0.0f ) {
+			ent->velocity.z = 0.0f;
 		}
 	}
 }
@@ -1249,15 +1145,13 @@ void G_CheckGround( edict_t *ent ) {
 * G_CategorizePosition
 */
 void G_CategorizePosition( edict_t *ent ) {
-	vec3_t point;
 	int cont;
 
 	//
 	// get waterlevel
 	//
-	point[0] = ent->s.origin[0];
-	point[1] = ent->s.origin[1];
-	point[2] = ent->s.origin[2] + ent->r.mins[2] + 1;
+	Vec3 point = ent->s.origin;
+	point.z += ent->r.mins.z + 1.0f;
 	cont = G_PointContents( point );
 
 	if( !( cont & MASK_WATER ) ) {
@@ -1268,14 +1162,14 @@ void G_CategorizePosition( edict_t *ent ) {
 
 	ent->watertype = cont;
 	ent->waterlevel = 1;
-	point[2] += 26;
+	point.z += 26;
 	cont = G_PointContents( point );
 	if( !( cont & MASK_WATER ) ) {
 		return;
 	}
 
 	ent->waterlevel = 2;
-	point[2] += 22;
+	point.z += 22;
 	cont = G_PointContents( point );
 	if( cont & MASK_WATER ) {
 		ent->waterlevel = 3;
@@ -1286,17 +1180,17 @@ void G_CategorizePosition( edict_t *ent ) {
 * G_DropSpawnpointToFloor
 */
 void G_DropSpawnpointToFloor( edict_t *ent ) {
-	vec3_t start, end;
+	Vec3 start, end;
 	trace_t trace;
 
-	VectorCopy( ent->s.origin, start );
-	start[2] += 16;
-	VectorCopy( ent->s.origin, end );
-	end[2] -= 16000;
+	start = ent->s.origin;
+	start.z += 16;
+	end = ent->s.origin;
+	end.z -= 16000;
 
 	G_Trace( &trace, start, playerbox_stand_mins, playerbox_stand_maxs, end, ent, MASK_PLAYERSOLID );
 	if( trace.startsolid || trace.allsolid ) {
-		G_Printf( "Warning: %s %s spawns inside solid. Inhibited\n", ent->classname, vtos( ent->s.origin ) );
+		Com_GGPrint( "Warning: {} {} spawns inside solid. Inhibited", ent->classname, ent->s.origin );
 		G_FreeEdict( ent );
 		return;
 	}
@@ -1306,7 +1200,7 @@ void G_DropSpawnpointToFloor( edict_t *ent ) {
 	}
 
 	if( trace.fraction < 1.0f ) {
-		VectorMA( trace.endpos, 1.0f, trace.plane.normal, ent->s.origin );
+		ent->s.origin = trace.endpos + trace.plane.normal;
 	}
 }
 
@@ -1317,54 +1211,42 @@ void G_DropSpawnpointToFloor( edict_t *ent ) {
 * for laser entities for proper clipping against world leafs/clusters.
 */
 void G_SetBoundsForSpanEntity( edict_t *ent, float size ) {
-	vec3_t sizeVec;
-
-	VectorSet( sizeVec, size, size, size );
-	ClearBounds( ent->r.absmin, ent->r.absmax );
-	AddPointToBounds( ent->s.origin, ent->r.absmin, ent->r.absmax );
-	AddPointToBounds( ent->s.origin2, ent->r.absmin, ent->r.absmax );
-	VectorSubtract( ent->r.absmin, sizeVec, ent->r.absmin );
-	VectorAdd( ent->r.absmax, sizeVec, ent->r.absmax );
-	VectorSubtract( ent->r.absmin, ent->s.origin, ent->r.mins );
-	VectorSubtract( ent->r.absmax, ent->s.origin, ent->r.maxs );
+	ClearBounds( &ent->r.absmin, &ent->r.absmax );
+	AddPointToBounds( ent->s.origin, &ent->r.absmin, &ent->r.absmax );
+	AddPointToBounds( ent->s.origin2, &ent->r.absmin, &ent->r.absmax );
+	ent->r.absmin -= size;
+	ent->r.absmax += size;
+	ent->r.mins = ent->r.absmin - ent->s.origin;
+	ent->r.maxs = ent->r.absmax - ent->s.origin;
 }
 
 /*
 * G_ReleaseClientPSEvent
 */
 void G_ReleaseClientPSEvent( gclient_t *client ) {
-	int i;
-
-	if( client ) {
-		for( i = 0; i < 2; i++ ) {
-			if( client->resp.eventsCurrent < client->resp.eventsHead ) {
-				client->ps.event[i] = client->resp.events[client->resp.eventsCurrent & MAX_CLIENT_EVENTS_MASK] & 127;
-				client->ps.eventParm[i] = ( client->resp.events[client->resp.eventsCurrent & MAX_CLIENT_EVENTS_MASK] >> 8 ) & 0xFF;
-				client->resp.eventsCurrent++;
-			} else {
-				client->ps.event[i] = PSEV_NONE;
-				client->ps.eventParm[i] = 0;
-			}
+	for( int i = 0; i < 2; i++ ) {
+		if( client->resp.eventsCurrent < client->resp.eventsHead ) {
+			client->ps.events[ i ] = client->resp.events[client->resp.eventsCurrent & MAX_CLIENT_EVENTS_MASK];
+			client->resp.eventsCurrent++;
+		} else {
+			client->ps.events[ i ] = { };
 		}
 	}
 }
 
 /*
 * G_AddPlayerStateEvent
-* This event is only sent to this client inside its player_state_t.
+* This event is only sent to this client inside its SyncPlayerState.
 */
-void G_AddPlayerStateEvent( gclient_t *client, int event, int parm ) {
-	int eventdata;
-	if( client ) {
-		if( !event || event > PSEV_MAX_EVENTS || parm > 0xFF ) {
-			return;
-		}
-		if( client ) {
-			eventdata = ( ( event & 0xFF ) | ( parm & 0xFF ) << 8 );
-			client->resp.events[client->resp.eventsHead & MAX_CLIENT_EVENTS_MASK] = eventdata;
-			client->resp.eventsHead++;
-		}
-	}
+void G_AddPlayerStateEvent( gclient_t *client, int ev, u64 parm ) {
+	assert( ev >= 0 && ev < PSEV_MAX_EVENTS );
+	if( client == NULL )
+		return;
+
+	SyncEvent * event = &client->resp.events[client->resp.eventsHead & MAX_CLIENT_EVENTS_MASK];
+	client->resp.eventsHead++;
+	event->type = ev;
+	event->parm = parm;
 }
 
 /*
@@ -1413,12 +1295,12 @@ edict_t *G_PlayerForText( const char *text ) {
 /*
 * G_AnnouncerSound - sends inmediatly. queue client side (excepting at player's ps events queue)
 */
-void G_AnnouncerSound( edict_t *targ, int soundindex, int team, bool queued, edict_t *ignore ) {
+void G_AnnouncerSound( edict_t *targ, StringHash sound, int team, bool queued, edict_t *ignore ) {
 	int psev = queued ? PSEV_ANNOUNCER_QUEUED : PSEV_ANNOUNCER;
 	int playerTeam;
 
 	if( targ ) { // only for a given player
-		if( !targ->r.client || trap_GetClientState( PLAYERNUM( targ ) ) < CS_SPAWNED ) {
+		if( !targ->r.client || PF_GetClientState( PLAYERNUM( targ ) ) < CS_SPAWNED ) {
 			return;
 		}
 
@@ -1426,12 +1308,12 @@ void G_AnnouncerSound( edict_t *targ, int soundindex, int team, bool queued, edi
 			return;
 		}
 
-		G_AddPlayerStateEvent( targ->r.client, psev, soundindex );
+		G_AddPlayerStateEvent( targ->r.client, psev, sound.hash );
 	} else {   // add it to all players
 		edict_t *ent;
 
 		for( ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients; ent++ ) {
-			if( !ent->r.inuse || trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+			if( !ent->r.inuse || PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 				continue;
 			}
 
@@ -1454,32 +1336,7 @@ void G_AnnouncerSound( edict_t *targ, int soundindex, int team, bool queued, edi
 				}
 			}
 
-			G_AddPlayerStateEvent( ent->r.client, psev, soundindex );
+			G_AddPlayerStateEvent( ent->r.client, psev, sound.hash );
 		}
 	}
-}
-
-/*
-* G_PrecacheWeapondef
-*/
-void G_PrecacheWeapondef( int weapon, firedef_t *firedef ) {
-	char cstring[MAX_CONFIGSTRING_CHARS];
-
-	if( !firedef ) {
-		return;
-	}
-
-	Q_snprintfz( cstring, sizeof( cstring ), "%i %i %u %u %u %u %i %i %i",
-				 firedef->usage_count,
-				 firedef->projectile_count,
-				 firedef->weaponup_time,
-				 firedef->weapondown_time,
-				 firedef->reload_time,
-				 firedef->timeout,
-				 firedef->speed,
-				 firedef->spread,
-				 firedef->v_spread
-				 );
-
-	trap_ConfigString( CS_WEAPONDEFS + weapon, cstring );
 }

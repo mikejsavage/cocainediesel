@@ -1,36 +1,10 @@
-/*
-Copyright (C) 2009-2010 Chasseur de bots
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-*/
-
-const int[] weap_ammo	= {  120,  18,   12,   15,   90,  150,  12  };
-const int[] ammo_type	= { AMMO_BULLETS, AMMO_SHELLS, AMMO_GRENADES, AMMO_ROCKETS, AMMO_PLASMA, AMMO_LASERS, AMMO_BOLTS };
-
-const int MAX_CASH = 500;
-
 cPlayer@[] players( maxClients ); // array of handles
 bool playersInitialized = false;
 
 class cPlayer {
 	Client @client;
 
-	bool[] loadout( WEAP_TOTAL );
-
-	int64 lastLoadoutChangeTime; // so people can't spam change weapons during warmup
+	WeaponType[] loadout( WeaponCategory_Count );
 
 	int killsThisRound;
 
@@ -44,8 +18,6 @@ class cPlayer {
 
 		setLoadout( this.client.getUserInfoKey( "cg_loadout" ) );
 
-		this.lastLoadoutChangeTime = -1;
-
 		this.arms = 0;
 		this.defuses = 0;
 
@@ -56,18 +28,17 @@ class cPlayer {
 
 	void giveInventory() {
 		this.client.inventoryClear();
-		this.client.inventoryGiveItem( WEAP_GUNBLADE );
+		this.client.giveWeapon( Weapon_Knife );
 
-		for( int i = WEAP_MACHINEGUN; i < WEAP_TOTAL; i++ ) {
-			if( this.loadout[ i ] ) {
-				this.client.inventoryGiveItem( i );
-				this.client.inventorySetCount( ammo_type[ i - WEAP_MACHINEGUN ], weap_ammo[ i - WEAP_MACHINEGUN ] );
+		for( uint i = 0; i < loadout.length; i++ ) {
+			if( loadout[ i ] != Weapon_None ) {
+				this.client.giveWeapon( this.loadout[ i ] );
 			}
 		}
 
-		this.client.selectWeapon( -1 );
+		this.client.selectWeapon( 0 );
+		this.client.selectWeapon( 1 );
 	}
-
 
 	void showShop() {
 		if( this.client.team == TEAM_SPECTATOR ) {
@@ -75,57 +46,51 @@ class cPlayer {
 		}
 
 		String command = "changeloadout";
-		for( int i = 0; i < WEAP_TOTAL; i++ ) {
-			if( this.loadout[ i ] ) {
-				command += " " + i;
+		for( uint i = 0; i < loadout.length; i++ ) {
+			if( loadout[ i ] != Weapon_None ) {
+				command += " " + loadout[ i ];
 			}
 		}
 		this.client.execGameCommand( command );
 	}
 
 	void setLoadout( String &cmd ) {
-		int cash = MAX_CASH;
+		WeaponType[] new_loadout( WeaponCategory_Count );
 
-		for( int i = 0; i < WEAP_TOTAL; i++ ) {
-			this.loadout[ i ] = false;
-		}
+		for( int i = 0; i < WeaponCategory_Count; i++ ) {
+			String token = cmd.getToken( i );
+			if( token == "" )
+				break;
 
-		{
-			int i = 0;
-			while( true ) {
-				String token = cmd.getToken( i );
-				i++;
-				if( token == "" )
-					break;
-				int weapon = token.toInt();
-				if( weapon > WEAP_GUNBLADE && weapon < WEAP_TOTAL ) {
-					this.loadout[ weapon ] = true;
-					cash -= G_GetItem( weapon ).cost;
-				}
+			int weapon = token.toInt();
+			if( weapon <= Weapon_None || weapon >= Weapon_Count || weapon == Weapon_Knife ) {
+				return;
 			}
+
+			WeaponCategory category = GetWeaponCategory( WeaponType( weapon ) );
+			if( new_loadout[ category ] != Weapon_None ) {
+				return;
+			}
+
+			new_loadout[ category ] = WeaponType( weapon );
 		}
 
-		if( cash < 0 ) {
-			G_PrintMsg( @this.client.getEnt(), "You are not wealthy enough\n" );
-			return;
-		}
+		this.loadout = new_loadout;
 
 		String command = "saveloadout";
-		for( int i = 0; i < WEAP_TOTAL; i++ ) {
-			if( this.loadout[ i ] ) {
-				command += " " + i;
+		for( uint i = 0; i < this.loadout.length; i++ ) {
+			if( this.loadout[ i ] != Weapon_None ) {
+				command += " " + this.loadout[ i ];
 			}
 		}
 		this.client.execGameCommand( command );
 
-		if( match.getState() == MATCH_STATE_WARMUP ) {
-			if( lastLoadoutChangeTime == -1 || levelTime - lastLoadoutChangeTime >= 1000 ) {
-				giveInventory();
-				lastLoadoutChangeTime = levelTime;
-			}
-			else {
-				G_PrintMsg( @this.client.getEnt(), "You can't change weapons so fast\n" );
-			}
+		if( this.client.getEnt().isGhosting() ) {
+			return;
+		}
+
+		if( match.getState() == MATCH_STATE_WARMUP || match.getState() == MATCH_STATE_COUNTDOWN ) {
+			giveInventory();
 		}
 
 		if( match.getState() == MATCH_STATE_PLAYTIME && roundState == RoundState_Pre ) {
@@ -152,21 +117,6 @@ void playersInit() {
 	}
 }
 
-// using a global counter would be faster
-uint getCarrierCount( int teamNum ) {
-	uint count = 0;
-
-	Team @team = @G_GetTeam( teamNum );
-
-	for( int i = 0; @team.ent( i ) != null; i++ ) {
-		if( @team.ent( i ) == @bombCarrier ) {
-			count++;
-		}
-	}
-
-	return count;
-}
-
 void resetKillCounters() {
 	for( int i = 0; i < maxClients; i++ ) {
 		if( @players[i] != null ) {
@@ -188,7 +138,7 @@ cPlayer @playerFromClient( Client @client ) {
 	return @player;
 }
 
-void dropSpawnToFloor( Entity @ent, int team ) {
+void dropSpawnToFloor( Entity @ent ) {
 	Vec3 mins( -16, -16, -24 ), maxs( 16, 16, 40 );
 
 	Vec3 start = ent.origin + Vec3( 0, 0, 16 );
@@ -207,18 +157,18 @@ void dropSpawnToFloor( Entity @ent, int team ) {
 	ent.origin = trace.endPos + trace.planeNormal;
 }
 
+void spawn_bomb_attacking( Entity @ent ) {
+	dropSpawnToFloor( ent );
+}
+
+void spawn_bomb_defending( Entity @ent ) {
+	dropSpawnToFloor( ent );
+}
+
 void team_CTF_alphaspawn( Entity @ent ) {
-	dropSpawnToFloor( ent, defendingTeam );
+	dropSpawnToFloor( ent );
 }
 
 void team_CTF_betaspawn( Entity @ent ) {
-	dropSpawnToFloor( ent, attackingTeam );
-}
-
-void spawn_offense( Entity @ent ) {
-	dropSpawnToFloor( ent, attackingTeam );
-}
-
-void spawn_defense( Entity @ent ) {
-	dropSpawnToFloor( ent, attackingTeam );
+	dropSpawnToFloor( ent );
 }

@@ -1,311 +1,512 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-
-#include "q_arch.h"
-#include "q_math.h"
-#include "q_shared.h"
-#include "q_comref.h"
-#include "q_collision.h"
-#include "gs_public.h"
+#include "qcommon/base.h"
+#include "qcommon/qcommon.h"
+#include "gameshared/gs_public.h"
 
 #define INSTANT 0
 
-#define WEAPONDOWN_FRAMETIME 50
-#define WEAPONUP_FRAMETIME 50
+#define WEAPONDOWN_TIME 50
+#define WEAPONUP_TIME_FAST 150
+#define WEAPONUP_TIME_NORMAL 350
+#define WEAPONUP_TIME_SLOW 750
+#define WEAPONUP_TIME_VERY_SLOW 1000
 
-gs_weapon_definition_t gs_weaponDefs[] =
-{
+const WeaponDef gs_weaponDefs[] = {
+	{ "", "", WeaponCategory_Count }, // Weapon_None
+
 	{
-		"no weapon",
-		WEAP_NONE,
-		{
-			AMMO_NONE,                      // ammo tag
-			0,                              // ammo usage per shot
-			0,                              // projectiles fired each shot
+		"Knife", "gb",
+		WeaponCategory_Count,
 
-			//timings (in msecs)
-			WEAPONUP_FRAMETIME,             // weapon up frametime
-			WEAPONDOWN_FRAMETIME,           // weapon down frametime
-			0,                              // reload frametime
-			0,                              // projectile timeout
-			false,                          // smooth refire
+		6,                              // projectiles fired each shot
+		0,                              // clip size
+		0,                              // reload time
+		false,                          // staged reloading
 
-			//damages
-			0,                              // damage
-			0,                              // selfdamage ratio
-			0,                              // knockback
-			0,                              // splash radius
-			0,                              // splash minimum damage
-			0,                              // splash minimum knockback
+		//timings (in msecs)->
+		WEAPONUP_TIME_FAST,             // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		500,                            // refire time
+		70,                             // projectile timeout / projectile range for instant weapons
+		Vec2( 0.0f, 0.0f ),             // recoil
+		Vec2( 0.0f, 0.0f ),             // recoilmin
+		0.0f,                           // recoil recovery
+		FiringMode_Auto,
 
-			//projectile def
-			0,                              // speed
-			0,                              // spread
-			0,                              // v_spread
-		},
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
+		//damages
+		25,                             // damage
+		0,                              // selfdamage ratio
+		0,                              // knockback
+		0,                              // splash radius
+		0,                              // splash minimum damage
+		0,                              // splash minimum knockback
+
+		//projectile def
+		INSTANT,                        // speed
+		45,                             // spread
 	},
 
 	{
-		"Gunblade",
-		WEAP_GUNBLADE,
-		{
-			AMMO_NONE,
-			0,                              // ammo usage per shot
-			0,                              // projectiles fired each shot
+		"9mm", "9mm",
+		WeaponCategory_Backup,
 
-			//timings (in msecs)
-			WEAPONUP_FRAMETIME,             // weapon up frametime
-			WEAPONDOWN_FRAMETIME,           // weapon down frametime
-			450,                            // reload frametime
-			62,                             // projectile timeout  / projectile range for instant weapons
-			false,                          // smooth refire
+		1,                              // projectiles fired each shot
+		15,                             // clip size
+		1500,                           // reload time
+		false,                          // staged reloading
 
-			//damages
-			20,                             // damage
-			0,                              // selfdamage ratio
-			80,                             // knockback
-			0,                              // splash radius
-			0,                              // splash minimum damage
-			0,                              // splash minimum knockback
+		//timings (in msecs)
+		WEAPONUP_TIME_FAST,             // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		120,                            // refire time
+		HITSCAN_RANGE,                  // projectile timeout
+		Vec2( 80.0f, 40.0f ),           // recoil
+		Vec2( 40.0f, 20.0f ),           // recoilmin
+		1000.0f,                        // recoil recovery
+		FiringMode_SemiAuto,
 
-			//projectile def
-			INSTANT,                        // speed
-			0,                              // spread
-			0,                              // v_spread
-		},
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
+		//damages
+		12,                             // damage
+		0,                              // selfdamage ratio
+		20,                             // knockback
+		0,                              // splash radius
+		0,                              // splash minimum damage
+		0,                              // splash minimum knockback
+
+		//projectile def
+		INSTANT,                        // speed
+		0,                              // spread
 	},
 
 	{
-		"SMG",
-		WEAP_MACHINEGUN,
-		{
-			AMMO_BULLETS,
-			1,                              // ammo usage per shot
-			1,                              // projectiles fired each shot
+		"SMG", "mg",
+		WeaponCategory_Secondary,
 
-			//timings (in msecs)
-			WEAPONUP_FRAMETIME,             // weapon up frametime
-			WEAPONDOWN_FRAMETIME,           // weapon down frametime
-			80,                            // reload frametime
-			6000,                           // projectile timeout
-			false,                          // smooth refire
+		1,                              // projectiles fired each shot
+		25,                             // clip size
+		1500,                           // reload time
+		false,                          // staged reloading
 
-			//damages
-			4,                             // damage
-			0,                              // selfdamage ratio
-			40,                             // knockback
-			0,                              // splash radius
-			0,                              // splash minimum damage
-			0,                              // splash minimum knockback
+		//timings (in msecs)
+		WEAPONUP_TIME_NORMAL,           // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		75,                             // refire time
+		HITSCAN_RANGE,                  // projectile timeout
+		Vec2( 85.0f, 40.0f ),           // recoil
+		Vec2( 50.0f, 10.0f ),           // recoilmin
+		1350.0f,                        // recoil recovery
+		FiringMode_Auto,
 
-			//projectile def
-			INSTANT,                        // speed
-			0,                              // spread
-			0,                              // v_spread
-		},
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
+		//damages
+		9,                              // damage
+		0,                              // selfdamage ratio
+		15,                             // knockback
+		0,                              // splash radius
+		0,                              // splash minimum damage
+		0,                              // splash minimum knockback
+
+		//projectile def
+		INSTANT,                        // speed
+		0,                              // spread
 	},
 
 	{
-		"Riotgun",
-		WEAP_RIOTGUN,
-		{
-			AMMO_SHELLS,
-			1,                              // ammo usage per shot
-			20,                             // projectiles fired each shot
+		"Deagle", "deagle",
+		WeaponCategory_Secondary,
 
-			//timings (in msecs)
-			WEAPONUP_FRAMETIME,             // weapon up frametime
-			WEAPONDOWN_FRAMETIME,           // weapon down frametime
-			1000,                           // reload frametime
-			8192,                           // projectile timeout / projectile range for instant weapons
-			false,                          // smooth refire
+		1,                              // projectiles fired each shot
+		7,                              // clip size
+		1500,                           // reload time
+		false,                          // staged reloading
 
-			//damages
-			2,                              // damage
-			0,                              // selfdamage ratio (rg cant selfdamage)
-			7,                              // knockback
-			0,                              // splash radius
-			0,                              // splash minimum damage
-			0,                              // splash minimum knockback
+		//timings (in msecs)
+		WEAPONUP_TIME_NORMAL,           // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		500,                            // refire time
+		HITSCAN_RANGE,                  // projectile timeout
+		Vec2( 425.0f, 100.0f ),         // recoil
+		Vec2( 175.0f, 40.0f ),          // recoilmin
+		3000.0f,                        // recoil recovery
+		FiringMode_SemiAuto,
 
-			//projectile def
-			INSTANT,                        // speed
-			80,                             // spread
-			80,                             // v_spread
-		},
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
+		//damages
+		25,                             // damage
+		0,                              // selfdamage ratio
+		30,                             // knockback
+		0,                              // splash radius
+		0,                              // splash minimum damage
+		0,                              // splash minimum knockback
+
+		//projectile def
+		INSTANT,                        // speed
+		0,                              // spread
 	},
 
 	{
-		"Grenade",
-		WEAP_GRENADELAUNCHER,
-		{
-			AMMO_GRENADES,
-			1,                              // ammo usage per shot
-			1,                              // projectiles fired each shot
+		"Shotgun", "rg",
+		WeaponCategory_Secondary,
 
-			//timings (in msecs)
-			WEAPONUP_FRAMETIME,             // weapon up frametime
-			WEAPONDOWN_FRAMETIME,           // weapon down frametime
-			800,                            // reload frametime
-			1250,                           // projectile timeout
-			false,                          // smooth refire
+		25,                             // projectiles fired each shot
+		5,                              // clip size
+		600,                            // reload time
+		true,                           // staged reloading
 
-			//damages
-			40,                             // damage
-			0.75,                           // selfdamage ratio
-			100,                            // knockback
-			125,                            // splash radius
-			7,                              // splash minimum damage
-			35,                             // splash minimum knockback
+		//timings (in msecs)
+		WEAPONUP_TIME_SLOW,             // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		1250,                           // refire time
+		HITSCAN_RANGE,                  // projectile timeout / projectile range for instant weapons
+		Vec2( 325.0f, 120.0f ),         // recoil
+		Vec2( 125.0f, 80.0f ),          // recoilmin
+		1500.0f,                        // recoil recovery
+		FiringMode_Auto,
 
-			//projectile def
-			1000,                           // speed
-			0,                              // spread
-			0,                              // v_spread
-		},
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
+		//damages
+		2,                              // damage
+		0,                              // selfdamage ratio (rg cant selfdamage)
+		6,                              // knockback
+		0,                              // splash radius
+		0,                              // splash minimum damage
+		0,                              // splash minimum knockback
+
+		//projectile def
+		INSTANT,                        // speed
+		50,                             // spread
 	},
 
 	{
-		"Rocket",
-		WEAP_ROCKETLAUNCHER,
-		{
-			AMMO_ROCKETS,
-			1,                              // ammo usage per shot
-			1,                              // projectiles fired each shot
+		"Assault Rifle", "ar",
+		WeaponCategory_Primary,
 
-			//timings (in msecs)
-			WEAPONUP_FRAMETIME,             // weapon up frametime
-			WEAPONDOWN_FRAMETIME,           // weapon down frametime
-			1000,                           // reload frametime
-			10000,                          // projectile timeout
-			false,                          // smooth refire
+		1,                              // projectiles fired each shot
+		35,                             // clip size
+		1500,                           // reload time
+		false,                          // staged reloading
 
-			//damages
-			40,                             // damage
-			0.75,                           // selfdamage ratio
-			100,                            // knockback
-			120,                            // splash radius
-			7,                              // splash minimum damage
-			45,                             // splash minimum knockback
+		//timings (in msecs)
+		WEAPONUP_TIME_NORMAL,           // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		160,                            // refire time
+		HITSCAN_RANGE,                  // projectile timeout
+		Vec2( 140.0f, 70.0f ),          // recoil
+		Vec2( 50.0f, 30.0f ),           // recoilmin
+		2250.0f,                        // recoil recovery
+		FiringMode_Auto,
 
-			//projectile def
-			1250,                           // speed
-			0,                              // spread
-			0,                              // v_spread
-		},
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
+		//damages
+		10,                             // damage
+		0,                              // selfdamage ratio
+		10,                             // knockback
+		0,                              // splash radius
+		0,                              // splash minimum damage
+		0,                              // splash minimum knockback
+
+		//projectile def
+		INSTANT,                        // speed
+		0,                              // spread
 	},
 
 	{
-		"Plasma",
-		WEAP_PLASMAGUN,
-		{
-			AMMO_PLASMA,
-			1,                              // ammo usage per shot
-			1,                              // projectiles fired each shot
+		"Grenades", "gl",
+		WeaponCategory_Secondary,
 
-			//timings (in msecs)
-			WEAPONUP_FRAMETIME,             // weapon up frametime
-			WEAPONDOWN_FRAMETIME,           // weapon down frametime
-			100,                            // reload frametime
-			5000,                           // projectile timeout
-			false,                          // smooth refire
+		1,                              // projectiles fired each shot
+		5,                              // clip size
+		1500,                           // reload time
+		false,                          // staged reloading
 
-			//damages
-			8,                              // damage
-			0.2,                            // selfdamage ratio
-			22,                             // knockback
-			45,                             // splash radius
-			4,                              // splash minimum damage
-			1,                              // splash minimum knockback
+		//timings (in msecs)
+		WEAPONUP_TIME_NORMAL,           // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		500,                            // refire time
+		1250,                           // projectile timeout
+		Vec2( 325.0f, 60.0f ),          // recoil
+		Vec2( 125.0f, 20.0f ),          // recoilmin
+		2000.0f,                        // recoil recovery
+		FiringMode_SemiAuto,
 
-			//projectile def
-			2500,                           // speed
-			0,                              // spread
-			0,                              // v_spread
-		},
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
+		//damages
+		45,                             // damage
+		1.0f,                           // selfdamage ratio
+		100,                            // knockback
+		120,                            // splash radius
+		5,                              // splash minimum damage
+		50,                             // splash minimum knockback
+
+		//projectile def
+		420,                            // speed
+		0,                              // spread
 	},
 
 	{
-		"Lasergun",
-		WEAP_LASERGUN,
-		{
-			AMMO_LASERS,
-			1,                              // ammo usage per shot
-			1,                              // projectiles fired each shot
+		"Rockets", "rl",
+		WeaponCategory_Primary,
 
-			//timings (in msecs)
-			WEAPONUP_FRAMETIME,             // weapon up frametime
-			WEAPONDOWN_FRAMETIME,           // weapon down frametime
-			50,                             // reload frametime
-			700,                            // projectile timeout / projectile range for instant weapons
-			true,                           // smooth refire
+		1,                              // projectiles fired each shot
+		5,                              // clip size
+		600,                            // reload time
+		true,                           // staged reloading
 
-			//damages
-			4,                              // damage
-			0,                              // selfdamage ratio (lg cant damage)
-			14,                             // knockback
-			0,                              // splash radius
-			0,                              // splash minimum damage
-			0,                              // splash minimum knockback
+		//timings (in msecs)
+		WEAPONUP_TIME_SLOW,             // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		1000,                           // refire time
+		10000,                          // projectile timeout
+		Vec2( 350.0f, 100.0f ),         // recoil
+		Vec2( 150.0f, 40.0f ),          // recoilmin
+		2000.0f,                        // recoil recovery
+		FiringMode_Auto,
 
-			//projectile def
-			INSTANT,                        // speed
-			0,                              // spread
-			0,                              // v_spread
-		},
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
+		//damages
+		40,                             // damage
+		1.0f,                           // selfdamage ratio
+		100,                            // knockback
+		120,                            // splash radius
+		10,                             // splash minimum damage
+		50,                             // splash minimum knockback
+
+		//projectile def
+		1400,                           // speed
+		0,                              // spread
 	},
 
 	{
-		"Sniper",
-		WEAP_ELECTROBOLT,
-		{
-			AMMO_BOLTS,
-			1,                              // ammo usage per shot
-			1,                              // projectiles fired each shot
+		"Plasma", "pg",
+		WeaponCategory_Backup,
 
-			//timings (in msecs)
-			WEAPONUP_FRAMETIME,             // weapon up frametime
-			WEAPONDOWN_FRAMETIME,           // weapon down frametime
-			1250,                           // reload frametime
-			900,                            // min damage range
-			false,                          // smooth refire
+		1,                              // projectiles fired each shot
+		30,                             // clip size
+		1500,                           // reload time
+		false,                          // staged reloading
 
-			//damages
-			35,                             // damage
-			0,                              // selfdamage ratio
-			80,                             // knockback
-			0,                              // splash radius
-			70,                             // minimum damage
-			35,                             // minimum knockback
+		//timings (in msecs)
+		WEAPONUP_TIME_NORMAL,           // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		50,                             // refire time
+		10000,                          // projectile timeout
+		Vec2( 60.0f, 50.0f ),           // recoil
+		Vec2( 30.0f, 10.0f ),           // recoilmin
+		1350.0f,                        // recoil recovery
+		FiringMode_Auto,
 
-			//projectile def
-			INSTANT,                        // speed
-			0,                              // spread
-			0,                              // v_spread
-		},
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
+		//damages
+		7,                              // damage
+		0,                              // selfdamage ratio
+		30,                             // knockback
+		45,                             // splash radius
+		7,                              // splash minimum damage
+		5,                              // splash minimum knockback
+
+		//projectile def
+		3500,                           // speed
+		0.0f,                           // spread
+	},
+
+	{
+		"BubbleGun", "bg",
+		WeaponCategory_Backup,
+
+		1,                              // projectiles fired each shot
+		14,                             // clip size
+		1500,                           // reload time
+		false,                          // staged reloading
+
+		//timings (in msecs)
+		WEAPONUP_TIME_NORMAL,           // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		150,                            // refire time
+		10000,                          // projectile timeout
+		Vec2( 80.0f, 60.0f ),           // recoil
+		Vec2( 50.0f, 20.0f ),           // recoilmin
+		1350.0f,                        // recoil recovery
+		FiringMode_Auto,
+
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
+		//damages
+		15,                             // damage
+		0,                              // selfdamage ratio
+		50,                             // knockback
+		80,                             // splash radius
+		1,                              // splash minimum damage
+		6,                              // splash minimum knockback
+
+		//projectile def
+		600,                            // speed
+		0,                              // spread
+	},
+
+	{
+		"Laser", "lg",
+		WeaponCategory_Primary,
+
+		1,                              // projectiles fired each shot
+		50,                             // clip size
+		1000,                           // reload time
+		false,                          // staged reloading
+
+		//timings (in msecs)
+		WEAPONUP_TIME_FAST,             // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		50,                             // refire time
+		900,                            // projectile timeout / projectile range for instant weapons
+		Vec2( 0.0f, 0.0f ),             // recoil
+		Vec2( 0.0f, 0.0f ),             // recoilmin
+		0.0f,                           // recoil recovery
+		FiringMode_Smooth,
+
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
+		//damages
+		5,                              // damage
+		0,                              // selfdamage ratio
+		14,                             // knockback
+		0,                              // splash radius
+		0,                              // splash minimum damage
+		0,                              // splash minimum knockback
+
+		//projectile def
+		INSTANT,                        // speed
+		0,                              // spread
+	},
+
+	{
+		"Railgun", "eb",
+		WeaponCategory_Secondary,
+
+		1,                              // projectiles fired each shot
+		5,                              // clip size
+		600,                            // reload time
+		true,                           // staged reloading
+
+		//timings (in msecs)
+		WEAPONUP_TIME_SLOW,             // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		600,                            // refire time
+		HITSCAN_RANGE,                  // range
+		Vec2( 120.0f, 40.0f ),          // recoil
+		Vec2( 60.0f, 0.0f ),            // recoilmin
+		1000.0f,                        // recoil recovery
+		FiringMode_SemiAuto,
+
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
+		//damages
+		25,                             // damage
+		0,                              // selfdamage ratio
+		60,                             // knockback
+		100,                            // splash radius
+		0,                              // minimum damage
+		60,                             // minimum knockback
+
+		//projectile def
+		INSTANT,                        // speed
+		0,                              // spread
+	},
+
+	{
+		"Sniper", "sniper",
+		WeaponCategory_Primary,
+
+		1,                              // projectiles fired each shot
+		1,                              // clip size
+		2000,                           // reload time
+		false,                          // staged reloading
+
+		//timings (in msecs)
+		WEAPONUP_TIME_VERY_SLOW,        // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		500,                            // refire time
+		HITSCAN_RANGE,                  // range
+		Vec2( 500.0f, 150.0f ),         // recoil
+		Vec2( 200.0f, 50.0f ),          // recoilmin
+		2500.0f,                        // recoil recovery
+		FiringMode_Auto,
+
+		25.0f,                          // zoom fov
+		30.0f,                          // !zoom inaccuracy
+
+		//damages
+		50,                             // damage
+		0,                              // selfdamage ratio
+		100,                            // knockback
+		0,                              // splash radius
+		0,                              // minimum damage
+		0,                              // minimum knockback
+
+		//projectile def
+		INSTANT,                        // speed
+		0,                              // spread
+	},
+
+	{
+		"Rifle", "rifle",
+		WeaponCategory_Secondary,
+
+		1,                              // projectiles fired each shot
+		5,                              // clip size
+		2000,                           // reload time
+		false,                          // staged reloading
+
+		//timings (in msecs)
+		WEAPONUP_TIME_NORMAL,           // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		600,                            // refire time
+		10000,                          // range
+		Vec2( 275.0f, 60.0f ),          // recoil
+		Vec2( 125.0f, 20.0f ),          // recoilmin
+		1500.0f,                        // recoil recovery
+		FiringMode_SemiAuto,
+
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
+		//damages
+		38,                             // damage
+		0,                              // selfdamage ratio
+		50,                             // knockback
+		0,                              // splash radius
+		0,                              // minimum damage
+		0,                              // minimum knockback
+
+		//projectile def
+		5500,                           // speed
+		0,                              // spread
 	},
 };
 
-STATIC_ASSERT( ARRAY_COUNT( gs_weaponDefs ) == WEAP_TOTAL );
+STATIC_ASSERT( ARRAY_COUNT( gs_weaponDefs ) == Weapon_Count );
 
-gs_weapon_definition_t * GS_GetWeaponDef( int weapon ) {
-	assert( weapon >= 0 && weapon < WEAP_TOTAL );
+const WeaponDef * GS_GetWeaponDef( WeaponType weapon ) {
+	assert( weapon < Weapon_Count );
 	return &gs_weaponDefs[ weapon ];
 }

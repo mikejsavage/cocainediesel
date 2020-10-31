@@ -1,54 +1,31 @@
 /*QUAKED worldspawn (0 0 0) ?
-Not really an, used to hold map settings.
+Map settings
 -------- KEYS --------
 gametype : Set to gladiator to make this a gladiator map
 */
 
-/*QUAKED info_player_intermission (1 0 1) (-16 -16 -16) (16 16 16)
-Camera for intermission screen between matches. Can be aimed by setting the "angles" key or targeting an pointing to an aiming entity. Use only one per level.
--------- KEYS --------
-angles : View angles, pitch/yaw/roll
-target : Point at a target entity to make the camera look at it
-*/
-
-/*QUAKED info_player_deathmatch (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
+/*QUAKED spawn_gladiator (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
 Gladiator spawn point
 -------- KEYS --------
-target : this can point at a target_give entity for respawn freebies.
+angles : View angles, pitch/yaw/roll
 -------- SPAWNFLAGS --------
-SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.
+SUSPENDED : don't drop the spawn to the floor
 */
 
-/*QUAKED team_CTF_alphaplayer (1 .2 0) (-16 -16 -24) (16 16 40) SUSPENDED
-Initial Alpha team spawning position for CTF games. This is where players spawn when they join the Alpha team.
+/*QUAKED spawn_bomb_attacking (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
+Bomb attacker spawn point
 -------- KEYS --------
-target : this can point at a target_give entity for respawn freebies.
+angles : View angles, pitch/yaw/roll
 -------- SPAWNFLAGS --------
-SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.
+SUSPENDED : don't drop the spawn to the floor
 */
 
-/*QUAKED team_CTF_alphaspawn (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
-Alpha team respawning position for CTF games. This is where Alpha team players respawn after they get fragged.
+/*QUAKED spawn_bomb_defending (1 .1 .25) (-16 -16 -24) (16 16 40) SUSPENDED
+Bomb defending spawn point
 -------- KEYS --------
-target : this can point at a target_give entity for respawn freebies.
+angles : View angles, pitch/yaw/roll
 -------- SPAWNFLAGS --------
-SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.
-*/
-
-/*QUAKED team_CTF_betaplayer (1 .2 0) (-16 -16 -24) (16 16 40) SUSPENDED
-Initial Beta team spawning position for CTF games. This is where players spawn when they join the Beta team.
--------- KEYS --------
-target : this can point at a target_give entity for respawn freebies.
--------- SPAWNFLAGS --------
-SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.
-*/
-
-/*QUAKED team_CTF_betaspawn (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED
-Beta team respawning position for CTF games. This is where Beta team players respawn after they get fragged.
--------- KEYS --------
-target : this can point at a target_give entity for respawn freebies.
--------- SPAWNFLAGS --------
-SUSPENDED : the spawnpoint will be placed where it was in the map and won't drop automatically to the floor.
+SUSPENDED : don't drop the spawn to the floor
 */
 
 /*QUAKED func_group (0 .5 .8) ?
@@ -90,9 +67,7 @@ wait : number of seconds before door returns (2 default, -1 = never return)
 lip : lip remaining at end of move (default 8)
 targetname : if set, a func_button or trigger is required to activate the door.
 target : fire entities with this targetname when activated
-health : (default 0) if set to any non-zero value, the button must take damage (any amount) to activate.
 dmg : damage to inflict on player when he blocks operation of door (default 2). Door will reverse direction when blocked unless CRUSHER spawnflag is set.
-team: assign the same team name to multiple doors that should operate together (see Notes).
 gameteam : makes the door only openable by a player of a specific team (0 = everyone, 1 = FFA players, 2 = alpha,  3 = beta)
 noise_start : overrides default start moving sound
 noise : overrides default movement sound
@@ -258,16 +233,18 @@ Automatic trigger. It will fire the entities it targets as soon as it spawns in 
 target : fire entities with this targetname.
 */
 
-/*QUAKED trigger_push (.5 .5 .5) ? PUSH_ONCE
-This is used to create jump pads and launch ramps. It MUST point to a target_position or info_notnull entity to work.
+/*QUAKED trigger_push (.5 .5 .5) ? PAINKILLER
+Jumppad trigger brush.
 -------- KEYS --------
 target : this points to the target_position to which the player will jump.
 noise : override default noise ("silent" doesn't make any noise)
 wait : time before it can be triggered again.
 -------- SPAWNFLAGS --------
-PUSH_ONCE : &1 only push when touched the first time
+PAINKILLER : &1 player keeps sideways momentum
 -------- NOTES --------
-To make a jump pad or launch ramp, place the target_position/info_notnull entity at the highest point of the jump and target it with this entity.
+To make a jump pad or launch ramp, place the target_position entity at the highest point of the jump and target it with this entity.
+
+If the target is horizontally aligned with the trigger the player's velocity will be set to reach the target after one second.
 */
 
 /*QUAKED trigger_multiple (.5 .5 .5) ? MONSTER NOT_PLAYER TRIGGERED
@@ -318,14 +295,16 @@ FALL : player will die the next time he touches the ground.
 -------- NOTES --------
 */
 
-/*QUAKED trigger_capture_area (.5 .5 .5) ? -
-Target it to a misc_capture_area_indicator
+/*QUAKED bomb_site (.5 .5 .5) (-8 -8 -8) (8 8 8)
+A bomb site
 -------- KEYS --------
-target : this points to the entity to activate.
-targetname : activating trigger points to this.
--------- SPAWNFLAGS --------
--------- NOTES --------
-Target it to a misc_capture_area_indicator.
+targetname : the bomb site name, must match the plant_area's target
+*/
+
+/*QUAKED plant_area (.5 .5 0) ? -
+Bomb site plant area
+-------- KEYS --------
+target : a bomb_site entity
 */
 
 /*QUAKED trigger_teleport (.5 .5 .5) ? SPECTATOR
@@ -408,25 +387,6 @@ Aiming target for entities like light, misc_portal_camera and trigger_push (jump
 targetname : the entity that requires an aiming direction points to this.
 -------- NOTES --------
 To make a jump pad, place this entity at the highest point of the jump and target it with a trigger_push entity.
-*/
-
-/*QUAKED target_speaker (0 .7 .7) (-8 -8 -8) (8 8 8) LOOPED_ON LOOPED_OFF RELIABLE GLOBAL ACTIVATOR
-Normal sounds play each time the target is used.  The reliable flag can be set for crucial voiceovers. Looped sounds are always atten 3 / vol 1, and the use function toggles it on/off. Multiple identical looping sounds will just increase volume without any speed cost.
--------- KEYS --------
-noise : path/name of .wav file to play (eg. sound/world/growl1.wav - see Notes).
-volume : 0.0 to 1.0
-attenuation : -1 = none, send to whole level, 1 = normal fighting sounds, 2 = idle sound level, 3 = ambient sound level
-wait : delay in seconds between each time the sound is played ("random" key must be set - see Notes).
-random : random time variance in seconds added or subtracted from "wait" delay ("wait" key must be set - see Notes).
-targetname : the activating button or trigger points to this.
--------- SPAWNFLAGS --------
-LOOPED_ON : &1 sound will loop and initially start on in level (will toggle on/off when triggered).
-LOOPED_OFF : &2 sound will loop and initially start off in level (will toggle on/off when triggered).
-RELIABLE : &4
-GLOBAL : &8 Overrides attenuation setting. Sound will play full volume throughout the level as if it had attenuation -1
-ACTIVATOR : &16 sound will play only for the player that activated the target.
--------- NOTES --------
-The path portion value of the "noise" key can be replaced by the implicit folder character "*" for triggered sounds that belong to a particular player model. For example, if you want to create a "bottomless pit" in which the player screams and dies when he falls into, you would place a trigger_multiple over the floor of the pit and target a target_speaker with it. Then, you would set the "noise" key to "*falling1.wav". The * character means the current player model's sound folder. So if your current player model is Visor, * = sound/player/visor, if your current player model is Sarge, * = sound/player/sarge, etc. This cool feature provides an excellent way to create "player-specific" triggered sounds in your levels.
 */
 
 /*QUAKED model (1 0 0) (-8 -8 -8) (8 8 8)

@@ -1,0 +1,11 @@
+{
+	attenuation static
+	volume 0.2
+	sound ./whizz1
+	sound ./whizz2
+	sound ./whizz3
+	sound ./whizz4
+	sound ./whizz5
+	sound ./whizz6
+	sound ./whizz7
+}

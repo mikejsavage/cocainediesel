@@ -20,80 +20,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client/client.h"
 #include "cgame/cg_local.h"
+#include "qcommon/cmodel.h"
 #include "qcommon/version.h"
 
 static cgame_export_t *cge;
 
 gs_state_t client_gs;
-
-//======================================================================
-
-// CL_GameModule versions of the CM functions passed to the game module
-// they only add sv.cms as the first parameter
-
-//======================================================================
-
-static inline int CL_GameModule_CM_NumInlineModels( void ) {
-	return CM_NumInlineModels( cl.cms );
-}
-
-static inline int CL_GameModule_CM_TransformedPointContents( const vec3_t p, struct cmodel_s *cmodel, const vec3_t origin, const vec3_t angles ) {
-	return CM_TransformedPointContents( cl.cms, p, cmodel, origin, angles );
-}
-
-static inline void CL_GameModule_CM_TransformedBoxTrace( trace_t *tr, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs,
-														 struct cmodel_s *cmodel, int brushmask, const vec3_t origin, const vec3_t angles ) {
-	CM_TransformedBoxTrace( cl.cms, tr, start, end, mins, maxs, cmodel, brushmask, origin, angles );
-}
-
-static inline struct cmodel_s *CL_GameModule_CM_InlineModel( int num ) {
-	return CM_InlineModel( cl.cms, num );
-}
-
-static inline void CL_GameModule_CM_InlineModelBounds( const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs ) {
-	CM_InlineModelBounds( cl.cms, cmodel, mins, maxs );
-}
-
-static inline struct cmodel_s *CL_GameModule_CM_ModelForBBox( vec3_t mins, vec3_t maxs ) {
-	return CM_ModelForBBox( cl.cms, mins, maxs );
-}
-
-static inline struct cmodel_s *CL_GameModule_CM_OctagonModelForBBox( vec3_t mins, vec3_t maxs ) {
-	return CM_OctagonModelForBBox( cl.cms, mins, maxs );
-}
-
-static inline bool CL_GameModule_CM_InPVS( const vec3_t p1, const vec3_t p2 ) {
-	return CM_InPVS( cl.cms, p1, p2 );
-}
-
-//======================================================================
-
-#ifndef _MSC_VER
-static void CL_GameModule_Error( const char *msg ) __attribute__( ( noreturn ) );
-#else
-__declspec( noreturn ) static void CL_GameModule_Error( const char *msg );
-#endif
-
-/*
-* CL_GameModule_Error
-*/
-static void CL_GameModule_Error( const char *msg ) {
-	Com_Error( ERR_DROP, "%s", msg );
-}
-
-/*
-* CL_GameModule_Print
-*/
-static void CL_GameModule_Print( const char *msg ) {
-	Com_Printf( "%s", msg );
-}
-
-/*
-* CL_GameModule_PrintToLog
-*/
-static void CL_GameModule_PrintToLog( const char *msg ) {
-	Con_Print( msg );
-}
 
 /*
 * CL_GameModule_GetConfigString
@@ -152,7 +84,6 @@ static void CL_GameModule_NET_GetCurrentState( int64_t *incomingAcknowledged, in
 * CL_GameModule_Init
 */
 void CL_GameModule_Init( void ) {
-	int64_t start;
 	cgame_import_t import;
 
 	// stop all playing sounds
@@ -160,62 +91,17 @@ void CL_GameModule_Init( void ) {
 
 	CL_GameModule_Shutdown();
 
-	import.Error = CL_GameModule_Error;
-	import.Print = CL_GameModule_Print;
-	import.PrintToLog = CL_GameModule_PrintToLog;
-
-	import.Cvar_Get = Cvar_Get;
-	import.Cvar_Set = Cvar_Set;
-	import.Cvar_SetValue = Cvar_SetValue;
-	import.Cvar_ForceSet = Cvar_ForceSet;
-	import.Cvar_String = Cvar_String;
-	import.Cvar_Value = Cvar_Value;
-
-	import.Cmd_TokenizeString = Cmd_TokenizeString;
-	import.Cmd_Argc = Cmd_Argc;
-	import.Cmd_Argv = Cmd_Argv;
-	import.Cmd_Args = Cmd_Args;
-
-	import.Cmd_AddCommand = Cmd_AddCommand;
-	import.Cmd_RemoveCommand = Cmd_RemoveCommand;
-	import.Cmd_ExecuteText = Cbuf_ExecuteText;
-	import.Cmd_Execute = Cbuf_Execute;
-	import.Cmd_SetCompletionFunc = Cmd_SetCompletionFunc;
-
-	import.FS_FOpenFile = FS_FOpenFile;
-	import.FS_Read = FS_Read;
-	import.FS_Write = FS_Write;
-	import.FS_Print = FS_Print;
-	import.FS_FCloseFile = FS_FCloseFile;
-
-	import.Key_GetBindingBuf = Key_GetBindingBuf;
-	import.Key_KeynumToString = Key_KeynumToString;
-
 	import.GetConfigString = CL_GameModule_GetConfigString;
-	import.Milliseconds = Sys_Milliseconds;
-	import.DownloadRequest = CL_DownloadRequest;
 
 	import.NET_GetUserCmd = CL_GameModule_NET_GetUserCmd;
 	import.NET_GetCurrentUserCmdNum = CL_GameModule_NET_GetCurrentUserCmdNum;
 	import.NET_GetCurrentState = CL_GameModule_NET_GetCurrentState;
 
-	import.VID_FlashWindow = VID_FlashWindow;
-
-	import.CM_NumInlineModels = CL_GameModule_CM_NumInlineModels;
-	import.CM_InlineModel = CL_GameModule_CM_InlineModel;
-	import.CM_TransformedBoxTrace = CL_GameModule_CM_TransformedBoxTrace;
-	import.CM_TransformedPointContents = CL_GameModule_CM_TransformedPointContents;
-	import.CM_ModelForBBox = CL_GameModule_CM_ModelForBBox;
-	import.CM_OctagonModelForBBox = CL_GameModule_CM_OctagonModelForBBox;
-	import.CM_InlineModelBounds = CL_GameModule_CM_InlineModelBounds;
-	import.CM_InPVS = CL_GameModule_CM_InPVS;
+	import.VID_FlashWindow = FlashWindow;
 
 	cge = GetCGameAPI( &import );
 
-	start = Sys_Milliseconds();
 	cge->Init( cls.servername, cl.playernum, cls.demo.playing, cls.demo.playing ? cls.demo.filename : "", cl.snapFrameTime );
-
-	Com_DPrintf( "CL_GameModule_Init: %.2f seconds\n", (float)( Sys_Milliseconds() - start ) * 0.001f );
 
 	cls.cgameActive = true;
 }
@@ -255,7 +141,7 @@ void CL_GameModule_EscapeKey( void ) {
 /*
 * CL_GameModule_GetEntitySoundOrigin
 */
-void CL_GameModule_GetEntitySpatilization( int entNum, vec3_t origin, vec3_t velocity ) {
+void CL_GameModule_GetEntitySpatilization( int entNum, Vec3 * origin, Vec3 * velocity ) {
 	if( cge ) {
 		cge->GetEntitySpatilization( entNum, origin, velocity );
 	}
@@ -295,15 +181,6 @@ void CL_GameModule_RenderView() {
 }
 
 /*
-* CL_GameModule_InputFrame
-*/
-void CL_GameModule_InputFrame( int frameTime ) {
-	if( cge ) {
-		cge->InputFrame( frameTime );
-	}
-}
-
-/*
 * CL_GameModule_GetButtonBits
 */
 unsigned CL_GameModule_GetButtonBits( void ) {
@@ -314,28 +191,10 @@ unsigned CL_GameModule_GetButtonBits( void ) {
 }
 
 /*
-* CL_GameModule_AddViewAngles
-*/
-void CL_GameModule_AddViewAngles( vec3_t viewAngles ) {
-	if( cge ) {
-		cge->AddViewAngles( viewAngles );
-	}
-}
-
-/*
-* CL_GameModule_AddMovement
-*/
-void CL_GameModule_AddMovement( vec3_t movement ) {
-	if( cge ) {
-		cge->AddMovement( movement );
-	}
-}
-
-/*
 * CL_GameModule_MouseMove
 */
-void CL_GameModule_MouseMove( int dx, int dy ) {
+void CL_GameModule_MouseMove( int frameTime, Vec2 d ) {
 	if( cge ) {
-		cge->MouseMove( dx, dy );
+		cge->MouseMove( frameTime, d );
 	}
 }

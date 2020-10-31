@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include "qcommon/base.h"
 #include "../qas_local.h"
 #include "addon_math.h"
 #include "qcommon/rng.h"
@@ -28,71 +29,51 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 **************************************/
 
 static int asFunc_abs( int x ) {
-	return abs( x );
+	return Abs( x );
 }
 
-static double asFunc_fabs( double x ) {
-	return fabs( x );
+static float asFunc_fabs( float x ) {
+	return Abs( x );
 }
 
-static double asFunc_log( double x ) {
-	return log( x );
+static float asFunc_pow( float x, float y ) {
+	return powf( x, y );
 }
 
-static double asFunc_pow( double x, double y ) {
-	return pow( x, y );
+static float asFunc_cos( float x ) {
+	return cosf( x );
 }
 
-static double asFunc_cos( double x ) {
-	return cos( x );
+static float asFunc_sin( float x ) {
+	return sinf( x );
 }
 
-static double asFunc_sin( double x ) {
-	return sin( x );
+static float asFunc_tan( float x ) {
+	return tanf( x );
 }
 
-static double asFunc_tan( double x ) {
-	return tan( x );
+static float asFunc_sqrt( float x ) {
+	return sqrtf( x );
 }
 
-static double asFunc_acos( double x ) {
-	return acos( x );
+static float asFunc_ceil( float x ) {
+	return ceilf( x );
 }
 
-static double asFunc_asin( double x ) {
-	return asin( x );
-}
-
-static double asFunc_atan( double x ) {
-	return atan( x );
-}
-
-static double asFunc_atan2( double x, double y ) {
-	return atan2( x, y );
-}
-
-static double asFunc_sqrt( double x ) {
-	return sqrt( x );
-}
-
-static double asFunc_ceil( double x ) {
-	return ceil( x );
-}
-
-static double asFunc_floor( double x ) {
-	return floor( x );
+static float asFunc_floor( float x ) {
+	return floorf( x );
 }
 
 static uint32_t asFunc_random_uint() {
-	return random_u32( &sv.rng );
+	return random_u32( &svs.rng );
 }
 
 static int asFunc_random_uniform( int lo, int hi ) {
-	return random_uniform( &sv.rng, lo, hi );
+	return random_uniform( &svs.rng, lo, hi );
 }
 
 static float asFunc_random_float01() {
-	return random_float01( &sv.rng );
+	return random_float01( &svs.rng );
 }
 
 void PreRegisterMathAddon( asIScriptEngine *engine ) {
@@ -107,19 +88,14 @@ void RegisterMathAddon( asIScriptEngine *engine ) {
 	math_asGlobFuncs[] =
 	{
 		{ "int abs( int x )", asFUNCTION( asFunc_abs ) },
-		{ "double abs( double x )", asFUNCTION( asFunc_fabs ) },
-		{ "double log( double x )", asFUNCTION( asFunc_log ) },
-		{ "double pow( double x, double y )", asFUNCTION( asFunc_pow ) },
-		{ "double cos( double x )", asFUNCTION( asFunc_cos ) },
-		{ "double sin( double x )", asFUNCTION( asFunc_sin ) },
-		{ "double tan( double x )", asFUNCTION( asFunc_tan ) },
-		{ "double acos( double x )", asFUNCTION( asFunc_acos ) },
-		{ "double asin( double x )", asFUNCTION( asFunc_asin ) },
-		{ "double atan( double x )", asFUNCTION( asFunc_atan ) },
-		{ "double atan2( double x, double y )", asFUNCTION( asFunc_atan2 ) },
-		{ "double sqrt( double x )", asFUNCTION( asFunc_sqrt ) },
-		{ "double ceil( double x )", asFUNCTION( asFunc_ceil ) },
-		{ "double floor( double x )", asFUNCTION( asFunc_floor ) },
+		{ "float abs( float x )", asFUNCTION( asFunc_fabs ) },
+		{ "float pow( float x, float y )", asFUNCTION( asFunc_pow ) },
+		{ "float cos( float x )", asFUNCTION( asFunc_cos ) },
+		{ "float sin( float x )", asFUNCTION( asFunc_sin ) },
+		{ "float tan( float x )", asFUNCTION( asFunc_tan ) },
+		{ "float sqrt( float x )", asFUNCTION( asFunc_sqrt ) },
+		{ "float ceil( float x )", asFUNCTION( asFunc_ceil ) },
+		{ "float floor( float x )", asFUNCTION( asFunc_floor ) },
 		{ "uint random_uint()", asFUNCTION( asFunc_random_uint ) },
 		{ "int random_uniform( int lo, int hi )", asFUNCTION( asFunc_random_uniform ) },
 		{ "float random_float01()", asFUNCTION( asFunc_random_float01 ) },

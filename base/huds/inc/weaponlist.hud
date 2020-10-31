@@ -1,16 +1,14 @@
 if %TEAM != #TEAM_SPECTATOR
-	if %WEAPON_ITEM
-		setAlignment right middle
-		setCursor #WIDTH, #HEIGHT - 32
+	setAlignment center middle
+	setCursor #WIDTH / 2, #HEIGHT - 48
+	setColor 1.0, %HEALTH / 83.333, %HEALTH / 500, 1
+	setColor 1 1 1 1
 
-		moveCursor -20 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
-		setSize 16 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 16
-		setFontStyle bold
-		setFontBorder on
+	setFontStyle bold
+	setFontBorder on
 
-		// draw selected gun
-		drawWeaponIcons 56 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0, 48 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 48, %VIDHEIGHT / 40
+	// draw selected gun
+	drawWeaponIcons 56 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0, 48 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 48, %VIDHEIGHT / 36
 
-		setFontBorder off
-	endif
+	setFontBorder off
 endif

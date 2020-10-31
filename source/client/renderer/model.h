@@ -1,8 +1,7 @@
 #pragma once
 
 #include "qcommon/types.h"
-#include "cgame/ref.h"
-#include "client/renderer/backend.h"
+#include "client/renderer/types.h"
 
 namespace physx { class PxShape; }
 
@@ -21,21 +20,26 @@ struct Model {
 		u32 num_samples;
 	};
 
-	struct Joint {
-		Mat4 joint_to_bind;
-		u8 parent;
-		u8 next;
-
+	struct Node {
 		char name[ 32 ];
-
-		// TODO: remove this with additive animations
 		u32 name_hash;
+
+		Mat4 global_transform;
+		TRS local_transform;
+		u8 primitive;
+
+		u8 parent;
 		u8 first_child;
 		u8 sibling;
 
 		AnimationChannel< Quaternion > rotations;
 		AnimationChannel< Vec3 > translations;
 		AnimationChannel< float > scales;
+	};
+
+	struct Joint {
+		Mat4 joint_to_bind;
+		u8 node_idx;
 	};
 
 	Mesh mesh;
@@ -49,44 +53,35 @@ struct Model {
 	physx::PxShape ** collision_shapes;
 	u32 num_collision_shapes;
 
-	Joint * joints;
+	Node * nodes;
+	u8 num_nodes;
+
+	Joint * skin;
 	u8 num_joints;
-	u8 root_joint;
-};
-
-struct MapMetadata {
-	u64 base_hash;
-
-	u32 num_models;
-
-	float fog_strength;
-
-	Span< u8 > pvs;
-	u32 cluster_size;
 };
 
 void InitModels();
+void HotloadModels();
 void ShutdownModels();
 
 const Model * FindModel( StringHash name );
 const Model * FindModel( const char * name );
 
-const MapMetadata * FindMapMetadata( StringHash name );
-const MapMetadata * FindMapMetadata( const char * name );
-
 Model * NewModel( u64 hash );
 
 bool LoadGLTFModel( Model * model, const char * path );
-bool LoadBSPMap( MapMetadata * map, const char * path );
+
+struct Map;
+bool LoadBSPRenderData( Map * map, u64 base_hash, Span< const u8 > data );
 
 void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline );
-void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices = Span< const Mat4 >() );
-void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices = Span< const Mat4 >() );
-void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, Span< const Mat4 > skinning_matrices );
-
-MinMax3 ModelBounds( const Model * model );
+void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
+void DrawViewWeapon( const Model * model, const Mat4 & transform );
+void DrawOutlinedViewWeapon( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height );
+void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
+void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, MatrixPalettes palettes = MatrixPalettes() );
 
 Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t );
-MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< TRS > local_poses );
-bool FindJointByName( const Model * model, const char * name, u8 * joint_idx );
+MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< const TRS > local_poses );
+bool FindNodeByName( const Model * model, u32 name, u8 * idx );
 void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const Model * model, u8 upper_root_joint );

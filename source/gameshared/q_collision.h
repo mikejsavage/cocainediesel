@@ -20,15 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include "q_arch.h"
-#include "q_math.h"
-#include "qcommon/qfiles.h"
-
-//==============================================================
-//
-//COLLISION DETECTION
-//
-//==============================================================
+#include "gameshared/q_arch.h"
+#include "gameshared/q_math.h"
 
 // lower bits are stronger, and will eat weaker brushes completely
 #define CONTENTS_SOLID          1           // an eye is never valid in a solid
@@ -36,10 +29,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define CONTENTS_SLIME          16
 #define CONTENTS_WATER          32
 
+#define CONTENTS_WALLBANGABLE   0x4000
+
 #define CONTENTS_AREAPORTAL     0x8000
 
 #define CONTENTS_PLAYERCLIP     0x10000
-#define CONTENTS_MONSTERCLIP    0x20000
+#define CONTENTS_WEAPONCLIP     0x20000
 
 #define CONTENTS_TELEPORTER     0x40000
 #define CONTENTS_JUMPPAD        0x80000
@@ -61,23 +56,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // content masks
 #define MASK_ALL            ( -1 )
-#define MASK_SOLID          ( CONTENTS_SOLID )
-#define MASK_PLAYERSOLID    ( CONTENTS_SOLID | CONTENTS_PLAYERCLIP | CONTENTS_BODY )
-#define MASK_DEADSOLID      ( CONTENTS_SOLID | CONTENTS_PLAYERCLIP )
-#define MASK_MONSTERSOLID   ( CONTENTS_SOLID | CONTENTS_MONSTERCLIP | CONTENTS_BODY )
-#define MASK_WATER          ( CONTENTS_WATER | CONTENTS_LAVA | CONTENTS_SLIME )
-#define MASK_OPAQUE         ( CONTENTS_SOLID | CONTENTS_SLIME | CONTENTS_LAVA )
-#define MASK_SHOT           ( CONTENTS_SOLID | CONTENTS_BODY | CONTENTS_CORPSE )
+#define MASK_SOLID          ( CONTENTS_SOLID | CONTENTS_WEAPONCLIP | CONTENTS_WALLBANGABLE )
+#define MASK_PLAYERSOLID    ( CONTENTS_SOLID | CONTENTS_PLAYERCLIP | CONTENTS_BODY | CONTENTS_WALLBANGABLE )
+#define MASK_DEADSOLID      ( CONTENTS_SOLID | CONTENTS_PLAYERCLIP | CONTENTS_WALLBANGABLE )
+#define MASK_WATER          ( CONTENTS_WATER | CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_WALLBANGABLE )
+#define MASK_OPAQUE         ( CONTENTS_SOLID | CONTENTS_SLIME | CONTENTS_LAVA | CONTENTS_WALLBANGABLE )
+#define MASK_SHOT           ( CONTENTS_SOLID | CONTENTS_WEAPONCLIP | CONTENTS_BODY | CONTENTS_CORPSE | CONTENTS_WALLBANGABLE )
+#define MASK_WALLBANG       ( CONTENTS_SOLID | CONTENTS_WEAPONCLIP | CONTENTS_BODY | CONTENTS_CORPSE )
 
-#define MASK_ALPHAPLAYERSOLID  ( CONTENTS_SOLID | CONTENTS_PLAYERCLIP | CONTENTS_BODY | CONTENTS_TEAMBETA )
-#define MASK_BETAPLAYERSOLID   ( CONTENTS_SOLID | CONTENTS_PLAYERCLIP | CONTENTS_BODY | CONTENTS_TEAMALPHA )
+#define MASK_ALPHAPLAYERSOLID  ( MASK_PLAYERSOLID | CONTENTS_TEAMBETA )
+#define MASK_BETAPLAYERSOLID   ( MASK_PLAYERSOLID | CONTENTS_TEAMALPHA )
 
 // a trace is returned when a box is swept through the world
 typedef struct {
 	bool allsolid;          // if true, plane is not valid
 	bool startsolid;        // if true, the initial point was in a solid area
 	float fraction;             // time completed, 1.0 = didn't hit anything
-	vec3_t endpos;              // final position
+	Vec3 endpos;              // final position
 	cplane_t plane;             // surface normal at impact
 	int surfFlags;              // surface hit
 	int contents;               // contents on other side of surface hit

@@ -1,6 +1,5 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-#include "qcommon/assets.h"
 #include "qcommon/array.h"
 #include "qcommon/string.h"
 #include "qcommon/utf8.h"
@@ -10,6 +9,7 @@
 #include "client/renderer/renderer.h"
 #include "client/renderer/text.h"
 #include "client/client.h"
+#include "client/assets.h"
 
 #include "imgui/imgui.h"
 
@@ -33,7 +33,7 @@ struct Font {
 	Material material;
 
 	float glyph_padding;
-	float pixel_range;
+	float dSDF_dTexel;
 	float ascent;
 
 	Glyph glyphs[ 256 ];
@@ -65,7 +65,7 @@ void ShutdownText() {
 }
 
 static void Serialize( SerializationBuffer * buf, Font & font ) {
-	*buf & font.glyph_padding & font.pixel_range & font.ascent;
+	*buf & font.glyph_padding & font.dSDF_dTexel & font.ascent;
 	for( Glyph & glyph : font.glyphs ) {
 		*buf & glyph.bounds & glyph.uv_bounds & glyph.advance;
 	}
@@ -159,14 +159,14 @@ static void DrawText( const Font * font, float pixel_size, Span< const char > st
 	sam.uniform_block = UploadUniformBlock(
 		color, border_color,
 		Vec2( font->atlas.width, font->atlas.height ),
-		font->pixel_range, border ? 1 : 0 );
+		font->dSDF_dTexel, border ? 1 : 0 );
 
 	ImDrawList * bg = ImGui::GetBackgroundDrawList();
 	bg->PushTextureID( sam );
 
 	u32 state = 0;
+	u32 c = 0;
 	for( size_t i = 0; i < str.n; i++ ) {
-		u32 c = 0;
 		if( DecodeUTF8( &state, &c, str[ i ] ) != 0 )
 			continue;
 		if( c > 255 )
@@ -193,11 +193,11 @@ static void DrawText( const Font * font, float pixel_size, Span< const char > st
 
 void DrawText( const Font * font, float pixel_size, const char * str, float x, float y, Vec4 color, bool border ) {
 	Vec4 border_color = Vec4( 0, 0, 0, color.w );
-	DrawText( font, pixel_size, Span< const char >( str, strlen( str ) ), x, y, color, border, border_color );
+	DrawText( font, pixel_size, MakeSpan( str ), x, y, color, border, border_color );
 }
 
 void DrawText( const Font * font, float pixel_size, const char * str, float x, float y, Vec4 color, Vec4 border_color ) {
-	DrawText( font, pixel_size, Span< const char >( str, strlen( str ) ), x, y, color, true, border_color );
+	DrawText( font, pixel_size, MakeSpan( str ), x, y, color, true, border_color );
 }
 
 MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
@@ -205,10 +205,10 @@ MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
 	MinMax1 y_extents = MinMax1::Empty();
 
 	u32 state = 0;
+	u32 c = 0;
 	const Glyph * glyph = NULL;
 
 	for( const char * p = str; *p != '\0'; p++ ) {
-		u32 c = 0;
 		if( DecodeUTF8( &state, &c, *p ) != 0 )
 			continue;
 		if( c > 255 )
@@ -247,7 +247,7 @@ static void DrawText( const Font * font, float pixel_size, const char * str, Ali
 		y += ( bounds.maxs.y - bounds.mins.y ) / 2.0f;
 	}
 
-	DrawText( font, pixel_size, Span< const char >( str, strlen( str ) ), x, y, color, border, border_color );
+	DrawText( font, pixel_size, MakeSpan( str ), x, y, color, border, border_color );
 }
 
 void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, Vec4 color, bool border ) {

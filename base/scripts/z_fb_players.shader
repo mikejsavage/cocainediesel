@@ -1,4 +1,4 @@
-fullbright
+models/players/bigvic
 {
 	{
 		map $whiteimage
@@ -6,12 +6,10 @@ fullbright
 	}
 }
 
-models/players/bigvic
-{
-	template fullbright
-}
-
 models/players/padpork
 {
-	template fullbright
+	{
+		map $whiteimage
+		rgbGen entity
+	}
 }

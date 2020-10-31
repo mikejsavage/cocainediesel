@@ -1,6 +1,7 @@
 #pragma once
 
 #include "qcommon/types.h"
+#include "qcommon/asan.h"
 
 template< typename T >
 class DynamicArray {
@@ -13,7 +14,8 @@ class DynamicArray {
 public:
 	NONCOPYABLE( DynamicArray );
 
-	DynamicArray( NoInit ) {
+	DynamicArray( NoRAII ) {
+		a = NULL;
 		auto_destruct = false;
 	}
 
@@ -30,9 +32,9 @@ public:
 
 	void init( Allocator * a_, size_t initial_capacity = 0 ) {
 		a = a_;
-		n = 0;
 		capacity = initial_capacity;
 		elems = capacity == 0 ? NULL : ALLOC_MANY( a, T, capacity );
+		clear();
 	}
 
 	void shutdown() {
@@ -46,17 +48,19 @@ public:
 	}
 
 	void clear() {
-		n = 0;
+		resize( 0 );
 	}
 
 	void resize( size_t new_size ) {
 		if( new_size < n ) {
 			n = new_size;
+			ASAN_POISON_MEMORY_REGION( elems + n, ( capacity - n ) * sizeof( T ) );
 			return;
 		}
 
 		if( new_size <= capacity ) {
 			n = new_size;
+			ASAN_UNPOISON_MEMORY_REGION( elems, n * sizeof( T ) );
 			return;
 		}
 
@@ -67,6 +71,9 @@ public:
 		elems = REALLOC_MANY( a, T, elems, capacity, new_capacity );
 		capacity = new_capacity;
 		n = new_size;
+
+		ASAN_UNPOISON_MEMORY_REGION( elems, n * sizeof( T ) );
+		ASAN_POISON_MEMORY_REGION( elems + n, ( capacity - n ) * sizeof( T ) );
 	}
 
 	size_t extend( size_t by ) {

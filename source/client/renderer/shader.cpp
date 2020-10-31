@@ -1,13 +1,16 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-#include "qcommon/assets.h"
 #include "qcommon/array.h"
 #include "client/client.h"
+#include "client/assets.h"
 #include "client/renderer/renderer.h"
 
 Shaders shaders;
 
 static void BuildShaderSrcs( const char * path, const char * defines, DynamicArray< const char * > * srcs, DynamicArray< int > * lengths ) {
+	ZoneScoped;
+	ZoneText( path, strlen( path ) );
+
 	srcs->clear();
 	lengths->clear();
 
@@ -34,7 +37,7 @@ static void BuildShaderSrcs( const char * path, const char * defines, DynamicArr
 
 		ptr = before_include + strlen( "#include" );
 
-		Span< const char > include = ParseSpan( &ptr, true );
+		Span< const char > include = ParseToken( &ptr, Parse_StopOnNewLine );
 		StringHash hash = StringHash( Hash64( include.ptr, include.n, Hash64( "glsl/" ) ) );
 
 		Span< const char > contents = AssetString( hash );
@@ -50,9 +53,11 @@ static void BuildShaderSrcs( const char * path, const char * defines, DynamicArr
 	lengths->add( -1 );
 }
 
-static void ReplaceShader( Shader * shader, Span< const char * > srcs, Span< int > lens ) { 
+static void ReplaceShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Span< const char * > feedback_varyings = Span< const char * >() ) {
+	ZoneScoped;
+
 	Shader new_shader;
-	if( !NewShader( &new_shader, srcs, lens ) )
+	if( !NewShader( &new_shader, srcs, lens, feedback_varyings ) )
 		return;
 
 	DeleteShader( *shader );
@@ -60,6 +65,8 @@ static void ReplaceShader( Shader * shader, Span< const char * > srcs, Span< int
 }
 
 static void LoadShaders() {
+	ZoneScoped;
+
 	TempAllocator temp = cls.frame_arena.temp();
 	DynamicArray< const char * > srcs( &temp );
 	DynamicArray< int > lengths( &temp );
@@ -79,9 +86,11 @@ static void LoadShaders() {
 	BuildShaderSrcs( "glsl/standard.glsl", "#define ALPHA_TEST 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.standard_alphatest, srcs.span(), lengths.span() );
 
-	const char * world_defines =
+	const char * world_defines = temp(
 		"#define APPLY_DRAWFLAT 1\n"
-		"#define APPLY_FOG 1\n";
+		"#define APPLY_FOG 1\n"
+		"#define APPLY_DECALS 1\n"
+		"#define TILE_SIZE {}\n", TILE_SIZE );
 	BuildShaderSrcs( "glsl/standard.glsl", world_defines, &srcs, &lengths );
 	ReplaceShader( &shaders.world, srcs.span(), lengths.span() );
 
@@ -103,23 +112,64 @@ static void LoadShaders() {
 	BuildShaderSrcs( "glsl/postprocess_silhouette_gbuffer.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.postprocess_silhouette_gbuffer, srcs.span(), lengths.span() );
 
-	BuildShaderSrcs( "glsl/blur.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.blur, srcs.span(), lengths.span() );
-
 	BuildShaderSrcs( "glsl/outline.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.outline, srcs.span(), lengths.span() );
 
 	BuildShaderSrcs( "glsl/outline.glsl", "#define SKINNED 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.outline_skinned, srcs.span(), lengths.span() );
 
+	BuildShaderSrcs( "glsl/scope.glsl", NULL, &srcs, &lengths );
+	ReplaceShader( &shaders.scope, srcs.span(), lengths.span() );
+
+	BuildShaderSrcs( "glsl/particle_update.glsl", NULL, &srcs, &lengths );
+	const char * update_no_feedback[] = {
+		"v_ParticlePosition",
+		"v_ParticleVelocity",
+		"v_ParticleAccelDragRest",
+		"v_ParticleUVWH",
+		"v_ParticleStartColor",
+		"v_ParticleEndColor",
+		"v_ParticleSize",
+		"v_ParticleAgeLifetime",
+		"v_ParticleFlags",
+	};
+	ReplaceShader( &shaders.particle_update, srcs.span(), lengths.span(), Span< const char *>( update_no_feedback, ARRAY_COUNT( update_no_feedback ) ) );
+
+	BuildShaderSrcs( "glsl/particle_update.glsl", "#define FEEDBACK 1\n", &srcs, &lengths );
+	const char * update_feedback[] = {
+		"v_ParticlePosition",
+		"v_ParticleVelocity",
+		"v_ParticleAccelDragRest",
+		"v_ParticleUVWH",
+		"v_ParticleStartColor",
+		"v_ParticleEndColor",
+		"v_ParticleSize",
+		"v_ParticleAgeLifetime",
+		"v_ParticleFlags",
+		"gl_NextBuffer",
+		"v_Feedback",
+		"v_FeedbackPosition",
+		"v_FeedbackNormal",
+	};
+	ReplaceShader( &shaders.particle_update_feedback, srcs.span(), lengths.span(), Span< const char *>( update_feedback, ARRAY_COUNT( update_feedback ) ) );
+
 	BuildShaderSrcs( "glsl/particle.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.particle, srcs.span(), lengths.span() );
+
+	BuildShaderSrcs( "glsl/particle.glsl", "#define MODEL 1\n", &srcs, &lengths );
+	ReplaceShader( &shaders.particle_model, srcs.span(), lengths.span() );
 
 	BuildShaderSrcs( "glsl/skybox.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.skybox, srcs.span(), lengths.span() );
 
 	BuildShaderSrcs( "glsl/text.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.text, srcs.span(), lengths.span() );
+
+	BuildShaderSrcs( "glsl/blur.glsl", NULL, &srcs, &lengths );
+	ReplaceShader( &shaders.blur, srcs.span(), lengths.span() );
+
+	BuildShaderSrcs( "glsl/postprocess.glsl", NULL, &srcs, &lengths );
+	ReplaceShader( &shaders.postprocess, srcs.span(), lengths.span() );
 }
 
 void InitShaders() {
@@ -130,8 +180,7 @@ void InitShaders() {
 void HotloadShaders() {
 	bool need_hotload = false;
 	for( const char * path : ModifiedAssetPaths() ) {
-		const char * ext = COM_FileExtension( path );
-		if( ext != NULL && strcmp( ext, ".glsl" ) == 0 ) {
+		if( FileExtension( path ) == ".glsl" ) {
 			need_hotload = true;
 			break;
 		}

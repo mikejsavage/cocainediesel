@@ -7,4 +7,5 @@ enum WindowZOrder {
 
 namespace ImGui {
 	void Begin( const char * name, WindowZOrder z_order, ImGuiWindowFlags flags );
+	bool Hotkey( int key );
 };

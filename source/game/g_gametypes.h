@@ -32,10 +32,10 @@ typedef struct {
 	int frags;
 	int suicides;
 
-	int accuracy_shots[AMMO_TOTAL - AMMO_GUNBLADE];
-	int accuracy_hits[AMMO_TOTAL - AMMO_GUNBLADE];
-	int accuracy_damage[AMMO_TOTAL - AMMO_GUNBLADE];
-	int accuracy_frags[AMMO_TOTAL - AMMO_GUNBLADE];
+	int accuracy_shots[ Weapon_Count ];
+	int accuracy_hits[ Weapon_Count ];
+	int accuracy_damage[ Weapon_Count ];
+	int accuracy_frags[ Weapon_Count ];
 	int total_damage_given;
 	int total_damage_received;
 
@@ -43,14 +43,7 @@ typedef struct {
 	int asRefCount;
 } score_stats_t;
 
-// this is only really used to create the script objects
 typedef struct {
-	bool dummy;
-} match_t;
-
-typedef struct {
-	match_t match;
-
 	void *initFunc;
 	void *spawnFunc;
 	void *matchStateStartedFunc;
@@ -75,9 +68,6 @@ typedef struct {
 	bool countdownEnabled;
 	bool matchAbortDisabled;
 	bool shootingDisabled;
-	bool infiniteAmmo;
-	bool canForceModels;
-	bool customDeadBodyCam;
 	bool removeInactivePlayers;
 	bool selfDamage;
 
@@ -87,7 +77,6 @@ typedef struct {
 typedef struct {
 	int playerIndices[MAX_CLIENTS];
 	int numplayers;
-	score_stats_t stats;
 	int ping;
 	bool locked;
 

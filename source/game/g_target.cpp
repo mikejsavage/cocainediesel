@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-#include "g_local.h"
+#include "game/g_local.h"
 
 static void target_explosion_explode( edict_t *self ) {
 	float save;
@@ -30,13 +30,13 @@ static void target_explosion_explode( edict_t *self ) {
 		if( radius < 1 ) {
 			radius = 1;
 		}
-		G_SpawnEvent( EV_EXPLOSION2, radius, self->s.origin );
+		G_SpawnEvent( EV_EXPLOSION2, radius, &self->s.origin );
 	} else {
 		radius = ( self->projectileInfo.radius * 1 / 8 ) & 0xFF;
 		if( radius < 1 ) {
 			radius = 1;
 		}
-		G_SpawnEvent( EV_EXPLOSION1, radius, self->s.origin );
+		G_SpawnEvent( EV_EXPLOSION1, radius, &self->s.origin );
 	}
 
 	save = self->delay;
@@ -61,8 +61,8 @@ void SP_target_explosion( edict_t *self ) {
 	self->use = use_target_explosion;
 	self->r.svflags = SVF_NOCLIENT;
 
-	self->projectileInfo.maxDamage = max( self->dmg, 1 );
-	self->projectileInfo.minDamage = min( self->dmg, 1 );
+	self->projectileInfo.maxDamage = Max2( self->dmg, 1 );
+	self->projectileInfo.minDamage = Min2( self->dmg, 1 );
 	self->projectileInfo.maxKnockback = self->projectileInfo.maxDamage;
 	self->projectileInfo.minKnockback = self->projectileInfo.minDamage;
 	self->projectileInfo.radius = st.radius;
@@ -74,12 +74,9 @@ void SP_target_explosion( edict_t *self ) {
 //==========================================================
 
 static void target_laser_think( edict_t *self ) {
-	edict_t *ignore;
-	vec3_t start;
-	vec3_t end;
 	trace_t tr;
-	vec3_t point;
-	vec3_t last_movedir;
+	Vec3 point;
+	Vec3 last_movedir;
 	int count;
 
 	// our lifetime has expired
@@ -99,29 +96,28 @@ static void target_laser_think( edict_t *self ) {
 	}
 
 	if( self->enemy ) {
-		VectorCopy( self->moveinfo.movedir, last_movedir );
-		VectorMA( self->enemy->r.absmin, 0.5, self->enemy->r.size, point );
-		VectorSubtract( point, self->s.origin, self->moveinfo.movedir );
-		VectorNormalize( self->moveinfo.movedir );
-		if( !VectorCompare( self->moveinfo.movedir, last_movedir ) ) {
+		last_movedir = self->moveinfo.movedir;
+		point = self->enemy->r.absmin + self->enemy->r.size * 0.5f;
+		self->moveinfo.movedir = point - self->s.origin;
+		self->moveinfo.movedir = Normalize( self->moveinfo.movedir );
+		if( self->moveinfo.movedir != last_movedir ) {
 			self->spawnflags |= 0x80000000;
 		}
 	}
 
-	ignore = self;
-	VectorCopy( self->s.origin, start );
-	VectorMA( start, 2048, self->moveinfo.movedir, end );
-	VectorClear( tr.endpos ); // shut up compiler
+	edict_t *ignore = self;
+	Vec3 start = self->s.origin;
+	Vec3 end = start + self->moveinfo.movedir * 2048.0f;
 	while( 1 ) {
-		G_Trace( &tr, start, NULL, NULL, end, ignore, MASK_SHOT );
+		G_Trace( &tr, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ignore, MASK_SHOT );
 		if( tr.fraction == 1 ) {
 			break;
 		}
 
 		// hurt it if we can
-		if( ( game.edicts[tr.ent].takedamage ) && !( game.edicts[tr.ent].flags & FL_IMMUNE_LASER ) ) {
+		if( game.edicts[tr.ent].takedamage ) {
 			if( game.edicts[tr.ent].r.client && self->activator->r.client ) {
-				if( !GS_TeamBasedGametype( &server_gs ) ||
+				if( !level.gametype.isTeamBased ||
 					game.edicts[tr.ent].s.team != self->activator->s.team ) {
 					G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 5, 0, 0, self->count );
 				}
@@ -137,18 +133,17 @@ static void target_laser_think( edict_t *self ) {
 
 				self->spawnflags &= ~0x80000000;
 
-				event = G_SpawnEvent( EV_LASER_SPARKS, DirToByte( tr.plane.normal ), tr.endpos );
+				event = G_SpawnEvent( EV_LASER_SPARKS, DirToByte( tr.plane.normal ), &tr.endpos );
 				event->s.counterNum = count;
-				event->s.colorRGBA = self->s.colorRGBA;
 			}
 			break;
 		}
 
 		ignore = &game.edicts[tr.ent];
-		VectorCopy( tr.endpos, start );
+		start = tr.endpos;
 	}
 
-	VectorCopy( tr.endpos, self->s.origin2 );
+	self->s.origin2 = tr.endpos;
 	G_SetBoundsForSpanEntity( self, 8 );
 
 	GClip_LinkEntity( self );
@@ -162,7 +157,7 @@ static void target_laser_on( edict_t *self ) {
 	}
 	self->spawnflags |= 0x80000001;
 	self->r.svflags &= ~SVF_NOCLIENT;
-	self->wait = ( level.time * 0.001 ) + self->delay;
+	self->wait = level.time * 0.001f + self->delay;
 	target_laser_think( self );
 }
 
@@ -182,29 +177,24 @@ static void target_laser_use( edict_t *self, edict_t *other, edict_t *activator 
 }
 
 void target_laser_start( edict_t *self ) {
-	edict_t *ent;
-
 	self->movetype = MOVETYPE_NONE;
 	self->r.solid = SOLID_NOT;
 	self->s.type = ET_LASER;
-	self->s.modelindex = 1; // must be non-zero
 	self->r.svflags = 0;
 	self->s.radius = st.size > 0 ? st.size : 8;
-	self->s.colorRGBA = st.rgba != 0 ? st.rgba : COLOR_RGBA( 220, 0, 0, 76 );
-	self->s.sound = trap_SoundIndex( "sounds/gladiator/laser_hum" );
-	self->s.attenuation = ATTN_IDLE;
+	self->s.sound = "sounds/gladiator/laser_hum";
 
 	if( !self->enemy ) {
 		if( self->target ) {
-			ent = G_Find( NULL, FOFS( targetname ), self->target );
-			if( !ent ) {
+			edict_t * target = G_Find( NULL, FOFS( targetname ), self->target );
+			if( !target ) {
 				if( developer->integer ) {
-					G_Printf( "%s at %s: %s is a bad target\n", self->classname, vtos( self->s.origin ), self->target );
+					Com_GGPrint( "{} at {}: {} is a bad target", self->classname, self->s.origin, self->target );
 				}
 			}
-			self->enemy = ent;
+			self->enemy = target;
 		} else {
-			G_SetMovedir( self->s.angles, self->moveinfo.movedir );
+			G_SetMovedir( &self->s.angles, &self->moveinfo.movedir );
 		}
 	}
 	self->use = target_laser_use;
@@ -279,7 +269,7 @@ static void target_delay_think( edict_t *ent ) {
 }
 
 static void target_delay_use( edict_t *ent, edict_t *other, edict_t *activator ) {
-	ent->nextThink = level.time + 1000 * ( ent->wait + ent->random * crandom() );
+	ent->nextThink = level.time + 1000 * ( ent->wait + ent->random * random_float11( &svs.rng ) );
 	ent->think = target_delay_think;
 	ent->activator = activator;
 }
@@ -317,7 +307,7 @@ static void target_teleporter_use( edict_t *self, edict_t *other, edict_t *activ
 	dest = G_Find( NULL, FOFS( targetname ), self->target );
 	if( !dest ) {
 		if( developer->integer ) {
-			G_Printf( "Couldn't find destination.\n" );
+			Com_Printf( "Couldn't find destination.\n" );
 		}
 		return;
 	}
@@ -330,7 +320,7 @@ void SP_target_teleporter( edict_t *self ) {
 
 	if( !self->targetname ) {
 		if( developer->integer ) {
-			G_Printf( "untargeted %s at %s\n", self->classname, vtos( self->s.origin ) );
+			Com_GGPrint( "untargeted {} at {}", self->classname, self->s.origin );
 		}
 	}
 

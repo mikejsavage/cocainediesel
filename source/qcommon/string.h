@@ -4,7 +4,7 @@
 
 #include "qcommon/types.h"
 #include "qcommon/array.h"
-#include "qcommon/ggformat.h"
+#include "gg/ggformat.h"
 
 template< size_t N >
 class String {
@@ -21,10 +21,6 @@ public:
 	template< typename... Rest >
 	String( const char * fmt, const Rest & ... rest ) {
 		format( fmt, rest... );
-	}
-
-	operator const char *() const {
-		return buf;
 	}
 
 	void clear() {

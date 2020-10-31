@@ -1,17 +1,16 @@
 #include <algorithm>
 
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_internal.h"
+#include "imgui/imgui_freetype.h"
+
 #include "qcommon/base.h"
-#include "qcommon/assets.h"
 #include "qcommon/string.h"
 #include "qcommon/utf8.h"
 #include "client/client.h"
+#include "client/assets.h"
 #include "client/renderer/renderer.h"
-#include "client/sdl/sdl_window.h"
-
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_sdl.h"
-#include "imgui/imgui_internal.h"
-#include "imgui/imgui_freetype.h"
 
 static Texture atlas_texture;
 static Material atlas_material;
@@ -26,10 +25,13 @@ static ImFont * AddFontAsset( StringHash path, float pixel_size ) {
 	return ImGui::GetIO().Fonts->AddFont( &config );
 }
 
+struct GLFWwindow;
+extern GLFWwindow * window;
+
 void CL_InitImGui() {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGui_ImplSDL2_InitForOpenGL( sdl_window, NULL );
+	ImGui_ImplGlfw_InitForOpenGL( window, false );
 
 	ImGuiIO & io = ImGui::GetIO();
 
@@ -87,15 +89,43 @@ void CL_InitImGui() {
 	{
 		ImGuiStyle & style = ImGui::GetStyle();
 		style.WindowRounding = 0;
-		style.FrameRounding = 1;
-		style.GrabRounding = 2;
-		style.FramePadding = ImVec2( 8, 8 );
+		style.FrameRounding = 0;
+		style.GrabRounding = 0;
+		style.FramePadding = ImVec2( 16, 16 );
 		style.FrameBorderSize = 0;
-		style.WindowPadding = ImVec2( 16, 16 );
+		style.WindowPadding = ImVec2( 32, 32 );
 		style.WindowBorderSize = 0;
 		style.PopupBorderSize = 0;
+		style.Colors[ ImGuiCol_Button ] = ImVec4( 0.125f, 0.125f, 0.125f, 1.f );
+		style.Colors[ ImGuiCol_ButtonHovered ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_ButtonActive ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
+
+		style.Colors[ ImGuiCol_Tab ] = ImVec4( 0.125f, 0.125f, 0.125f, 1.f );
+		style.Colors[ ImGuiCol_TabHovered ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_TabActive ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
+		style.Colors[ ImGuiCol_TabUnfocused ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_TabUnfocusedActive ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
+
+		style.Colors[ ImGuiCol_FrameBg ] = ImVec4( 0.125f, 0.125f, 0.125f, 1.f );
+		style.Colors[ ImGuiCol_FrameBgHovered ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_FrameBgActive ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
+
+		style.Colors[ ImGuiCol_SliderGrab ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
+		style.Colors[ ImGuiCol_SliderGrabActive ] = ImVec4( 0.75f, 0.75f, 0.75f, 1.f );
+
+		style.Colors[ ImGuiCol_ScrollbarBg ] = ImVec4( 0.125f, 0.125f, 0.125f, 0.5f );
+		style.Colors[ ImGuiCol_ScrollbarGrab ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
+		style.Colors[ ImGuiCol_ScrollbarGrabHovered ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
+		style.Colors[ ImGuiCol_ScrollbarGrabActive ] = ImVec4( 0.75f, 0.75f, 0.75f, 1.f );
+
+		style.Colors[ ImGuiCol_CheckMark ] = ImVec4( 0.25f, 1.f, 0.f, 1.f );
+
+		style.Colors[ ImGuiCol_Header ] = ImVec4( 0.125f, 0.125f, 0.125f, 1.f );
+		style.Colors[ ImGuiCol_HeaderHovered ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
+		style.Colors[ ImGuiCol_HeaderActive ] = ImVec4( 0.75f, 0.75f, 0.75f, 1.f );
+
 		style.Colors[ ImGuiCol_WindowBg ] = ImColor( 0x1a, 0x1a, 0x1a );
-		style.ItemSpacing.y = 8;
+		style.ItemSpacing.y = 16;
 	}
 
 }
@@ -103,7 +133,7 @@ void CL_InitImGui() {
 void CL_ShutdownImGui() {
 	DeleteTexture( atlas_texture );
 
-	ImGui_ImplSDL2_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 }
 
@@ -122,7 +152,6 @@ static void SubmitDrawCalls() {
 	ImVec2 pos = draw_data->DisplayPos;
 	for( int n = 0; n < draw_data->CmdListsCount; n++ ) {
 		const ImDrawList * cmd_list = draw_data->CmdLists[ n ];
-		u16 idx_buffer_offset = 0;
 
 		MeshConfig config;
 		config.unified_buffer = NewVertexBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof( ImDrawVert ) );
@@ -165,10 +194,9 @@ static void SubmitDrawCalls() {
 
 					pipeline.set_texture( "u_BaseTexture", pcmd->TextureId.material->texture );
 
-					DrawMesh( mesh, pipeline, pcmd->ElemCount, idx_buffer_offset * sizeof( u16 ) );
+					DrawMesh( mesh, pipeline, pcmd->ElemCount, pcmd->IdxOffset * sizeof( ImDrawIdx ) );
 				}
 			}
-			idx_buffer_offset += pcmd->ElemCount;
 		}
 	}
 }
@@ -176,7 +204,7 @@ static void SubmitDrawCalls() {
 void CL_ImGuiBeginFrame() {
 	ZoneScoped;
 
-	ImGui_ImplSDL2_NewFrame( sdl_window );
+	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 }
 
@@ -200,6 +228,10 @@ namespace ImGui {
 	void Begin( const char * name, WindowZOrder z_order, ImGuiWindowFlags flags ) {
 		ImGui::Begin( name, NULL, flags );
 		ImGui::GetCurrentWindow()->BeginOrderWithinContext = z_order;
+	}
+
+	bool Hotkey( int key ) {
+		return ImGui::IsWindowFocused( ImGuiFocusedFlags_RootAndChildWindows ) && ImGui::IsKeyPressed( key, false );
 	}
 }
 
@@ -239,7 +271,7 @@ void WindowCenterTextXY( const char * str ) {
 
 Vec4 AttentionGettingColor() {
 	float t = sinf( cls.monotonicTime / 20.0f ) * 0.5f + 1.0f;
-	return Lerp( vec4_red, t, vec4_yellow );
+	return Lerp( vec4_red, t, sRGBToLinear( rgba8_diesel_yellow ) );
 }
 
 bool DevToolButton( const char * label ) {

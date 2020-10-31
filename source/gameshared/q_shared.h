@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include "q_arch.h"
+#include "gameshared/q_arch.h"
 #include "qcommon/base.h"
 
 //==============================================
@@ -37,8 +37,7 @@ short ShortSwap( short l );
 
 // command line execution flags
 #define EXEC_NOW                    0           // don't return until completed
-#define EXEC_INSERT                 1           // insert at current position, but don't run yet
-#define EXEC_APPEND                 2           // add to end of the command buffer
+#define EXEC_APPEND                 1           // add to end of the command buffer
 
 //=============================================
 // fonts
@@ -60,24 +59,47 @@ char *COM_SanitizeFilePath( char *filename );
 bool COM_ValidateFilename( const char *filename );
 bool COM_ValidateRelativeFilename( const char *filename );
 void COM_StripExtension( char *filename );
-const char *COM_FileExtension( const char *in );
 void COM_DefaultExtension( char *path, const char *extension, size_t size );
 void COM_ReplaceExtension( char *path, const char *extension, size_t size );
 const char *COM_FileBase( const char *in );
 void COM_StripFilename( char *filename );
-int COM_FilePathLength( const char *in );
 
 enum ParseStopOnNewLine {
 	Parse_DontStopOnNewLine,
 	Parse_StopOnNewLine,
 };
 
-Span< char > ParseSpan( char ** ptr, bool stop_on_newline );
-Span< const char > ParseSpan( const char ** ptr, bool stop_on_newline );
+Span< const char > ParseToken( const char ** ptr, ParseStopOnNewLine stop );
+Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine stop );
 
-Span< const char > ParseSpan( Span< const char > * cursor, ParseStopOnNewLine stop );
+int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop );
+float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine stop );
 
-bool ParseFloat( Span< const char > str, float * x );
+bool SpanToInt( Span< const char > str, int * x );
+bool SpanToFloat( Span< const char > str, float * x );
+
+bool StrEqual( Span< const char > lhs, Span< const char > rhs );
+bool StrEqual( Span< const char > lhs, const char * rhs );
+bool StrEqual( const char * rhs, Span< const char > lhs );
+
+bool StrCaseEqual( Span< const char > lhs, Span< const char > rhs );
+bool StrCaseEqual( Span< const char > lhs, const char * rhs );
+bool StrCaseEqual( const char * rhs, Span< const char > lhs );
+
+template< size_t N >
+bool operator==( Span< const char > span, const char ( &str )[ N ] ) {
+	return StrCaseEqual( span, Span< const char >( str, N - 1 ) );
+}
+
+template< size_t N > bool operator==( const char ( &str )[ N ], Span< const char > span ) { return span == str; }
+template< size_t N > bool operator!=( Span< const char > span, const char ( &str )[ N ] ) { return !( span == str ); }
+template< size_t N > bool operator!=( const char ( &str )[ N ], Span< const char > span ) { return !( span == str ); }
+
+bool StartsWith( const char * str, const char * prefix );
+
+Span< const char > FileExtension( const char * path );
+Span< const char > BaseName( const char * path );
+Span< const char > BasePath( const char * path );
 
 // data is an in/out parm, returns a parsed out token
 char *COM_ParseExt2_r( char *token, size_t token_size, const char **data_p, bool nl, bool sq );
@@ -89,8 +111,6 @@ char *COM_ParseExt2( const char **data_p, bool nl, bool sq );
 #define COM_Parse( data_p )   COM_ParseExt( data_p, true )
 
 const char *COM_RemoveJunkChars( const char *in );
-int COM_ReadColorRGBString( const char *in );
-int COM_ReadColorRGBAString( const char *in );
 bool COM_ValidateConfigstring( const char *string );
 
 char *COM_ListNameForPosition( const char *namesList, int position, const char separator );
@@ -132,13 +152,6 @@ char *COM_ListNameForPosition( const char *namesList, int position, const char s
 #define S_COLOR_ORANGE  "\x1b\xff\x80\x01\xff"
 #define S_COLOR_GREY    "\x1b\x80\x80\x80\xff"
 
-#define COLOR_R( rgba )       ( ( rgba ) & 0xFF )
-#define COLOR_G( rgba )       ( ( ( rgba ) >> 8 ) & 0xFF )
-#define COLOR_B( rgba )       ( ( ( rgba ) >> 16 ) & 0xFF )
-#define COLOR_A( rgba )       ( ( ( rgba ) >> 24 ) & 0xFF )
-#define COLOR_RGB( r, g, b )    ( ( ( r ) << 0 ) | ( ( g ) << 8 ) | ( ( b ) << 16 ) )
-#define COLOR_RGBA( r, g, b, a ) ( ( ( r ) << 0 ) | ( ( g ) << 8 ) | ( ( b ) << 16 ) | ( ( a ) << 24 ) )
-
 //=============================================
 // strings
 //=============================================
@@ -146,20 +159,11 @@ char *COM_ListNameForPosition( const char *namesList, int position, const char s
 void Q_strncpyz( char *dest, const char *src, size_t size );
 void Q_strncatz( char *dest, const char *src, size_t size );
 
-int Q_vsnprintfz( char *dest, size_t size, const char *format, va_list argptr );
-
-#ifndef _MSC_VER
-int Q_snprintfz( char *dest, size_t size, const char *format, ... ) __attribute__( ( format( printf, 3, 4 ) ) );
-#else
-int Q_snprintfz( char *dest, size_t size, _Printf_format_string_ const char *format, ... );
-#endif
-
 char *Q_strupr( char *s );
 char *Q_strlwr( char *s );
 const char *Q_strrstr( const char *s, const char *substr );
 bool Q_isdigit( const char *str );
 char *Q_trim( char *s );
-char *Q_chrreplace( char *s, const char subj, const char repl );
 void RemoveTrailingZeroesFloat( char * str );
 
 /**
@@ -172,13 +176,6 @@ void Q_urlencode_unsafechars( const char *src, char *dst, size_t dst_size );
  * total (untruncated) length of the resulting string.
  */
 size_t Q_urldecode( const char *src, char *dst, size_t dst_size );
-
-size_t Q_WCharUtf8Length( wchar_t wc );
-size_t Q_WCharToUtf8( wchar_t wc, char *dest, size_t bufsize );
-char *Q_WCharToUtf8Char( wchar_t wc );
-
-float *tv( float x, float y, float z );
-char *vtos( float v[3] );
 
 #ifndef _MSC_VER
 char *va( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
@@ -206,21 +203,15 @@ bool Info_Validate( const char *s );
 // per-level limits
 //
 #define MAX_CLIENTS                 256         // absolute limit
-#define MAX_EDICTS                  4096        // must change protocol to increase more
-#define MAX_MODELS                  1024        // these are sent over the net as shorts
-#define MAX_SOUNDS                  1024        // so they cannot be blindly increased
-#define MAX_IMAGES                  256
-#define MAX_ITEMS                   64          // 16x4
-#define MAX_GENERAL                 128         // general config strings
+#define MAX_EDICTS                  1024        // must change protocol to increase more
 
 //============================================
 // sound
 //============================================
 
-//#define S_DEFAULT_ATTENUATION_MODEL		1
 #define S_DEFAULT_ATTENUATION_MODEL         3
-#define S_DEFAULT_ATTENUATION_MAXDISTANCE   8000
-#define S_DEFAULT_ATTENUATION_REFDISTANCE   125
+#define S_DEFAULT_ATTENUATION_MAXDISTANCE   8192
+#define S_DEFAULT_ATTENUATION_REFDISTANCE   250
 
 float Q_GainForAttenuation( int model, float maxdistance, float refdistance, float dist, float attenuation );
 
@@ -235,10 +226,10 @@ constexpr size_t NUM_IMAGE_EXTENSIONS = ARRAY_COUNT( IMAGE_EXTENSIONS );
 //
 //==============================================================
 
-typedef enum {
+enum com_error_code_t {
 	ERR_FATAL,      // exit the entire game with a popup window
 	ERR_DROP,       // print to console and disconnect from game
-} com_error_code_t;
+};
 
 // this is only here so the functions in q_shared.c and q_math.c can link
 
@@ -264,7 +255,6 @@ __declspec( noreturn ) void Com_Error( com_error_code_t code, _Printf_format_str
 #define FS_APPEND           2
 #define FS_GZ               0x100   // compress on write and decompress on read automatically
 #define FS_UPDATE           0x200
-#define FS_CACHE            0x800
 
 #define FS_RWA_MASK         ( FS_READ | FS_WRITE | FS_APPEND )
 
@@ -272,27 +262,21 @@ __declspec( noreturn ) void Com_Error( com_error_code_t code, _Printf_format_str
 #define FS_SEEK_SET         1
 #define FS_SEEK_END         2
 
-typedef enum {
-	FS_MEDIA_IMAGES,
-
-	FS_MEDIA_NUM_TYPES
-} fs_mediatype_t;
-
 //==============================================================
 
 // connection state of the client in the server
-typedef enum {
+enum sv_client_state_t {
 	CS_FREE,            // can be reused for a new connection
 	CS_ZOMBIE,          // client has been disconnected, but don't reuse
 	                    // connection for a couple seconds
 	CS_CONNECTING,      // has send a "new" command, is awaiting for fetching configstrings
 	CS_CONNECTED,       // has been assigned to a client_t, but not in game yet
 	CS_SPAWNED          // client is fully in game
-} sv_client_state_t;
+};
 
-typedef enum {
+enum keydest_t {
 	key_game,
 	key_console,
 	key_message,
 	key_menu,
-} keydest_t;
+};

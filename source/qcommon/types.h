@@ -45,7 +45,7 @@ typedef uint64_t u64;
 #define U64 UINT64_C
 
 /*
- * allocators
+ * Allocator
  */
 
 struct Allocator {
@@ -60,53 +60,7 @@ struct Allocator {
 	char * operator()( const char * fmt, const Rest & ... rest );
 };
 
-struct ArenaAllocator;
-struct TempAllocator final : public Allocator {
-	TempAllocator() = default;
-	TempAllocator( const TempAllocator & other );
-	~TempAllocator();
-
-	void operator=( const TempAllocator & ) = delete;
-
-	void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
-	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
-	void deallocate( void * ptr, const char * func, const char * file, int line );
-
-private:
-	ArenaAllocator * arena;
-	u8 * old_cursor;
-
-	friend struct ArenaAllocator;
-};
-
-struct ArenaAllocator final : public Allocator {
-	ArenaAllocator() = default;
-	ArenaAllocator( void * mem, size_t size );
-
-	void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
-	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
-	void deallocate( void * ptr, const char * func, const char * file, int line );
-
-	TempAllocator temp();
-
-	void clear();
-	void * get_memory();
-
-	float max_utilisation() const;
-
-private:
-	u8 * memory;
-	u8 * top;
-	u8 * cursor;
-	u8 * cursor_max;
-
-	u32 num_temp_allocators;
-
-	void * try_temp_allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
-	void * try_temp_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
-
-	friend struct TempAllocator;
-};
+struct TempAllocator;
 
 #if COMPILER_MSVC
 #define __PRETTY_FUNCTION__ __FUNCSIG__
@@ -131,6 +85,16 @@ void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t ne
  * helper functions that are useful in templates. so headers don't need to include base.h
  */
 
+template< typename T, size_t N >
+constexpr size_t ARRAY_COUNT( const T ( &arr )[ N ] ) {
+	return N;
+}
+
+template< typename T, typename M, size_t N >
+constexpr size_t ARRAY_COUNT( M ( T::* )[ N ] ) {
+	return N;
+}
+
 #define STATIC_ASSERT( p ) static_assert( p, #p )
 #define NONCOPYABLE( T ) T( const T & ) = delete; void operator=( const T & ) = delete
 
@@ -152,6 +116,13 @@ constexpr bool IsPowerOf2( T x ) {
 }
 
 template< typename T >
+void Swap2( T * a, T * b ) {
+	T t = *a;
+	*a = *b;
+	*b = t;
+}
+
+template< typename T >
 constexpr T Min2( const T & a, const T & b ) {
 	return a < b ? a : b;
 }
@@ -161,15 +132,26 @@ constexpr T Max2( const T & a, const T & b ) {
 	return a > b ? a : b;
 }
 
+template< typename T >
+T Clamp( const T & lo, const T & x, const T & hi ) {
+	assert( lo <= hi );
+	return Max2( lo, Min2( x, hi ) );
+}
+
+template< typename T >
+T Clamp01( const T & x ) {
+	return Clamp( T( 0.0f ), x, T( 1.0f ) );
+}
+
 /*
  * NoInit
  */
 
-enum class NoInit { NoInit };
-constexpr NoInit NO_INIT = NoInit::NoInit;
+enum class NoRAII { NoRAII };
+constexpr NoRAII NO_RAII = NoRAII::NoRAII;
 
 /*
- * span
+ * Span
  */
 
 template< typename T >
@@ -181,29 +163,18 @@ struct Span {
 	constexpr Span( T * ptr_, size_t n_ ) : ptr( ptr_ ), n( n_ ) { }
 
 	// allow implicit conversion to Span< const T >
-	operator Span< const T >() { return Span< const T >( ptr, n ); }
 	operator Span< const T >() const { return Span< const T >( ptr, n ); }
 
 	size_t num_bytes() const { return sizeof( T ) * n; }
 
-	T & operator[]( size_t i ) {
+	T & operator[]( size_t i ) const {
 		assert( i < n );
 		return ptr[ i ];
 	}
 
-	const T & operator[]( size_t i ) const {
-		assert( i < n );
-		return ptr[ i ];
-	}
-
-	Span< T > operator+( size_t i ) {
+	Span< T > operator+( size_t i ) const {
 		assert( i <= n );
 		return Span< T >( ptr + i, n - i );
-	}
-
-	Span< const T > operator+( size_t i ) const {
-		assert( i <= n );
-		return Span< const T >( ptr + i, n - i );
 	}
 
 	void operator++( int ) {
@@ -212,25 +183,17 @@ struct Span {
 		n--;
 	}
 
-	T * begin() { return ptr; }
-	T * end() { return ptr + n; }
-	const T * begin() const { return ptr; }
-	const T * end() const { return ptr + n; }
+	T * begin() const { return ptr; }
+	T * end() const { return ptr + n; }
 
-	Span< T > slice( size_t start, size_t one_past_end ) {
-		assert( start <= one_past_end );
-		assert( one_past_end <= n );
-		return Span< T >( ptr + start, one_past_end - start );
-	}
-
-	Span< const T > slice( size_t start, size_t one_past_end ) const {
+	Span< T > slice( size_t start, size_t one_past_end ) const {
 		assert( start <= one_past_end );
 		assert( one_past_end <= n );
 		return Span< const T >( ptr + start, one_past_end - start );
 	}
 
 	template< typename S >
-	Span< S > cast() {
+	Span< S > cast() const {
 		assert( num_bytes() % sizeof( S ) == 0 );
 		return Span< S >( ( S * ) ptr, num_bytes() / sizeof( S ) );
 	}
@@ -248,6 +211,17 @@ struct Vec2 {
 	constexpr Vec2( float x_, float y_ ) : x( x_ ), y( y_ ) { }
 
 	float * ptr() { return &x; }
+	const float * ptr() const { return &x; }
+
+	float & operator[]( size_t i ) {
+		assert( i < 2 );
+		return ptr()[ i ];
+	}
+
+	float operator[]( size_t i ) const {
+		assert( i < 2 );
+		return ptr()[ i ];
+	}
 };
 
 struct Vec3 {
@@ -258,9 +232,20 @@ struct Vec3 {
 	constexpr Vec3( Vec2 xy, float z_ ) : x( xy.x ), y( xy.y ), z( z_ ) { }
 	constexpr Vec3( float x_, float y_, float z_ ) : x( x_ ), y( y_ ), z( z_ ) { }
 
-	Vec2 xy() const { return Vec2( x, y ); }
+	constexpr Vec2 xy() const { return Vec2( x, y ); }
 
 	float * ptr() { return &x; }
+	const float * ptr() const { return &x; }
+
+	float & operator[]( size_t i ) {
+		assert( i < 3 );
+		return ptr()[ i ];
+	}
+
+	float operator[]( size_t i ) const {
+		assert( i < 3 );
+		return ptr()[ i ];
+	}
 };
 
 struct Vec4 {
@@ -272,10 +257,21 @@ struct Vec4 {
 	constexpr Vec4( Vec3 xyz, float w_ ) : x( xyz.x ), y( xyz.y ), z( xyz.z ), w( w_ ) { }
 	constexpr Vec4( float x_, float y_, float z_, float w_ ) : x( x_ ), y( y_ ), z( z_ ), w( w_ ) { }
 
-	Vec2 xy() const { return Vec2( x, y ); }
-	Vec3 xyz() const { return Vec3( x, y, z ); }
+	constexpr Vec2 xy() const { return Vec2( x, y ); }
+	constexpr Vec3 xyz() const { return Vec3( x, y, z ); }
 
 	float * ptr() { return &x; }
+	const float * ptr() const { return &x; }
+
+	float & operator[]( size_t i ) {
+		assert( i < 4 );
+		return ptr()[ i ];
+	}
+
+	float operator[]( size_t i ) const {
+		assert( i < 4 );
+		return ptr()[ i ];
+	}
 };
 
 struct Mat2 {
@@ -379,6 +375,7 @@ struct EulerDegrees3 {
 
 	EulerDegrees3() = default;
 	constexpr EulerDegrees3( float p, float y, float r ) : pitch( p ), yaw( y ), roll( r ) { }
+	constexpr EulerDegrees3( Vec3 v ) : pitch( v.x ), yaw( v.y ), roll( v.z ) { }
 };
 
 struct Quaternion {
@@ -441,16 +438,5 @@ struct RGBA8 {
 	constexpr RGBA8( u8 r_, u8 g_, u8 b_, u8 a_ ) : r( r_ ), g( g_ ), b( b_ ), a( a_ ) { }
 	explicit constexpr RGBA8( RGB8 rgb, u8 a_ = 255 ) : r( rgb.r ), g( rgb.g ), b( rgb.b ), a( a_ ) { }
 
-	explicit RGBA8( const Vec4 & v ) {
-		r = v.x * 255.0f;
-		g = v.y * 255.0f;
-		b = v.z * 255.0f;
-		a = v.w * 255.0f;
-	}
+	constexpr RGB8 rgb() const { return RGB8( r, g, b ); }
 };
-
-// TODO: asset types?
-
-struct Model;
-struct Material;
-struct SoundEffect;

@@ -18,69 +18,212 @@
 
  */
 
-typedef struct cmodel_state_s cmodel_state_t;
+#include "gameshared/q_math.h"
+#include "gameshared/q_collision.h"
+#include "qcommon/qfiles.h"
+#include "qcommon/hash.h"
 
-extern cvar_t *cm_noCurves;
+#define MAX_CM_LEAFS        ( MAX_MAP_LEAFS )
 
-// debug/performance counter vars
-extern int c_traces;
-extern int c_brush_traces;
-extern int c_pointcontents;
+typedef struct {
+	int contents;
+	int flags;
+	char *name;
+} cshaderref_t;
 
-struct cmodel_s *CM_LoadMap( cmodel_state_t *cms, const char *name, bool clientload, unsigned *checksum );
-struct cmodel_s *CM_InlineModel( cmodel_state_t *cms, int num ); // 1, 2, etc
+typedef struct {
+	int children[2];            // negative numbers are leafs
+	cplane_t *plane;
+} cnode_t;
 
-int CM_NumClusters( cmodel_state_t *cms );
-int CM_NumAreas( cmodel_state_t *cms );
-int CM_NumInlineModels( cmodel_state_t *cms );
-char *CM_EntityString( cmodel_state_t *cms );
-int CM_EntityStringLen( cmodel_state_t *cms );
-const char *CM_ShaderrefName( cmodel_state_t *cms, int ref );
+typedef struct {
+	int surfFlags;
+	cplane_t plane;
+} cbrushside_t;
+
+typedef struct {
+	int contents;
+	int numsides;
+
+	Vec3 mins, maxs;
+
+	cbrushside_t *brushsides;
+} cbrush_t;
+
+typedef struct {
+	int contents;
+	int numfacets;
+
+	Vec3 mins, maxs;
+
+	cbrush_t *facets;
+} cface_t;
+
+typedef struct {
+	int contents;
+	int cluster;
+
+	int area;
+
+	int nummarkbrushes;
+	int nummarkfaces;
+
+	int *markbrushes;
+	int *markfaces;
+} cleaf_t;
+
+typedef struct cmodel_s {
+	u64 hash;
+
+	bool builtin;
+
+	int nummarkfaces;
+	int nummarkbrushes;
+
+	Vec3 cyl_offset;
+
+	Vec3 mins, maxs;
+
+	cbrush_t *brushes;
+	cface_t *faces;
+
+	// dummy iterators for the tracing code
+	// which treats brush models as leafs
+	int *markfaces;
+	int *markbrushes;
+} cmodel_t;
+
+typedef struct {
+	int floodnum;               // if two areas have equal floodnums, they are connected
+	int floodvalid;
+} carea_t;
+
+struct CollisionModel {
+	u64 base_hash;
+	u64 world_hash;
+
+	int checkcount;
+	int floodvalid;
+
+	u32 checksum;
+
+	int numbrushsides;
+	cbrushside_t *map_brushsides;
+
+	int numshaderrefs;
+	cshaderref_t *map_shaderrefs;
+
+	int numplanes;
+	cplane_t *map_planes;
+
+	int numnodes;
+	cnode_t *map_nodes;
+
+	int numleafs;                   // = 1
+	cleaf_t map_leaf_empty;         // allow leaf funcs to be called without a map
+	cleaf_t *map_leafs;             // = &map_leaf_empty;
+
+	int nummarkbrushes;
+	int *map_markbrushes;
+
+	u32 num_models;
+	Vec3 world_mins, world_maxs;
+
+	int numbrushes;
+	cbrush_t *map_brushes;
+
+	int numfaces;
+	cface_t *map_faces;
+
+	int nummarkfaces;
+	int *map_markfaces;
+
+	Vec3 *map_verts;              // this will be freed
+	int numvertexes;
+
+	// each area has a list of portals that lead into other areas
+	// when portals are closed, other areas may not be visible or
+	// hearable even if the vis info says that it should be
+	int numareas;                   // = 1
+	carea_t map_area_empty;
+	carea_t *map_areas;             // = &map_area_empty;
+	int *map_areaportals;
+
+	dvis_t *map_pvs;
+	int map_visdatasize;
+
+	uint8_t nullrow[MAX_CM_LEAFS / 8];
+
+	int numentitychars;
+	char map_entitystring_empty;
+	char *map_entitystring;         // = &map_entitystring_empty;
+
+	const u8 *cmod_base;
+
+	// cm_trace.c
+	cbrushside_t box_brushsides[6];
+	cbrush_t box_brush[1];
+	int box_markbrushes[1];
+	cmodel_t box_cmodel[1];
+	int box_checkcount;
+
+	cbrushside_t oct_brushsides[10];
+	cbrush_t oct_brush[1];
+	int oct_markbrushes[1];
+	cmodel_t oct_cmodel[1];
+	int oct_checkcount;
+
+	int *map_brush_checkcheckouts;
+	int *map_face_checkcheckouts;
+};
+
+enum CModelServerOrClient {
+	CM_Client,
+	CM_Server,
+};
+
+CollisionModel * CM_LoadMap( CModelServerOrClient soc, Span< const u8 > data, u64 base_hash );
+void CM_Free( CModelServerOrClient soc,  CollisionModel * cms );
+
+struct cmodel_s * CM_FindCModel( CModelServerOrClient soc, StringHash hash );
+struct cmodel_s * CM_TryFindCModel( CModelServerOrClient soc, StringHash hash );
+
+bool CM_IsBrushModel( CModelServerOrClient soc, StringHash hash );
+
+int CM_NumClusters( const CollisionModel *cms );
+int CM_NumAreas( const CollisionModel *cms );
+char *CM_EntityString( const CollisionModel *cms );
+int CM_EntityStringLen( const CollisionModel *cms );
 
 // creates a clipping hull for an arbitrary bounding box
-struct cmodel_s *CM_ModelForBBox( cmodel_state_t *cms, vec3_t mins, vec3_t maxs );
-struct cmodel_s *CM_OctagonModelForBBox( cmodel_state_t *cms, vec3_t mins, vec3_t maxs );
-void CM_InlineModelBounds( const cmodel_state_t *cms, const struct cmodel_s *cmodel, vec3_t mins, vec3_t maxs );
+struct cmodel_s *CM_ModelForBBox( CollisionModel *cms, Vec3 mins, Vec3 maxs );
+struct cmodel_s *CM_OctagonModelForBBox( CollisionModel *cms, Vec3 mins, Vec3 maxs );
+void CM_InlineModelBounds( const CollisionModel *cms, const struct cmodel_s *cmodel, Vec3 * mins, Vec3 * maxs );
 
 // returns an ORed contents mask
-int CM_TransformedPointContents( cmodel_state_t *cms, const vec3_t p, struct cmodel_s *cmodel, const vec3_t origin, const vec3_t angles );
+int CM_TransformedPointContents( CModelServerOrClient soc, CollisionModel * cms, Vec3 p, struct cmodel_s *cmodel, Vec3 origin, Vec3 angles );
 
-void CM_TransformedBoxTrace( cmodel_state_t *cms, trace_t *tr, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs,
-							 struct cmodel_s *cmodel, int brushmask, const vec3_t origin, const vec3_t angles );
+void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, trace_t * tr, Vec3 start, Vec3 end, Vec3 mins, Vec3 maxs,
+							 struct cmodel_s *cmodel, int brushmask, Vec3 origin, Vec3 angles );
 
-int CM_ClusterRowSize( cmodel_state_t *cms );
-int CM_AreaRowSize( cmodel_state_t *cms );
-int CM_PointLeafnum( cmodel_state_t *cms, const vec3_t p );
+int CM_ClusterRowSize( const CollisionModel *cms );
+int CM_AreaRowSize( const CollisionModel *cms );
+int CM_PointLeafnum( const CollisionModel *cms, Vec3 p );
 
 // call with topnode set to the headnode, returns with topnode
 // set to the first node that splits the box
-int CM_BoxLeafnums( cmodel_state_t *cms, vec3_t mins, vec3_t maxs, int *list, int listsize, int *topnode );
+int CM_BoxLeafnums( CollisionModel *cms, Vec3 mins, Vec3 maxs, int *list, int listsize, int *topnode );
 
-int CM_LeafCluster( cmodel_state_t *cms, int leafnum );
-int CM_LeafArea( cmodel_state_t *cms, int leafnum );
+int CM_LeafCluster( const CollisionModel *cms, int leafnum );
+int CM_LeafArea( const CollisionModel *cms, int leafnum );
 
-void CM_SetAreaPortalState( cmodel_state_t *cms, int area1, int area2, bool open );
-bool CM_AreasConnected( cmodel_state_t *cms, int area1, int area2 );
+void CM_SetAreaPortalState( CollisionModel *cms, int area1, int area2, bool open );
+bool CM_AreasConnected( const CollisionModel *cms, int area1, int area2 );
 
-int CM_WriteAreaBits( cmodel_state_t *cms, uint8_t *buffer );
-void CM_ReadAreaBits( cmodel_state_t *cms, uint8_t *buffer );
-bool CM_HeadnodeVisible( cmodel_state_t *cms, int headnode, uint8_t *visbits );
+void CM_WriteAreaBits( CollisionModel *cms, uint8_t *buffer );
+bool CM_HeadnodeVisible( CollisionModel *cms, int headnode, uint8_t *visbits );
 
-void CM_WritePortalState( cmodel_state_t *cms, int file );
-void CM_ReadPortalState( cmodel_state_t *cms, int file );
+void CM_MergePVS( CollisionModel *cms, Vec3 org, uint8_t *out );
 
-void CM_MergePVS( cmodel_state_t *cms, const vec3_t org, uint8_t *out );
-int CM_MergeVisSets( cmodel_state_t *cms, const vec3_t org, uint8_t *pvs, uint8_t *areabits );
-
-bool CM_InPVS( cmodel_state_t *cms, const vec3_t p1, const vec3_t p2 );
-
-bool CM_LeafsInPVS( cmodel_state_t *cms, int leafnum1, int leafnum2 );
-
-//
-cmodel_state_t *CM_New( void *mempool );
-void CM_AddReference( cmodel_state_t *cms );
-void CM_ReleaseReference( cmodel_state_t *cms );
-
-//
 void CM_Init( void );
 void CM_Shutdown( void );

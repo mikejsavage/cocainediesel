@@ -46,7 +46,6 @@ cvar_t *sv_uploads_demos_baseurl;
 
 cvar_t *sv_maxclients;
 
-#ifdef HTTP_SUPPORT
 cvar_t *sv_http;
 cvar_t *sv_http_ip;
 cvar_t *sv_http_ipv6;
@@ -54,9 +53,7 @@ cvar_t *sv_http_port;
 cvar_t *sv_http_upstream_baseurl;
 cvar_t *sv_http_upstream_ip;
 cvar_t *sv_http_upstream_realip_header;
-#endif
 
-cvar_t *sv_showclamp;
 cvar_t *sv_showRcon;
 cvar_t *sv_showChallenge;
 cvar_t *sv_showInfoQueries;
@@ -70,7 +67,6 @@ cvar_t *sv_iplimit;
 cvar_t *sv_reconnectlimit; // minimum seconds between connect messages
 
 cvar_t *sv_masterservers;
-cvar_t *sv_skilllevel;
 
 // wsw : debug netcode
 cvar_t *sv_debug_serverCmd;
@@ -155,6 +151,8 @@ static bool SV_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
 * SV_ReadPackets
 */
 static void SV_ReadPackets( void ) {
+	ZoneScoped;
+
 	int i, ret;
 	client_t *cl;
 	int game_port;
@@ -275,6 +273,8 @@ static void SV_ReadPackets( void ) {
 * if necessary
 */
 static void SV_CheckTimeouts( void ) {
+	ZoneScoped;
+
 	client_t *cl;
 	int i;
 
@@ -297,8 +297,8 @@ static void SV_CheckTimeouts( void ) {
 			continue;
 		}
 
-		if( ( cl->state != CS_FREE && cl->state != CS_ZOMBIE ) &&
-			( cl->lastPacketReceivedTime + 1000 * sv_timeout->value < svs.realtime ) ) {
+		if( cl->state != CS_FREE && cl->state != CS_ZOMBIE &&
+			cl->lastPacketReceivedTime + 1000 * sv_timeout->value < svs.realtime ) {
 			SV_DropClient( cl, DROP_TYPE_GENERAL, "%s", "Error: Connection timed out" );
 			cl->state = CS_FREE; // don't bother with zombie state
 			if( cl->socket.open ) {
@@ -323,6 +323,8 @@ static void SV_CheckTimeouts( void ) {
 * Applies latched userinfo updates if the timeout is over.
 */
 static void SV_CheckLatchedUserinfoChanges( void ) {
+	ZoneScoped;
+
 	client_t *cl;
 	int i;
 	int64_t time = Sys_Milliseconds();
@@ -349,6 +351,8 @@ static void SV_CheckLatchedUserinfoChanges( void ) {
 * SV_RunGameFrame
 */
 static bool SV_RunGameFrame( int msec ) {
+	ZoneScoped;
+
 	static int64_t accTime = 0;
 	bool refreshSnapshot;
 	bool refreshGameModule;
@@ -374,7 +378,7 @@ static bool SV_RunGameFrame( int msec ) {
 
 	// if there aren't pending packets to be sent, we can sleep
 	if( is_dedicated_server && !sentFragments && !refreshSnapshot ) {
-		int sleeptime = min( WORLDFRAMETIME - ( accTime + 1 ), sv.nextSnapTime - ( svs.gametime + 1 ) );
+		int sleeptime = Min2( WORLDFRAMETIME - ( accTime + 1 ), sv.nextSnapTime - ( svs.gametime + 1 ) );
 
 		if( sleeptime > 0 ) {
 			socket_t *sockets[] = { &svs.socket_udp, &svs.socket_udp6 };
@@ -413,15 +417,7 @@ static bool SV_RunGameFrame( int msec ) {
 			accTime = 0;
 		}
 
-		if( host_speeds->integer ) {
-			time_before_game = Sys_Milliseconds();
-		}
-
-		ge->RunFrame( moduleTime );
-
-		if( host_speeds->integer ) {
-			time_after_game = Sys_Milliseconds();
-		}
+		G_RunFrame( moduleTime );
 	}
 
 	// if we don't have to send a snapshot we are done here
@@ -430,7 +426,7 @@ static bool SV_RunGameFrame( int msec ) {
 
 		// set up for sending a snapshot
 		sv.framenum++;
-		ge->SnapFrame();
+		G_SnapFrame();
 
 		// set time for next snapshot
 		extraSnapTime = (int)( svs.gametime - sv.nextSnapTime );
@@ -465,11 +461,12 @@ static void SV_CheckDefaultMap( void ) {
 void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 	ZoneScoped;
 
+	TracyPlot( "Server frame arena max utilisation", svs.frame_arena.max_utilisation() );
+	svs.frame_arena.clear();
+
 	u64 entropy[ 2 ];
 	CSPRNG_Bytes( entropy, sizeof( entropy ) );
-	sv.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
-
-	time_before_game = time_after_game = 0;
+	svs.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
 
 	// if server is not active, do nothing
 	if( !svs.initialized ) {
@@ -501,7 +498,7 @@ void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 		SV_MasterHeartbeat();
 
 		// clear teleport flags, etc for next frame
-		ge->ClearSnap();
+		G_ClearSnap();
 	}
 }
 
@@ -532,7 +529,7 @@ void SV_UserinfoChanged( client_t *client ) {
 	}
 
 	// call prog code to allow overrides
-	ge->ClientUserinfoChanged( client->edict, client->userinfo );
+	ClientUserinfoChanged( client->edict, client->userinfo );
 
 	if( !Info_Validate( client->userinfo ) ) {
 		SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: Invalid userinfo (after game)" );
@@ -556,12 +553,24 @@ void SV_UserinfoChanged( client_t *client ) {
 * SV_Init
 */
 void SV_Init( void ) {
+	ZoneScoped;
+
 	cvar_t *sv_pps;
 	cvar_t *sv_fps;
 
 	assert( !sv_initialized );
 
+	memset( &sv, 0, sizeof( sv ) );
+	memset( &svs, 0, sizeof( svs ) );
 	memset( &svc, 0, sizeof( svc ) );
+
+	constexpr size_t frame_arena_size = 1024 * 1024; // 1MB
+	void * frame_arena_memory = ALLOC_SIZE( sys_allocator, frame_arena_size, 16 );
+	svs.frame_arena = ArenaAllocator( frame_arena_memory, frame_arena_size );
+
+	u64 entropy[ 2 ];
+	CSPRNG_Bytes( entropy, sizeof( entropy ) );
+	svs.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
 
 	SV_InitOperatorCommands();
 
@@ -576,21 +585,18 @@ void SV_Init( void ) {
 	sv_ip6 =            Cvar_Get( "sv_ip6", "::", CVAR_ARCHIVE | CVAR_LATCH );
 	sv_port6 =          Cvar_Get( "sv_port6", va( "%i", PORT_SERVER ), CVAR_ARCHIVE | CVAR_LATCH );
 
-#ifdef HTTP_SUPPORT
 	sv_http =           Cvar_Get( "sv_http", "1", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_LATCH );
-	sv_http_port =      Cvar_Get( "sv_http_port", va( "%i", PORT_HTTP_SERVER ), CVAR_ARCHIVE | CVAR_LATCH );
+	sv_http_port =      Cvar_Get( "sv_http_port", sv_port->string, CVAR_ARCHIVE | CVAR_LATCH );
 	sv_http_ip =        Cvar_Get( "sv_http_ip", "", CVAR_ARCHIVE | CVAR_LATCH );
 	sv_http_ipv6 =      Cvar_Get( "sv_http_ipv6", "", CVAR_ARCHIVE | CVAR_LATCH );
 	sv_http_upstream_baseurl =  Cvar_Get( "sv_http_upstream_baseurl", "", CVAR_ARCHIVE | CVAR_LATCH );
 	sv_http_upstream_realip_header = Cvar_Get( "sv_http_upstream_realip_header", "", CVAR_ARCHIVE );
 	sv_http_upstream_ip = Cvar_Get( "sv_http_upstream_ip", "", CVAR_ARCHIVE );
-#endif
 
 	rcon_password =         Cvar_Get( "rcon_password", "", 0 );
 	sv_hostname =           Cvar_Get( "sv_hostname", APPLICATION " server", CVAR_SERVERINFO | CVAR_ARCHIVE );
 	sv_timeout =            Cvar_Get( "sv_timeout", "125", 0 );
 	sv_zombietime =         Cvar_Get( "sv_zombietime", "2", 0 );
-	sv_showclamp =          Cvar_Get( "sv_showclamp", "0", 0 );
 	sv_showRcon =           Cvar_Get( "sv_showRcon", "1", 0 );
 	sv_showChallenge =      Cvar_Get( "sv_showChallenge", "0", 0 );
 	sv_showInfoQueries =    Cvar_Get( "sv_showInfoQueries", "0", 0 );
@@ -611,7 +617,7 @@ void SV_Init( void ) {
 
 	sv_iplimit = Cvar_Get( "sv_iplimit", "3", CVAR_ARCHIVE );
 
-	sv_defaultmap =         Cvar_Get( "sv_defaultmap", "dust", CVAR_ARCHIVE );
+	sv_defaultmap =         Cvar_Get( "sv_defaultmap", "carfentanil", CVAR_ARCHIVE );
 	sv_reconnectlimit =     Cvar_Get( "sv_reconnectlimit", "3", CVAR_ARCHIVE );
 	sv_maxclients =         Cvar_Get( "sv_maxclients", "16", CVAR_ARCHIVE | CVAR_SERVERINFO | CVAR_LATCH );
 
@@ -626,16 +632,6 @@ void SV_Init( void ) {
 	if( sv_demodir->string[0] && Com_GlobMatch( "*[^0-9a-zA-Z_@]*", sv_demodir->string, false ) ) {
 		Com_Printf( "Invalid demo prefix string: %s\n", sv_demodir->string );
 		Cvar_ForceSet( "sv_demodir", "" );
-	}
-
-	// wsw : jal : cap client's exceding server rules
-	sv_skilllevel =         Cvar_Get( "sv_skilllevel", "2", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_LATCH );
-
-	if( sv_skilllevel->integer > 2 ) {
-		Cvar_ForceSet( "sv_skilllevel", "2" );
-	}
-	if( sv_skilllevel->integer < 0 ) {
-		Cvar_ForceSet( "sv_skilllevel", "0" );
 	}
 
 	sv_masterservers =          Cvar_Get( "masterservers", DEFAULT_MASTER_SERVERS_IPS, CVAR_LATCH );
@@ -670,8 +666,6 @@ void SV_Init( void ) {
 	//init the master servers list
 	SV_InitMaster();
 
-	ML_Init();
-
 	SV_Web_Init();
 
 	sv_initialized = true;
@@ -689,10 +683,11 @@ void SV_Shutdown( const char *finalmsg ) {
 	sv_initialized = false;
 
 	SV_Web_Shutdown();
-	ML_Shutdown();
 	SV_ShutdownGame( finalmsg, false );
 
 	SV_ShutdownOperatorCommands();
 
 	Mem_FreePool( &sv_mempool );
+
+	FREE( sys_allocator, svs.frame_arena.get_memory() );
 }

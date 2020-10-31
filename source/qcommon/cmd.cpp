@@ -39,12 +39,7 @@ static trie_t *cmd_alias_trie = NULL;
 
 static int alias_count;    // for detecting runaway loops
 
-static int Cmd_Archive( void *alias, void *ignored ) {
-	assert( alias );
-	return ( (cmd_alias_t *) alias )->archive;
-}
-
-static int Cmd_PatternMatchesAlias( void *alias, void *pattern ) {
+static int Cmd_PatternMatchesAlias( void *alias, const void *pattern ) {
 	assert( alias );
 	return !pattern || Com_GlobMatch( (const char *) pattern, ( (cmd_alias_t *) alias )->name, false );
 }
@@ -204,7 +199,7 @@ void Cbuf_AddText( const char *text ) {
 * commands.
 * Adds a \n to the text
 */
-void Cbuf_InsertText( const char *text ) {
+static void Cbuf_InsertText( const char *text ) {
 	size_t textlen = strlen( text );
 
 	Cbuf_EnsureSpace( textlen );
@@ -228,9 +223,6 @@ void Cbuf_ExecuteText( int exec_when, const char *text ) {
 	switch( exec_when ) {
 		case EXEC_NOW:
 			Cmd_ExecuteString( text );
-			break;
-		case EXEC_INSERT:
-			Cbuf_InsertText( text );
 			break;
 		case EXEC_APPEND:
 			Cbuf_AddText( text );
@@ -315,7 +307,7 @@ void Cbuf_AddEarlyCommands( bool second_run ) {
 
 	for( i = 1; i < COM_Argc(); ++i ) {
 		s = COM_Argv( i );
-		if( !Q_strnicmp( s, "+set", 4 ) ) {
+		if( !Q_stricmp( s, "+set" ) ) {
 			if( strlen( s ) > 4 ) {
 				Cbuf_AddText( va( "\"set%s\" \"%s\" \"%s\"\n", s + 4, COM_Argv( i + 1 ), COM_Argv( i + 2 ) ) );
 			} else {
@@ -458,7 +450,7 @@ static void Cmd_Exec_f( void ) {
 /*
 * CL_CompleteExecBuildList
 */
-static char **CL_CompleteExecBuildList( const char *partial ) {
+static const char **CL_CompleteExecBuildList( const char *partial ) {
 	return Cmd_CompleteFileList( partial, "", ".cfg", true );
 }
 
@@ -517,7 +509,7 @@ static void Cmd_Alias_f_( bool archive ) {
 	char cmd[1024];
 	int i, c;
 	size_t len;
-	char *s;
+	const char *s;
 
 	if( Cmd_Argc() == 1 ) {
 		Com_Printf( "usage: alias <name> <command>\n" );
@@ -586,7 +578,7 @@ static void Cmd_Aliasa_f( void ) {
 * Removes an alias command
 */
 static void Cmd_Unalias_f( void ) {
-	char *s;
+	const char *s;
 	cmd_alias_t *a;
 
 	if( Cmd_Argc() == 1 ) {
@@ -630,29 +622,6 @@ static void Cmd_UnaliasAll_f( void ) {
 }
 
 /*
-* Cmd_WriteAliases
-*
-* Write lines containing "aliasa alias value" for all aliases
-* with the archive flag set to true
-*/
-void Cmd_WriteAliases( int file ) {
-	struct trie_dump_s *dump = NULL;
-	unsigned int i;
-
-	// Vic: Why on earth this line was written _below_ aliases?
-	// It was kinda dumb, I think 'cause it undid everything above
-	FS_Printf( file, "unaliasall\r\n" );
-
-	assert( cmd_alias_trie );
-	Trie_DumpIf( cmd_alias_trie, "", TRIE_DUMP_VALUES, Cmd_Archive, NULL, &dump );
-	for( i = 0; i < dump->size; ++i ) {
-		cmd_alias_t *const a = (cmd_alias_t *) dump->key_value_vector[i].value;
-		FS_Printf( file, "aliasa %s \"%s\"\r\n", a->name, a->value );
-	}
-	Trie_FreeDump( dump );
-}
-
-/*
 =============================================================================
 
 COMMAND EXECUTION
@@ -670,12 +639,12 @@ typedef struct cmd_function_s {
 static int cmd_argc;
 static char *cmd_argv[MAX_STRING_TOKENS];
 static size_t cmd_argv_sizes[MAX_STRING_TOKENS];
-static char cmd_null_string[ 1 ] = { '\0' };
+static char cmd_null_string[] = "";
 static char cmd_args[MAX_STRING_CHARS];
 
 static trie_t *cmd_function_trie = NULL;
 
-static int Cmd_PatternMatchesFunction( void *cmd, void *pattern ) {
+static int Cmd_PatternMatchesFunction( void *cmd, const void *pattern ) {
 	assert( cmd );
 	return !pattern || Com_GlobMatch( (const char *) pattern, ( (cmd_function_t *) cmd )->name, false );
 }
@@ -694,7 +663,7 @@ int Cmd_Argc( void ) {
 /*
 * Cmd_Argv
 */
-char *Cmd_Argv( int arg ) {
+const char *Cmd_Argv( int arg ) {
 	if( arg >= cmd_argc ) {
 		return cmd_null_string;
 	}
@@ -768,7 +737,7 @@ void Cmd_TokenizeString( const char *text ) {
 		if( cmd_argc < MAX_STRING_TOKENS ) {
 			size_t size = strlen( com_token ) + 1;
 			if( cmd_argv_sizes[cmd_argc] < size ) {
-				cmd_argv_sizes[cmd_argc] = min( size + 64, MAX_TOKEN_CHARS );
+				cmd_argv_sizes[cmd_argc] = Min2( size + 64, size_t( MAX_TOKEN_CHARS ) );
 				if( cmd_argv[cmd_argc] ) {
 					Mem_ZoneFree( cmd_argv[cmd_argc] );
 				}
@@ -889,15 +858,15 @@ int Cmd_CompleteCountPossible( const char *partial ) {
 /*
 * Cmd_CompleteBuildList
 */
-char **Cmd_CompleteBuildList( const char *partial ) {
+const char **Cmd_CompleteBuildList( const char *partial ) {
 	struct trie_dump_s *dump;
-	char **buf;
+	const char **buf;
 	unsigned int i;
 
 	assert( cmd_function_trie );
 	assert( partial );
 	Trie_Dump( cmd_function_trie, partial, TRIE_DUMP_VALUES, &dump );
-	buf = (char **) Mem_TempMalloc( sizeof( char * ) * ( dump->size + 1 ) );
+	buf = (const char **) Mem_TempMalloc( sizeof( char * ) * ( dump->size + 1 ) );
 	for( i = 0; i < dump->size; ++i )
 		buf[i] = ( (cmd_function_t *) ( dump->key_value_vector[i].value ) )->name;
 	buf[dump->size] = NULL;
@@ -910,7 +879,7 @@ char **Cmd_CompleteBuildList( const char *partial ) {
 *
 * Find a possible single matching command
 */
-char **Cmd_CompleteBuildArgListExt( const char *command, const char *arguments ) {
+const char **Cmd_CompleteBuildArgListExt( const char *command, const char *arguments ) {
 	cmd_function_t *cmd = NULL;
 
 	if( Trie_Find( cmd_function_trie, command, TRIE_EXACT_MATCH, (void **)&cmd ) != TRIE_OK ) {
@@ -927,7 +896,7 @@ char **Cmd_CompleteBuildArgListExt( const char *command, const char *arguments )
 *
 * Find a possible single matching command
 */
-char **Cmd_CompleteBuildArgList( const char *partial ) {
+const char **Cmd_CompleteBuildArgList( const char *partial ) {
 	const char *p;
 
 	p = strstr( partial, " " );
@@ -944,7 +913,7 @@ char **Cmd_CompleteBuildArgList( const char *partial ) {
 *
 * Find matching files
 */
-char **Cmd_CompleteFileList( const char *partial, const char *basedir, const char *extension, bool subdirectories ) {
+const char **Cmd_CompleteFileList( const char *partial, const char *basedir, const char *extension, bool subdirectories ) {
 	const char *p;
 	char dir[MAX_QPATH];
 	char subdir[MAX_QPATH];
@@ -955,7 +924,7 @@ char **Cmd_CompleteFileList( const char *partial, const char *basedir, const cha
 	size_t size;
 	size_t buf_size;
 	size_t total_size;
-	char **buf;
+	const char **buf;
 	char *list;
 	char *ext;
 	int i, j, len;
@@ -986,7 +955,7 @@ char **Cmd_CompleteFileList( const char *partial, const char *basedir, const cha
 		if( dir[0] ) {
 			Q_strncatz( dir, "/", sizeof( dir ) );
 		}
-		Q_strncpyz( subdir, partial, min( p - partial, sizeof( subdir ) ) );
+		Q_strncpyz( subdir, partial, qmin( p - partial, sizeof( subdir ) ) );
 		for( subdir_len = strlen( subdir ); subdir[subdir_len - 1] == '/'; subdir_len-- ) subdir[subdir_len - 1] = '\0';
 		Q_strncatz( dir, subdir, sizeof( dir ) );
 		Q_strncatz( subdir, "/", sizeof( subdir ) );
@@ -1022,7 +991,7 @@ char **Cmd_CompleteFileList( const char *partial, const char *basedir, const cha
 	buf_size =  ( total + 1 ) * sizeof( char * )    // resulting pointer list with NULL ending
 			   + total_size                         // actual strings
 			   + total * subdir_length;             // extra space to prepend subdirs
-	buf = ( char ** )Mem_TempMalloc( buf_size );
+	buf = ( const char ** )Mem_TempMalloc( buf_size );
 	list = ( char * )buf + ( total + 1 ) * sizeof( char * );
 
 	// get all files in the directory
@@ -1122,15 +1091,15 @@ int Cmd_CompleteAliasCountPossible( const char *partial ) {
 /*
 Cmd_CompleteAliasBuildList
 */
-char **Cmd_CompleteAliasBuildList( const char *partial ) {
+const char **Cmd_CompleteAliasBuildList( const char *partial ) {
 	struct trie_dump_s *dump;
-	char **buf;
+	const char **buf;
 	unsigned int i;
 
 	assert( cmd_alias_trie );
 	assert( partial );
 	Trie_Dump( cmd_alias_trie, partial, TRIE_DUMP_VALUES, &dump );
-	buf = (char **) Mem_TempMalloc( sizeof( char * ) * ( dump->size + 1 ) );
+	buf = (const char **) Mem_TempMalloc( sizeof( char * ) * ( dump->size + 1 ) );
 	for( i = 0; i < dump->size; ++i )
 		buf[i] = ( (cmd_alias_t *) ( dump->key_value_vector[i].value ) )->name;
 	buf[dump->size] = NULL;

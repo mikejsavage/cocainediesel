@@ -747,10 +747,6 @@ Vec2 HalfPixelSize( const Material * material ) {
 	return 0.5f / Vec2( material->texture->width, material->texture->height );
 }
 
-bool HasAlpha( TextureFormat format ) {
-	return format == TextureFormat_A_U8 || format == TextureFormat_RA_U8 || format == TextureFormat_RGBA_U8 || format == TextureFormat_RGBA_U8_sRGB;
-}
-
 static float EvaluateWaveFunc( Wave wave ) {
 	float t = PositiveMod( ( cls.gametime % 1000 ) / 1000.0f * wave.args[ 3 ] + wave.args[ 2 ], 1.0f );
 	float v = 0.0f;

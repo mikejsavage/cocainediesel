@@ -104,7 +104,6 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	body->r.solid = SOLID_NOT;
 	body->takedamage = DAMAGE_NO;
 	body->movetype = MOVETYPE_TOSS;
-	body->think = G_FreeEdict; // body self destruction countdown
 
 	body->s.teleported = true;
 	body->s.ownerNum = ent->s.number;
@@ -129,11 +128,9 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 
 	// bit of a hack, if we're not in warmup, leave the body with no think. think self destructs
 	// after a timeout, but if we leave, next bomb round will call G_ResetLevel() cleaning up
-	if( GS_MatchState( &server_gs ) == MATCH_STATE_WARMUP ) {
+	if( GS_MatchState( &server_gs ) != MATCH_STATE_PLAYTIME ) {
 		body->nextThink = level.time + 3500;
-	}
-	else {
-		body->think = NULL;
+		body->think = G_FreeEdict; // body self destruction countdown
 	}
 
 	GClip_LinkEntity( body );

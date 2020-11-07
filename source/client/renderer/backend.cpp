@@ -195,6 +195,20 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 	*normalized = false;
 
 	switch( format ) {
+		case VertexFormat_U8x2:
+		case VertexFormat_U8x2_Norm:
+			*type = GL_UNSIGNED_BYTE;
+			*num_components = 2;
+			*integral = true;
+			*normalized = format == VertexFormat_U8x2_Norm;
+			return;
+		case VertexFormat_U8x3:
+		case VertexFormat_U8x3_Norm:
+			*type = GL_UNSIGNED_BYTE;
+			*num_components = 3;
+			*integral = true;
+			*normalized = format == VertexFormat_U8x3_Norm;
+			return;
 		case VertexFormat_U8x4:
 		case VertexFormat_U8x4_Norm:
 			*type = GL_UNSIGNED_BYTE;
@@ -203,6 +217,20 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 			*normalized = format == VertexFormat_U8x4_Norm;
 			return;
 
+		case VertexFormat_U16x2:
+		case VertexFormat_U16x2_Norm:
+			*type = GL_UNSIGNED_SHORT;
+			*num_components = 2;
+			*integral = true;
+			*normalized = format == VertexFormat_U16x2_Norm;
+			return;
+		case VertexFormat_U16x3:
+		case VertexFormat_U16x3_Norm:
+			*type = GL_UNSIGNED_SHORT;
+			*num_components = 3;
+			*integral = true;
+			*normalized = format == VertexFormat_U16x3_Norm;
+			return;
 		case VertexFormat_U16x4:
 		case VertexFormat_U16x4_Norm:
 			*type = GL_UNSIGNED_SHORT;

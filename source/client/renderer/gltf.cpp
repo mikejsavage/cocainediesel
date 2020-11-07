@@ -43,6 +43,37 @@ static Span< const u8 > AccessorToSpan( const cgltf_accessor * accessor ) {
 	return Span< const u8 >( ( const u8 * ) accessor->buffer_view->buffer->data + offset, accessor->count * accessor->stride );
 }
 
+static VertexFormat VertexFormatFromGLTF( cgltf_type dim, cgltf_component_type component, bool normalized ) {
+	if( dim == cgltf_type_vec2 ) {
+		if( component == cgltf_component_type_r_8u )
+			return normalized ? VertexFormat_U8x2_Norm : VertexFormat_U8x2;
+		if( component == cgltf_component_type_r_16u )
+			return normalized ? VertexFormat_U16x2_Norm : VertexFormat_U16x2;
+		if( component == cgltf_component_type_r_32f )
+			return VertexFormat_Floatx2;
+	}
+
+	if( dim == cgltf_type_vec3 ) {
+		if( component == cgltf_component_type_r_8u )
+			return normalized ? VertexFormat_U8x3_Norm : VertexFormat_U8x3;
+		if( component == cgltf_component_type_r_16u )
+			return normalized ? VertexFormat_U16x3_Norm : VertexFormat_U16x3;
+		if( component == cgltf_component_type_r_32f )
+			return VertexFormat_Floatx3;
+	}
+
+	if( dim == cgltf_type_vec4 ) {
+		if( component == cgltf_component_type_r_8u )
+			return normalized ? VertexFormat_U8x4_Norm : VertexFormat_U8x4;
+		if( component == cgltf_component_type_r_16u )
+			return normalized ? VertexFormat_U16x4_Norm : VertexFormat_U16x4;
+		if( component == cgltf_component_type_r_32f )
+			return VertexFormat_Floatx4;
+	}
+
+	return VertexFormat_Floatx4; // TODO: actual error handling
+}
+
 static void LoadGeometry( Model * model, const cgltf_node * node, const Mat4 & transform ) {
 	const cgltf_primitive & prim = node->mesh->primitives[ 0 ];
 
@@ -71,28 +102,17 @@ static void LoadGeometry( Model * model, const cgltf_node * node, const Mat4 & t
 
 		if( attr.type == cgltf_attribute_type_texcoord ) {
 			mesh_config.tex_coords = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.tex_coords_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 		}
 
 		if( attr.type == cgltf_attribute_type_joints ) {
-			Span< u16 > joints_u16 = AccessorToSpan( attr.data ).cast< u16 >();
-			Span< u8 > joints_u8 = ALLOC_SPAN( sys_allocator, u8, attr.data->count * 4 );
-			for( size_t j = 0; j < joints_u16.n; j++ ) {
-				joints_u8[ j ] = checked_cast< u8 >( joints_u16[ j ] );
-			}
-			mesh_config.joints = NewVertexBuffer( joints_u8 );
-			mesh_config.joints_format = VertexFormat_U8x4;
-			FREE( sys_allocator, joints_u8.ptr );
+			mesh_config.joints = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.joints_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 		}
 
 		if( attr.type == cgltf_attribute_type_weights ) {
-			Span< float > weights_float = AccessorToSpan( attr.data ).cast< float >();
-			Span< u8 > weights_u8 = ALLOC_SPAN( sys_allocator, u8, attr.data->count * 4 );
-			for( size_t k = 0; k < weights_float.n; k++ ) {
-				weights_u8[ k ] = weights_float[ k ] * 255;
-			}
-			mesh_config.weights = NewVertexBuffer( weights_u8 );
-			mesh_config.weights_format = VertexFormat_U8x4_Norm;
-			FREE( sys_allocator, weights_u8.ptr );
+			mesh_config.weights = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.weights_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 		}
 	}
 

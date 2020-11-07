@@ -59,11 +59,6 @@ enum VertexFormat : u8 {
 
 	VertexFormat_U32x1,
 
-	VertexFormat_Halfx2,
-	VertexFormat_Halfx3,
-	VertexFormat_Halfx4,
-
-	VertexFormat_Floatx1,
 	VertexFormat_Floatx2,
 	VertexFormat_Floatx3,
 	VertexFormat_Floatx4,

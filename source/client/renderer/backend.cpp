@@ -217,23 +217,6 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 			*integral = true;
 			return;
 
-		case VertexFormat_Halfx2:
-			*type = GL_HALF_FLOAT;
-			*num_components = 2;
-			return;
-		case VertexFormat_Halfx3:
-			*type = GL_HALF_FLOAT;
-			*num_components = 3;
-			return;
-		case VertexFormat_Halfx4:
-			*type = GL_HALF_FLOAT;
-			*num_components = 4;
-			return;
-
-		case VertexFormat_Floatx1:
-			*type = GL_FLOAT;
-			*num_components = 1;
-			return;
 		case VertexFormat_Floatx2:
 			*type = GL_FLOAT;
 			*num_components = 2;

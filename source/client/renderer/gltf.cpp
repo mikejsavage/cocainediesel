@@ -105,6 +105,11 @@ static void LoadGeometry( Model * model, const cgltf_node * node, const Mat4 & t
 			mesh_config.tex_coords_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 		}
 
+		if( attr.type == cgltf_attribute_type_color ) {
+			mesh_config.colors = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.colors_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
+		}
+
 		if( attr.type == cgltf_attribute_type_joints ) {
 			mesh_config.joints = NewVertexBuffer( AccessorToSpan( attr.data ) );
 			mesh_config.joints_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );

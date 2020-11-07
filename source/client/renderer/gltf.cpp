@@ -52,14 +52,17 @@ static void LoadGeometry( Model * model, const cgltf_node * node, const Mat4 & t
 		const cgltf_attribute & attr = prim.attributes[ i ];
 
 		if( attr.type == cgltf_attribute_type_position ) {
-			Span< const Vec3 > positions = AccessorToSpan( attr.data ).cast< const Vec3 >();
-			mesh_config.num_vertices = positions.n;
-			mesh_config.positions = NewVertexBuffer( positions );
+			mesh_config.num_vertices = attr.data->count;
+			mesh_config.positions = NewVertexBuffer( AccessorToSpan( attr.data ) );
 
-			for( size_t j = 0; j < positions.n; j++ ) {
-				Vec3 transformed = ( transform * Vec4( positions[ j ], 1.0f ) ).xyz();
-				model->bounds = Extend( model->bounds, transformed );
+			Vec3 min, max;
+			for( int j = 0; j < 3; j++ ) {
+				min[ j ] = attr.data->min[ j ];
+				max[ j ] = attr.data->max[ j ];
 			}
+
+			model->bounds = Extend( model->bounds, ( transform * Vec4( min, 1.0f ) ).xyz() );
+			model->bounds = Extend( model->bounds, ( transform * Vec4( max, 1.0f ) ).xyz() );
 		}
 
 		if( attr.type == cgltf_attribute_type_normal ) {

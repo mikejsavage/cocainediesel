@@ -296,6 +296,7 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 	}
 
 	*model = { };
+	model->bounds = MinMax3::Empty();
 
 	constexpr Mat4 y_up_to_z_up(
 		1, 0, 0, 0,

@@ -23,8 +23,8 @@ const int DA_ROUNDSTATE_ROUND = 2;
 const int DA_ROUNDSTATE_ROUNDFINISHED = 3;
 const int DA_ROUNDSTATE_POSTROUND = 4;
 
-const int CountdownSeconds = 4;
-const int CountdownNumSwitches = 20;
+const int CountdownSeconds = 2;
+const int CountdownNumSwitches = 10;
 const float CountdownInitialSwitchDelay = 0.1;
 
 uint64[] endMatchSounds;
@@ -329,134 +329,130 @@ class cDARound {
 
 		switch ( this.state ) {
 			case DA_ROUNDSTATE_NONE:
-
 				this.roundStateEndTime = 0;
 				this.countDown = 0;
 				break;
 
 			case DA_ROUNDSTATE_PREROUND: {
-					this.roundStateEndTime = levelTime + CountdownSeconds * 1000;
-					this.countDown = 4;
+				this.roundStateEndTime = levelTime + CountdownSeconds * 1000;
+				this.countDown = 4;
 
-					// respawn everyone and disable shooting
-					gametype.shootingDisabled = true;
-					gametype.removeInactivePlayers = false;
+				// respawn everyone and disable shooting
+				gametype.shootingDisabled = true;
+				gametype.removeInactivePlayers = false;
 
-					Entity @ent;
-					Team @team;
+				Entity @ent;
+				Team @team;
 
-					@team = @G_GetTeam( TEAM_PLAYERS );
+				@team = @G_GetTeam( TEAM_PLAYERS );
 
-					this.roundLosers.resize(0);
+				this.roundLosers.resize(0);
 
-					// pick 2 to 4 players from queue
-					for( int i = 0; this.roundChallengers.size() < 4 && this.roundChallengers.size() < uint(team.numPlayers); i++ ) {
-						this.roundChallengers.push_back( @this.challengersQueueGetNextPlayer() );
-					}
+				// pick 2 to 4 players from queue
+				for( int i = 0; this.roundChallengers.size() < 4 && this.roundChallengers.size() < uint(team.numPlayers); i++ ) {
+					this.roundChallengers.push_back( @this.challengersQueueGetNextPlayer() );
+				}
 
-					// find topscore
-					int topscore = 0;
-					for( int j = 0; @team.ent( j ) != null; j++ ) {
-						Client @client = @team.ent( j ).client;
-						topscore = max( client.stats.score, topscore );
-					}
+				// find topscore
+				int topscore = 0;
+				for( int j = 0; @team.ent( j ) != null; j++ ) {
+					Client @client = @team.ent( j ).client;
+					topscore = max( client.stats.score, topscore );
+				}
 
-					// respawn all clients inside the playing teams
-					for( int j = 0; @team.ent( j ) != null; j++ ) {
-						@ent = @team.ent( j );
-						if( this.isChallenger( ent.client ) ) {
-							ent.client.respawn( false );
-							if( ent.client.stats.score == topscore ) {
-								ent.model2 = crownModel;
-								ent.effects |= EF_HAT;
-							}
-							else {
-								ent.model2 = 0;
-								ent.effects &= ~EF_HAT;
-							}
+				// respawn all clients inside the playing teams
+				for( int j = 0; @team.ent( j ) != null; j++ ) {
+					@ent = @team.ent( j );
+					if( this.isChallenger( ent.client ) ) {
+						ent.client.respawn( false );
+						if( ent.client.stats.score == topscore ) {
+							ent.model2 = crownModel;
+							ent.effects |= EF_HAT;
 						}
 						else {
-							ent.client.respawn( true );
-							ent.client.chaseCam( null, false );
-							ent.client.chaseActive = true;
+							ent.model2 = 0;
+							ent.effects &= ~EF_HAT;
 						}
 					}
-
-					DoSpinner();
-
-					// generate vs string
-					String vs_string = S_COLOR_WHITE + this.roundChallengers[0].name;
-					for( uint i = 1; i < this.roundChallengers.size(); i++ ) {
-						vs_string += S_COLOR_WHITE + " vs. " + this.roundChallengers[i].name;
-					}
-
-					this.roundAnnouncementPrint( vs_string );
-
-					// check for match point
-					int limit = Cvar( "g_scorelimit", "10", 0 ).integer;
-
-					RoundType type = RoundType_Normal;
-					for( int i = 0; @team.ent( i ) != null; i++ ) {
-						Client @client = @team.ent( i ).client;
-						if( client.stats.score == limit - 1 ) {
-							type = RoundType_MatchPoint;
-							break;
-						}
-					}
-
-					for( int i = 0; @team.ent( i ) != null; i++ ) {
-						Client @client = @team.ent( i ).client;
-						match.roundType = type;
+					else {
+						ent.client.respawn( true );
+						ent.client.chaseCam( null, false );
+						ent.client.chaseActive = true;
 					}
 				}
-				break;
+
+				DoSpinner();
+
+				// generate vs string
+				String vs_string = S_COLOR_WHITE + this.roundChallengers[0].name;
+				for( uint i = 1; i < this.roundChallengers.size(); i++ ) {
+					vs_string += S_COLOR_WHITE + " vs. " + this.roundChallengers[i].name;
+				}
+
+				this.roundAnnouncementPrint( vs_string );
+
+				// check for match point
+				int limit = Cvar( "g_scorelimit", "10", 0 ).integer;
+
+				RoundType type = RoundType_Normal;
+				for( int i = 0; @team.ent( i ) != null; i++ ) {
+					Client @client = @team.ent( i ).client;
+					if( client.stats.score == limit - 1 ) {
+						type = RoundType_MatchPoint;
+						break;
+					}
+				}
+
+				for( int i = 0; @team.ent( i ) != null; i++ ) {
+					Client @client = @team.ent( i ).client;
+					match.roundType = type;
+				}
+			} break;
 
 			case DA_ROUNDSTATE_ROUND: {
-					gametype.shootingDisabled = false;
-					gametype.removeInactivePlayers = true;
-					this.countDown = 0;
-					this.roundStateEndTime = 0;
-					G_AnnouncerSound( null, Hash64( "sounds/gladiator/fight" ), GS_MAX_TEAMS, false, null );
-					G_CenterPrintMsg( null, 'FIGHT!');
-				}
-				break;
+				gametype.shootingDisabled = false;
+				gametype.removeInactivePlayers = true;
+				this.countDown = 0;
+				this.roundStateEndTime = 0;
+				G_AnnouncerSound( null, Hash64( "sounds/gladiator/fight" ), GS_MAX_TEAMS, false, null );
+				G_CenterPrintMsg( null, 'FIGHT!');
+			} break;
 
 			case DA_ROUNDSTATE_ROUNDFINISHED:
 				gametype.shootingDisabled = false;
-				this.roundStateEndTime = levelTime + 1500;
+				this.roundStateEndTime = levelTime + 500;
 				this.countDown = 0;
 				break;
 
 			case DA_ROUNDSTATE_POSTROUND: {
-					this.roundStateEndTime = levelTime + 1000;
+				this.roundStateEndTime = levelTime + 1000;
 
-					// add score to round-winning player
-					Client @winner = null;
-					Client @loser = null;
+				// add score to round-winning player
+				Client @winner = null;
+				Client @loser = null;
 
-					// get last remaining challenger if any remain
-					if( this.roundChallengers.size() > 0 )
-						@winner = @this.roundChallengers[0];
+				// get last remaining challenger if any remain
+				if( this.roundChallengers.size() > 0 )
+					@winner = @this.roundChallengers[0];
 
-					// if we didn't find a winner, it was a draw round
-					if( @winner == null ) {
-						this.roundAnnouncementPrint( S_COLOR_WHITE + "Wow your terrible" );
-						G_AnnouncerSound( null, Hash64( "sounds/gladiator/wowyourterrible" ), GS_MAX_TEAMS, false, null );
-					}
-					else {
-						G_AnnouncerSound( winner, Hash64( "sounds/gladiator/score" ), GS_MAX_TEAMS, true, loser );
-
-						winner.stats.addScore( 1 );
-					}
-
-					this.roundLosers.reverse();
-					for( uint i = 0; i < this.roundLosers.size(); i++ ) {
-						this.challengersQueueAddPlayer( this.roundLosers[i] );
-					}
-
-					@this.roundWinner = @winner;
+				// if we didn't find a winner, it was a draw round
+				if( @winner == null ) {
+					this.roundAnnouncementPrint( S_COLOR_WHITE + "Wow your terrible" );
+					G_AnnouncerSound( null, Hash64( "sounds/gladiator/wowyourterrible" ), GS_MAX_TEAMS, false, null );
 				}
-				break;
+				else {
+					G_AnnouncerSound( winner, Hash64( "sounds/gladiator/score" ), GS_MAX_TEAMS, true, loser );
+
+					winner.stats.addScore( 1 );
+				}
+
+				this.roundLosers.reverse();
+				for( uint i = 0; i < this.roundLosers.size(); i++ ) {
+					this.challengersQueueAddPlayer( this.roundLosers[i] );
+				}
+
+				@this.roundWinner = @winner;
+			} break;
 
 			default:
 				break;
@@ -479,12 +475,12 @@ class cDARound {
 			}
 
 			if( this.countDown > 0 ) {
-				int remainingSeconds = int( ( this.roundStateEndTime - levelTime ) * 0.001f ) + 1;
-				if( remainingSeconds < 0 )
-					remainingSeconds = 0;
+				int remainingCounts = int( ( this.roundStateEndTime - levelTime ) * 0.002f ) + 1;
+				if( remainingCounts < 0 )
+					remainingCounts = 0;
 
-				if( remainingSeconds < this.countDown ) {
-					this.countDown = remainingSeconds;
+				if( remainingCounts < this.countDown ) {
+					this.countDown = remainingCounts;
 
 					if( this.countDown <= 3 ) {
 						G_AnnouncerSound( null, Hash64( "sounds/gladiator/countdown_" + this.countDown ), GS_MAX_TEAMS, false, null );

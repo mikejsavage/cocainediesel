@@ -401,6 +401,12 @@ A spike trap
 angles : Angles
 */
 
+/*QUAKED speaker_wall (1 1 0) (-32, -32, -16) (32, 32, 16)
+A speaker hanging off the wall, place the box origin on the wall and the speaker points in the direction of the arrow
+-------- KEYS --------
+angle : Angle
+*/
+
 /*QUAKED target_laser (0 .5 0) (-8 -8 -8) (8 8 8) START_ON
 When triggered, fires a laser. You can either set a target or a direction.
 -------- KEYS --------

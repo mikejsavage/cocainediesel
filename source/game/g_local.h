@@ -300,6 +300,12 @@ void SP_func_static( edict_t *ent );
 void SP_spikes( edict_t *ent );
 
 //
+// g_speakers
+//
+
+void SP_speaker_wall( edict_t * ent );
+
+//
 // g_ascript.c
 //
 bool GT_asLoadScript( const char *gametypeName );

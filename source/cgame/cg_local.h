@@ -499,8 +499,6 @@ extern cvar_t *cg_showClamp;
 extern cvar_t *cg_showHotkeys;
 
 // wsw
-extern cvar_t *cg_volume_hitsound;    // hit sound volume
-extern cvar_t *cg_volume_announcer; // announcer sounds volume
 extern cvar_t *cg_autoaction_demo;
 extern cvar_t *cg_autoaction_screenshot;
 extern cvar_t *cg_autoaction_spectator;
@@ -640,6 +638,9 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted );
 void CG_AddAnnouncerEvent( const SoundEffect *sound, bool queued );
 void CG_ReleaseAnnouncerEvents( void );
 void CG_ClearAnnouncerEvents( void );
+
+void ResetAnnouncerSpeakers();
+void AddAnnouncerSpeaker( const centity_t * cent );
 
 // I don't know where to put these ones
 void CG_WeaponBeamEffect( centity_t *cent );

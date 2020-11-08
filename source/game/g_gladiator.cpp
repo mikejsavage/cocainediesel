@@ -1,4 +1,4 @@
-#include "g_local.h"
+#include "game/g_local.h"
 
 static void SpikesRearm( edict_t * self ) {
 	self->s.linearMovementTimeStamp = 0;

@@ -1292,9 +1292,6 @@ edict_t *G_PlayerForText( const char *text ) {
 	return NULL;
 }
 
-/*
-* G_AnnouncerSound - sends inmediatly. queue client side (excepting at player's ps events queue)
-*/
 void G_AnnouncerSound( edict_t *targ, StringHash sound, int team, bool queued, edict_t *ignore ) {
 	int psev = queued ? PSEV_ANNOUNCER_QUEUED : PSEV_ANNOUNCER;
 	int playerTeam;

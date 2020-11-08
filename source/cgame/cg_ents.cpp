@@ -24,28 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static void CG_UpdateEntities( void );
 
-/*
-* CG_FixVolumeCvars
-* Don't let the user go too far away with volumes
-*/
-static void CG_FixVolumeCvars( void ) {
-	if( developer->integer ) {
-		return;
-	}
-
-	if( cg_volume_announcer->value < 0.0f ) {
-		Cvar_SetValue( "cg_volume_announcer", 0.0f );
-	} else if( cg_volume_announcer->value > 2.0f ) {
-		Cvar_SetValue( "cg_volume_announcer", 2.0f );
-	}
-
-	if( cg_volume_hitsound->value < 0.0f ) {
-		Cvar_SetValue( "cg_volume_hitsound", 0.0f );
-	} else if( cg_volume_hitsound->value > 10.0f ) {
-		Cvar_SetValue( "cg_volume_hitsound", 10.0f );
-	}
-}
-
 static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 	constexpr int MIN_DRAWDISTANCE_FIRSTPERSON = 86;
 	constexpr int MIN_DRAWDISTANCE_THIRDPERSON = 52;
@@ -316,9 +294,8 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 	}
 
 	// a new server frame begins now
-	CG_FixVolumeCvars();
-
 	CG_BuildSolidList();
+	ResetAnnouncerSpeakers();
 	CG_UpdateEntities();
 	CG_CheckPredictionError();
 
@@ -825,6 +802,10 @@ void CG_AddEntities( void ) {
 				CG_AddGenericEnt( cent );
 				break;
 
+			case ET_SPEAKER:
+				CG_AddGenericEnt( cent );
+				break;
+
 			default:
 				Com_Error( ERR_DROP, "CG_AddEntities: unknown entity type" );
 				break;
@@ -856,6 +837,7 @@ void CG_LerpEntities( void ) {
 			case ET_PLAYER:
 			case ET_CORPSE:
 			case ET_GHOST:
+			case ET_SPEAKER:
 				if( state->linearMovement ) {
 					CG_ExtrapolateLinearProjectile( cent );
 				} else {
@@ -921,10 +903,6 @@ void CG_UpdateEntities( void ) {
 
 		switch( cent->type ) {
 			case ET_GENERIC:
-				CG_UpdateGenericEnt( cent );
-				break;
-
-			// projectiles with linear trajectories
 			case ET_ROCKET:
 			case ET_PLASMA:
 			case ET_BUBBLE:
@@ -962,6 +940,11 @@ void CG_UpdateEntities( void ) {
 
 			case ET_SPIKES:
 				CG_UpdateSpikes( cent );
+				break;
+
+			case ET_SPEAKER:
+				CG_UpdateGenericEnt( cent );
+				AddAnnouncerSpeaker( cent );
 				break;
 
 			default:

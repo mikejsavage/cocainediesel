@@ -335,23 +335,43 @@ static int cg_announcerEventsCurrent = 0;
 static int cg_announcerEventsHead = 0;
 static int cg_announcerEventsDelay = 0;
 
-/*
- * CG_ClearAnnouncerEvents
- */
+static Vec3 speaker_origins[ 1024 ];
+static size_t num_speakers;
+
+void ResetAnnouncerSpeakers() {
+	num_speakers = 0;
+}
+
+void AddAnnouncerSpeaker( const centity_t * cent ) {
+	if( num_speakers == ARRAY_COUNT( speaker_origins ) )
+		return;
+
+	speaker_origins[ num_speakers ] = cent->current.origin;
+	num_speakers++;
+}
+
+static void PlayAnnouncerSound( const SoundEffect * sound ) {
+	if( num_speakers == 0 ) {
+		S_StartLocalSound( sound, CHAN_AUTO, 1.0f );
+	}
+	else {
+		for( size_t i = 0; i < num_speakers; i++ ) {
+			S_StartFixedSound( sound, speaker_origins[ i ], CHAN_AUTO, 1.0f );
+		}
+	}
+}
+
 void CG_ClearAnnouncerEvents( void ) {
 	cg_announcerEventsCurrent = cg_announcerEventsHead = 0;
 }
 
-/*
- * CG_AddAnnouncerEvent
- */
 void CG_AddAnnouncerEvent( const SoundEffect * sound, bool queued ) {
 	if( !sound ) {
 		return;
 	}
 
 	if( !queued ) {
-		S_StartLocalSound( sound, CHAN_AUTO, cg_volume_announcer->value );
+		PlayAnnouncerSound( sound );
 		cg_announcerEventsDelay = CG_ANNOUNCER_EVENTS_FRAMETIME; // wait
 		return;
 	}
@@ -377,7 +397,7 @@ void CG_ReleaseAnnouncerEvents( void ) {
 
 	if( cg_announcerEventsCurrent < cg_announcerEventsHead ) {
 		const SoundEffect * sound = cg_announcerEvents[ cg_announcerEventsCurrent & CG_MAX_ANNOUNCER_EVENTS_MASK ].sound;
-		S_StartLocalSound( sound, CHAN_AUTO, cg_volume_announcer->value );
+		PlayAnnouncerSound( sound );
 		cg_announcerEventsDelay = CG_ANNOUNCER_EVENTS_FRAMETIME; // wait
 		cg_announcerEventsCurrent++;
 	}
@@ -423,8 +443,6 @@ static void CG_StartVoiceTokenEffect( int entNum, u64 parm ) {
 	else
 		S_StartEntitySound( sound, entNum, CHAN_AUTO, 1.0f, entropy );
 }
-
-//==================================================================
 
 //==================================================================
 
@@ -974,15 +992,15 @@ static void CG_FirePlayerStateEvents( void ) {
 					break;
 				}
 				if( parm < 4 ) { // hit of some caliber
-					S_StartLocalSound( cgs.media.sfxWeaponHit[ parm ], CHAN_AUTO, cg_volume_hitsound->value );
+					S_StartLocalSound( cgs.media.sfxWeaponHit[ parm ], CHAN_AUTO, 1.0f );
 					CG_ScreenCrosshairDamageUpdate();
 				}
 				else if( parm == 4 ) { // killed an enemy
-					S_StartLocalSound( cgs.media.sfxWeaponKill, CHAN_AUTO, cg_volume_hitsound->value );
+					S_StartLocalSound( cgs.media.sfxWeaponKill, CHAN_AUTO, 1.0f );
 					CG_ScreenCrosshairDamageUpdate();
 				}
 				else { // hit a teammate
-					S_StartLocalSound( cgs.media.sfxWeaponHitTeam, CHAN_AUTO, cg_volume_hitsound->value );
+					S_StartLocalSound( cgs.media.sfxWeaponHitTeam, CHAN_AUTO, 1.0f );
 				}
 				break;
 

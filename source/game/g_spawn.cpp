@@ -64,7 +64,6 @@ static const EntityField fields[] = {
 	{ "color", FOFS( color ), F_VECTOR },
 	{ "dmg", FOFS( dmg ), F_INT },
 	{ "angles", FOFS( s.angles ), F_VECTOR },
-	{ "mangle", FOFS( s.angles ), F_VECTOR },
 	{ "angle", FOFS( s.angles ), F_ANGLE },
 	{ "mass", FOFS( mass ), F_INT },
 	{ "random", FOFS( random ), F_FLOAT },
@@ -135,6 +134,8 @@ static spawn_t spawns[] = {
 	{ "model", SP_model },
 
 	{ "spikes", SP_spikes },
+
+	{ "speaker_wall", SP_speaker_wall },
 };
 
 /*

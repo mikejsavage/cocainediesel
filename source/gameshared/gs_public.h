@@ -687,6 +687,7 @@ enum EntityType {
 
 	ET_LASER,
 	ET_SPIKES,
+	ET_SPEAKER,
 
 	// eventual entities: types below this will get event treatment
 	ET_EVENT = EVENT_ENTITIES_START,

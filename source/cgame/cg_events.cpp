@@ -927,7 +927,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_SPRAY:
-			AddSpray( ent->origin, ent->origin2, ent->angles, StringHash( parm ) );
+			AddSpray( ent->origin, ent->origin2, ent->angles, parm );
 			S_StartFixedSound( cgs.media.sfxSpray, ent->origin, CHAN_AUTO, 1.0f );
 			break;
 

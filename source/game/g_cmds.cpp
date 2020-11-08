@@ -503,11 +503,6 @@ static void Cmd_Clack_f( edict_t * ent ) {
 	}
 }
 
-// run base/textures/sprays/gen_materials.sh to generate this
-static StringHash spray_names[] = {
-#include "sprays.h"
-};
-
 static void Cmd_Spray_f( edict_t * ent ) {
 	if( G_ISGHOSTING( ent ) )
 		return;
@@ -530,8 +525,7 @@ static void Cmd_Spray_f( edict_t * ent ) {
 
 	ent->r.client->level.last_spray = svs.realtime;
 
-	StringHash spray = random_select( &svs.rng, spray_names );
-	edict_t * event = G_SpawnEvent( EV_SPRAY, spray.hash, &trace.endpos );
+	edict_t * event = G_SpawnEvent( EV_SPRAY, random_u64( &svs.rng ), &trace.endpos );
 	event->s.angles = ent->r.client->ps.viewangles;
 	event->s.origin2 = trace.plane.normal;
 }

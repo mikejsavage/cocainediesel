@@ -801,6 +801,21 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	cg.lerpfrac = Clamp01( cg.lerpfrac );
 
+	{
+		float scale = ( float )( frame_static.viewport_height ) / 600.0f;
+
+		cgs.fontSystemTinySize = ceilf( SYSTEM_FONT_TINY_SIZE * scale );
+		cgs.fontSystemSmallSize = ceilf( SYSTEM_FONT_SMALL_SIZE * scale );
+		cgs.fontSystemMediumSize = ceilf( SYSTEM_FONT_MEDIUM_SIZE * scale );
+		cgs.fontSystemBigSize = ceilf( SYSTEM_FONT_BIG_SIZE * scale );
+
+		scale *= 1.3f;
+		cgs.textSizeTiny = SYSTEM_FONT_TINY_SIZE * scale;
+		cgs.textSizeSmall = SYSTEM_FONT_SMALL_SIZE * scale;
+		cgs.textSizeMedium = SYSTEM_FONT_MEDIUM_SIZE * scale;
+		cgs.textSizeBig = SYSTEM_FONT_BIG_SIZE * scale;
+	}
+
 	CG_FlashGameWindow(); // notify player of important game events
 
 	AllocateDecalBuffers();

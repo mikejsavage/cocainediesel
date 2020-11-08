@@ -152,7 +152,6 @@ static void CG_RegisterVariables( void ) {
 
 	cg_gun_fov =        Cvar_Get( "cg_gun_fov", "90", CVAR_ARCHIVE );
 
-	// wsw
 	cg_volume_announcer =   Cvar_Get( "cg_volume_announcer", "1.0", CVAR_ARCHIVE );
 	cg_volume_hitsound =    Cvar_Get( "cg_volume_hitsound", "1.0", CVAR_ARCHIVE );
 	cg_handOffset =     Cvar_Get( "cg_handOffset", "5", CVAR_ARCHIVE );
@@ -166,14 +165,10 @@ static void CG_RegisterVariables( void ) {
 
 	cg_chatFilter =     Cvar_Get( "cg_chatFilter", "0", CVAR_ARCHIVE );
 
-	// developer cvars
 	cg_showClamp = Cvar_Get( "cg_showClamp", "0", CVAR_DEVELOPER );
 
-	cg_allyModel = Cvar_Get( "cg_allyModel", "bigvic", CVAR_ARCHIVE );
-	cg_allyModel->modified = true;
-
-	cg_enemyModel = Cvar_Get( "cg_enemyModel", "padpork", CVAR_ARCHIVE );
-	cg_enemyModel->modified = true;
+	cg_allyModel = Cvar_Get( "cg_allyModel", "rigg_bigvic_sounds", CVAR_READONLY );
+	cg_enemyModel = Cvar_Get( "cg_enemyModel", "rigg_padpork_sounds", CVAR_READONLY );
 
 	cg_particleDebug = Cvar_Get( "cg_particleDebug", "0", CVAR_DEVELOPER );
 

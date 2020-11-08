@@ -590,10 +590,7 @@ bool CG_SwitchChaseCamMode( void );
 //
 
 void CG_BubbleTrail( Vec3 start, Vec3 end, int dist );
-void CG_ProjectileTrail( const centity_t * cent );
 void CG_RifleBulletTrail( const centity_t * cent );
-void CG_NewBloodTrail( centity_t *cent );
-void CG_BloodDamageEffect( Vec3 origin, Vec3 dir, int damage, Vec4 team_color );
 void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_BubbleExplosion( Vec3 pos, Vec4 team_color );
 void CG_GrenadeExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );

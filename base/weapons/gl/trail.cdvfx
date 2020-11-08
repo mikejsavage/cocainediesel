@@ -9,7 +9,7 @@
 
     speed 5
 
-    color 1.0 1.0 1.0 1.0
+    color 1.0 1.0 1.0 0.5
     end_color 0.0 0.5 1.0
     color_override
 

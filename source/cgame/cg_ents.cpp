@@ -727,6 +727,17 @@ void CG_EntityLoopSound( centity_t * cent, SyncEntityState * state ) {
 	cent->sound = S_ImmediateEntitySound( FindSoundEffect( state->sound ), state->number, 1.0f, cent->sound );
 }
 
+static void DrawEntityTrail( const centity_t * cent, StringHash name ) {
+	// didn't move
+	Vec3 vec = cent->ent.origin - cent->trailOrigin;
+	float len = Length( vec );
+	if( len == 0 )
+		return;
+
+	Vec4 color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 0.5f );
+	DoVisualEffect( name, cent->ent.origin, cent->trailOrigin, 1.0f, color );
+}
+
 /*
 * CG_AddPacketEntitiesToScene
 * Add the entities to the rendering list
@@ -752,13 +763,13 @@ void CG_AddEntities( void ) {
 
 			case ET_ROCKET:
 				CG_AddGenericEnt( cent );
-				CG_ProjectileTrail( cent );
+				DrawEntityTrail( cent, "weapons/rl/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_GRENADE:
 				CG_AddGenericEnt( cent );
+				DrawEntityTrail( cent, "weapons/gl/trail" );
 				CG_EntityLoopSound( cent, state );
-				CG_ProjectileTrail( cent );
 				break;
 			case ET_PLASMA:
 			case ET_BUBBLE:
@@ -768,7 +779,7 @@ void CG_AddEntities( void ) {
 			case ET_RIFLEBULLET:
 				CG_AddGenericEnt( cent );
 				CG_EntityLoopSound( cent, state );
-				CG_RifleBulletTrail( cent );
+				DrawEntityTrail( cent, "weapons/rifle/bullet_trail" );
 				break;
 
 			case ET_PLAYER:

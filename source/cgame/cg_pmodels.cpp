@@ -821,6 +821,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 		// also add rotations from velocity leaning
 		{
 			EulerDegrees3 angles = EulerDegrees3( LerpAngles( pmodel->oldangles[ UPPER ], cg.lerpfrac, pmodel->angles[ UPPER ] ) * 0.5f );
+			Swap2( &angles.pitch, &angles.yaw ); // hack for rigg model
 
 			Quaternion q = EulerAnglesToQuaternion( angles );
 			lower[ meta->upper_rotator_nodes[ 0 ] ].rotation *= q;

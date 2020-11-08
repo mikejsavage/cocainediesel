@@ -71,9 +71,6 @@ void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps ) {
 	}
 }
 
-/*
-* CG_ParseClientInfo
-*/
 static void CG_ParseClientInfo( cg_clientInfo_t *ci, const char *info ) {
 	assert( ci );
 	assert( info );
@@ -98,9 +95,6 @@ void CG_LoadClientInfo( int client ) {
 	CG_ParseClientInfo( &cgs.clientInfo[client], cgs.configStrings[CS_PLAYERINFOS + client] );
 }
 
-/*
-* CG_ResetClientInfos
-*/
 void CG_ResetClientInfos( void ) {
 	int i, cs;
 

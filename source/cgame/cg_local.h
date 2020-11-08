@@ -279,10 +279,10 @@ struct cg_static_t {
 	float textSizeMedium;
 	float textSizeBig;
 
-	const Font * fontMontserrat;
-	const Font * fontMontserratBold;
-	const Font * fontMontserratItalic;
-	const Font * fontMontserratBoldItalic;
+	const Font * fontNormal;
+	const Font * fontNormalBold;
+	const Font * fontNormalItalic;
+	const Font * fontNormalBoldItalic;
 
 	cgs_media_t media;
 

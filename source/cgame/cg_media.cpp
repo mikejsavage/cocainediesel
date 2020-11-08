@@ -169,8 +169,8 @@ void CG_RegisterMediaShaders() {
 }
 
 void CG_RegisterFonts() {
-	cgs.fontMontserrat = RegisterFont( "fonts/Montserrat-SemiBold" );
-	cgs.fontMontserratBold = RegisterFont( "fonts/Montserrat-Bold" );
-	cgs.fontMontserratItalic = RegisterFont( "fonts/Montserrat-SemiBoldItalic" );
-	cgs.fontMontserratBoldItalic = RegisterFont( "fonts/Montserrat-BoldItalic" );
+	cgs.fontNormal = RegisterFont( "fonts/Decalotype-Bold" );
+	cgs.fontNormalBold = RegisterFont( "fonts/Decalotype-Black" );
+	cgs.fontNormalItalic = RegisterFont( "fonts/Decalotype-BoldItalic" );
+	cgs.fontNormalBoldItalic = RegisterFont( "fonts/Decalotype-BlackItalic" );
 }

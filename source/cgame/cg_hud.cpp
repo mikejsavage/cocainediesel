@@ -46,10 +46,10 @@ static bool layout_cursor_font_border;
 
 static const Font * GetHUDFont() {
 	switch( layout_cursor_font_style ) {
-		case FontStyle_Normal: return cgs.fontMontserrat;
-		case FontStyle_Bold: return cgs.fontMontserratBold;
-		case FontStyle_Italic: return cgs.fontMontserratItalic;
-		case FontStyle_BoldItalic: return cgs.fontMontserratBoldItalic;
+		case FontStyle_Normal: return cgs.fontNormal;
+		case FontStyle_Bold: return cgs.fontNormalBold;
+		case FontStyle_Italic: return cgs.fontNormalItalic;
+		case FontStyle_BoldItalic: return cgs.fontNormalBoldItalic;
 	}
 	return NULL;
 }
@@ -1689,7 +1689,7 @@ static void CG_DrawObituaries(
 				float size = Lerp( h * 0.5f, Unlerp01( 1.0f, t, 3.0f ), h * 0.75f );
 				Vec4 color = CG_TeamColorVec4( TEAM_ENEMY );
 				color.w = Unlerp01( 1.0f, t, 2.0f );
-				DrawText( cgs.fontMontserrat, size, obituary, Alignment_CenterMiddle, frame_static.viewport.x * 0.5f, frame_static.viewport.y * 0.5f, color );
+				DrawText( cgs.fontNormal, size, obituary, Alignment_CenterMiddle, frame_static.viewport.x * 0.5f, frame_static.viewport.y * 0.5f, color );
 			}
 		}
 	}

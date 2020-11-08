@@ -13,3 +13,11 @@ models/players/padpork
 		rgbGen entity
 	}
 }
+
+models/players/rigg
+{
+	{
+		map players/rigg_bigvic_sounds/rigg
+		rgbgen entity
+	}
+}

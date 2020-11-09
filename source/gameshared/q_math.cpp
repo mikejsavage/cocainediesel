@@ -259,6 +259,8 @@ void AngleVectors( Vec3 angles, Vec3 * forward, Vec3 * right, Vec3 * up ) {
 
 Vec3 VecToAngles( Vec3 vec ) {
 	if( vec.xy() == Vec2( 0.0f ) ) {
+		if( vec.z == 0.0f )
+			return Vec3( 0.0f );
 		return vec.z > 0 ? Vec3( -90.0f, 0.0f, 0.0f ) : Vec3( -270.0f, 0.0f, 0.0f );
 	}
 

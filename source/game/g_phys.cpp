@@ -200,8 +200,8 @@ static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
 	pushed_p++;
 
 	// move the pusher to its final position
-	pusher->s.origin = pusher->s.origin + move;
-	pusher->s.angles = pusher->s.angles + amove;
+	pusher->s.origin += move;
+	pusher->s.angles += amove;
 	GClip_LinkEntity( pusher );
 
 	// see if any solid entities are inside the final position
@@ -425,9 +425,6 @@ static void SV_Physics_Toss( edict_t *ent ) {
 		ent->velocity.z -= ent->gravity * level.gravity * FRAMETIME;
 	}
 
-	// move angles
-	ent->s.angles = ent->s.angles + ent->avelocity * FRAMETIME;
-
 	// move origin
 	move = ent->velocity * FRAMETIME;
 
@@ -459,7 +456,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 				( ISWALKABLEPLANE( &trace.plane ) &&
 				  Abs( Dot( trace.plane.normal, ent->velocity ) ) < 40
 				)
-				) {
+			) {
 				ent->groundentity = &game.edicts[trace.ent];
 				ent->groundentity_linkcount = ent->groundentity->linkcount;
 				ent->velocity = Vec3( 0.0f );
@@ -478,6 +475,20 @@ static void SV_Physics_Toss( edict_t *ent ) {
 				G_CallStop( ent );
 			}
 		}
+	}
+
+	// move angles
+	if( ent->movetype == MOVETYPE_BOUNCEGRENADE ) {
+		if( ent->velocity == Vec3( 0.0f ) ) {
+			ent->s.angles.x = 0.0f;
+			ent->s.angles.z = 0.0f;
+		}
+		else {
+			ent->s.angles = VecToAngles( SafeNormalize( ent->velocity ) );
+		}
+	}
+	else {
+		ent->s.angles += ent->avelocity * FRAMETIME;
 	}
 
 	// check for water transition

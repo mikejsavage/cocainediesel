@@ -374,9 +374,6 @@ static void W_Fire_Grenade( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	// grenade->s.sound = "weapons/gl/trail";
 
 	grenade->think = W_Grenade_Explode;
-
-	grenade->s.angles = Vec3( 0.0f );
-	grenade->avelocity = Vec3( 300.0f );
 }
 
 static void W_Touch_Rocket( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) {

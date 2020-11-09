@@ -2176,7 +2176,7 @@ static bool CG_LFuncAlignment( struct cg_layoutnode_s *argumentnode, int numArgu
 		layout_cursor_alignment.x = XAlignment_Right;
 	}
 	else {
-		Com_Printf( "WARNING 'CG_LFuncAlignment' Unknown alignment '%s'", x );
+		Com_Printf( "WARNING 'CG_LFuncAlignment' Unknown alignment '%s'\n", x );
 		return false;
 	}
 
@@ -2190,7 +2190,7 @@ static bool CG_LFuncAlignment( struct cg_layoutnode_s *argumentnode, int numArgu
 		layout_cursor_alignment.y = YAlignment_Bottom;
 	}
 	else {
-		Com_Printf( "WARNING 'CG_LFuncAlignment' Unknown alignment '%s'", y );
+		Com_Printf( "WARNING 'CG_LFuncAlignment' Unknown alignment '%s'\n", y );
 		return false;
 	}
 
@@ -2236,7 +2236,7 @@ static bool CG_LFuncFontStyle( struct cg_layoutnode_s *argumentnode, int numArgu
 		layout_cursor_font_style = FontStyle_BoldItalic;
 	}
 	else {
-		Com_Printf( "WARNING 'CG_LFuncFontStyle' Unknown font style '%s'", fontstyle );
+		Com_Printf( "WARNING 'CG_LFuncFontStyle' Unknown font style '%s'\n", fontstyle );
 		return false;
 	}
 
@@ -2663,7 +2663,7 @@ static float CG_GetNumericArg( struct cg_layoutnode_s **argumentsnode ) {
 	}
 
 	if( anode->type != LNODE_NUMERIC && anode->type != LNODE_REFERENCE_NUMERIC ) {
-		Com_Printf( "WARNING: 'CG_LayoutGetNumericArg': arg %s is not numeric", anode->string );
+		Com_Printf( "WARNING: 'CG_LayoutGetNumericArg': arg %s is not numeric\n", anode->string );
 	}
 
 	*argumentsnode = anode->next;

@@ -329,30 +329,6 @@ targetname : make the trigger_teleporter point to this.
 Does the same thing as info_teleport_destination
 */
 
-/*QUAKED misc_model (1 .5 .25) (-16 -16 -16) (16 16 16) NOSHADOWS SOLID FORCEMETA EXTRUDE_NORMALS EXTRUDE_TERRAIN COLOR_TO_ALPHA NOSMOOTH
-Generic placeholder for inserting models in the world. Requires compilation of map geometry to be added to level.
--------- KEYS --------
-angle: direction in which model will be oriented.
-model: path/name of model to use (eg: models/mapobjects/teleporter/teleporter.ase).
-angle: view direction of the model
-angles: view direction of the model in PITCH YAW ROLL
-modelscale: scaling factor
-modelscale_vec: scaling vector for non-uniform scaling
-_frame: frame of model to include
-_remap: string of the form from;to specifying which texture name of the model to replace by which shader; * is allowed. Any key starting with this prefix will work, so if you need more remappings, create _remap2, etc.
-_castshadows: Allows per-entity control over shadow casting. Defaults to 0 on entities, 1 on world. 0 = no shadow casting. 1 = cast shadows on world. > 1 = cast shadows on entities with _rs (or _receiveshadows) with the corresponding value, AND world. Negative values imply same, but DO NOT cast shadows on world.
-_receiveshadows: Allows per-entity control over shadow reception. Defaults to 1 on everything (world shadows). 0 = receives NO shadows. > 1 = receive shadows only from corresponding keyed entities (see above) and world. < 1 = receive shadows ONLY from corresponding keyed entities.
-_lightmapscale: light map resolution factor
--------- SPAWNFLAGS --------
-NOSHADOWS: Toggle casting shadows from the model.
-SOLID: Make the model solid.
-LIGHTMAPPED: (aka: forcemeta) Convert model triangles to bsp metasurfaces
-EXTRUDE_NORMALS: extrude along the model normals for clipping
-EXTRUDE_TERRAIN: always extrude downwards (for horizontal terrain only)
-COLOR_TO_ALPHA: use the color value as alpha (for terrain blending)
-NOSMOOTH: Don't smooth normals when importing (forces all faces planar).
-*/
-
 /*QUAKED misc_particles (.6 .7 .7) (-8 -8 -8) (8 8 8) SPHERICAL SOLID GRAVITY LIGHT EXPAND_EFFECT SHRINK_EFFECT START_OFF
 Generates particles
 -------- KEYS --------
@@ -393,6 +369,15 @@ To make a jump pad, place this entity at the highest point of the jump and targe
 Place a model to be loaded at runtime
 -------- KEYS --------
 model : Path to model
+*/
+
+/*QUAKED decal (1 0 0) (-8 -8 -8) (8 8 8)
+Place a decal to be loaded at runtime
+-------- KEYS --------
+material : Name of material
+radius : Decal radius
+angles : Direction of decal normal
+color : Decal color, RGBA 0-255
 */
 
 /*QUAKED spikes (1 0 0) (-64 -64 0) (64 64 48) ALWAYS_EXTENDED

@@ -175,16 +175,12 @@ void SP_func_wall( edict_t *self ) {
 	GClip_LinkEntity( self );
 }
 
-//===========================================================
-
 void SP_func_static( edict_t *ent ) {
 	G_InitMover( ent );
 	ent->movetype = MOVETYPE_NONE;
 	ent->r.svflags = SVF_BROADCAST;
 	GClip_LinkEntity( ent );
 }
-
-//===========================================================
 
 static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point ) {
 	// do not explode unless visible
@@ -299,17 +295,14 @@ void SP_func_explosive( edict_t *self ) {
 	GClip_LinkEntity( self );
 }
 
-//========================================================
-//
-//	MISC_*
-//
-//========================================================
-
-void SP_misc_model( edict_t *ent ) {
-	G_FreeEdict( ent );
-}
-
 void SP_model( edict_t *ent ) {
 	ent->r.svflags &= ~SVF_NOCLIENT;
+	GClip_LinkEntity( ent );
+}
+
+void SP_decal( edict_t * ent ) {
+	ent->r.svflags &= ~SVF_NOCLIENT;
+	ent->s.type = ET_DECAL;
+	ent->s.radius = st.radius;
 	GClip_LinkEntity( ent );
 }

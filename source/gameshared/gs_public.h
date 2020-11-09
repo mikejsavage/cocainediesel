@@ -197,6 +197,9 @@ struct SyncEntityState {
 	StringHash model;
 	StringHash model2;
 
+	StringHash material;
+	RGBA8 color;
+
 	int channel;                    // ET_SOUNDEVENT
 
 	int ownerNum;                   // ET_EVENT specific
@@ -681,6 +684,8 @@ enum EntityType {
 	ET_RIFLEBULLET,
 
 	ET_LASERBEAM,   // for continuous beams
+
+	ET_DECAL,
 
 	ET_BOMB,
 	ET_BOMB_SITE,

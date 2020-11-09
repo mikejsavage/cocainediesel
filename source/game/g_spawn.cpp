@@ -28,9 +28,10 @@ enum EntityFieldType {
 	F_FLOAT,
 	F_LSTRING,      // string on disk, pointer in memory, TAG_LEVEL
 	F_HASH,
-	F_MODELHASH,
+	F_ASSET,
 	F_VECTOR,
 	F_ANGLE,
+	F_RGBA,
 };
 
 struct EntityField {
@@ -45,8 +46,10 @@ struct EntityField {
 static const EntityField fields[] = {
 	{ "classname", FOFS( classname ), F_LSTRING },
 	{ "origin", FOFS( s.origin ), F_VECTOR },
-	{ "model", FOFS( s.model ), F_MODELHASH },
-	{ "model2", FOFS( s.model2 ), F_MODELHASH },
+	{ "model", FOFS( s.model ), F_ASSET },
+	{ "model2", FOFS( s.model2 ), F_ASSET },
+	{ "material", FOFS( s.material ), F_ASSET },
+	{ "color", FOFS( s.color ), F_RGBA },
 	{ "spawnflags", FOFS( spawnflags ), F_INT },
 	{ "speed", FOFS( speed ), F_FLOAT },
 	{ "target", FOFS( target ), F_LSTRING },
@@ -60,8 +63,6 @@ static const EntityField fields[] = {
 	{ "style", FOFS( style ), F_INT },
 	{ "count", FOFS( count ), F_INT },
 	{ "health", FOFS( health ), F_FLOAT },
-	{ "light", FOFS( light ), F_FLOAT },
-	{ "color", FOFS( color ), F_VECTOR },
 	{ "dmg", FOFS( dmg ), F_INT },
 	{ "angles", FOFS( s.angles ), F_VECTOR },
 	{ "angle", FOFS( s.angles ), F_ANGLE },
@@ -130,8 +131,8 @@ static spawn_t spawns[] = {
 	{ "trigger_teleport", SP_trigger_teleport },
 	{ "misc_teleporter_dest", SP_target_position },
 
-	{ "misc_model", SP_misc_model },
 	{ "model", SP_model },
+	{ "decal", SP_decal },
 
 	{ "spikes", SP_spikes },
 
@@ -282,7 +283,7 @@ static void ED_ParseField( char *key, char *value, edict_t *ent ) {
 			case F_HASH:
 				*(StringHash *)( b + f.ofs ) = StringHash( value );
 				break;
-			case F_MODELHASH:
+			case F_ASSET:
 				if( value[ 0 ] == '*' ) {
 					*(StringHash *)( b + f.ofs ) = StringHash( Hash64( value, strlen( value ), svs.cms->base_hash ) );
 				}
@@ -304,6 +305,12 @@ static void ED_ParseField( char *key, char *value, edict_t *ent ) {
 				Vec3 vec;
 				sscanf( value, "%f %f %f", &vec.x, &vec.y, &vec.z );
 				*(Vec3 *)( b + f.ofs ) = vec;
+			} break;
+
+			case F_RGBA: {
+				RGBA8 rgba = RGBA8( 255, 255, 255, 255 );
+				sscanf( value, "%hhu %hhu %hhu %hhu", &rgba.r, &rgba.g, &rgba.b, &rgba.a );
+				*(RGBA8 *)( b + f.ofs ) = rgba;
 			} break;
 		}
 		return;

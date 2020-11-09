@@ -529,9 +529,9 @@ void BecomeExplosion1( edict_t *self );
 
 void SP_path_corner( edict_t *self );
 
-void SP_misc_model( edict_t *ent );
-
 void SP_model( edict_t *ent );
+
+void SP_decal( edict_t * ent );
 
 //
 // g_weapon.c
@@ -930,9 +930,6 @@ struct edict_t {
 	int waterlevel;
 
 	int style;                  // also used as areaportal number
-
-	float light;
-	Vec3 color;
 
 	const Item *item;       // for bonus items
 

@@ -774,6 +774,12 @@ void CG_AddEntities( void ) {
 			case ET_GHOST:
 				break;
 
+			case ET_DECAL: {
+				Vec3 normal;
+				AngleVectors( cent->current.angles, &normal, NULL, NULL );
+				DrawDecal( cent->current.origin, normal, cent->current.radius, cent->current.angles.z, cent->current.material, sRGBToLinear( cent->current.color ) );
+			} break;
+
 			case ET_LASERBEAM:
 				break;
 
@@ -844,6 +850,9 @@ void CG_LerpEntities( void ) {
 					CG_LerpGenericEnt( cent );
 				}
 				break;
+
+			case ET_DECAL:
+				return;
 
 			case ET_LASERBEAM:
 				CG_LerpLaserbeamEnt( cent );
@@ -917,6 +926,9 @@ void CG_UpdateEntities( void ) {
 				break;
 
 			case ET_GHOST:
+				break;
+
+			case ET_DECAL:
 				break;
 
 			case ET_LASERBEAM:

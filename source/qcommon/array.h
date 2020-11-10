@@ -101,6 +101,7 @@ public:
 
 template< typename T >
 class DynamicArray : public NonRAIIDynamicArray< T > {
+	// weird c++ syntax that lets you change visibility of inherited members
 	using NonRAIIDynamicArray< T >::init;
 	using NonRAIIDynamicArray< T >::shutdown;
 

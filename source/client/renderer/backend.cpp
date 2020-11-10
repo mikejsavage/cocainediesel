@@ -52,10 +52,10 @@ struct DrawCall {
 	VertexBuffer feedback_data;
 };
 
-static DynamicArray< RenderPass > render_passes( NO_RAII );
-static DynamicArray< DrawCall > draw_calls( NO_RAII );
-static DynamicArray< Mesh > deferred_mesh_deletes( NO_RAII );
-static DynamicArray< TextureBuffer > deferred_tb_deletes( NO_RAII );
+static NonRAIIDynamicArray< RenderPass > render_passes;
+static NonRAIIDynamicArray< DrawCall > draw_calls;
+static NonRAIIDynamicArray< Mesh > deferred_mesh_deletes;
+static NonRAIIDynamicArray< TextureBuffer > deferred_tb_deletes;
 
 static u32 num_vertices_this_frame;
 

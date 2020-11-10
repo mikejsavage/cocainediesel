@@ -250,7 +250,7 @@ void UploadDecalBuffers() {
 		rect.idx = i;
 		rects.add( rect );
 	}
-	
+
 	{
 		ZoneScopedN( "Fill buffers" );
 

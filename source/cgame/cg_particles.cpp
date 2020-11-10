@@ -684,7 +684,7 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 				GPUParticleFeedback feedback = ps->particles_feedback[ index ];
 				if ( !ParticleFeedback( ps, &feedback ) ) {
 					ps->num_particles--;
-					Swap2( &ps->gpu_instances[ index ], &ps->gpu_instances[ ps->num_particles ] );
+					Swap2( &ps->gpu_instances[ i ], &ps->gpu_instances[ ps->num_particles ] );
 					i--;
 				}
 			}

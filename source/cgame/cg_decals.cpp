@@ -228,7 +228,7 @@ void UploadDecalBuffers() {
 
 	DynamicArray< DecalRect > rects( sys_allocator );
 
-	for( u32 i = 0; i < num_decals; i++ ) {
+	for( s32 i = num_decals - 1; i >= 0; i-- ) {
 		MinMax2 bounds = SphereScreenSpaceBounds( Floor( decals[ i ].origin_normal ), floorf( decals[ i ].radius_angle ) );
 		bounds.mins.y = -bounds.mins.y;
 		bounds.maxs.y = -bounds.maxs.y;
@@ -287,7 +287,7 @@ void UploadDecalBuffers() {
 				u32 x_idx = 0;
 				u32 y_idx = 0;
 
-				// NOTE(msc): decals guaranteed to be sorted in set
+				// NOTE(msc): decals guaranteed to be reverse sorted order in set
 				while( x_idx < x_set.num_decals && y_idx < y_set.num_decals ) {
 					u32 x_instance = x_set.indices[ x_idx ];
 					u32 y_instance = y_set.indices[ y_idx ];
@@ -300,7 +300,8 @@ void UploadDecalBuffers() {
 						}
 						x_idx++;
 						y_idx++;
-					} else if( x_instance < y_instance ) {
+					} else if( x_instance > y_instance ) {
+						// NOTE(msc): reverse index order
 						x_idx++;
 					} else {
 						y_idx++;

@@ -852,7 +852,7 @@ void CG_LerpEntities( void ) {
 				break;
 
 			case ET_DECAL:
-				return;
+				break;
 
 			case ET_LASERBEAM:
 				CG_LerpLaserbeamEnt( cent );

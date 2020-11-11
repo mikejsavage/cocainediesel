@@ -533,7 +533,7 @@ enum MeansOfDeath {
 	MOD_TRIGGER_HURT,
 
 	MOD_LASER,
-	MOD_SPIKES,
+	MOD_SPIKE,
 	MOD_VOID,
 };
 

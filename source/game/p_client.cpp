@@ -110,7 +110,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 
 	int mod = meansOfDeath;
 	bool gib = mod == MOD_RAILGUN || mod == MOD_TRIGGER_HURT || mod == MOD_TELEFRAG
-		|| mod == MOD_EXPLOSIVE || mod == MOD_SPIKES ||
+		|| mod == MOD_EXPLOSIVE || mod == MOD_SPIKE ||
 		( ( mod == MOD_ROCKET || mod == MOD_GRENADE ) && damage >= 20 );
 
 	if( gib ) {

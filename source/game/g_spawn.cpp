@@ -134,6 +134,7 @@ static spawn_t spawns[] = {
 	{ "model", SP_model },
 	{ "decal", SP_decal },
 
+	{ "spike", SP_spike },
 	{ "spikes", SP_spikes },
 
 	{ "speaker_wall", SP_speaker_wall },

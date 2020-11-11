@@ -297,7 +297,8 @@ void SP_func_static( edict_t *ent );
 //
 // g_gladiator
 //
-void SP_spikes( edict_t *ent );
+void SP_spike( edict_t * ent );
+void SP_spikes( edict_t * ent );
 
 //
 // g_speakers

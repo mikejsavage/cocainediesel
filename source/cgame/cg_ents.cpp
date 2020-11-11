@@ -72,9 +72,6 @@ static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 	return true;
 }
 
-/*
-* CG_NewPacketEntityState
-*/
 static void CG_NewPacketEntityState( SyncEntityState *state ) {
 	centity_t * cent = &cg_entities[state->number];
 
@@ -214,13 +211,12 @@ static void CG_SetFramePlayerState( snapshot_t *frame, int index ) {
 }
 
 static void CG_UpdatePlayerState( void ) {
-	int i;
 	int index = 0;
 
 	if( cg.frame.multipov ) {
 		// find the playerState containing our current POV, then cycle playerStates
 		index = -1;
-		for( i = 0; i < cg.frame.numplayers; i++ ) {
+		for( int i = 0; i < cg.frame.numplayers; i++ ) {
 			if( cg.frame.playerStates[i].playerNum < (unsigned)client_gs.maxclients
 				&& cg.frame.playerStates[i].playerNum == cg.multiviewPlayerNum ) {
 				index = i;
@@ -246,7 +242,7 @@ static void CG_UpdatePlayerState( void ) {
 
 	// old
 	index = -1;
-	for( i = 0; i < cg.oldFrame.numplayers; i++ ) {
+	for( int i = 0; i < cg.oldFrame.numplayers; i++ ) {
 		if( cg.oldFrame.playerStates[i].playerNum == cg.multiviewPlayerNum ) {
 			index = i;
 			break;
@@ -315,18 +311,6 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 	return true;
 }
 
-
-//=============================================================
-
-
-/*
-==========================================================================
-
-ADD INTERPOLATED ENTITIES TO RENDERING LIST
-
-==========================================================================
-*/
-
 /*
 * CG_CModelForEntity
 *  get the collision model for the given entity, no matter if box or brush-model.
@@ -365,13 +349,6 @@ struct cmodel_s *CG_CModelForEntity( int entNum ) {
 	return cmodel;
 }
 
-//==========================================================================
-//		ET_GENERIC
-//==========================================================================
-
-/*
-* CG_UpdateGenericEnt
-*/
 static void CG_UpdateGenericEnt( centity_t *cent ) {
 	// start from clean
 	memset( &cent->ent, 0, sizeof( cent->ent ) );
@@ -382,9 +359,6 @@ static void CG_UpdateGenericEnt( centity_t *cent ) {
 	cent->ent.model = FindModel( cent->current.model );
 }
 
-/*
-* CG_ExtrapolateLinearProjectile
-*/
 void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
 	cent->linearProjectileCanDraw = CG_UpdateLinearProjectilePosition( cent );
 
@@ -394,9 +368,6 @@ void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
 	AnglesToAxis( cent->current.angles, cent->ent.axis );
 }
 
-/*
-* CG_LerpGenericEnt
-*/
 void CG_LerpGenericEnt( centity_t *cent ) {
 	Vec3 ent_angles = Vec3( 0, 0, 0 );
 
@@ -467,9 +438,6 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 	}
 }
 
-/*
-* CG_AddGenericEnt
-*/
 static void CG_AddGenericEnt( centity_t *cent ) {
 	if( !cent->ent.scale ) {
 		return;
@@ -508,13 +476,6 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 	}
 }
 
-//==========================================================================
-//		ET_PLAYER
-//==========================================================================
-
-/*
-* CG_AddPlayerEnt
-*/
 static void CG_AddPlayerEnt( centity_t *cent ) {
 	if( ISVIEWERENTITY( cent->current.number ) ) {
 		cg.effects = cent->effects;
@@ -532,10 +493,6 @@ static void CG_AddPlayerEnt( centity_t *cent ) {
 	CG_DrawPlayer( cent );
 }
 
-//==========================================================================
-// ET_LASER
-//==========================================================================
-
 static void CG_LerpLaser( centity_t *cent ) {
 	cent->ent.origin = Lerp( cent->prev.origin, cg.lerpfrac, cent->current.origin );
 	cent->ent.origin2 = Lerp( cent->prev.origin2, cg.lerpfrac, cent->current.origin2 );
@@ -545,13 +502,6 @@ static void CG_AddLaserEnt( centity_t *cent ) {
 	DrawBeam( cent->ent.origin, cent->ent.origin2, cent->current.radius, vec4_white, cgs.media.shaderLaser );
 }
 
-//==========================================================================
-//		ET_LASERBEAM
-//==========================================================================
-
-/*
-* CG_UpdateLaserbeamEnt
-*/
 static void CG_UpdateLaserbeamEnt( centity_t *cent ) {
 	centity_t *owner;
 
@@ -576,9 +526,6 @@ static void CG_UpdateLaserbeamEnt( centity_t *cent ) {
 	owner->laserPoint = cent->current.origin2;
 }
 
-/*
-* CG_LerpLaserbeamEnt
-*/
 static void CG_LerpLaserbeamEnt( centity_t *cent ) {
 	centity_t *owner = &cg_entities[cent->current.ownerNum];
 
@@ -588,10 +535,6 @@ static void CG_LerpLaserbeamEnt( centity_t *cent ) {
 
 	owner->localEffects[LOCALEFFECT_LASERBEAM] = cl.serverTime + 1;
 }
-
-//==================================================
-// ET_SOUNDEVENT
-//==================================================
 
 void CG_SoundEntityNewState( centity_t *cent ) {
 	int owner = cent->current.ownerNum;
@@ -630,11 +573,7 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	}
 }
 
-//==================================================
-// ET_SPIKES
-//==================================================
-
-static void CG_LerpSpikes( centity_t *cent ) {
+static void CG_LerpSpikes( centity_t * cent ) {
 	constexpr float retracted = -48;
 	constexpr float primed = -36;
 	constexpr float extended = 0;
@@ -673,7 +612,7 @@ static void CG_LerpSpikes( centity_t *cent ) {
 	cent->ent.origin2 = Vec3( cent->ent.origin );
 }
 
-static void CG_UpdateSpikes( centity_t *cent ) {
+static void CG_UpdateSpikes( centity_t * cent ) {
 	CG_UpdateGenericEnt( cent );
 
 	if( cent->current.linearMovementTimeStamp == 0 )
@@ -695,10 +634,6 @@ static void CG_UpdateSpikes( centity_t *cent ) {
 		S_StartEntitySound( cgs.media.sfxSpikesRetract, cent->current.number, CHAN_AUTO, 1.0f );
 	}
 }
-
-//==========================================================================
-//		PACKET ENTITIES
-//==========================================================================
 
 void CG_EntityLoopSound( centity_t * cent, SyncEntityState * state ) {
 	cent->sound = S_ImmediateEntitySound( FindSoundEffect( state->sound ), state->number, 1.0f, cent->sound );
@@ -966,8 +901,6 @@ void CG_UpdateEntities( void ) {
 	}
 }
 
-//=============================================================
-
 /*
 * CG_GetEntitySpatilization
 *
@@ -1016,9 +949,6 @@ void CG_GetEntitySpatilization( int entNum, Vec3 * origin, Vec3 * velocity ) {
 	}
 }
 
-/*
-* CG_BBoxForEntityState
-*/
 void CG_BBoxForEntityState( const SyncEntityState * state, Vec3 * mins, Vec3 * maxs ) {
 	if( state->solid == SOLID_BMODEL ) {
 		Com_Error( ERR_DROP, "CG_BBoxForEntityState: called for a brush model\n" );

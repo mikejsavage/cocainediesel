@@ -380,8 +380,14 @@ angles : Direction of decal normal
 color : Decal color, RGBA 0-255
 */
 
-/*QUAKED spikes (1 0 0) (-64 -64 0) (64 64 48) ALWAYS_EXTENDED
+/*QUAKED spike (1 0 0) (-8 -8 0) (8 8 48) ALWAYS_EXTENDED
 A spike trap
+-------- KEYS --------
+angles : Angles
+*/
+
+/*QUAKED spikes (1 0 0) (-64 -64 0) (64 64 48) ALWAYS_EXTENDED
+A big spike trap
 -------- KEYS --------
 angles : Angles
 */

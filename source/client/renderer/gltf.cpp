@@ -31,13 +31,6 @@ static void SetNodeIdx( cgltf_node * node, u8 idx ) {
 	node->camera = ( cgltf_camera * ) uintptr_t( idx + 1 );
 }
 
-static MinMax3 Extend( MinMax3 bounds, Vec3 p ) {
-	return MinMax3(
-		Vec3( Min2( bounds.mins.x, p.x ), Min2( bounds.mins.y, p.y ), Min2( bounds.mins.z, p.z ) ),
-		Vec3( Max2( bounds.maxs.x, p.x ), Max2( bounds.maxs.y, p.y ), Max2( bounds.maxs.z, p.z ) )
-	);
-}
-
 static Span< const u8 > AccessorToSpan( const cgltf_accessor * accessor ) {
 	cgltf_size offset = accessor->offset + accessor->buffer_view->offset;
 	return Span< const u8 >( ( const u8 * ) accessor->buffer_view->buffer->data + offset, accessor->count * accessor->stride );

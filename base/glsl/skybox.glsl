@@ -34,8 +34,8 @@ void main() {
   vec2 uv = v_Position.xy / v_Position.z;
 
   vec3 cloud_color = 0.01 * vec3( 1.0, 1.0, 1.0 );
-  vec3 sky_color = 0.05 * vec3( 1.0, 1.0, 1.0 );
-  vec2 wind = vec2( 0.2, -0.1 );
+  vec3 sky_color = 0.06 * vec3( 1.0, 1.0, 1.0 );
+  vec2 wind = vec2( 0.3, -0.3 );
   float iterations = 4.0;
 
   vec2 c = uv;

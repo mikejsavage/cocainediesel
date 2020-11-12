@@ -602,7 +602,6 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 	Delta( buf, pmove.max_speed, baseline.max_speed );
 	Delta( buf, pmove.jump_speed, baseline.jump_speed );
 	Delta( buf, pmove.dash_speed, baseline.dash_speed );
-	Delta( buf, pmove.gravity, baseline.gravity );
 }
 
 static void Delta( DeltaBuffer * buf, SyncPlayerState::WeaponInfo & weapon, const SyncPlayerState::WeaponInfo & baseline ) {

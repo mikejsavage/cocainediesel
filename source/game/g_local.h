@@ -142,7 +142,6 @@ struct level_locals_t {
 	edict_t *spawning_entity;   // entity being spawned from G_InitLevel
 
 	timeout_t timeout;
-	float gravity;
 };
 
 // spawn_temp_t is only used to hold entity field values that
@@ -157,13 +156,8 @@ struct spawn_temp_t {
 	StringHash noise_start;
 	StringHash noise_stop;
 	float pausetime;
-	const char *gravity;
-
 	int gameteam;
-
 	int size;
-
-	int rgba;
 };
 
 extern game_locals_t game;
@@ -466,7 +460,6 @@ void SP_trigger_push( edict_t *ent );
 void SP_trigger_hurt( edict_t *ent );
 void SP_trigger_key( edict_t *ent );
 void SP_trigger_elevator( edict_t *ent );
-void SP_trigger_gravity( edict_t *ent );
 
 //
 // g_clip.c
@@ -897,7 +890,6 @@ struct edict_t {
 	const char *message;
 
 	int mass;
-	float gravity;              // per entity gravity multiplier (1.0 is normal) // use for lowgrav artifact, flares
 
 	edict_t *movetarget;
 

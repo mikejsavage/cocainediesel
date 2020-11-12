@@ -422,7 +422,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 
 	// add gravity
 	if( ent->movetype != MOVETYPE_FLY && !ent->groundentity ) {
-		ent->velocity.z -= ent->gravity * level.gravity * FRAMETIME;
+		ent->velocity.z -= GRAVITY * FRAMETIME;
 	}
 
 	// move origin

@@ -989,8 +989,6 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	client->ps.pmove.velocity = ent->velocity;
 	client->ps.viewangles = ent->s.angles;
 
-	client->ps.pmove.gravity = level.gravity;
-
 	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH || GS_MatchPaused( &server_gs )
 		|| ( ent->movetype != MOVETYPE_PLAYER && ent->movetype != MOVETYPE_NOCLIP ) ) {
 		client->ps.pmove.pm_type = PM_FREEZE;

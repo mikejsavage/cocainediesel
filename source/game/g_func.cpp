@@ -1292,7 +1292,7 @@ void SP_func_timer( edict_t *self ) {
 
 	if( self->spawnflags & 1 ) {
 		self->nextThink = level.time + 1000 *
-						  ( 1.0 + st.pausetime + self->delay + self->wait + random_float11( &svs.rng ) * self->random );
+						  ( 1.0f + st.pausetime + self->delay + self->wait + random_float11( &svs.rng ) * self->random );
 		self->activator = self;
 	}
 }

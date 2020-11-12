@@ -554,7 +554,6 @@ void G_FreeEdict( edict_t *ed ) {
 void G_InitEdict( edict_t *e ) {
 	e->r.inuse = true;
 	e->classname = NULL;
-	e->gravity = 1.0;
 	e->timeDelta = 0;
 	e->deadflag = DEAD_NO;
 	e->timeStamp = 0;

@@ -78,7 +78,6 @@ static const EntityField fields[] = {
 	{ "noise_start", STOFS( noise_start ), F_HASH, FFL_SPAWNTEMP },
 	{ "noise_stop", STOFS( noise_stop ), F_HASH, FFL_SPAWNTEMP },
 	{ "pausetime", STOFS( pausetime ), F_FLOAT, FFL_SPAWNTEMP },
-	{ "gravity", STOFS( gravity ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "gameteam", STOFS( gameteam ), F_INT, FFL_SPAWNTEMP },
 	{ "size", STOFS( size ), F_INT, FFL_SPAWNTEMP },
 };
@@ -115,7 +114,6 @@ static spawn_t spawns[] = {
 	{ "trigger_push", SP_trigger_push },
 	{ "trigger_hurt", SP_trigger_hurt },
 	{ "trigger_elevator", SP_trigger_elevator },
-	{ "trigger_gravity", SP_trigger_gravity },
 
 	{ "target_explosion", SP_target_explosion },
 	{ "target_laser", SP_target_laser },
@@ -265,7 +263,7 @@ static char *ED_NewString( const char *string ) {
 * Takes a key/value pair and sets the binary values
 * in an edict
 */
-static void ED_ParseField( char *key, char *value, edict_t *ent ) {
+static void ED_ParseField( const char *key, const char *value, edict_t *ent ) {
 	for( EntityField f : fields ) {
 		if( Q_stricmp( f.name, key ) != 0 )
 			continue;
@@ -328,10 +326,10 @@ static void ED_ParseField( char *key, char *value, edict_t *ent ) {
 * Parses an edict out of the given string, returning the new position
 * ed should be a properly initialized empty edict.
 */
-static char *ED_ParseEdict( char *data, edict_t *ent ) {
+static const char *ED_ParseEdict( const char *data, edict_t *ent ) {
 	bool init;
 	char keyname[256];
-	char *com_token;
+	const char *com_token;
 
 	init = false;
 	memset( &st, 0, sizeof( st ) );
@@ -402,25 +400,19 @@ static void G_FreeEntities( void ) {
 * G_SpawnEntities
 */
 static void G_SpawnEntities( void ) {
-	int i;
-	edict_t *ent;
-	char *token;
-	char *entities;
-
 	level.spawnedTimeStamp = svs.gametime;
 	level.canSpawnEntities = true;
 
-	entities = level.mapString;
+	const char * entities = level.mapString;
 	level.map_parsed_ents[0] = 0;
 	level.map_parsed_len = 0;
 
-	i = 0;
-	ent = NULL;
-	while( 1 ) {
+	edict_t * ent = NULL;
+	while( true ) {
 		level.spawning_entity = NULL;
 
 		// parse the opening brace
-		token = COM_Parse( &entities );
+		const char * token = COM_Parse( &entities );
 		if( !entities ) {
 			break;
 		}
@@ -438,16 +430,13 @@ static void G_SpawnEntities( void ) {
 		ent->spawnString = entities; // keep track of string definition of this entity
 
 		entities = ED_ParseEdict( entities, ent );
-		if( !ent->classname ) {
-			i++;
-			G_FreeEdict( ent );
-			continue;
-		}
 
-		if( !G_CallSpawn( ent ) ) {
-			i++;
+		bool ok = true;
+		ok = ok && ent->classname != NULL;
+		ok = ok && G_CallSpawn( ent );
+
+		if( !ok ) {
 			G_FreeEdict( ent );
-			continue;
 		}
 	}
 
@@ -489,7 +478,6 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	G_StringPoolInit();
 
 	level.time = levelTime;
-	level.gravity = GRAVITY;
 
 	// get the strings back
 	level.mapString = ( char * )G_LevelMalloc( entstrlen + 1 );
@@ -619,8 +607,4 @@ static void SP_worldspawn( edict_t *ent ) {
 	const char * model_name = "*0";
 	ent->s.model = StringHash( Hash64( model_name, strlen( model_name ), svs.cms->base_hash ) );
 	GClip_SetBrushModel( ent );
-
-	if( st.gravity ) {
-		level.gravity = atof( st.gravity );
-	}
 }

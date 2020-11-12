@@ -158,6 +158,7 @@ struct spawn_temp_t {
 	float pausetime;
 	int gameteam;
 	int size;
+	float spawn_probability;
 };
 
 extern game_locals_t game;

@@ -80,6 +80,7 @@ static const EntityField fields[] = {
 	{ "pausetime", STOFS( pausetime ), F_FLOAT, FFL_SPAWNTEMP },
 	{ "gameteam", STOFS( gameteam ), F_INT, FFL_SPAWNTEMP },
 	{ "size", STOFS( size ), F_INT, FFL_SPAWNTEMP },
+	{ "spawn_probability", STOFS( spawn_probability ), F_FLOAT, FFL_SPAWNTEMP },
 };
 
 typedef struct
@@ -333,6 +334,7 @@ static const char *ED_ParseEdict( const char *data, edict_t *ent ) {
 
 	init = false;
 	memset( &st, 0, sizeof( st ) );
+	st.spawn_probability = 1.0f;
 	level.spawning_entity = ent;
 
 	// go through all the dictionary pairs
@@ -433,6 +435,7 @@ static void G_SpawnEntities( void ) {
 
 		bool ok = true;
 		ok = ok && ent->classname != NULL;
+		ok = ok && random_p( &svs.rng, st.spawn_probability );
 		ok = ok && G_CallSpawn( ent );
 
 		if( !ok ) {

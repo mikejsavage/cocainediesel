@@ -17,13 +17,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// cg_pmodels.h -- local definitions for pmodels and view weapon
-
-//=============================================================================
-//
-//							SPLITMODELS
-//
-//=============================================================================
 
 extern cvar_t *cg_weaponFlashes;
 extern cvar_t *cg_gunx;
@@ -190,8 +183,8 @@ struct PlayerModelMetadata {
 	u8 head_rotator_node;
 	u8 upper_root_node;
 
-	Tag tag_backpack;
-	Tag tag_head;
+	Tag tag_bomb;
+	Tag tag_hat;
 	Tag tag_weapon;
 
 	AnimationClip clips[ PMODEL_TOTAL_ANIMATIONS ];

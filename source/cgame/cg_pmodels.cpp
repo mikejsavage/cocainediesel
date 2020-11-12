@@ -112,9 +112,9 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata * metadata, const char 
 			u8 node_idx;
 			if( FindNodeByName( metadata->model, Hash32( node_name ), &node_idx ) ) {
 				Span< const char > tag_name = ParseToken( &cursor, Parse_StopOnNewLine );
-				PlayerModelMetadata::Tag * tag = &metadata->tag_backpack;
-				if( tag_name == "tag_head" )
-					tag = &metadata->tag_head;
+				PlayerModelMetadata::Tag * tag = &metadata->tag_bomb;
+				if( tag_name == "tag_hat" )
+					tag = &metadata->tag_hat;
 				else if( tag_name == "tag_weapon" )
 					tag = &metadata->tag_weapon;
 
@@ -872,12 +872,12 @@ void CG_DrawPlayer( centity_t *cent ) {
 		}
 	}
 
-	// add backpack/hat
+	// add bomb/hat
 	const Model * attached_model = FindModel( cent->current.model2 );
 	if( attached_model != NULL ) {
-		PlayerModelMetadata::Tag tag = meta->tag_backpack;
+		PlayerModelMetadata::Tag tag = meta->tag_bomb;
 		if( cent->current.effects & EF_HAT )
-			tag = meta->tag_head;
+			tag = meta->tag_hat;
 		Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag );
 		DrawModel( attached_model, tag_transform, vec4_white );
 

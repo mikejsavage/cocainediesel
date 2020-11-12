@@ -194,6 +194,11 @@ static void LoadNode( Model * model, cgltf_node * gltf_node, u8 * node_idx ) {
 	}
 }
 
+static InterpolationMode InterpolationModeFromGLTF( cgltf_interpolation_type interpolation ) {
+	// TODO: cubic
+	return interpolation == cgltf_interpolation_type_step ? InterpolationMode_Step : InterpolationMode_Linear;
+}
+
 template< typename T >
 static void LoadChannel( const cgltf_animation_channel * chan, Model::AnimationChannel< T > * out_channel ) {
 	constexpr size_t lanes = sizeof( T ) / sizeof( float );
@@ -203,6 +208,7 @@ static void LoadChannel( const cgltf_animation_channel * chan, Model::AnimationC
 	out_channel->times = memory;
 	out_channel->samples = ( T * ) ( memory + n );
 	out_channel->num_samples = n;
+	out_channel->interpolation = InterpolationModeFromGLTF( chan->sampler->interpolation );
 
 	for( size_t i = 0; i < n; i++ ) {
 		cgltf_bool ok = cgltf_accessor_read_float( chan->sampler->input, i, &out_channel->times[ i ], 1 );
@@ -218,6 +224,7 @@ static void LoadScaleChannel( const cgltf_animation_channel * chan, Model::Anima
 	out_channel->times = memory;
 	out_channel->samples = memory + n;
 	out_channel->num_samples = n;
+	out_channel->interpolation = InterpolationModeFromGLTF( chan->sampler->interpolation );
 
 	for( size_t i = 0; i < n; i++ ) {
 		cgltf_accessor_read_float( chan->sampler->input, i, &out_channel->times[ i ], 1 );

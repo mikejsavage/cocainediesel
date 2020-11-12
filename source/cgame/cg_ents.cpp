@@ -684,14 +684,19 @@ void CG_AddEntities( void ) {
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_PLASMA:
+				CG_AddGenericEnt( cent );
+				DrawEntityTrail( cent, "weapons/pg/trail" );
+				CG_EntityLoopSound( cent, state );
+				break;
 			case ET_BUBBLE:
 				CG_AddGenericEnt( cent );
+				DrawEntityTrail( cent, "weapons/bg/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_RIFLEBULLET:
 				CG_AddGenericEnt( cent );
-				CG_EntityLoopSound( cent, state );
 				DrawEntityTrail( cent, "weapons/rifle/bullet_trail" );
+				CG_EntityLoopSound( cent, state );
 				break;
 
 			case ET_PLAYER:

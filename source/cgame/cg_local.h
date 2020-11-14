@@ -300,8 +300,6 @@ struct cg_static_t {
 
 	cg_clientInfo_t clientInfo[MAX_CLIENTS];
 
-	PlayerModelMetadata *teamModelInfo[2];
-
 	char checkname[MAX_QPATH];
 };
 
@@ -421,7 +419,6 @@ extern cvar_t *cg_hand;
 
 void CG_ResetClientInfos( void );
 void CG_LoadClientInfo( int client );
-void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata, const char * name );
 void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps );
 
 //
@@ -507,9 +504,6 @@ extern cvar_t *cg_voiceChats;
 extern cvar_t *cg_projectileAntilagOffset;
 extern cvar_t *cg_chatFilter;
 
-extern cvar_t *cg_allyModel;
-extern cvar_t *cg_enemyModel;
-
 extern cvar_t *cg_particleDebug;
 
 #define CG_Malloc( size ) _Mem_AllocExt( cg_mempool, size, 16, 1, 0, 0, __FILE__, __LINE__ );
@@ -546,8 +540,7 @@ void CG_SC_AutoRecordAction( const char *action );
 //
 // cg_teams.c
 //
-void CG_RegisterPlayerModels();
-const PlayerModelMetadata * CG_PModelForCentity( centity_t * cent );
+bool CG_IsAlly( int team );
 RGB8 CG_TeamColor( int team );
 Vec4 CG_TeamColorVec4( int team );
 

@@ -18,41 +18,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
-#include "qcommon/string.h"
-
-static constexpr const char * PLAYER_SOUND_NAMES[] = {
-	"death",
-	"jump",
-	"pain25", "pain50", "pain75", "pain100",
-	"walljump",
-	"dash",
-};
-
-STATIC_ASSERT( ARRAY_COUNT( PLAYER_SOUND_NAMES ) == PlayerSound_Count );
-
-void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata, const char * name ) {
-	for( size_t i = 0; i < ARRAY_COUNT( metadata->sounds ); i++ ) {
-		TempAllocator temp = cls.frame_arena.temp();
-
-		const char * p = strrchr( name, '/' );
-		if( p != NULL ) {
-			name = p + 1;
-		}
-
-		DynamicString path( &temp, "players/{}/{}", name, PLAYER_SOUND_NAMES[ i ] );
-		metadata->sounds[ i ] = FindSoundEffect( path.c_str() );
-	}
-}
 
 static const SoundEffect * GetPlayerSound( int entnum, PlayerSound ps ) {
-	if( entnum < 0 || entnum >= ARRAY_COUNT( cg_entPModels ) ) {
-		return NULL;
-	}
-	if( cg_entPModels[ entnum ].metadata == NULL ) {
+	const PlayerModelMetadata * meta = GetPlayerModelMetadata( entnum );
+	if( meta == NULL ) {
 		Com_Printf( "Player model metadata is null\n" );
 		return NULL;
 	}
-	return cg_entPModels[ entnum ].metadata->sounds[ ps ];
+	return meta->sounds[ ps ];
 }
 
 void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps ) {
@@ -96,12 +69,10 @@ void CG_LoadClientInfo( int client ) {
 }
 
 void CG_ResetClientInfos( void ) {
-	int i, cs;
-
 	memset( cgs.clientInfo, 0, sizeof( cgs.clientInfo ) );
 
-	for( i = 0, cs = CS_PLAYERINFOS + i; i < MAX_CLIENTS; i++, cs++ ) {
-		if( cgs.configStrings[cs][0] ) {
+	for( int i = 0; i < MAX_CLIENTS; i++ ) {
+		if( strlen( cgs.configStrings[ CS_PLAYERINFOS + i ] ) > 0 ) {
 			CG_LoadClientInfo( i );
 		}
 	}

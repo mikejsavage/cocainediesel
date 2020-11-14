@@ -53,9 +53,6 @@ cvar_t *cg_autoaction_screenshot;
 cvar_t *cg_autoaction_spectator;
 cvar_t *cg_showClamp;
 
-cvar_t *cg_allyModel;
-cvar_t *cg_enemyModel;
-
 cvar_t *cg_particleDebug;
 
 void CG_LocalPrint( const char *format, ... ) {
@@ -163,9 +160,6 @@ static void CG_RegisterVariables( void ) {
 
 	cg_showClamp = Cvar_Get( "cg_showClamp", "0", CVAR_DEVELOPER );
 
-	cg_allyModel = Cvar_Get( "cg_allyModel", "rigg_bigvic_sounds", CVAR_READONLY );
-	cg_enemyModel = Cvar_Get( "cg_enemyModel", "rigg_padpork_sounds", CVAR_READONLY );
-
 	cg_particleDebug = Cvar_Get( "cg_particleDebug", "0", CVAR_DEVELOPER );
 
 	Cvar_Get( "cg_loadout", "", CVAR_ARCHIVE | CVAR_USERINFO );
@@ -177,7 +171,6 @@ void CG_Precache( void ) {
 	}
 
 	CG_RegisterMediaModels();
-	CG_RegisterPlayerModels();
 	CG_RegisterMediaSounds();
 	CG_RegisterMediaSounds();
 	CG_RegisterMediaShaders();
@@ -261,7 +254,7 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	CG_InitInput();
 
 	CG_RegisterVariables();
-	CG_PModelsInit();
+	InitPlayerModels();
 	InitWeaponModels();
 
 	CG_ScreenInit();
@@ -303,7 +296,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 void CG_Shutdown() {
 	CG_DemocamShutdown();
 	CG_UnregisterCGameCommands();
-	CG_PModelsShutdown();
 	CG_ShutdownChat();
 	CG_ShutdownInput();
 	CG_ShutdownHUD();

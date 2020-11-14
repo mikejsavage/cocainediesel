@@ -53,6 +53,7 @@ struct Material {
 	bool double_sided = false;
 	bool discard = false;
 	bool decal = false;
+	bool mask_outlines = false;
 	float alpha_cutoff = 0.0f;
 
 	TCMod tcmod = { };

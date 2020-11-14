@@ -290,7 +290,6 @@ void SP_func_explosive( edict_t *self ) {
 		self->takedamage = DAMAGE_YES;
 	}
 	self->max_health = self->health;
-	self->s.effects = EF_WORLD_MODEL;
 
 	GClip_LinkEntity( self );
 }

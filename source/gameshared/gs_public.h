@@ -702,16 +702,11 @@ enum EntityType {
 };
 
 // SyncEntityState->effects
-// Effects are things handled on the client side (lights, particles, frame animations)
-// that happen constantly on the given entity.
-// An entity that has effects will be sent to the client
-// even if it has a zero index model.
 #define EF_CARRIER                  ( 1 << 0 )
 #define EF_TAKEDAMAGE               ( 1 << 1 )
 #define EF_GODMODE                  ( 1 << 2 )
 #define EF_HAT                      ( 1 << 3 )
-#define EF_WORLD_MODEL              ( 1 << 4 )
-#define EF_TEAM_SILHOUETTE          ( 1 << 5 )
+#define EF_TEAM_SILHOUETTE          ( 1 << 4 )
 
 //===============================================================
 // gs_weapons.c

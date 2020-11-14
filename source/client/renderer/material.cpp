@@ -147,10 +147,15 @@ static void ParseDecal( Material * material, Span< const char > name, Span< cons
 	material->decal = true;
 }
 
+static void ParseMaskOutlines( Material * material, Span< const char > name, Span< const char > * data ) {
+	material->mask_outlines = true;
+}
+
 static const MaterialSpecKey shaderkeys[] = {
 	{ "cull", ParseCull },
 	{ "polygonoffset", ParseDiscard },
 	{ "decal", ParseDecal },
+	{ "maskoutlines", ParseMaskOutlines },
 
 	{ }
 };
@@ -652,6 +657,9 @@ void InitMaterials() {
 		ZoneScopedN( "Load materials" );
 
 		for( const char * path : AssetPaths() ) {
+			// game crashes if we load materials with no texture,
+			// skip editor.shader until we convert asset pointers
+			// to asset hashes
 			if( FileExtension( path ) == ".shader" && BaseName( path ) != "editor.shader" ) {
 				LoadMaterialFile( path, material_names );
 			}
@@ -779,6 +787,13 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
 		pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
 		pipeline.set_uniform( "u_BlueNoiseTextureParams", frame_static.blue_noise_uniforms );
+		return pipeline;
+	}
+
+	if( material->mask_outlines ) {
+		PipelineState pipeline;
+		pipeline.pass = frame_static.write_world_gbuffer_pass;
+		pipeline.shader = &shaders.write_world_gbuffer;
 		return pipeline;
 	}
 

@@ -22,13 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/threads.h"
 #include "qcommon/version.h"
 
-//#define UNSAFE_EXIT
-#define MAX_MASTER_SERVERS                  4
-
-#define SERVERBROWSER_PROTOCOL_VERSION      APP_PROTOCOL_VERSION
-
-//=========================================================
-
 typedef struct serverlist_s {
 	char address[48];
 	int64_t pingTimeStamp;
@@ -48,15 +41,14 @@ static int64_t masterServerUpdateSeq;
 static int64_t localQueryTimeStamp = 0;
 
 typedef struct masterserver_s {
-	char addressString[MAX_TOKEN_CHARS];
+	const char * addressString;
 	netadr_t address;
 	Thread *resolverThread;
 	volatile bool resolverActive;
 	char delayedRequestModName[MAX_TOKEN_CHARS];
 } masterserver_t;
 
-static masterserver_t masterServers[MAX_MASTER_SERVERS];
-int numMasterServers;
+static masterserver_t masterServers[ ARRAY_COUNT( MASTER_SERVERS ) ];
 
 //=========================================================
 
@@ -230,7 +222,7 @@ void CL_PingServer_f( void ) {
 
 	pingserver->pingTimeStamp = Sys_Milliseconds();
 
-	snprintf( requestString, sizeof( requestString ), "info %i %s %s", SERVERBROWSER_PROTOCOL_VERSION,
+	snprintf( requestString, sizeof( requestString ), "info %i %s %s", APP_PROTOCOL_VERSION,
 				 filter_allow_full ? "full" : "",
 				 filter_allow_empty ? "empty" : "" );
 
@@ -384,43 +376,11 @@ static void CL_MasterResolverThreadFunc( void *param ) {
 /*
 * CL_MasterAddressCache_Init
 */
-static void CL_MasterAddressCache_Init( void ) {
-	int numMasters;
-	const char *ptr;
-	const char *masterAddress;
-	const char *masterServersStr;
-	masterserver_t *master;
-	int i;
+static void CL_MasterAddressCache_Init() {
+	for( size_t i = 0; i < ARRAY_COUNT( MASTER_SERVERS ); i++ ) {
+		masterserver_t * master = &masterServers[ i ];
 
-	masterServersStr = Cvar_String( "masterservers" );
-	if( !*masterServersStr ) {
-		return;
-	}
-
-	// count the number of master servers
-	numMasters = 0;
-	for( ptr = masterServersStr; ptr; ) {
-		masterAddress = COM_Parse( &ptr );
-		if( !*masterAddress ) {
-			break;
-		}
-		numMasters++;
-	}
-
-	// don't allow too many as each will spawn its own resolver thread
-	if( numMasters > MAX_MASTER_SERVERS ) {
-		numMasters = MAX_MASTER_SERVERS;
-	}
-
-	numMasterServers = 0;
-	for( i = 0, ptr = masterServersStr, master = masterServers; i < numMasters && ptr; i++, master++ ) {
-		masterAddress = COM_Parse( &ptr );
-		if( !*masterAddress ) {
-			break;
-		}
-
-		numMasterServers++;
-		Q_strncpyz( master->addressString, masterAddress, sizeof( master->addressString ) );
+		master->addressString = MASTER_SERVERS[ i ];
 		master->address.type = NA_NOTRANSMIT;
 		master->resolverActive = true;
 		master->resolverThread = NewThread( CL_MasterResolverThreadFunc, master );
@@ -435,8 +395,6 @@ static void CL_MasterAddressCache_Shutdown( void ) {
 	// but at least we're not calling cancel on them, which is possibly dangerous
 
 	// we're going to kill the main thread anyway, so keep the lock and let the threads die
-
-	numMasterServers = 0;
 }
 
 /*
@@ -456,7 +414,7 @@ static void CL_SendMasterServerQuery( netadr_t *adr, const char *modname ) {
 	}
 
 	// create the message
-	requeststring = va( "%s %c%s %i %s %s", cmdname, toupper( modname[0] ), modname + 1, SERVERBROWSER_PROTOCOL_VERSION,
+	requeststring = va( "%s %c%s %i %s %s", cmdname, toupper( modname[0] ), modname + 1, APP_PROTOCOL_VERSION,
 						filter_allow_full ? "full" : "",
 						filter_allow_empty ? "empty" : "" );
 
@@ -470,13 +428,12 @@ static void CL_SendMasterServerQuery( netadr_t *adr, const char *modname ) {
 */
 void CL_GetServers_f( void ) {
 	const char *requeststring;
-	int i;
 	const char *modname, *masterAddress;
 	masterserver_t *master = NULL;
 
 	filter_allow_full = false;
 	filter_allow_empty = false;
-	for( i = 2; i < Cmd_Argc(); i++ ) {
+	for( int i = 2; i < Cmd_Argc(); i++ ) {
 		if( !Q_stricmp( "full", Cmd_Argv( i ) ) ) {
 			filter_allow_full = true;
 		}
@@ -498,11 +455,11 @@ void CL_GetServers_f( void ) {
 
 		// erm... modname isn't sent in local queries?
 
-		requeststring = va( "info %i %s %s", SERVERBROWSER_PROTOCOL_VERSION,
+		requeststring = va( "info %i %s %s", APP_PROTOCOL_VERSION,
 							filter_allow_full ? "full" : "",
 							filter_allow_empty ? "empty" : "" );
 
-		for( i = 0; i < NUM_BROADCAST_PORTS; i++ ) {
+		for( int i = 0; i < NUM_BROADCAST_PORTS; i++ ) {
 			netadr_t broadcastAddress;
 			NET_BroadcastAddress( &broadcastAddress, PORT_SERVER + i );
 			Netchan_OutOfBandPrint( &cls.socket_udp, &broadcastAddress, "%s", requeststring );
@@ -524,7 +481,7 @@ void CL_GetServers_f( void ) {
 	assert( modname[0] );
 
 	// check memory cache
-	for( i = 0; i < numMasterServers; i++ ) {
+	for( size_t i = 0; i < ARRAY_COUNT( masterServers ); i++ ) {
 		if( !Q_stricmp( masterServers[i].addressString, masterAddress ) ) {
 			master = &masterServers[i];
 			break;
@@ -560,18 +517,15 @@ void CL_GetServers_f( void ) {
 * CL_ServerListFrame
 */
 void CL_ServerListFrame( void ) {
-	int i;
-	masterserver_t *master;
-
-	for( i = 0, master = masterServers; i < numMasterServers; i++, master++ ) {
-		if( !master->delayedRequestModName[0] || master->resolverActive ) {
+	for( masterserver_t & master : masterServers ) {
+		if( !master.delayedRequestModName[0] || master.resolverActive ) {
 			continue;
 		}
 
-		if( master->address.type == NA_IP || master->address.type == NA_IP6 ) {
-			CL_SendMasterServerQuery( &master->address, master->delayedRequestModName );
+		if( master.address.type == NA_IP || master.address.type == NA_IP6 ) {
+			CL_SendMasterServerQuery( &master.address, master.delayedRequestModName );
 		}
-		master->delayedRequestModName[0] = '\0';
+		master.delayedRequestModName[0] = '\0';
 	}
 }
 

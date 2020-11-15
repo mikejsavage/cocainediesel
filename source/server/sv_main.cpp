@@ -66,8 +66,6 @@ cvar_t *sv_iplimit;
 
 cvar_t *sv_reconnectlimit; // minimum seconds between connect messages
 
-cvar_t *sv_masterservers;
-
 // wsw : debug netcode
 cvar_t *sv_debug_serverCmd;
 
@@ -633,8 +631,6 @@ void SV_Init( void ) {
 		Com_Printf( "Invalid demo prefix string: %s\n", sv_demodir->string );
 		Cvar_ForceSet( "sv_demodir", "" );
 	}
-
-	sv_masterservers =          Cvar_Get( "masterservers", DEFAULT_MASTER_SERVERS_IPS, CVAR_LATCH );
 
 	sv_debug_serverCmd =        Cvar_Get( "sv_debug_serverCmd", "0", CVAR_ARCHIVE );
 

@@ -106,7 +106,6 @@ enum pmtype_t {
 //==============================================
 
 constexpr const char * MASTER_SERVERS[] = { "dpmaster.deathmask.net", "ghdigital.com", "excalibur.nvg.ntnu.no" };
-#define DEFAULT_MASTER_SERVERS_IPS          "dpmaster.deathmask.net ghdigital.com excalibur.nvg.ntnu.no"
 #define SERVER_PINGING_TIMEOUT              50
 #define LAN_SERVER_PINGING_TIMEOUT          20
 

@@ -18,16 +18,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "server.h"
+#include "server/server.h"
 #include "qcommon/version.h"
 
-typedef struct sv_master_s {
-	netadr_t address;
-} sv_master_t;
+static netadr_t sv_masters[ ARRAY_COUNT( MASTER_SERVERS ) ];
 
-static sv_master_t sv_masters[MAX_MASTERS];
-
-extern cvar_t *sv_masterservers;
 extern cvar_t *sv_hostname;
 extern cvar_t *sv_reconnectlimit;     // minimum seconds between connect messages
 extern cvar_t *rcon_password;         // password for remote server commands
@@ -40,79 +35,26 @@ extern cvar_t *sv_iplimit;
 //
 //==============================================================================
 
+static void SV_ResolveMaster( void ) {
+	memset( sv_masters, 0, sizeof( sv_masters ) );
 
-/*
-* SV_AddMaster_f
-* Add a master server to the list
-*/
-static void SV_AddMaster_f( char *address ) {
-	int i;
-
-	if( !address || !address[0] ) {
-		return;
-	}
-
-	if( !sv_public->integer ) {
-		Com_Printf( "'SV_AddMaster_f' Only public servers use masters.\n" );
-		return;
-	}
-
-	//never go public when not acting as a game server
 	if( sv.state > ss_game ) {
 		return;
 	}
 
-	for( i = 0; i < MAX_MASTERS; i++ ) {
-		sv_master_t *master = &sv_masters[i];
+	if( !sv_public->integer ) {
+		return;
+	}
 
-		if( master->address.type != NA_NOTRANSMIT ) {
+	for( size_t i = 0; i < ARRAY_COUNT( MASTER_SERVERS ); i++ ) {
+		if( !NET_StringToAddress( MASTER_SERVERS[ i ], &sv_masters[ i ] ) ) {
+			Com_Printf( "'SV_AddMaster_f' Bad Master server address: %s\n", MASTER_SERVERS[ i ] );
 			continue;
 		}
 
-		if( !NET_StringToAddress( address, &master->address ) ) {
-			Com_Printf( "'SV_AddMaster_f' Bad Master server address: %s\n", address );
-			return;
-		}
+		NET_SetAddressPort( &sv_masters[ i ], PORT_MASTER );
 
-		if( NET_GetAddressPort( &master->address ) == 0 ) {
-			NET_SetAddressPort( &master->address, PORT_MASTER );
-		}
-
-		Com_Printf( "Added new master server #%i at %s\n", i, NET_AddressToString( &master->address ) );
-		return;
-	}
-
-	Com_Printf( "'SV_AddMaster_f' List of master servers is already full\n" );
-}
-
-/*
-* SV_ResolveMaster
-*/
-static void SV_ResolveMaster( void ) {
-	char *master, *mlist;
-
-	// wsw : jal : initialize masters list
-	memset( sv_masters, 0, sizeof( sv_masters ) );
-
-	//never go public when not acting as a game server
-	if( sv.state > ss_game ) {
-		return;
-	}
-
-	if( !sv_public->integer ) {
-		return;
-	}
-
-	mlist = sv_masterservers->string;
-	if( *mlist ) {
-		while( mlist ) {
-			master = COM_Parse( &mlist );
-			if( !master[0] ) {
-				break;
-			}
-
-			SV_AddMaster_f( master );
-		}
+		Com_Printf( "Added new master server #%zu at %s\n", i, NET_AddressToString( &sv_masters[ i ] ) );
 	}
 
 	svc.lastMasterResolve = Sys_Milliseconds();
@@ -145,7 +87,6 @@ void SV_UpdateMaster( void ) {
 */
 void SV_MasterHeartbeat( void ) {
 	int64_t time = Sys_Milliseconds();
-	int i;
 
 	if( svc.nextHeartbeat > time ) {
 		return;
@@ -153,7 +94,7 @@ void SV_MasterHeartbeat( void ) {
 
 	svc.nextHeartbeat = time + HEARTBEAT_SECONDS * 1000;
 
-	if( !sv_public->integer || ( sv_maxclients->integer == 1 ) ) {
+	if( !sv_public->integer ) {
 		return;
 	}
 
@@ -163,18 +104,14 @@ void SV_MasterHeartbeat( void ) {
 	}
 
 	// send to group master
-	for( i = 0; i < MAX_MASTERS; i++ ) {
-		sv_master_t *master = &sv_masters[i];
+	for( const netadr_t & master : sv_masters ) {
+		if( master.type != NA_NOTRANSMIT ) {
+			Com_Printf( "Sending heartbeat to %s\n", NET_AddressToString( &master ) );
 
-		if( master->address.type != NA_NOTRANSMIT ) {
-			socket_t *socket;
-
-			Com_Printf( "Sending heartbeat to %s\n", NET_AddressToString( &master->address ) );
-
-			socket = ( master->address.type == NA_IP6 ? &svs.socket_udp6 : &svs.socket_udp );
+			socket_t * socket = master.type == NA_IP6 ? &svs.socket_udp6 : &svs.socket_udp;
 
 			// warning: "DarkPlaces" is a protocol name here, not a game name. Do not replace it.
-			Netchan_OutOfBandPrint( socket, &master->address, "heartbeat DarkPlaces\n" );
+			Netchan_OutOfBandPrint( socket, &master, "heartbeat DarkPlaces\n" );
 		}
 	}
 }

@@ -79,8 +79,6 @@ static int Nearest256Color( RGB8 c ) {
 }
 
 void Sys_ConsoleOutput( const char * str ) {
-	printf( "\033[0m" );
-
 	const char * end = str + strlen( str );
 
 	const char * p = str;
@@ -97,7 +95,7 @@ void Sys_ConsoleOutput( const char * str ) {
 		p++;
 	}
 
-	fputs( print_from, stdout );
+	printf( "%s\033[0m", print_from );
 }
 
 void Sys_ShowErrorMessage( const char * msg ) {

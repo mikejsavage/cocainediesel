@@ -106,10 +106,7 @@ void SV_MasterHeartbeat( void ) {
 	// send to group master
 	for( const netadr_t & master : sv_masters ) {
 		if( master.type != NA_NOTRANSMIT ) {
-			Com_Printf( "Sending heartbeat to %s\n", NET_AddressToString( &master ) );
-
 			socket_t * socket = master.type == NA_IP6 ? &svs.socket_udp6 : &svs.socket_udp;
-
 			// warning: "DarkPlaces" is a protocol name here, not a game name. Do not replace it.
 			Netchan_OutOfBandPrint( socket, &master, "heartbeat DarkPlaces\n" );
 		}

@@ -683,7 +683,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 static void SubmitResolveMSAA( Framebuffer fb ) {
 	assert( fb.width == frame_static.viewport_width && fb.height == frame_static.viewport_height );
 	glBindFramebuffer( GL_READ_FRAMEBUFFER, fb.fbo );
-	glBlitFramebuffer( 0, 0, fb.width, fb.height, 0, 0, fb.width, fb.height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
+	glBlitFramebuffer( 0, 0, fb.width, fb.height, 0, 0, fb.width, fb.height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST );
 }
 
 void RenderBackendSubmitFrame() {

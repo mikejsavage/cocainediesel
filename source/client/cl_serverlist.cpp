@@ -22,16 +22,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/threads.h"
 #include "qcommon/version.h"
 
-typedef struct serverlist_s {
+struct serverlist_t {
 	char address[48];
 	int64_t pingTimeStamp;
 	int64_t lastUpdatedByMasterServer;
 	int64_t masterServerUpdateSeq;
 	bool isLocal;
-	struct serverlist_s *pnext;
-} serverlist_t;
+	serverlist_t *pnext;
+};
 
-serverlist_t *masterList;
+static serverlist_t *masterList;
 
 static bool filter_allow_full = false;
 static bool filter_allow_empty = false;
@@ -40,13 +40,13 @@ static int64_t masterServerUpdateSeq;
 
 static int64_t localQueryTimeStamp = 0;
 
-typedef struct masterserver_s {
+struct masterserver_t {
 	const char * addressString;
 	netadr_t address;
 	Thread *resolverThread;
 	volatile bool resolverActive;
 	char delayedRequestModName[MAX_TOKEN_CHARS];
-} masterserver_t;
+};
 
 static masterserver_t masterServers[ ARRAY_COUNT( MASTER_SERVERS ) ];
 

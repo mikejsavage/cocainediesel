@@ -709,13 +709,12 @@ static void SVC_RemoteCommand( const socket_t *socket, const netadr_t *address )
 	Com_EndRedirect();
 }
 
-typedef struct {
+struct connectionless_cmd_t {
 	const char *name;
 	void ( *func )( const socket_t *socket, const netadr_t *address );
-} connectionless_cmd_t;
+};
 
-connectionless_cmd_t connectionless_cmds[] =
-{
+static connectionless_cmd_t connectionless_cmds[] = {
 	{ "ping", SVC_Ping },
 	{ "ack", SVC_Ack },
 	{ "info", SVC_InfoResponse },

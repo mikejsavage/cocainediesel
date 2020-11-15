@@ -56,11 +56,26 @@ static const Font * GetHUDFont() {
 
 //=============================================================================
 
-typedef struct
-{
+using opFunc_t = float( * )( const float a, float b );
+
+struct cg_layoutnode_t {
+	bool ( *func )( cg_layoutnode_t *argumentnode, int numArguments );
+	int type;
+	char *string;
+	int integer;
+	float value;
+	opFunc_t opFunc;
+	cg_layoutnode_t *parent;
+	cg_layoutnode_t *next;
+	cg_layoutnode_t *ifthread;
+};
+
+static cg_layoutnode_t * hud_root;
+
+struct constant_numeric_t {
 	const char *name;
 	int value;
-} constant_numeric_t;
+};
 
 static const constant_numeric_t cg_numeric_constants[] = {
 	{ "NOTSET", 9999 },
@@ -202,12 +217,11 @@ static int CG_GetScoreboardShown( const void *parameter ) {
 	return CG_ScoreboardShown() ? 1 : 0;
 }
 
-typedef struct
-{
+struct reference_numeric_t {
 	const char *name;
 	int ( *func )( const void *parameter );
 	const void *parameter;
-} reference_numeric_t;
+};
 
 static const reference_numeric_t cg_numeric_references[] = {
 	// stats
@@ -273,7 +287,7 @@ enum obituary_type_t {
 	OBITUARY_ACCIDENT,
 };
 
-typedef struct obituary_s {
+struct obituary_t {
 	obituary_type_t type;
 	int64_t time;
 	char victim[MAX_INFO_VALUE];
@@ -281,7 +295,7 @@ typedef struct obituary_s {
 	char attacker[MAX_INFO_VALUE];
 	int attacker_team;
 	int mod;
-} obituary_t;
+};
 
 static obituary_t cg_obituaries[MAX_OBITUARIES];
 static int cg_obituaries_current = -1;
@@ -1744,7 +1758,7 @@ static void CG_DrawAwards( int x, int y, Alignment alignment, float font_size, V
 	}
 }
 
-static bool CG_LFuncDrawCallvote( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawCallvote( cg_layoutnode_t *argumentnode, int numArguments ) {
 	const char * vote = cgs.configStrings[ CS_CALLVOTE ];
 	if( strlen( vote ) == 0 )
 		return true;
@@ -1788,8 +1802,6 @@ static bool CG_LFuncDrawCallvote( struct cg_layoutnode_s *argumentnode, int numA
 //=============================================================================
 //	STATUS BAR PROGRAMS
 //=============================================================================
-
-typedef float ( *opFunc_t )( const float a, float b );
 
 // we will always operate with floats so we don't have to code 2 different numeric paths
 // it's not like using float or ints would make a difference in this simple-scripting case.
@@ -1854,14 +1866,12 @@ static float CG_OpFuncCompareOr( const float a, const float b ) {
 	return ( a || b );
 }
 
-typedef struct cg_layoutoperators_s
-{
+struct cg_layoutoperators_t {
 	const char *name;
 	opFunc_t opFunc;
-} cg_layoutoperators_t;
+};
 
-static cg_layoutoperators_t cg_LayoutOperators[] =
-{
+static cg_layoutoperators_t cg_LayoutOperators[] = {
 	{
 		"+",
 		CG_OpFuncAdd
@@ -1963,8 +1973,8 @@ static opFunc_t CG_OperatorFuncForArgument( const char *token ) {
 
 //=============================================================================
 
-static const char *CG_GetStringArg( struct cg_layoutnode_s **argumentsnode );
-static float CG_GetNumericArg( struct cg_layoutnode_s **argumentsnode );
+static const char *CG_GetStringArg( cg_layoutnode_t **argumentsnode );
+static float CG_GetNumericArg( cg_layoutnode_t **argumentsnode );
 
 //=============================================================================
 
@@ -2091,7 +2101,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 	}
 }
 
-static bool CG_LFuncDrawPicByName( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawPicByName( cg_layoutnode_t *argumentnode, int numArguments ) {
 	int x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_alignment, layout_cursor_width );
 	int y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_alignment, layout_cursor_height );
 	Draw2DBox( x, y, layout_cursor_width, layout_cursor_height, FindMaterial( CG_GetStringArg( &argumentnode ) ), layout_cursor_color );
@@ -2106,7 +2116,7 @@ static float ScaleY( float y ) {
 	return y * frame_static.viewport_height / 600.0f;
 }
 
-static bool CG_LFuncCursor( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncCursor( cg_layoutnode_t *argumentnode, int numArguments ) {
 	float x = ScaleX( CG_GetNumericArg( &argumentnode ) );
 	float y = ScaleY( CG_GetNumericArg( &argumentnode ) );
 
@@ -2115,7 +2125,7 @@ static bool CG_LFuncCursor( struct cg_layoutnode_s *argumentnode, int numArgumen
 	return true;
 }
 
-static bool CG_LFuncMoveCursor( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncMoveCursor( cg_layoutnode_t *argumentnode, int numArguments ) {
 	float x = ScaleX( CG_GetNumericArg( &argumentnode ) );
 	float y = ScaleY( CG_GetNumericArg( &argumentnode ) );
 
@@ -2124,7 +2134,7 @@ static bool CG_LFuncMoveCursor( struct cg_layoutnode_s *argumentnode, int numArg
 	return true;
 }
 
-static bool CG_LFuncSize( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncSize( cg_layoutnode_t *argumentnode, int numArguments ) {
 	float x = ScaleX( CG_GetNumericArg( &argumentnode ) );
 	float y = ScaleY( CG_GetNumericArg( &argumentnode ) );
 
@@ -2133,36 +2143,36 @@ static bool CG_LFuncSize( struct cg_layoutnode_s *argumentnode, int numArguments
 	return true;
 }
 
-static bool CG_LFuncColor( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncColor( cg_layoutnode_t *argumentnode, int numArguments ) {
 	for( int i = 0; i < 4; i++ ) {
 		layout_cursor_color[ i ] = Clamp01( CG_GetNumericArg( &argumentnode ) );
 	}
 	return true;
 }
 
-static bool CG_LFuncColorsRGB( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncColorsRGB( cg_layoutnode_t *argumentnode, int numArguments ) {
 	for( int i = 0; i < 4; i++ ) {
 		layout_cursor_color[ i ] = sRGBToLinear( Clamp01( CG_GetNumericArg( &argumentnode ) ) );
 	}
 	return true;
 }
 
-static bool CG_LFuncColorToTeamColor( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncColorToTeamColor( cg_layoutnode_t *argumentnode, int numArguments ) {
 	layout_cursor_color = CG_TeamColorVec4( CG_GetNumericArg( &argumentnode ) );
 	return true;
 }
 
-static bool CG_LFuncAttentionGettingColor( struct cg_layoutnode_s * argumentnode, int numArguments ) {
+static bool CG_LFuncAttentionGettingColor( cg_layoutnode_t * argumentnode, int numArguments ) {
 	layout_cursor_color = AttentionGettingColor();
 	return true;
 }
 
-static bool CG_LFuncColorAlpha( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncColorAlpha( cg_layoutnode_t *argumentnode, int numArguments ) {
 	layout_cursor_color.w = CG_GetNumericArg( &argumentnode );
 	return true;
 }
 
-static bool CG_LFuncAlignment( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncAlignment( cg_layoutnode_t *argumentnode, int numArguments ) {
 	const char * x = CG_GetStringArg( &argumentnode );
 	const char * y = CG_GetStringArg( &argumentnode );
 
@@ -2197,8 +2207,8 @@ static bool CG_LFuncAlignment( struct cg_layoutnode_s *argumentnode, int numArgu
 	return true;
 }
 
-static bool CG_LFuncFontSize( struct cg_layoutnode_s *argumentnode, int numArguments ) {
-	struct cg_layoutnode_s *charnode = argumentnode;
+static bool CG_LFuncFontSize( cg_layoutnode_t *argumentnode, int numArguments ) {
+	cg_layoutnode_t *charnode = argumentnode;
 	const char * fontsize = CG_GetStringArg( &charnode );
 
 	if( !Q_stricmp( fontsize, "tiny" ) ) {
@@ -2220,7 +2230,7 @@ static bool CG_LFuncFontSize( struct cg_layoutnode_s *argumentnode, int numArgum
 	return true;
 }
 
-static bool CG_LFuncFontStyle( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncFontStyle( cg_layoutnode_t *argumentnode, int numArguments ) {
 	const char * fontstyle = CG_GetStringArg( &argumentnode );
 
 	if( !Q_stricmp( fontstyle, "normal" ) ) {
@@ -2243,13 +2253,13 @@ static bool CG_LFuncFontStyle( struct cg_layoutnode_s *argumentnode, int numArgu
 	return true;
 }
 
-static bool CG_LFuncFontBorder( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncFontBorder( cg_layoutnode_t *argumentnode, int numArguments ) {
 	const char * border = CG_GetStringArg( &argumentnode );
 	layout_cursor_font_border = Q_stricmp( border, "on" ) == 0;
 	return true;
 }
 
-static bool CG_LFuncDrawObituaries( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawObituaries( cg_layoutnode_t *argumentnode, int numArguments ) {
 	int internal_align = (int)CG_GetNumericArg( &argumentnode );
 	int icon_size = (int)CG_GetNumericArg( &argumentnode );
 
@@ -2258,27 +2268,27 @@ static bool CG_LFuncDrawObituaries( struct cg_layoutnode_s *argumentnode, int nu
 	return true;
 }
 
-static bool CG_LFuncDrawAwards( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawAwards( cg_layoutnode_t *argumentnode, int numArguments ) {
 	CG_DrawAwards( layout_cursor_x, layout_cursor_y, layout_cursor_alignment, layout_cursor_font_size, layout_cursor_color, layout_cursor_font_border );
 	return true;
 }
 
-static bool CG_LFuncDrawClock( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawClock( cg_layoutnode_t *argumentnode, int numArguments ) {
 	CG_DrawClock( layout_cursor_x, layout_cursor_y, layout_cursor_alignment, GetHUDFont(), layout_cursor_font_size, layout_cursor_color, layout_cursor_font_border );
 	return true;
 }
 
-static bool CG_LFuncDrawDamageNumbers( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawDamageNumbers( cg_layoutnode_t *argumentnode, int numArguments ) {
 	CG_DrawDamageNumbers();
 	return true;
 }
 
-static bool CG_LFuncDrawBombIndicators( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawBombIndicators( cg_layoutnode_t *argumentnode, int numArguments ) {
 	CG_DrawBombHUD();
 	return true;
 }
 
-static bool CG_LFuncDrawPlayerIcons( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawPlayerIcons( cg_layoutnode_t *argumentnode, int numArguments ) {
 	int team = int( CG_GetNumericArg( &argumentnode ) );
 	int alive = int( CG_GetNumericArg( &argumentnode ) );
 	int total = int( CG_GetNumericArg( &argumentnode ) );
@@ -2307,12 +2317,12 @@ static bool CG_LFuncDrawPlayerIcons( struct cg_layoutnode_s *argumentnode, int n
 	return true;
 }
 
-static bool CG_LFuncDrawPointed( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawPointed( cg_layoutnode_t *argumentnode, int numArguments ) {
 	CG_DrawPlayerNames( GetHUDFont(), layout_cursor_font_size, layout_cursor_color, layout_cursor_font_border );
 	return true;
 }
 
-static bool CG_LFuncDrawString( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawString( cg_layoutnode_t *argumentnode, int numArguments ) {
 	const char *string = CG_GetStringArg( &argumentnode );
 
 	if( !string || !string[0] ) {
@@ -2324,7 +2334,7 @@ static bool CG_LFuncDrawString( struct cg_layoutnode_s *argumentnode, int numArg
 	return true;
 }
 
-static bool CG_LFuncDrawBindString( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawBindString( cg_layoutnode_t *argumentnode, int numArguments ) {
 	const char * fmt = CG_GetStringArg( &argumentnode );
 	const char * command = CG_GetStringArg( &argumentnode );
 
@@ -2341,7 +2351,7 @@ static bool CG_LFuncDrawBindString( struct cg_layoutnode_s *argumentnode, int nu
 	return true;
 }
 
-static bool CG_LFuncDrawPlayerName( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawPlayerName( cg_layoutnode_t *argumentnode, int numArguments ) {
 	int index = (int)CG_GetNumericArg( &argumentnode ) - 1;
 
 	if( index >= 0 && index < client_gs.maxclients && cgs.clientInfo[index].name[0] ) {
@@ -2352,13 +2362,13 @@ static bool CG_LFuncDrawPlayerName( struct cg_layoutnode_s *argumentnode, int nu
 	return false;
 }
 
-static bool CG_LFuncDrawNumeric( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawNumeric( cg_layoutnode_t *argumentnode, int numArguments ) {
 	int value = CG_GetNumericArg( &argumentnode );
 	DrawText( GetHUDFont(), layout_cursor_font_size, va( "%i", value ), layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
 	return true;
 }
 
-static bool CG_LFuncDrawWeaponIcons( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawWeaponIcons( cg_layoutnode_t *argumentnode, int numArguments ) {
 	int offx = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800;
 	int offy = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_height / 600;
 	int w = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800;
@@ -2370,34 +2380,32 @@ static bool CG_LFuncDrawWeaponIcons( struct cg_layoutnode_s *argumentnode, int n
 	return true;
 }
 
-static bool CG_LFuncDrawCrossHair( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawCrossHair( cg_layoutnode_t *argumentnode, int numArguments ) {
 	CG_DrawCrosshair();
 	return true;
 }
 
-static bool CG_LFuncDrawNet( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawNet( cg_layoutnode_t *argumentnode, int numArguments ) {
 	CG_DrawNet( layout_cursor_x, layout_cursor_y, layout_cursor_width, layout_cursor_height, layout_cursor_alignment, layout_cursor_color );
 	return true;
 }
 
-static bool CG_LFuncIf( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncIf( cg_layoutnode_t *argumentnode, int numArguments ) {
 	return (int)CG_GetNumericArg( &argumentnode ) != 0;
 }
 
-static bool CG_LFuncIfNot( struct cg_layoutnode_s *argumentnode, int numArguments ) {
+static bool CG_LFuncIfNot( cg_layoutnode_t *argumentnode, int numArguments ) {
 	return (int)CG_GetNumericArg( &argumentnode ) == 0;
 }
 
-typedef struct cg_layoutcommand_s
-{
+struct cg_layoutcommand_t {
 	const char *name;
-	bool ( *func )( struct cg_layoutnode_s *argumentnode, int numArguments );
+	bool ( *func )( cg_layoutnode_t *argumentnode, int numArguments );
 	int numparms;
 	const char *help;
-} cg_layoutcommand_t;
+};
 
-static const cg_layoutcommand_t cg_LayoutCommands[] =
-{
+static const cg_layoutcommand_t cg_LayoutCommands[] = {
 	{
 		"setCursor",
 		CG_LFuncCursor,
@@ -2621,25 +2629,11 @@ static const cg_layoutcommand_t cg_LayoutCommands[] =
 
 //=============================================================================
 
-
-typedef struct cg_layoutnode_s
-{
-	bool ( *func )( struct cg_layoutnode_s *argumentnode, int numArguments );
-	int type;
-	char *string;
-	int integer;
-	float value;
-	opFunc_t opFunc;
-	struct cg_layoutnode_s *parent;
-	struct cg_layoutnode_s *next;
-	struct cg_layoutnode_s *ifthread;
-} cg_layoutnode_t;
-
 /*
 * CG_GetStringArg
 */
-static const char *CG_GetStringArg( struct cg_layoutnode_s **argumentsnode ) {
-	struct cg_layoutnode_s *anode = *argumentsnode;
+static const char *CG_GetStringArg( cg_layoutnode_t **argumentsnode ) {
+	cg_layoutnode_t *anode = *argumentsnode;
 
 	if( !anode || anode->type == LNODE_COMMAND ) {
 		Com_Error( ERR_DROP, "'CG_LayoutGetStringArg': bad arg count" );
@@ -2654,8 +2648,8 @@ static const char *CG_GetStringArg( struct cg_layoutnode_s **argumentsnode ) {
 * CG_GetNumericArg
 * can use recursion for mathematical operations
 */
-static float CG_GetNumericArg( struct cg_layoutnode_s **argumentsnode ) {
-	struct cg_layoutnode_s *anode = *argumentsnode;
+static float CG_GetNumericArg( cg_layoutnode_t **argumentsnode ) {
+	cg_layoutnode_t *anode = *argumentsnode;
 	float value;
 
 	if( !anode || anode->type == LNODE_COMMAND ) {
@@ -3053,13 +3047,9 @@ static cg_layoutnode_t *CG_RecurseParseLayoutScript( char **ptr, int level ) {
 	return rootnode;
 }
 
-/*
-* CG_ParseLayoutScript
-*/
-static void CG_ParseLayoutScript( char *string, cg_layoutnode_t *rootnode ) {
-
-	CG_RecurseFreeLayoutThread( cg.statusBar );
-	cg.statusBar = CG_RecurseParseLayoutScript( &string, 0 );
+static void CG_ParseLayoutScript( char *string ) {
+	CG_RecurseFreeLayoutThread( hud_root );
+	hud_root = CG_RecurseParseLayoutScript( &string, 0 );
 }
 
 //=============================================================================
@@ -3136,12 +3126,9 @@ static void CG_RecurseExecuteLayoutThread( cg_layoutnode_t *rootnode ) {
 	}
 }
 
-/*
-* CG_ExecuteLayoutProgram
-*/
-void CG_ExecuteLayoutProgram( struct cg_layoutnode_s *rootnode ) {
+void CG_DrawHUD() {
 	ZoneScoped;
-	CG_RecurseExecuteLayoutThread( rootnode );
+	CG_RecurseExecuteLayoutThread( hud_root );
 }
 
 //=============================================================================
@@ -3194,7 +3181,7 @@ static void CG_LoadHUD() {
 		return;
 	}
 
-	CG_ParseLayoutScript( const_cast< char * >( script.c_str() ), cg.statusBar );
+	CG_ParseLayoutScript( const_cast< char * >( script.c_str() ) );
 
 	layout_cursor_font_style = FontStyle_Normal;
 	layout_cursor_font_size = cgs.textSizeSmall;
@@ -3206,6 +3193,6 @@ void CG_InitHUD() {
 }
 
 void CG_ShutdownHUD() {
-	CG_RecurseFreeLayoutThread( cg.statusBar );
+	CG_RecurseFreeLayoutThread( hud_root );
 	Cmd_RemoveCommand( "reloadhud" );
 }

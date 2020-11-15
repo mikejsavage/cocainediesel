@@ -530,11 +530,10 @@ static void Cmd_Spray_f( edict_t * ent ) {
 	event->s.origin2 = trace.plane.normal;
 }
 
-typedef struct
-{
+struct g_vsays_t {
 	const char *name;
 	int id;
-} g_vsays_t;
+};
 
 static const g_vsays_t g_vsays[] = {
 	{ "sorry", Vsay_Sorry },

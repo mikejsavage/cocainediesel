@@ -154,17 +154,16 @@ retry:
 }
 
 
-typedef struct
-{
+struct pushed_t {
 	edict_t *ent;
 	Vec3 origin;
 	Vec3 angles;
 	float yaw;
 	Vec3 pmove_origin;
-} pushed_t;
-pushed_t pushed[MAX_EDICTS], *pushed_p;
+};
+static pushed_t pushed[MAX_EDICTS], *pushed_p;
 
-edict_t *obstacle;
+static edict_t *obstacle;
 
 
 /*

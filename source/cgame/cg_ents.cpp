@@ -315,8 +315,8 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 * CG_CModelForEntity
 *  get the collision model for the given entity, no matter if box or brush-model.
 */
-struct cmodel_s *CG_CModelForEntity( int entNum ) {
-	struct cmodel_s *cmodel = NULL;
+cmodel_t *CG_CModelForEntity( int entNum ) {
+	cmodel_t *cmodel = NULL;
 
 	if( entNum < 0 || entNum >= MAX_EDICTS ) {
 		return NULL;

@@ -17,20 +17,19 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// cmd.c -- Quake script command processing module
 
-#include "qcommon.h"
+#include "qcommon/qcommon.h"
 #include "qcommon/q_trie.h"
 #include "client/console.h"
 
 #define MAX_ALIAS_NAME      64
 #define ALIAS_LOOP_COUNT    16
 
-typedef struct cmdalias_s {
+struct cmd_alias_t {
 	char *name;
 	char *value;
 	bool archive;
-} cmd_alias_t;
+};
 
 static bool cmd_preinitialized = false;
 static bool cmd_initialized = false;
@@ -473,7 +472,7 @@ static void Cmd_AliasList_f( void ) {
 	char *pattern;
 	unsigned int size;
 	unsigned int i;
-	struct trie_dump_s *dump = NULL;
+	trie_dump_t *dump = NULL;
 
 	assert( cmd_alias_trie );
 
@@ -607,7 +606,7 @@ static void Cmd_Unalias_f( void ) {
 * Removes an alias command
 */
 static void Cmd_UnaliasAll_f( void ) {
-	struct trie_dump_s *dump;
+	trie_dump_t *dump;
 	unsigned int i;
 
 	assert( cmd_alias_trie );
@@ -629,12 +628,11 @@ COMMAND EXECUTION
 =============================================================================
 */
 
-typedef struct cmd_function_s {
+struct cmd_function_t {
 	char *name;
 	xcommand_t function;
 	xcompletionf_t completion_func;
-} cmd_function_t;
-
+};
 
 static int cmd_argc;
 static char *cmd_argv[MAX_STRING_TOKENS];
@@ -859,7 +857,7 @@ int Cmd_CompleteCountPossible( const char *partial ) {
 * Cmd_CompleteBuildList
 */
 const char **Cmd_CompleteBuildList( const char *partial ) {
-	struct trie_dump_s *dump;
+	trie_dump_t *dump;
 	const char **buf;
 	unsigned int i;
 
@@ -1092,7 +1090,7 @@ int Cmd_CompleteAliasCountPossible( const char *partial ) {
 Cmd_CompleteAliasBuildList
 */
 const char **Cmd_CompleteAliasBuildList( const char *partial ) {
-	struct trie_dump_s *dump;
+	trie_dump_t *dump;
 	const char **buf;
 	unsigned int i;
 
@@ -1198,7 +1196,7 @@ void Cmd_ExecuteString( const char *text ) {
 * Cmd_List_f
 */
 static void Cmd_List_f( void ) {
-	struct trie_dump_s *dump = NULL;
+	trie_dump_t *dump = NULL;
 	unsigned int i;
 	char *pattern;
 
@@ -1268,7 +1266,7 @@ void Cmd_Init( void ) {
 void Cmd_Shutdown( void ) {
 	if( cmd_initialized ) {
 		unsigned int i;
-		struct trie_dump_s *dump;
+		trie_dump_t *dump;
 
 		assert( cmd_alias_trie );
 		assert( cmd_function_trie );

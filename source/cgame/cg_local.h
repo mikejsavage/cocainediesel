@@ -366,9 +366,6 @@ struct cg_state_t {
 	int64_t award_times[MAX_AWARD_LINES];
 	int award_head;
 
-	// statusbar program
-	struct cg_layoutnode_s *statusBar;
-
 	cg_viewweapon_t weapon;
 	cg_viewdef_t view;
 };
@@ -388,7 +385,10 @@ extern centity_t cg_entities[MAX_EDICTS];
 // cg_ents.c
 //
 bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe );
-struct cmodel_s *CG_CModelForEntity( int entNum );
+
+struct cmodel_t;
+cmodel_t *CG_CModelForEntity( int entNum );
+
 void CG_SoundEntityNewState( centity_t *cent );
 void CG_AddEntities( void );
 void CG_GetEntitySpatilization( int entNum, Vec3 * origin, Vec3 * velocity );
@@ -476,7 +476,7 @@ void CG_InitHUD();
 void CG_ShutdownHUD();
 void CG_SC_ResetObituaries();
 void CG_SC_Obituary();
-void CG_ExecuteLayoutProgram( struct cg_layoutnode_s *rootnode );
+void CG_DrawHUD();
 void CG_ClearAwards();
 
 //

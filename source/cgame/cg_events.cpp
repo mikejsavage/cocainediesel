@@ -327,9 +327,9 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 #define CG_MAX_ANNOUNCER_EVENTS 32
 #define CG_MAX_ANNOUNCER_EVENTS_MASK ( CG_MAX_ANNOUNCER_EVENTS - 1 )
 #define CG_ANNOUNCER_EVENTS_FRAMETIME 1500 // the announcer will speak each 1.5 seconds
-typedef struct cg_announcerevent_s {
+struct cg_announcerevent_t {
 	const SoundEffect * sound;
-} cg_announcerevent_t;
+};
 cg_announcerevent_t cg_announcerEvents[ CG_MAX_ANNOUNCER_EVENTS ];
 static int cg_announcerEventsCurrent = 0;
 static int cg_announcerEventsHead = 0;

@@ -650,7 +650,7 @@ static bool CG_DemoCam_LookAt( int trackEnt, Vec3 vieworg, Vec3 * viewangles ) {
 	Vec3 origin = Lerp( cent->prev.origin, cg.lerpfrac, cent->current.origin );
 
 	// if having a bounding box, look to its center
-	struct cmodel_s *cmodel = CG_CModelForEntity( trackEnt );
+	cmodel_t *cmodel = CG_CModelForEntity( trackEnt );
 	if( cmodel != NULL ) {
 		Vec3 mins, maxs;
 		CM_InlineModelBounds( cl.cms, cmodel, &mins, &maxs );
@@ -933,7 +933,7 @@ static int CG_Democam_CalcView( void ) {
 					cam_velocity = Vec3( 0.0f );
 				} else {
 					Vec3 center, forward;
-					struct cmodel_s *cmodel;
+					cmodel_t *cmodel;
 					const float ft = (float)cls.frametime * 0.001f;
 
 					// find the trackEnt origin

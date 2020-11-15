@@ -849,7 +849,7 @@ void CG_Draw2DView( void ) {
 		CG_DrawCenterString();
 	}
 
-	CG_ExecuteLayoutProgram( cg.statusBar );
+	CG_DrawHUD();
 	CG_DrawChat();
 }
 

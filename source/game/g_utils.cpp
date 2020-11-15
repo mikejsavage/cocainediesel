@@ -266,10 +266,10 @@ char *_G_LevelCopyString( const char *in, const char *filename, int fileline ) {
 #define STRINGPOOL_SIZE         1024 * 1024
 #define STRINGPOOL_HASH_SIZE    32
 
-typedef struct g_poolstring_s {
+struct g_poolstring_t {
 	char *buf;
-	struct g_poolstring_s *hash_next;
-} g_poolstring_t;
+	g_poolstring_t *hash_next;
+};
 
 static uint8_t *g_stringpool;
 static size_t g_stringpool_offset;

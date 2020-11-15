@@ -553,9 +553,6 @@ void SV_UserinfoChanged( client_t *client ) {
 void SV_Init( void ) {
 	ZoneScoped;
 
-	cvar_t *sv_pps;
-	cvar_t *sv_fps;
-
 	assert( !sv_initialized );
 
 	memset( &sv, 0, sizeof( sv ) );
@@ -638,26 +635,11 @@ void SV_Init( void ) {
 	MSG_Init( &tmpMessage, tmpMessageData, sizeof( tmpMessageData ) );
 
 	// init server updates ratio
-	if( is_dedicated_server ) {
-		sv_pps = Cvar_Get( "sv_pps", "20", CVAR_SERVERINFO | CVAR_NOSET );
-	} else {
-		sv_pps = Cvar_Get( "sv_pps", "20", CVAR_SERVERINFO );
-	}
-	svc.snapFrameTime = (int)( 1000 / sv_pps->value );
-	if( svc.snapFrameTime > 200 ) { // too slow, also, netcode uses a byte
-		Cvar_ForceSet( "sv_pps", "5" );
-		svc.snapFrameTime = 200;
-	} else if( svc.snapFrameTime < 10 ) {   // abusive
-		Cvar_ForceSet( "sv_pps", "100" );
-		svc.snapFrameTime = 10;
-	}
-
-	sv_fps = Cvar_Get( "sv_fps", "62", CVAR_NOSET );
-	svc.gameFrameTime = (int)( 1000 / sv_fps->value );
-	if( svc.gameFrameTime > svc.snapFrameTime ) { // gamecode can never be slower than snaps
-		svc.gameFrameTime = svc.snapFrameTime;
-		Cvar_ForceSet( "sv_fps", sv_pps->dvalue );
-	}
+	constexpr float pps = 20.0f;
+	constexpr float fps = 62.0f;
+	STATIC_ASSERT( fps >= pps );
+	svc.snapFrameTime = int( 1000.0f / pps );
+	svc.gameFrameTime = int( 1000.0f / fps );
 
 	//init the master servers list
 	SV_InitMaster();

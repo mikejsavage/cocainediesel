@@ -174,8 +174,6 @@ static void G_KnockBackPush( edict_t *targ, edict_t *attacker, Vec3 basedir, int
 		return;
 	}
 
-	knockback *= g_knockback_scale->value;
-
 	if( knockback < 1 ) {
 		return;
 	}

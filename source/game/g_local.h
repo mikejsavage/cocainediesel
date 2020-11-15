@@ -203,8 +203,6 @@ extern cvar_t *g_projectile_prestep;
 extern cvar_t *g_numbots;
 extern cvar_t *g_maxtimeouts;
 
-extern cvar_t *g_self_knockback;
-extern cvar_t *g_knockback_scale;
 extern cvar_t *g_respawn_delay_min;
 extern cvar_t *g_respawn_delay_max;
 extern cvar_t *g_deadbody_followkiller;

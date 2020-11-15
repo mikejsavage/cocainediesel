@@ -147,7 +147,6 @@ enum {
 #define GAMESTAT_FLAG_ISTEAMBASED ( 1 << 4LL )
 #define GAMESTAT_FLAG_ISRACE ( 1 << 5LL )
 #define GAMESTAT_FLAG_COUNTDOWN ( 1 << 6LL )
-#define GAMESTAT_FLAG_SELFDAMAGE ( 1 << 7LL )
 
 struct SyncBombGameState {
 	u8 alpha_score;

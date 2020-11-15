@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include <math.h>
+
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
 #include "gameshared/q_collision.h"
@@ -230,13 +232,13 @@ void ViewVectors( Vec3 forward, Vec3 * right, Vec3 * up ) {
 }
 
 void AngleVectors( Vec3 angles, Vec3 * forward, Vec3 * right, Vec3 * up ) {
-	float pitch = DEG2RAD( angles.x );
+	float pitch = Radians( angles.x );
 	float sp = sinf( pitch );
 	float cp = cosf( pitch );
-	float yaw = DEG2RAD( angles.y );
+	float yaw = Radians( angles.y );
 	float sy = sinf( yaw );
 	float cy = cosf( yaw );
-	float roll = DEG2RAD( angles.z );
+	float roll = Radians( angles.z );
 	float sr = sinf( roll );
 	float cr = cosf( roll );
 
@@ -257,12 +259,14 @@ void AngleVectors( Vec3 angles, Vec3 * forward, Vec3 * right, Vec3 * up ) {
 
 Vec3 VecToAngles( Vec3 vec ) {
 	if( vec.xy() == Vec2( 0.0f ) ) {
+		if( vec.z == 0.0f )
+			return Vec3( 0.0f );
 		return vec.z > 0 ? Vec3( -90.0f, 0.0f, 0.0f ) : Vec3( -270.0f, 0.0f, 0.0f );
 	}
 
 	float yaw;
 	if( vec.x != 0.0f ) {
-		yaw = RAD2DEG( atan2f( vec.y, vec.x ) );
+		yaw = Degrees( atan2f( vec.y, vec.x ) );
 	}
 	else if( vec.y > 0 ) {
 		yaw = 90;
@@ -272,7 +276,7 @@ Vec3 VecToAngles( Vec3 vec ) {
 	}
 
 	float forward = Length( vec.xy() );
-	float pitch = RAD2DEG( atan2f( vec.z, forward ) );
+	float pitch = Degrees( atan2f( vec.z, forward ) );
 
 	if( yaw < 0 ) {
 		yaw += 360;
@@ -296,6 +300,16 @@ void AnglesToAxis( Vec3 angles, mat3_t axis ) {
 	axis[6] = up.x;
 	axis[7] = up.y;
 	axis[8] = up.z;
+}
+
+// must match the GLSL OrthonormalBasis
+void OrthonormalBasis( Vec3 v, Vec3 * tangent, Vec3 * bitangent ) {
+	float s = copysignf( 1.0f, v.z );
+	float a = -1.0f / ( s + v.z );
+	float b = v.x * v.y * a;
+
+	*tangent = Vec3( 1.0f + s * v.x * v.x * a, s * b, -s * v.x );
+	*bitangent = Vec3( b, s + v.y * v.y * a, -v.y );
 }
 
 void BuildBoxPoints( Vec3 p[8], Vec3 org, Vec3 mins, Vec3 maxs ) {
@@ -367,6 +381,14 @@ float AngleNormalize180( float angle ) {
 */
 float AngleDelta( float angle1, float angle2 ) {
 	return AngleNormalize180( angle1 - angle2 );
+}
+
+Vec3 AngleDelta( Vec3 angle1, Vec3 angle2 ) {
+	return Vec3(
+		AngleDelta( angle1.x, angle2.x ),
+		AngleDelta( angle1.y, angle2.y ),
+		AngleDelta( angle1.z, angle2.z )
+	);
 }
 
 /*
@@ -614,7 +636,7 @@ float SampleNormalDistribution( RNG * rng ) {
 }
 
 Vec3 Project( Vec3 a, Vec3 b ) {
-	return Dot( a, b ) / Dot( b, b ) * b;
+	return Dot( a, b ) / LengthSquared( b ) * b;
 }
 
 Vec3 ClosestPointOnLine( Vec3 p0, Vec3 p1, Vec3 p ) {
@@ -660,4 +682,11 @@ Mat4 TransformKToDir( Vec3 dir ) {
 	);
 
 	return rotation;
+}
+
+MinMax3 Extend( MinMax3 bounds, Vec3 p ) {
+	return MinMax3(
+		Vec3( Min2( bounds.mins.x, p.x ), Min2( bounds.mins.y, p.y ), Min2( bounds.mins.z, p.z ) ),
+		Vec3( Max2( bounds.maxs.x, p.x ), Max2( bounds.maxs.y, p.y ), Max2( bounds.maxs.z, p.z ) )
+	);
 }

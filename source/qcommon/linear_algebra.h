@@ -40,6 +40,7 @@ inline float LengthSquared( Vec2 v ) {
 }
 
 inline Vec2 Normalize( Vec2 v ) {
+	assert( v != Vec2( 0.0f ) );
 	return v / Length( v );
 }
 
@@ -47,6 +48,21 @@ inline Vec2 SafeNormalize( Vec2 v ) {
 	if( v == Vec2( 0.0f ) )
 		return v;
 	return Normalize( v );
+}
+
+inline Vec2 Min2( Vec2 a, Vec2 b ) {
+	return Vec2( Min2( a.x, b.x ), Min2( a.y, b.y ) );
+}
+
+inline Vec2 Max2( Vec2 a, Vec2 b ) {
+	return Vec2( Max2( a.x, b.x ), Max2( a.y, b.y ) );
+}
+
+inline Vec2 Clamp( Vec2 lo, Vec2 v, Vec2 hi ) {
+	return Vec2(
+		Clamp( lo.x, v.x, hi.x ),
+		Clamp( lo.y, v.y, hi.y )
+	);
 }
 
 /*
@@ -98,6 +114,7 @@ inline float LengthSquared( Vec3 v ) {
 }
 
 inline Vec3 Normalize( Vec3 v ) {
+	assert( v != Vec3( 0.0f ) );
 	return v / Length( v );
 }
 
@@ -105,6 +122,14 @@ inline Vec3 SafeNormalize( Vec3 v ) {
 	if( v == Vec3( 0.0f ) )
 		return v;
 	return Normalize( v );
+}
+
+inline Vec3 Floor( Vec3 v ) {
+	return Vec3(
+		floorf( v.x ),
+		floorf( v.y ),
+		floorf( v.z )
+	);
 }
 
 /*
@@ -158,6 +183,9 @@ inline void operator/=( Vec4 & v, float inv_scale ) { v = v / inv_scale; }
 
 inline Vec4 operator-( Vec4 v ) { return Vec4( -v.x, -v.y, -v.z, -v.w ); }
 
+inline bool operator==( Vec4 lhs, Vec4 rhs ) { return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z && lhs.w == rhs.w; }
+inline bool operator!=( Vec4 lhs, Vec4 rhs ) { return !( lhs == rhs ); }
+
 inline float Dot( Vec4 lhs, Vec4 rhs ) {
 	return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z + lhs.w * rhs.w;
 }
@@ -167,7 +195,36 @@ inline float Length( Vec4 v ) {
 }
 
 inline Vec4 Normalize( Vec4 v ) {
+	assert( v != Vec4( 0.0f ) );
 	return v / Length( v );
+}
+
+inline Vec4 Clamp( Vec4 lo, Vec4 v, Vec4 hi ) {
+	return Vec4(
+		Clamp( lo.x, v.x, hi.x ),
+		Clamp( lo.y, v.y, hi.y ),
+		Clamp( lo.z, v.z, hi.z ),
+		Clamp( lo.w, v.w, hi.w )
+	);
+}
+
+/*
+ * Mat2
+ */
+
+inline Mat2 Mat2Rotation( float c, float s ) {
+	return Mat2( c, -s, s, c );
+}
+
+inline Mat2 Mat2Rotation( float theta ) {
+	return Mat2Rotation( cosf( Radians( theta ) ), sinf( Radians( theta ) ) );
+}
+
+inline Vec2 operator*( const Mat2 & m, const Vec2 & v ) {
+	return Vec2(
+		Dot( m.row0(), v ),
+		Dot( m.row1(), v )
+	);
 }
 
 /*
@@ -228,7 +285,7 @@ inline void operator*=( Mat4 & lhs, const Mat4 & rhs ) {
 	lhs = lhs * rhs;
 }
 
-inline Vec4 operator*( const Mat4 & m, Vec4 v ) {
+inline Vec4 operator*( const Mat4 & m, const Vec4 & v ) {
 	return Vec4(
 		Dot( m.row0(), v ),
 		Dot( m.row1(), v ),

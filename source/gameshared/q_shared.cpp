@@ -70,11 +70,13 @@ bool COM_ValidateFilename( const char *filename ) {
 * COM_ValidateRelativeFilename
 */
 bool COM_ValidateRelativeFilename( const char *filename ) {
+	// TODO: should probably use PathIsRelative on windows
+	// https://docs.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathisrelativea?redirectedfrom=MSDN
 	if( !COM_ValidateFilename( filename ) ) {
 		return false;
 	}
 
-	if( strstr( filename, ".." ) || strstr( filename, "//" ) ) {
+	if( strchr( filename, ':' ) || strstr( filename, ".." ) || strstr( filename, "//" ) ) {
 		return false;
 	}
 
@@ -375,6 +377,8 @@ bool StrEqual( const char * rhs, Span< const char > lhs ) {
 }
 
 bool StrCaseEqual( Span< const char > lhs, Span< const char > rhs ) {
+	if( lhs.n == 0 && rhs.n == 0 )
+		return true;
 	return lhs.n == rhs.n && Q_strnicmp( lhs.ptr, rhs.ptr, lhs.n ) == 0;
 }
 
@@ -384,6 +388,13 @@ bool StrCaseEqual( Span< const char > lhs, const char * rhs ) {
 
 bool StrCaseEqual( const char * rhs, Span< const char > lhs ) {
 	return StrCaseEqual( lhs, rhs );
+}
+
+bool StartsWith( const char * str, const char * prefix ) {
+	if( strlen( str ) < strlen( prefix ) )
+		return false;
+
+	return memcmp( str, prefix, strlen( prefix ) ) == 0;
 }
 
 Span< const char > FileExtension( const char * path ) {
@@ -570,39 +581,6 @@ const char *COM_RemoveJunkChars( const char *in ) {
 
 	*out = '\0';
 	return cleanString;
-}
-
-/*
-* COM_ReadColorRGBString
-*/
-int COM_ReadColorRGBString( const char *in ) {
-	if( in == NULL )
-		return 0;
-
-	int rgb[3];
-	if( sscanf( in, "%3i %3i %3i", &rgb[0], &rgb[1], &rgb[2] ) != 3 )
-		return 0;
-
-	for( int i = 0; i < 3; i++ ) {
-		rgb[i] = Clamp( rgb[i], 0, 255 );
-	}
-
-	return COLOR_RGB( rgb[0], rgb[1], rgb[2] );
-}
-
-int COM_ReadColorRGBAString( const char *in ) {
-	if( in == NULL )
-		return 0;
-
-	int rgba[4];
-	if( sscanf( in, "%3i %3i %3i %3i", &rgba[0], &rgba[1], &rgba[2], &rgba[3] ) != 4 )
-		return 0;
-
-	for( int i = 0; i < 4; i++ ) {
-		rgba[i] = Clamp( rgba[i], 0, 255 );
-	}
-
-	return COLOR_RGBA( rgba[0], rgba[1], rgba[2], rgba[3] );
 }
 
 /*

@@ -25,19 +25,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/client.h"
 #include "cgame/cg_public.h"
 #include "cgame/cg_syscalls.h"
+#include "cgame/cg_decals.h"
 #include "cgame/cg_particles.h"
+#include "cgame/cg_sprays.h"
 
 #include "client/sound.h"
-#include "client/renderer/renderer.h"
-#include "client/renderer/text.h"
+#include "client/renderer/types.h"
 
 #define VSAY_TIMEOUT 2500
 
 constexpr float FOV = 107.9f; // chosen to upset everyone equally
 
 constexpr RGB8 TEAM_COLORS[] = {
-	RGB8( 0, 140, 220 ),
-	RGB8( 200, 20, 40 ),
+	RGB8( 0, 204, 255 ),
+	RGB8( 255, 24, 96 ),
 	RGB8( 50, 200, 90 ),
 	RGB8( 210, 170, 0 ),
 };
@@ -57,7 +58,7 @@ enum {
 	MAX_LOCALEFFECTS = 64,
 };
 
-typedef struct {
+struct centity_t {
 	SyncEntityState current;
 	SyncEntityState prev;        // will always be valid, but might just be a copy of current
 
@@ -106,11 +107,11 @@ typedef struct {
 	bool jumpedLeft;
 	Vec3 animVelocity;
 	float yawVelocity;
-} centity_t;
+};
 
-#include "cg_pmodels.h"
+#include "cgame/cg_pmodels.h"
 
-typedef struct {
+struct cgs_media_t {
 	// sounds
 	const SoundEffect * sfxWeaponNoAmmo;
 
@@ -156,6 +157,7 @@ typedef struct {
 	const SoundEffect * sfxFall;
 
 	const SoundEffect * sfxTbag;
+	const SoundEffect * sfxSpray;
 
 	const SoundEffect * sfxHeadshot;
 
@@ -179,7 +181,6 @@ typedef struct {
 	const Material * shaderGrenadeExplosion;
 	const Material * shaderGrenadeExplosionRing;
 	const Material * shaderBulletExplosion;
-	const Material * shaderRaceGhostEffect;
 	const Material * shaderWaterBubble;
 	const Material * shaderSmokePuff;
 
@@ -219,20 +220,20 @@ typedef struct {
 	const Material * shaderAlive;
 	const Material * shaderDead;
 	const Material * shaderReady;
-} cgs_media_t;
+};
 
-typedef struct {
+struct cg_clientInfo_t {
 	char name[MAX_QPATH];
 	int hand;
-} cg_clientInfo_t;
+};
 
 #define MAX_ANGLES_KICKS 3
 
-typedef struct {
+struct cg_kickangles_t {
 	int64_t timestamp;
 	int64_t kicktime;
 	float v_roll, v_pitch;
-} cg_kickangles_t;
+};
 
 #define PREDICTED_STEP_TIME 150 // stairs smoothing time
 #define MAX_AWARD_LINES 3
@@ -244,7 +245,7 @@ enum {
 	VIEWDEF_PLAYERVIEW,
 };
 
-typedef struct {
+struct cg_viewdef_t {
 	int type;
 	int POVent;
 	bool thirdperson;
@@ -257,18 +258,15 @@ typedef struct {
 	Vec3 angles;
 	mat3_t axis;
 	Vec3 velocity;
-} cg_viewdef_t;
+};
 
-#include "cg_democams.h"
+#include "cgame/cg_democams.h"
 
 // this is not exactly "static" but still...
-typedef struct {
+struct cg_static_t {
 	const char *serverName;
 	const char *demoName;
 	unsigned int playerNum;
-
-	// materials
-	const Material * white_material;
 
 	// fonts
 	int fontSystemTinySize;
@@ -281,10 +279,10 @@ typedef struct {
 	float textSizeMedium;
 	float textSizeBig;
 
-	const Font * fontMontserrat;
-	const Font * fontMontserratBold;
-	const Font * fontMontserratItalic;
-	const Font * fontMontserratBoldItalic;
+	const Font * fontNormal;
+	const Font * fontNormalBold;
+	const Font * fontNormalItalic;
+	const Font * fontNormalBoldItalic;
 
 	cgs_media_t media;
 
@@ -300,21 +298,12 @@ typedef struct {
 	char configStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 	char baseConfigStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 
-	WeaponModelMetadata *weaponInfos[ Weapon_Count + 1 ];
-
 	cg_clientInfo_t clientInfo[MAX_CLIENTS];
 
-	PlayerModelMetadata *teamModelInfo[2];
-
 	char checkname[MAX_QPATH];
+};
 
-	ParticleSystem ions;
-	ParticleSystem bullet_sparks;
-	ParticleSystem sparks;
-	ParticleSystem smoke;
-} cg_static_t;
-
-typedef struct {
+struct cg_state_t {
 	int frameCount;
 
 	snapshot_t frame, oldFrame;
@@ -352,14 +341,13 @@ typedef struct {
 	int64_t pointRemoveTime;
 	int pointedHealth;
 
-	//
-	// all cyclic walking effects
-	//
 	float xyspeed;
 
 	bool recoiling;
-	float recoil;
-	float recoil_initial_pitch;
+	Vec3 recoil;
+	Vec3 recoil_initial;
+
+	float damage_effect;
 
 	float oldBobTime;
 	int bobCycle;                   // odd cycles are right foot going forward
@@ -378,12 +366,9 @@ typedef struct {
 	int64_t award_times[MAX_AWARD_LINES];
 	int award_head;
 
-	// statusbar program
-	struct cg_layoutnode_s *statusBar;
-
 	cg_viewweapon_t weapon;
 	cg_viewdef_t view;
-} cg_state_t;
+};
 
 extern cg_static_t cgs;
 extern cg_state_t cg;
@@ -400,7 +385,10 @@ extern centity_t cg_entities[MAX_EDICTS];
 // cg_ents.c
 //
 bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe );
-struct cmodel_s *CG_CModelForEntity( int entNum );
+
+struct cmodel_t;
+cmodel_t *CG_CModelForEntity( int entNum );
+
 void CG_SoundEntityNewState( centity_t *cent );
 void CG_AddEntities( void );
 void CG_GetEntitySpatilization( int entNum, Vec3 * origin, Vec3 * velocity );
@@ -431,7 +419,6 @@ extern cvar_t *cg_hand;
 
 void CG_ResetClientInfos( void );
 void CG_LoadClientInfo( int client );
-void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata, const char * name );
 void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps );
 
 //
@@ -480,6 +467,8 @@ void CG_AddBombSite( centity_t * cent );
 void CG_DrawBombHUD();
 void CG_ResetBombHUD();
 
+void AddDamageEffect( float x = 0.0f );
+
 //
 // cg_hud.c
 //
@@ -487,7 +476,7 @@ void CG_InitHUD();
 void CG_ShutdownHUD();
 void CG_SC_ResetObituaries();
 void CG_SC_Obituary();
-void CG_ExecuteLayoutProgram( struct cg_layoutnode_s *rootnode );
+void CG_DrawHUD();
 void CG_ClearAwards();
 
 //
@@ -507,8 +496,6 @@ extern cvar_t *cg_showClamp;
 extern cvar_t *cg_showHotkeys;
 
 // wsw
-extern cvar_t *cg_volume_hitsound;    // hit sound volume
-extern cvar_t *cg_volume_announcer; // announcer sounds volume
 extern cvar_t *cg_autoaction_demo;
 extern cvar_t *cg_autoaction_screenshot;
 extern cvar_t *cg_autoaction_spectator;
@@ -517,8 +504,7 @@ extern cvar_t *cg_voiceChats;
 extern cvar_t *cg_projectileAntilagOffset;
 extern cvar_t *cg_chatFilter;
 
-extern cvar_t *cg_allyModel;
-extern cvar_t *cg_enemyModel;
+extern cvar_t *cg_particleDebug;
 
 #define CG_Malloc( size ) _Mem_AllocExt( cg_mempool, size, 16, 1, 0, 0, __FILE__, __LINE__ );
 #define CG_Free( data ) Mem_Free( data )
@@ -554,8 +540,7 @@ void CG_SC_AutoRecordAction( const char *action );
 //
 // cg_teams.c
 //
-void CG_RegisterPlayerModels();
-const PlayerModelMetadata * CG_PModelForCentity( centity_t * cent );
+bool CG_IsAlly( int team );
 RGB8 CG_TeamColor( int team );
 Vec4 CG_TeamColorVec4( int team );
 
@@ -595,28 +580,19 @@ bool CG_SwitchChaseCamMode( void );
 // cg_lents.c
 //
 
-void CG_ClearLocalEntities( void );
-void CG_AddLocalEntities( void );
-void CG_FreeLocalEntities( void );
-
 void CG_BubbleTrail( Vec3 start, Vec3 end, int dist );
-void CG_ProjectileTrail( const centity_t * cent );
-void CG_NewBloodTrail( centity_t *cent );
-void CG_BloodDamageEffect( Vec3 origin, Vec3 dir, int damage, Vec4 team_color );
+void CG_RifleBulletTrail( const centity_t * cent );
 void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_BubbleExplosion( Vec3 pos, Vec4 team_color );
-void CG_GrenadeExplosionMode( Vec3 pos, Vec3 dir, Vec4 team_color );
+void CG_GrenadeExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius );
-void CG_RocketExplosionMode( Vec3 pos, Vec3 dir, Vec4 team_color );
+void CG_RocketExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_EBBeam( Vec3 start, Vec3 end, Vec4 team_color );
 void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color );
-void CG_ImpactSmokePuff( Vec3 origin, Vec3 dir, float radius, float alpha, int time, int speed );
 void CG_BladeImpact( Vec3 pos, Vec3 dir );
 void CG_PModel_SpawnTeleportEffect( centity_t * cent, MatrixPalettes temp_pose );
-void CG_LaserGunImpact( Vec3 pos, Vec3 laser_dir, RGBA8 color );
 
 void CG_Dash( const SyncEntityState *state );
-void CG_Explosion_Puff_2( Vec3 pos, Vec3 vel, int radius );
 void CG_DustCircle( Vec3 pos, Vec3 dir, float radius, int count );
 
 void InitGibs();
@@ -626,10 +602,10 @@ void DrawGibs();
 //
 // cg_effects.c
 //
-void CG_ParticleRocketExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color );
-void CG_ParticlePlasmaExplosionEffect( Vec3 origin, Vec3 normal, Vec3 team_color );
-void CG_ParticleBubbleExplosionEffect( Vec3 origin, Vec3 team_color );
-void CG_EBIonsTrail( Vec3 start, Vec3 end, Vec4 color );
+void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color );
+void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color );
+void BubbleImpactParticles( Vec3 origin, Vec3 team_color );
+void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color );
 
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material );
 
@@ -643,7 +619,9 @@ void DrawPersistentBeams();
 void CG_AddViewWeapon( cg_viewweapon_t *viewweapon );
 void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon );
 void CG_ViewWeapon_StartAnimationEvent( int newAnim );
-void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon );
+
+void CG_AddRecoil( WeaponType weapon );
+void CG_Recoil( WeaponType weapon );
 
 //
 // cg_events.c
@@ -653,6 +631,9 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted );
 void CG_AddAnnouncerEvent( const SoundEffect *sound, bool queued );
 void CG_ReleaseAnnouncerEvents( void );
 void CG_ClearAnnouncerEvents( void );
+
+void ResetAnnouncerSpeakers();
+void AddAnnouncerSpeaker( const centity_t * cent );
 
 // I don't know where to put these ones
 void CG_WeaponBeamEffect( centity_t *cent );

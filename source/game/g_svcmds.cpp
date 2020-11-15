@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "g_local.h"
+#include "game/g_local.h"
 
 /*
 * Cmd_ConsoleSay_f
@@ -45,7 +45,7 @@ static void Cmd_ConsoleKick_f( void ) {
 		return;
 	}
 
-	trap_DropClient( ent, DROP_TYPE_NORECONNECT, "Kicked" );
+	PF_DropClient( ent, DROP_TYPE_NORECONNECT, "Kicked" );
 }
 
 
@@ -341,7 +341,7 @@ static void Cmd_WriteIP_f( void ) {
 * G_AddCommands
 */
 void G_AddServerCommands( void ) {
-	if( GAME_IMPORT.is_dedicated_server ) {
+	if( is_dedicated_server ) {
 		Cmd_AddCommand( "say", Cmd_ConsoleSay_f );
 	}
 	Cmd_AddCommand( "kick", Cmd_ConsoleKick_f );
@@ -362,7 +362,7 @@ void G_AddServerCommands( void ) {
 * G_RemoveCommands
 */
 void G_RemoveCommands( void ) {
-	if( GAME_IMPORT.is_dedicated_server ) {
+	if( is_dedicated_server ) {
 		Cmd_RemoveCommand( "say" );
 	}
 	Cmd_RemoveCommand( "kick" );

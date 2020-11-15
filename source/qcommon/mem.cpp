@@ -28,16 +28,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MEMALIGNMENT_DEFAULT        16
 
-typedef struct memheader_s {
+struct memheader_t {
 	// address returned by malloc (may be significantly before this header to satisify alignment)
 	void *baseaddress;
 
 	// next and previous memheaders in chain belonging to pool
-	struct memheader_s *next;
-	struct memheader_s *prev;
+	memheader_t *next;
+	memheader_t *prev;
 
 	// pool this memheader belongs to
-	struct mempool_s *pool;
+	mempool_t *pool;
 
 	// size of the memory after the header (excluding header and sentinel2)
 	size_t size;
@@ -52,14 +52,14 @@ typedef struct memheader_s {
 	// should always be MEMHEADER_SENTINEL1
 	unsigned int sentinel1;
 	// immediately followed by data, which is followed by a MEMHEADER_SENTINEL2 byte
-} memheader_t;
+};
 
-struct mempool_s {
+struct mempool_t {
 	// should always be MEMHEADER_SENTINEL1
 	unsigned int sentinel1;
 
 	// chain of individual memory allocations
-	struct memheader_s *chain;
+	memheader_t *chain;
 
 	// temporary, etc
 	int flags;
@@ -77,10 +77,10 @@ struct mempool_s {
 	char name[POOLNAMESIZE];
 
 	// linked into global mempool list or parent's children list
-	struct mempool_s *next;
+	mempool_t *next;
 
-	struct mempool_s *parent;
-	struct mempool_s *child;
+	mempool_t *parent;
+	mempool_t *child;
 
 	// file name and line where Mem_AllocPool was called
 	const char *filename;
@@ -161,6 +161,7 @@ ATTRIBUTE_MALLOC void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t align
 	pool->realsize += realsize;
 
 	base = malloc( realsize );
+	TracyAlloc( base, realsize );
 	if( base == NULL ) {
 		_Mem_Error( "Mem_Alloc: out of memory (alloc at %s:%i)", filename, fileline );
 	}
@@ -310,6 +311,7 @@ void _Mem_Free( void *data, int musthave, int canthave, const char *filename, in
 	Unlock( memMutex );
 
 	free( base );
+	TracyFree( base );
 }
 
 mempool_t *_Mem_AllocPool( mempool_t *parent, const char *name, int flags, const char *filename, int fileline ) {
@@ -323,6 +325,7 @@ mempool_t *_Mem_AllocPool( mempool_t *parent, const char *name, int flags, const
 	}
 
 	pool = ( mempool_t* )malloc( sizeof( mempool_t ) );
+	TracyAlloc( pool, sizeof( mempool_t ) );
 	if( pool == NULL ) {
 		_Mem_Error( "Mem_AllocPool: out of memory (allocpool at %s:%i)", filename, fileline );
 	}
@@ -421,6 +424,7 @@ void _Mem_FreePool( mempool_t **pool, int musthave, int canthave, const char *fi
 
 	// free the pool itself
 	free( *pool );
+	TracyFree( *pool );
 	*pool = NULL;
 }
 

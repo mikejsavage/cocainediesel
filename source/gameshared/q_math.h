@@ -43,11 +43,10 @@ enum {
 
 typedef float mat3_t[9];
 
-// cplane_t structure
-typedef struct cplane_s {
+struct cplane_t {
 	Vec3 normal;
 	float dist;
-} cplane_t;
+};
 
 constexpr mat3_t axis_identity = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 
@@ -71,8 +70,10 @@ Vec3 LerpAngles( Vec3 a, float t, Vec3 b );
 float AngleNormalize360( float angle );
 float AngleNormalize180( float angle );
 float AngleDelta( float angle1, float angle2 );
+Vec3 AngleDelta( Vec3 angle1, Vec3 angle2 );
 Vec3 VecToAngles( Vec3 vec );
 void AnglesToAxis( Vec3 angles, mat3_t axis );
+void OrthonormalBasis( Vec3 v, Vec3 * tangent, Vec3 * bitangent );
 void BuildBoxPoints( Vec3 p[8], Vec3 org, Vec3 mins, Vec3 maxs );
 
 float WidescreenFov( float fov );
@@ -112,3 +113,5 @@ Vec3 ClosestPointOnLine( Vec3 p0, Vec3 p1, Vec3 p );
 Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p );
 
 Mat4 TransformKToDir( Vec3 dir );
+
+MinMax3 Extend( MinMax3 bounds, Vec3 p );

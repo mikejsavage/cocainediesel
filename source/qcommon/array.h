@@ -4,30 +4,14 @@
 #include "qcommon/asan.h"
 
 template< typename T >
-class DynamicArray {
+class NonRAIIDynamicArray {
 	Allocator * a;
 	size_t n;
 	size_t capacity;
 	T * elems;
-	bool auto_destruct;
 
 public:
-	NONCOPYABLE( DynamicArray );
-
-	DynamicArray( NoInit ) {
-		auto_destruct = false;
-	}
-
-	DynamicArray( Allocator * a_, size_t initial_capacity = 0 ) {
-		init( a_, initial_capacity );
-		auto_destruct = true;
-	}
-
-	~DynamicArray() {
-		if( auto_destruct ) {
-			shutdown();
-		}
-	}
+	virtual ~NonRAIIDynamicArray() = default;
 
 	void init( Allocator * a_, size_t initial_capacity = 0 ) {
 		a = a_;
@@ -47,14 +31,13 @@ public:
 	}
 
 	void clear() {
-		n = 0;
-		ASAN_POISON_MEMORY_REGION( elems, capacity * sizeof( T ) );
+		resize( 0 );
 	}
 
 	void resize( size_t new_size ) {
 		if( new_size < n ) {
 			n = new_size;
-			ASAN_POISON_MEMORY_REGION( elems + n * sizeof( T ), ( capacity - n ) * sizeof( T ) );
+			ASAN_POISON_MEMORY_REGION( elems + n, ( capacity - n ) * sizeof( T ) );
 			return;
 		}
 
@@ -73,7 +56,7 @@ public:
 		n = new_size;
 
 		ASAN_UNPOISON_MEMORY_REGION( elems, n * sizeof( T ) );
-		ASAN_POISON_MEMORY_REGION( elems + n * sizeof( T ), ( capacity - n ) * sizeof( T ) );
+		ASAN_POISON_MEMORY_REGION( elems + n, ( capacity - n ) * sizeof( T ) );
 	}
 
 	size_t extend( size_t by ) {
@@ -114,4 +97,22 @@ public:
 
 	Span< T > span() { return Span< T >( elems, n ); }
 	Span< const T > span() const { return Span< const T >( elems, n ); }
+};
+
+template< typename T >
+class DynamicArray : public NonRAIIDynamicArray< T > {
+	// weird c++ syntax that lets you change visibility of inherited members
+	using NonRAIIDynamicArray< T >::init;
+	using NonRAIIDynamicArray< T >::shutdown;
+
+public:
+	NONCOPYABLE( DynamicArray );
+
+	DynamicArray( Allocator * a_, size_t initial_capacity = 0 ) {
+		init( a_, initial_capacity );
+	}
+
+	~DynamicArray() {
+		shutdown();
+	}
 };

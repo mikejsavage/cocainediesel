@@ -1,5 +1,5 @@
 {
 	attenuation idle
-	sound weapons/ric1
-	sound weapons/ric2
+	sound ./bullet_impact1
+	sound ./bullet_impact2
 }

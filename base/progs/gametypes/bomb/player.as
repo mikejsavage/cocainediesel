@@ -1,32 +1,10 @@
-/*
-Copyright (C) 2009-2010 Chasseur de bots
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-*/
-
-const int MAX_CASH = 500;
-
 cPlayer@[] players( maxClients ); // array of handles
 bool playersInitialized = false;
 
 class cPlayer {
 	Client @client;
 
-	uint[] loadout( Weapon_Count - 1 );
-	int num_weapons;
+	WeaponType[] loadout( WeaponCategory_Count );
 
 	int killsThisRound;
 
@@ -52,8 +30,10 @@ class cPlayer {
 		this.client.inventoryClear();
 		this.client.giveWeapon( Weapon_Knife );
 
-		for( int i = 0; i < this.num_weapons; i++ ) {
-			this.client.giveWeapon( WeaponType( this.loadout[ i ] ) );
+		for( uint i = 0; i < loadout.length; i++ ) {
+			if( loadout[ i ] != Weapon_None ) {
+				this.client.giveWeapon( this.loadout[ i ] );
+			}
 		}
 
 		this.client.selectWeapon( 0 );
@@ -66,49 +46,50 @@ class cPlayer {
 		}
 
 		String command = "changeloadout";
-		for( int i = 0; i < this.num_weapons; i++ ) {
-			command += " " + this.loadout[ i ];
+		for( uint i = 0; i < loadout.length; i++ ) {
+			if( loadout[ i ] != Weapon_None ) {
+				command += " " + loadout[ i ];
+			}
 		}
 		this.client.execGameCommand( command );
 	}
 
 	void setLoadout( String &cmd ) {
-		int cash = MAX_CASH;
+		WeaponType[] new_loadout( WeaponCategory_Count );
 
-		for( uint i = 0; i < this.loadout.length(); i++ ) {
-			this.loadout[ i ] = Weapon_None;
-		}
+		for( int i = 0; i < WeaponCategory_Count; i++ ) {
+			String token = cmd.getToken( i );
+			if( token == "" )
+				break;
 
-		this.num_weapons = 0;
-
-		{
-			int i = 0;
-			while( true ) {
-				String token = cmd.getToken( i );
-				i++;
-				if( token == "" )
-					break;
-				int weapon = token.toInt();
-				if( weapon > Weapon_None && weapon < Weapon_Count && weapon != Weapon_Knife ) {
-					this.loadout[ this.num_weapons ] = weapon;
-					cash -= WeaponCost( WeaponType( weapon ) );
-					this.num_weapons++;
-				}
+			int weapon = token.toInt();
+			if( weapon <= Weapon_None || weapon >= Weapon_Count || weapon == Weapon_Knife ) {
+				return;
 			}
+
+			WeaponCategory category = GetWeaponCategory( WeaponType( weapon ) );
+			if( new_loadout[ category ] != Weapon_None ) {
+				return;
+			}
+
+			new_loadout[ category ] = WeaponType( weapon );
 		}
 
-		if( cash < 0 ) {
-			G_PrintMsg( @this.client.getEnt(), "You are not wealthy enough\n" );
-			return;
-		}
+		this.loadout = new_loadout;
 
 		String command = "saveloadout";
-		for( int i = 0; i < this.num_weapons; i++ ) {
-			command += " " + this.loadout[ i ];
+		for( uint i = 0; i < this.loadout.length; i++ ) {
+			if( this.loadout[ i ] != Weapon_None ) {
+				command += " " + this.loadout[ i ];
+			}
 		}
 		this.client.execGameCommand( command );
 
-		if( match.getState() == MATCH_STATE_WARMUP ) {
+		if( this.client.getEnt().isGhosting() ) {
+			return;
+		}
+
+		if( match.getState() == MATCH_STATE_WARMUP || match.getState() == MATCH_STATE_COUNTDOWN ) {
 			giveInventory();
 		}
 
@@ -134,21 +115,6 @@ void playersInit() {
 
 		playersInitialized = true;
 	}
-}
-
-// using a global counter would be faster
-uint getCarrierCount( int teamNum ) {
-	uint count = 0;
-
-	Team @team = @G_GetTeam( teamNum );
-
-	for( int i = 0; @team.ent( i ) != null; i++ ) {
-		if( @team.ent( i ) == @bombCarrier ) {
-			count++;
-		}
-	}
-
-	return count;
 }
 
 void resetKillCounters() {

@@ -57,21 +57,21 @@ static areagrid_t g_areagrid;
 #define CFRAME_UPDATE_BACKUP    64  // copies of SyncEntityState to keep buffered (1 second of backup at 62 fps).
 #define CFRAME_UPDATE_MASK  ( CFRAME_UPDATE_BACKUP - 1 )
 
-typedef struct c4clipedict_s {
+struct c4clipedict_t {
 	SyncEntityState s;
 	entity_shared_t r;
-} c4clipedict_t;
+};
 
 //backups of all server frames areas and edicts
-typedef struct c4frame_s {
+struct c4frame_t {
 	c4clipedict_t clipEdicts[MAX_EDICTS];
 	int numedicts;
 
 	int64_t timestamp;
 	int64_t framenum;
-} c4frame_t;
+};
 
-c4frame_t sv_collisionframes[CFRAME_UPDATE_BACKUP];
+static c4frame_t sv_collisionframes[CFRAME_UPDATE_BACKUP];
 static int64_t sv_collisionFrameNum = 0;
 
 void GClip_BackUpCollisionFrame( void ) {
@@ -648,7 +648,7 @@ int GClip_AreaEdicts( Vec3 mins, Vec3 maxs, int *list, int maxcount, int areatyp
 * Returns a collision model that can be used for testing or clipping an
 * object of mins/maxs size.
 */
-static struct cmodel_s *GClip_CollisionModelForEntity( SyncEntityState *s, entity_shared_t *r ) {
+static cmodel_t *GClip_CollisionModelForEntity( SyncEntityState *s, entity_shared_t *r ) {
 	cmodel_t * model = CM_TryFindCModel( CM_Server, s->model );
 	if( model != NULL ) {
 		return model;
@@ -675,7 +675,7 @@ static int GClip_PointContents( Vec3 p, int timeDelta ) {
 	int touch[MAX_EDICTS];
 	int i, num;
 	int contents, c2;
-	struct cmodel_s *cmodel;
+	cmodel_t *cmodel;
 
 	// get base contents from world
 	contents = CM_TransformedPointContents( CM_Server, svs.cms, p, NULL, Vec3( 0.0f ), Vec3( 0.0f ) );
@@ -761,7 +761,7 @@ static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
 		}
 
 		// might intersect, so do an exact clip
-		struct cmodel_s * cmodel = GClip_CollisionModelForEntity( &touch->s, &touch->r );
+		cmodel_t * cmodel = GClip_CollisionModelForEntity( &touch->s, &touch->r );
 
 		Vec3 angles;
 		if( CM_IsBrushModel( CM_Server, touch->s.model ) ) {
@@ -940,15 +940,11 @@ void GClip_TouchTriggers( edict_t *ent ) {
 }
 
 void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
-	int touch[MAX_EDICTS];
-	Vec3 mins, maxs;
-	edict_t *ent;
-
 	if( pm->playerState->POVnum <= 0 || (int)pm->playerState->POVnum > server_gs.maxclients ) {
 		return;
 	}
 
-	ent = game.edicts + pm->playerState->POVnum;
+	edict_t * ent = game.edicts + pm->playerState->POVnum;
 	if( !ent->r.inuse || !ent->r.client || G_IsDead( ent ) ) { // dead things don't activate triggers!
 		return;
 	}
@@ -973,16 +969,18 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 	GClip_LinkEntity( ent );
 
 	// expand the search bounds to include the space between the previous and current origin
+	Vec3 mins, maxs;
 	for( int i = 0; i < 3; i++ ) {
 		if( previous_origin[i] < pm->playerState->pmove.origin[i] ) {
-			mins[i] = Max2( previous_origin[i] + pm->maxs[i], pm->playerState->pmove.origin[i] + pm->mins[i] );
+			mins[i] = Min2( previous_origin[i] + pm->maxs[i], pm->playerState->pmove.origin[i] + pm->mins[i] );
 			maxs[i] = pm->playerState->pmove.origin[i] + pm->maxs[i];
 		} else {
 			mins[i] = pm->playerState->pmove.origin[i] + pm->mins[i];
-			maxs[i] = Min2( previous_origin[i] + pm->mins[i], pm->playerState->pmove.origin[i] + pm->maxs[i] );
+			maxs[i] = Max2( previous_origin[i] + pm->mins[i], pm->playerState->pmove.origin[i] + pm->maxs[i] );
 		}
 	}
 
+	int touch[MAX_EDICTS];
 	int num = GClip_AreaEdicts( mins, maxs, touch, MAX_EDICTS, AREA_TRIGGERS, 0 );
 
 	// be careful, it is possible to have an entity in this

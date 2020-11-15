@@ -25,7 +25,7 @@ gs_state_t server_gs;
 level_locals_t level;
 spawn_temp_t st;
 
-mempool_s *gamepool;
+mempool_t *gamepool;
 
 int meansOfDeath;
 Vec3 knockbackOfDeath;
@@ -62,9 +62,6 @@ cvar_t *g_antilag_timenudge;
 cvar_t *g_autorecord;
 cvar_t *g_autorecord_maxdemos;
 
-cvar_t *g_self_knockback;
-cvar_t *g_knockback_scale;
-
 cvar_t *g_respawn_delay_min;
 cvar_t *g_respawn_delay_max;
 cvar_t *g_deadbody_followkiller;
@@ -96,7 +93,7 @@ static void G_GS_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end,
 * give gameshared access to some utilities
 */
 static void G_InitGameShared( void ) {
-	int maxclients = atoi( trap_GetConfigString( CS_MAXCLIENTS ) );
+	int maxclients = atoi( PF_GetConfigString( CS_MAXCLIENTS ) );
 	if( maxclients < 1 || maxclients > MAX_EDICTS ) {
 		Com_Error( ERR_DROP, "Invalid maxclients value %i\n", maxclients );
 	}
@@ -111,7 +108,6 @@ static void G_InitGameShared( void ) {
 	server_gs.api.GetEntityState = G_GetEntityStateForDeltaTime;
 	server_gs.api.PointContents = G_PointContents4D;
 	server_gs.api.PMoveTouchTriggers = G_PMoveTouchTriggers;
-	server_gs.api.GetConfigString = trap_GetConfigString;
 }
 
 void G_GamestatSetFlag( int flag, bool b ) {
@@ -158,8 +154,6 @@ void G_Init( unsigned int framemsec ) {
 	filterban = Cvar_Get( "filterban", "1", 0 );
 
 	g_projectile_prestep = Cvar_Get( "g_projectile_prestep", va( "%i", PROJECTILE_PRESTEP ), CVAR_DEVELOPER );
-	g_self_knockback = Cvar_Get( "g_self_knockback", "1.18", CVAR_DEVELOPER );
-	g_knockback_scale = Cvar_Get( "g_knockback_scale", "1.0", CVAR_ARCHIVE );
 	g_respawn_delay_min = Cvar_Get( "g_respawn_delay_min", "600", CVAR_DEVELOPER );
 	g_respawn_delay_max = Cvar_Get( "g_respawn_delay_max", "6000", CVAR_DEVELOPER );
 	g_numbots = Cvar_Get( "g_numbots", "0", CVAR_ARCHIVE );
@@ -172,7 +166,7 @@ void G_Init( unsigned int framemsec ) {
 
 	g_allow_spectator_voting = Cvar_Get( "g_allow_spectator_voting", "1", CVAR_ARCHIVE );
 
-	if( GAME_IMPORT.is_dedicated_server ) {
+	if( is_dedicated_server ) {
 		g_autorecord = Cvar_Get( "g_autorecord", "1", CVAR_ARCHIVE );
 		g_autorecord_maxdemos = Cvar_Get( "g_autorecord_maxdemos", "200", CVAR_ARCHIVE );
 	} else {
@@ -218,7 +212,7 @@ void G_Init( unsigned int framemsec ) {
 
 	game.numentities = server_gs.maxclients + 1;
 
-	trap_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
+	SV_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
 
 	// server console commands
 	G_AddServerCommands();

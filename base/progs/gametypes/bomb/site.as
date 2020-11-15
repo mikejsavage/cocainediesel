@@ -1,22 +1,3 @@
-/*
-   Copyright (C) 2009-2010 Chasseur de bots
-
-   This program is free software; you can redistribute it and/or
-   modify it under the terms of the GNU General Public License
-   as published by the Free Software Foundation; either version 2
-   of the License, or (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-   See the GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-   */
-
 cBombSite @siteHead = null;
 uint siteCount = 0;
 
@@ -198,12 +179,12 @@ void resetBombSites() {
 	siteCount = 0;
 }
 
-void misc_capture_area_indicator( Entity @ent ) {
-	@ent.think = misc_capture_area_indicator_think;
+void bomb_site( Entity @ent ) {
+	@ent.think = bomb_site_think;
 	cBombSite( @ent, ent.target != "", defendingTeam );
 }
 
-void misc_capture_area_indicator_think( Entity @ent ) {
+void bomb_site_think( Entity @ent ) {
 	// if AS had static this could be approx 1 bajillion times
 	// faster on subsequent calls
 
@@ -252,23 +233,21 @@ void misc_capture_area_indicator_think( Entity @ent ) {
 	}
 }
 
-void trigger_capture_area( Entity @ent ) {
-	@ent.think = trigger_capture_area_think;
-	@ent.touch = trigger_capture_area_touch;
+void plant_area( Entity @ent ) {
+	@ent.think = plant_area_think;
+	@ent.touch = plant_area_touch;
 	ent.setupModel(); // set up the brush model
 	ent.solid = SOLID_TRIGGER;
 	ent.linkEntity();
 
-	// give time for indicator to load
-	// old bomb did 1s but this seems to be enough
-	ent.nextThink = levelTime + 1;
+	ent.nextThink = levelTime + 1000;
 }
 
 String @vec3ToString( Vec3 vec ) {
 	 return "" + vec.x + " " + vec.y + " " + vec.z;
 }
 
-void trigger_capture_area_think( Entity @ent ) {
+void plant_area_think( Entity @ent ) {
 	array<Entity @> @targets = ent.findTargets();
 	if( targets.empty() ) {
 		G_Print( "trigger_capture_area at " + vec3ToString( ent.origin ) + " has no target, removing...\n" );
@@ -276,7 +255,7 @@ void trigger_capture_area_think( Entity @ent ) {
 	}
 }
 
-void trigger_capture_area_touch( Entity @ent, Entity @other, const Vec3 planeNormal, int surfFlags ) {
+void plant_area_touch( Entity @ent, Entity @other, const Vec3 planeNormal, int surfFlags ) {
 	if( @other.client == null ) {
 		return;
 	}
@@ -298,4 +277,12 @@ void trigger_capture_area_touch( Entity @ent, Entity @other, const Vec3 planeNor
 	array<Entity @> @targets = ent.findTargets();
 	@site = getSiteFromIndicator( targets[0] );
 	site.carrierTouched();
+}
+
+void misc_capture_area_indicator( Entity @ent ) {
+	bomb_site( @ent );
+}
+
+void trigger_capture_area( Entity @ent ) {
+	plant_area( @ent );
 }

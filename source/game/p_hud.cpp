@@ -56,7 +56,7 @@ void G_UpdateScoreBoardMessages( void ) {
 
 		if( client->ps.show_scoreboard ) {
 			client->level.scoreboard_time = svs.realtime + scoreboardInterval - ( svs.realtime % scoreboardInterval );
-			trap_GameCmd( ent, scoreboard.c_str() );
+			PF_GameCmd( ent, scoreboard.c_str() );
 		}
 	}
 }
@@ -135,7 +135,7 @@ void G_SetClientStats( edict_t * ent ) {
 
 	ps->pointed_player = 0;
 	ps->pointed_health = 0;
-	if( GS_TeamBasedGametype( &server_gs ) ) {
+	if( level.gametype.isTeamBased ) {
 		unsigned int pointed = G_FindPointedPlayer( ent );
 		edict_t * e = &game.edicts[ pointed ];
 		if( e->s.team == ent->s.team ) {

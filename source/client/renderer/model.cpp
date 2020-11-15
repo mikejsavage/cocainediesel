@@ -34,16 +34,17 @@ static void DeleteModel( Model * model ) {
 		}
 	}
 
-	for( u8 i = 0; i < model->num_joints; i++ ) {
-		FREE( sys_allocator, model->joints[ i ].rotations.times );
-		FREE( sys_allocator, model->joints[ i ].translations.times );
-		FREE( sys_allocator, model->joints[ i ].scales.times );
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		FREE( sys_allocator, model->nodes[ i ].rotations.times );
+		FREE( sys_allocator, model->nodes[ i ].translations.times );
+		FREE( sys_allocator, model->nodes[ i ].scales.times );
 	}
 
 	DeleteMesh( model->mesh );
 
 	FREE( sys_allocator, model->primitives );
-	FREE( sys_allocator, model->joints );
+	FREE( sys_allocator, model->nodes );
+	FREE( sys_allocator, model->skin );
 }
 
 void HotloadModels() {
@@ -106,107 +107,108 @@ void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive
 	}
 }
 
-void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices ) {
-	bool skinned = skinning_matrices.ptr != NULL;
+template< typename F >
+static void RenderNode( const Model * model, u8 node_idx, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes, UniformBlock pose_uniforms, F transform_pipeline ) {
+	if( node_idx == U8_MAX )
+		return;
 
-	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
-	UniformBlock pose_uniforms;
-	if( skinned ) {
-		pose_uniforms = UploadUniforms( skinning_matrices.ptr, skinning_matrices.num_bytes() );
-	}
+	const Model::Node * node = &model->nodes[ node_idx ];
 
-	for( u32 i = 0; i < model->num_primitives; i++ ) {
-		PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material, color, skinned );
+	if( node->primitive != U8_MAX ) {
+		bool animated = palettes.node_transforms.ptr != NULL;
+		bool skinned = palettes.skinning_matrices.ptr != NULL;
+
+		Mat4 primitive_transform;
+		if( animated ) {
+			primitive_transform = skinned ? Mat4::Identity() : palettes.node_transforms[ node_idx ];
+		}
+		else {
+			primitive_transform = node->global_transform;
+		}
+
+		UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform * primitive_transform );
+
+		PipelineState pipeline = MaterialToPipelineState( model->primitives[ node->primitive ].material, color, skinned );
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 		pipeline.set_uniform( "u_Model", model_uniforms );
 		if( skinned ) {
 			pipeline.set_uniform( "u_Pose", pose_uniforms );
 		}
+		transform_pipeline( &pipeline, skinned );
 
-		DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+		DrawModelPrimitive( model, &model->primitives[ node->primitive ], pipeline );
 	}
+
+	RenderNode( model, node->first_child, transform, color, palettes, pose_uniforms, transform_pipeline );
+	RenderNode( model, node->sibling, transform, color, palettes, pose_uniforms, transform_pipeline );
+}
+
+void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
+	UniformBlock pose_uniforms;
+	if( palettes.skinning_matrices.ptr != NULL ) {
+		pose_uniforms = UploadUniforms( palettes.skinning_matrices.ptr, palettes.skinning_matrices.num_bytes() );
+	}
+
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		if( model->nodes[ i ].parent == U8_MAX ) {
+			RenderNode( model, i, transform, color, palettes, pose_uniforms, []( PipelineState * pipeline, bool skinned ) { } );
+		}
+	}
+}
+
+static void AddViewWeaponDepthHack( PipelineState * pipeline, bool skinned ) {
+	pipeline->view_weapon_depth_hack = true;
 }
 
 void DrawViewWeapon( const Model * model, const Mat4 & transform ) {
-	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
-
-	for( u32 i = 0; i < model->num_primitives; i++ ) {
-		PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material, vec4_white, false );
-		pipeline.view_weapon_depth_hack = true;
-		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-		pipeline.set_uniform( "u_Model", model_uniforms );
-
-		DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
-	}
-}
-
-void DrawOutlinedViewWeapon( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height ) {
-	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
-	UniformBlock outline_uniforms = UploadUniformBlock( color, outline_height );
-
-	for( u32 i = 0; i < model->num_primitives; i++ ) {
-		PipelineState pipeline;
-		pipeline.shader = &shaders.outline;
-		pipeline.pass = frame_static.nonworld_opaque_pass;
-		pipeline.cull_face = CullFace_Front;
-		pipeline.view_weapon_depth_hack = true;
-		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-		pipeline.set_uniform( "u_Model", model_uniforms );
-		pipeline.set_uniform( "u_Outline", outline_uniforms );
-
-		DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
-	}
-}
-
-void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, Span< const Mat4 > skinning_matrices ) {
-	bool skinned = skinning_matrices.ptr != NULL;
-
-	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
-	UniformBlock outline_uniforms = UploadUniformBlock( color, outline_height );
-	UniformBlock pose_uniforms;
-	if( skinned ) {
-		pose_uniforms = UploadUniforms( skinning_matrices.ptr, skinning_matrices.num_bytes() );
-	}
-
-	for( u32 i = 0; i < model->num_primitives; i++ ) {
-		PipelineState pipeline;
-		pipeline.shader = skinned ? &shaders.outline_skinned : &shaders.outline;
-		pipeline.pass = frame_static.nonworld_opaque_pass;
-		pipeline.cull_face = CullFace_Front;
-		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-		pipeline.set_uniform( "u_Model", model_uniforms );
-		pipeline.set_uniform( "u_Outline", outline_uniforms );
-		if( skinned ) {
-			pipeline.set_uniform( "u_Pose", pose_uniforms );
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		if( model->nodes[ i ].parent == U8_MAX ) {
+			RenderNode( model, i, transform, vec4_white, MatrixPalettes(), UniformBlock(), AddViewWeaponDepthHack );
 		}
-
-		DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 	}
 }
 
-void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices ) {
-	bool skinned = skinning_matrices.ptr != NULL;
+void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, MatrixPalettes palettes ) {
+	UniformBlock outline_uniforms = UploadUniformBlock( color, outline_height );
 
-	UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
+	auto MakeOutlinePipeline = [ &outline_uniforms ]( PipelineState * pipeline, bool skinned ) {
+		pipeline->shader = skinned ? &shaders.outline_skinned : &shaders.outline;
+		pipeline->pass = frame_static.nonworld_opaque_pass;
+		pipeline->cull_face = CullFace_Front;
+		pipeline->set_uniform( "u_Outline", outline_uniforms );
+	};
+
+	UniformBlock pose_uniforms;
+	if( palettes.skinning_matrices.ptr != NULL ) {
+		pose_uniforms = UploadUniforms( palettes.skinning_matrices.ptr, palettes.skinning_matrices.num_bytes() );
+	}
+
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		if( model->nodes[ i ].parent == U8_MAX ) {
+			RenderNode( model, i, transform, color, palettes, pose_uniforms, MakeOutlinePipeline );
+		}
+	}
+}
+
+void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
 	UniformBlock material_uniforms = UploadMaterialUniforms( color, Vec2( 0 ), 0.0f );
+
+	auto MakeSilhouettePipeline = [ &material_uniforms ]( PipelineState * pipeline, bool skinned ) {
+		pipeline->shader = skinned ? &shaders.write_silhouette_gbuffer_skinned : &shaders.write_silhouette_gbuffer;
+		pipeline->pass = frame_static.write_silhouette_gbuffer_pass;
+		pipeline->write_depth = false;
+		pipeline->set_uniform( "u_Material", material_uniforms );
+	};
+
 	UniformBlock pose_uniforms;
-	if( skinned ) {
-		pose_uniforms = UploadUniforms( skinning_matrices.ptr, skinning_matrices.num_bytes() );
+	if( palettes.skinning_matrices.ptr != NULL ) {
+		pose_uniforms = UploadUniforms( palettes.skinning_matrices.ptr, palettes.skinning_matrices.num_bytes() );
 	}
 
-	for( u32 i = 0; i < model->num_primitives; i++ ) {
-		PipelineState pipeline;
-		pipeline.shader = skinned ? &shaders.write_silhouette_gbuffer_skinned : &shaders.write_silhouette_gbuffer;
-		pipeline.pass = frame_static.write_silhouette_gbuffer_pass;
-		pipeline.write_depth = false;
-		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-		pipeline.set_uniform( "u_Model", model_uniforms );
-		pipeline.set_uniform( "u_Material", material_uniforms );
-		if( skinned ) {
-			pipeline.set_uniform( "u_Pose", pose_uniforms );
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		if( model->nodes[ i ].parent == U8_MAX ) {
+			RenderNode( model, i, transform, color, palettes, pose_uniforms, MakeSilhouettePipeline );
 		}
-
-		DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 	}
 }
 
@@ -227,8 +229,12 @@ static T SampleAnimationChannel( const Model::AnimationChannel< T > & channel, f
 		}
 	}
 
-	float lerp_frac = ( t - channel.times[ sample ] ) / ( channel.times[ sample + 1 ] - channel.times[ sample ] );
+	// TODO: cubic
+	if( channel.interpolation == InterpolationMode_Step ) {
+		return channel.samples[ sample ];
+	}
 
+	float lerp_frac = ( t - channel.times[ sample ] ) / ( channel.times[ sample + 1 ] - channel.times[ sample ] );
 	return lerp( channel.samples[ sample ], lerp_frac, channel.samples[ sample + 1 ] );
 }
 
@@ -239,13 +245,13 @@ static float LerpFloat( float a, float t, float b ) { return Lerp( a, t, b ); }
 Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t ) {
 	ZoneScoped;
 
-	Span< TRS > local_poses = ALLOC_SPAN( a, TRS, model->num_joints );
+	Span< TRS > local_poses = ALLOC_SPAN( a, TRS, model->num_nodes );
 
-	for( u8 i = 0; i < model->num_joints; i++ ) {
-		const Model::Joint & joint = model->joints[ i ];
-		local_poses[ i ].rotation = SampleAnimationChannel( joint.rotations, t, Quaternion::Identity(), NLerp );
-		local_poses[ i ].translation = SampleAnimationChannel( joint.translations, t, Vec3( 0 ), LerpVec3 );
-		local_poses[ i ].scale = SampleAnimationChannel( joint.scales, t, 1.0f, LerpFloat );
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		const Model::Node * node = &model->nodes[ i ];
+		local_poses[ i ].rotation = SampleAnimationChannel( node->rotations, t, node->local_transform.rotation, NLerp );
+		local_poses[ i ].translation = SampleAnimationChannel( node->translations, t, node->local_transform.translation, LerpVec3 );
+		local_poses[ i ].scale = SampleAnimationChannel( node->scales, t, node->local_transform.scale, LerpFloat );
 	}
 
 	return local_poses;
@@ -277,34 +283,39 @@ static Mat4 TRSToMat4( const TRS & trs ) {
 	);
 }
 
-MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< TRS > local_poses ) {
+MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< const TRS > local_poses ) {
 	ZoneScoped;
 
-	assert( local_poses.n == model->num_joints );
+	assert( local_poses.n == model->num_nodes );
 
-	MatrixPalettes palettes;
-	palettes.joint_poses = ALLOC_SPAN( a, Mat4, model->num_joints );
-	palettes.skinning_matrices = ALLOC_SPAN( a, Mat4, model->num_joints );
+	MatrixPalettes palettes = { };
+	palettes.node_transforms = ALLOC_SPAN( a, Mat4, model->num_nodes );
+	if( model->num_joints != 0 ) {
+		palettes.skinning_matrices = ALLOC_SPAN( a, Mat4, model->num_joints );
+	}
 
-	u8 joint_idx = model->root_joint;
-	palettes.joint_poses[ joint_idx ] = TRSToMat4( local_poses[ joint_idx ] );
-	for( u8 i = 0; i < model->num_joints - 1; i++ ) {
-		joint_idx = model->joints[ joint_idx ].next;
-		u8 parent = model->joints[ joint_idx ].parent;
-		palettes.joint_poses[ joint_idx ] = palettes.joint_poses[ parent ] * TRSToMat4( local_poses[ joint_idx ] );
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		u8 parent = model->nodes[ i ].parent;
+		if( parent == U8_MAX ) {
+			palettes.node_transforms[ i ] = TRSToMat4( local_poses[ i ] );
+		}
+		else {
+			palettes.node_transforms[ i ] = palettes.node_transforms[ parent ] * TRSToMat4( local_poses[ i ] );
+		}
 	}
 
 	for( u8 i = 0; i < model->num_joints; i++ ) {
-		palettes.skinning_matrices[ i ] = palettes.joint_poses[ i ] * model->joints[ i ].joint_to_bind;
+		u8 node_idx = model->skin[ i ].node_idx;
+		palettes.skinning_matrices[ i ] = palettes.node_transforms[ node_idx ] * model->skin[ i ].joint_to_bind;
 	}
 
 	return palettes;
 }
 
-bool FindJointByName( const Model * model, u32 name, u8 * joint_idx ) {
-	for( u8 i = 0; i < model->num_joints; i++ ) {
-		if( model->joints[ i ].name == name ) {
-			*joint_idx = i;
+bool FindNodeByName( const Model * model, u32 name, u8 * idx ) {
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		if( model->nodes[ i ].name == name ) {
+			*idx = i;
 			return true;
 		}
 	}
@@ -315,17 +326,17 @@ bool FindJointByName( const Model * model, u32 name, u8 * joint_idx ) {
 static void MergePosesRecursive( Span< TRS > lower, Span< const TRS > upper, const Model * model, u8 i ) {
 	lower[ i ] = upper[ i ];
 
-	const Model::Joint & joint = model->joints[ i ];
-	if( joint.sibling != U8_MAX )
-		MergePosesRecursive( lower, upper, model, joint.sibling );
-	if( joint.first_child != U8_MAX )
-		MergePosesRecursive( lower, upper, model, joint.first_child );
+	const Model::Node * node = &model->nodes[ i ];
+	if( node->sibling != U8_MAX )
+		MergePosesRecursive( lower, upper, model, node->sibling );
+	if( node->first_child != U8_MAX )
+		MergePosesRecursive( lower, upper, model, node->first_child );
 }
 
-void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const Model * model, u8 upper_root_joint ) {
-	lower[ upper_root_joint ] = upper[ upper_root_joint ];
+void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const Model * model, u8 upper_root_node ) {
+	lower[ upper_root_node ] = upper[ upper_root_node ];
 
-	const Model::Joint & joint = model->joints[ upper_root_joint ];
-	if( joint.first_child != U8_MAX )
-		MergePosesRecursive( lower, upper, model, joint.first_child );
+	const Model::Node * node = &model->nodes[ upper_root_node ];
+	if( node->first_child != U8_MAX )
+		MergePosesRecursive( lower, upper, model, node->first_child );
 }

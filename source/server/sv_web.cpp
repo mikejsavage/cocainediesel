@@ -22,8 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/q_trie.h"
 #include "qcommon/threads.h"
 
-#ifdef HTTP_SUPPORT
-
 #define MAX_INCOMING_HTTP_CONNECTIONS           48
 #define MAX_INCOMING_HTTP_CONNECTIONS_PER_ADDR  3
 
@@ -47,12 +45,12 @@ enum sv_http_content_state_t {
 	CONTENT_STATE_RECEIVED = 2,
 };
 
-typedef struct {
+struct sv_http_content_range_t {
 	long begin;
 	long end;
-} sv_http_content_range_t;
+};
 
-typedef struct {
+struct sv_http_stream_t {
 	size_t header_length;
 	char header_buf[0x4000];
 	size_t header_buf_p;
@@ -62,9 +60,9 @@ typedef struct {
 	size_t content_p;
 	size_t content_length;
 	sv_http_content_range_t content_range;
-} sv_http_stream_t;
+};
 
-typedef struct {
+struct sv_http_request_t {
 	uint64_t id;
 	http_query_method_t method;
 	http_response_code_t error;
@@ -84,9 +82,9 @@ typedef struct {
 
 	bool got_start_line;
 	bool close_after_resp;
-} sv_http_request_t;
+};
 
-typedef struct {
+struct sv_http_response_t {
 	uint64_t request_id;
 	http_response_code_t code;
 	sv_http_stream_t stream;
@@ -99,9 +97,9 @@ typedef struct {
 	int fileno;
 	size_t file_send_pos;
 	char *filename;
-} sv_http_response_t;
+};
 
-typedef struct sv_http_connection_s {
+struct sv_http_connection_t {
 	bool open;
 	sv_http_connstate_t state;
 	bool close_after_resp;
@@ -116,14 +114,15 @@ typedef struct sv_http_connection_s {
 
 	bool is_upstream;
 
-	struct sv_http_connection_s *next, *prev;
-} sv_http_connection_t;
+	sv_http_connection_t *next;
+	sv_http_connection_t *prev;
+};
 
-typedef struct {
+struct http_game_client_t {
 	int clientNum;
 	char session[16];               // session id for HTTP requests
 	netadr_t remoteAddress;
-} http_game_client_t;
+};
 
 static bool sv_http_initialized = false;
 static volatile bool sv_http_running = false;
@@ -402,7 +401,7 @@ static bool SV_Web_FindGameClientBySession( const char *session, int clientNum )
 */
 static bool SV_Web_FindGameClientByAddress( const netadr_t *netadr ) {
 	unsigned int i;
-	struct trie_dump_s *dump;
+	trie_dump_t *dump;
 	bool valid_address;
 
 	Lock( sv_http_clients_mutex );
@@ -913,8 +912,8 @@ static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_respo
 				return;
 			}
 
-			// only serve GET requests for demo files
-			if( FileExtension( filename ) != APP_DEMO_EXTENSION_STR ) {
+			Span< const char > ext = FileExtension( filename );
+			if( ext != ".bsp" && ext != APP_DEMO_EXTENSION_STR ) {
 				response->code = HTTP_RESP_FORBIDDEN;
 				return;
 			}
@@ -1176,9 +1175,9 @@ static void SV_Web_InitSocket( const char *addrstr, netadrtype_t adrtype, socket
 
 	if( address.type == adrtype ) {
 		if( !NET_OpenSocket( socket, SOCKET_TCP, &address, true ) ) {
-			Com_Printf( "Error: Couldn't open TCP socket: %s", NET_ErrorString() );
+			Com_Printf( "Couldn't start web server: Couldn't open TCP socket: %s\n", NET_ErrorString() );
 		} else if( !NET_Listen( socket ) ) {
-			Com_Printf( "Error: Couldn't listen to TCP socket: %s", NET_ErrorString() );
+			Com_Printf( "Couldn't start web server: Couldn't listen to TCP socket: %s\n", NET_ErrorString() );
 			NET_CloseSocket( socket );
 		} else {
 			Com_Printf( "Web server started on %s\n", NET_AddressToString( &address ) );
@@ -1412,33 +1411,3 @@ void SV_Web_Shutdown( void ) {
 const char *SV_Web_UpstreamBaseUrl( void ) {
 	return sv_http_upstream_baseurl->string;
 }
-
-#else
-
-/*
-* SV_Web_Init
-*/
-void SV_Web_Init( void ) {
-}
-
-/*
-* SV_Web_Shutdown
-*/
-void SV_Web_Shutdown( void ) {
-}
-
-/*
-* SV_Web_Running
-*/
-bool SV_Web_Running( void ) {
-	return false;
-}
-
-/*
-* SV_Web_UpstreamBaseUrl
-*/
-const char *SV_Web_UpstreamBaseUrl( void ) {
-	return "";
-}
-
-#endif // HTTP_SUPPORT

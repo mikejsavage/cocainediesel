@@ -1,26 +1,29 @@
 if %HEALTH >= 0
-	setAlignment center middle
-	setCursor #WIDTH / 2, #HEIGHT - 32
-	setFontSize %VIDHEIGHT / 40
-
-	// draw background
-	setColor 0.0, 0.0, 0.0, 0.5
-	setSize 200, 18
-	drawPicByName $whiteimage
-
-	moveCursor -100, 0
+	setAlignment left middle
+	setCursor 16, #HEIGHT - 54
+	setFontSize %VIDHEIGHT / 24
 
 	// fill coloured health bar
 	setAlignment left middle
 	setColor 1.0, %HEALTH / 83.333, %HEALTH / 500, 1
 	if %HEALTH > 50
-		setColor 1.0 - 0.02 * %HEALTH - 50, 0.6, %HEALTH / 500, 1
+		setColorsRGB 1.0 - 0.02 * %HEALTH - 50, 0.6, %HEALTH / 500, 1
 	endif
-	setSize %HEALTH * 2, 18
+	setSize %HEALTH * 2, 36
+	drawPicByName $whiteimage
+
+	//accent
+	setColor 0.03, 0.03, 0.03, 1.0
+	setSize 200, 24
+	moveCursor 0, 18
 	drawPicByName $whiteimage
 
 	// draw white cross
-	setColor 1, 1, 1, 1
+	setColor 1.0, %HEALTH / 83.333, %HEALTH / 500, 1
+	if %HEALTH > 50
+		setColorsRGB 1.0 - 0.02 * %HEALTH - 50, 0.6, %HEALTH / 500, 1
+	endif
+	setSize %HEALTH * 2, 36
 	moveCursor 6 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
 	setAlignment left middle
 	setSize 12 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 4
@@ -30,10 +33,10 @@ if %HEALTH >= 0
 	drawPicByName $whiteimage
 
 	// draw hp number
-	setColor 1, 1, 1, 1
+
 	moveCursor 14 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
 	setAlignment left middle
-	setSize 12 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 12
+	setSize 16 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 16
 	setFontStyle bold
 	drawStringNum %HEALTH
 	setFontStyle normal

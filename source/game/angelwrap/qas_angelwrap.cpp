@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "addon/addon_math.h"
 #include "addon/addon_scriptarray.h"
 #include "addon/addon_string.h"
-#include "addon/addon_time.h"
 #include "addon/addon_vec3.h"
 #include "addon/addon_cvar.h"
 
@@ -111,14 +110,12 @@ asIScriptEngine *qasCreateEngine( bool *asMaxPortability ) {
 	PreRegisterMathAddon( engine );
 	PreRegisterScriptArray( engine, true );
 	PreRegisterStringAddon( engine );
-	PreRegisterTimeAddon( engine );
 	PreRegisterVec3Addon( engine );
 	PreRegisterCvarAddon( engine );
 
 	RegisterMathAddon( engine );
 	RegisterScriptArray( engine, true );
 	RegisterStringAddon( engine );
-	RegisterTimeAddon( engine );
 	RegisterVec3Addon( engine );
 	RegisterCvarAddon( engine );
 
@@ -170,7 +167,7 @@ void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool s
 		int enumTypeId;
 		const char *enumName = engine->GetEnumByIndex( i, &enumTypeId, NULL, NULL, NULL );
 
-		str = "typedef enum\r\n{\r\n";
+		str = va( "enum %s\r\n{\r\n", enumName );
 		FS_Write( str, strlen( str ), filenum );
 
 		int enumValueCount = engine->GetEnumValueCount( enumTypeId );
@@ -181,7 +178,7 @@ void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool s
 			FS_Write( str, strlen( str ), filenum );
 		}
 
-		str = va( "} %s;\r\n\r\n", enumName );
+		str = "};\r\n\r\n";
 		FS_Write( str, strlen( str ), filenum );
 	}
 

@@ -18,5 +18,3 @@ void Wait( Semaphore * sem );
 void Signal( Semaphore * sem, int n = 1 );
 
 u32 GetCoreCount();
-
-int Sys_Atomic_FetchAdd( volatile int *value, int add );

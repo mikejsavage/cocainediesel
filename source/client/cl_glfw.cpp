@@ -1,5 +1,6 @@
 #include "client/client.h"
 #include "client/icon.h"
+#include "client/renderer/renderer.h"
 
 #include "glad/glad.h"
 
@@ -97,6 +98,7 @@ static void gl_debug_output_callback(
 	    source == 33352 || // shader compliation errors
 	    id == 131169 ||
 	    id == 131185 ||
+	    id == 131201 || // TBO resized
 	    id == 131218 ||
 	    id == 131204
 	) {
@@ -111,7 +113,7 @@ static void gl_debug_output_callback(
 		return;
 	}
 
-	Com_Printf( "GL [%s - %s]: %s", type_string( type ), severity_string( severity ), message );
+	Com_Printf( "GL [%s - %s]: %s (id:%u source:%d)", type_string( type ), severity_string( severity ), message, id, source );
 	size_t len = strlen( message );
 	if( len == 0 || message[ len - 1 ] != '\n' )
 		Com_Printf( "\n" );
@@ -763,8 +765,6 @@ int main( int argc, char ** argv ) {
 
 	int64_t oldtime = Sys_Milliseconds();
 	while( !glfwWindowShouldClose( window ) ) {
-		FrameMark;
-
 		int64_t newtime;
 
 		int dt;

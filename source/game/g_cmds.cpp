@@ -263,7 +263,7 @@ static void Cmd_PlayersExt_f( edict_t *ent, bool onlyspecs ) {
 	msg[0] = 0;
 
 	for( i = start; i < server_gs.maxclients; i++ ) {
-		if( trap_GetClientState( i ) >= CS_SPAWNED ) {
+		if( PF_GetClientState( i ) >= CS_SPAWNED ) {
 			edict_t *clientEnt = &game.edicts[i + 1];
 			gclient_t *cl;
 
@@ -503,11 +503,37 @@ static void Cmd_Clack_f( edict_t * ent ) {
 	}
 }
 
-typedef struct
-{
+static void Cmd_Spray_f( edict_t * ent ) {
+	if( G_ISGHOSTING( ent ) )
+		return;
+
+	if( ent->r.client->level.last_spray + 2500 > svs.realtime )
+		return;
+
+	Vec3 forward;
+	AngleVectors( ent->r.client->ps.viewangles, &forward, NULL, NULL );
+
+	constexpr float range = 96.0f;
+	Vec3 start = ent->s.origin + Vec3( 0.0f, 0.0f, ent->r.client->ps.viewheight );
+	Vec3 end = start + forward * range;
+
+	trace_t trace;
+	G_Trace( &trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ent, MASK_OPAQUE );
+
+	if( trace.ent != 0 || ( trace.surfFlags & ( SURF_SKY | SURF_NOMARKS ) ) )
+		return;
+
+	ent->r.client->level.last_spray = svs.realtime;
+
+	edict_t * event = G_SpawnEvent( EV_SPRAY, random_u64( &svs.rng ), &trace.endpos );
+	event->s.angles = ent->r.client->ps.viewangles;
+	event->s.origin2 = trace.plane.normal;
+}
+
+struct g_vsays_t {
 	const char *name;
 	int id;
-} g_vsays_t;
+};
 
 static const g_vsays_t g_vsays[] = {
 	{ "sorry", Vsay_Sorry },
@@ -546,7 +572,7 @@ static void G_vsay_f( edict_t *ent, bool team ) {
 		return;
 	}
 
-	if( ( !GS_TeamBasedGametype( &server_gs ) || GS_IndividualGameType( &server_gs ) ) && ent->s.team != TEAM_SPECTATOR ) {
+	if( ( !level.gametype.isTeamBased || GS_IndividualGameType( &server_gs ) ) && ent->s.team != TEAM_SPECTATOR ) {
 		team = false;
 	}
 
@@ -555,10 +581,6 @@ static void G_vsay_f( edict_t *ent, bool team ) {
 			return; // ignore silently vsays in that come in rapid succession
 		}
 		ent->r.client->level.last_vsay = svs.realtime;
-
-		if( CheckFlood( ent, false ) ) {
-			return;
-		}
 	}
 
 	for( const g_vsays_t * vsay = g_vsays; vsay->name; vsay++ ) {
@@ -632,7 +654,7 @@ static void Cmd_Timeout_f( edict_t *ent ) {
 		return;
 	}
 
-	if( GS_TeamBasedGametype( &server_gs ) ) {
+	if( level.gametype.isTeamBased ) {
 		num = ent->s.team;
 	} else {
 		num = ENTNUM( ent ) - 1;
@@ -646,7 +668,7 @@ static void Cmd_Timeout_f( edict_t *ent ) {
 	if( g_maxtimeouts->integer != -1 && level.timeout.used[num] >= g_maxtimeouts->integer ) {
 		if( g_maxtimeouts->integer == 0 ) {
 			G_PrintMsg( ent, "Timeouts are not allowed on this server\n" );
-		} else if( GS_TeamBasedGametype( &server_gs ) ) {
+		} else if( level.gametype.isTeamBased ) {
 			G_PrintMsg( ent, "Your team doesn't have any timeouts left\n" );
 		} else {
 			G_PrintMsg( ent, "You don't have any timeouts left\n" );
@@ -686,14 +708,14 @@ static void Cmd_Timein_f( edict_t *ent ) {
 		return;
 	}
 
-	if( GS_TeamBasedGametype( &server_gs ) ) {
+	if( level.gametype.isTeamBased ) {
 		num = ent->s.team;
 	} else {
 		num = ENTNUM( ent ) - 1;
 	}
 
 	if( level.timeout.caller != num ) {
-		if( GS_TeamBasedGametype( &server_gs ) ) {
+		if( level.gametype.isTeamBased ) {
 			G_PrintMsg( ent, "Your team didn't call this timeout.\n" );
 		} else {
 			G_PrintMsg( ent, "You didn't call this timeout.\n" );
@@ -773,14 +795,12 @@ static void Cmd_ShowStats_f( edict_t *ent ) {
 		return;
 	}
 
-	trap_GameCmd( ent, va( "plstats \"%s\"", G_StatsMessage( target ) ) );
+	PF_GameCmd( ent, va( "plstats \"%s\"", G_StatsMessage( target ) ) );
 }
 
 //===========================================================
 //	client commands
 //===========================================================
-
-typedef void ( *gamecommandfunc_t )( edict_t * );
 
 typedef struct
 {
@@ -794,10 +814,9 @@ g_gamecommands_t g_Commands[MAX_GAMECOMMANDS];
 * G_PrecacheGameCommands
 */
 void G_PrecacheGameCommands( void ) {
-	int i;
-
-	for( i = 0; i < MAX_GAMECOMMANDS; i++ )
-		trap_ConfigString( CS_GAMECOMMANDS + i, g_Commands[i].name );
+	for( int i = 0; i < MAX_GAMECOMMANDS; i++ ) {
+		PF_ConfigString( CS_GAMECOMMANDS + i, g_Commands[i].name );
+	}
 }
 
 /*
@@ -842,7 +861,7 @@ void G_AddCommand( const char *name, gamecommandfunc_t callback ) {
 
 	// add the configstring if the precache process was already done
 	if( level.canSpawnEntities ) {
-		trap_ConfigString( CS_GAMECOMMANDS + i, g_Commands[i].name );
+		PF_ConfigString( CS_GAMECOMMANDS + i, g_Commands[i].name );
 	}
 }
 
@@ -865,7 +884,6 @@ void G_InitGameCommands( void ) {
 	G_AddCommand( "chase", Cmd_ChaseCam_f );
 	G_AddCommand( "chasenext", Cmd_ChaseNext_f );
 	G_AddCommand( "chaseprev", Cmd_ChasePrev_f );
-	G_AddCommand( "spec", Cmd_Spec_f );
 	G_AddCommand( "enterqueue", G_Teams_JoinChallengersQueue );
 	G_AddCommand( "leavequeue", G_Teams_LeaveChallengersQueue );
 	G_AddCommand( "camswitch", Cmd_SwitchChaseCamMode_f );
@@ -891,6 +909,8 @@ void G_InitGameCommands( void ) {
 	G_AddCommand( "typewriterclack", Cmd_Clack_f );
 	G_AddCommand( "typewriterspace", Cmd_Clack_f );
 
+	G_AddCommand( "spray", Cmd_Spray_f );
+
 	G_AddCommand( "vsay", G_vsay_Cmd );
 	G_AddCommand( "vsay_team", G_Teams_vsay_Cmd );
 }
@@ -899,18 +919,15 @@ void G_InitGameCommands( void ) {
 * ClientCommand
 */
 void ClientCommand( edict_t *ent ) {
-	const char *cmd;
-	int i;
-
-	if( !ent->r.client || trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+	if( !ent->r.client || PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 		return; // not fully in game yet
-
 	}
-	cmd = Cmd_Argv( 0 );
+
+	const char * cmd = Cmd_Argv( 0 );
 
 	G_Client_UpdateActivity( ent->r.client ); // activity detected
 
-	for( i = 0; i < MAX_GAMECOMMANDS; i++ ) {
+	for( int i = 0; i < MAX_GAMECOMMANDS; i++ ) {
 		if( !g_Commands[i].name[0] ) {
 			break;
 		}

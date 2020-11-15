@@ -503,7 +503,7 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 	}
 
 	// if not a sound entity but the entity is only a sound
-	else if( ent->s.model == EMPTY_HASH && !ent->s.events[0].type && !ent->s.light && !ent->s.effects && ent->s.sound != EMPTY_HASH ) {
+	else if( ent->s.model == EMPTY_HASH && !ent->s.events[0].type && !ent->s.effects && ent->s.sound != EMPTY_HASH ) {
 		snd_cull_only = true;
 	}
 
@@ -594,10 +594,7 @@ static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, ginfo_t *gi, edict_
 		SNAP_AddEntNumToSnapList( entNum, entList );
 	}
 
-	// if the client is outside of the world, don't send him any entity
-	if( clientarea >= 0 || frame->allentities ) {
-		SNAP_AddEntitiesVisibleAtOrigin( cms, gi, clent, vieworg, clientarea, frame, entList );
-	}
+	SNAP_AddEntitiesVisibleAtOrigin( cms, gi, clent, vieworg, clientarea, frame, entList );
 
 	SNAP_SortSnapList( entList );
 }
@@ -757,11 +754,8 @@ static void SNAP_FreeClientFrame( client_snapshot_t *frame ) {
 *
 */
 void SNAP_FreeClientFrames( client_t *client ) {
-	int i;
-	client_snapshot_t *frame;
-
-	for( i = 0; i < UPDATE_BACKUP; i++ ) {
-		frame = &client->snapShots[i];
+	for( int i = 0; i < UPDATE_BACKUP; i++ ) {
+		client_snapshot_t * frame = &client->snapShots[i];
 		SNAP_FreeClientFrame( frame );
 	}
 }

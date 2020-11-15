@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
+#include "client/renderer/renderer.h"
 
 cg_static_t cgs;
 cg_state_t cg;
@@ -30,8 +31,6 @@ cvar_t *cg_showMiss;
 
 cvar_t *cg_hand;
 
-cvar_t *cg_addDecals;
-
 cvar_t *cg_thirdPerson;
 cvar_t *cg_thirdPersonAngle;
 cvar_t *cg_thirdPersonRange;
@@ -39,14 +38,10 @@ cvar_t *cg_thirdPersonRange;
 cvar_t *cg_gunx;
 cvar_t *cg_guny;
 cvar_t *cg_gunz;
-cvar_t *cg_debugPlayerModels;
-cvar_t *cg_debugWeaponModels;
 cvar_t *cg_gunbob;
 
 cvar_t *cg_handOffset;
 cvar_t *cg_gun_fov;
-cvar_t *cg_volume_announcer;
-cvar_t *cg_volume_hitsound;
 cvar_t *cg_voiceChats;
 cvar_t *cg_projectileAntilagOffset;
 cvar_t *cg_chatFilter;
@@ -58,8 +53,7 @@ cvar_t *cg_autoaction_screenshot;
 cvar_t *cg_autoaction_spectator;
 cvar_t *cg_showClamp;
 
-cvar_t *cg_allyModel;
-cvar_t *cg_enemyModel;
+cvar_t *cg_particleDebug;
 
 void CG_LocalPrint( const char *format, ... ) {
 	va_list argptr;
@@ -100,14 +94,6 @@ static SyncEntityState *CG_GS_GetEntityState( int entNum, int deltaTime ) {
 	return &cent->current;
 }
 
-static const char *CG_GS_GetConfigString( int index ) {
-	if( index < 0 || index >= MAX_CONFIGSTRINGS ) {
-		return NULL;
-	}
-
-	return cgs.configStrings[ index ];
-}
-
 static void CG_InitGameShared( void ) {
 	char cstring[MAX_CONFIGSTRING_CHARS];
 	trap_GetConfigString( CS_MAXCLIENTS, cstring, MAX_CONFIGSTRING_CHARS );
@@ -126,20 +112,12 @@ static void CG_InitGameShared( void ) {
 	client_gs.api.GetEntityState = CG_GS_GetEntityState;
 	client_gs.api.PointContents = CG_GS_PointContents;
 	client_gs.api.PMoveTouchTriggers = CG_Predict_TouchTriggers;
-	client_gs.api.GetConfigString = CG_GS_GetConfigString;
 }
 
 char *_CG_CopyString( const char *in, const char *filename, int fileline ) {
 	char * out = ( char * )_Mem_AllocExt( cg_mempool, strlen( in ) + 1, 16, 1, 0, 0, filename, fileline );
 	strcpy( out, in );
 	return out;
-}
-
-static void CG_RegisterWeaponModels( void ) {
-	cgs.weaponInfos[ Weapon_None ] = CG_CreateWeaponZeroModel();
-	for( WeaponType i = Weapon_None + 1; i < Weapon_Count; i++ ) {
-		cgs.weaponInfos[i] = CG_RegisterWeaponModel( GS_GetWeaponDef( i )->short_name, i );
-	}
 }
 
 static void CG_RegisterClients( void ) {
@@ -154,29 +132,21 @@ static void CG_RegisterClients( void ) {
 static void CG_RegisterVariables( void ) {
 	cg_showMiss =       Cvar_Get( "cg_showMiss", "0", 0 );
 
-	cg_debugPlayerModels =  Cvar_Get( "cg_debugPlayerModels", "0", CVAR_CHEAT );
-	cg_debugWeaponModels =  Cvar_Get( "cg_debugWeaponModels", "0", CVAR_CHEAT );
-
 	cg_showHotkeys = Cvar_Get( "cg_showHotkeys", "1", CVAR_ARCHIVE );
 
 	cg_hand =           Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
-
-	cg_addDecals =      Cvar_Get( "cg_decals", "1", CVAR_ARCHIVE );
 
 	cg_thirdPerson =    Cvar_Get( "cg_thirdPerson", "0", CVAR_CHEAT );
 	cg_thirdPersonAngle =   Cvar_Get( "cg_thirdPersonAngle", "0", 0 );
 	cg_thirdPersonRange =   Cvar_Get( "cg_thirdPersonRange", "90", 0 );
 
 	cg_gunx =       Cvar_Get( "cg_gunx", "5", CVAR_CHEAT );
-	cg_guny =       Cvar_Get( "cg_guny", "-10", CVAR_CHEAT );
-	cg_gunz =       Cvar_Get( "cg_gunz", "5", CVAR_CHEAT );
+	cg_guny =       Cvar_Get( "cg_guny", "-12", CVAR_CHEAT );
+	cg_gunz =       Cvar_Get( "cg_gunz", "3", CVAR_CHEAT );
 	cg_gunbob =     Cvar_Get( "cg_gunbob", "1", CVAR_ARCHIVE );
 
-	cg_gun_fov =        Cvar_Get( "cg_gun_fov", "75", CVAR_ARCHIVE );
+	cg_gun_fov =        Cvar_Get( "cg_gun_fov", "90", CVAR_ARCHIVE );
 
-	// wsw
-	cg_volume_announcer =   Cvar_Get( "cg_volume_announcer", "1.0", CVAR_ARCHIVE );
-	cg_volume_hitsound =    Cvar_Get( "cg_volume_hitsound", "1.0", CVAR_ARCHIVE );
 	cg_handOffset =     Cvar_Get( "cg_handOffset", "5", CVAR_ARCHIVE );
 	cg_autoaction_demo =    Cvar_Get( "cg_autoaction_demo", "0", CVAR_ARCHIVE );
 	cg_autoaction_screenshot =  Cvar_Get( "cg_autoaction_screenshot", "0", CVAR_ARCHIVE );
@@ -188,14 +158,9 @@ static void CG_RegisterVariables( void ) {
 
 	cg_chatFilter =     Cvar_Get( "cg_chatFilter", "0", CVAR_ARCHIVE );
 
-	// developer cvars
 	cg_showClamp = Cvar_Get( "cg_showClamp", "0", CVAR_DEVELOPER );
 
-	cg_allyModel = Cvar_Get( "cg_allyModel", "bigvic", CVAR_ARCHIVE );
-	cg_allyModel->modified = true;
-
-	cg_enemyModel = Cvar_Get( "cg_enemyModel", "padpork", CVAR_ARCHIVE );
-	cg_enemyModel->modified = true;
+	cg_particleDebug = Cvar_Get( "cg_particleDebug", "0", CVAR_DEVELOPER );
 
 	Cvar_Get( "cg_loadout", "", CVAR_ARCHIVE | CVAR_USERINFO );
 }
@@ -206,8 +171,6 @@ void CG_Precache( void ) {
 	}
 
 	CG_RegisterMediaModels();
-	CG_RegisterWeaponModels();
-	CG_RegisterPlayerModels();
 	CG_RegisterMediaSounds();
 	CG_RegisterMediaSounds();
 	CG_RegisterMediaShaders();
@@ -238,8 +201,6 @@ void CG_Reset( void ) {
 
 	CG_SC_ResetObituaries();
 
-	CG_ClearLocalEntities();
-
 	// start up announcer events queue from clean
 	CG_ClearAnnouncerEvents();
 
@@ -250,7 +211,9 @@ void CG_Reset( void ) {
 	CG_ClearAwards();
 
 	CG_InitDamageNumbers();
+	InitDecals();
 	InitPersistentBeams();
+	InitSprays();
 
 	chaseCam.key_pressed = false;
 
@@ -291,12 +254,12 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	CG_InitInput();
 
 	CG_RegisterVariables();
-	CG_PModelsInit();
-	CG_WModelsInit();
+	InitPlayerModels();
+	InitWeaponModels();
 
 	CG_ScreenInit();
 
-	CG_ClearLocalEntities();
+	SCR_UpdateScoreboardMessage( "" );
 
 	CG_InitDamageNumbers();
 
@@ -305,13 +268,13 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	// register fonts here so loading screen works
 	CG_RegisterFonts();
-	cgs.white_material = FindMaterial( "$whiteimage" );
 
 	CG_RegisterCGameCommands();
 
 	CG_InitHUD();
 
-	InitParticles();
+	InitDecals();
+	InitSprays();
 	InitPersistentBeams();
 	InitGibs();
 
@@ -331,14 +294,12 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 }
 
 void CG_Shutdown() {
-	CG_FreeLocalEntities();
 	CG_DemocamShutdown();
 	CG_UnregisterCGameCommands();
-	CG_PModelsShutdown();
 	CG_ShutdownChat();
 	CG_ShutdownInput();
 	CG_ShutdownHUD();
-	ShutdownParticles();
+	ShutdownDecals();
 
 	CG_Free( const_cast< char * >( cgs.serverName ) );
 

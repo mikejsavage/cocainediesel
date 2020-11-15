@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/qfiles.h"
 #include "qcommon/strtonum.h"
 
-inline Vec3 FromQFAxis( mat3_t m, int axis ) {
+inline Vec3 FromQFAxis( const mat3_t m, int axis ) {
 	return Vec3( m[ axis + 0 ], m[ axis + 1 ], m[ axis + 2 ] );
 }
 
@@ -55,25 +55,17 @@ inline Mat4 FromAxisAndOrigin( const mat3_t axis, Vec3 origin ) {
 
 //============================================================================
 
-struct mempool_s;
-
-struct snapshot_s;
-
-struct ginfo_s;
-struct client_s;
-struct client_entities_s;
-
 struct CollisionModel;
 
 //============================================================================
 
-typedef struct {
+struct msg_t {
 	uint8_t *data;
 	size_t maxsize;
 	size_t cursize;
 	size_t readcount;
 	bool compressed;
-} msg_t;
+};
 
 // msg.c
 void MSG_Init( msg_t *buf, uint8_t *data, size_t length );
@@ -85,7 +77,7 @@ int MSG_SkipData( msg_t *sb, size_t length );
 
 //============================================================================
 
-struct usercmd_s;
+struct usercmd_t;
 
 void MSG_WriteInt8( msg_t *sb, int c );
 void MSG_WriteUint8( msg_t *sb, int c );
@@ -96,7 +88,7 @@ void MSG_WriteInt64( msg_t *sb, int64_t c );
 void MSG_WriteUintBase128( msg_t *msg, uint64_t c );
 void MSG_WriteIntBase128( msg_t *msg, int64_t c );
 void MSG_WriteString( msg_t *sb, const char *s );
-void MSG_WriteDeltaUsercmd( msg_t * msg, const usercmd_s * baseline , const usercmd_s * cmd );
+void MSG_WriteDeltaUsercmd( msg_t * msg, const usercmd_t * baseline , const usercmd_t * cmd );
 void MSG_WriteEntityNumber( msg_t * msg, int number, bool remove );
 void MSG_WriteDeltaEntity( msg_t * msg, const SyncEntityState * baseline, const SyncEntityState * ent, bool force );
 void MSG_WriteDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, const SyncPlayerState * player );
@@ -113,7 +105,7 @@ uint64_t MSG_ReadUintBase128( msg_t *msg );
 int64_t MSG_ReadIntBase128( msg_t *msg );
 char *MSG_ReadString( msg_t *sb );
 char *MSG_ReadStringLine( msg_t *sb );
-void MSG_ReadDeltaUsercmd( msg_t * msg, const usercmd_s * baseline, usercmd_s * cmd );
+void MSG_ReadDeltaUsercmd( msg_t * msg, const usercmd_t * baseline, usercmd_t * cmd );
 int MSG_ReadEntityNumber( msg_t * msg, bool * remove );
 void MSG_ReadDeltaEntity( msg_t * msg, const SyncEntityState * baseline, SyncEntityState * ent );
 void MSG_ReadDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, SyncPlayerState * player );
@@ -126,19 +118,6 @@ void MSG_ReadData( msg_t *sb, void *buffer, size_t length );
 
 // define this 0 to disable compression of demo files
 #define SNAP_DEMO_GZ                    FS_GZ
-
-void SNAP_ParseBaseline( msg_t *msg, SyncEntityState *baselines );
-struct snapshot_s *SNAP_ParseFrame( msg_t *msg, struct snapshot_s *lastFrame, struct snapshot_s *backup, SyncEntityState *baselines, int showNet );
-
-void SNAP_WriteFrameSnapToClient( struct ginfo_s *gi, struct client_s *client, msg_t *msg, int64_t frameNum, int64_t gameTime,
-	SyncEntityState *baselines, struct client_entities_s *client_entities );
-
-void SNAP_BuildClientFrameSnap( CollisionModel *cms, struct ginfo_s *gi, int64_t frameNum, int64_t timeStamp,
-								struct client_s *client,
-								SyncGameState *gameState, struct client_entities_s *client_entities,
-								struct mempool_s *mempool );
-
-void SNAP_FreeClientFrames( struct client_s *client );
 
 void SNAP_RecordDemoMessage( int demofile, msg_t *msg, int offset );
 int SNAP_ReadDemoMessage( int demofile, msg_t *msg );
@@ -188,7 +167,6 @@ PROTOCOL
 
 #define PORT_MASTER         27950
 #define PORT_SERVER         44400
-#define PORT_HTTP_SERVER    44444
 #define NUM_BROADCAST_PORTS 5
 
 //=========================================
@@ -211,7 +189,6 @@ enum svc_ops_e {
 	svc_servercmd,          // [string] string
 	svc_serverdata,         // [int] protocol ...
 	svc_spawnbaseline,
-	svc_download,           // [short] size [size bytes]
 	svc_playerinfo,         // variable
 	svc_packetentities,     // [...]
 	svc_gamecommands,
@@ -264,14 +241,13 @@ servers can also send across commands and entire text files can be execed.
 The + command line options are also added to the command buffer.
 */
 
-void        Cbuf_Init( void );
-void        Cbuf_Shutdown( void );
-void        Cbuf_AddText( const char *text );
-void        Cbuf_InsertText( const char *text );
-void        Cbuf_ExecuteText( int exec_when, const char *text );
-void        Cbuf_AddEarlyCommands( bool clear );
-bool    Cbuf_AddLateCommands( void );
-void        Cbuf_Execute( void );
+void Cbuf_Init( void );
+void Cbuf_Shutdown( void );
+void Cbuf_AddText( const char *text );
+void Cbuf_ExecuteText( int exec_when, const char *text );
+void Cbuf_AddEarlyCommands( bool clear );
+bool Cbuf_AddLateCommands( void );
+void Cbuf_Execute( void );
 
 
 //===========================================================================
@@ -338,62 +314,58 @@ NET
 #define FRAGMENT_LAST       (    1 << 14 )
 #define FRAGMENT_BIT            ( 1 << 31 )
 
-typedef enum {
+enum netadrtype_t {
 	NA_NOTRANSMIT,      // wsw : jal : fakeclients
 	NA_LOOPBACK,
 	NA_IP,
 	NA_IP6,
-} netadrtype_t;
+};
 
-typedef struct netadr_ipv4_s {
+struct netadr_ipv4_t {
 	uint8_t ip [4];
 	unsigned short port;
-} netadr_ipv4_t;
+};
 
-typedef struct netadr_ipv6_s {
+struct netadr_ipv6_t {
 	uint8_t ip [16];
 	unsigned short port;
 	unsigned long scope_id;
-} netadr_ipv6_t;
+};
 
-typedef struct netadr_s {
+struct netadr_t {
 	netadrtype_t type;
 	union {
 		netadr_ipv4_t ipv4;
 		netadr_ipv6_t ipv6;
 	} address;
-} netadr_t;
+};
 
-typedef enum {
+enum socket_type_t {
 	SOCKET_LOOPBACK,
-	SOCKET_UDP
-#ifdef TCP_SUPPORT
-	, SOCKET_TCP
-#endif
-} socket_type_t;
+	SOCKET_UDP,
+	SOCKET_TCP,
+};
 
-typedef struct {
+struct socket_t {
 	bool open;
 
 	socket_type_t type;
 	netadr_t address;
 	bool server;
 
-#ifdef TCP_SUPPORT
 	bool connected;
-#endif
 	netadr_t remoteAddress;
 
 	socket_handle_t handle;
-} socket_t;
+};
 
-typedef enum {
+enum connection_status_t {
 	CONNECTION_FAILED = -1,
 	CONNECTION_INPROGRESS = 0,
 	CONNECTION_SUCCEEDED = 1
-} connection_status_t;
+};
 
-typedef enum {
+enum net_error_t {
 	NET_ERR_UNKNOWN = -1,
 	NET_ERR_NONE = 0,
 
@@ -402,7 +374,7 @@ typedef enum {
 	NET_ERR_MSGSIZE,
 	NET_ERR_WOULDBLOCK,
 	NET_ERR_UNSUPPORTED,
-} net_error_t;
+};
 
 void        NET_Init( void );
 void        NET_Shutdown( void );
@@ -452,7 +424,7 @@ void    NET_BroadcastAddress( netadr_t *address, int port );
 
 //============================================================================
 
-typedef struct {
+struct netchan_t {
 	const socket_t *socket;
 
 	int dropped;                // between last packet and previous
@@ -477,7 +449,7 @@ typedef struct {
 	size_t unsentLength;
 	uint8_t unsentBuffer[MAX_MSGLEN];
 	bool unsentIsCompressed;
-} netchan_t;
+};
 
 extern netadr_t net_from;
 
@@ -519,7 +491,6 @@ const char *FS_BaseGameDirectory( void );
 // handling of absolute filenames
 // only to be used if necessary (library not supporting custom file handling functions etc.)
 const char *FS_WriteDirectory( void );
-const char *FS_CacheDirectory( void );
 const char *FS_DownloadsDirectory( void );
 void        FS_CreateAbsolutePath( const char *path );
 const char *FS_AbsoluteNameForFile( const char *filename );
@@ -557,7 +528,6 @@ void    FS_FreeFile( void *buffer );
 void    FS_FreeBaseFile( void *buffer );
 #define FS_LoadFile( path,buffer,stack,stacksize ) FS_LoadFileExt( path,0,buffer,stack,stacksize,__FILE__,__LINE__ )
 #define FS_LoadBaseFile( path,buffer,stack,stacksize ) FS_LoadBaseFileExt( path,0,buffer,stack,stacksize,__FILE__,__LINE__ )
-#define FS_LoadCacheFile( path,buffer,stack,stacksize ) FS_LoadFileExt( path,FS_CACHE,buffer,stack,stacksize,__FILE__,__LINE__ )
 
 // util functions
 bool    FS_MoveFile( const char *src, const char *dst );
@@ -640,8 +610,7 @@ MEMORY MANAGEMENT
 ==============================================================
 */
 
-struct mempool_s;
-typedef struct mempool_s mempool_t;
+struct mempool_t;
 
 #define MEMPOOL_TEMPORARY           1
 #define MEMPOOL_GAME                2
@@ -755,16 +724,12 @@ void CL_Init( void );
 void CL_Disconnect( const char *message );
 void CL_Shutdown( void );
 void CL_Frame( int realMsec, int gameMsec );
-void CL_ParseServerMessage( msg_t *msg );
-void CL_Netchan_Transmit( msg_t *msg );
 void Con_Print( const char *text );
 
 void SV_Init( void );
 void SV_Shutdown( const char *finalmsg );
 void SV_ShutdownGame( const char *finalmsg, bool reconnect );
 void SV_Frame( unsigned realMsec, unsigned gameMsec );
-bool SV_SendMessageToClient( struct client_s *client, msg_t *msg );
-void SV_ParseClientMessage( struct client_s *client, msg_t *msg );
 
 /*
 ==============================================================

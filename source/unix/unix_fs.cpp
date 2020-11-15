@@ -246,39 +246,6 @@ const char *Sys_FS_GetHomeDirectory( void ) {
 }
 
 /*
-* Sys_FS_GetCacheDirectory
-*/
-const char *Sys_FS_GetCacheDirectory( void ) {
-	static char cache[PATH_MAX] = { '\0' };
-
-	if( cache[0] == '\0' ) {
-		const char *homeEnv = getenv( "HOME" );
-		const char *base = NULL, *local = "";
-
-#ifdef __MACOSX__
-		base = homeEnv;
-		local = "Library/Caches/";
-#else
-		base = getenv( "XDG_CACHE_HOME" );
-		local = "";
-		if( !base ) {
-			base = homeEnv;
-			local = ".cache/";
-		}
-#endif
-
-		if( base ) {
-			snprintf( cache, sizeof( cache ), "%s/%s%s-0.0", base, local, APPLICATION );
-		}
-	}
-
-	if( cache[0] == '\0' ) {
-		return NULL;
-	}
-	return cache;
-}
-
-/*
 * Sys_FS_CreateDirectory
 */
 bool Sys_FS_CreateDirectory( const char *path ) {

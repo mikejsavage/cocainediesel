@@ -21,10 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 
-//===================================================================
-
-int clientVoted[MAX_CLIENTS];
-int clientVoteChanges[MAX_CLIENTS];
+static int clientVoted[MAX_CLIENTS];
+static int clientVoteChanges[MAX_CLIENTS];
 
 cvar_t *g_callvote_electpercentage;
 cvar_t *g_callvote_electtime;          // in seconds
@@ -300,7 +298,7 @@ static bool G_VoteAllreadyValidate( callvotedata_t *vote, bool first ) {
 	}
 
 	for( ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients; ent++ ) {
-		if( trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+		if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 			continue;
 		}
 
@@ -321,7 +319,7 @@ static bool G_VoteAllreadyValidate( callvotedata_t *vote, bool first ) {
 
 static void G_VoteAllreadyPassed( callvotedata_t *vote ) {
 	for( edict_t * ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients; ent++ ) {
-		if( trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+		if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 			continue;
 		}
 
@@ -397,7 +395,7 @@ static void G_VoteLockPassed( callvotedata_t *vote ) {
 
 	// if we are inside a match, update the teams state
 	if( GS_MatchState( &server_gs ) >= MATCH_STATE_COUNTDOWN && GS_MatchState( &server_gs ) <= MATCH_STATE_PLAYTIME ) {
-		if( GS_TeamBasedGametype( &server_gs ) ) {
+		if( level.gametype.isTeamBased ) {
 			for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ )
 				G_Teams_LockTeam( team );
 		} else {
@@ -440,7 +438,7 @@ static void G_VoteUnlockPassed( callvotedata_t *vote ) {
 
 	// if we are inside a match, update the teams state
 	if( GS_MatchState( &server_gs ) >= MATCH_STATE_COUNTDOWN && GS_MatchState( &server_gs ) <= MATCH_STATE_PLAYTIME ) {
-		if( GS_TeamBasedGametype( &server_gs ) ) {
+		if( level.gametype.isTeamBased ) {
 			for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ )
 				G_Teams_UnLockTeam( team );
 		} else {
@@ -464,7 +462,7 @@ static void G_VoteRemoveExtraHelp( edict_t *ent ) {
 	msg[0] = 0;
 	Q_strncatz( msg, "- List of players in game:\n", sizeof( msg ) );
 
-	if( GS_TeamBasedGametype( &server_gs ) ) {
+	if( level.gametype.isTeamBased ) {
 		int team;
 
 		for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
@@ -632,7 +630,7 @@ static void G_VoteKickPassed( callvotedata_t *vote ) {
 		return;
 	}
 
-	trap_DropClient( ent, DROP_TYPE_NORECONNECT, "Kicked" );
+	PF_DropClient( ent, DROP_TYPE_NORECONNECT, "Kicked" );
 }
 
 
@@ -721,7 +719,7 @@ static void G_VoteKickBanPassed( callvotedata_t *vote ) {
 	}
 
 	Cbuf_ExecuteText( EXEC_APPEND, va( "addip %s %i\n", ent->r.client->ip, 15 ) );
-	trap_DropClient( ent, DROP_TYPE_NORECONNECT, "Kicked" );
+	PF_DropClient( ent, DROP_TYPE_NORECONNECT, "Kicked" );
 }
 
 /*
@@ -1046,10 +1044,10 @@ static void G_CallVotes_Reset( bool vote_happened ) {
 		}
 	}
 
-	trap_ConfigString( CS_CALLVOTE, "" );
-	trap_ConfigString( CS_CALLVOTE_REQUIRED_VOTES, "" );
-	trap_ConfigString( CS_CALLVOTE_YES_VOTES, "" );
-	trap_ConfigString( CS_CALLVOTE_NO_VOTES, "" );
+	PF_ConfigString( CS_CALLVOTE, "" );
+	PF_ConfigString( CS_CALLVOTE_REQUIRED_VOTES, "" );
+	PF_ConfigString( CS_CALLVOTE_YES_VOTES, "" );
+	PF_ConfigString( CS_CALLVOTE_NO_VOTES, "" );
 
 	memset( &callvoteState, 0, sizeof( callvoteState ) );
 }
@@ -1175,7 +1173,7 @@ static void G_CallVotes_CheckState( void ) {
 	for( ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients; ent++ ) {
 		gclient_t *client = ent->r.client;
 
-		if( !ent->r.inuse || trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+		if( !ent->r.inuse || PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 			continue;
 		}
 
@@ -1214,9 +1212,9 @@ static void G_CallVotes_CheckState( void ) {
 		return;
 	}
 
-	trap_ConfigString( CS_CALLVOTE_REQUIRED_VOTES, va( "%d", needvotes ) );
-	trap_ConfigString( CS_CALLVOTE_YES_VOTES, va( "%d", yeses ) );
-	trap_ConfigString( CS_CALLVOTE_NO_VOTES, va( "%d", noes ) );
+	PF_ConfigString( CS_CALLVOTE_REQUIRED_VOTES, va( "%d", needvotes ) );
+	PF_ConfigString( CS_CALLVOTE_YES_VOTES, va( "%d", yeses ) );
+	PF_ConfigString( CS_CALLVOTE_NO_VOTES, va( "%d", noes ) );
 }
 
 /*
@@ -1406,7 +1404,7 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 
 	ent->r.client->level.callvote_when = callvoteState.timeout;
 
-	trap_ConfigString( CS_CALLVOTE, G_CallVotes_String( &callvoteState.vote ) );
+	PF_ConfigString( CS_CALLVOTE, G_CallVotes_String( &callvoteState.vote ) );
 
 	G_PrintMsg( NULL, "%s" S_COLOR_WHITE " requested to vote " S_COLOR_YELLOW "%s\n",
 				ent->r.client->netname, G_CallVotes_String( &callvoteState.vote ) );
@@ -1468,7 +1466,7 @@ void G_OperatorVote_Cmd( edict_t *ent ) {
 		}
 
 		for( other = game.edicts + 1; PLAYERNUM( other ) < server_gs.maxclients; other++ ) {
-			if( !other->r.inuse || trap_GetClientState( PLAYERNUM( other ) ) < CS_SPAWNED ) {
+			if( !other->r.inuse || PF_GetClientState( PLAYERNUM( other ) ) < CS_SPAWNED ) {
 				continue;
 			}
 			if( other->r.svflags & SVF_FAKECLIENT ) {

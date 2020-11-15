@@ -1,0 +1,21 @@
+{
+  particles {
+    material textures/vfx/flare1
+    blendfunc add
+
+    position sphere 1500
+
+    speed 50
+    speed_distribution uniform 25
+
+    color 1.0 0.31 0.0 1.0
+    end_color 0.0 0.0 0.0
+
+    size 16 16
+    size_distribution 8
+
+    lifetime 5
+    lifetime_distribution 0.2
+    count 1
+  }
+}

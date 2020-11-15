@@ -39,7 +39,7 @@ void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, 
 		return;
 	}
 
-	GS_EvaluateJumppad( pusher, playerState->pmove.velocity );
+	playerState->pmove.velocity = GS_EvaluateJumppad( pusher, playerState->pmove.velocity );
 
 	// reset walljump counter
 	playerState->pmove.pm_flags &= ~PMF_WALLJUMPCOUNT;
@@ -106,8 +106,8 @@ void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *me
 			case MOD_LASER:
 				strcpy( message, "was cut in half" );
 				break;
-			case MOD_SPIKES:
-				strcpy( message, "was impaled by spikes" );
+			case MOD_SPIKE:
+				strcpy( message, "was impaled on a spike" );
 				break;
 			default:
 				strcpy( message, "died" );

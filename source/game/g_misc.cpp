@@ -29,10 +29,7 @@ void ThrowSmallPileOfGibs( edict_t *self, Vec3 knockback, int damage ) {
 	Vec3 origin = self->s.origin;
 	self->s.origin.z += 4;
 
-	// clamp the damage value since events do bitwise & 0xFF on the passed param
-	damage = Clamp( 0, damage, 255 );
-
-	edict_t * event = G_SpawnEvent( EV_SPOG, damage, &origin );
+	edict_t * event = G_SpawnEvent( EV_GIB, damage, &origin );
 	event->s.team = self->s.team;
 	event->s.origin2 = self->velocity + knockback;
 }
@@ -178,16 +175,12 @@ void SP_func_wall( edict_t *self ) {
 	GClip_LinkEntity( self );
 }
 
-//===========================================================
-
 void SP_func_static( edict_t *ent ) {
 	G_InitMover( ent );
 	ent->movetype = MOVETYPE_NONE;
 	ent->r.svflags = SVF_BROADCAST;
 	GClip_LinkEntity( ent );
 }
-
-//===========================================================
 
 static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point ) {
 	// do not explode unless visible
@@ -297,22 +290,18 @@ void SP_func_explosive( edict_t *self ) {
 		self->takedamage = DAMAGE_YES;
 	}
 	self->max_health = self->health;
-	self->s.effects = EF_WORLD_MODEL;
 
 	GClip_LinkEntity( self );
 }
 
-//========================================================
-//
-//	MISC_*
-//
-//========================================================
-
-void SP_misc_model( edict_t *ent ) {
-	G_FreeEdict( ent );
-}
-
 void SP_model( edict_t *ent ) {
 	ent->r.svflags &= ~SVF_NOCLIENT;
+	GClip_LinkEntity( ent );
+}
+
+void SP_decal( edict_t * ent ) {
+	ent->r.svflags &= ~SVF_NOCLIENT;
+	ent->s.type = ET_DECAL;
+	ent->s.radius = st.radius;
 	GClip_LinkEntity( ent );
 }

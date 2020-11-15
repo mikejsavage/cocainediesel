@@ -2,7 +2,7 @@
 
 #include "qcommon/types.h"
 
-typedef void ( *JobCallback )( TempAllocator * temp, void * data );
+using JobCallback = void ( * )( TempAllocator * temp, void * data );
 
 void InitThreadPool();
 void ShutdownThreadPool();

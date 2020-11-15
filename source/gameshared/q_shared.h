@@ -37,8 +37,7 @@ short ShortSwap( short l );
 
 // command line execution flags
 #define EXEC_NOW                    0           // don't return until completed
-#define EXEC_INSERT                 1           // insert at current position, but don't run yet
-#define EXEC_APPEND                 2           // add to end of the command buffer
+#define EXEC_APPEND                 1           // add to end of the command buffer
 
 //=============================================
 // fonts
@@ -96,6 +95,8 @@ template< size_t N > bool operator==( const char ( &str )[ N ], Span< const char
 template< size_t N > bool operator!=( Span< const char > span, const char ( &str )[ N ] ) { return !( span == str ); }
 template< size_t N > bool operator!=( const char ( &str )[ N ], Span< const char > span ) { return !( span == str ); }
 
+bool StartsWith( const char * str, const char * prefix );
+
 Span< const char > FileExtension( const char * path );
 Span< const char > BaseName( const char * path );
 Span< const char > BasePath( const char * path );
@@ -110,8 +111,6 @@ char *COM_ParseExt2( const char **data_p, bool nl, bool sq );
 #define COM_Parse( data_p )   COM_ParseExt( data_p, true )
 
 const char *COM_RemoveJunkChars( const char *in );
-int COM_ReadColorRGBString( const char *in );
-int COM_ReadColorRGBAString( const char *in );
 bool COM_ValidateConfigstring( const char *string );
 
 char *COM_ListNameForPosition( const char *namesList, int position, const char separator );
@@ -152,13 +151,6 @@ char *COM_ListNameForPosition( const char *namesList, int position, const char s
 #define S_COLOR_WHITE   "\x1b\xff\xff\xff\xff"
 #define S_COLOR_ORANGE  "\x1b\xff\x80\x01\xff"
 #define S_COLOR_GREY    "\x1b\x80\x80\x80\xff"
-
-#define COLOR_R( rgba )       ( ( rgba ) & 0xFF )
-#define COLOR_G( rgba )       ( ( ( rgba ) >> 8 ) & 0xFF )
-#define COLOR_B( rgba )       ( ( ( rgba ) >> 16 ) & 0xFF )
-#define COLOR_A( rgba )       ( ( ( rgba ) >> 24 ) & 0xFF )
-#define COLOR_RGB( r, g, b )    ( ( ( r ) << 0 ) | ( ( g ) << 8 ) | ( ( b ) << 16 ) )
-#define COLOR_RGBA( r, g, b, a ) ( ( ( r ) << 0 ) | ( ( g ) << 8 ) | ( ( b ) << 16 ) | ( ( a ) << 24 ) )
 
 //=============================================
 // strings
@@ -234,10 +226,10 @@ constexpr size_t NUM_IMAGE_EXTENSIONS = ARRAY_COUNT( IMAGE_EXTENSIONS );
 //
 //==============================================================
 
-typedef enum {
+enum com_error_code_t {
 	ERR_FATAL,      // exit the entire game with a popup window
 	ERR_DROP,       // print to console and disconnect from game
-} com_error_code_t;
+};
 
 // this is only here so the functions in q_shared.c and q_math.c can link
 
@@ -263,7 +255,6 @@ __declspec( noreturn ) void Com_Error( com_error_code_t code, _Printf_format_str
 #define FS_APPEND           2
 #define FS_GZ               0x100   // compress on write and decompress on read automatically
 #define FS_UPDATE           0x200
-#define FS_CACHE            0x800
 
 #define FS_RWA_MASK         ( FS_READ | FS_WRITE | FS_APPEND )
 
@@ -271,27 +262,21 @@ __declspec( noreturn ) void Com_Error( com_error_code_t code, _Printf_format_str
 #define FS_SEEK_SET         1
 #define FS_SEEK_END         2
 
-typedef enum {
-	FS_MEDIA_IMAGES,
-
-	FS_MEDIA_NUM_TYPES
-} fs_mediatype_t;
-
 //==============================================================
 
 // connection state of the client in the server
-typedef enum {
+enum sv_client_state_t {
 	CS_FREE,            // can be reused for a new connection
 	CS_ZOMBIE,          // client has been disconnected, but don't reuse
 	                    // connection for a couple seconds
 	CS_CONNECTING,      // has send a "new" command, is awaiting for fetching configstrings
 	CS_CONNECTED,       // has been assigned to a client_t, but not in game yet
 	CS_SPAWNED          // client is fully in game
-} sv_client_state_t;
+};
 
-typedef enum {
+enum keydest_t {
 	key_game,
 	key_console,
 	key_message,
 	key_menu,
-} keydest_t;
+};

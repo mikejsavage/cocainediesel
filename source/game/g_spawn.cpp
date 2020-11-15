@@ -28,7 +28,7 @@ enum EntityFieldType {
 	F_FLOAT,
 	F_LSTRING,      // string on disk, pointer in memory, TAG_LEVEL
 	F_HASH,
-	F_MODELHASH,
+	F_ASSET,
 	F_VECTOR,
 	F_ANGLE,
 	F_RGBA,
@@ -46,8 +46,10 @@ struct EntityField {
 static const EntityField fields[] = {
 	{ "classname", FOFS( classname ), F_LSTRING },
 	{ "origin", FOFS( s.origin ), F_VECTOR },
-	{ "model", FOFS( s.model ), F_MODELHASH },
-	{ "model2", FOFS( s.model2 ), F_MODELHASH },
+	{ "model", FOFS( s.model ), F_ASSET },
+	{ "model2", FOFS( s.model2 ), F_ASSET },
+	{ "material", FOFS( s.material ), F_ASSET },
+	{ "color", FOFS( s.color ), F_RGBA },
 	{ "spawnflags", FOFS( spawnflags ), F_INT },
 	{ "speed", FOFS( speed ), F_FLOAT },
 	{ "target", FOFS( target ), F_LSTRING },
@@ -61,11 +63,8 @@ static const EntityField fields[] = {
 	{ "style", FOFS( style ), F_INT },
 	{ "count", FOFS( count ), F_INT },
 	{ "health", FOFS( health ), F_FLOAT },
-	{ "light", FOFS( light ), F_FLOAT },
-	{ "color", FOFS( color ), F_VECTOR },
 	{ "dmg", FOFS( dmg ), F_INT },
 	{ "angles", FOFS( s.angles ), F_VECTOR },
-	{ "mangle", FOFS( s.angles ), F_VECTOR },
 	{ "angle", FOFS( s.angles ), F_ANGLE },
 	{ "mass", FOFS( mass ), F_INT },
 	{ "random", FOFS( random ), F_FLOAT },
@@ -79,10 +78,9 @@ static const EntityField fields[] = {
 	{ "noise_start", STOFS( noise_start ), F_HASH, FFL_SPAWNTEMP },
 	{ "noise_stop", STOFS( noise_stop ), F_HASH, FFL_SPAWNTEMP },
 	{ "pausetime", STOFS( pausetime ), F_FLOAT, FFL_SPAWNTEMP },
-	{ "gravity", STOFS( gravity ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "gameteam", STOFS( gameteam ), F_INT, FFL_SPAWNTEMP },
 	{ "size", STOFS( size ), F_INT, FFL_SPAWNTEMP },
-	{ "rgba", STOFS( rgba ), F_RGBA, FFL_SPAWNTEMP },
+	{ "spawn_probability", STOFS( spawn_probability ), F_FLOAT, FFL_SPAWNTEMP },
 };
 
 typedef struct
@@ -117,7 +115,6 @@ static spawn_t spawns[] = {
 	{ "trigger_push", SP_trigger_push },
 	{ "trigger_hurt", SP_trigger_hurt },
 	{ "trigger_elevator", SP_trigger_elevator },
-	{ "trigger_gravity", SP_trigger_gravity },
 
 	{ "target_explosion", SP_target_explosion },
 	{ "target_laser", SP_target_laser },
@@ -133,10 +130,13 @@ static spawn_t spawns[] = {
 	{ "trigger_teleport", SP_trigger_teleport },
 	{ "misc_teleporter_dest", SP_target_position },
 
-	{ "misc_model", SP_misc_model },
 	{ "model", SP_model },
+	{ "decal", SP_decal },
 
+	{ "spike", SP_spike },
 	{ "spikes", SP_spikes },
+
+	{ "speaker_wall", SP_speaker_wall },
 };
 
 /*
@@ -264,7 +264,7 @@ static char *ED_NewString( const char *string ) {
 * Takes a key/value pair and sets the binary values
 * in an edict
 */
-static void ED_ParseField( char *key, char *value, edict_t *ent ) {
+static void ED_ParseField( const char *key, const char *value, edict_t *ent ) {
 	for( EntityField f : fields ) {
 		if( Q_stricmp( f.name, key ) != 0 )
 			continue;
@@ -283,7 +283,7 @@ static void ED_ParseField( char *key, char *value, edict_t *ent ) {
 			case F_HASH:
 				*(StringHash *)( b + f.ofs ) = StringHash( value );
 				break;
-			case F_MODELHASH:
+			case F_ASSET:
 				if( value[ 0 ] == '*' ) {
 					*(StringHash *)( b + f.ofs ) = StringHash( Hash64( value, strlen( value ), svs.cms->base_hash ) );
 				}
@@ -308,7 +308,9 @@ static void ED_ParseField( char *key, char *value, edict_t *ent ) {
 			} break;
 
 			case F_RGBA: {
-				*( int * ) ( b + f.ofs ) = COM_ReadColorRGBAString( value );
+				RGBA8 rgba = RGBA8( 255, 255, 255, 255 );
+				sscanf( value, "%hhu %hhu %hhu %hhu", &rgba.r, &rgba.g, &rgba.b, &rgba.a );
+				*(RGBA8 *)( b + f.ofs ) = rgba;
 			} break;
 		}
 		return;
@@ -325,13 +327,14 @@ static void ED_ParseField( char *key, char *value, edict_t *ent ) {
 * Parses an edict out of the given string, returning the new position
 * ed should be a properly initialized empty edict.
 */
-static char *ED_ParseEdict( char *data, edict_t *ent ) {
+static const char *ED_ParseEdict( const char *data, edict_t *ent ) {
 	bool init;
 	char keyname[256];
-	char *com_token;
+	const char *com_token;
 
 	init = false;
 	memset( &st, 0, sizeof( st ) );
+	st.spawn_probability = 1.0f;
 	level.spawning_entity = ent;
 
 	// go through all the dictionary pairs
@@ -399,25 +402,19 @@ static void G_FreeEntities( void ) {
 * G_SpawnEntities
 */
 static void G_SpawnEntities( void ) {
-	int i;
-	edict_t *ent;
-	char *token;
-	char *entities;
-
 	level.spawnedTimeStamp = svs.gametime;
 	level.canSpawnEntities = true;
 
-	entities = level.mapString;
+	const char * entities = level.mapString;
 	level.map_parsed_ents[0] = 0;
 	level.map_parsed_len = 0;
 
-	i = 0;
-	ent = NULL;
-	while( 1 ) {
+	edict_t * ent = NULL;
+	while( true ) {
 		level.spawning_entity = NULL;
 
 		// parse the opening brace
-		token = COM_Parse( &entities );
+		const char * token = COM_Parse( &entities );
 		if( !entities ) {
 			break;
 		}
@@ -435,16 +432,14 @@ static void G_SpawnEntities( void ) {
 		ent->spawnString = entities; // keep track of string definition of this entity
 
 		entities = ED_ParseEdict( entities, ent );
-		if( !ent->classname ) {
-			i++;
-			G_FreeEdict( ent );
-			continue;
-		}
 
-		if( !G_CallSpawn( ent ) ) {
-			i++;
+		bool ok = true;
+		ok = ok && ent->classname != NULL;
+		ok = ok && random_p( &svs.rng, st.spawn_probability );
+		ok = ok && G_CallSpawn( ent );
+
+		if( !ok ) {
 			G_FreeEdict( ent );
-			continue;
 		}
 	}
 
@@ -453,7 +448,7 @@ static void G_SpawnEntities( void ) {
 	level.map_parsed_ents[level.map_parsed_len] = 0;
 
 	// make sure server got the edicts data
-	trap_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
+	SV_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
 }
 
 /*
@@ -486,7 +481,6 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	G_StringPoolInit();
 
 	level.time = levelTime;
-	level.gravity = GRAVITY;
 
 	// get the strings back
 	level.mapString = ( char * )G_LevelMalloc( entstrlen + 1 );
@@ -502,16 +496,16 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		game.edicts[i + 1].s.number = i + 1;
 		game.edicts[i + 1].r.client = &game.clients[i];
-		game.edicts[i + 1].r.inuse = ( trap_GetClientState( i ) >= CS_CONNECTED ) ? true : false;
+		game.edicts[i + 1].r.inuse = PF_GetClientState( i ) >= CS_CONNECTED;
 		memset( &game.clients[i].level, 0, sizeof( game.clients[0].level ) );
 		game.clients[i].level.timeStamp = level.time;
 	}
 
 	// initialize game subsystems
-	trap_ConfigString( CS_MATCHSCORE, "" );
+	PF_ConfigString( CS_MATCHSCORE, "" );
 
 	G_InitGameCommands();
-	G_CallVotes_Init();
+
 	G_SpawnQueue_Init();
 	G_Teams_Init();
 
@@ -527,6 +521,12 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	// always start in warmup match state and let the thinking code
 	// revert it to wait state if empty ( so gametype based item masks are setup )
 	G_Match_LaunchState( MATCH_STATE_WARMUP );
+
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
+		if( game.edicts[ i + 1 ].r.inuse ) {
+			G_Teams_JoinAnyTeam( &game.edicts[ i + 1 ], true );
+		}
+	}
 
 	G_asGarbageCollect( true );
 }
@@ -610,8 +610,4 @@ static void SP_worldspawn( edict_t *ent ) {
 	const char * model_name = "*0";
 	ent->s.model = StringHash( Hash64( model_name, strlen( model_name ), svs.cms->base_hash ) );
 	GClip_SetBrushModel( ent );
-
-	if( st.gravity ) {
-		level.gravity = atof( st.gravity );
-	}
 }

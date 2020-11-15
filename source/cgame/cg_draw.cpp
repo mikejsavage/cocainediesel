@@ -1,4 +1,5 @@
-#include "cg_local.h"
+#include "cgame/cg_local.h"
+#include "client/renderer/renderer.h"
 
 int CG_HorizontalAlignForWidth( int x, Alignment alignment, int width ) {
 	if( alignment.x == XAlignment_Left )

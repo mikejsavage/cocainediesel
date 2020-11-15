@@ -35,6 +35,7 @@ struct StringHash {
 
 	StringHash() = default;
 	explicit StringHash( const char * s );
+	explicit StringHash( Span< const char > s );
 
 #ifdef PUBLIC_BUILD
 	template< size_t N >
@@ -57,3 +58,7 @@ inline bool operator!=( StringHash a, StringHash b ) { return !( a == b ); }
 
 // define this as hash = 0 so memset( 0 ) can be used to reset StringHashes
 constexpr StringHash EMPTY_HASH = StringHash( U64( 0 ) );
+
+struct FormatBuffer;
+struct FormatOpts;
+void format( FormatBuffer * fb, const StringHash & h, const FormatOpts & opts );

@@ -36,13 +36,13 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 	if( attacker && attacker->r.client ) {
 		if( attacker != self ) { // regular death message
 			self->enemy = attacker;
-			if( GAME_IMPORT.is_dedicated_server ) {
+			if( is_dedicated_server ) {
 				Com_Printf( "%s %s %s%s\n", self->r.client->netname, message,
 						  attacker->r.client->netname, message2 );
 			}
 		} else {      // suicide
 			self->enemy = NULL;
-			if( GAME_IMPORT.is_dedicated_server ) {
+			if( is_dedicated_server ) {
 				Com_Printf( "%s %s\n", self->r.client->netname, message );
 			}
 
@@ -52,7 +52,7 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 		G_Obituary( self, attacker, mod );
 	} else {      // wrong place, suicide, etc.
 		self->enemy = NULL;
-		if( GAME_IMPORT.is_dedicated_server ) {
+		if( is_dedicated_server ) {
 			Com_Printf( "%s %s\n", self->r.client->netname, message );
 		}
 
@@ -104,21 +104,17 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	body->r.solid = SOLID_NOT;
 	body->takedamage = DAMAGE_NO;
 	body->movetype = MOVETYPE_TOSS;
-	body->think = G_FreeEdict; // body self destruction countdown
 
 	body->s.teleported = true;
 	body->s.ownerNum = ent->s.number;
 
 	int mod = meansOfDeath;
 	bool gib = mod == MOD_RAILGUN || mod == MOD_TRIGGER_HURT || mod == MOD_TELEFRAG
-		|| mod == MOD_EXPLOSIVE || mod == MOD_SPIKES ||
+		|| mod == MOD_EXPLOSIVE || mod == MOD_SPIKE ||
 		( ( mod == MOD_ROCKET || mod == MOD_GRENADE ) && damage >= 20 );
 
 	if( gib ) {
 		ThrowSmallPileOfGibs( body, knockbackOfDeath, damage );
-
-		// reset gib impulse
-		body->velocity = Vec3( 0.0f );
 
 		body->nextThink = level.time + 3000 + random_float01( &svs.rng ) * 3000;
 		body->deadflag = DEAD_DEAD;
@@ -132,11 +128,9 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 
 	// bit of a hack, if we're not in warmup, leave the body with no think. think self destructs
 	// after a timeout, but if we leave, next bomb round will call G_ResetLevel() cleaning up
-	if( GS_MatchState( &server_gs ) == MATCH_STATE_WARMUP ) {
+	if( GS_MatchState( &server_gs ) != MATCH_STATE_PLAYTIME ) {
 		body->nextThink = level.time + 3500;
-	}
-	else {
-		body->think = NULL;
+		body->think = G_FreeEdict; // body self destruction countdown
 	}
 
 	GClip_LinkEntity( body );
@@ -198,7 +192,7 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 		return;
 	}
 
-	if( trap_GetClientState( client - game.clients ) < CS_SPAWNED ) {
+	if( PF_GetClientState( client - game.clients ) < CS_SPAWNED ) {
 		return;
 	}
 
@@ -266,7 +260,6 @@ void G_GhostClient( edict_t *ent ) {
 	ent->s.effects = 0;
 	ent->s.weapon = 0;
 	ent->s.sound = EMPTY_HASH;
-	ent->s.light = 0;
 	ent->viewheight = 0;
 	ent->takedamage = DAMAGE_NO;
 
@@ -652,7 +645,7 @@ static void G_UpdatePlayerInfoString( int playerNum ) {
 	Info_SetValueForKey( playerString, "hand", va( "%i", client->hand ) );
 
 	playerString[MAX_CONFIGSTRING_CHARS - 1] = 0;
-	trap_ConfigString( CS_PLAYERINFOS + playerNum, playerString );
+	PF_ConfigString( CS_PLAYERINFOS + playerNum, playerString );
 }
 
 /*
@@ -672,7 +665,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 
 	// check for malformed or illegal info strings
 	if( !Info_Validate( userinfo ) ) {
-		trap_DropClient( ent, DROP_TYPE_GENERAL, "Error: Invalid userinfo" );
+		PF_DropClient( ent, DROP_TYPE_GENERAL, "Error: Invalid userinfo" );
 		return;
 	}
 
@@ -681,7 +674,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	// ip
 	s = Info_ValueForKey( userinfo, "ip" );
 	if( !s ) {
-		trap_DropClient( ent, DROP_TYPE_GENERAL, "Error: Server didn't provide client IP" );
+		PF_DropClient( ent, DROP_TYPE_GENERAL, "Error: Server didn't provide client IP" );
 		return;
 	}
 
@@ -690,7 +683,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	// socket
 	s = Info_ValueForKey( userinfo, "socket" );
 	if( !s ) {
-		trap_DropClient( ent, DROP_TYPE_GENERAL, "Error: Server didn't provide client socket" );
+		PF_DropClient( ent, DROP_TYPE_GENERAL, "Error: Server didn't provide client socket" );
 		return;
 	}
 
@@ -703,7 +696,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 		G_PrintMsg( NULL, "%s is now known as %s\n", oldname, cl->netname );
 	}
 	if( !Info_SetValueForKey( userinfo, "name", cl->netname ) ) {
-		trap_DropClient( ent, DROP_TYPE_GENERAL, "Error: Couldn't set userinfo (name)" );
+		PF_DropClient( ent, DROP_TYPE_GENERAL, "Error: Couldn't set userinfo (name)" );
 		return;
 	}
 
@@ -850,7 +843,7 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 	memset( ent->r.client, 0, sizeof( *ent->r.client ) );
 	ent->r.client->ps.playerNum = PLAYERNUM( ent );
 
-	trap_ConfigString( CS_PLAYERINFOS + PLAYERNUM( ent ), "" );
+	PF_ConfigString( CS_PLAYERINFOS + PLAYERNUM( ent ), "" );
 	GClip_UnlinkEntity( ent );
 
 	G_Match_CheckReadys();
@@ -996,8 +989,6 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	client->ps.pmove.velocity = ent->velocity;
 	client->ps.viewangles = ent->s.angles;
 
-	client->ps.pmove.gravity = level.gravity;
-
 	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH || GS_MatchPaused( &server_gs )
 		|| ( ent->movetype != MOVETYPE_PLAYER && ent->movetype != MOVETYPE_NOCLIP ) ) {
 		client->ps.pmove.pm_type = PM_FREEZE;
@@ -1085,7 +1076,7 @@ void G_ClientThink( edict_t *ent ) {
 		return;
 	}
 
-	if( trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+	if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 		return;
 	}
 
@@ -1096,7 +1087,7 @@ void G_ClientThink( edict_t *ent ) {
 		AI_Think( ent );
 	}
 
-	trap_ExecuteClientThinks( PLAYERNUM( ent ) );
+	SV_ExecuteClientThinks( PLAYERNUM( ent ) );
 }
 
 /*
@@ -1111,7 +1102,7 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 		return;
 	}
 
-	if( trap_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
+	if( PF_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
 		// if the spawnsystem doesn't require to click
 		if( G_SpawnQueue_GetSystem( ent->s.team ) != SPAWNSYSTEM_INSTANT ) {
 			if( level.time >= ent->deathTimeStamp + 3000 ) {

@@ -1,5 +1,5 @@
-#include "g_local.h"
-#include "../gameshared/gs_public.h"
+#include "game/g_local.h"
+#include "gameshared/gs_public.h"
 
 static const char * bot_names[] = {
 	"vic",
@@ -33,7 +33,7 @@ static edict_t * ConnectFakeClient() {
 	static char fakeSocketType[] = "loopback";
 	static char fakeIP[] = "127.0.0.1";
 	CreateUserInfo( userInfo, sizeof( userInfo ) );
-	int entNum = trap_FakeClientConnect( userInfo, fakeSocketType, fakeIP );
+	int entNum = SVC_FakeConnect( userInfo, fakeSocketType, fakeIP );
 	if( entNum < 1 ) {
 		Com_Printf( "AI: Can't spawn the fake client\n" );
 		return NULL;

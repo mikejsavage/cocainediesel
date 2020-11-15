@@ -2,6 +2,7 @@
 #include "imgui/imgui_internal.h"
 
 #include "client/client.h"
+#include "client/renderer/renderer.h"
 #include "qcommon/version.h"
 #include "qcommon/string.h"
 
@@ -30,7 +31,7 @@ enum GameMenuState {
 	GameMenuState_Menu,
 	GameMenuState_Loadout,
 	GameMenuState_Settings,
-	GameMenuState_Votemap,
+	GameMenuState_Vote,
 };
 
 enum DemoMenuState {
@@ -63,8 +64,7 @@ static MainMenuState mainmenu_state;
 static int selected_server;
 
 static GameMenuState gamemenu_state;
-static constexpr int MAX_CASH = 500;
-static WeaponType selected_weapons[ Weapon_Count - 1 ];
+static WeaponType selected_weapons[ WeaponCategory_Count ];
 
 static SettingsState settings_state;
 static bool reset_video_settings;
@@ -102,7 +102,7 @@ static void RefreshServerBrowser() {
 
 void UI_Init() {
 	ResetServerBrowser();
-	InitParticleMenuEffect();
+	// InitParticleMenuEffect();
 
 	uistate = UIState_MainMenu;
 	mainmenu_state = MainMenuState_ServerBrowser;
@@ -112,7 +112,7 @@ void UI_Init() {
 
 void UI_Shutdown() {
 	ResetServerBrowser();
-	ShutdownParticleEditor();
+	// ShutdownParticleEditor();
 }
 
 static void SettingLabel( const char * label ) {
@@ -227,6 +227,7 @@ static void SettingsGeneral() {
 
 	CvarCheckbox( "Show hotkeys", "cg_showHotkeys", "1", CVAR_ARCHIVE );
 	CvarCheckbox( "Show FPS", "cg_showFPS", "0", CVAR_ARCHIVE );
+	CvarCheckbox( "Show speed", "cg_showSpeed", "0", CVAR_ARCHIVE );
 }
 
 static void SettingsControls() {
@@ -241,35 +242,37 @@ static void SettingsControls() {
 			KeyBindButton( "Left", "+left" );
 			KeyBindButton( "Right", "+right" );
 			KeyBindButton( "Jump", "+jump" );
-			KeyBindButton( "Dash/walljump/zoom", "+special" );
-			KeyBindButton( "Crouch", "+crouch" );
-			KeyBindButton( "Walk", "+walk" );
+			KeyBindButton( "Dash", "+special" );
+
+			ImGui::Separator();
 
 			KeyBindButton( "Attack", "+attack" );
 			KeyBindButton( "Reload", "+reload" );
+			KeyBindButton( "Plant bomb", "+crouch" );
 			KeyBindButton( "Drop bomb", "drop" );
 			KeyBindButton( "Shop", "gametypemenu" );
 			KeyBindButton( "Scoreboard", "+scores" );
+
+			ImGui::Separator();
+
+			KeyBindButton( "Chat", "messagemode" );
+			KeyBindButton( "Team chat", "messagemode2" );
+			KeyBindButton( "Spray", "spray" );
 
 			ImGui::EndTabItem();
 		}
 
 		if( ImGui::BeginTabItem( "Weapons" ) ) {
+			KeyBindButton( "Melee", "weapon 1" );
+			KeyBindButton( "Primary", "weapon 2" );
+			KeyBindButton( "Secondary", "weapon 3" );
+			KeyBindButton( "Backup", "weapon 4" );
 			KeyBindButton( "Next weapon", "weapnext" );
 			KeyBindButton( "Previous weapon", "weapprev" );
 
-			ImGui::Separator();
-
-			KeyBindButton( "Weapon 1", "weapon 1" );
-			KeyBindButton( "Weapon 2", "weapon 2" );
-			KeyBindButton( "Weapon 3", "weapon 3" );
-			KeyBindButton( "Weapon 4", "weapon 4" );
-			KeyBindButton( "Weapon 5", "weapon 5" );
-			KeyBindButton( "Weapon 6", "weapon 6" );
-
 			ImGui::BeginChild( "weapon", ImVec2( 400, -1 ) );
-			if( ImGui::CollapsingHeader( "Advanced weapon keys" ) ) {
-				for( int i = 0; i < Weapon_Count; i++ ) {
+			if( ImGui::CollapsingHeader( "Advanced" ) ) {
+				for( int i = Weapon_Knife; i < Weapon_Count; i++ ) {
 					const WeaponDef * weapon = GS_GetWeaponDef( i );
 					KeyBindButton( weapon->name, temp( "use {}", weapon->short_name ) );
 				}
@@ -288,13 +291,13 @@ static void SettingsControls() {
 			ImGui::EndTabItem();
 		}
 
-		if( ImGui::BeginTabItem( "Communication" ) ) {
+		if( ImGui::BeginTabItem( "Voice lines" ) ) {
+			KeyBindButton( "Acne pack", "vsay acne" );
+			KeyBindButton( "Valley pack", "vsay valley" );
+			KeyBindButton( "Mike pack", "vsay mike" );
 
-			KeyBindButton( "Chat", "messagemode" );
-			KeyBindButton( "Team chat", "messagemode2" );
-
-			ImGui::BeginChild( "voice lines", ImVec2( 400, -1 ) );
-			if( ImGui::CollapsingHeader( "Voice Lines" ) ) {
+			ImGui::BeginChild( "voice", ImVec2( 400, -1 ) );
+			if( ImGui::CollapsingHeader( "Advanced" ) ) {
 				KeyBindButton( "Sorry", "vsay sorry" );
 				KeyBindButton( "Thanks", "vsay thanks" );
 				KeyBindButton( "Good game", "vsay goodgame" );
@@ -310,10 +313,18 @@ static void SettingsControls() {
 				KeyBindButton( "Trash smash", "vsay trashsmash" );
 				KeyBindButton( "What the shit", "vsay whattheshit" );
 				KeyBindButton( "Wow your terrible", "vsay wowyourterrible" );
-				KeyBindButton( "Acne", "vsay acne" );
-				KeyBindButton( "Valley", "vsay valley" );
-				KeyBindButton( "Mike", "vsay mike" );
 			} ImGui::EndChild();
+
+			ImGui::EndTabItem();
+		}
+
+		if( ImGui::BeginTabItem( "Misc" ) ) {
+			KeyBindButton( "Vote yes", "vote yes" );
+			KeyBindButton( "Vote no", "vote no" );
+			KeyBindButton( "Join team", "join" );
+			KeyBindButton( "Ready", "toggleready" );
+			KeyBindButton( "Spectate", "chase" );
+			KeyBindButton( "Screenshot", "screenshot" );
 
 			ImGui::EndTabItem();
 		}
@@ -435,7 +446,7 @@ static void SettingsVideo() {
 
 		ImGui::SameLine();
 
-		PushButtonColor( ImVec4( 0.5f, 0.125f, 0.f, 0.75f ) );
+		PushButtonColor( ImVec4( 0.5f, 0.5f, 0.5f, 1.f ) );
 		if( ImGui::Button( "Discard changes" ) ) {
 			reset_video_settings = true;
 		}
@@ -470,7 +481,7 @@ static void SettingsVideo() {
 
 		if( samples > 1 ) {
 			ImGui::SameLine();
-			ImGui::Text( S_COLOR_RED "Enabling anti-aliasing can cause significant FPS drops!" );
+			ImGui::Text( S_COLOR_WHITE "Enabling anti-aliasing can cause significant FPS drops!" );
 		}
 
 		Cvar_Set( "r_samples", temp( "{}", samples ) );
@@ -505,7 +516,7 @@ static void SettingsVideo() {
 
 static void SettingsAudio() {
 	CvarSliderFloat( "Master volume", "s_volume", 0.0f, 1.0f, "1", CVAR_ARCHIVE );
-	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f, "1", CVAR_ARCHIVE );
+	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f, "0.5", CVAR_ARCHIVE );
 	CvarCheckbox( "Mute when alt-tabbed", "s_muteinbackground", "1", CVAR_ARCHIVE );
 }
 
@@ -637,6 +648,9 @@ static void CreateServer() {
 }
 
 static void MainMenu() {
+	static bool change_name_popup = false;
+	static const char * player_name = Cvar_Get( "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE )->string;
+
 	TempAllocator temp = cls.frame_arena.temp();
 
 	ImGui::SetNextWindowPos( ImVec2() );
@@ -647,21 +661,45 @@ static void MainMenu() {
 
 	ImGui::Begin( "mainmenu", WindowZOrder_Menu, flags );
 
+	//Set your nickname if its the default one
+	if( !change_name_popup && strcmp( "Player", player_name ) == 0 ) {
+		ImGui::OpenPopup( "change name" );
+	} else {
+		change_name_popup = true;
+	}
+
+	if( ImGui::BeginPopupModal( "change name", NULL, ImGuiWindowFlags_NoDecoration ) ) {
+		ImGui::BeginChild( "nameset", ImVec2( 500, 150 ) );
+		ImGui::Text( "Change your nickname" );
+
+		CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
+
+		if( ImGui::Button( "Ok", ImVec2( -1, 0 ) ) || ImGui::Hotkey( K_ESCAPE ) ) {
+			change_name_popup = true;
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::EndChild();
+		ImGui::EndPopup();
+	}
+
+
+
 	ImVec2 window_padding = ImGui::GetStyle().WindowPadding;
 
 	ImGui::BeginChild( "mainmenubody", ImVec2( 0, -ImGui::GetFrameHeightWithSpacing() + window_padding.y ) );
 
 	ImGui::PushFont( cls.large_font );
-	const char * name = "CORONADIESEL";
+	const char * name = "KOKAIN DIZEL";
 	const int break_time = 1000;
 	for( size_t i = 0; i < strlen( name ); i++ ) {
 		ImGui::SameLine();
 		if( cls.monotonicTime < break_time ) {
-			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + frame_static.viewport_width * Max2( s64( 0 ), ( 1000 - cls.monotonicTime ) ) /1000.f );
+			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + frame_static.viewport_width * Max2( s64( 0 ), ( 1000 - cls.monotonicTime ) ) / 1000.f );
 		} else {
-			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + Max2( 0.0f, sinf( ( cls.monotonicTime - break_time ) / 500.0f + i*0.5f )*8 ) );
+			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + Max2( 0.0f, sinf( ( cls.monotonicTime - break_time ) / 500.0f + i*1.33f )*16 ) );
 		}
-		ImGui::Text( "%s%c", temp( "{}", ImGuiColorToken( 220, 180 + i*2, 100 + i*4, 255 ) ), name[ i ] );
+		ImGui::Text( "%s%c", temp( "{}", ImGuiColorToken( 255, 255, 255, 255 - i*16 ) ), name[ i ] );
 	}
 	ImGui::PopFont();
 
@@ -698,12 +736,12 @@ static void MainMenu() {
 
 		if( ImGui::Button( "Particle editor" ) ) {
 			mainmenu_state = MainMenuState_ParticleEditor;
-			ResetParticleEditor();
+			// ResetParticleEditor();
 		}
 	}
 
 	if( parteditor_wason && mainmenu_state != MainMenuState_ParticleEditor ) {
-		ResetParticleMenuEffect();
+		// ResetParticleMenuEffect();
 	}
 
 	ImGui::Separator();
@@ -712,7 +750,7 @@ static void MainMenu() {
 		case MainMenuState_ServerBrowser: ServerBrowser(); break;
 		case MainMenuState_CreateServer: CreateServer(); break;
 		case MainMenuState_Settings: Settings(); break;
-		case MainMenuState_ParticleEditor: DrawParticleEditor(); break;
+		// case MainMenuState_ParticleEditor: DrawParticleEditor(); break;
 	}
 
 	ImGui::EndChild();
@@ -736,11 +774,12 @@ static void MainMenu() {
 
 		ImGuiWindowFlags credits_flags = ( ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar ) | ImGuiWindowFlags_NoMove;
 		if( ImGui::BeginPopupModal( "Credits", NULL, credits_flags ) ) {
+			ImGui::Text( "Dexter - programming" );
+			ImGui::Text( "general adnic - voice acting" );
 			ImGui::Text( "goochie - art & programming" );
+			ImGui::Text( "MSC - programming" );
 			ImGui::Text( "MikeJS - programming" );
 			ImGui::Text( "Obani - music & fx & programming" );
-			ImGui::Text( "Dexter - programming" );
-			ImGui::Text( "Special thanks to MSC" );
 			ImGui::Text( "Special thanks to the Warsow team except for slk and MWAGA" );
 			ImGui::Spacing();
 
@@ -770,16 +809,6 @@ static void GameMenuButton( const char * label, const char * command, bool * cli
 	}
 }
 
-static int SelectedWeaponIndex( WeaponType weapon ) {
-	for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
-		if( selected_weapons[ i ] == weapon ) {
-			return i;
-		}
-	}
-
-	return -1;
-}
-
 static void WeaponTooltip( const WeaponDef * def ) {
 	if( ImGui::IsItemHovered() ) {
 		ImGui::BeginTooltip();
@@ -797,24 +826,22 @@ static void WeaponTooltip( const WeaponDef * def ) {
 	}
 }
 
-
 static void SendLoadout() {
 	TempAllocator temp = cls.frame_arena.temp();
-	
+
 	DynamicString loadout( &temp, "weapselect" );
 
 	for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
-		if( selected_weapons[ i ] == Weapon_None )
-			break;
-		loadout.append( " {}", selected_weapons[ i ] );
+		if( selected_weapons[ i ] != Weapon_None ) {
+			loadout.append( " {}", selected_weapons[ i ] );
+		}
 	}
 	loadout += "\n";
 
 	Cbuf_AddText( loadout.c_str() );
 }
 
-
-static void WeaponButton( int cash, WeaponType weapon, ImVec2 size ) {
+static void WeaponButton( WeaponType weapon, Vec2 size ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
 	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0.1f, 0.1f, 0.1f, 1.0f ) );
 	ImGui::PushStyleColor( ImGuiCol_ButtonActive, Vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
@@ -825,14 +852,11 @@ static void WeaponButton( int cash, WeaponType weapon, ImVec2 size ) {
 	defer { ImGui::PopStyleVar( 2 ); };
 
 	const WeaponDef * def = GS_GetWeaponDef( weapon );
-	int idx = SelectedWeaponIndex( weapon );
-
-	bool selected = idx != -1;
-	bool affordable = def->cost <= cash;
+	bool selected = selected_weapons[ def->category ] == weapon;
 
 	const Material * icon = cgs.media.shaderWeaponIcon[ weapon ];
-	Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
-	Vec4 color = selected ? vec4_green : ( affordable ? vec4_white : Vec4( 0.5f, 0.5f, 0.5f, 1.0f ) );
+	Vec2 half_pixel = HalfPixelSize( icon );
+	Vec4 color = selected ? vec4_green : vec4_white;
 
 	ImGui::PushStyleColor( ImGuiCol_Border, color );
 	defer { ImGui::PopStyleColor(); };
@@ -849,26 +873,57 @@ static void WeaponButton( int cash, WeaponType weapon, ImVec2 size ) {
 	CG_GetBoundKeycodes( va( "use %s", def->short_name ), weaponBinds );
 
 	if( clicked || ImGui::Hotkey( weaponBinds[ 0 ] ) || ImGui::Hotkey( weaponBinds[ 1 ] ) ) {
-		if( selected ) {
-			selected_weapons[ idx ] = Weapon_None;
-			for( size_t i = idx; i < ARRAY_COUNT( selected_weapons ) - 1; i++ ) {
-				selected_weapons[ i ] = selected_weapons[ i + 1 ];
-			}
-		}
-		else if( affordable ) {
-			for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
-				if( selected_weapons[ i ] == Weapon_None ) {
-					selected_weapons[ i ] = weapon;
-					break;
-				}
-			}
-		}
-
+		selected_weapons[ def->category ] = selected ? WeaponType( Weapon_None ) : weapon;
 		SendLoadout();
 	}
 }
 
+static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 icon_size ) {
+	ImGui::Text( "%s", label );
+	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
+	ImGui::NextColumn();
 
+	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
+		const WeaponDef * def = GS_GetWeaponDef( i );
+		if( def->category == category ) {
+			WeaponButton( i, icon_size );
+		}
+	}
+
+	ImGui::NextColumn();
+}
+
+static bool LoadoutMenu( Vec2 displaySize ) {
+	ImGui::PushFont( cls.medium_font );
+	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 255 ) );
+	ImGui::SetNextWindowPos( Vec2( 0, 0 ) );
+	ImGui::SetNextWindowSize( displaySize );
+	ImGui::Begin( "Loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+
+	const Vec2 icon_size = Vec2( displaySize.x * 0.075f );
+
+	ImGui::Columns( 2, NULL, false );
+	ImGui::SetColumnWidth( 0, 300 );
+
+	LoadoutCategory( "Primary", WeaponCategory_Primary, icon_size );
+	LoadoutCategory( "Secondary", WeaponCategory_Secondary, icon_size );
+	LoadoutCategory( "Backup", WeaponCategory_Backup, icon_size );
+
+	ImGui::EndColumns();
+
+	int loadoutKeys[ 2 ] = { };
+	CG_GetBoundKeycodes( "gametypemenu", loadoutKeys );
+
+	bool should_close = false;
+	if( ImGui::Hotkey( loadoutKeys[ 0 ] ) || ImGui::Hotkey( loadoutKeys[ 1 ] ) ) {
+		should_close = true;
+	}
+
+	ImGui::PopStyleColor();
+	ImGui::PopFont();
+
+	return should_close;
+}
 
 static void GameMenu() {
 	bool spectating = cg.predictedPlayerState.real_team == TEAM_SPECTATOR;
@@ -884,9 +939,11 @@ static void GameMenu() {
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 192 ) );
 	bool should_close = false;
 
+	ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+
 	if( gamemenu_state == GameMenuState_Menu ) {
-		ImGui::SetNextWindowPos( ImGui::GetIO().DisplaySize * 0.5f, 0, Vec2( 0.5f ) );
-		ImGui::SetNextWindowSize( ImVec2( 300, 0 ) );
+		ImGui::SetNextWindowPos( displaySize * 0.5f, 0, Vec2( 0.5f ) );
+		ImGui::SetNextWindowSize( ImVec2( 500, 0 ) );
 		ImGui::Begin( "gamemenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 		ImGuiStyle & style = ImGui::GetStyle();
 		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
@@ -894,6 +951,8 @@ static void GameMenu() {
 
 		if( spectating ) {
 			if( team_based ) {
+				GameMenuButton( "Auto-join", "join", &should_close );
+
 				ImGui::Columns( 2, NULL, false );
 				ImGui::SetColumnWidth( 0, half );
 				ImGui::SetColumnWidth( 1, half );
@@ -931,15 +990,15 @@ static void GameMenu() {
 			}
 
 
-			GameMenuButton( "Spectate", "spec", &should_close );
+			GameMenuButton( "Spectate", "chase", &should_close );
 
 			if( team_based ) {
-				GameMenuButton( "Change loadout", "gametypemenu", &should_close );
+				GameMenuButton( "Change weapons", "gametypemenu", &should_close );
 			}
 		}
 
-		if( ImGui::Button( "Change map", ImVec2( -1, 0 ) ) ) {
-			gamemenu_state = GameMenuState_Votemap;
+		if( ImGui::Button( "Start a vote", ImVec2( -1, 0 ) ) ) {
+			gamemenu_state = GameMenuState_Vote;
 		}
 
 		if( ImGui::Button( "Settings", ImVec2( -1, 0 ) ) ) {
@@ -959,139 +1018,32 @@ static void GameMenu() {
 		ImGui::Columns( 1 );
 	}
 	else if( gamemenu_state == GameMenuState_Loadout ) {
-		ImVec2 displaySize = ImGui::GetIO().DisplaySize;
-		ImGui::PushFont( cls.medium_font );
-		ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 255 ) );
-		ImGui::SetNextWindowPos( Vec2( 0, 0 ) );
-		ImGui::SetNextWindowSize( displaySize );
-		ImGui::Begin( "Loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
-
-		int cash = MAX_CASH;
-		for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
-			cash -= GS_GetWeaponDef( selected_weapons[ i ] )->cost;
-		}
-
-		const Vec2 icon_size = Vec2( displaySize.x * 0.075f );
-
-		ImGui::Columns( 2, NULL, false );
-		ImGui::SetColumnWidth( 0, 300 );
-
-		{
-			ImGui::Text( "Primaries ($2.00)" );
-			ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
-			ImGui::NextColumn();
-
-			for( WeaponType i = 0; i < Weapon_Count; i++ ) {
-				const WeaponDef * def = GS_GetWeaponDef( i );
-				if( def->cost == 200 ) {
-					WeaponButton( cash, i, icon_size );
-				}
-			}
-
-			ImGui::NextColumn();
-		}
-
-		{
-			ImGui::Text( "Secondaries ($1.00)" );
-			ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
-			ImGui::NextColumn();
-
-			for( WeaponType i = 0; i < Weapon_Count; i++ ) {
-				const WeaponDef * def = GS_GetWeaponDef( i );
-				if( def->cost == 100 ) {
-					WeaponButton( cash, i, icon_size );
-				}
-			}
-
-			ImGui::NextColumn();
-		}
-
-		ImGui::EndColumns();
-
-		TempAllocator temp = cls.frame_arena.temp();
-		ImGuiColorToken c = cash == 0 ? ImGuiColorToken( 255, 255, 255, 255 ) : ImGuiColorToken( RGBA8( AttentionGettingColor() ) );
-		ImGui::Text( "%s", temp( "{}UNSPENT CASH: {}${}.{02}{}{}", c, S_COLOR_GREEN, cash / 100, cash % 100, c, cash == 0 ? "" : "!!!" ) );
-
-		{
-			ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
-			ImGui::PushStyleColor( ImGuiCol_ButtonHovered, vec4_black );
-			ImGui::PushStyleColor( ImGuiCol_ButtonActive, vec4_black );
-			defer { ImGui::PopStyleColor( 3 ); };
-
-			ImGui::PushStyleVar( ImGuiStyleVar_FrameBorderSize, 2 );
-			ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0 );
-			defer { ImGui::PopStyleVar( 2 ); };
-
-			size_t num_weapons = 0;
-			for( WeaponType w : selected_weapons ) {
-				if( w == Weapon_None )
-					break;
-				num_weapons++;
-			}
-
-			const ImGuiStyle & style = ImGui::GetStyle();
-			ImGui::SetCursorPos( ImVec2( displaySize.x - num_weapons * ( icon_size.x + style.ItemSpacing.x + style.FramePadding.x * 2 + 16 + 2 ), displaySize.y - icon_size.y - 16 ) - style.WindowPadding );
-
-			for( size_t i = 0; i < num_weapons; i++ ) {
-				const Material * icon = cgs.media.shaderWeaponIcon[ selected_weapons[ i ] ];
-				Vec2 half_pixel = 0.5f / Vec2( icon->texture->width, icon->texture->height );
-				ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, vec4_black );
-
-				if( ImGui::BeginDragDropSource( ImGuiDragDropFlags_None ) ) {
-					ImGui::SetDragDropPayload( "inventory", &i, sizeof( size_t ) );
-					ImGui::Image( icon, icon_size, half_pixel, 1.0f - half_pixel );
-					ImGui::EndDragDropSource();
-				}
-
-				if( ImGui::BeginDragDropTarget() ) {
-					if( const ImGuiPayload * payload = ImGui::AcceptDragDropPayload( "inventory" ) ) {
-						size_t dragged;
-						IM_ASSERT( payload->DataSize == sizeof( dragged ) );
-						memcpy( &dragged, payload->Data, sizeof( dragged ) );
-
-						Swap2( &selected_weapons[ dragged ], &selected_weapons[ i ] );
-
-						SendLoadout();
-					}
-
-					ImGui::EndDragDropTarget();
-				}
-
-				ImGui::SameLine();
-				ImGui::Dummy( Vec2( 16, 0 ) );
-				ImGui::SameLine();
-			}
-		}
-
-		int loadoutKeys[ 2 ] = { };
-		CG_GetBoundKeycodes( "gametypemenu", loadoutKeys );
-
-		if( ImGui::Hotkey( K_ESCAPE ) || ImGui::Hotkey( loadoutKeys[ 0 ] ) || ImGui::Hotkey( loadoutKeys[ 1 ] ) ) {
+		if( LoadoutMenu( displaySize ) ) {
 			should_close = true;
 		}
-
-		ImGui::PopStyleColor();
-		ImGui::PopFont();
 	}
-	else if( gamemenu_state == GameMenuState_Votemap ) {
+	else if( gamemenu_state == GameMenuState_Vote ) {
 		TempAllocator temp = cls.frame_arena.temp();
-
-		ImVec2 pos = ImGui::GetIO().DisplaySize;
-		pos.x *= 0.5f;
-		pos.y *= 0.5f;
-		ImGui::SetNextWindowPos( pos, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
+		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
+		ImGui::SetNextWindowSize( ImVec2( -1, -1 ) );
 		ImGui::Begin( "votemap", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
-		const char * map_name = SelectableMapList();
+		static int e = 0;
+		ImGui::RadioButton( "Start match", &e, 0 ); ImGui::SameLine();
+		ImGui::RadioButton( "Change map", &e, 1 );
 
-		GameMenuButton( "Start vote", temp( "callvote map {}", map_name ), &should_close );
+		if( e == 0 ) {
+			GameMenuButton( "Start vote", "callvote allready", &should_close );
+		}
+
+		if( e == 1 ) {
+			const char * map_name = SelectableMapList();
+			GameMenuButton( "Start vote", temp( "callvote map {}", map_name ), &should_close );
+		}
 	}
 	else if( gamemenu_state == GameMenuState_Settings ) {
-		ImVec2 pos = ImGui::GetIO().DisplaySize;
-		pos.x *= 0.5f;
-		pos.y *= 0.5f;
-		ImGui::SetNextWindowPos( pos, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
-		ImGui::SetNextWindowSize( ImVec2( 600, 500 ) );
+		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
+		ImGui::SetNextWindowSize( ImVec2( Max2( 800.f, displaySize.x * 0.65f ), Max2( 600.f, displaySize.y * 0.65f ) ) );
 		ImGui::Begin( "settings", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		Settings();
@@ -1160,7 +1112,7 @@ void UI_Refresh() {
 
 	if( uistate == UIState_Connecting ) {
 		if( mainmenu_state != MainMenuState_ParticleEditor ) {
-			DrawParticleMenuEffect();
+			// DrawParticleMenuEffect();
 		}
 
 		const char * connecting = "Connecting...";
@@ -1250,8 +1202,15 @@ void UI_ShowLoadoutMenu( Span< int > weapons ) {
 		w = Weapon_None;
 	}
 
-	for( size_t i = 0; i < weapons.n; i++ ) {
-		selected_weapons[ i ] = weapons[ i ];
+	for( int w : weapons ) {
+		if( w <= Weapon_None || w >= Weapon_Count )
+			return;
+
+		WeaponCategory category = GS_GetWeaponDef( w )->category;
+		if( category == WeaponCategory_Count || selected_weapons[ category ] != Weapon_None )
+			return;
+
+		selected_weapons[ category ] = w;
 	}
 
 	CL_SetKeyDest( key_menu );

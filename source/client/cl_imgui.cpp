@@ -31,7 +31,7 @@ extern GLFWwindow * window;
 void CL_InitImGui() {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGui_ImplGlfw_InitForOpenGL( window, NULL );
+	ImGui_ImplGlfw_InitForOpenGL( window, false );
 
 	ImGuiIO & io = ImGui::GetIO();
 
@@ -62,12 +62,12 @@ void CL_InitImGui() {
 	}
 
 	{
-		AddFontAsset( "fonts/Montserrat-SemiBold.ttf", 18.0f );
-		cls.huge_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 128.0f );
-		cls.large_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 64.0f );
-		cls.big_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 48.0f );
-		cls.medium_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 28.0f );
-		cls.console_font = AddFontAsset( "fonts/Montserrat-SemiBold.ttf", 14.0f );
+		AddFontAsset( "fonts/Decalotype-Bold.ttf", 18.0f );
+		cls.huge_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 128.0f );
+		cls.large_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 64.0f );
+		cls.big_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 48.0f );
+		cls.medium_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 28.0f );
+		cls.console_font = AddFontAsset( "fonts/Decalotype-Bold.ttf", 14.0f );
 
 		ImGuiFreeType::BuildFontAtlas( io.Fonts );
 
@@ -89,43 +89,43 @@ void CL_InitImGui() {
 	{
 		ImGuiStyle & style = ImGui::GetStyle();
 		style.WindowRounding = 0;
-		style.FrameRounding = 1;
-		style.GrabRounding = 2;
-		style.FramePadding = ImVec2( 8, 8 );
+		style.FrameRounding = 0;
+		style.GrabRounding = 0;
+		style.FramePadding = ImVec2( 16, 16 );
 		style.FrameBorderSize = 0;
-		style.WindowPadding = ImVec2( 16, 16 );
+		style.WindowPadding = ImVec2( 32, 32 );
 		style.WindowBorderSize = 0;
 		style.PopupBorderSize = 0;
-		style.Colors[ ImGuiCol_Button ] = ImVec4( 0.5f, 0.125f, 0.125f, 1.f );
-		style.Colors[ ImGuiCol_ButtonHovered ] = ImVec4( 0.5f, 0.25f, 0.25f, 1.f );
-		style.Colors[ ImGuiCol_ButtonActive ] = ImVec4( 0.375f, 0.125f, 0.125f, 1.f );
+		style.Colors[ ImGuiCol_Button ] = ImVec4( 0.125f, 0.125f, 0.125f, 1.f );
+		style.Colors[ ImGuiCol_ButtonHovered ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_ButtonActive ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
 
-		style.Colors[ ImGuiCol_Tab ] = ImVec4( 0.5f, 0.125f, 0.125f, 1.f );
-		style.Colors[ ImGuiCol_TabHovered ] = ImVec4( 0.5f, 0.25f, 0.2f, 1.f );
-		style.Colors[ ImGuiCol_TabActive ] = ImVec4( 0.375f, 0.125f, 0.125f, 1.f );
-		style.Colors[ ImGuiCol_TabUnfocused ] = ImVec4( 0.375f, 0.25f, 0.25f, 1.f );
-		style.Colors[ ImGuiCol_TabUnfocusedActive ] = ImVec4( 0.375f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_Tab ] = ImVec4( 0.125f, 0.125f, 0.125f, 1.f );
+		style.Colors[ ImGuiCol_TabHovered ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_TabActive ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
+		style.Colors[ ImGuiCol_TabUnfocused ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_TabUnfocusedActive ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
 
-		style.Colors[ ImGuiCol_FrameBg ] = ImVec4( 0.5f, 0.125f, 0.125f, 0.5f );
-		style.Colors[ ImGuiCol_FrameBgHovered ] = ImVec4( 0.5f, 0.25f, 0.25f, 0.5f );
-		style.Colors[ ImGuiCol_FrameBgActive ] = ImVec4( 0.45f, 0.125f, 0.125f, 0.5f );
+		style.Colors[ ImGuiCol_FrameBg ] = ImVec4( 0.125f, 0.125f, 0.125f, 1.f );
+		style.Colors[ ImGuiCol_FrameBgHovered ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_FrameBgActive ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
 
-		style.Colors[ ImGuiCol_SliderGrab ] = ImVec4( 1.f, 0.5f, 0.5f, 1.f );
-		style.Colors[ ImGuiCol_SliderGrabActive ] = ImVec4( 0.75f, 0.5f, 0.5f, 1.f );
+		style.Colors[ ImGuiCol_SliderGrab ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
+		style.Colors[ ImGuiCol_SliderGrabActive ] = ImVec4( 0.75f, 0.75f, 0.75f, 1.f );
 
-		style.Colors[ ImGuiCol_ScrollbarBg ] = ImVec4( 0.5f, 0.125f, 0.125f, 0.5f );
-		style.Colors[ ImGuiCol_ScrollbarGrab ] = ImVec4( 0.75f, 0.25f, 0.25f, 1.f );
-		style.Colors[ ImGuiCol_ScrollbarGrabHovered ] = ImVec4( 0.75f, 0.5f, 0.5f, 1.f );
-		style.Colors[ ImGuiCol_ScrollbarGrabActive ] = ImVec4( 0.5f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_ScrollbarBg ] = ImVec4( 0.125f, 0.125f, 0.125f, 0.5f );
+		style.Colors[ ImGuiCol_ScrollbarGrab ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
+		style.Colors[ ImGuiCol_ScrollbarGrabHovered ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
+		style.Colors[ ImGuiCol_ScrollbarGrabActive ] = ImVec4( 0.75f, 0.75f, 0.75f, 1.f );
 
-		style.Colors[ ImGuiCol_CheckMark ] = ImVec4( 0.f, 1.f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_CheckMark ] = ImVec4( 0.25f, 1.f, 0.f, 1.f );
 
-		style.Colors[ ImGuiCol_Header ] = ImVec4( 0.5f, 0.125f, 0.125f, 1.f );
-		style.Colors[ ImGuiCol_HeaderHovered ] = ImVec4( 0.625f, 0.25f, 0.25f, 1.f );
-		style.Colors[ ImGuiCol_HeaderActive ] = ImVec4( 0.375f, 0.125f, 0.125f, 1.f );
+		style.Colors[ ImGuiCol_Header ] = ImVec4( 0.125f, 0.125f, 0.125f, 1.f );
+		style.Colors[ ImGuiCol_HeaderHovered ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
+		style.Colors[ ImGuiCol_HeaderActive ] = ImVec4( 0.75f, 0.75f, 0.75f, 1.f );
 
 		style.Colors[ ImGuiCol_WindowBg ] = ImColor( 0x1a, 0x1a, 0x1a );
-		style.ItemSpacing.y = 8;
+		style.ItemSpacing.y = 16;
 	}
 
 }
@@ -271,5 +271,5 @@ void WindowCenterTextXY( const char * str ) {
 
 Vec4 AttentionGettingColor() {
 	float t = sinf( cls.monotonicTime / 20.0f ) * 0.5f + 1.0f;
-	return Lerp( vec4_red, t, vec4_yellow );
+	return Lerp( vec4_red, t, sRGBToLinear( rgba8_diesel_yellow ) );
 }

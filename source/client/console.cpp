@@ -1,4 +1,5 @@
 #include "client/client.h"
+#include "client/renderer/renderer.h"
 #include "qcommon/string.h"
 #include "qcommon/utf8.h"
 #include "qcommon/threads.h"
@@ -121,6 +122,7 @@ void Con_Print( const char * str ) {
 	}
 
 	console.log.remove( 0, trim );
+	console.log += S_COLOR_WHITE;
 	console.log.append_raw( str, len );
 
 	if( console.at_bottom ) {

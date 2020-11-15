@@ -43,6 +43,8 @@ struct ColorGen {
 };
 
 struct Material {
+	u64 name;
+
 	const Texture * texture;
 
 	ColorGen rgbgen;
@@ -50,6 +52,8 @@ struct Material {
 	BlendFunc blend_func = BlendFunc_Disabled;
 	bool double_sided = false;
 	bool discard = false;
+	bool decal = false;
+	bool mask_outlines = false;
 	float alpha_cutoff = 0.0f;
 
 	TCMod tcmod = { };
@@ -64,3 +68,8 @@ void ShutdownMaterials();
 const Material * FindMaterial( StringHash name, const Material * def = NULL );
 const Material * FindMaterial( const char * name, const Material * def = NULL );
 bool TryFindMaterial( StringHash name, const Material ** material );
+
+bool TryFindDecal( StringHash name, Vec4 * uvwh );
+TextureArray DecalAtlasTextureArray();
+
+Vec2 HalfPixelSize( const Material * material );

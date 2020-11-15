@@ -4,7 +4,7 @@
 
 #include "qcommon/types.h"
 #include "qcommon/array.h"
-#include "qcommon/ggformat.h"
+#include "gg/ggformat.h"
 
 template< size_t N >
 class String {

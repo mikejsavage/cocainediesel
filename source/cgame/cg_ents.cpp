@@ -20,30 +20,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "cgame/cg_local.h"
 #include "qcommon/cmodel.h"
+#include "client/renderer/renderer.h"
 
 static void CG_UpdateEntities( void );
-
-/*
-* CG_FixVolumeCvars
-* Don't let the user go too far away with volumes
-*/
-static void CG_FixVolumeCvars( void ) {
-	if( developer->integer ) {
-		return;
-	}
-
-	if( cg_volume_announcer->value < 0.0f ) {
-		Cvar_SetValue( "cg_volume_announcer", 0.0f );
-	} else if( cg_volume_announcer->value > 2.0f ) {
-		Cvar_SetValue( "cg_volume_announcer", 2.0f );
-	}
-
-	if( cg_volume_hitsound->value < 0.0f ) {
-		Cvar_SetValue( "cg_volume_hitsound", 0.0f );
-	} else if( cg_volume_hitsound->value > 10.0f ) {
-		Cvar_SetValue( "cg_volume_hitsound", 10.0f );
-	}
-}
 
 static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 	constexpr int MIN_DRAWDISTANCE_FIRSTPERSON = 86;
@@ -93,9 +72,6 @@ static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 	return true;
 }
 
-/*
-* CG_NewPacketEntityState
-*/
 static void CG_NewPacketEntityState( SyncEntityState *state ) {
 	centity_t * cent = &cg_entities[state->number];
 
@@ -235,13 +211,12 @@ static void CG_SetFramePlayerState( snapshot_t *frame, int index ) {
 }
 
 static void CG_UpdatePlayerState( void ) {
-	int i;
 	int index = 0;
 
 	if( cg.frame.multipov ) {
 		// find the playerState containing our current POV, then cycle playerStates
 		index = -1;
-		for( i = 0; i < cg.frame.numplayers; i++ ) {
+		for( int i = 0; i < cg.frame.numplayers; i++ ) {
 			if( cg.frame.playerStates[i].playerNum < (unsigned)client_gs.maxclients
 				&& cg.frame.playerStates[i].playerNum == cg.multiviewPlayerNum ) {
 				index = i;
@@ -267,7 +242,7 @@ static void CG_UpdatePlayerState( void ) {
 
 	// old
 	index = -1;
-	for( i = 0; i < cg.oldFrame.numplayers; i++ ) {
+	for( int i = 0; i < cg.oldFrame.numplayers; i++ ) {
 		if( cg.oldFrame.playerStates[i].playerNum == cg.multiviewPlayerNum ) {
 			index = i;
 			break;
@@ -315,9 +290,8 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 	}
 
 	// a new server frame begins now
-	CG_FixVolumeCvars();
-
 	CG_BuildSolidList();
+	ResetAnnouncerSpeakers();
 	CG_UpdateEntities();
 	CG_CheckPredictionError();
 
@@ -337,24 +311,12 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 	return true;
 }
 
-
-//=============================================================
-
-
-/*
-==========================================================================
-
-ADD INTERPOLATED ENTITIES TO RENDERING LIST
-
-==========================================================================
-*/
-
 /*
 * CG_CModelForEntity
 *  get the collision model for the given entity, no matter if box or brush-model.
 */
-struct cmodel_s *CG_CModelForEntity( int entNum ) {
-	struct cmodel_s *cmodel = NULL;
+cmodel_t *CG_CModelForEntity( int entNum ) {
+	cmodel_t *cmodel = NULL;
 
 	if( entNum < 0 || entNum >= MAX_EDICTS ) {
 		return NULL;
@@ -387,21 +349,6 @@ struct cmodel_s *CG_CModelForEntity( int entNum ) {
 	return cmodel;
 }
 
-/*
-* CG_EntAddTeamColorTransitionEffect
-*/
-static void CG_EntAddTeamColorTransitionEffect( centity_t *cent ) {
-	float t = Clamp01( float( cent->current.counterNum ) / 255.0f );
-	cent->ent.color = RGBA8( Lerp( vec4_white, t, CG_TeamColorVec4( cent->current.team ) ) );
-}
-
-//==========================================================================
-//		ET_GENERIC
-//==========================================================================
-
-/*
-* CG_UpdateGenericEnt
-*/
 static void CG_UpdateGenericEnt( centity_t *cent ) {
 	// start from clean
 	memset( &cent->ent, 0, sizeof( cent->ent ) );
@@ -412,9 +359,6 @@ static void CG_UpdateGenericEnt( centity_t *cent ) {
 	cent->ent.model = FindModel( cent->current.model );
 }
 
-/*
-* CG_ExtrapolateLinearProjectile
-*/
 void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
 	cent->linearProjectileCanDraw = CG_UpdateLinearProjectilePosition( cent );
 
@@ -424,9 +368,6 @@ void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
 	AnglesToAxis( cent->current.angles, cent->ent.axis );
 }
 
-/*
-* CG_LerpGenericEnt
-*/
 void CG_LerpGenericEnt( centity_t *cent ) {
 	Vec3 ent_angles = Vec3( 0, 0, 0 );
 
@@ -497,9 +438,6 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 	}
 }
 
-/*
-* CG_AddGenericEnt
-*/
 static void CG_AddGenericEnt( centity_t *cent ) {
 	if( !cent->ent.scale ) {
 		return;
@@ -509,58 +447,20 @@ static void CG_AddGenericEnt( centity_t *cent ) {
 		return;
 	}
 
-	if( cent->effects & EF_TEAMCOLOR_TRANSITION ) {
-		CG_EntAddTeamColorTransitionEffect( cent );
-	}
-
 	const Model * model = cent->ent.model;
 	Mat4 transform = FromAxisAndOrigin( cent->ent.axis, cent->ent.origin );
 
-	Vec4 color = Vec4(
-		cent->ent.color.r / 255.0f,
-		cent->ent.color.g / 255.0f,
-		cent->ent.color.b / 255.0f,
-		cent->ent.color.a / 255.0f
-	);
-
+	Vec4 color = sRGBToLinear( cent->ent.color );
 	DrawModel( model, transform, color );
 
 	if( cent->current.silhouetteColor.a > 0 ) {
 		if( ( cent->current.effects & EF_TEAM_SILHOUETTE ) == 0 || ISREALSPECTATOR() || cent->current.team == cg.predictedPlayerState.team ) {
-			Vec4 silhouette_color = Vec4(
-				cent->current.silhouetteColor.r / 255.0f,
-				cent->current.silhouetteColor.g / 255.0f,
-				cent->current.silhouetteColor.b / 255.0f,
-				cent->current.silhouetteColor.a / 255.0f
-			);
-
+			Vec4 silhouette_color = sRGBToLinear( cent->current.silhouetteColor );
 			DrawModelSilhouette( model, transform, silhouette_color );
-		}
-	}
-
-	if( cent->effects & EF_WORLD_MODEL ) {
-		UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
-		for( u32 i = 0; i < model->num_primitives; i++ ) {
-			if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
-				PipelineState pipeline;
-				pipeline.pass = frame_static.write_world_gbuffer_pass;
-				pipeline.shader = &shaders.write_world_gbuffer;
-				pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-				pipeline.set_uniform( "u_Model", model_uniforms );
-
-				DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
-			}
 		}
 	}
 }
 
-//==========================================================================
-//		ET_PLAYER
-//==========================================================================
-
-/*
-* CG_AddPlayerEnt
-*/
 static void CG_AddPlayerEnt( centity_t *cent ) {
 	if( ISVIEWERENTITY( cent->current.number ) ) {
 		cg.effects = cent->effects;
@@ -578,10 +478,6 @@ static void CG_AddPlayerEnt( centity_t *cent ) {
 	CG_DrawPlayer( cent );
 }
 
-//==========================================================================
-// ET_LASER
-//==========================================================================
-
 static void CG_LerpLaser( centity_t *cent ) {
 	cent->ent.origin = Lerp( cent->prev.origin, cg.lerpfrac, cent->current.origin );
 	cent->ent.origin2 = Lerp( cent->prev.origin2, cg.lerpfrac, cent->current.origin2 );
@@ -591,13 +487,6 @@ static void CG_AddLaserEnt( centity_t *cent ) {
 	DrawBeam( cent->ent.origin, cent->ent.origin2, cent->current.radius, vec4_white, cgs.media.shaderLaser );
 }
 
-//==========================================================================
-//		ET_LASERBEAM
-//==========================================================================
-
-/*
-* CG_UpdateLaserbeamEnt
-*/
 static void CG_UpdateLaserbeamEnt( centity_t *cent ) {
 	centity_t *owner;
 
@@ -622,9 +511,6 @@ static void CG_UpdateLaserbeamEnt( centity_t *cent ) {
 	owner->laserPoint = cent->current.origin2;
 }
 
-/*
-* CG_LerpLaserbeamEnt
-*/
 static void CG_LerpLaserbeamEnt( centity_t *cent ) {
 	centity_t *owner = &cg_entities[cent->current.ownerNum];
 
@@ -634,10 +520,6 @@ static void CG_LerpLaserbeamEnt( centity_t *cent ) {
 
 	owner->localEffects[LOCALEFFECT_LASERBEAM] = cl.serverTime + 1;
 }
-
-//==================================================
-// ET_SOUNDEVENT
-//==================================================
 
 void CG_SoundEntityNewState( centity_t *cent ) {
 	int owner = cent->current.ownerNum;
@@ -676,11 +558,7 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	}
 }
 
-//==================================================
-// ET_SPIKES
-//==================================================
-
-static void CG_LerpSpikes( centity_t *cent ) {
+static void CG_LerpSpikes( centity_t * cent ) {
 	constexpr float retracted = -48;
 	constexpr float primed = -36;
 	constexpr float extended = 0;
@@ -719,7 +597,7 @@ static void CG_LerpSpikes( centity_t *cent ) {
 	cent->ent.origin2 = Vec3( cent->ent.origin );
 }
 
-static void CG_UpdateSpikes( centity_t *cent ) {
+static void CG_UpdateSpikes( centity_t * cent ) {
 	CG_UpdateGenericEnt( cent );
 
 	if( cent->current.linearMovementTimeStamp == 0 )
@@ -742,12 +620,19 @@ static void CG_UpdateSpikes( centity_t *cent ) {
 	}
 }
 
-//==========================================================================
-//		PACKET ENTITIES
-//==========================================================================
-
 void CG_EntityLoopSound( centity_t * cent, SyncEntityState * state ) {
 	cent->sound = S_ImmediateEntitySound( FindSoundEffect( state->sound ), state->number, 1.0f, cent->sound );
+}
+
+static void DrawEntityTrail( const centity_t * cent, StringHash name ) {
+	// didn't move
+	Vec3 vec = cent->ent.origin - cent->trailOrigin;
+	float len = Length( vec );
+	if( len == 0 )
+		return;
+
+	Vec4 color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 0.5f );
+	DoVisualEffect( name, cent->ent.origin, cent->trailOrigin, 1.0f, color );
 }
 
 /*
@@ -775,21 +660,27 @@ void CG_AddEntities( void ) {
 
 			case ET_ROCKET:
 				CG_AddGenericEnt( cent );
-				CG_ProjectileTrail( cent );
+				DrawEntityTrail( cent, "weapons/rl/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_GRENADE:
 				CG_AddGenericEnt( cent );
+				DrawEntityTrail( cent, "weapons/gl/trail" );
 				CG_EntityLoopSound( cent, state );
-				CG_ProjectileTrail( cent );
 				break;
 			case ET_PLASMA:
+				CG_AddGenericEnt( cent );
+				DrawEntityTrail( cent, "weapons/pg/trail" );
+				CG_EntityLoopSound( cent, state );
+				break;
 			case ET_BUBBLE:
 				CG_AddGenericEnt( cent );
+				DrawEntityTrail( cent, "weapons/bg/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_RIFLEBULLET:
 				CG_AddGenericEnt( cent );
+				DrawEntityTrail( cent, "weapons/rifle/bullet_trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 
@@ -807,6 +698,12 @@ void CG_AddEntities( void ) {
 
 			case ET_GHOST:
 				break;
+
+			case ET_DECAL: {
+				Vec3 normal;
+				AngleVectors( cent->current.angles, &normal, NULL, NULL );
+				DrawDecal( cent->current.origin, normal, cent->current.radius, cent->current.angles.z, cent->current.material, sRGBToLinear( cent->current.color ) );
+			} break;
 
 			case ET_LASERBEAM:
 				break;
@@ -833,6 +730,10 @@ void CG_AddEntities( void ) {
 				cent->sound = S_ImmediateLineSound( FindSoundEffect( state->sound ), cent->ent.origin, cent->ent.origin2, 1.0f, cent->sound );
 
 			case ET_SPIKES:
+				CG_AddGenericEnt( cent );
+				break;
+
+			case ET_SPEAKER:
 				CG_AddGenericEnt( cent );
 				break;
 
@@ -867,11 +768,15 @@ void CG_LerpEntities( void ) {
 			case ET_PLAYER:
 			case ET_CORPSE:
 			case ET_GHOST:
+			case ET_SPEAKER:
 				if( state->linearMovement ) {
 					CG_ExtrapolateLinearProjectile( cent );
 				} else {
 					CG_LerpGenericEnt( cent );
 				}
+				break;
+
+			case ET_DECAL:
 				break;
 
 			case ET_LASERBEAM:
@@ -932,10 +837,6 @@ void CG_UpdateEntities( void ) {
 
 		switch( cent->type ) {
 			case ET_GENERIC:
-				CG_UpdateGenericEnt( cent );
-				break;
-
-			// projectiles with linear trajectories
 			case ET_ROCKET:
 			case ET_PLASMA:
 			case ET_BUBBLE:
@@ -950,6 +851,9 @@ void CG_UpdateEntities( void ) {
 				break;
 
 			case ET_GHOST:
+				break;
+
+			case ET_DECAL:
 				break;
 
 			case ET_LASERBEAM:
@@ -975,14 +879,17 @@ void CG_UpdateEntities( void ) {
 				CG_UpdateSpikes( cent );
 				break;
 
+			case ET_SPEAKER:
+				CG_UpdateGenericEnt( cent );
+				AddAnnouncerSpeaker( cent );
+				break;
+
 			default:
 				Com_Error( ERR_DROP, "CG_UpdateEntities: unknown entity type %i", cent->type );
 				break;
 		}
 	}
 }
-
-//=============================================================
 
 /*
 * CG_GetEntitySpatilization
@@ -1032,9 +939,6 @@ void CG_GetEntitySpatilization( int entNum, Vec3 * origin, Vec3 * velocity ) {
 	}
 }
 
-/*
-* CG_BBoxForEntityState
-*/
 void CG_BBoxForEntityState( const SyncEntityState * state, Vec3 * mins, Vec3 * maxs ) {
 	if( state->solid == SOLID_BMODEL ) {
 		Com_Error( ERR_DROP, "CG_BBoxForEntityState: called for a brush model\n" );

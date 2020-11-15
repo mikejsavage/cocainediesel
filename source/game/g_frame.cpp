@@ -129,7 +129,7 @@ static void G_UpdateServerInfo( void ) {
 	}
 
 	// g_match_score
-	if( GS_MatchState( &server_gs ) >= MATCH_STATE_PLAYTIME && GS_TeamBasedGametype( &server_gs ) ) {
+	if( GS_MatchState( &server_gs ) >= MATCH_STATE_PLAYTIME && level.gametype.isTeamBased ) {
 		String< MAX_INFO_STRING > score( "{}: {} {}: {}",
 			GS_TeamName( TEAM_ALPHA ), server_gs.gameState.bomb.alpha_score,
 			GS_TeamName( TEAM_BETA ), server_gs.gameState.bomb.beta_score );
@@ -234,52 +234,31 @@ static void G_SnapEntities() {
 
 		if( ent->s.type == ET_PLAYER || ent->s.type == ET_CORPSE ) {
 			// this is pretty hackish
-			if( !G_ISGHOSTING( ent ) ) {
-				ent->s.origin2 = ent->velocity;
-			}
+			ent->s.origin2 = ent->velocity;
 		}
 
-		if( ISEVENTENTITY( ent ) || G_ISGHOSTING( ent ) || !ent->takedamage ) {
-			continue;
-		}
-
-		// types which can have accumulated damage effects
-		if( ent->s.type == ET_GENERIC || ent->s.type == ET_PLAYER || ent->s.type == ET_CORPSE ) { // doors don't bleed
+		if( ent->s.type == ET_PLAYER ) {
 			// Until we get a proper damage saved effect, we accumulate both into the blood fx
 			// so, at least, we don't send 2 entities where we can send one
 			ent->snap.damage_taken += ent->snap.damage_saved;
 
-			//ent->snap.damage_saved = 0;
-
 			//spawn accumulated damage
-			if( ent->snap.damage_taken && !( ent->flags & FL_GODMODE ) && HEALTH_TO_INT( ent->health ) > 0 ) {
+			if( ent->snap.damage_taken && !( ent->flags & FL_GODMODE ) ) {
 				float damage = Min2( ent->snap.damage_taken, 120.0f );
 
-				Vec3 dir = Normalize( ent->snap.damage_dir );
+				Vec3 dir = SafeNormalize( ent->snap.damage_dir );
 				Vec3 origin = ent->s.origin + ent->snap.damage_at;
 
-				if( ent->s.type == ET_PLAYER || ent->s.type == ET_CORPSE ) {
-					edict_t * event = G_SpawnEvent( EV_BLOOD, DirToByte( dir ), &origin );
-					// event->s.damage = HEALTH_TO_INT( damage );
-					event->s.ownerNum = i; // set owner
-					event->s.team = ent->s.team;
+				edict_t * event = G_SpawnEvent( EV_BLOOD, DirToByte( dir ), &origin );
+				event->s.radius = HEALTH_TO_INT( damage );
+				event->s.team = ent->s.team;
 
-					// ET_PLAYERS can also spawn sound events
-					if( ent->s.type == ET_PLAYER && !G_IsDead( ent ) ) {
-						// play an apropriate pain sound
-						if( level.time >= ent->pain_debounce_time ) {
-							if( ent->health <= 25 ) {
-								G_AddEvent( ent, EV_PAIN, PAIN_20, true );
-							} else {
-								G_AddEvent( ent, EV_PAIN, PAIN_100, true );
-							}
-
-							ent->pain_debounce_time = level.time + 400;
-						}
+				if( !G_IsDead( ent ) ) {
+					// play an apropriate pain sound
+					if( level.time >= ent->pain_debounce_time ) {
+						G_AddEvent( ent, EV_PAIN, ent->health <= 25 ? PAIN_20 : PAIN_100, true );
+						ent->pain_debounce_time = level.time + 400;
 					}
-				} else {
-					edict_t * event = G_SpawnEvent( EV_SPARKS, DirToByte( dir ), &origin );
-					// event->s.damage = HEALTH_TO_INT( damage );
 				}
 			}
 		}
@@ -329,7 +308,7 @@ void G_ClearSnap( void ) {
 
 		// clear the snap temp info
 		memset( &ent->snap, 0, sizeof( ent->snap ) );
-		if( ent->r.client && trap_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
+		if( ent->r.client && PF_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
 			memset( &ent->r.client->resp.snap, 0, sizeof( ent->r.client->resp.snap ) );
 		}
 	}

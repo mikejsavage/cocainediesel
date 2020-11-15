@@ -175,7 +175,7 @@ static edict_t * FireProjectile(
 	Vec3 dir;
 	AngleVectors( angles, &dir, NULL, NULL );
 
-	projectile->velocity = dir * ( def->speed );
+	projectile->velocity = dir * def->speed;
 
 	projectile->movetype = MOVETYPE_LINEARPROJECTILE;
 
@@ -265,7 +265,7 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 	float y_spread = 0.0f;
 	if( self->r.client != NULL && self->r.client->ps.zoom_time < ZOOMTIME ) {
 		float frac = 1.0f - float( self->r.client->ps.zoom_time ) / float( ZOOMTIME );
-		float spread = frac * def->range * atanf( DEG2RAD( def->zoom_spread ) );
+		float spread = frac * def->range * atanf( Radians( def->zoom_spread ) );
 		x_spread = random_float11( &svs.rng ) * spread;
 		y_spread = random_float11( &svs.rng ) * spread;
 	}
@@ -363,7 +363,7 @@ static void W_Touch_Grenade( edict_t *ent, edict_t *other, cplane_t *plane, int 
 static void W_Fire_Grenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, bool aim_up ) {
 	Vec3 new_angles = angles;
 	if( aim_up ) {
-		new_angles.x -= 5.0f * cosf( DEG2RAD( new_angles.x ) ); // aim some degrees upwards from view dir
+		new_angles.x -= 5.0f * cosf( Radians( new_angles.x ) ); // aim some degrees upwards from view dir
 	}
 
 	edict_t * grenade = FireProjectile( self, start, new_angles, timeDelta, GS_GetWeaponDef( Weapon_GrenadeLauncher ), W_Touch_Grenade, ET_GRENADE, MASK_SHOT );
@@ -374,9 +374,6 @@ static void W_Fire_Grenade( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	// grenade->s.sound = "weapons/gl/trail";
 
 	grenade->think = W_Grenade_Explode;
-
-	grenade->s.angles = Vec3( 0.0f );
-	grenade->avelocity = Vec3( 300.0f );
 }
 
 static void W_Touch_Rocket( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) {
@@ -432,7 +429,7 @@ static void FireBubble( edict_t * owner, Vec3 start, Vec3 angles, const WeaponDe
 }
 
 void W_Fire_BubbleGun( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
-	constexpr int bubble_spacing = 25;
+	constexpr int bubble_spacing = 0;
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_BubbleGun );
 
 	Vec3 dir, right, up;
@@ -472,6 +469,7 @@ static void W_Fire_Railgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 
 	trace_t tr;
 	tr.ent = -1;
+
 	while( ignore ) {
 		G_Trace4D( &tr, from, Vec3( 0.0f ), Vec3( 0.0f ), end, ignore, MASK_WALLBANG, timeDelta );
 
@@ -486,6 +484,7 @@ static void W_Fire_Railgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 		edict_t * hit = &game.edicts[tr.ent];
 		int hit_movetype = hit->movetype; // backup the original movetype as the entity may "die"
 		if( hit == world ) { // stop dead if hit the world
+			G_RadiusKnockback( def, self, tr.endpos, &tr.plane, MOD_RAILGUN, timeDelta );
 			break;
 		}
 
@@ -538,7 +537,7 @@ static void G_Laser_Think( edict_t *ent ) {
 	owner = &game.edicts[ent->s.ownerNum];
 
 	if( G_ISGHOSTING( owner ) || owner->s.weapon != Weapon_Laser ||
-		trap_GetClientState( PLAYERNUM( owner ) ) < CS_SPAWNED ||
+		PF_GetClientState( PLAYERNUM( owner ) ) < CS_SPAWNED ||
 		owner->r.client->ps.weapon_state != WeaponState_Firing ) {
 		G_HideLaser( ent );
 		return;

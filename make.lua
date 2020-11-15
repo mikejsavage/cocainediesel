@@ -12,6 +12,8 @@ gcc_obj_cxxflags( ".*", "-Wall -Wextra -Wcast-align -Wvla -Wformat-security" ) -
 gcc_obj_cxxflags( ".*", "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-implicit-fallthrough -Wno-format-truncation" )
 gcc_obj_cxxflags( ".*", "-Werror=vla -Werror=format-security -Werror=unused-value" )
 
+gcc_obj_cxxflags( "source/game/angelwrap/addon/addon_scriptarray.cpp", "-Wno-cast-function-type" )
+
 obj_cxxflags( ".*", "-D_LIBCPP_TYPE_TRAITS" )
 
 if config == "release" then
@@ -20,14 +22,22 @@ else
 	obj_cxxflags( ".*", "-DTRACY_ENABLE" )
 end
 
+require( "libs.angelscript" )
 require( "libs.cgltf" )
+require( "libs.curl" )
+require( "libs.freetype" )
+require( "libs.gg" )
 require( "libs.glad" )
+require( "libs.glfw3" )
 require( "libs.imgui" )
+require( "libs.mbedtls" )
 require( "libs.meshoptimizer" )
 require( "libs.monocypher" )
+require( "libs.openal" )
 require( "libs.stb" )
 require( "libs.tracy" )
 require( "libs.whereami" )
+require( "libs.zlib" )
 require( "libs.zstd" )
 
 do
@@ -36,13 +46,13 @@ do
 
 	if OS == "windows" then
 		platform_srcs = {
-			"source/win32/win_client.cpp",
-			"source/win32/win_console.cpp",
-			"source/win32/win_fs.cpp",
-			"source/win32/win_net.cpp",
-			"source/win32/win_sys.cpp",
-			"source/win32/win_threads.cpp",
-			"source/win32/win_time.cpp",
+			"source/windows/win_client.cpp",
+			"source/windows/win_console.cpp",
+			"source/windows/win_fs.cpp",
+			"source/windows/win_net.cpp",
+			"source/windows/win_sys.cpp",
+			"source/windows/win_threads.cpp",
+			"source/windows/win_time.cpp",
 		}
 		platform_libs = { }
 	else
@@ -70,30 +80,31 @@ do
 		},
 
 		libs = {
-			"cgltf",
-			"glad",
 			"imgui",
+
+			"angelscript",
+			"cgltf",
+			"curl",
+			"freetype",
+			"ggentropy",
+			"ggformat",
+			"glad",
+			"glfw3",
 			"meshoptimizer",
 			"monocypher",
+			"openal",
 			"stb_image",
 			"stb_image_write",
+			"stb_rect_pack",
 			"stb_vorbis",
 			"tracy",
 			"whereami",
-			"zstd",
-		},
-
-		prebuilt_libs = {
-			"angelscript",
-			"curl",
-			"freetype",
-			"glfw3",
-			"openal",
 			"zlib",
-			platform_libs
+			"zstd",
+			platform_libs,
 		},
 
-		rc = "source/win32/client",
+		rc = "source/windows/client",
 
 		gcc_extra_ldflags = "-lm -lpthread -ldl -lX11 -no-pie -static-libstdc++ -Wl,-rpath,. -L. -lNoesis -lNoesisApp",
 		msvc_extra_ldflags = "gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib /SUBSYSTEM:WINDOWS libs/noesis/windows-release/Noesis.lib libs/noesis/windows-release/NoesisApp.lib",
@@ -106,19 +117,17 @@ end
 
 do
 	local platform_srcs
-	local platform_libs
 
 	if OS == "windows" then
 		platform_srcs = {
-			"source/win32/win_console.cpp",
-			"source/win32/win_fs.cpp",
-			"source/win32/win_net.cpp",
-			"source/win32/win_server.cpp",
-			"source/win32/win_sys.cpp",
-			"source/win32/win_threads.cpp",
-			"source/win32/win_time.cpp",
+			"source/windows/win_console.cpp",
+			"source/windows/win_fs.cpp",
+			"source/windows/win_net.cpp",
+			"source/windows/win_server.cpp",
+			"source/windows/win_sys.cpp",
+			"source/windows/win_threads.cpp",
+			"source/windows/win_time.cpp",
 		}
-		platform_libs = { }
 	else
 		platform_srcs = {
 			"source/unix/unix_console.cpp",
@@ -129,7 +138,6 @@ do
 			"source/unix/unix_threads.cpp",
 			"source/unix/unix_time.cpp",
 		}
-		platform_libs = { "mbedtls" }
 	end
 
 	bin( "server", {
@@ -142,17 +150,14 @@ do
 		},
 
 		libs = {
+			"angelscript",
+			"ggentropy",
+			"ggformat",
 			"monocypher",
 			"tracy",
 			"whereami",
-			"zstd",
-		},
-
-		prebuilt_libs = {
-			"angelscript",
-			"curl",
 			"zlib",
-			platform_libs
+			"zstd",
 		},
 
 		gcc_extra_ldflags = "-lm -lpthread -ldl -no-pie -static-libstdc++",

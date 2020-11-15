@@ -42,7 +42,7 @@ static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t
 
 	// calc exact destination
 	Vec3 chase_dest = *vieworg;
-	float r = DEG2RAD( thirdPersonAngle );
+	float r = Radians( thirdPersonAngle );
 	float f = -cosf( r );
 	r = -sinf( r );
 	chase_dest += v_forward * thirdPersonRange * f;
@@ -50,7 +50,7 @@ static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t
 	chase_dest.z += 8;
 
 	// find the spot the player is looking at
-	Vec3 dest = *vieworg + v_forward * ( 512 );
+	Vec3 dest = *vieworg + v_forward * 512.0f;
 	G_Trace( &trace, *vieworg, mins, maxs, dest, passent, MASK_SOLID );
 
 	// calculate pitch to look at the same spot from camera
@@ -59,7 +59,7 @@ static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t
 	if( dist < 1 ) {
 		dist = 1;
 	}
-	viewangles->x = RAD2DEG( -atan2f( stop.z, dist ) );
+	viewangles->x = Degrees( -atan2f( stop.z, dist ) );
 	viewangles->y -= thirdPersonAngle;
 	AngleVectors( *viewangles, &v_forward, &v_right, &v_up );
 
@@ -270,14 +270,11 @@ static void G_SetClientSound( edict_t *ent ) {
 * and right after spawning
 */
 void G_ClientEndSnapFrame( edict_t *ent ) {
-	gclient_t *client;
-	int i;
-
-	if( trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+	if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 		return;
 	}
 
-	client = ent->r.client;
+	gclient_t * client = ent->r.client;
 
 	// If the end of unit layout is displayed, don't give
 	// the player any normal movement attributes
@@ -300,8 +297,9 @@ void G_ClientEndSnapFrame( edict_t *ent ) {
 	G_ReleaseClientPSEvent( client );
 
 	// set the delta angle
-	for( i = 0; i < 3; i++ )
+	for( int i = 0; i < 3; i++ ) {
 		client->ps.pmove.delta_angles[i] = ANGLE2SHORT( client->ps.viewangles[i] ) - client->ucmd.angles[i];
+	}
 
 	// this is pretty hackish
 	if( !G_ISGHOSTING( ent ) ) {

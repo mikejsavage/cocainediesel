@@ -19,14 +19,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
+#include "client/renderer/renderer.h"
+#include "client/renderer/text.h"
 
 cvar_t *cg_centerTime;
 cvar_t *cg_showFPS;
 cvar_t *cg_showPointedPlayer;
 cvar_t *cg_draw2D;
 
-cvar_t *cg_crosshair_color;
-cvar_t *cg_crosshair_damage_color;
 cvar_t *cg_crosshair_size;
 
 cvar_t *cg_showSpeed;
@@ -36,8 +36,6 @@ cvar_t *cg_showPlayerNames;
 cvar_t *cg_showPlayerNames_alpha;
 cvar_t *cg_showPlayerNames_zfar;
 cvar_t *cg_showPlayerNames_barWidth;
-
-cvar_t *cg_showPressedKeys;
 
 cvar_t *cg_showViewBlends;
 
@@ -67,24 +65,17 @@ void CG_CenterPrint( const char *str ) {
 }
 
 static void CG_DrawCenterString( void ) {
-	DrawText( cgs.fontMontserrat, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, frame_static.viewport_width * 0.5f, frame_static.viewport_height * 0.35f, vec4_white, true );
+	DrawText( cgs.fontNormal, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, frame_static.viewport_width * 0.5f, frame_static.viewport_height * 0.75f, vec4_white, true );
 }
 
 //============================================================================
 
-/*
-* CG_ScreenInit
-*/
 void CG_ScreenInit( void ) {
 	cg_showFPS =        Cvar_Get( "cg_showFPS", "0", CVAR_ARCHIVE );
 	cg_draw2D =     Cvar_Get( "cg_draw2D", "1", 0 );
 	cg_centerTime =     Cvar_Get( "cg_centerTime", "2.5", 0 );
 
-	cg_crosshair_color =    Cvar_Get( "cg_crosshair_color", "255 255 255", CVAR_ARCHIVE );
-	cg_crosshair_damage_color = Cvar_Get( "cg_crosshair_damage_color", "255 0 0", CVAR_ARCHIVE );
 	cg_crosshair_size = Cvar_Get( "cg_crosshair_size", "3", CVAR_ARCHIVE );
-	cg_crosshair_color->modified = true;
-	cg_crosshair_damage_color->modified = true;
 
 	cg_showSpeed =      Cvar_Get( "cg_showSpeed", "0", CVAR_ARCHIVE );
 	cg_showPointedPlayer =  Cvar_Get( "cg_showPointedPlayer", "1", CVAR_ARCHIVE );
@@ -95,13 +86,8 @@ void CG_ScreenInit( void ) {
 	cg_showPlayerNames_alpha =  Cvar_Get( "cg_showPlayerNames_alpha", "0.4", CVAR_ARCHIVE );
 	cg_showPlayerNames_zfar =   Cvar_Get( "cg_showPlayerNames_zfar", "1024", CVAR_ARCHIVE );
 	cg_showPlayerNames_barWidth =   Cvar_Get( "cg_showPlayerNames_barWidth", "8", CVAR_ARCHIVE );
-
-	cg_showPressedKeys = Cvar_Get( "cg_showPressedKeys", "0", CVAR_ARCHIVE );
 }
 
-/*
-* CG_DrawNet
-*/
 void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color ) {
 	if( cgs.demoPlaying ) {
 		return;
@@ -122,43 +108,18 @@ void CG_ScreenCrosshairDamageUpdate( void ) {
 }
 
 static void CG_FillRect( int x, int y, int w, int h, Vec4 color ) {
-	Draw2DBox( x, y, w, h, cgs.white_material, color );
+	Draw2DBox( x, y, w, h, cls.white_material, color );
 }
 
-static Vec4 crosshair_color = vec4_white;
-static Vec4 crosshair_damage_color = vec4_red;
-
 void CG_DrawCrosshair() {
-	if( cg.predictedPlayerState.health <= 0 || ( cg.predictedPlayerState.weapon == Weapon_Sniper && cg.predictedPlayerState.zoom_time > 0 ) )
+	if( cg.predictedPlayerState.health <= 0 )
 		return;
 
-	float s = 1.0f / 255.0f;
+	WeaponType weapon = cg.predictedPlayerState.weapon;
+	if( weapon == Weapon_Knife || weapon == Weapon_Sniper )
+		return;
 
-	if( cg_crosshair_color->modified ) {
-		cg_crosshair_color->modified = false;
-		int rgb = COM_ReadColorRGBString( cg_crosshair_color->string );
-		if( rgb != -1 ) {
-			crosshair_color = Vec4( COLOR_R( rgb ) * s, COLOR_G( rgb ) * s, COLOR_B( rgb ) * s, 1.0f );
-		}
-		else {
-			crosshair_color = vec4_white;
-			Cvar_Set( cg_crosshair_color->name, "255 255 255" );
-		}
-	}
-
-	if( cg_crosshair_damage_color->modified ) {
-		cg_crosshair_damage_color->modified = false;
-		int rgb = COM_ReadColorRGBString( cg_crosshair_damage_color->string );
-		if( rgb != -1 ) {
-			crosshair_damage_color = Vec4( COLOR_R( rgb ) * s, COLOR_G( rgb ) * s, COLOR_B( rgb ) * s, 1.0f );
-		}
-		else {
-			crosshair_color = vec4_red;
-			Cvar_Set( cg_crosshair_damage_color->name, "255 255 255" );
-		}
-	}
-
-	Vec4 color = cls.monotonicTime - scr_damagetime <= 300 ? crosshair_damage_color : crosshair_color;
+	Vec4 color = cls.monotonicTime - scr_damagetime <= 300 ? vec4_red : vec4_white;
 
 	int w = frame_static.viewport_width;
 	int h = frame_static.viewport_height;
@@ -168,54 +129,8 @@ void CG_DrawCrosshair() {
 	CG_FillRect( w / 2 - 2 - size, h / 2 - 2, 4 + 2 * size, 4, vec4_black );
 	CG_FillRect( w / 2 - 1, h / 2 - 1 - size, 2, 2 + 2 * size, color );
 	CG_FillRect( w / 2 - 1 - size, h / 2 - 1, 2 + 2 * size, 2, color );
-
-	// temp reload progress bar
-	if( cg.predictedPlayerState.weapon_state == WeaponState_Reloading ) {
-		const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapon );
-		float frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->reload_time );
-
-		int size = 32;
-		CG_FillRect( w / 2 - 1 - size, h / 2 - 1 + 24, 2 + 2 * size, 4, vec4_black );
-		CG_FillRect( w / 2 - size, h / 2 - 1 + 25, frac * 2 * size, 2, vec4_white );
-	}
 }
 
-void CG_DrawKeyState( int x, int y, int w, int h, const char *key ) {
-	int i;
-	bool pressed = false;
-
-	if( !cg_showPressedKeys->integer ) {
-		return;
-	}
-
-	if( !key ) {
-		return;
-	}
-
-	for( i = 0; i < KEYICON_TOTAL; i++ )
-		if( !Q_stricmp( key, gs_keyicon_names[i] ) ) {
-			break;
-		}
-
-	if( i == KEYICON_TOTAL ) {
-		return;
-	}
-
-	if( cg.predictedPlayerState.plrkeys & ( 1 << i ) ) {
-		pressed = 1;
-	}
-
-	Vec4 color = vec4_white;
-	if( !pressed ) {
-		color.w = 0.5f;
-	}
-
-	Draw2DBox( x, y, w, h, cgs.media.shaderKeyIcon[i], color );
-}
-
-/*
-* CG_DrawClock
-*/
 void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float font_size, Vec4 color, bool border ) {
 	int64_t clocktime, startTime, duration, curtime;
 	char string[12];
@@ -260,18 +175,12 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 	DrawText( font, font_size, string, alignment, x, y, color, border );
 }
 
-/*
-* CG_ClearPointedNum
-*/
 void CG_ClearPointedNum( void ) {
 	cg.pointedNum = 0;
 	cg.pointRemoveTime = 0;
 	cg.pointedHealth = 0;
 }
 
-/*
-* CG_UpdatePointedNum
-*/
 static void CG_UpdatePointedNum( void ) {
 	// disable cases
 	if( cg.view.thirdperson || cg.view.type != VIEWDEF_PLAYERVIEW || !cg_showPointedPlayer->integer ) {
@@ -296,9 +205,6 @@ static void CG_UpdatePointedNum( void ) {
 	}
 }
 
-/*
-* CG_DrawPlayerNames
-*/
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border ) {
 	// static vec4_t alphagreen = { 0, 1, 0, 0 }, alphared = { 1, 0, 0, 0 }, alphayellow = { 1, 1, 0, 0 }, alphamagenta = { 1, 0, 1, 1 }, alphagrey = { 0.85, 0.85, 0.85, 1 };
 	Vec3 dir, drawOrigin;
@@ -381,7 +287,273 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 
 //=============================================================================
 
-static const char * mini_obituaries[] = { "GG", "RIP", "BYE", "CYA", "L8R", "CHRS", "PLZ", "HAX" };
+static const char * mini_obituaries[] = {
+	"69",
+	"102",
+	"420",
+	"1337",
+	"1515",
+	"ACHOO",
+	"AHA",
+	"AHH",
+	"ARF",
+	"ARGH",
+	"BAH",
+	"BAM",
+	"BANG",
+	"BARF",
+	"BASH",
+	"BEEP",
+	"BIFF",
+	"BING",
+	"BLAB",
+	"BLAM",
+	"BLAST",
+	"BLEEP",
+	"BLESS",
+	"BLING",
+	"BLIP",
+	"BLOOP",
+	"BLUP",
+	"BLURP",
+	"BOING",
+	"BOINK",
+	"BONG",
+	"BONK",
+	"BOO",
+	"BOOM",
+	"BOOSH",
+	"BOP",
+	"BRRR",
+	"BUCK",
+	"BURP",
+	"BUZZ",
+	"BWAK",
+	"BYE",
+	"BZZZ",
+	"CHEERS",
+	"CHING",
+	"CHUNK",
+	"CLACK",
+	"CLANG",
+	"CLANK",
+	"CLAP",
+	"CLASH",
+	"CLICK",
+	"CLINK",
+	"CLOP",
+	"CLOUT",
+	"CLUCK",
+	"CLUNK",
+	"COOL",
+	"CRACK",
+	"CRISP",
+	"CRUNCH",
+	"CYA",
+	"DAB",
+	"DING",
+	"DOINK",
+	"DONG",
+	"DOOK",
+	"DRIP",
+	"DUH",
+	"EEK",
+	"EEYORE",
+	"EHHH",
+	"ESPORT",
+	"EWW",
+	"FART",
+	"FINCH",
+	"FIZZ",
+	"FLAP",
+	"FLASH",
+	"FLEX",
+	"FLICK",
+	"FLIP",
+	"FLOG",
+	"FLOP",
+	"FLUSH",
+	"GAG",
+	"GASP",
+	"GG",
+	"GNASH",
+	"GNAW",
+	"GONG",
+	"GOSH",
+	"GOT",
+	"GOTEEM",
+	"GRRR",
+	"GULP",
+	"GUSH",
+	"GYUH",
+	"HAH",
+	"HAHA",
+	"HAX",
+	"HEH",
+	"HEHE",
+	"HEY",
+	"HIP",
+	"HISS",
+	"HMPF",
+	"HO",
+	"HOHO",
+	"HOOT",
+	"HUFF",
+	"HUMPF",
+	"HUSH",
+	"ICE",
+	"ICKY",
+	"ITCH",
+	"JINGLE",
+	"KLOK",
+	"KLUNK",
+	"KNOCK",
+	"KRACH",
+	"KURAC",
+	"KURWA",
+	"L8R",
+	"LALA",
+	"LIT",
+	"LOL",
+	"MEOW",
+	"MMMMM",
+	"MOO",
+	"MROW",
+	"MUNCH",
+	"NAH",
+	"NEIGH",
+	"NOPE",
+	"NYAH",
+	"OHHH",
+	"OINK",
+	"OMG",
+	"OOMPAH",
+	"OOPS",
+	"OOZE",
+	"OUCH",
+	"OW",
+	"PEEP",
+	"PEW",
+	"PFF",
+	"PHEW",
+	"PING",
+	"PIZDEC",
+	"PLINK",
+	"PLONK",
+	"PLOOP",
+	"PLOP",
+	"PLZ",
+	"POOF",
+	"POP",
+	"POW",
+	"PRRR",
+	"PSST",
+	"PUFF",
+	"PUMP",
+	"QUACK",
+	"QUEEF",
+	"RAWR",
+	"REKT",
+	"RIBBIT",
+	"RING",
+	"RIP",
+	"rm -rf",
+	"ROFL",
+	"ROWR",
+	"RUFF",
+	"SCAT",
+	"SCHLIP",
+	"SCRATCH",
+	"SHHH",
+	"SHIT",
+	"SHOO",
+	"SHOOP",
+	"SIGH",
+	"SKRA",
+	"SKRRT",
+	"SLAM",
+	"SLASH",
+	"SLIP",
+	"SLUMP",
+	"SMACK",
+	"SMASH",
+	"SNAP",
+	"SNEEZE",
+	"SNIP",
+	"SNORT",
+	"SPIT",
+	"SPLAT",
+	"SPLISH",
+	"SPLOSH",
+	"SPOOT",
+	"SQUIRT",
+	"SQUISH",
+	"STOMP",
+	"SUKA",
+	"SUP",
+	"SWASH",
+	"SWOOP",
+	"SWOOSH",
+	"TACK",
+	"TAP",
+	"THROB",
+	"THUD",
+	"THUMP",
+	"THUNK",
+	"TING",
+	"TKTK",
+	"TONG",
+	"TOOT",
+	"TRILL",
+	"TUFF",
+	"TUG",
+	"TWEET",
+	"UGH",
+	"UH-OH",
+	"UNTZ",
+	"VROOM",
+	"WAAA",
+	"WACK",
+	"WAFFLE",
+	"WANK",
+	"WHACK",
+	"WHAM",
+	"WHEW",
+	"WHIFF",
+	"WHIP",
+	"WHIRL",
+	"WHIZ",
+	"WHIZZ",
+	"WHOA",
+	"WHOO",
+	"WHOOP",
+	"WHOOPS",
+	"WIZZ",
+	"WOOF",
+	"WOOSH",
+	"WOW",
+	"WTF",
+	"YADDA",
+	"YANK",
+	"YAP",
+	"YAWN",
+	"YAWP",
+	"YAY",
+	"YEAH",
+	"YEET",
+	"YIKES",
+	"YOINK",
+	"YOOO",
+	"YUCK",
+	"YUMMY",
+	"ZAP",
+	"ZING",
+	"ZIP",
+	"ZLOPP",
+	"ZONK",
+	"ZOOM",
+	"ZZZ" };
+
 constexpr int MINI_OBITUARY_DAMAGE = 255;
 
 struct DamageNumber {
@@ -409,7 +581,7 @@ void CG_AddDamageNumber( SyncEntityState * ent, u64 parm ) {
 	dn->t = cl.serverTime;
 	dn->damage = parm >> 1;
 	dn->headshot = ( parm & 1 ) != 0;
-	dn->drift = random_float11( &cls.rng );
+	dn->drift = random_float11( &cls.rng ) > 0.0f ? 1.0f : -1.0f;
 	dn->obituary = random_select( &cls.rng, mini_obituaries );
 
 	float distance_jitter = 4;
@@ -426,40 +598,49 @@ void CG_DrawDamageNumbers() {
 		if( dn.damage == 0 )
 			continue;
 
-		float lifetime = Lerp( 750.0f, Unlerp01( 0, dn.damage, MINI_OBITUARY_DAMAGE ), 2000.0f );
+		bool obituary = dn.damage == MINI_OBITUARY_DAMAGE;
+
+		float lifetime = obituary ? 1150.0f : Lerp( 750.0f, Unlerp01( 0, dn.damage, 50 ), 1000.0f );
 		float frac = ( cl.serverTime - dn.t ) / lifetime;
 		if( frac > 1 )
 			continue;
 
 		Vec3 origin = dn.origin;
-		origin.z += frac * 32;
+
+		if( obituary ) {
+			origin.z += 256.0f * frac - 512.0f * frac * frac;
+		}
+		else {
+			origin.z += frac * 32.0f;
+		}
 
 		if( Dot( -frame_static.V.row2().xyz(), origin - frame_static.position ) <= 0 )
 			continue;
 
 		Vec2 coords = WorldToScreen( origin );
-		coords.x += dn.drift * frac * 8;
+		coords.x += dn.drift * frac * ( obituary ? 512.0f : 8.0f );
 		if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {
 			continue;
 		}
 
 		char buf[ 16 ];
 		Vec4 color;
-		if( dn.damage == MINI_OBITUARY_DAMAGE ) {
+		float font_size;
+		if( obituary ) {
 			Q_strncpyz( buf, dn.obituary, sizeof( buf ) );
-			color = CG_TeamColorVec4( TEAM_ENEMY );
+			color = AttentionGettingColor();
+			font_size = Lerp( cgs.textSizeSmall, frac * frac, 0.0f );
 		}
 		else {
 			snprintf( buf, sizeof( buf ), "%d", dn.damage );
-			color = dn.headshot ? AttentionGettingColor() : vec4_white;
+			color = dn.headshot ? sRGBToLinear( rgba8_diesel_yellow ) : vec4_white;
+			font_size = Lerp( cgs.textSizeTiny, Unlerp01( 0, dn.damage, 50 ), cgs.textSizeSmall );
 		}
-
-		float font_size = Lerp( cgs.textSizeTiny, Unlerp01( 0, dn.damage, 60 ), cgs.textSizeSmall );
 
 		float alpha = 1 - Max2( 0.0f, frac - 0.75f ) / 0.25f;
 		color.w *= alpha;
 
-		DrawText( cgs.fontMontserrat, font_size, buf, Alignment_CenterBottom, coords.x, coords.y, color, true );
+		DrawText( cgs.fontNormal, font_size, buf, Alignment_CenterBottom, coords.x, coords.y, color, true );
 	}
 }
 
@@ -472,7 +653,7 @@ struct BombSite {
 };
 
 enum BombState {
-	BombState_None,
+	BombState_Carried,
 	BombState_Dropped,
 	BombState_Planting,
 	BombState_Planted,
@@ -498,6 +679,13 @@ void CG_AddBomb( centity_t * cent ) {
 
 	bomb.team = cent->current.team;
 	bomb.origin = cent->current.origin;
+
+	// TODO: this really does not belong here...
+	if( bomb.state == BombState_Planted ) {
+		Mat2 r = Mat2Rotation( cent->current.angles.y );
+		Vec3 origin = bomb.origin + Vec3( r * Vec2( -12.0f, 3.0f ), -12.0f );
+		DoVisualEffect( "models/bomb/fuse", origin );
+	}
 }
 
 void CG_AddBombSite( centity_t * cent ) {
@@ -518,9 +706,11 @@ void CG_DrawBombHUD() {
 	int my_team = cg.predictedPlayerState.team;
 	bool show_labels = my_team != TEAM_SPECTATOR && GS_MatchState( &client_gs ) == MATCH_STATE_PLAYTIME;
 
+	Vec4 yellow = sRGBToLinear( rgba8_diesel_yellow );
+
 	// TODO: draw arrows when clamped
 
-	if( bomb.state == BombState_None || bomb.state == BombState_Dropped ) {
+	if( bomb.state == BombState_Carried || bomb.state == BombState_Dropped ) {
 		for( size_t i = 0; i < num_bomb_sites; i++ ) {
 			const BombSite * site = &bomb_sites[ i ];
 			bool clamped;
@@ -528,17 +718,17 @@ void CG_DrawBombHUD() {
 
 			char buf[ 4 ];
 			snprintf( buf, sizeof( buf ), "%c", site->letter );
-			DrawText( cgs.fontMontserrat, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords.x, coords.y, vec4_white, true );
+			DrawText( cgs.fontNormal, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {
 				const char * msg = my_team == site->team ? "DEFEND" : "ATTACK";
 				coords.y += ( cgs.fontSystemMediumSize * 7 ) / 8;
-				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, vec4_white, true );
+				DrawText( cgs.fontNormal, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
 			}
 		}
 	}
 
-	if( bomb.state != BombState_None ) {
+	if( bomb.state != BombState_Carried ) {
 		bool clamped;
 		Vec2 coords = WorldToScreenClamped( bomb.origin, Vec2( cgs.fontSystemMediumSize * 2 ), &clamped );
 
@@ -548,13 +738,32 @@ void CG_DrawBombHUD() {
 		}
 		else {
 			if( show_labels ) {
-				const char * msg = "RETRIEVE";
-				if( bomb.state == BombState_Planting )
+				Vec4 color = vec4_white;
+				const char * msg;
+
+				if( bomb.state == BombState_Dropped ) {
+					msg = "RETRIEVE";
+					color = AttentionGettingColor();
+
+					// TODO: lol
+					DoVisualEffect( "models/bomb/pickup_sparkle", bomb.origin - Vec3( 0.0f, 0.0f, 32.0f ), Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, AttentionGettingColor() );
+				}
+				else if( bomb.state == BombState_Planting ) {
 					msg = "PLANTING";
-				else if( bomb.state == BombState_Planted )
-					msg = my_team == bomb.team ? "PROTECT" : "DEFUSE";
+					color = AttentionGettingColor();
+				}
+				else if( bomb.state == BombState_Planted ) {
+					if( my_team == bomb.team ) {
+						msg = "PROTECT";
+					}
+					else {
+						msg = "DEFUSE";
+						color = AttentionGettingColor();
+					}
+				}
+
 				float y = coords.y - cgs.fontSystemTinySize / 2;
-				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, y, vec4_white, true );
+				DrawText( cgs.fontNormal, cgs.textSizeSmall, msg, Alignment_CenterMiddle, coords.x, y, color, true );
 			}
 		}
 
@@ -563,14 +772,11 @@ void CG_DrawBombHUD() {
 
 void CG_ResetBombHUD() {
 	num_bomb_sites = 0;
-	bomb.state = BombState_None;
+	bomb.state = BombState_Carried;
 }
 
 //=============================================================================
 
-/*
-* CG_EscapeKey
-*/
 void CG_EscapeKey( void ) {
 	if( cgs.demoPlaying ) {
 		UI_ShowDemoMenu();
@@ -592,9 +798,6 @@ static Vec4 CG_CalcColorBlend() {
 	return Vec4( 0 );
 }
 
-/*
-* CG_SCRDrawViewBlend
-*/
 static void CG_SCRDrawViewBlend( void ) {
 	if( !cg_showViewBlends->integer ) {
 		return;
@@ -605,7 +808,15 @@ static void CG_SCRDrawViewBlend( void ) {
 		return;
 	}
 
-	Draw2DBox( 0, 0, frame_static.viewport_width, frame_static.viewport_height, cgs.white_material, color );
+	Draw2DBox( 0, 0, frame_static.viewport_width, frame_static.viewport_height, cls.white_material, color );
+}
+
+void AddDamageEffect( float x ) {
+	constexpr float max = 1.0f;
+	if( x == 0.0f )
+		x = max;
+
+	cg.damage_effect = Min2( max, cg.damage_effect + x );
 }
 
 static void CG_DrawScope() {
@@ -621,9 +832,6 @@ static void CG_DrawScope() {
 	}
 }
 
-/*
-* CG_Draw2DView
-*/
 void CG_Draw2DView( void ) {
 	ZoneScoped;
 
@@ -641,15 +849,13 @@ void CG_Draw2DView( void ) {
 		CG_DrawCenterString();
 	}
 
-	CG_DrawScope();
-	CG_ExecuteLayoutProgram( cg.statusBar );
+	CG_DrawHUD();
 	CG_DrawChat();
 }
 
-/*
-* CG_Draw2D
-*/
 void CG_Draw2D( void ) {
+	CG_DrawScope();
+
 	if( !cg_draw2D->integer ) {
 		return;
 	}

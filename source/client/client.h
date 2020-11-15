@@ -25,17 +25,18 @@
 #include "cgame/cg_public.h"
 #include "gameshared/gs_public.h"
 
-#include "client/renderer/renderer.h"
-#include "vid.h"
-#include "ui.h"
-#include "keys.h"
-#include "maps.h"
-#include "console.h"
-#include "sound.h"
+#include "client/vid.h"
+#include "client/ui.h"
+#include "client/keys.h"
+#include "client/maps.h"
+#include "client/console.h"
+#include "client/sound.h"
+#include "client/renderer/types.h"
 
-typedef struct shader_s shader_t;
-typedef struct qfontface_s qfontface_t;
 struct ImFont;
+struct snapshot_t;
+
+constexpr RGBA8 rgba8_diesel_yellow = RGBA8( 255, 204, 38, 255 );
 
 //=============================================================================
 
@@ -46,7 +47,7 @@ struct ImFont;
 // the client_state_t structure is wiped completely at every
 // server map change
 //
-typedef struct {
+struct client_state_t {
 	int timeoutcount;
 
 	int cmdNum;                     // current cmd
@@ -85,61 +86,20 @@ typedef struct {
 	int playernum;
 
 	char configstrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
-} client_state_t;
+};
 
 extern client_state_t cl;
 
 /*
 ==================================================================
 
-the client_static_t structure is persistant through an arbitrary number
+the client_static_t structure is persistent through an arbitrary number
 of server connections
 
 ==================================================================
 */
 
-typedef struct download_list_s download_list_t;
-
-struct download_list_s {
-	char *filename;
-	download_list_t *next;
-};
-
-typedef struct {
-	// for request
-	char *requestname;              // file we requested from the server (NULL if none requested)
-	bool requestnext;           // whether to request next download after this, for precaching
-	int64_t timeout;
-	int64_t timestart;
-
-	// both downloads
-	char *name;                     // name of the file in download, relative to base path
-	char *origname;                 // name of the file in download as originally passed by the server
-	char *tempname;                 // temporary location, relative to base path
-	size_t size;
-	unsigned checksum;
-
-	double percent;
-	int successCount;               // so we know to restart media
-	download_list_t *list;          // list of all tried downloads, so we don't request same file twice
-
-	// server download
-	int filenum;
-	size_t offset;
-	int retries;
-	size_t baseoffset;              // for download speed calculation when resuming downloads
-
-	// web download
-	bool web;
-	char *web_url;                  // download URL, passed by the server
-	bool web_local_http;
-
-	bool disconnect;            // set when user tries to disconnect, to allow cleaning up webdownload
-	bool pending_reconnect;     // set when we ignored a map change command to avoid stopping the download
-	bool cancelled;             // to allow cleaning up of temporary download file
-} download_t;
-
-typedef struct {
+struct cl_demo_t {
 	char *name;
 
 	bool recording;
@@ -163,9 +123,9 @@ typedef struct {
 
 	char meta_data[SNAP_MAX_DEMO_META_DATA_SIZE];
 	size_t meta_data_realsize;
-} cl_demo_t;
+};
 
-typedef struct {
+struct client_static_t {
 	ArenaAllocator frame_arena;
 
 	RNG rng;
@@ -212,15 +172,10 @@ typedef struct {
 
 	int challenge;              // from the server to use for connecting
 
-	download_t download;
-
 	// demo recording info must be here, so it isn't cleared on level change
 	cl_demo_t demo;
 
-	const Material * whiteTexture;
-
-	// system font
-	qfontface_t *consoleFont;
+	const Material * white_material;
 
 	// these are our reliable messages that go to the server
 	int64_t reliableSequence;          // the last one we put in the list to be sent
@@ -247,7 +202,7 @@ typedef struct {
 	ImFont * big_font;
 	ImFont * medium_font;
 	ImFont * console_font;
-} client_static_t;
+};
 
 extern client_static_t cls;
 extern gs_state_t client_gs;
@@ -265,10 +220,6 @@ extern cvar_t *cl_extrapolate;
 // wsw : debug netcode
 extern cvar_t *cl_debug_serverCmd;
 extern cvar_t *cl_debug_timeDelta;
-
-extern cvar_t *cl_downloads;
-extern cvar_t *cl_downloads_from_web;
-extern cvar_t *cl_downloads_from_web_timeout;
 
 extern cvar_t *cl_devtools;
 
@@ -299,6 +250,7 @@ void CL_ReadPackets( void );
 void CL_Disconnect_f( void );
 
 void CL_Reconnect_f( void );
+void CL_FinishConnect();
 void CL_ServerReconnect_f( void );
 void CL_Changing_f( void );
 void CL_Precache_f( void );
@@ -308,12 +260,6 @@ void CL_ServerDisconnect_f( void );
 void CL_ForceVsync( bool force );
 
 size_t CL_GetBaseServerURL( char *buffer, size_t buffer_size );
-
-int CL_AddSessionHttpRequestHeaders( const char *url, const char **headers );
-void CL_AsyncStreamRequest( const char *url, const char **headers, int timeout, int resumeFrom,
-							size_t ( *read_cb )( const void *, size_t, float, int, const char *, void * ),
-							void ( *done_cb )( int, const char *, void * ),
-							void ( *header_cb )( const char *, void * ), void *privatep, bool urlencodeUnsafe );
 
 //
 // cl_game.c
@@ -376,15 +322,11 @@ const char **CL_DemoComplete( const char *partial );
 void CL_ParseServerMessage( msg_t *msg );
 #define SHOWNET( msg,s ) _SHOWNET( msg,s,cl_shownet->integer );
 
-void CL_FreeDownloadList( void );
-bool CL_CheckOrDownloadFile( const char *filename );
-
-bool CL_DownloadRequest( const char *filename );
-void CL_DownloadStatus_f( void );
-void CL_DownloadCancel_f( void );
-void CL_DownloadDone( void );
-void CL_RequestNextDownload( void );
-void CL_CheckDownloadTimeout( void );
+bool CL_DownloadFile( const char * filename, bool save_to_disk );
+bool CL_IsDownloading();
+void CL_CancelDownload();
+void CL_ReconnectAfterDownload();
+void CL_CheckDownloadTimeout();
 
 //
 // cl_screen.c
@@ -392,15 +334,19 @@ void CL_CheckDownloadTimeout( void );
 void SCR_InitScreen( void );
 void SCR_UpdateScreen( void );
 void SCR_DebugGraph( float value, float r, float g, float b );
-void SCR_RegisterConsoleMedia( void );
 
 void CL_AddNetgraph( void );
 
 //
 // cl_imgui
 //
-
 void CL_InitImGui();
 void CL_ShutdownImGui();
 void CL_ImGuiBeginFrame();
 void CL_ImGuiEndFrame();
+
+//
+// snap_read
+//
+void SNAP_ParseBaseline( msg_t *msg, SyncEntityState *baselines );
+snapshot_t *SNAP_ParseFrame( msg_t *msg, snapshot_t *lastFrame, snapshot_t *backup, SyncEntityState *baselines, int showNet );

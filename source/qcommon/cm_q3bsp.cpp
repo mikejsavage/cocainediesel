@@ -24,7 +24,161 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/cm_local.h"
 #include "qcommon/patch.h"
 
+#define MAX_LIGHTMAPS       4
 #define MAX_FACET_PLANES 32
+
+#define LUMP_ENTITIES       0
+#define LUMP_SHADERREFS     1
+#define LUMP_PLANES     2
+#define LUMP_NODES      3
+#define LUMP_LEAFS      4
+#define LUMP_LEAFFACES      5
+#define LUMP_LEAFBRUSHES    6
+#define LUMP_MODELS     7
+#define LUMP_BRUSHES        8
+#define LUMP_BRUSHSIDES     9
+#define LUMP_VERTEXES       10
+#define LUMP_ELEMENTS       11
+#define LUMP_FOGS       12
+#define LUMP_FACES      13
+#define LUMP_LIGHTING       14
+#define LUMP_LIGHTGRID      15
+#define LUMP_VISIBILITY     16
+#define LUMP_LIGHTARRAY     17
+
+#define HEADER_LUMPS        18      // 16 for IDBSP
+
+struct lump_t {
+	int fileofs, filelen;
+};
+
+struct dheader_t {
+	int ident;
+	int version;
+	lump_t lumps[HEADER_LUMPS];
+};
+
+struct dmodel_t {
+	float mins[3], maxs[3];
+	int firstface, numfaces;        // submodels just draw faces
+	                                // without walking the bsp tree
+	int firstbrush, numbrushes;
+};
+
+struct dvertex_t {
+	float point[3];
+	float tex_st[2];            // texture coords
+	float lm_st[2];             // lightmap texture coords
+	float normal[3];            // normal
+	unsigned char color[4];     // color used for vertex lighting
+};
+
+struct rdvertex_t {
+	float point[3];
+	float tex_st[2];
+	float lm_st[MAX_LIGHTMAPS][2];
+	float normal[3];
+	unsigned char color[MAX_LIGHTMAPS][4];
+};
+
+// planes (x&~1) and (x&~1)+1 are always opposites
+struct dplane_t {
+	float normal[3];
+	float dist;
+};
+
+struct dnode_t {
+	int planenum;
+	int children[2];            // negative numbers are -(leafs+1), not nodes
+	int mins[3];                // for frustum culling
+	int maxs[3];
+};
+
+struct dshaderref_t {
+	char name[64];
+	int flags;
+	int contents;
+};
+
+struct dface_t {
+	int shadernum;
+	int fognum;
+	int facetype;
+
+	int firstvert;
+	int numverts;
+	unsigned firstelem;
+	int numelems;
+
+	int lm_texnum;              // lightmap info
+	int lm_offset[2];
+	int lm_size[2];
+
+	float origin[3];            // FaceType_Flare only
+
+	float mins[3];
+	float maxs[3];              // FaceType_Patch and FaceType_Mesh only
+	float normal[3];            // FaceType_Planar only
+
+	int patch_cp[2];            // patch control point dimensions
+};
+
+struct rdface_t {
+	int shadernum;
+	int fognum;
+	int facetype;
+
+	int firstvert;
+	int numverts;
+	unsigned firstelem;
+	int numelems;
+
+	unsigned char lightmapStyles[MAX_LIGHTMAPS];
+	unsigned char vertexStyles[MAX_LIGHTMAPS];
+
+	int lm_texnum[MAX_LIGHTMAPS];               // lightmap info
+	int lm_offset[MAX_LIGHTMAPS][2];
+	int lm_size[2];
+
+	float origin[3];            // FaceType_Flare only
+
+	float mins[3];
+	float maxs[3];              // FaceType_Patch and FaceType_Mesh only
+	float normal[3];            // FaceType_Planar only
+
+	int patch_cp[2];            // patch control point dimensions
+};
+
+struct dleaf_t {
+	int cluster;
+	int area;
+
+	int mins[3];
+	int maxs[3];
+
+	int firstleafface;
+	int numleaffaces;
+
+	int firstleafbrush;
+	int numleafbrushes;
+};
+
+struct dbrushside_t {
+	int planenum;
+	int shadernum;
+};
+
+struct rdbrushside_t {
+	int planenum;
+	int shadernum;
+	int surfacenum;
+};
+
+struct dbrush_t {
+	int firstside;
+	int numsides;
+	int shadernum;
+};
 
 static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 *verts, int numverts, cshaderref_t *shaderref, cplane_t *brushplanes ) {
 	Vec3 normal;
@@ -235,7 +389,7 @@ static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, cshaderref_t *s
 	}
 
 	if( patch->numfacets ) {
-		uint8_t * fdata = ( uint8_t * ) Mem_Alloc( cmap_mempool, patch->numfacets * sizeof( cbrush_t ) + totalsides * ( sizeof( cbrushside_t ) + sizeof( cplane_t ) ) );
+		u8 * fdata = ( u8 * ) ALLOC_SIZE( sys_allocator, patch->numfacets * sizeof( cbrush_t ) + totalsides * ( sizeof( cbrushside_t ) + sizeof( cplane_t ) ), 16 );
 
 		patch->facets = ( cbrush_t * )fdata; fdata += patch->numfacets * sizeof( cbrush_t );
 		memcpy( patch->facets, facets, patch->numfacets * sizeof( cbrush_t ) );
@@ -278,7 +432,7 @@ static void CMod_LoadSurfaces( CollisionModel *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "CMod_LoadSurfaces: map with no shaders" );
 	}
 
-	out = cms->map_shaderrefs = ( cshaderref_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
+	out = cms->map_shaderrefs = ALLOC_MANY( sys_allocator, cshaderref_t, count );
 	cms->numshaderrefs = count;
 
 	buffer = NULL;
@@ -289,9 +443,9 @@ static void CMod_LoadSurfaces( CollisionModel *cms, lump_t *l ) {
 		if( bufLen + len >= bufSize ) {
 			bufSize = bufLen + len + 128;
 			if( buffer ) {
-				buffer = ( char * ) Mem_Realloc( buffer, bufSize );
+				buffer = ( char * ) REALLOC( sys_allocator, buffer, 0, bufSize, 16 );
 			} else {
-				buffer = ( char * ) Mem_Alloc( cmap_mempool, bufSize );
+				buffer = ( char * ) ALLOC_SIZE( sys_allocator, bufSize, 16 );
 			}
 		}
 
@@ -302,8 +456,9 @@ static void CMod_LoadSurfaces( CollisionModel *cms, lump_t *l ) {
 		out->contents = LittleLong( in->contents );
 	}
 
-	for( i = 0; i < count; i++ )
+	for( i = 0; i < count; i++ ) {
 		cms->map_shaderrefs[i].name = buffer + ( size_t )( ( void * )cms->map_shaderrefs[i].name );
+	}
 }
 
 static void CMod_LoadVertexes( CollisionModel *cms, lump_t *l ) {
@@ -321,7 +476,7 @@ static void CMod_LoadVertexes( CollisionModel *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no vertexes" );
 	}
 
-	out = cms->map_verts = ( Vec3 * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
+	out = cms->map_verts = ALLOC_MANY( sys_allocator, Vec3, count );
 	cms->numvertexes = count;
 
 	for( i = 0; i < count; i++, in++ ) {
@@ -346,7 +501,7 @@ static void CMod_LoadVertexes_RBSP( CollisionModel *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no vertexes" );
 	}
 
-	out = cms->map_verts = ( Vec3 * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
+	out = cms->map_verts = ALLOC_MANY( sys_allocator, Vec3, count );
 	cms->numvertexes = count;
 
 	for( i = 0; i < count; i++, in++ ) {
@@ -397,7 +552,7 @@ static void CMod_LoadFaces( CollisionModel *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no faces" );
 	}
 
-	out = cms->map_faces = ( cface_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
+	out = cms->map_faces = ALLOC_MANY( sys_allocator, cface_t, count );
 	cms->numfaces = count;
 
 	for( i = 0; i < count; i++, in++, out++ ) {
@@ -425,7 +580,7 @@ static void CMod_LoadFaces_RBSP( CollisionModel *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no faces" );
 	}
 
-	out = cms->map_faces = ( cface_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
+	out = cms->map_faces = ALLOC_MANY( sys_allocator, cface_t, count );
 	cms->numfaces = count;
 
 	for( i = 0; i < count; i++, in++, out++ ) {
@@ -460,11 +615,11 @@ static void CMod_LoadSubmodels( CModelServerOrClient soc, CollisionModel *cms, l
 		model->hash = hash;
 		model->faces = cms->map_faces;
 		model->nummarkfaces = LittleLong( in->numfaces );
-		model->markfaces = ( int * ) Mem_Alloc( cmap_mempool, model->nummarkfaces * sizeof( *model->markfaces ) );
+		model->markfaces = ALLOC_MANY( sys_allocator, int, model->nummarkfaces );
 
 		model->brushes = cms->map_brushes;
 		model->nummarkbrushes = LittleLong( in->numbrushes );
-		model->markbrushes = ( int * ) Mem_Alloc( cmap_mempool, model->nummarkbrushes * sizeof( *model->markbrushes ) );
+		model->markbrushes = ALLOC_MANY( sys_allocator, int, model->nummarkbrushes );
 
 		if( model->nummarkfaces ) {
 			int firstface = LittleLong( in->firstface );
@@ -502,7 +657,7 @@ static void CMod_LoadNodes( CollisionModel *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map has no nodes" );
 	}
 
-	out = cms->map_nodes = ( cnode_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
+	out = cms->map_nodes = ALLOC_MANY( sys_allocator, cnode_t, count );
 	cms->numnodes = count;
 
 	for( i = 0; i < 3; i++ ) {
@@ -532,7 +687,7 @@ static void CMod_LoadMarkFaces( CollisionModel *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no leaffaces" );
 	}
 
-	out = cms->map_markfaces = ( int * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
+	out = cms->map_markfaces = ALLOC_MANY( sys_allocator, int, count );
 	cms->nummarkfaces = count;
 
 	for( i = 0; i < count; i++ ) {
@@ -559,7 +714,7 @@ static void CMod_LoadLeafs( CollisionModel *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no leafs" );
 	}
 
-	out = cms->map_leafs = ( cleaf_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
+	out = cms->map_leafs = ALLOC_MANY( sys_allocator, cleaf_t, count );
 	cms->numleafs = count;
 
 	for( i = 0; i < count; i++, in++, out++ ) {
@@ -572,8 +727,9 @@ static void CMod_LoadLeafs( CollisionModel *cms, lump_t *l ) {
 		out->nummarkfaces = LittleLong( in->numleaffaces );
 
 		// OR brushes' contents
-		for( j = 0; j < out->nummarkbrushes; j++ )
+		for( j = 0; j < out->nummarkbrushes; j++ ) {
 			out->contents |= cms->map_brushes[out->markbrushes[j]].contents;
+		}
 
 		// exclude markfaces that have no facets
 		// so we don't perform this check at runtime
@@ -590,8 +746,9 @@ static void CMod_LoadLeafs( CollisionModel *cms, lump_t *l ) {
 		}
 
 		// OR patches' contents
-		for( j = 0; j < out->nummarkfaces; j++ )
+		for( j = 0; j < out->nummarkfaces; j++ ) {
 			out->contents |= cms->map_faces[out->markfaces[j]].contents;
+		}
 
 		if( out->area >= cms->numareas ) {
 			cms->numareas = out->area + 1;
@@ -609,7 +766,7 @@ static void CMod_LoadPlanes( CollisionModel *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no planes" );
 	}
 
-	cplane_t * out = cms->map_planes = ( cplane_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
+	cplane_t * out = cms->map_planes = ALLOC_MANY( sys_allocator, cplane_t, count );
 	cms->numplanes = count;
 
 	for( int i = 0; i < count; i++, in++, out++ ) {
@@ -636,7 +793,7 @@ static void CMod_LoadMarkBrushes( CollisionModel *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no leafbrushes" );
 	}
 
-	out = cms->map_markbrushes = ( int * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
+	out = cms->map_markbrushes = ALLOC_MANY( sys_allocator, int, count );
 	cms->nummarkbrushes = count;
 
 	for( i = 0; i < count; i++, in++ )
@@ -653,7 +810,7 @@ static void CMod_LoadBrushSides( CollisionModel *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no brushsides" );
 	}
 
-	cbrushside_t * out = cms->map_brushsides = ( cbrushside_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
+	cbrushside_t * out = cms->map_brushsides = ALLOC_MANY( sys_allocator, cbrushside_t, count );
 	cms->numbrushsides = count;
 
 	for( int i = 0; i < count; i++, in++, out++ ) {
@@ -682,7 +839,7 @@ static void CMod_LoadBrushSides_RBSP( CollisionModel *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no brushsides" );
 	}
 
-	out = cms->map_brushsides = ( cbrushside_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
+	out = cms->map_brushsides = ALLOC_MANY( sys_allocator, cbrushside_t, count );
 	cms->numbrushsides = count;
 
 	for( i = 0; i < count; i++, in++, out++ ) {
@@ -719,7 +876,7 @@ static void CMod_LoadBrushes( CollisionModel *cms, lump_t *l ) {
 		Com_Error( ERR_DROP, "Map with no brushes" );
 	}
 
-	out = cms->map_brushes = ( cbrush_t * ) Mem_Alloc( cmap_mempool, count * sizeof( *out ) );
+	out = cms->map_brushes = ALLOC_MANY( sys_allocator, cbrush_t, count );
 	cms->numbrushes = count;
 
 	for( i = 0; i < count; i++, out++, in++ ) {
@@ -738,7 +895,7 @@ static void CMod_LoadVisibility( CollisionModel *cms, lump_t *l ) {
 		return;
 	}
 
-	cms->map_pvs = ( dvis_t * ) Mem_Alloc( cmap_mempool, cms->map_visdatasize );
+	cms->map_pvs = ( dvis_t * ) ALLOC_SIZE( sys_allocator, cms->map_visdatasize, 16 );
 	memcpy( cms->map_pvs, cms->cmod_base + l->fileofs, cms->map_visdatasize );
 
 	cms->map_pvs->numclusters = LittleLong( cms->map_pvs->numclusters );
@@ -751,7 +908,7 @@ static void CMod_LoadEntityString( CollisionModel *cms, lump_t *l ) {
 		return;
 	}
 
-	cms->map_entitystring = ( char * ) Mem_Alloc( cmap_mempool, cms->numentitychars );
+	cms->map_entitystring = ALLOC_MANY( sys_allocator, char, cms->numentitychars );
 	memcpy( cms->map_entitystring, cms->cmod_base + l->fileofs, l->filelen );
 }
 
@@ -794,6 +951,6 @@ void CM_LoadQ3BrushModel( CModelServerOrClient soc, CollisionModel * cms, Span< 
 	CMod_LoadEntityString( cms, &header.lumps[LUMP_ENTITIES] );
 
 	if( cms->numvertexes ) {
-		Mem_Free( cms->map_verts );
+		FREE( sys_allocator, cms->map_verts );
 	}
 }

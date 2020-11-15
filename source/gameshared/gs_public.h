@@ -53,8 +53,8 @@ constexpr int playerbox_gib_viewheight = 8;
 #define ZOOMTIME 60
 #define CROUCHTIME 100
 #define DEFAULT_PLAYERSPEED 320.0f
-#define DEFAULT_JUMPSPEED 280.0f
-#define DEFAULT_DASHSPEED 450.0f
+#define DEFAULT_JUMPSPEED 260.0f
+#define DEFAULT_DASHSPEED 550.0f
 #define PROJECTILE_PRESTEP 100
 #define HITSCAN_RANGE 9001
 
@@ -147,7 +147,6 @@ enum {
 #define GAMESTAT_FLAG_ISTEAMBASED ( 1 << 4LL )
 #define GAMESTAT_FLAG_ISRACE ( 1 << 5LL )
 #define GAMESTAT_FLAG_COUNTDOWN ( 1 << 6LL )
-#define GAMESTAT_FLAG_SELFDAMAGE ( 1 << 7LL )
 
 struct SyncBombGameState {
 	u8 alpha_score;
@@ -192,10 +191,13 @@ struct SyncEntityState {
 
 	Vec3 origin;
 	Vec3 angles;
-	Vec3 origin2;                 // ET_BEAM, ET_EVENT specific
+	Vec3 origin2; // velocity for players/corpses. often used for endpoints, e.g. ET_BEAM and some events
 
 	StringHash model;
 	StringHash model2;
+
+	StringHash material;
+	RGBA8 color;
 
 	int channel;                    // ET_SOUNDEVENT
 
@@ -210,9 +212,8 @@ struct SyncEntityState {
 
 	int counterNum;                 // ET_GENERIC
 	int targetNum;                  // ET_EVENT specific
-	int colorRGBA;                  // ET_BEAM, ET_EVENT specific
 	RGBA8 silhouetteColor;
-	int radius;                     // ET_GLADIATOR always extended, ET_BOMB state, ...
+	int radius;                     // ET_GLADIATOR always extended, ET_BOMB state, EV_BLOOD damage, ...
 
 	bool linearMovement;
 	Vec3 linearMovementVelocity;      // this is transmitted instead of origin when linearProjectile is true
@@ -222,16 +223,10 @@ struct SyncEntityState {
 	int64_t linearMovementTimeStamp;
 	int linearMovementTimeDelta;
 
-	// server will use this for sound culling in case
-	// the entity has an event attached to it (along with
-	// PVS culling)
-
 	WeaponType weapon;                  // WEAP_ for players
 	bool teleported;
 
 	StringHash sound;                          // for looping sounds, to guarantee shutoff
-
-	int light;							// constant light glow
 
 	int team;                           // team in the game
 };
@@ -240,7 +235,7 @@ struct SyncEntityState {
 // to rendered a view.  There will only be 10 SyncPlayerState sent each second,
 // but the number of pmove_state_t changes will be relative to client
 // frame rates
-typedef struct {
+struct pmove_state_t {
 	int pm_type;
 
 	Vec3 origin;
@@ -263,8 +258,7 @@ typedef struct {
 	s16 max_speed;
 	s16 jump_speed;
 	s16 dash_speed;
-	s16 gravity;
-} pmove_state_t;
+};
 
 struct SyncPlayerState {
 	pmove_state_t pmove;        // for prediction
@@ -322,18 +316,18 @@ struct SyncPlayerState {
 };
 
 // usercmd_t is sent to the server each client frame
-typedef struct usercmd_s {
+struct usercmd_t {
 	u8 msec;
 	u32 buttons;
 	s64 serverTimeStamp;
 	s16 angles[3];
 	s8 forwardmove, sidemove, upmove;
 	WeaponType weaponSwitch;
-} usercmd_t;
+};
 
 #define MAXTOUCH    32
 
-typedef struct {
+struct pmove_t {
 	// state (in / out)
 	SyncPlayerState *playerState;
 
@@ -354,24 +348,23 @@ typedef struct {
 	int contentmask;
 
 	bool ladder;
-} pmove_t;
+};
 
-typedef struct {
+struct gs_module_api_t {
 	void ( *Trace )( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, int timeDelta );
 	SyncEntityState *( *GetEntityState )( int entNum, int deltaTime );
 	int ( *PointContents )( Vec3 point, int timeDelta );
 	void ( *PredictedEvent )( int entNum, int ev, u64 parm );
 	void ( *PredictedFireWeapon )( int entNum, WeaponType weapon );
 	void ( *PMoveTouchTriggers )( pmove_t *pm, Vec3 previous_origin );
-	const char *( *GetConfigString )( int index );
-} gs_module_api_t;
+};
 
-typedef struct {
+struct gs_state_t {
 	int module;
 	int maxclients;
 	SyncGameState gameState;
 	gs_module_api_t api;
-} gs_state_t;
+};
 
 #define GS_ShootingDisabled( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_INHIBITSHOOTING ) != 0 )
 #define GS_HasChallengers( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_HASCHALLENGERS ) != 0 )
@@ -538,7 +531,7 @@ enum MeansOfDeath {
 	MOD_TRIGGER_HURT,
 
 	MOD_LASER,
-	MOD_SPIKES,
+	MOD_SPIKE,
 	MOD_VOID,
 };
 
@@ -582,7 +575,7 @@ enum {
 
 // SyncEntityState->event values
 #define PREDICTABLE_EVENTS_MAX 32
-typedef enum {
+enum EventType {
 	EV_NONE,
 
 	// predictable events
@@ -612,9 +605,8 @@ typedef enum {
 	EV_PLAYER_TELEPORT_IN,
 	EV_PLAYER_TELEPORT_OUT,
 
-	EV_SPOG,
-
 	EV_BLOOD,
+	EV_GIB,
 
 	EV_BLADE_IMPACT,
 	EV_GRENADE_BOUNCE,
@@ -633,6 +625,7 @@ typedef enum {
 	EV_VSAY,
 
 	EV_TBAG,
+	EV_SPRAY,
 
 	EV_LASER_SPARKS,
 
@@ -654,9 +647,9 @@ typedef enum {
 	EV_HEADSHOT,
 
 	MAX_EVENTS = 128
-} entity_event_t;
+};
 
-typedef enum {
+enum playerstate_event_t {
 	PSEV_NONE = 0,
 	PSEV_HIT,
 	PSEV_DAMAGE_10,
@@ -667,14 +660,14 @@ typedef enum {
 	PSEV_ANNOUNCER_QUEUED,
 
 	PSEV_MAX_EVENTS = 0xFF
-} playerstate_event_t;
+};
 
 //===============================================================
 
 #define EVENT_ENTITIES_START    96 // entity types above this index will get event treatment
 
 // SyncEntityState->type values
-enum {
+enum EntityType {
 	ET_GENERIC,
 	ET_PLAYER,
 	ET_CORPSE,
@@ -690,11 +683,14 @@ enum {
 
 	ET_LASERBEAM,   // for continuous beams
 
+	ET_DECAL,
+
 	ET_BOMB,
 	ET_BOMB_SITE,
 
 	ET_LASER,
 	ET_SPIKES,
+	ET_SPEAKER,
 
 	// eventual entities: types below this will get event treatment
 	ET_EVENT = EVENT_ENTITIES_START,
@@ -705,27 +701,28 @@ enum {
 };
 
 // SyncEntityState->effects
-// Effects are things handled on the client side (lights, particles, frame animations)
-// that happen constantly on the given entity.
-// An entity that has effects will be sent to the client
-// even if it has a zero index model.
 #define EF_CARRIER                  ( 1 << 0 )
 #define EF_TAKEDAMAGE               ( 1 << 1 )
-#define EF_TEAMCOLOR_TRANSITION     ( 1 << 2 )
-#define EF_GODMODE                  ( 1 << 3 )
-#define EF_RACEGHOST                ( 1 << 4 )
-#define EF_HAT                      ( 1 << 5 )
-#define EF_WORLD_MODEL              ( 1 << 6 )
-#define EF_TEAM_SILHOUETTE          ( 1 << 7 )
+#define EF_GODMODE                  ( 1 << 2 )
+#define EF_HAT                      ( 1 << 3 )
+#define EF_TEAM_SILHOUETTE          ( 1 << 4 )
 
 //===============================================================
 // gs_weapons.c
+
+enum WeaponCategory {
+	WeaponCategory_Primary,
+	WeaponCategory_Secondary,
+	WeaponCategory_Backup,
+
+	WeaponCategory_Count
+};
 
 struct WeaponDef {
 	const char * name;
 	const char * short_name;
 
-	int cost;
+	WeaponCategory category;
 
 	int projectile_count;
 	int clip_size;
@@ -736,7 +733,9 @@ struct WeaponDef {
 	unsigned int weapondown_time;
 	unsigned int refire_time;
 	unsigned int range;
-	float recoil;
+	Vec2 recoil;
+	Vec2 recoil_min;
+	float recoil_recover;
 	FiringMode mode;
 
 	float zoom_fov;

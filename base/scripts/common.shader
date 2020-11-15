@@ -52,7 +52,6 @@ textures/common/nodraw
 	qer_editorimage textures/common/nodraw
 	surfaceparm nodraw
 	surfaceparm nolightmap
-	//surfaceparm nonsolid
 	surfaceparm trans
 	surfaceparm nomarks
 }

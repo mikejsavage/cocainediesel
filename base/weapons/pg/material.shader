@@ -2,7 +2,7 @@ weapons/pg
 {
 	{
 		map $whiteimage
-		rgbGen const 0.675 0.314 1.000
+		rgbGen const 0.1 0.1 0.1
 	}
 }
 

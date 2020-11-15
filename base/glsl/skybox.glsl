@@ -4,7 +4,6 @@
 
 v2f vec3 v_Position;
 
-
 #if VERTEX_SHADER
 
 in vec4 a_Position;
@@ -19,63 +18,46 @@ void main() {
 layout( std140 ) uniform u_Time {
 	float u_T;
 };
+uniform sampler2D u_Noise;
 
 out vec3 f_Albedo;
 
-vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
-
-float snoise(vec2 v){
-  const vec4 C = vec4(0.211324865405187, 0.366025403784439,
-           -0.577350269189626, 0.024390243902439);
-  vec2 i  = floor(v + dot(v, C.yy) );
-  vec2 x0 = v -   i + dot(i, C.xx) + sin( u_T ) * 0.375;
-  vec2 i1;
-  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
-  vec4 x12 = x0.xyxy + C.xxzz;
-  x12.xy -= i1;
-  i = mod(i, 289.0);
-  vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
-  + i.x + vec3(0.0, i1.x, 1.0 ));
-  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy),
-    dot(x12.zw,x12.zw)), 0.0);
-  m = m*m ;
-  m = m*m ;
-  vec3 x = 2.0 * fract(p * C.www) - 1.0;
-  vec3 h = abs(x) - 0.5;
-  vec3 ox = floor(x + 0.5);
-  vec3 a0 = x - ox;
-  m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
-  vec3 g;
-  g.x  = a0.x  * x0.x  + h.x  * x0.y;
-  g.yz = a0.yz * x12.xz + h.yz * x12.yw;
-  return 130.0 * dot(m, g);
+float value( vec2 p ) {
+  vec2 f = floor( p );
+  vec2 s = ( p - f );
+  s *= s * ( 3.0 - 2.0 * s );
+  return texture( u_Noise, ( f + s - 0.5 ) / 256.0 ).r;
 }
 
 void main() {
-	vec3 normal_pos = normalize( v_Position );
-	float elevation = acos( normal_pos.z ) / ( M_PI * 0.425 );
-	float latitude = atan( v_Position.y, v_Position.x );
+  float time = u_T * 1.0;
+  vec2 uv = v_Position.xy / v_Position.z;
 
-	float r = elevation * 2.0 * ( 1 - cos( u_T ) * 0.125 );
-	vec2 movement = vec2( distance( vec3( 10000.0 ), u_CameraPos ) * 0.0005 );
-	float n = snoise( vec2( sin( latitude ), cos( latitude ) ) * r + movement );
-	n += snoise( vec2( sin( latitude ), cos( latitude ) ) * r * 4.0 + movement * 0.5 ) * 1.0;
-	n += snoise( vec2( sin( latitude ), cos( latitude ) ) * r * 8.0 + movement * 0.25 ) * 0.5;
-	float factor = elevation + 0.02 * n;
-	float lines = 10.0;
-	float value = floor( factor * lines ) / lines;
-	value -= 0.25;
-	float smoothness = mod( factor, 1.0 / lines ) * elevation * 0.25;
-	smoothness = clamp( smoothness, 0.0, 1.0 );
-	value += smoothness;
-	value = clamp( value, 0.0, 1.0 );
-	value = 1.0 - value;
-	value = abs( value ) * 0.1;
-	value = clamp( value, 0.0, 1.0 );
+  vec3 cloud_color = 0.01 * vec3( 1.0, 1.0, 1.0 );
+  vec3 sky_color = 0.06 * vec3( 1.0, 1.0, 1.0 );
+  vec2 wind = vec2( 0.3, -0.3 );
+  float iterations = 4.0;
 
-	vec3 color = vec3( value, value, value );
+  vec2 c = uv;
+  vec2 h = vec2( 0.0 );
+  float a = 1.0;
+  float s = 1.0;
+  for ( float i = 0.0; i < iterations; i++ ) {
+    a *= 2.2;
+    s *= 2.0;
+    vec2 v_uv = uv * s;
+    v_uv += uv * i * 0.5; // parallax
+    v_uv += wind * time; // movement
+    v_uv += h.x * a / s * vec2( 4.0, 7.0 ); // warping
+    h += vec2( value( v_uv ), 1.0 ) / a;
+  }
+  float g = -h.x / h.y;
+  float n = smoothstep( 0.0, 0.5, v_Position.z );
+  float m = smoothstep( 30.0, 0.0, length( uv ) );
 
-	f_Albedo = LinearTosRGB( color + Dither() );
+  vec3 color = mix( sky_color, cloud_color, exp( g ) * n * m );
+
+  f_Albedo = LinearTosRGB( color + Dither() );
 }
 
 #endif

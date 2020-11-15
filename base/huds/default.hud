@@ -25,8 +25,6 @@ endif
 
 #include weaponlist
 
-#include obituaries
-
 #include bomb_progress
 
 #include chasing
@@ -41,7 +39,7 @@ endif
 #include net
 #include damage_numbers
 #include pointing
-#include keystate
+#include obituaries
 
 #include crosshair
 

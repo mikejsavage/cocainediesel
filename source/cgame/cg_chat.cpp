@@ -122,27 +122,40 @@ void CG_DrawChat() {
 	Vec2 size = io.DisplaySize * Vec2( width_frac, 0.25f );
 
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground;
-	ImGuiWindowFlags log_flags = 0;
+	ImGuiWindowFlags log_flags = ImGuiWindowFlags_AlwaysUseWindowPadding;
 	if( chat.mode == ChatMode_None ) {
 		flags |= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
 		log_flags |= ImGuiWindowFlags_NoScrollbar;
 	}
 
+	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
+	ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 8.0f, 8.0f ) );
+	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8.0f, 8.0f ) );
+
+	// round size down to integer number of lines
+	float extra_height = ImGui::GetFrameHeightWithSpacing() + 3 * ImGui::GetStyle().WindowPadding.y;
+	size.y -= extra_height;
+	size.y -= fmodf( size.y, ImGui::GetTextLineHeightWithSpacing() );
+	size.y += extra_height;
+
 	ImGui::SetNextWindowSize( ImVec2( size.x, size.y ) );
-	ImGui::SetNextWindowPos( ImVec2( 0, size.y * 3 ), ImGuiCond_Always, ImVec2( 0, 0.5f ) );
+	ImGui::SetNextWindowPos( ImVec2( 8, size.y * 3 ), ImGuiCond_Always, ImVec2( 0, 1.0f ) );
 	ImGui::Begin( "chat", WindowZOrder_Chat, flags );
 
 	ImGui::BeginChild( "chatlog", ImVec2( 0, -ImGui::GetFrameHeight() ), false, log_flags );
+
+	float wrap_width = ImGui::GetWindowContentRegionWidth();
 
 	for( size_t i = 0; i < chat.history_len; i++ ) {
 		size_t idx = ( chat.history_head + i ) % ARRAY_COUNT( chat.history );
 		const ChatMessage * msg = &chat.history[ idx ];
 
 		if( chat.mode == ChatMode_None && cls.monotonicTime > msg->time + GAMECHAT_NOTIFY_TIME ) {
-			continue;
+			ImGui::Dummy( ImGui::CalcTextSize( msg->text, NULL, false, wrap_width ) );
 		}
-
-		ImGui::TextWrapped( "%s", msg->text );
+		else {
+			ImGui::TextWrapped( "%s", msg->text );
+		}
 	}
 
 	if( chat.scroll_to_bottom ) {
@@ -190,6 +203,7 @@ void CG_DrawChat() {
 	}
 
 	ImGui::End();
+	ImGui::PopStyleVar( 3 );
 }
 
 void CG_FlashChatHighlight( const unsigned int fromIndex, const char *text ) {

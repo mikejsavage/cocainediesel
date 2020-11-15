@@ -46,7 +46,6 @@ cvar_t *sv_uploads_demos_baseurl;
 
 cvar_t *sv_maxclients;
 
-#ifdef HTTP_SUPPORT
 cvar_t *sv_http;
 cvar_t *sv_http_ip;
 cvar_t *sv_http_ipv6;
@@ -54,7 +53,6 @@ cvar_t *sv_http_port;
 cvar_t *sv_http_upstream_baseurl;
 cvar_t *sv_http_upstream_ip;
 cvar_t *sv_http_upstream_realip_header;
-#endif
 
 cvar_t *sv_showRcon;
 cvar_t *sv_showChallenge;
@@ -67,8 +65,6 @@ cvar_t *sv_defaultmap;
 cvar_t *sv_iplimit;
 
 cvar_t *sv_reconnectlimit; // minimum seconds between connect messages
-
-cvar_t *sv_masterservers;
 
 // wsw : debug netcode
 cvar_t *sv_debug_serverCmd;
@@ -419,7 +415,7 @@ static bool SV_RunGameFrame( int msec ) {
 			accTime = 0;
 		}
 
-		ge->RunFrame( moduleTime );
+		G_RunFrame( moduleTime );
 	}
 
 	// if we don't have to send a snapshot we are done here
@@ -428,7 +424,7 @@ static bool SV_RunGameFrame( int msec ) {
 
 		// set up for sending a snapshot
 		sv.framenum++;
-		ge->SnapFrame();
+		G_SnapFrame();
 
 		// set time for next snapshot
 		extraSnapTime = (int)( svs.gametime - sv.nextSnapTime );
@@ -500,7 +496,7 @@ void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 		SV_MasterHeartbeat();
 
 		// clear teleport flags, etc for next frame
-		ge->ClearSnap();
+		G_ClearSnap();
 	}
 }
 
@@ -531,7 +527,7 @@ void SV_UserinfoChanged( client_t *client ) {
 	}
 
 	// call prog code to allow overrides
-	ge->ClientUserinfoChanged( client->edict, client->userinfo );
+	ClientUserinfoChanged( client->edict, client->userinfo );
 
 	if( !Info_Validate( client->userinfo ) ) {
 		SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: Invalid userinfo (after game)" );
@@ -555,8 +551,7 @@ void SV_UserinfoChanged( client_t *client ) {
 * SV_Init
 */
 void SV_Init( void ) {
-	cvar_t *sv_pps;
-	cvar_t *sv_fps;
+	ZoneScoped;
 
 	assert( !sv_initialized );
 
@@ -585,15 +580,13 @@ void SV_Init( void ) {
 	sv_ip6 =            Cvar_Get( "sv_ip6", "::", CVAR_ARCHIVE | CVAR_LATCH );
 	sv_port6 =          Cvar_Get( "sv_port6", va( "%i", PORT_SERVER ), CVAR_ARCHIVE | CVAR_LATCH );
 
-#ifdef HTTP_SUPPORT
 	sv_http =           Cvar_Get( "sv_http", "1", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_LATCH );
-	sv_http_port =      Cvar_Get( "sv_http_port", va( "%i", PORT_HTTP_SERVER ), CVAR_ARCHIVE | CVAR_LATCH );
+	sv_http_port =      Cvar_Get( "sv_http_port", sv_port->string, CVAR_ARCHIVE | CVAR_LATCH );
 	sv_http_ip =        Cvar_Get( "sv_http_ip", "", CVAR_ARCHIVE | CVAR_LATCH );
 	sv_http_ipv6 =      Cvar_Get( "sv_http_ipv6", "", CVAR_ARCHIVE | CVAR_LATCH );
 	sv_http_upstream_baseurl =  Cvar_Get( "sv_http_upstream_baseurl", "", CVAR_ARCHIVE | CVAR_LATCH );
 	sv_http_upstream_realip_header = Cvar_Get( "sv_http_upstream_realip_header", "", CVAR_ARCHIVE );
 	sv_http_upstream_ip = Cvar_Get( "sv_http_upstream_ip", "", CVAR_ARCHIVE );
-#endif
 
 	rcon_password =         Cvar_Get( "rcon_password", "", 0 );
 	sv_hostname =           Cvar_Get( "sv_hostname", APPLICATION " server", CVAR_SERVERINFO | CVAR_ARCHIVE );
@@ -636,34 +629,17 @@ void SV_Init( void ) {
 		Cvar_ForceSet( "sv_demodir", "" );
 	}
 
-	sv_masterservers =          Cvar_Get( "masterservers", DEFAULT_MASTER_SERVERS_IPS, CVAR_LATCH );
-
 	sv_debug_serverCmd =        Cvar_Get( "sv_debug_serverCmd", "0", CVAR_ARCHIVE );
 
 	// this is a message holder for shared use
 	MSG_Init( &tmpMessage, tmpMessageData, sizeof( tmpMessageData ) );
 
 	// init server updates ratio
-	if( is_dedicated_server ) {
-		sv_pps = Cvar_Get( "sv_pps", "20", CVAR_SERVERINFO | CVAR_NOSET );
-	} else {
-		sv_pps = Cvar_Get( "sv_pps", "20", CVAR_SERVERINFO );
-	}
-	svc.snapFrameTime = (int)( 1000 / sv_pps->value );
-	if( svc.snapFrameTime > 200 ) { // too slow, also, netcode uses a byte
-		Cvar_ForceSet( "sv_pps", "5" );
-		svc.snapFrameTime = 200;
-	} else if( svc.snapFrameTime < 10 ) {   // abusive
-		Cvar_ForceSet( "sv_pps", "100" );
-		svc.snapFrameTime = 10;
-	}
-
-	sv_fps = Cvar_Get( "sv_fps", "62", CVAR_NOSET );
-	svc.gameFrameTime = (int)( 1000 / sv_fps->value );
-	if( svc.gameFrameTime > svc.snapFrameTime ) { // gamecode can never be slower than snaps
-		svc.gameFrameTime = svc.snapFrameTime;
-		Cvar_ForceSet( "sv_fps", sv_pps->dvalue );
-	}
+	constexpr float pps = 20.0f;
+	constexpr float fps = 62.0f;
+	STATIC_ASSERT( fps >= pps );
+	svc.snapFrameTime = int( 1000.0f / pps );
+	svc.gameFrameTime = int( 1000.0f / fps );
 
 	//init the master servers list
 	SV_InitMaster();

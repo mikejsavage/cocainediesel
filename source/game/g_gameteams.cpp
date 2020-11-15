@@ -86,7 +86,7 @@ void G_Teams_UpdateMembersList( void ) {
 
 		//create a temp list with the clients inside this team
 		for( i = 0, ent = game.edicts + 1; i < server_gs.maxclients; i++, ent++ ) {
-			if( !ent->r.client || ( trap_GetClientState( PLAYERNUM( ent ) ) < CS_CONNECTED ) ) {
+			if( !ent->r.client || ( PF_GetClientState( PLAYERNUM( ent ) ) < CS_CONNECTED ) ) {
 				continue;
 			}
 
@@ -167,14 +167,14 @@ void G_Teams_SetTeam( edict_t *ent, int team ) {
 		ent->r.client->teamstate.timeStamp = level.time;
 	}
 
+	if( ent->r.client->team == TEAM_SPECTATOR || team == TEAM_SPECTATOR ) {
+		level.ready[PLAYERNUM( ent )] = false;
+	}
+
 	ent->r.client->team = team;
 
 	G_ClientRespawn( ent, true ); // make ghost using G_ClientRespawn so team is updated at ghosting
 	G_SpawnQueue_AddClient( ent );
-
-	level.ready[PLAYERNUM( ent )] = false;
-
-	G_Match_CheckReadys();
 }
 
 enum
@@ -246,7 +246,7 @@ static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
 		return ER_TEAM_LOCKED;
 	}
 
-	if( !GS_TeamBasedGametype( &server_gs ) ) {
+	if( !level.gametype.isTeamBased ) {
 		return team == TEAM_PLAYERS ? ER_TEAM_OK : ER_TEAM_INVALID;
 	}
 
@@ -319,7 +319,7 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 	G_Teams_UpdateMembersList(); // make sure we have up-to-date data
 
 	//depending on the gametype, of course
-	if( !GS_TeamBasedGametype( &server_gs ) ) {
+	if( !level.gametype.isTeamBased ) {
 		if( ent->s.team == TEAM_PLAYERS ) {
 			if( !silent ) {
 				G_PrintMsg( ent, "You are already in %s team\n", GS_TeamName( TEAM_PLAYERS ) );
@@ -380,23 +380,20 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 * G_Teams_Join_Cmd
 */
 void G_Teams_Join_Cmd( edict_t *ent ) {
-	const char *t;
-	int team;
-
-	if( !ent->r.client || trap_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
+	if( !ent->r.client || PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 		return;
 	}
 
-	t = Cmd_Argv( 1 );
+	const char * t = Cmd_Argv( 1 );
 	if( !t || *t == 0 ) {
 		G_Teams_JoinAnyTeam( ent, false );
 		return;
 	}
 
-	team = GS_TeamFromName( t );
+	int team = GS_TeamFromName( t );
 	if( team != -1 ) {
 		if( team == TEAM_SPECTATOR ) { // special handling for spectator team
-			Cmd_Spec_f( ent );
+			Cmd_ChaseCam_f( ent );
 			return;
 		}
 		if( team == ent->s.team ) {
@@ -441,18 +438,17 @@ edict_t **G_Teams_ChallengersQueue( void ) {
 	int num_challengers = 0;
 	static edict_t *challengers[MAX_CLIENTS + 1];
 	edict_t *e;
-	gclient_t *cl;
 
 	// fill the challengers into array, then sort
 	for( e = game.edicts + 1; PLAYERNUM( e ) < server_gs.maxclients; e++ ) {
 		if( !e->r.inuse || !e->r.client || e->s.team != TEAM_SPECTATOR ) {
 			continue;
 		}
-		if( trap_GetClientState( PLAYERNUM( e ) ) < CS_SPAWNED ) {
+		if( PF_GetClientState( PLAYERNUM( e ) ) < CS_SPAWNED ) {
 			continue;
 		}
 
-		cl = e->r.client;
+		gclient_t * cl = e->r.client;
 		if( cl->connecting || !cl->queueTimeStamp ) {
 			continue;
 		}
@@ -539,7 +535,7 @@ static edict_t *G_Teams_BestScoreBelow( int maxscore ) {
 	edict_t *e, *best = NULL;
 	int bestScore = -9999999;
 
-	if( GS_TeamBasedGametype( &server_gs ) ) {
+	if( level.gametype.isTeamBased ) {
 		for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
 			for( i = 0; i < teamlist[team].numplayers; i++ ) {
 				e = game.edicts + teamlist[team].playerIndices[i];
@@ -581,7 +577,7 @@ void G_Teams_AdvanceChallengersQueue( void ) {
 
 	G_Teams_UpdateMembersList();
 
-	if( GS_TeamBasedGametype( &server_gs ) ) {
+	if( level.gametype.isTeamBased ) {
 		START_TEAM = TEAM_ALPHA;
 		END_TEAM = GS_MAX_TEAMS;
 	}
@@ -661,7 +657,7 @@ void G_Teams_JoinChallengersQueue( edict_t *ent ) {
 	if( !ent->r.client->queueTimeStamp ) {  // enter the line
 		ent->r.client->queueTimeStamp = svs.realtime;
 		for( e = game.edicts + 1; PLAYERNUM( e ) < server_gs.maxclients; e++ ) {
-			if( !e->r.inuse || !e->r.client || trap_GetClientState( PLAYERNUM( e ) ) < CS_SPAWNED ) {
+			if( !e->r.inuse || !e->r.client || PF_GetClientState( PLAYERNUM( e ) ) < CS_SPAWNED ) {
 				continue;
 			}
 			if( !e->r.client->queueTimeStamp || e->s.team != TEAM_SPECTATOR ) {
@@ -682,10 +678,9 @@ void G_Teams_JoinChallengersQueue( edict_t *ent ) {
 }
 
 void G_InitChallengersQueue( void ) {
-	int i;
-
-	for( i = 0; i < server_gs.maxclients; i++ )
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		game.clients[i].queueTimeStamp = 0;
+	}
 }
 
 //======================================================================
@@ -695,7 +690,7 @@ void G_InitChallengersQueue( void ) {
 //======================================================================
 
 void G_Say_Team( edict_t *who, const char *inmsg, bool checkflood ) {
-	if( who->s.team != TEAM_SPECTATOR && ( !GS_TeamBasedGametype( &server_gs ) || GS_IndividualGameType( &server_gs ) ) ) {
+	if( who->s.team != TEAM_SPECTATOR && ( !level.gametype.isTeamBased || GS_IndividualGameType( &server_gs ) ) ) {
 		Cmd_Say_f( who, false, true );
 		return;
 	}

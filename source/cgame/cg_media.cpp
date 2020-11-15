@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
+#include "client/renderer/renderer.h"
+#include "client/renderer/text.h"
 
 void CG_RegisterMediaSounds() {
 	cgs.media.sfxBulletImpact = FindSoundEffect( "weapons/bullet_impact" );
@@ -68,6 +70,7 @@ void CG_RegisterMediaSounds() {
 	cgs.media.sfxFall = FindSoundEffect( "players/fall" );
 
 	cgs.media.sfxTbag = FindSoundEffect( "sounds/tbag/tbag" );
+	cgs.media.sfxSpray = FindSoundEffect( "sounds/spray/spray" );
 
 	cgs.media.sfxHeadshot = FindSoundEffect( "sounds/headshot/headshot" );
 
@@ -76,17 +79,17 @@ void CG_RegisterMediaSounds() {
 	cgs.media.sfxVSaySounds[ Vsay_Thanks ] = FindSoundEffect( "sounds/vsay/thanks" );
 	cgs.media.sfxVSaySounds[ Vsay_GoodGame ] = FindSoundEffect( "sounds/vsay/goodgame" );
 	cgs.media.sfxVSaySounds[ Vsay_BoomStick ] = FindSoundEffect( "sounds/vsay/boomstick" );
-	cgs.media.sfxVSaySounds[ Vsay_ShutUp ] = FindSoundEffect( "sounds/vsay/shutup" );
-	cgs.media.sfxVSaySounds[ Vsay_Bruh ] = FindSoundEffect( "sounds/vsay/bruh" );
-	cgs.media.sfxVSaySounds[ Vsay_Cya ] = FindSoundEffect( "sounds/vsay/cya" );
-	cgs.media.sfxVSaySounds[ Vsay_GetGood ] = FindSoundEffect( "sounds/vsay/getgood" );
-	cgs.media.sfxVSaySounds[ Vsay_HitTheShowers ] = FindSoundEffect( "sounds/vsay/hittheshowers" );
-	cgs.media.sfxVSaySounds[ Vsay_Lads ] = FindSoundEffect( "sounds/vsay/lads" );
+	cgs.media.sfxVSaySounds[ Vsay_ShutUp ] = FindSoundEffect( "sounds/vsay/mike/shutup" );
+	cgs.media.sfxVSaySounds[ Vsay_Bruh ] = FindSoundEffect( "sounds/vsay/mike/bruh" );
+	cgs.media.sfxVSaySounds[ Vsay_Cya ] = FindSoundEffect( "sounds/vsay/mike/cya" );
+	cgs.media.sfxVSaySounds[ Vsay_GetGood ] = FindSoundEffect( "sounds/vsay/mike/getgood" );
+	cgs.media.sfxVSaySounds[ Vsay_HitTheShowers ] = FindSoundEffect( "sounds/vsay/mike/hittheshowers" );
+	cgs.media.sfxVSaySounds[ Vsay_Lads ] = FindSoundEffect( "sounds/vsay/mike/lads" );
 	cgs.media.sfxVSaySounds[ Vsay_SheDoesntEvenGoHere ] = FindSoundEffect( "sounds/vsay/shedoesntevengohere" );
-	cgs.media.sfxVSaySounds[ Vsay_ShitSon ] = FindSoundEffect( "sounds/vsay/shitson" );
-	cgs.media.sfxVSaySounds[ Vsay_TrashSmash ] = FindSoundEffect( "sounds/vsay/trashsmash" );
-	cgs.media.sfxVSaySounds[ Vsay_WhatTheShit ] = FindSoundEffect( "sounds/vsay/whattheshit" );
-	cgs.media.sfxVSaySounds[ Vsay_WowYourTerrible ] = FindSoundEffect( "sounds/vsay/wowyourterrible" );
+	cgs.media.sfxVSaySounds[ Vsay_ShitSon ] = FindSoundEffect( "sounds/vsay/mike/shitson" );
+	cgs.media.sfxVSaySounds[ Vsay_TrashSmash ] = FindSoundEffect( "sounds/vsay/mike/trashsmash" );
+	cgs.media.sfxVSaySounds[ Vsay_WhatTheShit ] = FindSoundEffect( "sounds/vsay/mike/whattheshit" );
+	cgs.media.sfxVSaySounds[ Vsay_WowYourTerrible ] = FindSoundEffect( "sounds/vsay/mike/wowyourterrible" );
 	cgs.media.sfxVSaySounds[ Vsay_Acne ] = FindSoundEffect( "sounds/vsay/acne" );
 	cgs.media.sfxVSaySounds[ Vsay_Valley ] = FindSoundEffect( "sounds/vsay/valley" );
 	cgs.media.sfxVSaySounds[ Vsay_Mike ] = FindSoundEffect( "sounds/vsay/mike" );
@@ -147,8 +150,6 @@ void CG_RegisterMediaShaders() {
 
 	cgs.media.shaderLaser = FindMaterial( "gfx/misc/laser" );
 
-	cgs.media.shaderRaceGhostEffect = FindMaterial( "gfx/raceghost" );
-
 	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
 		cgs.media.shaderWeaponIcon[ i ] = FindMaterial( temp( "weapons/{}/icon", GS_GetWeaponDef( i )->short_name ) );
 	}
@@ -168,21 +169,8 @@ void CG_RegisterMediaShaders() {
 }
 
 void CG_RegisterFonts() {
-	float scale = ( float )( frame_static.viewport_height ) / 600.0f;
-
-	cgs.fontSystemTinySize = ceilf( SYSTEM_FONT_TINY_SIZE * scale );
-	cgs.fontSystemSmallSize = ceilf( SYSTEM_FONT_SMALL_SIZE * scale );
-	cgs.fontSystemMediumSize = ceilf( SYSTEM_FONT_MEDIUM_SIZE * scale );
-	cgs.fontSystemBigSize = ceilf( SYSTEM_FONT_BIG_SIZE * scale );
-
-	cgs.fontMontserrat = RegisterFont( "fonts/Montserrat-SemiBold" );
-	cgs.fontMontserratBold = RegisterFont( "fonts/Montserrat-Bold" );
-	cgs.fontMontserratItalic = RegisterFont( "fonts/Montserrat-SemiBoldItalic" );
-	cgs.fontMontserratBoldItalic = RegisterFont( "fonts/Montserrat-BoldItalic" );
-
-	scale *= 1.3f;
-	cgs.textSizeTiny = SYSTEM_FONT_TINY_SIZE * scale;
-	cgs.textSizeSmall = SYSTEM_FONT_SMALL_SIZE * scale;
-	cgs.textSizeMedium = SYSTEM_FONT_MEDIUM_SIZE * scale;
-	cgs.textSizeBig = SYSTEM_FONT_BIG_SIZE * scale;
+	cgs.fontNormal = RegisterFont( "fonts/Decalotype-Bold" );
+	cgs.fontNormalBold = RegisterFont( "fonts/Decalotype-Black" );
+	cgs.fontNormalItalic = RegisterFont( "fonts/Decalotype-BoldItalic" );
+	cgs.fontNormalBoldItalic = RegisterFont( "fonts/Decalotype-BlackItalic" );
 }

@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/csprng.h"
 #include "qcommon/threads.h"
 #include "qcommon/version.h"
-#include "qcommon/wswcurl.h"
 
 #include <setjmp.h>
 
@@ -557,8 +556,6 @@ void Qcommon_Init( int argc, char **argv ) {
 	Cmd_Init();
 	Cvar_Init();
 
-	wswcurl_init();
-
 	Key_Init();
 
 	// we need to add the early commands twice, because
@@ -627,6 +624,7 @@ void Qcommon_Init( int argc, char **argv ) {
 * Qcommon_Frame
 */
 void Qcommon_Frame( unsigned int realMsec ) {
+	FrameMark;
 	ZoneScoped;
 
 	static unsigned int gameMsec;
@@ -651,8 +649,6 @@ void Qcommon_Frame( unsigned int realMsec ) {
 	} else {
 		gameMsec = realMsec;
 	}
-
-	wswcurl_perform();
 
 	FS_Frame();
 
@@ -689,8 +685,6 @@ void Qcommon_Shutdown( void ) {
 	FS_Shutdown();
 
 	CSPRNG_Shutdown();
-
-	wswcurl_cleanup();
 
 	Cvar_Shutdown();
 	Cmd_Shutdown();

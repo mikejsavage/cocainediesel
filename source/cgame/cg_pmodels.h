@@ -17,20 +17,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// cg_pmodels.h -- local definitions for pmodels and view weapon
-
-//=============================================================================
-//
-//							SPLITMODELS
-//
-//=============================================================================
 
 extern cvar_t *cg_weaponFlashes;
 extern cvar_t *cg_gunx;
 extern cvar_t *cg_guny;
 extern cvar_t *cg_gunz;
-extern cvar_t *cg_debugPlayerModels;
-extern cvar_t *cg_debugWeaponModels;
 extern cvar_t *cg_gunbob;
 extern cvar_t *cg_gun_fov;
 extern cvar_t *cg_handOffset;
@@ -121,20 +112,13 @@ enum {
 	VWEAP_MAXANIMS
 };
 
-// equivalent to pmodelinfo_t. Shared by different players, etc.
 struct WeaponModelMetadata {
 	bool inuse;
 
 	const Model * model;
 
-	int firstframe[VWEAP_MAXANIMS];         // animation script
-	int lastframe[VWEAP_MAXANIMS];
-	int loopingframes[VWEAP_MAXANIMS];
-	unsigned int frametime[VWEAP_MAXANIMS];
-
 	orientation_t tag_projectionsource;
 
-	// handOffset
 	Vec3 handpositionOrigin;
 	Vec3 handpositionAngles;
 
@@ -150,20 +134,20 @@ enum {
 	PLAYERANIM_CHANNELS
 };
 
-typedef struct {
+struct animstate_t {
 	int anim;
 	int64_t startTimestamp;
-} animstate_t;
+};
 
 struct PlayerModelAnimationSet {
 	int parts[PMODEL_PARTS];
 };
 
-typedef struct {
+struct pmodel_animationstate_t {
 	// animations in the mixer
 	animstate_t curAnims[PMODEL_PARTS][PLAYERANIM_CHANNELS];
 	PlayerModelAnimationSet pending[PLAYERANIM_CHANNELS];
-} pmodel_animationstate_t;
+};
 
 enum PlayerSound {
 	PlayerSound_Death,
@@ -180,7 +164,7 @@ enum PlayerSound {
 
 struct PlayerModelMetadata {
 	struct Tag {
-		u8 joint_idx;
+		u8 node_idx;
 		Mat4 transform;
 	};
 
@@ -190,28 +174,21 @@ struct PlayerModelMetadata {
 		float loop_from; // we only loop the last part of the animation
 	};
 
-	u64 name_hash;
-
 	const Model * model;
 	const SoundEffect * sounds[ PlayerSound_Count ];
 
-	u8 upper_rotator_joints[ 2 ];
-	u8 head_rotator_joint;
-	u8 upper_root_joint;
+	u8 upper_rotator_nodes[ 2 ];
+	u8 head_rotator_node;
+	u8 upper_root_node;
 
-	Tag tag_backpack;
-	Tag tag_head;
+	Tag tag_bomb;
+	Tag tag_hat;
 	Tag tag_weapon;
 
 	AnimationClip clips[ PMODEL_TOTAL_ANIMATIONS ];
-
-	PlayerModelMetadata *next;
 };
 
-typedef struct {
-	// static data
-	const PlayerModelMetadata * metadata;
-
+struct pmodel_t {
 	// dynamic
 	pmodel_animationstate_t animState;
 
@@ -220,7 +197,7 @@ typedef struct {
 
 	// effects
 	orientation_t projectionSource;     // for projectiles
-} pmodel_t;
+};
 
 extern pmodel_t cg_entPModels[MAX_EDICTS];      //a pmodel handle for each cg_entity
 
@@ -236,11 +213,11 @@ void CG_MoveToTag( Vec3 * move_origin,
 				   Vec3 tag_origin,
 				   const mat3_t tag_axis );
 
-//pmodels
-void CG_PModelsInit( void );
-void CG_PModelsShutdown( void );
+void InitPlayerModels();
+const PlayerModelMetadata * GetPlayerModelMetadata( int ent_num );
+
 void CG_ResetPModels( void );
-PlayerModelMetadata *CG_RegisterPlayerModel( const char *filename );
+
 void CG_DrawPlayer( centity_t * cent );
 bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result );
 void CG_UpdatePlayerModelEnt( centity_t *cent );
@@ -250,20 +227,16 @@ void CG_PModel_ClearEventAnimations( int entNum );
 //
 // cg_wmodels.c
 //
-void CG_WModelsInit();
-WeaponModelMetadata *CG_CreateWeaponZeroModel();
-WeaponModelMetadata *CG_RegisterWeaponModel( const char *cgs_name, WeaponType weaponTag );
+void InitWeaponModels();
+const WeaponModelMetadata * GetWeaponModelMetadata( WeaponType weapon );
 
 //=================================================
 //				VIEW WEAPON
 //=================================================
 
-typedef struct {
+struct cg_viewweapon_t {
 	mat3_t axis;
 	Vec3 origin;
-
-	unsigned int POVnum;
-	int weapon;
 
 	// animation
 	int baseAnim;
@@ -273,4 +246,4 @@ typedef struct {
 
 	// other effects
 	orientation_t projectionSource;
-} cg_viewweapon_t;
+};

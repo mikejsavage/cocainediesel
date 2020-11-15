@@ -34,7 +34,7 @@ static int Patch_FlatnessTest( float maxflat2, Vec3 point0, Vec3 point1, Vec3 po
 
 	t = point1 - point0;
 	float d = -Dot( t, n );
-	t = t + n * ( d );
+	t = t + n * d;
 	if( Dot( t, t ) < maxflat2 ) {
 		return 0;
 	}

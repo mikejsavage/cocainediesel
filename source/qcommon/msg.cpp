@@ -150,16 +150,6 @@ static void GetBytes( DeltaBuffer * buf, void * data, size_t n ) {
 	buf->cursor += n;
 }
 
-static void AddByte( DeltaBuffer * buf, u8 byte ) {
-	AddBytes( buf, &byte, 1 );
-}
-
-static u8 GetByte( DeltaBuffer * buf ) {
-	u8 b;
-	GetBytes( buf, &b, 1 );
-	return b;
-}
-
 template< typename T >
 static void DeltaFundamental( DeltaBuffer * buf, T & x, const T & baseline ) {
 	if( buf->serializing ) {
@@ -187,7 +177,6 @@ static void Delta( DeltaBuffer * buf, u16 & x, u16 baseline ) { DeltaFundamental
 static void Delta( DeltaBuffer * buf, u32 & x, u32 baseline ) { DeltaFundamental( buf, x, baseline ); }
 static void Delta( DeltaBuffer * buf, u64 & x, u64 baseline ) { DeltaFundamental( buf, x, baseline ); }
 static void Delta( DeltaBuffer * buf, float & x, float baseline ) { DeltaFundamental( buf, x, baseline ); }
-static void Delta( DeltaBuffer * buf, double & x, double baseline ) { DeltaFundamental( buf, x, baseline ); }
 
 static void Delta( DeltaBuffer * buf, bool & b, bool baseline ) {
 	if( buf->serializing ) {
@@ -220,43 +209,6 @@ static void Delta( DeltaBuffer * buf, RGBA8 & rgba, const RGBA8 & baseline ) {
 	Delta( buf, rgba.g, baseline.b );
 	Delta( buf, rgba.b, baseline.g );
 	Delta( buf, rgba.a, baseline.a );
-}
-
-template< typename T >
-static void DeltaUnsignedLEB128( DeltaBuffer * buf, T & x, const T & baseline ) {
-	if( buf->serializing ) {
-		if( x == baseline ) {
-			AddBit( buf, false );
-		}
-		else {
-			AddBit( buf, true );
-			do {
-				u8 curr = x & 127;
-				x >>= 7;
-				if( x != 0 ) {
-					curr |= 1 << 7;
-				}
-
-				AddByte( buf, curr );
-			} while( x != 0 );
-		}
-	}
-	else {
-		if( GetBit( buf ) ) {
-			x = 0;
-			u32 n = 0;
-			while( !buf->error ) {
-				u8 byte = GetByte( buf );
-				x |= ( byte & 127 ) << ( n * 7 );
-				if( ( byte & ( 1 << 7 ) ) == 0 )
-					break;
-				n++;
-			}
-		}
-		else {
-			x = baseline;
-		}
-	}
 }
 
 static void DeltaHalf( DeltaBuffer * buf, float & x, const float & baseline ) {
@@ -525,6 +477,8 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.type, baseline.type );
 	Delta( buf, ent.solid, baseline.solid );
 	Delta( buf, ent.model, baseline.model );
+	Delta( buf, ent.material, baseline.material );
+	Delta( buf, ent.color, baseline.color );
 	Delta( buf, ent.svflags, baseline.svflags );
 	Delta( buf, ent.effects, baseline.effects );
 	Delta( buf, ent.ownerNum, baseline.ownerNum );
@@ -547,68 +501,8 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.linearMovementEnd, baseline.linearMovementEnd );
 	Delta( buf, ent.linearMovementTimeDelta, baseline.linearMovementTimeDelta );
 
-	Delta( buf, ent.colorRGBA, baseline.colorRGBA );
 	Delta( buf, ent.silhouetteColor, baseline.silhouetteColor );
-
-	Delta( buf, ent.light, baseline.light );
 }
-
-// static const msg_field_t ent_state_fields[] = {
-// 	{ ESOFS( events[0] ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( eventParms[0] ), 32, 1, WIRE_BASE128 },
-//
-// 	{ ESOFS( origin[0] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( origin[1] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( origin[2] ), 0, 1, WIRE_FLOAT },
-//
-// 	{ ESOFS( angles[0] ), 0, 1, WIRE_ANGLE },
-// 	{ ESOFS( angles[1] ), 0, 1, WIRE_ANGLE },
-//
-// 	{ ESOFS( teleported ), 1, 1, WIRE_BOOL },
-//
-// 	{ ESOFS( type ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( solid ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( modelindex ), 32, 1, WIRE_FIXED_INT8 },
-// 	{ ESOFS( svflags ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( effects ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( ownerNum ), 32, 1, WIRE_BASE128 },
-// 	{ ESOFS( targetNum ), 32, 1, WIRE_BASE128 },
-// 	{ ESOFS( sound ), 32, 1, WIRE_FIXED_INT8 },
-// 	{ ESOFS( modelindex2 ), 32, 1, WIRE_FIXED_INT8 },
-// 	{ ESOFS( attenuation ), 0, 1, WIRE_HALF_FLOAT },
-// 	{ ESOFS( counterNum ), 32, 1, WIRE_BASE128 },
-// 	{ ESOFS( channel ), 32, 1, WIRE_FIXED_INT8 },
-// 	{ ESOFS( events[1] ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( eventParms[1] ), 32, 1, WIRE_BASE128 },
-// 	{ ESOFS( weapon ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( damage ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( radius ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( team ), 32, 1, WIRE_FIXED_INT8 },
-//
-// 	{ ESOFS( origin2[0] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( origin2[1] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( origin2[2] ), 0, 1, WIRE_FLOAT },
-//
-// 	{ ESOFS( linearMovementTimeStamp ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( linearMovement ), 1, 1, WIRE_BOOL },
-// 	{ ESOFS( linearMovementDuration ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( linearMovementVelocity[0] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( linearMovementVelocity[1] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( linearMovementVelocity[2] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( linearMovementBegin[0] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( linearMovementBegin[1] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( linearMovementBegin[2] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( linearMovementEnd[0] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( linearMovementEnd[1] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( linearMovementEnd[2] ), 0, 1, WIRE_FLOAT },
-//
-// 	{ ESOFS( angles[2] ), 0, 1, WIRE_ANGLE },
-//
-// 	{ ESOFS( colorRGBA ), 32, 1, WIRE_FIXED_INT32 },
-// 	{ ESOFS( silhouetteColor ), 32, 1, WIRE_FIXED_INT32 },
-//
-// 	{ ESOFS( light ), 32, 1, WIRE_FIXED_INT32 },
-// };
 
 void MSG_WriteEntityNumber( msg_t *msg, int number, bool remove ) {
 	MSG_WriteIntBase128( msg, (remove ? 1 : 0) | number << 1 );
@@ -657,18 +551,6 @@ void MSG_ReadDeltaEntity( msg_t * msg, const SyncEntityState * baseline, SyncEnt
 // DELTA USER CMDS
 //==================================================
 
-// static const msg_field_t usercmd_fields[] = {
-// 	{ UCOFS( angles[0] ), 16, 1, WIRE_FIXED_INT16 },
-// 	{ UCOFS( angles[1] ), 16, 1, WIRE_FIXED_INT16 },
-// 	{ UCOFS( angles[2] ), 16, 1, WIRE_FIXED_INT16 },
-//
-// 	{ UCOFS( forwardmove ), 8, 1, WIRE_FIXED_INT8 },
-// 	{ UCOFS( sidemove ), 8, 1, WIRE_FIXED_INT8 },
-// 	{ UCOFS( upmove ), 8, 1, WIRE_FIXED_INT8 },
-//
-// 	{ UCOFS( buttons ), 32, 1, WIRE_UBASE128 },
-// };
-
 static void Delta( DeltaBuffer * buf, usercmd_t & cmd, const usercmd_t & baseline ) {
 	Delta( buf, cmd.angles, baseline.angles );
 	Delta( buf, cmd.forwardmove, baseline.forwardmove );
@@ -699,54 +581,6 @@ void MSG_ReadDeltaUsercmd( msg_t * msg, const usercmd_t * baseline, usercmd_t * 
 // DELTA PLAYER STATES
 //==================================================
 
-// static const msg_field_t player_state_msg_fields[] = {
-// 	{ PSOFS( pmove.pm_type ), 32, 1, WIRE_UBASE128 },
-//
-// 	{ PSOFS( pmove.origin[0] ), 0, 1, WIRE_FLOAT },
-// 	{ PSOFS( pmove.origin[1] ), 0, 1, WIRE_FLOAT },
-// 	{ PSOFS( pmove.origin[2] ), 0, 1, WIRE_FLOAT },
-//
-// 	{ PSOFS( pmove.velocity[0] ), 0, 1, WIRE_FLOAT },
-// 	{ PSOFS( pmove.velocity[1] ), 0, 1, WIRE_FLOAT },
-// 	{ PSOFS( pmove.velocity[2] ), 0, 1, WIRE_FLOAT },
-//
-// 	{ PSOFS( pmove.pm_time ), 32, 1, WIRE_UBASE128 },
-//
-// 	{ PSOFS( pmove.pm_flags ), 32, 1, WIRE_UBASE128 },
-//
-// 	{ PSOFS( pmove.delta_angles[0] ), 16, 1, WIRE_FIXED_INT16 },
-// 	{ PSOFS( pmove.delta_angles[1] ), 16, 1, WIRE_FIXED_INT16 },
-// 	{ PSOFS( pmove.delta_angles[2] ), 16, 1, WIRE_FIXED_INT16 },
-//
-// 	{ PSOFS( event[0] ), 32, 1, WIRE_UBASE128 },
-// 	{ PSOFS( eventParm[0] ), 32, 1, WIRE_UBASE128 },
-//
-// 	{ PSOFS( event[1] ), 32, 1, WIRE_UBASE128 },
-// 	{ PSOFS( eventParm[1] ), 32, 1, WIRE_UBASE128 },
-//
-// 	{ PSOFS( viewangles[0] ), 0, 1, WIRE_ANGLE },
-// 	{ PSOFS( viewangles[1] ), 0, 1, WIRE_ANGLE },
-// 	{ PSOFS( viewangles[2] ), 0, 1, WIRE_ANGLE },
-//
-// 	{ PSOFS( pmove.gravity ), 32, 1, WIRE_UBASE128 },
-//
-// 	{ PSOFS( weapon_state ), 8, 1, WIRE_FIXED_INT8 },
-//
-// 	{ PSOFS( fov ), 0, 1, WIRE_HALF_FLOAT },
-//
-// 	{ PSOFS( POVnum ), 32, 1, WIRE_UBASE128 },
-// 	{ PSOFS( playerNum ), 32, 1, WIRE_UBASE128 },
-//
-// 	{ PSOFS( viewheight ), 32, 1, WIRE_HALF_FLOAT },
-//
-// 	{ PSOFS( plrkeys ), 32, 1, WIRE_UBASE128 },
-//
-// 	{ PSOFS( stats ), 16, PS_MAX_STATS, WIRE_BASE128 },
-//
-// 	{ PSOFS( pmove.stats ), 16, PM_STAT_SIZE, WIRE_BASE128 },
-// 	{ PSOFS( inventory ), 32, MAX_ITEMS, WIRE_UBASE128 },
-// };
-
 static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t & baseline ) {
 	Delta( buf, pmove.pm_type, baseline.pm_type );
 
@@ -768,7 +602,6 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 	Delta( buf, pmove.max_speed, baseline.max_speed );
 	Delta( buf, pmove.jump_speed, baseline.jump_speed );
 	Delta( buf, pmove.dash_speed, baseline.dash_speed );
-	Delta( buf, pmove.gravity, baseline.gravity );
 }
 
 static void Delta( DeltaBuffer * buf, SyncPlayerState::WeaponInfo & weapon, const SyncPlayerState::WeaponInfo & baseline ) {

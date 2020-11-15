@@ -1,22 +1,3 @@
-/*
-Copyright (C) 2009-2010 Chasseur de bots
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-*/
-
 enum RoundState {
 	RoundState_None,
 	RoundState_Pre,
@@ -45,8 +26,6 @@ uint roundCount;
 int attackingTeam;
 int defendingTeam;
 
-bool attackersHurried;
-bool defendersHurried;
 bool was1vx;
 
 void playerKilled( Entity @victim, Entity @attacker, Entity @inflictor ) {
@@ -244,8 +223,6 @@ void roundNewState( uint state ) {
 			gametype.shootingDisabled = true;
 			gametype.removeInactivePlayers = false;
 
-			attackersHurried = false;
-			defendersHurried = false;
 			was1vx = false;
 
 			resetBombSites();
@@ -370,23 +347,11 @@ void roundThink() {
 			return;
 		}
 
-		// warn defs if bomb will explode soon
-		// warn offs if the round ends soon and they haven't planted
 		if( bombState == BombState_Planted ) {
 			last_time = -1;
-
-			if( !defendersHurried && levelTime + BOMB_HURRYUP_TIME >= bombActionTime ) {
-				G_AnnouncerSound( null, sndHurry, defendingTeam, true, null );
-				defendersHurried = true;
-			}
 		}
 		else {
 			last_time = roundStateEndTime - levelTime;
-
-			if( !attackersHurried && levelTime + BOMB_HURRYUP_TIME >= roundStateEndTime ) {
-				G_AnnouncerSound( null, sndHurry, attackingTeam, true, null );
-				attackersHurried = true;
-			}
 		}
 
 		match.setClockOverride( last_time );
@@ -394,6 +359,15 @@ void roundThink() {
 		bombThink();
 	}
 	else {
+		if( bombState == BombState_Planting ) {
+			setTeamProgress( attackingTeam, 0, BombProgress_Nothing );
+			bombPickUp();
+		}
+
+		if( defuseProgress > 0 ) {
+			setTeamProgress( defendingTeam, 0, BombProgress_Defusing );
+		}
+
 		match.setClockOverride( last_time );
 
 		if( roundState > RoundState_Round ) {

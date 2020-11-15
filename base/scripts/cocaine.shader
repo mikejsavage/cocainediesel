@@ -105,12 +105,3 @@ textures/cocaine/s_lazery_kush
 		tcmod scroll 2 -2.0
 	}
 }
-
-// TODO: subbing missing textures, delete this
-textures/lights/bluetrim { template textures/cocaine/s_lazery_blue }
-textures/lights/bluetrim_1000 { template textures/cocaine/s_lazery_blue }
-textures/lights/blacktrim02 { template textures/cocaine/s_lazery_green }
-textures/lights/blacktrim02_2500 { template textures/cocaine/s_lazery_green }
-textures/lights/neonlamp { template textures/cocaine/s_lazery_orange }
-textures/noir/neon_02_red { template textures/cocaine/s_lazery_red }
-textures/noir/neon_02_pink { template textures/cocaine/s_lazery_kush }

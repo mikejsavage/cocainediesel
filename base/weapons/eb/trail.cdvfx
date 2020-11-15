@@ -1,0 +1,27 @@
+{
+  particles {
+    material textures/vfx/glow1
+    blendfunc add
+
+    position line 0
+    
+    collision point
+
+    speed 4
+
+    color 1.0 1.0 1.0 1.0
+    end_color 0.0 0.5 1.0
+    color_override
+    red_distribution uniform 0.1
+    green_distribution uniform 0.1
+    blue_distribution uniform 0.1
+    alpha_distribution uniform 0.1
+
+    size 1 1
+    size_distribution uniform 0.1
+
+    lifetime 0.9
+    lifetime_distribution uniform 0.3
+    count 1
+  }
+}

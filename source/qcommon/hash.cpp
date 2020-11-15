@@ -40,9 +40,26 @@ u64 Hash64( u64 x ) {
 StringHash::StringHash( const char * s ) {
 	hash = Hash64( s );
 }
+
+StringHash::StringHash( Span< const char > s ) {
+	hash = Hash64( s );
+}
 #else
 StringHash::StringHash( const char * s ) {
 	hash = Hash64( s );
 	str = NULL;
 }
+
+StringHash::StringHash( Span< const char > s ) {
+	hash = Hash64( s );
+	str = NULL;
+}
 #endif
+
+void format( FormatBuffer * fb, const StringHash & v, const FormatOpts & opts ) {
+#ifdef PUBLIC_BUILD
+	ggformat_impl( fb, "0x{08x}", v.hash );
+#else
+	ggformat_impl( fb, "{} (0x{08x})", v.str == NULL ? "NULL" : v.str, v.hash );
+#endif
+}

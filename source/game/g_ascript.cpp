@@ -84,11 +84,8 @@ static const asEnumVal_t asEffectEnumVals[] =
 {
 	ASLIB_ENUM_VAL( EF_CARRIER ),
 	ASLIB_ENUM_VAL( EF_TAKEDAMAGE ),
-	ASLIB_ENUM_VAL( EF_TEAMCOLOR_TRANSITION ),
 	ASLIB_ENUM_VAL( EF_GODMODE ),
-	ASLIB_ENUM_VAL( EF_RACEGHOST ),
 	ASLIB_ENUM_VAL( EF_HAT ),
-	ASLIB_ENUM_VAL( EF_WORLD_MODEL ),
 	ASLIB_ENUM_VAL( EF_TEAM_SILHOUETTE ),
 
 	ASLIB_ENUM_VAL_NULL
@@ -164,6 +161,17 @@ static const asEnumVal_t asPMoveFeaturesVals[] =
 	ASLIB_ENUM_VAL_NULL
 };
 
+static const asEnumVal_t asWeaponCategoryEnumVals[] =
+{
+	ASLIB_ENUM_VAL( WeaponCategory_Primary ),
+	ASLIB_ENUM_VAL( WeaponCategory_Secondary ),
+	ASLIB_ENUM_VAL( WeaponCategory_Backup ),
+
+	ASLIB_ENUM_VAL( WeaponCategory_Count ),
+
+	ASLIB_ENUM_VAL_NULL
+};
+
 static const asEnumVal_t asWeaponTypeEnumVals[] =
 {
 	ASLIB_ENUM_VAL( Weapon_None ),
@@ -177,6 +185,7 @@ static const asEnumVal_t asWeaponTypeEnumVals[] =
 	ASLIB_ENUM_VAL( Weapon_GrenadeLauncher ),
 	ASLIB_ENUM_VAL( Weapon_RocketLauncher ),
 	ASLIB_ENUM_VAL( Weapon_Plasma ),
+	ASLIB_ENUM_VAL( Weapon_BubbleGun ),
 	ASLIB_ENUM_VAL( Weapon_Laser ),
 	ASLIB_ENUM_VAL( Weapon_Railgun ),
 	ASLIB_ENUM_VAL( Weapon_Sniper ),
@@ -363,6 +372,7 @@ static const asEnum_t asGameEnums[] =
 	{ "solid_e", asSolidEnumVals },
 	{ "pmovefeats_e", asPMoveFeaturesVals },
 
+	{ "WeaponCategory", asWeaponCategoryEnumVals },
 	{ "WeaponType", asWeaponTypeEnumVals },
 	{ "ItemType", asItemTypeEnumVals },
 
@@ -430,13 +440,13 @@ static int objectMatch_getState( SyncGameState *self ) {
 }
 
 static asstring_t *objectMatch_getScore( SyncGameState *self ) {
-	const char *s = trap_GetConfigString( CS_MATCHSCORE );
+	const char *s = PF_GetConfigString( CS_MATCHSCORE );
 
 	return game.asExport->asStringFactoryBuffer( s, strlen( s ) );
 }
 
 static void objectMatch_setScore( asstring_t *name, SyncGameState *self ) {
-	trap_ConfigString( CS_MATCHSCORE, name->buffer );
+	PF_ConfigString( CS_MATCHSCORE, name->buffer );
 }
 
 static void objectMatch_setClockOverride( int64_t time, SyncGameState *self ) {
@@ -720,7 +730,7 @@ static int objectGameClient_ClientState( gclient_t *self ) {
 		return CS_FREE;
 	}
 
-	return trap_GetClientState( (int)( self - game.clients ) );
+	return PF_GetClientState( (int)( self - game.clients ) );
 }
 
 static void objectGameClient_ClearPlayerStateEvents( gclient_t *self ) {
@@ -757,9 +767,7 @@ static edict_t *objectGameClient_GetEntity( gclient_t *self ) {
 }
 
 static void objectGameClient_GiveWeapon( WeaponType weapon, gclient_t * self ) {
-	if( weapon <= Weapon_None || weapon >= Weapon_Count ) {
-		return;
-	}
+	assert( weapon > Weapon_None && weapon < Weapon_Count );
 
 	int playerNum = objectGameClient_PlayerNum( self );
 	if( playerNum < 0 || playerNum >= server_gs.maxclients ) {
@@ -816,7 +824,7 @@ static void objectGameClient_execGameCommand( asstring_t *msg, gclient_t *self )
 		return;
 	}
 
-	trap_GameCmd( PLAYERENT( playerNum ), msg->buffer );
+	PF_GameCmd( PLAYERENT( playerNum ), msg->buffer );
 }
 
 static unsigned int objectGameClient_getPressedKeys( gclient_t *self ) {
@@ -970,7 +978,7 @@ static asvec3_t objectGameEntity_GetVelocity( edict_t *obj ) {
 static void objectGameEntity_SetVelocity( asvec3_t *vel, edict_t *self ) {
 	self->velocity = vel->v;
 
-	if( self->r.client && trap_GetClientState( PLAYERNUM( self ) ) >= CS_SPAWNED ) {
+	if( self->r.client && PF_GetClientState( PLAYERNUM( self ) ) >= CS_SPAWNED ) {
 		self->r.client->ps.pmove.velocity = vel->v;
 	}
 }
@@ -995,7 +1003,7 @@ static asvec3_t objectGameEntity_GetOrigin( edict_t *obj ) {
 }
 
 static void objectGameEntity_SetOrigin( asvec3_t *vec, edict_t *self ) {
-	if( self->r.client && trap_GetClientState( PLAYERNUM( self ) ) >= CS_SPAWNED ) {
+	if( self->r.client && PF_GetClientState( PLAYERNUM( self ) ) >= CS_SPAWNED ) {
 		self->r.client->ps.pmove.origin = vec->v;
 	}
 	self->s.origin = vec->v;
@@ -1022,7 +1030,7 @@ static asvec3_t objectGameEntity_GetAngles( edict_t *obj ) {
 static void objectGameEntity_SetAngles( asvec3_t *vec, edict_t *self ) {
 	self->s.angles = vec->v;
 
-	if( self->r.client && trap_GetClientState( PLAYERNUM( self ) ) >= CS_SPAWNED ) {
+	if( self->r.client && PF_GetClientState( PLAYERNUM( self ) ) >= CS_SPAWNED ) {
 		self->r.client->ps.viewangles = vec->v;
 
 		// update the delta angle
@@ -1054,7 +1062,7 @@ static void objectGameEntity_SetMovedir( edict_t *self ) {
 }
 
 static bool objectGameEntity_IsGhosting( edict_t *self ) {
-	if( self->r.client && trap_GetClientState( PLAYERNUM( self ) ) < CS_SPAWNED ) {
+	if( self->r.client && PF_GetClientState( PLAYERNUM( self ) ) < CS_SPAWNED ) {
 		return true;
 	}
 
@@ -1265,14 +1273,12 @@ static const asProperty_t gedict_Properties[] =
 	{ ASLIB_PROPERTY_DECL( int, radius ), offsetof( edict_t, s.radius ) },
 	{ ASLIB_PROPERTY_DECL( int, ownerNum ), offsetof( edict_t, s.ownerNum ) },
 	{ ASLIB_PROPERTY_DECL( int, counterNum ), offsetof( edict_t, s.counterNum ) },
-	{ ASLIB_PROPERTY_DECL( int, colorRGBA ), offsetof( edict_t, s.colorRGBA ) },
 	{ ASLIB_PROPERTY_DECL( uint, silhouetteColor ), offsetof( edict_t, s.silhouetteColor ) },
 	{ ASLIB_PROPERTY_DECL( int, weapon ), offsetof( edict_t, s.weapon ) },
 	{ ASLIB_PROPERTY_DECL( bool, teleported ), offsetof( edict_t, s.teleported ) },
 	{ ASLIB_PROPERTY_DECL( uint, effects ), offsetof( edict_t, s.effects ) },
 	{ ASLIB_PROPERTY_DECL( uint64, sound ), offsetof( edict_t, s.sound ) },
 	{ ASLIB_PROPERTY_DECL( int, team ), offsetof( edict_t, s.team ) },
-	{ ASLIB_PROPERTY_DECL( int, light ), offsetof( edict_t, s.light ) },
 	{ ASLIB_PROPERTY_DECL( const bool, inuse ), offsetof( edict_t, r.inuse ) },
 	{ ASLIB_PROPERTY_DECL( uint, svflags ), offsetof( edict_t, r.svflags ) },
 	{ ASLIB_PROPERTY_DECL( int, solid ), offsetof( edict_t, r.solid ) },
@@ -1515,6 +1521,10 @@ static void asFunc_CenterPrintMsg( edict_t *ent, asstring_t *str ) {
 	G_CenterPrintMsg( ent, "%s", str->buffer );
 }
 
+static void asFunc_ClearCenterPrint( edict_t *ent ) {
+	G_ClearCenterPrint( ent );
+}
+
 static void asFunc_Error( const asstring_t *str ) {
 	Com_Error( ERR_DROP, "%s", str && str->buffer ? str->buffer : "" );
 }
@@ -1547,6 +1557,10 @@ static void asFunc_Cbuf_ExecuteText( asstring_t *str ) {
 	Cbuf_ExecuteText( EXEC_APPEND, str->buffer );
 }
 
+static WeaponCategory asFunc_GetWeaponCategory( WeaponType weapon ) {
+	return GS_GetWeaponDef( weapon )->category;
+}
+
 static u64 asFunc_Hash64( asstring_t *str ) {
 	if( !str || !str->buffer ) {
 		return 0;
@@ -1564,7 +1578,7 @@ static void asFunc_RegisterCommand( asstring_t *str ) {
 }
 
 static asstring_t *asFunc_GetConfigString( int index ) {
-	const char *cs = trap_GetConfigString( index );
+	const char *cs = PF_GetConfigString( index );
 	return game.asExport->asStringFactoryBuffer( (char *)cs, cs ? strlen( cs ) : 0 );
 }
 
@@ -1579,7 +1593,7 @@ static void asFunc_SetConfigString( int index, asstring_t *str ) {
 		return;
 	}
 
-	trap_ConfigString( index, str->buffer );
+	PF_ConfigString( index, str->buffer );
 }
 
 static CScriptArrayInterface *asFunc_G_FindInRadius( asvec3_t *org, float radius ) {
@@ -1620,10 +1634,6 @@ void G_Aasdf(); // TODO
 static void asFunc_G_LoadMap( asstring_t *str ) {
 	G_LoadMap( str->buffer );
 	G_Aasdf();
-}
-
-static int asFunc_WeaponCost( WeaponType weapon ) {
-	return GS_GetWeaponDef( weapon )->cost;
 }
 
 static void asFunc_PositionedSound( asvec3_t *origin, int channel, u64 sound ) {
@@ -1698,8 +1708,6 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 
 	{ "void G_LoadMap( const String &name )", asFUNCTION( asFunc_G_LoadMap ), NULL },
 
-	{ "int WeaponCost( WeaponType )", asFUNCTION( asFunc_WeaponCost ), NULL },
-
 	// misc management utils
 	{ "void G_RemoveProjectiles( Entity @ )", asFUNCTION( asFunc_G_Match_RemoveProjectiles ), NULL },
 	{ "void G_RemoveAllProjectiles()", asFUNCTION( asFunc_G_Match_RemoveAllProjectiles ), NULL },
@@ -1710,6 +1718,7 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "void G_Print( const String &in )", asFUNCTION( asFunc_Print ), NULL },
 	{ "void G_PrintMsg( Entity @, const String &in )", asFUNCTION( asFunc_PrintMsg ), NULL },
 	{ "void G_CenterPrintMsg( Entity @, const String &in )", asFUNCTION( asFunc_CenterPrintMsg ), NULL },
+	{ "void G_ClearCenterPrint( Entity @ )", asFUNCTION( asFunc_ClearCenterPrint ), NULL },
 	{ "void Com_Error( const String &in )", asFUNCTION( asFunc_Error ), NULL },
 	{ "void G_Sound( Entity @, int channel, uint64 sound )", asFUNCTION( asFunc_G_Sound ), NULL },
 	{ "void G_PositionedSound( const Vec3 &in, int channel, uint64 sound )", asFUNCTION( asFunc_PositionedSound ), NULL },
@@ -1723,6 +1732,8 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "void G_RegisterCommand( const String &in )", asFUNCTION( asFunc_RegisterCommand ), NULL },
 	{ "const String @G_ConfigString( int index )", asFUNCTION( asFunc_GetConfigString ), NULL },
 	{ "void G_ConfigString( int index, const String &in )", asFUNCTION( asFunc_SetConfigString ), NULL },
+
+	{ "WeaponCategory GetWeaponCategory( WeaponType )", asFUNCTION( asFunc_GetWeaponCategory ), NULL },
 
 	{ "uint64 Hash64( const String &in )", asFUNCTION( asFunc_Hash64 ), NULL },
 
@@ -2063,7 +2074,7 @@ static void G_asRegisterEnums( asIScriptEngine *asEngine, const asEnum_t *asEnum
 /*
 * G_asRegisterObjectClassNames
 */
-static void G_asRegisterObjectClassNames( asIScriptEngine *asEngine, 
+static void G_asRegisterObjectClassNames( asIScriptEngine *asEngine,
 	const asClassDescriptor_t *const *asClassesDescriptors, const char *nameSpace ) {
 	int i;
 	const asClassDescriptor_t *cDescr;
@@ -2089,7 +2100,7 @@ static void G_asRegisterObjectClassNames( asIScriptEngine *asEngine,
 /*
 * G_asRegisterObjectClasses
 */
-static void G_asRegisterObjectClasses( asIScriptEngine *asEngine, 
+static void G_asRegisterObjectClasses( asIScriptEngine *asEngine,
 	const asClassDescriptor_t *const *asClassesDescriptors, const char *nameSpace ) {
 	int i, j;
 	const asClassDescriptor_t *cDescr;
@@ -2166,7 +2177,7 @@ static void G_asRegisterObjectClasses( asIScriptEngine *asEngine,
 /*
 * G_asRegisterGlobalFunctions
 */
-static void G_asRegisterGlobalFunctions( asIScriptEngine *asEngine, 
+static void G_asRegisterGlobalFunctions( asIScriptEngine *asEngine,
 	const asglobfuncs_t *funcs, const char *nameSpace ) {
 	int error;
 	int count = 0, failedcount = 0;
@@ -2204,7 +2215,7 @@ static void G_asRegisterGlobalFunctions( asIScriptEngine *asEngine,
 /*
 * G_asRegisterGlobalProperties
 */
-static void G_asRegisterGlobalProperties( asIScriptEngine *asEngine, 
+static void G_asRegisterGlobalProperties( asIScriptEngine *asEngine,
 	const asglobproperties_t *props, const char *nameSpace ) {
 	int error;
 	int count = 0, failedcount = 0;
@@ -2481,7 +2492,7 @@ static void G_asDumpAPIToFile( const char *path ) {
 		const asEnum_t *const allEnumsLists[] = { asGameEnums };
 		for( const asEnum_t *const enumsList: allEnumsLists ) {
 			for( i = 0, asEnum = enumsList; asEnum->name != NULL; i++, asEnum++ ) {
-				snprintf( string, sizeof( string ), "typedef enum\r\n{\r\n" );
+				snprintf( string, sizeof( string ), "enum %s\r\n{\r\n", asEnum->name );
 				FS_Write( string, strlen( string ), file );
 
 				for( j = 0, asEnumVal = asEnum->values; asEnumVal->name != NULL; j++, asEnumVal++ ) {
@@ -2489,7 +2500,7 @@ static void G_asDumpAPIToFile( const char *path ) {
 					FS_Write( string, strlen( string ), file );
 				}
 
-				snprintf( string, sizeof( string ), "} %s;\r\n\r\n", asEnum->name );
+				snprintf( string, sizeof( string ), "};\r\n\r\n" );
 				FS_Write( string, strlen( string ), file );
 			}
 		}

@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
+#include "client/renderer/renderer.h"
 #include "client/renderer/skybox.h"
 
 ChasecamState chaseCam;
@@ -312,12 +313,19 @@ static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 		playerState->pmove.origin = Lerp( ops->pmove.origin, cg.lerpfrac, ps->pmove.origin );
 		playerState->pmove.velocity = Lerp( ops->pmove.velocity, cg.lerpfrac, ps->pmove.velocity );
 		playerState->viewangles = LerpAngles( ops->viewangles, cg.lerpfrac, ps->viewangles );
+		playerState->viewheight = Lerp( ops->viewheight, cg.lerpfrac, ps->viewheight );
 	}
 
-	// interpolate fov and viewheight
-	if( !teleported ) {
-		playerState->viewheight = Lerp( ops->viewheight, cg.lerpfrac, ps->viewheight );
-		playerState->zoom_time = Lerp( ops->zoom_time, cg.lerpfrac, ps->zoom_time );
+	playerState->pmove.velocity = Lerp( ops->pmove.velocity, cg.lerpfrac, ps->pmove.velocity );
+
+	playerState->zoom_time = Lerp( ops->zoom_time, cg.lerpfrac, ps->zoom_time );
+
+	if( ps->weapon_time <= ops->weapon_time ) {
+		playerState->weapon_time = Lerp( ops->weapon_time, cg.lerpfrac, ps->weapon_time );
+	}
+	else {
+		s64 dt = cg.frame.serverTime - cg.oldFrame.serverTime;
+		playerState->weapon_time = Max2( 0.0f, ops->weapon_time - cg.lerpfrac * dt );
 	}
 }
 
@@ -337,7 +345,7 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 
 	// calc exact destination
 	Vec3 chase_dest = view->origin;
-	r = DEG2RAD( cg_thirdPersonAngle->value );
+	r = Radians( cg_thirdPersonAngle->value );
 	f = -cosf( r );
 	r = -sinf( r );
 	chase_dest += FromQFAxis( view->axis, AXIS_FORWARD ) * ( cg_thirdPersonRange->value * f );
@@ -345,7 +353,7 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 	chase_dest.z += 8;
 
 	// find the spot the player is looking at
-	Vec3 dest = view->origin + FromQFAxis( view->axis, AXIS_FORWARD ) * ( 512 );
+	Vec3 dest = view->origin + FromQFAxis( view->axis, AXIS_FORWARD ) * 512.0f;
 	CG_Trace( &trace, view->origin, mins, maxs, dest, view->POVent, MASK_SOLID );
 
 	// calculate pitch to look at the same spot from camera
@@ -354,7 +362,7 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 	if( dist < 1 ) {
 		dist = 1;
 	}
-	view->angles.x = RAD2DEG( -atan2f( stop.z, dist ) );
+	view->angles.x = Degrees( -atan2f( stop.z, dist ) );
 	view->angles.y -= cg_thirdPersonAngle->value;
 	Matrix3_FromAngles( view->angles, view->axis );
 
@@ -391,7 +399,7 @@ float CG_ViewSmoothFallKick( void ) {
 	// fallkick offset
 	if( cg.fallEffectTime > cl.serverTime ) {
 		float fallfrac = (float)( cl.serverTime - cg.fallEffectRebounceTime ) / (float)( cg.fallEffectTime - cg.fallEffectRebounceTime );
-		float fallkick = -1.0f * sinf( DEG2RAD( fallfrac * 180 ) ) * ( ( cg.fallEffectTime - cg.fallEffectRebounceTime ) * 0.01f );
+		float fallkick = -1.0f * sinf( Radians( fallfrac * 180 ) ) * ( ( cg.fallEffectTime - cg.fallEffectRebounceTime ) * 0.01f );
 		return fallkick;
 	} else {
 		cg.fallEffectTime = cg.fallEffectRebounceTime = 0;
@@ -526,10 +534,6 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 		Com_Error( ERR_DROP, "CG_SetupView: Invalid view type %i\n", view->type );
 	}
 
-	//
-	// SETUP REFDEF FOR THE VIEW SETTINGS
-	//
-
 	if( view->type == VIEWDEF_PLAYERVIEW ) {
 		Vec3 viewoffset;
 
@@ -542,31 +546,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 			view->origin = cg.predictedPlayerState.pmove.origin + viewoffset - ( 1.0f - cg.lerpfrac ) * cg.predictionError;
 			view->angles = cg.predictedPlayerState.viewangles;
 
-			if( cg.recoiling ) {
-				constexpr float up_mult = 30.0f;
-				constexpr float down_mult = 5.0f;
-
-				cg.recoil_initial_pitch += Min2( 0.0f, cl.viewangles.x - cl.prevviewangles.x );
-
-				if( cg.recoil == 0.0f ) {
-					float d = cg.recoil_initial_pitch - cl.viewangles.x;
-					if( d <= 0.0f ) {
-						cg.recoiling = false;
-					}
-					else {
-						float downkick = d * down_mult * cls.frametime * 0.001f;
-						cl.viewangles.x += Min2( downkick, d );
-					}
-				}
-				else {
-					float kick = cg.recoil * up_mult * cls.frametime * 0.001f;
-					cl.viewangles.x -= kick;
-					cg.recoil -= kick;
-					if( cg.recoil < 0.1f ) {
-						cg.recoil = 0.0f;
-					}
-				}
-			}
+			CG_Recoil( cg.predictedPlayerState.weapon );
 
 			CG_ViewSmoothPredictedSteps( &view->origin ); // smooth out stair climbing
 		} else {
@@ -591,11 +571,21 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 		view->fov_y = WidescreenFov( CG_DemoCam_GetOrientation( &view->origin, &view->angles, &view->velocity ) );
 	}
 
+	if( cg.predictedPlayerState.health <= 0 && cg.predictedPlayerState.team != TEAM_SPECTATOR ) {
+		AddDamageEffect();
+	}
+	else {
+		cg.damage_effect *= 0.97f;
+		if( cg.damage_effect <= 0.001f ) {
+			cg.damage_effect = 0.0f;
+		}
+	}
+
 	view->fov_x = CalcHorizontalFov( view->fov_y, frame_static.viewport_width, frame_static.viewport_height );
 
 	Matrix3_FromAngles( view->angles, view->axis );
 
-	view->fracDistFOV = tanf( DEG2RAD( view->fov_x ) * 0.5f );
+	view->fracDistFOV = tanf( Radians( view->fov_x ) * 0.5f );
 
 	if( view->thirdperson ) {
 		CG_ThirdPersonOffsetView( view );
@@ -628,6 +618,8 @@ static void DrawWorld() {
 			PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
 			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+			pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
+			AddDecalsToPipeline( &pipeline );
 
 			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 		}
@@ -642,7 +634,6 @@ static void DrawWorld() {
 
 		const Framebuffer & fb = frame_static.world_gbuffer;
 		pipeline.set_texture( "u_DepthTexture", &fb.depth_texture );
-		pipeline.set_texture( "u_NormalTexture", &fb.normal_texture );
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 
 		DrawFullscreenMesh( pipeline );
@@ -761,13 +752,6 @@ static void DrawSilhouettes() {
 	}
 }
 
-float global_attenuation = 1.0f;
-float global_refdist = 125.0f;
-float global_maxdist = 8000.0f;
-
-/*
-* CG_RenderView
-*/
 void CG_RenderView( unsigned extrapolationTime ) {
 	ZoneScoped;
 
@@ -817,7 +801,24 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	cg.lerpfrac = Clamp01( cg.lerpfrac );
 
+	{
+		float scale = ( float )( frame_static.viewport_height ) / 600.0f;
+
+		cgs.fontSystemTinySize = ceilf( SYSTEM_FONT_TINY_SIZE * scale );
+		cgs.fontSystemSmallSize = ceilf( SYSTEM_FONT_SMALL_SIZE * scale );
+		cgs.fontSystemMediumSize = ceilf( SYSTEM_FONT_MEDIUM_SIZE * scale );
+		cgs.fontSystemBigSize = ceilf( SYSTEM_FONT_BIG_SIZE * scale );
+
+		scale *= 1.3f;
+		cgs.textSizeTiny = SYSTEM_FONT_TINY_SIZE * scale;
+		cgs.textSizeSmall = SYSTEM_FONT_SMALL_SIZE * scale;
+		cgs.textSizeMedium = SYSTEM_FONT_MEDIUM_SIZE * scale;
+		cgs.textSizeBig = SYSTEM_FONT_BIG_SIZE * scale;
+	}
+
 	CG_FlashGameWindow(); // notify player of important game events
+
+	AllocateDecalBuffers();
 
 	CG_UpdateChaseCam();
 
@@ -838,19 +839,24 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	CG_ResetBombHUD();
 
+	DoVisualEffect( "vfx/rain", cg.view.origin );
+
 	DrawWorld();
 	DrawSilhouettes();
 	CG_AddEntities();
 	CG_AddViewWeapon( &cg.weapon );
-	CG_AddLocalEntities();
 	DrawGibs();
 	DrawParticles();
 	DrawPersistentBeams();
+	DrawPersistentDecals();
 	DrawSkybox();
+	DrawSprays();
 
 	CG_AddLocalSounds();
 
 	S_Update( cg.view.origin, cg.view.velocity, cg.view.axis );
 
 	CG_Draw2D();
+
+	UploadDecalBuffers();
 }

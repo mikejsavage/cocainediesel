@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/hash.h"
 #include "gameshared/gs_public.h"
 #include "game/g_public.h"
-#include "game/g_syscalls.h"
 #include "game/g_gametypes.h"
 #include "game/g_ai.h"
 #include "server/server.h"
@@ -45,18 +44,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MAX_FLOOD_MESSAGES 32
 
-typedef enum {
+enum damage_t {
 	DAMAGE_NO,
 	DAMAGE_YES,     // will take damage if hit
 	DAMAGE_AIM      // auto targeting recognizes this
-} damage_t;
+};
 
 // deadflag
 #define DEAD_NO         0
 #define DEAD_DEAD       1
 
 // edict->movetype values
-typedef enum {
+enum movetype_t {
 	MOVETYPE_NONE,      // never moves
 	MOVETYPE_PLAYER,    // never moves (but is moved by pmove)
 	MOVETYPE_NOCLIP,    // like MOVETYPE_PLAYER, but not clipped
@@ -67,14 +66,14 @@ typedef enum {
 	MOVETYPE_LINEARPROJECTILE, // extra size to monsters
 	MOVETYPE_BOUNCE,
 	MOVETYPE_BOUNCEGRENADE,
-} movetype_t;
+};
 
 //
 // this structure is left intact through an entire game
 // it should be initialized at dll load time, and read/written to
 // the server.ssv file for savegames
 //
-typedef struct {
+struct game_locals_t {
 	edict_t *edicts;        // [maxentities]
 	gclient_t *clients;     // [maxclients]
 
@@ -94,22 +93,22 @@ typedef struct {
 	int64_t prevServerTime;         // last frame's server time
 
 	int numBots;
-} game_locals_t;
+};
 
 #define TIMEOUT_TIME                    180000
 #define TIMEIN_TIME                     5000
 
-typedef struct {
+struct timeout_t {
 	int64_t time;
 	int64_t endtime;
 	int caller;
 	int used[MAX_CLIENTS];
-} timeout_t;
+};
 
 //
 // this structure is cleared as each map is entered
 //
-typedef struct {
+struct level_locals_t {
 	int64_t framenum;
 	int64_t time; // time in milliseconds
 	int64_t spawnedTimeStamp; // time when map was restarted
@@ -137,21 +136,18 @@ typedef struct {
 
 	bool teamlock;
 	bool ready[MAX_CLIENTS];
-	bool forceStart;    // force starting the game, when warmup timelimit is up
 	bool forceExit;     // just exit, ignore extended time checks
 
 	edict_t *current_entity;    // entity running from G_RunFrame
 	edict_t *spawning_entity;   // entity being spawned from G_InitLevel
 
 	timeout_t timeout;
-	float gravity;
-} level_locals_t;
-
+};
 
 // spawn_temp_t is only used to hold entity field values that
 // can be set from the editor, but aren't actualy present
 // in edict_t during gameplay
-typedef struct {
+struct spawn_temp_t {
 	int lip;
 	int distance;
 	int height;
@@ -160,14 +156,10 @@ typedef struct {
 	StringHash noise_start;
 	StringHash noise_stop;
 	float pausetime;
-	const char *gravity;
-
 	int gameteam;
-
 	int size;
-
-	int rgba;
-} spawn_temp_t;
+	float spawn_probability;
+};
 
 extern game_locals_t game;
 extern gs_state_t server_gs;
@@ -211,8 +203,6 @@ extern cvar_t *g_projectile_prestep;
 extern cvar_t *g_numbots;
 extern cvar_t *g_maxtimeouts;
 
-extern cvar_t *g_self_knockback;
-extern cvar_t *g_knockback_scale;
 extern cvar_t *g_respawn_delay_min;
 extern cvar_t *g_respawn_delay_max;
 extern cvar_t *g_deadbody_followkiller;
@@ -300,7 +290,14 @@ void SP_func_static( edict_t *ent );
 //
 // g_gladiator
 //
-void SP_spikes( edict_t *ent );
+void SP_spike( edict_t * ent );
+void SP_spikes( edict_t * ent );
+
+//
+// g_speakers
+//
+
+void SP_speaker_wall( edict_t * ent );
 
 //
 // g_ascript.c
@@ -413,6 +410,7 @@ void G_PrintMsg( edict_t *ent, _Printf_format_string_ const char *format, ... );
 void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, _Printf_format_string_ const char *format, ... );
 void G_CenterPrintMsg( edict_t *ent, _Printf_format_string_ const char *format, ... );
 #endif
+void G_ClearCenterPrint( edict_t *ent );
 
 void G_Obituary( edict_t *victim, edict_t *attacker, int mod );
 
@@ -461,17 +459,16 @@ void SP_trigger_push( edict_t *ent );
 void SP_trigger_hurt( edict_t *ent );
 void SP_trigger_key( edict_t *ent );
 void SP_trigger_elevator( edict_t *ent );
-void SP_trigger_gravity( edict_t *ent );
 
 //
 // g_clip.c
 //
 #define MAX_ENT_AREAS 16
 
-typedef struct link_s {
-	struct link_s *prev, *next;
+struct link_t {
+	link_t *prev, *next;
 	int entNum;
-} link_t;
+};
 
 int G_PointContents( Vec3 p );
 void G_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, edict_t *passedict, int contentmask );
@@ -507,6 +504,7 @@ bool G_IsTeamDamage( SyncEntityState *targ, SyncEntityState *attacker );
 void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point, int mod );
 void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 point, float maxradius, Vec3 * pushdir, float *frac, bool selfdamage );
 void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdir, Vec3 dmgdir, Vec3 point, float damage, float knockback, int dflags, int mod );
+void G_RadiusKnockback( const WeaponDef * def, edict_t *attacker, Vec3 pos, cplane_t *plane, int mod, int timeDelta );
 void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edict_t *ignore, int mod );
 
 // damage flags
@@ -524,9 +522,9 @@ void BecomeExplosion1( edict_t *self );
 
 void SP_path_corner( edict_t *self );
 
-void SP_misc_model( edict_t *ent );
-
 void SP_model( edict_t *ent );
+
+void SP_decal( edict_t * ent );
 
 //
 // g_weapon.c
@@ -541,7 +539,6 @@ void G_ChasePlayer( edict_t *ent, const char *name, bool teamonly, int followmod
 void G_ChaseStep( edict_t *ent, int step );
 void Cmd_SwitchChaseCamMode_f( edict_t *ent );
 void Cmd_ChaseCam_f( edict_t *ent );
-void Cmd_Spec_f( edict_t *ent );
 void G_EndServerFrames_UpdateChaseCam( void );
 
 //
@@ -665,15 +662,15 @@ void G_AwardRaceRecord( edict_t *self );
 
 //============================================================================
 
-typedef struct {
+struct projectileinfo_t {
 	int radius;
 	float minDamage;
 	float maxDamage;
 	float minKnockback;
 	float maxKnockback;
-} projectileinfo_t;
+};
 
-typedef struct {
+struct chasecam_t {
 	bool active;
 	int target;
 	int mode;                   //3rd or 1st person
@@ -681,9 +678,9 @@ typedef struct {
 	bool teamonly;
 	int64_t timeout;           //delay after loosing target
 	int followmode;
-} chasecam_t;
+};
 
-typedef struct {
+struct moveinfo_t {
 	// fixed data
 	Vec3 start_origin;
 	Vec3 start_angles;
@@ -710,7 +707,7 @@ typedef struct {
 
 	Vec3 dest;
 	Vec3 destangles;
-} moveinfo_t;
+};
 
 #define MAX_CLIENT_EVENTS   16
 #define MAX_CLIENT_EVENTS_MASK ( MAX_CLIENT_EVENTS - 1 )
@@ -718,14 +715,14 @@ typedef struct {
 #define G_MAX_TIME_DELTAS   8
 #define G_MAX_TIME_DELTAS_MASK ( G_MAX_TIME_DELTAS - 1 )
 
-typedef struct {
+struct client_snapreset_t {
 	int buttons;
 	uint8_t plrkeys; // used for displaying key icons
 	int damageTaken;
 	Vec3 damageTakenDir;
-} client_snapreset_t;
+};
 
-typedef struct {
+struct client_respawnreset_t {
 	client_snapreset_t snap;
 	chasecam_t chase;
 
@@ -737,13 +734,14 @@ typedef struct {
 
 	int old_waterlevel;
 	int old_watertype;
-} client_respawnreset_t;
+};
 
-typedef struct {
+struct client_levelreset_t {
 	int64_t timeStamp;				// last time it was reset
 
 	int64_t last_vsay;				// time when last vsay was said
 	int64_t last_activity;
+	int64_t last_spray;
 
 	score_stats_t stats;
 	bool showscores;
@@ -758,9 +756,9 @@ typedef struct {
 	int flood_team_whenhead;        // head pointer for when said
 
 	int64_t callvote_when;
-} client_levelreset_t;
+};
 
-typedef struct {
+struct client_teamreset_t {
 	int64_t timeStamp; // last time it was reset
 
 	// for position command
@@ -768,9 +766,9 @@ typedef struct {
 	Vec3 position_origin;
 	Vec3 position_angles;
 	int64_t position_lastcmd;
-} client_teamreset_t;
+};
 
-struct gclient_s {
+struct gclient_t {
 	// known to server
 	SyncPlayerState ps;          // communicated by server to clients
 	client_shared_t r;
@@ -809,7 +807,7 @@ struct gclient_s {
 	int asRefCount, asFactored;
 };
 
-typedef struct snap_edict_s {
+struct snap_edict_t {
 	// whether we have killed anyone this snap
 	bool kill;
 	bool teamkill;
@@ -821,11 +819,11 @@ typedef struct snap_edict_s {
 	Vec3 damage_at;
 	float damage_given;             // for hitsounds
 	float damageteam_given;
-} snap_edict_t;
+};
 
 using EdictTouchCallback = void ( * )( edict_t * self, edict_t * other, cplane_t * plane, int surfFlags );
 
-struct edict_s {
+struct edict_t {
 	SyncEntityState s;
 	entity_shared_t r;
 
@@ -891,7 +889,6 @@ struct edict_s {
 	const char *message;
 
 	int mass;
-	float gravity;              // per entity gravity multiplier (1.0 is normal) // use for lowgrav artifact, flares
 
 	edict_t *movetarget;
 
@@ -925,9 +922,6 @@ struct edict_s {
 	int waterlevel;
 
 	int style;                  // also used as areaportal number
-
-	float light;
-	Vec3 color;
 
 	const Item *item;       // for bonus items
 

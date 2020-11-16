@@ -690,7 +690,7 @@ static void MainMenu() {
 	ImGui::BeginChild( "mainmenubody", ImVec2( 0, -ImGui::GetFrameHeightWithSpacing() + window_padding.y ) );
 
 	ImGui::PushFont( cls.large_font );
-	const char * name = "KOKAIN DIZEL";
+	const char * name = "VACCAINE PFIZEL";
 	const int break_time = 1000;
 	for( size_t i = 0; i < strlen( name ); i++ ) {
 		ImGui::SameLine();

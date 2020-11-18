@@ -227,6 +227,10 @@ static bool IsWhitespace( char c ) {
 	return c == '\0' || c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }
 
+/*
+ * this can return an empty string if it parses empty quotes
+ * check for ret.ptr == NULL to see if you hit the end of the string
+ */
 Span< const char > ParseToken( const char ** ptr, ParseStopOnNewLine stop ) {
 	const char * cursor = *ptr;
 	if( cursor == NULL ) {
@@ -237,12 +241,12 @@ Span< const char > ParseToken( const char ** ptr, ParseStopOnNewLine stop ) {
 	while( IsWhitespace( *cursor ) ) {
 		if( *cursor == '\0' ) {
 			*ptr = NULL;
-			return MakeSpan( "" );
+			return Span< const char >( NULL, 0 );
 		}
 
 		if( *cursor == '\n' && stop == Parse_StopOnNewLine ) {
 			*ptr = cursor;
-			return MakeSpan( "" );
+			return Span< const char >( NULL, 0 );
 		}
 
 		cursor++;
@@ -277,6 +281,10 @@ Span< const char > ParseToken( const char ** ptr, ParseStopOnNewLine stop ) {
 	return span;
 }
 
+/*
+ * this can return an empty string if it parses empty quotes
+ * check for ret.ptr == NULL to see if you hit the end of the string
+ */
 Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine stop ) {
 	Span< const char > c = *cursor;
 
@@ -284,12 +292,12 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 	while( c.n == 0 || IsWhitespace( c[ 0 ] ) ) {
 		if( c.n == 0 ) {
 			*cursor = c;
-			return c;
+			return Span< const char >( NULL, 0 );
 		}
 
 		if( c[ 0 ] == '\n' && stop == Parse_StopOnNewLine ) {
 			*cursor = c;
-			return MakeSpan( "" );
+			return Span< const char >( NULL, 0 );
 		}
 
 		c++;

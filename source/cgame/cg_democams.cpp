@@ -350,8 +350,7 @@ static void CG_Democam_ExecutePathAnalysis( void ) {
 */
 bool CG_LoadRecamScriptFile( char *filename ) {
 	int filelen, filehandle;
-	uint8_t *buf = NULL;
-	char *ptr, *token;
+	char *buf = NULL;
 	int linecount;
 	cg_democam_t *cam = NULL;
 
@@ -364,7 +363,7 @@ bool CG_LoadRecamScriptFile( char *filename ) {
 	if( !filehandle || filelen < 1 ) {
 		FS_FCloseFile( filehandle );
 	} else {
-		buf = ( uint8_t * )CG_Malloc( filelen + 1 );
+		buf = ( char * )CG_Malloc( filelen + 1 );
 		filelen = FS_Read( buf, filelen, filehandle );
 		FS_FCloseFile( filehandle );
 	}
@@ -375,43 +374,43 @@ bool CG_LoadRecamScriptFile( char *filename ) {
 
 	// parse the script
 	linecount = 0;
-	ptr = ( char * )buf;
-	while( ptr ) {
-		token = COM_ParseExt( &ptr, true );
-		if( !token[0] ) {
+	Span< const char > cursor( buf, filelen );
+	while( true ) {
+		Span< const char > token = ParseToken( &cursor, Parse_DontStopOnNewLine );
+		if( token == "" ) {
 			break;
 		}
 
 		switch( linecount ) {
 			case 0:
-				cam = CG_Democam_RegisterCam( atoi( token ) );
+				cam = CG_Democam_RegisterCam( SpanToInt( token, 0 ) );
 				break;
 			case 1:
-				cam->timeStamp = (unsigned int)atoi( token );
+				cam->timeStamp = SpanToInt( token, 0 );
 				break;
 			case 2:
-				cam->origin.x = atof( token );
+				cam->origin.x = SpanToFloat( token, 0.0f );
 				break;
 			case 3:
-				cam->origin.y = atof( token );
+				cam->origin.y = SpanToFloat( token, 0.0f );
 				break;
 			case 4:
-				cam->origin.z = atof( token );
+				cam->origin.z = SpanToFloat( token, 0.0f );
 				break;
 			case 5:
-				cam->angles.x = atof( token );
+				cam->angles.x = SpanToFloat( token, 0.0f );
 				break;
 			case 6:
-				cam->angles.y = atof( token );
+				cam->angles.y = SpanToFloat( token, 0.0f );
 				break;
 			case 7:
-				cam->angles.z = atof( token );
+				cam->angles.z = SpanToFloat( token, 0.0f );
 				break;
 			case 8:
-				cam->trackEnt = atoi( token );
+				cam->trackEnt = SpanToInt( token, 0 );
 				break;
 			case 9:
-				cam->fov = atoi( token );
+				cam->fov = SpanToInt( token, 0 );
 				break;
 			default:
 				Com_Error( ERR_DROP, "CG_LoadRecamScriptFile: bad switch\n" );

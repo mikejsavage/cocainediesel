@@ -91,10 +91,7 @@ static Span< const char > ParseMaterialToken( Span< const char > * data ) {
 }
 
 static float ParseMaterialFloat( Span< const char > * data ) {
-	Span< const char > token = ParseToken( data, Parse_StopOnNewLine );
-	float x;
-	SpanToFloat( token, &x );
-	return x;
+	return ParseFloat( data, 0.0f, Parse_StopOnNewLine );
 }
 
 static void ParseVector( Span< const char > * data, float * v, size_t n ) {

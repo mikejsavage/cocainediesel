@@ -41,7 +41,7 @@ bool CG_ScoreboardShown() {
 
 static bool ParseInt( const char ** cursor, int * x ) {
 	Span< const char > token = ParseToken( cursor, Parse_DontStopOnNewLine );
-	return SpanToInt( token, x );
+	return TrySpanToInt( token, x );
 }
 
 static bool ParseTeam( const char ** cursor, ScoreboardTeam * team ) {

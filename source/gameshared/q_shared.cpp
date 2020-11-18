@@ -324,19 +324,7 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 	return token;
 }
 
-int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop ) {
-	Span< const char > token = ParseToken( cursor, stop );
-	int x;
-	return SpanToInt( token, &x ) ? x : def;
-}
-
-float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine stop ) {
-	Span< const char > token = ParseToken( cursor, stop );
-	float x;
-	return SpanToFloat( token, &x ) ? x : def;
-}
-
-bool SpanToInt( Span< const char > str, int * x ) {
+bool TrySpanToInt( Span< const char > str, int * x ) {
 	char buf[ 128 ];
 	if( str.n >= sizeof( buf ) )
 		return false;
@@ -350,7 +338,7 @@ bool SpanToInt( Span< const char > str, int * x ) {
 	return err == NULL;
 }
 
-bool SpanToFloat( Span< const char > str, float * x ) {
+bool TrySpanToFloat( Span< const char > str, float * x ) {
 	char buf[ 128 ];
 	if( str.n >= sizeof( buf ) )
 		return false;
@@ -362,6 +350,26 @@ bool SpanToFloat( Span< const char > str, float * x ) {
 	*x = strtof( buf, &end );
 
 	return end == buf + str.n;
+}
+
+int SpanToInt( Span< const char > token, int def ) {
+	int x;
+	return TrySpanToInt( token, &x ) ? x : def;
+}
+
+int SpanToFloat( Span< const char > token, float def ) {
+	float x;
+	return TrySpanToFloat( token, &x ) ? x : def;
+}
+
+int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop ) {
+	Span< const char > token = ParseToken( cursor, stop );
+	return SpanToInt( token, def );
+}
+
+float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine stop ) {
+	Span< const char > token = ParseToken( cursor, stop );
+	return SpanToFloat( token, def );
 }
 
 bool StrEqual( Span< const char > lhs, Span< const char > rhs ) {

@@ -266,7 +266,7 @@ static float ParseFogStrength( const BSPSpans * bsp ) {
 
 		if( key == "fog_strength" ) {
 			float f;
-			if( SpanToFloat( value, &f ) ) {
+			if( TrySpanToFloat( value, &f ) ) {
 				return f;
 			}
 		}

@@ -685,8 +685,6 @@ char *Cmd_Args( void ) {
 * Takes a null terminated string.  Does not need to be /n terminated.
 */
 void Cmd_TokenizeString( const char *text ) {
-	char *com_token;
-
 	cmd_argc = 0;
 	cmd_args[0] = 0;
 
@@ -694,7 +692,7 @@ void Cmd_TokenizeString( const char *text ) {
 		return;
 	}
 
-	for(;; ) {
+	while( true ) {
 		// skip whitespace up to a /n
 		while( *text && (unsigned char)*text <= ' ' && *text != '\n' )
 			text++;
@@ -727,21 +725,21 @@ void Cmd_TokenizeString( const char *text ) {
 				}
 		}
 
-		com_token = COM_Parse( &text );
-		if( !text ) {
+		Span< const char > token = ParseToken( &text, Parse_StopOnNewLine );
+		if( token == "" ) {
 			return;
 		}
 
 		if( cmd_argc < MAX_STRING_TOKENS ) {
-			size_t size = strlen( com_token ) + 1;
-			if( cmd_argv_sizes[cmd_argc] < size ) {
-				cmd_argv_sizes[cmd_argc] = Min2( size + 64, size_t( MAX_TOKEN_CHARS ) );
+			if( cmd_argv_sizes[cmd_argc] < token.n + 1 ) {
+				cmd_argv_sizes[cmd_argc] = Min2( token.n + 64, size_t( MAX_TOKEN_CHARS ) );
 				if( cmd_argv[cmd_argc] ) {
-					Mem_ZoneFree( cmd_argv[cmd_argc] );
+					FREE( sys_allocator, cmd_argv[cmd_argc] );
 				}
-				cmd_argv[cmd_argc] = ( char * ) Mem_ZoneMalloc( cmd_argv_sizes[cmd_argc] );
+				cmd_argv[cmd_argc] = ALLOC_MANY( sys_allocator, char, cmd_argv_sizes[cmd_argc] );
 			}
-			strcpy( cmd_argv[cmd_argc], com_token );
+			memcpy( cmd_argv[cmd_argc], token.ptr, token.n );
+			cmd_argv[cmd_argc][token.n] = '\0';
 			cmd_argc++;
 		}
 	}
@@ -1282,7 +1280,7 @@ void Cmd_Shutdown( void ) {
 
 		// this is somewhat ugly IMO
 		for( i = 0; i < MAX_STRING_TOKENS && cmd_argv_sizes[i]; i++ ) {
-			Mem_ZoneFree( cmd_argv[i] );
+			FREE( sys_allocator, cmd_argv[i] );
 			cmd_argv_sizes[i] = 0;
 		}
 

@@ -96,7 +96,6 @@ static spawn_t spawns[] = {
 	{ "info_player_deathmatch", SP_info_player_deathmatch },
 
 	{ "post_match_camera", SP_post_match_camera },
-	{ "info_player_intermission", SP_post_match_camera },
 
 	{ "func_plat", SP_func_plat },
 	{ "func_button", SP_func_button },

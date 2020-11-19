@@ -83,11 +83,10 @@ static const EntityField fields[] = {
 	{ "spawn_probability", STOFS( spawn_probability ), F_FLOAT, FFL_SPAWNTEMP },
 };
 
-typedef struct
-{
+struct spawn_t {
 	const char *name;
 	void ( *spawn )( edict_t *ent );
-} spawn_t;
+};
 
 static void SP_worldspawn( edict_t *ent );
 
@@ -172,88 +171,30 @@ bool G_CallSpawn( edict_t *ent ) {
 }
 
 /*
-* G_GetEntitySpawnKey
-*/
-const char *G_GetEntitySpawnKey( const char *key, edict_t *self ) {
-	static char value[MAX_TOKEN_CHARS];
-	char keyname[MAX_TOKEN_CHARS];
-	char *com_token;
-	const char *data = NULL;
-
-	value[0] = 0;
-
-	if( self ) {
-		data = self->spawnString;
-	}
-
-	if( data && data[0] && key && key[0] ) {
-		// go through all the dictionary pairs
-		while( 1 ) {
-			// parse key
-			com_token = COM_Parse( &data );
-			if( com_token[0] == '}' ) {
-				break;
-			}
-
-			if( !data ) {
-				Com_Error( ERR_DROP, "G_GetEntitySpawnKey: EOF without closing brace" );
-			}
-
-			Q_strncpyz( keyname, com_token, sizeof( keyname ) );
-
-			// parse value
-			com_token = COM_Parse( &data );
-			if( !data ) {
-				Com_Error( ERR_DROP, "G_GetEntitySpawnKey: EOF without closing brace" );
-			}
-
-			if( com_token[0] == '}' ) {
-				Com_Error( ERR_DROP, "G_GetEntitySpawnKey: closing brace without data" );
-			}
-
-			// key names with a leading underscore are used for utility comments and are immediately discarded
-			if( keyname[0] == '_' ) {
-				continue;
-			}
-
-			if( !Q_stricmp( key, keyname ) ) {
-				Q_strncpyz( value, com_token, sizeof( value ) );
-				break;
-			}
-		}
-	}
-
-	return value;
-}
-
-/*
 * ED_NewString
 */
-static char *ED_NewString( const char *string ) {
-	char *newb, *new_p;
-	size_t i, l;
+static char *ED_NewString( Span< const char > token ) {
+	char * newb = &level.map_parsed_ents[ level.map_parsed_len ];
+	level.map_parsed_len += token.n + 1;
 
-	l = strlen( string ) + 1;
-	newb = &level.map_parsed_ents[level.map_parsed_len];
-	level.map_parsed_len += l;
+	char * new_p = newb;
 
-	new_p = newb;
-
-	for( i = 0; i < l; i++ ) {
-		if( string[i] == '\\' && i < l - 1 ) {
+	for( size_t i = 0; i < token.n; i++ ) {
+		if( token[ i ] == '\\' && i < token.n - 1 ) {
 			i++;
-			if( string[i] == 'n' ) {
+			if( token[ i ] == 'n' ) {
 				*new_p++ = '\n';
 			} else {
 				*new_p++ = '/';
-				*new_p++ = string[i];
+				*new_p++ = token[ i ];
 			}
 		} else {
-			*new_p++ = string[i];
+			*new_p++ = token[ i ];
 		}
 	}
 
 	*new_p = '\0';
+
 	return newb;
 }
 
@@ -263,9 +204,9 @@ static char *ED_NewString( const char *string ) {
 * Takes a key/value pair and sets the binary values
 * in an edict
 */
-static void ED_ParseField( const char *key, const char *value, edict_t *ent ) {
+static void ED_ParseField( Span< const char > key, Span< const char > value, edict_t * ent ) {
 	for( EntityField f : fields ) {
-		if( Q_stricmp( f.name, key ) != 0 )
+		if( !StrCaseEqual( f.name, key ) )
 			continue;
 
 		uint8_t *b;
@@ -284,31 +225,36 @@ static void ED_ParseField( const char *key, const char *value, edict_t *ent ) {
 				break;
 			case F_ASSET:
 				if( value[ 0 ] == '*' ) {
-					*(StringHash *)( b + f.ofs ) = StringHash( Hash64( value, strlen( value ), svs.cms->base_hash ) );
+					*(StringHash *)( b + f.ofs ) = StringHash( Hash64( value.ptr, value.n, svs.cms->base_hash ) );
 				}
 				else {
 					*(StringHash *)( b + f.ofs ) = StringHash( value );
 				}
 				break;
 			case F_INT:
-				*(int *)( b + f.ofs ) = atoi( value );
+				*(int *)( b + f.ofs ) = SpanToInt( value, 0 );
 				break;
 			case F_FLOAT:
-				*(float *)( b + f.ofs ) = atof( value );
+				*(float *)( b + f.ofs ) = SpanToFloat( value, 0.0f );
 				break;
 			case F_ANGLE:
-				*(Vec3 *)( b + f.ofs ) = Vec3( 0.0f, atof( value ), 0.0f );
+				*(Vec3 *)( b + f.ofs ) = Vec3( 0.0f, SpanToFloat( value, 0.0f ), 0.0f );
 				break;
 
 			case F_VECTOR: {
 				Vec3 vec;
-				sscanf( value, "%f %f %f", &vec.x, &vec.y, &vec.z );
+				vec.x = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+				vec.y = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+				vec.z = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
 				*(Vec3 *)( b + f.ofs ) = vec;
 			} break;
 
 			case F_RGBA: {
-				RGBA8 rgba = RGBA8( 255, 255, 255, 255 );
-				sscanf( value, "%hhu %hhu %hhu %hhu", &rgba.r, &rgba.g, &rgba.b, &rgba.a );
+				RGBA8 rgba;
+				rgba.r = ParseInt( &value, 255, Parse_StopOnNewLine );
+				rgba.g = ParseInt( &value, 255, Parse_StopOnNewLine );
+				rgba.b = ParseInt( &value, 255, Parse_StopOnNewLine );
+				rgba.a = ParseInt( &value, 255, Parse_StopOnNewLine );
 				*(RGBA8 *)( b + f.ofs ) = rgba;
 			} break;
 		}
@@ -320,74 +266,40 @@ static void ED_ParseField( const char *key, const char *value, edict_t *ent ) {
 	}
 }
 
-/*
-* ED_ParseEdict
-*
-* Parses an edict out of the given string, returning the new position
-* ed should be a properly initialized empty edict.
-*/
-static const char *ED_ParseEdict( const char *data, edict_t *ent ) {
-	bool init;
-	char keyname[256];
-	const char *com_token;
-
-	init = false;
+static void ED_ParseEntity( Span< const char > * cursor, edict_t * ent ) {
 	memset( &st, 0, sizeof( st ) );
 	st.spawn_probability = 1.0f;
-	level.spawning_entity = ent;
 
-	// go through all the dictionary pairs
-	while( 1 ) {
-		// parse key
-		com_token = COM_Parse( &data );
-		if( com_token[0] == '}' ) {
+	while( true ) {
+		Span< const char > key = ParseToken( cursor, Parse_DontStopOnNewLine );
+		if( key == "}" )
 			break;
-		}
-		if( !data ) {
+		if( key == "" ) {
 			Com_Error( ERR_DROP, "ED_ParseEntity: EOF without closing brace" );
 		}
 
-		Q_strncpyz( keyname, com_token, sizeof( keyname ) );
-
-		// parse value
-		com_token = COM_Parse( &data );
-		if( !data ) {
+		Span< const char > value = ParseToken( cursor, Parse_StopOnNewLine );
+		if( value == "" ) {
 			Com_Error( ERR_DROP, "ED_ParseEntity: EOF without closing brace" );
 		}
-
-		if( com_token[0] == '}' ) {
+		if( value == "}" ) {
 			Com_Error( ERR_DROP, "ED_ParseEntity: closing brace without data" );
 		}
 
-		init = true;
-
-		// keynames with a leading underscore are used for utility comments,
-		// and are immediately discarded by quake
-		if( keyname[0] == '_' ) {
-			continue;
-		}
-
-		ED_ParseField( keyname, com_token, ent );
+		ED_ParseField( key, value, ent );
 	}
-
-	if( !init ) {
-		ent->classname = NULL;
-	}
-
-	return data;
 }
 
 /*
 * G_FreeEntities
 */
 static void G_FreeEntities( void ) {
-	int i;
-
 	if( !level.time ) {
 		memset( game.edicts, 0, game.maxentities * sizeof( game.edicts[0] ) );
-	} else {
+	}
+	else {
 		G_FreeEdict( world );
-		for( i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
+		for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
 			if( game.edicts[i].r.inuse ) {
 				G_FreeEdict( game.edicts + i );
 			}
@@ -404,33 +316,30 @@ static void G_SpawnEntities( void ) {
 	level.spawnedTimeStamp = svs.gametime;
 	level.canSpawnEntities = true;
 
-	const char * entities = level.mapString;
 	level.map_parsed_ents[0] = 0;
 	level.map_parsed_len = 0;
 
+	Span< const char > cursor = MakeSpan( level.mapString );
 	edict_t * ent = NULL;
+
 	while( true ) {
-		level.spawning_entity = NULL;
-
 		// parse the opening brace
-		const char * token = COM_Parse( &entities );
-		if( !entities ) {
+		Span< const char > brace = ParseToken( &cursor, Parse_DontStopOnNewLine );
+		if( brace == "" )
 			break;
-		}
-		if( token[0] != '{' ) {
-			Com_Error( ERR_DROP, "G_SpawnMapEntities: found %s when expecting {", token );
+		if( brace != "{" ) {
+			Com_Error( ERR_DROP, "G_SpawnEntities: entity string doesn't begin with {" );
 		}
 
-		if( !ent ) {
+		if( ent == NULL ) {
 			ent = world;
 			G_InitEdict( world );
-		} else {
+		}
+		else {
 			ent = G_Spawn();
 		}
 
-		ent->spawnString = entities; // keep track of string definition of this entity
-
-		entities = ED_ParseEdict( entities, ent );
+		ED_ParseEntity( &cursor, ent );
 
 		bool ok = true;
 		ok = ok && ent->classname != NULL;

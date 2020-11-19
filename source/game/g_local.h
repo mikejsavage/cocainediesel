@@ -139,7 +139,6 @@ struct level_locals_t {
 	bool forceExit;     // just exit, ignore extended time checks
 
 	edict_t *current_entity;    // entity running from G_RunFrame
-	edict_t *spawning_entity;   // entity being spawned from G_InitLevel
 
 	timeout_t timeout;
 };
@@ -852,7 +851,6 @@ struct edict_t {
 	//
 
 	const char *classname;
-	const char *spawnString;            // keep track of string definition of this entity
 	int spawnflags;
 
 	int64_t nextThink;
